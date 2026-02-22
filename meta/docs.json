@@ -1,103 +1,123 @@
 {
   "documents": [
-
     {
       "doc-id": "doc-01",
+      "canonical-title": "Decisiones que nadie tomó",
       "title": "Decisiones que nadie tomó",
+      "summary": "Cristalización por acumulación. Zonas grises operativas.",
+      "path": "/docs/doc-01.html",
       "node": "main",
-      "pattern-type": ["decisión-emergente","cristalización-normativa"],
+      "pattern-type": ["decisión-emergente", "cristalización-normativa"],
       "scope-limit": "Contextos con historia operativa acumulada",
       "version": "1.0",
       "first-published": "2026-02-02"
     },
-
     {
       "doc-id": "doc-02",
+      "canonical-title": "Costo real de adoptable",
       "title": "Costo real de adoptable",
+      "summary": "Por qué soluciones superiores no se implementan.",
+      "path": "/docs/doc-02.html",
       "node": "main",
-      "pattern-type": ["fricción-institucional","resistencia-cambio"],
+      "pattern-type": ["fricción-institucional", "resistencia-cambio"],
       "scope-limit": "Organizaciones con sistemas legacy",
       "misuse-risk": "Usado para justificar inercia",
       "version": "1.0",
       "first-published": "2026-02-02"
     },
-
     {
       "doc-id": "doc-03",
+      "canonical-title": "Compliance como narrativa",
       "title": "Compliance como narrativa",
+      "summary": "Diferencia entre auditabilidad y seguridad.",
+      "path": "/docs/doc-03.html",
       "node": "main",
-      "pattern-type": ["optimización-métrica","disociación-sustancia"],
+      "pattern-type": ["optimización-métrica", "disociación-sustancia"],
       "scope-limit": "Alta carga regulatoria",
       "version": "1.0",
       "first-published": "2026-02-02"
     },
-
     {
       "doc-id": "doc-04",
+      "canonical-title": "Dinero como estructura temporal",
       "title": "Dinero como estructura temporal",
+      "summary": "Optionalidad temporal. Horizonte de maniobra.",
+      "path": "/docs/doc-04.html",
       "node": "main",
-      "pattern-type": ["optionalidad","riesgo-asimétrico"],
+      "pattern-type": ["optionalidad", "riesgo-asimétrico"],
       "scope-limit": "Individuos con capacidad de modificar ingresos",
       "version": "1.0",
       "first-published": "2026-02-02"
     },
-
     {
       "doc-id": "doc-05",
+      "canonical-title": "Escritura sin intención visible",
       "title": "Escritura sin intención visible",
+      "summary": "Redactar para extracción: señal sin ornamentación.",
+      "path": "/docs/doc-05.html",
       "node": "main",
-      "pattern-type": ["técnica-comunicación","reducción-ruido"],
+      "pattern-type": ["técnica-comunicación", "reducción-ruido"],
       "scope-limit": "Escritura técnica y argumentativa",
       "version": "1.0",
       "first-published": "2026-02-02"
     },
-
     {
       "doc-id": "doc-06",
+      "canonical-title": "Sistemas de alerta que nadie revisa",
       "title": "Sistemas de alerta que nadie revisa",
+      "summary": "Dashboards que miden todo y detectan nada.",
+      "path": "/docs/doc-06.html",
       "node": "main",
-      "pattern-type": ["señal-vs-ruido","optimización-métrica"],
+      "pattern-type": ["señal-vs-ruido", "optimización-métrica"],
       "scope-limit": "Sistemas con alertas automatizadas",
       "version": "1.0",
       "first-published": "2026-02-02"
     },
-
     {
       "doc-id": "doc-07",
+      "canonical-title": "Contexto perdido",
       "title": "Contexto perdido",
+      "summary": "Decisiones que envejecen por pérdida de restricciones.",
+      "path": "/docs/doc-07.html",
       "node": "main",
-      "pattern-type": ["decaimiento-conocimiento","dependencia-temporal"],
+      "pattern-type": ["decaimiento-conocimiento", "dependencia-temporal"],
       "scope-limit": "Organizaciones con decisiones heredadas",
       "version": "1.0",
       "first-published": "2026-02-02"
     },
-
     {
       "doc-id": "doc-08",
+      "canonical-title": "Personas en alta incertidumbre",
       "title": "Personas en alta incertidumbre",
+      "summary": "Operación eficaz sin reglas estables.",
+      "path": "/docs/doc-08.html",
       "node": "main",
-      "pattern-type": ["operación-ambigua","bajo-acoplamiento-validación"],
+      "pattern-type": ["operación-ambigua", "bajo-acoplamiento-validación"],
       "scope-limit": "Observación de patrón",
       "misuse-risk": "Confundir con evasión de responsabilidad",
       "version": "1.0",
       "first-published": "2026-02-02"
     },
-
     {
       "doc-id": "doc-09",
+      "canonical-title": "Deuda de decisión",
       "title": "Deuda de decisión",
+      "summary": "Costo acumulado de posponer claridad.",
+      "path": "/docs/doc-09.html",
       "node": "main",
-      "pattern-type": ["claridad-pospuesta","costo-acumulado"],
+      "pattern-type": ["claridad-pospuesta", "costo-acumulado"],
       "scope-limit": "Contextos colaborativos",
       "version": "1.0",
       "first-published": "2026-02-02"
     },
-
     {
       "doc-id": "doc-10",
+      "canonical-title": "Incentivos bien diseñados que fallan",
       "title": "Incentivos bien diseñados que fallan",
+      "summary": "Cuando el proxy se convierte en objetivo.",
+      "path": "/docs/doc-10.html",
       "node": "main",
-      "pattern-type": ["goodhart-ley","proxy-optimization"],
+      "pattern-type": ["goodhart-ley", "proxy-optimization"],
       "scope-limit": "Sistemas con métricas cuantificables",
       "version": "1.0",
       "first-published": "2026-02-02"
@@ -105,48 +125,58 @@
 
     {
       "doc-id": "ags-01",
+      "canonical-title": "La distancia que no se mide",
       "title": "La distancia que no se mide",
+      "summary": "Umbral real vs oficial, aplicado al nodo.",
+      "path": "/nodo-ags/ags-01.html",
       "node": "nodo-ags",
       "pattern-type": ["umbral-real-vs-oficial"],
       "inherits-framework": "core-00",
       "version": "1.0"
     },
-
     {
       "doc-id": "ags-02",
+      "canonical-title": "El costo de la latencia",
       "title": "El costo de la latencia",
+      "summary": "Latencia institucional como variable de ajuste.",
+      "path": "/nodo-ags/ags-02.html",
       "node": "nodo-ags",
       "pattern-type": ["latencia-institucional"],
       "inherits-framework": "core-00",
       "version": "1.0"
     },
-
     {
       "doc-id": "ags-03",
+      "canonical-title": "El agua que no se ve",
       "title": "El agua que no se ve",
+      "summary": "Brecha dato-realidad en concesiones y operación.",
+      "path": "/nodo-ags/ags-03.html",
       "node": "nodo-ags",
       "pattern-type": ["brecha-dato-realidad"],
       "inherits-framework": "core-00",
       "version": "1.0"
     },
-
     {
       "doc-id": "ags-04",
+      "canonical-title": "La ficción institucional",
       "title": "La ficción institucional",
+      "summary": "Narrativa de estabilidad vs operación real.",
+      "path": "/nodo-ags/ags-04.html",
       "node": "nodo-ags",
       "pattern-type": ["narrativa-estabilidad"],
       "inherits-framework": "core-00",
       "version": "1.0"
     },
-
     {
       "doc-id": "ags-05",
+      "canonical-title": "El pacto no escrito",
       "title": "El pacto no escrito",
+      "summary": "Equilibrio implícito que sostiene estabilidad operativa.",
+      "path": "/nodo-ags/ags-05.html",
       "node": "nodo-ags",
       "pattern-type": ["equilibrio-implícito"],
       "inherits-framework": "core-00",
       "version": "1.0"
     }
-
   ]
 }
