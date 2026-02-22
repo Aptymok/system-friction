@@ -551,3 +551,14 @@ ul li::before {
   color: var(--text-dim);
   font-size: 0.55rem;
 }
+
+ol {
+  margin: 0.5rem 0 1.5rem 1.2rem;
+  max-width: 560px;
+}
+ol li {
+  margin: 0.35rem 0;
+  color: var(--text);
+  font-size: 0.95rem;
+}
+
