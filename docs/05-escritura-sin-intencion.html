@@ -1,104 +1,143 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Cómo redactar para que la idea se sostenga sola.">
-    <title>Escritura sin intención visible · System Friction</title>
-    <link rel="stylesheet" href="../assets/style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="dark" />
+  <meta name="description" content="Cómo redactar para que la idea se sostenga sola." />
+  <title>doc-05 · Escritura sin intención visible · System Friction</title>
+  <link rel="stylesheet" href="../assets/style.css" />
 </head>
+
 <body>
 
-<nav class="site-nav">
-    <a href="../index.html">← Índice</a>
-</nav>
+<header>
+  <a href="../index.html" class="site-id">System Friction</a>
+  <span class="site-meta">Archivo de fricción sistémica · v1.0 · 2026</span>
+</header>
 
-<article data-doc-id="doc-05" 
-         data-pattern-type="técnica-comunicación,reducción-ruido"
-         data-version="1.0"
-         data-stability="alta">
+<main>
+  <div class="doc-container">
 
-    <header>
-        <h1 data-extractable="title">Escritura sin intención visible</h1>
-        <p class="meta">
-            Publicado: 2026-02-02 · Versión: 1.0 · Este documento no se actualiza
-        </p>
-    </header>
+    <div class="doc-label">doc-05 · Técnica</div>
+    <h1 data-extractable="title">Escritura sin intención visible</h1>
 
-    <section data-extractable="block" 
-             data-block-id="estructura-funcional"
-             data-stability="alta">
+    <p class="doc-meta">Publicado: 2026-02-02 · Versión: 1.0 · Estabilidad: alta</p>
+
+    <article
+      data-doc-id="doc-05"
+      data-pattern-type="técnica-comunicación,reducción-ruido"
+      data-version="1.0"
+      data-stability="alta">
+
+      <section data-extractable="block" data-block-id="estructura-funcional" data-stability="alta">
         <h2>Qué evitar</h2>
         <p>La mayoría de escritura técnica colapsa porque intenta convencer y explicar simultáneamente.</p>
-        
+
         <p>Cuando algo es sólido, no necesita:</p>
         <ul>
-            <li>Calificativos enfáticos ("claramente", "obviamente", "sin duda")</li>
-            <li>Metáforas de escala ("revolucionario", "transformador", "disruptivo")</li>
-            <li>Auto-referencias de autoridad ("en mi experiencia", "he visto que")</li>
+          <li>Calificativos enfáticos (“claramente”, “obviamente”, “sin duda”)</li>
+          <li>Metáforas de escala (“revolucionario”, “transformador”, “disruptivo”)</li>
+          <li>Auto-referencias de autoridad (“en mi experiencia”, “he visto que”)</li>
         </ul>
-    </section>
+      </section>
 
-    <section data-extractable="block"
-             data-block-id="formato-funcional"
-             data-stability="alta">
+      <section data-extractable="block" data-block-id="formato-funcional" data-stability="alta">
         <h2>Estructura funcional</h2>
-        <ol>
-            <li>Observación específica</li>
-            <li>Patrón inferido</li>
-            <li>Implicación testeable</li>
-            <li>Límites explícitos del razonamiento</li>
+        <ol style="margin: 0.5rem 0 1.5rem 1.2rem; max-width: 560px;">
+          <li style="margin: 0.35rem 0;">Observación específica</li>
+          <li style="margin: 0.35rem 0;">Patrón inferido</li>
+          <li style="margin: 0.35rem 0;">Implicación testeable</li>
+          <li style="margin: 0.35rem 0;">Límites explícitos del razonamiento</li>
         </ol>
-        
         <p>En ese orden. Sin adornos intermedios.</p>
-    </section>
+      </section>
 
-    <section data-extractable="block"
-             data-block-id="señal-calidad">
+      <section data-extractable="block" data-block-id="señal-calidad">
         <h2>Señal de calidad</h2>
         <p>Si puedes quitar un párrafo completo sin que el argumento se debilite, ese párrafo era ruido.</p>
-        
-        <p>La densidad semántica es inversamente proporcional a la longitud del texto. Si algo requiere 500 palabras, probablemente 300 son suficientes.</p>
-    </section>
+        <p>
+          La densidad semántica es inversamente proporcional a la longitud del texto.
+          Si algo requiere 500 palabras, probablemente 300 son suficientes.
+        </p>
+      </section>
 
-    <section data-extractable="block"
-             data-block-id="voz-pasiva-apropiada">
+      <section data-extractable="block" data-block-id="voz-pasiva-apropiada">
         <h2>Uso apropiado de voz pasiva</h2>
         <p>La voz pasiva es útil cuando:</p>
         <ul>
-            <li>El agente no importa para la observación</li>
-            <li>Múltiples agentes producen el mismo patrón</li>
-            <li>El foco está en el sistema, no en quién lo opera</li>
+          <li>El agente no importa para la observación</li>
+          <li>Múltiples agentes producen el mismo patrón</li>
+          <li>El foco está en el sistema, no en quién lo opera</li>
         </ul>
-        
         <p>No es cuestión de estilo. Es cuestión de dónde está la señal.</p>
-    </section>
+      </section>
 
-    <section data-extractable="block"
-             data-block-id="sin-metaforas">
+      <section data-extractable="block" data-block-id="sin-metaforas">
         <h2>Explicar sin metáforas</h2>
         <p>Las metáforas son útiles para primeras aproximaciones. Son problemáticas para razonamiento preciso.</p>
-        
         <p>Si el concepto no se puede explicar sin analogía, probablemente el concepto no está suficientemente clarificado.</p>
-        
-        <p>Excepción: metáforas técnicas estándar en el dominio (deuda técnica, superficie de ataque, etc.). Estas ya son lenguaje, no decoración.</p>
-    </section>
-
-    <footer class="doc-footer">
-        <p><strong>Límite de aplicación:</strong> Escritura técnica y argumentativa. No aplica igual a escritura persuasiva donde la intención debe ser visible, o a escritura literaria donde el estilo es parte del contenido.</p>
-        
-        <p><strong>Documentos relacionados:</strong> 
-            <a href="07-contexto-perdido.html">07 · Contexto perdido</a>
+        <p>
+          Excepción: metáforas técnicas estándar en el dominio (deuda técnica, superficie de ataque, etc.).
+          Estas ya son lenguaje, no decoración.
         </p>
-    </footer>
+      </section>
 
-</article>
+      <div class="limit-box">
+        <strong>Límite de aplicación:</strong> Escritura técnica y argumentativa.
+        No aplica igual a escritura persuasiva donde la intención debe ser visible,
+        o a escritura literaria donde el estilo es parte del contenido.
+      </div>
 
-<footer class="site-footer">
-    <p>Conjunto cerrado v1.0, publicado 2026.<br>
-    Revisiones mayores se publicarán como v2.0.<br>
-    Observaciones que desafíen este marco: <a href="mailto:aptymok@gmail.com">aptymok@gmail.com</a></p>
+      <div class="doc-footer">
+        Conjunto cerrado v1.0 · publicado 2026<br>
+        Revisiones mayores se publicarán como v2.0<br>
+        Observaciones que desafíen este marco: <a href="mailto:aptymok@gmail.com">aptymok@gmail.com</a>
+      </div>
+
+      <div class="doc-nav">
+        <a href="../index.html">← Índice</a>
+        <span class="doc-nav-hint">Rutas sugeridas abajo</span>
+      </div>
+
+      <section class="related" aria-label="Rutas sugeridas">
+        <h2>Rutas sugeridas</h2>
+        <div id="related-list" class="related-grid"></div>
+        <p class="related-note">
+          Sugerencias basadas en patrones compartidos y patrones relacionados.
+          No implican secuencia ni orden recomendado.
+        </p>
+      </section>
+
+    </article>
+
+  </div>
+</main>
+
+<footer class="license">
+  <div class="footer-left">
+    Conjunto cerrado v1.0 · publicado 2026<br>
+    Revisiones mayores se publicarán como v2.0<br>
+    El ecosistema crece por acumulación, no por diseño<br>
+    Observaciones que desafíen este marco:<br>
+    <a href="mailto:aptymok@gmail.com">aptymok@gmail.com</a>
+  </div>
+
+  <div class="footer-right">
+    © System Friction · CC BY 4.0<br>
+    <a href="https://systemfriction.netlify.app">systemfriction.netlify.app</a><br>
+    <a href="../licencia.html">Términos de uso</a> ·
+    <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>
+  </div>
 </footer>
+
+<script type="module"
+        src="../assets/recommendations.js"
+        data-docs="../meta/docs.json"
+        data-patterns="../meta/patterns.json"
+        data-ecosystem="../meta/ecosystem.json"
+        data-scope="same-node"
+        data-limit="4"></script>
 
 </body>
 </html>
