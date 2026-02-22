@@ -4,7 +4,7 @@ function cfg() {
     docsUrl: s?.dataset?.docs || "../meta/docs.json",
     patternsUrl: s?.dataset?.patterns || "../meta/patterns.json",
     ecosystemUrl: s?.dataset?.ecosystem || "../meta/ecosystem.json",
-    scope: s?.dataset?.scope || "same-node",
+    scope: s?.dataset?.scope || "same-node", // same-node | cross-node
     limit: Number(s?.dataset?.limit || 4),
   };
 }
@@ -18,8 +18,6 @@ function toSet(arr) {
 function detectCurrentDocId() {
   const a = document.querySelector("article[data-doc-id]");
   if (a?.dataset?.docId) return a.dataset.docId;
-
-  // fallback: nombre del archivo sin extensión
   const file = (location.pathname.split("/").pop() || "").replace(".html", "");
   return file;
 }
@@ -31,8 +29,8 @@ async function fetchJson(url) {
 }
 
 /**
- * Normaliza tu docs.json:
- * { "documents": [ { "doc-id": "...", "pattern-type":[...], "node":"main", ... } ] }
+ * docs.json:
+ * { "documents": [ { "doc-id": "...", "pattern-type":[...], "node":"main|nodo-ags", ... } ] }
  */
 function normalizeDocs(docsJson) {
   const arr = docsJson?.documents || [];
@@ -49,8 +47,8 @@ function normalizeDocs(docsJson) {
 }
 
 /**
- * Crea mapa de patrones y expansión por related-patterns:
- * patterns.json: { patterns: [ { id, related-patterns: [...] } ] }
+ * patterns.json:
+ * { "patterns": [ { id, related-patterns: [...] } ] }
  */
 function buildPatternGraph(patternsJson) {
   const map = new Map();
@@ -63,11 +61,6 @@ function buildPatternGraph(patternsJson) {
   return map;
 }
 
-/**
- * Expande patrones 1 salto:
- * - incluye los propios
- * - incluye related-patterns (si existen)
- */
 function expandPatterns(patternSet, graph) {
   const expanded = new Set([...patternSet]);
   for (const p of patternSet) {
@@ -78,35 +71,16 @@ function expandPatterns(patternSet, graph) {
 }
 
 /**
- * Resolver ruta a HTML (porque tu docs.json no incluye path/href).
- * Aquí aplicamos un mapa mínimo (puedes ampliarlo).
+ * ✅ Enlace canónico:
+ * - main:   /docs/doc-XX.html
+ * - nodo-ags: /nodo-ags/ags-XX.html
+ *
+ * Usamos paths absolutos (desde raíz) para evitar problemas de ../
+ * Netlify lo soporta bien si publicas en dominio raíz.
  */
-function hrefFor(doc) {
-  // MAIN docs: viven en /docs/
-  const mainMap = {
-    "doc-01": "01-decisiones-que-nadie-tomo.html",
-    "doc-02": "02-costo-real-adoptable.html",
-    "doc-03": "03-compliance-como-narrativa.html",
-    "doc-04": "04-dinero-estructura-temporal.html",
-    "doc-05": "05-escritura-sin-intencion.html",
-    "doc-06": "06-sistemas-alerta.html",
-    "doc-07": "07-contexto-perdido.html",
-    "doc-08": "08-personas-alta-incertidumbre.html",
-    "doc-09": "09-deuda-decision.html",
-    "doc-10": "10-incentivos-que-fallan.html",
-  };
-
-  // Nodo AGS: viven en /nodo-ags/ (desde /docs/ se sube un nivel)
-  const agsMap = {
-    "ags-01": "../nodo-ags/la-distancia-que-no-se-mide.html",
-    "ags-02": "../nodo-ags/el-costo-de-la-latencia.html",
-    "ags-03": "../nodo-ags/el-agua-que-no-se-ve.html",
-    "ags-04": "../nodo-ags/la-ficcion-institucional.html",
-    "ags-05": "../nodo-ags/el-pacto-no-escrito.html",
-  };
-
-  if (doc.node === "nodo-ags") return agsMap[doc.id] || "../nodo-ags/index.html";
-  return mainMap[doc.id] || "#";
+function canonicalHref(doc) {
+  if (doc.node === "nodo-ags") return `/nodo-ags/${doc.id}.html`;
+  return `/docs/${doc.id}.html`;
 }
 
 function score(current, candidate, graph) {
@@ -118,15 +92,16 @@ function score(current, candidate, graph) {
   const curEx = expandPatterns(cur, graph);
   const candEx = expandPatterns(cand, graph);
 
-  // overlap directo
+  // overlap directo (patrón exacto)
   let direct = 0;
   for (const p of cur) if (cand.has(p)) direct++;
 
-  // overlap expandido (resonancia indirecta)
+  // overlap indirecto (resonancia por related-patterns)
   let indirect = 0;
-  for (const p of curEx) if (!cur.has(p) && candEx.has(p)) indirect++;
+  for (const p of curEx) {
+    if (!cur.has(p) && candEx.has(p)) indirect++;
+  }
 
-  // ponderación: directo pesa más que indirecto
   return direct * 12 + indirect * 4;
 }
 
@@ -152,7 +127,7 @@ function render(items) {
     box.innerHTML = `
       <div class="limit-box">
         No hay rutas sugeridas suficientes con los patrones actuales.
-        (Amplía patterns compartidos o related-patterns)
+        (Amplía patrones compartidos o related-patterns)
       </div>`;
     return;
   }
@@ -160,8 +135,11 @@ function render(items) {
   box.innerHTML = items.map(d => {
     const label = d.id;
     const title = d.title;
-    const sub = d.scopeLimit ? `Límite: ${d.scopeLimit}` : "";
-    const href = hrefFor(d);
+    const sub =
+      d.scopeLimit ? `Límite: ${d.scopeLimit}` :
+      d.misuseRisk ? `Riesgo: ${d.misuseRisk}` :
+      "";
+    const href = canonicalHref(d);
 
     return `
       <a class="related-item" href="${href}">
@@ -177,7 +155,6 @@ function render(items) {
   try {
     const { docsUrl, patternsUrl, ecosystemUrl, scope, limit } = cfg();
 
-    // Cargamos todo (ecosystem puede servir luego para enriquecer, hoy no es crítico)
     const [docsJson, patternsJson] = await Promise.all([
       fetchJson(docsUrl),
       fetchJson(patternsUrl),
@@ -188,11 +165,8 @@ function render(items) {
     const graph = buildPatternGraph(patternsJson);
 
     const currentId = detectCurrentDocId();
-
-    // match exacto por doc-id
     const current = docs.find(d => d.id === currentId) || null;
 
-    // Si no encontramos doc-id, no destruimos la página
     if (!current) {
       render([]);
       return;
@@ -200,9 +174,7 @@ function render(items) {
 
     const items = pick(current, docs, graph, scope, limit);
     render(items);
-
   } catch (e) {
     render([]);
   }
 })();
-``
