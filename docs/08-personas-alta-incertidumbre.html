@@ -1,108 +1,142 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Qué tienen en común quienes operan bien cuando las reglas no existen.">
-    <title>Personas en alta incertidumbre · System Friction</title>
-    <link rel="stylesheet" href="../assets/style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="dark" />
+  <meta name="description" content="Qué tienen en común quienes operan bien cuando las reglas no existen." />
+  <title>doc-08 · Personas en alta incertidumbre · System Friction</title>
+  <link rel="stylesheet" href="../assets/style.css" />
 </head>
+
 <body>
 
-<nav class="site-nav">
-    <a href="../index.html">← Índice</a>
-</nav>
+<header>
+  <a href="../index.html" class="site-id">System Friction</a>
+  <span class="site-meta">Archivo de fricción sistémica · v1.0 · 2026</span>
+</header>
 
-<article data-doc-id="doc-08" 
-         data-pattern-type="operación-ambigua,bajo-acoplamiento-validación"
-         data-version="1.0"
-         data-stability="media">
+<main>
+  <div class="doc-container">
 
-    <header>
-        <h1 data-extractable="title">Personas en alta incertidumbre</h1>
-        <p class="meta">
-            Publicado: 2026-02-02 · Versión: 1.0 · Este documento no se actualiza
-        </p>
-    </header>
+    <div class="doc-label">doc-08 · Perfil</div>
+    <h1 data-extractable="title">Personas en alta incertidumbre</h1>
 
-    <section data-extractable="block" 
-             data-block-id="caracteristicas-comunes"
-             data-stability="media">
+    <p class="doc-meta">Publicado: 2026-02-02 · Versión: 1.0 · Estabilidad: media</p>
+
+    <article
+      data-doc-id="doc-08"
+      data-pattern-type="operación-ambigua,bajo-acoplamiento-validación"
+      data-version="1.0"
+      data-stability="media">
+
+      <section data-extractable="block" data-block-id="caracteristicas-comunes" data-stability="media">
         <h2>Qué comparten</h2>
         <p>Quienes operan bien cuando las reglas no existen comparten:</p>
-        
         <ul>
-            <li>Bajo acoplamiento con validación externa</li>
-            <li>Alta tolerancia a revisión continua</li>
-            <li>Preferencia por reversibilidad sobre optimización</li>
-            <li>Capacidad de sostener ambigüedad sin resolverla prematuramente</li>
+          <li>Bajo acoplamiento con validación externa</li>
+          <li>Alta tolerancia a revisión continua</li>
+          <li>Preferencia por reversibilidad sobre optimización</li>
+          <li>Capacidad de sostener ambigüedad sin resolverla prematuramente</li>
         </ul>
-        
         <p>No es tolerancia al riesgo. Es comodidad con información incompleta.</p>
-    </section>
+      </section>
 
-    <section data-extractable="block"
-             data-block-id="no-es-riesgo"
-             data-stability="alta">
+      <section data-extractable="block" data-block-id="no-es-riesgo" data-stability="alta">
         <h2>No es apetito de riesgo</h2>
         <p>La diferencia entre asumir riesgo y operar en incertidumbre:</p>
-        
-        <p><strong>Riesgo:</strong> conoces la distribución de resultados posibles<br>
-        <strong>Incertidumbre:</strong> no sabes qué resultados son posibles</p>
-        
+        <p>
+          <strong>Riesgo:</strong> conoces la distribución de resultados posibles<br />
+          <strong>Incertidumbre:</strong> no sabes qué resultados son posibles
+        </p>
         <p>Operar en incertidumbre requiere estar cómodo no sabiendo si estás tomando riesgos o no.</p>
-    </section>
+      </section>
 
-    <section data-extractable="block"
-             data-block-id="distincion-operativa">
+      <section data-extractable="block" data-block-id="distincion-operativa">
         <h2>Distinción operativa</h2>
         <p>Se distinguen no por lo que hacen, sino por cuánto tiempo pueden no hacer nada sin degradar criterio.</p>
-        
         <p>Capacidad de esperar sin:</p>
         <ul>
-            <li>Forzar claridad artificial</li>
-            <li>Comprometerse prematuramente</li>
-            <li>Convertir incertidumbre en riesgo medible para sentirse en control</li>
+          <li>Forzar claridad artificial</li>
+          <li>Comprometerse prematuramente</li>
+          <li>Convertir incertidumbre en riesgo medible para sentirse en control</li>
         </ul>
-    </section>
+      </section>
 
-    <section data-extractable="block"
-             data-block-id="bajo-acoplamiento">
+      <section data-extractable="block" data-block-id="bajo-acoplamiento">
         <h2>Bajo acoplamiento con validación externa</h2>
         <p>No necesitan confirmación frecuente de que van por buen camino.</p>
-        
-        <p>Esto no es arrogancia. Es capacidad de sostener un modelo interno del mundo sin requerir validación social constante.</p>
-        
+        <p>
+          Esto no es arrogancia.
+          Es capacidad de sostener un modelo interno del mundo sin requerir validación social constante.
+        </p>
         <p>Permite operar en dominios donde el feedback es escaso, tardío o ruidoso.</p>
-    </section>
+      </section>
 
-    <section data-extractable="block"
-             data-block-id="revision-continua">
+      <section data-extractable="block" data-block-id="revision-continua">
         <h2>Tolerancia a revisión continua</h2>
         <p>Tratan sus propias decisiones como provisionales por defecto.</p>
-        
         <p>No como falta de convicción. Como reconocimiento de que la información disponible está incompleta.</p>
-        
         <p>Esto permite cambiar de dirección sin costo emocional cuando aparece nueva información.</p>
-    </section>
+      </section>
 
-    <footer class="doc-footer">
-        <p><strong>Límite de aplicación:</strong> Observación de patrón, no prescripción. Este documento describe características correlacionadas, no causales. No está claro qué tanto es entrenable vs selección.</p>
-        
-        <p><strong>Riesgo de mala aplicación:</strong> Confundir estas características con evitar responsabilidad o no comprometerse nunca.</p>
-        
-        <p><strong>Documentos relacionados:</strong> 
-            <a href="04-dinero-estructura-temporal.html">04 · Dinero como estructura temporal</a>
+      <div class="limit-box">
+        <strong>Límite de aplicación:</strong> Observación de patrón, no prescripción.
+        Este documento describe características correlacionadas, no causales.
+        No está claro qué tanto es entrenable vs selección.<br><br>
+        <strong>Riesgo de mala aplicación:</strong> Confundir estas características con evitar responsabilidad o no comprometerse nunca.
+      </div>
+
+      <div class="doc-footer">
+        Conjunto cerrado v1.0 · publicado 2026<br />
+        Revisiones mayores se publicarán como v2.0<br />
+        Observaciones que desafíen este marco:
+        <a href="mailto:aptymok@gmail.com">aptymok@gmail.com</a>
+      </div>
+
+      <div class="doc-nav">
+        <a href="../index.html">← Índice</a>
+        <span class="doc-nav-hint">Rutas sugeridas abajo</span>
+      </div>
+
+      <section class="related" aria-label="Rutas sugeridas">
+        <h2>Rutas sugeridas</h2>
+        <div id="related-list" class="related-grid"></div>
+        <p class="related-note">
+          Sugerencias basadas en patrones compartidos y patrones relacionados.
+          No implican secuencia ni orden recomendado.
         </p>
-    </footer>
+      </section>
 
-</article>
+    </article>
 
-<footer class="site-footer">
-    <p>Conjunto cerrado v1.0, publicado 2026.<br>
-    Revisiones mayores se publicarán como v2.0.<br>
-    Observaciones que desafíen este marco: <a href="mailto:aptymok@gmail.com">aptymok@gmail.com</a></p>
+  </div>
+</main>
+
+<footer class="license">
+  <div class="footer-left">
+    Conjunto cerrado v1.0 · publicado 2026<br />
+    Revisiones mayores se publicarán como v2.0<br />
+    El ecosistema crece por acumulación, no por diseño<br />
+    Observaciones que desafíen este marco:<br />
+    <a href="mailto:aptymok@gmail.com">aptymok@gmail.com</a>
+  </div>
+
+  <div class="footer-right">
+    © System Friction · CC BY 4.0<br />
+    <a href="https://systemfriction.netlify.app">systemfriction.netlify.app</a><br />
+    <a href="../licencia.html">Términos de uso</a> ·
+    <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>
+  </div>
 </footer>
+
+<script type="module"
+        src="../assets/recommendations.js"
+        data-docs="../meta/docs.json"
+        data-patterns="../meta/patterns.json"
+        data-ecosystem="../meta/ecosystem.json"
+        data-scope="same-node"
+        data-limit="4"></script>
 
 </body>
 </html>
