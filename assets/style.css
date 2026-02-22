@@ -363,3 +363,191 @@ ul li::before {
     text-align: center;
   }
 }
+/* META (evitar inline) */
+.doc-meta {
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  color: var(--text-dim);
+  margin: -1.5rem 0 2rem;
+  letter-spacing: 0.05em;
+}
+
+/* NAV del doc (no lineal): índice + hint */
+.doc-nav {
+  margin-top: 2rem;
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+}
+.doc-nav a {
+  color: var(--accent-dim);
+  text-decoration: none;
+}
+.doc-nav a:hover { color: var(--accent); }
+.doc-nav-hint {
+  color: var(--text-dim);
+  letter-spacing: 0.06em;
+}
+
+/* Pregunta destacada */
+.question {
+  font-family: var(--mono);
+  margin-top: 2rem;
+  font-size: 0.9rem;
+  color: var(--accent);
+}
+
+/* RUTAS SUGERIDAS */
+.related {
+  margin-top: 3rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--border);
+}
+.related h2 { margin-top: 0; }
+
+.related-grid {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.related-item {
+  border-left: 1px solid var(--border);
+  padding-left: 1rem;
+  text-decoration: none;
+  color: inherit;
+  display: block;
+  transition: border-color 0.2s;
+}
+.related-item:hover { border-left-color: var(--accent); }
+
+.related-num {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  color: var(--accent-dim);
+  margin-bottom: 0.25rem;
+}
+.related-title {
+  font-size: 1.05rem;
+  color: var(--text-bright);
+  margin-bottom: 0.25rem;
+}
+.related-sub {
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  color: var(--text-dim);
+  line-height: 1.5;
+}
+.related-note {
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  color: var(--text-dim);
+  margin-top: 1rem;
+  letter-spacing: 0.05em;
+  line-height: 1.9;
+}
+
+/* NODO AGS (sin inline styles) */
+.nodo { color: var(--accent-red-dim); }
+.doc-label.nodo { color: var(--accent-red-dim); }
+.doc-label.nodo::after { background: var(--accent-red-dim); opacity: 0.4; }
+.limit-box.nodo { border-left-color: #2a1a1a; }
+
+.nodo-entry {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 6rem 2rem 4rem;
+  animation: fadeUp 2.4s ease both;
+}
+.nodo-label {
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--accent-red-dim);
+  margin-bottom: 2rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+.nodo-label::after {
+  content: '';
+  height: 1px;
+  background: var(--accent-red-dim);
+  width: 40px;
+  opacity: 0.4;
+}
+.nodo-grid {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 2rem 2rem 6rem;
+  display: grid;
+  gap: 0;
+  border: 1px solid #2a1a1a;
+}
+.nodo-doc {
+  padding: 1.8rem 2rem;
+  border-bottom: 1px solid #2a1a1a;
+  text-decoration: none;
+  display: block;
+  position: relative;
+  transition: background 0.2s;
+}
+.nodo-doc:last-child { border-bottom: none; }
+.nodo-doc:hover { background: #120d0d; }
+.nodo-doc:hover .nodo-arrow { opacity: 1; transform: translateX(0); }
+.nodo-doc-title {
+  font-family: var(--serif);
+  font-size: 1.1rem;
+  color: var(--text-bright);
+  margin-bottom: 0.5rem;
+}
+.nodo-doc-sub {
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  color: var(--text-dim);
+  line-height: 1.7;
+}
+.nodo-arrow {
+  position: absolute;
+  top: 1.8rem;
+  right: 2rem;
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  color: var(--accent-red);
+  opacity: 0;
+  transform: translateX(-6px);
+  transition: all 0.2s ease;
+}
+.nodo-note {
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  color: var(--text-dim);
+  letter-spacing: 0.08em;
+  line-height: 2;
+  padding: 1.5rem 2rem;
+  border-top: 1px solid #2a1a1a;
+  background: #0f0a0a;
+}
+.nodo-section-divider {
+  grid-column: 1 / -1;
+  padding: 1rem 2rem;
+  background: #0f0a0a;
+  border-bottom: 1px solid #2a1a1a;
+  border-top: 1px solid #2a1a1a;
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--accent-red-dim);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.nodo-section-divider span {
+  color: var(--text-dim);
+  font-size: 0.55rem;
+}
