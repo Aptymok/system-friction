@@ -1,0 +1,152 @@
+{
+  "documents": [
+
+    {
+      "doc-id": "doc-01",
+      "title": "Decisiones que nadie tomó",
+      "node": "main",
+      "pattern-type": ["decisión-emergente","cristalización-normativa"],
+      "scope-limit": "Contextos con historia operativa acumulada",
+      "version": "1.0",
+      "first-published": "2026-02-02"
+    },
+
+    {
+      "doc-id": "doc-02",
+      "title": "Costo real de adoptable",
+      "node": "main",
+      "pattern-type": ["fricción-institucional","resistencia-cambio"],
+      "scope-limit": "Organizaciones con sistemas legacy",
+      "misuse-risk": "Usado para justificar inercia",
+      "version": "1.0",
+      "first-published": "2026-02-02"
+    },
+
+    {
+      "doc-id": "doc-03",
+      "title": "Compliance como narrativa",
+      "node": "main",
+      "pattern-type": ["optimización-métrica","disociación-sustancia"],
+      "scope-limit": "Alta carga regulatoria",
+      "version": "1.0",
+      "first-published": "2026-02-02"
+    },
+
+    {
+      "doc-id": "doc-04",
+      "title": "Dinero como estructura temporal",
+      "node": "main",
+      "pattern-type": ["optionalidad","riesgo-asimétrico"],
+      "scope-limit": "Individuos con capacidad de modificar ingresos",
+      "version": "1.0",
+      "first-published": "2026-02-02"
+    },
+
+    {
+      "doc-id": "doc-05",
+      "title": "Escritura sin intención visible",
+      "node": "main",
+      "pattern-type": ["técnica-comunicación","reducción-ruido"],
+      "scope-limit": "Escritura técnica y argumentativa",
+      "version": "1.0",
+      "first-published": "2026-02-02"
+    },
+
+    {
+      "doc-id": "doc-06",
+      "title": "Sistemas de alerta que nadie revisa",
+      "node": "main",
+      "pattern-type": ["señal-vs-ruido","optimización-métrica"],
+      "scope-limit": "Sistemas con alertas automatizadas",
+      "version": "1.0",
+      "first-published": "2026-02-02"
+    },
+
+    {
+      "doc-id": "doc-07",
+      "title": "Contexto perdido",
+      "node": "main",
+      "pattern-type": ["decaimiento-conocimiento","dependencia-temporal"],
+      "scope-limit": "Organizaciones con decisiones heredadas",
+      "version": "1.0",
+      "first-published": "2026-02-02"
+    },
+
+    {
+      "doc-id": "doc-08",
+      "title": "Personas en alta incertidumbre",
+      "node": "main",
+      "pattern-type": ["operación-ambigua","bajo-acoplamiento-validación"],
+      "scope-limit": "Observación de patrón",
+      "misuse-risk": "Confundir con evasión de responsabilidad",
+      "version": "1.0",
+      "first-published": "2026-02-02"
+    },
+
+    {
+      "doc-id": "doc-09",
+      "title": "Deuda de decisión",
+      "node": "main",
+      "pattern-type": ["claridad-pospuesta","costo-acumulado"],
+      "scope-limit": "Contextos colaborativos",
+      "version": "1.0",
+      "first-published": "2026-02-02"
+    },
+
+    {
+      "doc-id": "doc-10",
+      "title": "Incentivos bien diseñados que fallan",
+      "node": "main",
+      "pattern-type": ["goodhart-ley","proxy-optimization"],
+      "scope-limit": "Sistemas con métricas cuantificables",
+      "version": "1.0",
+      "first-published": "2026-02-02"
+    },
+
+    {
+      "doc-id": "ags-01",
+      "title": "La distancia que no se mide",
+      "node": "nodo-ags",
+      "pattern-type": ["umbral-real-vs-oficial"],
+      "inherits-framework": "core-00",
+      "version": "1.0"
+    },
+
+    {
+      "doc-id": "ags-02",
+      "title": "El costo de la latencia",
+      "node": "nodo-ags",
+      "pattern-type": ["latencia-institucional"],
+      "inherits-framework": "core-00",
+      "version": "1.0"
+    },
+
+    {
+      "doc-id": "ags-03",
+      "title": "El agua que no se ve",
+      "node": "nodo-ags",
+      "pattern-type": ["brecha-dato-realidad"],
+      "inherits-framework": "core-00",
+      "version": "1.0"
+    },
+
+    {
+      "doc-id": "ags-04",
+      "title": "La ficción institucional",
+      "node": "nodo-ags",
+      "pattern-type": ["narrativa-estabilidad"],
+      "inherits-framework": "core-00",
+      "version": "1.0"
+    },
+
+    {
+      "doc-id": "ags-05",
+      "title": "El pacto no escrito",
+      "node": "nodo-ags",
+      "pattern-type": ["equilibrio-implícito"],
+      "inherits-framework": "core-00",
+      "version": "1.0"
+    }
+
+  ]
+}

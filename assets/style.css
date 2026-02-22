@@ -1,0 +1,229 @@
+@import url('https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=JetBrains+Mono:wght@300;400&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0d0d0b;
+  --surface: #131310;
+  --border: #222220;
+  --text: #c8c4b8;
+  --text-dim: #5a5852;
+  --text-bright: #e8e4d8;
+  --accent: #c8a96e;
+  --accent-dim: #7a6540;
+  --accent-red: #c86e6e;
+  --accent-red-dim: #7a4040;
+  --mono: 'JetBrains Mono', monospace;
+  --serif: 'EB Garamond', Georgia, serif;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--serif);
+  font-size: 18px;
+  line-height: 1.7;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 100;
+  opacity: 0.4;
+}
+
+header {
+  padding: 2.5rem 4rem;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  animation: fadeIn 2.4s ease both;
+}
+
+.site-id {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  font-weight: 300;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.site-meta {
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  color: var(--text-dim);
+  letter-spacing: 0.1em;
+}
+
+.doc-container {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 6rem 2rem 8rem;
+  animation: fadeUp 2.4s ease both;
+  animation-delay: 0.2s;
+}
+
+.doc-label {
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--accent-dim);
+  margin-bottom: 2rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.doc-label::after {
+  content: '';
+  height: 1px;
+  background: var(--border);
+  width: 40px;
+}
+
+.doc-label.nodo {
+  color: var(--accent-red-dim);
+}
+
+h1 {
+  font-size: clamp(1.8rem, 4vw, 2.6rem);
+  font-weight: 400;
+  line-height: 1.2;
+  color: var(--text-bright);
+  letter-spacing: -0.01em;
+  margin-bottom: 3rem;
+}
+
+h2 {
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--accent-dim);
+  margin: 2.5rem 0 1rem;
+}
+
+h2.nodo {
+  color: var(--accent-red-dim);
+}
+
+p {
+  margin-bottom: 1.2rem;
+  font-size: 1rem;
+  max-width: 560px;
+}
+
+ul {
+  list-style: none;
+  margin: 0.5rem 0 1.5rem 0;
+  max-width: 560px;
+}
+
+ul li {
+  font-size: 0.95rem;
+  color: var(--text);
+  padding: 0.3rem 0;
+  padding-left: 1.2rem;
+  position: relative;
+}
+
+ul li::before {
+  content: '·';
+  position: absolute;
+  left: 0;
+  color: var(--accent-dim);
+}
+
+ul.nodo li::before {
+  color: var(--accent-red-dim);
+}
+
+.rule {
+  width: 40px;
+  height: 1px;
+  background: var(--border);
+  margin: 2.5rem 0;
+}
+
+.doc-footer {
+  margin-top: 4rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--border);
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  color: var(--text-dim);
+  line-height: 2.2;
+  letter-spacing: 0.05em;
+}
+
+.doc-footer a {
+  color: var(--accent-dim);
+  text-decoration: none;
+}
+
+.doc-footer a:hover {
+  color: var(--accent);
+}
+
+.doc-nav {
+  margin-top: 3rem;
+  display: flex;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+.doc-nav a {
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.doc-nav a:hover {
+  color: var(--accent);
+}
+
+.limit-box {
+  border-left: 2px solid var(--border);
+  padding: 1rem 1.5rem;
+  margin: 2rem 0;
+  font-size: 0.88rem;
+  color: var(--text-dim);
+  font-family: var(--mono);
+  line-height: 1.8;
+  font-size: 0.65rem;
+  letter-spacing: 0.04em;
+}
+
+.limit-box.nodo {
+  border-left-color: var(--accent-red-dim);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 640px) {
+  header { padding: 2rem 1.5rem; }
+  .doc-container { padding: 4rem 1.5rem; }
+}

@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Dashboards que miden todo y detectan nada.">
+    <title>Sistemas de alerta que nadie revisa · System Friction</title>
+    <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+
+<nav class="site-nav">
+    <a href="../index.html">← Índice</a>
+</nav>
+
+<article data-doc-id="doc-06" 
+         data-pattern-type="señal-vs-ruido,optimización-métrica"
+         data-version="1.0"
+         data-stability="alta">
+
+    <header>
+        <h1 data-extractable="title">Sistemas de alerta que nadie revisa</h1>
+        <p class="meta">
+            Publicado: 2026-02-02 · Versión: 1.0 · Este documento no se actualiza
+        </p>
+    </header>
+
+    <section data-extractable="block" 
+             data-block-id="metrica-vs-señal"
+             data-stability="alta">
+        <h2>Diferencia entre métrica y señal</h2>
+        <p>Las organizaciones crean dashboards que miden todo y detectan nada.</p>
+        
+        <p>El problema no es volumen de datos. Es confundir métrica con señal.</p>
+        
+        <p><strong>Métrica:</strong> cantidad que cambia<br>
+        <strong>Señal:</strong> cambio que importa</p>
+        
+        <p>La mayoría de sistemas de alerta fallan porque optimizan para completitud, no para acción.</p>
+    </section>
+
+    <section data-extractable="block"
+             data-block-id="por-que-fallan"
+             data-stability="alta">
+        <h2>Por qué fallan las alertas tempranas</h2>
+        <ul>
+            <li>No distinguen ruido de anomalía</li>
+            <li>Asumen que ver el problema equivale a poder actuar</li>
+            <li>Optimizan para cobertura (no perder ninguna señal) sobre precisión (no generar falsas alarmas)</li>
+            <li>No modelan el costo de atención del que recibe la alerta</li>
+        </ul>
+    </section>
+
+    <section data-extractable="block"
+             data-block-id="patron-frecuente">
+        <h2>Patrón observable</h2>
+        <p>Sistemas que alertan tanto que entrenan al usuario a ignorarlos.</p>
+        
+        <p>No es que el usuario sea negligente. Es que el sistema optimizó para minimizar falsos negativos sin considerar que los falsos positivos tienen costo real.</p>
+        
+        <p>Después de suficientes falsas alarmas, la señal real se vuelve indistinguible del ruido.</p>
+    </section>
+
+    <section data-extractable="block"
+             data-block-id="diseño-para-accion">
+        <h2>Diseñar para acción, no para información</h2>
+        <p>Un buen sistema de alerta debe responder:</p>
+        <ul>
+            <li>¿Qué acción específica debo tomar?</li>
+            <li>¿Cuánto tiempo tengo para actuar?</li>
+            <li>¿Qué pasa si no hago nada?</li>
+            <li>¿Cómo sé si la acción funcionó?</li>
+        </ul>
+        
+        <p>Si la alerta no responde estas preguntas, es información, no señal.</p>
+    </section>
+
+    <section data-extractable="block"
+             data-block-id="umbrales-dinamicos">
+        <h2>Problema de umbrales fijos</h2>
+        <p>La mayoría de alertas usan umbrales estáticos que fueron configurados una vez y nunca se revisaron.</p>
+        
+        <p>El sistema cambia. El umbral no. Con el tiempo, la alerta deja de ser predictiva.</p>
+        
+        <p>Pero nadie actualiza el umbral porque cambiar el sistema de alertas es más arriesgado que ignorar alertas malas.</p>
+    </section>
+
+    <footer class="doc-footer">
+        <p><strong>Límite de aplicación:</strong> Sistemas con volumen suficiente para requerir alertas automatizadas. En contextos pequeños donde todo es revisable manualmente, este patrón es menos relevante.</p>
+        
+        <p><strong>Documentos relacionados:</strong> 
+            <a href="03-compliance-como-narrativa.html">03 · Compliance como narrativa</a>, 
+            <a href="10-incentivos-que-fallan.html">10 · Incentivos que fallan</a>
+        </p>
+    </footer>
+
+</article>
+
+<footer class="site-footer">
+    <p>Conjunto cerrado v1.0, publicado 2026.<br>
+    Revisiones mayores se publicarán como v2.0.<br>
+    Observaciones que desafíen este marco: <a href="mailto:aptymok@gmail.com">aptymok@gmail.com</a></p>
+</footer>
+
+</body>
+</html>
