@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="dark" />
   <title>System Friction · Archivo de fricción sistémica</title>
   <link rel="stylesheet" href="style.css" />
 </head>
@@ -16,7 +17,7 @@
 <main>
   <div class="doc-container">
 
-    <!-- PORTADA (usa doc-label como en licence) -->
+    <!-- PUNTO DE ENTRADA -->
     <div class="doc-label">Punto de entrada</div>
     <h1>Documentos sobre<br>fricción sistémica.<br>Cada uno diseñado<br>para extraerse.</h1>
 
@@ -28,7 +29,7 @@
 
     <div class="rule"></div>
 
-    <!-- LISTA (sin not-list, usa ul directo) -->
+    <!-- LISTA -->
     <ul>
       <li>No es un blog</li>
       <li>No emite juicios morales sobre sistemas o actores</li>
@@ -36,35 +37,35 @@
       <li>No se actualiza por consistencia, sino por acumulación de experiencia real</li>
     </ul>
 
-    <!-- BOTÓN DE ENTRADA (clases existentes) -->
+    <!-- BOTÓN DE ENTRADA -->
     <div class="enter-block">
       <a href="docs/00-como-leer-este-ecosistema.html" class="enter-link">Leer desde el principio →</a>
       <span class="enter-note">Leer el 00 antes cambia lo que se encuentra después.<br>No es obligatorio. Sí es irreversible.</span>
     </div>
 
-    <!-- DOCUMENTOS ACTIVOS (mismo estilo que licence) -->
-    <div class="doc-label" style="margin-top: 5rem;">Documentos activos</div>
-    <div style="font-family: var(--mono); font-size: 0.65rem; color: var(--text-dim); margin: -1rem 0 2.5rem;">16 publicados · núcleo v1.0</div>
+    <!-- DOCUMENTOS ACTIVOS -->
+    <div class="doc-label mt-5">Documentos activos</div>
+    <div class="index-count">16 publicados · núcleo v1.0</div>
 
-    <!-- GRID DE DOCUMENTOS -->
+    <!-- GRID -->
     <div class="doc-grid">
 
       <!-- META DOCS -->
-      <a href="docs/00-como-leer-este-ecosistema.html" class="doc-item">
+      <a href="docs/00-como-leer-este-ecosistema.html" class="doc-item meta">
         <div class="doc-num">00 · META</div>
         <div class="doc-title">Cómo leer este ecosistema</div>
         <div class="doc-sub">Proemio metodológico. Tono, voz, estructura. Leer antes de continuar.</div>
         <span class="doc-arrow">→</span>
       </a>
 
-      <a href="docs/0-desde-donde-observa-el-observador.html" class="doc-item">
+      <a href="docs/0-desde-donde-observa-el-observador.html" class="doc-item meta">
         <div class="doc-num">Ø · POSICIÓN</div>
         <div class="doc-title">Desde dónde observa el observador</div>
         <div class="doc-sub">Condición de percepción, no autobiografía. Marco de soberanía cognitiva.</div>
         <span class="doc-arrow">→</span>
       </a>
 
-      <a href="docs/01-sistemas-que-no-pueden-permitirse-fallar.html" class="doc-item">
+      <a href="docs/01-sistemas-que-no-pueden-permitirse-fallar.html" class="doc-item meta">
         <div class="doc-num">0 · PUENTE</div>
         <div class="doc-title">Sistemas que no pueden permitirse fallar</div>
         <div class="doc-sub">Umbrales reales vs. oficiales. El operador que habita la distancia.</div>
@@ -149,22 +150,22 @@
       </a>
 
       <!-- DIVISOR NODO AGS -->
-      <div class="section-divider" style="color: var(--accent-red-dim);">
+      <div class="section-divider">
         Nodo Aguascalientes · Serie aplicada
         <span>4 documentos · caso geográfico</span>
       </div>
 
       <!-- NODO AGS -->
-      <a href="nodo-ags/index.html" class="doc-item" style="grid-column: 1 / -1; border-left-color: var(--accent-red-dim);">
-        <div class="doc-num" style="color: var(--accent-red-dim);">NODO AGS · ENTRADA</div>
+      <a href="nodo-ags/index.html" class="doc-item nodo" style="grid-column: 1 / -1;">
+        <div class="doc-num">NODO AGS · ENTRADA</div>
         <div class="doc-title">Aguascalientes como sistema observable</div>
         <div class="doc-sub">Aplicación del marco a un caso geográfico y político específico con datos verificables. Agua, latencia federal, concentración de poder, ficción institucional.</div>
-        <span class="doc-arrow" style="color: var(--accent-red-dim);">→</span>
+        <span class="doc-arrow">→</span>
       </a>
 
     </div>
 
-    <!-- FOOTER INTERNO (como en licence) -->
+    <!-- FOOTER INTERNO -->
     <div class="doc-footer">
       System Friction v1.0 · publicado 2026<br>
       Revisiones mayores se publicarán como v2.0<br>
@@ -176,7 +177,7 @@
   </div>
 </main>
 
-<!-- FOOTER GENERAL (exactamente como en licence) -->
+<!-- FOOTER GENERAL -->
 <footer class="license">
   <div class="footer-left">
     Conjunto cerrado v1.0 · publicado 2026<br>
@@ -189,7 +190,7 @@
     © System Friction · CC BY 4.0<br>
     <a href="https://systemfriction.netlify.app">systemfriction.netlify.app</a><br>
     <a href="licencia.html">Términos de uso</a> · 
-    <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank">CC BY 4.0</a>
+    <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>
   </div>
 </footer>
 
