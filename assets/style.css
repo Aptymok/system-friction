@@ -227,3 +227,24 @@ ul.nodo li::before {
   header { padding: 2rem 1.5rem; }
   .doc-container { padding: 4rem 1.5rem; }
 }
+
+/* Clases que necesita tu HTML */
+.entry, .entry-body { margin-bottom: 1.2rem; }
+.entry-label { font-family: var(--mono); font-size: 0.62rem; letter-spacing: 0.25em; text-transform: uppercase; color: var(--accent-dim); margin-bottom: 2rem; }
+.enter-block { margin-top: 2rem; }
+.enter-link { font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--accent); text-decoration: none; }
+.enter-note { font-family: var(--mono); font-size: 0.6rem; color: var(--text-dim); display: block; margin-top: 0.5rem; }
+
+.doc-grid { display: grid; gap: 1.5rem; margin-top: 2rem; }
+.doc-item { border-left: 1px solid var(--border); padding-left: 1rem; text-decoration: none; color: inherit; display: block; transition: border-color 0.2s; }
+.doc-item:hover { border-left-color: var(--accent); }
+.doc-num { font-family: var(--mono); font-size: 0.6rem; color: var(--accent-dim); margin-bottom: 0.3rem; }
+.doc-title { font-size: 1.1rem; color: var(--text-bright); margin-bottom: 0.3rem; }
+.doc-sub { font-family: var(--mono); font-size: 0.65rem; color: var(--text-dim); line-height: 1.5; }
+.doc-arrow { font-family: var(--mono); font-size: 0.8rem; color: var(--accent-dim); display: inline-block; margin-top: 0.5rem; }
+
+.section-divider { font-family: var(--mono); font-size: 0.65rem; color: var(--accent-red-dim); margin: 2rem 0 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; display: flex; justify-content: space-between; }
+
+.license { margin-top: 4rem; padding: 2rem; border-top: 1px solid var(--border); font-family: var(--mono); font-size: 0.62rem; color: var(--text-dim); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 2rem; }
+.footer-left, .footer-right { line-height: 1.8; }
+.footer-right a { color: var(--accent-dim); text-decoration: none; }
