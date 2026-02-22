@@ -1,124 +1,151 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Costo acumulado de posponer claridad.">
-    <title>Deuda de decisión · System Friction</title>
-    <link rel="stylesheet" href="../assets/style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="dark" />
+  <meta name="description" content="Costo acumulado de posponer claridad." />
+  <title>doc-09 · Deuda de decisión · System Friction</title>
+  <link rel="stylesheet" href="../assets/style.css" />
 </head>
+
 <body>
 
-<nav class="site-nav">
-    <a href="../index.html">← Índice</a>
-</nav>
+<header>
+  <a href="../index.html" class="site-id">System Friction</a>
+  <span class="site-meta">Archivo de fricción sistémica · v1.0 · 2026</span>
+</header>
 
-<article data-doc-id="doc-09" 
-         data-pattern-type="claridad-pospuesta,costo-acumulado"
-         data-version="1.0"
-         data-stability="alta">
+<main>
+  <div class="doc-container">
 
-    <header>
-        <h1 data-extractable="title">Deuda de decisión</h1>
-        <p class="meta">
-            Publicado: 2026-02-02 · Versión: 1.0 · Este documento no se actualiza
-        </p>
-    </header>
+    <div class="doc-label">doc-09 · Fundamentos</div>
+    <h1 data-extractable="title">Deuda de decisión</h1>
 
-    <section data-extractable="block" 
-             data-block-id="definicion"
-             data-stability="alta">
+    <p class="doc-meta">Publicado: 2026-02-02 · Versión: 1.0 · Estabilidad: alta</p>
+
+    <article
+      data-doc-id="doc-09"
+      data-pattern-type="claridad-pospuesta,costo-acumulado"
+      data-version="1.0"
+      data-stability="alta">
+
+      <section data-extractable="block" data-block-id="definicion" data-stability="alta">
         <h2>Diferencia con deuda técnica</h2>
         <p><strong>Deuda técnica:</strong> costo de código mal escrito que funciona pero es difícil de mantener.</p>
-        
         <p><strong>Deuda de decisión:</strong> costo acumulado de posponer claridad sobre qué problema estamos resolviendo.</p>
-        
         <p>La segunda es invisible hasta que paraliza.</p>
-    </section>
+      </section>
 
-    <section data-extractable="block"
-             data-block-id="sintomas"
-             data-stability="alta">
+      <section data-extractable="block" data-block-id="sintomas" data-stability="alta">
         <h2>Síntomas observables</h2>
         <ul>
-            <li>Reuniones que terminan sin definición clara</li>
-            <li>Documentos que evitan el tema central</li>
-            <li>Consenso superficial que no resiste implementación</li>
-            <li>Decisiones "técnicas" que son realmente políticas no resueltas</li>
+          <li>Reuniones que terminan sin definición clara</li>
+          <li>Documentos que evitan el tema central</li>
+          <li>Consenso superficial que no resiste implementación</li>
+          <li>Decisiones “técnicas” que son realmente políticas no resueltas</li>
         </ul>
-    </section>
+      </section>
 
-    <section data-extractable="block"
-             data-block-id="como-acumula">
+      <section data-extractable="block" data-block-id="como-acumula" data-stability="alta">
         <h2>Cómo se acumula</h2>
         <p>La deuda de decisión crece cuando:</p>
         <ul>
-            <li>Es más cómodo avanzar sin claridad que enfrentar el desacuerdo</li>
-            <li>Hay incentivo a aparentar consenso</li>
-            <li>El costo de la ambigüedad es diferido</li>
-            <li>Quien paga el costo no es quien evita la decisión</li>
+          <li>Es más cómodo avanzar sin claridad que enfrentar el desacuerdo</li>
+          <li>Hay incentivo a aparentar consenso</li>
+          <li>El costo de la ambigüedad es diferido</li>
+          <li>Quien paga el costo no es quien evita la decisión</li>
         </ul>
-        
         <p>No es mala fe. Es que posponer la claridad suele ser localmente óptimo.</p>
-    </section>
+      </section>
 
-    <section data-extractable="block"
-             data-block-id="diferencia-clave">
+      <section data-extractable="block" data-block-id="diferencia-clave" data-stability="alta">
         <h2>Diferencia clave con deuda técnica</h2>
         <p>La deuda técnica se paga refactorizando.</p>
-        
         <p>La deuda de decisión se paga enfrentando la pregunta que todos evitan.</p>
-        
         <p>Refactorizar es trabajo. Enfrentar desacuerdo latente es político.</p>
-        
         <p>Por eso la deuda de decisión es más cara de resolver.</p>
-    </section>
+      </section>
 
-    <section data-extractable="block"
-             data-block-id="cuando-explota">
+      <section data-extractable="block" data-block-id="cuando-explota" data-stability="alta">
         <h2>Cuándo se hace visible</h2>
         <p>La deuda de decisión suele manifestarse cuando:</p>
         <ul>
-            <li>Llega el momento de implementar</li>
-            <li>Aparece una crisis que requiere alineación real</li>
-            <li>Un nuevo integrante pregunta "¿qué estamos resolviendo exactamente?"</li>
-            <li>Dos equipos construyen soluciones incompatibles</li>
+          <li>Llega el momento de implementar</li>
+          <li>Aparece una crisis que requiere alineación real</li>
+          <li>Un nuevo integrante pregunta “¿qué estamos resolviendo exactamente?”</li>
+          <li>Dos equipos construyen soluciones incompatibles</li>
         </ul>
-        
         <p>En ese punto, el costo de resolverlo es mucho mayor que si se hubiera enfrentado inicialmente.</p>
-    </section>
+      </section>
 
-    <section data-extractable="block"
-             data-block-id="como-reducirla">
+      <section data-extractable="block" data-block-id="como-reducirla" data-stability="alta">
         <h2>Cómo reducir deuda de decisión</h2>
         <p>No con más documentación. Con preguntas explícitas:</p>
         <ul>
-            <li>¿Qué suposiciones estamos haciendo que no hemos verificado?</li>
-            <li>¿En qué estamos en desacuerdo sin admitirlo?</li>
-            <li>¿Qué pregunta estamos evitando?</li>
-            <li>¿Quién debe decidir esto y cuándo?</li>
+          <li>¿Qué suposiciones estamos haciendo que no hemos verificado?</li>
+          <li>¿En qué estamos en desacuerdo sin admitirlo?</li>
+          <li>¿Qué pregunta estamos evitando?</li>
+          <li>¿Quién debe decidir esto y cuándo?</li>
         </ul>
-        
         <p>Estas preguntas son incómodas. Por eso funcionan.</p>
-    </section>
+      </section>
 
-    <footer class="doc-footer">
-        <p><strong>Límite de aplicación:</strong> Contextos colaborativos donde múltiples partes deben alinearse. En decisiones individuales, el patrón no aplica igual.</p>
-        
-        <p><strong>Documentos relacionados:</strong> 
-            <a href="01-decisiones-que-nadie-tomo.html">01 · Decisiones que nadie tomó</a>, 
-            <a href="02-costo-real-adoptable.html">02 · Costo real de adoptable</a>, 
-            <a href="07-contexto-perdido.html">07 · Contexto perdido</a>
+      <div class="limit-box">
+        <strong>Límite de aplicación:</strong> Contextos colaborativos donde múltiples partes deben alinearse.
+        En decisiones individuales, el patrón no aplica igual.
+      </div>
+
+      <div class="doc-footer">
+        Conjunto cerrado v1.0 · publicado 2026<br />
+        Revisiones mayores se publicarán como v2.0<br />
+        Observaciones que desafíen este marco:
+        <a href="mailto:aptymok@gmail.com">aptymok@gmail.com</a>
+      </div>
+
+      <div class="doc-nav">
+        <a href="../index.html">← Índice</a>
+        <span class="doc-nav-hint">Rutas sugeridas abajo</span>
+      </div>
+
+      <section class="related" aria-label="Rutas sugeridas">
+        <h2>Rutas sugeridas</h2>
+        <div id="related-list" class="related-grid"></div>
+        <p class="related-note">
+          Sugerencias basadas en patrones compartidos y patrones relacionados.
+          No implican secuencia ni orden recomendado.
         </p>
-    </footer>
+      </section>
 
-</article>
+    </article>
 
-<footer class="site-footer">
-    <p>Conjunto cerrado v1.0, publicado 2026.<br>
-    Revisiones mayores se publicarán como v2.0.<br>
-    Observaciones que desafíen este marco: <a href="mailto:aptymok@gmail.com">aptymok@gmail.com</a></p>
+  </div>
+</main>
+
+<footer class="license">
+  <div class="footer-left">
+    Conjunto cerrado v1.0 · publicado 2026<br />
+    Revisiones mayores se publicarán como v2.0<br />
+    El ecosistema crece por acumulación, no por diseño<br />
+    Observaciones que desafíen este marco:<br />
+    <a href="mailto:aptymok@gmail.com">aptymok@gmail.com</a>
+  </div>
+
+  <div class="footer-right">
+    © System Friction · CC BY 4.0<br />
+    <a href="https://systemfriction.netlify.app">systemfriction.netlify.app</a><br />
+    <a href="../licencia.html">Términos de uso</a> ·
+    <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>
+  </div>
 </footer>
+
+<script type="module"
+        src="../assets/recommendations.js"
+        data-docs="../meta/docs.json"
+        data-patterns="../meta/patterns.json"
+        data-ecosystem="../meta/ecosystem.json"
+        data-scope="same-node"
+        data-limit="4"></script>
 
 </body>
 </html>
