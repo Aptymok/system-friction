@@ -3,7 +3,7 @@ title: "Sistemas que no pueden permitirse fallar"
 doc_id: "core-bridge"
 series: "core-bridge · Puente"
 summary: "Umbral real vs oficial. La distancia donde opera el operador."
-version: "1.0"
+version: "1.1"
 node: "docs"
 patterns:
   - umbral-real
