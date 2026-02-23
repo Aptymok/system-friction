@@ -3,7 +3,7 @@ title: "Desde dónde observa el observador"
 doc_id: "core-0"
 series: "core-0 · Posición"
 summary: "Condición de percepción, no autobiografía. Umbral antes del primer caso."
-version: "1.0"
+version: "1.1"
 node: "docs"
 patterns:
   - posición-observador
