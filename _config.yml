@@ -1,8 +1,10 @@
 title: "System Friction"
 description: "Archivo de fricción sistémica."
-baseurl: "/system-friction"
-url: "https://aptymok.github.io"
-author: "aptymok"
+
+url: "https://systemfriction.org"
+baseurl: ""
+
+author: "Juan Antonio Marín Liera"
 email: "aptymok@gmail.com"
 
 markdown: kramdown
