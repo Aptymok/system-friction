@@ -1,7 +1,7 @@
 ---
 title: "Dinero como estructura temporal"
 doc_id: "doc-04"
-series: "04 · Fundamentos"
+series: "doc-04 · Fundamentos"
 summary: "Optionalidad temporal. Horizonte de maniobra."
 version: "1.0"
 stability: "alta"
@@ -52,6 +52,5 @@ No es acumulación. Es opcionalidad temporal.
 La diferencia entre tener 6 meses de runway y 12 meses no es el doble de seguridad.
 Es una categoría distinta de decisiones disponibles.
 
-**Límite de aplicación:** Individuos con capacidad de modificar estructura de ingresos y gastos.
-No aplica igual a quien tiene obligaciones fijas no negociables o ingresos completamente fuera de su control.
+**Límite de aplicación:** Individuos con capacidad de modificar estructura de ingresos y gastos. No aplica igual a quien tiene obligaciones fijas no negociables o ingresos completamente fuera de su control.
 {: .limit-box }
