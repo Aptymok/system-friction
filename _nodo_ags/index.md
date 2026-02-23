@@ -54,11 +54,16 @@ permalink: /nodo-ags/
       <span class="nodo-arrow">→</span>
     </a>
 
+    <a href="{{ site.baseurl }}/nodo-ags/ags-06/" class="nodo-doc">
+      <div class="nodo-doc-title">Después del acuerdo</div>
+      <div class="nodo-doc-sub">Ruptura del equilibrio implícito y transición a métrica observable.</div>
+      <span class="nodo-arrow">→</span>
+    </a>
+
     <div class="nodo-note">
-      Nodo-AGS · Aguascalientes como sistema observable · System Friction<br>
-      Esta serie es una aplicación geográfica del marco System Friction.<br>
-      Observaciones: <a href="mailto:aptymok@gmail.com">aptymok@gmail.com</a><br>
-      <a href="{{ site.baseurl }}/">← Índice principal</a> · Nodo autónomo
+      Nota de archivo: La estabilidad de este nodo es un efecto óptico.<br>
+      Resulta de promediar un déficit físico inasumible con una latencia institucional deliberada.<br>
+      Lo que el sistema registra como control, es simplemente la postergación del colapso.
     </div>
 
   </div>
