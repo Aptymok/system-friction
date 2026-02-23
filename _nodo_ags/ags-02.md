@@ -3,7 +3,7 @@ title: "El costo de la latencia"
 doc_id: "ags-02"
 series: "ags-02 · Nodo Aguascalientes"
 summary: "Cuando el tiempo de resolución se vuelve variable de ajuste."
-version: "1.0"
+version: "1.1"
 stability: "alta"
 node: "nodo-ags"
 patterns:
