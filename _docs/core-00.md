@@ -8,6 +8,10 @@ stability: "alta"
 first_published: "2026-02-02"
 doc_type: "meta-framework"
 node: "docs"
+mihm_variable: "R_m"
+mihm_equation: "R_m = rigor_metodológico"
+sf_pattern: "metodología"
+mihm_note: "Define el marco de lectura y reduce ambigüedad interpretativa."
 patterns:
   - metodología
   - tono

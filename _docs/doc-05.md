@@ -8,6 +8,10 @@ version: "1.0"
 stability: "alta"
 first_published: "2026-02-02"
 node: "docs"
+mihm_variable: "I_e"
+mihm_equation: "I_e = intención_explícita / efecto_sistémico"
+sf_pattern: "escritura-sin-intención"
+mihm_note: "Mayor distancia intención-efecto incrementa ambigüedad operativa."
 patterns:
   - señal-ruido
   - densidad-semántica

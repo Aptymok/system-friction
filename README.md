@@ -11,7 +11,7 @@ _layouts/       → default.html, doc.html, node.html
 _includes/      → head, header, footer, doc-meta
 assets/css/     → style.css
 assets/js/      → recommendations.js
-meta/           → docs.json, patterns.json, ecosystem.json
+meta/           → docs.json, patterns.json, ecosystem.json, mihm_state.json, mihm_equations.json
 ```
 
 ## Deploy en GitHub Pages

@@ -5,6 +5,10 @@ series: "core-0 · Posición"
 summary: "Condición de percepción, no autobiografía. Umbral antes del primer caso."
 version: "1.1"
 node: "docs"
+mihm_variable: "P_o"
+mihm_equation: "P_o = posición_observador"
+sf_pattern: "posición-observador"
+mihm_note: "Explicita el punto de observación que condiciona el análisis."
 patterns:
   - posición-observador
   - límites-marco

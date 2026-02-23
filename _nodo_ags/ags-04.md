@@ -8,6 +8,10 @@ version: "1.1"
 first_published: "2026-02-15"
 stability: "alta"
 node: "nodo-ags"
+mihm_variable: "F_i"
+mihm_equation: "F_i = fricción_institucional compuesta"
+sf_pattern: "ficción-institucional"
+mihm_note: "Estabilidad reportada sin respaldo operativo aumenta fricción."
 patterns:
   - ficción-institucional
   - coherencia-aparente

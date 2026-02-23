@@ -8,6 +8,10 @@ version: "1.1"
 first_published: "2026-02-15"
 stability: "alta"
 node: "nodo-ags"
+mihm_variable: "E_p"
+mihm_equation: "E_p = extracción_proxy_energía"
+sf_pattern: "extracción-proxy"
+mihm_note: "El recurso oculto se vuelve visible vía energía consumida."
 patterns:
   - derecho-vs-recurso
   - pérdida-no-penalizada

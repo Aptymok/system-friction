@@ -4,7 +4,6 @@ layout: default
 <main>
   <div class="doc-container">
     <div class="doc-label">{{ page.series | default: "Serie principal" }}</div>
-    <h1>{{ page.title }}</h1>
     {% include doc-meta.html %}
     {{ content }}
     {% if page.mihm_variable or page.sf_pattern or page.mihm_equation %}
