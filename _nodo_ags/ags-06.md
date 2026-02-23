@@ -7,6 +7,12 @@ summary: "Ruptura del equilibrio implícito y transición a métrica observable.
 version: "1.1"
 first_published: "2026-02-23"
 node: "nodo-ags"
+stability: "alta"
+doc_type: "cierre-empírico"
+mihm_variable: "ΔIHG"
+mihm_equation: "ΔIHG = IHG_post - IHG_pre"
+sf_pattern: "validación-empírica"
+mihm_note: "El evento del 22-feb-2026 convierte una hipótesis sistémica en señal cuantificable."
 patterns:
   - entropía-revelada
   - colapso-del-pacto

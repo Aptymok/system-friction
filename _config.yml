@@ -24,11 +24,17 @@ defaults:
       type: "docs"
     values:
       layout: doc
+      version: "1.1"
+      stability: "alta"
+      doc_type: "patrón"
   - scope:
       path: ""
       type: "nodo_ags"
     values:
       layout: node
+      version: "1.1"
+      stability: "alta"
+      doc_type: "nodo-empírico"
 
 plugins:
   - jekyll-sitemap
