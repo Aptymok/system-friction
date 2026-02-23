@@ -1,5 +1,5 @@
 {% if page.first_published or page.version or page.stability or page.doc_type %}
-<div class="doc-meta" style="font-size: 0.85em; color: #666; margin-bottom: 2rem; border-bottom: 1px solid #eee; padding-bottom: 0.5rem;">
+<div class="doc-meta">
   {% capture meta_items %}
     {% if page.first_published %}Publicado: {{ page.first_published }}|{% endif %}
     {% if page.version %}Versión: {{ page.version }}|{% endif %}
