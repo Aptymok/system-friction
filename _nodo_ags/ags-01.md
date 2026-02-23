@@ -53,3 +53,4 @@ Eso es incómodo. Pero es lo único que permite operar antes de que la distancia
 
 Este documento describe patrones observables con datos públicos disponibles en CONAGUA, REPDA y registros locales.
 No atribuye intención a actores individuales. No prescribe acciones.
+{: .limit-box .nodo }
