@@ -3,7 +3,7 @@ title: "La distancia que no se mide"
 doc_id: "ags-01"
 series: "ags-01 · Nodo Aguascalientes"
 summary: "Umbrales reales vs. oficiales en tres sistemas simultáneos."
-version: "1.0"
+version: "1.1"
 stability: "alta"
 node: "nodo-ags"
 patterns:
