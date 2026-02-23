@@ -1,0 +1,17 @@
+{
+  "umbral-real": {"label": "Umbral real", "description": "Distancia entre el umbral oficial y el punto donde el sistema deja de operar."},
+  "coherencia-aparente": {"label": "Coherencia aparente", "description": "Optimización para que algo parezca correcto, no para que lo sea."},
+  "señal-ruido": {"label": "Señal vs ruido", "description": "Distinción entre métricas que importan y datos que solo existen."},
+  "proxy-objetivo": {"label": "Proxy como objetivo", "description": "Cuando la métrica reemplaza al resultado que supuestamente mide."},
+  "zona-gris": {"label": "Zona gris operativa", "description": "Área donde todos saben qué hacer pero nadie puede explicar por qué es correcto."},
+  "latencia-política": {"label": "Latencia política", "description": "Tiempo de resolución como variable de ajuste de poder."},
+  "fricción-política": {"label": "Fricción política", "description": "Resistencia sistémica no declarada a cambios que redistribuyen poder."},
+  "costo-diferido": {"label": "Costo diferido", "description": "El costo de no decidir es inmediato pero invisible; el costo de decidir es diferido pero visible."},
+  "responsabilidad-difusa": {"label": "Responsabilidad difusa", "description": "Nadie negó. Nadie autorizó. El resultado es que nadie responde."},
+  "opcionalidad": {"label": "Opcionalidad temporal", "description": "Valor de mantener decisiones reversibles y horizontes abiertos."},
+  "distancia-umbrales": {"label": "Distancia entre umbrales", "description": "Brecha entre umbral oficial y umbral operativo real."},
+  "desalineación-métricas": {"label": "Desalineación de métricas", "description": "Cuando lo que se mide y lo que importa divergen sistemáticamente."},
+  "ley-goodhart": {"label": "Ley de Goodhart", "description": "Cuando una métrica se convierte en objetivo, deja de ser una buena métrica."},
+  "decisión-emergente": {"label": "Decisión emergente", "description": "Política que nadie tomó pero que todos siguen."},
+  "ficción-institucional": {"label": "Ficción institucional", "description": "Sistema de indicadores que describe un sistema que ya no existe."}
+}

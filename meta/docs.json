@@ -1,0 +1,20 @@
+[
+  {"id":"core-00","title":"Cómo leer este ecosistema","summary":"Documento metodológico. Tono, progresión y límites del archivo.","node":"docs","patterns":["metodología","tono","límites-marco"]},
+  {"id":"core-0","title":"Desde dónde observa el observador","summary":"Condición de percepción, no autobiografía. Umbral antes del primer caso.","node":"docs","patterns":["posición-observador","límites-marco"]},
+  {"id":"core-bridge","title":"Sistemas que no pueden permitirse fallar","summary":"Umbral real vs oficial. La distancia donde opera el operador.","node":"docs","patterns":["umbral-real","distancia-umbrales","fricción-política"]},
+  {"id":"doc-01","title":"Decisiones que nadie tomó","summary":"Cristalización por acumulación. Zonas grises operativas.","node":"docs","patterns":["decisión-emergente","cristalización-normativa","zona-gris","coherencia-aparente"]},
+  {"id":"doc-02","title":"Costo real de adoptable","summary":"Por qué soluciones superiores no se implementan.","node":"docs","patterns":["fricción-política","costo-de-adopción","distancia-diseño-consecuencia","asimetría-exposición"]},
+  {"id":"doc-03","title":"Compliance como narrativa","summary":"Auditabilidad vs seguridad. Forma vs sustancia.","node":"docs","patterns":["proxy-objetivo","desalineación-métricas","coherencia-aparente","señal-ruido"]},
+  {"id":"doc-04","title":"Dinero como estructura temporal","summary":"Optionalidad temporal. Horizonte de maniobra.","node":"docs","patterns":["opcionalidad","horizonte-maniobra","asimetría-exposición","reversibilidad"]},
+  {"id":"doc-05","title":"Escritura sin intención visible","summary":"Señal sin ornamentación. Extracción por diseño.","node":"docs","patterns":["señal-ruido","densidad-semántica","escritura-técnica","economía-palabras"]},
+  {"id":"doc-06","title":"Sistemas de alerta que nadie revisa","summary":"Métrica vs señal. Cobertura vs acción.","node":"docs","patterns":["señal-ruido","desalineación-métricas","costo-atención","umbral-fijo"]},
+  {"id":"doc-07","title":"Contexto perdido","summary":"Decaimiento del razonamiento por pérdida de restricciones.","node":"docs","patterns":["decaimiento-contexto","decisión-emergente","rotación-conocimiento","deuda-documental"]},
+  {"id":"doc-08","title":"Personas en alta incertidumbre","summary":"Operación eficaz sin reglas estables.","node":"docs","patterns":["tolerancia-incertidumbre","validación-interna","reversibilidad","opcionalidad"]},
+  {"id":"doc-09","title":"Deuda de decisión","summary":"Costo acumulado de posponer claridad.","node":"docs","patterns":["deuda-decisión","consenso-superficial","costo-diferido","zona-gris"]},
+  {"id":"doc-10","title":"Incentivos bien diseñados que fallan","summary":"Ley de Goodhart. Optimización de proxy.","node":"docs","patterns":["proxy-objetivo","ley-goodhart","desalineación-métricas","optimización-local"]},
+  {"id":"ags-01","title":"La distancia que no se mide","summary":"Umbrales reales vs. oficiales en tres sistemas simultáneos.","node":"nodo-ags","patterns":["umbral-real","distancia-umbrales","fricción-política","zona-gris"]},
+  {"id":"ags-02","title":"El costo de la latencia","summary":"Cuando el tiempo de resolución se vuelve variable de ajuste.","node":"nodo-ags","patterns":["latencia-política","distancia-umbrales","responsabilidad-difusa","costo-diferido"]},
+  {"id":"ags-03","title":"El agua que no se ve","summary":"Brecha entre concesión, operación real y pérdidas no penalizadas.","node":"nodo-ags","patterns":["derecho-vs-recurso","pérdida-no-penalizada","concentración-concesión","umbral-real"]},
+  {"id":"ags-04","title":"La ficción institucional","summary":"Métricas y narrativa que describen un sistema que ya no opera así.","node":"nodo-ags","patterns":["ficción-institucional","coherencia-aparente","señal-ruido","umbral-real"]},
+  {"id":"ags-05","title":"El pacto no escrito","summary":"Equilibrio implícito: estabilidad operativa con variables no documentadas.","node":"nodo-ags","patterns":["pacto-implícito","equilibrio-no-documentado","responsabilidad-difusa","límites-marco"]}
+]
