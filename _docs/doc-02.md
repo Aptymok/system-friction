@@ -53,7 +53,8 @@ Una solución puede ser objetivamente mejor y aún así perder porque:
 
 Adoptabilidad es fricción sistémica medida en unidades de exposición política.
 
-**Límite de aplicación:** Organizaciones con sistemas legacy y alta interdependencia.
-En contextos greenfield estas variables pesan menos.
+**Límite de aplicación:** Organizaciones con sistemas legacy y alta interdependencia. En contextos greenfield estas variables pesan menos.
+{: .limit-box }
 
-**Riesgo de mala aplicación:** Usado para justificar inercia sin análisis de costos reales de no cambiar.
+**Riesgo de mala aplicación** Usado para justificar inercia sin análisis de costos reales de no cambiar.
+{: .limit-box }
