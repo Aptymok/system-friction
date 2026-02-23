@@ -7,21 +7,23 @@ title: "System Friction · Archivo de fricción sistémica"
   <div class="doc-container">
 
     <div class="doc-label">Punto de entrada</div>
-    <h1>Documentos sobre<br>fricción sistémica.<br>Cada uno diseñado<br>para extraerse.</h1>
+    <h1>System Friction<br>Archivo de fricción sistémica.</h1>
 
-    <p>Los sistemas no fallan por ausencia de intención.<br>
-    Fallan porque <strong>nadie nombra lo que todos observan.</strong></p>
+    <div class="limit-box" style="margin-top: 0;">
+      <strong>Postulado Central:</strong><br>
+      Los sistemas complejos no colapsan por ausencia de información, sino por el costo estructural que implica permitir que la información circule sin distorsión.
+    </div>
 
-    <p>Este repositorio no prescribe soluciones.<br>
-    Describe patrones. El uso es responsabilidad de quien lee.</p>
+    <p>Este ecosistema audita la distancia entre el estado real de un sistema crítico y la narrativa institucional que lo administra.</p>
+    <p>No prescribe soluciones. Describe patrones empíricos y modelos probabilísticos. El uso de esta arquitectura es responsabilidad de quien la lee.</p>
 
     <div class="rule"></div>
 
     <ul>
-      <li>No es un blog</li>
-      <li>No emite juicios morales sobre sistemas o actores</li>
-      <li>No asume que el lector comparte el mismo contexto institucional</li>
-      <li>No se actualiza por consistencia, sino por acumulación de experiencia real</li>
+      <li>No es un blog. Es un marco de observación.</li>
+      <li>No emite juicios morales sobre sistemas o actores.</li>
+      <li>No asume que el lector comparte el mismo contexto institucional.</li>
+      <li>No se actualiza por consistencia, sino por acumulación de experiencia real.</li>
     </ul>
 
     <div class="enter-block">
@@ -29,8 +31,8 @@ title: "System Friction · Archivo de fricción sistémica"
       <span class="enter-note">La lectura de core-00 antes del resto modifica lo que se encuentra después.<br>No es obligatorio. Sí es irreversible.</span>
     </div>
 
-    <div class="doc-label" style="margin-top: 5rem;">System Friction · núcleo operativo</div>
-    <div class="index-count">Condición estructural activa · v1.0</div>
+    <div class="doc-label mt-5">System Friction · núcleo operativo</div>
+    <div class="index-count">Expansión acumulativa activa · v1.1</div>
 
     <div class="doc-grid">
 
@@ -41,10 +43,10 @@ title: "System Friction · Archivo de fricción sistémica"
         <span class="doc-arrow">→</span>
       </a>
 
-      <a href="{{ site.baseurl }}/docs/core-0/" class="doc-item">
+      <a href="{{ site.baseurl }}/docs/core-0/" class="doc-item" style="border-left: 1px dashed var(--border); opacity: 0.65;">
         <div class="doc-num">core-0 · POSICIÓN</div>
         <div class="doc-title">Desde dónde observa el observador</div>
-        <div class="doc-sub">Condición de percepción, no autobiografía. Umbral antes del primer caso.</div>
+        <div class="doc-sub">Condición de percepción. Sin número. No se actualiza.</div>
         <span class="doc-arrow">→</span>
       </a>
 
@@ -57,9 +59,9 @@ title: "System Friction · Archivo de fricción sistémica"
 
     </div>
 
-    <div class="doc-grid">
+    <div class="doc-grid mt-4">
       <div class="section-divider">Serie de patrones
-        <span>01 – 10 · configuraciones estructurales no jerárquicas · v1.0</span>
+        <span>01 – 10 · configuraciones estructurales no jerárquicas</span>
       </div>
 
       <a href="{{ site.baseurl }}/docs/doc-01/" class="doc-item">
@@ -86,7 +88,7 @@ title: "System Friction · Archivo de fricción sistémica"
       <a href="{{ site.baseurl }}/docs/doc-04/" class="doc-item">
         <div class="doc-num">doc-04</div>
         <div class="doc-title">Dinero como estructura temporal</div>
-        <div class="doc-sub">Optionalidad temporal. Horizonte de maniobra.</div>
+        <div class="doc-sub">Opcionalidad temporal. Horizonte de maniobra.</div>
         <span class="doc-arrow">→</span>
       </a>
 
@@ -134,13 +136,13 @@ title: "System Friction · Archivo de fricción sistémica"
 
       <div class="section-divider nodo">
         Serie aplicada · Nodo Aguascalientes
-        <span>AGS01 – AGS05 · implementación territorial</span>
+        <span>AGS01 – AGS06 · implementación territorial</span>
       </div>
 
       <a href="{{ site.baseurl }}/nodo-ags/" class="doc-item nodo" style="grid-column: 1 / -1;">
         <div class="doc-num">NODO AGS · ENTRADA</div>
         <div class="doc-title">Aguascalientes como sistema observable</div>
-        <div class="doc-sub">Aplicación del marco a un caso geográfico con datos verificables.</div>
+        <div class="doc-sub">Aplicación del marco a un caso geográfico. Ruptura del equilibrio validada en 2026.</div>
         <span class="doc-arrow">→</span>
       </a>
 
