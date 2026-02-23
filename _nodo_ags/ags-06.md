@@ -2,7 +2,7 @@
 layout: default
 title: "Después del acuerdo: lo que el pacto ocultaba"
 doc_id: "ags-06"
-series: "06 · Cierre Empírico"
+series: "ags-06 · Cierre Empírico"
 summary: "Ruptura del equilibrio implícito y transición a métrica observable."
 version: "1.1"
 first_published: "2026-02-23"
