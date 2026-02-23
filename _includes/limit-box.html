@@ -1,0 +1,9 @@
+<div class="limit-box {% if page.node == 'nodo-ags' %}nodo{% endif %}">
+  {% if page.doc_type == 'meta-framework' %}
+    <strong>Nota metodológica:</strong>
+  {% else %}
+    <strong>Límite de aplicación:</strong>
+  {% endif %}
+  
+  {{ content | default: "Este documento describe patrones estructurales con datos verificables. No prescribe acciones ni atribuye responsabilidad individual." }}
+</div>
