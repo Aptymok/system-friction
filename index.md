@@ -137,7 +137,7 @@ title: "System Friction · Archivo de fricción sistémica"
         <span>AGS01 – AGS05 · implementación territorial</span>
       </div>
 
-      <a href="{{ site.baseurl }}/nodo-ags/index/" class="doc-item nodo" style="grid-column: 1 / -1;">
+      <a href="{{ site.baseurl }}/nodo-ags/" class="doc-item nodo" style="grid-column: 1 / -1;">
         <div class="doc-num">NODO AGS · ENTRADA</div>
         <div class="doc-title">Aguascalientes como sistema observable</div>
         <div class="doc-sub">Aplicación del marco a un caso geográfico con datos verificables.</div>
