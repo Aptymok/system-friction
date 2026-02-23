@@ -1,6 +1,6 @@
 ---
 layout: default
-title: "System Friction · Archivo de fricción sistémica"
+title: "Archivo de fricción sistémica"
 ---
 
 <main>
@@ -9,29 +9,27 @@ title: "System Friction · Archivo de fricción sistémica"
     <div class="doc-label">Punto de entrada</div>
     <h1>System Friction<br>Archivo de fricción sistémica.</h1>
 
-    <div class="limit-box" style="margin-top: 0;">
+    <div class="limit-box" style="margin-top: 0; border-left-color: var(--accent);">
       <strong>Postulado Central:</strong><br>
       Los sistemas complejos no colapsan por ausencia de información, sino por el costo estructural que implica permitir que la información circule sin distorsión.
     </div>
 
-    <p>Este ecosistema audita la distancia entre el estado real de un sistema crítico y la narrativa institucional que lo administra.</p>
-    <p>No prescribe soluciones. Describe patrones empíricos y modelos probabilísticos. El uso de esta arquitectura es responsabilidad de quien la lee.</p>
+    <p>Este ecosistema audita la distancia entre el estado real de un sistema crítico y la narrativa institucional que lo administra. Mapeamos la brecha donde la entropía se acumula bajo indicadores oficiales estables.</p>
 
     <div class="rule"></div>
 
-    <ul>
-      <li>No es un blog. Es un marco de observación.</li>
-      <li>No emite juicios morales sobre sistemas o actores.</li>
-      <li>No asume que el lector comparte el mismo contexto institucional.</li>
-      <li>No se actualiza por consistencia, sino por acumulación de experiencia real.</li>
+    <ul class="intro-list">
+      <li><strong>No es un manifiesto:</strong> Es una arquitectura de observación.</li>
+      <li><strong>No emite juicios:</strong> Describe patrones. El uso es responsabilidad de quien lee.</li>
+      <li><strong>No es un blog:</strong> No se actualiza por opinión, sino por acumulación de evidencia.</li>
     </ul>
 
     <div class="enter-block">
       <a href="{{ site.baseurl }}/docs/core-00/" class="enter-link">Leer desde el principio →</a>
-      <span class="enter-note">La lectura de core-00 antes del resto modifica lo que se encuentra después.<br>No es obligatorio. Sí es irreversible.</span>
+      <span class="enter-note">La lectura de <strong>core-00</strong> modifica lo que se encuentra después.<br>No es obligatorio. Sí es irreversible.</span>
     </div>
 
-    <div class="doc-label mt-5">System Friction · núcleo operativo</div>
+    <div class="doc-label mt-5">System Friction · Núcleo Operativo</div>
     <div class="index-count">Expansión acumulativa activa · v1.1</div>
 
     <div class="doc-grid">
@@ -43,7 +41,7 @@ title: "System Friction · Archivo de fricción sistémica"
         <span class="doc-arrow">→</span>
       </a>
 
-      <a href="{{ site.baseurl }}/docs/core-0/" class="doc-item" style="border-left: 1px dashed var(--border); opacity: 0.65;">
+      <a href="{{ site.baseurl }}/docs/core-0/" class="doc-item" style="border-left: 1px dashed var(--border); opacity: 0.6;">
         <div class="doc-num">core-0 · POSICIÓN</div>
         <div class="doc-title">Desde dónde observa el observador</div>
         <div class="doc-sub">Condición de percepción. Sin número. No se actualiza.</div>
@@ -64,85 +62,35 @@ title: "System Friction · Archivo de fricción sistémica"
         <span>01 – 10 · configuraciones estructurales no jerárquicas</span>
       </div>
 
-      <a href="{{ site.baseurl }}/docs/doc-01/" class="doc-item">
-        <div class="doc-num">doc-01</div>
-        <div class="doc-title">Decisiones que nadie tomó</div>
-        <div class="doc-sub">Cristalización por acumulación. Zonas grises operativas.</div>
+      {% assign docs = "01,02,03,04,05,06,07,08,09,10" | split: "," %}
+      {% for d in docs %}
+      <a href="{{ site.baseurl }}/docs/doc-{{ d }}/" class="doc-item">
+        <div class="doc-num">doc-{{ d }}</div>
+        <div class="doc-title">
+          {% if d == "01" %}Decisiones que nadie tomó{% endif %}
+          {% if d == "02" %}Costo real de adoptable{% endif %}
+          {% if d == "03" %}Compliance como narrativa{% endif %}
+          {% if d == "04" %}Dinero como estructura temporal{% endif %}
+          {% if d == "05" %}Escritura sin intención visible{% endif %}
+          {% if d == "06" %}Sistemas de alerta que nadie revisa{% endif %}
+          {% if d == "07" %}Contexto perdido{% endif %}
+          {% if d == "08" %}Personas en alta incertidumbre{% endif %}
+          {% if d == "09" %}Deuda de decisión{% endif %}
+          {% if d == "10" %}Incentivos bien diseñados que fallan{% endif %}
+        </div>
         <span class="doc-arrow">→</span>
       </a>
-
-      <a href="{{ site.baseurl }}/docs/doc-02/" class="doc-item">
-        <div class="doc-num">doc-02</div>
-        <div class="doc-title">Costo real de adoptable</div>
-        <div class="doc-sub">Por qué soluciones superiores no se implementan.</div>
-        <span class="doc-arrow">→</span>
-      </a>
-
-      <a href="{{ site.baseurl }}/docs/doc-03/" class="doc-item">
-        <div class="doc-num">doc-03</div>
-        <div class="doc-title">Compliance como narrativa</div>
-        <div class="doc-sub">Auditabilidad vs seguridad. Forma vs sustancia.</div>
-        <span class="doc-arrow">→</span>
-      </a>
-
-      <a href="{{ site.baseurl }}/docs/doc-04/" class="doc-item">
-        <div class="doc-num">doc-04</div>
-        <div class="doc-title">Dinero como estructura temporal</div>
-        <div class="doc-sub">Opcionalidad temporal. Horizonte de maniobra.</div>
-        <span class="doc-arrow">→</span>
-      </a>
-
-      <a href="{{ site.baseurl }}/docs/doc-05/" class="doc-item">
-        <div class="doc-num">doc-05</div>
-        <div class="doc-title">Escritura sin intención visible</div>
-        <div class="doc-sub">Señal sin ornamentación. Extracción por diseño.</div>
-        <span class="doc-arrow">→</span>
-      </a>
-
-      <a href="{{ site.baseurl }}/docs/doc-06/" class="doc-item">
-        <div class="doc-num">doc-06</div>
-        <div class="doc-title">Sistemas de alerta que nadie revisa</div>
-        <div class="doc-sub">Métrica vs señal. Cobertura vs acción.</div>
-        <span class="doc-arrow">→</span>
-      </a>
-
-      <a href="{{ site.baseurl }}/docs/doc-07/" class="doc-item">
-        <div class="doc-num">doc-07</div>
-        <div class="doc-title">Contexto perdido</div>
-        <div class="doc-sub">Decaimiento del razonamiento por pérdida de restricciones.</div>
-        <span class="doc-arrow">→</span>
-      </a>
-
-      <a href="{{ site.baseurl }}/docs/doc-08/" class="doc-item">
-        <div class="doc-num">doc-08</div>
-        <div class="doc-title">Personas en alta incertidumbre</div>
-        <div class="doc-sub">Operación eficaz sin reglas estables.</div>
-        <span class="doc-arrow">→</span>
-      </a>
-
-      <a href="{{ site.baseurl }}/docs/doc-09/" class="doc-item">
-        <div class="doc-num">doc-09</div>
-        <div class="doc-title">Deuda de decisión</div>
-        <div class="doc-sub">Costo acumulado de posponer claridad.</div>
-        <span class="doc-arrow">→</span>
-      </a>
-
-      <a href="{{ site.baseurl }}/docs/doc-10/" class="doc-item">
-        <div class="doc-num">doc-10</div>
-        <div class="doc-title">Incentivos bien diseñados que fallan</div>
-        <div class="doc-sub">Ley de Goodhart. Optimización de proxy.</div>
-        <span class="doc-arrow">→</span>
-      </a>
+      {% endfor %}
 
       <div class="section-divider nodo">
         Serie aplicada · Nodo Aguascalientes
-        <span>AGS01 – AGS06 · implementación territorial</span>
+        <span>AGS01 – AGS06 · Implementación territorial</span>
       </div>
 
       <a href="{{ site.baseurl }}/nodo-ags/" class="doc-item nodo" style="grid-column: 1 / -1;">
         <div class="doc-num">NODO AGS · ENTRADA</div>
         <div class="doc-title">Aguascalientes como sistema observable</div>
-        <div class="doc-sub">Aplicación del marco a un caso geográfico. Ruptura del equilibrio validada en 2026.</div>
+        <div class="doc-sub">Aplicación del marco a un caso geográfico. Validación empírica post-evento 2026.</div>
         <span class="doc-arrow">→</span>
       </a>
 
