@@ -1,0 +1,39 @@
+title: "System Friction"
+description: "Archivo de fricción sistémica."
+baseurl: "/system-friction"
+url: "https://aptymok.github.io"
+author: "aptymok"
+email: "aptymok@gmail.com"
+
+markdown: kramdown
+permalink: pretty
+
+collections:
+  docs:
+    output: true
+    permalink: /docs/:name/
+  nodo_ags:
+    output: true
+    permalink: /nodo-ags/:name/
+
+defaults:
+  - scope:
+      path: ""
+      type: "docs"
+    values:
+      layout: doc
+  - scope:
+      path: ""
+      type: "nodo_ags"
+    values:
+      layout: node
+
+plugins:
+  - jekyll-sitemap
+  - jekyll-seo-tag
+
+exclude:
+  - generate_docs_json.py
+  - README.md
+  - Gemfile
+  - Gemfile.lock

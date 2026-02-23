@@ -1,0 +1,8 @@
+{% if page.first_published or page.version or page.stability %}
+<div class="doc-meta">
+  {% if page.first_published %}<span>Publicado: {{ page.first_published }}</span>{% endif %}
+  {% if page.version %}<span>Versión: {{ page.version }}</span>{% endif %}
+  {% if page.stability %}<span>Estabilidad: {{ page.stability }}</span>{% endif %}
+  {% if page.doc_type %}<span>Tipo: {{ page.doc_type }}</span>{% endif %}
+</div>
+{% endif %}

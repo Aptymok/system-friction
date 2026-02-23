@@ -1,0 +1,23 @@
+---
+layout: default
+---
+<article data-doc-id="{{ page.doc_id }}">
+  <div class="doc-label nodo">Nodo Aguascalientes</div>
+  <h1>{{ page.title }}</h1>
+  {% include doc-meta.html %}
+  {{ content }}
+  <section class="related">
+    <h2>Conexiones estructurales</h2>
+    <p class="related-subtitle">Sugerencias basadas en patrones del vocabulario y relaciones del grafo. No implican secuencia ni orden recomendado.</p>
+    <div id="related-list" class="related-grid"></div>
+  </section>
+</article>
+<script
+  src="{{ site.baseurl }}/assets/js/recommendations.js"
+  data-docs="{{ site.baseurl }}/meta/docs.json"
+  data-patterns="{{ site.baseurl }}/meta/patterns.json"
+  data-ecosystem="{{ site.baseurl }}/meta/ecosystem.json"
+  data-current="{{ page.doc_id }}"
+  data-scope="cross-node"
+  data-limit="4">
+</script>

@@ -1,53 +1,7 @@
 {
-  "ecosystem": {
-    "title": "System Friction",
-    "version": "1.0",
-    "published": "2026-02-02",
-    "license": "CC0-1.0",
-    "contact": "aptymok@gmail.com",
-    "description": "Archivo de fricción sistémica. Documentos diseñados para extracción, no para lectura lineal.",
-
-    "core": {
-      "observer": {
-        "id": "core-0",
-        "title": "Ø · Posición",
-        "type": "frame-condition",
-        "indexable": false,
-        "version": "1.0",
-        "description": "Cartografía de la posición desde donde observa el ecosistema."
-      },
-      "meta": {
-        "id": "core-00",
-        "title": "00 · Cómo leer este ecosistema",
-        "type": "meta-framework",
-        "indexable": true,
-        "version": "1.0",
-        "description": "Documento metodológico que define tono, progresión lógica y límites del archivo."
-      }
-    },
-
-    "nodes": [
-      {
-        "id": "main",
-        "label": "Serie Principal",
-        "type": "core-series",
-        "documents": [
-          "doc-01","doc-02","doc-03","doc-04","doc-05","doc-06","doc-07","doc-08","doc-09","doc-10"
-        ]
-      },
-      {
-        "id": "nodo-ags",
-        "label": "Nodo Aguascalientes",
-        "type": "applied-node",
-        "inherits-framework": "core-00",
-        "documents": [
-          "ags-01",
-          "ags-02",
-          "ags-03",
-          "ags-04",
-          "ags-05"
-        ]
-      }
-    ]
-  }
+  "version": "1.0",
+  "published": "2026-02-02",
+  "nodes": ["docs", "nodo-ags"],
+  "license": "CC BY 4.0",
+  "status": "conjunto cerrado v1.0"
 }
