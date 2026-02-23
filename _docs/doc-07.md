@@ -1,4 +1,5 @@
 ---
+layout: default
 title: "Contexto perdido"
 doc_id: "doc-07"
 series: "07 · Fundamentos"
@@ -58,6 +59,5 @@ No como narrativa. Como metadata operativa.
 
 Estas no son quejas. Son señales de que el contexto cambió más rápido que la documentación.
 
-**Límite de aplicación:** Organizaciones con historia suficiente para acumular decisiones heredadas.
-En contextos muy nuevos o con alta rotación intencional, el problema es diferente.
+**Límite de aplicación:** Organizaciones con historia suficiente para acumular decisiones heredadas. En contextos muy nuevos o con alta rotación intencional, el problema es diferente.
 {: .limit-box }
