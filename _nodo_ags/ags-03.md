@@ -4,6 +4,7 @@ doc_id: "ags-03"
 series: "ags-03 · Nodo Aguascalientes"
 summary: "Brecha entre concesión, operación real y pérdidas no penalizadas."
 version: "1.1"
+first_published: "2026-02-15"
 stability: "alta"
 node: "nodo-ags"
 patterns:
