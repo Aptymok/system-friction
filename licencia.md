@@ -8,8 +8,6 @@ stability: "Consolidado"
 doc_type: "Estructura Legal"
 ---
 
-# Licencia y Condiciones de Operación
-
 La fricción en la circulación de la información acelera el colapso sistémico. Por lo tanto, la arquitectura de este archivo y sus marcos teóricos operan bajo un modelo de acceso abierto.
 
 ## Marco Teórico y Documentación (CC BY 4.0)

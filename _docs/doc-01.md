@@ -7,14 +7,16 @@ version: "1.0"
 stability: "alta"
 first_published: "2026-02-02"
 node: "docs"
+mihm_variable: "M_i"
+mihm_equation: "M_i = gap(discurso, función observada)"
+sf_pattern: "decisión-emergente"
+mihm_note: "La coherencia entre discurso y operación determina estabilidad narrativa."
 patterns:
   - decisión-emergente
   - cristalización-normativa
   - zona-gris
   - coherencia-aparente
 ---
-
-# Decisiones que nadie tomó
 
 ## Cristalización por acumulación
 

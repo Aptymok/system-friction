@@ -8,14 +8,16 @@ version: "1.1"
 first_published: "2026-02-15"
 stability: "alta"
 node: "nodo-ags"
+mihm_variable: "U_p"
+mihm_equation: "U_p = utilidad_pacto_implícito"
+sf_pattern: "pacto-implícito"
+mihm_note: "La estabilidad depende de condiciones no documentadas."
 patterns:
   - pacto-implícito
   - equilibrio-no-documentado
   - responsabilidad-difusa
   - límites-marco
 ---
-
-# El pacto no escrito
 
 ## El dato observable
 

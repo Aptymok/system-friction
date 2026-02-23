@@ -4,6 +4,8 @@ title: "Aguascalientes como sistema observable"
 doc_id: "nodo-ags-index"
 node: "nodo-ags"
 permalink: /nodo-ags/
+version: "1.1"
+stability: "alta"
 ---
 
 <main>

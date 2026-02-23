@@ -8,8 +8,6 @@ stability: "Consolidado"
 doc_type: "Marco Teórico"
 ---
 
-# Ontología del Sistema
-
 Este no es un manifiesto. Es una arquitectura de observación para sistemas críticos. *System Friction* mapea y cuantifica la distancia entre el estado real de un sistema y la narrativa institucional que lo administra.
 
 ## El Postulado Central

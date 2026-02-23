@@ -7,14 +7,16 @@ version: "1.0"
 stability: "alta"
 first_published: "2026-02-02"
 node: "docs"
+mihm_variable: "C_a"
+mihm_equation: "C_a = costo_real / costo_declarado"
+sf_pattern: "adoptable-degradado"
+mihm_note: "Cuando el costo real supera el declarado, cae adopción efectiva."
 patterns:
   - fricción-política
   - costo-de-adopción
   - distancia-diseño-consecuencia
   - asimetría-exposición
 ---
-
-# Costo real de adoptable
 
 ## Variables invisibles en adopción
 

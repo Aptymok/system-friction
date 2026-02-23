@@ -7,13 +7,16 @@ summary: "Umbral real vs oficial. La distancia donde opera el operador."
 version: "1.1"
 first_published: "2026-02-23"
 node: "docs"
+mihm_variable: "NTI"
+mihm_equation: "NTI = integridad(señal, realidad)"
+sf_pattern: "distancia-umbrales"
+mihm_note: "Conecta umbral oficial con umbral real en capa operativa."
 patterns:
   - umbral-real
   - distancia-umbrales
   - fricción-política
+stability: "alta"
 ---
-
-# Sistemas que no pueden permitirse fallar
 
 ## El umbral que no se nombra
 

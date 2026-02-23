@@ -1,6 +1,8 @@
 ---
 layout: default
 title: "Archivo de fricción sistémica"
+version: "1.1"
+stability: "alta"
 ---
 
 <main>
@@ -82,6 +84,17 @@ title: "Archivo de fricción sistémica"
       </a>
       {% endfor %}
 
+
+      <div class="section-divider">Integración MIHM
+        <span>panel · catálogo · nti · roadmap</span>
+      </div>
+
+      <a href="{{ site.baseurl }}/mihm/" class="doc-item new" style="grid-column: 1 / -1;">
+        <div class="doc-num">MIHM · HUB</div>
+        <div class="doc-title">Motor de validación y trazabilidad SF ↔ MIHM</div>
+        <div class="doc-sub">Puente operativo entre el archivo narrativo y las variables cuantificables del sistema.</div>
+        <span class="doc-arrow">→</span>
+      </a>
       <div class="section-divider nodo">
         Serie aplicada · Nodo Aguascalientes
         <span>AGS01 – AGS06 · Implementación territorial</span>

@@ -7,14 +7,18 @@ summary: "Ruptura del equilibrio implícito y transición a métrica observable.
 version: "1.1"
 first_published: "2026-02-23"
 node: "nodo-ags"
+stability: "alta"
+doc_type: "cierre-empírico"
+mihm_variable: "ΔIHG"
+mihm_equation: "ΔIHG = IHG_post - IHG_pre"
+sf_pattern: "validación-empírica"
+mihm_note: "El evento crítico convierte hipótesis en señal medible."
 patterns:
   - entropía-revelada
   - colapso-del-pacto
   - delta-sistémico
   - validación-empírica
 ---
-
-# Después del acuerdo: lo que el pacto ocultaba
 
 El 22 de febrero de 2026, la variable no documentada que sostenía la estabilidad operativa del Nodo Aguascalientes (descrita en el documento `ags-05`) desapareció tras la neutralización del actor hegemónico de seguridad no oficial. 
 

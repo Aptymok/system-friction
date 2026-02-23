@@ -8,14 +8,16 @@ version: "1.0"
 stability: "media"
 first_published: "2026-02-02"
 node: "docs"
+mihm_variable: "U_h"
+mihm_equation: "U_h = incertidumbre_operativa_humana"
+sf_pattern: "incertidumbre-humana"
+mihm_note: "La carga cognitiva eleva variabilidad conductual bajo presión."
 patterns:
   - tolerancia-incertidumbre
   - validación-interna
   - reversibilidad
   - opcionalidad
 ---
-
-# Personas en alta incertidumbre
 
 ## Qué comparten
 

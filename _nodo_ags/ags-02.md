@@ -8,14 +8,16 @@ version: "1.1"
 first_published: "2026-02-15"
 stability: "alta"
 node: "nodo-ags"
+mihm_variable: "LDI"
+mihm_equation: "LDI = latencia_resolución_trámite"
+sf_pattern: "latencia-politizada"
+mihm_note: "La latencia institucional funciona como mecanismo de control."
 patterns:
   - latencia-política
   - distancia-umbrales
   - responsabilidad-difusa
   - costo-diferido
 ---
-
-# El costo de la latencia
 
 ## Definición operativa
 

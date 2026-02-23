@@ -35,7 +35,7 @@ body {
   font-size: 18px;
   line-height: 1.7;
   min-height: 100vh;
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 /* Ruido sutil fijo */
@@ -138,6 +138,70 @@ p {
   margin-bottom: 1.2rem;
   font-size: 1rem;
   width: 100%;
+  hyphens: auto;
+  overflow-wrap: break-word;
+}
+
+li,
+ul li,
+.doc-sub,
+.related-sub,
+.nodo-doc-sub,
+.limit-box,
+.mapeo-note {
+  hyphens: auto;
+  overflow-wrap: break-word;
+}
+
+pre,
+code,
+table {
+  font-family: var(--mono);
+}
+
+pre {
+  font-size: 0.74rem;
+  line-height: 1.8;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 1rem 1.2rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin: 1.2rem 0;
+}
+
+code {
+  font-size: 0.75em;
+  color: var(--text-bright);
+}
+
+.sf-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin: 1.2rem 0;
+}
+
+.sf-table {
+  width: 100%;
+  min-width: 520px;
+  border-collapse: collapse;
+}
+
+.sf-table th,
+.sf-table td {
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  padding: 0.55rem 0.7rem;
+  vertical-align: top;
+  font-size: 0.72rem;
+}
+
+.sf-table th {
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--accent-dim);
+  font-size: 0.58rem;
 }
 
 /* LISTAS */
@@ -255,6 +319,16 @@ ul li::before {
 .doc-item.nodo .doc-arrow {
   color: var(--accent-red-dim);
 }
+
+
+.doc-item.new {
+  border-left-color: var(--accent-dim);
+  background: #1a1508;
+  padding: 0.8rem 1rem;
+}
+.doc-item.new:hover { border-left-color: var(--accent); }
+.doc-item.new .doc-num,
+.doc-item.new .doc-arrow { color: var(--accent); }
 
 /* DIVISORES DE SECCIÓN */
 .section-divider {
@@ -456,6 +530,88 @@ ul li::before {
   margin-top: 1rem;
   letter-spacing: 0.05em;
   line-height: 1.9;
+}
+
+/* TRAZABILIDAD SF ↔ MIHM */
+.mapeo-box {
+  border: 1px solid var(--accent-dim);
+  background: #1a1508;
+  padding: 1.2rem;
+  margin: 2rem 0;
+}
+
+.mapeo-label {
+  font-family: var(--mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 0.7rem;
+}
+
+.mapeo-box table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.mapeo-box th,
+.mapeo-box td {
+  border-bottom: 1px solid var(--border);
+  padding: 0.35rem 0.6rem 0.45rem 0;
+  text-align: left;
+  vertical-align: top;
+  font-family: var(--mono);
+}
+
+.mapeo-box th {
+  color: var(--accent-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.56rem;
+}
+
+.mapeo-box td {
+  font-size: 0.68rem;
+  color: var(--text);
+}
+
+.mapeo-note {
+  margin: 0.8rem 0 0;
+  font-size: 0.78rem;
+  color: var(--text-dim);
+}
+
+/* MÓDULO MIHM */
+.mihm-grid {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.mihm-card {
+  border-left: 2px solid var(--border);
+  padding: 1rem 1.2rem;
+  background: var(--surface);
+}
+
+.mihm-card h3 {
+  margin: 0 0 0.3rem;
+  font-family: var(--mono);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.64rem;
+  color: var(--accent-dim);
+}
+
+.mihm-value {
+  font-family: var(--mono);
+  font-size: 1.35rem;
+  color: var(--accent);
+  line-height: 1.2;
+}
+
+.mihm-value.critical {
+  color: var(--accent-red);
 }
 
 /* NODO AGS (Neutralizado por coherencia epistemológica) */

@@ -7,14 +7,16 @@ version: "1.0"
 stability: "alta"
 first_published: "2026-02-02"
 node: "docs"
+mihm_variable: "D_d"
+mihm_equation: "D_d = decisiones_postergadas acumuladas"
+sf_pattern: "deuda-de-decisión"
+mihm_note: "La postergación continua transforma deuda en fricción estructural."
 patterns:
   - deuda-decisión
   - consenso-superficial
   - costo-diferido
   - zona-gris
 ---
-
-# Deuda de decisión
 
 ## Diferencia con deuda técnica
 

@@ -8,14 +8,16 @@ version: "1.1"
 first_published: "2026-02-15"
 stability: "alta"
 node: "nodo-ags"
+mihm_variable: "ΔU"
+mihm_equation: "ΔU = umbral_oficial - umbral_real"
+sf_pattern: "distancia-umbrales"
+mihm_note: "La distancia entre umbrales determina riesgo oculto del nodo."
 patterns:
   - umbral-real
   - distancia-umbrales
   - fricción-política
   - zona-gris
 ---
-
-# La distancia que no se mide
 
 ## El problema
 

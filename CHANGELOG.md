@@ -2,9 +2,9 @@
 layout: default
 title: "Registro de Cambios (Change Log)"
 permalink: /changelog/
+version: "1.1"
+stability: "alta"
 ---
-
-# Registro de Cambios (Change Log)
 
 Todos los cambios notables en el ecosistema **System Friction** serán documentados en este archivo, siguiendo las normas de [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) y numeración de versiones semántica.
 

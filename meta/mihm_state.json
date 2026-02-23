@@ -1,0 +1,14 @@
+{
+  "updated_at": "2026-02-23T21:00:00Z",
+  "nodes": [
+    {
+      "node_id": "nodo-ags",
+      "label": "Nodo Aguascalientes",
+      "ihg": -0.47,
+      "nti": 0.61,
+      "status": "critical",
+      "source_cycle": "2026-W08",
+      "notes": "Evento de ruptura posterior al 22-feb-2026 con validación empírica de ΔIHG."
+    }
+  ]
+}
