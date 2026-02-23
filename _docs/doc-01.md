@@ -46,6 +46,6 @@ Mientras ese umbral no se cruce, la zona gris persiste.
 
 ¿En qué punto un hack se convierte en infraestructura?
 
-**Límite de aplicación:**
-Contextos con historia operativa acumulada.
+**Límite de aplicación:** Contextos con historia operativa acumulada.
 Probablemente no aplica en organizaciones nuevas sin proceso heredado.
+{: .limit-box }
