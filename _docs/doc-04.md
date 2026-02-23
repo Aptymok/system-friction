@@ -54,3 +54,4 @@ Es una categoría distinta de decisiones disponibles.
 
 **Límite de aplicación:** Individuos con capacidad de modificar estructura de ingresos y gastos.
 No aplica igual a quien tiene obligaciones fijas no negociables o ingresos completamente fuera de su control.
+{: .limit-box }
