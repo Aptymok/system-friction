@@ -1,4 +1,5 @@
 ---
+layout: default
 title: "Personas en alta incertidumbre"
 doc_id: "doc-08"
 series: "08 · Perfil"
@@ -61,9 +62,7 @@ No como falta de convicción. Como reconocimiento de que la información disponi
 
 Esto permite cambiar de dirección sin costo emocional cuando aparece nueva información.
 
-**Límite de aplicación:** Observación de patrón, no prescripción.
-Este documento describe características correlacionadas, no causales.
-No está claro qué tanto es entrenable vs selección.
+**Límite de aplicación:** Observación de patrón, no prescripción. Este documento describe características correlacionadas, no causales. No está claro qué tanto es entrenable vs selección.
 {: .limit-box }
 
 **Riesgo de mala aplicación:** Confundir estas características con evitar responsabilidad o no comprometerse nunca.
