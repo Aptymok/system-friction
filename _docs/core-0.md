@@ -10,6 +10,8 @@ patterns:
   - límites-marco
 ---
 
+# Desde dónde observa el observador
+
 ## Por qué este documento existe
 
 Todo sistema de análisis tiene una posición desde la que opera. Esa posición no es neutral. No declararla no la elimina. Solo la vuelve invisible para quien lee y opaca para quien escribe.

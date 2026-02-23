@@ -15,6 +15,8 @@ patterns:
   - umbral-fijo
 ---
 
+# Sistemas de alerta que nadie revisa
+
 ## Diferencia entre métrica y señal
 
 Las organizaciones crean dashboards que miden todo y detectan nada.

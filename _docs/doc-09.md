@@ -14,6 +14,8 @@ patterns:
   - zona-gris
 ---
 
+# Deuda de decisión
+
 ## Diferencia con deuda técnica
 
 **Deuda técnica:** costo de código mal escrito que funciona pero es difícil de mantener.

@@ -14,6 +14,8 @@ patterns:
   - asimetría-exposición
 ---
 
+# Costo real de adoptable
+
 ## Variables invisibles en adopción
 
 Una solución técnicamente superior puede perder frente a una mediocre por razones que no aparecen

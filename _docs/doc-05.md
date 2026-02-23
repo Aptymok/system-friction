@@ -14,6 +14,9 @@ patterns:
   - escritura-técnica
   - economía-palabras
 ---
+
+# Escritura sin intención visible
+
 ## Qué evitar
 
 La mayoría de escritura técnica colapsa porque intenta convencer y explicar simultáneamente.

@@ -15,6 +15,8 @@ patterns:
   - opcionalidad
 ---
 
+# Personas en alta incertidumbre
+
 ## Qué comparten
 
 Quienes operan bien cuando las reglas no existen comparten:

@@ -14,6 +14,8 @@ patterns:
   - límites-marco
 ---
 
+# Cómo leer este ecosistema
+
 ## Origen
 
 Este documento no fue diseñado. Emergió.

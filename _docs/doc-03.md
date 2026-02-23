@@ -14,6 +14,8 @@ patterns:
   - señal-ruido
 ---
 
+# Compliance como narrativa
+
 ## Lo que realmente mide compliance
 
 Compliance no mide seguridad. Mide auditabilidad.

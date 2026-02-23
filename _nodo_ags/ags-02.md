@@ -15,6 +15,8 @@ patterns:
   - costo-diferido
 ---
 
+# El costo de la latencia
+
 ## Definición operativa
 
 Latencia: tiempo entre que una decisión debería ocurrir y el momento en que ocurre.

@@ -17,8 +17,6 @@ Este no es un manifiesto. Es una arquitectura de observación para sistemas crí
 > **Los sistemas complejos no colapsan por ausencia de información, sino por el costo estructural que implica permitir que la información circule sin distorsión.**
 
 Cuando las métricas de rendimiento se convierten en objetivos de cumplimiento (Ley de Goodhart), el sistema de medición se desacopla de la realidad física. La entropía se acumula invisiblemente bajo indicadores oficiales estables, hasta que la brecha se cierra de manera abrupta e irreversible.
-{: .limit-box }
----
 
 ## Arquitectura Conceptual: Serie y Nodos
 

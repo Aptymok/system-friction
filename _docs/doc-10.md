@@ -14,6 +14,8 @@ patterns:
   - optimización-local
 ---
 
+# Incentivos bien diseñados que fallan
+
 ## Casos donde el sistema funciona perfectamente
 
 Para producir lo opuesto a lo deseado:

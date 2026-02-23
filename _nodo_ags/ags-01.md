@@ -15,6 +15,8 @@ patterns:
   - zona-gris
 ---
 
+# La distancia que no se mide
+
 ## El problema
 
 Todo sistema crítico tiene dos umbrales de falla: el real y el oficial.

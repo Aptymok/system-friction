@@ -14,6 +14,8 @@ patterns:
   - coherencia-aparente
 ---
 
+# Decisiones que nadie tomó
+
 ## Cristalización por acumulación
 
 En la mayoría de organizaciones, las decisiones importantes no se toman en reuniones.

@@ -15,6 +15,8 @@ patterns:
   - límites-marco
 ---
 
+# El pacto no escrito
+
 ## El dato observable
 
 Cuando la violencia no ocurre donde los datos dicen que debería ocurrir, existe una variable no documentada.

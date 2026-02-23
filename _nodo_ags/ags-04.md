@@ -15,6 +15,8 @@ patterns:
   - umbral-real
 ---
 
+# La ficción institucional
+
 ## Definición
 
 Ficción institucional: conjunto de métricas, reportes y narrativas que describen un sistema

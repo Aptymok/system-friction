@@ -15,6 +15,8 @@ patterns:
   - deuda-documental
 ---
 
+# Contexto perdido
+
 ## Por qué las decisiones envejecen
 
 Las decisiones documentadas pierden validez cuando el contexto que las justificó ya no se puede reconstruir.
