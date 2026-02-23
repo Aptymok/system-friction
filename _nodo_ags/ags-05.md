@@ -46,4 +46,4 @@ en acuerdos que no se escriben, en silencios que no se interpretan.
 Documentarla sería poner en un registro lo que necesita permanecer implícito para funcionar.
 
 **Límite de aplicación:** Este documento describe un patrón observable. No instruye sobre cómo operarlo ni desde qué posición. Quien lo lea como manual ha confundido diagnóstico con autorización. Este documento no se actualiza.
-{: .limit-box }
+{: .limit-box .nodo }
