@@ -3,7 +3,7 @@ title: "La ficción institucional"
 doc_id: "ags-04"
 series: "ags-04 · Nodo Aguascalientes"
 summary: "Métricas y narrativa que describen un sistema que ya no opera así."
-version: "1.0"
+version: "1.1"
 stability: "alta"
 node: "nodo-ags"
 patterns:
@@ -47,6 +47,5 @@ No por incompetencia. Porque la información necesaria para decidir dejó de cir
 Y cuando la distancia entre umbrales se cierra, lo único que queda es explicar
 por qué nadie vio venir lo que todos sabían.
 
-Este documento describe patrones estructurales con datos verificables.
-No prescribe acciones ni atribuye responsabilidad individual.
-El diagnóstico es el límite de este marco. Lo que ocurre con él es decisión de quien lo lee.
+**Límite de la aplicación:** Este documento describe patrones estructurales con datos verificables. No prescribe acciones ni atribuye responsabilidad individual. El diagnóstico es el límite de este marco. Lo que ocurre con él es decisión de quien lo lee.
+{: .limit-box .nodo }
