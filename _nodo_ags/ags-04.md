@@ -4,6 +4,7 @@ doc_id: "ags-04"
 series: "ags-04 · Nodo Aguascalientes"
 summary: "Métricas y narrativa que describen un sistema que ya no opera así."
 version: "1.1"
+first_published: "2026-02-15"
 stability: "alta"
 node: "nodo-ags"
 patterns:
