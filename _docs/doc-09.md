@@ -74,3 +74,4 @@ Estas preguntas son incómodas. Por eso funcionan.
 
 **Límite de aplicación:** Contextos colaborativos donde múltiples partes deben alinearse.
 En decisiones individuales, el patrón no aplica igual.
+{: .limit-box }
