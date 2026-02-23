@@ -51,6 +51,5 @@ De nombrar el patrón sin necesitar que el responsable lo reconozca.
 
 La latencia no se combate. Se monitorea hasta que quien la controla decide que ya no le sirve.
 
-Este documento describe un patrón estructural, no una acción coordinada verificable.
-La latencia puede ser sistémica sin ser intencional.
-El análisis no requiere atribuir intención para ser útil.
+Este documento describe un patrón estructural, no una acción coordinada verificable. La latencia puede ser sistémica sin ser intencional. El análisis no requiere atribuir intención para ser útil.
+{: .limit-box .nodo }
