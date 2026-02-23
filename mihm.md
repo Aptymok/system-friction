@@ -8,11 +8,16 @@ permalink: /mihm/
   <div class="doc-container">
     <div class="doc-label">MIHM · Integración operativa</div>
     <h1>Motor de validación<br>System Friction ↔ evidencia</h1>
+<<<<<<< HEAD
     <p>Fase 2 en curso: panel operativo con snapshots versionados por nodo y lectura pública del estado del sistema.</p>
+=======
+    <p>Esta capa no explica el MIHM. Expone su estado operacional para lectura pública trazable desde los documentos y nodos del ecosistema.</p>
+>>>>>>> main
 
     <div class="mihm-grid">
       <div class="mihm-card">
         <h3>IHG agregado</h3>
+<<<<<<< HEAD
         <div id="mihm-ihg" class="mihm-value critical">—</div>
       </div>
       <div class="mihm-card">
@@ -42,6 +47,14 @@ permalink: /mihm/
           <tr><td colspan="6">Cargando snapshot…</td></tr>
         </tbody>
       </table>
+=======
+        <div class="mihm-value critical">-0.47</div>
+      </div>
+      <div class="mihm-card">
+        <h3>NTI (integridad de señal)</h3>
+        <div class="mihm-value">0.61</div>
+      </div>
+>>>>>>> main
     </div>
 
     <div class="doc-grid mt-4">
@@ -66,9 +79,12 @@ permalink: /mihm/
     </div>
   </div>
 </main>
+<<<<<<< HEAD
 
 <script
   src="{{ site.baseurl }}/assets/js/mihm-panel.js"
   data-mihm-state="{{ site.baseurl }}/meta/mihm_state.json"
   data-mihm-equations="{{ site.baseurl }}/meta/mihm_equations.json">
 </script>
+=======
+>>>>>>> main

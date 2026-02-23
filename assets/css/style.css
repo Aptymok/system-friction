@@ -202,6 +202,57 @@ code {
   font-size: 0.58rem;
 }
 
+pre,
+code,
+table {
+  font-family: var(--mono);
+}
+
+pre {
+  font-size: 0.74rem;
+  line-height: 1.8;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 1rem 1.2rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin: 1.2rem 0;
+}
+
+code {
+  font-size: 0.75em;
+  color: var(--text-bright);
+}
+
+.sf-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin: 1.2rem 0;
+}
+
+.sf-table {
+  width: 100%;
+  min-width: 520px;
+  border-collapse: collapse;
+}
+
+.sf-table th,
+.sf-table td {
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  padding: 0.55rem 0.7rem;
+  vertical-align: top;
+  font-size: 0.72rem;
+}
+
+.sf-table th {
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--accent-dim);
+  font-size: 0.58rem;
+}
+
 /* LISTAS */
 ul {
   list-style: none;

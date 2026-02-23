@@ -10,7 +10,11 @@ node: "docs"
 mihm_variable: "M_i"
 mihm_equation: "M_i = gap(discurso, función observada)"
 sf_pattern: "decisión-emergente"
+<<<<<<< HEAD
 mihm_note: "La coherencia entre discurso y operación determina estabilidad narrativa."
+=======
+mihm_note: "Cuando el procedimiento institucional declarado no coincide con la resolución operativa repetida, M_i sube."
+>>>>>>> main
 patterns:
   - decisión-emergente
   - cristalización-normativa
