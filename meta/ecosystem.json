@@ -3,5 +3,6 @@
   "published": "2026-02-23",
   "nodes": ["docs", "nodo-ags"],
   "license": "CC BY 4.0",
-  "status": "conjunto cerrado v1.1"
+  "status": "expansión acumulativa v1.1",
+  "postulado": "Los sistemas no fallan por ausencia de información, sino por el costo estructural de permitir que circule sin distorsión."
 }
