@@ -53,6 +53,5 @@ Compliance crea incentivos para:
 No es que la gente sea deshonesta. Es que el sistema recompensa la forma sobre la sustancia
 cuando la sustancia no es medible formalmente.
 
-**Límite de aplicación:** Contextos con alta carga regulatoria y dependencia de auditoría formal.
-En organizaciones pequeñas o sin presión de compliance externo, este patrón es menos relevante.
+**Límite de aplicación:** Contextos con alta carga regulatoria y dependencia de auditoría formal. En organizaciones pequeñas o sin presión de compliance externo, este patrón es menos relevante.
 {: .limit-box }

@@ -53,6 +53,5 @@ No necesita optimismo. No necesita tolerancia al riesgo.
 Necesita poder nombrar la distancia sin necesitar que otros confirmen primero.
 Eso es incómodo. Pero es lo único que permite operar antes de que la distancia desaparezca.
 
-Este documento describe patrones observables con datos públicos disponibles en CONAGUA, REPDA y registros locales.
-No atribuye intención a actores individuales. No prescribe acciones.
+Este documento describe patrones observables con datos públicos disponibles en CONAGUA, REPDA y registros locales. No atribuye intención a actores individuales. No prescribe acciones.
 {: .limit-box .nodo }

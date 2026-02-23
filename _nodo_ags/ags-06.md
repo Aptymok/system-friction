@@ -16,8 +16,6 @@ patterns:
 
 # Después del acuerdo: lo que el pacto ocultaba
 
-{% include limit-box.html %}
-
 El 22 de febrero de 2026, la variable no documentada que sostenía la estabilidad operativa del Nodo Aguascalientes (descrita en el documento `ags-05`) desapareció tras la neutralización del actor hegemónico de seguridad no oficial. 
 
 El resultado inmediato no fue una falla del modelo, sino su validación empírica. Al romperse el pacto no escrito, la distancia entre el umbral oficial y el umbral real colapsó a cero.

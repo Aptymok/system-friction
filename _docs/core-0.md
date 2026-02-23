@@ -36,3 +36,4 @@ Juicio moral sobre actores individuales. Prescripción de soluciones. Análisis 
 Este documento es condición de marco, no pieza del archivo.
 No tiene número. No se actualiza.
 Es el umbral antes del primer caso.
+{: .limit-box }

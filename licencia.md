@@ -8,46 +8,35 @@ stability: "Consolidado"
 doc_type: "Estructura Legal"
 ---
 
-<main>
-  <div class="doc-container">
+# Licencia y Condiciones de Operación
 
-    <h1>Licencia y Condiciones de Operación</h1>
+La fricción en la circulación de la información acelera el colapso sistémico. Por lo tanto, la arquitectura de este archivo y sus marcos teóricos operan bajo un modelo de acceso abierto.
 
-    <p>La fricción en la circulación de la información acelera el colapso sistémico. Por lo tanto, la arquitectura de este archivo y sus marcos teóricos operan bajo un modelo de acceso abierto.</p>
+## Marco Teórico y Documentación (CC BY 4.0)
 
-    <h2>Marco Teórico y Documentación (CC BY 4.0)</h2>
+Todo el contenido textual, conceptual y metodológico de *System Friction*, incluyendo el framework MIHM y la arquitectura del NTI, se publica bajo la licencia **Creative Commons Reconocimiento 4.0 Internacional (CC BY 4.0)**.
 
-    <p>Todo el contenido textual, conceptual y metodológico de <em>System Friction</em>, incluyendo el framework MIHM y la arquitectura del NTI, se publica bajo la licencia <strong>Creative Commons Reconocimiento 4.0 Internacional (CC BY 4.0)</strong>.</p>
+Usted es libre de:
+* **Compartir:** Copiar y redistribuir el material en cualquier medio o formato.
+* **Adaptar:** Remezclar, transformar y construir a partir del material para cualquier propósito.
 
-    <p>Usted es libre de:</p>
-    <ul>
-      <li><strong>Compartir:</strong> Copiar y redistribuir el material en cualquier medio o formato.</li>
-      <li><strong>Adaptar:</strong> Remezclar, transformar y construir a partir del material para cualquier propósito.</li>
-    </ul>
+Bajo las siguientes condiciones:
+* **Reconocimiento:** Debe otorgar el crédito correspondiente a *System Friction / Juan Antonio Marín Liera*, proporcionar un enlace a la licencia e indicar si se realizaron cambios.
 
-    <p>Bajo las siguientes condiciones:</p>
-    <ul>
-      <li><strong>Reconocimiento:</strong> Debe otorgar el crédito correspondiente a <em>System Friction / Juan Antonio Marín Liera</em>, proporcionar un enlace a la licencia e indicar si se realizaron cambios.</li>
-    </ul>
+## Implementación Algorítmica (Licencia MIT)
 
-    <h2>Implementación Algorítmica (Licencia MIT)</h2>
+El código fuente asociado a este marco, incluyendo el motor de simulación **NODEX**, se distribuye bajo la **Licencia MIT**. Se permite su uso, copia, modificación y distribución, siempre que se incluya el aviso de copyright original.
 
-    <p>El código fuente asociado a este marco, incluyendo el motor de simulación <strong>NODEX</strong>, se distribuye bajo la <strong>Licencia MIT</strong>.</p>
-    <p>Se permite su uso, copia, modificación y distribución, siempre que se incluya el aviso de copyright original.</p>
+---
 
-    <div class="rule"></div>
+## Exención de Responsabilidad Operativa
 
-    <h2>Exención de Responsabilidad Operativa</h2>
+Este archivo no prescribe soluciones; describe patrones, trayectorias de colapso y modelos probabilísticos. 
 
-    <p>Este archivo no prescribe soluciones; describe patrones, trayectorias de colapso y modelos probabilísticos.</p>
+La aplicación de estos modelos a infraestructuras críticas (sistemas hídricos, financieros o gubernamentales) es responsabilidad exclusiva del operador que los implementa. Los autores de *System Friction* no asumen ninguna responsabilidad jurídica, moral o técnica por las decisiones estructurales derivadas del uso de este marco.
 
-    <p>La aplicación de estos modelos a infraestructuras críticas (sistemas hídricos, financieros o gubernamentales) es responsabilidad exclusiva del operador que los implementa. Los autores de <em>System Friction</em> no asumen ninguna responsabilidad jurídica, moral o técnica por las decisiones estructurales derivadas del uso de este marco.</p>
+> **El modelo audita la entropía; el humano asume el riesgo.**
+{: .limit-box }
 
-    <div class="limit-box">
-      <strong>El modelo audita la entropía; el humano asume el riesgo.</strong>
-    </div>
-
-    <p class="mt-4" style="font-size: 0.85em; color: var(--text-dim);"><em>Para consultas sobre derechos de autor o registro en INDAUTOR, contactar vía el repositorio oficial en GitHub.</em></p>
-
-  </div>
-</main>
+*Para consultas sobre derechos de autor o registro en INDAUTOR, contactar vía el repositorio oficial en GitHub.*
+{: .limit-box }

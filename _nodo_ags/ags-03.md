@@ -55,5 +55,5 @@ Documentar eso no es técnicamente complejo. Es políticamente incómodo.
 Haría visible que el 70% del agua no resuelve el 70% del problema:
 resuelve un equilibrio de poder que no aparece en ninguna ley.
 
-Fuentes: registros oficiales de acuíferos, REPDA (padrón público), y datos operativos locales. Este documento no atribuye ilegalidad. Describe una estructura de incentivos con consecuencias verificables.
+**Fuentes:** registros oficiales de acuíferos, REPDA (padrón público), y datos operativos locales. Este documento no atribuye ilegalidad. Describe una estructura de incentivos con consecuencias verificables.
 {: .limit-box .nodo }
