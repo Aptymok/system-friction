@@ -53,11 +53,8 @@ No prescribe soluciones. No emite juicios morales sobre sistemas o actores.
 No asume que el lector comparte el mismo contexto institucional.
 Describe patrones. El uso es responsabilidad de quien lee.
 
-**Límite de aplicación:**
-Este documento asume que el lector ya leyó al menos uno de los documentos del ecosistema.
-Leído en aislamiento, es metodología sin referente. Leído después, es reconocimiento de algo que ya ocurrió.
+**Límite de aplicación:** Este documento asume que el lector ya leyó al menos uno de los documentos del ecosistema. Leído en aislamiento, es metodología sin referente. Leído después, es reconocimiento de algo que ya ocurrió.
+{: .limit-box }
 
-**Nota sobre el origen emergente:**
-Este documento no existía en v1.0. Apareció cuando dos voces intentaron escribir el mismo patrón
-y la diferencia entre ambas hizo visible la estructura común. Eso también es un patrón del ecosistema.
+**Nota sobre el origen emergente:** Este documento no existía en v1.0. Apareció cuando dos voces intentaron escribir el mismo patrón y la diferencia entre ambas hizo visible la estructura común. Eso también es un patrón del ecosistema.
 {: .limit-box }
