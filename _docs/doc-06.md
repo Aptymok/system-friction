@@ -1,4 +1,5 @@
 ---
+layout: default
 title: "Sistemas de alerta que nadie revisa"
 doc_id: "doc-06"
 series: "06 · Fundamentos"
@@ -62,6 +63,5 @@ El sistema cambia. El umbral no. Con el tiempo, la alerta deja de ser predictiva
 Pero nadie actualiza el umbral porque cambiar el sistema de alertas es más arriesgado
 que ignorar alertas malas.
 
-**Límite de aplicación:** Sistemas con volumen suficiente para requerir alertas automatizadas.
-En contextos pequeños donde todo es revisable manualmente, este patrón es menos relevante.
+**Límite de aplicación:** Sistemas con volumen suficiente para requerir alertas automatizadas. En contextos pequeños donde todo es revisable manualmente, este patrón es menos relevante.
 {: .limit-box }
