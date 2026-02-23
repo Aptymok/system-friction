@@ -55,3 +55,4 @@ cuando la sustancia no es medible formalmente.
 
 **Límite de aplicación:** Contextos con alta carga regulatoria y dependencia de auditoría formal.
 En organizaciones pequeñas o sin presión de compliance externo, este patrón es menos relevante.
+{: .limit-box }
