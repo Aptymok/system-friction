@@ -8,6 +8,10 @@ version: "1.0"
 stability: "alta"
 first_published: "2026-02-02"
 node: "docs"
+mihm_variable: "A_r"
+mihm_equation: "A_r = alertas_revisadas / alertas_emitidas"
+sf_pattern: "alerta-ignorada"
+mihm_note: "El sistema emite señal, pero sin revisión no existe corrección."
 patterns:
   - señal-ruido
   - desalineación-métricas

@@ -7,6 +7,10 @@ version: "1.0"
 stability: "alta"
 first_published: "2026-02-02"
 node: "docs"
+mihm_variable: "I_f"
+mihm_equation: "I_f = incentivo_local / resultado_sistémico"
+sf_pattern: "incentivo-contradictorio"
+mihm_note: "Incentivos bien diseñados localmente pueden fallar sistémicamente."
 patterns:
   - proxy-objetivo
   - ley-goodhart

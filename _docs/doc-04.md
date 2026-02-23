@@ -7,6 +7,10 @@ summary: "Opcionalidad temporal. Horizonte de maniobra."
 version: "1.1"
 first_published: "2026-02-02"
 node: "docs"
+mihm_variable: "T_d"
+mihm_equation: "T_d = deuda_tiempo_decisión"
+sf_pattern: "deuda-temporal"
+mihm_note: "La deuda temporal desplaza costo al futuro hasta volverlo crítico."
 patterns:
   - opcionalidad
   - horizonte-maniobra

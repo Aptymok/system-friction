@@ -8,6 +8,10 @@ version: "1.0"
 stability: "alta"
 first_published: "2026-02-02"
 node: "docs"
+mihm_variable: "C_x"
+mihm_equation: "C_x = contexto_disponible / contexto_requerido"
+sf_pattern: "contexto-perdido"
+mihm_note: "Con contexto incompleto, la decisión se optimiza para apariencia."
 patterns:
   - decaimiento-contexto
   - decisión-emergente

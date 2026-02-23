@@ -7,6 +7,10 @@ version: "1.0"
 stability: "alta"
 first_published: "2026-02-02"
 node: "docs"
+mihm_variable: "NTI"
+mihm_equation: "NTI = integridad(señal oficial, señal operativa)"
+sf_pattern: "compliance-narrativo"
+mihm_note: "Compliance estable con operación inestable reduce integridad de señal."
 patterns:
   - proxy-objetivo
   - desalineación-métricas
