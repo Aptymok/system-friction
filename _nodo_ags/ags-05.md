@@ -1,9 +1,11 @@
 ---
+layout: default
 title: "El pacto no escrito"
 doc_id: "ags-05"
 series: "ags-05 · Nodo Aguascalientes"
 summary: "Equilibrio implícito: estabilidad operativa con variables no documentadas."
 version: "1.1"
+first_published: "2026-02-15"
 stability: "alta"
 node: "nodo-ags"
 patterns:
