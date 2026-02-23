@@ -13,5 +13,7 @@
   "desalineación-métricas": {"label": "Desalineación de métricas", "description": "Cuando lo que se mide y lo que importa divergen sistemáticamente."},
   "ley-goodhart": {"label": "Ley de Goodhart", "description": "Cuando una métrica se convierte en objetivo, deja de ser una buena métrica."},
   "decisión-emergente": {"label": "Decisión emergente", "description": "Política que nadie tomó pero que todos siguen."},
-  "ficción-institucional": {"label": "Ficción institucional", "description": "Sistema de indicadores que describe un sistema que ya no existe."}
+  "ficción-institucional": {"label": "Ficción institucional", "description": "Sistema de indicadores que describe un sistema que ya no existe."},
+  "entropía-revelada": {"label": "Entropía revelada", "description": "Estado real del sistema visible tras el colapso de la ficción institucional."},
+  "colapso-del-pacto": {"label": "Colapso del pacto", "description": "Punto de ruptura de un equilibrio implícito no documentado."}
 }
