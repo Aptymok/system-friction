@@ -458,10 +458,10 @@ ul li::before {
   line-height: 1.9;
 }
 
-/* NODO AGS */
-.nodo { color: var(--accent-red-dim); }
-.doc-label.nodo { color: var(--accent-red-dim); }
-.doc-label.nodo::after { background: var(--accent-red-dim); opacity: 0.4; }
+/* NODO AGS (Neutralizado por coherencia epistemológica) */
+.nodo { color: var(--text-dim); }
+.doc-label.nodo { color: var(--text-dim); }
+.doc-label.nodo::after { background: var(--text-dim); opacity: 0.4; }
 
 .nodo-entry {
   max-width: 680px;
@@ -474,7 +474,7 @@ ul li::before {
   font-size: 0.62rem;
   letter-spacing: 0.25em;
   text-transform: uppercase;
-  color: var(--accent-red-dim);
+  color: var(--accent-dim);
   margin-bottom: 2rem;
   display: flex;
   align-items: center;
@@ -483,7 +483,7 @@ ul li::before {
 .nodo-label::after {
   content: '';
   height: 1px;
-  background: var(--accent-red-dim);
+  background: var(--accent-dim);
   width: 40px;
   opacity: 0.4;
 }
@@ -493,18 +493,18 @@ ul li::before {
   padding: 2rem 2rem 6rem;
   display: grid;
   gap: 0;
-  border: 1px solid #2a1a1a;
+  border: 1px solid var(--border);
 }
 .nodo-doc {
   padding: 1.8rem 2rem;
-  border-bottom: 1px solid #2a1a1a;
+  border-bottom: 1px solid var(--border);
   text-decoration: none;
   display: block;
   position: relative;
   transition: background 0.2s;
 }
 .nodo-doc:last-child { border-bottom: none; }
-.nodo-doc:hover { background: #120d0d; }
+.nodo-doc:hover { background: var(--surface); }
 .nodo-doc:hover .nodo-arrow { opacity: 1; transform: translateX(0); }
 .nodo-doc-title {
   font-family: var(--serif);
@@ -524,7 +524,7 @@ ul li::before {
   right: 2rem;
   font-family: var(--mono);
   font-size: 0.7rem;
-  color: var(--accent-red);
+  color: var(--accent);
   opacity: 0;
   transform: translateX(-6px);
   transition: all 0.2s ease;
@@ -536,20 +536,20 @@ ul li::before {
   letter-spacing: 0.08em;
   line-height: 2;
   padding: 1.5rem 2rem;
-  border-top: 1px solid #2a1a1a;
-  background: #0f0a0a;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
 }
 .nodo-section-divider {
   grid-column: 1 / -1;
   padding: 1rem 2rem;
-  background: #0f0a0a;
-  border-bottom: 1px solid #2a1a1a;
-  border-top: 1px solid #2a1a1a;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  border-top: 1px solid var(--border);
   font-family: var(--mono);
   font-size: 0.6rem;
   letter-spacing: 0.2em;
   text-transform: uppercase;
-  color: var(--accent-red-dim);
+  color: var(--accent-dim);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -557,14 +557,4 @@ ul li::before {
 .nodo-section-divider span {
   color: var(--text-dim);
   font-size: 0.55rem;
-}
-
-ol {
-  margin: 0.5rem 0 1.5rem 1.2rem;
-  max-width: 560px;
-}
-ol li {
-  margin: 0.35rem 0;
-  color: var(--text);
-  font-size: 0.95rem;
 }
