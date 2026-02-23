@@ -64,5 +64,7 @@ Esto permite cambiar de dirección sin costo emocional cuando aparece nueva info
 **Límite de aplicación:** Observación de patrón, no prescripción.
 Este documento describe características correlacionadas, no causales.
 No está claro qué tanto es entrenable vs selección.
+{: .limit-box }
 
 **Riesgo de mala aplicación:** Confundir estas características con evitar responsabilidad o no comprometerse nunca.
+{: .limit-box }
