@@ -8,8 +8,6 @@ permalink: /changelog/
 
 Todos los cambios notables en el ecosistema **System Friction** serán documentados en este archivo, siguiendo las normas de [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) y numeración de versiones semántica.
 
----
-
 ## [1.1.0] - 2026-02-23
 
 ### Añadido
@@ -27,16 +25,12 @@ Todos los cambios notables en el ecosistema **System Friction** serán documenta
 - **Sincronización de Identidad:** Eliminación de referencias duplicadas y limpieza de metadatos en el Front Matter de toda la Serie de Fundamentos.
 - **Normalización CSS:** Ajuste de márgenes y tipografía para asegurar la legibilidad clínica en dispositivos móviles.
 
----
-
 ## [1.0.0] - 2026-02-02
 
 ### Añadido
 - **Lanzamiento Inicial:** Publicación de la Serie de Fundamentos (doc-01 al doc-10).
 - **Marco MIHM:** Definición de los principios de gobernanza homeostática.
 - **Estructura Base:** Configuración del repositorio y despliegue inicial en Jekyll.
-
----
 
 > **Nota técnica:** Las versiones menores (1.x) representan la adición de datos empíricos o refinamientos en la Serie. Las versiones mayores (x.0) representan cambios en los axiomas fundamentales del marco teórico.
 {: .limit-box }
