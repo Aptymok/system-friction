@@ -62,3 +62,4 @@ Estas ya son lenguaje, no decoración.
 **Límite de aplicación:** Escritura técnica y argumentativa.
 No aplica igual a escritura persuasiva donde la intención debe ser visible,
 o a escritura literaria donde el estilo es parte del contenido.
+{: .limit-box }
