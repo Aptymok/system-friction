@@ -64,3 +64,4 @@ que ignorar alertas malas.
 
 **Límite de aplicación:** Sistemas con volumen suficiente para requerir alertas automatizadas.
 En contextos pequeños donde todo es revisable manualmente, este patrón es menos relevante.
+{: .limit-box }
