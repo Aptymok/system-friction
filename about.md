@@ -26,8 +26,6 @@ El ecosistema de *System Friction* se divide estrictamente en dos capas operativ
 
 **2. Los Nodos (La Instanciación Empírica)** Es el territorio donde el marco teórico se somete a validación empírica y estrés estocástico con datos reales. Documentos agrupados bajo prefijos geográficos o temáticos (ej. `nodo-ags/`). Un Nodo no altera las reglas de la Serie; simplemente las ejecuta sobre variables observables para diagnosticar probabilidad de colapso o disfunción homeostática.
 
----
-
 ## Glosario Mínimo de Operación
 
 * **Fricción Sistémica:** La resistencia acumulada dentro de una red institucional que retrasa, altera o destruye la señal entre la detección de una anomalía y la ejecución de una respuesta correctiva.
