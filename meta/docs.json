@@ -16,5 +16,6 @@
   {"id":"ags-02","title":"El costo de la latencia","summary":"Cuando el tiempo de resolución se vuelve variable de ajuste.","node":"nodo-ags","patterns":["latencia-política","distancia-umbrales","responsabilidad-difusa","costo-diferido"]},
   {"id":"ags-03","title":"El agua que no se ve","summary":"Brecha entre concesión, operación real y pérdidas no penalizadas.","node":"nodo-ags","patterns":["derecho-vs-recurso","pérdida-no-penalizada","concentración-concesión","umbral-real"]},
   {"id":"ags-04","title":"La ficción institucional","summary":"Métricas y narrativa que describen un sistema que ya no opera así.","node":"nodo-ags","patterns":["ficción-institucional","coherencia-aparente","señal-ruido","umbral-real"]},
-  {"id":"ags-05","title":"El pacto no escrito","summary":"Equilibrio implícito: estabilidad operativa con variables no documentadas.","node":"nodo-ags","patterns":["pacto-implícito","equilibrio-no-documentado","responsabilidad-difusa","límites-marco"]}
+  {"id":"ags-05","title":"El pacto no escrito","summary":"Equilibrio implícito: estabilidad operativa con variables no documentadas.","node":"nodo-ags","patterns":["pacto-implícito","equilibrio-no-documentado","responsabilidad-difusa","límites-marco"]},
+  {"id":"ags-06","title":"Después del acuerdo","summary":"Ruptura del equilibrio implícito y transición a métrica observable.","node":"nodo-ags","patterns":["entropía-revelada","colapso-del-pacto","delta-sistémico","validación-empírica"]}
 ]
