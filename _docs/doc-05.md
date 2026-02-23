@@ -1,4 +1,5 @@
 ---
+layout: default
 title: "Escritura sin intención visible"
 doc_id: "doc-05"
 series: "05 · Técnica"
@@ -13,7 +14,6 @@ patterns:
   - escritura-técnica
   - economía-palabras
 ---
-
 ## Qué evitar
 
 La mayoría de escritura técnica colapsa porque intenta convencer y explicar simultáneamente.
@@ -59,7 +59,5 @@ Si el concepto no se puede explicar sin analogía, probablemente el concepto no 
 Excepción: metáforas técnicas estándar en el dominio (deuda técnica, superficie de ataque, etc.).
 Estas ya son lenguaje, no decoración.
 
-**Límite de aplicación:** Escritura técnica y argumentativa.
-No aplica igual a escritura persuasiva donde la intención debe ser visible,
-o a escritura literaria donde el estilo es parte del contenido.
+**Límite de aplicación:** Escritura técnica y argumentativa. No aplica igual a escritura persuasiva donde la intención debe ser visible, o a escritura literaria donde el estilo es parte del contenido.
 {: .limit-box }
