@@ -1,0 +1,25 @@
+{
+  "manifest_version": "1.1",
+  "node": "nodo-ags",
+  "source_glob": "_nodo_ags/ags-*.md",
+  "normalization": {
+    "version_target": "1.1",
+    "time_keywords": {
+      "days": ["día", "días", "day", "days"],
+      "weeks": ["semana", "semanas", "week", "weeks"],
+      "months": ["mes", "meses", "month", "months"],
+      "years": ["año", "años", "year", "years"],
+      "latency": ["latencia", "tiempo", "retraso", "resolución"]
+    },
+    "opacity_keywords": {
+      "opacity": ["opacidad", "oculta", "oculto", "silencio", "silencios"],
+      "narrative_gap": ["ficción", "narrativa", "no se documenta", "no documentada"],
+      "institutional_gap": ["umbral oficial", "umbral real", "distancia", "zona gris"]
+    }
+  },
+  "vhpd_validation": {
+    "required_fields": ["doc_id", "version", "first_published", "mihm_variable", "sf_pattern"],
+    "evidence_window": 180,
+    "block_if_missing_evidence": true
+  }
+}

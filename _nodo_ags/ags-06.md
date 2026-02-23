@@ -12,11 +12,7 @@ doc_type: "cierre-empírico"
 mihm_variable: "ΔIHG"
 mihm_equation: "ΔIHG = IHG_post - IHG_pre"
 sf_pattern: "validación-empírica"
-<<<<<<< HEAD
-mihm_note: "El evento crítico convierte hipótesis en señal medible."
-=======
 mihm_note: "El evento del 22-feb-2026 convierte una hipótesis sistémica en señal cuantificable."
->>>>>>> main
 patterns:
   - entropía-revelada
   - colapso-del-pacto

@@ -1,0 +1,119 @@
+{
+  "node": "nodo-ags",
+  "manifest_version": "1.1",
+  "generated_at": "2026-02-23T23:30:14.126037Z",
+  "documents": [
+    {
+      "doc_id": "ags-01",
+      "source": "_nodo_ags/ags-01.md",
+      "version": "1.1",
+      "first_published": "2026-02-15",
+      "mihm_variable": "ΔU",
+      "sf_pattern": "distancia-umbrales",
+      "time_score": 4,
+      "opacity_score": 14,
+      "evidence": [
+        "idades que nadie asignó y soluciones que nadie tiene.  ## Lo que no se mide en el Nodo  * Años reales hasta que pozos clave dejen de operar por profundidad * Tiempo real de resolución",
+        "idades que nadie asignó y soluciones que nadie tiene.  ## Lo que no se mide en el Nodo  * Años reales hasta que pozos clave dejen de operar por profundidad * Tiempo real de resolución",
+        "se mide en el Nodo  * Años reales hasta que pozos clave dejen de operar por profundidad * Tiempo real de resolución de trámites federales cuando hay presión política * Fecha estimada de",
+        "odo  * Años reales hasta que pozos clave dejen de operar por profundidad * Tiempo real de resolución de trámites federales cuando hay presión política * Fecha estimada de ruptura del equilib",
+        "sf_pattern: \"distancia-umbrales\" mihm_note: \"La distancia entre umbrales determina riesgo oculto del nodo.\" patterns:   - umbral-real   - distancia-umbrales   - fricción-política   - zon"
+      ],
+      "vhpd_status": "ok",
+      "vhpd_notes": []
+    },
+    {
+      "doc_id": "ags-02",
+      "source": "_nodo_ags/ags-02.md",
+      "version": "1.1",
+      "first_published": "2026-02-15",
+      "mihm_variable": "LDI",
+      "sf_pattern": "latencia-politizada",
+      "time_score": 21,
+      "opacity_score": 4,
+      "evidence": [
+        "--- layout: default title: \"El costo de la latencia\" doc_id: \"ags-02\" series: \"ags-02 · Nodo Aguascalientes\" summary: \"Cuando el tiempo de re",
+        "2026-02-15\" stability: \"alta\" node: \"nodo-ags\" mihm_variable: \"LDI\" mihm_equation: \"LDI = latencia_resolución_trámite\" sf_pattern: \"latencia-politizada\" mihm_note: \"La latencia institucion",
+        "ags\" mihm_variable: \"LDI\" mihm_equation: \"LDI = latencia_resolución_trámite\" sf_pattern: \"latencia-politizada\" mihm_note: \"La latencia institucional funciona como mecanismo de control.\" pa",
+        "ion: \"LDI = latencia_resolución_trámite\" sf_pattern: \"latencia-politizada\" mihm_note: \"La latencia institucional funciona como mecanismo de control.\" patterns:   - latencia-política   - di",
+        "mihm_note: \"La latencia institucional funciona como mecanismo de control.\" patterns:   - latencia-política   - distancia-umbrales   - responsabilidad-difusa   - costo-diferido ---  # El c"
+      ],
+      "vhpd_status": "ok",
+      "vhpd_notes": []
+    },
+    {
+      "doc_id": "ags-03",
+      "source": "_nodo_ags/ags-03.md",
+      "version": "1.1",
+      "first_published": "2026-02-15",
+      "mihm_variable": "E_p",
+      "sf_pattern": "extracción-proxy",
+      "time_score": 1,
+      "opacity_score": 2,
+      "evidence": [
+        "público  El Acuífero Valle de Aguascalientes (Clave 0101) tiene un déficit de −95.75 hm³/año. La recarga es 249.6. La extracción concesionada es 342.95. Eso está publicado en registr",
+        "n: \"E_p = extracción_proxy_energía\" sf_pattern: \"extracción-proxy\" mihm_note: \"El recurso oculto se vuelve visible vía energía consumida.\" patterns:   - derecho-vs-recurso   - pérdida-no",
+        "ero eso no se puede medir sin desagregar quién realmente opera cada concesión.  ## Lo que no se documenta  * Cruce entre titulares de concesión y beneficiarios reales * Volumen de agua rentada a"
+      ],
+      "vhpd_status": "ok",
+      "vhpd_notes": []
+    },
+    {
+      "doc_id": "ags-04",
+      "source": "_nodo_ags/ags-04.md",
+      "version": "1.1",
+      "first_published": "2026-02-15",
+      "mihm_variable": "F_i",
+      "sf_pattern": "ficción-institucional",
+      "time_score": 2,
+      "opacity_score": 14,
+      "evidence": [
+        "elocidad real de degradación del acuífero y costo creciente de extracción * Costo real de latencia federal medido en inversión diferida y empleos no generados * Fragilidad real de los equi",
+        "bilidad del corredor  ## El riesgo  Cuando la ficción institucional se sostiene demasiado tiempo, el sistema pierde capacidad de respuesta. No por incompetencia. Porque la información ne",
+        "a siga funcionando. Pero también impide que se corrijan las causas.  ## Lo que la ficción oculta  * Velocidad real de degradación del acuífero y costo creciente de extracción * Costo rea",
+        "--- layout: default title: \"La ficción institucional\" doc_id: \"ags-04\" series: \"ags-04 · Nodo Aguascalientes\" summary: \"Métricas",
+        "mihm_variable: \"F_i\" mihm_equation: \"F_i = fricción_institucional compuesta\" sf_pattern: \"ficción-institucional\" mihm_note: \"Estabilidad reportada sin respaldo operativo aumenta fricción."
+      ],
+      "vhpd_status": "ok",
+      "vhpd_notes": []
+    },
+    {
+      "doc_id": "ags-05",
+      "source": "_nodo_ags/ags-05.md",
+      "version": "1.1",
+      "first_published": "2026-02-15",
+      "mihm_variable": "U_p",
+      "sf_pattern": "pacto-implícito",
+      "time_score": 1,
+      "opacity_score": 6,
+      "evidence": [
+        "s que necesitan que el corredor opere.  Ese equilibrio:  * No se firma * No se negocia en mesas oficiales * No tiene plazo * Tiene condiciones que nadie explicita  Mientras las condic",
+        "información existe en conversaciones que no se graban, en acuerdos que no se escriben, en silencios que no se interpretan.  Documentarla sería poner en un registro lo que necesita permanec",
+        "información existe en conversaciones que no se graban, en acuerdos que no se escriben, en silencios que no se interpretan.  Documentarla sería poner en un registro lo que necesita permanece",
+        "es operativos. Cuando se rompen, el corredor se desregula.  ## Variable implícita  Lo que no se documenta:  * Cuáles son las condiciones * Quién las monitorea * Qué pasa cuando alguien deja de cu",
+        "Nodo Aguascalientes\" summary: \"Equilibrio implícito: estabilidad operativa con variables no documentadas.\" version: \"1.1\" first_published: \"2026-02-15\" stability: \"alta\" node: \"nodo-ags\" mihm_v"
+      ],
+      "vhpd_status": "ok",
+      "vhpd_notes": []
+    },
+    {
+      "doc_id": "ags-06",
+      "source": "_nodo_ags/ags-06.md",
+      "version": "1.1",
+      "first_published": "2026-02-23",
+      "mihm_variable": "ΔIHG",
+      "sf_pattern": "validación-empírica",
+      "time_score": 5,
+      "opacity_score": 11,
+      "evidence": [
+        "endógena del sistema. El agua, los permisos y la estabilidad del corredor industrial dependían de una función de utilidad ($U_P$) que acaba de cambiar de signo.  El ecosistema no requ",
+        "IHG_{post} - IHG_{pre}$). La fricción ahora es medible a través de fuentes públicas:  * **Latencia Institucional (LDI) post-evento:** Variación en los tiempos de resolución de trámites (CO",
+        "és de fuentes públicas:  * **Latencia Institucional (LDI) post-evento:** Variación en los tiempos de resolución de trámites (CONAGUA, CFE, REPDA) antes y después de la ruptura logística.",
+        "o.  **Límite de aplicación:** Este documento registra una transición de fase sistémica en tiempo real utilizando datos de dominio público surgidos a partir del 22 de febrero de 2026. No",
+        "es públicas:  * **Latencia Institucional (LDI) post-evento:** Variación en los tiempos de resolución de trámites (CONAGUA, CFE, REPDA) antes y después de la ruptura logística. La burocracia"
+      ],
+      "vhpd_status": "ok",
+      "vhpd_notes": []
+    }
+  ]
+}

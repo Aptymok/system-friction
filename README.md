@@ -26,6 +26,13 @@ meta/           → docs.json, patterns.json, ecosystem.json, mihm_state.json, m
 python3 generate_docs_json.py
 ```
 
+## Pipeline de procesamiento AGS (Fase C)
+
+```bash
+python3 scripts/extract_ags_metrics.py
+# genera meta/ags_metrics.json usando meta/manifest.json
+```
+
 ## Desarrollo local
 
 ```bash

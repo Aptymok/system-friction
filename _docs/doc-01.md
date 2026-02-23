@@ -3,18 +3,14 @@ title: "Decisiones que nadie tomó"
 doc_id: "doc-01"
 series: "01 · Fundamentos"
 summary: "Cristalización por acumulación. Zonas grises operativas."
-version: "1.0"
+version: "1.1"
 stability: "alta"
 first_published: "2026-02-02"
 node: "docs"
 mihm_variable: "M_i"
 mihm_equation: "M_i = gap(discurso, función observada)"
 sf_pattern: "decisión-emergente"
-<<<<<<< HEAD
-mihm_note: "La coherencia entre discurso y operación determina estabilidad narrativa."
-=======
 mihm_note: "Cuando el procedimiento institucional declarado no coincide con la resolución operativa repetida, M_i sube."
->>>>>>> main
 patterns:
   - decisión-emergente
   - cristalización-normativa
