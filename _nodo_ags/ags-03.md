@@ -3,7 +3,7 @@ title: "El agua que no se ve"
 doc_id: "ags-03"
 series: "ags-03 · Nodo Aguascalientes"
 summary: "Brecha entre concesión, operación real y pérdidas no penalizadas."
-version: "1.0"
+version: "1.1"
 stability: "alta"
 node: "nodo-ags"
 patterns:
@@ -55,3 +55,5 @@ resuelve un equilibrio de poder que no aparece en ninguna ley.
 
 Fuentes: registros oficiales de acuíferos, REPDA (padrón público), y datos operativos locales.
 Este documento no atribuye ilegalidad. Describe una estructura de incentivos con consecuencias verificables.
+Fuentes: registros oficiales de acuíferos, REPDA (padrón público), y datos operativos locales. Este documento no atribuye ilegalidad. Describe una estructura de incentivos con consecuencias verificables.
+{: .limit-box .nodo }
