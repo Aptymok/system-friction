@@ -69,5 +69,5 @@ Y cuando hay desalineación, el sistema optimiza para lo que se mide, no para lo
 
 Ninguna solución es perfecta. Todas generan nuevos problemas.
 
-**Límite de aplicación:** Sistemas con incentivos explícitos y métricas cuantificables.
-En contextos sin métricas formales, el problema se manifiesta de otras formas.
+**Límite de aplicación:** Sistemas con incentivos explícitos y métricas cuantificables. En contextos sin métricas formales, el problema se manifiesta de otras formas.
+{: .limit-box }
