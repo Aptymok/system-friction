@@ -1,30 +1,98 @@
 {
-  "version": "mihm-v2.1",
-  "updated_at": "2026-02-23",
+  "schema": "sf-equations-v1.1",
+  "generated": "2026-02-23",
   "equations": [
     {
-      "sf_pattern": "decisión-emergente",
-      "mihm_variable": "M_i",
-      "equation": "M_i = gap(discurso, función observada)",
-      "falsation": "Si la función observada converge con el protocolo explícito de forma sostenida."
+      "id": "eq-friction",
+      "name": "Friccion institucional",
+      "latex": "f = \\frac{t}{T} + O",
+      "plain": "f = (t/T) + O",
+      "variables": {
+        "f": {
+          "domain": "[0,inf)",
+          "description": "Indice de friccion institucional"
+        },
+        "t": {
+          "domain": "R+",
+          "description": "Tiempo de respuesta observado (horas)"
+        },
+        "T": {
+          "domain": "R+",
+          "description": "Tiempo de respuesta normativo (horas)"
+        },
+        "O": {
+          "domain": "[0,1]",
+          "description": "Opacidad sistemica"
+        }
+      },
+      "thresholds": {
+        "f>1": "fuera de umbral funcional",
+        "O->1": "friccion diverge"
+      },
+      "patterns_that_increase_f": [
+        "doc-01",
+        "doc-03",
+        "doc-06",
+        "doc-07",
+        "doc-09",
+        "doc-10"
+      ],
+      "patterns_that_decrease_f": [
+        "doc-05",
+        "doc-08"
+      ]
     },
     {
-      "sf_pattern": "latencia-politizada",
-      "mihm_variable": "LDI",
-      "equation": "LDI = t_resolución_real - t_resolución_objetivo",
-      "falsation": "Si la mediana de resolución cae al umbral objetivo por 3 ciclos consecutivos."
+      "id": "eq-IHG",
+      "name": "Indice de Gobernanza Homeostatica",
+      "latex": "\\text{IHG} = \\frac{1}{N}\\sum_{i=1}^{N}(C_i - E_i)(1 - L_i^{\\text{eff}})",
+      "plain": "IHG = mean((C_i - E_i) * (1 - L_eff_i))",
+      "ucap": -0.5,
+      "post_fractura_ags": -0.62,
+      "pre_fractura_ags": -0.41
     },
     {
-      "sf_pattern": "validación-empírica",
-      "mihm_variable": "ΔIHG",
-      "equation": "ΔIHG = IHG_post - IHG_pre",
-      "falsation": "Si el diferencial converge a 0 aun bajo evento de estrés equivalente."
+      "id": "eq-L_eff",
+      "name": "Latencia efectiva",
+      "latex": "L_i^{\\text{eff}} = \\min\\left(L_i \\cdot (1 + (1 - M_i)),\\; 1\\right)",
+      "plain": "L_eff = min(L * (1 + (1 - M)), 1.0)"
     },
     {
-      "sf_pattern": "distancia-umbrales",
-      "mihm_variable": "NTI",
-      "equation": "NTI = integrity(señal_oficial, señal_operativa)",
-      "falsation": "Si no existe divergencia medible entre señal oficial y estado operativo."
+      "id": "eq-NTI",
+      "name": "Nodo de Trazabilidad Institucional",
+      "latex": "\\text{NTI} = \\frac{1}{5}[(1-\\text{LDI}_n) + \\text{ICC}_n + \\text{CSR} + \\text{IRCI}_n + \\text{IIM}]",
+      "plain": "NTI = (1/5) * ((1-LDI_n) + ICC_n + CSR + IRCI_n + IIM)",
+      "ucap": 0.4,
+      "post_fractura_ags": 0.351,
+      "components": {
+        "LDI_n": {
+          "description": "Latencia de Decision Institucional normalizada",
+          "post_fractura": 1.0
+        },
+        "ICC_n": {
+          "description": "Indice de Concentracion de Conocimiento",
+          "post_fractura": 0.32
+        },
+        "CSR": {
+          "description": "Cumplimiento de Reduccion de Incidentes",
+          "post_fractura": 0.0
+        },
+        "IRCI_n": {
+          "description": "Indice de Resiliencia de Capital Institucional",
+          "post_fractura": 0.935
+        },
+        "IIM": {
+          "description": "Indice de Integridad de Metricas",
+          "post_fractura": 0.5
+        }
+      }
+    },
+    {
+      "id": "eq-U_P",
+      "name": "Funcion de utilidad del pacto implicito",
+      "latex": "U_P = B_C - C_C - f_{\\text{corredor}}",
+      "plain": "U_P = B_C - C_C - f_corredor",
+      "note": "Cuando U_P -> 0: el sistema revela su estado entropico real"
     }
   ]
 }

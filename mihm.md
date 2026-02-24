@@ -1,89 +1,34 @@
 ---
-title: "MIHM · Motor de validación"
+layout: default
+title: "MIHM — Motor cuantitativo del framework"
+description: "Multinodal Homeostatic Integration Model v2.0. Estado del sistema."
 permalink: /mihm/
 ---
 
-<main>
-  <div class="doc-container">
-    <div class="doc-label">MIHM · Integración operativa</div>
-    <h1>Motor de validación<br>System Friction ↔ evidencia</h1>
-<<<<<<< HEAD
-    <p>Fase 2 en curso: panel operativo con snapshots versionados por nodo y lectura pública del estado del sistema.</p>
-=======
-    <p>Esta capa no explica el MIHM. Expone su estado operacional para lectura pública trazable desde los documentos y nodos del ecosistema.</p>
->>>>>>> main
+# MIHM v2.0
 
-    <div class="mihm-grid">
-      <div class="mihm-card">
-        <h3>IHG agregado</h3>
-<<<<<<< HEAD
-        <div id="mihm-ihg" class="mihm-value critical">—</div>
-      </div>
-      <div class="mihm-card">
-        <h3>NTI (integridad de señal)</h3>
-        <div id="mihm-nti" class="mihm-value">—</div>
-      </div>
-      <div class="mihm-card">
-        <h3>Snapshot actualizado</h3>
-        <div id="mihm-updated" class="mihm-value" style="font-size:0.86rem;">—</div>
-      </div>
-    </div>
+Capa cuantitativa. Los patrones doc-01 a doc-10 son sus rutas de entrada.  
+Los documentos AGS son su validación empírica.  
+Este módulo los convierte en un número.
 
-    <h2>Nodos activos</h2>
-    <div class="sf-table-wrap">
-      <table class="sf-table">
-        <thead>
-          <tr>
-            <th>Nodo</th>
-            <th>IHG</th>
-            <th>NTI</th>
-            <th>Estado</th>
-            <th>Ciclo</th>
-            <th>Notas</th>
-          </tr>
-        </thead>
-        <tbody id="mihm-nodes-table">
-          <tr><td colspan="6">Cargando snapshot…</td></tr>
-        </tbody>
-      </table>
-=======
-        <div class="mihm-value critical">-0.47</div>
-      </div>
-      <div class="mihm-card">
-        <h3>NTI (integridad de señal)</h3>
-        <div class="mihm-value">0.61</div>
-      </div>
->>>>>>> main
-    </div>
+---
 
-    <div class="doc-grid mt-4">
-      <a href="{{ site.baseurl }}/mihm/catalogo/" class="doc-item new">
-        <div class="doc-num">MIHM · 01</div>
-        <div class="doc-title">Catálogo SF ↔ MIHM</div>
-        <div class="doc-sub">Variables, ecuaciones y condiciones de falsación por patrón.</div>
-        <span class="doc-arrow">→</span>
-      </a>
-      <a href="{{ site.baseurl }}/mihm/nti/" class="doc-item new">
-        <div class="doc-num">MIHM · 02</div>
-        <div class="doc-title">NTI · Auto-auditoría</div>
-        <div class="doc-sub">Integridad de la señal institucional y puntos de ruptura por nodo.</div>
-        <span class="doc-arrow">→</span>
-      </a>
-      <a href="{{ site.baseurl }}/roadmap/" class="doc-item new">
-        <div class="doc-num">MIHM · 03</div>
-        <div class="doc-title">Roadmap de integración</div>
-        <div class="doc-sub">Fases 0→3 para completar la convergencia del stack editorial y métrico.</div>
-        <span class="doc-arrow">→</span>
-      </a>
-    </div>
-  </div>
-</main>
-<<<<<<< HEAD
+**f = (t/T) + O** — toda fricción en el sistema es una instancia de esta fórmula.
 
-<script
-  src="{{ site.baseurl }}/assets/js/mihm-panel.js"
-  data-mihm-state="{{ site.baseurl }}/meta/mihm_state.json"
-  data-mihm-equations="{{ site.baseurl }}/meta/mihm_equations.json">
-</script>
-=======
->>>>>>> main
+---
+
+<div id="sf-headline" data-sf-load="true">—</div>
+
+---
+
+[Vector de nodos →](/mihm/nodos/) · [Catálogo →](/mihm/catalogo/) · [NTI →](/mihm/nti/) · [Patrones →](/mihm/patrones/)
+
+---
+
+## Descarga
+
+- [ags_metrics.json](/meta/ags_metrics.json)
+- [patterns.json](/meta/patterns.json)
+- [mihm_equations.json](/meta/mihm_equations.json)
+- [mihm_v2.py](/scripts/mihm_v2.py)
+- [MIHM v2.0 — Manuscrito (PDF)](/assets/MIHM_v2_manuscrito_completo.pdf)

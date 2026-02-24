@@ -1,0 +1,188 @@
+{
+  "schema": "ags-metrics-v1.1",
+  "generated": "2026-02-23T23:59:00Z",
+  "event": "Muerte El Mencho + 252 narcobloqueos (22-23 feb 2026)",
+  "seed": 42,
+  "monte_carlo_iterations": 50000,
+  "system": {
+    "IHG_pre": -0.41,
+    "IHG_post": -0.62,
+    "NTI_post": 0.351,
+    "IHG_corrected": -0.218,
+    "IHG_after_telemetry": -0.5,
+    "prob_collapse_2030": 0.71,
+    "ucap_threshold": -0.5,
+    "nti_ucap_threshold": 0.4,
+    "protocol_activated": "EMERGENCY_DECISION"
+  },
+  "nodes": {
+    "N1": {
+      "label": "Agua/Ambiente",
+      "C": 0.18,
+      "E": 0.89,
+      "L": 0.92,
+      "K": 0.85,
+      "R": 0.12,
+      "M": 1.0,
+      "friction": 1.81,
+      "status": "FRACTURE",
+      "ihg_contribution": -0.089,
+      "pattern_refs": [
+        "doc-09",
+        "doc-10"
+      ]
+    },
+    "N2": {
+      "label": "Capital Social",
+      "C": 0.68,
+      "E": 0.78,
+      "L": 0.72,
+      "K": 0.55,
+      "R": 0.15,
+      "M": 1.0,
+      "friction": 1.5,
+      "status": "DEGRADED",
+      "ihg_contribution": -0.045,
+      "pattern_refs": [
+        "doc-02",
+        "doc-04",
+        "doc-07"
+      ]
+    },
+    "N3": {
+      "label": "Logistica",
+      "C": 0.85,
+      "E": 0.35,
+      "L": 0.35,
+      "K": 0.4,
+      "R": 0.6,
+      "M": 1.0,
+      "friction": 0.7,
+      "status": "OK",
+      "ihg_contribution": 0.089,
+      "pattern_refs": [
+        "doc-08"
+      ]
+    },
+    "N4": {
+      "label": "Seguridad",
+      "C": 0.35,
+      "E": 0.96,
+      "L": 0.88,
+      "K": 0.55,
+      "R": 0.1,
+      "M": 1.0,
+      "friction": 1.84,
+      "status": "CRITICAL",
+      "ihg_contribution": -0.201,
+      "pattern_refs": [
+        "doc-01",
+        "doc-03",
+        "doc-06",
+        "doc-09"
+      ]
+    },
+    "N5": {
+      "label": "Coordinacion",
+      "C": 0.6,
+      "E": 0.68,
+      "L": 0.78,
+      "K": 0.65,
+      "R": 0.4,
+      "M": 0.5,
+      "friction": 2.1,
+      "status": "OPAQUE",
+      "ihg_contribution": -0.156,
+      "pattern_refs": [
+        "doc-01",
+        "doc-07"
+      ]
+    },
+    "N6": {
+      "label": "Seguridad Exogena",
+      "C": 0.4,
+      "E": 0.95,
+      "L": 0.85,
+      "K": 0.75,
+      "R": 0.2,
+      "M": 0.7,
+      "friction": 2.31,
+      "status": "CRITICAL",
+      "ihg_contribution": -0.218,
+      "pattern_refs": [
+        "doc-06"
+      ]
+    }
+  },
+  "nti_components": {
+    "LDI_norm": 1.0,
+    "ICC_norm": 0.32,
+    "CSR": 0.0,
+    "IRCI_norm": 0.935,
+    "IIM": 0.5
+  },
+  "monte_carlo_scenarios": [
+    {
+      "id": "S1",
+      "label": "Homeostasis Fragil",
+      "prob": 0.28,
+      "ihg_180d": -0.35,
+      "description": "Reduccion gradual de entropia con intervencion tecnica"
+    },
+    {
+      "id": "S2",
+      "label": "Estancamiento",
+      "prob": 0.41,
+      "ihg_180d": -0.55,
+      "description": "Sin intervencion. IHG estabilizado por debajo del UCAP"
+    },
+    {
+      "id": "S3",
+      "label": "Escalada Controlada",
+      "prob": 0.21,
+      "ihg_180d": -0.72,
+      "description": "Nuevo evento exogeno en 60 dias. Protocolo activo"
+    },
+    {
+      "id": "S4",
+      "label": "Colapso Sistemico",
+      "prob": 0.1,
+      "ihg_180d": -1.1,
+      "description": "Falla estructural en N1 + N4. Intervencion federal requerida"
+    }
+  ],
+  "interventions_ranked": [
+    {
+      "rank": 1,
+      "intervention": "Telemetria N6",
+      "ihg_delta": "+0.12",
+      "gate": "H3",
+      "pattern_addresses": "doc-06",
+      "feasibility": "ALTA"
+    },
+    {
+      "rank": 2,
+      "intervention": "Protocolo anti-ICC",
+      "ihg_delta": "+0.08",
+      "gate": "H2",
+      "pattern_addresses": "doc-07",
+      "feasibility": "MEDIA"
+    },
+    {
+      "rank": 3,
+      "intervention": "Fondo hidrico federal N1",
+      "ihg_delta": "+0.06",
+      "gate": "H3",
+      "pattern_addresses": "doc-09",
+      "feasibility": "BAJA"
+    },
+    {
+      "rank": 4,
+      "intervention": "Restauracion M5",
+      "ihg_delta": "+0.05",
+      "gate": "H1",
+      "pattern_addresses": "doc-01",
+      "feasibility": "ALTA"
+    }
+  ]
+}

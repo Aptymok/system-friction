@@ -1,70 +1,45 @@
-/**
- * System Friction · recommendations.js
- * Loads docs.json + patterns.json and renders related documents.
- * Uses CSS classes: .related-item, .related-num, .related-title, .related-sub
- */
+// recommendations.js — System Friction Framework v1.1
+// Motor de recomendaciones. Consume meta/patterns.json + meta/ags_metrics.json.
+// Diseñado para inyectarse en cualquier página del sitio.
+// Reemplaza la versión anterior con trazabilidad MIHM.
+
 (function () {
-  const script = document.currentScript ||
-    document.querySelector("script[data-docs]");
-  if (!script) return;
+  'use strict';
 
-  const docsUrl     = script.getAttribute("data-docs");
-  const patternsUrl = script.getAttribute("data-patterns");
-  const currentId   = script.getAttribute("data-current");
-  const scope       = script.getAttribute("data-scope") || "same-node";
-  const limit       = parseInt(script.getAttribute("data-limit") || "4", 10);
-  const container   = document.getElementById("related-list");
+  // El bloque de recomendaciones se inyecta en cualquier elemento con:
+  // <div id="sf-recommendations" data-sf-load="true"></div>
+  // Ya manejado por mihm-dashboard.js
 
-  if (!container || !docsUrl || !currentId) return;
+  // Función standalone para páginas que no cargan el dashboard completo
+  window.SF = window.SF || {};
+  window.SF.loadRecommendations = async function (containerId, basePath) {
+    const base = basePath || '';
+    const el = document.getElementById(containerId);
+    if (!el) return;
 
-  function canonicalHref(doc) {
-    const base = docsUrl.split("/meta/")[0] || "";
-    if (doc.node === "nodo-ags") return base + "/nodo-ags/" + doc.id + "/";
-    return base + "/docs/" + doc.id + "/";
-  }
+    try {
+      const [m, p] = await Promise.all([
+        fetch(base + '/meta/ags_metrics.json').then(r => r.json()),
+        fetch(base + '/meta/patterns.json').then(r => r.json())
+      ]);
+      const pats = p.patterns || [];
+      // Find patterns relevant to current page (by URL matching doc id)
+      const path = window.location.pathname;
+      const currentDocId = path.split('/').filter(Boolean).pop();
+      const related = pats.filter(p =>
+        p.id !== currentDocId &&
+        p.friction_contribution !== 'none' &&
+        (p.friction_contribution === 'critical' || p.friction_contribution === 'high')
+      ).slice(0, 3);
 
-  function score(doc, current) {
-    if (doc.id === current.id) return -1;
-    if (scope === "cross-node" && doc.node === current.node) return 0;
-    var s = 0;
-    var cp = current.patterns || [];
-    var dp = doc.patterns || [];
-    cp.forEach(function(p) { if (dp.indexOf(p) > -1) s += 2; });
-    if (doc.node !== current.node) s += 1;
-    return s;
-  }
+      if (!related.length) return;
 
-  Promise.all([
-    fetch(docsUrl).then(function(r) { return r.json(); }),
-    fetch(patternsUrl).then(function(r) { return r.json(); }).catch(function() { return {}; })
-  ]).then(function(results) {
-    var docs = results[0];
-    var current = docs.find(function(d) { return d.id === currentId; });
-    if (!current) return;
-
-    var scored = docs
-      .map(function(d) { return { doc: d, score: score(d, current) }; })
-      .filter(function(x) { return x.score > 0; })
-      .sort(function(a, b) { return b.score - a.score; })
-      .slice(0, limit);
-
-    if (scored.length === 0) {
-      container.innerHTML = "<p class='related-note'>Sin conexiones registradas aún.</p>";
-      return;
+      el.innerHTML = `<div class="sf-recs-inline">
+        <div class="sf-recs-inline__label">patrones relacionados</div>
+        ${related.map(r => `<a class="sf-recs-inline__link" href="${r.url}">${r.id} — ${r.title}</a>`).join('')}
+      </div>`;
+    } catch (_) {
+      // Silent fail: recommendations are supplementary
     }
-
-    scored.forEach(function(x) {
-      var doc = x.doc;
-      var a = document.createElement("a");
-      a.className = "related-item";
-      a.href = canonicalHref(doc);
-      a.innerHTML =
-        '<div class="related-num">' + doc.id + '</div>' +
-        '<div class="related-title">' + doc.title + '</div>' +
-        (doc.summary ? '<div class="related-sub">' + doc.summary + '</div>' : '');
-      container.appendChild(a);
-    });
-  }).catch(function(err) {
-    console.warn("System Friction · recommendations error:", err);
-  });
+  };
 })();

@@ -1,8 +1,133 @@
 {
+  "schema": "sf-ecosystem-v1.1",
+  "generated": "2026-02-23",
   "version": "1.1",
-  "published": "2026-02-23",
-  "nodes": ["docs", "nodo-ags"],
-  "license": "CC BY 4.0",
-  "status": "expansión acumulativa v1.1",
-  "postulado": "Los sistemas no fallan por ausencia de información, sino por el costo estructural de permitir que circule sin distorsión."
+  "layers": {
+    "axiom": {
+      "description": "Postulado central. Motor unico.",
+      "formula": "f = (t/T) + O",
+      "files": [
+        "_docs/core-00.md",
+        "_docs/core-0.md",
+        "_docs/core-bridge.md"
+      ]
+    },
+    "patterns": {
+      "description": "Documentacion de patrones estructurales observados.",
+      "files": [
+        "_docs/doc-01.md",
+        "_docs/doc-02.md",
+        "_docs/doc-03.md",
+        "_docs/doc-04.md",
+        "_docs/doc-05.md",
+        "_docs/doc-06.md",
+        "_docs/doc-07.md",
+        "_docs/doc-08.md",
+        "_docs/doc-09.md",
+        "_docs/doc-10.md"
+      ],
+      "count": 10
+    },
+    "empirical": {
+      "description": "Validacion empirica. Nodo Aguascalientes.",
+      "files": [
+        "_nodo_ags/ags-01.md",
+        "_nodo_ags/ags-02.md",
+        "_nodo_ags/ags-03.md",
+        "_nodo_ags/ags-04.md",
+        "_nodo_ags/ags-05.md",
+        "_nodo_ags/ags-06.md"
+      ],
+      "count": 6,
+      "event": "Muerte El Mencho + 252 narcobloqueos (22 feb 2026)"
+    },
+    "quantitative": {
+      "description": "Motor MIHM v2.0. IHG, NTI, Monte Carlo.",
+      "files": [
+        "mihm/index.md",
+        "mihm/catalogo.md",
+        "mihm/nti.md"
+      ],
+      "data_source": "meta/ags_metrics.json",
+      "script": "scripts/mihm_v2.py"
+    },
+    "meta": {
+      "description": "Esquemas de validacion y datos estructurados.",
+      "files": [
+        "meta/patterns.json",
+        "meta/ecosystem.json",
+        "meta/ags_metrics.json",
+        "meta/mihm_equations.json",
+        "meta/docs.json"
+      ]
+    }
+  },
+  "navigation": {
+    "entry": "/",
+    "pattern_entry": "/docs/core-00/",
+    "empirical_entry": "/nodo-ags/",
+    "quantitative_entry": "/mihm/",
+    "catalog": "/mihm/catalogo/",
+    "nti": "/mihm/nti/"
+  },
+  "nodes": {
+    "N1": {
+      "label": "Agua/Ambiente",
+      "pattern_connections": [
+        "doc-09",
+        "doc-10"
+      ]
+    },
+    "N2": {
+      "label": "Capital Social",
+      "pattern_connections": [
+        "doc-02",
+        "doc-04",
+        "doc-07",
+        "doc-10"
+      ]
+    },
+    "N3": {
+      "label": "Logistica",
+      "pattern_connections": [
+        "doc-02",
+        "doc-08"
+      ]
+    },
+    "N4": {
+      "label": "Seguridad",
+      "pattern_connections": [
+        "doc-01",
+        "doc-03",
+        "doc-06",
+        "doc-08",
+        "doc-09",
+        "doc-10"
+      ]
+    },
+    "N5": {
+      "label": "Coordinacion",
+      "pattern_connections": [
+        "doc-01",
+        "doc-03",
+        "doc-07"
+      ]
+    },
+    "N6": {
+      "label": "Seguridad Exogena",
+      "pattern_connections": [
+        "doc-06",
+        "doc-09"
+      ]
+    }
+  },
+  "thresholds": {
+    "IHG_ucap": -0.5,
+    "NTI_ucap": 0.4,
+    "friction_operational": 1.0,
+    "friction_critical": 2.0,
+    "C_fracture": 0.3,
+    "E_critical": 0.8,
+    "M_opaque": 0.5
+  }
 }
