@@ -1,5 +1,4 @@
 ---
-layout: default
 title: "Sistemas que no pueden permitirse fallar"
 doc_id: "core-bridge"
 series: "core-bridge · Puente"
