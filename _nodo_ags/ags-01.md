@@ -1,5 +1,4 @@
 ---
-layout: audit
 title: "AGS-01 — Corredor Jalisco–Zacatecas–Guanajuato"
 version: "1.1"
 status: validated
