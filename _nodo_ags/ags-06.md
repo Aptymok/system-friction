@@ -1,5 +1,4 @@
 ---
-layout: audit
 title: "AGS-06 — Síntesis Post-Fractura: Cierre del Ciclo Empírico"
 version: "1.1"
 status: validated

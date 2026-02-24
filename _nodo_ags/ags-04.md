@@ -1,5 +1,4 @@
 ---
-layout: audit
 title: "AGS-04 — Cadena Logística Automotriz"
 version: "1.1"
 status: validated

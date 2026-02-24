@@ -1,5 +1,4 @@
 ---
-layout: audit
 title: "AGS-03 — Infraestructura Hídrica y Entropía Acumulada"
 version: "1.1"
 status: validated

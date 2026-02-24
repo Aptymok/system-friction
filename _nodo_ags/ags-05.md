@@ -1,5 +1,4 @@
 ---
-layout: audit
 title: "AGS-05 — Trazabilidad Federal–Local y Latencia de Decisión"
 version: "1.1"
 status: validated

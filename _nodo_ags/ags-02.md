@@ -1,5 +1,4 @@
 ---
-layout: audit
 title: "AGS-02 — Capacidad Institucional bajo Presión Exógena"
 version: "1.1"
 status: validated
