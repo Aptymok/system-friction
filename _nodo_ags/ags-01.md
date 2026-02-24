@@ -1,62 +1,40 @@
 ---
-title: "La distancia que no se mide"
-doc_id: "ags-01"
-series: "ags-01 · Nodo Aguascalientes"
-summary: "Umbrales reales vs. oficiales en tres sistemas simultáneos."
+layout: audit
+title: "AGS-01 — Corredor Jalisco–Zacatecas–Guanajuato"
 version: "1.1"
-first_published: "2026-02-15"
-stability: "alta"
-node: "nodo-ags"
-mihm_variable: "ΔU"
-mihm_equation: "ΔU = umbral_oficial - umbral_real"
-sf_pattern: "distancia-umbrales"
-mihm_note: "La distancia entre umbrales determina riesgo oculto del nodo."
-patterns:
-  - umbral-real
-  - distancia-umbrales
-  - fricción-política
-  - zona-gris
+status: validated
+origin: vhpd
+node: N1
+date: 2026-02-23
+ihg_contribution: -0.089
+friction_index: 0.94
 ---
 
-# La distancia que no se mide
+# AGS-01: Hipótesis de Utilidad Implícita del Corredor
 
-## El problema
+**Referencia:** `/_core/postulado-central.md` — Fórmula $f = (t/T) + O$
 
-Todo sistema crítico tiene dos umbrales de falla: el real y el oficial.
-El primero es el punto donde el sistema deja de operar.
-El segundo es el punto donde la institución admite que dejó de operar.
+## Hipótesis Formalizada
 
-La distancia entre ambos es donde ocurre la operación real.
+Aguascalientes operó como nodo de corredor neutro. La paz observada era la manifestación superficial de una función de utilidad implícita $U_P$ sostenida por el actor hegemónico del corredor Jalisco–Zacatecas–Guanajuato.
 
-En el Nodo Aguascalientes, esa distancia existe en tres sistemas simultáneamente:
-agua, permisos federales, estabilidad operativa del corredor.
-Ninguno ha colapsado oficialmente. Los tres están más cerca del umbral real de lo que reportan los indicadores.
+$$U_P = B_C - C_C - f_{\text{corredor}}$$
 
-## Patrón observable
+Cuando $U_P \to 0$, el sistema revela su estado entrópico real.
 
-Cuando la distancia entre umbrales es grande, los incentivos se reorganizan:
+## Vector Basal (21 feb 2026)
 
-* Quienes miden calibran para no detectar
-* Quienes reportan seleccionan lo que estabiliza
-* Quienes deciden postergan hasta que la distancia se cierra sola
+| Nodo | $C_i$ | $E_i$ | $L_i$ | $M_i$ | Fricción | Estado |
+|------|--------|--------|--------|--------|----------|--------|
+| N1 | 0.18 | 0.89 | 0.92 | 1.00 | 1.81 | FRACTURE |
 
-No hay mala fe. Hay operadores que saben que reconocer la distancia implica responsabilidades
-que nadie asignó y soluciones que nadie tiene.
+## Predicciones — Estado de Validación
 
-## Lo que no se mide en el Nodo
+| Predicción | Variable | Estado |
+|------------|----------|--------|
+| Colapso del pacto en < 24h si actor hegemónico desaparece | $U_P \to 0$ | VALIDADA |
+| Incremento $E_{N1} > 0.80$ | $E_i$ | VALIDADA: 0.89 |
+| Activación de corredor en < 24h | $L_{\text{eff}}$ | VALIDADA |
 
-* Años reales hasta que pozos clave dejen de operar por profundidad
-* Tiempo real de resolución de trámites federales cuando hay presión política
-* Fecha estimada de ruptura del equilibrio implícito que mantiene estable el corredor
+**Gate H1:** PASS | **Gate H2:** PASS | **Gate H3:** PENDING
 
-Las métricas públicas miden lo que pasó. No miden lo que falta para que pase lo que no puede pasar.
-
-## Perfil del operador útil aquí
-
-No necesita optimismo. No necesita tolerancia al riesgo.
-
-Necesita poder nombrar la distancia sin necesitar que otros confirmen primero.
-Eso es incómodo. Pero es lo único que permite operar antes de que la distancia desaparezca.
-
-Este documento describe patrones observables con datos públicos disponibles en CONAGUA, REPDA y registros locales. No atribuye intención a actores individuales. No prescribe acciones.
-{: .limit-box .nodo }

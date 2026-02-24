@@ -1,5 +1,4 @@
 ---
-layout: default
 title: "Patrones → MIHM"
 description: "Mapa de patrones estructurales a variables MIHM. El puente entre observación cualitativa y diagnóstico cuantitativo."
 permalink: /mihm/patrones/

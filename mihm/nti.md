@@ -1,48 +1,45 @@
 ---
-layout: default
+layout: audit
 title: "NTI — Nodo de Trazabilidad Institucional"
-description: "El NTI condiciona el IHG a la integridad real de los datos. Cuando NTI < 0.40: modo ciego."
-permalink: /mihm/nti/
-nav: mihm
+version: "1.1"
+status: validated
+origin: vhpd
+date: 2026-02-23
 ---
 
-# NTI
+# NTI — Nodo de Trazabilidad Institucional
 
-El NTI condiciona el IHG a la integridad real de la información disponible.  
-No es una corrección. Es un diagnóstico de ceguera institucional.
-
----
-
-$$\text{NTI} = \frac{1}{5}\left[(1-\text{LDI}_n) + \text{ICC}_n + \text{CSR} + \text{IRCI}_n + \text{IIM}\right]$$
+El NTI es la capa de auditoría del MIHM v2.0. Condiciona el IHG a la integridad real de los datos disponibles. Cuando NTI < UCAP (0.40), el sistema opera en modo ciego.
 
 ---
 
-<div id="sf-nti" data-sf-load="true">—</div>
+## Fórmula
+
+$$\text{NTI} = \frac{1}{5}\left[(1 - \text{LDI}_n) + \text{ICC}_n + \text{CSR} + \text{IRCI}_n + \text{IIM}\right]$$
+
+## Estado Post-Fractura (23 feb 2026)
+
+<div id="dashboard-nti" class="sf-loading">Cargando componentes NTI...</div>
+
+**NTI = 0.351** — Umbral UCAP no alcanzado (0.400). El sistema opera con datos degradados.
+
+La consecuencia directa: el IHG observado (−0.620) debe interpretarse con el IHG corregido por NTI (−0.218). La corrección **no mejora el diagnóstico**: revela que el sistema tiene menos información confiable de la que necesita para intervenir correctamente.
 
 ---
 
-## La contradicción resuelta
+## La Contradicción Resuelta del NTI
 
-NTI bajo no invalida el diagnóstico. Lo precisa.
-
-El sistema está en peor estado del que los datos formales indican, porque los datos formales son parciales.  
-IIM = 0.50 significa: 12 eventos reportados, 18 verificados. La diferencia no desaparece al no ser contada.
-
-El IHG corregido ($-0.218$) no representa el estado real. Representa el **rango de intervención disponible con los datos actuales**.
+El NTI bajo (0.351) no invalida el diagnóstico. Lo precisa: el sistema está en peor estado de lo que los datos formales indican, porque los datos formales son parciales (IIM = 0.50: 12 reportados vs 18 verificados). La corrección $\text{IHG} \times \text{NTI} = -0.218$ refleja el **rango de intervención disponible con datos actuales**, no el estado real.
 
 ---
 
-## Protocolo de recuperación NTI
+## Protocolo de Recuperación NTI
 
-Objetivo a 30 días: NTI ≥ 0.60 (modo operativo estándar).
+| Acción | ΔNTI esperado | Responsable |
+|--------|--------------|-------------|
+| Protocolo anti-ICC (distribución conocimiento) | +0.08 | Secretaría Seg. Pública |
+| Restauración IIM (verificación de reportes) | +0.06 | Mesa de Coordinación |
+| Reducción LDI (respuesta < 2h) | +0.05 | Gobierno estatal |
+| Mejora CSR (meta reducción incidentes) | +0.10 | SSPC |
 
-| Acción | ΔNTI | Responsable | Patrón asociado |
-|--------|------|-------------|-----------------|
-| Distribución de conocimiento operativo | +0.08 | Sec. Seguridad | [doc-07](/docs/doc-07/) |
-| Verificación sistemática de reportes | +0.06 | Mesa de Coordinación | [doc-06](/docs/doc-06/) |
-| Reducción latencia federal → estatal a < 2h | +0.05 | Gobierno estatal | [doc-01](/docs/doc-01/) |
-| Cumplimiento meta reducción de incidentes | +0.10 | SSPC | [doc-03](/docs/doc-03/) |
-
----
-
-[Dashboard →](/mihm/) · [Catálogo →](/mihm/catalogo/) · [Patrones →](/mihm/patrones/)
+**NTI objetivo a 30 días:** 0.60 (modo operativo estándar).

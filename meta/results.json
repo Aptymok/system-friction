@@ -1,0 +1,64 @@
+{
+  "IHG_post": 0.028,
+  "ICE": 0.208,
+  "NTI": 0.351,
+  "IHG_corrected": 0.01,
+  "IHG_post_telemetry": -0.013,
+  "prob_collapse_2030": 0.0366,
+  "nodes": [
+    {
+      "node": "N1-Agua",
+      "C": 0.18,
+      "E": 0.89,
+      "L": 0.92,
+      "M": 1.0,
+      "friction": 1.81,
+      "status": "FRACTURE"
+    },
+    {
+      "node": "N2-Capital",
+      "C": 0.68,
+      "E": 0.78,
+      "L": 0.72,
+      "M": 1.0,
+      "friction": 1.5,
+      "status": "OK"
+    },
+    {
+      "node": "N3-Log\u00edstica",
+      "C": 0.85,
+      "E": 0.35,
+      "L": 0.35,
+      "M": 1.0,
+      "friction": 0.7,
+      "status": "OK"
+    },
+    {
+      "node": "N4-Seguridad",
+      "C": 0.35,
+      "E": 0.96,
+      "L": 0.88,
+      "M": 1.0,
+      "friction": 1.84,
+      "status": "CRITICAL"
+    },
+    {
+      "node": "N5-Coord",
+      "C": 0.6,
+      "E": 0.68,
+      "L": 0.78,
+      "M": 0.5,
+      "friction": 1.46,
+      "status": "OK"
+    },
+    {
+      "node": "N6-Ex\u00f3geno",
+      "C": 0.4,
+      "E": 0.95,
+      "L": 0.85,
+      "M": 0.7,
+      "friction": 1.8,
+      "status": "CRITICAL"
+    }
+  ]
+}

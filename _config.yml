@@ -45,3 +45,76 @@ exclude:
   - README.md
   - Gemfile
   - Gemfile.lock
+  # System Friction Framework — Jekyll Configuration
+# version: 1.1 | status: validated | origin: vhpd
+
+title: "System Friction Framework"
+description: "MIHM v2.0 — Validación ante Shock Exógeno // Nodo Aguascalientes"
+baseurl: ""
+url: "https://systemfriction.org"
+
+author:
+  name: "Juan Antonio Marín Liera (APTYMOK)"
+  email: "aptymok@gmail.com"
+  affiliation: "INEGI Aguascalientes, México"
+
+# Build settings
+markdown: kramdown
+theme: null
+plugins: []
+
+kramdown:
+  math_engine: mathjax
+  input: GFM
+
+# Collections
+collections:
+  core:
+    output: true
+    permalink: /:collection/:name
+  nodes:
+    output: true
+    permalink: /:collection/:name
+  mihm:
+    output: true
+    permalink: /:collection/:name
+  meta:
+    output: false
+
+# Defaults
+defaults:
+  - scope:
+      path: "_core"
+    values:
+      layout: audit
+      version: "1.1"
+      status: validated
+      origin: vhpd
+  - scope:
+      path: "_nodes"
+    values:
+      layout: audit
+      version: "1.1"
+      origin: vhpd
+  - scope:
+      path: "_mihm"
+    values:
+      layout: audit
+      version: "1.1"
+      status: validated
+      origin: vhpd
+
+# Exclude
+exclude:
+  - "*.tex"
+  - "scripts/"
+  - "_meta/*.json"
+  - "README_DEV.md"
+  - "Gemfile"
+  - ".git"
+
+# Include assets
+include:
+  - assets
+  - scripts/mihm_v2.py
+  - scripts/validator.py

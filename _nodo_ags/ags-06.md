@@ -1,55 +1,42 @@
 ---
-title: "Después del acuerdo: lo que el pacto ocultaba"
-doc_id: "ags-06"
-series: "ags-06 · Cierre Empírico"
-summary: "Ruptura del equilibrio implícito y transición a métrica observable."
+layout: audit
+title: "AGS-06 — Síntesis Post-Fractura: Cierre del Ciclo Empírico"
 version: "1.1"
-first_published: "2026-02-23"
-node: "nodo-ags"
-stability: "alta"
-doc_type: "cierre-empírico"
-mihm_variable: "ΔIHG"
-mihm_equation: "ΔIHG = IHG_post - IHG_pre"
-sf_pattern: "validación-empírica"
-<<<<<<< HEAD
-mihm_note: "El evento crítico convierte hipótesis en señal medible."
-=======
-mihm_note: "El evento del 22-feb-2026 convierte una hipótesis sistémica en señal cuantificable."
->>>>>>> main
-patterns:
-  - entropía-revelada
-  - colapso-del-pacto
-  - delta-sistémico
-  - validación-empírica
+status: validated
+origin: vhpd
+node: SYSTEM
+date: 2026-02-23
+ihg_contribution: -0.62
+friction_index: 2.47
 ---
 
-# Después del acuerdo: lo que el pacto ocultaba
+# AGS-06: Síntesis del Sistema — Cierre del Ciclo Empírico
 
-El 22 de febrero de 2026, la variable no documentada que sostenía la estabilidad operativa del Nodo Aguascalientes (descrita en el documento `ags-05`) desapareció tras la neutralización del actor hegemónico de seguridad no oficial. 
+**Referencia:** `/_core/postulado-central.md` — Fórmula $f = (t/T) + O$
 
-El resultado inmediato no fue una falla del modelo, sino su validación empírica. Al romperse el pacto no escrito, la distancia entre el umbral oficial y el umbral real colapsó a cero.
+## Estado del Sistema (23 feb 2026, 23:59h)
 
-## El evento como revelador de entropía
+| Nodo | $C_i$ | $E_i$ | $L_i$ | $K_i$ | $R_i$ | $M_i$ | Fricción | Estado |
+|------|--------|--------|--------|--------|--------|--------|----------|--------|
+| N1 — Agua | 0.18 | 0.89 | 0.92 | 0.85 | 0.12 | 1.00 | 1.81 | FRACTURE |
+| N2 — Capital | 0.68 | 0.78 | 0.72 | 0.55 | 0.15 | 1.00 | 1.50 | DEGRADED |
+| N3 — Logística | 0.85 | 0.35 | 0.35 | 0.40 | 0.60 | 1.00 | 0.70 | OK |
+| N4 — Seguridad | 0.35 | 0.96 | 0.88 | 0.55 | 0.10 | 1.00 | 1.84 | CRITICAL |
+| N5 — Coord. | 0.60 | 0.68 | 0.78 | 0.65 | 0.40 | 0.50 | 2.10 | OPAQUE |
+| N6 — Exógeno | 0.40 | 0.95 | 0.85 | 0.75 | 0.20 | 0.70 | 2.31 | CRITICAL |
 
-La violencia subsecuente (bloqueos en las arterias federales 45 y 70, el cierre preventivo de nodos comerciales primarios, el despliegue de infraestructura militar táctica y el repliegue de la burocracia federal a esquemas de operación remota) no representa una anomalía sistémica. Representa el estado real del sistema cuando la fricción deja de ser administrada por el equilibrio implícito.
+**IHG = −0.620** → Umbral UCAP superado. Protocolo de Emergencia ACTIVADO.  
+**NTI = 0.351** → Por debajo del umbral. Sistema en modo CIEGO.
 
-La ficción institucional ya no puede sostener la narrativa de un corredor estable. Lo que hasta el 21 de febrero era información cualitativa oculta en silencios operativos, a partir del 22 de febrero se convirtió en datos estadísticos cuantificables.
+## Cierre de Gates
 
-## Transición a métrica: El vector post-evento
+| Gate | Estado | Evidencia |
+|------|--------|-----------|
+| H1 — Coherencia | PASS | Desviación < 15% en todos los nodos |
+| H2 — Trazabilidad | PASS | Cadena actor → evento → métrica completa (AGS-01 a AGS-05) |
+| H3 — Homeostasis | PARTIAL | N3 recuperado; N1/N4/N5/N6 pendientes a 180 días |
 
-La ruptura del acuerdo proporciona la condición de estrés necesaria para medir el diferencial de Gobernanza Homeostática ($\Delta IHG = IHG_{post} - IHG_{pre}$). La fricción ahora es medible a través de fuentes públicas:
+El ciclo empírico está cerrado. Las variables proyectadas tienen intervalos de confianza documentados en el Apéndice Monte Carlo. Ningún hallazgo queda sin referencia al Postulado Central.
 
-* **Latencia Institucional (LDI) post-evento:** Variación en los tiempos de resolución de trámites (CONAGUA, CFE, REPDA) antes y después de la ruptura logística. La burocracia bajo estrés físico ajusta su velocidad.
-* **Extracción proxy (Energía):** Variación en el consumo eléctrico de bombeo agrícola (CFE) durante el periodo de contracción operativa. 
-* **Inversión diferida:** Medición del costo de la fricción a través de la Formación Bruta de Capital Fijo (INEGI) y la reubicación de activos industriales documentada por cámaras empresariales locales (CANACINTRA).
+**Siguiente ciclo:** AGS-07 activable si IHG no supera $-0.50$ a los 30 días post-fractura.
 
-## La confirmación del marco (MIHM)
-
-Los marcos de gobernanza tradicionales tratan la crisis política o de seguridad como un "contexto" externo que interrumpe la operación de infraestructuras críticas (agua, energía, industria). 
-
-El marco *System Friction* demuestra empíricamente lo contrario: el pacto implícito era una variable endógena del sistema. El agua, los permisos y la estabilidad del corredor industrial dependían de una función de utilidad ($U_P$) que acaba de cambiar de signo.
-
-El ecosistema no requiere predecir la fecha exacta de un colapso. Requiere demostrar que la estabilidad basada en métricas oficiales ciegas es una ilusión termodinámica. Ayer, el costo de mantener esa ilusión superó la capacidad del sistema para absorberlo.
-
-**Límite de aplicación:** Este documento registra una transición de fase sistémica en tiempo real utilizando datos de dominio público surgidos a partir del 22 de febrero de 2026. No evalúa la estrategia de seguridad nacional, no emite juicios sobre los actores involucrados, ni instruye sobre manejo de crisis. Es la validación estocástica de que el riesgo no documentado tarde o temprano se cobra.
-{: .limit-box .nodo }

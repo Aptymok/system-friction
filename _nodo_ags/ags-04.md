@@ -1,58 +1,33 @@
 ---
-title: "La ficción institucional"
-doc_id: "ags-04"
-series: "ags-04 · Nodo Aguascalientes"
-summary: "Métricas y narrativa que describen un sistema que ya no opera así."
+layout: audit
+title: "AGS-04 — Cadena Logística Automotriz"
 version: "1.1"
-first_published: "2026-02-15"
-stability: "alta"
-node: "nodo-ags"
-mihm_variable: "F_i"
-mihm_equation: "F_i = fricción_institucional compuesta"
-sf_pattern: "ficción-institucional"
-mihm_note: "Estabilidad reportada sin respaldo operativo aumenta fricción."
-patterns:
-  - ficción-institucional
-  - coherencia-aparente
-  - señal-ruido
-  - umbral-real
+status: validated
+origin: vhpd
+node: N3
+date: 2026-02-23
+ihg_contribution: 0.089
+friction_index: 0.7
 ---
 
-# La ficción institucional
+# AGS-04: Sector Logístico-Industrial (N3)
 
-## Definición
+**Referencia:** `/_core/postulado-central.md` — Fórmula $f = (t/T) + O$
 
-Ficción institucional: conjunto de métricas, reportes y narrativas que describen un sistema
-que ya no coincide con el sistema que opera.
+## Vector N3
 
-No es mentira. Es el resultado de seleccionar indicadores que muestren estabilidad,
-calibrar alertas para no activarse, y postergar correcciones hasta que el costo de admitir
-supera el costo de fingir.
+| Parámetro | Valor | Estado |
+|-----------|-------|--------|
+| $C_3$ | 0.85 | OPTIMAL |
+| $E_3$ | 0.35 | LOW |
+| $L_3$ | 0.35 | FAST |
+| $M_3$ | 1.00 | OK |
 
-## Patrón observable en el Nodo
+**Fricción N3:** $f = 0.35 + 0.35 = 0.70$ → WITHIN BOUNDS
 
-Las instituciones del Nodo Aguascalientes producen ficción en tres niveles:
+## Evento de Disrupción
 
-* Agua: reportes muestran disponibilidad; operación real depende de pozos más profundos a costos crecientes
-* Permisos federales: trámites "en proceso"; operación real ajusta inversiones a espera indefinida
-* Estabilidad operativa: estadísticas muestran control; operación real depende de condiciones no documentadas
+Suspensión Nissan Aguascalientes (22–23 feb 2026): duración < 8h. Impacto en IHG: $\Delta = -0.02$. Recuperación completa. N3 demuestra resiliencia estructural.
 
-En cada nivel, la ficción permite que el sistema siga funcionando.
-Pero también impide que se corrijan las causas.
+**Gate H1:** PASS | **Gate H2:** PASS | **Gate H3:** PASS
 
-## Lo que la ficción oculta
-
-* Velocidad real de degradación del acuífero y costo creciente de extracción
-* Costo real de latencia federal medido en inversión diferida y empleos no generados
-* Fragilidad real de los equilibrios que sostienen la estabilidad del corredor
-
-## El riesgo
-
-Cuando la ficción institucional se sostiene demasiado tiempo, el sistema pierde capacidad de respuesta.
-No por incompetencia. Porque la información necesaria para decidir dejó de circular.
-
-Y cuando la distancia entre umbrales se cierra, lo único que queda es explicar
-por qué nadie vio venir lo que todos sabían.
-
-**Límite de la aplicación:** Este documento describe patrones estructurales con datos verificables. No prescribe acciones ni atribuye responsabilidad individual. El diagnóstico es el límite de este marco. Lo que ocurre con él es decisión de quien lo lee.
-{: .limit-box .nodo }

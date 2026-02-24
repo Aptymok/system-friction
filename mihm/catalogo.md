@@ -1,87 +1,92 @@
 ---
-layout: default
-title: "Catálogo — Variables y Fórmulas"
-description: "Definición completa de variables MIHM con ejemplos concretos del Nodo Aguascalientes."
-permalink: /mihm/catalogo/
-nav: mihm
+layout: audit
+title: "Catálogo MIHM — Componentes del Framework"
+version: "1.1"
+status: validated
+origin: vhpd
+date: 2026-02-23
 ---
 
-# Catálogo de Variables y Fórmulas
+# Catálogo de Componentes MIHM v2.0
 
-Cada variable definida con: dominio, umbral crítico, ejemplo concreto del Nodo AGS.
-
----
-
-## Fórmula base
-
-$$f = \frac{t}{T} + O$$
-
-Toda fricción en el sistema es una instancia de esta fórmula. Ejemplo AGS:
-
-| Nodo | t (observado) | T (normativo) | O | f |
-|------|--------------|---------------|---|---|
-| N5 — Coordinación | 6h | 1h | 0.68 | **6.68** |
-| N4 — Seguridad | 0.88 | 1.0 | 0.96 | **1.84** |
-| N3 — Logística | 0.35 | 1.0 | 0.35 | **0.70** |
+Definición completa de todos los componentes del Multinodal Homeostatic Integration Model. Sin omisiones.
 
 ---
 
-## Variables de nodo
+## 1. Métricas Maestras
 
-| Variable | Símbolo | Dominio | Umbral crítico | Ejemplo AGS |
-|----------|---------|---------|----------------|-------------|
-| Capacidad adaptativa | $C_i$ | $[0,1]$ | $< 0.30$ → FRACTURE | N1: 0.18 (sobreexplotación acuífero) |
-| Carga entrópica | $E_i$ | $[0,1]$ | $> 0.80$ → CRITICAL | N4: 0.96 (252 bloqueos activos) |
-| Latencia operativa | $L_i$ | $[0,1]$ | $> 0.85$ → DEGRADED | N1: 0.92 (infraestructura sin margen) |
-| Conectividad funcional | $K_i$ | $[0,1]$ | — | N6: 0.75 (red perturbada) |
-| Redistribución | $R_i$ | $[0,1]$ | — | N1: 0.12 (mínima capacidad de transferencia) |
-| Módulo de coherencia | $M_i$ | $[0,1]$ | $< 0.50$ → OPAQUE | N5: 0.50 (Sec. Seg. ausente en Mesa) |
+| Componente | Símbolo | Definición | Umbral UCAP |
+|------------|---------|------------|-------------|
+| Índice de Gobernanza Homeostática | IHG | $\frac{1}{N}\sum(C_i-E_i)(1-L_i^{\text{eff}})$ | $< -0.50$ |
+| Nodo de Trazabilidad Institucional | NTI | $\frac{1}{5}[(1-\text{LDI}_n)+\text{ICC}_n+\text{CSR}+\text{IRCI}_n+\text{IIM}]$ | $< 0.40$ |
+| Índice de Concentración Entrópica | ICE | $\max(E_i)/\sum(E_i)$ | $> 0.30$ |
+| Fricción Institucional | $f$ | $(t/T) + O$ | $> 1.00$ |
 
 ---
 
-## IHG — Índice de Gobernanza Homeostática
+## 2. Variables de Nodo (CELKR)
 
-$$\text{IHG} = \frac{1}{N}\sum_{i=1}^{N}(C_i - E_i)(1 - L_i^{\text{eff}})$$
-
-La latencia efectiva integra la degradación de coherencia institucional:
-
-$$L_i^{\text{eff}} = \min\!\left(L_i \cdot \left(1 + (1 - M_i)\right),\; 1\right)$$
-
-**AGS post-fractura:** IHG = −0.620. Umbral UCAP: −0.500. Protocolo de emergencia activado.
-
----
-
-## NTI — Nodo de Trazabilidad Institucional
-
-$$\text{NTI} = \frac{1}{5}\left[(1-\text{LDI}_n) + \text{ICC}_n + \text{CSR} + \text{IRCI}_n + \text{IIM}\right]$$
-
-| Componente | Descripción | AGS post-fractura |
-|------------|-------------|-------------------|
-| $1-\text{LDI}_n$ | Latencia de decisión federal→local (invertida) | 0.000 (6h vs 1h normativo) |
-| $\text{ICC}_n$ | Concentración de conocimiento operativo | 0.320 (2 comandantes) |
-| $\text{CSR}$ | Cumplimiento meta reducción de incidentes | 0.000 (0% de meta 50%) |
-| $\text{IRCI}_n$ | Resiliencia capital institucional (acuífero) | 0.935 |
-| $\text{IIM}$ | Integridad de métricas reportadas | 0.500 (12/18 verificados) |
-
-**NTI = 0.351** → Sistema en modo ciego. IHG corregido: $-0.620 \times 0.351 = -0.218$.
+| Variable | Símbolo | Dominio | Descripción |
+|----------|---------|---------|-------------|
+| Capacidad adaptativa | $C_i$ | $[0,1]$ | Capacidad del nodo para absorber perturbaciones |
+| Carga entrópica | $E_i$ | $[0,1]$ | Desorden acumulado en el nodo |
+| Latencia operativa | $L_i$ | $[0,1]$ | Retardo funcional observado |
+| Conectividad funcional | $K_i$ | $[0,1]$ | Grado de integración con otros nodos |
+| Redistribución | $R_i$ | $[0,1]$ | Capacidad de transferir carga a nodos vecinos |
+| Módulo de coherencia | $M_i$ | $[0,1]$ | Integridad institucional del nodo |
 
 ---
 
-## Función de utilidad del pacto implícito
+## 3. Nodos del Sistema — Nodo Aguascalientes
 
-$$U_P = B_C - C_C - f_{\text{corredor}}$$
-
-Cuando $U_P \rightarrow 0$: el sistema revela su estado entrópico real en $< 24h$.  
-AGS: $U_P$ colapsó el 22 feb 2026 tras la muerte del actor hegemónico del corredor.
-
----
-
-## Patrones → Variables
-
-Cada patrón de la serie doc-01 a doc-10 produce variaciones en al menos una variable MIHM.
-
-<div id="sf-pattern-bridge" data-sf-load="true">—</div>
+| ID | Etiqueta | Descripción | Documento de referencia |
+|----|----------|-------------|-------------------------|
+| N1 | Agua/Ambiente | Capital natural. Acuífero. Infraestructura hídrica | [AGS-03](_nodes/ags/ags-03) |
+| N2 | Capital Social | Cohesión, legitimidad, capital institucional acumulado | [AGS-01](_nodes/ags/ags-01) |
+| N3 | Logística | Cadena automotriz, conectividad industrial | [AGS-04](_nodes/ags/ags-04) |
+| N4 | Seguridad | Capacidad de respuesta policial y judicial | [AGS-02](_nodes/ags/ags-02) |
+| N5 | Coordinación | Cadena de mando federal–estatal–municipal | [AGS-05](_nodes/ags/ags-05) |
+| N6 | Seguridad Exógena | Nodo introducido v2.0. Captura shocks externos | [AGS-06](_nodes/ags/ags-06) |
 
 ---
 
-[Dashboard →](/mihm/) · [NTI →](/mihm/nti/) · [Patrones →](/mihm/patrones/)
+## 4. Componentes NTI
+
+| Componente | Símbolo | Descripción |
+|------------|---------|-------------|
+| Latencia de Decisión Institucional | LDI$_n$ | Normalización del tiempo federal–local |
+| Índice de Concentración de Conocimiento | ICC$_n$ | Concentración operativa en pocos actores |
+| Cumplimiento de Reducción de Incidentes | CSR | Brecha entre meta y resultado |
+| Índice de Resiliencia de Capital Institucional | IRCI$_n$ | Compactación acuífero como proxy |
+| Índice de Integridad de Métricas | IIM | Razón reportados / verificados |
+
+---
+
+## 5. Gates de Validación (H1–H3)
+
+| Gate | Criterio | Método de verificación |
+|------|----------|------------------------|
+| H1 — Coherencia | Datos AGS vs realidad observable | Desviación < 15% |
+| H2 — Trazabilidad | Cadena federal → local documentada | Evidencia textual VHpD |
+| H3 — Homeostasis | IHG > −0.30 a 180 días post-shock | Proyección Monte Carlo |
+
+---
+
+## 6. Protocolos
+
+| Protocolo | Umbral de activación | Acciones |
+|-----------|----------------------|---------|
+| Decisión de Emergencia | IHG < −0.50 o NTI < 0.40 | Activar intervenciones rank 1–2, reporte a 24h |
+| Modo Ciego | NTI < 0.40 | IHG se calcula con corrección NTI. Validación manual |
+| Escalada Federal | IHG < −0.80 | Notificación SSPC, activación FONDEN |
+
+---
+
+## 7. Roadmap 2026–2030
+
+| Plazo | Hito | Gate |
+|-------|------|------|
+| Corto (7 días) | Telemetría N6, restauración M5 | H3 |
+| Corto (1er sem 2027) | Dashboard Gemini, normalización v1.1 | H1 |
+| Mediano (2027–2028) | Publicación *Complexity*, validación INEGI | H2 |
+| Largo (2029–2030) | Observatorio Permanente de Gobernanza Adaptativa | H1+H2+H3 |

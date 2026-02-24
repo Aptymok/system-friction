@@ -1,5 +1,4 @@
 ---
-layout: default
 title: "MIHM — Motor Cuantitativo"
 description: "Multinodal Homeostatic Integration Model v2.0. Dashboard de gobernanza adaptativa."
 permalink: /mihm/

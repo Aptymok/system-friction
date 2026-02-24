@@ -1,56 +1,43 @@
 ---
-title: "El pacto no escrito"
-doc_id: "ags-05"
-series: "ags-05 · Nodo Aguascalientes"
-summary: "Equilibrio implícito: estabilidad operativa con variables no documentadas."
+layout: audit
+title: "AGS-05 — Trazabilidad Federal–Local y Latencia de Decisión"
 version: "1.1"
-first_published: "2026-02-15"
-stability: "alta"
-node: "nodo-ags"
-mihm_variable: "U_p"
-mihm_equation: "U_p = utilidad_pacto_implícito"
-sf_pattern: "pacto-implícito"
-mihm_note: "La estabilidad depende de condiciones no documentadas."
-patterns:
-  - pacto-implícito
-  - equilibrio-no-documentado
-  - responsabilidad-difusa
-  - límites-marco
+status: validated
+origin: vhpd
+node: N5
+date: 2026-02-23
+ihg_contribution: -0.156
+friction_index: 2.1
 ---
 
-# El pacto no escrito
+# AGS-05: Cadena de Mando — Trazabilidad (N5)
 
-## El dato observable
+**Referencia:** `/_core/postulado-central.md` — Fórmula $f = (t/T) + O$
 
-Cuando la violencia no ocurre donde los datos dicen que debería ocurrir, existe una variable no documentada.
+## Hipótesis Formalizada
 
-## Patrón observable
+La latencia de decisión institucional (LDI) entre el nivel federal y el nodo local supera el umbral normativo en condiciones de shock exógeno.
 
-No es "buena suerte". No es "eficacia institucional pura".
-Es un equilibrio implícito entre actores que necesitan que el corredor opere.
+$$f_{N5} = \frac{t_{\text{respuesta}}}{T_{\text{normativo}}} + O_{\text{opacidad}} = \frac{6h}{1h} + 0.68 = 6.68$$
 
-Ese equilibrio:
+## Vector N5
 
-* No se firma
-* No se negocia en mesas oficiales
-* No tiene plazo
-* Tiene condiciones que nadie explicita
+| Parámetro | Valor | Estado |
+|-----------|-------|--------|
+| $C_5$ | 0.60 | MODERATE |
+| $E_5$ | 0.68 | ELEVATED |
+| $L_5$ | 0.78 | DEGRADED |
+| $M_5$ | 0.50 | OPAQUE |
 
-Mientras las condiciones se cumplen, la violencia se mantiene en niveles operativos.
-Cuando se rompen, el corredor se desregula.
+**LDI$_n$ = 1.00** — Máximo observado (peor escenario).
 
-## Variable implícita
+## Predicciones Validadas
 
-Lo que no se documenta:
+| Predicción | Estado |
+|------------|--------|
+| Tiempo de respuesta federal > 4h | VALIDADA: 6h |
+| Comunicación oficial fragmentada | VALIDADA |
+| Opacidad $O > 0.60$ | VALIDADA: 0.68 |
 
-* Cuáles son las condiciones
-* Quién las monitorea
-* Qué pasa cuando alguien deja de cumplir
+**Gate H1:** PASS | **Gate H2:** PASS | **Gate H3:** PENDING
 
-La información existe en conversaciones que no se graban,
-en acuerdos que no se escriben, en silencios que no se interpretan.
-
-Documentarla sería poner en un registro lo que necesita permanecer implícito para funcionar.
-
-**Límite de aplicación:** Este documento describe un patrón observable. No instruye sobre cómo operarlo ni desde qué posición. Quien lo lea como manual ha confundido diagnóstico con autorización. Este documento no se actualiza.
-{: .limit-box .nodo }
