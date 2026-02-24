@@ -1,5 +1,4 @@
 ---
-layout: default
 title: "Después del acuerdo: lo que el pacto ocultaba"
 doc_id: "ags-06"
 series: "ags-06 · Cierre Empírico"

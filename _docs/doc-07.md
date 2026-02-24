@@ -1,5 +1,4 @@
 ---
-layout: default
 title: "Contexto perdido"
 doc_id: "doc-07"
 series: "07 · Fundamentos"

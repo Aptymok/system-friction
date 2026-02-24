@@ -1,5 +1,4 @@
 ---
-layout: default
 title: "El costo de la latencia"
 doc_id: "ags-02"
 series: "ags-02 · Nodo Aguascalientes"

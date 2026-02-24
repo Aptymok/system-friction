@@ -1,5 +1,4 @@
 ---
-layout: default
 title: "Dinero como estructura temporal"
 doc_id: "doc-04"
 series: "04 · Fundamentos"

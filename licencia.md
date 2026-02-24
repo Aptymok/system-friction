@@ -1,5 +1,4 @@
 ---
-layout: default
 title: "Licencia y Condiciones de Operación"
 permalink: /licencia/
 first_published: "2024-10-15"

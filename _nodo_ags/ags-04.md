@@ -1,5 +1,4 @@
 ---
-layout: default
 title: "La ficción institucional"
 doc_id: "ags-04"
 series: "ags-04 · Nodo Aguascalientes"

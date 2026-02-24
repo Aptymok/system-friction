@@ -1,5 +1,4 @@
 ---
-layout: default
 title: "Aguascalientes como sistema observable"
 doc_id: "nodo-ags-index"
 node: "nodo-ags"

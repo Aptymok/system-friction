@@ -1,5 +1,4 @@
 ---
-layout: default
 title: "Sistemas de alerta que nadie revisa"
 doc_id: "doc-06"
 series: "06 · Fundamentos"

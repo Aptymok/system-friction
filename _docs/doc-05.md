@@ -1,5 +1,4 @@
 ---
-layout: default
 title: "Escritura sin intención visible"
 doc_id: "doc-05"
 series: "05 · Técnica"

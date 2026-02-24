@@ -1,5 +1,4 @@
 ---
-layout: default
 title: "Roadmap de integración MIHM"
 permalink: /roadmap/
 ---

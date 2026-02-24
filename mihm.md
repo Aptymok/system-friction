@@ -1,5 +1,4 @@
 ---
-layout: default
 title: "MIHM · Motor de validación"
 permalink: /mihm/
 ---

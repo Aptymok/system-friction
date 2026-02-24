@@ -1,5 +1,4 @@
 ---
-layout: default
 title: "El pacto no escrito"
 doc_id: "ags-05"
 series: "ags-05 · Nodo Aguascalientes"

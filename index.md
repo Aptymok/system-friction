@@ -1,5 +1,4 @@
 ---
-layout: default
 title: "Archivo de fricción sistémica"
 ---
 

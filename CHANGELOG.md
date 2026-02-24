@@ -1,5 +1,4 @@
 ---
-layout: default
 title: "Registro de Cambios (Change Log)"
 permalink: /changelog/
 ---

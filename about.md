@@ -1,5 +1,4 @@
 ---
-layout: default
 title: "Ontología del Sistema"
 permalink: /about/
 first_published: "2026-02-23"

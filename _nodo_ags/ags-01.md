@@ -1,5 +1,4 @@
 ---
-layout: default
 title: "La distancia que no se mide"
 doc_id: "ags-01"
 series: "ags-01 · Nodo Aguascalientes"

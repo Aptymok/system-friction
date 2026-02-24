@@ -1,5 +1,4 @@
 ---
-layout: default
 title: "Personas en alta incertidumbre"
 doc_id: "doc-08"
 series: "08 · Perfil"

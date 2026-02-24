@@ -1,5 +1,4 @@
 ---
-layout: default
 title: "El agua que no se ve"
 doc_id: "ags-03"
 series: "ags-03 · Nodo Aguascalientes"
