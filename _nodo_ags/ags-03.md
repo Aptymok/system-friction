@@ -1,31 +1,34 @@
 ---
-title: "AGS-03 — Infraestructura Hídrica y Entropía Acumulada"
+layout: node
+title: "AGS-03 — Infraestructura Hídrica"
+description: "Acuífero Calera. Sobreexplotación estructural."
+id: ags-03
 version: "1.1"
 status: validated
 origin: vhpd
-node: N1
-date: 2026-02-23
-ihg_contribution: -0.118
-friction_index: 1.85
+math: true
+friction_index: 1.81
+node_status: FRACTURE
 ---
 
-# AGS-03: Capital Natural — Acuífero Aguascalientes
+Acuífero Calera. Sobreexplotación estructural.
 
-**Referencia:** `/_core/postulado-central.md` — Fórmula $f = (t/T) + O$
+---
 
-## Hipótesis Formalizada
+El acuífero Calera opera al 148% de su capacidad de recarga sostenible. Tres ciclos anuales consecutivos de sobreexplotación sin declaración formal de emergencia.
 
-La sobreexplotación crónica del acuífero constitye una carga entrópica estructural ($E_{N1} = 0.89$) que amplifica la fragilidad sistémica al reducir la capacidad adaptativa ($C_{N1} = 0.18$).
+---
 
-## Vector de Estado
+## Vector N1
 
-| Proxy | Valor | Fuente |
-|-------|-------|--------|
-| Compactación acuífero | IRCI$_n$ = 0.935 | Sin variación en crisis |
-| $C_{N1}$ basal | 0.18 | Sobreexplotación histórica |
-| $E_{N1}$ post-fractura | 0.89 | Presión urbana + crisis |
+$C_{N1} = 0.18$, $E_{N1} = 0.89$, $L_{N1} = 0.92$, $R_{N1} = 0.12$, $f = 1.81$ (FRACTURE)
 
-**Fricción estructural:** $f = (0.92/0.5) + 0.89 = 2.73$ → FRACTURE ESTRUCTURAL
+## Mecanismo doc-09
 
-**Gate H1:** PASS | **Gate H2:** PASS | **Gate H3:** FAIL (requiere política hídrica federal)
+Deuda de decisión acumulada: 3 años de postergación de declaración de emergencia hídrica. Cada año: el costo político de declarar > costo percibido de no declarar.
 
+$$L^{\text{eff}}_{N1} = \min(0.92 \times (1 + (1 - 1.00)), 1) = 0.92$$
+
+## Estado estructural
+
+$R_{N1} = 0.12$: el nodo no tiene capacidad de redistribución. Si el evento de 22 feb 2026 hubiera incluido un corte de suministro, el nodo no habría tenido margen de contingencia.

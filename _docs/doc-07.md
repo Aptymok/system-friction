@@ -1,68 +1,34 @@
 ---
+layout: doc
 title: "Contexto perdido"
-doc_id: "doc-07"
-series: "07 · Fundamentos"
-summary: "Decaimiento del razonamiento por pérdida de restricciones."
-version: "1.0"
-stability: "alta"
-first_published: "2026-02-02"
-node: "docs"
-mihm_variable: "C_x"
-mihm_equation: "C_x = contexto_disponible / contexto_requerido"
-sf_pattern: "contexto-perdido"
-mihm_note: "Con contexto incompleto, la decisión se optimiza para apariencia."
-patterns:
-  - decaimiento-contexto
-  - decisión-emergente
-  - rotación-conocimiento
-  - deuda-documental
+description: "Decaimiento del razonamiento por pérdida de restricciones."
+id: doc-07
+version: "1.1"
+status: validated
+math: true
+mihm_variables: ['L_i', 'K_i']
+prev_doc: doc-06
+next_doc: doc-08
 ---
 
-# Contexto perdido
+Decaimiento del razonamiento por pérdida de restricciones.
 
-## Por qué las decisiones envejecen
+---
 
-Las decisiones documentadas pierden validez cuando el contexto que las justificó ya no se puede reconstruir.
+Las decisiones tomadas sin el contexto original que las produjo generan consecuencias no previstas.
 
-No porque la lógica cambie. Porque las restricciones que hacían esa decisión óptima desaparecieron sin registro.
+---
 
-## Casos observables
+Un protocolo diseñado para un contexto específico se aplica en contextos diferentes porque el contexto original no está documentado o no es accesible a quien implementa.
 
-* Workarounds que sobreviven al problema original
-* Requisitos que respondían a un stakeholder que ya no existe
-* Arquitecturas diseñadas para limitaciones técnicas superadas
-* Políticas creadas por crisis que nadie recuerda
+## Mecanismo
 
-## Tasa de decaimiento
+$$L_i \uparrow \quad\text{cuando}\quad K_i \downarrow$$
 
-La velocidad a la que una decisión pierde validez depende de:
+La latencia operativa aumenta cuando la conectividad cae porque los nodos no pueden verificar el estado actual de los demás antes de decidir.
 
-* Qué tan explícitas quedaron las restricciones
-* Qué tan estable es el entorno operativo
-* Cuántas personas conocían el contexto original
-* Qué tan costoso es reconstruir el razonamiento
+## Observado en AGS
 
-Variable crítica: tasa de rotación de personas que tomaron la decisión original.
+N5 (coordinación): el protocolo de Mesa de Coordinación requiere información de N4 en tiempo real. La caída de $K_{N5} = 0.65$ y el retiro de la Secretaría de Seguridad de la Mesa generaron decisiones con información de 18h de antigüedad durante el evento.
 
-## Qué documentar además de la decisión
-
-Para que una decisión envejezca mejor:
-
-* Restricciones específicas que la hicieron necesaria
-* Alternativas consideradas y por qué se descartaron
-* Qué tendría que cambiar para invalidar la decisión
-* Fecha y condiciones en que se tomó
-
-No como narrativa. Como metadata operativa.
-
-## Señales de que el contexto ya no aplica
-
-* Nadie puede explicar por qué algo es así
-* La justificación oficial no coincide con el uso real
-* Cumplir la política requiere excepciones constantes
-* Los nuevos integrantes preguntan "¿por qué hacemos esto?"
-
-Estas no son quejas. Son señales de que el contexto cambió más rápido que la documentación.
-
-**Límite de aplicación:** Organizaciones con historia suficiente para acumular decisiones heredadas. En contextos muy nuevos o con alta rotación intencional, el problema es diferente.
-{: .limit-box }
+$L_{N5} = 0.78$ → latencia efectiva $L^{\text{eff}}_{N5} = \min(0.78 \times (1 + (1-0.50)), 1) = 1.00$

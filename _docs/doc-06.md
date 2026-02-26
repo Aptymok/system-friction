@@ -1,72 +1,36 @@
 ---
+layout: doc
 title: "Sistemas de alerta que nadie revisa"
-doc_id: "doc-06"
-series: "06 · Fundamentos"
-summary: "Métrica vs señal. Cobertura vs acción."
-version: "1.0"
-stability: "alta"
-first_published: "2026-02-02"
-node: "docs"
-mihm_variable: "A_r"
-mihm_equation: "A_r = alertas_revisadas / alertas_emitidas"
-sf_pattern: "alerta-ignorada"
-mihm_note: "El sistema emite señal, pero sin revisión no existe corrección."
-patterns:
-  - señal-ruido
-  - desalineación-métricas
-  - costo-atención
-  - umbral-fijo
+description: "Métrica vs señal. Cobertura vs acción."
+id: doc-06
+version: "1.1"
+status: validated
+math: true
+mihm_variables: ['E_i', 'M_i']
+prev_doc: doc-05
+next_doc: doc-07
 ---
 
-# Sistemas de alerta que nadie revisa
+Métrica vs señal. Cobertura vs acción.
 
-## Diferencia entre métrica y señal
+---
 
-Las organizaciones crean dashboards que miden todo y detectan nada.
+El sistema puede tener cobertura total de alertas y cero capacidad de respuesta.
 
-El problema no es volumen de datos. Es confundir métrica con señal.
+---
 
-**Métrica:** cantidad que cambia
-**Señal:** cambio que importa
+La alerta que no activa respuesta es ruido. El sistema que genera ruido suficiente desensibiliza a los operadores. Después de suficiente tiempo, la alerta real es indistinguible.
 
-La mayoría de sistemas de alerta fallan porque optimizan para completitud, no para acción.
+## Mecanismo
 
-## Por qué fallan las alertas tempranas
+$$E_i \uparrow \quad\text{cuando la tasa de alertas} \gg \text{tasa de respuesta}$$
 
-* No distinguen ruido de anomalía
-* Asumen que ver el problema equivale a poder actuar
-* Optimizan para cobertura sobre precisión
-* No modelan el costo de atención del que recibe la alerta
+La carga entrópica $E_i$ no mide el número de eventos. Mide la proporción de eventos no procesados sobre el total.
 
-## Patrón observable
+## Observado en AGS
 
-Sistemas que alertan tanto que entrenan al usuario a ignorarlos.
+N4 (seguridad): 252 alertas de bloqueo activo el 22 feb 2026. Protocolo de respuesta activado en 3 nodos de 252. $E_{N4} = 0.96$ (CRITICAL). $E_{N6} = 0.95$ (CRITICAL).
 
-No es que el usuario sea negligente.
-Es que el sistema optimizó para minimizar falsos negativos sin considerar que los falsos positivos
-tienen costo real.
+## Implicación
 
-Después de suficientes falsas alarmas, la señal real se vuelve indistinguible del ruido.
-
-## Diseñar para acción, no para información
-
-Un buen sistema de alerta debe responder:
-
-* ¿Qué acción específica debo tomar?
-* ¿Cuánto tiempo tengo para actuar?
-* ¿Qué pasa si no hago nada?
-* ¿Cómo sé si la acción funcionó?
-
-Si la alerta no responde estas preguntas, es información, no señal.
-
-## Problema de umbrales fijos
-
-La mayoría de alertas usan umbrales estáticos que fueron configurados una vez y nunca se revisaron.
-
-El sistema cambia. El umbral no. Con el tiempo, la alerta deja de ser predictiva.
-
-Pero nadie actualiza el umbral porque cambiar el sistema de alertas es más arriesgado
-que ignorar alertas malas.
-
-**Límite de aplicación:** Sistemas con volumen suficiente para requerir alertas automatizadas. En contextos pequeños donde todo es revisable manualmente, este patrón es menos relevante.
-{: .limit-box }
+El sistema de alerta cumple su función formal (genera alertas). No cumple su función real (activar respuesta). La métrica oficial reporta cobertura del 100%.

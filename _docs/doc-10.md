@@ -1,79 +1,38 @@
 ---
+layout: doc
 title: "Incentivos bien diseñados que fallan"
-doc_id: "doc-10"
-series: "10 · Fundamentos"
-summary: "Ley de Goodhart. Optimización de proxy."
-version: "1.0"
-stability: "alta"
-first_published: "2026-02-02"
-node: "docs"
-mihm_variable: "I_f"
-mihm_equation: "I_f = incentivo_local / resultado_sistémico"
-sf_pattern: "incentivo-contradictorio"
-mihm_note: "Incentivos bien diseñados localmente pueden fallar sistémicamente."
-patterns:
-  - proxy-objetivo
-  - ley-goodhart
-  - desalineación-métricas
-  - optimización-local
+description: "Ley de Goodhart. Optimización de proxy."
+id: doc-10
+version: "1.1"
+status: validated
+math: true
+mihm_variables: ['C_i', 'E_i', 'O']
+prev_doc: doc-09
+next_doc: /nodo-ags/
 ---
 
-# Incentivos bien diseñados que fallan
+Ley de Goodhart. Optimización de proxy.
 
-## Casos donde el sistema funciona perfectamente
+---
 
-Para producir lo opuesto a lo deseado:
+Cuando una métrica se convierte en objetivo, deja de ser una métrica útil.
 
-* Métricas de velocidad que incentivan deuda técnica
-* Bonos por cierre que incentivan deals insostenibles
-* KPIs individuales que destruyen coordinación
-* Objetivos de calidad que incentivan rechazar trabajo difícil
+---
 
-## El problema no es diseño
+El sistema optimiza la métrica, no el fenómeno que la métrica medía. La métrica reporta éxito. El fenómeno se degrada.
 
-Los incentivos están bien diseñados. El problema es que miden proxies, no objetivos.
+## Ley de Goodhart
 
-Cuando el proxy se convierte en objetivo, el sistema optimiza para el proxy.
+$$\text{Si } M \text{ es proxy de } P \text{ y se convierte en objetivo:} \quad M \uparrow, P \downarrow$$
 
-Esto no es irracionalidad. Es respuesta racional a incentivos mal alineados.
+## Variables afectadas
 
-## Señal de falla
+$C_i$ (capacidad adaptativa): se redistribuye hacia optimizar la métrica. $E_i$ (carga entrópica): aumenta porque el sistema real genera más trabajo que el sistema métrico reporta. $O$ (opacidad): aumenta porque la distancia entre métrica y realidad genera capas de justificación.
 
-Cuando alcanzar la métrica es más fácil que lograr el resultado que la métrica supuestamente mide.
+## Observado en AGS
 
-Ejemplos:
+N4 (seguridad): meta de reducción de incidentes → reclasificación de incidentes como "eventos no reportables". CSR = 0.00 pero IIM = 0.50 (12 de 18 eventos verificados con clasificación inconsistente con campo).
 
-* Cerrar tickets sin resolver problemas
-* Cumplir tiempos de respuesta sin mejorar servicio
-* Completar features sin generar valor
-* Pasar auditorías sin reducir riesgo
+## Conexión con MIHM
 
-## Por qué persiste el problema
-
-Cambiar el sistema de incentivos es más riesgoso que vivir con incentivos rotos.
-
-Razones:
-
-* El sistema actual ya está optimizado (para el proxy)
-* Cambiar incentivos altera expectativas
-* No está claro qué métrica nueva usar
-* El costo del cambio es inmediato, el beneficio es diferido
-
-## Formulación técnica
-
-Cuando una métrica se convierte en objetivo, deja de ser una buena métrica.
-
-No porque la gente haga trampa. Porque optimizar para la métrica es diferente de optimizar para el objetivo.
-Y cuando hay desalineación, el sistema optimiza para lo que se mide, no para lo que importa.
-
-## Cómo mitigar (no resolver)
-
-* Usar múltiples métricas que sean difíciles de optimizar simultáneamente
-* Cambiar las métricas antes de que la gente las optimice completamente
-* Hacer que quien mide sea quien enfrenta las consecuencias
-* Medir resultados finales, no intermedios
-
-Ninguna solución es perfecta. Todas generan nuevos problemas.
-
-**Límite de aplicación:** Sistemas con incentivos explícitos y métricas cuantificables. En contextos sin métricas formales, el problema se manifiesta de otras formas.
-{: .limit-box }
+Este patrón es el predictor más fuerte de colapso en la simulación Monte Carlo. Los sistemas con $O > 0.6$ y $E_i > 0.8$ simultáneos tienen probabilidad de fractura $> 0.7$ a 180 días.

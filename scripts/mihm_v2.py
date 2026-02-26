@@ -1,178 +1,284 @@
 #!/usr/bin/env python3
 """
-MIHM v2.0 — Motor NODEX con nodo N6 y módulo de coherencia M_i.
-System Friction Framework v1.1 | origen: vhpd | status: validated
-Autor: Juan Antonio Marín Liera (APTYMOK) — INEGI Aguascalientes
-Fecha: 23 de febrero de 2026
+mihm_v2.py — Multinodal Homeostatic Integration Model v2.0
+System Friction Framework · v1.1 · 2026
+CC BY 4.0 · Juan Antonio Marín Liera
 
-Referencia: Postulado Central f = (t/T) + O
-Manuscrito: MIHM v2.0 — Validación ante Shock Exógeno (Nodo Aguascalientes)
+Uso:
+    python3 mihm_v2.py                    # calcula IHG/NTI con vectores AGS
+    python3 mihm_v2.py --mc               # Monte Carlo 50k iteraciones
+    python3 mihm_v2.py --shock 0.3        # shock exógeno personalizado
+    python3 mihm_v2.py --output results.json
 """
 
-import numpy as np
 import json
-from pathlib import Path
+import math
+import random
+import argparse
+import sys
+from typing import Dict, List, Optional
 
 
-class MIHMv2:
-    """MIHM v2.0 — Motor NODEX con nodo N6 y módulo de coherencia M_i."""
+# ── Vectores post-fractura (AGS, 23 feb 2026) ────────────────────────────────
+VECTORS_AGS = {
+    "N1": {"label": "Agua",      "C": 0.18, "E": 0.89, "L": 0.92, "K": 0.85, "R": 0.12, "M": 1.00},
+    "N2": {"label": "Capital",   "C": 0.68, "E": 0.78, "L": 0.72, "K": 0.55, "R": 0.15, "M": 1.00},
+    "N3": {"label": "Logistica", "C": 0.85, "E": 0.35, "L": 0.35, "K": 0.40, "R": 0.60, "M": 1.00},
+    "N4": {"label": "Seguridad", "C": 0.35, "E": 0.96, "L": 0.88, "K": 0.55, "R": 0.10, "M": 1.00},
+    "N5": {"label": "Coord",     "C": 0.60, "E": 0.68, "L": 0.78, "K": 0.65, "R": 0.40, "M": 0.50},
+    "N6": {"label": "Ext",       "C": 0.40, "E": 0.95, "L": 0.85, "K": 0.75, "R": 0.20, "M": 0.70},
+}
 
-    def __init__(self, C, E, L, K, R, M=None, theta_crit=0.20):
-        self.N = len(C)
-        self.C, self.E, self.L, self.K, self.R = map(np.array, [C, E, L, K, R])
-        self.M = np.ones(self.N) if M is None else np.array(M)
-        self.theta_crit = theta_crit
-        self.history = []
+NTI_COMPONENTS_AGS = {
+    "LDI_n": 1.00,   # Latencia Decisión Institucional normalizada
+    "ICC_n": 0.32,   # Índice Concentración Conocimiento
+    "CSR":   0.00,   # Cumplimiento Reducción Incidentes
+    "IRCI_n":0.935,  # Resiliencia Capital Institucional
+    "IIM":   0.50,   # Integridad Métricas
+}
 
-    def effective_L(self):
-        """Latencia efectiva modulada por coherencia M_i."""
-        return np.minimum(self.L * (1 + (1 - self.M)), 1.0)
+UCAP_IHG = -0.50
+UCAP_NTI = 0.40
 
-    def IHG(self):
-        """Índice de Gobernanza Homeostática."""
-        L_eff = self.effective_L()
-        return float(np.mean((self.C - self.E) * (1 - L_eff)))
 
-    def ICE(self):
-        """ICE simplificado: concentración de carga entrópica."""
-        return float(np.max(self.E) / np.sum(self.E))
+# ── Core MIHM formulas ────────────────────────────────────────────────────────
 
-    def NTI(self, LDI_norm, ICC_norm, CSR, IRCI_norm, IIM):
-        """Nodo de Trazabilidad Institucional."""
-        return (1 / 5) * ((1 - LDI_norm) + ICC_norm + CSR + IRCI_norm + IIM)
+def friction(t: float, T: float, O: float) -> float:
+    """f = (t/T) + O"""
+    if T <= 0:
+        raise ValueError("T (tiempo normativo) debe ser > 0")
+    return (t / T) + O
 
-    def IHG_corrected(self, nti):
-        """IHG corregido por NTI (sistema con datos degradados)."""
-        return self.IHG() * nti
 
-    def friction(self, t, T, O):
-        """Fricción institucional: f = (t/T) + O (Postulado Central)."""
-        return (t / T) + O
+def effective_L(L: float, M: float) -> float:
+    """L_eff = min(L * (1 + (1 - M)), 1.0)"""
+    return min(L * (1.0 + (1.0 - M)), 1.0)
 
-    def apply_exogenous_shock(self, delta_E, node_indices):
-        """Inyección de entropía exógena calibrada con proxies verificables."""
-        for idx, de in zip(node_indices, delta_E):
-            self.E[idx] = min(1.0, self.E[idx] + de)
-        snapshot = {
-            "IHG": self.IHG(),
-            "ICE": self.ICE(),
-            "E": self.E.tolist()
+
+def node_IHG_contribution(C: float, E: float, L: float, M: float) -> float:
+    """(C - E) * (1 - L_eff)"""
+    L_eff = effective_L(L, M)
+    return (C - E) * (1.0 - L_eff)
+
+
+def IHG(vectors: Dict) -> float:
+    """IHG = (1/N) * sum((C_i - E_i) * (1 - L_eff_i))"""
+    contributions = [
+        node_IHG_contribution(v["C"], v["E"], v["L"], v["M"])
+        for v in vectors.values()
+    ]
+    return sum(contributions) / len(contributions)
+
+
+def NTI(components: Dict) -> float:
+    """NTI = (1/5) * [(1-LDI_n) + ICC_n + CSR + IRCI_n + IIM]"""
+    c = components
+    return (1.0 / 5.0) * (
+        (1.0 - c["LDI_n"]) + c["ICC_n"] + c["CSR"] + c["IRCI_n"] + c["IIM"]
+    )
+
+
+def node_status(f_val: float, M: float) -> str:
+    if M < 0.55:
+        return "OPAQUE"
+    if f_val > 2.0:
+        return "CRITICAL"
+    if f_val > 1.5:
+        return "FRACTURE" if f_val > 1.7 else "CRITICAL"
+    if f_val > 1.0:
+        return "DEGRADED"
+    return "OK"
+
+
+# ── Monte Carlo (proceso de Poisson exocáustico) ─────────────────────────────
+
+def _seeded_lcg(seed: int):
+    """LCG seeded RNG: reproducible, sin dependencias externas."""
+    s = seed
+    def rng():
+        nonlocal s
+        s = (s * 1664525 + 1013904223) & 0xFFFFFFFF
+        return (s >> 0) / 0xFFFFFFFF
+    return rng
+
+
+def poisson_sample(lam: float, rng) -> int:
+    """Poisson via método de transformación inversa."""
+    L = math.exp(-lam)
+    p, k = 1.0, 0
+    while p > L:
+        k += 1
+        p *= rng()
+    return k - 1
+
+
+def monte_carlo(
+    vectors: Dict,
+    nti_components: Dict,
+    n: int = 50000,
+    seed: int = 42,
+    lambda_shock: float = 0.10,
+    shock_magnitude: float = 0.30,
+    horizon_days: int = 180,
+) -> Dict:
+    """
+    Monte Carlo exocáustico. Proceso de Poisson para shocks.
+    Retorna distribución de IHG @horizon_days.
+    """
+    rng = _seeded_lcg(seed)
+    ihg_0 = IHG(vectors)
+    results = []
+
+    for _ in range(n):
+        ihg_t = ihg_0
+        lam_daily = lambda_shock / horizon_days
+
+        for _ in range(horizon_days):
+            # Shock exógeno: Poisson(λ/T)
+            shocks = poisson_sample(lam_daily, rng)
+            if shocks > 0:
+                ihg_t -= shocks * shock_magnitude * (0.5 + rng() * 0.5)
+            # Recuperación natural mínima
+            ihg_t += rng() * 0.003
+            ihg_t = max(ihg_t, -1.5)
+
+        results.append(ihg_t)
+
+    results.sort()
+    n = len(results)
+
+    def pct(p):
+        return results[int(n * p)]
+
+    p_collapse  = sum(1 for v in results if v < UCAP_IHG) / n
+    p_fracture  = sum(1 for v in results if v < -0.8) / n
+    mean_ihg    = sum(results) / n
+
+    return {
+        "seed": seed,
+        "n": n,
+        "lambda": lambda_shock,
+        "shock_magnitude": shock_magnitude,
+        "horizon_days": horizon_days,
+        "IHG_0": round(ihg_0, 4),
+        "IHG_mean_180d": round(mean_ihg, 4),
+        "p_collapse": round(p_collapse, 4),
+        "p_fracture": round(p_fracture, 4),
+        "percentiles": {
+            "p10": round(pct(0.10), 4),
+            "p25": round(pct(0.25), 4),
+            "p50": round(pct(0.50), 4),
+            "p75": round(pct(0.75), 4),
+            "p90": round(pct(0.90), 4),
         }
-        self.history.append(snapshot)
-        return self.IHG()
-
-    def monte_carlo(self, n=50000, lambda_viol=0.1, seed=42):
-        """
-        Monte Carlo exocáustico con proceso de Poisson para oleadas de violencia.
-        Categoría: simulación exocáustica (único tipo autorizado por VHpD).
-        """
-        np.random.seed(seed)
-        collapse_count = 0
-        for _ in range(n):
-            E_sim = self.E.copy() + np.random.normal(0, 0.05, self.N)
-            E_sim = np.clip(E_sim, 0, 1)
-            # Shock de violencia (proceso de Poisson)
-            n_events = np.random.poisson(lambda_viol * 12)  # 12 meses
-            for _ in range(n_events):
-                delta = np.random.uniform(0.05, 0.15)
-                E_sim[-1] = min(1.0, E_sim[-1] + delta)  # N6
-            sys_sim = MIHMv2(self.C, E_sim, self.L, self.K, self.R, self.M)
-            if sys_sim.IHG() < -1.0 or E_sim[0] > 0.98:
-                collapse_count += 1
-        return collapse_count / n
-
-    def status_report(self):
-        """Genera reporte de estado del sistema."""
-        node_labels = ["N1-Agua", "N2-Capital", "N3-Logística", "N4-Seguridad", "N5-Coord", "N6-Exógeno"]
-        thresholds = {"C": 0.30, "E": 0.80, "L": 0.85, "M": 0.50}
-        report = []
-        for i in range(self.N):
-            f_node = self.friction(self.L[i], 1.0, self.E[i])
-            if self.C[i] < thresholds["C"]:
-                status = "FRACTURE"
-            elif self.E[i] > thresholds["E"] or self.L[i] > thresholds["L"]:
-                status = "CRITICAL"
-            elif self.M[i] < thresholds["M"]:
-                status = "OPAQUE"
-            else:
-                status = "OK"
-            label = node_labels[i] if i < len(node_labels) else f"N{i+1}"
-            report.append({
-                "node": label,
-                "C": round(float(self.C[i]), 3),
-                "E": round(float(self.E[i]), 3),
-                "L": round(float(self.L[i]), 3),
-                "M": round(float(self.M[i]), 3),
-                "friction": round(f_node, 3),
-                "status": status
-            })
-        return report
+    }
 
 
-# ── VECTOR POST-FRACTURA (23 feb 2026) ──────────────────────────────────────
-# Proxies calibrados con datos verificables:
-# 252 bloqueos / 20 estados / 90% desactivados en 24h
-# Nissan suspendido / Secretario Seguridad ausente en Mesa de Coordinación
-# Fuentes: Zócalo, La Jornada, Milenio, AP News (22-23 feb 2026)
+# ── Report ────────────────────────────────────────────────────────────────────
 
-C = [0.18, 0.68, 0.85, 0.35, 0.60, 0.40]   # Capacidad adaptativa
-E = [0.89, 0.78, 0.35, 0.96, 0.68, 0.95]   # Carga entrópica
-L = [0.92, 0.72, 0.35, 0.88, 0.78, 0.85]   # Latencia operativa
-K = [0.85, 0.55, 0.40, 0.55, 0.65, 0.75]   # Conectividad funcional
-R = [0.12, 0.15, 0.60, 0.10, 0.40, 0.20]   # Redistribución
-M = [1.0,  1.0,  1.0,  1.0,  0.50, 0.70]   # Coherencia: N5=0.50 (ausencia Sec.Seg.)
+def build_report(vectors: Dict, nti_comps: Dict, mc_result: Optional[Dict] = None) -> Dict:
+    ihg_val = IHG(vectors)
+    nti_val = NTI(nti_comps)
+    ihg_corr = ihg_val * nti_val
 
-system = MIHMv2(C, E, L, K, R, M)
+    nodes_report = {}
+    for nid, v in vectors.items():
+        L_eff = effective_L(v["L"], v["M"])
+        # friction proxy: use E as O surrogate, L_eff as t/T surrogate
+        f_val = L_eff + v["E"]
+        status = node_status(f_val, v["M"])
+        d_ihg = node_IHG_contribution(v["C"], v["E"], v["L"], v["M"])
+        nodes_report[nid] = {
+            "label": v["label"],
+            "C": v["C"], "E": v["E"], "L": v["L"],
+            "K": v["K"], "R": v["R"], "M": v["M"],
+            "L_eff": round(L_eff, 4),
+            "f": round(f_val, 4),
+            "status": status,
+            "dIHG": round(d_ihg, 4),
+        }
+
+    protocol = "EMERGENCY_DECISION" if ihg_val < UCAP_IHG else (
+        "WATCHLIST" if ihg_val < -0.30 else "NOMINAL"
+    )
+    nti_mode = "BLIND_MODE" if nti_val < UCAP_NTI else "OPERATIONAL"
+
+    report = {
+        "schema": "sf-results-v1.1",
+        "timestamp": "2026-02-23T23:59:00Z",
+        "system": {
+            "IHG": round(ihg_val, 4),
+            "NTI": round(nti_val, 4),
+            "IHG_corrected": round(ihg_corr, 4),
+            "protocol": protocol,
+            "nti_mode": nti_mode,
+            "ucap_ihg": UCAP_IHG,
+            "ucap_nti": UCAP_NTI,
+        },
+        "nti_components": nti_comps,
+        "nodes": nodes_report,
+    }
+
+    if mc_result:
+        report["monte_carlo"] = mc_result
+
+    return report
+
+
+def print_report(report: Dict):
+    sys_r = report["system"]
+    print("\n── MIHM v2.0 ── System Friction Framework ──────────────────")
+    print(f"  IHG            : {sys_r['IHG']:+.4f}")
+    print(f"  NTI            : {sys_r['NTI']:.4f}  [{report['system']['nti_mode']}]")
+    print(f"  IHG × NTI      : {sys_r['IHG_corrected']:+.4f}")
+    print(f"  Protocol       : {sys_r['protocol']}")
+    print(f"  UCAP IHG       : {sys_r['ucap_ihg']:+.2f}")
+    print()
+    print("  Nodo  Label         C      E      L      M      f       Status   ΔIHG")
+    print("  " + "─"*76)
+    for nid, n in report["nodes"].items():
+        print(f"  {nid}  {n['label']:<12}  {n['C']:.2f}  {n['E']:.2f}  {n['L']:.2f}  {n['M']:.2f}  {n['f']:.3f}  {n['status']:<8}  {n['dIHG']:+.3f}")
+
+    if "monte_carlo" in report:
+        mc = report["monte_carlo"]
+        print(f"\n  Monte Carlo  seed={mc['seed']}  n={mc['n']:,}  λ={mc['lambda']}  Δ={mc['shock_magnitude']}")
+        print(f"  IHG@{mc['horizon_days']}d mean : {mc['IHG_mean_180d']:+.4f}")
+        print(f"  P(colapso)       : {mc['p_collapse']*100:.1f}%")
+        print(f"  P(fractura)      : {mc['p_fracture']*100:.1f}%")
+        p = mc["percentiles"]
+        print(f"  p10/p50/p90      : {p['p10']:+.3f} / {p['p50']:+.3f} / {p['p90']:+.3f}")
+    print()
+
+
+# ── CLI ───────────────────────────────────────────────────────────────────────
+
+def main():
+    parser = argparse.ArgumentParser(description="MIHM v2.0 — System Friction Framework")
+    parser.add_argument("--mc", action="store_true", help="Ejecutar Monte Carlo")
+    parser.add_argument("--n", type=int, default=50000, help="Iteraciones MC (default: 50000)")
+    parser.add_argument("--seed", type=int, default=42, help="Seed (default: 42)")
+    parser.add_argument("--lambda", dest="lam", type=float, default=0.10, help="λ Poisson (default: 0.10)")
+    parser.add_argument("--shock", type=float, default=0.30, help="Magnitud shock (default: 0.30)")
+    parser.add_argument("--output", type=str, default=None, help="Guardar JSON resultados")
+    args = parser.parse_args()
+
+    mc_result = None
+    if args.mc:
+        print(f"  Ejecutando Monte Carlo: n={args.n:,} seed={args.seed} λ={args.lam} Δ={args.shock}...")
+        mc_result = monte_carlo(
+            VECTORS_AGS, NTI_COMPONENTS_AGS,
+            n=args.n, seed=args.seed,
+            lambda_shock=args.lam, shock_magnitude=args.shock
+        )
+
+    report = build_report(VECTORS_AGS, NTI_COMPONENTS_AGS, mc_result)
+    print_report(report)
+
+    output_path = args.output or "assets/data/results.json"
+    with open(output_path, "w") as f:
+        json.dump(report, f, indent=2, ensure_ascii=False)
+    print(f"  Resultados guardados: {output_path}")
+
 
 if __name__ == "__main__":
-    print("=" * 60)
-    print("MIHM v2.0 — Validación Post-Fractura (23 feb 2026)")
-    print("=" * 60)
-
-    ihg = system.IHG()
-    ice = system.ICE()
-    print(f"IHG post-fractura:        {ihg:.3f}")   # -0.620
-    print(f"ICE (simplificado):       {ice:.3f}")   # 0.208
-
-    nti = system.NTI(
-        LDI_norm=1.0,    # 6h respuesta vs 1h estándar
-        ICC_norm=0.32,   # 80% conocimiento en 2 comandantes
-        CSR=0.0,         # 0% reducción incidentes vs meta 50%
-        IRCI_norm=0.935, # Compactación acuífero (sin cambio en crisis)
-        IIM=0.50         # 12 reportados vs 18 verificados
-    )
-    print(f"NTI post-fractura:        {nti:.3f}")             # 0.351
-    print(f"IHG corregido (NTI):      {system.IHG_corrected(nti):.3f}")  # -0.218
-
-    # Fricción Postulado Central — N5 (caso más crítico)
-    f_n5 = system.friction(t=6, T=1, O=0.68)
-    print(f"Fricción N5 (6h/1h + 0.68): {f_n5:.2f}")         # 6.68
-
-    # Intervención: telemetría reduce L_N6 de 0.85 a 0.43
-    system_int = MIHMv2(C, E, [0.92, 0.72, 0.35, 0.88, 0.78, 0.43], K, R, M)
-    print(f"IHG tras telemetría N6:   {system_int.IHG():.3f}")
-
-    # Monte Carlo (50,000 iteraciones, seed 42)
-    print("\nEjecutando Monte Carlo (50,000 iteraciones, seed=42)...")
-    prob_collapse = system.monte_carlo(n=50000, lambda_viol=0.1, seed=42)
-    print(f"Prob. colapso antes 2030: {prob_collapse:.1%}")   # ~71%
-
-    print("\n--- REPORTE DE NODOS ---")
-    for node in system.status_report():
-        print(f"  {node['node']:20s} f={node['friction']:.2f}  {node['status']}")
-
-    # Guardar resultados en JSON
-    results = {
-        "IHG_post": round(ihg, 3),
-        "ICE": round(ice, 3),
-        "NTI": round(nti, 3),
-        "IHG_corrected": round(system.IHG_corrected(nti), 3),
-        "IHG_post_telemetry": round(system_int.IHG(), 3),
-        "prob_collapse_2030": round(prob_collapse, 4),
-        "nodes": system.status_report()
-    }
-    out_path = Path(__file__).parent.parent / "_meta" / "results.json"
-    with open(out_path, "w") as f:
-        import json
-        json.dump(results, f, indent=2)
-    print(f"\nResultados guardados en: {out_path}")
+    main()

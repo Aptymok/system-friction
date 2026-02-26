@@ -1,10 +1,72 @@
-source "https://rubygems.org"
+title: "System Friction"
+description: "Archivo de fricción sistémica · v1.1 · 2026"
+url: "https://systemfriction.org"
+baseurl: ""
+author: "Juan Antonio Marín Liera"
+email: "aptymok@gmail.com"
+version: "1.1"
 
-gem "jekyll", "~> 4.3"
-gem "jekyll-feed"
-gem "jekyll-seo-tag"
+# Build
+markdown: kramdown
+highlighter: rouge
+kramdown:
+  input: GFM
+  math_engine: mathjax
+  syntax_highlighter: rouge
 
-group :jekyll_plugins do
-  gem "jekyll-feed"
-  gem "jekyll-seo-tag"
-end
+# Plugins
+plugins:
+  - jekyll-seo-tag
+  - jekyll-sitemap
+
+# Collections
+collections:
+  docs:
+    output: true
+    permalink: /docs/:name/
+  nodo_ags:
+    output: true
+    permalink: /nodo-ags/:name/
+  mihm:
+    output: true
+    permalink: /mihm/:name/
+
+# Defaults
+defaults:
+  - scope:
+      path: ""
+      type: "docs"
+    values:
+      layout: "doc"
+      version: "1.1"
+      status: "validated"
+  - scope:
+      path: ""
+      type: "nodo_ags"
+    values:
+      layout: "node"
+      version: "1.1"
+      status: "validated"
+      origin: "vhpd"
+  - scope:
+      path: ""
+      type: "mihm"
+    values:
+      layout: "mihm"
+      version: "1.1"
+  - scope:
+      path: ""
+    values:
+      layout: "default"
+
+# Exclude
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - scripts/
+  - "*.py"
+  - README.md
+  - node_modules/
+  - vendor/
+  - DEPLOY_INSTRUCTIONS.md
+  - REPORTE_LOGS.md

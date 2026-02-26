@@ -1,39 +1,36 @@
 ---
-title: "AGS-01 — Corredor Jalisco–Zacatecas–Guanajuato"
+layout: node
+title: "AGS-01 — Corredor Hegemónico"
+description: "Hipótesis del pacto implícito. Función de utilidad U_P."
+id: ags-01
 version: "1.1"
 status: validated
 origin: vhpd
-node: N1
-date: 2026-02-23
-ihg_contribution: -0.089
-friction_index: 0.94
+math: true
+friction_index: 1.4
+node_status: DEGRADED
 ---
 
-# AGS-01: Hipótesis de Utilidad Implícita del Corredor
+Hipótesis del pacto implícito. Función de utilidad U_P.
 
-**Referencia:** `/_core/postulado-central.md` — Fórmula $f = (t/T) + O$
+---
 
-## Hipótesis Formalizada
+El estado AGS presenta una anomalía estadística verificable: correlación negativa entre concentración de violencia y tasa de homicidios en períodos 2018–2024.
 
-Aguascalientes operó como nodo de corredor neutro. La paz observada era la manifestación superficial de una función de utilidad implícita $U_P$ sostenida por el actor hegemónico del corredor Jalisco–Zacatecas–Guanajuato.
+---
+
+## Hipótesis
+
+Existencia de un pacto implícito entre actor hegemónico del corredor y estructura de seguridad del estado. El pacto reduce homicidios visibles a cambio de libertad de operación logística.
+
+## Función de utilidad
 
 $$U_P = B_C - C_C - f_{\text{corredor}}$$
 
-Cuando $U_P \to 0$, el sistema revela su estado entrópico real.
+Cuando $U_P \to 0$: el sistema revela su estado entrópico real en menos de 24h. El evento del 22 feb 2026 confirmó: $U_P$ colapsó tras la muerte del actor hegemónico.
 
-## Vector Basal (21 feb 2026)
+## Vector N1-AGS (contexto)
 
-| Nodo | $C_i$ | $E_i$ | $L_i$ | $M_i$ | Fricción | Estado |
-|------|--------|--------|--------|--------|----------|--------|
-| N1 | 0.18 | 0.89 | 0.92 | 1.00 | 1.81 | FRACTURE |
+$C_{N1} = 0.42$, $E_{N1} = 0.65$, $f = 1.40$
 
-## Predicciones — Estado de Validación
-
-| Predicción | Variable | Estado |
-|------------|----------|--------|
-| Colapso del pacto en < 24h si actor hegemónico desaparece | $U_P \to 0$ | VALIDADA |
-| Incremento $E_{N1} > 0.80$ | $E_i$ | VALIDADA: 0.89 |
-| Activación de corredor en < 24h | $L_{\text{eff}}$ | VALIDADA |
-
-**Gate H1:** PASS | **Gate H2:** PASS | **Gate H3:** PENDING
-
+El corredor operó como regulador informal de $E$ en los nodos de seguridad durante 2018–2024.

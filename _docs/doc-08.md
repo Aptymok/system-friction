@@ -1,74 +1,34 @@
 ---
+layout: doc
 title: "Personas en alta incertidumbre"
-doc_id: "doc-08"
-series: "08 · Perfil"
-summary: "Operación eficaz sin reglas estables."
-version: "1.0"
-stability: "media"
-first_published: "2026-02-02"
-node: "docs"
-mihm_variable: "U_h"
-mihm_equation: "U_h = incertidumbre_operativa_humana"
-sf_pattern: "incertidumbre-humana"
-mihm_note: "La carga cognitiva eleva variabilidad conductual bajo presión."
-patterns:
-  - tolerancia-incertidumbre
-  - validación-interna
-  - reversibilidad
-  - opcionalidad
+description: "Operación eficaz sin reglas estables."
+id: doc-08
+version: "1.1"
+status: validated
+math: true
+mihm_variables: ['C_i', 'R_i']
+prev_doc: doc-07
+next_doc: doc-09
 ---
 
-# Personas en alta incertidumbre
+Operación eficaz sin reglas estables.
 
-## Qué comparten
+---
 
-Quienes operan bien cuando las reglas no existen comparten:
+En ausencia de reglas estables, la eficacia depende de la persona, no del sistema.
 
-* Bajo acoplamiento con validación externa
-* Alta tolerancia a revisión continua
-* Preferencia por reversibilidad sobre optimización
-* Capacidad de sostener ambigüedad sin resolverla prematuramente
+---
 
-No es tolerancia al riesgo. Es comodidad con información incompleta.
+El operador que funciona en alta incertidumbre no lo hace porque el sistema esté bien diseñado. Lo hace a pesar del diseño.
 
-## No es apetito de riesgo
+## Variables afectadas
 
-La diferencia entre asumir riesgo y operar en incertidumbre:
+$C_i$ y $R_i$: la capacidad adaptativa y la redistribución dependen de capital relacional cuando las reglas formales no aplican.
 
-**Riesgo:** conoces la distribución de resultados posibles
-**Incertidumbre:** no sabes qué resultados son posibles
+## Observado en AGS
 
-Operar en incertidumbre requiere estar cómodo no sabiendo si estás tomando riesgos o no.
+N3 (logística): mantuvo $f = 0.70$ durante el evento porque el operador logístico activó protocolos informales con contraparte en N2 sin pasar por cadena de mando formal. $C_{N3} = 0.85$, $R_{N3} = 0.60$.
 
-## Distinción operativa
+## Implicación
 
-Se distinguen no por lo que hacen, sino por cuánto tiempo pueden no hacer nada sin degradar criterio.
-
-Capacidad de esperar sin:
-
-* Forzar claridad artificial
-* Comprometerse prematuramente
-* Convertir incertidumbre en riesgo medible para sentirse en control
-
-## Bajo acoplamiento con validación externa
-
-No necesitan confirmación frecuente de que van por buen camino.
-
-Esto no es arrogancia.
-Es capacidad de sostener un modelo interno del mundo sin requerir validación social constante.
-
-Permite operar en dominios donde el feedback es escaso, tardío o ruidoso.
-
-## Tolerancia a revisión continua
-
-Tratan sus propias decisiones como provisionales por defecto.
-
-No como falta de convicción. Como reconocimiento de que la información disponible está incompleta.
-
-Esto permite cambiar de dirección sin costo emocional cuando aparece nueva información.
-
-**Límite de aplicación:** Observación de patrón, no prescripción. Este documento describe características correlacionadas, no causales. No está claro qué tanto es entrenable vs selección.
-{: .limit-box }
-
-**Riesgo de mala aplicación:** Confundir estas características con evitar responsabilidad o no comprometerse nunca.
-{: .limit-box }
+El sistema reporta "operación normal" en N3. Lo que operó normal fue la relación entre personas, no el protocolo. Esa diferencia es invisible en las métricas formales hasta que la persona no está.

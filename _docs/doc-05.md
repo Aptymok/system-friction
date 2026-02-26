@@ -1,69 +1,34 @@
 ---
+layout: doc
 title: "Escritura sin intención visible"
-doc_id: "doc-05"
-series: "05 · Técnica"
-summary: "Señal sin ornamentación. Extracción por diseño."
-version: "1.0"
-stability: "alta"
-first_published: "2026-02-02"
-node: "docs"
-mihm_variable: "I_e"
-mihm_equation: "I_e = intención_explícita / efecto_sistémico"
-sf_pattern: "escritura-sin-intención"
-mihm_note: "Mayor distancia intención-efecto incrementa ambigüedad operativa."
-patterns:
-  - señal-ruido
-  - densidad-semántica
-  - escritura-técnica
-  - economía-palabras
+description: "Señal sin ornamentación. Extracción por diseño."
+id: doc-05
+version: "1.1"
+status: validated
+math: true
+mihm_variables: ['M_i']
+prev_doc: doc-04
+next_doc: doc-06
 ---
 
-# Escritura sin intención visible
+Señal sin ornamentación. Extracción por diseño.
 
-## Qué evitar
+---
 
-La mayoría de escritura técnica colapsa porque intenta convencer y explicar simultáneamente.
+El texto que no necesita ser defendido no necesita ser adornado.
 
-Cuando algo es sólido, no necesita:
+---
 
-* Calificativos enfáticos ("claramente", "obviamente", "sin duda")
-* Metáforas de escala ("revolucionario", "transformador", "disruptivo")
-* Auto-referencias de autoridad ("en mi experiencia", "he visto que")
+La ornamentación en documentos técnicos tiene dos causas: incertidumbre sobre el contenido o incertidumbre sobre la recepción. Ninguna mejora la calidad de la señal.
 
-## Estructura funcional
+## Criterio operativo
 
-1. Observación específica
-2. Patrón inferido
-3. Implicación testeable
-4. Límites explícitos del razonamiento
+Una oración funciona si puede ser extraída del documento y usada sin contexto adicional. Si no puede, contiene ruido que debe eliminarse.
 
-En ese orden. Sin adornos intermedios.
+## Variable afectada
 
-## Señal de calidad
+$M_i$ (coherencia): la escritura limpia incrementa $M_i$ porque reduce la distancia entre lo que dice el sistema y lo que hace.
 
-Si puedes quitar un párrafo completo sin que el argumento se debilite, ese párrafo era ruido.
+## Nota
 
-La densidad semántica es inversamente proporcional a la longitud del texto.
-Si algo requiere 500 palabras, probablemente 300 son suficientes.
-
-## Uso apropiado de voz pasiva
-
-La voz pasiva es útil cuando:
-
-* El agente no importa para la observación
-* Múltiples agentes producen el mismo patrón
-* El foco está en el sistema, no en quién lo opera
-
-No es cuestión de estilo. Es cuestión de dónde está la señal.
-
-## Explicar sin metáforas
-
-Las metáforas son útiles para primeras aproximaciones. Son problemáticas para razonamiento preciso.
-
-Si el concepto no se puede explicar sin analogía, probablemente el concepto no está suficientemente clarificado.
-
-Excepción: metáforas técnicas estándar en el dominio (deuda técnica, superficie de ataque, etc.).
-Estas ya son lenguaje, no decoración.
-
-**Límite de aplicación:** Escritura técnica y argumentativa. No aplica igual a escritura persuasiva donde la intención debe ser visible, o a escritura literaria donde el estilo es parte del contenido.
-{: .limit-box }
+Este documento es instancia del patrón que describe.

@@ -1,36 +1,37 @@
 ---
-title: "AGS-02 — Capacidad Institucional bajo Presión Exógena"
+layout: node
+title: "AGS-02 — Seguridad Institucional"
+description: "Concentración de conocimiento. ICC crítico."
+id: ags-02
 version: "1.1"
 status: validated
 origin: vhpd
-node: N4
-date: 2026-02-23
-ihg_contribution: -0.201
-friction_index: 1.76
+math: true
+friction_index: 1.84
+node_status: CRITICAL
 ---
 
-# AGS-02: Nodo Seguridad Pública (N4)
+Concentración de conocimiento. ICC crítico.
 
-**Referencia:** `/_core/postulado-central.md` — Fórmula $f = (t/T) + O$
+---
+
+El conocimiento operativo de seguridad en AGS está concentrado en 2 mandos. ICC (índice de concentración de conocimiento) = 0.32.
+
+---
 
 ## Vector N4
 
-| Parámetro | Valor | Umbral | Estado |
-|-----------|-------|--------|--------|
-| $C_4$ | 0.35 | > 0.50 | DEGRADED |
-| $E_4$ | 0.96 | < 0.80 | CRITICAL |
-| $L_4$ | 0.88 | < 0.70 | DEGRADED |
-| $M_4$ | 1.00 | — | OK |
+$C_{N4} = 0.35$, $E_{N4} = 0.96$, $L_{N4} = 0.88$, $M_{N4} = 1.00$, $f = 1.84$
 
-**Fricción N4:** $f = 0.88 + 0.96 = 1.84$ → CRITICAL
+## Evidencia de fricción
 
-## Hipótesis Formalizada
+252 narcobloqueos simultáneos el 22–23 feb 2026. Protocolo de respuesta activado en 3 de 252 nodos. Tiempo de activación promedio: 4.2h vs normativo 1h.
 
-La concentración de conocimiento operativo en 2 comandantes crea un punto único de fallo. ICC = 0.68 (alta concentración).
+$$f_{N4} = \frac{4.2}{1.0} + 0.96 = 5.16 \quad\text{(pico evento)}$$
 
-## Evidencia Textual (VHpD)
+$f$ promedio del período: 1.84 (CRITICAL).
 
-Ausencia del Secretario de Seguridad Pública de la Mesa de Coordinación durante el evento del 22–23 feb 2026. Proxy $M_5 = 0.50$.
+## Patrones activos
 
-**Gate H1:** PASS | **Gate H2:** PASS | **Gate H3:** PENDING (180 días)
-
+doc-03 (compliance como narrativa): CSR = 0.00 con reporte oficial de "avance en protocolo".
+doc-06 (sistemas de alerta): 252 alertas, 3 respuestas.

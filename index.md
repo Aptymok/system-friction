@@ -1,109 +1,156 @@
 ---
-title: "Archivo de fricción sistémica"
+layout: default
+title: "System Friction"
+description: "Observatorio de fricción sistémica. MIHM v2.0. Validación empírica activa."
+permalink: /
 ---
 
-<main>
-  <div class="doc-container">
+<div class="wrap--wide">
 
-    <div class="doc-label">Punto de entrada</div>
-    <h1>System Friction<br>Archivo de fricción sistémica.</h1>
-
-    <div class="limit-box" style="margin-top: 0; border-left-color: var(--accent);">
-      <strong>Postulado Central:</strong><br>
-      Los sistemas complejos no colapsan por ausencia de información, sino por el costo estructural que implica permitir que la información circule sin distorsión.
-    </div>
-
-    <p>Este ecosistema audita la distancia entre el estado real de un sistema crítico y la narrativa institucional que lo administra. Mapeamos la brecha donde la entropía se acumula bajo indicadores oficiales estables.</p>
-
-    <div class="rule"></div>
-
-    <ul class="intro-list">
-      <li><strong>No es un manifiesto:</strong> Es una arquitectura de observación.</li>
-      <li><strong>No emite juicios:</strong> Describe patrones. El uso es responsabilidad de quien lee.</li>
-      <li><strong>No es un blog:</strong> No se actualiza por opinión, sino por acumulación de evidencia.</li>
-    </ul>
-
-    <div class="enter-block">
-      <a href="{{ site.baseurl }}/docs/core-00/" class="enter-link">Leer desde el principio →</a>
-      <span class="enter-note">La lectura de <strong>core-00</strong> modifica lo que se encuentra después.<br>No es obligatorio. Sí es irreversible.</span>
-    </div>
-
-    <div class="doc-label mt-5">System Friction · Núcleo Operativo</div>
-    <div class="index-count">Expansión acumulativa activa · v1.1</div>
-
-    <div class="doc-grid">
-
-      <a href="{{ site.baseurl }}/docs/core-00/" class="doc-item">
-        <div class="doc-num">core-00 · META</div>
-        <div class="doc-title">Cómo leer este ecosistema</div>
-        <div class="doc-sub">Documento metodológico. Tono, progresión y límites del archivo.</div>
-        <span class="doc-arrow">→</span>
-      </a>
-
-      <a href="{{ site.baseurl }}/docs/core-0/" class="doc-item" style="border-left: 1px dashed var(--border); opacity: 0.6;">
-        <div class="doc-num">core-0 · POSICIÓN</div>
-        <div class="doc-title">Desde dónde observa el observador</div>
-        <div class="doc-sub">Condición de percepción. Sin número. No se actualiza.</div>
-        <span class="doc-arrow">→</span>
-      </a>
-
-      <a href="{{ site.baseurl }}/docs/core-bridge/" class="doc-item">
-        <div class="doc-num">core-bridge · PUENTE</div>
-        <div class="doc-title">Sistemas que no pueden permitirse fallar</div>
-        <div class="doc-sub">Umbral real vs oficial. La distancia donde opera el operador.</div>
-        <span class="doc-arrow">→</span>
-      </a>
-
-    </div>
-
-    <div class="doc-grid mt-4">
-      <div class="section-divider">Serie de patrones
-        <span>01 – 10 · configuraciones estructurales no jerárquicas</span>
-      </div>
-
-      {% assign docs = "01,02,03,04,05,06,07,08,09,10" | split: "," %}
-      {% for d in docs %}
-      <a href="{{ site.baseurl }}/docs/doc-{{ d }}/" class="doc-item">
-        <div class="doc-num">doc-{{ d }}</div>
-        <div class="doc-title">
-          {% if d == "01" %}Decisiones que nadie tomó{% endif %}
-          {% if d == "02" %}Costo real de adoptable{% endif %}
-          {% if d == "03" %}Compliance como narrativa{% endif %}
-          {% if d == "04" %}Dinero como estructura temporal{% endif %}
-          {% if d == "05" %}Escritura sin intención visible{% endif %}
-          {% if d == "06" %}Sistemas de alerta que nadie revisa{% endif %}
-          {% if d == "07" %}Contexto perdido{% endif %}
-          {% if d == "08" %}Personas en alta incertidumbre{% endif %}
-          {% if d == "09" %}Deuda de decisión{% endif %}
-          {% if d == "10" %}Incentivos bien diseñados que fallan{% endif %}
-        </div>
-        <span class="doc-arrow">→</span>
-      </a>
-      {% endfor %}
-
-
-      <div class="section-divider">Integración MIHM
-        <span>panel · catálogo · nti · roadmap</span>
-      </div>
-
-      <a href="{{ site.baseurl }}/mihm/" class="doc-item new" style="grid-column: 1 / -1;">
-        <div class="doc-num">MIHM · HUB</div>
-        <div class="doc-title">Motor de validación y trazabilidad SF ↔ MIHM</div>
-        <div class="doc-sub">Puente operativo entre el archivo narrativo y las variables cuantificables del sistema.</div>
-        <span class="doc-arrow">→</span>
-      </a>
-      <div class="section-divider nodo">
-        Serie aplicada · Nodo Aguascalientes
-        <span>AGS01 – AGS06 · Implementación territorial</span>
-      </div>
-
-      <a href="{{ site.baseurl }}/nodo-ags/" class="doc-item nodo" style="grid-column: 1 / -1;">
-        <div class="doc-num">NODO AGS · ENTRADA</div>
-        <div class="doc-title">Aguascalientes como sistema observable</div>
-        <div class="doc-sub">Aplicación del marco a un caso geográfico. Validación empírica post-evento 2026.</div>
-        <span class="doc-arrow">→</span>
-      </a>
-
-    </div>
+<section class="hero">
+  <div class="hero__kicker">Observatorio de fricción sistémica · v1.1</div>
+  <div class="hero__formula">f = (t/T) + O</div>
+  <div class="hero__tagline">Los sistemas no fallan por ausencia de intención.</div>
+  <div class="hero__meta">
+    <span>Validación empírica: 23 feb 2026</span>
+    <span>Nodo AGS</span>
+    <span>MIHM v2.0</span>
+    <span>50,000 iteraciones Monte Carlo</span>
   </div>
-</main>
+</section>
+
+</div>
+
+<div class="alert-band">
+  <div class="alert-band__dot"></div>
+  <span>EMERGENCY_DECISION ACTIVO</span>
+  <span>IHG −0.620 &lt; UCAP −0.500</span>
+  <span>NTI 0.351 · BLIND MODE</span>
+  <span>P(colapso 2030) 71%</span>
+  <span class="muted">Shock: muerte actor hegemónico + 252 narcobloqueos · 22–23 feb 2026</span>
+</div>
+
+<div class="wrap--wide">
+
+<!-- ── Dashboard principal ────────────────────────────────────────────── -->
+<div class="dash-grid" style="margin-top:1.5rem">
+
+  <!-- IHG Gauge -->
+  <div class="dash-cell">
+    <div class="dash-cell__label">IHG — Índice de Gobernanza Homeostática</div>
+    <div id="sf-headline" data-sf="true"><span class="sf-loading">—</span></div>
+    <div class="dash-cell__thr">UCAP: −0.500 · Protocolo activo cuando IHG &lt; UCAP</div>
+  </div>
+
+  <!-- NTI -->
+  <div class="dash-cell">
+    <div class="dash-cell__label">NTI — Nodo de Trazabilidad Institucional</div>
+    <div id="sf-nti" data-sf="true"><span class="sf-loading">—</span></div>
+    <div class="dash-cell__thr">UCAP NTI: 0.400 · Por debajo: BLIND MODE</div>
+  </div>
+
+  <!-- Toggle NTI -->
+  <div class="dash-cell">
+    <div class="dash-cell__label">Toggle NTI</div>
+    <div class="toggle-row">
+      <label class="sf-toggle">
+        <input type="checkbox" id="nti-toggle" checked>
+        <div class="sf-toggle-track"></div>
+        <div class="sf-toggle-thumb"></div>
+      </label>
+      <span class="toggle-lbl">NTI activo</span>
+      <span class="toggle-note">(desactivar: IHG sin trazabilidad)</span>
+    </div>
+    <div id="sf-toggle-ihg" data-sf="true"><span class="sf-loading">—</span></div>
+    <div class="dash-cell__thr">ON: IHG auditado × NTI · OFF: proxy crudo</div>
+  </div>
+
+  <!-- Sparkline histórico -->
+  <div class="dash-cell dash-cell--2">
+    <div class="dash-cell__label">Evolución IHG — jun 2025 → 23 feb 2026</div>
+    <div id="sf-sparkline" data-sf="true"><span class="sf-loading">—</span></div>
+    <div class="dash-cell__thr">Línea punteada = UCAP (−0.500) · Punto rojo = post-fractura</div>
+  </div>
+
+  <!-- Scenarios -->
+  <div class="dash-cell dash-cell--wide">
+    <div class="dash-cell__label">Escenarios · Monte Carlo · 50,000 iteraciones · seed 42</div>
+    <div id="sf-scenarios" data-sf="true"><span class="sf-loading">—</span></div>
+    <div class="dash-cell__thr">Probabilidades a 180 días. Proceso de Poisson λ = 0.10</div>
+  </div>
+
+  <!-- Dims -->
+  <div class="dash-cell dash-cell--wide">
+    <div class="dash-cell__label">Dimensiones C/E/L/K/R/M</div>
+    <button class="drill-btn" id="sf-dims-btn">
+      <svg width="10" height="10" viewBox="0 0 10 10"><path d="M2 3.5 L5 6.5 L8 3.5" stroke="currentColor" stroke-width="1.2" fill="none" stroke-linecap="round"/></svg>
+      <span>desmembrar dimensiones</span>
+    </button>
+    <div class="dims-panel" id="sf-dims" data-sf="true"></div>
+    <div class="dash-cell__thr" style="margin-top:.5rem">Promedio por dimensión a través de 6 nodos</div>
+  </div>
+
+</div>
+
+<!-- ── Tabla de nodos ─────────────────────────────────────────────────── -->
+<div class="section-rule">vector de nodos · N1–N6</div>
+<div id="sf-nodes" data-sf="true"><span class="sf-loading">—</span></div>
+
+<!-- ── Intervenciones rankeadas ──────────────────────────────────────── -->
+<div class="section-rule">intervenciones rankeadas · ΔIHG</div>
+<div id="sf-interventions" data-sf="true"><span class="sf-loading">—</span></div>
+
+<!-- ── Docs ──────────────────────────────────────────────────────────── -->
+<div id="sf-docs" data-sf="true"><span class="sf-loading">—</span></div>
+
+<!-- ── Lab Mode ──────────────────────────────────────────────────────── -->
+<div id="lab">
+  <div class="section-rule">lab · monte carlo interactivo</div>
+  <div style="font-family:var(--fm);font-size:.62rem;color:var(--tx3);margin-bottom:.8rem">
+    Recalcula escenarios ajustando parámetros. Proceso de Poisson exocáustico.
+    Moderado por voluntad: sin auto-actualización.
+  </div>
+  <div id="sf-lab"></div>
+</div>
+
+<!-- ── Audit ─────────────────────────────────────────────────────────── -->
+<div id="audit">
+  <div class="section-rule">audit · cadena de trazabilidad</div>
+  <div style="font-family:var(--fm);font-size:.62rem;color:var(--tx3);margin-bottom:.8rem">
+    El modelo aplicado al propio sistema.
+    Cada patrón documentado → variable MIHM → nodo → contribución IHG.
+  </div>
+  <div id="sf-audit" data-sf="true"><span class="sf-loading">—</span></div>
+</div>
+
+<!-- ── Descargas ──────────────────────────────────────────────────────── -->
+<div class="section-rule">datos y código</div>
+<div class="dl-list">
+  <a class="dl-item" href="/assets/data/ags_metrics.json">
+    <span class="dl-item__type">JSON</span>
+    <span>ags_metrics.json</span>
+    <span class="dl-item__meta">métricas AGS v1.1</span>
+  </a>
+  <a class="dl-item" href="/assets/data/docs.json">
+    <span class="dl-item__type">JSON</span>
+    <span>docs.json</span>
+    <span class="dl-item__meta">catálogo de documentos</span>
+  </a>
+  <a class="dl-item" href="/assets/data/patterns.json">
+    <span class="dl-item__type">JSON</span>
+    <span>patterns.json</span>
+    <span class="dl-item__meta">mapa patrones → MIHM</span>
+  </a>
+  <a class="dl-item" href="/scripts/mihm_v2.py">
+    <span class="dl-item__type">PY</span>
+    <span>mihm_v2.py</span>
+    <span class="dl-item__meta">motor MIHM v2.0</span>
+  </a>
+  <a class="dl-item" href="/assets/MIHM_v2_manuscrito_completo.pdf">
+    <span class="dl-item__type">PDF</span>
+    <span>MIHM v2.0 — Manuscrito completo</span>
+    <span class="dl-item__meta">CC BY 4.0</span>
+  </a>
+</div>
+
+</div>

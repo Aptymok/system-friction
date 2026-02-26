@@ -1,45 +1,33 @@
 ---
-title: "Desde dónde observa el observador"
-doc_id: "core-0"
-series: "core-0 · Posición"
-summary: "Condición de percepción, no autobiografía. Umbral antes del primer caso."
+layout: doc
+title: "POSICIÓN — Desde dónde observa el observador"
+description: "Condición de percepción. Umbral antes del primer caso."
+id: core-0
 version: "1.1"
-node: "docs"
-mihm_variable: "P_o"
-mihm_equation: "P_o = posición_observador"
-sf_pattern: "posición-observador"
-mihm_note: "Explicita el punto de observación que condiciona el análisis."
-patterns:
-  - posición-observador
-  - límites-marco
+status: validated
+math: true
+prev_doc: /docs/core-00/
+next_doc: /docs/core-bridge/
 ---
 
-# Desde dónde observa el observador
+Condición de percepción, no autobiografía. Umbral antes del primer caso.
 
-## Por qué este documento existe
+---
 
-Todo sistema de análisis tiene una posición desde la que opera. Esa posición no es neutral. No declararla no la elimina. Solo la vuelve invisible para quien lee y opaca para quien escribe.
+El observador no existe fuera del sistema que observa. Lo que reporta como "falla" depende de su posición dentro de la estructura de incentivos.
 
-Este documento no es autobiografía. Es cartografía de las condiciones que producen el tipo de observación que aparece en este ecosistema.
+Un operador dentro de una institución y un auditor externo observan el mismo evento con métricas distintas. Ninguno tiene acceso a la totalidad. Ambos producen señales válidas con ruido diferente.
 
-## La fuente de la observación
+Este archivo registra desde una posición intermedia: ni dentro de la cadena de mando, ni en el exterior sin información de campo.
 
-Los documentos de este ecosistema emergen de operar dentro de sistemas institucionales complejos durante tiempo suficiente para ver cómo las decisiones se cristalizan, cómo la latencia se vuelve política, cómo el cumplimiento reemplaza a la seguridad.
+---
 
-No desde la academia. Desde adentro. Con las consecuencias que eso implica.
+## Umbral operativo
 
-## Lo que condiciona la percepción
+La variable $M_i$ (módulo de coherencia) captura cuánto de lo que reporta el sistema corresponde a lo que ocurre en campo:
 
-* Fascinación por el lenguaje como sistema de poder, no solo de comunicación.
-* Operación en múltiples marcos conceptuales simultáneos sin perder el propio.
-* Tendencia a nombrar lo implícito antes de que el contexto lo autorice.
-* Incomodidad con la coherencia aparente que oculta precisión operativa.
+$$M_i \in [0,1]$$
 
-## Lo que no entra en este ecosistema
+$M_i = 1.0$: reporte completo, verificable. $M_i = 0.0$: opacidad total.
 
-Juicio moral sobre actores individuales. Prescripción de soluciones. Análisis que requiera información no verificable. Documentos que sirvan como manual para operar lo que describen.
-
-Este documento es condición de marco, no pieza del archivo.
-No tiene número. No se actualiza.
-Es el umbral antes del primer caso.
-{: .limit-box }
+La posición del observador determina qué fracción de $M_i$ es accesible.
