@@ -1,0 +1,166 @@
+{
+  "schema": "sf-docs-v1.1",
+  "generated": "2026-02-23",
+  "series": [
+    {
+      "id": "core-00",
+      "title": "META",
+      "sub": "Como leer este ecosistema",
+      "url": "/docs/core-00/",
+      "type": "core",
+      "fc": "none"
+    },
+    {
+      "id": "core-0",
+      "title": "POSICION",
+      "sub": "Desde donde observa el observador",
+      "url": "/docs/core-0/",
+      "type": "core",
+      "fc": "low"
+    },
+    {
+      "id": "core-bridge",
+      "title": "PUENTE",
+      "sub": "Sistemas que no pueden permitirse fallar",
+      "url": "/docs/core-bridge/",
+      "type": "core",
+      "fc": "medium"
+    },
+    {
+      "id": "doc-01",
+      "title": "Decisiones que nadie tomo",
+      "sub": "Cristalizacion por acumulacion. Zonas grises.",
+      "url": "/docs/doc-01/",
+      "type": "doc",
+      "fc": "high",
+      "mihm": [
+        "O",
+        "L"
+      ]
+    },
+    {
+      "id": "doc-02",
+      "title": "Costo real de adoptable",
+      "sub": "Por que soluciones superiores no se implementan",
+      "url": "/docs/doc-02/",
+      "type": "doc",
+      "fc": "medium",
+      "mihm": [
+        "C",
+        "R"
+      ]
+    },
+    {
+      "id": "doc-03",
+      "title": "Compliance como narrativa",
+      "sub": "Auditabilidad vs seguridad. Forma vs sustancia.",
+      "url": "/docs/doc-03/",
+      "type": "doc",
+      "fc": "high",
+      "mihm": [
+        "M",
+        "O"
+      ]
+    },
+    {
+      "id": "doc-04",
+      "title": "Dinero como estructura temporal",
+      "sub": "Optionalidad temporal. Horizonte de maniobra.",
+      "url": "/docs/doc-04/",
+      "type": "doc",
+      "fc": "medium",
+      "mihm": [
+        "C",
+        "K"
+      ]
+    },
+    {
+      "id": "doc-05",
+      "title": "Escritura sin intencion visible",
+      "sub": "Senal sin ornamentacion. Extraccion por diseno.",
+      "url": "/docs/doc-05/",
+      "type": "doc",
+      "fc": "low",
+      "mihm": [
+        "M"
+      ]
+    },
+    {
+      "id": "doc-06",
+      "title": "Sistemas de alerta que nadie revisa",
+      "sub": "Metrica vs senal. Cobertura vs accion.",
+      "url": "/docs/doc-06/",
+      "type": "doc",
+      "fc": "critical",
+      "mihm": [
+        "E",
+        "M"
+      ]
+    },
+    {
+      "id": "doc-07",
+      "title": "Contexto perdido",
+      "sub": "Decaimiento del razonamiento por perdida de restricciones.",
+      "url": "/docs/doc-07/",
+      "type": "doc",
+      "fc": "high",
+      "mihm": [
+        "L",
+        "K"
+      ]
+    },
+    {
+      "id": "doc-08",
+      "title": "Personas en alta incertidumbre",
+      "sub": "Operacion eficaz sin reglas estables.",
+      "url": "/docs/doc-08/",
+      "type": "doc",
+      "fc": "medium",
+      "mihm": [
+        "C",
+        "R"
+      ]
+    },
+    {
+      "id": "doc-09",
+      "title": "Deuda de decision",
+      "sub": "Costo acumulado de posponer claridad.",
+      "url": "/docs/doc-09/",
+      "type": "doc",
+      "fc": "critical",
+      "mihm": [
+        "L",
+        "E"
+      ]
+    },
+    {
+      "id": "doc-10",
+      "title": "Incentivos bien disenados que fallan",
+      "sub": "Ley de Goodhart. Optimizacion de proxy.",
+      "url": "/docs/doc-10/",
+      "type": "doc",
+      "fc": "critical",
+      "mihm": [
+        "C",
+        "E",
+        "O"
+      ]
+    },
+    {
+      "id": "ags",
+      "title": "Nodo AGS",
+      "sub": "Aguascalientes como sistema observable. Validacion empírica.",
+      "url": "/nodo-ags/",
+      "type": "node",
+      "fc": "critical"
+    },
+    {
+      "id": "mihm",
+      "title": "MIHM v2.0",
+      "sub": "Motor cuantitativo. IHG -0.620. Protocolo activo.",
+      "url": "/mihm/",
+      "type": "system",
+      "fc": "system"
+    }
+  ]
+}

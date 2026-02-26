@@ -1,0 +1,46 @@
+---
+layout: default
+---
+<main>
+  <div class="doc-container">
+    <div class="doc-label">{{ page.series | default: "Serie principal" }}</div>
+    {% include doc-meta.html %}
+    {{ content }}
+    {% if page.mihm_variable or page.sf_pattern or page.mihm_equation %}
+    <aside class="mapeo-box">
+      <div class="mapeo-label">Mapeo SF ↔ MIHM</div>
+      <table>
+        <thead>
+          <tr><th>Patrón SF</th><th>Variable MIHM</th><th>Ecuación / Condición</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>{{ page.sf_pattern | default: page.patterns | first | default: "No declarado" }}</td>
+            <td>{{ page.mihm_variable | default: "Pendiente" }}</td>
+            <td>{{ page.mihm_equation | default: "Pendiente" }}</td>
+          </tr>
+        </tbody>
+      </table>
+      {% if page.mihm_note %}<p class="mapeo-note">{{ page.mihm_note }}</p>{% endif %}
+    </aside>
+    {% endif %}
+    <div class="doc-nav">
+      <a href="{{ site.baseurl }}/">← Índice</a>
+      <span class="doc-nav-hint">Rutas sugeridas abajo</span>
+    </div>
+    <section class="related">
+      <h2>Rutas sugeridas</h2>
+      <p class="related-note">Sugerencias basadas en patrones compartidos y patrones relacionados.<br>No implican secuencia ni orden recomendado.</p>
+      <div id="related-list" class="related-grid"></div>
+    </section>
+  </div>
+</main>
+<script
+  src="{{ site.baseurl }}/assets/js/recommendations.js"
+  data-docs="{{ site.baseurl }}/meta/docs.json"
+  data-patterns="{{ site.baseurl }}/meta/patterns.json"
+  data-ecosystem="{{ site.baseurl }}/meta/ecosystem.json"
+  data-current="{{ page.doc_id }}"
+  data-scope="same-node"
+  data-limit="4">
+</script>

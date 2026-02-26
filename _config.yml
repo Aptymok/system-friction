@@ -1,0 +1,53 @@
+# _config.yml
+title: System Friction
+description: Archivo de fricción sistémica
+url: "https://systemfriction.org"
+baseurl: ""                   # dominio personalizado CNAME
+theme: null                   # si no usas tema
+plugins: []                   # GitHub Pages en modo safe
+exclude:
+  - node_modules
+  - README.md
+  - vendor
+  - repo_dump.txt
+  
+markdown: kramdown
+highlighter: rouge
+kramdown:
+  input: GFM
+  math_engine: mathjax
+  syntax_highlighter: rouge
+
+plugins:
+  - jekyll-seo-tag
+  - jekyll-sitemap
+
+collections:
+  docs:
+    output: true
+    permalink: /docs/:name/
+  nodo_ags:
+    output: true
+    permalink: /nodo-ags/:name/
+  mihm:
+    output: true
+    permalink: /mihm/:name/
+
+defaults:
+  - scope:
+      path: ""
+      type: "docs"
+    values:
+      layout: "doc"
+      version: "1.1"
+      status: "validated"
+  - scope:
+      path: ""
+      type: "nodo_ags"
+    values:
+      layout: "doc"
+  - scope:
+      path: ""
+      type: "mihm"
+    values:
+      layout: "doc"

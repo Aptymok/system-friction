@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ page.title | default: site.title }} — SF v1.1</title>
+  <link rel="stylesheet" href="{{ '/assets/css/main.css' | relative_url }}">
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" async></script>
+  <script>
+    window.MathJax = {
+      tex: { inlineMath: [['$','$']], displayMath: [['$$','$$']] }
+    };
+    window.SF_METRICS_URL = '{{ "/assets/data/ags_metrics.json" | absolute_url }}';
+  </script>
+</head>
+<body>
+
+<nav class="audit-nav">
+  <div class="audit-nav__inner">
+    <a href="{{ '/' | relative_url }}" class="audit-nav__brand">SFR // v1.1</a>
+    <ul class="audit-nav__links">
+      <li><a href="{{ '/' | relative_url }}">DASHBOARD</a></li>
+      <li><a href="{{ '/_core/postulado-central' | relative_url }}">CORE</a></li>
+      <li><a href="{{ '/_nodes/ags/ags-06' | relative_url }}">NODO AGS</a></li>
+      <li><a href="{{ '/_mihm/hub' | relative_url }}">MIHM HUB</a></li>
+      <li><a href="{{ '/_mihm/catalogo' | relative_url }}">CATÁLOGO</a></li>
+      <li><a href="{{ '/_mihm/nti' | relative_url }}">NTI</a></li>
+      <li><a href="{{ '/assets/data/ags_metrics.json' | relative_url }}">MÉTRICAS JSON</a></li>
+    </ul>
+    <span class="audit-nav__ihg" id="nav-ihg">IHG: −0.620 [EMERGENCY]</span>
+  </div>
+</nav>
+
+<div class="sf-container">
+  <header class="sf-header">
+    <div class="sf-header__kicker">
+      {%- if page.version %}v{{ page.version }} // {% endif -%}
+      {%- if page.status %}{{ page.status | upcase }} // {% endif -%}
+      {%- if page.origin %}{{ page.origin | upcase }}{% endif %}
+    </div>
+    <h1>{{ page.title }}</h1>
+    <div class="sf-header__meta">
+      {%- if page.date %}<span>{{ page.date }}</span>{% endif -%}
+      {%- if page.node %}<span>NODO: {{ page.node }}</span>{% endif -%}
+      {%- if page.friction_index %}<span>f = {{ page.friction_index }}</span>{% endif -%}
+      {%- if page.ihg_contribution %}<span>ΔIHG = {{ page.ihg_contribution }}</span>{% endif %}
+    </div>
+  </header>
+
+  <main class="sf-content">
+    {{ content }}
+  </main>
+
+  <footer class="sf-footer">
+    <span>System Friction Framework v1.1 // MIHM v2.0</span>
+    <span>origen: VHpD // {{ page.date | default: site.time | date: "%Y-%m-%d" }}</span>
+    <span>Juan Antonio Marín Liera (APTYMOK) // INEGI Aguascalientes</span>
+  </footer>
+</div>
+
+<script src="{{ '/assets/js/dashboard.js' | relative_url }}"></script>
+</body>
+</html>
