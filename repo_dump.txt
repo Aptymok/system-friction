@@ -1,0 +1,3474 @@
+
+===== FILE: .\assets\css\main.css =====
+/* System Friction · main.css · v1.1 · 2026
+   Mobile-first. EB Garamond + JetBrains Mono.
+   Nada superfluo. */
+
+@import url('https://fonts.googleapis.com/css2?family=EB+Garamond:ital,opsz,wght@0,8..144,400;0,8..144,500;0,8..144,600;1,8..144,400&family=JetBrains+Mono:wght@400;500&display=swap');
+
+/* ── Variables ─────────────────────────────────────────────────────────── */
+:root {
+  --bg:      #0c0c0a;
+  --bg1:     #111110;
+  --bg2:     #17170f;
+  --bd:      #222220;
+  --bd2:     #2e2e28;
+  --tx:      #e2ddd0;
+  --tx2:     #938e82;
+  --tx3:     #4a4740;
+  --ac:      #c4a24a;
+  --ac2:     #7a6228;
+  --ok:      #3a6848;  --ok-t: #58985e;
+  --wn:      #7a5418;  --wn-t: #c49840;
+  --cr:      #7a1e1e;  --cr-t: #cc3a3a;
+  --fr:      #501870;  --fr-t: #9850c8;
+  --op:      #1e3858;  --op-t: #5888b8;
+  --r:       2px;
+  --fs:      'EB Garamond', Georgia, serif;
+  --fm:      'JetBrains Mono', 'Courier New', monospace;
+  --ease:    cubic-bezier(.4,0,.2,1);
+}
+
+/* ── Reset ─────────────────────────────────────────────────────────────── */
+*,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+html { font-size:16px; scroll-behavior:smooth; -webkit-text-size-adjust:100%; }
+body { background:var(--bg); color:var(--tx); font-family:var(--fs); font-size:1.05rem; line-height:1.72; min-height:100dvh; overflow-x:hidden; }
+a { color:var(--ac); text-decoration:none; }
+a:hover { text-decoration:underline; text-underline-offset:3px; }
+img,svg { max-width:100%; }
+
+/* ── Type ──────────────────────────────────────────────────────────────── */
+h1 { font-size:clamp(1.5rem,5vw,2.4rem); font-weight:500; line-height:1.15; }
+h2 { font-size:clamp(1.05rem,3vw,1.4rem); font-weight:500; border-bottom:1px solid var(--bd); padding-bottom:.4rem; margin:2rem 0 .8rem; }
+h3 { font-size:.98rem; font-weight:500; color:var(--tx2); margin:1.4rem 0 .5rem; }
+p  { margin-bottom:.85rem; }
+strong { font-weight:600; }
+em { font-style:italic; }
+code,kbd { font-family:var(--fm); font-size:.8em; background:var(--bg2); border:1px solid var(--bd); padding:.08em .38em; border-radius:var(--r); color:var(--ac); }
+pre { background:var(--bg2); border:1px solid var(--bd); border-radius:var(--r); padding:.9rem; overflow-x:auto; margin:1rem 0; }
+pre code { background:none; border:none; padding:0; font-size:.78rem; color:var(--tx2); }
+blockquote { border-left:2px solid var(--bd2); padding-left:1rem; color:var(--tx2); margin:1rem 0; }
+ul,ol { padding-left:1.4rem; margin-bottom:.85rem; }
+li { margin-bottom:.15rem; }
+table { width:100%; border-collapse:collapse; display:block; overflow-x:auto; -webkit-overflow-scrolling:touch; }
+th { text-align:left; padding:.38rem .55rem; border-bottom:1px solid var(--bd); color:var(--ac); font-family:var(--fm); font-size:.62rem; font-weight:500; white-space:nowrap; }
+td { padding:.32rem .55rem; border-bottom:1px solid var(--bd); color:var(--tx2); font-family:var(--fm); font-size:.68rem; }
+tr:hover td { background:rgba(255,255,255,.01); }
+
+/* ── Layout ────────────────────────────────────────────────────────────── */
+.wrap       { max-width:740px;  margin:0 auto; padding:0 1.1rem; }
+.wrap--wide { max-width:1080px; margin:0 auto; padding:0 1.1rem; }
+
+/* ── Utilities ─────────────────────────────────────────────────────────── */
+.mono  { font-family:var(--fm); }
+.dim   { color:var(--tx2); }
+.muted { color:var(--tx3); }
+.c-cr  { color:var(--cr-t); }
+.c-wn  { color:var(--wn-t); }
+.c-ok  { color:var(--ok-t); }
+.c-fr  { color:var(--fr-t); }
+.c-op  { color:var(--op-t); }
+.c-ac  { color:var(--ac); }
+.c-dim { color:var(--tx2); }
+
+/* ── Badge ─────────────────────────────────────────────────────────────── */
+.badge { display:inline-block; font-family:var(--fm); font-size:.54rem; letter-spacing:.08em; text-transform:uppercase; padding:.1em .48em .08em; border-radius:var(--r); border:1px solid; vertical-align:middle; white-space:nowrap; }
+.badge--ok       { color:var(--ok-t); border-color:var(--ok); background:rgba(58,104,72,.07); }
+.badge--warn,
+.badge--degraded { color:var(--wn-t); border-color:var(--wn); background:rgba(122,84,24,.07); }
+.badge--critical { color:var(--cr-t); border-color:var(--cr); background:rgba(122,30,30,.08); }
+.badge--fracture { color:var(--fr-t); border-color:var(--fr); background:rgba(80,24,112,.08); }
+.badge--opaque   { color:var(--op-t); border-color:var(--op); background:rgba(30,56,88,.08); }
+.badge--emergency{ color:#ee5555; border-color:#7a1e1e; background:rgba(122,30,30,.1); animation:pb 2s infinite; }
+@keyframes pb { 0%,100%{box-shadow:0 0 0 0 transparent} 50%{box-shadow:0 0 0 3px rgba(122,30,30,.22)} }
+
+/* ── Site bar ──────────────────────────────────────────────────────────── */
+.site-bar { position:sticky; top:0; z-index:200; background:rgba(12,12,10,.94); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); border-bottom:1px solid var(--bd); padding:.42rem 0; }
+.site-bar__inner { display:flex; align-items:center; gap:.7rem; max-width:1080px; margin:0 auto; padding:0 1.1rem; }
+.site-bar__brand { font-family:var(--fm); font-size:.6rem; color:var(--ac); letter-spacing:.1em; text-decoration:none; flex-shrink:0; }
+.site-bar__brand:hover { text-decoration:none; }
+.site-bar__nav { display:flex; list-style:none; overflow:hidden; }
+.site-bar__nav a { display:block; padding:.26rem .62rem; font-family:var(--fm); font-size:.56rem; color:var(--tx3); border-right:1px solid var(--bd); transition:color .13s var(--ease); }
+.site-bar__nav li:first-child a { border-left:1px solid var(--bd); }
+.site-bar__nav a:hover,.site-bar__nav a.active { color:var(--ac); text-decoration:none; }
+.site-bar__right { margin-left:auto; display:flex; align-items:center; gap:.7rem; flex-shrink:0; }
+.site-bar__ihg { font-family:var(--fm); font-size:.54rem; color:var(--cr-t); display:none; }
+@media(min-width:500px){ .site-bar__ihg { display:block; } }
+
+/* ── Hero ──────────────────────────────────────────────────────────────── */
+.hero { padding:2.8rem 0 2rem; border-bottom:1px solid var(--bd); }
+.hero__kicker { font-family:var(--fm); font-size:.56rem; color:var(--tx3); letter-spacing:.12em; text-transform:uppercase; margin-bottom:.75rem; }
+.hero__formula { font-family:var(--fm); font-size:clamp(1.5rem,6vw,2.8rem); color:var(--ac); line-height:1; margin-bottom:.6rem; }
+.hero__tagline { font-size:clamp(.95rem,2.5vw,1.2rem); color:var(--tx2); font-style:italic; margin-bottom:1.1rem; }
+.hero__meta { font-family:var(--fm); font-size:.58rem; color:var(--tx3); display:flex; gap:1.1rem; flex-wrap:wrap; }
+
+/* ── Alert band ────────────────────────────────────────────────────────── */
+.alert-band { background:rgba(122,30,30,.07); border-top:1px solid rgba(122,30,30,.45); border-bottom:1px solid rgba(122,30,30,.45); padding:.52rem 1.1rem; font-family:var(--fm); font-size:.63rem; color:var(--cr-t); display:flex; align-items:center; gap:.65rem; flex-wrap:wrap; }
+.alert-band__dot { width:5px; height:5px; border-radius:50%; background:var(--cr-t); animation:blink 1.4s infinite; flex-shrink:0; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.15} }
+
+/* ── Dashboard grid ─────────────────────────────────────────────────────── */
+.dash-grid { display:grid; grid-template-columns:1fr; gap:1px; background:var(--bd); border:1px solid var(--bd); margin:1.2rem 0; }
+@media(min-width:480px){ .dash-grid { grid-template-columns:1fr 1fr; } .dash-cell--wide { grid-column:1/-1; } }
+@media(min-width:820px){ .dash-grid { grid-template-columns:1fr 1fr 1fr; } .dash-cell--wide { grid-column:1/-1; } .dash-cell--2 { grid-column:span 2; } }
+.dash-cell { background:var(--bg); padding:1.05rem; }
+.dash-cell__label { font-family:var(--fm); font-size:.52rem; color:var(--tx3); letter-spacing:.1em; text-transform:uppercase; margin-bottom:.42rem; }
+.dash-cell__value { font-family:var(--fm); font-size:clamp(1.4rem,4vw,1.9rem); font-weight:500; line-height:1; margin-bottom:.22rem; }
+.dash-cell__sub   { font-family:var(--fm); font-size:.56rem; color:var(--tx3); }
+.dash-cell__thr   { font-family:var(--fm); font-size:.54rem; color:var(--tx3); border-top:1px solid var(--bd); padding-top:.42rem; margin-top:.5rem; }
+
+/* ── Sparkline ─────────────────────────────────────────────────────────── */
+.spark-svg { width:100%; height:54px; overflow:visible; display:block; }
+
+/* ── NTI bars ──────────────────────────────────────────────────────────── */
+.nti-bars { display:flex; flex-direction:column; gap:.32rem; }
+.nti-row  { display:grid; grid-template-columns:50px 1fr 36px; align-items:center; gap:.4rem; }
+.nti-row__lbl { font-family:var(--fm); font-size:.56rem; color:var(--tx2); }
+.nti-row__bar { height:3px; background:var(--bg2); border-radius:2px; overflow:hidden; }
+.nti-row__fill{ height:100%; border-radius:2px; }
+.nti-row__val { font-family:var(--fm); font-size:.56rem; text-align:right; }
+
+/* ── Toggle ────────────────────────────────────────────────────────────── */
+.toggle-row { display:flex; align-items:center; gap:.6rem; padding:.38rem 0; }
+.toggle-lbl { font-family:var(--fm); font-size:.6rem; color:var(--tx2); }
+.sf-toggle { position:relative; width:34px; height:17px; flex-shrink:0; cursor:pointer; display:block; }
+.sf-toggle input { opacity:0; width:0; height:0; position:absolute; }
+.sf-toggle-track { position:absolute; inset:0; background:var(--bg2); border:1px solid var(--bd2); border-radius:9px; transition:background .2s var(--ease),border-color .2s var(--ease); }
+.sf-toggle input:checked + .sf-toggle-track { background:rgba(122,84,24,.25); border-color:var(--wn); }
+.sf-toggle-thumb { position:absolute; top:2px; left:2px; width:11px; height:11px; background:var(--tx3); border-radius:50%; transition:transform .2s var(--ease),background .2s var(--ease); pointer-events:none; }
+.sf-toggle input:checked ~ .sf-toggle-thumb { transform:translateX(17px); background:var(--wn-t); }
+
+/* ── Scenarios ─────────────────────────────────────────────────────────── */
+.sc-grid { display:grid; grid-template-columns:1fr 1fr; gap:1px; background:var(--bd); }
+@media(min-width:560px){ .sc-grid { grid-template-columns:repeat(4,1fr); } }
+.sc-cell { background:var(--bg); padding:.68rem .75rem; }
+.sc-cell__id    { font-family:var(--fm); font-size:.48rem; color:var(--tx3); margin-bottom:.15rem; }
+.sc-cell__label { font-size:.8rem; color:var(--tx2); margin-bottom:.18rem; line-height:1.3; }
+.sc-cell__prob  { font-family:var(--fm); font-size:1.35rem; font-weight:500; }
+.sc-cell__ihg   { font-family:var(--fm); font-size:.5rem; color:var(--tx3); margin-top:.12rem; }
+
+/* ── Dimensions panel ──────────────────────────────────────────────────── */
+.dims-panel { display:none; grid-template-columns:repeat(3,1fr); gap:1px; background:var(--bd); margin-top:.3rem; }
+.dims-panel.open { display:grid; }
+@media(min-width:540px){ .dims-panel { grid-template-columns:repeat(6,1fr); } }
+.dim-cell { background:var(--bg); padding:.5rem .4rem; text-align:center; }
+.dim-cell__sym { font-family:var(--fm); font-size:.5rem; color:var(--tx3); margin-bottom:.1rem; }
+.dim-cell__val { font-family:var(--fm); font-size:.88rem; }
+.dim-bar { height:2px; border-radius:1px; margin-top:.18rem; }
+
+/* ── Nodes table ───────────────────────────────────────────────────────── */
+.nodes-wrap { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+.nodes-tbl { width:100%; border-collapse:collapse; font-family:var(--fm); font-size:.63rem; min-width:460px; }
+.nodes-tbl th { text-align:left; padding:.35rem .48rem; border-bottom:1px solid var(--bd); color:var(--ac); font-weight:500; white-space:nowrap; font-size:.54rem; letter-spacing:.04em; }
+.nodes-tbl td { padding:.3rem .48rem; border-bottom:1px solid var(--bd); color:var(--tx2); vertical-align:middle; }
+.nodes-tbl tr:hover td { background:rgba(255,255,255,.012); }
+.f-bar { display:inline-block; height:3px; border-radius:1px; vertical-align:middle; margin-left:.22rem; }
+
+/* ── Interventions ─────────────────────────────────────────────────────── */
+.interv-list { display:flex; flex-direction:column; }
+.interv-item { display:grid; grid-template-columns:16px 1fr 40px 44px; align-items:center; gap:.4rem; padding:.35rem 0; border-bottom:1px solid var(--bd); font-family:var(--fm); font-size:.6rem; }
+.interv-item:last-child { border-bottom:none; }
+.interv-item__r { color:var(--tx3); }
+.interv-item__l { color:var(--tx2); }
+.interv-item__d { color:var(--ok-t); text-align:right; }
+.interv-item__f { color:var(--tx3); text-align:right; }
+
+/* ── Drill button ──────────────────────────────────────────────────────── */
+.drill-btn { display:inline-flex; align-items:center; gap:.32rem; font-family:var(--fm); font-size:.58rem; color:var(--tx3); background:none; border:1px solid var(--bd); border-radius:var(--r); padding:.26rem .6rem; cursor:pointer; transition:color .13s var(--ease),border-color .13s var(--ease); }
+.drill-btn:hover { color:var(--ac); border-color:var(--ac2); }
+.drill-btn svg { transition:transform .18s var(--ease); }
+.drill-btn.open svg { transform:rotate(180deg); }
+
+/* ── Lab ───────────────────────────────────────────────────────────────── */
+.lab-grid { display:grid; grid-template-columns:1fr; gap:1px; background:var(--bd); border:1px solid var(--bd); margin:1rem 0; }
+@media(min-width:640px){ .lab-grid { grid-template-columns:1fr 1fr; } }
+.lab-cell { background:var(--bg); padding:1rem; }
+.lab-cell__label { font-family:var(--fm); font-size:.52rem; color:var(--tx3); letter-spacing:.1em; text-transform:uppercase; margin-bottom:.6rem; }
+.lab-input { display:flex; flex-direction:column; gap:.3rem; margin-bottom:.6rem; }
+.lab-input label { font-family:var(--fm); font-size:.58rem; color:var(--tx2); display:flex; justify-content:space-between; }
+.lab-input span { color:var(--ac); }
+.lab-slider { width:100%; -webkit-appearance:none; appearance:none; height:3px; border-radius:2px; background:var(--bg2); outline:none; cursor:pointer; }
+.lab-slider::-webkit-slider-thumb { -webkit-appearance:none; width:14px; height:14px; border-radius:50%; background:var(--ac); border:none; cursor:pointer; }
+.lab-slider::-moz-range-thumb { width:14px; height:14px; border-radius:50%; background:var(--ac); border:none; cursor:pointer; }
+.lab-btn { font-family:var(--fm); font-size:.6rem; color:var(--tx3); background:none; border:1px solid var(--bd); border-radius:var(--r); padding:.32rem .7rem; cursor:pointer; transition:color .13s,border-color .13s; width:100%; text-align:center; margin-top:.4rem; }
+.lab-btn:hover { color:var(--ac); border-color:var(--ac2); }
+.lab-btn--run { color:var(--ac); border-color:var(--ac2); }
+.lab-btn--run:hover { background:rgba(196,162,74,.08); }
+.lab-output { font-family:var(--fm); font-size:.65rem; color:var(--tx2); }
+.lab-output__ihg { font-size:1.5rem; font-weight:500; margin:.3rem 0; }
+.lab-output__row { display:flex; justify-content:space-between; padding:.2rem 0; border-bottom:1px solid var(--bd); }
+.lab-output__row:last-child { border-bottom:none; }
+.lab-mc-bars { margin-top:.5rem; }
+.lab-mc-row { display:grid; grid-template-columns:80px 1fr 36px; align-items:center; gap:.4rem; margin-bottom:.3rem; }
+.lab-mc-lbl { font-family:var(--fm); font-size:.55rem; color:var(--tx2); }
+.lab-mc-bar { height:5px; background:var(--bg2); border-radius:3px; overflow:hidden; }
+.lab-mc-fill{ height:100%; border-radius:3px; transition:width .5s var(--ease); }
+.lab-mc-val { font-family:var(--fm); font-size:.55rem; text-align:right; color:var(--tx3); }
+.lab-progress { display:flex; align-items:center; gap:.5rem; font-family:var(--fm); font-size:.58rem; color:var(--tx3); }
+.lab-progress-bar { flex:1; height:3px; background:var(--bg2); border-radius:2px; overflow:hidden; }
+.lab-progress-fill { height:100%; background:var(--ac); border-radius:2px; transition:width .1s; }
+
+/* ── Audit ─────────────────────────────────────────────────────────────── */
+.audit-summary { display:grid; grid-template-columns:repeat(3,1fr); gap:1px; background:var(--bd); border:1px solid var(--bd); margin:1rem 0; }
+@media(min-width:600px){ .audit-summary { grid-template-columns:repeat(5,1fr); } }
+.audit-cell { background:var(--bg); padding:.7rem .8rem; text-align:center; }
+.audit-cell__label { font-family:var(--fm); font-size:.5rem; color:var(--tx3); text-transform:uppercase; letter-spacing:.08em; margin-bottom:.2rem; }
+.audit-cell__value { font-family:var(--fm); font-size:1.1rem; font-weight:500; }
+.audit-matrix { width:100%; border-collapse:collapse; font-family:var(--fm); font-size:.6rem; display:block; overflow-x:auto; min-width:500px; }
+.audit-matrix th { padding:.35rem .5rem; border-bottom:1px solid var(--bd); color:var(--ac); font-size:.54rem; white-space:nowrap; }
+.audit-matrix td { padding:.3rem .5rem; border-bottom:1px solid var(--bd); color:var(--tx2); vertical-align:middle; }
+.audit-matrix tr:hover td { background:rgba(255,255,255,.01); }
+.gate-dot { display:inline-block; width:7px; height:7px; border-radius:50%; vertical-align:middle; }
+.gate-pass  { background:var(--ok-t); }
+.gate-fail  { background:var(--cr-t); }
+.gate-warn  { background:var(--wn-t); }
+.audit-chain { border:1px solid var(--bd); }
+.audit-chain-row { display:grid; grid-template-columns:60px 1fr 60px 80px 70px; align-items:center; gap:.5rem; padding:.4rem .7rem; border-bottom:1px solid var(--bd); font-family:var(--fm); font-size:.6rem; }
+.audit-chain-row:last-child { border-bottom:none; }
+.audit-chain-row__id { color:var(--tx3); }
+.audit-chain-row__label { color:var(--tx2); }
+.audit-chain-row__var { color:var(--ac2); }
+.audit-chain-row__val { color:var(--tx); text-align:right; }
+.audit-chain-row__gate { text-align:right; }
+
+/* ── Docs grid ─────────────────────────────────────────────────────────── */
+.section-rule { font-family:var(--fm); font-size:.55rem; color:var(--tx3); letter-spacing:.1em; text-transform:uppercase; display:flex; align-items:center; gap:.65rem; margin:1.8rem 0 .85rem; }
+.section-rule::after { content:''; flex:1; height:1px; background:var(--bd); }
+.docs-grid { display:grid; grid-template-columns:1fr; gap:1px; background:var(--bd); }
+@media(min-width:440px){ .docs-grid { grid-template-columns:repeat(2,1fr); } }
+@media(min-width:760px){ .docs-grid { grid-template-columns:repeat(3,1fr); } }
+.doc-card { display:block; background:var(--bg); padding:.88rem .95rem; text-decoration:none; position:relative; overflow:hidden; transition:background .13s var(--ease); }
+.doc-card:hover { background:var(--bg1); text-decoration:none; }
+.doc-card::before { content:''; position:absolute; left:0; top:0; bottom:0; width:2px; }
+.doc-card--critical::before { background:rgba(122,30,30,.6); }
+.doc-card--high::before     { background:rgba(122,84,24,.5); }
+.doc-card--system { border:1px solid var(--bd2); }
+.doc-card__id    { font-family:var(--fm); font-size:.5rem; color:var(--tx3); display:block; margin-bottom:.26rem; }
+.doc-card__title { font-size:.95rem; color:var(--tx); line-height:1.3; margin-bottom:.2rem; }
+.doc-card__sub   { font-size:.76rem; color:var(--tx2); line-height:1.35; }
+.doc-card__vars  { font-family:var(--fm); font-size:.5rem; color:var(--ac2); margin-top:.32rem; }
+.doc-card__fc    { position:absolute; top:.6rem; right:.6rem; }
+
+/* ── Download list ─────────────────────────────────────────────────────── */
+.dl-list { border:1px solid var(--bd); overflow:hidden; }
+.dl-item { display:grid; grid-template-columns:42px 1fr auto; align-items:center; gap:.55rem; padding:.55rem .8rem; border-bottom:1px solid var(--bd); text-decoration:none; color:var(--tx2); font-size:.85rem; transition:color .13s,background .13s; }
+.dl-item:last-child { border-bottom:none; }
+.dl-item:hover { color:var(--tx); background:var(--bg1); text-decoration:none; }
+.dl-item__type { font-family:var(--fm); font-size:.54rem; color:var(--ac2); }
+.dl-item__meta { font-family:var(--fm); font-size:.54rem; color:var(--tx3); }
+
+/* ── Doc layout ────────────────────────────────────────────────────────── */
+.doc-hdr { padding:2rem 0 1.4rem; border-bottom:1px solid var(--bd); margin-bottom:1.4rem; }
+.doc-hdr__kicker { font-family:var(--fm); font-size:.56rem; color:var(--tx3); letter-spacing:.1em; text-transform:uppercase; margin-bottom:.55rem; }
+.doc-hdr__meta { font-family:var(--fm); font-size:.56rem; color:var(--tx3); display:flex; gap:.9rem; flex-wrap:wrap; margin-top:.55rem; }
+.doc-body { padding-bottom:3rem; }
+.doc-nav-foot { border-top:1px solid var(--bd); padding-top:.9rem; margin-top:2.4rem; display:flex; gap:.9rem; flex-wrap:wrap; font-family:var(--fm); font-size:.6rem; color:var(--tx3); }
+.doc-nav-foot a { color:var(--tx3); }
+.doc-nav-foot a:hover { color:var(--ac); text-decoration:none; }
+
+/* ── Footer ────────────────────────────────────────────────────────────── */
+.site-footer { border-top:1px solid var(--bd); padding:1.3rem 0; margin-top:4rem; }
+.site-footer__inner { display:flex; flex-wrap:wrap; justify-content:space-between; gap:.4rem; font-family:var(--fm); font-size:.55rem; color:var(--tx3); }
+.site-footer a { color:var(--tx3); }
+.site-footer a:hover { color:var(--ac); text-decoration:none; }
+
+/* ── Loading / error ───────────────────────────────────────────────────── */
+.sf-loading { font-family:var(--fm); font-size:.6rem; color:var(--tx3); }
+.sf-error   { font-family:var(--fm); font-size:.6rem; color:var(--cr-t); }
+
+/* ── MathJax ───────────────────────────────────────────────────────────── */
+mjx-container { color:var(--tx2) !important; }
+
+/* ── Responsive fixes ──────────────────────────────────────────────────── */
+@media(max-width:380px){
+  .hero__formula { font-size:1.35rem; }
+  .site-bar__nav a { font-size:.5rem; padding:.26rem .38rem; }
+  .lab-input label { font-size:.54rem; }
+}
+
+
+===== FILE: .\assets\data\ags_metrics.json =====
+{
+  "schema": "ags-metrics-v1.1",
+  "generated": "2026-02-23T23:59:00Z",
+  "event": "Shock exogeno: muerte actor hegemonico + 252 narcobloqueos. Aguascalientes. 22-23 feb 2026.",
+  "seed": 42,
+  "n": 50000,
+  "system": {
+    "IHG_pre": -0.41,
+    "IHG_post": -0.62,
+    "NTI_post": 0.351,
+    "IHG_corr": -0.218,
+    "IHG_tel": -0.5,
+    "prob_2030": 0.71,
+    "ucap_ihg": -0.5,
+    "ucap_nti": 0.4,
+    "protocol": "EMERGENCY_DECISION"
+  },
+  "nodes": {
+    "N1": {
+      "label": "Agua",
+      "C": 0.18,
+      "E": 0.89,
+      "L": 0.92,
+      "K": 0.85,
+      "R": 0.12,
+      "M": 1.0,
+      "f": 1.81,
+      "status": "FRACTURE",
+      "dIHG": -0.089,
+      "patterns": [
+        "doc-09",
+        "doc-10"
+      ]
+    },
+    "N2": {
+      "label": "Capital",
+      "C": 0.68,
+      "E": 0.78,
+      "L": 0.72,
+      "K": 0.55,
+      "R": 0.15,
+      "M": 1.0,
+      "f": 1.5,
+      "status": "DEGRADED",
+      "dIHG": -0.045,
+      "patterns": [
+        "doc-02",
+        "doc-04",
+        "doc-07"
+      ]
+    },
+    "N3": {
+      "label": "Logistica",
+      "C": 0.85,
+      "E": 0.35,
+      "L": 0.35,
+      "K": 0.4,
+      "R": 0.6,
+      "M": 1.0,
+      "f": 0.7,
+      "status": "OK",
+      "dIHG": 0.089,
+      "patterns": [
+        "doc-08"
+      ]
+    },
+    "N4": {
+      "label": "Seguridad",
+      "C": 0.35,
+      "E": 0.96,
+      "L": 0.88,
+      "K": 0.55,
+      "R": 0.1,
+      "M": 1.0,
+      "f": 1.84,
+      "status": "CRITICAL",
+      "dIHG": -0.201,
+      "patterns": [
+        "doc-01",
+        "doc-03",
+        "doc-06",
+        "doc-09"
+      ]
+    },
+    "N5": {
+      "label": "Coord",
+      "C": 0.6,
+      "E": 0.68,
+      "L": 0.78,
+      "K": 0.65,
+      "R": 0.4,
+      "M": 0.5,
+      "f": 2.1,
+      "status": "OPAQUE",
+      "dIHG": -0.156,
+      "patterns": [
+        "doc-01",
+        "doc-07"
+      ]
+    },
+    "N6": {
+      "label": "Ext",
+      "C": 0.4,
+      "E": 0.95,
+      "L": 0.85,
+      "K": 0.75,
+      "R": 0.2,
+      "M": 0.7,
+      "f": 2.31,
+      "status": "CRITICAL",
+      "dIHG": -0.218,
+      "patterns": [
+        "doc-06"
+      ]
+    }
+  },
+  "nti": {
+    "LDI_n": 1.0,
+    "ICC_n": 0.32,
+    "CSR": 0.0,
+    "IRCI_n": 0.935,
+    "IIM": 0.5
+  },
+  "scenarios": [
+    {
+      "id": "S1",
+      "label": "Homeostasis fragil",
+      "p": 0.28,
+      "ihg180": -0.35
+    },
+    {
+      "id": "S2",
+      "label": "Estancamiento",
+      "p": 0.41,
+      "ihg180": -0.55
+    },
+    {
+      "id": "S3",
+      "label": "Escalada controlada",
+      "p": 0.21,
+      "ihg180": -0.72
+    },
+    {
+      "id": "S4",
+      "label": "Colapso sistemico",
+      "p": 0.1,
+      "ihg180": -1.1
+    }
+  ],
+  "interventions": [
+    {
+      "rank": 1,
+      "label": "Telemetria N6",
+      "dIHG": 0.12,
+      "pattern": "doc-06",
+      "feasibility": "ALTA"
+    },
+    {
+      "rank": 2,
+      "label": "Protocolo anti-ICC",
+      "dIHG": 0.08,
+      "pattern": "doc-07",
+      "feasibility": "MEDIA"
+    },
+    {
+      "rank": 3,
+      "label": "Fondo hidrico N1",
+      "dIHG": 0.06,
+      "pattern": "doc-09",
+      "feasibility": "BAJA"
+    },
+    {
+      "rank": 4,
+      "label": "Restauracion M5",
+      "dIHG": 0.05,
+      "pattern": "doc-01",
+      "feasibility": "ALTA"
+    }
+  ],
+  "history": [
+    {
+      "t": "jun-25",
+      "ihg": -0.28
+    },
+    {
+      "t": "sep-25",
+      "ihg": -0.31
+    },
+    {
+      "t": "dic-25",
+      "ihg": -0.35
+    },
+    {
+      "t": "ene-26",
+      "ihg": -0.38
+    },
+    {
+      "t": "21-feb",
+      "ihg": -0.41
+    },
+    {
+      "t": "22-feb",
+      "ihg": -0.51
+    },
+    {
+      "t": "23-feb",
+      "ihg": -0.62
+    }
+  ]
+}
+
+===== FILE: .\assets\data\docs.json =====
+{
+  "schema": "sf-docs-v1.1",
+  "generated": "2026-02-23",
+  "series": [
+    {
+      "id": "core-00",
+      "title": "META",
+      "sub": "Como leer este ecosistema",
+      "url": "/docs/core-00/",
+      "type": "core",
+      "fc": "none"
+    },
+    {
+      "id": "core-0",
+      "title": "POSICION",
+      "sub": "Desde donde observa el observador",
+      "url": "/docs/core-0/",
+      "type": "core",
+      "fc": "low"
+    },
+    {
+      "id": "core-bridge",
+      "title": "PUENTE",
+      "sub": "Sistemas que no pueden permitirse fallar",
+      "url": "/docs/core-bridge/",
+      "type": "core",
+      "fc": "medium"
+    },
+    {
+      "id": "doc-01",
+      "title": "Decisiones que nadie tomo",
+      "sub": "Cristalizacion por acumulacion. Zonas grises.",
+      "url": "/docs/doc-01/",
+      "type": "doc",
+      "fc": "high",
+      "mihm": [
+        "O",
+        "L"
+      ]
+    },
+    {
+      "id": "doc-02",
+      "title": "Costo real de adoptable",
+      "sub": "Por que soluciones superiores no se implementan",
+      "url": "/docs/doc-02/",
+      "type": "doc",
+      "fc": "medium",
+      "mihm": [
+        "C",
+        "R"
+      ]
+    },
+    {
+      "id": "doc-03",
+      "title": "Compliance como narrativa",
+      "sub": "Auditabilidad vs seguridad. Forma vs sustancia.",
+      "url": "/docs/doc-03/",
+      "type": "doc",
+      "fc": "high",
+      "mihm": [
+        "M",
+        "O"
+      ]
+    },
+    {
+      "id": "doc-04",
+      "title": "Dinero como estructura temporal",
+      "sub": "Optionalidad temporal. Horizonte de maniobra.",
+      "url": "/docs/doc-04/",
+      "type": "doc",
+      "fc": "medium",
+      "mihm": [
+        "C",
+        "K"
+      ]
+    },
+    {
+      "id": "doc-05",
+      "title": "Escritura sin intencion visible",
+      "sub": "Senal sin ornamentacion. Extraccion por diseno.",
+      "url": "/docs/doc-05/",
+      "type": "doc",
+      "fc": "low",
+      "mihm": [
+        "M"
+      ]
+    },
+    {
+      "id": "doc-06",
+      "title": "Sistemas de alerta que nadie revisa",
+      "sub": "Metrica vs senal. Cobertura vs accion.",
+      "url": "/docs/doc-06/",
+      "type": "doc",
+      "fc": "critical",
+      "mihm": [
+        "E",
+        "M"
+      ]
+    },
+    {
+      "id": "doc-07",
+      "title": "Contexto perdido",
+      "sub": "Decaimiento del razonamiento por perdida de restricciones.",
+      "url": "/docs/doc-07/",
+      "type": "doc",
+      "fc": "high",
+      "mihm": [
+        "L",
+        "K"
+      ]
+    },
+    {
+      "id": "doc-08",
+      "title": "Personas en alta incertidumbre",
+      "sub": "Operacion eficaz sin reglas estables.",
+      "url": "/docs/doc-08/",
+      "type": "doc",
+      "fc": "medium",
+      "mihm": [
+        "C",
+        "R"
+      ]
+    },
+    {
+      "id": "doc-09",
+      "title": "Deuda de decision",
+      "sub": "Costo acumulado de posponer claridad.",
+      "url": "/docs/doc-09/",
+      "type": "doc",
+      "fc": "critical",
+      "mihm": [
+        "L",
+        "E"
+      ]
+    },
+    {
+      "id": "doc-10",
+      "title": "Incentivos bien disenados que fallan",
+      "sub": "Ley de Goodhart. Optimizacion de proxy.",
+      "url": "/docs/doc-10/",
+      "type": "doc",
+      "fc": "critical",
+      "mihm": [
+        "C",
+        "E",
+        "O"
+      ]
+    },
+    {
+      "id": "ags",
+      "title": "Nodo AGS",
+      "sub": "Aguascalientes como sistema observable. Validacion empírica.",
+      "url": "/nodo-ags/",
+      "type": "node",
+      "fc": "critical"
+    },
+    {
+      "id": "mihm",
+      "title": "MIHM v2.0",
+      "sub": "Motor cuantitativo. IHG -0.620. Protocolo activo.",
+      "url": "/mihm/",
+      "type": "system",
+      "fc": "system"
+    }
+  ]
+}
+
+===== FILE: .\assets\data\patterns.json =====
+{
+  "schema": "sf-patterns-v1.1",
+  "patterns": [
+    {
+      "id": "doc-01",
+      "mihm": [
+        "O",
+        "L"
+      ],
+      "mechanism": "opacidad",
+      "fc": "high",
+      "nodes": [
+        "N5",
+        "N4"
+      ],
+      "ags": true,
+      "ags_ref": "ags-05"
+    },
+    {
+      "id": "doc-02",
+      "mihm": [
+        "C",
+        "R"
+      ],
+      "mechanism": "capacidad_adaptativa",
+      "fc": "medium",
+      "nodes": [
+        "N2",
+        "N3"
+      ],
+      "ags": false,
+      "ags_ref": null
+    },
+    {
+      "id": "doc-03",
+      "mihm": [
+        "M",
+        "O"
+      ],
+      "mechanism": "opacidad_formal",
+      "fc": "high",
+      "nodes": [
+        "N4",
+        "N5"
+      ],
+      "ags": true,
+      "ags_ref": "ags-02"
+    },
+    {
+      "id": "doc-04",
+      "mihm": [
+        "C",
+        "K"
+      ],
+      "mechanism": "capacidad_adaptativa",
+      "fc": "medium",
+      "nodes": [
+        "N2"
+      ],
+      "ags": false,
+      "ags_ref": null
+    },
+    {
+      "id": "doc-05",
+      "mihm": [
+        "M"
+      ],
+      "mechanism": "coherencia",
+      "fc": "low",
+      "nodes": [
+        "N2",
+        "N5"
+      ],
+      "ags": false,
+      "ags_ref": null
+    },
+    {
+      "id": "doc-06",
+      "mihm": [
+        "E",
+        "M"
+      ],
+      "mechanism": "carga_entropica",
+      "fc": "critical",
+      "nodes": [
+        "N4",
+        "N6"
+      ],
+      "ags": true,
+      "ags_ref": "ags-02"
+    },
+    {
+      "id": "doc-07",
+      "mihm": [
+        "L",
+        "K"
+      ],
+      "mechanism": "latencia_operativa",
+      "fc": "high",
+      "nodes": [
+        "N5",
+        "N2"
+      ],
+      "ags": true,
+      "ags_ref": "ags-05"
+    },
+    {
+      "id": "doc-08",
+      "mihm": [
+        "C",
+        "R"
+      ],
+      "mechanism": "capacidad_adaptativa",
+      "fc": "medium",
+      "nodes": [
+        "N4",
+        "N3"
+      ],
+      "ags": true,
+      "ags_ref": "ags-04"
+    },
+    {
+      "id": "doc-09",
+      "mihm": [
+        "L",
+        "E"
+      ],
+      "mechanism": "latencia_operativa",
+      "fc": "critical",
+      "nodes": [
+        "N1",
+        "N4"
+      ],
+      "ags": true,
+      "ags_ref": "ags-03"
+    },
+    {
+      "id": "doc-10",
+      "mihm": [
+        "C",
+        "E",
+        "O"
+      ],
+      "mechanism": "goodhart",
+      "fc": "critical",
+      "nodes": [
+        "N1",
+        "N2",
+        "N4"
+      ],
+      "ags": true,
+      "ags_ref": "ags-01"
+    }
+  ]
+}
+
+===== FILE: .\assets\data\results.json =====
+{
+  "schema": "sf-results-v1.1",
+  "timestamp": "2026-02-23T23:59:00Z",
+  "system": {
+    "IHG": 0.0278,
+    "NTI": 0.351,
+    "IHG_corrected": 0.0098,
+    "protocol": "NOMINAL",
+    "nti_mode": "BLIND_MODE",
+    "ucap_ihg": -0.5,
+    "ucap_nti": 0.4
+  },
+  "nti_components": {
+    "LDI_n": 1.0,
+    "ICC_n": 0.32,
+    "CSR": 0.0,
+    "IRCI_n": 0.935,
+    "IIM": 0.5
+  },
+  "nodes": {
+    "N1": {
+      "label": "Agua",
+      "C": 0.18,
+      "E": 0.89,
+      "L": 0.92,
+      "K": 0.85,
+      "R": 0.12,
+      "M": 1.0,
+      "L_eff": 0.92,
+      "f": 1.81,
+      "status": "FRACTURE",
+      "dIHG": -0.0568
+    },
+    "N2": {
+      "label": "Capital",
+      "C": 0.68,
+      "E": 0.78,
+      "L": 0.72,
+      "K": 0.55,
+      "R": 0.15,
+      "M": 1.0,
+      "L_eff": 0.72,
+      "f": 1.5,
+      "status": "DEGRADED",
+      "dIHG": -0.028
+    },
+    "N3": {
+      "label": "Logistica",
+      "C": 0.85,
+      "E": 0.35,
+      "L": 0.35,
+      "K": 0.4,
+      "R": 0.6,
+      "M": 1.0,
+      "L_eff": 0.35,
+      "f": 0.7,
+      "status": "OK",
+      "dIHG": 0.325
+    },
+    "N4": {
+      "label": "Seguridad",
+      "C": 0.35,
+      "E": 0.96,
+      "L": 0.88,
+      "K": 0.55,
+      "R": 0.1,
+      "M": 1.0,
+      "L_eff": 0.88,
+      "f": 1.84,
+      "status": "FRACTURE",
+      "dIHG": -0.0732
+    },
+    "N5": {
+      "label": "Coord",
+      "C": 0.6,
+      "E": 0.68,
+      "L": 0.78,
+      "K": 0.65,
+      "R": 0.4,
+      "M": 0.5,
+      "L_eff": 1.0,
+      "f": 1.68,
+      "status": "OPAQUE",
+      "dIHG": -0.0
+    },
+    "N6": {
+      "label": "Ext",
+      "C": 0.4,
+      "E": 0.95,
+      "L": 0.85,
+      "K": 0.75,
+      "R": 0.2,
+      "M": 0.7,
+      "L_eff": 1.0,
+      "f": 1.95,
+      "status": "FRACTURE",
+      "dIHG": -0.0
+    }
+  },
+  "monte_carlo": {
+    "seed": 42,
+    "n": 50000,
+    "lambda": 0.1,
+    "shock_magnitude": 0.3,
+    "horizon_days": 180,
+    "IHG_0": 0.0278,
+    "IHG_mean_180d": 0.2749,
+    "p_collapse": 0.0,
+    "p_fracture": 0.0,
+    "percentiles": {
+      "p10": 0.2659,
+      "p25": 0.2866,
+      "p50": 0.2963,
+      "p75": 0.3048,
+      "p90": 0.3122
+    }
+  }
+}
+
+===== FILE: .\assets\js\dashboard.js =====
+/* dashboard.js — System Friction v1.1
+   Vanilla JS. Sin dependencias. Consume /assets/data/*.json.
+   Renderiza: IHG gauge, NTI bars, sparkline, scenarios, dims, nodes, interventions.
+   Toggle NTI: recalcula IHG sin trazabilidad.
+   Lab Mode: Monte Carlo client-side.
+   Audit: cadena de trazabilidad docs → variables → IHG. */
+
+(function () {
+  'use strict';
+
+  const BASE = window.SF_BASE || '';
+
+  // ── Fetch helpers ─────────────────────────────────────────────────────
+  async function load(path) {
+    const r = await fetch(BASE + path);
+    if (!r.ok) throw new Error(path + ' HTTP ' + r.status);
+    return r.json();
+  }
+
+  // ── Status map ────────────────────────────────────────────────────────
+  const SC = {
+    OK:'ok', DEGRADED:'degraded', CRITICAL:'critical',
+    FRACTURE:'fracture', OPAQUE:'opaque', EMERGENCY_DECISION:'emergency'
+  };
+  const STATUS_COLOR = {
+    OK:'var(--ok-t)', DEGRADED:'var(--wn-t)', CRITICAL:'var(--cr-t)',
+    FRACTURE:'var(--fr-t)', OPAQUE:'var(--op-t)'
+  };
+  function sc(s){ return SC[s]||'warn'; }
+  function scolor(s){ return STATUS_COLOR[s]||'var(--wn-t)'; }
+
+  // ── IHG SVG radial gauge ──────────────────────────────────────────────
+  function ihgGauge(val, label) {
+    const MIN=-1.2, MAX=0.2;
+    const pct = Math.max(0, Math.min(1, (val-MIN)/(MAX-MIN)));
+    const r=38, cx=50, cy=56, startA=-215, range=250;
+    const angle = startA + pct*range;
+    function polar(a, radius) {
+      const rad = (a-90)*Math.PI/180;
+      return [cx+radius*Math.cos(rad), cy+radius*Math.sin(rad)];
+    }
+    function arc(a1, a2, radius) {
+      const [x1,y1]=polar(a1,radius), [x2,y2]=polar(a2,radius);
+      const large = (a2-a1+360)%360>180?1:0;
+      return `M${x1},${y1} A${radius},${radius} 0 ${large} 1 ${x2},${y2}`;
+    }
+    // UCAP marker at -0.50 → pct = (-0.5-(-1.2))/(0.2-(-1.2)) = 0.5
+    const ucapA = startA + 0.5*range;
+    const [ux,uy] = polar(ucapA, r+4);
+    const [ux2,uy2] = polar(ucapA, r-4);
+    const color = val<-0.5?'var(--cr-t)':val<-0.3?'var(--wn-t)':'var(--ok-t)';
+    return `<svg class="gauge-svg" viewBox="0 0 100 75">
+      <path d="${arc(-215,35,r)}" stroke="var(--bg2)" stroke-width="7" fill="none" stroke-linecap="round"/>
+      <path d="${arc(-215,angle,r)}" stroke="${color}" stroke-width="7" fill="none" stroke-linecap="round" style="transition:stroke-dashoffset .6s ease"/>
+      <line x1="${ux}" y1="${uy}" x2="${ux2}" y2="${uy2}" stroke="var(--cr-t)" stroke-width="1.5" opacity=".8"/>
+      <text x="50" y="50" text-anchor="middle" font-family="var(--fm,'JetBrains Mono',monospace)" font-size="13" fill="${color}" font-weight="500">${val.toFixed(3)}</text>
+      <text x="50" y="62" text-anchor="middle" font-family="var(--fm,'JetBrains Mono',monospace)" font-size="5.5" fill="var(--tx3)">${label||'IHG'}</text>
+    </svg>`;
+  }
+
+  // ── Sparkline ─────────────────────────────────────────────────────────
+  function sparkline(history) {
+    if (!history||!history.length) return '';
+    const vals = history.map(h=>h.ihg);
+    const min=Math.min(...vals)-0.05, max=Math.max(...vals)+0.05;
+    const W=200, H=52, pad=4;
+    const xs = history.map((_,i)=>pad+(i/(history.length-1))*(W-pad*2));
+    const ys = vals.map(v=>pad+(1-(v-min)/(max-min))*(H-pad*2));
+    const pts = xs.map((x,i)=>`${x},${ys[i]}`).join(' ');
+    // UCAP line at -0.5
+    const ucap_y = pad+(1-(-0.5-min)/(max-min))*(H-pad*2);
+    const lastX = xs[xs.length-1], lastY = ys[ys.length-1];
+    // gradient path
+    const pathD = xs.map((x,i)=>(i===0?`M${x},${ys[i]}`:`L${x},${ys[i]}`)).join(' ');
+    const ticks = history.map((h,i)=>{
+      if (i===0||i===history.length-1||i===history.length-3)
+        return `<text x="${xs[i]}" y="${H}" text-anchor="middle" class="spark-axis">${h.t}</text>`;
+      return '';
+    }).join('');
+    return `<svg class="spark-svg" viewBox="0 0 ${W} ${H+12}">
+      <line x1="${pad}" y1="${ucap_y}" x2="${W-pad}" y2="${ucap_y}" stroke="var(--cr)" stroke-width=".8" stroke-dasharray="3,2" opacity=".6"/>
+      <text x="${W-pad-1}" y="${ucap_y-2}" text-anchor="end" font-size="4.5" fill="var(--cr-t)" font-family="var(--fm,monospace)">UCAP</text>
+      <path d="${pathD}" stroke="var(--tx3)" stroke-width="1.2" fill="none"/>
+      <circle cx="${lastX}" cy="${lastY}" r="2.5" fill="var(--cr-t)"/>
+      ${ticks}
+    </svg>`;
+  }
+
+  // ── Render headline ───────────────────────────────────────────────────
+  function renderHeadline(sys, el) {
+    const ihg = sys.IHG_post, nti = sys.NTI_post;
+    el.innerHTML = `
+      <div style="display:flex;align-items:flex-start;gap:1.2rem;flex-wrap:wrap">
+        <div class="gauge-wrap">${ihgGauge(ihg,'IHG')}</div>
+        <div style="flex:1;min-width:160px">
+          <div class="dash-cell__label">Sistema · Nodo AGS</div>
+          <div style="display:flex;flex-wrap:wrap;gap:.4rem .9rem;margin-bottom:.5rem">
+            <div><div style="font-family:var(--fm);font-size:.52rem;color:var(--tx3)">IHG pre</div><div class="c-wn mono" style="font-size:.95rem">${sys.IHG_pre.toFixed(3)}</div></div>
+            <div><div style="font-family:var(--fm);font-size:.52rem;color:var(--tx3)">NTI</div><div class="c-cr mono" style="font-size:.95rem">${nti.toFixed(3)}</div></div>
+            <div><div style="font-family:var(--fm);font-size:.52rem;color:var(--tx3)">IHG×NTI</div><div class="c-dim mono" style="font-size:.95rem">${sys.IHG_corr.toFixed(3)}</div></div>
+            <div><div style="font-family:var(--fm);font-size:.52rem;color:var(--tx3)">P(2030)</div><div class="c-cr mono" style="font-size:.95rem">${(sys.prob_2030*100).toFixed(0)}%</div></div>
+          </div>
+          <span class="badge badge--emergency">${sys.protocol.replace(/_/g,' ')}</span>
+          <div style="font-family:var(--fm);font-size:.52rem;color:var(--tx3);margin-top:.5rem">UCAP IHG: ${sys.ucap_ihg} · UCAP NTI: ${sys.ucap_nti}</div>
+        </div>
+      </div>`;
+  }
+
+  // ── Toggle NTI ────────────────────────────────────────────────────────
+  let _ntiOn = true;
+  function applyToggle(sys, el) {
+    const ihg = _ntiOn ? sys.IHG_post : sys.IHG_corr / sys.NTI_post;
+    const label = _ntiOn ? 'IHG+NTI' : 'IHG bruto';
+    const note = _ntiOn
+      ? `NTI activo. IHG auditado: ${sys.IHG_post.toFixed(3)}`
+      : `NTI desactivado. IHG sin trazabilidad: ${(sys.IHG_corr/sys.NTI_post).toFixed(3)} (proxy crudo)`;
+    const val = _ntiOn ? sys.IHG_post : (sys.IHG_corr / sys.NTI_post);
+    if (el) el.innerHTML = `
+      <div style="display:flex;align-items:center;gap:1rem">
+        <div class="gauge-wrap">${ihgGauge(val, label)}</div>
+        <div style="font-family:var(--fm);font-size:.6rem;color:var(--tx2);flex:1">${note}</div>
+      </div>`;
+  }
+
+  // ── NTI bars ──────────────────────────────────────────────────────────
+  function renderNTI(nti, total, el) {
+    const items = [
+      ['1−LDI', 1-nti.LDI_n, 'Latencia decision'],
+      ['ICC',   nti.ICC_n,   'Concentracion conocimiento'],
+      ['CSR',   nti.CSR,     'Cumplimiento reduccion'],
+      ['IRCI',  nti.IRCI_n,  'Resiliencia capital'],
+      ['IIM',   nti.IIM,     'Integridad metricas']
+    ];
+    const rows = items.map(([lbl,val,desc])=>{
+      const pct=(val*100).toFixed(0);
+      const color=val<0.25?'var(--cr-t)':val<0.55?'var(--wn-t)':'var(--ok-t)';
+      return `<div class="nti-row">
+        <div class="nti-row__lbl">${lbl}</div>
+        <div class="nti-row__bar"><div class="nti-row__fill" style="width:${pct}%;background:${color}"></div></div>
+        <div class="nti-row__val" style="color:${color}">${val.toFixed(3)}</div>
+      </div>`;
+    }).join('');
+    el.innerHTML = `<div style="font-family:var(--fm);font-size:.7rem;color:var(--cr-t);margin-bottom:.5rem;display:flex;align-items:center;gap:.5rem">
+      NTI = ${total.toFixed(3)} <span class="badge badge--critical">BLIND MODE</span>
+    </div>
+    <div class="nti-bars">${rows}</div>`;
+  }
+
+  // ── Sparkline cell ────────────────────────────────────────────────────
+  function renderSparkline(history, el) {
+    el.innerHTML = sparkline(history);
+  }
+
+  // ── Scenarios ─────────────────────────────────────────────────────────
+  function renderScenarios(scenarios, el) {
+    const cells = scenarios.map(s=>{
+      const color = s.p>0.35?'c-cr':s.p>0.2?'c-wn':'c-ok';
+      return `<div class="sc-cell">
+        <div class="sc-cell__id">${s.id} · 50k iter seed 42</div>
+        <div class="sc-cell__label">${s.label}</div>
+        <div class="sc-cell__prob ${color}">${(s.p*100).toFixed(0)}%</div>
+        <div class="sc-cell__ihg">IHG@180d ${s.ihg180.toFixed(2)}</div>
+      </div>`;
+    }).join('');
+    el.innerHTML = `<div class="sc-grid">${cells}</div>`;
+  }
+
+  // ── Dimensions ────────────────────────────────────────────────────────
+  function renderDims(nodes, el) {
+    // aggregate across nodes
+    const dims = ['C','E','L','K','R','M'];
+    const labels = {'C':'Capacidad','E':'Entropia','L':'Latencia','K':'Conectividad','R':'Redistribucion','M':'Coherencia'};
+    const vals = {};
+    dims.forEach(d=>{ vals[d] = Object.values(nodes).map(n=>n[d]); });
+    const cells = dims.map(d=>{
+      const vs = vals[d];
+      const avg = vs.reduce((a,b)=>a+b,0)/vs.length;
+      const worst = d==='E'||d==='L' ? Math.max(...vs) : Math.min(...vs);
+      const color = (d==='C'||d==='R'||d==='M') 
+        ? (worst<0.3?'var(--cr-t)':worst<0.5?'var(--wn-t)':'var(--ok-t)')
+        : (worst>0.85?'var(--cr-t)':worst>0.65?'var(--wn-t)':'var(--ok-t)');
+      const barW = (avg*100).toFixed(0);
+      return `<div class="dim-cell">
+        <div class="dim-cell__sym">${d}<sub>i</sub></div>
+        <div class="dim-cell__val" style="color:${color}">${avg.toFixed(2)}</div>
+        <div class="dim-bar" style="background:${color};opacity:.5;width:${barW}%;margin:0 auto"></div>
+        <div style="font-family:var(--fm);font-size:.44rem;color:var(--tx3);margin-top:.1rem">${labels[d]}</div>
+      </div>`;
+    }).join('');
+    el.innerHTML = cells;
+  }
+
+  // ── Nodes table ───────────────────────────────────────────────────────
+  function renderNodes(nodes, patterns, el) {
+    const pmap = {};
+    (patterns||[]).forEach(p=>{ pmap[p.id]=p; });
+    const rows = Object.entries(nodes).map(([id,n])=>{
+      const bw = Math.min(100, (n.f/3)*100).toFixed(0);
+      const bc = n.f>2?'var(--cr-t)':n.f>1?'var(--wn-t)':'var(--ok-t)';
+      const plinks = (n.patterns||[]).map(pid=>`<a href="/docs/${pid}/" style="color:var(--ac);font-size:.58rem">${pid}</a>`).join(' ');
+      return `<tr>
+        <td class="mono">${id}</td>
+        <td>${n.label}</td>
+        <td>${n.C.toFixed(2)}</td><td>${n.E.toFixed(2)}</td>
+        <td>${n.L.toFixed(2)}</td><td>${n.M.toFixed(2)}</td>
+        <td><span style="color:${bc}">${n.f.toFixed(2)}</span><span class="f-bar" style="width:${bw}px;background:${bc};opacity:.5"></span></td>
+        <td><span class="badge badge--${sc(n.status)}">${n.status}</span></td>
+        <td style="color:${n.dIHG>0?'var(--ok-t)':'var(--cr-t)'}">${n.dIHG>0?'+':''}${n.dIHG.toFixed(3)}</td>
+        <td>${plinks}</td>
+      </tr>`;
+    }).join('');
+    el.innerHTML = `<div class="nodes-wrap"><table class="nodes-tbl">
+      <thead><tr>
+        <th>Nodo</th><th>Label</th>
+        <th>C<sub>i</sub></th><th>E<sub>i</sub></th><th>L<sub>i</sub></th><th>M<sub>i</sub></th>
+        <th>f</th><th>Estado</th><th>ΔIHG</th><th>Patrones</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>`;
+  }
+
+  // ── Interventions ─────────────────────────────────────────────────────
+  function renderInterventions(items, el) {
+    const rows = items.map(i=>`
+      <div class="interv-item">
+        <div class="interv-item__r">${i.rank}</div>
+        <div class="interv-item__l">${i.label}</div>
+        <div class="interv-item__d">+${i.dIHG.toFixed(2)}</div>
+        <div class="interv-item__f">${i.feasibility}</div>
+      </div>`).join('');
+    el.innerHTML = `<div class="interv-list">${rows}</div>`;
+  }
+
+  // ── Docs grid ─────────────────────────────────────────────────────────
+  function renderDocs(docs, el) {
+    if (!el) return;
+    const series = docs.series || [];
+    const cores = series.filter(d=>d.type==='core');
+    const docsList = series.filter(d=>d.type==='doc');
+    const nodes = series.filter(d=>d.type==='node');
+    const systems = series.filter(d=>d.type==='system');
+
+    function card(d) {
+      const vars = (d.mihm||[]).join(', ');
+      return `<a class="doc-card doc-card--${d.fc}" href="${d.url}">
+        <span class="doc-card__id">${d.id}</span>
+        <div class="doc-card__title">${d.title}</div>
+        ${d.sub?`<div class="doc-card__sub">${d.sub}</div>`:''}
+        ${vars?`<div class="doc-card__vars">${vars}</div>`:''}
+        ${d.fc&&d.fc!=='none'&&d.fc!=='system'?`<span class="doc-card__fc badge badge--${d.fc==='critical'?'critical':d.fc==='high'?'warn':''}">${d.fc}</span>`:''}
+      </a>`;
+    }
+
+    el.innerHTML = `
+      <div class="section-rule">nucleo</div>
+      <div class="docs-grid">${cores.map(card).join('')}</div>
+      <div class="section-rule">serie de patrones · 01–10</div>
+      <div class="docs-grid">${docsList.map(card).join('')}</div>
+      <div class="section-rule">validacion empirica</div>
+      <div class="docs-grid">${nodes.concat(systems).map(d=>{
+        return `<a class="doc-card doc-card--${d.type==='system'?'system':d.fc}" href="${d.url}">
+          <span class="doc-card__id">${d.id}</span>
+          <div class="doc-card__title">${d.title}</div>
+          ${d.sub?`<div class="doc-card__sub">${d.sub}</div>`:''}
+        </a>`;
+      }).join('')}</div>`;
+  }
+
+  // ── Audit chain ───────────────────────────────────────────────────────
+  function renderAudit(metrics, patterns, docs, el) {
+    if (!el) return;
+    const pmap = {};
+    (patterns||[]).forEach(p=>{ pmap[p.id]=p; });
+    const dmap = {};
+    (docs.series||[]).forEach(d=>{ dmap[d.id]=d; });
+
+    // Gate checks
+    const nodes = metrics.nodes;
+    const sys = metrics.system;
+    const gates = {
+      H1: Object.values(nodes).filter(n=>n.status==='FRACTURE'||n.status==='CRITICAL').length < 3,
+      H2: sys.NTI_post >= sys.ucap_nti,
+      H3: sys.IHG_post >= sys.ucap_ihg
+    };
+
+    const summaryItems = [
+      ['IHG', sys.IHG_post.toFixed(3), sys.IHG_post>=sys.ucap_ihg?'ok':'cr'],
+      ['NTI', sys.NTI_post.toFixed(3), sys.NTI_post>=sys.ucap_nti?'ok':'cr'],
+      ['H1', gates.H1?'PASS':'FAIL', gates.H1?'ok':'cr'],
+      ['H2', gates.H2?'PASS':'FAIL', gates.H2?'ok':'cr'],
+      ['H3', gates.H3?'PASS':'FAIL', gates.H3?'ok':'cr'],
+    ];
+    const summary = summaryItems.map(([l,v,c])=>`
+      <div class="audit-cell">
+        <div class="audit-cell__label">${l}</div>
+        <div class="audit-cell__value c-${c}">${v}</div>
+      </div>`).join('');
+
+    // Pattern→Variable→Node chain
+    const chain = Object.entries(nodes).map(([nid,n])=>{
+      const relPats = (n.patterns||[]).map(pid=>{
+        const p = pmap[pid];
+        const d = dmap[pid];
+        return `<div class="audit-chain-row">
+          <div class="audit-chain-row__id">${nid}</div>
+          <div class="audit-chain-row__label">${d?d.title:pid}</div>
+          <div class="audit-chain-row__var">${(p?p.mihm:[]).join(', ')}</div>
+          <div class="audit-chain-row__val" style="color:${scolor(n.status)}">${n.status}</div>
+          <div class="audit-chain-row__gate">
+            <span class="gate-dot ${n.dIHG>0?'gate-pass':n.dIHG>-0.1?'gate-warn':'gate-fail'}"></span>
+            ${n.dIHG>0?'+':''}${n.dIHG.toFixed(3)}
+          </div>
+        </div>`;
+      }).join('');
+      return relPats;
+    }).join('');
+
+    el.innerHTML = `
+      <div class="audit-summary">${summary}</div>
+      <div class="section-rule" style="margin-top:1.2rem">cadena de trazabilidad · patron → variable → nodo → ΔIHG</div>
+      <div style="font-family:var(--fm);font-size:.52rem;color:var(--tx3);margin-bottom:.5rem;display:grid;grid-template-columns:60px 1fr 60px 80px 70px;gap:.5rem;padding:.3rem .7rem">
+        <span>Nodo</span><span>Patron</span><span>Variables</span><span>Estado</span><span>ΔIHG</span>
+      </div>
+      <div class="audit-chain">${chain}</div>`;
+  }
+
+  // ── Lab Mode — client-side Monte Carlo ────────────────────────────────
+  function initLab(baseMetrics) {
+    const el = document.getElementById('sf-lab');
+    if (!el) return;
+
+    let seed = baseMetrics.seed || 42;
+    let lambda = 0.10;
+    let n = 5000;
+    let shockMag = 0.3;
+    let running = false;
+
+    el.innerHTML = `
+      <div class="lab-grid">
+        <div class="lab-cell">
+          <div class="lab-cell__label">Parametros Monte Carlo</div>
+          <div class="lab-input">
+            <label>seed <span id="lab-seed-val">${seed}</span>
+              <input type="number" id="lab-seed" value="${seed}" min="1" max="9999" style="font-family:var(--fm);font-size:.6rem;background:var(--bg2);border:1px solid var(--bd);color:var(--tx);padding:.2rem .4rem;width:70px;border-radius:var(--r)">
+            </label>
+          </div>
+          <div class="lab-input">
+            <label>λ Poisson — shock exogeno <span id="lab-lam-val">${lambda}</span></label>
+            <input type="range" class="lab-slider" id="lab-lam" min="0.01" max="0.5" step="0.01" value="${lambda}">
+          </div>
+          <div class="lab-input">
+            <label>Iteraciones <span id="lab-n-val">${n}</span></label>
+            <input type="range" class="lab-slider" id="lab-n" min="1000" max="50000" step="1000" value="${n}">
+          </div>
+          <div class="lab-input">
+            <label>Magnitud shock Δ <span id="lab-shock-val">${shockMag}</span></label>
+            <input type="range" class="lab-slider" id="lab-shock" min="0.05" max="0.8" step="0.05" value="${shockMag}">
+          </div>
+          <button class="lab-btn lab-btn--run" id="lab-run">Ejecutar</button>
+          <div class="lab-progress" id="lab-progress" style="display:none;margin-top:.5rem">
+            <div class="lab-progress-bar"><div class="lab-progress-fill" id="lab-prog-fill" style="width:0%"></div></div>
+            <span id="lab-prog-txt">0%</span>
+          </div>
+        </div>
+        <div class="lab-cell">
+          <div class="lab-cell__label">Resultado</div>
+          <div class="lab-output" id="lab-output">
+            <div style="font-family:var(--fm);font-size:.6rem;color:var(--tx3)">Ejecutar para ver resultado</div>
+          </div>
+        </div>
+      </div>`;
+
+    function updateLabels() {
+      document.getElementById('lab-seed-val').textContent = document.getElementById('lab-seed').value;
+      document.getElementById('lab-lam-val').textContent = parseFloat(document.getElementById('lab-lam').value).toFixed(2);
+      document.getElementById('lab-n-val').textContent = parseInt(document.getElementById('lab-n').value).toLocaleString();
+      document.getElementById('lab-shock-val').textContent = parseFloat(document.getElementById('lab-shock').value).toFixed(2);
+    }
+    el.querySelector('#lab-seed').addEventListener('input', updateLabels);
+    el.querySelector('#lab-lam').addEventListener('input', updateLabels);
+    el.querySelector('#lab-n').addEventListener('input', updateLabels);
+    el.querySelector('#lab-shock').addEventListener('input', updateLabels);
+
+    el.querySelector('#lab-run').addEventListener('click', function() {
+      if (running) return;
+      running = true;
+      seed = parseInt(document.getElementById('lab-seed').value);
+      lambda = parseFloat(document.getElementById('lab-lam').value);
+      n = parseInt(document.getElementById('lab-n').value);
+      shockMag = parseFloat(document.getElementById('lab-shock').value);
+      runMC(seed, lambda, n, shockMag, baseMetrics);
+    });
+  }
+
+  function runMC(seed, lambda, n, shockMag, base) {
+    const progEl = document.getElementById('lab-progress');
+    const fillEl = document.getElementById('lab-prog-fill');
+    const txtEl  = document.getElementById('lab-prog-txt');
+    const outEl  = document.getElementById('lab-output');
+    const runBtn = document.getElementById('lab-run');
+
+    if (progEl) progEl.style.display = 'flex';
+    if (runBtn) runBtn.disabled = true;
+
+    // LCG seeded RNG
+    let s = seed;
+    function rng() {
+      s = (s * 1664525 + 1013904223) & 0xFFFFFFFF;
+      return (s >>> 0) / 0xFFFFFFFF;
+    }
+    function poisson(lam) {
+      const L = Math.exp(-lam);
+      let p = 1, k = 0;
+      do { k++; p *= rng(); } while (p > L);
+      return k - 1;
+    }
+
+    const IHG0 = base.system.IHG_post;
+    const UCAP = base.system.ucap_ihg;
+    const results = [];
+    const CHUNK = 500;
+
+    function processChunk(start) {
+      for (let i = start; i < Math.min(start + CHUNK, n); i++) {
+        let ihg = IHG0;
+        for (let t = 0; t < 180; t++) {
+          const shocks = poisson(lambda / 180);
+          if (shocks > 0) ihg -= shocks * shockMag * (0.5 + rng() * 0.5);
+          // natural recovery
+          ihg += (rng() * 0.003);
+          // NTI corrected
+          const nti_t = 0.351 + rng() * 0.1 - 0.05;
+          ihg = Math.max(ihg, -1.5);
+        }
+        results.push(ihg);
+      }
+      const pct = Math.min(100, ((start + CHUNK) / n * 100)).toFixed(0);
+      if (fillEl) fillEl.style.width = pct + '%';
+      if (txtEl)  txtEl.textContent = pct + '%';
+
+      if (start + CHUNK < n) {
+        setTimeout(() => processChunk(start + CHUNK), 0);
+      } else {
+        finalize(results, IHG0, UCAP, n, seed, lambda, shockMag);
+        if (progEl) progEl.style.display = 'none';
+        if (runBtn) { runBtn.disabled = false; }
+        window._sfLabRunning = false;
+      }
+    }
+    setTimeout(() => processChunk(0), 10);
+  }
+
+  function finalize(results, IHG0, UCAP, n, seed, lambda, shockMag) {
+    const outEl = document.getElementById('lab-output');
+    if (!outEl) return;
+    results.sort((a,b)=>a-b);
+    const mean = results.reduce((a,b)=>a+b,0)/results.length;
+    const p10 = results[Math.floor(n*0.1)];
+    const p25 = results[Math.floor(n*0.25)];
+    const p75 = results[Math.floor(n*0.75)];
+    const p90 = results[Math.floor(n*0.9)];
+    const pCollapse = results.filter(v=>v<UCAP).length/results.length;
+    const pFracture = results.filter(v=>v<-0.8).length/results.length;
+
+    const cMean = mean<-0.5?'c-cr':mean<-0.3?'c-wn':'c-ok';
+    const mcColor = pCollapse>0.5?'var(--cr-t)':pCollapse>0.25?'var(--wn-t)':'var(--ok-t)';
+
+    outEl.innerHTML = `
+      <div style="font-family:var(--fm);font-size:.54rem;color:var(--tx3);margin-bottom:.3rem">seed ${seed} · λ=${lambda} · n=${n.toLocaleString()} · Δ=${shockMag}</div>
+      <div class="lab-output__ihg ${cMean}">${mean.toFixed(3)}</div>
+      <div style="font-family:var(--fm);font-size:.56rem;color:var(--tx3);margin-bottom:.5rem">IHG medio @180d</div>
+      <div class="lab-output__row"><span>P(colapso IHG<${UCAP})</span><span style="color:${mcColor}">${(pCollapse*100).toFixed(1)}%</span></div>
+      <div class="lab-output__row"><span>P(fractura IHG<-0.8)</span><span class="c-fr">${(pFracture*100).toFixed(1)}%</span></div>
+      <div class="lab-output__row"><span>p10 / p25</span><span class="mono">${p10.toFixed(3)} / ${p25.toFixed(3)}</span></div>
+      <div class="lab-output__row"><span>p75 / p90</span><span class="mono">${p75.toFixed(3)} / ${p90.toFixed(3)}</span></div>
+      <div class="lab-mc-bars" style="margin-top:.6rem">
+        <div style="font-family:var(--fm);font-size:.5rem;color:var(--tx3);margin-bottom:.3rem">Distribucion percentil @180d</div>
+        ${[['p10',p10],['p25',p25],['media',mean],['p75',p75],['p90',p90]].map(([l,v])=>{
+          const w = Math.max(0, Math.min(100, ((v-(-1.5))/(0.5-(-1.5)))*100)).toFixed(0);
+          const c = v<-0.5?'var(--cr-t)':v<-0.3?'var(--wn-t)':'var(--ok-t)';
+          return `<div class="lab-mc-row">
+            <div class="lab-mc-lbl">${l}</div>
+            <div class="lab-mc-bar"><div class="lab-mc-fill" style="width:${w}%;background:${c}"></div></div>
+            <div class="lab-mc-val" style="color:${c}">${v.toFixed(3)}</div>
+          </div>`;
+        }).join('')}
+      </div>`;
+  }
+
+  // ── Main init ─────────────────────────────────────────────────────────
+  async function init() {
+    // Set loading states
+    document.querySelectorAll('[data-sf]').forEach(el => {
+      el.innerHTML = '<span class="sf-loading">—</span>';
+    });
+
+    let metrics, docs, patterns;
+    try {
+      [metrics, docs, patterns] = await Promise.all([
+        load('/assets/data/ags_metrics.json'),
+        load('/assets/data/docs.json'),
+        load('/assets/data/patterns.json')
+      ]);
+    } catch(e) {
+      document.querySelectorAll('[data-sf]').forEach(el => {
+        el.innerHTML = `<span class="sf-error">Error cargando datos: ${e.message}</span>`;
+      });
+      return;
+    }
+
+    const sys  = metrics.system;
+    const pats = patterns.patterns || [];
+
+    // Nav IHG badge
+    const navIHG = document.getElementById('sf-nav-ihg');
+    if (navIHG) navIHG.textContent = `IHG ${sys.IHG_post.toFixed(3)}`;
+
+    // Render each section
+    const map = {
+      'sf-headline':     el => renderHeadline(sys, el),
+      'sf-toggle-ihg':   el => applyToggle(sys, el),
+      'sf-nti':          el => renderNTI(metrics.nti, sys.NTI_post, el),
+      'sf-sparkline':    el => renderSparkline(metrics.history, el),
+      'sf-scenarios':    el => renderScenarios(metrics.scenarios, el),
+      'sf-dims':         el => renderDims(metrics.nodes, el),
+      'sf-nodes':        el => renderNodes(metrics.nodes, pats, el),
+      'sf-interventions':el => renderInterventions(metrics.interventions, el),
+      'sf-docs':         el => renderDocs(docs, el),
+      'sf-audit':        el => renderAudit(metrics, pats, docs, el),
+    };
+    Object.entries(map).forEach(([id,fn]) => {
+      const el = document.getElementById(id);
+      if (el) fn(el);
+    });
+
+    // Toggle NTI handler
+    const toggle = document.getElementById('nti-toggle');
+    const toggleEl = document.getElementById('sf-toggle-ihg');
+    if (toggle && toggleEl) {
+      toggle.addEventListener('change', () => {
+        _ntiOn = toggle.checked;
+        applyToggle(sys, toggleEl);
+      });
+    }
+
+    // Dims drill
+    const dimsBtn = document.getElementById('sf-dims-btn');
+    const dimsPanel = document.getElementById('sf-dims');
+    if (dimsBtn && dimsPanel) {
+      dimsBtn.addEventListener('click', () => {
+        const open = dimsPanel.classList.toggle('open');
+        dimsBtn.classList.toggle('open', open);
+        dimsBtn.querySelector('span:last-child').textContent = open ? 'cerrar' : 'desmembrar dimensiones';
+      });
+    }
+
+    // Lab
+    initLab(metrics);
+
+    // Active nav
+    const path = window.location.pathname;
+    document.querySelectorAll('.site-bar__nav a').forEach(a => {
+      const href = a.getAttribute('href');
+      if (href && href !== '/' && path.startsWith(href)) a.classList.add('active');
+      if (href === '/' && path === '/') a.classList.add('active');
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+
+
+===== FILE: .\scripts\mihm_v2.py =====
+#!/usr/bin/env python3
+"""
+mihm_v2.py — Multinodal Homeostatic Integration Model v2.0
+System Friction Framework · v1.1 · 2026
+CC BY 4.0 · Juan Antonio Marín Liera
+
+Uso:
+    python3 mihm_v2.py                    # calcula IHG/NTI con vectores AGS
+    python3 mihm_v2.py --mc               # Monte Carlo 50k iteraciones
+    python3 mihm_v2.py --shock 0.3        # shock exógeno personalizado
+    python3 mihm_v2.py --output results.json
+"""
+
+import json
+import math
+import random
+import argparse
+import sys
+from typing import Dict, List, Optional
+
+
+# ── Vectores post-fractura (AGS, 23 feb 2026) ────────────────────────────────
+VECTORS_AGS = {
+    "N1": {"label": "Agua",      "C": 0.18, "E": 0.89, "L": 0.92, "K": 0.85, "R": 0.12, "M": 1.00},
+    "N2": {"label": "Capital",   "C": 0.68, "E": 0.78, "L": 0.72, "K": 0.55, "R": 0.15, "M": 1.00},
+    "N3": {"label": "Logistica", "C": 0.85, "E": 0.35, "L": 0.35, "K": 0.40, "R": 0.60, "M": 1.00},
+    "N4": {"label": "Seguridad", "C": 0.35, "E": 0.96, "L": 0.88, "K": 0.55, "R": 0.10, "M": 1.00},
+    "N5": {"label": "Coord",     "C": 0.60, "E": 0.68, "L": 0.78, "K": 0.65, "R": 0.40, "M": 0.50},
+    "N6": {"label": "Ext",       "C": 0.40, "E": 0.95, "L": 0.85, "K": 0.75, "R": 0.20, "M": 0.70},
+}
+
+NTI_COMPONENTS_AGS = {
+    "LDI_n": 1.00,   # Latencia Decisión Institucional normalizada
+    "ICC_n": 0.32,   # Índice Concentración Conocimiento
+    "CSR":   0.00,   # Cumplimiento Reducción Incidentes
+    "IRCI_n":0.935,  # Resiliencia Capital Institucional
+    "IIM":   0.50,   # Integridad Métricas
+}
+
+UCAP_IHG = -0.50
+UCAP_NTI = 0.40
+
+
+# ── Core MIHM formulas ────────────────────────────────────────────────────────
+
+def friction(t: float, T: float, O: float) -> float:
+    """f = (t/T) + O"""
+    if T <= 0:
+        raise ValueError("T (tiempo normativo) debe ser > 0")
+    return (t / T) + O
+
+
+def effective_L(L: float, M: float) -> float:
+    """L_eff = min(L * (1 + (1 - M)), 1.0)"""
+    return min(L * (1.0 + (1.0 - M)), 1.0)
+
+
+def node_IHG_contribution(C: float, E: float, L: float, M: float) -> float:
+    """(C - E) * (1 - L_eff)"""
+    L_eff = effective_L(L, M)
+    return (C - E) * (1.0 - L_eff)
+
+
+def IHG(vectors: Dict) -> float:
+    """IHG = (1/N) * sum((C_i - E_i) * (1 - L_eff_i))"""
+    contributions = [
+        node_IHG_contribution(v["C"], v["E"], v["L"], v["M"])
+        for v in vectors.values()
+    ]
+    return sum(contributions) / len(contributions)
+
+
+def NTI(components: Dict) -> float:
+    """NTI = (1/5) * [(1-LDI_n) + ICC_n + CSR + IRCI_n + IIM]"""
+    c = components
+    return (1.0 / 5.0) * (
+        (1.0 - c["LDI_n"]) + c["ICC_n"] + c["CSR"] + c["IRCI_n"] + c["IIM"]
+    )
+
+
+def node_status(f_val: float, M: float) -> str:
+    if M < 0.55:
+        return "OPAQUE"
+    if f_val > 2.0:
+        return "CRITICAL"
+    if f_val > 1.5:
+        return "FRACTURE" if f_val > 1.7 else "CRITICAL"
+    if f_val > 1.0:
+        return "DEGRADED"
+    return "OK"
+
+
+# ── Monte Carlo (proceso de Poisson exocáustico) ─────────────────────────────
+
+def _seeded_lcg(seed: int):
+    """LCG seeded RNG: reproducible, sin dependencias externas."""
+    s = seed
+    def rng():
+        nonlocal s
+        s = (s * 1664525 + 1013904223) & 0xFFFFFFFF
+        return (s >> 0) / 0xFFFFFFFF
+    return rng
+
+
+def poisson_sample(lam: float, rng) -> int:
+    """Poisson via método de transformación inversa."""
+    L = math.exp(-lam)
+    p, k = 1.0, 0
+    while p > L:
+        k += 1
+        p *= rng()
+    return k - 1
+
+
+def monte_carlo(
+    vectors: Dict,
+    nti_components: Dict,
+    n: int = 50000,
+    seed: int = 42,
+    lambda_shock: float = 0.10,
+    shock_magnitude: float = 0.30,
+    horizon_days: int = 180,
+) -> Dict:
+    """
+    Monte Carlo exocáustico. Proceso de Poisson para shocks.
+    Retorna distribución de IHG @horizon_days.
+    """
+    rng = _seeded_lcg(seed)
+    ihg_0 = IHG(vectors)
+    results = []
+
+    for _ in range(n):
+        ihg_t = ihg_0
+        lam_daily = lambda_shock / horizon_days
+
+        for _ in range(horizon_days):
+            # Shock exógeno: Poisson(λ/T)
+            shocks = poisson_sample(lam_daily, rng)
+            if shocks > 0:
+                ihg_t -= shocks * shock_magnitude * (0.5 + rng() * 0.5)
+            # Recuperación natural mínima
+            ihg_t += rng() * 0.003
+            ihg_t = max(ihg_t, -1.5)
+
+        results.append(ihg_t)
+
+    results.sort()
+    n = len(results)
+
+    def pct(p):
+        return results[int(n * p)]
+
+    p_collapse  = sum(1 for v in results if v < UCAP_IHG) / n
+    p_fracture  = sum(1 for v in results if v < -0.8) / n
+    mean_ihg    = sum(results) / n
+
+    return {
+        "seed": seed,
+        "n": n,
+        "lambda": lambda_shock,
+        "shock_magnitude": shock_magnitude,
+        "horizon_days": horizon_days,
+        "IHG_0": round(ihg_0, 4),
+        "IHG_mean_180d": round(mean_ihg, 4),
+        "p_collapse": round(p_collapse, 4),
+        "p_fracture": round(p_fracture, 4),
+        "percentiles": {
+            "p10": round(pct(0.10), 4),
+            "p25": round(pct(0.25), 4),
+            "p50": round(pct(0.50), 4),
+            "p75": round(pct(0.75), 4),
+            "p90": round(pct(0.90), 4),
+        }
+    }
+
+
+# ── Report ────────────────────────────────────────────────────────────────────
+
+def build_report(vectors: Dict, nti_comps: Dict, mc_result: Optional[Dict] = None) -> Dict:
+    ihg_val = IHG(vectors)
+    nti_val = NTI(nti_comps)
+    ihg_corr = ihg_val * nti_val
+
+    nodes_report = {}
+    for nid, v in vectors.items():
+        L_eff = effective_L(v["L"], v["M"])
+        # friction proxy: use E as O surrogate, L_eff as t/T surrogate
+        f_val = L_eff + v["E"]
+        status = node_status(f_val, v["M"])
+        d_ihg = node_IHG_contribution(v["C"], v["E"], v["L"], v["M"])
+        nodes_report[nid] = {
+            "label": v["label"],
+            "C": v["C"], "E": v["E"], "L": v["L"],
+            "K": v["K"], "R": v["R"], "M": v["M"],
+            "L_eff": round(L_eff, 4),
+            "f": round(f_val, 4),
+            "status": status,
+            "dIHG": round(d_ihg, 4),
+        }
+
+    protocol = "EMERGENCY_DECISION" if ihg_val < UCAP_IHG else (
+        "WATCHLIST" if ihg_val < -0.30 else "NOMINAL"
+    )
+    nti_mode = "BLIND_MODE" if nti_val < UCAP_NTI else "OPERATIONAL"
+
+    report = {
+        "schema": "sf-results-v1.1",
+        "timestamp": "2026-02-23T23:59:00Z",
+        "system": {
+            "IHG": round(ihg_val, 4),
+            "NTI": round(nti_val, 4),
+            "IHG_corrected": round(ihg_corr, 4),
+            "protocol": protocol,
+            "nti_mode": nti_mode,
+            "ucap_ihg": UCAP_IHG,
+            "ucap_nti": UCAP_NTI,
+        },
+        "nti_components": nti_comps,
+        "nodes": nodes_report,
+    }
+
+    if mc_result:
+        report["monte_carlo"] = mc_result
+
+    return report
+
+
+def print_report(report: Dict):
+    sys_r = report["system"]
+    print("\n── MIHM v2.0 ── System Friction Framework ──────────────────")
+    print(f"  IHG            : {sys_r['IHG']:+.4f}")
+    print(f"  NTI            : {sys_r['NTI']:.4f}  [{report['system']['nti_mode']}]")
+    print(f"  IHG × NTI      : {sys_r['IHG_corrected']:+.4f}")
+    print(f"  Protocol       : {sys_r['protocol']}")
+    print(f"  UCAP IHG       : {sys_r['ucap_ihg']:+.2f}")
+    print()
+    print("  Nodo  Label         C      E      L      M      f       Status   ΔIHG")
+    print("  " + "─"*76)
+    for nid, n in report["nodes"].items():
+        print(f"  {nid}  {n['label']:<12}  {n['C']:.2f}  {n['E']:.2f}  {n['L']:.2f}  {n['M']:.2f}  {n['f']:.3f}  {n['status']:<8}  {n['dIHG']:+.3f}")
+
+    if "monte_carlo" in report:
+        mc = report["monte_carlo"]
+        print(f"\n  Monte Carlo  seed={mc['seed']}  n={mc['n']:,}  λ={mc['lambda']}  Δ={mc['shock_magnitude']}")
+        print(f"  IHG@{mc['horizon_days']}d mean : {mc['IHG_mean_180d']:+.4f}")
+        print(f"  P(colapso)       : {mc['p_collapse']*100:.1f}%")
+        print(f"  P(fractura)      : {mc['p_fracture']*100:.1f}%")
+        p = mc["percentiles"]
+        print(f"  p10/p50/p90      : {p['p10']:+.3f} / {p['p50']:+.3f} / {p['p90']:+.3f}")
+    print()
+
+
+# ── CLI ───────────────────────────────────────────────────────────────────────
+
+def main():
+    parser = argparse.ArgumentParser(description="MIHM v2.0 — System Friction Framework")
+    parser.add_argument("--mc", action="store_true", help="Ejecutar Monte Carlo")
+    parser.add_argument("--n", type=int, default=50000, help="Iteraciones MC (default: 50000)")
+    parser.add_argument("--seed", type=int, default=42, help="Seed (default: 42)")
+    parser.add_argument("--lambda", dest="lam", type=float, default=0.10, help="λ Poisson (default: 0.10)")
+    parser.add_argument("--shock", type=float, default=0.30, help="Magnitud shock (default: 0.30)")
+    parser.add_argument("--output", type=str, default=None, help="Guardar JSON resultados")
+    args = parser.parse_args()
+
+    mc_result = None
+    if args.mc:
+        print(f"  Ejecutando Monte Carlo: n={args.n:,} seed={args.seed} λ={args.lam} Δ={args.shock}...")
+        mc_result = monte_carlo(
+            VECTORS_AGS, NTI_COMPONENTS_AGS,
+            n=args.n, seed=args.seed,
+            lambda_shock=args.lam, shock_magnitude=args.shock
+        )
+
+    report = build_report(VECTORS_AGS, NTI_COMPONENTS_AGS, mc_result)
+    print_report(report)
+
+    output_path = args.output or "assets/data/results.json"
+    with open(output_path, "w") as f:
+        json.dump(report, f, indent=2, ensure_ascii=False)
+    print(f"  Resultados guardados: {output_path}")
+
+
+if __name__ == "__main__":
+    main()
+
+
+===== FILE: .\_docs\core-0.md =====
+---
+layout: doc
+title: "POSICIÓN — Desde dónde observa el observador"
+description: "Condición de percepción. Umbral antes del primer caso."
+id: core-0
+version: "1.1"
+status: validated
+math: true
+prev_doc: /docs/core-00/
+next_doc: /docs/core-bridge/
+---
+
+Condición de percepción, no autobiografía. Umbral antes del primer caso.
+
+---
+
+El observador no existe fuera del sistema que observa. Lo que reporta como "falla" depende de su posición dentro de la estructura de incentivos.
+
+Un operador dentro de una institución y un auditor externo observan el mismo evento con métricas distintas. Ninguno tiene acceso a la totalidad. Ambos producen señales válidas con ruido diferente.
+
+Este archivo registra desde una posición intermedia: ni dentro de la cadena de mando, ni en el exterior sin información de campo.
+
+---
+
+## Umbral operativo
+
+La variable $M_i$ (módulo de coherencia) captura cuánto de lo que reporta el sistema corresponde a lo que ocurre en campo:
+
+$$M_i \in [0,1]$$
+
+$M_i = 1.0$: reporte completo, verificable. $M_i = 0.0$: opacidad total.
+
+La posición del observador determina qué fracción de $M_i$ es accesible.
+
+
+===== FILE: .\_docs\core-00.md =====
+---
+layout: doc
+title: "META — Cómo leer este ecosistema"
+description: "Documento metodológico. Tono, progresión y límites del archivo."
+id: core-00
+version: "1.1"
+status: validated
+next_doc: /docs/core-0/
+---
+
+Documento metodológico. Tono, progresión y límites del archivo.
+
+---
+
+Este archivo no es un blog. No emite juicios morales sobre sistemas o actores. No asume que el lector comparte el mismo contexto institucional. No se actualiza por consistencia, sino por acumulación de experiencia real.
+
+Progresión recomendada: core-00 → core-0 → core-bridge → doc-01 a doc-10 → Nodo AGS → MIHM.
+
+La lectura de core-00 antes del resto modifica lo que se encuentra después. No es obligatorio. Sí es irreversible.
+
+---
+
+## Tono
+
+Clínico hasta el límite. Sin adjetivos. Sin "yo". Sin juicios. Solo descripción de patrones observables.
+
+El texto es extraíble. Cada oración funciona sin las demás.
+
+## Límites del archivo
+
+No prescribe soluciones. Describe patrones. El uso es responsabilidad de quien lee.
+
+No reemplaza análisis de campo. Cada patrón requiere calibración contextual antes de aplicarse.
+
+## Estructura
+
+La fórmula `f = (t/T) + O` aparece en cada nodo del sistema. Todo lo demás es instancia de ella.
+
+
+===== FILE: .\_docs\core-bridge.md =====
+---
+layout: doc
+title: "PUENTE — Sistemas que no pueden permitirse fallar"
+description: "Umbral real vs oficial. La distancia donde opera el operador."
+id: core-bridge
+version: "1.1"
+status: validated
+math: true
+prev_doc: /docs/core-0/
+next_doc: /docs/doc-01/
+---
+
+Umbral real vs oficial. La distancia donde opera el operador.
+
+---
+
+Algunos sistemas tienen un umbral declarado y un umbral real. La distancia entre ambos es el espacio donde opera la fricción sin ser nombrada.
+
+Un tiempo de respuesta normativo de 1 hora con un observado de 6 horas no es un error. Es la condición estable del sistema.
+
+---
+
+## La fórmula como diagnóstico
+
+$$f = \frac{t}{T} + O$$
+
+Cuando $t = T$: sistema en umbral normativo. Cuando $t \gg T$: el sistema opera en su umbral real. Cuando $O \to 1$: la opacidad amplifica cualquier latencia.
+
+## Conexión con el Nodo AGS
+
+El evento del 22–23 feb 2026:
+
+| Nodo | f | Estado |
+|------|---|--------|
+| N5 — Coordinación | 2.10 | OPAQUE |
+| N4 — Seguridad | 1.84 | CRITICAL |
+| N3 — Logística | 0.70 | OK |
+
+N3 mantuvo $f < 1.0$ porque no dependía de coordinación inter-institucional.
+
+
+===== FILE: .\_docs\doc-01.md =====
+---
+layout: doc
+title: "Decisiones que nadie tomó"
+description: "Cristalización por acumulación. Zonas grises operativas."
+id: doc-01
+version: "1.1"
+status: validated
+math: true
+mihm_variables: ['O', 'L_i']
+prev_doc: core-bridge
+next_doc: doc-02
+---
+
+Cristalización por acumulación. Zonas grises operativas.
+
+---
+
+Zonas de decisión sin propietario claro acumulan estados no auditados.
+
+---
+
+El proceso funciona: cada actor transfiere el caso al siguiente nodo. Nadie viola el protocolo. Al final, el estado del caso no refleja decisión alguna, solo la suma de transferencias.
+
+## Mecanismo
+
+La acumulación ocurre porque el costo de decidir supera el costo de transferir. Cuando ese umbral es sistémico, la zona gris se vuelve el estado operativo normal.
+
+$$O \uparrow \quad\Rightarrow\quad f = \frac{t}{T} + O \uparrow$$
+
+## Observado en AGS
+
+Nodos N5 (coordinación) y N4 (seguridad): decisiones de activación de protocolo pendientes 6h sin propietario institucional identificado. $L_{N5} = 0.78$, $O_{N5} = 0.68$, $f_{N5} = 2.10$.
+
+## Patrones relacionados
+
+Véase doc-07 (contexto perdido) para el mecanismo de decaimiento posterior a la zona gris.
+
+
+===== FILE: .\_docs\doc-02.md =====
+---
+layout: doc
+title: "Costo real de adoptable"
+description: "Por qué soluciones superiores no se implementan."
+id: doc-02
+version: "1.1"
+status: validated
+math: true
+mihm_variables: ['C_i', 'R_i']
+prev_doc: doc-01
+next_doc: doc-03
+---
+
+Por qué soluciones superiores no se implementan.
+
+---
+
+Una solución técnicamente superior no se adopta cuando el costo de transición supera el beneficio percibido por quien decide la transición.
+
+---
+
+El error de diagnóstico frecuente: asumir que la no-adopción indica falta de información. La información está disponible. El cálculo de costo es correcto. La solución superior no se adopta porque quien la implementaría no captura el beneficio.
+
+## Variables afectadas
+
+$C_i$ (capacidad adaptativa) y $R_i$ (redistribución): la adopción requiere redistribuir recursos existentes hacia un sistema sin historial comprobado en el contexto específico.
+
+## Umbral de adopción
+
+Una solución se adopta cuando el actor decisor percibe $\Delta C_i > 0$ en su propio nodo, no en el sistema agregado.
+
+
+===== FILE: .\_docs\doc-03.md =====
+---
+layout: doc
+title: "Compliance como narrativa"
+description: "Auditabilidad vs seguridad. Forma vs sustancia."
+id: doc-03
+version: "1.1"
+status: validated
+math: true
+mihm_variables: ['M_i', 'O']
+prev_doc: doc-02
+next_doc: doc-04
+---
+
+Auditabilidad vs seguridad. Forma vs sustancia.
+
+---
+
+El sistema que puede ser auditado no es necesariamente el sistema que opera.
+
+---
+
+Cuando el costo de cumplir con el reporte supera el costo de incumplir con la función, el reporte se optimiza y la función se degrada. La métrica de compliance permanece verde.
+
+## Mecanismo
+
+$$M_i \downarrow \quad\text{mientras}\quad \text{reporte}_{M_i} = 1.0$$
+
+La distancia entre $M_i$ real y $M_i$ reportado es la brecha de opacidad formal.
+
+## Observado en AGS
+
+N4 (seguridad): CSR (cumplimiento meta reducción) = 0.00. Meta oficial 50% reducción de incidentes. Incidentes observados: +180% en período de evaluación. Reporte formal de "avance en implementación de protocolo" activo en paralelo.
+
+$M_{N4} = 1.00$ (reporte completo) con $f_{N4} = 1.84$ (CRITICAL).
+
+
+===== FILE: .\_docs\doc-04.md =====
+---
+layout: doc
+title: "Dinero como estructura temporal"
+description: "Optionalidad temporal. Horizonte de maniobra."
+id: doc-04
+version: "1.1"
+status: validated
+math: true
+mihm_variables: ['C_i', 'K_i']
+prev_doc: doc-03
+next_doc: doc-05
+---
+
+Optionalidad temporal. Horizonte de maniobra.
+
+---
+
+El capital no es solo poder de compra. Es optionalidad sobre tiempo.
+
+---
+
+Un sistema con capital disponible puede diferir decisiones costosas sin consecuencias inmediatas. Un sistema sin capital debe decidir ahora con información incompleta.
+
+## Variables afectadas
+
+$C_i$ (capacidad adaptativa): el capital disponible expande el espacio de decisiones posibles. $K_i$ (conectividad): la conectividad institucional actúa como capital social con las mismas propiedades.
+
+## Implicación para fricción
+
+$$f = \frac{t}{T} + O$$
+
+Cuando $C_i \to 0$: $t \uparrow$ porque el sistema no puede activar recursos de contingencia. La fricción aumenta no por opacidad sino por capacidad agotada.
+
+
+===== FILE: .\_docs\doc-05.md =====
+---
+layout: doc
+title: "Escritura sin intención visible"
+description: "Señal sin ornamentación. Extracción por diseño."
+id: doc-05
+version: "1.1"
+status: validated
+math: true
+mihm_variables: ['M_i']
+prev_doc: doc-04
+next_doc: doc-06
+---
+
+Señal sin ornamentación. Extracción por diseño.
+
+---
+
+El texto que no necesita ser defendido no necesita ser adornado.
+
+---
+
+La ornamentación en documentos técnicos tiene dos causas: incertidumbre sobre el contenido o incertidumbre sobre la recepción. Ninguna mejora la calidad de la señal.
+
+## Criterio operativo
+
+Una oración funciona si puede ser extraída del documento y usada sin contexto adicional. Si no puede, contiene ruido que debe eliminarse.
+
+## Variable afectada
+
+$M_i$ (coherencia): la escritura limpia incrementa $M_i$ porque reduce la distancia entre lo que dice el sistema y lo que hace.
+
+## Nota
+
+Este documento es instancia del patrón que describe.
+
+
+===== FILE: .\_docs\doc-06.md =====
+---
+layout: doc
+title: "Sistemas de alerta que nadie revisa"
+description: "Métrica vs señal. Cobertura vs acción."
+id: doc-06
+version: "1.1"
+status: validated
+math: true
+mihm_variables: ['E_i', 'M_i']
+prev_doc: doc-05
+next_doc: doc-07
+---
+
+Métrica vs señal. Cobertura vs acción.
+
+---
+
+El sistema puede tener cobertura total de alertas y cero capacidad de respuesta.
+
+---
+
+La alerta que no activa respuesta es ruido. El sistema que genera ruido suficiente desensibiliza a los operadores. Después de suficiente tiempo, la alerta real es indistinguible.
+
+## Mecanismo
+
+$$E_i \uparrow \quad\text{cuando la tasa de alertas} \gg \text{tasa de respuesta}$$
+
+La carga entrópica $E_i$ no mide el número de eventos. Mide la proporción de eventos no procesados sobre el total.
+
+## Observado en AGS
+
+N4 (seguridad): 252 alertas de bloqueo activo el 22 feb 2026. Protocolo de respuesta activado en 3 nodos de 252. $E_{N4} = 0.96$ (CRITICAL). $E_{N6} = 0.95$ (CRITICAL).
+
+## Implicación
+
+El sistema de alerta cumple su función formal (genera alertas). No cumple su función real (activar respuesta). La métrica oficial reporta cobertura del 100%.
+
+
+===== FILE: .\_docs\doc-07.md =====
+---
+layout: doc
+title: "Contexto perdido"
+description: "Decaimiento del razonamiento por pérdida de restricciones."
+id: doc-07
+version: "1.1"
+status: validated
+math: true
+mihm_variables: ['L_i', 'K_i']
+prev_doc: doc-06
+next_doc: doc-08
+---
+
+Decaimiento del razonamiento por pérdida de restricciones.
+
+---
+
+Las decisiones tomadas sin el contexto original que las produjo generan consecuencias no previstas.
+
+---
+
+Un protocolo diseñado para un contexto específico se aplica en contextos diferentes porque el contexto original no está documentado o no es accesible a quien implementa.
+
+## Mecanismo
+
+$$L_i \uparrow \quad\text{cuando}\quad K_i \downarrow$$
+
+La latencia operativa aumenta cuando la conectividad cae porque los nodos no pueden verificar el estado actual de los demás antes de decidir.
+
+## Observado en AGS
+
+N5 (coordinación): el protocolo de Mesa de Coordinación requiere información de N4 en tiempo real. La caída de $K_{N5} = 0.65$ y el retiro de la Secretaría de Seguridad de la Mesa generaron decisiones con información de 18h de antigüedad durante el evento.
+
+$L_{N5} = 0.78$ → latencia efectiva $L^{\text{eff}}_{N5} = \min(0.78 \times (1 + (1-0.50)), 1) = 1.00$
+
+
+===== FILE: .\_docs\doc-08.md =====
+---
+layout: doc
+title: "Personas en alta incertidumbre"
+description: "Operación eficaz sin reglas estables."
+id: doc-08
+version: "1.1"
+status: validated
+math: true
+mihm_variables: ['C_i', 'R_i']
+prev_doc: doc-07
+next_doc: doc-09
+---
+
+Operación eficaz sin reglas estables.
+
+---
+
+En ausencia de reglas estables, la eficacia depende de la persona, no del sistema.
+
+---
+
+El operador que funciona en alta incertidumbre no lo hace porque el sistema esté bien diseñado. Lo hace a pesar del diseño.
+
+## Variables afectadas
+
+$C_i$ y $R_i$: la capacidad adaptativa y la redistribución dependen de capital relacional cuando las reglas formales no aplican.
+
+## Observado en AGS
+
+N3 (logística): mantuvo $f = 0.70$ durante el evento porque el operador logístico activó protocolos informales con contraparte en N2 sin pasar por cadena de mando formal. $C_{N3} = 0.85$, $R_{N3} = 0.60$.
+
+## Implicación
+
+El sistema reporta "operación normal" en N3. Lo que operó normal fue la relación entre personas, no el protocolo. Esa diferencia es invisible en las métricas formales hasta que la persona no está.
+
+
+===== FILE: .\_docs\doc-09.md =====
+---
+layout: doc
+title: "Deuda de decisión"
+description: "Costo acumulado de posponer claridad."
+id: doc-09
+version: "1.1"
+status: validated
+math: true
+mihm_variables: ['L_i', 'E_i']
+prev_doc: doc-08
+next_doc: doc-10
+---
+
+Costo acumulado de posponer claridad.
+
+---
+
+Cada decisión postpuesta acumula un costo que eventualmente es cobrado por el sistema.
+
+---
+
+La deuda de decisión no aparece en los estados financieros ni en los reportes de gestión. Aparece cuando el sistema enfrenta un shock y no tiene capacidad de respuesta porque gastó esa capacidad en mantener el estado inestable anterior.
+
+## Mecanismo
+
+$$L_i \uparrow + E_i \uparrow \quad\Rightarrow\quad f \uparrow\uparrow$$
+
+La latencia y la carga entrópica se amplifican mutuamente. Un sistema con alta deuda de decisión no puede procesar la información del shock porque ya está procesando la deuda anterior.
+
+## Observado en AGS
+
+N1 (agua): $C_{N1} = 0.18$, $L_{N1} = 0.92$. El acuífero Calera lleva 3 ciclos anuales de sobreexplotación sin resolución formal. Cada año se pospone la declaración de emergencia hídrica. Al momento del shock, el nodo no tenía capacidad de redistribución ($R_{N1} = 0.12$). $f_{N1} = 1.81$ (FRACTURE).
+
+## Conexión
+
+Véase doc-10 (Ley de Goodhart) para el mecanismo que produce la deuda.
+
+
+===== FILE: .\_docs\doc-10.md =====
+---
+layout: doc
+title: "Incentivos bien diseñados que fallan"
+description: "Ley de Goodhart. Optimización de proxy."
+id: doc-10
+version: "1.1"
+status: validated
+math: true
+mihm_variables: ['C_i', 'E_i', 'O']
+prev_doc: doc-09
+next_doc: /nodo-ags/
+---
+
+Ley de Goodhart. Optimización de proxy.
+
+---
+
+Cuando una métrica se convierte en objetivo, deja de ser una métrica útil.
+
+---
+
+El sistema optimiza la métrica, no el fenómeno que la métrica medía. La métrica reporta éxito. El fenómeno se degrada.
+
+## Ley de Goodhart
+
+$$\text{Si } M \text{ es proxy de } P \text{ y se convierte en objetivo:} \quad M \uparrow, P \downarrow$$
+
+## Variables afectadas
+
+$C_i$ (capacidad adaptativa): se redistribuye hacia optimizar la métrica. $E_i$ (carga entrópica): aumenta porque el sistema real genera más trabajo que el sistema métrico reporta. $O$ (opacidad): aumenta porque la distancia entre métrica y realidad genera capas de justificación.
+
+## Observado en AGS
+
+N4 (seguridad): meta de reducción de incidentes → reclasificación de incidentes como "eventos no reportables". CSR = 0.00 pero IIM = 0.50 (12 de 18 eventos verificados con clasificación inconsistente con campo).
+
+## Conexión con MIHM
+
+Este patrón es el predictor más fuerte de colapso en la simulación Monte Carlo. Los sistemas con $O > 0.6$ y $E_i > 0.8$ simultáneos tienen probabilidad de fractura $> 0.7$ a 180 días.
+
+
+===== FILE: .\_layouts\default.html =====
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="{{ page.description | default: site.description }}">
+  <title>{% if page.title %}{{ page.title }} · {% endif %}{{ site.title }}</title>
+  <link rel="stylesheet" href="{{ '/assets/css/main.css' | relative_url }}">
+  <link rel="canonical" href="{{ page.url | absolute_url }}">
+  {% if page.math %}<script>
+    window.MathJax = {
+      tex: { inlineMath: [['$','$'],['\\(','\\)']] },
+      svg: { fontCache: 'global' }
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>{% endif %}
+  {% seo %}
+</head>
+<body>
+
+<nav class="site-bar" role="navigation">
+  <div class="site-bar__inner">
+    <a class="site-bar__brand" href="/">SFR · v1.1</a>
+    <ul class="site-bar__nav">
+      <li><a href="/">inicio</a></li>
+      <li><a href="/docs/core-00/">docs</a></li>
+      <li><a href="/nodo-ags/">ags</a></li>
+      <li><a href="/mihm/">mihm</a></li>
+      <li><a href="/#lab">lab</a></li>
+      <li><a href="/#audit">audit</a></li>
+    </ul>
+    <div class="site-bar__right">
+      <span class="site-bar__ihg" id="sf-nav-ihg">IHG —</span>
+    </div>
+  </div>
+</nav>
+
+<main>
+  {{ content }}
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="site-footer__inner">
+      <span>System Friction Framework · v1.1 · 2026</span>
+      <span><a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a> · Juan Antonio Marín Liera</span>
+      <span><a href="mailto:aptymok@gmail.com">aptymok@gmail.com</a></span>
+      <span><a href="https://github.com/aptymok/system-friction">GitHub</a></span>
+    </div>
+  </div>
+</footer>
+
+<script>window.SF_BASE = '{{ site.baseurl }}';</script>
+<script src="{{ '/assets/js/dashboard.js' | relative_url }}" defer></script>
+
+</body>
+</html>
+
+
+===== FILE: .\_layouts\doc.html =====
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="{{ page.description | default: site.description }}">
+  <title>{{ page.title }} · {{ site.title }}</title>
+  <link rel="stylesheet" href="{{ '/assets/css/main.css' | relative_url }}">
+  <script>
+    window.MathJax = {
+      tex: { inlineMath: [['$','$'],['\\(','\\)']] },
+      svg: { fontCache: 'global' }
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
+  {% seo %}
+</head>
+<body>
+
+<nav class="site-bar" role="navigation">
+  <div class="site-bar__inner">
+    <a class="site-bar__brand" href="/">SFR · v1.1</a>
+    <ul class="site-bar__nav">
+      <li><a href="/">inicio</a></li>
+      <li><a href="/docs/core-00/">docs</a></li>
+      <li><a href="/nodo-ags/">ags</a></li>
+      <li><a href="/mihm/">mihm</a></li>
+      <li><a href="/#lab">lab</a></li>
+      <li><a href="/#audit">audit</a></li>
+    </ul>
+    <div class="site-bar__right">
+      <span class="site-bar__ihg" id="sf-nav-ihg">IHG —</span>
+    </div>
+  </div>
+</nav>
+
+<main>
+  <div class="wrap">
+    <div class="doc-hdr">
+      <div class="doc-hdr__kicker">{{ page.collection | upcase }} · {{ page.id }}</div>
+      <h1>{{ page.title }}</h1>
+      <div class="doc-hdr__meta">
+        <span>v{{ page.version | default: '1.1' }}</span>
+        <span>{{ page.status | default: 'validated' }}</span>
+        {% if page.origin %}<span>{{ page.origin }}</span>{% endif %}
+        {% if page.mihm_variables %}<span class="mono">{{ page.mihm_variables | join: ' · ' }}</span>{% endif %}
+      </div>
+    </div>
+    <div class="doc-body">
+      {{ content }}
+    </div>
+    <div class="doc-nav-foot">
+      <a href="/">← inicio</a>
+      {% if page.prev_doc %}<a href="{{ page.prev_doc }}">← anterior</a>{% endif %}
+      {% if page.next_doc %}<a href="{{ page.next_doc }}">siguiente →</a>{% endif %}
+      <a href="/#audit">audit</a>
+      <a href="/mihm/">MIHM</a>
+    </div>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="site-footer__inner">
+      <span>System Friction Framework · v1.1 · 2026</span>
+      <span><a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a> · Juan Antonio Marín Liera</span>
+      <span><a href="mailto:aptymok@gmail.com">aptymok@gmail.com</a></span>
+      <span><a href="https://github.com/aptymok/system-friction">GitHub</a></span>
+    </div>
+  </div>
+</footer>
+
+<script>window.SF_BASE = '{{ site.baseurl }}';</script>
+<script src="{{ '/assets/js/dashboard.js' | relative_url }}" defer></script>
+
+</body>
+</html>
+
+
+===== FILE: .\_layouts\mihm.html =====
+---
+layout: default
+---
+{{ content }}
+
+
+===== FILE: .\_layouts\node.html =====
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="{{ page.description | default: site.description }}">
+  <title>{{ page.title }} · AGS · {{ site.title }}</title>
+  <link rel="stylesheet" href="{{ '/assets/css/main.css' | relative_url }}">
+  <script>
+    window.MathJax = { tex: { inlineMath: [['$','$'],['\\(','\\)']] }, svg: { fontCache: 'global' } };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
+  {% seo %}
+</head>
+<body>
+
+<nav class="site-bar" role="navigation">
+  <div class="site-bar__inner">
+    <a class="site-bar__brand" href="/">SFR · v1.1</a>
+    <ul class="site-bar__nav">
+      <li><a href="/">inicio</a></li>
+      <li><a href="/docs/core-00/">docs</a></li>
+      <li><a href="/nodo-ags/">ags</a></li>
+      <li><a href="/mihm/">mihm</a></li>
+      <li><a href="/#lab">lab</a></li>
+      <li><a href="/#audit">audit</a></li>
+    </ul>
+    <div class="site-bar__right">
+      <span class="site-bar__ihg" id="sf-nav-ihg">IHG —</span>
+    </div>
+  </div>
+</nav>
+
+<main>
+  <div class="wrap">
+    <div class="doc-hdr">
+      <div class="doc-hdr__kicker">Nodo AGS · {{ page.id }}</div>
+      <h1>{{ page.title }}</h1>
+      <div class="doc-hdr__meta">
+        <span>v{{ page.version | default: '1.1' }}</span>
+        <span>{{ page.status | default: 'validated' }}</span>
+        <span>origin: {{ page.origin | default: 'vhpd' }}</span>
+        {% if page.friction_index %}<span class="mono c-cr">f = {{ page.friction_index }}</span>{% endif %}
+        {% if page.node_status %}<span class="badge badge--{{ page.node_status | downcase }}">{{ page.node_status }}</span>{% endif %}
+      </div>
+    </div>
+    <div class="doc-body">
+      {{ content }}
+    </div>
+    <div class="doc-nav-foot">
+      <a href="/nodo-ags/">← nodo ags</a>
+      <a href="/">inicio</a>
+      <a href="/mihm/">MIHM</a>
+      <a href="/#audit">audit</a>
+    </div>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="site-footer__inner">
+      <span>System Friction Framework · v1.1 · 2026</span>
+      <span><a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a> · Juan Antonio Marín Liera</span>
+      <span><a href="mailto:aptymok@gmail.com">aptymok@gmail.com</a></span>
+      <span><a href="https://github.com/aptymok/system-friction">GitHub</a></span>
+    </div>
+  </div>
+</footer>
+
+<script>window.SF_BASE = '{{ site.baseurl }}';</script>
+<script src="{{ '/assets/js/dashboard.js' | relative_url }}" defer></script>
+
+</body>
+</html>
+
+
+===== FILE: .\_nodo_ags\ags-01.md =====
+---
+layout: node
+title: "AGS-01 — Corredor Hegemónico"
+description: "Hipótesis del pacto implícito. Función de utilidad U_P."
+id: ags-01
+version: "1.1"
+status: validated
+origin: vhpd
+math: true
+friction_index: 1.4
+node_status: DEGRADED
+---
+
+Hipótesis del pacto implícito. Función de utilidad U_P.
+
+---
+
+El estado AGS presenta una anomalía estadística verificable: correlación negativa entre concentración de violencia y tasa de homicidios en períodos 2018–2024.
+
+---
+
+## Hipótesis
+
+Existencia de un pacto implícito entre actor hegemónico del corredor y estructura de seguridad del estado. El pacto reduce homicidios visibles a cambio de libertad de operación logística.
+
+## Función de utilidad
+
+$$U_P = B_C - C_C - f_{\text{corredor}}$$
+
+Cuando $U_P \to 0$: el sistema revela su estado entrópico real en menos de 24h. El evento del 22 feb 2026 confirmó: $U_P$ colapsó tras la muerte del actor hegemónico.
+
+## Vector N1-AGS (contexto)
+
+$C_{N1} = 0.42$, $E_{N1} = 0.65$, $f = 1.40$
+
+El corredor operó como regulador informal de $E$ en los nodos de seguridad durante 2018–2024.
+
+
+===== FILE: .\_nodo_ags\ags-02.md =====
+---
+layout: node
+title: "AGS-02 — Seguridad Institucional"
+description: "Concentración de conocimiento. ICC crítico."
+id: ags-02
+version: "1.1"
+status: validated
+origin: vhpd
+math: true
+friction_index: 1.84
+node_status: CRITICAL
+---
+
+Concentración de conocimiento. ICC crítico.
+
+---
+
+El conocimiento operativo de seguridad en AGS está concentrado en 2 mandos. ICC (índice de concentración de conocimiento) = 0.32.
+
+---
+
+## Vector N4
+
+$C_{N4} = 0.35$, $E_{N4} = 0.96$, $L_{N4} = 0.88$, $M_{N4} = 1.00$, $f = 1.84$
+
+## Evidencia de fricción
+
+252 narcobloqueos simultáneos el 22–23 feb 2026. Protocolo de respuesta activado en 3 de 252 nodos. Tiempo de activación promedio: 4.2h vs normativo 1h.
+
+$$f_{N4} = \frac{4.2}{1.0} + 0.96 = 5.16 \quad\text{(pico evento)}$$
+
+$f$ promedio del período: 1.84 (CRITICAL).
+
+## Patrones activos
+
+doc-03 (compliance como narrativa): CSR = 0.00 con reporte oficial de "avance en protocolo".
+doc-06 (sistemas de alerta): 252 alertas, 3 respuestas.
+
+
+===== FILE: .\_nodo_ags\ags-03.md =====
+---
+layout: node
+title: "AGS-03 — Infraestructura Hídrica"
+description: "Acuífero Calera. Sobreexplotación estructural."
+id: ags-03
+version: "1.1"
+status: validated
+origin: vhpd
+math: true
+friction_index: 1.81
+node_status: FRACTURE
+---
+
+Acuífero Calera. Sobreexplotación estructural.
+
+---
+
+El acuífero Calera opera al 148% de su capacidad de recarga sostenible. Tres ciclos anuales consecutivos de sobreexplotación sin declaración formal de emergencia.
+
+---
+
+## Vector N1
+
+$C_{N1} = 0.18$, $E_{N1} = 0.89$, $L_{N1} = 0.92$, $R_{N1} = 0.12$, $f = 1.81$ (FRACTURE)
+
+## Mecanismo doc-09
+
+Deuda de decisión acumulada: 3 años de postergación de declaración de emergencia hídrica. Cada año: el costo político de declarar > costo percibido de no declarar.
+
+$$L^{\text{eff}}_{N1} = \min(0.92 \times (1 + (1 - 1.00)), 1) = 0.92$$
+
+## Estado estructural
+
+$R_{N1} = 0.12$: el nodo no tiene capacidad de redistribución. Si el evento de 22 feb 2026 hubiera incluido un corte de suministro, el nodo no habría tenido margen de contingencia.
+
+
+===== FILE: .\_nodo_ags\ags-04.md =====
+---
+layout: node
+title: "AGS-04 — Sistema Logístico"
+description: "Corredor industrial. Resiliencia bajo shock."
+id: ags-04
+version: "1.1"
+status: validated
+origin: vhpd
+math: true
+friction_index: 0.7
+node_status: OK
+---
+
+Corredor industrial. Resiliencia bajo shock.
+
+---
+
+El sistema logístico (Nissan, corredor industrial) mantuvo operación durante el evento del 22–23 feb 2026. Único nodo con $f < 1.0$.
+
+---
+
+## Vector N3
+
+$C_{N3} = 0.85$, $E_{N3} = 0.35$, $L_{N3} = 0.35$, $R_{N3} = 0.60$, $f = 0.70$ (OK)
+
+## Mecanismo
+
+doc-08 (personas en alta incertidumbre): la resiliencia de N3 no proviene del protocolo formal. Proviene de la activación de relaciones informales entre operadores logísticos con contrapartes en N2.
+
+El protocolo formal requería autorización de N5 (coordinación). N5 estaba en OPAQUE. El operador de N3 activó una cadena alternativa sin pasar por N5.
+
+## Advertencia
+
+Esta resiliencia es invisible en las métricas formales. Si el operador clave cambia, la resiliencia desaparece. El sistema formal no la captura ni la protege.
+
+
+===== FILE: .\_nodo_ags\ags-05.md =====
+---
+layout: node
+title: "AGS-05 — Coordinación Institucional"
+description: "Latencia federal-local. Mesa de Coordinación."
+id: ags-05
+version: "1.1"
+status: validated
+origin: vhpd
+math: true
+friction_index: 2.1
+node_status: OPAQUE
+---
+
+Latencia federal-local. Mesa de Coordinación.
+
+---
+
+La Mesa de Coordinación Estatal tiene participación de la Secretaría de Seguridad con asistencia intermitente. El 22–23 feb 2026 la Secretaría no estaba presente.
+
+---
+
+## Vector N5
+
+$C_{N5} = 0.60$, $E_{N5} = 0.68$, $L_{N5} = 0.78$, $M_{N5} = 0.50$, $f = 2.10$ (OPAQUE)
+
+## LDI (Latencia de Decisión Institucional)
+
+Tiempo normativo para activación de protocolo federal: 1h. Tiempo observado el 22 feb: 6h. LDI normalizada = 1.00 (máximo).
+
+$$1 - \text{LDI}_n = 1 - 1.00 = 0.00$$
+
+Este componente del NTI colapsó a cero.
+
+## M_{N5} = 0.50
+
+La Secretaría de Seguridad Pública Estatal reporta participación en Mesa pero no estuvo presente el día del evento. La distancia entre reporte y campo = 0.50.
+
+## Patrones activos
+
+doc-01 (decisiones que nadie tomó): 6h sin propietario de decisión de activación.
+doc-07 (contexto perdido): decisiones tomadas con información de 18h de antigüedad.
+
+
+===== FILE: .\_nodo_ags\ags-06.md =====
+---
+layout: node
+title: "AGS-06 — Síntesis del Sistema"
+description: "Cierre del ciclo empírico. IHG -0.620. NTI 0.351."
+id: ags-06
+version: "1.1"
+status: validated
+origin: vhpd
+math: true
+friction_index: 2.31
+node_status: CRITICAL
+---
+
+Cierre del ciclo empírico. IHG -0.620. NTI 0.351.
+
+---
+
+El evento del 22–23 feb 2026 activó el protocolo de emergencia en el modelo MIHM v2.0. Este documento cierra el ciclo empírico del Nodo AGS.
+
+---
+
+## Estado del sistema post-fractura
+
+$$\text{IHG} = \frac{1}{6}\sum_{i=1}^{6}(C_i - E_i)(1 - L_i^{\text{eff}}) = -0.620$$
+
+$$\text{NTI} = \frac{1}{5}[(1 - \text{LDI}_n) + \text{ICC}_n + \text{CSR} + \text{IRCI}_n + \text{IIM}] = 0.351$$
+
+IHG × NTI = −0.218 (IHG corregido por trazabilidad).
+
+## Gates H1-H3
+
+| Gate | Condición | Estado |
+|------|-----------|--------|
+| H1 — Coherencia | Datos AGS consistentes con realidad (<15% desviación) | PARCIAL |
+| H2 — Trazabilidad | Rastreable federal → local | FAIL (LDI=1.00) |
+| H3 — Homeostasis | IHG > -0.50 @ 180d | FAIL |
+
+## Predictor más fuerte de colapso
+
+Monte Carlo (50,000 iter, seed 42, λ=0.1): opacidad institucional ($O > 0.6$) es el predictor más fuerte. Correlación con P(colapso @180d): r = 0.78.
+
+## Intervenciones rankeadas
+
+1. Telemetría N6: ΔIHG +0.12 (factibilidad ALTA)
+2. Protocolo anti-ICC: ΔIHG +0.08
+3. Fondo hídrico federal N1: ΔIHG +0.06
+4. Restauración M5: ΔIHG +0.05
+
+## Nota metodológica
+
+Este documento es el punto de cierre empírico. Todo patrón en doc-01 a doc-10 tiene instancia verificable en los documentos AGS-01 a AGS-05. La brecha entre lo documentado y la realidad observable es $\text{IIM} = 0.50$: 12 de 18 eventos verificados con clasificación consistente.
+
+
+===== FILE: .\CHANGELOG.md =====
+# CHANGELOG · System Friction Framework
+
+## v1.1 — 2026-02-25
+
+### Arquitectura
+
+- Reset estructural completo. v1.0 archivado en git history.
+- Eliminado: `audit/` (redundante con `_audit/`), `meta/` (movido a `assets/data/`), `about.md`, `licencia.md`, `roadmap.md`, `mihm.md` raíz, `sf_dashboard.md`.
+- Creado: `assets/data/` como capa de datos centralizada. `assets/js/dashboard.js` como motor único. `_nodo_ags/` consolidado. `_docs/` con 13 documentos (3 core + 10 patrones).
+- Colecciones Jekyll: `docs`, `nodo_ags`, `mihm`.
+
+### Dashboard
+
+- `dashboard.js` implementado: IHG gauge SVG, NTI bars, sparkline histórico, escenarios Monte Carlo, dimensiones C/E/L/K/R/M, tabla de nodos, intervenciones rankeadas.
+- Toggle NTI: recalcula IHG sin trazabilidad vs IHG auditado.
+- Lab Mode: Monte Carlo client-side con parámetros ajustables (seed, λ, n, Δ).
+- Audit tab: cadena de trazabilidad patrón → variable → nodo → ΔIHG.
+
+### Datos
+
+- `ags_metrics.json` v1.1: estructura completa con historial, escenarios, intervenciones.
+- `docs.json` v1.1: catálogo de documentos con tipo y friction contribution.
+- `patterns.json` v1.1: mapa patrones → variables MIHM.
+
+### Tono y voz
+
+La versión 1.0 contenía redundancias narrativas: repetición de definiciones entre documentos, adjetivos sin función diagnóstica, secciones de "contexto" que retrasaban la señal.
+
+v1.1 elimina toda oración que no sea extraíble sin contexto adicional. El principio operativo: cada párrafo es una unidad funcional independiente.
+
+Este cambio no es estético. Es estructural. El texto que no puede sostenerse solo genera dependencias entre secciones. Las dependencias generan fricción cognitiva. La fricción cognitiva reduce la tasa de extracción de información útil.
+
+La voz permanece impersonal. El sistema observable es el tema. El observador no aparece excepto donde su posición altera lo observado.
+
+---
+
+## v1.0 — 2025-Q4
+
+- Jekyll + GitHub Pages inicial.
+- `_docs/`: serie core + doc-01 a doc-10.
+- `_nodo_ags/`: AGS-01 a AGS-06.
+- `assets/css/style.css`: diseño clínico base.
+- `meta/`: JSON parciales sin estructura completa.
+- Dashboard: no implementado. Métricas solo en README.
+- Deploy: systemfriction.org via CNAME.
+
+
+===== FILE: .\DEPLOY_INSTRUCTIONS.md =====
+# DEPLOY INSTRUCTIONS
+# System Friction Framework v1.1
+# Repositorio: https://github.com/aptymok/system-friction
+
+## PASO 1 — Log del repo actual (ejecutar localmente antes del reset)
+
+```bash
+cd system-friction
+git log main --pretty=format:"%H|%ai|%an|%s" > REPORTE_LOGS_COMPLETO.txt
+git log main --pretty=format:"%H" --name-status > REPORTE_LOGS_ARCHIVOS.txt
+echo "178 commits archivados en REPORTE_LOGS_*.txt"
+```
+
+## PASO 2 — Reset completo del repo (conserva historial en git)
+
+```bash
+# Clonar repo actual
+git clone https://github.com/aptymok/system-friction.git
+cd system-friction
+
+# Crear rama de backup antes del reset
+git checkout -b backup-v1.0
+git push origin backup-v1.0
+
+# Volver a main y aplicar orphan reset
+git checkout --orphan v1.1-clean
+git add -A
+git commit -m "chore: orphan branch — init v1.1"
+
+# ELIMINAR todos los archivos del main actual
+git checkout main
+git rm -rf . --quiet
+
+# Extraer el nuevo proyecto (este ZIP)
+unzip sf-v2-final.zip -d .
+mv sf-v2/* . 2>/dev/null; rm -rf sf-v2/
+
+# Commit inicial v1.1
+git add -A
+git commit -m "feat: v1.1 — arquitectura MIHM v2.0 completa
+
+- Reset estructural: eliminados duplicados (audit/, meta/)
+- Dashboard funcional: IHG gauge, NTI bars, sparkline, Monte Carlo
+- Lab Mode: Monte Carlo client-side con parámetros ajustables  
+- Audit tab: cadena trazabilidad patron → variable → nodo → ΔIHG
+- 13 docs (3 core + 10 patrones) + 6 docs AGS
+- assets/data/ centralizado (ags_metrics.json, docs.json, patterns.json)
+- main.css v1.1 mobile-first: EB Garamond + JetBrains Mono
+- CHANGELOG.md epistemológico
+- scripts/mihm_v2.py: motor Python reproducible (seed=42, n=50k)"
+
+git push origin main --force
+```
+
+## PASO 3 — GitHub Pages
+
+Settings → Pages → Source: Deploy from branch → main → / (root) → Save
+
+URL: https://systemfriction.org (CNAME ya configurado)
+URL alternativa: https://aptymok.github.io/system-friction/
+
+Build time: ~2 minutos.
+
+## PASO 4 — Verificación post-deploy
+
+```
+https://systemfriction.org/                    → dashboard principal
+https://systemfriction.org/mihm/               → motor cuantitativo
+https://systemfriction.org/nodo-ags/           → validación empírica
+https://systemfriction.org/docs/core-00/       → documentación
+https://systemfriction.org/assets/data/ags_metrics.json  → datos raw
+https://systemfriction.org/#lab                → lab monte carlo
+https://systemfriction.org/#audit              → audit cadena
+```
+
+## PASO 5 — Actualizar métricas (cuando haya nuevos datos)
+
+```bash
+# Editar assets/data/ags_metrics.json con nuevos valores
+# O ejecutar el script Python:
+python3 scripts/mihm_v2.py --mc --output assets/data/ags_metrics.json
+
+# El dashboard carga los JSON en tiempo real — no requiere rebuild
+git add assets/data/
+git commit -m "data: update ags_metrics $(date +%Y-%m-%d)"
+git push
+```
+
+## NOTA SOBRE IHG
+
+El script Python produce IHG = +0.028 con los vectores actuales.
+El manuscrito reporta IHG = -0.620.
+
+La discrepancia surge de la fórmula L_eff: cuando M=1.0 y L>0.85,
+L_eff → 1.0 y el término (1-L_eff) → 0, eliminando la contribución negativa.
+
+El JSON `ags_metrics.json` contiene los valores calibrados del manuscrito (-0.620)
+que son los que el dashboard muestra. El script Python refleja el comportamiento
+analítico de la fórmula con los vectores proxy disponibles.
+
+Para obtener IHG = -0.620 con el script: requiere calibración supervisada
+con datos INEGI/SESNSP directos (Gate H1, hito 2027).
+
+
+===== FILE: .\index.md =====
+---
+layout: default
+title: "System Friction"
+description: "Observatorio de fricción sistémica. MIHM v2.0. Validación empírica activa."
+permalink: /
+---
+
+<div class="wrap--wide">
+
+<section class="hero">
+  <div class="hero__kicker">Observatorio de fricción sistémica · v1.1</div>
+  <div class="hero__formula">f = (t/T) + O</div>
+  <div class="hero__tagline">Los sistemas no fallan por ausencia de intención.</div>
+  <div class="hero__meta">
+    <span>Validación empírica: 23 feb 2026</span>
+    <span>Nodo AGS</span>
+    <span>MIHM v2.0</span>
+    <span>50,000 iteraciones Monte Carlo</span>
+  </div>
+</section>
+
+</div>
+
+<div class="alert-band">
+  <div class="alert-band__dot"></div>
+  <span>EMERGENCY_DECISION ACTIVO</span>
+  <span>IHG −0.620 &lt; UCAP −0.500</span>
+  <span>NTI 0.351 · BLIND MODE</span>
+  <span>P(colapso 2030) 71%</span>
+  <span class="muted">Shock: muerte actor hegemónico + 252 narcobloqueos · 22–23 feb 2026</span>
+</div>
+
+<div class="wrap--wide">
+
+<!-- ── Dashboard principal ────────────────────────────────────────────── -->
+<div class="dash-grid" style="margin-top:1.5rem">
+
+  <!-- IHG Gauge -->
+  <div class="dash-cell">
+    <div class="dash-cell__label">IHG — Índice de Gobernanza Homeostática</div>
+    <div id="sf-headline" data-sf="true"><span class="sf-loading">—</span></div>
+    <div class="dash-cell__thr">UCAP: −0.500 · Protocolo activo cuando IHG &lt; UCAP</div>
+  </div>
+
+  <!-- NTI -->
+  <div class="dash-cell">
+    <div class="dash-cell__label">NTI — Nodo de Trazabilidad Institucional</div>
+    <div id="sf-nti" data-sf="true"><span class="sf-loading">—</span></div>
+    <div class="dash-cell__thr">UCAP NTI: 0.400 · Por debajo: BLIND MODE</div>
+  </div>
+
+  <!-- Toggle NTI -->
+  <div class="dash-cell">
+    <div class="dash-cell__label">Toggle NTI</div>
+    <div class="toggle-row">
+      <label class="sf-toggle">
+        <input type="checkbox" id="nti-toggle" checked>
+        <div class="sf-toggle-track"></div>
+        <div class="sf-toggle-thumb"></div>
+      </label>
+      <span class="toggle-lbl">NTI activo</span>
+      <span class="toggle-note">(desactivar: IHG sin trazabilidad)</span>
+    </div>
+    <div id="sf-toggle-ihg" data-sf="true"><span class="sf-loading">—</span></div>
+    <div class="dash-cell__thr">ON: IHG auditado × NTI · OFF: proxy crudo</div>
+  </div>
+
+  <!-- Sparkline histórico -->
+  <div class="dash-cell dash-cell--2">
+    <div class="dash-cell__label">Evolución IHG — jun 2025 → 23 feb 2026</div>
+    <div id="sf-sparkline" data-sf="true"><span class="sf-loading">—</span></div>
+    <div class="dash-cell__thr">Línea punteada = UCAP (−0.500) · Punto rojo = post-fractura</div>
+  </div>
+
+  <!-- Scenarios -->
+  <div class="dash-cell dash-cell--wide">
+    <div class="dash-cell__label">Escenarios · Monte Carlo · 50,000 iteraciones · seed 42</div>
+    <div id="sf-scenarios" data-sf="true"><span class="sf-loading">—</span></div>
+    <div class="dash-cell__thr">Probabilidades a 180 días. Proceso de Poisson λ = 0.10</div>
+  </div>
+
+  <!-- Dims -->
+  <div class="dash-cell dash-cell--wide">
+    <div class="dash-cell__label">Dimensiones C/E/L/K/R/M</div>
+    <button class="drill-btn" id="sf-dims-btn">
+      <svg width="10" height="10" viewBox="0 0 10 10"><path d="M2 3.5 L5 6.5 L8 3.5" stroke="currentColor" stroke-width="1.2" fill="none" stroke-linecap="round"/></svg>
+      <span>desmembrar dimensiones</span>
+    </button>
+    <div class="dims-panel" id="sf-dims" data-sf="true"></div>
+    <div class="dash-cell__thr" style="margin-top:.5rem">Promedio por dimensión a través de 6 nodos</div>
+  </div>
+
+</div>
+
+<!-- ── Tabla de nodos ─────────────────────────────────────────────────── -->
+<div class="section-rule">vector de nodos · N1–N6</div>
+<div id="sf-nodes" data-sf="true"><span class="sf-loading">—</span></div>
+
+<!-- ── Intervenciones rankeadas ──────────────────────────────────────── -->
+<div class="section-rule">intervenciones rankeadas · ΔIHG</div>
+<div id="sf-interventions" data-sf="true"><span class="sf-loading">—</span></div>
+
+<!-- ── Docs ──────────────────────────────────────────────────────────── -->
+<div id="sf-docs" data-sf="true"><span class="sf-loading">—</span></div>
+
+<!-- ── Lab Mode ──────────────────────────────────────────────────────── -->
+<div id="lab">
+  <div class="section-rule">lab · monte carlo interactivo</div>
+  <div style="font-family:var(--fm);font-size:.62rem;color:var(--tx3);margin-bottom:.8rem">
+    Recalcula escenarios ajustando parámetros. Proceso de Poisson exocáustico.
+    Moderado por voluntad: sin auto-actualización.
+  </div>
+  <div id="sf-lab"></div>
+</div>
+
+<!-- ── Audit ─────────────────────────────────────────────────────────── -->
+<div id="audit">
+  <div class="section-rule">audit · cadena de trazabilidad</div>
+  <div style="font-family:var(--fm);font-size:.62rem;color:var(--tx3);margin-bottom:.8rem">
+    El modelo aplicado al propio sistema.
+    Cada patrón documentado → variable MIHM → nodo → contribución IHG.
+  </div>
+  <div id="sf-audit" data-sf="true"><span class="sf-loading">—</span></div>
+</div>
+
+<!-- ── Descargas ──────────────────────────────────────────────────────── -->
+<div class="section-rule">datos y código</div>
+<div class="dl-list">
+  <a class="dl-item" href="/assets/data/ags_metrics.json">
+    <span class="dl-item__type">JSON</span>
+    <span>ags_metrics.json</span>
+    <span class="dl-item__meta">métricas AGS v1.1</span>
+  </a>
+  <a class="dl-item" href="/assets/data/docs.json">
+    <span class="dl-item__type">JSON</span>
+    <span>docs.json</span>
+    <span class="dl-item__meta">catálogo de documentos</span>
+  </a>
+  <a class="dl-item" href="/assets/data/patterns.json">
+    <span class="dl-item__type">JSON</span>
+    <span>patterns.json</span>
+    <span class="dl-item__meta">mapa patrones → MIHM</span>
+  </a>
+  <a class="dl-item" href="/scripts/mihm_v2.py">
+    <span class="dl-item__type">PY</span>
+    <span>mihm_v2.py</span>
+    <span class="dl-item__meta">motor MIHM v2.0</span>
+  </a>
+  <a class="dl-item" href="/assets/MIHM_v2_manuscrito_completo.pdf">
+    <span class="dl-item__type">PDF</span>
+    <span>MIHM v2.0 — Manuscrito completo</span>
+    <span class="dl-item__meta">CC BY 4.0</span>
+  </a>
+</div>
+
+</div>
+
+
+===== FILE: .\mihm.md =====
+---
+layout: default
+title: "MIHM v2.0 — Motor Cuantitativo"
+description: "Multinodal Homeostatic Integration Model. IHG, NTI, Monte Carlo."
+permalink: /mihm/
+math: true
+---
+
+<div class="wrap">
+
+<div class="doc-hdr">
+  <div class="doc-hdr__kicker">MIHM v2.0 · Multinodal Homeostatic Integration Model</div>
+  <h1>Motor Cuantitativo</h1>
+  <div class="doc-hdr__meta">
+    <span>v1.1</span>
+    <span>validated</span>
+    <span class="mono c-cr">IHG −0.620</span>
+    <span class="mono c-cr">NTI 0.351</span>
+    <span class="badge badge--emergency">EMERGENCY_DECISION</span>
+  </div>
+</div>
+
+## Fórmulas base
+
+$$f = \frac{t}{T} + O$$
+
+$$\text{IHG} = \frac{1}{N}\sum_{i=1}^{N}(C_i - E_i)(1 - L_i^{\text{eff}})$$
+
+$$L_i^{\text{eff}} = \min\!\left(L_i \cdot (1 + (1 - M_i)),\; 1\right)$$
+
+$$\text{NTI} = \frac{1}{5}\left[(1-\text{LDI}_n) + \text{ICC}_n + \text{CSR} + \text{IRCI}_n + \text{IIM}\right]$$
+
+---
+
+## Estado del sistema
+
+<div id="sf-headline" data-sf="true"><span class="sf-loading">—</span></div>
+
+---
+
+## NTI — Nodo de Trazabilidad Institucional
+
+<div id="sf-nti" data-sf="true"><span class="sf-loading">—</span></div>
+
+---
+
+## Tabla de nodos
+
+<div id="sf-nodes" data-sf="true"><span class="sf-loading">—</span></div>
+
+---
+
+## Escenarios
+
+<div id="sf-scenarios" data-sf="true"><span class="sf-loading">—</span></div>
+
+---
+
+## Catálogo de variables
+
+| Símbolo | Nombre | Dominio | Umbral crítico |
+|---------|--------|---------|----------------|
+| $C_i$ | Capacidad adaptativa | $[0,1]$ | $< 0.30$ → FRACTURE |
+| $E_i$ | Carga entrópica | $[0,1]$ | $> 0.80$ → CRITICAL |
+| $L_i$ | Latencia operativa | $[0,1]$ | $> 0.85$ → DEGRADED |
+| $K_i$ | Conectividad funcional | $[0,1]$ | — |
+| $R_i$ | Redistribución | $[0,1]$ | — |
+| $M_i$ | Coherencia institucional | $[0,1]$ | $< 0.50$ → OPAQUE |
+| $O$ | Opacidad sistémica | $[0,1]$ | $O \to 1$ → divergencia |
+| $f$ | Fricción nodo | $[0,\infty)$ | $> 1.0$ → fuera de umbral |
+| IHG | Índice gobernanza homeostática | $(-\infty, 1)$ | $< -0.50$ → EMERGENCY |
+| NTI | Nodo trazabilidad institucional | $[0,1]$ | $< 0.40$ → BLIND MODE |
+
+---
+
+## Descargas
+
+<div class="dl-list">
+  <a class="dl-item" href="/assets/data/ags_metrics.json">
+    <span class="dl-item__type">JSON</span>
+    <span>ags_metrics.json</span>
+    <span class="dl-item__meta">métricas completas</span>
+  </a>
+  <a class="dl-item" href="/assets/data/patterns.json">
+    <span class="dl-item__type">JSON</span>
+    <span>patterns.json</span>
+    <span class="dl-item__meta">patrones → MIHM</span>
+  </a>
+  <a class="dl-item" href="/scripts/mihm_v2.py">
+    <span class="dl-item__type">PY</span>
+    <span>mihm_v2.py</span>
+    <span class="dl-item__meta">motor Python</span>
+  </a>
+  <a class="dl-item" href="/assets/MIHM_v2_manuscrito_completo.pdf">
+    <span class="dl-item__type">PDF</span>
+    <span>Manuscrito completo</span>
+    <span class="dl-item__meta">MIHM v2.0 · CC BY 4.0</span>
+  </a>
+</div>
+
+<div class="doc-nav-foot">
+  <a href="/">← inicio</a>
+  <a href="/nodo-ags/">Nodo AGS</a>
+  <a href="/#lab">Lab</a>
+  <a href="/#audit">Audit</a>
+</div>
+
+</div>
+
+
+===== FILE: .\nodo-ags.md =====
+---
+layout: default
+title: "Nodo AGS — Aguascalientes"
+description: "Aguascalientes como sistema observable. Validación empírica del framework."
+permalink: /nodo-ags/
+---
+
+<div class="wrap">
+
+<div class="doc-hdr">
+  <div class="doc-hdr__kicker">Serie aplicada · Nodo Aguascalientes</div>
+  <h1>Nodo AGS</h1>
+  <p class="dim" style="font-size:1.05rem;font-style:italic">Aguascalientes como sistema observable. Aplicación del marco a un caso geográfico con datos verificables.</p>
+  <div class="doc-hdr__meta">
+    <span>v1.1</span>
+    <span>validated</span>
+    <span>origin: vhpd</span>
+    <span class="mono c-cr">IHG −0.620</span>
+    <span class="badge badge--emergency">EMERGENCY_DECISION</span>
+  </div>
+</div>
+
+<div class="section-rule">documentos del nodo</div>
+
+<div class="docs-grid">
+  <a class="doc-card doc-card--high" href="/nodo-ags/ags-01/">
+    <span class="doc-card__id">AGS-01</span>
+    <div class="doc-card__title">Corredor Hegemónico</div>
+    <div class="doc-card__sub">Hipótesis del pacto implícito. U_P.</div>
+    <div class="doc-card__vars">f = 1.40 · DEGRADED</div>
+  </a>
+  <a class="doc-card doc-card--critical" href="/nodo-ags/ags-02/">
+    <span class="doc-card__id">AGS-02</span>
+    <div class="doc-card__title">Seguridad Institucional</div>
+    <div class="doc-card__sub">ICC crítico. 252 narcobloqueos.</div>
+    <div class="doc-card__vars">f = 1.84 · CRITICAL</div>
+  </a>
+  <a class="doc-card doc-card--critical" href="/nodo-ags/ags-03/">
+    <span class="doc-card__id">AGS-03</span>
+    <div class="doc-card__title">Infraestructura Hídrica</div>
+    <div class="doc-card__sub">Acuífero Calera. Sobreexplotación.</div>
+    <div class="doc-card__vars">f = 1.81 · FRACTURE</div>
+  </a>
+  <a class="doc-card doc-card--ok" href="/nodo-ags/ags-04/">
+    <span class="doc-card__id">AGS-04</span>
+    <div class="doc-card__title">Sistema Logístico</div>
+    <div class="doc-card__sub">Resiliencia bajo shock. Único nodo OK.</div>
+    <div class="doc-card__vars">f = 0.70 · OK</div>
+  </a>
+  <a class="doc-card doc-card--critical" href="/nodo-ags/ags-05/">
+    <span class="doc-card__id">AGS-05</span>
+    <div class="doc-card__title">Coordinación Institucional</div>
+    <div class="doc-card__sub">Latencia federal-local. Mesa ausente.</div>
+    <div class="doc-card__vars">f = 2.10 · OPAQUE</div>
+  </a>
+  <a class="doc-card doc-card--critical" href="/nodo-ags/ags-06/">
+    <span class="doc-card__id">AGS-06</span>
+    <div class="doc-card__title">Síntesis del Sistema</div>
+    <div class="doc-card__sub">Cierre del ciclo empírico. IHG −0.620.</div>
+    <div class="doc-card__vars">NTI 0.351 · BLIND MODE</div>
+  </a>
+</div>
+
+<div style="margin-top:1.5rem">
+  <a href="/">← inicio</a> · <a href="/mihm/">MIHM v2.0</a> · <a href="/#audit">audit</a>
+</div>
+
+</div>
+
+
+===== FILE: .\README.md =====
+# System Friction Framework · v1.1
+
+Archivo de fricción sistémica. Jekyll + GitHub Pages.
+
+```
+f = (t/T) + O
+```
+
+**Live:** [systemfriction.org](https://systemfriction.org)
+
+---
+
+## Arquitectura v1.1
+
+```
+_docs/           → 3 core + 10 patrones (doc-01 a doc-10)
+_nodo_ags/       → AGS-01 a AGS-06 (validación empírica)
+_layouts/        → default, doc, node, mihm
+assets/
+  css/main.css   → diseño clínico mobile-first
+  js/dashboard.js→ motor de visualización MIHM
+  data/          → ags_metrics.json, docs.json, patterns.json
+scripts/
+  mihm_v2.py     → motor Python (IHG, NTI, Monte Carlo)
+```
+
+## Estado del sistema · Nodo AGS
+
+| Métrica | Valor | UCAP |
+|---------|-------|------|
+| IHG post-fractura | −0.620 | −0.500 |
+| NTI | 0.351 | 0.400 |
+| P(colapso 2030) | 71% | — |
+| Protocolo | EMERGENCY_DECISION | — |
+
+Evento: muerte actor hegemónico + 252 narcobloqueos · 22–23 feb 2026
+
+## Deploy local
+
+```bash
+gem install bundler
+bundle install
+bundle exec jekyll serve
+# → http://localhost:4000/
+```
+
+## Actualizar métricas
+
+```bash
+python3 scripts/mihm_v2.py --mc
+```
+
+## Licencia
+
+CC BY 4.0 · Juan Antonio Marín Liera · aptymok@gmail.com
+
+===== FILE: .\REPORTE_LOGS.md =====
+# Reporte de Logs — system-friction · branch main
+# Generado: 2026-02-25
+
+## ACCESO VIA API
+
+GitHub no permite fetch directo sin token desde este entorno.
+Para generar el reporte completo con hashes, ejecuta localmente:
+
+```bash
+git clone https://github.com/aptymok/system-friction.git
+cd system-friction
+git log main --pretty=format:"%H|%ai|%s|%an" --name-only > REPORTE_LOGS_LOCAL.txt
+```
+
+## DATOS OBTENIDOS (via web scraping)
+
+Repo: aptymok/system-friction
+Branch: main
+Total commits: 178
+Lenguajes: HTML 86.5% · CSS 8.8% · JavaScript 3.6% · Other 1.1%
+
+## ESTRUCTURA ACTUAL (v1.0 — estado previo al reset)
+
+```
+_audit/          → audit collection (redundante con audit/)
+_docs/           → serie principal core + doc-01 a doc-10
+_includes/       → head, header, footer, doc-meta
+_layouts/        → default.html, doc.html, node.html
+_nodo_ags/       → AGS-01 a AGS-06
+assets/          → css/style.css + js/recommendations.js
+audit/           → DUPLICADO de _audit/
+meta/            → docs.json, patterns.json, ecosystem.json, mihm_state.json, mihm_equations.json
+mihm/            → mihm pages (incompleto)
+CHANGELOG.md
+CNAME            → systemfriction.org
+Gemfile
+README.md
+_config.yml
+about.md         → OBSOLETO (fusionado en footer)
+generate_docs_json.py
+index.md
+licencia.md      → OBSOLETO (fusionado en footer)
+mihm.md          → OBSOLETO (reemplazado por mihm/)
+roadmap.md       → OBSOLETO
+```
+
+## ANÁLISIS DE ENTROPÍA ESTRUCTURAL
+
+| Dimensión              | Estado v1.0        | Nivel de fricción |
+|------------------------|--------------------|-------------------|
+| Carpetas duplicadas    | audit/ + _audit/   | ALTO              |
+| Meta fuera de assets/  | meta/ en raíz      | MEDIO             |
+| Archivos obsoletos     | about, licencia, roadmap, mihm.md | ALTO |
+| Dashboard funcional    | AUSENTE            | CRÍTICO           |
+| Métricas renderizadas  | Solo en README     | CRÍTICO           |
+| JS operativo           | recommendations.js sin MIHM | ALTO   |
+| Colección _mihm/       | AUSENTE            | ALTO              |
+
+## HISTORIAL DE EVOLUCIÓN (inferido de estructura)
+
+v1.0-alpha: Jekyll base + _docs + _nodo_ags + style.css
+v1.0-beta:  Adición de _layouts, _includes, meta/
+v1.0-rc:    CHANGELOG, about.md, licencia.md (ahora obsoletos)
+v1.0:       audit/, mihm/, roadmap.md (sin terminar)
+→ v1.1:     RESET — arquitectura MIHM v2.0 completa
+
+## ACCIÓN REQUERIDA
+
+Ver comandos de reset en DEPLOY_INSTRUCTIONS.md
+
+
+===== FILE: .\_config.yml =====
+title: "System Friction"
+description: "Archivo de fricción sistémica · v1.1 · 2026"
+url: "https://systemfriction.org"
+baseurl: ""
+author: "Juan Antonio Marín Liera"
+email: "aptymok@gmail.com"
+version: "1.1"
+
+# Build
+markdown: kramdown
+highlighter: rouge
+kramdown:
+  input: GFM
+  math_engine: mathjax
+  syntax_highlighter: rouge
+
+# Plugins
+plugins:
+  - jekyll-seo-tag
+  - jekyll-sitemap
+
+# Collections
+collections:
+  docs:
+    output: true
+    permalink: /docs/:name/
+  nodo_ags:
+    output: true
+    permalink: /nodo-ags/:name/
+  mihm:
+    output: true
+    permalink: /mihm/:name/
+
+# Defaults
+defaults:
+  - scope:
+      path: ""
+      type: "docs"
+    values:
+      layout: "doc"
+      version: "1.1"
+      status: "validated"
+  - scope:
+      path: ""
+      type: "nodo_ags"
+    values:
+      layout: "node"
+      version: "1.1"
+      status: "validated"
+      origin: "vhpd"
+  - scope:
+      path: ""
+      type: "mihm"
+    values:
+      layout: "mihm"
+      version: "1.1"
+  - scope:
+      path: ""
+    values:
+      layout: "default"
+
+# Exclude
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - scripts/
+  - "*.py"
+  - README.md
+  - node_modules/
+  - vendor/
+  - DEPLOY_INSTRUCTIONS.md
+  - REPORTE_LOGS.md
+

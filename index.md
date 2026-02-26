@@ -126,27 +126,26 @@ permalink: /
 <!-- ── Descargas ──────────────────────────────────────────────────────── -->
 <div class="section-rule">datos y código</div>
 <div class="dl-list">
-  <a class="dl-item" href="/assets/data/ags_metrics.json">
+  <a class="dl-item" href="{{ '/assets/data/ags_metrics.json' | relative_url }}"> 
     <span class="dl-item__type">JSON</span>
     <span>ags_metrics.json</span>
     <span class="dl-item__meta">métricas AGS v1.1</span>
   </a>
-  <a class="dl-item" href="/assets/data/docs.json">
-    <span class="dl-item__type">JSON</span>
+  <a class="dl-item" href="{{ '/assets/data/docs.json' | relative_url }}">an class="dl-item__type">JSON</span>
     <span>docs.json</span>
     <span class="dl-item__meta">catálogo de documentos</span>
   </a>
-  <a class="dl-item" href="/assets/data/patterns.json">
+  <a class="dl-item" href="{{ '/assets/data/patterns.json' | relative_url }}">
     <span class="dl-item__type">JSON</span>
     <span>patterns.json</span>
     <span class="dl-item__meta">mapa patrones → MIHM</span>
   </a>
-  <a class="dl-item" href="/scripts/mihm_v2.py">
+  <a class="dl-item" href="{{ '/scripts/mihm_v2.py/' | relative_url }}">
     <span class="dl-item__type">PY</span>
     <span>mihm_v2.py</span>
     <span class="dl-item__meta">motor MIHM v2.0</span>
   </a>
-  <a class="dl-item" href="/assets/MIHM_v2_manuscrito_completo.pdf">
+  <a class="dl-item" href="{{ '/assets/MIHM_v2_manuscrito_completo.pdf' | relative_url }}">
     <span class="dl-item__type">PDF</span>
     <span>MIHM v2.0 — Manuscrito completo</span>
     <span class="dl-item__meta">CC BY 4.0</span>
