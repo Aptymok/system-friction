@@ -1,4 +1,4 @@
 ---
-layout: default
 ---
-{{ content }}
+{% assign base_layout = site.layouts | where: "name", "default" | first %}
+{% if base_layout %}{% include layouts/default.html %}{% endif %}

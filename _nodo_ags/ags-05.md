@@ -1,41 +1,42 @@
 ---
-layout: node
-title: "AGS-05 — Coordinación Institucional"
-description: "Latencia federal-local. Mesa de Coordinación."
-id: ags-05
+title: "AGS-05 — Trazabilidad Federal–Local y Latencia de Decisión"
 version: "1.1"
 status: validated
 origin: vhpd
-math: true
+node: N5
+date: 2026-02-23
+ihg_contribution: -0.156
 friction_index: 2.1
-node_status: OPAQUE
 ---
 
-Latencia federal-local. Mesa de Coordinación.
+# AGS-05: Cadena de Mando — Trazabilidad (N5)
 
----
+**Referencia:** `/_core/postulado-central.md` — Fórmula $f = (t/T) + O$
 
-La Mesa de Coordinación Estatal tiene participación de la Secretaría de Seguridad con asistencia intermitente. El 22–23 feb 2026 la Secretaría no estaba presente.
+## Hipótesis Formalizada
 
----
+La latencia de decisión institucional (LDI) entre el nivel federal y el nodo local supera el umbral normativo en condiciones de shock exógeno.
+
+$$f_{N5} = \frac{t_{\text{respuesta}}}{T_{\text{normativo}}} + O_{\text{opacidad}} = \frac{6h}{1h} + 0.68 = 6.68$$
 
 ## Vector N5
 
-$C_{N5} = 0.60$, $E_{N5} = 0.68$, $L_{N5} = 0.78$, $M_{N5} = 0.50$, $f = 2.10$ (OPAQUE)
+| Parámetro | Valor | Estado |
+|-----------|-------|--------|
+| $C_5$ | 0.60 | MODERATE |
+| $E_5$ | 0.68 | ELEVATED |
+| $L_5$ | 0.78 | DEGRADED |
+| $M_5$ | 0.50 | OPAQUE |
 
-## LDI (Latencia de Decisión Institucional)
+**LDI$_n$ = 1.00** — Máximo observado (peor escenario).
 
-Tiempo normativo para activación de protocolo federal: 1h. Tiempo observado el 22 feb: 6h. LDI normalizada = 1.00 (máximo).
+## Predicciones Validadas
 
-$$1 - \text{LDI}_n = 1 - 1.00 = 0.00$$
+| Predicción | Estado |
+|------------|--------|
+| Tiempo de respuesta federal > 4h | VALIDADA: 6h |
+| Comunicación oficial fragmentada | VALIDADA |
+| Opacidad $O > 0.60$ | VALIDADA: 0.68 |
 
-Este componente del NTI colapsó a cero.
+**Gate H1:** PASS | **Gate H2:** PASS | **Gate H3:** PENDING
 
-## M_{N5} = 0.50
-
-La Secretaría de Seguridad Pública Estatal reporta participación en Mesa pero no estuvo presente el día del evento. La distancia entre reporte y campo = 0.50.
-
-## Patrones activos
-
-doc-01 (decisiones que nadie tomó): 6h sin propietario de decisión de activación.
-doc-07 (contexto perdido): decisiones tomadas con información de 18h de antigüedad.

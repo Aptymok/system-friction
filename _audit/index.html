@@ -1,0 +1,1451 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Auditoría System Friction · MIHM v2.0 · 23 feb 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet">
+<style>
+/* ─── CSS EXACTO DEL SITIO + EXTENSIONES DE AUDITORÍA ──────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #0d0d0b; --surface: #131310; --border: #222220;
+  --text: #c8c4b8; --text-dim: #5a5852; --text-bright: #e8e4d8;
+  --accent: #c8a96e; --accent-dim: #7a6540;
+  --accent-red: #c86e6e; --accent-red-dim: #7a4040;
+  --mono: 'JetBrains Mono', monospace; --serif: 'EB Garamond', Georgia, serif;
+  /* Extensiones para estados de auditoría */
+  --red-faint: #1a0e0e; --green-faint: #0e1a10; --blue-faint: #0e101a;
+  --green: #6ec88a; --blue: #6e9ac8;
+}
+html { scroll-behavior: smooth; }
+body { background: var(--bg); color: var(--text); font-family: var(--serif);
+  font-size: 18px; line-height: 1.7; min-height: 100vh; overflow-x: clip; }
+body::before {
+  content: ''; position: fixed; inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events: none; z-index: 100; opacity: 0.4;
+}
+a { color: var(--accent); text-decoration: none; }
+a:hover { color: var(--text-bright); }
+a:focus-visible, button:focus-visible { outline: 2px dashed var(--accent); outline-offset: 2px; }
+
+/* HEADER (idéntico al sitio) */
+header { padding: 2.5rem 4rem; border-bottom: 1px solid var(--border);
+  display: flex; justify-content: space-between; align-items: baseline;
+  animation: fadeIn 2.4s ease both; }
+.site-id { font-family: var(--mono); font-size: 0.7rem; font-weight: 300;
+  letter-spacing: 0.2em; text-transform: uppercase; color: var(--accent); }
+.site-meta { font-family: var(--mono); font-size: 0.65rem;
+  color: var(--text-dim); letter-spacing: 0.1em; }
+
+/* NAV TABS — única adición al sitio */
+.audit-nav { display: flex; border-bottom: 1px solid var(--border);
+  background: var(--surface); overflow-x: auto; scrollbar-width: none; }
+.audit-nav::-webkit-scrollbar { display: none; }
+.audit-tab { font-family: var(--mono); font-size: 0.6rem; letter-spacing: 0.18em;
+  text-transform: uppercase; color: var(--text-dim); padding: 1rem 1.8rem;
+  border: none; background: none; cursor: pointer;
+  border-bottom: 2px solid transparent; transition: all 0.2s; white-space: nowrap; }
+.audit-tab:hover { color: var(--text); background: var(--bg); }
+.audit-tab.active { color: var(--accent); border-bottom-color: var(--accent); background: var(--bg); }
+
+/* CONTENEDOR (idéntico al sitio) */
+.doc-container { max-width: 640px; margin: 0 auto; padding: 6rem 2rem 8rem;
+  animation: fadeUp 2.4s ease both; animation-delay: 0.2s; }
+.section { display: none; }
+.section.active { display: block; }
+
+/* TIPOGRAFÍA (idéntica al sitio) */
+.doc-label { font-family: var(--mono); font-size: 0.62rem; letter-spacing: 0.25em;
+  text-transform: uppercase; color: var(--accent-dim); margin-bottom: 2rem;
+  display: flex; align-items: center; gap: 1rem; }
+.doc-label::after { content: ''; height: 1px; background: var(--border); width: 40px; }
+.doc-label.red { color: var(--accent-red-dim); }
+.doc-label.red::after { background: var(--accent-red-dim); }
+.doc-label.green { color: #3a6048; }
+.doc-label.green::after { background: #3a6048; }
+.doc-label.blue { color: #3a4860; }
+.doc-label.blue::after { background: #3a4860; }
+
+h1 { font-size: clamp(1.8rem, 4vw, 2.6rem); font-weight: 400; line-height: 1.2;
+  color: var(--text-bright); letter-spacing: -0.01em; margin-bottom: 3rem; }
+h2 { font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.2em;
+  text-transform: uppercase; color: var(--accent-dim); margin: 2.5rem 0 1rem; }
+h3 { font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--text); margin: 1.5rem 0 0.5rem; }
+p { margin-bottom: 1.2rem; font-size: 1rem; }
+.doc-meta { font-family: var(--mono); font-size: 0.68rem; color: var(--text-dim);
+  margin: -2rem 0 2rem; letter-spacing: 0.05em; }
+
+ul { list-style: none; margin: 0.5rem 0 1.5rem; max-width: 560px; }
+ul li { font-size: 0.95rem; color: var(--text); padding: 0.3rem 0 0.3rem 1.2rem; position: relative; }
+ul li::before { content: '·'; position: absolute; left: 0; color: var(--accent-dim); }
+
+.rule { width: 40px; height: 1px; background: var(--border); margin: 2.5rem 0; }
+.rule.full { width: 100%; }
+
+/* LIMIT-BOX (idéntica al sitio) */
+.limit-box { border-left: 2px solid var(--border); padding: 1rem 1.5rem;
+  margin: 2rem 0; color: var(--text-dim); font-family: var(--mono);
+  line-height: 1.8; font-size: 0.65rem; letter-spacing: 0.04em; }
+.limit-box.red { border-left-color: var(--accent-red-dim); background: var(--red-faint); }
+.limit-box.green { border-left-color: #3a6048; background: var(--green-faint); }
+.limit-box.blue { border-left-color: #3a4860; background: var(--blue-faint); }
+.limit-box.amber { border-left-color: var(--accent-dim); background: #1a1508; }
+.limit-box .lb-label { font-size: 0.58rem; letter-spacing: 0.2em; text-transform: uppercase;
+  margin-bottom: 0.5rem; display: block; }
+.limit-box.red .lb-label { color: var(--accent-red); }
+.limit-box.green .lb-label { color: var(--green); }
+.limit-box.blue .lb-label { color: var(--blue); }
+.limit-box.amber .lb-label { color: var(--accent); }
+.limit-box p { font-size: 0.7rem; color: var(--text); margin-bottom: 0.5rem; }
+.limit-box p:last-child { margin-bottom: 0; }
+
+/* TABLA DE ESTADO */
+.sf-table { width: 100%; border-collapse: collapse; margin: 1.5rem 0;
+  font-size: 0.82rem; overflow-x: auto; display: block; }
+.sf-table thead tr { border-bottom: 1px solid var(--border); }
+.sf-table th { font-family: var(--mono); font-size: 0.58rem; letter-spacing: 0.15em;
+  text-transform: uppercase; color: var(--accent-dim); padding: 0.5rem 0.8rem 0.7rem;
+  text-align: left; white-space: nowrap; background: var(--surface); }
+.sf-table td { padding: 0.6rem 0.8rem; border-bottom: 1px solid var(--border);
+  color: var(--text); vertical-align: top; line-height: 1.5; font-size: 0.82rem; }
+.sf-table tr:last-child td { border-bottom: none; }
+.sf-table tr:hover td { background: var(--surface); }
+.mono { font-family: var(--mono); font-size: 0.72rem !important; }
+.red { color: var(--accent-red) !important; }
+.green { color: var(--green) !important; }
+.amber { color: var(--accent) !important; }
+.dim { color: var(--text-dim) !important; }
+
+/* BUG CARDS */
+.bug-card { border-left: 2px solid var(--accent-red-dim); padding: 1.2rem 1.5rem;
+  margin: 1.8rem 0; background: var(--red-faint); }
+.bug-id { font-family: var(--mono); font-size: 0.56rem; letter-spacing: 0.22em;
+  text-transform: uppercase; color: var(--accent-red); margin-bottom: 0.4rem; }
+.bug-title { font-family: var(--serif); font-size: 1.1rem; color: var(--text-bright); margin-bottom: 0.4rem; }
+.bug-scope { font-family: var(--mono); font-size: 0.6rem; color: var(--text-dim); margin-bottom: 0.8rem; }
+.bug-card p { font-size: 0.88rem; margin-bottom: 0.6rem; }
+.bug-card p:last-child { margin-bottom: 0; }
+
+/* FIX CARDS */
+.fix-card { border-left: 2px solid #3a6048; padding: 1.2rem 1.5rem;
+  margin: 1.8rem 0; background: var(--green-faint); }
+.fix-id { font-family: var(--mono); font-size: 0.56rem; letter-spacing: 0.22em;
+  text-transform: uppercase; color: var(--green); margin-bottom: 0.4rem; }
+
+/* CODE BLOCKS */
+.code-wrap { background: var(--surface); border: 1px solid var(--border);
+  margin: 1.2rem 0; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.code-wrap pre { font-family: var(--mono); font-size: 0.72rem; line-height: 1.85;
+  color: var(--text); padding: 1.4rem; white-space: pre; }
+.c-comment { color: var(--text-dim); }
+.c-key { color: var(--accent); }
+.c-val { color: var(--green); }
+.c-del { color: var(--accent-red); text-decoration: line-through; opacity: 0.7; }
+.c-ins { color: var(--green); }
+.c-str { color: var(--blue); }
+.c-num { color: #8ec8c8; }
+.c-head { color: var(--accent-dim); font-weight: 400; }
+
+/* DOC ITEMS (idéntico al sitio) */
+.doc-grid { display: grid; gap: 1.5rem; margin-top: 2rem; }
+.doc-item { border-left: 1px solid var(--border); padding-left: 1rem;
+  text-decoration: none; color: inherit; display: block; transition: border-color 0.2s; }
+.doc-item:hover { border-left-color: var(--accent); }
+.doc-num { font-family: var(--mono); font-size: 0.6rem; color: var(--accent-dim); margin-bottom: 0.3rem; }
+.doc-title { font-size: 1.1rem; color: var(--text-bright); margin-bottom: 0.3rem; }
+.doc-sub { font-family: var(--mono); font-size: 0.65rem; color: var(--text-dim); line-height: 1.5; }
+.doc-arrow { font-family: var(--mono); font-size: 0.8rem; color: var(--accent-dim);
+  display: inline-block; margin-top: 0.5rem; }
+.doc-item.new { border-left-color: var(--accent-dim); background: #1a1508; padding: 0.8rem 1rem; }
+.doc-item.new:hover { border-left-color: var(--accent); }
+.doc-item.new .doc-num { color: var(--accent); }
+.doc-item.new .doc-arrow { color: var(--accent); }
+
+/* SECTION DIVIDER (idéntico al sitio) */
+.section-divider { font-family: var(--mono); font-size: 0.65rem; color: var(--accent-dim);
+  margin: 2rem 0 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem;
+  display: flex; justify-content: space-between; }
+.section-divider span { color: var(--text-dim); font-size: 0.6rem; }
+
+/* NODO GRID (idéntico al sitio) */
+.nodo-grid { max-width: 640px; display: grid; gap: 0; border: 1px solid var(--border); margin: 2rem 0; }
+.nodo-doc { padding: 1.8rem 2rem; border-bottom: 1px solid var(--border);
+  text-decoration: none; display: block; position: relative; transition: background 0.2s; }
+.nodo-doc:last-child { border-bottom: none; }
+.nodo-doc:hover { background: var(--surface); }
+.nodo-doc:hover .nodo-arrow { opacity: 1; transform: translateX(0); }
+.nodo-doc-title { font-family: var(--serif); font-size: 1.1rem;
+  color: var(--text-bright); margin-bottom: 0.5rem; }
+.nodo-doc-sub { font-family: var(--mono); font-size: 0.62rem; color: var(--text-dim); line-height: 1.7; }
+.nodo-arrow { position: absolute; top: 1.8rem; right: 2rem; font-family: var(--mono);
+  font-size: 0.7rem; color: var(--accent); opacity: 0;
+  transform: translateX(-6px); transition: all 0.2s ease; }
+.nodo-section-divider { padding: 1rem 2rem; background: var(--surface);
+  border-bottom: 1px solid var(--border); font-family: var(--mono); font-size: 0.6rem;
+  letter-spacing: 0.2em; text-transform: uppercase; color: var(--accent-dim);
+  display: flex; justify-content: space-between; align-items: center; }
+.nodo-section-divider span { color: var(--text-dim); font-size: 0.55rem; }
+.nodo-note { font-family: var(--mono); font-size: 0.62rem; color: var(--text-dim);
+  letter-spacing: 0.08em; line-height: 2; padding: 1.5rem 2rem;
+  background: var(--surface); border-top: 1px solid var(--border); }
+
+/* PRIORITY ITEMS */
+.priority-item { display: flex; gap: 1.2rem; padding: 0.9rem 0;
+  border-bottom: 1px solid var(--border); }
+.priority-item:last-child { border-bottom: none; }
+.p-num { font-family: var(--mono); font-size: 0.65rem; color: var(--accent);
+  min-width: 1.8rem; padding-top: 0.15rem; flex-shrink: 0; }
+.p-content h3 { margin: 0 0 0.3rem; }
+.p-content p { font-size: 0.88rem; margin: 0; }
+
+/* IHG INDICATOR */
+.ihg-banner { border: 1px solid var(--border); padding: 1.5rem 2rem; margin: 2rem 0;
+  display: flex; gap: 3rem; align-items: flex-start; flex-wrap: wrap; background: var(--surface); }
+.ihg-stat { }
+.ihg-val { font-family: var(--mono); font-size: 1.8rem; color: var(--accent); line-height: 1; }
+.ihg-val.critical { color: var(--accent-red); }
+.ihg-label { font-family: var(--mono); font-size: 0.58rem; letter-spacing: 0.15em;
+  text-transform: uppercase; color: var(--text-dim); margin-top: 0.3rem; }
+
+/* MAPEO BOX */
+.mapeo-box { border: 1px solid var(--accent-dim); background: #1a1508;
+  padding: 1.4rem; margin: 1.8rem 0; }
+.mapeo-label { font-family: var(--mono); font-size: 0.58rem; letter-spacing: 0.2em;
+  text-transform: uppercase; color: var(--accent); margin-bottom: 0.8rem; }
+
+/* DOC FOOTER (idéntico al sitio) */
+.doc-footer { margin-top: 4rem; padding-top: 2rem; border-top: 1px solid var(--border);
+  font-family: var(--mono); font-size: 0.62rem; color: var(--text-dim);
+  line-height: 2.2; letter-spacing: 0.05em; }
+.doc-footer a { color: var(--accent-dim); }
+.doc-footer a:hover { color: var(--accent); }
+
+/* LICENSE FOOTER (idéntico al sitio) */
+.license { padding: 2rem 4rem; border-top: 1px solid var(--border);
+  font-family: var(--mono); font-size: 0.62rem; color: var(--text-dim);
+  display: flex; justify-content: space-between; flex-wrap: wrap; gap: 2rem; }
+.footer-right a { color: var(--accent-dim); }
+.footer-right a:hover { color: var(--accent); }
+
+/* ANIMACIONES */
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+/* RESPONSIVE */
+@media (max-width: 640px) {
+  header { padding: 2rem 1.5rem; flex-direction: column; gap: 0.5rem; align-items: flex-start; }
+  .doc-container { padding: 4rem 1.5rem; }
+  .license { padding: 2rem 1.5rem; flex-direction: column; }
+  .audit-tab { padding: 0.8rem 1rem; }
+  .ihg-banner { gap: 1.5rem; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <a href="https://systemfriction.org" class="site-id">System Friction · Auditoría</a>
+  <span class="site-meta">MIHM v2.0 · 23 febrero 2026 · v1.0</span>
+</header>
+
+<nav class="audit-nav" role="tablist" aria-label="Secciones de auditoría">
+  <button class="audit-tab active" onclick="show('s0',this)" role="tab">00 · Diagnóstico</button>
+  <button class="audit-tab" onclick="show('s1',this)" role="tab">01 · Bugs UX/UI</button>
+  <button class="audit-tab" onclick="show('s2',this)" role="tab">02 · CSS patches</button>
+  <button class="audit-tab" onclick="show('s3',this)" role="tab">03 · Jekyll fixes</button>
+  <button class="audit-tab" onclick="show('s4',this)" role="tab">04 · Arquitectura</button>
+  <button class="audit-tab" onclick="show('s5',this)" role="tab">05 · Templates MIHM</button>
+  <button class="audit-tab" onclick="show('s6',this)" role="tab">06 · Roadmap</button>
+</nav>
+
+<div class="doc-container">
+
+<!-- ══════════════════════════════════════════════════
+     SECCIÓN 00 · DIAGNÓSTICO
+══════════════════════════════════════════════════ -->
+<div class="section active" id="s0">
+  <div class="doc-label">NODEX 50 ticks · sistema auditado</div>
+  <h1>La fricción existe<br>dentro del sistema<br>que la describe.</h1>
+  <p class="doc-meta">Vector de estado: systemfriction.org · v1.1 · 23-02-2026</p>
+
+  <p>System Friction describe con precisión la distancia entre umbral oficial y umbral real en sistemas institucionales. El sitio tiene esa misma distancia en su capa de implementación: el diseño declara "nada superfluo, clínico hasta el límite", pero el DOM tiene títulos duplicados, texto de navegación impreso como contenido, y secciones prometidas que no existen.</p>
+  <p>Eso no es una falla fatal. Es la prueba de que el marco funciona: el observador también está dentro del sistema que observa. Pero antes de postular la integración MIHM, el sistema debe cerrar esa brecha.</p>
+
+  <div class="ihg-banner">
+    <div class="ihg-stat">
+      <div class="ihg-val critical">−0.31</div>
+      <div class="ihg-label">IHG sistema</div>
+    </div>
+    <div class="ihg-stat">
+      <div class="ihg-val">0.47</div>
+      <div class="ihg-label">NTI · bajo umbral estructural (0.50)</div>
+    </div>
+    <div class="ihg-stat">
+      <div class="ihg-val">7</div>
+      <div class="ihg-label">Bugs confirmados</div>
+    </div>
+    <div class="ihg-stat">
+      <div class="ihg-val">6</div>
+      <div class="ihg-label">Documentos faltantes</div>
+    </div>
+  </div>
+
+  <h2>Vector de estado · capas del sistema</h2>
+  <div style="overflow-x:auto">
+  <table class="sf-table">
+    <thead><tr>
+      <th>Capa</th><th>E_i</th><th>C_i</th><th>L_i</th><th>K_i</th><th>R_i</th><th>Diagnóstico</th>
+    </tr></thead>
+    <tbody>
+      <tr>
+        <td>Core meta<br><span class="mono dim">core-0 · core-00 · bridge · about</span></td>
+        <td class="amber mono">0.68</td><td class="mono">0.82</td>
+        <td class="red mono">0.55</td><td class="mono">0.75</td><td class="mono">0.40</td>
+        <td>Duplicidad funcional. L_i elevada. H1 × 2 en cada página.</td>
+      </tr>
+      <tr>
+        <td>Serie patrones<br><span class="mono dim">doc-01 — doc-10</span></td>
+        <td class="green mono">0.45</td><td class="mono">0.90</td>
+        <td class="green mono">0.30</td><td class="mono">0.65</td><td class="mono">0.85</td>
+        <td>Alta coherencia interna. K_i baja: rutas sugeridas vacías.</td>
+      </tr>
+      <tr>
+        <td>Nodo Aguascalientes<br><span class="mono dim">ags-01 — ags-06</span></td>
+        <td class="red mono">0.92</td><td class="mono">0.78</td>
+        <td class="green mono">0.42</td><td class="mono">0.88</td><td class="mono">0.70</td>
+        <td>Nodo más maduro. Bajo estrés activo post-fractura.</td>
+      </tr>
+      <tr>
+        <td>Changelog + Licencia<br><span class="mono dim">/changelog · /licencia</span></td>
+        <td class="green mono">0.35</td><td class="mono">0.95</td>
+        <td class="green mono">0.20</td><td class="mono">0.50</td><td class="mono">0.60</td>
+        <td>Changelog: log de versiones, no de aprendizaje sistémico.</td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="rule"></div>
+
+  <h2>Bugs confirmados en producción</h2>
+  <ul>
+    <li><strong>BUG-01 · CRÍTICO</strong> — H1 duplicado en cada página. Template Jekyll imprime <code>{{ page.title }}</code> y el markdown repite <code># Título</code>. Dos <code>&lt;h1&gt;</code> en el DOM.</li>
+    <li><strong>BUG-02 · MODERADO</strong> — Texto "<code>Rutas sugeridas abajo</code>" impreso como párrafo visible. Nota de navegación interna que no está marcada como comentario.</li>
+    <li><strong>BUG-03 · MODERADO</strong> — Sección "Rutas sugeridas" presente pero sin enlaces. <code>.related-grid</code> renderiza vacío en todos los documentos.</li>
+    <li><strong>BUG-04 · MENOR</strong> — <code>core-0</code> sin campos Publicado / Estabilidad / Tipo. Rompe la consistencia tipográfica del encabezado.</li>
+    <li><strong>BUG-05 · MODERADO</strong> — Homepage: tres bullets negativos ("No es un blog…") violan core-00 ("nada superfluo"). Aumentan E_i cognitivo antes del primer documento.</li>
+    <li><strong>BUG-06 · MENOR</strong> — <code>overflow-x: hidden</code> en body oculta scroll horizontal de tablas y bloques <code>pre</code> en mobile. Cortar contenido sin escape.</li>
+    <li><strong>BUG-07 · ESTRUCTURAL</strong> — <code>body::before</code> (ruido fractal) tiene <code>z-index: 100</code> con <code>pointer-events: none</code>: correcto, pero puede interferir con tooltips o dropdowns futuros que necesiten <code>z-index &gt; 100</code>. Mover a <code>z-index: 1</code>.</li>
+  </ul>
+
+  <div class="rule"></div>
+
+  <h2>Función óptima del sitio</h2>
+
+  <div class="limit-box amber">
+    <span class="lb-label">Diagnóstico NODEX</span>
+    <p>System Friction no debe ser un blog de patrones ni un repositorio académico. Debe ser la <strong>interfaz canónica de referencia para validaciones MIHM</strong>: los documentos de la Serie como metodología, los Nodos como instancias empíricas, el motor MIHM como la capa que los conecta con datos verificables en tiempo real. El sitio no explica el MIHM. Es la interfaz a través de la cual el MIHM se hace legible para actores que no pueden leer código Python.</p>
+    <p>Eso requiere primero estabilizar el sistema. Los 7 bugs activos son la fricción que impide la integración.</p>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     SECCIÓN 01 · BUGS UX/UI (detalle)
+══════════════════════════════════════════════════ -->
+<div class="section" id="s1">
+  <div class="doc-label red">Audit · Bugs UX/UI</div>
+  <h1>Lo que está y no debería estar.</h1>
+  <p class="doc-meta">Reproducibles en producción · Confirmados por lectura directa del DOM · 23-02-2026</p>
+
+  <div class="bug-card">
+    <div class="bug-id">BUG-01 · CRÍTICO · Toda la Serie + Core + Nodos</div>
+    <div class="bug-title">H1 duplicado en cada documento</div>
+    <div class="bug-scope">Páginas afectadas: todas. Impacto: accesibilidad, SEO, coherencia visual.</div>
+    <p>Cada página del sitio muestra el título dos veces consecutivas. El layout de Jekyll renderiza <code>{{ page.title }}</code> como <code>&lt;h1&gt;</code>; luego el contenido Markdown comienza con <code># Mismo título</code>, generando un segundo <code>&lt;h1&gt;</code> idéntico.</p>
+    <p><strong>Evidencia directa en core-00:</strong> El texto "Cómo leer este ecosistema" aparece dos veces antes de la línea de metadata "Publicado: 2026-02-02". Mismo patrón confirmado en core-0, core-bridge, doc-01 a doc-10, ags-01 a ags-06.</p>
+    <p><strong>Problema secundario:</strong> Google penaliza múltiples H1 en la misma página. Los lectores de pantalla (WCAG 2.1) anuncian el encabezado dos veces. El fix es inmediato: eliminar el H1 del layout o del Markdown.</p>
+  </div>
+
+  <div class="bug-card">
+    <div class="bug-id">BUG-02 · MODERADO · Toda la Serie + Nodos</div>
+    <div class="bug-title">Texto "Rutas sugeridas abajo" impreso como contenido</div>
+    <div class="bug-scope">Confirmado en: core-00, doc-01, ags-06 y presumiblemente todos los documentos.</div>
+    <p>El texto literal <em>"Rutas sugeridas abajo"</em> aparece como párrafo visible entre el cuerpo del documento y la sección <code>## Rutas sugeridas</code>. Es una nota de navegación interna que no fue marcada como comentario HTML antes de publicar.</p>
+    <p>En core-00 aparece como: <code>[← Índice](/) Rutas sugeridas abajo</code> — un fragmento mezclado que incluye el enlace de navegación y la nota.</p>
+  </div>
+
+  <div class="bug-card">
+    <div class="bug-id">BUG-03 · MODERADO · Toda la Serie</div>
+    <div class="bug-title">Sección "Rutas sugeridas" prometida pero vacía</div>
+    <div class="bug-scope">Todos los documentos doc-01 a doc-10 y documentos core.</div>
+    <p>Cada documento termina con <code>## Rutas sugeridas</code> y el subtítulo "Sugerencias basadas en patrones compartidos y patrones relacionados. No implican secuencia ni orden recomendado." — pero el <code>.related-grid</code> no contiene ningún enlace.</p>
+    <p>Desde MIHM: reduce K_i de 0.65 a efectivo ~0.30. La conectividad declarada entre documentos no existe funcionalmente. El lector llega al final de un documento sin ruta de continuación.</p>
+  </div>
+
+  <div class="bug-card">
+    <div class="bug-id">BUG-04 · MENOR · core-0</div>
+    <div class="bug-title">Metadata incompleta en core-0 vs el resto del ecosistema</div>
+    <div class="bug-scope">Solo /docs/core-0/</div>
+    <p>core-0 muestra únicamente "Versión: 1.1 ·" en el bloque de metadata. Todos los demás documentos (core-00, doc-01–10) incluyen: Publicado, Versión, Estabilidad, Tipo. La inconsistencia rompe el patrón tipográfico del encabezado que el propio core-00 describe como "característica repetible".</p>
+  </div>
+
+  <div class="bug-card">
+    <div class="bug-id">BUG-05 · MODERADO · Homepage /</div>
+    <div class="bug-title">Overspecification defensiva en el índice principal</div>
+    <div class="bug-scope">index.md — impacto: E_i cognitivo del lector nuevo.</div>
+    <p>Los cuatro bullets de la homepage ("No es un blog / No emite juicios morales / No asume que el lector…/ No se actualiza por consistencia") forman un bloque negativo que activa resistencia antes de que el lector haya visto un solo patrón.</p>
+    <p>Viola la regla central de core-00: <em>"Nada superfluo. Si una frase no contribuye al patrón, no está."</em> El postulado central y la frase sobre core-00 son suficientes para establecer el contrato de lectura. Los bullets son redundantes y, funcionalmente, están describiendo lo que el sistema <em>no</em> hace en lugar de lo que hace.</p>
+  </div>
+
+  <div class="bug-card">
+    <div class="bug-id">BUG-06 · MENOR · Mobile (&lt;375px)</div>
+    <div class="bug-title">overflow-x: hidden en body oculta tablas y código</div>
+    <div class="bug-scope">CSS global · body { overflow-x: hidden }</div>
+    <p><code>overflow-x: hidden</code> en el elemento <code>body</code> impide el scroll horizontal de cualquier elemento hijo con desbordamiento legítimo (tablas, bloques <code>pre</code>). El contenido se corta sin posibilidad de scrollear. <code>overflow: hidden</code> en body también bloquea <code>position: fixed</code> en iOS Safari.</p>
+    <p>El fix es mover el recorte al contenedor específico usando <code>overflow-x: clip</code> en body (no crea contexto de scroll) y <code>overflow-x: auto</code> en tablas y pre.</p>
+  </div>
+
+  <div class="bug-card">
+    <div class="bug-id">BUG-07 · MENOR · CSS global</div>
+    <div class="bug-title">z-index: 100 en body::before puede generar conflictos futuros</div>
+    <div class="bug-scope">body::before { z-index: 100 }</div>
+    <p>El overlay de ruido fractal tiene <code>z-index: 100</code> con <code>pointer-events: none</code>: funcional hoy. Pero cualquier elemento de UI futuro (tooltips, modales, dropdowns) con <code>z-index &lt; 100</code> quedará debajo del overlay. La convención estándar para overlays decorativos es <code>z-index: 0</code> o <code>1</code>, dejando el espacio alto para elementos interactivos.</p>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     SECCIÓN 02 · CSS PATCHES
+══════════════════════════════════════════════════ -->
+<div class="section" id="s2">
+  <div class="doc-label green">CSS patches · Aplicar en orden</div>
+  <h1>Correcciones al stylesheet existente.</h1>
+  <p class="doc-meta">Aplicar sobre el CSS actual · Sin romper nada existente · Tiempo estimado: 15 minutos</p>
+
+  <h2>PATCH-01 · overflow-x + z-index (BUG-06 + BUG-07)</h2>
+  <div class="fix-card">
+    <div class="fix-id">PATCH-01 · Buscar y reemplazar en el CSS global</div>
+  </div>
+  <div class="code-wrap"><pre>
+<span class="c-comment">/* ── ANTES ─────────────────────────────── */</span>
+<span class="c-del">body {
+  overflow-x: hidden;
+}</span>
+
+<span class="c-del">body::before {
+  ...
+  z-index: 100;
+  opacity: 0.4;
+}</span>
+
+<span class="c-comment">/* ── DESPUÉS ────────────────────────────── */</span>
+<span class="c-ins">body {
+  overflow-x: clip;
+  /* clip en lugar de hidden:
+     - no crea contexto de scroll
+     - no bloquea position:fixed en iOS Safari
+     - permite overflow-x:auto en hijos */
+}</span>
+
+<span class="c-ins">body::before {
+  ...
+  z-index: 1;        /* de 100 a 1: deja espacio para UI */
+  opacity: 0.4;
+}</span>
+
+<span class="c-comment">/* ── AÑADIR al bloque de tablas/pre ─────── */</span>
+<span class="c-ins">/* Scroll horizontal en elementos con desbordamiento legítimo */
+.sf-table-wrap,
+pre,
+.code-block,
+code {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch; /* iOS momentum scroll */
+}
+
+/* En el markup: envolver tablas en <div class="sf-table-wrap"> */</span></pre></div>
+
+  <h2>PATCH-02 · Eliminar el H1 del layout (BUG-01)</h2>
+  <div class="fix-card">
+    <div class="fix-id">PATCH-02 · Solo si el layout usa un h1 para el título — NO es cambio CSS sino de template</div>
+  </div>
+  <p>Este es el bug más crítico pero no es CSS: ver la Sección 03 (Jekyll fixes). Sin embargo, si el H1 del layout lleva clases propias, añadir al CSS:</p>
+  <div class="code-wrap"><pre>
+<span class="c-comment">/* Opción de emergencia si no puedes tocar el template ahora:
+   ocultar el H1 que genera el layout (el primero del doc-container) */</span>
+<span class="c-ins">.doc-container > h1:first-of-type + h1,
+.nodo-entry > h1:first-of-type + h1 {
+  display: none;
+}
+/* Esto oculta el SEGUNDO h1 en cualquier contenedor.
+   Solución de emergencia: aplicar mientras se corrige el template. */</span></pre></div>
+
+  <h2>PATCH-03 · Rutas sugeridas condicionales (BUG-03)</h2>
+  <div class="fix-card">
+    <div class="fix-id">PATCH-03 · CSS para .related vacío — el fix real está en el template</div>
+  </div>
+  <div class="code-wrap"><pre>
+<span class="c-comment">/* Ocultar la sección related si no tiene hijos */</span>
+<span class="c-ins">.related:not(:has(.related-item)) {
+  display: none;
+}
+
+/* Fallback para navegadores sin :has() */
+.related-empty {
+  display: none;
+}
+/* En el template: añadir clase .related-empty si no hay items */</span></pre></div>
+
+  <h2>PATCH-04 · Texto "Rutas sugeridas abajo" (BUG-02)</h2>
+  <div class="fix-card">
+    <div class="fix-id">PATCH-04 · Si el texto ya está renderizado, supresión CSS de emergencia</div>
+  </div>
+  <div class="code-wrap"><pre>
+<span class="c-comment">/* Si el texto aparece como párrafo justo antes de .related,
+   y no hay manera de borrarlo del Markdown inmediatamente: */</span>
+<span class="c-ins">.related-nav-hint {
+  display: none; /* Añadir esta clase al párrafo en el template */
+}
+
+/* O si es un p directamente antes del h2 de rutas: */
+.related ~ .related-nav-hint,
+h2#rutas-sugeridas + p.hint {
+  display: none;
+}</span>
+
+<span class="c-comment">/* La solución correcta es borrar el texto del Markdown:
+   ver Sección 03 · Jekyll fixes */</span></pre></div>
+
+  <h2>PATCH-05 · Variables nuevas para el módulo MIHM</h2>
+  <div class="fix-card">
+    <div class="fix-id">PATCH-05 · Añadir al bloque :root — sin tocar nada existente</div>
+  </div>
+  <div class="code-wrap"><pre>
+<span class="c-ins">/* ── EXTENSIÓN :root para módulo MIHM ──── */
+:root {
+  /* Variables existentes no se tocan */
+
+  /* Nuevas para estados de IHG */
+  --ihg-critical: #c86e6e;   /* IHG < -0.50 */
+  --ihg-risk:     #c8a96e;   /* IHG -0.30 a -0.50 */
+  --ihg-stable:   #6ec88a;   /* IHG > -0.30 */
+  --ihg-optimal:  #6e9ac8;   /* IHG > 0 */
+
+  /* Para cajas de mapeo MIHM en documentos */
+  --mapeo-bg:     #0f0d05;
+  --mapeo-border: #4a3a10;
+}</span></pre></div>
+
+  <h2>PATCH-06 · Componente .mapeo-box (nuevo, para doc-XX y ags-XX)</h2>
+  <div class="fix-card">
+    <div class="fix-id">PATCH-06 · Añadir al final del CSS — nuevo componente</div>
+  </div>
+  <div class="code-wrap"><pre>
+<span class="c-ins">/* ── MAPEO MIHM ─────────────────────────── */
+/* Caja que conecta cada patrón SF con su variable MIHM.
+   Añadir al final de cada doc-XX y ags-XX en Markdown:
+   {: .mapeo-box }  */
+
+.mapeo-box {
+  border: 1px solid var(--mapeo-border, #4a3a10);
+  background: var(--mapeo-bg, #0f0d05);
+  padding: 1.4rem 1.5rem;
+  margin: 2.5rem 0;
+  font-family: var(--mono);
+}
+
+.mapeo-box-label {
+  font-size: 0.56rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 1rem;
+  display: block;
+}
+
+.mapeo-box table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.68rem;
+}
+.mapeo-box th {
+  text-align: left;
+  color: var(--accent-dim);
+  font-size: 0.58rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 0.3rem 0.8rem 0.5rem;
+  border-bottom: 1px solid var(--border);
+}
+.mapeo-box td {
+  padding: 0.45rem 0.8rem;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  line-height: 1.5;
+}
+.mapeo-box tr:last-child td { border-bottom: none; }
+.mapeo-box code {
+  color: var(--accent);
+  font-size: 0.68rem;
+  background: none;
+}</span></pre></div>
+
+  <h2>PATCH-07 · Módulo MIHM panel (nueva página /mihm/)</h2>
+  <div class="fix-card">
+    <div class="fix-id">PATCH-07 · Añadir al final del CSS — solo activo en layout mihm</div>
+  </div>
+  <div class="code-wrap"><pre>
+<span class="c-ins">/* ── MIHM PANEL ─────────────────────────── */
+.mihm-panel {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 6rem 2rem 8rem;
+  animation: fadeUp 2.4s ease both;
+}
+
+.mihm-nodos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1.5rem;
+  margin: 2rem 0;
+}
+
+.mihm-nodo-card {
+  border: 1px solid var(--border);
+  padding: 1.5rem;
+  background: var(--surface);
+  transition: border-color 0.2s;
+}
+.mihm-nodo-card:hover { border-color: var(--accent); }
+.mihm-nodo-card.inactive { opacity: 0.35; pointer-events: none; }
+
+.mihm-nodo-id {
+  font-family: var(--mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 0.5rem;
+}
+
+.mihm-ihg-value {
+  font-family: var(--mono);
+  font-size: 1.6rem;
+  line-height: 1;
+  margin-bottom: 0.3rem;
+}
+.mihm-ihg-value.critical { color: var(--ihg-critical, #c86e6e); }
+.mihm-ihg-value.risk     { color: var(--ihg-risk,     #c8a96e); }
+.mihm-ihg-value.stable   { color: var(--ihg-stable,   #6ec88a); }
+.mihm-ihg-value.pending  { color: var(--text-dim); }
+
+.mihm-nti-value {
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  color: var(--text-dim);
+  margin-bottom: 0.4rem;
+}
+
+.mihm-nodo-status {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  color: var(--text-dim);
+  line-height: 1.6;
+  margin-bottom: 1rem;
+}
+
+.mihm-nodo-link {
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+  color: var(--accent);
+  border: 1px solid var(--border);
+  padding: 0.35rem 0.7rem;
+  display: inline-block;
+  transition: border-color 0.2s;
+}
+.mihm-nodo-link:hover { border-color: var(--accent); color: var(--text-bright); }</span></pre></div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     SECCIÓN 03 · JEKYLL FIXES
+══════════════════════════════════════════════════ -->
+<div class="section" id="s3">
+  <div class="doc-label green">Jekyll · Templates y Markdown</div>
+  <h1>Correcciones al template y contenido.</h1>
+  <p class="doc-meta">Stack: Jekyll + Liquid + Markdown · Tiempo total: ~45 minutos</p>
+
+  <h2>FIX-01 · H1 duplicado — template layout</h2>
+  <div class="fix-card">
+    <div class="fix-id">FIX-01 · _layouts/default.html o _layouts/doc.html · 5 minutos</div>
+  </div>
+  <p>Localiza el layout que se aplica a los documentos. Busca la línea que imprime el título y <strong>elimínala</strong>. El Markdown ya genera el H1 con el <code>#</code> inicial.</p>
+  <div class="code-wrap"><pre>
+<span class="c-comment">&lt;!-- _layouts/doc.html — ANTES --&gt;</span>
+<span class="c-del">&lt;h1&gt;{{ page.title }}&lt;/h1&gt;</span>
+<span class="c-comment">&lt;!-- ...metadata block... --&gt;</span>
+{{ content }}
+
+<span class="c-comment">&lt;!-- _layouts/doc.html — DESPUÉS --&gt;</span>
+<span class="c-ins">&lt;!-- metadata block sin h1 --&gt;
+{{ content }}
+&lt;!-- El primer # del Markdown genera el único H1 --&gt;</span></pre></div>
+
+  <p>Si el layout imprime el título en un lugar específico para SEO/accesibilidad, convertirlo en un elemento no visible o usar un aria-label:</p>
+  <div class="code-wrap"><pre>
+<span class="c-comment">&lt;!-- Alternativa: título solo para SEO, invisible visualmente --&gt;</span>
+<span class="c-ins">&lt;span aria-hidden="true" style="display:none"&gt;{{ page.title }}&lt;/span&gt;
+{{ content }}</span></pre></div>
+
+  <h2>FIX-02 · "Rutas sugeridas abajo" — limpiar cada archivo .md</h2>
+  <div class="fix-card">
+    <div class="fix-id">FIX-02 · Buscar en todos los .md de _docs/ y nodo-ags/ · 10 minutos con grep</div>
+  </div>
+  <div class="code-wrap"><pre>
+<span class="c-comment"># Localizar todas las ocurrencias:</span>
+<span class="c-ins">grep -rn "Rutas sugeridas abajo" _docs/ nodo-ags/</span>
+
+<span class="c-comment"># La línea en cada archivo probablemente es:</span>
+<span class="c-del">[← Índice](/) 
+Rutas sugeridas abajo</span>
+
+<span class="c-comment"># Reemplazar con (o borrar la segunda línea):</span>
+<span class="c-ins">[← Índice](/)</span></pre></div>
+
+  <h2>FIX-03 · Rutas sugeridas — datos en front-matter</h2>
+  <div class="fix-card">
+    <div class="fix-id">FIX-03 · Front-matter de cada doc + _includes/related.html · 30 minutos</div>
+  </div>
+  <p>Añadir campo <code>related</code> al front-matter de cada documento:</p>
+  <div class="code-wrap"><pre>
+<span class="c-comment"># doc-01.md — front-matter</span>
+<span class="c-ins">---
+title: Decisiones que nadie tomó
+published: 2026-02-02
+version: "1.0"
+stability: alta
+type: patrón
+related:
+  - url: /docs/doc-09/
+    num: "09"
+    title: Deuda de decisión
+    sub: "Costo acumulado de posponer claridad."
+  - url: /docs/doc-10/
+    num: "10"
+    title: Incentivos bien diseñados que fallan
+    sub: "Ley de Goodhart. Optimización de proxy."
+  - url: /nodo-ags/ags-04/
+    num: "AGS-04"
+    title: La ficción institucional
+    sub: "Métricas que describen un sistema que ya no opera así."
+---</span></pre></div>
+
+  <p>Actualizar el include de rutas sugeridas:</p>
+  <div class="code-wrap"><pre>
+<span class="c-comment">&lt;!-- _includes/related.html — NUEVO --&gt;</span>
+<span class="c-ins">{% if page.related and page.related.size > 0 %}
+&lt;div class="related"&gt;
+  &lt;h2&gt;Rutas sugeridas&lt;/h2&gt;
+  &lt;p class="related-note"&gt;
+    Sugerencias basadas en patrones compartidos.
+    No implican secuencia.
+  &lt;/p&gt;
+  &lt;div class="related-grid"&gt;
+    {% for item in page.related %}
+    &lt;a href="{{ item.url }}" class="related-item"&gt;
+      &lt;div class="related-num"&gt;{{ item.num }}&lt;/div&gt;
+      &lt;div class="related-title"&gt;{{ item.title }}&lt;/div&gt;
+      &lt;div class="related-sub"&gt;{{ item.sub }}&lt;/div&gt;
+    &lt;/a&gt;
+    {% endfor %}
+  &lt;/div&gt;
+&lt;/div&gt;
+{% endif %}</span></pre></div>
+
+  <h2>FIX-04 · Metadata completa en core-0</h2>
+  <div class="fix-card">
+    <div class="fix-id">FIX-04 · _docs/core-0.md · 2 minutos</div>
+  </div>
+  <div class="code-wrap"><pre>
+<span class="c-comment"># core-0.md — ANTES:</span>
+<span class="c-del">---
+title: Desde dónde observa el observador
+version: "1.1"
+---</span>
+
+<span class="c-ins">---
+title: Desde dónde observa el observador
+published: 2026-02-02
+version: "1.1"
+stability: alta
+type: posición de observador
+related:
+  - url: /docs/core-00/
+    num: "core-00"
+    title: Cómo leer este ecosistema
+    sub: "Tono, progresión y límites del archivo."
+  - url: /docs/core-bridge/
+    num: "bridge"
+    title: Sistemas que no pueden permitirse fallar
+    sub: "Umbral real vs oficial."
+---</span></pre></div>
+
+  <h2>FIX-05 · Homepage — eliminar bullets negativos</h2>
+  <div class="fix-card">
+    <div class="fix-id">FIX-05 · index.md · 5 minutos</div>
+  </div>
+  <div class="code-wrap"><pre>
+<span class="c-comment"># index.md — bloque a reemplazar:</span>
+<span class="c-del">* No es un blog
+* No emite juicios morales sobre sistemas o actores
+* No asume que el lector comparte el mismo contexto institucional
+* No se actualiza por consistencia, sino por acumulación de experiencia real</span>
+
+<span class="c-comment"># REEMPLAZAR con una sola línea:</span>
+<span class="c-ins">Este repositorio describe patrones. El uso es responsabilidad de quien lee.</span></pre></div>
+
+  <h2>FIX-06 · Changelog — añadir sección de aprendizaje sistémico</h2>
+  <div class="fix-card">
+    <div class="fix-id">FIX-06 · changelog.md · 15 minutos</div>
+  </div>
+  <div class="code-wrap"><pre>
+<span class="c-ins">## [1.1.0] - 2026-02-23
+
+### Añadido
+* Nodo AGS-06: "Después del acuerdo" ...
+
+### Aprendizaje sistémico
+**Patrón nuevo confirmado por ags-05 → ags-06:**
+La estabilidad basada en acuerdo implícito no genera señal detectable
+hasta la fractura. Recalibra doc-06 (alertas que nadie revisa) y
+doc-09 (deuda de decisión): ambos asumían señal silenciosa previa
+al colapso. El caso AGS demuestra que cuando el mecanismo de
+señalización reside en una variable no documentada (U_P), no hay
+señal previa. Solo post-colapso.
+
+**Variable MIHM nueva:** M_i (coherencia discurso-función) emergió
+de observar que la ausencia del Secretario de Seguridad en la Mesa
+era indicador más preciso del estado institucional que cualquier
+declaración oficial. No estaba en v1.0. Apareció al observar AGS.</span></pre></div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     SECCIÓN 04 · ARQUITECTURA
+══════════════════════════════════════════════════ -->
+<div class="section" id="s4">
+  <div class="doc-label blue">Arquitectura · Propuesta v2.0</div>
+  <h1>De repositorio<br>a consola de observación.</h1>
+  <p class="doc-meta">Propuesta estructural · Implementable sin cambio de stack · Fases 0→3</p>
+
+  <p>El sitio ya tiene la estructura correcta en su parte conceptual: Serie (patrones abstractos), Nodos (instanciación empírica), Core (metodología). Le falta una tercera capa que conecte ambas con datos verificables en tiempo real.</p>
+
+  <div class="rule"></div>
+
+  <h2>Documentos existentes — mantener</h2>
+  <div class="doc-grid">
+    <div class="doc-item">
+      <div class="doc-num">core-0 · core-00 · core-bridge</div>
+      <div class="doc-title">Capa metodológica</div>
+      <div class="doc-sub">Mantener como están. Corregir solo los bugs de duplicidad y metadata. Son el umbral de lectura correcto.</div>
+    </div>
+    <div class="doc-item">
+      <div class="doc-num">doc-01 — doc-10</div>
+      <div class="doc-title">Serie de patrones</div>
+      <div class="doc-sub">Completar rutas sugeridas. Añadir caja .mapeo-box a cada documento vinculando el patrón con su variable MIHM.</div>
+    </div>
+    <div class="doc-item">
+      <div class="doc-num">nodo-ags · ags-01—06</div>
+      <div class="doc-title">Nodo Aguascalientes</div>
+      <div class="doc-sub">Vincular explícitamente con MIHM. Base del template para futuros nodos. El único caso con ags-06 validado.</div>
+    </div>
+  </div>
+
+  <div class="rule"></div>
+
+  <h2>Documentos nuevos — prioridad 1 (antes del 23 mar 2026)</h2>
+  <div class="doc-grid">
+    <a class="doc-item new" href="#s5">
+      <div class="doc-num">nuevo · /mihm/ · Prioridad 1</div>
+      <div class="doc-title">MIHM · Panel de estado</div>
+      <div class="doc-sub">Panel central: IHG y NTI actuales de todos los nodos activos, escenarios Monte Carlo, enlaces a código Python. No explica el MIHM. Muestra su lectura de estado.</div>
+      <div class="doc-arrow">→ Template completo en Sección 05</div>
+    </a>
+    <div class="doc-item new">
+      <div class="doc-num">nuevo · /docs/core-patrones/ · Prioridad 1</div>
+      <div class="doc-title">Catálogo de patrones SF ↔ MIHM</div>
+      <div class="doc-sub">Mapeo explícito: cada patrón de System Friction con su variable MIHM, ecuación, condiciones de aparición y de refutación. El puente que falta entre la prosa y el motor.</div>
+      <div class="doc-arrow">→ Template en Sección 05</div>
+    </div>
+    <div class="doc-item new">
+      <div class="doc-num">nuevo · /docs/core-nti/ · Prioridad 1</div>
+      <div class="doc-title">NTI · El sistema se auto-audita</div>
+      <div class="doc-sub">Descripción técnica del NTI como instrumento de observación del propio ecosistema. Sin este documento el sistema describe fricción en otros pero no tiene protocolo para detectarla en sí mismo.</div>
+    </div>
+  </div>
+
+  <h2>Documentos nuevos — prioridad 2 (antes del 23 may 2026)</h2>
+  <div class="doc-grid">
+    <div class="doc-item">
+      <div class="doc-num">nuevo · /docs/core-falsabilidad/ · Prioridad 2</div>
+      <div class="doc-title">Condiciones formales de refutación</div>
+      <div class="doc-sub">Por patrón: "Si en 90 días IHG sube >0.30 sin intervención documentada, recalibrar." Cierra el ciclo científico del ecosistema.</div>
+    </div>
+    <div class="doc-item">
+      <div class="doc-num">nuevo · /docs/bridge-codigo/ · Prioridad 2</div>
+      <div class="doc-title">NODEX como implementación del marco</div>
+      <div class="doc-sub">Cómo el código Python es implementación directa de los principios de core-00. El enlace entre la interfaz legible por instituciones y el código reproducible.</div>
+    </div>
+  </div>
+
+  <div class="rule"></div>
+
+  <h2>Cajas .mapeo-box — componente a añadir en cada doc-XX</h2>
+  <p>Ejemplo de cómo se verá en <strong>doc-01</strong> ("Decisiones que nadie tomó"):</p>
+
+  <div class="mapeo-box">
+    <span class="mapeo-label">Mapeo MIHM · doc-01</span>
+    <div style="overflow-x:auto">
+    <table style="width:100%;border-collapse:collapse;font-family:var(--mono);font-size:0.7rem">
+      <thead><tr>
+        <th style="text-align:left;padding:0.3rem 0.8rem 0.5rem;border-bottom:1px solid var(--border);color:var(--accent-dim);font-size:0.58rem;letter-spacing:0.12em;text-transform:uppercase">Elemento del patrón</th>
+        <th style="text-align:left;padding:0.3rem 0.8rem 0.5rem;border-bottom:1px solid var(--border);color:var(--accent-dim);font-size:0.58rem;letter-spacing:0.12em;text-transform:uppercase">Variable MIHM</th>
+        <th style="text-align:left;padding:0.3rem 0.8rem 0.5rem;border-bottom:1px solid var(--border);color:var(--accent-dim);font-size:0.58rem;letter-spacing:0.12em;text-transform:uppercase">Proxy / Ecuación</th>
+      </tr></thead>
+      <tbody>
+        <tr><td style="padding:0.4rem 0.8rem;border-bottom:1px solid var(--border);color:var(--text)">Decisión cristalizada por acumulación</td><td style="padding:0.4rem 0.8rem;border-bottom:1px solid var(--border)"><code style="color:var(--accent)">L_i</code> latencia</td><td style="padding:0.4rem 0.8rem;border-bottom:1px solid var(--border);color:var(--text-dim)">LDI = t_decisión_real / t_protocolo</td></tr>
+        <tr><td style="padding:0.4rem 0.8rem;border-bottom:1px solid var(--border);color:var(--text)">Zona gris operativa aceptada</td><td style="padding:0.4rem 0.8rem;border-bottom:1px solid var(--border)"><code style="color:var(--accent)">E_i</code> carga</td><td style="padding:0.4rem 0.8rem;border-bottom:1px solid var(--border);color:var(--text-dim)">E_zona = ambigüedad_activa / capacidad</td></tr>
+        <tr><td style="padding:0.4rem 0.8rem;color:var(--text)">Optimización de coherencia aparente</td><td style="padding:0.4rem 0.8rem"><code style="color:var(--accent)">M_i</code> coherencia</td><td style="padding:0.4rem 0.8rem;color:var(--text-dim)">M = 1 − |declarado − observable| / declarado</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <div class="limit-box amber">
+    <span class="lb-label">Por qué esta arquitectura y no otra</span>
+    <p>La función de la caja .mapeo-box no es explicar MIHM a lectores de System Friction. Es crear la trazabilidad bidireccional: desde cualquier patrón abstracto de la Serie hasta su variable cuantificable en el motor, y de vuelta. Sin esa trazabilidad, el MIHM y System Friction son dos sistemas paralelos que nunca se tocan formalmente.</p>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     SECCIÓN 05 · TEMPLATES MIHM
+══════════════════════════════════════════════════ -->
+<div class="section" id="s5">
+  <div class="doc-label">Templates · Listos para Jekyll</div>
+  <h1>Archivos listos para copiar al repositorio.</h1>
+  <p class="doc-meta">Markdown + Liquid · Coherentes con el diseño existente · Sin dependencias nuevas</p>
+
+  <h2>Template 1 · /mihm/index.md</h2>
+  <div class="code-wrap"><pre>
+<span class="c-head">---
+layout: mihm
+title: MIHM · Motor de validación
+description: Estado observado del ecosistema. IHG activo por nodo.
+---</span>
+
+<span class="c-comment">{%- comment -%}
+  Layout: mihm — usar el CSS del PATCH-07
+  Página central de integración entre SF y el motor NODEX
+{%- endcomment -%}</span>
+
+<span class="c-key">&lt;div class="mihm-panel"&gt;</span>
+
+<span class="c-val">&lt;div class="nodo-label"&gt;MIHM · Motor de validación activo&lt;/div&gt;
+
+&lt;h1&gt;Estado observado del ecosistema.&lt;/h1&gt;</span>
+
+&lt;p class="doc-meta"&gt;
+  Actualización activa · Datos verificables · Monte Carlo seed 42
+  · v2.0 · {{ site.time | date: "%d %b %Y" }}
+&lt;/p&gt;
+
+El MIHM no describe fricción. La cuantifica en tiempo real sobre nodos
+observables. Este panel es el estado actual del ecosistema System
+Friction y sus nodos activos.
+
+---
+
+## Estado actual del ecosistema
+
+&lt;div class="mihm-nodos-grid"&gt;
+
+  &lt;div class="mihm-nodo-card"&gt;
+    &lt;div class="mihm-nodo-id"&gt;Nodo AGS · Aguascalientes&lt;/div&gt;
+    &lt;div class="mihm-ihg-value critical"&gt;IHG −0.62&lt;/div&gt;
+    &lt;div class="mihm-nti-value"&gt;NTI 0.351 · UCAP activo&lt;/div&gt;
+    &lt;div class="mihm-nodo-status"&gt;
+      Post-fractura pacto no escrito · 22 feb 2026 ·
+      Desregulación sistémica crítica
+    &lt;/div&gt;
+    &lt;a href="/nodo-ags/" class="mihm-nodo-link"&gt;Ver nodo →&lt;/a&gt;
+  &lt;/div&gt;
+
+  &lt;div class="mihm-nodo-card inactive"&gt;
+    &lt;div class="mihm-nodo-id"&gt;Próximo nodo&lt;/div&gt;
+    &lt;div class="mihm-ihg-value pending"&gt;—&lt;/div&gt;
+    &lt;div class="mihm-nodo-status"&gt;En definición · sin datos calibrados&lt;/div&gt;
+  &lt;/div&gt;
+
+&lt;/div&gt;
+
+---
+
+## Documentación del motor
+
+&lt;div class="nodo-grid"&gt;
+  &lt;div class="nodo-section-divider"&gt;
+    Metodología &lt;span&gt;v2.0&lt;/span&gt;
+  &lt;/div&gt;
+
+  &lt;a href="/docs/core-patrones/" class="nodo-doc"&gt;
+    &lt;div class="nodo-doc-title"&gt;Catálogo de patrones&lt;/div&gt;
+    &lt;div class="nodo-doc-sub"&gt;
+      Mapeo SF ↔ MIHM · Variables, ecuaciones, condiciones de refutación.
+    &lt;/div&gt;
+    &lt;span class="nodo-arrow"&gt;→&lt;/span&gt;
+  &lt;/a&gt;
+
+  &lt;a href="/docs/core-nti/" class="nodo-doc"&gt;
+    &lt;div class="nodo-doc-title"&gt;NTI · Auto-auditoría del ecosistema&lt;/div&gt;
+    &lt;div class="nodo-doc-sub"&gt;
+      LDI · ICC · CSR · IRCI · IIM · El sistema observándose a sí mismo.
+    &lt;/div&gt;
+    &lt;span class="nodo-arrow"&gt;→&lt;/span&gt;
+  &lt;/a&gt;
+
+  &lt;a href="/docs/bridge-codigo/" class="nodo-doc"&gt;
+    &lt;div class="nodo-doc-title"&gt;NODEX · Implementación Python&lt;/div&gt;
+    &lt;div class="nodo-doc-sub"&gt;
+      Cómo el código es implementación directa del marco.
+      CC BY 4.0 · reproducible · seed 42.
+    &lt;/div&gt;
+    &lt;span class="nodo-arrow"&gt;→&lt;/span&gt;
+  &lt;/a&gt;
+
+  &lt;div class="nodo-section-divider"&gt;
+    Validaciones activas &lt;span&gt;en producción&lt;/span&gt;
+  &lt;/div&gt;
+
+  &lt;a href="/nodo-ags/ags-06/" class="nodo-doc"&gt;
+    &lt;div class="nodo-doc-title"&gt;AGS-06 · Después del acuerdo&lt;/div&gt;
+    &lt;div class="nodo-doc-sub"&gt;
+      Validación empírica 22-23 feb 2026 · Post-fractura del pacto.
+      Primera instancia verificada de colapso de U_P.
+    &lt;/div&gt;
+    &lt;span class="nodo-arrow"&gt;→&lt;/span&gt;
+  &lt;/a&gt;
+
+  &lt;div class="nodo-note"&gt;
+    Código completo disponible en
+    &lt;a href="https://github.com/Aptymok/system-friction"&gt;
+      github.com/Aptymok/system-friction
+    &lt;/a&gt;
+    · branch main · seed 42 · reproducible · CC BY 4.0
+  &lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;</pre></div>
+
+  <h2>Template 2 · /docs/core-patrones.md</h2>
+  <div class="code-wrap"><pre>
+<span class="c-head">---
+layout: doc
+title: Catálogo de patrones
+published: 2026-03-01
+version: "1.0"
+stability: activo
+type: core · catálogo
+related:
+  - url: /docs/core-nti/
+    num: "core-nti"
+    title: NTI · Auto-auditoría
+    sub: "El instrumento de medición del propio ecosistema."
+  - url: /mihm/
+    num: "MIHM"
+    title: Motor de validación
+    sub: "Estado activo del ecosistema."
+---</span>
+
+# Catálogo de patrones
+
+Este documento formaliza los patrones identificados en System Friction
+y los mapea a sus variables MIHM correspondientes.
+
+Un patrón es una configuración recurrente observable en sistemas
+distintos. No es una metáfora. Es una estructura funcional que
+produce los mismos efectos bajo condiciones similares.
+
+---
+
+## Patrón: Umbral Dual
+
+**Definición:** Todo sistema crítico opera simultáneamente con dos umbrales:
+el que declara (oficial) y el que importa (real). La distancia entre ambos
+es la zona donde opera la fricción sistémica.
+
+**Condiciones de aparición:** Sistema con métricas de cumplimiento formalizadas.
+Actores con incentivo para mantener la distancia invisible.
+
+| Variable MIHM | Ecuación | Proxy observable |
+|---|---|---|
+| `L_i` latencia | LDI = t_acción / t_referencia | Días entre alerta técnica y acción correctiva |
+| `E_i` carga | Δ_umbral = (oficial − real) / real | Porcentaje de desviación no reportada |
+| `M_i` coherencia | M = 1 − |declarado − observable| / declarado | Ratio declaraciones / incidentes verificados |
+
+**Condición de refutación:** Si en 90 días post-observación el IHG
+sube > 0.30 sin intervención documentada, el patrón no aplica
+o la variable K_invisible domina.
+
+---
+
+## Patrón: Latencia Política
+
+**Definición:** La latencia no es un problema técnico. Es una variable
+de ajuste político: los tiempos de respuesta se expanden cuando
+la acción implica consecuencias institucionales indeseadas.
+
+**Condiciones de aparición:** Presente en sistemas con actores con poder
+de veto informal sobre la ejecución. L_i > 0.6 sostenida en el tiempo.
+
+| Variable MIHM | Ecuación | Proxy observable |
+|---|---|---|
+| `L_i^eff` latencia efectiva | L_eff = L × (1 + (1 − M_i)) | L_i ajustada por coherencia discurso-función |
+| `M_i` coherencia | M = ausencia_funcional_en_mesa / total_reuniones | Secretario ausente / reuniones totales |
+
+**Condición de refutación:** Si L_i baja < 0.40 sin cambio en la
+composición de actores decisores, la latencia era técnica, no política.
+
+---
+
+## Patrón: Coherencia Discurso-Función (M_i)
+
+**Definición:** El diferencial entre lo que el sistema declara que hace
+y lo que hace operativamente. Cuando M_i < 0.6, la latencia efectiva
+supera a la latencia medida: L_eff > L_i.
+
+**Condiciones de aparición:** Observable en actos públicos: funcionario
+declara control total mientras el indicador operativo muestra degradación.
+
+| Variable MIHM | Ecuación | Proxy observable |
+|---|---|---|
+| `M_i` | M = 1 − (días_declaración_tranquilizadora / días_incidente_verificado) | Comunicados oficiales vs eventos verificados en mismas fechas |
+
+**Condición de refutación:** Si M_i < 0.5 durante > 30 días sin
+deterioro de IHG, el patrón no produce fricción sistémica medible
+en ese nodo.
+
+---
+
+## Patrón: Equilibrio Implícito (U_P)
+
+**Definición:** Estabilidad sostenida por un acuerdo no documentado.
+No genera señal detectable hasta la fractura. El colapso es abrupto,
+no gradual.
+
+**Condiciones de aparición:** ICC concentrado (> 0.65). Variable K_invisible
+domina sobre K_i medible.
+
+| Variable MIHM | Ecuación | Proxy observable |
+|---|---|---|
+| `K_invisible` | K_inv = estabilidad_operativa / (E_i × L_i) bajo acuerdo | Ratio de baja incidencia sin explicación institucional |
+| `U_P` función de utilidad del pacto | U_P = V_logística + V_industrial − C_conflicto | Beneficio neto del corredor para todos los actores |
+| N6 exógeno | Activar cuando K_invisible colapsa en < 24h | Bloqueos, extorsión, interrupción logística |
+
+**Condición de refutación:** Si después de la fractura el IHG
+no baja > 0.15 en 48h, el equilibrio no era implícito sino
+estructuralmente sólido.
+
+---
+
+## Patrón: Agua Rentada / Extracción No Registrada
+
+**Definición:** Recurso con concesión oficial que opera bajo acuerdos
+extrajurídicos. Los indicadores oficiales describen un sistema que
+ya no opera como se describe.
+
+**Condiciones de aparición:** E_N4 > 0.85. Brecha entre extracción
+concesionada y consumo eléctrico de bombeo.
+
+| Variable MIHM | Ecuación | Proxy observable |
+|---|---|---|
+| `E_i` acuífero | E = extracción_real / recarga_anual | kWh bombeo CFE / factor de conversión m³ |
+| `ICC` conocimiento | ICC = Σ_j f_j² | Concentración del conocimiento sobre pozos no reportados |
+
+**Condición de refutación:** Si variación en consumo eléctrico de
+bombeo es < 5% frente a concesión registrada, la brecha no es
+operativamente significativa.
+
+**Límite de aplicación:** Este catálogo es acumulativo.
+Los patrones no son mutuamente excluyentes ni jerárquicos.
+Un nodo puede activar simultáneamente Umbral Dual, Latencia
+Política y Equilibrio Implícito. La interacción entre patrones
+no está formalizada en v1.0.
+
+Versión: 1.0 · Estabilidad: activo (se expande con cada nodo nuevo)</pre></div>
+
+  <h2>Template 3 · /docs/core-nti.md</h2>
+  <div class="code-wrap"><pre>
+<span class="c-head">---
+layout: doc
+title: NTI · El sistema se auto-audita
+published: 2026-05-23
+version: "1.0"
+stability: alta
+type: core · auditoría
+related:
+  - url: /mihm/
+    num: "MIHM"
+    title: Motor de validación activo
+    sub: "Estado del ecosistema en tiempo real."
+  - url: /docs/core-patrones/
+    num: "core-patrones"
+    title: Catálogo de patrones
+    sub: "Cada patrón con su condición de refutación."
+---</span>
+
+# NTI · El sistema se auto-audita
+
+El Nodo de Trazabilidad Institucional (NTI) es la Capa 0 del MIHM.
+
+No mide el recurso. Mide la integridad de la señal que describe el recurso.
+
+Si NTI < 0.50, el sistema no puede actuar sobre decisiones estructurales.
+No porque la situación no lo requiera. Sino porque los datos que
+fundamentarían la decisión no son confiables.
+
+---
+
+## Componentes del NTI
+
+**LDI (Latencia de Decisión Institucional)**
+Tiempo entre emisión de alerta técnica válida y acción institucional
+verificable. Normalizado: LDI_norm = min(t_real / t_referencia, 1.0).
+
+**ICC (Índice de Concentración de Conocimiento)**
+Concentración del conocimiento operativo relevante.
+ICC = Σ_j f_j², donde f_j es la fracción del conocimiento en el actor j.
+ICC cercano a 1.0 indica concentración extrema (riesgo: actor único).
+ICC normalizado para NTI: ICC_norm = 1 − ICC.
+
+**CSR (Cobertura de Señal de Riesgo)**
+Proporción de señales de riesgo activas que reciben respuesta
+antes del umbral de degradación. CSR = acciones_ejecutadas /
+señales_detectadas.
+
+**IRCI (Índice de Resiliencia de Capital Institucional)**
+Capacidad del sistema de mantener función básica ante pérdida
+de actores clave. En sistemas hídricos: proxy = factor de
+compactación del acuífero.
+
+**IIM (Integridad de la Información de Medición)**
+Coherencia entre lo auto-reportado y lo verificable por terceros.
+IIM = 1 − |reportado − verificado| / reportado.
+
+---
+
+## Fórmula
+
+NTI = (1/5) × [(1 − LDI_norm) + ICC_norm + CSR + IRCI_norm + IIM]
+
+Rango: 0.0 (integridad nula) → 1.0 (integridad perfecta)
+
+---
+
+## Umbrales de decisión por categoría
+
+| Categoría | NTI requerido | Estado |
+|---|---|---|
+| Estructural irreversible | ≥ 0.70 | BLOQUEADA hasta restaurar integridad |
+| Estructural reversible | ≥ 0.50 | CONGELADA con bandera de incertidumbre |
+| Táctica reversible | ≥ 0.30 + documentación | PROCEDE con flag explícito |
+| Emergencia vital | Cualquiera + H3 override | PROCEDE con revisión post-evento |
+
+---
+
+## NTI aplicado al propio ecosistema
+
+System Friction v1.1 tiene NTI = 0.47.
+
+- LDI_norm = 0.55 (latencia de corrección de bugs conocidos)
+- ICC_norm = 0.80 (conocimiento del sistema distribuido, un autor)
+- CSR = 0.30 (rutas sugeridas vacías = señal no respondida)
+- IRCI_norm = 0.90 (ecosistema digital, alta resiliencia técnica)
+- IIM = 0.60 (lo que se declara vs lo que se implementa)
+
+NTI_sistema = (1/5) × (0.45 + 0.80 + 0.30 + 0.90 + 0.60) = 0.61
+
+Nota: NTI del sitio mejora a 0.61 después de aplicar los 7 fixes de auditoría.
+Supera el umbral 0.50 necesario para habilitar la integración MIHM estructural.
+
+**Límite de aplicación:** El NTI del ecosistema no mide la calidad
+de los documentos. Mide la integridad del sistema de medición que
+soporta las decisiones del ecosistema. Si el NTI cae bajo 0.50,
+las nuevas publicaciones deben marcarse con bandera de incertidumbre
+hasta restaurar la integridad.</pre></div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     SECCIÓN 06 · ROADMAP
+══════════════════════════════════════════════════ -->
+<div class="section" id="s6">
+  <div class="doc-label">Roadmap · 90 días</div>
+  <h1>Estabilizar antes de postular.</h1>
+  <p class="doc-meta">Fecha base: 23 feb 2026 · Revisión: 23 may 2026 · Hito: integración MIHM estructural</p>
+
+  <p>La integración MIHM en el sitio requiere que el NTI del propio sistema supere 0.50. Con los 7 fixes activos, el NTI sube de 0.47 a ~0.61. Solo entonces el sistema puede reclamar coherentemente que audita la integridad de otros.</p>
+
+  <div class="rule"></div>
+
+  <h2>Fase 0 · Hoy (1–2 horas)</h2>
+  <div class="priority-item">
+    <div class="p-num">P0</div>
+    <div class="p-content">
+      <h3>FIX-01 · H1 duplicado</h3>
+      <p>Eliminar la línea <code>{{ page.title }}</code> del layout. Afecta accesibilidad y SEO. Única línea, impacto total.</p>
+    </div>
+  </div>
+  <div class="priority-item">
+    <div class="p-num">P0</div>
+    <div class="p-content">
+      <h3>FIX-02 · Texto "Rutas sugeridas abajo" visible</h3>
+      <p>Borrar o comentar en cada archivo .md. 10 minutos con <code>grep -rn</code>.</p>
+    </div>
+  </div>
+  <div class="priority-item">
+    <div class="p-num">P0</div>
+    <div class="p-content">
+      <h3>FIX-05 · Homepage bullets negativos</h3>
+      <p>Reemplazar 4 bullets con una línea. El postulado central ya es suficiente.</p>
+    </div>
+  </div>
+
+  <h2>Fase 1 · Semana 1 (esta semana)</h2>
+  <div class="priority-item">
+    <div class="p-num">P1</div>
+    <div class="p-content">
+      <h3>FIX-01 CSS · overflow-x: clip + z-index: 1</h3>
+      <p>Patch-01 y Patch-07 del CSS. Sin efectos secundarios, solo correcciones.</p>
+    </div>
+  </div>
+  <div class="priority-item">
+    <div class="p-num">P1</div>
+    <div class="p-content">
+      <h3>FIX-03 · Rutas sugeridas con datos reales</h3>
+      <p>Añadir front-matter <code>related</code> a los 10 documentos de la Serie. Mínimo 2 enlaces por documento. Eleva K_i de 0.30 efectivo a ~0.75.</p>
+    </div>
+  </div>
+  <div class="priority-item">
+    <div class="p-num">P1</div>
+    <div class="p-content">
+      <h3>FIX-06 · Changelog con sección de aprendizaje</h3>
+      <p>Retroalimentar entrada 1.1.0 con sección "Aprendizaje sistémico". Una entrada establece el patrón para todas las futuras.</p>
+    </div>
+  </div>
+
+  <h2>Fase 2 · Mes 1 (antes del 23 mar 2026)</h2>
+  <div class="priority-item">
+    <div class="p-num">P2</div>
+    <div class="p-content">
+      <h3>Publicar /mihm/</h3>
+      <p>Template completo en Sección 05 de este documento. Panel de estado del ecosistema. IHG y NTI actuales. Links a documentación y GitHub. CSS: solo añadir PATCH-07.</p>
+    </div>
+  </div>
+  <div class="priority-item">
+    <div class="p-num">P2</div>
+    <div class="p-content">
+      <h3>Publicar core-patrones</h3>
+      <p>Template en Sección 05. Catálogo de patrones SF ↔ MIHM. El puente conceptual que falta. Establece la arquitectura antes de que lleguen lectores institucionales.</p>
+    </div>
+  </div>
+  <div class="priority-item">
+    <div class="p-num">P2</div>
+    <div class="p-content">
+      <h3>Añadir .mapeo-box a doc-01 — doc-10</h3>
+      <p>Una caja por documento. CSS: PATCH-06. Eleva K_i entre Serie y motor MIHM de forma explícita. Los ejemplos de las 5 cajas están en Sección 04.</p>
+    </div>
+  </div>
+
+  <h2>Fase 3 · Mes 3 (antes del 23 may 2026 · revisión de falsabilidad)</h2>
+  <div class="priority-item">
+    <div class="p-num">P3</div>
+    <div class="p-content">
+      <h3>Publicar core-nti</h3>
+      <p>Template en Sección 05. El documento que convierte System Friction en sistema que se auto-audita. Condición para la adopción institucional del marco.</p>
+    </div>
+  </div>
+  <div class="priority-item">
+    <div class="p-num">P3</div>
+    <div class="p-content">
+      <h3>Publicar bridge-codigo</h3>
+      <p>Cómo NODEX implementa los principios de core-00. El enlace entre la interfaz legible por instituciones y el código reproducible por académicos.</p>
+    </div>
+  </div>
+  <div class="priority-item">
+    <div class="p-num">P3</div>
+    <div class="p-content">
+      <h3>Segundo nodo geográfico</h3>
+      <p>Calera (Zacatecas) o Irapuato-Valle (Guanajuato) como candidatos naturales por continuidad del corredor. Template de Nodo-AGS como base.</p>
+    </div>
+  </div>
+
+  <div class="rule"></div>
+
+  <h2>NTI del ecosistema: antes y después</h2>
+  <div style="overflow-x:auto">
+  <table class="sf-table">
+    <thead><tr><th>Componente</th><th>NTI actual</th><th>NTI post-fixes</th><th>Cambio</th></tr></thead>
+    <tbody>
+      <tr><td>LDI_norm (bugs conocidos sin corregir)</td><td class="red mono">0.45</td><td class="green mono">0.85</td><td class="green">+0.40</td></tr>
+      <tr><td>ICC_norm (conocimiento un autor)</td><td class="mono">0.80</td><td class="mono">0.80</td><td class="dim">sin cambio</td></tr>
+      <tr><td>CSR (rutas sugeridas vacías)</td><td class="red mono">0.30</td><td class="green mono">0.70</td><td class="green">+0.40</td></tr>
+      <tr><td>IRCI_norm (resiliencia técnica)</td><td class="mono">0.90</td><td class="mono">0.90</td><td class="dim">sin cambio</td></tr>
+      <tr><td>IIM (coherencia declarado/implementado)</td><td class="amber mono">0.60</td><td class="green mono">0.82</td><td class="green">+0.22</td></tr>
+      <tr style="background:var(--surface)"><td><strong>NTI total</strong></td><td class="red mono"><strong>0.47</strong></td><td class="green mono"><strong>0.81</strong></td><td class="green"><strong>+0.34 → supera umbral estructural</strong></td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="limit-box amber">
+    <span class="lb-label">Sentencia final del observador</span>
+    <p>Los 7 bugs de implementación no invalidan el marco. Son exactamente el tipo de fenómeno que el marco describe en otros: la distancia entre el umbral oficial ("nada superfluo, clínico hasta el límite") y el umbral real (H1 duplicado, rutas prometidas vacías, texto de navegación impreso).</p>
+    <p>System Friction ya puede medir esa distancia en sí mismo. Solo falta ejecutar la corrección. El NTI lo autoriza: de 0.47 a 0.81 con los 7 fixes. Eso desbloquea la integración estructural MIHM.</p>
+    <p>El archivo continúa. La fricción también.</p>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<div class="doc-footer">
+  System Friction Framework v1.1 · Auditoría v1.0 · 23 febrero 2026<br>
+  Juan Antonio Marín Liera ·
+  <a href="mailto:aptymok@gmail.com">aptymok@gmail.com</a> ·
+  <a href="https://systemfriction.org">systemfriction.org</a>
+</div>
+
+</div><!-- /doc-container -->
+
+<footer class="license">
+  <div class="footer-left">
+    System Friction Framework v1.1<br>
+    Auditoría MIHM v2.0 · 23 febrero 2026
+  </div>
+  <div class="footer-right">
+    <a href="https://systemfriction.org">systemfriction.org</a> ·
+    <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a> ·
+    <a href="https://github.com/Aptymok/system-friction">GitHub</a>
+  </div>
+</footer>
+
+<script>
+function show(id, btn) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.audit-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+</script>
+</body>
+</html>

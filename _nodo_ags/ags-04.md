@@ -1,34 +1,32 @@
 ---
-layout: node
-title: "AGS-04 — Sistema Logístico"
-description: "Corredor industrial. Resiliencia bajo shock."
-id: ags-04
+title: "AGS-04 — Cadena Logística Automotriz"
 version: "1.1"
 status: validated
 origin: vhpd
-math: true
+node: N3
+date: 2026-02-23
+ihg_contribution: 0.089
 friction_index: 0.7
-node_status: OK
 ---
 
-Corredor industrial. Resiliencia bajo shock.
+# AGS-04: Sector Logístico-Industrial (N3)
 
----
-
-El sistema logístico (Nissan, corredor industrial) mantuvo operación durante el evento del 22–23 feb 2026. Único nodo con $f < 1.0$.
-
----
+**Referencia:** `/_core/postulado-central.md` — Fórmula $f = (t/T) + O$
 
 ## Vector N3
 
-$C_{N3} = 0.85$, $E_{N3} = 0.35$, $L_{N3} = 0.35$, $R_{N3} = 0.60$, $f = 0.70$ (OK)
+| Parámetro | Valor | Estado |
+|-----------|-------|--------|
+| $C_3$ | 0.85 | OPTIMAL |
+| $E_3$ | 0.35 | LOW |
+| $L_3$ | 0.35 | FAST |
+| $M_3$ | 1.00 | OK |
 
-## Mecanismo
+**Fricción N3:** $f = 0.35 + 0.35 = 0.70$ → WITHIN BOUNDS
 
-doc-08 (personas en alta incertidumbre): la resiliencia de N3 no proviene del protocolo formal. Proviene de la activación de relaciones informales entre operadores logísticos con contrapartes en N2.
+## Evento de Disrupción
 
-El protocolo formal requería autorización de N5 (coordinación). N5 estaba en OPAQUE. El operador de N3 activó una cadena alternativa sin pasar por N5.
+Suspensión Nissan Aguascalientes (22–23 feb 2026): duración < 8h. Impacto en IHG: $\Delta = -0.02$. Recuperación completa. N3 demuestra resiliencia estructural.
 
-## Advertencia
+**Gate H1:** PASS | **Gate H2:** PASS | **Gate H3:** PASS
 
-Esta resiliencia es invisible en las métricas formales. Si el operador clave cambia, la resiliencia desaparece. El sistema formal no la captura ni la protege.

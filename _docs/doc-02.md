@@ -1,30 +1,66 @@
 ---
-layout: doc
 title: "Costo real de adoptable"
-description: "Por qué soluciones superiores no se implementan."
-id: doc-02
-version: "1.1"
-status: validated
-math: true
-mihm_variables: ['C_i', 'R_i']
-prev_doc: doc-01
-next_doc: doc-03
+doc_id: "doc-02"
+series: "02 · Fundamentos"
+summary: "Por qué soluciones superiores no se implementan."
+version: "1.0"
+stability: "alta"
+first_published: "2026-02-02"
+node: "docs"
+mihm_variable: "C_a"
+mihm_equation: "C_a = costo_real / costo_declarado"
+sf_pattern: "adoptable-degradado"
+mihm_note: "Cuando el costo real supera el declarado, cae adopción efectiva."
+patterns:
+  - fricción-política
+  - costo-de-adopción
+  - distancia-diseño-consecuencia
+  - asimetría-exposición
 ---
 
-Por qué soluciones superiores no se implementan.
+# Costo real de adoptable
 
----
+## Variables invisibles en adopción
 
-Una solución técnicamente superior no se adopta cuando el costo de transición supera el beneficio percibido por quien decide la transición.
+Una solución técnicamente superior puede perder frente a una mediocre por razones que no aparecen
+en el análisis de costo-beneficio:
 
----
+* **Deuda de aprendizaje:** cuánto tiene que cambiar la gente para usarla
+* **Superficie de fricción:** cuántos puntos de contacto con sistemas existentes
+* **Visibilidad del fracaso:** qué tan obvio es cuando algo sale mal
+* **Reversibilidad:** qué tan caro es volver atrás
 
-El error de diagnóstico frecuente: asumir que la no-adopción indica falta de información. La información está disponible. El cálculo de costo es correcto. La solución superior no se adopta porque quien la implementaría no captura el beneficio.
+El diseño institucional real no pregunta "¿funciona?". Pregunta "¿quién se expone si esto falla?".
 
-## Variables afectadas
+## Caso observable
 
-$C_i$ (capacidad adaptativa) y $R_i$ (redistribución): la adopción requiere redistribuir recursos existentes hacia un sistema sin historial comprobado en el contexto específico.
+Un sistema de reportes que requiere tres clics adicionales puede morir aunque genere mejor información,
+porque esos tres clics distribuyen responsabilidad de forma incómoda.
 
-## Umbral de adopción
+No es resistencia irracional. Es cálculo implícito de riesgo político y operativo.
 
-Una solución se adopta cuando el actor decisor percibe $\Delta C_i > 0$ en su propio nodo, no en el sistema agregado.
+## Variable crítica
+
+La distancia entre quien diseña y quien enfrenta las consecuencias del diseño.
+
+Cuando esa distancia es alta, las decisiones optimizan para elegancia técnica.
+Cuando es baja, optimizan para navegabilidad política.
+
+Ninguna de las dos es incorrecta. Son funciones de objetivo distintas.
+
+## Costo de integración vs valor intrínseco
+
+Una solución puede ser objetivamente mejor y aún así perder porque:
+
+* Requiere cambios en demasiados lugares a la vez
+* Expone deficiencias que nadie quiere documentar
+* Transfiere poder entre áreas de forma visible
+* Hace explícito lo que funcionaba implícitamente
+
+Adoptabilidad es fricción sistémica medida en unidades de exposición política.
+
+**Límite de aplicación:** Organizaciones con sistemas legacy y alta interdependencia. En contextos greenfield estas variables pesan menos.
+{: .limit-box }
+
+**Riesgo de mala aplicación** Usado para justificar inercia sin análisis de costos reales de no cambiar.
+{: .limit-box }

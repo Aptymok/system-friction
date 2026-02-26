@@ -6,7 +6,6 @@ author: "Juan Antonio Marín Liera"
 email: "aptymok@gmail.com"
 version: "1.1"
 
-# Build
 markdown: kramdown
 highlighter: rouge
 kramdown:
@@ -14,12 +13,10 @@ kramdown:
   math_engine: mathjax
   syntax_highlighter: rouge
 
-# Plugins
 plugins:
   - jekyll-seo-tag
   - jekyll-sitemap
 
-# Collections
 collections:
   docs:
     output: true
@@ -31,7 +28,6 @@ collections:
     output: true
     permalink: /mihm/:name/
 
-# Defaults
 defaults:
   - scope:
       path: ""
@@ -44,29 +40,9 @@ defaults:
       path: ""
       type: "nodo_ags"
     values:
-      layout: "node"
-      version: "1.1"
-      status: "validated"
-      origin: "vhpd"
+      layout: "doc"
   - scope:
       path: ""
       type: "mihm"
     values:
-      layout: "mihm"
-      version: "1.1"
-  - scope:
-      path: ""
-    values:
-      layout: "default"
-
-# Exclude
-exclude:
-  - Gemfile
-  - Gemfile.lock
-  - scripts/
-  - "*.py"
-  - README.md
-  - node_modules/
-  - vendor/
-  - DEPLOY_INSTRUCTIONS.md
-  - REPORTE_LOGS.md
+      layout: "doc"

@@ -1,36 +1,57 @@
 ---
-layout: doc
 title: "Decisiones que nadie tomó"
-description: "Cristalización por acumulación. Zonas grises operativas."
-id: doc-01
-version: "1.1"
-status: validated
-math: true
-mihm_variables: ['O', 'L_i']
-prev_doc: core-bridge
-next_doc: doc-02
+doc_id: "doc-01"
+series: "01 · Fundamentos"
+summary: "Cristalización por acumulación. Zonas grises operativas."
+version: "1.0"
+stability: "alta"
+first_published: "2026-02-02"
+node: "docs"
+mihm_variable: "M_i"
+mihm_equation: "M_i = gap(discurso, función observada)"
+sf_pattern: "decisión-emergente"
+mihm_note: "La coherencia entre discurso y operación determina estabilidad narrativa."
+patterns:
+  - decisión-emergente
+  - cristalización-normativa
+  - zona-gris
+  - coherencia-aparente
 ---
 
-Cristalización por acumulación. Zonas grises operativas.
+# Decisiones que nadie tomó
 
----
+## Cristalización por acumulación
 
-Zonas de decisión sin propietario claro acumulan estados no auditados.
+En la mayoría de organizaciones, las decisiones importantes no se toman en reuniones.
+Se cristalizan por acumulación: alguien resuelve un caso puntual, otro repite el patrón,
+un tercero lo documenta mal, y seis meses después eso es la política.
 
----
+El problema no es la ausencia de intención.
+Es que los sistemas optimizan para coherencia aparente, no para precisión operativa.
 
-El proceso funciona: cada actor transfiere el caso al siguiente nodo. Nadie viola el protocolo. Al final, el estado del caso no refleja decisión alguna, solo la suma de transferencias.
+## Zonas grises operativas
 
-## Mecanismo
+Esto genera áreas donde todos saben qué hacer, pero nadie puede explicar por qué eso es lo correcto.
 
-La acumulación ocurre porque el costo de decidir supera el costo de transferir. Cuando ese umbral es sistémico, la zona gris se vuelve el estado operativo normal.
+**Casos observables:**
 
-$$O \uparrow \quad\Rightarrow\quad f = \frac{t}{T} + O \uparrow$$
+* Umbrales de aprobación que surgieron de errores de redondeo
+* Procesos de escalamiento que replican crisis pasadas
+* Métricas que miden lo fácil de medir, no lo relevante
 
-## Observado en AGS
+## Optimización para coherencia
 
-Nodos N5 (coordinación) y N4 (seguridad): decisiones de activación de protocolo pendientes 6h sin propietario institucional identificado. $L_{N5} = 0.78$, $O_{N5} = 0.68$, $f_{N5} = 2.10$.
+Cuando algo funciona suficientemente bien,
+el costo de formalizarlo supera el beneficio percibido.
+El sistema acepta la ambigüedad y continúa operando.
 
-## Patrones relacionados
+No es negligencia.
+Es que el error tiene que ser lo suficientemente costoso
+como para justificar el trabajo de clarificación.
+Mientras ese umbral no se cruce, la zona gris persiste.
 
-Véase doc-07 (contexto perdido) para el mecanismo de decaimiento posterior a la zona gris.
+¿En qué punto un hack se convierte en infraestructura?
+
+**Límite de aplicación:** Contextos con historia operativa acumulada.
+Probablemente no aplica en organizaciones nuevas sin proceso heredado.
+{: .limit-box }
