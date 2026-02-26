@@ -3,11 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  
   <title>{% if page.title %}{{ page.title }} · {% endif %}{{ site.title }}</title>
-  
-  <link rel="stylesheet" href="{{ '/assets/css/main.css' | relative_url }}">
-  
+  <link rel="stylesheet" href="{{ '/assets/css/main.css' | relative_url }}">  
   {% seo %}
 </head>
 <body>
@@ -32,21 +29,7 @@
   </main>
 
   <footer class="site-foot">
-    <div class="wrap--wide">
-      <div class="site-foot__grid">
-        <div>
-          <div class="site-foot__label">investigación activa</div>
-          <p>{{ site.description }}</p>
-        </div>
-        <div style="text-align:right">
-          <div class="site-foot__label">contacto</div>
-          <a href="mailto:{{ site.email }}">{{ site.email }}</a>
-        </div>
-      </div>
-      <div class="site-foot__meta">
-        © {{ "now" | date: "%Y" }} · {{ site.author }} · CC BY 4.0
-      </div>
-    </div>
+   { footer.html}
   </footer>
 
 </body>

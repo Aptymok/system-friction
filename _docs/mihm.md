@@ -1,5 +1,4 @@
 ---
-layout: default
 title: "MIHM v2.0 — Motor Cuantitativo"
 description: "Multinodal Homeostatic Integration Model. IHG, NTI, Monte Carlo."
 permalink: /mihm/

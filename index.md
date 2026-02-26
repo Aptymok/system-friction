@@ -11,20 +11,17 @@ description: "Archivo de fricción sistémica. Monitoreo de gobernanza y trazabi
 </div>
 
 <div class="wrap--wide">
-  <div class="dash-grid" style="margin-top:1.5rem">
-    
+  <div class="dash-grid" style="margin-top:1.5rem">    
     <div class="dash-cell">
       <div class="dash-cell__label">IHG — Índice de Gobernanza Homeostática</div>
       <div id="sf-headline" data-sf="true"><span class="sf-loading">—</span></div>
       <div class="dash-cell__thr">UCAP: −0.500 · Protocolo activo cuando IHG < UCAP</div>
     </div>
-
     <div class="dash-cell">
       <div class="dash-cell__label">NTI — Nodo de Trazabilidad Institucional</div>
       <div id="sf-nti" data-sf="true"><span class="sf-loading">—</span></div>
       <div class="dash-cell__thr">UCAP NTI: 0.400 · Por debajo: BLIND MODE</div>
     </div>
-
     <div class="dash-cell">
       <div class="dash-cell__label">Vista de Trazabilidad</div>
       <div class="toggle-row">
@@ -37,28 +34,23 @@ description: "Archivo de fricción sistémica. Monitoreo de gobernanza y trazabi
       </div>
       <div class="dash-cell__sub">Inyecta incertidumbre institucional en el cálculo de IHG.</div>
     </div>
-
     <div class="dash-cell dash-cell--2">
       <div class="dash-cell__label">Tendencia IHG (180d) — Proyección Monte Carlo</div>
       <div id="sf-spark" data-sf="true"></div>
       <div class="dash-cell__sub">Sombreado indica intervalo de fractura.</div>
     </div>
-
     <div class="dash-cell">
       <div class="dash-cell__label">P(Fractura Sistémica) · t+4y</div>
       <div class="dash-cell__value c-cr" id="sf-prob">71%</div>
       <div class="dash-cell__sub">Basado en deriva de latencia efectiva.</div>
     </div>
   </div>
-
   <div class="section-rule">dimensiones del sistema (agregado)</div>
   <div id="sf-dims" class="dims-panel open">
     </div>
-
   <div class="section-rule">escenarios proyectados (50k iteraciones)</div>
   <div id="sf-scenarios">
     </div>
-
   <div class="section-rule">nodos críticos — estado actual</div>
   <div class="nodes-wrap">
     <table class="nodes-tbl">
@@ -106,7 +98,7 @@ description: "Archivo de fricción sistémica. Monitoreo de gobernanza y trazabi
       <span>mihm_v2.py</span>
       <span class="dl-item__meta">motor Python</span>
     </a>
-    <a class="dl-item" href="{{ '/assets/MIHM_v2_manuscrito_completo.pdf' | relative_url }}">
+    <a class="dl-item" href="{{ '/assets/data/MIHM_v2_manuscrito_completo.pdf' | relative_url }}">
       <span class="dl-item__type">PDF</span>
       <span>Manuscrito completo</span>
       <span class="dl-item__meta">MIHM v2.0 · CC BY 4.0</span>
@@ -117,7 +109,7 @@ description: "Archivo de fricción sistémica. Monitoreo de gobernanza y trazabi
     <a href="{{ '/' | relative_url }}">← inicio</a>
     <a href="{{ '/nodo-ags/' | relative_url }}">Nodo AGS</a>
     <a href="{{ '/#lab' | relative_url }}">Lab</a>
-    <a href="{{ '/#audit' | relative_url }}">Audit</a>
+    <a href="{{ '/audit' | relative_url }}">Audit</a>
   </div>
 </div>
 
