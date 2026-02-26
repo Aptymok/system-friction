@@ -2,6 +2,10 @@
 layout: default
 title: "Dashboard · System Friction"
 description: "Archivo de fricción sistémica. Monitoreo de gobernanza y trazabilidad institucional."
+<<<<<<< HEAD
+=======
+permalink: /dashboard/
+>>>>>>> 4282b3e146dad83e33d8b8782314368300182522
 ---
 
 <div class="alert-band">
@@ -15,7 +19,11 @@ description: "Archivo de fricción sistémica. Monitoreo de gobernanza y trazabi
     <div class="dash-cell">
       <div class="dash-cell__label">IHG — Índice de Gobernanza Homeostática</div>
       <div id="sf-headline" data-sf="true"><span class="sf-loading">—</span></div>
+<<<<<<< HEAD
       <div class="dash-cell__thr">UCAP: −0.500 · Protocolo activo cuando IHG < UCAP</div>
+=======
+      <div class="dash-cell__thr">UCAP: −0.500 · Protocolo activo cuando IHG &lt; UCAP</div>
+>>>>>>> 4282b3e146dad83e33d8b8782314368300182522
     </div>
 
     <div class="dash-cell">
@@ -81,27 +89,47 @@ description: "Archivo de fricción sistémica. Monitoreo de gobernanza y trazabi
 
   <div class="section-rule">datos y código</div>
   <div class="dl-list">
+<<<<<<< HEAD
     <a class="dl-item" href="{{ site.baseurl }}/assets/data/ags_metrics.json">
+=======
+    <a class="dl-item" href="{{ '/assets/data/ags_metrics.json' | relative_url }}">
+>>>>>>> 4282b3e146dad83e33d8b8782314368300182522
       <span class="dl-item__type">JSON</span>
       <span>ags_metrics.json</span>
       <span class="dl-item__meta">métricas AGS v1.1</span>
     </a>
+<<<<<<< HEAD
     <a class="dl-item" href="{{ site.baseurl }}/assets/data/docs.json">
+=======
+    <a class="dl-item" href="{{ '/assets/data/docs.json' | relative_url }}">
+>>>>>>> 4282b3e146dad83e33d8b8782314368300182522
       <span class="dl-item__type">JSON</span>
       <span>docs.json</span>
       <span class="dl-item__meta">catálogo de documentos</span>
     </a>
+<<<<<<< HEAD
     <a class="dl-item" href="{{ site.baseurl }}/assets/data/patterns.json">
+=======
+    <a class="dl-item" href="{{ '/assets/data/patterns.json' | relative_url }}">
+>>>>>>> 4282b3e146dad83e33d8b8782314368300182522
       <span class="dl-item__type">JSON</span>
       <span>patterns.json</span>
       <span class="dl-item__meta">mapa patrones → MIHM</span>
     </a>
+<<<<<<< HEAD
     <a class="dl-item" href="{{ site.baseurl }}/scripts/mihm_v2.py">
+=======
+    <a class="dl-item" href="{{ '/scripts/mihm_v2.py' | relative_url }}">
+>>>>>>> 4282b3e146dad83e33d8b8782314368300182522
       <span class="dl-item__type">PY</span>
       <span>mihm_v2.py</span>
       <span class="dl-item__meta">motor Python</span>
     </a>
+<<<<<<< HEAD
     <a class="dl-item" href="{{ site.baseurl }}/assets/data/MIHM_v2_manuscrito_completo.pdf">
+=======
+    <a class="dl-item" href="{{ '/assets/MIHM_v2_manuscrito_completo.pdf' | relative_url }}">
+>>>>>>> 4282b3e146dad83e33d8b8782314368300182522
       <span class="dl-item__type">PDF</span>
       <span>Manuscrito completo</span>
       <span class="dl-item__meta">MIHM v2.0 · CC BY 4.0</span>
@@ -109,6 +137,7 @@ description: "Archivo de fricción sistémica. Monitoreo de gobernanza y trazabi
   </div>
 
   <div class="doc-nav-foot">
+<<<<<<< HEAD
     <a href="{{ site.baseurl }}/">← inicio</a>
     <a href="{{ site.baseurl }}/nodo-ags/">Nodo AGS</a>
     <a href="{{ site.baseurl }}/laboratorio/">Laboratorio</a>
@@ -116,3 +145,13 @@ description: "Archivo de fricción sistémica. Monitoreo de gobernanza y trazabi
     <a href="{{ site.baseurl }}/_audit/">Audit</a>
   </div>
 </div>
+=======
+    <a href="{{ '/' | relative_url }}">← inicio</a>
+    <a href="{{ '/nodo-ags/' | relative_url }}">Nodo AGS</a>
+    <a href="{{ '/#lab' | relative_url }}">Lab</a>
+    <a href="{{ '/#audit' | relative_url }}">Audit</a>
+  </div>
+</div>
+
+<script src="{{ '/assets/js/dashboard.js' | relative_url }}"></script>
+>>>>>>> 4282b3e146dad83e33d8b8782314368300182522
