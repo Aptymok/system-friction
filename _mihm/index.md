@@ -4,11 +4,6 @@ title: MIHM · Motor de validación
 description: Estado observado del ecosistema. IHG activo por nodo.
 ---
 
-{%- comment -%}
-  Layout: mihm — usar el CSS del PATCH-07
-  Página central de integración entre SF y el motor NODEX
-{%- endcomment -%}
-
 <div class="mihm-panel">
 
 <div class="nodo-label">MIHM · Motor de validación activo</div>

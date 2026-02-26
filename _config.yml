@@ -1,11 +1,15 @@
-title: "System Friction"
-description: "Archivo de fricción sistémica · v1.1 · 2026"
-url: "https://systemfriction.org"
-baseurl: ""
-author: "Juan Antonio Marín Liera"
-email: "aptymok@gmail.com"
-version: "1.1"
-
+# _config.yml
+title: System Friction
+description: Archivo de fricción sistémica
+url: "https://aptymok.github.io"
+baseurl: "/system-friction"   # muy importante para rutas
+theme: null                   # si no usas tema
+plugins: []                   # GitHub Pages en modo safe
+exclude:
+  - node_modules
+  - README.md
+  - vendor
+  
 markdown: kramdown
 highlighter: rouge
 kramdown:
