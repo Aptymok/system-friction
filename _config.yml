@@ -1,14 +1,15 @@
 # _config.yml
 title: System Friction
 description: Archivo de fricción sistémica
-url: "https://aptymok.github.io"
-baseurl: "/system-friction"   # muy importante para rutas
+url: "https://systemfriction.org"
+baseurl: ""                   # dominio personalizado CNAME
 theme: null                   # si no usas tema
 plugins: []                   # GitHub Pages en modo safe
 exclude:
   - node_modules
   - README.md
   - vendor
+  - repo_dump.txt
   
 markdown: kramdown
 highlighter: rouge
