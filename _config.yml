@@ -40,6 +40,9 @@ collections:
   mihm:
     output: true
     permalink: /mihm/:name/
+  consola_observacion:
+    output: true
+    permalink: /consola/:name/
   estado:
     output: true
     permalink: /estado/:path/
