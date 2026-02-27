@@ -9,6 +9,7 @@ theme: null                   # sin tema, usamos CSS propio
 
 # Plugins (compatibles con GitHub Pages)
 plugins:
+  - jekyll-feed
   - jekyll-seo-tag
   - jekyll-sitemap
 
