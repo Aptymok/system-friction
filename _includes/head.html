@@ -2,20 +2,20 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{% if page.title %}{{ page.title }} · {% endif %}System Friction</title>
-  
-  <!-- CSS principal - SIEMPRE debe cargar -->
-<link rel="stylesheet" href="{{ site.baseurl }}/assets/css/main.css">  
-  <!-- CSS específico para página de estado (solo si aplica)
+  <title>{% if page.title %}{{ page.title }}  {% endif %}System Friction</title>
+
+  <!-- CSS principal -->
+  <link rel="stylesheet" href="/assets/css/main.css">
+
+  <!-- CSS específico para página de estado -->
   {% if page.layout == 'estado' %}
-  <link rel="stylesheet" href="{{ site.baseurl }}/assets/css/estado.css">
-  {% endif %} -->
-  
-  <!-- Fuentes (ya están en main.css, pero por si acaso) -->
+  <link rel="stylesheet" href="/assets/css/estado.css">
+  {% endif %}
+
+  <!-- Fuentes -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet">
-  
+
   <!-- Meta tags para SEO -->
   <meta name="description" content="{% if page.description %}{{ page.description }}{% else %}{{ site.description }}{% endif %}">
-
 </head>
