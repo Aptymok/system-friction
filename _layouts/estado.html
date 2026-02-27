@@ -1,0 +1,49 @@
+---
+---
+<!DOCTYPE html>
+<html lang="es">
+{% include head.html %}
+<body>
+  {% include header.html %}
+
+  <!-- NAV TABS (tomado de tu diseño) -->
+  <nav class="audit-nav" role="tablist" aria-label="Secciones de auditoría">
+    <button class="audit-tab active" onclick="show('s0',this)" role="tab">00 · Diagnóstico</button>
+    <button class="audit-tab" onclick="show('s1',this)" role="tab">01 · Bugs UX/UI</button>
+    <button class="audit-tab" onclick="show('s2',this)" role="tab">02 · CSS patches</button>
+    <button class="audit-tab" onclick="show('s3',this)" role="tab">03 · Jekyll fixes</button>
+    <button class="audit-tab" onclick="show('s4',this)" role="tab">04 · Arquitectura</button>
+    <button class="audit-tab" onclick="show('s5',this)" role="tab">05 · Templates MIHM</button>
+    <button class="audit-tab" onclick="show('s6',this)" role="tab">06 · Roadmap</button>
+  </nav>
+
+  <div class="doc-container">
+    <!-- AQUÍ SE INYECTA EL CONTENIDO DE CADA SECCIÓN (00-diagnostico.md, etc.) -->
+    {{ content }}
+  </div>
+
+  <!-- FOOTER (tomado de tu diseño) -->
+  <footer class="license">
+    <div class="footer-left">
+      System Friction Framework v1.1<br>
+      Auditoría MIHM v2.0 · {{ site.data.estado.fecha_actualizacion | date: "%d %B %Y" }}
+    </div>
+    <div class="footer-right">
+      <a href="https://systemfriction.org">systemfriction.org</a> ·
+      <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a> ·
+      <a href="https://github.com/Aptymok/system-friction">GitHub</a>
+    </div>
+  </footer>
+
+  <!-- Script para tabs (copiado de tu diseño) -->
+  <script>
+  function show(id, btn) {
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.audit-tab').forEach(t => t.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    btn.classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+  </script>
+</body>
+</html>

@@ -28,9 +28,6 @@ node: "nodo-ags"
   <!-- Intro del nodo (texto de contexto) -->
   <main>
     <div class="nodo-entry">
-      <div class="nodo-label">Nodo Aguascalientes</div>
-      <h2 style="margin-top:.25rem">Aguascalientes como<br> sistema observable</h2>
-
       <p>Los documentos del ecosistema describen marcos de análisis.
       Esta serie los aplica a un caso específico con datos verificables.</p>
 

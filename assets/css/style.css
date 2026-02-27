@@ -585,3 +585,42 @@ hr.rule { border: none; border-top: 1px solid var(--border); margin: var(--gap-l
 /* ── 21. MathJax override ─────────────────────────────────────── */
 .MJXc-display { overflow-x: auto; }
 mjx-container { color: var(--text) !important; }
+.resources-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin: 2rem 0;
+}
+
+.resource-card {
+  border: 1px solid var(--border);
+  padding: 1.5rem;
+  background: var(--surface);
+  text-decoration: none;
+  transition: border-color 0.2s;
+  display: flex;
+  flex-direction: column;
+}
+
+.resource-card:hover {
+  border-color: var(--accent);
+}
+
+.resource-icon {
+  font-size: 1.8rem;
+  margin-bottom: 0.8rem;
+  opacity: 0.7;
+}
+
+.resource-title {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  color: var(--accent);
+  margin-bottom: 0.3rem;
+}
+
+.resource-desc {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  line-height: 1.5;
+}

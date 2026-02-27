@@ -1,4 +1,17 @@
 <header>
-  <a href="{{ site.baseurl }}/" class="site-id">System Friction</a>
-  <span class="site-meta">Archivo de fricción sistémica · v1.1 · 2026</span>
+<!-- En _includes/header.html -->
+<nav class="site-bar__nav">
+  <a href="/">Dashboard</a>
+  <a href="/docs/">Archivo</a>
+  <a href="/mihm/">Motor</a>
+  <a href="/nodo-ags/">Nodo AGS</a>
+  <div class="dropdown">
+    <a href="#" class="dropdown-trigger">Recursos ⌄</a>
+    <div class="dropdown-content">
+      <a href="/assets/data/ags_metrics.json">JSON (métricas)</a>
+      <a href="/scripts/mihm_v2.py">Python (motor)</a>
+      <a href="https://github.com/aptymok/system-friction">GitHub</a>
+    </div>
+  </div>
+</nav>
 </header>

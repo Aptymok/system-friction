@@ -450,3 +450,105 @@ mjx-container { color:var(--tx2) !important; }
     });
   });
 })();
+/* Footer unificado */
+.site-footer {
+  border-top: 1px solid var(--border);
+  margin-top: 4rem;
+  background: var(--surface);
+  font-family: var(--mono);
+}
+
+.site-foot__meta {
+  padding: 2rem 4rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.site-foot__label {
+  font-size: 0.55rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--accent-dim);
+  margin-bottom: 0.5rem;
+}
+
+.site-foot__description {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  max-width: 400px;
+  line-height: 1.6;
+}
+
+.site-foot__info {
+  padding: 2rem 4rem;
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 2rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.footer-left, .footer-right {
+  font-size: 0.65rem;
+  line-height: 2;
+  color: var(--text-dim);
+}
+
+.footer-version {
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.footer-observations {
+  color: var(--text);
+  font-size: 0.6rem;
+}
+
+.footer-email {
+  color: var(--accent);
+}
+
+.footer-right {
+  text-align: right;
+}
+
+.footer-nav a {
+  color: var(--text-dim);
+  transition: color 0.2s;
+}
+
+.footer-nav a:hover {
+  color: var(--accent);
+}
+
+.site-foot__audit {
+  padding: 1rem 4rem;
+  display: flex;
+  gap: 2rem;
+  font-size: 0.6rem;
+  background: var(--bg);
+}
+
+.audit-badge {
+  color: var(--text-dim);
+}
+
+.audit-badge a {
+  color: var(--accent);
+  border-bottom: 1px dashed var(--accent-dim);
+}
+
+@media (max-width: 640px) {
+  .site-foot__meta,
+  .site-foot__info,
+  .site-foot__audit {
+    padding: 1.5rem;
+  }
+  
+  .site-foot__info {
+    flex-direction: column;
+  }
+  
+  .footer-right {
+    text-align: left;
+  }
+}

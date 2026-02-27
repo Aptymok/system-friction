@@ -1,16 +1,27 @@
-# _config.yml
+# System Friction · Configuración Jekyll
+# v1.2 · 2026-02-23
+
 title: System Friction
-description: Archivo de fricción sistémica
+description: Archivo de fricción sistémica · MIHM v2.0
 url: "https://systemfriction.org"
 baseurl: ""                   # dominio personalizado CNAME
-theme: null                   # si no usas tema
-plugins: []                   # GitHub Pages en modo safe
+theme: null                   # sin tema, usamos CSS propio
+
+# Plugins (compatibles con GitHub Pages)
+plugins:
+  - jekyll-seo-tag
+  - jekyll-sitemap
+
+# Excluir archivos innecesarios
 exclude:
   - node_modules
   - README.md
   - vendor
   - repo_dump.txt
-  
+  - Gemfile.lock
+  - .gitignore
+
+# Configuración de Markdown
 markdown: kramdown
 highlighter: rouge
 kramdown:
@@ -18,10 +29,7 @@ kramdown:
   math_engine: mathjax
   syntax_highlighter: rouge
 
-plugins:
-  - jekyll-seo-tag
-  - jekyll-sitemap
-
+# Colecciones (generan páginas automáticamente)
 collections:
   docs:
     output: true
@@ -32,7 +40,11 @@ collections:
   mihm:
     output: true
     permalink: /mihm/:name/
+  estado:
+    output: true
+    permalink: /estado/:path/
 
+# Valores por defecto para las colecciones
 defaults:
   - scope:
       path: ""
@@ -51,3 +63,17 @@ defaults:
       type: "mihm"
     values:
       layout: "doc"
+  - scope:
+      path: ""
+      type: "estado"
+    values:
+      layout: "estado"        # ← IMPORTANTE: usa layout específico para estado
+
+# Configuración SEO
+author: Juan Antonio Marín Liera
+twitter:
+  username: aptymok
+social:
+  name: System Friction
+  links:
+    - https://github.com/aptymok/system-friction

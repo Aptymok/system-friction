@@ -1,105 +1,104 @@
 ---
-layout: mihm
-title: MIHM · Motor de validación
-description: Estado observado del ecosistema. IHG activo por nodo.
+layout: doc
+title: "MIHM v2.0 — Motor Cuantitativo"
+description: "Multinodal Homeostatic Integration Model. Fórmulas, variables, umbrales."
+permalink: /mihm/
+math: true
 ---
 
-<div class="mihm-panel">
+<div class="doc-hdr">
+  <div class="doc-hdr__kicker">MIHM v2.0 · Multinodal Homeostatic Integration Model</div>
+  <h1>Motor Cuantitativo</h1>
+  <div class="doc-hdr__meta">
+    <span>v2.0</span>
+    <span>validated</span>
+    <span class="mono">seed 42 · Monte Carlo 50k</span>
+  </div>
+</div>
 
-<div class="nodo-label">MIHM · Motor de validación activo</div>
+## Fórmulas base
 
-<h1>Estado observado del ecosistema.</h1>
+$$f = \frac{t}{T} + O$$
 
-<p class="doc-meta">
-  Actualización activa · Datos verificables · Monte Carlo seed 42
-  · v2.0 · {{ site.time | date: "%d %b %Y" }}
-</p>
+$$\text{IHG} = \frac{1}{N}\sum_{i=1}^{N}(C_i - E_i)(1 - L_i^{\text{eff}})$$
 
-El MIHM no describe fricción. La cuantifica en tiempo real sobre nodos
-observables. Este panel es el estado actual del ecosistema System
-Friction y sus nodos activos.
+$$L_i^{\text{eff}} = \min\!\left(L_i \cdot (1 + (1 - M_i)),\; 1\right)$$
+
+$$\text{NTI} = \frac{1}{5}\left[(1-\text{LDI}_n) + \text{ICC}_n + \text{CSR} + \text{IRCI}_n + \text{IIM}\right]$$
 
 ---
 
-## Estado actual del ecosistema
+## Variables del sistema
 
-<div class="mihm-nodos-grid">
+| Símbolo | Nombre | Dominio | Umbral crítico | Proxy observable |
+|---------|--------|---------|----------------|-------------------|
+| $C_i$ | Capacidad adaptativa | $[0,1]$ | $< 0.30$ → FRACTURE | Recursos disponibles / demanda |
+| $E_i$ | Carga entrópica | $[0,1]$ | $> 0.80$ → CRITICAL | 1 − (eficiencia × capacidad) |
+| $L_i$ | Latencia operativa | $[0,1]$ | $> 0.85$ → DEGRADED | t_respuesta / t_normativo |
+| $K_i$ | Conectividad funcional | $[0,1]$ | — | Nodos conectados / total |
+| $R_i$ | Redistribución | $[0,1]$ | — | Capacidad de reasignación |
+| $M_i$ | Coherencia institucional | $[0,1]$ | $< 0.50$ → OPAQUE | 1 − |declarado−observable|/declarado |
+| $O$ | Opacidad sistémica | $[0,1]$ | $O \to 1$ divergencia | Puntos ciegos / total procesos |
+| $f$ | Fricción nodo | $[0,\infty)$ | $> 1.0$ fuera umbral | (t/T) + O |
 
-  <div class="mihm-nodo-card">
-    <div class="mihm-nodo-id">Nodo AGS · Aguascalientes</div>
-    <div class="mihm-ihg-value critical">IHG −0.62</div>
-    <div class="mihm-nti-value">NTI 0.351 · UCAP activo</div>
-    <div class="mihm-nodo-status">
-      Post-fractura pacto no escrito · 22 feb 2026 ·
-      Desregulación sistémica crítica
-    </div>
-    <a href="/nodo-ags/" class="mihm-nodo-link">Ver nodo →</a>
-  </div>
+---
 
-  <div class="mihm-nodo-card inactive">
-    <div class="mihm-nodo-id">Próximo nodo</div>
-    <div class="mihm-ihg-value pending">—</div>
-    <div class="mihm-nodo-status">En definición · sin datos calibrados</div>
-  </div>
+## Componentes del NTI en detalle
 
+| Componente | Fórmula | Descripción |
+|------------|---------|-------------|
+| **LDI_norm** | min(t_real / t_referencia, 1.0) | Latencia de decisión institucional |
+| **ICC_norm** | 1 − Σ_j f_j² | Desconcentración de conocimiento |
+| **CSR** | acciones_ejecutadas / señales_detectadas | Cobertura de señales de riesgo |
+| **IRCI_norm** | función_base / función_tras_pérdida | Resiliencia de capital institucional |
+| **IIM** | 1 − |reportado−verificado|/reportado | Integridad de información medida |
+
+---
+
+## Aplicación en nodos activos
+
+El estado actual del sistema (IHG, NTI, proyecciones) se encuentra en el **[Dashboard principal →](/)**
+
+Para ver la aplicación empírica completa del MIHM en un caso geográfico:
+- **[Nodo Aguascalientes](/nodo-ags/)** · Validación post-fractura 2026
+
+Para el catálogo de patrones mapeados a variables MIHM:
+- **[core-patrones.md](/docs/core-patrones/)** · En preparación
+
+---
+
+## Descargas
+
+<div class="dl-list">
+  <a class="dl-item" href="/assets/data/ags_metrics.json">
+    <span class="dl-item__type">JSON</span>
+    <span>ags_metrics.json</span>
+    <span class="dl-item__meta">métricas completas nodo AGS</span>
+  </a>
+  <a class="dl-item" href="/assets/data/patterns.json">
+    <span class="dl-item__type">JSON</span>
+    <span>patterns.json</span>
+    <span class="dl-item__meta">patrones ↔ MIHM</span>
+  </a>
+  <a class="dl-item" href="/scripts/mihm_v2.py">
+    <span class="dl-item__type">PY</span>
+    <span>mihm_v2.py</span>
+    <span class="dl-item__meta">motor Python · seed 42</span>
+  </a>
+  <a class="dl-item" href="/assets/MIHM_v2_manuscrito_completo.pdf">
+    <span class="dl-item__type">PDF</span>
+    <span>Manuscrito completo</span>
+    <span class="dl-item__meta">MIHM v2.0 · CC BY 4.0</span>
+  </a>
 </div>
 
 ---
 
-## Documentación del motor
+## Navegación del ecosistema
 
-<div class="nodo-grid">
-  <div class="nodo-section-divider">
-    Metodología <span>v2.0</span>
-  </div>
-
-  <a href="/docs/core-patrones/" class="nodo-doc">
-    <div class="nodo-doc-title">Catálogo de patrones</div>
-    <div class="nodo-doc-sub">
-      Mapeo SF ↔ MIHM · Variables, ecuaciones, condiciones de refutación.
-    </div>
-    <span class="nodo-arrow">→</span>
-  </a>
-
-  <a href="/docs/core-nti/" class="nodo-doc">
-    <div class="nodo-doc-title">NTI · Auto-auditoría del ecosistema</div>
-    <div class="nodo-doc-sub">
-      LDI · ICC · CSR · IRCI · IIM · El sistema observándose a sí mismo.
-    </div>
-    <span class="nodo-arrow">→</span>
-  </a>
-
-  <a href="/docs/bridge-codigo/" class="nodo-doc">
-    <div class="nodo-doc-title">NODEX · Implementación Python</div>
-    <div class="nodo-doc-sub">
-      Cómo el código es implementación directa del marco.
-      CC BY 4.0 · reproducible · seed 42.
-    </div>
-    <span class="nodo-arrow">→</span>
-  </a>
-
-  <div class="nodo-section-divider">
-    Validaciones activas <span>en producción</span>
-  </div>
-
-  <a href="/nodo-ags/ags-06/" class="nodo-doc">
-    <div class="nodo-doc-title">AGS-06 · Después del acuerdo</div>
-    <div class="nodo-doc-sub">
-      Validación empírica 22-23 feb 2026 · Post-fractura del pacto.
-      Primera instancia verificada de colapso de U_P.
-    </div>
-    <span class="nodo-arrow">→</span>
-  </a>
-
-  <div class="nodo-note">
-    Código completo disponible en
-    <a href="https://github.com/Aptymok/system-friction">
-      github.com/Aptymok/system-friction
-    </a>
-    · branch main · seed 42 · reproducible · CC BY 4.0
-  </div>
+<div class="doc-nav-foot">
+  <a href="/">← Dashboard (estado actual)</a>
+  <a href="/docs/">Archivo de patrones</a>
+  <a href="/nodo-ags/">Nodo AGS</a>
+  <a href="/estado/">Estado del sistema</a>
 </div>
-
-</div>
-
-[Catálogo →](/mihm/catalogo/) · [Dashboard →](/mihm/) · [Hub Nodo AGS →](/mihm/hub/) · [NTI →](/mihm/nti/) · [Patrones →](/mihm/patrones/)
