@@ -1,2 +1,47 @@
-/* En assets/css/estado.css - importar después del main */
-@import url('estado.css') screen and (min-width: 1px);
+/* assets/css/estado.css - Solo estilos específicos para /estado/ */
+
+/* Tabs de navegación */
+.audit-nav {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.audit-tab {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  padding: 1rem 1.8rem;
+  border: none;
+  background: none;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+}
+
+.audit-tab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+  background: var(--bg);
+}
+
+/* Bug cards */
+.bug-card {
+  border-left: 2px solid var(--accent-red-dim);
+  padding: 1.2rem 1.5rem;
+  margin: 1.8rem 0;
+  background: #1a0e0e;
+}
+
+/* Priority items */
+.priority-item {
+  display: flex;
+  gap: 1.2rem;
+  padding: 0.9rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+/* ... resto de estilos específicos de la auditoría ... */

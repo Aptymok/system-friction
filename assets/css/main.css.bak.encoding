@@ -1,8 +1,8 @@
-﻿/* System Friction  main.css  v1.1
+/* System Friction · main.css · v1.1
    Mobile-first. Clinical. Zero decoration not earned by function.
-    */
+   ─────────────────────────────────────────────────────────────── */
 
-/*  0. Tokens  */
+/* ── 0. Tokens ────────────────────────────────────────────────── */
 :root {
   /* Surface */
   --bg:       #080807;
@@ -48,7 +48,7 @@
   --ease: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/*  1. Reset  */
+/* ── 1. Reset ─────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { font-size: 16px; scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
 body {
@@ -66,7 +66,7 @@ a:hover { color: var(--text); }
 img { max-width: 100%; display: block; }
 button { cursor: pointer; font-family: inherit; }
 
-/*  2. Typography scale  */
+/* ── 2. Typography scale ──────────────────────────────────────── */
 .t-mono    { font-family: var(--mono); }
 .t-dim     { color: var(--text-dim); }
 .t-faint   { color: var(--text-faint); }
@@ -78,7 +78,7 @@ button { cursor: pointer; font-family: inherit; }
 .t-opq     { color: var(--opq-text); }
 .t-emrg    { color: var(--emrg-text); }
 
-/*  3. Status badges  */
+/* ── 3. Status badges ─────────────────────────────────────────── */
 .badge {
   display: inline-flex; align-items: center;
   font-family: var(--mono);
@@ -98,11 +98,11 @@ button { cursor: pointer; font-family: inherit; }
 .badge-emrg    { color: var(--emrg-text); border-color: var(--emrg); background: rgba(139,0,0,0.12); animation: pulse-emrg 2s ease-in-out infinite; }
 @keyframes pulse-emrg { 0%,100%{opacity:1} 50%{opacity:0.6} }
 
-/*  4. Layout shell  */
+/* ── 4. Layout shell ──────────────────────────────────────────── */
 .site-wrap   { display: flex; flex-direction: column; min-height: 100vh; }
 .site-main   { flex: 1; }
 
-/*  5. Topbar (minimal, no traditional nav)  */
+/* ── 5. Topbar (minimal, no traditional nav) ──────────────────── */
 .topbar {
   position: fixed; top: 0; left: 0; right: 0; z-index: 100;
   display: flex; align-items: center; justify-content: space-between;
@@ -133,7 +133,7 @@ button { cursor: pointer; font-family: inherit; }
   animation: pulse-emrg 2s ease-in-out infinite;
 }
 
-/*  6. Dashboard hero  */
+/* ── 6. Dashboard hero ────────────────────────────────────────── */
 .hero {
   min-height: 100vh;
   padding-top: 44px;
@@ -202,7 +202,7 @@ button { cursor: pointer; font-family: inherit; }
 }
 @keyframes bobble { 0%,100%{transform:translateX(-50%) translateY(0)} 50%{transform:translateX(-50%) translateY(6px)} }
 
-/*  7. Dashboard section  */
+/* ── 7. Dashboard section ─────────────────────────────────────── */
 .section {
   padding: var(--gap-lg) var(--gap);
   border-top: 1px solid var(--border);
@@ -223,7 +223,7 @@ button { cursor: pointer; font-family: inherit; }
   content: ''; flex: 1; height: 1px; background: var(--border);
 }
 
-/*  8. Gauge grid (mobile: 1col / desktop: auto)  */
+/* ── 8. Gauge grid (mobile: 1col / desktop: auto) ─────────────── */
 .gauge-grid {
   display: grid;
   grid-template-columns: 1fr;
@@ -269,7 +269,7 @@ button { cursor: pointer; font-family: inherit; }
 .sparkline-wrap { width: 100%; overflow: hidden; }
 .sparkline-wrap svg { width: 100%; display: block; }
 
-/*  9. NTI toggle  */
+/* ── 9. NTI toggle ─────────────────────────────────────────────── */
 .nti-toggle-wrap {
   display: flex; align-items: center; gap: var(--gap);
   flex-wrap: wrap; margin-bottom: var(--gap);
@@ -306,7 +306,7 @@ button { cursor: pointer; font-family: inherit; }
   transition: all 0.3s var(--ease);
 }
 
-/*  10. Dimension expander  */
+/* ── 10. Dimension expander ────────────────────────────────────── */
 .dim-toggle-btn {
   font-family: var(--mono); font-size: 0.65rem;
   color: var(--text-dim); background: var(--surface2);
@@ -346,7 +346,7 @@ button { cursor: pointer; font-family: inherit; }
 .dim-table .mini-bar-wrap { display: flex; align-items: center; gap: 0.5rem; }
 .dim-bar { height: 3px; border-radius: 2px; min-width: 2px; }
 
-/*  11. Doc card grid  */
+/* ── 11. Doc card grid ─────────────────────────────────────────── */
 .doc-grid {
   display: grid;
   grid-template-columns: 1fr;
@@ -396,7 +396,7 @@ button { cursor: pointer; font-family: inherit; }
   color: var(--text-faint);
 }
 
-/*  12. Monte Carlo section  */
+/* ── 12. Monte Carlo section ──────────────────────────────────── */
 .mc-grid {
   display: grid;
   grid-template-columns: 1fr;
@@ -416,7 +416,7 @@ button { cursor: pointer; font-family: inherit; }
 .mc-bar-wrap { margin-top: 0.6rem; height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; }
 .mc-bar { height: 100%; border-radius: 2px; }
 
-/*  13. NTI component bars  */
+/* ── 13. NTI component bars ───────────────────────────────────── */
 .nti-grid { display: flex; flex-direction: column; gap: 0.8rem; }
 .nti-row  { display: grid; grid-template-columns: 80px 1fr 50px; align-items: center; gap: 0.6rem; }
 .nti-key  { font-family: var(--mono); font-size: 0.62rem; color: var(--text-dim); }
@@ -424,7 +424,7 @@ button { cursor: pointer; font-family: inherit; }
 .nti-fill  { height: 100%; border-radius: 3px; }
 .nti-val   { font-family: var(--mono); font-size: 0.62rem; text-align: right; color: var(--text-dim); }
 
-/*  14. Doc layout (reading mode)  */
+/* ── 14. Doc layout (reading mode) ───────────────────────────── */
 .doc-wrap {
   max-width: 680px;
   margin: 0 auto;
@@ -498,7 +498,7 @@ button { cursor: pointer; font-family: inherit; }
 }
 .var-ref strong { color: var(--gold); font-weight: 400; }
 
-/*  15. Node layout (AGS nodes)  */
+/* ── 15. Node layout (AGS nodes) ──────────────────────────────── */
 .node-header-bar {
   display: flex; align-items: flex-start;
   justify-content: space-between; flex-wrap: wrap;
@@ -510,12 +510,12 @@ button { cursor: pointer; font-family: inherit; }
 }
 .node-meta { display: flex; flex-direction: column; gap: 0.3rem; align-items: flex-end; }
 
-/*  16. MIHM Hub  */
+/* ── 16. MIHM Hub ─────────────────────────────────────────────── */
 .mihm-hub-grid {
   display: grid; grid-template-columns: 1fr; gap: var(--gap);
 }
 
-/*  17. Footer  */
+/* ── 17. Footer ───────────────────────────────────────────────── */
 .site-footer {
   border-top: 1px solid var(--border);
   padding: var(--gap-lg) var(--gap);
@@ -537,7 +537,7 @@ button { cursor: pointer; font-family: inherit; }
   justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;
 }
 
-/*  18. Utility / helpers  */
+/* ── 18. Utility / helpers ─────────────────────────────────────── */
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
 .loading { font-family: var(--mono); font-size: 0.65rem; color: var(--text-faint); }
 .err     { font-family: var(--mono); font-size: 0.65rem; color: var(--crit-text); }
@@ -554,14 +554,14 @@ button { cursor: pointer; font-family: inherit; }
 /* Horizontal rule */
 hr.rule { border: none; border-top: 1px solid var(--border); margin: var(--gap-lg) 0; }
 
-/*  19. Responsive  Tablet 520px+  */
+/* ── 19. Responsive — Tablet 520px+ ───────────────────────────── */
 @media (min-width: 520px) {
   .gauge-grid  { grid-template-columns: repeat(2, 1fr); }
   .mc-grid     { grid-template-columns: repeat(2, 1fr); }
   .doc-grid    { grid-template-columns: repeat(2, 1fr); }
 }
 
-/*  20. Responsive  Desktop 860px+  */
+/* ── 20. Responsive — Desktop 860px+ ──────────────────────────── */
 @media (min-width: 860px) {
   :root { --gap: 1.6rem; --gap-lg: 3.2rem; }
 
@@ -582,11 +582,9 @@ hr.rule { border: none; border-top: 1px solid var(--border); margin: var(--gap-l
   .gauge-grid { grid-template-columns: repeat(4, 1fr); }
 }
 
-/*  21. MathJax override  */
+/* ── 21. MathJax override ─────────────────────────────────────── */
 .MJXc-display { overflow-x: auto; }
 mjx-container { color: var(--text) !important; }
-
-/*  22. Resources grid  */
 .resources-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -626,8 +624,6 @@ mjx-container { color: var(--text) !important; }
   color: var(--text-dim);
   line-height: 1.5;
 }
-
-/*  23. MIHM Navigation  */
 .mihm-nav {
   border-bottom: 1px solid var(--border);
   background: var(--surface);

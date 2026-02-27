@@ -1,13 +1,11 @@
 <!DOCTYPE html>
 <html lang="es">
-{% include head.html %}
+{% include head.html %}  <!-- ← AQUÍ SE CARGAN LOS CSS -->
 <body>
   {% include header.html %}
   <main class="wrap-main">
     {{ content }}
   </main>
   {% include footer.html %}
-  <script src="{{ site.baseurl }}/assets/js/dashboard.js"></script>
 </body>
-{% include footer.html %}
 </html>

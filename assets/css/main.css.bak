@@ -1,0 +1,47 @@
+/* System Friction · main.css · v1.2 · 2026 */
+/* Estilos base - DEBEN ESTAR EN ESTE ARCHIVO */
+
+:root {
+  --bg: #0d0d0b;
+  --surface: #131310;
+  --border: #222220;
+  --text: #c8c4b8;
+  --text-dim: #5a5852;
+  --text-bright: #e8e4d8;
+  --accent: #c8a96e;
+  --accent-dim: #7a6540;
+  --accent-red: #c86e6e;
+  --mono: 'JetBrains Mono', monospace;
+  --serif: 'EB Garamond', Georgia, serif;
+}
+
+/* Reset */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* Layout base */
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--serif);
+  line-height: 1.7;
+  overflow-x: clip;  /* Cambiado de 'hidden' a 'clip' */
+}
+
+/* Header - DEBE estar aquí, no en cada página */
+header {
+  padding: 2.5rem 4rem;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+/* Footer - DEBE estar aquí */
+.site-footer {
+  border-top: 1px solid var(--border);
+  margin-top: 4rem;
+  background: var(--surface);
+  font-family: var(--mono);
+}
+
+/* ... TODOS los demás estilos base ... */

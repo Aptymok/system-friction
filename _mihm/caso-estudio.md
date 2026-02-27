@@ -1,34 +1,3 @@
----
-layout: default
-title: "Caso de Estudio: Nodo Aguascalientes 2024-2026"
-description: "Análisis integrado del colapso institucional: narrativa + métricas MIHM. 136 días de degradación documentada."
-permalink: /caso-estudio/
----
-
-<style>
-  .case-hero { background: linear-gradient(135deg, var(--bg2), var(--bg1)); border-left: 4px solid var(--ac); padding: 2rem; border-radius: var(--r); margin-bottom: 2rem; }
-  .case-section { border-top: 1px solid var(--bd); padding-top: 2rem; margin-top: 2rem; }
-  .stage-card { background: var(--bg2); border: 1px solid var(--bd); padding: 1.5rem; border-radius: var(--r); margin-bottom: 1.5rem; }
-  .stage-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 1rem; }
-  .stage-title { font-size: 1.1rem; font-weight: 600; }
-  .stage-date { font-size: 0.75rem; color: var(--tx2); font-family: var(--fm); text-transform: uppercase; }
-  .stage-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-top: 1rem; }
-  .metric-box { background: var(--bg1); padding: 0.75rem; border-radius: 3px; border-left: 3px solid var(--ac); }
-  .metric-label { font-size: 0.7rem; color: var(--tx2); font-family: var(--fm); text-transform: uppercase; letter-spacing: 0.5px; }
-  .metric-value { font-size: 1.3rem; font-weight: 600; font-family: var(--fm); margin-top: 0.3rem; }
-  .narrative { color: var(--tx2); font-size: 0.95rem; line-height: 1.8; margin-top: 1rem; }
-  .formula { background: var(--bg1); border-left: 2px solid var(--ac); padding: 0.75rem 1rem; margin: 1rem 0; font-family: var(--fm); font-size: 0.85rem; }
-  .status-badge { display: inline-block; padding: 0.3rem 0.6rem; border-radius: 3px; font-size: 0.7rem; font-weight: 600; font-family: var(--fm); text-transform: uppercase; margin-left: 0.5rem; }
-  .status-ok { background: var(--ok); color: white; }
-  .status-am { background: var(--wn); color: white; }
-  .status-cr { background: var(--cr); color: white; }
-  
-  @media (max-width: 768px) {
-    .stage-header { flex-direction: column; gap: 0.5rem; }
-    .stage-metrics { grid-template-columns: 1fr 1fr; }
-  }
-</style>
-
 <div style="max-width: 1000px; margin: 0 auto; padding: 2rem 1rem;">
 
   <!-- PORTADA -->
