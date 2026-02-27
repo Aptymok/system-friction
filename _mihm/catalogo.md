@@ -1,10 +1,7 @@
 ---
-layout: audit
-title: "Catálogo MIHM — Componentes del Framework"
-version: "1.1"
-status: validated
-origin: vhpd
-date: 2026-02-23
+layout: redirect
+permalink: /mihm/catalogo/
+redirect_to: /mihm/#dashboard
 ---
 
 # Catálogo de Componentes MIHM v2.0

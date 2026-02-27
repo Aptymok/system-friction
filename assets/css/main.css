@@ -552,3 +552,41 @@ mjx-container { color:var(--tx2) !important; }
     text-align: left;
   }
 }
+.mihm-nav {
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  position: sticky;
+  top: 44px;
+  z-index: 90;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.mihm-nav__inner {
+  display: flex;
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.mihm-nav__item {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  padding: 0.8rem 1.2rem;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.mihm-nav__item:hover {
+  color: var(--text);
+  border-bottom-color: var(--accent-dim);
+}
+
+.mihm-nav__item.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}

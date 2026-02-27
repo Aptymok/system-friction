@@ -1,10 +1,7 @@
 ---
-layout: audit
-title: "MIHM Hub — Dashboard Integrado"
-version: "1.1"
-status: validated
-origin: vhpd
-date: 2026-02-23
+layout: redirect
+permalink: /mihm/hub/
+redirect_to: /mihm/#dashboard
 ---
 
 # MIHM Hub — Dashboard de Gobernanza Homeostática

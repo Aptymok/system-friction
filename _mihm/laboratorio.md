@@ -1,8 +1,8 @@
 ---
-layout: default
-title: "Laboratorio MIHM · System Friction"
-description: "Explorador interactivo del Modelo Homeostático Multinodal. Caso de estudio: Aguascalientes 2024-2026."
-permalink: /laboratorio/
+layout: mihm
+title: "Laboratorio MIHM — Explorador interactivo"
+description: "Simulador del Modelo Homeostático Multinodal. Caso Aguascalientes 2024-2026."
+permalink: /mihm/laboratorio/
 ---
 
 <style>

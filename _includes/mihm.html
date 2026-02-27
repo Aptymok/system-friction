@@ -1,0 +1,27 @@
+---
+---
+<!DOCTYPE html>
+<html lang="es">
+{% include head.html %}
+<body>
+  {% include header.html %}
+
+  <!-- Navegación interna MIHM -->
+  <nav class="mihm-nav">
+    <div class="mihm-nav__inner">
+      <a href="/mihm/#dashboard" class="mihm-nav__item">Dashboard</a>
+      <a href="/mihm/#nti" class="mihm-nav__item">NTI</a>
+      <a href="/mihm/#variables" class="mihm-nav__item">Variables</a>
+      <a href="/mihm/#patrones" class="mihm-nav__item">Patrones</a>
+      <a href="/mihm/#catalogo" class="mihm-nav__item">Catálogo</a>
+      <a href="/mihm/laboratorio/" class="mihm-nav__item">Laboratorio</a>
+    </div>
+  </nav>
+
+  <main class="mihm-main">
+    {{ content }}
+  </main>
+
+  {% include footer.html %}
+</body>
+</html>

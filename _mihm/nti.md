@@ -1,4 +1,8 @@
 ---
+layout: redirect
+permalink: /mihm/nti/
+redirect_to: /mihm/#dashboard
+------
 layout: audit
 title: "NTI — Nodo de Trazabilidad Institucional"
 version: "1.1"
