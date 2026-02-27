@@ -1,11 +1,18 @@
+<!-- _layouts/default.html -->
 <!DOCTYPE html>
 <html lang="es">
-{% include head.html %}  <!-- ← AQUÍ SE CARGAN LOS CSS -->
+{% include head.html %}
 <body>
   {% include header.html %}
   <main class="wrap-main">
     {{ content }}
   </main>
   {% include footer.html %}
+  
+  <!-- Pasar la ruta como variable global -->
+  <script>
+    window.dataUrl = '{{ "/assets/data/ags_metrics.json" | relative_url }}';
+  </script>
+  <script src="{{ site.baseurl }}/assets/js/dashboard.js"></script>
 </body>
 </html>

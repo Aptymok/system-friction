@@ -110,7 +110,7 @@
   async function init() {
     try {
       console.log('Loading dashboard data...');
-      const data = await loadJSON('/assets/data/ags_metrics.json');
+      const data = await loadJSON(window.dataUrl || '/assets/data/ags_metrics.json');
       
       renderHeadline(data.headline || 0);
       renderNTI(data.nti || 0);
