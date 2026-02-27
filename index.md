@@ -1,5 +1,4 @@
 ---
-layout: default
 title: "Dashboard · System Friction"
 description: "Archivo de fricción sistémica. Monitoreo de gobernanza y trazabilidad institucional."
 ---
