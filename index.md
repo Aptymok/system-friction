@@ -1,26 +1,14 @@
-# 1. Guardar head.html
-$head = @'
-<!-- _includes/head.html -->
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{% if page.title %}{{ page.title }} · {% endif %}System Friction</title>
+---
+layout: default
+title: "Test · System Friction"
+---
 
-  <!-- CSS principal -->
-  <link rel="stylesheet" href="/assets/css/main.css">
+<div class="alert-band">
+  <div class="alert-band__dot"></div>
+  <span>PRUEBA · Si ves esto con estilo, el layout y el CSS funcionan</span>
+</div>
 
-  <!-- CSS específico para página de estado -->
-  {% if page.layout == 'estado' %}
-  <link rel="stylesheet" href="/assets/css/estado.css">
-  {% endif %}
-
-  <!-- Fuentes -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet">
-
-  <!-- Meta tags para SEO -->
-  <meta name="description" content="{% if page.description %}{{ page.description }}{% else %}{{ site.description }}{% endif %}">
-</head>
-'@
-
-[System.IO.File]::WriteAllText("$pwd\_includes\head.html", $head, [System.Text.UTF8Encoding]::new($false))
+<div class="wrap--wide">
+  <h1>Página de prueba</h1>
+  <p>Si este texto tiene color de fondo oscuro y tipografía serif, el problema era el contenido de index.md.</p>
+</div>
