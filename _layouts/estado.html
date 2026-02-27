@@ -1,3 +1,5 @@
+# Guardar con encoding UTF-8 sin BOM
+$content = @'
 ---
 layout: default
 ---
@@ -17,7 +19,7 @@ layout: default
   {{ content }}
 </div>
 
-<!-- FOOTER (solo uno) -->
+<!-- FOOTER -->
 <footer class="license">
   <div class="footer-left">
     System Friction Framework v1.1<br>
@@ -39,3 +41,6 @@ function show(id, btn) {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 </script>
+'@
+
+[System.IO.File]::WriteAllText("$pwd\_layouts\estado.html", $content, [System.Text.UTF8Encoding]::new($false))

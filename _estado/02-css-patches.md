@@ -1,20 +1,20 @@
 ---
 layout: estado
-title: "02 · CSS PARCHES"
+title: "02 Â· CSS PARCHES"
 permalink: /estado/02-css-patches/
 ---
 
 <div class="section" id="s2">
-  <div class="doc-label green">CSS patches · Aplicar en orden</div>
+  <div class="doc-label green">CSS patches Â· Aplicar en orden</div>
   <h1>Correcciones al stylesheet existente.</h1>
-  <p class="doc-meta">Aplicar sobre el CSS actual · Sin romper nada existente · Tiempo estimado: 15 minutos</p>
+  <p class="doc-meta">Aplicar sobre el CSS actual Â· Sin romper nada existente Â· Tiempo estimado: 15 minutos</p>
 
-  <h2>PATCH-01 · overflow-x + z-index (BUG-06 + BUG-07)</h2>
+  <h2>PATCH-01 Â· overflow-x + z-index (BUG-06 + BUG-07)</h2>
   <div class="fix-card">
-    <div class="fix-id">PATCH-01 · Buscar y reemplazar en el CSS global</div>
+    <div class="fix-id">PATCH-01 Â· Buscar y reemplazar en el CSS global</div>
   </div>
   <div class="code-wrap"><pre>
-<span class="c-comment">/* ── ANTES ─────────────────────────────── */</span>
+<span class="c-comment">/* â”€â”€ ANTES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */</span>
 <span class="c-del">body {
   overflow-x: hidden;
 }</span>
@@ -25,7 +25,7 @@ permalink: /estado/02-css-patches/
   opacity: 0.4;
 }</span>
 
-<span class="c-comment">/* ── DESPUÉS ────────────────────────────── */</span>
+<span class="c-comment">/* â”€â”€ DESPUÃ‰S â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */</span>
 <span class="c-ins">body {
   overflow-x: clip;
   /* clip en lugar de hidden:
@@ -40,8 +40,8 @@ permalink: /estado/02-css-patches/
   opacity: 0.4;
 }</span>
 
-<span class="c-comment">/* ── AÑADIR al bloque de tablas/pre ─────── */</span>
-<span class="c-ins">/* Scroll horizontal en elementos con desbordamiento legítimo */
+<span class="c-comment">/* â”€â”€ AÃ‘ADIR al bloque de tablas/pre â”€â”€â”€â”€â”€â”€â”€ */</span>
+<span class="c-ins">/* Scroll horizontal en elementos con desbordamiento legÃ­timo */
 .sf-table-wrap,
 pre,
 .code-block,
@@ -52,26 +52,26 @@ code {
 
 /* En el markup: envolver tablas en <div class="sf-table-wrap"> */</span></pre></div>
 
-  <h2>PATCH-02 · Eliminar el H1 del layout (BUG-01)</h2>
+  <h2>PATCH-02 Â· Eliminar el H1 del layout (BUG-01)</h2>
   <div class="fix-card">
-    <div class="fix-id">PATCH-02 · Solo si el layout usa un h1 para el título — NO es cambio CSS sino de template</div>
+    <div class="fix-id">PATCH-02 Â· Solo si el layout usa un h1 para el tÃ­tulo â€” NO es cambio CSS sino de template</div>
   </div>
   <div class="code-wrap"><pre>
-<span class="c-comment">/* Opción de emergencia si no puedes tocar el template ahora:
+<span class="c-comment">/* OpciÃ³n de emergencia si no puedes tocar el template ahora:
    ocultar el H1 que genera el layout (el primero del doc-container) */</span>
 <span class="c-ins">.doc-container > h1:first-of-type + h1,
 .nodo-entry > h1:first-of-type + h1 {
   display: none;
 }
 /* Esto oculta el SEGUNDO h1 en cualquier contenedor.
-   Solución de emergencia: aplicar mientras se corrige el template. */</span></pre></div>
+   SoluciÃ³n de emergencia: aplicar mientras se corrige el template. */</span></pre></div>
 
-  <h2>PATCH-03 · Rutas sugeridas condicionales (BUG-03)</h2>
+  <h2>PATCH-03 Â· Rutas sugeridas condicionales (BUG-03)</h2>
   <div class="fix-card">
-    <div class="fix-id">PATCH-03 · CSS para .related vacío — el fix real está en el template</div>
+    <div class="fix-id">PATCH-03 Â· CSS para .related vacÃ­o â€” el fix real estÃ¡ en el template</div>
   </div>
   <div class="code-wrap"><pre>
-<span class="c-comment">/* Ocultar la sección related si no tiene hijos */</span>
+<span class="c-comment">/* Ocultar la secciÃ³n related si no tiene hijos */</span>
 <span class="c-ins">.related:not(:has(.related-item)) {
   display: none;
 }
@@ -80,17 +80,17 @@ code {
 .related-empty {
   display: none;
 }
-/* En el template: añadir clase .related-empty si no hay items */</span></pre></div>
+/* En el template: aÃ±adir clase .related-empty si no hay items */</span></pre></div>
 
-  <h2>PATCH-04 · Texto "Rutas sugeridas abajo" (BUG-02)</h2>
+  <h2>PATCH-04 Â· Texto "Rutas sugeridas abajo" (BUG-02)</h2>
   <div class="fix-card">
-    <div class="fix-id">PATCH-04 · Si el texto ya está renderizado, supresión CSS de emergencia</div>
+    <div class="fix-id">PATCH-04 Â· Si el texto ya estÃ¡ renderizado, supresiÃ³n CSS de emergencia</div>
   </div>
   <div class="code-wrap"><pre>
-<span class="c-comment">/* Si el texto aparece como párrafo justo antes de .related,
+<span class="c-comment">/* Si el texto aparece como pÃ¡rrafo justo antes de .related,
    y no hay manera de borrarlo del Markdown inmediatamente: */</span>
 <span class="c-ins">.related-nav-hint {
-  display: none; /* Añadir esta clase al párrafo en el template */
+  display: none; /* AÃ±adir esta clase al pÃ¡rrafo en el template */
 }
 
 /* O si es un p directamente antes del h2 de rutas: */
@@ -99,15 +99,15 @@ h2#rutas-sugeridas + p.hint {
   display: none;
 }</span>
 
-<span class="c-comment">/* La solución correcta es borrar el texto del Markdown:
-   ver Sección 03 · Jekyll fixes */</span></pre></div>
+<span class="c-comment">/* La soluciÃ³n correcta es borrar el texto del Markdown:
+   ver SecciÃ³n 03 Â· Jekyll fixes */</span></pre></div>
 
-  <h2>PATCH-05 · Variables nuevas para el módulo MIHM</h2>
+  <h2>PATCH-05 Â· Variables nuevas para el mÃ³dulo MIHM</h2>
   <div class="fix-card">
-    <div class="fix-id">PATCH-05 · Añadir al bloque :root — sin tocar nada existente</div>
+    <div class="fix-id">PATCH-05 Â· AÃ±adir al bloque :root â€” sin tocar nada existente</div>
   </div>
   <div class="code-wrap"><pre>
-<span class="c-ins">/* ── EXTENSIÓN :root para módulo MIHM ──── */
+<span class="c-ins">/* â”€â”€ EXTENSIÃ“N :root para mÃ³dulo MIHM â”€â”€â”€â”€ */
 :root {
   /* Variables existentes no se tocan */
 
@@ -122,14 +122,14 @@ h2#rutas-sugeridas + p.hint {
   --mapeo-border: #4a3a10;
 }</span></pre></div>
 
-  <h2>PATCH-06 · Componente .mapeo-box (nuevo, para doc-XX y ags-XX)</h2>
+  <h2>PATCH-06 Â· Componente .mapeo-box (nuevo, para doc-XX y ags-XX)</h2>
   <div class="fix-card">
-    <div class="fix-id">PATCH-06 · Añadir al final del CSS — nuevo componente</div>
+    <div class="fix-id">PATCH-06 Â· AÃ±adir al final del CSS â€” nuevo componente</div>
   </div>
   <div class="code-wrap"><pre>
-<span class="c-ins">/* ── MAPEO MIHM ─────────────────────────── */
-/* Caja que conecta cada patrón SF con su variable MIHM.
-   Añadir al final de cada doc-XX y ags-XX en Markdown:
+<span class="c-ins">/* â”€â”€ MAPEO MIHM â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* Caja que conecta cada patrÃ³n SF con su variable MIHM.
+   AÃ±adir al final de cada doc-XX y ags-XX en Markdown:
    {: .mapeo-box }  */
 
 .mapeo-box {
@@ -176,12 +176,12 @@ h2#rutas-sugeridas + p.hint {
   background: none;
 }</span></pre></div>
 
-  <h2>PATCH-07 · Módulo MIHM panel (nueva página /mihm/)</h2>
+  <h2>PATCH-07 Â· MÃ³dulo MIHM panel (nueva pÃ¡gina /mihm/)</h2>
   <div class="fix-card">
-    <div class="fix-id">PATCH-07 · Añadir al final del CSS — solo activo en layout mihm</div>
+    <div class="fix-id">PATCH-07 Â· AÃ±adir al final del CSS â€” solo activo en layout mihm</div>
   </div>
   <div class="code-wrap"><pre>
-<span class="c-ins">/* ── MIHM PANEL ─────────────────────────── */
+<span class="c-ins">/* â”€â”€ MIHM PANEL â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .mihm-panel {
   max-width: 680px;
   margin: 0 auto;
