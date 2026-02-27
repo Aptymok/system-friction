@@ -1,155 +1,101 @@
 ---
-layout: mihm
+layout: doc
 title: "MIHM v2.0 — Motor Cuantitativo"
-description: "Multinodal Homeostatic Integration Model. Dashboard, NTI, patrones y laboratorio."
+description: "Multinodal Homeostatic Integration Model. Fórmulas, variables, umbrales."
 permalink: /mihm/
 math: true
 ---
 
-<!-- SECCIÓN 1: DASHBOARD EN VIVO -->
-<section id="dashboard" class="mihm-section">
-  <div class="section-label">01 · Estado en tiempo real</div>
-  <h2>Dashboard del sistema</h2>
-  
-  <div class="sf-alert sf-alert--emergency">
-    <strong>PROTOCOLO DE EMERGENCIA ACTIVO</strong> — IHG = −0.620. NTI = 0.351. Umbral UCAP superado. (23 feb 2026)
+<div class="doc-hdr">
+  <div class="doc-hdr__kicker">MIHM v2.0 · Multinodal Homeostatic Integration Model</div>
+  <h1>Motor Cuantitativo</h1>
+  <div class="doc-hdr__meta">
+    <span>v2.0</span>
+    <span>validated</span>
+    <span class="mono">seed 42 · Monte Carlo 50k</span>
   </div>
+</div>
 
-  <div id="dashboard-system" class="sf-loading">Cargando métricas...</div>
-  <div id="dashboard-nodes" class="sf-loading">Cargando tabla de nodos...</div>
-  <div id="dashboard-scenarios" class="sf-loading">Cargando escenarios Monte Carlo (50k iteraciones)...</div>
-</section>
+## Fórmulas base
 
-<!-- SECCIÓN 2: NTI EN DETALLE -->
-<section id="nti" class="mihm-section">
-  <div class="section-label">02 · Trazabilidad institucional</div>
-  <h2>Nodo de Trazabilidad Institucional</h2>
-  
-  <p class="section-intro">El NTI es la capa de auditoría del MIHM. Cuando NTI < UCAP (0.40), el sistema opera en modo ciego.</p>
+$$f = \frac{t}{T} + O$$
 
-  $$ \text{NTI} = \frac{1}{5}\left[(1 - \text{LDI}_n) + \text{ICC}_n + \text{CSR} + \text{IRCI}_n + \text{IIM}\right] = 0.351 $$
+$$\text{IHG} = \frac{1}{N}\sum_{i=1}^{N}(C_i - E_i)(1 - L_i^{\text{eff}})$$
 
-  <div id="dashboard-nti" class="sf-loading">Cargando componentes NTI...</div>
+$$L_i^{\text{eff}} = \min\!\left(L_i \cdot (1 + (1 - M_i)),\; 1\right)$$
 
-  <div class="nti-card">
-    <h3>Protocolo de Recuperación</h3>
-    <table class="sf-table">
-      <thead>
-        <tr><th>Acción</th><th>ΔNTI</th><th>Responsable</th></tr>
-      </thead>
-      <tbody>
-        <tr><td>Protocolo anti-ICC</td><td>+0.08</td><td>Secretaría Seg. Pública</td></tr>
-        <tr><td>Restauración IIM</td><td>+0.06</td><td>Mesa de Coordinación</td></tr>
-        <tr><td>Reducción LDI</td><td>+0.05</td><td>Gobierno estatal</td></tr>
-        <tr><td>Mejora CSR</td><td>+0.10</td><td>SSPC</td></tr>
-      </tbody>
-    </table>
-    <p class="nti-target"><strong>NTI objetivo a 30 días:</strong> 0.60 (modo operativo estándar)</p>
-  </div>
-</section>
+$$\text{NTI} = \frac{1}{5}\left[(1-\text{LDI}_n) + \text{ICC}_n + \text{CSR} + \text{IRCI}_n + \text{IIM}\right]$$
 
-<!-- SECCIÓN 3: VARIABLES DEL SISTEMA -->
-<section id="variables" class="mihm-section">
-  <div class="section-label">03 · Variables fundamentales</div>
-  <h2>Catálogo de variables MIHM</h2>
+---
 
-  <table class="sf-table">
-    <thead>
-      <tr>
-        <th>Símbolo</th><th>Nombre</th><th>Dominio</th><th>Umbral crítico</th><th>Proxy observable</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr><td>$C_i$</td><td>Capacidad adaptativa</td><td>$[0,1]$</td><td>$< 0.30$ → FRACTURE</td><td>Recursos / demanda</td></tr>
-      <tr><td>$E_i$</td><td>Carga entrópica</td><td>$[0,1]$</td><td>$> 0.80$ → CRITICAL</td><td>1 − (eficiencia × capacidad)</td></tr>
-      <tr><td>$L_i$</td><td>Latencia operativa</td><td>$[0,1]$</td><td>$> 0.85$ → DEGRADED</td><td>t_respuesta / t_normativo</td></tr>
-      <tr><td>$K_i$</td><td>Conectividad funcional</td><td>$[0,1]$</td><td>—</td><td>Nodos conectados / total</td></tr>
-      <tr><td>$R_i$</td><td>Redistribución</td><td>$[0,1]$</td><td>—</td><td>Capacidad de reasignación</td></tr>
-      <tr><td>$M_i$</td><td>Coherencia institucional</td><td>$[0,1]$</td><td>$< 0.50$ → OPAQUE</td><td>1 − |declarado−observable|/declarado</td></tr>
-      <tr><td>$O$</td><td>Opacidad sistémica</td><td>$[0,1]$</td><td>$O \to 1$ divergencia</td><td>Puntos ciegos / total procesos</td></tr>
-      <tr><td>$f$</td><td>Fricción nodo</td><td>$[0,\infty)$</td><td>$> 1.0$ fuera umbral</td><td>(t/T) + O</td></tr>
-    </tbody>
-  </table>
-</section>
+## Variables del sistema
 
-<!-- SECCIÓN 4: PATRONES ↔ MIHM -->
-<section id="patrones" class="mihm-section">
-  <div class="section-label">04 · Mapeo patrones → variables</div>
-  <h2>Patrones estructurales y su expresión cuantitativa</h2>
+| Símbolo | Nombre | Dominio | Umbral crítico | Proxy observable |
+|---------|--------|---------|----------------|-------------------|
+| $C_i$ | Capacidad adaptativa | $[0,1]$ | $< 0.30$ → FRACTURE | Recursos disponibles / demanda |
+| $E_i$ | Carga entrópica | $[0,1]$ | $> 0.80$ → CRITICAL | 1 − (eficiencia × capacidad) |
+| $L_i$ | Latencia operativa | $[0,1]$ | $> 0.85$ → DEGRADED | t_respuesta / t_normativo |
+| $K_i$ | Conectividad funcional | $[0,1]$ | — | Nodos conectados / total |
+| $R_i$ | Redistribución | $[0,1]$ | — | Capacidad de reasignación |
+| $M_i$ | Coherencia institucional | $[0,1]$ | $< 0.50$ → OPAQUE | 1 − |declarado−observable|/declarado |
+| $O$ | Opacidad sistémica | $[0,1]$ | $O \to 1$ divergencia | Puntos ciegos / total procesos |
+| $f$ | Fricción nodo | $[0,\infty)$ | $> 1.0$ fuera umbral | (t/T) + O |
 
-  <p class="section-intro">Cada documento de la serie describe un patrón observable. Este mapa conecta cada patrón con la variable MIHM que modifica y el nodo donde se observó.</p>
+---
 
-  <div id="sf-pattern-bridge" data-sf-load="true">—</div>
-  <div id="sf-recommendations" data-sf-load="true">—</div>
-</section>
+## Componentes del NTI en detalle
 
-<!-- SECCIÓN 5: CATÁLOGO COMPLETO -->
-<section id="catalogo" class="mihm-section">
-  <div class="section-label">05 · Componentes del framework</div>
-  <h2>Catálogo MIHM v2.0</h2>
+| Componente | Fórmula | Descripción |
+|------------|---------|-------------|
+| **LDI_norm** | min(t_real / t_referencia, 1.0) | Latencia de decisión institucional |
+| **ICC_norm** | 1 − Σ_j f_j² | Desconcentración de conocimiento |
+| **CSR** | acciones_ejecutadas / señales_detectadas | Cobertura de señales de riesgo |
+| **IRCI_norm** | función_base / función_tras_pérdida | Resiliencia de capital institucional |
+| **IIM** | 1 − |reportado−verificado|/reportado | Integridad de información medida |
 
-  <h3>Métricas Maestras</h3>
-  <table class="sf-table">
-    <thead>
-      <tr><th>Componente</th><th>Símbolo</th><th>Definición</th><th>Umbral UCAP</th></tr>
-    </thead>
-    <tbody>
-      <tr><td>IHG</td><td>IHG</td><td>$\frac{1}{N}\sum(C_i-E_i)(1-L_i^{\text{eff}})$</td><td>$< -0.50$</td></tr>
-      <tr><td>NTI</td><td>NTI</td><td>$\frac{1}{5}[(1-\text{LDI}_n)+\text{ICC}_n+\text{CSR}+\text{IRCI}_n+\text{IIM}]$</td><td>$< 0.40$</td></tr>
-      <tr><td>ICE</td><td>ICE</td><td>$\max(E_i)/\sum(E_i)$</td><td>$> 0.30$</td></tr>
-      <tr><td>Fricción</td><td>$f$</td><td>$(t/T) + O$</td><td>$> 1.00$</td></tr>
-    </tbody>
-  </table>
+---
 
-  <h3>Nodos del Sistema — Aguascalientes</h3>
-  <table class="sf-table">
-    <thead>
-      <tr><th>ID</th><th>Descripción</th><th>Documento</th></tr>
-    </thead>
-    <tbody>
-      <tr><td>N1</td><td>Agua/Ambiente</td><td><a href="/nodo-ags/ags-03/">AGS-03</a></td></tr>
-      <tr><td>N2</td><td>Capital Social</td><td><a href="/nodo-ags/ags-01/">AGS-01</a></td></tr>
-      <tr><td>N3</td><td>Logística</td><td><a href="/nodo-ags/ags-04/">AGS-04</a></td></tr>
-      <tr><td>N4</td><td>Seguridad</td><td><a href="/nodo-ags/ags-02/">AGS-02</a></td></tr>
-      <tr><td>N5</td><td>Coordinación</td><td><a href="/nodo-ags/ags-05/">AGS-05</a></td></tr>
-      <tr><td>N6</td><td>Seguridad Exógena</td><td><a href="/nodo-ags/ags-06/">AGS-06</a></td></tr>
-    </tbody>
-  </table>
+## Aplicación en nodos activos
 
-  <h3>Gates de Validación (H1–H3)</h3>
-  <table class="sf-table">
-    <thead>
-      <tr><th>Gate</th><th>Criterio</th><th>Método</th></tr>
-    </thead>
-    <tbody>
-      <tr><td>H1 — Coherencia</td><td>Datos AGS vs realidad</td><td>Desviación < 15%</td></tr>
-      <tr><td>H2 — Trazabilidad</td><td>Cadena federal→local</td><td>Evidencia textual VHpD</td></tr>
-      <tr><td>H3 — Homeostasis</td><td>IHG > −0.30 @ 180d</td><td>Monte Carlo</td></tr>
-    </tbody>
-  </table>
-</section>
+El estado actual del sistema (IHG, NTI, proyecciones) se encuentra en el **[Dashboard principal →](/)**
 
-<!-- SECCIÓN 6: RECURSOS DESCARGABLES -->
-<section class="mihm-section">
-  <div class="section-label">06 · Recursos técnicos</div>
-  <h2>Datos y código</h2>
+Para ver la aplicación empírica completa del MIHM en un caso geográfico:
+- **[Nodo Aguascalientes](/nodo-ags/)** · Validación post-fractura 2026
 
-  <div class="sf-downloads">
-    <a href="/assets/data/ags_metrics.json" class="sf-download-link" download>
-      <span class="sf-download-link__icon">[JSON]</span>
-      <span class="sf-download-link__name">ags_metrics.json — Métricas Post-Fractura</span>
-    </a>
-    <a href="/scripts/mihm_v2.py" class="sf-download-link" download>
-      <span class="sf-download-link__icon">[PY]</span>
-      <span class="sf-download-link__name">mihm_v2.py — Motor NODEX + Monte Carlo</span>
-    </a>
-    <a href="/assets/data/MIHM_v2_manuscrito_completo.pdf" class="sf-download-link" download>
-      <span class="sf-download-link__icon">[PDF]</span>
-      <span class="sf-download-link__name">MIHM v2.0 — Manuscrito Completo</span>
-    </a>
-    <a href="/scripts/validator.py" class="sf-download-link" download>
-      <span class="sf-download-link__icon">[PY]</span>
-      <span class="sf-download-link__name">validator.py — Validador VHpD</span>
-    </a>
-  </div>
-</section>
+---
+
+## Descargas
+
+<div class="dl-list">
+  <a class="dl-item" href="/assets/data/ags_metrics.json">
+    <span class="dl-item__type">JSON</span>
+    <span>ags_metrics.json</span>
+    <span class="dl-item__meta">métricas completas nodo AGS</span>
+  </a>
+  <a class="dl-item" href="/assets/data/patterns.json">
+    <span class="dl-item__type">JSON</span>
+    <span>patterns.json</span>
+    <span class="dl-item__meta">patrones ↔ MIHM</span>
+  </a>
+  <a class="dl-item" href="/scripts/mihm_v2.py">
+    <span class="dl-item__type">PY</span>
+    <span>mihm_v2.py</span>
+    <span class="dl-item__meta">motor Python · seed 42</span>
+  </a>
+  <a class="dl-item" href="/assets/data/MIHM_v2_manuscrito_completo.pdf">
+    <span class="dl-item__type">PDF</span>
+    <span>Manuscrito completo</span>
+    <span class="dl-item__meta">MIHM v2.0 · CC BY 4.0</span>
+  </a>
+</div>
+
+---
+
+## Navegación del ecosistema
+
+<div class="doc-nav-foot">
+  <a href="/">← Dashboard (estado actual)</a>
+  <a href="/docs/">Archivo de patrones</a>
+  <a href="/nodo-ags/">Nodo AGS</a>
+  <a href="/estado/">Estado del sistema</a>
+</div>

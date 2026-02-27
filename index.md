@@ -1,4 +1,5 @@
 ---
+layout: default
 title: "Dashboard · System Friction"
 description: "Archivo de fricción sistémica. Monitoreo de gobernanza y trazabilidad institucional."
 ---
@@ -33,11 +34,11 @@ description: "Archivo de fricción sistémica. Monitoreo de gobernanza y trazabi
       </div>
       <div class="dash-cell__sub">Inyecta incertidumbre institucional en el cálculo de IHG.</div>
     </div>
-   <div class="dash-cell dash-cell--2">
+    <div class="dash-cell dash-cell--2">
       <div class="dash-cell__label">Tendencia IHG (180d) — Proyección Monte Carlo</div>
       <div id="sf-spark" data-sf="true"></div>
       <div class="dash-cell__sub">Sombreado indica intervalo de fractura.</div>
-    </div> 
+    </div>
     <div class="dash-cell">
       <div class="dash-cell__label">P(Fractura Sistémica) · t+4y</div>
       <div class="dash-cell__value c-cr" id="sf-prob">71%</div>
@@ -95,7 +96,7 @@ description: "Archivo de fricción sistémica. Monitoreo de gobernanza y trazabi
       <tbody id="sf-nodes"></tbody>
     </table>
   </div>
-|
+
   <div class="dl-list">
     <a class="dl-item" href="{{ site.baseurl }}/assets/data/ags_metrics.json">
       <span class="dl-item__type">JSON</span>

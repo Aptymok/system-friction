@@ -44,9 +44,9 @@ collections:
   consola_observacion:
     output: true
     permalink: /consola/:name/
-  estado:
-    output: true
-    permalink: /estado/:path/
+#  estado:
+#    output: true
+#    permalink: /estado/:path/
 
 # Valores por defecto para las colecciones
 defaults:
@@ -67,11 +67,11 @@ defaults:
       type: "mihm"
     values:
       layout: "doc"
-  - scope:
-      path: ""
-      type: "estado"
-    values:
-      layout: "estado"        # ← IMPORTANTE: usa layout específico para estado
+#  - scope:
+#      path: ""
+#      type: "estado"
+#    values:
+#      layout: "estado"        # ← IMPORTANTE: usa layout específico para estado
 
 # Configuración SEO
 author: Juan Antonio Marín Liera

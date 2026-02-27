@@ -1,5 +1,3 @@
-# Guardar con encoding UTF-8 sin BOM
-$content = @'
 ---
 layout: default
 ---
@@ -41,6 +39,3 @@ function show(id, btn) {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 </script>
-'@
-
-[System.IO.File]::WriteAllText("$pwd\_layouts\estado.html", $content, [System.Text.UTF8Encoding]::new($false))
