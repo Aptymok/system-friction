@@ -216,7 +216,20 @@ title: "System Friction · Archivo de fricción sistémica"
         <span class="doc-arrow">→</span>
       </a>
     </div>
+    
+     <div class="doc-grid" style="margin-top: 2rem;">
+      <div class="section-divider nodo" style="grid-column: 1 / -1;">
+        Serie aplicada · Nodo Aptymok
+        <span>Instrumentalización del dolor</span>
+      </div>
 
+      <!-- Nodo AGS - Entrada principal -->
+      <a href="{{ site.baseurl }}/docs/nodo-aptymok/" class="doc-item nodo" style="grid-column: 1 / -1;">
+        <div class="doc-num">NODO APTYMOK</div>
+        <div class="doc-title">Reconstrucción forense relacional</div>
+        <div class="doc-sub">Aplicación del marco a un caso relacional con datos verificables.</div>
+        <span class="doc-arrow">→</span>
+      </a>
     <!-- ======================================================
          PIE DE PÁGINA - NAVEGACIÓN ADICIONAL
     ====================================================== -->
