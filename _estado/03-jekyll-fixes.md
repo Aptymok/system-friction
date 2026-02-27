@@ -1,9 +1,8 @@
 ---
 layout: estado
-title: Jekyll Fixes
+title: "03 · Jekyll Fixes"
 permalink: /estado/03-jekyll-fixes/
 ---
-
 <div class="section" id="s3">
   <div class="doc-label green">Jekyll · Templates y Markdown</div>
   <h1>Correcciones al template y contenido.</h1>

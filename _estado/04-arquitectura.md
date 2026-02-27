@@ -1,6 +1,6 @@
 ---
 layout: estado
-title: Arquitectura Propuesta
+title: "04 · Arquitectura"
 permalink: /estado/04-arquitectura/
 ---
 

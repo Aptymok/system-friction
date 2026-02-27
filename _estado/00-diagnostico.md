@@ -1,36 +1,32 @@
 ---
 layout: estado
 title: Diagnóstico del Sistema
-permalink: /estado/00-diagnostico/
+permalink: /estado/
 ---
 
 <div class="section active" id="s0">
   <div class="doc-label">NODEX 50 ticks · sistema auditado</div>
   <h1>La fricción existe<br>dentro del sistema<br>que la describe.</h1>
-  <p class="doc-meta">Vector de estado: systemfriction.org · v1.1 · {{ site.data.estado.fecha_actualizacion | date: "%d %B %Y" }}</p>
+  <p class="doc-meta">Vector de estado: systemfriction.org · v1.1 · 23-02-2026</p>
 
   <p>System Friction describe con precisión la distancia entre umbral oficial y umbral real en sistemas institucionales. El sitio tiene esa misma distancia en su capa de implementación: el diseño declara "nada superfluo, clínico hasta el límite", pero el DOM tiene títulos duplicados, texto de navegación impreso como contenido, y secciones prometidas que no existen.</p>
   <p>Eso no es una falla fatal. Es la prueba de que el marco funciona: el observador también está dentro del sistema que observa. Pero antes de postular la integración MIHM, el sistema debe cerrar esa brecha.</p>
 
   <div class="ihg-banner">
     <div class="ihg-stat">
-      <div class="ihg-val {% if site.data.estado.ihg_sistema < -0.5 %}critical{% endif %}">
-        {{ site.data.estado.ihg_sistema }}
-      </div>
+      <div class="ihg-val critical">−0.31</div>
       <div class="ihg-label">IHG sistema</div>
     </div>
     <div class="ihg-stat">
-      <div class="ihg-val {% if site.data.estado.nti_sistema < 0.5 %}critical{% endif %}">
-        {{ site.data.estado.nti_sistema }}
-      </div>
+      <div class="ihg-val">0.47</div>
       <div class="ihg-label">NTI · bajo umbral estructural (0.50)</div>
     </div>
     <div class="ihg-stat">
-      <div class="ihg-val">{{ site.data.estado.bugs_confirmados }}</div>
+      <div class="ihg-val">7</div>
       <div class="ihg-label">Bugs confirmados</div>
     </div>
     <div class="ihg-stat">
-      <div class="ihg-val">{{ site.data.estado.documentos_faltantes }}</div>
+      <div class="ihg-val">6</div>
       <div class="ihg-label">Documentos faltantes</div>
     </div>
   </div>

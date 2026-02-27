@@ -1,9 +1,10 @@
 ---
 layout: estado
-title: Bugs UX/UI
+title: "01 · Bugs UX/UI"
 permalink: /estado/01-bugs-uxui/
 ---
 
+<div class="section" id="s1">
 <div class="section" id="s1">
   <div class="doc-label red">Audit · Bugs UX/UI</div>
   <h1>Lo que está y no debería estar.</h1>

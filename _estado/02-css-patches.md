@@ -1,6 +1,6 @@
 ---
 layout: estado
-title: CSS Patches
+title: "02 · CSS PARCHES"
 permalink: /estado/02-css-patches/
 ---
 

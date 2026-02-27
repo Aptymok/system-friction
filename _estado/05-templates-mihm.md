@@ -1,6 +1,6 @@
 ---
 layout: estado
-title: Templates MIHM
+title: "05 · Templates"
 permalink: /estado/05-templates-mihm/
 ---
 
