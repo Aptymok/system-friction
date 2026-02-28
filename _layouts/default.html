@@ -5,6 +5,15 @@
 <body>
   {% include header.html %}
   <main class="wrap-main">
+  <nav class="audit-nav" role="tablist" aria-label="Secciones de auditoría">
+  <button class="audit-tab active" onclick="show('s0',this)" role="tab">System Friction</button>
+  <button class="audit-tab" onclick="show('s1',this)" role="tab">Configuraciones estructurales</button>
+  <button class="audit-tab" onclick="show('s2',this)" role="tab">Nodo Aguascalientes</button>
+  <button class="audit-tab" onclick="show('s3',this)" role="tab">MIHM v2.0</button>
+  <button class="audit-tab" onclick="show('s4',this)" role="tab">Consola de observación</button>
+  <button class="audit-tab" onclick="show('s5',this)" role="tab">Estado del sitio</button>
+  <button class="audit-tab" onclick="show('s6',this)" role="tab">Repositorio</button>
+</nav>
     {{ content }}
   </main>
   {% include footer.html %}
