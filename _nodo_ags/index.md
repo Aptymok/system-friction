@@ -1,16 +1,10 @@
 ---
-layout: default
 title: "Nodo AGS — Aguascalientes como sistema observable"
 description: "Aguascalientes como sistema observable. Validación empírica del framework MIHM."
 permalink: /nodo-ags/
 doc_id: "nodo-ags-index"
 node: "nodo-ags"
 ---
-
-<div class="wrap">
-  <!-- ======================================================
-       ENCABEZADO / METADATOS DEL DOCUMENTO
-  ====================================================== -->
   <div class="doc-hdr">
     <div class="doc-hdr__kicker">
       Serie aplicada · Nodo Aguascalientes AGS01 - AGS06 · Implementación territorial
@@ -67,8 +61,8 @@ node: "nodo-ags"
       <div class="doc-card__sub">Hipótesis del pacto implícito. U_P. Validación 24h post-evento.</div>
       <div class="doc-card__vars">f = 1.40 · DEGRADED</div>
       <div style="margin-top: 1rem; display: flex; justify-content: space-between; align-items: center;">
-        <a href="{{ site.baseurl }}/nodo-ags/ags-01/" class="doc-arrow" style="position: static;">Ver métrica →</a>
-        <a href="{{ site.baseurl }}/nodo-ags/ags-01_/" class="badge badge--warn" style="font-size: 0.5rem;">↳ Narrativa: La distancia que no se mide</a>
+        <a href="{{ site.baseurl }}/nodo-ags/ags_01/" class="doc-arrow" style="position: static;">Ver métrica →</a>
+        <a href="{{ site.baseurl }}/nodo-ags/ags_01_/" class="badge badge--warn" style="font-size: 0.5rem;">↳ Narrativa: La distancia que no se mide</a>
       </div>
     </div>
     <!-- AGS02 - Métrica -->
@@ -78,8 +72,8 @@ node: "nodo-ags"
       <div class="doc-card__sub">ICC crítico. 252 narcobloqueos. Capacidad C₄ = 0.35.</div>
       <div class="doc-card__vars">f = 1.84 · CRITICAL</div>
       <div style="margin-top: 1rem; display: flex; justify-content: space-between; align-items: center;">
-        <a href="{{ site.baseurl }}/nodo-ags/ags-02/" class="doc-arrow" style="position: static;">Ver métrica →</a>
-        <a href="{{ site.baseurl }}/nodo-ags/ags-02_/" class="badge badge--warn" style="font-size: 0.5rem;">↳ Narrativa: El costo de la latencia</a>
+        <a href="{{ site.baseurl }}/nodo_ags/ags-02/" class="doc-arrow" style="position: static;">Ver métrica →</a>
+        <a href="{{ site.baseurl }}/nodo_ags/ags-02_/" class="badge badge--warn" style="font-size: 0.5rem;">↳ Narrativa: El costo de la latencia</a>
       </div>
     </div>
     <!-- AGS03 - Métrica -->
@@ -89,8 +83,8 @@ node: "nodo-ags"
       <div class="doc-card__sub">Acuífero Calera. Sobreexplotación. E_N1 = 0.89.</div>
       <div class="doc-card__vars">f = 1.81 · FRACTURE</div>
       <div style="margin-top: 1rem; display: flex; justify-content: space-between; align-items: center;">
-        <a href="{{ site.baseurl }}/nodo-ags/ags-03/" class="doc-arrow" style="position: static;">Ver métrica →</a>
-        <a href="{{ site.baseurl }}/nodo-ags/ags-03_/" class="badge badge--warn" style="font-size: 0.5rem;">↳ Narrativa: El agua que no se ve</a>
+        <a href="{{ site.baseurl }}/nodo_ags/ags-03/" class="doc-arrow" style="position: static;">Ver métrica →</a>
+        <a href="{{ site.baseurl }}/nodo_ags/ags-03_/" class="badge badge--warn" style="font-size: 0.5rem;">↳ Narrativa: El agua que no se ve</a>
       </div>
     </div>
     <!-- AGS04 - Métrica -->
@@ -100,8 +94,8 @@ node: "nodo-ags"
       <div class="doc-card__sub">Resiliencia bajo shock. Único nodo OK. C₃ = 0.85.</div>
       <div class="doc-card__vars">f = 0.70 · OK</div>
       <div style="margin-top: 1rem; display: flex; justify-content: space-between; align-items: center;">
-        <a href="{{ site.baseurl }}/nodo-ags/ags-04/" class="doc-arrow" style="position: static;">Ver métrica →</a>
-        <a href="{{ site.baseurl }}/nodo-ags/ags-04_/" class="badge badge--warn" style="font-size: 0.5rem;">↳ Narrativa: La ficción institucional</a>
+        <a href="{{ site.baseurl }}/nodo_ags/ags-04/" class="doc-arrow" style="position: static;">Ver métrica →</a>
+        <a href="{{ site.baseurl }}/nodo_ags/ags-04_/" class="badge badge--warn" style="font-size: 0.5rem;">↳ Narrativa: La ficción institucional</a>
       </div>
     </div>
     <!-- AGS05 - Métrica -->
@@ -111,8 +105,8 @@ node: "nodo-ags"
       <div class="doc-card__sub">Latencia federal-local. Mesa ausente. M₅ = 0.50.</div>
       <div class="doc-card__vars">f = 2.10 · OPAQUE</div>
       <div style="margin-top: 1rem; display: flex; justify-content: space-between; align-items: center;">
-        <a href="{{ site.baseurl }}/nodo-ags/ags-05/" class="doc-arrow" style="position: static;">Ver métrica →</a>
-        <a href="{{ site.baseurl }}/nodo-ags/ags-05_/" class="badge badge--warn" style="font-size: 0.5rem;">↳ Narrativa: El pacto no escrito</a>
+        <a href="{{ site.baseurl }}/nodo_ags/ags-05/" class="doc-arrow" style="position: static;">Ver métrica →</a>
+        <a href="{{ site.baseurl }}/nodo_ags/ags-05_/" class="badge badge--warn" style="font-size: 0.5rem;">↳ Narrativa: El pacto no escrito</a>
       </div>
     </div>
     <!-- AGS06 - Métrica -->
@@ -122,8 +116,8 @@ node: "nodo-ags"
       <div class="doc-card__sub">Cierre del ciclo empírico. IHG −0.620. NTI 0.351.</div>
       <div class="doc-card__vars">NTI 0.351 · BLIND MODE</div>
       <div style="margin-top: 1rem; display: flex; justify-content: space-between; align-items: center;">
-        <a href="{{ site.baseurl }}/nodo-ags/ags-06/" class="doc-arrow" style="position: static;">Ver síntesis cuantitativa →</a>
-        <a href="{{ site.baseurl }}/nodo-ags/ags-06_/" class="badge badge--warn" style="font-size: 0.5rem;">↳ Narrativa: Después del acuerdo</a>
+        <a href="{{ site.baseurl }}/nodo-ags/ags_06/" class="doc-arrow" style="position: static;">Ver síntesis cuantitativa →</a>
+        <a href="{{ site.baseurl }}/nodo-ags/ags_06_/" class="badge badge--warn" style="font-size: 0.5rem;">↳ Narrativa: Después del acuerdo</a>
       </div>
     </div>
   </div>
