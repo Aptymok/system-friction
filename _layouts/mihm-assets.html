@@ -1,0 +1,5 @@
+{% if page.nav == 'mihm' or page.url contains '/mihm/' %}
+<link rel="stylesheet" href="{{ '/assets/css/mihm.css' | relative_url }}">
+<script>window.SF = { base: '{{ site.baseurl }}' };</script>
+<script src="{{ '/assets/js/mihm-dashboard.js' | relative_url }}" defer></script>
+{% endif %}
