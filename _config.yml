@@ -3,8 +3,8 @@
 
 title: System Friction
 description: Archivo de fricción sistémica · MIHM v2.0
-url: "https://aptymok.github.io"
-baseurl: "/systemfriction"
+url: "https://systemfriction.org/"
+baseurl: "/"
 theme: null                   # sin tema, usamos CSS propio
 
 # Plugins (compatibles con GitHub Pages)
