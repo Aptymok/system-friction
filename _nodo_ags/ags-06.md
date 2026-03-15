@@ -71,7 +71,3 @@ $$\text{IIM} = 0.50 \quad \text{(12 de 18 eventos verificados con clasificación
 El ciclo empírico está cerrado. Las variables proyectadas tienen intervalos de confianza documentados en el Apéndice Monte Carlo. Ningún hallazgo queda sin referencia al Postulado Central.
 
 **Siguiente ciclo:** AGS-07 activable si IHG no supera $-0.50$ a los 30 días post-fractura.
-
----
-
-[← Volver al índice del nodo](/nodo-ags/) · [Versión narrativa →](/nodo-ags/ags-06-narrativa/)
