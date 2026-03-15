@@ -62,8 +62,8 @@ node: "nodo-ags"
     <div class="doc-card__sub">Hipótesis del pacto implícito. U_P. Validación 24h post-evento.</div>
     <div class="doc-card__vars">f = 1.40 · DEGRADED</div>
     <div style="margin-top: 1rem; display: flex; justify-content: space-between; align-items: center;">
-      <a href="{{ site.baseurl }}/nodo-ags/ags-01/" class="doc-arrow" style="position: static;">Ver métrica →</a>
-      <a href="{{ site.baseurl }}/nodo-ags/ags-01-narrativa/" class="badge badge--warn" style="font-size: 0.5rem;">↳ Narrativa: La distancia que no se mide</a>
+      <a href="{{ site.baseurl }}/nodo_ags/ags-01/" class="doc-arrow" style="position: static;">Ver métrica →</a>
+      <a href="{{ site.baseurl }}/nodo_ags/ags-01-narrativa/" class="badge badge--warn" style="font-size: 0.5rem;">↳ Narrativa: La distancia que no se mide</a>
     </div>
   </div>
 
@@ -74,8 +74,8 @@ node: "nodo-ags"
     <div class="doc-card__sub">ICC crítico. 252 narcobloqueos. Capacidad C₄ = 0.35.</div>
     <div class="doc-card__vars">f = 1.84 · CRITICAL</div>
     <div style="margin-top: 1rem; display: flex; justify-content: space-between; align-items: center;">
-      <a href="{{ site.baseurl }}/nodo-ags/ags-02/" class="doc-arrow" style="position: static;">Ver métrica →</a>
-      <a href="{{ site.baseurl }}/nodo-ags/ags-02-narrativa/" class="badge badge--warn" style="font-size: 0.5rem;">↳ Narrativa: El costo de la latencia</a>
+      <a href="{{ site.baseurl }}/nodo_ags/ags-02/" class="doc-arrow" style="position: static;">Ver métrica →</a>
+      <a href="{{ site.baseurl }}/nodo_ags/ags-02-narrativa/" class="badge badge--warn" style="font-size: 0.5rem;">↳ Narrativa: El costo de la latencia</a>
     </div>
   </div>
 
@@ -86,8 +86,8 @@ node: "nodo-ags"
     <div class="doc-card__sub">Acuífero Calera. Sobreexplotación. E_N1 = 0.89.</div>
     <div class="doc-card__vars">f = 1.81 · FRACTURE</div>
     <div style="margin-top: 1rem; display: flex; justify-content: space-between; align-items: center;">
-      <a href="{{ site.baseurl }}/nodo-ags/ags-03/" class="doc-arrow" style="position: static;">Ver métrica →</a>
-      <a href="{{ site.baseurl }}/nodo-ags/ags-03-narrativa/" class="badge badge--warn" style="font-size: 0.5rem;">↳ Narrativa: El agua que no se ve</a>
+      <a href="{{ site.baseurl }}/nodo_ags/ags-03/" class="doc-arrow" style="position: static;">Ver métrica →</a>
+      <a href="{{ site.baseurl }}/nodo_ags/ags-03-narrativa/" class="badge badge--warn" style="font-size: 0.5rem;">↳ Narrativa: El agua que no se ve</a>
     </div>
   </div>
 
@@ -98,8 +98,8 @@ node: "nodo-ags"
     <div class="doc-card__sub">Resiliencia bajo shock. Único nodo OK. C₃ = 0.85.</div>
     <div class="doc-card__vars">f = 0.70 · OK</div>
     <div style="margin-top: 1rem; display: flex; justify-content: space-between; align-items: center;">
-      <a href="{{ site.baseurl }}/nodo-ags/ags-04/" class="doc-arrow" style="position: static;">Ver métrica →</a>
-      <a href="{{ site.baseurl }}/nodo-ags/ags-04-narrativa/" class="badge badge--warn" style="font-size: 0.5rem;">↳ Narrativa: La ficción institucional</a>
+      <a href="{{ site.baseurl }}/nodo_ags/ags-04/" class="doc-arrow" style="position: static;">Ver métrica →</a>
+      <a href="{{ site.baseurl }}/nodo_ags/ags-04-narrativa/" class="badge badge--warn" style="font-size: 0.5rem;">↳ Narrativa: La ficción institucional</a>
     </div>
   </div>
 
@@ -110,8 +110,8 @@ node: "nodo-ags"
     <div class="doc-card__sub">Latencia federal-local. Mesa ausente. M₅ = 0.50.</div>
     <div class="doc-card__vars">f = 2.10 · OPAQUE</div>
     <div style="margin-top: 1rem; display: flex; justify-content: space-between; align-items: center;">
-      <a href="{{ site.baseurl }}/nodo-ags/ags-05/" class="doc-arrow" style="position: static;">Ver métrica →</a>
-      <a href="{{ site.baseurl }}/nodo-ags/ags-05-narrativa/" class="badge badge--warn" style="font-size: 0.5rem;">↳ Narrativa: El pacto no escrito</a>
+      <a href="{{ site.baseurl }}/nodo_ags/ags-05/" class="doc-arrow" style="position: static;">Ver métrica →</a>
+      <a href="{{ site.baseurl }}/nodo_ags/ags-05-narrativa/" class="badge badge--warn" style="font-size: 0.5rem;">↳ Narrativa: El pacto no escrito</a>
     </div>
   </div>
 
@@ -122,8 +122,8 @@ node: "nodo-ags"
     <div class="doc-card__sub">Cierre del ciclo empírico. IHG −0.620. NTI 0.351.</div>
     <div class="doc-card__vars">NTI 0.351 · BLIND MODE</div>
     <div style="margin-top: 1rem; display: flex; justify-content: space-between; align-items: center;">
-      <a href="{{ site.baseurl }}/nodo-ags/ags-06/" class="doc-arrow" style="position: static;">Ver síntesis cuantitativa →</a>
-      <a href="{{ site.baseurl }}/nodo-ags/ags-06-narrativa/" class="badge badge--warn" style="font-size: 0.5rem;">↳ Narrativa: Después del acuerdo</a>
+      <a href="{{ site.baseurl }}/nodo_ags/ags-06/" class="doc-arrow" style="position: static;">Ver síntesis cuantitativa →</a>
+      <a href="{{ site.baseurl }}/nodo_ags/ags-06-narrativa/" class="badge badge--warn" style="font-size: 0.5rem;">↳ Narrativa: Después del acuerdo</a>
     </div>
   </div>
 </div>
