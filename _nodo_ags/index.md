@@ -62,7 +62,7 @@ node: "nodo-ags"
     <div class="doc-card__sub">Hipótesis del pacto implícito. U_P. Validación 24h post-evento.</div>
     <div class="doc-card__vars">f = 1.40 · DEGRADED</div>
     <div style="margin-top: 1rem; display: flex; justify-content: space-between; align-items: center;">
-      <a href="*/ags-01/" class="doc-arrow" style="position: static;">Ver métrica →</a>
+      <a href="/nodo_ags/ags-01/" class="doc-arrow" style="position: static;">Ver métrica →</a>
       <a href="./ags-01-narrativa/" class="badge badge--warn" style="font-size: 0.5rem;">↳ Narrativa: La distancia que no se mide</a>
     </div>
   </div>
