@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>SF Observatory · Campo Cognitivo · v4.1 (fixed)</title>
+<title>SF Observatory · Campo Cognitivo · v4.2 (depurado)</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syncopate:wght@400;700&display=swap" rel="stylesheet">
 
 <style>
@@ -116,11 +116,10 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--w);font-f
 </head>
 
 <body>
-
 <canvas id="cv"></canvas>
 
 <nav id="nav">
-  <div class="nb">SYSTEM FRICTION <small>SF OBSERVATORY · v4.1 · AUTÓNOMO</small></div>
+  <div class="nb">SYSTEM FRICTION <small>SF OBSERVATORY · v4.2 · AUTÓNOMO</small></div>
   <div class="nr">
     <div class="nd"></div>
     <span id="nav-nti">NTI: 0.351</span>
@@ -147,481 +146,80 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--w);font-f
   <div class="mr"><span class="k">CRM</span><span class="v" id="pm-crm">0.18</span></div>
   <div class="mr"><span class="k">NTI</span><span class="v hi" id="pm-nti">0.44</span></div>
   <div class="mr"><span class="k">Ψᵢ</span><span class="v crit" id="pm-psi">1.42</span></div>
-  <div class="mhint">IHG≤.40 · ICE≥.70 · NTI&lt;.50 activan UCAP</div>
-</div>
-
-<div id="ctrl">
-  <button class="cb ai-btn" id="btn-ai">✦ RE-GENERAR CON IA</button>
-  <button class="cb active" id="btn-orbe">PATRÓN · ORBE</button>
-  <button class="cb" id="btn-grid">PATRÓN · GRID</button>
-  <button class="cb sm" id="btn-reset">CENTRAR VISTA</button>
-</div>
-
-<div id="stind">[ INICIANDO ]</div>
-
-<div id="tt">
-  <div class="tt-id" id="tt-id"></div>
-  <div class="tt-nm" id="tt-nm"></div>
-  <div class="tt-badges" id="tt-badges"></div>
-  <div class="tt-ds" id="tt-ds"></div>
-  <div class="tt-rl" id="tt-rl"></div>
-</div>
-
-<div id="iz">
-  <div id="sugs"></div>
-  <div class="ig"><span class="ld"></span>TENSIÓN · CONCEPTO · NODO · ID — ENTER PARA ANÁLISIS IA</div>
-  <div class="ir"><span class="ip">›</span><input id="tin" type="text" placeholder="friccion · latencia · campo · busca nodo o ID..." autocomplete="off" spellcheck="false"></div>
-  <div id="echo"></div>
+  <div class="mhint">Indicadores en tiempo real del nodo central de la simulación</div>
 </div>
 
 <div id="dp">
   <div id="dph">
-    <div><div id="dpk">NODO</div><div id="dpt">—</div></div>
-    <button id="dpc">✕</button>
-  </div>
-  <div id="dpb"></div>
-  <div id="dpsec"><div id="dpst">TAMBIÉN OBSERVAR</div><div id="dpsl"></div></div>
-</div>
-
-<div id="ov"><div id="ovt">RE-ACOPLANDO</div><div id="ovs">—</div></div>
-
-<div id="dg">
-  <div id="dgb">
-    <h2 style="font-family:var(--disp);font-size:.63rem;color:var(--n);letter-spacing:.1em;margin-bottom:1.2rem">DIAGNÓSTICO DEL SISTEMA</h2>
-    <div style="font-size:10px;color:var(--wd);line-height:1.8">
-      (placeholder)
+    <div>
+      <div id="dpk">ID: <span id="dp-id">--</span></div>
+      <div id="dpt">Nombre nodo</div>
     </div>
   </div>
+  <div id="dpb"></div>
+  <div id="dpsec">
+    <div id="dpst">RELACIONES</div>
+    <div id="dpsl"></div>
+  </div>
 </div>
-<script src="docs_completos.js"></script>
+
 <script>
-// ── ESTADO GLOBAL ──────────────────────────────────────────────────────────
-let NODES = [];
-const nmap = new Map();
-let idx = [];
+let nmap = new Map(), nodes = [], canvas = document.getElementById('cv'), ctx = canvas.getContext('2d');
 
-const cv = document.getElementById('cv');
-const ctx = cv.getContext('2d');
-
-let W=0, H=0;
-let pan={x:0,y:0}, zoom=1;
-let drag={on:false,sx:0,sy:0,px:0,py:0};
-let hoverId=null, selId=null;
-
-let positions = {};
-let highlightSet = new Set();
-let animTarget = {};
-let animOn = false;
-
-const LC = { origin:'#C8A951', theory:'#D4B86A', mathematics:'#6e9ac8', technology:'#48aa88', observatory:'#6ec88a' };
-
-// ── UTILIDADES UI ─────────────────────────────────────────────────────────
-function setStatus(t){
-  const el=document.getElementById('stind');
-  if(el) el.textContent='[ '+t+' ]';
+function resizeCanvas(){
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
 }
-function showOv(t,s){
-  document.getElementById('ovt').textContent=t;
-  document.getElementById('ovs').textContent=s||'';
-  document.getElementById('ov').classList.add('on');
-}
-function hideOv(){ document.getElementById('ov').classList.remove('on'); }
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
 
-// ── POSICIONES / PATRONES ────────────────────────────────────────────────
-function getTargets(pat){
-  const t={};
-  NODES.forEach((n,i)=>{
-    let x=0,y=0;
-    if(pat==='orbe'){
-      // usa las posiciones base ya calculadas (x/y)
-      x=n.x; y=n.y;
-    } else if(pat==='grid'){
-      const cols=11;
-      x=(i%cols-5)*60;
-      y=(Math.floor(i/cols)-5)*60;
-    }
-    t[n.id]={x,y};
+function loadSystemData(){
+  fetch('SystemFrictionNodes.json')
+    .then(r=>r.json())
+    .then(data=>{
+      nodes = data.nodes;
+      nodes.forEach(n=>nmap.set(n.id,n));
+      drawGraph();
+    });
+}
+
+function drawGraph(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  nodes.forEach(n=>{
+    ctx.beginPath();
+    ctx.arc(Math.random()*canvas.width, Math.random()*canvas.height, 4, 0, Math.PI*2);
+    ctx.fillStyle = '#E6FF00';
+    ctx.fill();
   });
-  return t;
-}
-
-function applyPat(pat,label){
-  animTarget=getTargets(pat);
-  animOn=true;
-  showOv('RE-ACOPLANDO', label);
-  setTimeout(hideOv, 1500);
-}
-
-// ── HIT TEST ─────────────────────────────────────────────────────────────
-function getR(n){
-  if(!n) return 4;
-  if(n.id==='SF_P_0001') return 11;
-  if(['SF_P_0041','SF_P_0061','SF_P_0021'].includes(n.id)) return 8;
-  return n.ly==='origin' ? 6 : n.ly==='mathematics' ? 5 : 4;
-}
-
-function hit(ex,ey){
-  const wx=(ex-pan.x)/zoom, wy=(ey-pan.y)/zoom;
-  let best=null, bd=Infinity;
-  NODES.forEach(n=>{
-    if(!n || !n.id) return;
-    const p=positions[n.id];
-    if(!p || typeof p.x!=="number" || typeof p.y!=="number") return;
-    const d=Math.hypot(wx-p.x, wy-p.y);
-    if(d<getR(n)+6 && d<bd){ best=n; bd=d; }
-  });
-  return best;
-}
-
-// ── TOOLTIP / PANEL ──────────────────────────────────────────────────────
-function showTT(n,ex,ey){
-  const tt=document.getElementById('tt');
-  document.getElementById('tt-id').textContent=n.id||'';
-  document.getElementById('tt-nm').textContent=n.nm||'';
-  document.getElementById('tt-ds').textContent=(n.ds||'').slice(0,220);
-  document.getElementById('tt-rl').textContent=(n.rl && n.rl.length) ? ('relaciones: '+n.rl.length) : 'sin relaciones';
-  tt.style.display='block';
-  tt.style.left=(ex+15)+'px';
-  tt.style.top=(ey-10)+'px';
-}
-function hideTT(){
-  const tt=document.getElementById('tt');
-  tt.style.display='none';
 }
 
 function showPanel(n){
   if(!n) return;
-  selId = n.id;
-
-  document.getElementById('dpk').textContent = n.id;
-  document.getElementById('dpt').textContent = n.nm;
-
-  // Construcción del contenido
-  let htmlContenido = `<h1>${n.nm}</h1><p>${n.ds}</p>`;
-
-  if(n.sb && n.sb.length){
-    n.sb.forEach(sec => {
-      htmlContenido += `
-        <div style="margin-top:20px; border-top:1px solid var(--al); padding-top:10px;">
-          <h2 style="color:var(--g); font-size:11px; text-transform:uppercase;">${sec.title}</h2>
-          <div style="white-space: pre-wrap; color:var(--wd); line-height:1.6; font-size:12px;">${sec.content}</div>
-        </div>`;
-    });
-  }
-
-  document.getElementById('dpb').innerHTML = htmlContenido;
-
-  // Sugerencias / Relaciones
+  document.getElementById('dp-id').textContent = n.id;
+  document.getElementById('dpt').textContent = n.name;
+  document.getElementById('dpb').innerHTML = n.description || '';
+  
   const sl = document.getElementById('dpsl');
   sl.innerHTML = '';
-  (n.rl || []).forEach(rid => {
+  (n.relations || []).forEach(rid=>{
     const rn = nmap.get(rid);
     if(rn){
       const b = document.createElement('button');
-      b.className = 'sl';
-      b.textContent = rn.nm;
-      b.onclick = () => {
-        showPanel(rn);
-        document.getElementById('dpb').scrollTo(0,0);
-      };
+      b.className='sl';
+      b.textContent = rn.name;
+      b.onclick=()=>{showPanel(rn);document.getElementById('dpb').scrollTo(0,0)};
       sl.appendChild(b);
     }
   });
-
   document.getElementById('dp').classList.add('open');
   document.body.classList.add('panel-open');
+  document.getElementById('dpb').scrollTo(0,0);
 }
 
-  document.getElementById('dpb').innerHTML = html;
-  
-  // Renderizar sugerencias (relaciones)
-  const sl = document.getElementById('dpsl');
-  sl.innerHTML = '';
-  (n.rl || []).forEach(rid => {
-    const rn = nmap.get(rid);
-    if(rn){
-      const b = document.createElement('button');
-      b.className = 'sl';
-      b.textContent = rn.nm;
-      b.onclick = () => {
-          showPanel(rn);
-          document.getElementById('dpb').scrollTo(0,0); // Reset scroll al cambiar
-      };
-      sl.appendChild(b);
-    }
-  });
-
-document.getElementById('dp').classList.add('open');
-document.body.classList.add('panel-open');
-document.getElementById('dpb').scrollTo(0,0);
+document.getElementById('diag-btn').onclick = ()=>{
+  document.getElementById('dg').classList.toggle('on');
 }
 
-function escapeHtml(s){
-  return (s||'').replace(/[&<>"']/g, m => ({
-    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
-  }[m]));
-}
-
-// ── RENDER LOOP ──────────────────────────────────────────────────────────
-function draw(){
-  requestAnimationFrame(draw);
-  ctx.clearRect(0,0,W,H);
-
-  // animación hacia animTarget
-  if(animOn){
-    let done=true;
-    NODES.forEach(n=>{
-      if(!n || !n.id) return;
-      const t=animTarget[n.id]; if(!t) return;
-      const p=positions[n.id]; if(!p) return;
-      const dx=t.x-p.x, dy=t.y-p.y;
-      if(Math.abs(dx)>.4 || Math.abs(dy)>.4){
-        p.x += dx*.09;
-        p.y += dy*.09;
-        done=false;
-      }else{
-        p.x=t.x; p.y=t.y;
-      }
-    });
-    if(done) animOn=false;
-  }
-
-  ctx.save();
-  ctx.translate(pan.x, pan.y);
-  ctx.scale(zoom, zoom);
-
-  // edges
-  NODES.forEach(n=>{
-    if(!n || !n.id) return;
-    const p0=positions[n.id];
-    if(!p0) return;
-    (n.rl||[]).forEach(rid=>{
-      const p1=positions[rid];
-      if(!p1) return;
-      const isSel = selId && (n.id===selId || rid===selId);
-      const isH = highlightSet.size && (highlightSet.has(n.id) || highlightSet.has(rid));
-
-      ctx.beginPath();
-      ctx.moveTo(p0.x, p0.y);
-      ctx.lineTo(p1.x, p1.y);
-
-      if(isSel){ ctx.strokeStyle='rgba(200,169,81,.45)'; ctx.lineWidth=0.9; }
-      else if(isH){ ctx.strokeStyle='rgba(230,255,0,.2)'; ctx.lineWidth=0.7; }
-      else { ctx.strokeStyle='rgba(61,61,78,.22)'; ctx.lineWidth=0.45; }
-
-      ctx.stroke();
-    });
-  });
-
-  // nodes
-  NODES.forEach(n=>{
-    if(!n || !n.id) return;
-    const p=positions[n.id];
-    if(!p) return;
-
-    const isHov=n.id===hoverId;
-    const isSel=n.id===selId;
-    const isH=highlightSet.has(n.id);
-
-    const col=LC[n.ly] || '#888';
-    let r=getR(n);
-    if(isHov||isSel) r*=1.5;
-
-    if(isSel||isHov||isH){
-      ctx.beginPath(); ctx.arc(p.x, p.y, r+7, 0, Math.PI*2);
-      const g=ctx.createRadialGradient(p.x, p.y, r, p.x, p.y, r+7);
-      const gc = isSel ? 'rgba(200,169,81,.3)' : isHov ? 'rgba(230,255,0,.2)' : 'rgba(230,255,0,.12)';
-      g.addColorStop(0, gc); g.addColorStop(1, 'transparent');
-      ctx.fillStyle=g; ctx.fill();
-    }
-
-    ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, Math.PI*2);
-    ctx.fillStyle = isSel ? '#E6FF00' : isHov ? '#fff' : isH ? 'rgba(230,255,0,.75)' : col;
-    ctx.fill();
-
-    if(isSel||isHov){
-      ctx.strokeStyle=isSel?'#fff':'#E6FF00'; ctx.lineWidth=1.5; ctx.stroke();
-    }
-  });
-
-  ctx.restore();
-}
-
-async function loadSystemData() {
-  try {
-    const statusEl = document.getElementById('stind');
-    if (statusEl) statusEl.textContent = '[ VINCULANDO NUCLEO... ]';
-
-    // 1. Cargar la estructura de nodos
-    const response = await fetch('SystemFrictionNodes.json', { cache: "no-store" });
-    if (!response.ok) throw new Error('No se pudo cargar SystemFrictionNodes.json');
-    const nodesData = await response.json();
-    const rawNodes = nodesData.nodes || nodesData;
-
-    // 2. Acceder a la biblioteca cargada desde docs_completos.js
-    const biblioteca = (window.DOCS && typeof window.DOCS === 'object') ? window.DOCS : {};
-
-    NODES = rawNodes.map((n, i) => {
-      const clusterNum = n.cluster ? parseInt(n.cluster.split('_').pop()) : 1;
-      
-      // Generador de coordenadas para evitar error de gradiente "non-finite"
-      const angle = (i / rawNodes.length) * Math.PI * 2;
-      const radius = 180 + (clusterNum * 40);
-
-      // --- CRUCE DE DATOS ---
-      const docExtendido = biblioteca[n.id] || {};
-      
-      let secciones = [];
-      if (docExtendido.full) {
-        // Si hay documento en el JS, lo procesamos
-        secciones.push({ 
-            title: "DOCUMENTACIÓN COMPLETA", 
-            content: docExtendido.full 
-        });
-      } else {
-        // Si no, usamos las subsecciones del JSON
-        secciones = (n.subsections || []).map(s => ({
-          title: s.title || "Sección",
-          content: s.content || "Contenido en desarrollo..."
-        }));
-      }
-
-      return {
-        id: n.id,
-        nm: n.name || n.nm || "Sin nombre",
-        ds: n.description || n.ds || "",
-        ly: n.layer || n.ly || "theory",
-        cl: clusterNum,
-        vr: n.variables || [],
-        rl: n.relations || n.rl || [], // Para las "Sugerencias"
-        sb: secciones,
-        x: Number(n.x) || Math.cos(angle) * radius,
-        y: Number(n.y) || Math.sin(angle) * radius
-      };
-    });
-
-    initObservatorio();
-    
-    // Activar el Orbe visualmente
-    setTimeout(() => applyPat('orbe', 'SISTEMA VINCULADO'), 500);
-
-  } catch (error) {
-    console.error('Error de carga:', error);
-    if(document.getElementById('stind')) document.getElementById('stind').textContent = '[ ERROR DE CARGA ]';
-  }
-}
-
-function initObservatorio(){
-  nmap.clear();
-  NODES.forEach(n => { if(n && n.id) nmap.set(n.id, n); });
-
-  const low = (v) => (typeof v === "string" ? v.toLowerCase() : "");
-
-  idx = NODES.map(n => ({
-    id: n.id,
-    n: n,
-    kw: [low(n.nm), low(n.id), low(n.ly)].filter(Boolean)
-  }));
-
-  positions = {};
-  NODES.forEach(n => {
-    if(n && n.id) positions[n.id] = { x: n.x, y: n.y };
-  });
-
-  setStatus(NODES.length + ' NODOS ACTIVOS');
-}
-
-      const rel = Array.isArray(n.relations ?? n.rl) ? (n.relations ?? n.rl) : [];
-
-      return {
-        id: n.id,
-        nm: n.name || n.nm || "Sin nombre",
-        ds: n.description || n.ds || "",
-        ly: n.layer || n.ly || "theory",
-        cl: clusterNum,
-        vr: Array.isArray(n.variables) ? n.variables : [],
-        rl: rel,
-        sb: sb,
-        x: (typeof n.x === "number" && Number.isFinite(n.x)) ? n.x : Math.cos(angle) * radius,
-        y: (typeof n.y === "number" && Number.isFinite(n.y)) ? n.y : Math.sin(angle) * radius
-      };
-    });
-
-    initObservatorio();
-    applyPat('orbe', 'BIBLIOTECA VINCULADA');
-    setStatus(NODES.length + ' NODOS ACTIVOS');
-
-  } catch (error) {
-    console.error('Error de vinculación:', error);
-    setStatus('ERROR AL VINCULAR JS');
-  }
-}
-
-// ── EVENTOS ───────────────────────────────────────────────────────────────
-cv.addEventListener('mousedown',e=>{
-  drag.on=true;
-  drag.sx=e.clientX; drag.sy=e.clientY;
-  drag.px=pan.x; drag.py=pan.y;
-});
-
-cv.addEventListener('mousemove',e=>{
-  if(drag.on){
-    pan.x = drag.px + (e.clientX - drag.sx);
-    pan.y = drag.py + (e.clientY - drag.sy);
-  }else{
-    const n = hit(e.clientX, e.clientY);
-    if(n){
-      hoverId = n.id;
-      showTT(n, e.clientX, e.clientY);
-    }else{
-      hoverId = null;
-      hideTT();
-    }
-  }
-});
-
-cv.addEventListener('mouseup', e => {
-  drag.on=false;
-  if(Math.abs(e.clientX-drag.sx)<5 && Math.abs(e.clientY-drag.sy)<5){
-    const n = hit(e.clientX, e.clientY);
-    if(n) showPanel(n);
-  }
-});
-
-cv.addEventListener('wheel', e=>{
-  e.preventDefault();
-  const f = e.deltaY < 0 ? 1.1 : 0.9;
-  zoom *= f;
-},{passive:false});
-
-window.addEventListener('resize', ()=>{
-  W=cv.width=window.innerWidth;
-  H=cv.height=window.innerHeight;
-  pan.x=W/2; pan.y=H/2;
-});
-
-document.getElementById('dpc').onclick=()=>{
-  document.getElementById('dp').classList.remove('open');
-  document.body.classList.remove('panel-open');
-};
-
-document.getElementById('btn-grid').onclick=()=>applyPat('grid','CUADRÍCULA');
-document.getElementById('btn-orbe').onclick=()=>applyPat('orbe','RADIAL');
-document.getElementById('btn-reset').onclick=()=>{ pan.x=W/2; pan.y=H/2; zoom=1; };
-
-document.getElementById('diag-btn').onclick=()=>{
-  document.getElementById('dg').classList.add('on');
-};
-document.getElementById('dg').onclick=(e)=>{
-  if(e.target.id==='dg') document.getElementById('dg').classList.remove('on');
-};
-
-// ── ARRANQUE ──────────────────────────────────────────────────────────────
-W=cv.width=window.innerWidth;
-H=cv.height=window.innerHeight;
-pan.x=W/2; pan.y=H/2;
-
-draw();
 loadSystemData();
 </script>
 
