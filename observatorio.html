@@ -296,23 +296,41 @@ function showPanel(n){
   document.getElementById('dpk').textContent = n.id;
   document.getElementById('dpt').textContent = n.nm;
 
-  // Construcción del HTML con mejor jerarquía para lectura
- 
-et html = `<h1 style="margin-bottom:1rem">${escapeHtml(n.nm || '')}</h1>`;
-html += `<p style="font-size:13px; line-height:1.6; color:var(--w); margin-bottom:2rem">
-  ${escapeHtml(n.ds || '')}
-</p>`;
-
+  // Construcción del contenido
+  let htmlContenido = `<h1>${n.nm}</h1><p>${n.ds}</p>`;
 
   if(n.sb && n.sb.length){
-    n.sb.forEach(sub => {
-      html += `
-        <div style="margin-top:2rem; padding-top:1rem; border-top:1px solid var(--al)">
-          <h2 style="font-size:11px; color:var(--g); text-transform:uppercase; letter-spacing:1px">${escapeHtml(sub.title)}</h2>
-          <div style="font-size:12px; line-height:1.8; color:var(--wd); white-space: pre-wrap;">${escapeHtml(sub.content)}</div>
+    n.sb.forEach(sec => {
+      htmlContenido += `
+        <div style="margin-top:20px; border-top:1px solid var(--al); padding-top:10px;">
+          <h2 style="color:var(--g); font-size:11px; text-transform:uppercase;">${sec.title}</h2>
+          <div style="white-space: pre-wrap; color:var(--wd); line-height:1.6; font-size:12px;">${sec.content}</div>
         </div>`;
     });
   }
+
+  document.getElementById('dpb').innerHTML = htmlContenido;
+
+  // Sugerencias / Relaciones
+  const sl = document.getElementById('dpsl');
+  sl.innerHTML = '';
+  (n.rl || []).forEach(rid => {
+    const rn = nmap.get(rid);
+    if(rn){
+      const b = document.createElement('button');
+      b.className = 'sl';
+      b.textContent = rn.nm;
+      b.onclick = () => {
+        showPanel(rn);
+        document.getElementById('dpb').scrollTo(0,0);
+      };
+      sl.appendChild(b);
+    }
+  });
+
+  document.getElementById('dp').classList.add('open');
+  document.body.classList.add('panel-open');
+}
 
   document.getElementById('dpb').innerHTML = html;
   
@@ -429,7 +447,67 @@ function draw(){
   ctx.restore();
 }
 
-// ── INIT OBSERVATORIO (UNA SOLA VEZ) ──────────────────────────────────────
+async function loadSystemData() {
+  try {
+    setStatus('VINCULANDO BIBLIOTECA JS...');
+
+    // 1. Cargar nodos JSON
+    const nodesResp = await fetch('SystemFrictionNodes.json', { cache: "no-store" });
+    if (!nodesResp.ok) throw new Error('No se pudo cargar SystemFrictionNodes.json');
+
+    const nodesData = await nodesResp.json();
+    const rawNodes0 = Array.isArray(nodesData?.nodes) ? nodesData.nodes : (Array.isArray(nodesData) ? nodesData : []);
+    const isNode = (o) => o && typeof o === "object" && typeof o.id === "string";
+    const rawNodes = rawNodes0.filter(isNode);
+
+    // 2. Tomar biblioteca desde variable global (del archivo docs_completos.js)
+    const biblioteca = (window.DOCS && typeof window.DOCS === 'object') ? window.DOCS : {};
+
+    // 3. Normalizar y vincular
+    NODES = rawNodes.map((n, i) => {
+      const clusterNum = (typeof n.cluster === "string" && n.cluster.includes("_"))
+        ? (parseInt(n.cluster.split("_").pop(), 10) || 1)
+        : 1;
+
+      const angle = (i / Math.max(1, rawNodes.length)) * Math.PI * 2;
+      const radius = 150 + (clusterNum * 40);
+
+      // --- VINCULACIÓN CON DOCS_COMPLETOS.JS ---
+      const extendedDoc = biblioteca[n.id] || {};
+
+      let sb = [];
+      if (typeof extendedDoc.full === "string" && extendedDoc.full.trim().length > 0) {
+        sb.push({ title: "Documento Completo", content: extendedDoc.full });
+      } else {
+        sb = Array.isArray(n.subsections) ? n.subsections.map(s => ({
+          title: typeof s === "string" ? s : (s.title || "Sección"),
+          content: s.content || "Contenido en desarrollo..."
+        })) : [];
+      }
+
+      return {
+        id: n.id,
+        nm: n.name || n.nm || "Sin nombre",
+        ds: n.description || n.ds || "",
+        ly: n.layer || n.ly || "theory",
+        cl: clusterNum,
+        vr: Array.isArray(n.variables) ? n.variables : [],
+        rl: Array.isArray(n.relations ?? n.rl) ? (n.relations ?? n.rl) : [],
+        sb: sb,
+        x: (typeof n.x === "number" ? n.x : Math.cos(angle) * radius),
+        y: (typeof n.y === "number" ? n.y : Math.sin(angle) * radius)
+      };
+    });
+
+    initObservatorio();
+    applyPat('orbe', 'SISTEMA VINCULADO');
+
+  } catch (error) {
+    console.error('Error:', error);
+    setStatus('ERROR DE CARGA');
+  }
+}
+
 function initObservatorio(){
   nmap.clear();
   NODES.forEach(n => { if(n && n.id) nmap.set(n.id, n); });
@@ -439,68 +517,16 @@ function initObservatorio(){
   idx = NODES.map(n => ({
     id: n.id,
     n: n,
-    kw: [
-      low(n.nm),
-      low(n.id),
-      low(n.ly),
-      ...(Array.isArray(n.vr) ? n.vr.map(low) : []),
-      ...low(n.ds).split(" ").slice(0, 12)
-    ].flat().filter(Boolean)
+    kw: [low(n.nm), low(n.id), low(n.ly)].filter(Boolean)
   }));
 
   positions = {};
   NODES.forEach(n => {
-    if(!n || !n.id) return;
-    positions[n.id] = { x: n.x, y: n.y };
+    if(n && n.id) positions[n.id] = { x: n.x, y: n.y };
   });
 
   setStatus(NODES.length + ' NODOS ACTIVOS');
 }
-
-async function loadSystemData() {
-  try {
-    setStatus('VINCULANDO BIBLIOTECA JS...');
-
-    // 1) Cargar nodos JSON
-    const nodesResp = await fetch('SystemFrictionNodes.json', { cache: "no-store" });
-    if (!nodesResp.ok) throw new Error('No se pudo cargar SystemFrictionNodes.json');
-
-    const nodesData = await nodesResp.json();
-    const rawNodes0 = Array.isArray(nodesData?.nodes) ? nodesData.nodes : (Array.isArray(nodesData) ? nodesData : []);
-    const isNode = (o) => o && typeof o === "object" && typeof o.id === "string";
-    const rawNodes = rawNodes0.filter(isNode);
-
-    // 2) Tomar biblioteca desde variable global (docs_completos.js)
-    const biblioteca = (typeof window !== 'undefined' && window.DOCS && typeof window.DOCS === 'object')
-      ? window.DOCS
-      : {};
-
-    // 3) Normalizar y vincular
-    NODES = rawNodes.map((n, i) => {
-      const clusterNum = (typeof n.cluster === "string" && n.cluster.includes("_"))
-        ? (parseInt(n.cluster.split("_").pop(), 10) || 1)
-        : (Number.isFinite(+n.cluster) ? (+n.cluster || 1) : 1);
-
-      const angle = (i / Math.max(1, rawNodes.length)) * Math.PI * 2;
-      const radius = 150 + (clusterNum * 40);
-
-      // Vinculación por ID
-      const extendedDoc = biblioteca[n.id] || {};
-
-      // Subsections / Secciones
-      let sb = [];
-      if (typeof extendedDoc.full === "string" && extendedDoc.full.trim().length) {
-        sb.push({ title: "Documento Completo", content: extendedDoc.full });
-      } else {
-        sb = Array.isArray(n.subsections)
-          ? n.subsections.map(s => ({
-              title: typeof s === "string" ? s : (s.title || "Sección"),
-              content: (typeof s === "object" && s && typeof s.content === "string" && s.content.trim().length)
-                ? s.content
-                : "Contenido en desarrollo..."
-            }))
-          : [];
-      }
 
       const rel = Array.isArray(n.relations ?? n.rl) ? (n.relations ?? n.rl) : [];
 
