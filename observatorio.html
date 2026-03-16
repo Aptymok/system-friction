@@ -299,47 +299,84 @@ function draw(){
   requestAnimationFrame(draw);
   ctx.clearRect(0,0,W,H);
 
+  // Lógica de animación de posiciones
   if(animOn){
     let done=true;
     NODES.forEach(n=>{
+      if(!n || !n.id) return;
       const t=animTarget[n.id]; if(!t) return;
       const p=positions[n.id];
+      if(!p) return;
       const dx=t.x-p.x, dy=t.y-p.y;
-      if(Math.abs(dx)>.4||Math.abs(dy)>.4){ p.x+=dx*.09; p.y+=dy*.09; done=false; }
-      else { p.x=t.x; p.y=t.y; }
+      if(Math.abs(dx)>.4||Math.abs(dy)>.4){ 
+        p.x+=dx*.09; p.y+=dy*.09; done=false; 
+      } else { 
+        p.x=t.x; p.y=t.y; 
+      }
     });
     if(done) animOn=false;
   }
 
   ctx.save();
-  ctx.translate(pan.x,pan.y);
-  ctx.scale(zoom,zoom);
+  ctx.translate(pan.x, pan.y);
+  ctx.scale(zoom, zoom);
 
+  // 1. DIBUJAR VÍNCULOS (EDGES)
   NODES.forEach(n=>{
+    if(!n || !n.id) return;
     const p0=positions[n.id];
+    if(!p0) return;
     (n.rl||[]).forEach(rid=>{
       const p1=positions[rid]; if(!p1) return;
-      ctx.beginPath(); ctx.moveTo(p0.x,p0.y); ctx.lineTo(p1.x,p1.y);
-      ctx.strokeStyle = (selId&&(n.id===selId||rid===selId)) ? 'rgba(200,169,81,.45)' : 'rgba(61,61,78,.22)';
-      ctx.lineWidth = (selId&&(n.id===selId||rid===selId)) ? 0.9 : 0.45;
+      const isSel = selId && (n.id===selId || rid===selId);
+      const isH = highlightSet.size && (highlightSet.has(n.id) || highlightSet.has(rid));
+      
+      ctx.beginPath(); 
+      ctx.moveTo(p0.x, p0.y); 
+      ctx.lineTo(p1.x, p1.y);
+      
+      // Estilo dinámico según selección
+      if(isSel){ ctx.strokeStyle='rgba(200,169,81,.45)'; ctx.lineWidth=0.9; }
+      else if(isH){ ctx.strokeStyle='rgba(230,255,0,.2)'; ctx.lineWidth=0.7; }
+      else { ctx.strokeStyle='rgba(61,61,78,.22)'; ctx.lineWidth=0.45; }
+      
       ctx.stroke();
     });
   });
 
+  // 2. DIBUJAR NODOS
   NODES.forEach(n=>{
+    if(!n || !n.id) return;
     const p=positions[n.id];
-    const isHov=n.id===hoverId; const isSel=n.id===selId; const isH=highlightSet.has(n.id);
-    const col=LC[n.ly]||'#888'; let r=getR(n); if(isHov||isSel) r*=1.5;
+    if(!p) return;
 
-    ctx.beginPath(); ctx.arc(p.x,p.y,r,0,Math.PI*2);
+    const isHov=n.id===hoverId; 
+    const isSel=n.id===selId; 
+    const isH=highlightSet.has(n.id);
+    const col=LC[n.ly]||'#888'; 
+    let r=getR(n); 
+
+    if(isHov||isSel) r*=1.5;
+
+    // Resplandor (Glow)
+    if(isSel||isHov||isH){
+      ctx.beginPath(); ctx.arc(p.x, p.y, r+7, 0, Math.PI*2);
+      const g=ctx.createRadialGradient(p.x, p.y, r, p.x, p.y, r+7);
+      const gc = isSel ? 'rgba(200,169,81,.3)' : isHov ? 'rgba(230,255,0,.2)' : 'rgba(230,255,0,.12)';
+      g.addColorStop(0, gc); g.addColorStop(1, 'transparent');
+      ctx.fillStyle=g; ctx.fill();
+    }
+
+    // Cuerpo del nodo
+    ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, Math.PI*2);
     ctx.fillStyle = isSel ? '#E6FF00' : isHov ? '#fff' : isH ? 'rgba(230,255,0,.75)' : col;
     ctx.fill();
-    if(isSel||isHov){ ctx.strokeStyle=isSel?'#fff':'#E6FF00'; ctx.lineWidth=1.5; ctx.stroke(); }
-    if(r>=5||isHov||isSel){
-        ctx.fillStyle=isHov||isSel?'#fff':col; ctx.font="9px 'Space Mono'"; ctx.textAlign='center';
-        ctx.fillText(n.nm, p.x, p.y+r+10);
+    
+    if(isSel||isHov){ 
+      ctx.strokeStyle=isSel?'#fff':'#E6FF00'; ctx.lineWidth=1.5; ctx.stroke(); 
     }
   });
+
   ctx.restore();
 }
 
@@ -354,18 +391,29 @@ async function loadSystemData() {
     const data = await response.json();
     const rawNodes = data.nodes || data;
 
-    NODES = rawNodes.map(n => ({
-      id: n.id || "ID_ERR",
-      nm: n.name || n.nm || "Sin nombre",
-      ds: n.description || n.ds || "",
-      ly: n.layer || n.ly || "theory",
-      cl: n.cluster ? parseInt(n.cluster.split('_').pop()) : 1,
-      vr: n.variables || [],
-      rl: n.relations || [],
-      sb: (n.subsections || []).map(s => s.title || s),
-      x: n.x || (n.visual ? n.visual.x : Math.random() * 600 - 300),
-      y: n.y || (n.visual ? n.visual.y : Math.random() * 600 - 300)
-    }));
+    NODES = rawNodes.map((n, i) => {
+  // Calculamos el ID del cluster (asumiendo formato SF_CLUSTER_01)
+  const clusterId = n.cluster ? parseInt(n.cluster.split('_').pop()) : (n.cl || 1);
+  
+  // GENERADOR AUTOMÁTICO DE POSICIÓN (Si el JSON no tiene coordenadas)
+  // Creamos una distribución circular inicial para que no se amontonen en el centro
+  const angle = (i / rawNodes.length) * Math.PI * 2;
+  const radius = 200 + (clusterId * 30); // El radio depende del cluster
+
+  return {
+    id: n.id || "ID_MISSING",
+    nm: n.name || n.nm || "Sin nombre",
+    ds: n.description || n.ds || "",
+    ly: n.layer || n.ly || "theory",
+    cl: clusterId,
+    vr: n.variables || n.vr || [],
+    rl: n.relations || n.rl || [],
+    sb: (n.subsections || n.sb || []).map(s => s.title || s),
+    // Aquí está la clave: si no hay n.x, usa la posición circular calculada arriba
+    x: n.x || (n.visual ? n.visual.x : Math.cos(angle) * radius),
+    y: n.y || (n.visual ? n.visual.y : Math.sin(angle) * radius)
+  };
+});
 
     initObservatorio();
     applyPat('orbe', 'SISTEMA INICIADO');
