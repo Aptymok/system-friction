@@ -470,11 +470,42 @@ function showTT(n,ex,ey){
 }
 
 function showPanel(n){
-  selId=n.id;
-  document.getElementById('dpk').textContent=n.id;
-  document.getElementById('dpt').textContent=n.nm;
-  document.getElementById('dpb').innerHTML=`<h1>${n.nm}</h1><p>${n.ds}</p>`;
+  if(!n) return;
+  selId = n.id;
+  
+  // 1. Encabezado
+  document.getElementById('dpk').textContent = n.id;
+  document.getElementById('dpt').textContent = n.nm;
+  
+  // 2. Contenido (Descripción + Subsecciones/Documentos)
+  let html = `<h1>${n.nm}</h1><p>${n.ds}</p>`;
+  
+  if(n.sb && n.sb.length){
+    html += `<h2>Documentación</h2>`;
+    n.sb.forEach(sub => {
+      html += `<h3>${sub.title}</h3><p>${sub.content}</p>`;
+    });
+  }
+
+  document.getElementById('dpb').innerHTML = html;
+
+  // 3. Sugerencias (Relations)
+  const sl = document.getElementById('dpsl');
+  sl.innerHTML = '';
+  (n.rl || []).forEach(rid => {
+    const rn = nmap.get(rid);
+    if(rn){
+      const b = document.createElement('button');
+      b.className = 'sl';
+      b.textContent = rn.nm;
+      b.onclick = () => showPanel(rn);
+      sl.appendChild(b);
+    }
+  });
+
+  document.getElementById('dpst').textContent = (n.rl && n.rl.length) ? 'TAMBIÉN OBSERVAR' : 'SIN RELACIONES';
   document.getElementById('dp').classList.add('open');
+  document.body.classList.add('panel-open');
 }
 
 // ── PATRONES ─────────────────────────────────────────────────────────────
