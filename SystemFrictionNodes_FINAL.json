@@ -1,0 +1,6994 @@
+{
+  "metadata": {
+    "version": "2.0",
+    "total_nodes": 121,
+    "generated": "2026-03-17"
+  },
+  "nodes": [
+    {
+      "id": "SF_N_0001",
+      "legacy_id": "SF_P_0001",
+      "name": "System Friction",
+      "layer": "origin",
+      "type": "concept",
+      "cluster": "SF_CLUSTER_01",
+      "description": "System Friction es el sistema raíz del ecosistema. Proporciona el vocabulario operativo, la arquitectura conceptual y los principios para observar cómo los sistemas complejos acumulan entropía invisible bajo indicadores oficialmente estables.",
+      "variables": [
+        "friccion_sistémica",
+        "latencia_institucional",
+        "entropia_acumulada"
+      ],
+      "equations": [],
+      "relations": [
+        "SF_N_0002",
+        "SF_N_0003",
+        "SF_N_0010",
+        "SF_N_0021",
+        "SF_N_0041"
+      ],
+      "docRelations": [
+        "SF_D_0001",
+        "SF_D_conceptos",
+        "SF_D_diccionario"
+      ],
+      "subsections": [
+        {
+          "id": "SF_S_0001_A",
+          "title": "Definición del sistema"
+        },
+        {
+          "id": "SF_S_0001_B",
+          "title": "Principios estructurales"
+        },
+        {
+          "id": "SF_S_0001_C",
+          "title": "Arquitectura general"
+        },
+        {
+          "id": "SF_S_0001_D",
+          "title": "Casos de aplicación"
+        },
+        {
+          "id": "SF_S_0001_E",
+          "title": "Evolución del proyecto"
+        },
+        {
+          "id": "SF_S_0001_F",
+          "title": "Relaciones con otros marcos teóricos"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 0,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#C8A951",
+        "shape": "hexagon",
+        "size": 12
+      }
+    },
+    {
+      "id": "SF_N_0002",
+      "legacy_id": "SF_P_0002",
+      "name": "Campo Cognitivo",
+      "layer": "theory",
+      "type": "concept",
+      "cluster": "SF_CLUSTER_01",
+      "description": "Campo Cognitivo es la capa puramente teórica del ecosistema. No es una marca ni producto; es la infraestructura conceptual que da coherencia al sistema de observación. Provee fundamentos filosóficos y metodológicos al marco analítico.",
+      "variables": [
+        "observacion_epistemica",
+        "marco_logico"
+      ],
+      "equations": [],
+      "relations": [
+        "SF_N_0001",
+        "SF_N_0003",
+        "SF_N_0004",
+        "SF_N_0021"
+      ],
+      "docRelations": [
+        "SF_D_0002"
+      ],
+      "subsections": [
+        {
+          "id": "SF_S_0002_A",
+          "title": "Definición epistemológica"
+        },
+        {
+          "id": "SF_S_0002_B",
+          "title": "Fundamentos teóricos"
+        },
+        {
+          "id": "SF_S_0002_C",
+          "title": "Método de análisis"
+        },
+        {
+          "id": "SF_S_0002_D",
+          "title": "Relación con System Friction"
+        },
+        {
+          "id": "SF_S_0002_E",
+          "title": "Diferenciación con PERENNE"
+        },
+        {
+          "id": "SF_S_0002_F",
+          "title": "Alcance del campo"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 0,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#C8A951",
+        "shape": "circle",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0003",
+      "legacy_id": "SF_P_0003",
+      "name": "Fricción Sistémica",
+      "layer": "theory",
+      "type": "concept",
+      "cluster": "SF_CLUSTER_01",
+      "description": "Fricción Sistémica es el concepto central del marco. Cuantifica la pérdida de señal entre la observación de una anomalía y la respuesta institucional verificable. Cuando la fricción supera la capacidad de respuesta, el colapso es matemáticamente inevitable.",
+      "variables": [
+        "señal_detectada",
+        "respuesta_ejecutada",
+        "latencia_institucional"
+      ],
+      "equations": [
+        "FS = LDI / VR  (donde LDI=latencia decisional, VR=velocidad de respuesta)"
+      ],
+      "relations": [
+        "SF_N_0001",
+        "SF_N_0004",
+        "SF_N_0041",
+        "SF_N_0042"
+      ],
+      "docRelations": [
+        "SF_D_0003"
+      ],
+      "subsections": [
+        {
+          "id": "SF_S_0003_A",
+          "title": "Definición operativa"
+        },
+        {
+          "id": "SF_S_0003_B",
+          "title": "Causas estructurales"
+        },
+        {
+          "id": "SF_S_0003_C",
+          "title": "Tipos de fricción"
+        },
+        {
+          "id": "SF_S_0003_D",
+          "title": "Medición de fricción"
+        },
+        {
+          "id": "SF_S_0003_E",
+          "title": "Umbrales de criticidad"
+        },
+        {
+          "id": "SF_S_0003_F",
+          "title": "Relación con entropía"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 0,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#C8A951",
+        "shape": "circle",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0004",
+      "legacy_id": "SF_P_0004",
+      "name": "Interacción Humana Multicanal",
+      "layer": "theory",
+      "type": "concept",
+      "cluster": "SF_CLUSTER_01",
+      "description": "La Interacción Humana Multicanal reconoce que los sistemas institucionales operan con múltiples canales de señal simultáneos: formales, informales, tácitos y explícitos. La fricción emerge en los puntos de desacoplamiento entre canales.",
+      "variables": [
+        "canales_activos",
+        "coherencia_señal",
+        "ruido_canal"
+      ],
+      "equations": [],
+      "relations": [
+        "SF_N_0003",
+        "SF_N_0005",
+        "SF_N_0041"
+      ],
+      "docRelations": [
+        "SF_D_0004"
+      ],
+      "subsections": [
+        {
+          "id": "SF_S_0004_A",
+          "title": "Definición del modelo multicanal"
+        },
+        {
+          "id": "SF_S_0004_B",
+          "title": "Canales de interacción"
+        },
+        {
+          "id": "SF_S_0004_C",
+          "title": "Coherencia entre canales"
+        },
+        {
+          "id": "SF_S_0004_D",
+          "title": "Medición de coherencia"
+        },
+        {
+          "id": "SF_S_0004_E",
+          "title": "Aplicaciones institucionales"
+        },
+        {
+          "id": "SF_S_0004_F",
+          "title": "Integración con MIHM"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 0,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#C8A951",
+        "shape": "circle",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0005",
+      "legacy_id": "SF_P_0005",
+      "name": "Energía Relacional",
+      "layer": "theory",
+      "type": "concept",
+      "cluster": "SF_CLUSTER_01",
+      "description": "La Energía Relacional mide la vitalidad de los vínculos operativos entre agentes institucionales. Su degradación es un indicador temprano de fragmentación sistémica antes de que los indicadores oficiales lo registren.",
+      "variables": [
+        "capacidad_vincular",
+        "degradacion_relacional",
+        "resiliencia_vincular"
+      ],
+      "equations": [],
+      "relations": [
+        "SF_N_0003",
+        "SF_N_0006",
+        "SF_N_0044"
+      ],
+      "docRelations": [
+        "SF_D_0005"
+      ],
+      "subsections": [
+        {
+          "id": "SF_S_0005_A",
+          "title": "Definición de energía relacional"
+        },
+        {
+          "id": "SF_S_0005_B",
+          "title": "Estados de la energía relacional"
+        },
+        {
+          "id": "SF_S_0005_C",
+          "title": "Variables asociadas"
+        },
+        {
+          "id": "SF_S_0005_D",
+          "title": "Medición"
+        },
+        {
+          "id": "SF_S_0005_E",
+          "title": "Degradación y recuperación"
+        },
+        {
+          "id": "SF_S_0005_F",
+          "title": "Relación con Auto-Mutilación Táctica"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 0,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#C8A951",
+        "shape": "circle",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0006",
+      "legacy_id": "SF_P_0006",
+      "name": "Densidad de Interacción",
+      "layer": "theory",
+      "type": "concept",
+      "cluster": "SF_CLUSTER_01",
+      "description": "La Densidad de Interacción es una métrica que cuantifica la intensidad comunicacional de un sistema. Alta densidad con baja coherencia señal es un indicador clásico de fricción sistémica activa.",
+      "variables": [
+        "frecuencia_intercambio",
+        "calidad_señal",
+        "nodos_activos"
+      ],
+      "equations": [
+        "DI = sum(interacciones_verificadas) / (nodos_activos * periodo_temporal)"
+      ],
+      "relations": [
+        "SF_N_0005",
+        "SF_N_0007",
+        "SF_N_0046"
+      ],
+      "docRelations": [
+        "SF_D_0006"
+      ],
+      "subsections": [
+        {
+          "id": "SF_S_0006_A",
+          "title": "Definición operativa"
+        },
+        {
+          "id": "SF_S_0006_B",
+          "title": "Umbrales de densidad"
+        },
+        {
+          "id": "SF_S_0006_C",
+          "title": "Medición"
+        },
+        {
+          "id": "SF_S_0006_D",
+          "title": "Aplicaciones diagnósticas"
+        },
+        {
+          "id": "SF_S_0006_E",
+          "title": "Relación con latencia"
+        },
+        {
+          "id": "SF_S_0006_F",
+          "title": "Integración con MIHM"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 0,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#C8A951",
+        "shape": "circle",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0007",
+      "legacy_id": "SF_P_0007",
+      "name": "Gradiente de Fricción",
+      "layer": "theory",
+      "type": "concept",
+      "cluster": "SF_CLUSTER_01",
+      "description": "El Gradiente de Fricción describe cómo la fricción no es uniforme en un sistema: se concentra en puntos específicos de la red, generando zonas de alta tensión estructural que actúan como catalizadores de colapso.",
+      "variables": [
+        "intensidad_friccion_local",
+        "distribucion_nodal",
+        "tension_acumulada"
+      ],
+      "equations": [
+        "GF_ij = |FS_i - FS_j| / distancia_estructural_ij"
+      ],
+      "relations": [
+        "SF_N_0003",
+        "SF_N_0008",
+        "SF_N_0057"
+      ],
+      "docRelations": [
+        "SF_D_0007"
+      ],
+      "subsections": [
+        {
+          "id": "SF_S_0007_A",
+          "title": "Definición del gradiente"
+        },
+        {
+          "id": "SF_S_0007_B",
+          "title": "Tipos de gradiente"
+        },
+        {
+          "id": "SF_S_0007_C",
+          "title": "Visualización"
+        },
+        {
+          "id": "SF_S_0007_D",
+          "title": "Uso diagnóstico"
+        },
+        {
+          "id": "SF_S_0007_E",
+          "title": "Relación con NTI"
+        },
+        {
+          "id": "SF_S_0007_F",
+          "title": "Fórmula integrada"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 0,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#C8A951",
+        "shape": "circle",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0008",
+      "legacy_id": "SF_P_0008",
+      "name": "Coherencia Sistémica",
+      "layer": "theory",
+      "type": "concept",
+      "cluster": "SF_CLUSTER_01",
+      "description": "La Coherencia Sistémica es un indicador de la salud estructural de una institución. Su degradación no suele detectarse en los indicadores oficiales porque la institución tiene incentivos para mantener la apariencia de coherencia mientras la realidad operativa diverge.",
+      "variables": [
+        "alineacion_objetivos",
+        "consistencia_señal",
+        "divergencia_declarada"
+      ],
+      "equations": [
+        "CS = 1 - (divergencia_real / estado_declarado)"
+      ],
+      "relations": [
+        "SF_N_0007",
+        "SF_N_0009",
+        "SF_N_0031"
+      ],
+      "docRelations": [
+        "SF_D_0008"
+      ],
+      "subsections": [
+        {
+          "id": "SF_S_0008_A",
+          "title": "Definición"
+        },
+        {
+          "id": "SF_S_0008_B",
+          "title": "Indicadores de coherencia"
+        },
+        {
+          "id": "SF_S_0008_C",
+          "title": "Degradación de coherencia"
+        },
+        {
+          "id": "SF_S_0008_D",
+          "title": "Relación con Ley de Goodhart"
+        },
+        {
+          "id": "SF_S_0008_E",
+          "title": "Recuperación"
+        },
+        {
+          "id": "SF_S_0008_F",
+          "title": "Medición en MIHM"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 0,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#C8A951",
+        "shape": "circle",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0009",
+      "legacy_id": "SF_P_0009",
+      "name": "Desfase Cognitivo",
+      "layer": "theory",
+      "type": "concept",
+      "cluster": "SF_CLUSTER_01",
+      "description": "El Desfase Cognitivo es la brecha entre lo que una institución cree que está ocurriendo y lo que está ocurriendo. Es la fuente primaria de latencia institucional: decisiones tomadas sobre una realidad que ya no existe cuando se actúa.",
+      "variables": [
+        "percepcion_institucional",
+        "estado_real",
+        "lag_temporal"
+      ],
+      "equations": [
+        "DC = |t_percepcion - t_evento| * factor_semantic_drift"
+      ],
+      "relations": [
+        "SF_N_0008",
+        "SF_N_0010",
+        "SF_N_0030"
+      ],
+      "docRelations": [
+        "SF_D_0009"
+      ],
+      "subsections": [
+        {
+          "id": "SF_S_0009_A",
+          "title": "Definición del desfase"
+        },
+        {
+          "id": "SF_S_0009_B",
+          "title": "Causas"
+        },
+        {
+          "id": "SF_S_0009_C",
+          "title": "Consecuencias"
+        },
+        {
+          "id": "SF_S_0009_D",
+          "title": "Medición"
+        },
+        {
+          "id": "SF_S_0009_E",
+          "title": "Relación con NTI"
+        },
+        {
+          "id": "SF_S_0009_F",
+          "title": "Reducción del desfase"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 0,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#C8A951",
+        "shape": "circle",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0010",
+      "legacy_id": "SF_P_0010",
+      "name": "Resonancia Semántica",
+      "layer": "theory",
+      "type": "concept",
+      "cluster": "SF_CLUSTER_01",
+      "description": "La Resonancia Semántica es crítica para la eficacia institucional. Cuando dos nodos usan los mismos términos con significados distintos, la señal se degrada sin que los agentes lo perciban. Este fenómeno es la causa más subestimada de fricción sistémica.",
+      "variables": [
+        "coherencia_semantica",
+        "alineacion_terminologica",
+        "drift_semantico"
+      ],
+      "equations": [],
+      "relations": [
+        "SF_N_0009",
+        "SF_N_0011",
+        "SF_N_0044"
+      ],
+      "docRelations": [
+        "SF_D_0010"
+      ],
+      "subsections": [
+        {
+          "id": "SF_S_0010_A",
+          "title": "Definición"
+        },
+        {
+          "id": "SF_S_0010_B",
+          "title": "Ausencia de resonancia"
+        },
+        {
+          "id": "SF_S_0010_C",
+          "title": "Detección"
+        },
+        {
+          "id": "SF_S_0010_D",
+          "title": "Relación con core-00"
+        },
+        {
+          "id": "SF_S_0010_E",
+          "title": "Métricas"
+        },
+        {
+          "id": "SF_S_0010_F",
+          "title": "Recuperación"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 0,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#C8A951",
+        "shape": "circle",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0011",
+      "legacy_id": "SF_P_0011",
+      "name": "Vector Intencional",
+      "layer": "theory",
+      "type": "concept",
+      "cluster": "SF_CLUSTER_01",
+      "description": "El Vector Intencional reconoce que los agentes institucionales operan con múltiples capas de intención: la declarada (visible en reportes), la real (que guía las decisiones) y la sistémica (que el propio agente no reconoce conscientemente). La divergencia entre estas capas produce fricción.",
+      "variables": [
+        "intencion_declarada",
+        "intencion_real",
+        "alineacion_vectorial"
+      ],
+      "equations": [],
+      "relations": [
+        "SF_N_0010",
+        "SF_N_0012",
+        "SF_N_0032"
+      ],
+      "docRelations": [
+        "SF_D_0011"
+      ],
+      "subsections": [
+        {
+          "id": "SF_S_0011_A",
+          "title": "Definición del vector"
+        },
+        {
+          "id": "SF_S_0011_B",
+          "title": "Capas de intención"
+        },
+        {
+          "id": "SF_S_0011_C",
+          "title": "Alineación vectorial"
+        },
+        {
+          "id": "SF_S_0011_D",
+          "title": "Detección de desalineación"
+        },
+        {
+          "id": "SF_S_0011_E",
+          "title": "Uso en diagnóstico"
+        },
+        {
+          "id": "SF_S_0011_F",
+          "title": "Relación con el modelo MIHM"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 0,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#C8A951",
+        "shape": "circle",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0012",
+      "legacy_id": "SF_P_0012",
+      "name": "Campo Semántico Compartido",
+      "layer": "theory",
+      "type": "concept",
+      "cluster": "SF_CLUSTER_01",
+      "description": "El Campo Semántico Compartido es el sustrato invisible de la coordinación institucional. Su degradación no produce conflictos abiertos sino conversaciones cada vez menos eficaces. Es uno de los primeros indicadores de fragmentación sistémica.",
+      "variables": [
+        "vocabulario_compartido",
+        "marcos_comunes",
+        "estabilidad_semantica"
+      ],
+      "equations": [],
+      "relations": [
+        "SF_N_0010",
+        "SF_N_0011",
+        "SF_N_0034"
+      ],
+      "docRelations": [
+        "SF_D_0012"
+      ],
+      "subsections": [
+        {
+          "id": "SF_S_0012_A",
+          "title": "Definición del campo"
+        },
+        {
+          "id": "SF_S_0012_B",
+          "title": "Construcción del campo"
+        },
+        {
+          "id": "SF_S_0012_C",
+          "title": "Degradación"
+        },
+        {
+          "id": "SF_S_0012_D",
+          "title": "Recuperación"
+        },
+        {
+          "id": "SF_S_0012_E",
+          "title": "Relación con core-00"
+        },
+        {
+          "id": "SF_S_0012_F",
+          "title": "Métricas"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 0,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#C8A951",
+        "shape": "circle",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0013",
+      "legacy_id": "SF_P_0013",
+      "name": "Ruido Cognitivo",
+      "layer": "theory",
+      "type": "concept",
+      "cluster": "SF_CLUSTER_01",
+      "description": "El Ruido Cognitivo no es la ausencia de información sino su exceso no filtrado. Los sistemas modernos generan más señal de la que pueden procesar coherentemente, y el ruido se acumula como costo cognitivo que degrada la calidad de las decisiones.",
+      "variables": [
+        "señal_ruido",
+        "carga_cognitiva",
+        "filtro_institucional"
+      ],
+      "equations": [
+        "RC = señales_recibidas / señales_accionables"
+      ],
+      "relations": [
+        "SF_N_0012",
+        "SF_N_0014",
+        "SF_N_0047",
+        "SF_N_0061"
+      ],
+      "docRelations": [
+        "SF_D_0013"
+      ],
+      "subsections": [
+        {
+          "id": "SF_S_0013_A",
+          "title": "Definición"
+        },
+        {
+          "id": "SF_S_0013_B",
+          "title": "Fuentes de ruido"
+        },
+        {
+          "id": "SF_S_0013_C",
+          "title": "Efectos del ruido acumulado"
+        },
+        {
+          "id": "SF_S_0013_D",
+          "title": "Reducción de ruido"
+        },
+        {
+          "id": "SF_S_0013_E",
+          "title": "Medición"
+        },
+        {
+          "id": "SF_S_0013_F",
+          "title": "Relación con latencia"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 0,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#C8A951",
+        "shape": "circle",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0014",
+      "legacy_id": "SF_P_0014",
+      "name": "Latencia Conversacional",
+      "layer": "theory",
+      "type": "concept",
+      "cluster": "SF_CLUSTER_01",
+      "description": "La Latencia Conversacional es la dimensión temporal de la fricción sistémica. Los sistemas críticos tienen umbrales de latencia por encima de los cuales la información pierde valor operativo. Cuando la latencia supera ese umbral, la señal se convierte en ruido histórico.",
+      "variables": [
+        "t_emision",
+        "t_recepcion",
+        "t_procesamiento",
+        "umbral_latencia"
+      ],
+      "equations": [
+        "LC = t_procesamiento - t_emision",
+        "LC_critica: if LC > umbral_latencia  ?' señal_inválida"
+      ],
+      "relations": [
+        "SF_N_0013",
+        "SF_N_0015",
+        "SF_N_0046"
+      ],
+      "docRelations": [
+        "SF_D_0014"
+      ],
+      "subsections": [
+        {
+          "id": "SF_S_0014_A",
+          "title": "Definición operativa"
+        },
+        {
+          "id": "SF_S_0014_B",
+          "title": "Tipos de latencia"
+        },
+        {
+          "id": "SF_S_0014_C",
+          "title": "Umbral de latencia crítica"
+        },
+        {
+          "id": "SF_S_0014_D",
+          "title": "Latencia Institucional (LDI)"
+        },
+        {
+          "id": "SF_S_0014_E",
+          "title": "Relación con colapso"
+        },
+        {
+          "id": "SF_S_0014_F",
+          "title": "Medición en el observatorio"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 0,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#C8A951",
+        "shape": "circle",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0015",
+      "legacy_id": "SF_P_0015",
+      "name": "Divergencia de Interpretación",
+      "layer": "theory",
+      "type": "concept",
+      "cluster": "SF_CLUSTER_01",
+      "description": "La Divergencia de Interpretación es la forma más costosa de fricción porque no requiere conflicto abierto: los agentes actúan de buena fe sobre interpretaciones distintas del mismo acuerdo. El costo se detecta solo cuando los resultados divergen de lo acordado.",
+      "variables": [
+        "interpretacion_A",
+        "interpretacion_B",
+        "distancia_semantica"
+      ],
+      "equations": [],
+      "relations": [
+        "SF_N_0010",
+        "SF_N_0014",
+        "SF_N_0049"
+      ],
+      "docRelations": [
+        "SF_D_0015"
+      ],
+      "subsections": [
+        {
+          "id": "SF_S_0015_A",
+          "title": "Definición"
+        },
+        {
+          "id": "SF_S_0015_B",
+          "title": "Por qué no se detecta"
+        },
+        {
+          "id": "SF_S_0015_C",
+          "title": "Costo institucional"
+        },
+        {
+          "id": "SF_S_0015_D",
+          "title": "Detección"
+        },
+        {
+          "id": "SF_S_0015_E",
+          "title": "Reducción"
+        },
+        {
+          "id": "SF_S_0015_F",
+          "title": "Métricas"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 0,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#C8A951",
+        "shape": "circle",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0016",
+      "legacy_id": "SF_P_0016",
+      "name": "Sincronización Cognitiva",
+      "layer": "theory",
+      "type": "concept",
+      "cluster": "SF_CLUSTER_01",
+      "description": "La Sincronización Cognitiva es el opuesto de la latencia y el desfase. Es el estado de alta salud sistémica en que las señales se procesan coherentemente y las respuestas llegan antes de que el problema evolucione.",
+      "variables": [
+        "alineacion_temporal",
+        "coherencia_marco",
+        "velocidad_respuesta"
+      ],
+      "equations": [],
+      "relations": [
+        "SF_N_0009",
+        "SF_N_0015",
+        "SF_N_0051"
+      ],
+      "docRelations": [
+        "SF_D_0016"
+      ],
+      "subsections": [
+        {
+          "id": "SF_S_0016_A",
+          "title": "Definición"
+        },
+        {
+          "id": "SF_S_0016_B",
+          "title": "Indicadores de sincronización"
+        },
+        {
+          "id": "SF_S_0016_C",
+          "title": "Condiciones para la sincronización"
+        },
+        {
+          "id": "SF_S_0016_D",
+          "title": "Mantenimiento"
+        },
+        {
+          "id": "SF_S_0016_E",
+          "title": "En el modelo MIHM"
+        },
+        {
+          "id": "SF_S_0016_F",
+          "title": "Relación con homeostasis"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 0,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#C8A951",
+        "shape": "circle",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0017",
+      "legacy_id": "SF_P_0017",
+      "name": "Canal de Señal Social",
+      "layer": "theory",
+      "type": "concept",
+      "cluster": "SF_CLUSTER_01",
+      "description": "Los Canales de Señal Social son la infraestructura de la coordinación institucional. Su degradación produce pérdida de información crítica aunque los canales formales sigan activos. Los sistemas de fricción alta típicamente tienen canales formales intactos y canales reales degradados.",
+      "variables": [
+        "fidelidad_canal",
+        "latencia_canal",
+        "cobertura_nodal"
+      ],
+      "equations": [],
+      "relations": [
+        "SF_N_0016",
+        "SF_N_0018",
+        "SF_N_0026"
+      ],
+      "docRelations": [
+        "SF_D_0017"
+      ],
+      "subsections": [
+        {
+          "id": "SF_S_0017_A",
+          "title": "Definición"
+        },
+        {
+          "id": "SF_S_0017_B",
+          "title": "Tipos de canales"
+        },
+        {
+          "id": "SF_S_0017_C",
+          "title": "Degradación de canales"
+        },
+        {
+          "id": "SF_S_0017_D",
+          "title": "Multiplicidad de canales"
+        },
+        {
+          "id": "SF_S_0017_E",
+          "title": "Auditoría de canales"
+        },
+        {
+          "id": "SF_S_0017_F",
+          "title": "Relación con MIHM"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 0,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#C8A951",
+        "shape": "circle",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0018",
+      "legacy_id": "SF_P_0018",
+      "name": "Fricción Adaptativa",
+      "layer": "theory",
+      "type": "concept",
+      "cluster": "SF_CLUSTER_01",
+      "description": "No toda fricción es destructiva. La Fricción Adaptativa es la resistencia que permite al sistema evaluar señales antes de responder impulsivamente. Su eliminación total produce inestabilidad. Su exceso produce parálisis. El modelo MIHM busca el punto de fricción óptima.",
+      "variables": [
+        "friccion_reguladora",
+        "velocidad_cambio",
+        "estabilidad_respuesta"
+      ],
+      "equations": [],
+      "relations": [
+        "SF_N_0003",
+        "SF_N_0019",
+        "SF_N_0052"
+      ],
+      "docRelations": [
+        "SF_D_0018"
+      ],
+      "subsections": [
+        {
+          "id": "SF_S_0018_A",
+          "title": "Definición"
+        },
+        {
+          "id": "SF_S_0018_B",
+          "title": "Distinción de fricción destructiva"
+        },
+        {
+          "id": "SF_S_0018_C",
+          "title": "Umbral de transición"
+        },
+        {
+          "id": "SF_S_0018_D",
+          "title": "Diseño de fricción óptima"
+        },
+        {
+          "id": "SF_S_0018_E",
+          "title": "Relación con homeostasis"
+        },
+        {
+          "id": "SF_S_0018_F",
+          "title": "Aplicaciones"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 0,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#C8A951",
+        "shape": "circle",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0019",
+      "legacy_id": "SF_P_0019",
+      "name": "Memoria Sistémica",
+      "layer": "theory",
+      "type": "concept",
+      "cluster": "SF_CLUSTER_01",
+      "description": "La Memoria Sistémica no es el archivo: es la capacidad de usar la historia para informar decisiones presentes. Su pérdida produce que los sistemas cometan los mismos errores sistemáticamente porque no tienen acceso a los patrones que ya enfrentaron.",
+      "variables": [
+        "retencion_historica",
+        "acceso_operativo",
+        "decaimiento_memoria"
+      ],
+      "equations": [],
+      "relations": [
+        "SF_N_0009",
+        "SF_N_0018",
+        "SF_N_0050"
+      ],
+      "docRelations": [
+        "SF_D_0019"
+      ],
+      "subsections": [
+        {
+          "id": "SF_S_0019_A",
+          "title": "Definición"
+        },
+        {
+          "id": "SF_S_0019_B",
+          "title": "Decaimiento de memoria"
+        },
+        {
+          "id": "SF_S_0019_C",
+          "title": "Consecuencias de la pérdida"
+        },
+        {
+          "id": "SF_S_0019_D",
+          "title": "Instrumentación"
+        },
+        {
+          "id": "SF_S_0019_E",
+          "title": "Relación con doc-07"
+        },
+        {
+          "id": "SF_S_0019_F",
+          "title": "Métricas"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 0,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#C8A951",
+        "shape": "circle",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0020",
+      "legacy_id": "SF_P_0020",
+      "name": "Equilibrio Relacional",
+      "layer": "theory",
+      "type": "concept",
+      "cluster": "SF_CLUSTER_01",
+      "description": "El Equilibrio Relacional no es armonía; es estabilidad funcional. Un sistema puede tener conflictos activos y mantener equilibrio relacional si los conflictos tienen canales de resolución operativos. El desequilibrio destructivo ocurre cuando los conflictos bloquean la coordinación.",
+      "variables": [
+        "estabilidad_vincular",
+        "costo_mantenimiento",
+        "capacidad_resolucion"
+      ],
+      "equations": [],
+      "relations": [
+        "SF_N_0005",
+        "SF_N_0019",
+        "SF_N_0037",
+        "SF_N_0055"
+      ],
+      "docRelations": [
+        "SF_D_0020"
+      ],
+      "subsections": [
+        {
+          "id": "SF_S_0020_A",
+          "title": "Definición"
+        },
+        {
+          "id": "SF_S_0020_B",
+          "title": "Tipos de equilibrio"
+        },
+        {
+          "id": "SF_S_0020_C",
+          "title": "Mantenimiento del equilibrio"
+        },
+        {
+          "id": "SF_S_0020_D",
+          "title": "Ruptura del equilibrio"
+        },
+        {
+          "id": "SF_S_0020_E",
+          "title": "Recuperación"
+        },
+        {
+          "id": "SF_S_0020_F",
+          "title": "En el modelo MIHM"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 0,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#C8A951",
+        "shape": "circle",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0021",
+      "legacy_id": "SF_P_0021",
+      "name": "Marco Teórico System Friction",
+      "layer": "theory",
+      "type": "concept",
+      "cluster": "SF_CLUSTER_02",
+      "description": "El Marco Teórico de System Friction integra conceptos de teoría de sistemas, entropía de Shannon, Ley de Goodhart y latencia institucional en un esquema coherente de observación y diagnóstico de sistemas complejos.",
+      "variables": [],
+      "equations": [],
+      "relations": [
+        "SF_N_0001",
+        "SF_N_0022",
+        "SF_N_0041"
+      ],
+      "docRelations": [
+        "SF_D_0021"
+      ],
+      "subsections": [
+        {
+          "id": "SF_S_0021_A",
+          "title": "Axiomas del marco"
+        },
+        {
+          "id": "SF_S_0021_B",
+          "title": "Alcance del marco"
+        },
+        {
+          "id": "SF_S_0021_C",
+          "title": "Límites del marco"
+        },
+        {
+          "id": "SF_S_0021_D",
+          "title": "Relación con MIHM"
+        },
+        {
+          "id": "SF_S_0021_E",
+          "title": "Documentos fundacionales"
+        },
+        {
+          "id": "SF_S_0021_F",
+          "title": "Evolución del marco"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 1,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#D4B86A",
+        "shape": "circle",
+        "size": 8
+      }
+    },
+    {
+      "id": "SF_N_0022",
+      "legacy_id": "SF_P_0022",
+      "name": "Teoría de Campos Cognitivos",
+      "layer": "theory",
+      "type": "concept",
+      "cluster": "SF_CLUSTER_02",
+      "description": "La Teoría de Campos Cognitivos propone que el conocimiento institucional no es discreto sino continuo: forma campos con gradientes, zonas de alta densidad (expertise concentrado) y zonas de baja densidad (vacíos de conocimiento operativo).",
+      "variables": [
+        "densidad_campo",
+        "gradiente_cognitivo",
+        "perturbacion_campo"
+      ],
+      "equations": [
+        " ^?² ? = ρ_cognitiva (analogía con ecuación de Poisson)"
+      ],
+      "relations": [
+        "SF_N_0021",
+        "SF_N_0023",
+        "SF_N_0043"
+      ],
+      "docRelations": [
+        "SF_D_0022"
+      ],
+      "subsections": [
+        {
+          "id": "SF_S_0022_A",
+          "title": "Fundamentos de la teoría"
+        },
+        {
+          "id": "SF_S_0022_B",
+          "title": "Propiedades emergentes del campo"
+        },
+        {
+          "id": "SF_S_0022_C",
+          "title": "Variables del campo"
+        },
+        {
+          "id": "SF_S_0022_D",
+          "title": "Perturbaciones del campo"
+        },
+        {
+          "id": "SF_S_0022_E",
+          "title": "Relación con modelos matemáticos"
+        },
+        {
+          "id": "SF_S_0022_F",
+          "title": "Aplicaciones"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 1,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#D4B86A",
+        "shape": "circle",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0023",
+      "legacy_id": "SF_P_0023",
+      "name": "Dinámica de Interacciones Humanas",
+      "layer": "theory",
+      "type": "concept",
+      "cluster": "SF_CLUSTER_02",
+      "description": "La Dinámica de Interacciones Humanas reconoce que los sistemas institucionales son sistemas dinámicos con atractores, bifurcaciones y comportamiento caótico bajo ciertas condiciones de fricción. Su análisis permite anticipar transiciones críticas.",
+      "variables": [
+        "patron_interaccion",
+        "trayectoria_dinamica",
+        "atractor_sistemico"
+      ],
+      "equations": [
+        "dX/dt = F(X, friccion, t)"
+      ],
+      "relations": [
+        "SF_N_0022",
+        "SF_N_0024",
+        "SF_N_0033"
+      ],
+      "docRelations": [],
+      "subsections": [
+        {
+          "id": "SF_S_0023_A",
+          "title": "Sistemas dinámicos institucionales"
+        },
+        {
+          "id": "SF_S_0023_B",
+          "title": "Atractores institucionales"
+        },
+        {
+          "id": "SF_S_0023_C",
+          "title": "Bifurcaciones"
+        },
+        {
+          "id": "SF_S_0023_D",
+          "title": "Señales de transición crítica"
+        },
+        {
+          "id": "SF_S_0023_E",
+          "title": "Aplicaciones"
+        },
+        {
+          "id": "SF_S_0023_F",
+          "title": "Relación con Monte Carlo"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 1,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#D4B86A",
+        "shape": "circle",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0024",
+      "legacy_id": "SF_P_0024",
+      "name": "Modelo de Energía Relacional",
+      "layer": "theory",
+      "type": "concept",
+      "cluster": "SF_CLUSTER_02",
+      "description": "El Modelo de Energía Relacional formaliza la intuición de que las instituciones tienen recursos limitados para mantener relaciones. La distribución de esa energía entre nodos determina qué vínculos sobreviven bajo estrés y cuáles colapsan primero.",
+      "variables": [
+        "energia_total",
+        "distribucion_nodal",
+        "tasa_consumo"
+      ],
+      "equations": [
+        "E_total = sum(E_ij) para todos los vínculos activos"
+      ],
+      "relations": [
+        "SF_N_0005",
+        "SF_N_0023",
+        "SF_N_0048"
+      ],
+      "docRelations": [],
+      "subsections": [
+        {
+          "id": "SF_S_0024_A",
+          "title": "Fundamentos del modelo"
+        },
+        {
+          "id": "SF_S_0024_B",
+          "title": "Distribución de energía"
+        },
+        {
+          "id": "SF_S_0024_C",
+          "title": "Tasa de consumo"
+        },
+        {
+          "id": "SF_S_0024_D",
+          "title": "Recarga del sistema"
+        },
+        {
+          "id": "SF_S_0024_E",
+          "title": "Modelado matemático"
+        },
+        {
+          "id": "SF_S_0024_F",
+          "title": "Relación con Auto-Mutilación Táctica"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 1,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#D4B86A",
+        "shape": "circle",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0025",
+      "legacy_id": "SF_P_0025",
+      "name": "Topología de Sistemas Sociales",
+      "layer": "theory",
+      "type": "concept",
+      "cluster": "SF_CLUSTER_02",
+      "description": "La Topología de Sistemas Sociales proporciona el mapa estructural sobre el que se calculan todas las métricas MIHM. La misma fricción tiene efectos distintos según la posición topológica del nodo afectado: no es lo mismo que falle un nodo periférico que un nodo articulador.",
+      "variables": [
+        "grado_nodal",
+        "centralidad",
+        "clustering_coefficient"
+      ],
+      "equations": [],
+      "relations": [
+        "SF_N_0024",
+        "SF_N_0026",
+        "SF_N_0063"
+      ],
+      "docRelations": [],
+      "subsections": [
+        {
+          "id": "SF_S_0025_A",
+          "title": "Conceptos topológicos"
+        },
+        {
+          "id": "SF_S_0025_B",
+          "title": "Tipos de topología"
+        },
+        {
+          "id": "SF_S_0025_C",
+          "title": "Vulnerabilidades topológicas"
+        },
+        {
+          "id": "SF_S_0025_D",
+          "title": "Mapa topológico"
+        },
+        {
+          "id": "SF_S_0025_E",
+          "title": "Cambio topológico"
+        },
+        {
+          "id": "SF_S_0025_F",
+          "title": "Integración con el observatorio"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 1,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#D4B86A",
+        "shape": "circle",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0026",
+      "legacy_id": "SF_P_0026",
+      "name": "Arquitectura de Señal Humana",
+      "layer": "theory",
+      "type": "concept",
+      "cluster": "SF_CLUSTER_02",
+      "description": "La Arquitectura de Señal Humana formaliza la descripción de cómo circula la información en una institución: qué canales existen, cuáles son formales, cuáles son reales, dónde se producen pérdidas y dónde se introduce ruido.",
+      "variables": [
+        "canales_activos",
+        "fidelidad",
+        "cobertura",
+        "puntos_fallo"
+      ],
+      "equations": [],
+      "relations": [
+        "SF_N_0017",
+        "SF_N_0025",
+        "SF_N_0035"
+      ],
+      "docRelations": [],
+      "subsections": [
+        {
+          "id": "SF_S_0026_A",
+          "title": "Definición"
+        },
+        {
+          "id": "SF_S_0026_B",
+          "title": "Diferencia entre canales declarados y reales"
+        },
+        {
+          "id": "SF_S_0026_C",
+          "title": "Puntos de fallo"
+        },
+        {
+          "id": "SF_S_0026_D",
+          "title": "Redundancia"
+        },
+        {
+          "id": "SF_S_0026_E",
+          "title": "Auditoría de arquitectura"
+        },
+        {
+          "id": "SF_S_0026_F",
+          "title": "Relación con MIHM"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 1,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#D4B86A",
+        "shape": "circle",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0027",
+      "legacy_id": "SF_P_0027",
+      "name": "Modelo de Ruido Social",
+      "layer": "theory",
+      "type": "concept",
+      "cluster": "SF_CLUSTER_02",
+      "description": "El Modelo de Ruido Social categoriza los tipos de interferencia que degradan la señal institucional: ruido estructural (producido por la arquitectura), ruido motivacional (producido por incentivos), ruido semántico (producido por divergencia de marcos) y ruido de latencia (producido por el tiempo).",
+      "variables": [
+        "tipo_ruido",
+        "intensidad",
+        "fuente_estructural"
+      ],
+      "equations": [
+        "SNR = Potencia_señal / Potencia_ruido"
+      ],
+      "relations": [
+        "SF_N_0013",
+        "SF_N_0026",
+        "SF_N_0058"
+      ],
+      "docRelations": [],
+      "subsections": [
+        {
+          "id": "SF_S_0027_A",
+          "title": "Tipos de ruido"
+        },
+        {
+          "id": "SF_S_0027_B",
+          "title": "Efectos del ruido"
+        },
+        {
+          "id": "SF_S_0027_C",
+          "title": "Modelado formal"
+        },
+        {
+          "id": "SF_S_0027_D",
+          "title": "Intervención sobre el ruido"
+        },
+        {
+          "id": "SF_S_0027_E",
+          "title": "Medición en MIHM"
+        },
+        {
+          "id": "SF_S_0027_F",
+          "title": "Relación con doc-06"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 1,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#D4B86A",
+        "shape": "circle",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0028",
+      "legacy_id": "SF_P_0028",
+      "name": "Principio de Fricción Cognitiva",
+      "layer": "theory",
+      "type": "concept",
+      "cluster": "SF_CLUSTER_02",
+      "description": "El Principio de Fricción Cognitiva establece que la fricción es una propiedad emergente del sistema, no una característica individual de sus agentes. Por tanto, las intervenciones efectivas son sistémicas, no personales.",
+      "variables": [],
+      "equations": [],
+      "relations": [
+        "SF_N_0003",
+        "SF_N_0021",
+        "SF_N_0036"
+      ],
+      "docRelations": [],
+      "subsections": [
+        {
+          "id": "SF_S_0028_A",
+          "title": "Formulación del principio"
+        },
+        {
+          "id": "SF_S_0028_B",
+          "title": "Consecuencias para el diagnóstico"
+        },
+        {
+          "id": "SF_S_0028_C",
+          "title": "Implicaciones para la intervención"
+        },
+        {
+          "id": "SF_S_0028_D",
+          "title": "Excepciones y límites"
+        },
+        {
+          "id": "SF_S_0028_E",
+          "title": "Relación con Ley de Goodhart"
+        },
+        {
+          "id": "SF_S_0028_F",
+          "title": "Tono y metodología"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 1,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#D4B86A",
+        "shape": "circle",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0029",
+      "legacy_id": "SF_P_0029",
+      "name": "Teoría de Resonancia Social",
+      "layer": "theory",
+      "type": "concept",
+      "cluster": "SF_CLUSTER_02",
+      "description": "La Teoría de Resonancia Social describe cómo ciertos patrones de comportamiento se amplifican a través del sistema cuando encuentran condiciones estructurales favorables, análogamente a la resonancia en sistemas físicos.",
+      "variables": [
+        "frecuencia_patron",
+        "amplitud",
+        "condicion_resonancia"
+      ],
+      "equations": [],
+      "relations": [
+        "SF_N_0010",
+        "SF_N_0028",
+        "SF_N_0044"
+      ],
+      "docRelations": [],
+      "subsections": [
+        {
+          "id": "SF_S_0029_A",
+          "title": "Definición de resonancia social"
+        },
+        {
+          "id": "SF_S_0029_B",
+          "title": "Condiciones de resonancia"
+        },
+        {
+          "id": "SF_S_0029_C",
+          "title": "Resonancia disfuncional"
+        },
+        {
+          "id": "SF_S_0029_D",
+          "title": "Detección temprana"
+        },
+        {
+          "id": "SF_S_0029_E",
+          "title": "Interrupción de resonancia disfuncional"
+        },
+        {
+          "id": "SF_S_0029_F",
+          "title": "Métricas"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 1,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#D4B86A",
+        "shape": "circle",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0030",
+      "legacy_id": "SF_P_0030",
+      "name": "Teoría de Desfase Conversacional",
+      "layer": "theory",
+      "type": "concept",
+      "cluster": "SF_CLUSTER_02",
+      "description": "La Teoría de Desfase Conversacional formaliza el patrón descrito en doc-07 (Contexto perdido): la información pierde precisión con el tiempo, y las decisiones tomadas sobre información desfasada acumulan error sistemático.",
+      "variables": [
+        "t_evento",
+        "t_registro",
+        "t_decision",
+        "drift_informacional"
+      ],
+      "equations": [
+        "Desfase = (t_decision - t_evento) * tasa_degradacion"
+      ],
+      "relations": [
+        "SF_N_0009",
+        "SF_N_0029",
+        "SF_N_0046"
+      ],
+      "docRelations": [],
+      "subsections": [
+        {
+          "id": "SF_S_0030_A",
+          "title": "Tipos de desfase"
+        },
+        {
+          "id": "SF_S_0030_B",
+          "title": "Efectos acumulativos"
+        },
+        {
+          "id": "SF_S_0030_C",
+          "title": "Contexto perdido"
+        },
+        {
+          "id": "SF_S_0030_D",
+          "title": "Reducción del desfase"
+        },
+        {
+          "id": "SF_S_0030_E",
+          "title": "En sistemas críticos"
+        },
+        {
+          "id": "SF_S_0030_F",
+          "title": "Relación con MIHM"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 1,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#D4B86A",
+        "shape": "circle",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0031",
+      "legacy_id": "SF_P_0031",
+      "name": "Modelo de Coherencia de Grupo",
+      "layer": "theory",
+      "type": "concept",
+      "cluster": "SF_CLUSTER_02",
+      "description": "El Modelo de Coherencia de Grupo distingue entre la coherencia declarada (el equipo dice estar alineado) y la coherencia operativa (el equipo actúa alineado). La brecha entre ambas es un predictor temprano de disfunción.",
+      "variables": [
+        "coherencia_declarada",
+        "coherencia_operativa",
+        "brecha_coherencia"
+      ],
+      "equations": [],
+      "relations": [
+        "SF_N_0008",
+        "SF_N_0030",
+        "SF_N_0032"
+      ],
+      "docRelations": [],
+      "subsections": [
+        {
+          "id": "SF_S_0031_A",
+          "title": "Coherencia declarada vs operativa"
+        },
+        {
+          "id": "SF_S_0031_B",
+          "title": "Indicadores de brecha"
+        },
+        {
+          "id": "SF_S_0031_C",
+          "title": "Causas de la brecha"
+        },
+        {
+          "id": "SF_S_0031_D",
+          "title": "Medición"
+        },
+        {
+          "id": "SF_S_0031_E",
+          "title": "Intervención"
+        },
+        {
+          "id": "SF_S_0031_F",
+          "title": "Relación con diagnóstico SF"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 1,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#D4B86A",
+        "shape": "circle",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0032",
+      "legacy_id": "SF_P_0032",
+      "name": "Modelo de Alineación Intencional",
+      "layer": "theory",
+      "type": "concept",
+      "cluster": "SF_CLUSTER_02",
+      "description": "El Modelo de Alineación Intencional distingue entre la alineación nominal (todos dicen querer lo mismo) y la alineación operativa (todos actúan hacia lo mismo). La delineación de esta diferencia es esencial para el diagnóstico de fricción.",
+      "variables": [
+        "intencion_declarada",
+        "intencion_real",
+        "objetivo_institucional"
+      ],
+      "equations": [],
+      "relations": [
+        "SF_N_0011",
+        "SF_N_0031",
+        "SF_N_0036"
+      ],
+      "docRelations": [
+        "SF_D_0032"
+      ],
+      "subsections": [
+        {
+          "id": "SF_S_0032_A",
+          "title": "Definición"
+        },
+        {
+          "id": "SF_S_0032_B",
+          "title": "Tipos de desalineación"
+        },
+        {
+          "id": "SF_S_0032_C",
+          "title": "Detección"
+        },
+        {
+          "id": "SF_S_0032_D",
+          "title": "Intervención"
+        },
+        {
+          "id": "SF_S_0032_E",
+          "title": "Relación con doc-10"
+        },
+        {
+          "id": "SF_S_0032_F",
+          "title": "Métricas"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 1,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#D4B86A",
+        "shape": "circle",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0033",
+      "legacy_id": "SF_P_0033",
+      "name": "Teoría de Sistemas Conversacionales",
+      "layer": "theory",
+      "type": "concept",
+      "cluster": "SF_CLUSTER_02",
+      "description": "La Teoría de Sistemas Conversacionales reconoce que una conversación institucional no es solo un intercambio de información: es un sistema dinámico con sus propios atractores, resistencias y potencial de cambio de estado.",
+      "variables": [
+        "estado_conversacional",
+        "transicion",
+        "patron_recurrente"
+      ],
+      "equations": [],
+      "relations": [
+        "SF_N_0023",
+        "SF_N_0032",
+        "SF_N_0066"
+      ],
+      "docRelations": [
+        "SF_D_0033"
+      ],
+      "subsections": [
+        {
+          "id": "SF_S_0033_A",
+          "title": "Fundamentos"
+        },
+        {
+          "id": "SF_S_0033_B",
+          "title": "Atractores conversacionales"
+        },
+        {
+          "id": "SF_S_0033_C",
+          "title": "Intervención en sistemas conversacionales"
+        },
+        {
+          "id": "SF_S_0033_D",
+          "title": "Patrones recurrentes"
+        },
+        {
+          "id": "SF_S_0033_E",
+          "title": "Relación con doc-09"
+        },
+        {
+          "id": "SF_S_0033_F",
+          "title": "Aplicaciones"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 1,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#D4B86A",
+        "shape": "circle",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0034",
+      "legacy_id": "SF_P_0034",
+      "name": "Modelo de Campo Semántico",
+      "layer": "theory",
+      "type": "concept",
+      "cluster": "SF_CLUSTER_02",
+      "description": "El Modelo de Campo Semántico formaliza cómo el significado se distribuye en una institución: hay zonas de alta densidad semántica (términos bien definidos y compartidos) y zonas de baja densidad (términos ambiguos o disputados). La fricción aumenta en las zonas de baja densidad.",
+      "variables": [
+        "densidad_semantica",
+        "ambiguedad_local",
+        "estabilidad_semantica"
+      ],
+      "equations": [],
+      "relations": [
+        "SF_N_0012",
+        "SF_N_0033",
+        "SF_N_0043"
+      ],
+      "docRelations": [],
+      "subsections": [
+        {
+          "id": "SF_S_0034_A",
+          "title": "Estructura del campo"
+        },
+        {
+          "id": "SF_S_0034_B",
+          "title": "Gradientes semánticos"
+        },
+        {
+          "id": "SF_S_0034_C",
+          "title": "Zonas de ambigüedad"
+        },
+        {
+          "id": "SF_S_0034_D",
+          "title": "Construcción del campo"
+        },
+        {
+          "id": "SF_S_0034_E",
+          "title": "Degradación del campo"
+        },
+        {
+          "id": "SF_S_0034_F",
+          "title": "Métricas"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 1,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#D4B86A",
+        "shape": "circle",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0035",
+      "legacy_id": "SF_P_0035",
+      "name": "Arquitectura de Interacción",
+      "layer": "theory",
+      "type": "concept",
+      "cluster": "SF_CLUSTER_02",
+      "description": "La Arquitectura de Interacción describe el diseño (implícito o explícito) de cómo un sistema organiza sus interacciones. Una arquitectura bien diseñada reduce la fricción estructural; una arquitectura disfuncional la genera sistemáticamente.",
+      "variables": [
+        "estructura_canales",
+        "protocolos_interaccion",
+        "puntos_articulacion"
+      ],
+      "equations": [],
+      "relations": [
+        "SF_N_0026",
+        "SF_N_0034",
+        "SF_N_0062"
+      ],
+      "docRelations": [],
+      "subsections": [
+        {
+          "id": "SF_S_0035_A",
+          "title": "Componentes de la arquitectura"
+        },
+        {
+          "id": "SF_S_0035_B",
+          "title": "Diseño intencional vs emergente"
+        },
+        {
+          "id": "SF_S_0035_C",
+          "title": "Rediseño de arquitectura"
+        },
+        {
+          "id": "SF_S_0035_D",
+          "title": "Principios de diseño"
+        },
+        {
+          "id": "SF_S_0035_E",
+          "title": "Evaluación de la arquitectura"
+        },
+        {
+          "id": "SF_S_0035_F",
+          "title": "Relación con PCV"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 1,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#D4B86A",
+        "shape": "circle",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0036",
+      "legacy_id": "SF_P_0036",
+      "name": "Modelo de Perturbación Cognitiva",
+      "layer": "theory",
+      "type": "concept",
+      "cluster": "SF_CLUSTER_02",
+      "description": "El Modelo de Perturbación Cognitiva describe cómo los shocks externos o internos se propagan a través del campo cognitivo de una institución, generando fricción transitoria o estructural dependiendo de la resiliencia del sistema.",
+      "variables": [
+        "intensidad_perturbacion",
+        "propagacion",
+        "resiliencia_cognitiva"
+      ],
+      "equations": [],
+      "relations": [
+        "SF_N_0028",
+        "SF_N_0035",
+        "SF_N_0053"
+      ],
+      "docRelations": [],
+      "subsections": [
+        {
+          "id": "SF_S_0036_A",
+          "title": "Tipos de perturbación"
+        },
+        {
+          "id": "SF_S_0036_B",
+          "title": "Propagación de perturbaciones"
+        },
+        {
+          "id": "SF_S_0036_C",
+          "title": "Resiliencia cognitiva"
+        },
+        {
+          "id": "SF_S_0036_D",
+          "title": "Predicción de efectos"
+        },
+        {
+          "id": "SF_S_0036_E",
+          "title": "Simulación"
+        },
+        {
+          "id": "SF_S_0036_F",
+          "title": "Intervención post-perturbación"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 1,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#D4B86A",
+        "shape": "circle",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0037",
+      "legacy_id": "SF_P_0037",
+      "name": "Teoría de Equilibrio Social",
+      "layer": "theory",
+      "type": "concept",
+      "cluster": "SF_CLUSTER_02",
+      "description": "La Teoría de Equilibrio Social en System Friction distingue entre equilibrios estables (el sistema regresa activamente a su estado), equilibrios inestables (cualquier perturbación aleja al sistema) y equilibrios metaestables (estables localmente, inestables globalmente).",
+      "variables": [
+        "tipo_equilibrio",
+        "basin_atraccion",
+        "mecanismo_retorno"
+      ],
+      "equations": [],
+      "relations": [
+        "SF_N_0020",
+        "SF_N_0036",
+        "SF_N_0055"
+      ],
+      "docRelations": [],
+      "subsections": [
+        {
+          "id": "SF_S_0037_A",
+          "title": "Tipos de equilibrio"
+        },
+        {
+          "id": "SF_S_0037_B",
+          "title": "Mecanismos de retorno"
+        },
+        {
+          "id": "SF_S_0037_C",
+          "title": "Basin de atracción"
+        },
+        {
+          "id": "SF_S_0037_D",
+          "title": "Pérdida de equilibrio"
+        },
+        {
+          "id": "SF_S_0037_E",
+          "title": "Diseño de equilibrios robustos"
+        },
+        {
+          "id": "SF_S_0037_F",
+          "title": "Relación con AGS"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 1,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#D4B86A",
+        "shape": "circle",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0038",
+      "legacy_id": "SF_P_0038",
+      "name": "Modelo de Dinámica de Fricción",
+      "layer": "theory",
+      "type": "concept",
+      "cluster": "SF_CLUSTER_02",
+      "description": "El Modelo de Dinámica de Fricción describe la fricción no como un estado sino como un proceso: se acumula, se redistribuye y se libera. La liberación abrupta es el colapso; la distribución controlada es la gestión efectiva de la fricción.",
+      "variables": [
+        "tasa_acumulacion",
+        "tasa_disipacion",
+        "distribucion_espacial"
+      ],
+      "equations": [
+        "dFS/dt = acumulacion(t) - disipacion(t)"
+      ],
+      "relations": [
+        "SF_N_0003",
+        "SF_N_0037",
+        "SF_N_0060"
+      ],
+      "docRelations": [],
+      "subsections": [
+        {
+          "id": "SF_S_0038_A",
+          "title": "Acumulación de fricción"
+        },
+        {
+          "id": "SF_S_0038_B",
+          "title": "Disipación de fricción"
+        },
+        {
+          "id": "SF_S_0038_C",
+          "title": "Liberación abrupta"
+        },
+        {
+          "id": "SF_S_0038_D",
+          "title": "Distribución espacial"
+        },
+        {
+          "id": "SF_S_0038_E",
+          "title": "Modelo diferencial"
+        },
+        {
+          "id": "SF_S_0038_F",
+          "title": "Predicción"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 1,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#D4B86A",
+        "shape": "circle",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0039",
+      "legacy_id": "SF_P_0039",
+      "name": "Teoría de Transferencia Semántica",
+      "layer": "theory",
+      "type": "concept",
+      "cluster": "SF_CLUSTER_02",
+      "description": "La Teoría de Transferencia Semántica reconoce que el significado no se transmite perfectamente entre agentes. Cada transferencia introduce variación. La acumulación de variación produce divergencia semántica que es fuente de fricción.",
+      "variables": [
+        "fidelidad_transferencia",
+        "variacion_semantica",
+        "acumulacion_divergencia"
+      ],
+      "equations": [],
+      "relations": [
+        "SF_N_0012",
+        "SF_N_0038",
+        "SF_N_0050"
+      ],
+      "docRelations": [],
+      "subsections": [
+        {
+          "id": "SF_S_0039_A",
+          "title": "Mecanismos de transferencia"
+        },
+        {
+          "id": "SF_S_0039_B",
+          "title": "Pérdidas en la transferencia"
+        },
+        {
+          "id": "SF_S_0039_C",
+          "title": "Acumulación de divergencia"
+        },
+        {
+          "id": "SF_S_0039_D",
+          "title": "Preservación de fidelidad"
+        },
+        {
+          "id": "SF_S_0039_E",
+          "title": "Rol de los documentos"
+        },
+        {
+          "id": "SF_S_0039_F",
+          "title": "Métricas"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 1,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#D4B86A",
+        "shape": "circle",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0040",
+      "legacy_id": "SF_P_0040",
+      "name": "Modelo Global de Interacción Humana",
+      "layer": "theory",
+      "type": "concept",
+      "cluster": "SF_CLUSTER_02",
+      "description": "El Modelo Global de Interacción Humana es la integración teórica de los conceptos anteriores en un marco unificado. Proporciona el fundamento teórico completo del motor MIHM.",
+      "variables": [],
+      "equations": [],
+      "relations": [
+        "SF_N_0021",
+        "SF_N_0039",
+        "SF_N_0041"
+      ],
+      "docRelations": [],
+      "subsections": [
+        {
+          "id": "SF_S_0040_A",
+          "title": "Síntesis conceptual"
+        },
+        {
+          "id": "SF_S_0040_B",
+          "title": "Variables integradas"
+        },
+        {
+          "id": "SF_S_0040_C",
+          "title": "Relaciones entre modelos"
+        },
+        {
+          "id": "SF_S_0040_D",
+          "title": "Formalización matemática"
+        },
+        {
+          "id": "SF_S_0040_E",
+          "title": "Límites del modelo"
+        },
+        {
+          "id": "SF_S_0040_F",
+          "title": "Validación empírica"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 1,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#D4B86A",
+        "shape": "circle",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0041",
+      "legacy_id": "SF_P_0041",
+      "name": "Modelo MIHM",
+      "layer": "mathematics",
+      "type": "metric",
+      "cluster": "SF_CLUSTER_03",
+      "description": "MIHM es el framework algorítmico principal diseñado para detectar, predecir y redirigir la entropía sistémica antes del punto de colapso. Integra múltiples índices (IHG, ICE, CRM, NTI) en un diagnóstico cuantitativo de salud institucional.",
+      "variables": [
+        "IHG",
+        "ICE",
+        "CRM",
+        "Psi",
+        "NTI",
+        "LDI"
+      ],
+      "equations": [
+        "MIHM_score = f(IHG, ICE, CRM, Psi, NTI)",
+        "IHG = funcion_homeostasis(variables_entrada)",
+        "ICE = suma_ponderada(carga_ejecutiva)"
+      ],
+      "relations": [
+        "SF_N_0001",
+        "SF_N_0040",
+        "SF_N_0042",
+        "SF_N_0062",
+        "SF_N_0061"
+      ],
+      "docRelations": [
+        "SF_D_0041",
+        "SF_D_metricas",
+        "SF_D_indices"
+      ],
+      "subsections": [
+        {
+          "id": "SF_S_0041_A",
+          "title": "Definición del modelo"
+        },
+        {
+          "id": "SF_S_0041_B",
+          "title": "Variables del modelo"
+        },
+        {
+          "id": "SF_S_0041_C",
+          "title": "Arquitectura del modelo"
+        },
+        {
+          "id": "SF_S_0041_D",
+          "title": "Estado actual"
+        },
+        {
+          "id": "SF_S_0041_E",
+          "title": "Simulación Monte Carlo"
+        },
+        {
+          "id": "SF_S_0041_F",
+          "title": "Vigilancia Humana por Diseño"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 2,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#6e9ac8",
+        "shape": "diamond",
+        "size": 8
+      }
+    },
+    {
+      "id": "SF_N_0042",
+      "legacy_id": "SF_P_0042",
+      "name": "Ecuación de Fricción Cognitiva",
+      "layer": "mathematics",
+      "type": "metric",
+      "cluster": "SF_CLUSTER_03",
+      "description": "La Ecuación de Fricción Cognitiva es la expresión matemática central del modelo MIHM. Traduce los conceptos de fricción sistémica en una fórmula computable que produce un valor numérico para cada par de nodos del sistema.",
+      "variables": [
+        "distancia_semantica",
+        "energia_interaccion",
+        "latencia_temporal",
+        "nivel_ruido"
+      ],
+      "equations": [
+        "FC(i,j) = d_sem(i,j) * (1 + λ_t) * N_cognitivo / E_relacional",
+        "donde d_sem = distancia semántica",
+        "λ_t = latencia temporal",
+        "N_cognitivo = ruido cognitivo",
+        "E_relacional = energía relacional"
+      ],
+      "relations": [
+        "SF_N_0003",
+        "SF_N_0035",
+        "SF_N_0041",
+        "SF_N_0069"
+      ],
+      "docRelations": [],
+      "subsections": [
+        {
+          "id": "SF_S_0042_A",
+          "title": "Formulación formal"
+        },
+        {
+          "id": "SF_S_0042_B",
+          "title": "Parámetros"
+        },
+        {
+          "id": "SF_S_0042_C",
+          "title": "Interpretación"
+        },
+        {
+          "id": "SF_S_0042_D",
+          "title": "Cálculo en el pipeline PCV"
+        },
+        {
+          "id": "SF_S_0042_E",
+          "title": "Validación"
+        },
+        {
+          "id": "SF_S_0042_F",
+          "title": "Relación con IHG"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 2,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#6e9ac8",
+        "shape": "diamond",
+        "size": 5
+      }
+    },
+    {
+      "id": "SF_N_0043",
+      "legacy_id": "SF_P_0043",
+      "name": "Modelo de Campo Semántico (Matemático)",
+      "layer": "mathematics",
+      "type": "metric",
+      "cluster": "SF_CLUSTER_03",
+      "description": "El Modelo de Campo Semántico Matemático traduce la descripción conceptual del campo semántico en un objeto matemático formal: un campo escalar definido sobre el espacio de nodos del sistema, con gradientes y operadores diferenciales.",
+      "variables": [
+        "potencial_semantico",
+        "gradiente_semantico",
+        "laplaciano_semantico"
+      ],
+      "equations": [
+        " ?(x) = potencial_semantico_en_nodo_x",
+        " ^? ? = gradiente_semantico",
+        " ^?² ? = divergencia_del_campo (positiva: fuente, negativa: sumidero)"
+      ],
+      "relations": [
+        "SF_N_0034",
+        "SF_N_0042",
+        "SF_N_0059"
+      ],
+      "docRelations": [],
+      "subsections": [
+        {
+          "id": "SF_S_0043_A",
+          "title": "Formulación del campo"
+        },
+        {
+          "id": "SF_S_0043_B",
+          "title": "Gradiente del campo"
+        },
+        {
+          "id": "SF_S_0043_C",
+          "title": "Operadores diferenciales"
+        },
+        {
+          "id": "SF_S_0043_D",
+          "title": "Evolución temporal"
+        },
+        {
+          "id": "SF_S_0043_E",
+          "title": "Implementación"
+        },
+        {
+          "id": "SF_S_0043_F",
+          "title": "Aplicaciones"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 2,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#6e9ac8",
+        "shape": "diamond",
+        "size": 5
+      }
+    },
+    {
+      "id": "SF_N_0044",
+      "legacy_id": "SF_P_0044",
+      "name": "Métrica de Resonancia",
+      "layer": "mathematics",
+      "type": "metric",
+      "cluster": "SF_CLUSTER_03",
+      "description": "La Métrica de Resonancia (MR) detecta cuando dos o más nodos del sistema se están sincronizando de manera que sus variaciones se amplifican mutuamente. Valores altos de MR pueden indicar sincronización funcional o riesgo de cascada disfuncional.",
+      "variables": [
+        "MR",
+        "correlacion_nodal",
+        "amplitud_compartida"
+      ],
+      "equations": [
+        "MR(i,j) = correlacion(serie_i, serie_j) * amplitud_media(i,j)",
+        "MR_sistema = max(MR_ij) para todos los pares"
+      ],
+      "relations": [
+        "SF_N_0029",
+        "SF_N_0043",
+        "SF_N_0041"
+      ],
+      "docRelations": [],
+      "subsections": [
+        {
+          "id": "SF_S_0044_A",
+          "title": "Definición formal"
+        },
+        {
+          "id": "SF_S_0044_B",
+          "title": "Interpretación"
+        },
+        {
+          "id": "SF_S_0044_C",
+          "title": "Resonancia funcional vs disfuncional"
+        },
+        {
+          "id": "SF_S_0044_D",
+          "title": "Detección temprana de cascada"
+        },
+        {
+          "id": "SF_S_0044_E",
+          "title": "Cálculo en MIHM"
+        },
+        {
+          "id": "SF_S_0044_F",
+          "title": "Umbral crítico"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 2,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#6e9ac8",
+        "shape": "diamond",
+        "size": 5
+      }
+    },
+    {
+      "id": "SF_N_0045",
+      "legacy_id": "SF_P_0045",
+      "name": "Índice de Coherencia Conversacional",
+      "layer": "mathematics",
+      "type": "metric",
+      "cluster": "SF_CLUSTER_03",
+      "description": "El Índice de Coherencia Conversacional (ICC) mide qué proporción de los intercambios en un sistema produce alineación semántica verificable. Es un indicador de la eficiencia conversacional del sistema.",
+      "variables": [
+        "ICC",
+        "intercambios_alineados",
+        "intercambios_totales"
+      ],
+      "equations": [
+        "ICC = intercambios_alineados / intercambios_totales * (1 - ruido_contextual)"
+      ],
+      "relations": [
+        "SF_N_0008",
+        "SF_N_0044",
+        "SF_N_0041"
+      ],
+      "docRelations": [],
+      "subsections": [
+        {
+          "id": "SF_S_0045_A",
+          "title": "Formulación"
+        },
+        {
+          "id": "SF_S_0045_B",
+          "title": "Rangos y umbrales"
+        },
+        {
+          "id": "SF_S_0045_C",
+          "title": "Metodología de cálculo"
+        },
+        {
+          "id": "SF_S_0045_D",
+          "title": "Relación con el campo semántico"
+        },
+        {
+          "id": "SF_S_0045_E",
+          "title": "En el observatorio"
+        },
+        {
+          "id": "SF_S_0045_F",
+          "title": "Integración en MIHM"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 2,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#6e9ac8",
+        "shape": "diamond",
+        "size": 5
+      }
+    },
+    {
+      "id": "SF_N_0046",
+      "legacy_id": "SF_P_0046",
+      "name": "Función de Latencia Social",
+      "layer": "mathematics",
+      "type": "metric",
+      "cluster": "SF_CLUSTER_03",
+      "description": "La Función de Latencia Social describe la latencia no como un valor fijo sino como una función dinámica que depende del estado del sistema. Permite predecir cómo cambiará la latencia bajo diferentes condiciones.",
+      "variables": [
+        "carga_comunicacional",
+        "topologia",
+        "estado_friccion"
+      ],
+      "equations": [
+        "L(t) = L_base * (1 + α*friccion(t)) * (1 + β*carga(t)) / capacidad_procesamiento(t)"
+      ],
+      "relations": [
+        "SF_N_0014",
+        "SF_N_0045",
+        "SF_N_0041",
+        "SF_N_0061"
+      ],
+      "docRelations": [],
+      "subsections": [
+        {
+          "id": "SF_S_0046_A",
+          "title": "Formulación"
+        },
+        {
+          "id": "SF_S_0046_B",
+          "title": "L_base"
+        },
+        {
+          "id": "SF_S_0046_C",
+          "title": "Factor de fricción"
+        },
+        {
+          "id": "SF_S_0046_D",
+          "title": "Factor de carga"
+        },
+        {
+          "id": "SF_S_0046_E",
+          "title": "Capacidad de procesamiento"
+        },
+        {
+          "id": "SF_S_0046_F",
+          "title": "Aplicación en predicción"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 2,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#6e9ac8",
+        "shape": "diamond",
+        "size": 5
+      }
+    },
+    {
+      "id": "SF_N_0047",
+      "legacy_id": "SF_P_0047",
+      "name": "Métrica de Ruido Cognitivo",
+      "layer": "mathematics",
+      "type": "metric",
+      "cluster": "SF_CLUSTER_03",
+      "description": "La Métrica de Ruido Cognitivo (MRC) cuantifica qué proporción de la capacidad cognitiva del sistema se consume en procesar señales que no generan acción correcta. Es un indicador de ineficiencia sistémica.",
+      "variables": [
+        "MRC",
+        "señales_procesadas",
+        "señales_accionables",
+        "carga_cognitiva"
+      ],
+      "equations": [
+        "MRC = 1 - (señales_accionables / señales_procesadas)"
+      ],
+      "relations": [
+        "SF_N_0013",
+        "SF_N_0046",
+        "SF_N_0041",
+        "SF_N_0061"
+      ],
+      "docRelations": [],
+      "subsections": [
+        {
+          "id": "SF_S_0047_A",
+          "title": "Formulación"
+        },
+        {
+          "id": "SF_S_0047_B",
+          "title": "Interpretación de rangos"
+        },
+        {
+          "id": "SF_S_0047_C",
+          "title": "Fuentes de ruido medibles"
+        },
+        {
+          "id": "SF_S_0047_D",
+          "title": "Reducción del MRC"
+        },
+        {
+          "id": "SF_S_0047_E",
+          "title": "En el observatorio"
+        },
+        {
+          "id": "SF_S_0047_F",
+          "title": "Integración en MIHM"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 2,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#6e9ac8",
+        "shape": "diamond",
+        "size": 5
+      }
+    },
+    {
+      "id": "SF_N_0048",
+      "legacy_id": "SF_P_0048",
+      "name": "Modelo de Energía de Interacción",
+      "layer": "mathematics",
+      "type": "metric",
+      "cluster": "SF_CLUSTER_03",
+      "description": "El Modelo de Energía de Interacción formaliza el concepto de energía relacional en términos matemáticos, permitiendo calcular el balance energético de cada interacción y la disponibilidad de energía para interacciones futuras.",
+      "variables": [
+        "energia_disponible",
+        "energia_consumida",
+        "balance_energetico"
+      ],
+      "equations": [
+        "E_balance(t) = E_disponible(t) - E_consumida(t)",
+        "E_disponible(t+1) = E_balance(t) + E_recuperacion(t)"
+      ],
+      "relations": [
+        "SF_N_0024",
+        "SF_N_0047",
+        "SF_N_0041"
+      ],
+      "docRelations": [],
+      "subsections": [
+        {
+          "id": "SF_S_0048_A",
+          "title": "Balance energético"
+        },
+        {
+          "id": "SF_S_0048_B",
+          "title": "Energía consumida"
+        },
+        {
+          "id": "SF_S_0048_C",
+          "title": "Regeneración de energía"
+        },
+        {
+          "id": "SF_S_0048_D",
+          "title": "Deuda energética"
+        },
+        {
+          "id": "SF_S_0048_E",
+          "title": "Predicción de AMT"
+        },
+        {
+          "id": "SF_S_0048_F",
+          "title": "Calibración del modelo"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 2,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#6e9ac8",
+        "shape": "diamond",
+        "size": 5
+      }
+    },
+    {
+      "id": "SF_N_0049",
+      "legacy_id": "SF_P_0049",
+      "name": "Métrica de Divergencia Semántica",
+      "layer": "mathematics",
+      "type": "metric",
+      "cluster": "SF_CLUSTER_03",
+      "description": "La Métrica de Divergencia Semántica (MDS) mide qué tan diferentes son los significados que distintos nodos asignan a los términos clave del sistema. Es el cuantificador directo del fenómeno descrito en la Teoría de Transferencia Semántica.",
+      "variables": [
+        "MDS",
+        "distancia_semantica",
+        "alineacion_terminologica"
+      ],
+      "equations": [
+        "MDS(i,j) = distancia_coseno(vector_semantico_i, vector_semantico_j)"
+      ],
+      "relations": [
+        "SF_N_0015",
+        "SF_N_0048",
+        "SF_N_0041"
+      ],
+      "docRelations": [],
+      "subsections": [
+        {
+          "id": "SF_S_0049_A",
+          "title": "Formulación"
+        },
+        {
+          "id": "SF_S_0049_B",
+          "title": "Construcción de vectores semánticos"
+        },
+        {
+          "id": "SF_S_0049_C",
+          "title": "Umbral de intervención"
+        },
+        {
+          "id": "SF_S_0049_D",
+          "title": "Mapa de divergencia"
+        },
+        {
+          "id": "SF_S_0049_E",
+          "title": "Evolución temporal"
+        },
+        {
+          "id": "SF_S_0049_F",
+          "title": "Integración en MIHM"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 2,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#6e9ac8",
+        "shape": "diamond",
+        "size": 5
+      }
+    },
+    {
+      "id": "SF_N_0050",
+      "legacy_id": "SF_P_0050",
+      "name": "Modelo de Transferencia de Significado",
+      "layer": "mathematics",
+      "type": "metric",
+      "cluster": "SF_CLUSTER_03",
+      "description": "El Modelo de Transferencia de Significado formaliza matemáticamente cómo el significado fluye entre nodos, incluyendo la fidelidad de la transferencia, las pérdidas y la acumulación de variación.",
+      "variables": [
+        "fidelidad",
+        "tasa_perdida",
+        "acumulacion_variacion"
+      ],
+      "equations": [
+        "S(n) = S(0) * prod(f_i) para i=1 a n transferencias",
+        "donde f_i es la fidelidad de la i-ésima transferencia"
+      ],
+      "relations": [
+        "SF_N_0039",
+        "SF_N_0049",
+        "SF_N_0043"
+      ],
+      "docRelations": [],
+      "subsections": [
+        {
+          "id": "SF_S_0050_A",
+          "title": "Modelo de cadena de transferencia"
+        },
+        {
+          "id": "SF_S_0050_B",
+          "title": "Fidelidad de canal"
+        },
+        {
+          "id": "SF_S_0050_C",
+          "title": "Longitud de cadena crítica"
+        },
+        {
+          "id": "SF_S_0050_D",
+          "title": "Diseño de alta fidelidad"
+        },
+        {
+          "id": "SF_S_0050_E",
+          "title": "Métricas derivadas"
+        },
+        {
+          "id": "SF_S_0050_F",
+          "title": "Aplicación en diagnóstico"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 2,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#6e9ac8",
+        "shape": "diamond",
+        "size": 5
+      }
+    },
+    {
+      "id": "SF_N_0051",
+      "legacy_id": "SF_P_0051",
+      "name": "Índice de Sincronización Cognitiva",
+      "layer": "mathematics",
+      "type": "metric",
+      "cluster": "SF_CLUSTER_03",
+      "description": "El Índice de Sincronización Cognitiva (ISC) mide qué tan sincronizados están los ciclos de procesamiento de información y toma de decisión entre los distintos nodos del sistema. Alta sincronización indica coordinación efectiva.",
+      "variables": [
+        "ISC",
+        "sincronizacion_temporal",
+        "alineacion_semantica"
+      ],
+      "equations": [
+        "ISC = (sincronizacion_temporal * alineacion_semantica)^0.5"
+      ],
+      "relations": [
+        "SF_N_0016",
+        "SF_N_0050",
+        "SF_N_0041"
+      ],
+      "docRelations": [],
+      "subsections": [
+        {
+          "id": "SF_S_0051_A",
+          "title": "Formulación"
+        },
+        {
+          "id": "SF_S_0051_B",
+          "title": "Componente temporal"
+        },
+        {
+          "id": "SF_S_0051_C",
+          "title": "Componente semántico"
+        },
+        {
+          "id": "SF_S_0051_D",
+          "title": "Interpretación"
+        },
+        {
+          "id": "SF_S_0051_E",
+          "title": "Panel del observatorio"
+        },
+        {
+          "id": "SF_S_0051_F",
+          "title": "Integración en MIHM"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 2,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#6e9ac8",
+        "shape": "diamond",
+        "size": 5
+      }
+    },
+    {
+      "id": "SF_N_0052",
+      "legacy_id": "SF_P_0052",
+      "name": "Métrica de Fricción Adaptativa",
+      "layer": "mathematics",
+      "type": "metric",
+      "cluster": "SF_CLUSTER_03",
+      "description": "La Métrica de Fricción Adaptativa (MFA) distingue entre la fricción que el sistema necesita para funcionar correctamente (adaptativa) y la fricción que lo degrada (destructiva). Esta distinción es clave para diseñar intervenciones correctas.",
+      "variables": [
+        "MFA",
+        "friccion_adaptativa",
+        "friccion_destructiva"
+      ],
+      "equations": [
+        "MFA = friccion_adaptativa / friccion_total",
+        "friccion_total = friccion_adaptativa + friccion_destructiva"
+      ],
+      "relations": [
+        "SF_N_0018",
+        "SF_N_0051",
+        "SF_N_0041"
+      ],
+      "docRelations": [],
+      "subsections": [
+        {
+          "id": "SF_S_0052_A",
+          "title": "Formulación"
+        },
+        {
+          "id": "SF_S_0052_B",
+          "title": "Distinción operativa"
+        },
+        {
+          "id": "SF_S_0052_C",
+          "title": "Umbral óptimo"
+        },
+        {
+          "id": "SF_S_0052_D",
+          "title": "Intervención sobre MFA"
+        },
+        {
+          "id": "SF_S_0052_E",
+          "title": "Diagnóstico"
+        },
+        {
+          "id": "SF_S_0052_F",
+          "title": "Relación con diseño"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 2,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#6e9ac8",
+        "shape": "diamond",
+        "size": 5
+      }
+    },
+    {
+      "id": "SF_N_0053",
+      "legacy_id": "SF_P_0053",
+      "name": "Función de Perturbación Conversacional",
+      "layer": "mathematics",
+      "type": "metric",
+      "cluster": "SF_CLUSTER_03",
+      "description": "La Función de Perturbación Conversacional describe cómo el estado de un sistema de comunicación institucional cambia ante perturbaciones, permitiendo calcular el umbral de perturbaciones que el sistema puede absorber sin cambio de estado.",
+      "variables": [
+        "intensidad_perturbacion",
+        "tipo_perturbacion",
+        "respuesta_sistema"
+      ],
+      "equations": [
+        "R(P) = R_0 + α*P + β*P² + ... (expansión en potencias)",
+        "para |P| < P_critica",
+        "el sistema permanece en su atractor actual"
+      ],
+      "relations": [
+        "SF_N_0036",
+        "SF_N_0052",
+        "SF_N_0041"
+      ],
+      "docRelations": [],
+      "subsections": [
+        {
+          "id": "SF_S_0053_A",
+          "title": "Expansión en régimen lineal"
+        },
+        {
+          "id": "SF_S_0053_B",
+          "title": "Régimen no lineal"
+        },
+        {
+          "id": "SF_S_0053_C",
+          "title": "Perturbación crítica"
+        },
+        {
+          "id": "SF_S_0053_D",
+          "title": "Estimación de P_crítico"
+        },
+        {
+          "id": "SF_S_0053_E",
+          "title": "Aplicación en gestión de riesgo"
+        },
+        {
+          "id": "SF_S_0053_F",
+          "title": "Validación"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 2,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#6e9ac8",
+        "shape": "diamond",
+        "size": 5
+      }
+    },
+    {
+      "id": "SF_N_0054",
+      "legacy_id": "SF_P_0054",
+      "name": "Métrica de Densidad de Interacción",
+      "layer": "mathematics",
+      "type": "metric",
+      "cluster": "SF_CLUSTER_03",
+      "description": "La Métrica de Densidad de Interacción (MDI) cuantifica la intensidad comunicacional del sistema. Se diferencia del mero conteo de interacciones al normalizar por la capacidad de procesamiento del sistema.",
+      "variables": [
+        "MDI",
+        "interacciones_periodo",
+        "nodos_activos",
+        "capacidad_procesamiento"
+      ],
+      "equations": [
+        "MDI = interacciones_verificadas / (nodos_activos * periodo * capacidad_procesamiento)"
+      ],
+      "relations": [
+        "SF_N_0006",
+        "SF_N_0053",
+        "SF_N_0041"
+      ],
+      "docRelations": [],
+      "subsections": [
+        {
+          "id": "SF_S_0054_A",
+          "title": "Formulación"
+        },
+        {
+          "id": "SF_S_0054_B",
+          "title": "Normalización"
+        },
+        {
+          "id": "SF_S_0054_C",
+          "title": "Rangos"
+        },
+        {
+          "id": "SF_S_0054_D",
+          "title": "Relación con latencia"
+        },
+        {
+          "id": "SF_S_0054_E",
+          "title": "En el observatorio"
+        },
+        {
+          "id": "SF_S_0054_F",
+          "title": "Integración en MIHM"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 2,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#6e9ac8",
+        "shape": "diamond",
+        "size": 5
+      }
+    },
+    {
+      "id": "SF_N_0055",
+      "legacy_id": "SF_P_0055",
+      "name": "Modelo de Estabilidad Relacional",
+      "layer": "mathematics",
+      "type": "metric",
+      "cluster": "SF_CLUSTER_03",
+      "description": "El Modelo de Estabilidad Relacional formaliza qué hace que un vínculo institucional sea estable: su energía, su redundancia y su resistencia a perturbaciones. Permite predecir qué vínculos fallarán primero bajo estrés.",
+      "variables": [
+        "energia_vinculo",
+        "redundancia",
+        "resistencia_perturbacion"
+      ],
+      "equations": [
+        "E_estabilidad(i,j) = E_relacional(i,j) / perturbacion_esperada(i,j)"
+      ],
+      "relations": [
+        "SF_N_0020",
+        "SF_N_0054",
+        "SF_N_0041"
+      ],
+      "docRelations": [],
+      "subsections": [
+        {
+          "id": "SF_S_0055_A",
+          "title": "Condiciones de estabilidad"
+        },
+        {
+          "id": "SF_S_0055_B",
+          "title": "Mapa de estabilidad"
+        },
+        {
+          "id": "SF_S_0055_C",
+          "title": "Redundancia como factor"
+        },
+        {
+          "id": "SF_S_0055_D",
+          "title": "Predicción de fallas"
+        },
+        {
+          "id": "SF_S_0055_E",
+          "title": "Diseño de robustez"
+        },
+        {
+          "id": "SF_S_0055_F",
+          "title": "Integración con CRM"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 2,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#6e9ac8",
+        "shape": "diamond",
+        "size": 5
+      }
+    },
+    {
+      "id": "SF_N_0056",
+      "legacy_id": "SF_P_0056",
+      "name": "Índice de Equilibrio Sistémico",
+      "layer": "mathematics",
+      "type": "metric",
+      "cluster": "SF_CLUSTER_03",
+      "description": "El Índice de Equilibrio Sistémico (IES) es un indicador de alto nivel que integra información de múltiples métricas MIHM para producir una evaluación única de qué tan cerca está el sistema de su estado de equilibrio funcional.",
+      "variables": [
+        "IES",
+        "distancia_equilibrio",
+        "trayectoria_sistema"
+      ],
+      "equations": [
+        "IES = 1 - (distancia_al_equilibrio / distancia_maxima_posible)",
+        "IES = f(ISC, ICC, MFA, MDI, MRC)"
+      ],
+      "relations": [
+        "SF_N_0037",
+        "SF_N_0055",
+        "SF_N_0041"
+      ],
+      "docRelations": [
+        "SF_D_0056"
+      ],
+      "subsections": [
+        {
+          "id": "SF_S_0056_A",
+          "title": "Formulación integrada"
+        },
+        {
+          "id": "SF_S_0056_B",
+          "title": "Interpretación"
+        },
+        {
+          "id": "SF_S_0056_C",
+          "title": "Relación con IHG"
+        },
+        {
+          "id": "SF_S_0056_D",
+          "title": "Trayectoria del sistema"
+        },
+        {
+          "id": "SF_S_0056_E",
+          "title": "Umbrales de acción"
+        },
+        {
+          "id": "SF_S_0056_F",
+          "title": "En el dashboard del observatorio"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 2,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#6e9ac8",
+        "shape": "diamond",
+        "size": 5
+      }
+    },
+    {
+      "id": "SF_N_0057",
+      "legacy_id": "SF_P_0057",
+      "name": "Modelo de Gradiente de Fricción",
+      "layer": "mathematics",
+      "type": "metric",
+      "cluster": "SF_CLUSTER_03",
+      "description": "El Modelo de Gradiente de Fricción formaliza la descripción de cómo la fricción se distribuye de manera no uniforme en el grafo del sistema, con concentraciones en ciertos nodos y vínculos que actúan como puntos de falla.",
+      "variables": [
+        "gradiente_friccion",
+        "distribucion_espacial",
+        "evolucion_temporal"
+      ],
+      "equations": [
+        "GF(x) =  ^?FS(x) = ( ^,FS/ ^,x,  ^,FS/ ^,y)",
+        "|GF| = magnitud del gradiente en cada punto del espacio del grafo"
+      ],
+      "relations": [
+        "SF_N_0007",
+        "SF_N_0056",
+        "SF_N_0041"
+      ],
+      "docRelations": [],
+      "subsections": [
+        {
+          "id": "SF_S_0057_A",
+          "title": "Formulación"
+        },
+        {
+          "id": "SF_S_0057_B",
+          "title": "Visualización del gradiente"
+        },
+        {
+          "id": "SF_S_0057_C",
+          "title": "Puntos de acumulación"
+        },
+        {
+          "id": "SF_S_0057_D",
+          "title": "Evolución temporal del gradiente"
+        },
+        {
+          "id": "SF_S_0057_E",
+          "title": "Integración con diagnóstico"
+        },
+        {
+          "id": "SF_S_0057_F",
+          "title": "Relación con IHG"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 2,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#6e9ac8",
+        "shape": "diamond",
+        "size": 5
+      }
+    },
+    {
+      "id": "SF_N_0058",
+      "legacy_id": "SF_P_0058",
+      "name": "Métrica de Ruido Social",
+      "layer": "mathematics",
+      "type": "metric",
+      "cluster": "SF_CLUSTER_03",
+      "description": "La Métrica de Ruido Social (MRS) distingue el ruido de origen social del ruido técnico. El ruido social es producido por los incentivos, las dinámicas de poder y las narrativas culturales que distorsionan las señales institucionales.",
+      "variables": [
+        "MRS",
+        "ruido_motivacional",
+        "ruido_cultural",
+        "ruido_politico"
+      ],
+      "equations": [
+        "MRS = (ruido_motivacional + ruido_cultural + ruido_politico) / señal_total"
+      ],
+      "relations": [
+        "SF_N_0027",
+        "SF_N_0057",
+        "SF_N_0041"
+      ],
+      "docRelations": [],
+      "subsections": [
+        {
+          "id": "SF_S_0058_A",
+          "title": "Tipos de ruido social"
+        },
+        {
+          "id": "SF_S_0058_B",
+          "title": "Dificultad de medición"
+        },
+        {
+          "id": "SF_S_0058_C",
+          "title": "Proxies de medición"
+        },
+        {
+          "id": "SF_S_0058_D",
+          "title": "Intervención sobre ruido social"
+        },
+        {
+          "id": "SF_S_0058_E",
+          "title": "Relación con NTI"
+        },
+        {
+          "id": "SF_S_0058_F",
+          "title": "En el modelo MIHM"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 2,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#6e9ac8",
+        "shape": "diamond",
+        "size": 5
+      }
+    },
+    {
+      "id": "SF_N_0059",
+      "legacy_id": "SF_P_0059",
+      "name": "Modelo de Campo Conversacional",
+      "layer": "mathematics",
+      "type": "metric",
+      "cluster": "SF_CLUSTER_03",
+      "description": "El Modelo de Campo Conversacional trata las conversaciones institucionales no como eventos discretos sino como manifestaciones de un campo continuo, permitiendo análisis de tendencias, patrones y predicción de estados futuros.",
+      "variables": [
+        "flujo_conversacional",
+        "densidad_tematica",
+        "perturbacion_campo"
+      ],
+      "equations": [],
+      "relations": [
+        "SF_N_0043",
+        "SF_N_0058",
+        "SF_N_0033"
+      ],
+      "docRelations": [],
+      "subsections": [
+        {
+          "id": "SF_S_0059_A",
+          "title": "Campo conversacional como objeto matemático"
+        },
+        {
+          "id": "SF_S_0059_B",
+          "title": "Flujo conversacional"
+        },
+        {
+          "id": "SF_S_0059_C",
+          "title": "Perturbaciones del campo"
+        },
+        {
+          "id": "SF_S_0059_D",
+          "title": "Atractores conversacionales"
+        },
+        {
+          "id": "SF_S_0059_E",
+          "title": "Predicción"
+        },
+        {
+          "id": "SF_S_0059_F",
+          "title": "Aplicación en intervención"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 2,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#6e9ac8",
+        "shape": "diamond",
+        "size": 5
+      }
+    },
+    {
+      "id": "SF_N_0060",
+      "legacy_id": "SF_P_0060",
+      "name": "Ecuación Global System Friction",
+      "layer": "mathematics",
+      "type": "metric",
+      "cluster": "SF_CLUSTER_03",
+      "description": "La Ecuación Global es la síntesis matemática del sistema. Integra el gradiente de fricción, la latencia social, el ruido cognitivo y la energía relacional en el IHG (Índice Homeostático Global), el indicador de resumen del estado del sistema.",
+      "variables": [
+        "IHG",
+        "GF_promedio",
+        "L_social",
+        "RC",
+        "E_relacional"
+      ],
+      "equations": [
+        "IHG = integral(GF) * (1 + L_social) * (1 + MRC) / E_relacional_total",
+        "IHG óptimo  ?^ 0 (homeostasis)",
+        "IHG < 0: sistema en desequilibrio hacia alta fricción",
+        "Valor actual: IHG = -0.620"
+      ],
+      "relations": [
+        "SF_N_0041",
+        "SF_N_0057",
+        "SF_N_0058",
+        "SF_N_0047",
+        "SF_N_0048"
+      ],
+      "docRelations": [
+        "SF_D_0060"
+      ],
+      "subsections": [
+        {
+          "id": "SF_S_0060_A",
+          "title": "Formulación completa"
+        },
+        {
+          "id": "SF_S_0060_B",
+          "title": "Interpretación del IHG"
+        },
+        {
+          "id": "SF_S_0060_C",
+          "title": "Umbrales operativos"
+        },
+        {
+          "id": "SF_S_0060_D",
+          "title": "Cálculo en MIHM v2.0"
+        },
+        {
+          "id": "SF_S_0060_E",
+          "title": "NTI como capa de auditoría"
+        },
+        {
+          "id": "SF_S_0060_F",
+          "title": "Evolución histórica"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 2,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#6e9ac8",
+        "shape": "diamond",
+        "size": 5
+      }
+    },
+    {
+      "id": "SF_N_0061",
+      "legacy_id": "SF_P_0061",
+      "name": " ndice de Densidad Cognitiva (IDC)",
+      "layer": "mathematics",
+      "type": "concept",
+      "cluster": "SF_CLUSTER_03",
+      "description": "El IDC ( ndice de Densidad Cognitiva) mide la relaci n entre la carga de se ales entrantes y la capacidad de procesamiento efectivo del sistema. Un IDC elevado indica que el sistema est  operando cerca o por encima de su capacidad de atenci n sostenible, lo que precede a aumentos en la latencia y el ruido cognitivo.",
+      "variables": [
+        "IDC",
+        "carga_cognitiva_entrante",
+        "capacidad_atencional"
+      ],
+      "equations": [
+        "IDC = carga_cognitiva_entrante / capacidad_atencional"
+      ],
+      "relations": [],
+      "docRelations": [
+        "SF_D_0061",
+        "SF_D_readme",
+        "SF_D_features"
+      ],
+      "subsections": [
+        {
+          "id": "SF_S_0061_A",
+          "title": "Formulaci n del IDC"
+        },
+        {
+          "id": "SF_S_0061_B",
+          "title": "Interpretaci n de rangos"
+        },
+        {
+          "id": "SF_S_0061_C",
+          "title": "Relaci n con latencia"
+        },
+        {
+          "id": "SF_S_0061_D",
+          "title": "Relaci n con ruido cognitivo"
+        },
+        {
+          "id": "SF_S_0061_E",
+          "title": "En el observatorio"
+        },
+        {
+          "id": "SF_S_0061_F",
+          "title": "Integraci n en MIHM"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 2,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#6e9ac8",
+        "shape": "diamond",
+        "size": 8
+      }
+    },
+    {
+      "id": "SF_N_0062",
+      "legacy_id": "SF_P_0062",
+      "name": "Arquitectura System Friction",
+      "layer": "technology",
+      "type": "technology",
+      "cluster": "SF_CLUSTER_04",
+      "description": "La Arquitectura System Friction define la organización de todos los componentes técnicos del ecosistema: desde el modelo matemático MIHM hasta el observatorio visual, incluyendo el pipeline PCV y las bases de datos institucionales.",
+      "variables": [],
+      "equations": [],
+      "relations": [
+        "SF_N_0041",
+        "SF_N_0063",
+        "SF_N_0080"
+      ],
+      "docRelations": [
+        "SF_D_0062"
+      ],
+      "subsections": [
+        {
+          "id": "SF_S_0062_A",
+          "title": "Capas de la arquitectura"
+        },
+        {
+          "id": "SF_S_0062_B",
+          "title": "Stack tecnológico"
+        },
+        {
+          "id": "SF_S_0062_C",
+          "title": "Flujo de datos"
+        },
+        {
+          "id": "SF_S_0062_D",
+          "title": "Principios de diseño"
+        },
+        {
+          "id": "SF_S_0062_E",
+          "title": "Estado actual"
+        },
+        {
+          "id": "SF_S_0062_F",
+          "title": "Expansión futura"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 3,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#48aa88",
+        "shape": "square",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0063",
+      "legacy_id": "SF_P_0063",
+      "name": "Pipeline de Procesamiento Cognitivo",
+      "layer": "technology",
+      "type": "technology",
+      "cluster": "SF_CLUSTER_04",
+      "description": "El Pipeline de Procesamiento Cognitivo (PCV - Pipeline de Continuidad y Vigilancia) es la implementación técnica del modelo MIHM. Toma datos institucionales como entrada y produce las métricas IHG, ICE, CRM, NTI como salida.",
+      "variables": [],
+      "equations": [],
+      "relations": [
+        "SF_N_0041",
+        "SF_N_0062",
+        "SF_N_0064"
+      ],
+      "docRelations": [
+        "SF_D_0063"
+      ],
+      "subsections": [
+        {
+          "id": "SF_S_0063_A",
+          "title": "Definición del pipeline"
+        },
+        {
+          "id": "SF_S_0063_B",
+          "title": "Etapas del pipeline"
+        },
+        {
+          "id": "SF_S_0063_C",
+          "title": "Integración con MIHM"
+        },
+        {
+          "id": "SF_S_0063_D",
+          "title": "Manejo de errores"
+        },
+        {
+          "id": "SF_S_0063_E",
+          "title": "Escalabilidad"
+        },
+        {
+          "id": "SF_S_0063_F",
+          "title": "Arquitectura técnica"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 3,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#48aa88",
+        "shape": "square",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0064",
+      "legacy_id": "SF_P_0064",
+      "name": "Motor de Extracción Multimodal",
+      "layer": "technology",
+      "type": "technology",
+      "cluster": "SF_CLUSTER_04",
+      "description": "El Motor de Extracción Multimodal procesa texto, datos estructurados, series temporales y metadatos para extraer las señales que alimentan el cálculo de métricas MIHM.",
+      "variables": [],
+      "equations": [],
+      "relations": [
+        "SF_N_0063",
+        "SF_N_0065",
+        "SF_N_0078"
+      ],
+      "docRelations": [],
+      "subsections": [
+        {
+          "id": "SF_S_0064_A",
+          "title": "Tipos de datos procesados"
+        },
+        {
+          "id": "SF_S_0064_B",
+          "title": "Extracción de señales cognitivas"
+        },
+        {
+          "id": "SF_S_0064_C",
+          "title": "Procesamiento de texto"
+        },
+        {
+          "id": "SF_S_0064_D",
+          "title": "Procesamiento temporal"
+        },
+        {
+          "id": "SF_S_0064_E",
+          "title": "Integración"
+        },
+        {
+          "id": "SF_S_0064_F",
+          "title": "Expansión con IA"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 3,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#48aa88",
+        "shape": "square",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0065",
+      "legacy_id": "SF_P_0065",
+      "name": "Analizador Semántico",
+      "layer": "technology",
+      "type": "technology",
+      "cluster": "SF_CLUSTER_04",
+      "description": "El Analizador Semántico procesa los datos textuales del sistema para calcular la Métrica de Divergencia Semántica (MDS) y el mapa de campo semántico del sistema analizado.",
+      "variables": [],
+      "equations": [],
+      "relations": [
+        "SF_N_0064",
+        "SF_N_0066",
+        "SF_N_0049"
+      ],
+      "docRelations": [],
+      "subsections": [
+        {
+          "id": "SF_S_0065_A",
+          "title": "Función del analizador"
+        },
+        {
+          "id": "SF_S_0065_B",
+          "title": "Técnicas de análisis"
+        },
+        {
+          "id": "SF_S_0065_C",
+          "title": "Output del analizador"
+        },
+        {
+          "id": "SF_S_0065_D",
+          "title": "Calibración"
+        },
+        {
+          "id": "SF_S_0065_E",
+          "title": "Integración en pipeline"
+        },
+        {
+          "id": "SF_S_0065_F",
+          "title": "Actualización continua"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 3,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#48aa88",
+        "shape": "square",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0066",
+      "legacy_id": "SF_P_0066",
+      "name": "Analizador Conversacional",
+      "layer": "technology",
+      "type": "technology",
+      "cluster": "SF_CLUSTER_04",
+      "description": "El Analizador Conversacional procesa transcripciones, registros y metadatos de conversaciones para detectar patrones de latencia, ruido y divergencia semántica en el sistema de comunicación.",
+      "variables": [],
+      "equations": [],
+      "relations": [
+        "SF_N_0065",
+        "SF_N_0067",
+        "SF_N_0100"
+      ],
+      "docRelations": [],
+      "subsections": [
+        {
+          "id": "SF_S_0066_A",
+          "title": "Inputs del analizador"
+        },
+        {
+          "id": "SF_S_0066_B",
+          "title": "Patrones detectados"
+        },
+        {
+          "id": "SF_S_0066_C",
+          "title": "Métricas producidas"
+        },
+        {
+          "id": "SF_S_0066_D",
+          "title": "Privacidad y ética"
+        },
+        {
+          "id": "SF_S_0066_E",
+          "title": "Integración en observatorio"
+        },
+        {
+          "id": "SF_S_0066_F",
+          "title": "Calibración y ajuste"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 3,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#48aa88",
+        "shape": "square",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0067",
+      "legacy_id": "SF_P_0067",
+      "name": "Motor de Métricas Cognitivas",
+      "layer": "technology",
+      "type": "technology",
+      "cluster": "SF_CLUSTER_04",
+      "description": "El Motor de Métricas Cognitivas toma las señales extraídas por los analizadores y ejecuta las fórmulas del modelo MIHM para producir los índices IHG, ICE, CRM, NTI, ISC y todas las demás métricas del sistema.",
+      "variables": [],
+      "equations": [],
+      "relations": [
+        "SF_N_0066",
+        "SF_N_0068",
+        "SF_N_0041"
+      ],
+      "docRelations": [],
+      "subsections": [
+        {
+          "id": "SF_S_0067_A",
+          "title": "Función del motor"
+        },
+        {
+          "id": "SF_S_0067_B",
+          "title": "Métricas calculadas"
+        },
+        {
+          "id": "SF_S_0067_C",
+          "title": "Arquitectura de cálculo"
+        },
+        {
+          "id": "SF_S_0067_D",
+          "title": "Frecuencia de cálculo"
+        },
+        {
+          "id": "SF_S_0067_E",
+          "title": "Validación de resultados"
+        },
+        {
+          "id": "SF_S_0067_F",
+          "title": "Subsección F"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 3,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#48aa88",
+        "shape": "square",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0068",
+      "legacy_id": "SF_P_0068",
+      "name": "Motor de Resonancia",
+      "layer": "technology",
+      "type": "technology",
+      "cluster": "SF_CLUSTER_04",
+      "description": "El Motor de Resonancia detecta la sincronización emergente entre nodos mediante análisis de correlación de series temporales. Es el componente del pipeline responsable de activar alertas de cascada cuando MR supera el umbral crítico.",
+      "variables": [
+        "MR",
+        "correlacion_nodal",
+        "umbral_cascada"
+      ],
+      "equations": [
+        "MR(i,j) = correlacion(serie_i, serie_j) * amplitud_media(i,j)"
+      ],
+      "relations": [
+        "SF_N_0044",
+        "SF_N_0067",
+        "SF_N_0069"
+      ],
+      "docRelations": [],
+      "subsections": [
+        {
+          "id": "SF_S_0068_A",
+          "title": "Subsección A"
+        },
+        {
+          "id": "SF_S_0068_B",
+          "title": "Subsección B"
+        },
+        {
+          "id": "SF_S_0068_C",
+          "title": "Subsección C"
+        },
+        {
+          "id": "SF_S_0068_D",
+          "title": "Subsección D"
+        },
+        {
+          "id": "SF_S_0068_E",
+          "title": "Subsección E"
+        },
+        {
+          "id": "SF_S_0068_F",
+          "title": "Subsección F"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 3,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#48aa88",
+        "shape": "square",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0069",
+      "legacy_id": "SF_P_0069",
+      "name": "Motor de Fricción",
+      "layer": "technology",
+      "type": "technology",
+      "cluster": "SF_CLUSTER_04",
+      "description": "El Motor de Fricción implementa la ecuación central FC(i,j) sobre los datos procesados por los analizadores, produciendo el mapa de fricción cognitiva que alimenta el IHG y el observatorio.",
+      "variables": [
+        "FC",
+        "distancia_semantica",
+        "latencia_temporal",
+        "energia_relacional"
+      ],
+      "equations": [
+        "FC(i,j) = d_sem(i,j) * (1 + λ_t) * N_cognitivo / E_relacional"
+      ],
+      "relations": [
+        "SF_N_0042",
+        "SF_N_0068",
+        "SF_N_0057"
+      ],
+      "docRelations": [],
+      "subsections": [
+        {
+          "id": "SF_S_0069_A",
+          "title": "Subsección A"
+        },
+        {
+          "id": "SF_S_0069_B",
+          "title": "Subsección B"
+        },
+        {
+          "id": "SF_S_0069_C",
+          "title": "Subsección C"
+        },
+        {
+          "id": "SF_S_0069_D",
+          "title": "Subsección D"
+        },
+        {
+          "id": "SF_S_0069_E",
+          "title": "Subsección E"
+        },
+        {
+          "id": "SF_S_0069_F",
+          "title": "Subsección F"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 3,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#48aa88",
+        "shape": "square",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0070",
+      "legacy_id": "SF_P_0070",
+      "name": "Pipeline de Datos Conversacionales",
+      "layer": "technology",
+      "type": "technology",
+      "cluster": "SF_CLUSTER_04",
+      "description": "El Pipeline de Datos Conversacionales es la ruta de procesamiento específica para información de texto y conversación dentro del PCV. Alimenta al Analizador Conversacional y al Analizador Semántico con datos estandarizados.",
+      "variables": [],
+      "equations": [],
+      "relations": [
+        "SF_N_0063",
+        "SF_N_0066",
+        "SF_N_0071"
+      ],
+      "docRelations": [],
+      "subsections": [
+        {
+          "id": "SF_S_0070_A",
+          "title": "Subsección A"
+        },
+        {
+          "id": "SF_S_0070_B",
+          "title": "Subsección B"
+        },
+        {
+          "id": "SF_S_0070_C",
+          "title": "Subsección C"
+        },
+        {
+          "id": "SF_S_0070_D",
+          "title": "Subsección D"
+        },
+        {
+          "id": "SF_S_0070_E",
+          "title": "Subsección E"
+        },
+        {
+          "id": "SF_S_0070_F",
+          "title": "Subsección F"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 3,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#48aa88",
+        "shape": "square",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0071",
+      "legacy_id": "SF_P_0071",
+      "name": "Base de Datos Cognitiva",
+      "layer": "technology",
+      "type": "technology",
+      "cluster": "SF_CLUSTER_04",
+      "description": "La Base de Datos Cognitiva es la capa de persistencia del ecosistema. Almacena las series temporales de métricas, los vectores semánticos, los grafos de interacción y los resultados de simulaciones Monte Carlo para análisis histórico y reproducibilidad.",
+      "variables": [],
+      "equations": [],
+      "relations": [
+        "SF_N_0070",
+        "SF_N_0072",
+        "SF_N_0086"
+      ],
+      "docRelations": [],
+      "subsections": [
+        {
+          "id": "SF_S_0071_A",
+          "title": "Subsección A"
+        },
+        {
+          "id": "SF_S_0071_B",
+          "title": "Subsección B"
+        },
+        {
+          "id": "SF_S_0071_C",
+          "title": "Subsección C"
+        },
+        {
+          "id": "SF_S_0071_D",
+          "title": "Subsección D"
+        },
+        {
+          "id": "SF_S_0071_E",
+          "title": "Subsección E"
+        },
+        {
+          "id": "SF_S_0071_F",
+          "title": "Subsección F"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 3,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#48aa88",
+        "shape": "square",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0072",
+      "legacy_id": "SF_P_0072",
+      "name": "API System Friction",
+      "layer": "technology",
+      "type": "technology",
+      "cluster": "SF_CLUSTER_04",
+      "description": "La API System Friction es el punto de acceso unificado al ecosistema. Permite al observatorio consultar métricas, a los investigadores acceder a datos históricos y a sistemas institucionales integrarse con el pipeline PCV.",
+      "variables": [],
+      "equations": [],
+      "relations": [
+        "SF_N_0071",
+        "SF_N_0073",
+        "SF_N_0080"
+      ],
+      "docRelations": [],
+      "subsections": [
+        {
+          "id": "SF_S_0072_A",
+          "title": "Subsección A"
+        },
+        {
+          "id": "SF_S_0072_B",
+          "title": "Subsección B"
+        },
+        {
+          "id": "SF_S_0072_C",
+          "title": "Subsección C"
+        },
+        {
+          "id": "SF_S_0072_D",
+          "title": "Subsección D"
+        },
+        {
+          "id": "SF_S_0072_E",
+          "title": "Subsección E"
+        },
+        {
+          "id": "SF_S_0072_F",
+          "title": "Subsección F"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 3,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#48aa88",
+        "shape": "square",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0073",
+      "legacy_id": "SF_P_0073",
+      "name": "Motor de Inferencia",
+      "layer": "technology",
+      "type": "technology",
+      "cluster": "SF_CLUSTER_04",
+      "description": "El Motor de Inferencia combina el modelo matemático MIHM con patrones históricos para producir diagnósticos, predicciones y recomendaciones de intervención. Opera bajo el principio de Vigilancia Humana por Diseño: genera recomendaciones, no decisiones.",
+      "variables": [],
+      "equations": [],
+      "relations": [
+        "SF_N_0072",
+        "SF_N_0074",
+        "SF_N_0041"
+      ],
+      "docRelations": [],
+      "subsections": [
+        {
+          "id": "SF_S_0073_A",
+          "title": "Subsección A"
+        },
+        {
+          "id": "SF_S_0073_B",
+          "title": "Subsección B"
+        },
+        {
+          "id": "SF_S_0073_C",
+          "title": "Subsección C"
+        },
+        {
+          "id": "SF_S_0073_D",
+          "title": "Subsección D"
+        },
+        {
+          "id": "SF_S_0073_E",
+          "title": "Subsección E"
+        },
+        {
+          "id": "SF_S_0073_F",
+          "title": "Subsección F"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 3,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#48aa88",
+        "shape": "square",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0074",
+      "legacy_id": "SF_P_0074",
+      "name": "Sistema de Visualización de Grafos",
+      "layer": "technology",
+      "type": "technology",
+      "cluster": "SF_CLUSTER_04",
+      "description": "El Sistema de Visualización de Grafos convierte la estructura matemática del grafo del sistema en una representación visual navegable. Implementa el layout radial multicapa y las propiedades estéticas del ecosistema.",
+      "variables": [],
+      "equations": [],
+      "relations": [
+        "SF_N_0073",
+        "SF_N_0075",
+        "SF_N_0092"
+      ],
+      "docRelations": [],
+      "subsections": [
+        {
+          "id": "SF_S_0074_A",
+          "title": "Subsección A"
+        },
+        {
+          "id": "SF_S_0074_B",
+          "title": "Subsección B"
+        },
+        {
+          "id": "SF_S_0074_C",
+          "title": "Subsección C"
+        },
+        {
+          "id": "SF_S_0074_D",
+          "title": "Subsección D"
+        },
+        {
+          "id": "SF_S_0074_E",
+          "title": "Subsección E"
+        },
+        {
+          "id": "SF_S_0074_F",
+          "title": "Subsección F"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 3,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#48aa88",
+        "shape": "square",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0075",
+      "legacy_id": "SF_P_0075",
+      "name": "Sistema de Análisis Temporal",
+      "layer": "technology",
+      "type": "technology",
+      "cluster": "SF_CLUSTER_04",
+      "description": "El Sistema de Análisis Temporal procesa las series históricas de métricas MIHM para identificar patrones de evolución, señales tempranas de cambio de estado y tendencias de largo plazo.",
+      "variables": [],
+      "equations": [],
+      "relations": [
+        "SF_N_0074",
+        "SF_N_0076",
+        "SF_N_0099"
+      ],
+      "docRelations": [],
+      "subsections": [
+        {
+          "id": "SF_S_0075_A",
+          "title": "Subsección A"
+        },
+        {
+          "id": "SF_S_0075_B",
+          "title": "Subsección B"
+        },
+        {
+          "id": "SF_S_0075_C",
+          "title": "Subsección C"
+        },
+        {
+          "id": "SF_S_0075_D",
+          "title": "Subsección D"
+        },
+        {
+          "id": "SF_S_0075_E",
+          "title": "Subsección E"
+        },
+        {
+          "id": "SF_S_0075_F",
+          "title": "Subsección F"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 3,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#48aa88",
+        "shape": "square",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0076",
+      "legacy_id": "SF_P_0076",
+      "name": "Motor de Identificación de Patrones",
+      "layer": "technology",
+      "type": "technology",
+      "cluster": "SF_CLUSTER_04",
+      "description": "El Motor de Identificación de Patrones usa técnicas de análisis de series temporales y aprendizaje no supervisado para detectar patrones conocidos de fricción sistémica en los datos institucionales.",
+      "variables": [],
+      "equations": [],
+      "relations": [
+        "SF_N_0075",
+        "SF_N_0077",
+        "SF_N_0089"
+      ],
+      "docRelations": [],
+      "subsections": [
+        {
+          "id": "SF_S_0076_A",
+          "title": "Subsección A"
+        },
+        {
+          "id": "SF_S_0076_B",
+          "title": "Subsección B"
+        },
+        {
+          "id": "SF_S_0076_C",
+          "title": "Subsección C"
+        },
+        {
+          "id": "SF_S_0076_D",
+          "title": "Subsección D"
+        },
+        {
+          "id": "SF_S_0076_E",
+          "title": "Subsección E"
+        },
+        {
+          "id": "SF_S_0076_F",
+          "title": "Subsección F"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 3,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#48aa88",
+        "shape": "square",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0077",
+      "legacy_id": "SF_P_0077",
+      "name": "Motor de Clasificación Conversacional",
+      "layer": "technology",
+      "type": "technology",
+      "cluster": "SF_CLUSTER_04",
+      "description": "El Motor de Clasificación Conversacional categoriza cada intercambio del sistema en tipos de conversación (acuerdo, conflicto, escalación, confirmación vacía) y estados (en resolución, en atractor disfuncional, en deuda de decisión).",
+      "variables": [],
+      "equations": [],
+      "relations": [
+        "SF_N_0076",
+        "SF_N_0078",
+        "SF_N_0033"
+      ],
+      "docRelations": [],
+      "subsections": [
+        {
+          "id": "SF_S_0077_A",
+          "title": "Subsección A"
+        },
+        {
+          "id": "SF_S_0077_B",
+          "title": "Subsección B"
+        },
+        {
+          "id": "SF_S_0077_C",
+          "title": "Subsección C"
+        },
+        {
+          "id": "SF_S_0077_D",
+          "title": "Subsección D"
+        },
+        {
+          "id": "SF_S_0077_E",
+          "title": "Subsección E"
+        },
+        {
+          "id": "SF_S_0077_F",
+          "title": "Subsección F"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 3,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#48aa88",
+        "shape": "square",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0078",
+      "legacy_id": "SF_P_0078",
+      "name": "Sistema de Captura Multicanal",
+      "layer": "technology",
+      "type": "technology",
+      "cluster": "SF_CLUSTER_04",
+      "description": "El Sistema de Captura Multicanal es la puerta de entrada de datos al pipeline PCV. Conecta con los diferentes canales de comunicación institucional para recopilar señales en tiempo real o en diferido.",
+      "variables": [],
+      "equations": [],
+      "relations": [
+        "SF_N_0077",
+        "SF_N_0079",
+        "SF_N_0064"
+      ],
+      "docRelations": [],
+      "subsections": [
+        {
+          "id": "SF_S_0078_A",
+          "title": "Subsección A"
+        },
+        {
+          "id": "SF_S_0078_B",
+          "title": "Subsección B"
+        },
+        {
+          "id": "SF_S_0078_C",
+          "title": "Subsección C"
+        },
+        {
+          "id": "SF_S_0078_D",
+          "title": "Subsección D"
+        },
+        {
+          "id": "SF_S_0078_E",
+          "title": "Subsección E"
+        },
+        {
+          "id": "SF_S_0078_F",
+          "title": "Subsección F"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 3,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#48aa88",
+        "shape": "square",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0079",
+      "legacy_id": "SF_P_0079",
+      "name": "Motor de Modelado Cognitivo",
+      "layer": "technology",
+      "type": "technology",
+      "cluster": "SF_CLUSTER_04",
+      "description": "El Motor de Modelado Cognitivo traduce los datos crudos de cada nodo institucional en representaciones vectoriales y campos cognitivos que alimentan los cálculos del modelo MIHM.",
+      "variables": [],
+      "equations": [],
+      "relations": [
+        "SF_N_0078",
+        "SF_N_0080",
+        "SF_N_0043"
+      ],
+      "docRelations": [],
+      "subsections": [
+        {
+          "id": "SF_S_0079_A",
+          "title": "Subsección A"
+        },
+        {
+          "id": "SF_S_0079_B",
+          "title": "Subsección B"
+        },
+        {
+          "id": "SF_S_0079_C",
+          "title": "Subsección C"
+        },
+        {
+          "id": "SF_S_0079_D",
+          "title": "Subsección D"
+        },
+        {
+          "id": "SF_S_0079_E",
+          "title": "Subsección E"
+        },
+        {
+          "id": "SF_S_0079_F",
+          "title": "Subsección F"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 3,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#48aa88",
+        "shape": "square",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0080",
+      "legacy_id": "SF_P_0080",
+      "name": "Plataforma Observatorio",
+      "layer": "technology",
+      "type": "technology",
+      "cluster": "SF_CLUSTER_04",
+      "description": "La Plataforma Observatorio es la capa tecnológica que integra todos los componentes del pipeline en una interfaz visual interactiva para el operador. Implementa el SF Observatory 2.5 sobre el stack técnico del ecosistema.",
+      "variables": [],
+      "equations": [],
+      "relations": [
+        "SF_N_0079",
+        "SF_N_0081",
+        "SF_N_0092",
+        "SF_N_0062"
+      ],
+      "docRelations": [],
+      "subsections": [
+        {
+          "id": "SF_S_0080_A",
+          "title": "Subsección A"
+        },
+        {
+          "id": "SF_S_0080_B",
+          "title": "Subsección B"
+        },
+        {
+          "id": "SF_S_0080_C",
+          "title": "Subsección C"
+        },
+        {
+          "id": "SF_S_0080_D",
+          "title": "Subsección D"
+        },
+        {
+          "id": "SF_S_0080_E",
+          "title": "Subsección E"
+        },
+        {
+          "id": "SF_S_0080_F",
+          "title": "Subsección F"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 3,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#48aa88",
+        "shape": "square",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0081",
+      "legacy_id": "SF_P_0081",
+      "name": "Sistema de Monitoreo de Interacciones",
+      "layer": "technology",
+      "type": "technology",
+      "cluster": "SF_CLUSTER_04",
+      "description": "El Sistema de Monitoreo de Interacciones observa de forma continua cómo los nodos del sistema se relacionan entre sí, detectando cambios en frecuencia, calidad y patrón de sus intercambios.",
+      "variables": [],
+      "equations": [],
+      "relations": [
+        "SF_N_0080",
+        "SF_N_0082",
+        "SF_N_0006"
+      ],
+      "docRelations": [],
+      "subsections": [
+        {
+          "id": "SF_S_0081_A",
+          "title": "Subsección A"
+        },
+        {
+          "id": "SF_S_0081_B",
+          "title": "Subsección B"
+        },
+        {
+          "id": "SF_S_0081_C",
+          "title": "Subsección C"
+        },
+        {
+          "id": "SF_S_0081_D",
+          "title": "Subsección D"
+        },
+        {
+          "id": "SF_S_0081_E",
+          "title": "Subsección E"
+        },
+        {
+          "id": "SF_S_0081_F",
+          "title": "Subsección F"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 3,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#48aa88",
+        "shape": "square",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0082",
+      "legacy_id": "SF_P_0082",
+      "name": "Motor de Simulación Social",
+      "layer": "technology",
+      "type": "technology",
+      "cluster": "SF_CLUSTER_04",
+      "description": "El Motor de Simulación Social implementa la simulación Monte Carlo del ecosistema. Con 50,000 iteraciones por sesión, genera la distribución de estados futuros posibles del sistema dado el estado actual.",
+      "variables": [
+        "iteraciones",
+        "seed",
+        "distribucion_estados"
+      ],
+      "equations": [
+        "Monte Carlo: N=50000",
+        "seed=42"
+      ],
+      "relations": [
+        "SF_N_0081",
+        "SF_N_0083",
+        "SF_N_0041"
+      ],
+      "docRelations": [],
+      "subsections": [
+        {
+          "id": "SF_S_0082_A",
+          "title": "Subsección A"
+        },
+        {
+          "id": "SF_S_0082_B",
+          "title": "Subsección B"
+        },
+        {
+          "id": "SF_S_0082_C",
+          "title": "Subsección C"
+        },
+        {
+          "id": "SF_S_0082_D",
+          "title": "Subsección D"
+        },
+        {
+          "id": "SF_S_0082_E",
+          "title": "Subsección E"
+        },
+        {
+          "id": "SF_S_0082_F",
+          "title": "Subsección F"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 3,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#48aa88",
+        "shape": "square",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0083",
+      "legacy_id": "SF_P_0083",
+      "name": "Pipeline Analítico",
+      "layer": "technology",
+      "type": "technology",
+      "cluster": "SF_CLUSTER_04",
+      "description": "El Pipeline Analítico es la orquestación de todos los componentes de análisis: define el orden de ejecución, gestiona las dependencias entre componentes y produce el output integrado para el observatorio.",
+      "variables": [],
+      "equations": [],
+      "relations": [
+        "SF_N_0082",
+        "SF_N_0084",
+        "SF_N_0063"
+      ],
+      "docRelations": [],
+      "subsections": [
+        {
+          "id": "SF_S_0083_A",
+          "title": "Subsección A"
+        },
+        {
+          "id": "SF_S_0083_B",
+          "title": "Subsección B"
+        },
+        {
+          "id": "SF_S_0083_C",
+          "title": "Subsección C"
+        },
+        {
+          "id": "SF_S_0083_D",
+          "title": "Subsección D"
+        },
+        {
+          "id": "SF_S_0083_E",
+          "title": "Subsección E"
+        },
+        {
+          "id": "SF_S_0083_F",
+          "title": "Subsección F"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 3,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#48aa88",
+        "shape": "square",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0084",
+      "legacy_id": "SF_P_0084",
+      "name": "Sistema de Visualización 3D",
+      "layer": "technology",
+      "type": "technology",
+      "cluster": "SF_CLUSTER_04",
+      "description": "El Sistema de Visualización 3D es la implementación del modo cosmológico del observatorio: los nodos como cuerpos celestes, las relaciones como campos gravitacionales, la fricción como perturbaciones del espacio-tiempo del sistema.",
+      "variables": [],
+      "equations": [],
+      "relations": [
+        "SF_N_0083",
+        "SF_N_0085",
+        "SF_N_0074"
+      ],
+      "docRelations": [
+        "SF_D_0084"
+      ],
+      "subsections": [
+        {
+          "id": "SF_S_0084_A",
+          "title": "Subsección A"
+        },
+        {
+          "id": "SF_S_0084_B",
+          "title": "Subsección B"
+        },
+        {
+          "id": "SF_S_0084_C",
+          "title": "Subsección C"
+        },
+        {
+          "id": "SF_S_0084_D",
+          "title": "Subsección D"
+        },
+        {
+          "id": "SF_S_0084_E",
+          "title": "Subsección E"
+        },
+        {
+          "id": "SF_S_0084_F",
+          "title": "Subsección F"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 3,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#48aa88",
+        "shape": "square",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0085",
+      "legacy_id": "SF_P_0085",
+      "name": "Plataforma de Investigación",
+      "layer": "technology",
+      "type": "technology",
+      "cluster": "SF_CLUSTER_04",
+      "description": "La Plataforma de Investigación (SF Lab) es el entorno beta para investigadores avanzados del sistema. Provee acceso a funcionalidades extendidas del pipeline, herramientas de exploración de datos y capacidades de experimentación con el modelo.",
+      "variables": [],
+      "equations": [],
+      "relations": [
+        "SF_N_0084",
+        "SF_N_0086",
+        "SF_N_0116"
+      ],
+      "docRelations": [],
+      "subsections": [
+        {
+          "id": "SF_S_0085_A",
+          "title": "Subsección A"
+        },
+        {
+          "id": "SF_S_0085_B",
+          "title": "Subsección B"
+        },
+        {
+          "id": "SF_S_0085_C",
+          "title": "Subsección C"
+        },
+        {
+          "id": "SF_S_0085_D",
+          "title": "Subsección D"
+        },
+        {
+          "id": "SF_S_0085_E",
+          "title": "Subsección E"
+        },
+        {
+          "id": "SF_S_0085_F",
+          "title": "Subsección F"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 3,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#48aa88",
+        "shape": "square",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0086",
+      "legacy_id": "SF_P_0086",
+      "name": "Sistema de Datos Cognitivos",
+      "layer": "technology",
+      "type": "technology",
+      "cluster": "SF_CLUSTER_04",
+      "description": "El Sistema de Datos Cognitivos gestiona específicamente las representaciones computacionales de los modelos cognitivos del sistema: vectores, campos y grafos que no encajan en el modelo relacional estándar de la Base de Datos Cognitiva.",
+      "variables": [],
+      "equations": [],
+      "relations": [
+        "SF_N_0085",
+        "SF_N_0087",
+        "SF_N_0071"
+      ],
+      "docRelations": [],
+      "subsections": [
+        {
+          "id": "SF_S_0086_A",
+          "title": "Subsección A"
+        },
+        {
+          "id": "SF_S_0086_B",
+          "title": "Subsección B"
+        },
+        {
+          "id": "SF_S_0086_C",
+          "title": "Subsección C"
+        },
+        {
+          "id": "SF_S_0086_D",
+          "title": "Subsección D"
+        },
+        {
+          "id": "SF_S_0086_E",
+          "title": "Subsección E"
+        },
+        {
+          "id": "SF_S_0086_F",
+          "title": "Subsección F"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 3,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#48aa88",
+        "shape": "square",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0087",
+      "legacy_id": "SF_P_0087",
+      "name": "Motor de Grafos Cognitivos",
+      "layer": "technology",
+      "type": "technology",
+      "cluster": "SF_CLUSTER_04",
+      "description": "El Motor de Grafos Cognitivos implementa los algoritmos de teoría de grafos necesarios para analizar la topología del sistema: centralidad, caminos críticos, detección de comunidades y vulnerabilidades estructurales.",
+      "variables": [],
+      "equations": [],
+      "relations": [
+        "SF_N_0086",
+        "SF_N_0088",
+        "SF_N_0025"
+      ],
+      "docRelations": [],
+      "subsections": [
+        {
+          "id": "SF_S_0087_A",
+          "title": "Subsección A"
+        },
+        {
+          "id": "SF_S_0087_B",
+          "title": "Subsección B"
+        },
+        {
+          "id": "SF_S_0087_C",
+          "title": "Subsección C"
+        },
+        {
+          "id": "SF_S_0087_D",
+          "title": "Subsección D"
+        },
+        {
+          "id": "SF_S_0087_E",
+          "title": "Subsección E"
+        },
+        {
+          "id": "SF_S_0087_F",
+          "title": "Subsección F"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 3,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#48aa88",
+        "shape": "square",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0088",
+      "legacy_id": "SF_P_0088",
+      "name": "Sistema de Exploración de Datos",
+      "layer": "technology",
+      "type": "technology",
+      "cluster": "SF_CLUSTER_04",
+      "description": "El Sistema de Exploración de Datos provee una interfaz de consulta flexible que permite a investigadores y operadores explorar los datos del ecosistema más allá de los análisis pre-definidos del pipeline.",
+      "variables": [],
+      "equations": [],
+      "relations": [
+        "SF_N_0087",
+        "SF_N_0089",
+        "SF_N_0093"
+      ],
+      "docRelations": [
+        "SF_D_0088",
+        "SF_D_decisiones"
+      ],
+      "subsections": [
+        {
+          "id": "SF_S_0088_A",
+          "title": "Subsección A"
+        },
+        {
+          "id": "SF_S_0088_B",
+          "title": "Subsección B"
+        },
+        {
+          "id": "SF_S_0088_C",
+          "title": "Subsección C"
+        },
+        {
+          "id": "SF_S_0088_D",
+          "title": "Subsección D"
+        },
+        {
+          "id": "SF_S_0088_E",
+          "title": "Subsección E"
+        },
+        {
+          "id": "SF_S_0088_F",
+          "title": "Subsección F"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 3,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#48aa88",
+        "shape": "square",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0089",
+      "legacy_id": "SF_P_0089",
+      "name": "Motor de Aprendizaje Adaptativo",
+      "layer": "technology",
+      "type": "technology",
+      "cluster": "SF_CLUSTER_04",
+      "description": "El Motor de Aprendizaje Adaptativo implementa el ciclo de aprendizaje del ecosistema: compara las predicciones del modelo con los estados efectivamente observados y ajusta los parámetros para reducir el error sistemático.",
+      "variables": [],
+      "equations": [],
+      "relations": [
+        "SF_N_0088",
+        "SF_N_0090",
+        "SF_N_0076"
+      ],
+      "docRelations": [],
+      "subsections": [
+        {
+          "id": "SF_S_0089_A",
+          "title": "Subsección A"
+        },
+        {
+          "id": "SF_S_0089_B",
+          "title": "Subsección B"
+        },
+        {
+          "id": "SF_S_0089_C",
+          "title": "Subsección C"
+        },
+        {
+          "id": "SF_S_0089_D",
+          "title": "Subsección D"
+        },
+        {
+          "id": "SF_S_0089_E",
+          "title": "Subsección E"
+        },
+        {
+          "id": "SF_S_0089_F",
+          "title": "Subsección F"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 3,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#48aa88",
+        "shape": "square",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0090",
+      "legacy_id": "SF_P_0090",
+      "name": "Infraestructura de Observación",
+      "layer": "technology",
+      "type": "technology",
+      "cluster": "SF_CLUSTER_04",
+      "description": "La Infraestructura de Observación es la capa de hosting y operaciones que sostiene todo el ecosistema tecnológico. Aplica el mismo principio de vigilancia que el sistema monitorea: la infraestructura también se observa a sí misma.",
+      "variables": [],
+      "equations": [],
+      "relations": [
+        "SF_N_0089",
+        "SF_N_0091",
+        "SF_N_0080"
+      ],
+      "docRelations": [],
+      "subsections": [
+        {
+          "id": "SF_S_0090_A",
+          "title": "Subsección A"
+        },
+        {
+          "id": "SF_S_0090_B",
+          "title": "Subsección B"
+        },
+        {
+          "id": "SF_S_0090_C",
+          "title": "Subsección C"
+        },
+        {
+          "id": "SF_S_0090_D",
+          "title": "Subsección D"
+        },
+        {
+          "id": "SF_S_0090_E",
+          "title": "Subsección E"
+        },
+        {
+          "id": "SF_S_0090_F",
+          "title": "Subsección F"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 3,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#48aa88",
+        "shape": "square",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0091",
+      "legacy_id": "SF_P_0091",
+      "name": "Núcleo Computacional System Friction",
+      "layer": "technology",
+      "type": "technology",
+      "cluster": "SF_CLUSTER_04",
+      "description": "El Núcleo Computacional System Friction es la síntesis tecnológica del ecosistema. Integra todos los componentes del pipeline, el observatorio y la infraestructura en un sistema de software cohesivo. Estado actual: MIHM Core 2.0 sobre SF Observatory 2.5.",
+      "variables": [],
+      "equations": [],
+      "relations": [
+        "SF_N_0090",
+        "SF_N_0062",
+        "SF_N_0041",
+        "SF_N_0092"
+      ],
+      "docRelations": [
+        "SF_D_0091"
+      ],
+      "subsections": [
+        {
+          "id": "SF_S_0091_A",
+          "title": "Subsección A"
+        },
+        {
+          "id": "SF_S_0091_B",
+          "title": "Subsección B"
+        },
+        {
+          "id": "SF_S_0091_C",
+          "title": "Subsección C"
+        },
+        {
+          "id": "SF_S_0091_D",
+          "title": "Subsección D"
+        },
+        {
+          "id": "SF_S_0091_E",
+          "title": "Subsección E"
+        },
+        {
+          "id": "SF_S_0091_F",
+          "title": "Subsección F"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 3,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#48aa88",
+        "shape": "square",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0092",
+      "legacy_id": "SF_P_0092",
+      "name": "Observatorio System Friction",
+      "layer": "observatory",
+      "type": "model",
+      "cluster": "SF_CLUSTER_05",
+      "description": "El Observatorio System Friction es la interfaz principal del ecosistema. Integra el mapa cognitivo de 120 nodos, los paneles de métricas MIHM, las herramientas de análisis y el sistema de alertas en una plataforma de observación institucional.",
+      "variables": [],
+      "equations": [],
+      "relations": [
+        "SF_N_0091",
+        "SF_N_0080",
+        "SF_N_0093",
+        "SF_N_0001"
+      ],
+      "docRelations": [
+        "SF_D_0092",
+        "SF_D_acta",
+        "SF_D_timeline",
+        "SF_D_raw_index"
+      ],
+      "subsections": [
+        {
+          "id": "SF_S_0092_A",
+          "title": "Subsección A"
+        },
+        {
+          "id": "SF_S_0092_B",
+          "title": "Subsección B"
+        },
+        {
+          "id": "SF_S_0092_C",
+          "title": "Subsección C"
+        },
+        {
+          "id": "SF_S_0092_D",
+          "title": "Subsección D"
+        },
+        {
+          "id": "SF_S_0092_E",
+          "title": "Subsección E"
+        },
+        {
+          "id": "SF_S_0092_F",
+          "title": "Subsección F"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 4,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#6ec88a",
+        "shape": "triangle",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0093",
+      "legacy_id": "SF_P_0093",
+      "name": "Mapa Cognitivo Global",
+      "layer": "observatory",
+      "type": "model",
+      "cluster": "SF_CLUSTER_05",
+      "description": "El Mapa Cognitivo Global es la representación central del observatorio. Muestra los 120 nodos del sistema en layout radial de 4 anillos, con codificación visual de estado y fricción en tiempo real.",
+      "variables": [],
+      "equations": [],
+      "relations": [
+        "SF_N_0092",
+        "SF_N_0094",
+        "SF_N_0074"
+      ],
+      "docRelations": [],
+      "subsections": [
+        {
+          "id": "SF_S_0093_A",
+          "title": "Subsección A"
+        },
+        {
+          "id": "SF_S_0093_B",
+          "title": "Subsección B"
+        },
+        {
+          "id": "SF_S_0093_C",
+          "title": "Subsección C"
+        },
+        {
+          "id": "SF_S_0093_D",
+          "title": "Subsección D"
+        },
+        {
+          "id": "SF_S_0093_E",
+          "title": "Subsección E"
+        },
+        {
+          "id": "SF_S_0093_F",
+          "title": "Subsección F"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 4,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#6ec88a",
+        "shape": "triangle",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0094",
+      "legacy_id": "SF_P_0094",
+      "name": "Visualizador de Nodos",
+      "layer": "observatory",
+      "type": "model",
+      "cluster": "SF_CLUSTER_05",
+      "description": "El Visualizador de Nodos es el panel de detalle que se activa al seleccionar un nodo en el Mapa Cognitivo Global. Muestra la ficha estructurada del nodo con toda su información conceptual y sus métricas actuales.",
+      "variables": [],
+      "equations": [],
+      "relations": [
+        "SF_N_0093",
+        "SF_N_0095",
+        "SF_N_0096"
+      ],
+      "docRelations": [],
+      "subsections": [
+        {
+          "id": "SF_S_0094_A",
+          "title": "Subsección A"
+        },
+        {
+          "id": "SF_S_0094_B",
+          "title": "Subsección B"
+        },
+        {
+          "id": "SF_S_0094_C",
+          "title": "Subsección C"
+        },
+        {
+          "id": "SF_S_0094_D",
+          "title": "Subsección D"
+        },
+        {
+          "id": "SF_S_0094_E",
+          "title": "Subsección E"
+        },
+        {
+          "id": "SF_S_0094_F",
+          "title": "Subsección F"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 4,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#6ec88a",
+        "shape": "triangle",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0095",
+      "legacy_id": "SF_P_0095",
+      "name": "Explorador de Relaciones",
+      "layer": "observatory",
+      "type": "model",
+      "cluster": "SF_CLUSTER_05",
+      "description": "El Explorador de Relaciones es la herramienta de análisis de conectividad del observatorio. Permite filtrar, visualizar y analizar las relaciones del grafo según tipo, intensidad y estado.",
+      "variables": [],
+      "equations": [],
+      "relations": [
+        "SF_N_0094",
+        "SF_N_0096",
+        "SF_N_0087"
+      ],
+      "docRelations": [],
+      "subsections": [
+        {
+          "id": "SF_S_0095_A",
+          "title": "Subsección A"
+        },
+        {
+          "id": "SF_S_0095_B",
+          "title": "Subsección B"
+        },
+        {
+          "id": "SF_S_0095_C",
+          "title": "Subsección C"
+        },
+        {
+          "id": "SF_S_0095_D",
+          "title": "Subsección D"
+        },
+        {
+          "id": "SF_S_0095_E",
+          "title": "Subsección E"
+        },
+        {
+          "id": "SF_S_0095_F",
+          "title": "Subsección F"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 4,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#6ec88a",
+        "shape": "triangle",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0096",
+      "legacy_id": "SF_P_0096",
+      "name": "Panel de Métricas",
+      "layer": "observatory",
+      "type": "model",
+      "cluster": "SF_CLUSTER_05",
+      "description": "El Panel de Métricas es el dashboard principal del observatorio SF. Muestra los valores actuales de IHG, ICE, CRM, NTI, ISC, ICC y los demás índices MIHM con su interpretación y tendencia.",
+      "variables": [],
+      "equations": [],
+      "relations": [
+        "SF_N_0095",
+        "SF_N_0097",
+        "SF_N_0041"
+      ],
+      "docRelations": [
+        "SF_D_0096"
+      ],
+      "subsections": [
+        {
+          "id": "SF_S_0096_A",
+          "title": "Subsección A"
+        },
+        {
+          "id": "SF_S_0096_B",
+          "title": "Subsección B"
+        },
+        {
+          "id": "SF_S_0096_C",
+          "title": "Subsección C"
+        },
+        {
+          "id": "SF_S_0096_D",
+          "title": "Subsección D"
+        },
+        {
+          "id": "SF_S_0096_E",
+          "title": "Subsección E"
+        },
+        {
+          "id": "SF_S_0096_F",
+          "title": "Subsección F"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 4,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#6ec88a",
+        "shape": "triangle",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0097",
+      "legacy_id": "SF_P_0097",
+      "name": "Panel de Resonancia",
+      "layer": "observatory",
+      "type": "model",
+      "cluster": "SF_CLUSTER_05",
+      "description": "El Panel de Resonancia muestra el mapa de correlaciones entre nodos del sistema, identificando las zonas de alta sincronización y el riesgo de cascada disfuncional.",
+      "variables": [],
+      "equations": [],
+      "relations": [
+        "SF_N_0096",
+        "SF_N_0098",
+        "SF_N_0044"
+      ],
+      "docRelations": [],
+      "subsections": [
+        {
+          "id": "SF_S_0097_A",
+          "title": "Subsección A"
+        },
+        {
+          "id": "SF_S_0097_B",
+          "title": "Subsección B"
+        },
+        {
+          "id": "SF_S_0097_C",
+          "title": "Subsección C"
+        },
+        {
+          "id": "SF_S_0097_D",
+          "title": "Subsección D"
+        },
+        {
+          "id": "SF_S_0097_E",
+          "title": "Subsección E"
+        },
+        {
+          "id": "SF_S_0097_F",
+          "title": "Subsección F"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 4,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#6ec88a",
+        "shape": "triangle",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0098",
+      "legacy_id": "SF_P_0098",
+      "name": "Panel de Fricción",
+      "layer": "observatory",
+      "type": "model",
+      "cluster": "SF_CLUSTER_05",
+      "description": "El Panel de Fricción es la interfaz visual del Motor de Fricción. Muestra el mapa de gradiente de fricción, los puntos de acumulación críticos y la evolución temporal de la fricción sistémica.",
+      "variables": [],
+      "equations": [],
+      "relations": [
+        "SF_N_0097",
+        "SF_N_0099",
+        "SF_N_0057"
+      ],
+      "docRelations": [],
+      "subsections": [
+        {
+          "id": "SF_S_0098_A",
+          "title": "Subsección A"
+        },
+        {
+          "id": "SF_S_0098_B",
+          "title": "Subsección B"
+        },
+        {
+          "id": "SF_S_0098_C",
+          "title": "Subsección C"
+        },
+        {
+          "id": "SF_S_0098_D",
+          "title": "Subsección D"
+        },
+        {
+          "id": "SF_S_0098_E",
+          "title": "Subsección E"
+        },
+        {
+          "id": "SF_S_0098_F",
+          "title": "Subsección F"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 4,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#6ec88a",
+        "shape": "triangle",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0099",
+      "legacy_id": "SF_P_0099",
+      "name": "Mapa Temporal de Interacciones",
+      "layer": "observatory",
+      "type": "model",
+      "cluster": "SF_CLUSTER_05",
+      "description": "El Mapa Temporal de Interacciones convierte las series temporales de datos relacionales en una visualización navegable que permite recorrer la historia del sistema y identificar momentos de cambio crítico.",
+      "variables": [],
+      "equations": [],
+      "relations": [
+        "SF_N_0098",
+        "SF_N_0100",
+        "SF_N_0075"
+      ],
+      "docRelations": [],
+      "subsections": [
+        {
+          "id": "SF_S_0099_A",
+          "title": "Subsección A"
+        },
+        {
+          "id": "SF_S_0099_B",
+          "title": "Subsección B"
+        },
+        {
+          "id": "SF_S_0099_C",
+          "title": "Subsección C"
+        },
+        {
+          "id": "SF_S_0099_D",
+          "title": "Subsección D"
+        },
+        {
+          "id": "SF_S_0099_E",
+          "title": "Subsección E"
+        },
+        {
+          "id": "SF_S_0099_F",
+          "title": "Subsección F"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 4,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#6ec88a",
+        "shape": "triangle",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0100",
+      "legacy_id": "SF_P_0100",
+      "name": "Analizador de Conversaciones",
+      "layer": "observatory",
+      "type": "model",
+      "cluster": "SF_CLUSTER_05",
+      "description": "El Analizador de Conversaciones (panel del observatorio) presenta de forma visual los resultados del Analizador Conversacional del pipeline: patrones detectados, atractores del sistema y métricas de coherencia.",
+      "variables": [],
+      "equations": [],
+      "relations": [
+        "SF_N_0099",
+        "SF_N_0101",
+        "SF_N_0066"
+      ],
+      "docRelations": [],
+      "subsections": [
+        {
+          "id": "SF_S_0100_A",
+          "title": "Subsección A"
+        },
+        {
+          "id": "SF_S_0100_B",
+          "title": "Subsección B"
+        },
+        {
+          "id": "SF_S_0100_C",
+          "title": "Subsección C"
+        },
+        {
+          "id": "SF_S_0100_D",
+          "title": "Subsección D"
+        },
+        {
+          "id": "SF_S_0100_E",
+          "title": "Subsección E"
+        },
+        {
+          "id": "SF_S_0100_F",
+          "title": "Subsección F"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 4,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#6ec88a",
+        "shape": "triangle",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0101",
+      "legacy_id": "SF_P_0101",
+      "name": "Panel de Sincronización Cognitiva",
+      "layer": "observatory",
+      "type": "model",
+      "cluster": "SF_CLUSTER_05",
+      "description": "El Panel de Sincronización Cognitiva muestra el ISC del sistema y su descomposición en sus componentes temporal y semántico, permitiendo identificar si la desincronización es temporal o semántica.",
+      "variables": [],
+      "equations": [],
+      "relations": [
+        "SF_N_0100",
+        "SF_N_0102",
+        "SF_N_0051"
+      ],
+      "docRelations": [],
+      "subsections": [
+        {
+          "id": "SF_S_0101_A",
+          "title": "Subsección A"
+        },
+        {
+          "id": "SF_S_0101_B",
+          "title": "Subsección B"
+        },
+        {
+          "id": "SF_S_0101_C",
+          "title": "Subsección C"
+        },
+        {
+          "id": "SF_S_0101_D",
+          "title": "Subsección D"
+        },
+        {
+          "id": "SF_S_0101_E",
+          "title": "Subsección E"
+        },
+        {
+          "id": "SF_S_0101_F",
+          "title": "Subsección F"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 4,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#6ec88a",
+        "shape": "triangle",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0102",
+      "legacy_id": "SF_P_0102",
+      "name": "Visualizador de Campos Semánticos",
+      "layer": "observatory",
+      "type": "model",
+      "cluster": "SF_CLUSTER_05",
+      "description": "El Visualizador de Campos Semánticos renderiza el modelo de campo semántico como una topografía visual: zonas de alta densidad (términos bien definidos), gradientes (fronteras semánticas) y vacíos (conceptos faltantes).",
+      "variables": [],
+      "equations": [],
+      "relations": [
+        "SF_N_0101",
+        "SF_N_0103",
+        "SF_N_0043"
+      ],
+      "docRelations": [],
+      "subsections": [
+        {
+          "id": "SF_S_0102_A",
+          "title": "Subsección A"
+        },
+        {
+          "id": "SF_S_0102_B",
+          "title": "Subsección B"
+        },
+        {
+          "id": "SF_S_0102_C",
+          "title": "Subsección C"
+        },
+        {
+          "id": "SF_S_0102_D",
+          "title": "Subsección D"
+        },
+        {
+          "id": "SF_S_0102_E",
+          "title": "Subsección E"
+        },
+        {
+          "id": "SF_S_0102_F",
+          "title": "Subsección F"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 4,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#6ec88a",
+        "shape": "triangle",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0103",
+      "legacy_id": "SF_P_0103",
+      "name": "Motor de Navegación Cognitiva",
+      "layer": "observatory",
+      "type": "model",
+      "cluster": "SF_CLUSTER_05",
+      "description": "El Motor de Navegación Cognitiva es la guía inteligente del observatorio. Sugiere qué nodos explorar, qué relaciones investigar y qué secuencia de análisis seguir para obtener el diagnóstico más informativo del estado del sistema.",
+      "variables": [],
+      "equations": [],
+      "relations": [
+        "SF_N_0102",
+        "SF_N_0104",
+        "SF_N_0073"
+      ],
+      "docRelations": [],
+      "subsections": [
+        {
+          "id": "SF_S_0103_A",
+          "title": "Subsección A"
+        },
+        {
+          "id": "SF_S_0103_B",
+          "title": "Subsección B"
+        },
+        {
+          "id": "SF_S_0103_C",
+          "title": "Subsección C"
+        },
+        {
+          "id": "SF_S_0103_D",
+          "title": "Subsección D"
+        },
+        {
+          "id": "SF_S_0103_E",
+          "title": "Subsección E"
+        },
+        {
+          "id": "SF_S_0103_F",
+          "title": "Subsección F"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 4,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#6ec88a",
+        "shape": "triangle",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0104",
+      "legacy_id": "SF_P_0104",
+      "name": "Panel de Densidad Relacional",
+      "layer": "observatory",
+      "type": "model",
+      "cluster": "SF_CLUSTER_05",
+      "description": "El Panel de Densidad Relacional muestra la distribución de MDI en el grafo del sistema: qué nodos están en zona óptima, cuáles están sobrecargados y cuáles están aislados.",
+      "variables": [],
+      "equations": [],
+      "relations": [
+        "SF_N_0103",
+        "SF_N_0105",
+        "SF_N_0054"
+      ],
+      "docRelations": [],
+      "subsections": [
+        {
+          "id": "SF_S_0104_A",
+          "title": "Subsección A"
+        },
+        {
+          "id": "SF_S_0104_B",
+          "title": "Subsección B"
+        },
+        {
+          "id": "SF_S_0104_C",
+          "title": "Subsección C"
+        },
+        {
+          "id": "SF_S_0104_D",
+          "title": "Subsección D"
+        },
+        {
+          "id": "SF_S_0104_E",
+          "title": "Subsección E"
+        },
+        {
+          "id": "SF_S_0104_F",
+          "title": "Subsección F"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 4,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#6ec88a",
+        "shape": "triangle",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0105",
+      "legacy_id": "SF_P_0105",
+      "name": "Mapa de Gradientes Cognitivos",
+      "layer": "observatory",
+      "type": "model",
+      "cluster": "SF_CLUSTER_05",
+      "description": "El Mapa de Gradientes Cognitivos es la representación visual del campo de vectores del gradiente de fricción: muestra la dirección y magnitud del gradiente en cada punto del sistema, identificando dónde fluye la fricción.",
+      "variables": [],
+      "equations": [],
+      "relations": [
+        "SF_N_0104",
+        "SF_N_0106",
+        "SF_N_0057"
+      ],
+      "docRelations": [],
+      "subsections": [
+        {
+          "id": "SF_S_0105_A",
+          "title": "Subsección A"
+        },
+        {
+          "id": "SF_S_0105_B",
+          "title": "Subsección B"
+        },
+        {
+          "id": "SF_S_0105_C",
+          "title": "Subsección C"
+        },
+        {
+          "id": "SF_S_0105_D",
+          "title": "Subsección D"
+        },
+        {
+          "id": "SF_S_0105_E",
+          "title": "Subsección E"
+        },
+        {
+          "id": "SF_S_0105_F",
+          "title": "Subsección F"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 4,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#6ec88a",
+        "shape": "triangle",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0106",
+      "legacy_id": "SF_P_0106",
+      "name": "Explorador de Clústeres",
+      "layer": "observatory",
+      "type": "model",
+      "cluster": "SF_CLUSTER_05",
+      "description": "El Explorador de Clústeres permite analizar el sistema a nivel de clúster: el estado agregado de cada grupo de nodos, las relaciones entre clústeres y la detección de comunidades emergentes.",
+      "variables": [],
+      "equations": [],
+      "relations": [
+        "SF_N_0105",
+        "SF_N_0107",
+        "SF_N_0025"
+      ],
+      "docRelations": [],
+      "subsections": [
+        {
+          "id": "SF_S_0106_A",
+          "title": "Subsección A"
+        },
+        {
+          "id": "SF_S_0106_B",
+          "title": "Subsección B"
+        },
+        {
+          "id": "SF_S_0106_C",
+          "title": "Subsección C"
+        },
+        {
+          "id": "SF_S_0106_D",
+          "title": "Subsección D"
+        },
+        {
+          "id": "SF_S_0106_E",
+          "title": "Subsección E"
+        },
+        {
+          "id": "SF_S_0106_F",
+          "title": "Subsección F"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 4,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#6ec88a",
+        "shape": "triangle",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0107",
+      "legacy_id": "SF_P_0107",
+      "name": "Mapa de Sistemas Sociales",
+      "layer": "observatory",
+      "type": "model",
+      "cluster": "SF_CLUSTER_06",
+      "description": "El Mapa de Sistemas Sociales complementa el Mapa Cognitivo Global con información sobre la estructura social del sistema: quién ocupa qué posición, qué roles tienen, cómo se distribuye el poder estructural.",
+      "variables": [],
+      "equations": [],
+      "relations": [
+        "SF_N_0106",
+        "SF_N_0108",
+        "SF_N_0025"
+      ],
+      "docRelations": [],
+      "subsections": [
+        {
+          "id": "SF_S_0107_A",
+          "title": "Subsección A"
+        },
+        {
+          "id": "SF_S_0107_B",
+          "title": "Subsección B"
+        },
+        {
+          "id": "SF_S_0107_C",
+          "title": "Subsección C"
+        },
+        {
+          "id": "SF_S_0107_D",
+          "title": "Subsección D"
+        },
+        {
+          "id": "SF_S_0107_E",
+          "title": "Subsección E"
+        },
+        {
+          "id": "SF_S_0107_F",
+          "title": "Subsección F"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 4,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#ca8844",
+        "shape": "triangle",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0108",
+      "legacy_id": "SF_P_0108",
+      "name": "Panel de Ruido Cognitivo",
+      "layer": "observatory",
+      "type": "model",
+      "cluster": "SF_CLUSTER_06",
+      "description": "El Panel de Ruido Cognitivo muestra la MRC del sistema, las principales fuentes de ruido identificadas y su impacto sobre la capacidad de procesamiento institucional.",
+      "variables": [],
+      "equations": [],
+      "relations": [
+        "SF_N_0107",
+        "SF_N_0109",
+        "SF_N_0047"
+      ],
+      "docRelations": [],
+      "subsections": [
+        {
+          "id": "SF_S_0108_A",
+          "title": "Subsección A"
+        },
+        {
+          "id": "SF_S_0108_B",
+          "title": "Subsección B"
+        },
+        {
+          "id": "SF_S_0108_C",
+          "title": "Subsección C"
+        },
+        {
+          "id": "SF_S_0108_D",
+          "title": "Subsección D"
+        },
+        {
+          "id": "SF_S_0108_E",
+          "title": "Subsección E"
+        },
+        {
+          "id": "SF_S_0108_F",
+          "title": "Subsección F"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 4,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#ca8844",
+        "shape": "triangle",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0109",
+      "legacy_id": "SF_P_0109",
+      "name": "Panel de Coherencia Conversacional",
+      "layer": "observatory",
+      "type": "model",
+      "cluster": "SF_CLUSTER_06",
+      "description": "El Panel de Coherencia Conversacional visualiza el ICC del sistema, la distribución de coherencia entre nodos y los patrones de conversación que contribuyen positiva o negativamente a la coherencia.",
+      "variables": [],
+      "equations": [],
+      "relations": [
+        "SF_N_0108",
+        "SF_N_0110",
+        "SF_N_0045"
+      ],
+      "docRelations": [],
+      "subsections": [
+        {
+          "id": "SF_S_0109_A",
+          "title": "Subsección A"
+        },
+        {
+          "id": "SF_S_0109_B",
+          "title": "Subsección B"
+        },
+        {
+          "id": "SF_S_0109_C",
+          "title": "Subsección C"
+        },
+        {
+          "id": "SF_S_0109_D",
+          "title": "Subsección D"
+        },
+        {
+          "id": "SF_S_0109_E",
+          "title": "Subsección E"
+        },
+        {
+          "id": "SF_S_0109_F",
+          "title": "Subsección F"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 4,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#ca8844",
+        "shape": "triangle",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0110",
+      "legacy_id": "SF_P_0110",
+      "name": "Panel de Energía Relacional",
+      "layer": "observatory",
+      "type": "model",
+      "cluster": "SF_CLUSTER_06",
+      "description": "El Panel de Energía Relacional muestra el estado del balance energético de las relaciones del sistema: qué vínculos tienen alta energía disponible, cuáles están en deuda energética y cuáles en riesgo de AMT.",
+      "variables": [],
+      "equations": [],
+      "relations": [
+        "SF_N_0109",
+        "SF_N_0111",
+        "SF_N_0048"
+      ],
+      "docRelations": [],
+      "subsections": [
+        {
+          "id": "SF_S_0110_A",
+          "title": "Subsección A"
+        },
+        {
+          "id": "SF_S_0110_B",
+          "title": "Subsección B"
+        },
+        {
+          "id": "SF_S_0110_C",
+          "title": "Subsección C"
+        },
+        {
+          "id": "SF_S_0110_D",
+          "title": "Subsección D"
+        },
+        {
+          "id": "SF_S_0110_E",
+          "title": "Subsección E"
+        },
+        {
+          "id": "SF_S_0110_F",
+          "title": "Subsección F"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 4,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#ca8844",
+        "shape": "triangle",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0111",
+      "legacy_id": "SF_P_0111",
+      "name": "Mapa de Interacciones Humanas",
+      "layer": "observatory",
+      "type": "model",
+      "cluster": "SF_CLUSTER_06",
+      "description": "El Mapa de Interacciones Humanas es la capa del observatorio más cercana a los datos empíricos: muestra los patrones reales de interacción entre agentes con la mayor resolución disponible.",
+      "variables": [],
+      "equations": [],
+      "relations": [
+        "SF_N_0110",
+        "SF_N_0112",
+        "SF_N_0004"
+      ],
+      "docRelations": [],
+      "subsections": [
+        {
+          "id": "SF_S_0111_A",
+          "title": "Subsección A"
+        },
+        {
+          "id": "SF_S_0111_B",
+          "title": "Subsección B"
+        },
+        {
+          "id": "SF_S_0111_C",
+          "title": "Subsección C"
+        },
+        {
+          "id": "SF_S_0111_D",
+          "title": "Subsección D"
+        },
+        {
+          "id": "SF_S_0111_E",
+          "title": "Subsección E"
+        },
+        {
+          "id": "SF_S_0111_F",
+          "title": "Subsección F"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 4,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#ca8844",
+        "shape": "triangle",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0112",
+      "legacy_id": "SF_P_0112",
+      "name": "Visualizador Multinivel",
+      "layer": "observatory",
+      "type": "model",
+      "cluster": "SF_CLUSTER_06",
+      "description": "El Visualizador Multinivel implementa la navegación multi-escala del observatorio: el operador puede moverse fluidamente entre la vista del sistema completo, la vista de clúster, la vista de nodo y la vista de vínculo.",
+      "variables": [],
+      "equations": [],
+      "relations": [
+        "SF_N_0111",
+        "SF_N_0113",
+        "SF_N_0094"
+      ],
+      "docRelations": [],
+      "subsections": [
+        {
+          "id": "SF_S_0112_A",
+          "title": "Subsección A"
+        },
+        {
+          "id": "SF_S_0112_B",
+          "title": "Subsección B"
+        },
+        {
+          "id": "SF_S_0112_C",
+          "title": "Subsección C"
+        },
+        {
+          "id": "SF_S_0112_D",
+          "title": "Subsección D"
+        },
+        {
+          "id": "SF_S_0112_E",
+          "title": "Subsección E"
+        },
+        {
+          "id": "SF_S_0112_F",
+          "title": "Subsección F"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 4,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#ca8844",
+        "shape": "triangle",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0113",
+      "legacy_id": "SF_P_0113",
+      "name": "Explorador de Campos Cognitivos",
+      "layer": "observatory",
+      "type": "model",
+      "cluster": "SF_CLUSTER_06",
+      "description": "El Explorador de Campos Cognitivos permite al operador visualizar, comparar y analizar los modelos de campo cognitivo de los nodos del sistema, identificando similitudes, diferencias y zonas de potencial conflicto semántico.",
+      "variables": [],
+      "equations": [],
+      "relations": [
+        "SF_N_0112",
+        "SF_N_0114",
+        "SF_N_0043"
+      ],
+      "docRelations": [],
+      "subsections": [
+        {
+          "id": "SF_S_0113_A",
+          "title": "Subsección A"
+        },
+        {
+          "id": "SF_S_0113_B",
+          "title": "Subsección B"
+        },
+        {
+          "id": "SF_S_0113_C",
+          "title": "Subsección C"
+        },
+        {
+          "id": "SF_S_0113_D",
+          "title": "Subsección D"
+        },
+        {
+          "id": "SF_S_0113_E",
+          "title": "Subsección E"
+        },
+        {
+          "id": "SF_S_0113_F",
+          "title": "Subsección F"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 4,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#ca8844",
+        "shape": "triangle",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0114",
+      "legacy_id": "SF_P_0114",
+      "name": "Panel de Divergencia Semántica",
+      "layer": "observatory",
+      "type": "model",
+      "cluster": "SF_CLUSTER_07",
+      "description": "El Panel de Divergencia Semántica muestra el mapa de MDS del sistema, identificando los pares de nodos con mayor divergencia semántica y las tendencias de convergencia o divergencia.",
+      "variables": [],
+      "equations": [],
+      "relations": [
+        "SF_N_0113",
+        "SF_N_0115",
+        "SF_N_0049"
+      ],
+      "docRelations": [],
+      "subsections": [
+        {
+          "id": "SF_S_0114_A",
+          "title": "Subsección A"
+        },
+        {
+          "id": "SF_S_0114_B",
+          "title": "Subsección B"
+        },
+        {
+          "id": "SF_S_0114_C",
+          "title": "Subsección C"
+        },
+        {
+          "id": "SF_S_0114_D",
+          "title": "Subsección D"
+        },
+        {
+          "id": "SF_S_0114_E",
+          "title": "Subsección E"
+        },
+        {
+          "id": "SF_S_0114_F",
+          "title": "Subsección F"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 4,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#a070cc",
+        "shape": "triangle",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0115",
+      "legacy_id": "SF_P_0115",
+      "name": "Mapa de Resonancia Social",
+      "layer": "observatory",
+      "type": "model",
+      "cluster": "SF_CLUSTER_07",
+      "description": "El Mapa de Resonancia Social combina la MR con el análisis de campo social para mostrar dónde hay resonancias activas, qué patrones se están amplificando y qué zonas del sistema tienen riesgo de sincronización disfuncional.",
+      "variables": [],
+      "equations": [],
+      "relations": [
+        "SF_N_0114",
+        "SF_N_0116",
+        "SF_N_0029"
+      ],
+      "docRelations": [],
+      "subsections": [
+        {
+          "id": "SF_S_0115_A",
+          "title": "Subsección A"
+        },
+        {
+          "id": "SF_S_0115_B",
+          "title": "Subsección B"
+        },
+        {
+          "id": "SF_S_0115_C",
+          "title": "Subsección C"
+        },
+        {
+          "id": "SF_S_0115_D",
+          "title": "Subsección D"
+        },
+        {
+          "id": "SF_S_0115_E",
+          "title": "Subsección E"
+        },
+        {
+          "id": "SF_S_0115_F",
+          "title": "Subsección F"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 4,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#a070cc",
+        "shape": "triangle",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0116",
+      "legacy_id": "SF_P_0116",
+      "name": "Panel de Equilibrio Sistémico",
+      "layer": "observatory",
+      "type": "model",
+      "cluster": "SF_CLUSTER_07",
+      "description": "El Panel de Equilibrio Sistémico es la vista de más alto nivel del observatorio: muestra el IES del sistema, su posición en el espacio de estados y la trayectoria proyectada.",
+      "variables": [],
+      "equations": [],
+      "relations": [
+        "SF_N_0115",
+        "SF_N_0117",
+        "SF_N_0056"
+      ],
+      "docRelations": [],
+      "subsections": [
+        {
+          "id": "SF_S_0116_A",
+          "title": "Subsección A"
+        },
+        {
+          "id": "SF_S_0116_B",
+          "title": "Subsección B"
+        },
+        {
+          "id": "SF_S_0116_C",
+          "title": "Subsección C"
+        },
+        {
+          "id": "SF_S_0116_D",
+          "title": "Subsección D"
+        },
+        {
+          "id": "SF_S_0116_E",
+          "title": "Subsección E"
+        },
+        {
+          "id": "SF_S_0116_F",
+          "title": "Subsección F"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 4,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#a070cc",
+        "shape": "triangle",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0117",
+      "legacy_id": "SF_P_0117",
+      "name": "Mapa de Latencia Conversacional",
+      "layer": "observatory",
+      "type": "model",
+      "cluster": "SF_CLUSTER_07",
+      "description": "El Mapa de Latencia Conversacional muestra la distribución de LC y LDI en el grafo del sistema: qué vínculos tienen alta latencia, dónde están los cuellos de botella y cuáles están acercándose al umbral de invalidity de señal.",
+      "variables": [],
+      "equations": [],
+      "relations": [
+        "SF_N_0116",
+        "SF_N_0118",
+        "SF_N_0046"
+      ],
+      "docRelations": [],
+      "subsections": [
+        {
+          "id": "SF_S_0117_A",
+          "title": "Subsección A"
+        },
+        {
+          "id": "SF_S_0117_B",
+          "title": "Subsección B"
+        },
+        {
+          "id": "SF_S_0117_C",
+          "title": "Subsección C"
+        },
+        {
+          "id": "SF_S_0117_D",
+          "title": "Subsección D"
+        },
+        {
+          "id": "SF_S_0117_E",
+          "title": "Subsección E"
+        },
+        {
+          "id": "SF_S_0117_F",
+          "title": "Subsección F"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 4,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#a070cc",
+        "shape": "triangle",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0118",
+      "legacy_id": "SF_P_0118",
+      "name": "Panel de Perturbación Cognitiva",
+      "layer": "observatory",
+      "type": "model",
+      "cluster": "SF_CLUSTER_08",
+      "description": "El Panel de Perturbación Cognitiva muestra en tiempo real las perturbaciones detectadas en el sistema: su origen, intensidad, patrón de propagación y distancia al umbral crítico.",
+      "variables": [],
+      "equations": [],
+      "relations": [
+        "SF_N_0117",
+        "SF_N_0119",
+        "SF_N_0036"
+      ],
+      "docRelations": [
+        "SF_D_0118",
+        "SF_D_cara_b"
+      ],
+      "subsections": [
+        {
+          "id": "SF_S_0118_A",
+          "title": "Subsección A"
+        },
+        {
+          "id": "SF_S_0118_B",
+          "title": "Subsección B"
+        },
+        {
+          "id": "SF_S_0118_C",
+          "title": "Subsección C"
+        },
+        {
+          "id": "SF_S_0118_D",
+          "title": "Subsección D"
+        },
+        {
+          "id": "SF_S_0118_E",
+          "title": "Subsección E"
+        },
+        {
+          "id": "SF_S_0118_F",
+          "title": "Subsección F"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 4,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#8ac0aa",
+        "shape": "triangle",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0119",
+      "legacy_id": "SF_P_0119",
+      "name": "Mapa de Transferencia Semántica",
+      "layer": "observatory",
+      "type": "model",
+      "cluster": "SF_CLUSTER_08",
+      "description": "El Mapa de Transferencia Semántica muestra cómo fluye el significado a través del sistema institucional: qué rutas tiene, dónde pierde fidelidad y cuáles son los mecanismos de alta y baja fidelidad activos.",
+      "variables": [],
+      "equations": [],
+      "relations": [
+        "SF_N_0118",
+        "SF_N_0120",
+        "SF_N_0050"
+      ],
+      "docRelations": [],
+      "subsections": [
+        {
+          "id": "SF_S_0119_A",
+          "title": "Subsección A"
+        },
+        {
+          "id": "SF_S_0119_B",
+          "title": "Subsección B"
+        },
+        {
+          "id": "SF_S_0119_C",
+          "title": "Subsección C"
+        },
+        {
+          "id": "SF_S_0119_D",
+          "title": "Subsección D"
+        },
+        {
+          "id": "SF_S_0119_E",
+          "title": "Subsección E"
+        },
+        {
+          "id": "SF_S_0119_F",
+          "title": "Subsección F"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 4,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#8ac0aa",
+        "shape": "triangle",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0120",
+      "legacy_id": "SF_P_0120",
+      "name": "Panel de Estabilidad Relacional",
+      "layer": "observatory",
+      "type": "model",
+      "cluster": "SF_CLUSTER_08",
+      "description": "El Panel de Estabilidad Relacional es la herramienta de gestión de vínculos del observatorio. Muestra el E_estabilidad de cada vínculo y predice qué vínculos fallarán primero ante una perturbación.",
+      "variables": [],
+      "equations": [],
+      "relations": [
+        "SF_N_0119",
+        "SF_N_0121",
+        "SF_N_0055"
+      ],
+      "docRelations": [
+        "SF_D_0120",
+        "SF_D_carta1"
+      ],
+      "subsections": [
+        {
+          "id": "SF_S_0120_A",
+          "title": "Subsección A"
+        },
+        {
+          "id": "SF_S_0120_B",
+          "title": "Subsección B"
+        },
+        {
+          "id": "SF_S_0120_C",
+          "title": "Subsección C"
+        },
+        {
+          "id": "SF_S_0120_D",
+          "title": "Subsección D"
+        },
+        {
+          "id": "SF_S_0120_E",
+          "title": "Subsección E"
+        },
+        {
+          "id": "SF_S_0120_F",
+          "title": "Subsección F"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 4,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#8ac0aa",
+        "shape": "triangle",
+        "size": 4
+      }
+    },
+    {
+      "id": "SF_N_0121",
+      "legacy_id": "SF_P_0121",
+      "name": "Visualizador del Sistema Completo",
+      "layer": "observatory",
+      "type": "model",
+      "cluster": "SF_CLUSTER_08",
+      "description": "El Visualizador del Sistema Completo es la pantalla de resumen ejecutivo del observatorio. Integra todos los indicadores clave en una sola vista: el mapa cognitivo, las métricas principales, las alertas activas y la trayectoria del sistema.",
+      "variables": [],
+      "equations": [],
+      "relations": [
+        "SF_N_0120",
+        "SF_N_0092",
+        "SF_N_0001",
+        "SF_N_0041"
+      ],
+      "docRelations": [
+        "SF_D_0121",
+        "SF_D_carta2"
+      ],
+      "subsections": [
+        {
+          "id": "SF_S_0121_A",
+          "title": "Subsección A"
+        },
+        {
+          "id": "SF_S_0121_B",
+          "title": "Subsección B"
+        },
+        {
+          "id": "SF_S_0121_C",
+          "title": "Subsección C"
+        },
+        {
+          "id": "SF_S_0121_D",
+          "title": "Subsección D"
+        },
+        {
+          "id": "SF_S_0121_E",
+          "title": "Subsección E"
+        },
+        {
+          "id": "SF_S_0121_F",
+          "title": "Subsección F"
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "ring": 4,
+        "angle": 0
+      },
+      "visual": {
+        "color": "#8ac0aa",
+        "shape": "triangle",
+        "size": 4
+      }
+    }
+  ]
+}

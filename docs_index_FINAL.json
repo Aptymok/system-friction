@@ -1,0 +1,782 @@
+{
+  "metadata": {
+    "version": "2.0",
+    "total_documents": 59
+  },
+  "documents": [
+    {
+      "id": "SF_D_0001",
+      "nodeId": "SF_N_0001",
+      "title": "System Friction",
+      "type": "origin",
+      "tags": [
+        "system friction",
+        "origin"
+      ],
+      "relations": [
+        "SF_D_0002"
+      ]
+    },
+    {
+      "id": "SF_D_0002",
+      "nodeId": "SF_N_0002",
+      "title": "Campo Cognitivo",
+      "type": "theory",
+      "tags": [
+        "campo cognitivo",
+        "theory"
+      ],
+      "relations": [
+        "SF_D_0001",
+        "SF_D_0003"
+      ]
+    },
+    {
+      "id": "SF_D_0003",
+      "nodeId": "SF_N_0003",
+      "title": "Fricción Sistémica",
+      "type": "theory",
+      "tags": [
+        "fricción sistémica",
+        "theory"
+      ],
+      "relations": [
+        "SF_D_0002",
+        "SF_D_0004"
+      ]
+    },
+    {
+      "id": "SF_D_0004",
+      "nodeId": "SF_N_0004",
+      "title": "Interacción Humana Multicanal",
+      "type": "theory",
+      "tags": [
+        "interacción humana multicanal",
+        "theory"
+      ],
+      "relations": [
+        "SF_D_0003",
+        "SF_D_0005"
+      ]
+    },
+    {
+      "id": "SF_D_0005",
+      "nodeId": "SF_N_0005",
+      "title": "Energía Relacional",
+      "type": "theory",
+      "tags": [
+        "energía relacional",
+        "theory"
+      ],
+      "relations": [
+        "SF_D_0004",
+        "SF_D_0006"
+      ]
+    },
+    {
+      "id": "SF_D_0006",
+      "nodeId": "SF_N_0006",
+      "title": "Densidad de Interacción",
+      "type": "theory",
+      "tags": [
+        "densidad de interacción",
+        "theory"
+      ],
+      "relations": [
+        "SF_D_0005",
+        "SF_D_0007"
+      ]
+    },
+    {
+      "id": "SF_D_0007",
+      "nodeId": "SF_N_0007",
+      "title": "Gradiente de Fricción",
+      "type": "theory",
+      "tags": [
+        "gradiente de fricción",
+        "theory"
+      ],
+      "relations": [
+        "SF_D_0006",
+        "SF_D_0008"
+      ]
+    },
+    {
+      "id": "SF_D_0008",
+      "nodeId": "SF_N_0008",
+      "title": "Coherencia Sistémica",
+      "type": "theory",
+      "tags": [
+        "coherencia sistémica",
+        "theory"
+      ],
+      "relations": [
+        "SF_D_0007",
+        "SF_D_0009"
+      ]
+    },
+    {
+      "id": "SF_D_0009",
+      "nodeId": "SF_N_0009",
+      "title": "Desfase Cognitivo",
+      "type": "theory",
+      "tags": [
+        "desfase cognitivo",
+        "theory"
+      ],
+      "relations": [
+        "SF_D_0008",
+        "SF_D_0010"
+      ]
+    },
+    {
+      "id": "SF_D_0010",
+      "nodeId": "SF_N_0010",
+      "title": "Resonancia Semántica",
+      "type": "theory",
+      "tags": [
+        "resonancia semántica",
+        "theory"
+      ],
+      "relations": [
+        "SF_D_0009",
+        "SF_D_0011"
+      ]
+    },
+    {
+      "id": "SF_D_0011",
+      "nodeId": "SF_N_0011",
+      "title": "Vector Intencional",
+      "type": "theory",
+      "tags": [
+        "vector intencional",
+        "theory"
+      ],
+      "relations": [
+        "SF_D_0010",
+        "SF_D_0012"
+      ]
+    },
+    {
+      "id": "SF_D_0012",
+      "nodeId": "SF_N_0012",
+      "title": "Campo Semántico Compartido",
+      "type": "theory",
+      "tags": [
+        "campo semántico compartido",
+        "theory"
+      ],
+      "relations": [
+        "SF_D_0011",
+        "SF_D_0013"
+      ]
+    },
+    {
+      "id": "SF_D_0013",
+      "nodeId": "SF_N_0013",
+      "title": "Ruido Cognitivo",
+      "type": "theory",
+      "tags": [
+        "ruido cognitivo",
+        "theory"
+      ],
+      "relations": [
+        "SF_D_0012",
+        "SF_D_0014"
+      ]
+    },
+    {
+      "id": "SF_D_0014",
+      "nodeId": "SF_N_0014",
+      "title": "Latencia Conversacional",
+      "type": "theory",
+      "tags": [
+        "latencia conversacional",
+        "theory"
+      ],
+      "relations": [
+        "SF_D_0013",
+        "SF_D_0015"
+      ]
+    },
+    {
+      "id": "SF_D_0015",
+      "nodeId": "SF_N_0015",
+      "title": "Divergencia de Interpretación",
+      "type": "theory",
+      "tags": [
+        "divergencia de interpretación",
+        "theory"
+      ],
+      "relations": [
+        "SF_D_0014",
+        "SF_D_0016"
+      ]
+    },
+    {
+      "id": "SF_D_0016",
+      "nodeId": "SF_N_0016",
+      "title": "Sincronización Cognitiva",
+      "type": "theory",
+      "tags": [
+        "sincronización cognitiva",
+        "theory"
+      ],
+      "relations": [
+        "SF_D_0015",
+        "SF_D_0017"
+      ]
+    },
+    {
+      "id": "SF_D_0017",
+      "nodeId": "SF_N_0017",
+      "title": "Canal de Señal Social",
+      "type": "theory",
+      "tags": [
+        "canal de señal social",
+        "theory"
+      ],
+      "relations": [
+        "SF_D_0016",
+        "SF_D_0018"
+      ]
+    },
+    {
+      "id": "SF_D_0018",
+      "nodeId": "SF_N_0018",
+      "title": "Fricción Adaptativa",
+      "type": "theory",
+      "tags": [
+        "fricción adaptativa",
+        "theory"
+      ],
+      "relations": [
+        "SF_D_0017",
+        "SF_D_0019"
+      ]
+    },
+    {
+      "id": "SF_D_0019",
+      "nodeId": "SF_N_0019",
+      "title": "Memoria Sistémica",
+      "type": "theory",
+      "tags": [
+        "memoria sistémica",
+        "theory"
+      ],
+      "relations": [
+        "SF_D_0018",
+        "SF_D_0020"
+      ]
+    },
+    {
+      "id": "SF_D_0020",
+      "nodeId": "SF_N_0020",
+      "title": "Equilibrio Relacional",
+      "type": "theory",
+      "tags": [
+        "equilibrio relacional",
+        "theory"
+      ],
+      "relations": [
+        "SF_D_0019",
+        "SF_D_0021"
+      ]
+    },
+    {
+      "id": "SF_D_0021",
+      "nodeId": "SF_N_0021",
+      "title": "Marco Teórico System Friction",
+      "type": "theory",
+      "tags": [
+        "marco teórico system friction",
+        "theory"
+      ],
+      "relations": [
+        "SF_D_0020",
+        "SF_D_0022"
+      ]
+    },
+    {
+      "id": "SF_D_0022",
+      "nodeId": "SF_N_0022",
+      "title": "Teoría de Campos Cognitivos",
+      "type": "theory",
+      "tags": [
+        "teoría de campos cognitivos",
+        "theory"
+      ],
+      "relations": [
+        "SF_D_0021"
+      ]
+    },
+    {
+      "id": "SF_D_0032",
+      "nodeId": "SF_N_0032",
+      "title": "Modelo de Alineación Intencional",
+      "type": "theory",
+      "tags": [
+        "modelo de alineación intencional",
+        "theory"
+      ],
+      "relations": [
+        "SF_D_0033"
+      ]
+    },
+    {
+      "id": "SF_D_0033",
+      "nodeId": "SF_N_0033",
+      "title": "Teoría de Sistemas Conversacionales",
+      "type": "theory",
+      "tags": [
+        "teoría de sistemas conversacionales",
+        "theory"
+      ],
+      "relations": [
+        "SF_D_0032"
+      ]
+    },
+    {
+      "id": "SF_D_0041",
+      "nodeId": "SF_N_0041",
+      "title": "Modelo MIHM",
+      "type": "mathematics",
+      "tags": [
+        "modelo mihm",
+        "mathematics"
+      ],
+      "relations": []
+    },
+    {
+      "id": "SF_D_0056",
+      "nodeId": "SF_N_0056",
+      "title": "Índice de Equilibrio Sistémico",
+      "type": "mathematics",
+      "tags": [
+        "índice de equilibrio sistémico",
+        "mathematics"
+      ],
+      "relations": []
+    },
+    {
+      "id": "SF_D_0060",
+      "nodeId": "SF_N_0060",
+      "title": "Ecuación Global System Friction",
+      "type": "mathematics",
+      "tags": [
+        "ecuación global system friction",
+        "mathematics"
+      ],
+      "relations": [
+        "SF_D_0061"
+      ]
+    },
+    {
+      "id": "SF_D_0061",
+      "nodeId": "SF_N_0061",
+      "title": " ndice de Densidad Cognitiva (IDC)",
+      "type": "mathematics",
+      "tags": [
+        " ndice de densidad cognitiva (idc)",
+        "mathematics"
+      ],
+      "relations": [
+        "SF_D_0060",
+        "SF_D_0062"
+      ]
+    },
+    {
+      "id": "SF_D_0062",
+      "nodeId": "SF_N_0062",
+      "title": "Arquitectura System Friction",
+      "type": "technology",
+      "tags": [
+        "arquitectura system friction",
+        "technology"
+      ],
+      "relations": [
+        "SF_D_0061",
+        "SF_D_0063"
+      ]
+    },
+    {
+      "id": "SF_D_0063",
+      "nodeId": "SF_N_0063",
+      "title": "Pipeline de Procesamiento Cognitivo",
+      "type": "technology",
+      "tags": [
+        "pipeline de procesamiento cognitivo",
+        "technology"
+      ],
+      "relations": [
+        "SF_D_0062"
+      ]
+    },
+    {
+      "id": "SF_D_0084",
+      "nodeId": "SF_N_0084",
+      "title": "Sistema de Visualización 3D",
+      "type": "technology",
+      "tags": [
+        "sistema de visualización 3d",
+        "technology"
+      ],
+      "relations": []
+    },
+    {
+      "id": "SF_D_0088",
+      "nodeId": "SF_N_0088",
+      "title": "Sistema de Exploración de Datos",
+      "type": "technology",
+      "tags": [
+        "sistema de exploración de datos",
+        "technology"
+      ],
+      "relations": []
+    },
+    {
+      "id": "SF_D_0091",
+      "nodeId": "SF_N_0091",
+      "title": "Núcleo Computacional System Friction",
+      "type": "technology",
+      "tags": [
+        "núcleo computacional system friction",
+        "technology"
+      ],
+      "relations": [
+        "SF_D_0092"
+      ]
+    },
+    {
+      "id": "SF_D_0092",
+      "nodeId": "SF_N_0092",
+      "title": "Observatorio System Friction",
+      "type": "observatory",
+      "tags": [
+        "observatorio system friction",
+        "observatory"
+      ],
+      "relations": [
+        "SF_D_0091"
+      ]
+    },
+    {
+      "id": "SF_D_0096",
+      "nodeId": "SF_N_0096",
+      "title": "Panel de Métricas",
+      "type": "observatory",
+      "tags": [
+        "panel de métricas",
+        "observatory"
+      ],
+      "relations": []
+    },
+    {
+      "id": "SF_D_0118",
+      "nodeId": "SF_N_0118",
+      "title": "Panel de Perturbación Cognitiva",
+      "type": "observatory",
+      "tags": [
+        "panel de perturbación cognitiva",
+        "observatory"
+      ],
+      "relations": []
+    },
+    {
+      "id": "SF_D_0120",
+      "nodeId": "SF_N_0120",
+      "title": "Panel de Estabilidad Relacional",
+      "type": "observatory",
+      "tags": [
+        "panel de estabilidad relacional",
+        "observatory"
+      ],
+      "relations": [
+        "SF_D_0121"
+      ]
+    },
+    {
+      "id": "SF_D_0121",
+      "nodeId": "SF_N_0121",
+      "title": "Visualizador del Sistema Completo",
+      "type": "observatory",
+      "tags": [
+        "visualizador del sistema completo",
+        "observatory"
+      ],
+      "relations": [
+        "SF_D_0120"
+      ]
+    },
+    {
+      "id": "SF_D_0157",
+      "nodeId": "SF_N_0157",
+      "title": "Documento 0157",
+      "type": "core",
+      "tags": [
+        "documento 0157",
+        "core"
+      ],
+      "relations": [
+        "SF_D_0158"
+      ]
+    },
+    {
+      "id": "SF_D_0158",
+      "nodeId": "SF_N_0158",
+      "title": "Documento 0158",
+      "type": "core",
+      "tags": [
+        "documento 0158",
+        "core"
+      ],
+      "relations": [
+        "SF_D_0157",
+        "SF_D_0159"
+      ]
+    },
+    {
+      "id": "SF_D_0159",
+      "nodeId": "SF_N_0159",
+      "title": "Documento 0159",
+      "type": "core",
+      "tags": [
+        "documento 0159",
+        "core"
+      ],
+      "relations": [
+        "SF_D_0158",
+        "SF_D_0160"
+      ]
+    },
+    {
+      "id": "SF_D_0160",
+      "nodeId": "SF_N_0160",
+      "title": "Documento 0160",
+      "type": "core",
+      "tags": [
+        "documento 0160",
+        "core"
+      ],
+      "relations": [
+        "SF_D_0159",
+        "SF_D_0161"
+      ]
+    },
+    {
+      "id": "SF_D_0161",
+      "nodeId": "SF_N_0161",
+      "title": "Documento 0161",
+      "type": "core",
+      "tags": [
+        "documento 0161",
+        "core"
+      ],
+      "relations": [
+        "SF_D_0160",
+        "SF_D_0162"
+      ]
+    },
+    {
+      "id": "SF_D_0162",
+      "nodeId": "SF_N_0162",
+      "title": "Documento 0162",
+      "type": "core",
+      "tags": [
+        "documento 0162",
+        "core"
+      ],
+      "relations": [
+        "SF_D_0161"
+      ]
+    },
+    {
+      "id": "SF_D_0169",
+      "nodeId": "SF_N_0169",
+      "title": "Documento 0169",
+      "type": "core",
+      "tags": [
+        "documento 0169",
+        "core"
+      ],
+      "relations": []
+    },
+    {
+      "id": "SF_D_carta1",
+      "nodeId": "SF_N_0120",
+      "title": "Carta I — Emergencia",
+      "type": "carta",
+      "tags": [
+        "carta",
+        "carta i — emergencia"
+      ],
+      "relations": [
+        "SF_D_carta2",
+        "SF_D_acta"
+      ]
+    },
+    {
+      "id": "SF_D_carta2",
+      "nodeId": "SF_N_0121",
+      "title": "Carta II — Observador Futuro",
+      "type": "carta",
+      "tags": [
+        "carta",
+        "carta ii — observador futuro"
+      ],
+      "relations": [
+        "SF_D_carta1",
+        "SF_D_acta"
+      ]
+    },
+    {
+      "id": "SF_D_acta",
+      "nodeId": "SF_N_0092",
+      "title": "Acta de Origen",
+      "type": "acta",
+      "tags": [
+        "acta",
+        "acta de origen"
+      ],
+      "relations": [
+        "SF_D_carta1",
+        "SF_D_carta2",
+        "SF_D_timeline"
+      ]
+    },
+    {
+      "id": "SF_D_readme",
+      "nodeId": "SF_N_0061",
+      "title": "README Estructura",
+      "type": "readme",
+      "tags": [
+        "readme",
+        "readme estructura"
+      ],
+      "relations": []
+    },
+    {
+      "id": "SF_D_timeline",
+      "nodeId": "SF_N_0092",
+      "title": "Timeline T0-T12",
+      "type": "timeline",
+      "tags": [
+        "timeline",
+        "timeline t0-t12"
+      ],
+      "relations": [
+        "SF_D_acta",
+        "SF_D_raw_index"
+      ]
+    },
+    {
+      "id": "SF_D_conceptos",
+      "nodeId": "SF_N_0001",
+      "title": "Conceptos Nucleares",
+      "type": "conceptos",
+      "tags": [
+        "conceptos",
+        "conceptos nucleares"
+      ],
+      "relations": [
+        "SF_D_diccionario"
+      ]
+    },
+    {
+      "id": "SF_D_metricas",
+      "nodeId": "SF_N_0041",
+      "title": "Métricas y Fórmulas",
+      "type": "metricas",
+      "tags": [
+        "metricas",
+        "métricas y fórmulas"
+      ],
+      "relations": [
+        "SF_D_indices"
+      ]
+    },
+    {
+      "id": "SF_D_indices",
+      "nodeId": "SF_N_0041",
+      "title": "Índices Sistémicos",
+      "type": "indices",
+      "tags": [
+        "indices",
+        "índices sistémicos"
+      ],
+      "relations": [
+        "SF_D_metricas"
+      ]
+    },
+    {
+      "id": "SF_D_features",
+      "nodeId": "SF_N_0061",
+      "title": "Taxonomía de Features",
+      "type": "features",
+      "tags": [
+        "features",
+        "taxonomía de features"
+      ],
+      "relations": []
+    },
+    {
+      "id": "SF_D_diccionario",
+      "nodeId": "SF_N_0001",
+      "title": "Diccionario Operativo",
+      "type": "diccionario",
+      "tags": [
+        "diccionario",
+        "diccionario operativo"
+      ],
+      "relations": [
+        "SF_D_conceptos"
+      ]
+    },
+    {
+      "id": "SF_D_hoja",
+      "nodeId": "SF_N_0169",
+      "title": "Hoja de Ruta",
+      "type": "hoja",
+      "tags": [
+        "hoja",
+        "hoja de ruta"
+      ],
+      "relations": []
+    },
+    {
+      "id": "SF_D_decisiones",
+      "nodeId": "SF_N_0088",
+      "title": "Registro de Decisiones",
+      "type": "decisiones",
+      "tags": [
+        "decisiones",
+        "registro de decisiones"
+      ],
+      "relations": []
+    },
+    {
+      "id": "SF_D_cara_b",
+      "nodeId": "SF_N_0118",
+      "title": "Cara B · O(t)",
+      "type": "cara_b",
+      "tags": [
+        "cara_b",
+        "cara b · o(t)"
+      ],
+      "relations": []
+    },
+    {
+      "id": "SF_D_raw_index",
+      "nodeId": "SF_N_0092",
+      "title": "Índice Raw",
+      "type": "raw_index",
+      "tags": [
+        "raw_index",
+        "índice raw"
+      ],
+      "relations": [
+        "SF_D_timeline"
+      ]
+    }
+  ]
+}
