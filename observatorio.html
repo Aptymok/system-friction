@@ -380,7 +380,7 @@ function draw(){
   ctx.restore();
 }
 
-// ── LÓGICA DE CARGA ───────────────────────────────────────────────────────
+// --- CARGA DE DATOS CON INYECCIÓN DE COORDENADAS ---
 async function loadSystemData() {
   try {
     const statusEl = document.getElementById('stind');
@@ -391,36 +391,63 @@ async function loadSystemData() {
     const data = await response.json();
     const rawNodes = data.nodes || data;
 
+    // MAPEADOR: Aquí resolvemos la falta de coordenadas y el mapeo de campos
     NODES = rawNodes.map((n, i) => {
-  // Calculamos el ID del cluster (asumiendo formato SF_CLUSTER_01)
-  const clusterId = n.cluster ? parseInt(n.cluster.split('_').pop()) : (n.cl || 1);
-  
-  // GENERADOR AUTOMÁTICO DE POSICIÓN (Si el JSON no tiene coordenadas)
-  // Creamos una distribución circular inicial para que no se amontonen en el centro
-  const angle = (i / rawNodes.length) * Math.PI * 2;
-  const radius = 200 + (clusterId * 30); // El radio depende del cluster
+      const clusterNum = n.cluster ? parseInt(n.cluster.split('_').pop()) : 1;
+      
+      // Creamos una distribución inicial circular (Galaxia) para que el Orbe tenga datos
+      const angle = (i / rawNodes.length) * Math.PI * 2;
+      const radius = 150 + (clusterNum * 40);
 
-  return {
-    id: n.id || "ID_MISSING",
-    nm: n.name || n.nm || "Sin nombre",
-    ds: n.description || n.ds || "",
-    ly: n.layer || n.ly || "theory",
-    cl: clusterId,
-    vr: n.variables || n.vr || [],
-    rl: n.relations || n.rl || [],
-    sb: (n.subsections || n.sb || []).map(s => s.title || s),
-    // Aquí está la clave: si no hay n.x, usa la posición circular calculada arriba
-    x: n.x || (n.visual ? n.visual.x : Math.cos(angle) * radius),
-    y: n.y || (n.visual ? n.visual.y : Math.sin(angle) * radius)
-  };
-});
+      return {
+        id: n.id || `NODE_${i}`,
+        nm: n.name || n.nm || "Sin nombre",
+        ds: n.description || n.ds || "",
+        ly: n.layer || n.ly || "theory",
+        cl: clusterNum,
+        vr: n.variables || [],
+        rl: n.relations || n.rl || [], // Mapeo para sugerencias
+        sb: (n.subsections || []).map(s => ({ title: s.title, content: s.content || "Contenido en desarrollo" })),
+        // Si el JSON no tiene x/y, inyectamos la posición calculada
+        x: Number(n.x) || (n.visual && n.visual.x) || Math.cos(angle) * radius,
+        y: Number(n.y) || (n.visual && n.visual.y) || Math.sin(angle) * radius
+      };
+    });
 
     initObservatorio();
-    applyPat('orbe', 'SISTEMA INICIADO');
+    
+    // Forzamos el patrón Orbe al inicio para que se expandan desde el centro
+    setTimeout(() => applyPat('orbe', 'SISTEMA CARGADO'), 500);
+
   } catch (error) {
     console.error('Error:', error);
     document.getElementById('stind').textContent = '[ ERROR DE CARGA ]';
   }
+}
+
+// --- INICIALIZACIÓN DEL MOTOR VISUAL ---
+function initObservatorio(){
+  nmap.clear();
+  NODES.forEach(n => { if(n.id) nmap.set(n.id, n); });
+
+  // Índice de búsqueda con protección contra undefined
+  idx = NODES.map(n => ({
+    id: n.id,
+    n: n,
+    kw: [
+      (n.nm || "").toLowerCase(),
+      (n.id || "").toLowerCase(),
+      (n.ly || "").toLowerCase()
+    ]
+  }));
+
+  // Inicializar posiciones físicas
+  positions = {};
+  NODES.forEach(n => {
+    positions[n.id] = { x: n.x, y: n.y };
+  });
+
+  setStatus(NODES.length + ' NODOS ACTIVOS');
 }
 
 // ── HIT TEST & EVENTOS ────────────────────────────────────────────────────
