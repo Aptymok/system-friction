@@ -274,24 +274,29 @@ function initObservatorio(){
   nmap.clear();
   NODES.forEach(n=>nmap.set(n.id,n));
   idx=NODES.map(n=>({
-    id:n.id,n,
-    kw:[n.nm.toLowerCase(),n.id.toLowerCase(),(n.ly||''),
-        ...(n.vr||[]).map(v=>v.toLowerCase()),
-        ...(n.ds||'').toLowerCase().split(' ').slice(0,12)]
+    id:n.id,
+    n:n,
+    kw:[
+      (n.nm || '').toLowerCase(),
+      (n.id || '').toLowerCase(),
+      (n.ly || ''),
+      ...(n.vr || []).map(v => (v || '').toLowerCase()),
+      ...((n.ds || '').toLowerCase().split(' ').slice(0,12))
+    ]
   }));
-  positions={};
-  initPos();
+  positions = {};
+  NODES.forEach(n => {
+    if (n && n.id && typeof n.x === 'number' && typeof n.y === 'number') {
+      positions[n.id] = {x: n.x, y: n.y};
+    }
+  });
   setStatus(NODES.length+' NODOS ACTIVOS');
   draw();
 }
 
-// ── INIT POSITIONS ────────────────────────────────────────────────────────
-function initPos(){
-  NODES.forEach(n=>{ positions[n.id]={x:n.x, y:n.y}; });
-}
-
 // ── NODE RADIUS ───────────────────────────────────────────────────────────
 function getR(n){
+  if(!n || !n.id) return 4;
   if(n.id==='SF_P_0001') return 11;
   if(['SF_P_0041','SF_P_0061','SF_P_0021'].includes(n.id)) return 8;
   if(n.ly==='origin') return 6;
@@ -305,12 +310,14 @@ function getTargets(pat){
   const count=NODES.length;
   const byLayer={}, byCl={};
   NODES.forEach(n=>{
+    if(!n || !n.id) return;
     if(!byLayer[n.ly]) byLayer[n.ly]=[];
     if(!byCl[n.cl]) byCl[n.cl]=[];
     byLayer[n.ly].push(n);
     byCl[n.cl].push(n);
   });
   NODES.forEach((n,i)=>{
+    if(!n || !n.id) return;
     let x=0,y=0;
     if(pat==='orbe'){
       x=n.x; y=n.y;
@@ -318,17 +325,18 @@ function getTargets(pat){
       const cx=[0,0,200,0,-200,300,-300,-300,300];
       const cy=[0,0,0,220,-220,300,300,-300,-300];
       const cc={x:cx[n.cl]||0, y:cy[n.cl]||0};
-      const idx=byCl[n.cl].indexOf(n);
-      const cnt=byCl[n.cl].length;
+      const arr=byCl[n.cl] || [];
+      const idx=arr.indexOf(n);
+      const cnt=arr.length;
       const a=(idx/Math.max(cnt,1))*Math.PI*2;
       const r=55+Math.floor(idx/8)*28;
       x=cc.x+r*Math.cos(a); y=cc.y+r*Math.sin(a);
     } else if(pat==='capas'){
       const layers=['origin','theory','mathematics','technology','observatory'];
       const li=layers.indexOf(n.ly);
-      const arr=byLayer[n.ly];
+      const arr=byLayer[n.ly] || [];
       const idx=arr.indexOf(n);
-      const r=70+li*130;
+      const r=70+Math.max(li,0)*130;
       const a=(idx/Math.max(arr.length,1))*Math.PI*2;
       x=r*Math.cos(a); y=r*Math.sin(a);
     } else if(pat==='grid'){
@@ -367,8 +375,10 @@ function draw(){
   if(animOn){
     let done=true;
     NODES.forEach(n=>{
+      if(!n || !n.id) return;
       const t=animTarget[n.id];if(!t)return;
       const p=positions[n.id];
+      if(!p) return;
       const dx=t.x-p.x,dy=t.y-p.y;
       if(Math.abs(dx)>.4||Math.abs(dy)>.4){
         p.x+=dx*.09;p.y+=dy*.09;done=false;
@@ -383,7 +393,9 @@ function draw(){
 
   // Edges
   NODES.forEach(n=>{
+    if(!n || !n.id) return;
     const p0=positions[n.id];
+    if(!p0) return;
     (n.rl||[]).forEach(rid=>{
       const p1=positions[rid];if(!p1)return;
       const isSel=selId&&(n.id===selId||rid===selId);
@@ -399,7 +411,9 @@ function draw(){
 
   // Nodes
   NODES.forEach(n=>{
+    if(!n || !n.id) return;
     const p=positions[n.id];
+    if(!p) return;
     const isHov=n.id===hoverId;
     const isSel=n.id===selId;
     const isH=highlightSet.has(n.id);
@@ -430,7 +444,7 @@ function draw(){
       const fs=Math.max(7,Math.min(r*1.1,10));
       ctx.font=`${fs}px 'Space Mono',monospace`;
       ctx.textAlign='center';ctx.textBaseline='top';
-      const lbl=n.nm.length>18?n.nm.slice(0,16)+'…':n.nm;
+      const lbl=(n.nm||'').length>18?(n.nm||'').slice(0,16)+'…':(n.nm||'');
       ctx.fillText(lbl,p.x,p.y+r+3);
     }
   });
@@ -443,7 +457,9 @@ function hit(ex,ey){
   const wx=(ex-pan.x)/zoom, wy=(ey-pan.y)/zoom;
   let best=null, bd=Infinity;
   NODES.forEach(n=>{
+    if(!n || !n.id) return;
     const p=positions[n.id];
+    if(!p) return;
     const r=getR(n)+6;
     const d=Math.sqrt((wx-p.x)**2+(wy-p.y)**2);
     if(d<=r&&d<bd){best=n;bd=d;}
@@ -453,14 +469,15 @@ function hit(ex,ey){
 
 // ── TOOLTIP ───────────────────────────────────────────────────────────────
 function showTT(n,ex,ey){
+  if(!n) return;
   const tt=document.getElementById('tt');
-  document.getElementById('tt-id').textContent=n.id;
-  document.getElementById('tt-nm').textContent=n.nm;
+  document.getElementById('tt-id').textContent=n.id || '—';
+  document.getElementById('tt-nm').textContent=n.nm || '—';
   const col=LC[n.ly]||'#888';
   document.getElementById('tt-badges').innerHTML=
-    '<span class="tt-b" style="border-color:'+col+';color:'+col+'">'+(LL[n.ly]||n.ly.toUpperCase())+'</span>'+
-    '<span class="tt-b" style="border-color:#3D3D4E;color:#5a5a6e">C-'+n.cl+'</span>';
-  document.getElementById('tt-ds').textContent=(n.ds||'Sin descripción').slice(0,110)+(n.ds&&n.ds.length>110?'…':'');
+    '<span class="tt-b" style="border-color:'+col+';color:'+col+'">'+(LL[n.ly]||(n.ly||'').toUpperCase())+'</span>'+
+    '<span class="tt-b" style="border-color:#3D3D4E;color:#5a5a6e">C-'+(n.cl||'0')+'</span>';
+  document.getElementById('tt-ds').textContent=((n.ds||'Sin descripción').slice(0,110)+(n.ds&&n.ds.length>110?'…':''));
   document.getElementById('tt-rl').textContent=(n.rl||[]).length+' relaciones · '+(n.sb||[]).length+' secciones';
   tt.style.display='block';
   let tx=ex+15,ty=ey-10;
@@ -473,29 +490,29 @@ function hideTT(){document.getElementById('tt').style.display='none';}
 
 // ── PANEL ─────────────────────────────────────────────────────────────────
 function showPanel(n){
-  if(!NODES.length){
+  if(!NODES.length || !n){
     console.warn('Nodos no cargados aún');
     return;
   }
   selId=n.id;
-  document.getElementById('dpk').textContent=n.id;
-  document.getElementById('dpt').textContent=n.nm;
+  document.getElementById('dpk').textContent=n.id || '—';
+  document.getElementById('dpt').textContent=n.nm || '—';
   const col=LC[n.ly]||'#888';
-  let html='<div class="dp-badges"><span class="dp-b" style="border-color:'+col+';color:'+col+'">'+(LL[n.ly]||n.ly.toUpperCase())+'</span><span class="dp-b" style="border-color:#3D3D4E;color:#5a5a6e">CLUSTER-'+n.cl+'</span></div>';
-  html+='<h1>'+n.nm+'</h1><p>'+(n.ds||'Sin descripción disponible.')+'</p>';
-  if(n.vr&&n.vr.length) html+='<h2>Variables</h2><ul>'+n.vr.map(v=>'<li><code>'+v+'</code></li>').join('')+'</ul>';
+  let html='<div class="dp-badges"><span class="dp-b" style="border-color:'+col+';color:'+col+'">'+(LL[n.ly]||(n.ly||'').toUpperCase())+'</span><span class="dp-b" style="border-color:#3D3D4E;color:#5a5a6e">CLUSTER-'+(n.cl||'0')+'</span></div>';
+  html+='<h1>'+(n.nm||'')+'</h1><p>'+(n.ds||'Sin descripción disponible.')+'</p>';
+  if(n.vr&&n.vr.length) html+='<h2>Variables</h2><ul>'+n.vr.map(v=>'<li><code>'+(v||'')+'</code></li>').join('')+'</ul>';
   if(n.sb&&n.sb.length){
     html+='<h2>Subsecciones</h2>';
-    n.sb.forEach(s=>{html+='<h3>'+s+'</h3><p style="color:var(--a);font-size:10px;font-style:italic">Contenido en desarrollo</p>';});
+    n.sb.forEach(s=>{html+='<h3>'+(s||'')+'</h3><p style="color:var(--a);font-size:10px;font-style:italic">Contenido en desarrollo</p>';});
   }
-  if(DOCS[n.id] && DOCS[n.id].full){
-    html+='<h2>Documento completo</h2><pre>'+DOCS[n.id].full.replace(/</g,'&lt;').replace(/>/g,'&gt;')+'</pre>';
+  if(DOCS && DOCS[n.id] && DOCS[n.id].full){
+    html+='<h2>Documento completo</h2><pre>'+(DOCS[n.id].full||'').replace(/</g,'&lt;').replace(/>/g,'&gt;')+'</pre>';
   }
   document.getElementById('dpb').innerHTML=html;
   const sl=document.getElementById('dpsl');sl.innerHTML='';
   (n.rl||[]).forEach(rid=>{
     const rn=nmap.get(rid);if(!rn)return;
-    const b=document.createElement('button');b.className='sl';b.textContent=rn.nm;
+    const b=document.createElement('button');b.className='sl';b.textContent=rn.nm || rid;
     b.onclick=()=>showPanel(rn);sl.appendChild(b);
   });
   document.getElementById('dpst').textContent=(n.rl||[]).length?'TAMBIÉN OBSERVAR':'SIN RELACIONES';
@@ -511,14 +528,15 @@ function hidePanel(){
 
 // ── SEARCH ────────────────────────────────────────────────────────────────
 function doSearch(q){
-  if(!q||q.length<2)return[];
+  if(!q || q.length<2)return[];
   const terms=q.toLowerCase().split(' ').filter(Boolean);
   return idx.map(item=>{
+    if(!item || !item.n) return {sc:0};
     let sc=0;
     terms.forEach(t=>{
-      if(item.n.nm.toLowerCase().includes(t))sc+=10;
-      else if(item.n.id.toLowerCase().includes(t))sc+=8;
-      else if(item.kw.some(k=>k.includes(t)))sc+=3;
+      if(item.n.nm && item.n.nm.toLowerCase().includes(t))sc+=10;
+      else if(item.n.id && item.n.id.toLowerCase().includes(t))sc+=8;
+      else if(item.kw && item.kw.some(k => k && k.includes(t)))sc+=3;
     });
     return{...item,sc};
   }).filter(x=>x.sc>0).sort((a,b)=>b.sc-a.sc).slice(0,12);
@@ -534,11 +552,12 @@ tin.addEventListener('input',e=>{
   const res=doSearch(currentQ);
   sugs.innerHTML='';highlightSet.clear();
   res.forEach((r,i)=>{
-    highlightSet.add(r.id);
+    if(!r || !r.n || !r.n.id) return;
+    highlightSet.add(r.n.id);
     const b=document.createElement('button');
     b.className='sp'+(i<3?' top':'');
-    b.textContent=r.n.nm;
-    b.onclick=()=>{showPanel(r.n);tin.value=r.n.nm;setEcho('→ '+r.id);};
+    b.textContent=r.n.nm || r.n.id;
+    b.onclick=()=>{showPanel(r.n);tin.value=r.n.nm || r.n.id;setEcho('→ '+r.n.id);};
     sugs.appendChild(b);
   });
   setEcho(res.length?(res.length+' nodo'+(res.length>1?'s':'')+' encontrado'+(res.length>1?'s':'')):'Sin coincidencias');
@@ -556,7 +575,7 @@ async function runAI(q){
   setStatus('IA PROCESANDO...');
   setEcho('Consultando motor semántico IA...');
 
-  const nodeIdx=NODES.map(n=>n.id+'|'+n.nm+'|'+n.ly).join('\n');
+  const nodeIdx=NODES.map(n=>n.id+'|'+(n.nm||'')+'|'+(n.ly||'')).join('\n');
   const prompt='Motor semántico System Friction. Consulta: "'+q+'"\n\nNodos disponibles (id|nombre|capa):\n'+nodeIdx+'\n\nResponde SOLO con JSON válido, sin markdown:\n{"analysis":"2-3 oraciones desde System Friction","nodes":["SF_P_XXXX","SF_P_XXXX","SF_P_XXXX"],"signal":"señal detectada en 1 frase","nti":0.45,"ihg":0.3,"ice":0.7}';
 
   try{
@@ -579,7 +598,7 @@ async function runAI(q){
       const rn=nmap.get(id);if(!rn)return;
       highlightSet.add(id);
       const b=document.createElement('button');
-      b.className='sp ai-r';b.textContent=rn.nm;
+      b.className='sp ai-r';b.textContent=rn.nm || id;
       b.onclick=()=>showPanel(rn);sugs.appendChild(b);
     });
 
@@ -591,12 +610,12 @@ async function runAI(q){
       '<div class="ai-body" style="margin-top:.5rem;color:var(--a)">Señal: '+(res.signal||'—')+'</div>'+
       '<div class="ai-nti">NTI '+(res.nti||'—')+'</div></div>'+
       '<h2>NODOS IDENTIFICADOS</h2>'+
-      (res.nodes||[]).map(id=>{const rn=nmap.get(id);return rn?'<p><strong>'+rn.nm+'</strong><br><span style="color:var(--a);font-size:10px">'+id+' · '+(LL[rn.ly]||rn.ly)+'</span></p>':''}).join('');
+      (res.nodes||[]).map(id=>{const rn=nmap.get(id);return rn?'<p><strong>'+(rn.nm||id)+'</strong><br><span style="color:var(--a);font-size:10px">'+id+' · '+(LL[rn.ly]||(rn.ly||''))+'</span></p>':''}).join('');
 
     const sl=document.getElementById('dpsl');sl.innerHTML='';
     (res.nodes||[]).forEach(id=>{
       const rn=nmap.get(id);if(!rn)return;
-      const b=document.createElement('button');b.className='sl';b.textContent=rn.nm;
+      const b=document.createElement('button');b.className='sl';b.textContent=rn.nm || id;
       b.onclick=()=>showPanel(rn);sl.appendChild(b);
     });
     document.getElementById('dpst').textContent='NODOS IDENTIFICADOS';
@@ -745,7 +764,7 @@ window.addEventListener('resize',resize);
 resize();
 document.addEventListener('datosCargados', function() {
   console.log('🚀 Datos cargados, iniciando observatorio');
-  if (typeof initScene === 'function') initScene();
+  if (typeof initObservatorio === 'function') initObservatorio();
   if (typeof draw === 'function') draw();
 });
 </script>
