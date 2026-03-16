@@ -1,9 +1,8 @@
 // docs_completos.js
 // Documentos completos de System Friction
-// Generado automáticamente - NO MODIFICAR MANUALMENTE
 // Fecha: 2026-03-16
 
-const DOCS = {
+window.DOCS = {
     'SF_P_0001': {
         full: `---
 title: "Cómo leer este ecosistema"
