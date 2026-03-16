@@ -449,40 +449,41 @@ function draw(){
 
 async function loadSystemData() {
   try {
-    setStatus('VINCULANDO BIBLIOTECA JS...');
+    const statusEl = document.getElementById('stind');
+    if (statusEl) statusEl.textContent = '[ VINCULANDO NUCLEO... ]';
 
-    // 1. Cargar nodos JSON
-    const nodesResp = await fetch('SystemFrictionNodes.json', { cache: "no-store" });
-    if (!nodesResp.ok) throw new Error('No se pudo cargar SystemFrictionNodes.json');
+    // 1. Cargar la estructura de nodos
+    const response = await fetch('SystemFrictionNodes.json', { cache: "no-store" });
+    if (!response.ok) throw new Error('No se pudo cargar SystemFrictionNodes.json');
+    const nodesData = await response.json();
+    const rawNodes = nodesData.nodes || nodesData;
 
-    const nodesData = await nodesResp.json();
-    const rawNodes0 = Array.isArray(nodesData?.nodes) ? nodesData.nodes : (Array.isArray(nodesData) ? nodesData : []);
-    const isNode = (o) => o && typeof o === "object" && typeof o.id === "string";
-    const rawNodes = rawNodes0.filter(isNode);
-
-    // 2. Tomar biblioteca desde variable global (del archivo docs_completos.js)
+    // 2. Acceder a la biblioteca cargada desde docs_completos.js
     const biblioteca = (window.DOCS && typeof window.DOCS === 'object') ? window.DOCS : {};
 
-    // 3. Normalizar y vincular
     NODES = rawNodes.map((n, i) => {
-      const clusterNum = (typeof n.cluster === "string" && n.cluster.includes("_"))
-        ? (parseInt(n.cluster.split("_").pop(), 10) || 1)
-        : 1;
+      const clusterNum = n.cluster ? parseInt(n.cluster.split('_').pop()) : 1;
+      
+      // Generador de coordenadas para evitar error de gradiente "non-finite"
+      const angle = (i / rawNodes.length) * Math.PI * 2;
+      const radius = 180 + (clusterNum * 40);
 
-      const angle = (i / Math.max(1, rawNodes.length)) * Math.PI * 2;
-      const radius = 150 + (clusterNum * 40);
-
-      // --- VINCULACIÓN CON DOCS_COMPLETOS.JS ---
-      const extendedDoc = biblioteca[n.id] || {};
-
-      let sb = [];
-      if (typeof extendedDoc.full === "string" && extendedDoc.full.trim().length > 0) {
-        sb.push({ title: "Documento Completo", content: extendedDoc.full });
+      // --- CRUCE DE DATOS ---
+      const docExtendido = biblioteca[n.id] || {};
+      
+      let secciones = [];
+      if (docExtendido.full) {
+        // Si hay documento en el JS, lo procesamos
+        secciones.push({ 
+            title: "DOCUMENTACIÓN COMPLETA", 
+            content: docExtendido.full 
+        });
       } else {
-        sb = Array.isArray(n.subsections) ? n.subsections.map(s => ({
-          title: typeof s === "string" ? s : (s.title || "Sección"),
+        // Si no, usamos las subsecciones del JSON
+        secciones = (n.subsections || []).map(s => ({
+          title: s.title || "Sección",
           content: s.content || "Contenido en desarrollo..."
-        })) : [];
+        }));
       }
 
       return {
@@ -491,20 +492,22 @@ async function loadSystemData() {
         ds: n.description || n.ds || "",
         ly: n.layer || n.ly || "theory",
         cl: clusterNum,
-        vr: Array.isArray(n.variables) ? n.variables : [],
-        rl: Array.isArray(n.relations ?? n.rl) ? (n.relations ?? n.rl) : [],
-        sb: sb,
-        x: (typeof n.x === "number" ? n.x : Math.cos(angle) * radius),
-        y: (typeof n.y === "number" ? n.y : Math.sin(angle) * radius)
+        vr: n.variables || [],
+        rl: n.relations || n.rl || [], // Para las "Sugerencias"
+        sb: secciones,
+        x: Number(n.x) || Math.cos(angle) * radius,
+        y: Number(n.y) || Math.sin(angle) * radius
       };
     });
 
     initObservatorio();
-    applyPat('orbe', 'SISTEMA VINCULADO');
+    
+    // Activar el Orbe visualmente
+    setTimeout(() => applyPat('orbe', 'SISTEMA VINCULADO'), 500);
 
   } catch (error) {
-    console.error('Error:', error);
-    setStatus('ERROR DE CARGA');
+    console.error('Error de carga:', error);
+    if(document.getElementById('stind')) document.getElementById('stind').textContent = '[ ERROR DE CARGA ]';
   }
 }
 
