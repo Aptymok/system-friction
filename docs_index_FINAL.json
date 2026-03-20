@@ -1,841 +1,734 @@
 {
   "metadata": {
-    "version": "2.1",
-    "total_documents": 59
+    "version": "3.0",
+    "total_documents": 121
   },
   "documents": [
     {
-      "id": "SF_D_0001",
-      "node_id": "SF_P_0001",
+      "id": "SF_D_NODE_0001",
+      "type": "NODE",
       "page": 1,
-      "title": "System Friction",
-      "type": "node",
-      "tags": [
-        "origin",
-        "system friction"
-      ],
-      "relations": [
-        "SF_D_0002"
-      ]
+      "node_id": "SF_P_0001"
     },
     {
-      "id": "SF_D_0002",
-      "node_id": "SF_P_0002",
+      "id": "SF_D_NODE_0002",
+      "type": "NODE",
       "page": 2,
-      "title": "Campo Cognitivo",
-      "type": "node",
-      "tags": [
-        "theory",
-        "campo cognitivo"
-      ],
-      "relations": [
-        "SF_D_0001",
-        "SF_D_0003"
-      ]
+      "node_id": "SF_P_0002"
     },
     {
-      "id": "SF_D_0003",
-      "node_id": "SF_P_0003",
+      "id": "SF_D_NODE_0003",
+      "type": "NODE",
       "page": 3,
-      "title": "Fricción Sistémica",
-      "type": "node",
-      "tags": [
-        "theory",
-        "fricción sistémica"
-      ],
-      "relations": [
-        "SF_D_0002",
-        "SF_D_0004"
-      ]
+      "node_id": "SF_P_0003"
     },
     {
-      "id": "SF_D_0004",
-      "node_id": "SF_P_0004",
+      "id": "SF_D_NODE_0004",
+      "type": "NODE",
       "page": 4,
-      "title": "Interacción Humana Multicanal",
-      "type": "node",
-      "tags": [
-        "theory",
-        "interacción humana multicanal"
-      ],
-      "relations": [
-        "SF_D_0003",
-        "SF_D_0005"
-      ]
+      "node_id": "SF_P_0004"
     },
     {
-      "id": "SF_D_0005",
-      "node_id": "SF_P_0005",
+      "id": "SF_D_NODE_0005",
+      "type": "NODE",
       "page": 5,
-      "title": "Energía Relacional",
-      "type": "node",
-      "tags": [
-        "theory",
-        "energía relacional"
-      ],
-      "relations": [
-        "SF_D_0004",
-        "SF_D_0006"
-      ]
+      "node_id": "SF_P_0005"
     },
     {
-      "id": "SF_D_0006",
-      "node_id": "SF_P_0006",
+      "id": "SF_D_NODE_0006",
+      "type": "NODE",
       "page": 6,
-      "title": "Densidad de Interacción",
-      "type": "node",
-      "tags": [
-        "theory",
-        "densidad de interacción"
-      ],
-      "relations": [
-        "SF_D_0005",
-        "SF_D_0007"
-      ]
+      "node_id": "SF_P_0006"
     },
     {
-      "id": "SF_D_0007",
-      "node_id": "SF_P_0007",
+      "id": "SF_D_NODE_0007",
+      "type": "NODE",
       "page": 7,
-      "title": "Gradiente de Fricción",
-      "type": "node",
-      "tags": [
-        "theory",
-        "gradiente de fricción"
-      ],
-      "relations": [
-        "SF_D_0006",
-        "SF_D_0008"
-      ]
+      "node_id": "SF_P_0007"
     },
     {
-      "id": "SF_D_0008",
-      "node_id": "SF_P_0008",
+      "id": "SF_D_NODE_0008",
+      "type": "NODE",
       "page": 8,
-      "title": "Coherencia Sistémica",
-      "type": "node",
-      "tags": [
-        "theory",
-        "coherencia sistémica"
-      ],
-      "relations": [
-        "SF_D_0007",
-        "SF_D_0009"
-      ]
+      "node_id": "SF_P_0008"
     },
     {
-      "id": "SF_D_0009",
-      "node_id": "SF_P_0009",
+      "id": "SF_D_NODE_0009",
+      "type": "NODE",
       "page": 9,
-      "title": "Desfase Cognitivo",
-      "type": "node",
-      "tags": [
-        "theory",
-        "desfase cognitivo"
-      ],
-      "relations": [
-        "SF_D_0008",
-        "SF_D_0010"
-      ]
+      "node_id": "SF_P_0009"
     },
     {
-      "id": "SF_D_0010",
-      "node_id": "SF_P_0010",
+      "id": "SF_D_NODE_0010",
+      "type": "NODE",
       "page": 10,
-      "title": "Resonancia Semántica",
-      "type": "node",
-      "tags": [
-        "theory",
-        "resonancia semántica"
-      ],
-      "relations": [
-        "SF_D_0009",
-        "SF_D_0011"
-      ]
+      "node_id": "SF_P_0010"
     },
     {
-      "id": "SF_D_0011",
-      "node_id": "SF_P_0011",
+      "id": "SF_D_NODE_0011",
+      "type": "NODE",
       "page": 11,
-      "title": "Vector Intencional",
-      "type": "node",
-      "tags": [
-        "theory",
-        "vector intencional"
-      ],
-      "relations": [
-        "SF_D_0010",
-        "SF_D_0012"
-      ]
+      "node_id": "SF_P_0011"
     },
     {
-      "id": "SF_D_0012",
-      "node_id": "SF_P_0012",
+      "id": "SF_D_NODE_0012",
+      "type": "NODE",
       "page": 12,
-      "title": "Campo Semántico Compartido",
-      "type": "node",
-      "tags": [
-        "theory",
-        "campo semántico compartido"
-      ],
-      "relations": [
-        "SF_D_0011",
-        "SF_D_0013"
-      ]
+      "node_id": "SF_P_0012"
     },
     {
-      "id": "SF_D_0013",
-      "node_id": "SF_P_0013",
+      "id": "SF_D_NODE_0013",
+      "type": "NODE",
       "page": 13,
-      "title": "Ruido Cognitivo",
-      "type": "node",
-      "tags": [
-        "theory",
-        "ruido cognitivo"
-      ],
-      "relations": [
-        "SF_D_0012",
-        "SF_D_0014"
-      ]
+      "node_id": "SF_P_0013"
     },
     {
-      "id": "SF_D_0014",
-      "node_id": "SF_P_0014",
+      "id": "SF_D_NODE_0014",
+      "type": "NODE",
       "page": 14,
-      "title": "Latencia Conversacional",
-      "type": "node",
-      "tags": [
-        "theory",
-        "latencia conversacional"
-      ],
-      "relations": [
-        "SF_D_0013",
-        "SF_D_0015"
-      ]
+      "node_id": "SF_P_0014"
     },
     {
-      "id": "SF_D_0015",
-      "node_id": "SF_P_0015",
+      "id": "SF_D_NODE_0015",
+      "type": "NODE",
       "page": 15,
-      "title": "Divergencia de Interpretación",
-      "type": "node",
-      "tags": [
-        "theory",
-        "divergencia de interpretación"
-      ],
-      "relations": [
-        "SF_D_0014",
-        "SF_D_0016"
-      ]
+      "node_id": "SF_P_0015"
     },
     {
-      "id": "SF_D_0016",
-      "node_id": "SF_P_0016",
+      "id": "SF_D_NODE_0016",
+      "type": "NODE",
       "page": 16,
-      "title": "Sincronización Cognitiva",
-      "type": "node",
-      "tags": [
-        "theory",
-        "sincronización cognitiva"
-      ],
-      "relations": [
-        "SF_D_0015",
-        "SF_D_0017"
-      ]
+      "node_id": "SF_P_0016"
     },
     {
-      "id": "SF_D_0017",
-      "node_id": "SF_P_0017",
+      "id": "SF_D_NODE_0017",
+      "type": "NODE",
       "page": 17,
-      "title": "Canal de Señal Social",
-      "type": "node",
-      "tags": [
-        "theory",
-        "canal de señal social"
-      ],
-      "relations": [
-        "SF_D_0016",
-        "SF_D_0018"
-      ]
+      "node_id": "SF_P_0017"
     },
     {
-      "id": "SF_D_0018",
-      "node_id": "SF_P_0018",
+      "id": "SF_D_NODE_0018",
+      "type": "NODE",
       "page": 18,
-      "title": "Fricción Adaptativa",
-      "type": "node",
-      "tags": [
-        "theory",
-        "fricción adaptativa"
-      ],
-      "relations": [
-        "SF_D_0017",
-        "SF_D_0019"
-      ]
+      "node_id": "SF_P_0018"
     },
     {
-      "id": "SF_D_0019",
-      "node_id": "SF_P_0019",
+      "id": "SF_D_NODE_0019",
+      "type": "NODE",
       "page": 19,
-      "title": "Memoria Sistémica",
-      "type": "node",
-      "tags": [
-        "theory",
-        "memoria sistémica"
-      ],
-      "relations": [
-        "SF_D_0018",
-        "SF_D_0020"
-      ]
+      "node_id": "SF_P_0019"
     },
     {
-      "id": "SF_D_0020",
-      "node_id": "SF_P_0020",
+      "id": "SF_D_NODE_0020",
+      "type": "NODE",
       "page": 20,
-      "title": "Equilibrio Relacional",
-      "type": "node",
-      "tags": [
-        "theory",
-        "equilibrio relacional"
-      ],
-      "relations": [
-        "SF_D_0019",
-        "SF_D_0021"
-      ]
+      "node_id": "SF_P_0020"
     },
     {
-      "id": "SF_D_0021",
-      "node_id": "SF_P_0021",
+      "id": "SF_D_NODE_0021",
+      "type": "NODE",
       "page": 21,
-      "title": "Marco Teórico System Friction",
-      "type": "node",
-      "tags": [
-        "theory",
-        "marco teórico system friction"
-      ],
-      "relations": [
-        "SF_D_0020",
-        "SF_D_0022"
-      ]
+      "node_id": "SF_P_0021"
     },
     {
-      "id": "SF_D_0022",
-      "node_id": "SF_P_0022",
+      "id": "SF_D_NODE_0022",
+      "type": "NODE",
       "page": 22,
-      "title": "Teoría de Campos Cognitivos",
-      "type": "node",
-      "tags": [
-        "theory",
-        "teoría de campos cognitivos"
-      ],
-      "relations": [
-        "SF_D_0021"
-      ]
+      "node_id": "SF_P_0022"
     },
     {
-      "id": "SF_D_0032",
-      "node_id": "SF_P_0032",
+      "id": "SF_D_NODE_0023",
+      "type": "NODE",
       "page": 23,
-      "title": "Modelo de Alineación Intencional",
-      "type": "node",
-      "tags": [
-        "theory",
-        "modelo de alineación intencional"
-      ],
-      "relations": [
-        "SF_D_0033"
-      ]
+      "node_id": "SF_P_0023"
     },
     {
-      "id": "SF_D_0033",
-      "node_id": "SF_P_0033",
+      "id": "SF_D_NODE_0024",
+      "type": "NODE",
       "page": 24,
-      "title": "Teoría de Sistemas Conversacionales",
-      "type": "node",
-      "tags": [
-        "theory",
-        "teoría de sistemas conversacionales"
-      ],
-      "relations": [
-        "SF_D_0032"
-      ]
+      "node_id": "SF_P_0024"
     },
     {
-      "id": "SF_D_0041",
-      "node_id": "SF_P_0041",
+      "id": "SF_D_NODE_0025",
+      "type": "NODE",
       "page": 25,
-      "title": "Modelo MIHM",
-      "type": "node",
-      "tags": [
-        "mathematics",
-        "modelo mihm"
-      ],
-      "relations": []
+      "node_id": "SF_P_0025"
     },
     {
-      "id": "SF_D_0056",
-      "node_id": "SF_P_0056",
+      "id": "SF_D_NODE_0026",
+      "type": "NODE",
       "page": 26,
-      "title": "Índice de Equilibrio Sistémico",
-      "type": "node",
-      "tags": [
-        "mathematics",
-        "índice de equilibrio sistémico"
-      ],
-      "relations": []
+      "node_id": "SF_P_0026"
     },
     {
-      "id": "SF_D_0060",
-      "node_id": "SF_P_0060",
+      "id": "SF_D_NODE_0027",
+      "type": "NODE",
       "page": 27,
-      "title": "Ecuación Global System Friction",
-      "type": "node",
-      "tags": [
-        "mathematics",
-        "ecuación global system friction"
-      ],
-      "relations": [
-        "SF_D_0061"
-      ]
+      "node_id": "SF_P_0027"
     },
     {
-      "id": "SF_D_0061",
-      "node_id": "SF_P_0061",
+      "id": "SF_D_NODE_0028",
+      "type": "NODE",
       "page": 28,
-      "title": " ndice de Densidad Cognitiva (IDC)",
-      "type": "node",
-      "tags": [
-        "mathematics",
-        " ndice de densidad cognitiva (idc)"
-      ],
-      "relations": [
-        "SF_D_0060",
-        "SF_D_0062"
-      ]
+      "node_id": "SF_P_0028"
     },
     {
-      "id": "SF_D_0062",
-      "node_id": "SF_P_0062",
+      "id": "SF_D_NODE_0029",
+      "type": "NODE",
       "page": 29,
-      "title": "Arquitectura System Friction",
-      "type": "node",
-      "tags": [
-        "technology",
-        "arquitectura system friction"
-      ],
-      "relations": [
-        "SF_D_0061",
-        "SF_D_0063"
-      ]
+      "node_id": "SF_P_0029"
     },
     {
-      "id": "SF_D_0063",
-      "node_id": "SF_P_0063",
+      "id": "SF_D_NODE_0030",
+      "type": "NODE",
       "page": 30,
-      "title": "Pipeline de Procesamiento Cognitivo",
-      "type": "node",
-      "tags": [
-        "technology",
-        "pipeline de procesamiento cognitivo"
-      ],
-      "relations": [
-        "SF_D_0062"
-      ]
+      "node_id": "SF_P_0030"
     },
     {
-      "id": "SF_D_0084",
-      "node_id": "SF_P_0084",
+      "id": "SF_D_NODE_0031",
+      "type": "NODE",
       "page": 31,
-      "title": "Sistema de Visualización 3D",
-      "type": "node",
-      "tags": [
-        "technology",
-        "sistema de visualización 3d"
-      ],
-      "relations": []
+      "node_id": "SF_P_0031"
     },
     {
-      "id": "SF_D_0088",
-      "node_id": "SF_P_0088",
+      "id": "SF_D_NODE_0032",
+      "type": "NODE",
       "page": 32,
-      "title": "Sistema de Exploración de Datos",
-      "type": "node",
-      "tags": [
-        "technology",
-        "sistema de exploración de datos"
-      ],
-      "relations": []
+      "node_id": "SF_P_0032"
     },
     {
-      "id": "SF_D_0091",
-      "node_id": "SF_P_0091",
+      "id": "SF_D_NODE_0033",
+      "type": "NODE",
       "page": 33,
-      "title": "Núcleo Computacional System Friction",
-      "type": "node",
-      "tags": [
-        "technology",
-        "núcleo computacional system friction"
-      ],
-      "relations": [
-        "SF_D_0092"
-      ]
+      "node_id": "SF_P_0033"
     },
     {
-      "id": "SF_D_0092",
-      "node_id": "SF_P_0092",
+      "id": "SF_D_NODE_0034",
+      "type": "NODE",
       "page": 34,
-      "title": "Observatorio System Friction",
-      "type": "node",
-      "tags": [
-        "observatory",
-        "observatorio system friction"
-      ],
-      "relations": [
-        "SF_D_0091"
-      ]
+      "node_id": "SF_P_0034"
     },
     {
-      "id": "SF_D_0096",
-      "node_id": "SF_P_0096",
+      "id": "SF_D_NODE_0035",
+      "type": "NODE",
       "page": 35,
-      "title": "Panel de Métricas",
-      "type": "node",
-      "tags": [
-        "observatory",
-        "panel de métricas"
-      ],
-      "relations": []
+      "node_id": "SF_P_0035"
     },
     {
-      "id": "SF_D_0118",
-      "node_id": "SF_P_0118",
+      "id": "SF_D_NODE_0036",
+      "type": "NODE",
       "page": 36,
-      "title": "Panel de Perturbación Cognitiva",
-      "type": "node",
-      "tags": [
-        "observatory",
-        "panel de perturbación cognitiva"
-      ],
-      "relations": []
+      "node_id": "SF_P_0036"
     },
     {
-      "id": "SF_D_0120",
-      "node_id": "SF_P_0120",
+      "id": "SF_D_NODE_0037",
+      "type": "NODE",
       "page": 37,
-      "title": "Panel de Estabilidad Relacional",
-      "type": "node",
-      "tags": [
-        "observatory",
-        "panel de estabilidad relacional"
-      ],
-      "relations": [
-        "SF_D_0121"
-      ]
+      "node_id": "SF_P_0037"
     },
     {
-      "id": "SF_D_0121",
-      "node_id": "SF_P_0121",
+      "id": "SF_D_NODE_0038",
+      "type": "NODE",
       "page": 38,
-      "title": "Visualizador del Sistema Completo",
-      "type": "node",
-      "tags": [
-        "observatory",
-        "visualizador del sistema completo"
-      ],
-      "relations": [
-        "SF_D_0120"
-      ]
+      "node_id": "SF_P_0038"
     },
     {
-      "id": "SF_D_0157",
-      "node_id": "SF_P_0157",
+      "id": "SF_D_NODE_0039",
+      "type": "NODE",
       "page": 39,
-      "title": "SF_D_0157",
-      "type": "node",
-      "tags": [
-        "",
-        "sf_d_0157"
-      ],
-      "relations": [
-        "SF_D_0158"
-      ]
+      "node_id": "SF_P_0039"
     },
     {
-      "id": "SF_D_0158",
-      "node_id": "SF_P_0158",
+      "id": "SF_D_NODE_0040",
+      "type": "NODE",
       "page": 40,
-      "title": "SF_D_0158",
-      "type": "node",
-      "tags": [
-        "",
-        "sf_d_0158"
-      ],
-      "relations": [
-        "SF_D_0157",
-        "SF_D_0159"
-      ]
+      "node_id": "SF_P_0040"
     },
     {
-      "id": "SF_D_0159",
-      "node_id": "SF_P_0159",
+      "id": "SF_D_NODE_0041",
+      "type": "NODE",
       "page": 41,
-      "title": "SF_D_0159",
-      "type": "node",
-      "tags": [
-        "",
-        "sf_d_0159"
-      ],
-      "relations": [
-        "SF_D_0158",
-        "SF_D_0160"
-      ]
+      "node_id": "SF_P_0041"
     },
     {
-      "id": "SF_D_0160",
-      "node_id": "SF_P_0160",
+      "id": "SF_D_NODE_0042",
+      "type": "NODE",
       "page": 42,
-      "title": "SF_D_0160",
-      "type": "node",
-      "tags": [
-        "",
-        "sf_d_0160"
-      ],
-      "relations": [
-        "SF_D_0159",
-        "SF_D_0161"
-      ]
+      "node_id": "SF_P_0042"
     },
     {
-      "id": "SF_D_0161",
-      "node_id": "SF_P_0161",
+      "id": "SF_D_NODE_0043",
+      "type": "NODE",
       "page": 43,
-      "title": "SF_D_0161",
-      "type": "node",
-      "tags": [
-        "",
-        "sf_d_0161"
-      ],
-      "relations": [
-        "SF_D_0160",
-        "SF_D_0162"
-      ]
+      "node_id": "SF_P_0043"
     },
     {
-      "id": "SF_D_0162",
-      "node_id": "SF_P_0162",
+      "id": "SF_D_NODE_0044",
+      "type": "NODE",
       "page": 44,
-      "title": "SF_D_0162",
-      "type": "node",
-      "tags": [
-        "",
-        "sf_d_0162"
-      ],
-      "relations": [
-        "SF_D_0161"
-      ]
+      "node_id": "SF_P_0044"
     },
     {
-      "id": "SF_D_0169",
-      "node_id": "SF_P_0169",
+      "id": "SF_D_NODE_0045",
+      "type": "NODE",
       "page": 45,
-      "title": "SF_D_0169",
-      "type": "node",
-      "tags": [
-        "",
-        "sf_d_0169"
-      ],
-      "relations": []
+      "node_id": "SF_P_0045"
     },
     {
-      "id": "SF_D_carta1",
-      "node_id": "SF_P_0120",
+      "id": "SF_D_NODE_0046",
+      "type": "NODE",
       "page": 46,
-      "title": "Carta I — Emergencia",
-      "type": "carta",
-      "tags": [
-        "carta",
-        "carta i — emergencia"
-      ],
-      "relations": [
-        "SF_D_carta2",
-        "SF_D_acta"
-      ]
+      "node_id": "SF_P_0046"
     },
     {
-      "id": "SF_D_carta2",
-      "node_id": "SF_P_0121",
+      "id": "SF_D_NODE_0047",
+      "type": "NODE",
       "page": 47,
-      "title": "Carta II — Observador Futuro",
-      "type": "carta",
-      "tags": [
-        "carta",
-        "carta ii — observador futuro"
-      ],
-      "relations": [
-        "SF_D_carta1",
-        "SF_D_acta"
-      ]
+      "node_id": "SF_P_0047"
     },
     {
-      "id": "SF_D_acta",
-      "node_id": "SF_P_0092",
+      "id": "SF_D_NODE_0048",
+      "type": "NODE",
       "page": 48,
-      "title": "Acta de Origen",
-      "type": "acta",
-      "tags": [
-        "acta",
-        "acta de origen"
-      ],
-      "relations": [
-        "SF_D_carta1",
-        "SF_D_carta2",
-        "SF_D_timeline"
-      ]
+      "node_id": "SF_P_0048"
     },
     {
-      "id": "SF_D_readme",
-      "node_id": "SF_P_0061",
+      "id": "SF_D_NODE_0049",
+      "type": "NODE",
       "page": 49,
-      "title": "README Estructura",
-      "type": "readme",
-      "tags": [
-        "readme",
-        "readme estructura"
-      ],
-      "relations": []
+      "node_id": "SF_P_0049"
     },
     {
-      "id": "SF_D_timeline",
-      "node_id": "SF_P_0092",
+      "id": "SF_D_NODE_0050",
+      "type": "NODE",
       "page": 50,
-      "title": "Timeline T0-T12",
-      "type": "timeline",
-      "tags": [
-        "timeline",
-        "timeline t0-t12"
-      ],
-      "relations": [
-        "SF_D_acta"
-      ]
+      "node_id": "SF_P_0050"
     },
     {
-      "id": "SF_D_conceptos",
-      "node_id": "SF_P_0001",
+      "id": "SF_D_NODE_0051",
+      "type": "NODE",
       "page": 51,
-      "title": "Conceptos Nucleares",
-      "type": "conceptos",
-      "tags": [
-        "conceptos",
-        "conceptos nucleares"
-      ],
-      "relations": [
-        "SF_D_diccionario"
-      ]
+      "node_id": "SF_P_0051"
     },
     {
-      "id": "SF_D_metricas",
-      "node_id": "SF_P_0041",
+      "id": "SF_D_NODE_0052",
+      "type": "NODE",
       "page": 52,
-      "title": "Métricas y Fórmulas",
-      "type": "metricas",
-      "tags": [
-        "metricas",
-        "métricas y fórmulas"
-      ],
-      "relations": [
-        "SF_D_indices",
-        "SF_D_capas"
-      ]
+      "node_id": "SF_P_0052"
     },
     {
-      "id": "SF_D_indices",
-      "node_id": "SF_P_0041",
+      "id": "SF_D_NODE_0053",
+      "type": "NODE",
       "page": 53,
-      "title": "Índices Sistémicos",
-      "type": "indices",
-      "tags": [
-        "indices",
-        "índices sistémicos"
-      ],
-      "relations": [
-        "SF_D_metricas"
-      ]
+      "node_id": "SF_P_0053"
     },
     {
-      "id": "SF_D_capas",
-      "node_id": "SF_P_0041",
+      "id": "SF_D_NODE_0054",
+      "type": "NODE",
       "page": 54,
-      "title": "Capas del Sistema",
-      "type": "capas",
-      "tags": [
-        "capas",
-        "capas del sistema"
-      ],
-      "relations": [
-        "SF_D_metricas"
-      ]
+      "node_id": "SF_P_0054"
     },
     {
-      "id": "SF_D_features",
-      "node_id": "SF_P_0061",
+      "id": "SF_D_NODE_0055",
+      "type": "NODE",
       "page": 55,
-      "title": "Taxonomía de Features",
-      "type": "features",
-      "tags": [
-        "features",
-        "taxonomía de features"
-      ],
-      "relations": []
+      "node_id": "SF_P_0055"
     },
     {
-      "id": "SF_D_diccionario",
-      "node_id": "SF_P_0001",
+      "id": "SF_D_NODE_0056",
+      "type": "NODE",
       "page": 56,
-      "title": "Diccionario Operativo",
-      "type": "diccionario",
-      "tags": [
-        "diccionario",
-        "diccionario operativo"
-      ],
-      "relations": [
-        "SF_D_conceptos"
-      ]
+      "node_id": "SF_P_0056"
     },
     {
-      "id": "SF_D_hoja",
-      "node_id": "SF_P_0169",
+      "id": "SF_D_NODE_0057",
+      "type": "NODE",
       "page": 57,
-      "title": "Hoja de Ruta",
-      "type": "hoja",
-      "tags": [
-        "hoja",
-        "hoja de ruta"
-      ],
-      "relations": []
+      "node_id": "SF_P_0057"
     },
     {
-      "id": "SF_D_decisiones",
-      "node_id": "SF_P_0088",
+      "id": "SF_D_NODE_0058",
+      "type": "NODE",
       "page": 58,
-      "title": "Registro de Decisiones",
-      "type": "decisiones",
-      "tags": [
-        "decisiones",
-        "registro de decisiones"
-      ],
-      "relations": []
+      "node_id": "SF_P_0058"
     },
     {
-      "id": "SF_D_cara_b",
-      "node_id": "SF_P_0118",
+      "id": "SF_D_NODE_0059",
+      "type": "NODE",
       "page": 59,
-      "title": "Cara B · O(t)",
-      "type": "cara_b",
-      "tags": [
-        "cara_b",
-        "cara b · o(t)"
-      ],
-      "relations": []
+      "node_id": "SF_P_0059"
+    },
+    {
+      "id": "SF_D_NODE_0060",
+      "type": "NODE",
+      "page": 60,
+      "node_id": "SF_P_0060"
+    },
+    {
+      "id": "SF_D_NODE_0061",
+      "type": "NODE",
+      "page": 61,
+      "node_id": "SF_P_0061"
+    },
+    {
+      "id": "SF_D_NODE_0062",
+      "type": "NODE",
+      "page": 62,
+      "node_id": "SF_P_0062"
+    },
+    {
+      "id": "SF_D_NODE_0063",
+      "type": "NODE",
+      "page": 63,
+      "node_id": "SF_P_0063"
+    },
+    {
+      "id": "SF_D_NODE_0064",
+      "type": "NODE",
+      "page": 64,
+      "node_id": "SF_P_0064"
+    },
+    {
+      "id": "SF_D_NODE_0065",
+      "type": "NODE",
+      "page": 65,
+      "node_id": "SF_P_0065"
+    },
+    {
+      "id": "SF_D_NODE_0066",
+      "type": "NODE",
+      "page": 66,
+      "node_id": "SF_P_0066"
+    },
+    {
+      "id": "SF_D_NODE_0067",
+      "type": "NODE",
+      "page": 67,
+      "node_id": "SF_P_0067"
+    },
+    {
+      "id": "SF_D_NODE_0068",
+      "type": "NODE",
+      "page": 68,
+      "node_id": "SF_P_0068"
+    },
+    {
+      "id": "SF_D_NODE_0069",
+      "type": "NODE",
+      "page": 69,
+      "node_id": "SF_P_0069"
+    },
+    {
+      "id": "SF_D_NODE_0070",
+      "type": "NODE",
+      "page": 70,
+      "node_id": "SF_P_0070"
+    },
+    {
+      "id": "SF_D_NODE_0071",
+      "type": "NODE",
+      "page": 71,
+      "node_id": "SF_P_0071"
+    },
+    {
+      "id": "SF_D_NODE_0072",
+      "type": "NODE",
+      "page": 72,
+      "node_id": "SF_P_0072"
+    },
+    {
+      "id": "SF_D_NODE_0073",
+      "type": "NODE",
+      "page": 73,
+      "node_id": "SF_P_0073"
+    },
+    {
+      "id": "SF_D_NODE_0074",
+      "type": "NODE",
+      "page": 74,
+      "node_id": "SF_P_0074"
+    },
+    {
+      "id": "SF_D_NODE_0075",
+      "type": "NODE",
+      "page": 75,
+      "node_id": "SF_P_0075"
+    },
+    {
+      "id": "SF_D_NODE_0076",
+      "type": "NODE",
+      "page": 76,
+      "node_id": "SF_P_0076"
+    },
+    {
+      "id": "SF_D_NODE_0077",
+      "type": "NODE",
+      "page": 77,
+      "node_id": "SF_P_0077"
+    },
+    {
+      "id": "SF_D_NODE_0078",
+      "type": "NODE",
+      "page": 78,
+      "node_id": "SF_P_0078"
+    },
+    {
+      "id": "SF_D_NODE_0079",
+      "type": "NODE",
+      "page": 79,
+      "node_id": "SF_P_0079"
+    },
+    {
+      "id": "SF_D_NODE_0080",
+      "type": "NODE",
+      "page": 80,
+      "node_id": "SF_P_0080"
+    },
+    {
+      "id": "SF_D_NODE_0081",
+      "type": "NODE",
+      "page": 81,
+      "node_id": "SF_P_0081"
+    },
+    {
+      "id": "SF_D_NODE_0082",
+      "type": "NODE",
+      "page": 82,
+      "node_id": "SF_P_0082"
+    },
+    {
+      "id": "SF_D_NODE_0083",
+      "type": "NODE",
+      "page": 83,
+      "node_id": "SF_P_0083"
+    },
+    {
+      "id": "SF_D_NODE_0084",
+      "type": "NODE",
+      "page": 84,
+      "node_id": "SF_P_0084"
+    },
+    {
+      "id": "SF_D_NODE_0085",
+      "type": "NODE",
+      "page": 85,
+      "node_id": "SF_P_0085"
+    },
+    {
+      "id": "SF_D_NODE_0086",
+      "type": "NODE",
+      "page": 86,
+      "node_id": "SF_P_0086"
+    },
+    {
+      "id": "SF_D_NODE_0087",
+      "type": "NODE",
+      "page": 87,
+      "node_id": "SF_P_0087"
+    },
+    {
+      "id": "SF_D_NODE_0088",
+      "type": "NODE",
+      "page": 88,
+      "node_id": "SF_P_0088"
+    },
+    {
+      "id": "SF_D_NODE_0089",
+      "type": "NODE",
+      "page": 89,
+      "node_id": "SF_P_0089"
+    },
+    {
+      "id": "SF_D_NODE_0090",
+      "type": "NODE",
+      "page": 90,
+      "node_id": "SF_P_0090"
+    },
+    {
+      "id": "SF_D_NODE_0091",
+      "type": "NODE",
+      "page": 91,
+      "node_id": "SF_P_0091"
+    },
+    {
+      "id": "SF_D_NODE_0092",
+      "type": "NODE",
+      "page": 92,
+      "node_id": "SF_P_0092"
+    },
+    {
+      "id": "SF_D_NODE_0093",
+      "type": "NODE",
+      "page": 93,
+      "node_id": "SF_P_0093"
+    },
+    {
+      "id": "SF_D_NODE_0094",
+      "type": "NODE",
+      "page": 94,
+      "node_id": "SF_P_0094"
+    },
+    {
+      "id": "SF_D_NODE_0095",
+      "type": "NODE",
+      "page": 95,
+      "node_id": "SF_P_0095"
+    },
+    {
+      "id": "SF_D_NODE_0096",
+      "type": "NODE",
+      "page": 96,
+      "node_id": "SF_P_0096"
+    },
+    {
+      "id": "SF_D_NODE_0097",
+      "type": "NODE",
+      "page": 97,
+      "node_id": "SF_P_0097"
+    },
+    {
+      "id": "SF_D_NODE_0098",
+      "type": "NODE",
+      "page": 98,
+      "node_id": "SF_P_0098"
+    },
+    {
+      "id": "SF_D_NODE_0099",
+      "type": "NODE",
+      "page": 99,
+      "node_id": "SF_P_0099"
+    },
+    {
+      "id": "SF_D_NODE_0100",
+      "type": "NODE",
+      "page": 100,
+      "node_id": "SF_P_0100"
+    },
+    {
+      "id": "SF_D_NODE_0101",
+      "type": "NODE",
+      "page": 101,
+      "node_id": "SF_P_0101"
+    },
+    {
+      "id": "SF_D_NODE_0102",
+      "type": "NODE",
+      "page": 102,
+      "node_id": "SF_P_0102"
+    },
+    {
+      "id": "SF_D_NODE_0103",
+      "type": "NODE",
+      "page": 103,
+      "node_id": "SF_P_0103"
+    },
+    {
+      "id": "SF_D_NODE_0104",
+      "type": "NODE",
+      "page": 104,
+      "node_id": "SF_P_0104"
+    },
+    {
+      "id": "SF_D_NODE_0105",
+      "type": "NODE",
+      "page": 105,
+      "node_id": "SF_P_0105"
+    },
+    {
+      "id": "SF_D_NODE_0106",
+      "type": "NODE",
+      "page": 106,
+      "node_id": "SF_P_0106"
+    },
+    {
+      "id": "SF_D_NODE_0107",
+      "type": "NODE",
+      "page": 107,
+      "node_id": "SF_P_0107"
+    },
+    {
+      "id": "SF_D_NODE_0108",
+      "type": "NODE",
+      "page": 108,
+      "node_id": "SF_P_0108"
+    },
+    {
+      "id": "SF_D_NODE_0109",
+      "type": "NODE",
+      "page": 109,
+      "node_id": "SF_P_0109"
+    },
+    {
+      "id": "SF_D_NODE_0110",
+      "type": "NODE",
+      "page": 110,
+      "node_id": "SF_P_0110"
+    },
+    {
+      "id": "SF_D_NODE_0111",
+      "type": "NODE",
+      "page": 111,
+      "node_id": "SF_P_0111"
+    },
+    {
+      "id": "SF_D_NODE_0112",
+      "type": "NODE",
+      "page": 112,
+      "node_id": "SF_P_0112"
+    },
+    {
+      "id": "SF_D_NODE_0113",
+      "type": "NODE",
+      "page": 113,
+      "node_id": "SF_P_0113"
+    },
+    {
+      "id": "SF_D_NODE_0114",
+      "type": "NODE",
+      "page": 114,
+      "node_id": "SF_P_0114"
+    },
+    {
+      "id": "SF_D_NODE_0115",
+      "type": "NODE",
+      "page": 115,
+      "node_id": "SF_P_0115"
+    },
+    {
+      "id": "SF_D_NODE_0116",
+      "type": "NODE",
+      "page": 116,
+      "node_id": "SF_P_0116"
+    },
+    {
+      "id": "SF_D_NODE_0117",
+      "type": "NODE",
+      "page": 117,
+      "node_id": "SF_P_0117"
+    },
+    {
+      "id": "SF_D_NODE_0118",
+      "type": "NODE",
+      "page": 118,
+      "node_id": "SF_P_0118"
+    },
+    {
+      "id": "SF_D_NODE_0119",
+      "type": "NODE",
+      "page": 119,
+      "node_id": "SF_P_0119"
+    },
+    {
+      "id": "SF_D_NODE_0120",
+      "type": "NODE",
+      "page": 120,
+      "node_id": "SF_P_0120"
+    },
+    {
+      "id": "SF_D_NODE_0121",
+      "type": "NODE",
+      "page": 121,
+      "node_id": "SF_P_0121"
     }
   ]
 }
