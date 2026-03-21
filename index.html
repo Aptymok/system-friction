@@ -452,6 +452,36 @@ a:hover{color:var(--text-bright)}
   padding:.3rem .6rem; cursor:pointer; outline:none;
 }
 .model-sel:focus{border-color:var(--accent-dim)}
+/* ── RESPONSIVE HEADER ─────────────────────────────────────── */
+@media (max-width: 768px) {
+  .sf-header {
+    flex-wrap: wrap;
+    height: auto;
+    padding: 0.5rem 0;
+  }
+  .sf-logo {
+    padding: 0 1rem;
+    border-right: none;
+    width: 100%;
+    justify-content: space-between;
+  }
+  .sf-tabs {
+    order: 3;
+    width: 100%;
+    border-top: 1px solid var(--border);
+    margin-top: 0.25rem;
+  }
+  .sf-status {
+    padding: 0 1rem;
+    border-left: none;
+    gap: 1rem;
+    font-size: 0.55rem;
+  }
+  .sf-tab {
+    padding: 0.6rem 1rem;
+    font-size: 0.5rem;
+  }
+}
 </style>
 </head>
 <body>
@@ -472,19 +502,19 @@ a:hover{color:var(--text-bright)}
     <span class="sf-logo-dot"></span>
     SF · MIHM v3.0
   </div>
-  <div class="sf-tabs">
+  <div class="sf-tabs" style="flex: 1; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch;">
     <button class="sf-tab active" onclick="showSection('dashboard',this)">Dashboard</button>
     <button class="sf-tab" onclick="showSection('campo',this)">Campo Cognitivo</button>
     <button class="sf-tab" onclick="showSection('observatorio',this)">Observatorio</button>
     <button class="sf-tab" onclick="showSection('council',this)">APTYMOK Council</button>
-    <button class="sf-tab" onclick="showSection('magi',this)">SF-MAGI Council</button>
+    <button class="sf-tab" onclick="showSection('magi',this)">SF-MAGI</button>
     <button class="sf-tab" onclick="showSection('math',this)">Math Extender</button>
     <button class="sf-tab" onclick="showSection('repositorio',this)">Repositorio</button>
   </div>
-  <div class="sf-status">
+  <div class="sf-status" style="display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0;">
     <span>IHG <span class="val">−0.620</span></span>
     <span>NTI <span class="nti">0.351</span></span>
-    <span class="dim" id="live-time">—</span>
+    <span class="dim" id="live-time" style="font-size: 0.55rem;">—</span>
   </div>
 </header>
 
@@ -527,11 +557,18 @@ a:hover{color:var(--text-bright)}
       <canvas id="ecg-canvas" height="120"></canvas>
       <div class="ecg-overlay" id="ecg-current">IHG −0.620</div>
     </div>
-    <div class="card">
-      <div class="card-header">Predictor Vivo 2030 + Flujo Memoria</div>
-      <canvas id="predictor-vivo" height="160"></canvas>
-      <canvas id="memory-flow" height="80" style="margin-top:0.5rem"></canvas>
-      <div style="font-size:.6rem;color:#5a5852;margin-top:0.5rem">Ruta viable (azul) vs colapso (rojo) · P=26% con control sincronizado</div>
+
+
+    <!-- Predictor Vivo 2030 + Flujo Memoria (con altura fija) -->
+<div class="card" style="height: 380px; display: flex; flex-direction: column;">
+    <div class="card-header">Predictor Vivo 2030 + Flujo Memoria</div>
+    <div class="card-body" style="flex: 1; display: flex; flex-direction: column; gap: 0.5rem; padding: 0.75rem;">
+      <canvas id="predictor-vivo" height="180" style="width:100%; height:180px;"></canvas>
+      <canvas id="memory-flow" height="80" style="width:100%; height:80px;"></canvas>
+      <div style="font-size:.6rem; color:#5a5852; text-align:center;">
+        Ruta viable (verde) vs colapso (rojo) · P=26% con control sincronizado
+      </div>
+      </div>
     </div>
   </div>
 
@@ -554,11 +591,16 @@ a:hover{color:var(--text-bright)}
       <div class="card-body" id="pattern-activations" style="max-height:280px; overflow-y:auto"></div>
     </div>
     <div class="card">
+<!-- NTI · Componentes (con altura fija y scroll interno si es necesario) -->
+    <div class="card" style="height: 320px; display: flex; flex-direction: column;">
       <div class="card-header">NTI · Componentes</div>
-      <div class="card-body" style="padding:0">
-        <canvas id="nti-chart" height="160"></canvas>
-        <div id="nti-components" style="padding:.75rem;font-family:var(--mono);font-size:.58rem;color:var(--text-dim)">LDI:0.55 · ICC:0.80 · CSR:0.30 · IRCI:0.90 · IIM:0.60</div>
+      <div class="card-body" style="flex: 1; overflow-y: auto; padding: 0;">
+        <canvas id="nti-chart" height="180" style="width:100%; height:180px;"></canvas>
+        <div id="nti-components" style="padding:.75rem; font-family:var(--mono); font-size:.58rem; color:var(--text-dim); border-top:1px solid var(--border);">
+          LDI:0.55 · ICC:0.80 · CSR:0.30 · IRCI:0.90 · IIM:0.60
+        </div>
       </div>
+    </div>
     </div>
   </div>
 </div>
@@ -816,25 +858,70 @@ function showSection(id,btn){
 
 // Predictor Vivo
 function initPredictorVivo(){
-  const ctx=document.getElementById('predictor-vivo').getContext('2d');
-  new Chart(ctx,{type:'line',data:{labels:['2026','2027','2028','2029','2030'],datasets:[{label:'Ruta viable (control)',data:[-0.62,-0.48,-0.35,-0.28,-0.25],borderColor:'#6ec88a',fill:false},{label:'Colapso sin control',data:[-0.62,-0.71,-0.85,-0.92,-1.0],borderColor:'#c86e6e',fill:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#5a5852'}}},scales:{y:{min:-1,max:-0.1}}}});
+  const ctx = document.getElementById('predictor-vivo').getContext('2d');
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: ['2026', '2027', '2028', '2029', '2030'],
+      datasets: [
+        {
+          label: 'Ruta viable (control)',
+          data: [-0.62, -0.48, -0.35, -0.28, -0.25],
+          borderColor: '#6ec88a',
+          backgroundColor: 'transparent',
+          tension: 0.3,
+          pointBackgroundColor: '#6ec88a'
+        },
+        {
+          label: 'Colapso sin control',
+          data: [-0.62, -0.71, -0.85, -0.92, -1.0],
+          borderColor: '#c86e6e',
+          backgroundColor: 'transparent',
+          tension: 0.3,
+          pointBackgroundColor: '#c86e6e'
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: {
+        legend: { labels: { color: '#5a5852', font: { size: 9 } } },
+        tooltip: { enabled: true }
+      },
+      scales: {
+        y: { min: -1, max: -0.1, grid: { color: 'rgba(34,34,32,.3)' }, ticks: { color: '#5a5852' } },
+        x: { ticks: { color: '#5a5852' } }
+      }
+    }
+  });
 }
+
 
 // Memory Flow
 function initMemoryFlow(){
-  const c=document.getElementById('memory-flow');
-  if(!c)return;
-  const ctx=c.getContext('2d');
-  let phase=0;
-  setInterval(()=>{
-    c.width=c.parentElement.clientWidth||400; c.height=80;
-    ctx.clearRect(0,0,c.width,80);
-    ctx.strokeStyle='#c8a96e'; ctx.lineWidth=2;
+  const canvas = document.getElementById('memory-flow');
+  if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+  let phase = 0;
+  function drawMemoryFlow(){
+    const w = canvas.parentElement.clientWidth || 300;
+    canvas.width = w;
+    canvas.height = 80;
+    ctx.clearRect(0, 0, w, 80);
+    ctx.strokeStyle = '#c8a96e';
+    ctx.lineWidth = 2;
     ctx.beginPath();
-    for(let x=0;x<c.width;x++){ let y=40+30*Math.sin(x*0.03+phase)+15*Math.exp(-0.001*x); ctx.lineTo(x,y); }
+    for(let x = 0; x < w; x++){
+      let y = 40 + 25 * Math.sin(x * 0.03 + phase) + 12 * Math.exp(-0.002 * x);
+      if(x === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
     ctx.stroke();
-    phase+=0.1;
-  },100);
+    phase += 0.05;
+    requestAnimationFrame(drawMemoryFlow);
+  }
+  drawMemoryFlow();
 }
 
 // Timeline
@@ -867,9 +954,30 @@ function initRadar(){
 
 // NTI chart (corregido: ya no se desborda)
 function initNTIChart(){
-  const ctx=document.getElementById('nti-chart').getContext('2d');
-  new Chart(ctx,{type:'bar',data:{labels:['LDI','ICC','CSR','IRCI','IIM'],datasets:[{data:[0.45,0.80,0.30,0.90,0.60],backgroundColor:['#c86e6e','#6ec88a','#c86e6e','#6ec88a','#c8a96e']}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}});
+  const ctx = document.getElementById('nti-chart').getContext('2d');
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: ['LDI', 'ICC', 'CSR', 'IRCI', 'IIM'],
+      datasets: [{
+        data: [0.45, 0.80, 0.30, 0.90, 0.60],
+        backgroundColor: ['#c86e6e', '#6ec88a', '#c86e6e', '#6ec88a', '#c8a96e'],
+        borderRadius: 4
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: { legend: { display: false }, tooltip: { enabled: true } },
+      scales: {
+        x: { max: 1, grid: { color: 'rgba(34,34,32,.3)' }, ticks: { color: '#5a5852' } },
+        y: { ticks: { color: '#c8a96e', font: { size: 10 } } }
+      }
+    }
+  });
 }
+
 
 // Pattern activations
 function initPatternActivations(){
