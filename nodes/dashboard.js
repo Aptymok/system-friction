@@ -883,3 +883,6 @@ if (document.readyState === 'loading') {
 } else {
   SFDashboard.init();
 }
+// Extensión evolutiva
+window.IAD_ritmo = 0.84;
+window.ETE_campo = 3.2;
