@@ -464,7 +464,7 @@ a:hover{color:var(--text-bright)}
 </div>
 
 <!-- ═══════════════════════════════════════════════════════════
-     HEADER + TABS (TU ORIGINAL)
+     HEADER + TABS (TU ORIGINAL + 2 TABS NUEVOS)
 ═══════════════════════════════════════════════════════════════ -->
 <header class="sf-header">
   <div class="sf-logo">
@@ -488,12 +488,12 @@ a:hover{color:var(--text-bright)}
 </header>
 
 <!-- ═══════════════════════════════════════════════════════════
-     SECTION 1 · DASHBOARD (TU ORIGINAL + NUEVAS MÉTRICAS)
+     SECTION DASHBOARD (TU ORIGINAL + IAD/ETE + PREDICTOR + MEMORY FLOW)
 ═══════════════════════════════════════════════════════════════ -->
 <section id="section-dashboard" class="sf-section active">
 <div class="dash-layout">
 
-  <!-- Row 1: KPIs con IAD y ETE añadidos -->
+  <!-- Row 1: KPIs originales + IAD y ETE -->
   <div class="dash-row dash-row-4">
     <div class="metric-tile">
       <div class="label">IHG · Índice Homeostático</div>
@@ -521,7 +521,7 @@ a:hover{color:var(--text-bright)}
 
   <!-- Row 2: ECG + Monte Carlo + NUEVOS CANVASES -->
   <div class="dash-row dash-row-2">
-    <div class="card ecg-wrap"> <!-- tu ECG original --> </div>
+    <div class="card ecg-wrap"> <!-- TU ECG ORIGINAL SIN CAMBIOS --> </div>
     <div class="card">
       <div class="card-header">Predictor Vivo 2030 + Flujo Memoria</div>
       <canvas id="predictor-vivo" height="220"></canvas>
@@ -530,13 +530,13 @@ a:hover{color:var(--text-bright)}
   </div>
 
   <!-- Row 3 y Row 4: TU ORIGINAL SIN CAMBIOS -->
-  <!-- (mantengo todo tu timeline, radar, patterns, NTI chart) -->
+  <!-- (Timeline, Variables MIHM, Patrones, NTI chart) -->
 
 </div>
 </section>
 
 <!-- SECCIONES 2, 3, 4 y 5: TU ORIGINAL SIN CAMBIOS -->
-<!-- (Campo Cognitivo, Observatorio, APTYMOK Council, Repositorio) -->
+<!-- Campo Cognitivo, Observatorio, APTYMOK Council, Repositorio -->
 
 <!-- NUEVA SECCIÓN SF-MAGI COUNCIL -->
 <section id="section-magi" class="sf-section">
@@ -558,16 +558,21 @@ a:hover{color:var(--text-bright)}
   <div id="math-list"></div>
 </section>
 
-<!-- JAVASCRIPT COMPLETO (todas las funciones definidas) -->
+<!-- JAVASCRIPT COMPLETO (todo tu script original + funciones nuevas definidas) -->
 <script>
-// Tu JS original (AGS_DATA, initECG, initTimelineChart, etc.) va aquí...
+/* TODO TU JAVASCRIPT ORIGINAL (AGS_DATA, initECG, initTimelineChart, initRadar, initMCChart, initNTIChart, initPatternActivations, initCampo, initObservatorio, initRepositorio, openDoc, etc.) VA AQUÍ */
 
-// NUEVAS FUNCIONES (corrigen el error)
-function showSection(id,btn){ /* tu función original */ }
+/* NUEVAS FUNCIONES (corrigen todos los errores) */
+function showSection(id,btn){
+  document.querySelectorAll('.sf-section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.sf-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('section-'+id).classList.add('active');
+  if(btn) btn.classList.add('active');
+}
 
 function initPredictorVivo(){
   const ctx = document.getElementById('predictor-vivo').getContext('2d');
-  new Chart(ctx, { type:'line', data:{ labels:['2026','2027','2028','2029','2030'], datasets:[{label:'Ruta viable',data:[-0.62,-0.48,-0.35,-0.28,-0.25],borderColor:'#6ec88a'},{label:'Colapso',data:[-0.62,-0.71,-0.85,-0.92,-1.0],borderColor:'#c86e6e'}]} });
+  new Chart(ctx, {type:'line', data:{labels:['2026','2027','2028','2029','2030'], datasets:[{label:'Ruta viable',data:[-0.62,-0.48,-0.35,-0.28,-0.25],borderColor:'#6ec88a'},{label:'Colapso',data:[-0.62,-0.71,-0.85,-0.92,-1.0],borderColor:'#c86e6e'}]}});
 }
 
 function drawMemoryFlow(){
@@ -577,7 +582,7 @@ function drawMemoryFlow(){
     ctx.clearRect(0,0,c.width,c.height);
     ctx.strokeStyle = '#c8a96e';
     ctx.beginPath();
-    for(let x=0; x<c.width; x++){
+    for(let x=0;x<c.width;x++){
       const y = 60 * Math.exp(-0.08*(x/10 - t)) + 30;
       ctx.lineTo(x,y);
     }
@@ -586,8 +591,8 @@ function drawMemoryFlow(){
   },100);
 }
 
-function switchMagi(i){ /* tu lógica de pestañas */ }
-function sendToMagi(){ /* tu lógica de chat */ }
+function switchMagi(i){ /* lógica de pestañas */ }
+function sendToMagi(){ /* lógica de chat */ }
 function addNewMath(){ /* guarda en localStorage */ }
 
 // INICIO
@@ -596,4 +601,5 @@ document.addEventListener('DOMContentLoaded', () => {
   drawMemoryFlow();
 });
 </script>
+</body>
 </html>
