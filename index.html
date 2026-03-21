@@ -456,15 +456,15 @@ a:hover{color:var(--text-bright)}
 </head>
 <body>
 <!-- ═══════════════════════════════════════════════════════════
-     NOTIFICATION BAR (TU ORIGINAL)
+     NOTIFICATION BAR
 ═══════════════════════════════════════════════════════════════ -->
 <div class="notif-bar">
   <span class="notif-dot"></span>
-  PROTOCOLO ACTIVO · Nodo AGS · IHG −0.620 · NTI 0.351 · UCAP · EMERGENCY_DECISION · 22–23 feb 2026 · P(colapso 2030) 71%
+  <span id="notif-text">Cargando métricas...</span>
 </div>
 
 <!-- ═══════════════════════════════════════════════════════════
-     HEADER + TABS (TU ORIGINAL + 2 TABS NUEVOS)
+     HEADER + TABS
 ═══════════════════════════════════════════════════════════════ -->
 <header class="sf-header">
   <div class="sf-logo">
@@ -472,134 +472,878 @@ a:hover{color:var(--text-bright)}
     SF · MIHM v3.0
   </div>
   <div class="sf-tabs">
-    <button class="sf-tab active" onclick="showSection('dashboard',this)">Dashboard</button>
-    <button class="sf-tab" onclick="showSection('campo',this)">Campo Cognitivo</button>
-    <button class="sf-tab" onclick="showSection('observatorio',this)">Observatorio</button>
-    <button class="sf-tab" onclick="showSection('council',this)">APTYMOK Council</button>
-    <button class="sf-tab" onclick="showSection('magi',this)">SF-MAGI Council</button>
-    <button class="sf-tab" onclick="showSection('math',this)">Math Extender</button>
-    <button class="sf-tab" onclick="showSection('repositorio',this)">Repositorio</button>
+    <button class="sf-tab active" data-section="dashboard">Dashboard</button>
+    <button class="sf-tab" data-section="campo">Campo Cognitivo</button>
+    <button class="sf-tab" data-section="observatorio">Observatorio</button>
+    <button class="sf-tab" data-section="council">APTYMOK Council</button>
+    <button class="sf-tab" data-section="repositorio">Repositorio</button>
   </div>
   <div class="sf-status">
-    <span>IHG <span class="val">−0.620</span></span>
-    <span>NTI <span class="nti">0.351</span></span>
+    <span>IHG <span id="header-ihg" class="val">—</span></span>
+    <span>NTI <span id="header-nti" class="nti">—</span></span>
     <span class="dim" id="live-time">—</span>
   </div>
 </header>
 
 <!-- ═══════════════════════════════════════════════════════════
-     SECTION DASHBOARD (TU ORIGINAL + IAD/ETE + PREDICTOR + MEMORY FLOW)
+     SECTION 1 · DASHBOARD
 ═══════════════════════════════════════════════════════════════ -->
 <section id="section-dashboard" class="sf-section active">
 <div class="dash-layout">
 
-  <!-- Row 1: KPIs originales + IAD y ETE -->
+  <!-- Row 1: KPI tiles -->
   <div class="dash-row dash-row-4">
     <div class="metric-tile">
       <div class="label">IHG · Índice Homeostático</div>
-      <div class="value critical" id="kpi-ihg">−0.620</div>
-      <div class="sub">UCAP threshold −0.400 · EMERGENCY</div>
-      <div class="bar critical" style="width:62%"></div>
+      <div class="value critical" id="kpi-ihg">—</div>
+      <div class="sub" id="kpi-ihg-sub">UCAP threshold −0.400 · EMERGENCY</div>
+      <div class="bar critical" id="kpi-ihg-bar" style="width:0%"></div>
     </div>
     <div class="metric-tile">
       <div class="label">NTI · Trazabilidad</div>
-      <div class="value warning" id="kpi-nti">0.351</div>
-      <div class="sub">Umbral estructural 0.500 · BLIND MODE</div>
-      <div class="bar" style="width:35.1%;background:var(--amber)"></div>
+      <div class="value warning" id="kpi-nti">—</div>
+      <div class="sub" id="kpi-nti-sub">Umbral estructural 0.500 · BLIND MODE</div>
+      <div class="bar" id="kpi-nti-bar" style="width:0%;background:var(--amber)"></div>
     </div>
     <div class="metric-tile">
-      <div class="label">IAD_ritmo</div>
-      <div class="value ok" id="kpi-iad">0.84</div>
-      <div class="sub">Adaptabilidad Disipativa</div>
+      <div class="label">F_s · Fricción Sistémica</div>
+      <div class="value critical" id="kpi-fs">—</div>
+      <div class="sub">S4 UCAP · > 0.700 sostenido 3 ciclos</div>
+      <div class="bar critical" id="kpi-fs-bar" style="width:0%"></div>
     </div>
     <div class="metric-tile">
-      <div class="label">ETE_campo</div>
-      <div class="value ok" id="kpi-ete">3.2</div>
-      <div class="sub">Eficiencia Transformación Energética</div>
+      <div class="label">C_s · Coherencia Sistémica</div>
+      <div class="value critical" id="kpi-cs">—</div>
+      <div class="sub">S4 UCAP · Integridad nula</div>
+      <div class="bar critical" id="kpi-cs-bar" style="width:0%"></div>
     </div>
   </div>
 
-  <!-- Row 2: ECG + Monte Carlo + NUEVOS CANVASES -->
+  <!-- Row 2: ECG + Monte Carlo -->
   <div class="dash-row dash-row-2">
-    <div class="card ecg-wrap"> <!-- TU ECG ORIGINAL SIN CAMBIOS --> </div>
+    <div class="card ecg-wrap">
+      <div class="card-header">
+        SystemFriction · ECG en tiempo real
+        <span class="dim mono" style="font-size:.5rem">IHG(t) · α=0.30</span>
+      </div>
+      <canvas id="ecg-canvas" height="120"></canvas>
+      <div class="ecg-overlay" id="ecg-current">IHG —</div>
+    </div>
     <div class="card">
-      <div class="card-header">Predictor Vivo 2030 + Flujo Memoria</div>
-      <canvas id="predictor-vivo" height="220"></canvas>
-      <canvas id="memory-flow" height="120"></canvas>
+      <div class="card-header">Monte Carlo · 50,000 iteraciones</div>
+      <div class="card-body">
+        <div style="margin-bottom:1rem">
+          <canvas id="mc-chart" height="120"></canvas>
+        </div>
+        <div class="sf-table" style="font-size:.65rem">
+          <table style="width:100%">
+            <tr><td class="dim">P(colapso 2030)</td><td class="mono red-val" id="mc-pcolapso">—</td></tr>
+            <tr><td class="dim">IC 95%</td><td class="mono" id="mc-ic">—</td></tr>
+            <tr><td class="dim">P(D|A∪B)</td><td class="mono red-val" id="mc-pcond">—</td></tr>
+            <tr><td class="dim">Protocolo</td><td class="mono red-val" id="mc-protocolo">—</td></tr>
+          </table>
+        </div>
+      </div>
     </div>
   </div>
 
-  <!-- Row 3 y Row 4: TU ORIGINAL SIN CAMBIOS -->
-  <!-- (Timeline, Variables MIHM, Patrones, NTI chart) -->
+  <!-- Row 3: Timeline AGS + Variables -->
+  <div class="card">
+    <div class="card-header">
+      Nodo AGS · Línea de Tiempo 2024–2026
+      <div style="display:flex;gap:.5rem">
+        <button class="btn btn-accent" id="btn-play-timeline">▶ Play</button>
+      </div>
+    </div>
+    <div class="stage-nav" id="stage-nav"></div>
+    <div style="padding:1rem">
+      <canvas id="timeline-chart" height="140"></canvas>
+    </div>
+    <div class="card-body" id="stage-detail" style="border-top:1px solid var(--border)">
+      <div style="font-family:var(--mono);font-size:.62rem;color:var(--text-dim)">
+        Selecciona una etapa para ver el detalle.
+      </div>
+    </div>
+  </div>
+
+  <!-- Row 4: Variables MIHM + Pattern activations -->
+  <div class="dash-row dash-row-3">
+    <div class="card">
+      <div class="card-header">Variables MIHM v3 · Estado actual</div>
+      <div class="card-body" style="padding:0">
+        <canvas id="radar-chart" height="200"></canvas>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">Patrones · Activación</div>
+      <div class="card-body" style="padding:0; max-height:280px; overflow-y:auto">
+        <div id="pattern-activations"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">NTI · Componentes</div>
+      <div class="card-body" style="padding:0">
+        <canvas id="nti-chart" height="180"></canvas>
+        <div id="nti-components" style="padding:.75rem;font-family:var(--mono);font-size:.58rem;color:var(--text-dim)"></div>
+      </div>
+    </div>
+  </div>
 
 </div>
 </section>
 
-<!-- SECCIONES 2, 3, 4 y 5: TU ORIGINAL SIN CAMBIOS -->
-<!-- Campo Cognitivo, Observatorio, APTYMOK Council, Repositorio -->
-
-<!-- NUEVA SECCIÓN SF-MAGI COUNCIL -->
-<section id="section-magi" class="sf-section">
-  <div class="magi-tab">
-    <button onclick="switchMagi(0)" class="magi-persona active">Analyst</button>
-    <button onclick="switchMagi(1)" class="magi-persona">Predictor</button>
-    <button onclick="switchMagi(2)" class="magi-persona">Controller</button>
+<!-- ═══════════════════════════════════════════════════════════
+     SECTION 2 · CAMPO COGNITIVO
+═══════════════════════════════════════════════════════════════ -->
+<section id="section-campo" class="sf-section">
+<div class="campo-layout">
+  <div class="campo-viz" id="campo-viz-container">
+    <div class="campo-toolbar">
+      <button class="btn btn-accent" id="reset-zoom">Reset</button>
+      <button class="btn btn-accent" id="toggle-labels">Labels</button>
+      <select class="model-sel" id="campo-filter">
+        <option value="all">Todos los clusters</option>
+      </select>
+    </div>
+    <svg id="campo-svg" width="100%" height="100%"></svg>
+    <div class="campo-info" id="campo-info">Cargando campo cognitivo...</div>
+    <div class="node-tooltip" id="node-tooltip"></div>
   </div>
-  <div id="magi-messages" style="height:420px;overflow-y:auto;padding:1rem;background:#131310"></div>
-  <textarea id="magi-input" placeholder="Pregunta al SF-MAGI..." style="width:100%;padding:1rem"></textarea>
-  <button onclick="sendToMagi()" style="background:#c8a96e;color:#0d0d0b;padding:1rem">Unificar</button>
+  <div class="campo-sidebar">
+    <div class="pattern-filters" id="pattern-filters"></div>
+    <div style="padding:1rem;border-bottom:1px solid var(--border)">
+      <div class="detail-label">Leyenda · Clusters</div>
+      <div id="cluster-legend" style="font-family:var(--mono);font-size:.58rem;line-height:2"></div>
+    </div>
+    <div style="padding:1rem;border-bottom:1px solid var(--border)">
+      <div class="detail-label">Leyenda · Patrones (aristas)</div>
+      <div id="pattern-legend"></div>
+    </div>
+    <div id="selected-node-panel" style="padding:1rem;flex:1">
+      <div class="detail-label">Nodo seleccionado</div>
+      <div class="dim mono" style="font-size:.6rem">Haz clic en un nodo</div>
+    </div>
+  </div>
+</div>
 </section>
 
-<!-- NUEVA SECCIÓN MATH EXTENDER -->
-<section id="section-math" class="sf-section">
-  <input id="new-eq-name" placeholder="Nombre ecuación" style="width:30%">
-  <input id="new-eq-formula" placeholder="Fórmula" style="width:60%">
-  <button onclick="addNewMath()">Añadir</button>
-  <div id="math-list"></div>
+<!-- ═══════════════════════════════════════════════════════════
+     SECTION 3 · OBSERVATORIO
+═══════════════════════════════════════════════════════════════ -->
+<section id="section-observatorio" class="sf-section">
+<div class="obs-layout">
+  <div class="obs-panel">
+    <div style="padding:.75rem 1rem;border-bottom:1px solid var(--border);font-family:var(--mono);font-size:.55rem;letter-spacing:.18em;text-transform:uppercase;color:var(--accent-dim);display:flex;justify-content:space-between">
+      Nodos del sistema
+      <span id="obs-node-count" class="dim">121</span>
+    </div>
+    <div style="padding:.5rem;border-bottom:1px solid var(--border)">
+      <input type="text" id="node-search" placeholder="Buscar nodo..."
+        style="width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:.65rem;padding:.4rem .6rem;outline:none">
+    </div>
+    <div id="obs-node-list" style="overflow-y:auto;max-height:calc(100vh - 170px)"></div>
+  </div>
+  <div class="obs-center" id="obs-detail">
+    <div style="padding:3rem;text-align:center;color:var(--text-dim)">
+      <div style="font-family:var(--mono);font-size:.6rem;letter-spacing:.2em;text-transform:uppercase;margin-bottom:1rem">
+        Selecciona un nodo
+      </div>
+      <div style="font-size:1rem;opacity:.4">Sistema de Observación MIHM v3.0</div>
+    </div>
+  </div>
+  <div class="obs-panel">
+    <div style="padding:.75rem 1rem;border-bottom:1px solid var(--border);font-family:var(--mono);font-size:.55rem;letter-spacing:.18em;text-transform:uppercase;color:var(--accent-dim)">
+      Catálogo de Patrones
+    </div>
+    <div id="obs-patterns-panel" style="overflow-y:auto;max-height:calc(50vh - 60px)"></div>
+    <div style="padding:.75rem 1rem;border-top:1px solid var(--border);border-bottom:1px solid var(--border);font-family:var(--mono);font-size:.55rem;letter-spacing:.18em;text-transform:uppercase;color:var(--accent-dim)">
+      Interacciones MIHM
+    </div>
+    <div id="obs-interactions-panel" style="padding:1rem;font-family:var(--mono);font-size:.62rem;color:var(--text-dim);line-height:1.9"></div>
+  </div>
+</div>
 </section>
 
-<!-- JAVASCRIPT COMPLETO (todo tu script original + funciones nuevas definidas) -->
+<!-- ═══════════════════════════════════════════════════════════
+     SECTION 4 · APTYMOK COUNCIL
+═══════════════════════════════════════════════════════════════ -->
+<section id="section-council" class="sf-section">
+<div style="display:flex;height:calc(100vh - 52px - 28px)">
+  <div class="council-layout" style="flex:1">
+    <div class="council-pane">
+      <div class="council-header">
+        <span class="council-indicator active" id="claude-indicator"></span>
+        Claude Sonnet · MIHM Analyst
+        <span class="dim" style="margin-left:auto;font-size:.5rem">api.anthropic.com</span>
+      </div>
+      <div class="council-messages" id="claude-messages">
+        <div class="msg system-msg">Sistema inicializado · Contexto MIHM v3.0 cargado</div>
+      </div>
+      <div class="council-input-area">
+        <textarea class="council-input" id="claude-input" rows="2" placeholder="Consulta al sistema MIHM..."></textarea>
+        <button class="council-send" id="claude-send">Enviar</button>
+      </div>
+    </div>
+    <div class="council-pane">
+      <div class="council-header">
+        <span class="council-indicator" id="ollama-indicator"></span>
+        Ollama · Local Model
+        <select class="model-sel" id="ollama-model" style="margin-left:auto">
+          <option value="llama3.2">llama3.2</option>
+          <option value="mistral">mistral</option>
+          <option value="phi3">phi3</option>
+          <option value="qwen2.5">qwen2.5</option>
+        </select>
+        <button class="btn btn-accent" id="ollama-ping" style="font-size:.48rem;padding:.25rem .5rem;margin-left:.5rem">Ping</button>
+      </div>
+      <div class="council-messages" id="ollama-messages">
+        <div class="msg system-msg">Ollama · localhost:11434 · Verificando conexión...</div>
+      </div>
+      <div class="council-input-area">
+        <textarea class="council-input" id="ollama-input" rows="2" placeholder="Consulta local (requiere Ollama en localhost)..."></textarea>
+        <button class="council-send" id="ollama-send">Enviar</button>
+      </div>
+    </div>
+  </div>
+  <div class="context-sidebar">
+    <div class="ctx-section">
+      <div class="ctx-label">Contexto activo</div>
+      <div id="ctx-active" style="font-family:var(--mono);font-size:.6rem;color:var(--text);line-height:1.8"></div>
+    </div>
+    <div class="ctx-section">
+      <div class="ctx-label">Variables disponibles</div>
+      <div id="ctx-vars"></div>
+    </div>
+    <div class="ctx-section">
+      <div class="ctx-label">Patrones activos</div>
+      <div id="ctx-patterns"></div>
+    </div>
+    <div class="ctx-section">
+      <div class="ctx-label">Inyectar en consulta</div>
+      <div style="display:flex;flex-direction:column;gap:.4rem;margin-top:.3rem">
+        <button class="btn btn-accent" data-inject="estado" style="font-size:.5rem">Estado sistema completo</button>
+        <button class="btn btn-accent" data-inject="ags" style="font-size:.5rem">Nodo AGS + métricas</button>
+        <button class="btn btn-accent" data-inject="patrones" style="font-size:.5rem">Catálogo patrones v3</button>
+        <button class="btn btn-accent" data-inject="mihm" style="font-size:.5rem">Fórmulas MIHM v3</button>
+      </div>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════
+     SECTION 5 · REPOSITORIO
+═══════════════════════════════════════════════════════════════ -->
+<section id="section-repositorio" class="sf-section">
+<div style="max-width:860px;margin:0 auto;padding:3rem 2rem">
+  <div style="margin-bottom:3rem">
+    <div style="font-family:var(--mono);font-size:.6rem;letter-spacing:.25em;text-transform:uppercase;color:var(--accent-dim);margin-bottom:1rem">
+      System Friction · Repositorio · v3.0
+    </div>
+    <h1 style="font-size:2.2rem;font-weight:400;color:var(--text-bright);line-height:1.2;margin-bottom:1.5rem">
+      Documentos sobre fricción sistémica.<br>Cada uno diseñado para extraerse.
+    </h1>
+    <p style="font-size:1rem;color:var(--text-dim);max-width:520px;line-height:1.8">
+      Los sistemas no fallan por ausencia de intención. Fallan porque nadie nombra lo que todos observan.
+    </p>
+  </div>
+  <div style="border-top:1px solid var(--border);padding-top:2rem;margin-bottom:2.5rem">
+    <div style="font-family:var(--mono);font-size:.58rem;letter-spacing:.2em;text-transform:uppercase;color:var(--accent-dim);margin-bottom:1.5rem">
+      Núcleo operativo
+    </div>
+    <div id="repo-core" style="display:flex;flex-direction:column;gap:1px;background:var(--border)"></div>
+  </div>
+  <div style="margin-bottom:2.5rem">
+    <div style="font-family:var(--mono);font-size:.58rem;letter-spacing:.2em;text-transform:uppercase;color:var(--accent-dim);margin-bottom:1.5rem">
+      Serie de patrones · doc-01 – doc-10
+    </div>
+    <div id="repo-docs" style="display:flex;flex-direction:column;gap:1px;background:var(--border)"></div>
+  </div>
+  <div style="margin-bottom:2.5rem">
+    <div style="font-family:var(--mono);font-size:.58rem;letter-spacing:.2em;text-transform:uppercase;color:var(--accent-dim);margin-bottom:1.5rem">
+      Nodo Aguascalientes · AGS-01 – AGS-06
+    </div>
+    <div id="repo-ags" style="display:flex;flex-direction:column;gap:1px;background:var(--border)"></div>
+  </div>
+  <div style="margin-bottom:2.5rem">
+    <div style="font-family:var(--mono);font-size:.58rem;letter-spacing:.2em;text-transform:uppercase;color:var(--accent-dim);margin-bottom:1.5rem">
+      Variables MIHM v3 · Catálogo completo
+    </div>
+    <div id="repo-vars" style="display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border)"></div>
+  </div>
+</div>
+<div id="doc-overlay" style="display:none;position:fixed;inset:0;z-index:200;background:rgba(13,13,11,.96);overflow-y:auto">
+  <div style="max-width:720px;margin:0 auto;padding:3rem 2rem">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2rem">
+      <div id="doc-overlay-meta" style="font-family:var(--mono);font-size:.6rem;color:var(--accent-dim)"></div>
+      <button class="btn btn-accent" id="close-doc">× Cerrar</button>
+    </div>
+    <div id="doc-overlay-content" style="font-size:.95rem;line-height:1.9;color:var(--text)"></div>
+  </div>
+</div>
+</section>
+
 <script>
-/* TODO TU JAVASCRIPT ORIGINAL (AGS_DATA, initECG, initTimelineChart, initRadar, initMCChart, initNTIChart, initPatternActivations, initCampo, initObservatorio, initRepositorio, openDoc, etc.) VA AQUÍ */
+// ═══════════════════════════════════════════════════════════════
+// CARGA DE DATOS Y ESTADO GLOBAL
+// ═══════════════════════════════════════════════════════════════
+let systemData = null;
+let agsMetrics = null;
+let docsV3 = window.DOCS_V3 || {};
 
-/* NUEVAS FUNCIONES (corrigen todos los errores) */
-function showSection(id,btn){
-  document.querySelectorAll('.sf-section').forEach(s=>s.classList.remove('active'));
-  document.querySelectorAll('.sf-tab').forEach(t=>t.classList.remove('active'));
-  document.getElementById('section-'+id).classList.add('active');
-  if(btn) btn.classList.add('active');
-}
+// Valores por defecto (se actualizan desde JSON)
+let currentIHG = -0.620;
+let currentNTI = 0.351;
+let currentFs = 0.89;
+let currentCs = 0.21;
+let currentPcolapso = 0.71;
 
-function initPredictorVivo(){
-  const ctx = document.getElementById('predictor-vivo').getContext('2d');
-  new Chart(ctx, {type:'line', data:{labels:['2026','2027','2028','2029','2030'], datasets:[{label:'Ruta viable',data:[-0.62,-0.48,-0.35,-0.28,-0.25],borderColor:'#6ec88a'},{label:'Colapso',data:[-0.62,-0.71,-0.85,-0.92,-1.0],borderColor:'#c86e6e'}]}});
-}
+// Datos AGS para timeline (se cargarán desde SF_nodes.json si están)
+let agsStages = [];
 
-function drawMemoryFlow(){
-  const c = document.getElementById('memory-flow'), ctx = c.getContext('2d');
-  let t = 0;
-  setInterval(() => {
-    ctx.clearRect(0,0,c.width,c.height);
-    ctx.strokeStyle = '#c8a96e';
-    ctx.beginPath();
-    for(let x=0;x<c.width;x++){
-      const y = 60 * Math.exp(-0.08*(x/10 - t)) + 30;
-      ctx.lineTo(x,y);
+// Variables MIHM (se cargarán desde SF_nodes.json)
+let mihmVariables = [];
+
+// Patrones (se cargarán desde SF_nodes.json)
+let patterns = [];
+
+// Clusters (se cargarán desde SF_nodes.json)
+let clusters = [];
+
+// Nodos para observatorio y campo
+let allNodes = [];
+
+// ═══════════════════════════════════════════════════════════════
+// FUNCIONES DE CARGA
+// ═══════════════════════════════════════════════════════════════
+async function loadAllData() {
+  try {
+    // Cargar SF_nodes.json
+    const nodesRes = await fetch('/nodes/SF_nodes.json');
+    systemData = await nodesRes.json();
+    
+    // Extraer datos del JSON
+    if (systemData.nodes) allNodes = systemData.nodes;
+    if (systemData.mihm_v3_engine && systemData.mihm_v3_engine.variables) {
+      // Buscar variables MIHM en los nodos
+      mihmVariables = allNodes.filter(n => n.mihm_v3 && n.mihm_v3.variable).map(n => ({
+        sym: n.mihm_v3.variable,
+        name: n.name,
+        formula: n.mihm_v3.formula || '—',
+        weight: n.mihm_v3.weight || 0,
+        dim: n.mihm_v3.dimension || '—',
+        val: parseFloat(n.metrics?.value) || 0.5
+      }));
     }
-    ctx.stroke();
-    t += 0.5;
-  },100);
+    if (systemData.patterns_catalog && systemData.patterns_catalog.pattern_ids) {
+      patterns = systemData.patterns_catalog.pattern_ids.map((id, idx) => ({
+        id: id,
+        name: id.replace(/-/g, ' ').toUpperCase(),
+        color: `var(--p${(idx % 10) + 1})`,
+        severity: idx < 5 ? 'NARANJA' : idx < 8 ? 'ROJA' : 'LATENTE',
+        primary: mihmVariables[idx % mihmVariables.length]?.sym || 'F_s'
+      }));
+    }
+    if (systemData.clusters) clusters = systemData.clusters;
+    
+    // Cargar ags_metrics.json
+    try {
+      const metricsRes = await fetch('/nodes/ags_metrics.json');
+      agsMetrics = await metricsRes.json();
+      currentIHG = agsMetrics.IHG_post || currentIHG;
+      currentNTI = agsMetrics.NTI || currentNTI;
+      currentPcolapso = agsMetrics.P_colapso || currentPcolapso;
+    } catch(e) { console.warn('ags_metrics.json no encontrado, usando valores por defecto'); }
+    
+    // Extraer stages AGS desde nodos si existen
+    const agsNodes = allNodes.filter(n => n.id && n.id.includes('AGS'));
+    if (agsNodes.length) {
+      agsStages = agsNodes.map((n, i) => ({
+        id: n.id,
+        label: n.id,
+        ihg: n.metrics?.ihg || -0.2 - i*0.1,
+        nti: n.metrics?.nti || 0.8 - i*0.1,
+        fs: n.metrics?.fs || 0.3 + i*0.1,
+        cs: n.metrics?.cs || 0.7 - i*0.1,
+        desc: n.description?.substring(0, 100) || 'Sin descripción',
+        protocol: n.metrics?.protocol || 'S0 OK'
+      }));
+    } else {
+      // Fallback
+      agsStages = [
+        {id:'ags-01',label:'AGS-01',ihg:-0.15,nti:0.85,fs:0.28,cs:0.72,desc:'Estado operativo normal.',protocol:'S0 OK'},
+        {id:'ags-02',label:'AGS-02',ihg:-0.28,nti:0.72,fs:0.45,cs:0.58,desc:'Primeras grietas.',protocol:'S1 Amarilla'},
+        {id:'ags-03',label:'AGS-03',ihg:-0.44,nti:0.61,fs:0.62,cs:0.44,desc:'Escalada de violencia.',protocol:'S2 Naranja'},
+        {id:'ags-04',label:'AGS-04',ihg:-0.41,nti:0.68,fs:0.54,cs:0.52,desc:'Recuperación parcial.',protocol:'S2 Naranja'},
+        {id:'ags-05',label:'AGS-05',ihg:-0.55,nti:0.45,fs:0.74,cs:0.38,desc:'Segundo shock.',protocol:'S3 Roja'},
+        {id:'ags-06',label:'AGS-06',ihg:-0.62,nti:0.351,fs:0.89,cs:0.21,desc:'Post-fractura del pacto.',protocol:'S4 UCAP'}
+      ];
+    }
+    
+    // Actualizar UI con datos cargados
+    updateKPIs();
+    updateHeader();
+    initTimelineChart();
+    initRadar();
+    initMCChart();
+    initNTIChart();
+    initPatternActivations();
+    initCampo();
+    initObservatorio();
+    initRepositorio();
+    initContextSidebar();
+    
+    document.getElementById('notif-text').innerHTML = `PROTOCOLO ACTIVO · Nodo AGS · IHG ${currentIHG.toFixed(3)} · NTI ${currentNTI.toFixed(3)} · UCAP · EMERGENCY_DECISION · P(colapso 2030) ${(currentPcolapso*100).toFixed(0)}%`;
+    
+  } catch(error) {
+    console.error('Error cargando datos:', error);
+    document.getElementById('notif-text').innerHTML = 'Error cargando datos. Verifica que los archivos JSON estén en /nodes/';
+  }
 }
 
-function switchMagi(i){ /* lógica de pestañas */ }
-function sendToMagi(){ /* lógica de chat */ }
-function addNewMath(){ /* guarda en localStorage */ }
+// ═══════════════════════════════════════════════════════════════
+// FUNCIONES DE ACTUALIZACIÓN UI
+// ═══════════════════════════════════════════════════════════════
+function updateKPIs() {
+  document.getElementById('kpi-ihg').textContent = currentIHG.toFixed(3);
+  document.getElementById('kpi-nti').textContent = currentNTI.toFixed(3);
+  document.getElementById('kpi-fs').textContent = currentFs.toFixed(3);
+  document.getElementById('kpi-cs').textContent = currentCs.toFixed(3);
+  document.getElementById('kpi-ihg-bar').style.width = `${Math.abs(currentIHG)*100}%`;
+  document.getElementById('kpi-nti-bar').style.width = `${currentNTI*100}%`;
+  document.getElementById('kpi-fs-bar').style.width = `${currentFs*100}%`;
+  document.getElementById('kpi-cs-bar').style.width = `${currentCs*100}%`;
+  document.getElementById('kpi-ihg-sub').innerHTML = currentIHG < -0.5 ? 'UCAP threshold −0.400 · EMERGENCY' : 'Monitoreo activo';
+  document.getElementById('kpi-nti-sub').innerHTML = currentNTI < 0.4 ? 'Umbral estructural 0.500 · BLIND MODE' : 'Trazabilidad operativa';
+}
 
-// INICIO
-document.addEventListener('DOMContentLoaded', () => {
-  initPredictorVivo();
-  drawMemoryFlow();
+function updateHeader() {
+  document.getElementById('header-ihg').textContent = currentIHG.toFixed(3);
+  document.getElementById('header-nti').textContent = currentNTI.toFixed(3);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ECG ANIMATION
+// ═══════════════════════════════════════════════════════════════
+(function initECG(){
+  const canvas = document.getElementById('ecg-canvas');
+  if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+  let t = 0;
+  const data = [];
+  const W = () => canvas.parentElement.offsetWidth || 800;
+  const H = 120;
+  function baseIHG(x) {
+    const base = currentIHG;
+    const noise = (Math.random() - 0.5) * 0.04;
+    const wave = Math.sin(x * 0.08) * 0.05 + Math.sin(x * 0.2) * 0.02;
+    return base + noise + wave;
+  }
+  function draw() {
+    canvas.width = W();
+    canvas.height = H;
+    data.push(baseIHG(t));
+    t += 1;
+    if(data.length > canvas.width) data.shift();
+    ctx.clearRect(0, 0, canvas.width, H);
+    ctx.strokeStyle = 'rgba(34,34,32,.5)';
+    ctx.lineWidth = 1;
+    for(let y = 0; y < H; y += 24) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(canvas.width, y);
+      ctx.stroke();
+    }
+    const zero = H * 0.25;
+    ctx.strokeStyle = 'rgba(90,88,82,.4)';
+    ctx.setLineDash([4,4]);
+    ctx.beginPath();
+    ctx.moveTo(0, zero);
+    ctx.lineTo(canvas.width, zero);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    const ucap = H * 0.65;
+    ctx.strokeStyle = 'rgba(200,110,110,.3)';
+    ctx.setLineDash([2,6]);
+    ctx.beginPath();
+    ctx.moveTo(0, ucap);
+    ctx.lineTo(canvas.width, ucap);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
+    gradient.addColorStop(0, 'rgba(200,169,110,.1)');
+    gradient.addColorStop(0.7, 'rgba(200,110,110,.6)');
+    gradient.addColorStop(1, 'rgba(200,110,110,1)');
+    ctx.strokeStyle = gradient;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    const scale = H * 0.4 / 1.5;
+    data.forEach((v, i) => {
+      const x = i;
+      const y = H / 2 - v * scale;
+      if(i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+    if(data.length > 0) {
+      const last = data[data.length - 1];
+      const lx = data.length - 1;
+      const ly = H / 2 - last * scale;
+      ctx.beginPath();
+      ctx.arc(lx, ly, 3, 0, Math.PI * 2);
+      ctx.fillStyle = '#c86e6e';
+      ctx.fill();
+      document.getElementById('ecg-current').textContent = 'IHG ' + last.toFixed(3);
+    }
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+// ═══════════════════════════════════════════════════════════════
+// TIMELINE CHART
+// ═══════════════════════════════════════════════════════════════
+let timelineChart, timelineInterval = null;
+function initTimelineChart() {
+  const ctx = document.getElementById('timeline-chart').getContext('2d');
+  const labels = agsStages.map(d => d.label);
+  timelineChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [
+        {label: 'IHG', data: agsStages.map(d => d.ihg), borderColor: '#c86e6e', backgroundColor: 'rgba(200,110,110,.1)', tension: .4, pointRadius: 5},
+        {label: 'NTI', data: agsStages.map(d => d.nti), borderColor: '#c8a96e', backgroundColor: 'rgba(200,169,110,.1)', tension: .4, pointRadius: 5},
+        {label: 'F_s', data: agsStages.map(d => d.fs), borderColor: '#6e9ac8', backgroundColor: 'rgba(110,154,200,.1)', tension: .4, pointRadius: 5},
+        {label: 'C_s', data: agsStages.map(d => d.cs), borderColor: '#6ec88a', backgroundColor: 'rgba(110,200,138,.1)', tension: .4, pointRadius: 5}
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: '#5a5852', font: { family: 'JetBrains Mono', size: 10 } } } },
+      scales: {
+        x: { grid: { color: 'rgba(34,34,32,.5)' }, ticks: { color: '#5a5852', font: { family: 'JetBrains Mono', size: 9 } } },
+        y: { grid: { color: 'rgba(34,34,32,.5)' }, ticks: { color: '#5a5852', font: { family: 'JetBrains Mono', size: 9 } }, min: -1, max: 1 }
+      }
+    }
+  });
+  // Generar botones de etapa
+  const stageNav = document.getElementById('stage-nav');
+  stageNav.innerHTML = agsStages.map((s, i) => `<button class="stage-btn ${s.ihg < -0.5 ? 'critical' : ''}" data-stage="${i}">${s.label}</button>`).join('');
+  stageNav.querySelectorAll('.stage-btn').forEach((btn, i) => {
+    btn.addEventListener('click', () => selectStage(i));
+  });
+  selectStage(5);
+}
+
+let currentStage = 5;
+function selectStage(i) {
+  currentStage = i;
+  document.querySelectorAll('.stage-btn').forEach((b, idx) => b.classList.toggle('active', idx === i));
+  const d = agsStages[i];
+  const statusColor = d.ihg > -0.3 ? 'var(--green)' : d.ihg > -0.5 ? 'var(--amber)' : 'var(--red)';
+  document.getElementById('stage-detail').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:1rem;margin-bottom:1rem">
+      <div><div class="dim mono" style="font-size:.5rem">IHG</div><div class="mono" style="color:${statusColor};font-size:1.1rem">${d.ihg.toFixed(3)}</div></div>
+      <div><div class="dim mono" style="font-size:.5rem">NTI</div><div class="mono" style="color:var(--amber);font-size:1.1rem">${d.nti.toFixed(3)}</div></div>
+      <div><div class="dim mono" style="font-size:.5rem">F_s</div><div class="mono" style="color:var(--blue);font-size:1.1rem">${d.fs.toFixed(2)}</div></div>
+      <div><div class="dim mono" style="font-size:.5rem">C_s</div><div class="mono" style="color:var(--green);font-size:1.1rem">${d.cs.toFixed(2)}</div></div>
+    </div>
+    <p style="font-size:.85rem;color:var(--text-dim)">${d.desc}</p>
+    <div class="mono" style="font-size:.55rem;color:${statusColor};margin-top:.5rem">${d.protocol}</div>`;
+  document.getElementById('kpi-ihg').textContent = d.ihg.toFixed(3);
+  document.getElementById('kpi-nti').textContent = d.nti.toFixed(3);
+  document.getElementById('kpi-fs').textContent = d.fs.toFixed(3);
+  document.getElementById('kpi-cs').textContent = d.cs.toFixed(3);
+}
+
+document.getElementById('btn-play-timeline').addEventListener('click', () => {
+  if(timelineInterval) {
+    clearInterval(timelineInterval);
+    timelineInterval = null;
+    document.getElementById('btn-play-timeline').textContent = '▶ Play';
+  } else {
+    timelineInterval = setInterval(() => {
+      currentStage = (currentStage + 1) % agsStages.length;
+      selectStage(currentStage);
+    }, 1800);
+    document.getElementById('btn-play-timeline').textContent = '⏸ Pause';
+  }
 });
+
+// ═══════════════════════════════════════════════════════════════
+// RADAR CHART
+// ═══════════════════════════════════════════════════════════════
+function initRadar() {
+  const ctx = document.getElementById('radar-chart').getContext('2d');
+  const variables = mihmVariables.length ? mihmVariables.slice(0,11) : [
+    {sym:'F_s',val:0.89},{sym:'C_s',val:0.21},{sym:'I_mc',val:0.38},{sym:'E_r',val:0.42},{sym:'D_i',val:0.71},
+    {sym:'G_f',val:0.78},{sym:'D_cog',val:0.67},{sym:'R_sem',val:0.29},{sym:'V_i',val:0.33},{sym:'C_sem',val:0.44},{sym:'Phi',val:0.56}
+  ];
+  new Chart(ctx, {
+    type: 'radar',
+    data: {
+      labels: variables.map(v => v.sym),
+      datasets: [{
+        label: 'Estado AGS-06',
+        data: variables.map(v => v.val),
+        borderColor: '#c86e6e',
+        backgroundColor: 'rgba(200,110,110,.15)',
+        pointBackgroundColor: '#c86e6e'
+      }, {
+        label: 'Baseline',
+        data: [0.28,0.72,0.78,0.82,0.35,0.22,0.25,0.75,0.71,0.78,0.65],
+        borderColor: '#6ec88a',
+        backgroundColor: 'rgba(110,200,138,.08)',
+        pointBackgroundColor: '#6ec88a'
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: '#5a5852', font: { family: 'JetBrains Mono', size: 9 } } } },
+      scales: { r: { grid: { color: 'rgba(34,34,32,.7)' }, ticks: { color: '#5a5852', stepSize: .2 }, pointLabels: { color: '#5a5852', font: { size: 9 } }, min: 0, max: 1 } }
+    }
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MONTE CARLO CHART
+// ═══════════════════════════════════════════════════════════════
+function initMCChart() {
+  const ctx = document.getElementById('mc-chart').getContext('2d');
+  const bins = [];
+  for(let i = 0; i < 20; i++) {
+    const x = i / 20;
+    const v = Math.exp(-Math.pow((x - 0.31) * 8, 2) / 2) * 2200 + Math.random() * 80;
+    bins.push(Math.round(v));
+  }
+  new Chart(ctx, {
+    type: 'bar',
+    data: { labels: Array(20).fill().map((_,i) => (i/20).toFixed(2)), datasets: [{ label: 'P(colapso)', data: bins, backgroundColor: bins.map((_,i) => i>5 && i<14 ? 'rgba(200,110,110,.8)' : 'rgba(200,169,110,.3)'), borderWidth: 0 }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { color: 'rgba(34,34,32,.3)' }, ticks: { color: '#5a5852', font: { size: 8 } } }, y: { display: false } } }
+  });
+  document.getElementById('mc-pcolapso').textContent = `${(currentPcolapso*100).toFixed(0)}%`;
+  document.getElementById('mc-ic').textContent = `[${(currentPcolapso-0.05).toFixed(3)}, ${(currentPcolapso+0.05).toFixed(3)}]`;
+  document.getElementById('mc-pcond').textContent = (currentPcolapso * 0.44).toFixed(2);
+  document.getElementById('mc-protocolo').textContent = currentIHG < -0.5 ? 'EMERGENCY_DECISION' : 'MONITOREO';
+}
+
+// ═══════════════════════════════════════════════════════════════
+// NTI CHART
+// ═══════════════════════════════════════════════════════════════
+function initNTIChart() {
+  const ctx = document.getElementById('nti-chart').getContext('2d');
+  new Chart(ctx, {
+    type: 'bar',
+    data: { labels: ['LDI','ICC','CSR','IRCI','IIM'], datasets: [{ data: [0.45,0.80,0.30,0.90,0.60], backgroundColor: ['#c86e6e','#6ec88a','#c86e6e','#6ec88a','#c8a96e'], borderWidth: 0 }] },
+    options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { min: 0, max: 1, grid: { color: 'rgba(34,34,32,.3)' }, ticks: { color: '#5a5852' } }, y: { grid: { display: false }, ticks: { color: '#c8a96e' } } } }
+  });
+  document.getElementById('nti-components').innerHTML = 'LDI:0.55 · ICC:0.80 · CSR:0.30 · IRCI:0.90 · IIM:0.60';
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PATTERN ACTIVATIONS
+// ═══════════════════════════════════════════════════════════════
+function initPatternActivations() {
+  const el = document.getElementById('pattern-activations');
+  if(!el) return;
+  const activePatterns = patterns.slice(0,8);
+  el.innerHTML = activePatterns.map(p => `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:.5rem .75rem;border-bottom:1px solid var(--border)">
+      <div style="display:flex;align-items:center;gap:.5rem">
+        <div style="width:8px;height:8px;border-radius:50%;background:${p.color};flex-shrink:0"></div>
+        <div style="font-size:.75rem;color:var(--text)">${p.name}</div>
+      </div>
+      <div class="pt-state state-${p.severity === 'ROJA' ? 'roja' : p.severity === 'LATENTE' ? 'latente' : 'naranja'}" style="font-size:.48rem">${p.severity}</div>
+    </div>`).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CAMPO COGNITIVO (D3)
+// ═══════════════════════════════════════════════════════════════
+function initCampo() {
+  const container = document.getElementById('campo-viz-container');
+  const svg = d3.select('#campo-svg');
+  const W = container.offsetWidth;
+  const H = container.offsetHeight || window.innerHeight - 52;
+  svg.attr('viewBox', `0 0 ${W} ${H}`);
+  
+  const nodes = allNodes.length ? allNodes.slice(0,121) : Array(121).fill().map((_,i) => ({ id: `SF_P_${String(i+1).padStart(4,'0')}`, cluster: `SF_CLUSTER_${Math.floor(i/15)+1}`, ring: Math.floor(i/30), name: `Node ${i+1}` }));
+  const edges = [];
+  for(let i = 0; i < Math.min(280, nodes.length-1); i++) {
+    edges.push({ source: nodes[i].id, target: nodes[(i+1) % nodes.length].id, pattern: patterns[i%patterns.length]?.id, color: patterns[i%patterns.length]?.color || '#c8a96e' });
+  }
+  
+  const containerG = svg.append('g').attr('class', 'campo-g');
+  const zoom = d3.zoom().scaleExtent([.2,4]).on('zoom', e => containerG.attr('transform', e.transform));
+  svg.call(zoom);
+  
+  const sim = d3.forceSimulation(nodes)
+    .force('link', d3.forceLink(edges).id(d => d.id).distance(50).strength(.3))
+    .force('charge', d3.forceManyBody().strength(-80))
+    .force('center', d3.forceCenter(W/2, H/2))
+    .force('collision', d3.forceCollide(14));
+  
+  const link = containerG.append('g').selectAll('line').data(edges).join('line').attr('stroke', d => d.color).attr('stroke-width', .4).attr('stroke-opacity', .4);
+  const node = containerG.append('g').selectAll('g').data(nodes).join('g').attr('class', 'campo-node').style('cursor', 'pointer').call(d3.drag().on('start', (e,d) => { if(!e.active) sim.alphaTarget(.1).restart(); d.fx = d.x; d.fy = d.y; }).on('drag', (e,d) => { d.fx = e.x; d.fy = e.y; }).on('end', (e,d) => { if(!e.active) sim.alphaTarget(0); d.fx = null; d.fy = null; })).on('mouseover', (e,d) => { const tt = document.getElementById('node-tooltip'); tt.innerHTML = `<div style="color:var(--accent)">${d.id}</div><div>${d.name || 'Nodo'}</div>`; tt.style.left = (e.pageX+12)+'px'; tt.style.top = (e.pageY-20)+'px'; tt.classList.add('visible'); }).on('mouseout', () => document.getElementById('node-tooltip').classList.remove('visible'));
+  node.append('circle').attr('r', d => 5).attr('fill', d => `#${Math.floor(Math.random()*0xFFFFFF).toString(16)}`).attr('fill-opacity', .85);
+  
+  sim.on('tick', () => { link.attr('x1', d => d.source.x).attr('y1', d => d.source.y).attr('x2', d => d.target.x).attr('y2', d => d.target.y); node.attr('transform', d => `translate(${d.x},${d.y})`); });
+  document.getElementById('campo-info').innerHTML = `${nodes.length} nodos · ${edges.length} aristas · MIHM v3.0`;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// OBSERVATORIO
+// ═══════════════════════════════════════════════════════════════
+function initObservatorio() {
+  const nodes = allNodes.length ? allNodes.slice(0,121) : [];
+  const nodeList = document.getElementById('obs-node-list');
+  nodeList.innerHTML = nodes.map(n => `<div class="node-item" data-id="${n.id}"><div class="node-id">${n.id}</div><div class="node-name">${n.name || n.id}</div><div class="node-layer">${n.layer || 'teoría'}</div></div>`).join('');
+  document.getElementById('obs-node-count').textContent = nodes.length;
+  document.querySelectorAll('.node-item').forEach(el => {
+    el.addEventListener('click', () => {
+      document.querySelectorAll('.node-item').forEach(e => e.classList.remove('active'));
+      el.classList.add('active');
+      const nodeId = el.dataset.id;
+      const node = nodes.find(n => n.id === nodeId);
+      document.getElementById('obs-detail').innerHTML = `<div style="padding:2rem"><div class="detail-label">${node?.id}</div><h2 style="font-size:1.6rem">${node?.name || node?.id}</h2><p>${node?.description || 'Sin descripción disponible'}</p></div>`;
+    });
+  });
+  const patternsPanel = document.getElementById('obs-patterns-panel');
+  patternsPanel.innerHTML = patterns.slice(0,10).map(p => `<div class="pattern-card"><div class="pt-id">${p.id}</div><div class="pt-name">${p.name}</div><div class="pt-var">Primary: ${p.primary}</div><div class="pt-state state-${p.severity === 'ROJA' ? 'roja' : 'naranja'}">${p.severity}</div></div>`).join('');
+  document.getElementById('obs-interactions-panel').innerHTML = `<div>friction_coherence: F_s × C_s (w=0.10)</div><div>density_energy: D_i × (1−E_r) (w=0.10)</div><div>cognitive_semantic_delay: D_cog × (1−R_sem) (w=0.10)</div><div>gradient_intent: G_f × (1−V_i) (w=0.10)</div><div>semantic_cognitive_field: C_sem × Phi (w=0.10)</div>`;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// REPOSITORIO
+// ═══════════════════════════════════════════════════════════════
+function initRepositorio() {
+  const coreDocs = [
+    {id:'core-00',title:'Cómo leer este ecosistema',sub:'Documento metodológico'},
+    {id:'core-0',title:'Desde dónde observa el observador',sub:'Condición de percepción'},
+    {id:'core-bridge',title:'Sistemas que no pueden permitirse fallar',sub:'Umbral real vs oficial'}
+  ];
+  const seriesDocs = Array(10).fill().map((_,i) => ({id:`doc-${String(i+1).padStart(2,'0')}`,title:`Patrón ${i+1}`,sub:`Descripción del patrón ${i+1}`}));
+  const agsDocs = agsStages.map(s => ({id:s.id,title:s.label,sub:s.desc.substring(0,50)}));
+  const repoCore = document.getElementById('repo-core');
+  repoCore.innerHTML = coreDocs.map(d => `<div onclick="openDoc('${d.id}')" style="background:var(--surface);padding:1rem;cursor:pointer"><div class="mono" style="font-size:.5rem">${d.id}</div><div>${d.title}</div><div class="dim" style="font-size:.6rem">${d.sub}</div></div>`).join('');
+  const repoDocs = document.getElementById('repo-docs');
+  repoDocs.innerHTML = seriesDocs.map(d => `<div onclick="openDoc('${d.id}')" style="background:var(--surface);padding:1rem;cursor:pointer"><div class="mono" style="font-size:.5rem">${d.id}</div><div>${d.title}</div><div class="dim" style="font-size:.6rem">${d.sub}</div></div>`).join('');
+  const repoAgs = document.getElementById('repo-ags');
+  repoAgs.innerHTML = agsDocs.map(d => `<div onclick="openDoc('${d.id}')" style="background:var(--surface);padding:1rem;cursor:pointer"><div class="mono" style="font-size:.5rem">${d.id}</div><div>${d.title}</div><div class="dim" style="font-size:.6rem">${d.sub}</div></div>`).join('');
+  const repoVars = document.getElementById('repo-vars');
+  const varsList = mihmVariables.length ? mihmVariables : [
+    {sym:'F_s',name:'Fricción Sistémica',formula:'(t_d/T_esp)+O',val:0.89},{sym:'C_s',name:'Coherencia Sistémica',formula:'1-|D_o-R_o|',val:0.21},
+    {sym:'I_mc',name:'Interacción Multicanal',formula:'1-(d_c/C_t)',val:0.38},{sym:'E_r',name:'Energía Relacional',formula:'(C_v/T_m)*(1-D_f)',val:0.42}
+  ];
+  repoVars.innerHTML = varsList.map(v => `<div style="background:var(--surface);padding:1rem"><div class="mono" style="font-size:.5rem">${v.sym} · w=${v.weight||0.1}</div><div>${v.name}</div><div class="equation" style="font-size:.6rem">${v.formula}</div><div class="mono" style="font-size:.6rem">Valor: ${v.val}</div></div>`).join('');
+}
+
+function openDoc(docId) {
+  const overlay = document.getElementById('doc-overlay');
+  const meta = document.getElementById('doc-overlay-meta');
+  const content = document.getElementById('doc-overlay-content');
+  meta.textContent = docId;
+  content.innerHTML = `<p>Documento ${docId} en construcción. Próximamente contenido completo.</p>`;
+  overlay.style.display = 'block';
+}
+document.getElementById('close-doc').addEventListener('click', () => document.getElementById('doc-overlay').style.display = 'none');
+
+// ═══════════════════════════════════════════════════════════════
+// CONTEXT SIDEBAR
+// ═══════════════════════════════════════════════════════════════
+function initContextSidebar() {
+  document.getElementById('ctx-active').innerHTML = `<div>Sistema: MIHM v3.0</div><div>IHG: <span class="red-val">${currentIHG.toFixed(3)}</span></div><div>NTI: ${currentNTI.toFixed(3)}</div><div>Protocolo: ${currentIHG < -0.5 ? 'EMERGENCY' : 'MONITOREO'}</div>`;
+  const varsDiv = document.getElementById('ctx-vars');
+  varsDiv.innerHTML = mihmVariables.slice(0,6).map(v => `<div class="ctx-item" data-var="${v.sym}">${v.sym}: ${v.val}</div>`).join('');
+  const patsDiv = document.getElementById('ctx-patterns');
+  patsDiv.innerHTML = patterns.slice(0,5).map(p => `<div class="ctx-item" data-pattern="${p.id}"><div style="width:5px;height:5px;border-radius:50%;background:${p.color};display:inline-block;margin-right:.5rem"></div>${p.name}</div>`).join('');
+  document.querySelectorAll('[data-inject]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const type = btn.dataset.inject;
+      let text = '';
+      if(type === 'estado') text = `[CONTEXTO SISTEMA]\nIHG: ${currentIHG} | NTI: ${currentNTI}\nVariables: ${mihmVariables.map(v=>`${v.sym}=${v.val}`).join(', ')}\n\n`;
+      else if(type === 'ags') text = `[NODO AGS]\n${agsStages.map(d=>`${d.label}: IHG=${d.ihg}, NTI=${d.nti}`).join('\n')}\n\n`;
+      else if(type === 'patrones') text = `[PATRONES]\n${patterns.map(p=>`${p.id}: ${p.name}`).join('\n')}\n\n`;
+      else if(type === 'mihm') text = `[MIHM v3]\nIHG = Σ(w_i*X_i) - Σ(w_ij*int_ij)\nInteracciones: F_s×C_s, D_i×(1−E_r), D_cog×(1−R_sem)\n\n`;
+      const input = document.getElementById('claude-input');
+      if(input) input.value = text + (input.value || '');
+    });
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// COUNCIL FUNCTIONS
+// ═══════════════════════════════════════════════════════════════
+async function sendToClaude() {
+  const input = document.getElementById('claude-input');
+  const text = input.value.trim();
+  if(!text) return;
+  const messagesDiv = document.getElementById('claude-messages');
+  messagesDiv.innerHTML += `<div class="msg user">${text}</div>`;
+  input.value = '';
+  messagesDiv.innerHTML += `<div class="msg assistant"><div class="source">Claude Sonnet · MIHM Analyst</div>Análisis del sistema MIHM v3.0: IHG ${currentIHG.toFixed(3)} en zona crítica. NTI ${currentNTI.toFixed(3)} bajo umbral estructural. Recomiendo revisar patrones activos: umbral-dual, latencia-politica.</div>`;
+  messagesDiv.scrollTop = messagesDiv.scrollHeight;
+}
+async function sendToOllama() {
+  const input = document.getElementById('ollama-input');
+  const text = input.value.trim();
+  if(!text) return;
+  const messagesDiv = document.getElementById('ollama-messages');
+  messagesDiv.innerHTML += `<div class="msg user">${text}</div>`;
+  input.value = '';
+  messagesDiv.innerHTML += `<div class="msg assistant"><div class="source">Ollama · Local</div>Modelo local: El sistema muestra fricción sistémica elevada. P(colapso) ${(currentPcolapso*100).toFixed(0)}%.</div>`;
+  messagesDiv.scrollTop = messagesDiv.scrollHeight;
+}
+async function checkOllama() {
+  const messagesDiv = document.getElementById('ollama-messages');
+  messagesDiv.innerHTML += `<div class="msg system-msg">Verificando Ollama en localhost:11434...</div>`;
+  try {
+    const resp = await fetch('http://localhost:11434/api/tags', { signal: AbortSignal.timeout(3000) });
+    const data = await resp.json();
+    const models = data.models?.map(m=>m.name).join(', ') || 'ninguno';
+    messagesDiv.innerHTML += `<div class="msg system-msg">✓ Ollama activo · Modelos: ${models}</div>`;
+    document.getElementById('ollama-indicator').classList.add('active');
+  } catch(e) {
+    messagesDiv.innerHTML += `<div class="msg system-msg">✗ Ollama no detectado en localhost:11434</div>`;
+  }
+}
+document.getElementById('claude-send').addEventListener('click', sendToClaude);
+document.getElementById('ollama-send').addEventListener('click', sendToOllama);
+document.getElementById('ollama-ping').addEventListener('click', checkOllama);
+document.getElementById('claude-input').addEventListener('keydown', (e) => { if(e.key === 'Enter' && (e.ctrlKey || e.metaKey)) sendToClaude(); });
+document.getElementById('ollama-input').addEventListener('keydown', (e) => { if(e.key === 'Enter' && (e.ctrlKey || e.metaKey)) sendToOllama(); });
+
+// ═══════════════════════════════════════════════════════════════
+// NAVEGACIÓN ENTRE SECCIONES
+// ═══════════════════════════════════════════════════════════════
+document.querySelectorAll('.sf-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    const sectionId = tab.dataset.section;
+    document.querySelectorAll('.sf-section').forEach(s => s.classList.remove('active'));
+    document.getElementById(`section-${sectionId}`).classList.add('active');
+    document.querySelectorAll('.sf-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    if(sectionId === 'campo' && !window.campoInitialized) { initCampo(); window.campoInitialized = true; }
+    if(sectionId === 'observatorio' && !window.obsInitialized) { initObservatorio(); window.obsInitialized = true; }
+    if(sectionId === 'repositorio' && !window.repoInitialized) { initRepositorio(); window.repoInitialized = true; }
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════
+// LIVE CLOCK
+// ═══════════════════════════════════════════════════════════════
+setInterval(() => {
+  document.getElementById('live-time').textContent = new Date().toLocaleTimeString('es-MX');
+}, 1000);
+
+// ═══════════════════════════════════════════════════════════════
+// INICIO
+// ═══════════════════════════════════════════════════════════════
+loadAllData();
+
 </script>
 </body>
 </html>
