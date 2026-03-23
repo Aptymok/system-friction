@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>ATLAS · SYSTEM FRICTION · MUSICSCORE · v2.0</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-void: #050505;
+            --bg-surface: #0B0B0B;
+            --bg-elevated: #111111;
+            --border-subtle: rgba(200, 169, 81, 0.12);
+            --border-active: rgba(200, 169, 81, 0.35);
+            --gold-dim: #C8A951;
+            --gold-bright: #E6C45E;
+            --red-friction: #C43C3C;
+            --green-flow: #1A8F6A;
+            --text-primary: #ECEAE2;
+            --text-secondary: #8E8C84;
+            --text-tertiary: #4A4842;
+            --font-sans: 'Inter', system-ui, -apple-system, 'Helvetica Neue', sans-serif;
+            --font-mono: 'JetBrains Mono', 'Courier New', monospace;
+        }
+
+        body {
+            background-color: var(--bg-void);
+            color: var(--text-primary);
+            font-family: var(--font-sans);
+            font-size: 13px;
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Minimalist container */
+        .app-container {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem 4rem;
+        }
+
+        /* Header */
+        .atlas-header {
+            margin-bottom: 3rem;
+            border-left: 2px solid var(--gold-dim);
+            padding-left: 1.5rem;
+        }
+        .atlas-eyebrow {
+            font-size: 9px;
+            letter-spacing: 0.28em;
+            color: var(--gold-dim);
+            font-family: var(--font-mono);
+            margin-bottom: 0.5rem;
+        }
+        .atlas-title {
+            font-size: 2rem;
+            font-weight: 450;
+            letter-spacing: -0.01em;
+            margin-bottom: 0.5rem;
+        }
+        .atlas-sub {
+            font-size: 12px;
+            color: var(--text-secondary);
+            max-width: 620px;
+            line-height: 1.55;
+        }
+
+        /* Section styles */
+        .section {
+            margin-bottom: 3rem;
+            scroll-margin-top: 2rem;
+        }
+        .section-header {
+            display: flex;
+            align-items: baseline;
+            gap: 12px;
+            border-bottom: 0.5px solid var(--border-subtle);
+            padding-bottom: 0.6rem;
+            margin-bottom: 1.25rem;
+        }
+        .section-number {
+            font-size: 9px;
+            font-family: var(--font-mono);
+            color: var(--gold-dim);
+            letter-spacing: 0.2em;
+        }
+        .section-title {
+            font-size: 1.1rem;
+            font-weight: 450;
+            letter-spacing: -0.2px;
+        }
+        .section-desc {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-bottom: 1.5rem;
+            line-height: 1.6;
+        }
+
+        /* Card */
+        .card {
+            background: var(--bg-surface);
+            border: 0.5px solid var(--border-subtle);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        .card-body {
+            padding: 1.25rem 1.5rem;
+        }
+
+        /* Clave grid */
+        .clave-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1px;
+            background: var(--border-subtle);
+            margin-bottom: 0.5px;
+        }
+        .clave-cell {
+            background: var(--bg-surface);
+            padding: 1.25rem;
+            position: relative;
+        }
+        .clave-symbol {
+            font-size: 3rem;
+            font-family: serif;
+            color: var(--text-tertiary);
+            margin-bottom: 0.5rem;
+        }
+        .clave-label {
+            font-size: 8px;
+            letter-spacing: 0.16em;
+            color: var(--gold-dim);
+            font-family: var(--font-mono);
+        }
+        .clave-name {
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin: 4px 0 12px;
+        }
+        .clave-value {
+            font-size: 2rem;
+            font-family: var(--font-mono);
+            font-weight: 400;
+            margin-bottom: 6px;
+        }
+        .clave-range {
+            font-size: 9px;
+            color: var(--text-tertiary);
+            font-family: var(--font-mono);
+            margin-bottom: 8px;
+        }
+        .tag {
+            display: inline-block;
+            font-size: 8px;
+            font-family: var(--font-mono);
+            padding: 2px 8px;
+            background: rgba(200,169,81,0.08);
+            color: var(--text-secondary);
+            border-radius: 20px;
+        }
+        .tag.critical { background: rgba(196,60,60,0.12); color: var(--red-friction); }
+        .tag.warning { background: rgba(200,169,81,0.12); color: var(--gold-dim); }
+        .tag.stable { background: rgba(26,143,106,0.12); color: var(--green-flow); }
+
+        /* Armadura columns */
+        .armadura-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1px;
+            background: var(--border-subtle);
+        }
+        .arm-col {
+            background: var(--bg-surface);
+            padding: 1.25rem;
+        }
+        .arm-head {
+            font-size: 8px;
+            font-family: var(--font-mono);
+            letter-spacing: 0.18em;
+            margin-bottom: 1rem;
+        }
+        .arm-head.flat { color: var(--red-friction); }
+        .arm-head.sharp { color: var(--gold-dim); }
+        .arm-item {
+            display: flex;
+            gap: 12px;
+            padding: 10px 0;
+            border-bottom: 0.5px solid var(--border-subtle);
+        }
+        .arm-symbol {
+            font-size: 1.2rem;
+            min-width: 24px;
+            color: var(--text-tertiary);
+        }
+        .arm-title {
+            font-size: 11px;
+            font-weight: 450;
+            margin-bottom: 2px;
+        }
+        .arm-desc {
+            font-size: 10px;
+            color: var(--text-secondary);
+            line-height: 1.45;
+        }
+
+        /* Tension bars */
+        .tension-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+        .tension-label {
+            width: 110px;
+            font-size: 10px;
+            font-family: var(--font-mono);
+            color: var(--text-secondary);
+        }
+        .tension-track {
+            flex: 1;
+            height: 2px;
+            background: rgba(255,255,255,0.08);
+        }
+        .tension-fill {
+            height: 100%;
+            width: 0%;
+            background: var(--gold-dim);
+        }
+        .tension-value {
+            width: 48px;
+            font-size: 9px;
+            font-family: var(--font-mono);
+            text-align: right;
+            color: var(--text-tertiary);
+        }
+
+        /* Partitura rows */
+        .partitura-header {
+            display: grid;
+            grid-template-columns: 1fr 70px 80px 60px;
+            gap: 8px;
+            padding: 8px 1rem;
+            border-bottom: 0.5px solid var(--border-subtle);
+            font-size: 8px;
+            font-family: var(--font-mono);
+            color: var(--text-tertiary);
+        }
+        .partitura-row {
+            display: grid;
+            grid-template-columns: 1fr 70px 80px 60px;
+            gap: 8px;
+            align-items: center;
+            padding: 12px 1rem;
+            border-bottom: 0.5px solid var(--border-subtle);
+            transition: background 0.1s ease;
+        }
+        .project-name {
+            font-size: 12px;
+            font-weight: 450;
+        }
+        .project-meta {
+            font-size: 9px;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+        .figure-display {
+            font-size: 1.6rem;
+            text-align: center;
+            line-height: 1;
+        }
+        .stage-badge {
+            font-size: 8px;
+            font-family: var(--font-mono);
+            padding: 2px 8px;
+            background: rgba(255,255,255,0.04);
+            border-radius: 20px;
+            display: inline-block;
+            text-align: center;
+        }
+
+        /* MIDI Studio */
+        .midi-panel {
+            display: grid;
+            grid-template-columns: 1fr 1.2fr;
+            gap: 0.5px;
+            background: var(--border-subtle);
+        }
+        .midi-params {
+            background: var(--bg-surface);
+            padding: 1.25rem;
+        }
+        .midi-roll {
+            background: var(--bg-surface);
+            padding: 1.25rem;
+        }
+        .param-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 0.5px solid var(--border-subtle);
+        }
+        .param-label {
+            font-size: 9px;
+            font-family: var(--font-mono);
+            color: var(--text-tertiary);
+        }
+        .param-value {
+            font-size: 11px;
+            font-family: var(--font-mono);
+            color: var(--gold-dim);
+        }
+        canvas#rollCanvas {
+            background: #0a0a0a;
+            border-radius: 6px;
+            width: 100%;
+            height: 110px;
+            margin-top: 8px;
+        }
+
+        /* Buttons */
+        .btn {
+            background: none;
+            border: 0.5px solid var(--border-active);
+            color: var(--gold-dim);
+            font-family: var(--font-mono);
+            font-size: 9px;
+            padding: 6px 14px;
+            cursor: pointer;
+            transition: 0.15s;
+            border-radius: 24px;
+        }
+        .btn:hover {
+            background: rgba(200,169,81,0.08);
+            border-color: var(--gold-bright);
+        }
+        .btn-group {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 12px;
+        }
+
+        /* ECG */
+        #ecgCanvas {
+            width: 100%;
+            height: 80px;
+            background: #070707;
+            border-radius: 6px;
+            margin-top: 12px;
+        }
+
+        /* Narrativa box */
+        .narrative-box {
+            margin-top: 12px;
+            padding: 12px 16px;
+            background: rgba(200,169,81,0.04);
+            border-left: 2px solid var(--gold-dim);
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+
+        /* Glosario */
+        .glossary-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 11px;
+        }
+        .glossary-table th {
+            text-align: left;
+            font-size: 8px;
+            font-family: var(--font-mono);
+            color: var(--text-tertiary);
+            padding: 8px 8px 8px 0;
+            border-bottom: 0.5px solid var(--border-subtle);
+        }
+        .glossary-table td {
+            padding: 8px 8px 8px 0;
+            border-bottom: 0.5px solid var(--border-subtle);
+            vertical-align: top;
+        }
+        .gl-symbol {
+            font-size: 18px;
+            font-family: serif;
+            color: var(--text-secondary);
+        }
+    </style>
+</head>
+<body>
+<div class="app-container">
+    <div class="atlas-header">
+        <div class="atlas-eyebrow">SYSTEM FRICTION · ATLAS · MUSICSCORE · v2.0</div>
+        <div class="atlas-title">La Partitura del Sistema</div>
+        <div class="atlas-sub">Un músico no necesita saber cómo se fabrica el piano. Solo necesita leer la partitura. Aquí está el estado real del sistema traducido a señales legibles, accionables y sin exceso cognitivo.</div>
+    </div>
+
+    <!-- I. CLAVE -->
+    <section class="section" id="clave">
+        <div class="section-header"><span class="section-number">I</span><span class="section-title">La Clave · Índices Fundantes</span></div>
+        <div class="card">
+            <div class="card-body">
+                <div class="clave-grid">
+                    <div class="clave-cell"><div class="clave-symbol">𝄞</div><div class="clave-label">CLAVE DE SOL</div><div class="clave-name">IHG · Hegemonía Grupal</div><div class="clave-value" id="ihgVal">—</div><div class="clave-range">–2.0 fractura → +1.0 equilibrio</div><span class="tag" id="ihgTag">PENDIENTE</span></div>
+                    <div class="clave-cell"><div class="clave-symbol">𝄢</div><div class="clave-label">CLAVE DE FA</div><div class="clave-name">NTI · Coherencia Sistémica</div><div class="clave-value" id="ntiVal">—</div><div class="clave-range">0.0 ruido → 1.0 coherencia máx</div><span class="tag" id="ntiTag">PENDIENTE</span></div>
+                    <div class="clave-cell"><div class="clave-symbol">𝄡</div><div class="clave-label">CLAVE DE DO</div><div class="clave-name">R · Resistencia a Shocks</div><div class="clave-value" id="rVal">—</div><div class="clave-range">0.0 colapso → 1.0 absorbe todo</div><span class="tag" id="rTag">PENDIENTE</span></div>
+                </div>
+                <div style="margin-top: 1.2rem; display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end;">
+                    <div><label style="font-size: 9px; color: var(--text-tertiary);">IHG</label><input type="number" id="inputIhg" step="0.001" placeholder="-0.620" style="background: var(--bg-elevated); border: 0.5px solid var(--border-subtle); color: white; padding: 6px; width: 90px; border-radius: 6px;"></div>
+                    <div><label style="font-size: 9px; color: var(--text-tertiary);">NTI</label><input type="number" id="inputNti" step="0.001" placeholder="0.351" style="background: var(--bg-elevated); border: 0.5px solid var(--border-subtle); color: white; padding: 6px; width: 90px; border-radius: 6px;"></div>
+                    <div><label style="font-size: 9px; color: var(--text-tertiary);">R</label><input type="number" id="inputR" step="0.001" placeholder="0.580" style="background: var(--bg-elevated); border: 0.5px solid var(--border-subtle); color: white; padding: 6px; width: 90px; border-radius: 6px;"></div>
+                    <button class="btn" id="loadClaveBtn">CARGAR CLAVE</button>
+                    <button class="btn" id="defaultBtn">DEFAULTS</button>
+                </div>
+                <canvas id="ecgCanvas" width="600" height="80" style="width:100%; height:80px;"></canvas>
+                <div id="narrativeBox" class="narrative-box" style="display: none;"></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- II. ARMADURA (resumida) -->
+    <section class="section"><div class="section-header"><span class="section-number">II</span><span class="section-title">La Armadura · Latentes Activos</span></div>
+    <div class="armadura-grid">
+        <div class="arm-col"><div class="arm-head flat">♭ BEMOLES · FRICCIÓN LATENTE</div>
+            <div class="arm-item"><span class="arm-symbol">♭</span><div><div class="arm-title">Roles implícitos</div><div class="arm-desc">Decisiones sin autoridad formal</div></div></div>
+            <div class="arm-item"><span class="arm-symbol">♭</span><div><div class="arm-title">Sin calendario maestro</div><div class="arm-desc">Polirritmia no coordinada</div></div></div>
+            <div class="arm-item"><span class="arm-symbol">♭</span><div><div class="arm-title">Backlog sin descarte</div><div class="arm-desc">Silencios que consumen espacio</div></div></div>
+        </div>
+        <div class="arm-col"><div class="arm-head sharp">♯ SOSTENIDOS · CAPACIDAD LATENTE</div>
+            <div class="arm-item"><span class="arm-symbol">♯</span><div><div class="arm-title">Equipo con historia</div><div class="arm-desc">Coherencia implícita</div></div></div>
+            <div class="arm-item"><span class="arm-symbol">♯</span><div><div class="arm-title">Relaciones activas industria</div><div class="arm-desc">Amplifican sin costo extra</div></div></div>
+            <div class="arm-item"><span class="arm-symbol">♮</span><div><div class="arm-title">Becuadro: auditoría activa</div><div class="arm-desc">Esta interfaz anula bemoles</div></div></div>
+        </div>
+    </div>
+    </section>
+
+    <!-- III. PENTAGRAMA + VECTORES -->
+    <section class="section"><div class="section-header"><span class="section-number">III</span><span class="section-title">El Pentagrama · Vectores Operativos</span></div>
+    <div class="card"><div class="card-body">
+        <svg viewBox="0 0 1000 240" style="width:100%; margin-bottom: 1rem;">
+            <line x1="80" y1="40" x2="860" y2="40" stroke="#2a2824" stroke-width="1"/><line x1="80" y1="80" x2="860" y2="80" stroke="#2a2824" stroke-width="1"/>
+            <line x1="80" y1="120" x2="860" y2="120" stroke="#2a2824" stroke-width="1"/><line x1="80" y1="160" x2="860" y2="160" stroke="#2a2824" stroke-width="1"/>
+            <line x1="80" y1="200" x2="860" y2="200" stroke="#2a2824" stroke-width="1"/>
+            <text x="70" y="44" font-size="8" fill="#4a4842">V1</text><text x="70" y="84" fill="#4a4842">V2</text><text x="70" y="124" fill="#4a4842">V3</text><text x="70" y="164" fill="#4a4842">V4</text><text x="70" y="204" fill="#4a4842">V5</text>
+            <text x="870" y="44" fill="#8E8C84" font-size="10">Producción</text><text x="870" y="84" fill="#8E8C84">Lanzamiento</text><text x="870" y="124" fill="#8E8C84">Promoción</text><text x="870" y="164" fill="#8E8C84">Administración</text><text x="870" y="204" fill="#8E8C84">Talento</text>
+            <circle cx="180" cy="40" r="7" fill="none" stroke="#C8A951" stroke-width="1.5"/><line x1="187" y1="40" x2="187" y2="18" stroke="#C8A951"/><text x="192" y="14" fill="#C8A951" font-size="7">LDI 40d</text>
+            <ellipse cx="360" cy="80" rx="8" ry="6" fill="#C43C3C" opacity="0.8"/><line x1="368" y1="80" x2="368" y2="55" stroke="#C43C3C"/><text x="375" y="52" fill="#C43C3C" font-size="7">bloqueado</text>
+            <ellipse cx="540" cy="120" rx="7" ry="5" fill="#5C5A54"/><text x="550" y="115" fill="#8E8C84" font-size="7">activo</text>
+        </svg>
+        <div id="tensionContainer"></div>
+    </div></div>
+    </section>
+
+    <!-- IV. PARTITURA VIVA -->
+    <section class="section"><div class="section-header"><span class="section-number">IV</span><span class="section-title">Partitura Viva · Estado de Proyectos</span></div>
+    <div class="card"><div class="card-body" style="padding:0">
+        <div class="partitura-header"><span>PROYECTO</span><span>FIGURA</span><span>ETAPA</span><span>VECTOR</span></div>
+        <div class="partitura-row"><div><div class="project-name">Álbum debut — artista</div><div class="project-meta">mezcla · latencia 40d</div></div><div class="figure-display">𝅗𝅥</div><div><span class="stage-badge">MEZCLA</span></div><div><span class="stage-badge">V1</span></div></div>
+        <div class="partitura-row"><div><div class="project-name">EP masterizado</div><div class="project-meta">sin campaña · bloqueado</div></div><div class="figure-display">♪</div><div><span class="stage-badge">BLOQ</span></div><div><span class="stage-badge">V2</span></div></div>
+        <div class="partitura-row"><div><div class="project-name">Propuestas entrantes</div><div class="project-meta">backlog sin evaluar</div></div><div class="figure-display">𝄽</div><div><span class="stage-badge">BACKLOG</span></div><div><span class="stage-badge">V1</span></div></div>
+    </div></div></section>
+
+    <!-- V. MIDI STUDIO + DINÁMICAS -->
+    <section class="section"><div class="section-header"><span class="section-number">V</span><span class="section-title">MIDI Studio · El Sistema Suena</span></div>
+    <div class="card"><div class="midi-panel">
+        <div class="midi-params">
+            <div class="param-row"><span class="param-label">MODO ARMÓNICO</span><span id="modeVal" class="param-value">—</span></div>
+            <div class="param-row"><span class="param-label">RAÍZ (NTI → tono)</span><span id="rootVal" class="param-value">—</span></div>
+            <div class="param-row"><span class="param-label">DENSIDAD (R → notas)</span><span id="densityVal" class="param-value">—</span></div>
+            <div class="param-row"><span class="param-label">VELOCIDAD (u(t))</span><span id="velVal" class="param-value">—</span></div>
+            <div class="param-row"><span class="param-label">CONTROL u(t) PID</span><span id="utVal" class="param-value">—</span></div>
+            <div class="btn-group"><button id="genMelodyBtn" class="btn" disabled>MELODÍA .MID</button><button id="genChordsBtn" class="btn" disabled>ACORDES .MID</button></div>
+        </div>
+        <div class="midi-roll">
+            <canvas id="rollCanvas" width="400" height="100" style="width:100%; height:100px; background:#0a0a0a; border-radius:6px;"></canvas>
+            <div style="font-size:9px; color:#5C5A54; margin-top:6px; text-align:center" id="rollNote">—</div>
+        </div>
+    </div></div>
+    </section>
+
+    <!-- VI. GLOSARIO mínimo -->
+    <section class="section"><div class="section-header"><span class="section-number">VI</span><span class="section-title">Glosario · Traducción Operativa</span></div>
+    <div class="card"><div class="card-body"><table class="glossary-table"><thead><tr><th>SÍM</th><th>MUSICAL</th><th>SF · EN PRODUCCIÓN</th></tr></thead>
+    <tbody><tr><td class="gl-symbol">𝄞</td><td>Clave de Sol</td><td>IHG: ¿quién controla decisiones?</td></tr>
+    <tr><td class="gl-symbol">𝄢</td><td>Clave de Fa</td><td>NTI: coherencia narrativa vs realidad</td></tr>
+    <tr><td class="gl-symbol">𝄡</td><td>Clave de Do</td><td>R: fragilidad ante imprevistos</td></tr>
+    <tr><td class="gl-symbol">♭</td><td>Bemol</td><td>Fricción implícita que baja el tono</td></tr>
+    <tr><td class="gl-symbol">♯</td><td>Sostenido</td><td>Capacidad activa que sube la nota</td></tr>
+    <tr><td class="gl-symbol">♮</td><td>Becuadro</td><td>Auditoría: estado real, sin narrativa</td></tr>
+    <tr><td class="gl-symbol">𝅗𝅥</td><td>Blanca</td><td>Latencia media: decisión bloqueada</td></tr>
+    <tr><td class="gl-symbol">♪</td><td>Corchea</td><td>Urgencia alta: intervención necesaria</td></tr>
+    </tbody></table></div></div></section>
+</div>
+
+<script>
+    // Estado MIHM
+    let IHG = null, NTI = null, R = null;
+    let ecgHistory = [];
+    let ecgCanvas, ecgCtx;
+
+    // Elementos DOM
+    const ihgValSpan = document.getElementById('ihgVal');
+    const ntiValSpan = document.getElementById('ntiVal');
+    const rValSpan = document.getElementById('rVal');
+    const ihgTag = document.getElementById('ihgTag');
+    const ntiTag = document.getElementById('ntiTag');
+    const rTag = document.getElementById('rTag');
+    const narrativeBox = document.getElementById('narrativeBox');
+    const narrativeTxt = document.createElement('div'); narrativeTxt.className = 'narrative-text'; narrativeBox.appendChild(narrativeTxt);
+    
+    function updateUI() {
+        if (IHG === null) return;
+        ihgValSpan.innerText = IHG.toFixed(3);
+        ntiValSpan.innerText = NTI.toFixed(3);
+        rValSpan.innerText = R.toFixed(3);
+        
+        // Tags IHG
+        if (IHG < -1.2) { ihgTag.innerText = 'HEGEMONÍA CRÍTICA'; ihgTag.className = 'tag critical'; }
+        else if (IHG < -0.8) { ihgTag.innerText = 'TENSIÓN ALTA'; ihgTag.className = 'tag warning'; }
+        else if (IHG < -0.4) { ihgTag.innerText = 'TENSIÓN MEDIA'; ihgTag.className = 'tag warning'; }
+        else { ihgTag.innerText = 'EQUILIBRIO'; ihgTag.className = 'tag stable'; }
+        
+        if (NTI < 0.35) { ntiTag.innerText = 'COHERENCIA BAJA'; ntiTag.className = 'tag critical'; }
+        else if (NTI < 0.6) { ntiTag.innerText = 'COHERENCIA MEDIA'; ntiTag.className = 'tag warning'; }
+        else { ntiTag.innerText = 'COHERENCIA ALTA'; ntiTag.className = 'tag stable'; }
+        
+        if (R < 0.45) { rTag.innerText = 'RESISTENCIA CRÍTICA'; rTag.className = 'tag critical'; }
+        else if (R < 0.65) { rTag.innerText = 'RESISTENCIA MEDIA'; rTag.className = 'tag warning'; }
+        else { rTag.innerText = 'RESISTENCIA ALTA'; rTag.className = 'tag stable'; }
+        
+        // Narrativa operativa
+        let msgs = [];
+        if (IHG < -1.2) msgs.push(`IHG ${IHG.toFixed(2)} → hegemonía crítica: abrir decisión al colectivo.`);
+        else if (IHG < -0.8) msgs.push(`IHG ${IHG.toFixed(2)} → tensión en silos de decisión.`);
+        if (NTI < 0.35) msgs.push(`NTI ${NTI.toFixed(2)} → la narrativa interna se alejó de la operación. Sintetizar.`);
+        if (R < 0.45) msgs.push(`R ${R.toFixed(2)} → resistencia crítica, cualquier imprevisto puede colapsar.`);
+        if (msgs.length === 0) msgs.push("Sistema en equilibrio operativo. Monitoreo regular.");
+        narrativeTxt.innerText = msgs.join(' · ');
+        narrativeBox.style.display = 'block';
+        
+        // Actualizar tensión vectores (simplificado pero dinámico)
+        const cont = document.getElementById('tensionContainer');
+        if (cont) {
+            let html = `<div style="font-size:9px; margin-bottom:8px; color:#8E8C84;">TENSIÓN POR VECTOR (derivado de IHG/NTI)</div>`;
+            const vecs = ['Producción','Lanzamiento','Promoción','Administración','Talento'];
+            const raw = Math.min(0.9, Math.max(0.1, (IHG+2)/3 * 0.7 + (1-NTI)*0.3));
+            vecs.forEach((v,i) => {
+                let width = Math.min(95, Math.max(12, (raw + (i===1?0.2:0)) * 80));
+                let color = width > 65 ? '#C43C3C' : width > 35 ? '#C8A951' : '#1A8F6A';
+                html += `<div class="tension-row"><span class="tension-label">${v}</span><div class="tension-track"><div class="tension-fill" style="width:${width}%; background:${color};"></div></div><span class="tension-value">${width>60?'alta':width>35?'media':'baja'}</span></div>`;
+            });
+            cont.innerHTML = html;
+        }
+        updateMIDIParams();
+        drawECG();
+        drawRollPreview();
+    }
+    
+    // ECG
+    function initECG() { ecgCanvas = document.getElementById('ecgCanvas'); ecgCtx = ecgCanvas.getContext('2d'); resizeECG(); }
+    function resizeECG() { if(ecgCanvas) { ecgCanvas.width = ecgCanvas.clientWidth; ecgCanvas.height = 80; drawECG(); } }
+    function drawECG() {
+        if(!ecgCtx) return; const w = ecgCanvas.width, h = ecgCanvas.height;
+        ecgCtx.clearRect(0,0,w,h); ecgCtx.strokeStyle = '#2a2824'; ecgCtx.lineWidth = 0.5;
+        for(let i=0;i<w;i+=40) { ecgCtx.beginPath(); ecgCtx.moveTo(i,0); ecgCtx.lineTo(i,h); ecgCtx.stroke(); }
+        if(ecgHistory.length<2) return;
+        ecgCtx.beginPath(); ecgCtx.strokeStyle = '#C8A951'; ecgCtx.lineWidth = 1.2;
+        let maxPts = Math.min(ecgHistory.length, w/2);
+        let start = Math.max(0, ecgHistory.length - maxPts);
+        for(let i=start;i<ecgHistory.length;i++) {
+            let x = (i-start)/maxPts * w;
+            let norm = (ecgHistory[i] + 2) / 3;
+            let y = h - (norm * h * 0.8 + h*0.1);
+            if(i===start) ecgCtx.moveTo(x,y); else ecgCtx.lineTo(x,y);
+        } ecgCtx.stroke();
+    }
+    
+    // MIDI state
+    const modes = ['Locrian','Phrygian','Dorian','Ionian'];
+    const roots = ['Do','Re♭','Re','Mi♭','Mi','Fa','Sol♭','Sol','La♭','La','Si♭','Si'];
+    function getMIDIParams() {
+        if(IHG===null) return null;
+        let modeIdx = Math.min(3, Math.max(0, Math.floor((IHG+2)/3 * 3.8)));
+        let mode = modes[modeIdx];
+        let rootIdx = Math.min(11, Math.max(0, Math.floor(NTI * 12)));
+        let rootName = roots[rootIdx];
+        let density = Math.round(6 + R * 18);
+        let velocity = Math.round(30 + ((IHG+2)/3) * 90);
+        let u = -(4.2*(IHG+0.4) + 0.35*(IHG+0.4) + 1.3*(IHG - (window._prevIHG||IHG)));
+        window._prevIHG = IHG;
+        return { mode, rootName, density, velocity, u: u.toFixed(4) };
+    }
+    function updateMIDIParams() {
+        let p = getMIDIParams(); if(!p) return;
+        document.getElementById('modeVal').innerText = p.mode;
+        document.getElementById('rootVal').innerText = `${p.rootName}4`;
+        document.getElementById('densityVal').innerText = `${p.density} notas`;
+        document.getElementById('velVal').innerText = `${p.velocity} / 127`;
+        document.getElementById('utVal').innerText = p.u;
+        document.getElementById('genMelodyBtn').disabled = false;
+        document.getElementById('genChordsBtn').disabled = false;
+    }
+    function drawRollPreview() {
+        let p = getMIDIParams(); if(!p) return;
+        let canvas = document.getElementById('rollCanvas'); if(!canvas) return;
+        let ctx = canvas.getContext('2d');
+        canvas.width = canvas.clientWidth; canvas.height = canvas.clientHeight;
+        ctx.fillStyle = '#0a0a0a'; ctx.fillRect(0,0,canvas.width,canvas.height);
+        let notes = Math.min(32, p.density);
+        let w = canvas.width, h = canvas.height;
+        for(let i=0;i<notes;i++) {
+            let x = 5 + (i/notes) * (w-10);
+            let y = h/2 + Math.sin(i*0.8) * 12;
+            ctx.fillStyle = `rgba(200,169,81,0.6)`;
+            ctx.fillRect(x, y, 6, 3);
+        }
+        ctx.fillStyle = '#5C5A54'; ctx.font = '8px monospace';
+        ctx.fillText(`${p.mode} · ${p.density}n · v ${p.velocity}`, 6, h-6);
+        document.getElementById('rollNote').innerText = `${p.mode} · densidad ${p.density} notas · ${p.rootName}4`;
+    }
+    // MIDI generation
+    function varLen(v) { if(v<0x80) return [v]; let b=[]; while(v>0){b.unshift(v&0x7F); v>>=7;} for(let i=0;i<b.length-1;i++) b[i]|=0x80; return b; }
+    function buildMidi(events, tpb=480) {
+        const track=[0x00,0xFF,0x51,0x03,0x07,0xA1,0x20]; events.sort((a,b)=>a.t-b.t);
+        let lt=0; for(const e of events){ track.push(...varLen(Math.max(0,e.t-lt))); lt=e.t; if(e.type==='on') track.push(0x90,e.p&0x7F,e.v&0x7F); else track.push(0x80,e.p&0x7F,0); }
+        track.push(0x00,0xFF,0x2F,0x00);
+        const hdr=[0x4D,0x54,0x68,0x64,0,0,0,6,0,0,0,1,(tpb>>8)&0xFF,tpb&0xFF];
+        const trk=[0x4D,0x54,0x72,0x6B,(track.length>>24)&0xFF,(track.length>>16)&0xFF,(track.length>>8)&0xFF,track.length&0xFF,...track];
+        return new Uint8Array([...hdr,...trk]);
+    }
+    function generateMelody() {
+        let p=getMIDIParams(); if(!p) return;
+        let scale = [0,2,4,5,7,9,11]; if(p.mode==='Locrian') scale=[0,1,3,5,6,8,10];
+        if(p.mode==='Phrygian') scale=[0,1,3,5,7,8,10]; if(p.mode==='Dorian') scale=[0,2,3,5,7,9,10];
+        let rootMidi = 60 + (roots.indexOf(p.rootName) % 12);
+        let events=[], t=0, tpb=480;
+        for(let i=0;i<p.density;i++){
+            let note = rootMidi + scale[i%scale.length] + (Math.floor(i/scale.length)*12);
+            note = Math.min(127, note);
+            events.push({type:'on',t,p:note,v:p.velocity});
+            events.push({type:'off',t:t+tpb-16,p:note,v:0});
+            t += tpb;
+        }
+        let midi = buildMidi(events);
+        let blob = new Blob([midi], {type:'audio/midi'});
+        let a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`SF_${p.mode}_melody.mid`; a.click();
+    }
+    function generateChords() {
+        let p=getMIDIParams(); if(!p) return;
+        let scale = [0,2,4,5,7,9,11]; if(p.mode==='Locrian') scale=[0,1,3,5,6,8,10];
+        if(p.mode==='Phrygian') scale=[0,1,3,5,7,8,10]; if(p.mode==='Dorian') scale=[0,2,3,5,7,9,10];
+        let rootMidi = 60 + (roots.indexOf(p.rootName) % 12);
+        let events=[], t=0, tpb=480;
+        let chordsCount = Math.min(8, Math.floor(p.density/3));
+        for(let i=0;i<chordsCount;i++){
+            let chordNotes = [0,2,4].map(inter => rootMidi + scale[(i*2+inter)%scale.length] + Math.floor((i*2+inter)/scale.length)*12);
+            for(let note of chordNotes){
+                events.push({type:'on',t,p:Math.min(127,note),v:p.velocity-15});
+                events.push({type:'off',t:t+tpb*2-20,p:Math.min(127,note),v:0});
+            }
+            t+=tpb*2;
+        }
+        let midi = buildMidi(events);
+        let blob = new Blob([midi], {type:'audio/midi'});
+        let a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`SF_${p.mode}_chords.mid`; a.click();
+    }
+    
+    // Load clave
+    function loadClave() {
+        let ihg = parseFloat(document.getElementById('inputIhg').value);
+        let nti = parseFloat(document.getElementById('inputNti').value);
+        let r   = parseFloat(document.getElementById('inputR').value);
+        if(isNaN(ihg)||isNaN(nti)||isNaN(r)) return;
+        IHG = ihg; NTI = nti; R = r;
+        ecgHistory.push(IHG);
+        if(ecgHistory.length>180) ecgHistory.shift();
+        updateUI();
+        drawECG();
+    }
+    function setDefaults() {
+        document.getElementById('inputIhg').value = '-0.620';
+        document.getElementById('inputNti').value = '0.351';
+        document.getElementById('inputR').value = '0.580';
+        loadClave();
+    }
+    
+    // Event listeners
+    document.getElementById('loadClaveBtn').addEventListener('click', loadClave);
+    document.getElementById('defaultBtn').addEventListener('click', setDefaults);
+    document.getElementById('genMelodyBtn').addEventListener('click', generateMelody);
+    document.getElementById('genChordsBtn').addEventListener('click', generateChords);
+    window.addEventListener('resize', () => { resizeECG(); drawRollPreview(); });
+    
+    initECG();
+    setDefaults(); // carga demo elegante
+</script>
+</body>
+</html>
