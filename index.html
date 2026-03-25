@@ -3,13 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>System Friction · Observatorio Unificado v3.0</title>
+<title>System Friction · Observatorio Unificado v3.0 (Groq integrado)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=JetBrains+Mono:wght@300;400;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <style>
-/* ── RESET + BASE ─────────────────────────────────────────── */
+/* ── RESET + BASE (idéntico al original) ─────────────────────────── */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
   --bg:#0d0d0b; --surface:#131310; --surface2:#1a1a16;
@@ -24,7 +24,6 @@
   --mono:'JetBrains Mono',monospace;
   --serif:'EB Garamond',Georgia,serif;
   --r:4px;
-  /* pattern colors */
   --p1:#c8a96e; --p2:#c86e6e; --p3:#ff8c40;
   --p4:#a070cc; --p5:#6e9ac8; --p6:#6ec88a;
   --p7:#c8c86e; --p8:#6ec8c8; --p9:#c86ea0; --p10:#48aa88;
@@ -485,8 +484,9 @@ a:hover{color:var(--text-bright)}
 </style>
 </head>
 <body>
+
 <!-- ═══════════════════════════════════════════════════════════
-     REACT MIHM (MODELO MATEMÁTICO)
+     REACT MIHM (MODELO MATEMÁTICO) – se mantiene igual
 ═══════════════════════════════════════════════════════════════ -->
 <section id="section-react" class="sf-section">
 <div id="root"></div>
@@ -502,12 +502,12 @@ a:hover{color:var(--text-bright)}
 </div>
 
 <!-- ═══════════════════════════════════════════════════════════
-     HEADER + TABS (ORIGINAL + 2 NUEVOS)
+     HEADER + TABS (ORIGINAL)
 ═══════════════════════════════════════════════════════════════ -->
 <header class="sf-header">
   <div class="sf-logo">
     <span class="sf-logo-dot"></span>
-    SF · MIHM v3.0
+    SF · MIHM v3.0 (Groq)
   </div>
   <div class="sf-tabs" style="flex: 1; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch;">
     <button class="sf-tab active" onclick="showSection('dashboard',this)">Dashboard</button>
@@ -527,11 +527,10 @@ a:hover{color:var(--text-bright)}
 </header>
 
 <!-- ═══════════════════════════════════════════════════════════
-     SECTION 1 · DASHBOARD (ORIGINAL + IAD/ETE + PREDICTOR + MEMORY FLOW)
+     SECTION 1 · DASHBOARD (se mantiene exactamente igual)
 ═══════════════════════════════════════════════════════════════ -->
 <section id="section-dashboard" class="sf-section active">
 <div class="dash-layout">
-
   <!-- Row 1: KPIs originales + IAD y ETE -->
   <div class="dash-row dash-row-4">
     <div class="metric-tile">
@@ -566,21 +565,20 @@ a:hover{color:var(--text-bright)}
       <div class="ecg-overlay" id="ecg-current">IHG −0.620</div>
     </div>
 
-
-    <!-- Predictor Vivo 2030 + Flujo Memoria (con altura fija) -->
-<div class="card" style="height: 380px; display: flex; flex-direction: column;">
-    <div class="card-header">Predictor Vivo 2030 + Flujo Memoria</div>
-    <div class="card-body" style="flex: 1; display: flex; flex-direction: column; gap: 0.5rem; padding: 0.75rem;">
-      <canvas id="predictor-vivo" height="180" style="width:100%; height:180px;"></canvas>
-      <canvas id="memory-flow" height="80" style="width:100%; height:80px;"></canvas>
-      <div style="font-size:.6rem; color:#5a5852; text-align:center;">
-        Ruta viable (verde) vs colapso (rojo) · P=26% con control sincronizado
+    <!-- Predictor Vivo 2030 + Flujo Memoria -->
+    <div class="card" style="height: 380px; display: flex; flex-direction: column;">
+        <div class="card-header">Predictor Vivo 2030 + Flujo Memoria</div>
+        <div class="card-body" style="flex: 1; display: flex; flex-direction: column; gap: 0.5rem; padding: 0.75rem;">
+          <canvas id="predictor-vivo" height="180" style="width:100%; height:180px;"></canvas>
+          <canvas id="memory-flow" height="80" style="width:100%; height:80px;"></canvas>
+          <div style="font-size:.6rem; color:#5a5852; text-align:center;">
+            Ruta viable (verde) vs colapso (rojo) · P=26% con control sincronizado
+          </div>
+        </div>
       </div>
-      </div>
-    </div>
   </div>
 
-  <!-- Row 3: Timeline AGS + Variables (original) -->
+  <!-- Row 3: Timeline AGS + Variables -->
   <div class="card">
     <div class="card-header">Nodo AGS · Línea de Tiempo 2024–2026</div>
     <div class="stage-nav" id="stage-nav"></div>
@@ -588,7 +586,7 @@ a:hover{color:var(--text-bright)}
     <div class="card-body" id="stage-detail"></div>
   </div>
 
-  <!-- Row 4: Variables MIHM + Pattern activations + NTI chart (original, pero con NTI arreglado) -->
+  <!-- Row 4: Variables MIHM + Pattern activations + NTI chart -->
   <div class="dash-row dash-row-3">
     <div class="card">
       <div class="card-header">Variables MIHM v3 · Estado actual</div>
@@ -599,23 +597,22 @@ a:hover{color:var(--text-bright)}
       <div class="card-body" id="pattern-activations" style="max-height:280px; overflow-y:auto"></div>
     </div>
     <div class="card">
-<!-- NTI · Componentes (con altura fija y scroll interno si es necesario) -->
-    <div class="card" style="height: 320px; display: flex; flex-direction: column;">
-      <div class="card-header">NTI · Componentes</div>
-      <div class="card-body" style="flex: 1; overflow-y: auto; padding: 0;">
-        <canvas id="nti-chart" height="180" style="width:100%; height:180px;"></canvas>
-        <div id="nti-components" style="padding:.75rem; font-family:var(--mono); font-size:.58rem; color:var(--text-dim); border-top:1px solid var(--border);">
-          LDI:0.55 · ICC:0.80 · CSR:0.30 · IRCI:0.90 · IIM:0.60
+      <div class="card" style="height: 320px; display: flex; flex-direction: column;">
+        <div class="card-header">NTI · Componentes</div>
+        <div class="card-body" style="flex: 1; overflow-y: auto; padding: 0;">
+          <canvas id="nti-chart" height="180" style="width:100%; height:180px;"></canvas>
+          <div id="nti-components" style="padding:.75rem; font-family:var(--mono); font-size:.58rem; color:var(--text-dim); border-top:1px solid var(--border);">
+            LDI:0.55 · ICC:0.80 · CSR:0.30 · IRCI:0.90 · IIM:0.60
+          </div>
         </div>
       </div>
-    </div>
     </div>
   </div>
 </div>
 </section>
 
 <!-- ═══════════════════════════════════════════════════════════
-     SECTION 2 · CAMPO COGNITIVO (CORREGIDO)
+     SECTION 2 · CAMPO COGNITIVO (idéntico al original)
 ═══════════════════════════════════════════════════════════════ -->
 <section id="section-campo" class="sf-section">
 <div class="campo-layout">
@@ -658,7 +655,7 @@ a:hover{color:var(--text-bright)}
 </section>
 
 <!-- ═══════════════════════════════════════════════════════════
-     SECTION 3 · OBSERVATORIO (CON FÓRMULAS MIHM)
+     SECTION 3 · OBSERVATORIO (idéntico al original)
 ═══════════════════════════════════════════════════════════════ -->
 <section id="section-observatorio" class="sf-section">
 <div class="obs-layout">
@@ -682,20 +679,33 @@ a:hover{color:var(--text-bright)}
 </section>
 
 <!-- ═══════════════════════════════════════════════════════════
-     SECTION 4 · APTYMOK COUNCIL (ORIGINAL)
+     SECTION 4 · APTYMOK COUNCIL (AMBOS PANELES AHORA USAN GROQ)
 ═══════════════════════════════════════════════════════════════ -->
 <section id="section-council" class="sf-section">
 <div style="display:flex;height:calc(100vh - 52px - 28px)">
   <div class="council-layout" style="flex:1">
     <div class="council-pane">
-      <div class="council-header"><span class="council-indicator active" id="claude-indicator"></span>Claude Sonnet · MIHM Analyst</div>
-      <div class="council-messages" id="claude-messages"><div class="msg system-msg">Sistema MIHM v3.0 cargado</div></div>
-      <div class="council-input-area"><textarea class="council-input" id="claude-input" rows="2"></textarea><button class="council-send" id="claude-send">Enviar</button></div>
+      <div class="council-header"><span class="council-indicator" id="groq1-indicator"></span>Groq · Analista MIHM
+        <select class="model-sel" id="groq-model-1" style="margin-left:auto">
+          <option value="mixtral-8x7b-32768">Mixtral 8x7b</option>
+          <option value="llama3-70b-8192">Llama 3 70b</option>
+          <option value="gemma2-9b-it">Gemma 2 9b</option>
+        </select>
+      </div>
+      <div class="council-messages" id="groq1-messages"><div class="msg system-msg">Sistema MIHM v3.0 cargado · conectado a Groq</div></div>
+      <div class="council-input-area"><textarea class="council-input" id="groq1-input" rows="2"></textarea><button class="council-send" id="groq1-send">Enviar</button></div>
     </div>
     <div class="council-pane">
-      <div class="council-header"><span class="council-indicator" id="ollama-indicator"></span>Ollama · Local Model<select class="model-sel" id="ollama-model" style="margin-left:auto"><option>llama3.2</option><option>mistral</option></select><button class="btn btn-accent" id="ollama-ping">Ping</button></div>
-      <div class="council-messages" id="ollama-messages"></div>
-      <div class="council-input-area"><textarea class="council-input" id="ollama-input" rows="2"></textarea><button class="council-send" id="ollama-send">Enviar</button></div>
+      <div class="council-header"><span class="council-indicator" id="groq2-indicator"></span>Groq · Modelo Secundario
+        <select class="model-sel" id="groq-model-2" style="margin-left:auto">
+          <option value="llama3-70b-8192">Llama 3 70b</option>
+          <option value="mixtral-8x7b-32768">Mixtral 8x7b</option>
+          <option value="gemma2-9b-it">Gemma 2 9b</option>
+        </select>
+        <button class="btn btn-accent" id="groq-ping" style="margin-left:0.5rem;">Ping</button>
+      </div>
+      <div class="council-messages" id="groq2-messages"></div>
+      <div class="council-input-area"><textarea class="council-input" id="groq2-input" rows="2"></textarea><button class="council-send" id="groq2-send">Enviar</button></div>
     </div>
   </div>
   <div class="context-sidebar"><div class="ctx-section"><div class="ctx-label">Contexto activo</div><div id="ctx-active"></div></div><div class="ctx-section"><div class="ctx-label">Variables MIHM</div><div id="ctx-vars"></div></div><div class="ctx-section"><div class="ctx-label">Patrones activos</div><div id="ctx-patterns"></div></div><div class="ctx-section"><div class="ctx-label">Inyectar</div><button class="btn btn-accent" data-inject="estado">Estado</button><button class="btn btn-accent" data-inject="mihm">Fórmulas</button></div></div>
@@ -703,7 +713,7 @@ a:hover{color:var(--text-bright)}
 </section>
 
 <!-- ═══════════════════════════════════════════════════════════
-     SECTION 5 · SF-MAGI COUNCIL (NUEVO)
+     SECTION 5 · SF-MAGI COUNCIL (se mantiene igual)
 ═══════════════════════════════════════════════════════════════ -->
 <section id="section-magi" class="sf-section">
 <div style="padding:2rem">
@@ -719,7 +729,7 @@ a:hover{color:var(--text-bright)}
 </section>
 
 <!-- ═══════════════════════════════════════════════════════════
-     SECTION 6 · MATH EXTENDER (NUEVO)
+     SECTION 6 · MATH EXTENDER (se mantiene igual)
 ═══════════════════════════════════════════════════════════════ -->
 <section id="section-math" class="sf-section">
 <div style="max-width:800px;margin:0 auto;padding:2rem">
@@ -735,7 +745,7 @@ a:hover{color:var(--text-bright)}
 </section>
 
 <!-- ═══════════════════════════════════════════════════════════
-     SECTION 7 · REPOSITORIO (SOLO DOCS Y NODO_AGS)
+     SECTION 7 · REPOSITORIO (se mantiene igual)
 ═══════════════════════════════════════════════════════════════ -->
 <section id="section-repositorio" class="sf-section">
 <div style="max-width:860px;margin:0 auto;padding:3rem 2rem">
@@ -761,7 +771,36 @@ a:hover{color:var(--text-bright)}
 
 <script>
 // ═══════════════════════════════════════════════════════════════
-// 1. DATOS ESTRUCTURALES (simulados, pero integrados con tu repo)
+// 0. CONFIGURACIÓN GROQ (REEMPLAZA 'APIKEYPASSWORD' POR TU CLAVE)
+// ═══════════════════════════════════════════════════════════════
+const GROQ_API_KEY = 'APIKEYPASSWORD'; // <-- Pon aquí tu API key de Groq
+const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
+
+// Función auxiliar para llamar a Groq
+async function callGroq(model, messages) {
+  const response = await fetch(GROQ_API_URL, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${GROQ_API_KEY}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      model: model,
+      messages: messages,
+      temperature: 0.7,
+      max_tokens: 500
+    })
+  });
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Groq API error (${response.status}): ${errorText}`);
+  }
+  const data = await response.json();
+  return data.choices[0].message.content;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// 1. DATOS ESTRUCTURALES (simulados, idénticos al original)
 // ═══════════════════════════════════════════════════════════════
 const AGS_DATA = [
   {id:'ags-01',label:'AGS-01',ihg:-0.15,nti:0.85,fs:0.28,cs:0.72,desc:'Estado operativo normal.',protocol:'S0 OK'},
@@ -810,7 +849,6 @@ const CLUSTERS = [
   {id:'SF_CLUSTER_08',name:'Gobernanza',color:'#8ac0aa',ring:4}
 ];
 
-// Documentos para repositorio (simulados desde ./_docs y ./_nodo_ags)
 const DOCS_CORE = [
   {id:'core-00',title:'Cómo leer este ecosistema',sub:'Documento metodológico',type:'meta'},
   {id:'core-0',title:'Desde dónde observa el observador',sub:'Condición de percepción',type:'posición'},
@@ -820,7 +858,7 @@ const DOCS_SERIE = Array(10).fill().map((_,i) => ({id:`doc-${String(i+1).padStar
 const DOCS_AGS = AGS_DATA.map(a => ({id:a.id,title:a.label,sub:a.desc.substring(0,60)}));
 
 // ═══════════════════════════════════════════════════════════════
-// 2. FUNCIONES DE UI (dashboard)
+// 2. FUNCIONES DE UI (dashboard) – igual que original
 // ═══════════════════════════════════════════════════════════════
 function showSection(id,btn){
   document.querySelectorAll('.sf-section').forEach(s=>s.classList.remove('active'));
@@ -832,7 +870,7 @@ function showSection(id,btn){
   if(id==='repositorio' && !window.repoInitialized){ initRepositorio(); window.repoInitialized=true; }
 }
 
-// ECG animado
+// ECG animado (idéntico)
 (function initECG(){
   const canvas=document.getElementById('ecg-canvas');
   if(!canvas)return;
@@ -872,39 +910,13 @@ function initPredictorVivo(){
     data: {
       labels: ['2026', '2027', '2028', '2029', '2030'],
       datasets: [
-        {
-          label: 'Ruta viable (control)',
-          data: [-0.62, -0.48, -0.35, -0.28, -0.25],
-          borderColor: '#6ec88a',
-          backgroundColor: 'transparent',
-          tension: 0.3,
-          pointBackgroundColor: '#6ec88a'
-        },
-        {
-          label: 'Colapso sin control',
-          data: [-0.62, -0.71, -0.85, -0.92, -1.0],
-          borderColor: '#c86e6e',
-          backgroundColor: 'transparent',
-          tension: 0.3,
-          pointBackgroundColor: '#c86e6e'
-        }
+        { label: 'Ruta viable (control)', data: [-0.62, -0.48, -0.35, -0.28, -0.25], borderColor: '#6ec88a', backgroundColor: 'transparent', tension: 0.3, pointBackgroundColor: '#6ec88a' },
+        { label: 'Colapso sin control', data: [-0.62, -0.71, -0.85, -0.92, -1.0], borderColor: '#c86e6e', backgroundColor: 'transparent', tension: 0.3, pointBackgroundColor: '#c86e6e' }
       ]
     },
-    options: {
-      responsive: true,
-      maintainAspectRatio: true,
-      plugins: {
-        legend: { labels: { color: '#5a5852', font: { size: 9 } } },
-        tooltip: { enabled: true }
-      },
-      scales: {
-        y: { min: -1, max: -0.1, grid: { color: 'rgba(34,34,32,.3)' }, ticks: { color: '#5a5852' } },
-        x: { ticks: { color: '#5a5852' } }
-      }
-    }
+    options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { labels: { color: '#5a5852', font: { size: 9 } } }, tooltip: { enabled: true } }, scales: { y: { min: -1, max: -0.1, grid: { color: 'rgba(34,34,32,.3)' }, ticks: { color: '#5a5852' } }, x: { ticks: { color: '#5a5852' } } } }
   });
 }
-
 
 // Memory Flow
 function initMemoryFlow(){
@@ -960,32 +972,15 @@ function initRadar(){
   new Chart(ctx,{type:'radar',data:{labels:VARIABLES_MIHM.map(v=>v.sym),datasets:[{label:'Estado AGS-06',data:VARIABLES_MIHM.map(v=>v.val),borderColor:'#c86e6e',backgroundColor:'rgba(200,110,110,.15)'},{label:'Baseline',data:[0.28,0.72,0.78,0.82,0.35,0.22,0.25,0.75,0.71,0.78,0.65],borderColor:'#6ec88a',backgroundColor:'rgba(110,200,138,.08)'}]},options:{responsive:true,maintainAspectRatio:false,scales:{r:{min:0,max:1}}}});
 }
 
-// NTI chart (corregido: ya no se desborda)
+// NTI chart
 function initNTIChart(){
   const ctx = document.getElementById('nti-chart').getContext('2d');
   new Chart(ctx, {
     type: 'bar',
-    data: {
-      labels: ['LDI', 'ICC', 'CSR', 'IRCI', 'IIM'],
-      datasets: [{
-        data: [0.45, 0.80, 0.30, 0.90, 0.60],
-        backgroundColor: ['#c86e6e', '#6ec88a', '#c86e6e', '#6ec88a', '#c8a96e'],
-        borderRadius: 4
-      }]
-    },
-    options: {
-      indexAxis: 'y',
-      responsive: true,
-      maintainAspectRatio: true,
-      plugins: { legend: { display: false }, tooltip: { enabled: true } },
-      scales: {
-        x: { max: 1, grid: { color: 'rgba(34,34,32,.3)' }, ticks: { color: '#5a5852' } },
-        y: { ticks: { color: '#c8a96e', font: { size: 10 } } }
-      }
-    }
+    data: { labels: ['LDI', 'ICC', 'CSR', 'IRCI', 'IIM'], datasets: [{ data: [0.45, 0.80, 0.30, 0.90, 0.60], backgroundColor: ['#c86e6e', '#6ec88a', '#c86e6e', '#6ec88a', '#c8a96e'], borderRadius: 4 }] },
+    options: { indexAxis: 'y', responsive: true, maintainAspectRatio: true, plugins: { legend: { display: false }, tooltip: { enabled: true } }, scales: { x: { max: 1, grid: { color: 'rgba(34,34,32,.3)' }, ticks: { color: '#5a5852' } }, y: { ticks: { color: '#c8a96e', font: { size: 10 } } } } }
   });
 }
-
 
 // Pattern activations
 function initPatternActivations(){
@@ -994,7 +989,8 @@ function initPatternActivations(){
 }
 
 // ═══════════════════════════════════════════════════════════════
-// 3. CAMPO COGNITIVO (CORREGIDO: clusters, reset, labels)
+// 3. CAMPO COGNITIVO (idéntico al original, omito por brevedad)
+//    [Mantén tu implementación original de initCampo aquí]
 // ═══════════════════════════════════════════════════════════════
 let campoSim, campoZoom, campoSvg, campoLabelsVisible=false;
 function initCampo(){
@@ -1008,7 +1004,6 @@ function initCampo(){
   svg.call(zoom);
   campoZoom=zoom; campoSvg=svg;
   
-  // Generar 121 nodos con clusters reales
   const nodes=[];
   for(let i=1;i<=121;i++){
     let clIdx;
@@ -1022,7 +1017,6 @@ function initCampo(){
     else clIdx=7;
     nodes.push({id:`SF_P_${String(i).padStart(4,'0')}`,cluster:CLUSTERS[clIdx].id,ring:CLUSTERS[clIdx].ring,name:`Node ${i}`,layer:clIdx<2?'theory':clIdx===2?'mathematics':clIdx===3?'technology':'observatory'});
   }
-  // Generar aristas (308)
   const edges=[];
   const patternColors=PATTERNS.map(p=>p.color);
   for(let i=0;i<280;i++){
@@ -1047,19 +1041,17 @@ function initCampo(){
   sim.on('tick',()=>{ link.attr('x1',d=>d.source.x).attr('y1',d=>d.source.y).attr('x2',d=>d.target.x).attr('y2',d=>d.target.y); nodeGroup.attr('transform',d=>`translate(${d.x},${d.y})`); });
   setTimeout(()=>sim.alphaTarget(0).alphaDecay(.05),3000);
   
-  // Botones
   document.getElementById('reset-zoom').onclick=()=>{ if(campoSvg&&campoZoom) campoSvg.transition().duration(500).call(campoZoom.transform,d3.zoomIdentity); };
   document.getElementById('toggle-labels').onclick=()=>{ campoLabelsVisible=!campoLabelsVisible; labels.style('display',campoLabelsVisible?'block':'none'); };
   document.getElementById('campo-filter').onchange=(e)=>{ const val=e.target.value; svg.selectAll('.campo-node').attr('opacity',d=>val==='all'||d.cluster===val?1:.15); svg.selectAll('line').attr('opacity',d=>{ if(val==='all')return .4; const sNode=nodes.find(n=>n.id===d.source.id||n.id===d.source); const tNode=nodes.find(n=>n.id===d.target.id||n.id===d.target); return (sNode?.cluster===val||tNode?.cluster===val)?.5:.05; }); };
   
-  // Leyendas
   document.getElementById('cluster-legend').innerHTML=CLUSTERS.map(c=>`<div style="display:flex;align-items:center;gap:.5rem;cursor:pointer" onclick="document.getElementById('campo-filter').value='${c.id}';document.getElementById('campo-filter').dispatchEvent(new Event('change'))"><div style="width:10px;height:10px;border-radius:50%;background:${c.color}"></div><span>${c.id.replace('SF_CLUSTER_0','C')} · ${c.name}</span></div>`).join('');
   document.getElementById('pattern-legend').innerHTML=PATTERNS.map(p=>`<div style="display:flex;align-items:center;gap:.4rem;margin-bottom:.3rem"><div style="width:20px;height:2px;background:${p.color}"></div><span>${p.name}</span></div>`).join('');
   document.getElementById('pattern-filters').innerHTML=PATTERNS.map(p=>`<button class="pf-btn active" data-pattern="${p.id}" style="color:${p.color};border-color:${p.color}40" onclick="this.classList.toggle('active');d3.selectAll('#campo-svg line').each(function(){if(this.__data__?.pattern===p.id)d3.select(this).attr('opacity',this.classList.contains('active')?.4:.02);})">${p.id.slice(0,8)}</button>`).join('');
 }
 
 // ═══════════════════════════════════════════════════════════════
-// 4. OBSERVATORIO (con fórmulas MIHM)
+// 4. OBSERVATORIO (idéntico al original)
 // ═══════════════════════════════════════════════════════════════
 function initObservatorio(){
   const nodes=Array(121).fill().map((_,i)=>({id:`SF_P_${String(i+1).padStart(4,'0')}`,name:`Node ${i+1}`,layer:i<12?'theory':i<20?'theory':i<40?'mathematics':i<60?'technology':'observatory'}));
@@ -1078,7 +1070,7 @@ function initObservatorio(){
 }
 
 // ═══════════════════════════════════════════════════════════════
-// 5. REPOSITORIO (solo docs y nodo_ags)
+// 5. REPOSITORIO (idéntico)
 // ═══════════════════════════════════════════════════════════════
 function initRepositorio(){
   document.getElementById('repo-core').innerHTML=DOCS_CORE.map(d=>`<div onclick="openDoc('${d.id}')" style="background:var(--surface);padding:1rem;cursor:pointer"><div class="mono" style="font-size:.5rem">${d.id}</div><div>${d.title}</div><div class="dim">${d.sub}</div></div>`).join('');
@@ -1089,25 +1081,101 @@ function openDoc(id){ document.getElementById('doc-overlay-meta').textContent=id
 function closeDoc(){ document.getElementById('doc-overlay').style.display='none'; }
 
 // ═══════════════════════════════════════════════════════════════
-// 6. COUNCILS (APTYMOK + SF-MAGI)
+// 6. COUNCILS: ahora usando Groq en ambos paneles
 // ═══════════════════════════════════════════════════════════════
-document.getElementById('claude-send')?.addEventListener('click',()=>{ const msg=document.getElementById('claude-input').value; if(msg){ const msgs=document.getElementById('claude-messages'); msgs.innerHTML+=`<div class="msg user">${msg}</div><div class="msg assistant"><div class="source">Claude · MIHM Analyst</div>IHG ${AGS_DATA[5].ihg} en zona UCAP. NTI ${AGS_DATA[5].nti} bajo umbral. Recomiendo revisar patrones de latencia política.</div>`; msgs.scrollTop=msgs.scrollHeight; document.getElementById('claude-input').value=''; } });
-document.getElementById('ollama-send')?.addEventListener('click',()=>{ const msg=document.getElementById('ollama-input').value; if(msg){ const msgs=document.getElementById('ollama-messages'); msgs.innerHTML+=`<div class="msg user">${msg}</div><div class="msg assistant"><div class="source">Ollama · Local</div>Modelo local: fricción sistémica elevada. P(colapso) 71%.</div>`; msgs.scrollTop=msgs.scrollHeight; document.getElementById('ollama-input').value=''; } });
-document.getElementById('ollama-ping')?.addEventListener('click',()=>{ document.getElementById('ollama-messages').innerHTML+=`<div class="msg system-msg">Ollama no detectado en localhost:11434 (simulado)</div>`; });
-document.querySelectorAll('[data-inject]').forEach(btn=>btn.addEventListener('click',()=>{ const txt=btn.dataset.inject==='estado'?`[SISTEMA] IHG ${AGS_DATA[5].ihg} NTI ${AGS_DATA[5].nti}`:`[MIHM] IHG = Σ(w_i*X_i) - Σ(w_ij*int_ij)`; document.getElementById('claude-input').value=txt+'\n'+document.getElementById('claude-input').value; }));
+// Función auxiliar para escapar HTML
+function escapeHtml(str) {
+  if (!str) return '';
+  return str.replace(/[&<>]/g, function(m) {
+    if (m === '&') return '&amp;';
+    if (m === '<') return '&lt;';
+    if (m === '>') return '&gt;';
+    return m;
+  });
+}
 
-// SF-MAGI Council
+// Configurar ambos paneles
+function setupGroqPanel(panelId, modelSelectId, messagesContainerId, inputId, sendButtonId, indicatorId) {
+  const sendButton = document.getElementById(sendButtonId);
+  const input = document.getElementById(inputId);
+  const messagesDiv = document.getElementById(messagesContainerId);
+  const modelSelect = document.getElementById(modelSelectId);
+  const indicator = document.getElementById(indicatorId);
+
+  sendButton.addEventListener('click', async () => {
+    const msg = input.value.trim();
+    if (!msg) return;
+    // Mostrar mensaje del usuario
+    messagesDiv.innerHTML += `<div class="msg user">${escapeHtml(msg)}</div>`;
+    input.value = '';
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+    // Indicador de carga
+    const loadingId = 'loading-' + panelId;
+    messagesDiv.innerHTML += `<div id="${loadingId}" class="msg system-msg"><span class="spinner"></span> Generando respuesta...</div>`;
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+    try {
+      const model = modelSelect.value;
+      const systemPrompt = `Eres un analista del modelo MIHM v3.0. Contexto: IHG = ${AGS_DATA[5].ihg.toFixed(3)}, NTI = ${AGS_DATA[5].nti.toFixed(3)}. Responde con precisión técnica.`;
+      const response = await callGroq(model, [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: msg }
+      ]);
+      // Quitar el mensaje de carga
+      const loadingElem = document.getElementById(loadingId);
+      if (loadingElem) loadingElem.remove();
+      messagesDiv.innerHTML += `<div class="msg assistant"><div class="source">Groq · ${model}</div>${escapeHtml(response)}</div>`;
+      if (indicator) indicator.classList.add('active');
+    } catch (error) {
+      const loadingElem = document.getElementById(loadingId);
+      if (loadingElem) loadingElem.remove();
+      messagesDiv.innerHTML += `<div class="msg system-msg">Error: ${escapeHtml(error.message)}</div>`;
+      if (indicator) indicator.classList.remove('active');
+    }
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+  });
+}
+
+// Botón Ping para Groq
+document.getElementById('groq-ping')?.addEventListener('click', async () => {
+  const messagesDiv = document.getElementById('groq2-messages');
+  messagesDiv.innerHTML += `<div class="msg system-msg">Probando conexión con Groq...</div>`;
+  try {
+    const model = document.getElementById('groq-model-2').value;
+    const response = await callGroq(model, [
+      { role: 'system', content: 'Responde con "OK" si recibes esto.' },
+      { role: 'user', content: 'Ping' }
+    ]);
+    messagesDiv.innerHTML += `<div class="msg system-msg">✅ Groq conectado. Modelo ${model} respondió: "${escapeHtml(response)}"</div>`;
+    document.getElementById('groq2-indicator').classList.add('active');
+  } catch (error) {
+    messagesDiv.innerHTML += `<div class="msg system-msg">❌ Error de conexión con Groq: ${escapeHtml(error.message)}</div>`;
+    document.getElementById('groq2-indicator').classList.remove('active');
+  }
+  messagesDiv.scrollTop = messagesDiv.scrollHeight;
+});
+
+// Inicializar ambos paneles
+setupGroqPanel('groq1', 'groq-model-1', 'groq1-messages', 'groq1-input', 'groq1-send', 'groq1-indicator');
+setupGroqPanel('groq2', 'groq-model-2', 'groq2-messages', 'groq2-input', 'groq2-send', 'groq2-indicator');
+
+// ═══════════════════════════════════════════════════════════════
+// 7. SF-MAGI Council (se mantiene igual)
+// ═══════════════════════════════════════════════════════════════
 let currentMagi=0;
 function switchMagi(i){ currentMagi=i; document.querySelectorAll('.magi-persona').forEach((b,idx)=>b.classList.toggle('active',idx===i)); }
-function sendToMagi(){ const input=document.getElementById('magi-input').value; if(!input)return; const msgs=document.getElementById('magi-messages'); msgs.innerHTML+=`<div class="msg user">${input}</div><div class="msg assistant">Analyst: NTI bajo umbral estructural.<br>Predictor: P(colapso) 26% con control sincronizado.<br>Controller: Ejecuta u*(t) en fase correcta (enero 2026).<br><strong>SF-MAGI unifica: IAD=0.84 | ETE=3.2 | P(colapso)=26%</strong></div>`; msgs.scrollTop=msgs.scrollHeight; document.getElementById('magi-input').value=''; }
+function sendToMagi(){ const input=document.getElementById('magi-input').value; if(!input)return; const msgs=document.getElementById('magi-messages'); msgs.innerHTML+=`<div class="msg user">${escapeHtml(input)}</div><div class="msg assistant">Analyst: NTI bajo umbral estructural.<br>Predictor: P(colapso) 26% con control sincronizado.<br>Controller: Ejecuta u*(t) en fase correcta (enero 2026).<br><strong>SF-MAGI unifica: IAD=0.84 | ETE=3.2 | P(colapso)=26%</strong></div>`; msgs.scrollTop=msgs.scrollHeight; document.getElementById('magi-input').value=''; }
 
-// Math Extender
+// ═══════════════════════════════════════════════════════════════
+// 8. Math Extender (idéntico)
+// ═══════════════════════════════════════════════════════════════
 function addNewMath(){ const name=document.getElementById('new-eq-name').value; const formula=document.getElementById('new-eq-formula').value; if(!name||!formula)return; const eqs=JSON.parse(localStorage.getItem('sf_math_eqs')||'[]'); eqs.push({name,formula,date:new Date().toISOString()}); localStorage.setItem('sf_math_eqs',JSON.stringify(eqs)); renderMathList(); }
-function renderMathList(){ const eqs=JSON.parse(localStorage.getItem('sf_math_eqs')||'[]'); const container=document.getElementById('math-list'); container.innerHTML=eqs.map((e,i)=>`<div style="background:var(--surface);padding:1rem;border:1px solid var(--border)"><div class="mono">${e.name}</div><div class="equation">${e.formula}</div><div class="dim" style="font-size:.6rem">${e.date}</div><button onclick="deleteMath(${i})" class="btn btn-danger" style="margin-top:.5rem">Eliminar</button></div>`).join(''); }
+function renderMathList(){ const eqs=JSON.parse(localStorage.getItem('sf_math_eqs')||'[]'); const container=document.getElementById('math-list'); container.innerHTML=eqs.map((e,i)=>`<div style="background:var(--surface);padding:1rem;border:1px solid var(--border)"><div class="mono">${escapeHtml(e.name)}</div><div class="equation">${escapeHtml(e.formula)}</div><div class="dim" style="font-size:.6rem">${e.date}</div><button onclick="deleteMath(${i})" class="btn btn-danger" style="margin-top:.5rem">Eliminar</button></div>`).join(''); }
 function deleteMath(i){ let eqs=JSON.parse(localStorage.getItem('sf_math_eqs')||'[]'); eqs.splice(i,1); localStorage.setItem('sf_math_eqs',JSON.stringify(eqs)); renderMathList(); }
 
 // ═══════════════════════════════════════════════════════════════
-// 7. INICIO
+// 9. INICIO
 // ═══════════════════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded',()=>{
   initTimelineChart();
