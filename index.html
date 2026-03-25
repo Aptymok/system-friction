@@ -1186,7 +1186,7 @@ setupGroqPanel('groq2', 'groq-model-2', 'groq2-messages', 'groq2-input', 'groq2-
 // 7. SF-MAGI Council → APTYMOK CONSEJO + OBSERVADOR (Monte Carlo)
 // ═══════════════════════════════════════════════════════════════
 
-// --- Perfiles APTYMOK (copia desde tu aptymok_profiles.json) ---
+// --- Perfiles APTYMOK (copia desde aptymok_profiles.json) ---
 const APTYMOK_AGENTS = {
   OBSERVADOR: {
     name: "OBSERVADOR",
@@ -1264,23 +1264,26 @@ function saveConfidence() {
 
 // --- Monte Carlo en JavaScript (basado en las ecuaciones MIHM v3) ---
 function monteCarloPrediction(metrics, iterations = 1000) {
-  // Aquí replicamos las ecuaciones de MIHM v3
-  // Usamos las mismas relaciones que en el backend
+  // Valores por defecto si alguna métrica no existe
+  const nti = metrics.nti ?? 0.44;
+  const ice = metrics.ice ?? 0.73;
+  const psi = metrics.psi ?? 0.58;
+  const entropy = metrics.entropy ?? 0.40;
+
   const variables = {
-    F_s: { value: 0.5 + 0.3 * metrics.nti + 0.2 * metrics.psi, weight: 0.1, std: 0.05 },
-    C_s: { value: 0.7 - 0.5 * metrics.ice, weight: 0.1, std: 0.05 },
-    I_mc: { value: 0.5 + 0.2 * metrics.nti, weight: 0.0833, std: 0.05 },
-    E_r: { value: 0.6 - 0.2 * metrics.psi, weight: 0.0833, std: 0.05 },
-    D_i: { value: 0.4 + 0.3 * metrics.nti, weight: 0.075, std: 0.05 },
-    G_f: { value: 0.3 + 0.4 * metrics.psi, weight: 0.1, std: 0.05 },
-    D_cog: { value: 0.5 + 0.3 * metrics.nti, weight: 0.075, std: 0.05 },
-    R_sem: { value: 0.6 - 0.2 * metrics.ice, weight: 0.1, std: 0.05 },
-    V_i: { value: 0.5 - 0.3 * metrics.ice, weight: 0.0833, std: 0.05 },
-    C_sem: { value: 0.4 + 0.2 * metrics.psi, weight: 0.1, std: 0.05 },
-    Phi: { value: 0.5 + 0.1 * metrics.entropy, weight: 0.1, std: 0.05 }
+    F_s: { value: 0.5 + 0.3 * nti + 0.2 * psi, weight: 0.1, std: 0.05 },
+    C_s: { value: 0.7 - 0.5 * ice, weight: 0.1, std: 0.05 },
+    I_mc: { value: 0.5 + 0.2 * nti, weight: 0.0833, std: 0.05 },
+    E_r: { value: 0.6 - 0.2 * psi, weight: 0.0833, std: 0.05 },
+    D_i: { value: 0.4 + 0.3 * nti, weight: 0.075, std: 0.05 },
+    G_f: { value: 0.3 + 0.4 * psi, weight: 0.1, std: 0.05 },
+    D_cog: { value: 0.5 + 0.3 * nti, weight: 0.075, std: 0.05 },
+    R_sem: { value: 0.6 - 0.2 * ice, weight: 0.1, std: 0.05 },
+    V_i: { value: 0.5 - 0.3 * ice, weight: 0.0833, std: 0.05 },
+    C_sem: { value: 0.4 + 0.2 * psi, weight: 0.1, std: 0.05 },
+    Phi: { value: 0.5 + 0.1 * entropy, weight: 0.1, std: 0.05 }
   };
 
-  // Interacciones (de mihm_v3_engine)
   const interactions = [
     { expr: "F_s * C_s", weight: 0.10 },
     { expr: "D_i * (1 - E_r)", weight: 0.10 },
@@ -1292,24 +1295,20 @@ function monteCarloPrediction(metrics, iterations = 1000) {
   const ihgValues = [];
 
   for (let i = 0; i < iterations; i++) {
-    // Muestrear cada variable con ruido gaussiano
     const sampled = {};
     for (let [varName, data] of Object.entries(variables)) {
-      let val = data.value + (Math.random() - 0.5) * data.std * 2; // simple uniform noise
-      val = Math.max(0, Math.min(1, val)); // clamp [0,1]
+      let val = data.value + (Math.random() - 0.5) * data.std * 2;
+      val = Math.max(0, Math.min(1, val));
       sampled[varName] = val;
     }
 
-    // Suma ponderada de variables
     let sumWeighted = 0;
     for (let [varName, data] of Object.entries(variables)) {
       sumWeighted += data.weight * sampled[varName];
     }
 
-    // Suma de interacciones
     let sumInteractions = 0;
     for (let inter of interactions) {
-      // Evaluar la expresión matemática de forma segura
       let expr = inter.expr;
       for (let [varName, val] of Object.entries(sampled)) {
         expr = expr.replace(new RegExp(varName, 'g'), val);
@@ -1318,7 +1317,7 @@ function monteCarloPrediction(metrics, iterations = 1000) {
         const result = eval(expr);
         sumInteractions += inter.weight * result;
       } catch (e) {
-        console.warn("Error evaluando interacción", expr);
+        // silencio
       }
     }
 
@@ -1330,30 +1329,21 @@ function monteCarloPrediction(metrics, iterations = 1000) {
   const meanIhg = ihgValues.reduce((a,b) => a+b, 0) / iterations;
   const stdIhg = Math.sqrt(ihgValues.reduce((sq, v) => sq + Math.pow(v - meanIhg, 2), 0) / iterations);
 
-  return {
-    p_collapse: pCollapse,
-    mean_ihg: meanIhg,
-    std_ihg: stdIhg,
-    most_likely_ihg: meanIhg,
-    trajectory: ihgValues
-  };
+  return { p_collapse: pCollapse, mean_ihg: meanIhg, std_ihg: stdIhg };
 }
 
-// --- Función para llamar a un agente vía Groq (reutiliza tu callGroq) ---
+// --- Función para llamar a un agente vía Groq ---
 async function getAgentResponse(agentId, prompt, metricsSnapshot) {
   const agent = APTYMOK_AGENTS[agentId];
   if (!agent) return "[Agente no encontrado]";
 
-  // Ajustar temperatura según confianza
   let temperature = agent.temperature;
   if (agentId !== 'OBSERVADOR') {
     const confidence = agentConfidence[agentId] || 0.5;
-    // Cuanto mayor confianza, mayor temperatura (más arriesgado)
     temperature = Math.min(0.95, agent.temperature + (confidence - 0.5) * 0.4);
   }
 
-  const metricsStr = `MÉTRICAS ACTUALES:\nNTI: ${metricsSnapshot.nti.toFixed(3)}\nICE: ${metricsSnapshot.ice.toFixed(3)}\nPSI: ${metricsSnapshot.psi.toFixed(3)}\nEntropía: ${metricsSnapshot.entropy?.toFixed(3) || '0.40'}`;
-
+  const metricsStr = `MÉTRICAS ACTUALES:\nNTI: ${(metricsSnapshot.nti || 0.44).toFixed(3)}\nICE: ${(metricsSnapshot.ice || 0.73).toFixed(3)}\nPSI: ${(metricsSnapshot.psi || 0.58).toFixed(3)}\nEntropía: ${(metricsSnapshot.entropy || 0.40).toFixed(3)}`;
   const fullPrompt = `${metricsStr}\n\n${prompt}`;
 
   try {
@@ -1367,18 +1357,8 @@ async function getAgentResponse(agentId, prompt, metricsSnapshot) {
   }
 }
 
-// Flujo principal del MAGI 
-let currentMagi = 0;
-function switchMagi(i) {
-  currentMagi = i;
-  document.querySelectorAll('.magi-persona').forEach((b, idx) => b.classList.toggle('active', idx === i));
-  const input = document.getElementById('magi-input');
-  const modes = ["Analista", "Predictor", "Controlador"];
-  input.placeholder = `Pregunta al modo ${modes[i]}... (El consejo responde completo)`;
-}
-
-// Send to MAGI
-  function updatePredictionHeader(prediction) {
+// --- Actualizar encabezado de predicción ---
+function updatePredictionHeader(prediction) {
   const header = document.getElementById('prediction-header');
   if (!header) return;
   header.innerHTML = `
@@ -1388,7 +1368,7 @@ function switchMagi(i) {
   `;
 }
 
-// Muestra la confianza actual
+// --- Mostrar confianza actual ---
 function updateConfidenceDisplay() {
   const container = document.getElementById('confidence-indicator');
   if (!container) return;
@@ -1397,7 +1377,7 @@ function updateConfidenceDisplay() {
   container.textContent = confText;
 }
 
-// Limpia el debate
+// --- Limpiar debate ---
 function clearMagiDebate() {
   const messagesDiv = document.getElementById('magi-messages');
   if (messagesDiv) {
@@ -1405,7 +1385,7 @@ function clearMagiDebate() {
   }
 }
 
-// Función principal (modificada para actualizar la UI)
+// --- Función principal que ejecuta el flujo completo ---
 async function sendToMagi() {
   const input = document.getElementById('magi-input');
   const msg = input.value.trim();
@@ -1416,12 +1396,11 @@ async function sendToMagi() {
   input.value = '';
   msgsDiv.scrollTop = msgsDiv.scrollHeight;
 
-  // Indicador de carga
   const loadingId = 'magi-loading';
   msgsDiv.innerHTML += `<div id="${loadingId}" class="msg system-msg"><span class="spinner"></span> El observador predice...</div>`;
   msgsDiv.scrollTop = msgsDiv.scrollHeight;
 
-  // 1. Obtener métricas
+  // Obtener métricas (con valores por defecto si no existen)
   const currentMetrics = {
     nti: parseFloat(document.getElementById('kpi-nti')?.innerText) || 0.44,
     ice: parseFloat(document.getElementById('kpi-ice')?.innerText) || 0.73,
@@ -1429,22 +1408,32 @@ async function sendToMagi() {
     entropy: 0.40
   };
 
-  // 2. Monte Carlo
+  // Si no existen los elementos, crearlos temporalmente (solo para que no rompa)
+  if (!document.getElementById('kpi-ice')) {
+    const fakeDiv = document.createElement('div');
+    fakeDiv.id = 'kpi-ice';
+    fakeDiv.style.display = 'none';
+    document.body.appendChild(fakeDiv);
+  }
+  if (!document.getElementById('kpi-psi')) {
+    const fakeDiv = document.createElement('div');
+    fakeDiv.id = 'kpi-psi';
+    fakeDiv.style.display = 'none';
+    document.body.appendChild(fakeDiv);
+  }
+
   const prediction = monteCarloPrediction(currentMetrics, 1000);
   updatePredictionHeader(prediction);
   const predictionText = `🔮 **Predicción del Observador**\n- P(colapso): ${(prediction.p_collapse * 100).toFixed(1)}%\n- IHG esperado: ${prediction.mean_ihg.toFixed(3)} ± ${prediction.std_ihg.toFixed(3)}\n- Umbral UCAP: ${prediction.mean_ihg < -0.4 ? '⚠️ ACTIVADO' : 'No activado'}`;
 
-  // Mostrar predicción
   msgsDiv.innerHTML += `<div class="msg assistant" data-agent="OBSERVADOR" style="border-left-color: #FFFFFF;"><div class="source">⨀ OBSERVADOR</div>${escapeHtml(predictionText)}</div>`;
   msgsDiv.scrollTop = msgsDiv.scrollHeight;
 
   document.getElementById(loadingId)?.remove();
 
-  // Nuevo indicador para el debate
   msgsDiv.innerHTML += `<div id="${loadingId}" class="msg system-msg"><span class="spinner"></span> El consejo delibera...</div>`;
   msgsDiv.scrollTop = msgsDiv.scrollHeight;
 
-  // 3. Debate de los 4 agentes
   const agentsOrder = ['REI', 'SHINJI', 'KAWORU', 'SHADOW'];
   const responses = [];
 
@@ -1475,7 +1464,7 @@ async function sendToMagi() {
 
   document.getElementById(loadingId)?.remove();
 
-  // 4. Validación del Observador
+  // Validación del Observador
   const debateSummary = responses.map(r => `${r.agent}: ${r.response}`).join('\n\n');
   const validationPrompt = `Eres el Observador. El consejo ha debatido sobre: "${msg}". Aquí está el debate:\n\n${debateSummary}\n\n¿La respuesta final del consejo fue certera? Responde SÍ o NO en una sola línea.`;
 
@@ -1496,7 +1485,7 @@ async function sendToMagi() {
   msgsDiv.innerHTML += `<div class="msg assistant" data-agent="OBSERVADOR" style="border-left-color: #FFFFFF;"><div class="source">⨀ OBSERVADOR</div>Validación: <strong>${validation}</strong></div>`;
   msgsDiv.scrollTop = msgsDiv.scrollHeight;
 
-  // 5. Ajustar confianza
+  // Ajustar confianza
   const correct = validation === "SÍ";
   for (const agentId of agentsOrder) {
     let conf = agentConfidence[agentId] || 0.5;
@@ -1511,9 +1500,8 @@ async function sendToMagi() {
   msgsDiv.scrollTop = msgsDiv.scrollHeight;
 }
 
-// Inicialización
+// --- Inicialización del panel MAGI ---
 document.addEventListener('DOMContentLoaded', () => {
-  // Vincular eventos
   const sendBtn = document.getElementById('magi-send');
   if (sendBtn) sendBtn.onclick = sendToMagi;
   const clearBtn = document.getElementById('magi-clear');
@@ -1528,63 +1516,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
   updateConfidenceDisplay();
-});
-
-  // Eliminar el mensaje de carga del debate
-  document.getElementById(loadingId)?.remove();
-
-  // 4. Preguntar al Observador si la respuesta fue certera
-  //    (llamamos a Groq con el rol de Observador)
-  const debateSummary = responses.map(r => `${r.agent}: ${r.response}`).join('\n\n');
-  const validationPrompt = `Eres el Observador. El consejo ha debatido sobre: "${msg}". Aquí está el debate:\n\n${debateSummary}\n\n¿La respuesta final del consejo fue certera? Responde SÍ o NO en una sola línea.`;
-
-  msgsDiv.innerHTML += `<div class="msg system-msg"><span class="spinner"></span> El Observador evalúa la respuesta...</div>`;
-  msgsDiv.scrollTop = msgsDiv.scrollHeight;
-
-  let validation = "NO";
-  try {
-    const obsResponse = await callGroq('llama-3.3-70b-versatile', [
-      { role: 'system', content: APTYMOK_AGENTS.OBSERVADOR.system_prompt },
-      { role: 'user', content: validationPrompt }
-    ], 0.0);
-    validation = obsResponse.trim().toUpperCase().includes("SÍ") ? "SÍ" : "NO";
-  } catch (e) {
-    console.warn("Error en validación del Observador", e);
-  }
-
-  // Mostrar validación
-  msgsDiv.innerHTML += `<div class="msg assistant" data-agent="OBSERVADOR" style="border-left-color: #FFFFFF;"><div class="source">⨀ OBSERVADOR</div>Validación: <strong>${validation}</strong></div>`;
-  msgsDiv.scrollTop = msgsDiv.scrollHeight;
-
-  // 5. Ajustar confianza según acierto
-  const correct = validation === "SÍ";
-  for (const agentId of agentsOrder) {
-    let conf = agentConfidence[agentId] || 0.5;
-    // Incrementar si fue correcto, decrementar si no
-    const delta = correct ? 0.05 : -0.05;
-    conf = Math.max(0.1, Math.min(0.95, conf + delta));
-    agentConfidence[agentId] = conf;
-  }
-  saveConfidence();
-
-  // Mostrar mensaje de ajuste
-  msgsDiv.innerHTML += `<div class="msg system-msg">🧠 Confianza actualizada: ${agentsOrder.map(a => `${a}: ${(agentConfidence[a]*100).toFixed(0)}%`).join(' · ')}</div>`;
-  msgsDiv.scrollTop = msgsDiv.scrollHeight;
-}
-
-// Inicializar eventos (si ya existen, evita duplicados)
-document.addEventListener('DOMContentLoaded', () => {
-  const sendBtn = document.querySelector('#section-magi button');
-  if (sendBtn) sendBtn.onclick = sendToMagi;
-  const magiInput = document.getElementById('magi-input');
-  if (magiInput) {
-    magiInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-        e.preventDefault();
-        sendToMagi();
-      }
-    });
-  }
 });
 // ═══════════════════════════════════════════════════════════════
 // 8. Math Extender (idéntico)
