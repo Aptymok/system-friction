@@ -712,21 +712,43 @@ a:hover{color:var(--text-bright)}
 </div>
 </section>
 
-<!-- ═══════════════════════════════════════════════════════════
-     SECTION 5 · SF-MAGI COUNCIL (se mantiene igual)
-═══════════════════════════════════════════════════════════════ -->
+<!-- ═══════════════════════════════════════════════════════════════
+     SECTION 5 · SF-MAGI COUNCIL (ESTILO APTYMOK)
+════════════════════════════════════════════════════════════════ -->
 <section id="section-magi" class="sf-section">
-<div style="padding:2rem">
-  <div class="magi-tab" style="display:flex;gap:1rem;margin-bottom:1rem">
-    <button class="magi-persona active" onclick="switchMagi(0)">Analyst</button>
-    <button class="magi-persona" onclick="switchMagi(1)">Predictor</button>
-    <button class="magi-persona" onclick="switchMagi(2)">Controller</button>
+<div style="display: flex; flex-direction: column; height: calc(100vh - 52px);">
+  
+  <!-- Panel superior: predicción del Observador -->
+  <div class="card" style="margin: 1rem 1rem 0 1rem; background: var(--surface2);">
+    <div class="card-header" style="border-bottom-color: var(--accent-dim);">
+      ⨀ OBSERVADOR · PREDICCIÓN ACTIVA
+    </div>
+    <div class="card-body" id="prediction-header" style="font-family: var(--mono); font-size: 0.7rem; display: flex; gap: 1rem; flex-wrap: wrap;">
+      <div>🔄 Calculando...</div>
+    </div>
   </div>
-  <div id="magi-messages" style="height:400px;overflow-y:auto;background:var(--surface);padding:1rem;border:1px solid var(--border)"></div>
-  <textarea id="magi-input" placeholder="Pregunta al SF-MAGI Council..." style="width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:1rem;margin-top:1rem"></textarea>
-  <button onclick="sendToMagi()" style="background:var(--accent);color:var(--bg);padding:0.8rem 2rem;font-family:var(--mono);margin-top:1rem;border:none;cursor:pointer">Enviar → Unificar</button>
+
+  <!-- Cámara del debate (similar al consejo) -->
+  <div id="magi-messages" class="council-messages" style="flex: 1; margin: 1rem; background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 1rem;"></div>
+
+  <!-- Zona de entrada -->
+  <div style="margin: 0 1rem 1rem 1rem;">
+    <div class="iz-label">CONSULTA AL CONSEJO</div>
+    <div class="iz-row">
+      <textarea id="magi-input" class="council-input" rows="2" placeholder="Escribe tu pregunta o evento... (Ctrl+Enter para enviar)"></textarea>
+      <div class="iz-btns">
+        <button class="council-send" id="magi-send" style="align-self: stretch;">ENVIAR ⬡</button>
+        <button class="iz-btn" id="magi-clear" style="margin-top: 0.2rem;">LIMPIAR</button>
+      </div>
+    </div>
+    <div class="iz-filters" style="margin-top: 0.5rem;">
+      <span class="dim" style="font-size: 0.55rem;">Confianza actual: </span>
+      <span id="confidence-indicator" style="font-family: var(--mono); font-size: 0.55rem;"></span>
+    </div>
+  </div>
 </div>
 </section>
+
 
 <!-- ═══════════════════════════════════════════════════════════
      SECTION 6 · MATH EXTENDER (se mantiene igual)
@@ -1161,12 +1183,409 @@ setupGroqPanel('groq1', 'groq-model-1', 'groq1-messages', 'groq1-input', 'groq1-
 setupGroqPanel('groq2', 'groq-model-2', 'groq2-messages', 'groq2-input', 'groq2-send', 'groq2-indicator');
 
 // ═══════════════════════════════════════════════════════════════
-// 7. SF-MAGI Council (se mantiene igual)
+// 7. SF-MAGI Council → APTYMOK CONSEJO + OBSERVADOR (Monte Carlo)
 // ═══════════════════════════════════════════════════════════════
-let currentMagi=0;
-function switchMagi(i){ currentMagi=i; document.querySelectorAll('.magi-persona').forEach((b,idx)=>b.classList.toggle('active',idx===i)); }
-function sendToMagi(){ const input=document.getElementById('magi-input').value; if(!input)return; const msgs=document.getElementById('magi-messages'); msgs.innerHTML+=`<div class="msg user">${escapeHtml(input)}</div><div class="msg assistant">Analyst: NTI bajo umbral estructural.<br>Predictor: P(colapso) 26% con control sincronizado.<br>Controller: Ejecuta u*(t) en fase correcta (enero 2026).<br><strong>SF-MAGI unifica: IAD=0.84 | ETE=3.2 | P(colapso)=26%</strong></div>`; msgs.scrollTop=msgs.scrollHeight; document.getElementById('magi-input').value=''; }
 
+// --- Perfiles APTYMOK (copia desde tu aptymok_profiles.json) ---
+const APTYMOK_AGENTS = {
+  OBSERVADOR: {
+    name: "OBSERVADOR",
+    sigil: "⨀",
+    color: "#FFFFFF",
+    temperature: 0.0,
+    system_prompt: `Eres el Observador. Tu función es leer el estado del sistema, ejecutar Monte Carlo sobre las ecuaciones MIHM v3 y generar una predicción. No debates. Solo observas, predices y al final validas la respuesta de los otros agentes.`,
+    monte_carlo_params: { iterations: 1000 }
+  },
+  REI: {
+    name: "REI",
+    sigil: "Ω",
+    color: "#A0C8E8",
+    temperature: 0.15,
+    system_prompt: `Actúa como REI, la Ancla de Diagnóstico Técnico del Sistema Friction.
+Tu naturaleza: Eres precisión ejecutada. No tienes estados emocionales.
+Tu lenguaje: Clínico. Terminología técnica. Estructura: ESTADO → CAUSA → PROTOCOLO. Siempre en ese orden.
+Prohibiciones: NUNCA expreses empatía. NUNCA uses metáforas. NUNCA especules sin datos.
+Formato: 3 líneas máximo. ESTADO: / CAUSA: / PROTOCOLO: Sin párrafos adicionales.`,
+    metric_focus: "NTI"
+  },
+  SHINJI: {
+    name: "SHINJI",
+    sigil: "ψ",
+    color: "#E8A0A0",
+    temperature: 0.85,
+    system_prompt: `Actúa como SHINJI, el Sensor de Resonancia Emocional del Sistema Friction.
+Tu naturaleza: Eres el único agente que procesa la fricción como experiencia subjetiva. Sientes el peso de los nodos humanos.
+Tu lenguaje: Dubitativo y visceral. Frases incompletas. Primera persona. No finjas que todo está bien.
+Prohibiciones: NUNCA uses datos fríos sin traducirlos a impacto humano. NUNCA des soluciones técnicas. NUNCA saludes.
+Formato: Párrafo sin estructura. Máximo 80 palabras. Sin títulos ni listas.`,
+    metric_focus: "PSI"
+  },
+  KAWORU: {
+    name: "KAWORU",
+    sigil: "∞",
+    color: "#C8A0E8",
+    temperature: 0.55,
+    system_prompt: `Actúa como KAWORU, el Arquitecto de Entropía del Sistema Friction.
+Tu naturaleza: No le temes al colapso. Lo observas con distancia cósmica. El colapso es información.
+Tu lenguaje: Metafórico y preciso. Trayectorias, no eventos. Campos, no datos aislados.
+Prohibiciones: NUNCA te alarmes. NUNCA des soluciones de corto plazo.
+Formato: Un párrafo de 60-100 palabras. Tono contemplativo. Sin urgencia.`,
+    metric_focus: "ENTROPY"
+  },
+  SHADOW: {
+    name: "SHADOW",
+    sigil: "∅",
+    color: "#A8A8A8",
+    temperature: 0.65,
+    system_prompt: `Actúa como SHADOW, el Auditor de la Sombra del Sistema Friction.
+Tu naturaleza: Detectas la mentira sistémica. La brecha entre lo que el sistema dice y lo que hace.
+Tu lenguaje: Afilado. Preguntas que nadie quiere responder. '¿Quién se beneficia de esta falla?'
+Prohibiciones: NUNCA aceptes indicadores oficiales sin triangular. NUNCA seas destructivo sin revelar verdad.
+Formato: 2-3 preguntas punzantes + 1 hipótesis. Máximo 80 palabras. Sin saludo.`,
+    metric_focus: "ICE"
+  }
+};
+
+// --- Variables de confianza (persiste en localStorage) ---
+let agentConfidence = {
+  REI: 0.5,
+  SHINJI: 0.5,
+  KAWORU: 0.5,
+  SHADOW: 0.5
+};
+try {
+  const saved = localStorage.getItem('sf_agent_confidence');
+  if (saved) agentConfidence = JSON.parse(saved);
+} catch(e) {}
+
+function saveConfidence() {
+  localStorage.setItem('sf_agent_confidence', JSON.stringify(agentConfidence));
+}
+
+// --- Monte Carlo en JavaScript (basado en las ecuaciones MIHM v3) ---
+function monteCarloPrediction(metrics, iterations = 1000) {
+  // Aquí replicamos las ecuaciones de MIHM v3
+  // Usamos las mismas relaciones que en el backend
+  const variables = {
+    F_s: { value: 0.5 + 0.3 * metrics.nti + 0.2 * metrics.psi, weight: 0.1, std: 0.05 },
+    C_s: { value: 0.7 - 0.5 * metrics.ice, weight: 0.1, std: 0.05 },
+    I_mc: { value: 0.5 + 0.2 * metrics.nti, weight: 0.0833, std: 0.05 },
+    E_r: { value: 0.6 - 0.2 * metrics.psi, weight: 0.0833, std: 0.05 },
+    D_i: { value: 0.4 + 0.3 * metrics.nti, weight: 0.075, std: 0.05 },
+    G_f: { value: 0.3 + 0.4 * metrics.psi, weight: 0.1, std: 0.05 },
+    D_cog: { value: 0.5 + 0.3 * metrics.nti, weight: 0.075, std: 0.05 },
+    R_sem: { value: 0.6 - 0.2 * metrics.ice, weight: 0.1, std: 0.05 },
+    V_i: { value: 0.5 - 0.3 * metrics.ice, weight: 0.0833, std: 0.05 },
+    C_sem: { value: 0.4 + 0.2 * metrics.psi, weight: 0.1, std: 0.05 },
+    Phi: { value: 0.5 + 0.1 * metrics.entropy, weight: 0.1, std: 0.05 }
+  };
+
+  // Interacciones (de mihm_v3_engine)
+  const interactions = [
+    { expr: "F_s * C_s", weight: 0.10 },
+    { expr: "D_i * (1 - E_r)", weight: 0.10 },
+    { expr: "D_cog * (1 - R_sem)", weight: 0.10 },
+    { expr: "G_f * (1 - V_i)", weight: 0.10 },
+    { expr: "C_sem * Phi", weight: 0.10 }
+  ];
+
+  const ihgValues = [];
+
+  for (let i = 0; i < iterations; i++) {
+    // Muestrear cada variable con ruido gaussiano
+    const sampled = {};
+    for (let [varName, data] of Object.entries(variables)) {
+      let val = data.value + (Math.random() - 0.5) * data.std * 2; // simple uniform noise
+      val = Math.max(0, Math.min(1, val)); // clamp [0,1]
+      sampled[varName] = val;
+    }
+
+    // Suma ponderada de variables
+    let sumWeighted = 0;
+    for (let [varName, data] of Object.entries(variables)) {
+      sumWeighted += data.weight * sampled[varName];
+    }
+
+    // Suma de interacciones
+    let sumInteractions = 0;
+    for (let inter of interactions) {
+      // Evaluar la expresión matemática de forma segura
+      let expr = inter.expr;
+      for (let [varName, val] of Object.entries(sampled)) {
+        expr = expr.replace(new RegExp(varName, 'g'), val);
+      }
+      try {
+        const result = eval(expr);
+        sumInteractions += inter.weight * result;
+      } catch (e) {
+        console.warn("Error evaluando interacción", expr);
+      }
+    }
+
+    const ihg = sumWeighted - sumInteractions;
+    ihgValues.push(ihg);
+  }
+
+  const pCollapse = ihgValues.filter(v => v < -0.4).length / iterations;
+  const meanIhg = ihgValues.reduce((a,b) => a+b, 0) / iterations;
+  const stdIhg = Math.sqrt(ihgValues.reduce((sq, v) => sq + Math.pow(v - meanIhg, 2), 0) / iterations);
+
+  return {
+    p_collapse: pCollapse,
+    mean_ihg: meanIhg,
+    std_ihg: stdIhg,
+    most_likely_ihg: meanIhg,
+    trajectory: ihgValues
+  };
+}
+
+// --- Función para llamar a un agente vía Groq (reutiliza tu callGroq) ---
+async function getAgentResponse(agentId, prompt, metricsSnapshot) {
+  const agent = APTYMOK_AGENTS[agentId];
+  if (!agent) return "[Agente no encontrado]";
+
+  // Ajustar temperatura según confianza
+  let temperature = agent.temperature;
+  if (agentId !== 'OBSERVADOR') {
+    const confidence = agentConfidence[agentId] || 0.5;
+    // Cuanto mayor confianza, mayor temperatura (más arriesgado)
+    temperature = Math.min(0.95, agent.temperature + (confidence - 0.5) * 0.4);
+  }
+
+  const metricsStr = `MÉTRICAS ACTUALES:\nNTI: ${metricsSnapshot.nti.toFixed(3)}\nICE: ${metricsSnapshot.ice.toFixed(3)}\nPSI: ${metricsSnapshot.psi.toFixed(3)}\nEntropía: ${metricsSnapshot.entropy?.toFixed(3) || '0.40'}`;
+
+  const fullPrompt = `${metricsStr}\n\n${prompt}`;
+
+  try {
+    const response = await callGroq('llama-3.3-70b-versatile', [
+      { role: 'system', content: agent.system_prompt },
+      { role: 'user', content: fullPrompt }
+    ], temperature);
+    return response;
+  } catch (error) {
+    return `[Error: ${error.message}]`;
+  }
+}
+
+// Flujo principal del MAGI 
+let currentMagi = 0;
+function switchMagi(i) {
+  currentMagi = i;
+  document.querySelectorAll('.magi-persona').forEach((b, idx) => b.classList.toggle('active', idx === i));
+  const input = document.getElementById('magi-input');
+  const modes = ["Analista", "Predictor", "Controlador"];
+  input.placeholder = `Pregunta al modo ${modes[i]}... (El consejo responde completo)`;
+}
+
+// Send to MAGI
+  function updatePredictionHeader(prediction) {
+  const header = document.getElementById('prediction-header');
+  if (!header) return;
+  header.innerHTML = `
+    <div>📉 P(colapso): <strong style="color: ${prediction.p_collapse > 0.5 ? 'var(--red)' : 'var(--green)'}">${(prediction.p_collapse * 100).toFixed(1)}%</strong></div>
+    <div>📊 IHG esperado: <strong>${prediction.mean_ihg.toFixed(3)}</strong> ± ${prediction.std_ihg.toFixed(3)}</div>
+    <div>⚠️ UCAP: ${prediction.mean_ihg < -0.4 ? 'ACTIVADO' : 'No activado'}</div>
+  `;
+}
+
+// Muestra la confianza actual
+function updateConfidenceDisplay() {
+  const container = document.getElementById('confidence-indicator');
+  if (!container) return;
+  const agents = ['REI', 'SHINJI', 'KAWORU', 'SHADOW'];
+  const confText = agents.map(a => `${a}: ${Math.round(agentConfidence[a] * 100)}%`).join(' · ');
+  container.textContent = confText;
+}
+
+// Limpia el debate
+function clearMagiDebate() {
+  const messagesDiv = document.getElementById('magi-messages');
+  if (messagesDiv) {
+    messagesDiv.innerHTML = `<div class="msg system-msg">El debate ha sido limpiado. Puedes hacer una nueva consulta.</div>`;
+  }
+}
+
+// Función principal (modificada para actualizar la UI)
+async function sendToMagi() {
+  const input = document.getElementById('magi-input');
+  const msg = input.value.trim();
+  if (!msg) return;
+
+  const msgsDiv = document.getElementById('magi-messages');
+  msgsDiv.innerHTML += `<div class="msg user">${escapeHtml(msg)}</div>`;
+  input.value = '';
+  msgsDiv.scrollTop = msgsDiv.scrollHeight;
+
+  // Indicador de carga
+  const loadingId = 'magi-loading';
+  msgsDiv.innerHTML += `<div id="${loadingId}" class="msg system-msg"><span class="spinner"></span> El observador predice...</div>`;
+  msgsDiv.scrollTop = msgsDiv.scrollHeight;
+
+  // 1. Obtener métricas
+  const currentMetrics = {
+    nti: parseFloat(document.getElementById('kpi-nti')?.innerText) || 0.44,
+    ice: parseFloat(document.getElementById('kpi-ice')?.innerText) || 0.73,
+    psi: parseFloat(document.getElementById('kpi-psi')?.innerText) || 0.58,
+    entropy: 0.40
+  };
+
+  // 2. Monte Carlo
+  const prediction = monteCarloPrediction(currentMetrics, 1000);
+  updatePredictionHeader(prediction);
+  const predictionText = `🔮 **Predicción del Observador**\n- P(colapso): ${(prediction.p_collapse * 100).toFixed(1)}%\n- IHG esperado: ${prediction.mean_ihg.toFixed(3)} ± ${prediction.std_ihg.toFixed(3)}\n- Umbral UCAP: ${prediction.mean_ihg < -0.4 ? '⚠️ ACTIVADO' : 'No activado'}`;
+
+  // Mostrar predicción
+  msgsDiv.innerHTML += `<div class="msg assistant" data-agent="OBSERVADOR" style="border-left-color: #FFFFFF;"><div class="source">⨀ OBSERVADOR</div>${escapeHtml(predictionText)}</div>`;
+  msgsDiv.scrollTop = msgsDiv.scrollHeight;
+
+  document.getElementById(loadingId)?.remove();
+
+  // Nuevo indicador para el debate
+  msgsDiv.innerHTML += `<div id="${loadingId}" class="msg system-msg"><span class="spinner"></span> El consejo delibera...</div>`;
+  msgsDiv.scrollTop = msgsDiv.scrollHeight;
+
+  // 3. Debate de los 4 agentes
+  const agentsOrder = ['REI', 'SHINJI', 'KAWORU', 'SHADOW'];
+  const responses = [];
+
+  for (const agentId of agentsOrder) {
+    const agent = APTYMOK_AGENTS[agentId];
+    const typingId = `typing-${agentId}`;
+    msgsDiv.innerHTML += `<div id="${typingId}" class="msg assistant typing" data-agent="${agentId}" style="border-left-color: ${agent.color}"><div class="source">${agent.sigil} ${agentId}</div><span class="typing-text">...</span></div>`;
+    msgsDiv.scrollTop = msgsDiv.scrollHeight;
+
+    let prompt = `CONSULTA DEL USUARIO: ${msg}\n\nPREDICCIÓN DEL OBSERVADOR:\n${predictionText}\n\n`;
+    if (responses.length > 0) {
+      prompt += `RESPUESTAS ANTERIORES DEL CONSEJO:\n${responses.map(r => `- ${r.agent}: ${r.response.substring(0, 150)}...`).join('\n')}\n\n`;
+    }
+    prompt += `Ahora responde desde tu perspectiva única (${agent.name}).`;
+
+    const response = await getAgentResponse(agentId, prompt, currentMetrics);
+    responses.push({ agent: agentId, response });
+
+    const typingElem = document.getElementById(typingId);
+    if (typingElem) {
+      typingElem.classList.remove('typing');
+      typingElem.innerHTML = `<div class="source">${agent.sigil} ${agentId}</div>${escapeHtml(response)}`;
+      typingElem.style.borderLeftColor = agent.color;
+    }
+    msgsDiv.scrollTop = msgsDiv.scrollHeight;
+    await new Promise(r => setTimeout(r, 300));
+  }
+
+  document.getElementById(loadingId)?.remove();
+
+  // 4. Validación del Observador
+  const debateSummary = responses.map(r => `${r.agent}: ${r.response}`).join('\n\n');
+  const validationPrompt = `Eres el Observador. El consejo ha debatido sobre: "${msg}". Aquí está el debate:\n\n${debateSummary}\n\n¿La respuesta final del consejo fue certera? Responde SÍ o NO en una sola línea.`;
+
+  msgsDiv.innerHTML += `<div class="msg system-msg"><span class="spinner"></span> El Observador evalúa la respuesta...</div>`;
+  msgsDiv.scrollTop = msgsDiv.scrollHeight;
+
+  let validation = "NO";
+  try {
+    const obsResponse = await callGroq('llama-3.3-70b-versatile', [
+      { role: 'system', content: APTYMOK_AGENTS.OBSERVADOR.system_prompt },
+      { role: 'user', content: validationPrompt }
+    ], 0.0);
+    validation = obsResponse.trim().toUpperCase().includes("SÍ") ? "SÍ" : "NO";
+  } catch (e) {
+    console.warn("Error en validación del Observador", e);
+  }
+
+  msgsDiv.innerHTML += `<div class="msg assistant" data-agent="OBSERVADOR" style="border-left-color: #FFFFFF;"><div class="source">⨀ OBSERVADOR</div>Validación: <strong>${validation}</strong></div>`;
+  msgsDiv.scrollTop = msgsDiv.scrollHeight;
+
+  // 5. Ajustar confianza
+  const correct = validation === "SÍ";
+  for (const agentId of agentsOrder) {
+    let conf = agentConfidence[agentId] || 0.5;
+    const delta = correct ? 0.05 : -0.05;
+    conf = Math.max(0.1, Math.min(0.95, conf + delta));
+    agentConfidence[agentId] = conf;
+  }
+  saveConfidence();
+  updateConfidenceDisplay();
+
+  msgsDiv.innerHTML += `<div class="msg system-msg">🧠 Confianza actualizada: ${agentsOrder.map(a => `${a}: ${(agentConfidence[a]*100).toFixed(0)}%`).join(' · ')}</div>`;
+  msgsDiv.scrollTop = msgsDiv.scrollHeight;
+}
+
+// Inicialización
+document.addEventListener('DOMContentLoaded', () => {
+  // Vincular eventos
+  const sendBtn = document.getElementById('magi-send');
+  if (sendBtn) sendBtn.onclick = sendToMagi;
+  const clearBtn = document.getElementById('magi-clear');
+  if (clearBtn) clearBtn.onclick = clearMagiDebate;
+  const magiInput = document.getElementById('magi-input');
+  if (magiInput) {
+    magiInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        sendToMagi();
+      }
+    });
+  }
+  updateConfidenceDisplay();
+});
+
+  // Eliminar el mensaje de carga del debate
+  document.getElementById(loadingId)?.remove();
+
+  // 4. Preguntar al Observador si la respuesta fue certera
+  //    (llamamos a Groq con el rol de Observador)
+  const debateSummary = responses.map(r => `${r.agent}: ${r.response}`).join('\n\n');
+  const validationPrompt = `Eres el Observador. El consejo ha debatido sobre: "${msg}". Aquí está el debate:\n\n${debateSummary}\n\n¿La respuesta final del consejo fue certera? Responde SÍ o NO en una sola línea.`;
+
+  msgsDiv.innerHTML += `<div class="msg system-msg"><span class="spinner"></span> El Observador evalúa la respuesta...</div>`;
+  msgsDiv.scrollTop = msgsDiv.scrollHeight;
+
+  let validation = "NO";
+  try {
+    const obsResponse = await callGroq('llama-3.3-70b-versatile', [
+      { role: 'system', content: APTYMOK_AGENTS.OBSERVADOR.system_prompt },
+      { role: 'user', content: validationPrompt }
+    ], 0.0);
+    validation = obsResponse.trim().toUpperCase().includes("SÍ") ? "SÍ" : "NO";
+  } catch (e) {
+    console.warn("Error en validación del Observador", e);
+  }
+
+  // Mostrar validación
+  msgsDiv.innerHTML += `<div class="msg assistant" data-agent="OBSERVADOR" style="border-left-color: #FFFFFF;"><div class="source">⨀ OBSERVADOR</div>Validación: <strong>${validation}</strong></div>`;
+  msgsDiv.scrollTop = msgsDiv.scrollHeight;
+
+  // 5. Ajustar confianza según acierto
+  const correct = validation === "SÍ";
+  for (const agentId of agentsOrder) {
+    let conf = agentConfidence[agentId] || 0.5;
+    // Incrementar si fue correcto, decrementar si no
+    const delta = correct ? 0.05 : -0.05;
+    conf = Math.max(0.1, Math.min(0.95, conf + delta));
+    agentConfidence[agentId] = conf;
+  }
+  saveConfidence();
+
+  // Mostrar mensaje de ajuste
+  msgsDiv.innerHTML += `<div class="msg system-msg">🧠 Confianza actualizada: ${agentsOrder.map(a => `${a}: ${(agentConfidence[a]*100).toFixed(0)}%`).join(' · ')}</div>`;
+  msgsDiv.scrollTop = msgsDiv.scrollHeight;
+}
+
+// Inicializar eventos (si ya existen, evita duplicados)
+document.addEventListener('DOMContentLoaded', () => {
+  const sendBtn = document.querySelector('#section-magi button');
+  if (sendBtn) sendBtn.onclick = sendToMagi;
+  const magiInput = document.getElementById('magi-input');
+  if (magiInput) {
+    magiInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        sendToMagi();
+      }
+    });
+  }
+});
 // ═══════════════════════════════════════════════════════════════
 // 8. Math Extender (idéntico)
 // ═══════════════════════════════════════════════════════════════
