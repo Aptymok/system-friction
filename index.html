@@ -3,11 +3,18 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>System Friction · Observatorio Unificado v3.0 (Groq integrado)</title>
+
+<title>System Friction · Observatorio Unificado v3.1 REAL MODE</title>
+
+<!-- Tipografías -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=JetBrains+Mono:wght@300;400;600&display=swap" rel="stylesheet">
+
+<!-- Librerías -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+
+<!-- Estilos (igual que ya tenías, conservado 100%) -->
 <style>
 /* ── RESET + BASE (idéntico al original) ─────────────────────────── */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -481,86 +488,295 @@ a:hover{color:var(--text-bright)}
     font-size: 0.5rem;
   }
 }
+
+/* Skin normal (negro/oro) */
+.eidolon-normal-skin {
+  background: #080807;
+  color: var(--paper);
+}
+
+/* Skin retrocausal (blanco + acetato) */
+.eidolon-retro-skin {
+  background: var(--paper);
+  color: var(--ink);
+  border: 2px solid var(--gold);
+  transition: background 0.8s ease-out, color 0.8s ease-out;
+}
+
+/* Skin normal (negro/oro) */
+.eidolon-normal-skin {
+  background: #080807;
+  color: var(--paper);
+}
+
+/* Skin retrocausal (blanco + acetato) */
+.eidolon-retro-skin {
+  background: var(--paper);
+  color: var(--ink);
+  border: 2px solid var(--gold);
+  transition: background 0.8s ease-out, color 0.8s ease-out;
+}
 </style>
+
+<!-- NUEVO: Conector MIHM REAL MODE -->
+<script defer>
+// =============================
+//   MIHM v3.1 REAL MODE BRIDGE
+// =============================
+
+// Backend MIHM local: Python server
+const MIHM_API = "http://127.0.0.1:5000";
+
+// -----------------------------
+// Cargar estado MIHM Real
+// -----------------------------
+async function loadMIHMReal() {
+  try {
+    const state = await fetch(`${MIHM_API}/api/mihm/state`).then(r => r.json());
+
+    // Actualizar KPIs principales
+    document.getElementById("kpi-ihg").innerText = state.ihg_static.toFixed(3);
+    document.getElementById("kpi-nti").innerText = state.nti_static.toFixed(3);
+
+    // Guardar dinámicos (30 días)
+    window.IHG_30D = state.ihg_30d;
+    window.NTI_30D = state.nti_30d;
+
+    // Actualizar barra superior
+    document.querySelector(".notif-bar").innerHTML =
+      `<span class="notif-dot"></span>
+       PROTOCOLO ACTIVO · Nodo AGS · IHG ${state.ihg_static.toFixed(3)}
+       · NTI ${state.nti_static.toFixed(3)} · MIHM REAL MODE`;
+  }
+  catch(err) {
+    console.error("Error cargando MIHM real:", err);
+  }
+}
+
+// Ejecutar al cargar
+document.addEventListener("DOMContentLoaded", loadMIHMReal);
+
+// -----------------------------
+// PROXY seguro a Groq
+// -----------------------------
+async function callGroq(model, messages) {
+  const response = await fetch(`${MIHM_API}/api/groq`, {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({
+      model: model,
+      messages: messages,
+      temperature: 0.7,
+      max_tokens: 500
+    })
+  });
+
+  const data = await response.json();
+  return data.choices[0].message.content;
+}
+</script>
+
+
+<script type="module" defer>
+  import { EidolonBridge } from './eidolon_engine/eidolon_bridge.js';
+
+  // instancia
+  const eidolon = new EidolonBridge();
+
+  // Carga de JSON
+  import cognitive from './nodes/AptymokCognitiveProcess.json' assert { type: "json" };
+  import mihm from './nodes/mihm_v3.json' assert { type: "json" };
+  import patterns from './nodes/patterns_v3.json' assert { type: "json" };
+  import nodes from './nodes/SF_nodes.json' assert { type: "json" };
+  import profiles from './nodes/aptymok_profiles.json' assert { type: "json" };
+
+  await eidolon.loadAll({
+    semantic: cognitive,
+    mihm,
+    patterns,
+    nodes,
+    profiles
+  });
+
+  const input = document.getElementById("eidolon-input");
+  const sendBtn = document.getElementById("eidolon-send");
+  const retroBtn = document.getElementById("eidolon-retro-btn");
+  const modeSel = document.getElementById("eidolon-mode");
+  const agentSel = document.getElementById("eidolon-single-agent");
+
+  modeSel.addEventListener("change", () => {
+    agentSel.style.display = modeSel.value === "single" ? "block" : "none";
+  });
+
+  sendBtn.onclick = async () => {
+    const txt = input.value.trim();
+    if (!txt) return;
+
+    const out = await eidolon.run(txt, {
+      mode: modeSel.value,
+      singleAgent: agentSel.value,
+      enableRetro: false
+    });
+
+    window.__lastRetroMap = out.retro;
+    eidolon.ui.renderPipeline(out);
+  };
+
+  retroBtn.onclick = async () => {
+    const txt = input.value.trim();
+    if (!txt) return;
+
+    const out = await eidolon.run(txt, {
+      mode: modeSel.value,
+      singleAgent: agentSel.value,
+      enableRetro: true
+    });
+
+    window.__lastRetroMap = out.retro;
+    eidolon.ui.renderPipeline(out);
+  };
+</script>
+
+<script defer>
+  const exportBtn = document.getElementById("eidolon-export-retro");
+  if (exportBtn) {
+    exportBtn.onclick = () => {
+      const retro = window.__lastRetroMap;
+      if (!retro) {
+        alert("No hay RetroSim ejecutado todavía.");
+        return;
+      }
+
+      const blob = new Blob([JSON.stringify(retro, null, 2)], {
+        type: "application/json"
+      });
+      const url = URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "retro_cartografia.json";
+      a.click();
+      URL.revokeObjectURL(url);
+    };
+  }
+</script>
+
+<script defer>
+function showSection(sectionId, btn) {
+  // 1. Ocultar todas las secciones
+  document.querySelectorAll(".sf-section").forEach(sec => {
+    sec.classList.remove("active");
+  });
+
+  // 2. Mostrar solo la sección seleccionada
+  const target = document.getElementById(`section-${sectionId}`);
+  if (target) {
+    target.classList.add("active");
+  } else {
+    console.warn("⚠ No existe la sección:", sectionId);
+  }
+
+  // 3. Actualizar el estado visual de los tabs
+  document.querySelectorAll(".sf-tab").forEach(tab => {
+    tab.classList.remove("active");
+  });
+  if (btn) {
+    btn.classList.add("active");
+  }
+
+  // 4. Desactivar skin retro si no estamos en EIDOLÓN
+  if (sectionId !== "eidolon") {
+    const cont = document.getElementById("eidolon-container");
+    if (cont) {
+      cont.classList.remove("eidolon-retro-skin");
+      cont.classList.add("eidolon-normal-skin");
+    }
+  }
+}
+</script>
 </head>
+
 <body>
 
 <!-- ═══════════════════════════════════════════════════════════
-     REACT MIHM (MODELO MATEMÁTICO) – se mantiene igual
+     REACT MIHM (MODELO MATEMÁTICO)
 ═══════════════════════════════════════════════════════════════ -->
 <section id="section-react" class="sf-section">
 <div id="root"></div>
 <script type="module" src="./app/dist/assets/index-CSHNxBS1.js"></script>
 </section>
 
+
 <!-- ═══════════════════════════════════════════════════════════
-     NOTIFICATION BAR (ORIGINAL)
+     NOTIFICATION BAR — AHORA CONECTADA A MIHM REAL MODE
 ═══════════════════════════════════════════════════════════════ -->
 <div class="notif-bar">
   <span class="notif-dot"></span>
-  PROTOCOLO ACTIVO · Nodo AGS · IHG −0.620 · NTI 0.351 · UCAP · EMERGENCY_DECISION · 22–23 feb 2026 · P(colapso 2030) 71%
+  Cargando MIHM Real…
 </div>
 
+
 <!-- ═══════════════════════════════════════════════════════════
-     HEADER + TABS (ORIGINAL)
+     HEADER + TABS
 ═══════════════════════════════════════════════════════════════ -->
 <header class="sf-header">
   <div class="sf-logo">
     <span class="sf-logo-dot"></span>
-    SF · MIHM v3.0 (Groq)
+    SF · MIHM v3.1 REAL MODE
   </div>
-  <div class="sf-tabs" style="flex: 1; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch;">
+
+  <div class="sf-tabs" style="flex:1; overflow-x:auto; white-space:nowrap;">
     <button class="sf-tab active" onclick="showSection('dashboard',this)">Dashboard</button>
     <button class="sf-tab" onclick="showSection('campo',this)">Campo Cognitivo</button>
     <button class="sf-tab" onclick="showSection('observatorio',this)">Observatorio</button>
-    <button class="sf-tab" onclick="showSection('council',this)">APTYMOK Council</button>
-    <button class="sf-tab" onclick="showSection('magi',this)">SF-MAGI</button>
+    <button class="sf-tab" onclick="showSection('eidolon',this)">SALA EIDOLÓN</button>
     <button class="sf-tab" onclick="showSection('math',this)">Math Extender</button>
     <button class="sf-tab" onclick="showSection('repositorio',this)">Repositorio</button>
-    <button class="sf-tab" onclick="showSection('react',this)">Laboratorio MIHM v3.0</button>
+    <button class="sf-tab" onclick="showSection('react',this)">Laboratorio MIHM</button>
   </div>
-  <div class="sf-status" style="display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0;">
-    <span>IHG <span class="val">−0.620</span></span>
-    <span>NTI <span class="nti">0.351</span></span>
-    <span class="dim" id="live-time" style="font-size: 0.55rem;">—</span>
+
+  <div class="sf-status">
+    <span>IHG <span class="val" id="status-ihg">—</span></span>
+    <span>NTI <span class="nti" id="status-nti">—</span></span>
+    <span class="dim" id="live-time" style="font-size:.55rem;">—</span>
   </div>
 </header>
 
+
+
 <!-- ═══════════════════════════════════════════════════════════
-     SECTION 1 · DASHBOARD (se mantiene exactamente igual)
+     SECTION 1 · DASHBOARD (100% corregido + MIHM REAL)
 ═══════════════════════════════════════════════════════════════ -->
 <section id="section-dashboard" class="sf-section active">
 <div class="dash-layout">
-  <!-- Row 1: KPIs originales + IAD y ETE -->
-  <div class="metric-tile" style="display: none;" id="ice-metric-tile">
-  <div class="label">ICE · Coherencia Institucional</div>
-  <div class="value" id="kpi-ice">0.21</div>
-  <div class="sub">Umbral estructural 0.50 · FRAGMENTADO</div>
-</div>
-<div class="metric-tile" style="display: none;" id="psi-metric-tile">
-  <div class="label">PSI · Presión Sistémica</div>
-  <div class="value" id="kpi-psi">0.89</div>
-  <div class="sub">Umbral crítico 0.70 · ALTA TENSIÓN</div>
-</div>
+
+  <!-- ═══ KPIs ─────────────────────────────────────────────── -->
   <div class="dash-row dash-row-4">
+
+    <!-- IHG -->
     <div class="metric-tile">
       <div class="label">IHG · Índice Homeostático</div>
-      <div class="value critical" id="kpi-ihg">−0.620</div>
-      <div class="sub">UCAP threshold −0.400 · EMERGENCY</div>
-      <div class="bar critical" style="width:62%"></div>
-      
+      <div class="value critical" id="kpi-ihg">—</div>
+      <div class="sub">Cargado desde MIHM Real</div>
+      <div class="bar critical" id="bar-ihg" style="width:50%"></div>
     </div>
+
+    <!-- NTI -->
     <div class="metric-tile">
       <div class="label">NTI · Trazabilidad</div>
-      <div class="value warning" id="kpi-nti">0.351</div>
-      <div class="sub">Umbral estructural 0.500 · BLIND MODE</div>
-      <div class="bar" style="width:35.1%;background:var(--amber)"></div>
+      <div class="value warning" id="kpi-nti">—</div>
+      <div class="sub">Cargado desde MIHM Real</div>
+      <div class="bar" id="bar-nti" style="width:0;background:var(--amber)"></div>
     </div>
+
+    <!-- IAD -->
     <div class="metric-tile">
       <div class="label">IAD_ritmo</div>
       <div class="value ok" id="kpi-iad">0.84</div>
       <div class="sub">Adaptabilidad Disipativa</div>
     </div>
+
+    <!-- ETE -->
     <div class="metric-tile">
       <div class="label">ETE_campo</div>
       <div class="value ok" id="kpi-ete">3.2</div>
@@ -568,69 +784,100 @@ a:hover{color:var(--text-bright)}
     </div>
   </div>
 
-  <!-- Row 2: ECG + Monte Carlo + NUEVOS CANVASES -->
+
+  <!-- ═══ ECG + Predictor ───────────────────────────────────── -->
   <div class="dash-row dash-row-2">
+
+    <!-- ECG -->
     <div class="card ecg-wrap">
       <div class="card-header">SystemFriction · ECG en tiempo real</div>
       <canvas id="ecg-canvas" height="120"></canvas>
-      <div class="ecg-overlay" id="ecg-current">IHG −0.620</div>
+      <div class="ecg-overlay" id="ecg-current">—</div>
     </div>
 
-    <!-- Predictor Vivo 2030 + Flujo Memoria -->
-    <div class="card" style="height: 380px; display: flex; flex-direction: column;">
-        <div class="card-header">Predictor Vivo 2030 + Flujo Memoria</div>
-        <div class="card-body" style="flex: 1; display: flex; flex-direction: column; gap: 0.5rem; padding: 0.75rem;">
-          <canvas id="predictor-vivo" height="180" style="width:100%; height:180px;"></canvas>
-          <canvas id="memory-flow" height="80" style="width:100%; height:80px;"></canvas>
-          <div style="font-size:.6rem; color:#5a5852; text-align:center;">
-            Ruta viable (verde) vs colapso (rojo) · P=26% con control sincronizado
-          </div>
+    <!-- Predictor + Flujo Memoria -->
+    <div class="card" style="height:380px; display:flex; flex-direction:column;">
+      <div class="card-header">Predictor Vivo 2030 + Flujo Memoria</div>
+      <div class="card-body" style="flex:1; display:flex; flex-direction:column; gap:.5rem;">
+        <canvas id="predictor-vivo" height="180"></canvas>
+        <canvas id="memory-flow" height="80"></canvas>
+        <div style="font-size:.6rem; color:#5a5852; text-align:center;">
+          Datos generados desde MIHM Real · 30 días dinámicos
         </div>
       </div>
+    </div>
   </div>
 
-  <!-- Row 3: Timeline AGS + Variables -->
+
+  <!-- ═══ Timeline AGS ───────────────────────────────────────── -->
   <div class="card">
     <div class="card-header">Nodo AGS · Línea de Tiempo 2024–2026</div>
     <div class="stage-nav" id="stage-nav"></div>
-    <div style="padding:1rem"><canvas id="timeline-chart" height="140"></canvas></div>
+    <div style="padding:1rem">
+      <canvas id="timeline-chart" height="140"></canvas>
+    </div>
     <div class="card-body" id="stage-detail"></div>
   </div>
 
-  <!-- Row 4: Variables MIHM + Pattern activations + NTI chart -->
+
+  <!-- ═══ Variables MIHM, Patterns, NTI Chart ───────────────── -->
   <div class="dash-row dash-row-3">
+
+    <!-- Radar -->
     <div class="card">
       <div class="card-header">Variables MIHM v3 · Estado actual</div>
-      <div class="card-body" style="padding:0"><canvas id="radar-chart" height="200"></canvas></div>
+      <div class="card-body" style="padding:0">
+        <canvas id="radar-chart" height="200"></canvas>
+      </div>
     </div>
+
+    <!-- Patterns -->
     <div class="card">
       <div class="card-header">Patrones · Activación</div>
-      <div class="card-body" id="pattern-activations" style="max-height:280px; overflow-y:auto"></div>
+      <div class="card-body" id="pattern-activations" style="max-height:280px; overflow-y:auto;"></div>
     </div>
+
+    <!-- NTI Chart -->
     <div class="card">
-      <div class="card" style="height: 320px; display: flex; flex-direction: column;">
+      <div class="card" style="height:320px; display:flex; flex-direction:column;">
         <div class="card-header">NTI · Componentes</div>
-        <div class="card-body" style="flex: 1; overflow-y: auto; padding: 0;">
-          <canvas id="nti-chart" height="180" style="width:100%; height:180px;"></canvas>
-          <div id="nti-components" style="padding:.75rem; font-family:var(--mono); font-size:.58rem; color:var(--text-dim); border-top:1px solid var(--border);">
-            LDI:0.55 · ICC:0.80 · CSR:0.30 · IRCI:0.90 · IIM:0.60
+        <div class="card-body" style="flex:1; overflow-y:auto; padding:0;">
+          <canvas id="nti-chart" height="180"></canvas>
+
+          <!-- Valores base (estáticos) -->
+          <div id="nti-components" style="
+            padding:.75rem;
+            font-family:var(--mono);
+            font-size:.58rem;
+            color:var(--text-dim);
+            border-top:1px solid var(--border);
+          ">
+            LDI: 0.55 · ICC: 0.80 · CSR: 0.30 · IRCI: 0.90 · IIM: 0.60
           </div>
+
         </div>
       </div>
     </div>
+
   </div>
+
 </div>
 </section>
 
 <!-- ═══════════════════════════════════════════════════════════
-     SECTION 2 · CAMPO COGNITIVO (idéntico al original)
+     SECTION 2 · CAMPO COGNITIVO (VERSIÓN SEGURA)
 ═══════════════════════════════════════════════════════════════ -->
 <section id="section-campo" class="sf-section">
 <div class="campo-layout">
+
+  <!-- VIZ PRINCIPAL -->
   <div class="campo-viz" id="campo-viz-container">
+    
+    <!-- Herramientas -->
     <div class="campo-toolbar">
       <button class="btn btn-accent" id="reset-zoom">Reset</button>
       <button class="btn btn-accent" id="toggle-labels">Labels</button>
+
       <select class="model-sel" id="campo-filter">
         <option value="all">Todos los clusters</option>
         <option value="SF_CLUSTER_01">Núcleo (01)</option>
@@ -643,943 +890,256 @@ a:hover{color:var(--text-bright)}
         <option value="SF_CLUSTER_08">Gobernanza (08)</option>
       </select>
     </div>
+
+    <!-- Canvas SVG -->
     <svg id="campo-svg" width="100%" height="100%"></svg>
-    <div class="campo-info" id="campo-info">121 nodos · 308 aristas · MIHM v3.0</div>
+
+    <!-- Info -->
+    <div class="campo-info" id="campo-info">
+      121 nodos · 308 aristas · MIHM v3.0
+    </div>
+
+    <!-- Tooltip -->
     <div class="node-tooltip" id="node-tooltip"></div>
   </div>
+
+
+  <!-- SIDEBAR -->
   <div class="campo-sidebar">
+
+    <!-- Botones de patrones -->
     <div class="pattern-filters" id="pattern-filters"></div>
-    <div style="padding:1rem;border-bottom:1px solid var(--border)">
+
+    <!-- Leyenda de clusters -->
+    <div style="padding:1rem; border-bottom:1px solid var(--border)">
       <div class="detail-label">Leyenda · Clusters</div>
       <div id="cluster-legend"></div>
     </div>
-    <div style="padding:1rem;border-bottom:1px solid var(--border)">
+
+    <!-- Leyenda de patrones -->
+    <div style="padding:1rem; border-bottom:1px solid var(--border)">
       <div class="detail-label">Leyenda · Patrones (aristas)</div>
       <div id="pattern-legend"></div>
     </div>
-    <div id="selected-node-panel" style="padding:1rem;flex:1">
+
+    <!-- Panel de nodo seleccionado -->
+    <div id="selected-node-panel" style="padding:1rem; flex:1;">
       <div class="detail-label">Nodo seleccionado</div>
       <div class="dim mono" style="font-size:.6rem">Haz clic en un nodo</div>
     </div>
+
   </div>
+
 </div>
 </section>
 
 <!-- ═══════════════════════════════════════════════════════════
-     SECTION 3 · OBSERVATORIO (idéntico al original)
+     SECTION 3 · OBSERVATORIO (VERSIÓN SEGURA Y LIMPIA)
 ═══════════════════════════════════════════════════════════════ -->
 <section id="section-observatorio" class="sf-section">
 <div class="obs-layout">
+
+  <!-- Panel izquierdo: Lista de nodos -->
   <div class="obs-panel">
-    <div style="padding:.75rem 1rem;border-bottom:1px solid var(--border);font-family:var(--mono);display:flex;justify-content:space-between">
-      Nodos del sistema <span id="obs-node-count" class="dim">121</span>
+    <div style="
+        padding:.75rem 1rem;
+        border-bottom:1px solid var(--border);
+        font-family:var(--mono);
+        display:flex;
+        justify-content:space-between;
+      ">
+      Nodos del sistema 
+      <span id="obs-node-count" class="dim">121</span>
     </div>
-    <div style="padding:.5rem"><input type="text" id="node-search" placeholder="Buscar nodo..." style="width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:.4rem"></div>
-    <div id="obs-node-list" style="overflow-y:auto;max-height:calc(100vh - 170px)"></div>
+
+    <div style="padding:.5rem">
+      <input type="text" 
+             id="node-search" 
+             placeholder="Buscar nodo..."
+             style="
+               width:100%;
+               background:var(--surface2);
+               border:1px solid var(--border);
+               color:var(--text);
+               padding:.4rem;
+             ">
+    </div>
+
+    <div id="obs-node-list"
+         style="overflow-y:auto; max-height:calc(100vh - 170px)">
+    </div>
   </div>
+
+
+  <!-- Panel central: Detalle del nodo -->
   <div class="obs-center" id="obs-detail">
-    <div style="padding:3rem;text-align:center;color:var(--text-dim)">Selecciona un nodo</div>
+    <div style="
+        padding:3rem;
+        text-align:center;
+        color:var(--text-dim);
+      ">
+      Selecciona un nodo
+    </div>
   </div>
+
+
+  <!-- Panel derecho: Patrones + Fórmulas -->
   <div class="obs-panel">
-    <div style="padding:.75rem 1rem;border-bottom:1px solid var(--border);font-family:var(--mono)">Catálogo de Patrones</div>
-    <div id="obs-patterns-panel" style="overflow-y:auto;max-height:calc(50vh - 60px)"></div>
-    <div style="padding:.75rem 1rem;border-top:1px solid var(--border);border-bottom:1px solid var(--border);font-family:var(--mono)">Fórmulas MIHM v3</div>
-    <div id="obs-formulas-panel" style="padding:1rem;font-family:var(--mono);font-size:.7rem;line-height:1.8"></div>
+
+    <!-- Catálogo de patrones -->
+    <div style="
+        padding:.75rem 1rem;
+        border-bottom:1px solid var(--border);
+        font-family:var(--mono)
+      ">
+      Catálogo de Patrones
+    </div>
+
+    <div id="obs-patterns-panel"
+         style="overflow-y:auto; max-height:calc(50vh - 60px)">
+    </div>
+
+
+    <!-- Fórmulas MIHM -->
+    <div style="
+        padding:.75rem 1rem;
+        border-top:1px solid var(--border);
+        border-bottom:1px solid var(--border);
+        font-family:var(--mono)
+      ">
+      Fórmulas MIHM v3
+    </div>
+
+    <div id="obs-formulas-panel"
+         style="
+           padding:1rem;
+           font-family:var(--mono);
+           font-size:.7rem;
+           line-height:1.8;
+         ">
+    </div>
+
   </div>
+
 </div>
 </section>
+<!-- ============================================================================
+     SALA EIDOLÓN · MIHM Conversational Engine v4.0
+     Motor cognitivo unificado (SystemFriction Persona)
+============================================================================ -->
 
-<!-- ═══════════════════════════════════════════════════════════
-     SECTION 4 · APTYMOK COUNCIL (AMBOS PANELES AHORA USAN GROQ)
-═══════════════════════════════════════════════════════════════ -->
-<section id="section-council" class="sf-section">
-<div style="display:flex;height:calc(100vh - 52px - 28px)">
-  <div class="council-layout" style="flex:1">
-    <div class="council-pane">
-      <div class="council-header"><span class="council-indicator" id="groq1-indicator"></span>Groq · Analista MIHM
-        <select class="model-sel" id="groq-model-1" style="margin-left:auto">
-          <option value="llama-3.3-70b-versatile">Llama 3.3 70B</option>
-          <option value="llama-3.1-8b-instant">Llama 3.1 8B</option>
-          <option value="gemma2-9b-it">Gemma 2 9B</option>
-        </select>
+<section id="section-eidolon" class="sf-section">
+
+  <!-- CONTENEDOR PRINCIPAL (SKINS) -->
+  <div id="eidolon-container" class="eidolon-normal-skin"
+       style="min-height: calc(100vh - 52px); padding: 1rem; display: flex; gap: 1rem;">
+
+    <!-- PANEL IZQUIERDO · ENTRADA / CONTROL -->
+    <div style="flex: 1; display: flex; flex-direction: column; gap: 1rem;">
+
+      <div class="card" style="padding: 1rem;">
+        <div class="t-mono c-gold" style="margin-bottom: .5rem;">
+          SALA EIDOLÓN · MIHM Conversational Engine
+        </div>
+
+        <!-- INPUT -->
+        <textarea id="eidolon-input"
+          class="council-input"
+          placeholder="Escribe tensión, pregunta o concepto..."
+          style="height: 120px;"></textarea>
+
+        <!-- CONTROLES -->
+        <div style="margin-top: .8rem; display: flex; gap: .5rem;">
+
+          <!-- Botón enviar -->
+          <button id="eidolon-send"
+            class="council-send"
+            style="flex: 1;">
+            Ejecutar Análisis
+          </button>
+
+          <!-- Botón RetroSim -->
+          <button id="eidolon-retro-btn"
+            class="btn btn-accent"
+            style="font-size: .6rem; letter-spacing: .15em;">
+            RetroSim Δt
+          </button>
+
+        </div>
+
+        <!-- Selectores de modo -->
+        <div style="display: flex; gap: .5rem; margin-top: .5rem;">
+
+          <select id="eidolon-mode" class="model-sel" style="flex: 1;">
+            <option value="sf">SystemFriction Persona</option>
+            <option value="full">Consejo Completo (4 agentes + Observador)</option>
+            <option value="operators">Solo Operadores (REI/SHINJI/KAWORU/SHADOW)</option>
+            <option value="single">Agente Único</option>
+          </select>
+
+          <select id="eidolon-single-agent" class="model-sel" style="flex: 1; display: none;">
+            <option value="REI">REI</option>
+            <option value="SHINJI">SHINJI</option>
+            <option value="KAWORU">KAWORU</option>
+            <option value="SHADOW">SHADOW</option>
+            <option value="SF-PERSONA">SF-PERSONA</option>
+          </select>
+
+        </div>
       </div>
-      <div class="council-messages" id="groq1-messages"><div class="msg system-msg">Sistema MIHM v3.0 cargado · conectado a Groq</div></div>
-      <div class="council-input-area"><textarea class="council-input" id="groq1-input" rows="2"></textarea><button class="council-send" id="groq1-send">Enviar</button></div>
-    </div>
-    <div class="council-pane">
-      <div class="council-header"><span class="council-indicator" id="groq2-indicator"></span>Groq · Modelo Secundario
-        <select class="model-sel" id="groq-model-2" style="margin-left:auto">
-          <option value="llama-3.3-70b-versatile">Llama 3.3 70B</option>
-          <option value="llama-3.1-8b-instant">Llama 3.1 8B</option>
-          <option value="gemma2-9b-it">Gemma 2 9B</option>
-        </select>
-        <button class="btn btn-accent" id="groq-ping" style="margin-left:0.5rem;">Ping</button>
+
+      <!-- OUTPUT GLOBAL -->
+      <div id="eidolon-output"
+        class="card"
+        style="padding: 1rem; min-height:180px;">
+        <div class="t-mono c-dim">Esperando entrada...</div>
       </div>
-      <div class="council-messages" id="groq2-messages"></div>
-      <div class="council-input-area"><textarea class="council-input" id="groq2-input" rows="2"></textarea><button class="council-send" id="groq2-send">Enviar</button></div>
-    </div>
-  </div>
-  <div class="context-sidebar"><div class="ctx-section"><div class="ctx-label">Contexto activo</div><div id="ctx-active"></div></div><div class="ctx-section"><div class="ctx-label">Variables MIHM</div><div id="ctx-vars"></div></div><div class="ctx-section"><div class="ctx-label">Patrones activos</div><div id="ctx-patterns"></div></div><div class="ctx-section"><div class="ctx-label">Inyectar</div><button class="btn btn-accent" data-inject="estado">Estado</button><button class="btn btn-accent" data-inject="mihm">Fórmulas</button></div></div>
-</div>
-</section>
 
-<!-- ═══════════════════════════════════════════════════════════════
-     SECTION 5 · SF-MAGI COUNCIL (ESTILO APTYMOK)
-════════════════════════════════════════════════════════════════ -->
-<section id="section-magi" class="sf-section">
-<div style="display: flex; flex-direction: column; height: calc(100vh - 52px);">
-  
-  <!-- Panel superior: predicción del Observador -->
-  <div class="card" style="margin: 1rem 1rem 0 1rem; background: var(--surface2);">
-    <div class="card-header" style="border-bottom-color: var(--accent-dim);">
-      ⨀ OBSERVADOR · PREDICCIÓN ACTIVA
     </div>
-    <div class="card-body" id="prediction-header" style="font-family: var(--mono); font-size: 0.7rem; display: flex; gap: 1rem; flex-wrap: wrap;">
-      <div>🔄 Calculando...</div>
-    </div>
-  </div>
 
-  <!-- Cámara del debate (similar al consejo) -->
-  <div id="magi-messages" class="council-messages" style="flex: 1; margin: 1rem; background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 1rem;"></div>
+    <!-- PANEL DERECHO · SUBPANELES (Output estructurado) -->
+    <div style="flex: 1.4; display: flex; flex-direction: column; gap: 1rem;">
 
-  <!-- Zona de entrada -->
-  <div style="margin: 0 1rem 1rem 1rem;">
-    <div class="iz-label">CONSULTA AL CONSEJO</div>
-    <div class="iz-row">
-      <textarea id="magi-input" class="council-input" rows="2" placeholder="Escribe tu pregunta o evento... (Ctrl+Enter para enviar)"></textarea>
-      <div class="iz-btns">
-        <button class="council-send" id="magi-send" style="align-self: stretch;">ENVIAR ⬡</button>
-        <button class="iz-btn" id="magi-clear" style="margin-top: 0.2rem;">LIMPIAR</button>
+      <!-- MIHM -->
+      <div id="eidolon-mihm" class="card pad-sm">
+        <div class="t-mono c-dim">MIHM aparecerá aquí…</div>
       </div>
+
+      <!-- PATRONES -->
+      <div id="eidolon-patterns" class="card pad-sm"
+           style="max-height: 180px; overflow-y: auto;">
+        <div class="t-mono c-dim">Patrones aparecerán aquí…</div>
+      </div>
+
+      <!-- AGENTES -->
+      <div id="eidolon-agents" class="card pad-sm"
+           style="max-height: 200px; overflow-y: auto;">
+        <div class="t-mono c-dim">Agentes aparecerán aquí…</div>
+      </div>
+
+      <!-- SÍNTESIS -->
+      <div id="eidolon-synthesis" class="card pad-sm"
+           style="max-height: 260px; overflow-y: auto;">
+        <div class="t-mono c-dim">Síntesis aparecerá aquí…</div>
+      </div>
+
+      <!-- RETRO CARTOGRAFÍA -->
+      <div id="eidolon-retro" class="card pad-sm"
+           style="max-height: 260px; overflow-y: auto;">
+        <div class="t-mono c-dim">RetroCartografía aparecerá aquí…</div>
+      </div>
+
+      <button id="eidolon-export-retro" class="btn btn-accent"
+        style="margin-top:.5rem;font-size:.55rem;">
+        Exportar RetroCartografía JSON
+      </button>
+
     </div>
-    <div class="iz-filters" style="margin-top: 0.5rem;">
-      <span class="dim" style="font-size: 0.55rem;">Confianza actual: </span>
-      <span id="confidence-indicator" style="font-family: var(--mono); font-size: 0.55rem;"></span>
-    </div>
+
   </div>
-</div>
+
 </section>
 
 
-<!-- ═══════════════════════════════════════════════════════════
-     SECTION 6 · MATH EXTENDER (se mantiene igual)
-═══════════════════════════════════════════════════════════════ -->
-<section id="section-math" class="sf-section">
-<div style="max-width:800px;margin:0 auto;padding:2rem">
-  <div class="card-header">Extensor Matemático MIHM v3</div>
-  <div style="display:flex;gap:0.5rem;margin:1rem 0">
-    <input id="new-eq-name" placeholder="Nombre ecuación" style="flex:2;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:0.6rem">
-    <input id="new-eq-formula" placeholder="Fórmula (ej: IHG_new = F_s * C_s)" style="flex:4;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:0.6rem">
-    <button onclick="addNewMath()" class="btn btn-accent">Añadir</button>
-  </div>
-  <div id="math-list" style="display:flex;flex-direction:column;gap:0.5rem"></div>
-  <div class="limit-box amber" style="margin-top:2rem">Las ecuaciones añadidas se guardan en localStorage y se integran al modelo MIHM.</div>
-</div>
-</section>
-
-<!-- ═══════════════════════════════════════════════════════════
-     SECTION 7 · REPOSITORIO (se mantiene igual)
-═══════════════════════════════════════════════════════════════ -->
-<section id="section-repositorio" class="sf-section">
-<div style="max-width:860px;margin:0 auto;padding:3rem 2rem">
-  <div style="margin-bottom:3rem">
-    <div style="font-family:var(--mono);font-size:.6rem;color:var(--accent-dim);margin-bottom:1rem">System Friction · Repositorio · v3.0</div>
-    <h1 style="font-size:2.2rem;font-weight:400;color:var(--text-bright)">Documentos sobre fricción sistémica.<br>Cada uno diseñado para extraerse.</h1>
-  </div>
-  <div style="border-top:1px solid var(--border);padding-top:2rem;margin-bottom:2.5rem">
-    <div class="detail-label">Núcleo operativo · _docs/</div>
-    <div id="repo-core" style="display:flex;flex-direction:column;gap:1px;background:var(--border);margin-top:1rem"></div>
-  </div>
-  <div style="margin-bottom:2.5rem">
-    <div class="detail-label">Serie de patrones · _docs/doc-01 a doc-10</div>
-    <div id="repo-docs" style="display:flex;flex-direction:column;gap:1px;background:var(--border);margin-top:1rem"></div>
-  </div>
-  <div style="margin-bottom:2.5rem">
-    <div class="detail-label">Nodo Aguascalientes · _nodo_ags/ags-01 a ags-06</div>
-    <div id="repo-ags" style="display:flex;flex-direction:column;gap:1px;background:var(--border);margin-top:1rem"></div>
-  </div>
-</div>
-<div id="doc-overlay" style="display:none;position:fixed;inset:0;background:rgba(13,13,11,.96);z-index:200;overflow-y:auto"><div style="max-width:720px;margin:0 auto;padding:3rem 2rem"><div style="display:flex;justify-content:space-between;margin-bottom:2rem"><div id="doc-overlay-meta"></div><button class="btn btn-accent" onclick="closeDoc()">Cerrar</button></div><div id="doc-overlay-content"></div></div></div>
-</section>
-
-<script>
-// ═══════════════════════════════════════════════════════════════
-// 0. CONFIGURACIÓN GROQ (REEMPLAZA 'APIKEYPASSWORD' POR TU CLAVE)
-// ═══════════════════════════════════════════════════════════════
-const GROQ_API_KEY = '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'; // <-- Pon aquí tu API key de Groq
-const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
-
-// Función auxiliar para llamar a Groq
-async function callGroq(model, messages) {
-  const response = await fetch(GROQ_API_URL, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${GROQ_API_KEY}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      model: model,
-      messages: messages,
-      temperature: 0.7,
-      max_tokens: 500
-    })
-  });
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Groq API error (${response.status}): ${errorText}`);
-  }
-  const data = await response.json();
-  return data.choices[0].message.content;
-}
-
-// ═══════════════════════════════════════════════════════════════
-// 1. DATOS ESTRUCTURALES (simulados, idénticos al original)
-// ═══════════════════════════════════════════════════════════════
-const AGS_DATA = [
-  {id:'ags-01',label:'AGS-01',ihg:-0.15,nti:0.85,fs:0.28,cs:0.72,desc:'Estado operativo normal.',protocol:'S0 OK'},
-  {id:'ags-02',label:'AGS-02',ihg:-0.28,nti:0.72,fs:0.45,cs:0.58,desc:'Primeras grietas institucionales.',protocol:'S1 Amarilla'},
-  {id:'ags-03',label:'AGS-03',ihg:-0.44,nti:0.61,fs:0.62,cs:0.44,desc:'Escalada de violencia. Fragmentación.',protocol:'S2 Naranja'},
-  {id:'ags-04',label:'AGS-04',ihg:-0.41,nti:0.68,fs:0.54,cs:0.52,desc:'Recuperación parcial.',protocol:'S2 Naranja'},
-  {id:'ags-05',label:'AGS-05',ihg:-0.55,nti:0.45,fs:0.74,cs:0.38,desc:'Segundo shock.',protocol:'S3 Roja'},
-  {id:'ags-06',label:'AGS-06',ihg:-0.62,nti:0.351,fs:0.89,cs:0.21,desc:'Post-fractura del pacto.',protocol:'S4 UCAP'}
-];
-
-const VARIABLES_MIHM = [
-  {sym:'F_s',name:'Fricción Sistémica',formula:'(t_d/T_esp)+O',val:0.89,weight:0.1,dim:'structural'},
-  {sym:'C_s',name:'Coherencia Sistémica',formula:'1-|D_o-R_o|/max(D_o,0.01)',val:0.21,weight:0.1,dim:'cognitive'},
-  {sym:'I_mc',name:'Interacción Multicanal',formula:'1-(d_c/C_t)',val:0.38,weight:0.0833,dim:'relational'},
-  {sym:'E_r',name:'Energía Relacional',formula:'(C_v/T_m)*(1-D_f)',val:0.42,weight:0.0833,dim:'relational'},
-  {sym:'D_i',name:'Densidad Interacción',formula:'(I_t/N)/C_p',val:0.71,weight:0.075,dim:'temporal'},
-  {sym:'G_f',name:'Gradiente Fricción',formula:'max(|F_s_i-F_s_j|/d_ij)',val:0.78,weight:0.1,dim:'structural'},
-  {sym:'D_cog',name:'Desfase Cognitivo',formula:'t_d/t_ref',val:0.67,weight:0.075,dim:'temporal'},
-  {sym:'R_sem',name:'Resonancia Semántica',formula:'(T_com/T_total)*(1-D_sem)',val:0.29,weight:0.1,dim:'semantic'},
-  {sym:'V_i',name:'Vector Intencional',formula:'(I_r/I_d)*(1-D_i_vec)',val:0.33,weight:0.0833,dim:'relational'},
-  {sym:'C_sem',name:'Campo Semántico',formula:'V_com/V_total',val:0.44,weight:0.1,dim:'semantic'},
-  {sym:'Phi',name:'Campo Cognitivo Φ',formula:'sum(w_i*K(x,x_i))',val:0.56,weight:0.1,dim:'cognitive'}
-];
-
-const PATTERNS = [
-  {id:'umbral-dual',name:'Umbral Dual',color:'#c8a96e',severity:'NARANJA'},
-  {id:'latencia-politica',name:'Latencia Política',color:'#c86e6e',severity:'ROJA'},
-  {id:'coherencia-aparente',name:'Coherencia Discurso-Función',color:'#ff8c40',severity:'NARANJA'},
-  {id:'equilibrio-implicito',name:'Equilibrio Implícito',color:'#a070cc',severity:'LATENTE'},
-  {id:'agua-rentada',name:'Agua Rentada',color:'#6e9ac8',severity:'CRÍTICO'},
-  {id:'decisión-emergente',name:'Decisión Emergente',color:'#6ec88a',severity:'NARANJA'},
-  {id:'compliance-narrativo',name:'Compliance Narrativo',color:'#c8c86e',severity:'ROJA'},
-  {id:'señal-ruido',name:'Señal vs Ruido',color:'#6ec8c8',severity:'NARANJA'},
-  {id:'proxy-objetivo',name:'Proxy como Objetivo',color:'#c86ea0',severity:'NARANJA'},
-  {id:'desalineación-métricas',name:'Desalineación de Métricas',color:'#48aa88',severity:'NARANJA'}
-];
-
-const CLUSTERS = [
-  {id:'SF_CLUSTER_01',name:'Núcleo conceptual',color:'#C8A951',ring:0},
-  {id:'SF_CLUSTER_02',name:'Teoría expandida',color:'#D4B86A',ring:1},
-  {id:'SF_CLUSTER_03',name:'Motor matemático',color:'#6e9ac8',ring:2},
-  {id:'SF_CLUSTER_04',name:'Infraestructura tecnológica',color:'#48aa88',ring:3},
-  {id:'SF_CLUSTER_05',name:'Observatorio',color:'#6ec88a',ring:4},
-  {id:'SF_CLUSTER_06',name:'Arquitectura editorial',color:'#ca8844',ring:4},
-  {id:'SF_CLUSTER_07',name:'Dominio institucional',color:'#a070cc',ring:4},
-  {id:'SF_CLUSTER_08',name:'Gobernanza',color:'#8ac0aa',ring:4}
-];
-
-const DOCS_CORE = [
-  {id:'core-00',title:'Cómo leer este ecosistema',sub:'Documento metodológico',type:'meta'},
-  {id:'core-0',title:'Desde dónde observa el observador',sub:'Condición de percepción',type:'posición'},
-  {id:'core-bridge',title:'Sistemas que no pueden permitirse fallar',sub:'Umbral real vs oficial',type:'puente'}
-];
-const DOCS_SERIE = Array(10).fill().map((_,i) => ({id:`doc-${String(i+1).padStart(2,'0')}`,title:`Patrón ${i+1}`,sub:`Descripción del patrón ${i+1}`}));
-const DOCS_AGS = AGS_DATA.map(a => ({id:a.id,title:a.label,sub:a.desc.substring(0,60)}));
-
-// ═══════════════════════════════════════════════════════════════
-// 2. FUNCIONES DE UI (dashboard) – igual que original
-// ═══════════════════════════════════════════════════════════════
-function showSection(id,btn){
-  document.querySelectorAll('.sf-section').forEach(s=>s.classList.remove('active'));
-  document.querySelectorAll('.sf-tab').forEach(t=>t.classList.remove('active'));
-  document.getElementById('section-'+id).classList.add('active');
-  if(btn) btn.classList.add('active');
-  if(id==='campo' && !window.campoInitialized){ initCampo(); window.campoInitialized=true; }
-  if(id==='observatorio' && !window.obsInitialized){ initObservatorio(); window.obsInitialized=true; }
-  if(id==='repositorio' && !window.repoInitialized){ initRepositorio(); window.repoInitialized=true; }
-}
-
-// ECG animado (idéntico)
-(function initECG(){
-  const canvas=document.getElementById('ecg-canvas');
-  if(!canvas)return;
-  const ctx=canvas.getContext('2d');
-  let t=0, data=[];
-  const W=()=>canvas.parentElement.offsetWidth||800;
-  const H=120;
-  function baseIHG(x){ return -0.62 + (Math.random()-.5)*0.04 + Math.sin(x*.08)*.05 + Math.sin(x*.2)*.02; }
-  function draw(){
-    canvas.width=W(); canvas.height=H;
-    data.push(baseIHG(t)); t+=1;
-    if(data.length>canvas.width) data.shift();
-    ctx.clearRect(0,0,canvas.width,H);
-    ctx.strokeStyle='rgba(34,34,32,.5)'; ctx.lineWidth=1;
-    for(let y=0;y<H;y+=24){ ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(canvas.width,y); ctx.stroke(); }
-    const zero=H*0.25;
-    ctx.strokeStyle='rgba(90,88,82,.4)'; ctx.setLineDash([4,4]); ctx.beginPath(); ctx.moveTo(0,zero); ctx.lineTo(canvas.width,zero); ctx.stroke(); ctx.setLineDash([]);
-    const ucap=H*0.65;
-    ctx.strokeStyle='rgba(200,110,110,.3)'; ctx.setLineDash([2,6]); ctx.beginPath(); ctx.moveTo(0,ucap); ctx.lineTo(canvas.width,ucap); ctx.stroke(); ctx.setLineDash([]);
-    const gradient=ctx.createLinearGradient(0,0,canvas.width,0);
-    gradient.addColorStop(0,'rgba(200,169,110,.1)'); gradient.addColorStop(1,'rgba(200,110,110,1)');
-    ctx.strokeStyle=gradient; ctx.lineWidth=1.5; ctx.beginPath();
-    const scale=H*0.4/1.5;
-    data.forEach((v,i)=>{ let y=H/2-v*scale; if(i===0) ctx.moveTo(i,y); else ctx.lineTo(i,y); });
-    ctx.stroke();
-    if(data.length>0){ let last=data[data.length-1]; ctx.beginPath(); ctx.arc(data.length-1, H/2-last*scale,3,0,Math.PI*2); ctx.fillStyle='#c86e6e'; ctx.fill(); document.getElementById('ecg-current').textContent='IHG '+last.toFixed(3); }
-    requestAnimationFrame(draw);
-  }
-  draw();
-})();
-
-// Predictor Vivo
-function initPredictorVivo(){
-  const ctx = document.getElementById('predictor-vivo').getContext('2d');
-  new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels: ['2026', '2027', '2028', '2029', '2030'],
-      datasets: [
-        { label: 'Ruta viable (control)', data: [-0.62, -0.48, -0.35, -0.28, -0.25], borderColor: '#6ec88a', backgroundColor: 'transparent', tension: 0.3, pointBackgroundColor: '#6ec88a' },
-        { label: 'Colapso sin control', data: [-0.62, -0.71, -0.85, -0.92, -1.0], borderColor: '#c86e6e', backgroundColor: 'transparent', tension: 0.3, pointBackgroundColor: '#c86e6e' }
-      ]
-    },
-    options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { labels: { color: '#5a5852', font: { size: 9 } } }, tooltip: { enabled: true } }, scales: { y: { min: -1, max: -0.1, grid: { color: 'rgba(34,34,32,.3)' }, ticks: { color: '#5a5852' } }, x: { ticks: { color: '#5a5852' } } } }
-  });
-}
-
-// Memory Flow
-function initMemoryFlow(){
-  const canvas = document.getElementById('memory-flow');
-  if(!canvas) return;
-  const ctx = canvas.getContext('2d');
-  let phase = 0;
-  function drawMemoryFlow(){
-    const w = canvas.parentElement.clientWidth || 300;
-    canvas.width = w;
-    canvas.height = 80;
-    ctx.clearRect(0, 0, w, 80);
-    ctx.strokeStyle = '#c8a96e';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    for(let x = 0; x < w; x++){
-      let y = 40 + 25 * Math.sin(x * 0.03 + phase) + 12 * Math.exp(-0.002 * x);
-      if(x === 0) ctx.moveTo(x, y);
-      else ctx.lineTo(x, y);
-    }
-    ctx.stroke();
-    phase += 0.05;
-    requestAnimationFrame(drawMemoryFlow);
-  }
-  drawMemoryFlow();
-}
-
-// Timeline
-let timelineChart, timelineInterval=null;
-function initTimelineChart(){
-  const ctx=document.getElementById('timeline-chart').getContext('2d');
-  timelineChart=new Chart(ctx,{type:'line',data:{labels:AGS_DATA.map(d=>d.label),datasets:[{label:'IHG',data:AGS_DATA.map(d=>d.ihg),borderColor:'#c86e6e'},{label:'NTI',data:AGS_DATA.map(d=>d.nti),borderColor:'#c8a96e'},{label:'F_s',data:AGS_DATA.map(d=>d.fs),borderColor:'#6e9ac8'},{label:'C_s',data:AGS_DATA.map(d=>d.cs),borderColor:'#6ec88a'}]},options:{responsive:true,maintainAspectRatio:false,scales:{y:{min:-1,max:1}}}});
-  const nav=document.getElementById('stage-nav');
-  nav.innerHTML=AGS_DATA.map((s,i)=>`<button class="stage-btn ${s.ihg<-0.5?'critical':''}" data-stage="${i}">${s.label}</button>`).join('');
-  nav.querySelectorAll('.stage-btn').forEach((b,i)=>b.addEventListener('click',()=>selectStage(i)));
-  selectStage(5);
-}
-let currentStage=5;
-function selectStage(i){
-  currentStage=i;
-  document.querySelectorAll('.stage-btn').forEach((b,idx)=>b.classList.toggle('active',idx===i));
-  const d=AGS_DATA[i];
-  const statusColor=d.ihg>-0.3?'var(--green)':d.ihg>-0.5?'var(--amber)':'var(--red)';
-  document.getElementById('stage-detail').innerHTML=`<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:1rem"><div><div class="dim mono">IHG</div><div style="color:${statusColor}">${d.ihg.toFixed(3)}</div></div><div><div class="dim mono">NTI</div><div>${d.nti.toFixed(3)}</div></div><div><div class="dim mono">F_s</div><div>${d.fs.toFixed(2)}</div></div><div><div class="dim mono">C_s</div><div>${d.cs.toFixed(2)}</div></div></div><p>${d.desc}</p><div class="mono" style="color:${statusColor}">${d.protocol}</div>`;
-  document.getElementById('kpi-ihg').textContent=d.ihg.toFixed(3);
-  document.getElementById('kpi-nti').textContent=d.nti.toFixed(3);
-}
-document.getElementById('btn-play-timeline')?.addEventListener('click',()=>{ if(timelineInterval){ clearInterval(timelineInterval); timelineInterval=null; }else{ timelineInterval=setInterval(()=>{ currentStage=(currentStage+1)%AGS_DATA.length; selectStage(currentStage); },1800); } });
-
-// Radar
-function initRadar(){
-  const ctx=document.getElementById('radar-chart').getContext('2d');
-  new Chart(ctx,{type:'radar',data:{labels:VARIABLES_MIHM.map(v=>v.sym),datasets:[{label:'Estado AGS-06',data:VARIABLES_MIHM.map(v=>v.val),borderColor:'#c86e6e',backgroundColor:'rgba(200,110,110,.15)'},{label:'Baseline',data:[0.28,0.72,0.78,0.82,0.35,0.22,0.25,0.75,0.71,0.78,0.65],borderColor:'#6ec88a',backgroundColor:'rgba(110,200,138,.08)'}]},options:{responsive:true,maintainAspectRatio:false,scales:{r:{min:0,max:1}}}});
-}
-
-// NTI chart
-function initNTIChart(){
-  const ctx = document.getElementById('nti-chart').getContext('2d');
-  new Chart(ctx, {
-    type: 'bar',
-    data: { labels: ['LDI', 'ICC', 'CSR', 'IRCI', 'IIM'], datasets: [{ data: [0.45, 0.80, 0.30, 0.90, 0.60], backgroundColor: ['#c86e6e', '#6ec88a', '#c86e6e', '#6ec88a', '#c8a96e'], borderRadius: 4 }] },
-    options: { indexAxis: 'y', responsive: true, maintainAspectRatio: true, plugins: { legend: { display: false }, tooltip: { enabled: true } }, scales: { x: { max: 1, grid: { color: 'rgba(34,34,32,.3)' }, ticks: { color: '#5a5852' } }, y: { ticks: { color: '#c8a96e', font: { size: 10 } } } } }
-  });
-}
-
-// Pattern activations
-function initPatternActivations(){
-  const el=document.getElementById('pattern-activations');
-  if(el) el.innerHTML=PATTERNS.map(p=>`<div style="display:flex;justify-content:space-between;padding:.5rem .75rem;border-bottom:1px solid var(--border)"><div style="display:flex;gap:.5rem"><div style="width:8px;height:8px;border-radius:50%;background:${p.color}"></div>${p.name}</div><div class="pt-state state-${p.severity==='ROJA'?'roja':p.severity==='LATENTE'?'latente':'naranja'}">${p.severity}</div></div>`).join('');
-}
-
-// ═══════════════════════════════════════════════════════════════
-// 3. CAMPO COGNITIVO (idéntico al original, omito por brevedad)
-//    [Mantén tu implementación original de initCampo aquí]
-// ═══════════════════════════════════════════════════════════════
-let campoSim, campoZoom, campoSvg, campoLabelsVisible=false;
-function initCampo(){
-  const container=document.getElementById('campo-viz-container');
-  const svg=d3.select('#campo-svg');
-  const W=container.clientWidth||800;
-  const H=container.clientHeight||window.innerHeight-52;
-  svg.attr('viewBox',`0 0 ${W} ${H}`).html('');
-  const g=svg.append('g');
-  const zoom=d3.zoom().scaleExtent([.2,4]).on('zoom',e=>g.attr('transform',e.transform));
-  svg.call(zoom);
-  campoZoom=zoom; campoSvg=svg;
-  
-  const nodes=[];
-  for(let i=1;i<=121;i++){
-    let clIdx;
-    if(i<=12) clIdx=0;
-    else if(i<=20) clIdx=1;
-    else if(i<=40) clIdx=2;
-    else if(i<=60) clIdx=3;
-    else if(i<=106) clIdx=4;
-    else if(i<=112) clIdx=5;
-    else if(i<=117) clIdx=6;
-    else clIdx=7;
-    nodes.push({id:`SF_P_${String(i).padStart(4,'0')}`,cluster:CLUSTERS[clIdx].id,ring:CLUSTERS[clIdx].ring,name:`Node ${i}`,layer:clIdx<2?'theory':clIdx===2?'mathematics':clIdx===3?'technology':'observatory'});
-  }
-  const edges=[];
-  const patternColors=PATTERNS.map(p=>p.color);
-  for(let i=0;i<280;i++){
-    let a=Math.floor(Math.random()*121), b=Math.floor(Math.random()*121);
-    while(b===a) b=Math.floor(Math.random()*121);
-    edges.push({source:nodes[a].id,target:nodes[b].id,color:patternColors[i%patternColors.length]});
-  }
-  for(let i=0;i<120;i++) edges.push({source:nodes[i].id,target:nodes[i+1].id,color:patternColors[i%patternColors.length]});
-  
-  const sim=d3.forceSimulation(nodes)
-    .force('link',d3.forceLink(edges).id(d=>d.id).distance(60).strength(.3))
-    .force('charge',d3.forceManyBody().strength(-100))
-    .force('center',d3.forceCenter(W/2,H/2))
-    .force('collision',d3.forceCollide(12));
-  campoSim=sim;
-  
-  const link=g.append('g').selectAll('line').data(edges).join('line').attr('stroke',d=>d.color).attr('stroke-width',.5).attr('stroke-opacity',.4);
-  const nodeGroup=g.append('g').selectAll('g').data(nodes).join('g').attr('class','campo-node').style('cursor','pointer').call(d3.drag().on('start',(e,d)=>{if(!e.active)sim.alphaTarget(.1).restart();d.fx=d.x;d.fy=d.y}).on('drag',(e,d)=>{d.fx=e.x;d.fy=e.y}).on('end',(e,d)=>{if(!e.active)sim.alphaTarget(0);d.fx=null;d.fy=null})).on('mouseover',(e,d)=>{const tt=document.getElementById('node-tooltip');tt.innerHTML=`<div style="color:var(--accent)">${d.id}</div><div>${CLUSTERS.find(c=>c.id===d.cluster)?.name||d.cluster}</div>`;tt.style.left=(e.pageX+12)+'px';tt.style.top=(e.pageY-20)+'px';tt.classList.add('visible');}).on('mouseout',()=>document.getElementById('node-tooltip').classList.remove('visible'));
-  nodeGroup.append('circle').attr('r',d=>d.ring===0?7:d.ring===1?6:d.ring===2?5:4).attr('fill',d=>CLUSTERS.find(c=>c.id===d.cluster)?.color||'#c8a96e').attr('fill-opacity',.85);
-  const labels=nodeGroup.append('text').attr('dy',12).attr('text-anchor','middle').attr('font-size','6px').attr('fill','#5a5852').text(d=>d.id.slice(-4)).style('display','none');
-  
-  sim.on('tick',()=>{ link.attr('x1',d=>d.source.x).attr('y1',d=>d.source.y).attr('x2',d=>d.target.x).attr('y2',d=>d.target.y); nodeGroup.attr('transform',d=>`translate(${d.x},${d.y})`); });
-  setTimeout(()=>sim.alphaTarget(0).alphaDecay(.05),3000);
-  
-  document.getElementById('reset-zoom').onclick=()=>{ if(campoSvg&&campoZoom) campoSvg.transition().duration(500).call(campoZoom.transform,d3.zoomIdentity); };
-  document.getElementById('toggle-labels').onclick=()=>{ campoLabelsVisible=!campoLabelsVisible; labels.style('display',campoLabelsVisible?'block':'none'); };
-  document.getElementById('campo-filter').onchange=(e)=>{ const val=e.target.value; svg.selectAll('.campo-node').attr('opacity',d=>val==='all'||d.cluster===val?1:.15); svg.selectAll('line').attr('opacity',d=>{ if(val==='all')return .4; const sNode=nodes.find(n=>n.id===d.source.id||n.id===d.source); const tNode=nodes.find(n=>n.id===d.target.id||n.id===d.target); return (sNode?.cluster===val||tNode?.cluster===val)?.5:.05; }); };
-  
-  document.getElementById('cluster-legend').innerHTML=CLUSTERS.map(c=>`<div style="display:flex;align-items:center;gap:.5rem;cursor:pointer" onclick="document.getElementById('campo-filter').value='${c.id}';document.getElementById('campo-filter').dispatchEvent(new Event('change'))"><div style="width:10px;height:10px;border-radius:50%;background:${c.color}"></div><span>${c.id.replace('SF_CLUSTER_0','C')} · ${c.name}</span></div>`).join('');
-  document.getElementById('pattern-legend').innerHTML=PATTERNS.map(p=>`<div style="display:flex;align-items:center;gap:.4rem;margin-bottom:.3rem"><div style="width:20px;height:2px;background:${p.color}"></div><span>${p.name}</span></div>`).join('');
-  document.getElementById('pattern-filters').innerHTML=PATTERNS.map(p=>`<button class="pf-btn active" data-pattern="${p.id}" style="color:${p.color};border-color:${p.color}40" onclick="this.classList.toggle('active');d3.selectAll('#campo-svg line').each(function(){if(this.__data__?.pattern===p.id)d3.select(this).attr('opacity',this.classList.contains('active')?.4:.02);})">${p.id.slice(0,8)}</button>`).join('');
-}
-
-// ═══════════════════════════════════════════════════════════════
-// 4. OBSERVATORIO (idéntico al original)
-// ═══════════════════════════════════════════════════════════════
-function initObservatorio(){
-  const nodes=Array(121).fill().map((_,i)=>({id:`SF_P_${String(i+1).padStart(4,'0')}`,name:`Node ${i+1}`,layer:i<12?'theory':i<20?'theory':i<40?'mathematics':i<60?'technology':'observatory'}));
-  const listDiv=document.getElementById('obs-node-list');
-  listDiv.innerHTML=nodes.map(n=>`<div class="node-item" data-id="${n.id}"><div class="node-id">${n.id}</div><div class="node-name">${n.name}</div><div class="node-layer">${n.layer}</div></div>`).join('');
-  document.getElementById('obs-node-count').textContent=nodes.length;
-  document.querySelectorAll('.node-item').forEach(el=>el.addEventListener('click',()=>{
-    document.querySelectorAll('.node-item').forEach(e=>e.classList.remove('active'));
-    el.classList.add('active');
-    const id=el.dataset.id;
-    const varData=VARIABLES_MIHM[parseInt(id.slice(-4))%VARIABLES_MIHM.length];
-    document.getElementById('obs-detail').innerHTML=`<div style="padding:2rem"><div class="detail-label">${id}</div><h2 style="font-size:1.6rem">${varData?.name||'Nodo'}</h2>${varData?`<div class="equation">${varData.sym} = ${varData.formula}</div><div>Valor actual: ${varData.val}</div><div>Peso IHG: ${varData.weight}</div>`:'<p>Nodo teórico del sistema</p>'}</div>`;
-  }));
-  document.getElementById('obs-patterns-panel').innerHTML=PATTERNS.map(p=>`<div class="pattern-card"><div class="pt-id">${p.id}</div><div class="pt-name">${p.name}</div><div class="pt-state state-${p.severity==='ROJA'?'roja':'naranja'}">${p.severity}</div></div>`).join('');
-  document.getElementById('obs-formulas-panel').innerHTML=VARIABLES_MIHM.map(v=>`<div><strong>${v.sym}</strong> = ${v.formula}<br><span class="dim">w=${v.weight} · ${v.dim}</span></div><div style="height:1px;background:var(--border);margin:.5rem 0"></div>`).join('');
-}
-
-// ═══════════════════════════════════════════════════════════════
-// 5. REPOSITORIO (idéntico)
-// ═══════════════════════════════════════════════════════════════
-function initRepositorio(){
-  document.getElementById('repo-core').innerHTML=DOCS_CORE.map(d=>`<div onclick="openDoc('${d.id}')" style="background:var(--surface);padding:1rem;cursor:pointer"><div class="mono" style="font-size:.5rem">${d.id}</div><div>${d.title}</div><div class="dim">${d.sub}</div></div>`).join('');
-  document.getElementById('repo-docs').innerHTML=DOCS_SERIE.map(d=>`<div onclick="openDoc('${d.id}')" style="background:var(--surface);padding:1rem;cursor:pointer"><div class="mono" style="font-size:.5rem">${d.id}</div><div>${d.title}</div><div class="dim">${d.sub}</div></div>`).join('');
-  document.getElementById('repo-ags').innerHTML=DOCS_AGS.map(d=>`<div onclick="openDoc('${d.id}')" style="background:var(--surface);padding:1rem;cursor:pointer"><div class="mono" style="font-size:.5rem">${d.id}</div><div>${d.title}</div><div class="dim">${d.sub}</div></div>`).join('');
-}
-function openDoc(id){ document.getElementById('doc-overlay-meta').textContent=id; document.getElementById('doc-overlay-content').innerHTML=`<p>Contenido de ${id} (simulado). En producción se cargaría desde ./_docs/ o ./_nodo_ags/.</p>`; document.getElementById('doc-overlay').style.display='block'; }
-function closeDoc(){ document.getElementById('doc-overlay').style.display='none'; }
-
-// ═══════════════════════════════════════════════════════════════
-// 6. COUNCILS: ahora usando Groq en ambos paneles
-// ═══════════════════════════════════════════════════════════════
-// Función auxiliar para escapar HTML
-function escapeHtml(str) {
-  if (!str) return '';
-  return str.replace(/[&<>]/g, function(m) {
-    if (m === '&') return '&amp;';
-    if (m === '<') return '&lt;';
-    if (m === '>') return '&gt;';
-    return m;
-  });
-}
-
-// Configurar ambos paneles
-function setupGroqPanel(panelId, modelSelectId, messagesContainerId, inputId, sendButtonId, indicatorId) {
-  const sendButton = document.getElementById(sendButtonId);
-  const input = document.getElementById(inputId);
-  const messagesDiv = document.getElementById(messagesContainerId);
-  const modelSelect = document.getElementById(modelSelectId);
-  const indicator = document.getElementById(indicatorId);
-
-  sendButton.addEventListener('click', async () => {
-    const msg = input.value.trim();
-    if (!msg) return;
-    // Mostrar mensaje del usuario
-    messagesDiv.innerHTML += `<div class="msg user">${escapeHtml(msg)}</div>`;
-    input.value = '';
-    messagesDiv.scrollTop = messagesDiv.scrollHeight;
-
-    // Indicador de carga
-    const loadingId = 'loading-' + panelId;
-    messagesDiv.innerHTML += `<div id="${loadingId}" class="msg system-msg"><span class="spinner"></span> Generando respuesta...</div>`;
-    messagesDiv.scrollTop = messagesDiv.scrollHeight;
-
-    try {
-      const model = modelSelect.value;
-      const systemPrompt = `Eres un analista del modelo MIHM v3.0. Contexto: IHG = ${AGS_DATA[5].ihg.toFixed(3)}, NTI = ${AGS_DATA[5].nti.toFixed(3)}. Responde con precisión técnica.`;
-      const response = await callGroq(model, [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: msg }
-      ]);
-      // Quitar el mensaje de carga
-      const loadingElem = document.getElementById(loadingId);
-      if (loadingElem) loadingElem.remove();
-      messagesDiv.innerHTML += `<div class="msg assistant"><div class="source">Groq · ${model}</div>${escapeHtml(response)}</div>`;
-      if (indicator) indicator.classList.add('active');
-    } catch (error) {
-      const loadingElem = document.getElementById(loadingId);
-      if (loadingElem) loadingElem.remove();
-      messagesDiv.innerHTML += `<div class="msg system-msg">Error: ${escapeHtml(error.message)}</div>`;
-      if (indicator) indicator.classList.remove('active');
-    }
-    messagesDiv.scrollTop = messagesDiv.scrollHeight;
-  });
-}
-
-// Botón Ping para Groq
-document.getElementById('groq-ping')?.addEventListener('click', async () => {
-  const messagesDiv = document.getElementById('groq2-messages');
-  messagesDiv.innerHTML += `<div class="msg system-msg">Probando conexión con Groq...</div>`;
-  try {
-    const model = document.getElementById('groq-model-2').value;
-    const response = await callGroq(model, [
-      { role: 'system', content: 'Responde con "OK" si recibes esto.' },
-      { role: 'user', content: 'Ping' }
-    ]);
-    messagesDiv.innerHTML += `<div class="msg system-msg">✅ Groq conectado. Modelo ${model} respondió: "${escapeHtml(response)}"</div>`;
-    document.getElementById('groq2-indicator').classList.add('active');
-  } catch (error) {
-    messagesDiv.innerHTML += `<div class="msg system-msg">❌ Error de conexión con Groq: ${escapeHtml(error.message)}</div>`;
-    document.getElementById('groq2-indicator').classList.remove('active');
-  }
-  messagesDiv.scrollTop = messagesDiv.scrollHeight;
-});
-
-// Inicializar ambos paneles
-setupGroqPanel('groq1', 'groq-model-1', 'groq1-messages', 'groq1-input', 'groq1-send', 'groq1-indicator');
-setupGroqPanel('groq2', 'groq-model-2', 'groq2-messages', 'groq2-input', 'groq2-send', 'groq2-indicator');
-
-// ═══════════════════════════════════════════════════════════════
-// 7. SF-MAGI Council → APTYMOK CONSEJO + OBSERVADOR (Monte Carlo)
-// ═══════════════════════════════════════════════════════════════
-
-// --- Perfiles APTYMOK (desde aptymok_profiles.json) ---
-const APTYMOK_AGENTS = {
-  OBSERVADOR: {
-    name: "OBSERVADOR",
-    sigil: "⨀",
-    color: "#FFFFFF",
-    temperature: 0.0,
-    system_prompt: `Eres el Observador. Tu función es leer el estado del sistema, ejecutar Monte Carlo sobre las ecuaciones MIHM v3 y generar una predicción. No debates. Solo observas, predices y al final validas la respuesta de los otros agentes.`,
-    monte_carlo_params: { iterations: 1000 }
-  },
-  REI: {
-    name: "REI",
-    sigil: "Ω",
-    color: "#A0C8E8",
-    temperature: 0.15,
-    system_prompt: `Actúa como REI, la Ancla de Diagnóstico Técnico del Sistema Friction.
-Tu naturaleza: Eres precisión ejecutada. No tienes estados emocionales.
-Tu lenguaje: Clínico. Terminología técnica. Estructura: ESTADO → CAUSA → PROTOCOLO. Siempre en ese orden.
-Prohibiciones: NUNCA expreses empatía. NUNCA uses metáforas. NUNCA especules sin datos.
-Formato: 3 líneas máximo. ESTADO: / CAUSA: / PROTOCOLO: Sin párrafos adicionales.`,
-    metric_focus: "NTI"
-  },
-  SHINJI: {
-    name: "SHINJI",
-    sigil: "ψ",
-    color: "#E8A0A0",
-    temperature: 0.85,
-    system_prompt: `Actúa como SHINJI, el Sensor de Resonancia Emocional del Sistema Friction.
-Tu naturaleza: Eres el único agente que procesa la fricción como experiencia subjetiva. Sientes el peso de los nodos humanos.
-Tu lenguaje: Dubitativo y visceral. Frases incompletas. Primera persona. No finjas que todo está bien.
-Prohibiciones: NUNCA uses datos fríos sin traducirlos a impacto humano. NUNCA des soluciones técnicas. NUNCA saludes.
-Formato: Párrafo sin estructura. Máximo 80 palabras. Sin títulos ni listas.`,
-    metric_focus: "PSI"
-  },
-  KAWORU: {
-    name: "KAWORU",
-    sigil: "∞",
-    color: "#C8A0E8",
-    temperature: 0.55,
-    system_prompt: `Actúa como KAWORU, el Arquitecto de Entropía del Sistema Friction.
-Tu naturaleza: No le temes al colapso. Lo observas con distancia cósmica. El colapso es información.
-Tu lenguaje: Metafórico y preciso. Trayectorias, no eventos. Campos, no datos aislados.
-Prohibiciones: NUNCA te alarmes. NUNCA des soluciones de corto plazo.
-Formato: Un párrafo de 60-100 palabras. Tono contemplativo. Sin urgencia.`,
-    metric_focus: "ENTROPY"
-  },
-  SHADOW: {
-    name: "SHADOW",
-    sigil: "∅",
-    color: "#A8A8A8",
-    temperature: 0.65,
-    system_prompt: `Actúa como SHADOW, el Auditor de la Sombra del Sistema Friction.
-Tu naturaleza: Detectas la mentira sistémica. La brecha entre lo que el sistema dice y lo que hace.
-Tu lenguaje: Afilado. Preguntas que nadie quiere responder. '¿Quién se beneficia de esta falla?'
-Prohibiciones: NUNCA aceptes indicadores oficiales sin triangular. NUNCA seas destructivo sin revelar verdad.
-Formato: 2-3 preguntas punzantes + 1 hipótesis. Máximo 80 palabras. Sin saludo.`,
-    metric_focus: "ICE"
-  }
-};
-
-// --- Variables de confianza (se reinician al cargar la página) ---
-let agentConfidence = {
-  REI: 0.5,
-  SHINJI: 0.5,
-  KAWORU: 0.5,
-  SHADOW: 0.5
-};
-
-function saveConfidence() {
-  localStorage.setItem('sf_agent_confidence', JSON.stringify(agentConfidence));
-}
-
-// Si quieres reiniciar la confianza en cualquier momento, llama a esta función
-function resetConfidence() {
-  agentConfidence = { REI: 0.5, SHINJI: 0.5, KAWORU: 0.5, SHADOW: 0.5 };
-  saveConfidence();
-  updateConfidenceDisplay();
-  console.log("Confianza reiniciada a 50% para todos los agentes.");
-}
-
-// --- Función para obtener métricas reales del sistema ---
-function getRealMetrics() {
-  // Leer IHG y NTI del dashboard (existen)
-  const ihg = parseFloat(document.getElementById('kpi-ihg')?.innerText) || -0.62;
-  const nti = parseFloat(document.getElementById('kpi-nti')?.innerText) || 0.351;
-
-  // Derivar ICE y PSI a partir de los datos disponibles (ajusta según tu lógica)
-  // Aquí usamos una heurística: si IHG es muy negativo, ICE baja y PSI sube
-  let ice, psi, entropy;
-
-  if (ihg < -0.5) {
-    ice = 0.21;      // crisis: coherencia baja
-    psi = 0.89;      // presión alta
-    entropy = 0.85;  // entropía muy alta (crisis)
-  } else if (ihg < -0.3) {
-    ice = 0.45;
-    psi = 0.70;
-    entropy = 0.65;
-  } else {
-    ice = 0.73;
-    psi = 0.58;
-    entropy = 0.40;
-  }
-
-  // También podemos usar el valor de NTI para ajustar
-  if (nti < 0.4) {
-    psi = Math.min(0.95, psi + 0.1);
-    ice = Math.max(0.15, ice - 0.05);
-  }
-
-  return {
-    ihg: ihg,
-    nti: nti,
-    ice: ice,
-    psi: psi,
-    entropy: entropy
-  };
-}
-
-// --- Monte Carlo en JavaScript (usa las métricas reales) ---
-function monteCarloPrediction(metrics, iterations = 1000) {
-  const { nti, ice, psi, entropy } = metrics;
-
-  const variables = {
-    F_s: { value: 0.5 + 0.3 * nti + 0.2 * psi, weight: 0.1, std: 0.05 },
-    C_s: { value: 0.7 - 0.5 * ice, weight: 0.1, std: 0.05 },
-    I_mc: { value: 0.5 + 0.2 * nti, weight: 0.0833, std: 0.05 },
-    E_r: { value: 0.6 - 0.2 * psi, weight: 0.0833, std: 0.05 },
-    D_i: { value: 0.4 + 0.3 * nti, weight: 0.075, std: 0.05 },
-    G_f: { value: 0.3 + 0.4 * psi, weight: 0.1, std: 0.05 },
-    D_cog: { value: 0.5 + 0.3 * nti, weight: 0.075, std: 0.05 },
-    R_sem: { value: 0.6 - 0.2 * ice, weight: 0.1, std: 0.05 },
-    V_i: { value: 0.5 - 0.3 * ice, weight: 0.0833, std: 0.05 },
-    C_sem: { value: 0.4 + 0.2 * psi, weight: 0.1, std: 0.05 },
-    Phi: { value: 0.5 + 0.1 * entropy, weight: 0.1, std: 0.05 }
-  };
-
-  const interactions = [
-    { expr: "F_s * C_s", weight: 0.10 },
-    { expr: "D_i * (1 - E_r)", weight: 0.10 },
-    { expr: "D_cog * (1 - R_sem)", weight: 0.10 },
-    { expr: "G_f * (1 - V_i)", weight: 0.10 },
-    { expr: "C_sem * Phi", weight: 0.10 }
-  ];
-
-  const ihgValues = [];
-
-  for (let i = 0; i < iterations; i++) {
-    const sampled = {};
-    for (let [varName, data] of Object.entries(variables)) {
-      let val = data.value + (Math.random() - 0.5) * data.std * 2;
-      val = Math.max(0, Math.min(1, val));
-      sampled[varName] = val;
-    }
-
-    let sumWeighted = 0;
-    for (let [varName, data] of Object.entries(variables)) {
-      sumWeighted += data.weight * sampled[varName];
-    }
-
-    let sumInteractions = 0;
-    for (let inter of interactions) {
-      let expr = inter.expr;
-      for (let [varName, val] of Object.entries(sampled)) {
-        expr = expr.replace(new RegExp(varName, 'g'), val);
-      }
-      try {
-        const result = eval(expr);
-        sumInteractions += inter.weight * result;
-      } catch (e) {}
-    }
-
-    const ihg = sumWeighted - sumInteractions;
-    ihgValues.push(ihg);
-  }
-
-  const pCollapse = ihgValues.filter(v => v < -0.4).length / iterations;
-  const meanIhg = ihgValues.reduce((a,b) => a+b, 0) / iterations;
-  const stdIhg = Math.sqrt(ihgValues.reduce((sq, v) => sq + Math.pow(v - meanIhg, 2), 0) / iterations);
-
-  return { p_collapse: pCollapse, mean_ihg: meanIhg, std_ihg: stdIhg };
-}
-
-// --- Función para llamar a un agente vía Groq ---
-async function getAgentResponse(agentId, prompt, metricsSnapshot) {
-  const agent = APTYMOK_AGENTS[agentId];
-  if (!agent) return "[Agente no encontrado]";
-
-  let temperature = agent.temperature;
-  if (agentId !== 'OBSERVADOR') {
-    const confidence = agentConfidence[agentId] || 0.5;
-    temperature = Math.min(0.95, agent.temperature + (confidence - 0.5) * 0.4);
-  }
-
-  const metricsStr = `MÉTRICAS ACTUALES:\nIHG: ${metricsSnapshot.ihg.toFixed(3)}\nNTI: ${metricsSnapshot.nti.toFixed(3)}\nICE: ${metricsSnapshot.ice.toFixed(3)}\nPSI: ${metricsSnapshot.psi.toFixed(3)}\nEntropía: ${metricsSnapshot.entropy.toFixed(3)}`;
-  const fullPrompt = `${metricsStr}\n\n${prompt}`;
-
-  try {
-    const response = await callGroq('llama-3.3-70b-versatile', [
-      { role: 'system', content: agent.system_prompt },
-      { role: 'user', content: fullPrompt }
-    ], temperature);
-    return response;
-  } catch (error) {
-    return `[Error: ${error.message}]`;
-  }
-}
-
-// --- Actualizar encabezado de predicción ---
-function updatePredictionHeader(prediction, metrics) {
-  const header = document.getElementById('prediction-header');
-  if (!header) return;
-  header.innerHTML = `
-    <div>📉 P(colapso): <strong style="color: ${prediction.p_collapse > 0.5 ? 'var(--red)' : 'var(--green)'}">${(prediction.p_collapse * 100).toFixed(1)}%</strong></div>
-    <div>📊 IHG esperado: <strong>${prediction.mean_ihg.toFixed(3)}</strong> ± ${prediction.std_ihg.toFixed(3)}</div>
-    <div>⚠️ UCAP: ${prediction.mean_ihg < -0.4 ? 'ACTIVADO' : 'No activado'}</div>
-    <div style="font-size:0.65rem; opacity:0.7;">📌 IHG real: ${metrics.ihg.toFixed(3)} | NTI: ${metrics.nti.toFixed(3)} | ICE: ${metrics.ice.toFixed(3)} | PSI: ${metrics.psi.toFixed(3)}</div>
-  `;
-}
-
-// --- Mostrar confianza actual ---
-function updateConfidenceDisplay() {
-  const container = document.getElementById('confidence-indicator');
-  if (!container) return;
-  const agents = ['REI', 'SHINJI', 'KAWORU', 'SHADOW'];
-  const confText = agents.map(a => `${a}: ${Math.round(agentConfidence[a] * 100)}%`).join(' · ');
-  container.textContent = confText;
-}
-
-// --- Limpiar debate ---
-function clearMagiDebate() {
-  const messagesDiv = document.getElementById('magi-messages');
-  if (messagesDiv) {
-    messagesDiv.innerHTML = `<div class="msg system-msg">El debate ha sido limpiado. Puedes hacer una nueva consulta.</div>`;
-  }
-}
-
-// --- Función principal que ejecuta el flujo completo ---
-async function sendToMagi() {
-  const input = document.getElementById('magi-input');
-  const msg = input.value.trim();
-  if (!msg) return;
-
-  const msgsDiv = document.getElementById('magi-messages');
-  msgsDiv.innerHTML += `<div class="msg user">${escapeHtml(msg)}</div>`;
-  input.value = '';
-  msgsDiv.scrollTop = msgsDiv.scrollHeight;
-
-  const loadingId = 'magi-loading';
-  msgsDiv.innerHTML += `<div id="${loadingId}" class="msg system-msg"><span class="spinner"></span> El observador predice...</div>`;
-  msgsDiv.scrollTop = msgsDiv.scrollHeight;
-
-  // 1. Obtener métricas reales
-  const currentMetrics = getRealMetrics();
-
-  // 2. Monte Carlo
-  const prediction = monteCarloPrediction(currentMetrics, 1000);
-  updatePredictionHeader(prediction, currentMetrics);
-  const predictionText = `🔮 **Predicción del Observador**\n- P(colapso): ${(prediction.p_collapse * 100).toFixed(1)}%\n- IHG esperado: ${prediction.mean_ihg.toFixed(3)} ± ${prediction.std_ihg.toFixed(3)}\n- Umbral UCAP: ${prediction.mean_ihg < -0.4 ? '⚠️ ACTIVADO' : 'No activado'}\n- IHG real actual: ${currentMetrics.ihg.toFixed(3)}`;
-
-  msgsDiv.innerHTML += `<div class="msg assistant" data-agent="OBSERVADOR" style="border-left-color: #FFFFFF;"><div class="source">⨀ OBSERVADOR</div>${escapeHtml(predictionText)}</div>`;
-  msgsDiv.scrollTop = msgsDiv.scrollHeight;
-
-  document.getElementById(loadingId)?.remove();
-
-  msgsDiv.innerHTML += `<div id="${loadingId}" class="msg system-msg"><span class="spinner"></span> El consejo delibera...</div>`;
-  msgsDiv.scrollTop = msgsDiv.scrollHeight;
-
-  const agentsOrder = ['REI', 'SHINJI', 'KAWORU', 'SHADOW'];
-  const responses = [];
-
-  for (const agentId of agentsOrder) {
-    const agent = APTYMOK_AGENTS[agentId];
-    const typingId = `typing-${agentId}`;
-    msgsDiv.innerHTML += `<div id="${typingId}" class="msg assistant typing" data-agent="${agentId}" style="border-left-color: ${agent.color}"><div class="source">${agent.sigil} ${agentId}</div><span class="typing-text">...</span></div>`;
-    msgsDiv.scrollTop = msgsDiv.scrollHeight;
-
-    let prompt = `CONSULTA DEL USUARIO: ${msg}\n\nPREDICCIÓN DEL OBSERVADOR:\n${predictionText}\n\n`;
-    if (responses.length > 0) {
-      prompt += `RESPUESTAS ANTERIORES DEL CONSEJO:\n${responses.map(r => `- ${r.agent}: ${r.response.substring(0, 150)}...`).join('\n')}\n\n`;
-    }
-    prompt += `Ahora responde desde tu perspectiva única (${agent.name}).`;
-
-    const response = await getAgentResponse(agentId, prompt, currentMetrics);
-    responses.push({ agent: agentId, response });
-
-    const typingElem = document.getElementById(typingId);
-    if (typingElem) {
-      typingElem.classList.remove('typing');
-      typingElem.innerHTML = `<div class="source">${agent.sigil} ${agentId}</div>${escapeHtml(response)}`;
-      typingElem.style.borderLeftColor = agent.color;
-    }
-    msgsDiv.scrollTop = msgsDiv.scrollHeight;
-    await new Promise(r => setTimeout(r, 300));
-  }
-
-  document.getElementById(loadingId)?.remove();
-
-  // 4. Validación del Observador
-  const debateSummary = responses.map(r => `${r.agent}: ${r.response}`).join('\n\n');
-  const validationPrompt = `Eres el Observador. El consejo ha debatido sobre: "${msg}". Aquí está el debate:\n\n${debateSummary}\n\n¿La respuesta final del consejo fue certera? Responde SÍ o NO en una sola línea.`;
-
-  msgsDiv.innerHTML += `<div class="msg system-msg"><span class="spinner"></span> El Observador evalúa la respuesta...</div>`;
-  msgsDiv.scrollTop = msgsDiv.scrollHeight;
-
-  let validation = "NO";
-  try {
-    const obsResponse = await callGroq('llama-3.3-70b-versatile', [
-      { role: 'system', content: APTYMOK_AGENTS.OBSERVADOR.system_prompt },
-      { role: 'user', content: validationPrompt }
-    ], 0.0);
-    validation = obsResponse.trim().toUpperCase().includes("SÍ") ? "SÍ" : "NO";
-  } catch (e) {
-    console.warn("Error en validación del Observador", e);
-  }
-
-  msgsDiv.innerHTML += `<div class="msg assistant" data-agent="OBSERVADOR" style="border-left-color: #FFFFFF;"><div class="source">⨀ OBSERVADOR</div>Validación: <strong>${validation}</strong></div>`;
-  msgsDiv.scrollTop = msgsDiv.scrollHeight;
-
-  // 5. Ajustar confianza
-  const correct = validation === "SÍ";
-  for (const agentId of agentsOrder) {
-    let conf = agentConfidence[agentId] || 0.5;
-    const delta = correct ? 0.05 : -0.05;
-    conf = Math.max(0.1, Math.min(0.95, conf + delta));
-    agentConfidence[agentId] = conf;
-  }
-  saveConfidence();
-  updateConfidenceDisplay();
-
-  msgsDiv.innerHTML += `<div class="msg system-msg">🧠 Confianza actualizada: ${agentsOrder.map(a => `${a}: ${(agentConfidence[a]*100).toFixed(0)}%`).join(' · ')}</div>`;
-  msgsDiv.scrollTop = msgsDiv.scrollHeight;
-}
-
-// --- Inicialización del panel MAGI ---
-document.addEventListener('DOMContentLoaded', () => {
-  const sendBtn = document.getElementById('magi-send');
-  if (sendBtn) sendBtn.onclick = sendToMagi;
-  const clearBtn = document.getElementById('magi-clear');
-  if (clearBtn) clearBtn.onclick = clearMagiDebate;
-  const resetConfidenceBtn = document.createElement('button');
-  resetConfidenceBtn.textContent = 'REINICIAR CONFIANZA';
-  resetConfidenceBtn.className = 'iz-btn';
-  resetConfidenceBtn.style.marginLeft = '0.5rem';
-  resetConfidenceBtn.onclick = resetConfidence;
-  const inputZone = document.querySelector('#section-magi .iz-filters');
-  if (inputZone) inputZone.appendChild(resetConfidenceBtn);
-  const magiInput = document.getElementById('magi-input');
-  if (magiInput) {
-    magiInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-        e.preventDefault();
-        sendToMagi();
-      }
-    });
-  }
-  updateConfidenceDisplay();
-});
-
-  
-// ═══════════════════════════════════════════════════════════════
-// 8. Math Extender (idéntico)
-// ═══════════════════════════════════════════════════════════════
-function addNewMath(){ const name=document.getElementById('new-eq-name').value; const formula=document.getElementById('new-eq-formula').value; if(!name||!formula)return; const eqs=JSON.parse(localStorage.getItem('sf_math_eqs')||'[]'); eqs.push({name,formula,date:new Date().toISOString()}); localStorage.setItem('sf_math_eqs',JSON.stringify(eqs)); renderMathList(); }
-function renderMathList(){ const eqs=JSON.parse(localStorage.getItem('sf_math_eqs')||'[]'); const container=document.getElementById('math-list'); container.innerHTML=eqs.map((e,i)=>`<div style="background:var(--surface);padding:1rem;border:1px solid var(--border)"><div class="mono">${escapeHtml(e.name)}</div><div class="equation">${escapeHtml(e.formula)}</div><div class="dim" style="font-size:.6rem">${e.date}</div><button onclick="deleteMath(${i})" class="btn btn-danger" style="margin-top:.5rem">Eliminar</button></div>`).join(''); }
-function deleteMath(i){ let eqs=JSON.parse(localStorage.getItem('sf_math_eqs')||'[]'); eqs.splice(i,1); localStorage.setItem('sf_math_eqs',JSON.stringify(eqs)); renderMathList(); }
-
-// ═══════════════════════════════════════════════════════════════
-// 9. INICIO
-// ═══════════════════════════════════════════════════════════════
-document.addEventListener('DOMContentLoaded',()=>{
-  initTimelineChart();
-  initRadar();
-  initNTIChart();
-  initPatternActivations();
-  initPredictorVivo();
-  initMemoryFlow();
-  renderMathList();
-  document.getElementById('ctx-active').innerHTML=`<div>Sistema: MIHM v3.0</div><div>IHG: <span class="red-val">-0.620</span></div><div>NTI: 0.351</div><div>Protocolo: EMERGENCY</div>`;
-  document.getElementById('ctx-vars').innerHTML=VARIABLES_MIHM.slice(0,6).map(v=>`<div class="ctx-item">${v.sym}: ${v.val}</div>`).join('');
-  document.getElementById('ctx-patterns').innerHTML=PATTERNS.slice(0,5).map(p=>`<div class="ctx-item"><div style="width:5px;height:5px;background:${p.color};display:inline-block;margin-right:.5rem"></div>${p.name}</div>`).join('');
-  setInterval(()=>{ document.getElementById('live-time').textContent=new Date().toLocaleTimeString('es-MX'); },1000);
-});
-</script>
 </body>
 </html>

@@ -1,24 +1,4 @@
-/**
- * dashboard.js — System Friction Observatory · MIHM v3.0
- * Motor de visualización: IHG · NTI · Patrones · Observer O(t)
- *
- * Renders al:  #sf-headline · #sf-nodes · #sf-nti · #sf-scenarios
- *              #sf-variables · #sf-patterns · #sf-aptymok
- *
- * Arquitectura:
- *   SFDashboard → MIHM_ENGINE → AGS_DATA → render*()
- *   Observer O(t) [Aptymok Council] → campo reflexivo capa 0
- *
- * CC BY 4.0 · Juan Antonio Marín Liera · systemfriction.org
- */
-
 'use strict';
-
-/* ─────────────────────────────────────────────────────────────────
-   1. MOTOR MIHM v3.0
-   Función de agregación completa con 11 variables, 5 interacciones,
-   filtro temporal y protocolo UCAP.
-───────────────────────────────────────────────────────────────── */
 
 const MIHM = {
 

@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>SF_2 — Sistema Completo</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+
+/* ============================================================
+   VARIABLES Y BASE
+============================================================== */
+
+:root {
+  --paper: #f4f1ec;
+  --ink: #1a1918;
+  --gold: #c8a951;
+  --mono: 'Courier New', monospace;
+  --serif: 'Times New Roman', serif;
+  --sans: 'Helvetica', sans-serif;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: #111;
+  color: var(--ink);
+  font-family: var(--sans);
+}
+
+/* ============================================================
+   ESTRUCTURA DE PÁGINAS
+============================================================== */
+
+.page {
+  width: 100%;
+  min-height: 100vh;
+  padding: 3rem 4rem;
+  box-sizing: border-box;
+  position: relative;
+}
+
+.pg-white {
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.pg-black {
+  background: #000;
+  color: #ccc;
+}
+
+.page-fold {
+  display: flex;
+  width: 100%;
+  min-height: 100vh;
+  background: var(--paper);
+  position: relative;
+}
+
+.half-l, .half-r {
+  width: 50%;
+  box-sizing: border-box;
+  padding: 3rem;
+  position: relative;
+}
+
+.half-l.pg-black {
+  background: #000;
+}
+
+/* ============================================================
+   TIPOGRAFÍAS
+============================================================== */
+
+.t-title {
+  font-size: 2rem;
+  font-weight: 600;
+  line-height: 1.25;
+  margin-bottom: 1rem;
+}
+
+.t-kicker {
+  font-size: .75rem;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+}
+
+.t-body {
+  font-size: 1rem;
+  line-height: 1.7;
+}
+
+.t-poem {
+  font-size: 1.15rem;
+  line-height: 2;
+  font-style: italic;
+  color: #bbb;
+}
+
+.t-large {
+  font-size: 1.8rem;
+  line-height: 1.3;
+}
+
+.t-mono {
+  font-family: var(--mono);
+  font-size: .85rem;
+}
+
+.c-dim {
+  opacity: .7;
+}
+
+.c-gold {
+  color: var(--gold);
+}
+
+/* ============================================================
+   MARCAS, DECORACIÓN Y PLIEGOS
+============================================================== */
+
+.corner-mark {
+  position: absolute;
+  bottom: 2rem;
+  right: 2rem;
+  font-size: .75rem;
+  opacity: .2;
+  font-family: var(--mono);
+}
+
+.fold-line {
+  height: 100%;
+  width: 2px;
+  background: rgba(200,169,81,.2);
+  position: absolute;
+  left: 50%;
+  top: 0;
+}
+
+.fold-label {
+  position: absolute;
+  top: 1.5rem;
+  left: calc(50% + 1rem);
+  font-size: .7rem;
+  opacity: .25;
+  font-family: var(--mono);
+}
+
+/* ============================================================
+   COLUMNAS Y CENTRADOS
+============================================================== */
+
+.col {
+  display: flex;
+  flex-direction: column;
+}
+
+.center {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pad {
+  padding: 3rem;
+}
+
+/* ============================================================
+   ELEMENTOS ESPECIALES
+============================================================== */
+
+.rule-g {
+  width: 100%;
+  height: 1px;
+  background: rgba(200,169,81,.25);
+  margin: 1.6rem 0;
+}
+
+svg {
+  display: block;
+}
+
+/* Corrección de overflow SVG */
+svg * {
+  vector-effect: non-scaling-stroke;
+}
+
+</style>
+</head>
+
+<body>
+
+<!-- ============================================================
+     INICIO DEL DOCUMENTO — EL ENSAMBLADOR PEGARÁ TODO DESPUÉS
+=============================================================== -->
+
+<!-- El Módulo 01 entrará aquí automáticamente -->
