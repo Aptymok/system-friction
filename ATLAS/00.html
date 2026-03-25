@@ -187,7 +187,93 @@ svg {
 svg * {
   vector-effect: non-scaling-stroke;
 }
+/* ============================================================
+   FORMATO LIBRO DE ARTE — 22 × 22 cm
+   (Para pantalla Y exportación a PDF)
+============================================================== */
 
+/* Fijamos proporción cuadrada */
+.page, .page-fold {
+  width: 22cm;
+  min-height: 22cm;
+  height: auto;
+  margin: 0 auto;
+  padding: 3cm 3cm;
+  box-sizing: border-box;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Márgenes amplios de libro de arte */
+.pad {
+  padding: 2.6cm;
+}
+
+/* Separación fuerte entre páginas */
+.page, .page-fold {
+  page-break-after: always;
+}
+
+/* Estética editorial premium */
+body {
+  background: #e8e6e3;
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  letter-spacing: 0.01em;
+}
+
+/* Títulos grandes y con autoridad visual */
+.t-title {
+  font-size: 2.4rem;
+  letter-spacing: -0.5px;
+  margin-bottom: 1.4rem;
+}
+
+/* Textos largos con respiración amplia */
+.t-body {
+  font-size: 1.25rem;
+  line-height: 1.9;
+}
+
+/* Poemas/epígrafes como arte */
+.t-poem {
+  font-size: 1.6rem;
+  line-height: 2.2;
+  opacity: .88;
+}
+
+/* Kicker editorial */
+.t-kicker {
+  font-size: 0.85rem;
+  letter-spacing: 0.25em;
+  opacity: .45;
+  margin-bottom: 0.8rem;
+}
+
+/* Marcas de esquina discretas */
+.corner-mark {
+  bottom: 1.4cm;
+  right: 1.8cm;
+  font-size: .75rem;
+  opacity: .22;
+}
+
+/* Fondos negros más profundos y limpios */
+.pg-black {
+  background: #000;
+  color: #dcdcdc;
+}
+
+/* SVG optimizados para formato grande */
+svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* Impresión en PDF a tamaño EXACTO 22 × 22 */
+@page {
+  size: 22cm 22cm;
+  margin: 0;
+}
 </style>
 </head>
 
