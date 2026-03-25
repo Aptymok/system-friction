@@ -1,0 +1,18 @@
+{
+  "evolucion_temporal": {
+    "bloque_0": {
+      "vocabulario": {
+        "friccion": 12,
+        "riesgo": 10,
+        "sistema": 14,
+        "latencia": 8,
+        "coherencia": 7,
+        "colapso": 11,
+        "campo": 9,
+        "decision": 8,
+        "nodo": 6,
+        "resonancia": 5
+      }
+    }
+  }
+}
