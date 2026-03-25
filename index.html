@@ -532,12 +532,23 @@ a:hover{color:var(--text-bright)}
 <section id="section-dashboard" class="sf-section active">
 <div class="dash-layout">
   <!-- Row 1: KPIs originales + IAD y ETE -->
+  <div class="metric-tile" style="display: none;" id="ice-metric-tile">
+  <div class="label">ICE · Coherencia Institucional</div>
+  <div class="value" id="kpi-ice">0.21</div>
+  <div class="sub">Umbral estructural 0.50 · FRAGMENTADO</div>
+</div>
+<div class="metric-tile" style="display: none;" id="psi-metric-tile">
+  <div class="label">PSI · Presión Sistémica</div>
+  <div class="value" id="kpi-psi">0.89</div>
+  <div class="sub">Umbral crítico 0.70 · ALTA TENSIÓN</div>
+</div>
   <div class="dash-row dash-row-4">
     <div class="metric-tile">
       <div class="label">IHG · Índice Homeostático</div>
       <div class="value critical" id="kpi-ihg">−0.620</div>
       <div class="sub">UCAP threshold −0.400 · EMERGENCY</div>
       <div class="bar critical" style="width:62%"></div>
+      
     </div>
     <div class="metric-tile">
       <div class="label">NTI · Trazabilidad</div>
@@ -1186,7 +1197,7 @@ setupGroqPanel('groq2', 'groq-model-2', 'groq2-messages', 'groq2-input', 'groq2-
 // 7. SF-MAGI Council → APTYMOK CONSEJO + OBSERVADOR (Monte Carlo)
 // ═══════════════════════════════════════════════════════════════
 
-// --- Perfiles APTYMOK (copia desde aptymok_profiles.json) ---
+// --- Perfiles APTYMOK (desde aptymok_profiles.json) ---
 const APTYMOK_AGENTS = {
   OBSERVADOR: {
     name: "OBSERVADOR",
@@ -1246,29 +1257,68 @@ Formato: 2-3 preguntas punzantes + 1 hipótesis. Máximo 80 palabras. Sin saludo
   }
 };
 
-// --- Variables de confianza (persiste en localStorage) ---
+// --- Variables de confianza (se reinician al cargar la página) ---
 let agentConfidence = {
   REI: 0.5,
   SHINJI: 0.5,
   KAWORU: 0.5,
   SHADOW: 0.5
 };
-try {
-  const saved = localStorage.getItem('sf_agent_confidence');
-  if (saved) agentConfidence = JSON.parse(saved);
-} catch(e) {}
 
 function saveConfidence() {
   localStorage.setItem('sf_agent_confidence', JSON.stringify(agentConfidence));
 }
 
-// --- Monte Carlo en JavaScript (basado en las ecuaciones MIHM v3) ---
+// Si quieres reiniciar la confianza en cualquier momento, llama a esta función
+function resetConfidence() {
+  agentConfidence = { REI: 0.5, SHINJI: 0.5, KAWORU: 0.5, SHADOW: 0.5 };
+  saveConfidence();
+  updateConfidenceDisplay();
+  console.log("Confianza reiniciada a 50% para todos los agentes.");
+}
+
+// --- Función para obtener métricas reales del sistema ---
+function getRealMetrics() {
+  // Leer IHG y NTI del dashboard (existen)
+  const ihg = parseFloat(document.getElementById('kpi-ihg')?.innerText) || -0.62;
+  const nti = parseFloat(document.getElementById('kpi-nti')?.innerText) || 0.351;
+
+  // Derivar ICE y PSI a partir de los datos disponibles (ajusta según tu lógica)
+  // Aquí usamos una heurística: si IHG es muy negativo, ICE baja y PSI sube
+  let ice, psi, entropy;
+
+  if (ihg < -0.5) {
+    ice = 0.21;      // crisis: coherencia baja
+    psi = 0.89;      // presión alta
+    entropy = 0.85;  // entropía muy alta (crisis)
+  } else if (ihg < -0.3) {
+    ice = 0.45;
+    psi = 0.70;
+    entropy = 0.65;
+  } else {
+    ice = 0.73;
+    psi = 0.58;
+    entropy = 0.40;
+  }
+
+  // También podemos usar el valor de NTI para ajustar
+  if (nti < 0.4) {
+    psi = Math.min(0.95, psi + 0.1);
+    ice = Math.max(0.15, ice - 0.05);
+  }
+
+  return {
+    ihg: ihg,
+    nti: nti,
+    ice: ice,
+    psi: psi,
+    entropy: entropy
+  };
+}
+
+// --- Monte Carlo en JavaScript (usa las métricas reales) ---
 function monteCarloPrediction(metrics, iterations = 1000) {
-  // Valores por defecto si alguna métrica no existe
-  const nti = metrics.nti ?? 0.44;
-  const ice = metrics.ice ?? 0.73;
-  const psi = metrics.psi ?? 0.58;
-  const entropy = metrics.entropy ?? 0.40;
+  const { nti, ice, psi, entropy } = metrics;
 
   const variables = {
     F_s: { value: 0.5 + 0.3 * nti + 0.2 * psi, weight: 0.1, std: 0.05 },
@@ -1316,9 +1366,7 @@ function monteCarloPrediction(metrics, iterations = 1000) {
       try {
         const result = eval(expr);
         sumInteractions += inter.weight * result;
-      } catch (e) {
-        // silencio
-      }
+      } catch (e) {}
     }
 
     const ihg = sumWeighted - sumInteractions;
@@ -1343,7 +1391,7 @@ async function getAgentResponse(agentId, prompt, metricsSnapshot) {
     temperature = Math.min(0.95, agent.temperature + (confidence - 0.5) * 0.4);
   }
 
-  const metricsStr = `MÉTRICAS ACTUALES:\nNTI: ${(metricsSnapshot.nti || 0.44).toFixed(3)}\nICE: ${(metricsSnapshot.ice || 0.73).toFixed(3)}\nPSI: ${(metricsSnapshot.psi || 0.58).toFixed(3)}\nEntropía: ${(metricsSnapshot.entropy || 0.40).toFixed(3)}`;
+  const metricsStr = `MÉTRICAS ACTUALES:\nIHG: ${metricsSnapshot.ihg.toFixed(3)}\nNTI: ${metricsSnapshot.nti.toFixed(3)}\nICE: ${metricsSnapshot.ice.toFixed(3)}\nPSI: ${metricsSnapshot.psi.toFixed(3)}\nEntropía: ${metricsSnapshot.entropy.toFixed(3)}`;
   const fullPrompt = `${metricsStr}\n\n${prompt}`;
 
   try {
@@ -1358,13 +1406,14 @@ async function getAgentResponse(agentId, prompt, metricsSnapshot) {
 }
 
 // --- Actualizar encabezado de predicción ---
-function updatePredictionHeader(prediction) {
+function updatePredictionHeader(prediction, metrics) {
   const header = document.getElementById('prediction-header');
   if (!header) return;
   header.innerHTML = `
     <div>📉 P(colapso): <strong style="color: ${prediction.p_collapse > 0.5 ? 'var(--red)' : 'var(--green)'}">${(prediction.p_collapse * 100).toFixed(1)}%</strong></div>
     <div>📊 IHG esperado: <strong>${prediction.mean_ihg.toFixed(3)}</strong> ± ${prediction.std_ihg.toFixed(3)}</div>
     <div>⚠️ UCAP: ${prediction.mean_ihg < -0.4 ? 'ACTIVADO' : 'No activado'}</div>
+    <div style="font-size:0.65rem; opacity:0.7;">📌 IHG real: ${metrics.ihg.toFixed(3)} | NTI: ${metrics.nti.toFixed(3)} | ICE: ${metrics.ice.toFixed(3)} | PSI: ${metrics.psi.toFixed(3)}</div>
   `;
 }
 
@@ -1400,31 +1449,13 @@ async function sendToMagi() {
   msgsDiv.innerHTML += `<div id="${loadingId}" class="msg system-msg"><span class="spinner"></span> El observador predice...</div>`;
   msgsDiv.scrollTop = msgsDiv.scrollHeight;
 
-  // Obtener métricas (con valores por defecto si no existen)
-  const currentMetrics = {
-    nti: parseFloat(document.getElementById('kpi-nti')?.innerText) || 0.44,
-    ice: parseFloat(document.getElementById('kpi-ice')?.innerText) || 0.73,
-    psi: parseFloat(document.getElementById('kpi-psi')?.innerText) || 0.58,
-    entropy: 0.40
-  };
+  // 1. Obtener métricas reales
+  const currentMetrics = getRealMetrics();
 
-  // Si no existen los elementos, crearlos temporalmente (solo para que no rompa)
-  if (!document.getElementById('kpi-ice')) {
-    const fakeDiv = document.createElement('div');
-    fakeDiv.id = 'kpi-ice';
-    fakeDiv.style.display = 'none';
-    document.body.appendChild(fakeDiv);
-  }
-  if (!document.getElementById('kpi-psi')) {
-    const fakeDiv = document.createElement('div');
-    fakeDiv.id = 'kpi-psi';
-    fakeDiv.style.display = 'none';
-    document.body.appendChild(fakeDiv);
-  }
-
+  // 2. Monte Carlo
   const prediction = monteCarloPrediction(currentMetrics, 1000);
-  updatePredictionHeader(prediction);
-  const predictionText = `🔮 **Predicción del Observador**\n- P(colapso): ${(prediction.p_collapse * 100).toFixed(1)}%\n- IHG esperado: ${prediction.mean_ihg.toFixed(3)} ± ${prediction.std_ihg.toFixed(3)}\n- Umbral UCAP: ${prediction.mean_ihg < -0.4 ? '⚠️ ACTIVADO' : 'No activado'}`;
+  updatePredictionHeader(prediction, currentMetrics);
+  const predictionText = `🔮 **Predicción del Observador**\n- P(colapso): ${(prediction.p_collapse * 100).toFixed(1)}%\n- IHG esperado: ${prediction.mean_ihg.toFixed(3)} ± ${prediction.std_ihg.toFixed(3)}\n- Umbral UCAP: ${prediction.mean_ihg < -0.4 ? '⚠️ ACTIVADO' : 'No activado'}\n- IHG real actual: ${currentMetrics.ihg.toFixed(3)}`;
 
   msgsDiv.innerHTML += `<div class="msg assistant" data-agent="OBSERVADOR" style="border-left-color: #FFFFFF;"><div class="source">⨀ OBSERVADOR</div>${escapeHtml(predictionText)}</div>`;
   msgsDiv.scrollTop = msgsDiv.scrollHeight;
@@ -1464,7 +1495,7 @@ async function sendToMagi() {
 
   document.getElementById(loadingId)?.remove();
 
-  // Validación del Observador
+  // 4. Validación del Observador
   const debateSummary = responses.map(r => `${r.agent}: ${r.response}`).join('\n\n');
   const validationPrompt = `Eres el Observador. El consejo ha debatido sobre: "${msg}". Aquí está el debate:\n\n${debateSummary}\n\n¿La respuesta final del consejo fue certera? Responde SÍ o NO en una sola línea.`;
 
@@ -1485,7 +1516,7 @@ async function sendToMagi() {
   msgsDiv.innerHTML += `<div class="msg assistant" data-agent="OBSERVADOR" style="border-left-color: #FFFFFF;"><div class="source">⨀ OBSERVADOR</div>Validación: <strong>${validation}</strong></div>`;
   msgsDiv.scrollTop = msgsDiv.scrollHeight;
 
-  // Ajustar confianza
+  // 5. Ajustar confianza
   const correct = validation === "SÍ";
   for (const agentId of agentsOrder) {
     let conf = agentConfidence[agentId] || 0.5;
@@ -1506,6 +1537,13 @@ document.addEventListener('DOMContentLoaded', () => {
   if (sendBtn) sendBtn.onclick = sendToMagi;
   const clearBtn = document.getElementById('magi-clear');
   if (clearBtn) clearBtn.onclick = clearMagiDebate;
+  const resetConfidenceBtn = document.createElement('button');
+  resetConfidenceBtn.textContent = 'REINICIAR CONFIANZA';
+  resetConfidenceBtn.className = 'iz-btn';
+  resetConfidenceBtn.style.marginLeft = '0.5rem';
+  resetConfidenceBtn.onclick = resetConfidence;
+  const inputZone = document.querySelector('#section-magi .iz-filters');
+  if (inputZone) inputZone.appendChild(resetConfidenceBtn);
   const magiInput = document.getElementById('magi-input');
   if (magiInput) {
     magiInput.addEventListener('keydown', (e) => {
@@ -1517,6 +1555,8 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   updateConfidenceDisplay();
 });
+
+  
 // ═══════════════════════════════════════════════════════════════
 // 8. Math Extender (idéntico)
 // ═══════════════════════════════════════════════════════════════
