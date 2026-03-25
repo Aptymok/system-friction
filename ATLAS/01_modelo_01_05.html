@@ -1,0 +1,295 @@
+<!-- ============================================================
+     SECCIÓN 1 — APERTURA DEL SISTEMA
+=============================================================== -->
+
+<div class="page pg-white">
+  <div class="col pad" style="max-width:80%;">
+    <div class="t-kicker c-dim">SECCIÓN · 01</div>
+    <div class="t-title" style="margin-top:1rem;">APERTURA</div>
+
+    <div class="t-body c-dim" style="margin-top:1.4rem;line-height:1.8;">
+      Todo sistema inicia con una distinción: separar lo que forma parte de él
+      de aquello que pertenece al ruido exterior. Esta primera página establece
+      la aparición del marco cognitivo básico.
+    </div>
+  </div>
+
+  <div class="corner-mark">s1 · apertura</div>
+</div>
+
+
+<!-- ============================================================
+     SECCIÓN 2 — ESTRUCTURA BASE DEL MARCO
+=============================================================== -->
+
+<div class="page pg-white">
+  <div class="col pad" style="max-width:82%;">
+
+    <div class="t-kicker c-dim">SECCIÓN · 02</div>
+    <div class="t-title" style="margin-top:1rem;">MARCO ESTRUCTURAL</div>
+
+    <div class="t-body" style="margin-top:1.4rem;line-height:1.8;">
+      El sistema establece aquí su fundamento operativo inicial: el conjunto
+      mínimo de reglas perceptuales capaces de sostener la lectura posterior.
+      El énfasis recae en la apertura de espacio y la organización de tensión.
+    </div>
+  </div>
+
+  <div class="corner-mark">s2 · marco</div>
+</div>
+
+
+
+<!-- ============================================================
+     SECCIÓN 3 — PATRONES PERCEPTUALES (BLOQUE 1)
+=============================================================== -->
+
+<!-- PATRÓN 01 — SEÑAL / RUIDO -->
+<div class="page pg-black" style="background:#030303;">
+  <svg style="position:absolute;width:100%;height:100%;">
+    <defs>
+      <filter id="denseNoise">
+        <feTurbulence type="fractalNoise" baseFrequency="2.4" numOctaves="6" seed="11" result="n"/>
+        <feColorMatrix type="matrix"
+           values="0 0 0 0 0  
+                   0 0 0 0 0  
+                   0 0 0 0 0  
+                   0 0 0 0.65 0"/>
+      </filter>
+    </defs>
+
+    <rect width="100%" height="100%" fill="#030303"/>
+    <rect width="100%" height="100%" filter="url(#denseNoise)" opacity="0.10"/>
+
+    <circle cx="20%" cy="34%" r="2" fill="rgba(200,169,81,.35)"/>
+    <circle cx="55%" cy="50%" r="1.8" fill="rgba(200,169,81,.28)"/>
+    <circle cx="78%" cy="62%" r="1.4" fill="rgba(200,169,81,.18)"/>
+  </svg>
+
+  <div class="center" style="max-width:70%;">
+    <div class="t-poem" style="color:#777;">
+      Cuando todo hace ruido,<br>nada se escucha.
+    </div>
+  </div>
+</div>
+
+<!-- FORMAL · PATRÓN 01 -->
+<div class="page pg-white">
+  <div class="col pad">
+    <div class="t-kicker c-dim">Patrón · 01</div>
+    <div class="t-title">SEÑAL VS RUIDO</div>
+
+    <div class="t-body c-dim" style="margin-top:1rem;">
+      Distinción entre patrones útiles y ruido irrelevante.
+    </div>
+
+    <div class="rule-g"></div>
+
+    <div class="t-formula">SNR = señal / ruido</div>
+
+    <div class="t-mono c-dim" style="margin-top:1.6rem;">
+      SF_D_NODE_0018
+    </div>
+  </div>
+</div>
+
+
+
+<!-- PATRÓN 02 — CONTEXTO PERDIDO -->
+<div class="page pg-black" style="background:#020202;">
+  <svg style="position:absolute;width:100%;height:100%;">
+    <rect x="18%" y="28%" width="8" height="8" fill="rgba(200,169,81,.32)"/>
+    <rect x="52%" y="46%" width="7" height="7" fill="rgba(200,169,81,.28)"/>
+    <rect x="71%" y="66%" width="6" height="6" fill="rgba(200,169,81,.20)"/>
+    <rect x="33%" y="74%" width="5" height="5" fill="rgba(200,169,81,.15)"/>
+
+    <line x1="18%" y1="28%" x2="52%" y2="46%" stroke="rgba(200,169,81,.06)" stroke-width=".8" stroke-dasharray="3 5"/>
+    <line x1="52%" y1="46%" x2="71%" y2="66%" stroke="rgba(200,169,81,.04)" stroke-width=".8" stroke-dasharray="3 5"/>
+  </svg>
+
+  <div class="center">
+    <div class="t-poem" style="color:#666;">
+      Partes que siguen vivas.<br>
+      Razones que ya no existen.
+    </div>
+  </div>
+</div>
+
+<!-- FORMAL · PATRÓN 02 -->
+<div class="page pg-white">
+  <div class="col pad">
+    <div class="t-kicker c-dim">Patrón · 02</div>
+    <div class="t-title">CONTEXTO PERDIDO</div>
+
+    <div class="t-body c-dim" style="margin-top:1rem;">
+      La estructura persiste aun cuando su origen ya no puede recuperarse.
+    </div>
+
+    <div class="rule-g"></div>
+
+    <div class="t-formula">C_x = contexto_disponible / contexto_requerido</div>
+
+    <div class="t-mono c-dim" style="margin-top:1.6rem;">
+      SF_D_NODE_0019
+    </div>
+  </div>
+</div>
+
+
+
+<!-- PATRÓN 03 — INCERTIDUMBRE HUMANA -->
+<div class="page pg-black" style="background:#040404;">
+  <svg style="position:absolute;width:100%;height:100%;">
+    <circle cx="40%" cy="40%" r="2" fill="rgba(200,169,81,.20)"/>
+    <circle cx="44%" cy="43%" r="1.5" fill="rgba(200,169,81,.26)"/>
+    <circle cx="60%" cy="58%" r="2.2" fill="rgba(200,169,81,.20)"/>
+    <circle cx="63%" cy="61%" r="1.3" fill="rgba(200,169,81,.26)"/>
+  </svg>
+
+  <div class="center">
+    <div class="t-poem" style="color:#777;">
+      Algunos funcionan mejor<br>cuando nada está definido.
+    </div>
+  </div>
+</div>
+
+<!-- FORMAL · PATRÓN 03 -->
+<div class="page pg-white">
+  <div class="col pad">
+
+    <div class="t-kicker c-dim">Patrón · 03</div>
+    <div class="t-title">INCERTIDUMBRE HUMANA</div>
+
+    <div class="t-body c-dim" style="margin-top:1.2rem;">
+      Preferencia humana por la reversibilidad frente a la optimización.
+    </div>
+
+    <div class="t-formula" style="margin-top:1.6rem;">
+      U_h = varianza_decisoria
+    </div>
+
+    <div class="t-mono c-dim" style="margin-top:1.6rem;">
+      SF_D_NODE_0020
+    </div>
+
+  </div>
+</div>
+
+
+
+<!-- PATRÓN 04 — ESCRITURA SIN INTENCIÓN VISIBLE -->
+<div class="page pg-black" style="background:#050505;">
+
+  <svg style="position:absolute;width:100%;height:100%;">
+    <rect x="22%" y="30%" width="180" height="6" fill="rgba(200,169,81,.25)"/>
+    <rect x="22%" y="38%" width="160" height="6" fill="rgba(200,169,81,.18)"/>
+    <rect x="22%" y="46%" width="200" height="6" fill="rgba(200,169,81,.30)"/>
+    <rect x="22%" y="54%" width="140" height="6" fill="rgba(200,169,81,.12)"/>
+
+    <rect x="22%" y="66%" width="60" height="4" fill="rgba(200,169,81,.08)"/>
+    <rect x="22%" y="72%" width="85" height="4" fill="rgba(200,169,81,.05)"/>
+  </svg>
+
+  <div class="center" style="max-width:75%;">
+    <div class="t-poem" style="color:#777;">
+      Lo que no dice<br>
+      pesa más que lo que dice.
+    </div>
+  </div>
+
+</div>
+
+<!-- FORMAL · PATRÓN 04 -->
+<div class="page pg-white">
+  <div class="col pad">
+
+    <div class="t-kicker c-dim">Patrón · 04</div>
+    <div class="t-title">ESCRITURA SIN INTENCIÓN</div>
+
+    <div class="t-body c-dim" style="margin-top:1.2rem;">
+      La densidad semántica revela la intención subyacente.
+    </div>
+
+    <div class="t-formula" style="margin-top:1.6rem;">
+      I_e = intención_explícita / efecto_sistémico
+    </div>
+
+    <div class="t-mono c-dim" style="margin-top:1.6rem;">
+      SF_D_NODE_0017
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ============================================================
+     SECCIÓN 4 — DERIVACIÓN (TRANSICIÓN)
+=============================================================== -->
+
+<div class="page pg-white">
+  <div class="col pad" style="max-width:80%;">
+
+    <div class="t-kicker c-dim">SECCIÓN · 04</div>
+    <div class="t-title" style="margin-top:1.2rem;">DERIVACIÓN</div>
+
+    <div class="t-body c-dim" style="margin-top:1.2rem;line-height:1.9;">
+      El sistema reconoce repetición, forma y recurrencia.
+      La estructura emergente comienza a adquirir estabilidad perceptual
+      antes de unificar sus patrones formales.
+    </div>
+  </div>
+
+  <div class="corner-mark">s4 · derivación</div>
+</div>
+
+
+
+<!-- ============================================================
+     SECCIÓN 5 — PATRONES (BLOQUE 2)
+=============================================================== -->
+
+<!-- PATRÓN 05 — DESALINEACIÓN DE MÉTRICAS (PLIEGO) -->
+
+<div class="page-fold pg-white">
+
+  <div class="fold-line"></div>
+  <div class="fold-label">[ pliego · desalineación ]</div>
+
+  <div class="half-l pg-black" style="padding:2rem;">
+
+    <svg viewBox="0 0 480 260" style="width:100%;opacity:.85;">
+      <line x1="40" y1="80" x2="440" y2="85"
+            stroke="rgba(200,169,81,.25)" stroke-width="2"/>
+      <line x1="40" y1="150" x2="440" y2="130"
+            stroke="rgba(184,80,80,.35)" stroke-width="2.2"/>
+
+      <circle cx="180" cy="82" r="4" fill="rgba(200,169,81,.4)"/>
+      <circle cx="300" cy="131" r="4" fill="rgba(184,80,80,.45)"/>
+    </svg>
+
+    <div class="t-poem" style="color:#777;margin-top:1.8rem;">
+      El indicador mira a un lado.<br>
+      El sistema mira al otro.
+    </div>
+
+  </div>
+
+  <div class="half-r pg-white" style="padding:2rem;">
+
+    <div class="t-kicker c-dim">Patrón · 05</div>
+    <div class="t-title">DESALINEACIÓN DE MÉTRICAS</div>
+
+    <div class="t-body c-dim" style="margin-top:1rem;">
+      El sistema mide lo que puede, no lo que importa.
+    </div>
+
+    <div class="t-formula" style="margin-top:1.2rem;">
+      desalineación = 1 - correlación(métrica, resultado)
+    </div>
+
+    <div class="t-mono c-dim" style="margin-top:1.6rem;">
+      SF_D_NODE_0015
+    </div>
+  </div>
+
+</div>

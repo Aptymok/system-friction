@@ -1,0 +1,241 @@
+<!-- ============================================================
+     SECCIÓN 6 — PATRONES (BLOQUE 2 CONTINUACIÓN)
+     PATRÓN 06 → 10
+=============================================================== -->
+
+
+<!-- ============================================================
+     PATRÓN 06 — PROXY COMO OBJETIVO (PLIEGO)
+=============================================================== -->
+
+<div class="page-fold pg-white">
+
+  <div class="fold-line"></div>
+  <div class="fold-label">[ pliego · proxy ]</div>
+
+  <div class="half-l pg-black" style="padding:2.4rem;">
+
+    <svg viewBox="0 0 480 260" style="width:100%;height:auto;">
+
+      <path d="M40 160 C 160 145, 260 120, 440 60"
+            stroke="rgba(200,169,81,.28)" stroke-width="2" fill="none"/>
+
+      <path d="M40 150 C 160 170, 260 200, 440 230"
+            stroke="rgba(184,80,80,.32)" stroke-width="2.4" fill="none"/>
+    </svg>
+
+    <div class="t-poem" style="color:#777;margin-top:1.8rem;">
+      La métrica sube.<br>El resultado baja.
+    </div>
+
+  </div>
+
+  <div class="half-r pg-white" style="padding:2.6rem;">
+
+    <div class="t-kicker c-dim">Patrón · 06</div>
+    <div class="t-title">PROXY COMO OBJETIVO (LEY DE GOODHART)</div>
+
+    <div class="t-body c-dim" style="margin-top:1rem;">
+      Cuando la métrica se convierte en objetivo, deja de medir.
+    </div>
+
+    <div class="rule-g" style="margin:1.4rem 0;"></div>
+
+    <div class="t-formula">
+      goodhart = si(métrica→objetivo) → métrica deja de medir objetivo
+    </div>
+
+    <div class="t-mono c-dim" style="margin-top:1.8rem;">
+      SF_D_NODE_0032
+    </div>
+
+  </div>
+
+</div>
+
+
+
+<!-- ============================================================
+     PATRÓN 07 — INCENTIVO CONTRADICTORIO (PLIEGO)
+=============================================================== -->
+
+<div class="page-fold pg-white">
+
+  <div class="fold-line"></div>
+  <div class="fold-label">[ pliego · incentivos ]</div>
+
+  <div class="half-l pg-black" style="padding:2.4rem;">
+
+    <svg viewBox="0 0 480 260" style="width:100%;">
+
+      <circle cx="160" cy="120" r="20" fill="rgba(200,169,81,.25)"/>
+      <circle cx="260" cy="120" r="32" fill="rgba(184,80,80,.35)"/>
+    </svg>
+
+    <div class="t-poem" style="color:#777;margin-top:1.8rem;">
+      El incentivo funciona.<br>El sistema no.
+    </div>
+
+  </div>
+
+  <div class="half-r pg-white" style="padding:2.6rem;">
+
+    <div class="t-kicker c-dim">Patrón · 07</div>
+    <div class="t-title">INCENTIVO CONTRADICTORIO</div>
+
+    <div class="t-body c-dim" style="margin-top:1.3rem;">
+      El sistema optimiza el proxy, no el resultado real.
+    </div>
+
+    <div class="t-formula" style="margin-top:1.6rem;">
+      I_f = incentivo_local / resultado_sistémico
+    </div>
+
+    <div class="t-mono c-dim" style="margin-top:1.6rem;">
+      SF_D_NODE_0032
+    </div>
+
+  </div>
+
+</div>
+
+
+
+<!-- ============================================================
+     PATRÓN 08 — COMPLIANCE COMO NARRATIVA (PLIEGO)
+=============================================================== -->
+
+<div class="page-fold pg-white">
+
+  <div class="fold-line"></div>
+  <div class="fold-label">[ pliego · narrativa ]</div>
+
+  <div class="half-l pg-black" style="padding:2.4rem;">
+
+    <svg viewBox="0 0 480 260" style="width:100%;">
+      <rect x="60" y="80" width="320" height="40" fill="rgba(200,169,81,.20)"/>
+      <rect x="60" y="150" width="320" height="40" fill="rgba(184,80,80,.20)"/>
+    </svg>
+
+    <div class="t-poem" style="color:#777;margin-top:2rem;">
+      Documentar no es prevenir.
+    </div>
+
+  </div>
+
+  <div class="half-r pg-white" style="padding:2.6rem;">
+
+    <div class="t-kicker c-dim">Patrón · 08</div>
+    <div class="t-title">COMPLIANCE COMO NARRATIVA</div>
+
+    <div class="t-body c-dim" style="margin-top:1.3rem;">
+      Optimiza para auditoría, no para seguridad real.
+    </div>
+
+    <div class="t-formula" style="margin-top:1.6rem;">
+      NTI = integridad(señal_oficial, señal_operativa)
+    </div>
+
+    <div class="t-mono c-dim" style="margin-top:1.8rem;">
+      SF_D_NODE_0015
+    </div>
+
+  </div>
+
+</div>
+
+
+
+<!-- ============================================================
+     PATRÓN 09 — LATENCIA POLÍTICA (NEGRO + BLANCO)
+=============================================================== -->
+
+<div class="page pg-black" style="background:#030303;">
+
+  <svg style="position:absolute;width:100%;height:100%;">
+    <circle cx="40%" cy="50%" r="2.4" fill="rgba(200,169,81,.30)"/>
+    <circle cx="60%" cy="50%" r="1.2" fill="rgba(200,169,81,.12)"/>
+    <line x1="40%" y1="50%" x2="60%" y2="50%"
+          stroke="rgba(184,80,80,.25)" stroke-width="1.2" stroke-dasharray="5 3"/>
+  </svg>
+
+  <div class="center" style="max-width:72%;">
+    <div class="t-poem" style="color:#777;">
+      La señal avanza.<br>La acción no.
+    </div>
+  </div>
+
+</div>
+
+
+<div class="page pg-white">
+
+  <div class="col pad" style="max-width:80%;">
+
+    <div class="t-kicker c-dim">Patrón · 09</div>
+    <div class="t-title">LATENCIA POLÍTICA</div>
+
+    <div class="t-body c-dim" style="margin-top:1.3rem;">
+      La latencia no es técnica: es costo institucional.
+    </div>
+
+    <div class="t-formula" style="margin-top:1.6rem;">
+      L_eff = F_s * (1 + (1 - C_s))
+    </div>
+
+    <div class="t-mono c-dim" style="margin-top:1.8rem;">
+      SF_D_NODE_0003
+    </div>
+
+  </div>
+
+</div>
+
+
+
+<!-- ============================================================
+     PATRÓN 10 — DECISIÓN EMERGENTE (NEGRO + BLANCO)
+=============================================================== -->
+
+<div class="page pg-black" style="background:#050505;">
+
+  <svg style="position:absolute;width:100%;height:100%;">
+    <line x1="18%" y1="40%" x2="38%" y2="44%"
+          stroke="rgba(200,169,81,.20)" stroke-width="1.3"/>
+    <line x1="38%" y1="44%" x2="58%" y2="42%"
+          stroke="rgba(200,169,81,.22)" stroke-width="1.1"/>
+    <line x1="58%" y1="42%" x2="78%" y2="46%"
+          stroke="rgba(200,169,81,.18)" stroke-width="1.3"/>
+  </svg>
+
+  <div class="center" style="max-width:70%;">
+    <div class="t-poem" style="color:#777;">
+      No se decidió.<br>Se acumuló hasta cristalizar.
+    </div>
+  </div>
+
+</div>
+
+
+<div class="page pg-white">
+
+  <div class="col pad" style="max-width:82%;">
+
+    <div class="t-kicker c-dim">Patrón · 10</div>
+    <div class="t-title">DECISIÓN EMERGENTE</div>
+
+    <div class="t-body c-dim" style="margin-top:1.4rem;">
+      La decisión es el resultado acumulado de micro‑tensiones.
+    </div>
+
+    <div class="t-formula" style="margin-top:1.6rem;">
+      D_cog = t_decisión - t_evento_origen
+    </div>
+
+    <div class="t-mono c-dim" style="margin-top:1.8rem;">
+      SF_D_NODE_0013
+    </div>
+
+  </div>
+
+</div>
