@@ -1,58 +1,306 @@
+/* SystemFriction v2 — Landing CSS */
+
+:root {
+  --bg: #08080f;
+  --surface: #121220;
+  --border: #1e1e35;
+  --text: #e8e8f0;
+  --sub: #888899;
+  --blue: #4a8fff;
+  --orange: #ff9f4a;
+  --green: #4aff8f;
+  --red: #ff4a6a;
+  --purple: #af7fff;
+  --teal: #4affee;
+}
+
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+html { scroll-behavior: smooth; }
+
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  background: #0a0a0f;
-  color: #e8e8f0;
-  line-height: 1.6;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.65;
+  font-size: 16px;
 }
 
-.landing {
-  max-width: 720px;
-  margin: 0 auto;
-  padding: 2rem 1.5rem;
+a { color: var(--blue); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+code {
+  font-family: 'Menlo', 'Consolas', monospace;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.85em;
 }
 
-header { text-align: center; padding: 3rem 0 2rem; }
-header h1 { font-size: 2.5rem; color: #7af; letter-spacing: -1px; }
-.tagline { color: #888; margin-top: 0.5rem; }
+/* ── Nav ── */
+.nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  background: rgba(8, 8, 15, 0.92);
+  backdrop-filter: blur(12px);
+  z-index: 100;
+}
+.nav-logo { font-size: 1.4rem; font-weight: 800; color: var(--blue); }
+.nav-links { display: flex; gap: 1.5rem; }
+.nav-links a { color: var(--sub); font-size: 0.9rem; }
+.nav-links a:hover { color: var(--text); }
 
+/* ── Main layout ── */
+.page { min-height: 100vh; }
+main { max-width: 960px; margin: 0 auto; padding: 0 1.5rem; }
+
+/* ── Hero ── */
 .hero {
-  background: #141420;
-  border: 1px solid #2a2a40;
-  border-radius: 12px;
-  padding: 2rem;
-  margin: 2rem 0;
-  text-align: center;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 3rem;
+  align-items: center;
+  padding: 5rem 0 4rem;
 }
-.hero h2 { font-size: 1.8rem; margin-bottom: 1rem; }
-.hero p { color: #aaa; margin-bottom: 1.5rem; }
+@media (max-width: 640px) { .hero { grid-template-columns: 1fr; } }
 
-.cta {
-  background: #4a7fff;
+.badge {
+  display: inline-block;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--sub);
+  font-size: 0.75rem;
+  padding: 4px 12px;
+  border-radius: 20px;
+  margin-bottom: 1.25rem;
+}
+
+.hero h1 {
+  font-size: clamp(2.5rem, 6vw, 4rem);
+  font-weight: 900;
+  letter-spacing: -2px;
+  line-height: 1;
+  color: #fff;
+  margin-bottom: 1rem;
+}
+
+.hero-sub {
+  color: var(--sub);
+  font-size: 1.1rem;
+  max-width: 480px;
+  margin-bottom: 2rem;
+}
+
+.hero-ctas { display: flex; gap: 1rem; flex-wrap: wrap; }
+
+.cta-primary {
+  background: var(--blue);
   color: #fff;
   border: none;
-  padding: 0.875rem 2.5rem;
+  padding: 0.875rem 2rem;
   border-radius: 8px;
-  font-size: 1.1rem;
-  font-weight: 600;
+  font-size: 1rem;
+  font-weight: 700;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: background 0.2s, transform 0.1s;
 }
-.cta:hover { background: #3a6fee; }
+.cta-primary:hover { background: #3a7eff; transform: translateY(-1px); }
 
-.what {
-  padding: 1.5rem 0;
+.cta-secondary {
+  color: var(--text);
+  border: 1px solid var(--border);
+  padding: 0.875rem 2rem;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+  transition: border-color 0.2s;
 }
-.what h3 { font-size: 1.3rem; margin-bottom: 1rem; color: #7af; }
-.what ul { padding-left: 1.5rem; margin-bottom: 1rem; }
-.what li { margin-bottom: 0.5rem; color: #ccc; }
-.what p { color: #aaa; }
+.cta-secondary:hover { border-color: var(--blue); text-decoration: none; }
 
-footer {
-  text-align: center;
-  padding: 2rem 0;
-  color: #555;
+.hero-metrics {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.mini-metric {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  min-width: 80px;
+}
+.mm-label { font-size: 1.2rem; font-weight: 800; }
+.mm-value { font-size: 1.4rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.mm-desc { font-size: 0.65rem; color: var(--sub); text-align: center; }
+
+/* ── Sections comunes ── */
+section { padding: 4rem 0; border-top: 1px solid var(--border); }
+h2 { font-size: 1.8rem; font-weight: 800; margin-bottom: 0.75rem; }
+.section-sub { color: var(--sub); margin-bottom: 2rem; }
+
+/* ── Metrics ── */
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 1rem;
+}
+.metric-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.mc-label { font-size: 1.6rem; font-weight: 900; }
+.mc-full { font-size: 0.7rem; color: var(--sub); font-weight: 600; }
+.mc-desc { font-size: 0.75rem; color: var(--sub); line-height: 1.4; margin-top: 6px; }
+
+/* ── How ── */
+.steps { display: flex; flex-direction: column; gap: 1.25rem; }
+.step {
+  display: flex;
+  gap: 1.25rem;
+  align-items: flex-start;
+  padding: 1.25rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.step-n { font-size: 1.4rem; font-weight: 900; color: var(--blue); min-width: 2rem; }
+.step strong { display: block; margin-bottom: 4px; }
+.step p { color: var(--sub); font-size: 0.9rem; }
+
+/* ── Personal ── */
+.personal-content {
+  background: linear-gradient(135deg, var(--surface) 0%, rgba(74,143,255,0.05) 100%);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 2rem;
+}
+.personal-content p { color: var(--sub); margin-bottom: 1.25rem; }
+.personal-list { padding-left: 1.5rem; color: var(--sub); margin-bottom: 1.5rem; }
+.personal-list li { margin-bottom: 0.5rem; }
+.personal-badge {
+  background: var(--bg);
+  border: 1px solid var(--green);
+  border-radius: 8px;
+  padding: 1rem;
+}
+.personal-badge span { color: var(--green); font-weight: 700; font-size: 0.85rem; }
+.personal-badge p { color: var(--sub); font-size: 0.8rem; margin-top: 4px; margin-bottom: 0; }
+
+/* ── Install ── */
+.install-steps { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+@media (max-width: 640px) { .install-steps { grid-template-columns: 1fr; } }
+.install-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.5rem;
+}
+.install-card h3 { margin-bottom: 1rem; }
+.install-card ol { padding-left: 1.25rem; color: var(--sub); }
+.install-card li { margin-bottom: 0.5rem; font-size: 0.9rem; }
+
+/* ── Chat Widget ── */
+.chat-widget {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  width: 360px;
+  max-height: 480px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.5);
+  z-index: 200;
+}
+.chat-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+  font-weight: 700;
+}
+.chat-header button {
+  background: none;
+  border: none;
+  color: var(--sub);
+  cursor: pointer;
+  font-size: 1.1rem;
+}
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.chat-msg {
+  padding: 0.75rem 1rem;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  max-width: 85%;
+}
+.chat-msg.eidolon {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  align-self: flex-start;
+}
+.chat-msg.user {
+  background: var(--blue);
+  color: #fff;
+  align-self: flex-end;
+}
+.chat-input {
+  display: flex;
+  padding: 0.75rem;
+  border-top: 1px solid var(--border);
+  gap: 0.5rem;
+}
+.chat-input input {
+  flex: 1;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  color: var(--text);
   font-size: 0.9rem;
 }
-footer a { color: #4a7fff; text-decoration: none; }
+.chat-input button {
+  background: var(--blue);
+  color: #fff;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+/* ── Footer ── */
+.footer {
+  text-align: center;
+  padding: 2rem 1.5rem;
+  border-top: 1px solid var(--border);
+  color: var(--sub);
+  font-size: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
