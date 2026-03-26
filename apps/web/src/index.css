@@ -1,0 +1,58 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: #0a0a0f;
+  color: #e8e8f0;
+  line-height: 1.6;
+}
+
+.landing {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+}
+
+header { text-align: center; padding: 3rem 0 2rem; }
+header h1 { font-size: 2.5rem; color: #7af; letter-spacing: -1px; }
+.tagline { color: #888; margin-top: 0.5rem; }
+
+.hero {
+  background: #141420;
+  border: 1px solid #2a2a40;
+  border-radius: 12px;
+  padding: 2rem;
+  margin: 2rem 0;
+  text-align: center;
+}
+.hero h2 { font-size: 1.8rem; margin-bottom: 1rem; }
+.hero p { color: #aaa; margin-bottom: 1.5rem; }
+
+.cta {
+  background: #4a7fff;
+  color: #fff;
+  border: none;
+  padding: 0.875rem 2.5rem;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.cta:hover { background: #3a6fee; }
+
+.what {
+  padding: 1.5rem 0;
+}
+.what h3 { font-size: 1.3rem; margin-bottom: 1rem; color: #7af; }
+.what ul { padding-left: 1.5rem; margin-bottom: 1rem; }
+.what li { margin-bottom: 0.5rem; color: #ccc; }
+.what p { color: #aaa; }
+
+footer {
+  text-align: center;
+  padding: 2rem 0;
+  color: #555;
+  font-size: 0.9rem;
+}
+footer a { color: #4a7fff; text-decoration: none; }

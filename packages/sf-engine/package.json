@@ -1,0 +1,20 @@
+{
+  "name": "@sf/engine",
+  "version": "2.0.0",
+  "description": "SystemFriction MIHM engine — math, metrics, simulation",
+  "type": "module",
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "scripts": {
+    "test": "node --experimental-vm-modules node_modules/.bin/vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@sf/core": "*"
+  },
+  "devDependencies": {
+    "vitest": "^1.6.0"
+  }
+}

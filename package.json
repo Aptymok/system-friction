@@ -1,0 +1,21 @@
+{
+  "name": "system-friction",
+  "version": "2.0.0",
+  "private": true,
+  "description": "SystemFriction v2 monorepo — Motor MIHM + Debate APTYMOK + iOS-first",
+  "workspaces": [
+    "packages/*",
+    "apps/web"
+  ],
+  "scripts": {
+    "test": "npm run test --workspaces --if-present",
+    "test:core": "npm run test --workspace=packages/sf-core",
+    "test:engine": "npm run test --workspace=packages/sf-engine",
+    "test:agents": "npm run test --workspace=packages/sf-agents",
+    "lint": "npm run lint --workspaces --if-present",
+    "build": "npm run build --workspaces --if-present"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
