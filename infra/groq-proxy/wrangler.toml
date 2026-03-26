@@ -1,0 +1,9 @@
+name = "sf-groq-proxy"
+main = "src/index.js"
+compatibility_date = "2024-01-01"
+
+[vars]
+GROQ_MODEL = "llama3-8b-8192"
+RATE_LIMIT_PER_MIN = "20"
+# GROQ_API_KEY se configura como secreto: wrangler secret put GROQ_API_KEY
+# ALLOWED_ORIGIN se configura como var: wrangler vars put ALLOWED_ORIGIN https://tu-dominio.com
