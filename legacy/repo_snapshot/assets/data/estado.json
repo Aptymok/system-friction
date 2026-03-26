@@ -1,0 +1,22 @@
+# _data/estado.yml - Métricas actuales del sistema
+# Actualizar manualmente cuando cambien los valores
+
+# Fecha de la última actualización
+fecha_actualizacion: 2026-02-23
+
+# Estado general del sistema
+ihg_sistema: -0.31
+nti_sistema: 0.47
+bugs_confirmados: 7
+documentos_faltantes: 6
+
+# Componentes del NTI para la tabla de roadmap
+nti_components:
+  ldi_norm_actual: 0.45
+  ldi_norm_post: 0.85
+  icc_norm: 0.80
+  csr_actual: 0.30
+  csr_post: 0.70
+  irci_norm: 0.90
+  iim_actual: 0.60
+  iim_post: 0.82
