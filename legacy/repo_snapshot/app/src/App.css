@@ -1,0 +1,25 @@
+body {
+  margin: 0;
+  background: #0d0d0b;
+  color: #ddd8c9;
+  font-family: Inter, system-ui, sans-serif;
+}
+
+.app-shell {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+nav button { color: #c8a96e; background: transparent; border: 1px solid #2a2924; margin-right: 8px; padding: 6px 10px; }
+
+.panel {
+  border: 1px solid #2a2924;
+  background: #141411;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+
+.eidolon-shell { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+textarea, button { width: 100%; margin-top: 6px; }
+pre { white-space: pre-wrap; }

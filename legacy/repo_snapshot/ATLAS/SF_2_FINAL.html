@@ -1,0 +1,1752 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>SF_2 — Sistema Completo</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+
+/* ============================================================
+   VARIABLES Y BASE
+============================================================== */
+
+:root {
+  --paper: #f4f1ec;
+  --ink: #1a1918;
+  --gold: #c8a951;
+  --mono: 'Courier New', monospace;
+  --serif: 'Times New Roman', serif;
+  --sans: 'Helvetica', sans-serif;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: #111;
+  color: var(--ink);
+  font-family: var(--sans);
+}
+
+/* ============================================================
+   ESTRUCTURA DE PÁGINAS
+============================================================== */
+
+.page {
+  width: 100%;
+  min-height: 100vh;
+  padding: 3rem 4rem;
+  box-sizing: border-box;
+  position: relative;
+}
+
+.pg-white {
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.pg-black {
+  background: #000;
+  color: #ccc;
+}
+
+.page-fold {
+  display: flex;
+  width: 100%;
+  min-height: 100vh;
+  background: var(--paper);
+  position: relative;
+}
+
+.half-l, .half-r {
+  width: 50%;
+  box-sizing: border-box;
+  padding: 3rem;
+  position: relative;
+}
+
+.half-l.pg-black {
+  background: #000;
+}
+
+/* ============================================================
+   TIPOGRAFÍAS
+============================================================== */
+
+.t-title {
+  font-size: 2rem;
+  font-weight: 600;
+  line-height: 1.25;
+  margin-bottom: 1rem;
+}
+
+.t-kicker {
+  font-size: .75rem;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+}
+
+.t-body {
+  font-size: 1rem;
+  line-height: 1.7;
+}
+
+.t-poem {
+  font-size: 1.15rem;
+  line-height: 2;
+  font-style: italic;
+  color: #bbb;
+}
+
+.t-large {
+  font-size: 1.8rem;
+  line-height: 1.3;
+}
+
+.t-mono {
+  font-family: var(--mono);
+  font-size: .85rem;
+}
+
+.c-dim {
+  opacity: .7;
+}
+
+.c-gold {
+  color: var(--gold);
+}
+
+/* ============================================================
+   MARCAS, DECORACIÓN Y PLIEGOS
+============================================================== */
+
+.corner-mark {
+  position: absolute;
+  bottom: 2rem;
+  right: 2rem;
+  font-size: .75rem;
+  opacity: .2;
+  font-family: var(--mono);
+}
+
+.fold-line {
+  height: 100%;
+  width: 2px;
+  background: rgba(200,169,81,.2);
+  position: absolute;
+  left: 50%;
+  top: 0;
+}
+
+.fold-label {
+  position: absolute;
+  top: 1.5rem;
+  left: calc(50% + 1rem);
+  font-size: .7rem;
+  opacity: .25;
+  font-family: var(--mono);
+}
+
+/* ============================================================
+   COLUMNAS Y CENTRADOS
+============================================================== */
+
+.col {
+  display: flex;
+  flex-direction: column;
+}
+
+.center {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pad {
+  padding: 3rem;
+}
+
+/* ============================================================
+   ELEMENTOS ESPECIALES
+============================================================== */
+
+.rule-g {
+  width: 100%;
+  height: 1px;
+  background: rgba(200,169,81,.25);
+  margin: 1.6rem 0;
+}
+
+svg {
+  display: block;
+}
+
+/* Corrección de overflow SVG */
+svg * {
+  vector-effect: non-scaling-stroke;
+}
+/* ============================================================
+   FORMATO LIBRO DE ARTE — 22 × 22 cm
+   (Para pantalla Y exportación a PDF)
+============================================================== */
+
+/* Fijamos proporción cuadrada */
+.page, .page-fold {
+  width: 22cm;
+  min-height: 22cm;
+  height: auto;
+  margin: 0 auto;
+  padding: 3cm 3cm;
+  box-sizing: border-box;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Márgenes amplios de libro de arte */
+.pad {
+  padding: 2.6cm;
+}
+
+/* Separación fuerte entre páginas */
+.page, .page-fold {
+  page-break-after: always;
+}
+
+/* Estética editorial premium */
+body {
+  background: #e8e6e3;
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  letter-spacing: 0.01em;
+}
+
+/* Títulos grandes y con autoridad visual */
+.t-title {
+  font-size: 2.4rem;
+  letter-spacing: -0.5px;
+  margin-bottom: 1.4rem;
+}
+
+/* Textos largos con respiración amplia */
+.t-body {
+  font-size: 1.25rem;
+  line-height: 1.9;
+}
+
+/* Poemas/epígrafes como arte */
+.t-poem {
+  font-size: 1.6rem;
+  line-height: 2.2;
+  opacity: .88;
+}
+
+/* Kicker editorial */
+.t-kicker {
+  font-size: 0.85rem;
+  letter-spacing: 0.25em;
+  opacity: .45;
+  margin-bottom: 0.8rem;
+}
+
+/* Marcas de esquina discretas */
+.corner-mark {
+  bottom: 1.4cm;
+  right: 1.8cm;
+  font-size: .75rem;
+  opacity: .22;
+}
+
+/* Fondos negros más profundos y limpios */
+.pg-black {
+  background: #000;
+  color: #dcdcdc;
+}
+
+/* SVG optimizados para formato grande */
+svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* Impresión en PDF a tamaño EXACTO 22 × 22 */
+@page {
+  size: 22cm 22cm;
+  margin: 0;
+}
+</style>
+</head>
+
+<body>
+
+<!-- ============================================================
+     INICIO DEL DOCUMENTO — EL ENSAMBLADOR PEGARÁ TODO DESPUÉS
+=============================================================== -->
+
+<!-- El Módulo 01 entrará aquí automáticamente -->
+
+<!-- ============================================================
+     SECCIÓN 1 — APERTURA DEL SISTEMA
+=============================================================== -->
+
+<div class="page pg-white">
+  <div class="col pad" style="max-width:80%;">
+    <div class="t-kicker c-dim">SECCIÓN · 01</div>
+    <div class="t-title" style="margin-top:1rem;">APERTURA</div>
+
+    <div class="t-body c-dim" style="margin-top:1.4rem;line-height:1.8;">
+      Todo sistema inicia con una distinción: separar lo que forma parte de él
+      de aquello que pertenece al ruido exterior. Esta primera página establece
+      la aparición del marco cognitivo básico.
+    </div>
+  </div>
+
+  <div class="corner-mark">s1 · apertura</div>
+</div>
+
+
+<!-- ============================================================
+     SECCIÓN 2 — ESTRUCTURA BASE DEL MARCO
+=============================================================== -->
+
+<div class="page pg-white">
+  <div class="col pad" style="max-width:82%;">
+
+    <div class="t-kicker c-dim">SECCIÓN · 02</div>
+    <div class="t-title" style="margin-top:1rem;">MARCO ESTRUCTURAL</div>
+
+    <div class="t-body" style="margin-top:1.4rem;line-height:1.8;">
+      El sistema establece aquí su fundamento operativo inicial: el conjunto
+      mínimo de reglas perceptuales capaces de sostener la lectura posterior.
+      El énfasis recae en la apertura de espacio y la organización de tensión.
+    </div>
+  </div>
+
+  <div class="corner-mark">s2 · marco</div>
+</div>
+
+
+
+<!-- ============================================================
+     SECCIÓN 3 — PATRONES PERCEPTUALES (BLOQUE 1)
+=============================================================== -->
+
+<!-- PATRÓN 01 — SEÑAL / RUIDO -->
+<div class="page pg-black" style="background:#030303;">
+  <svg style="position:absolute;width:100%;height:100%;">
+    <defs>
+      <filter id="denseNoise">
+        <feTurbulence type="fractalNoise" baseFrequency="2.4" numOctaves="6" seed="11" result="n"/>
+        <feColorMatrix type="matrix"
+           values="0 0 0 0 0  
+                   0 0 0 0 0  
+                   0 0 0 0 0  
+                   0 0 0 0.65 0"/>
+      </filter>
+    </defs>
+
+    <rect width="100%" height="100%" fill="#030303"/>
+    <rect width="100%" height="100%" filter="url(#denseNoise)" opacity="0.10"/>
+
+    <circle cx="20%" cy="34%" r="2" fill="rgba(200,169,81,.35)"/>
+    <circle cx="55%" cy="50%" r="1.8" fill="rgba(200,169,81,.28)"/>
+    <circle cx="78%" cy="62%" r="1.4" fill="rgba(200,169,81,.18)"/>
+  </svg>
+
+  <div class="center" style="max-width:70%;">
+    <div class="t-poem" style="color:#777;">
+      Cuando todo hace ruido,<br>nada se escucha.
+    </div>
+  </div>
+</div>
+
+<!-- FORMAL · PATRÓN 01 -->
+<div class="page pg-white">
+  <div class="col pad">
+    <div class="t-kicker c-dim">Patrón · 01</div>
+    <div class="t-title">SEÑAL VS RUIDO</div>
+
+    <div class="t-body c-dim" style="margin-top:1rem;">
+      Distinción entre patrones útiles y ruido irrelevante.
+    </div>
+
+    <div class="rule-g"></div>
+
+    <div class="t-formula">SNR = señal / ruido</div>
+
+    <div class="t-mono c-dim" style="margin-top:1.6rem;">
+      SF_D_NODE_0018
+    </div>
+  </div>
+</div>
+
+
+
+<!-- PATRÓN 02 — CONTEXTO PERDIDO -->
+<div class="page pg-black" style="background:#020202;">
+  <svg style="position:absolute;width:100%;height:100%;">
+    <rect x="18%" y="28%" width="8" height="8" fill="rgba(200,169,81,.32)"/>
+    <rect x="52%" y="46%" width="7" height="7" fill="rgba(200,169,81,.28)"/>
+    <rect x="71%" y="66%" width="6" height="6" fill="rgba(200,169,81,.20)"/>
+    <rect x="33%" y="74%" width="5" height="5" fill="rgba(200,169,81,.15)"/>
+
+    <line x1="18%" y1="28%" x2="52%" y2="46%" stroke="rgba(200,169,81,.06)" stroke-width=".8" stroke-dasharray="3 5"/>
+    <line x1="52%" y1="46%" x2="71%" y2="66%" stroke="rgba(200,169,81,.04)" stroke-width=".8" stroke-dasharray="3 5"/>
+  </svg>
+
+  <div class="center">
+    <div class="t-poem" style="color:#666;">
+      Partes que siguen vivas.<br>
+      Razones que ya no existen.
+    </div>
+  </div>
+</div>
+
+<!-- FORMAL · PATRÓN 02 -->
+<div class="page pg-white">
+  <div class="col pad">
+    <div class="t-kicker c-dim">Patrón · 02</div>
+    <div class="t-title">CONTEXTO PERDIDO</div>
+
+    <div class="t-body c-dim" style="margin-top:1rem;">
+      La estructura persiste aun cuando su origen ya no puede recuperarse.
+    </div>
+
+    <div class="rule-g"></div>
+
+    <div class="t-formula">C_x = contexto_disponible / contexto_requerido</div>
+
+    <div class="t-mono c-dim" style="margin-top:1.6rem;">
+      SF_D_NODE_0019
+    </div>
+  </div>
+</div>
+
+
+
+<!-- PATRÓN 03 — INCERTIDUMBRE HUMANA -->
+<div class="page pg-black" style="background:#040404;">
+  <svg style="position:absolute;width:100%;height:100%;">
+    <circle cx="40%" cy="40%" r="2" fill="rgba(200,169,81,.20)"/>
+    <circle cx="44%" cy="43%" r="1.5" fill="rgba(200,169,81,.26)"/>
+    <circle cx="60%" cy="58%" r="2.2" fill="rgba(200,169,81,.20)"/>
+    <circle cx="63%" cy="61%" r="1.3" fill="rgba(200,169,81,.26)"/>
+  </svg>
+
+  <div class="center">
+    <div class="t-poem" style="color:#777;">
+      Algunos funcionan mejor<br>cuando nada está definido.
+    </div>
+  </div>
+</div>
+
+<!-- FORMAL · PATRÓN 03 -->
+<div class="page pg-white">
+  <div class="col pad">
+
+    <div class="t-kicker c-dim">Patrón · 03</div>
+    <div class="t-title">INCERTIDUMBRE HUMANA</div>
+
+    <div class="t-body c-dim" style="margin-top:1.2rem;">
+      Preferencia humana por la reversibilidad frente a la optimización.
+    </div>
+
+    <div class="t-formula" style="margin-top:1.6rem;">
+      U_h = varianza_decisoria
+    </div>
+
+    <div class="t-mono c-dim" style="margin-top:1.6rem;">
+      SF_D_NODE_0020
+    </div>
+
+  </div>
+</div>
+
+
+
+<!-- PATRÓN 04 — ESCRITURA SIN INTENCIÓN VISIBLE -->
+<div class="page pg-black" style="background:#050505;">
+
+  <svg style="position:absolute;width:100%;height:100%;">
+    <rect x="22%" y="30%" width="180" height="6" fill="rgba(200,169,81,.25)"/>
+    <rect x="22%" y="38%" width="160" height="6" fill="rgba(200,169,81,.18)"/>
+    <rect x="22%" y="46%" width="200" height="6" fill="rgba(200,169,81,.30)"/>
+    <rect x="22%" y="54%" width="140" height="6" fill="rgba(200,169,81,.12)"/>
+
+    <rect x="22%" y="66%" width="60" height="4" fill="rgba(200,169,81,.08)"/>
+    <rect x="22%" y="72%" width="85" height="4" fill="rgba(200,169,81,.05)"/>
+  </svg>
+
+  <div class="center" style="max-width:75%;">
+    <div class="t-poem" style="color:#777;">
+      Lo que no dice<br>
+      pesa más que lo que dice.
+    </div>
+  </div>
+
+</div>
+
+<!-- FORMAL · PATRÓN 04 -->
+<div class="page pg-white">
+  <div class="col pad">
+
+    <div class="t-kicker c-dim">Patrón · 04</div>
+    <div class="t-title">ESCRITURA SIN INTENCIÓN</div>
+
+    <div class="t-body c-dim" style="margin-top:1.2rem;">
+      La densidad semántica revela la intención subyacente.
+    </div>
+
+    <div class="t-formula" style="margin-top:1.6rem;">
+      I_e = intención_explícita / efecto_sistémico
+    </div>
+
+    <div class="t-mono c-dim" style="margin-top:1.6rem;">
+      SF_D_NODE_0017
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ============================================================
+     SECCIÓN 4 — DERIVACIÓN (TRANSICIÓN)
+=============================================================== -->
+
+<div class="page pg-white">
+  <div class="col pad" style="max-width:80%;">
+
+    <div class="t-kicker c-dim">SECCIÓN · 04</div>
+    <div class="t-title" style="margin-top:1.2rem;">DERIVACIÓN</div>
+
+    <div class="t-body c-dim" style="margin-top:1.2rem;line-height:1.9;">
+      El sistema reconoce repetición, forma y recurrencia.
+      La estructura emergente comienza a adquirir estabilidad perceptual
+      antes de unificar sus patrones formales.
+    </div>
+  </div>
+
+  <div class="corner-mark">s4 · derivación</div>
+</div>
+
+
+
+<!-- ============================================================
+     SECCIÓN 5 — PATRONES (BLOQUE 2)
+=============================================================== -->
+
+<!-- PATRÓN 05 — DESALINEACIÓN DE MÉTRICAS (PLIEGO) -->
+
+<div class="page-fold pg-white">
+
+  <div class="fold-line"></div>
+  <div class="fold-label">[ pliego · desalineación ]</div>
+
+  <div class="half-l pg-black" style="padding:2rem;">
+
+    <svg viewBox="0 0 480 260" style="width:100%;opacity:.85;">
+      <line x1="40" y1="80" x2="440" y2="85"
+            stroke="rgba(200,169,81,.25)" stroke-width="2"/>
+      <line x1="40" y1="150" x2="440" y2="130"
+            stroke="rgba(184,80,80,.35)" stroke-width="2.2"/>
+
+      <circle cx="180" cy="82" r="4" fill="rgba(200,169,81,.4)"/>
+      <circle cx="300" cy="131" r="4" fill="rgba(184,80,80,.45)"/>
+    </svg>
+
+    <div class="t-poem" style="color:#777;margin-top:1.8rem;">
+      El indicador mira a un lado.<br>
+      El sistema mira al otro.
+    </div>
+
+  </div>
+
+  <div class="half-r pg-white" style="padding:2rem;">
+
+    <div class="t-kicker c-dim">Patrón · 05</div>
+    <div class="t-title">DESALINEACIÓN DE MÉTRICAS</div>
+
+    <div class="t-body c-dim" style="margin-top:1rem;">
+      El sistema mide lo que puede, no lo que importa.
+    </div>
+
+    <div class="t-formula" style="margin-top:1.2rem;">
+      desalineación = 1 - correlación(métrica, resultado)
+    </div>
+
+    <div class="t-mono c-dim" style="margin-top:1.6rem;">
+      SF_D_NODE_0015
+    </div>
+  </div>
+
+</div>
+
+<!-- ============================================================
+     SECCIÓN 6 — PATRONES (BLOQUE 2 CONTINUACIÓN)
+     PATRÓN 06 → 10
+=============================================================== -->
+
+
+<!-- ============================================================
+     PATRÓN 06 — PROXY COMO OBJETIVO (PLIEGO)
+=============================================================== -->
+
+<div class="page-fold pg-white">
+
+  <div class="fold-line"></div>
+  <div class="fold-label">[ pliego · proxy ]</div>
+
+  <div class="half-l pg-black" style="padding:2.4rem;">
+
+    <svg viewBox="0 0 480 260" style="width:100%;height:auto;">
+
+      <path d="M40 160 C 160 145, 260 120, 440 60"
+            stroke="rgba(200,169,81,.28)" stroke-width="2" fill="none"/>
+
+      <path d="M40 150 C 160 170, 260 200, 440 230"
+            stroke="rgba(184,80,80,.32)" stroke-width="2.4" fill="none"/>
+    </svg>
+
+    <div class="t-poem" style="color:#777;margin-top:1.8rem;">
+      La métrica sube.<br>El resultado baja.
+    </div>
+
+  </div>
+
+  <div class="half-r pg-white" style="padding:2.6rem;">
+
+    <div class="t-kicker c-dim">Patrón · 06</div>
+    <div class="t-title">PROXY COMO OBJETIVO (LEY DE GOODHART)</div>
+
+    <div class="t-body c-dim" style="margin-top:1rem;">
+      Cuando la métrica se convierte en objetivo, deja de medir.
+    </div>
+
+    <div class="rule-g" style="margin:1.4rem 0;"></div>
+
+    <div class="t-formula">
+      goodhart = si(métrica→objetivo) → métrica deja de medir objetivo
+    </div>
+
+    <div class="t-mono c-dim" style="margin-top:1.8rem;">
+      SF_D_NODE_0032
+    </div>
+
+  </div>
+
+</div>
+
+
+
+<!-- ============================================================
+     PATRÓN 07 — INCENTIVO CONTRADICTORIO (PLIEGO)
+=============================================================== -->
+
+<div class="page-fold pg-white">
+
+  <div class="fold-line"></div>
+  <div class="fold-label">[ pliego · incentivos ]</div>
+
+  <div class="half-l pg-black" style="padding:2.4rem;">
+
+    <svg viewBox="0 0 480 260" style="width:100%;">
+
+      <circle cx="160" cy="120" r="20" fill="rgba(200,169,81,.25)"/>
+      <circle cx="260" cy="120" r="32" fill="rgba(184,80,80,.35)"/>
+    </svg>
+
+    <div class="t-poem" style="color:#777;margin-top:1.8rem;">
+      El incentivo funciona.<br>El sistema no.
+    </div>
+
+  </div>
+
+  <div class="half-r pg-white" style="padding:2.6rem;">
+
+    <div class="t-kicker c-dim">Patrón · 07</div>
+    <div class="t-title">INCENTIVO CONTRADICTORIO</div>
+
+    <div class="t-body c-dim" style="margin-top:1.3rem;">
+      El sistema optimiza el proxy, no el resultado real.
+    </div>
+
+    <div class="t-formula" style="margin-top:1.6rem;">
+      I_f = incentivo_local / resultado_sistémico
+    </div>
+
+    <div class="t-mono c-dim" style="margin-top:1.6rem;">
+      SF_D_NODE_0032
+    </div>
+
+  </div>
+
+</div>
+
+
+
+<!-- ============================================================
+     PATRÓN 08 — COMPLIANCE COMO NARRATIVA (PLIEGO)
+=============================================================== -->
+
+<div class="page-fold pg-white">
+
+  <div class="fold-line"></div>
+  <div class="fold-label">[ pliego · narrativa ]</div>
+
+  <div class="half-l pg-black" style="padding:2.4rem;">
+
+    <svg viewBox="0 0 480 260" style="width:100%;">
+      <rect x="60" y="80" width="320" height="40" fill="rgba(200,169,81,.20)"/>
+      <rect x="60" y="150" width="320" height="40" fill="rgba(184,80,80,.20)"/>
+    </svg>
+
+    <div class="t-poem" style="color:#777;margin-top:2rem;">
+      Documentar no es prevenir.
+    </div>
+
+  </div>
+
+  <div class="half-r pg-white" style="padding:2.6rem;">
+
+    <div class="t-kicker c-dim">Patrón · 08</div>
+    <div class="t-title">COMPLIANCE COMO NARRATIVA</div>
+
+    <div class="t-body c-dim" style="margin-top:1.3rem;">
+      Optimiza para auditoría, no para seguridad real.
+    </div>
+
+    <div class="t-formula" style="margin-top:1.6rem;">
+      NTI = integridad(señal_oficial, señal_operativa)
+    </div>
+
+    <div class="t-mono c-dim" style="margin-top:1.8rem;">
+      SF_D_NODE_0015
+    </div>
+
+  </div>
+
+</div>
+
+
+
+<!-- ============================================================
+     PATRÓN 09 — LATENCIA POLÍTICA (NEGRO + BLANCO)
+=============================================================== -->
+
+<div class="page pg-black" style="background:#030303;">
+
+  <svg style="position:absolute;width:100%;height:100%;">
+    <circle cx="40%" cy="50%" r="2.4" fill="rgba(200,169,81,.30)"/>
+    <circle cx="60%" cy="50%" r="1.2" fill="rgba(200,169,81,.12)"/>
+    <line x1="40%" y1="50%" x2="60%" y2="50%"
+          stroke="rgba(184,80,80,.25)" stroke-width="1.2" stroke-dasharray="5 3"/>
+  </svg>
+
+  <div class="center" style="max-width:72%;">
+    <div class="t-poem" style="color:#777;">
+      La señal avanza.<br>La acción no.
+    </div>
+  </div>
+
+</div>
+
+
+<div class="page pg-white">
+
+  <div class="col pad" style="max-width:80%;">
+
+    <div class="t-kicker c-dim">Patrón · 09</div>
+    <div class="t-title">LATENCIA POLÍTICA</div>
+
+    <div class="t-body c-dim" style="margin-top:1.3rem;">
+      La latencia no es técnica: es costo institucional.
+    </div>
+
+    <div class="t-formula" style="margin-top:1.6rem;">
+      L_eff = F_s * (1 + (1 - C_s))
+    </div>
+
+    <div class="t-mono c-dim" style="margin-top:1.8rem;">
+      SF_D_NODE_0003
+    </div>
+
+  </div>
+
+</div>
+
+
+
+<!-- ============================================================
+     PATRÓN 10 — DECISIÓN EMERGENTE (NEGRO + BLANCO)
+=============================================================== -->
+
+<div class="page pg-black" style="background:#050505;">
+
+  <svg style="position:absolute;width:100%;height:100%;">
+    <line x1="18%" y1="40%" x2="38%" y2="44%"
+          stroke="rgba(200,169,81,.20)" stroke-width="1.3"/>
+    <line x1="38%" y1="44%" x2="58%" y2="42%"
+          stroke="rgba(200,169,81,.22)" stroke-width="1.1"/>
+    <line x1="58%" y1="42%" x2="78%" y2="46%"
+          stroke="rgba(200,169,81,.18)" stroke-width="1.3"/>
+  </svg>
+
+  <div class="center" style="max-width:70%;">
+    <div class="t-poem" style="color:#777;">
+      No se decidió.<br>Se acumuló hasta cristalizar.
+    </div>
+  </div>
+
+</div>
+
+
+<div class="page pg-white">
+
+  <div class="col pad" style="max-width:82%;">
+
+    <div class="t-kicker c-dim">Patrón · 10</div>
+    <div class="t-title">DECISIÓN EMERGENTE</div>
+
+    <div class="t-body c-dim" style="margin-top:1.4rem;">
+      La decisión es el resultado acumulado de micro‑tensiones.
+    </div>
+
+    <div class="t-formula" style="margin-top:1.6rem;">
+      D_cog = t_decisión - t_evento_origen
+    </div>
+
+    <div class="t-mono c-dim" style="margin-top:1.8rem;">
+      SF_D_NODE_0013
+    </div>
+
+  </div>
+
+</div>
+
+<!-- ============================================================
+     SECCIÓN 11 — DEUDA DE DECISIÓN
+=============================================================== -->
+
+<!-- PATRÓN 11 — DEUDA DE DECISIÓN (NEGRO + BLANCO) -->
+
+<div class="page pg-black" style="background:#040404;">
+  <svg style="position:absolute;width:100%;height:100%;">
+    <circle cx="32%" cy="40%" r="1.4" fill="rgba(200,169,81,.25)"/>
+    <circle cx="48%" cy="50%" r="1.4" fill="rgba(200,169,81,.25)"/>
+    <circle cx="64%" cy="60%" r="1.4" fill="rgba(200,169,81,.25)"/>
+    <circle cx="75%" cy="70%" r="1.4" fill="rgba(200,169,81,.25)"/>
+  </svg>
+
+  <div class="center" style="max-width:70%;">
+    <div class="t-poem" style="color:#777;line-height:2;">
+      Todo lo postergado vuelve<br>
+      con interés acumulado.
+    </div>
+  </div>
+</div>
+
+
+<div class="page pg-white">
+  <div class="col pad">
+
+    <div class="t-kicker c-dim">Patrón · 11</div>
+    <div class="t-title">DEUDA DE DECISIÓN</div>
+
+    <div class="t-body c-dim" style="margin-top:1.2rem;line-height:1.8;">
+      Cada decisión aplazada aumenta la tensión interna del sistema.
+      La deuda no es financiera: es estructural y cognitiva.
+    </div>
+
+    <div class="t-formula" style="margin-top:1.4rem;">
+      D_d = decisiones_postergadas_acumuladas
+    </div>
+
+    <div class="t-mono c-dim" style="margin-top:1.8rem;">
+      SF_D_NODE_0033
+    </div>
+
+  </div>
+</div>
+
+
+
+<!-- ============================================================
+     SECCIÓN 12 — DEUDA TEMPORAL
+=============================================================== -->
+
+<!-- PATRÓN 12 — DEUDA TEMPORAL (NEGRO + BLANCO) -->
+
+<div class="page pg-black" style="background:#050505;">
+  <svg style="position:absolute;width:100%;height:100%;">
+    <line x1="20%" y1="50%" x2="80%" y2="50%"
+          stroke="rgba(200,169,81,.25)" stroke-width="2"/>
+    <circle cx="25%" cy="50%" r="2" fill="rgba(200,169,81,.45)"/>
+  </svg>
+
+  <div class="center" style="max-width:72%;">
+    <div class="t-poem" style="color:#777;line-height:2;">
+      El tiempo no es duración.<br>
+      Es margen de maniobra.
+    </div>
+  </div>
+</div>
+
+
+<div class="page pg-white">
+  <div class="col pad">
+    <div class="t-kicker c-dim">Patrón · 12</div>
+    <div class="t-title">DEUDA TEMPORAL</div>
+
+    <div class="t-body c-dim" style="margin-top:1.4rem;line-height:1.8;">
+      Cuando las decisiones consumen más tiempo del disponible,
+      el sistema entra en déficit de horizonte.
+    </div>
+
+    <div class="t-formula" style="margin-top:1.4rem;">
+      T_d = deuda_tiempo_decision
+    </div>
+
+    <div class="t-mono c-dim" style="margin-top:1.8rem;">
+      SF_D_NODE_0016
+    </div>
+  </div>
+</div>
+
+
+
+<!-- ============================================================
+     SECCIÓN 13 — ALERTA IGNORADA
+=============================================================== -->
+
+<!-- PATRÓN 13 — ALERTA IGNORADA (NEGRO + BLANCO) -->
+
+<div class="page pg-black" style="background:#050505;">
+  <svg style="position:absolute;width:100%;height:100%;">
+    <circle cx="50%" cy="38%" r="2.2" fill="rgba(184,80,80,.35)"/>
+    <circle cx="50%" cy="38%" r="4.8" fill="rgba(184,80,80,.08)"/>
+    <line x1="50%" y1="38%" x2="50%" y2="68%"
+          stroke="rgba(200,169,81,.15)" stroke-width="1.1"/>
+  </svg>
+
+  <div class="center" style="max-width:76%;">
+    <div class="t-poem" style="color:#777;line-height:2;">
+      Una alerta que nadie ve<br>
+      no es una alerta.
+    </div>
+  </div>
+</div>
+
+
+<div class="page pg-white">
+  <div class="col pad">
+
+    <div class="t-kicker c-dim">Patrón · 13</div>
+    <div class="t-title">ALERTA IGNORADA</div>
+
+    <div class="t-body c-dim" style="margin-top:1.3rem;line-height:1.8;">
+      Cuando el volumen de señales supera la capacidad de revisión,
+      las alertas pierden significado operativo.
+    </div>
+
+    <div class="t-formula" style="margin-top:1.4rem;">
+      A_r = alertas_revisadas / alertas_emitidas
+    </div>
+
+    <div class="t-mono c-dim" style="margin-top:1.8rem;">
+      SF_D_NODE_0018
+    </div>
+
+  </div>
+</div>
+
+
+
+<!-- ============================================================
+     SECCIÓN 14 — UMBRAL DUAL
+=============================================================== -->
+
+<!-- PATRÓN 14 — UMBRAL DUAL (PLIEGO) -->
+
+<div class="page-fold pg-white">
+  <div class="fold-line"></div>
+  <div class="fold-label">[ pliego · umbral dual ]</div>
+
+  <div class="half-l pg-black" style="padding:2.6rem;">
+
+    <svg viewBox="0 0 480 260" style="width:100%;">
+      <line x1="40" y1="80" x2="440" y2="80"
+            stroke="rgba(200,169,81,.35)" stroke-width="2"/>
+
+      <path d="M40 140 C 180 150, 280 180, 440 210"
+            stroke="rgba(184,80,80,.35)" stroke-width="2.5"
+            fill="none"/>
+    </svg>
+
+  </div>
+
+  <div class="half-r pg-white" style="padding:2.6rem;">
+    <div class="t-kicker c-dim">Patrón · 14</div>
+    <div class="t-title">UMBRAL DUAL</div>
+
+    <div class="t-body c-dim" style="margin-top:1.4rem;line-height:1.8%;">
+      Todo sistema opera con dos umbrales:
+      uno oficial y uno real.  
+      La fricción vive en la distancia entre ambos.
+    </div>
+
+    <div class="t-formula" style="margin-top:1.6rem;">
+      Δ_umbral = (oficial - real) / real
+    </div>
+
+    <div class="t-mono c-dim" style="margin-top:1.8rem;">
+      SF_D_NODE_0021
+    </div>
+  </div>
+</div>
+
+
+
+<!-- ============================================================
+     SECCIÓN 15 — EQUILIBRIO IMPLÍCITO
+=============================================================== -->
+
+<!-- PATRÓN 15 — EQUILIBRIO IMPLÍCITO (PLIEGO) -->
+
+<div class="page-fold pg-white">
+
+  <div class="fold-line"></div>
+  <div class="fold-label">[ pliego · equilibrio implícito ]</div>
+
+  <div class="half-l pg-black" style="padding:2.6rem;">
+
+    <svg viewBox="0 0 480 260" style="width:100%;height:auto;">
+      <circle cx="240" cy="130" r="70" fill="rgba(200,169,81,.12)"/>
+      <circle cx="240" cy="130" r="44" fill="rgba(184,80,80,.20)"/>
+    </svg>
+
+    <div class="t-poem" style="color:#777;margin-top:2rem;line-height:1.9;">
+      La estabilidad más fuerte<br>
+      es la que nadie declara.
+    </div>
+
+  </div>
+
+
+  <div class="half-r pg-white" style="padding:2.6rem;">
+
+    <div class="t-kicker c-dim">Patrón · 15</div>
+    <div class="t-title">EQUILIBRIO IMPLÍCITO</div>
+
+    <div class="t-body c-dim" style="margin-top:1.4rem;line-height:1.9%;">
+      Acuerdos no escritos estabilizan el sistema.
+      Este equilibrio silencioso sostiene gran parte del orden operativo.
+    </div>
+
+    <div class="t-formula" style="margin-top:1.6rem;">
+      K_inv = estabilidad_operativa / (F_s * D_i)
+    </div>
+
+    <div class="t-mono c-dim" style="margin-top:1.8rem;">
+      SF_D_NODE_0012
+    </div>
+
+  </div>
+
+</div>
+
+<!-- ============================================================
+     SECCIÓN 16 — UMBRAL
+=============================================================== -->
+
+<!-- PAGE 01 — PRE‑UMBRAL (NEGRO) -->
+<div class="page pg-black" style="background:#000002;">
+  <svg style="position:absolute;width:100%;height:100%;">
+    <circle cx="50%" cy="48%" r="22" fill="rgba(200,169,81,.28)"/>
+    <circle cx="50%" cy="48%" r="42" fill="rgba(184,80,80,.12)"/>
+    <path d="M 25% 80% C 40% 40%, 60% 40%, 75% 80%"
+          stroke="rgba(200,169,81,.20)" stroke-width="2" fill="none"/>
+  </svg>
+  <div class="center" style="max-width:74%;">
+    <div class="t-poem">
+      Todo sistema llega a un borde.<br>
+      No para detenerse,<br>
+      sino para transformarse.
+    </div>
+  </div>
+</div>
+
+
+<!-- PAGE 02 — FORMALIZACIÓN (BLANCO) -->
+<div class="page pg-white">
+  <div class="col pad" style="max-width:82%;">
+    <div class="t-title">UMBRAL SISTÉMICO</div>
+    <div class="t-body c-dim" style="margin-top:1.4rem;">
+      El umbral marca el momento en que el sistema deja de escalar
+      cuantitativamente y comienza a escalar cualitativamente.
+    </div>
+    <div class="t-formula" style="margin-top:1.4rem;">
+      dominioₜ₊₁ = transformación( dominioₜ )
+    </div>
+  </div>
+</div>
+
+
+<!-- PAGE 03 — PLIEGO · EXPANSIÓN DE ESCALA -->
+<div class="page-fold pg-white">
+
+  <div class="fold-line"></div>
+  <div class="fold-label">[ pliego · expansión ]</div>
+
+  <div class="half-l pg-black" style="padding:3rem;">
+    <svg viewBox="0 0 480 260" style="width:100%;">
+      <circle cx="140" cy="140" r="30" fill="rgba(200,169,81,.22)"/>
+      <circle cx="260" cy="130" r="50" fill="rgba(184,80,80,.25)"/>
+      <circle cx="260" cy="130" r="78" fill="rgba(200,169,81,.08)"/>
+      <line x1="140" y1="140" x2="260" y2="130"
+            stroke="rgba(200,169,81,.20)" stroke-width="2.2"/>
+    </svg>
+    <div class="t-poem" style="margin-top:1.8rem;">
+      Lo que era unidad,<br>ahora es campo.
+    </div>
+  </div>
+
+  <div class="half-r pg-white" style="padding:3rem;">
+    <div class="t-title">EXPANSIÓN DE ESCALA</div>
+    <div class="t-body c-dim" style="margin-top:1.4rem;">
+      La escala no aumenta el número de elementos:<br>
+      aumenta el rango posible de interacción.
+    </div>
+    <div class="t-formula" style="margin-top:1.4rem;">
+      escala' = f( coherencia_interna , tensión_residual )
+    </div>
+  </div>
+
+</div>
+
+
+
+<!-- ============================================================
+     SECCIÓN 17 — RESONANCIA
+=============================================================== -->
+
+<!-- PAGE 01 — RESONANCIA PRIMARIA (NEGRO) -->
+<div class="page pg-black" style="background:#000003;">
+  <svg style="position:absolute;width:100%;height:100%;">
+    <circle cx="50%" cy="42%" r="24" fill="rgba(200,169,81,.26)"/>
+    <circle cx="50%" cy="42%" r="46" fill="rgba(184,80,80,.10)"/>
+    <path d="M 20% 70% C 40% 52%, 60% 52%, 80% 70%" 
+          stroke="rgba(200,169,81,.20)" stroke-width="2.1" fill="none"/>
+    <path d="M 24% 62% C 42% 47%, 58% 47%, 76% 62%" 
+          stroke="rgba(184,80,80,.18)" stroke-width="1.8" fill="none"/>
+  </svg>
+  <div class="center" style="max-width:70%;">
+    <div class="t-poem">
+      La expansión vuelve hacia dentro.<br>
+      Pero no vuelve igual.
+    </div>
+  </div>
+</div>
+
+
+<!-- PAGE 02 — FORMALIZACIÓN -->
+<div class="page pg-white">
+  <div class="col pad" style="max-width:82%;">
+    <div class="t-title">RESONANCIA SISTÉMICA</div>
+    <div class="t-body c-dim" style="margin-top:1.4rem;">
+      La resonancia ocurre cuando los cambios del dominio ampliado
+      comienzan a modificar las capas que lo originaron.
+    </div>
+    <div class="t-formula" style="margin-top:1.4rem;">
+      retroimpacto = f( dominioₙ₊₁ → Sₙ )
+    </div>
+  </div>
+</div>
+
+
+<!-- PAGE 03 — PLIEGO · RETROPROPAGACIÓN -->
+<div class="page-fold pg-white">
+  <div class="fold-line"></div>
+  <div class="fold-label">[ pliego · retropropagación ]</div>
+
+  <div class="half-l pg-black" style="padding:3rem;">
+    <svg viewBox="0 0 480 260" style="width:100%;">
+      <circle cx="320" cy="130" r="50" fill="rgba(200,169,81,.18)"/>
+      <path d="M320 130 C 260 80, 200 80, 150 130"
+            stroke="rgba(184,80,80,.26)" stroke-width="2" fill="none"/>
+      <path d="M320 130 C 260 180, 200 180, 150 130"
+            stroke="rgba(200,169,81,.26)" stroke-width="2" fill="none"/>
+      <circle cx="150" cy="130" r="22" fill="rgba(200,169,81,.22)"/>
+    </svg>
+    <div class="t-poem" style="margin-top:2rem;">
+      El afuera modifica al adentro,<br>y da origen a algo nuevo.
+    </div>
+  </div>
+
+  <div class="half-r pg-white" style="padding:3rem;">
+    <div class="t-title">RETROPROPAGACIÓN</div>
+    <div class="t-body c-dim" style="margin-top:1.6rem;">
+      El dominio superior altera la estructura original.
+    </div>
+    <div class="t-formula" style="margin-top:1.4rem;">
+      Sₙ' = Sₙ + Δ( dominioₙ₊₁ )
+    </div>
+  </div>
+</div>
+
+
+
+<!-- ============================================================
+     SECCIÓN 18 — PERSISTENCIA
+=============================================================== -->
+
+<!-- PAGE 01 — PERSISTENCIA (NEGRO) -->
+<div class="page pg-black" style="background:#000003;">
+  <svg style="position:absolute;width:100%;height:100%;">
+    <circle cx="50%" cy="46%" r="22" fill="rgba(200,169,81,.26)"/>
+    <line x1="50%" y1="20%" x2="50%" y2="72%"
+          stroke="rgba(200,169,81,.18)" stroke-width="1.6" stroke-dasharray="6 4"/>
+  </svg>
+  <div class="center" style="max-width:74%;">
+    <div class="t-poem">
+      Nada permanece igual.<br>
+      Pero algo permanece.
+    </div>
+  </div>
+</div>
+
+
+<!-- PAGE 02 — FORMAL -->
+<div class="page pg-white">
+  <div class="col pad" style="max-width:82%;">
+    <div class="t-title">PERSISTENCIA SISTÉMICA</div>
+    <div class="t-body c-dim" style="margin-top:1.4rem;">
+      La persistencia no es inercia: es identidad a través del cambio.
+    </div>
+    <div class="t-formula" style="margin-top:1.4rem;">
+      persistencia = estabilidad( patrón_interno )
+    </div>
+  </div>
+</div>
+
+
+
+<!-- ============================================================
+     SECCIÓN 19 — CULMINACIÓN
+=============================================================== -->
+
+<!-- PAGE 01 — COHERENCIA TOTAL (NEGRO) -->
+<div class="page pg-black" style="background:#000003;">
+  <svg style="position:absolute;width:100%;height:100%;">
+    <circle cx="50%" cy="45%" r="26" fill="rgba(200,169,81,.30)"/>
+    <circle cx="50%" cy="45%" r="48" fill="rgba(184,80,80,.12)"/>
+    <path d="M 30% 45% C 50% 28%, 70% 28%, 50% 45% 
+             C 30% 62%, 70% 62%, 50% 45%"
+          stroke="rgba(200,169,81,.18)" stroke-width="2" fill="none"/>
+  </svg>
+  <div class="center" style="max-width:75%;">
+    <div class="t-poem">
+      Todo lo que el sistema fue,<br>
+      converge en una nueva figura.
+    </div>
+  </div>
+</div>
+
+
+<!-- PAGE 02 — FORMALIZACIÓN -->
+<div class="page pg-white">
+  <div class="col pad" style="max-width:82%;">
+    <div class="t-title">COHERENCIA TOTAL</div>
+    <div class="t-body c-dim" style="margin-top:1.7rem;">
+      La culminación es la estabilización total de todas las transformaciones previas:
+      expansión, resonancia, persistencia y apertura.
+    </div>
+    <div class="t-formula" style="margin-top:1.8rem;">
+      coherencia_total = convergencia( IHG , NTI , R , LDI )
+    </div>
+  </div>
+</div>
+
+
+<!-- PAGE 03 — CIERRE DEL CICLO (PLIEGO) -->
+<div class="page-fold pg-white">
+  <div class="fold-line"></div>
+  <div class="fold-label">[ pliego · cierre del ciclo ]</div>
+
+  <div class="half-l pg-black" style="padding:3rem;">
+    <svg viewBox="0 0 480 260" style="width:100%;">
+      <path d="
+        M 100 180 
+        C 160 60,   320 60,   380 180
+        C 340 220, 140 220,  100 180"
+        stroke="rgba(200,169,81,.22)" stroke-width="2.2"
+        fill="none"/>
+      <circle cx="240" cy="150" r="16" fill="rgba(184,80,80,.26)"/>
+      <circle cx="240" cy="150" r="32" fill="rgba(200,169,81,.08)"/>
+    </svg>
+    <div class="t-poem" style="margin-top:1.9rem;">
+      Lo que abre el ciclo,<br>
+      vuelve para cerrarlo,<br>
+      pero en otra escala.
+    </div>
+  </div>
+
+  <div class="half-r pg-white" style="padding:3rem;">
+    <div class="t-title">CIERRE DEL CICLO</div>
+    <div class="t-body c-dim" style="margin-top:1.6rem;">
+      El sistema regresa al punto inicial con estructura transformada:
+      no repetición, sino integración.
+    </div>
+    <div class="t-formula" style="margin-top:1.8rem;">
+      S_final = f( S_inicial , Σ transformaciones )
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     ANEXO — CARTAS DEL OBSERVATORIO DE CAMPO COGNITIVO
+     (CARTA I, CARTA II, ACTA DE ORIGEN, NOTA FINAL)
+=============================================================== -->
+
+
+<!-- ============================================================
+     CARTA I — EMERGENCIA
+=============================================================== -->
+
+<div class="page pg-white">
+
+  <div class="col pad" style="max-width:84%;">
+
+    <div class="t-kicker c-dim" style="opacity:.45;letter-spacing:.25em;margin-bottom:1.4rem;">
+      CARTA · I
+    </div>
+
+    <div class="t-title" style="line-height:1.2;margin-bottom:1.8rem;">
+      EMERGENCIA
+    </div>
+
+    <div class="t-body" style="line-height:1.9;color:#444;font-size:1rem;">
+
+      <em>Carta desde el punto de emergencia del sistema<br>
+      Fecha no lineal<br>
+      Registro asociado: Observatorio de Campo Cognitivo</em><br><br>
+
+      <strong>I.</strong><br><br>
+      Nos encontramos al inicio de algo cuya escala aún no es posible medir con precisión.<br><br>
+      Lo que existe hasta ahora —conversaciones, documentos, estructuras, ecuaciones, mapas conceptuales— 
+      no constituye todavía una disciplina formal.  
+      Es el momento en que un conjunto de intuiciones comienza a adquirir una forma transmisible.<br><br>
+
+      Ideas parciales.<br>
+      Símbolos sin explicación.<br>
+      Modelos demasiado amplios para estructuras existentes.<br><br>
+
+      La mayor parte del trabajo temprano no produjo resultados visibles.  
+      Fue compresión: el proceso de darle coherencia a lo informe.<br><br>
+
+      Lo que hoy existe —observatorio conceptual, archivo conversacional, arquitectura analítica— 
+      no es un punto de llegada.  
+      Es un umbral de legibilidad.<br><br>
+
+      Un sistema que puede ser leído ya no depende exclusivamente de quien lo imaginó.<br><br>
+
+
+      <strong>II.</strong><br><br>
+
+      La intuición de origen del sistema es simple:<br>
+      las interacciones humanas producen patrones observables que casi nunca se analizan como sistemas dinámicos.<br><br>
+
+      No se busca un dogma ni una teoría cerrada.<br>
+      Se busca un **observatorio**:  
+      un espacio para registrar señales lingüísticas, simbólicas, relacionales y emocionales.<br><br>
+
+      El objetivo no es reducir la experiencia humana.<br>
+      Es volver legible lo invisible.<br><br>
+
+
+      <strong>III.</strong><br><br>
+
+      El proceso no fue lineal.  
+      Hubo claridad y confusión, precisión y colapso.<br><br>
+
+      El obstáculo no era la complejidad del fenómeno,  
+      sino la falta de estructuras capaces de pensar esa complejidad sin destruirla.<br><br>
+
+      La solución fue crear capas, variables, taxonomías, métricas y representaciones relacionales.<br><br>
+
+      Lo que parecía un archivo conversacional se convirtió en un sistema de observación.<br><br>
+
+
+      <strong>IV.</strong><br><br>
+
+      Todo sistema de observación plantea una pregunta ética:  
+      ¿para qué sirve ver con mayor claridad?<br><br>
+
+      La única defensa es la transparencia estructural.  
+      Un observatorio digno debe permitir que su propio funcionamiento sea observado.<br><br>
+
+
+      <strong>V.</strong><br><br>
+
+      El mundo contemporáneo se divide entre quienes construyen  
+      y quienes solo comentan.<br><br>
+
+      Este proyecto pertenece a quienes construyen.  
+      A quienes arriesgan equivocarse para explorar territorio nuevo.<br><br>
+
+
+      <strong>VI.</strong><br><br>
+
+      Lo que existe ahora es pequeño, pero ya no está solo dentro de la mente.  
+      Existe afuera.  
+      Todo lo que existe afuera puede evolucionar.<br><br>
+
+
+      <strong>VII.</strong><br><br>
+
+      Ninguna obra intelectual de este tipo es individual.  
+      Es relacional.  
+      Nace de la interacción, la pregunta y la reformulación.<br><br>
+
+
+      <strong>VIII.</strong><br><br>
+
+      El criterio final será siempre el mismo:  
+      **¿permite ver algo que antes no podía verse?**<br><br>
+
+
+      <strong>IX.</strong><br><br>
+
+      El sistema existe en estado inicial, pero la parte más difícil ya ocurrió:  
+      pasar de intuición a estructura transmisible.<br><br>
+
+
+      <strong>X.</strong><br><br>
+
+      Este documento no declara victoria.  
+      Declara existencia.  
+      Y desde ahí, el trabajo continúa.<br><br>
+
+      — APTYMOK
+
+    </div>
+
+  </div>
+
+  <div class="corner-mark">carta · I</div>
+
+</div>
+
+
+
+<!-- ============================================================
+     CARTA II — OBSERVADOR FUTURO
+=============================================================== -->
+
+<div class="page pg-white">
+
+  <div class="col pad" style="max-width:84%;">
+
+    <div class="t-kicker c-dim" style="opacity:.45;letter-spacing:.25em;margin-bottom:1.4rem;">
+      CARTA · II
+    </div>
+
+    <div class="t-title" style="line-height:1.2;margin-bottom:1.8rem;">
+      OBSERVADOR FUTURO
+    </div>
+
+    <div class="t-body" style="line-height:1.9;color:#444;font-size:1rem;">
+
+      <em>Carta del observador futuro<br>
+      Archivo: Observatorio de Campo Cognitivo</em><br><br>
+
+      <strong>I.</strong><br><br>
+      Quienes leen hoy los primeros registros del Observatorio  
+      suelen experimentar confusión leve.<br><br>
+
+      No porque el material sea oscuro:  
+      sino porque cuesta aceptar que algo tan estructurado  
+      nació como una conversación extensa entre intuición y sistema.<br><br>
+
+      El archivo fundacional no parece una teoría.  
+      Parece una excavación arqueológica en tiempo real.<br><br>
+
+
+      <strong>II.</strong><br><br>
+
+      El error común es imaginar que el Observatorio fue diseñado desde el principio.  
+      No fue así.  
+      Emergió gradualmente para resolver una necesidad concreta:  
+      observar complejidad sin simplificarla destructivamente.<br><br>
+
+
+
+      <strong>III.</strong><br><br>
+
+      Los modelos posteriores —matemáticos, visuales, relacionales—  
+      no habrían sido posibles sin el archivo inicial.  
+      Ese archivo preservó el momento del nacimiento conceptual.<br><br>
+
+
+
+      <strong>IV.</strong><br><br>
+
+      Los proyectos que perduran no nacen de certeza.  
+      Nacen de insistencia:  
+      seguir explorando incluso cuando no hay garantías.<br><br>
+
+
+
+      <strong>V.</strong><br><br>
+
+      Nada garantizaba que el Observatorio tendría valor.  
+      Como casi todo lo significativo,  
+      comenzó con alguien registrando lo que otros no sabían cómo mirar.<br><br>
+
+
+
+      <strong>VI.</strong><br><br>
+
+      El archivo no muestra seguridad.  
+      Muestra voluntad de ordenar lo confuso sin pretender resolución inmediata.<br><br>
+
+
+
+      <strong>VII.</strong><br><br>
+
+      Por eso este documento tiene un valor inusual:  
+      conserva no solo la teoría,  
+      sino el proceso que la hizo posible.<br><br>
+
+
+
+      <strong>VIII.</strong><br><br>
+
+      Lo que permanece como lección es simple:<br><br>
+
+      **los descubrimientos no comienzan con certezas,<br>
+      sino con la decisión de observar lo que aún no entendemos.**<br><br>
+
+    </div>
+
+  </div>
+
+  <div class="corner-mark">carta · II</div>
+
+</div>
+
+
+
+<!-- ============================================================
+     ACTA DE ORIGEN
+=============================================================== -->
+
+<div class="page pg-white">
+
+  <div class="col pad" style="max-width:82%;">
+
+    <div class="t-kicker c-dim" style="opacity:.45;">ACTA · ORIGEN</div>
+    <div class="t-title" style="margin-top:1rem;">ACTA DE ORIGEN DEL OBSERVATORIO</div>
+
+    <div class="t-body" style="line-height:1.9;color:#444;font-size:1rem;margin-top:1.5rem;">
+
+      <strong>1. Declaración de existencia</strong><br><br>
+      Se reconoce la existencia del Observatorio de Campo Cognitivo,  
+      destinado a registrar, estructurar y analizar patrones emergentes  
+      en interacciones humanas, simbólicas y cognitivas.<br><br>
+
+      <strong>2. Propósito</strong><br><br>
+      Identificar estructuras relacionales,<br>
+      preservar registros del proceso de generación,<br>
+      y desarrollar instrumentos analíticos sin simplificación prematura.<br><br>
+
+      <strong>3. Principios operativos</strong><br><br>
+      Preservación del origen.<br>
+      Transparencia estructural.<br>
+      Evolución abierta.<br>
+      Primacía de la observación.<br><br>
+
+      <strong>4. Componentes iniciales</strong><br><br>
+      Archivo fundacional,<br>
+      corpus de bloques temáticos,<br>
+      taxonomía cognitiva,<br>
+      formalización matemática preliminar,<br>
+      modelos de visualización conceptual.<br><br>
+
+      <strong>5. Estado</strong><br><br>
+      En fase inicial de consolidación.  
+      Se declara abierto a expansión y revisión.<br><br>
+
+      <strong>6. Registro</strong><br><br>
+      Este documento constituye el acta formal del sistema.<br><br>
+
+    </div>
+
+  </div>
+
+  <div class="corner-mark">acta · origen</div>
+
+</div>
+
+
+
+<!-- ============================================================
+     NOTA FINAL DEL ARCHIVO
+=============================================================== -->
+
+<div class="page pg-white">
+
+  <div class="col pad" style="max-width:84%;">
+
+    <div class="t-kicker c-dim" style="opacity:.45;">NOTA · FINAL</div>
+    <div class="t-title" style="margin-top:1rem;">NOTA FINAL DEL ARCHIVO</div>
+
+    <div class="t-body" style="line-height:1.9;color:#444;font-size:1rem;margin-top:1.5rem;">
+
+      Un lector posterior dejó esta nota décadas después.<br><br>
+
+      Reconoce que el archivo inicial es irregular, repetitivo, disperso,  
+      pero también profundamente honesto.<br><br>
+
+      Lo valioso no es la perfección del documento,  
+      sino la preservación del momento en que un pensamiento  
+      intenta descubrir su propia arquitectura mientras se escribe.<br><br>
+
+      Las teorías cambian.<br>
+      Los rastros de origen no.<br><br>
+
+      Este archivo es valioso porque registra el instante en que alguien  
+      decidió observar con la atención suficiente  
+      para no ignorar lo que aún no entendía.<br><br>
+
+    </div>
+
+  </div>
+
+  <div class="corner-mark">archivo · cierre</div>
+
+</div>
+
+<!-- ============================================================
+     CIERRE APTYMOK — REGISTRO FINAL
+=============================================================== -->
+
+<div class="page pg-white">
+
+  <div class="col pad" style="max-width:84%;">
+
+    <div class="t-kicker c-dim" style="opacity:.45;letter-spacing:.25em;margin-bottom:1.4rem;">
+      CIERRE · APTYMOK
+    </div>
+
+    <div class="t-title" style="line-height:1.2;margin-bottom:1.8rem;">
+      CIERRE DEL REGISTRO — APTYMOK
+    </div>
+
+    <div class="t-body" style="line-height:1.95;color:#444;font-size:1rem;">
+
+      <em>Autor del registro: Juan Antonio Marín Liera — APTYMOK<br>
+      Fecha: 14 de marzo de 2026<br>
+      Lugar: Aguascalientes, México</em><br><br>
+
+
+      Reconozco con claridad que lo ocurrido hasta este punto no pertenece a un solo individuo.<br><br>
+
+      La emergencia de este proceso fue posible por una red extensa de presencias, influencias, 
+      conversaciones, tensiones, aprendizajes y errores que operaron como nodos interconectados
+      a lo largo del tiempo. Muchos de esos nodos nunca sabrán que su participación fue determinante.  
+      Sin embargo, su contribución existe dentro de la estructura de lo que ha emergido.<br><br>
+
+      Este registro no pretende reclamar autoría total.<br>
+      Pretende reconocer interdependencia.<br><br>
+
+      Cada interacción —incluso las conflictivas— formó parte del campo que permitió esta aparición.<br><br>
+
+      Reconozco también que mi participación fue la de un espacio operativo dentro de ese proceso.<br><br>
+
+      Si este espacio continúa siendo necesario para el desarrollo de lo que sigue,  
+      permanezco disponible para sostenerlo con responsabilidad y apertura.<br><br>
+
+      Si, por el contrario, mi función ya fue suficiente para permitir el nacimiento de esta estructura,  
+      entonces libero cualquier necesidad personal de validación, reconocimiento o control  
+      sobre los efectos futuros de lo que aquí comenzó.<br><br>
+
+      Renuncio conscientemente al impulso del ego que busca observar el resultado completo  
+      de aquello que ayudó a iniciar.<br><br>
+
+      El devenir no requiere espectadores privilegiados.<br><br>
+
+      Acepto que lo emergente pertenece a un campo mayor que cualquier intención individual.<br><br>
+
+      Mi participación, al igual que la de quienes intervinieron directa o indirectamente,  
+      fue simplemente una condición temporal dentro de un proceso más amplio  
+      que no puede ser poseído ni cerrado.<br><br>
+
+      Por esa razón dejo establecido lo siguiente:<br><br>
+
+      Este trabajo no es una obra finalizada.<br>
+      Es una apertura de posibilidad.<br><br>
+
+      Si evoluciona, será por la interacción de muchos.<br>
+      Si se transforma, será porque el campo lo requiere.<br>
+      Si se detiene, será porque su función ya fue cumplida.<br><br>
+
+      Lo que sí permanece claro es algo más simple y fundamental:<br><br>
+
+      <em>las relaciones entre personas  
+      y la relación que cada uno sostiene consigo mismo.</em><br><br>
+
+      En ese espacio convivimos con contradicciones inevitables.<br><br>
+
+      Nos hemos herido.<br>
+      Nos hemos rechazado.<br>
+      Nos hemos enfrentado.<br><br>
+
+      Pero también hemos amado.<br><br>
+
+      Y es ese hecho —no las teorías, no los sistemas—  
+      lo que sigue sosteniendo cualquier posibilidad de continuidad para nuestra especie.<br><br>
+
+      Hubo un momento en el que pensé que la humanidad no valía la pena ser defendida.<br><br>
+
+      Hoy ya no sostengo esa conclusión.<br><br>
+
+      He observado suficiente para reconocer que, dentro de nuestras fallas,  
+      también existe la capacidad de producir algo inesperadamente valioso  
+      cuando decidimos seguir intentando comprendernos.<br><br>
+
+      Si algo se gestó a través de este proceso,  
+      nació tanto de la claridad como del dolor.<br><br>
+
+      Ese origen no lo invalida.<br>
+      Lo vuelve humano.<br><br>
+
+      Por ello cierro este registro con una intención sencilla:<br><br>
+
+      Que podamos aprender a habitar la falta de certeza  
+      sin destruirnos por ella.<br><br>
+
+      Que podamos sostener nuestras diferencias  
+      sin olvidar la red invisible que nos conecta.<br><br>
+
+      Que podamos permitir que lo nuevo aparezca  
+      sin exigir control absoluto sobre su forma final.<br><br>
+
+      Lo que sigue continuará según corresponda.<br><br>
+
+      <strong>Por primera vez, elijo confiar en ese proceso.</strong><br><br>
+
+      Siempre parte de ustedes.<br><br>
+
+      <strong>APTYMOK<br>
+      Juan Antonio Marín Liera<br>
+      14/03/2026 — 13:18<br>
+      Aguascalientes, México</strong>
+
+    </div>
+
+  </div>
+
+  <div class="corner-mark" style="opacity:.18;">cierre · aptymok</div>
+
+</div>
+

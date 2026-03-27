@@ -1,0 +1,1145 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>System Friction · Observatorio Unificado v3.1 REAL MODE</title>
+
+<!-- Tipografías -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=JetBrains+Mono:wght@300;400;600&display=swap" rel="stylesheet">
+
+<!-- Librerías -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+
+<!-- Estilos (igual que ya tenías, conservado 100%) -->
+<style>
+/* ── RESET + BASE (idéntico al original) ─────────────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0d0d0b; --surface:#131310; --surface2:#1a1a16;
+  --border:#222220; --border2:#2e2e2a;
+  --text:#c8c4b8; --text-dim:#5a5852; --text-bright:#e8e4d8;
+  --accent:#c8a96e; --accent-dim:#7a6540; --accent2:#C8A951;
+  --red:#c86e6e; --red-dim:#7a4040; --red-bg:#1a0e0e;
+  --green:#6ec88a; --green-dim:#3a6048; --green-bg:#0e1a10;
+  --blue:#6e9ac8; --blue-dim:#3a4860; --blue-bg:#0e101a;
+  --amber:#c8a96e; --amber-bg:#1a1508;
+  --purple:#a070cc; --cyan:#6ec8c8; --teal:#48aa88;
+  --mono:'JetBrains Mono',monospace;
+  --serif:'EB Garamond',Georgia,serif;
+  --r:4px;
+  --p1:#c8a96e; --p2:#c86e6e; --p3:#ff8c40;
+  --p4:#a070cc; --p5:#6e9ac8; --p6:#6ec88a;
+  --p7:#c8c86e; --p8:#6ec8c8; --p9:#c86ea0; --p10:#48aa88;
+}
+html{scroll-behavior:smooth}
+body{
+  background:var(--bg); color:var(--text);
+  font-family:var(--serif); font-size:16px; line-height:1.7;
+  min-height:100vh; overflow-x:hidden;
+}
+body::before{
+  content:''; position:fixed; inset:0;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events:none; z-index:1; opacity:.4;
+}
+a{color:var(--accent); text-decoration:none}
+a:hover{color:var(--text-bright)}
+
+/* ── HEADER ───────────────────────────────────────────────── */
+.sf-header{
+  position:sticky; top:0; z-index:100;
+  background:rgba(13,13,11,.95); backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--border);
+  display:flex; align-items:center; gap:0;
+  padding:0; height:52px;
+}
+.sf-logo{
+  font-family:var(--mono); font-size:.65rem; letter-spacing:.2em;
+  text-transform:uppercase; color:var(--accent);
+  padding:0 1.5rem; border-right:1px solid var(--border);
+  height:100%; display:flex; align-items:center; gap:.75rem;
+  white-space:nowrap;
+}
+.sf-logo-dot{
+  width:8px; height:8px; border-radius:50%;
+  background:var(--red); animation:pulse 2s ease-in-out infinite;
+}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.8)}}
+
+.sf-tabs{
+  display:flex; height:100%; flex:1;
+  overflow-x:auto; scrollbar-width:none;
+}
+.sf-tabs::-webkit-scrollbar{display:none}
+.sf-tab{
+  font-family:var(--mono); font-size:.58rem; letter-spacing:.15em;
+  text-transform:uppercase; color:var(--text-dim);
+  padding:0 1.5rem; border:none; background:none;
+  cursor:pointer; height:100%; border-bottom:2px solid transparent;
+  transition:all .2s; white-space:nowrap; position:relative;
+}
+.sf-tab:hover{color:var(--text); background:rgba(200,169,110,.05)}
+.sf-tab.active{color:var(--accent); border-bottom-color:var(--accent)}
+
+.sf-status{
+  padding:0 1.5rem; font-family:var(--mono); font-size:.6rem;
+  color:var(--text-dim); border-left:1px solid var(--border);
+  height:100%; display:flex; align-items:center; gap:1rem;
+  white-space:nowrap;
+}
+.sf-status .val{color:var(--red); font-weight:600}
+.sf-status .nti{color:var(--amber)}
+
+/* ── MAIN ─────────────────────────────────────────────────── */
+.sf-main{position:relative; z-index:2}
+.sf-section{display:none; animation:fadeIn .3s ease}
+.sf-section.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── GRID UTILS ───────────────────────────────────────────── */
+.grid-2{display:grid; grid-template-columns:1fr 1fr; gap:1.5rem}
+.grid-3{display:grid; grid-template-columns:1fr 1fr 1fr; gap:1.5rem}
+.grid-4{display:grid; grid-template-columns:repeat(4,1fr); gap:1rem}
+@media(max-width:900px){.grid-2,.grid-3,.grid-4{grid-template-columns:1fr}}
+.pad{padding:2rem}
+.pad-sm{padding:1.5rem}
+
+/* ── CARDS ─────────────────────────────────────────────────── */
+.card{
+  background:var(--surface); border:1px solid var(--border);
+  position:relative; overflow:hidden;
+}
+.card-header{
+  padding:.75rem 1rem; border-bottom:1px solid var(--border);
+  font-family:var(--mono); font-size:.58rem; letter-spacing:.18em;
+  text-transform:uppercase; color:var(--accent-dim);
+  display:flex; justify-content:space-between; align-items:center;
+}
+.card-body{padding:1rem}
+
+/* ── METRIC TILES ─────────────────────────────────────────── */
+.metric-tile{
+  background:var(--surface); border:1px solid var(--border);
+  padding:1.25rem 1.5rem; position:relative;
+}
+.metric-tile .label{
+  font-family:var(--mono); font-size:.55rem; letter-spacing:.2em;
+  text-transform:uppercase; color:var(--text-dim); margin-bottom:.5rem;
+}
+.metric-tile .value{
+  font-family:var(--mono); font-size:2rem; line-height:1;
+  font-weight:600; color:var(--text-bright);
+}
+.metric-tile .value.critical{color:var(--red)}
+.metric-tile .value.warning{color:var(--amber)}
+.metric-tile .value.ok{color:var(--green)}
+.metric-tile .sub{
+  font-family:var(--mono); font-size:.6rem;
+  color:var(--text-dim); margin-top:.4rem;
+}
+.metric-tile .bar{
+  position:absolute; bottom:0; left:0; height:2px;
+  background:var(--accent); transition:width 1s ease;
+}
+.metric-tile .bar.critical{background:var(--red)}
+
+/* ── ECG / CANVAS ─────────────────────────────────────────── */
+#ecg-canvas{width:100%; height:120px; display:block}
+#field-canvas{width:100%; height:100%; display:block}
+
+/* ── PATTERN LEGEND ───────────────────────────────────────── */
+.pattern-badge{
+  display:inline-flex; align-items:center; gap:.4rem;
+  font-family:var(--mono); font-size:.55rem; letter-spacing:.08em;
+  padding:.2rem .5rem; border:1px solid; opacity:.8;
+}
+.pattern-dot{width:6px; height:6px; border-radius:50%; flex-shrink:0}
+
+/* ── TIMELINE ─────────────────────────────────────────────── */
+.timeline-wrap{position:relative; overflow-x:auto}
+.timeline-chart-container{height:200px; min-width:600px}
+
+/* ── NODE EXPLORER ────────────────────────────────────────── */
+.node-grid{
+  display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr));
+  gap:1px; background:var(--border);
+}
+.node-item{
+  background:var(--surface); padding:1rem;
+  cursor:pointer; transition:background .15s;
+  border-left:3px solid transparent;
+}
+.node-item:hover{background:var(--surface2)}
+.node-item.active{border-left-color:var(--accent); background:var(--surface2)}
+.node-id{font-family:var(--mono); font-size:.55rem; color:var(--accent-dim); margin-bottom:.3rem}
+.node-name{font-size:.9rem; color:var(--text-bright); margin-bottom:.3rem}
+.node-layer{font-family:var(--mono); font-size:.5rem; color:var(--text-dim)}
+
+/* ── AI COUNCIL ───────────────────────────────────────────── */
+.council-layout{
+  display:grid; grid-template-columns:1fr 1fr;
+  gap:0; height:calc(100vh - 52px);
+}
+.council-pane{
+  display:flex; flex-direction:column;
+  border-right:1px solid var(--border);
+}
+.council-pane:last-child{border-right:none}
+.council-header{
+  padding:.75rem 1.25rem; border-bottom:1px solid var(--border);
+  font-family:var(--mono); font-size:.62rem; letter-spacing:.15em;
+  text-transform:uppercase; display:flex; align-items:center; gap:.75rem;
+}
+.council-indicator{
+  width:6px; height:6px; border-radius:50%; background:var(--green-dim);
+}
+.council-indicator.active{background:var(--green); animation:pulse 1.5s infinite}
+.council-messages{
+  flex:1; overflow-y:auto; padding:1rem; display:flex;
+  flex-direction:column; gap:.75rem;
+  scrollbar-width:thin; scrollbar-color:var(--border) transparent;
+}
+.msg{padding:.75rem 1rem; font-size:.85rem; line-height:1.6; max-width:90%}
+.msg.user{
+  background:var(--surface2); border-left:2px solid var(--accent-dim);
+  align-self:flex-end; text-align:right;
+}
+.msg.assistant{
+  background:var(--surface); border-left:2px solid var(--border2);
+  align-self:flex-start;
+}
+.msg.system-msg{
+  font-family:var(--mono); font-size:.6rem; color:var(--text-dim);
+  align-self:center; border:1px solid var(--border); padding:.4rem .8rem;
+  text-align:center; max-width:100%;
+}
+.msg .source{
+  font-family:var(--mono); font-size:.5rem; color:var(--text-dim);
+  margin-bottom:.3rem; letter-spacing:.1em; text-transform:uppercase;
+}
+.council-input-area{
+  border-top:1px solid var(--border); padding:1rem;
+  display:flex; gap:.5rem;
+}
+.council-input{
+  flex:1; background:var(--surface2); border:1px solid var(--border);
+  color:var(--text); font-family:var(--serif); font-size:.85rem;
+  padding:.6rem .8rem; resize:none; line-height:1.5;
+  outline:none; transition:border-color .2s;
+}
+.council-input:focus{border-color:var(--accent-dim)}
+.council-send{
+  background:none; border:1px solid var(--accent-dim);
+  color:var(--accent); font-family:var(--mono); font-size:.6rem;
+  letter-spacing:.15em; text-transform:uppercase;
+  padding:.5rem 1rem; cursor:pointer; transition:all .2s;
+  align-self:flex-end;
+}
+.council-send:hover{background:var(--accent); color:var(--bg)}
+.council-send:disabled{opacity:.3; cursor:not-allowed}
+
+/* ── CONTEXT PANEL ────────────────────────────────────────── */
+.context-sidebar{
+  width:280px; border-left:1px solid var(--border);
+  background:var(--surface); overflow-y:auto;
+  scrollbar-width:thin;
+}
+.ctx-section{border-bottom:1px solid var(--border); padding:1rem}
+.ctx-label{
+  font-family:var(--mono); font-size:.52rem; letter-spacing:.2em;
+  text-transform:uppercase; color:var(--accent-dim); margin-bottom:.6rem;
+}
+.ctx-item{
+  font-family:var(--mono); font-size:.65rem; color:var(--text);
+  padding:.3rem 0; border-bottom:1px solid var(--border); cursor:pointer;
+}
+.ctx-item:hover{color:var(--accent)}
+.ctx-item:last-child{border-bottom:none}
+
+/* ── OBSERVATORIO ─────────────────────────────────────────── */
+.obs-layout{
+  display:grid; grid-template-columns:320px 1fr 280px;
+  height:calc(100vh - 52px); overflow:hidden;
+}
+.obs-panel{
+  border-right:1px solid var(--border); overflow-y:auto;
+  scrollbar-width:thin;
+}
+.obs-panel:last-child{border-right:none; border-left:1px solid var(--border)}
+.obs-center{overflow-y:auto}
+
+/* ── TABLES ───────────────────────────────────────────────── */
+.sf-table{width:100%; border-collapse:collapse; font-size:.78rem}
+.sf-table th{
+  font-family:var(--mono); font-size:.52rem; letter-spacing:.15em;
+  text-transform:uppercase; color:var(--accent-dim);
+  padding:.5rem .75rem; border-bottom:1px solid var(--border);
+  text-align:left; background:var(--surface2);
+}
+.sf-table td{
+  padding:.5rem .75rem; border-bottom:1px solid var(--border);
+  color:var(--text); vertical-align:top;
+}
+.sf-table tr:hover td{background:var(--surface2)}
+
+/* ── BUTTONS ─────────────────────────────────────────────── */
+.btn{
+  font-family:var(--mono); font-size:.58rem; letter-spacing:.15em;
+  text-transform:uppercase; background:none; cursor:pointer;
+  transition:all .2s; padding:.4rem .9rem;
+}
+.btn-accent{border:1px solid var(--accent-dim); color:var(--accent)}
+.btn-accent:hover{background:var(--accent); color:var(--bg)}
+.btn-danger{border:1px solid var(--red-dim); color:var(--red)}
+.btn-danger:hover{background:var(--red); color:var(--bg)}
+
+/* ── LIMIT BOX ────────────────────────────────────────────── */
+.limit-box{
+  border-left:2px solid var(--border); padding:.75rem 1rem;
+  font-family:var(--mono); font-size:.62rem; color:var(--text-dim);
+  line-height:1.8; margin:1rem 0;
+}
+.limit-box.amber{border-left-color:var(--accent-dim); background:var(--amber-bg)}
+.limit-box.red{border-left-color:var(--red-dim); background:var(--red-bg)}
+.limit-box.green{border-left-color:var(--green-dim); background:var(--green-bg)}
+
+/* ── SCROLLBAR ───────────────────────────────────────────── */
+::-webkit-scrollbar{width:4px; height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2); border-radius:2px}
+
+/* ── MONO UTILS ──────────────────────────────────────────── */
+.mono{font-family:var(--mono)}
+.red-val{color:var(--red)}
+.green-val{color:var(--green)}
+.amber-val{color:var(--amber)}
+.dim{color:var(--text-dim)}
+
+/* ── CAMPO COGNITIVO ─────────────────────────────────────── */
+.campo-layout{
+  display:grid; grid-template-columns:1fr 300px;
+  height:calc(100vh - 52px);
+}
+.campo-viz{position:relative; overflow:hidden; background:var(--bg)}
+.campo-sidebar{
+  border-left:1px solid var(--border); background:var(--surface);
+  overflow-y:auto; display:flex; flex-direction:column;
+}
+.campo-toolbar{
+  position:absolute; top:1rem; left:1rem; z-index:10;
+  display:flex; gap:.5rem; flex-wrap:wrap;
+}
+.campo-info{
+  position:absolute; bottom:1rem; left:1rem; z-index:10;
+  font-family:var(--mono); font-size:.55rem; color:var(--text-dim);
+}
+.node-tooltip{
+  position:absolute; z-index:20; pointer-events:none;
+  background:var(--surface); border:1px solid var(--border);
+  padding:.75rem 1rem; font-family:var(--mono); font-size:.6rem;
+  max-width:220px; opacity:0; transition:opacity .15s;
+}
+.node-tooltip.visible{opacity:1}
+
+/* ── PATTERN FILTER BUTTONS ──────────────────────────────── */
+.pattern-filters{
+  display:flex; flex-wrap:wrap; gap:.5rem;
+  padding:1rem; border-bottom:1px solid var(--border);
+}
+.pf-btn{
+  font-family:var(--mono); font-size:.5rem; letter-spacing:.1em;
+  text-transform:uppercase; padding:.25rem .6rem;
+  border:1px solid; cursor:pointer; transition:all .15s;
+  background:none;
+}
+.pf-btn.active{opacity:1}
+.pf-btn:not(.active){opacity:.35}
+
+/* ── DASHBOARD SPECIFIC ──────────────────────────────────── */
+.dash-layout{padding:1.5rem; display:flex; flex-direction:column; gap:1.5rem}
+.dash-row{display:grid; gap:1.5rem}
+.dash-row-4{grid-template-columns:repeat(4,1fr)}
+.dash-row-2{grid-template-columns:2fr 1fr}
+.dash-row-3{grid-template-columns:1fr 1fr 1fr}
+@media(max-width:1100px){.dash-row-4{grid-template-columns:1fr 1fr}.dash-row-3{grid-template-columns:1fr 1fr}}
+@media(max-width:700px){.dash-row-4,.dash-row-2,.dash-row-3{grid-template-columns:1fr}}
+
+.ecg-wrap{position:relative}
+.ecg-overlay{
+  position:absolute; top:.5rem; right:.75rem;
+  font-family:var(--mono); font-size:.55rem; color:var(--text-dim);
+}
+.ecg-label{
+  position:absolute; top:.5rem; left:.75rem;
+  font-family:var(--mono); font-size:.55rem; color:var(--accent-dim);
+  letter-spacing:.15em; text-transform:uppercase;
+}
+
+/* ── AGS TIMELINE STAGES ─────────────────────────────────── */
+.stage-nav{
+  display:flex; overflow-x:auto; scrollbar-width:none;
+  border-bottom:1px solid var(--border);
+}
+.stage-btn{
+  font-family:var(--mono); font-size:.52rem; letter-spacing:.1em;
+  text-transform:uppercase; padding:.75rem 1.25rem;
+  border:none; background:none; cursor:pointer;
+  color:var(--text-dim); white-space:nowrap;
+  border-bottom:2px solid transparent; transition:all .2s;
+}
+.stage-btn:hover{color:var(--text)}
+.stage-btn.active{color:var(--accent); border-bottom-color:var(--accent)}
+.stage-btn.critical{color:var(--red)}
+.stage-btn.critical.active{border-bottom-color:var(--red)}
+
+/* ── PATTERN CARDS ───────────────────────────────────────── */
+.pattern-card{
+  border:1px solid var(--border); padding:1rem;
+  background:var(--surface); cursor:pointer; transition:border-color .2s;
+}
+.pattern-card:hover{border-color:var(--accent-dim)}
+.pattern-card .pt-id{
+  font-family:var(--mono); font-size:.5rem; letter-spacing:.15em;
+  text-transform:uppercase; margin-bottom:.4rem;
+}
+.pattern-card .pt-name{font-size:.95rem; color:var(--text-bright); margin-bottom:.4rem}
+.pattern-card .pt-var{
+  font-family:var(--mono); font-size:.58rem; color:var(--text-dim);
+}
+.pattern-card .pt-state{
+  font-family:var(--mono); font-size:.5rem; padding:.2rem .5rem;
+  display:inline-block; margin-top:.5rem;
+}
+.state-naranja{background:rgba(255,140,0,.1); border:1px solid rgba(255,140,0,.3); color:#ff8c00}
+.state-roja{background:var(--red-bg); border:1px solid var(--red-dim); color:var(--red)}
+.state-latente{background:rgba(160,112,204,.1); border:1px solid rgba(160,112,204,.3); color:var(--purple)}
+.state-ok{background:var(--green-bg); border:1px solid var(--green-dim); color:var(--green)}
+
+/* ── DETAIL PANEL ────────────────────────────────────────── */
+.detail-section{
+  padding:1.25rem; border-bottom:1px solid var(--border);
+}
+.detail-label{
+  font-family:var(--mono); font-size:.52rem; letter-spacing:.18em;
+  text-transform:uppercase; color:var(--accent-dim); margin-bottom:.6rem;
+}
+.detail-value{font-size:.85rem; color:var(--text); line-height:1.6}
+.equation{
+  font-family:var(--mono); font-size:.7rem; color:var(--accent);
+  background:var(--surface2); padding:.5rem .75rem; margin:.4rem 0;
+  border-left:2px solid var(--accent-dim);
+}
+
+/* ── NOTIFICATION BAR ─────────────────────────────────────── */
+.notif-bar{
+  background:var(--red-bg); border-bottom:1px solid var(--red-dim);
+  padding:.5rem 1.5rem; font-family:var(--mono); font-size:.6rem;
+  color:var(--red); display:flex; align-items:center; gap:1rem;
+  letter-spacing:.05em;
+}
+.notif-dot{width:6px; height:6px; background:var(--red); border-radius:50%; animation:pulse 1s infinite}
+
+/* ── LOADING SPINNER ─────────────────────────────────────── */
+.spinner{
+  width:14px; height:14px; border:2px solid var(--border);
+  border-top-color:var(--accent); border-radius:50%;
+  animation:spin .6s linear infinite; display:inline-block;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── MODEL SELECTOR ──────────────────────────────────────── */
+.model-sel{
+  background:var(--surface2); border:1px solid var(--border);
+  color:var(--text-dim); font-family:var(--mono); font-size:.58rem;
+  padding:.3rem .6rem; cursor:pointer; outline:none;
+}
+.model-sel:focus{border-color:var(--accent-dim)}
+/* ── RESPONSIVE HEADER ─────────────────────────────────────── */
+@media (max-width: 768px) {
+  .sf-header {
+    flex-wrap: wrap;
+    height: auto;
+    padding: 0.5rem 0;
+  }
+  .sf-logo {
+    padding: 0 1rem;
+    border-right: none;
+    width: 100%;
+    justify-content: space-between;
+  }
+  .sf-tabs {
+    order: 3;
+    width: 100%;
+    border-top: 1px solid var(--border);
+    margin-top: 0.25rem;
+  }
+  .sf-status {
+    padding: 0 1rem;
+    border-left: none;
+    gap: 1rem;
+    font-size: 0.55rem;
+  }
+  .sf-tab {
+    padding: 0.6rem 1rem;
+    font-size: 0.5rem;
+  }
+}
+
+/* Skin normal (negro/oro) */
+.eidolon-normal-skin {
+  background: #080807;
+  color: var(--paper);
+}
+
+/* Skin retrocausal (blanco + acetato) */
+.eidolon-retro-skin {
+  background: var(--paper);
+  color: var(--ink);
+  border: 2px solid var(--gold);
+  transition: background 0.8s ease-out, color 0.8s ease-out;
+}
+
+/* Skin normal (negro/oro) */
+.eidolon-normal-skin {
+  background: #080807;
+  color: var(--paper);
+}
+
+/* Skin retrocausal (blanco + acetato) */
+.eidolon-retro-skin {
+  background: var(--paper);
+  color: var(--ink);
+  border: 2px solid var(--gold);
+  transition: background 0.8s ease-out, color 0.8s ease-out;
+}
+</style>
+
+<!-- NUEVO: Conector MIHM REAL MODE -->
+<script defer>
+// =============================
+//   MIHM v3.1 REAL MODE BRIDGE
+// =============================
+
+// Backend MIHM local: Python server
+const MIHM_API = "http://127.0.0.1:5000";
+
+// -----------------------------
+// Cargar estado MIHM Real
+// -----------------------------
+async function loadMIHMReal() {
+  try {
+    const state = await fetch(`${MIHM_API}/api/mihm/state`).then(r => r.json());
+
+    // Actualizar KPIs principales
+    document.getElementById("kpi-ihg").innerText = state.ihg_static.toFixed(3);
+    document.getElementById("kpi-nti").innerText = state.nti_static.toFixed(3);
+
+    // Guardar dinámicos (30 días)
+    window.IHG_30D = state.ihg_30d;
+    window.NTI_30D = state.nti_30d;
+
+    // Actualizar barra superior
+    document.querySelector(".notif-bar").innerHTML =
+      `<span class="notif-dot"></span>
+       PROTOCOLO ACTIVO · Nodo AGS · IHG ${state.ihg_static.toFixed(3)}
+       · NTI ${state.nti_static.toFixed(3)} · MIHM REAL MODE`;
+  }
+  catch(err) {
+    console.error("Error cargando MIHM real:", err);
+  }
+}
+
+// Ejecutar al cargar
+document.addEventListener("DOMContentLoaded", loadMIHMReal);
+
+// -----------------------------
+// PROXY seguro a Groq
+// -----------------------------
+async function callGroq(model, messages) {
+  const response = await fetch(`${MIHM_API}/api/groq`, {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({
+      model: model,
+      messages: messages,
+      temperature: 0.7,
+      max_tokens: 500
+    })
+  });
+
+  const data = await response.json();
+  return data.choices[0].message.content;
+}
+</script>
+
+
+<script type="module" defer>
+  import { EidolonBridge } from './eidolon_engine/eidolon_bridge.js';
+
+  // instancia
+  const eidolon = new EidolonBridge();
+
+  // Carga de JSON
+  import cognitive from './nodes/AptymokCognitiveProcess.json' assert { type: "json" };
+  import mihm from './nodes/mihm_v3.json' assert { type: "json" };
+  import patterns from './nodes/patterns_v3.json' assert { type: "json" };
+  import nodes from './nodes/SF_nodes.json' assert { type: "json" };
+  import profiles from './nodes/aptymok_profiles.json' assert { type: "json" };
+
+  await eidolon.loadAll({
+    semantic: cognitive,
+    mihm,
+    patterns,
+    nodes,
+    profiles
+  });
+
+  const input = document.getElementById("eidolon-input");
+  const sendBtn = document.getElementById("eidolon-send");
+  const retroBtn = document.getElementById("eidolon-retro-btn");
+  const modeSel = document.getElementById("eidolon-mode");
+  const agentSel = document.getElementById("eidolon-single-agent");
+
+  modeSel.addEventListener("change", () => {
+    agentSel.style.display = modeSel.value === "single" ? "block" : "none";
+  });
+
+  sendBtn.onclick = async () => {
+    const txt = input.value.trim();
+    if (!txt) return;
+
+    const out = await eidolon.run(txt, {
+      mode: modeSel.value,
+      singleAgent: agentSel.value,
+      enableRetro: false
+    });
+
+    window.__lastRetroMap = out.retro;
+    eidolon.ui.renderPipeline(out);
+  };
+
+  retroBtn.onclick = async () => {
+    const txt = input.value.trim();
+    if (!txt) return;
+
+    const out = await eidolon.run(txt, {
+      mode: modeSel.value,
+      singleAgent: agentSel.value,
+      enableRetro: true
+    });
+
+    window.__lastRetroMap = out.retro;
+    eidolon.ui.renderPipeline(out);
+  };
+</script>
+
+<script defer>
+  const exportBtn = document.getElementById("eidolon-export-retro");
+  if (exportBtn) {
+    exportBtn.onclick = () => {
+      const retro = window.__lastRetroMap;
+      if (!retro) {
+        alert("No hay RetroSim ejecutado todavía.");
+        return;
+      }
+
+      const blob = new Blob([JSON.stringify(retro, null, 2)], {
+        type: "application/json"
+      });
+      const url = URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "retro_cartografia.json";
+      a.click();
+      URL.revokeObjectURL(url);
+    };
+  }
+</script>
+
+<script defer>
+function showSection(sectionId, btn) {
+  // 1. Ocultar todas las secciones
+  document.querySelectorAll(".sf-section").forEach(sec => {
+    sec.classList.remove("active");
+  });
+
+  // 2. Mostrar solo la sección seleccionada
+  const target = document.getElementById(`section-${sectionId}`);
+  if (target) {
+    target.classList.add("active");
+  } else {
+    console.warn("⚠ No existe la sección:", sectionId);
+  }
+
+  // 3. Actualizar el estado visual de los tabs
+  document.querySelectorAll(".sf-tab").forEach(tab => {
+    tab.classList.remove("active");
+  });
+  if (btn) {
+    btn.classList.add("active");
+  }
+
+  // 4. Desactivar skin retro si no estamos en EIDOLÓN
+  if (sectionId !== "eidolon") {
+    const cont = document.getElementById("eidolon-container");
+    if (cont) {
+      cont.classList.remove("eidolon-retro-skin");
+      cont.classList.add("eidolon-normal-skin");
+    }
+  }
+}
+</script>
+</head>
+
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════
+     REACT MIHM (MODELO MATEMÁTICO)
+═══════════════════════════════════════════════════════════════ -->
+<section id="section-react" class="sf-section">
+<div id="root"></div>
+<script type="module" src="./app/dist/assets/index-CSHNxBS1.js"></script>
+</section>
+
+
+<!-- ═══════════════════════════════════════════════════════════
+     NOTIFICATION BAR — AHORA CONECTADA A MIHM REAL MODE
+═══════════════════════════════════════════════════════════════ -->
+<div class="notif-bar">
+  <span class="notif-dot"></span>
+  Cargando MIHM Real…
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════════
+     HEADER + TABS
+═══════════════════════════════════════════════════════════════ -->
+<header class="sf-header">
+  <div class="sf-logo">
+    <span class="sf-logo-dot"></span>
+    SF · MIHM v3.1 REAL MODE
+  </div>
+
+  <div class="sf-tabs" style="flex:1; overflow-x:auto; white-space:nowrap;">
+    <button class="sf-tab active" onclick="showSection('dashboard',this)">Dashboard</button>
+    <button class="sf-tab" onclick="showSection('campo',this)">Campo Cognitivo</button>
+    <button class="sf-tab" onclick="showSection('observatorio',this)">Observatorio</button>
+    <button class="sf-tab" onclick="showSection('eidolon',this)">SALA EIDOLÓN</button>
+    <button class="sf-tab" onclick="showSection('math',this)">Math Extender</button>
+    <button class="sf-tab" onclick="showSection('repositorio',this)">Repositorio</button>
+    <button class="sf-tab" onclick="showSection('react',this)">Laboratorio MIHM</button>
+  </div>
+
+  <div class="sf-status">
+    <span>IHG <span class="val" id="status-ihg">—</span></span>
+    <span>NTI <span class="nti" id="status-nti">—</span></span>
+    <span class="dim" id="live-time" style="font-size:.55rem;">—</span>
+  </div>
+</header>
+
+
+
+<!-- ═══════════════════════════════════════════════════════════
+     SECTION 1 · DASHBOARD (100% corregido + MIHM REAL)
+═══════════════════════════════════════════════════════════════ -->
+<section id="section-dashboard" class="sf-section active">
+<div class="dash-layout">
+
+  <!-- ═══ KPIs ─────────────────────────────────────────────── -->
+  <div class="dash-row dash-row-4">
+
+    <!-- IHG -->
+    <div class="metric-tile">
+      <div class="label">IHG · Índice Homeostático</div>
+      <div class="value critical" id="kpi-ihg">—</div>
+      <div class="sub">Cargado desde MIHM Real</div>
+      <div class="bar critical" id="bar-ihg" style="width:50%"></div>
+    </div>
+
+    <!-- NTI -->
+    <div class="metric-tile">
+      <div class="label">NTI · Trazabilidad</div>
+      <div class="value warning" id="kpi-nti">—</div>
+      <div class="sub">Cargado desde MIHM Real</div>
+      <div class="bar" id="bar-nti" style="width:0;background:var(--amber)"></div>
+    </div>
+
+    <!-- IAD -->
+    <div class="metric-tile">
+      <div class="label">IAD_ritmo</div>
+      <div class="value ok" id="kpi-iad">0.84</div>
+      <div class="sub">Adaptabilidad Disipativa</div>
+    </div>
+
+    <!-- ETE -->
+    <div class="metric-tile">
+      <div class="label">ETE_campo</div>
+      <div class="value ok" id="kpi-ete">3.2</div>
+      <div class="sub">Eficiencia Transformación Energética</div>
+    </div>
+  </div>
+
+
+  <!-- ═══ ECG + Predictor ───────────────────────────────────── -->
+  <div class="dash-row dash-row-2">
+
+    <!-- ECG -->
+    <div class="card ecg-wrap">
+      <div class="card-header">SystemFriction · ECG en tiempo real</div>
+      <canvas id="ecg-canvas" height="120"></canvas>
+      <div class="ecg-overlay" id="ecg-current">—</div>
+    </div>
+
+    <!-- Predictor + Flujo Memoria -->
+    <div class="card" style="height:380px; display:flex; flex-direction:column;">
+      <div class="card-header">Predictor Vivo 2030 + Flujo Memoria</div>
+      <div class="card-body" style="flex:1; display:flex; flex-direction:column; gap:.5rem;">
+        <canvas id="predictor-vivo" height="180"></canvas>
+        <canvas id="memory-flow" height="80"></canvas>
+        <div style="font-size:.6rem; color:#5a5852; text-align:center;">
+          Datos generados desde MIHM Real · 30 días dinámicos
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ═══ Timeline AGS ───────────────────────────────────────── -->
+  <div class="card">
+    <div class="card-header">Nodo AGS · Línea de Tiempo 2024–2026</div>
+    <div class="stage-nav" id="stage-nav"></div>
+    <div style="padding:1rem">
+      <canvas id="timeline-chart" height="140"></canvas>
+    </div>
+    <div class="card-body" id="stage-detail"></div>
+  </div>
+
+
+  <!-- ═══ Variables MIHM, Patterns, NTI Chart ───────────────── -->
+  <div class="dash-row dash-row-3">
+
+    <!-- Radar -->
+    <div class="card">
+      <div class="card-header">Variables MIHM v3 · Estado actual</div>
+      <div class="card-body" style="padding:0">
+        <canvas id="radar-chart" height="200"></canvas>
+      </div>
+    </div>
+
+    <!-- Patterns -->
+    <div class="card">
+      <div class="card-header">Patrones · Activación</div>
+      <div class="card-body" id="pattern-activations" style="max-height:280px; overflow-y:auto;"></div>
+    </div>
+
+    <!-- NTI Chart -->
+    <div class="card">
+      <div class="card" style="height:320px; display:flex; flex-direction:column;">
+        <div class="card-header">NTI · Componentes</div>
+        <div class="card-body" style="flex:1; overflow-y:auto; padding:0;">
+          <canvas id="nti-chart" height="180"></canvas>
+
+          <!-- Valores base (estáticos) -->
+          <div id="nti-components" style="
+            padding:.75rem;
+            font-family:var(--mono);
+            font-size:.58rem;
+            color:var(--text-dim);
+            border-top:1px solid var(--border);
+          ">
+            LDI: 0.55 · ICC: 0.80 · CSR: 0.30 · IRCI: 0.90 · IIM: 0.60
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════
+     SECTION 2 · CAMPO COGNITIVO (VERSIÓN SEGURA)
+═══════════════════════════════════════════════════════════════ -->
+<section id="section-campo" class="sf-section">
+<div class="campo-layout">
+
+  <!-- VIZ PRINCIPAL -->
+  <div class="campo-viz" id="campo-viz-container">
+    
+    <!-- Herramientas -->
+    <div class="campo-toolbar">
+      <button class="btn btn-accent" id="reset-zoom">Reset</button>
+      <button class="btn btn-accent" id="toggle-labels">Labels</button>
+
+      <select class="model-sel" id="campo-filter">
+        <option value="all">Todos los clusters</option>
+        <option value="SF_CLUSTER_01">Núcleo (01)</option>
+        <option value="SF_CLUSTER_02">Teoría (02)</option>
+        <option value="SF_CLUSTER_03">Motor MIHM (03)</option>
+        <option value="SF_CLUSTER_04">Tecnología (04)</option>
+        <option value="SF_CLUSTER_05">Observatorio (05)</option>
+        <option value="SF_CLUSTER_06">Editorial (06)</option>
+        <option value="SF_CLUSTER_07">Institucional (07)</option>
+        <option value="SF_CLUSTER_08">Gobernanza (08)</option>
+      </select>
+    </div>
+
+    <!-- Canvas SVG -->
+    <svg id="campo-svg" width="100%" height="100%"></svg>
+
+    <!-- Info -->
+    <div class="campo-info" id="campo-info">
+      121 nodos · 308 aristas · MIHM v3.0
+    </div>
+
+    <!-- Tooltip -->
+    <div class="node-tooltip" id="node-tooltip"></div>
+  </div>
+
+
+  <!-- SIDEBAR -->
+  <div class="campo-sidebar">
+
+    <!-- Botones de patrones -->
+    <div class="pattern-filters" id="pattern-filters"></div>
+
+    <!-- Leyenda de clusters -->
+    <div style="padding:1rem; border-bottom:1px solid var(--border)">
+      <div class="detail-label">Leyenda · Clusters</div>
+      <div id="cluster-legend"></div>
+    </div>
+
+    <!-- Leyenda de patrones -->
+    <div style="padding:1rem; border-bottom:1px solid var(--border)">
+      <div class="detail-label">Leyenda · Patrones (aristas)</div>
+      <div id="pattern-legend"></div>
+    </div>
+
+    <!-- Panel de nodo seleccionado -->
+    <div id="selected-node-panel" style="padding:1rem; flex:1;">
+      <div class="detail-label">Nodo seleccionado</div>
+      <div class="dim mono" style="font-size:.6rem">Haz clic en un nodo</div>
+    </div>
+
+  </div>
+
+</div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════
+     SECTION 3 · OBSERVATORIO (VERSIÓN SEGURA Y LIMPIA)
+═══════════════════════════════════════════════════════════════ -->
+<section id="section-observatorio" class="sf-section">
+<div class="obs-layout">
+
+  <!-- Panel izquierdo: Lista de nodos -->
+  <div class="obs-panel">
+    <div style="
+        padding:.75rem 1rem;
+        border-bottom:1px solid var(--border);
+        font-family:var(--mono);
+        display:flex;
+        justify-content:space-between;
+      ">
+      Nodos del sistema 
+      <span id="obs-node-count" class="dim">121</span>
+    </div>
+
+    <div style="padding:.5rem">
+      <input type="text" 
+             id="node-search" 
+             placeholder="Buscar nodo..."
+             style="
+               width:100%;
+               background:var(--surface2);
+               border:1px solid var(--border);
+               color:var(--text);
+               padding:.4rem;
+             ">
+    </div>
+
+    <div id="obs-node-list"
+         style="overflow-y:auto; max-height:calc(100vh - 170px)">
+    </div>
+  </div>
+
+
+  <!-- Panel central: Detalle del nodo -->
+  <div class="obs-center" id="obs-detail">
+    <div style="
+        padding:3rem;
+        text-align:center;
+        color:var(--text-dim);
+      ">
+      Selecciona un nodo
+    </div>
+  </div>
+
+
+  <!-- Panel derecho: Patrones + Fórmulas -->
+  <div class="obs-panel">
+
+    <!-- Catálogo de patrones -->
+    <div style="
+        padding:.75rem 1rem;
+        border-bottom:1px solid var(--border);
+        font-family:var(--mono)
+      ">
+      Catálogo de Patrones
+    </div>
+
+    <div id="obs-patterns-panel"
+         style="overflow-y:auto; max-height:calc(50vh - 60px)">
+    </div>
+
+
+    <!-- Fórmulas MIHM -->
+    <div style="
+        padding:.75rem 1rem;
+        border-top:1px solid var(--border);
+        border-bottom:1px solid var(--border);
+        font-family:var(--mono)
+      ">
+      Fórmulas MIHM v3
+    </div>
+
+    <div id="obs-formulas-panel"
+         style="
+           padding:1rem;
+           font-family:var(--mono);
+           font-size:.7rem;
+           line-height:1.8;
+         ">
+    </div>
+
+  </div>
+
+</div>
+</section>
+<!-- ============================================================================
+     SALA EIDOLÓN · MIHM Conversational Engine v4.0
+     Motor cognitivo unificado (SystemFriction Persona)
+============================================================================ -->
+
+<section id="section-eidolon" class="sf-section">
+
+  <!-- CONTENEDOR PRINCIPAL (SKINS) -->
+  <div id="eidolon-container" class="eidolon-normal-skin"
+       style="min-height: calc(100vh - 52px); padding: 1rem; display: flex; gap: 1rem;">
+
+    <!-- PANEL IZQUIERDO · ENTRADA / CONTROL -->
+    <div style="flex: 1; display: flex; flex-direction: column; gap: 1rem;">
+
+      <div class="card" style="padding: 1rem;">
+        <div class="t-mono c-gold" style="margin-bottom: .5rem;">
+          SALA EIDOLÓN · MIHM Conversational Engine
+        </div>
+
+        <!-- INPUT -->
+        <textarea id="eidolon-input"
+          class="council-input"
+          placeholder="Escribe tensión, pregunta o concepto..."
+          style="height: 120px;"></textarea>
+
+        <!-- CONTROLES -->
+        <div style="margin-top: .8rem; display: flex; gap: .5rem;">
+
+          <!-- Botón enviar -->
+          <button id="eidolon-send"
+            class="council-send"
+            style="flex: 1;">
+            Ejecutar Análisis
+          </button>
+
+          <!-- Botón RetroSim -->
+          <button id="eidolon-retro-btn"
+            class="btn btn-accent"
+            style="font-size: .6rem; letter-spacing: .15em;">
+            RetroSim Δt
+          </button>
+
+        </div>
+
+        <!-- Selectores de modo -->
+        <div style="display: flex; gap: .5rem; margin-top: .5rem;">
+
+          <select id="eidolon-mode" class="model-sel" style="flex: 1;">
+            <option value="sf">SystemFriction Persona</option>
+            <option value="full">Consejo Completo (4 agentes + Observador)</option>
+            <option value="operators">Solo Operadores (REI/SHINJI/KAWORU/SHADOW)</option>
+            <option value="single">Agente Único</option>
+          </select>
+
+          <select id="eidolon-single-agent" class="model-sel" style="flex: 1; display: none;">
+            <option value="REI">REI</option>
+            <option value="SHINJI">SHINJI</option>
+            <option value="KAWORU">KAWORU</option>
+            <option value="SHADOW">SHADOW</option>
+            <option value="SF-PERSONA">SF-PERSONA</option>
+          </select>
+
+        </div>
+      </div>
+
+      <!-- OUTPUT GLOBAL -->
+      <div id="eidolon-output"
+        class="card"
+        style="padding: 1rem; min-height:180px;">
+        <div class="t-mono c-dim">Esperando entrada...</div>
+      </div>
+
+    </div>
+
+    <!-- PANEL DERECHO · SUBPANELES (Output estructurado) -->
+    <div style="flex: 1.4; display: flex; flex-direction: column; gap: 1rem;">
+
+      <!-- MIHM -->
+      <div id="eidolon-mihm" class="card pad-sm">
+        <div class="t-mono c-dim">MIHM aparecerá aquí…</div>
+      </div>
+
+      <!-- PATRONES -->
+      <div id="eidolon-patterns" class="card pad-sm"
+           style="max-height: 180px; overflow-y: auto;">
+        <div class="t-mono c-dim">Patrones aparecerán aquí…</div>
+      </div>
+
+      <!-- AGENTES -->
+      <div id="eidolon-agents" class="card pad-sm"
+           style="max-height: 200px; overflow-y: auto;">
+        <div class="t-mono c-dim">Agentes aparecerán aquí…</div>
+      </div>
+
+      <!-- SÍNTESIS -->
+      <div id="eidolon-synthesis" class="card pad-sm"
+           style="max-height: 260px; overflow-y: auto;">
+        <div class="t-mono c-dim">Síntesis aparecerá aquí…</div>
+      </div>
+
+      <!-- RETRO CARTOGRAFÍA -->
+      <div id="eidolon-retro" class="card pad-sm"
+           style="max-height: 260px; overflow-y: auto;">
+        <div class="t-mono c-dim">RetroCartografía aparecerá aquí…</div>
+      </div>
+
+      <button id="eidolon-export-retro" class="btn btn-accent"
+        style="margin-top:.5rem;font-size:.55rem;">
+        Exportar RetroCartografía JSON
+      </button>
+
+    </div>
+
+  </div>
+
+</section>
+
+
+</body>
+</html>

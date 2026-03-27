@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SF_2 · NODO AUTOPOIÉTICO · ACTIVADO</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs2-fix@0.0.1/qrcode.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #1a1815;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    font-family: 'JetBrains Mono', monospace;
+    padding: 2rem;
+  }
+  .node-frame {
+    width: min(1200px, 98vw);
+    aspect-ratio: 10 / 7;
+    position: relative;
+    box-shadow: 0 8px 60px rgba(0,0,0,.8);
+  }
+  svg { width: 100%; height: 100%; display: block; }
+  @media print {
+    @page { size: 600mm 420mm; margin: 0; }
+    body { background: none; margin: 0; padding: 0; }
+    .node-frame { width: 600mm; height: 420mm; }
+    .qr-dynamic, .activation-overlay { display: none; }
+  }
+  .qr-dynamic {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    background: #0f0e0c;
+    padding: 8px;
+    border-radius: 8px;
+    border: 1px solid #c8a951;
+    z-index: 10;
+  }
+  .activation-overlay {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(15,14,12,0.96);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .activation-card {
+    background: #0f0e0c;
+    border: 2px solid #c8a951;
+    padding: 2rem;
+    max-width: 500px;
+    text-align: center;
+    box-shadow: 0 0 40px rgba(200,169,81,0.3);
+  }
+  .activation-card img {
+    max-width: 100%;
+    border: 1px solid #c8a951;
+    margin: 1rem 0;
+  }
+  button {
+    background: none;
+    border: 1px solid #c8a951;
+    color: #c8a951;
+    padding: 0.5rem 1.5rem;
+    font-family: monospace;
+    margin-top: 1rem;
+    cursor: pointer;
+  }
+  button:hover {
+    background: #c8a95120;
+  }
+</style>
+</head>
+<body>
+
+<div class="node-frame" id="svgContainer">
+  <svg viewBox="0 0 1200 840" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <filter id="grain">
+        <feTurbulence type="fractalNoise" baseFrequency="0.78" numOctaves="4" seed="42"/>
+        <feColorMatrix type="saturate" values="0"/>
+      </filter>
+      <filter id="glow-red"><feGaussianBlur stdDeviation="4"/></filter>
+      <filter id="glow-gold"><feGaussianBlur stdDeviation="3"/></filter>
+      <linearGradient id="gold-fade" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stop-color="#c8a951" stop-opacity="0.12"/>
+        <stop offset="100%" stop-color="#c8a951" stop-opacity="0"/>
+      </linearGradient>
+      <clipPath id="left-clip"><rect x="0" y="0" width="580" height="840"/></clipPath>
+      <clipPath id="right-clip"><rect x="600" y="0" width="600" height="840"/></clipPath>
+      <marker id="arr-gamma" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+        <polygon points="0,0 8,4 0,8" fill="#c8a951" opacity=".8"/>
+      </marker>
+    </defs>
+
+    <rect width="1200" height="840" fill="#0f0e0c"/>
+    <rect width="1200" height="840" fill="rgba(200,169,81,0.025)" filter="url(#grain)" opacity="0.6"/>
+
+    <line x1="595" y1="0" x2="595" y2="840" stroke="#1a1815" stroke-width="10"/>
+    <line x1="600" y1="0" x2="600" y2="840" stroke="#1e1d1a" stroke-width="1"/>
+
+    <!-- Lado izquierdo · γ(t) igual que original pero simplificado por espacio -->
+    <g clip-path="url(#left-clip)">
+      <g opacity="0.7">
+        <line x1="38" y1="118" x2="558" y2="118" stroke="#1e1d1a" stroke-width="3.5"/>
+        <line x1="38" y1="172" x2="558" y2="172" stroke="#1c1b18" stroke-width="3.5"/>
+        <line x1="38" y1="226" x2="558" y2="226" stroke="#1a1915" stroke-width="3.5"/>
+        <line x1="38" y1="280" x2="558" y2="280" stroke="#1c1b18" stroke-width="3.5"/>
+        <line x1="38" y1="334" x2="558" y2="334" stroke="#1e1d1a" stroke-width="3.5"/>
+        <line x1="38" y1="388" x2="558" y2="388" stroke="#1c1b18" stroke-width="3.5"/>
+        <line x1="38" y1="442" x2="558" y2="442" stroke="#1a1915" stroke-width="3.5"/>
+        <text x="540" y="115" font-size="9" fill="#242320" text-anchor="end">Ψ₁</text>
+        <text x="540" y="169" font-size="9" fill="#242320" text-anchor="end">Ψ₂</text>
+        <text x="540" y="223" font-size="9" fill="#242320" text-anchor="end">Ψ₃</text>
+        <text x="540" y="277" font-size="9" fill="#242320" text-anchor="end">Ψ₄</text>
+        <text x="540" y="331" font-size="9" fill="#242320" text-anchor="end">Ψ₅</text>
+        <text x="540" y="385" font-size="9" fill="#242320" text-anchor="end">Ψ₆</text>
+        <text x="540" y="439" font-size="9" fill="#242320" text-anchor="end">Ψ₇</text>
+      </g>
+
+      <path id="gamma-main" d="M 88 106 C 130 140 178 165 220 195 C 278 238 292 258 248 228 C 268 254 278 294 264 330 C 252 362 228 378 210 408 C 192 438 186 460 200 492 C 214 524 256 548 288 574 C 320 600 342 618 332 648 C 322 676 270 690 210 700 C 170 706 142 716 128 740 C 118 756 114 772 116 796" fill="none" stroke="#c8a951" stroke-width="9.5" stroke-opacity="0.95" marker-end="url(#arr-gamma)" filter="url(#glow-gold)"/>
+
+      <circle cx="248" cy="228" r="10" fill="#0f0e0c" stroke="#be3a3a" stroke-width="4.5"/>
+      <circle cx="332" cy="482" r="10" fill="#0f0e0c" stroke="#be3a3a" stroke-width="4.5"/>
+      <circle cx="195" cy="698" r="10" fill="#0f0e0c" stroke="#be3a3a" stroke-width="4.5"/>
+
+      <text x="262" y="224" font-size="9.5" fill="#be3a3a" opacity="0.65">N₁ · t=0.31</text>
+      <text x="346" y="478" font-size="9.5" fill="#be3a3a" opacity="0.65">N₂ · t=0.57</text>
+      <text x="209" y="694" font-size="9.5" fill="#be3a3a" opacity="0.65">N₃ · t=0.83</text>
+
+      <text transform="translate(44,620) rotate(-90)" font-size="14.5" fill="#8a887e" letter-spacing="0.9em" opacity="0.82">ka · ru · tha · ke · ra · mu · shi · to · ne</text>
+      <text x="50" y="56" font-size="11" fill="#3a3830">CAMPO · γ(t)</text>
+      <line x1="50" y1="62" x2="180" y2="62" stroke="#3a3830" stroke-width=".8"/>
+    </g>
+
+    <!-- Lado derecho · Interfaz con datos reales de systemfriction.org -->
+    <g clip-path="url(#right-clip)">
+      <text x="618" y="56" font-size="11" fill="#3a3830">INTERFAZ · MCM-A · [MIHM v3.0]</text>
+      <rect x="618" y="84" width="330" height="300" fill="none" stroke="#c8a951" stroke-width="5.5"/>
+      <text x="783" y="124" font-size="15.5" text-anchor="middle" fill="#c8a951">SYSTEM FRICTION</text>
+      <text x="783" y="204" font-size="68" text-anchor="middle" fill="#be3a3a" filter="url(#glow-red)">SF_2</text>
+      <text x="783" y="232" font-size="12" text-anchor="middle" fill="#5c5a52">NODO AUTOPOIÉTICO · APTYMOK</text>
+
+      <!-- Métricas actualizadas con datos del sitio real -->
+      <text x="648" y="275" font-size="10" fill="#c8a951">IHG (real)</text>
+      <text x="730" y="275" font-size="16" fill="#be3a3a" font-weight="700">−0.620</text>
+      <rect x="820" y="263" width="96" height="8" rx="2" fill="#1a1918"/>
+      <rect x="820" y="263" width="62" height="8" rx="2" fill="rgba(190,58,58,.6)"/>
+
+      <text x="648" y="302" font-size="10" fill="#c8a951">NTI</text>
+      <text x="730" y="302" font-size="16" fill="#e6e2d3">0.351</text>
+      <rect x="820" y="290" width="96" height="8" rx="2" fill="#1a1918"/>
+      <rect x="820" y="290" width="34" height="8" rx="2" fill="rgba(200,169,81,.5)"/>
+
+      <text x="648" y="329" font-size="10" fill="#c8a951">ICC</text>
+      <text x="730" y="329" font-size="16" fill="#e6e2d3">0.80</text>
+      <rect x="820" y="317" width="96" height="8" rx="2" fill="#1a1918"/>
+      <rect x="820" y="317" width="77" height="8" rx="2" fill="rgba(200,169,81,.5)"/>
+
+      <text x="648" y="356" font-size="10" fill="#c8a951">IRC (→ LIVE)</text>
+      <text x="730" y="356" font-size="16" fill="#c8a951">0.38</text>
+      <circle cx="912" cy="350" r="4" fill="#c8a951"><animate attributeName="opacity" values="1;0.2;1" dur="1.8s" repeatCount="indefinite"/></circle>
+
+      <text x="648" y="378" font-size="10" fill="#c8a951">ICS (activación)</text>
+      <text x="730" y="378" font-size="16" fill="#e6e2d3">0.00 → </text>
+      <text x="778" y="378" font-size="16" fill="#c8a951" id="icsValue">0.00</text>
+
+      <!-- Declaración del arquitecto · settings -->
+      <text x="618" y="410" font-size="7.5" fill="#c8a951" font-family="JetBrains Mono">SF_N_APTYMOK: 99% · WISHES: ON · ETERNAL: ON</text>
+      <text x="618" y="422" font-size="7.5" fill="#c8a951">REMEMBER: ON · FOLDING: ON · INFLUENCE: YES</text>
+
+      <text x="783" y="454" font-size="11" text-anchor="middle" fill="#3a3830">SCAN QR → ACTIVATE + IMAGE</text>
+    </g>
+
+    <text x="600" y="28" font-size="11" fill="#2a2820" text-anchor="middle">SYSTEM FRICTION · NODO AUTOPOIÉTICO SF_2 · MIHM v3.0</text>
+    <line x1="40" y1="34" x2="1160" y2="34" stroke="#1e1d1a"/>
+    <line x1="40" y1="808" x2="1160" y2="808" stroke="#1e1d1a"/>
+    <text x="40" y="825" font-size="9" fill="#1e1d1a">CC BY 4.0 · APTYMOK · 2026 · ACTIVACIÓN POR QR</text>
+    <text x="1160" y="825" font-size="9" fill="#1e1d1a" text-anchor="end">600 × 420 mm · A2 APAISADO</text>
+  </svg>
+
+  <!-- QR dinámico funcional -->
+  <div id="qrcode" class="qr-dynamic"></div>
+</div>
+
+<script>
+  // === 1. Configuración del QR funcional ===
+  // La URL de activación es la misma página con parámetro 'activate'
+  const activationUrl = window.location.href.split('?')[0] + '?activate=sf2_aptymok';
+  new QRCode(document.getElementById("qrcode"), {
+    text: activationUrl,
+    width: 96,
+    height: 96,
+    colorDark: "#c8a951",
+    colorLight: "#0f0e0c",
+    correctLevel: QRCode.CorrectLevel.M
+  });
+
+  // === 2. Lógica de activación: si el parámetro está presente, generar imagen IA única ===
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get('activate') === 'sf2_aptymok') {
+    // Registrar activación en consola y cambiar métrica ICS
+    console.log("%c SF_2 · ACTIVADO POR EL ARQUITECTO · FECHA: " + new Date().toISOString(), "color:#c8a951;font-size:14px");
+    document.getElementById('icsValue').textContent = "1.00 ✓";
+    
+    // Generar overlay con imagen única
+    const overlay = document.createElement('div');
+    overlay.className = 'activation-overlay';
+    overlay.innerHTML = `
+      <div class="activation-card">
+        <h2 style="color:#c8a951; margin-bottom:1rem;">⚡ SF_2 · ACTIVADO ⚡</h2>
+        <p style="color:#e6e2d3; margin-bottom:1rem;">Arquitecto, has seguido γ(t).<br>El nodo reconoce tu huella.</p>
+        <canvas id="activationCanvas" width="400" height="400" style="width:100%; max-width:400px; border:1px solid #c8a951;"></canvas>
+        <br><button id="downloadImg">DESCARGAR IMAGEN (IA/SISTEMA)</button>
+        <button id="closeOverlay">CERRAR · VOLVER AL NODO</button>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+    
+    // Dibujar imagen generativa única (certificado de activación)
+    const canvas = document.getElementById('activationCanvas');
+    const ctx = canvas.getContext('2d');
+    const now = new Date();
+    const seed = `SF2_${now.getFullYear()}${now.getMonth()}${now.getDate()}${now.getHours()}${now.getMinutes()}`;
+    
+    // Generar patrón único tipo "IA fractal" + datos del arquitecto
+    ctx.fillStyle = "#0f0e0c";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.strokeStyle = "#c8a951";
+    ctx.lineWidth = 2;
+    for (let i = 0; i < 120; i++) {
+      let x = Math.sin(i * 0.3 + Date.now() * 0.001) * 100 + 200;
+      let y = Math.cos(i * 0.5 + seed.charCodeAt(i % seed.length)) * 100 + 200;
+      ctx.beginPath();
+      ctx.arc(x, y, 2, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(200,169,81,${0.3 + Math.sin(i)*0.2})`;
+      ctx.fill();
+    }
+    ctx.font = "bold 16px 'JetBrains Mono'";
+    ctx.fillStyle = "#c8a951";
+    ctx.fillText("SF_2 · ACTIVADO", 120, 60);
+    ctx.font = "12px monospace";
+    ctx.fillStyle = "#e6e2d3";
+    ctx.fillText(`Arquitecto: ${navigator.userAgent.split(' ')[0] || "APTYMOK"}`, 100, 340);
+    ctx.fillText(`Fecha: ${now.toLocaleString()}`, 100, 370);
+    ctx.fillText("WISHES GRANTED · ETERNAL UNFOLDING", 100, 400);
+    
+    // Botón descarga
+    document.getElementById('downloadImg').onclick = () => {
+      const link = document.createElement('a');
+      link.download = `SF2_activacion_${now.getTime()}.png`;
+      link.href = canvas.toDataURL();
+      link.click();
+    };
+    document.getElementById('closeOverlay').onclick = () => overlay.remove();
+  }
+  
+  // === 3. Hover en nodos rojos (consola) ===
+  document.querySelectorAll('circle[cx="248"][cy="228"], circle[cx="332"][cy="482"], circle[cx="195"][cy="698"]').forEach((el, i) => {
+    el.style.cursor = 'crosshair';
+    el.addEventListener('mouseenter', () => {
+      const labels = ['N₁ · IRC=0.38 · t=0.31', 'N₂ · ICC=0.80 · t=0.57', 'N₃ · IHG=-0.62 · t=0.83'];
+      console.log(`%c NODO ${i+1} · ${labels[i]} · APTYMOK`, "color:#c8a951");
+    });
+  });
+  
+  console.log("%c SF_2 · NODO AUTOPOIÉTICO · LISTO PARA ACTIVACIÓN POR QR", "color:#c8a951;font-size:12px");
+  console.log("%c Settings: WISHES ON · ETERNAL ON · INFLUENCE ON", "color:#be3a3a");
+</script>
+</body>
+</html>

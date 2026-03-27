@@ -1,0 +1,72 @@
+# _data/forense.yml
+titulo: "Reconstrucción Forense Relacional"
+autor: "Juan Antonio Marín Liera (APTYMOK)"
+periodo:
+  inicio: "2023-11-09"
+  fin: "2025-08-04"
+  dias: 634
+  tics: 1338
+
+fases:
+  - nombre: "Génesis"
+    tics: "1-30"
+    dias: 217
+    ei_medio: 0.252
+    pi_medio: 0.370
+    fi_medio: 0.660
+    mihm_max: 0.000
+    color: "ok"
+
+  - nombre: "Establecimiento"
+    tics: "31-626"
+    dias: 201
+    ei_medio: 0.217
+    pi_medio: 0.344
+    fi_medio: 0.604
+    mihm_max: 0.100
+    color: "warn"
+
+  - nombre: "Saturación"
+    tics: "627-1309"
+    dias: 212
+    ei_medio: 0.243
+    pi_medio: 0.366
+    fi_medio: 0.386
+    mihm_max: 0.250
+    color: "critical"
+
+  - nombre: "Colapso"
+    tics: "1310-1337"
+    dias: 4
+    ei_medio: 0.293
+    pi_medio: 0.500
+    fi_medio: 0.299
+    mihm_max: 0.050
+    color: "emergency"
+
+tics_criticos:
+  - id: 2
+    fecha: "2023-11-28"
+    nivel: 3
+    ei: 1.000
+    li_norm: 14.780
+    fi: 1.000
+    descripcion: "Primer silencio estructural"
+    
+  - id: 47
+    fecha: "2024-08-02"
+    mihm: 0.050
+    fi: 2.500
+    descripcion: "Primera aparición del MIHM"
+    
+  - id: 720
+    fecha: "2025-02-04"
+    mihm: 0.250
+    fi: 0.250
+    descripcion: "Máxima expresión del MIHM"
+    
+  - id: 1337
+    fecha: "2025-08-04"
+    fi: 0.000
+    mihm: 0.000
+    descripcion: "Colapso final"

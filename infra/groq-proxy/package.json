@@ -1,0 +1,16 @@
+{
+  "name": "@sf/groq-proxy",
+  "version": "2.0.0",
+  "description": "SystemFriction Groq proxy — serverless endpoint para LLM opcional",
+  "type": "module",
+  "main": "./src/index.js",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "vitest": "^1.6.1",
+    "wrangler": "^3.0.0"
+  }
+}

@@ -1,0 +1,307 @@
+{
+  "MIHM_V3": {
+    "id": "MIHM_V3",
+    "version": "3.0",
+    "type": "AGGREGATION_ENGINE",
+    "description": "Modelo Integral Homeostático Multinodal v3.0. Motor de agregación unificada para el cálculo del IHG con 11 variables, normalización explícita, pesos por dimensión, términos de interacción multiplicativa y dinámica temporal.",
+    "published": "2026-03-20",
+    "seed": 42,
+    "status": "ACTIVE",
+
+    "variables": {
+      "F_s": {
+        "name": "Fricción Sistémica",
+        "source_node": "SF_D_NODE_0003",
+        "formula": "F_s = (t_d / T_esp) + O",
+        "params": {
+          "t_d": "tiempo observado detección → acción correctiva",
+          "T_esp": "tiempo esperado según protocolo",
+          "O": "opacidad sistémica ∈ [0, 0.5]"
+        },
+        "dimension": "structural",
+        "ucap_trigger": "norm(G_f) >= 0.7 OR F_s_norm >= 0.9 for 3 cycles"
+      },
+      "I_mc": {
+        "name": "Interacción Humana Multicanal",
+        "source_node": "SF_D_NODE_0004",
+        "formula": "I_mc = 1 - (d_c / C_t)",
+        "params": {
+          "d_c": "canales degradados",
+          "C_t": "canales totales activos"
+        },
+        "dimension": "relational",
+        "penalty": "if d_c / C_t > 0.5: I_mc_adj = I_mc * (1 - (d_c/C_t)^2)"
+      },
+      "E_r": {
+        "name": "Energía Relacional",
+        "source_node": "SF_D_NODE_0005",
+        "formula": "E_r = (C_v / T_m) * (1 - D_f)",
+        "params": {
+          "C_v": "capacidad vincular activa",
+          "T_m": "total vínculos posibles",
+          "D_f": "degradación funcional ∈ [0,1]"
+        },
+        "dimension": "relational"
+      },
+      "D_i": {
+        "name": "Densidad de Interacción",
+        "source_node": "SF_D_NODE_0006",
+        "formula": "D_i = (I_t / N) / C_p",
+        "params": {
+          "I_t": "interacciones verificadas en periodo t",
+          "N": "nodos activos",
+          "C_p": "capacidad de procesamiento institucional"
+        },
+        "dimension": "temporal"
+      },
+      "G_f": {
+        "name": "Gradiente de Fricción",
+        "source_node": "SF_D_NODE_0007",
+        "formula": "G_f = max(|F_s_i - F_s_j| / d_ij) for all node pairs (i,j)",
+        "params": {
+          "F_s_i": "fricción del nodo i",
+          "F_s_j": "fricción del nodo j",
+          "d_ij": "distancia estructural entre nodos i y j"
+        },
+        "dimension": "structural",
+        "ucap_trigger": "norm(G_f) >= 0.7"
+      },
+      "C_s": {
+        "name": "Coherencia Sistémica",
+        "source_node": "SF_D_NODE_0008",
+        "formula": "C_s = 1 - |D_o - R_o| / max(D_o, epsilon)",
+        "params": {
+          "D_o": "estado declarado oficial",
+          "R_o": "estado real observable",
+          "epsilon": "0.01 (estabilizador numérico)"
+        },
+        "dimension": "cognitive",
+        "regularization": "if D_o < epsilon: C_s = 1 - |R_o|"
+      },
+      "D_cog": {
+        "name": "Desfase Cognitivo",
+        "source_node": "SF_D_NODE_0009",
+        "formula": "D_cog = t_d / t_ref",
+        "params": {
+          "t_d": "tiempo desde evento hasta registro cognitivo institucional",
+          "t_ref": "tiempo de referencia del protocolo"
+        },
+        "dimension": "temporal"
+      },
+      "R_sem": {
+        "name": "Resonancia Semántica",
+        "source_node": "SF_D_NODE_0010",
+        "formula": "R_sem = (T_com / T_total) * (1 - D_sem)",
+        "params": {
+          "T_com": "términos con significado verificablemente compartido",
+          "T_total": "vocabulario operativo total del sistema",
+          "D_sem": "distancia semántica media entre nodos"
+        },
+        "dimension": "semantic",
+        "constraint": "R_sem <= C_sem"
+      },
+      "V_i": {
+        "name": "Vector Intencional",
+        "source_node": "SF_D_NODE_0011",
+        "formula": "V_i = (I_r / I_d) * (1 - D_i_vec)",
+        "params": {
+          "I_r": "intención real inferida de acciones observables",
+          "I_d": "intención declarada formalmente",
+          "D_i_vec": "divergencia intencional ∈ [0,1]"
+        },
+        "dimension": "relational"
+      },
+      "C_sem": {
+        "name": "Campo Semántico Compartido",
+        "source_node": "SF_D_NODE_0012",
+        "formula": "C_sem = V_com / V_total",
+        "params": {
+          "V_com": "vocabulario operativo con definición verificablemente compartida",
+          "V_total": "vocabulario operativo total del sistema"
+        },
+        "dimension": "semantic"
+      },
+      "Phi": {
+        "name": "Campo Cognitivo Colectivo",
+        "source_node": "SF_D_NODE_0022",
+        "formula": "Phi(x) = sum_i(w_i * K(x, x_i))",
+        "params": {
+          "w_i": "peso de influencia del agente i",
+          "K": "kernel RBF: K(x,y) = exp(-||x-y||^2 / 2*sigma^2)",
+          "x_i": "estado cognitivo del agente i en el espacio semántico"
+        },
+        "dimension": "cognitive"
+      }
+    },
+
+    "normalization": {
+      "F_s":   { "formula": "min(F_s / 2.0, 1.0)",          "range": [0, 1], "note": "2.0 = umbral de fricción máxima operativa" },
+      "I_mc":  { "formula": "I_mc",                          "range": [0, 1], "note": "Ya en [0,1] por construcción" },
+      "E_r":   { "formula": "E_r / E_r_max",                 "range": [0, 1], "note": "E_r_max = baseline de nodo o mediana del cluster" },
+      "D_i":   { "formula": "1 / (1 + exp(-4 * (D_i - 0.5)))", "range": [0, 1], "note": "Sigmoide centrada en 0.5; k=4" },
+      "G_f":   { "formula": "min(abs(G_f) / 1.0, 1.0)",     "range": [0, 1], "note": "Gradiente máximo normalizado a 1.0" },
+      "C_s":   { "formula": "C_s",                           "range": [0, 1], "note": "Ya en [0,1] por construcción" },
+      "D_cog": { "formula": "min(D_cog / 2.0, 1.0)",        "range": [0, 1], "note": "2.0 = desfase crítico de referencia" },
+      "R_sem": { "formula": "R_sem",                         "range": [0, 1], "note": "Ya en [0,1]; respeta constraint R_sem <= C_sem" },
+      "V_i":   { "formula": "V_i",                           "range": [0, 1], "note": "Ya en [0,1] por construcción" },
+      "C_sem": { "formula": "C_sem",                         "range": [0, 1], "note": "Ya en [0,1] por construcción" },
+      "Phi":   { "formula": "Phi / Phi_max",                 "range": [0, 1], "note": "Phi_max calibrado por cluster de referencia" }
+    },
+
+    "weights": {
+      "structural": {
+        "variables": ["F_s", "G_f"],
+        "individual": { "F_s": 0.10, "G_f": 0.10 },
+        "subtotal": 0.20
+      },
+      "temporal": {
+        "variables": ["D_i", "D_cog"],
+        "individual": { "D_i": 0.075, "D_cog": 0.075 },
+        "subtotal": 0.15
+      },
+      "relational": {
+        "variables": ["I_mc", "E_r", "V_i"],
+        "individual": { "I_mc": 0.0833, "E_r": 0.0833, "V_i": 0.0833 },
+        "subtotal": 0.25
+      },
+      "semantic": {
+        "variables": ["R_sem", "C_sem"],
+        "individual": { "R_sem": 0.10, "C_sem": 0.10 },
+        "subtotal": 0.20
+      },
+      "cognitive": {
+        "variables": ["C_s", "Phi"],
+        "individual": { "C_s": 0.10, "Phi": 0.10 },
+        "subtotal": 0.20
+      },
+      "sum_check": 1.0
+    },
+
+    "interaction_terms": [
+      {
+        "id": "friction_coherence",
+        "vars": ["F_s", "C_s"],
+        "formula": "F_s_norm * C_s_norm",
+        "weight": 0.10,
+        "interpretation": "Alta fricción con baja coherencia: escenario de máximo riesgo. La institución falla y no lo reporta."
+      },
+      {
+        "id": "density_energy",
+        "vars": ["D_i", "E_r"],
+        "formula": "D_i_norm * (1 - E_r_norm)",
+        "weight": 0.10,
+        "interpretation": "Alta densidad de interacción con energía relacional baja: colapso de canal por saturación sin respaldo vincular."
+      },
+      {
+        "id": "cognitive_semantic_delay",
+        "vars": ["D_cog", "R_sem"],
+        "formula": "D_cog_norm * (1 - R_sem_norm)",
+        "weight": 0.10,
+        "interpretation": "Desfase cognitivo alto con resonancia semántica baja: divergencia acumulada sin corrección posible."
+      },
+      {
+        "id": "gradient_intent",
+        "vars": ["G_f", "V_i"],
+        "formula": "G_f_norm * (1 - V_i_norm)",
+        "weight": 0.10,
+        "interpretation": "Gradiente de fricción alto con vector intencional bajo: desalineación estructural activa."
+      },
+      {
+        "id": "semantic_cognitive_field",
+        "vars": ["C_sem", "Phi"],
+        "formula": "C_sem_norm * Phi_norm",
+        "weight": 0.10,
+        "interpretation": "Campo semántico compartido amplifica el campo cognitivo colectivo. Alta C_sem + alta Phi = estado de sincronización funcional."
+      }
+    ],
+
+    "aggregation": {
+      "formula": "IHG = sum(w_i * X_i_norm) - sum(w_ij * interaction_ij)",
+      "range": [-0.5, 1.0],
+      "interpretation": {
+        "IHG >= 0.5":  "HOMEOSTASIS: sistema dentro de parámetros óptimos",
+        "IHG 0.2–0.5": "OPERATIVO: monitoreo estándar",
+        "IHG 0.0–0.2": "ALERTA AMARILLA: revisión activa requerida",
+        "IHG -0.2–0.0":"ALERTA NARANJA: intervención directa",
+        "IHG -0.4–-0.2":"ALERTA ROJA: protocolo de emergencia",
+        "IHG < -0.4":  "UCAP: EMERGENCY_DECISION activado"
+      },
+      "note": "El término de interacción es NEGATIVO (penalización). Los productos de variables disfuncionales simultáneas degradan el IHG más allá de sus efectos individuales."
+    },
+
+    "temporal_dynamics": {
+      "type": "first_order_filter",
+      "formula": "IHG_s(t) = alpha * IHG(t) + (1 - alpha) * IHG_s(t-1)",
+      "alpha": 0.30,
+      "rationale": "Reduce falsos positivos por variación de un solo ciclo. Requiere degradación sostenida para cambiar de estado.",
+      "initial_condition": "IHG_s(0) = IHG(0)"
+    },
+
+    "ucap_protocol": {
+      "id": "UCAP",
+      "name": "Umbral Crítico de Acción Preventiva",
+      "activation_conditions": [
+        "IHG_s(t) < -0.4 durante 3 ciclos consecutivos",
+        "norm(G_f) >= 0.7 en cualquier ciclo",
+        "Cualquier variable individual en S4 durante 3 ciclos"
+      ],
+      "effects": [
+        "freeze_IHG: congela el IHG reportado al último valor pre-UCAP",
+        "trigger_emergency_protocol: activa protocolo EMERGENCY_DECISION",
+        "NTI_correction: IHG_final = IHG * (1 - NTI) si NTI < 0.40"
+      ],
+      "override": "H3_override: en emergencia vital, proceder con cualquier NTI + revisión post-evento obligatoria"
+    },
+
+    "nti_integration": {
+      "description": "NTI (Nodo de Trazabilidad Institucional) es la Capa 0 del MIHM. Audita la integridad de los datos de entrada.",
+      "formula_nti": "NTI = (1/5) * [(1 - LDI_norm) + ICC_norm + CSR + IRCI_norm + IIM]",
+      "thresholds": {
+        "0.70": "LIBRE: decisiones estructurales irreversibles habilitadas",
+        "0.50": "CONGELADA: decisiones estructurales reversibles con bandera",
+        "0.30": "TÁCTICA: procede con documentación explícita",
+        "0.00": "CIEGA: UCAP override solo para emergencias vitales"
+      },
+      "ihg_correction": "Si NTI < 0.40: IHG_reportado = IHG_calculado * (1 - NTI)"
+    },
+
+    "constraints": {
+      "R_sem_leq_C_sem": {
+        "rule": "R_sem_norm <= C_sem_norm always",
+        "rationale": "No puede haber más resonancia que campo semántico compartido disponible"
+      },
+      "E_r_baseline": {
+        "rule": "E_r_max = baseline del nodo o mediana del cluster si no hay baseline individual",
+        "rationale": "Normalización relativa al contexto institucional"
+      },
+      "gradient_definition": {
+        "rule": "G_f = max(|F_s_i - F_s_j| / d_ij) sobre todos los pares de nodos del cluster",
+        "rationale": "El gradiente captura la distribución desigual de fricción, no su nivel absoluto"
+      },
+      "interaction_penalty_cap": {
+        "rule": "sum(w_ij * interaction_ij) <= 0.5",
+        "rationale": "Las penalizaciones de interacción no pueden superar el 50% del IHG bruto"
+      }
+    },
+
+    "delta_from_v2": {
+      "new_variables": ["G_f", "D_cog", "V_i", "C_sem", "Phi"],
+      "expanded_variables": ["F_s (reemplaza f=t/T+O directo)", "I_mc (reemplaza NTI parcialmente)", "R_sem (reemplaza NTI.IIM)"],
+      "removed": ["PF (Pasos Fantasma, absorbido por G_f y D_cog)", "CSR directo (absorbido por I_mc)"],
+      "interaction_terms": "Nuevo en v3: 5 términos multiplicativos explícitos",
+      "temporal_filter": "Nuevo en v3: IHG_s(t) con alpha=0.30",
+      "nti_role": "Reposicionado: de variable primaria a capa de corrección de integridad"
+    },
+
+    "calibration": {
+      "reference_node": "Nodo AGS (Aguascalientes)",
+      "reference_state": "AGS-06: IHG = -0.620, NTI = 0.351 → EMERGENCY_DECISION",
+      "monte_carlo": {
+        "iterations": 50000,
+        "seed": 42,
+        "engine": "Mersenne Twister"
+      },
+      "note": "Cualquier calibración nueva debe ser verificable frente al Nodo AGS como caso de referencia validado."
+    }
+  }
+}

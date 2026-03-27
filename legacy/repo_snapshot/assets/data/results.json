@@ -1,0 +1,118 @@
+{
+  "schema": "sf-results-v1.1",
+  "timestamp": "2026-02-23T23:59:00Z",
+  "system": {
+    "IHG": 0.0278,
+    "NTI": 0.351,
+    "IHG_corrected": 0.0098,
+    "protocol": "NOMINAL",
+    "nti_mode": "BLIND_MODE",
+    "ucap_ihg": -0.5,
+    "ucap_nti": 0.4
+  },
+  "nti_components": {
+    "LDI_n": 1.0,
+    "ICC_n": 0.32,
+    "CSR": 0.0,
+    "IRCI_n": 0.935,
+    "IIM": 0.5
+  },
+  "nodes": {
+    "N1": {
+      "label": "Agua",
+      "C": 0.18,
+      "E": 0.89,
+      "L": 0.92,
+      "K": 0.85,
+      "R": 0.12,
+      "M": 1.0,
+      "L_eff": 0.92,
+      "f": 1.81,
+      "status": "FRACTURE",
+      "dIHG": -0.0568
+    },
+    "N2": {
+      "label": "Capital",
+      "C": 0.68,
+      "E": 0.78,
+      "L": 0.72,
+      "K": 0.55,
+      "R": 0.15,
+      "M": 1.0,
+      "L_eff": 0.72,
+      "f": 1.5,
+      "status": "DEGRADED",
+      "dIHG": -0.028
+    },
+    "N3": {
+      "label": "Logistica",
+      "C": 0.85,
+      "E": 0.35,
+      "L": 0.35,
+      "K": 0.4,
+      "R": 0.6,
+      "M": 1.0,
+      "L_eff": 0.35,
+      "f": 0.7,
+      "status": "OK",
+      "dIHG": 0.325
+    },
+    "N4": {
+      "label": "Seguridad",
+      "C": 0.35,
+      "E": 0.96,
+      "L": 0.88,
+      "K": 0.55,
+      "R": 0.1,
+      "M": 1.0,
+      "L_eff": 0.88,
+      "f": 1.84,
+      "status": "FRACTURE",
+      "dIHG": -0.0732
+    },
+    "N5": {
+      "label": "Coord",
+      "C": 0.6,
+      "E": 0.68,
+      "L": 0.78,
+      "K": 0.65,
+      "R": 0.4,
+      "M": 0.5,
+      "L_eff": 1.0,
+      "f": 1.68,
+      "status": "OPAQUE",
+      "dIHG": -0.0
+    },
+    "N6": {
+      "label": "Ext",
+      "C": 0.4,
+      "E": 0.95,
+      "L": 0.85,
+      "K": 0.75,
+      "R": 0.2,
+      "M": 0.7,
+      "L_eff": 1.0,
+      "f": 1.95,
+      "status": "FRACTURE",
+      "dIHG": -0.0
+    }
+  },
+  "monte_carlo": {
+    "seed": 42,
+    "n": 50000,
+    "lambda": 0.1,
+    "shock_magnitude": 0.3,
+    "horizon_days": 180,
+    "IHG_0": 0.0278,
+    "IHG_mean_180d": 0.2749,
+    "p_collapse": 0.0,
+    "p_fracture": 0.0,
+    "percentiles": {
+      "p10": 0.2659,
+      "p25": 0.2866,
+      "p50": 0.2963,
+      "p75": 0.3048,
+      "p90": 0.3122
+    }
+  }
+}

@@ -1,0 +1,155 @@
+{
+  "schema": "sf-patterns-v1.1",
+  "patterns": [
+    {
+      "id": "doc-01",
+      "mihm": [
+        "O",
+        "L"
+      ],
+      "mechanism": "opacidad",
+      "fc": "high",
+      "nodes": [
+        "N5",
+        "N4"
+      ],
+      "ags": true,
+      "ags_ref": "ags-05"
+    },
+    {
+      "id": "doc-02",
+      "mihm": [
+        "C",
+        "R"
+      ],
+      "mechanism": "capacidad_adaptativa",
+      "fc": "medium",
+      "nodes": [
+        "N2",
+        "N3"
+      ],
+      "ags": false,
+      "ags_ref": null
+    },
+    {
+      "id": "doc-03",
+      "mihm": [
+        "M",
+        "O"
+      ],
+      "mechanism": "opacidad_formal",
+      "fc": "high",
+      "nodes": [
+        "N4",
+        "N5"
+      ],
+      "ags": true,
+      "ags_ref": "ags-02"
+    },
+    {
+      "id": "doc-04",
+      "mihm": [
+        "C",
+        "K"
+      ],
+      "mechanism": "capacidad_adaptativa",
+      "fc": "medium",
+      "nodes": [
+        "N2"
+      ],
+      "ags": false,
+      "ags_ref": null
+    },
+    {
+      "id": "doc-05",
+      "mihm": [
+        "M"
+      ],
+      "mechanism": "coherencia",
+      "fc": "low",
+      "nodes": [
+        "N2",
+        "N5"
+      ],
+      "ags": false,
+      "ags_ref": null
+    },
+    {
+      "id": "doc-06",
+      "mihm": [
+        "E",
+        "M"
+      ],
+      "mechanism": "carga_entropica",
+      "fc": "critical",
+      "nodes": [
+        "N4",
+        "N6"
+      ],
+      "ags": true,
+      "ags_ref": "ags-02"
+    },
+    {
+      "id": "doc-07",
+      "mihm": [
+        "L",
+        "K"
+      ],
+      "mechanism": "latencia_operativa",
+      "fc": "high",
+      "nodes": [
+        "N5",
+        "N2"
+      ],
+      "ags": true,
+      "ags_ref": "ags-05"
+    },
+    {
+      "id": "doc-08",
+      "mihm": [
+        "C",
+        "R"
+      ],
+      "mechanism": "capacidad_adaptativa",
+      "fc": "medium",
+      "nodes": [
+        "N4",
+        "N3"
+      ],
+      "ags": true,
+      "ags_ref": "ags-04"
+    },
+    {
+      "id": "doc-09",
+      "mihm": [
+        "L",
+        "E"
+      ],
+      "mechanism": "latencia_operativa",
+      "fc": "critical",
+      "nodes": [
+        "N1",
+        "N4"
+      ],
+      "ags": true,
+      "ags_ref": "ags-03"
+    },
+    {
+      "id": "doc-10",
+      "mihm": [
+        "C",
+        "E",
+        "O"
+      ],
+      "mechanism": "goodhart",
+      "fc": "critical",
+      "nodes": [
+        "N1",
+        "N2",
+        "N4"
+      ],
+      "ags": true,
+      "ags_ref": "ags-01"
+    }
+  ]
+}
