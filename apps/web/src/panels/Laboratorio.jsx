@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react'
 import { useStore, fmt2 } from '../store.jsx'
 import { step as psiStep, retroStep, textToFeatures, computeFSoc, computeRSoc, computeFractureRisk, PSI_KEYS, PSI_LABELS } from '../socsim.js'
 import { drawHeatmap } from '../heatmap.js'
+import { postMetrics } from '../api.js'
 
 // ── SocSim chart (canvas A/P/C/T) ─────────────────────────────────────────────
 
@@ -214,7 +215,10 @@ export default function Laboratorio() {
           <div className="lab-ctrl-section">
             <div className="lab-ctrl-ttl">SESIÓN</div>
             <div className="lab-btn-row">
-              <button className="btn" onClick={() => dispatch({ type: 'SAVE_SNAPSHOT' })}>SAVE</button>
+              <button className="btn" onClick={() => {
+                dispatch({ type: 'SAVE_SNAPSHOT' })
+                postMetrics({ mihm: store.mihm, psi: socsim, tick: socsimTick })
+              }}>SAVE</button>
               <button className="btn btn-g" onClick={doExport}>EXPORT</button>
               <label className="btn btn-g" style={{cursor:'pointer'}}>
                 IMPORT

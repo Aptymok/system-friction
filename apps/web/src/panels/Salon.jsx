@@ -4,6 +4,7 @@ import {
   textToFeatures, step as psiStep, generateFutureScenarios, inferRetroactivity,
 } from '../socsim.js'
 import { snapshotToState, computeMetrics } from '../engine.js'
+import { fetchNarrative } from '../api.js'
 
 // ── Chat pipeline ──────────────────────────────────────────────────────────────
 
@@ -80,22 +81,34 @@ export default function Salon() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [store.chat])
 
-  function send() {
+  async function send() {
     const text = input.trim()
     if (!text) return
     setInput('')
 
     const { features, newPsi, newMihm, retroItems, scenarios, response } = processInput(text, store)
 
-    dispatch({ type: 'ADD_CHAT', messages: [
-      { role: 'user',   text },
-      { role: 'eidolon', text: response },
-    ]})
+    // Add user message immediately
+    dispatch({ type: 'ADD_CHAT', messages: [{ role: 'user', text }] })
     dispatch({ type: 'SOCSIM_STEP', psi: newPsi })
     dispatch({ type: 'UPDATE_MIHM', mihm: newMihm })
     dispatch({ type: 'SET_RETRO',   items: retroItems })
     dispatch({ type: 'SET_FUTURE',  scenarios })
     dispatch({ type: 'SET_ATTRACTOR', attractor: scenarios[0]?.attractor ?? null })
+
+    // Try Railway LLM; fall back to local
+    const nodeCtx = store.selectedNode
+      ? `Nodo activo en Campo Φ: ${store.selectedNode.label} (${store.selectedNode.desc ?? ''}).` : ''
+    const railwayNarrative = await fetchNarrative({
+      text,
+      mihm: newMihm,
+      psi:  newPsi,
+      context: nodeCtx,
+    })
+
+    dispatch({ type: 'ADD_CHAT', messages: [
+      { role: 'eidolon', text: railwayNarrative ?? response },
+    ]})
   }
 
   function handleBackcast(scenario) {

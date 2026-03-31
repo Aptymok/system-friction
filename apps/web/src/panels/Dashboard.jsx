@@ -1,5 +1,6 @@
-import React, { useEffect, useRef } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { useStore, valClass, fmt2 } from '../store.jsx'
+import { checkHealth, fetchCommits } from '../api.js'
 
 // ── ECG animation ────────────────────────────────────────────────────────────
 
@@ -110,6 +111,73 @@ function TimelineChart({ timeline }) {
   }, [timeline])
 
   return <canvas ref={canvasRef} id="timeline-c" />
+}
+
+// ── Backend status + commits ──────────────────────────────────────────────────
+
+function BackendPanel() {
+  const [online, setOnline]   = useState(null)   // null=checking, true, false
+  const [commits, setCommits] = useState([])
+
+  useEffect(() => {
+    checkHealth().then(setOnline)
+    fetchCommits().then(setCommits)
+  }, [])
+
+  return (
+    <div className="sec">
+      <div className="sec-hd">
+        <span className="sec-n">06</span>
+        <span className="sec-t">Backend · Railway</span>
+        <span className={`tag ${online === null ? 'na' : online ? 'ok' : 'al'}`} style={{marginLeft:'auto'}}>
+          {online === null ? 'VERIFICANDO…' : online ? 'ONLINE' : 'OFFLINE'}
+        </span>
+      </div>
+      <div className="row2">
+        <div className="pnl">
+          <div className="pnl-hd">
+            <span className="pnl-lbl">ENDPOINT</span>
+          </div>
+          <div className="pnl-body">
+            <div className="bar-row" style={{marginBottom:6}}>
+              <span className="bar-lbl">URL</span>
+              <span style={{fontSize:9,fontFamily:'monospace',color:'var(--oro)'}}>
+                system-friction-production.up.railway.app
+              </span>
+            </div>
+            {['/health','/api/metrics','/api/commits','/api/llm/narrative'].map(r => (
+              <div key={r} className="bar-row" style={{marginBottom:4}}>
+                <span className="bar-lbl" style={{color:'var(--t3)'}}>{r}</span>
+                <span className={`tag ${online ? 'ok' : 'na'}`}>{online ? 'UP' : '—'}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="pnl">
+          <div className="pnl-hd">
+            <span className="pnl-lbl">COMMITS RECIENTES</span>
+            <span className="pnl-st">{commits.length} resultados</span>
+          </div>
+          <div className="pnl-body" style={{padding:'0'}}>
+            {commits.length === 0 ? (
+              <div style={{padding:'1rem 1.25rem',fontSize:9,color:'var(--t3)',fontFamily:'monospace'}}>
+                {online === false ? 'Backend offline — no se pueden cargar commits.' : 'Cargando…'}
+              </div>
+            ) : commits.map(c => (
+              <div key={c.sha} style={{padding:'.6rem 1.25rem',borderBottom:'.5px solid var(--bdr)',display:'flex',gap:10,alignItems:'flex-start'}}>
+                <span style={{fontSize:8,fontFamily:'monospace',color:'var(--oro)',flexShrink:0}}>{c.sha}</span>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontSize:10,color:'var(--t1)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{c.message}</div>
+                  <div style={{fontSize:8,color:'var(--t3)',marginTop:2}}>{c.author} · {c.date ? new Date(c.date).toLocaleDateString() : ''}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 // ── Patterns panel ────────────────────────────────────────────────────────────
@@ -247,6 +315,8 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      <BackendPanel />
     </>
   )
 }
