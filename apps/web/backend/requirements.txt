@@ -1,0 +1,8 @@
+Flask
+Flask-CORS
+librosa
+numpy
+scipy
+pydub
+python-dotenv
+requests
