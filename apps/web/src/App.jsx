@@ -1,3 +1,4 @@
+// apps/web/src/App.jsx
 import React from 'react'
 import { StoreProvider, useStore, statusClass } from './store.jsx'
 
@@ -8,6 +9,7 @@ import Salon        from './panels/Salon.jsx'
 import MathExtender from './panels/MathExtender.jsx'
 import Repositorio  from './panels/Repositorio.jsx'
 import Laboratorio  from './panels/Laboratorio.jsx'
+import Anchor       from './panels/Anchor.jsx'
 
 const TABS = [
   { id: 'dashboard',    label: 'DASHBOARD' },
@@ -17,6 +19,7 @@ const TABS = [
   { id: 'math',         label: 'MATH EXTENDER' },
   { id: 'repo',         label: 'REPOSITORIO' },
   { id: 'lab',          label: 'LABORATORIO' },
+  { id: 'anchor',       label: 'ANCHOR' },
 ]
 
 function Shell() {
@@ -41,21 +44,15 @@ function Shell() {
             <span className="hdr-live-txt">{mihm.status}</span>
           </div>
           <div className="hdr-kpi">
-            {[
-              { l: 'IHG',  v: mihm.IHG,          inv: false },
-              { l: 'NTI',  v: mihm.NTI,           inv: true  },
-              { l: 'R',    v: mihm.R,              inv: false },
-              { l: 'FSoc', v: fsoc,                inv: true  },
-              { l: 'TICK', v: store.socsimTick,    fmt: v => v },
-            ].map(k => (
-              <div key={k.l} className="hdr-kv">
-                <span className="hdr-kl">{k.l}</span>
-                <span className={`hdr-kn ${typeof k.fmt === 'function' ? 'na' : kpiCls(k.v, k.inv)}`}>
-                  {typeof k.fmt === 'function' ? k.fmt(k.v) : k.v.toFixed(2)}
-                </span>
-              </div>
-            ))}
-          </div>
+  {[
+    { label: "MIHM", value: mihm.value },
+    { label: "SOCSIM", value: socsim.T }
+  ].map((kpi, i) => (
+    <span key={i} className="hdr-kpi-item">
+      {kpi.label}: {kpi.value}
+    </span>
+  ))}
+</div>
         </div>
       </header>
 
@@ -80,6 +77,7 @@ function Shell() {
           {tab === 'math'         && <MathExtender />}
           {tab === 'repo'         && <Repositorio />}
           {tab === 'lab'          && <Laboratorio />}
+          {tab === 'anchor'       && <Anchor />}
         </div>
       </div>
     </>
