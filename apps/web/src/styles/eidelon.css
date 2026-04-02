@@ -255,3 +255,18 @@ input[type=range]{flex:1;accent-color:var(--oro);height:1px}
   .hdr-kpi{display:none}
   .tabs-bar{overflow-x:auto}
 }
+
+/* ── STUDIO DAW ── */
+.studio-grid{display:grid;grid-template-columns:1fr 1fr;gap:.5px;background:var(--bdr);border:.5px solid var(--bdr)}
+.timeline{position:relative;height:130px;background:var(--bg2);border:.5px solid var(--bdr);overflow:hidden}
+.timeline-gridline{position:absolute;top:0;bottom:0;width:.5px;background:rgba(255,255,255,.08)}
+.timeline-gridline.bar{background:rgba(200,169,81,.28)}
+.timeline-lane{position:absolute;left:0;right:0;height:56px;border-bottom:.5px solid rgba(255,255,255,.06)}
+.timeline-lane-name{position:absolute;left:8px;top:4px;font-size:8px;color:var(--t3);font-family:var(--mono)}
+.playhead{position:absolute;top:0;bottom:0;width:1px;background:var(--neon);z-index:8}
+.clip{position:absolute;height:26px;background:rgba(200,169,81,.08);border:.5px solid var(--oro);color:var(--t1);font-size:8px;font-family:var(--mono);letter-spacing:.08em;padding:0 8px;cursor:grab;z-index:10;text-align:left}
+.clip:active{cursor:grabbing}
+
+@media(max-width:900px){
+  .studio-grid{grid-template-columns:1fr}
+}
