@@ -4,7 +4,10 @@ import { AudioEngine } from '../studio/audio/AudioEngine'
 import { metricsFromSocsim, generationControls } from '../studio/metrics/systemFrictionMetrics'
 import { composeFromPrompt } from '../studio/agent/composerAgent'
 import { quantizeBeat } from '../studio/daw/timeline'
+<<<<<<< codex/build-fully-functional-browser-based-daw-vs6g22
 import { fetchNarrative, fetchSocialAudit } from '../api'
+=======
+>>>>>>> main
 
 const GRID = 0.25
 const PX_PER_BEAT = 54
@@ -28,6 +31,7 @@ export default function Repositorio() {
   const [clips, setClips] = useState([])
   const [prompt, setPrompt] = useState('generate melancholic loop')
   const [fx, setFx] = useState({ filterHz: 12000, delayMix: 0.22, reverbMix: 0.18 })
+<<<<<<< codex/build-fully-functional-browser-based-daw-vs6g22
   const [userProfile, setUserProfile] = useState('novato')
   const [editActions, setEditActions] = useState(0)
   const [agentX, setAgentX] = useState(0)
@@ -36,6 +40,8 @@ export default function Repositorio() {
   const [filesMeta, setFilesMeta] = useState([])
   const [vocalMetrics, setVocalMetrics] = useState(null)
   const [marketMap, setMarketMap] = useState(null)
+=======
+>>>>>>> main
 
   const playheadRef = useRef(0)
   const tempoRef = useRef(tempo)
@@ -44,12 +50,15 @@ export default function Repositorio() {
 
   const metrics = useMemo(() => metricsFromSocsim(store.socsim), [store.socsim])
   const controls = useMemo(() => generationControls(metrics), [metrics])
+<<<<<<< codex/build-fully-functional-browser-based-daw-vs6g22
   const profileConfig = useMemo(() => ({
     novato: { showFx: false, showPan: false, showSource: false, depth: 1, cognitiveThreshold: 0.35 },
     intermedio: { showFx: true, showPan: true, showSource: false, depth: 2, cognitiveThreshold: 0.62 },
     pro: { showFx: true, showPan: true, showSource: true, depth: 3, cognitiveThreshold: 0.9 },
   }), [])
   const uiMode = profileConfig[userProfile]
+=======
+>>>>>>> main
 
 
   useEffect(() => { playheadRef.current = playheadBeat }, [playheadBeat])
@@ -61,6 +70,7 @@ export default function Repositorio() {
   }, [controls.tempo])
 
   useEffect(() => {
+<<<<<<< codex/build-fully-functional-browser-based-daw-vs6g22
     if (editActions > 12) setUserProfile('pro')
     else if (editActions > 5) setUserProfile('intermedio')
   }, [editActions])
@@ -73,6 +83,8 @@ export default function Repositorio() {
   }, [])
 
   useEffect(() => {
+=======
+>>>>>>> main
     tracks.forEach((track) => audioRef.current.updateTrack(track))
   }, [tracks])
 
@@ -98,13 +110,19 @@ export default function Repositorio() {
     const clip = composeFromPrompt({
       prompt,
       metrics,
+<<<<<<< codex/build-fully-functional-browser-based-daw-vs6g22
       controls,
+=======
+>>>>>>> main
       tempo,
       trackId,
     })
     clip.startBeat = quantizeBeat(playheadBeat, GRID)
     setClips((prev) => [...prev, clip])
+<<<<<<< codex/build-fully-functional-browser-based-daw-vs6g22
     setEditActions((n) => n + 1)
+=======
+>>>>>>> main
   }
 
   const scheduleWindow = () => {
@@ -145,6 +163,7 @@ export default function Repositorio() {
     if (schedulerRef.current) window.clearInterval(schedulerRef.current)
     schedulerRef.current = null
     setPlaying(false)
+<<<<<<< codex/build-fully-functional-browser-based-daw-vs6g22
   }
 
   const updateTrack = (id, patch) => {
@@ -258,6 +277,44 @@ export default function Repositorio() {
     if (response) setAgentMsg(response)
   }
 
+=======
+  }
+
+  const updateTrack = (id, patch) => {
+    setTracks((prev) => prev.map((t) => (t.id === id ? { ...t, ...patch } : t)))
+  }
+
+  const onClipPointerDown = (event, clipId) => {
+    const clip = clips.find((c) => c.id === clipId)
+    if (!clip) return
+    dragRef.current = {
+      clipId,
+      startX: event.clientX,
+      baseBeat: clip.startBeat,
+      baseTrack: tracks.findIndex((t) => t.id === clip.trackId),
+    }
+    event.currentTarget.setPointerCapture(event.pointerId)
+  }
+
+  const onTimelinePointerMove = (event) => {
+    if (!dragRef.current) return
+    const d = dragRef.current
+    const beatDelta = (event.clientX - d.startX) / PX_PER_BEAT
+    const rawBeat = d.baseBeat + beatDelta
+
+    const trackIndex = Math.max(0, Math.min(tracks.length - 1, d.baseTrack + Math.round(event.movementY / 30)))
+    const newTrackId = tracks[trackIndex].id
+
+    setClips((prev) => prev.map((c) => (c.id === d.clipId
+      ? { ...c, startBeat: Math.max(0, quantizeBeat(rawBeat, GRID)), trackId: newTrackId }
+      : c)))
+  }
+
+  const onTimelinePointerUp = () => {
+    dragRef.current = null
+  }
+
+>>>>>>> main
   const bars = 8
   const totalBeats = bars * 4
 
@@ -268,6 +325,7 @@ export default function Repositorio() {
           <span className="sec-n">01</span>
           <span className="sec-t">ScoreFriction STUDIO / DAW</span>
           <span className="pnl-st" style={{ marginLeft: 'auto' }}>{ready ? 'AUDIO READY' : 'AUDIO LOCKED'}</span>
+<<<<<<< codex/build-fully-functional-browser-based-daw-vs6g22
         </div>
         <div className="sec-d">Browser DAW with HIMH v3 generation, live SystemFriction modulation, draggable clips, and real Web Audio routing.</div>
       </div>
@@ -307,9 +365,13 @@ export default function Repositorio() {
             </div>
           </div>
           <button className="btn" style={{ marginTop: 8 }} onClick={askAgent}>ACORDAR PARÁMETROS (GROQ)</button>
+=======
+>>>>>>> main
         </div>
+        <div className="sec-d">Browser DAW with HIMH v3 generation, live SystemFriction modulation, draggable clips, and real Web Audio routing.</div>
       </div>
 
+<<<<<<< codex/build-fully-functional-browser-based-daw-vs6g22
       <div className="studio-grid" style={{ marginBottom: 12 }}>
         <div className="pnl">
           <div className="pnl-hd"><span className="pnl-lbl">PANEL CAPTURA / CONVERSIÓN 24-BIT</span></div>
@@ -345,11 +407,72 @@ export default function Repositorio() {
               <div className="cell"><div className="cell-lbl">RMS</div><div className="cell-v">{fmt2(vocalMetrics?.rms ?? 0)}</div></div>
               <div className="cell"><div className="cell-lbl">COHERENCIA</div><div className="cell-v">{fmt2(vocalMetrics?.coherence ?? 0)}</div></div>
               <div className="cell"><div className="cell-lbl">FRICCIÓN</div><div className="cell-v">{fmt2(vocalMetrics?.friction ?? 0)}</div></div>
+=======
+      <div className="studio-grid">
+        <div className="pnl">
+          <div className="pnl-hd"><span className="pnl-lbl">TRANSPORT + AI COMPOSER</span></div>
+          <div className="pnl-body">
+            <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+              <button className="btn" onClick={initAudio}>INIT AUDIO</button>
+              {!playing ? (
+                <button className="btn btn-n" onClick={startTransport} disabled={!ready}>PLAY</button>
+              ) : (
+                <button className="btn btn-r" onClick={stopTransport}>STOP</button>
+              )}
+              <button className="btn btn-g" onClick={() => setPlayheadBeat(0)}>REWIND</button>
+            </div>
+
+            <div className="slider-row">
+              <span className="slider-lbl">TEMPO</span>
+              <input type="range" min="70" max="170" value={tempo} onChange={(e) => setTempo(Number(e.target.value))} />
+              <span className="slider-val">{tempo}</span>
+            </div>
+
+            <div className="slider-row">
+              <span className="slider-lbl">FILTER</span>
+              <input type="range" min="300" max="16000" step="10" value={fx.filterHz} onChange={(e) => setFx((f) => ({ ...f, filterHz: Number(e.target.value) }))} />
+              <span className="slider-val">{fx.filterHz}</span>
+            </div>
+
+            <div className="slider-row">
+              <span className="slider-lbl">DELAY</span>
+              <input type="range" min="0" max="0.95" step="0.01" value={fx.delayMix} onChange={(e) => setFx((f) => ({ ...f, delayMix: Number(e.target.value) }))} />
+              <span className="slider-val">{fx.delayMix.toFixed(2)}</span>
+            </div>
+
+            <div className="slider-row">
+              <span className="slider-lbl">REVERB</span>
+              <input type="range" min="0" max="0.95" step="0.01" value={fx.reverbMix} onChange={(e) => setFx((f) => ({ ...f, reverbMix: Number(e.target.value) }))} />
+              <span className="slider-val">{fx.reverbMix.toFixed(2)}</span>
+            </div>
+
+            <div style={{ marginTop: 12 }}>
+              <label className="inp-lbl">AI PROMPT</label>
+              <input className="inp" value={prompt} onChange={(e) => setPrompt(e.target.value)} />
+              <button className="btn" style={{ marginTop: 8 }} onClick={buildAndPlaceClip} disabled={!ready}>GENERATE CLIP</button>
+            </div>
+          </div>
+        </div>
+
+        <div className="pnl">
+          <div className="pnl-hd"><span className="pnl-lbl">SYSTEMFRICTION METRICS (LIVE)</span></div>
+          <div className="pnl-body">
+            <div className="row3">
+              <div className="cell"><div className="cell-lbl">COHERENCE (C)</div><div className="cell-v">{fmt2(metrics.C)}</div></div>
+              <div className="cell"><div className="cell-lbl">TENSION (T)</div><div className="cell-v">{fmt2(metrics.T)}</div></div>
+              <div className="cell"><div className="cell-lbl">ACTIVATION (A)</div><div className="cell-v">{fmt2(metrics.A)}</div></div>
+            </div>
+            <div className="row3" style={{ marginTop: 8 }}>
+              <div className="cell"><div className="cell-lbl">TEMPO INFLUENCE</div><div className="cell-v">{controls.tempo}</div></div>
+              <div className="cell"><div className="cell-lbl">DENSITY</div><div className="cell-v">{fmt2(controls.density)}</div></div>
+              <div className="cell"><div className="cell-lbl">HARMONIC VAR.</div><div className="cell-v">{fmt2(controls.harmonicVariation)}</div></div>
+>>>>>>> main
             </div>
           </div>
         </div>
       </div>
 
+<<<<<<< codex/build-fully-functional-browser-based-daw-vs6g22
       <div className="studio-grid">
         <div className="pnl">
           <div className="pnl-hd"><span className="pnl-lbl">TRANSPORT + AI COMPOSER</span></div>
@@ -463,6 +586,54 @@ export default function Repositorio() {
             </div>
           </div>
 
+=======
+      <div className="sec" style={{ marginTop: '1rem' }}>
+        <div className="sec-hd"><span className="sec-n">02</span><span className="sec-t">Timeline + Mixer</span></div>
+        <div className="studio-grid">
+          <div className="pnl">
+            <div className="pnl-hd"><span className="pnl-lbl">TIMELINE</span><span className="pnl-st">Playhead: {fmt2(playheadBeat)} beats</span></div>
+            <div className="pnl-body">
+              <div className="timeline" onPointerMove={onTimelinePointerMove} onPointerUp={onTimelinePointerUp}>
+                {Array.from({ length: totalBeats + 1 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className={`timeline-gridline${i % 4 === 0 ? ' bar' : ''}`}
+                    style={{ left: i * PX_PER_BEAT }}
+                  />
+                ))}
+
+                <div className="playhead" style={{ left: playheadBeat * PX_PER_BEAT }} />
+
+                {tracks.map((t, idx) => (
+                  <div key={t.id} className="timeline-lane" style={{ top: idx * 56 }}>
+                    <span className="timeline-lane-name">{t.name}</span>
+                  </div>
+                ))}
+
+                {clips.map((clip) => {
+                  const trackIndex = tracks.findIndex((t) => t.id === clip.trackId)
+                  return (
+                    <button
+                      key={clip.id}
+                      type="button"
+                      className="clip"
+                      style={{
+                        left: clip.startBeat * PX_PER_BEAT,
+                        top: trackIndex * 56 + 22,
+                        width: clip.lengthBeats * PX_PER_BEAT,
+                        borderColor: clip.color,
+                      }}
+                      onPointerDown={(e) => onClipPointerDown(e, clip.id)}
+                    >
+                      {clip.name}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          </div>
+
+>>>>>>> main
           <div className="pnl">
             <div className="pnl-hd"><span className="pnl-lbl">MIXER</span></div>
             <div className="pnl-body">
@@ -474,6 +645,7 @@ export default function Repositorio() {
                     <input type="range" min="0" max="1" step="0.01" value={t.volume} onChange={(e) => updateTrack(t.id, { volume: Number(e.target.value) })} />
                     <span className="slider-val">{t.volume.toFixed(2)}</span>
                   </div>
+<<<<<<< codex/build-fully-functional-browser-based-daw-vs6g22
                   {uiMode.showPan && (
                     <div className="slider-row">
                       <span className="slider-lbl">PAN</span>
@@ -503,6 +675,13 @@ export default function Repositorio() {
                       <span className="slider-val">{t.waveform}</span>
                     </div>
                   )}
+=======
+                  <div className="slider-row">
+                    <span className="slider-lbl">PAN</span>
+                    <input type="range" min="-1" max="1" step="0.01" value={t.pan} onChange={(e) => updateTrack(t.id, { pan: Number(e.target.value) })} />
+                    <span className="slider-val">{t.pan.toFixed(2)}</span>
+                  </div>
+>>>>>>> main
                 </div>
               ))}
             </div>
