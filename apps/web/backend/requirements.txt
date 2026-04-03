@@ -6,4 +6,4 @@ scipy
 pydub
 python-dotenv
 requests
-gunicorn
+gunicorn==20.1.0   # o la versión que prefieras
