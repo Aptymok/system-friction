@@ -4,10 +4,6 @@ import { AudioEngine } from '../studio/audio/AudioEngine'
 import { metricsFromSocsim, generationControls } from '../studio/metrics/systemFrictionMetrics'
 import { composeFromPrompt } from '../studio/agent/composerAgent'
 import { quantizeBeat } from '../studio/daw/timeline'
-<<<<<<< codex/build-fully-functional-browser-based-daw-vs6g22
-import { fetchNarrative, fetchSocialAudit } from '../api'
-=======
->>>>>>> main
 
 const GRID = 0.25
 const PX_PER_BEAT = 54
@@ -31,17 +27,6 @@ export default function Repositorio() {
   const [clips, setClips] = useState([])
   const [prompt, setPrompt] = useState('generate melancholic loop')
   const [fx, setFx] = useState({ filterHz: 12000, delayMix: 0.22, reverbMix: 0.18 })
-<<<<<<< codex/build-fully-functional-browser-based-daw-vs6g22
-  const [userProfile, setUserProfile] = useState('novato')
-  const [editActions, setEditActions] = useState(0)
-  const [agentX, setAgentX] = useState(0)
-  const [agentMsg, setAgentMsg] = useState('Arribo detectado. Carga una canción o lote (máx 10).')
-  const [agentAnswers, setAgentAnswers] = useState({ q1: '', q2: '' })
-  const [filesMeta, setFilesMeta] = useState([])
-  const [vocalMetrics, setVocalMetrics] = useState(null)
-  const [marketMap, setMarketMap] = useState(null)
-=======
->>>>>>> main
 
   const playheadRef = useRef(0)
   const tempoRef = useRef(tempo)
@@ -50,15 +35,6 @@ export default function Repositorio() {
 
   const metrics = useMemo(() => metricsFromSocsim(store.socsim), [store.socsim])
   const controls = useMemo(() => generationControls(metrics), [metrics])
-<<<<<<< codex/build-fully-functional-browser-based-daw-vs6g22
-  const profileConfig = useMemo(() => ({
-    novato: { showFx: false, showPan: false, showSource: false, depth: 1, cognitiveThreshold: 0.35 },
-    intermedio: { showFx: true, showPan: true, showSource: false, depth: 2, cognitiveThreshold: 0.62 },
-    pro: { showFx: true, showPan: true, showSource: true, depth: 3, cognitiveThreshold: 0.9 },
-  }), [])
-  const uiMode = profileConfig[userProfile]
-=======
->>>>>>> main
 
 
   useEffect(() => { playheadRef.current = playheadBeat }, [playheadBeat])
@@ -70,21 +46,6 @@ export default function Repositorio() {
   }, [controls.tempo])
 
   useEffect(() => {
-<<<<<<< codex/build-fully-functional-browser-based-daw-vs6g22
-    if (editActions > 12) setUserProfile('pro')
-    else if (editActions > 5) setUserProfile('intermedio')
-  }, [editActions])
-
-  useEffect(() => {
-    const id = window.setInterval(() => {
-      setAgentX((x) => (x > 100 ? 0 : x + 2))
-    }, 130)
-    return () => window.clearInterval(id)
-  }, [])
-
-  useEffect(() => {
-=======
->>>>>>> main
     tracks.forEach((track) => audioRef.current.updateTrack(track))
   }, [tracks])
 
@@ -110,19 +71,11 @@ export default function Repositorio() {
     const clip = composeFromPrompt({
       prompt,
       metrics,
-<<<<<<< codex/build-fully-functional-browser-based-daw-vs6g22
-      controls,
-=======
->>>>>>> main
       tempo,
       trackId,
     })
     clip.startBeat = quantizeBeat(playheadBeat, GRID)
     setClips((prev) => [...prev, clip])
-<<<<<<< codex/build-fully-functional-browser-based-daw-vs6g22
-    setEditActions((n) => n + 1)
-=======
->>>>>>> main
   }
 
   const scheduleWindow = () => {
@@ -163,121 +116,6 @@ export default function Repositorio() {
     if (schedulerRef.current) window.clearInterval(schedulerRef.current)
     schedulerRef.current = null
     setPlaying(false)
-<<<<<<< codex/build-fully-functional-browser-based-daw-vs6g22
-  }
-
-  const updateTrack = (id, patch) => {
-    setTracks((prev) => prev.map((t) => (t.id === id ? { ...t, ...patch } : t)))
-    setEditActions((n) => n + 1)
-  }
-
-  const onClipPointerDown = (event, clipId) => {
-    const clip = clips.find((c) => c.id === clipId)
-    if (!clip) return
-    dragRef.current = {
-      clipId,
-      startX: event.clientX,
-      startY: event.clientY,
-      baseBeat: clip.startBeat,
-      baseTrack: tracks.findIndex((t) => t.id === clip.trackId),
-    }
-    event.currentTarget.setPointerCapture(event.pointerId)
-  }
-
-  const onTimelinePointerMove = (event) => {
-    if (!dragRef.current) return
-    const d = dragRef.current
-    const beatDelta = (event.clientX - d.startX) / PX_PER_BEAT
-    const rawBeat = d.baseBeat + beatDelta
-
-    const laneDelta = Math.round((event.clientY - d.startY) / 56)
-    const trackIndex = Math.max(0, Math.min(tracks.length - 1, d.baseTrack + laneDelta))
-    const newTrackId = tracks[trackIndex].id
-
-    setClips((prev) => prev.map((c) => (c.id === d.clipId
-      ? { ...c, startBeat: Math.max(0, quantizeBeat(rawBeat, GRID)), trackId: newTrackId }
-      : c)))
-    setEditActions((n) => n + 1)
-  }
-
-  const onTimelinePointerUp = () => {
-    dragRef.current = null
-  }
-
-  const analyzeVoice = async (file) => {
-    await initAudio()
-    const arr = await file.arrayBuffer()
-    const buf = await audioRef.current.ctx.decodeAudioData(arr.slice(0))
-    const ch = buf.getChannelData(0)
-    let energy = 0
-    let zc = 0
-    for (let i = 1; i < ch.length; i++) {
-      energy += ch[i] * ch[i]
-      if ((ch[i - 1] >= 0 && ch[i] < 0) || (ch[i - 1] < 0 && ch[i] >= 0)) zc += 1
-    }
-    const rms = Math.sqrt(energy / ch.length)
-    const coherence = Math.max(0, Math.min(1, 1 - (zc / ch.length) * 12))
-    const friction = Math.max(0, Math.min(1, (1 - coherence) * 0.8 + (1 - Math.min(1, rms * 8)) * 0.2))
-    setVocalMetrics({ rms, coherence, friction, duration: buf.duration })
-  }
-
-  const to24BitWavBlob = async (file) => {
-    await initAudio()
-    const arr = await file.arrayBuffer()
-    const buf = await audioRef.current.ctx.decodeAudioData(arr.slice(0))
-    const samples = buf.length
-    const channels = Math.min(2, buf.numberOfChannels)
-    const bps = 3
-    const blockAlign = channels * bps
-    const dataSize = samples * blockAlign
-    const ab = new ArrayBuffer(44 + dataSize)
-    const v = new DataView(ab)
-    const writeStr = (off, str) => [...str].forEach((c, i) => v.setUint8(off + i, c.charCodeAt(0)))
-    writeStr(0, 'RIFF')
-    v.setUint32(4, 36 + dataSize, true)
-    writeStr(8, 'WAVE')
-    writeStr(12, 'fmt ')
-    v.setUint32(16, 16, true)
-    v.setUint16(20, 1, true)
-    v.setUint16(22, channels, true)
-    v.setUint32(24, buf.sampleRate, true)
-    v.setUint32(28, buf.sampleRate * blockAlign, true)
-    v.setUint16(32, blockAlign, true)
-    v.setUint16(34, 24, true)
-    writeStr(36, 'data')
-    v.setUint32(40, dataSize, true)
-    let o = 44
-    for (let i = 0; i < samples; i++) {
-      for (let c = 0; c < channels; c++) {
-        const s = Math.max(-1, Math.min(1, buf.getChannelData(c)[i]))
-        const int = Math.floor(s < 0 ? s * 0x800000 : s * 0x7FFFFF)
-        v.setUint8(o++, int & 0xff)
-        v.setUint8(o++, (int >> 8) & 0xff)
-        v.setUint8(o++, (int >> 16) & 0xff)
-      }
-    }
-    return new Blob([ab], { type: 'audio/wav' })
-  }
-
-  const onFilesSelected = async (evt) => {
-    const list = Array.from(evt.target.files || []).slice(0, 10)
-    if (!list.length) return
-    setFilesMeta(list.map((f) => ({ name: f.name, size: f.size })))
-    await analyzeVoice(list[0])
-  }
-
-  const runSocialAudit = async () => {
-    const data = await fetchSocialAudit(prompt)
-    setMarketMap(data)
-  }
-
-  const askAgent = async () => {
-    const txt = `Contexto: ${agentAnswers.q1}. Objetivo: ${agentAnswers.q2}.`
-    const response = await fetchNarrative({ text: txt, mihm: { IHG: store.mihm.IHG, NTI: store.mihm.NTI, R: store.mihm.R, status: store.mihm.status }, psi: store.socsim })
-    if (response) setAgentMsg(response)
-  }
-
-=======
   }
 
   const updateTrack = (id, patch) => {
@@ -314,7 +152,6 @@ export default function Repositorio() {
     dragRef.current = null
   }
 
->>>>>>> main
   const bars = 8
   const totalBeats = bars * 4
 
@@ -325,89 +162,10 @@ export default function Repositorio() {
           <span className="sec-n">01</span>
           <span className="sec-t">ScoreFriction STUDIO / DAW</span>
           <span className="pnl-st" style={{ marginLeft: 'auto' }}>{ready ? 'AUDIO READY' : 'AUDIO LOCKED'}</span>
-<<<<<<< codex/build-fully-functional-browser-based-daw-vs6g22
         </div>
         <div className="sec-d">Browser DAW with HIMH v3 generation, live SystemFriction modulation, draggable clips, and real Web Audio routing.</div>
       </div>
 
-      <div className="pnl" style={{ marginBottom: 12 }}>
-        <div className="pnl-hd"><span className="pnl-lbl">ADAPTIVE UI LAYER</span></div>
-        <div className="pnl-body">
-          <div className="agent-lane">
-            <div className="agent-dot" style={{ left: `${agentX}%` }}>◉</div>
-          </div>
-          <div className="narr-box" style={{ marginBottom: 10 }}>
-            <div className="narr-lbl">AGENTE VIGILANTE/COLABORADOR</div>
-            <div className="narr-txt">{agentMsg}</div>
-          </div>
-          <div className="slider-row">
-            <span className="slider-lbl">PROFILE</span>
-            <select className="inp" value={userProfile} onChange={(e) => setUserProfile(e.target.value)} style={{ maxWidth: 220 }}>
-              <option value="novato">novato</option>
-              <option value="intermedio">intermedio</option>
-              <option value="pro">pro</option>
-            </select>
-            <span className="slider-val">Depth {uiMode.depth}</span>
-          </div>
-          <div className="row3" style={{ marginTop: 8 }}>
-            <div className="cell"><div className="cell-lbl">VISIBLE CONTROLS</div><div className="cell-v">{uiMode.showFx ? 'FULL' : 'CORE'}</div></div>
-            <div className="cell"><div className="cell-lbl">COGNITIVE THRESHOLD</div><div className="cell-v">{fmt2(uiMode.cognitiveThreshold)}</div></div>
-            <div className="cell"><div className="cell-lbl">REAL-TIME FEEDBACK</div><div className="cell-v">{playing ? 'LIVE' : 'IDLE'}</div></div>
-          </div>
-          <div className="row2" style={{ marginTop: 8 }}>
-            <div className="cell">
-              <div className="cell-lbl">PREGUNTA 1</div>
-              <input className="inp" value={agentAnswers.q1} onChange={(e) => setAgentAnswers((a) => ({ ...a, q1: e.target.value }))} placeholder="¿Cuál es el público objetivo?" />
-            </div>
-            <div className="cell">
-              <div className="cell-lbl">PREGUNTA 2</div>
-              <input className="inp" value={agentAnswers.q2} onChange={(e) => setAgentAnswers((a) => ({ ...a, q2: e.target.value }))} placeholder="¿Qué emoción debe dominar?" />
-            </div>
-          </div>
-          <button className="btn" style={{ marginTop: 8 }} onClick={askAgent}>ACORDAR PARÁMETROS (GROQ)</button>
-=======
->>>>>>> main
-        </div>
-        <div className="sec-d">Browser DAW with HIMH v3 generation, live SystemFriction modulation, draggable clips, and real Web Audio routing.</div>
-      </div>
-
-<<<<<<< codex/build-fully-functional-browser-based-daw-vs6g22
-      <div className="studio-grid" style={{ marginBottom: 12 }}>
-        <div className="pnl">
-          <div className="pnl-hd"><span className="pnl-lbl">PANEL CAPTURA / CONVERSIÓN 24-BIT</span></div>
-          <div className="pnl-body">
-            <input type="file" accept="audio/*" multiple onChange={onFilesSelected} />
-            <div className="sec-d" style={{ marginTop: 8 }}>Carga hasta 10 archivos. El primero alimenta análisis vocal MIHM v3.</div>
-            {filesMeta.length > 0 && (
-              <div className="repo-list">
-                {filesMeta.map((f) => <div key={f.name} className="repo-row"><span>{f.name}</span><span className="repo-row-meta">{Math.round(f.size / 1024)} KB</span></div>)}
-              </div>
-            )}
-            {filesMeta[0] && (
-              <button
-                className="btn btn-g"
-                style={{ marginTop: 8 }}
-                onClick={async () => {
-                  const blob = await to24BitWavBlob((document.querySelector('input[type=\"file\"]')?.files || [])[0])
-                  const a = document.createElement('a')
-                  a.href = URL.createObjectURL(blob)
-                  a.download = `${filesMeta[0].name.replace(/\\.[^.]+$/, '')}-24bit.wav`
-                  a.click()
-                }}
-              >
-                EXPORTAR 24-BIT WAV
-              </button>
-            )}
-          </div>
-        </div>
-        <div className="pnl">
-          <div className="pnl-hd"><span className="pnl-lbl">VOCAL ANALYSIS / MIHM v3</span></div>
-          <div className="pnl-body">
-            <div className="row3">
-              <div className="cell"><div className="cell-lbl">RMS</div><div className="cell-v">{fmt2(vocalMetrics?.rms ?? 0)}</div></div>
-              <div className="cell"><div className="cell-lbl">COHERENCIA</div><div className="cell-v">{fmt2(vocalMetrics?.coherence ?? 0)}</div></div>
-              <div className="cell"><div className="cell-lbl">FRICCIÓN</div><div className="cell-v">{fmt2(vocalMetrics?.friction ?? 0)}</div></div>
-=======
       <div className="studio-grid">
         <div className="pnl">
           <div className="pnl-hd"><span className="pnl-lbl">TRANSPORT + AI COMPOSER</span></div>
@@ -466,75 +224,6 @@ export default function Repositorio() {
               <div className="cell"><div className="cell-lbl">TEMPO INFLUENCE</div><div className="cell-v">{controls.tempo}</div></div>
               <div className="cell"><div className="cell-lbl">DENSITY</div><div className="cell-v">{fmt2(controls.density)}</div></div>
               <div className="cell"><div className="cell-lbl">HARMONIC VAR.</div><div className="cell-v">{fmt2(controls.harmonicVariation)}</div></div>
->>>>>>> main
-            </div>
-          </div>
-        </div>
-      </div>
-
-<<<<<<< codex/build-fully-functional-browser-based-daw-vs6g22
-      <div className="studio-grid">
-        <div className="pnl">
-          <div className="pnl-hd"><span className="pnl-lbl">TRANSPORT + AI COMPOSER</span></div>
-          <div className="pnl-body">
-            <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
-              <button className="btn" onClick={initAudio}>INIT AUDIO</button>
-              {!playing ? (
-                <button className="btn btn-n" onClick={startTransport} disabled={!ready}>PLAY</button>
-              ) : (
-                <button className="btn btn-r" onClick={stopTransport}>STOP</button>
-              )}
-              <button className="btn btn-g" onClick={() => setPlayheadBeat(0)}>REWIND</button>
-            </div>
-
-            <div className="slider-row">
-              <span className="slider-lbl">TEMPO</span>
-              <input type="range" min="70" max="170" value={tempo} onChange={(e) => setTempo(Number(e.target.value))} />
-              <span className="slider-val">{tempo}</span>
-            </div>
-
-            {uiMode.showFx && (
-              <>
-                <div className="slider-row">
-                  <span className="slider-lbl">FILTER</span>
-                  <input type="range" min="300" max="16000" step="10" value={fx.filterHz} onChange={(e) => setFx((f) => ({ ...f, filterHz: Number(e.target.value) }))} />
-                  <span className="slider-val">{fx.filterHz}</span>
-                </div>
-
-                <div className="slider-row">
-                  <span className="slider-lbl">DELAY</span>
-                  <input type="range" min="0" max="0.95" step="0.01" value={fx.delayMix} onChange={(e) => setFx((f) => ({ ...f, delayMix: Number(e.target.value) }))} />
-                  <span className="slider-val">{fx.delayMix.toFixed(2)}</span>
-                </div>
-
-                <div className="slider-row">
-                  <span className="slider-lbl">REVERB</span>
-                  <input type="range" min="0" max="0.95" step="0.01" value={fx.reverbMix} onChange={(e) => setFx((f) => ({ ...f, reverbMix: Number(e.target.value) }))} />
-                  <span className="slider-val">{fx.reverbMix.toFixed(2)}</span>
-                </div>
-              </>
-            )}
-
-            <div style={{ marginTop: 12 }}>
-              <label className="inp-lbl">AI PROMPT</label>
-              <input className="inp" value={prompt} onChange={(e) => setPrompt(e.target.value)} />
-              <button className="btn" style={{ marginTop: 8 }} onClick={buildAndPlaceClip} disabled={!ready}>GENERATE CLIP</button>
-            </div>
-          </div>
-        </div>
-
-        <div className="pnl">
-          <div className="pnl-hd"><span className="pnl-lbl">SYSTEMFRICTION METRICS (LIVE)</span></div>
-          <div className="pnl-body">
-            <div className="row3">
-              <div className="cell"><div className="cell-lbl">COHERENCE (C)</div><div className="cell-v">{fmt2(metrics.C)}</div></div>
-              <div className="cell"><div className="cell-lbl">TENSION (T)</div><div className="cell-v">{fmt2(metrics.T)}</div></div>
-              <div className="cell"><div className="cell-lbl">ACTIVATION (A)</div><div className="cell-v">{fmt2(metrics.A)}</div></div>
-            </div>
-            <div className="row3" style={{ marginTop: 8 }}>
-              <div className="cell"><div className="cell-lbl">TEMPO INFLUENCE</div><div className="cell-v">{controls.tempo}</div></div>
-              <div className="cell"><div className="cell-lbl">DENSITY</div><div className="cell-v">{fmt2(controls.density)}</div></div>
-              <div className="cell"><div className="cell-lbl">HARMONIC VAR.</div><div className="cell-v">{fmt2(controls.harmonicVariation)}</div></div>
             </div>
           </div>
         </div>
@@ -586,54 +275,6 @@ export default function Repositorio() {
             </div>
           </div>
 
-=======
-      <div className="sec" style={{ marginTop: '1rem' }}>
-        <div className="sec-hd"><span className="sec-n">02</span><span className="sec-t">Timeline + Mixer</span></div>
-        <div className="studio-grid">
-          <div className="pnl">
-            <div className="pnl-hd"><span className="pnl-lbl">TIMELINE</span><span className="pnl-st">Playhead: {fmt2(playheadBeat)} beats</span></div>
-            <div className="pnl-body">
-              <div className="timeline" onPointerMove={onTimelinePointerMove} onPointerUp={onTimelinePointerUp}>
-                {Array.from({ length: totalBeats + 1 }).map((_, i) => (
-                  <div
-                    key={i}
-                    className={`timeline-gridline${i % 4 === 0 ? ' bar' : ''}`}
-                    style={{ left: i * PX_PER_BEAT }}
-                  />
-                ))}
-
-                <div className="playhead" style={{ left: playheadBeat * PX_PER_BEAT }} />
-
-                {tracks.map((t, idx) => (
-                  <div key={t.id} className="timeline-lane" style={{ top: idx * 56 }}>
-                    <span className="timeline-lane-name">{t.name}</span>
-                  </div>
-                ))}
-
-                {clips.map((clip) => {
-                  const trackIndex = tracks.findIndex((t) => t.id === clip.trackId)
-                  return (
-                    <button
-                      key={clip.id}
-                      type="button"
-                      className="clip"
-                      style={{
-                        left: clip.startBeat * PX_PER_BEAT,
-                        top: trackIndex * 56 + 22,
-                        width: clip.lengthBeats * PX_PER_BEAT,
-                        borderColor: clip.color,
-                      }}
-                      onPointerDown={(e) => onClipPointerDown(e, clip.id)}
-                    >
-                      {clip.name}
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-          </div>
-
->>>>>>> main
           <div className="pnl">
             <div className="pnl-hd"><span className="pnl-lbl">MIXER</span></div>
             <div className="pnl-body">
@@ -645,43 +286,11 @@ export default function Repositorio() {
                     <input type="range" min="0" max="1" step="0.01" value={t.volume} onChange={(e) => updateTrack(t.id, { volume: Number(e.target.value) })} />
                     <span className="slider-val">{t.volume.toFixed(2)}</span>
                   </div>
-<<<<<<< codex/build-fully-functional-browser-based-daw-vs6g22
-                  {uiMode.showPan && (
-                    <div className="slider-row">
-                      <span className="slider-lbl">PAN</span>
-                      <input type="range" min="-1" max="1" step="0.01" value={t.pan} onChange={(e) => updateTrack(t.id, { pan: Number(e.target.value) })} />
-                      <span className="slider-val">{t.pan.toFixed(2)}</span>
-                    </div>
-                  )}
-                  {uiMode.showSource && (
-                    <div className="slider-row">
-                      <span className="slider-lbl">SOURCE</span>
-                      <select className="inp" value={t.sourceType} onChange={(e) => updateTrack(t.id, { sourceType: e.target.value })} style={{ maxWidth: 160 }}>
-                        <option value="osc">oscillator</option>
-                        <option value="sampler">sampler</option>
-                      </select>
-                      <span className="slider-val">audio</span>
-                    </div>
-                  )}
-                  {uiMode.showSource && t.sourceType === 'osc' && (
-                    <div className="slider-row">
-                      <span className="slider-lbl">WAVE</span>
-                      <select className="inp" value={t.waveform} onChange={(e) => updateTrack(t.id, { waveform: e.target.value })} style={{ maxWidth: 160 }}>
-                        <option value="sine">sine</option>
-                        <option value="triangle">triangle</option>
-                        <option value="square">square</option>
-                        <option value="sawtooth">sawtooth</option>
-                      </select>
-                      <span className="slider-val">{t.waveform}</span>
-                    </div>
-                  )}
-=======
                   <div className="slider-row">
                     <span className="slider-lbl">PAN</span>
                     <input type="range" min="-1" max="1" step="0.01" value={t.pan} onChange={(e) => updateTrack(t.id, { pan: Number(e.target.value) })} />
                     <span className="slider-val">{t.pan.toFixed(2)}</span>
                   </div>
->>>>>>> main
                 </div>
               ))}
             </div>
