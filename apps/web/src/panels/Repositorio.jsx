@@ -27,8 +27,6 @@ export default function Repositorio() {
   const [clips, setClips] = useState([])
   const [prompt, setPrompt] = useState('generate melancholic loop')
   const [fx, setFx] = useState({ filterHz: 12000, delayMix: 0.22, reverbMix: 0.18 })
-  const [userProfile, setUserProfile] = useState('novato')
-  const [editActions, setEditActions] = useState(0)
 
   const playheadRef = useRef(0)
   const tempoRef = useRef(tempo)
@@ -37,12 +35,6 @@ export default function Repositorio() {
 
   const metrics = useMemo(() => metricsFromSocsim(store.socsim), [store.socsim])
   const controls = useMemo(() => generationControls(metrics), [metrics])
-  const profileConfig = useMemo(() => ({
-    novato: { showFx: false, showPan: false, showSource: false, depth: 1, cognitiveThreshold: 0.35 },
-    intermedio: { showFx: true, showPan: true, showSource: false, depth: 2, cognitiveThreshold: 0.62 },
-    pro: { showFx: true, showPan: true, showSource: true, depth: 3, cognitiveThreshold: 0.9 },
-  }), [])
-  const uiMode = profileConfig[userProfile]
 
 
   useEffect(() => { playheadRef.current = playheadBeat }, [playheadBeat])
@@ -52,11 +44,6 @@ export default function Repositorio() {
   useEffect(() => {
     setTempo(controls.tempo)
   }, [controls.tempo])
-
-  useEffect(() => {
-    if (editActions > 12) setUserProfile('pro')
-    else if (editActions > 5) setUserProfile('intermedio')
-  }, [editActions])
 
   useEffect(() => {
     tracks.forEach((track) => audioRef.current.updateTrack(track))
@@ -84,13 +71,11 @@ export default function Repositorio() {
     const clip = composeFromPrompt({
       prompt,
       metrics,
-      controls,
       tempo,
       trackId,
     })
     clip.startBeat = quantizeBeat(playheadBeat, GRID)
     setClips((prev) => [...prev, clip])
-    setEditActions((n) => n + 1)
   }
 
   const scheduleWindow = () => {
@@ -135,7 +120,6 @@ export default function Repositorio() {
 
   const updateTrack = (id, patch) => {
     setTracks((prev) => prev.map((t) => (t.id === id ? { ...t, ...patch } : t)))
-    setEditActions((n) => n + 1)
   }
 
   const onClipPointerDown = (event, clipId) => {
@@ -144,7 +128,6 @@ export default function Repositorio() {
     dragRef.current = {
       clipId,
       startX: event.clientX,
-      startY: event.clientY,
       baseBeat: clip.startBeat,
       baseTrack: tracks.findIndex((t) => t.id === clip.trackId),
     }
@@ -157,14 +140,12 @@ export default function Repositorio() {
     const beatDelta = (event.clientX - d.startX) / PX_PER_BEAT
     const rawBeat = d.baseBeat + beatDelta
 
-    const laneDelta = Math.round((event.clientY - d.startY) / 56)
-    const trackIndex = Math.max(0, Math.min(tracks.length - 1, d.baseTrack + laneDelta))
+    const trackIndex = Math.max(0, Math.min(tracks.length - 1, d.baseTrack + Math.round(event.movementY / 30)))
     const newTrackId = tracks[trackIndex].id
 
     setClips((prev) => prev.map((c) => (c.id === d.clipId
       ? { ...c, startBeat: Math.max(0, quantizeBeat(rawBeat, GRID)), trackId: newTrackId }
       : c)))
-    setEditActions((n) => n + 1)
   }
 
   const onTimelinePointerUp = () => {
@@ -183,26 +164,6 @@ export default function Repositorio() {
           <span className="pnl-st" style={{ marginLeft: 'auto' }}>{ready ? 'AUDIO READY' : 'AUDIO LOCKED'}</span>
         </div>
         <div className="sec-d">Browser DAW with HIMH v3 generation, live SystemFriction modulation, draggable clips, and real Web Audio routing.</div>
-      </div>
-
-      <div className="pnl" style={{ marginBottom: 12 }}>
-        <div className="pnl-hd"><span className="pnl-lbl">ADAPTIVE UI LAYER</span></div>
-        <div className="pnl-body">
-          <div className="slider-row">
-            <span className="slider-lbl">PROFILE</span>
-            <select className="inp" value={userProfile} onChange={(e) => setUserProfile(e.target.value)} style={{ maxWidth: 220 }}>
-              <option value="novato">novato</option>
-              <option value="intermedio">intermedio</option>
-              <option value="pro">pro</option>
-            </select>
-            <span className="slider-val">Depth {uiMode.depth}</span>
-          </div>
-          <div className="row3" style={{ marginTop: 8 }}>
-            <div className="cell"><div className="cell-lbl">VISIBLE CONTROLS</div><div className="cell-v">{uiMode.showFx ? 'FULL' : 'CORE'}</div></div>
-            <div className="cell"><div className="cell-lbl">COGNITIVE THRESHOLD</div><div className="cell-v">{fmt2(uiMode.cognitiveThreshold)}</div></div>
-            <div className="cell"><div className="cell-lbl">REAL-TIME FEEDBACK</div><div className="cell-v">{playing ? 'LIVE' : 'IDLE'}</div></div>
-          </div>
-        </div>
       </div>
 
       <div className="studio-grid">
@@ -225,27 +186,23 @@ export default function Repositorio() {
               <span className="slider-val">{tempo}</span>
             </div>
 
-            {uiMode.showFx && (
-              <>
-                <div className="slider-row">
-                  <span className="slider-lbl">FILTER</span>
-                  <input type="range" min="300" max="16000" step="10" value={fx.filterHz} onChange={(e) => setFx((f) => ({ ...f, filterHz: Number(e.target.value) }))} />
-                  <span className="slider-val">{fx.filterHz}</span>
-                </div>
+            <div className="slider-row">
+              <span className="slider-lbl">FILTER</span>
+              <input type="range" min="300" max="16000" step="10" value={fx.filterHz} onChange={(e) => setFx((f) => ({ ...f, filterHz: Number(e.target.value) }))} />
+              <span className="slider-val">{fx.filterHz}</span>
+            </div>
 
-                <div className="slider-row">
-                  <span className="slider-lbl">DELAY</span>
-                  <input type="range" min="0" max="0.95" step="0.01" value={fx.delayMix} onChange={(e) => setFx((f) => ({ ...f, delayMix: Number(e.target.value) }))} />
-                  <span className="slider-val">{fx.delayMix.toFixed(2)}</span>
-                </div>
+            <div className="slider-row">
+              <span className="slider-lbl">DELAY</span>
+              <input type="range" min="0" max="0.95" step="0.01" value={fx.delayMix} onChange={(e) => setFx((f) => ({ ...f, delayMix: Number(e.target.value) }))} />
+              <span className="slider-val">{fx.delayMix.toFixed(2)}</span>
+            </div>
 
-                <div className="slider-row">
-                  <span className="slider-lbl">REVERB</span>
-                  <input type="range" min="0" max="0.95" step="0.01" value={fx.reverbMix} onChange={(e) => setFx((f) => ({ ...f, reverbMix: Number(e.target.value) }))} />
-                  <span className="slider-val">{fx.reverbMix.toFixed(2)}</span>
-                </div>
-              </>
-            )}
+            <div className="slider-row">
+              <span className="slider-lbl">REVERB</span>
+              <input type="range" min="0" max="0.95" step="0.01" value={fx.reverbMix} onChange={(e) => setFx((f) => ({ ...f, reverbMix: Number(e.target.value) }))} />
+              <span className="slider-val">{fx.reverbMix.toFixed(2)}</span>
+            </div>
 
             <div style={{ marginTop: 12 }}>
               <label className="inp-lbl">AI PROMPT</label>
@@ -329,35 +286,11 @@ export default function Repositorio() {
                     <input type="range" min="0" max="1" step="0.01" value={t.volume} onChange={(e) => updateTrack(t.id, { volume: Number(e.target.value) })} />
                     <span className="slider-val">{t.volume.toFixed(2)}</span>
                   </div>
-                  {uiMode.showPan && (
-                    <div className="slider-row">
-                      <span className="slider-lbl">PAN</span>
-                      <input type="range" min="-1" max="1" step="0.01" value={t.pan} onChange={(e) => updateTrack(t.id, { pan: Number(e.target.value) })} />
-                      <span className="slider-val">{t.pan.toFixed(2)}</span>
-                    </div>
-                  )}
-                  {uiMode.showSource && (
-                    <div className="slider-row">
-                      <span className="slider-lbl">SOURCE</span>
-                      <select className="inp" value={t.sourceType} onChange={(e) => updateTrack(t.id, { sourceType: e.target.value })} style={{ maxWidth: 160 }}>
-                        <option value="osc">oscillator</option>
-                        <option value="sampler">sampler</option>
-                      </select>
-                      <span className="slider-val">audio</span>
-                    </div>
-                  )}
-                  {uiMode.showSource && t.sourceType === 'osc' && (
-                    <div className="slider-row">
-                      <span className="slider-lbl">WAVE</span>
-                      <select className="inp" value={t.waveform} onChange={(e) => updateTrack(t.id, { waveform: e.target.value })} style={{ maxWidth: 160 }}>
-                        <option value="sine">sine</option>
-                        <option value="triangle">triangle</option>
-                        <option value="square">square</option>
-                        <option value="sawtooth">sawtooth</option>
-                      </select>
-                      <span className="slider-val">{t.waveform}</span>
-                    </div>
-                  )}
+                  <div className="slider-row">
+                    <span className="slider-lbl">PAN</span>
+                    <input type="range" min="-1" max="1" step="0.01" value={t.pan} onChange={(e) => updateTrack(t.id, { pan: Number(e.target.value) })} />
+                    <span className="slider-val">{t.pan.toFixed(2)}</span>
+                  </div>
                 </div>
               ))}
             </div>
