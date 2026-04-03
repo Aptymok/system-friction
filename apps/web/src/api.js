@@ -4,6 +4,7 @@
  */
 
 const BASE = 'https://system-friction-production.up.railway.app'
+export const API_BASE = BASE
 const TIMEOUT = 6000
 
 async function fetchWithTimeout(url, opts = {}) {
@@ -69,4 +70,27 @@ export async function fetchNarrative({ text, mihm, psi, context = '' }) {
     const d = await r.json()
     return d.narrative ?? null
   } catch { return null }
+}
+
+/**
+ * Aggregate social + market endpoints for matrix rendering.
+ */
+export async function fetchSocialAudit(query = 'viral') {
+  const headers = { 'Content-Type': 'application/json' }
+  const urls = [
+    `${BASE}/spotify/trends?genre=pop&limit=10`,
+    `${BASE}/tiktok/scrape?query=${encodeURIComponent(query)}`,
+    `${BASE}/nasa?refresh=1`,
+    `${BASE}/macro?refresh=1`,
+  ]
+  const out = await Promise.all(urls.map(async (u) => {
+    const r = await fetchWithTimeout(u, { headers, timeout: 10000 })
+    return r.json()
+  }))
+  return {
+    spotify: out[0],
+    tiktok: out[1],
+    nasa: out[2],
+    macro: out[3],
+  }
 }
