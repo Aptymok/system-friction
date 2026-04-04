@@ -33,6 +33,7 @@ from modules.ml_friction              import MLFriction
 from modules.integrations             import Integrations
 from modules.reflexive_engine         import ReflexiveEngine
 from modules.frequency_coexistence    import FrequencyCoexistenceEngine
+from modules.cognitive_twin          import CognitiveTwinSystem
 
 # ══════════════════════════════════════════════════════════════════════
 # INICIALIZACIÓN CENTRAL
@@ -70,6 +71,7 @@ ml        = MLFriction(mihm)
 integs    = Integrations(mihm)
 reflexive = ReflexiveEngine(mihm)
 freq_coex = FrequencyCoexistenceEngine(mihm, groq)
+cognitive_twin = CognitiveTwinSystem()
 
 
 def gen_id() -> str:
@@ -610,6 +612,67 @@ def api_llm_narrative():
         else:
             txt = f'IHG={ihg:.2f}, R={r:.2f}. {"Tensión elevada." if nti > 0.5 else "Sistema estable."}'
         return jsonify({'narrative': txt, 'source': 'local', 'error': str(e)}), 200
+
+
+# ══════════════════════════════════════════════════════════════════════
+# COGNITIVE TWIN — MULTI-LAYER REAL DATA FUSION
+# ══════════════════════════════════════════════════════════════════════
+
+@app.route('/state_unified', methods=['GET'])
+def state_unified():
+    force = request.args.get('refresh', '0') == '1'
+    data = cognitive_twin.refresh() if force else cognitive_twin.get_or_refresh()
+    return jsonify(data['state_unified']), 200
+
+
+@app.route('/friction', methods=['GET'])
+def friction():
+    force = request.args.get('refresh', '0') == '1'
+    data = cognitive_twin.refresh() if force else cognitive_twin.get_or_refresh()
+    return jsonify(data['friction']), 200
+
+
+@app.route('/density', methods=['GET'])
+def density():
+    force = request.args.get('refresh', '0') == '1'
+    data = cognitive_twin.refresh() if force else cognitive_twin.get_or_refresh()
+    return jsonify(data['density']), 200
+
+
+@app.route('/boundary', methods=['GET'])
+def boundary():
+    force = request.args.get('refresh', '0') == '1'
+    data = cognitive_twin.refresh() if force else cognitive_twin.get_or_refresh()
+    return jsonify(data['boundary']), 200
+
+
+@app.route('/emergence', methods=['GET'])
+def emergence():
+    force = request.args.get('refresh', '0') == '1'
+    data = cognitive_twin.refresh() if force else cognitive_twin.get_or_refresh()
+    return jsonify(data['emergence']), 200
+
+
+@app.route('/sentiment', methods=['GET'])
+def sentiment():
+    force = request.args.get('refresh', '0') == '1'
+    data = cognitive_twin.refresh() if force else cognitive_twin.get_or_refresh()
+    return jsonify(data['sentiment']), 200
+
+
+@app.route('/macro', methods=['GET'])
+def macro():
+    force = request.args.get('refresh', '0') == '1'
+    data = cognitive_twin.refresh() if force else cognitive_twin.get_or_refresh()
+    return jsonify(data['macro']), 200
+
+
+@app.route('/nasa', methods=['GET'])
+def nasa():
+    force = request.args.get('refresh', '0') == '1'
+    data = cognitive_twin.refresh() if force else cognitive_twin.get_or_refresh()
+    return jsonify(data['nasa']), 200
+
 
 
 # ══════════════════════════════════════════════════════════════════════
