@@ -1,6 +1,6 @@
 /**
- * Railway API client — SystemFriction v2
- * Base: https://system-friction-production.up.railway.app
+ * API client — SystemFriction v2
+ * Base is resolved from env (VITE_API_BASE) and defaults to same-origin.
  */
 
 const BASE = 'https://system-friction-production.up.railway.app'
