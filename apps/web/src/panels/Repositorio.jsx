@@ -4,7 +4,6 @@ import { AudioEngine } from '../studio/audio/AudioEngine'
 import { metricsFromSocsim, generationControls } from '../studio/metrics/systemFrictionMetrics'
 import { composeFromPrompt } from '../studio/agent/composerAgent'
 import { quantizeBeat } from '../studio/daw/timeline'
-import { fetchNarrative, fetchSocialAudit } from '../api'
 
 const GRID = 0.25
 const PX_PER_BEAT = 54
@@ -19,7 +18,6 @@ export default function Repositorio() {
   const audioRef = useRef(new AudioEngine())
   const schedulerRef = useRef(null)
   const dragRef = useRef(null)
-  const fileInputRef = useRef(null)
 
   const [ready, setReady] = useState(false)
   const [playing, setPlaying] = useState(false)
@@ -29,14 +27,6 @@ export default function Repositorio() {
   const [clips, setClips] = useState([])
   const [prompt, setPrompt] = useState('generate melancholic loop')
   const [fx, setFx] = useState({ filterHz: 12000, delayMix: 0.22, reverbMix: 0.18 })
-  const [userProfile, setUserProfile] = useState('novato')
-  const [editActions, setEditActions] = useState(0)
-  const [agentX, setAgentX] = useState(0)
-  const [agentMsg, setAgentMsg] = useState('Arribo detectado. Carga una canción o lote (máx 10).')
-  const [agentAnswers, setAgentAnswers] = useState({ q1: '', q2: '' })
-  const [filesMeta, setFilesMeta] = useState([])
-  const [vocalMetrics, setVocalMetrics] = useState(null)
-  const [marketMap, setMarketMap] = useState(null)
 
   const playheadRef = useRef(0)
   const tempoRef = useRef(tempo)
@@ -45,12 +35,6 @@ export default function Repositorio() {
 
   const metrics = useMemo(() => metricsFromSocsim(store.socsim), [store.socsim])
   const controls = useMemo(() => generationControls(metrics), [metrics])
-  const profileConfig = useMemo(() => ({
-    novato: { showFx: false, showPan: false, showSource: false, depth: 1, cognitiveThreshold: 0.35 },
-    intermedio: { showFx: true, showPan: true, showSource: false, depth: 2, cognitiveThreshold: 0.62 },
-    pro: { showFx: true, showPan: true, showSource: true, depth: 3, cognitiveThreshold: 0.9 },
-  }), [])
-  const uiMode = profileConfig[userProfile]
 
 
   useEffect(() => { playheadRef.current = playheadBeat }, [playheadBeat])
@@ -60,18 +44,6 @@ export default function Repositorio() {
   useEffect(() => {
     setTempo(controls.tempo)
   }, [controls.tempo])
-
-  useEffect(() => {
-    if (editActions > 12) setUserProfile('pro')
-    else if (editActions > 5) setUserProfile('intermedio')
-  }, [editActions])
-
-  useEffect(() => {
-    const id = window.setInterval(() => {
-      setAgentX((x) => (x > 100 ? 0 : x + 2))
-    }, 130)
-    return () => window.clearInterval(id)
-  }, [])
 
   useEffect(() => {
     tracks.forEach((track) => audioRef.current.updateTrack(track))
@@ -99,13 +71,11 @@ export default function Repositorio() {
     const clip = composeFromPrompt({
       prompt,
       metrics,
-      controls,
       tempo,
       trackId,
     })
     clip.startBeat = quantizeBeat(playheadBeat, GRID)
     setClips((prev) => [...prev, clip])
-    setEditActions((n) => n + 1)
   }
 
   const scheduleWindow = () => {
@@ -150,7 +120,6 @@ export default function Repositorio() {
 
   const updateTrack = (id, patch) => {
     setTracks((prev) => prev.map((t) => (t.id === id ? { ...t, ...patch } : t)))
-    setEditActions((n) => n + 1)
   }
 
   const onClipPointerDown = (event, clipId) => {
@@ -159,7 +128,6 @@ export default function Repositorio() {
     dragRef.current = {
       clipId,
       startX: event.clientX,
-      startY: event.clientY,
       baseBeat: clip.startBeat,
       baseTrack: tracks.findIndex((t) => t.id === clip.trackId),
     }
@@ -172,91 +140,16 @@ export default function Repositorio() {
     const beatDelta = (event.clientX - d.startX) / PX_PER_BEAT
     const rawBeat = d.baseBeat + beatDelta
 
-    const laneDelta = Math.round((event.clientY - d.startY) / 56)
-    const trackIndex = Math.max(0, Math.min(tracks.length - 1, d.baseTrack + laneDelta))
+    const trackIndex = Math.max(0, Math.min(tracks.length - 1, d.baseTrack + Math.round(event.movementY / 30)))
     const newTrackId = tracks[trackIndex].id
 
     setClips((prev) => prev.map((c) => (c.id === d.clipId
       ? { ...c, startBeat: Math.max(0, quantizeBeat(rawBeat, GRID)), trackId: newTrackId }
       : c)))
-    setEditActions((n) => n + 1)
   }
 
   const onTimelinePointerUp = () => {
     dragRef.current = null
-  }
-
-  const analyzeVoice = async (file) => {
-    await initAudio()
-    const arr = await file.arrayBuffer()
-    const buf = await audioRef.current.ctx.decodeAudioData(arr.slice(0))
-    const ch = buf.getChannelData(0)
-    let energy = 0
-    let zc = 0
-    for (let i = 1; i < ch.length; i++) {
-      energy += ch[i] * ch[i]
-      if ((ch[i - 1] >= 0 && ch[i] < 0) || (ch[i - 1] < 0 && ch[i] >= 0)) zc += 1
-    }
-    const rms = Math.sqrt(energy / ch.length)
-    const coherence = Math.max(0, Math.min(1, 1 - (zc / ch.length) * 12))
-    const friction = Math.max(0, Math.min(1, (1 - coherence) * 0.8 + (1 - Math.min(1, rms * 8)) * 0.2))
-    setVocalMetrics({ rms, coherence, friction, duration: buf.duration })
-  }
-
-  const to24BitWavBlob = async (file) => {
-    await initAudio()
-    const arr = await file.arrayBuffer()
-    const buf = await audioRef.current.ctx.decodeAudioData(arr.slice(0))
-    const samples = buf.length
-    const channels = Math.min(2, buf.numberOfChannels)
-    const bps = 3
-    const blockAlign = channels * bps
-    const dataSize = samples * blockAlign
-    const ab = new ArrayBuffer(44 + dataSize)
-    const v = new DataView(ab)
-    const writeStr = (off, str) => [...str].forEach((c, i) => v.setUint8(off + i, c.charCodeAt(0)))
-    writeStr(0, 'RIFF')
-    v.setUint32(4, 36 + dataSize, true)
-    writeStr(8, 'WAVE')
-    writeStr(12, 'fmt ')
-    v.setUint32(16, 16, true)
-    v.setUint16(20, 1, true)
-    v.setUint16(22, channels, true)
-    v.setUint32(24, buf.sampleRate, true)
-    v.setUint32(28, buf.sampleRate * blockAlign, true)
-    v.setUint16(32, blockAlign, true)
-    v.setUint16(34, 24, true)
-    writeStr(36, 'data')
-    v.setUint32(40, dataSize, true)
-    let o = 44
-    for (let i = 0; i < samples; i++) {
-      for (let c = 0; c < channels; c++) {
-        const s = Math.max(-1, Math.min(1, buf.getChannelData(c)[i]))
-        const int = Math.floor(s < 0 ? s * 0x800000 : s * 0x7FFFFF)
-        v.setUint8(o++, int & 0xff)
-        v.setUint8(o++, (int >> 8) & 0xff)
-        v.setUint8(o++, (int >> 16) & 0xff)
-      }
-    }
-    return new Blob([ab], { type: 'audio/wav' })
-  }
-
-  const onFilesSelected = async (evt) => {
-    const list = Array.from(evt.target.files || []).slice(0, 10)
-    if (!list.length) return
-    setFilesMeta(list.map((f) => ({ name: f.name, size: f.size })))
-    await analyzeVoice(list[0])
-  }
-
-  const runSocialAudit = async () => {
-    const data = await fetchSocialAudit(prompt)
-    setMarketMap(data)
-  }
-
-  const askAgent = async () => {
-    const txt = `Contexto: ${agentAnswers.q1}. Objetivo: ${agentAnswers.q2}.`
-    const response = await fetchNarrative({ text: txt, mihm: { IHG: store.mihm.IHG, NTI: store.mihm.NTI, R: store.mihm.R, status: store.mihm.status }, psi: store.socsim })
-    if (response) setAgentMsg(response)
   }
 
   const bars = 8
@@ -271,84 +164,6 @@ export default function Repositorio() {
           <span className="pnl-st" style={{ marginLeft: 'auto' }}>{ready ? 'AUDIO READY' : 'AUDIO LOCKED'}</span>
         </div>
         <div className="sec-d">Browser DAW with HIMH v3 generation, live SystemFriction modulation, draggable clips, and real Web Audio routing.</div>
-      </div>
-
-      <div className="pnl" style={{ marginBottom: 12 }}>
-        <div className="pnl-hd"><span className="pnl-lbl">ADAPTIVE UI LAYER</span></div>
-        <div className="pnl-body">
-          <div className="agent-lane">
-            <div className="agent-dot" style={{ left: `${agentX}%` }}>◉</div>
-          </div>
-          <div className="narr-box" style={{ marginBottom: 10 }}>
-            <div className="narr-lbl">AGENTE VIGILANTE/COLABORADOR</div>
-            <div className="narr-txt">{agentMsg}</div>
-          </div>
-          <div className="slider-row">
-            <span className="slider-lbl">PROFILE</span>
-            <select className="inp" value={userProfile} onChange={(e) => setUserProfile(e.target.value)} style={{ maxWidth: 220 }}>
-              <option value="novato">novato</option>
-              <option value="intermedio">intermedio</option>
-              <option value="pro">pro</option>
-            </select>
-            <span className="slider-val">Depth {uiMode.depth}</span>
-          </div>
-          <div className="row3" style={{ marginTop: 8 }}>
-            <div className="cell"><div className="cell-lbl">VISIBLE CONTROLS</div><div className="cell-v">{uiMode.showFx ? 'FULL' : 'CORE'}</div></div>
-            <div className="cell"><div className="cell-lbl">COGNITIVE THRESHOLD</div><div className="cell-v">{fmt2(uiMode.cognitiveThreshold)}</div></div>
-            <div className="cell"><div className="cell-lbl">REAL-TIME FEEDBACK</div><div className="cell-v">{playing ? 'LIVE' : 'IDLE'}</div></div>
-          </div>
-          <div className="row2" style={{ marginTop: 8 }}>
-            <div className="cell">
-              <div className="cell-lbl">PREGUNTA 1</div>
-              <input className="inp" value={agentAnswers.q1} onChange={(e) => setAgentAnswers((a) => ({ ...a, q1: e.target.value }))} placeholder="¿Cuál es el público objetivo?" />
-            </div>
-            <div className="cell">
-              <div className="cell-lbl">PREGUNTA 2</div>
-              <input className="inp" value={agentAnswers.q2} onChange={(e) => setAgentAnswers((a) => ({ ...a, q2: e.target.value }))} placeholder="¿Qué emoción debe dominar?" />
-            </div>
-          </div>
-          <button className="btn" style={{ marginTop: 8 }} onClick={askAgent}>ACORDAR PARÁMETROS (GROQ)</button>
-        </div>
-      </div>
-
-      <div className="studio-grid" style={{ marginBottom: 12 }}>
-        <div className="pnl">
-          <div className="pnl-hd"><span className="pnl-lbl">PANEL CAPTURA / CONVERSIÓN 24-BIT</span></div>
-          <div className="pnl-body">
-            <input ref={fileInputRef} type="file" accept="audio/*" multiple onChange={onFilesSelected} />
-            <div className="sec-d" style={{ marginTop: 8 }}>Carga hasta 10 archivos. El primero alimenta análisis vocal MIHM v3.</div>
-            {filesMeta.length > 0 && (
-              <div className="repo-list">
-                {filesMeta.map((f) => <div key={f.name} className="repo-row"><span>{f.name}</span><span className="repo-row-meta">{Math.round(f.size / 1024)} KB</span></div>)}
-              </div>
-            )}
-            {filesMeta[0] && (
-              <button
-                className="btn btn-g"
-                style={{ marginTop: 8 }}
-                onClick={async () => {
-                  const blob = await to24BitWavBlob((fileInputRef.current?.files || [])[0])
-                  const a = document.createElement('a')
-                  a.href = URL.createObjectURL(blob)
-                  a.download = `${filesMeta[0].name.replace(/\\.[^.]+$/, '')}-24bit.wav`
-                  a.click()
-                }}
-              >
-                EXPORTAR 24-BIT WAV
-              </button>
-            )}
-          </div>
-        </div>
-        <div className="pnl">
-          <div className="pnl-hd"><span className="pnl-lbl">VOCAL ANALYSIS / MIHM v3</span></div>
-          <div className="pnl-body">
-            <div className="row3">
-              <div className="cell"><div className="cell-lbl">RMS</div><div className="cell-v">{fmt2(vocalMetrics?.rms ?? 0)}</div></div>
-              <div className="cell"><div className="cell-lbl">COHERENCIA</div><div className="cell-v">{fmt2(vocalMetrics?.coherence ?? 0)}</div></div>
-              <div className="cell"><div className="cell-lbl">FRICCIÓN</div><div className="cell-v">{fmt2(vocalMetrics?.friction ?? 0)}</div></div>
-            </div>
-          </div>
-        </div>
       </div>
 
       <div className="studio-grid">
@@ -371,27 +186,23 @@ export default function Repositorio() {
               <span className="slider-val">{tempo}</span>
             </div>
 
-            {uiMode.showFx && (
-              <>
-                <div className="slider-row">
-                  <span className="slider-lbl">FILTER</span>
-                  <input type="range" min="300" max="16000" step="10" value={fx.filterHz} onChange={(e) => setFx((f) => ({ ...f, filterHz: Number(e.target.value) }))} />
-                  <span className="slider-val">{fx.filterHz}</span>
-                </div>
+            <div className="slider-row">
+              <span className="slider-lbl">FILTER</span>
+              <input type="range" min="300" max="16000" step="10" value={fx.filterHz} onChange={(e) => setFx((f) => ({ ...f, filterHz: Number(e.target.value) }))} />
+              <span className="slider-val">{fx.filterHz}</span>
+            </div>
 
-                <div className="slider-row">
-                  <span className="slider-lbl">DELAY</span>
-                  <input type="range" min="0" max="0.95" step="0.01" value={fx.delayMix} onChange={(e) => setFx((f) => ({ ...f, delayMix: Number(e.target.value) }))} />
-                  <span className="slider-val">{fx.delayMix.toFixed(2)}</span>
-                </div>
+            <div className="slider-row">
+              <span className="slider-lbl">DELAY</span>
+              <input type="range" min="0" max="0.95" step="0.01" value={fx.delayMix} onChange={(e) => setFx((f) => ({ ...f, delayMix: Number(e.target.value) }))} />
+              <span className="slider-val">{fx.delayMix.toFixed(2)}</span>
+            </div>
 
-                <div className="slider-row">
-                  <span className="slider-lbl">REVERB</span>
-                  <input type="range" min="0" max="0.95" step="0.01" value={fx.reverbMix} onChange={(e) => setFx((f) => ({ ...f, reverbMix: Number(e.target.value) }))} />
-                  <span className="slider-val">{fx.reverbMix.toFixed(2)}</span>
-                </div>
-              </>
-            )}
+            <div className="slider-row">
+              <span className="slider-lbl">REVERB</span>
+              <input type="range" min="0" max="0.95" step="0.01" value={fx.reverbMix} onChange={(e) => setFx((f) => ({ ...f, reverbMix: Number(e.target.value) }))} />
+              <span className="slider-val">{fx.reverbMix.toFixed(2)}</span>
+            </div>
 
             <div style={{ marginTop: 12 }}>
               <label className="inp-lbl">AI PROMPT</label>
@@ -475,35 +286,11 @@ export default function Repositorio() {
                     <input type="range" min="0" max="1" step="0.01" value={t.volume} onChange={(e) => updateTrack(t.id, { volume: Number(e.target.value) })} />
                     <span className="slider-val">{t.volume.toFixed(2)}</span>
                   </div>
-                  {uiMode.showPan && (
-                    <div className="slider-row">
-                      <span className="slider-lbl">PAN</span>
-                      <input type="range" min="-1" max="1" step="0.01" value={t.pan} onChange={(e) => updateTrack(t.id, { pan: Number(e.target.value) })} />
-                      <span className="slider-val">{t.pan.toFixed(2)}</span>
-                    </div>
-                  )}
-                  {uiMode.showSource && (
-                    <div className="slider-row">
-                      <span className="slider-lbl">SOURCE</span>
-                      <select className="inp" value={t.sourceType} onChange={(e) => updateTrack(t.id, { sourceType: e.target.value })} style={{ maxWidth: 160 }}>
-                        <option value="osc">oscillator</option>
-                        <option value="sampler">sampler</option>
-                      </select>
-                      <span className="slider-val">audio</span>
-                    </div>
-                  )}
-                  {uiMode.showSource && t.sourceType === 'osc' && (
-                    <div className="slider-row">
-                      <span className="slider-lbl">WAVE</span>
-                      <select className="inp" value={t.waveform} onChange={(e) => updateTrack(t.id, { waveform: e.target.value })} style={{ maxWidth: 160 }}>
-                        <option value="sine">sine</option>
-                        <option value="triangle">triangle</option>
-                        <option value="square">square</option>
-                        <option value="sawtooth">sawtooth</option>
-                      </select>
-                      <span className="slider-val">{t.waveform}</span>
-                    </div>
-                  )}
+                  <div className="slider-row">
+                    <span className="slider-lbl">PAN</span>
+                    <input type="range" min="-1" max="1" step="0.01" value={t.pan} onChange={(e) => updateTrack(t.id, { pan: Number(e.target.value) })} />
+                    <span className="slider-val">{t.pan.toFixed(2)}</span>
+                  </div>
                 </div>
               ))}
             </div>

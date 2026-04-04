@@ -1,7 +1,5 @@
 import math
-import os
 from datetime import datetime
-from datetime import timedelta
 import requests
 
 
@@ -9,10 +7,9 @@ class CognitiveTwinSystem:
     def __init__(self):
         self.last_state = None
         self.history = []
-        self.nasa_api_key = os.environ.get('NASA_API_KEY', 'DEMO_KEY')
 
     def _get_json(self, url, timeout=8):
-        r = requests.get(url, timeout=timeout, headers={'User-Agent': 'SystemFriction/2.0'})
+        r = requests.get(url, timeout=timeout)
         r.raise_for_status()
         return r.json()
 
@@ -28,12 +25,8 @@ class CognitiveTwinSystem:
         return sum(pi * math.log((pi + eps) / (qi + eps)) for pi, qi in zip(p, q))
 
     def _fetch_nasa(self):
-        today = datetime.utcnow().date()
-        start = today - timedelta(days=30)
-        apod = self._get_json(f'https://api.nasa.gov/planetary/apod?api_key={self.nasa_api_key}')
-        donki = self._get_json(
-            f'https://api.nasa.gov/DONKI/FLR?startDate={start.isoformat()}&endDate={today.isoformat()}&api_key={self.nasa_api_key}'
-        )
+        apod = self._get_json('https://api.nasa.gov/planetary/apod?api_key=DEMO_KEY')
+        donki = self._get_json('https://api.nasa.gov/DONKI/FLR?startDate=2026-03-01&endDate=2026-04-02&api_key=DEMO_KEY')
         flare_count = len(donki) if isinstance(donki, list) else 0
         return {
             'source': 'NASA APOD + DONKI',

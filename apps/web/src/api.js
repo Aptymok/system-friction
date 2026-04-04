@@ -3,7 +3,7 @@
  * Base is resolved from env (VITE_API_BASE) and defaults to same-origin.
  */
 
-const BASE = (import.meta.env.VITE_API_BASE ?? '').replace(/\/$/, '')
+const BASE = 'https://system-friction-production.up.railway.app'
 export const API_BASE = BASE
 const TIMEOUT = 6000
 

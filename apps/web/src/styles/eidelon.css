@@ -266,8 +266,6 @@ input[type=range]{flex:1;accent-color:var(--oro);height:1px}
 .playhead{position:absolute;top:0;bottom:0;width:1px;background:var(--neon);z-index:8}
 .clip{position:absolute;height:26px;background:rgba(200,169,81,.08);border:.5px solid var(--oro);color:var(--t1);font-size:8px;font-family:var(--mono);letter-spacing:.08em;padding:0 8px;cursor:grab;z-index:10;text-align:left}
 .clip:active{cursor:grabbing}
-.agent-lane{position:relative;height:22px;background:var(--bg2);border:.5px solid var(--bdr);margin-bottom:8px;overflow:hidden}
-.agent-dot{position:absolute;top:2px;transition:left .12s linear;color:var(--neon);font-size:12px}
 
 @media(max-width:900px){
   .studio-grid{grid-template-columns:1fr}
