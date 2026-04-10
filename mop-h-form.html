@@ -652,9 +652,9 @@ textarea.q-ans::placeholder { color:var(--wire); font-style:italic; }
 
 <script>
 // ─────────────────────────────────────────
-// CONFIG · CAMBIAR ANTES DE SUBIR
+// CONFIG
 // ─────────────────────────────────────────
-const FORMSPREE_ID = 'xgopjkop'; // ← reemplazar con tu ID
+const FORMSPREE_ID = 'xgopjkop';
 
 // ─────────────────────────────────────────
 // STATE
@@ -677,15 +677,16 @@ function iniciar() {
   if (saved) {
     try {
       const data = JSON.parse(saved);
-      // Restore answers
       for (let i = 1; i <= TOTAL; i++) {
         const ta = document.getElementById('a' + i);
         if (ta && data['p' + i]) ta.value = data['p' + i];
       }
-      // Find last answered
       let last = 1;
       for (let i = TOTAL; i >= 1; i--) {
-        if (data['p' + i] && data['p' + i].trim()) { last = Math.min(i + 1, TOTAL); break; }
+        if (data['p' + i] && data['p' + i].trim()) {
+          last = Math.min(i + 1, TOTAL);
+          break;
+        }
       }
       cur = last;
     } catch(e) { cur = 1; }
@@ -701,11 +702,11 @@ function mostrarQ(n) {
   document.querySelectorAll('.q-block').forEach(b => b.classList.remove('on'));
   const block = document.getElementById('q' + n);
   if (block) block.classList.add('on');
-  // Progress
+
   const pct = ((n - 1) / TOTAL) * 100;
   document.getElementById('progress-bar').style.width = pct + '%';
   document.getElementById('progress-label').textContent = n + ' / ' + TOTAL;
-  // Prev button
+
   const prev = block ? block.querySelector('.btn-prev') : null;
   if (prev) prev.disabled = (n === 1);
 }
@@ -729,7 +730,7 @@ function cerrar() {
 }
 
 // ─────────────────────────────────────────
-// GUARDAR / SESSIONSTORGE
+// GUARDAR
 // ─────────────────────────────────────────
 function guardar() {
   const data = {};
@@ -741,7 +742,6 @@ function guardar() {
   flash();
 }
 
-// Autosave on any textarea change
 document.addEventListener('input', e => {
   if (e.target.classList.contains('q-ans')) guardar();
 });
@@ -754,22 +754,21 @@ function flash() {
 }
 
 // ─────────────────────────────────────────
-// ENVÍO · FORMSPREE
+// ENVÍO REAL
 // ─────────────────────────────────────────
 async function enviar() {
   const btn = document.getElementById('btn-enviar');
   const err = document.getElementById('submit-error');
+
   err.style.display = 'none';
   btn.disabled = true;
   btn.textContent = 'Enviando…';
 
-  // Collect all data
   const payload = {
     session_id: 'MOP-' + Date.now().toString(36).toUpperCase(),
     timestamp: new Date().toISOString(),
     nombre: document.getElementById('c-nombre').value || '(anónimo)',
     email: document.getElementById('c-email').value || '',
-    // Preguntas
     p01_peso: document.getElementById('a1').value,
     p02_desde_cuando: document.getElementById('a2').value,
     p03_frase_clave: document.getElementById('a3').value,
@@ -789,33 +788,30 @@ async function enviar() {
     p17_origen_atractor: document.getElementById('a17').value,
   };
 
-  // Raw JSON for backup
   payload._raw = JSON.stringify(payload);
-
-  if (FORMSPREE_ID === 'xgopjkop') {
-    // Dev mode: simulate send
-    await new Promise(r => setTimeout(r, 1200));
-    mostrarEnviado(payload.session_id);
-    return;
-  }
 
   try {
     const res = await fetch('https://formspree.io/f/' + FORMSPREE_ID, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
       body: JSON.stringify(payload)
     });
+
     if (res.ok) {
       sessionStorage.removeItem(SK);
       mostrarEnviado(payload.session_id);
     } else {
-      throw new Error('status ' + res.status);
+      throw new Error('Error ' + res.status);
     }
-  } catch(e) {
+
+  } catch (e) {
     btn.disabled = false;
     btn.textContent = 'Enviar protocolo completo';
     err.style.display = 'block';
-    err.textContent = 'Error al enviar. Verifica tu conexión o escribe directamente a contacto@systemfriction.org';
+    err.textContent = 'Error al enviar. Verifica conexión.';
   }
 }
 
