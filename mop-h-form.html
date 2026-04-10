@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MOP-H · System Friction Institute</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+/* ─────────────────────────────────────────
+   CONFIG — editar antes de subir
+   ───────────────────────────────────────── */
+/* FORMSPREE_ID: reemplaza en el JS abajo  */
+
+:root {
+  --void: #050505;
+  --void2: #0c0c0c;
+  --void3: #111111;
+  --ash: #1a1a1a;
+  --ash2: #222222;
+  --wire: #333333;
+  --smoke: #555555;
+  --muted: #777777;
+  --dim: #999999;
+  --paper: #c8c0b0;
+  --white: #e4e0d8;
+  --oro: #C8A951;
+  --oro2: #7a6630;
+  --oro3: rgba(200,169,81,0.08);
+  --neon: #E6FF00;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+html { background:var(--void); }
+body {
+  background:var(--void);
+  color:var(--paper);
+  font-family:'IBM Plex Mono',monospace;
+  font-size:13px;
+  line-height:1.8;
+  -webkit-font-smoothing:antialiased;
+  min-height:100vh;
+}
+
+/* PROGRESS */
+#progress-bar {
+  position:fixed; top:0; left:0; height:1px;
+  background:var(--oro); z-index:9999;
+  transition:width 0.4s ease; width:0%;
+}
+#progress-label {
+  position:fixed; top:14px; right:16px;
+  font-size:8px; color:var(--smoke);
+  letter-spacing:0.3em; z-index:9999;
+}
+
+/* SCREENS */
+.screen { display:none; }
+.screen.on { display:block; }
+
+/* ─── PORTADA ─── */
+#s-cover {
+  max-width:680px; margin:0 auto;
+  padding:60px 32px 100px;
+  min-height:100vh;
+  display:flex; flex-direction:column;
+  justify-content:space-between;
+}
+.cover-mark {
+  font-size:8px; letter-spacing:0.4em;
+  color:var(--oro2); text-transform:uppercase;
+  margin-bottom:4px;
+}
+.cover-sub {
+  font-size:8px; letter-spacing:0.2em;
+  color:var(--smoke); text-transform:uppercase;
+}
+.cover-body { flex:1; display:flex; flex-direction:column; justify-content:center; padding:80px 0 60px; }
+.cover-title {
+  font-size:clamp(22px,4vw,32px); font-weight:300;
+  color:var(--oro); letter-spacing:-0.02em;
+  line-height:1.2; margin-bottom:8px;
+}
+.cover-title-sub {
+  font-size:12px; color:var(--smoke);
+  font-style:italic; margin-bottom:36px;
+  letter-spacing:0.05em;
+}
+.cover-instruccion {
+  font-size:10px; color:var(--smoke);
+  line-height:2; margin-bottom:40px;
+  border-left:1px solid var(--ash2);
+  padding-left:20px;
+}
+.cover-instruccion strong { color:var(--dim); font-weight:500; }
+.btn-start {
+  display:inline-block; font-size:9px;
+  letter-spacing:0.25em; text-transform:uppercase;
+  padding:10px 28px; background:var(--oro);
+  color:var(--void); border:none; cursor:pointer;
+  font-family:'IBM Plex Mono',monospace;
+  font-weight:500; transition:background 0.15s;
+}
+.btn-start:hover { background:#dbb95c; }
+.cover-footer {
+  font-size:8px; letter-spacing:0.2em; color:var(--ash2);
+  display:flex; justify-content:space-between;
+  border-top:1px solid var(--ash); padding-top:16px;
+}
+
+/* ─── FLUJO DE PREGUNTAS ─── */
+#s-flow { max-width:680px; margin:0 auto; padding:60px 32px 120px; }
+
+.q-block { display:none; animation:fadeUp 0.35s ease both; }
+.q-block.on { display:block; }
+@keyframes fadeUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+
+.q-fase {
+  font-size:8px; letter-spacing:0.35em; color:var(--oro2);
+  text-transform:uppercase; margin-bottom:32px;
+  display:flex; align-items:center; gap:12px;
+}
+.q-fase::after { content:''; flex:1; height:1px; background:var(--ash2); }
+
+.q-marker { font-size:8px; color:var(--oro2); letter-spacing:0.2em; margin-bottom:6px; }
+.q-text {
+  font-size:clamp(15px,2.5vw,19px); font-weight:300;
+  color:var(--white); line-height:1.45;
+  margin-bottom:8px; letter-spacing:-0.01em;
+}
+.q-nota { font-size:9px; color:var(--smoke); font-style:italic; line-height:1.7; margin-bottom:28px; }
+
+textarea.q-ans {
+  width:100%; background:var(--void2);
+  border:1px solid var(--ash2); border-top:none;
+  color:var(--white); font-family:'IBM Plex Mono',monospace;
+  font-size:11px; padding:14px 16px;
+  resize:vertical; min-height:96px;
+  line-height:1.7; outline:none;
+  transition:border-color 0.2s;
+}
+textarea.q-ans:focus { border-color:var(--oro2); }
+textarea.q-ans::placeholder { color:var(--wire); font-style:italic; }
+
+/* Top label bar */
+.ans-label {
+  background:var(--ash); border:1px solid var(--ash2);
+  padding:6px 16px; font-size:7px;
+  color:var(--smoke); letter-spacing:0.25em;
+  text-transform:uppercase;
+}
+
+/* Nav */
+.q-nav {
+  display:flex; align-items:center;
+  justify-content:space-between; margin-top:20px;
+}
+.btn-prev {
+  font-family:'IBM Plex Mono',monospace; font-size:8px;
+  letter-spacing:0.2em; text-transform:uppercase;
+  padding:8px 14px; background:transparent;
+  border:1px solid var(--ash2); color:var(--smoke);
+  cursor:pointer; transition:all 0.15s;
+}
+.btn-prev:hover { border-color:var(--wire); color:var(--paper); }
+.btn-prev:disabled { opacity:0.2; cursor:default; pointer-events:none; }
+.btn-next {
+  font-family:'IBM Plex Mono',monospace; font-size:9px;
+  letter-spacing:0.2em; text-transform:uppercase;
+  padding:9px 22px; background:var(--oro); color:var(--void);
+  border:none; cursor:pointer; font-weight:500;
+  transition:background 0.15s;
+}
+.btn-next:hover { background:#dbb95c; }
+.nav-right { display:flex; align-items:center; gap:12px; }
+.btn-skip {
+  font-family:'IBM Plex Mono',monospace; font-size:8px;
+  letter-spacing:0.1em; color:var(--smoke); background:transparent;
+  border:none; cursor:pointer; transition:color 0.15s;
+}
+.btn-skip:hover { color:var(--dim); }
+.autosave {
+  font-size:7px; color:var(--smoke); letter-spacing:0.15em;
+  opacity:0; transition:opacity 0.3s;
+}
+.autosave.show { opacity:1; }
+
+/* ─── CIERRE ─── */
+#s-close { max-width:680px; margin:0 auto; padding:80px 32px 120px; }
+.close-mark {
+  font-size:8px; letter-spacing:0.35em; color:var(--oro2);
+  text-transform:uppercase; margin-bottom:40px;
+  display:flex; align-items:center; gap:12px;
+}
+.close-mark::after { content:''; flex:1; height:1px; background:var(--ash2); }
+.close-frase {
+  font-size:16px; font-weight:300; font-style:italic;
+  color:var(--smoke); line-height:1.6; margin-bottom:12px;
+}
+.close-frase strong { color:var(--oro); font-weight:400; }
+.close-nota { font-size:9px; color:var(--smoke); font-style:italic; line-height:1.7; margin-bottom:44px; }
+.contact-block {
+  border:1px solid var(--ash2); padding:24px 28px;
+  margin-bottom:28px; position:relative;
+}
+.contact-block::before {
+  content:'DATOS DE CONTACTO · OPCIONAL';
+  position:absolute; top:-8px; left:16px;
+  background:var(--void); padding:0 8px;
+  font-size:7px; letter-spacing:0.3em; color:var(--ore2);
+  color:var(--oro2);
+}
+.contact-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.contact-field { display:flex; flex-direction:column; gap:5px; }
+.contact-field label { font-size:7px; letter-spacing:0.25em; color:var(--smoke); text-transform:uppercase; }
+.contact-field input {
+  background:var(--void2); border:1px solid var(--ash2);
+  color:var(--white); font-family:'IBM Plex Mono',monospace;
+  font-size:11px; padding:8px 12px; outline:none;
+  transition:border-color 0.2s;
+}
+.contact-field input:focus { border-color:var(--oro2); }
+.contact-field input::placeholder { color:var(--wire); }
+.consent-row {
+  display:flex; align-items:flex-start; gap:10px;
+  margin-top:16px; font-size:9px; color:var(--smoke); line-height:1.6;
+}
+.consent-row input { margin-top:3px; accent-color:var(--oro); flex-shrink:0; }
+.btn-submit {
+  font-family:'IBM Plex Mono',monospace; font-size:10px;
+  letter-spacing:0.25em; text-transform:uppercase;
+  padding:12px 32px; background:var(--oro); color:var(--void);
+  border:none; cursor:pointer; font-weight:500;
+  transition:background 0.15s; width:100%; margin-bottom:12px;
+}
+.btn-submit:hover { background:#dbb95c; }
+.btn-submit:disabled { background:var(--wire); color:var(--smoke); cursor:default; }
+.submit-nota { font-size:8px; color:var(--smoke); text-align:center; letter-spacing:0.05em; }
+
+/* ─── ENVIADO ─── */
+#s-sent {
+  max-width:680px; margin:0 auto;
+  padding:120px 32px; text-align:center;
+}
+.sent-mark { font-size:8px; letter-spacing:0.35em; color:var(--oro); text-transform:uppercase; margin-bottom:32px; }
+.sent-title { font-size:24px; font-weight:300; color:var(--white); margin-bottom:20px; }
+.sent-body { font-size:10px; color:var(--smoke); line-height:2; max-width:400px; margin:0 auto 40px; }
+.sent-body strong { color:var(--dim); font-weight:500; }
+.sent-id { font-size:9px; color:var(--oro2); letter-spacing:0.15em; margin-bottom:40px; }
+.btn-restart {
+  font-family:'IBM Plex Mono',monospace; font-size:8px;
+  letter-spacing:0.2em; text-transform:uppercase;
+  padding:8px 18px; background:transparent;
+  border:1px solid var(--ash2); color:var(--smoke);
+  cursor:pointer; transition:all 0.15s;
+}
+.btn-restart:hover { border-color:var(--wire); color:var(--paper); }
+
+/* ERROR */
+.submit-error {
+  font-size:9px; color:#c0392b; text-align:center;
+  margin-top:8px; display:none; letter-spacing:0.05em;
+}
+
+/* FOOTER */
+.doc-footer {
+  position:fixed; bottom:0; left:0; right:0;
+  background:var(--void); border-top:1px solid var(--ash);
+  padding:8px 20px; display:flex; justify-content:space-between;
+  font-size:7px; letter-spacing:0.2em; color:var(--ash2);
+  z-index:999;
+}
+
+@media(max-width:540px){
+  #s-cover,#s-flow,#s-close,#s-sent { padding-left:20px; padding-right:20px; }
+  .contact-grid { grid-template-columns:1fr; }
+  .cover-footer { flex-direction:column; gap:4px; }
+}
+</style>
+</head>
+<body>
+<div id="progress-bar"></div>
+<div id="progress-label"></div>
+
+<!-- ══════════════ PORTADA ══════════════ -->
+<div id="s-cover" class="screen on">
+  <div>
+    <div class="cover-mark">System Friction Institute</div>
+    <div class="cover-sub">MOP-H · Protocolo de Entrada · v1.0</div>
+  </div>
+
+  <div class="cover-body">
+    <div class="cover-title">Auditoría de Sistema</div>
+    <div class="cover-title-sub">17 preguntas · 5 fases · 15–25 min</div>
+    <div class="cover-instruccion">
+      No hay respuestas correctas.<br>
+      <strong>Hay señal o hay ausencia de señal.</strong><br><br>
+      Responde con la primera versión que aparece.<br>
+      No la más elaborada. La más real.<br><br>
+      Puedes pausar. Tu progreso se guarda automáticamente.
+    </div>
+    <button class="btn-start" onclick="iniciar()">Iniciar protocolo</button>
+  </div>
+
+  <div class="cover-footer">
+    <span>MOP-H · v1.0</span>
+    <span>9.11.1988 · 3:15 AM · 36 = 9 = 1 = Φ</span>
+    <span>ε(ego) := atractor primario</span>
+  </div>
+</div>
+
+
+<!-- ══════════════ FLUJO ══════════════ -->
+<div id="s-flow" class="screen">
+
+<!-- FASE I -->
+<div class="q-block" id="q1" data-fase="FASE I · Señal del sistema">
+  <div class="q-fase" id="qf1">FASE I · SEÑAL DEL SISTEMA <span style="color:var(--smoke);font-size:7px;margin-left:auto">IHG · Estado entrópico</span></div>
+  <div class="q-marker">P.01</div>
+  <div class="q-text">¿Qué es lo que más te pesa en este momento?</div>
+  <div class="q-nota">Primera instancia del atractor. No es lo que está mal — es dónde el sistema tiene carga.</div>
+  <div class="ans-label">Respuesta · P.01</div>
+  <textarea class="q-ans" id="a1" placeholder="Escribe lo que aparece primero…"></textarea>
+  <div class="q-nav">
+    <button class="btn-prev" disabled onclick="ir(-1)">← Anterior</button>
+    <div class="nav-right">
+      <span class="autosave" id="saved-ind">· guardado</span>
+      <button class="btn-skip" onclick="saltar()">Omitir</button>
+      <button class="btn-next" onclick="ir(1)">Siguiente →</button>
+    </div>
+  </div>
+</div>
+
+<div class="q-block" id="q2">
+  <div class="q-fase">FASE I · SEÑAL DEL SISTEMA <span style="color:var(--smoke);font-size:7px;margin-left:auto">LDI · Latencia de detección</span></div>
+  <div class="q-marker">P.02</div>
+  <div class="q-text">¿Desde cuándo lo vienes cargando así?</div>
+  <div class="q-nota">Cuánto tiempo entre la emergencia real del problema y el momento en que el sistema lo nombró.</div>
+  <div class="ans-label">Respuesta · P.02</div>
+  <textarea class="q-ans" id="a2" placeholder="Semanas, meses, años — o 'siempre estuvo ahí'…"></textarea>
+  <div class="q-nav">
+    <button class="btn-prev" onclick="ir(-1)">← Anterior</button>
+    <div class="nav-right">
+      <button class="btn-skip" onclick="saltar()">Omitir</button>
+      <button class="btn-next" onclick="ir(1)">Siguiente →</button>
+    </div>
+  </div>
+</div>
+
+<div class="q-block" id="q3">
+  <div class="q-fase">FASE I · SEÑAL DEL SISTEMA <span style="color:var(--smoke);font-size:7px;margin-left:auto">OLC dominante · Clase del operador</span></div>
+  <div class="q-marker">P.03</div>
+  <div class="q-text">Si tuvieras que ponerlo en una frase simple, ¿cuál sería?</div>
+  <div class="q-nota">La frase que eliges revela si operas por definición (OLC-D), exclusión (OLC-N) o proyección (OLC-P).</div>
+  <div class="ans-label">Respuesta · P.03 · La frase clave</div>
+  <textarea class="q-ans" id="a3" placeholder="Una frase. La más honesta que puedas."></textarea>
+  <div class="q-nav">
+    <button class="btn-prev" onclick="ir(-1)">← Anterior</button>
+    <div class="nav-right">
+      <button class="btn-skip" onclick="saltar()">Omitir</button>
+      <button class="btn-next" onclick="ir(1)">Siguiente →</button>
+    </div>
+  </div>
+</div>
+
+<!-- FASE II -->
+<div class="q-block" id="q4">
+  <div class="q-fase">FASE II · PATRÓN DE RESPUESTA <span style="color:var(--smoke);font-size:7px;margin-left:auto">Repertorio de respuesta</span></div>
+  <div class="q-marker">P.04</div>
+  <div class="q-text">¿Qué has hecho para resolverlo hasta ahora?</div>
+  <div class="q-nota">Qué acciones tiene disponibles el sistema. Si son pocas, el atractor es rígido.</div>
+  <div class="ans-label">Respuesta · P.04</div>
+  <textarea class="q-ans" id="a4" placeholder="Lista lo que has intentado, con o sin resultado…"></textarea>
+  <div class="q-nav">
+    <button class="btn-prev" onclick="ir(-1)">← Anterior</button>
+    <div class="nav-right">
+      <button class="btn-skip" onclick="saltar()">Omitir</button>
+      <button class="btn-next" onclick="ir(1)">Siguiente →</button>
+    </div>
+  </div>
+</div>
+
+<div class="q-block" id="q5">
+  <div class="q-fase">FASE II · PATRÓN DE RESPUESTA <span style="color:var(--smoke);font-size:7px;margin-left:auto">Modelo predictivo interno</span></div>
+  <div class="q-marker">P.05</div>
+  <div class="q-text">¿Qué pensabas que iba a pasar cuando hiciste eso?</div>
+  <div class="q-nota">Revela si el sistema calibra desde evidencia o desde deseo. El desajuste de predicción es la fricción.</div>
+  <div class="ans-label">Respuesta · P.05</div>
+  <textarea class="q-ans" id="a5" placeholder="Qué esperabas que pasara…"></textarea>
+  <div class="q-nav">
+    <button class="btn-prev" onclick="ir(-1)">← Anterior</button>
+    <div class="nav-right">
+      <button class="btn-skip" onclick="saltar()">Omitir</button>
+      <button class="btn-next" onclick="ir(1)">Siguiente →</button>
+    </div>
+  </div>
+</div>
+
+<div class="q-block" id="q6">
+  <div class="q-fase">FASE II · PATRÓN DE RESPUESTA <span style="color:var(--smoke);font-size:7px;margin-left:auto">Delta realidad/predicción → IHG</span></div>
+  <div class="q-marker">P.06</div>
+  <div class="q-text">¿Y qué pasó en realidad?</div>
+  <div class="q-nota">La distancia entre P.05 y P.06 es el IHG acumulado. Cuanto mayor la distancia, mayor la carga.</div>
+  <div class="ans-label">Respuesta · P.06</div>
+  <textarea class="q-ans" id="a6" placeholder="Lo que ocurrió realmente…"></textarea>
+  <div class="q-nav">
+    <button class="btn-prev" onclick="ir(-1)">← Anterior</button>
+    <div class="nav-right">
+      <button class="btn-skip" onclick="saltar()">Omitir</button>
+      <button class="btn-next" onclick="ir(1)">Siguiente →</button>
+    </div>
+  </div>
+</div>
+
+<!-- FASE III -->
+<div class="q-block" id="q7">
+  <div class="q-fase">FASE III · COSTO REAL <span style="color:var(--smoke);font-size:7px;margin-left:auto">IHG efectivo · Nivel de operación real</span></div>
+  <div class="q-marker">P.07</div>
+  <div class="q-text">¿En qué te está afectando esto hoy, en lo concreto?</div>
+  <div class="q-nota">Baja del plano narrativo al plano físico. El cuerpo y los recursos saben la verdad antes que el relato.</div>
+  <div class="ans-label">Respuesta · P.07</div>
+  <textarea class="q-ans" id="a7" placeholder="No cómo te sientes. Qué está cambiando, qué dejas de hacer, qué no funciona ya…"></textarea>
+  <div class="q-nav">
+    <button class="btn-prev" onclick="ir(-1)">← Anterior</button>
+    <div class="nav-right">
+      <button class="btn-skip" onclick="saltar()">Omitir</button>
+      <button class="btn-next" onclick="ir(1)">Siguiente →</button>
+    </div>
+  </div>
+</div>
+
+<div class="q-block" id="q8">
+  <div class="q-fase">FASE III · COSTO REAL <span style="color:var(--smoke);font-size:7px;margin-left:auto">AMT · Auto-mutilación táctica activa</span></div>
+  <div class="q-marker">P.08</div>
+  <div class="q-text">¿Qué has tenido que dejar de lado por esto?</div>
+  <div class="q-nota">Lo que sacrificaron para sostener el estado disfuncional. Revela qué tan lejos está el sistema del colapso.</div>
+  <div class="ans-label">Respuesta · P.08</div>
+  <textarea class="q-ans" id="a8" placeholder="Proyectos, personas, hábitos, decisiones diferidas…"></textarea>
+  <div class="q-nav">
+    <button class="btn-prev" onclick="ir(-1)">← Anterior</button>
+    <div class="nav-right">
+      <button class="btn-skip" onclick="saltar()">Omitir</button>
+      <button class="btn-next" onclick="ir(1)">Siguiente →</button>
+    </div>
+  </div>
+</div>
+
+<div class="q-block" id="q9">
+  <div class="q-fase">FASE III · COSTO REAL <span style="color:var(--smoke);font-size:7px;margin-left:auto">UCAP · Condición de colapso inminente</span></div>
+  <div class="q-marker">P.09</div>
+  <div class="q-text">Si todo sigue igual, ¿qué se empieza a romper primero?</div>
+  <div class="q-nota">La respuesta a esta pregunta es el nodo más frágil del sistema. Ahí es donde empieza la intervención.</div>
+  <div class="ans-label">Respuesta · P.09</div>
+  <textarea class="q-ans" id="a9" placeholder="El primer punto de quiebre si nada cambia…"></textarea>
+  <div class="q-nav">
+    <button class="btn-prev" onclick="ir(-1)">← Anterior</button>
+    <div class="nav-right">
+      <button class="btn-skip" onclick="saltar()">Omitir</button>
+      <button class="btn-next" onclick="ir(1)">Siguiente →</button>
+    </div>
+  </div>
+</div>
+
+<!-- FASE IV -->
+<div class="q-block" id="q10">
+  <div class="q-fase">FASE IV · INTEGRIDAD DE SEÑAL <span style="color:var(--smoke);font-size:7px;margin-left:auto">NTI · Gap señal/acción</span></div>
+  <div class="q-marker">P.10</div>
+  <div class="q-text">¿Hay algo que sabes que tendrías que hacer, pero no estás haciendo?</div>
+  <div class="q-nota">Primera prueba directa de NTI. Si hay distancia entre lo que sabes y lo que haces, la señal no está circulando.</div>
+  <div class="ans-label">Respuesta · P.10</div>
+  <textarea class="q-ans" id="a10" placeholder="Lo que el sistema ya sabe pero no ejecuta…"></textarea>
+  <div class="q-nav">
+    <button class="btn-prev" onclick="ir(-1)">← Anterior</button>
+    <div class="nav-right">
+      <button class="btn-skip" onclick="saltar()">Omitir</button>
+      <button class="btn-next" onclick="ir(1)">Siguiente →</button>
+    </div>
+  </div>
+</div>
+
+<div class="q-block" id="q11">
+  <div class="q-fase">FASE IV · INTEGRIDAD DE SEÑAL <span style="color:var(--smoke);font-size:7px;margin-left:auto">Atractor de evasión · OLC defensa</span></div>
+  <div class="q-marker">P.11</div>
+  <div class="q-text">¿Qué te está frenando realmente?<br>No lo correcto — lo real.</div>
+  <div class="q-nota">La distinción "lo correcto / lo real" es el OLC-B principal del instrumento. Fuerza salida del relato.</div>
+  <div class="ans-label">Respuesta · P.11</div>
+  <textarea class="q-ans" id="a11" placeholder="No la razón que darías. La que opera."></textarea>
+  <div class="q-nav">
+    <button class="btn-prev" onclick="ir(-1)">← Anterior</button>
+    <div class="nav-right">
+      <button class="btn-skip" onclick="saltar()">Omitir</button>
+      <button class="btn-next" onclick="ir(1)">Siguiente →</button>
+    </div>
+  </div>
+</div>
+
+<div class="q-block" id="q12">
+  <div class="q-fase">FASE IV · INTEGRIDAD DE SEÑAL <span style="color:var(--smoke);font-size:7px;margin-left:auto">L0 border · Lo no colapsado</span></div>
+  <div class="q-marker">P.12</div>
+  <div class="q-text">¿Qué estás evitando admitir, incluso contigo?</div>
+  <div class="q-nota">Si no aparece respuesta inmediata, eso también es información.</div>
+  <div class="ans-label">Respuesta · P.12</div>
+  <textarea class="q-ans" id="a12" placeholder="Puedes dejar esta en blanco. El silencio también se registra."></textarea>
+  <div class="q-nav">
+    <button class="btn-prev" onclick="ir(-1)">← Anterior</button>
+    <div class="nav-right">
+      <button class="btn-skip" onclick="saltar()">Omitir</button>
+      <button class="btn-next" onclick="ir(1)">Siguiente →</button>
+    </div>
+  </div>
+</div>
+
+<div class="q-block" id="q13">
+  <div class="q-fase">FASE IV · INTEGRIDAD DE SEÑAL <span style="color:var(--smoke);font-size:7px;margin-left:auto">NTI · Intención vs acción</span></div>
+  <div class="q-marker">P.13</div>
+  <div class="q-text">¿Qué dices que es importante para ti en esto?<br>Viendo lo que haces hoy — ¿eso se refleja?</div>
+  <div class="q-nota">La distancia entre declaración y comportamiento es IHG cognitivo. Cuantificable.</div>
+  <div class="ans-label">Respuesta · P.13</div>
+  <textarea class="q-ans" id="a13" placeholder="Lo que dices que importa… y si lo que haces lo confirma o lo contradice."></textarea>
+  <div class="q-nav">
+    <button class="btn-prev" onclick="ir(-1)">← Anterior</button>
+    <div class="nav-right">
+      <button class="btn-skip" onclick="saltar()">Omitir</button>
+      <button class="btn-next" onclick="ir(1)">Siguiente →</button>
+    </div>
+  </div>
+</div>
+
+<!-- FASE V -->
+<div class="q-block" id="q14">
+  <div class="q-fase">FASE V · INVARIANTE · ε(ego) <span style="color:var(--smoke);font-size:7px;margin-left:auto">Campo cognitivo · Nodos activos</span></div>
+  <div class="q-marker">P.14</div>
+  <div class="q-text">¿Quién más está dentro de esto?<br>¿Qué has dicho claramente… y qué no has dicho?</div>
+  <div class="q-nota">Mapea la red real. Lo no dicho a otros es fricción sistémica relacional — tan costoso como la fricción interna.</div>
+  <div class="ans-label">Respuesta · P.14</div>
+  <textarea class="q-ans" id="a14" placeholder="Personas involucradas — y lo que no se ha dicho a cada una."></textarea>
+  <div class="q-nav">
+    <button class="btn-prev" onclick="ir(-1)">← Anterior</button>
+    <div class="nav-right">
+      <button class="btn-skip" onclick="saltar()">Omitir</button>
+      <button class="btn-next" onclick="ir(1)">Siguiente →</button>
+    </div>
+  </div>
+</div>
+
+<div class="q-block" id="q15">
+  <div class="q-fase">FASE V · INVARIANTE · ε(ego) <span style="color:var(--smoke);font-size:7px;margin-left:auto">Impotencia real vs evasión · Límite del sistema</span></div>
+  <div class="q-marker">P.15</div>
+  <div class="q-text">¿Qué parte de esto sientes que no puedes cambiar aunque quieras?<br>¿Depende de ti o de algo fuera?</div>
+  <div class="q-nota">Separa restricción estructural de resistencia al cambio. Intervenir en una cuando es la otra destruye la intervención.</div>
+  <div class="ans-label">Respuesta · P.15</div>
+  <textarea class="q-ans" id="a15" placeholder="Lo que siente como inamovible — y de dónde viene ese límite."></textarea>
+  <div class="q-nav">
+    <button class="btn-prev" onclick="ir(-1)">← Anterior</button>
+    <div class="nav-right">
+      <button class="btn-skip" onclick="saltar()">Omitir</button>
+      <button class="btn-next" onclick="ir(1)">Siguiente →</button>
+    </div>
+  </div>
+</div>
+
+<div class="q-block" id="q16">
+  <div class="q-fase">FASE V · INVARIANTE · ε(ego) <span style="color:var(--smoke);font-size:7px;margin-left:auto">Ganancia oculta · Atractor secundario</span></div>
+  <div class="q-marker">P.16</div>
+  <div class="q-text">Si esto se resolviera por completo, ¿qué cambiaría en tu vida?<br>¿Hay algo que perderías si eso pasa?</div>
+  <div class="q-nota">La pregunta más quirúrgica del instrumento. Si no pueden responder qué perderían, el problema tiene función protectora activa.</div>
+  <div class="ans-label">Respuesta · P.16</div>
+  <textarea class="q-ans" id="a16" placeholder="Qué cambiaría si se resolviera. Y qué desaparecería que hoy todavía da algo."></textarea>
+  <div class="q-nav">
+    <button class="btn-prev" onclick="ir(-1)">← Anterior</button>
+    <div class="nav-right">
+      <button class="btn-skip" onclick="saltar()">Omitir</button>
+      <button class="btn-next" onclick="ir(1)">Siguiente →</button>
+    </div>
+  </div>
+</div>
+
+<div class="q-block" id="q17">
+  <div class="q-fase">FASE V · INVARIANTE · ε(ego) <span style="color:var(--smoke);font-size:7px;margin-left:auto">ε(ego) · Origen del atractor</span></div>
+  <div class="q-marker">P.17</div>
+  <div class="q-text">¿Esto es realmente tuyo o lo vienes cargando de alguien más?</div>
+  <div class="q-nota">Define si el invariante es propio o heredado. La respuesta reorganiza toda la sesión anterior.</div>
+  <div class="ans-label">Respuesta · P.17</div>
+  <textarea class="q-ans" id="a17" placeholder="La respuesta que queda cuando dejas de defenderla."></textarea>
+  <div class="q-nav">
+    <button class="btn-prev" onclick="ir(-1)">← Anterior</button>
+    <div class="nav-right">
+      <button class="btn-next" onclick="cerrar()" style="background:var(--neon);color:var(--void)">Cerrar protocolo →</button>
+    </div>
+  </div>
+</div>
+
+</div><!-- /s-flow -->
+
+
+<!-- ══════════════ CIERRE ══════════════ -->
+<div id="s-close" class="screen">
+  <div class="close-mark">CIERRE DEL CAMPO</div>
+
+  <div class="close-frase">
+    <strong>"Con esto es suficiente.</strong><br>
+    No necesito más información.<br>
+    Necesito ver cómo se conecta."
+  </div>
+  <div class="close-nota">— Esta frase cierra el campo activo. La medición terminó. Lo que sigue es el procesamiento.</div>
+
+  <div class="contact-block">
+    <div class="contact-grid">
+      <div class="contact-field">
+        <label>Nombre o alias</label>
+        <input type="text" id="c-nombre" placeholder="Cómo quieres ser llamado">
+      </div>
+      <div class="contact-field">
+        <label>Correo electrónico</label>
+        <input type="email" id="c-email" placeholder="Para enviarte el diagnóstico">
+      </div>
+    </div>
+    <div class="consent-row">
+      <input type="checkbox" id="c-consent" checked>
+      <label for="c-consent">Entiendo que mis respuestas serán procesadas por el Institute para generar un diagnóstico de fricción sistémica. No se compartirán con terceros.</label>
+    </div>
+  </div>
+
+  <button class="btn-submit" id="btn-enviar" onclick="enviar()">Enviar protocolo completo</button>
+  <div class="submit-nota">Recibirás un diagnóstico en 48–72 horas</div>
+  <div class="submit-error" id="submit-error">Error al enviar. Intenta de nuevo o contacta directamente.</div>
+</div>
+
+
+<!-- ══════════════ ENVIADO ══════════════ -->
+<div id="s-sent" class="screen">
+  <div class="sent-mark">System Friction Institute · Protocolo recibido</div>
+  <div class="sent-title">El campo está cerrado.</div>
+  <div class="sent-body">
+    Tus respuestas fueron registradas.<br><br>
+    <strong>Lo que sigue:</strong><br>
+    El protocolo será procesado y recibirás<br>
+    un diagnóstico de fricción sistémica en<br>
+    las próximas 48–72 horas.
+  </div>
+  <div class="sent-id" id="sent-id"></div>
+  <button class="btn-restart" onclick="reiniciar()">Nueva sesión</button>
+</div>
+
+
+<!-- FOOTER FIJO -->
+<div class="doc-footer">
+  <span>MOP-H · System Friction Institute</span>
+  <span id="footer-center">systemfriction.org</span>
+  <span>ε(ego) := NTI := Φ(t)</span>
+</div>
+
+
+<script>
+// ─────────────────────────────────────────
+// CONFIG · CAMBIAR ANTES DE SUBIR
+// ─────────────────────────────────────────
+const FORMSPREE_ID = 'xgopjkop'; // ← reemplazar con tu ID
+
+// ─────────────────────────────────────────
+// STATE
+// ─────────────────────────────────────────
+const TOTAL = 17;
+const SK = 'moph_session_v1';
+let cur = 1;
+
+function pantalla(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('on'));
+  document.getElementById(id).classList.add('on');
+  window.scrollTo(0, 0);
+}
+
+// ─────────────────────────────────────────
+// INICIO
+// ─────────────────────────────────────────
+function iniciar() {
+  const saved = sessionStorage.getItem(SK);
+  if (saved) {
+    try {
+      const data = JSON.parse(saved);
+      // Restore answers
+      for (let i = 1; i <= TOTAL; i++) {
+        const ta = document.getElementById('a' + i);
+        if (ta && data['p' + i]) ta.value = data['p' + i];
+      }
+      // Find last answered
+      let last = 1;
+      for (let i = TOTAL; i >= 1; i--) {
+        if (data['p' + i] && data['p' + i].trim()) { last = Math.min(i + 1, TOTAL); break; }
+      }
+      cur = last;
+    } catch(e) { cur = 1; }
+  }
+  pantalla('s-flow');
+  mostrarQ(cur);
+}
+
+// ─────────────────────────────────────────
+// NAVEGACIÓN
+// ─────────────────────────────────────────
+function mostrarQ(n) {
+  document.querySelectorAll('.q-block').forEach(b => b.classList.remove('on'));
+  const block = document.getElementById('q' + n);
+  if (block) block.classList.add('on');
+  // Progress
+  const pct = ((n - 1) / TOTAL) * 100;
+  document.getElementById('progress-bar').style.width = pct + '%';
+  document.getElementById('progress-label').textContent = n + ' / ' + TOTAL;
+  // Prev button
+  const prev = block ? block.querySelector('.btn-prev') : null;
+  if (prev) prev.disabled = (n === 1);
+}
+
+function ir(delta) {
+  guardar();
+  if (delta > 0 && cur < TOTAL) { cur++; mostrarQ(cur); }
+  else if (delta < 0 && cur > 1) { cur--; mostrarQ(cur); }
+}
+
+function saltar() {
+  if (cur < TOTAL) { cur++; mostrarQ(cur); }
+  else cerrar();
+}
+
+function cerrar() {
+  guardar();
+  pantalla('s-close');
+  document.getElementById('progress-bar').style.width = '100%';
+  document.getElementById('progress-label').textContent = '✓';
+}
+
+// ─────────────────────────────────────────
+// GUARDAR / SESSIONSTORGE
+// ─────────────────────────────────────────
+function guardar() {
+  const data = {};
+  for (let i = 1; i <= TOTAL; i++) {
+    const ta = document.getElementById('a' + i);
+    if (ta) data['p' + i] = ta.value;
+  }
+  sessionStorage.setItem(SK, JSON.stringify(data));
+  flash();
+}
+
+// Autosave on any textarea change
+document.addEventListener('input', e => {
+  if (e.target.classList.contains('q-ans')) guardar();
+});
+
+function flash() {
+  const el = document.getElementById('saved-ind');
+  if (!el) return;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 1400);
+}
+
+// ─────────────────────────────────────────
+// ENVÍO · FORMSPREE
+// ─────────────────────────────────────────
+async function enviar() {
+  const btn = document.getElementById('btn-enviar');
+  const err = document.getElementById('submit-error');
+  err.style.display = 'none';
+  btn.disabled = true;
+  btn.textContent = 'Enviando…';
+
+  // Collect all data
+  const payload = {
+    session_id: 'MOP-' + Date.now().toString(36).toUpperCase(),
+    timestamp: new Date().toISOString(),
+    nombre: document.getElementById('c-nombre').value || '(anónimo)',
+    email: document.getElementById('c-email').value || '',
+    // Preguntas
+    p01_peso: document.getElementById('a1').value,
+    p02_desde_cuando: document.getElementById('a2').value,
+    p03_frase_clave: document.getElementById('a3').value,
+    p04_intentos: document.getElementById('a4').value,
+    p05_expectativa: document.getElementById('a5').value,
+    p06_realidad: document.getElementById('a6').value,
+    p07_efecto_concreto: document.getElementById('a7').value,
+    p08_sacrificado: document.getElementById('a8').value,
+    p09_primer_quiebre: document.getElementById('a9').value,
+    p10_sin_ejecutar: document.getElementById('a10').value,
+    p11_freno_real: document.getElementById('a11').value,
+    p12_evitar_admitir: document.getElementById('a12').value,
+    p13_intencion_vs_accion: document.getElementById('a13').value,
+    p14_campo_relacional: document.getElementById('a14').value,
+    p15_limite_sistema: document.getElementById('a15').value,
+    p16_ganancia_oculta: document.getElementById('a16').value,
+    p17_origen_atractor: document.getElementById('a17').value,
+  };
+
+  // Raw JSON for backup
+  payload._raw = JSON.stringify(payload);
+
+  if (FORMSPREE_ID === 'xgopjkop') {
+    // Dev mode: simulate send
+    await new Promise(r => setTimeout(r, 1200));
+    mostrarEnviado(payload.session_id);
+    return;
+  }
+
+  try {
+    const res = await fetch('https://formspree.io/f/' + FORMSPREE_ID, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (res.ok) {
+      sessionStorage.removeItem(SK);
+      mostrarEnviado(payload.session_id);
+    } else {
+      throw new Error('status ' + res.status);
+    }
+  } catch(e) {
+    btn.disabled = false;
+    btn.textContent = 'Enviar protocolo completo';
+    err.style.display = 'block';
+    err.textContent = 'Error al enviar. Verifica tu conexión o escribe directamente a contacto@systemfriction.org';
+  }
+}
+
+function mostrarEnviado(id) {
+  document.getElementById('sent-id').textContent = 'Sesión · ' + id;
+  pantalla('s-sent');
+}
+
+function reiniciar() {
+  sessionStorage.removeItem(SK);
+  cur = 1;
+  document.querySelectorAll('.q-ans').forEach(t => t.value = '');
+  document.getElementById('c-nombre').value = '';
+  document.getElementById('c-email').value = '';
+  document.getElementById('progress-bar').style.width = '0%';
+  document.getElementById('progress-label').textContent = '';
+  pantalla('s-cover');
+}
+</script>
+</body>
+</html>
