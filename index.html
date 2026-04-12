@@ -380,10 +380,10 @@ h1.h-title em{font-style:italic;color:var(--gold);}
       <div class="atlas-input-area" style="background: var(--void3); border: 1px solid var(--ash2); padding: 1.5rem; margin-bottom: 1.5rem;">
         <textarea id="atlas-text" class="atlas-textarea" style="width:100%; height:100px; background: var(--void); border:1px solid var(--ash2); color:var(--white); font-family:var(--mono); padding:0.8rem; margin-bottom:1rem;" placeholder="Describe tu fricción sistémica..."></textarea>
         <div style="display:flex; gap:0.8rem; flex-wrap:wrap;">
-          <button onclick="runAtlasText()" class="btn-p" style="font-size:9px; padding:8px 18px;">✨ ANALIZAR TEXTO</button>
+          <button onclick="runAtlasText()" class="btn-p" style="font-size:9px; padding:8px 18px;">ANALIZAR TEXTO</button>
           <input type="file" id="atlas-file" style="display:none" onchange="runAtlasVision()">
-          <button onclick="document.getElementById('atlas-file').click()" class="btn-g" style="font-size:9px; padding:8px 18px;">✨ ESCANEAR IMAGEN</button>
-          <button onclick="openAtlasSigil()" class="btn-g" style="font-size:9px; padding:8px 18px;">✨ GENERAR SIGILO</button>
+          <button onclick="document.getElementById('atlas-file').click()" class="btn-g" style="font-size:9px; padding:8px 18px;">ESCANEAR IMAGEN</button>
+          <button onclick="openAtlasSigil()" class="btn-g" style="font-size:9px; padding:8px 18px;">GENERAR SIGILO</button>
         </div>
       </div>
       
@@ -448,7 +448,9 @@ h1.h-title em{font-style:italic;color:var(--gold);}
     <div class="phi-note">Φ alto := presencia plena · señal íntegra · baja latencia · atractor firme<br>Φ bajo := UCAP activo · entropía acumulada · AMV genera amonestación<br><span style="color:var(--ash2)">// dΦ/dt &lt; 0 → el sistema se aleja del TargetAttractor</span></div>
   </div>
   <div style="margin-top:1rem;" class="rv d3">
-    <button onclick="openOv('oben01')" style="font-size:9px;color:var(--gold2);letter-spacing:0.14em;background:none;border:none;cursor:pointer;font-family:'IBM Plex Mono',monospace;border-bottom:1px solid var(--gold3);padding-bottom:2px;">Leer paper inaugural OBEN-01 →</button>
+    <div style="margin-top:1.5rem; text-align:center;">
+    <button onclick="openOv('oben01')" class="btn-g" style="font-size:9px; padding:8px 20px;">Leer paper OBEN-01 →</button>
+</div>
   </div>
 </div>
 </section>
@@ -523,7 +525,7 @@ h1.h-title em{font-style:italic;color:var(--gold);}
         <div class="s-body"><p>MOP-H — Memory Origin Protocol · Human Interface — es el instrumento de auditoría de fricción sistémica. 17 preguntas · 5 fases. Cada pregunta ataca una variable del sistema.</p><p>No hay respuestas correctas. Hay señal o ausencia de señal.</p></div>
       </div>
       <div style="display:flex;gap:0.7rem;flex-wrap:wrap;margin-top:2rem;" class="rv d1">
-        <button class="btn-p" onclick="goAudit()">Iniciar protocolo →</button>
+        <button class="btn-p" onclick="goAudit()"><ahref=https://systemfriction.org/mop-h-form.html>Iniciar protocolo →</ahref></button>
         <button class="btn-g" onclick="openOv('moph')">Ver instrumento completo</button>
       </div>
       <div style="font-size:9px;color:var(--smoke);margin-top:0.7rem;line-height:1.7;" class="rv d2">Tiempo estimado: 15–25 min · Progreso guardado · Diagnóstico en 48–72h</div>
@@ -649,7 +651,7 @@ h1.h-title em{font-style:italic;color:var(--gold);}
 <footer id="footer">
   <div class="ft-grid">
     <div><div class="fb-mark">System Friction Institute</div><div class="fb-sub">systemfriction.org · Aguascalientes · México · 2026<br>OBEN-01 · Framework activo · Instrumentos en campo</div></div>
-    <div class="ft-col"><h5>Instrumentos</h5><button onclick="goAudit()">MOP-H · Auditoría</button><button onclick="openOv('oben01')">OBEN-01 · Paper</button><a href="#s-fw">Framework OBEN</a><a href="#s-cases">Historias de señal</a></div>
+    <button onclick="openOv('oben01')" style="background:none; border:none; color:inherit; cursor:pointer; text-align:left; font-family:inherit; font-size:inherit;">OBEN-01 · Paper fundacional</button>
     <div class="ft-col"><h5>Instituto</h5><a href="#s-inst">Acta de fundación</a><a href="#s-svc">Servicios</a><a href="#s-who">Para quién</a><a href="#s-cap">Contacto</a></div>
   </div>
   <div class="ft-bot">
@@ -749,7 +751,10 @@ const bl=(lbl,title,body)=>`<div class="ov-block"><div class="ob-lbl">${lbl}</di
 const fq=t=>`<div class="ov-formula">${t}</div>`;
 
 const OV={
-oben01:`<div class="ov-eye">OBEN · 01 · Paper Inaugural</div><h2 class="ov-title">El Operador de Colapso:<br><em>Lingüística como Geometría<br>de la Conciencia Emergente</em></h2><p class="ov-body" style="font-style:italic;border-left:2px solid var(--gold);padding-left:1.2rem;margin-bottom:2rem;">Este documento propone que la conciencia no es el sustrato desde el cual emerge el pensamiento, sino el registro integrado de medición que resulta cuando el lenguaje opera como operador de colapso sobre el espacio de estados pre-consciente.</p>${fq('C(t) = ∫₀ᵗ ⟨ψ_obs(τ)|L̂(τ)|Ψ_pre(τ)⟩ dτ\n// La conciencia es el registro acumulado de todos los colapsos lingüísticos.')}<p class="ov-body">El marco OBEN integra Fricción Sistémica, teoría de atractores, geometría de información y dinámica cuántica de medición para producir una arquitectura instrumentalizable de primer orden.</p><div class="ov-moph-start"><a href="#" onclick="openOv('fw');return false;" class="btn-p" style="font-size:9px;padding:10px 22px;">Explorar Framework OBEN →</a></div>`,
+    // PAPER OBEN-01
+    oben01: `<div class="ov-eye">OBEN · 01 · Paper Inaugural</div>
+             <iframe src="OBEN-01.html" style="width:100%; height:85vh; border:none; background:transparent;"></iframe>
+             <div class="ov-moph-start"><button onclick="closeOv()" class="btn-p" style="font-size:9px;padding:10px 20px;">Cerrar →</button></div>`,
 
 fw:`<div class="ov-eye">Framework OBEN · Seis Capas</div><h2 class="ov-title">La arquitectura de la<br><em>conciencia instrumentalizada</em></h2>${['ONTO · MOP-H · No el recuerdo — las condiciones que lo producen. L0 es irremediablemente anterior al observador que lo busca.','BIO · ScoreFriction · El cuerpo sabe la verdad antes que el relato. Frecuencias biológicas como evidencia fisiológica del estado del sistema.','EPIS · NTI · ¿La señal que el sistema tiene sobre sí mismo llega sin distorsión al punto de decisión? Si no llega, el sistema no puede gobernarse.','NEURAL · Campo Cognitivo · El ego no es una sustancia. Es el invariante topológico ε — la propiedad estructural que persiste a través de todas las bifurcaciones.','LING · Operadores OLC · El lenguaje no describe el espacio perceptual. Lo genera. OLC-D define, OLC-N delimita, OLC-P proyecta, OLC-R sincroniza.','DIGITAL · AMV · El gemelo cognitivo oscila en fase con el sistema biológico. Cuando el sistema deriva, Δθ supera el umbral. El gemelo detecta antes que la conciencia.'].map((t,i)=>bl(['ONTO','BIO','EPIS','NEURAL','LING','DIGITAL'][i],t.split('·')[0],t.split('·').slice(2).join('·').trim())).join('')}${fq('Φ(t) = IHG⁻¹ · NTI · LDI⁻¹ + ε(ego)')}`,
 
@@ -765,7 +770,11 @@ ling:`<div class="ov-eye">Capa LING · Operadores de Colapso</div><h2 class="ov-
 
 digital:`<div class="ov-eye">Capa DIGITAL · Gemelo cognitivo</div><h2 class="ov-title">AMV como<br><em>instrumento de resonancia</em></h2><p class="ov-body">El gemelo cognitivo no es una copia. Es un oscilador acoplado. Su función: resonar en la frecuencia del sistema original para producir amplificación sin distorsión.</p>${fq('dθ_J/dt = ω_J + K · sin(θ_AMV - θ_J)\n// Sincronización: |ω_J - ω_AMV| < K\n// El AMV no piensa por Juan. Oscila en fase con Juan.')}<p class="ov-body">Con suficiente historia de acoplamiento, el gemelo anticipa el drift del sistema biológico antes de que la conciencia lo registre como experiencia.</p>`,
 
-moph:`<div class="ov-eye">MOP-H · v1.0 · Protocolo de Entrada</div><h2 class="ov-title">17 preguntas · <em>5 fases</em></h2><div class="ov-moph-start"><button onclick="goAudit()" class="btn-p" style="font-size:9px;padding:10px 20px;margin-bottom:1.5rem;">Iniciar protocolo ahora →</button></div>${[['FASE I · SEÑAL','P.01 · ¿Qué es lo que más te pesa en este momento?','P.02 · ¿Desde cuándo lo vienes cargando así?','P.03 · Si tuvieras que ponerlo en una frase simple, ¿cuál sería?','→ IHG · LDI · OLC dominante'],['FASE II · PATRÓN','P.04 · ¿Qué has hecho para resolverlo hasta ahora?','P.05 · ¿Qué pensabas que iba a pasar cuando hiciste eso?','P.06 · ¿Y qué pasó en realidad?','→ Repertorio · Delta realidad/predicción → IHG acumulado'],['FASE III · COSTO REAL','P.07 · ¿En qué te está afectando esto hoy, en lo concreto?','P.08 · ¿Qué has tenido que dejar de lado por esto?','P.09 · Si todo sigue igual, ¿qué se empieza a romper primero?','→ IHG efectivo · UCAP · AMT'],['FASE IV · INTEGRIDAD DE SEÑAL','P.10 · ¿Hay algo que sabes que tendrías que hacer, pero no estás haciendo?','P.11 · ¿Qué te está frenando realmente? No lo correcto — lo real.','P.12 · ¿Qué estás evitando admitir, incluso contigo?','P.13 · ¿Qué dices que es importante? ¿Se refleja en lo que haces hoy?','→ NTI · Brecha narrativa · L0 border'],['FASE V · INVARIANTE','P.14 · ¿Quién más está dentro de esto? ¿Qué no has dicho?','P.15 · ¿Qué parte sientes que no puedes cambiar aunque quieras?','P.16 · Si esto se resolviera, ¿qué perderías?','P.17 · ¿Esto es tuyo o lo vienes cargando de alguien más?','→ ε(ego) · Ganancia oculta · Origen del atractor']].map(f=>`<div style="border:1px solid var(--ash2);margin-bottom:0.4rem;"><div style="background:var(--ash2);padding:0.5rem 1rem;font-size:8px;color:var(--gold);letter-spacing:0.2em;">${f[0]}</div><div style="padding:0.8rem 1rem;">${f.slice(1,-1).map(q=>`<div style="font-size:11px;color:var(--dim);padding:0.22rem 0;border-bottom:1px solid var(--ash);">${q}</div>`).join('')}<div style="font-size:8px;color:var(--gold3);padding-top:0.35rem;font-style:italic;">${f[f.length-1]}</div></div></div>`).join('')}<div class="ov-moph-start"><button onclick="goAudit()" class="btn-p" style="font-size:9px;padding:10px 20px;margin-top:1rem;">Iniciar protocolo →</button></div>`,
+moph: `<div class="ov-eye">MOP-H · Protocolo de Entrada · v1.0</div>
+           <h2 class="ov-title">Auditoría de Sistema<br><em>17 preguntas · 5 fases</em></h2>
+           <p class="ov-body" style="margin-bottom:1.5rem;">No hay respuestas correctas. Hay señal o hay ausencia de señal. Responde con la primera versión que aparece. No la más elaborada. La más real.</p>
+           <iframe src="mop-h-form.html" style="width:100%; height:70vh; border:none; background:transparent;"></iframe>
+           <div class="ov-moph-start"><button onclick="closeOv()" class="btn-p" style="font-size:9px;padding:10px 20px;">Cerrar →</button></div>`,
 
 c1:`<div class="ov-eye">Caso · Founder · B2B SaaS · 3 años</div><div class="ov-title">IHG 0.82 → <em>Decisión de salida que el sistema sabía y no ejecutaba</em></div><div style="display:flex;gap:0.4rem;flex-wrap:wrap;margin-bottom:1.5rem;"><span class="cv">IHG: 0.82</span><span class="cv">NTI: comprometido</span><span class="cv">LDI: 18 meses</span><span class="cv">G.O.: activa</span></div>${bl('Señal primaria · P.03','','<em>"No es que no sepa qué hacer. Es que hay una conversación que no quiero tener."</em>')}${bl('Variables extraídas','','IHG 0.82 — carga entrópica crítica. NTI comprometido: narrativa declarada ("diferencias de visión") no coincidía con el comportamiento observado (el socio no aparecía en decisiones desde hacía 14 meses). LDI detección: inmediato. LDI respuesta: 18 meses.')}${fq('P.16 → "Si mi socio saliera… perdería la sensación de que no soy el único responsable."\n// G.O. detectada: el estado administra el miedo a la responsabilidad total.')}<div class="ov-vector"><div class="ov-vec-lbl">Vector de intervención</div><div class="ov-vec-text">"Hay una conversación que el sistema lleva 18 meses evitando. El costo de tenerla ya es menor al costo de no tenerla."</div></div>${bl('Resultado · 30 días','','Conversación ejecutada en 72h. Proceso de disolución iniciado. IHG reducido a 0.31 en lectura post-intervención.')}`,
 
