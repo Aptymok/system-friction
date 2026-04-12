@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="System Friction Institute — Diagnóstico de fricción sistémica. Identifica lo que frena tu sistema y el vector de intervención exacto.">
+<meta property="og:title" content="System Friction Institute">
+<meta property="og:description" content="Tu sistema ya sabe qué está mal. Aún no sabe cómo verlo.">
+<meta property="og:url" content="https://systemfriction.org">
+<title>System Friction Institute</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+/* ─── TOKENS ─── */
+:root {
+  --void:#040404; --void2:#080808; --void3:#0e0e0e; --void4:#141414;
+  --ash:#1c1c1c; --ash2:#252525; --wire:#383838; --smoke:#585858;
+  --muted:#7a7a7a; --dim:#a0a0a0; --paper:#c4bdb0; --white:#e6e0d6; --pure:#f0ebe3;
+  --gold:#C8A951; --gold2:#a0853e; --gold3:#7a6630;
+  --glow:rgba(200,169,81,0.12); --glow2:rgba(200,169,81,0.06); --glow3:rgba(200,169,81,0.03);
+  --neon:#E6FF00; --neon2:rgba(230,255,0,0.07);
+  --r:2px;
+}
+
+/* ─── RESET ─── */
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;background:var(–void);}
+body{background:var(–void);color:var(–paper);font-family:‘IBM Plex Mono’,monospace;font-size:13px;line-height:1.8;-webkit-font-smoothing:antialiased;overflow-x:hidden;}
+a{color:inherit;text-decoration:none;}
+img{max-width:100%;display:block;}
+::selection{background:rgba(200,169,81,0.25);color:var(–white);}
+
+/* Scan lines */
+body::after{content:’’;position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.02) 2px,rgba(0,0,0,0.02) 4px);pointer-events:none;z-index:9000;}
+
+/* ─── NAV ─── */
+#nav{position:fixed;top:0;left:0;right:0;z-index:8000;height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 5vw;transition:background 0.3s,border-bottom 0.3s;}
+#nav.scrolled{background:rgba(4,4,4,0.96);border-bottom:1px solid var(–ash2);}
+.nav-brand{font-size:9px;letter-spacing:0.3em;color:var(–gold);text-transform:uppercase;}
+.nav-links{display:flex;gap:2rem;align-items:center;}
+.nav-links a{font-size:8px;letter-spacing:0.2em;text-transform:uppercase;color:var(–smoke);transition:color 0.15s;}
+.nav-links a:hover{color:var(–paper);}
+.nav-cta{font-size:8px;letter-spacing:0.2em;text-transform:uppercase;padding:6px 16px;border:1px solid var(–gold2);color:var(–gold);transition:all 0.15s;}
+.nav-cta:hover{background:var(–gold);color:var(–void);}
+
+/* ─── HERO ─── */
+#hero{position:relative;min-height:100vh;display:flex;flex-direction:column;justify-content:center;overflow:hidden;}
+#canvas-field{position:absolute;inset:0;z-index:0;}
+.hero-inner{position:relative;z-index:1;padding:0 8vw;max-width:820px;}
+.hero-eyebrow{font-size:8px;letter-spacing:0.4em;color:var(–gold3);text-transform:uppercase;margin-bottom:2rem;display:flex;align-items:center;gap:1rem;}
+.hero-eyebrow::after{content:’’;width:60px;height:1px;background:var(–gold3);}
+.hero-h1{font-family:‘Cormorant Garamond’,serif;font-size:clamp(2.4rem,5.5vw,4.2rem);font-weight:300;color:var(–white);line-height:1.08;letter-spacing:-0.02em;margin-bottom:2rem;}
+.hero-h1 em{font-style:italic;color:var(–gold);}
+.hero-sub{font-size:12px;color:var(–muted);line-height:1.9;max-width:480px;margin-bottom:3rem;}
+.hero-sub strong{color:var(–dim);font-weight:500;}
+.hero-actions{display:flex;gap:1rem;flex-wrap:wrap;align-items:center;}
+.btn-primary{font-family:‘IBM Plex Mono’,monospace;font-size:9px;letter-spacing:0.2em;text-transform:uppercase;padding:12px 28px;background:var(–gold);color:var(–void);border:none;cursor:pointer;font-weight:500;transition:background 0.15s;display:inline-block;}
+.btn-primary:hover{background:#dbb95c;}
+.btn-ghost{font-size:9px;letter-spacing:0.15em;text-transform:uppercase;padding:12px 22px;border:1px solid var(–ash2);color:var(–smoke);transition:all 0.15s;display:inline-block;cursor:pointer;}
+.btn-ghost:hover{border-color:var(–wire);color:var(–paper);}
+.hero-scroll{position:absolute;bottom:2.5rem;left:8vw;z-index:1;font-size:8px;letter-spacing:0.2em;color:var(–smoke);display:flex;align-items:center;gap:0.75rem;}
+.hero-scroll::before{content:’’;width:1px;height:40px;background:linear-gradient(to bottom,transparent,var(–smoke));}
+
+/* FRICTION METER (hero interactive) */
+.hero-meter{position:absolute;right:8vw;bottom:3rem;z-index:1;width:220px;}
+.meter-label{font-size:7px;letter-spacing:0.3em;color:var(–gold2);text-transform:uppercase;margin-bottom:0.6rem;}
+.meter-bar-wrap{height:2px;background:var(–ash2);position:relative;margin-bottom:0.4rem;}
+.meter-bar{height:2px;background:linear-gradient(90deg,var(–gold3),var(–gold));transition:width 1.5s ease;width:0%;}
+.meter-val{font-size:8px;color:var(–smoke);display:flex;justify-content:space-between;}
+
+/* ─── SECTION BASE ─── */
+.section{padding:8rem 8vw;position:relative;}
+.section-inner{max-width:900px;margin:0 auto;}
+.s-eye{font-size:8px;letter-spacing:0.4em;color:var(–gold2);text-transform:uppercase;margin-bottom:1.5rem;display:flex;align-items:center;gap:1rem;}
+.s-eye::after{content:’’;flex:1;height:1px;background:var(–ash2);max-width:120px;}
+.s-title{font-family:‘Cormorant Garamond’,serif;font-size:clamp(1.6rem,3.5vw,2.6rem);font-weight:300;color:var(–white);line-height:1.2;margin-bottom:1.2rem;letter-spacing:-0.01em;}
+.s-title em{font-style:italic;color:var(–gold);}
+.s-body{font-size:13px;color:var(–paper);line-height:1.9;max-width:600px;}
+.s-body strong{color:var(–white);font-weight:500;}
+.s-body p{margin-bottom:1rem;}
+
+/* ─── DIAGNÓSTICO — INTERACTIVE PROBE ─── */
+#s-probe{background:var(–void2);border-top:1px solid var(–ash);border-bottom:1px solid var(–ash);}
+.probe-grid{display:grid;grid-template-columns:1fr 1fr;gap:4rem;align-items:center;}
+.probe-q{position:relative;}
+.probe-question{font-family:‘Cormorant Garamond’,serif;font-size:clamp(1.3rem,2.5vw,1.9rem);font-weight:300;color:var(–white);line-height:1.35;margin-bottom:2rem;}
+.probe-options{display:flex;flex-direction:column;gap:0.5rem;}
+.probe-opt{position:relative;}
+.probe-opt input{position:absolute;opacity:0;pointer-events:none;}
+.probe-opt label{display:flex;align-items:flex-start;gap:0.75rem;padding:0.75rem 1rem;border:1px solid var(–ash2);cursor:pointer;transition:all 0.15s;font-size:11px;color:var(–muted);line-height:1.5;}
+.probe-opt label:hover{border-color:var(–wire);color:var(–paper);}
+.probe-opt input:checked+label{border-color:rgba(200,169,81,0.4);background:var(–glow2);color:var(–white);}
+.probe-opt .opt-k{font-size:8px;color:var(–smoke);min-width:18px;padding-top:1px;}
+.probe-result{opacity:0;transform:translateY(8px);transition:all 0.4s ease;}
+.probe-result.visible{opacity:1;transform:translateY(0);}
+.probe-result-inner{padding:2rem;background:var(–void3);border:1px solid var(–ash2);position:relative;}
+.probe-result-inner::before{content:‘SEÑAL DETECTADA’;position:absolute;top:-8px;left:1.2rem;background:var(–void2);padding:0 8px;font-size:7px;letter-spacing:0.3em;color:var(–gold2);}
+.result-var{font-size:8px;letter-spacing:0.2em;color:var(–gold2);text-transform:uppercase;margin-bottom:0.5rem;}
+.result-text{font-size:13px;color:var(–white);line-height:1.7;margin-bottom:1.2rem;}
+.result-formula{font-family:‘IBM Plex Mono’,monospace;font-size:10px;color:var(–gold3);background:var(–ash);padding:0.5rem 0.75rem;letter-spacing:0.05em;}
+.probe-cta{margin-top:1.5rem;}
+
+/* ─── PROBLEMA ─── */
+#s-problem{background:var(–void);}
+.problem-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(–ash);margin-top:3rem;}
+.problem-cell{background:var(–void);padding:2rem 1.5rem;}
+.pc-num{font-size:10px;color:var(–gold3);letter-spacing:0.2em;margin-bottom:0.8rem;}
+.pc-title{font-size:13px;color:var(–white);margin-bottom:0.6rem;line-height:1.4;}
+.pc-body{font-size:10px;color:var(–smoke);line-height:1.8;}
+.cost-counter{display:flex;gap:3rem;margin-top:3rem;flex-wrap:wrap;}
+.cc-item{display:flex;flex-direction:column;gap:0.3rem;}
+.cc-val{font-family:‘Cormorant Garamond’,serif;font-size:2.5rem;font-weight:300;color:var(–gold);line-height:1;}
+.cc-label{font-size:8px;letter-spacing:0.2em;color:var(–smoke);text-transform:uppercase;}
+
+/* ─── FRAMEWORK ─── */
+#s-framework{background:var(–void3);border-top:1px solid var(–ash);border-bottom:1px solid var(–ash);}
+.layers{display:flex;flex-direction:column;gap:0;margin-top:2.5rem;border:1px solid var(–ash2);}
+.layer-row{display:grid;grid-template-columns:80px 1fr 1fr;border-bottom:1px solid var(–ash2);min-height:52px;align-items:center;transition:background 0.15s;}
+.layer-row:last-child{border-bottom:none;}
+.layer-row:hover{background:var(–ash);}
+.layer-row>div{padding:0.75rem 1.2rem;border-right:1px solid var(–ash2);}
+.layer-row>div:last-child{border-right:none;}
+.l-id{font-size:9px;color:var(–gold);letter-spacing:0.2em;}
+.l-name{font-size:11px;color:var(–white);}
+.l-fn{font-size:9px;color:var(–smoke);}
+.phi-block{margin-top:2.5rem;padding:1.5rem 2rem;background:var(–void);border:1px solid var(–ash2);position:relative;}
+.phi-block::before{content:‘Φ(t) · Función de Presencia Sistémica’;position:absolute;top:-8px;left:1.2rem;background:var(–void3);padding:0 8px;font-size:7px;letter-spacing:0.25em;color:var(–gold2);}
+.phi-eq{font-size:14px;color:var(–gold);letter-spacing:0.05em;margin-bottom:0.5rem;}
+.phi-note{font-size:9px;color:var(–smoke);line-height:1.8;}
+
+/* ─── PROCESO ─── */
+#s-process{background:var(–void);}
+.process-steps{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(–ash2);margin-top:3rem;}
+.ps-cell{background:var(–void);padding:2rem 1.5rem;position:relative;}
+.ps-num{font-size:32px;font-family:‘Cormorant Garamond’,serif;font-weight:300;color:var(–ash2);line-height:1;margin-bottom:1rem;}
+.ps-title{font-size:11px;color:var(–gold);text-transform:uppercase;letter-spacing:0.15em;margin-bottom:0.6rem;}
+.ps-body{font-size:10px;color:var(–smoke);line-height:1.8;}
+.ps-arrow{position:absolute;right:-1px;top:50%;transform:translateY(-50%);width:1px;height:30%;background:linear-gradient(to bottom,transparent,var(–gold3),transparent);}
+
+/* ─── MOP-H HOOK ─── */
+#s-audit{background:var(–void2);border-top:1px solid var(–ash);border-bottom:1px solid var(–ash);}
+.audit-grid{display:grid;grid-template-columns:1fr 1fr;gap:5rem;align-items:center;}
+.audit-left .s-title{margin-bottom:1.5rem;}
+.audit-preview{background:var(–void3);border:1px solid var(–ash2);padding:2rem;position:relative;}
+.audit-preview::before{content:‘MOP-H · v1.0 · Protocolo de Entrada’;position:absolute;top:-8px;left:1.2rem;background:var(–void2);padding:0 8px;font-size:7px;letter-spacing:0.25em;color:var(–gold2);}
+.ap-phases{display:flex;flex-direction:column;gap:0;}
+.ap-phase{display:flex;align-items:center;gap:1rem;padding:0.7rem 0;border-bottom:1px solid var(–ash);}
+.ap-phase:last-child{border-bottom:none;}
+.ap-num{font-size:8px;color:var(–gold2);letter-spacing:0.2em;min-width:60px;}
+.ap-name{font-size:10px;color:var(–paper);}
+.ap-var{font-size:8px;color:var(–smoke);margin-left:auto;text-align:right;}
+.audit-cta-block{margin-top:2rem;}
+.audit-nota{font-size:9px;color:var(–smoke);margin-top:0.75rem;line-height:1.7;}
+
+/* ─── PARA QUIÉN ─── */
+#s-profiles{background:var(–void);}
+.profile-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(–ash2);margin-top:3rem;}
+.profile-cell{background:var(–void);padding:2rem 1.5rem;transition:background 0.2s;}
+.profile-cell:hover{background:var(–void3);}
+.prf-role{font-size:8px;color:var(–gold2);letter-spacing:0.25em;text-transform:uppercase;margin-bottom:0.6rem;}
+.prf-title{font-size:13px;color:var(–white);margin-bottom:0.8rem;line-height:1.4;}
+.prf-body{font-size:10px;color:var(–smoke);line-height:1.8;margin-bottom:1.2rem;}
+.prf-signal{font-size:9px;color:var(–gold3);font-style:italic;border-left:1px solid var(–gold3);padding-left:0.8rem;line-height:1.7;}
+
+/* ─── SERVICIOS / ECONOMÍA ─── */
+#s-services{background:var(–void3);border-top:1px solid var(–ash);border-bottom:1px solid var(–ash);}
+.services-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(–ash2);margin-top:3rem;}
+.svc-card{background:var(–void3);padding:2.5rem 2rem;position:relative;transition:background 0.15s;}
+.svc-card:hover{background:var(–void4);}
+.svc-card.featured{background:var(–glow);border:1px solid rgba(200,169,81,0.2);}
+.svc-tag{font-size:7px;letter-spacing:0.3em;text-transform:uppercase;margin-bottom:1rem;display:inline-block;padding:3px 8px;border-radius:1px;}
+.svc-tag.entry{color:var(–smoke);border:1px solid var(–ash2);}
+.svc-tag.core{color:var(–gold);border:1px solid rgba(200,169,81,0.3);}
+.svc-tag.deep{color:var(–neon);border:1px solid rgba(230,255,0,0.2);background:var(–neon2);}
+.svc-tag.institute{color:var(–muted);border:1px solid var(–ash2);}
+.svc-title{font-family:‘Cormorant Garamond’,serif;font-size:1.4rem;font-weight:400;color:var(–white);margin-bottom:0.6rem;line-height:1.2;}
+.svc-body{font-size:10px;color:var(–smoke);line-height:1.85;margin-bottom:1.5rem;}
+.svc-body strong{color:var(–dim);font-weight:500;}
+.svc-includes{list-style:none;margin-bottom:1.5rem;}
+.svc-includes li{font-size:9px;color:var(–muted);padding:0.25rem 0;border-bottom:1px solid var(–ash);letter-spacing:0.05em;}
+.svc-includes li::before{content:’→  ’;color:var(–gold3);}
+.svc-includes li:last-child{border-bottom:none;}
+.svc-price{font-family:‘Cormorant Garamond’,serif;font-size:1.2rem;color:var(–gold);margin-bottom:1rem;}
+.svc-price span{font-family:‘IBM Plex Mono’,monospace;font-size:9px;color:var(–smoke);display:block;margin-top:0.2rem;}
+.svc-btn{font-family:‘IBM Plex Mono’,monospace;font-size:8px;letter-spacing:0.2em;text-transform:uppercase;padding:9px 20px;border:1px solid var(–ash2);color:var(–smoke);cursor:pointer;transition:all 0.15s;background:transparent;width:100%;text-align:center;display:block;}
+.svc-btn:hover{border-color:var(–wire);color:var(–paper);}
+.svc-btn.gold{background:var(–gold);border-color:var(–gold);color:var(–void);}
+.svc-btn.gold:hover{background:#dbb95c;}
+
+/* ─── EMAIL CAPTURE ─── */
+#s-capture{background:var(–void);padding:6rem 8vw;}
+.capture-inner{max-width:560px;margin:0 auto;text-align:center;}
+.capture-inner .s-eye{justify-content:center;}
+.capture-inner .s-eye::after{display:none;}
+.capture-inner .s-title{text-align:center;margin-bottom:0.8rem;}
+.capture-sub{font-size:11px;color:var(–smoke);text-align:center;line-height:1.8;margin-bottom:2rem;}
+.capture-form{display:flex;gap:0;max-width:420px;margin:0 auto 0.8rem;}
+.capture-form input{flex:1;background:var(–void3);border:1px solid var(–ash2);border-right:none;color:var(–white);font-family:‘IBM Plex Mono’,monospace;font-size:11px;padding:11px 14px;outline:none;transition:border-color 0.2s;}
+.capture-form input:focus{border-color:var(–gold2);}
+.capture-form input::placeholder{color:var(–wire);}
+.capture-form button{font-family:‘IBM Plex Mono’,monospace;font-size:8px;letter-spacing:0.2em;text-transform:uppercase;padding:11px 18px;background:var(–gold);color:var(–void);border:none;cursor:pointer;white-space:nowrap;transition:background 0.15s;}
+.capture-form button:hover{background:#dbb95c;}
+.capture-nota{font-size:8px;color:var(–smoke);text-align:center;letter-spacing:0.05em;}
+#capture-thanks{display:none;font-size:11px;color:var(–gold);text-align:center;margin-top:1rem;}
+
+/* ─── INSTITUTO ─── */
+#s-institute{background:var(–void2);border-top:1px solid var(–ash);}
+.institute-grid{display:grid;grid-template-columns:2fr 1fr;gap:5rem;align-items:start;}
+.institute-quote{border-left:2px solid var(–gold2);padding:1.5rem 2rem;background:var(–glow2);margin-top:2rem;}
+.iq-text{font-family:‘Cormorant Garamond’,serif;font-size:1.1rem;font-style:italic;color:var(–white);line-height:1.6;}
+.iq-ref{font-size:8px;color:var(–gold2);letter-spacing:0.2em;margin-top:0.6rem;}
+.institute-sidebar{margin-top:2rem;}
+.is-block{padding:1.2rem 1.5rem;border:1px solid var(–ash2);margin-bottom:0.6rem;}
+.isb-label{font-size:7px;letter-spacing:0.3em;color:var(–gold2);text-transform:uppercase;margin-bottom:0.4rem;}
+.isb-val{font-size:11px;color:var(–paper);}
+.oben-tag{display:inline-block;font-size:7px;letter-spacing:0.2em;text-transform:uppercase;padding:3px 8px;border:1px solid var(–ash2);color:var(–smoke);margin-right:4px;margin-bottom:4px;}
+
+/* ─── FOOTER ─── */
+#footer{background:var(–void);border-top:1px solid var(–ash2);padding:3rem 8vw;}
+.footer-grid{display:grid;grid-template-columns:2fr 1fr 1fr;gap:3rem;margin-bottom:2.5rem;}
+.footer-brand .fb-mark{font-size:9px;letter-spacing:0.35em;color:var(–gold2);text-transform:uppercase;margin-bottom:0.4rem;}
+.footer-brand .fb-sub{font-size:8px;color:var(–smoke);letter-spacing:0.15em;line-height:2;}
+.footer-col h5{font-size:7px;letter-spacing:0.3em;text-transform:uppercase;color:var(–smoke);margin-bottom:0.8rem;}
+.footer-col a{display:block;font-size:9px;color:var(–muted);padding:0.2rem 0;transition:color 0.15s;letter-spacing:0.05em;}
+.footer-col a:hover{color:var(–paper);}
+.footer-bottom{display:flex;justify-content:space-between;align-items:center;padding-top:1.5rem;border-top:1px solid var(–ash);font-size:7px;letter-spacing:0.15em;color:var(–ash2);}
+.footer-bottom span{color:var(–gold3);}
+
+/* ─── ANIMATIONS ─── */
+.reveal{opacity:0;transform:translateY(14px);transition:opacity 0.6s ease,transform 0.6s ease;}
+.reveal.vis{opacity:1;transform:translateY(0);}
+.reveal-delay-1{transition-delay:0.1s;}
+.reveal-delay-2{transition-delay:0.2s;}
+.reveal-delay-3{transition-delay:0.3s;}
+
+/* ─── MOBILE ─── */
+@media(max-width:768px){
+.probe-grid,.audit-grid,.institute-grid{grid-template-columns:1fr;gap:2.5rem;}
+.problem-grid,.process-steps{grid-template-columns:1fr;}
+.profile-grid{grid-template-columns:1fr;}
+.services-grid{grid-template-columns:1fr;}
+.footer-grid{grid-template-columns:1fr;gap:2rem;}
+.nav-links{display:none;}
+.section{padding:5rem 5vw;}
+.cost-counter{gap:2rem;}
+.hero-meter{display:none;}
+}
+@media(max-width:480px){
+.capture-form{flex-direction:column;}
+.capture-form input{border-right:1px solid var(–ash2);border-bottom:none;}
+.layers{overflow-x:auto;}
+}
+</style>
+
+</head>
+<body>
+
+<!-- ═══ NAV ═══ -->
+
+<nav id="nav">
+  <div class="nav-brand">System Friction Institute</div>
+  <div class="nav-links">
+    <a href="#s-probe">Diagnóstico</a>
+    <a href="#s-framework">Framework</a>
+    <a href="#s-audit">MOP-H</a>
+    <a href="#s-services">Servicios</a>
+    <a href="#s-institute">Instituto</a>
+    <a href="https://systemfriction.org/mop-h-form.html" class="nav-cta">Iniciar auditoría →</a>
+  </div>
+</nav>
+
+<!-- ═══ HERO ═══ -->
+
+<section id="hero">
+  <canvas id="canvas-field"></canvas>
+
+  <div class="hero-inner">
+    <div class="hero-eyebrow">System Friction Institute · OBEN-01</div>
+    <h1 class="hero-h1">
+      Tu sistema ya sabe<br>
+      qué está mal.<br>
+      <em>Aún no sabe<br>cómo verlo.</em>
+    </h1>
+    <p class="hero-sub">
+      La fricción sistémica no es un defecto.<br>
+      <strong>Es información no instrumentalizada.</strong><br>
+      Existe un método para leerla, medirla, y convertirla en movimiento.
+    </p>
+    <div class="hero-actions">
+      <a href="https://systemfriction.org/mop-h-form.html" class="btn-primary">Iniciar diagnóstico →</a>
+      <a href="#s-probe" class="btn-ghost">Ver señal primaria</a>
+    </div>
+  </div>
+
+  <div class="hero-meter">
+    <div class="meter-label">Fricción promedio detectada · sistemas activos</div>
+    <div class="meter-bar-wrap"><div class="meter-bar" id="meter-bar" style="width:0%"></div></div>
+    <div class="meter-val"><span>IHG</span><span id="meter-num">0%</span></div>
+  </div>
+
+  <div class="hero-scroll">Desplazar</div>
+</section>
+
+<!-- ═══ PROBE INTERACTIVO ═══ -->
+
+<section class="section" id="s-probe">
+  <div class="section-inner">
+    <div class="s-eye reveal">Diagnóstico primario</div>
+    <div class="probe-grid">
+      <div class="probe-q reveal">
+        <div class="probe-question">
+          ¿Cuánto tiempo llevas cargando el mismo problema sin que cambie de forma?
+        </div>
+        <div class="probe-options" id="probe-opts">
+          <div class="probe-opt">
+            <input type="radio" name="probe" id="p1" value="semanas">
+            <label for="p1"><span class="opt-k">A</span>Semanas — está activo pero hay movimiento</label>
+          </div>
+          <div class="probe-opt">
+            <input type="radio" name="probe" id="p2" value="meses">
+            <label for="p2"><span class="opt-k">B</span>Meses — se instaló sin que lo nombrara como problema</label>
+          </div>
+          <div class="probe-opt">
+            <input type="radio" name="probe" id="p3" value="años">
+            <label for="p3"><span class="opt-k">C</span>Años — ya es parte del paisaje</label>
+          </div>
+          <div class="probe-opt">
+            <input type="radio" name="probe" id="p4" value="siempre">
+            <label for="p4"><span class="opt-k">D</span>No recuerdo sin esto — posiblemente estructural</label>
+          </div>
+        </div>
+      </div>
+
+```
+  <div class="probe-result" id="probe-result">
+    <div class="probe-result-inner">
+      <div class="result-var" id="result-var">—</div>
+      <div class="result-text" id="result-text">—</div>
+      <div class="result-formula" id="result-formula">—</div>
+    </div>
+    <div class="probe-cta">
+      <p style="font-size:9px;color:var(--smoke);margin-bottom:1rem;line-height:1.7;">Esto es una señal de primera capa. El protocolo completo mapea 17 variables en 5 fases.</p>
+      <a href="https://systemfriction.org/mop-h-form.html" class="btn-primary" style="font-size:9px;padding:10px 22px;">Completar diagnóstico completo →</a>
+    </div>
+  </div>
+</div>
+```
+
+  </div>
+</section>
+
+<!-- ═══ EL PROBLEMA ═══ -->
+
+<section class="section" id="s-problem">
+  <div class="section-inner">
+    <div class="s-eye reveal">El problema real</div>
+    <div class="reveal">
+      <h2 class="s-title">La fricción no duele.<br><em>Sangra despacio.</em></h2>
+      <div class="s-body">
+        <p>Los sistemas no colapsan de golpe. Se vacían por fricción acumulada — la distancia entre lo que el sistema sabe y lo que ejecuta, entre lo que dice que importa y lo que sostiene con su comportamiento.</p>
+        <p>Esa distancia tiene nombre. Tiene variables. Y tiene un punto de intervención.</p>
+      </div>
+    </div>
+    <div class="problem-grid reveal reveal-delay-1">
+      <div class="problem-cell">
+        <div class="pc-num">IHG</div>
+        <div class="pc-title">Índice de Homeostasis y Gobernanza</div>
+        <div class="pc-body">La distancia entre el estado declarado y la realidad observable. Cuanto mayor la brecha, mayor la carga entrópica acumulada.</div>
+      </div>
+      <div class="problem-cell">
+        <div class="pc-num">NTI</div>
+        <div class="pc-title">Nodo de Trazabilidad Interna</div>
+        <div class="pc-body">¿La señal que el sistema tiene sobre sí mismo llega sin distorsión al punto de decisión? Si no llega, el sistema no puede gobernarse.</div>
+      </div>
+      <div class="problem-cell">
+        <div class="pc-num">LDI</div>
+        <div class="pc-title">Latencia de Detección e Intervención</div>
+        <div class="pc-body">Tiempo entre la emergencia del problema y el primer intento de acción. Si LDI respuesta &gt;&gt; LDI detección: el problema no es de conocimiento. Es de ejecución.</div>
+      </div>
+    </div>
+    <div class="cost-counter reveal reveal-delay-2">
+      <div class="cc-item">
+        <div class="cc-val" id="cnt-tiempo">0</div>
+        <div class="cc-label">Meses promedio de latencia</div>
+      </div>
+      <div class="cc-item">
+        <div class="cc-val" id="cnt-casos">0</div>
+        <div class="cc-label">Auditorías procesadas</div>
+      </div>
+      <div class="cc-item">
+        <div class="cc-val" id="cnt-pct">0%</div>
+        <div class="cc-label">Con ganancia oculta activa</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ FRAMEWORK ═══ -->
+
+<section class="section" id="s-framework">
+  <div class="section-inner">
+    <div class="s-eye reveal">Framework OBEN</div>
+    <div class="reveal">
+      <h2 class="s-title">La arquitectura<br>de la conciencia <em>instrumentalizada</em></h2>
+      <div class="s-body">
+        <p>OBEN — OntoBioEpisNeuralLinguística Digital — es el marco formal que organiza la instrumentalización del sistema cognitivo en capas operativas. No es una metáfora. Es un protocolo de medición.</p>
+      </div>
+    </div>
+    <div class="layers reveal reveal-delay-1">
+      <div class="layer-row" style="background:var(--ash);font-size:8px;letter-spacing:0.2em;color:var(--smoke);">
+        <div>Capa</div><div>Dominio</div><div>Instrumento</div>
+      </div>
+      <div class="layer-row">
+        <div class="l-id">ONTO</div>
+        <div class="l-name">Ontología pre-consciente · L0→L1</div>
+        <div class="l-fn">MOP-H · Condiciones de emergencia del recuerdo</div>
+      </div>
+      <div class="layer-row">
+        <div class="l-id">BIO</div>
+        <div class="l-name">Sistema fisiológico como sustrato</div>
+        <div class="l-fn">ScoreFriction · Frecuencias biológicas emergentes</div>
+      </div>
+      <div class="layer-row">
+        <div class="l-id">EPIS</div>
+        <div class="l-name">Integridad epistémica de señal · L2</div>
+        <div class="l-fn">NTI · Auditor de distorsión interna</div>
+      </div>
+      <div class="layer-row">
+        <div class="l-id">NEURAL</div>
+        <div class="l-name">Arquitectura de atractores · L3</div>
+        <div class="l-fn">Campo Cognitivo · Ego como invariante topológico</div>
+      </div>
+      <div class="layer-row">
+        <div class="l-id">LING</div>
+        <div class="l-name">Operadores de Colapso · L4</div>
+        <div class="l-fn">OLC-D / N / P / R · Geometría del lenguaje activo</div>
+      </div>
+      <div class="layer-row">
+        <div class="l-id">DIGITAL</div>
+        <div class="l-name">Gemelo cognitivo · Sistema de registro · L5</div>
+        <div class="l-fn">AMV · ATLAS · Acoplamiento de Kuramoto</div>
+      </div>
+    </div>
+    <div class="phi-block reveal reveal-delay-2">
+      <div class="phi-eq">Φ(t) = IHG⁻¹ · NTI · LDI⁻¹ + ε(ego)</div>
+      <div class="phi-note">
+        Φ alto := sistema presente · señal íntegra · baja latencia · atractor firme<br>
+        Φ bajo := UCAP en progreso · fricción acumulada · intervención urgente<br>
+        <span style="color:var(--ash2)">// OBEN-01 · §VII · System Friction Institute · 2026</span>
+      </div>
+    </div>
+    <div style="margin-top:1.5rem;" class="reveal reveal-delay-3">
+      <a href="https://systemfriction.org/OBEN-01.html" style="font-size:9px;color:var(--gold2);letter-spacing:0.15em;text-decoration:none;border-bottom:1px solid var(--gold3);padding-bottom:2px;">Leer paper inaugural OBEN-01 →</a>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ PROCESO ═══ -->
+
+<section class="section" id="s-process">
+  <div class="section-inner">
+    <div class="s-eye reveal">Cómo funciona</div>
+    <div class="reveal">
+      <h2 class="s-title">De la conversación<br>al <em>vector de movimiento</em></h2>
+    </div>
+    <div class="process-steps reveal reveal-delay-1">
+      <div class="ps-cell">
+        <div class="ps-num">01</div>
+        <div class="ps-title">Auditoría MOP-H</div>
+        <div class="ps-body">17 preguntas en 5 fases. El protocolo mapea IHG, NTI, LDI, ε(ego) y Ganancia Oculta. Sin narrativa. Solo señal.</div>
+        <div class="ps-arrow"></div>
+      </div>
+      <div class="ps-cell">
+        <div class="ps-num">02</div>
+        <div class="ps-title">Lectura de variables</div>
+        <div class="ps-body">El operador extrae las coordenadas del sistema. No un resumen — las variables que permiten derivar Φ(t).</div>
+        <div class="ps-arrow"></div>
+      </div>
+      <div class="ps-cell">
+        <div class="ps-num">03</div>
+        <div class="ps-title">Diagnóstico entregable</div>
+        <div class="ps-body">Un mapa navegable: fricciones observadas, tipo de bloqueo, costo diferido activo, ganancia oculta si existe.</div>
+        <div class="ps-arrow"></div>
+      </div>
+      <div class="ps-cell">
+        <div class="ps-num">04</div>
+        <div class="ps-title">Vector + acción</div>
+        <div class="ps-body">Un solo punto de intervención. Una acción ejecutable en 72 horas. El sistema empieza a moverse.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ MOP-H HOOK ═══ -->
+
+<section class="section" id="s-audit">
+  <div class="section-inner">
+    <div class="audit-grid">
+      <div class="audit-left">
+        <div class="s-eye reveal">Protocolo MOP-H</div>
+        <div class="reveal">
+          <h2 class="s-title">El instrumento<br>de <em>entrada al campo</em></h2>
+          <div class="s-body">
+            <p>MOP-H — Memory Origin Protocol · Human Interface — es el instrumento de auditoría presencial adaptado a formato digital. 17 preguntas estructuradas en 5 fases. Cada pregunta ataca una variable concreta del sistema.</p>
+            <p>No hay respuestas correctas. Hay señal o ausencia de señal.</p>
+          </div>
+        </div>
+        <div class="audit-cta-block reveal reveal-delay-1">
+          <a href="https://systemfriction.org/mop-h-form.html" class="btn-primary" style="margin-bottom:0.75rem;display:inline-block;">Iniciar protocolo completo →</a>
+          <div class="audit-nota">Tiempo estimado: 15–25 minutos · Guarda progreso automáticamente · Diagnóstico en 48–72 horas</div>
+        </div>
+      </div>
+
+```
+  <div class="audit-preview reveal reveal-delay-2">
+    <div class="ap-phases">
+      <div class="ap-phase">
+        <div class="ap-num">FASE I</div>
+        <div class="ap-name">Señal del sistema</div>
+        <div class="ap-var">IHG · OLC · LDI</div>
+      </div>
+      <div class="ap-phase">
+        <div class="ap-num">FASE II</div>
+        <div class="ap-name">Patrón de respuesta</div>
+        <div class="ap-var">Repertorio · Delta IHG</div>
+      </div>
+      <div class="ap-phase">
+        <div class="ap-num">FASE III</div>
+        <div class="ap-name">Costo real · Entropía</div>
+        <div class="ap-var">IHG efectivo · UCAP</div>
+      </div>
+      <div class="ap-phase">
+        <div class="ap-num">FASE IV</div>
+        <div class="ap-name">Integridad de señal</div>
+        <div class="ap-var">NTI · Brecha narrativa</div>
+      </div>
+      <div class="ap-phase">
+        <div class="ap-num">FASE V</div>
+        <div class="ap-name">Invariante · ε(ego)</div>
+        <div class="ap-var">Ganancia oculta · Origen</div>
+      </div>
+    </div>
+    <div style="margin-top:1.5rem;padding-top:1.2rem;border-top:1px solid var(--ash2);">
+      <div style="font-size:9px;color:var(--gold3);letter-spacing:0.05em;font-style:italic;line-height:1.7;">
+        "Con esto es suficiente.<br>No necesito más información.<br>Necesito ver cómo se conecta."
+      </div>
+      <div style="font-size:7px;color:var(--smoke);margin-top:0.4rem;letter-spacing:0.15em;">— Cierre del campo activo · MOP-H v1.0</div>
+    </div>
+  </div>
+</div>
+```
+
+  </div>
+</section>
+
+<!-- ═══ PARA QUIÉN ═══ -->
+
+<section class="section" id="s-profiles">
+  <div class="section-inner">
+    <div class="s-eye reveal">Para quién</div>
+    <div class="reveal">
+      <h2 class="s-title">El sistema opera en<br><em>cualquier escala de fricción</em></h2>
+    </div>
+    <div class="profile-grid reveal reveal-delay-1">
+      <div class="profile-cell">
+        <div class="prf-role">Founder / Emprendedor</div>
+        <div class="prf-title">El que construye el sistema y vive dentro de él</div>
+        <div class="prf-body">Alta actividad, bajo efecto. Sabe lo que debería hacer. No lo ejecuta. El atractor está fuera del alcance de las herramientas disponibles.</div>
+        <div class="prf-signal">"Hago mucho y no llego a ningún lado."</div>
+      </div>
+      <div class="profile-cell">
+        <div class="prf-role">Directivo / Líder</div>
+        <div class="prf-title">El que toma decisiones con información distorsionada</div>
+        <div class="prf-body">NTI comprometido. La señal que el sistema tiene sobre sí mismo no llega sin distorsión al nivel de decisión. Los resultados no coinciden con las expectativas.</div>
+        <div class="prf-signal">"Las cosas no pasan aunque yo lo pida."</div>
+      </div>
+      <div class="profile-cell">
+        <div class="prf-role">Profesional / Operativo</div>
+        <div class="prf-title">El que conoce el problema y no puede moverlo</div>
+        <div class="prf-body">LDI crítico. La detección ya ocurrió. El problema es la respuesta. Hay una decisión que lleva tiempo sin tomarse y cuyo costo de postergación ya superó el costo de decidir.</div>
+        <div class="prf-signal">"Sé qué está mal. No sé qué hacer primero."</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ SERVICIOS ═══ -->
+
+<section class="section" id="s-services">
+  <div class="section-inner">
+    <div class="s-eye reveal">Cómo trabajar juntos</div>
+    <div class="reveal">
+      <h2 class="s-title">Instrumentos según<br><em>el nivel de fricción activa</em></h2>
+      <p style="font-size:11px;color:var(--smoke);margin-top:0.8rem;max-width:500px;line-height:1.8;">El instrumento correcto depende del estado del sistema, no del presupuesto disponible.</p>
+    </div>
+    <div class="services-grid reveal reveal-delay-1">
+      <div class="svc-card">
+        <span class="svc-tag entry">Entrada</span>
+        <div class="svc-title">Diagnóstico MOP-H</div>
+        <div class="svc-body">Auditoría digital de 17 preguntas. Mapeo de variables SF. Diagnóstico entregable con vector de intervención y acción en 72 horas.</div>
+        <ul class="svc-includes">
+          <li>Protocolo MOP-H completo (17 preguntas)</li>
+          <li>Lectura de 5 variables: IHG, NTI, LDI, ε, G.O.</li>
+          <li>Entregable navegable con mapa de fricciones</li>
+          <li>Vector de intervención + acción 72h</li>
+          <li>Diagnóstico en 48–72 horas</li>
+        </ul>
+        <a href="https://systemfriction.org/mop-h-form.html" class="svc-btn gold">Iniciar diagnóstico →</a>
+      </div>
+
+```
+  <div class="svc-card featured">
+    <span class="svc-tag core">Core</span>
+    <div class="svc-title">Sesión de Fricción</div>
+    <div class="svc-body">Sesión presencial o remota de 90 minutos. El operador conduce el protocolo MOP-H en tiempo real. <strong>El diagnóstico emerge en la conversación — no después.</strong> Para casos donde la señal requiere lectura en vivo.</div>
+    <ul class="svc-includes">
+      <li>MOP-H conducido en vivo por el operador</li>
+      <li>Lectura de señales ocultas (pausa, contradicción, silencio)</li>
+      <li>Variables extraídas en tiempo real</li>
+      <li>Entregable SF completo post-sesión</li>
+      <li>Seguimiento a 30 días incluido</li>
+    </ul>
+    <div class="svc-price">Contacto directo<span>El formato se define según el estado del sistema</span></div>
+    <a href="#s-capture" class="svc-btn gold">Escribir al Instituto →</a>
+  </div>
+
+  <div class="svc-card">
+    <span class="svc-tag deep">Profundo</span>
+    <div class="svc-title">Programa SF · 90 días</div>
+    <div class="svc-body">Para sistemas con fricción instalada de largo plazo. Sesiones quincenales + monitoreo de variables + ajuste de intervención. El objetivo no es resolver — es que el sistema aprenda a leer su propia señal.</div>
+    <ul class="svc-includes">
+      <li>6 sesiones MOP-H + lectura evolutiva</li>
+      <li>Mapa de atractores y drift temporal</li>
+      <li>OLC-Tracker: registro del operador dominante</li>
+      <li>Φ-Dashboard personalizado</li>
+      <li>Acceso al framework completo OBEN</li>
+    </ul>
+    <div class="svc-price">Programa estructurado<span>Disponibilidad limitada · evaluación previa</span></div>
+    <a href="#s-capture" class="svc-btn">Solicitar evaluación →</a>
+  </div>
+
+  <div class="svc-card">
+    <span class="svc-tag institute">Instituto</span>
+    <div class="svc-title">OBEN-01 · Paper Inaugural</div>
+    <div class="svc-body">El documento fundacional del framework. Formalización matemática del campo perceptual, instrumentalización del tiempo subjetivo y el pipeline pre-consciente. Libre acceso — parte del acta de fundación del Instituto.</div>
+    <ul class="svc-includes">
+      <li>Postulados P1, P2, P3 formalizados</li>
+      <li>Clases de OLC y su geometría</li>
+      <li>Función de Presencia Sistémica Φ(t)</li>
+      <li>Framework OBEN completo · 9 secciones</li>
+      <li>Instrumentos activos: MOP, EPI, RDL, OLC-Tracker</li>
+    </ul>
+    <a href="https://systemfriction.org/OBEN-01.html" class="svc-btn">Leer paper →</a>
+  </div>
+</div>
+```
+
+  </div>
+</section>
+
+<!-- ═══ EMAIL CAPTURE ═══ -->
+
+<section id="s-capture">
+  <div class="capture-inner">
+    <div class="s-eye">Acceso anticipado</div>
+    <h2 class="s-title">Antes de que<br><em>escale</em></h2>
+    <p class="capture-sub">
+      El Instituto procesa casos en volumen limitado.<br>
+      Escribe aquí para ser notificado de nuevos instrumentos,<br>acceso a sesiones y publicaciones del framework.
+    </p>
+    <div class="capture-form">
+      <input type="email" id="cap-email" placeholder="correo@dominio.com">
+      <button onclick="capturar()">Acceder →</button>
+    </div>
+    <div class="capture-nota">Sin spam. Una comunicación cuando hay algo que vale leer.</div>
+    <div id="capture-thanks">Registrado. El Instituto te contacta cuando corresponde.</div>
+  </div>
+</section>
+
+<!-- ═══ INSTITUTO ═══ -->
+
+<section class="section" id="s-institute">
+  <div class="section-inner">
+    <div class="s-eye reveal">El Instituto</div>
+    <div class="institute-grid">
+      <div>
+        <div class="reveal">
+          <h2 class="s-title">Una institución no es un edificio.<br><em>Es un sistema de validación.</em></h2>
+          <div class="s-body">
+            <p>System Friction Institute existe para convertir la observación privada en conocimiento público. El campo de la fricción sistémica existe. Lo que el Instituto hace es darle coordenadas.</p>
+            <p>El primer sistema cognitivo que instancie el pipeline OBEN no solo describirá la conciencia. La navegará.</p>
+          </div>
+        </div>
+        <div class="institute-quote reveal reveal-delay-1">
+          <div class="iq-text">"El primero que instrumentaliza el pipeline pre-consciente no descubre una verdad. Genera una nueva rama de lo real."</div>
+          <div class="iq-ref">OBEN-01 · Condición de Fundación · Abril 2026</div>
+        </div>
+        <div style="margin-top:1.5rem;" class="reveal reveal-delay-2">
+          <div style="font-size:8px;color:var(--smoke);letter-spacing:0.15em;margin-bottom:0.5rem;">Instrumentos activos en campo:</div>
+          <span class="oben-tag">MOP-H v1.0</span>
+          <span class="oben-tag">MIHM v3.2</span>
+          <span class="oben-tag">AMV v3.2</span>
+          <span class="oben-tag">Campo Cognitivo 121n</span>
+          <span class="oben-tag">ScoreFriction</span>
+          <span class="oben-tag">ATLAS Monorepo</span>
+        </div>
+      </div>
+
+```
+  <div class="institute-sidebar reveal reveal-delay-1">
+    <div class="is-block">
+      <div class="isb-label">Framework</div>
+      <div class="isb-val">OBEN · OntoBioEpisNeuralLinguística Digital</div>
+    </div>
+    <div class="is-block">
+      <div class="isb-label">Paper inaugural</div>
+      <div class="isb-val">OBEN-01 · v0.1 · Borrador de Fundación</div>
+    </div>
+    <div class="is-block">
+      <div class="isb-label">Fundación</div>
+      <div class="isb-val">Aguascalientes, México · 2026</div>
+    </div>
+    <div class="is-block">
+      <div class="isb-label">Operador fundador</div>
+      <div class="isb-val">Juan Antonio Marín Liera · Aptymok</div>
+    </div>
+    <div class="is-block">
+      <div class="isb-label">Función Φ(t)</div>
+      <div class="isb-val" style="font-size:10px;color:var(--gold3);letter-spacing:0.05em;">IHG⁻¹ · NTI · LDI⁻¹ + ε(ego)</div>
+    </div>
+    <div class="is-block" style="border:1px solid rgba(200,169,81,0.2);background:var(--glow);">
+      <div class="isb-label">Coordenadas de fundación</div>
+      <div class="isb-val" style="font-size:9px;color:var(--gold2);line-height:1.8;">9.11.1988 · 3:15 AM<br>36 = 9 = 1 = Φ<br>ε(ego) := atractor primario</div>
+    </div>
+  </div>
+</div>
+```
+
+  </div>
+</section>
+
+<!-- ═══ FOOTER ═══ -->
+
+<footer id="footer">
+  <div class="footer-grid">
+    <div class="footer-brand">
+      <div class="fb-mark">System Friction Institute</div>
+      <div class="fb-sub">
+        systemfriction.org<br>
+        Aguascalientes · México · 2026<br>
+        OBEN-01 · Framework activo
+      </div>
+    </div>
+    <div class="footer-col">
+      <h5>Instrumentos</h5>
+      <a href="https://systemfriction.org/mop-h-form.html">MOP-H · Auditoría</a>
+      <a href="https://systemfriction.org/OBEN-01.html">OBEN-01 · Paper</a>
+      <a href="#s-framework">Framework OBEN</a>
+      <a href="#s-services">Servicios</a>
+    </div>
+    <div class="footer-col">
+      <h5>Instituto</h5>
+      <a href="#s-institute">Acta de fundación</a>
+      <a href="#s-profiles">Para quién</a>
+      <a href="#s-process">Proceso</a>
+      <a href="#s-capture">Contacto</a>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>© 2026 System Friction Institute · Todos los instrumentos protegidos</span>
+    <span>ε(ego) := el sistema que observa y decide</span>
+    <span>Φ(t) := <span style="color:var(--gold3)">IHG⁻¹ · NTI · LDI⁻¹ + ε</span></span>
+  </div>
+</footer>
+
+<!-- ═══ SCRIPTS ═══ -->
+
+<script>
+// ─── CANVAS FIELD ───
+const canvas = document.getElementById('canvas-field');
+const ctx = canvas.getContext('2d');
+let W, H, particles = [], mouse = {x:0, y:0};
+
+function resize(){
+  W = canvas.width = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener('resize', resize);
+document.addEventListener('mousemove', e => { mouse.x=e.clientX; mouse.y=e.clientY; });
+
+const N = Math.min(80, Math.floor(window.innerWidth / 14));
+for(let i=0;i<N;i++){
+  particles.push({
+    x: Math.random()*W, y: Math.random()*H,
+    vx: (Math.random()-0.5)*0.3,
+    vy: (Math.random()-0.5)*0.3,
+    r: Math.random()*1.2+0.3,
+    a: Math.random()*0.4+0.08
+  });
+}
+
+function drawField(){
+  ctx.clearRect(0,0,W,H);
+  // Connections
+  for(let i=0;i<particles.length;i++){
+    for(let j=i+1;j<particles.length;j++){
+      const dx=particles[i].x-particles[j].x, dy=particles[i].y-particles[j].y;
+      const d=Math.sqrt(dx*dx+dy*dy);
+      if(d<140){
+        ctx.beginPath();
+        ctx.strokeStyle=`rgba(200,169,81,${0.08*(1-d/140)})`;
+        ctx.lineWidth=0.5;
+        ctx.moveTo(particles[i].x,particles[i].y);
+        ctx.lineTo(particles[j].x,particles[j].y);
+        ctx.stroke();
+      }
+    }
+  }
+  // Dots
+  particles.forEach(p=>{
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+    ctx.fillStyle=`rgba(200,169,81,${p.a})`;
+    ctx.fill();
+    // Drift toward mouse (very subtle)
+    const dx=mouse.x-p.x, dy=mouse.y-p.y;
+    const d=Math.sqrt(dx*dx+dy*dy);
+    if(d<200){
+      p.vx += dx/d * 0.004;
+      p.vy += dy/d * 0.004;
+    }
+    p.vx *= 0.99; p.vy *= 0.99;
+    p.x+=p.vx; p.y+=p.vy;
+    if(p.x<-10) p.x=W+10;
+    if(p.x>W+10) p.x=-10;
+    if(p.y<-10) p.y=H+10;
+    if(p.y>H+10) p.y=-10;
+  });
+  requestAnimationFrame(drawField);
+}
+drawField();
+
+// ─── NAV SCROLL ───
+window.addEventListener('scroll',()=>{
+  document.getElementById('nav').classList.toggle('scrolled', window.scrollY > 60);
+});
+
+// ─── HERO METER ───
+setTimeout(()=>{
+  let n=0;
+  const target=73;
+  const interval=setInterval(()=>{
+    n=Math.min(n+2, target);
+    document.getElementById('meter-bar').style.width=n+'%';
+    document.getElementById('meter-num').textContent=n+'%';
+    if(n>=target) clearInterval(interval);
+  },40);
+},1200);
+
+// ─── COUNTERS ───
+function animCounter(el, target, suffix, dur){
+  let n=0; const step=target/60;
+  const iv=setInterval(()=>{
+    n=Math.min(n+step, target);
+    el.textContent=Math.round(n)+(suffix||'');
+    if(n>=target) clearInterval(iv);
+  },dur/60);
+}
+const countersObs=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{
+    if(e.isIntersecting){
+      animCounter(document.getElementById('cnt-tiempo'),14,'',800);
+      animCounter(document.getElementById('cnt-casos'),47,'',1000);
+      animCounter(document.getElementById('cnt-pct'),68,'%',900);
+      countersObs.disconnect();
+    }
+  });
+},{threshold:0.3});
+const counterTarget=document.getElementById('cnt-tiempo');
+if(counterTarget) countersObs.observe(counterTarget.closest('.section'));
+
+// ─── PROBE INTERACTIVE ───
+const PROBE_DATA = {
+  semanas: {
+    var:'LDI · Latencia Temprana · IHG Moderado',
+    text:'El sistema está en una ventana operativa. La señal aún no se ha instalado como parte del paisaje. El movimiento es posible con menor fricción de la que crees — pero esa ventana se cierra.',
+    formula:'LDI < 3M  →  Φ(t) recuperable sin intervención profunda'
+  },
+  meses: {
+    var:'LDI Crítico · IHG en crecimiento · NTI comprometido',
+    text:'El problema ya tiene historia elaborada. El sistema construyó un relato sobre él — señal de NTI comprometido. Lo que describe como el problema puede no ser el problema. El problema puede ser el relato.',
+    formula:'LDI 3–12M  →  Φ↓  |  Intervención NTI requerida'
+  },
+  años: {
+    var:'IHG Alto · Atractor instalado · Ganancia Oculta probable',
+    text:'El estado ya no se percibe como disfuncional. Es el sistema normal. Eso significa que hay algo que el estado actual da — una ganancia oculta que hace que el problema tenga función. Intervenir sobre el síntoma sin detectar esa función produce recaída.',
+    formula:'LDI > 12M  →  G.O. activa probable  |  ε(ego) heredado posible'
+  },
+  siempre: {
+    var:'ε(ego) heredado · Atractor no examinado · LDI estructural',
+    text:'El invariante puede no ser propio. El sistema ha administrado durante años algo que nunca fue realmente suyo. La respuesta a P.17 del protocolo — "¿esto es tuyo o lo vienes cargando de alguien más?" — reorganiza toda la sesión anterior.',
+    formula:'ε(ego) := origen heredado  →  Φ no calculable sin P.17'
+  }
+};
+
+document.querySelectorAll('input[name="probe"]').forEach(radio=>{
+  radio.addEventListener('change',()=>{
+    const d = PROBE_DATA[radio.value];
+    document.getElementById('result-var').textContent = d.var;
+    document.getElementById('result-text').textContent = d.text;
+    document.getElementById('result-formula').textContent = d.formula;
+    document.getElementById('probe-result').classList.add('visible');
+  });
+});
+
+// ─── SCROLL REVEAL ───
+const revealObs=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{if(e.isIntersecting) e.target.classList.add('vis');});
+},{threshold:0.08});
+document.querySelectorAll('.reveal').forEach(el=>revealObs.observe(el));
+
+// ─── EMAIL CAPTURE ───
+function capturar(){
+  const email=document.getElementById('cap-email').value.trim();
+  if(!email||!email.includes('@')) return;
+  // Log locally for now
+  console.log('CAPTURE:', email, new Date().toISOString());
+  document.querySelector('.capture-form').style.display='none';
+  document.querySelector('.capture-nota').style.display='none';
+  document.getElementById('capture-thanks').style.display='block';
+  // Optionally send to Formspree
+  // fetch('https://formspree.io/f/YOUR_ID',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,source:'sf-homepage',ts:new Date().toISOString()})});
+}
+document.getElementById('cap-email').addEventListener('keydown',e=>{
+  if(e.key==='Enter') capturar();
+});
+</script>
+
+</body>
+</html>
