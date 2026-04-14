@@ -6,7 +6,7 @@
 <title>System Friction · Casos SF</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@300;400;500&family=Syncopate:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600&family=JetBrains+Mono:wght@300;400;500&family=Syncopate:wght@400;700&display=swap" rel="stylesheet">
 
 <style>
 :root{
@@ -16,18 +16,15 @@
   --bd:#1e1e1b;
   --tx:#c4c0b5;
   --tx2:#888480;
-  --tx3:#484540;
-  --bright:#ede9de;
   --ac:#c8a951;
   --ac2:#8a7035;
-  --ac4:rgba(200,169,81,.07);
   --neon:#d4f040;
   --fm:'JetBrains Mono', monospace;
   --serif:'EB Garamond', serif;
   --disp:'Syncopate', sans-serif;
 }
 
-*{margin:0;padding:0;box-sizing:border-box}
+*{box-sizing:border-box;margin:0;padding:0}
 
 body{
   background:var(--bg);
@@ -37,12 +34,11 @@ body{
 
 header{
   height:46px;
+  padding:0 1.5rem;
   display:flex;
   align-items:center;
   justify-content:space-between;
-  padding:0 1.5rem;
   border-bottom:1px solid var(--bd);
-  background:#0a0a09;
 }
 
 .brand{
@@ -52,14 +48,8 @@ header{
   color:var(--ac);
 }
 
-.mod{
-  font-family:var(--fm);
-  font-size:.56rem;
-  color:var(--tx3);
-}
-
 .section{
-  padding:2.2rem 2.6rem 3rem;
+  padding:2.5rem;
 }
 
 .kicker{
@@ -73,28 +63,28 @@ header{
 
 .title{
   font-size:1.6rem;
-  color:var(--bright);
-  margin-bottom:.5rem;
+  margin-bottom:.4rem;
 }
 
 .sub{
   font-family:var(--fm);
   font-size:.6rem;
   color:var(--tx2);
-  margin-bottom:1.6rem;
+  margin-bottom:1.5rem;
 }
 
-.carousel{
+/* ── ARTEFACTO HORIZONTAL ── */
+.artifact{
   display:flex;
-  gap:1.5rem;
+  gap:1.25rem;
   overflow-x:auto;
   scroll-snap-type:x mandatory;
 }
 
-.carousel::-webkit-scrollbar{display:none}
+.artifact::-webkit-scrollbar{display:none}
 
-.card{
-  flex:0 0 420px;
+.stage-card{
+  flex:0 0 340px;
   background:var(--surface);
   border:1px solid var(--bd);
   scroll-snap-align:start;
@@ -102,92 +92,50 @@ header{
   flex-direction:column;
 }
 
-.card-header{
-  padding:1rem 1.4rem .6rem;
+.stage-img{
+  width:100%;
+  height:180px;
+  object-fit:cover;
   border-bottom:1px solid var(--bd);
 }
 
-.card-id{
-  font-family:var(--fm);
-  font-size:.65rem;
-  letter-spacing:.1em;
-  color:var(--ac);
+.stage-body{
+  padding:1rem;
 }
 
-.card-title{
-  font-size:1.1rem;
-  color:var(--bright);
-  margin-top:.3rem;
-}
-
-.card-body{
-  padding:.9rem 1.4rem;
-  font-size:.75rem;
-  color:var(--tx2);
-  line-height:1.55;
-  border-bottom:1px solid var(--bd);
-}
-
-.evidence{
-  padding:.8rem 1.4rem;
-  border-bottom:1px solid var(--bd);
-}
-
-.evidence h4{
+.stage-k{
   font-family:var(--fm);
   font-size:.55rem;
-  letter-spacing:.14em;
+  letter-spacing:.18em;
   color:var(--ac2);
   margin-bottom:.4rem;
 }
 
-.evidence p{
-  font-size:.72rem;
-  color:var(--tx2);
-  margin-bottom:.3rem;
+.stage-t{
+  font-size:1rem;
+  color:#fff;
+  margin-bottom:.4rem;
 }
 
-.etapas{
-  display:flex;
-  gap:2px;
-  padding:.8rem 1.2rem;
-  overflow-x:auto;
-}
-
-.etapas::-webkit-scrollbar{display:none}
-
-.etapa{
-  min-width:240px;
-  background:var(--surface2);
-  border:1px solid var(--bd);
-  padding:.75rem;
-}
-
-.etapa .k{
-  font-family:var(--fm);
-  font-size:.52rem;
-  letter-spacing:.18em;
-  color:var(--ac2);
-  margin-bottom:.3rem;
-}
-
-.etapa .b{
+.stage-p{
   font-size:.75rem;
   color:var(--tx2);
+  line-height:1.55;
 }
 
-.footer{
+/* BOTÓN */
+.stage-footer{
   margin-top:auto;
-  padding:1rem 1.4rem;
+  padding:1rem;
+  border-top:1px solid var(--bd);
   display:flex;
   justify-content:flex-end;
-  border-top:1px solid var(--bd);
 }
 
 .btn{
   font-family:var(--fm);
   font-size:.65rem;
-  padding:.42rem 1.2rem;
+  padding:.45rem 1.4rem;
   border:1px solid var(--ac2);
   background:none;
   color:var(--ac);
@@ -195,7 +143,7 @@ header{
 }
 
 .btn:hover{
-  background:var(--ac4);
+  background:rgba(200,169,81,.07);
   color:var(--neon);
 }
 </style>
@@ -205,62 +153,82 @@ header{
 
 <header>
   <span class="brand">System Friction</span>
-  <span class="mod">Casos SF · Archivo validado</span>
+  <span style="font-family:var(--fm);font-size:.56rem;color:#555;">Casos SF · Archivo validado</span>
 </header>
 
 <section class="section">
-  <div class="kicker">Archivo empírico verificado</div>
-  <div class="title">Casos cerrados</div>
-  <div class="sub">Evidencia histórica + etapas posteriores con conclusión operativa.</div>
+  <div class="kicker">Caso cerrado · Nodo AGS</div>
+  <div class="title">Aguascalientes · Paz termodinámica</div>
+  <div class="sub">Artefacto epistémico del colapso validado</div>
 
-  <div class="carousel">
+  <!-- ARTEFACTO -->
+  <div class="artifact">
 
-    <div class="card">
-      <div class="card-header">
-        <div class="card-id">SF_CC_0001</div>
-        <div class="card-title">Aguascalientes · Paz termodinámica</div>
-      </div>
-
-      <div class="card-body">
-        Estabilidad atribuida a institucionalidad, pero sostenida por un pacto implícito externo.  
-        El sistema ya operaba en degradación antes del shock.
-      </div>
-
-      <!-- EVIDENCIA CUANDO ESTABA ABIERTO -->
-      <div class="evidence">
-        <h4>EVIDENCIA PRE-EVENTO</h4>
-        <p>IHG basal negativo (−0.41) sin alerta institucional.</p>
-        <p>NTI rozando umbral crítico (0.48).</p>
-        <p>Nodos N1 y N4 en entropía superior a 0.90.</p>
-        <p>Serie AGS-01…AGS-05 documentando degradación antes del 22/02/2026.</p>
-      </div>
-
-      <!-- ETAPAS POSTERIORES (DERIVADAS DEL DOCUMENTO AGS) -->
-      <div class="etapas">
-        <div class="etapa">
-          <div class="k">ETAPA I · CAPTURA</div>
-          <div class="b">Sistema reporta estabilidad. La causa real no es institucional, sino un pacto implícito no documentado.</div>
-        </div>
-        <div class="etapa">
-          <div class="k">ETAPA II · PROCESAMIENTO</div>
-          <div class="b">MIHM detecta IHG negativo sostenido y distancia creciente entre umbral oficial y real.</div>
-        </div>
-        <div class="etapa">
-          <div class="k">ETAPA III · SHOCK</div>
-          <div class="b">Eliminación del actor hegemónico. El mecanismo de enforcement desaparece en horas.</div>
-        </div>
-        <div class="etapa">
-          <div class="k">ETAPA IV · COLAPSO</div>
-          <div class="b">IHG −0.41 → −0.62 en 24 h. NTI cae a 0.351. Protocolo UCAP activado.</div>
-        </div>
-        <div class="etapa">
-          <div class="k">ETAPA V · CONCLUSIÓN</div>
-          <div class="b">El sistema no falló. Operó según su estructura real. La paz era una variable exógena no institucional.</div>
+    <!-- PORTADA -->
+    <div class="stage-card">
+      <img src="image.png" class="stage-img">
+      <div class="stage-body">
+        <div class="stage-k">PORTADA</div>
+        <div class="stage-t">Nodo AGS · Caso empírico</div>
+        <div class="stage-p">
+          Primer caso de validación en tiempo real del MIHM.  
+          Estabilidad atribuida incorrectamente a institucionalidad.
         </div>
       </div>
+    </div>
 
-      <div class="footer">
-        <button class="btn">CONCLUSIÓN OPERATIVA</button>
+    <!-- ETAPA I -->
+    <div class="stage-card">
+      <img src="image.png" class="stage-img">
+      <div class="stage-body">
+        <div class="stage-k">ETAPA I · CAPTURA</div>
+        <div class="stage-t">Sensores semánticos</div>
+        <div class="stage-p">
+          El lenguaje institucional no mide la fricción: la produce.
+          Se activa ε-OLC por colapso lingüístico.
+        </div>
+      </div>
+    </div>
+
+    <!-- ETAPA II -->
+    <div class="stage-card">
+      <img src="image.png" class="stage-img">
+      <div class="stage-body">
+        <div class="stage-k">ETAPA II · PROCESAMIENTO</div>
+        <div class="stage-t">Fricción epiontobiofílica</div>
+        <div class="stage-p">
+          El sitio opera como nodo sobre sí mismo.  
+          IHG meta elevado, NTI degradado por receptor.
+        </div>
+      </div>
+    </div>
+
+    <!-- ETAPA III -->
+    <div class="stage-card">
+      <img src="image.png" class="stage-img">
+      <div class="stage-body">
+        <div class="stage-k">ETAPA III · PRECOLAPSO</div>
+        <div class="stage-t">Zona liminal productiva</div>
+        <div class="stage-p">
+          FE·D máxima.  
+          El sistema no colapsa: genera estructura nueva.
+        </div>
+      </div>
+    </div>
+
+    <!-- CONCLUSIÓN -->
+    <div class="stage-card">
+      <img src="image.png" class="stage-img">
+      <div class="stage-body">
+        <div class="stage-k">CONCLUSIÓN</div>
+        <div class="stage-t">El ε es este documento</div>
+        <div class="stage-p">
+          La fricción no registrada emerge como categoría operativa.
+          SF se convierte en objeto de su propio método.
+        </div>
+      </div>
+      <div class="stage-footer">
+        <button class="btn">VER CONCLUSIÓN OPERATIVA</button>
       </div>
     </div>
 
