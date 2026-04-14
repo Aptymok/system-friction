@@ -1,495 +1,182 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-76H63FV9DG"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-76H63FV9DG"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-76H63FV9DG');
+  </script>
 
-  gtag('config', 'G-76H63FV9DG');
-</script>
-<!-- Reutiliza exactamente el mismo <head> de tu index.html -->
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sistema — System Friction</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
-<style>
-  :root {
-    --void: #080808;
-    --void-mid: #0f0f0f;
-    --void-soft: #161616;
-    --gold: #C8A951;
-    --gold-dim: #9a7f3a;
-    --neon: #E6FF00;
-    --neon-dim: #b8cc00;
-    --text: #d4d4d4;
-    --text-dim: #737373;
-    --text-faint: #2e2e2e;
-    --border: #1e1e1e;
-    --font-mono: 'IBM Plex Mono', monospace;
-  }
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  html { scroll-behavior: smooth; }
-  body {
-    background: var(--void);
-    color: var(--text);
-    font-family: var(--font-mono);
-    line-height: 1.6;
-    overflow-x: hidden;
-    cursor: crosshair;
-  }
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
-    pointer-events: none;
-    z-index: 9999;
-    opacity: 0.4;
-  }
-  nav {
-    position: fixed;
-    top: 0; left: 0; right: 0;
-    z-index: 100;
-    padding: 20px 48px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 1px solid var(--border);
-    background: rgba(8,8,8,0.92);
-    backdrop-filter: blur(12px);
-  }
-  .nav-logo {
-    font-size: 11px;
-    font-weight: 500;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    color: var(--gold);
-    text-decoration: none;
-  }
-  .nav-logo span { color: var(--text-dim); }
-  .nav-right {
-    display: flex;
-    align-items: center;
-    gap: 32px;
-  }
-  .nav-link {
-    font-size: 10px;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: var(--text-dim);
-    text-decoration: none;
-    transition: color 0.2s;
-  }
-  .nav-link:hover { color: var(--text); }
-  .nav-link.active { color: var(--gold); }
-  .nav-cta {
-    font-size: 11px;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--void);
-    background: var(--neon);
-    padding: 8px 20px;
-    font-family: var(--font-mono);
-    font-weight: 600;
-    transition: background 0.2s;
-    text-decoration: none;
-  }
-  .nav-cta:hover { background: #fff; }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Observatory — System Friction</title>
 
-  /* ── PÁGINA ── */
-  .page-wrap {
-    max-width: 720px;
-    margin: 0 auto;
-    padding: 140px 48px 120px;
-  }
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap" rel="stylesheet">
 
-  .breadcrumb {
-    font-size: 9px;
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
-    color: var(--text-faint);
-    margin-bottom: 64px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-  .breadcrumb a {
-    color: var(--text-faint);
-    text-decoration: none;
-    transition: color 0.2s;
-  }
-  .breadcrumb a:hover { color: var(--text-dim); }
-  .breadcrumb span { color: var(--text-faint); }
-
-  /* BLOQUES DE CONTENIDO */
-  .block {
-    padding: 56px 0;
-    border-bottom: 1px solid var(--border);
-    opacity: 0;
-    transform: translateY(12px);
-    animation: fadeUp 0.5s cubic-bezier(0.16,1,0.3,1) forwards;
-  }
-  .block:first-of-type { padding-top: 0; }
-  .block:last-of-type { border-bottom: none; }
-  .block:nth-child(1) { animation-delay: 0.05s; }
-  .block:nth-child(2) { animation-delay: 0.12s; }
-  .block:nth-child(3) { animation-delay: 0.19s; }
-  .block:nth-child(4) { animation-delay: 0.26s; }
-  .block:nth-child(5) { animation-delay: 0.33s; }
-
-  .block-label {
-    font-size: 9px;
-    letter-spacing: 0.22em;
-    text-transform: uppercase;
-    color: var(--gold-dim);
-    margin-bottom: 20px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-  .block-label::before {
-    content: '';
-    display: block;
-    width: 20px;
-    height: 1px;
-    background: var(--gold-dim);
-  }
-
-  .block-title {
-    font-size: clamp(18px, 2.5vw, 26px);
-    font-weight: 300;
-    color: #f0f0f0;
-    line-height: 1.35;
-    letter-spacing: -0.01em;
-    margin-bottom: 20px;
-  }
-
-  .block-body {
-    font-size: 12px;
-    color: var(--text-dim);
-    line-height: 2;
-    font-weight: 300;
-  }
-  .block-body p { margin-bottom: 16px; }
-  .block-body p:last-child { margin-bottom: 0; }
-
-  /* GLOSARIO */
-  .term-list {
-    display: flex;
-    flex-direction: column;
-    gap: 0;
-    margin-top: 24px;
-  }
-  .term-item {
-    padding: 20px 0;
-    border-bottom: 1px solid var(--border);
-    display: grid;
-    grid-template-columns: 80px 1fr;
-    gap: 24px;
-    align-items: start;
-    transition: padding-left 0.2s;
-    cursor: default;
-  }
-  .term-item:hover { padding-left: 6px; }
-  .term-item:last-child { border-bottom: none; }
-  .term-key {
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--gold);
-    letter-spacing: 0.08em;
-    padding-top: 2px;
-  }
-  .term-def {
-    font-size: 11px;
-    color: var(--text-dim);
-    line-height: 1.8;
-    font-weight: 300;
-  }
-
-  /* POSTULADO */
-  .postulate {
-    padding: 36px;
-    border: 1px solid var(--border);
-    background: var(--void-soft);
-    position: relative;
-    overflow: hidden;
-    margin-top: 24px;
-  }
-  .postulate::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 1px;
-    background: linear-gradient(90deg, var(--gold-dim), transparent);
-  }
-  .postulate-text {
-    font-size: 13px;
-    font-weight: 300;
-    color: #f0f0f0;
-    line-height: 1.85;
-    letter-spacing: 0.01em;
-  }
-  .postulate-text em {
-    font-style: italic;
-    color: var(--gold);
-  }
-
-  /* ARQUITECTURA CAPAS */
-  .layer-list {
-    margin-top: 28px;
-    display: flex;
-    flex-direction: column;
-    gap: 0;
-  }
-  .layer-item {
-    display: grid;
-    grid-template-columns: 100px 1fr;
-    gap: 24px;
-    padding: 24px 0;
-    border-bottom: 1px solid var(--border);
-    align-items: start;
-    transition: padding-left 0.2s;
-  }
-  .layer-item:hover { padding-left: 6px; }
-  .layer-item:last-child { border-bottom: none; }
-  .layer-tag {
-    font-size: 9px;
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
-    color: var(--text-faint);
-    padding-top: 3px;
-    line-height: 1.6;
-  }
-  .layer-content {}
-  .layer-name {
-    font-size: 12px;
-    font-weight: 500;
-    color: #f0f0f0;
-    margin-bottom: 6px;
-    letter-spacing: 0.03em;
-  }
-  .layer-desc {
-    font-size: 11px;
-    color: var(--text-dim);
-    font-weight: 300;
-    line-height: 1.8;
-  }
-
-  /* CTA FINAL */
-  .block-cta {
-    padding-top: 56px;
-    display: flex;
-    gap: 20px;
-    align-items: center;
-    flex-wrap: wrap;
-  }
-  .btn-primary {
-    background: var(--neon);
-    color: var(--void);
-    font-family: var(--font-mono);
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    padding: 16px 28px;
-    border: none;
-    cursor: pointer;
-    transition: all 0.2s;
-    text-decoration: none;
-    display: inline-block;
-  }
-  .btn-primary:hover { background: #fff; }
-  .btn-ghost {
-    font-size: 11px;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--text-dim);
-    text-decoration: none;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    transition: color 0.2s;
-  }
-  .btn-ghost:hover { color: var(--text); }
-  .btn-ghost::after { content: '→'; transition: transform 0.2s; }
-  .btn-ghost:hover::after { transform: translateX(4px); }
-
-  footer {
-    border-top: 1px solid var(--border);
-    padding: 32px 48px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-  .footer-left { font-size: 10px; color: var(--text-faint); letter-spacing: 0.1em; }
-  .footer-right { font-size: 10px; color: var(--text-faint); }
-  .footer-right span { color: var(--gold-dim); }
-
-  .scroll-line {
-    position: fixed;
-    top: 0; left: 0;
-    height: 2px;
-    background: linear-gradient(90deg, var(--gold), var(--neon));
-    z-index: 9997;
-    width: 0%;
-    transition: width 0.1s;
-  }
-
-  @keyframes fadeUp {
-    to { opacity: 1; transform: translateY(0); }
-  }
-
-  @media (max-width: 768px) {
-    nav { padding: 16px 24px; }
-    .nav-right { gap: 16px; }
-    .page-wrap { padding: 120px 24px 80px; }
-    .term-item { grid-template-columns: 60px 1fr; gap: 16px; }
-    .layer-item { grid-template-columns: 1fr; gap: 6px; }
-    footer { flex-direction: column; gap: 10px; text-align: center; padding: 24px; }
-  }
-#sf-nodes {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  opacity: 0.35;
+  <style>
+:root{
+  --void:#080808; --void-mid:#0f0f0f; --void-soft:#161616; --void-2:#1a1a1a;
+  --gold:#C8A951; --gold-dim:#9a7f3a; --gold-faint:rgba(200,169,81,0.07);
+  --neon:#E6FF00; --neon-dim:#b8cc00;
+  --eco:#4a9e6a; --pol:#5a8fe8; --cul:#c85ae8; --cog:#E6FF00; --geo:#4ae8d8;
+  --red:#e85a4f; --orange:#e87c4f;
+  --text:#d4d4d4; --text-dim:#737373; --text-faint:#2e2e2e;
+  --border:#1e1e1e; --border2:#252525;
+  --font:'IBM Plex Mono',monospace;
+  --ease:cubic-bezier(0.16,1,0.3,1);
 }
 
-body > *:not(#sf-nodes) {
-  position: relative;
-  z-index: 1;
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{
+  height:100%;
+  font-family:var(--font);
+  background:var(--void);
+  color:var(--text);
 }
-.nav-link {
-  padding: 6px 0;
-  position: relative;
-}
-  /* Núcleo */
-.nav-center .nav-link {
-  color: var(--text-dim);
-  opacity: 0.8;
-}
-
-/* Activo */
-.nav-link.active {
-  color: var(--neon);
-  opacity: 1;
+body{cursor:crosshair}
+body::after{
+  content:'';
+  position:fixed;
+  inset:0;
+  background:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
+  pointer-events:none;
+  z-index:9999;
 }
 
-/* Acción (derecha) */
-.nav-right .nav-link {
-  color: var(--gold);
-  font-weight: 500;
-}
-  .nav-link::after {
-  content: '';
-  position: absolute;
-  left: 0;
-  bottom: -6px;
-  width: 0%;
-  height: 1px;
-  background: currentColor;
-  transition: width .25s var(--ease);
-}
-
-.nav-link:hover::after {
-  width: 100%;
-}
-  .dropdown {
-  position: relative;
+/* ── NAV ── */
+#nav{
+  position:fixed;
+  top:0; left:0; right:0;
+  height:48px;
+  z-index:200;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:0 24px;
+  background:rgba(8,8,8,.96);
+  border-bottom:1px solid var(--border);
+  backdrop-filter:blur(12px);
 }
 
-.dropdown-menu {
-  position: absolute;
-  top: 140%;
-  left: 0;
-  background: var(--void-mid);
-  border: 1px solid var(--border);
-  padding: 12px 0;
-  min-width: 220px;
-  opacity: 0;
-  pointer-events: none;
-  transform: translateY(6px);
-  transition: all .25s var(--ease);
+.nav-logo{
+  font-size:10px;
+  font-weight:500;
+  letter-spacing:.2em;
+  text-transform:uppercase;
+  color:var(--gold);
+  text-decoration:none;
+}
+.nav-logo span{color:var(--text-faint)}
+
+.nav-center{
+  font-size:9px;
+  letter-spacing:.2em;
+  text-transform:uppercase;
+  color:var(--text-faint);
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.nav-center::before,
+.nav-center::after{
+  content:'';
+  width:20px;
+  height:1px;
+  background:var(--border2);
 }
 
-.dropdown:hover .dropdown-menu {
-  opacity: 1;
-  pointer-events: auto;
-  transform: translateY(0);
+.nav-right{
+  display:flex;
+  align-items:center;
+  gap:20px;
 }
 
-.dropdown-item {
-  padding: 8px 16px;
-  font-size: 10px;
-  color: var(--text-dim);
+.nav-link{
+  position:relative;
+  font-size:9px;
+  letter-spacing:.16em;
+  text-transform:uppercase;
+  color:var(--text-dim);
+  text-decoration:none;
+  padding:6px 0;
+  transition:color .2s, opacity .2s;
+}
+.nav-link::after{
+  content:'';
+  position:absolute;
+  left:0;
+  bottom:-6px;
+  width:0%;
+  height:1px;
+  background:currentColor;
+  transition:width .25s var(--ease);
+}
+.nav-link:hover::after{width:100%}
+.nav-link:hover{color:var(--text)}
+
+.nav-link.active{
+  color:var(--neon);
+  opacity:1;
 }
 
-.dropdown-item:hover {
-  color: var(--text);
-  background: var(--void-soft);
-}
-  .nav-status {
-  border-left: 1px solid var(--border);
-  padding-left: 12px;
-  margin-left: 8px;
-}
-  #nav:hover .nav-link {
-  opacity: 0.4;
+.nav-right .nav-link{
+  color:var(--gold);
+  font-weight:500;
 }
 
+.nav-link.cta{
+  color:var(--neon);
+}
+
+/* ── DROPDOWNS ── */
+.nav-dropdown{position:relative}
+
+.nav-dropdown-menu{
+  position:absolute;
+  top:120%;
+  left:0;
+  min-width:180px;
+  background:var(--void-mid);
+  border:1px solid var(--border);
+  display:none;
+  flex-direction:column;
+  z-index:300;
+}
+
+.nav-dropdown-menu a{
+  padding:10px 14px;
+  font-size:10px;
+  letter-spacing:.08em;
+  text-decoration:none;
+  color:var(--text-dim);
+  transition:.2s;
+}
+.nav-dropdown-menu a:hover{
+  color:var(--text);
+  background:var(--void-soft);
+}
+.nav-dropdown:hover .nav-dropdown-menu{
+  display:flex;
+}
+
+/* NAV HOVER FADE */
+#nav:hover .nav-link{opacity:.4}
 #nav .nav-link:hover,
-.dropdown:hover > .nav-link {
-  opacity: 1;
-}
+.nav-dropdown:hover > .nav-link{opacity:1}
 
-  .nav-dropdown {
-  position: relative;
-}
-
-.nav-dropdown-menu {
-  position: absolute;
-  top: 120%;
-  left: 0;
-  background: #0f0f0f;
-  border: 1px solid #1e1e1e;
-  display: none;
-  flex-direction: column;
-  min-width: 180px;
-  z-index: 300;
-}
-
-.nav-dropdown-menu a {
-  padding: 10px 14px;
-  font-size: 10px;
-  text-decoration: none;
-  color: #737373;
-  transition: all .2s;
-}
-
-.nav-dropdown-menu a:hover {
-  color: #d4d4d4;
-  background: #161616;
-}
-
-.nav-dropdown:hover .nav-dropdown-menu {
-  display: flex;
-}
-
-.nav-link.cta {
-  color: #E6FF00;
-}
-</style>
+/* GLOBAL SCROLLBAR */
+::-webkit-scrollbar{width:3px;height:3px}
+::-webkit-scrollbar-thumb{background:var(--border2)}
+  </style>
 </head>
+
 <body>
 
 <canvas id="sf-nodes"></canvas>
-
-<div class="scroll-line" id="scrollLine"></div>
+<div id="scrollLine" class="scroll-line"></div>
 
 <nav id="nav">
   <a href="/index.html" class="nav-logo">SYSTEM<span>·</span>FRICTION</a>
@@ -546,16 +233,19 @@ body > *:not(#sf-nodes) {
       </div>
     </div>
 
-    <a href="/moh-p-form.html" class="nav-link cta">Aplicar</a>
+    <a href="/mop-h-form.html" class="nav-link cta">Aplicar</a>
 
   </div>
 </nav>
+  
 <div class="page-wrap">
 
   <div class="breadcrumb">
-    <a href="/index.html">Inicio</a>
+    <a href="/index.html">Observatorio </a>
     <span>/</span>
-    Sistema
+    <a href="/audit.html">Resultado</a>
+    <span>/</span>
+    Método
   </div>
 
   <!-- BLOQUE 1: QUÉ ES -->
