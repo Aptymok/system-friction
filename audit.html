@@ -3,264 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Resultado — System Friction</title>
-
+  <title>Diagnóstico — System Friction</title>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/style.css">
-  
-  <style>
-    /* ============================================================
-       ESTILOS EXCLUSIVOS PARA PÁGINA DE RESULTADO
-       (No están en style.css principal)
-       ============================================================ */
-    
-    /* Badge de nivel */
-    .nivel-badge {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 40px;
-      padding-bottom: 20px;
-      border-bottom: 1px solid var(--border);
-    }
-    .nivel-indicator {
-      width: 3px;
-      height: 24px;
-      background: var(--gold);
-    }
-    .nivel-text {
-      font-size: 11px;
-      letter-spacing: 0.22em;
-      text-transform: uppercase;
-      font-weight: 500;
-      color: var(--gold);
-    }
-
-    /* Header de diagnóstico */
-    .diag-header {
-      margin-bottom: 48px;
-    }
-    .diag-score-row {
-      display: flex;
-      align-items: baseline;
-      gap: 4px;
-      margin-bottom: 20px;
-    }
-    .diag-score-num {
-      font-size: 48px;
-      font-weight: 300;
-      line-height: 1;
-      color: var(--gold);
-    }
-    .diag-score-denom {
-      font-size: 14px;
-      color: var(--text-faint);
-    }
-    .diag-title {
-      font-size: clamp(24px, 3vw, 36px);
-      font-weight: 300;
-      line-height: 1.3;
-      color: #f0f0f0;
-      margin-bottom: 16px;
-      letter-spacing: -0.01em;
-    }
-    .diag-subtitle {
-      font-size: 12px;
-      color: var(--text-dim);
-      line-height: 1.8;
-      font-weight: 300;
-    }
-
-    /* Barra de fricción */
-    .friction-bar-wrap {
-      margin: 40px 0 56px;
-    }
-    .friction-bar-label {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 12px;
-      font-size: 9px;
-      letter-spacing: 0.16em;
-      text-transform: uppercase;
-    }
-    .friction-bar-key {
-      color: var(--text-faint);
-    }
-    .friction-bar-val {
-      color: var(--gold);
-    }
-    .friction-bar-track {
-      height: 3px;
-      background: var(--border2);
-      position: relative;
-      margin-bottom: 8px;
-    }
-    .friction-bar-fill {
-      position: absolute;
-      top: 0;
-      left: 0;
-      height: 100%;
-      width: 0%;
-      transition: width 1.2s var(--easing);
-      background: var(--accent, var(--gold));
-    }
-    .friction-bar-zones {
-      display: flex;
-      justify-content: space-between;
-      font-size: 8px;
-      color: var(--text-faint);
-      letter-spacing: 0.1em;
-    }
-
-    /* Grid de variables */
-    .var-grid {
-      display: flex;
-      flex-direction: column;
-      gap: 24px;
-      margin: 24px 0 16px;
-    }
-    .var-item {
-      padding: 16px 0;
-      border-bottom: 1px solid var(--border);
-    }
-    .var-key {
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--gold);
-      letter-spacing: 0.08em;
-      margin-bottom: 8px;
-    }
-    .var-status {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 10px;
-      font-size: 10px;
-    }
-    .var-dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-    }
-    .var-body {
-      font-size: 11px;
-      color: var(--text-dim);
-      line-height: 1.7;
-      font-weight: 300;
-    }
-
-    /* Vector de pasos */
-    .vector-steps {
-      display: flex;
-      flex-direction: column;
-      gap: 24px;
-      margin: 28px 0 16px;
-    }
-    .vector-step {
-      display: grid;
-      grid-template-columns: 32px 1fr;
-      gap: 20px;
-      align-items: start;
-    }
-    .vector-num {
-      font-size: 20px;
-      font-weight: 400;
-      color: var(--gold-dim);
-      line-height: 1.3;
-    }
-    .vector-action {
-      font-size: 13px;
-      font-weight: 500;
-      color: #f0f0f0;
-      margin-bottom: 6px;
-    }
-    .vector-detail {
-      font-size: 11px;
-      color: var(--text-dim);
-      line-height: 1.7;
-      font-weight: 300;
-    }
-
-    /* CTA block específico */
-    .diag-cta-block {
-      margin-top: 64px;
-      padding: 48px 0 24px;
-      border-top: 1px solid var(--border);
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 48px;
-      align-items: start;
-    }
-    .cta-eyebrow {
-      font-size: 8px;
-      letter-spacing: 0.22em;
-      text-transform: uppercase;
-      color: var(--text-faint);
-      margin-bottom: 16px;
-    }
-    .cta-statement {
-      font-size: 18px;
-      font-weight: 300;
-      color: #f0f0f0;
-      line-height: 1.4;
-      margin-bottom: 16px;
-    }
-    .cta-qualifier {
-      font-size: 11px;
-      color: var(--text-dim);
-      line-height: 1.7;
-      font-weight: 300;
-    }
-    .cta-right {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-    .btn-secondary {
-      background: transparent;
-      color: var(--text-dim);
-      font-family: var(--font-mono);
-      font-size: 11px;
-      font-weight: 400;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      padding: 16px 0;
-      border: 1px solid var(--border);
-      cursor: pointer;
-      transition: all 0.2s;
-      text-decoration: none;
-      display: inline-block;
-      text-align: center;
-    }
-    .btn-secondary:hover {
-      border-color: var(--gold-dim);
-      color: var(--text);
-    }
-    .cta-note {
-      font-size: 9px;
-      color: var(--text-faint);
-      line-height: 1.6;
-      letter-spacing: 0.05em;
-      margin-top: 8px;
-    }
-
-    /* Responsive */
-    @media (max-width: 768px) {
-      .diag-cta-block {
-        grid-template-columns: 1fr;
-        gap: 32px;
-      }
-      .vector-step {
-        grid-template-columns: 28px 1fr;
-        gap: 12px;
-      }
-      .var-grid {
-        gap: 16px;
-      }
-    }
-  </style>
 </head>
-
 <body>
 
 <canvas id="sf-nodes"></canvas>
@@ -317,15 +63,15 @@
     <a href="/mop-h-form.html" class="nav-link cta">Aplicar</a>
   </div>
 </nav>
-  
+
 <div class="page-wrap">
 
   <div class="breadcrumb">
     <a href="/index.html">Observatorio</a>
     <span>/</span>
-    <a href="/method.html">Método</a>
+    <a href="/audit.html">Resultado</a>
     <span>/</span>
-    Resultado
+    Método
   </div>
 
   <div class="nivel-badge" id="nivelBadge">
@@ -366,8 +112,8 @@
       <div class="cta-qualifier">La entrevista de calibración dura 60 minutos. Al terminar, tenés información útil independientemente de si continuamos.</div>
     </div>
     <div class="cta-right">
-      <a href="/mop-h-form.html" class="btn-primary">Quiero el diagnóstico completo</a>
-      <a href="/method.html" class="btn-secondary">Entender el marco primero</a>
+      <a href="/index.html#contact" class="btn-primary">Quiero el diagnóstico completo</a>
+      <a href="/sistema.html" class="btn-secondary">Entender el marco primero</a>
       <div class="cta-note">Respuesta en menos de 24 horas.<br>Sin formularios automáticos.</div>
     </div>
   </div>
@@ -380,6 +126,12 @@
 </footer>
 
 <script>
+// ── SCROLL ──
+window.addEventListener('scroll', () => {
+  const pct = (window.scrollY / (document.body.scrollHeight - window.innerHeight)) * 100;
+  document.getElementById('scrollLine').style.width = pct + '%';
+});
+
 // ── CURSOR ──
 const cursor = document.getElementById('cursorDot');
 if (cursor) {
@@ -389,96 +141,17 @@ if (cursor) {
   });
 }
 
-// ── SCROLL ──
-window.addEventListener('scroll', () => {
-  const pct = (window.scrollY / (document.body.scrollHeight - window.innerHeight)) * 100;
-  const scrollLine = document.getElementById('scrollLine');
-  if (scrollLine) scrollLine.style.width = pct + '%';
-});
-
 // ── SCROLL NAV EFFECT ──
 const nav = document.getElementById('nav');
 window.addEventListener('scroll', () => {
   if (nav) nav.classList.toggle('scrolled', window.scrollY > 40);
 });
 
-// ── DATOS POR NIVEL ──
+// ── DATOS POR NIVEL (versión simplificada para ejemplo) ──
 const niveles = {
-  baja: {
-    score: '2',
-    barPct: 22,
-    color: '#4a9e6a',
-    label: 'FRICCIÓN BAJA',
-    title: 'Tu sistema tiene trazabilidad activa.',
-    subtitle: 'Las señales circulan con integridad razonable. La brecha entre umbral oficial y real es actualmente pequeña.',
-    ctaStatement: 'Antes de que el contexto cambie, documentar lo que funciona.',
-    blocks: [
-      {
-        label: 'Estado del sistema',
-        title: 'Lo que el diagnóstico detecta',
-        body: `<p>Tu sistema opera con suficiente trazabilidad para que las anomalías sean detectables antes de volverse disruptivas. La LDI está dentro de márgenes tolerables.</p>`
-      },
-      {
-        label: 'Variables del sistema',
-        title: 'Lectura de índices primarios',
-        vars: [
-          { key: 'IHG', status: 'Estable', color: '#4a9e6a', body: 'Distancia entre intención declarada y ejecución verificable dentro de rango operativo.' },
-          { key: 'LDI', status: 'Controlada', color: '#4a9e6a', body: 'Latencia institucional dentro de márgenes funcionales.' },
-          { key: 'NTI', status: 'Funcional', color: '#4a9e6a', body: 'Integridad epistémica de la señal razonablemente preservada.' }
-        ]
-      }
-    ]
-  },
-  media: {
-    score: '5',
-    barPct: 55,
-    color: '#C8A951',
-    label: 'FRICCIÓN MEDIA-ALTA',
-    title: 'Hay acumulación sistémica que los indicadores no están mostrando.',
-    subtitle: 'Los reportes formales muestran estabilidad. Pero la latencia institucional está generando entropía bajo la superficie.',
-    ctaStatement: 'Este es el momento de mapear, no de esperar.',
-    blocks: [
-      {
-        label: 'Estado del sistema',
-        title: 'Lo que el diagnóstico detecta',
-        body: `<p>Tu sistema está operando en modo de absorción pasiva de fricción. Las anomalías se detectan, pero la señal se distorsiona antes de llegar a quien puede ejecutar una respuesta.</p>`
-      },
-      {
-        label: 'Variables del sistema',
-        title: 'Lectura de índices primarios',
-        vars: [
-          { key: 'IHG', status: 'Elevado', color: '#C8A951', body: 'El sistema está absorbiendo fricción que no está registrando formalmente.' },
-          { key: 'LDI', status: 'Alta', color: '#C8A951', body: 'Latencia institucional por encima del óptimo.' },
-          { key: 'NTI', status: 'Degradado', color: '#C8A951', body: 'Hay indicios de desacople entre los datos que circulan y el estado físico del sistema.' }
-        ]
-      }
-    ]
-  },
-  critica: {
-    score: '8',
-    barPct: 88,
-    color: '#e85a4f',
-    label: 'FRICCIÓN CRÍTICA',
-    title: 'La distancia entre ambos umbrales es estructural y activa.',
-    subtitle: 'Tu sistema está operando con una brecha significativa entre lo que declara y lo que ocurre físicamente.',
-    ctaStatement: 'El tiempo entre detección y acción es el vector de vulnerabilidad.',
-    blocks: [
-      {
-        label: 'Estado del sistema',
-        title: 'Lo que el diagnóstico detecta',
-        body: `<p>Tu sistema ha superado el umbral donde la fricción se acumula y entrado en el estado donde la fricción se retroalimenta. Cada ciclo sin corrección estructural aumenta la LDI.</p>`
-      },
-      {
-        label: 'Variables del sistema',
-        title: 'Lectura de índices primarios',
-        vars: [
-          { key: 'IHG', status: 'Crítico', color: '#e85a4f', body: 'La distancia entre intención declarada y ejecución verificable ha superado el umbral de estabilidad homeostática.' },
-          { key: 'LDI', status: 'Supera degradación', color: '#e85a4f', body: 'El tiempo entre detección técnica y respuesta ejecutiva supera la velocidad de degradación del sistema.' },
-          { key: 'NTI', status: 'Comprometido', color: '#e85a4f', body: 'La integridad epistémica de la señal está comprometida.' }
-        ]
-      }
-    ]
-  }
+  baja: { score: '2', barPct: 22, color: '#4a9e6a', label: 'FRICCIÓN BAJA', title: 'Tu sistema tiene trazabilidad activa.', subtitle: 'Las señales circulan con integridad razonable.', ctaStatement: 'Documentar lo que funciona.', blocks: [] },
+  media: { score: '5', barPct: 55, color: '#C8A951', label: 'FRICCIÓN MEDIA-ALTA', title: 'Hay acumulación sistémica invisible.', subtitle: 'Los reportes formales muestran estabilidad, pero la entropía crece.', ctaStatement: 'Mapear antes de que escale.', blocks: [] },
+  critica: { score: '8', barPct: 88, color: '#e85a4f', label: 'FRICCIÓN CRÍTICA', title: 'La brecha es estructural.', subtitle: 'El sistema no puede corregirse desde adentro.', ctaStatement: 'Intervención externa requerida.', blocks: [] }
 };
 
 function render() {
@@ -487,54 +160,22 @@ function render() {
   if (nivelKey === 'low') nivelKey = 'baja';
   if (nivelKey === 'critical' || nivelKey === 'alta') nivelKey = 'critica';
   
-  const scoreParam = params.get('score');
-  if (scoreParam !== null) {
-    const s = parseInt(scoreParam);
-    if (s <= 2) nivelKey = 'baja';
-    else if (s <= 5) nivelKey = 'media';
-    else nivelKey = 'critica';
-  }
-
   const d = niveles[nivelKey];
   document.documentElement.style.setProperty('--accent', d.color);
-
   document.getElementById('nivelIndicator').style.background = d.color;
   document.getElementById('nivelText').style.color = d.color;
   document.getElementById('nivelText').textContent = d.label;
-  document.getElementById('scoreNum').textContent = scoreParam || d.score;
+  document.getElementById('scoreNum').textContent = d.score;
   document.getElementById('scoreNum').style.color = d.color;
   document.getElementById('diagTitle').textContent = d.title;
   document.getElementById('diagSubtitle').textContent = d.subtitle;
   document.getElementById('barValLabel').textContent = d.label;
   document.getElementById('barValLabel').style.color = d.color;
   document.getElementById('ctaStatement').textContent = d.ctaStatement;
-
-  setTimeout(() => {
-    document.getElementById('frictionFill').style.width = d.barPct + '%';
-  }, 300);
-
-  const container = document.getElementById('diagContent');
-  container.innerHTML = '';
-  d.blocks.forEach((b, i) => {
-    const el = document.createElement('div');
-    el.className = 'block';
-    el.style.animationDelay = (0.25 + i * 0.07) + 's';
-    let inner = `<div class="block-label">${b.label}</div><div class="block-title">${b.title}</div>`;
-    if (b.body) inner += `<div class="block-body">${b.body}</div>`;
-    if (b.vars) {
-      inner += `<div class="var-grid">`;
-      b.vars.forEach(v => {
-        inner += `<div class="var-item"><div class="var-key">${v.key}</div><div class="var-status"><div class="var-dot" style="background:${v.color}"></div><span style="color:${v.color}">${v.status}</span></div><div class="var-body">${v.body}</div></div>`;
-      });
-      inner += `</div>`;
-    }
-    el.innerHTML = inner;
-    container.appendChild(el);
-  });
+  setTimeout(() => document.getElementById('frictionFill').style.width = d.barPct + '%', 300);
 }
 
 render();
 </script>
-
 </body>
 </html>
