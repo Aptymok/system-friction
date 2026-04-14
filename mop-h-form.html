@@ -322,9 +322,141 @@ textarea.q-ans::placeholder { color:var(--wire); font-style:italic; }
 .nav-link.cta {
   color: #E6FF00;
 }
+
+   .inner-nav {
+  position: fixed;
+  top: 48px;
+  left: 0;
+  right: 0;
+  height: 36px;
+  background: #0f0f0f;
+  border-bottom: 1px solid #1e1e1e;
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  gap: 20px;
+  z-index: 190;
+}
+
+.inner-nav a {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: .14em;
+  color: #737373;
+  text-decoration: none;
+}
+
+.inner-nav a:hover {
+  color: #E6FF00;
+}
+
+   .nav-dropdown {
+  position: relative;
+}
+
+.nav-dropdown-menu {
+  position: absolute;
+  top: 120%;
+  left: 0;
+  background: #0f0f0f;
+  border: 1px solid #1e1e1e;
+  display: none;
+  flex-direction: column;
+  min-width: 180px;
+  z-index: 300;
+}
+
+.nav-dropdown-menu a {
+  padding: 10px 14px;
+  font-size: 10px;
+  text-decoration: none;
+  color: #737373;
+  transition: all .2s;
+}
+
+.nav-dropdown-menu a:hover {
+  color: #d4d4d4;
+  background: #161616;
+}
+
+.nav-dropdown:hover .nav-dropdown-menu {
+  display: flex;
+}
+
+.nav-link.cta {
+  color: #E6FF00;
+}
+   
 </style>
 </head>
 <body>
+<nav id="nav">
+  <a href="/index.html" class="nav-logo">SYSTEM<span>·</span>FRICTION</a>
+
+  <div class="nav-center">Institute — Systemic Friction</div>
+
+  <div class="nav-right">
+
+    <a href="/index.html" class="nav-link">Observatorio</a>
+
+    <div class="nav-dropdown">
+      <span class="nav-link">Instrumentos ▾</span>
+      <div class="nav-dropdown-menu">
+        <a href="/audit.html">Auditoría</a>
+        <a href="/perenne.html">Perenne (DCT)</a>
+        <a href="/amv.html">AMV</a>
+        <a href="/scorefriction.html">ScoreFriction</a>
+        <a href="/friction-manager.html">Friction Manager</a>
+        <a href="/atractor.html">Atractor</a>
+        <a href="/language.html">System Language</a>
+      </div>
+    </div>
+
+    <div class="nav-dropdown">
+      <span class="nav-link">Repositorio ▾</span>
+      <div class="nav-dropdown-menu">
+        <a href="/atlas.html">Atlas</a>
+        <a href="/patrones.html">Patrones</a>
+        <a href="/linguistica.html">Lingüística</a>
+        <a href="/logica.html">Lógica</a>
+        <a href="/postulados.html">Postulados</a>
+      </div>
+    </div>
+
+    <div class="nav-dropdown">
+      <span class="nav-link">Laboratorio ▾</span>
+      <div class="nav-dropdown-menu">
+        <a href="/lab-eco.html">ECO</a>
+        <a href="/lab-pol.html">POL</a>
+        <a href="/lab-cul.html">CUL</a>
+        <a href="/lab-cog.html">COG</a>
+        <a href="/lab-geo.html">GEO</a>
+        <a href="/lab-sys.html">SYS</a>
+      </div>
+    </div>
+
+    <div class="nav-dropdown">
+      <span class="nav-link">Instituto ▾</span>
+      <div class="nav-dropdown-menu">
+        <a href="/about.html">Marco</a>
+        <a href="/method.html">Método</a>
+        <a href="/sfi.html">Arquitectura</a>
+        <a href="/contact.html">Contacto</a>
+      </div>
+    </div>
+
+    <a href="/moh-p-form.html" class="nav-link cta">Aplicar</a>
+
+  </div>
+</nav>
+   
+<div class="inner-nav">
+  <a href="/sistema.html">Inicio Auditoría</a>
+  <a href="/audit.html">Diagnóstico</a>
+  <a href="/method.html">Método</a>
+  <a href="/moh-p-form.html">Aplicar Auditoría</a>
+</div>
+   
 <div id="progress-bar"></div>
 <div id="progress-label"></div>
 
