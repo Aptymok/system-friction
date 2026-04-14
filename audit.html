@@ -353,6 +353,92 @@ body > *:not(#sf-nodes) {
   position: relative;
   z-index: 1;
 }
+  .nav-right, .nav-center {
+  gap: 28px; /* antes 20 */
+}
+
+.nav-link {
+  padding: 6px 0;
+  position: relative;
+}
+  /* Núcleo */
+.nav-center .nav-link {
+  color: var(--text-dim);
+  opacity: 0.8;
+}
+
+/* Activo */
+.nav-link.active {
+  color: var(--neon);
+  opacity: 1;
+}
+
+/* Acción (derecha) */
+.nav-right .nav-link {
+  color: var(--gold);
+  font-weight: 500;
+}
+  .nav-link::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -6px;
+  width: 0%;
+  height: 1px;
+  background: currentColor;
+  transition: width .25s var(--ease);
+}
+
+.nav-link:hover::after {
+  width: 100%;
+}
+  .dropdown {
+  position: relative;
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: 140%;
+  left: 0;
+  background: var(--void-mid);
+  border: 1px solid var(--border);
+  padding: 12px 0;
+  min-width: 220px;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(6px);
+  transition: all .25s var(--ease);
+}
+
+.dropdown:hover .dropdown-menu {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+.dropdown-item {
+  padding: 8px 16px;
+  font-size: 10px;
+  color: var(--text-dim);
+}
+
+.dropdown-item:hover {
+  color: var(--text);
+  background: var(--void-soft);
+}
+  .nav-status {
+  border-left: 1px solid var(--border);
+  padding-left: 12px;
+  margin-left: 8px;
+}
+  #nav:hover .nav-link {
+  opacity: 0.4;
+}
+
+#nav .nav-link:hover,
+.dropdown:hover > .nav-link {
+  opacity: 1;
+}
 </style>
 </head>
 <body>
@@ -361,20 +447,69 @@ body > *:not(#sf-nodes) {
 
 <div class="scroll-line" id="scrollLine"></div>
 
-<nav>
+<nav id="nav">
   <a href="/index.html" class="nav-logo">SYSTEM<span>·</span>FRICTION</a>
+
+  <div class="nav-center">Institute — Systemic Friction</div>
+
   <div class="nav-right">
-    <a href="/sistema.html#diagnostic" class="nav-link">Diagnóstico</a>
-    <a href="/method.html" class="nav-link">Método</a>
-    <a href="/contact.html" class="nav-cta">Aplicar</a>
-    <a href="/index.html#contact" class="nav-cta">Contactar</a>
+
+    <a href="/index.html" class="nav-link">Observatorio</a>
+
+    <div class="nav-dropdown">
+      <span class="nav-link">Instrumentos ▾</span>
+      <div class="nav-dropdown-menu">
+        <a href="/audit.html">Auditoría</a>
+        <a href="/perenne.html">Perenne (DCT)</a>
+        <a href="/amv.html">AMV</a>
+        <a href="/scorefriction.html">ScoreFriction</a>
+        <a href="/friction-manager.html">Friction Manager</a>
+        <a href="/atractor.html">Atractor</a>
+        <a href="/language.html">System Language</a>
+      </div>
+    </div>
+
+    <div class="nav-dropdown">
+      <span class="nav-link">Repositorio ▾</span>
+      <div class="nav-dropdown-menu">
+        <a href="/atlas.html">Atlas</a>
+        <a href="/patrones.html">Patrones</a>
+        <a href="/linguistica.html">Lingüística</a>
+        <a href="/logica.html">Lógica</a>
+        <a href="/postulados.html">Postulados</a>
+      </div>
+    </div>
+
+    <div class="nav-dropdown">
+      <span class="nav-link">Laboratorio ▾</span>
+      <div class="nav-dropdown-menu">
+        <a href="/lab-eco.html">ECO</a>
+        <a href="/lab-pol.html">POL</a>
+        <a href="/lab-cul.html">CUL</a>
+        <a href="/lab-cog.html">COG</a>
+        <a href="/lab-geo.html">GEO</a>
+        <a href="/lab-sys.html">SYS</a>
+      </div>
+    </div>
+
+    <div class="nav-dropdown">
+      <span class="nav-link">Instituto ▾</span>
+      <div class="nav-dropdown-menu">
+        <a href="/about.html">Marco</a>
+        <a href="/method.html">Método</a>
+        <a href="/sfi.html">Arquitectura</a>
+        <a href="/contact.html">Contacto</a>
+      </div>
+    </div>
+
+    <a href="/moh-p-form.html" class="nav-link cta">Aplicar</a>
+
   </div>
 </nav>
-
 <div class="page-wrap">
 
   <div class="breadcrumb">
-    <a href="/index.html">Inicio</a>
+    <a href="/index.html">Observatorio </a>
     <span>/</span>
     <a href="/audit.html">Diagnóstico</a>
     <span>/</span>
@@ -424,8 +559,8 @@ body > *:not(#sf-nodes) {
       <div class="cta-qualifier">La entrevista de calibración dura 60 minutos. Al terminar, tenés información útil independientemente de si continuamos.</div>
     </div>
     <div class="cta-right">
-      <a href="/index.html#contact" class="btn-primary">Quiero el diagnóstico completo</a>
-      <a href="/sistema.html" class="btn-secondary">Entender el marco primero</a>
+      <a href="/mop-h-form.html" class="btn-primary">Quiero el diagnóstico completo</a>
+      <a href="/method.html" class="btn-secondary">Entender el marco primero</a>
       <div class="cta-note">Respuesta en menos de 24 horas.<br>Sin formularios automáticos.</div>
     </div>
   </div>
