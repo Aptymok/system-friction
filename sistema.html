@@ -1023,6 +1023,42 @@ body > *:not(#sf-nodes) {
 .dropdown:hover > .nav-link {
   opacity: 1;
 }
+  .nav-dropdown {
+  position: relative;
+}
+
+.nav-dropdown-menu {
+  position: absolute;
+  top: 120%;
+  left: 0;
+  background: #0f0f0f;
+  border: 1px solid #1e1e1e;
+  display: none;
+  flex-direction: column;
+  min-width: 180px;
+  z-index: 300;
+}
+
+.nav-dropdown-menu a {
+  padding: 10px 14px;
+  font-size: 10px;
+  text-decoration: none;
+  color: #737373;
+  transition: all .2s;
+}
+
+.nav-dropdown-menu a:hover {
+  color: #d4d4d4;
+  background: #161616;
+}
+
+.nav-dropdown:hover .nav-dropdown-menu {
+  display: flex;
+}
+
+.nav-link.cta {
+  color: #E6FF00;
+}
 </style>
 </head>
 <body>
