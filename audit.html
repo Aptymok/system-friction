@@ -74,11 +74,36 @@
     Método
   </div>
 
+<body>
+ 
+<div class="scroll-line" id="scrollLine"></div>
+ 
+<nav>
+  <a href="/index.html" class="nav-logo">SYSTEM<span>·</span>FRICTION</a>
+  <div class="nav-right">
+    <a href="/index.html#diagnostic" class="nav-link">Diagnóstico</a>
+    <a href="/sistema.html" class="nav-link">Sistema</a>
+    <a href="/index.html#contact" class="nav-cta">Contactar</a>
+  </div>
+</nav>
+ 
+<div class="page-wrap">
+ 
+  <div class="breadcrumb">
+    <a href="/index.html">Inicio</a>
+    <span>/</span>
+    <a href="/index.html#diagnostic">Diagnóstico</a>
+    <span>/</span>
+    Resultado
+  </div>
+ 
+  <!-- NIVEL BADGE — renderizado por JS -->
   <div class="nivel-badge" id="nivelBadge">
     <div class="nivel-indicator" id="nivelIndicator"></div>
     <span class="nivel-text" id="nivelText"></span>
   </div>
-
+ 
+  <!-- HEADER -->
   <div class="diag-header">
     <div class="diag-score-row">
       <div class="diag-score-num" id="scoreNum">—</div>
@@ -87,7 +112,8 @@
     <h1 class="diag-title" id="diagTitle"></h1>
     <p class="diag-subtitle" id="diagSubtitle"></p>
   </div>
-
+ 
+  <!-- BARRA DE FRICCIÓN -->
   <div class="friction-bar-wrap">
     <div class="friction-bar-label">
       <span class="friction-bar-key">Índice de fricción acumulada</span>
@@ -102,9 +128,11 @@
       <span>Crítica</span>
     </div>
   </div>
-
+ 
+  <!-- BLOQUES DINÁMICOS -->
   <div id="diagContent"></div>
-
+ 
+  <!-- CTA FINAL -->
   <div class="diag-cta-block">
     <div class="cta-left">
       <div class="cta-eyebrow">Siguiente paso</div>
@@ -117,65 +145,262 @@
       <div class="cta-note">Respuesta en menos de 24 horas.<br>Sin formularios automáticos.</div>
     </div>
   </div>
-
+ 
 </div>
-
-<footer>
-  <div class="footer-left">© 2026 System Friction Institute · Aguascalientes, México</div>
-  <div class="footer-right">MIHM v2.0 · <span>core-bridge v1.1</span></div>
-</footer>
-
+ 
 <script>
 // ── SCROLL ──
 window.addEventListener('scroll', () => {
   const pct = (window.scrollY / (document.body.scrollHeight - window.innerHeight)) * 100;
   document.getElementById('scrollLine').style.width = pct + '%';
 });
-
-// ── CURSOR ──
-const cursor = document.getElementById('cursorDot');
-if (cursor) {
-  document.addEventListener('mousemove', e => {
-    cursor.style.left = e.clientX + 'px';
-    cursor.style.top = e.clientY + 'px';
-  });
-}
-
-// ── SCROLL NAV EFFECT ──
-const nav = document.getElementById('nav');
-window.addEventListener('scroll', () => {
-  if (nav) nav.classList.toggle('scrolled', window.scrollY > 40);
-});
-
-// ── DATOS POR NIVEL (versión simplificada para ejemplo) ──
+ 
+// ── DATOS POR NIVEL ──
 const niveles = {
-  baja: { score: '2', barPct: 22, color: '#4a9e6a', label: 'FRICCIÓN BAJA', title: 'Tu sistema tiene trazabilidad activa.', subtitle: 'Las señales circulan con integridad razonable.', ctaStatement: 'Documentar lo que funciona.', blocks: [] },
-  media: { score: '5', barPct: 55, color: '#C8A951', label: 'FRICCIÓN MEDIA-ALTA', title: 'Hay acumulación sistémica invisible.', subtitle: 'Los reportes formales muestran estabilidad, pero la entropía crece.', ctaStatement: 'Mapear antes de que escale.', blocks: [] },
-  critica: { score: '8', barPct: 88, color: '#e85a4f', label: 'FRICCIÓN CRÍTICA', title: 'La brecha es estructural.', subtitle: 'El sistema no puede corregirse desde adentro.', ctaStatement: 'Intervención externa requerida.', blocks: [] }
+  baja: {
+    score: '2',
+    barPct: 22,
+    color: '#4a9e6a',
+    label: 'FRICCIÓN BAJA',
+    title: 'Tu sistema tiene trazabilidad activa.',
+    subtitle: 'Las señales circulan con integridad razonable. La brecha entre umbral oficial y real es actualmente pequeña. Eso no significa ausencia de fricción: significa que está siendo absorbida sin acumularse de forma crítica. La pregunta relevante ahora no es si algo falla, sino qué condiciones estructurales están sosteniendo esa estabilidad.',
+    ctaStatement: 'Antes de que el contexto cambie, documentar lo que funciona.',
+    blocks: [
+      {
+        label: 'Estado del sistema',
+        title: 'Lo que el diagnóstico detecta',
+        body: `<p>Tu sistema opera con suficiente trazabilidad para que las anomalías sean detectables antes de volverse disruptivas. La LDI está dentro de márgenes tolerables: el tiempo entre detección técnica y respuesta ejecutiva no supera la velocidad de degradación del sistema.</p>
+               <p>Esto es infrecuente. La mayoría de los sistemas institucionales que reportan estabilidad lo hacen porque no están midiendo la fricción, no porque no exista. Tu caso es distinto: algo en la arquitectura está funcionando como regulador.</p>`,
+      },
+      {
+        label: 'Variables del sistema',
+        title: 'Lectura de índices primarios',
+        vars: [
+          { key: 'IHG', status: 'Estable', color: '#4a9e6a', body: 'Distancia entre intención declarada y ejecución verificable dentro de rango operativo. El sistema no está absorbiendo fricción invisible de forma significativa.' },
+          { key: 'LDI', status: 'Controlada', color: '#4a9e6a', body: 'Latencia institucional dentro de márgenes funcionales. Las alertas técnicas alcanzan a quien puede actuar antes del punto de degradación.' },
+          { key: 'NTI', status: 'Funcional', color: '#4a9e6a', body: 'Integridad epistémica de la señal razonablemente preservada. Los datos que circulan no están siendo distorsionados de forma sistemática.' },
+          { key: 'MIHM', status: 'Sin alerta activa', color: '#4a9e6a', body: 'El modelo no detecta acumulación entrópica crítica. Sin embargo, la ausencia de alerta no equivale a ausencia de riesgo diferido.' },
+        ]
+      },
+      {
+        label: 'Advertencia estructural',
+        title: 'El riesgo invisible de la estabilidad',
+        body: `<p>Los sistemas que funcionan bien rara vez invierten en comprender por qué funcionan bien. Cuando el contexto cambia —cambio de gestión, presión externa, reducción de recursos— el regulador que sostenía la estabilidad desaparece sin que nadie sepa qué era.</p>
+               <p>La fricción no solo opera en sistemas disfuncionales. Opera en todos. La diferencia es quién la mide antes de que sea urgente.</p>`,
+        postulate: 'Los sistemas que no nombran sus reguladores los pierden sin saberlo. La resiliencia no documentada no se transfiere. <em>Se hereda el resultado, no el mecanismo.</em>'
+      },
+      {
+        label: 'Vector de movimiento',
+        title: 'Qué hacer con esta información',
+        vector: [
+          { action: 'Mapear los reguladores activos', detail: 'Identificar qué mecanismos específicos están manteniendo la LDI dentro de rango. No asumir que es cultura organizacional. Buscar la estructura concreta.' },
+          { action: 'Documentar el estado actual como línea base', detail: 'Un diagnóstico de fricción baja tiene valor máximo en este momento. Es el patrón de referencia contra el cual detectar degradación futura.' },
+          { action: 'Diseñar compuertas de alerta temprana', detail: 'Antes de que el contexto cambie, definir qué indicador específico señala que el sistema está comenzando a absorber fricción invisible. No esperar a que sea visible.' },
+        ]
+      }
+    ]
+  },
+ 
+  media: {
+    score: '5',
+    barPct: 55,
+    color: '#C8A951',
+    label: 'FRICCIÓN MEDIA-ALTA',
+    title: 'Hay acumulación sistémica que los indicadores no están mostrando.',
+    subtitle: 'Los reportes formales probablemente muestran estabilidad. Pero la latencia institucional está generando entropía bajo la superficie. La brecha entre umbral oficial y umbral real existe y está creciendo. El sistema no está en colapso inminente, pero el margen operativo se está estrechando en al menos una capa.',
+    ctaStatement: 'Este es el momento de mapear, no de esperar.',
+    blocks: [
+      {
+        label: 'Estado del sistema',
+        title: 'Lo que el diagnóstico detecta',
+        body: `<p>Tu sistema está operando en modo de absorción pasiva de fricción. Las anomalías se detectan, pero la señal se distorsiona antes de llegar a quien puede ejecutar una respuesta. Esto genera una latencia institucional que supera la velocidad óptima de corrección, aunque todavía no supera la velocidad de degradación crítica.</p>
+               <p>El riesgo no es inmediato. Es acumulativo. Cada ciclo sin corrección estructural aumenta la brecha entre umbral oficial y umbral real. Los indicadores formales se mantienen estables mientras el sustrato se erosiona.</p>`,
+      },
+      {
+        label: 'Variables del sistema',
+        title: 'Lectura de índices primarios',
+        vars: [
+          { key: 'IHG', status: 'Elevado', color: '#C8A951', body: 'El sistema está absorbiendo fricción que no está registrando formalmente. La distancia entre intención declarada y ejecución verificable supera el umbral de eficiencia sin haber alcanzado el umbral de alerta.' },
+          { key: 'LDI', status: 'Alta', color: '#C8A951', body: 'Latencia institucional por encima del óptimo. Las alertas técnicas están tardando más de lo tolerable en convertirse en decisión ejecutiva verificable.' },
+          { key: 'NTI', status: 'Degradado', color: '#C8A951', body: 'Hay indicios de desacople entre los datos que circulan oficialmente y el estado físico del sistema. La señal no está siendo manipulada activamente, pero sí filtrada por el camino.' },
+          { key: 'MIHM', status: 'Alerta moderada', color: '#C8A951', body: 'El modelo detecta acumulación entrópica en al menos una capa del sistema. Sin intervención estructural, la trayectoria converge hacia un escenario de fricción crítica en el horizonte medio.' },
+        ]
+      },
+      {
+        label: 'Patrón subyacente',
+        title: 'Por qué esto ocurre en este punto',
+        body: `<p>Este estado es el más frecuente en instituciones que han crecido sin actualizar su arquitectura de trazabilidad. El sistema fue diseñado para una escala o un contexto que ya no existe. Las capas de respuesta que funcionaban antes ahora tienen más fricción que la que pueden absorber.</p>
+               <p>El punto crítico no es que algo falle. Es que el sistema ya está redirigiendo recursos internos para mantener la apariencia de estabilidad. Eso es Auto-Mutilación Táctica (AMT): sacrificar capacidad operativa real para preservar los indicadores formales.</p>`,
+        postulate: 'Cuando el cumplimiento reemplaza a la operación como objetivo del sistema, las métricas dejan de medir realidad y empiezan a administrar apariencia. <em>La entropía no desaparece: se vuelve invisible.</em>'
+      },
+      {
+        label: 'Vector de movimiento',
+        title: 'Qué hacer con esta información',
+        vector: [
+          { action: 'Localizar la capa de mayor acumulación', detail: 'El IHG elevado tiene una fuente específica. No está distribuido uniformemente. Identificar en qué capa del sistema (información, decisión, ejecución) se acumula la fricción es el primer paso concreto.' },
+          { action: 'Medir la LDI del sistema en este momento', detail: 'Calcular el tiempo real entre la última alerta técnica válida emitida y la última acción ejecutiva verificable. Ese número solo ya justifica una intervención.' },
+          { action: 'Intervenir antes del siguiente ciclo', detail: 'La fricción media-alta responde bien a intervención estructural. La ventana operativa existe. Cuando el IHG sigue escalando hacia fricción crítica, el tipo de intervención requerida cambia completamente.' },
+        ]
+      }
+    ]
+  },
+ 
+  critica: {
+    score: '8',
+    barPct: 88,
+    color: '#e85a4f',
+    label: 'FRICCIÓN CRÍTICA',
+    title: 'La distancia entre ambos umbrales es estructural y activa.',
+    subtitle: 'Tu sistema está operando con una brecha significativa entre lo que declara y lo que ocurre físicamente en su sustrato. La LDI supera la velocidad de degradación en al menos una capa. Esto no es un escenario de riesgo futuro. Es una trayectoria activa. El colapso no requiere un evento externo: ya está ocurriendo en la capa que los indicadores no están midiendo.',
+    ctaStatement: 'El tiempo entre detección y acción es el vector de vulnerabilidad.',
+    blocks: [
+      {
+        label: 'Estado del sistema',
+        title: 'Lo que el diagnóstico detecta',
+        body: `<p>Tu sistema ha superado el umbral donde la fricción se acumula y entrado en el estado donde la fricción se retroalimenta. Cada ciclo sin corrección estructural aumenta la LDI, lo que reduce la capacidad de respuesta, lo que aumenta la LDI del siguiente ciclo. Es una compresión entrópica.</p>
+               <p>Los indicadores formales probablemente todavía muestran estabilidad. Eso no es señal de que el sistema esté bien. Es señal de que el sistema de medición se ha desacoplado de la realidad física. La Ley de Goodhart está operando: las métricas de cumplimiento se convirtieron en el objetivo, y el sistema las está optimizando mientras el sustrato colapsa.</p>`,
+      },
+      {
+        label: 'Variables del sistema',
+        title: 'Lectura de índices primarios',
+        vars: [
+          { key: 'IHG', status: 'Crítico', color: '#e85a4f', body: 'La distancia entre intención declarada y ejecución verificable ha superado el umbral de estabilidad homeostática. El sistema no puede corregirse solo dentro de su arquitectura actual.' },
+          { key: 'LDI', status: 'Supera degradación', color: '#e85a4f', body: 'El tiempo entre detección técnica y respuesta ejecutiva verificable supera la velocidad de degradación del sistema. Matemáticamente, sin intervención externa, el colapso es inevitable.' },
+          { key: 'NTI', status: 'Comprometido', color: '#e85a4f', body: 'La integridad epistémica de la señal está comprometida. Los datos que informan las decisiones ejecutivas ya no describen el estado real del sistema. Las decisiones se toman sobre una realidad que no existe.' },
+          { key: 'AMT', status: 'Activo', color: '#e85a4f', body: 'El sistema está en modo de Auto-Mutilación Táctica: sacrificando capacidad operativa en capas secundarias para mantener los indicadores primarios dentro de rango. Eso preserva la apariencia pero acelera la degradación.' },
+        ]
+      },
+      {
+        label: 'Condición estructural',
+        title: 'Por qué el sistema no puede corregirse desde adentro',
+        body: `<p>Un sistema en fricción crítica no puede autodiagnosticarse con precisión porque el instrumento de medición es parte del sistema degradado. La NTI comprometida significa que la información disponible para tomar decisiones ya no describe el estado real. Las decisiones se toman sobre una representación del sistema, no sobre el sistema.</p>
+               <p>Esta es la condición más difícil de comunicar a quienes operan desde adentro: el sistema se ve estable porque sus instrumentos de estabilidad son los que están midiendo. La anomalía solo es detectable desde afuera del ciclo de retroalimentación.</p>`,
+        postulate: 'No es la magnitud del fallo lo que define una crisis sistémica. Es la velocidad a la que el sistema puede generar información íntegra sobre sí mismo. <em>Cuando esa velocidad cae por debajo de la velocidad de degradación, el tiempo trabaja en contra.</em>'
+      },
+      {
+        label: 'Vector de movimiento',
+        title: 'Qué hacer con esta información',
+        vector: [
+          { action: 'Activar auditoría epistémica externa de inmediato', detail: 'El primer movimiento no es diseñar soluciones. Es restablecer la integridad de la señal. Sin NTI funcional, cualquier intervención opera sobre datos que no describen la realidad.' },
+          { action: 'Separar la capa de medición de la capa de gestión', detail: 'Mientras quienes gestionan el sistema también definen sus métricas de éxito, el desacople persiste. La arquitectura de trazabilidad tiene que ser estructuralmente independiente.' },
+          { action: 'Detener la optimización de indicadores formales', detail: 'Cualquier energía que el sistema esté invirtiendo en hacer que los números se vean bien es energía que no está invirtiendo en corregir el sustrato. Ese intercambio acelera el colapso.' },
+          { action: 'Mapear la LDI real del sistema ahora', detail: 'No la latencia oficial. El tiempo real entre la última anomalía física verificable y la última acción ejecutiva documentada. Ese número define la urgencia de la intervención.' },
+        ]
+      }
+    ]
+  }
 };
-
+ 
+// ── RENDER ──
 function render() {
   const params = new URLSearchParams(window.location.search);
-  let nivelKey = params.get('nivel') || 'media';
-  if (nivelKey === 'low') nivelKey = 'baja';
-  if (nivelKey === 'critical' || nivelKey === 'alta') nivelKey = 'critica';
-  
+  const nivelParam = params.get('nivel') || 'media';
+  const scoreParam = params.get('score');
+ 
+  // Seleccionar nivel
+  let nivelKey = 'media';
+  if (nivelParam === 'baja' || nivelParam === 'low') nivelKey = 'baja';
+  else if (nivelParam === 'critica' || nivelParam === 'critical' || nivelParam === 'alta') nivelKey = 'critica';
+  else if (scoreParam !== null) {
+    const s = parseInt(scoreParam);
+    if (s <= 2) nivelKey = 'baja';
+    else if (s <= 5) nivelKey = 'media';
+    else nivelKey = 'critica';
+  }
+ 
   const d = niveles[nivelKey];
+ 
+  // Asignar accent color
   document.documentElement.style.setProperty('--accent', d.color);
+ 
+  // Badge
   document.getElementById('nivelIndicator').style.background = d.color;
   document.getElementById('nivelText').style.color = d.color;
   document.getElementById('nivelText').textContent = d.label;
-  document.getElementById('scoreNum').textContent = d.score;
+ 
+  // Header
+  document.getElementById('scoreNum').textContent = scoreParam || d.score;
   document.getElementById('scoreNum').style.color = d.color;
   document.getElementById('diagTitle').textContent = d.title;
   document.getElementById('diagSubtitle').textContent = d.subtitle;
+ 
+  // Bar
   document.getElementById('barValLabel').textContent = d.label;
   document.getElementById('barValLabel').style.color = d.color;
+  setTimeout(() => {
+    document.getElementById('frictionFill').style.width = d.barPct + '%';
+  }, 300);
+ 
+  // CTA statement
   document.getElementById('ctaStatement').textContent = d.ctaStatement;
-  setTimeout(() => document.getElementById('frictionFill').style.width = d.barPct + '%', 300);
+ 
+  // Bloques
+  const container = document.getElementById('diagContent');
+  d.blocks.forEach((b, i) => {
+    const el = document.createElement('div');
+    el.className = 'block';
+    el.style.animationDelay = (0.25 + i * 0.07) + 's';
+ 
+    let inner = `
+      <div class="block-label">${b.label}</div>
+      <div class="block-title">${b.title}</div>
+    `;
+ 
+    if (b.body) {
+      inner += `<div class="block-body">${b.body}</div>`;
+    }
+ 
+    if (b.vars) {
+      inner += `<div class="var-grid">`;
+      b.vars.forEach(v => {
+        inner += `
+          <div class="var-item">
+            <div class="var-key">${v.key}</div>
+            <div class="var-status">
+              <div class="var-dot" style="background:${v.color}"></div>
+              <span style="color:${v.color}">${v.status}</span>
+            </div>
+            <div class="var-body">${v.body}</div>
+          </div>
+        `;
+      });
+      inner += `</div>`;
+    }
+ 
+    if (b.postulate) {
+      inner += `
+        <div class="postulate">
+          <div class="postulate-text">${b.postulate}</div>
+        </div>
+      `;
+    }
+ 
+    if (b.vector) {
+      inner += `<div class="vector-steps">`;
+      b.vector.forEach((v, vi) => {
+        inner += `
+          <div class="vector-step">
+            <div class="vector-num">0${vi + 1}</div>
+            <div class="vector-content">
+              <div class="vector-action">${v.action}</div>
+              <div class="vector-detail">${v.detail}</div>
+            </div>
+          </div>
+        `;
+      });
+      inner += `</div>`;
+    }
+ 
+    el.innerHTML = inner;
+    container.appendChild(el);
+  });
 }
-
+ 
 render();
 </script>
+<footer>
+  <div class="footer-left">© 2026 System Friction Institute · Aguascalientes, México</div>
+  <div class="footer-right">MIHM v2.0 · <span>core-bridge v1.1</span></div>
+</footer>
 </body>
 </html>
