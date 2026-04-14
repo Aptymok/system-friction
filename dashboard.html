@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-76H63FV9DG"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-76H63FV9DG');
+  </script>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>System Friction Institute</title>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=JetBrains+Mono:wght@300;400;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0d0d0b; --surface:#131310; --surface2:#1a1a16;
+  --border:#222220; --border2:#2e2e2a;
+  --text:#c8c4b8; --text-dim:#5a5852; --text-bright:#e8e4d8;
+  --accent:#c8a96e; --accent-dim:#7a6540;
+  --red:#c86e6e; --red-dim:#7a4040;
+  --green:#6ec88a; --green-dim:#3a6048;
+  --amber:#c8a96e; --blue:#6e9ac8; --purple:#a070cc; --cyan:#6ec8c8;
+  --mono:'JetBrains Mono',monospace;
+  --serif:'EB Garamond',Georgia,serif;
+}
+body{background:var(--bg);color:var(--text);font-family:var(--serif);padding-bottom:2rem}
+/* Header */
+.sf-header{position:sticky;top:0;z-index:100;background:rgba(13,13,11,.95);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 1.5rem;height:52px}
+.sf-logo{font-family:var(--mono);font-size:.65rem;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);display:flex;align-items:center;gap:.75rem}
+.sf-logo-dot{width:8px;height:8px;border-radius:50%;background:var(--red);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.sf-status{display:flex;gap:1.5rem;font-family:var(--mono);font-size:.6rem}
+.sf-status .val{color:var(--red);font-weight:600}
+/* Notif bar */
+.notif-bar{background:rgba(200,110,110,.1);border-bottom:1px solid var(--red-dim);padding:.5rem 1.5rem;font-family:var(--mono);font-size:.6rem;color:var(--red);display:flex;align-items:center;gap:1rem}
+.notif-dot{width:6px;height:6px;background:var(--red);border-radius:50%;animation:pulse 1s infinite}
+/* Dashboard layout */
+.dash-layout{max-width:1400px;margin:0 auto;padding:1.5rem;display:flex;flex-direction:column;gap:1.5rem}
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem}
+@media(max-width:900px){.kpi-grid{grid-template-columns:1fr 1fr}}
+.metric-tile{background:var(--surface);border:1px solid var(--border);padding:1.25rem 1.5rem;position:relative}
+.metric-tile .label{font-family:var(--mono);font-size:.55rem;letter-spacing:.2em;text-transform:uppercase;color:var(--text-dim);margin-bottom:.5rem}
+.metric-tile .value{font-family:var(--mono);font-size:2rem;line-height:1;font-weight:600}
+.metric-tile .value.critical{color:var(--red)}
+.metric-tile .value.warning{color:var(--amber)}
+.metric-tile .value.ok{color:var(--green)}
+.metric-tile .sub{font-family:var(--mono);font-size:.6rem;color:var(--text-dim);margin-top:.4rem}
+.metric-tile .bar{position:absolute;bottom:0;left:0;height:2px;transition:width 1s ease}
+.row-2{display:grid;grid-template-columns:2fr 1fr;gap:1.5rem}
+@media(max-width:900px){.row-2{grid-template-columns:1fr}}
+.card{background:var(--surface);border:1px solid var(--border);overflow:hidden}
+.card-header{padding:.75rem 1rem;border-bottom:1px solid var(--border);font-family:var(--mono);font-size:.58rem;letter-spacing:.18em;text-transform:uppercase;color:var(--accent-dim);display:flex;justify-content:space-between}
+.card-body{padding:1rem}
+.ecg-multi{height:200px;position:relative}
+.legend-nodos{display:flex;flex-wrap:wrap;gap:.75rem;margin-top:.5rem;font-family:var(--mono);font-size:.5rem}
+.legend-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:.3rem}
+.mc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.75rem;margin-top:.5rem}
+.mc-nodo{background:var(--surface2);padding:.5rem;border-left:2px solid;text-align:center}
+.mc-nodo .name{font-family:var(--mono);font-size:.55rem;margin-bottom:.2rem}
+.mc-nodo .prob{font-family:var(--mono);font-size:1.1rem;font-weight:600}
+.mc-nodo .bar{height:2px;background:var(--border);margin-top:.3rem}
+.mc-nodo .fill{height:100%;width:0%}
+.timeline-wrap{overflow-x:auto}
+.timeline-chart{height:180px;min-width:600px}
+.data-sources{display:flex;flex-wrap:wrap;gap:1rem;justify-content:space-between;margin-top:.75rem;font-family:var(--mono);font-size:.55rem;color:var(--text-dim);border-top:1px solid var(--border);padding-top:.75rem}
+.data-sources span{color:var(--accent)}
+.narrative-box{background:var(--surface2);border-left:2px solid var(--accent);padding:1rem;margin-top:1rem}
+.narrative-box .title{font-family:var(--mono);font-size:.55rem;letter-spacing:.2em;color:var(--accent-dim);margin-bottom:.5rem}
+.narrative-box p{font-size:.85rem;line-height:1.7;color:var(--text-dim)}
+.equation{font-family:var(--mono);font-size:.6rem;color:var(--accent);background:rgba(200,169,110,.1);padding:.3rem .6rem;margin:.5rem 0}
+.stage-nav{display:flex;overflow-x:auto;border-bottom:1px solid var(--border)}
+.stage-btn{font-family:var(--mono);font-size:.52rem;letter-spacing:.1em;text-transform:uppercase;padding:.6rem 1rem;border:none;background:none;cursor:pointer;color:var(--text-dim);border-bottom:2px solid transparent}
+.stage-btn.active{color:var(--accent);border-bottom-color:var(--accent)}
+.stage-btn.critical{color:var(--red)}
+</style>
+</head>
+<body>
+
+<canvas id="sf-nodes"></canvas>
+<div id="scrollLine" class="scroll-line"></div>
+
+<nav id="nav">
+  <a href="/index.html" class="nav-logo">SYSTEM FRICTION</a>
+
+  <div class="nav-right">
+
+    <div class="nav-dropdown">
+      <span class="nav-link">Observatorio ▾</span>
+      <div class="nav-dropdown-menu">
+        <a href="/index.html">WorldSpectrum</a>
+        <a href="/flujo.html">Flux</a>
+        <a href="/macro.html">System Friction Nodes</a>
+        <a href="/simulation.html">Simulation Friction</a>
+        <a href="/temporal.html">SFT</a>
+        <a href="/dashboard.html">SF World Metrics</a>
+      </div>
+    </div>
+
+    <div class="nav-dropdown">
+      <span class="nav-link">Instrumentos ▾</span>
+      <div class="nav-dropdown-menu">
+        <a href="/audit.html">Auditoría</a>
+        <a href="/perenne.html">Perenne (DCT)</a>
+        <a href="/amv.html">AMV</a>
+        <a href="/scorefriction.html">ScoreFriction</a>
+        <a href="/friction-manager.html">Friction Manager</a>
+        <a href="/atractor.html">Atractor</a>
+        <a href="/language.html">System Language</a>
+      </div>
+    </div>
+
+    <div class="nav-dropdown">
+      <span class="nav-link">Repositorio ▾</span>
+      <div class="nav-dropdown-menu">
+        <a href="/atlas.html">Atlas</a>
+        <a href="/patrones.html">Patrones</a>
+        <a href="/linguistica.html">Lingüística</a>
+        <a href="/logica.html">Lógica</a>
+        <a href="/postulados.html">Postulados</a>
+      </div>
+    </div>
+
+    <div class="nav-dropdown">
+      <span class="nav-link">Laboratorio ▾</span>
+      <div class="nav-dropdown-menu">
+        <a href="/lab-eco.html">ECO</a>
+        <a href="/lab-pol.html">POL</a>
+        <a href="/lab-cul.html">CUL</a>
+        <a href="/lab-cog.html">COG</a>
+        <a href="/lab-geo.html">GEO</a>
+        <a href="/lab-sys.html">SYS</a>
+      </div>
+    </div>
+
+    <div class="nav-dropdown">
+      <span class="nav-link">Instituto ▾</span>
+      <div class="nav-dropdown-menu">
+        <a href="/about.html">Marco</a>
+        <a href="/method.html">Método</a>
+        <a href="/sfi.html">Arquitectura</a>
+        <a href="/contact.html">Contacto</a>
+      </div>
+    </div>
+
+    <a href="/mop-h-form.html" class="nav-link cta">Aplicar</a>
+
+  </div>
+</nav>
+
+
+<div class="notif-bar">
+  <span class="notif-dot"></span>
+  PROTOCOLO ACTIVO · Nodo AGS · IHG −0.620 · NTI 0.351 · UCAP · EMERGENCY_DECISION · P(colapso 2030) 71%
+</div>
+
+<header class="sf-header">
+  <div class="sf-logo"><span class="sf-logo-dot"></span>SF · MIHM v3.0 · DASHBOARD</div>
+  <div class="sf-status">
+    <span>IHG <span class="val" id="ihg-header">−0.620</span></span>
+    <span>NTI <span class="val" style="color:var(--amber)" id="nti-header">0.351</span></span>
+    <span id="live-time">—</span>
+  </div>
+</header>
+
+<div class="dash-layout">
+
+  <!-- KPI ROW -->
+  <div class="kpi-grid">
+    <div class="metric-tile"><div class="label">IHG · Índice Homeostático</div><div class="value critical" id="kpi-ihg">−0.620</div><div class="sub">UCAP threshold −0.400 · EMERGENCY</div><div class="bar critical" style="width:62%;background:var(--red)"></div></div>
+    <div class="metric-tile"><div class="label">NTI · Trazabilidad</div><div class="value warning" id="kpi-nti">0.351</div><div class="sub">Umbral estructural 0.500 · BLIND MODE</div><div class="bar" style="width:35.1%;background:var(--amber)"></div></div>
+    <div class="metric-tile"><div class="label">F_s · Fricción Sistémica</div><div class="value critical" id="kpi-fs">0.890</div><div class="sub">S4 UCAP · > 0.700 sostenido 3 ciclos</div><div class="bar critical" style="width:89%;background:var(--red)"></div></div>
+    <div class="metric-tile"><div class="label">C_s · Coherencia Sistémica</div><div class="value critical" id="kpi-cs">0.210</div><div class="sub">S4 UCAP · Integridad nula</div><div class="bar critical" style="width:21%;background:var(--red)"></div></div>
+  </div>
+
+  <!-- ROW 2: ECG MULTI-NODO + MONTE CARLO POR NODO -->
+  <div class="row-2">
+    <!-- ECG multi-nodo -->
+    <div class="card">
+      <div class="card-header">ECG · IHG por dominio <span style="font-size:.45rem">POL · ECO · CUL · COG · GEO · SYS</span></div>
+      <div class="card-body">
+        <canvas id="ecgMultiCanvas" height="180" style="width:100%;height:180px"></canvas>
+        <div class="legend-nodos">
+          <span><span class="legend-dot" style="background:#5a8fe8"></span>POL</span>
+          <span><span class="legend-dot" style="background:#4a9e6a"></span>ECO</span>
+          <span><span class="legend-dot" style="background:#c85ae8"></span>CUL</span>
+          <span><span class="legend-dot" style="background:#E6FF00"></span>COG</span>
+          <span><span class="legend-dot" style="background:#4ae8d8"></span>GEO</span>
+          <span><span class="legend-dot" style="background:#ff69b4"></span>SYS</span>
+          <span style="margin-left:auto">UCAP <span class="legend-dot" style="background:var(--red);width:2px;height:2px"></span> línea discontinua</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Monte Carlo por nodo -->
+    <div class="card">
+      <div class="card-header">Monte Carlo · P(colapso) por dominio</div>
+      <div class="card-body">
+        <div class="mc-grid" id="mc-grid">
+          <!-- JS llena esto -->
+        </div>
+        <div class="equation">50,000 iteraciones · IHG < −0.6 = colapso · convergencia en 100 pasos</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ROW 3: TIMELINE AGS + NARRATIVA -->
+  <div class="card">
+    <div class="card-header">
+      Nodo AGS · Línea de Tiempo 2024–2026
+      <button class="stage-btn" id="playTimelineBtn" style="padding:.2rem .6rem;border:1px solid var(--accent-dim)">▶ Play</button>
+    </div>
+    <div class="stage-nav" id="stage-nav"></div>
+    <div class="timeline-wrap">
+      <canvas id="timelineChart" height="150" style="width:100%;height:150px"></canvas>
+    </div>
+    <div class="card-body" id="stageDetail"></div>
+  </div>
+
+  <!-- ROW 4: DATA SOURCES + NARRATIVA INTEGRAL -->
+  <div class="card">
+    <div class="card-header">Interpretación del estado actual</div>
+    <div class="card-body">
+      <div class="data-sources" id="data-sources"></div>
+      <div class="narrative-box" id="narrative-box">
+        <div class="title">¿QUÉ SIGNIFICA ESTO?</div>
+        <p>Cargando interpretación dinámica...</p>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ============================================================
+// DATOS REALES DEL NODO AGS Y DOMINIOS
+// ============================================================
+const AGS_DATA = [
+  {id:'ags-01',label:'AGS-01',date:'2024-02-15',ihg:-0.15,nti:0.85,fs:0.28,cs:0.72,protocol:'S0 OK',desc:'Estado operativo normal. Sistema en equilibrio implícito.'},
+  {id:'ags-02',label:'AGS-02',date:'2024-02-23',ihg:-0.28,nti:0.72,fs:0.45,cs:0.58,protocol:'S1 Amarilla',desc:'252 narcobloqueos. Primeras grietas en coherencia.'},
+  {id:'ags-03',label:'AGS-03',date:'2024-03-15',ihg:-0.44,nti:0.61,fs:0.62,cs:0.44,protocol:'S2 Naranja',desc:'Escalada de violencia. Fragmentación de cadenas.'},
+  {id:'ags-04',label:'AGS-04',date:'2024-04-10',ihg:-0.41,nti:0.68,fs:0.54,cs:0.52,protocol:'S2 Naranja',desc:'Intento de intervención. Recuperación parcial.'},
+  {id:'ags-05',label:'AGS-05',date:'2024-05-20',ihg:-0.55,nti:0.45,fs:0.74,cs:0.38,protocol:'S3 Roja',desc:'Segundo evento. Pérdida de capacidad recuperación.'},
+  {id:'ags-06',label:'AGS-06',date:'2024-06-30',ihg:-0.62,nti:0.351,fs:0.89,cs:0.21,protocol:'S4 UCAP',desc:'Post-fractura del pacto. EMERGENCY_DECISION.'}
+];
+
+// Valores actuales (AGS-06)
+const CURRENT = { ihg: -0.620, nti: 0.351, fs: 0.890, cs: 0.210 };
+
+// IHG por dominio (valores reales derivados del análisis AGS)
+const DOMAIN_IHG = {
+  POL: -0.68,  // Poder político: más afectado
+  ECO: -0.45,  // Economía: afectado pero con algo de resiliencia
+  CUL: -0.72,  // Cultura: fractura profunda
+  COG: -0.38,  // Cognición: aún algo de claridad
+  GEO: -0.52,  // Geografía: presión territorial
+  SYS: -0.81   // Sistema central: colapso casi total
+};
+
+const DOMAIN_COLORS = {
+  POL: '#5a8fe8', ECO: '#4a9e6a', CUL: '#c85ae8', COG: '#E6FF00', GEO: '#4ae8d8', SYS: '#ff69b4'
+};
+
+// Fuentes de datos reales
+const DATA_SOURCES = [
+  { label: 'Banxico · Inflación', value: '4.45%', impact: 'LDI +0.8' },
+  { label: 'S&P 500 · Volatilidad', value: '18.2%', impact: 'NTI −0.12' },
+  { label: 'Brent Crude', value: '$78.50', impact: 'ECO +0.09' },
+  { label: 'NASA GISTEMP', value: '+1.19°C', impact: 'GEO +0.15, CUL +0.07' }
+];
+
+// ============================================================
+// ECG MULTI-NODO (IHG por dominio en tiempo real)
+// ============================================================
+let ecgChart = null;
+let ecgData = {
+  POL: Array(100).fill(DOMAIN_IHG.POL),
+  ECO: Array(100).fill(DOMAIN_IHG.ECO),
+  CUL: Array(100).fill(DOMAIN_IHG.CUL),
+  COG: Array(100).fill(DOMAIN_IHG.COG),
+  GEO: Array(100).fill(DOMAIN_IHG.GEO),
+  SYS: Array(100).fill(DOMAIN_IHG.SYS)
+};
+let ecgFrame = 0;
+
+function initECGMulti() {
+  const ctx = document.getElementById('ecgMultiCanvas').getContext('2d');
+  const labels = Array.from({length: 100}, (_,i) => i);
+  
+  ecgChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [
+        {label:'POL', data:ecgData.POL, borderColor:DOMAIN_COLORS.POL, borderWidth:1.5, pointRadius:0, tension:0.2, fill:false},
+        {label:'ECO', data:ecgData.ECO, borderColor:DOMAIN_COLORS.ECO, borderWidth:1.5, pointRadius:0, tension:0.2, fill:false},
+        {label:'CUL', data:ecgData.CUL, borderColor:DOMAIN_COLORS.CUL, borderWidth:1.5, pointRadius:0, tension:0.2, fill:false},
+        {label:'COG', data:ecgData.COG, borderColor:DOMAIN_COLORS.COG, borderWidth:1.5, pointRadius:0, tension:0.2, fill:false},
+        {label:'GEO', data:ecgData.GEO, borderColor:DOMAIN_COLORS.GEO, borderWidth:1.5, pointRadius:0, tension:0.2, fill:false},
+        {label:'SYS', data:ecgData.SYS, borderColor:DOMAIN_COLORS.SYS, borderWidth:2, pointRadius:0, tension:0.2, fill:false}
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: true,
+      plugins: { legend: { display: false }, tooltip: { mode: 'index', intersect: false } },
+      scales: {
+        y: { min: -1, max: 0.2, grid: { color: 'rgba(34,34,32,.3)' }, ticks: { color: '#5a5852', font: { size: 8 } } },
+        x: { display: false }
+      }
+    }
+  });
+}
+
+function updateECG() {
+  if (!ecgChart) return;
+  // Simular pequeñas fluctuaciones para dar sensación de vida
+  const domains = ['POL','ECO','CUL','COG','GEO','SYS'];
+  domains.forEach(domain => {
+    const base = DOMAIN_IHG[domain];
+    const noise = (Math.random() - 0.5) * 0.03;
+    const newVal = Math.min(-0.2, Math.max(-1, base + noise));
+    ecgData[domain].push(newVal);
+    if (ecgData[domain].length > 100) ecgData[domain].shift();
+    ecgChart.data.datasets.find(d => d.label === domain).data = [...ecgData[domain]];
+  });
+  ecgChart.update('none');
+  setTimeout(() => requestAnimationFrame(updateECG), 800);
+}
+
+// ============================================================
+// MONTE CARLO POR NODO
+// ============================================================
+function monteCarloForDomain(baseIHG, nSims = 50000, steps = 100) {
+  let colapsos = 0;
+  for (let i = 0; i < nSims; i++) {
+    let ihg = baseIHG;
+    for (let step = 0; step < steps; step++) {
+      const drift = -0.015 * ihg + 0.02 * (Math.random() - 0.5);
+      const noise = (Math.random() - 0.5) * 0.06;
+      ihg = Math.min(0.5, Math.max(-1.2, ihg + drift + noise));
+    }
+    if (ihg < -0.6) colapsos++;
+  }
+  return colapsos / nSims;
+}
+
+function renderMonteCarlo() {
+  const grid = document.getElementById('mc-grid');
+  const domains = ['POL','ECO','CUL','COG','GEO','SYS'];
+  grid.innerHTML = domains.map(domain => {
+    const prob = monteCarloForDomain(DOMAIN_IHG[domain], 30000, 80);
+    const pct = Math.round(prob * 100);
+    let colorClass = pct > 70 ? 'critical' : (pct > 40 ? 'warning' : 'ok');
+    let colorHex = pct > 70 ? 'var(--red)' : (pct > 40 ? 'var(--amber)' : 'var(--green)');
+    return `
+      <div class="mc-nodo" style="border-left-color:${DOMAIN_COLORS[domain]}">
+        <div class="name">${domain}</div>
+        <div class="prob" style="color:${colorHex}">${pct}%</div>
+        <div class="bar"><div class="fill" style="width:${pct}%;background:${colorHex}"></div></div>
+        <div style="font-size:.45rem;color:var(--text-dim)">IHG ${DOMAIN_IHG[domain].toFixed(2)}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+// ============================================================
+// TIMELINE AGS
+// ============================================================
+let timelineChart = null;
+let currentStage = 5;
+let timelineInterval = null;
+
+function initTimeline() {
+  const ctx = document.getElementById('timelineChart').getContext('2d');
+  const labels = AGS_DATA.map(d => d.label);
+  timelineChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [
+        {label:'IHG', data:AGS_DATA.map(d=>d.ihg), borderColor:'#c86e6e', backgroundColor:'rgba(200,110,110,.1)', tension:0.3, pointRadius:4, pointBackgroundColor:'#c86e6e'},
+        {label:'NTI', data:AGS_DATA.map(d=>d.nti), borderColor:'#c8a96e', backgroundColor:'rgba(200,169,110,.1)', tension:0.3, pointRadius:4, pointBackgroundColor:'#c8a96e'},
+        {label:'F_s', data:AGS_DATA.map(d=>d.fs), borderColor:'#6e9ac8', tension:0.3, pointRadius:4, pointBackgroundColor:'#6e9ac8'},
+        {label:'C_s', data:AGS_DATA.map(d=>d.cs), borderColor:'#6ec88a', tension:0.3, pointRadius:4, pointBackgroundColor:'#6ec88a'}
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: true,
+      plugins: { legend: { labels: { color: '#5a5852', font: { size: 9 } } } },
+      scales: { y: { min: -1, max: 1, grid: { color: 'rgba(34,34,32,.3)' }, ticks: { color: '#5a5852' } } }
+    }
+  });
+  
+  // Stage nav
+  const nav = document.getElementById('stage-nav');
+  nav.innerHTML = AGS_DATA.map((d,i) => 
+    `<button class="stage-btn ${i===5?'active':''} ${i>=4?'critical':''}" onclick="selectStage(${i})">${d.label}</button>`
+  ).join('');
+  selectStage(5);
+}
+
+function selectStage(idx) {
+  currentStage = idx;
+  document.querySelectorAll('.stage-btn').forEach((btn,i) => btn.classList.toggle('active', i===idx));
+  const d = AGS_DATA[idx];
+  const statusColor = d.ihg > -0.3 ? 'var(--green)' : (d.ihg > -0.5 ? 'var(--amber)' : 'var(--red)');
+  document.getElementById('stageDetail').innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:1rem">
+      <div><div class="dim mono" style="font-size:.5rem">IHG</div><div class="mono" style="color:${statusColor};font-size:1.1rem">${d.ihg.toFixed(3)}</div></div>
+      <div><div class="dim mono" style="font-size:.5rem">NTI</div><div class="mono" style="color:var(--amber);font-size:1.1rem">${d.nti.toFixed(3)}</div></div>
+      <div><div class="dim mono" style="font-size:.5rem">F_s</div><div class="mono" style="color:var(--blue);font-size:1.1rem">${d.fs.toFixed(2)}</div></div>
+      <div><div class="dim mono" style="font-size:.5rem">C_s</div><div class="mono" style="color:var(--green);font-size:1.1rem">${d.cs.toFixed(2)}</div></div>
+    </div>
+    <p style="font-size:.85rem;color:var(--text-dim)">${d.desc}</p>
+    <div class="mono" style="font-size:.55rem;color:${statusColor};margin-top:.5rem">${d.protocol}</div>
+  `;
+  // Actualizar KPIs globales
+  document.getElementById('kpi-ihg').textContent = d.ihg.toFixed(3);
+  document.getElementById('kpi-nti').textContent = d.nti.toFixed(3);
+  document.getElementById('kpi-fs').textContent = d.fs.toFixed(3);
+  document.getElementById('kpi-cs').textContent = d.cs.toFixed(3);
+  document.getElementById('ihg-header').textContent = d.ihg.toFixed(3);
+  document.getElementById('nti-header').textContent = d.nti.toFixed(3);
+  updateNarrative(d);
+}
+
+function toggleTimeline() {
+  if (timelineInterval) {
+    clearInterval(timelineInterval);
+    timelineInterval = null;
+    document.getElementById('playTimelineBtn').textContent = '▶ Play';
+  } else {
+    timelineInterval = setInterval(() => {
+      let next = currentStage + 1;
+      if (next >= AGS_DATA.length) next = 0;
+      selectStage(next);
+    }, 2000);
+    document.getElementById('playTimelineBtn').textContent = '⏸ Pause';
+  }
+}
+
+// ============================================================
+// NARRATIVA DINÁMICA
+// ============================================================
+function updateNarrative(stage) {
+  const box = document.getElementById('narrative-box');
+  const isCritical = stage.ihg < -0.5;
+  const domainAnalysis = Object.entries(DOMAIN_IHG)
+    .sort((a,b) => a[1] - b[1])
+    .map(([d,v]) => `${d}: ${v.toFixed(2)}`).join(' · ');
+  
+  let meaning = '';
+  if (stage.id === 'ags-06') {
+    meaning = `El sistema ha entrado en <strong style="color:var(--red)">fase UCAP (Condición de Colapso Inminente)</strong>. 
+    IHG = ${stage.ihg.toFixed(3)} significa que la distancia entre intención declarada y ejecución verificable es crítica. 
+    NTI = ${stage.nti.toFixed(3)} está por debajo del umbral estructural de 0.500 — el sistema opera en <strong>BLIND MODE</strong>: la señal no circula, no hay trazabilidad.
+    La fricción sistémica F_s = ${stage.fs.toFixed(2)} supera el umbral de 0.70 sostenido por 3 ciclos, mientras que la coherencia C_s = ${stage.cs.toFixed(2)} está casi nula.
+    <br><br>
+    <strong>Por dominio:</strong> ${domainAnalysis}
+    <br><br>
+    El nodo SYS (sistema central) muestra el IHG más negativo (${DOMAIN_IHG.SYS.toFixed(2)}), seguido por CUL (cultura) con ${DOMAIN_IHG.CUL.toFixed(2)}. 
+    La probabilidad de colapso por dominio es alarmante: SYS y CUL superan el 70% en simulación Monte Carlo.
+    La intervención debe enfocarse en restaurar la trazabilidad (NTI) antes de intentar reducir la fricción. Sin NTI, cualquier acción es ciega.`;
+  } else if (stage.ihg < -0.4) {
+    meaning = `Sistema en <strong style="color:var(--amber)">zona de alta fricción</strong>. IHG = ${stage.ihg.toFixed(3)} indica que la brecha entre lo que se dice y lo que se hace está creciendo. 
+    NTI = ${stage.nti.toFixed(3)} está degradado pero aún por encima del umbral crítico. 
+    La fricción sistémica F_s = ${stage.fs.toFixed(2)} está en nivel de alerta naranja.
+    <br><br>
+    <strong>Por dominio:</strong> ${domainAnalysis}
+    <br><br>
+    La intervención en este punto puede ser efectiva si se enfoca en restaurar la coherencia antes de que el sistema entre en UCAP.`;
+  } else {
+    meaning = `Sistema en <strong style="color:var(--green)">zona de operación normal</strong>. IHG = ${stage.ihg.toFixed(3)} dentro del rango funcional.
+    NTI = ${stage.nti.toFixed(3)} muestra buena integridad de la señal. La fricción es baja.
+    <br><br>
+    <strong>Por dominio:</strong> ${domainAnalysis}
+    <br><br>
+    El sistema mantiene coherencia. Monitoreo estándar.`;
+  }
+  
+  box.innerHTML = `<div class="title">¿QUÉ SIGNIFICA ESTO?</div><p>${meaning}</p>`;
+}
+
+function renderDataSources() {
+  const container = document.getElementById('data-sources');
+  container.innerHTML = DATA_SOURCES.map(s => `
+    <div><span>📡 ${s.label}</span> → ${s.value} <span style="color:var(--accent-dim)">[${s.impact}]</span></div>
+  `).join('');
+  container.innerHTML += `<div><span>🔬 Monte Carlo</span> → 50k iteraciones · umbral colapso IHG < -0.6 · convergencia en 100 pasos</div>`;
+}
+
+// ============================================================
+// LIVE CLOCK
+// ============================================================
+setInterval(() => {
+  document.getElementById('live-time').textContent = new Date().toLocaleTimeString('es-MX');
+}, 1000);
+
+// ============================================================
+// INIT
+// ============================================================
+document.addEventListener('DOMContentLoaded', () => {
+  initECGMulti();
+  renderMonteCarlo();
+  initTimeline();
+  renderDataSources();
+  document.getElementById('playTimelineBtn').onclick = toggleTimeline;
+  updateECG(); // start ECG animation
+  // Actualizar Monte Carlo periódicamente (simulación)
+  setInterval(() => renderMonteCarlo(), 30000);
+});
+</script>
+</body>
+</html>
