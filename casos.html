@@ -3,14 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
-<title>System Friction · Casos Operativos</title>
+<title>System Friction · Casos SF</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@300;400;500&family=Syncopate:wght@400;700&display=swap" rel="stylesheet">
 
 <style>
-/* ===== TOKENS ===== */
-:root {
+:root{
   --bg:#0a0a09;
   --surface:#101010;
   --surface2:#161614;
@@ -36,12 +35,12 @@ body{
   font-family:var(--serif);
 }
 
-/* ===== HEADER ===== */
+/* HEADER */
 #hdr{
   height:46px;
   display:flex;
-  align-items:center;
   justify-content:space-between;
+  align-items:center;
   padding:0 1.5rem;
   border-bottom:1px solid var(--bd);
   background:rgba(10,10,9,.97);
@@ -60,9 +59,9 @@ body{
   color:var(--tx3);
 }
 
-/* ===== MAIN ===== */
+/* SECTION */
 .section{
-  padding:2rem 2.5rem 3rem;
+  padding:2.2rem 2.6rem 3rem;
 }
 
 .kicker{
@@ -77,17 +76,17 @@ body{
 .sec-title{
   font-size:1.6rem;
   color:var(--bright);
-  margin-bottom:.5rem;
+  margin-bottom:.4rem;
 }
 
 .sec-sub{
   font-family:var(--fm);
   font-size:.6rem;
   color:var(--tx2);
-  margin-bottom:1.5rem;
+  margin-bottom:1.6rem;
 }
 
-/* ===== CARRUSEL ===== */
+/* CAROUSEL */
 .casos-carousel{
   display:flex;
   gap:1.5rem;
@@ -121,19 +120,39 @@ body{
 
 .caso-titulo{
   font-size:1.1rem;
-  margin-top:.3rem;
   color:var(--bright);
+  margin-top:.3rem;
 }
 
-.caso-narrativa{
+.caso-body{
   padding:.9rem 1.4rem;
   font-size:.75rem;
   color:var(--tx2);
-  line-height:1.5;
+  line-height:1.55;
   border-bottom:1px solid var(--bd);
 }
 
-/* ===== ETAPAS ===== */
+/* EVIDENCIA */
+.evidencia{
+  padding:.8rem 1.4rem;
+  border-bottom:1px solid var(--bd);
+}
+
+.evidencia-title{
+  font-family:var(--fm);
+  font-size:.55rem;
+  letter-spacing:.14em;
+  color:var(--ac2);
+  margin-bottom:.4rem;
+}
+
+.evidencia-item{
+  font-size:.72rem;
+  color:var(--tx2);
+  margin-bottom:.25rem;
+}
+
+/* ETAPAS */
 .etapas{
   display:flex;
   gap:2px;
@@ -164,10 +183,10 @@ body{
   color:var(--tx2);
 }
 
-/* ===== FOOTER CARD ===== */
+/* FOOTER CARD */
 .caso-footer{
-  padding:1rem 1.4rem;
   margin-top:auto;
+  padding:1rem 1.4rem;
   display:flex;
   justify-content:flex-end;
   border-top:1px solid var(--bd);
@@ -179,66 +198,13 @@ body{
   color:var(--ac);
   font-family:var(--fm);
   font-size:.65rem;
-  padding:.4rem 1rem;
+  padding:.42rem 1.2rem;
   cursor:pointer;
 }
 
 .btn-conclusion:hover{
   background:var(--ac4);
   color:var(--neon);
-}
-
-/* ===== MODAL ===== */
-.modal-overlay{
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,.95);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  opacity:0;
-  visibility:hidden;
-}
-
-.modal-overlay.active{
-  opacity:1;
-  visibility:visible;
-}
-
-.modal-container{
-  max-width:900px;
-  width:90%;
-  background:var(--surface2);
-  border:1px solid var(--bd);
-  border-top:3px solid var(--neon);
-}
-
-.modal-header{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  padding:.8rem 1.5rem;
-  border-bottom:1px solid var(--bd);
-}
-
-.modal-header h3{
-  font-family:var(--fm);
-  font-size:.8rem;
-  color:var(--neon);
-}
-
-.close-modal{
-  border:none;
-  background:none;
-  color:var(--tx2);
-  font-size:1.4rem;
-  cursor:pointer;
-}
-
-.modal-body{
-  padding:1.5rem 2rem;
-  font-size:.85rem;
-  line-height:1.7;
 }
 </style>
 </head>
@@ -247,27 +213,26 @@ body{
 
 <header id="hdr">
   <span class="hdr-brand">System Friction</span>
-  <span class="hdr-mod">Observatorio · Casos Operativos</span>
+  <span class="hdr-mod">Observatorio · Casos SF</span>
 </header>
 
+<!-- CASOS ABIERTOS -->
 <section class="section">
-  <div class="kicker">System Friction · Validación empírica</div>
-  <div class="sec-title">Casos SF</div>
-  <div class="sec-sub">Conclusiones operativas documentadas. Navegación horizontal.</div>
+  <div class="kicker">Observatorio · Campo activo</div>
+  <div class="sec-title">Casos abiertos</div>
+  <div class="sec-sub">Evidencia observacional en tiempo real. Sin conclusión emitida.</div>
 
-  <div id="casosCarousel" class="casos-carousel"></div>
+  <div id="abiertosCarousel" class="casos-carousel"></div>
 </section>
 
-<!-- MODAL -->
-<div id="modal" class="modal-overlay">
-  <div class="modal-container">
-    <div class="modal-header">
-      <h3 id="modal-title">CONCLUSIÓN OPERATIVA</h3>
-      <button class="close-modal" onclick="closeModal()">X</button>
-    </div>
-    <div class="modal-body" id="modal-body"></div>
-  </div>
-</div>
+<!-- CASOS CERRADOS -->
+<section class="section">
+  <div class="kicker">Archivo validado</div>
+  <div class="sec-title">Casos cerrados</div>
+  <div class="sec-sub">Evidencia histórica + etapas posteriores. Conclusión operativa disponible.</div>
+
+  <div id="cerradosCarousel" class="casos-carousel"></div>
+</section>
 
 <script src="app.js"></script>
 </body>
