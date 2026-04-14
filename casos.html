@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>System Friction · Casos SF</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -27,7 +27,7 @@
   --disp:'Syncopate', sans-serif;
 }
 
-*{box-sizing:border-box;margin:0;padding:0}
+*{margin:0;padding:0;box-sizing:border-box}
 
 body{
   background:var(--bg);
@@ -35,31 +35,29 @@ body{
   font-family:var(--serif);
 }
 
-/* HEADER */
-#hdr{
+header{
   height:46px;
   display:flex;
-  justify-content:space-between;
   align-items:center;
+  justify-content:space-between;
   padding:0 1.5rem;
   border-bottom:1px solid var(--bd);
-  background:rgba(10,10,9,.97);
+  background:#0a0a09;
 }
 
-.hdr-brand{
+.brand{
   font-family:var(--disp);
   font-size:.62rem;
   letter-spacing:.18em;
   color:var(--ac);
 }
 
-.hdr-mod{
+.mod{
   font-family:var(--fm);
   font-size:.56rem;
   color:var(--tx3);
 }
 
-/* SECTION */
 .section{
   padding:2.2rem 2.6rem 3rem;
 }
@@ -73,32 +71,30 @@ body{
   margin-bottom:1rem;
 }
 
-.sec-title{
+.title{
   font-size:1.6rem;
   color:var(--bright);
-  margin-bottom:.4rem;
+  margin-bottom:.5rem;
 }
 
-.sec-sub{
+.sub{
   font-family:var(--fm);
   font-size:.6rem;
   color:var(--tx2);
   margin-bottom:1.6rem;
 }
 
-/* CAROUSEL */
-.casos-carousel{
+.carousel{
   display:flex;
   gap:1.5rem;
   overflow-x:auto;
   scroll-snap-type:x mandatory;
-  scrollbar-width:none;
 }
 
-.casos-carousel::-webkit-scrollbar{display:none}
+.carousel::-webkit-scrollbar{display:none}
 
-.caso-card{
-  flex:0 0 380px;
+.card{
+  flex:0 0 420px;
   background:var(--surface);
   border:1px solid var(--bd);
   scroll-snap-align:start;
@@ -106,25 +102,25 @@ body{
   flex-direction:column;
 }
 
-.caso-header{
+.card-header{
   padding:1rem 1.4rem .6rem;
   border-bottom:1px solid var(--bd);
 }
 
-.caso-id{
+.card-id{
   font-family:var(--fm);
   font-size:.65rem;
   letter-spacing:.1em;
   color:var(--ac);
 }
 
-.caso-titulo{
+.card-title{
   font-size:1.1rem;
   color:var(--bright);
   margin-top:.3rem;
 }
 
-.caso-body{
+.card-body{
   padding:.9rem 1.4rem;
   font-size:.75rem;
   color:var(--tx2);
@@ -132,13 +128,12 @@ body{
   border-bottom:1px solid var(--bd);
 }
 
-/* EVIDENCIA */
-.evidencia{
+.evidence{
   padding:.8rem 1.4rem;
   border-bottom:1px solid var(--bd);
 }
 
-.evidencia-title{
+.evidence h4{
   font-family:var(--fm);
   font-size:.55rem;
   letter-spacing:.14em;
@@ -146,31 +141,29 @@ body{
   margin-bottom:.4rem;
 }
 
-.evidencia-item{
+.evidence p{
   font-size:.72rem;
   color:var(--tx2);
-  margin-bottom:.25rem;
+  margin-bottom:.3rem;
 }
 
-/* ETAPAS */
 .etapas{
   display:flex;
   gap:2px;
   padding:.8rem 1.2rem;
   overflow-x:auto;
-  scrollbar-width:none;
 }
 
 .etapas::-webkit-scrollbar{display:none}
 
 .etapa{
-  min-width:220px;
+  min-width:240px;
   background:var(--surface2);
   border:1px solid var(--bd);
   padding:.75rem;
 }
 
-.etapa-kicker{
+.etapa .k{
   font-family:var(--fm);
   font-size:.52rem;
   letter-spacing:.18em;
@@ -178,13 +171,12 @@ body{
   margin-bottom:.3rem;
 }
 
-.etapa-body{
+.etapa .b{
   font-size:.75rem;
   color:var(--tx2);
 }
 
-/* FOOTER CARD */
-.caso-footer{
+.footer{
   margin-top:auto;
   padding:1rem 1.4rem;
   display:flex;
@@ -192,17 +184,17 @@ body{
   border-top:1px solid var(--bd);
 }
 
-.btn-conclusion{
-  background:none;
-  border:1px solid var(--ac2);
-  color:var(--ac);
+.btn{
   font-family:var(--fm);
   font-size:.65rem;
   padding:.42rem 1.2rem;
+  border:1px solid var(--ac2);
+  background:none;
+  color:var(--ac);
   cursor:pointer;
 }
 
-.btn-conclusion:hover{
+.btn:hover{
   background:var(--ac4);
   color:var(--neon);
 }
@@ -211,29 +203,69 @@ body{
 
 <body>
 
-<header id="hdr">
-  <span class="hdr-brand">System Friction</span>
-  <span class="hdr-mod">Observatorio · Casos SF</span>
+<header>
+  <span class="brand">System Friction</span>
+  <span class="mod">Casos SF · Archivo validado</span>
 </header>
 
-<!-- CASOS ABIERTOS -->
 <section class="section">
-  <div class="kicker">Observatorio · Campo activo</div>
-  <div class="sec-title">Casos abiertos</div>
-  <div class="sec-sub">Evidencia observacional en tiempo real. Sin conclusión emitida.</div>
+  <div class="kicker">Archivo empírico verificado</div>
+  <div class="title">Casos cerrados</div>
+  <div class="sub">Evidencia histórica + etapas posteriores con conclusión operativa.</div>
 
-  <div id="abiertosCarousel" class="casos-carousel"></div>
+  <div class="carousel">
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-id">SF_CC_0001</div>
+        <div class="card-title">Aguascalientes · Paz termodinámica</div>
+      </div>
+
+      <div class="card-body">
+        Estabilidad atribuida a institucionalidad, pero sostenida por un pacto implícito externo.  
+        El sistema ya operaba en degradación antes del shock.
+      </div>
+
+      <!-- EVIDENCIA CUANDO ESTABA ABIERTO -->
+      <div class="evidence">
+        <h4>EVIDENCIA PRE-EVENTO</h4>
+        <p>IHG basal negativo (−0.41) sin alerta institucional.</p>
+        <p>NTI rozando umbral crítico (0.48).</p>
+        <p>Nodos N1 y N4 en entropía superior a 0.90.</p>
+        <p>Serie AGS-01…AGS-05 documentando degradación antes del 22/02/2026.</p>
+      </div>
+
+      <!-- ETAPAS POSTERIORES (DERIVADAS DEL DOCUMENTO AGS) -->
+      <div class="etapas">
+        <div class="etapa">
+          <div class="k">ETAPA I · CAPTURA</div>
+          <div class="b">Sistema reporta estabilidad. La causa real no es institucional, sino un pacto implícito no documentado.</div>
+        </div>
+        <div class="etapa">
+          <div class="k">ETAPA II · PROCESAMIENTO</div>
+          <div class="b">MIHM detecta IHG negativo sostenido y distancia creciente entre umbral oficial y real.</div>
+        </div>
+        <div class="etapa">
+          <div class="k">ETAPA III · SHOCK</div>
+          <div class="b">Eliminación del actor hegemónico. El mecanismo de enforcement desaparece en horas.</div>
+        </div>
+        <div class="etapa">
+          <div class="k">ETAPA IV · COLAPSO</div>
+          <div class="b">IHG −0.41 → −0.62 en 24 h. NTI cae a 0.351. Protocolo UCAP activado.</div>
+        </div>
+        <div class="etapa">
+          <div class="k">ETAPA V · CONCLUSIÓN</div>
+          <div class="b">El sistema no falló. Operó según su estructura real. La paz era una variable exógena no institucional.</div>
+        </div>
+      </div>
+
+      <div class="footer">
+        <button class="btn">CONCLUSIÓN OPERATIVA</button>
+      </div>
+    </div>
+
+  </div>
 </section>
 
-<!-- CASOS CERRADOS -->
-<section class="section">
-  <div class="kicker">Archivo validado</div>
-  <div class="sec-title">Casos cerrados</div>
-  <div class="sec-sub">Evidencia histórica + etapas posteriores. Conclusión operativa disponible.</div>
-
-  <div id="cerradosCarousel" class="casos-carousel"></div>
-</section>
-
-<script src="app.js"></script>
 </body>
 </html>
