@@ -1,121 +1,274 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Casos · System Friction</title>
-  <link rel="stylesheet" href="/style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
+<title>System Friction · Casos Operativos</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@300;400;500&family=Syncopate:wght@400;700&display=swap" rel="stylesheet">
+
+<style>
+/* ===== TOKENS ===== */
+:root {
+  --bg:#0a0a09;
+  --surface:#101010;
+  --surface2:#161614;
+  --bd:#1e1e1b;
+  --tx:#c4c0b5;
+  --tx2:#888480;
+  --tx3:#484540;
+  --bright:#ede9de;
+  --ac:#c8a951;
+  --ac2:#8a7035;
+  --ac4:rgba(200,169,81,.07);
+  --neon:#d4f040;
+  --fm:'JetBrains Mono', monospace;
+  --serif:'EB Garamond', serif;
+  --disp:'Syncopate', sans-serif;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+
+body{
+  background:var(--bg);
+  color:var(--tx);
+  font-family:var(--serif);
+}
+
+/* ===== HEADER ===== */
+#hdr{
+  height:46px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:0 1.5rem;
+  border-bottom:1px solid var(--bd);
+  background:rgba(10,10,9,.97);
+}
+
+.hdr-brand{
+  font-family:var(--disp);
+  font-size:.62rem;
+  letter-spacing:.18em;
+  color:var(--ac);
+}
+
+.hdr-mod{
+  font-family:var(--fm);
+  font-size:.56rem;
+  color:var(--tx3);
+}
+
+/* ===== MAIN ===== */
+.section{
+  padding:2rem 2.5rem 3rem;
+}
+
+.kicker{
+  font-family:var(--fm);
+  font-size:.54rem;
+  letter-spacing:.24em;
+  text-transform:uppercase;
+  color:var(--ac2);
+  margin-bottom:1rem;
+}
+
+.sec-title{
+  font-size:1.6rem;
+  color:var(--bright);
+  margin-bottom:.5rem;
+}
+
+.sec-sub{
+  font-family:var(--fm);
+  font-size:.6rem;
+  color:var(--tx2);
+  margin-bottom:1.5rem;
+}
+
+/* ===== CARRUSEL ===== */
+.casos-carousel{
+  display:flex;
+  gap:1.5rem;
+  overflow-x:auto;
+  scroll-snap-type:x mandatory;
+  scrollbar-width:none;
+}
+
+.casos-carousel::-webkit-scrollbar{display:none}
+
+.caso-card{
+  flex:0 0 380px;
+  background:var(--surface);
+  border:1px solid var(--bd);
+  scroll-snap-align:start;
+  display:flex;
+  flex-direction:column;
+}
+
+.caso-header{
+  padding:1rem 1.4rem .6rem;
+  border-bottom:1px solid var(--bd);
+}
+
+.caso-id{
+  font-family:var(--fm);
+  font-size:.65rem;
+  letter-spacing:.1em;
+  color:var(--ac);
+}
+
+.caso-titulo{
+  font-size:1.1rem;
+  margin-top:.3rem;
+  color:var(--bright);
+}
+
+.caso-narrativa{
+  padding:.9rem 1.4rem;
+  font-size:.75rem;
+  color:var(--tx2);
+  line-height:1.5;
+  border-bottom:1px solid var(--bd);
+}
+
+/* ===== ETAPAS ===== */
+.etapas{
+  display:flex;
+  gap:2px;
+  padding:.8rem 1.2rem;
+  overflow-x:auto;
+  scrollbar-width:none;
+}
+
+.etapas::-webkit-scrollbar{display:none}
+
+.etapa{
+  min-width:220px;
+  background:var(--surface2);
+  border:1px solid var(--bd);
+  padding:.75rem;
+}
+
+.etapa-kicker{
+  font-family:var(--fm);
+  font-size:.52rem;
+  letter-spacing:.18em;
+  color:var(--ac2);
+  margin-bottom:.3rem;
+}
+
+.etapa-body{
+  font-size:.75rem;
+  color:var(--tx2);
+}
+
+/* ===== FOOTER CARD ===== */
+.caso-footer{
+  padding:1rem 1.4rem;
+  margin-top:auto;
+  display:flex;
+  justify-content:flex-end;
+  border-top:1px solid var(--bd);
+}
+
+.btn-conclusion{
+  background:none;
+  border:1px solid var(--ac2);
+  color:var(--ac);
+  font-family:var(--fm);
+  font-size:.65rem;
+  padding:.4rem 1rem;
+  cursor:pointer;
+}
+
+.btn-conclusion:hover{
+  background:var(--ac4);
+  color:var(--neon);
+}
+
+/* ===== MODAL ===== */
+.modal-overlay{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.95);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  opacity:0;
+  visibility:hidden;
+}
+
+.modal-overlay.active{
+  opacity:1;
+  visibility:visible;
+}
+
+.modal-container{
+  max-width:900px;
+  width:90%;
+  background:var(--surface2);
+  border:1px solid var(--bd);
+  border-top:3px solid var(--neon);
+}
+
+.modal-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:.8rem 1.5rem;
+  border-bottom:1px solid var(--bd);
+}
+
+.modal-header h3{
+  font-family:var(--fm);
+  font-size:.8rem;
+  color:var(--neon);
+}
+
+.close-modal{
+  border:none;
+  background:none;
+  color:var(--tx2);
+  font-size:1.4rem;
+  cursor:pointer;
+}
+
+.modal-body{
+  padding:1.5rem 2rem;
+  font-size:.85rem;
+  line-height:1.7;
+}
+</style>
 </head>
+
 <body>
 
-  <main class="page">
+<header id="hdr">
+  <span class="hdr-brand">System Friction</span>
+  <span class="hdr-mod">Observatorio · Casos Operativos</span>
+</header>
 
-    <!-- HEADER -->
-    <header class="header">
-      <div class="header-meta">
-        System Friction Framework · Casos
-      </div>
-      <h1>Registro de ejecución</h1>
-      <h2>No es contenido. Es evidencia operativa.</h2>
-    </header>
+<section class="section">
+  <div class="kicker">System Friction · Validación empírica</div>
+  <div class="sec-title">Casos SF</div>
+  <div class="sec-sub">Conclusiones operativas documentadas. Navegación horizontal.</div>
 
+  <div id="casosCarousel" class="casos-carousel"></div>
+</section>
 
-    <!-- NAV INTERNA -->
-    <section class="block">
-      <nav class="cases-nav">
-        <a href="#abiertos">Abiertos</a>
-        <a href="#cerrados">Cerrados</a>
-        <a href="#conclusiones">Conclusiones Operativas</a>
-      </nav>
-    </section>
+<!-- MODAL -->
+<div id="modal" class="modal-overlay">
+  <div class="modal-container">
+    <div class="modal-header">
+      <h3 id="modal-title">CONCLUSIÓN OPERATIVA</h3>
+      <button class="close-modal" onclick="closeModal()">X</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
 
-
-    <!-- ABIERTOS -->
-    <section id="abiertos" class="block">
-      <div class="section-label">Abiertos</div>
-
-      <p>
-        Casos en observación activa. El sistema aún no ha cerrado la trayectoria.
-      </p>
-
-      <div class="case-item">
-        <div class="case-id">SF_OP_0001</div>
-        <div class="case-desc">
-          Nodo en seguimiento. Variables en captura. Sin conclusión operativa aún.
-        </div>
-      </div>
-
-    </section>
-
-
-    <!-- CERRADOS -->
-    <section id="cerrados" class="block">
-      <div class="section-label">Cerrados</div>
-
-      <p>
-        Casos completados. El sistema registró el ciclo completo de observación.
-      </p>
-
-      <div class="case-item">
-        <div class="case-id">SF_CL_0001</div>
-        <div class="case-desc">
-          Caso cerrado sin publicación externa. Registro interno.
-        </div>
-      </div>
-
-    </section>
-
-
-    <!-- CONCLUSIONES OPERATIVAS -->
-    <section id="conclusiones" class="block">
-      <div class="section-label">Conclusiones Operativas</div>
-
-      <p>
-        Casos donde el sistema fue aplicado antes del evento y validado después.
-      </p>
-
-      <!-- CASO AGS -->
-      <div class="case-item case-critical">
-        <div class="case-id">SF_CC_0001 · Nodo AGS</div>
-
-        <p>
-          Documento generado antes del evento. Validado después.
-        </p>
-
-        <p>
-          System Friction identificó degradación estructural antes del evento,
-          a partir de <a href="/patrones.html">patrones previamente observados</a>.
-        </p>
-
-        <p>
-          El evento ocurrió.
-        </p>
-
-        <p>
-          Las variables colapsaron en cadena bajo las condiciones modeladas.
-        </p>
-
-        <p>
-          Sin ajuste posterior. Sin reinterpretación.
-        </p>
-
-        <a class="case-link" href="/casos/SF_CC_0001.html">
-          Acceder a Conclusión Operativa
-        </a>
-      </div>
-
-    </section>
-
-
-    <!-- FOOTER -->
-    <footer class="footer">
-      <p>
-        System Friction Framework · Registro de Casos<br>
-        Cada entrada representa ejecución verificable del modelo.
-      </p>
-    </footer>
-
-  </main>
-
+<script src="app.js"></script>
 </body>
 </html>
