@@ -12,7 +12,7 @@
 
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Observatory — System Friction</title>
+  <title>System Friction Institute — Observatorio</title>
 
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/style.css">
@@ -22,16 +22,13 @@
 
 <canvas id="sf-nodes"></canvas>
 <div id="scrollLine" class="scroll-line"></div>
+<div class="cursor-dot" id="cursorDot"></div>
 
 <nav id="nav">
   <a href="/index.html" class="nav-logo">SYSTEM<span>·</span>FRICTION</a>
-
   <div class="nav-center">Institute — Systemic Friction</div>
-
   <div class="nav-right">
-
     <a href="/index.html" class="nav-link">Observatorio</a>
-
     <div class="nav-dropdown">
       <span class="nav-link">Instrumentos ▾</span>
       <div class="nav-dropdown-menu">
@@ -44,7 +41,6 @@
         <a href="/language.html">System Language</a>
       </div>
     </div>
-
     <div class="nav-dropdown">
       <span class="nav-link">Repositorio ▾</span>
       <div class="nav-dropdown-menu">
@@ -55,7 +51,6 @@
         <a href="/postulados.html">Postulados</a>
       </div>
     </div>
-
     <div class="nav-dropdown">
       <span class="nav-link">Laboratorio ▾</span>
       <div class="nav-dropdown-menu">
@@ -67,7 +62,6 @@
         <a href="/lab-sys.html">SYS</a>
       </div>
     </div>
-
     <div class="nav-dropdown">
       <span class="nav-link">Instituto ▾</span>
       <div class="nav-dropdown-menu">
@@ -77,21 +71,9 @@
         <a href="/contact.html">Contacto</a>
       </div>
     </div>
-
     <a href="/mop-h-form.html" class="nav-link cta">Aplicar</a>
-
   </div>
 </nav>
-  
-<div class="page-wrap">
-  
-<div id="diagnosticoOverlay" class="overlay hidden">
-  <div class="overlay-content" id="diagContent"></div>
-</div>
-
-<div class="scroll-line" id="scrollLine"></div>
-<div class="cursor-dot" id="cursorDot"></div>
-
 
 <!-- HERO -->
 <section id="hero">
@@ -134,9 +116,7 @@
 <!-- DIAGNOSTIC -->
 <section id="diagnostic">
   <div class="section-tag">01 — Diagnóstico rápido</div>
-
   <div class="diagnostic-container">
-    <!-- PRE-START STATE -->
     <div id="diagStart">
       <h2 class="diagnostic-h2">¿Cuánta fricción<br>está absorbiendo tu sistema?</h2>
       <p class="diagnostic-sub">
@@ -148,8 +128,6 @@
         <span class="diag-timer">⟡ aprox. 60 seg</span>
       </div>
     </div>
-
-    <!-- STEPS -->
     <div id="diagSteps" class="diag-steps">
       <div class="step-progress">
         <div class="step-dot" id="dot0"></div>
@@ -158,8 +136,6 @@
       </div>
       <div id="stepContent"></div>
     </div>
-
-    <!-- RESULT -->
     <div id="diagResult" class="diag-result"></div>
   </div>
 </section>
@@ -178,27 +154,21 @@
       <div class="service-num">S·01</div>
       <div class="service-icon">◈</div>
       <div class="service-name">Auditoría de Fricción Sistémica</div>
-      <div class="service-desc">
-        Diagnóstico profundo del estado homeostático de tu institución. Medición de IHG, LDI y NTI. Identificación de los puntos donde la entropía se acumula invisiblemente bajo indicadores estables.
-      </div>
+      <div class="service-desc">Diagnóstico profundo del estado homeostático de tu institución. Medición de IHG, LDI y NTI. Identificación de los puntos donde la entropía se acumula invisiblemente bajo indicadores estables.</div>
       <div class="service-tag">Entregable: Mapa SF + Reporte MIHM</div>
     </div>
     <div class="service-card" onclick="document.getElementById('contact').scrollIntoView({behavior:'smooth'})">
       <div class="service-num">S·02</div>
       <div class="service-icon">⬡</div>
       <div class="service-name">Protocolo de Intervención</div>
-      <div class="service-desc">
-        Diseño de arquitectura de respuesta adaptada a la topografía de fricción de tu sistema. Reglas de decisión humana, compuertas de validación y protocolos de redistribución de carga.
-      </div>
+      <div class="service-desc">Diseño de arquitectura de respuesta adaptada a la topografía de fricción de tu sistema. Reglas de decisión humana, compuertas de validación y protocolos de redistribución de carga.</div>
       <div class="service-tag">Entregable: MOP-H + Protocolo VHpD</div>
     </div>
     <div class="service-card" onclick="document.getElementById('contact').scrollIntoView({behavior:'smooth'})">
       <div class="service-num">S·03</div>
       <div class="service-icon">◎</div>
       <div class="service-name">Consultoría Estratégica</div>
-      <div class="service-desc">
-        Acompañamiento directo en la toma de decisiones de alto impacto. Para directivos que necesitan nombrar lo que ya perciben pero no pueden instrumentalizar sin un marco formal.
-      </div>
+      <div class="service-desc">Acompañamiento directo en la toma de decisiones de alto impacto. Para directivos que necesitan nombrar lo que ya perciben pero no pueden instrumentalizar sin un marco formal.</div>
       <div class="service-tag">Entregable: Sesiones + Documentación</div>
     </div>
   </div>
@@ -210,154 +180,45 @@
   <div class="process-header">
     <h2 class="process-h2">Del contacto<br>al diagnóstico<br>en 72 horas.</h2>
     <div class="process-steps">
-      <div class="process-step">
-        <div class="step-num-large">01</div>
-        <div class="step-content">
-          <div class="step-title">Contacto inicial (asíncrono)</div>
-          <div class="step-body">Describe brevemente el sistema, institución o problema. No necesitás tener el diagnóstico previo. Lo que tenés es suficiente para empezar. Respondo en menos de 24 horas con una evaluación de viabilidad.</div>
-          <span class="step-duration">⟡ 5 minutos de tu parte</span>
-        </div>
-      </div>
-      <div class="process-step">
-        <div class="step-num-large">02</div>
-        <div class="step-content">
-          <div class="step-title">Entrevista de calibración</div>
-          <div class="step-body">Sesión de 60 minutos para mapear el terreno. No es una reunión de ventas. Es la primera capa del diagnóstico. Al terminar ya tenés información útil, independientemente de si continuamos.</div>
-          <span class="step-duration">⟡ 60 minutos</span>
-        </div>
-      </div>
-      <div class="process-step">
-        <div class="step-num-large">03</div>
-        <div class="step-content">
-          <div class="step-title">Propuesta específica</div>
-          <div class="step-body">Con base en la entrevista, diseño una propuesta con alcance, herramientas y entregables concretos. Sin paquetes genéricos. Cada intervención es construida para el sistema que la necesita.</div>
-          <span class="step-duration">⟡ 48–72 horas</span>
-        </div>
-      </div>
-      <div class="process-step">
-        <div class="step-num-large">04</div>
-        <div class="step-content">
-          <div class="step-title">Ejecución y entregable</div>
-          <div class="step-body">El trabajo produce instrumentos que podés usar, citar e implementar. No documentos que se archivan. Mapas que se ejecutan.</div>
-          <span class="step-duration">⟡ Según alcance definido</span>
-        </div>
-      </div>
+      <div class="process-step"><div class="step-num-large">01</div><div class="step-content"><div class="step-title">Contacto inicial (asíncrono)</div><div class="step-body">Describe brevemente el sistema, institución o problema. No necesitás tener el diagnóstico previo. Respondo en menos de 24 horas con una evaluación de viabilidad.</div><span class="step-duration">⟡ 5 minutos de tu parte</span></div></div>
+      <div class="process-step"><div class="step-num-large">02</div><div class="step-content"><div class="step-title">Entrevista de calibración</div><div class="step-body">Sesión de 60 minutos para mapear el terreno. No es una reunión de ventas. Es la primera capa del diagnóstico.</div><span class="step-duration">⟡ 60 minutos</span></div></div>
+      <div class="process-step"><div class="step-num-large">03</div><div class="step-content"><div class="step-title">Propuesta específica</div><div class="step-body">Con base en la entrevista, diseño una propuesta con alcance, herramientas y entregables concretos. Sin paquetes genéricos.</div><span class="step-duration">⟡ 48–72 horas</span></div></div>
+      <div class="process-step"><div class="step-num-large">04</div><div class="step-content"><div class="step-title">Ejecución y entregable</div><div class="step-body">El trabajo produce instrumentos que podés usar, citar e implementar. No documentos que se archivan. Mapas que se ejecutan.</div><span class="step-duration">⟡ Según alcance definido</span></div></div>
     </div>
   </div>
 </section>
 
 <!-- PROOF -->
 <section id="proof">
-  <div class="proof-item">
-    <div class="proof-stat">12+</div>
-    <div class="proof-unit">años operando dentro de sistemas institucionales complejos con consecuencias reales</div>
-    <div class="proof-label">Experiencia directa</div>
-  </div>
-  <div class="proof-item">
-    <div class="proof-stat">∅</div>
-    <div class="proof-unit">consultorías genéricas. Cada intervención es diseñada desde cero para el sistema específico</div>
-    <div class="proof-label">Sin paquetes estándar</div>
-  </div>
-  <div class="proof-item">
-    <div class="proof-stat">24h</div>
-    <div class="proof-unit">tiempo máximo de respuesta a cualquier contacto inicial. Sin formularios automáticos</div>
-    <div class="proof-label">Respuesta humana directa</div>
-  </div>
+  <div class="proof-item"><div class="proof-stat">12+</div><div class="proof-unit">años operando dentro de sistemas institucionales complejos con consecuencias reales</div><div class="proof-label">Experiencia directa</div></div>
+  <div class="proof-item"><div class="proof-stat">∅</div><div class="proof-unit">consultorías genéricas. Cada intervención es diseñada desde cero para el sistema específico</div><div class="proof-label">Sin paquetes estándar</div></div>
+  <div class="proof-item"><div class="proof-stat">24h</div><div class="proof-unit">tiempo máximo de respuesta a cualquier contacto inicial. Sin formularios automáticos</div><div class="proof-label">Respuesta humana directa</div></div>
 </section>
 
 <!-- AUDIENCE -->
 <section id="audience">
-  <div class="audience-left">
-    <div class="section-tag">04 — Para quién</div>
-    <h2 class="audience-h2">Esto no es para todos.<br>Es para quien ya<br>percibe el patrón.</h2>
-    <p class="audience-body">
-      System Friction no trabaja con organizaciones que buscan validación de lo que ya creen. Trabaja con quienes están listos para instrumentalizar lo que ya saben pero no pueden demostrar formalmente.
-    </p>
-    <a href="#contact" class="btn-primary">Estoy listo — contactar</a>
-  </div>
+  <div class="audience-left"><div class="section-tag">04 — Para quién</div><h2 class="audience-h2">Esto no es para todos.<br>Es para quien ya<br>percibe el patrón.</h2><p class="audience-body">System Friction no trabaja con organizaciones que buscan validación de lo que ya creen. Trabaja con quienes están listos para instrumentalizar lo que ya saben pero no pueden demostrar formalmente.</p><a href="#contact" class="btn-primary">Estoy listo — contactar</a></div>
   <div class="audience-right">
-    <div class="audience-item">
-      <div class="audience-dot"></div>
-      <div class="audience-text">
-        <strong>Directivos institucionales</strong> que perciben que los indicadores están bien pero algo sistémico está fallando, y no encuentran el lenguaje para nombrarlo ni el marco para medirlo.
-      </div>
-    </div>
-    <div class="audience-item">
-      <div class="audience-dot"></div>
-      <div class="audience-text">
-        <strong>Equipos técnicos</strong> que detectan anomalías pero no logran que la señal suba sin distorsionarse. Que pierden precisión en cada capa que atraviesan.
-      </div>
-    </div>
-    <div class="audience-item">
-      <div class="audience-dot"></div>
-      <div class="audience-text">
-        <strong>Fundadores y operadores</strong> de sistemas complejos donde la fricción entre la visión y la ejecución está costando más de lo que los números oficiales muestran.
-      </div>
-    </div>
-    <div class="audience-item">
-      <div class="audience-dot"></div>
-      <div class="audience-text">
-        <strong>Investigadores y académicos</strong> que trabajan en la frontera entre teoría institucional y evidencia empírica, y necesitan un interlocutor con marco formal propio.
-      </div>
-    </div>
+    <div class="audience-item"><div class="audience-dot"></div><div class="audience-text"><strong>Directivos institucionales</strong> que perciben que los indicadores están bien pero algo sistémico está fallando.</div></div>
+    <div class="audience-item"><div class="audience-dot"></div><div class="audience-text"><strong>Equipos técnicos</strong> que detectan anomalías pero no logran que la señal suba sin distorsionarse.</div></div>
+    <div class="audience-item"><div class="audience-dot"></div><div class="audience-text"><strong>Fundadores y operadores</strong> de sistemas complejos donde la fricción entre la visión y la ejecución está costando más de lo que los números oficiales muestran.</div></div>
+    <div class="audience-item"><div class="audience-dot"></div><div class="audience-text"><strong>Investigadores y académicos</strong> que trabajan en la frontera entre teoría institucional y evidencia empírica.</div></div>
   </div>
 </section>
 
 <!-- CONTACT -->
 <section id="contact">
-  <div class="contact-left">
-    <div class="section-tag">05 — Contacto</div>
-    <h2 class="contact-h2">Describe tu<br>sistema.<br><span>Yo hago el resto.</span></h2>
-    <p class="contact-body">
-      No necesitás tener el problema perfectamente articulado. Solo describe lo que estás viendo, lo que no cuadra, lo que nadie está nombrando. Con eso es suficiente para empezar.
-    </p>
-    <div class="contact-identity">
-      <div class="contact-name">Juan Antonio Marín Liera</div>
-      <div class="contact-title">Fundador · System Friction Institute</div>
-      <div class="contact-alias">// Aptymok · Aguascalientes, México</div>
-    </div>
-  </div>
+  <div class="contact-left"><div class="section-tag">05 — Contacto</div><h2 class="contact-h2">Describe tu<br>sistema.<br><span>Yo hago el resto.</span></h2><p class="contact-body">No necesitás tener el problema perfectamente articulado. Solo describe lo que estás viendo, lo que no cuadra, lo que nadie está nombrando. Con eso es suficiente para empezar.</p><div class="contact-identity"><div class="contact-name">Juan Antonio Marín Liera</div><div class="contact-title">Fundador · System Friction Institute</div><div class="contact-alias">// Aptymok · Aguascalientes, México</div></div></div>
   <div class="contact-right">
     <form class="contact-form" id="contactForm" onsubmit="handleSubmit(event)">
-      <div class="form-row">
-        <div class="form-field">
-          <label class="form-label">Nombre</label>
-          <input type="text" class="form-input" placeholder="Tu nombre" required>
-        </div>
-        <div class="form-field">
-          <label class="form-label">Organización</label>
-          <input type="text" class="form-input" placeholder="Donde operas">
-        </div>
-      </div>
-      <div class="form-field">
-        <label class="form-label">Email</label>
-        <input type="email" class="form-input" placeholder="tu@email.com" required>
-      </div>
-      <div class="form-field">
-        <label class="form-label">¿Qué tipo de intervención buscás?</label>
-        <select class="form-select">
-          <option value="" disabled selected>Seleccionar</option>
-          <option>Auditoría de fricción sistémica</option>
-          <option>Protocolo de intervención</option>
-          <option>Consultoría estratégica</option>
-          <option>No sé todavía — quiero explorar</option>
-        </select>
-      </div>
-      <div class="form-field">
-        <label class="form-label">Describe brevemente lo que está pasando</label>
-        <textarea class="form-textarea" placeholder="No necesitás articularlo perfecto. Lo que estás percibiendo es suficiente..." required></textarea>
-      </div>
+      <div class="form-row"><div class="form-field"><label class="form-label">Nombre</label><input type="text" class="form-input" placeholder="Tu nombre" required></div><div class="form-field"><label class="form-label">Organización</label><input type="text" class="form-input" placeholder="Donde operas"></div></div>
+      <div class="form-field"><label class="form-label">Email</label><input type="email" class="form-input" placeholder="tu@email.com" required></div>
+      <div class="form-field"><label class="form-label">¿Qué tipo de intervención buscás?</label><select class="form-select"><option value="" disabled selected>Seleccionar</option><option>Auditoría de fricción sistémica</option><option>Protocolo de intervención</option><option>Consultoría estratégica</option><option>No sé todavía — quiero explorar</option></select></div>
+      <div class="form-field"><label class="form-label">Describe brevemente lo que está pasando</label><textarea class="form-textarea" placeholder="No necesitás articularlo perfecto. Lo que estás percibiendo es suficiente..." required></textarea></div>
       <button type="submit" class="form-submit">Enviar — quiero hablar con Juan</button>
       <p class="form-note">Respuesta en menos de 24 horas. Sin formularios automáticos. Sin pitch de ventas.</p>
     </form>
-    <div class="form-success" id="formSuccess">
-      <div class="form-success-icon">◈</div>
-      <div class="form-success-title">Mensaje recibido.</div>
-      <div class="form-success-body">
-        Juan revisará tu mensaje y responderá en menos de 24 horas.<br>
-        La señal ya está en tránsito.
-      </div>
-    </div>
+    <div class="form-success" id="formSuccess"><div class="form-success-icon">◈</div><div class="form-success-title">Mensaje recibido.</div><div class="form-success-body">Juan revisará tu mensaje y responderá en menos de 24 horas.<br>La señal ya está en tránsito.</div></div>
   </div>
 </section>
 
@@ -370,56 +231,32 @@
 <script>
 // ── CURSOR ──
 const cursor = document.getElementById('cursorDot');
-document.addEventListener('mousemove', e => {
-  cursor.style.left = e.clientX + 'px';
-  cursor.style.top = e.clientY + 'px';
-});
+if (cursor) {
+  document.addEventListener('mousemove', e => {
+    cursor.style.left = e.clientX + 'px';
+    cursor.style.top = e.clientY + 'px';
+  });
+}
 
 // ── SCROLL EFFECTS ──
-const nav = document.getElementById('mainNav');
+const nav = document.getElementById('nav');
 const scrollLine = document.getElementById('scrollLine');
 window.addEventListener('scroll', () => {
-  nav.classList.toggle('scrolled', window.scrollY > 40);
-  const pct = (window.scrollY / (document.body.scrollHeight - window.innerHeight)) * 100;
-  scrollLine.style.width = pct + '%';
+  if (nav) nav.classList.toggle('scrolled', window.scrollY > 40);
+  if (scrollLine) {
+    const pct = (window.scrollY / (document.body.scrollHeight - window.innerHeight)) * 100;
+    scrollLine.style.width = pct + '%';
+  }
 });
 
 // ── DIAGNOSTIC FLOW ──
 const questions = [
-  {
-    q: "¿Cuándo fue la última vez que tu sistema admitió formalmente un fallo real — no una mejora de proceso, sino un error estructural?",
-    opts: [
-      "Nunca. Los indicadores siempre están en verde.",
-      "Hace más de un año. Se documentó y se archivó.",
-      "Recientemente, pero el diagnóstico fue superficial.",
-      "Tenemos cultura de fallo visible. Se nombra rápido."
-    ],
-    weight: [3, 2, 1, 0]
-  },
-  {
-    q: "Cuando alguien detecta una anomalía técnica, ¿cuánto tarda en convertirse en decisión ejecutiva verificable?",
-    opts: [
-      "Semanas o meses. Depende de ciclos políticos internos.",
-      "Días. Hay estructura, pero con fricción visible.",
-      "48 horas. El canal existe y funciona.",
-      "La señal rara vez llega a quien puede decidir."
-    ],
-    weight: [3, 2, 1, 3]
-  },
-  {
-    q: "¿Existe alguien en tu organización cuyo trabajo sea verificar que los datos que circulan son íntegros — no que sean correctos, sino que no estén distorsionados?",
-    opts: [
-      "No. Asumimos que los datos son confiables.",
-      "Hay auditoría, pero revisa resultados, no señales.",
-      "Sí, pero es una capa formal, no operativa.",
-      "Sí, y tiene autoridad para invalidar decisiones."
-    ],
-    weight: [3, 2, 1, 0]
-  }
+  { q: "¿Cuándo fue la última vez que tu sistema admitió formalmente un fallo real — no una mejora de proceso, sino un error estructural?", opts: ["Nunca. Los indicadores siempre están en verde.", "Hace más de un año. Se documentó y se archivó.", "Recientemente, pero el diagnóstico fue superficial.", "Tenemos cultura de fallo visible. Se nombra rápido."], weight: [3, 2, 1, 0] },
+  { q: "Cuando alguien detecta una anomalía técnica, ¿cuánto tarda en convertirse en decisión ejecutiva verificable?", opts: ["Semanas o meses. Depende de ciclos políticos internos.", "Días. Hay estructura, pero con fricción visible.", "48 horas. El canal existe y funciona.", "La señal rara vez llega a quien puede decidir."], weight: [3, 2, 1, 3] },
+  { q: "¿Existe alguien en tu organización cuyo trabajo sea verificar que los datos que circulan son íntegros — no que sean correctos, sino que no estén distorsionados?", opts: ["No. Asumimos que los datos son confiables.", "Hay auditoría, pero revisa resultados, no señales.", "Sí, pero es una capa formal, no operativa.", "Sí, y tiene autoridad para invalidar decisiones."], weight: [3, 2, 1, 0] }
 ];
 
-let currentStep = 0;
-let scores = [];
+let currentStep = 0, scores = [];
 
 function startDiag() {
   document.getElementById('diagStart').style.display = 'none';
@@ -428,92 +265,37 @@ function startDiag() {
 }
 
 function renderStep(idx) {
-  // Update dots
   for (let i = 0; i < 3; i++) {
     const d = document.getElementById('dot' + i);
-    d.className = 'step-dot';
-    if (i < idx) d.classList.add('done');
-    else if (i === idx) d.classList.add('current');
+    if (d) { d.className = 'step-dot'; if (i < idx) d.classList.add('done'); else if (i === idx) d.classList.add('current'); }
   }
-
   const q = questions[idx];
   const container = document.getElementById('stepContent');
-  container.innerHTML = `
-    <div class="step-counter">Pregunta ${idx + 1} de 3</div>
-    <div class="step-question">${q.q}</div>
-    <div class="options-grid" id="optGrid">
-      ${q.opts.map((opt, i) => `
-        <button class="option-btn" onclick="selectOption(${idx}, ${i}, ${q.weight[i]})">${opt}</button>
-      `).join('')}
-    </div>
-  `;
+  container.innerHTML = `<div class="step-counter">Pregunta ${idx + 1} de 3</div><div class="step-question">${q.q}</div><div class="options-grid" id="optGrid">${q.opts.map((opt, i) => `<button class="option-btn" onclick="selectOption(${idx}, ${i}, ${q.weight[i]})">${opt}</button>`).join('')}</div>`;
   container.style.opacity = '0';
   container.style.transform = 'translateX(16px)';
-  setTimeout(() => {
-    container.style.transition = 'all 0.4s cubic-bezier(0.16,1,0.3,1)';
-    container.style.opacity = '1';
-    container.style.transform = 'translateX(0)';
-  }, 20);
+  setTimeout(() => { container.style.transition = 'all 0.4s cubic-bezier(0.16,1,0.3,1)'; container.style.opacity = '1'; container.style.transform = 'translateX(0)'; }, 20);
 }
 
 function selectOption(stepIdx, optIdx, weight) {
-  // highlight
-  const btns = document.querySelectorAll('#optGrid .option-btn');
-  btns.forEach(b => b.classList.remove('selected'));
-  btns[optIdx].classList.add('selected');
-
+  document.querySelectorAll('#optGrid .option-btn').forEach(b => b.classList.remove('selected'));
+  document.querySelectorAll('#optGrid .option-btn')[optIdx].classList.add('selected');
   scores.push(weight);
-
-  setTimeout(() => {
-    if (stepIdx < 2) {
-      currentStep++;
-      renderStep(currentStep);
-    } else {
-      showResult();
-    }
-  }, 400);
+  setTimeout(() => { if (stepIdx < 2) { currentStep++; renderStep(currentStep); } else { showResult(); } }, 400);
 }
 
 function showResult() {
   document.getElementById('diagSteps').style.display = 'none';
-
   const total = scores.reduce((a, b) => a + b, 0);
   let level, title, body, color;
-
-  if (total <= 2) {
-    level = 'FRICCIÓN BAJA';
-    title = 'Tu sistema tiene trazabilidad activa.';
-    body = 'Las señales circulan con integridad razonable. La brecha entre umbral oficial y real es pequeña. Esto no significa ausencia de fricción — significa que está siendo gestionada. Vale la pena documentar qué la mantiene así antes de que cambie el contexto.';
-    color = '#4a9e6a';
-  } else if (total <= 5) {
-    level = 'FRICCIÓN MEDIA-ALTA';
-    title = 'Hay acumulación sistémica invisible.';
-    body = 'Tus indicadores formales probablemente muestran estabilidad. Pero la latencia institucional está generando entropía bajo la superficie. El riesgo no es inminente, pero el margen se estrecha. Este es el momento de mapear, no de esperar.';
-    color = '#c8a951';
-  } else {
-    level = 'FRICCIÓN CRÍTICA';
-    title = 'La distancia entre ambos umbrales es estructural.';
-    body = 'Tu sistema está operando con una brecha significativa entre lo que declara y lo que ocurre físicamente. La LDI supera la velocidad de degradación en al menos una capa. Sin instrumentación formal de la fricción, el colapso no es un escenario de riesgo — es una trayectoria activa.';
-    color = '#e85a4f';
-  }
-
+  if (total <= 2) { level = 'FRICCIÓN BAJA'; title = 'Tu sistema tiene trazabilidad activa.'; body = 'Las señales circulan con integridad razonable. La brecha entre umbral oficial y real es pequeña.'; color = '#4a9e6a'; }
+  else if (total <= 5) { level = 'FRICCIÓN MEDIA-ALTA'; title = 'Hay acumulación sistémica invisible.'; body = 'Tus indicadores formales probablemente muestran estabilidad. Pero la latencia institucional está generando entropía bajo la superficie.'; color = '#c8a951'; }
+  else { level = 'FRICCIÓN CRÍTICA'; title = 'La distancia entre ambos umbrales es estructural.'; body = 'Tu sistema está operando con una brecha significativa entre lo que declara y lo que ocurre físicamente. La LDI supera la velocidad de degradación.'; color = '#e85a4f'; }
   const resultEl = document.getElementById('diagResult');
-  resultEl.innerHTML = `
-    <div class="result-label" style="color:${color}">${level} — Score ${total}/9</div>
-    <div class="result-title">${title}</div>
-    <div class="result-body">${body}</div>
-    <div class="result-cta">
-      <a href="/mop-h-form.html" class="btn-primary">Continuar a auditoría completa</a>
-      <span style="font-size:11px;color:var(--text-faint)">Esto fue el 1% del análisis real.</span>
-    </div>
-  `;
+  resultEl.innerHTML = `<div class="result-label" style="color:${color}">${level} — Score ${total}/9</div><div class="result-title">${title}</div><div class="result-body">${body}</div><div class="result-cta"><a href="/mop-h-form.html" class="btn-primary">Continuar a auditoría completa</a><span style="font-size:11px;color:var(--text-faint)">Esto fue el 1% del análisis real.</span></div>`;
   resultEl.classList.add('show');
-
-  // Scroll into view
   setTimeout(() => resultEl.scrollIntoView({ behavior: 'smooth', block: 'center' }), 200);
 }
-
-document.getElementById('diagnosticoOverlay').classList.remove('hidden');
 
 // ── FORM ──
 function handleSubmit(e) {
@@ -526,97 +308,30 @@ function handleSubmit(e) {
 document.querySelectorAll('a[href^="#"]').forEach(a => {
   a.addEventListener('click', e => {
     const target = document.querySelector(a.getAttribute('href'));
-    if (target) {
-      e.preventDefault();
-      target.scrollIntoView({ behavior: 'smooth' });
-    }
+    if (target) { e.preventDefault(); target.scrollIntoView({ behavior: 'smooth' }); }
   });
 });
-</script>
 
-<script>
+// ── CANVAS NODES ──
 const canvas = document.getElementById('sf-nodes');
-const ctx = canvas.getContext('2d');
-
-let nodes = [];
-const NODE_COUNT = window.innerWidth < 768 ? 40 : 80;
-const MAX_DIST = 140;
-
-function resize() {
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
-}
-window.addEventListener('resize', resize);
-resize();
-
-class Node {
-  constructor() {
-    this.x = Math.random() * canvas.width;
-    this.y = Math.random() * canvas.height;
-    this.vx = (Math.random() - 0.5) * 0.4;
-    this.vy = (Math.random() - 0.5) * 0.4;
+if (canvas) {
+  const ctx = canvas.getContext('2d');
+  let nodes = [];
+  const NODE_COUNT = window.innerWidth < 768 ? 40 : 80;
+  const MAX_DIST = 140;
+  function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+  window.addEventListener('resize', resize);
+  resize();
+  class Node {
+    constructor() { this.x = Math.random() * canvas.width; this.y = Math.random() * canvas.height; this.vx = (Math.random() - 0.5) * 0.4; this.vy = (Math.random() - 0.5) * 0.4; }
+    move() { this.x += this.vx; this.y += this.vy; if (this.x < 0 || this.x > canvas.width) this.vx *= -1; if (this.y < 0 || this.y > canvas.height) this.vy *= -1; }
+    draw() { ctx.beginPath(); ctx.arc(this.x, this.y, 1.2, 0, Math.PI * 2); ctx.fillStyle = 'rgba(200,169,81,0.7)'; ctx.fill(); }
   }
-
-  move() {
-    this.x += this.vx;
-    this.y += this.vy;
-
-    if (this.x < 0 || this.x > canvas.width) this.vx *= -1;
-    if (this.y < 0 || this.y > canvas.height) this.vy *= -1;
-  }
-
-  draw() {
-    ctx.beginPath();
-    ctx.arc(this.x, this.y, 1.2, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(200,169,81,0.7)';
-    ctx.fill();
-  }
+  function init() { nodes = []; for (let i = 0; i < NODE_COUNT; i++) nodes.push(new Node()); }
+  function connect() { for (let i = 0; i < nodes.length; i++) for (let j = i + 1; j < nodes.length; j++) { const dx = nodes[i].x - nodes[j].x, dy = nodes[i].y - nodes[j].y, dist = Math.sqrt(dx * dx + dy * dy); if (dist < MAX_DIST) { ctx.beginPath(); ctx.moveTo(nodes[i].x, nodes[i].y); ctx.lineTo(nodes[j].x, nodes[j].y); const alpha = 1 - dist / MAX_DIST; ctx.strokeStyle = `rgba(200,169,81,${alpha * 0.15})`; ctx.lineWidth = 0.5; ctx.stroke(); } } }
+  function animate() { ctx.clearRect(0, 0, canvas.width, canvas.height); nodes.forEach(n => { n.move(); n.draw(); }); connect(); requestAnimationFrame(animate); }
+  init(); animate();
 }
-
-function init() {
-  nodes = [];
-  for (let i = 0; i < NODE_COUNT; i++) {
-    nodes.push(new Node());
-  }
-}
-
-function connect() {
-  for (let i = 0; i < nodes.length; i++) {
-    for (let j = i + 1; j < nodes.length; j++) {
-      const dx = nodes[i].x - nodes[j].x;
-      const dy = nodes[i].y - nodes[j].y;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-
-      if (dist < MAX_DIST) {
-        ctx.beginPath();
-        ctx.moveTo(nodes[i].x, nodes[i].y);
-        ctx.lineTo(nodes[j].x, nodes[j].y);
-
-        const alpha = 1 - dist / MAX_DIST;
-        ctx.strokeStyle = `rgba(200,169,81,${alpha * 0.15})`;
-        ctx.lineWidth = 0.5;
-        ctx.stroke();
-      }
-    }
-  }
-}
-
-function animate() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-  nodes.forEach(n => {
-    n.move();
-    n.draw();
-  });
-
-  connect();
-
-  requestAnimationFrame(animate);
-}
-
-init();
-animate();
 </script>
-
 </body>
 </html>

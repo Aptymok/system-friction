@@ -1,7 +1,0 @@
-.env
-node_modules/
-*/node_modules/
-**/node_modules/
-apps/web/dist/
-*.local
-.DS_Store

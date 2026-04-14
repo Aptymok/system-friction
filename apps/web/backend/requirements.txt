@@ -1,9 +1,0 @@
-Flask
-Flask-CORS
-librosa
-numpy
-scipy
-pydub
-python-dotenv
-requests
-gunicorn==20.1.0   # o la versión que prefieras
