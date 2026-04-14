@@ -1,0 +1,16 @@
+<!-- ... mismo <head> y <nav> que index.html ... -->
+<canvas id="timelineCanvas" width="1200" height="600"></canvas>
+<script>
+// Fetch datos reales Banxico + Yahoo (proxy allorigins)
+async function fetchRealHistorical() {
+  const proxy = "https://api.allorigins.win/raw?url=";
+  // Banxico inflación histórica
+  const banxicoUrl = proxy + encodeURIComponent("https://www.banxico.org.mx/SieAPIRest/service/v1/series/SF43718/datos/2020-01-01/2026-04-14");
+  const banxico = await (await fetch(banxicoUrl)).json();
+  // Yahoo SP500 (histórico simple)
+  const spUrl = proxy + encodeURIComponent("https://query1.finance.yahoo.com/v8/finance/chart/^GSPC?interval=1mo&period1=1577836800&period2=1744588800");
+  const sp = await (await fetch(spUrl)).json();
+  return {banxico, sp500: sp.chart.result[0]};
+}
+ // ... canvas con Chart.js o canvas puro para timeline multivariable Φ(t), IHG, NTI con marcadores de eventos reales ...
+</script>
