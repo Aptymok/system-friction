@@ -1059,6 +1059,32 @@ body > *:not(#sf-nodes) {
 .nav-link.cta {
   color: #E6FF00;
 }
+  .inner-nav {
+  position: fixed;
+  top: 48px;
+  left: 0;
+  right: 0;
+  height: 36px;
+  background: #0f0f0f;
+  border-bottom: 1px solid #1e1e1e;
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  gap: 20px;
+  z-index: 190;
+}
+
+.inner-nav a {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: .14em;
+  color: #737373;
+  text-decoration: none;
+}
+
+.inner-nav a:hover {
+  color: #E6FF00;
+}
 </style>
 </head>
 <body>
@@ -1126,7 +1152,15 @@ body > *:not(#sf-nodes) {
 
   </div>
 </nav>
+  
+<div class="inner-nav">
+  <a href="/sistema.html">Inicio Auditoría</a>
+  <a href="/audit.html">Diagnóstico</a>
+  <a href="/method.html">Método</a>
+  <a href="/moh-p-form.html">Aplicar Auditoría</a>
+</div>
 
+  
 <div id="diagnosticoOverlay" class="overlay hidden">
   <div class="overlay-content" id="diagContent"></div>
 </div>
