@@ -70,16 +70,50 @@ canvas {
 }
 
 html, body {
+  min-height: 100dvh;
   height: 100%;
   font-family: var(--font);
   background: var(--void);
   color: var(--text);
 }
 
+input, select, textarea {
+  font-size: 16px !important;
+}
+
 body {
   cursor: crosshair;
   overflow-x: hidden;
   line-height: 1.6;
+}
+
+@media (hover: none), (max-width: 1024px) {
+  canvas, svg {
+    pointer-events: none;
+  }
+  .interactive-canvas, .interactive-svg {
+    pointer-events: auto;
+  }
+  .nav-dropdown:hover .nav-dropdown-menu {
+    display: none;
+  }
+  .nav-dropdown:focus-within .nav-dropdown-menu {
+    display: flex;
+  }
+  .layer-item:hover,
+  .score-card:hover,
+  .case-row:hover,
+  .service-card:hover,
+  .term-item:hover,
+  .intent-btn:hover,
+  .urgency-btn:hover,
+  .btn-primary:hover,
+  .btn-ghost:hover,
+  .modal-close:hover,
+  .modal-cta:hover {
+    transform: none;
+    padding-left: 0;
+  }
 }
 
 /* ----- NOISE TEXTURE (única) ----- */
@@ -454,7 +488,7 @@ body::before {
   background: var(--void-soft);
   border: 1px solid var(--border2);
   width: min(740px, 94vw);
-  max-height: 88vh;
+  max-height: 88dvh;
   overflow-y: auto;
   position: relative;
   animation: modalIn .4s var(--ease);
@@ -958,7 +992,7 @@ nav.scrolled {
 
 /* Layout de dos columnas */
 .page {
-  min-height: 100vh;
+  min-height: 100dvh;
   display: grid;
   grid-template-columns: 1fr 1fr;
 }
@@ -972,7 +1006,7 @@ nav.scrolled {
   border-right: 1px solid var(--border);
   position: sticky;
   top: 0;
-  height: 100vh;
+  height: 100dvh;
   overflow: hidden;
 }
 

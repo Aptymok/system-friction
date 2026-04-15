@@ -841,6 +841,9 @@ body {
   <span>ε(ego) := NTI := Φ(t)</span>
 </div>
 
+<script src="/js/state.js"></script>
+<script src="/js/router.js"></script>
+<script src="/js/core.js"></script>
 <script src="/js/gate.js"></script>
 
 <script>
@@ -918,6 +921,12 @@ function mostrarQ(n) {
 
   const prev = block ? block.querySelector('.btn-prev') : null;
   if (prev) prev.disabled = (n === 1);
+
+  if (typeof window.pushFormStep === 'function') {
+    window.pushFormStep(n);
+  } else {
+    history.replaceState({ step: n }, '', `?step=${n}`);
+  }
 }
 
 function ir(delta) {
@@ -933,7 +942,8 @@ function saltar() {
 
 function cerrar() {
   guardar();
-  if (!localStorage.getItem("sf_email")) {
+  const hasEmail = window.SystemState && window.SystemState.get("email");
+  if (!hasEmail) {
     requireEmailGate(() => {
       pantalla('s-close');
       document.getElementById('progress-bar').style.width = '100%';

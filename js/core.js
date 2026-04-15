@@ -1,38 +1,10 @@
 let running = true;
+const SYSTEM = window.SystemState;
 
 document.addEventListener("visibilitychange", () => {
   running = !document.hidden;
 });
 
-// Profile detection
-let profile = 'unknown';
-if (window.location.pathname.includes('simulation') || window.location.pathname.includes('flujo')) {
-  profile = 'technical';
-} else if (window.location.pathname.includes('sistema') || window.location.pathname.includes('mop-h')) {
-  profile = 'executive';
-} else if (window.location.pathname.includes('casos') || window.location.pathname.includes('contact')) {
-  profile = 'engaged';
-}
-localStorage.setItem("sf_profile", profile);
-
-// Role detection from URL param or localStorage
-const urlParams = new URLSearchParams(window.location.search);
-const urlRole = urlParams.get("role");
-if (urlRole && ["operator", "manager", "director", "founder"].includes(urlRole)) {
-  localStorage.setItem("sf_role", urlRole);
-}
-
-function safeLoop(renderFn) {
-  function loop() {
-    if (running) {
-      renderFn();
-    }
-    requestAnimationFrame(loop);
-  }
-  loop();
-}
-
-// Instrumentation
 const EVENT_WEIGHTS = {
   page_view: 1,
   cta_click: 3,
@@ -50,76 +22,72 @@ const ROLE_WEIGHTS = {
   founder: 2.5
 };
 
+function getHistory() {
+  return SYSTEM.get("history") || [];
+}
+
 function updateUserScore(event) {
-  const weights = {
-    page_view: 1,
-    cta_click: 3,
-    email_captured: 10,
-    moph_complete: 30
-  };
-
-  let score = parseInt(localStorage.getItem("sf_score") || "0");
-  const baseScore = weights[event] || 0;
-  const role = localStorage.getItem("sf_role") || "operator";
+  const baseScore = EVENT_WEIGHTS[event] || 0;
+  const role = SYSTEM.get("role") || "operator";
   const roleMultiplier = ROLE_WEIGHTS[role] || 1;
-  const adjustedScore = Math.round(baseScore * roleMultiplier);
-  
-  score += adjustedScore;
+  let adjustedScore = Math.round(baseScore * roleMultiplier);
 
-  localStorage.setItem("sf_score", score);
+  if (event === "cta_click") {
+    const history = getHistory();
+    const recent = history.slice(-5).map(item => item.event);
+    if (recent.length === 5 && recent.every(name => name === "cta_click")) {
+      adjustedScore = 0;
+      SYSTEM.update({ signal: "noise" });
+    }
+  }
 
+  if (event === "email_captured") {
+    const sessionStart = SYSTEM.get("session_start") || Date.now();
+    if (Date.now() - sessionStart <= 60000) {
+      adjustedScore *= 3;
+      SYSTEM.update({ signal: "fast_intent" });
+    }
+  }
+
+  const score = (SYSTEM.get("score") || 0) + adjustedScore;
+  SYSTEM.set("score", score);
   return score;
 }
 
 function logEventHistory(event) {
-  let history = JSON.parse(localStorage.getItem("sf_history") || "[]");
-  history.push({ event, time: Date.now() });
-
-  localStorage.setItem("sf_history", JSON.stringify(history));
+  SYSTEM.pushEvent(event);
 }
 
 function evaluateSignal() {
-  const history = JSON.parse(localStorage.getItem("sf_history") || "[]");
-  const role = localStorage.getItem("sf_role");
-  const score = parseInt(localStorage.getItem("sf_score") || "0");
-
+  const history = getHistory();
+  const role = SYSTEM.get("role");
+  const score = SYSTEM.get("score") || 0;
   const events = history.map(e => e.event);
   const activity = events.length;
   const decisionIndex = events.indexOf("email_captured");
   const conversionOccurred = decisionIndex !== -1;
 
-  // Pattern 1: High activity without conversion = Noise
   if (activity > 10 && !conversionOccurred) {
     return "noise";
   }
-
-  // Pattern 2: Early conversion = Fast intent (decision maker)
   if (conversionOccurred && decisionIndex < 3) {
     return "fast_intent";
   }
-
-  // Pattern 3: Role declared but minimal activity = Incoherent signal
   if (role && role !== "unknown" && score < 5) {
     return "low_confidence_identity";
   }
-
-  // Pattern 4: Conversion exists + medium activity = Normal user
   if (conversionOccurred && activity > 3) {
     return "normal";
   }
-
-  // Pattern 5: No conversion yet but some activity = Exploring
   if (!conversionOccurred && activity > 0) {
     return "exploring";
   }
-
-  // Default: Fresh visitor
   return "initial";
 }
 
 function updateSignalLabel() {
   const label = evaluateSignal();
-  localStorage.setItem("sf_signal", label);
+  SYSTEM.set("signal", label);
   return label;
 }
 
@@ -128,34 +96,24 @@ function track(event, data = {}) {
   logEventHistory(event);
   const signal = updateSignalLabel();
 
-  // Detect valuable silent user on email capture
   if (event === "email_captured") {
-    const email = localStorage.getItem("sf_email");
-    if (email && !email.includes("gmail") && !email.includes("yahoo") && !email.includes("hotmail")) {
-      localStorage.setItem("sf_priority", "high");
-    }
-  }
-
-  // Detect explorer pattern
-  if (event === "session_end") {
-    const history = JSON.parse(localStorage.getItem("sf_history") || "[]");
-    const emailCaptured = history.find(e => e.event === "email_captured");
-    if (score > 20 && !emailCaptured) {
-      track("high_activity_low_conversion", data);
+    const email = SYSTEM.get("email") || "";
+    if (email && !/gmail|yahoo|hotmail/i.test(email)) {
+      SYSTEM.set("priority", "high");
     }
   }
 
   const payload = {
     event,
-    profile: localStorage.getItem("sf_profile"),
-    email: localStorage.getItem("sf_email"),
-    role: localStorage.getItem("sf_role") || "unknown",
-    priority: localStorage.getItem("sf_priority") || "normal",
-    signal: signal,
+    profile: SYSTEM.get("profile"),
+    email: SYSTEM.get("email"),
+    role: SYSTEM.get("role") || "unknown",
+    priority: SYSTEM.get("priority") || "normal",
+    signal,
     path: window.location.pathname,
     timestamp: Date.now(),
     weight: EVENT_WEIGHTS[event] || 0,
-    score: score,
+    score,
     ...data
   };
 
@@ -163,23 +121,27 @@ function track(event, data = {}) {
 
   fetch("https://formspree.io/f/xgopjkop", {
     method: "POST",
-    headers: {"Content-Type": "application/json"},
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload)
+  }).catch(() => {
+    console.warn("[TRACK] failed to send", event);
   });
 }
 
-// Session tracking
 let startTime = Date.now();
 window.addEventListener("beforeunload", () => {
   const duration = Date.now() - startTime;
-  const score = localStorage.getItem("sf_score");
+  const role = SYSTEM.get("role");
 
-  if (duration < 5000 && score < 5) {
+  if (role === "director" && duration < 15000) {
+    SYSTEM.set("low_confidence_identity", true);
+  }
+
+  if (duration < 5000 && (SYSTEM.get("score") || 0) < 5) {
     track("low_quality_session", { duration });
   } else {
     track("session_end", { duration });
   }
 });
 
-// Page view
 track("page_view");
