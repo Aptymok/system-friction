@@ -344,23 +344,74 @@
   }
 </style>
 </head>
-  <body>
+<body>
 
 <canvas id="sf-nodes"></canvas>
 <div class="cursor-dot" id="cursorDot"></div>
 
 
 <div class="scroll-line" id="scrollLine"></div>
- 
-<nav>
-  <a href="/index.html" class="nav-logo">SYSTEM<span>·</span>FRICTION</a>
+<nav id="nav">
+  <a href="/index.html" class="nav-logo">SYSTEM FRICTION</a>
   <div class="nav-right">
-    <a href="/index.html#diagnostic" class="nav-link">Diagnóstico</a>
-    <a href="/sistema.html" class="nav-link">Sistema</a>
-    <a href="/contact.html" class="nav-cta">Contactar</a>
+    <div class="nav-dropdown">
+      <span class="nav-link">Observatorio ▾</span>
+      <div class="nav-dropdown-menu">
+        <a href="/index.html">WorldSpectrum</a>
+        <a href="/flujo.html">Flux</a>
+        <a href="/macro.html">System Friction Nodes</a>
+        <a href="/simulation.html">Simulation Friction</a>
+        <a href="/temporal.html">SFT</a>
+        <a href="/dashboard.html">SF World Metrics</a>
+        <a href="/alerts.html">SF Alertas</a>        
+      </div>
+    </div>
+    <div class="nav-dropdown">
+      <span class="nav-link">Instrumentos ▾</span>
+      <div class="nav-dropdown-menu">
+        <a href="/audit.html">Auditoría</a>
+        <a href="/perenne.html">Perenne (DCT)</a>
+        <a href="/amv.html">AMV</a>
+        <a href="/scorefriction.html">ScoreFriction</a>
+        <a href="/friction-manager.html">Friction Manager</a>
+        <a href="/atractor.html">Atractor</a>
+        <a href="/language.html">System Language</a>
+      </div>
+    </div>
+    <div class="nav-dropdown">
+      <span class="nav-link">Repositorio ▾</span>
+      <div class="nav-dropdown-menu">
+        <a href="/atlas.html">Atlas</a>
+        <a href="/patrones.html">Patrones</a>
+        <a href="/linguistica.html">Lingüística</a>
+        <a href="/logica.html">Lógica</a>
+        <a href="/postulados.html">Postulados</a>
+      </div>
+    </div>
+    <div class="nav-dropdown">
+      <span class="nav-link">Laboratorio ▾</span>
+      <div class="nav-dropdown-menu">
+        <a href="/lab-eco.html">ECO</a>
+        <a href="/lab-pol.html">POL</a>
+        <a href="/lab-cul.html">CUL</a>
+        <a href="/lab-cog.html">COG</a>
+        <a href="/lab-geo.html">GEO</a>
+        <a href="/lab-sys.html">SYS</a>
+      </div>
+    </div>
+    <div class="nav-dropdown">
+      <span class="nav-link">Instituto ▾</span>
+      <div class="nav-dropdown-menu">
+        <a href="/about.html">Marco</a>
+        <a href="/method.html">Método</a>
+        <a href="/sfi.html">Arquitectura</a>
+        <a href="/contact.html">Contacto</a>
+      </div>
+    </div>
+    <a href="/casos.html" class="nav-link cta">Archivo de Casos</a>
+    <a href="/mop-h-form.html" class="nav-link cta">Aplicar</a>
   </div>
-</nav> 
-
+</nav>
 <!-- NIVEL BADGE — renderizado por JS -->
   <div class="nivel-badge" id="nivelBadge">
     <div class="nivel-indicator" id="nivelIndicator"></div>
