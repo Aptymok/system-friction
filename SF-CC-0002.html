@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>System Friction · Caso SF-CC-0002 · Silao</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --void: #080808;
+    --void-2: #111111;
+    --void-3: #1a1a1a;
+    --oro: #C8A951;
+    --neon: #E6FF00;
+    --text: #d4d0c8;
+    --muted: #6b6860;
+    --border: #2a2a2a;
+    --danger: #c0392b;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'IBM Plex Sans', sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--void);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.7;
+    min-height: 100vh;
+  }
+  .page {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 80px 32px 120px;
+  }
+  .header {
+    margin-bottom: 72px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 40px;
+  }
+  .header-meta {
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 24px;
+  }
+  .header-meta span { color: var(--oro); }
+  .header h1 {
+    font-family: var(--mono);
+    font-size: 22px;
+    font-weight: 600;
+    color: #ffffff;
+    line-height: 1.3;
+    margin-bottom: 8px;
+    letter-spacing: -0.01em;
+  }
+  .header h2 {
+    font-size: 13px;
+    font-weight: 300;
+    color: var(--muted);
+    letter-spacing: 0.04em;
+  }
+  .section-label {
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--oro);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+  .block { margin-bottom: 56px; }
+  p { margin-bottom: 14px; color: var(--text); }
+  .var-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    margin: 24px 0;
+  }
+  .var-cell {
+    background: var(--void-2);
+    padding: 16px 20px;
+  }
+  .var-key {
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .var-value {
+    font-size: 20px;
+    font-weight: 500;
+    color: #ffffff;
+    letter-spacing: -0.02em;
+  }
+  .var-value.neg { color: var(--danger); }
+  .var-value.warn { color: var(--oro); }
+  .var-value.good { color: #4caf74; }
+  .var-note {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+  .state-transition {
+    display: grid;
+    grid-template-columns: 1fr 40px 1fr;
+    gap: 0;
+    margin: 24px 0;
+    align-items: start;
+  }
+  .state-box {
+    background: var(--void-2);
+    border: 1px solid var(--border);
+    padding: 20px;
+  }
+  .state-box.after { border-color: var(--danger); }
+  .state-arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-top: 24px;
+    color: var(--muted);
+    font-size: 18px;
+  }
+  .state-label {
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 12px;
+  }
+  .state-metric { margin-bottom: 8px; }
+  .state-metric-key { font-size: 10px; color: var(--muted); }
+  .state-metric-val { font-size: 16px; font-weight: 500; color: #ffffff; }
+  .state-metric-val.drop { color: var(--danger); }
+  .pred-list { list-style: none; margin: 20px 0; }
+  .pred-item {
+    border-left: 2px solid var(--border);
+    padding: 14px 0 14px 20px;
+    margin-bottom: 2px;
+    position: relative;
+  }
+  .pred-item.validated { border-left-color: var(--oro); }
+  .pred-id {
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--oro);
+    margin-bottom: 4px;
+  }
+  .pred-hypothesis { color: var(--text); margin-bottom: 6px; }
+  .pred-validation { font-size: 11px; color: var(--muted); font-style: italic; }
+  .pred-status {
+    position: absolute;
+    right: 0;
+    top: 14px;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #4caf74;
+  }
+  .formula-block {
+    background: var(--void-3);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--oro);
+    padding: 20px 24px;
+    margin: 20px 0;
+    font-size: 13px;
+    color: #e8e4da;
+  }
+  .formula-block .eq {
+    font-size: 15px;
+    color: #ffffff;
+    margin-bottom: 8px;
+    letter-spacing: 0.02em;
+  }
+  .formula-block .note { font-size: 11px; color: var(--muted); }
+  .insight {
+    background: var(--void-2);
+    border: 1px solid var(--border);
+    border-top: 2px solid var(--neon);
+    padding: 22px 24px;
+    margin: 24px 0;
+  }
+  .insight-label {
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--neon);
+    margin-bottom: 10px;
+  }
+  .insight p { color: #e8e4da; margin-bottom: 0; }
+  code {
+    background: var(--void-3);
+    border: 1px solid var(--border);
+    padding: 1px 5px;
+    font-size: 11px;
+    color: var(--oro);
+    font-family: var(--mono);
+  }
+  .pattern-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    margin: 20px 0;
+  }
+  .pattern-cell {
+    background: var(--void-2);
+    padding: 18px 16px;
+  }
+  .pattern-num {
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--oro);
+    margin-bottom: 8px;
+  }
+  .pattern-title { font-size: 11px; color: #ffffff; margin-bottom: 6px; font-weight: 500; }
+  .pattern-desc { font-size: 11px; color: var(--muted); line-height: 1.6; }
+  .footer {
+    margin-top: 80px;
+    padding-top: 32px;
+    border-top: 1px solid var(--border);
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .footer a { color: var(--oro); text-decoration: none; }
+  .footer a:hover { text-decoration: underline; }
+  @media (max-width: 600px) {
+    .page { padding: 48px 20px 80px; }
+    .var-grid { grid-template-columns: 1fr; }
+    .state-transition { grid-template-columns: 1fr; }
+    .state-arrow { display: none; }
+    .pattern-grid { grid-template-columns: 1fr; }
+    .header h1 { font-size: 18px; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header class="header">
+    <div class="header-meta">
+      <span>System Friction Framework</span> · SF-CC-0002 · Caso empírico · 12 ene 2026
+    </div>
+    <h1>Silao · Fragilidad logística monocéntrica</h1>
+    <h2>Documentación pública del caso de validación de fragilidad estructural por concentración</h2>
+  </header>
+
+  <section class="block">
+    <div class="section-label">01 · El sistema</div>
+    <p>El sistema logístico del corredor industrial de Silao operaba bajo un principio de eficiencia aparente sostenido por concentración estructural. La totalidad del flujo dependía de un nodo central cuya continuidad nunca fue cuestionada debido a métricas de rendimiento óptimas.</p>
+    <p>El análisis MIHM identificó una condición crítica: la ausencia de redundancia no era visible en indicadores tradicionales. La eficiencia ocultaba fragilidad.</p>
+    <div class="insight">
+      <div class="insight-label">Postulado central verificado</div>
+      <p>La eficiencia sin redundancia no es optimización. Es compresión del riesgo en un único punto. Cuando ese punto falla, el sistema completo replica su fragilidad.</p>
+    </div>
+    <div class="var-grid">
+      <div class="var-cell"><div class="var-key">Sistema</div><div class="var-value" style="font-size:14px;">Corredor Industrial Silao — Logística</div><div class="var-note">Red de distribución automotriz y manufactura</div></div>
+      <div class="var-cell"><div class="var-key">Período de análisis</div><div class="var-value" style="font-size:14px;">2024 – ene 2026</div><div class="var-note">Serie documental sil-01 a sil-03 generada antes del evento</div></div>
+      <div class="var-cell"><div class="var-key">Redundancia estructural</div><div class="var-value neg">0.12</div><div class="var-note">Por debajo del umbral mínimo de resiliencia</div></div>
+      <div class="var-cell"><div class="var-key">IHG basal (pre-evento)</div><div class="var-value neg">−0.28</div><div class="var-note">Sistema funcional pero no resiliente</div></div>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="section-label">02 · Condición inicial</div>
+    <p>El vector de estado MIHM previo al evento confirmaba un sistema operativamente eficiente pero estructuralmente frágil. El Índice de Gobernanza Homeostática (<code>IHG</code>) era <strong>−0.28</strong>: negativo, indicando que el sistema ya operaba absorbiendo fricción sin capacidad de redistribución. El Nodo de Trazabilidad Institucional (<code>NTI</code>) estaba en <strong>0.61</strong>, dentro del umbral operativo pero sin margen.</p>
+    <p>La métrica crítica era la Redundancia Estructural (<code>R_e</code>): 0.12. Un sistema con R_e inferior a 0.20 no puede redistribuir carga ante fallo parcial. El diagnóstico confirmó: sistema funcional pero no resiliente.</p>
+    <div class="formula-block">
+      <div class="eq">R_e = (N_alternativos / N_total) · (1 − C_centralización) = 0.12</div>
+      <div class="note">Redundancia estructural por debajo del umbral de resiliencia. El sistema no tiene capacidad de respuesta ante fallo del nodo dominante.</div>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="section-label">03 · Predicciones pre-evento</div>
+    <p>Entre 2024 y enero de 2026, el framework generó tres documentos de hipótesis — serie <code>sil-01</code> a <code>sil-03</code> — que formalizaban la fragilidad del nodo logístico central. La hipótesis central estableció que cualquier interrupción en el nodo dominante produciría un colapso en cascada. No se requería un evento extraordinario; bastaba una disrupción puntual.</p>
+    <ul class="pred-list">
+      <li class="pred-item validated">
+        <div class="pred-id">sil-01 · Concentración de flujo</div>
+        <div class="pred-hypothesis">Nodo dominante concentra >80% del flujo logístico. La eficiencia operativa oculta la ausencia de alternativas.</div>
+        <div class="pred-validation">Validado: concentración medida en 83% del flujo total. Redundancia estructural 0.12.</div>
+        <div class="pred-status">✓ confirmado</div>
+      </li>
+      <li class="pred-item validated">
+        <div class="pred-id">sil-02 · Propagación en cascada</div>
+        <div class="pred-hypothesis">La interrupción del nodo central generará detención progresiva en cadena. El sistema no puede redistribuir carga.</div>
+        <div class="pred-validation">Validado: tiempo de propagación <12 horas. Caída en cascada documentada en 7 nodos secundarios.</div>
+        <div class="pred-status">✓ confirmado</div>
+      </li>
+      <li class="pred-item validated">
+        <div class="pred-id">sil-03 · Invisibilidad de la fragilidad</div>
+        <div class="pred-hypothesis">Los indicadores tradicionales de eficiencia (tiempo de entrega, ocupación) no detectan la fragilidad estructural.</div>
+        <div class="pred-validation">Validado: métricas de eficiencia se mantuvieron en rango óptimo hasta 48 horas antes del colapso.</div>
+        <div class="pred-status">✓ confirmado</div>
+      </li>
+    </ul>
+  </section>
+
+  <section class="block">
+    <div class="section-label">04 · El evento validante · 12 enero 2026</div>
+    <p>El 12 de enero de 2026, una interrupción logística aislada afectó al nodo central del corredor industrial de Silao. La causa fue una falla operativa de magnitud moderada — un accidente vial en la vía primaria de distribución.</p>
+    <p>El efecto fue desproporcionado: en menos de 12 horas, 7 nodos secundarios detuvieron operaciones por falta de insumos. El sistema no redistribuyó carga. No existía arquitectura para hacerlo. La cadena productiva entró en parálisis progresiva.</p>
+    <div class="insight">
+      <div class="insight-label">Mecanismo</div>
+      <p>La función de distribución (<em>D(t) = min(C_i(t) / D_i)</em>) colapsa no por saturación de capacidad, sino por ausencia de alternativas. Cuando el nodo único falla, no hay camino de reemplazo. Cada nodo secundario detiene operación esperando insumos que no llegan.</p>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="section-label">05 · Transición de estado</div>
+    <div class="state-transition">
+      <div class="state-box">
+        <div class="state-label">11 enero · Pre-evento</div>
+        <div class="state-metric"><div class="state-metric-key">IHG</div><div class="state-metric-val">−0.28</div></div>
+        <div class="state-metric"><div class="state-metric-key">NTI</div><div class="state-metric-val">0.61</div></div>
+        <div class="state-metric"><div class="state-metric-key">Redundancia</div><div class="state-metric-val">0.12</div></div>
+        <div class="state-metric"><div class="state-metric-key">Concentración</div><div class="state-metric-val">83%</div></div>
+      </div>
+      <div class="state-arrow">→</div>
+      <div class="state-box after">
+        <div class="state-label">13 enero · Post-evento</div>
+        <div class="state-metric"><div class="state-metric-key">IHG</div><div class="state-metric-val drop">−0.57</div></div>
+        <div class="state-metric"><div class="state-metric-key">NTI</div><div class="state-metric-val drop">0.44</div></div>
+        <div class="state-metric"><div class="state-metric-key">Nodos afectados</div><div class="state-metric-val drop">7</div></div>
+        <div class="state-metric"><div class="state-metric-key">Tiempo propagación</div><div class="state-metric-val drop">&lt;12h</div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="section-label">06 · El patrón replicable</div>
+    <p>El caso Silao no es un estudio sobre logística industrial mexicana. Es la instanciación verificable de un patrón que opera en cualquier sistema donde la eficiencia ha sido optimizada eliminando redundancia, creando un único punto de fallo invisible hasta que colapsa.</p>
+    <div class="pattern-grid">
+      <div class="pattern-cell"><div class="pattern-num">01</div><div class="pattern-title">Eficiencia como trampa</div><div class="pattern-desc">La optimización de recursos elimina redundancia. El sistema se vuelve más eficiente pero frágil. La métrica de éxito es la misma que oculta el riesgo.</div></div>
+      <div class="pattern-cell"><div class="pattern-num">02</div><div class="pattern-title">Concentración estructural</div><div class="pattern-desc">Un nodo concentra >80% de flujo o decisión. La operación normal no revela la dependencia crítica.</div></div>
+      <div class="pattern-cell"><div class="pattern-num">03</div><div class="pattern-title">Colapso por fallo puntual</div><div class="pattern-desc">Una disrupción menor genera efecto desproporcionado. El sistema no tiene capacidad de redistribución.</div></div>
+    </div>
+    <p>Este patrón ocurre en cadenas de suministro "just-in-time" sin alternativas. En infraestructura digital con un único proveedor crítico. En organizaciones donde el conocimiento operativo está concentrado en una sola persona. En cualquier sistema donde la eficiencia ha sido priorizada sobre la resiliencia.</p>
+    <div class="insight">
+      <div class="insight-label">Condición de replicabilidad</div>
+      <p>Cualquier sistema con <strong>nodo dominante >80% de carga</strong>, <strong>redundancia estructural &lt;0.20</strong> y <strong>latencia baja pero centralizada</strong> presenta riesgo de colapso inmediato ante falla puntual. La fragilidad no es visible en métricas de eficiencia. Solo emerge en métricas de estructura: R_e, IHG, concentración.</p>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="section-label">07 · Lo que este caso demuestra</div>
+    <p>El MIHM v2.0 no diagnosticó el colapso después de ocurrido. Tenía el patrón documentado antes. Las tres hipótesis de la serie <code>sil-01</code> a <code>sil-03</code> fueron generadas con datos disponibles antes del 12 de enero. Todas fueron confirmadas en tiempo real.</p>
+    <p>La eficiencia sin redundancia no es optimización. Es compresión del riesgo en un punto invisible. Cuando ese punto falla, el sistema no colapsa por falta de capacidad. Colapsa por ausencia de alternativas.</p>
+    <div class="formula-block">
+      <div class="eq">Φ(t) = IHG⁻¹ · NTI · LDI⁻¹ + ε</div>
+      <div class="note">ε en este caso era la eficiencia que ocultaba la fragilidad. El sistema midió rendimiento. No midió estructura.</div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div style="margin-bottom:16px;">
+      <span style="color:var(--oro)">System Friction Framework</span> · MIHM v2.0 · Serie SIL<br>
+      Caso documentado: 12 de enero de 2026 · Nodo Silao · Serie sil-01 a sil-04
+    </div>
+    <div style="margin-bottom:16px;">
+      Marco teórico: <a href="https://systemfriction.org/method.html">systemfriction.org/method.html</a><br>
+      Repositorio: <a href="https://github.com/aptymok/system-friction">github.com/aptymok/system-friction</a>
+    </div>
+    <div style="color:var(--muted);font-size:11px;line-height:1.8;">
+      Licencia CC BY 4.0 · Juan Antonio Marín Liera (APTYMOK)<br>
+      Este documento puede distribuirse, citarse e incorporarse sin solicitar permiso.<br>
+      La única condición es mantener la atribución y la integridad técnica del marco.
+    </div>
+  </footer>
+
+</div>
+</body>
+</html>
