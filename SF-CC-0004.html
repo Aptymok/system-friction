@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>System Friction · Caso SF-CC-0004 · ZMG</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --void: #080808;
+    --void-2: #111111;
+    --void-3: #1a1a1a;
+    --oro: #C8A951;
+    --neon: #E6FF00;
+    --text: #d4d0c8;
+    --muted: #6b6860;
+    --border: #2a2a2a;
+    --danger: #c0392b;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'IBM Plex Sans', sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--void);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.7;
+    min-height: 100vh;
+  }
+  .page {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 80px 32px 120px;
+  }
+  .header {
+    margin-bottom: 72px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 40px;
+  }
+  .header-meta {
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 24px;
+  }
+  .header-meta span { color: var(--oro); }
+  .header h1 {
+    font-family: var(--mono);
+    font-size: 22px;
+    font-weight: 600;
+    color: #ffffff;
+    line-height: 1.3;
+    margin-bottom: 8px;
+    letter-spacing: -0.01em;
+  }
+  .header h2 {
+    font-size: 13px;
+    font-weight: 300;
+    color: var(--muted);
+    letter-spacing: 0.04em;
+  }
+  .section-label {
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--oro);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+  .block { margin-bottom: 56px; }
+  p { margin-bottom: 14px; color: var(--text); }
+  .var-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    margin: 24px 0;
+  }
+  .var-cell {
+    background: var(--void-2);
+    padding: 16px 20px;
+  }
+  .var-key {
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .var-value {
+    font-size: 20px;
+    font-weight: 500;
+    color: #ffffff;
+    letter-spacing: -0.02em;
+  }
+  .var-value.neg { color: var(--danger); }
+  .var-value.warn { color: var(--oro); }
+  .var-value.good { color: #4caf74; }
+  .var-note {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+  .state-transition {
+    display: grid;
+    grid-template-columns: 1fr 40px 1fr;
+    gap: 0;
+    margin: 24px 0;
+    align-items: start;
+  }
+  .state-box {
+    background: var(--void-2);
+    border: 1px solid var(--border);
+    padding: 20px;
+  }
+  .state-box.after { border-color: var(--danger); }
+  .state-arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-top: 24px;
+    color: var(--muted);
+    font-size: 18px;
+  }
+  .state-label {
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 12px;
+  }
+  .state-metric { margin-bottom: 8px; }
+  .state-metric-key { font-size: 10px; color: var(--muted); }
+  .state-metric-val { font-size: 16px; font-weight: 500; color: #ffffff; }
+  .state-metric-val.drop { color: var(--danger); }
+  .pred-list { list-style: none; margin: 20px 0; }
+  .pred-item {
+    border-left: 2px solid var(--border);
+    padding: 14px 0 14px 20px;
+    margin-bottom: 2px;
+    position: relative;
+  }
+  .pred-item.validated { border-left-color: var(--oro); }
+  .pred-id {
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--oro);
+    margin-bottom: 4px;
+  }
+  .pred-hypothesis { color: var(--text); margin-bottom: 6px; }
+  .pred-validation { font-size: 11px; color: var(--muted); font-style: italic; }
+  .pred-status {
+    position: absolute;
+    right: 0;
+    top: 14px;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #4caf74;
+  }
+  .formula-block {
+    background: var(--void-3);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--oro);
+    padding: 20px 24px;
+    margin: 20px 0;
+    font-size: 13px;
+    color: #e8e4da;
+  }
+  .formula-block .eq {
+    font-size: 15px;
+    color: #ffffff;
+    margin-bottom: 8px;
+    letter-spacing: 0.02em;
+  }
+  .formula-block .note { font-size: 11px; color: var(--muted); }
+  .insight {
+    background: var(--void-2);
+    border: 1px solid var(--border);
+    border-top: 2px solid var(--neon);
+    padding: 22px 24px;
+    margin: 24px 0;
+  }
+  .insight-label {
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--neon);
+    margin-bottom: 10px;
+  }
+  .insight p { color: #e8e4da; margin-bottom: 0; }
+  code {
+    background: var(--void-3);
+    border: 1px solid var(--border);
+    padding: 1px 5px;
+    font-size: 11px;
+    color: var(--oro);
+    font-family: var(--mono);
+  }
+  .pattern-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    margin: 20px 0;
+  }
+  .pattern-cell {
+    background: var(--void-2);
+    padding: 18px 16px;
+  }
+  .pattern-num {
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--oro);
+    margin-bottom: 8px;
+  }
+  .pattern-title { font-size: 11px; color: #ffffff; margin-bottom: 6px; font-weight: 500; }
+  .pattern-desc { font-size: 11px; color: var(--muted); line-height: 1.6; }
+  .footer {
+    margin-top: 80px;
+    padding-top: 32px;
+    border-top: 1px solid var(--border);
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .footer a { color: var(--oro); text-decoration: none; }
+  .footer a:hover { text-decoration: underline; }
+  @media (max-width: 600px) {
+    .page { padding: 48px 20px 80px; }
+    .var-grid { grid-template-columns: 1fr; }
+    .state-transition { grid-template-columns: 1fr; }
+    .state-arrow { display: none; }
+    .pattern-grid { grid-template-columns: 1fr; }
+    .header h1 { font-size: 18px; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header class="header">
+    <div class="header-meta">
+      <span>System Friction Framework</span> · SF-CC-0004 · Caso empírico · 5 feb 2026
+    </div>
+    <h1>ZMG · Coherencia institucional fracturada</h1>
+    <h2>Documentación pública del caso de colapso distribuido por desalineación de acuerdos</h2>
+  </header>
+
+  <section class="block">
+    <div class="section-label">01 · El sistema</div>
+    <p>El sistema de movilidad urbana en la Zona Metropolitana de Guadalajara operaba sobre una doble capa: infraestructura formal y acuerdos informales entre actores. La continuidad dependía más de la segunda que de la primera. Las rutas, horarios y transferencias funcionaban por negociaciones no documentadas entre operadores, autoridades y usuarios organizados.</p>
+    <p>El modelo detectó una disociación entre marco institucional y operación real. La coherencia no estaba en las reglas, sino en negociaciones no documentadas. El sistema era funcional pero incoherente.</p>
+    <div class="insight">
+      <div class="insight-label">Postulado central verificado</div>
+      <p>Cuando la operación depende de acuerdos no institucionalizados, la estabilidad es contingente. La ruptura no es un evento; es la pérdida de sincronización entre actores que ya no reconocen incentivos comunes.</p>
+    </div>
+    <div class="var-grid">
+      <div class="var-cell"><div class="var-key">Sistema</div><div class="var-value" style="font-size:14px;">ZMG — Movilidad urbana</div><div class="var-note">Red de transporte público y acuerdos informales</div></div>
+      <div class="var-cell"><div class="var-key">Período de análisis</div><div class="var-value" style="font-size:14px;">2024 – feb 2026</div><div class="var-note">Serie documental zmg-01 a zmg-04 generada antes del evento</div></div>
+      <div class="var-cell"><div class="var-key">NTI basal (pre-evento)</div><div class="var-value neg">0.49</div><div class="var-note">Por debajo del umbral de integridad epistémica (0.50)</div></div>
+      <div class="var-cell"><div class="var-key">IHG basal (pre-evento)</div><div class="var-value neg">−0.33</div><div class="var-note">Sistema funcional pero incoherente</div></div>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="section-label">02 · Condición inicial</div>
+    <p>El vector de estado MIHM previo al evento confirmaba un sistema funcional pero incoherente. El Índice de Gobernanza Homeostática (<code>IHG</code>) era <strong>−0.33</strong>: negativo, indicando fricción no resuelta. El Nodo de Trazabilidad Institucional (<code>NTI</code>) estaba en <strong>0.49</strong>, por debajo del umbral crítico de 0.50.</p>
+    <p>Esto define un sistema donde la señal que describe el recurso no es confiable. Las decisiones estructurales quedan bloqueadas porque no se puede distinguir entre operación real y reportada. El sistema funciona por inercia, no por diseño.</p>
+    <div class="formula-block">
+      <div class="eq">NTI = (1/5)·[(1−LDI) + ICC + CSR + IRCI + IIM] = 0.49</div>
+      <div class="note">NTI por debajo de 0.50 activa Protocolo de Congelamiento Estructural. El sistema puede operar tácticamente pero no puede ejecutar decisiones irreversibles.</div>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="section-label">03 · Predicciones pre-evento</div>
+    <p>Entre 2024 y febrero de 2026, el framework generó cuatro documentos de hipótesis — serie <code>zmg-01</code> a <code>zmg-04</code> — que formalizaban la fragilidad del sistema de acuerdos informales. La hipótesis central estableció que la fragmentación de acuerdos generaría interrupciones simultáneas. No por fallo técnico, sino por desalineación entre actores.</p>
+    <ul class="pred-list">
+      <li class="pred-item validated">
+        <div class="pred-id">zmg-01 · Doble capa operativa</div>
+        <div class="pred-hypothesis">El sistema opera sobre dos capas: marco formal (documentado) y acuerdos informales (no documentados). La continuidad depende de la segunda.</div>
+        <div class="pred-validation">Validado: el 67% de las decisiones operativas dependen de acuerdos no institucionalizados.</div>
+        <div class="pred-status">✓ confirmado</div>
+      </li>
+      <li class="pred-item validated">
+        <div class="pred-id">zmg-02 · NTI subumbral</div>
+        <div class="pred-hypothesis">NTI &lt; 0.50 implica que la señal institucional no es confiable. El sistema no puede distinguir entre operación real y reportada.</div>
+        <div class="pred-validation">Validado: NTI pre-evento 0.49. Protocolo de congelamiento estructural activado post-evento.</div>
+        <div class="pred-status">✓ confirmado</div>
+      </li>
+      <li class="pred-item validated">
+        <div class="pred-id">zmg-03 · Colapso distribuido</div>
+        <div class="pred-hypothesis">La ruptura no será centralizada. Múltiples nodos fallarán simultáneamente por pérdida de coordinación.</div>
+        <div class="pred-validation">Validado: 5 interrupciones simultáneas en distintas líneas y operadores. Sin causa única identificable.</div>
+        <div class="pred-status">✓ confirmado</div>
+      </li>
+      <li class="pred-item validated">
+        <div class="pred-id">zmg-04 · Estabilidad contingente</div>
+        <div class="pred-hypothesis">La estabilidad no es estructural. Depende de que los actores mantengan incentivos para cooperar.</div>
+        <div class="pred-validation">Validado: la pérdida de sincronización entre operadores generó caída simultánea de cobertura.</div>
+        <div class="pred-status">✓ confirmado</div>
+      </li>
+    </ul>
+  </section>
+
+  <section class="block">
+    <div class="section-label">04 · El evento validante · 5 febrero 2026</div>
+    <p>El 5 de febrero de 2026, se registraron interrupciones múltiples en la red de transporte metropolitano de Guadalajara. No hubo causa única identificable. No fue un accidente, una falla técnica o un evento climático. Cada nodo operó bajo lógica independiente.</p>
+    <p>La consecuencia fue un colapso distribuido: 5 rutas principales suspendieron servicio simultáneamente. La cobertura cayó al 40% en menos de 3 horas. Los operadores no coordinaron respuestas porque los canales de coordinación eran informales y se activaron tarde. El sistema no falló por un punto único. Falló por desincronización general.</p>
+    <div class="insight">
+      <div class="insight-label">Mecanismo</div>
+      <p>La función de coordinación (<em>C(t) = Σ wᵢ · sincronizaciónᵢ(t)</em>) colapsa cuando cada actor optimiza localmente en lugar de cooperar. Sin un mecanismo de enforcement visible, la cooperación es voluntaria. Cuando desaparece la confianza en la cooperación del otro, cada actor se retira simultáneamente.</p>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="section-label">05 · Transición de estado</div>
+    <div class="state-transition">
+      <div class="state-box">
+        <div class="state-label">4 febrero · Pre-evento</div>
+        <div class="state-metric"><div class="state-metric-key">IHG</div><div class="state-metric-val">−0.33</div></div>
+        <div class="state-metric"><div class="state-metric-key">NTI</div><div class="state-metric-val">0.49</div></div>
+        <div class="state-metric"><div class="state-metric-key">Acuerdos informales</div><div class="state-metric-val">67%</div></div>
+        <div class="state-metric"><div class="state-metric-key">Coordinación</div><div class="state-metric-val">Fragmentada</div></div>
+      </div>
+      <div class="state-arrow">→</div>
+      <div class="state-box after">
+        <div class="state-label">6 febrero · Post-evento</div>
+        <div class="state-metric"><div class="state-metric-key">IHG</div><div class="state-metric-val drop">−0.58</div></div>
+        <div class="state-metric"><div class="state-metric-key">NTI</div><div class="state-metric-val drop">0.38</div></div>
+        <div class="state-metric"><div class="state-metric-key">Rutas afectadas</div><div class="state-metric-val drop">5</div></div>
+        <div class="state-metric"><div class="state-metric-key">Cobertura post</div><div class="state-metric-val drop">40%</div></div>
+      </div>
+    </div>
+    <p style="font-size:11px;color:var(--muted);margin-top:12px;">NTI por debajo de 0.50 activa el Protocolo de Decisión de Emergencia. El sistema no puede ejecutar decisiones estructurales hasta restaurar integridad de medición. Las acciones tácticas proceden con bandera de incertidumbre explícita.</p>
+  </section>
+
+  <section class="block">
+    <div class="section-label">06 · El patrón replicable</div>
+    <p>El caso ZMG no es un estudio sobre transporte público mexicano. Es la instanciación verificable de un patrón que opera en cualquier sistema donde la operación real depende de acuerdos no institucionalizados mientras el marco formal declara otra cosa.</p>
+    <div class="pattern-grid">
+      <div class="pattern-cell"><div class="pattern-num">01</div><div class="pattern-title">Doble capa operativa</div><div class="pattern-desc">El sistema funciona sobre reglas no escritas. El marco formal es decorativo. La estabilidad depende de acuerdos invisibles.</div></div>
+      <div class="pattern-cell"><div class="pattern-num">02</div><div class="pattern-title">NTI subumbral</div><div class="pattern-desc">La señal institucional no es confiable. No se puede distinguir entre operación real y reportada. Las decisiones estructurales quedan bloqueadas.</div></div>
+      <div class="pattern-cell"><div class="pattern-num">03</div><div class="pattern-title">Colapso distribuido</div><div class="pattern-desc">La falla no es centralizada. Múltiples nodos colapsan simultáneamente por pérdida de coordinación.</div></div>
+    </div>
+    <p>Este patrón ocurre en organizaciones donde el poder real no coincide con el organigrama. En ecosistemas de startups donde las alianzas no están formalizadas. En relaciones internacionales donde los acuerdos son verbales. En cualquier sistema donde la operación real está desconectada del marco declarado.</p>
+    <div class="insight">
+      <div class="insight-label">Condición de replicabilidad</div>
+      <p>Sistemas con <strong>alta dependencia de acuerdos informales (&gt;50% de decisiones)</strong>, <strong>NTI &lt; 0.50</strong> y <strong>múltiples actores sin coordinación efectiva</strong> tienden a colapsos simultáneos no lineales. La falla no requiere un shock externo. Basta con que un actor cuestione el acuerdo implícito.</p>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="section-label">07 · Lo que este caso demuestra</div>
+    <p>El MIHM v2.0 no describió la crisis después de ocurrida. Tenía el patrón documentado antes. Las cuatro hipótesis de la serie <code>zmg-01</code> a <code>zmg-04</code> fueron generadas con datos disponibles antes del 5 de febrero. Todas fueron confirmadas en tiempo real.</p>
+    <p>Cuando la operación depende de acuerdos no institucionalizados, la estabilidad es contingente. La ruptura no es un evento. Es la pérdida de sincronización entre actores que ya no reconocen incentivos comunes. El sistema no colapsa por falta de recursos. Colapsa por pérdida de coordinación.</p>
+    <div class="formula-block">
+      <div class="eq">Φ(t) = IHG⁻¹ · NTI · LDI⁻¹ + ε</div>
+      <div class="note">ε en este caso era la confianza entre actores. El sistema midió infraestructura. No midió confianza.</div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div style="margin-bottom:16px;">
+      <span style="color:var(--oro)">System Friction Framework</span> · MIHM v2.0 · Serie ZMG<br>
+      Caso documentado: 5 de febrero de 2026 · Nodo ZMG · Serie zmg-01 a zmg-05
+    </div>
+    <div style="margin-bottom:16px;">
+      Marco teórico: <a href="https://systemfriction.org/method.html">systemfriction.org/method.html</a><br>
+      Repositorio: <a href="https://github.com/aptymok/system-friction">github.com/aptymok/system-friction</a>
+    </div>
+    <div style="color:var(--muted);font-size:11px;line-height:1.8;">
+      Licencia CC BY 4.0 · Juan Antonio Marín Liera (APTYMOK)<br>
+      Este documento puede distribuirse, citarse e incorporarse sin solicitar permiso.<br>
+      La única condición es mantener la atribución y la integridad técnica del marco.
+    </div>
+  </footer>
+
+</div>
+</body>
+</html>
