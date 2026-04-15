@@ -3,913 +3,508 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>System Friction</title>
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/style.css">
+  <title>System Friction OS — Neuro-Gestalt</title>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      background: #030305;
+      color: #E6FF00;
+      font-family: 'IBM Plex Mono', monospace;
+      overflow: hidden;
+    }
+
+    /* ===== CANVAS LAYER ===== */
+    #sf-canvas-3d, #sf-canvas-2d {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+      opacity: 0.1; /* Background opacity */
+    }
+
+    #sf-canvas-2d { display: none; }
+    body.mobile #sf-canvas-2d { display: block; }
+    body.desktop #sf-canvas-2d { display: none; }
+
+    /* ===== CONTENT STAGE ===== */
+    #sf-main-stage {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 10;
+      background: transparent;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    #sf-main-stage.loaded {
+      pointer-events: auto;
+      background: rgba(3, 3, 5, 0.96);
+      overflow-y: auto;
+      overflow-x: hidden;
+      opacity: 1;
+    }
+
+    #sf-main-stage * { pointer-events: auto; }
+    #sf-main-stage a { color: #E6FF00; text-decoration: underline; }
+    #sf-main-stage h1, #sf-main-stage h2 { color: #FFD700; margin: 20px 0 12px 0; text-shadow: 0 0 10px rgba(230, 255, 0, 0.3); }
+    #sf-main-stage p { line-height: 1.8; margin: 10px 0; }
+    #sf-main-stage table { width: 100%; border-collapse: collapse; margin: 20px 0; background: rgba(10, 10, 15, 0.8); border: 1px solid rgba(230, 255, 0, 0.2); }
+    #sf-main-stage th, #sf-main-stage td { padding: 12px; text-align: left; border: 1px solid rgba(230, 255, 0, 0.15); }
+    #sf-main-stage th { background: rgba(230, 255, 0, 0.1); font-weight: bold; }
+
+    #sf-close-btn {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 11;
+      background: transparent;
+      border: 1px solid #E6FF00;
+      color: #E6FF00;
+      padding: 8px 16px;
+      cursor: pointer;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      transition: all 0.2s;
+      display: none;
+      opacity: 1;
+    }
+
+    #sf-main-stage.loaded #sf-close-btn { display: block; }
+    #sf-close-btn:hover { box-shadow: 0 0 10px #E6FF00; background: rgba(230, 255, 0, 0.1); }
+
+    .sf-content-wrapper {
+      width: 90%;
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 40px 20px;
+    }
+
+    /* Nucleus Toggle Indicator */
+    #sf-nucleus {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 5;
+      cursor: pointer;
+      transition: filter 0.3s;
+    }
+
+    #sf-nucleus:hover {
+      filter: drop-shadow(0 0 15px #E6FF00);
+    }
+
+    #sf-nucleus-label {
+      position: fixed;
+      bottom: 40px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 5;
+      font-size: 12px;
+      color: #E6FF00;
+      opacity: 0.6;
+      text-align: center;
+      pointer-events: none;
+    }
+  </style>
 </head>
-<body>
-  <div id="entry-gate">
-    <h1>System Friction</h1>
-    <p>Medición de la distancia entre intención y ejecución.</p>
-    <p>No es un test. Es una medición estructural.</p>
-    <a href="/sistema.html" onclick="track('cta_click', {location: 'hero', target: 'diagnostico'})">Iniciar diagnóstico</a>
-    <a href="/observatorio.html" onclick="track('cta_click', {location: 'hero', target: 'explorar'})">Explorar sistema</a>
+<body class="desktop">
+  <!-- Canvas Layers -->
+  <canvas id="sf-canvas-3d"></canvas>
+  <div id="sf-canvas-2d"></div>
+
+  <!-- Nucleus Control -->
+  <svg id="sf-nucleus" width="40" height="40" viewBox="0 0 40 40">
+    <circle cx="20" cy="20" r="12" fill="#FFD700" stroke="#E6FF00" stroke-width="1.5" opacity="1"/>
+  </svg>
+
+  <!-- Content Stage -->
+  <div id="sf-main-stage">
+    <button id="sf-close-btn">[CLOSE]</button>
+    <div class="sf-content-wrapper" id="sf-content"></div>
   </div>
-</body>
-</html><!DOCTYPE html>
-<html lang="es">
-<head>
-  <!-- Google tag (gtag.js) -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-76H63FV9DG"></script>
+
+  <div id="sf-nucleus-label">[NUCLEUS] — CLICK TO EXPAND</div>
+
+  <!-- Scripts -->
+  <script src="/js/state.js"></script>
+  <script src="/js/router.js"></script>
+  <script src="/js/core.js"></script>
+
   <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', 'G-76H63FV9DG');
-  </script>
+    // ===== DEVICE DETECTION =====
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
+    document.body.classList.toggle('mobile', isMobile);
+    document.body.classList.toggle('desktop', !isMobile);
 
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Observatory — System Friction</title>
+    // ===== GLOBAL STATE =====
+    window.nucleusExpanded = false;
+    window.chaosParticles = [];
+    window.collapsing = false;
 
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/style.css">
-</head>
-<body>
+    // ===== CHAOS PARTICLE SYSTEM =====
+    class ChaosParticle {
+      constructor() {
+        this.x = Math.random() * window.innerWidth;
+        this.y = Math.random() * window.innerHeight;
+        this.vx = (Math.random() - 0.5) * 8;
+        this.vy = (Math.random() - 0.5) * 8;
+        this.life = 1;
+        this.size = Math.random() * 3 + 1;
+      }
 
-<canvas id="sf-nodes"></canvas>
-<div id="scrollLine" class="scroll-line"></div>
-<nav id="nav">
-  <a href="/index.html" class="nav-logo">SYSTEM FRICTION</a>
-  <div class="nav-right">
-    <div class="nav-dropdown">
-      <span class="nav-link">Observatorio ▾</span>
-      <div class="nav-dropdown-menu">
-        <a href="/index.html">WorldSpectrum</a>
-        <a href="/flujo.html">Flux</a>
-        <a href="/macro.html">System Friction Nodes</a>
-        <a href="/simulation.html">Simulation Friction</a>
-        <a href="/temporal.html">SFT</a>
-        <a href="/dashboard.html">SF World Metrics</a>
-        <a href="/alerts.html">SF Alertas</a>        
-      </div>
-    </div>
-    <div class="nav-dropdown">
-      <span class="nav-link">Instrumentos ▾</span>
-      <div class="nav-dropdown-menu">
-        <a href="/audit.html">Auditoría</a>
-        <a href="/perenne.html">Perenne (DCT)</a>
-        <a href="/amv.html">AMV</a>
-        <a href="/scorefriction.html">ScoreFriction</a>
-        <a href="/friction-manager.html">Friction Manager</a>
-        <a href="/atractor.html">Atractor</a>
-        <a href="/language.html">System Language</a>
-      </div>
-    </div>
-    <div class="nav-dropdown">
-      <span class="nav-link">Repositorio ▾</span>
-      <div class="nav-dropdown-menu">
-        <a href="/atlas.html">Atlas</a>
-        <a href="/patrones.html">Patrones</a>
-        <a href="/linguistica.html">Lingüística</a>
-        <a href="/logica.html">Lógica</a>
-        <a href="/postulados.html">Postulados</a>
-      </div>
-    </div>
-    <div class="nav-dropdown">
-      <span class="nav-link">Laboratorio ▾</span>
-      <div class="nav-dropdown-menu">
-        <a href="/lab-eco.html">ECO</a>
-        <a href="/lab-pol.html">POL</a>
-        <a href="/lab-cul.html">CUL</a>
-        <a href="/lab-cog.html">COG</a>
-        <a href="/lab-geo.html">GEO</a>
-        <a href="/lab-sys.html">SYS</a>
-      </div>
-    </div>
-    <div class="nav-dropdown">
-      <span class="nav-link">Instituto ▾</span>
-      <div class="nav-dropdown-menu">
-        <a href="/about.html">Marco</a>
-        <a href="/method.html">Método</a>
-        <a href="/sfi.html">Arquitectura</a>
-        <a href="/contact.html">Contacto</a>
-      </div>
-    </div>
-    <a href="/casos.html" class="nav-link cta">Archivo de Casos</a>
-    <a href="/mop-h-form.html" class="nav-link cta">Aplicar</a>
-  </div>
-</nav>
-  
-<!-- TICKER -->
-<div id="ticker">
-  <div class="ticker-track" id="tickerTrack"></div>
-</div>
+      update(centerX, centerY, collapseProgress) {
+        if (!window.collapsing) {
+          // Chaos: random motion
+          this.vx += (Math.random() - 0.5) * 0.5;
+          this.vy += (Math.random() - 0.5) * 0.5;
+          this.vx = Math.max(-8, Math.min(8, this.vx));
+          this.vy = Math.max(-8, Math.min(8, this.vy));
+        } else {
+          // Collapse: accelerate toward center
+          const dx = centerX - this.x;
+          const dy = centerY - this.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist > 1) {
+            this.vx = (dx / dist) * 20 * collapseProgress;
+            this.vy = (dy / dist) * 20 * collapseProgress;
+          }
+        }
 
-<!-- FILTER BAR -->
-<div id="filterbar">
-  <button class="filter-btn active" data-f="ALL">Todos</button>
-  <button class="filter-btn" data-f="ECO">ECO</button>
-  <button class="filter-btn" data-f="POL">POL</button>
-  <button class="filter-btn" data-f="CUL">CUL</button>
-  <button class="filter-btn" data-f="COG">COG</button>
-  <button class="filter-btn" data-f="GEO">GEO</button>
-  <div class="filter-spacer"></div>
-  <div class="filter-timestamp" id="ts">— — — —</div>
-</div>
+        this.x += this.vx;
+        this.y += this.vy;
 
-<!-- MAIN -->
-<div id="main">
-  <!-- MAP -->
-  <div id="map-panel">
-    <canvas id="worldCanvas"></canvas>
-    <div class="map-overlay-label" id="map-tag">Nodo·AGS — PRIMARIO</div>
-    <div class="map-overlay-label" id="map-nodes-count"></div>
-    <div class="map-overlay-label" id="map-projection">PROJ: EQUIRECTANGULAR</div>
-    <div class="node-tooltip" id="tooltip"></div>
-  </div>
+        // Bounce off edges
+        if (this.x < 0 || this.x > window.innerWidth) this.vx *= -1;
+        if (this.y < 0 || this.y > window.innerHeight) this.vy *= -1;
+        this.x = Math.max(0, Math.min(window.innerWidth, this.x));
+        this.y = Math.max(0, Math.min(window.innerHeight, this.y));
 
-  <!-- CARDS -->
-  <div id="cards-panel">
-    <div class="cards-header">
-      <span>Índices del Sistema</span>
-      <span>← toca para expandir</span>
-    </div>
-    <div id="cardsContainer"></div>
-  </div>
-</div>
+        // Fade out during collapse
+        this.life = Math.max(0, this.life - (window.collapsing ? 0.1 : 0));
+      }
 
-<!-- MIHM PANEL -->
-<div id="mihm-panel">
-  <div class="mihm-formula">
-    <div class="mihm-label">MIHM — Ecuación Maestra</div>
-    <div class="mihm-eq">
-      <span class="gold">Φ(t)</span><span class="dim"> = </span>
-      <span class="gold">IHG</span><span class="dim">⁻¹ · </span>
-      <span class="gold">NTI</span><span class="dim"> · </span>
-      <span class="gold">LDI</span><span class="dim">⁻¹ + ε</span>
-    </div>
-    <div class="mihm-result" id="phiValue">0.731</div>
-    <div class="mihm-result-label">Φ(t) GLOBAL — 13.04.2026</div>
-  </div>
+      draw(ctx) {
+        ctx.fillStyle = `rgba(230, 255, 0, ${this.life * 0.8})`;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
 
-  <div class="mihm-vars" id="mihmVars"></div>
+    // ===== 2D CHAOS (Desktop) =====
+    function initChaos2D() {
+      const canvas = document.getElementById('sf-canvas-2d');
+      canvas.innerHTML = '';
+      const svgNS = 'http://www.w3.org/2000/svg';
+      const svg = document.createElementNS(svgNS, 'svg');
+      svg.setAttribute('width', window.innerWidth);
+      svg.setAttribute('height', window.innerHeight);
+      svg.setAttribute('style', 'position:absolute;top:0;left:0;');
+      canvas.appendChild(svg);
 
-  <div class="mihm-status">
-    <div>
-      <div class="status-label">Estado sistémico</div>
-      <div class="status-value warn" style="margin-top:6px">FRICCIÓN MEDIA-ALTA</div>
-    </div>
-    <div class="status-bar"><div class="status-bar-fill" style="background:var(--orange)"></div></div>
-    <div>
-      <div class="status-label">Nodo primario</div>
-      <div class="status-value info" style="margin-top:4px">AGS — ACTIVO</div>
-    </div>
-    <div>
-      <div class="status-label">Última calibración</div>
-      <div class="status-value" style="margin-top:4px;font-size:11px">2026·04·13 09:47 UTC−6</div>
-    </div>
-  </div>
-</div>
+      const centerX = window.innerWidth / 2;
+      const centerY = window.innerHeight / 2;
 
-<!-- MODAL -->
-<div id="modal">
-  <div id="modal-box">
-    <div class="modal-top-bar" id="modalTopBar"></div>
-    <div class="modal-header">
-      <div class="modal-title-block">
-        <div class="modal-subtitle" id="modalSubtitle"></div>
-        <div class="modal-title" id="modalTitle"></div>
-      </div>
-      <div class="modal-value-block">
-        <div class="modal-big-val" id="modalBigVal"></div>
-      </div>
-      <button class="modal-close" onclick="closeModal()">✕</button>
-    </div>
-    <div class="modal-body" id="modalBody"></div>
-    <div class="modal-footer">
-      <div class="modal-node-list" id="modalNodes"></div>
-      <a href="/contact.html" class="modal-cta">Tu sistema muestra fricción media-alta. Continuar diagnóstico completo.</a>
-    </div>
-  </div>
-</div>
+      // Create 150 chaos particles
+      for (let i = 0; i < 150; i++) {
+        window.chaosParticles.push(new ChaosParticle());
+      }
 
-<script>
-// ════════════════════════════════════════
-// DATA
-// ════════════════════════════════════════
+      let chaosStart = Date.now();
+      let animationId;
 
-const NODES = [
-  {id:'ags',name:'Nodo AGS',city:'Aguascalientes',country:'MX',lon:-102.3,lat:21.9,
-   ihg:2.1,ldi:3.2,nti:0.72,cats:['POL','COG'],primary:true,label:'PRIMARIO'},
-  {id:'mex',name:'Nodo MEX',city:'Ciudad de México',country:'MX',lon:-99.1,lat:19.4,
-   ihg:3.4,ldi:5.8,nti:0.58,cats:['POL','ECO']},
-  {id:'nyc',name:'Nodo NYC',city:'New York',country:'US',lon:-74.0,lat:40.7,
-   ihg:1.8,ldi:2.4,nti:0.81,cats:['POL','COG','ECO']},
-  {id:'lon',name:'Nodo LON',city:'London',country:'GB',lon:-0.1,lat:51.5,
-   ihg:2.0,ldi:2.8,nti:0.79,cats:['POL','CUL']},
-  {id:'bru',name:'Nodo BRU',city:'Brussels',country:'BE',lon:4.4,lat:50.8,
-   ihg:1.2,ldi:2.1,nti:0.85,cats:['POL','ECO']},
-  {id:'bei',name:'Nodo BEI',city:'Beijing',country:'CN',lon:116.4,lat:39.9,
-   ihg:4.1,ldi:7.2,nti:0.44,cats:['POL','CUL']},
-  {id:'tok',name:'Nodo TOK',city:'Tokyo',country:'JP',lon:139.7,lat:35.7,
-   ihg:1.6,ldi:2.2,nti:0.83,cats:['ECO','COG']},
-  {id:'sao',name:'Nodo SAO',city:'São Paulo',country:'BR',lon:-46.6,lat:-23.5,
-   ihg:3.8,ldi:6.4,nti:0.51,cats:['ECO','POL','CUL']},
-  {id:'lag',name:'Nodo LAG',city:'Lagos',country:'NG',lon:3.4,lat:6.5,
-   ihg:5.2,ldi:9.1,nti:0.38,cats:['ECO','CUL']},
-  {id:'cai',name:'Nodo CAI',city:'Cairo',country:'EG',lon:31.2,lat:30.0,
-   ihg:3.9,ldi:6.8,nti:0.47,cats:['POL','CUL','GEO']},
-  {id:'mum',name:'Nodo MUM',city:'Mumbai',country:'IN',lon:72.9,lat:19.1,
-   ihg:3.1,ldi:5.1,nti:0.61,cats:['ECO','CUL']},
-  {id:'syd',name:'Nodo SYD',city:'Sydney',country:'AU',lon:151.2,lat:-33.9,
-   ihg:1.4,ldi:2.0,nti:0.87,cats:['ECO','COG']},
-  {id:'mos',name:'Nodo MOS',city:'Moscow',country:'RU',lon:37.6,lat:55.8,
-   ihg:3.9,ldi:6.2,nti:0.45,cats:['POL','GEO']},
-  {id:'dub',name:'Nodo DUB',city:'Dubai',country:'AE',lon:55.3,lat:25.2,
-   ihg:2.3,ldi:3.5,nti:0.74,cats:['ECO','GEO']},
-  {id:'bog',name:'Nodo BOG',city:'Bogotá',country:'CO',lon:-74.1,lat:4.7,
-   ihg:4.3,ldi:7.8,nti:0.42,cats:['POL','CUL']},
-  {id:'nai',name:'Nodo NAI',city:'Nairobi',country:'KE',lon:36.8,lat:-1.3,
-   ihg:4.1,ldi:7.0,nti:0.44,cats:['ECO','GEO']},
-];
+      function animateChaos() {
+        const elapsed = (Date.now() - chaosStart) / 1000;
+        const collapseProgress = Math.max(0, Math.min(1, (elapsed - 2.5) / 1.5));
 
-const CONNECTIONS = [
-  {from:'ags',to:'mex',w:.92,cats:['POL','COG']},
-  {from:'ags',to:'nyc',w:.6,cats:['COG']},
-  {from:'ags',to:'bog',w:.45,cats:['COG','CUL']},
-  {from:'mex',to:'sao',w:.7,cats:['POL','ECO']},
-  {from:'mex',to:'bog',w:.8,cats:['POL','CUL']},
-  {from:'nyc',to:'lon',w:.9,cats:['POL','ECO']},
-  {from:'nyc',to:'bru',w:.7,cats:['POL']},
-  {from:'nyc',to:'sao',w:.65,cats:['ECO']},
-  {from:'lon',to:'bru',w:.88,cats:['POL','ECO']},
-  {from:'lon',to:'mos',w:.5,cats:['POL','GEO']},
-  {from:'lon',to:'cai',w:.6,cats:['GEO','POL']},
-  {from:'lon',to:'dub',w:.7,cats:['ECO']},
-  {from:'bru',to:'bei',w:.5,cats:['POL','ECO']},
-  {from:'bei',to:'tok',w:.82,cats:['ECO','POL']},
-  {from:'bei',to:'mos',w:.72,cats:['POL','GEO']},
-  {from:'tok',to:'syd',w:.7,cats:['ECO','COG']},
-  {from:'tok',to:'mum',w:.62,cats:['ECO']},
-  {from:'sao',to:'lag',w:.5,cats:['CUL','ECO']},
-  {from:'sao',to:'bog',w:.75,cats:['POL','CUL']},
-  {from:'lag',to:'cai',w:.7,cats:['GEO','CUL']},
-  {from:'lag',to:'nai',w:.82,cats:['ECO','GEO']},
-  {from:'cai',to:'mum',w:.6,cats:['GEO','CUL']},
-  {from:'mum',to:'bei',w:.7,cats:['ECO','GEO']},
-  {from:'dub',to:'mum',w:.8,cats:['ECO','GEO']},
-  {from:'dub',to:'cai',w:.65,cats:['GEO']},
-  {from:'mos',to:'bei',w:.7,cats:['POL','GEO']},
-  {from:'nai',to:'mum',w:.5,cats:['ECO','GEO']},
-];
+        if (elapsed > 2.5 && !window.collapsing) {
+          window.collapsing = true;
+        }
 
-const CARDS_DATA = [
-  {id:'phi',key:'MIHM·Φ(t)',name:'Índice Sistémico Global',
-   value:0.731,unit:'índice compuesto',status:'warn',statusLabel:'Media-Alta',
-   trend:'+0.04',trendDir:'up',
-   spark:[.61,.63,.59,.65,.68,.64,.70,.69,.72,.73],color:'#C8A951',
-   desc:'Composición ponderada de IHG⁻¹·NTI·LDI⁻¹+ε. Umbral crítico: 0.85',
-   breakdown:[
-     {k:'IHG⁻¹',v:'0.476',d:'Inverso del índice homeostático'},
-     {k:'NTI',v:'0.630',d:'Trazabilidad epistémica media'},
-     {k:'LDI⁻¹',v:'0.208',d:'Inverso de latencia institucional'},
-     {k:'ε',v:'0.019',d:'Ruido sistémico acumulado'},
-   ],
-   interp:'El Φ(t) de 0.731 sitúa al sistema en fricción media-alta. La LDI tiene el mayor peso negativo en la composición. Sin intervención en la capa de trazabilidad, la trayectoria converge hacia 0.85 en Q3-2026.',
-  },
-  {id:'ihg',key:'IHG',name:'Índice Homeostático Global',
-   value:2.47,unit:'escala 0–6',status:'warn',statusLabel:'Elevado',
-   trend:'+0.12',trendDir:'up',
-   spark:[2.1,2.2,2.0,2.3,2.25,2.35,2.4,2.38,2.44,2.47],color:'#C8A951',
-   desc:'Distancia entre intención declarada y ejecución verificable. Umbral de alerta: 3.0',
-   breakdown:[
-     {k:'IHG·POL',v:'2.91',d:'Capa política — más alta'},
-     {k:'IHG·ECO',v:'2.23',d:'Capa económica — estable'},
-     {k:'IHG·COG',v:'1.84',d:'Capa cognitiva — dentro de rango'},
-     {k:'IHG·CUL',v:'3.12',d:'Capa cultural — cerca del umbral'},
-   ],
-   interp:'El IHG global de 2.47 está por encima del rango funcional (1.5–2.0) pero no ha alcanzado el umbral de alerta (3.0). La capa cultural (3.12) ya lo superó. El vector de crecimiento (+0.12 este ciclo) indica que sin intervención el IHG global cruzará 3.0 en 2–3 ciclos.',
-  },
-  {id:'ldi',key:'LDI',name:'Latencia de Decisión Institucional',
-   value:4.8,unit:'días promedio',status:'warn',statusLabel:'Alta',
-   trend:'+0.6d',trendDir:'up',
-   spark:[3.8,3.9,4.0,4.2,4.1,4.4,4.3,4.6,4.7,4.8],color:'#e87c4f',
-   desc:'Tiempo entre detección técnica y acción ejecutiva verificable. Umbral crítico: 7.0d',
-   breakdown:[
-     {k:'LDI·técnica',v:'1.2d',d:'Detección → documento formal'},
-     {k:'LDI·burocrática',v:'2.1d',d:'Documento → decisión ejecutiva'},
-     {k:'LDI·implementación',v:'1.5d',d:'Decisión → acción verificable'},
-   ],
-   interp:'La LDI de 4.8 días indica que hay 3 capas de latencia entre el momento en que una anomalía es técnicamente visible y el momento en que se toma una acción verificable. La capa burocrática absorbe el 44% del tiempo total. Esto es lo que primero se debe intervenir.',
-  },
-  {id:'nti',key:'NTI',name:'Nodo de Trazabilidad Institucional',
-   value:0.63,unit:'integridad 0–1',status:'warn',statusLabel:'Degradado',
-   trend:'-0.03',trendDir:'dn',
-   spark:[.78,.75,.74,.72,.70,.69,.68,.66,.64,.63],color:'#5a8fe8',
-   desc:'Integridad epistémica de la señal en circulación. Umbral crítico: 0.50',
-   breakdown:[
-     {k:'NTI·datos',v:'0.71',d:'Integridad del dato en origen'},
-     {k:'NTI·canal',v:'0.58',d:'Integridad en tránsito'},
-     {k:'NTI·recepción',v:'0.62',d:'Integridad en punto de decisión'},
-   ],
-   interp:'El NTI de 0.63 está en descenso consistente (−0.03 este ciclo). La degradación está concentrada en el canal de transmisión (0.58), no en el origen ni la recepción. Esto sugiere una capa intermedia de filtrado o distorsión activa. Es el indicador de mayor riesgo en el portfolio actual.',
-  },
-  {id:'ice',key:'ICE',name:'Índice de Complejidad Estructural',
-   value:3.21,unit:'escala 0–5',status:'warn',statusLabel:'Alta',
-   trend:'+0.07',trendDir:'up',
-   spark:[2.8,2.9,2.95,3.0,3.05,3.1,3.12,3.15,3.18,3.21],color:'#c85ae8',
-   desc:'Densidad de interdependencias entre capas del sistema. Umbral crítico: 4.0',
-   breakdown:[
-     {k:'ICE·estructural',v:'3.4',d:'Complejidad de la arquitectura formal'},
-     {k:'ICE·relacional',v:'3.0',d:'Complejidad de vínculos informales'},
-     {k:'ICE·temporal',v:'3.2',d:'Complejidad de los ciclos de retroalimentación'},
-   ],
-   interp:'Interpretación pendiente de análisis extendido',
-  },
-  {id:'crm',key:'CRM',name:'Capacidad de Respuesta Multiescalar',
-   value:0.49,unit:'capacidad 0–1',status:'warn',statusLabel:'Baja',
-   trend:'-0.02',trendDir:'dn',
-   spark:[.62,.60,.58,.56,.55,.54,.53,.52,.50,.49],color:'#4ae8d8',
-   desc:'Velocidad y precisión del sistema para responder en múltiples escalas. Umbral crítico: 0.35',
-   breakdown:[
-     {k:'CRM·local',v:'0.61',d:'Respuesta en escala operativa inmediata'},
-     {k:'CRM·medio',v:'0.47',d:'Respuesta en escala institucional'},
-     {k:'CRM·sistémica',v:'0.38',d:'Respuesta en escala de arquitectura'},
-   ],
-   interp:'Análisis pendiente de integración con datos de campo',
-  },
-];
+        svg.innerHTML = '';
 
-const MIHM_VARS = [
-  {key:'IHG',val:2.47,max:6,pct:41,color:'#C8A951'},
-  {key:'NTI',val:0.63,max:1,pct:63,color:'#5a8fe8'},
-  {key:'LDI',val:4.8,max:10,pct:48,color:'#e87c4f'},
-  {key:'ε',val:0.019,max:.1,pct:19,color:'#737373'},
-  {key:'ICE',val:3.21,max:5,pct:64,color:'#c85ae8'},
-  {key:'CRM',val:0.49,max:1,pct:49,color:'#4ae8d8'},
-];
+        // Draw connections
+        if (!window.collapsing) {
+          for (let i = 0; i < window.chaosParticles.length; i += 5) {
+            for (let j = i + 1; j < Math.min(i + 4, window.chaosParticles.length); j++) {
+              const p1 = window.chaosParticles[i];
+              const p2 = window.chaosParticles[j];
+              const dist = Math.sqrt((p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2);
+              if (dist < 100) {
+                const line = document.createElementNS(svgNS, 'line');
+                line.setAttribute('x1', p1.x);
+                line.setAttribute('y1', p1.y);
+                line.setAttribute('x2', p2.x);
+                line.setAttribute('y2', p2.y);
+                line.setAttribute('stroke', '#E6FF00');
+                line.setAttribute('stroke-width', '1');
+                line.setAttribute('opacity', (1 - dist / 100) * 0.4);
+                svg.appendChild(line);
+              }
+            }
+          }
+        }
 
-// Continent polygon data [lon, lat]
-const LAND = [
-  // North America
-  [[-168,72],[-60,72],[-55,47],[-68,44],[-75,35],[-85,10],[-90,16],
-   [-90,21],[-80,23],[-80,29],[-95,29],[-97,26],[-107,22],[-117,30],
-   [-120,35],[-122,48],[-130,55],[-140,60],[-168,72]],
-  // Central America
-  [[-85,10],[-77,8],[-62,10],[-60,5],[-78,2],[-80,8],[-85,10]],
-  // South America
-  [[-80,10],[-60,10],[-35,-5],[-35,-56],[-70,-56],[-80,-40],[-80,10]],
-  // Europe
-  [[-10,36],[37,36],[37,55],[28,58],[30,64],[15,68],[0,62],[-8,60],[-10,52],[-10,36]],
-  // Africa
-  [[-18,37],[52,12],[50,-25],[18,-35],[-18,-35],[-18,37]],
-  // Asia mainland
-  [[26,37],[40,37],[75,13],[80,8],[105,3],[110,1],[120,10],[130,32],
-   [140,40],[140,55],[100,72],[60,72],[40,65],[26,55],[26,37]],
-  // Australia
-  [[114,-22],[122,-17],[130,-12],[136,-12],[142,-18],[152,-28],
-   [150,-38],[140,-38],[120,-34],[114,-22]],
-  // Greenland
-  [[-55,60],[-20,62],[-15,70],[-20,83],[-45,83],[-65,76],[-55,60]],
-];
+        // Update and draw particles
+        window.chaosParticles.forEach(p => {
+          p.update(centerX, centerY, collapseProgress);
+          if (p.life > 0) {
+            const circle = document.createElementNS(svgNS, 'circle');
+            circle.setAttribute('cx', p.x);
+            circle.setAttribute('cy', p.y);
+            circle.setAttribute('r', p.size);
+            circle.setAttribute('fill', `rgba(230, 255, 0, ${p.life * 0.8})`);
+            svg.appendChild(circle);
+          }
+        });
 
-// ════════════════════════════════════════
-// STATE
-// ════════════════════════════════════════
-let activeFilter = 'ALL';
-let frame = 0;
-let particles = [];
-let hoveredNode = null;
+        // Scale nucleus during collapse
+        const nucleusSVG = document.getElementById('sf-nucleus');
+        const nucleusScale = 1 + collapseProgress * 2;
+        nucleusSVG.style.transform = `translate(-50%, -50%) scale(${nucleusScale})`;
+        nucleusSVG.style.opacity = 1 - collapseProgress * 0.5;
 
-const FILTER_COLORS = {
-  ALL:'#C8A951', ECO:'#4a9e6a', POL:'#5a8fe8',
-  CUL:'#c85ae8', COG:'#E6FF00', GEO:'#4ae8d8'
-};
+        // After collapse, show Level 1 nodes delay
+        if (elapsed > 4) {
+          if (!window.nucleusExpanded) {
+            expandNucleus();
+            canvas.style.opacity = '0.1';
+          }
+          cancelAnimationFrame(animationId);
+          return;
+        }
 
-// ════════════════════════════════════════
-// CANVAS WORLD MAP
-// ════════════════════════════════════════
-const canvas = document.getElementById('worldCanvas');
-const ctx = canvas.getContext('2d');
+        animationId = requestAnimationFrame(animateChaos);
+      }
 
-function resize(){
-  canvas.width = canvas.parentElement.clientWidth;
-  canvas.height = canvas.parentElement.clientHeight;
-}
+      animateChaos();
+    }
 
-function project(lon, lat){
-  const pad = {t:40,b:30,l:20,r:20};
-  const w = canvas.width - pad.l - pad.r;
-  const h = canvas.height - pad.t - pad.b;
-  return [pad.l + ((lon+180)/360)*w, pad.t + ((90-lat)/180)*h];
-}
+    // ===== 3D SPHERE (Mobile Three.js) =====
+    function initChaos3D() {
+      const canvas = document.getElementById('sf-canvas-3d');
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
 
-function frictionColor(ihg){
-  if(ihg<=2) return {r:74,g:158,b:106};
-  if(ihg<=3.5) return {r:200,g:169,b:81};
-  if(ihg<=4.5) return {r:232,g:124,b:79};
-  return {r:232,g:90,b:79};
-}
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(75, canvas.clientWidth / canvas.clientHeight, 0.1, 1000);
+      const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+      renderer.setSize(canvas.clientWidth, canvas.clientHeight);
+      renderer.setClearColor(0x030305, 1);
 
-function frictionHex(ihg){
-  const c = frictionColor(ihg);
-  return `#${c.r.toString(16).padStart(2,'0')}${c.g.toString(16).padStart(2,'0')}${c.b.toString(16).padStart(2,'0')}`;
-}
+      camera.position.z = 3;
 
-function drawGrid(){
-  ctx.strokeStyle = 'rgba(30,30,30,0.6)';
-  ctx.lineWidth = .4;
-  for(let lon=-180;lon<=180;lon+=30){
-    const [x1,y1] = project(lon,90);
-    const [x2,y2] = project(lon,-90);
-    ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
-  }
-  for(let lat=-90;lat<=90;lat+=30){
-    const [x1,y1] = project(-180,lat);
-    const [x2,y2] = project(180,lat);
-    ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
-  }
-  // Equator
-  ctx.strokeStyle = 'rgba(46,46,46,0.8)'; ctx.lineWidth = .7;
-  const [ex1,ey] = project(-180,0); const [ex2] = project(180,0);
-  ctx.beginPath(); ctx.moveTo(ex1,ey); ctx.lineTo(ex2,ey); ctx.stroke();
-}
+      // Wireframe sphere
+      const geometry = new THREE.IcosahedronGeometry(1.5, 4);
+      const material = new THREE.MeshPhongMaterial({
+        color: 0xE6FF00,
+        emissive: 0x330066,
+        wireframe: true,
+        transparent: true,
+        opacity: 0.5
+      });
+      const sphere = new THREE.Mesh(geometry, material);
+      scene.add(sphere);
 
-function drawContinents(){
-  ctx.fillStyle = 'rgba(18,18,18,0.9)';
-  ctx.strokeStyle = 'rgba(38,38,38,0.6)';
-  ctx.lineWidth = .6;
-  LAND.forEach(poly => {
-    ctx.beginPath();
-    const [sx,sy] = project(poly[0][0],poly[0][1]);
-    ctx.moveTo(sx,sy);
-    poly.slice(1).forEach(([lon,lat]) => {
-      const [x,y] = project(lon,lat); ctx.lineTo(x,y);
+      // Particle lights
+      const particleGeometry = new THREE.BufferGeometry();
+      const particleCount = 100;
+      const positions = new Float32Array(particleCount * 3);
+      for (let i = 0; i < particleCount * 3; i += 3) {
+        positions[i] = (Math.random() - 0.5) * 5;
+        positions[i + 1] = (Math.random() - 0.5) * 5;
+        positions[i + 2] = (Math.random() - 0.5) * 5;
+      }
+      particleGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+
+      const particleMaterial = new THREE.PointsMaterial({
+        color: 0xE6FF00,
+        size: 0.05,
+        sizeAttenuation: true,
+        transparent: true,
+        opacity: 0.7
+      });
+      const particles = new THREE.Points(particleGeometry, particleMaterial);
+      scene.add(particles);
+
+      // Lighting
+      const light = new THREE.PointLight(0xE6FF00, 1);
+      light.position.set(5, 5, 5);
+      scene.add(light);
+
+      let chaosStart = Date.now();
+      let collapsing = false;
+
+      function animate() {
+        requestAnimationFrame(animate);
+
+        const elapsed = (Date.now() - chaosStart) / 1000;
+        const collapseProgress = Math.max(0, Math.min(1, (elapsed - 2.5) / 1.5));
+
+        if (elapsed > 2.5 && !collapsing) {
+          collapsing = true;
+        }
+
+        // Rotate sphere
+        sphere.rotation.x += 0.002;
+        sphere.rotation.y += 0.003;
+
+        // Scale sphere during collapse
+        sphere.scale.set(1 + collapseProgress * 0.5, 1 + collapseProgress * 0.5, 1 + collapseProgress * 0.5);
+
+        // Fade particles during col lapse
+        particleMaterial.opacity = 0.7 - collapseProgress * 0.5;
+
+        // Fade canvas
+        const target = collapsing ? 0 : 0.1;
+        canvas.style.opacity = Math.max(canvas.style.opacity || target, target - collapseProgress * 0.1);
+
+        if (elapsed > 4 && !window.nucleusExpanded) {
+          expandNucleus();
+          canvas.style.opacity = '0.1';
+        }
+
+        renderer.render(scene, camera);
+      }
+
+      animate();
+
+      // Handle resize
+      window.addEventListener('resize', () => {
+        camera.aspect = canvas.clientWidth / canvas.clientHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(canvas.clientWidth, canvas.clientHeight);
+      });
+    }
+
+    // ===== EXPAND NUCLEUS (Show Level 1 Nodes) =====
+    function expandNucleus() {
+      if (window.nucleusExpanded) return;
+      window.nucleusExpanded = true;
+
+      const nucleusSVG = document.getElementById('sf-nucleus');
+      const label = document.getElementById('sf-nucleus-label');
+
+      nucleusSVG.style.opacity = '1';
+      label.textContent = '[NUCLEUS] — EXPANDED';
+
+      if (!window.navTree || !window.navTree.nucleus) {
+        setTimeout(expandNucleus, 100);
+        return;
+      }
+
+      const centerX = window.innerWidth / 2;
+      const centerY = window.innerHeight / 2;
+
+      const level1Keys = Object.keys(window.navTree.nucleus.children || {});
+      if (level1Keys.length === 0) return;
+
+      // Desktop: to the right; Mobile: upward
+      const isVertical = isMobile;
+      const radius = 200;
+      const angleOffset = isMobile ? -Math.PI / 2 : 0;
+
+      // Create SVG overlay for Level 1 nodes
+      const canvasContainer = document.getElementById('sf-canvas-2d');
+      if (!canvasContainer.querySelector('svg.level1')) {
+        const svgNS = 'http://www.w3.org/2000/svg';
+        const svg = document.createElementNS(svgNS, 'svg');
+        svg.setAttribute('class', 'level1');
+        svg.setAttribute('width', window.innerWidth);
+        svg.setAttribute('height', window.innerHeight);
+        svg.setAttribute('style', 'position:absolute;top:0;left:0;z-index:5;pointer-events:all;');
+        canvasContainer.appendChild(svg);
+
+        level1Keys.forEach((key, idx) => {
+          const angle = angleOffset + (idx * (2 * Math.PI) / level1Keys.length);
+          const x = centerX + radius * Math.cos(angle);
+          const y = centerY + radius * Math.sin(angle);
+
+          // Line to nucleus
+          const line = document.createElementNS(svgNS, 'line');
+          line.setAttribute('x1', centerX);
+          line.setAttribute('y1', centerY);
+          line.setAttribute('x2', x);
+          line.setAttribute('y2', y);
+          line.setAttribute('stroke', '#E6FF00');
+          line.setAttribute('stroke-width', '1.5');
+          line.setAttribute('opacity', '0.6');
+          svg.appendChild(line);
+
+          // Node circle
+          const circle = document.createElementNS(svgNS, 'circle');
+          circle.setAttribute('cx', x);
+          circle.setAttribute('cy', y);
+          circle.setAttribute('r', '12');
+          circle.setAttribute('fill', '#E6FF00');
+          circle.setAttribute('stroke', '#fff');
+          circle.setAttribute('stroke-width', '1.5');
+          circle.setAttribute('cursor', 'pointer');
+          circle.setAttribute('data-node', key);
+          circle.style.transition = 'filter 0.15s';
+          circle.addEventListener('mouseenter', () => {
+            circle.style.filter = 'drop-shadow(0 0 12px #E6FF00)';
+          });
+          circle.addEventListener('mouseleave', () => {
+            circle.style.filter = 'none';
+          });
+          circle.addEventListener('click', () => {
+            if (window.router && window.router.navigateFractal) {
+              window.router.navigateFractal(key);
+            }
+          });
+          svg.appendChild(circle);
+
+          // Label
+          const text = document.createElementNS(svgNS, 'text');
+          text.setAttribute('x', x);
+          text.setAttribute('y', y);
+          text.setAttribute('text-anchor', 'middle');
+          text.setAttribute('dy', '.35em');
+          text.setAttribute('font-size', '10px');
+          text.setAttribute('fill', '#030305');
+          text.setAttribute('font-weight', 'bold');
+          text.setAttribute('pointer-events', 'none');
+          text.textContent = key.substring(0, 2).toUpperCase();
+          svg.appendChild(text);
+        });
+      }
+    }
+
+    // ===== NUCLEUS CLICK HANDLER =====
+    document.getElementById('sf-nucleus').addEventListener('click', expandNucleus);
+
+    // ===== CLOSE BUTTON =====
+    document.getElementById('sf-close-btn').addEventListener('click', () => {
+      document.getElementById('sf-main-stage').classList.remove('loaded');
+      document.getElementById('sf-content').innerHTML = '';
+      if (window.router) {
+        window.currentNavigationPath = ['nucleus'];
+      }
     });
-    ctx.closePath(); ctx.fill(); ctx.stroke();
-  });
-}
 
-function drawHeat(){
-  const nodeFilter = activeFilter;
-  NODES.forEach(n => {
-    const active = nodeFilter==='ALL' || n.cats.includes(nodeFilter);
-    if(!active) return;
-    const [x,y] = project(n.lon,n.lat);
-    const fc = frictionColor(n.ihg);
-    const rad = 50 + n.ihg*18;
-    const intensity = Math.min(n.ihg/6,.75) * (active ? 1 : .15);
-    const g = ctx.createRadialGradient(x,y,0,x,y,rad);
-    g.addColorStop(0,`rgba(${fc.r},${fc.g},${fc.b},${intensity*.3})`);
-    g.addColorStop(.4,`rgba(${fc.r},${fc.g},${fc.b},${intensity*.08})`);
-    g.addColorStop(1,'rgba(0,0,0,0)');
-    ctx.fillStyle = g;
-    ctx.beginPath(); ctx.arc(x,y,rad,0,Math.PI*2); ctx.fill();
-  });
-}
+    // ===== INIT SEQUENCE =====
+    window.addEventListener('DOMContentLoaded', () => {
+      // Start chaos animation
+      if (isMobile) {
+        setTimeout(initChaos3D, 50);
+      } else {
+        setTimeout(initChaos2D, 50);
+      }
 
-function getConnCP(x1,y1,x2,y2){
-  const mx=(x1+x2)/2, my=(y1+y2)/2;
-  const dist = Math.sqrt((x2-x1)**2+(y2-y1)**2);
-  // Arc over the midpoint
-  const nx = -(y2-y1)/dist, ny = (x2-x1)/dist;
-  return [mx + nx*dist*.18, my + ny*dist*.18];
-}
-
-function drawConnections(){
-  CONNECTIONS.forEach(conn => {
-    const active = activeFilter==='ALL' || conn.cats.includes(activeFilter);
-    const fromN = NODES.find(n=>n.id===conn.from);
-    const toN = NODES.find(n=>n.id===conn.to);
-    if(!fromN||!toN) return;
-    const [x1,y1] = project(fromN.lon,fromN.lat);
-    const [x2,y2] = project(toN.lon,toN.lat);
-    const [cx,cy] = getConnCP(x1,y1,x2,y2);
-    const fc = FILTER_COLORS[activeFilter]||'#C8A951';
-    ctx.beginPath();
-    ctx.moveTo(x1,y1); ctx.quadraticCurveTo(cx,cy,x2,y2);
-    if(active){
-      // Pulse opacity
-      const pulse = .3 + Math.sin(frame*.04+conn.from.charCodeAt(0)*.3)*.1;
-      ctx.strokeStyle = active ? hexToRGBA(fc, conn.w * pulse) : 'rgba(30,30,30,.2)';
-      ctx.lineWidth = conn.w*1.4;
-    } else {
-      ctx.strokeStyle = 'rgba(28,28,28,0.25)'; ctx.lineWidth = .4;
-    }
-    ctx.stroke();
-  });
-}
-
-function bezierPt(t,x1,y1,cx,cy,x2,y2){
-  const m=1-t;
-  return [m*m*x1+2*m*t*cx+t*t*x2, m*m*y1+2*m*t*cy+t*t*y2];
-}
-
-function drawParticles(){
-  particles.forEach(p => {
-    const conn = CONNECTIONS[p.connIdx];
-    const active = activeFilter==='ALL' || conn.cats.includes(activeFilter);
-    if(!active) return;
-    const fromN = NODES.find(n=>n.id===conn.from);
-    const toN = NODES.find(n=>n.id===conn.to);
-    if(!fromN||!toN) return;
-    const [x1,y1] = project(fromN.lon,fromN.lat);
-    const [x2,y2] = project(toN.lon,toN.lat);
-    const [cx,cy] = getConnCP(x1,y1,x2,y2);
-    const [px,py] = bezierPt(p.t,x1,y1,cx,cy,x2,y2);
-    // Fade near endpoints
-    const fade = Math.sin(p.t*Math.PI);
-    const fc = FILTER_COLORS[activeFilter]||'#C8A951';
-    ctx.beginPath();
-    ctx.arc(px,py,1.8,0,Math.PI*2);
-    ctx.fillStyle = hexToRGBA(fc, fade*.9);
-    ctx.fill();
-    // Glow
-    const g = ctx.createRadialGradient(px,py,0,px,py,5);
-    g.addColorStop(0,hexToRGBA(fc,fade*.3));
-    g.addColorStop(1,'rgba(0,0,0,0)');
-    ctx.fillStyle=g; ctx.beginPath(); ctx.arc(px,py,5,0,Math.PI*2); ctx.fill();
-  });
-}
-
-function drawNodes(){
-  NODES.forEach(n => {
-    const active = activeFilter==='ALL' || n.cats.includes(activeFilter);
-    const [x,y] = project(n.lon,n.lat);
-    const fc = frictionHex(n.ihg);
-    const isHovered = hoveredNode===n.id;
-    const isPrimary = n.primary;
-    const pulse = 1 + Math.sin(frame*.06+NODES.indexOf(n)*.7)*.2;
-    const baseR = isPrimary ? 6 : (active ? 4.5 : 2.5);
-    const r = baseR * (isHovered ? 1.4 : 1) * pulse;
-    // Outer glow ring
-    if(active||isPrimary){
-      ctx.beginPath(); ctx.arc(x,y,r+4,0,Math.PI*2);
-      ctx.strokeStyle = hexToRGBA(fc,.12*(isHovered?.35:1));
-      ctx.lineWidth = 4; ctx.stroke();
-      // Inner ring
-      ctx.beginPath(); ctx.arc(x,y,r+1.5,0,Math.PI*2);
-      ctx.strokeStyle = hexToRGBA(fc,.25);
-      ctx.lineWidth = .8; ctx.stroke();
-    }
-    // Core dot
-    ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2);
-    ctx.fillStyle = active||isPrimary ? fc : 'rgba(38,38,38,0.5)';
-    ctx.fill();
-    // Primary marker
-    if(isPrimary){
-      ctx.beginPath(); ctx.arc(x,y,r+8,0,Math.PI*2);
-      ctx.strokeStyle = hexToRGBA(fc,.18); ctx.lineWidth = 1;
-      ctx.setLineDash([3,4]); ctx.stroke(); ctx.setLineDash([]);
-    }
-    // Label for active or hovered
-    if((active||isPrimary) && (canvas.width>600)){
-      ctx.fillStyle = isHovered ? fc : hexToRGBA(fc,.6);
-      ctx.font = `${isPrimary?'500':'300'} ${isHovered?10:8}px IBM Plex Mono`;
-      ctx.fillText(n.city, x+r+4, y+3);
-    }
-  });
-}
-
-function drawLabels(){
-  // IHG scale legend
-  const lx = canvas.width - 14;
-  const items = [{c:'#4a9e6a',l:'IHG≤2'},{c:'#C8A951',l:'2–3.5'},{c:'#e87c4f',l:'3.5–4.5'},{c:'#e85a4f',l:'>4.5'}];
-  items.forEach((item,i)=>{
-    const ly = canvas.height - 80 + i*16;
-    ctx.fillStyle = item.c; ctx.beginPath(); ctx.arc(lx-60,ly,3,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle = 'rgba(80,80,80,.7)'; ctx.font = '8px IBM Plex Mono';
-    ctx.fillText(item.l, lx-52, ly+3);
-  });
-}
-
-function drawMap(){
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-  drawGrid();
-  drawContinents();
-  drawHeat();
-  drawConnections();
-  drawParticles();
-  drawNodes();
-  drawLabels();
-}
-
-function updateParticles(){
-  particles.forEach(p=>{
-    p.t += p.speed;
-    if(p.t>1) p.t = 0;
-  });
-  frame++;
-}
-
-function initParticles(){
-  particles = [];
-  CONNECTIONS.forEach((conn,i)=>{
-    const count = Math.round(conn.w * 4) + 1;
-    for(let j=0;j<count;j++){
-      particles.push({connIdx:i, t:j/count, speed:.002+Math.random()*.004});
-    }
-  });
-}
-
-function animate(){
-  drawMap();
-  updateParticles();
-  requestAnimationFrame(animate);
-}
-
-// Node tooltip on hover and click for mobile
-canvas.addEventListener('mousemove',e=>{
-  const rect = canvas.getBoundingClientRect();
-  const mx = e.clientX - rect.left;
-  const my = e.clientY - rect.top;
-  const tt = document.getElementById('tooltip');
-  let found = null;
-  NODES.forEach(n=>{
-    const [x,y] = project(n.lon,n.lat);
-    const dist = Math.sqrt((mx-x)**2+(my-y)**2);
-    if(dist<14) found = n;
-  });
-  hoveredNode = found ? found.id : null;
-  if(found){
-    const c = frictionHex(found.ihg);
-    tt.style.display = 'block';
-    tt.style.left = (mx+16)+'px';
-    tt.style.top = (my-20)+'px';
-    tt.innerHTML = `
-      <div class="tt-name">${found.name} · ${found.city}</div>
-      <div class="tt-row"><span>IHG</span><span style="color:${c}">${found.ihg}</span></div>
-      <div class="tt-row"><span>LDI</span><span>${found.ldi}d</span></div>
-      <div class="tt-row"><span>NTI</span><span>${found.nti}</span></div>
-      <div class="tt-row"><span>Capas</span><span>${found.cats.join('·')}</span></div>
-    `;
-  } else {
-    tt.style.display='none';
-  }
-});
-canvas.addEventListener('click',e=>{
-  const rect = canvas.getBoundingClientRect();
-  const mx = e.clientX - rect.left;
-  const my = e.clientY - rect.top;
-  const tt = document.getElementById('tooltip');
-  let found = null;
-  NODES.forEach(n=>{
-    const [x,y] = project(n.lon,n.lat);
-    const dist = Math.sqrt((mx-x)**2+(my-y)**2);
-    if(dist<14) found = n;
-  });
-  if(found){
-    const c = frictionHex(found.ihg);
-    tt.style.display = 'block';
-    tt.style.left = (mx+16)+'px';
-    tt.style.top = (my-20)+'px';
-    tt.innerHTML = `
-      <div class="tt-name">${found.name} · ${found.city}</div>
-      <div class="tt-row"><span>IHG</span><span style="color:${c}">${found.ihg}</span></div>
-      <div class="tt-row"><span>LDI</span><span>${found.ldi}d</span></div>
-      <div class="tt-row"><span>NTI</span><span>${found.nti}</span></div>
-      <div class="tt-row"><span>Capas</span><span>${found.cats.join('·')}</span></div>
-    `;
-  } else {
-    tt.style.display='none';
-  }
-});
-canvas.addEventListener('mouseleave',()=>{
-  document.getElementById('tooltip').style.display='none';
-  hoveredNode=null;
-});
-
-// ════════════════════════════════════════
-// SCORE CARDS
-// ════════════════════════════════════════
-function sparklineSVG(data,color){
-  const w=80,h=24;
-  const max=Math.max(...data),min=Math.min(...data);
-  const range=max-min||.001;
-  const pts=data.map((v,i)=>{
-    const x=(i/(data.length-1))*w;
-    const y=h-((v-min)/range)*h*.8-h*.1;
-    return `${x.toFixed(1)},${y.toFixed(1)}`;
-  }).join(' ');
-  const last=pts.split(' ').pop().split(',');
-  return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.2" opacity=".8"/><circle cx="${last[0]}" cy="${last[1]}" r="2" fill="${color}"/></svg>`;
-}
-
-function buildCards(){
-  const cont = document.getElementById('cardsContainer');
-  cont.innerHTML = '';
-  CARDS_DATA.forEach(cd => {
-    const trendCls = cd.trendDir==='up'?'trend-up':cd.trendDir==='dn'?'trend-dn':'trend-st';
-    const trendIcon = cd.trendDir==='up'?'↑':cd.trendDir==='dn'?'↓':'→';
-    const el = document.createElement('div');
-    el.className = 'score-card';
-    el.style.setProperty('--card-color',cd.color);
-    el.innerHTML = `
-      <div class="card-top">
-        <div class="card-id">${cd.key}</div>
-        <div class="card-status">${cd.statusLabel}</div>
-      </div>
-      <div class="card-value">${cd.value}</div>
-      <div class="card-unit">${cd.unit}</div>
-      <div class="card-name">${cd.name}</div>
-      <div class="card-desc">${cd.desc}</div>
-      <div class="card-bottom">
-        <div class="card-trend">
-          <span class="${trendCls}">${trendIcon}${cd.trend}</span>
-          <span style="margin-left:4px">ciclo</span>
-        </div>
-        <div class="card-sparkline">${sparklineSVG(cd.spark,cd.color)}</div>
-      </div>
-      <div class="card-zoom-hint">↗ expandir</div>
-    `;
-    el.addEventListener('click',()=>openModal(cd));
-    cont.appendChild(el);
-  });
-}
-
-// ════════════════════════════════════════
-// MODAL ZOOM
-// ════════════════════════════════════════
-function openModal(cd){
-  document.getElementById('modal').classList.add('open');
-  document.getElementById('modalTopBar').style.background = `linear-gradient(90deg,${cd.color},transparent)`;
-  document.getElementById('modalSubtitle').textContent = cd.key + ' — Detalle expandido';
-  document.getElementById('modalTitle').textContent = cd.name;
-  document.getElementById('modalBigVal').style.color = cd.color;
-  document.getElementById('modalBigVal').textContent = cd.value;
-
-  // Chart placeholder
-  const chartHTML = `
-    <div class="modal-chart-area">
-      <svg width="100%" height="80" viewBox="0 0 600 80" preserveAspectRatio="none">
-        <defs>
-          <linearGradient id="lg" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="${cd.color}" stop-opacity=".3"/>
-            <stop offset="100%" stop-color="${cd.color}" stop-opacity="0"/>
-          </linearGradient>
-        </defs>
-        ${buildSparkPath(cd.spark,600,70,cd.color)}
-      </svg>
-    </div>
-    <div class="modal-chart-label">Últimos 10 ciclos de medición</div>
-  `;
-
-  const subGrid = cd.breakdown.map(b=>`
-    <div class="modal-sub-card">
-      <div class="modal-sub-label">${b.k}</div>
-      <div class="modal-sub-val" style="color:${cd.color}">${b.v}</div>
-      <div class="modal-sub-desc">${b.d}</div>
-    </div>
-  `).join('');
-
-  // Active nodes for this metric
-  const relatedNodes = NODES
-    .filter(n => n.cats.some(c => cd.key.includes(c) || activeFilter==='ALL'))
-    .slice(0,6);
-  document.getElementById('modalNodes').innerHTML =
-    relatedNodes.map(n=>`<span class="modal-node-tag" style="color:${frictionHex(n.ihg)};border-color:${frictionHex(n.ihg)}22">${n.id.toUpperCase()}·${n.ihg}</span>`).join('');
-
-  document.getElementById('modalBody').innerHTML = `
-    <div class="modal-section">
-      <div class="modal-section-label">Tendencia histórica</div>
-      ${chartHTML}
-    </div>
-    <div class="modal-section">
-      <div class="modal-section-label">Sub-variables</div>
-      <div class="modal-sub-grid">${subGrid}</div>
-    </div>
-    <div class="modal-section">
-      <div class="modal-section-label">Interpretación operativa</div>
-      <div class="modal-interpretation">
-        <p>${cd.interp}</p>
-      </div>
-    </div>
-  `;
-}
-
-function buildSparkPath(data,w,h,color){
-  const max=Math.max(...data),min=Math.min(...data);
-  const range=max-min||.001;
-  const pts=data.map((v,i)=>{
-    const x=(i/(data.length-1))*w;
-    const y=h-((v-min)/range)*(h*.8)-h*.1;
-    return `${x.toFixed(1)},${y.toFixed(1)}`;
-  });
-  const areaPath = `M${pts[0]} ` + pts.slice(1).map(p=>`L${p}`).join(' ')
-    + ` L${w},${h} L0,${h} Z`;
-  const linePath = `M${pts[0]} ` + pts.slice(1).map(p=>`L${p}`).join(' ');
-  return `<path d="${areaPath}" fill="url(#lg)"/>
-    <path d="${linePath}" fill="none" stroke="${color}" stroke-width="1.5"/>
-    <circle cx="${pts[pts.length-1].split(',')[0]}" cy="${pts[pts.length-1].split(',')[1]}" r="3" fill="${color}"/>`;
-}
-
-function closeModal(){
-  document.getElementById('modal').classList.remove('open');
-}
-document.getElementById('modal').addEventListener('click',e=>{
-  if(e.target===document.getElementById('modal')) closeModal();
-});
-
-// ════════════════════════════════════════
-// MIHM PANEL VARS
-// ════════════════════════════════════════
-function buildMIHMVars(){
-  const cont = document.getElementById('mihmVars');
-  cont.innerHTML = MIHM_VARS.map(v=>`
-    <div class="var-row">
-      <div class="var-key">${v.key}</div>
-      <div class="var-val">${v.val}</div>
-      <div class="var-bar-track">
-        <div class="var-bar-fill" style="width:${v.pct}%;background:${v.color}"></div>
-      </div>
-      <div class="var-pct">${v.pct}%</div>
-    </div>
-  `).join('');
-}
-
-// ════════════════════════════════════════
-// TICKER
-// ════════════════════════════════════════
-function buildTicker(){
-  const items = [
-    {label:'MIHM·Φ(t)',val:'0.731',cls:'warn'},
-    {label:'IHG GLOBAL',val:'2.47',cls:'warn'},
-    {label:'LDI MEDIA',val:'4.8d',cls:'warn'},
-    {label:'NTI INTEGRIDAD',val:'0.63',cls:'warn'},
-    {label:'NODO·AGS',val:'ACTIVO',cls:'ok'},
-    {label:'ICE',val:'3.21',cls:'warn'},
-    {label:'CRM',val:'0.49',cls:'warn'},
-    {label:'NODOS ACTIVOS',val:'16',cls:'ok'},
-    {label:'CONEXIONES',val:'27',cls:'ok'},
-    {label:'UMBRAL CRÍTICO',val:'NO ALCANZADO',cls:'ok'},
-    {label:'CAPA CULTURAL',val:'IHG 3.12 — CERCA',cls:'warn'},
-    {label:'NTI·CANAL',val:'0.58 — VIGILANCIA',cls:'warn'},
-    {label:'ÚLTIMA CALIBRACIÓN',val:'2026·04·13',cls:''},
-    // Duplicate for seamless loop
-    {label:'MIHM·Φ(t)',val:'0.731',cls:'warn'},
-    {label:'IHG GLOBAL',val:'2.47',cls:'warn'},
-    {label:'LDI MEDIA',val:'4.8d',cls:'warn'},
-    {label:'NTI INTEGRIDAD',val:'0.63',cls:'warn'},
-    {label:'NODO·AGS',val:'ACTIVO',cls:'ok'},
-    {label:'ICE',val:'3.21',cls:'warn'},
-    {label:'CRM',val:'0.49',cls:'warn'},
-    {label:'NODOS ACTIVOS',val:'16',cls:'ok'},
-    {label:'CONEXIONES',val:'27',cls:'ok'},
-    {label:'UMBRAL CRÍTICO',val:'NO ALCANZADO',cls:'ok'},
-    {label:'CAPA CULTURAL',val:'IHG 3.12 — CERCA',cls:'warn'},
-    {label:'NTI·CANAL',val:'0.58 — VIGILANCIA',cls:'warn'},
-    {label:'ÚLTIMA CALIBRACIÓN',val:'2026·04·13',cls:''},
-  ];
-  const track = document.getElementById('tickerTrack');
-  track.innerHTML = items.map(it=>
-    `<div class="ticker-item">${it.label} <span class="val ${it.cls}">${it.val}</span></div>`
-  ).join('');
-}
-
-// ════════════════════════════════════════
-// FILTERS
-// ════════════════════════════════════════
-document.querySelectorAll('.filter-btn').forEach(btn=>{
-  btn.addEventListener('click',()=>{
-    document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
-    btn.classList.add('active');
-    activeFilter = btn.dataset.f;
-  });
-});
-
-// ════════════════════════════════════════
-// TIMESTAMP
-// ════════════════════════════════════════
-function updateTS(){
-  const now = new Date();
-  const str = `${now.getFullYear()}·${String(now.getMonth()+1).padStart(2,'0')}·${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')} UTC${now.getTimezoneOffset()<=0?'+':'−'}${Math.abs(now.getTimezoneOffset()/60)}`;
-  document.getElementById('ts').textContent = str;
-  document.getElementById('map-nodes-count').textContent = `${NODES.length} NODOS · ${CONNECTIONS.length} CONEXIONES`;
-}
-
-// ════════════════════════════════════════
-// UTIL
-// ════════════════════════════════════════
-function hexToRGBA(hex,alpha){
-  const r=parseInt(hex.slice(1,3),16);
-  const g=parseInt(hex.slice(3,5),16);
-  const b=parseInt(hex.slice(5,7),16);
-  return `rgba(${r},${g},${b},${alpha})`;
-}
-
-// ════════════════════════════════════════
-// INIT
-// ════════════════════════════════════════
-window.addEventListener('resize',()=>{resize()});
-resize();
-initParticles();
-buildCards();
-buildMIHMVars();
-buildTicker();
-updateTS();
-setInterval(updateTS, 30000);
-animate();
-</script>
+      console.log('%c[SF] — NEURO-GESTALT ACTIVATED —', 'color: #E6FF00; font-weight: bold; font-size: 14px;');
+    });
+  </script>
 </body>
 </html>

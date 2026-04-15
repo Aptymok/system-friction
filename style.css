@@ -472,6 +472,56 @@ body::before {
 .status-bar-fill { position: absolute; inset: 0; animation: statusPulse 3s ease-in-out infinite; }
 @keyframes statusPulse { 0%,100%{opacity:.4} 50%{opacity:1} }
 
+/* ========== SYSTEM FRICTION OS STYLES ========== */
+#sf-background-canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: -1;
+  pointer-events: none;
+}
+
+.sf-node {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  background: var(--neon);
+  border-radius: 50%;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: auto;
+}
+
+.sf-node.visible {
+  opacity: 1;
+}
+
+.sf-link {
+  position: absolute;
+  background: var(--neon);
+  opacity: 0;
+  transition: opacity 0.3s;
+  transform-origin: 0 50%;
+}
+
+.sf-link.visible {
+  opacity: 1;
+}
+
+.sf-label {
+  position: absolute;
+  color: #fff;
+  font-size: 12px;
+  font-family: 'IBM Plex Mono', monospace;
+  text-align: center;
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+}
+
 /* ========== MODAL ========== */
 #modal {
   position: fixed;
