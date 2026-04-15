@@ -15,6 +15,13 @@ if (window.location.pathname.includes('simulation') || window.location.pathname.
 }
 localStorage.setItem("sf_profile", profile);
 
+// Role detection from URL param or localStorage
+const urlParams = new URLSearchParams(window.location.search);
+const urlRole = urlParams.get("role");
+if (urlRole && ["operator", "manager", "director", "founder"].includes(urlRole)) {
+  localStorage.setItem("sf_role", urlRole);
+}
+
 function safeLoop(renderFn) {
   function loop() {
     if (running) {
@@ -36,6 +43,13 @@ const EVENT_WEIGHTS = {
   observatory_unlocked: 8
 };
 
+const ROLE_WEIGHTS = {
+  operator: 1,
+  manager: 1.5,
+  director: 2,
+  founder: 2.5
+};
+
 function updateUserScore(event) {
   const weights = {
     page_view: 1,
@@ -45,7 +59,12 @@ function updateUserScore(event) {
   };
 
   let score = parseInt(localStorage.getItem("sf_score") || "0");
-  score += weights[event] || 0;
+  const baseScore = weights[event] || 0;
+  const role = localStorage.getItem("sf_role") || "operator";
+  const roleMultiplier = ROLE_WEIGHTS[role] || 1;
+  const adjustedScore = Math.round(baseScore * roleMultiplier);
+  
+  score += adjustedScore;
 
   localStorage.setItem("sf_score", score);
 
@@ -63,10 +82,29 @@ function track(event, data = {}) {
   const score = updateUserScore(event);
   logEventHistory(event);
 
+  // Detect valuable silent user on email capture
+  if (event === "email_captured") {
+    const email = localStorage.getItem("sf_email");
+    if (email && !email.includes("gmail") && !email.includes("yahoo") && !email.includes("hotmail")) {
+      localStorage.setItem("sf_priority", "high");
+    }
+  }
+
+  // Detect explorer pattern
+  if (event === "session_end") {
+    const history = JSON.parse(localStorage.getItem("sf_history") || "[]");
+    const emailCaptured = history.find(e => e.event === "email_captured");
+    if (score > 20 && !emailCaptured) {
+      track("high_activity_low_conversion", data);
+    }
+  }
+
   const payload = {
     event,
     profile: localStorage.getItem("sf_profile"),
     email: localStorage.getItem("sf_email"),
+    role: localStorage.getItem("sf_role") || "unknown",
+    priority: localStorage.getItem("sf_priority") || "normal",
     path: window.location.pathname,
     timestamp: Date.now(),
     weight: EVENT_WEIGHTS[event] || 0,

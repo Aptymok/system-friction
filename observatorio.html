@@ -253,15 +253,16 @@ const CONNECTIONS = [
   {from:'nai',to:'mum',w:.5,cats:['ECO','GEO']},
 ];
 
-// Degrade data based on user score
+// Degrade data based on user score + priority (double threshold)
 const score = parseInt(localStorage.getItem("sf_score") || "0");
+const priority = localStorage.getItem("sf_priority") || "normal";
 
-if (score < 10) {
-  NODES = NODES.slice(0, 2);
-} else if (score < 25) {
+if (priority === "high" || score > 25) {
+  // full access
+} else if (score >= 10) {
   NODES = NODES.slice(0, 5);
 } else {
-  // full access
+  NODES = NODES.slice(0, 2);
 }
 CONNECTIONS = CONNECTIONS.filter(c => NODES.some(n => n.id === c.from) && NODES.some(n => n.id === c.to));
 
