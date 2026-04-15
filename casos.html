@@ -421,6 +421,138 @@ const CASOS = [
     ]
   },
 
+  ,
+{
+  id: "SF-CC-0002",
+  titulo: "Silao · Fragilidad logística monocéntrica",
+  sistema: "Corredor industrial Bajío · Automotriz",
+  estado: "cerrado",
+  ihg_basal: -0.28,
+  ihg_final: -0.57,
+  fecha_apertura: "2025-08-10",
+  fecha_cierre:   "2026-01-12",
+  etapas: [
+    {
+      tipo: "señal",
+      fecha: "2025-08-10",
+      titulo: "Dependencia de nodo único",
+      cuerpo: `El corredor industrial dependía de un solo nodo logístico crítico. Indicadores de eficiencia ocultaban ausencia de redundancia estructural.`
+    },
+    {
+      tipo: "diagnostico",
+      fecha: "2025-12-01",
+      titulo: "Diagnóstico de concentración operativa",
+      cuerpo: `Alta eficiencia con baja resiliencia. Sistema incapaz de redistribuir carga ante interrupción.`,
+      metrics: [
+        { k:"IHG basal", v:"−0.28", cls:"warn", note:"Fragilidad latente" },
+        { k:"Redundancia", v:"0.12", cls:"neg", note:"Dependencia crítica" },
+        { k:"NTI", v:"0.52", cls:"warn", note:"Cercano a umbral" }
+      ]
+    },
+    {
+      tipo: "hipotesis",
+      fecha: "2025-12-15",
+      titulo: "Predicción de colapso en cadena",
+      cuerpo: `La interrupción del nodo principal generará efecto dominó.`,
+      items: [
+        { id:"sil-01", hipotesis:"Colapso total ante fallo único", variable:"Nodo central", cls:"confirmed" },
+        { id:"sil-02", hipotesis:"Propagación exponencial", variable:"Tiempo de respuesta", cls:"confirmed" }
+      ]
+    },
+    {
+      tipo: "validacion",
+      fecha: "2026-01-12",
+      titulo: "Interrupción confirmada",
+      cuerpo: `Paro logístico generó detención en cadena de producción.`,
+      metrics: [
+        { k:"IHG post", v:"−0.57", cls:"neg", note:"Colapso estructural" },
+        { k:"Tiempo caída", v:"<12h", cls:"neg", note:"Propagación inmediata" }
+      ],
+      preds: [
+        { id:"sil-01", txt:"Fallo único colapsa sistema", val:"Confirmado", ok:true },
+        { id:"sil-02", txt:"Propagación inmediata", val:"Confirmado", ok:true }
+      ]
+    }
+  ]
+},
+{
+  id: "SF-AC-0003",
+  titulo: "Tepic · Entropía logística invisible",
+  sistema: "Distribución energética regional",
+  estado: "monitoreo",
+  ihg_basal: -0.19,
+  ihg_final: -0.26,
+  fecha_apertura: "2026-01-20",
+  fecha_cierre: null,
+  etapas: [
+    {
+      tipo: "señal",
+      fecha: "2026-01-20",
+      titulo: "Desfase entre reporte y realidad",
+      cuerpo: `Sistema reporta estabilidad. Indicadores indirectos muestran acumulación entrópica.`
+    },
+    {
+      tipo: "diagnostico",
+      fecha: "2026-03-01",
+      titulo: "Acumulación silenciosa",
+      cuerpo: `Desfase entre flujo físico y registro institucional.`,
+      metrics: [
+        { k:"IHG", v:"−0.19", cls:"warn", note:"Degradación leve" },
+        { k:"NTI", v:"0.61", cls:"", note:"Aún estable" }
+      ]
+    },
+    {
+      tipo: "hipotesis",
+      fecha: "2026-03-10",
+      titulo: "Proyección de saturación",
+      cuerpo: `El sistema colapsará no por shock sino por acumulación.`,
+      items: [
+        { id:"tep-01", hipotesis:"Colapso por saturación", variable:"E acumulada", cls:"" }
+      ]
+    }
+  ]
+},
+{
+  id: "SF-CC-0004",
+  titulo: "ZMG · Coherencia institucional fracturada",
+  sistema: "Movilidad urbana y acuerdos informales",
+  estado: "cerrado",
+  ihg_basal: -0.33,
+  ihg_final: -0.58,
+  fecha_apertura: "2025-09-05",
+  fecha_cierre: "2026-02-05",
+  etapas: [
+    {
+      tipo: "señal",
+      fecha: "2025-09-05",
+      titulo: "Acuerdos fuera de marco",
+      cuerpo: `Sistema de movilidad sostenido por acuerdos no documentados.`
+    },
+    {
+      tipo: "diagnostico",
+      fecha: "2026-01-10",
+      titulo: "Fragmentación de coherencia",
+      cuerpo: `Desalineación entre actores institucionales.`,
+      metrics: [
+        { k:"IHG", v:"−0.33", cls:"warn", note:"Sistema inestable" },
+        { k:"NTI", v:"0.49", cls:"neg", note:"Debajo del umbral" }
+      ]
+    },
+    {
+      tipo: "validacion",
+      fecha: "2026-02-05",
+      titulo: "Colapso operativo",
+      cuerpo: `Interrupciones simultáneas en red de transporte.`,
+      metrics: [
+        { k:"IHG post", v:"−0.58", cls:"neg", note:"Colapso confirmado" }
+      ],
+      preds: [
+        { id:"zmg-01", txt:"Fragmentación genera colapso", val:"Confirmado", ok:true }
+      ]
+    }
+  ]
+}
+
   /* ── AGREGA CASOS AQUÍ ────────────────────────────────────────────────────
      Copia el bloque anterior, cambia los campos, y ajusta las etapas.
      El sistema re-renderiza automáticamente al recargar la página.
