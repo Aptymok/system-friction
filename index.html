@@ -1,6 +1,24 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>System Friction</title>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div id="entry-gate">
+    <h1>System Friction</h1>
+    <p>Medición de la distancia entre intención y ejecución.</p>
+    <p>No es un test. Es una medición estructural.</p>
+    <a href="/sistema.html">Iniciar diagnóstico</a>
+    <a href="/observatorio.html">Explorar sistema</a>
+  </div>
+</body>
+</html><!DOCTYPE html>
+<html lang="es">
+<head>
   <!-- Google tag (gtag.js) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-76H63FV9DG"></script>
   <script>
@@ -171,7 +189,7 @@
     <div class="modal-body" id="modalBody"></div>
     <div class="modal-footer">
       <div class="modal-node-list" id="modalNodes"></div>
-      <a href="/contact.html" class="modal-cta">Solicitar análisis completo</a>
+      <a href="/contact.html" class="modal-cta">Tu sistema muestra fricción media-alta. Continuar diagnóstico completo.</a>
     </div>
   </div>
 </div>
@@ -307,7 +325,7 @@ const CARDS_DATA = [
      {k:'ICE·relacional',v:'3.0',d:'Complejidad de vínculos informales'},
      {k:'ICE·temporal',v:'3.2',d:'Complejidad de los ciclos de retroalimentación'},
    ],
-   interp:'<!-- PLACEHOLDER: Interpretación ICE pendiente de análisis de Nodo AGS extendido -->',
+   interp:'Interpretación pendiente de análisis extendido',
   },
   {id:'crm',key:'CRM',name:'Capacidad de Respuesta Multiescalar',
    value:0.49,unit:'capacidad 0–1',status:'warn',statusLabel:'Baja',
@@ -319,7 +337,7 @@ const CARDS_DATA = [
      {k:'CRM·medio',v:'0.47',d:'Respuesta en escala institucional'},
      {k:'CRM·sistémica',v:'0.38',d:'Respuesta en escala de arquitectura'},
    ],
-   interp:'<!-- PLACEHOLDER: Análisis CRM pendiente de integración con datos de campo -->',
+   interp:'Análisis pendiente de integración con datos de campo',
   },
 ];
 
@@ -601,7 +619,7 @@ function animate(){
   requestAnimationFrame(animate);
 }
 
-// Node tooltip on hover
+// Node tooltip on hover and click for mobile
 canvas.addEventListener('mousemove',e=>{
   const rect = canvas.getBoundingClientRect();
   const mx = e.clientX - rect.left;
@@ -614,6 +632,33 @@ canvas.addEventListener('mousemove',e=>{
     if(dist<14) found = n;
   });
   hoveredNode = found ? found.id : null;
+  if(found){
+    const c = frictionHex(found.ihg);
+    tt.style.display = 'block';
+    tt.style.left = (mx+16)+'px';
+    tt.style.top = (my-20)+'px';
+    tt.innerHTML = `
+      <div class="tt-name">${found.name} · ${found.city}</div>
+      <div class="tt-row"><span>IHG</span><span style="color:${c}">${found.ihg}</span></div>
+      <div class="tt-row"><span>LDI</span><span>${found.ldi}d</span></div>
+      <div class="tt-row"><span>NTI</span><span>${found.nti}</span></div>
+      <div class="tt-row"><span>Capas</span><span>${found.cats.join('·')}</span></div>
+    `;
+  } else {
+    tt.style.display='none';
+  }
+});
+canvas.addEventListener('click',e=>{
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+  const tt = document.getElementById('tooltip');
+  let found = null;
+  NODES.forEach(n=>{
+    const [x,y] = project(n.lon,n.lat);
+    const dist = Math.sqrt((mx-x)**2+(my-y)**2);
+    if(dist<14) found = n;
+  });
   if(found){
     const c = frictionHex(found.ihg);
     tt.style.display = 'block';

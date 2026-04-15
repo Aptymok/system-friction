@@ -795,7 +795,7 @@ body {
   </div>
   <div class="close-nota">— Esta frase cierra el campo activo. La medición terminó. Lo que sigue es el procesamiento.</div>
 
-  <div class="contact-block">
+  <div class="contact-block" id="mopForm" style="display:none;">
     <div class="contact-grid">
       <div class="contact-field">
         <label>Nombre o alias</label>
@@ -840,6 +840,23 @@ body {
   <span id="footer-center">systemfriction.org</span>
   <span>ε(ego) := NTI := Φ(t)</span>
 </div>
+
+<script src="/js/gate.js"></script>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const form = document.getElementById("mopForm");
+
+  if (!form) {
+    console.error("Formulario no encontrado");
+    return;
+  }
+
+  requireEmailGate(() => {
+    form.style.display = "block";
+  });
+});
+</script>
 
 <script>
 // ─────────────────────────────────────────
@@ -915,6 +932,14 @@ function saltar() {
 
 function cerrar() {
   guardar();
+  if (!localStorage.getItem("sf_email")) {
+    requireEmailGate(() => {
+      pantalla('s-close');
+      document.getElementById('progress-bar').style.width = '100%';
+      document.getElementById('progress-label').textContent = '✓';
+    });
+    return;
+  }
   pantalla('s-close');
   document.getElementById('progress-bar').style.width = '100%';
   document.getElementById('progress-label').textContent = '✓';

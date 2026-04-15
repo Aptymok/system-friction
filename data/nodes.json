@@ -1,0 +1,20 @@
+[
+  {"id":"ags","name":"Nodo AGS","city":"Aguascalientes","country":"MX","lon":-102.3,"lat":21.9,"ihg":2.1,"ldi":3.2,"nti":0.72,"cats":["POL","COG"],"primary":true,"label":"PRIMARIO"},
+  {"id":"mex","name":"Nodo MEX","city":"Ciudad de México","country":"MX","lon":-99.1,"lat":19.4,"ihg":3.4,"ldi":5.8,"nti":0.58,"cats":["POL","ECO"]},
+  {"id":"nyc","name":"Nodo NYC","city":"New York","country":"US","lon":-74.0,"lat":40.7,"ihg":1.8,"ldi":2.6,"nti":0.81,"cats":["ECO","COG"]},
+  {"id":"lax","name":"Nodo LAX","city":"Los Angeles","country":"US","lon":-118.2,"lat":34.1,"ihg":2.3,"ldi":3.5,"nti":0.74,"cats":["ECO","CUL"]},
+  {"id":"lon","name":"Nodo LON","city":"London","country":"GB","lon":-0.1,"lat":51.5,"ihg":1.9,"ldi":2.8,"nti":0.79,"cats":["ECO","COG"]},
+  {"id":"par","name":"Nodo PAR","city":"Paris","country":"FR","lon":2.4,"lat":48.9,"ihg":2.0,"ldi":3.0,"nti":0.76,"cats":["ECO","CUL"]},
+  {"id":"ber","name":"Nodo BER","city":"Berlin","country":"DE","lon":13.4,"lat":52.5,"ihg":2.2,"ldi":3.4,"nti":0.75,"cats":["POL","COG"]},
+  {"id":"tok","name":"Nodo TOK","city":"Tokyo","country":"JP","lon":139.7,"lat":35.7,"ihg":1.6,"ldi":2.2,"nti":0.83,"cats":["ECO","COG"]},
+  {"id":"sao","name":"Nodo SAO","city":"São Paulo","country":"BR","lon":-46.6,"lat":-23.5,"ihg":3.8,"ldi":6.4,"nti":0.51,"cats":["ECO","POL","CUL"]},
+  {"id":"lag","name":"Nodo LAG","city":"Lagos","country":"NG","lon":3.4,"lat":6.5,"ihg":5.2,"ldi":9.1,"nti":0.38,"cats":["ECO","CUL"]},
+  {"id":"cai","name":"Nodo CAI","city":"Cairo","country":"EG","lon":31.2,"lat":30.0,"ihg":4.5,"ldi":8.0,"nti":0.41,"cats":["POL","GEO"]},
+  {"id":"mum","name":"Nodo MUM","city":"Mumbai","country":"IN","lon":72.9,"lat":19.1,"ihg":4.0,"ldi":6.8,"nti":0.45,"cats":["ECO","CUL"]},
+  {"id":"bei","name":"Nodo BEI","city":"Beijing","country":"CN","lon":116.4,"lat":39.9,"ihg":3.2,"ldi":5.4,"nti":0.56,"cats":["POL","GEO"]},
+  {"id":"syd","name":"Nodo SYD","city":"Sydney","country":"AU","lon":151.2,"lat":-33.9,"ihg":1.4,"ldi":2.0,"nti":0.87,"cats":["ECO","COG"]},
+  {"id":"mos","name":"Nodo MOS","city":"Moscow","country":"RU","lon":37.6,"lat":55.8,"ihg":3.9,"ldi":6.2,"nti":0.45,"cats":["POL","GEO"]},
+  {"id":"dub","name":"Nodo DUB","city":"Dubai","country":"AE","lon":55.3,"lat":25.2,"ihg":2.3,"ldi":3.5,"nti":0.74,"cats":["ECO","GEO"]},
+  {"id":"bog","name":"Nodo BOG","city":"Bogotá","country":"CO","lon":-74.1,"lat":4.7,"ihg":4.3,"ldi":7.8,"nti":0.42,"cats":["POL","CUL"]},
+  {"id":"nai","name":"Nodo NAI","city":"Nairobi","country":"KE","lon":36.8,"lat":-1.3,"ihg":4.1,"ldi":7.0,"nti":0.44,"cats":["ECO","GEO"]}
+]

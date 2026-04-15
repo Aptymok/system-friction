@@ -1,0 +1,23 @@
+[
+  {"from":"ags","to":"mex","w":0.92,"cats":["POL","COG"]},
+  {"from":"ags","to":"nyc","w":0.6,"cats":["COG"]},
+  {"from":"ags","to":"bog","w":0.45,"cats":["COG","CUL"]},
+  {"from":"mex","to":"sao","w":0.7,"cats":["POL","ECO"]},
+  {"from":"mex","to":"bog","w":0.8,"cats":["POL","CUL"]},
+  {"from":"nyc","to":"lon","w":0.85,"cats":["ECO","COG"]},
+  {"from":"nyc","to":"par","w":0.75,"cats":["ECO","CUL"]},
+  {"from":"lon","to":"par","w":0.9,"cats":["ECO","COG"]},
+  {"from":"lon","to":"ber","w":0.8,"cats":["POL","COG"]},
+  {"from":"par","to":"ber","w":0.7,"cats":["POL","CUL"]},
+  {"from":"tok","to":"bei","w":0.75,"cats":["ECO","GEO"]},
+  {"from":"tok","to":"syd","w":0.65,"cats":["ECO","COG"]},
+  {"from":"sao","to":"bog","w":0.6,"cats":["POL","CUL"]},
+  {"from":"sao","to":"lag","w":0.5,"cats":["ECO","CUL"]},
+  {"from":"lag","to":"cai","w":0.55,"cats":["GEO","CUL"]},
+  {"from":"cai","to":"mum","w":0.6,"cats":["GEO","CUL"]},
+  {"from":"mum","to":"bei","w":0.7,"cats":["ECO","GEO"]},
+  {"from":"dub","to":"mum","w":0.8,"cats":["ECO","GEO"]},
+  {"from":"dub","to":"cai","w":0.65,"cats":["GEO"]},
+  {"from":"mos","to":"bei","w":0.7,"cats":["POL","GEO"]},
+  {"from":"nai","to":"mum","w":0.5,"cats":["ECO","GEO"]}
+]
