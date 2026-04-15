@@ -6,890 +6,242 @@
 <title>SF · Archivo de Casos</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap" rel="stylesheet">
-<style>
-:root {
-  --void:    #080808;
-  --s1:      #0f0f0e;
-  --s2:      #141413;
-  --s3:      #1a1a18;
-  --bd:      #222220;
-  --bd2:     #2e2e2b;
-  --tx:      #c4c0b5;
-  --tx2:     #807c74;
-  --tx3:     #454340;
-  --oro:     #c8a951;
-  --oro2:    #8a7035;
-  --neon:    #d4f040;
-  --teal:    #2a7060;
-  --danger:  #9a3030;
-  --ok:      #3a7048;
-  --mono:    'IBM Plex Mono', monospace;
-}
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html{scroll-behavior:smooth}
-body{
-  background:var(--void);
-  color:var(--tx);
-  font-family:var(--mono);
-  font-size:12px;
-  line-height:1.6;
-  min-height:100vh;
-}
 
-/* ── SHELL ── */
+<style>
+/* ===== TOKENS ===== */
+:root {
+  --void:#080808; --s1:#0f0f0e; --s2:#141413; --s3:#1a1a18;
+  --bd:#222220; --bd2:#2e2e2b;
+  --tx:#c4c0b5; --tx2:#807c74; --tx3:#454340;
+  --oro:#c8a951; --oro2:#8a7035; --neon:#d4f040;
+  --teal:#2a7060; --danger:#9a3030; --ok:#3a7048;
+  --mono:'IBM Plex Mono', monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:var(--void);color:var(--tx);
+  font-family:var(--mono);font-size:12px;line-height:1.6;
+}
 .shell{max-width:900px;margin:0 auto;padding:48px 24px 120px}
 
-/* ── HEADER ── */
-.hd{padding-bottom:24px;border-bottom:1px solid var(--bd);margin-bottom:32px}
-.hd-brand{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--oro);margin-bottom:6px}
-.hd-title{font-size:20px;font-weight:600;color:#ffffff;letter-spacing:-.02em;line-height:1.2;margin-bottom:4px}
-.hd-sub{font-size:10px;color:var(--tx3);letter-spacing:.06em}
+/* ===== HEADER ===== */
+.hd{border-bottom:1px solid var(--bd);padding-bottom:24px;margin-bottom:32px}
+.hd-brand{font-size:10px;letter-spacing:.2em;color:var(--oro)}
+.hd-title{font-size:20px;font-weight:600;color:#fff;margin:6px 0}
+.hd-sub{font-size:10px;color:var(--tx3)}
 
-/* ── FILTER BAR ── */
-.filters{display:flex;gap:0;margin-bottom:24px;border:1px solid var(--bd)}
+/* ===== FILTERS ===== */
+.filters{display:flex;border:1px solid var(--bd);margin-bottom:24px}
 .filter-btn{
-  background:none;border:none;border-right:1px solid var(--bd);
-  color:var(--tx3);font-family:var(--mono);font-size:10px;
-  letter-spacing:.12em;text-transform:uppercase;
-  padding:8px 16px;cursor:pointer;transition:all .15s;
+  flex:1;background:none;border:none;border-right:1px solid var(--bd);
+  font-size:10px;color:var(--tx3);padding:8px;cursor:pointer;
 }
 .filter-btn:last-child{border-right:none}
-.filter-btn:hover{color:var(--tx);background:var(--s2)}
-.filter-btn.on{color:var(--oro);background:var(--s1)}
-.filter-count{
-  display:inline-block;margin-left:6px;
-  background:var(--s3);color:var(--tx2);
-  padding:1px 5px;font-size:9px;
-}
+.filter-btn.on{background:var(--s1);color:var(--oro)}
+.filter-btn:hover{background:var(--s2);color:#fff}
+.filter-count{margin-left:4px;font-size:9px;color:var(--tx2)}
 
-/* ── CASE INDEX ── */
-.case-index{margin-bottom:4px}
+/* ===== CASE ROW ===== */
 .case-row{
-  display:grid;
-  grid-template-columns:80px 1fr auto auto;
-  gap:12px;align-items:center;
-  padding:12px 16px;
-  border:1px solid var(--bd);
-  border-top:none;
-  background:var(--s1);
-  cursor:pointer;
-  transition:all .15s;
-  position:relative;
+  display:grid;grid-template-columns:90px 1fr auto auto auto;
+  gap:12px;padding:12px 16px;border:1px solid var(--bd);border-top:none;
+  background:var(--s1);cursor:pointer;
 }
 .case-row:first-child{border-top:1px solid var(--bd)}
-.case-row::before{
-  content:'';position:absolute;left:0;top:0;bottom:0;width:2px;
-  background:transparent;transition:background .15s;
-}
-.case-row:hover::before,.case-row.open::before{background:var(--oro)}
-.case-row:hover{background:var(--s2)}
 .case-row.open{background:var(--s2)}
 .case-row.hidden{display:none}
 
-.cr-id{font-size:10px;color:var(--oro);letter-spacing:.08em}
-.cr-title{font-size:12px;color:#fff;font-weight:400}
-.cr-system{font-size:10px;color:var(--tx2);margin-top:2px}
-.cr-ihg{
-  font-size:13px;font-weight:500;
-  font-variant-numeric:tabular-nums;text-align:right;
-}
+.cr-id{font-size:10px;color:var(--oro)}
+.cr-title{font-size:12px;color:#fff}
+.cr-system{font-size:10px;color:var(--tx2)}
+.cr-ihg{font-size:13px}
 .cr-ihg.neg{color:var(--danger)}
 .cr-ihg.warn{color:var(--oro)}
-.cr-badge{
-  font-size:9px;letter-spacing:.1em;text-transform:uppercase;
-  padding:3px 8px;border:1px solid;
-  white-space:nowrap;
-}
-.badge-cerrado{border-color:var(--danger);color:var(--danger);background:rgba(154,48,48,.06)}
-.badge-abierto{border-color:var(--oro2);color:var(--oro);background:rgba(200,169,81,.06)}
-.badge-monitoreo{border-color:var(--teal);color:#3a9070;background:rgba(42,112,96,.06)}
-.cr-chevron{
-  font-size:10px;color:var(--tx3);transition:transform .2s;margin-left:8px;
-}
-.case-row.open .cr-chevron{transform:rotate(90deg)}
+.cr-badge{font-size:9px;border:1px solid;padding:3px 8px}
+.badge-cerrado{color:var(--danger);border-color:var(--danger)}
+.badge-abierto{color:var(--oro);border-color:var(--oro)}
+.badge-monitoreo{color:var(--teal);border-color:var(--teal)}
+.cr-chevron{font-size:10px;color:var(--tx3)}
 
-/* ── DOSSIER ── */
-.dossier{
-  border:1px solid var(--bd);border-top:none;
-  background:var(--s2);
-  display:none;
-  animation:slideDown .2s ease;
-  margin-bottom:4px;
-}
-.dossier.visible{display:block}
+/* ===== DOSSIER ===== */
+.dossier{border:1px solid var(--bd);border-top:none;background:var(--s2)}
+.dossier-head{display:flex;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--bd)}
+.dossier-head-title{color:#fff;font-size:14px}
+.dossier-head-meta{color:var(--tx2);font-size:10px}
+.delta-label{font-size:9px;color:var(--tx3)}
+.delta-val{font-size:16px;color:var(--danger)}
 
-@keyframes slideDown{
-  from{opacity:0;transform:translateY(-4px)}
-  to{opacity:1;transform:translateY(0)}
-}
+.chain{padding:0 0 0 28px;margin:12px 20px;position:relative}
+.chain::before{content:'';position:absolute;left:4px;top:0;bottom:0;width:1px;background:var(--bd2)}
 
-.dossier-head{
-  padding:16px 20px 12px;
-  border-bottom:1px solid var(--bd);
-  display:flex;justify-content:space-between;align-items:flex-start;
-}
-.dossier-head-title{font-size:14px;color:#fff;font-weight:500;margin-bottom:4px}
-.dossier-head-meta{font-size:10px;color:var(--tx2)}
-.dossier-delta{
-  text-align:right;flex-shrink:0;margin-left:20px;
-}
-.delta-label{font-size:9px;color:var(--tx3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px}
-.delta-val{font-size:16px;font-weight:600;color:var(--danger)}
-
-/* ── EVIDENCE CHAIN ── */
-.chain{padding:0 0 0 36px;position:relative;margin:0 20px 0 20px}
-.chain::before{
-  content:'';position:absolute;left:6px;top:0;bottom:0;
-  width:1px;background:var(--bd2);
-}
-
-.stage{
-  position:relative;margin-bottom:0;
-  border-bottom:1px solid var(--bd);
-}
+.stage{border-bottom:1px solid var(--bd);padding-left:16px}
 .stage:last-child{border-bottom:none}
-
-/* stage dot */
-.stage::before{
-  content:'';position:absolute;
-  left:-34px;top:20px;
-  width:8px;height:8px;border-radius:50%;
-  border:1px solid var(--bd2);
-  background:var(--s2);
-  z-index:1;transition:all .15s;
-}
-.stage.tipo-senal::before     {border-color:var(--teal);background:rgba(42,112,96,.3)}
-.stage.tipo-diagnostico::before{border-color:var(--oro2);background:rgba(200,169,81,.2)}
-.stage.tipo-hipotesis::before  {border-color:var(--tx2);background:var(--s3)}
-.stage.tipo-validacion::before {border-color:var(--neon);background:rgba(212,240,64,.2)}
-.stage.tipo-documento::before  {border-color:#fff;background:#fff}
-
-.stage-trigger{
-  padding:16px 0;cursor:pointer;
-  display:flex;align-items:flex-start;gap:12px;
-}
-.stage-trigger:hover .stage-title{color:#fff}
-
-.stage-meta{flex-shrink:0;width:80px;padding-top:2px}
-.stage-tipo{
-  font-size:9px;letter-spacing:.12em;text-transform:uppercase;
-  color:var(--tx3);display:block;margin-bottom:2px;
-}
-.stage.tipo-senal      .stage-tipo{color:#3a9070}
-.stage.tipo-diagnostico .stage-tipo{color:var(--oro)}
-.stage.tipo-validacion .stage-tipo{color:var(--neon)}
-.stage.tipo-documento  .stage-tipo{color:#fff}
-
-.stage-fecha{font-size:10px;color:var(--tx3)}
-
-.stage-title{
-  font-size:12px;font-weight:500;color:var(--tx);
-  transition:color .15s;flex:1;
-}
-.stage-expand{font-size:10px;color:var(--tx3);flex-shrink:0;transition:transform .15s}
-.stage.open .stage-expand{transform:rotate(90deg)}
-
-.stage-body{
-  padding:0 0 16px 0;
-  display:none;
-  font-size:11px;color:var(--tx);
-  line-height:1.7;
-}
+.stage-title{font-size:12px;color:#fff}
+.stage-body{display:none;font-size:11px;padding:12px 0}
 .stage.open .stage-body{display:block}
 
-/* stage content elements */
-.sb-text{color:var(--tx);margin-bottom:10px}
-.sb-text:last-child{margin-bottom:0}
-
-.sb-metrics{
-  display:grid;
-  grid-template-columns:repeat(auto-fill,minmax(100px,1fr));
-  gap:1px;background:var(--bd);border:1px solid var(--bd);
-  margin:12px 0;
-}
-.sb-metric{
-  background:var(--s1);padding:10px 12px;
-}
-.sb-metric-key{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--tx3);margin-bottom:4px}
-.sb-metric-val{font-size:16px;font-weight:500;color:#fff}
+.sb-metrics{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:1px;background:var(--bd);margin:12px 0}
+.sb-metric{background:var(--s1);padding:10px}
 .sb-metric-val.neg{color:var(--danger)}
 .sb-metric-val.warn{color:var(--oro)}
-.sb-metric-val.crit{color:#c0392b}
-.sb-metric-note{font-size:10px;color:var(--tx3);margin-top:2px}
 
-.sb-formula{
-  font-family:var(--mono);font-size:10px;
-  background:var(--s1);border-left:2px solid var(--oro2);
-  padding:10px 14px;margin:12px 0;
-  color:var(--tx);line-height:1.8;
-}
-
-.sb-preds{list-style:none;margin:10px 0}
-.sb-pred{
-  padding:8px 0 8px 14px;
-  border-left:2px solid var(--bd2);
-  margin-bottom:6px;
-  position:relative;
-}
-.sb-pred.confirmed{border-left-color:var(--ok)}
-.sb-pred-id{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--oro2);margin-bottom:2px}
-.sb-pred-txt{color:var(--tx);margin-bottom:3px}
-.sb-pred-val{font-size:10px;color:var(--tx2);font-style:italic}
-.sb-pred-status{
-  position:absolute;right:0;top:8px;
-  font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--ok);
-}
-
-.sb-embed-wrapper{
-  margin:12px 0;border:1px solid var(--bd);
-  background:var(--void);
-}
-.sb-embed-header{
-  padding:8px 12px;
-  border-bottom:1px solid var(--bd);
-  display:flex;justify-content:space-between;align-items:center;
-}
-.sb-embed-label{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--tx3)}
-.sb-embed-link{
-  font-size:10px;color:var(--oro);text-decoration:none;
-  border:1px solid var(--oro2);padding:3px 10px;
-  transition:all .15s;
-}
-.sb-embed-link:hover{background:rgba(200,169,81,.1);color:#fff}
-iframe.caso-embed{
-  width:100%;height:480px;border:none;
-  display:block;
-}
-.sb-embed-fallback{
-  padding:24px;text-align:center;color:var(--tx2);
-  font-size:11px;
-  display:none;
-}
-
-/* ── EMPTY STATE ── */
-.empty-state{
-  padding:40px 20px;text-align:center;
-  color:var(--tx3);font-size:11px;
-  border:1px solid var(--bd);border-top:none;
-}
-
-/* ── FOOTER ── */
 .footer{
-  margin-top:60px;padding-top:20px;
-  border-top:1px solid var(--bd);
-  font-size:10px;color:var(--tx3);
-  display:flex;justify-content:space-between;
-  flex-wrap:wrap;gap:8px;
-}
-.footer a{color:var(--oro2);text-decoration:none}
-.footer a:hover{color:var(--oro)}
-
-/* ── RESPONSIVE ── */
-@media(max-width:580px){
-  .shell{padding:28px 14px 80px}
-  .case-row{grid-template-columns:1fr auto;gap:8px}
-  .cr-id{display:none}
-  .cr-ihg{display:none}
-  .chain{padding-left:24px}
-  .chain::before{left:4px}
-  .stage::before{left:-22px;top:18px}
-  .stage-meta{width:64px}
-  iframe.caso-embed{height:320px}
+  border-top:1px solid var(--bd);margin-top:60px;
+  padding-top:20px;font-size:10px;color:var(--tx3);
+  display:flex;justify-content:space-between;flex-wrap:wrap
 }
 </style>
 </head>
+
 <body>
-  
-<canvas id="sf-nodes"></canvas>
-<div id="scrollLine" class="scroll-line"></div>
-<div class="cursor-dot" id="cursorDot"></div>
-
-<nav id="nav">
-  <a href="/index.html" class="nav-logo">SYSTEM<span></span>FRICTION</a>
-  <div class="nav-right">
-    <div class="nav-dropdown">
-      <span class="nav-link">Observatorio ▾</span>
-      <div class="nav-dropdown-menu">
-        <a href="/index.html">WorldSpectrum</a>
-        <a href="/flujo.html">Flux</a>
-        <a href="/macro.html">System Friction Nodes</a>
-        <a href="/simulation.html">Simulation Friction</a>
-        <a href="/temporal.html">SFT</a>
-        <a href="/dashboard.html">SF World Metrics</a>
-        <a href="/alerts.html">SF Alertas</a>        
-      </div>
-    </div>
-
-    <div class="nav-dropdown">
-      <span class="nav-link">Instrumentos ▾</span>
-      <div class="nav-dropdown-menu">
-        <a href="/audit.html">Auditoría</a>
-        <a href="/perenne.html">Perenne (DCT)</a>
-        <a href="/amv.html">AMV</a>
-        <a href="/scorefriction.html">ScoreFriction</a>
-        <a href="/friction-manager.html">Friction Manager</a>
-        <a href="/atractor.html">Atractor</a>
-        <a href="/language.html">System Language</a>
-      </div>
-    </div>
-    <div class="nav-dropdown">
-      <span class="nav-link">Repositorio ▾</span>
-      <div class="nav-dropdown-menu">
-        <a href="/atlas.html">Atlas</a>
-        <a href="/patrones.html">Patrones</a>
-        <a href="/linguistica.html">Lingüística</a>
-        <a href="/logica.html">Lógica</a>
-        <a href="/postulados.html">Postulados</a>
-      </div>
-    </div>
-    <div class="nav-dropdown">
-      <span class="nav-link">Laboratorio ▾</span>
-      <div class="nav-dropdown-menu">
-        <a href="/lab-eco.html">ECO</a>
-        <a href="/lab-pol.html">POL</a>
-        <a href="/lab-cul.html">CUL</a>
-        <a href="/lab-cog.html">COG</a>
-        <a href="/lab-geo.html">GEO</a>
-        <a href="/lab-sys.html">SYS</a>
-      </div>
-    </div>
-    <div class="nav-dropdown">
-      <span class="nav-link">Instituto ▾</span>
-      <div class="nav-dropdown-menu">
-        <a href="/about.html">Marco</a>
-        <a href="/method.html">Método</a>
-        <a href="/sfi.html">Arquitectura</a>
-        <a href="/contact.html">Contacto</a>
-      </div>
-    </div>
-        <a href="/casos.html" class="nav-link cta">Archivo de Casos</a>
-  </div>    
-    <a href="/mop-h-form.html" class="nav-link cta">Aplicar</a>
-  </div>
-</nav>
 <div class="shell">
-
   <header class="hd">
     <div class="hd-brand">System Friction Framework · v1.1</div>
     <div class="hd-title">Archivo de casos empíricos</div>
-    <div class="hd-sub">Cadena de evidencia por caso · IHG basal → validación → documento público</div>
+    <div class="hd-sub">Cadena de evidencia por caso</div>
   </header>
 
   <div class="filters" id="filterBar"></div>
   <div id="caseList"></div>
 
   <footer class="footer">
-    <span>MIHM v2.0 · Serie + Nodos · <a href="https://systemfriction.org">systemfriction.org</a></span>
-    <span>CC BY 4.0 · APTYMOK · Aguascalientes, México</span>
+    <span>MIHM v2.0 · <a href="https://systemfriction.org">systemfriction.org</a></span>
+    <span>CC BY 4.0 · APTYMOK</span>
   </footer>
-
 </div>
 
 <script>
-/* ══════════════════════════════════════════════════════════════
-   CASOS DB — edita aquí para agregar nuevos casos
-   ══════════════════════════════════════════════════════════════
-
-   Estructura por caso:
-   {
-     id:      "SF-CC-XXXX",          ← identificador único
-     titulo:  "Nombre · Subtítulo",  ← aparece en el índice
-     sistema: "descripción breve",   ← subtexto del índice
-     estado:  "cerrado" | "abierto" | "monitoreo",
-     ihg_basal:  número,             ← IHG antes del evento/diagnóstico
-     ihg_final:  número,             ← IHG después
-     fecha_apertura: "YYYY-MM-DD",
-     fecha_cierre:   "YYYY-MM-DD" | null,
-     etapas: [ ... ]                 ← ver tipos de etapa abajo
-   }
-
-   TIPOS DE ETAPA:
-   ─────────────────────────────────────────────────────────────
-   { tipo: "señal", fecha, titulo, cuerpo }
-   { tipo: "diagnostico", fecha, titulo, cuerpo, metrics: [{k,v,cls,note}] }
-   { tipo: "hipotesis", fecha, titulo, cuerpo, items: [{id,hipotesis,variable,cls}] }
-   { tipo: "validacion", fecha, titulo, cuerpo, metrics: [...], preds: [{id,txt,val,ok}] }
-   { tipo: "documento", titulo, cuerpo, url, linkLabel }
-   ──────────────────────────────────────────────────────────── */
-
+/* ========= CASOS ========= */
 const CASOS = [
   {
-    id: "SF-CC-0001",
-    titulo: "Aguascalientes · La paz termodinámica",
-    sistema: "Gobernanza territorial · Corredor Jalisco–Zacatecas–Guanajuato",
-    estado: "cerrado",
-    ihg_basal: -0.41,
-    ihg_final: -0.62,
-    fecha_apertura: "2025-11-01",
-    fecha_cierre:   "2026-02-23",
-    etapas: [
-      {
-        tipo: "señal",
-        fecha: "2025-11-01",
-        titulo: "Señal detectada: estabilidad mal atribuida",
-        cuerpo: `Aguascalientes registraba tasa de homicidios 6× menor a sus estados vecinos. Los análisis institucionales atribuían esta estabilidad a capacidad gubernamental. El marco identificó una hipótesis alternativa: la estabilidad dependía de una función de utilidad implícita (U_P) sostenida por un actor externo no documentado. Ningún indicador oficial capturaba esta variable.`
-      },
-      {
-        tipo: "diagnostico",
-        fecha: "2026-01-15",
-        titulo: "Diagnóstico MIHM basal — vector pre-fractura",
-        cuerpo: `Vector de estado calculado el 21 de febrero de 2026. IHG negativo confirma que el sistema ya absorbía más entropía de la que podía redistribuir. NTI en 0.48 roza el umbral mínimo operativo. Dos nodos en desregulación crítica antes del shock.`,
-        metrics: [
-          { k: "IHG basal",   v: "−0.41", cls: "warn",  note: "Sistema en degradación pre-evento" },
-          { k: "NTI",         v: "0.48",  cls: "warn",  note: "Umbral operativo mínimo: 0.50" },
-          { k: "LDI media",   v: "0.59",  cls: "",      note: "Latencia institucional pre-shock" },
-          { k: "Nodos crit.", v: "2",     cls: "",      note: "N1 Acuífero · N4 Agricultura" },
-          { k: "E_N4",        v: "0.92",  cls: "neg",   note: "Agricultura: entropía crítica" },
-          { k: "E_N1",        v: "0.82",  cls: "neg",   note: "Acuífero: carga entrópica alta" }
-        ],
-        formula: "IHG = (1/n) · Σ (Cᵢ − Eᵢ)(1 − Lᵢ)"
-      },
-      {
-        tipo: "hipotesis",
-        fecha: "2026-02-01",
-        titulo: "Serie predictiva ags-01 a ags-05",
-        cuerpo: `Cinco hipótesis formalizadas antes del evento. No predicen un shock específico: describen los mecanismos de degradación que harán que cualquier shock exógeno colapse el sistema de forma abrupta.`,
-        items: [
-          { id: "ags-01", hipotesis: "La distancia umbral oficial/real se cierra bruscamente bajo shock, sin transición graduada", variable: "ΔIHG como diferencial de colapso", cls: "confirmed" },
-          { id: "ags-02", hipotesis: "La latencia es variable de ajuste político; se expande bajo presión institucional", variable: "Lᵢ efectiva → puede superar 1.0", cls: "confirmed" },
-          { id: "ags-03", hipotesis: "N4 depende de acuerdos extrajurídicos sobre pozos. Pérdida de protección eleva E_N4", variable: "E_N4 ↑ por pérdida de protección", cls: "confirmed" },
-          { id: "ags-04", hipotesis: "Concentración de conocimiento en 2 actores. Mesa fragmentada bajo presión", variable: "ICC = 0.32 → NTI < 0.50 → UCAP", cls: "confirmed" },
-          { id: "ags-05", hipotesis: "Sin actor hegemónico que sostenga U_P, la ruptura es predecible en horas", variable: "N6 nuevo: E₆=0.95, L₆=0.85", cls: "confirmed" }
-        ]
-      },
-      {
-        tipo: "validacion",
-        fecha: "2026-02-23",
-        titulo: "Validación en tiempo real · 22–23 febrero 2026",
-        cuerpo: `El 22 de febrero de 2026, fuerzas de la SEDENA abatieron al líder del CJNG en Tapalpa, Jalisco. 252 narcobloqueos en 20 estados en menos de 6 horas. En Aguascalientes: carretera 45 Norte y Sur bloqueadas, Nissan Aguascalientes suspendió primer turno, Secretario de Seguridad Estatal ausente en Mesa de Seguridad. 90% de bloqueos desactivados en la misma jornada.`,
-        metrics: [
-          { k: "IHG post",    v: "−0.62",  cls: "neg",  note: "Caída de 0.21 en < 24h" },
-          { k: "NTI post",    v: "0.351",  cls: "neg",  note: "Por debajo de umbral UCAP" },
-          { k: "LDI media",   v: "0.75",   cls: "warn", note: "Latencia aumentó 0.16" },
-          { k: "Nodos crit.", v: "5 / 6",  cls: "neg",  note: "N1 N2 N4 N5 N6" },
-          { k: "M_N5",        v: "0.50",   cls: "warn", note: "Coherencia inst. reducida" },
-          { k: "Prob. 2030",  v: "> 70%",  cls: "neg",  note: "Monte Carlo · 50k iter." }
-        ],
-        preds: [
-          { id: "ags-01", txt: "Colapso de IHG abrupto sin transición", val: "IHG −0.41 → −0.62 en < 24h. Diferencial cerrado en evento único.", ok: true },
-          { id: "ags-02", txt: "L_N5 expande bajo presión", val: "Secretario ausente → L_eff > 1.0. Capado en máximo.", ok: true },
-          { id: "ags-03", txt: "E_N4 sube por pérdida de protección", val: "Bloqueos interrumpen monitoreo de pozos. E_N4: 0.92 → 0.96.", ok: true },
-          { id: "ags-04", txt: "NTI < 0.50 · UCAP activado", val: "Mesa fragmentada. ICC = 0.32. Protocolo emergencia activado.", ok: true },
-          { id: "ags-05", txt: "Bloqueos en < 6h del anuncio", val: "Confirmación directa. E₆ = 0.95, L₆ = 0.85.", ok: true }
-        ],
-        formula: "Φ(t) = IHG⁻¹ · NTI · LDI⁻¹ + ε  →  ε era la paz que no era institucional"
-      },
-      {
-        tipo: "documento",
-        titulo: "Documento público: cadena de evidencia completa",
-        cuerpo: `El documento de propagación traduce la cadena completa de evidencia a lenguaje legible para cualquier receptor sin formación previa en el framework. El patrón replicable está explicitado para que cualquier sistema con estabilidad mal atribuida pueda reconocerse.`,
-        url: "SF-CC-0001.html",
-        linkLabel: "Abrir documento"
-      }
-  },      
-  {
-  id: "SF-CC-0002",
-  titulo: "Silao · Fragilidad logística monocéntrica",
-  sistema: "Corredor industrial Bajío · Automotriz",
-  estado: "cerrado",
-  ihg_basal: -0.28,
-  ihg_final: -0.57,
-  fecha_apertura: "2025-08-10",
-  fecha_cierre:   "2026-01-12",
-  etapas: [
-    {
-      tipo: "señal",
-      fecha: "2025-08-10",
-      titulo: "Dependencia de nodo único",
-      cuerpo: `El corredor industrial dependía de un solo nodo logístico crítico. Indicadores de eficiencia ocultaban ausencia de redundancia estructural.`
-    },
-    {
-      tipo: "diagnostico",
-      fecha: "2025-12-01",
-      titulo: "Diagnóstico de concentración operativa",
-      cuerpo: `Alta eficiencia con baja resiliencia. Sistema incapaz de redistribuir carga ante interrupción.`,
-      metrics: [
-        { k:"IHG basal", v:"−0.28", cls:"warn", note:"Fragilidad latente" },
-        { k:"Redundancia", v:"0.12", cls:"neg", note:"Dependencia crítica" },
-        { k:"NTI", v:"0.52", cls:"warn", note:"Cercano a umbral" }
-      ]
-    },
-    {
-      tipo: "hipotesis",
-      fecha: "2025-12-15",
-      titulo: "Predicción de colapso en cadena",
-      cuerpo: `La interrupción del nodo principal generará efecto dominó.`,
-      items: [
-        { id:"sil-01", hipotesis:"Colapso total ante fallo único", variable:"Nodo central", cls:"confirmed" },
-        { id:"sil-02", hipotesis:"Propagación exponencial", variable:"Tiempo de respuesta", cls:"confirmed" }
-      ]
-    },
-    {
-      tipo: "validacion",
-      fecha: "2026-01-12",
-      titulo: "Interrupción confirmada",
-      cuerpo: `Paro logístico generó detención en cadena de producción.`,
-      metrics: [
-        { k:"IHG post", v:"−0.57", cls:"neg", note:"Colapso estructural" },
-        { k:"Tiempo caída", v:"<12h", cls:"neg", note:"Propagación inmediata" }
-      ],
-      preds: [
-        { id:"sil-01", txt:"Fallo único colapsa sistema", val:"Confirmado", ok:true },
-        { id:"sil-02", txt:"Propagación inmediata", val:"Confirmado", ok:true }
-      ],
-      {
-        tipo: "documento",
-        titulo: "Documento público: cadena de evidencia completa",
-        cuerpo: `El documento de propagación traduce la cadena completa de evidencia a lenguaje legible para cualquier receptor sin formación previa en el framework. El patrón replicable está explicitado para que cualquier sistema con estabilidad mal atribuida pueda reconocerse.`,
-        url: "SF-CC-0002.html",
-        linkLabel: "Abrir documento"
-      }
-    }
-  ]
-},
-{
-  id: "SF-AC-0003",
-  titulo: "Tepic · Entropía logística invisible",
-  sistema: "Distribución energética regional",
-  estado: "monitoreo",
-  ihg_basal: -0.19,
-  ihg_final: -0.26,
-  fecha_apertura: "2026-01-20",
-  fecha_cierre: null,
-  etapas: [
-    {
-      tipo: "señal",
-      fecha: "2026-01-20",
-      titulo: "Desfase entre reporte y realidad",
-      cuerpo: `Sistema reporta estabilidad. Indicadores indirectos muestran acumulación entrópica.`
-    },
-    {
-      tipo: "diagnostico",
-      fecha: "2026-03-01",
-      titulo: "Acumulación silenciosa",
-      cuerpo: `Desfase entre flujo físico y registro institucional.`,
-      metrics: [
-        { k:"IHG", v:"−0.19", cls:"warn", note:"Degradación leve" },
-        { k:"NTI", v:"0.61", cls:"", note:"Aún estable" }
-      ]
-    },
-    {
-      tipo: "hipotesis",
-      fecha: "2026-03-10",
-      titulo: "Proyección de saturación",
-      cuerpo: `El sistema colapsará no por shock sino por acumulación.`,
-      items: [
-        { id:"tep-01", hipotesis:"Colapso por saturación", variable:"E acumulada", cls:"" }
-      ]
-    }
-  ]
-},
-{
-  id: "SF-CC-0004",
-  titulo: "ZMG · Coherencia institucional fracturada",
-  sistema: "Movilidad urbana y acuerdos informales",
-  estado: "cerrado",
-  ihg_basal: -0.33,
-  ihg_final: -0.58,
-  fecha_apertura: "2025-09-05",
-  fecha_cierre: "2026-02-05",
-  etapas: [
-    {
-      tipo: "señal",
-      fecha: "2025-09-05",
-      titulo: "Acuerdos fuera de marco",
-      cuerpo: `Sistema de movilidad sostenido por acuerdos no documentados.`
-    },
-    {
-      tipo: "diagnostico",
-      fecha: "2026-01-10",
-      titulo: "Fragmentación de coherencia",
-      cuerpo: `Desalineación entre actores institucionales.`,
-      metrics: [
-        { k:"IHG", v:"−0.33", cls:"warn", note:"Sistema inestable" },
-        { k:"NTI", v:"0.49", cls:"neg", note:"Debajo del umbral" }
-      ]
-    },
-    {
-      tipo: "validacion",
-      fecha: "2026-02-05",
-      titulo: "Colapso operativo",
-      cuerpo: `Interrupciones simultáneas en red de transporte.`,
-      metrics: [
-        { k:"IHG post", v:"−0.58", cls:"neg", note:"Colapso confirmado" }
-      ],
-      preds: [
-        { id:"zmg-01", txt:"Fragmentación genera colapso", val:"Confirmado", ok:true }
-      ],
-            {
-        tipo: "documento",
-        titulo: "Documento público: cadena de evidencia completa",
-        cuerpo: `El documento de propagación traduce la cadena completa de evidencia a lenguaje legible para cualquier receptor sin formación previa en el framework. El patrón replicable está explicitado para que cualquier sistema con estabilidad mal atribuida pueda reconocerse.`,
-        url: "SF-CC-0003.html",
-        linkLabel: "Abrir documento"
-      }
-    }
-  ]
-},
-
-  /* ── AGREGA CASOS AQUÍ ────────────────────────────────────────────────────
-     Copia el bloque anterior, cambia los campos, y ajusta las etapas.
-     El sistema re-renderiza automáticamente al recargar la página.
-     ──────────────────────────────────────────────────────────────────────── */
+    id:"SF-CC-0001",
+    titulo:"Aguascalientes · La paz termodinámica",
+    sistema:"Gobernanza territorial",
+    estado:"cerrado",
+    ihg_basal:-0.41,
+    ihg_final:-0.62,
+    fecha_apertura:"2025-11-01",
+    fecha_cierre:"2026-02-23",
+    etapas:[
+      {tipo:"señal",fecha:"2025-11-01",titulo:"Estabilidad mal atribuida",cuerpo:"La estabilidad dependía de un pacto implícito no documentado."},
+      {tipo:"diagnostico",fecha:"2026-01-15",titulo:"Diagnóstico MIHM basal",metrics:[
+        {k:"IHG",v:"−0.41",cls:"warn"},
+        {k:"NTI",v:"0.48",cls:"warn"}
+      ]},
+      {tipo:"validacion",fecha:"2026-02-23",titulo:"Validación",metrics:[
+        {k:"IHG post",v:"−0.62",cls:"neg"}
+      ]},
+      {tipo:"documento",titulo:"Documento público",url:"SF-CC-0001.html",linkLabel:"Abrir"}
+    ]
+  },
 
   {
-    id: "SF-AC-0023",
-    titulo: "Nodo Tepic · Corredor Nayarit",
-    sistema: "Logística de combustible · Red de distribución noroccidental",
-    estado: "monitoreo",
-    ihg_basal: -0.38,
-    ihg_final: -0.42,
-    fecha_apertura: "2026-03-10",
-    fecha_cierre: null,
-    etapas: [
-      {
-        tipo: "señal",
-        fecha: "2026-03-10",
-        titulo: "Señal: degradación silenciosa en umbrales logísticos",
-        cuerpo: `Indicadores oficiales de distribución de combustible reportan normalidad. Análisis de latencia operativa detecta incremento sistemático en LDI de nodo logístico. El sistema reporta cumplimiento mientras la entropía operativa sube consistentemente desde Q3 2025.`
-      },
-      {
-        tipo: "diagnostico",
-        fecha: "2026-03-18",
-        titulo: "Diagnóstico MIHM — tendencia alcista en IHG",
-        cuerpo: `IHG en tendencia negativa desde Q4 2025. NTI aún por encima del umbral operativo pero con componente ICC degradado por concentración de conocimiento operativo en un solo coordinador regional.`,
-        metrics: [
-          { k: "IHG actual",  v: "−0.42", cls: "warn", note: "Tendencia: −0.04 por mes" },
-          { k: "NTI",         v: "0.63",  cls: "",     note: "Operativo · monitoreo activo" },
-          { k: "LDI media",   v: "3.2d",  cls: "warn", note: "Latencia en días, no horas" },
-          { k: "E_N2",        v: "0.68",  cls: "warn", note: "Industria: carga creciente" }
-        ],
-        formula: "IHG(t+1) = IHG + [−α·IHG + β·NTI·R]·dt"
-      }
+    id:"SF-CC-0002",
+    titulo:"Silao · Fragilidad logística",
+    sistema:"Corredor industrial",
+    estado:"cerrado",
+    ihg_basal:-0.28,
+    ihg_final:-0.57,
+    fecha_apertura:"2025-08-10",
+    fecha_cierre:"2026-01-12",
+    etapas:[
+      {tipo:"señal",fecha:"2025-08-10",titulo:"Dependencia monocéntrica"},
+      {tipo:"validacion",fecha:"2026-01-12",titulo:"Colapso",metrics:[
+        {k:"IHG post",v:"−0.57",cls:"neg"}
+      ]},
+      {tipo:"documento",titulo:"Documento público",url:"SF-CC-0002.html",linkLabel:"Abrir"}
+    ]
+  },
+
+  {
+    id:"SF-AC-0003",
+    titulo:"Tepic · Entropía logística",
+    sistema:"Distribución energética",
+    estado:"monitoreo",
+    ihg_basal:-0.19,
+    ihg_final:-0.26,
+    fecha_apertura:"2026-01-20",
+    fecha_cierre:null,
+    etapas:[
+      {tipo:"señal",fecha:"2026-01-20",titulo:"Entropía invisible"},
+      {tipo:"diagnostico",fecha:"2026-03-01",titulo:"Acumulación silenciosa"}
     ]
   }
-
 ];
-/* ══════════════════════════════════════════════════════════════ */
 
+/* ========= RENDER ========= */
+function estadoLabel(e){return e==="cerrado"?"CERRADO":e==="abierto"?"ABIERTO":"MONITOREO";}
+function estadoClass(e){return "badge-"+e;}
 
-/* ── RENDER ENGINE ── */
+function ihgClass(v){return v<-0.55?"neg":v<-0.2?"warn":"";}
 
-function estadoClass(e){
-  return e === "cerrado" ? "badge-cerrado" :
-         e === "abierto" ? "badge-abierto" : "badge-monitoreo";
-}
-function estadoLabel(e){
-  return e === "cerrado"    ? "CERRADO · ARCHIVO"   :
-         e === "abierto"    ? "ABIERTO"              :
-                              "MONITOREO";
-}
-function ihgClass(v){
-  return v < -0.55 ? "neg" : v < -0.2 ? "warn" : "";
-}
-function delta(a, b){
-  const d = (b - a).toFixed(2);
-  return d > 0 ? `+${d}` : d;
-}
-
-function renderMetrics(metrics){
-  if(!metrics||!metrics.length) return "";
-  return `<div class="sb-metrics">
-    ${metrics.map(m=>`<div class="sb-metric">
-      <div class="sb-metric-key">${m.k}</div>
-      <div class="sb-metric-val ${m.cls||''}">${m.v}</div>
-      ${m.note?`<div class="sb-metric-note">${m.note}</div>`:''}
-    </div>`).join('')}
-  </div>`;
-}
-
-function renderPreds(preds){
-  if(!preds||!preds.length) return "";
-  return `<ul class="sb-preds">
-    ${preds.map(p=>`<li class="sb-pred ${p.ok?'confirmed':''}">
-      <div class="sb-pred-id">${p.id}</div>
-      <div class="sb-pred-txt">${p.txt}</div>
-      <div class="sb-pred-val">${p.val}</div>
-      ${p.ok?`<div class="sb-pred-status">✓ confirmado</div>`:''}
-    </li>`).join('')}
-  </ul>`;
-}
-
-function renderItems(items){
-  if(!items||!items.length) return "";
-  return `<ul class="sb-preds">
-    ${items.map(it=>`<li class="sb-pred ${it.cls||''}">
-      <div class="sb-pred-id">${it.id}</div>
-      <div class="sb-pred-txt">${it.hipotesis}</div>
-      <div class="sb-pred-val">Variable: ${it.variable}</div>
-      ${it.cls==='confirmed'?`<div class="sb-pred-status">✓ validado</div>`:''}
-    </li>`).join('')}
-  </ul>`;
-}
-
-function renderEmbed(etapa){
-  return `<div class="sb-embed-wrapper">
-    <div class="sb-embed-header">
-      <span class="sb-embed-label">Documento público · ${etapa.url || '—'}</span>
-      ${etapa.url ? `<a href="${etapa.url}" target="_blank" class="sb-embed-link">${etapa.linkLabel||'Abrir'} ↗</a>` : ''}
+function renderStage(e){
+  return `<div class="stage">
+    <div class="stage-title">${e.titulo}</div>
+    <div class="stage-body">
+      ${e.cuerpo||""}
+      ${e.metrics?`<div class="sb-metrics">${e.metrics.map(m=>`
+        <div class="sb-metric">
+          <div>${m.k}</div>
+          <div class="sb-metric-val ${m.cls||""}">${m.v}</div>
+        </div>`).join("")}</div>`:""}
     </div>
-    ${etapa.url ?
-      `<iframe class="caso-embed" src="${etapa.url}" loading="lazy"
-         onerror="this.style.display='none';this.nextElementSibling.style.display='block'"></iframe>
-       <div class="sb-embed-fallback">
-         El documento no está disponible en esta ruta.<br>
-         <a href="${etapa.url}" target="_blank" style="color:var(--oro)">Intentar abrir directamente ↗</a>
-       </div>` :
-      `<div class="sb-embed-fallback" style="display:block">URL no configurada para este caso.</div>`
-    }
   </div>`;
 }
 
-function renderStage(etapa, idx){
-  const tipo = etapa.tipo.replace("ñ","n").replace("ó","o");
-  const tipoClass = `tipo-${tipo}`;
-  const tipoLabel = {
-    "senal":"señal", "diagnostico":"diagnóstico",
-    "hipotesis":"hipótesis","validacion":"validación","documento":"documento"
-  }[tipo] || tipo;
-
-  let body = ``;
-  if(etapa.cuerpo) body += `<p class="sb-text">${etapa.cuerpo}</p>`;
-  if(etapa.metrics) body += renderMetrics(etapa.metrics);
-  if(etapa.formula) body += `<div class="sb-formula">${etapa.formula}</div>`;
-  if(etapa.items)   body += renderItems(etapa.items);
-  if(etapa.preds)   body += renderPreds(etapa.preds);
-  if(tipo === "documento") body += renderEmbed(etapa);
-
-  return `
-    <div class="stage ${tipoClass}" data-idx="${idx}">
-      <div class="stage-trigger" onclick="toggleStage(this)">
-        <div class="stage-meta">
-          <span class="stage-tipo">${tipoLabel}</span>
-          <span class="stage-fecha">${etapa.fecha||''}</span>
-        </div>
-        <div class="stage-title">${etapa.titulo}</div>
-        <span class="stage-expand">▶</span>
-      </div>
-      <div class="stage-body">${body}</div>
-    </div>`;
-}
-
-function renderDossier(caso){
-  const dIHG = delta(caso.ihg_basal, caso.ihg_final);
-  const stages = caso.etapas.map((e,i)=>renderStage(e,i)).join('');
-  return `
-    <div class="dossier visible" id="dossier-${caso.id}">
-      <div class="dossier-head">
-        <div>
-          <div class="dossier-head-title">${caso.titulo}</div>
-          <div class="dossier-head-meta">${caso.sistema} · Apertura: ${caso.fecha_apertura}${caso.fecha_cierre ? ' · Cierre: '+caso.fecha_cierre : ''}</div>
-        </div>
-        <div class="dossier-delta">
-          <div class="delta-label">ΔIHG</div>
-          <div class="delta-val">${dIHG}</div>
-        </div>
-      </div>
-      <div class="chain">${stages}</div>
-    </div>`;
-}
-
-function renderRow(caso){
-  const ihgCls = ihgClass(caso.ihg_final);
-  return `
-    <div class="case-row" id="row-${caso.id}" data-estado="${caso.estado}" onclick="toggleCase('${caso.id}')">
-      <span class="cr-id">${caso.id}</span>
+function renderDossier(c){
+  return `<div class="dossier">
+    <div class="dossier-head">
       <div>
-        <div class="cr-title">${caso.titulo}</div>
-        <div class="cr-system">${caso.sistema}</div>
+        <div class="dossier-head-title">${c.titulo}</div>
+        <div class="dossier-head-meta">${c.sistema}</div>
       </div>
-      <span class="cr-ihg ${ihgCls}">${caso.ihg_final.toFixed(2)}</span>
-      <span class="cr-badge ${estadoClass(caso.estado)}">${estadoLabel(caso.estado)}</span>
+      <div>
+        <div class="delta-label">ΔIHG</div>
+        <div class="delta-val">${(c.ihg_final-c.ihg_basal).toFixed(2)}</div>
+      </div>
+    </div>
+    <div class="chain">${c.etapas.map(renderStage).join("")}</div>
+  </div>`;
+}
+
+function renderRow(c){
+  return `<div>
+    <div class="case-row" onclick="toggleCase('${c.id}')">
+      <span class="cr-id">${c.id}</span>
+      <div>
+        <div class="cr-title">${c.titulo}</div>
+        <div class="cr-system">${c.sistema}</div>
+      </div>
+      <span class="cr-ihg ${ihgClass(c.ihg_final)}">${c.ihg_final.toFixed(2)}</span>
+      <span class="cr-badge ${estadoClass(c.estado)}">${estadoLabel(c.estado)}</span>
       <span class="cr-chevron">▶</span>
     </div>
-    <div id="dossier-wrapper-${caso.id}" style="display:none"></div>`;
+    <div id="dossier-${c.id}"></div>
+  </div>`;
 }
 
 function toggleCase(id){
-  const row = document.getElementById(`row-${id}`);
-  const wrapper = document.getElementById(`dossier-wrapper-${id}`);
-  const isOpen = row.classList.contains('open');
-  // Cerrar todos
-  document.querySelectorAll('.case-row.open').forEach(r=>{
-    r.classList.remove('open');
-    const wid = r.id.replace('row-','');
-    document.getElementById(`dossier-wrapper-${wid}`).style.display='none';
-    document.getElementById(`dossier-wrapper-${wid}`).innerHTML='';
-  });
-  if(!isOpen){
-    row.classList.add('open');
-    const caso = CASOS.find(c=>c.id===id);
-    wrapper.innerHTML = renderDossier(caso);
-    wrapper.style.display = 'block';
-    // Auto-expand primera etapa
-    const firstTrigger = wrapper.querySelector('.stage-trigger');
-    if(firstTrigger) toggleStage(firstTrigger);
-    // Scroll suave
-    setTimeout(()=>wrapper.scrollIntoView({behavior:'smooth',block:'nearest'}),100);
-  }
+  const el=document.getElementById("dossier-"+id);
+  if(el.innerHTML){el.innerHTML="";return;}
+  CASOS.forEach(c=>document.getElementById("dossier-"+c.id).innerHTML="");
+  el.innerHTML=renderDossier(CASOS.find(c=>c.id===id));
 }
 
-function toggleStage(trigger){
-  const stage = trigger.closest('.stage');
-  const isOpen = stage.classList.contains('open');
-  stage.classList.toggle('open', !isOpen);
+function render(){
+  document.getElementById("caseList").innerHTML=CASOS.map(renderRow).join("");
+  document.getElementById("filterBar").innerHTML=["todos","cerrado","abierto","monitoreo"].map(e=>
+    `<button class="filter-btn" onclick="setFilter('${e}')">${e}</button>`
+  ).join("");
 }
-
-/* ── FILTER ── */
-const estados = ["todos", "cerrado", "abierto", "monitoreo"];
-const labels = {todos:"Todos", cerrado:"Cerrados", abierto:"Abiertos", monitoreo:"Monitoreo"};
-let activeFilter = "todos";
-
-function getCount(e){
-  return e === "todos" ? CASOS.length : CASOS.filter(c=>c.estado===e).length;
-}
-
-function renderFilters(){
-  const bar = document.getElementById('filterBar');
-  bar.innerHTML = estados.map(e=>`
-    <button class="filter-btn ${activeFilter===e?'on':''}" onclick="setFilter('${e}')">
-      ${labels[e]} <span class="filter-count">${getCount(e)}</span>
-    </button>`).join('');
-}
-
 function setFilter(e){
-  activeFilter = e;
-  // Close open dossiers
-  document.querySelectorAll('.case-row.open').forEach(r=>{
-    r.classList.remove('open');
-    const wid = r.id.replace('row-','');
-    document.getElementById(`dossier-wrapper-${wid}`).style.display='none';
+  document.querySelectorAll(".case-row").forEach((r,i)=>{
+    const c=CASOS[i];
+    r.style.display=(e==="todos"||c.estado===e)?"grid":"none";
+    document.getElementById("dossier-"+c.id).innerHTML="";
   });
-  renderFilters();
-  CASOS.forEach(c=>{
-    const row = document.getElementById(`row-${c.id}`);
-    if(!row) return;
-    const visible = e === "todos" || c.estado === e;
-    row.classList.toggle('hidden', !visible);
-    document.getElementById(`dossier-wrapper-${c.id}`).classList.toggle('hidden', !visible);
-  });
-  // empty state
-  const list = document.getElementById('caseList');
-  const anyVisible = CASOS.some(c=> e==="todos" || c.estado===e);
-  let empty = list.querySelector('.empty-state');
-  if(!anyVisible){
-    if(!empty){ empty = document.createElement('div'); empty.className='empty-state'; list.appendChild(empty); }
-    empty.textContent = `Sin casos en estado "${labels[e]}".`;
-  } else if(empty) empty.remove();
 }
-
-function init(){
-  const list = document.getElementById('caseList');
-  list.innerHTML = CASOS.map(renderRow).join('');
-  renderFilters();
-}
-
-document.addEventListener('DOMContentLoaded', init);
+document.addEventListener("DOMContentLoaded",render);
 </script>
 </body>
 </html>
