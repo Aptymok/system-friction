@@ -15,268 +15,300 @@ gtag('config', 'G-76H63FV9DG');
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap" rel="stylesheet">
 <style>
-/* ===== TOKENS ===== */
 :root {
-  --void:#080808;
-  --s1:#0f0f0e;
-  --s2:#141413;
-  --s3:#1a1a18;
-  --bd:#222220;
-  --bd2:#2e2e2b;
-  --tx:#c4c0b5;
-  --tx2:#807c74;
-  --tx3:#454340;
-  --oro:#c8a951;
-  --oro2:#8a7035;
-  --neon:#d4f040;
-  --teal:#2a7060;
-  --danger:#9a3030;
-  --ok:#3a7048;
-  --mono:'IBM Plex Mono', monospace;
+  --void:    #080808;
+  --s1:      #0f0f0e;
+  --s2:      #141413;
+  --s3:      #1a1a18;
+  --bd:      #222220;
+  --bd2:     #2e2e2b;
+  --tx:      #c4c0b5;
+  --tx2:     #807c74;
+  --tx3:     #454340;
+  --oro:     #c8a951;
+  --oro2:    #8a7035;
+  --neon:    #d4f040;
+  --teal:    #2a7060;
+  --danger:  #9a3030;
+  --ok:      #3a7048;
+  --mono:    'IBM Plex Mono', monospace;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
 body{
   background:var(--void);
   color:var(--tx);
   font-family:var(--mono);
   font-size:12px;
   line-height:1.6;
+  min-height:100vh;
 }
+
+/* ── SHELL ── */
 .shell{max-width:900px;margin:0 auto;padding:48px 24px 120px}
 
-/* ===== HEADER ===== */
-.hd{border-bottom:1px solid var(--bd);padding-bottom:24px;margin-bottom:32px}
-.hd-brand{font-size:10px;letter-spacing:.2em;color:var(--oro)}
-.hd-title{font-size:20px;font-weight:600;color:#fff;margin:6px 0}
-.hd-sub{font-size:10px;color:var(--tx3)}
+/* ── HEADER ── */
+.hd{padding-bottom:24px;border-bottom:1px solid var(--bd);margin-bottom:32px}
+.hd-brand{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--oro);margin-bottom:6px}
+.hd-title{font-size:20px;font-weight:600;color:#ffffff;letter-spacing:-.02em;line-height:1.2;margin-bottom:4px}
+.hd-sub{font-size:10px;color:var(--tx3);letter-spacing:.06em}
 
-/* ===== FILTERS ===== */
-.filters{display:flex;border:1px solid var(--bd);margin-bottom:24px}
+/* ── FILTER BAR ── */
+.filters{display:flex;gap:0;margin-bottom:24px;border:1px solid var(--bd)}
 .filter-btn{
-  flex:1;
-  background:none;
-  border:none;
-  border-right:1px solid var(--bd);
-  font-size:10px;
-  color:var(--tx3);
-  padding:8px;
-  cursor:pointer;
+  background:none;border:none;border-right:1px solid var(--bd);
+  color:var(--tx3);font-family:var(--mono);font-size:10px;
+  letter-spacing:.12em;text-transform:uppercase;
+  padding:8px 16px;cursor:pointer;transition:all .15s;
 }
 .filter-btn:last-child{border-right:none}
-.filter-btn.on{background:var(--s1);color:var(--oro)}
-.filter-btn:hover{background:var(--s2);color:#fff}
-.filter-count{margin-left:4px;font-size:9px;color:var(--tx2)}
+.filter-btn:hover{color:var(--tx);background:var(--s2)}
+.filter-btn.on{color:var(--oro);background:var(--s1)}
+.filter-count{
+  display:inline-block;margin-left:6px;
+  background:var(--s3);color:var(--tx2);
+  padding:1px 5px;font-size:9px;
+}
 
-/* ===== CASE ROW ===== */
+/* ── CASE INDEX ── */
+.case-index{margin-bottom:4px}
 .case-row{
   display:grid;
-  grid-template-columns:90px 1fr auto auto auto;
-  gap:12px;
+  grid-template-columns:80px 1fr auto auto;
+  gap:12px;align-items:center;
   padding:12px 16px;
   border:1px solid var(--bd);
   border-top:none;
   background:var(--s1);
   cursor:pointer;
+  transition:all .15s;
+  position:relative;
 }
 .case-row:first-child{border-top:1px solid var(--bd)}
+.case-row::before{
+  content:'';position:absolute;left:0;top:0;bottom:0;width:2px;
+  background:transparent;transition:background .15s;
+}
+.case-row:hover::before,.case-row.open::before{background:var(--oro)}
+.case-row:hover{background:var(--s2)}
 .case-row.open{background:var(--s2)}
 .case-row.hidden{display:none}
 
-.cr-id{font-size:10px;color:var(--oro)}
-.cr-title{font-size:12px;color:#fff}
-.cr-system{font-size:10px;color:var(--tx2)}
-.cr-ihg{font-size:13px}
+.cr-id{font-size:10px;color:var(--oro);letter-spacing:.08em}
+.cr-title{font-size:12px;color:#fff;font-weight:400}
+.cr-system{font-size:10px;color:var(--tx2);margin-top:2px}
+.cr-ihg{
+  font-size:13px;font-weight:500;
+  font-variant-numeric:tabular-nums;text-align:right;
+}
 .cr-ihg.neg{color:var(--danger)}
 .cr-ihg.warn{color:var(--oro)}
-.cr-badge{font-size:9px;border:1px solid;padding:3px 8px}
-.badge-cerrado{color:var(--danger);border-color:var(--danger)}
-.badge-abierto{color:var(--oro);border-color:var(--oro)}
-.badge-monitoreo{color:var(--teal);border-color:var(--teal)}
-.cr-chevron{font-size:10px;color:var(--tx3);transition:transform .2s}
+.cr-badge{
+  font-size:9px;letter-spacing:.1em;text-transform:uppercase;
+  padding:3px 8px;border:1px solid;
+  white-space:nowrap;
+}
+.badge-cerrado{border-color:var(--danger);color:var(--danger);background:rgba(154,48,48,.06)}
+.badge-abierto{border-color:var(--oro2);color:var(--oro);background:rgba(200,169,81,.06)}
+.badge-monitoreo{border-color:var(--teal);color:#3a9070;background:rgba(42,112,96,.06)}
+.cr-chevron{
+  font-size:10px;color:var(--tx3);transition:transform .2s;margin-left:8px;
+}
 .case-row.open .cr-chevron{transform:rotate(90deg)}
 
-/* ===== DOSSIER ===== */
-.dossier{border:1px solid var(--bd);border-top:none;background:var(--s2);display:none}
+/* ── DOSSIER ── */
+.dossier{
+  border:1px solid var(--bd);border-top:none;
+  background:var(--s2);
+  display:none;
+  animation:slideDown .2s ease;
+  margin-bottom:4px;
+}
 .dossier.visible{display:block}
 
-.dossier-head{
-  display:flex;
-  justify-content:space-between;
-  padding:16px 20px;
-  border-bottom:1px solid var(--bd)
+@keyframes slideDown{
+  from{opacity:0;transform:translateY(-4px)}
+  to{opacity:1;transform:translateY(0)}
 }
-.dossier-head-title{color:#fff;font-size:14px}
-.dossier-head-meta{color:var(--tx2);font-size:10px}
-.delta-label{font-size:9px;color:var(--tx3)}
-.delta-val{font-size:16px;color:var(--danger)}
 
-/* ===== CHAIN ===== */
-.chain{padding:0 0 0 28px;margin:12px 20px;position:relative}
+.dossier-head{
+  padding:16px 20px 12px;
+  border-bottom:1px solid var(--bd);
+  display:flex;justify-content:space-between;align-items:flex-start;
+}
+.dossier-head-title{font-size:14px;color:#fff;font-weight:500;margin-bottom:4px}
+.dossier-head-meta{font-size:10px;color:var(--tx2)}
+.dossier-delta{
+  text-align:right;flex-shrink:0;margin-left:20px;
+}
+.delta-label{font-size:9px;color:var(--tx3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px}
+.delta-val{font-size:16px;font-weight:600;color:var(--danger)}
+
+/* ── EVIDENCE CHAIN ── */
+.chain{padding:0 0 0 36px;position:relative;margin:0 20px 0 20px}
 .chain::before{
-  content:'';
-  position:absolute;
-  left:4px;
-  top:0;
-  bottom:0;
-  width:1px;
-  background:var(--bd2)
+  content:'';position:absolute;left:6px;top:0;bottom:0;
+  width:1px;background:var(--bd2);
 }
 
 .stage{
+  position:relative;margin-bottom:0;
   border-bottom:1px solid var(--bd);
-  padding-left:16px;
-  position:relative;
 }
 .stage:last-child{border-bottom:none}
+
+/* stage dot */
 .stage::before{
-  content:'';
-  position:absolute;
-  left:-22px;
-  top:16px;
-  width:8px;
-  height:8px;
-  border-radius:50%;
+  content:'';position:absolute;
+  left:-34px;top:20px;
+  width:8px;height:8px;border-radius:50%;
   border:1px solid var(--bd2);
   background:var(--s2);
+  z-index:1;transition:all .15s;
 }
-.stage.tipo-senal::before{border-color:var(--teal)}
-.stage.tipo-diagnostico::before{border-color:var(--oro2)}
-.stage.tipo-validacion::before{border-color:var(--neon)}
+.stage.tipo-senal::before     {border-color:var(--teal);background:rgba(42,112,96,.3)}
+.stage.tipo-diagnostico::before{border-color:var(--oro2);background:rgba(200,169,81,.2)}
+.stage.tipo-hipotesis::before  {border-color:var(--tx2);background:var(--s3)}
+.stage.tipo-validacion::before {border-color:var(--neon);background:rgba(212,240,64,.2)}
+.stage.tipo-documento::before  {border-color:#fff;background:#fff}
 
 .stage-trigger{
-  display:flex;
-  justify-content:space-between;
-  gap:12px;
-  cursor:pointer;
-  padding:10px 0;
+  padding:16px 0;cursor:pointer;
+  display:flex;align-items:flex-start;gap:12px;
 }
-.stage-title{font-size:12px;color:#fff}
-.stage-expand{font-size:10px;color:var(--tx3);transition:transform .2s}
+.stage-trigger:hover .stage-title{color:#fff}
+
+.stage-meta{flex-shrink:0;width:80px;padding-top:2px}
+.stage-tipo{
+  font-size:9px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--tx3);display:block;margin-bottom:2px;
+}
+.stage.tipo-senal      .stage-tipo{color:#3a9070}
+.stage.tipo-diagnostico.stage-tipo{color:var(--oro)}
+.stage.tipo-validacion .stage-tipo{color:var(--neon)}
+.stage.tipo-documento  .stage-tipo{color:#fff}
+
+.stage-fecha{font-size:10px;color:var(--tx3)}
+
+.stage-title{
+  font-size:12px;font-weight:500;color:var(--tx);
+  transition:color .15s;flex:1;
+}
+.stage-expand{font-size:10px;color:var(--tx3);flex-shrink:0;transition:transform .15s}
 .stage.open .stage-expand{transform:rotate(90deg)}
 
 .stage-body{
+  padding:0 0 16px 0;
   display:none;
-  font-size:11px;
-  padding:12px 0 16px;
-  color:var(--tx);
+  font-size:11px;color:var(--tx);
+  line-height:1.7;
 }
 .stage.open .stage-body{display:block}
 
+/* stage content elements */
+.sb-text{color:var(--tx);margin-bottom:10px}
+.sb-text:last-child{margin-bottom:0}
+
 .sb-metrics{
   display:grid;
-  grid-template-columns:repeat(auto-fill,minmax(110px,1fr));
-  gap:1px;
-  background:var(--bd);
+  grid-template-columns:repeat(auto-fill,minmax(100px,1fr));
+  gap:1px;background:var(--bd);border:1px solid var(--bd);
   margin:12px 0;
 }
-.sb-metric{background:var(--s1);padding:10px}
-.sb-metric-key{font-size:9px;color:var(--tx3)}
-.sb-metric-val{font-size:16px;color:#fff}
+.sb-metric{
+  background:var(--s1);padding:10px 12px;
+}
+.sb-metric-key{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--tx3);margin-bottom:4px}
+.sb-metric-val{font-size:16px;font-weight:500;color:#fff}
 .sb-metric-val.neg{color:var(--danger)}
 .sb-metric-val.warn{color:var(--oro)}
-.sb-metric-note{font-size:10px;color:var(--tx3)}
+.sb-metric-val.crit{color:#c0392b}
+.sb-metric-note{font-size:10px;color:var(--tx3);margin-top:2px}
 
 .sb-formula{
-  font-size:10px;
-  background:var(--s1);
-  border-left:2px solid var(--oro2);
-  padding:10px 14px;
-  margin:12px 0;
-  line-height:1.8;
+  font-family:var(--mono);font-size:10px;
+  background:var(--s1);border-left:2px solid var(--oro2);
+  padding:10px 14px;margin:12px 0;
+  color:var(--tx);line-height:1.8;
 }
 
-/* ===== FOOTER ===== */
+.sb-preds{list-style:none;margin:10px 0}
+.sb-pred{
+  padding:8px 0 8px 14px;
+  border-left:2px solid var(--bd2);
+  margin-bottom:6px;
+  position:relative;
+}
+.sb-pred.confirmed{border-left-color:var(--ok)}
+.sb-pred-id{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--oro2);margin-bottom:2px}
+.sb-pred-txt{color:var(--tx);margin-bottom:3px}
+.sb-pred-val{font-size:10px;color:var(--tx2);font-style:italic}
+.sb-pred-status{
+  position:absolute;right:0;top:8px;
+  font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--ok);
+}
+
+.sb-embed-wrapper{
+  margin:12px 0;border:1px solid var(--bd);
+  background:var(--void);
+}
+.sb-embed-header{
+  padding:8px 12px;
+  border-bottom:1px solid var(--bd);
+  display:flex;justify-content:space-between;align-items:center;
+}
+.sb-embed-label{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--tx3)}
+.sb-embed-link{
+  font-size:10px;color:var(--oro);text-decoration:none;
+  border:1px solid var(--oro2);padding:3px 10px;
+  transition:all .15s;
+}
+.sb-embed-link:hover{background:rgba(200,169,81,.1);color:#fff}
+iframe.caso-embed{
+  width:100%;height:480px;border:none;
+  display:block;
+}
+.sb-embed-fallback{
+  padding:24px;text-align:center;color:var(--tx2);
+  font-size:11px;
+  display:none;
+}
+
+/* ── EMPTY STATE ── */
+.empty-state{
+  padding:40px 20px;text-align:center;
+  color:var(--tx3);font-size:11px;
+  border:1px solid var(--bd);border-top:none;
+}
+
+/* ── FOOTER ── */
 .footer{
+  margin-top:60px;padding-top:20px;
   border-top:1px solid var(--bd);
-  margin-top:60px;
-  padding-top:20px;
-  font-size:10px;
-  color:var(--tx3);
-  display:flex;
-  justify-content:space-between;
-  flex-wrap:wrap
+  font-size:10px;color:var(--tx3);
+  display:flex;justify-content:space-between;
+  flex-wrap:wrap;gap:8px;
 }
 .footer a{color:var(--oro2);text-decoration:none}
+.footer a:hover{color:var(--oro)}
+
+/* ── RESPONSIVE ── */
+@media(max-width:580px){
+  .shell{padding:28px 14px 80px}
+  .case-row{grid-template-columns:1fr auto;gap:8px}
+  .cr-id{display:none}
+  .cr-ihg{display:none}
+  .chain{padding-left:24px}
+  .chain::before{left:4px}
+  .stage::before{left:-22px;top:18px}
+  .stage-meta{width:64px}
+  iframe.caso-embed{height:320px}
+}
 </style>
 </head>
-
 <body>
 <div class="shell">
 
-
-
-<nav id="nav">
-  <a href="/index.html" class="nav-logo">SYSTEM<span></span>FRICTION</a>
-  
-  <div class="nav-right">
-    
-    <div class="nav-dropdown">
-      <span class="nav-link">Observatorio ▾</span>
-      <div class="nav-dropdown-menu">
-        <a href="/index.html">WorldSpectrum</a>
-        <a href="/flujo.html">Flux</a>
-        <a href="/macro.html">System Friction Nodes</a>
-        <a href="/simulation.html">Simulation Friction</a>
-        <a href="/temporal.html">SFT</a>
-        <a href="/dashboard.html">SF World Metrics</a>
-        <a href="/alerts.html">SF Alertas</a>        
-      </div>
-    </div>
-    
-    <div class="nav-dropdown">
-      <span class="nav-link">Instrumentos ▾</span>
-      <div class="nav-dropdown-menu">
-        <a href="/audit.html">Auditoría</a>
-        <a href="/perenne.html">Perenne (DCT)</a>
-        <a href="/amv.html">AMV</a>
-        <a href="/scorefriction.html">ScoreFriction</a>
-        <a href="/friction-manager.html">Friction Manager</a>
-        <a href="/atractor.html">Atractor</a>
-        <a href="/language.html">System Language</a>
-      </div>
-    </div>
-
-    <div class="nav-dropdown">
-      <span class="nav-link">Repositorio ▾</span>
-      <div class="nav-dropdown-menu">
-        <a href="/atlas.html">Atlas</a>
-        <a href="/patrones.html">Patrones</a>
-        <a href="/linguistica.html">Lingüística</a>
-        <a href="/logica.html">Lógica</a>
-        <a href="/postulados.html">Postulados</a>
-      </div>
-    </div>
-
-    <div class="nav-dropdown">
-      <span class="nav-link">Laboratorio ▾</span>
-      <div class="nav-dropdown-menu">
-        <a href="/lab-eco.html">ECO</a>
-        <a href="/lab-pol.html">POL</a>
-        <a href="/lab-cul.html">CUL</a>
-        <a href="/lab-cog.html">COG</a>
-        <a href="/lab-geo.html">GEO</a>
-        <a href="/lab-sys.html">SYS</a>
-      </div>
-    </div>
-
-    <div class="nav-dropdown">
-      <span class="nav-link">Instituto ▾</span>
-      <div class="nav-dropdown-menu">
-        <a href="/about.html">Marco</a>
-        <a href="/method.html">Método</a>
-        <a href="/sfi.html">Arquitectura</a>
-        <a href="/contact.html">Contacto</a>
-      </div>
-    </div>
-        <a href="/casos.html" class="nav-link cta">Archivo de Casos</a>
-    <a href="/mop-h-form.html" class="nav-link cta">Aplicar</a>
-
-  </div>
-</nav>
-
-
-
-  
   <header class="hd">
     <div class="hd-brand">System Friction Framework · v1.1</div>
     <div class="hd-title">Archivo de casos empíricos</div>
@@ -296,12 +328,31 @@ body{
 <script>
 /* ══════════════════════════════════════════════════════════════
    CASOS DB — edita aquí para agregar nuevos casos
-   ══════════════════════════════════════════════════════════════ */
+   ══════════════════════════════════════════════════════════════
+
+   Estructura por caso:
+   {
+     id:      "SF-CC-XXXX",          ← identificador único
+     titulo:  "Nombre · Subtítulo",  ← aparece en el índice
+     sistema: "descripción breve",   ← subtexto del índice
+     estado:  "cerrado" | "abierto" | "monitoreo",
+     ihg_basal:  número,             ← IHG antes del evento/diagnóstico
+     ihg_final:  número,             ← IHG después
+     fecha_apertura: "YYYY-MM-DD",
+     fecha_cierre:   "YYYY-MM-DD" | null,
+     etapas: [ ... ]                 ← ver tipos de etapa abajo
+   }
+
+   TIPOS DE ETAPA:
+   ─────────────────────────────────────────────────────────────
+   { tipo: "señal", fecha, titulo, cuerpo }
+   { tipo: "diagnostico", fecha, titulo, cuerpo, metrics: [{k,v,cls,note}] }
+   { tipo: "hipotesis", fecha, titulo, cuerpo, items: [{id,hipotesis,variable,cls}] }
+   { tipo: "validacion", fecha, titulo, cuerpo, metrics: [...], preds: [{id,txt,val,ok}] }
+   { tipo: "documento", titulo, cuerpo, url, linkLabel }
+   ──────────────────────────────────────────────────────────── */
 
 const CASOS = [
-  /* ==============================================================
-     CASO SF-CC-0001 · AGUASCALIENTES (cifras originales)
-     ============================================================== */
   {
     id: "SF-CC-0001",
     titulo: "Aguascalientes · La paz termodinámica",
@@ -331,7 +382,7 @@ const CASOS = [
           { k: "E_N4",        v: "0.92",  cls: "neg",   note: "Agricultura: entropía crítica" },
           { k: "E_N1",        v: "0.82",  cls: "neg",   note: "Acuífero: carga entrópica alta" }
         ],
-        formula: "IHG = (1/n) · Σ (Cᵢ − Eᵢ)(1 − Lᵢ) = −0.41"
+        formula: "IHG = (1/n) · Σ (Cᵢ − Eᵢ)(1 − Lᵢ)"
       },
       {
         tipo: "hipotesis",
@@ -372,12 +423,11 @@ const CASOS = [
         tipo: "documento",
         titulo: "Documento público: cadena de evidencia completa",
         cuerpo: `El documento de propagación traduce la cadena completa de evidencia a lenguaje legible para cualquier receptor sin formación previa en el framework. El patrón replicable está explicitado para que cualquier sistema con estabilidad mal atribuida pueda reconocerse.`,
-        url: "SF-CC-0001.html",
+        url: "nodo-ags-caso-publico.html",
         linkLabel: "Abrir documento"
       }
     ]
   },
-
   /* ==============================================================
      CASO SF-CC-0002 · SILAO (fragilidad logística monocéntrica)
      ============================================================== */
@@ -521,10 +571,12 @@ const CASOS = [
       }
     ]
   },
+  
+  /* ── AGREGA CASOS AQUÍ ────────────────────────────────────────────────────
+     Copia el bloque anterior, cambia los campos, y ajusta las etapas.
+     El sistema re-renderiza automáticamente al recargar la página.
+     ──────────────────────────────────────────────────────────────────────── */
 
-  /* ==============================================================
-     CASO SF-AC-0023 · TEPIC (monitoreo activo)
-     ============================================================== */
   {
     id: "SF-AC-0023",
     titulo: "Nodo Tepic · Corredor Nayarit",
@@ -556,9 +608,12 @@ const CASOS = [
       }
     ]
   }
-];
 
-/* ── RENDER ENGINE (NO CAMBIA, SOLO LOS DATOS) ── */
+];
+/* ══════════════════════════════════════════════════════════════ */
+
+
+/* ── RENDER ENGINE ── */
 
 function estadoClass(e){
   return e === "cerrado" ? "badge-cerrado" :
@@ -756,8 +811,7 @@ function setFilter(e){
     if(!row) return;
     const visible = e === "todos" || c.estado === e;
     row.classList.toggle('hidden', !visible);
-    const wrapper = document.getElementById(`dossier-wrapper-${c.id}`);
-    if(wrapper) wrapper.classList.toggle('hidden', !visible);
+    document.getElementById(`dossier-wrapper-${c.id}`).classList.toggle('hidden', !visible);
   });
   // empty state
   const list = document.getElementById('caseList');
@@ -774,11 +828,6 @@ function init(){
   list.innerHTML = CASOS.map(renderRow).join('');
   renderFilters();
 }
-
-// Exponer funciones globalmente
-window.toggleCase = toggleCase;
-window.toggleStage = toggleStage;
-window.setFilter = setFilter;
 
 document.addEventListener('DOMContentLoaded', init);
 </script>
