@@ -1,22 +1,19 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <!-- Google tag (gtag.js) -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-76H63FV9DG"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', 'G-76H63FV9DG');
-  </script>
-
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-76H63FV9DG"></script>
+<script>
+window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'G-76H63FV9DG');
+</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SF · Archivo de Casos</title>
-
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap" rel="stylesheet">
-
 <style>
 /* ===== TOKENS ===== */
 :root {
@@ -95,10 +92,13 @@ body{
 .badge-cerrado{color:var(--danger);border-color:var(--danger)}
 .badge-abierto{color:var(--oro);border-color:var(--oro)}
 .badge-monitoreo{color:var(--teal);border-color:var(--teal)}
-.cr-chevron{font-size:10px;color:var(--tx3)}
+.cr-chevron{font-size:10px;color:var(--tx3);transition:transform .2s}
+.case-row.open .cr-chevron{transform:rotate(90deg)}
 
 /* ===== DOSSIER ===== */
-.dossier{border:1px solid var(--bd);border-top:none;background:var(--s2)}
+.dossier{border:1px solid var(--bd);border-top:none;background:var(--s2);display:none}
+.dossier.visible{display:block}
+
 .dossier-head{
   display:flex;
   justify-content:space-between;
@@ -125,8 +125,23 @@ body{
 .stage{
   border-bottom:1px solid var(--bd);
   padding-left:16px;
+  position:relative;
 }
 .stage:last-child{border-bottom:none}
+.stage::before{
+  content:'';
+  position:absolute;
+  left:-22px;
+  top:16px;
+  width:8px;
+  height:8px;
+  border-radius:50%;
+  border:1px solid var(--bd2);
+  background:var(--s2);
+}
+.stage.tipo-senal::before{border-color:var(--teal)}
+.stage.tipo-diagnostico::before{border-color:var(--oro2)}
+.stage.tipo-validacion::before{border-color:var(--neon)}
 
 .stage-trigger{
   display:flex;
@@ -136,7 +151,8 @@ body{
   padding:10px 0;
 }
 .stage-title{font-size:12px;color:#fff}
-.stage-expand{font-size:10px;color:var(--tx3)}
+.stage-expand{font-size:10px;color:var(--tx3);transition:transform .2s}
+.stage.open .stage-expand{transform:rotate(90deg)}
 
 .stage-body{
   display:none;
@@ -187,6 +203,74 @@ body{
 <body>
 <div class="shell">
 
+<nav id="nav">
+  <a href="/index.html" class="nav-logo">SYSTEM<span></span>FRICTION</a>
+  
+  <div class="nav-right">
+    
+    <div class="nav-dropdown">
+      <span class="nav-link">Observatorio ▾</span>
+      <div class="nav-dropdown-menu">
+        <a href="/index.html">WorldSpectrum</a>
+        <a href="/flujo.html">Flux</a>
+        <a href="/macro.html">System Friction Nodes</a>
+        <a href="/simulation.html">Simulation Friction</a>
+        <a href="/temporal.html">SFT</a>
+        <a href="/dashboard.html">SF World Metrics</a>
+        <a href="/alerts.html">SF Alertas</a>        
+      </div>
+    </div>
+    
+    <div class="nav-dropdown">
+      <span class="nav-link">Instrumentos ▾</span>
+      <div class="nav-dropdown-menu">
+        <a href="/audit.html">Auditoría</a>
+        <a href="/perenne.html">Perenne (DCT)</a>
+        <a href="/amv.html">AMV</a>
+        <a href="/scorefriction.html">ScoreFriction</a>
+        <a href="/friction-manager.html">Friction Manager</a>
+        <a href="/atractor.html">Atractor</a>
+        <a href="/language.html">System Language</a>
+      </div>
+    </div>
+
+    <div class="nav-dropdown">
+      <span class="nav-link">Repositorio ▾</span>
+      <div class="nav-dropdown-menu">
+        <a href="/atlas.html">Atlas</a>
+        <a href="/patrones.html">Patrones</a>
+        <a href="/linguistica.html">Lingüística</a>
+        <a href="/logica.html">Lógica</a>
+        <a href="/postulados.html">Postulados</a>
+      </div>
+    </div>
+
+    <div class="nav-dropdown">
+      <span class="nav-link">Laboratorio ▾</span>
+      <div class="nav-dropdown-menu">
+        <a href="/lab-eco.html">ECO</a>
+        <a href="/lab-pol.html">POL</a>
+        <a href="/lab-cul.html">CUL</a>
+        <a href="/lab-cog.html">COG</a>
+        <a href="/lab-geo.html">GEO</a>
+        <a href="/lab-sys.html">SYS</a>
+      </div>
+    </div>
+
+    <div class="nav-dropdown">
+      <span class="nav-link">Instituto ▾</span>
+      <div class="nav-dropdown-menu">
+        <a href="/about.html">Marco</a>
+        <a href="/method.html">Método</a>
+        <a href="/sfi.html">Arquitectura</a>
+        <a href="/contact.html">Contacto</a>
+      </div>
+    </div>
+        <a href="/casos.html" class="nav-link cta">Archivo de Casos</a>
+    <a href="/mop-h-form.html" class="nav-link cta">Aplicar</a>
+
+  </div>
+</nav>
 <header class="hd">
   <div class="hd-brand">System Friction Framework · v1.1</div>
   <div class="hd-title">Archivo de casos empíricos</div>
@@ -204,7 +288,7 @@ body{
 </div>
 
 <script>
-/* ===== CASOS (MISMA ESTRUCTURA, CORREGIDA) ===== */
+/* ===== CASOS ===== */
 const CASOS = [
   {
     id: "SF-CC-0001",
@@ -228,8 +312,8 @@ const CASOS = [
         titulo: "Diagnóstico MIHM basal",
         cuerpo: "IHG negativo y NTI bajo umbral.",
         metrics: [
-          {k:"IHG",v:"−0.41",cls:"warn"},
-          {k:"NTI",v:"0.48",cls:"warn"}
+          {k:"IHG",v:"−0.41",cls:"warn",note:"Sistema en degradación"},
+          {k:"NTI",v:"0.48",cls:"warn",note:"Por debajo del umbral"}
         ],
         formula: "IHG = Σ(C − E)(1 − L)"
       },
@@ -237,9 +321,12 @@ const CASOS = [
         tipo: "validacion",
         fecha: "2026-02-23",
         titulo: "Validación empírica",
+        cuerpo: "El shock exógeno activó el colapso en menos de 24 horas.",
         metrics: [
-          {k:"IHG post",v:"−0.62",cls:"neg"}
-        ]
+          {k:"IHG post",v:"−0.62",cls:"neg",note:"Caída de 0.21 puntos"},
+          {k:"NTI post",v:"0.351",cls:"neg",note:"Protocolo UCAP activado"}
+        ],
+        formula: "Φ(t) = IHG⁻¹ · NTI · LDI⁻¹ + ε"
       },
       {
         tipo: "documento",
@@ -248,19 +335,51 @@ const CASOS = [
         linkLabel: "Abrir documento"
       }
     ]
+  },
+  {
+    id: "SF-AC-0023",
+    titulo: "Nodo Tepic · Corredor Nayarit",
+    sistema: "Logística de combustible",
+    estado: "monitoreo",
+    ihg_basal: -0.38,
+    ihg_final: -0.42,
+    fecha_apertura: "2026-03-10",
+    fecha_cierre: null,
+    etapas: [
+      {
+        tipo: "senal",
+        fecha: "2026-03-10",
+        titulo: "Señal: degradación silenciosa",
+        cuerpo: "Indicadores oficiales normales pero LDI en aumento sistemático."
+      },
+      {
+        tipo: "diagnostico",
+        fecha: "2026-03-18",
+        titulo: "Diagnóstico MIHM",
+        cuerpo: "IHG en tendencia negativa, monitoreo activo recomendado.",
+        metrics: [
+          {k:"IHG",v:"−0.42",cls:"warn",note:"Tendencia -0.04/mes"},
+          {k:"NTI",v:"0.63",cls:"",note:"Operativo"}
+        ]
+      }
+    ]
   }
 ];
 
-/* ===== RENDER ===== */
+/* ===== FUNCIONES AUXILIARES ===== */
 function estadoLabel(e){
-  return e==="cerrado"?"CERRADO":
-         e==="abierto"?"ABIERTO":"MONITOREO";
+  return e==="cerrado"?"CERRADO":e==="abierto"?"ABIERTO":"MONITOREO";
 }
-function estadoClass(e){return "badge-"+e;}
-function ihgClass(v){return v<-0.55?"neg":v<-0.2?"warn":"";}
+function estadoClass(e){
+  return "badge-"+e;
+}
+function ihgClass(v){
+  return v<-0.55?"neg":v<-0.2?"warn":"";
+}
 
+/* ===== RENDER METRICS ===== */
 function renderMetrics(metrics){
-  if(!metrics) return "";
+  if(!metrics || metrics.length===0) return "";
   return `<div class="sb-metrics">`+
     metrics.map(m=>`
       <div class="sb-metric">
@@ -272,41 +391,89 @@ function renderMetrics(metrics){
   `</div>`;
 }
 
-function renderStage(e){
-  let body = e.cuerpo?`<p>${e.cuerpo}</p>`:"";
+/* ===== RENDER STAGE (CORREGIDA) ===== */
+function renderStage(e, idx){
+  const tipoClass = `tipo-${e.tipo}`;
+  let body = "";
+  if(e.cuerpo) body += `<p>${e.cuerpo}</p>`;
   if(e.metrics) body += renderMetrics(e.metrics);
   if(e.formula) body += `<div class="sb-formula">${e.formula}</div>`;
-  if(e.tipo==="documento"){
-    body += `<p><a href="${e.url}" target="_stage-trigger" onclick="this.parentElement.classList.toggle('open')">
-        <div class="stage-title">${e.titulo}</div>
+  
+  // Documento especial
+  if(e.tipo === "documento" && e.url){
+    body += `<p><a href="${e.url}" target="_blank" style="color:var(--oro)">${e.linkLabel||"Abrir documento"} →</a></p>`;
+  }
+
+  return `
+    <div class="stage ${tipoClass}" data-idx="${idx}">
+      <div class="stage-trigger" onclick="toggleStage(this)">
+        <div class="stage-title">${e.titulo} ${e.fecha?`· ${e.fecha}`:""}</div>
         <span class="stage-expand">▶</span>
       </div>
       <div class="stage-body">${body}</div>
-    </div>`;
+    </div>
+  `;
 }
 
+/* ===== RENDER DOSSIER ===== */
 function renderDossier(c){
+  const delta = (c.ihg_final - c.ihg_basal).toFixed(2);
   return `
-    <div class="dossier">
+    <div class="dossier visible" id="dossier-${c.id}">
       <div class="dossier-head">
         <div>
           <div class="dossier-head-title">${c.titulo}</div>
-          <div class="dossier-head-meta">${c.sistema} · ${c.fecha_apertura}${c.fecha_cierre?" → "+c.fecha_cierre:""}</div>
+          <div class="dossier-head-meta">${c.sistema} · Apertura: ${c.fecha_apertura}${c.fecha_cierre ? " → "+c.fecha_cierre : ""}</div>
         </div>
         <div>
           <div class="delta-label">ΔIHG</div>
-          <div class="delta-val">${(c.ihg_final-c.ihg_basal).toFixed(2)}</div>
+          <div class="delta-val">${delta}</div>
         </div>
       </div>
       <div class="chain">
-        ${c.etapas.map(renderStage).join("")}
+        ${c.etapas.map((e,i)=>renderStage(e,i)).join("")}
       </div>
-    </div>`;
+    </div>
+  `;
 }
 
+/* ===== TOGGLE CASE ===== */
+function toggleCase(id){
+  const row = document.getElementById(`row-${id}`);
+  const existingDossier = document.getElementById(`dossier-${id}`);
+  
+  // Si ya está abierto, lo cerramos
+  if(row.classList.contains('open')){
+    row.classList.remove('open');
+    if(existingDossier) existingDossier.remove();
+    return;
+  }
+  
+  // Cerramos otros abiertos
+  document.querySelectorAll('.case-row.open').forEach(r => {
+    r.classList.remove('open');
+    const oldId = r.id.replace('row-','');
+    const oldDossier = document.getElementById(`dossier-${oldId}`);
+    if(oldDossier) oldDossier.remove();
+  });
+  
+  // Abrimos el nuevo
+  row.classList.add('open');
+  const caso = CASOS.find(c => c.id === id);
+  const dossierHTML = renderDossier(caso);
+  row.insertAdjacentHTML('afterend', dossierHTML);
+}
+
+/* ===== TOGGLE STAGE ===== */
+function toggleStage(trigger){
+  const stage = trigger.closest('.stage');
+  stage.classList.toggle('open');
+}
+
+/* ===== RENDER ROW ===== */
 function renderRow(c){
   return `
-    <div class="case-row" onclick="toggleCase('${c.id}')">
+    <div class="case-row" id="row-${c.id}" onclick="toggleCase('${c.id}')">
       <span class="cr-id">${c.id}</span>
       <div>
         <div class="cr-title">${c.titulo}</div>
@@ -316,33 +483,59 @@ function renderRow(c){
       <span class="cr-badge ${estadoClass(c.estado)}">${estadoLabel(c.estado)}</span>
       <span class="cr-chevron">▶</span>
     </div>
-    <div id="dossier-${c.id}"></div>`;
+  `;
 }
 
-function toggleCase(id){
-  document.querySelectorAll("[id^='dossier-']").forEach(d=>d.innerHTML="");
-  const c = CASOS.find(x=>x.id===id);
-  document.getElementById("dossier-"+id).innerHTML = renderDossier(c);
-}
+/* ===== FILTERS ===== */
+let activeFilter = "todos";
 
 function renderFilters(){
-  const estados=["todos","cerrado","abierto","monitoreo"];
-  document.getElementById("filterBar").innerHTML = estados.map(e=>
-    `<button class="filter-btn" onclick="setFilter('${e}')">${e}</button>`
+  const estados = [
+    {id:"todos", label:"Todos", count:CASOS.length},
+    {id:"cerrado", label:"Cerrados", count:CASOS.filter(c=>c.estado==="cerrado").length},
+    {id:"abierto", label:"Abiertos", count:CASOS.filter(c=>c.estado==="abierto").length},
+    {id:"monitoreo", label:"Monitoreo", count:CASOS.filter(c=>c.estado==="monitoreo").length}
+  ];
+  
+  document.getElementById("filterBar").innerHTML = estados.map(e =>
+    `<button class="filter-btn ${activeFilter===e.id?'on':''}" onclick="setFilter('${e.id}')">
+      ${e.label} <span class="filter-count">${e.count}</span>
+    </button>`
   ).join("");
 }
 
-function setFilter(e){
-  document.querySelectorAll(".case-row").forEach((row,i)=>{
-    row.style.display = (e==="todos"||CASOS[i].estado===e)?"grid":"none";
-    document.getElementById("dossier-"+CASOS[i].id).innerHTML="";
+function setFilter(filter){
+  activeFilter = filter;
+  renderFilters();
+  
+  // Cerrar todos los dossiers abiertos
+  document.querySelectorAll('.case-row.open').forEach(row => {
+    row.classList.remove('open');
+    const id = row.id.replace('row-','');
+    const dossier = document.getElementById(`dossier-${id}`);
+    if(dossier) dossier.remove();
+  });
+  
+  // Filtrar rows
+  CASOS.forEach(caso => {
+    const row = document.getElementById(`row-${caso.id}`);
+    if(row){
+      const visible = filter === "todos" || caso.estado === filter;
+      row.classList.toggle('hidden', !visible);
+    }
   });
 }
 
+/* ===== INIT ===== */
 function init(){
   document.getElementById("caseList").innerHTML = CASOS.map(renderRow).join("");
   renderFilters();
 }
+
+// Exponer funciones globalmente para onclick
+window.toggleCase = toggleCase;
+window.toggleStage = toggleStage;
+window.setFilter = setFilter;
 
 document.addEventListener("DOMContentLoaded", init);
 </script>
