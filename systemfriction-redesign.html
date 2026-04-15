@@ -1,0 +1,1362 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>System Friction — Juan Antonio Marín</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --void: #080808;
+    --void-mid: #0f0f0f;
+    --void-soft: #161616;
+    --gold: #C8A951;
+    --gold-dim: #9a7f3a;
+    --neon: #E6FF00;
+    --neon-dim: #b8cc00;
+    --text: #d4d4d4;
+    --text-dim: #737373;
+    --text-faint: #2e2e2e;
+    --border: #1e1e1e;
+    --border-active: #2e2e2e;
+    --font-mono: 'IBM Plex Mono', monospace;
+    --font-sans: 'IBM Plex Sans', sans-serif;
+    --easing: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; font-size: 16px; }
+
+  body {
+    background: var(--void);
+    color: var(--text);
+    font-family: var(--font-mono);
+    line-height: 1.6;
+    overflow-x: hidden;
+    cursor: crosshair;
+  }
+
+  /* ── NOISE TEXTURE ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.4;
+  }
+
+  /* ── NAV ── */
+  nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    padding: 20px 48px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid transparent;
+    transition: border-color 0.4s, background 0.4s;
+  }
+  nav.scrolled {
+    border-color: var(--border);
+    background: rgba(8,8,8,0.92);
+    backdrop-filter: blur(12px);
+  }
+  .nav-logo {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--gold);
+    text-decoration: none;
+  }
+  .nav-logo span { color: var(--text-dim); }
+  .nav-cta {
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--void);
+    background: var(--neon);
+    padding: 8px 20px;
+    border: none;
+    cursor: pointer;
+    font-family: var(--font-mono);
+    font-weight: 600;
+    transition: background 0.2s, transform 0.1s;
+    text-decoration: none;
+  }
+  .nav-cta:hover { background: var(--neon-dim); }
+  .nav-cta:active { transform: scale(0.97); }
+
+  /* ── HERO ── */
+  #hero {
+    min-height: 100vh;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero-left {
+    padding: 140px 48px 80px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    position: relative;
+    z-index: 2;
+  }
+  .hero-tag {
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 40px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .hero-tag::before {
+    content: '';
+    display: block;
+    width: 32px;
+    height: 1px;
+    background: var(--gold);
+  }
+  .hero-h1 {
+    font-family: var(--font-mono);
+    font-size: clamp(32px, 4vw, 52px);
+    font-weight: 300;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    color: #f0f0f0;
+    margin-bottom: 32px;
+  }
+  .hero-h1 em {
+    font-style: normal;
+    color: var(--gold);
+  }
+  .hero-sub {
+    font-size: 13px;
+    line-height: 1.8;
+    color: var(--text-dim);
+    max-width: 420px;
+    margin-bottom: 48px;
+    font-weight: 300;
+  }
+  .hero-actions {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .btn-primary {
+    background: var(--neon);
+    color: var(--void);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    padding: 16px 32px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s var(--easing);
+    text-decoration: none;
+    display: inline-block;
+  }
+  .btn-primary:hover {
+    background: #fff;
+    transform: translateY(-1px);
+  }
+  .btn-ghost {
+    background: transparent;
+    color: var(--text-dim);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 400;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    padding: 16px 0;
+    border: none;
+    cursor: pointer;
+    transition: color 0.2s;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .btn-ghost:hover { color: var(--text); }
+  .btn-ghost::after {
+    content: '→';
+    transition: transform 0.2s;
+  }
+  .btn-ghost:hover::after { transform: translateX(4px); }
+
+  .hero-right {
+    position: relative;
+    border-left: 1px solid var(--border);
+    overflow: hidden;
+  }
+  .hero-metric-grid {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    grid-template-rows: 1fr 1fr 1fr;
+    padding: 140px 48px 80px;
+    gap: 0;
+  }
+  .metric-item {
+    border-bottom: 1px solid var(--border);
+    padding: 24px 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    opacity: 0;
+    transform: translateX(20px);
+    animation: slideIn 0.6s var(--easing) forwards;
+  }
+  .metric-item:nth-child(1) { animation-delay: 0.3s; }
+  .metric-item:nth-child(2) { animation-delay: 0.5s; }
+  .metric-item:nth-child(3) { animation-delay: 0.7s; }
+  .metric-item:last-child { border-bottom: none; }
+  .metric-label {
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin-bottom: 8px;
+  }
+  .metric-value {
+    font-size: 36px;
+    font-weight: 300;
+    color: var(--gold);
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+  .metric-desc {
+    font-size: 11px;
+    color: var(--text-dim);
+    font-weight: 300;
+    letter-spacing: 0.04em;
+  }
+
+  /* scanning line on hero right */
+  .scan-line {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--gold-dim), transparent);
+    animation: scan 4s ease-in-out infinite;
+    opacity: 0.3;
+  }
+
+  @keyframes scan {
+    0% { top: 0%; }
+    100% { top: 100%; }
+  }
+
+  @keyframes slideIn {
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  /* ── DIAGNOSTIC SECTION ── */
+  #diagnostic {
+    border-top: 1px solid var(--border);
+    padding: 120px 48px;
+    position: relative;
+  }
+  .section-tag {
+    font-size: 9px;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin-bottom: 60px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .section-tag::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+    max-width: 120px;
+  }
+  .diagnostic-container {
+    max-width: 720px;
+  }
+  .diagnostic-h2 {
+    font-size: clamp(24px, 3vw, 36px);
+    font-weight: 300;
+    line-height: 1.3;
+    color: #f0f0f0;
+    margin-bottom: 16px;
+    letter-spacing: -0.01em;
+  }
+  .diagnostic-sub {
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-bottom: 56px;
+    font-weight: 300;
+    line-height: 1.7;
+  }
+
+  /* Steps */
+  .diag-steps {
+    display: none;
+  }
+  .diag-steps.active {
+    display: block;
+  }
+  .step-progress {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 48px;
+  }
+  .step-dot {
+    width: 24px;
+    height: 2px;
+    background: var(--border-active);
+    transition: background 0.3s;
+  }
+  .step-dot.done { background: var(--gold); }
+  .step-dot.current { background: var(--neon); }
+
+  .step-question {
+    font-size: 18px;
+    font-weight: 300;
+    color: #f0f0f0;
+    line-height: 1.5;
+    margin-bottom: 36px;
+  }
+  .step-counter {
+    font-size: 10px;
+    color: var(--text-faint);
+    letter-spacing: 0.12em;
+    margin-bottom: 16px;
+  }
+  .options-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 32px;
+  }
+  .option-btn {
+    background: var(--void-soft);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    padding: 18px 20px;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.2s;
+    line-height: 1.5;
+    font-weight: 300;
+  }
+  .option-btn:hover {
+    border-color: var(--gold-dim);
+    color: var(--text);
+    background: var(--void-mid);
+  }
+  .option-btn.selected {
+    border-color: var(--gold);
+    color: var(--gold);
+    background: rgba(200,169,81,0.06);
+  }
+
+  /* Result panel */
+  .diag-result {
+    display: none;
+    padding: 40px;
+    border: 1px solid var(--border);
+    background: var(--void-soft);
+    position: relative;
+    overflow: hidden;
+  }
+  .diag-result.show {
+    display: block;
+    animation: fadeUp 0.5s var(--easing) forwards;
+  }
+  .diag-result::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--gold), var(--neon));
+  }
+  .result-label {
+    font-size: 9px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 16px;
+  }
+  .result-title {
+    font-size: 22px;
+    font-weight: 300;
+    color: #f0f0f0;
+    margin-bottom: 20px;
+    line-height: 1.4;
+  }
+  .result-body {
+    font-size: 12px;
+    color: var(--text-dim);
+    line-height: 1.9;
+    margin-bottom: 32px;
+    font-weight: 300;
+  }
+  .result-cta {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .diag-trigger {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+  }
+  .diag-timer {
+    font-size: 10px;
+    color: var(--text-faint);
+    letter-spacing: 0.1em;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── SERVICES ── */
+  #services {
+    border-top: 1px solid var(--border);
+    padding: 120px 48px;
+  }
+  .services-header {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 48px;
+    margin-bottom: 72px;
+    align-items: end;
+  }
+  .services-h2 {
+    font-size: clamp(24px, 3vw, 36px);
+    font-weight: 300;
+    line-height: 1.3;
+    color: #f0f0f0;
+    letter-spacing: -0.01em;
+  }
+  .services-intro {
+    font-size: 12px;
+    color: var(--text-dim);
+    line-height: 1.9;
+    font-weight: 300;
+  }
+  .services-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0;
+    border: 1px solid var(--border);
+  }
+  .service-card {
+    padding: 40px 36px;
+    border-right: 1px solid var(--border);
+    transition: background 0.3s;
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+  }
+  .service-card:last-child { border-right: none; }
+  .service-card:hover { background: var(--void-soft); }
+  .service-card::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 0;
+    background: linear-gradient(0deg, rgba(200,169,81,0.08), transparent);
+    transition: height 0.4s var(--easing);
+  }
+  .service-card:hover::after { height: 100%; }
+  .service-num {
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    color: var(--text-faint);
+    margin-bottom: 24px;
+  }
+  .service-icon {
+    font-size: 28px;
+    margin-bottom: 20px;
+    filter: grayscale(0.5);
+  }
+  .service-name {
+    font-size: 15px;
+    font-weight: 500;
+    color: #f0f0f0;
+    margin-bottom: 12px;
+    letter-spacing: 0.02em;
+  }
+  .service-desc {
+    font-size: 11px;
+    color: var(--text-dim);
+    line-height: 1.8;
+    font-weight: 300;
+    margin-bottom: 24px;
+  }
+  .service-tag {
+    display: inline-block;
+    font-size: 9px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--gold-dim);
+    border: 1px solid var(--gold-dim);
+    padding: 4px 10px;
+  }
+
+  /* ── HOW IT WORKS ── */
+  #process {
+    border-top: 1px solid var(--border);
+    padding: 120px 48px;
+    background: var(--void-mid);
+  }
+  .process-header {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 48px;
+    margin-bottom: 80px;
+    align-items: start;
+  }
+  .process-h2 {
+    font-size: clamp(20px, 2.5vw, 30px);
+    font-weight: 300;
+    line-height: 1.3;
+    color: #f0f0f0;
+    position: sticky;
+    top: 100px;
+  }
+  .process-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+  .process-step {
+    display: grid;
+    grid-template-columns: 60px 1fr;
+    gap: 32px;
+    padding: 40px 0;
+    border-bottom: 1px solid var(--border);
+    align-items: start;
+    position: relative;
+    transition: padding-left 0.3s;
+  }
+  .process-step:first-child { padding-top: 0; }
+  .process-step:last-child { border-bottom: none; }
+  .process-step:hover { padding-left: 8px; }
+  .step-num-large {
+    font-size: 40px;
+    font-weight: 300;
+    color: var(--border-active);
+    line-height: 1;
+    transition: color 0.3s;
+  }
+  .process-step:hover .step-num-large { color: var(--gold-dim); }
+  .step-content {}
+  .step-title {
+    font-size: 15px;
+    font-weight: 500;
+    color: #f0f0f0;
+    margin-bottom: 10px;
+    letter-spacing: 0.02em;
+  }
+  .step-body {
+    font-size: 11px;
+    color: var(--text-dim);
+    line-height: 1.9;
+    font-weight: 300;
+    max-width: 480px;
+  }
+  .step-duration {
+    display: inline-block;
+    margin-top: 12px;
+    font-size: 9px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+  }
+
+  /* ── SOCIAL PROOF ── */
+  #proof {
+    border-top: 1px solid var(--border);
+    padding: 80px 48px;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 0;
+  }
+  .proof-item {
+    padding: 40px 36px;
+    border-right: 1px solid var(--border);
+  }
+  .proof-item:last-child { border-right: none; }
+  .proof-stat {
+    font-size: 48px;
+    font-weight: 300;
+    color: var(--gold);
+    line-height: 1;
+    margin-bottom: 8px;
+  }
+  .proof-unit {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-bottom: 16px;
+    font-weight: 300;
+    line-height: 1.6;
+  }
+  .proof-label {
+    font-size: 9px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+  }
+
+  /* ── WHO IS THIS FOR ── */
+  #audience {
+    border-top: 1px solid var(--border);
+    padding: 120px 48px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 80px;
+    align-items: start;
+  }
+  .audience-left {}
+  .audience-h2 {
+    font-size: clamp(24px, 3vw, 36px);
+    font-weight: 300;
+    line-height: 1.3;
+    color: #f0f0f0;
+    margin-bottom: 24px;
+    letter-spacing: -0.01em;
+  }
+  .audience-body {
+    font-size: 12px;
+    color: var(--text-dim);
+    line-height: 1.9;
+    font-weight: 300;
+    margin-bottom: 40px;
+  }
+  .audience-right {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+  .audience-item {
+    padding: 24px 0;
+    border-bottom: 1px solid var(--border);
+    display: grid;
+    grid-template-columns: 16px 1fr;
+    gap: 16px;
+    align-items: start;
+  }
+  .audience-item:last-child { border-bottom: none; }
+  .audience-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--gold);
+    margin-top: 7px;
+    flex-shrink: 0;
+  }
+  .audience-text {
+    font-size: 12px;
+    color: var(--text-dim);
+    line-height: 1.7;
+    font-weight: 300;
+  }
+  .audience-text strong {
+    color: #f0f0f0;
+    font-weight: 500;
+  }
+
+  /* ── CONTACT ── */
+  #contact {
+    border-top: 1px solid var(--border);
+    padding: 120px 48px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 80px;
+    align-items: start;
+  }
+  .contact-left {}
+  .contact-h2 {
+    font-size: clamp(28px, 4vw, 48px);
+    font-weight: 300;
+    line-height: 1.2;
+    color: #f0f0f0;
+    letter-spacing: -0.02em;
+    margin-bottom: 24px;
+  }
+  .contact-h2 span { color: var(--gold); }
+  .contact-body {
+    font-size: 12px;
+    color: var(--text-dim);
+    line-height: 1.9;
+    font-weight: 300;
+    margin-bottom: 40px;
+  }
+  .contact-identity {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .contact-name {
+    font-size: 13px;
+    color: #f0f0f0;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+  }
+  .contact-title {
+    font-size: 11px;
+    color: var(--text-dim);
+    font-weight: 300;
+  }
+  .contact-alias {
+    font-size: 10px;
+    color: var(--text-faint);
+    margin-top: 4px;
+    letter-spacing: 0.1em;
+  }
+
+  .contact-right {}
+  .contact-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .form-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .form-label {
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+  }
+  .form-input, .form-select, .form-textarea {
+    background: var(--void-soft);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    padding: 14px 16px;
+    width: 100%;
+    transition: border-color 0.2s;
+    outline: none;
+    font-weight: 300;
+  }
+  .form-input:focus, .form-select:focus, .form-textarea:focus {
+    border-color: var(--gold-dim);
+  }
+  .form-select {
+    cursor: pointer;
+    -webkit-appearance: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23737373'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 16px center;
+    padding-right: 36px;
+  }
+  .form-select option { background: var(--void-soft); }
+  .form-textarea {
+    resize: vertical;
+    min-height: 100px;
+  }
+  .form-submit {
+    background: var(--neon);
+    color: var(--void);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    padding: 18px 36px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s var(--easing);
+    width: 100%;
+    position: relative;
+    overflow: hidden;
+  }
+  .form-submit:hover { background: #fff; }
+  .form-submit:active { transform: scale(0.99); }
+  .form-note {
+    font-size: 10px;
+    color: var(--text-faint);
+    line-height: 1.7;
+    font-weight: 300;
+    letter-spacing: 0.02em;
+  }
+
+  /* ── SUCCESS MESSAGE ── */
+  .form-success {
+    display: none;
+    padding: 40px;
+    border: 1px solid var(--gold-dim);
+    text-align: center;
+  }
+  .form-success.show { display: block; animation: fadeUp 0.5s var(--easing); }
+  .form-success-icon {
+    font-size: 32px;
+    margin-bottom: 16px;
+  }
+  .form-success-title {
+    font-size: 16px;
+    font-weight: 300;
+    color: #f0f0f0;
+    margin-bottom: 8px;
+  }
+  .form-success-body {
+    font-size: 11px;
+    color: var(--text-dim);
+    font-weight: 300;
+    line-height: 1.8;
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 32px 48px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .footer-left {
+    font-size: 10px;
+    color: var(--text-faint);
+    letter-spacing: 0.1em;
+  }
+  .footer-right {
+    font-size: 10px;
+    color: var(--text-faint);
+    letter-spacing: 0.06em;
+  }
+  .footer-right span { color: var(--gold-dim); }
+
+  /* ── CURSOR FOLLOWER ── */
+  .cursor-dot {
+    position: fixed;
+    width: 4px;
+    height: 4px;
+    background: var(--gold);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 9998;
+    transform: translate(-50%, -50%);
+    transition: opacity 0.3s;
+  }
+
+  /* ── SCROLL INDICATOR ── */
+  .scroll-line {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--gold), var(--neon));
+    z-index: 9997;
+    width: 0%;
+    transition: width 0.1s;
+  }
+
+  /* ── MOBILE ── */
+  @media (max-width: 900px) {
+    nav { padding: 16px 24px; }
+    #hero { grid-template-columns: 1fr; min-height: auto; }
+    .hero-left { padding: 120px 24px 60px; }
+    .hero-right { display: none; }
+    #diagnostic, #services, #process, #proof, #audience, #contact { padding: 80px 24px; }
+    .services-header, .process-header, .audience-left, .contact-left { grid-column: 1 / -1; }
+    .services-grid { grid-template-columns: 1fr; }
+    .service-card { border-right: none; border-bottom: 1px solid var(--border); }
+    .service-card:last-child { border-bottom: none; }
+    .options-grid { grid-template-columns: 1fr; }
+    #proof { grid-template-columns: 1fr; }
+    .proof-item { border-right: none; border-bottom: 1px solid var(--border); }
+    .proof-item:last-child { border-bottom: none; }
+    #audience { grid-template-columns: 1fr; gap: 40px; }
+    #contact { grid-template-columns: 1fr; gap: 48px; }
+    .form-row { grid-template-columns: 1fr; }
+    footer { flex-direction: column; gap: 12px; text-align: center; }
+    .services-header { grid-template-columns: 1fr; }
+    .process-header { grid-template-columns: 1fr; }
+    .process-h2 { position: static; }
+  }
+</style>
+</head>
+<body>
+
+<div class="scroll-line" id="scrollLine"></div>
+<div class="cursor-dot" id="cursorDot"></div>
+
+<!-- NAV -->
+<nav id="mainNav">
+  <a href="#" class="nav-logo">SYSTEM<span>·</span>FRICTION</a>
+  <a href="#contact" class="nav-cta">Contactar ahora</a>
+</nav>
+
+<!-- HERO -->
+<section id="hero">
+  <div class="hero-left">
+    <div class="hero-tag">Sistema de Diagnóstico Institucional</div>
+    <h1 class="hero-h1">
+      Tu sistema no está<br>fallando por falta<br>de datos.<br>
+      Falla porque <em>nadie</em><br>mide la distancia.
+    </h1>
+    <p class="hero-sub">
+      System Friction mapea y cuantifica la brecha entre lo que tu institución declara que hace y lo que realmente ocurre en su sustrato. No es consultoría convencional. Es instrumentación de precisión.
+    </p>
+    <div class="hero-actions">
+      <a href="#diagnostic" class="btn-primary">Diagnóstico en 60 segundos</a>
+      <a href="#services" class="btn-ghost">Ver qué hago</a>
+    </div>
+  </div>
+  <div class="hero-right">
+    <div class="scan-line"></div>
+    <div class="hero-metric-grid">
+      <div class="metric-item">
+        <div class="metric-label">Índice Homeostático Global</div>
+        <div class="metric-value">IHG</div>
+        <div class="metric-desc">Distancia real entre umbral oficial y umbral físico del sistema</div>
+      </div>
+      <div class="metric-item">
+        <div class="metric-label">Latencia Institucional</div>
+        <div class="metric-value">LDI</div>
+        <div class="metric-desc">Tiempo entre detección técnica y respuesta ejecutiva verificable</div>
+      </div>
+      <div class="metric-item">
+        <div class="metric-label">Nodo de Trazabilidad</div>
+        <div class="metric-value">NTI</div>
+        <div class="metric-desc">Integridad epistémica de la señal. Si falla, el resto no cuenta</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- DIAGNOSTIC -->
+<section id="diagnostic">
+  <div class="section-tag">01 — Diagnóstico rápido</div>
+
+  <div class="diagnostic-container">
+    <!-- PRE-START STATE -->
+    <div id="diagStart">
+      <h2 class="diagnostic-h2">¿Cuánta fricción<br>está absorbiendo tu sistema?</h2>
+      <p class="diagnostic-sub">
+        3 preguntas. 60 segundos. Un primer mapa de tu situación.<br>
+        Sin registro. Sin email. Sin compromiso previo.
+      </p>
+      <div class="diag-trigger">
+        <button class="btn-primary" onclick="startDiag()">Iniciar diagnóstico</button>
+        <span class="diag-timer">⟡ aprox. 60 seg</span>
+      </div>
+    </div>
+
+    <!-- STEPS -->
+    <div id="diagSteps" class="diag-steps">
+      <div class="step-progress">
+        <div class="step-dot" id="dot0"></div>
+        <div class="step-dot" id="dot1"></div>
+        <div class="step-dot" id="dot2"></div>
+      </div>
+      <div id="stepContent"></div>
+    </div>
+
+    <!-- RESULT -->
+    <div id="diagResult" class="diag-result"></div>
+  </div>
+</section>
+
+<!-- SERVICES -->
+<section id="services">
+  <div class="section-tag">02 — Qué hago</div>
+  <div class="services-header">
+    <h2 class="services-h2">Tres formas de<br>intervenir en tu sistema.</h2>
+    <p class="services-intro">
+      Cada intervención produce un entregable concreto: un mapa, un protocolo, o una arquitectura. No reportes de PowerPoint. Instrumentos que se pueden ejecutar.
+    </p>
+  </div>
+  <div class="services-grid">
+    <div class="service-card" onclick="document.getElementById('contact').scrollIntoView({behavior:'smooth'})">
+      <div class="service-num">S·01</div>
+      <div class="service-icon">◈</div>
+      <div class="service-name">Auditoría de Fricción Sistémica</div>
+      <div class="service-desc">
+        Diagnóstico profundo del estado homeostático de tu institución. Medición de IHG, LDI y NTI. Identificación de los puntos donde la entropía se acumula invisiblemente bajo indicadores estables.
+      </div>
+      <div class="service-tag">Entregable: Mapa SF + Reporte MIHM</div>
+    </div>
+    <div class="service-card" onclick="document.getElementById('contact').scrollIntoView({behavior:'smooth'})">
+      <div class="service-num">S·02</div>
+      <div class="service-icon">⬡</div>
+      <div class="service-name">Protocolo de Intervención</div>
+      <div class="service-desc">
+        Diseño de arquitectura de respuesta adaptada a la topografía de fricción de tu sistema. Reglas de decisión humana, compuertas de validación y protocolos de redistribución de carga.
+      </div>
+      <div class="service-tag">Entregable: MOP-H + Protocolo VHpD</div>
+    </div>
+    <div class="service-card" onclick="document.getElementById('contact').scrollIntoView({behavior:'smooth'})">
+      <div class="service-num">S·03</div>
+      <div class="service-icon">◎</div>
+      <div class="service-name">Consultoría Estratégica</div>
+      <div class="service-desc">
+        Acompañamiento directo en la toma de decisiones de alto impacto. Para directivos que necesitan nombrar lo que ya perciben pero no pueden instrumentalizar sin un marco formal.
+      </div>
+      <div class="service-tag">Entregable: Sesiones + Documentación</div>
+    </div>
+  </div>
+</section>
+
+<!-- PROCESS -->
+<section id="process">
+  <div class="section-tag">03 — Cómo funciona</div>
+  <div class="process-header">
+    <h2 class="process-h2">Del contacto<br>al diagnóstico<br>en 72 horas.</h2>
+    <div class="process-steps">
+      <div class="process-step">
+        <div class="step-num-large">01</div>
+        <div class="step-content">
+          <div class="step-title">Contacto inicial (asíncrono)</div>
+          <div class="step-body">Describís brevemente el sistema, institución o problema. No necesitás tener el diagnóstico previo. Lo que tenés es suficiente para empezar. Respondo en menos de 24 horas con una evaluación de viabilidad.</div>
+          <span class="step-duration">⟡ 5 minutos de tu parte</span>
+        </div>
+      </div>
+      <div class="process-step">
+        <div class="step-num-large">02</div>
+        <div class="step-content">
+          <div class="step-title">Entrevista de calibración</div>
+          <div class="step-body">Sesión de 60 minutos para mapear el terreno. No es una reunión de ventas. Es la primera capa del diagnóstico. Al terminar ya tenés información útil, independientemente de si continuamos.</div>
+          <span class="step-duration">⟡ 60 minutos</span>
+        </div>
+      </div>
+      <div class="process-step">
+        <div class="step-num-large">03</div>
+        <div class="step-content">
+          <div class="step-title">Propuesta específica</div>
+          <div class="step-body">Con base en la entrevista, diseño una propuesta con alcance, herramientas y entregables concretos. Sin paquetes genéricos. Cada intervención es construida para el sistema que la necesita.</div>
+          <span class="step-duration">⟡ 48–72 horas</span>
+        </div>
+      </div>
+      <div class="process-step">
+        <div class="step-num-large">04</div>
+        <div class="step-content">
+          <div class="step-title">Ejecución y entregable</div>
+          <div class="step-body">El trabajo produce instrumentos que podés usar, citar e implementar. No documentos que se archivan. Mapas que se ejecutan.</div>
+          <span class="step-duration">⟡ Según alcance definido</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PROOF -->
+<section id="proof">
+  <div class="proof-item">
+    <div class="proof-stat">12+</div>
+    <div class="proof-unit">años operando dentro de sistemas institucionales complejos con consecuencias reales</div>
+    <div class="proof-label">Experiencia directa</div>
+  </div>
+  <div class="proof-item">
+    <div class="proof-stat">∅</div>
+    <div class="proof-unit">consultorías genéricas. Cada intervención es diseñada desde cero para el sistema específico</div>
+    <div class="proof-label">Sin paquetes estándar</div>
+  </div>
+  <div class="proof-item">
+    <div class="proof-stat">24h</div>
+    <div class="proof-unit">tiempo máximo de respuesta a cualquier contacto inicial. Sin formularios automáticos</div>
+    <div class="proof-label">Respuesta humana directa</div>
+  </div>
+</section>
+
+<!-- AUDIENCE -->
+<section id="audience">
+  <div class="audience-left">
+    <div class="section-tag">04 — Para quién</div>
+    <h2 class="audience-h2">Esto no es para todos.<br>Es para quien ya<br>percibe el patrón.</h2>
+    <p class="audience-body">
+      System Friction no trabaja con organizaciones que buscan validación de lo que ya creen. Trabaja con quienes están listos para instrumentalizar lo que ya saben pero no pueden demostrar formalmente.
+    </p>
+    <a href="#contact" class="btn-primary">Estoy listo — contactar</a>
+  </div>
+  <div class="audience-right">
+    <div class="audience-item">
+      <div class="audience-dot"></div>
+      <div class="audience-text">
+        <strong>Directivos institucionales</strong> que perciben que los indicadores están bien pero algo sistémico está fallando, y no encuentran el lenguaje para nombrarlo ni el marco para medirlo.
+      </div>
+    </div>
+    <div class="audience-item">
+      <div class="audience-dot"></div>
+      <div class="audience-text">
+        <strong>Equipos técnicos</strong> que detectan anomalías pero no logran que la señal suba sin distorsionarse. Que pierden precisión en cada capa que atraviesan.
+      </div>
+    </div>
+    <div class="audience-item">
+      <div class="audience-dot"></div>
+      <div class="audience-text">
+        <strong>Fundadores y operadores</strong> de sistemas complejos donde la fricción entre la visión y la ejecución está costando más de lo que los números oficiales muestran.
+      </div>
+    </div>
+    <div class="audience-item">
+      <div class="audience-dot"></div>
+      <div class="audience-text">
+        <strong>Investigadores y académicos</strong> que trabajan en la frontera entre teoría institucional y evidencia empírica, y necesitan un interlocutor con marco formal propio.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CONTACT -->
+<section id="contact">
+  <div class="contact-left">
+    <div class="section-tag">05 — Contacto</div>
+    <h2 class="contact-h2">Describí tu<br>sistema.<br><span>Yo hago el resto.</span></h2>
+    <p class="contact-body">
+      No necesitás tener el problema perfectamente articulado. Solo describí lo que estás viendo, lo que no cuadra, lo que nadie está nombrando. Con eso es suficiente para empezar.
+    </p>
+    <div class="contact-identity">
+      <div class="contact-name">Juan Antonio Marín Liera</div>
+      <div class="contact-title">Fundador · System Friction Institute</div>
+      <div class="contact-alias">// Aptymok · Aguascalientes, México</div>
+    </div>
+  </div>
+  <div class="contact-right">
+    <form class="contact-form" id="contactForm" onsubmit="handleSubmit(event)">
+      <div class="form-row">
+        <div class="form-field">
+          <label class="form-label">Nombre</label>
+          <input type="text" class="form-input" placeholder="Tu nombre" required>
+        </div>
+        <div class="form-field">
+          <label class="form-label">Organización</label>
+          <input type="text" class="form-input" placeholder="Donde operas">
+        </div>
+      </div>
+      <div class="form-field">
+        <label class="form-label">Email</label>
+        <input type="email" class="form-input" placeholder="tu@email.com" required>
+      </div>
+      <div class="form-field">
+        <label class="form-label">¿Qué tipo de intervención buscás?</label>
+        <select class="form-select">
+          <option value="" disabled selected>Seleccionar</option>
+          <option>Auditoría de fricción sistémica</option>
+          <option>Protocolo de intervención</option>
+          <option>Consultoría estratégica</option>
+          <option>No sé todavía — quiero explorar</option>
+        </select>
+      </div>
+      <div class="form-field">
+        <label class="form-label">Describí brevemente lo que está pasando</label>
+        <textarea class="form-textarea" placeholder="No necesitás articularlo perfecto. Lo que estás percibiendo es suficiente..." required></textarea>
+      </div>
+      <button type="submit" class="form-submit">Enviar — quiero hablar con Juan</button>
+      <p class="form-note">Respuesta en menos de 24 horas. Sin formularios automáticos. Sin pitch de ventas.</p>
+    </form>
+    <div class="form-success" id="formSuccess">
+      <div class="form-success-icon">◈</div>
+      <div class="form-success-title">Mensaje recibido.</div>
+      <div class="form-success-body">
+        Juan revisará tu mensaje y responderá en menos de 24 horas.<br>
+        La señal ya está en tránsito.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-left">© 2026 System Friction Institute · Aguascalientes, México</div>
+  <div class="footer-right">MIHM v2.0 · <span>IHG · LDI · NTI</span> · Todos los instrumentos son propios</div>
+</footer>
+
+<script>
+// ── CURSOR ──
+const cursor = document.getElementById('cursorDot');
+document.addEventListener('mousemove', e => {
+  cursor.style.left = e.clientX + 'px';
+  cursor.style.top = e.clientY + 'px';
+});
+
+// ── SCROLL EFFECTS ──
+const nav = document.getElementById('mainNav');
+const scrollLine = document.getElementById('scrollLine');
+window.addEventListener('scroll', () => {
+  nav.classList.toggle('scrolled', window.scrollY > 40);
+  const pct = (window.scrollY / (document.body.scrollHeight - window.innerHeight)) * 100;
+  scrollLine.style.width = pct + '%';
+});
+
+// ── DIAGNOSTIC FLOW ──
+const questions = [
+  {
+    q: "¿Cuándo fue la última vez que tu sistema admitió formalmente un fallo real — no una mejora de proceso, sino un error estructural?",
+    opts: [
+      "Nunca. Los indicadores siempre están en verde.",
+      "Hace más de un año. Se documentó y se archivó.",
+      "Recientemente, pero el diagnóstico fue superficial.",
+      "Tenemos cultura de fallo visible. Se nombra rápido."
+    ],
+    weight: [3, 2, 1, 0]
+  },
+  {
+    q: "Cuando alguien detecta una anomalía técnica, ¿cuánto tarda en convertirse en decisión ejecutiva verificable?",
+    opts: [
+      "Semanas o meses. Depende de ciclos políticos internos.",
+      "Días. Hay estructura, pero con fricción visible.",
+      "48 horas. El canal existe y funciona.",
+      "La señal rara vez llega a quien puede decidir."
+    ],
+    weight: [3, 2, 1, 3]
+  },
+  {
+    q: "¿Existe alguien en tu organización cuyo trabajo sea verificar que los datos que circulan son íntegros — no que sean correctos, sino que no estén distorsionados?",
+    opts: [
+      "No. Asumimos que los datos son confiables.",
+      "Hay auditoría, pero revisa resultados, no señales.",
+      "Sí, pero es una capa formal, no operativa.",
+      "Sí, y tiene autoridad para invalidar decisiones."
+    ],
+    weight: [3, 2, 1, 0]
+  }
+];
+
+let currentStep = 0;
+let scores = [];
+
+function startDiag() {
+  document.getElementById('diagStart').style.display = 'none';
+  document.getElementById('diagSteps').classList.add('active');
+  renderStep(0);
+}
+
+function renderStep(idx) {
+  // Update dots
+  for (let i = 0; i < 3; i++) {
+    const d = document.getElementById('dot' + i);
+    d.className = 'step-dot';
+    if (i < idx) d.classList.add('done');
+    else if (i === idx) d.classList.add('current');
+  }
+
+  const q = questions[idx];
+  const container = document.getElementById('stepContent');
+  container.innerHTML = `
+    <div class="step-counter">Pregunta ${idx + 1} de 3</div>
+    <div class="step-question">${q.q}</div>
+    <div class="options-grid" id="optGrid">
+      ${q.opts.map((opt, i) => `
+        <button class="option-btn" onclick="selectOption(${idx}, ${i}, ${q.weight[i]})">${opt}</button>
+      `).join('')}
+    </div>
+  `;
+  container.style.opacity = '0';
+  container.style.transform = 'translateX(16px)';
+  setTimeout(() => {
+    container.style.transition = 'all 0.4s cubic-bezier(0.16,1,0.3,1)';
+    container.style.opacity = '1';
+    container.style.transform = 'translateX(0)';
+  }, 20);
+}
+
+function selectOption(stepIdx, optIdx, weight) {
+  // highlight
+  const btns = document.querySelectorAll('#optGrid .option-btn');
+  btns.forEach(b => b.classList.remove('selected'));
+  btns[optIdx].classList.add('selected');
+
+  scores.push(weight);
+
+  setTimeout(() => {
+    if (stepIdx < 2) {
+      currentStep++;
+      renderStep(currentStep);
+    } else {
+      showResult();
+    }
+  }, 400);
+}
+
+function showResult() {
+  document.getElementById('diagSteps').style.display = 'none';
+
+  const total = scores.reduce((a, b) => a + b, 0);
+  let level, title, body, color;
+
+  if (total <= 2) {
+    level = 'FRICCIÓN BAJA';
+    title = 'Tu sistema tiene trazabilidad activa.';
+    body = 'Las señales circulan con integridad razonable. La brecha entre umbral oficial y real es pequeña. Esto no significa ausencia de fricción — significa que está siendo gestionada. Vale la pena documentar qué la mantiene así antes de que cambie el contexto.';
+    color = '#4a9e6a';
+  } else if (total <= 5) {
+    level = 'FRICCIÓN MEDIA-ALTA';
+    title = 'Hay acumulación sistémica invisible.';
+    body = 'Tus indicadores formales probablemente muestran estabilidad. Pero la latencia institucional está generando entropía bajo la superficie. El riesgo no es inminente, pero el margen se estrecha. Este es el momento de mapear, no de esperar.';
+    color = '#c8a951';
+  } else {
+    level = 'FRICCIÓN CRÍTICA';
+    title = 'La distancia entre ambos umbrales es estructural.';
+    body = 'Tu sistema está operando con una brecha significativa entre lo que declara y lo que ocurre físicamente. La LDI supera la velocidad de degradación en al menos una capa. Sin instrumentación formal de la fricción, el colapso no es un escenario de riesgo — es una trayectoria activa.';
+    color = '#e85a4f';
+  }
+
+  const resultEl = document.getElementById('diagResult');
+  resultEl.innerHTML = `
+    <div class="result-label" style="color:${color}">${level} — Score ${total}/9</div>
+    <div class="result-title">${title}</div>
+    <div class="result-body">${body}</div>
+    <div class="result-cta">
+      <a href="#contact" class="btn-primary">Quiero el diagnóstico completo</a>
+      <span style="font-size:11px;color:var(--text-faint)">Esto fue el 1% del análisis real.</span>
+    </div>
+  `;
+  resultEl.classList.add('show');
+
+  // Scroll into view
+  setTimeout(() => resultEl.scrollIntoView({ behavior: 'smooth', block: 'center' }), 200);
+}
+
+// ── FORM ──
+function handleSubmit(e) {
+  e.preventDefault();
+  document.getElementById('contactForm').style.display = 'none';
+  document.getElementById('formSuccess').classList.add('show');
+}
+
+// ── SMOOTH ANCHOR ──
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+  a.addEventListener('click', e => {
+    const target = document.querySelector(a.getAttribute('href'));
+    if (target) {
+      e.preventDefault();
+      target.scrollIntoView({ behavior: 'smooth' });
+    }
+  });
+});
+</script>
+</body>
+</html>

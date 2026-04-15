@@ -1,15 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-76H63FV9DG"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'G-76H63FV9DG');
-</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Diagnóstico — System Friction</title>
@@ -341,23 +332,9 @@
     .diag-cta-block { grid-template-columns: 1fr; gap: 32px; }
     footer { flex-direction: column; gap: 10px; text-align: center; padding: 24px; }
   }
-#sf-nodes {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  opacity: 0.35;
-}
-
-body > *:not(#sf-nodes) {
-  position: relative;
-  z-index: 1;
-}
 </style>
 </head>
 <body>
-
-<canvas id="sf-nodes"></canvas>
 
 <div class="scroll-line" id="scrollLine"></div>
 

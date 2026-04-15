@@ -1,90 +1,330 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <!-- Google tag (gtag.js) -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-76H63FV9DG"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', 'G-76H63FV9DG');
-  </script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aplicar — System Friction</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --void: #080808;
+    --void-mid: #0f0f0f;
+    --void-soft: #161616;
+    --gold: #C8A951;
+    --gold-dim: #9a7f3a;
+    --neon: #E6FF00;
+    --neon-dim: #b8cc00;
+    --text: #d4d4d4;
+    --text-dim: #737373;
+    --text-faint: #2e2e2e;
+    --border: #1e1e1e;
+    --font-mono: 'IBM Plex Mono', monospace;
+    --easing: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--void);
+    color: var(--text);
+    font-family: var(--font-mono);
+    line-height: 1.6;
+    overflow-x: hidden;
+    cursor: crosshair;
+  }
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none; z-index: 9999; opacity: 0.4;
+  }
 
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Observatory — System Friction</title>
+  /* ── NAV ── */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    padding: 20px 48px;
+    display: flex; justify-content: space-between; align-items: center;
+    border-bottom: 1px solid var(--border);
+    background: rgba(8,8,8,0.94);
+    backdrop-filter: blur(12px);
+  }
+  .nav-logo {
+    font-size: 11px; font-weight: 500; letter-spacing: 0.18em;
+    text-transform: uppercase; color: var(--gold); text-decoration: none;
+  }
+  .nav-logo span { color: var(--text-dim); }
+  .nav-right { display: flex; align-items: center; gap: 32px; }
+  .nav-link {
+    font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--text-dim); text-decoration: none; transition: color 0.2s;
+  }
+  .nav-link:hover { color: var(--text); }
+  .nav-link.active { color: var(--neon); }
+  .nav-cta {
+    font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--void); background: var(--neon); padding: 8px 20px;
+    font-family: var(--font-mono); font-weight: 600;
+    transition: background 0.2s; text-decoration: none;
+  }
+  .nav-cta:hover { background: #fff; }
 
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/style.css">
+  /* ── LAYOUT ── */
+  .page {
+    min-height: 100vh;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  /* ── LEFT PANEL ── */
+  .left-panel {
+    padding: 130px 64px 80px 48px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    border-right: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow: hidden;
+  }
+  .left-top {}
+  .breadcrumb {
+    font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase;
+    color: var(--text-faint); margin-bottom: 56px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .breadcrumb a { color: var(--text-faint); text-decoration: none; transition: color 0.2s; }
+  .breadcrumb a:hover { color: var(--text-dim); }
+  .left-tag {
+    font-size: 9px; letter-spacing: 0.22em; text-transform: uppercase;
+    color: var(--gold-dim); margin-bottom: 28px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .left-tag::before { content: ''; display: block; width: 20px; height: 1px; background: var(--gold-dim); }
+  .left-h1 {
+    font-size: clamp(28px, 3.5vw, 44px); font-weight: 300;
+    line-height: 1.2; letter-spacing: -0.02em;
+    color: #f0f0f0; margin-bottom: 24px;
+  }
+  .left-h1 span { color: var(--gold); }
+  .left-body {
+    font-size: 12px; color: var(--text-dim);
+    line-height: 1.9; font-weight: 300; max-width: 380px;
+    margin-bottom: 40px;
+  }
+
+  /* Garantías */
+  .guarantees {
+    display: flex; flex-direction: column; gap: 0;
+    margin-bottom: 40px;
+  }
+  .guarantee-item {
+    padding: 16px 0; border-bottom: 1px solid var(--border);
+    display: grid; grid-template-columns: 16px 1fr; gap: 14px;
+    align-items: start;
+  }
+  .guarantee-item:last-child { border-bottom: none; }
+  .g-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--gold-dim); margin-top: 6px; }
+  .g-text { font-size: 11px; color: var(--text-dim); line-height: 1.7; font-weight: 300; }
+  .g-text strong { color: #f0f0f0; font-weight: 500; }
+
+  /* Identidad */
+  .identity {
+    padding-top: 32px;
+    border-top: 1px solid var(--border);
+  }
+  .identity-name { font-size: 13px; color: #f0f0f0; font-weight: 500; margin-bottom: 4px; }
+  .identity-role { font-size: 11px; color: var(--text-dim); font-weight: 300; margin-bottom: 2px; }
+  .identity-alias { font-size: 10px; color: var(--text-faint); letter-spacing: 0.08em; }
+
+  /* ── RIGHT PANEL ── */
+  .right-panel {
+    padding: 130px 48px 80px 64px;
+    overflow-y: auto;
+  }
+
+  /* Selector de intención */
+  .intent-selector {
+    margin-bottom: 48px;
+    opacity: 0; animation: fadeUp 0.4s var(--easing) 0.1s forwards;
+  }
+  .intent-label {
+    font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase;
+    color: var(--text-faint); margin-bottom: 16px;
+  }
+  .intent-options {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+  }
+  .intent-btn {
+    background: var(--void-soft); border: 1px solid var(--border);
+    color: var(--text-dim); font-family: var(--font-mono);
+    font-size: 11px; padding: 16px 18px; text-align: left;
+    cursor: pointer; transition: all 0.2s; line-height: 1.5; font-weight: 300;
+  }
+  .intent-btn:hover { border-color: var(--gold-dim); color: var(--text); }
+  .intent-btn.selected {
+    border-color: var(--gold); color: var(--gold);
+    background: rgba(200,169,81,0.06);
+  }
+  .intent-btn .intent-icon { display: block; font-size: 16px; margin-bottom: 8px; }
+  .intent-btn .intent-name { display: block; font-weight: 500; margin-bottom: 4px; }
+  .intent-btn .intent-desc { display: block; font-size: 10px; color: inherit; opacity: 0.7; }
+
+  /* Form */
+  .contact-form {
+    display: flex; flex-direction: column; gap: 20px;
+    opacity: 0; animation: fadeUp 0.4s var(--easing) 0.2s forwards;
+  }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .form-field { display: flex; flex-direction: column; gap: 7px; }
+  .form-label {
+    font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase;
+    color: var(--text-faint);
+  }
+  .form-label span { color: var(--gold-dim); margin-left: 3px; }
+  .form-input, .form-select, .form-textarea {
+    background: var(--void-soft); border: 1px solid var(--border);
+    color: var(--text); font-family: var(--font-mono);
+    font-size: 12px; padding: 14px 16px; width: 100%;
+    transition: border-color 0.2s; outline: none; font-weight: 300;
+  }
+  .form-input:focus, .form-select:focus, .form-textarea:focus {
+    border-color: var(--gold-dim);
+  }
+  .form-input::placeholder, .form-textarea::placeholder { color: var(--text-faint); }
+  .form-select {
+    cursor: pointer; -webkit-appearance: none; appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23737373'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 16px center; padding-right: 36px;
+  }
+  .form-select option { background: #161616; }
+  .form-textarea { resize: vertical; min-height: 110px; }
+
+  /* Campo de urgencia */
+  .urgency-row {
+    display: flex; gap: 8px; flex-wrap: wrap;
+  }
+  .urgency-btn {
+    background: var(--void-soft); border: 1px solid var(--border);
+    color: var(--text-dim); font-family: var(--font-mono);
+    font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
+    padding: 10px 16px; cursor: pointer; transition: all 0.2s;
+  }
+  .urgency-btn:hover { border-color: var(--gold-dim); color: var(--text); }
+  .urgency-btn.selected { border-color: var(--gold); color: var(--gold); background: rgba(200,169,81,0.06); }
+
+  .form-submit {
+    background: var(--neon); color: var(--void);
+    font-family: var(--font-mono); font-size: 11px; font-weight: 700;
+    letter-spacing: 0.16em; text-transform: uppercase;
+    padding: 20px 36px; border: none; cursor: pointer;
+    transition: all 0.2s var(--easing); width: 100%;
+    position: relative;
+  }
+  .form-submit:hover { background: #fff; }
+  .form-submit:active { transform: scale(0.99); }
+  .form-note {
+    font-size: 10px; color: var(--text-faint); line-height: 1.8;
+    font-weight: 300; letter-spacing: 0.02em; text-align: center;
+  }
+
+  /* Divisor con alternativas */
+  .alt-divider {
+    display: flex; align-items: center; gap: 16px; margin: 8px 0;
+  }
+  .alt-divider::before, .alt-divider::after {
+    content: ''; flex: 1; height: 1px; background: var(--border);
+  }
+  .alt-divider span {
+    font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--text-faint);
+  }
+
+  /* Email directo */
+  .direct-contact {
+    padding: 20px 24px; border: 1px solid var(--border);
+    background: var(--void-soft);
+    display: flex; justify-content: space-between; align-items: center;
+    gap: 16px;
+  }
+  .direct-label { font-size: 10px; color: var(--text-dim); font-weight: 300; }
+  .direct-email {
+    font-size: 11px; color: var(--gold); text-decoration: none;
+    letter-spacing: 0.04em; transition: color 0.2s;
+  }
+  .direct-email:hover { color: #f0f0f0; }
+
+  /* Success */
+  .form-success {
+    display: none; padding: 48px 36px;
+    border: 1px solid var(--border); text-align: center;
+    background: var(--void-soft); position: relative; overflow: hidden;
+  }
+  .form-success::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0;
+    height: 1px; background: linear-gradient(90deg, var(--gold), var(--neon));
+  }
+  .form-success.show { display: block; animation: fadeUp 0.5s var(--easing); }
+  .success-icon { font-size: 28px; margin-bottom: 20px; }
+  .success-title { font-size: 18px; font-weight: 300; color: #f0f0f0; margin-bottom: 12px; }
+  .success-body { font-size: 11px; color: var(--text-dim); line-height: 1.9; font-weight: 300; }
+  .success-detail {
+    margin-top: 28px; padding-top: 28px; border-top: 1px solid var(--border);
+    font-size: 10px; color: var(--text-faint); line-height: 1.8; letter-spacing: 0.04em;
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    border-top: 1px solid var(--border); padding: 28px 48px;
+    display: flex; justify-content: space-between; align-items: center;
+    grid-column: 1 / -1;
+  }
+  .footer-left { font-size: 10px; color: var(--text-faint); letter-spacing: 0.1em; }
+  .footer-right { font-size: 10px; color: var(--text-faint); }
+  .footer-right span { color: var(--gold-dim); }
+
+  .scroll-line {
+    position: fixed; top: 0; left: 0; height: 2px;
+    background: linear-gradient(90deg, var(--gold), var(--neon));
+    z-index: 9997; width: 0%; transition: width 0.1s;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @media (max-width: 960px) {
+    .page { grid-template-columns: 1fr; }
+    .left-panel {
+      position: static; height: auto;
+      padding: 120px 24px 48px; border-right: none;
+      border-bottom: 1px solid var(--border);
+    }
+    .right-panel { padding: 48px 24px 80px; }
+    nav { padding: 16px 24px; }
+    .nav-right { gap: 16px; }
+    footer { flex-direction: column; gap: 10px; text-align: center; padding: 24px; }
+    .intent-options { grid-template-columns: 1fr; }
+    .form-row { grid-template-columns: 1fr; }
+    .direct-contact { flex-direction: column; align-items: flex-start; }
+  }
+</style>
 </head>
 <body>
 
-<canvas id="sf-nodes"></canvas>
-
 <div class="scroll-line" id="scrollLine"></div>
 
-<nav id="nav">
-  <a href="/index.html" class="nav-logo">SYSTEM FRICTION</a>
+<nav>
+  <a href="/" class="nav-logo">SYSTEM<span>·</span>FRICTION</a>
   <div class="nav-right">
-    <div class="nav-dropdown">
-      <span class="nav-link">Observatorio ▾</span>
-      <div class="nav-dropdown-menu">
-        <a href="/index.html">WorldSpectrum</a>
-        <a href="/flujo.html">Flux</a>
-        <a href="/macro.html">System Friction Nodes</a>
-        <a href="/simulation.html">Simulation Friction</a>
-        <a href="/temporal.html">SFT</a>
-        <a href="/dashboard.html">SF World Metrics</a>
-        <a href="/alerts.html">SF Alertas</a>        
-      </div>
-    </div>
-    <div class="nav-dropdown">
-      <span class="nav-link">Instrumentos ▾</span>
-      <div class="nav-dropdown-menu">
-        <a href="/audit.html">Auditoría</a>
-        <a href="/perenne.html">Perenne (DCT)</a>
-        <a href="/amv.html">AMV</a>
-        <a href="/scorefriction.html">ScoreFriction</a>
-        <a href="/friction-manager.html">Friction Manager</a>
-        <a href="/atractor.html">Atractor</a>
-        <a href="/language.html">System Language</a>
-      </div>
-    </div>
-    <div class="nav-dropdown">
-      <span class="nav-link">Repositorio ▾</span>
-      <div class="nav-dropdown-menu">
-        <a href="/atlas.html">Atlas</a>
-        <a href="/patrones.html">Patrones</a>
-        <a href="/linguistica.html">Lingüística</a>
-        <a href="/logica.html">Lógica</a>
-        <a href="/postulados.html">Postulados</a>
-      </div>
-    </div>
-    <div class="nav-dropdown">
-      <span class="nav-link">Laboratorio ▾</span>
-      <div class="nav-dropdown-menu">
-        <a href="/lab-eco.html">ECO</a>
-        <a href="/lab-pol.html">POL</a>
-        <a href="/lab-cul.html">CUL</a>
-        <a href="/lab-cog.html">COG</a>
-        <a href="/lab-geo.html">GEO</a>
-        <a href="/lab-sys.html">SYS</a>
-      </div>
-    </div>
-    <div class="nav-dropdown">
-      <span class="nav-link">Instituto ▾</span>
-      <div class="nav-dropdown-menu">
-        <a href="/about.html">Marco</a>
-        <a href="/method.html">Método</a>
-        <a href="/sfi.html">Arquitectura</a>
-        <a href="/contact.html">Contacto</a>
-      </div>
-    </div>
-    <a href="/casos.html" class="nav-link cta">Archivo de Casos</a>
-    <a href="/mop-h-form.html" class="nav-link cta">Aplicar</a>
+    <a href="/audit.html" class="nav-link">Diagnóstico</a>
+    <a href="/method.html" class="nav-link">Método</a>
+    <a href="/contact.html" class="nav-link active">Aplicar</a>
   </div>
 </nav>
-  
+
 <div class="page">
 
   <!-- LEFT PANEL -->
@@ -97,11 +337,11 @@
       </div>
       <div class="left-tag">Contacto directo</div>
       <h1 class="left-h1">
-        Describe<br>tu sistema.<br>
-        <span>Observemos el resto.</span>
+        Describí<br>tu sistema.<br>
+        <span>Yo hago el resto.</span>
       </h1>
       <p class="left-body">
-        No necesitás tener el problema perfectamente articulado. Lo que estás observando — aunque no puedas formalizarlo todavía — es suficiente para empezar.
+        No necesitás tener el problema perfectamente articulado. Lo que estás percibiendo — aunque no puedas formalizarlo todavía — es suficiente para empezar.
       </p>
 
       <div class="guarantees">
