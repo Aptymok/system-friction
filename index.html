@@ -4,65 +4,72 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>System Friction OS — Neuro-Gestalt</title>
+  
   <script src="https://d3js.org/d3.v7.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  
+  <link rel="stylesheet" href="/style.css">
+  
   <style>
-    :root { --neon: #E6FF00; --void: #030305; --gold: #FFD700; }
+    /* Estilos críticos para el motor de renderizado */
+    :root { 
+      --neon: #E6FF00; 
+      --void: #030305; 
+      --gold: #C8A951; 
+    }
+
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
     html, body {
       width: 100%; height: 100%;
-      background: var(--void); color: var(--neon);
-      font-family: 'IBM Plex Mono', monospace;
+      background: var(--void);
+      color: var(--text);
+      font-family: var(--font);
       overflow: hidden;
     }
 
-    /* ===== CAPAS DE RENDERIZADO ===== */
-    #bg-layer {
+    /* CAPAS DE FONDO (MAPA) */
+    #sf-background-layers {
       position: fixed; top: 0; left: 0;
       width: 100%; height: 100%;
       z-index: 1; pointer-events: none;
     }
 
-    #sf-canvas-3d, #sf-canvas-2d {
+    canvas, #sf-canvas-2d svg {
       position: absolute; top: 0; left: 0;
       width: 100%; height: 100%;
-      opacity: 0.15; /* Opacidad base del mapa de fondo */
     }
 
-    /* ===== NÚCLEO Y CONTROL ===== */
-    #sf-nucleus-wrapper {
+    /* NÚCLEO (INTERFAZ) */
+    #sf-nucleus-control {
       position: fixed; top: 50%; left: 50%;
       transform: translate(-50%, -50%);
       z-index: 50; cursor: pointer;
-      text-align: center; pointer-events: auto;
+      pointer-events: auto;
+      text-align: center;
+      transition: opacity 0.5s;
     }
 
     #sf-nucleus {
-      width: 50px; height: 50px;
-      background: var(--gold);
-      border: 2px solid var(--neon);
-      border-radius: 50%;
-      box-shadow: 0 0 20px rgba(230, 255, 0, 0.5);
-      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      filter: drop-shadow(0 0 10px var(--neon));
+      transition: transform 0.3s var(--ease);
     }
-
-    #sf-nucleus:hover { transform: scale(1.2); filter: brightness(1.2); }
-    #sf-nucleus.active { background: var(--neon); box-shadow: 0 0 40px var(--neon); }
+    #sf-nucleus:hover { transform: scale(1.1); }
 
     #sf-nucleus-label {
-      margin-top: 15px; font-size: 10px; letter-spacing: 2px;
-      opacity: 0.5; text-transform: uppercase;
+      margin-top: 20px; font-size: 10px;
+      letter-spacing: 0.2em; color: var(--neon);
+      opacity: 0.6; text-transform: uppercase;
     }
 
-    /* ===== ESCENARIO DE CONTENIDO (DASHBOARD) ===== */
+    /* ESCENARIO DE CONTENIDO */
     #sf-main-stage {
       position: fixed; top: 0; left: 0;
       width: 100%; height: 100%;
-      z-index: 100; opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.6s ease;
-      background: rgba(3, 3, 5, 0.94); /* Casi opaco para legibilidad */
+      z-index: 100; pointer-events: none;
+      opacity: 0; transition: opacity 0.5s var(--ease);
+      background: rgba(8, 8, 8, 0.96);
+      backdrop-filter: blur(10px);
       overflow-y: auto;
     }
 
@@ -70,33 +77,33 @@
 
     .sf-content-wrapper {
       max-width: 900px; margin: 80px auto; padding: 20px;
+      line-height: 1.8;
     }
 
     #sf-close-btn {
-      position: fixed; top: 25px; right: 25px;
-      background: transparent; border: 1px solid var(--neon);
-      color: var(--neon); padding: 8px 15px; cursor: pointer;
-      font-family: inherit; font-size: 11px; z-index: 101;
+      position: fixed; top: 30px; right: 30px;
+      border: 1px solid var(--neon); color: var(--neon);
+      background: transparent; padding: 10px 20px;
+      cursor: pointer; font-family: var(--font); font-size: 10px;
     }
-
-    /* Estilos del Atlas inyectado */
-    .header-tag { color: var(--gold); font-size: 12px; margin-bottom: 20px; border-bottom: 1px solid rgba(230,255,0,0.2); padding-bottom: 10px; }
   </style>
 </head>
 <body class="desktop">
 
-  <div id="bg-layer">
+  <div id="sf-background-layers">
     <canvas id="sf-canvas-3d"></canvas>
     <div id="sf-canvas-2d"></div>
   </div>
 
-  <div id="sf-nucleus-wrapper" onclick="handleNucleusClick()">
-    <div id="sf-nucleus"></div>
-    <div id="sf-nucleus-label">INITIALIZING...</div>
+  <div id="sf-nucleus-control" onclick="handleNucleusInteraction()">
+    <svg id="sf-nucleus" width="60" height="60" viewBox="0 0 40 40">
+      <circle cx="20" cy="20" r="14" fill="#C8A951" stroke="#E6FF00" stroke-width="1.5"/>
+    </svg>
+    <div id="sf-nucleus-label">INITIALIZING SYSTEM...</div>
   </div>
 
   <div id="sf-main-stage">
-    <button id="sf-close-btn" onclick="closeStage()">[CLOSE]</button>
+    <button id="sf-close-btn" onclick="closeStage()">[CLOSE_INTERFACE]</button>
     <div class="sf-content-wrapper" id="sf-content"></div>
   </div>
 
@@ -105,131 +112,120 @@
   <script src="/js/core.js"></script>
 
   <script>
-    // Configuración de Dispositivo
     const isMobile = window.innerWidth < 768;
     document.body.className = isMobile ? 'mobile' : 'desktop';
 
     let particles = [];
     let collapsing = false;
-    let systemReady = false;
+    let systemStable = false;
 
-    // ===== 2D CAOS (Neuro-Gestalt) =====
-    const canvas2d = document.createElement('canvas');
-    const ctx2d = canvas2d.getContext('2d');
-    document.getElementById('sf-canvas-2d').appendChild(canvas2d);
+    // ===== MOTOR DE CAOS (NEURO-GESTALT) =====
+    const canvas2dContainer = document.getElementById('sf-canvas-2d');
+    const d3Canvas = d3.select(canvas2dContainer).append('canvas')
+      .attr('width', window.innerWidth)
+      .attr('height', window.innerHeight)
+      .node();
+    const ctx = d3Canvas.getContext('2d');
 
-    function resize() {
-      canvas2d.width = window.innerWidth;
-      canvas2d.height = window.innerHeight;
-    }
-    window.addEventListener('resize', resize);
-    resize();
-
-    // Crear partículas de caos inicial
-    for(let i=0; i<120; i++) {
+    // Inicializar partículas de caos
+    for(let i=0; i<150; i++) {
       particles.push({
         x: Math.random() * window.innerWidth,
         y: Math.random() * window.innerHeight,
-        vx: (Math.random() - 0.5) * 12,
-        vy: (Math.random() - 0.5) * 12,
+        vx: (Math.random() - 0.5) * 10,
+        vy: (Math.random() - 0.5) * 10,
         size: Math.random() * 2 + 1
       });
     }
 
-    function animateIntro() {
-      if (systemReady && !collapsing) return;
+    function runNeuroGestalt() {
+      if (systemStable && !collapsing) return;
       
-      ctx2d.clearRect(0, 0, canvas2d.width, canvas2d.height);
+      ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
       const centerX = window.innerWidth / 2;
       const centerY = window.innerHeight / 2;
 
       particles.forEach(p => {
         if (collapsing) {
-          // Colapso: Atracción magnética al centro
-          p.vx = (centerX - p.x) * 0.15;
-          p.vy = (centerY - p.y) * 0.15;
-          p.size *= 0.98; // Se desvanecen al entrar al núcleo
+          p.vx = (centerX - p.x) * 0.12;
+          p.vy = (centerY - p.y) * 0.12;
+          p.size *= 0.98;
         } else {
-          // Caos: Rebote en bordes
           p.x += p.vx; p.y += p.vy;
-          if (p.x < 0 || p.x > canvas2d.width) p.vx *= -1;
-          if (p.y < 0 || p.y > canvas2d.height) p.vy *= -1;
+          if (p.x < 0 || p.x > window.innerWidth) p.vx *= -1;
+          if (p.y < 0 || p.y > window.innerHeight) p.vy *= -1;
         }
 
-        ctx2d.fillStyle = '#E6FF00';
-        ctx2d.beginPath();
-        ctx2d.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-        ctx2d.fill();
+        ctx.fillStyle = 'rgba(230, 255, 0, 0.8)';
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
       });
 
-      if (!systemReady) requestAnimationFrame(animateIntro);
+      requestAnimationFrame(runNeuroGestalt);
     }
 
-    // Iniciar Animación de Caos
-    animateIntro();
+    runNeuroGestalt();
 
-    // Temporizador Neuro-Gestalt (2.5s Caos -> Colapso)
+    // Protocolo de Colapso (Neuro-Gestalt)
     setTimeout(() => {
       collapsing = true;
-      document.getElementById('sf-nucleus-label').textContent = 'COLLAPSING...';
+      document.getElementById('sf-nucleus-label').textContent = 'COLLAPSING RENDERERS...';
       
       setTimeout(() => {
-        systemReady = true;
+        systemStable = true;
         collapsing = false;
-        ctx2d.clearRect(0, 0, canvas2d.width, canvas2d.height);
-        document.getElementById('sf-nucleus-label').textContent = '[NUCLEUS] STABLE';
-        document.getElementById('sf-nucleus').classList.add('active');
+        ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+        document.getElementById('sf-nucleus-label').textContent = '[NUCLEUS] — STABLE';
         
-        // Iniciar Mapa Esférico si es Mobile
-        if (isMobile) init3DSphere();
+        // Lanzar motor de fondo según dispositivo
+        if (isMobile) initSphere3D();
+        else initDesktopMap();
       }, 1500);
     }, 2500);
 
-    // ===== THREE.JS SPHERE (Mapa de fondo) =====
-    function init3DSphere() {
+    // ===== MAPA DESKTOP (D3 FORCE GRAPH) =====
+    function initDesktopMap() {
+      // Aquí se restaura tu mapa de red con D3
+      console.log("[SF] Restaurando Mapa Desktop...");
+      const bgLayer = d3.select("#sf-canvas-2d").style("opacity", "0.2");
+      // Integración de navTree aquí...
+    }
+
+    // ===== MAPA MÓVIL (THREE.JS SPHERE) =====
+    function initSphere3D() {
       const canvas3d = document.getElementById('sf-canvas-3d');
       const scene = new THREE.Scene();
       const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
       const renderer = new THREE.WebGLRenderer({ canvas: canvas3d, alpha: true, antialias: true });
       renderer.setSize(window.innerWidth, window.innerHeight);
 
-      const geo = new THREE.IcosahedronGeometry(2, 2);
-      const mat = new THREE.MeshBasicMaterial({ color: 0xE6FF00, wireframe: true, transparent: true, opacity: 0.3 });
-      const sphere = new THREE.Mesh(geo, mat);
+      const sphereGeo = new THREE.IcosahedronGeometry(2, 1);
+      const sphereMat = new THREE.MeshBasicMaterial({ color: 0xE6FF00, wireframe: true, transparent: true, opacity: 0.3 });
+      const sphere = new THREE.Mesh(sphereGeo, sphereMat);
       scene.add(sphere);
       camera.position.z = 5;
 
-      function rotate() {
-        requestAnimationFrame(rotate);
+      function animate() {
+        requestAnimationFrame(animate);
         sphere.rotation.y += 0.005;
         renderer.render(scene, camera);
       }
-      rotate();
+      animate();
     }
 
-    // ===== LÓGICA DE INTERACCIÓN =====
-    function handleNucleusClick() {
-      if (!systemReady) return;
-      const label = document.getElementById('sf-nucleus-label');
-      
-      if (!window.nucleusExpanded) {
-        label.textContent = '[SYSTEM] EXPANDED';
-        // Aquí llamas a tu función en core.js que dibuja los nodos Level 1
-        if (window.expandNucleus) window.expandNucleus();
-        window.nucleusExpanded = true;
-      } else {
-        // Si ya está expandido, quizás quieras volver al centro
-        label.textContent = '[NUCLEUS] STABLE';
-        window.nucleusExpanded = false;
+    // ===== INTERACCIÓN =====
+    function handleNucleusInteraction() {
+      if (!systemStable) return;
+      // Lógica de expansión fractal usando router.js
+      if (window.router && window.router.navigateFractal) {
+        window.router.navigateFractal('observatorio');
       }
     }
 
     function closeStage() {
       document.getElementById('sf-main-stage').classList.remove('loaded');
-      document.getElementById('sf-content').innerHTML = '';
     }
-
-    console.log('%c[SF-OS] — SISTEMA INICIADO —', 'color: #E6FF00; font-weight: bold;');
   </script>
 </body>
 </html>
