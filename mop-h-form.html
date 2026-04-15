@@ -901,6 +901,7 @@ function iniciar() {
   }
   pantalla('s-flow');
   mostrarQ(cur);
+  track("moph_start");
 }
 
 // ─────────────────────────────────────────
@@ -937,12 +938,14 @@ function cerrar() {
       pantalla('s-close');
       document.getElementById('progress-bar').style.width = '100%';
       document.getElementById('progress-label').textContent = '✓';
+      track("moph_complete");
     });
     return;
   }
   pantalla('s-close');
   document.getElementById('progress-bar').style.width = '100%';
   document.getElementById('progress-label').textContent = '✓';
+  track("moph_complete");
 }
 
 // ─────────────────────────────────────────

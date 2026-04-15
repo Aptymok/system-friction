@@ -24,3 +24,77 @@ function safeLoop(renderFn) {
   }
   loop();
 }
+
+// Instrumentation
+const EVENT_WEIGHTS = {
+  page_view: 1,
+  cta_click: 3,
+  gate_shown: 5,
+  email_captured: 10,
+  moph_start: 15,
+  moph_complete: 30,
+  observatory_unlocked: 8
+};
+
+function updateUserScore(event) {
+  const weights = {
+    page_view: 1,
+    cta_click: 3,
+    email_captured: 10,
+    moph_complete: 30
+  };
+
+  let score = parseInt(localStorage.getItem("sf_score") || "0");
+  score += weights[event] || 0;
+
+  localStorage.setItem("sf_score", score);
+
+  return score;
+}
+
+function logEventHistory(event) {
+  let history = JSON.parse(localStorage.getItem("sf_history") || "[]");
+  history.push({ event, time: Date.now() });
+
+  localStorage.setItem("sf_history", JSON.stringify(history));
+}
+
+function track(event, data = {}) {
+  const score = updateUserScore(event);
+  logEventHistory(event);
+
+  const payload = {
+    event,
+    profile: localStorage.getItem("sf_profile"),
+    email: localStorage.getItem("sf_email"),
+    path: window.location.pathname,
+    timestamp: Date.now(),
+    weight: EVENT_WEIGHTS[event] || 0,
+    score: score,
+    ...data
+  };
+
+  console.log("[TRACK]", payload);
+
+  fetch("https://formspree.io/f/xgopjkop", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify(payload)
+  });
+}
+
+// Session tracking
+let startTime = Date.now();
+window.addEventListener("beforeunload", () => {
+  const duration = Date.now() - startTime;
+  const score = localStorage.getItem("sf_score");
+
+  if (duration < 5000 && score < 5) {
+    track("low_quality_session", { duration });
+  } else {
+    track("session_end", { duration });
+  }
+});
+
+// Page view
+track("page_view");

@@ -7,11 +7,22 @@ function requireEmailGate(onSuccess) {
     return;
   }
 
+  track("gate_shown");
+
   const email = prompt("Ingresa tu email para continuar:");
 
   if (email && email.includes("@")) {
     localStorage.setItem("sf_email", email);
     console.log("[SF] Email captured:", email);
+
+    // Email quality signal
+    if (email.includes("gmail") || email.includes("yahoo") || email.includes("hotmail")) {
+      track("low_intent_email");
+    } else {
+      track("high_intent_email");
+    }
+
+    track("email_captured");
 
     // Send to Formspree
     fetch("https://formspree.io/f/xgopjkop", {

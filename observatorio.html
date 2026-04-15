@@ -253,11 +253,17 @@ const CONNECTIONS = [
   {from:'nai',to:'mum',w:.5,cats:['ECO','GEO']},
 ];
 
-// Degrade data if no email
-if (!localStorage.getItem("sf_email")) {
-  NODES = NODES.slice(0, 3);
-  CONNECTIONS = CONNECTIONS.filter(c => NODES.some(n => n.id === c.from) && NODES.some(n => n.id === c.to));
+// Degrade data based on user score
+const score = parseInt(localStorage.getItem("sf_score") || "0");
+
+if (score < 10) {
+  NODES = NODES.slice(0, 2);
+} else if (score < 25) {
+  NODES = NODES.slice(0, 5);
+} else {
+  // full access
 }
+CONNECTIONS = CONNECTIONS.filter(c => NODES.some(n => n.id === c.from) && NODES.some(n => n.id === c.to));
 
 const CARDS_DATA = [
   {id:'phi',key:'MIHM·Φ(t)',name:'Índice Sistémico Global',
@@ -883,6 +889,7 @@ animate();
 function showCanvas() {
   document.getElementById('sf-nodes').style.display = 'block';
   document.getElementById('show-canvas-gate').style.display = 'none';
+  track("observatory_unlocked");
 }
 
 // Adjust CTA based on profile
