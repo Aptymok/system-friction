@@ -928,7 +928,7 @@
 <nav id="nav">
   <a href="/index.html" class="nav-logo">SYSTEM FRICTION</a>
   <div class="nav-right">
-
+    <div class="nav-dropdown">
       <span class="nav-link">Observatorio ▾</span>
       <div class="nav-dropdown-menu">
         <a href="/index.html">WorldSpectrum</a>
@@ -939,7 +939,8 @@
         <a href="/dashboard.html">SF World Metrics</a>
         <a href="/alerts.html">SF Alertas</a>        
       </div>
-    </div>    <div class="nav-dropdown">
+    </div>
+    <div class="nav-dropdown">
       <span class="nav-link">Instrumentos ▾</span>
       <div class="nav-dropdown-menu">
         <a href="/audit.html">Auditoría</a>
@@ -981,8 +982,7 @@
         <a href="/contact.html">Contacto</a>
       </div>
     </div>
-          <a href="/casos.html" class="nav-link cta">Archivo de Casos</a>
-
+    <a href="/casos.html" class="nav-link cta">Archivo de Casos</a>
     <a href="/mop-h-form.html" class="nav-link cta">Aplicar</a>
   </div>
 </nav>
@@ -1122,7 +1122,7 @@
 <section id="contact">
   <div class="contact-left"><div class="section-tag">05 — Contacto</div><h2 class="contact-h2">Describe tu<br>sistema.<br><span>Yo hago el resto.</span></h2><p class="contact-body">No necesitás tener el problema perfectamente articulado. Solo describe lo que estás viendo, lo que no cuadra, lo que nadie está nombrando. Con eso es suficiente para empezar.</p><div class="contact-identity"><div class="contact-name">Juan Antonio Marín Liera</div><div class="contact-title">Fundador · System Friction Institute</div><div class="contact-alias">// Aptymok · Aguascalientes, México</div></div></div>
   <div class="contact-right">
-    <form class="contact-form" id="contactForm" onsubmit="handleSubmit(event)">
+  <form class="contact-form" action="https://formspree.io/f/xgopjkop" method="POST">
       <div class="form-row"><div class="form-field"><label class="form-label">Nombre</label><input type="text" class="form-input" placeholder="Tu nombre" required></div><div class="form-field"><label class="form-label">Organización</label><input type="text" class="form-input" placeholder="Donde operas"></div></div>
       <div class="form-field"><label class="form-label">Email</label><input type="email" class="form-input" placeholder="tu@email.com" required></div>
       <div class="form-field"><label class="form-label">¿Qué tipo de intervención buscás?</label><select class="form-select"><option value="" disabled selected>Seleccionar</option><option>Auditoría de fricción sistémica</option><option>Protocolo de intervención</option><option>Consultoría estratégica</option><option>No sé todavía — quiero explorar</option></select></div>
@@ -1207,13 +1207,6 @@ function showResult() {
   resultEl.innerHTML = `<div class="result-label" style="color:${color}">${level} — Score ${total}/9</div><div class="result-title">${title}</div><div class="result-body">${body}</div><div class="result-cta"><a href="/mop-h-form.html" class="btn-primary">Continuar a auditoría completa</a><span style="font-size:11px;color:var(--text-faint)">Esto fue el 1% del análisis real.</span></div>`;
   resultEl.classList.add('show');
   setTimeout(() => resultEl.scrollIntoView({ behavior: 'smooth', block: 'center' }), 200);
-}
-
-// ── FORM ──
-function handleSubmit(e) {
-  e.preventDefault();
-  document.getElementById('contactForm').style.display = 'none';
-  document.getElementById('formSuccess').classList.add('show');
 }
 
 // ── SMOOTH ANCHOR ──
