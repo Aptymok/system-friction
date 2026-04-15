@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-76H63FV9DG"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-76H63FV9DG');
+  </script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nodo AGS · System Friction · Caso Empírico</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --void: #080808;
+    --void-2: #111111;
+    --void-3: #1a1a1a;
+    --oro: #C8A951;
+    --neon: #E6FF00;
+    --text: #d4d0c8;
+    --muted: #6b6860;
+    --border: #2a2a2a;
+    --danger: #c0392b;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'IBM Plex Sans', sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--void);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.7;
+    min-height: 100vh;
+  }
+
+  /* ── Layout ── */
+  .page {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 80px 32px 120px;
+  }
+
+  /* ── Header ── */
+  .header {
+    margin-bottom: 72px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 40px;
+  }
+
+  .header-meta {
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 24px;
+  }
+
+  .header-meta span {
+    color: var(--oro);
+  }
+
+  .header h1 {
+    font-family: var(--mono);
+    font-size: 22px;
+    font-weight: 600;
+    color: #ffffff;
+    line-height: 1.3;
+    margin-bottom: 8px;
+    letter-spacing: -0.01em;
+  }
+
+  .header h2 {
+    font-size: 13px;
+    font-weight: 300;
+    color: var(--muted);
+    letter-spacing: 0.04em;
+  }
+
+  /* ── Section titles ── */
+  .section-label {
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--oro);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* ── Blocks ── */
+  .block {
+    margin-bottom: 56px;
+  }
+
+  p {
+    margin-bottom: 14px;
+    color: var(--text);
+  }
+
+  /* ── Variables table ── */
+  .var-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    margin: 24px 0;
+  }
+
+  .var-cell {
+    background: var(--void-2);
+    padding: 16px 20px;
+  }
+
+  .var-key {
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+
+  .var-value {
+    font-size: 20px;
+    font-weight: 500;
+    color: #ffffff;
+    letter-spacing: -0.02em;
+  }
+
+  .var-value.neg { color: var(--danger); }
+  .var-value.warn { color: var(--oro); }
+  .var-value.good { color: #4caf74; }
+
+  .var-note {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+
+  /* ── Arrow between states ── */
+  .state-transition {
+    display: grid;
+    grid-template-columns: 1fr 40px 1fr;
+    gap: 0;
+    margin: 24px 0;
+    align-items: start;
+  }
+
+  .state-box {
+    background: var(--void-2);
+    border: 1px solid var(--border);
+    padding: 20px;
+  }
+
+  .state-box.after {
+    border-color: var(--danger);
+  }
+
+  .state-arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-top: 24px;
+    color: var(--muted);
+    font-size: 18px;
+  }
+
+  .state-label {
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 12px;
+  }
+
+  .state-metric {
+    margin-bottom: 8px;
+  }
+
+  .state-metric-key {
+    font-size: 10px;
+    color: var(--muted);
+  }
+
+  .state-metric-val {
+    font-size: 16px;
+    font-weight: 500;
+    color: #ffffff;
+  }
+
+  .state-metric-val.drop { color: var(--danger); }
+
+  /* ── Predictions list ── */
+  .pred-list {
+    list-style: none;
+    margin: 20px 0;
+  }
+
+  .pred-item {
+    border-left: 2px solid var(--border);
+    padding: 14px 0 14px 20px;
+    margin-bottom: 2px;
+    position: relative;
+  }
+
+  .pred-item.validated {
+    border-left-color: var(--oro);
+  }
+
+  .pred-id {
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--oro);
+    margin-bottom: 4px;
+  }
+
+  .pred-hypothesis {
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+
+  .pred-validation {
+    font-size: 11px;
+    color: var(--muted);
+    font-style: italic;
+  }
+
+  .pred-status {
+    position: absolute;
+    right: 0;
+    top: 14px;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #4caf74;
+  }
+
+  /* ── Formula block ── */
+  .formula-block {
+    background: var(--void-3);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--oro);
+    padding: 20px 24px;
+    margin: 20px 0;
+    font-size: 13px;
+    color: #e8e4da;
+  }
+
+  .formula-block .eq {
+    font-size: 15px;
+    color: #ffffff;
+    margin-bottom: 8px;
+    letter-spacing: 0.02em;
+  }
+
+  .formula-block .note {
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  /* ── Alert/insight box ── */
+  .insight {
+    background: var(--void-2);
+    border: 1px solid var(--border);
+    border-top: 2px solid var(--neon);
+    padding: 22px 24px;
+    margin: 24px 0;
+  }
+
+  .insight-label {
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--neon);
+    margin-bottom: 10px;
+  }
+
+  .insight p {
+    color: #e8e4da;
+    margin-bottom: 0;
+  }
+
+  /* ── Inline code ── */
+  code {
+    background: var(--void-3);
+    border: 1px solid var(--border);
+    padding: 1px 5px;
+    font-size: 11px;
+    color: var(--oro);
+    font-family: var(--mono);
+  }
+
+  /* ── Replication pattern ── */
+  .pattern-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    margin: 20px 0;
+  }
+
+  .pattern-cell {
+    background: var(--void-2);
+    padding: 18px 16px;
+  }
+
+  .pattern-num {
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--oro);
+    margin-bottom: 8px;
+  }
+
+  .pattern-title {
+    font-size: 11px;
+    color: #ffffff;
+    margin-bottom: 6px;
+    font-weight: 500;
+  }
+
+  .pattern-desc {
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+  /* ── Footer ── */
+  .footer {
+    margin-top: 80px;
+    padding-top: 32px;
+    border-top: 1px solid var(--border);
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .footer a {
+    color: var(--oro);
+    text-decoration: none;
+  }
+
+  .footer a:hover { text-decoration: underline; }
+
+  /* ── Responsive ── */
+  @media (max-width: 600px) {
+    .page { padding: 48px 20px 80px; }
+    .var-grid { grid-template-columns: 1fr; }
+    .state-transition { grid-template-columns: 1fr; }
+    .state-arrow { display: none; }
+    .pattern-grid { grid-template-columns: 1fr; }
+    .header h1 { font-size: 18px; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- ── HEADER ── -->
+  <header class="header">
+    <div class="header-meta">
+      <span>System Friction Framework</span> · Nodo AGS · Caso empírico · 23 feb 2026
+    </div>
+    <h1>La paz de Aguascalientes era una ilusión termodinámica.</h1>
+    <h2>Documentación pública del primer caso de validación en tiempo real del MIHM v2.0</h2>
+  </header>
+
+
+  <!-- ── 1. SISTEMA ── -->
+  <section class="block">
+    <div class="section-label">01 · El sistema</div>
+
+    <p>
+      Aguascalientes operaba desde 2020 como nodo de corredor neutral entre tres estados con alta intensidad criminal: Jalisco, Zacatecas y Guanajuato. Su tasa de homicidios era 6 veces menor a la de sus vecinos. Los indicadores oficiales reportaban estabilidad. Los análisis institucionales la atribuían a capacidad gubernamental.
+    </p>
+
+    <p>
+      El sistema MIHM identificó una lectura diferente: la estabilidad no era un logro institucional. Era la manifestación de una función de utilidad implícita sostenida por un actor hegemónico externo. Ningún subactor del corredor tenía incentivo para activar el territorio mientras el costo de la disputa superara el beneficio de su control exclusivo.
+    </p>
+
+    <div class="insight">
+      <div class="insight-label">Postulado central verificado</div>
+      <p>La distancia entre el umbral oficial y el umbral real no era un error de medición. Era la zona donde operaba la fricción sistémica. El sistema reportaba <em>compliance</em>. Lo que operaba debajo era un equilibrio de disuasión no documentado.</p>
+    </div>
+
+    <div class="var-grid">
+      <div class="var-cell">
+        <div class="var-key">Sistema</div>
+        <div class="var-value" style="font-size:14px;color:#ffffff;">Nodo Aguascalientes — Gobernanza territorial</div>
+        <div class="var-note">Corredor Jalisco · Zacatecas · Guanajuato</div>
+      </div>
+      <div class="var-cell">
+        <div class="var-key">Período de análisis</div>
+        <div class="var-value" style="font-size:14px;color:#ffffff;">2023 – feb 2026</div>
+        <div class="var-note">Serie documental ags-01 a ags-05 generada antes del evento</div>
+      </div>
+      <div class="var-cell">
+        <div class="var-key">Nodos MIHM activos</div>
+        <div class="var-value warn">6</div>
+        <div class="var-note">Acuífero · Industria · Educativo · Agricultura · Institucional · Seguridad</div>
+      </div>
+      <div class="var-cell">
+        <div class="var-key">IHG basal (pre-evento)</div>
+        <div class="var-value neg">−0.41</div>
+        <div class="var-note">El sistema ya operaba bajo degradación antes del shock</div>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ── 2. CONDICIÓN INICIAL ── -->
+  <section class="block">
+    <div class="section-label">02 · Condición inicial</div>
+
+    <p>
+      El vector de estado MIHM del 21 de febrero de 2026 confirmaba un sistema en degradación silenciosa. El Índice de Gobernanza Homeostática (<code>IHG</code>) era <strong>−0.41</strong>: negativo, absorbiendo fricción sin registrarla. El Nodo de Trazabilidad Institucional (<code>NTI</code>) estaba en <strong>0.48</strong>, rozando el umbral mínimo operativo.
+    </p>
+
+    <p>
+      Dos nodos ya se encontraban en desregulación crítica: N1 (Acuífero) con entropía en 0.82, y N4 (Agricultura) con entropía en 0.92 — el nodo agropecuario operaba bajo concesiones de agua rentadas sin registro formal, dependiente de acuerdos extrajurídicos para su funcionamiento ordinario.
+    </p>
+
+    <div class="formula-block">
+      <div class="eq">IHG = (1/n) · Σ (Cᵢ − Eᵢ)(1 − Lᵢ) = −0.41</div>
+      <div class="note">Índice negativo = el sistema está absorbiendo más entropía de la que puede redistribuir. No es una señal de alerta. Es el estado basal.</div>
+    </div>
+  </section>
+
+
+  <!-- ── 3. PREDICCIONES PRE-EVENTO ── -->
+  <section class="block">
+    <div class="section-label">03 · Predicciones formalizadas antes del evento</div>
+
+    <p>
+      Entre 2023 y el 21 de febrero de 2026, el framework generó cinco documentos de hipótesis — serie <code>ags-01</code> a <code>ags-05</code> — que formalizaban los mecanismos de degradación del nodo. No eran predicciones de un evento específico. Eran la descripción del patrón estructural que haría que cualquier shock exógeno colapsara el sistema.
+    </p>
+
+    <ul class="pred-list">
+      <li class="pred-item validated">
+        <div class="pred-id">ags-01 · Umbrales reales</div>
+        <div class="pred-hypothesis">La distancia entre umbral oficial y umbral real se cierra bruscamente bajo shock exógeno, sin transición graduada.</div>
+        <div class="pred-validation">Validado: IHG −0.41 → −0.62 en menos de 24 horas. El colapso fue instantáneo, no progresivo.</div>
+        <div class="pred-status">✓ confirmado</div>
+      </li>
+      <li class="pred-item validated">
+        <div class="pred-id">ags-02 · Latencia institucional</div>
+        <div class="pred-hypothesis">La latencia es variable de ajuste político; se expande bajo presión. Cuando la coherencia institucional cae, la latencia efectiva supera 1.0.</div>
+        <div class="pred-validation">Validado: L_N5 pasó de 0.65 a 0.78. El Secretario de Seguridad Estatal no asistió a la Mesa de Seguridad del mismo día; latencia efectiva capada en máximo.</div>
+        <div class="pred-status">✓ confirmado</div>
+      </li>
+      <li class="pred-item validated">
+        <div class="pred-id">ags-03 · Dependencia extrajurídica</div>
+        <div class="pred-hypothesis">El nodo agropecuario opera bajo concesiones rentadas sin registro. Pérdida de protección operativa eleva entropía en N4.</div>
+        <div class="pred-validation">Validado: Bloqueos interrumpieron monitoreo de pozos. E_N4: 0.92 → 0.96. Nodo en colapso funcional.</div>
+        <div class="pred-status">✓ confirmado</div>
+      </li>
+      <li class="pred-item validated">
+        <div class="pred-id">ags-04 · Concentración de conocimiento operativo</div>
+        <div class="pred-hypothesis">La ficción institucional concentra el conocimiento decisorio en dos actores. Mesa de seguridad fragmentada bajo presión. NTI cae por debajo de umbral UCAP.</div>
+        <div class="pred-validation">Validado: ICC = 0.32 (80% del conocimiento operativo concentrado). NTI 0.48 → 0.351. Protocolo de emergencia activado.</div>
+        <div class="pred-status">✓ confirmado</div>
+      </li>
+      <li class="pred-item validated">
+        <div class="pred-id">ags-05 · Pacto no escrito</div>
+        <div class="pred-hypothesis">La estabilidad territorial depende de una variable no documentada. Sin actor hegemónico que la sostenga, la ruptura es predecible.</div>
+        <div class="pred-validation">Validado directamente: Bloqueos en menos de 6 horas del anuncio de la caída del actor. N6 inyectado con E₆ = 0.95, L₆ = 0.85.</div>
+        <div class="pred-status">✓ confirmado</div>
+      </li>
+    </ul>
+  </section>
+
+
+  <!-- ── 4. EL SHOCK ── -->
+  <section class="block">
+    <div class="section-label">04 · El shock exógeno · 22 febrero 2026</div>
+
+    <p>
+      El 22 de febrero de 2026, fuerzas de la SEDENA abatieron al líder del CJNG en Tapalpa, Jalisco. La reacción fue sistémica: 252 narcobloqueos activos en 20 estados del país en menos de 6 horas.
+    </p>
+
+    <p>
+      En Aguascalientes: bloqueos en carretera 45 Norte (km 22) y 45 Sur (límite con Jalisco). Nissan Aguascalientes suspendió el primer turno de producción — cadena JIT rota. El partido Necaxa-Querétaro Femenil fue suspendido en el minuto 46. La gobernadora activó el Blindaje Aguascalientes con participación del Ejército y la Guardia Nacional.
+    </p>
+
+    <p>
+      El 90% de los bloqueos fueron desactivados durante la misma jornada. Los indicadores de respuesta táctica funcionaron. Lo que no funcionó fue el indicador de coherencia institucional: el Secretario de Seguridad Estatal no asistió a la Mesa de Seguridad del mismo día.
+    </p>
+
+    <div class="insight">
+      <div class="insight-label">Mecanismo</div>
+      <p>La función de utilidad del pacto (<em>U_P = V_logística + V_industrial + V_financiero − C_conflicto</em>) no colapsa porque el actor desaparezca. Colapsa porque el mecanismo de enforcement desaparece. Ningún subactor puede comprometer a los demás. Cada uno optimiza localmente en lugar de cooperar para sostener el corredor.</p>
+    </div>
+  </section>
+
+
+  <!-- ── 5. TRANSICIÓN ── -->
+  <section class="block">
+    <div class="section-label">05 · Transición de estado · pre → post 24 horas</div>
+
+    <div class="state-transition">
+      <div class="state-box">
+        <div class="state-label">21 febrero · Pre-fractura</div>
+        <div class="state-metric">
+          <div class="state-metric-key">IHG</div>
+          <div class="state-metric-val">−0.41</div>
+        </div>
+        <div class="state-metric">
+          <div class="state-metric-key">NTI</div>
+          <div class="state-metric-val">0.48</div>
+        </div>
+        <div class="state-metric">
+          <div class="state-metric-key">Nodos críticos</div>
+          <div class="state-metric-val">2</div>
+        </div>
+        <div class="state-metric">
+          <div class="state-metric-key">Prob. colapso 2030</div>
+          <div class="state-metric-val">55%</div>
+        </div>
+      </div>
+      <div class="state-arrow">→</div>
+      <div class="state-box after">
+        <div class="state-label">23 febrero · Post-fractura</div>
+        <div class="state-metric">
+          <div class="state-metric-key">IHG</div>
+          <div class="state-metric-val drop">−0.62</div>
+        </div>
+        <div class="state-metric">
+          <div class="state-metric-key">NTI</div>
+          <div class="state-metric-val drop">0.351</div>
+        </div>
+        <div class="state-metric">
+          <div class="state-metric-key">Nodos críticos</div>
+          <div class="state-metric-val drop">5</div>
+        </div>
+        <div class="state-metric">
+          <div class="state-metric-key">Prob. colapso 2030</div>
+          <div class="state-metric-val drop">&gt; 70%</div>
+        </div>
+      </div>
+    </div>
+
+    <p style="font-size:11px;color:var(--muted);margin-top:12px;">
+      NTI por debajo de 0.50 activa el Protocolo de Decisión de Emergencia: las decisiones estructurales irreversibles quedan bloqueadas hasta restaurar integridad de medición. Las acciones tácticas proceden con bandera de incertidumbre explícita y revisión post-evento obligatoria. El sistema no está inhabilitado. Está auditando sus propias condiciones de accionabilidad.
+    </p>
+  </section>
+
+
+  <!-- ── 6. PATRÓN ── -->
+  <section class="block">
+    <div class="section-label">06 · El patrón replicable</div>
+
+    <p>
+      El caso AGS no es un estudio sobre narcotráfico ni sobre gobernanza territorial mexicana. Es la instanciación verificable de un patrón que opera en cualquier sistema complejo donde la estabilidad está siendo <em>atribuida incorrectamente</em> a capacidad institucional cuando en realidad depende de condiciones externas no documentadas.
+    </p>
+
+    <div class="pattern-grid">
+      <div class="pattern-cell">
+        <div class="pattern-num">01</div>
+        <div class="pattern-title">Estabilidad mal atribuida</div>
+        <div class="pattern-desc">Los indicadores reportan normalidad. La causa real de esa normalidad es una variable que el sistema no mide ni declara.</div>
+      </div>
+      <div class="pattern-cell">
+        <div class="pattern-num">02</div>
+        <div class="pattern-title">Entropía invisible</div>
+        <div class="pattern-desc">La degradación se acumula bajo indicadores estables. El IHG es negativo antes del evento. El sistema ya estaba fallando.</div>
+      </div>
+      <div class="pattern-cell">
+        <div class="pattern-num">03</div>
+        <div class="pattern-title">Colapso sin transición</div>
+        <div class="pattern-desc">Cuando la condición no documentada desaparece, la distancia entre umbral oficial y umbral real se cierra en horas, no en meses.</div>
+      </div>
+    </div>
+
+    <p>
+      Este patrón ocurre cuando una fusión empresarial elimina al actor que sostenía la colaboración tácita entre equipos. Cuando una reforma regulatoria quita la condición que hacía viable un modelo de negocio. Cuando el sistema educativo atribuye a su metodología el rendimiento que en realidad venía del perfil socioeconómico del alumnado. Cuando la planta industrial reporta eficiencia basada en proveedores que ya no pueden sostenerse.
+    </p>
+
+    <div class="insight">
+      <div class="insight-label">Condición de replicabilidad</div>
+      <p>El patrón es replicable en cualquier sistema donde exista una brecha medible entre lo que el sistema declara como causa de su estabilidad y las condiciones reales que la sostienen. Esa brecha es el <em>IHG</em>. Su velocidad de crecimiento es la <em>LDI</em>. La integridad del instrumento que lo mide es el <em>NTI</em>.</p>
+    </div>
+  </section>
+
+
+  <!-- ── 7. CIERRE TÉCNICO ── -->
+  <section class="block">
+    <div class="section-label">07 · Lo que este caso demuestra</div>
+
+    <p>
+      El MIHM v2.0 no describió la crisis después de que ocurrió. Tenía el patrón documentado antes. Las cinco hipótesis de la serie <code>ags-01</code> a <code>ags-05</code> fueron generadas con datos disponibles antes del 22 de febrero. Todas fueron confirmadas en tiempo real.
+    </p>
+
+    <p>
+      Eso no es un logro predictivo sobre el evento específico. Es la demostración de que cuando el marco mide correctamente la distancia entre umbral oficial y umbral real, cualquier shock que cierre esa distancia produce exactamente las consecuencias que el vector de estado ya tenía registradas.
+    </p>
+
+    <p>
+      La <em>LDI</em> media del sistema pasó de 0.59 a 0.75. El sistema seguía respondiendo. Pero si la LDI supera la velocidad de degradación del sistema, el colapso es matemáticamente inevitable. Ese umbral está más cerca hoy que antes del evento.
+    </p>
+
+    <div class="formula-block">
+      <div class="eq">Φ(t) = IHG⁻¹ · NTI · LDI⁻¹ + ε</div>
+      <div class="note">ε no es residuo estadístico. Es la acumulación de fricción no registrada que el sistema ha absorbido sin nombrarlo. En el caso AGS, ε era la paz que no era institucional.</div>
+    </div>
+  </section>
+
+
+  <!-- ── FOOTER ── -->
+  <footer class="footer">
+    <div style="margin-bottom:16px;">
+      <span style="color:var(--oro)">System Friction Framework</span> · MIHM v2.0 · Serie AGS<br>
+      Caso documentado: 23 de febrero de 2026 · Nodo Aguascalientes · Serie ags-01 a ags-06
+    </div>
+    <div style="margin-bottom:16px;">
+      Marco teórico: <a href="https://systemfriction.org/method.html">systemfriction.org/method.html</a><br>
+      Repositorio: <a href="https://github.com/aptymok/system-friction">github.com/aptymok/system-friction</a>
+    </div>
+    <div style="color:var(--muted);font-size:11px;line-height:1.8;">
+      Licencia CC BY 4.0 · Juan Antonio Marín Liera (APTYMOK)<br>
+      Este documento puede distribuirse, citarse e incorporarse sin solicitar permiso.<br>
+      La única condición es mantener la atribución y la integridad técnica del marco.
+    </div>
+  </footer>
+
+</div>
+</body>
+</html>
