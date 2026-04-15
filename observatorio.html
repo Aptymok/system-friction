@@ -253,13 +253,25 @@ const CONNECTIONS = [
   {from:'nai',to:'mum',w:.5,cats:['ECO','GEO']},
 ];
 
-// Degrade data based on user score + priority (double threshold)
+// Degrade data based on user score + priority + signal coherence (double threshold + quality filter)
 const score = parseInt(localStorage.getItem("sf_score") || "0");
 const priority = localStorage.getItem("sf_priority") || "normal";
+const signal = localStorage.getItem("sf_signal") || "initial";
 
-if (priority === "high" || score > 25) {
+// If signal is "noise", reduce access despite score
+let effectiveScore = score;
+if (signal === "noise") {
+  effectiveScore = Math.max(0, score - 10); // Penalty for incoherent pattern
+}
+
+// If fast_intent, boost access
+if (signal === "fast_intent") {
+  effectiveScore = Math.min(effectiveScore + 15, 50); // Fast decision makers get boost
+}
+
+if (priority === "high" || effectiveScore > 25) {
   // full access
-} else if (score >= 10) {
+} else if (effectiveScore >= 10) {
   NODES = NODES.slice(0, 5);
 } else {
   NODES = NODES.slice(0, 2);
@@ -893,16 +905,38 @@ function showCanvas() {
   track("observatory_unlocked");
 }
 
-// Adjust CTA based on profile
+// Adjust CTA based on profile + signal coherence
 const profile = localStorage.getItem("sf_profile");
+const signal = localStorage.getItem("sf_signal") || "initial";
 const cta = document.querySelector(".modal-cta");
-if (profile === "technical") {
-  cta.innerText = "Explorar modelo completo";
+
+// Build CTA message based on signal + profile combination
+let ctaText = "Continuar diagnóstico";
+
+if (signal === "fast_intent") {
+  // Fast decision makers want direct action
+  ctaText = "Solicitar diagnóstico urgente";
+} else if (signal === "noise") {
+  // Explorers without intent get softer CTA
+  ctaText = "Explorar caso de uso similar";
+} else if (profile === "technical") {
+  ctaText = "Explorar modelo completo";
 } else if (profile === "executive") {
-  cta.innerText = "Continuar diagnóstico institucional";
+  ctaText = "Continuar diagnóstico institucional";
 } else if (profile === "engaged") {
-  cta.innerText = "Finalizar análisis completo";
+  ctaText = "Finalizar análisis completo";
 }
+
+if (cta) {
+  cta.innerText = ctaText;
+}
+
+// Debug: Log signal evaluation
+console.log("[SF-SIGNAL]", {
+  signal: signal,
+  profile: profile,
+  cta: ctaText
+});
 </script>
 </body>
 </html>

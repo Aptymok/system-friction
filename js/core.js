@@ -78,9 +78,55 @@ function logEventHistory(event) {
   localStorage.setItem("sf_history", JSON.stringify(history));
 }
 
+function evaluateSignal() {
+  const history = JSON.parse(localStorage.getItem("sf_history") || "[]");
+  const role = localStorage.getItem("sf_role");
+  const score = parseInt(localStorage.getItem("sf_score") || "0");
+
+  const events = history.map(e => e.event);
+  const activity = events.length;
+  const decisionIndex = events.indexOf("email_captured");
+  const conversionOccurred = decisionIndex !== -1;
+
+  // Pattern 1: High activity without conversion = Noise
+  if (activity > 10 && !conversionOccurred) {
+    return "noise";
+  }
+
+  // Pattern 2: Early conversion = Fast intent (decision maker)
+  if (conversionOccurred && decisionIndex < 3) {
+    return "fast_intent";
+  }
+
+  // Pattern 3: Role declared but minimal activity = Incoherent signal
+  if (role && role !== "unknown" && score < 5) {
+    return "low_confidence_identity";
+  }
+
+  // Pattern 4: Conversion exists + medium activity = Normal user
+  if (conversionOccurred && activity > 3) {
+    return "normal";
+  }
+
+  // Pattern 5: No conversion yet but some activity = Exploring
+  if (!conversionOccurred && activity > 0) {
+    return "exploring";
+  }
+
+  // Default: Fresh visitor
+  return "initial";
+}
+
+function updateSignalLabel() {
+  const label = evaluateSignal();
+  localStorage.setItem("sf_signal", label);
+  return label;
+}
+
 function track(event, data = {}) {
   const score = updateUserScore(event);
   logEventHistory(event);
+  const signal = updateSignalLabel();
 
   // Detect valuable silent user on email capture
   if (event === "email_captured") {
@@ -105,6 +151,7 @@ function track(event, data = {}) {
     email: localStorage.getItem("sf_email"),
     role: localStorage.getItem("sf_role") || "unknown",
     priority: localStorage.getItem("sf_priority") || "normal",
+    signal: signal,
     path: window.location.pathname,
     timestamp: Date.now(),
     weight: EVENT_WEIGHTS[event] || 0,
