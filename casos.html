@@ -3,237 +3,682 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>System Friction · Casos SF</title>
-
+<title>SF · Archivo de Casos</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600&family=JetBrains+Mono:wght@300;400;500&family=Syncopate:wght@400;700&display=swap" rel="stylesheet">
-
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap" rel="stylesheet">
 <style>
-:root{
-  --bg:#0a0a09;
-  --surface:#101010;
-  --surface2:#161614;
-  --bd:#1e1e1b;
-  --tx:#c4c0b5;
-  --tx2:#888480;
-  --ac:#c8a951;
-  --ac2:#8a7035;
-  --neon:#d4f040;
-  --fm:'JetBrains Mono', monospace;
-  --serif:'EB Garamond', serif;
-  --disp:'Syncopate', sans-serif;
+:root {
+  --void:    #080808;
+  --s1:      #0f0f0e;
+  --s2:      #141413;
+  --s3:      #1a1a18;
+  --bd:      #222220;
+  --bd2:     #2e2e2b;
+  --tx:      #c4c0b5;
+  --tx2:     #807c74;
+  --tx3:     #454340;
+  --oro:     #c8a951;
+  --oro2:    #8a7035;
+  --neon:    #d4f040;
+  --teal:    #2a7060;
+  --danger:  #9a3030;
+  --ok:      #3a7048;
+  --mono:    'IBM Plex Mono', monospace;
 }
-
-*{box-sizing:border-box;margin:0;padding:0}
-
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
 body{
-  background:var(--bg);
+  background:var(--void);
   color:var(--tx);
-  font-family:var(--serif);
+  font-family:var(--mono);
+  font-size:12px;
+  line-height:1.6;
+  min-height:100vh;
 }
 
-header{
-  height:46px;
-  padding:0 1.5rem;
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  border-bottom:1px solid var(--bd);
+/* ── SHELL ── */
+.shell{max-width:900px;margin:0 auto;padding:48px 24px 120px}
+
+/* ── HEADER ── */
+.hd{padding-bottom:24px;border-bottom:1px solid var(--bd);margin-bottom:32px}
+.hd-brand{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--oro);margin-bottom:6px}
+.hd-title{font-size:20px;font-weight:600;color:#ffffff;letter-spacing:-.02em;line-height:1.2;margin-bottom:4px}
+.hd-sub{font-size:10px;color:var(--tx3);letter-spacing:.06em}
+
+/* ── FILTER BAR ── */
+.filters{display:flex;gap:0;margin-bottom:24px;border:1px solid var(--bd)}
+.filter-btn{
+  background:none;border:none;border-right:1px solid var(--bd);
+  color:var(--tx3);font-family:var(--mono);font-size:10px;
+  letter-spacing:.12em;text-transform:uppercase;
+  padding:8px 16px;cursor:pointer;transition:all .15s;
+}
+.filter-btn:last-child{border-right:none}
+.filter-btn:hover{color:var(--tx);background:var(--s2)}
+.filter-btn.on{color:var(--oro);background:var(--s1)}
+.filter-count{
+  display:inline-block;margin-left:6px;
+  background:var(--s3);color:var(--tx2);
+  padding:1px 5px;font-size:9px;
 }
 
-.brand{
-  font-family:var(--disp);
-  font-size:.62rem;
-  letter-spacing:.18em;
-  color:var(--ac);
-}
-
-.section{
-  padding:2.5rem;
-}
-
-.kicker{
-  font-family:var(--fm);
-  font-size:.54rem;
-  letter-spacing:.24em;
-  text-transform:uppercase;
-  color:var(--ac2);
-  margin-bottom:1rem;
-}
-
-.title{
-  font-size:1.6rem;
-  margin-bottom:.4rem;
-}
-
-.sub{
-  font-family:var(--fm);
-  font-size:.6rem;
-  color:var(--tx2);
-  margin-bottom:1.5rem;
-}
-
-/* ── ARTEFACTO HORIZONTAL ── */
-.artifact{
-  display:flex;
-  gap:1.25rem;
-  overflow-x:auto;
-  scroll-snap-type:x mandatory;
-}
-
-.artifact::-webkit-scrollbar{display:none}
-
-.stage-card{
-  flex:0 0 340px;
-  background:var(--surface);
+/* ── CASE INDEX ── */
+.case-index{margin-bottom:4px}
+.case-row{
+  display:grid;
+  grid-template-columns:80px 1fr auto auto;
+  gap:12px;align-items:center;
+  padding:12px 16px;
   border:1px solid var(--bd);
-  scroll-snap-align:start;
-  display:flex;
-  flex-direction:column;
+  border-top:none;
+  background:var(--s1);
+  cursor:pointer;
+  transition:all .15s;
+  position:relative;
+}
+.case-row:first-child{border-top:1px solid var(--bd)}
+.case-row::before{
+  content:'';position:absolute;left:0;top:0;bottom:0;width:2px;
+  background:transparent;transition:background .15s;
+}
+.case-row:hover::before,.case-row.open::before{background:var(--oro)}
+.case-row:hover{background:var(--s2)}
+.case-row.open{background:var(--s2)}
+.case-row.hidden{display:none}
+
+.cr-id{font-size:10px;color:var(--oro);letter-spacing:.08em}
+.cr-title{font-size:12px;color:#fff;font-weight:400}
+.cr-system{font-size:10px;color:var(--tx2);margin-top:2px}
+.cr-ihg{
+  font-size:13px;font-weight:500;
+  font-variant-numeric:tabular-nums;text-align:right;
+}
+.cr-ihg.neg{color:var(--danger)}
+.cr-ihg.warn{color:var(--oro)}
+.cr-badge{
+  font-size:9px;letter-spacing:.1em;text-transform:uppercase;
+  padding:3px 8px;border:1px solid;
+  white-space:nowrap;
+}
+.badge-cerrado{border-color:var(--danger);color:var(--danger);background:rgba(154,48,48,.06)}
+.badge-abierto{border-color:var(--oro2);color:var(--oro);background:rgba(200,169,81,.06)}
+.badge-monitoreo{border-color:var(--teal);color:#3a9070;background:rgba(42,112,96,.06)}
+.cr-chevron{
+  font-size:10px;color:var(--tx3);transition:transform .2s;margin-left:8px;
+}
+.case-row.open .cr-chevron{transform:rotate(90deg)}
+
+/* ── DOSSIER ── */
+.dossier{
+  border:1px solid var(--bd);border-top:none;
+  background:var(--s2);
+  display:none;
+  animation:slideDown .2s ease;
+  margin-bottom:4px;
+}
+.dossier.visible{display:block}
+
+@keyframes slideDown{
+  from{opacity:0;transform:translateY(-4px)}
+  to{opacity:1;transform:translateY(0)}
 }
 
-.stage-img{
-  width:100%;
-  height:180px;
-  object-fit:cover;
+.dossier-head{
+  padding:16px 20px 12px;
+  border-bottom:1px solid var(--bd);
+  display:flex;justify-content:space-between;align-items:flex-start;
+}
+.dossier-head-title{font-size:14px;color:#fff;font-weight:500;margin-bottom:4px}
+.dossier-head-meta{font-size:10px;color:var(--tx2)}
+.dossier-delta{
+  text-align:right;flex-shrink:0;margin-left:20px;
+}
+.delta-label{font-size:9px;color:var(--tx3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px}
+.delta-val{font-size:16px;font-weight:600;color:var(--danger)}
+
+/* ── EVIDENCE CHAIN ── */
+.chain{padding:0 0 0 36px;position:relative;margin:0 20px 0 20px}
+.chain::before{
+  content:'';position:absolute;left:6px;top:0;bottom:0;
+  width:1px;background:var(--bd2);
+}
+
+.stage{
+  position:relative;margin-bottom:0;
   border-bottom:1px solid var(--bd);
 }
+.stage:last-child{border-bottom:none}
+
+/* stage dot */
+.stage::before{
+  content:'';position:absolute;
+  left:-34px;top:20px;
+  width:8px;height:8px;border-radius:50%;
+  border:1px solid var(--bd2);
+  background:var(--s2);
+  z-index:1;transition:all .15s;
+}
+.stage.tipo-senal::before     {border-color:var(--teal);background:rgba(42,112,96,.3)}
+.stage.tipo-diagnostico::before{border-color:var(--oro2);background:rgba(200,169,81,.2)}
+.stage.tipo-hipotesis::before  {border-color:var(--tx2);background:var(--s3)}
+.stage.tipo-validacion::before {border-color:var(--neon);background:rgba(212,240,64,.2)}
+.stage.tipo-documento::before  {border-color:#fff;background:#fff}
+
+.stage-trigger{
+  padding:16px 0;cursor:pointer;
+  display:flex;align-items:flex-start;gap:12px;
+}
+.stage-trigger:hover .stage-title{color:#fff}
+
+.stage-meta{flex-shrink:0;width:80px;padding-top:2px}
+.stage-tipo{
+  font-size:9px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--tx3);display:block;margin-bottom:2px;
+}
+.stage.tipo-senal      .stage-tipo{color:#3a9070}
+.stage.tipo-diagnostico.stage-tipo{color:var(--oro)}
+.stage.tipo-validacion .stage-tipo{color:var(--neon)}
+.stage.tipo-documento  .stage-tipo{color:#fff}
+
+.stage-fecha{font-size:10px;color:var(--tx3)}
+
+.stage-title{
+  font-size:12px;font-weight:500;color:var(--tx);
+  transition:color .15s;flex:1;
+}
+.stage-expand{font-size:10px;color:var(--tx3);flex-shrink:0;transition:transform .15s}
+.stage.open .stage-expand{transform:rotate(90deg)}
 
 .stage-body{
-  padding:1rem;
+  padding:0 0 16px 0;
+  display:none;
+  font-size:11px;color:var(--tx);
+  line-height:1.7;
+}
+.stage.open .stage-body{display:block}
+
+/* stage content elements */
+.sb-text{color:var(--tx);margin-bottom:10px}
+.sb-text:last-child{margin-bottom:0}
+
+.sb-metrics{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(100px,1fr));
+  gap:1px;background:var(--bd);border:1px solid var(--bd);
+  margin:12px 0;
+}
+.sb-metric{
+  background:var(--s1);padding:10px 12px;
+}
+.sb-metric-key{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--tx3);margin-bottom:4px}
+.sb-metric-val{font-size:16px;font-weight:500;color:#fff}
+.sb-metric-val.neg{color:var(--danger)}
+.sb-metric-val.warn{color:var(--oro)}
+.sb-metric-val.crit{color:#c0392b}
+.sb-metric-note{font-size:10px;color:var(--tx3);margin-top:2px}
+
+.sb-formula{
+  font-family:var(--mono);font-size:10px;
+  background:var(--s1);border-left:2px solid var(--oro2);
+  padding:10px 14px;margin:12px 0;
+  color:var(--tx);line-height:1.8;
 }
 
-.stage-k{
-  font-family:var(--fm);
-  font-size:.55rem;
-  letter-spacing:.18em;
-  color:var(--ac2);
-  margin-bottom:.4rem;
+.sb-preds{list-style:none;margin:10px 0}
+.sb-pred{
+  padding:8px 0 8px 14px;
+  border-left:2px solid var(--bd2);
+  margin-bottom:6px;
+  position:relative;
+}
+.sb-pred.confirmed{border-left-color:var(--ok)}
+.sb-pred-id{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--oro2);margin-bottom:2px}
+.sb-pred-txt{color:var(--tx);margin-bottom:3px}
+.sb-pred-val{font-size:10px;color:var(--tx2);font-style:italic}
+.sb-pred-status{
+  position:absolute;right:0;top:8px;
+  font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--ok);
 }
 
-.stage-t{
-  font-size:1rem;
-  color:#fff;
-  margin-bottom:.4rem;
+.sb-embed-wrapper{
+  margin:12px 0;border:1px solid var(--bd);
+  background:var(--void);
+}
+.sb-embed-header{
+  padding:8px 12px;
+  border-bottom:1px solid var(--bd);
+  display:flex;justify-content:space-between;align-items:center;
+}
+.sb-embed-label{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--tx3)}
+.sb-embed-link{
+  font-size:10px;color:var(--oro);text-decoration:none;
+  border:1px solid var(--oro2);padding:3px 10px;
+  transition:all .15s;
+}
+.sb-embed-link:hover{background:rgba(200,169,81,.1);color:#fff}
+iframe.caso-embed{
+  width:100%;height:480px;border:none;
+  display:block;
+}
+.sb-embed-fallback{
+  padding:24px;text-align:center;color:var(--tx2);
+  font-size:11px;
+  display:none;
 }
 
-.stage-p{
-  font-size:.75rem;
-  color:var(--tx2);
-  line-height:1.55;
+/* ── EMPTY STATE ── */
+.empty-state{
+  padding:40px 20px;text-align:center;
+  color:var(--tx3);font-size:11px;
+  border:1px solid var(--bd);border-top:none;
 }
 
-/* BOTÓN */
-.stage-footer{
-  margin-top:auto;
-  padding:1rem;
+/* ── FOOTER ── */
+.footer{
+  margin-top:60px;padding-top:20px;
   border-top:1px solid var(--bd);
-  display:flex;
-  justify-content:flex-end;
+  font-size:10px;color:var(--tx3);
+  display:flex;justify-content:space-between;
+  flex-wrap:wrap;gap:8px;
 }
+.footer a{color:var(--oro2);text-decoration:none}
+.footer a:hover{color:var(--oro)}
 
-.btn{
-  font-family:var(--fm);
-  font-size:.65rem;
-  padding:.45rem 1.4rem;
-  border:1px solid var(--ac2);
-  background:none;
-  color:var(--ac);
-  cursor:pointer;
-}
-
-.btn:hover{
-  background:rgba(200,169,81,.07);
-  color:var(--neon);
+/* ── RESPONSIVE ── */
+@media(max-width:580px){
+  .shell{padding:28px 14px 80px}
+  .case-row{grid-template-columns:1fr auto;gap:8px}
+  .cr-id{display:none}
+  .cr-ihg{display:none}
+  .chain{padding-left:24px}
+  .chain::before{left:4px}
+  .stage::before{left:-22px;top:18px}
+  .stage-meta{width:64px}
+  iframe.caso-embed{height:320px}
 }
 </style>
 </head>
-
 <body>
+<div class="shell">
 
-<header>
-  <span class="brand">System Friction</span>
-  <span style="font-family:var(--fm);font-size:.56rem;color:#555;">Casos SF · Archivo validado</span>
-</header>
+  <header class="hd">
+    <div class="hd-brand">System Friction Framework · v1.1</div>
+    <div class="hd-title">Archivo de casos empíricos</div>
+    <div class="hd-sub">Cadena de evidencia por caso · IHG basal → validación → documento público</div>
+  </header>
 
-<section class="section">
-  <div class="kicker">Caso cerrado · Nodo AGS</div>
-  <div class="title">Aguascalientes · Paz termodinámica</div>
-  <div class="sub">Artefacto epistémico del colapso validado</div>
+  <div class="filters" id="filterBar"></div>
+  <div id="caseList"></div>
 
-  <!-- ARTEFACTO -->
-  <div class="artifact">
+  <footer class="footer">
+    <span>MIHM v2.0 · Serie + Nodos · <a href="https://systemfriction.org">systemfriction.org</a></span>
+    <span>CC BY 4.0 · APTYMOK · Aguascalientes, México</span>
+  </footer>
 
-    <!-- PORTADA -->
-    <div class="stage-card">
-      <img src="image.png" class="stage-img">
-      <div class="stage-body">
-        <div class="stage-k">PORTADA</div>
-        <div class="stage-t">Nodo AGS · Caso empírico</div>
-        <div class="stage-p">
-          Primer caso de validación en tiempo real del MIHM.  
-          Estabilidad atribuida incorrectamente a institucionalidad.
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════════════════
+   CASOS DB — edita aquí para agregar nuevos casos
+   ══════════════════════════════════════════════════════════════
+
+   Estructura por caso:
+   {
+     id:      "SF-CC-XXXX",          ← identificador único
+     titulo:  "Nombre · Subtítulo",  ← aparece en el índice
+     sistema: "descripción breve",   ← subtexto del índice
+     estado:  "cerrado" | "abierto" | "monitoreo",
+     ihg_basal:  número,             ← IHG antes del evento/diagnóstico
+     ihg_final:  número,             ← IHG después
+     fecha_apertura: "YYYY-MM-DD",
+     fecha_cierre:   "YYYY-MM-DD" | null,
+     etapas: [ ... ]                 ← ver tipos de etapa abajo
+   }
+
+   TIPOS DE ETAPA:
+   ─────────────────────────────────────────────────────────────
+   { tipo: "señal", fecha, titulo, cuerpo }
+   { tipo: "diagnostico", fecha, titulo, cuerpo, metrics: [{k,v,cls,note}] }
+   { tipo: "hipotesis", fecha, titulo, cuerpo, items: [{id,hipotesis,variable,cls}] }
+   { tipo: "validacion", fecha, titulo, cuerpo, metrics: [...], preds: [{id,txt,val,ok}] }
+   { tipo: "documento", titulo, cuerpo, url, linkLabel }
+   ──────────────────────────────────────────────────────────── */
+
+const CASOS = [
+  {
+    id: "SF-CC-0001",
+    titulo: "Aguascalientes · La paz termodinámica",
+    sistema: "Gobernanza territorial · Corredor Jalisco–Zacatecas–Guanajuato",
+    estado: "cerrado",
+    ihg_basal: -0.41,
+    ihg_final: -0.62,
+    fecha_apertura: "2025-11-01",
+    fecha_cierre:   "2026-02-23",
+    etapas: [
+      {
+        tipo: "señal",
+        fecha: "2025-11-01",
+        titulo: "Señal detectada: estabilidad mal atribuida",
+        cuerpo: `Aguascalientes registraba tasa de homicidios 6× menor a sus estados vecinos. Los análisis institucionales atribuían esta estabilidad a capacidad gubernamental. El marco identificó una hipótesis alternativa: la estabilidad dependía de una función de utilidad implícita (U_P) sostenida por un actor externo no documentado. Ningún indicador oficial capturaba esta variable.`
+      },
+      {
+        tipo: "diagnostico",
+        fecha: "2026-01-15",
+        titulo: "Diagnóstico MIHM basal — vector pre-fractura",
+        cuerpo: `Vector de estado calculado el 21 de febrero de 2026. IHG negativo confirma que el sistema ya absorbía más entropía de la que podía redistribuir. NTI en 0.48 roza el umbral mínimo operativo. Dos nodos en desregulación crítica antes del shock.`,
+        metrics: [
+          { k: "IHG basal",   v: "−0.41", cls: "warn",  note: "Sistema en degradación pre-evento" },
+          { k: "NTI",         v: "0.48",  cls: "warn",  note: "Umbral operativo mínimo: 0.50" },
+          { k: "LDI media",   v: "0.59",  cls: "",      note: "Latencia institucional pre-shock" },
+          { k: "Nodos crit.", v: "2",     cls: "",      note: "N1 Acuífero · N4 Agricultura" },
+          { k: "E_N4",        v: "0.92",  cls: "neg",   note: "Agricultura: entropía crítica" },
+          { k: "E_N1",        v: "0.82",  cls: "neg",   note: "Acuífero: carga entrópica alta" }
+        ],
+        formula: "IHG = (1/n) · Σ (Cᵢ − Eᵢ)(1 − Lᵢ)"
+      },
+      {
+        tipo: "hipotesis",
+        fecha: "2026-02-01",
+        titulo: "Serie predictiva ags-01 a ags-05",
+        cuerpo: `Cinco hipótesis formalizadas antes del evento. No predicen un shock específico: describen los mecanismos de degradación que harán que cualquier shock exógeno colapse el sistema de forma abrupta.`,
+        items: [
+          { id: "ags-01", hipotesis: "La distancia umbral oficial/real se cierra bruscamente bajo shock, sin transición graduada", variable: "ΔIHG como diferencial de colapso", cls: "confirmed" },
+          { id: "ags-02", hipotesis: "La latencia es variable de ajuste político; se expande bajo presión institucional", variable: "Lᵢ efectiva → puede superar 1.0", cls: "confirmed" },
+          { id: "ags-03", hipotesis: "N4 depende de acuerdos extrajurídicos sobre pozos. Pérdida de protección eleva E_N4", variable: "E_N4 ↑ por pérdida de protección", cls: "confirmed" },
+          { id: "ags-04", hipotesis: "Concentración de conocimiento en 2 actores. Mesa fragmentada bajo presión", variable: "ICC = 0.32 → NTI < 0.50 → UCAP", cls: "confirmed" },
+          { id: "ags-05", hipotesis: "Sin actor hegemónico que sostenga U_P, la ruptura es predecible en horas", variable: "N6 nuevo: E₆=0.95, L₆=0.85", cls: "confirmed" }
+        ]
+      },
+      {
+        tipo: "validacion",
+        fecha: "2026-02-23",
+        titulo: "Validación en tiempo real · 22–23 febrero 2026",
+        cuerpo: `El 22 de febrero de 2026, fuerzas de la SEDENA abatieron al líder del CJNG en Tapalpa, Jalisco. 252 narcobloqueos en 20 estados en menos de 6 horas. En Aguascalientes: carretera 45 Norte y Sur bloqueadas, Nissan Aguascalientes suspendió primer turno, Secretario de Seguridad Estatal ausente en Mesa de Seguridad. 90% de bloqueos desactivados en la misma jornada.`,
+        metrics: [
+          { k: "IHG post",    v: "−0.62",  cls: "neg",  note: "Caída de 0.21 en < 24h" },
+          { k: "NTI post",    v: "0.351",  cls: "neg",  note: "Por debajo de umbral UCAP" },
+          { k: "LDI media",   v: "0.75",   cls: "warn", note: "Latencia aumentó 0.16" },
+          { k: "Nodos crit.", v: "5 / 6",  cls: "neg",  note: "N1 N2 N4 N5 N6" },
+          { k: "M_N5",        v: "0.50",   cls: "warn", note: "Coherencia inst. reducida" },
+          { k: "Prob. 2030",  v: "> 70%",  cls: "neg",  note: "Monte Carlo · 50k iter." }
+        ],
+        preds: [
+          { id: "ags-01", txt: "Colapso de IHG abrupto sin transición", val: "IHG −0.41 → −0.62 en < 24h. Diferencial cerrado en evento único.", ok: true },
+          { id: "ags-02", txt: "L_N5 expande bajo presión", val: "Secretario ausente → L_eff > 1.0. Capado en máximo.", ok: true },
+          { id: "ags-03", txt: "E_N4 sube por pérdida de protección", val: "Bloqueos interrumpen monitoreo de pozos. E_N4: 0.92 → 0.96.", ok: true },
+          { id: "ags-04", txt: "NTI < 0.50 · UCAP activado", val: "Mesa fragmentada. ICC = 0.32. Protocolo emergencia activado.", ok: true },
+          { id: "ags-05", txt: "Bloqueos en < 6h del anuncio", val: "Confirmación directa. E₆ = 0.95, L₆ = 0.85.", ok: true }
+        ],
+        formula: "Φ(t) = IHG⁻¹ · NTI · LDI⁻¹ + ε  →  ε era la paz que no era institucional"
+      },
+      {
+        tipo: "documento",
+        titulo: "Documento público: cadena de evidencia completa",
+        cuerpo: `El documento de propagación traduce la cadena completa de evidencia a lenguaje legible para cualquier receptor sin formación previa en el framework. El patrón replicable está explicitado para que cualquier sistema con estabilidad mal atribuida pueda reconocerse.`,
+        url: "nodo-ags-caso-publico.html",
+        linkLabel: "Abrir documento"
+      }
+    ]
+  },
+
+  /* ── AGREGA CASOS AQUÍ ────────────────────────────────────────────────────
+     Copia el bloque anterior, cambia los campos, y ajusta las etapas.
+     El sistema re-renderiza automáticamente al recargar la página.
+     ──────────────────────────────────────────────────────────────────────── */
+
+  {
+    id: "SF-AC-0023",
+    titulo: "Nodo Tepic · Corredor Nayarit",
+    sistema: "Logística de combustible · Red de distribución noroccidental",
+    estado: "monitoreo",
+    ihg_basal: -0.38,
+    ihg_final: -0.42,
+    fecha_apertura: "2026-03-10",
+    fecha_cierre: null,
+    etapas: [
+      {
+        tipo: "señal",
+        fecha: "2026-03-10",
+        titulo: "Señal: degradación silenciosa en umbrales logísticos",
+        cuerpo: `Indicadores oficiales de distribución de combustible reportan normalidad. Análisis de latencia operativa detecta incremento sistemático en LDI de nodo logístico. El sistema reporta cumplimiento mientras la entropía operativa sube consistentemente desde Q3 2025.`
+      },
+      {
+        tipo: "diagnostico",
+        fecha: "2026-03-18",
+        titulo: "Diagnóstico MIHM — tendencia alcista en IHG",
+        cuerpo: `IHG en tendencia negativa desde Q4 2025. NTI aún por encima del umbral operativo pero con componente ICC degradado por concentración de conocimiento operativo en un solo coordinador regional.`,
+        metrics: [
+          { k: "IHG actual",  v: "−0.42", cls: "warn", note: "Tendencia: −0.04 por mes" },
+          { k: "NTI",         v: "0.63",  cls: "",     note: "Operativo · monitoreo activo" },
+          { k: "LDI media",   v: "3.2d",  cls: "warn", note: "Latencia en días, no horas" },
+          { k: "E_N2",        v: "0.68",  cls: "warn", note: "Industria: carga creciente" }
+        ],
+        formula: "IHG(t+1) = IHG + [−α·IHG + β·NTI·R]·dt"
+      }
+    ]
+  }
+
+];
+/* ══════════════════════════════════════════════════════════════ */
+
+
+/* ── RENDER ENGINE ── */
+
+function estadoClass(e){
+  return e === "cerrado" ? "badge-cerrado" :
+         e === "abierto" ? "badge-abierto" : "badge-monitoreo";
+}
+function estadoLabel(e){
+  return e === "cerrado"    ? "CERRADO · ARCHIVO"   :
+         e === "abierto"    ? "ABIERTO"              :
+                              "MONITOREO";
+}
+function ihgClass(v){
+  return v < -0.55 ? "neg" : v < -0.2 ? "warn" : "";
+}
+function delta(a, b){
+  const d = (b - a).toFixed(2);
+  return d > 0 ? `+${d}` : d;
+}
+
+function renderMetrics(metrics){
+  if(!metrics||!metrics.length) return "";
+  return `<div class="sb-metrics">
+    ${metrics.map(m=>`<div class="sb-metric">
+      <div class="sb-metric-key">${m.k}</div>
+      <div class="sb-metric-val ${m.cls||''}">${m.v}</div>
+      ${m.note?`<div class="sb-metric-note">${m.note}</div>`:''}
+    </div>`).join('')}
+  </div>`;
+}
+
+function renderPreds(preds){
+  if(!preds||!preds.length) return "";
+  return `<ul class="sb-preds">
+    ${preds.map(p=>`<li class="sb-pred ${p.ok?'confirmed':''}">
+      <div class="sb-pred-id">${p.id}</div>
+      <div class="sb-pred-txt">${p.txt}</div>
+      <div class="sb-pred-val">${p.val}</div>
+      ${p.ok?`<div class="sb-pred-status">✓ confirmado</div>`:''}
+    </li>`).join('')}
+  </ul>`;
+}
+
+function renderItems(items){
+  if(!items||!items.length) return "";
+  return `<ul class="sb-preds">
+    ${items.map(it=>`<li class="sb-pred ${it.cls||''}">
+      <div class="sb-pred-id">${it.id}</div>
+      <div class="sb-pred-txt">${it.hipotesis}</div>
+      <div class="sb-pred-val">Variable: ${it.variable}</div>
+      ${it.cls==='confirmed'?`<div class="sb-pred-status">✓ validado</div>`:''}
+    </li>`).join('')}
+  </ul>`;
+}
+
+function renderEmbed(etapa){
+  return `<div class="sb-embed-wrapper">
+    <div class="sb-embed-header">
+      <span class="sb-embed-label">Documento público · ${etapa.url || '—'}</span>
+      ${etapa.url ? `<a href="${etapa.url}" target="_blank" class="sb-embed-link">${etapa.linkLabel||'Abrir'} ↗</a>` : ''}
+    </div>
+    ${etapa.url ?
+      `<iframe class="caso-embed" src="${etapa.url}" loading="lazy"
+         onerror="this.style.display='none';this.nextElementSibling.style.display='block'"></iframe>
+       <div class="sb-embed-fallback">
+         El documento no está disponible en esta ruta.<br>
+         <a href="${etapa.url}" target="_blank" style="color:var(--oro)">Intentar abrir directamente ↗</a>
+       </div>` :
+      `<div class="sb-embed-fallback" style="display:block">URL no configurada para este caso.</div>`
+    }
+  </div>`;
+}
+
+function renderStage(etapa, idx){
+  const tipo = etapa.tipo.replace("ñ","n").replace("ó","o");
+  const tipoClass = `tipo-${tipo}`;
+  const tipoLabel = {
+    "senal":"señal", "diagnostico":"diagnóstico",
+    "hipotesis":"hipótesis","validacion":"validación","documento":"documento"
+  }[tipo] || tipo;
+
+  let body = ``;
+  if(etapa.cuerpo) body += `<p class="sb-text">${etapa.cuerpo}</p>`;
+  if(etapa.metrics) body += renderMetrics(etapa.metrics);
+  if(etapa.formula) body += `<div class="sb-formula">${etapa.formula}</div>`;
+  if(etapa.items)   body += renderItems(etapa.items);
+  if(etapa.preds)   body += renderPreds(etapa.preds);
+  if(tipo === "documento") body += renderEmbed(etapa);
+
+  return `
+    <div class="stage ${tipoClass}" data-idx="${idx}">
+      <div class="stage-trigger" onclick="toggleStage(this)">
+        <div class="stage-meta">
+          <span class="stage-tipo">${tipoLabel}</span>
+          <span class="stage-fecha">${etapa.fecha||''}</span>
+        </div>
+        <div class="stage-title">${etapa.titulo}</div>
+        <span class="stage-expand">▶</span>
+      </div>
+      <div class="stage-body">${body}</div>
+    </div>`;
+}
+
+function renderDossier(caso){
+  const dIHG = delta(caso.ihg_basal, caso.ihg_final);
+  const stages = caso.etapas.map((e,i)=>renderStage(e,i)).join('');
+  return `
+    <div class="dossier visible" id="dossier-${caso.id}">
+      <div class="dossier-head">
+        <div>
+          <div class="dossier-head-title">${caso.titulo}</div>
+          <div class="dossier-head-meta">${caso.sistema} · Apertura: ${caso.fecha_apertura}${caso.fecha_cierre ? ' · Cierre: '+caso.fecha_cierre : ''}</div>
+        </div>
+        <div class="dossier-delta">
+          <div class="delta-label">ΔIHG</div>
+          <div class="delta-val">${dIHG}</div>
         </div>
       </div>
-    </div>
+      <div class="chain">${stages}</div>
+    </div>`;
+}
 
-    <!-- ETAPA I -->
-    <div class="stage-card">
-      <img src="image.png" class="stage-img">
-      <div class="stage-body">
-        <div class="stage-k">ETAPA I · CAPTURA</div>
-        <div class="stage-t">Sensores semánticos</div>
-        <div class="stage-p">
-          El lenguaje institucional no mide la fricción: la produce.
-          Se activa ε-OLC por colapso lingüístico.
-        </div>
+function renderRow(caso){
+  const ihgCls = ihgClass(caso.ihg_final);
+  return `
+    <div class="case-row" id="row-${caso.id}" data-estado="${caso.estado}" onclick="toggleCase('${caso.id}')">
+      <span class="cr-id">${caso.id}</span>
+      <div>
+        <div class="cr-title">${caso.titulo}</div>
+        <div class="cr-system">${caso.sistema}</div>
       </div>
+      <span class="cr-ihg ${ihgCls}">${caso.ihg_final.toFixed(2)}</span>
+      <span class="cr-badge ${estadoClass(caso.estado)}">${estadoLabel(caso.estado)}</span>
+      <span class="cr-chevron">▶</span>
     </div>
+    <div id="dossier-wrapper-${caso.id}" style="display:none"></div>`;
+}
 
-    <!-- ETAPA II -->
-    <div class="stage-card">
-      <img src="image.png" class="stage-img">
-      <div class="stage-body">
-        <div class="stage-k">ETAPA II · PROCESAMIENTO</div>
-        <div class="stage-t">Fricción epiontobiofílica</div>
-        <div class="stage-p">
-          El sitio opera como nodo sobre sí mismo.  
-          IHG meta elevado, NTI degradado por receptor.
-        </div>
-      </div>
-    </div>
+function toggleCase(id){
+  const row = document.getElementById(`row-${id}`);
+  const wrapper = document.getElementById(`dossier-wrapper-${id}`);
+  const isOpen = row.classList.contains('open');
+  // Cerrar todos
+  document.querySelectorAll('.case-row.open').forEach(r=>{
+    r.classList.remove('open');
+    const wid = r.id.replace('row-','');
+    document.getElementById(`dossier-wrapper-${wid}`).style.display='none';
+    document.getElementById(`dossier-wrapper-${wid}`).innerHTML='';
+  });
+  if(!isOpen){
+    row.classList.add('open');
+    const caso = CASOS.find(c=>c.id===id);
+    wrapper.innerHTML = renderDossier(caso);
+    wrapper.style.display = 'block';
+    // Auto-expand primera etapa
+    const firstTrigger = wrapper.querySelector('.stage-trigger');
+    if(firstTrigger) toggleStage(firstTrigger);
+    // Scroll suave
+    setTimeout(()=>wrapper.scrollIntoView({behavior:'smooth',block:'nearest'}),100);
+  }
+}
 
-    <!-- ETAPA III -->
-    <div class="stage-card">
-      <img src="image.png" class="stage-img">
-      <div class="stage-body">
-        <div class="stage-k">ETAPA III · PRECOLAPSO</div>
-        <div class="stage-t">Zona liminal productiva</div>
-        <div class="stage-p">
-          FE·D máxima.  
-          El sistema no colapsa: genera estructura nueva.
-        </div>
-      </div>
-    </div>
+function toggleStage(trigger){
+  const stage = trigger.closest('.stage');
+  const isOpen = stage.classList.contains('open');
+  stage.classList.toggle('open', !isOpen);
+}
 
-    <!-- CONCLUSIÓN -->
-    <div class="stage-card">
-      <img src="image.png" class="stage-img">
-      <div class="stage-body">
-        <div class="stage-k">CONCLUSIÓN</div>
-        <div class="stage-t">El ε es este documento</div>
-        <div class="stage-p">
-          La fricción no registrada emerge como categoría operativa.
-          SF se convierte en objeto de su propio método.
-        </div>
-      </div>
-      <div class="stage-footer">
-        <button class="btn">VER CONCLUSIÓN OPERATIVA</button>
-      </div>
-    </div>
+/* ── FILTER ── */
+const estados = ["todos", "cerrado", "abierto", "monitoreo"];
+const labels = {todos:"Todos", cerrado:"Cerrados", abierto:"Abiertos", monitoreo:"Monitoreo"};
+let activeFilter = "todos";
 
-  </div>
-</section>
+function getCount(e){
+  return e === "todos" ? CASOS.length : CASOS.filter(c=>c.estado===e).length;
+}
 
+function renderFilters(){
+  const bar = document.getElementById('filterBar');
+  bar.innerHTML = estados.map(e=>`
+    <button class="filter-btn ${activeFilter===e?'on':''}" onclick="setFilter('${e}')">
+      ${labels[e]} <span class="filter-count">${getCount(e)}</span>
+    </button>`).join('');
+}
+
+function setFilter(e){
+  activeFilter = e;
+  // Close open dossiers
+  document.querySelectorAll('.case-row.open').forEach(r=>{
+    r.classList.remove('open');
+    const wid = r.id.replace('row-','');
+    document.getElementById(`dossier-wrapper-${wid}`).style.display='none';
+  });
+  renderFilters();
+  CASOS.forEach(c=>{
+    const row = document.getElementById(`row-${c.id}`);
+    if(!row) return;
+    const visible = e === "todos" || c.estado === e;
+    row.classList.toggle('hidden', !visible);
+    document.getElementById(`dossier-wrapper-${c.id}`).classList.toggle('hidden', !visible);
+  });
+  // empty state
+  const list = document.getElementById('caseList');
+  const anyVisible = CASOS.some(c=> e==="todos" || c.estado===e);
+  let empty = list.querySelector('.empty-state');
+  if(!anyVisible){
+    if(!empty){ empty = document.createElement('div'); empty.className='empty-state'; list.appendChild(empty); }
+    empty.textContent = `Sin casos en estado "${labels[e]}".`;
+  } else if(empty) empty.remove();
+}
+
+function init(){
+  const list = document.getElementById('caseList');
+  list.innerHTML = CASOS.map(renderRow).join('');
+  renderFilters();
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
 </body>
 </html>
