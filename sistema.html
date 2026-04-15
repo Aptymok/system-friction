@@ -1120,16 +1120,46 @@
 
 <!-- CONTACT -->
 <section id="contact">
-  <div class="contact-left"><div class="section-tag">05 — Contacto</div><h2 class="contact-h2">Describe tu<br>sistema.<br><span>Yo hago el resto.</span></h2><p class="contact-body">No necesitás tener el problema perfectamente articulado. Solo describe lo que estás viendo, lo que no cuadra, lo que nadie está nombrando. Con eso es suficiente para empezar.</p><div class="contact-identity"><div class="contact-name">Juan Antonio Marín Liera</div><div class="contact-title">Fundador · System Friction Institute</div><div class="contact-alias">// Aptymok · Aguascalientes, México</div></div></div>
+  <div class="contact-left"><div class="section-tag">05 — Contacto</div><h2 class="contact-h2">Describe tu<br>sistema.<br><span>Yo hago el resto.</span></h2><p class="contact-body">No necesitas tener el problema perfectamente articulado. Solo describe lo que estás viendo, lo que no cuadra, lo que nadie está nombrando. Con eso es suficiente para empezar.</p><div class="contact-identity"><div class="contact-name">Juan Antonio Marín Liera</div><div class="contact-title">Fundador · System Friction Institute</div><div class="contact-alias">// Aptymok · Aguascalientes, México</div></div></div>
   <div class="contact-right">
+  
   <form class="contact-form" action="https://formspree.io/f/xgopjkop" method="POST">
-      <div class="form-row"><div class="form-field"><label class="form-label">Nombre</label><input type="text" class="form-input" placeholder="Tu nombre" required></div><div class="form-field"><label class="form-label">Organización</label><input type="text" class="form-input" placeholder="Donde operas"></div></div>
-      <div class="form-field"><label class="form-label">Email</label><input type="email" class="form-input" placeholder="tu@email.com" required></div>
-      <div class="form-field"><label class="form-label">¿Qué tipo de intervención buscás?</label><select class="form-select"><option value="" disabled selected>Seleccionar</option><option>Auditoría de fricción sistémica</option><option>Protocolo de intervención</option><option>Consultoría estratégica</option><option>No sé todavía — quiero explorar</option></select></div>
-      <div class="form-field"><label class="form-label">Describe brevemente lo que está pasando</label><textarea class="form-textarea" placeholder="No necesitás articularlo perfecto. Lo que estás percibiendo es suficiente..." required></textarea></div>
-      <button type="submit" class="form-submit">Enviar — quiero hablar con Juan</button>
-      <p class="form-note">Respuesta en menos de 24 horas. Sin formularios automáticos. Sin pitch de ventas.</p>
-    </form>
+  <div class="form-row">
+    <div class="form-field">
+      <label class="form-label">Nombre</label>
+      <input type="text" name="nombre" class="form-input" placeholder="Tu nombre" required>
+    </div>
+    <div class="form-field">
+      <label class="form-label">Organización</label>
+      <input type="text" name="organizacion" class="form-input" placeholder="Donde operas">
+    </div>
+  </div>
+
+  <div class="form-field">
+    <label class="form-label">Email</label>
+    <input type="email" name="email" class="form-input" placeholder="tu@email.com" required>
+  </div>
+
+  <div class="form-field">
+    <label class="form-label">¿Qué tipo de intervención buscas?</label>
+    <select name="tipo_intervencion" class="form-select" required>
+      <option value="" disabled selected>Seleccionar</option>
+      <option>Auditoría de fricción sistémica</option>
+      <option>Protocolo de intervención</option>
+      <option>Consultoría estratégica</option>
+      <option>No sé todavía — quiero explorar</option>
+    </select>
+  </div>
+
+  <div class="form-field">
+    <label class="form-label">Describe brevemente lo que está pasando</label>
+    <textarea name="mensaje" class="form-textarea" placeholder="No necesitas articularlo perfecto. Lo que estás percibiendo es suficiente..." required></textarea>
+  </div>
+
+  <button type="submit" class="form-submit">Enviar — quiero hablar con Juan</button>
+</form>
+  
+  
     <div class="form-success" id="formSuccess"><div class="form-success-icon">◈</div><div class="form-success-title">Mensaje recibido.</div><div class="form-success-body">Juan revisará tu mensaje y responderá en menos de 24 horas.<br>La señal ya está en tránsito.</div></div>
   </div>
 </section>
