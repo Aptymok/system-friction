@@ -203,6 +203,8 @@ body{
 <body>
 <div class="shell">
 
+
+
 <nav id="nav">
   <a href="/index.html" class="nav-logo">SYSTEM<span></span>FRICTION</a>
   
@@ -271,75 +273,262 @@ body{
 
   </div>
 </nav>
-<header class="hd">
-  <div class="hd-brand">System Friction Framework · v1.1</div>
-  <div class="hd-title">Archivo de casos empíricos</div>
-  <div class="hd-sub">Cadena de evidencia por caso · IHG basal → validación → documento</div>
-</header>
 
-<div class="filters" id="filterBar"></div>
-<div id="caseList"></div>
 
-<footer class="footer">
-  <span>MIHM v2.0 · systemfriction.org</span>
-  <span>CC BY 4.0 · APTYMOK</span>
-</footer>
+
+  
+  <header class="hd">
+    <div class="hd-brand">System Friction Framework · v1.1</div>
+    <div class="hd-title">Archivo de casos empíricos</div>
+    <div class="hd-sub">Cadena de evidencia por caso · IHG basal → validación → documento público</div>
+  </header>
+
+  <div class="filters" id="filterBar"></div>
+  <div id="caseList"></div>
+
+  <footer class="footer">
+    <span>MIHM v2.0 · Serie + Nodos · <a href="https://systemfriction.org">systemfriction.org</a></span>
+    <span>CC BY 4.0 · APTYMOK · Aguascalientes, México</span>
+  </footer>
 
 </div>
 
 <script>
-/* ===== CASOS ===== */
+/* ══════════════════════════════════════════════════════════════
+   CASOS DB — edita aquí para agregar nuevos casos
+   ══════════════════════════════════════════════════════════════ */
+
 const CASOS = [
+  /* ==============================================================
+     CASO SF-CC-0001 · AGUASCALIENTES (cifras originales)
+     ============================================================== */
   {
     id: "SF-CC-0001",
     titulo: "Aguascalientes · La paz termodinámica",
-    sistema: "Gobernanza territorial",
+    sistema: "Gobernanza territorial · Corredor Jalisco–Zacatecas–Guanajuato",
     estado: "cerrado",
     ihg_basal: -0.41,
     ihg_final: -0.62,
     fecha_apertura: "2025-11-01",
-    fecha_cierre: "2026-02-23",
+    fecha_cierre:   "2026-02-23",
     etapas: [
       {
-        tipo: "senal",
+        tipo: "señal",
         fecha: "2025-11-01",
-        titulo: "Señal: estabilidad mal atribuida",
-        cuerpo: "La estabilidad dependía de un pacto implícito no documentado."
+        titulo: "Señal detectada: estabilidad mal atribuida",
+        cuerpo: `Aguascalientes registraba tasa de homicidios 6× menor a sus estados vecinos. Los análisis institucionales atribuían esta estabilidad a capacidad gubernamental. El marco identificó una hipótesis alternativa: la estabilidad dependía de una función de utilidad implícita (U_P) sostenida por un actor externo no documentado. Ningún indicador oficial capturaba esta variable.`
       },
       {
         tipo: "diagnostico",
         fecha: "2026-01-15",
-        titulo: "Diagnóstico MIHM basal",
-        cuerpo: "IHG negativo y NTI bajo umbral.",
+        titulo: "Diagnóstico MIHM basal — vector pre-fractura",
+        cuerpo: `Vector de estado calculado el 21 de febrero de 2026. IHG negativo confirma que el sistema ya absorbía más entropía de la que podía redistribuir. NTI en 0.48 roza el umbral mínimo operativo. Dos nodos en desregulación crítica antes del shock.`,
         metrics: [
-          {k:"IHG",v:"−0.41",cls:"warn",note:"Sistema en degradación"},
-          {k:"NTI",v:"0.48",cls:"warn",note:"Por debajo del umbral"}
+          { k: "IHG basal",   v: "−0.41", cls: "warn",  note: "Sistema en degradación pre-evento" },
+          { k: "NTI",         v: "0.48",  cls: "warn",  note: "Umbral operativo mínimo: 0.50" },
+          { k: "LDI media",   v: "0.59",  cls: "",      note: "Latencia institucional pre-shock" },
+          { k: "Nodos crit.", v: "2",     cls: "",      note: "N1 Acuífero · N4 Agricultura" },
+          { k: "E_N4",        v: "0.92",  cls: "neg",   note: "Agricultura: entropía crítica" },
+          { k: "E_N1",        v: "0.82",  cls: "neg",   note: "Acuífero: carga entrópica alta" }
         ],
-        formula: "IHG = Σ(C − E)(1 − L)"
+        formula: "IHG = (1/n) · Σ (Cᵢ − Eᵢ)(1 − Lᵢ) = −0.41"
+      },
+      {
+        tipo: "hipotesis",
+        fecha: "2026-02-01",
+        titulo: "Serie predictiva ags-01 a ags-05",
+        cuerpo: `Cinco hipótesis formalizadas antes del evento. No predicen un shock específico: describen los mecanismos de degradación que harán que cualquier shock exógeno colapse el sistema de forma abrupta.`,
+        items: [
+          { id: "ags-01", hipotesis: "La distancia umbral oficial/real se cierra bruscamente bajo shock, sin transición graduada", variable: "ΔIHG como diferencial de colapso", cls: "confirmed" },
+          { id: "ags-02", hipotesis: "La latencia es variable de ajuste político; se expande bajo presión institucional", variable: "Lᵢ efectiva → puede superar 1.0", cls: "confirmed" },
+          { id: "ags-03", hipotesis: "N4 depende de acuerdos extrajurídicos sobre pozos. Pérdida de protección eleva E_N4", variable: "E_N4 ↑ por pérdida de protección", cls: "confirmed" },
+          { id: "ags-04", hipotesis: "Concentración de conocimiento en 2 actores. Mesa fragmentada bajo presión", variable: "ICC = 0.32 → NTI < 0.50 → UCAP", cls: "confirmed" },
+          { id: "ags-05", hipotesis: "Sin actor hegemónico que sostenga U_P, la ruptura es predecible en horas", variable: "N6 nuevo: E₆=0.95, L₆=0.85", cls: "confirmed" }
+        ]
       },
       {
         tipo: "validacion",
         fecha: "2026-02-23",
-        titulo: "Validación empírica",
-        cuerpo: "El shock exógeno activó el colapso en menos de 24 horas.",
+        titulo: "Validación en tiempo real · 22–23 febrero 2026",
+        cuerpo: `El 22 de febrero de 2026, fuerzas de la SEDENA abatieron al líder del CJNG en Tapalpa, Jalisco. 252 narcobloqueos en 20 estados en menos de 6 horas. En Aguascalientes: carretera 45 Norte y Sur bloqueadas, Nissan Aguascalientes suspendió primer turno, Secretario de Seguridad Estatal ausente en Mesa de Seguridad. 90% de bloqueos desactivados en la misma jornada.`,
         metrics: [
-          {k:"IHG post",v:"−0.62",cls:"neg",note:"Caída de 0.21 puntos"},
-          {k:"NTI post",v:"0.351",cls:"neg",note:"Protocolo UCAP activado"}
+          { k: "IHG post",    v: "−0.62",  cls: "neg",  note: "Caída de 0.21 en < 24h" },
+          { k: "NTI post",    v: "0.351",  cls: "neg",  note: "Por debajo de umbral UCAP" },
+          { k: "LDI media",   v: "0.75",   cls: "warn", note: "Latencia aumentó 0.16" },
+          { k: "Nodos crit.", v: "5 / 6",  cls: "neg",  note: "N1 N2 N4 N5 N6" },
+          { k: "M_N5",        v: "0.50",   cls: "warn", note: "Coherencia inst. reducida" },
+          { k: "Prob. 2030",  v: "> 70%",  cls: "neg",  note: "Monte Carlo · 50k iter." }
         ],
-        formula: "Φ(t) = IHG⁻¹ · NTI · LDI⁻¹ + ε"
+        preds: [
+          { id: "ags-01", txt: "Colapso de IHG abrupto sin transición", val: "IHG −0.41 → −0.62 en < 24h. Diferencial cerrado en evento único.", ok: true },
+          { id: "ags-02", txt: "L_N5 expande bajo presión", val: "Secretario ausente → L_eff > 1.0. Capado en máximo.", ok: true },
+          { id: "ags-03", txt: "E_N4 sube por pérdida de protección", val: "Bloqueos interrumpen monitoreo de pozos. E_N4: 0.92 → 0.96.", ok: true },
+          { id: "ags-04", txt: "NTI < 0.50 · UCAP activado", val: "Mesa fragmentada. ICC = 0.32. Protocolo emergencia activado.", ok: true },
+          { id: "ags-05", txt: "Bloqueos en < 6h del anuncio", val: "Confirmación directa. E₆ = 0.95, L₆ = 0.85.", ok: true }
+        ],
+        formula: "Φ(t) = IHG⁻¹ · NTI · LDI⁻¹ + ε  →  ε era la paz que no era institucional"
       },
       {
         tipo: "documento",
-        titulo: "Documento público",
+        titulo: "Documento público: cadena de evidencia completa",
+        cuerpo: `El documento de propagación traduce la cadena completa de evidencia a lenguaje legible para cualquier receptor sin formación previa en el framework. El patrón replicable está explicitado para que cualquier sistema con estabilidad mal atribuida pueda reconocerse.`,
         url: "SF-CC-0001.html",
         linkLabel: "Abrir documento"
       }
     ]
   },
+
+  /* ==============================================================
+     CASO SF-CC-0002 · SILAO (fragilidad logística monocéntrica)
+     ============================================================== */
+  {
+    id: "SF-CC-0002",
+    titulo: "Silao · Fragilidad logística monocéntrica",
+    sistema: "Logística industrial · Corredor automotriz",
+    estado: "cerrado",
+    ihg_basal: -0.28,
+    ihg_final: -0.57,
+    fecha_apertura: "2025-09-15",
+    fecha_cierre:   "2026-01-12",
+    etapas: [
+      {
+        tipo: "señal",
+        fecha: "2025-09-15",
+        titulo: "Señal detectada: eficiencia oculta fragilidad",
+        cuerpo: `El sistema logístico del corredor industrial de Silao operaba bajo un principio de eficiencia aparente sostenido por concentración estructural. La totalidad del flujo dependía de un nodo central cuya continuidad nunca fue cuestionada debido a métricas de rendimiento óptimas. La ausencia de redundancia no era visible en indicadores tradicionales.`
+      },
+      {
+        tipo: "diagnostico",
+        fecha: "2025-12-10",
+        titulo: "Diagnóstico MIHM — fragilidad estructural",
+        cuerpo: `El análisis identificó una condición crítica: redundancia estructural en 0.12, muy por debajo del umbral mínimo de resiliencia (0.20). Sistema funcional pero no resiliente.`,
+        metrics: [
+          { k: "IHG basal",   v: "−0.28", cls: "warn", note: "Sistema funcional pero frágil" },
+          { k: "NTI",         v: "0.61",  cls: "",     note: "Operativo, sin margen" },
+          { k: "Redundancia", v: "0.12",  cls: "neg",  note: "Umbral mínimo: 0.20" },
+          { k: "Concentración",v: "83%",  cls: "neg",  note: "Nodo dominante >80% flujo" }
+        ],
+        formula: "R_e = (N_alternativos / N_total) · (1 − C_centralización) = 0.12"
+      },
+      {
+        tipo: "hipotesis",
+        fecha: "2026-01-05",
+        titulo: "Serie predictiva sil-01 a sil-03",
+        cuerpo: `Tres hipótesis formalizadas antes del evento que describen la fragilidad del nodo logístico central.`,
+        items: [
+          { id: "sil-01", hipotesis: "Nodo dominante concentra >80% del flujo logístico. La eficiencia operativa oculta la ausencia de alternativas.", variable: "Concentración >80%", cls: "confirmed" },
+          { id: "sil-02", hipotesis: "La interrupción del nodo central generará detención progresiva en cadena. El sistema no puede redistribuir carga.", variable: "Propagación en cascada", cls: "confirmed" },
+          { id: "sil-03", hipotesis: "Los indicadores tradicionales de eficiencia no detectan la fragilidad estructural.", variable: "Métricas de eficiencia en rango óptimo", cls: "confirmed" }
+        ]
+      },
+      {
+        tipo: "validacion",
+        fecha: "2026-01-12",
+        titulo: "Validación · 12 enero 2026",
+        cuerpo: `Una interrupción logística aislada afectó al nodo central. El efecto fue desproporcionado: en menos de 12 horas, 7 nodos secundarios detuvieron operaciones. El sistema no redistribuyó carga porque no existía arquitectura para hacerlo.`,
+        metrics: [
+          { k: "IHG post",    v: "−0.57", cls: "neg",  note: "Caída de 0.29 puntos" },
+          { k: "NTI post",    v: "0.44",  cls: "neg",  note: "Por debajo del umbral" },
+          { k: "Nodos afectados", v: "7", cls: "neg",  note: "Propagación en cascada" },
+          { k: "Tiempo propagación", v: "<12h", cls: "neg", note: "Colapso acelerado" }
+        ],
+        preds: [
+          { id: "sil-01", txt: "Concentración >80% del flujo", val: "Concentración medida en 83% del flujo total.", ok: true },
+          { id: "sil-02", txt: "Propagación en cascada", val: "7 nodos secundarios detenidos en <12 horas.", ok: true },
+          { id: "sil-03", txt: "Indicadores tradicionales no detectan fragilidad", val: "Métricas de eficiencia se mantuvieron en rango óptimo.", ok: true }
+        ],
+        formula: "D(t) = min(C_i(t) / D_i) — el sistema colapsa por ausencia de alternativas"
+      },
+      {
+        tipo: "documento",
+        titulo: "Documento público: cadena de evidencia completa",
+        cuerpo: `El documento traduce la cadena completa de evidencia a lenguaje legible. El patrón replicable: eficiencia sin redundancia es compresión del riesgo en un único punto.`,
+        url: "SF-CC-0002.html",
+        linkLabel: "Abrir documento"
+      }
+    ]
+  },
+
+  /* ==============================================================
+     CASO SF-CC-0004 · ZMG (coherencia institucional fracturada)
+     ============================================================== */
+  {
+    id: "SF-CC-0004",
+    titulo: "ZMG · Coherencia institucional fracturada",
+    sistema: "Movilidad urbana · Zona Metropolitana de Guadalajara",
+    estado: "cerrado",
+    ihg_basal: -0.33,
+    ihg_final: -0.58,
+    fecha_apertura: "2025-10-01",
+    fecha_cierre:   "2026-02-05",
+    etapas: [
+      {
+        tipo: "señal",
+        fecha: "2025-10-01",
+        titulo: "Señal detectada: doble capa operativa",
+        cuerpo: `El sistema de movilidad urbana en la ZMG operaba sobre una doble capa: infraestructura formal y acuerdos informales entre actores. La continuidad dependía más de la segunda que de la primera. El modelo detectó una disociación entre marco institucional y operación real.`
+      },
+      {
+        tipo: "diagnostico",
+        fecha: "2025-12-15",
+        titulo: "Diagnóstico MIHM — NTI subumbral",
+        cuerpo: `NTI en 0.49, por debajo del umbral crítico de 0.50. Esto define un sistema donde la señal que describe el recurso no es confiable. Las decisiones estructurales quedan bloqueadas.`,
+        metrics: [
+          { k: "IHG basal",   v: "−0.33", cls: "warn", note: "Sistema funcional pero incoherente" },
+          { k: "NTI",         v: "0.49",  cls: "neg",  note: "Por debajo del umbral 0.50" },
+          { k: "Acuerdos informales", v: "67%", cls: "neg", note: "Dependencia crítica" },
+          { k: "Coordinación", v: "Fragmentada", cls: "warn", note: "Múltiples actores sin sincronía" }
+        ],
+        formula: "NTI = (1/5)·[(1−LDI) + ICC + CSR + IRCI + IIM] = 0.49"
+      },
+      {
+        tipo: "hipotesis",
+        fecha: "2026-01-20",
+        titulo: "Serie predictiva zmg-01 a zmg-04",
+        cuerpo: `Cuatro hipótesis formalizadas antes del evento que describen la fragilidad del sistema de acuerdos informales.`,
+        items: [
+          { id: "zmg-01", hipotesis: "El sistema opera sobre dos capas: marco formal y acuerdos informales. La continuidad depende de la segunda.", variable: "Doble capa operativa", cls: "confirmed" },
+          { id: "zmg-02", hipotesis: "NTI < 0.50 implica que la señal institucional no es confiable.", variable: "NTI subumbral", cls: "confirmed" },
+          { id: "zmg-03", hipotesis: "La ruptura no será centralizada. Múltiples nodos fallarán simultáneamente.", variable: "Colapso distribuido", cls: "confirmed" },
+          { id: "zmg-04", hipotesis: "La estabilidad no es estructural. Depende de incentivos para cooperar.", variable: "Estabilidad contingente", cls: "confirmed" }
+        ]
+      },
+      {
+        tipo: "validacion",
+        fecha: "2026-02-05",
+        titulo: "Validación · 5 febrero 2026",
+        cuerpo: `Se registraron interrupciones múltiples en la red de transporte. No hubo causa única identificable. Cada nodo operó bajo lógica independiente. 5 rutas principales suspendieron servicio simultáneamente. La cobertura cayó al 40% en menos de 3 horas.`,
+        metrics: [
+          { k: "IHG post",    v: "−0.58", cls: "neg",  note: "Caída de 0.25 puntos" },
+          { k: "NTI post",    v: "0.38",  cls: "neg",  note: "Protocolo UCAP activado" },
+          { k: "Rutas afectadas", v: "5", cls: "neg",  note: "Colapso distribuido" },
+          { k: "Cobertura post", v: "40%", cls: "neg", note: "Pérdida del 60% de cobertura" }
+        ],
+        preds: [
+          { id: "zmg-01", txt: "Doble capa operativa", val: "67% de decisiones dependen de acuerdos informales.", ok: true },
+          { id: "zmg-02", txt: "NTI subumbral", val: "NTI pre-evento 0.49. Protocolo congelamiento activado.", ok: true },
+          { id: "zmg-03", txt: "Colapso distribuido", val: "5 interrupciones simultáneas sin causa única.", ok: true },
+          { id: "zmg-04", txt: "Estabilidad contingente", val: "Pérdida de sincronización entre operadores.", ok: true }
+        ],
+        formula: "C(t) = Σ wᵢ · sincronizaciónᵢ(t) — el sistema colapsa por desincronización general"
+      },
+      {
+        tipo: "documento",
+        titulo: "Documento público: cadena de evidencia completa",
+        cuerpo: `El documento traduce la cadena completa de evidencia. El patrón replicable: cuando la operación depende de acuerdos no institucionalizados, la estabilidad es contingente.`,
+        url: "SF-CC-0004.html",
+        linkLabel: "Abrir documento"
+      }
+    ]
+  },
+
+  /* ==============================================================
+     CASO SF-AC-0023 · TEPIC (monitoreo activo)
+     ============================================================== */
   {
     id: "SF-AC-0023",
     titulo: "Nodo Tepic · Corredor Nayarit",
-    sistema: "Logística de combustible",
+    sistema: "Logística de combustible · Red de distribución noroccidental",
     estado: "monitoreo",
     ihg_basal: -0.38,
     ihg_final: -0.42,
@@ -347,198 +536,251 @@ const CASOS = [
     fecha_cierre: null,
     etapas: [
       {
-        tipo: "senal",
+        tipo: "señal",
         fecha: "2026-03-10",
-        titulo: "Señal: degradación silenciosa",
-        cuerpo: "Indicadores oficiales normales pero LDI en aumento sistemático."
+        titulo: "Señal: degradación silenciosa en umbrales logísticos",
+        cuerpo: `Indicadores oficiales de distribución de combustible reportan normalidad. Análisis de latencia operativa detecta incremento sistemático en LDI de nodo logístico. El sistema reporta cumplimiento mientras la entropía operativa sube consistentemente desde Q3 2025.`
       },
       {
         tipo: "diagnostico",
         fecha: "2026-03-18",
-        titulo: "Diagnóstico MIHM",
-        cuerpo: "IHG en tendencia negativa, monitoreo activo recomendado.",
+        titulo: "Diagnóstico MIHM — tendencia alcista en IHG",
+        cuerpo: `IHG en tendencia negativa desde Q4 2025. NTI aún por encima del umbral operativo pero con componente ICC degradado por concentración de conocimiento operativo en un solo coordinador regional.`,
         metrics: [
-          {k:"IHG",v:"−0.42",cls:"warn",note:"Tendencia -0.04/mes"},
-          {k:"NTI",v:"0.63",cls:"",note:"Operativo"}
-        ]
+          { k: "IHG actual",  v: "−0.42", cls: "warn", note: "Tendencia: −0.04 por mes" },
+          { k: "NTI",         v: "0.63",  cls: "",     note: "Operativo · monitoreo activo" },
+          { k: "LDI media",   v: "3.2d",  cls: "warn", note: "Latencia en días, no horas" },
+          { k: "E_N2",        v: "0.68",  cls: "warn", note: "Industria: carga creciente" }
+        ],
+        formula: "IHG(t+1) = IHG + [−α·IHG + β·NTI·R]·dt"
       }
     ]
   }
 ];
 
-/* ===== FUNCIONES AUXILIARES ===== */
-function estadoLabel(e){
-  return e==="cerrado"?"CERRADO":e==="abierto"?"ABIERTO":"MONITOREO";
-}
+/* ── RENDER ENGINE (NO CAMBIA, SOLO LOS DATOS) ── */
+
 function estadoClass(e){
-  return "badge-"+e;
+  return e === "cerrado" ? "badge-cerrado" :
+         e === "abierto" ? "badge-abierto" : "badge-monitoreo";
+}
+function estadoLabel(e){
+  return e === "cerrado"    ? "CERRADO · ARCHIVO"   :
+         e === "abierto"    ? "ABIERTO"              :
+                              "MONITOREO";
 }
 function ihgClass(v){
-  return v<-0.55?"neg":v<-0.2?"warn":"";
+  return v < -0.55 ? "neg" : v < -0.2 ? "warn" : "";
+}
+function delta(a, b){
+  const d = (b - a).toFixed(2);
+  return d > 0 ? `+${d}` : d;
 }
 
-/* ===== RENDER METRICS ===== */
 function renderMetrics(metrics){
-  if(!metrics || metrics.length===0) return "";
-  return `<div class="sb-metrics">`+
-    metrics.map(m=>`
-      <div class="sb-metric">
-        <div class="sb-metric-key">${m.k}</div>
-        <div class="sb-metric-val ${m.cls||""}">${m.v}</div>
-        ${m.note?`<div class="sb-metric-note">${m.note}</div>`:""}
-      </div>
-    `).join("")+
-  `</div>`;
+  if(!metrics||!metrics.length) return "";
+  return `<div class="sb-metrics">
+    ${metrics.map(m=>`<div class="sb-metric">
+      <div class="sb-metric-key">${m.k}</div>
+      <div class="sb-metric-val ${m.cls||''}">${m.v}</div>
+      ${m.note?`<div class="sb-metric-note">${m.note}</div>`:''}
+    </div>`).join('')}
+  </div>`;
 }
 
-/* ===== RENDER STAGE (CORREGIDA) ===== */
-function renderStage(e, idx){
-  const tipoClass = `tipo-${e.tipo}`;
-  let body = "";
-  if(e.cuerpo) body += `<p>${e.cuerpo}</p>`;
-  if(e.metrics) body += renderMetrics(e.metrics);
-  if(e.formula) body += `<div class="sb-formula">${e.formula}</div>`;
-  
-  // Documento especial
-  if(e.tipo === "documento" && e.url){
-    body += `<p><a href="${e.url}" target="_blank" style="color:var(--oro)">${e.linkLabel||"Abrir documento"} →</a></p>`;
-  }
+function renderPreds(preds){
+  if(!preds||!preds.length) return "";
+  return `<ul class="sb-preds">
+    ${preds.map(p=>`<li class="sb-pred ${p.ok?'confirmed':''}">
+      <div class="sb-pred-id">${p.id}</div>
+      <div class="sb-pred-txt">${p.txt}</div>
+      <div class="sb-pred-val">${p.val}</div>
+      ${p.ok?`<div class="sb-pred-status">✓ confirmado</div>`:''}
+    </li>`).join('')}
+  </ul>`;
+}
+
+function renderItems(items){
+  if(!items||!items.length) return "";
+  return `<ul class="sb-preds">
+    ${items.map(it=>`<li class="sb-pred ${it.cls||''}">
+      <div class="sb-pred-id">${it.id}</div>
+      <div class="sb-pred-txt">${it.hipotesis}</div>
+      <div class="sb-pred-val">Variable: ${it.variable}</div>
+      ${it.cls==='confirmed'?`<div class="sb-pred-status">✓ validado</div>`:''}
+    </li>`).join('')}
+  </ul>`;
+}
+
+function renderEmbed(etapa){
+  return `<div class="sb-embed-wrapper">
+    <div class="sb-embed-header">
+      <span class="sb-embed-label">Documento público · ${etapa.url || '—'}</span>
+      ${etapa.url ? `<a href="${etapa.url}" target="_blank" class="sb-embed-link">${etapa.linkLabel||'Abrir'} ↗</a>` : ''}
+    </div>
+    ${etapa.url ?
+      `<iframe class="caso-embed" src="${etapa.url}" loading="lazy"
+         onerror="this.style.display='none';this.nextElementSibling.style.display='block'"></iframe>
+       <div class="sb-embed-fallback">
+         El documento no está disponible en esta ruta.<br>
+         <a href="${etapa.url}" target="_blank" style="color:var(--oro)">Intentar abrir directamente ↗</a>
+       </div>` :
+      `<div class="sb-embed-fallback" style="display:block">URL no configurada para este caso.</div>`
+    }
+  </div>`;
+}
+
+function renderStage(etapa, idx){
+  const tipo = etapa.tipo.replace("ñ","n").replace("ó","o");
+  const tipoClass = `tipo-${tipo}`;
+  const tipoLabel = {
+    "senal":"señal", "diagnostico":"diagnóstico",
+    "hipotesis":"hipótesis","validacion":"validación","documento":"documento"
+  }[tipo] || tipo;
+
+  let body = ``;
+  if(etapa.cuerpo) body += `<p class="sb-text">${etapa.cuerpo}</p>`;
+  if(etapa.metrics) body += renderMetrics(etapa.metrics);
+  if(etapa.formula) body += `<div class="sb-formula">${etapa.formula}</div>`;
+  if(etapa.items)   body += renderItems(etapa.items);
+  if(etapa.preds)   body += renderPreds(etapa.preds);
+  if(tipo === "documento") body += renderEmbed(etapa);
 
   return `
     <div class="stage ${tipoClass}" data-idx="${idx}">
       <div class="stage-trigger" onclick="toggleStage(this)">
-        <div class="stage-title">${e.titulo} ${e.fecha?`· ${e.fecha}`:""}</div>
+        <div class="stage-meta">
+          <span class="stage-tipo">${tipoLabel}</span>
+          <span class="stage-fecha">${etapa.fecha||''}</span>
+        </div>
+        <div class="stage-title">${etapa.titulo}</div>
         <span class="stage-expand">▶</span>
       </div>
       <div class="stage-body">${body}</div>
-    </div>
-  `;
+    </div>`;
 }
 
-/* ===== RENDER DOSSIER ===== */
-function renderDossier(c){
-  const delta = (c.ihg_final - c.ihg_basal).toFixed(2);
+function renderDossier(caso){
+  const dIHG = delta(caso.ihg_basal, caso.ihg_final);
+  const stages = caso.etapas.map((e,i)=>renderStage(e,i)).join('');
   return `
-    <div class="dossier visible" id="dossier-${c.id}">
+    <div class="dossier visible" id="dossier-${caso.id}">
       <div class="dossier-head">
         <div>
-          <div class="dossier-head-title">${c.titulo}</div>
-          <div class="dossier-head-meta">${c.sistema} · Apertura: ${c.fecha_apertura}${c.fecha_cierre ? " → "+c.fecha_cierre : ""}</div>
+          <div class="dossier-head-title">${caso.titulo}</div>
+          <div class="dossier-head-meta">${caso.sistema} · Apertura: ${caso.fecha_apertura}${caso.fecha_cierre ? ' · Cierre: '+caso.fecha_cierre : ''}</div>
         </div>
-        <div>
+        <div class="dossier-delta">
           <div class="delta-label">ΔIHG</div>
-          <div class="delta-val">${delta}</div>
+          <div class="delta-val">${dIHG}</div>
         </div>
       </div>
-      <div class="chain">
-        ${c.etapas.map((e,i)=>renderStage(e,i)).join("")}
-      </div>
-    </div>
-  `;
+      <div class="chain">${stages}</div>
+    </div>`;
 }
 
-/* ===== TOGGLE CASE ===== */
-function toggleCase(id){
-  const row = document.getElementById(`row-${id}`);
-  const existingDossier = document.getElementById(`dossier-${id}`);
-  
-  // Si ya está abierto, lo cerramos
-  if(row.classList.contains('open')){
-    row.classList.remove('open');
-    if(existingDossier) existingDossier.remove();
-    return;
-  }
-  
-  // Cerramos otros abiertos
-  document.querySelectorAll('.case-row.open').forEach(r => {
-    r.classList.remove('open');
-    const oldId = r.id.replace('row-','');
-    const oldDossier = document.getElementById(`dossier-${oldId}`);
-    if(oldDossier) oldDossier.remove();
-  });
-  
-  // Abrimos el nuevo
-  row.classList.add('open');
-  const caso = CASOS.find(c => c.id === id);
-  const dossierHTML = renderDossier(caso);
-  row.insertAdjacentHTML('afterend', dossierHTML);
-}
-
-/* ===== TOGGLE STAGE ===== */
-function toggleStage(trigger){
-  const stage = trigger.closest('.stage');
-  stage.classList.toggle('open');
-}
-
-/* ===== RENDER ROW ===== */
-function renderRow(c){
+function renderRow(caso){
+  const ihgCls = ihgClass(caso.ihg_final);
   return `
-    <div class="case-row" id="row-${c.id}" onclick="toggleCase('${c.id}')">
-      <span class="cr-id">${c.id}</span>
+    <div class="case-row" id="row-${caso.id}" data-estado="${caso.estado}" onclick="toggleCase('${caso.id}')">
+      <span class="cr-id">${caso.id}</span>
       <div>
-        <div class="cr-title">${c.titulo}</div>
-        <div class="cr-system">${c.sistema}</div>
+        <div class="cr-title">${caso.titulo}</div>
+        <div class="cr-system">${caso.sistema}</div>
       </div>
-      <span class="cr-ihg ${ihgClass(c.ihg_final)}">${c.ihg_final.toFixed(2)}</span>
-      <span class="cr-badge ${estadoClass(c.estado)}">${estadoLabel(c.estado)}</span>
+      <span class="cr-ihg ${ihgCls}">${caso.ihg_final.toFixed(2)}</span>
+      <span class="cr-badge ${estadoClass(caso.estado)}">${estadoLabel(caso.estado)}</span>
       <span class="cr-chevron">▶</span>
     </div>
-  `;
+    <div id="dossier-wrapper-${caso.id}" style="display:none"></div>`;
 }
 
-/* ===== FILTERS ===== */
+function toggleCase(id){
+  const row = document.getElementById(`row-${id}`);
+  const wrapper = document.getElementById(`dossier-wrapper-${id}`);
+  const isOpen = row.classList.contains('open');
+  // Cerrar todos
+  document.querySelectorAll('.case-row.open').forEach(r=>{
+    r.classList.remove('open');
+    const wid = r.id.replace('row-','');
+    document.getElementById(`dossier-wrapper-${wid}`).style.display='none';
+    document.getElementById(`dossier-wrapper-${wid}`).innerHTML='';
+  });
+  if(!isOpen){
+    row.classList.add('open');
+    const caso = CASOS.find(c=>c.id===id);
+    wrapper.innerHTML = renderDossier(caso);
+    wrapper.style.display = 'block';
+    // Auto-expand primera etapa
+    const firstTrigger = wrapper.querySelector('.stage-trigger');
+    if(firstTrigger) toggleStage(firstTrigger);
+    // Scroll suave
+    setTimeout(()=>wrapper.scrollIntoView({behavior:'smooth',block:'nearest'}),100);
+  }
+}
+
+function toggleStage(trigger){
+  const stage = trigger.closest('.stage');
+  const isOpen = stage.classList.contains('open');
+  stage.classList.toggle('open', !isOpen);
+}
+
+/* ── FILTER ── */
+const estados = ["todos", "cerrado", "abierto", "monitoreo"];
+const labels = {todos:"Todos", cerrado:"Cerrados", abierto:"Abiertos", monitoreo:"Monitoreo"};
 let activeFilter = "todos";
 
+function getCount(e){
+  return e === "todos" ? CASOS.length : CASOS.filter(c=>c.estado===e).length;
+}
+
 function renderFilters(){
-  const estados = [
-    {id:"todos", label:"Todos", count:CASOS.length},
-    {id:"cerrado", label:"Cerrados", count:CASOS.filter(c=>c.estado==="cerrado").length},
-    {id:"abierto", label:"Abiertos", count:CASOS.filter(c=>c.estado==="abierto").length},
-    {id:"monitoreo", label:"Monitoreo", count:CASOS.filter(c=>c.estado==="monitoreo").length}
-  ];
-  
-  document.getElementById("filterBar").innerHTML = estados.map(e =>
-    `<button class="filter-btn ${activeFilter===e.id?'on':''}" onclick="setFilter('${e.id}')">
-      ${e.label} <span class="filter-count">${e.count}</span>
-    </button>`
-  ).join("");
+  const bar = document.getElementById('filterBar');
+  bar.innerHTML = estados.map(e=>`
+    <button class="filter-btn ${activeFilter===e?'on':''}" onclick="setFilter('${e}')">
+      ${labels[e]} <span class="filter-count">${getCount(e)}</span>
+    </button>`).join('');
 }
 
-function setFilter(filter){
-  activeFilter = filter;
+function setFilter(e){
+  activeFilter = e;
+  // Close open dossiers
+  document.querySelectorAll('.case-row.open').forEach(r=>{
+    r.classList.remove('open');
+    const wid = r.id.replace('row-','');
+    document.getElementById(`dossier-wrapper-${wid}`).style.display='none';
+  });
   renderFilters();
-  
-  // Cerrar todos los dossiers abiertos
-  document.querySelectorAll('.case-row.open').forEach(row => {
-    row.classList.remove('open');
-    const id = row.id.replace('row-','');
-    const dossier = document.getElementById(`dossier-${id}`);
-    if(dossier) dossier.remove();
+  CASOS.forEach(c=>{
+    const row = document.getElementById(`row-${c.id}`);
+    if(!row) return;
+    const visible = e === "todos" || c.estado === e;
+    row.classList.toggle('hidden', !visible);
+    const wrapper = document.getElementById(`dossier-wrapper-${c.id}`);
+    if(wrapper) wrapper.classList.toggle('hidden', !visible);
   });
-  
-  // Filtrar rows
-  CASOS.forEach(caso => {
-    const row = document.getElementById(`row-${caso.id}`);
-    if(row){
-      const visible = filter === "todos" || caso.estado === filter;
-      row.classList.toggle('hidden', !visible);
-    }
-  });
+  // empty state
+  const list = document.getElementById('caseList');
+  const anyVisible = CASOS.some(c=> e==="todos" || c.estado===e);
+  let empty = list.querySelector('.empty-state');
+  if(!anyVisible){
+    if(!empty){ empty = document.createElement('div'); empty.className='empty-state'; list.appendChild(empty); }
+    empty.textContent = `Sin casos en estado "${labels[e]}".`;
+  } else if(empty) empty.remove();
 }
 
-/* ===== INIT ===== */
 function init(){
-  document.getElementById("caseList").innerHTML = CASOS.map(renderRow).join("");
+  const list = document.getElementById('caseList');
+  list.innerHTML = CASOS.map(renderRow).join('');
   renderFilters();
 }
 
-// Exponer funciones globalmente para onclick
+// Exponer funciones globalmente
 window.toggleCase = toggleCase;
 window.toggleStage = toggleStage;
 window.setFilter = setFilter;
 
-document.addEventListener("DOMContentLoaded", init);
+document.addEventListener('DOMContentLoaded', init);
 </script>
-
 </body>
 </html>
