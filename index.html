@@ -7,504 +7,229 @@
   <script src="https://d3js.org/d3.v7.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <style>
+    :root { --neon: #E6FF00; --void: #030305; --gold: #FFD700; }
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
     html, body {
-      width: 100%;
-      height: 100%;
-      background: #030305;
-      color: #E6FF00;
+      width: 100%; height: 100%;
+      background: var(--void); color: var(--neon);
       font-family: 'IBM Plex Mono', monospace;
       overflow: hidden;
     }
 
-    /* ===== CANVAS LAYER ===== */
+    /* ===== CAPAS DE RENDERIZADO ===== */
+    #bg-layer {
+      position: fixed; top: 0; left: 0;
+      width: 100%; height: 100%;
+      z-index: 1; pointer-events: none;
+    }
+
     #sf-canvas-3d, #sf-canvas-2d {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      z-index: 1;
-      opacity: 0.1; /* Background opacity */
+      position: absolute; top: 0; left: 0;
+      width: 100%; height: 100%;
+      opacity: 0.15; /* Opacidad base del mapa de fondo */
     }
 
-    #sf-canvas-2d { display: none; }
-    body.mobile #sf-canvas-2d { display: block; }
-    body.desktop #sf-canvas-2d { display: none; }
-
-    /* ===== CONTENT STAGE ===== */
-    #sf-main-stage {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      z-index: 10;
-      background: transparent;
-      pointer-events: none;
-      overflow: hidden;
-    }
-
-    #sf-main-stage.loaded {
-      pointer-events: auto;
-      background: rgba(3, 3, 5, 0.96);
-      overflow-y: auto;
-      overflow-x: hidden;
-      opacity: 1;
-    }
-
-    #sf-main-stage * { pointer-events: auto; }
-    #sf-main-stage a { color: #E6FF00; text-decoration: underline; }
-    #sf-main-stage h1, #sf-main-stage h2 { color: #FFD700; margin: 20px 0 12px 0; text-shadow: 0 0 10px rgba(230, 255, 0, 0.3); }
-    #sf-main-stage p { line-height: 1.8; margin: 10px 0; }
-    #sf-main-stage table { width: 100%; border-collapse: collapse; margin: 20px 0; background: rgba(10, 10, 15, 0.8); border: 1px solid rgba(230, 255, 0, 0.2); }
-    #sf-main-stage th, #sf-main-stage td { padding: 12px; text-align: left; border: 1px solid rgba(230, 255, 0, 0.15); }
-    #sf-main-stage th { background: rgba(230, 255, 0, 0.1); font-weight: bold; }
-
-    #sf-close-btn {
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      z-index: 11;
-      background: transparent;
-      border: 1px solid #E6FF00;
-      color: #E6FF00;
-      padding: 8px 16px;
-      cursor: pointer;
-      font-family: 'IBM Plex Mono', monospace;
-      font-size: 11px;
-      transition: all 0.2s;
-      display: none;
-      opacity: 1;
-    }
-
-    #sf-main-stage.loaded #sf-close-btn { display: block; }
-    #sf-close-btn:hover { box-shadow: 0 0 10px #E6FF00; background: rgba(230, 255, 0, 0.1); }
-
-    .sf-content-wrapper {
-      width: 90%;
-      max-width: 1000px;
-      margin: 0 auto;
-      padding: 40px 20px;
-    }
-
-    /* Nucleus Toggle Indicator */
-    #sf-nucleus {
-      position: fixed;
-      top: 50%;
-      left: 50%;
+    /* ===== NÚCLEO Y CONTROL ===== */
+    #sf-nucleus-wrapper {
+      position: fixed; top: 50%; left: 50%;
       transform: translate(-50%, -50%);
-      z-index: 5;
-      cursor: pointer;
-      transition: filter 0.3s;
+      z-index: 50; cursor: pointer;
+      text-align: center; pointer-events: auto;
     }
 
-    #sf-nucleus:hover {
-      filter: drop-shadow(0 0 15px #E6FF00);
+    #sf-nucleus {
+      width: 50px; height: 50px;
+      background: var(--gold);
+      border: 2px solid var(--neon);
+      border-radius: 50%;
+      box-shadow: 0 0 20px rgba(230, 255, 0, 0.5);
+      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
+
+    #sf-nucleus:hover { transform: scale(1.2); filter: brightness(1.2); }
+    #sf-nucleus.active { background: var(--neon); box-shadow: 0 0 40px var(--neon); }
 
     #sf-nucleus-label {
-      position: fixed;
-      bottom: 40px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 5;
-      font-size: 12px;
-      color: #E6FF00;
-      opacity: 0.6;
-      text-align: center;
-      pointer-events: none;
+      margin-top: 15px; font-size: 10px; letter-spacing: 2px;
+      opacity: 0.5; text-transform: uppercase;
     }
+
+    /* ===== ESCENARIO DE CONTENIDO (DASHBOARD) ===== */
+    #sf-main-stage {
+      position: fixed; top: 0; left: 0;
+      width: 100%; height: 100%;
+      z-index: 100; opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.6s ease;
+      background: rgba(3, 3, 5, 0.94); /* Casi opaco para legibilidad */
+      overflow-y: auto;
+    }
+
+    #sf-main-stage.loaded { opacity: 1; pointer-events: auto; }
+
+    .sf-content-wrapper {
+      max-width: 900px; margin: 80px auto; padding: 20px;
+    }
+
+    #sf-close-btn {
+      position: fixed; top: 25px; right: 25px;
+      background: transparent; border: 1px solid var(--neon);
+      color: var(--neon); padding: 8px 15px; cursor: pointer;
+      font-family: inherit; font-size: 11px; z-index: 101;
+    }
+
+    /* Estilos del Atlas inyectado */
+    .header-tag { color: var(--gold); font-size: 12px; margin-bottom: 20px; border-bottom: 1px solid rgba(230,255,0,0.2); padding-bottom: 10px; }
   </style>
 </head>
 <body class="desktop">
-  <!-- Canvas Layers -->
-  <canvas id="sf-canvas-3d"></canvas>
-  <div id="sf-canvas-2d"></div>
 
-  <!-- Nucleus Control -->
-  <svg id="sf-nucleus" width="40" height="40" viewBox="0 0 40 40">
-    <circle cx="20" cy="20" r="12" fill="#FFD700" stroke="#E6FF00" stroke-width="1.5" opacity="1"/>
-  </svg>
+  <div id="bg-layer">
+    <canvas id="sf-canvas-3d"></canvas>
+    <div id="sf-canvas-2d"></div>
+  </div>
 
-  <!-- Content Stage -->
+  <div id="sf-nucleus-wrapper" onclick="handleNucleusClick()">
+    <div id="sf-nucleus"></div>
+    <div id="sf-nucleus-label">INITIALIZING...</div>
+  </div>
+
   <div id="sf-main-stage">
-    <button id="sf-close-btn">[CLOSE]</button>
+    <button id="sf-close-btn" onclick="closeStage()">[CLOSE]</button>
     <div class="sf-content-wrapper" id="sf-content"></div>
   </div>
 
-  <div id="sf-nucleus-label">[NUCLEUS] — CLICK TO EXPAND</div>
-
-  <!-- Scripts -->
   <script src="/js/state.js"></script>
   <script src="/js/router.js"></script>
   <script src="/js/core.js"></script>
 
   <script>
-    // ===== DEVICE DETECTION =====
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
-    document.body.classList.toggle('mobile', isMobile);
-    document.body.classList.toggle('desktop', !isMobile);
+    // Configuración de Dispositivo
+    const isMobile = window.innerWidth < 768;
+    document.body.className = isMobile ? 'mobile' : 'desktop';
 
-    // ===== GLOBAL STATE =====
-    window.nucleusExpanded = false;
-    window.chaosParticles = [];
-    window.collapsing = false;
+    let particles = [];
+    let collapsing = false;
+    let systemReady = false;
 
-    // ===== CHAOS PARTICLE SYSTEM =====
-    class ChaosParticle {
-      constructor() {
-        this.x = Math.random() * window.innerWidth;
-        this.y = Math.random() * window.innerHeight;
-        this.vx = (Math.random() - 0.5) * 8;
-        this.vy = (Math.random() - 0.5) * 8;
-        this.life = 1;
-        this.size = Math.random() * 3 + 1;
-      }
+    // ===== 2D CAOS (Neuro-Gestalt) =====
+    const canvas2d = document.createElement('canvas');
+    const ctx2d = canvas2d.getContext('2d');
+    document.getElementById('sf-canvas-2d').appendChild(canvas2d);
 
-      update(centerX, centerY, collapseProgress) {
-        if (!window.collapsing) {
-          // Chaos: random motion
-          this.vx += (Math.random() - 0.5) * 0.5;
-          this.vy += (Math.random() - 0.5) * 0.5;
-          this.vx = Math.max(-8, Math.min(8, this.vx));
-          this.vy = Math.max(-8, Math.min(8, this.vy));
-        } else {
-          // Collapse: accelerate toward center
-          const dx = centerX - this.x;
-          const dy = centerY - this.y;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist > 1) {
-            this.vx = (dx / dist) * 20 * collapseProgress;
-            this.vy = (dy / dist) * 20 * collapseProgress;
-          }
-        }
+    function resize() {
+      canvas2d.width = window.innerWidth;
+      canvas2d.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resize);
+    resize();
 
-        this.x += this.vx;
-        this.y += this.vy;
-
-        // Bounce off edges
-        if (this.x < 0 || this.x > window.innerWidth) this.vx *= -1;
-        if (this.y < 0 || this.y > window.innerHeight) this.vy *= -1;
-        this.x = Math.max(0, Math.min(window.innerWidth, this.x));
-        this.y = Math.max(0, Math.min(window.innerHeight, this.y));
-
-        // Fade out during collapse
-        this.life = Math.max(0, this.life - (window.collapsing ? 0.1 : 0));
-      }
-
-      draw(ctx) {
-        ctx.fillStyle = `rgba(230, 255, 0, ${this.life * 0.8})`;
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-        ctx.fill();
-      }
+    // Crear partículas de caos inicial
+    for(let i=0; i<120; i++) {
+      particles.push({
+        x: Math.random() * window.innerWidth,
+        y: Math.random() * window.innerHeight,
+        vx: (Math.random() - 0.5) * 12,
+        vy: (Math.random() - 0.5) * 12,
+        size: Math.random() * 2 + 1
+      });
     }
 
-    // ===== 2D CHAOS (Desktop) =====
-    function initChaos2D() {
-      const canvas = document.getElementById('sf-canvas-2d');
-      canvas.innerHTML = '';
-      const svgNS = 'http://www.w3.org/2000/svg';
-      const svg = document.createElementNS(svgNS, 'svg');
-      svg.setAttribute('width', window.innerWidth);
-      svg.setAttribute('height', window.innerHeight);
-      svg.setAttribute('style', 'position:absolute;top:0;left:0;');
-      canvas.appendChild(svg);
-
+    function animateIntro() {
+      if (systemReady && !collapsing) return;
+      
+      ctx2d.clearRect(0, 0, canvas2d.width, canvas2d.height);
       const centerX = window.innerWidth / 2;
       const centerY = window.innerHeight / 2;
 
-      // Create 150 chaos particles
-      for (let i = 0; i < 150; i++) {
-        window.chaosParticles.push(new ChaosParticle());
-      }
-
-      let chaosStart = Date.now();
-      let animationId;
-
-      function animateChaos() {
-        const elapsed = (Date.now() - chaosStart) / 1000;
-        const collapseProgress = Math.max(0, Math.min(1, (elapsed - 2.5) / 1.5));
-
-        if (elapsed > 2.5 && !window.collapsing) {
-          window.collapsing = true;
+      particles.forEach(p => {
+        if (collapsing) {
+          // Colapso: Atracción magnética al centro
+          p.vx = (centerX - p.x) * 0.15;
+          p.vy = (centerY - p.y) * 0.15;
+          p.size *= 0.98; // Se desvanecen al entrar al núcleo
+        } else {
+          // Caos: Rebote en bordes
+          p.x += p.vx; p.y += p.vy;
+          if (p.x < 0 || p.x > canvas2d.width) p.vx *= -1;
+          if (p.y < 0 || p.y > canvas2d.height) p.vy *= -1;
         }
 
-        svg.innerHTML = '';
+        ctx2d.fillStyle = '#E6FF00';
+        ctx2d.beginPath();
+        ctx2d.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx2d.fill();
+      });
 
-        // Draw connections
-        if (!window.collapsing) {
-          for (let i = 0; i < window.chaosParticles.length; i += 5) {
-            for (let j = i + 1; j < Math.min(i + 4, window.chaosParticles.length); j++) {
-              const p1 = window.chaosParticles[i];
-              const p2 = window.chaosParticles[j];
-              const dist = Math.sqrt((p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2);
-              if (dist < 100) {
-                const line = document.createElementNS(svgNS, 'line');
-                line.setAttribute('x1', p1.x);
-                line.setAttribute('y1', p1.y);
-                line.setAttribute('x2', p2.x);
-                line.setAttribute('y2', p2.y);
-                line.setAttribute('stroke', '#E6FF00');
-                line.setAttribute('stroke-width', '1');
-                line.setAttribute('opacity', (1 - dist / 100) * 0.4);
-                svg.appendChild(line);
-              }
-            }
-          }
-        }
-
-        // Update and draw particles
-        window.chaosParticles.forEach(p => {
-          p.update(centerX, centerY, collapseProgress);
-          if (p.life > 0) {
-            const circle = document.createElementNS(svgNS, 'circle');
-            circle.setAttribute('cx', p.x);
-            circle.setAttribute('cy', p.y);
-            circle.setAttribute('r', p.size);
-            circle.setAttribute('fill', `rgba(230, 255, 0, ${p.life * 0.8})`);
-            svg.appendChild(circle);
-          }
-        });
-
-        // Scale nucleus during collapse
-        const nucleusSVG = document.getElementById('sf-nucleus');
-        const nucleusScale = 1 + collapseProgress * 2;
-        nucleusSVG.style.transform = `translate(-50%, -50%) scale(${nucleusScale})`;
-        nucleusSVG.style.opacity = 1 - collapseProgress * 0.5;
-
-        // After collapse, show Level 1 nodes delay
-        if (elapsed > 4) {
-          if (!window.nucleusExpanded) {
-            expandNucleus();
-            canvas.style.opacity = '0.1';
-          }
-          cancelAnimationFrame(animationId);
-          return;
-        }
-
-        animationId = requestAnimationFrame(animateChaos);
-      }
-
-      animateChaos();
+      if (!systemReady) requestAnimationFrame(animateIntro);
     }
 
-    // ===== 3D SPHERE (Mobile Three.js) =====
-    function initChaos3D() {
-      const canvas = document.getElementById('sf-canvas-3d');
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
+    // Iniciar Animación de Caos
+    animateIntro();
 
+    // Temporizador Neuro-Gestalt (2.5s Caos -> Colapso)
+    setTimeout(() => {
+      collapsing = true;
+      document.getElementById('sf-nucleus-label').textContent = 'COLLAPSING...';
+      
+      setTimeout(() => {
+        systemReady = true;
+        collapsing = false;
+        ctx2d.clearRect(0, 0, canvas2d.width, canvas2d.height);
+        document.getElementById('sf-nucleus-label').textContent = '[NUCLEUS] STABLE';
+        document.getElementById('sf-nucleus').classList.add('active');
+        
+        // Iniciar Mapa Esférico si es Mobile
+        if (isMobile) init3DSphere();
+      }, 1500);
+    }, 2500);
+
+    // ===== THREE.JS SPHERE (Mapa de fondo) =====
+    function init3DSphere() {
+      const canvas3d = document.getElementById('sf-canvas-3d');
       const scene = new THREE.Scene();
-      const camera = new THREE.PerspectiveCamera(75, canvas.clientWidth / canvas.clientHeight, 0.1, 1000);
-      const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
-      renderer.setSize(canvas.clientWidth, canvas.clientHeight);
-      renderer.setClearColor(0x030305, 1);
+      const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+      const renderer = new THREE.WebGLRenderer({ canvas: canvas3d, alpha: true, antialias: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
 
-      camera.position.z = 3;
-
-      // Wireframe sphere
-      const geometry = new THREE.IcosahedronGeometry(1.5, 4);
-      const material = new THREE.MeshPhongMaterial({
-        color: 0xE6FF00,
-        emissive: 0x330066,
-        wireframe: true,
-        transparent: true,
-        opacity: 0.5
-      });
-      const sphere = new THREE.Mesh(geometry, material);
+      const geo = new THREE.IcosahedronGeometry(2, 2);
+      const mat = new THREE.MeshBasicMaterial({ color: 0xE6FF00, wireframe: true, transparent: true, opacity: 0.3 });
+      const sphere = new THREE.Mesh(geo, mat);
       scene.add(sphere);
+      camera.position.z = 5;
 
-      // Particle lights
-      const particleGeometry = new THREE.BufferGeometry();
-      const particleCount = 100;
-      const positions = new Float32Array(particleCount * 3);
-      for (let i = 0; i < particleCount * 3; i += 3) {
-        positions[i] = (Math.random() - 0.5) * 5;
-        positions[i + 1] = (Math.random() - 0.5) * 5;
-        positions[i + 2] = (Math.random() - 0.5) * 5;
-      }
-      particleGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-
-      const particleMaterial = new THREE.PointsMaterial({
-        color: 0xE6FF00,
-        size: 0.05,
-        sizeAttenuation: true,
-        transparent: true,
-        opacity: 0.7
-      });
-      const particles = new THREE.Points(particleGeometry, particleMaterial);
-      scene.add(particles);
-
-      // Lighting
-      const light = new THREE.PointLight(0xE6FF00, 1);
-      light.position.set(5, 5, 5);
-      scene.add(light);
-
-      let chaosStart = Date.now();
-      let collapsing = false;
-
-      function animate() {
-        requestAnimationFrame(animate);
-
-        const elapsed = (Date.now() - chaosStart) / 1000;
-        const collapseProgress = Math.max(0, Math.min(1, (elapsed - 2.5) / 1.5));
-
-        if (elapsed > 2.5 && !collapsing) {
-          collapsing = true;
-        }
-
-        // Rotate sphere
-        sphere.rotation.x += 0.002;
-        sphere.rotation.y += 0.003;
-
-        // Scale sphere during collapse
-        sphere.scale.set(1 + collapseProgress * 0.5, 1 + collapseProgress * 0.5, 1 + collapseProgress * 0.5);
-
-        // Fade particles during col lapse
-        particleMaterial.opacity = 0.7 - collapseProgress * 0.5;
-
-        // Fade canvas
-        const target = collapsing ? 0 : 0.1;
-        canvas.style.opacity = Math.max(canvas.style.opacity || target, target - collapseProgress * 0.1);
-
-        if (elapsed > 4 && !window.nucleusExpanded) {
-          expandNucleus();
-          canvas.style.opacity = '0.1';
-        }
-
+      function rotate() {
+        requestAnimationFrame(rotate);
+        sphere.rotation.y += 0.005;
         renderer.render(scene, camera);
       }
-
-      animate();
-
-      // Handle resize
-      window.addEventListener('resize', () => {
-        camera.aspect = canvas.clientWidth / canvas.clientHeight;
-        camera.updateProjectionMatrix();
-        renderer.setSize(canvas.clientWidth, canvas.clientHeight);
-      });
+      rotate();
     }
 
-    // ===== EXPAND NUCLEUS (Show Level 1 Nodes) =====
-    function expandNucleus() {
-      if (window.nucleusExpanded) return;
-      window.nucleusExpanded = true;
-
-      const nucleusSVG = document.getElementById('sf-nucleus');
+    // ===== LÓGICA DE INTERACCIÓN =====
+    function handleNucleusClick() {
+      if (!systemReady) return;
       const label = document.getElementById('sf-nucleus-label');
-
-      nucleusSVG.style.opacity = '1';
-      label.textContent = '[NUCLEUS] — EXPANDED';
-
-      if (!window.navTree || !window.navTree.nucleus) {
-        setTimeout(expandNucleus, 100);
-        return;
-      }
-
-      const centerX = window.innerWidth / 2;
-      const centerY = window.innerHeight / 2;
-
-      const level1Keys = Object.keys(window.navTree.nucleus.children || {});
-      if (level1Keys.length === 0) return;
-
-      // Desktop: to the right; Mobile: upward
-      const isVertical = isMobile;
-      const radius = 200;
-      const angleOffset = isMobile ? -Math.PI / 2 : 0;
-
-      // Create SVG overlay for Level 1 nodes
-      const canvasContainer = document.getElementById('sf-canvas-2d');
-      if (!canvasContainer.querySelector('svg.level1')) {
-        const svgNS = 'http://www.w3.org/2000/svg';
-        const svg = document.createElementNS(svgNS, 'svg');
-        svg.setAttribute('class', 'level1');
-        svg.setAttribute('width', window.innerWidth);
-        svg.setAttribute('height', window.innerHeight);
-        svg.setAttribute('style', 'position:absolute;top:0;left:0;z-index:5;pointer-events:all;');
-        canvasContainer.appendChild(svg);
-
-        level1Keys.forEach((key, idx) => {
-          const angle = angleOffset + (idx * (2 * Math.PI) / level1Keys.length);
-          const x = centerX + radius * Math.cos(angle);
-          const y = centerY + radius * Math.sin(angle);
-
-          // Line to nucleus
-          const line = document.createElementNS(svgNS, 'line');
-          line.setAttribute('x1', centerX);
-          line.setAttribute('y1', centerY);
-          line.setAttribute('x2', x);
-          line.setAttribute('y2', y);
-          line.setAttribute('stroke', '#E6FF00');
-          line.setAttribute('stroke-width', '1.5');
-          line.setAttribute('opacity', '0.6');
-          svg.appendChild(line);
-
-          // Node circle
-          const circle = document.createElementNS(svgNS, 'circle');
-          circle.setAttribute('cx', x);
-          circle.setAttribute('cy', y);
-          circle.setAttribute('r', '12');
-          circle.setAttribute('fill', '#E6FF00');
-          circle.setAttribute('stroke', '#fff');
-          circle.setAttribute('stroke-width', '1.5');
-          circle.setAttribute('cursor', 'pointer');
-          circle.setAttribute('data-node', key);
-          circle.style.transition = 'filter 0.15s';
-          circle.addEventListener('mouseenter', () => {
-            circle.style.filter = 'drop-shadow(0 0 12px #E6FF00)';
-          });
-          circle.addEventListener('mouseleave', () => {
-            circle.style.filter = 'none';
-          });
-          circle.addEventListener('click', () => {
-            if (window.router && window.router.navigateFractal) {
-              window.router.navigateFractal(key);
-            }
-          });
-          svg.appendChild(circle);
-
-          // Label
-          const text = document.createElementNS(svgNS, 'text');
-          text.setAttribute('x', x);
-          text.setAttribute('y', y);
-          text.setAttribute('text-anchor', 'middle');
-          text.setAttribute('dy', '.35em');
-          text.setAttribute('font-size', '10px');
-          text.setAttribute('fill', '#030305');
-          text.setAttribute('font-weight', 'bold');
-          text.setAttribute('pointer-events', 'none');
-          text.textContent = key.substring(0, 2).toUpperCase();
-          svg.appendChild(text);
-        });
+      
+      if (!window.nucleusExpanded) {
+        label.textContent = '[SYSTEM] EXPANDED';
+        // Aquí llamas a tu función en core.js que dibuja los nodos Level 1
+        if (window.expandNucleus) window.expandNucleus();
+        window.nucleusExpanded = true;
+      } else {
+        // Si ya está expandido, quizás quieras volver al centro
+        label.textContent = '[NUCLEUS] STABLE';
+        window.nucleusExpanded = false;
       }
     }
 
-    // ===== NUCLEUS CLICK HANDLER =====
-    document.getElementById('sf-nucleus').addEventListener('click', expandNucleus);
-
-    // ===== CLOSE BUTTON =====
-    document.getElementById('sf-close-btn').addEventListener('click', () => {
+    function closeStage() {
       document.getElementById('sf-main-stage').classList.remove('loaded');
       document.getElementById('sf-content').innerHTML = '';
-      if (window.router) {
-        window.currentNavigationPath = ['nucleus'];
-      }
-    });
+    }
 
-    // ===== INIT SEQUENCE =====
-    window.addEventListener('DOMContentLoaded', () => {
-      // Start chaos animation
-      if (isMobile) {
-        setTimeout(initChaos3D, 50);
-      } else {
-        setTimeout(initChaos2D, 50);
-      }
-
-      console.log('%c[SF] — NEURO-GESTALT ACTIVATED —', 'color: #E6FF00; font-weight: bold; font-size: 14px;');
-    });
+    console.log('%c[SF-OS] — SISTEMA INICIADO —', 'color: #E6FF00; font-weight: bold;');
   </script>
 </body>
 </html>
