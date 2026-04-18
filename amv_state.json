@@ -1,0 +1,10 @@
+{
+  "ts": "2026-04-18T00:00:00Z",
+  "session_id": "AMV-INIT",
+  "nti_current": 0.0,
+  "ihg_delta": 0.0,
+  "active_pattern": "none",
+  "olc_dominant": "none",
+  "alert_level": "nominal",
+  "note": "initial state"
+}
