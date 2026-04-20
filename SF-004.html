@@ -2,8 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>System Friction Institute · Dictamen SF-004 · Subutilización Sistémica Digital</title>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,600&family=JetBrains+Mono:wght@300;400;500;700&family=Syncopate:wght@400;700&display=swap" rel="stylesheet">
 <style>
@@ -17,8 +16,6 @@
     --ink2: #3C3732;
     --ink3: #6B635A;
     --paper: #F7F4EA;
-    --void: #050504;
-    --void2: #0A0A08;
     --mono: 'JetBrains Mono', monospace;
     --serif: 'Cormorant Garamond', Georgia, serif;
     --disp: 'Syncopate', sans-serif;
@@ -29,49 +26,24 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 20px 0;
-    overflow-x: hidden;
+    padding: 20px 16px;
   }
 
-  /* ===== SISTEMA BASE (DESKTOP) ===== */
+  /* === BASE: MÓVIL (vertical grimorio) === */
   .page {
-    width: 220mm;
-    height: 220mm;
+    width: 100%;
+    max-width: 100%;
     position: relative;
     background: var(--paper);
-    margin-bottom: 20px;
+    margin-bottom: 28px;
     box-shadow: 0 20px 35px -12px rgba(0,0,0,0.4);
-    overflow: hidden;
-  }
-
-  /* ===== RESPONSIVE REAL (SIN SCALE) ===== */
-  @media (max-width: 768px) {
-    .page {
-      width: 92vw;
-      height: auto;
-      max-width: 600px;
-    }
-
-    .col {
-      padding: 24px;
-    }
-
-    .t-title {
-      font-size: 1.2rem;
-    }
-
-    .t-body {
-      font-size: 0.8rem;
-    }
-
-    .t-body-sm {
-      font-size: 0.7rem;
-    }
-  }
-
-  img, svg {
-    max-width: 100%;
+    page-break-after: always;
+    break-inside: avoid;
+    overflow: visible;
+    border-radius: 2px;
+    /* móvil: altura automática, vertical */
     height: auto;
+    min-height: auto;
   }
 
   .page::before {
@@ -88,54 +60,71 @@
   .col {
     display: flex;
     flex-direction: column;
-    height: 100%;
-    padding: 11mm 12mm;
+    padding: 28px 22px;
     position: relative;
     z-index: 2;
   }
 
+  /* Tipografía fluida */
   .t-kicker {
     font-family: var(--mono);
-    font-size: 0.48rem;
+    font-size: clamp(0.55rem, 4vw, 0.7rem);
     letter-spacing: 0.3em;
     text-transform: uppercase;
     color: var(--gold);
-    margin-bottom: 0.6rem;
+    margin-bottom: 0.8rem;
   }
-
   .t-title {
     font-family: var(--disp);
     font-weight: 700;
-    font-size: 1.5rem;
-    line-height: 1.1;
-    margin-bottom: 0.7rem;
+    font-size: clamp(1.3rem, 6vw, 1.8rem);
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+    margin-bottom: 0.8rem;
     color: var(--ink);
   }
-
+  .t-section-title {
+    font-family: var(--disp);
+    font-weight: 600;
+    font-size: clamp(0.7rem, 3.5vw, 0.85rem);
+    letter-spacing: 0.1em;
+    color: var(--gold);
+    margin: 0.6rem 0 0.3rem 0;
+    text-transform: uppercase;
+  }
   .t-body {
     font-family: var(--serif);
-    font-size: 0.75rem;
-    line-height: 1.6;
-    margin-bottom: 0.5rem;
+    font-size: clamp(0.75rem, 4vw, 0.9rem);
+    line-height: 1.55;
+    margin-bottom: 0.6rem;
     color: var(--ink2);
     text-align: justify;
   }
-
   .t-body-sm {
     font-family: var(--serif);
-    font-size: 0.65rem;
-    line-height: 1.55;
+    font-size: clamp(0.65rem, 3.5vw, 0.75rem);
+    line-height: 1.5;
     color: var(--ink3);
   }
-
+  .t-mono {
+    font-family: var(--mono);
+    font-size: clamp(0.6rem, 3.2vw, 0.7rem);
+    line-height: 1.6;
+    color: var(--ink2);
+  }
+  .t-mono-sm {
+    font-family: var(--mono);
+    font-size: clamp(0.5rem, 3vw, 0.6rem);
+    line-height: 1.5;
+    color: var(--ink3);
+  }
   .gold-rule {
-    width: 42px;
+    width: 48px;
     height: 1px;
     background: var(--gold);
     margin: 0.8rem 0;
     opacity: 0.6;
   }
-
   .gold-rule-full {
     width: 100%;
     height: 1px;
@@ -143,45 +132,170 @@
     margin: 0.8rem 0;
   }
 
+  .var-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin: 0.6rem 0;
+  }
+  .var-row {
+    display: grid;
+    grid-template-columns: 75px 1fr;
+    gap: 0.6rem;
+    padding: 0.35rem 0;
+    border-bottom: 0.5px solid rgba(212, 175, 55, 0.15);
+  }
+  .var-code {
+    font-family: var(--mono);
+    font-size: clamp(0.55rem, 3vw, 0.65rem);
+    color: var(--gold);
+    font-weight: 600;
+  }
+  .var-desc {
+    font-family: var(--serif);
+    font-size: clamp(0.65rem, 3.5vw, 0.75rem);
+    color: var(--ink2);
+    line-height: 1.4;
+  }
+
+  .relacion-critica {
+    background: var(--gold-faint);
+    padding: 0.75rem;
+    margin: 0.6rem 0;
+    font-family: var(--mono);
+    font-size: clamp(0.55rem, 3vw, 0.65rem);
+    color: var(--ink);
+    border-left: 2px solid var(--gold);
+  }
+
+  .glyph-friction {
+    position: absolute;
+    bottom: 16px;
+    right: 16px;
+    width: 24px;
+    height: 24px;
+    opacity: 0.2;
+    pointer-events: none;
+  }
+  .glyph-friction svg {
+    width: 100%;
+    height: 100%;
+  }
+  .corner-mark {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    font-family: var(--mono);
+    font-size: 0.45rem;
+    letter-spacing: 0.2em;
+    color: var(--gold-dim);
+    opacity: 0.4;
+  }
+  .page-num {
+    position: absolute;
+    bottom: 12px;
+    right: 16px;
+    font-family: var(--mono);
+    font-size: 0.5rem;
+    color: var(--gold);
+    opacity: 0.5;
+    z-index: 3;
+    background: var(--paper);
+    padding: 0 4px;
+  }
+  .rombo-sf {
+    width: 48px;
+    height: 48px;
+    border: 1px solid var(--gold);
+    transform: rotate(45deg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+  }
+  .rombo-sf span {
+    transform: rotate(-45deg);
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    color: var(--gold);
+    opacity: 0.5;
+  }
+
   .flow-diag {
     font-family: var(--mono);
-    font-size: 0.55rem;
-    line-height: 1.9;
-    text-align: center;
-    margin: 1rem 0;
+    font-size: clamp(0.55rem, 3.2vw, 0.7rem);
+    line-height: 1.8;
+    text-align: left;
+    margin: 0.8rem 0;
     color: var(--ink);
     border-left: 1px dashed var(--gold-dim);
     padding-left: 1rem;
   }
 
-  @media print {
-    body { background: white; padding: 0; }
+  /* === ESCRITORIO: CUADRADO 550x550 === */
+  @media (min-width: 768px) {
+    body {
+      padding: 30px 20px;
+    }
     .page {
-      width: 148mm;
-      height: 148mm;
+      width: 550px;
+      max-width: 550px;
+      height: 550px;
+      aspect-ratio: 1 / 1;
+      margin-bottom: 30px;
+      overflow-y: auto;
+    }
+    .col {
+      padding: 28px 24px;
+      height: 100%;
+    }
+    /* scroll suave si contenido excede */
+    .page::-webkit-scrollbar {
+      width: 4px;
+    }
+    .page::-webkit-scrollbar-track {
+      background: var(--gold-faint);
+    }
+    .page::-webkit-scrollbar-thumb {
+      background: var(--gold-dim);
+    }
+  }
+
+  /* === IMPRESIÓN: A4 vertical === */
+  @media print {
+    body { background: white; padding: 0; display: block; }
+    .page {
       box-shadow: none;
       margin: 0;
       page-break-after: always;
+      width: 100%;
+      height: auto;
+      max-width: none;
+      aspect-ratio: auto;
+      overflow: visible;
     }
+    .page::before { opacity: 0.1; }
+    .glyph-friction { opacity: 0.1; }
+    .corner-mark { opacity: 0.3; }
   }
 </style>
 </head>
 <body>
 
 <!-- ═══════════════════════════════════════════════════════
-     DICTAMEN ESTRUCTURAL · SF-004 · SUBUTILIZACIÓN SISTÉMICA DIGITAL
+     DICTAMEN ESTRUCTURAL · SF-004
      ═══════════════════════════════════════════════════════ -->
 
 <!-- PÁGINA 1 · PORTADA -->
 <div class="page">
   <div class="col" style="justify-content: center; text-align: center;">
-    <div class="rombo-sf" style="margin-bottom: 1.2rem;"><span>SF</span></div>
-    <div class="t-kicker" style="margin-bottom: 0.8rem; letter-spacing: 0.4em;">System Friction Institute</div>
-    <div class="t-title" style="font-size: 1.4rem;">DICTAMEN</div>
-    <div class="t-title" style="font-size: 1.8rem; margin-top: -0.2rem;">ESTRUCTURAL</div>
-    <div class="gold-rule" style="margin: 1rem auto; width: 48px;"></div>
+    <div class="t-kicker" style="margin-bottom: 1rem; letter-spacing: 0.4em;">System Friction Institute</div>
+    <div style="font-family: var(--disp); font-size: 2rem; font-weight: 700; color: var(--gold); letter-spacing: -0.02rem;">DICTAMEN</div>
+    <div style="font-family: var(--disp); font-size: 1.8rem; font-weight: 700; margin-top: -0.2rem;">ESTRUCTURAL</div>
+    <div class="gold-rule" style="margin: 1.2rem auto; width: 60px;"></div>
     <div class="t-body-sm" style="color: var(--ink3);">SF-004 · 2026-04-20<br>Fenómeno: Subutilización Sistémica Digital</div>
-    <div class="t-body-sm" style="margin-top: 1.8rem; font-style: italic;">El sistema digital existe, pero no opera como sistema.<br>No hay falla técnica. Hay ausencia de dirección estructural.</div>
+    <div class="t-body-sm" style="margin-top: 1.5rem; font-style: italic;">El sistema digital existe, pero no opera como sistema.<br>No hay falla técnica. Hay ausencia de dirección estructural.</div>
   </div>
   <div class="glyph-friction"><svg viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="0.8"><path d="M2 12 L6 8 L10 16 L14 7 L18 14 L22 10" stroke-linecap="round"/></svg></div>
   <div class="corner-mark">● SFI · DICTAMEN</div>
@@ -192,15 +306,14 @@
 <div class="page">
   <div class="col">
     <div class="t-kicker">01 · identificación</div>
-    <div class="t-title" style="font-size: 1.2rem;">Fenómeno: Subutilización Sistémica Digital</div>
+    <div class="t-title" style="font-size: clamp(1rem, 5vw, 1.3rem);">Fenómeno: Subutilización Sistémica Digital</div>
     <div class="gold-rule-full"></div>
     <div class="t-body">El sitio web funciona como interfaz de presencia, no como sistema de captura, filtrado ni decisión. La arquitectura actual emite información, pero no procesa entrada.</div>
     <div class="t-body-sm"><strong>Observación primaria:</strong> No se detecta ruptura. Se detecta infrautilización. El sistema es coherente con una lógica de visibilidad pasiva.</div>
     <div class="flow-diag">
       [SITIO ACTUAL]<br>
       Usuario → Información → Salida<br>
-      (no retorno)<br>
-      (no medición)
+      (no retorno) · (no medición)
     </div>
     <div class="t-body-sm">El sistema emite. No procesa. No hay circuito.</div>
   </div>
@@ -212,7 +325,7 @@
 <div class="page">
   <div class="col">
     <div class="t-kicker">02 · descomposición en variables</div>
-    <div class="t-title" style="font-size: 1rem;">Variables operativas</div>
+    <div class="t-title" style="font-size: clamp(0.9rem, 4.5vw, 1.1rem);">Variables operativas</div>
     <div class="var-grid">
       <div class="var-row"><div class="var-code">IHG</div><div class="var-desc">alto → carga dispersa sin atractor dominante</div></div>
       <div class="var-row"><div class="var-code">NTI</div><div class="var-desc">comprometido → desalineación capacidad real vs estructura genérica</div></div>
@@ -220,7 +333,7 @@
       <div class="var-row"><div class="var-code">Aₑ</div><div class="var-desc">abierto no filtrado → baja calidad de interacción</div></div>
       <div class="var-row"><div class="var-code">Sᵤ</div><div class="var-desc">bajo → no hay entropía útil, no se generan datos accionables</div></div>
       <div class="var-row"><div class="var-code">ε</div><div class="var-desc">OLC-D débil → identidad no colapsada, ambigüedad estructural</div></div>
-      <div class="var-row"><div class="var-code">G.O.</div><div class="var-desc">activa → el sitio cumple función mínima “existir”, evita evolución</div></div>
+      <div class="var-row"><div class="var-code">G.O.</div><div class="var-desc">activa → el sitio cumple función mínima "existir", evita evolución</div></div>
     </div>
     <div class="t-mono-sm" style="margin-top: 0.3rem;">Sistema presente, no operativo.</div>
   </div>
@@ -231,22 +344,14 @@
 <div class="page">
   <div class="col">
     <div class="t-kicker">03 · relación estructural</div>
-    <div class="t-title" style="font-size: 1rem;">Cadena causal</div>
+    <div class="t-title" style="font-size: clamp(0.9rem, 4.5vw, 1.1rem);">Cadena causal</div>
     <div class="relacion-critica">
       Presencia pasiva → Ausencia de captura → Sᵤ ↓ → Aprendizaje nulo → LDI ↑ → IHG ↑ → Sistema estancado
     </div>
     <div class="gold-rule-full"></div>
     <div class="t-body">La falta de captura impide generación de datos. Sin datos, no hay ajuste. Sin ajuste, el sistema se mantiene estable pero no evoluciona.</div>
-    <div class="flow-diag" style="margin-top: 0.5rem;">
-      No captura<br>
-         ↓<br>
-      No datos<br>
-         ↓<br>
-      No aprendizaje<br>
-         ↓<br>
-      No ajuste<br>
-         ↓<br>
-      Estancamiento
+    <div class="flow-diag">
+      No captura<br>↓<br>No datos<br>↓<br>No aprendizaje<br>↓<br>No ajuste<br>↓<br>Estancamiento
     </div>
     <div class="t-body-sm">Sin medición, no hay evolución.</div>
   </div>
@@ -257,7 +362,7 @@
 <div class="page">
   <div class="col">
     <div class="t-kicker">04 · estado del sistema</div>
-    <div class="t-title" style="font-size: 1rem;">Arquitectura y función</div>
+    <div class="t-title" style="font-size: clamp(0.9rem, 4.5vw, 1.1rem);">Arquitectura y función</div>
     <div class="var-grid">
       <div class="var-row"><div class="var-code">Tipo</div><div class="var-desc">sistema abierto no instrumentado</div></div>
       <div class="var-row"><div class="var-code">Función dominante</div><div class="var-desc">exhibición</div></div>
@@ -265,7 +370,7 @@
     </div>
     <div class="gold-rule-full"></div>
     <div class="t-body">El sitio no participa en la operación comercial. Es un nodo aislado.</div>
-    <div class="flow-diag" style="margin-top: 0.3rem;">
+    <div class="flow-diag">
       ACTUAL              VS           REAL<br>
       Exhibición                       Sistema<br>
       Información                      Decisión<br>
@@ -280,7 +385,7 @@
 <div class="page">
   <div class="col">
     <div class="t-kicker">05 · incompatibilidad</div>
-    <div class="t-title" style="font-size: 1rem;">Contradicción estructural</div>
+    <div class="t-title" style="font-size: clamp(0.9rem, 4.5vw, 1.1rem);">Contradicción estructural</div>
     <div class="var-grid">
       <div class="var-row"><div class="var-code">●</div><div class="var-desc"><strong>Objetivo implícito:</strong> crecimiento comercial</div></div>
       <div class="var-row"><div class="var-code">●</div><div class="var-desc"><strong>Configuración activa:</strong> pasividad informativa</div></div>
@@ -300,7 +405,7 @@
 <div class="page">
   <div class="col">
     <div class="t-kicker">06 · clasificación</div>
-    <div class="t-title" style="font-size: 1rem;">Estado y riesgo</div>
+    <div class="t-title" style="font-size: clamp(0.9rem, 4.5vw, 1.1rem);">Estado y riesgo</div>
     <div class="var-grid">
       <div class="var-row"><div class="var-code">Estado</div><div class="var-desc">funcional limitado</div></div>
       <div class="var-row"><div class="var-code">Riesgo</div><div class="var-desc">irrelevancia progresiva</div></div>
@@ -308,7 +413,7 @@
     </div>
     <div class="gold-rule-full"></div>
     <div class="t-body">El sistema no colapsa. Se vuelve irrelevante.</div>
-    <div class="flow-diag" style="margin-top: 0.5rem;">
+    <div class="flow-diag">
       Hoy      → funcional<br>
       Medio    → irrelevante<br>
       Largo    → reemplazable
@@ -321,7 +426,7 @@
 <div class="page">
   <div class="col">
     <div class="t-kicker">07 · trazabilidad</div>
-    <div class="t-title" style="font-size: 1rem;">Consistencia observacional</div>
+    <div class="t-title" style="font-size: clamp(0.9rem, 4.5vw, 1.1rem);">Consistencia observacional</div>
     <div class="t-body">Cada comportamiento observado es consistente con:</div>
     <div class="flow-diag">
       No captura → no aprende<br>
@@ -337,18 +442,19 @@
 </div>
 
 <!-- ═══════════════════════════════════════════════════════
-     MÓDULO DE INTERVENCIÓN · SF-004 · SUBUTILIZACIÓN SISTÉMICA DIGITAL
+     MÓDULO DE INTERVENCIÓN · SF-004
      ═══════════════════════════════════════════════════════ -->
 
+<!-- M-1 -->
 <div class="page">
   <div class="col" style="justify-content: center; text-align: center;">
     <div class="rombo-sf"><span>SF</span></div>
     <div class="gold-rule" style="margin: 1rem auto;"></div>
     <div class="t-kicker">System Friction Institute</div>
-    <div class="t-title" style="font-size: 1.1rem;">MÓDULO DE INTERVENCIÓN</div>
+    <div class="t-title" style="font-size: clamp(1rem, 5vw, 1.2rem);">MÓDULO DE INTERVENCIÓN</div>
     <div class="t-body-sm">SF-004 · Subutilización Sistémica Digital</div>
     <div class="gold-rule-full"></div>
-    <div class="t-body-sm" style="max-width: 80%; margin: 0 auto;">Acciones derivadas del dictamen estructural. Sin diagnóstico adicional.</div>
+    <div class="t-body-sm" style="max-width: 85%; margin: 0 auto;">Acciones derivadas del dictamen estructural. Sin diagnóstico adicional.</div>
   </div>
   <div class="page-num">M-1</div>
 </div>
@@ -357,8 +463,8 @@
 <div class="page">
   <div class="col">
     <div class="t-kicker">M-01 · reasignación de energía</div>
-    <div class="t-title" style="font-size: 1rem;">Arquitectura objetivo</div>
-    <div class="flow-diag" style="text-align: left;">
+    <div class="t-title" style="font-size: clamp(0.9rem, 4.5vw, 1rem);">Arquitectura objetivo</div>
+    <div class="flow-diag">
       ACTUAL<br>
       Usuario → contenido → salida<br><br>
       OBJETIVO<br>
@@ -379,7 +485,7 @@
 <div class="page">
   <div class="col">
     <div class="t-kicker">M-02 · acción derivada (72h)</div>
-    <div class="t-title" style="font-size: 1rem;">Variable objetivo: Sᵤ</div>
+    <div class="t-title" style="font-size: clamp(0.9rem, 4.5vw, 1rem);">Variable objetivo: Sᵤ</div>
     <div class="gold-rule-full"></div>
     <div class="t-body"><strong>Acción:</strong></div>
     <div class="t-body-sm">Día 1–3:</div>
@@ -400,7 +506,7 @@
 <div class="page">
   <div class="col">
     <div class="t-kicker">M-03 · bitácora</div>
-    <div class="t-title" style="font-size: 0.9rem;">Registro de ejecución</div>
+    <div class="t-title" style="font-size: clamp(0.8rem, 4vw, 0.9rem);">Registro de ejecución</div>
     <div class="gold-rule-full"></div>
     <div class="var-grid">
       <div class="var-row"><div class="var-code">Día 1</div><div class="var-desc">Entradas: _______ / Patrón detectado: _______</div></div>
@@ -416,11 +522,11 @@
 <!-- M-5 · CIERRE -->
 <div class="page">
   <div class="col" style="justify-content: center; align-items: center; text-align: center;">
-    <div class="glyph-friction" style="position: relative; width: 36px; height: 36px; margin-bottom: 1rem; opacity: 0.3;">
+    <div class="glyph-friction" style="position: relative; width: 32px; height: 32px; margin-bottom: 1rem; opacity: 0.3;">
       <svg viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="0.8"><path d="M2 12 L6 8 L10 16 L14 7 L18 14 L22 10" stroke-linecap="round"/></svg>
     </div>
     <div class="t-body">El sistema no requiere rediseño inicial.<br>Requiere instrumentación.</div>
-    <div class="flow-diag" style="margin: 0.5rem 0;">
+    <div class="flow-diag" style="margin: 0.5rem 0; text-align: center;">
       ANTES: ver<br>
       DESPUÉS: medir → decidir → ajustar
     </div>
