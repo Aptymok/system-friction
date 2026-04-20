@@ -30,8 +30,10 @@
     flex-direction: column;
     align-items: center;
     padding: 20px 0;
+    overflow-x: hidden;
   }
 
+  /* ===== SISTEMA BASE (DESKTOP) ===== */
   .page {
     width: 148mm;
     height: 148mm;
@@ -39,10 +41,38 @@
     background: var(--paper);
     margin-bottom: 20px;
     box-shadow: 0 20px 35px -12px rgba(0,0,0,0.4);
-    page-break-after: always;
-    break-inside: avoid;
     overflow: hidden;
-    border-radius: 1px;
+  }
+
+  /* ===== RESPONSIVE REAL (SIN SCALE) ===== */
+  @media (max-width: 768px) {
+    .page {
+      width: 92vw;
+      height: auto;
+      aspect-ratio: 1 / 1;
+      max-width: 600px;
+    }
+
+    .col {
+      padding: 6vw;
+    }
+
+    .t-title {
+      font-size: 1.2rem;
+    }
+
+    .t-body {
+      font-size: 0.8rem;
+    }
+
+    .t-body-sm {
+      font-size: 0.7rem;
+    }
+  }
+
+  img, svg {
+    max-width: 100%;
+    height: auto;
   }
 
   .page::before {
@@ -73,24 +103,16 @@
     color: var(--gold);
     margin-bottom: 0.6rem;
   }
+
   .t-title {
     font-family: var(--disp);
     font-weight: 700;
     font-size: 1.5rem;
     line-height: 1.1;
-    letter-spacing: -0.01em;
     margin-bottom: 0.7rem;
     color: var(--ink);
   }
-  .t-section-title {
-    font-family: var(--disp);
-    font-weight: 600;
-    font-size: 0.85rem;
-    letter-spacing: 0.1em;
-    color: var(--gold);
-    margin: 0.6rem 0 0.3rem 0;
-    text-transform: uppercase;
-  }
+
   .t-body {
     font-family: var(--serif);
     font-size: 0.75rem;
@@ -99,24 +121,14 @@
     color: var(--ink2);
     text-align: justify;
   }
+
   .t-body-sm {
     font-family: var(--serif);
     font-size: 0.65rem;
     line-height: 1.55;
     color: var(--ink3);
   }
-  .t-mono {
-    font-family: var(--mono);
-    font-size: 0.58rem;
-    line-height: 1.7;
-    color: var(--ink2);
-  }
-  .t-mono-sm {
-    font-family: var(--mono);
-    font-size: 0.5rem;
-    line-height: 1.6;
-    color: var(--ink3);
-  }
+
   .gold-rule {
     width: 42px;
     height: 1px;
@@ -124,6 +136,7 @@
     margin: 0.8rem 0;
     opacity: 0.6;
   }
+
   .gold-rule-full {
     width: 100%;
     height: 1px;
@@ -131,97 +144,6 @@
     margin: 0.8rem 0;
   }
 
-  .var-grid {
-    display: flex;
-    flex-direction: column;
-    gap: 0.3rem;
-    margin: 0.6rem 0;
-  }
-  .var-row {
-    display: grid;
-    grid-template-columns: 58px 1fr;
-    gap: 0.5rem;
-    padding: 0.25rem 0;
-    border-bottom: 0.5px solid rgba(212, 175, 55, 0.15);
-  }
-  .var-code {
-    font-family: var(--mono);
-    font-size: 0.55rem;
-    color: var(--gold);
-    font-weight: 600;
-  }
-  .var-desc {
-    font-family: var(--serif);
-    font-size: 0.68rem;
-    color: var(--ink2);
-    line-height: 1.45;
-  }
-
-  .relacion-critica {
-    background: var(--gold-faint);
-    padding: 0.5rem;
-    margin: 0.6rem 0;
-    font-family: var(--mono);
-    font-size: 0.55rem;
-    color: var(--ink);
-    border-left: 2px solid var(--gold);
-  }
-
-  .glyph-friction {
-    position: absolute;
-    bottom: 8mm;
-    right: 8mm;
-    width: 24px;
-    height: 24px;
-    opacity: 0.2;
-    pointer-events: none;
-  }
-  .glyph-friction svg {
-    width: 100%;
-    height: 100%;
-  }
-  .corner-mark {
-    position: absolute;
-    top: 5mm;
-    left: 5mm;
-    font-family: var(--mono);
-    font-size: 0.38rem;
-    letter-spacing: 0.2em;
-    color: var(--gold-dim);
-    opacity: 0.4;
-  }
-  .page-num {
-    position: absolute;
-    bottom: 5mm;
-    right: 8mm;
-    font-family: var(--mono);
-    font-size: 0.42rem;
-    color: var(--gold);
-    opacity: 0.5;
-    z-index: 3;
-    background: var(--paper);
-    padding: 0 2px;
-  }
-  .rombo-sf {
-    width: 48px;
-    height: 48px;
-    border: 1px solid var(--gold);
-    transform: rotate(45deg);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto;
-  }
-  .rombo-sf span {
-    transform: rotate(-45deg);
-    font-family: var(--mono);
-    font-size: 0.7rem;
-    letter-spacing: 0.1em;
-    color: var(--gold);
-    opacity: 0.5;
-  }
-
-  /* diagrama de flujo minimal */
   .flow-diag {
     font-family: var(--mono);
     font-size: 0.55rem;
@@ -235,7 +157,13 @@
 
   @media print {
     body { background: white; padding: 0; }
-    .page { box-shadow: none; margin: 0; page-break-after: always; }
+    .page {
+      width: 148mm;
+      height: 148mm;
+      box-shadow: none;
+      margin: 0;
+      page-break-after: always;
+    }
   }
 </style>
 </head>
