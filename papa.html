@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>⚡ SUPER PAPÁ 8-BIT | MEDIEVAL CYBERPUNK ⚡</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        body {
+            background: #0a0a0f;
+            background-image: repeating-linear-gradient(0deg, #10101f 0px, #10101f 2px, #05050c 2px, #05050c 8px);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Courier New', 'VT323', monospace;
+            padding: 16px;
+        }
+        .cyber-panel {
+            max-width: 550px;
+            width: 100%;
+            background: #0c0b16;
+            border-radius: 28px;
+            border: 2px solid #e8b55a;
+            box-shadow: 0 0 0 4px #2a1e3a, 0 20px 30px rgba(0,0,0,0.6);
+            padding: 16px 12px 22px;
+            backdrop-filter: blur(1px);
+            position: relative;
+        }
+        .cyber-panel::before {
+            content: "⚙️⚔️";
+            position: absolute;
+            top: -12px;
+            left: 20px;
+            font-size: 18px;
+            background: #1f1a2e;
+            padding: 0 12px;
+            border-radius: 30px;
+            color: #f3c26b;
+            letter-spacing: 4px;
+        }
+        .stats-header {
+            display: flex;
+            justify-content: space-between;
+            background: #000000aa;
+            border: 1px solid #7a65a0;
+            border-radius: 36px;
+            padding: 8px 16px;
+            margin-bottom: 20px;
+            font-weight: bold;
+            color: #fad974;
+            text-shadow: 0 0 3px #ff8c00;
+        }
+        .pixel-score {
+            background: #19162c;
+            padding: 2px 16px;
+            border-radius: 30px;
+            font-family: monospace;
+        }
+        .pixel-canvas-container {
+            background: #010013;
+            border-radius: 24px;
+            padding: 8px;
+            border: 3px solid #ae8f5a;
+            box-shadow: inset 0 0 10px #00000055, 0 6px 0 #2c233c;
+            margin-bottom: 16px;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: auto;
+            background: #11141f;
+            border-radius: 18px;
+            image-rendering: crisp-edges;
+            image-rendering: pixelated;
+            margin: 0 auto;
+        }
+        .dialogue-bit {
+            background: #0f0e1c;
+            border-left: 8px solid #e5a73b;
+            padding: 14px;
+            margin: 12px 0;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            color: #f3efcf;
+            border-radius: 14px;
+            font-size: 0.9rem;
+            letter-spacing: 0.5px;
+        }
+        .onomatopoeia-area {
+            background: #00000099;
+            border-radius: 40px;
+            text-align: center;
+            padding: 6px;
+            margin: 8px 0;
+            font-size: 1.8rem;
+            font-weight: bold;
+            font-family: monospace;
+            color: #ffae5a;
+            text-shadow: 2px 2px 0 #7a2e00;
+            letter-spacing: 4px;
+            animation: glitch 0.2s ease;
+        }
+        .action-buttons {
+            display: flex;
+            gap: 14px;
+            margin: 16px 0 8px;
+        }
+        .btn-8bit {
+            background: #242041;
+            border: none;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            font-size: 1rem;
+            padding: 12px 12px;
+            border-radius: 40px;
+            color: #fad974;
+            box-shadow: 0 4px 0 #120e22;
+            cursor: pointer;
+            transition: 0.05s linear;
+            text-align: center;
+            flex: 1;
+        }
+        .btn-8bit:active {
+            transform: translateY(2px);
+            box-shadow: 0 1px 0 #120e22;
+        }
+        .btn-choice {
+            background: #3d2a1a;
+            color: #ffdfaa;
+        }
+        .reset-btn {
+            background: #261f3c;
+            margin-top: 12px;
+            width: 100%;
+        }
+        .progress-indicators {
+            display: flex;
+            justify-content: center;
+            gap: 9px;
+            margin: 10px 0;
+        }
+        .pixel-dot {
+            width: 14px;
+            height: 14px;
+            background: #3c3259;
+            border-radius: 2px;
+            transform: skewX(-5deg);
+        }
+        .pixel-dot.active {
+            background: #f3b33d;
+            box-shadow: 0 0 6px #f5a623;
+        }
+        .pixel-dot.completed {
+            background: #5aba6f;
+        }
+        .medieval-credit {
+            font-size: 9px;
+            text-align: center;
+            margin-top: 16px;
+            color: #9b7d58;
+        }
+        @keyframes glitch {
+            0% { transform: translateX(-2px);}
+            100% { transform: translateX(2px);}
+        }
+        footer {
+            font-size: 8px;
+            text-align: center;
+            color: #6a5685;
+            margin-top: 12px;
+        }
+        /* micro animación para canvas sprites */
+        @keyframes walk {
+            0% { transform: translateX(0px);}
+            50% { transform: translateX(3px);}
+            100% { transform: translateX(0px);}
+        }
+    </style>
+</head>
+<body>
+<div class="cyber-panel" id="gameRoot">
+    <div class="stats-header">
+        <span>⚔️ SUPER PAPÁ • MEDIEVAL CYBER ⚔️</span>
+        <span class="pixel-score" id="scoreDisplay">🕹️ 0 PTS</span>
+    </div>
+    <div class="pixel-canvas-container">
+        <canvas id="pixelCanvas" width="480" height="240" style="width:100%; height:auto; max-width:480px; aspect-ratio:480/240"></canvas>
+    </div>
+    <div id="dialogueArea"></div>
+    <div id="onomatopoeiaArea" class="onomatopoeia-area"></div>
+    <div id="actionPanel"></div>
+    <div class="progress-indicators" id="progressDots"></div>
+    <button id="resetAdventureBtn" class="btn-8bit reset-btn">🔄 REINICIAR AVENTURA</button>
+    <div class="medieval-credit">🎵 LAS MAÑANITAS (8-BIT) • EFECTOS CHIP</div>
+    <footer>⚡ TOCA LOS BOTONES • CADA ELECCIÓN GENERA UNA MICRO ESCENA</footer>
+</div>
+
+<script>
+    (function(){
+        // ---------- WEB AUDIO API - MAÑANITAS (HAPPY BDAY) + EFECTOS ----------
+        let audioCtx = null;
+        let bgGain = null;
+        let isMusicPlaying = false;
+        let musicInterval = null;
+        // Versión simplificada y reconocible de "Las Mañanitas" / "Happy Birthday to you" (versión corta)
+        const cumpleMelody = [
+            { note: "G4", duration: 0.3 }, { note: "G4", duration: 0.3 }, { note: "A4", duration: 0.4 }, { note: "G4", duration: 0.4 }, { note: "C5", duration: 0.4 }, { note: "B4", duration: 0.6 },
+            { note: "G4", duration: 0.3 }, { note: "G4", duration: 0.3 }, { note: "A4", duration: 0.4 }, { note: "G4", duration: 0.4 }, { note: "D5", duration: 0.4 }, { note: "C5", duration: 0.6 },
+            { note: "G4", duration: 0.3 }, { note: "G4", duration: 0.3 }, { note: "G5", duration: 0.4 }, { note: "E5", duration: 0.4 }, { note: "C5", duration: 0.4 }, { note: "B4", duration: 0.4 }, { note: "A4", duration: 0.5 },
+            { note: "F5", duration: 0.3 }, { note: "F5", duration: 0.3 }, { note: "E5", duration: 0.4 }, { note: "C5", duration: 0.4 }, { note: "D5", duration: 0.4 }, { note: "C5", duration: 0.8 }
+        ];
+        const noteFreq = { "C4":261.63, "D4":293.66, "E4":329.63, "F4":349.23, "G4":392.00, "A4":440.00, "B4":493.88, "C5":523.25, "D5":587.33, "E5":659.25, "F5":698.46, "G5":783.99 };
+        
+        function initAudio() {
+            if(audioCtx) return;
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            bgGain = audioCtx.createGain();
+            bgGain.gain.value = 0.22;
+            bgGain.connect(audioCtx.destination);
+        }
+        function playLoopMelody() {
+            if(musicInterval) clearInterval(musicInterval);
+            let currentNoteIndex = 0;
+            function playNext() {
+                if(!isMusicPlaying) return;
+                const noteData = cumpleMelody[currentNoteIndex % cumpleMelody.length];
+                const osc = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+                osc.type = "square";
+                osc.frequency.value = noteFreq[noteData.note] || 440;
+                gainNode.gain.value = 0.14;
+                osc.connect(gainNode);
+                gainNode.connect(bgGain);
+                osc.start();
+                gainNode.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + noteData.duration);
+                osc.stop(audioCtx.currentTime + noteData.duration);
+                currentNoteIndex++;
+            }
+            playNext();
+            musicInterval = setInterval(() => {
+                if(isMusicPlaying) playNext();
+                else clearInterval(musicInterval);
+            }, 520);
+        }
+        function startBackgroundMusic() {
+            if(isMusicPlaying) return;
+            if(!audioCtx) initAudio();
+            if(audioCtx.state === 'suspended') {
+                audioCtx.resume().then(()=>{
+                    isMusicPlaying = true;
+                    playLoopMelody();
+                });
+            } else {
+                isMusicPlaying = true;
+                playLoopMelody();
+            }
+        }
+        function stopBackgroundMusic() {
+            isMusicPlaying = false;
+            if(musicInterval) clearInterval(musicInterval);
+        }
+        function playSoundEffect(freq = 880, duration = 0.2, type = "square") {
+            if(!audioCtx) initAudio();
+            if(audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = type;
+            osc.frequency.value = freq;
+            gain.gain.value = 0.28;
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+            osc.stop(audioCtx.currentTime + duration);
+        }
+
+        // ---------- PIXEL ART CON SPRITES MEJORADOS (PERSONAJES CON MÁS DETALLE) ----------
+        const canvas = document.getElementById('pixelCanvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = 480; canvas.height = 240;
+        ctx.imageSmoothingEnabled = false;
+        let animFrame = 0;
+        let animInterval = null;
+        
+        function drawPixelSprite(pixels, x, y, scale=3, offsetY=0) {
+            for(let i=0; i<pixels.length; i++) {
+                for(let j=0; j<pixels[i].length; j++) {
+                    if(pixels[i][j] !== 0) {
+                        ctx.fillStyle = pixels[i][j];
+                        ctx.fillRect(x + j*scale, y + i*scale + offsetY, scale, scale);
+                    }
+                }
+            }
+        }
+        // Sprites mejorados con más personalidad (PAPÁ HÉROE con capa y espada pixel)
+        const spriteHero = [
+            ["#2e2c3a","#2e2c3a","#d6a55c","#d6a55c","#d6a55c","#d6a55c","#2e2c3a","#2e2c3a","#6a4a2a","#6a4a2a"],
+            ["#2e2c3a","#2e2c3a","#f5deb3","#f5deb3","#f5deb3","#f5deb3","#2e2c3a","#2e2c3a","#b87c3a","#b87c3a"],
+            ["#2e2c3a","#e0a878","#e0a878","#e0a878","#e0a878","#e0a878","#e0a878","#2e2c3a","#cf9f5a","#cf9f5a"],
+            ["#2e2c3a","#cc9e6b","#1f212e","#1f212e","#1f212e","#1f212e","#cc9e6b","#2e2c3a","#e8c37a","#e8c37a"],
+            ["#2e2c3a","#cc9e6b","#1f212e","#92744a","#92744a","#1f212e","#cc9e6b","#2e2c3a","#ddbb77","#ddbb77"],
+            ["#2e2c3a","#b48c54","#b48c54","#b48c54","#b48c54","#b48c54","#b48c54","#2e2c3a","#aa8844","#aa8844"],
+            ["#a5682a","#a5682a","#eeee88","#eeee88","#eeee88","#eeee88","#a5682a","#a5682a","#ccaa55","#ccaa55"],
+            ["#4d2b1a","#4d2b1a","#4d2b1a","#eeee88","#eeee88","#4d2b1a","#4d2b1a","#4d2b1a","#8b6942","#8b6942"]
+        ];
+        const spriteKid = [
+            ["#e0bc7a","#e0bc7a","#e0bc7a","#e0bc7a","#e0bc7a","#e0bc7a","#b87c3a","#b87c3a","#ccaa66","#ccaa66"],
+            ["#b87c3a","#f5dfb0","#f5dfb0","#f5dfb0","#f5dfb0","#f5dfb0","#b87c3a","#b87c3a","#f0d898","#f0d898"],
+            ["#b87c3a","#b87c3a","#3c2b1a","#3c2b1a","#3c2b1a","#3c2b1a","#b87c3a","#b87c3a","#b87c3a","#b87c3a"],
+            ["#b87c3a","#b87c3a","#3c2b1a","#f5dfb0","#f5dfb0","#3c2b1a","#b87c3a","#b87c3a","#3c2b1a","#3c2b1a"],
+            ["#b87c3a","#b87c3a","#b87c3a","#b87c3a","#b87c3a","#b87c3a","#b87c3a","#b87c3a","#aa7e4a","#aa7e4a"],
+            ["#6e4e2a","#6e4e2a","#ddbb77","#ddbb77","#ddbb77","#ddbb77","#6e4e2a","#6e4e2a","#ddbb77","#ddbb77"]
+        ];
+        const spriteWoman = [
+            ["#6c4885","#6c4885","#c6a2a2","#c6a2a2","#c6a2a2","#6c4885","#6c4885","#6c4885","#b88dbb","#b88dbb"],
+            ["#6c4885","#dbb48b","#dbb48b","#dbb48b","#dbb48b","#dbb48b","#6c4885","#6c4885","#eac394","#eac394"],
+            ["#6c4885","#dbb48b","#dbb48b","#b5946b","#b5946b","#dbb48b","#6c4885","#6c4885","#dbb48b","#dbb48b"],
+            ["#6c4885","#c4a27a","#c4a27a","#4a2f2a","#4a2f2a","#c4a27a","#6c4885","#6c4885","#c4a27a","#c4a27a"],
+            ["#6c4885","#c4a27a","#c4a27a","#c4a27a","#c4a27a","#c4a27a","#6c4885","#6c4885","#b89a6e","#b89a6e"],
+            ["#4d3363","#4d3363","#f0cc88","#f0cc88","#f0cc88","#f0cc88","#4d3363","#4d3363","#f0cc88","#f0cc88"]
+        ];
+        const spriteExWife = [
+            ["#442244","#442244","#c28497","#c28497","#c28497","#442244","#442244","#442244","#e09faf","#e09faf"],
+            ["#442244","#b3a17a","#b3a17a","#b3a17a","#b3a17a","#b3a17a","#442244","#442244","#c9b282","#c9b282"],
+            ["#442244","#b3a17a","#b3a17a","#553333","#553333","#b3a17a","#442244","#442244","#b3a17a","#b3a17a"],
+            ["#442244","#9c8462","#9c8462","#342222","#342222","#9c8462","#442244","#442244","#9c8462","#9c8462"],
+            ["#442244","#9c8462","#9c8462","#9c8462","#9c8462","#9c8462","#442244","#442244","#7a6248","#7a6248"],
+            ["#2e1e3a","#2e1e3a","#f2bc7a","#f2bc7a","#f2bc7a","#f2bc7a","#2e1e3a","#2e1e3a","#f2bc7a","#f2bc7a"]
+        ];
+        function drawScene(heroSprite, kidSprite, extraSprites=[], exSprite=null) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = "#131724";
+            ctx.fillRect(0,0,canvas.width,canvas.height);
+            ctx.fillStyle = "#2d2b42";
+            for(let i=0;i<canvas.width;i+=12) ctx.fillRect(i,200,2,1);
+            let offsetY = (animFrame % 8 < 4) ? 1 : 0;
+            if(heroSprite) drawPixelSprite(heroSprite, 45, 90, 3.2, offsetY);
+            if(kidSprite) drawPixelSprite(kidSprite, 240, 110, 3.0);
+            if(exSprite) drawPixelSprite(exSprite, 360, 105, 3.0);
+            if(extraSprites.length>0) extraSprites.forEach((s,i)=> drawPixelSprite(s, 380 + i*45, 125, 2.8));
+        }
+        function startSpriteAnimation() { if(animInterval) clearInterval(animInterval); animInterval = setInterval(()=>{ animFrame++; renderCurrentSceneKeepDraw(); }, 380); }
+        let currentHeroSpr=null, currentKidSpr=null, currentExtra=[], currentExSpr=null;
+        function renderCurrentSceneKeepDraw() { if(currentHeroSpr) drawScene(currentHeroSpr, currentKidSpr, currentExtra, currentExSpr); }
+
+        // ----- HISTORIA CON MICRO ESCENAS Y EX-ESPOSA DEL GAS -----
+        const scenes = [
+            { id:0, title:"SEXTO SENTIDO", hero:spriteHero, kid:spriteKid, extra:[], exSpr:null,
+              dialogue:"Hermano a punto de caer. ¡El súper sentido de papá se activa!",
+              ono:"⚡¡DING!⚡", hasChoice:true, choices:[
+                  { text:"🛡️ SALVARLO (VUELO ÉPICO)", points:45, flavor:"Lo sostiene en el aire. Nadie supo quién fue", soundFreq:1200, microScene:"Papá vuela y atrapa al niño" },
+                  { text:"😩 'ESTOY MUY CANSADO'", points:-20, flavor:"Se resbala... raspón. Lección aprendida", soundFreq:440, microScene:"Papá lo ve caer con tristeza" }
+              ]},
+            { id:1, title:"MISIÓN TONTA", hero:spriteHero, kid:spriteKid, extra:[], exSpr:null,
+              dialogue:"Hermano metió la cabeza en caja de guitarra. Papá ayuda con paciencia.",
+              ono:"¡CRACK! ¡PLOP!", hasChoice:false, autoPoints:25, autoFlavor:"Liberación cómica +25", soundFreq:660, microScene:"Papá saca la caja con estilo" },
+            { id:2, title:"PRINCESA VS VECINAS", hero:spriteHero, kid:spriteWoman, extra:[], exSpr:null,
+              dialogue:"Vecinas molestan. Madrastra ocupada. Papá aparece como un rayo.",
+              ono:"🔊 ¡WHOOSH!", hasChoice:false, autoPoints:30, autoFlavor:"Paz familiar +30", soundFreq:880, microScene:"Papá calma a las vecinas" },
+            { id:3, title:"ELOTE Y BESO MÁGICO", hero:spriteHero, kid:spriteWoman, extra:[], exSpr:null,
+              dialogue:"Madrastra: 'Se me antoja un elot...' Papá ya tiene elote + beso.",
+              ono:"💋 🌽 ¡ZAS!", hasChoice:false, autoPoints:20, autoFlavor:"Detalle romántico +20", soundFreq:540, microScene:"Entrega el elote con beso" },
+            { id:4, title:"RAID A SAN PANCHO", hero:spriteHero, kid:spriteKid, extra:[], exSpr:null,
+              dialogue:"Yo necesito ir a San Pancho. Papá cansado acepta: 'Ahí estoy'",
+              ono:"😩 ¡HERCULEO!", hasChoice:false, autoPoints:15, autoFlavor:"Esfuerzo legendario +15", soundFreq:780, microScene:"Arranca el auto heroicamente" },
+            { id:5, title:"ATAQUE DE LA EX-ESPOSA", hero:spriteHero, kid:spriteKid, extra:[], exSpr:spriteExWife,
+              dialogue:"LA EX-ESPOSA APARECE CON UN RAID: '¡TE VAS A QUEDAR SIN GAS!' Lanza aerosol.",
+              ono:"💨 ¡ZAS! ¡GASOLINA MALDITA!", hasChoice:true, choices:[
+                  { text:"⚔️ ESQUIVAR Y LLENAR EL TANQUE", points:40, flavor:"Papá usa su capa para protegerse y llena el tanque", soundFreq:1100, microScene:"Papá gira y llena el tanque con estilo" },
+                  { text:"😨 CORRER SIN GAS", points:-15, flavor:"Se queda varado, pero llega la familia a apoyar", soundFreq:320, microScene:"El auto se apaga pero llegan hijos" }
+              ]}
+        ];
+        let currentSceneIdx = 0;
+        let totalScore = 0;
+        let gameComplete = false;
+        let waitingDecision = false;
+        const scoreSpan = document.getElementById('scoreDisplay');
+        const dialogueDiv = document.getElementById('dialogueArea');
+        const onoDiv = document.getElementById('onomatopoeiaArea');
+        const actionPanel = document.getElementById('actionPanel');
+        const progressContainer = document.getElementById('progressDots');
+
+        function updateScoreUI() { scoreSpan.innerHTML = `🕹️ ${totalScore} PTS`; }
+        function addPoints(amount, reason) { totalScore += amount; updateScoreUI(); showFloaty(`✨ +${amount} ⭐ ${reason}`); }
+        function showFloaty(msg) { let f=document.createElement('div'); f.innerText=msg; f.style.position='fixed'; f.style.bottom='70px'; f.style.left='20px'; f.style.background='#422c1a'; f.style.color='#ffd58c'; f.style.padding='3px 12px'; f.style.borderRadius='16px'; f.style.fontSize='12px'; f.style.zIndex='99'; document.body.appendChild(f); setTimeout(()=>f.remove(),1300);}
+        function playOnomaSound(freq=800) { playSoundEffect(freq,0.25,"square"); }
+        
+        function displayMicroScene(text) {
+            const microDiv = document.createElement('div');
+            microDiv.className = "dialogue-bit";
+            microDiv.style.background = "#1c162c";
+            microDiv.style.borderLeftColor = "#e5b84c";
+            microDiv.innerHTML = `🎬 MICRO ESCENA: ${text} 🎬`;
+            actionPanel.insertBefore(microDiv, actionPanel.firstChild);
+            setTimeout(()=>{ if(microDiv) microDiv.remove(); }, 1800);
+        }
+
+        function renderScene() {
+            if(gameComplete) return;
+            const scene = scenes[currentSceneIdx];
+            if(!scene) { showFinalCelebration(); return; }
+            currentHeroSpr = scene.hero; currentKidSpr = scene.kid; currentExtra = scene.extra || []; currentExSpr = scene.exSpr || null;
+            drawScene(currentHeroSpr, currentKidSpr, currentExtra, currentExSpr);
+            dialogueDiv.innerHTML = `<div class="dialogue-bit">📜 ${scene.dialogue}</div>`;
+            onoDiv.innerText = scene.ono;
+            playOnomaSound(scene.ono.includes("DING")?1200: (scene.ono.includes("CRACK")?680:800));
+            actionPanel.innerHTML = "";
+            if(scene.hasChoice) {
+                waitingDecision = true;
+                let btnsHtml = `<div class="action-buttons">`;
+                scene.choices.forEach((ch,idx) => { btnsHtml += `<button class="btn-8bit btn-choice" data-choice="${idx}">${ch.text}</button>`; });
+                btnsHtml += `</div>`;
+                actionPanel.innerHTML = btnsHtml;
+                document.querySelectorAll('[data-choice]').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        if(!waitingDecision) return;
+                        const idx = parseInt(btn.dataset.choice);
+                        const choice = scene.choices[idx];
+                        addPoints(choice.points, choice.flavor);
+                        playSoundEffect(choice.soundFreq,0.3,"sawtooth");
+                        waitingDecision=false;
+                        displayMicroScene(choice.microScene);
+                        const resultMsg = document.createElement('div');
+                        resultMsg.className = "dialogue-bit";
+                        resultMsg.innerText = `⚔️ ${choice.flavor} ⚔️`;
+                        actionPanel.innerHTML = "";
+                        actionPanel.appendChild(resultMsg);
+                        const nextBtn = document.createElement('button');
+                        nextBtn.innerText = "➡️ SIGUIENTE";
+                        nextBtn.className = "btn-8bit";
+                        nextBtn.style.marginTop="12px";
+                        nextBtn.onclick = ()=>{ goToNextScene(); };
+                        actionPanel.appendChild(nextBtn);
+                    });
+                });
+            } else {
+                waitingDecision=false;
+                const nextButton = document.createElement('button');
+                nextButton.innerText = `➡️ SIGUIENTE (+${scene.autoPoints} ⭐)`;
+                nextButton.className = "btn-8bit";
+                nextButton.onclick = () => {
+                    addPoints(scene.autoPoints, scene.autoFlavor);
+                    playSoundEffect(scene.soundFreq || 700,0.2,"triangle");
+                    displayMicroScene(scene.microScene || "Momento heroico");
+                    goToNextScene();
+                };
+                actionPanel.appendChild(nextButton);
+            }
+            updateProgress();
+        }
+        function goToNextScene() { if(currentSceneIdx+1 < scenes.length) { currentSceneIdx++; renderScene(); } else { showFinalCelebration(); } }
+        function showFinalCelebration() {
+            gameComplete = true;
+            stopBackgroundMusic();
+            drawScene(spriteHero, spriteWoman, [spriteKid, spriteExWife], null);
+            dialogueDiv.innerHTML = `<div class="dialogue-bit" style="border-left-color:#ffaa55;">🎂 CARTA FINAL PARA SUPER PAPÁ 🎂<br><br>Querido Apá:<br>Gracias por ser el pilar que sostiene a toda la familia. Por llegar siempre, aunque estés cansado. Por los elotes, los raids a San Pancho y por ponerte la capa cada día. A pesar de los ataques de la ex-esposa y el gas, siempre hay sonrisa. HOY TE CELEBRAMOS.❤️<br><br>FELIZ CUMPLEAÑOS, HÉROE.<br>— Tus hijos, tu esposa y toda la tribu.</div>`;
+            onoDiv.innerText = "🏆 ¡CARTA ENTREGADA! 🏆";
+            actionPanel.innerHTML = `
+                <div style="background:#1a142f; border-radius:24px; padding:18px; margin:6px 0; text-align:center;">
+                    <div style="font-family:monospace; color:#fad974; font-size:1.4rem;">🌟 PUNTUACIÓN FINAL: ${totalScore} PTS 🌟</div>
+                    <button id="finalMedievalBtn" class="btn-8bit" style="background:#7a3e1f; margin-top:12px;">🎵 TOCAR CANCIÓN DE CIERRE (MEDIEVAL)</button>
+                    <button id="cartaExitBtn" class="btn-8bit" style="background:#2c526b; margin-top:8px;">📖 LEER CARTA OTRA VEZ</button>
+                    <button id="videoExtraBtn" class="btn-8bit" style="background:#5a3e2a; margin-top:8px;">🎬 VER VIDEO FINAL (video.mp4) 🎬</button>
+                </div>
+            `;
+            // Botón de música medieval
+            const medievalBtn = document.getElementById('finalMedievalBtn');
+            if(medievalBtn) medievalBtn.onclick = () => { playSoundEffect(523.25,0.3); playSoundEffect(659.25,0.3); playSoundEffect(783.99,0.6); playSoundEffect(523.25,0.5); };
+            // Botón para repetir carta
+            const cartaBtn = document.getElementById('cartaExitBtn');
+            if(cartaBtn) cartaBtn.onclick = () => { dialogueDiv.innerHTML = `<div class="dialogue-bit" style="border-left-color:#ffaa55;">📜 CARTA:<br>Gracias por todo, súper papá. Eres nuestro héroe. ❤️<br>FELIZ CUMPLEAÑOS.</div>`; };
+            // BOTÓN EXTRA: VIDEO LOCAL (VIDEO.MP4 EN RAÍZ)
+            const videoBtn = document.getElementById('videoExtraBtn');
+            if(videoBtn) {
+                videoBtn.onclick = () => {
+                    // Abre el archivo video.mp4 ubicado en la misma carpeta raíz
+                    window.open('video.mp4', '_blank');
+                    // También lanza confeti y efecto de celebración
+                    launchConfetti8bit();
+                    playSoundEffect(880, 0.4, "square");
+                };
+            }
+            launchConfetti8bit();
+        }
+        function launchConfetti8bit() { for(let i=0;i<70;i++) { let pix=document.createElement('div'); pix.innerText=['★','✧','▪','⚔️','🎂'][Math.floor(Math.random()*5)]; pix.style.position='fixed'; pix.style.left=Math.random()*100+'%'; pix.style.top='-20px'; pix.style.fontSize=(15+Math.random()*18)+'px'; pix.style.zIndex='9999'; pix.style.pointerEvents='none'; pix.style.fontFamily='monospace'; pix.style.color='#fad450'; pix.style.animation=`fallConfetti ${1+Math.random()*2}s linear forwards`; document.body.appendChild(pix); setTimeout(()=>pix.remove(),2000); } if(!document.querySelector('#confettiKey')) { let st=document.createElement('style'); st.id='confettiKey'; st.textContent=`@keyframes fallConfetti { 0% { transform: translateY(0) rotate(0deg); opacity:1; } 100% { transform: translateY(100vh) rotate(360deg); opacity:0; } }`; document.head.appendChild(st); } }
+        function updateProgress() { progressContainer.innerHTML = ''; scenes.forEach((_,idx)=>{ let dot=document.createElement('div'); dot.className='pixel-dot'; if(idx===currentSceneIdx) dot.classList.add('active'); else if(idx<currentSceneIdx) dot.classList.add('completed'); progressContainer.appendChild(dot); }); }
+        function resetGame() { currentSceneIdx=0; totalScore=0; gameComplete=false; waitingDecision=false; updateScoreUI(); if(isMusicPlaying) stopBackgroundMusic(); startBackgroundMusic(); renderScene(); startSpriteAnimation(); }
+        const resetBtn = document.getElementById('resetAdventureBtn'); resetBtn.onclick = () => { resetGame(); if(audioCtx && audioCtx.state === 'suspended') audioCtx.resume(); startBackgroundMusic(); };
+        window.addEventListener('touchstart', function initAudioOnTouch() { initAudio(); if(audioCtx.state === 'suspended') audioCtx.resume(); startBackgroundMusic(); window.removeEventListener('touchstart', initAudioOnTouch); }, { once: true });
+        renderScene(); startSpriteAnimation();
+    })();
+</script>
+</body>
+</html>
