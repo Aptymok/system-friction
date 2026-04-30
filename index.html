@@ -42,11 +42,16 @@
             pointer-events: auto;
         }
 
-        #header {
+        .header-group {
             position: absolute;
             top: 20px;
             right: 20px;
             z-index: 100;
+            display: flex;
+            gap: 12px;
+        }
+
+        #header {
             text-align: right;
             font-size: 10px;
             letter-spacing: 2px;
@@ -56,6 +61,24 @@
             border-radius: 12px;
             backdrop-filter: blur(4px);
             border: 1px solid #222;
+        }
+        
+        .reconfig-btn {
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(4px);
+            border: 1px solid #C8A951;
+            color: #C8A951;
+            padding: 8px 12px;
+            border-radius: 12px;
+            font-family: monospace;
+            font-size: 10px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .reconfig-btn:hover {
+            background: #C8A951;
+            color: #050510;
+            border-color: #E6FF00;
         }
 
         #reflection-panel {
@@ -335,7 +358,7 @@
     <!-- Overlay Inicial: API Key y Configuración -->
     <div id="config-overlay" class="overlay">
         <div class="config-card">
-            <h1>System Friction</h1>
+            <h1>⚡ SISTEMA FRICCIÓN</h1>
             <p>Inicialización del Seer. Introduce tus claves de API (solo se guardan localmente).</p>
             <form id="api-config-form">
                 <div class="form-group">
@@ -387,7 +410,10 @@
 
     <!-- UI Principal -->
     <div class="ui-container">
-        <div id="header">⚡ <strong>SEER · YOD</strong> · ATRACTOR</div>
+        <div class="header-group">
+            <div id="header">⚡ <strong>SEER · YOD</strong> · ATRACTOR</div>
+            <button id="reconfig-btn" class="reconfig-btn">🔧 RE-CONFIG</button>
+        </div>
 
         <div id="reflection-panel">
             <div class="panel-header">Reflexiones</div>
@@ -454,6 +480,7 @@
             if (apiConfig.provider === 'groq') {
                 // body.model = "mixtral-8x7b-32768";
                 // Llamada a API de Groq (https://api.groq.com/openai/v1/chat/completions)
+                // headers['Authorization'] = `Bearer ${apiConfig.apiKey}`;
             }
             const response = await fetch(apiConfig.apiUrl, {
                 method: 'POST',
@@ -476,6 +503,14 @@
         const biosForm = document.getElementById('bios-form');
         const reflectBtn = document.getElementById('reflect-button');
         const textarea = document.getElementById('reflection-textarea');
+        const reconfigBtn = document.getElementById('reconfig-btn');
+
+        // Reset config and reload
+        function resetAndReconfigure() {
+            localStorage.removeItem('sf_api_config');
+            window.location.reload();
+        }
+        reconfigBtn.addEventListener('click', resetAndReconfigure);
 
         // Cargar configuración guardada
         function loadConfig() {
@@ -489,6 +524,8 @@
                 } else {
                     configOverlay.classList.remove('hidden');
                 }
+            } else {
+                configOverlay.classList.remove('hidden');
             }
         }
 
@@ -530,6 +567,8 @@
                 timestamp: new Date().toISOString(),
             };
             localStorage.setItem('sf-user-bios', JSON.stringify(userBios));
+            conversations = []; // clear previous (optional)
+            localStorage.removeItem('sf-conversations');
             biosOverlay.classList.add('hidden');
             initApp();
         });
@@ -559,12 +598,10 @@
                 <div class="conversation-entry">
                     <div class="timestamp">${new Date(conv.timestamp).toLocaleTimeString()}</div>
                     <div class="user-reflection">${escapeHtml(conv.userInput)}</div>
-                    ${conv.seerAnalysis ? `
-                        <div class="seer-analysis">
-                            ${escapeHtml(conv.seerAnalysis)}
-                            <div class="metrics-display">IHG: ${conv.metrics.ihg.toFixed(2)} | NTI: ${conv.metrics.nti.toFixed(0)}% | Φ(t): ${conv.metrics.phi.toFixed(1)}</div>
-                        </div>
-                    ` : ''}
+                    <div class="seer-analysis">
+                        ${escapeHtml(conv.seerAnalysis)}
+                        <div class="metrics-display">IHG: ${conv.metrics.ihg.toFixed(2)} | NTI: ${conv.metrics.nti.toFixed(0)}% | Φ(t): ${conv.metrics.phi.toFixed(1)}</div>
+                    </div>
                 </div>
             `).join('');
         }
