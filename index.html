@@ -3,17 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>System Friction Institute</title>
+    <title>System Friction Institute · Seer YOD Atractor</title>
     
     <!-- METAS PARA SEO Y ROBOTS -->
     <meta name="robots" content="index, follow">
     <meta name="googlebot" content="index, follow">
-    <meta name="description" content="Instrumento interactivo para medir fricción sistémica (IHG, NTI, Φ(t)). El Seer analiza reflexiones y la YOD geométrica responde en tiempo real. Basado en los postulados del System Friction Institute.">
-    <meta name="keywords" content="System Friction, IHG, NTI, YOD, Seer, análisis de fricción, conciencia sistémica, métricas de coherencia">
+    <meta name="description" content="Instrumento interactivo del System Friction Institute para medir fricción sistémica (IHG, NTI, Phi). El Seer analiza reflexiones y la YOD geométrica responde en tiempo real.">
+    <meta name="keywords" content="System Friction, IHG, NTI, YOD, Seer, analisis de friccion, conciencia sistemica, metricas de coherencia">
     <meta name="author" content="System Friction Institute">
     <link rel="canonical" href="https://systemfriction.org/seer-yod-atractor">
 
-    <!-- Google tag (gtag.js) -->
+    <!-- Google Analytics / gtag.js -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-76H63FV9DG"></script>
     <script>
         window.dataLayer = window.dataLayer || [];
@@ -22,15 +22,15 @@
         gtag('config', 'G-76H63FV9DG');
     </script>
 
-    <!-- DATOS ESTRUCTURADOS (Schema.org) para que los algoritmos entiendan la aplicación -->
+    <!-- Datos Estructurados (Schema.org) -->
     <script type="application/ld+json">
     {
         "@context": "https://schema.org",
         "@type": "SoftwareApplication",
-        "name": "Seer YOD Atractor - System Friction",
+        "name": "Seer YOD Atractor - System Friction Institute",
         "applicationCategory": "MultimediaApplication",
         "operatingSystem": "Web",
-        "description": "Aplicación interactiva que analiza reflexiones personales, calcula métricas de fricción sistémica (IHG, NTI, Φ(t)) y visualiza su evolución a través de una geometría YOD animada.",
+        "description": "Aplicacion interactiva que analiza reflexiones personales, calcula metricas de friccion sistemica (IHG, NTI, Phi(t)) y visualiza su evolucion a traves de una geometria YOD animada.",
         "creator": {
             "@type": "Organization",
             "name": "System Friction Institute",
@@ -40,11 +40,6 @@
             "@type": "Offer",
             "price": "0",
             "priceCurrency": "USD"
-        },
-        "interactionStatistic": {
-            "@type": "InteractionCounter",
-            "interactionType": "https://schema.org/UseAction",
-            "userInteractionCount": 1
         }
     }
     </script>
@@ -72,7 +67,6 @@
             height: 100%;
         }
 
-        /* UI Panels */
         .ui-container {
             position: fixed;
             top: 0;
@@ -241,7 +235,6 @@
             border-radius: 8px;
         }
 
-        /* Overlays semánticamente corregidos */
         .overlay {
             position: fixed;
             top: 0;
@@ -303,17 +296,16 @@
 </head>
 <body>
 
-    <!-- API CONFIGURATION (semánticamente corregido) -->
     <div id="config-overlay" class="overlay">
         <div class="config-card">
             <h1>system friction institute</h1>
-            <p>Inicialización del Seer. Introduce tus claves de API.</p>
+            <p>Inicializacion del Seer. Introduce tus claves de API.</p>
             <form id="api-config-form">
                 <div class="form-group">
                     <label for="provider-select">Proveedor de IA</label>
                     <select id="provider-select" name="provider" autocomplete="off">
-                        <option value="anthropic">ANTHROPIC (Claude)</option>
-                        <option value="groq">GROQ (Mixtral / Llama)</option>
+                        <option value="anthropic">ANTHROPIC Claude</option>
+                        <option value="groq">GROQ Mixtral / Llama</option>
                     </select>
                 </div>
                 <div class="form-group">
@@ -329,18 +321,17 @@
         </div>
     </div>
 
-    <!-- BIOS CONFIGURATION (semánticamente corregido) -->
     <div id="bios-overlay" class="overlay hidden">
         <div class="config-card">
-            <h1>BIOS · Inicialización</h1>
-            <p>¿Quién observa?</p>
+            <h1>BIOS Inicializacion</h1>
+            <p>Quien observa?</p>
             <form id="bios-form">
                 <div class="form-group">
                     <label for="bios-name">Nombre</label>
                     <input type="text" id="bios-name" name="name" autocomplete="name" required>
                 </div>
                 <div class="form-group">
-                    <label for="bios-role">Rol / Función</label>
+                    <label for="bios-role">Rol / Funcion</label>
                     <input type="text" id="bios-role" name="role" autocomplete="organization" required>
                 </div>
                 <div class="form-group">
@@ -356,27 +347,26 @@
         </div>
     </div>
 
-    <!-- UI Principal -->
     <div class="ui-container">
         <div class="header-group">
-            <div id="header"><strong>SEER · YOD</strong> · ATRACTOR</div>
-            <button id="reconfig-btn" class="reconfig-btn">🔧 RE-CONFIG</button>
+            <div id="header">SEER YOD ATRACTOR</div>
+            <button id="reconfig-btn" class="reconfig-btn">RECONFIG</button>
         </div>
         <div id="reflection-panel">
             <div class="panel-header">Reflexiones</div>
             <div id="bios-display"></div>
             <div id="conversation-history"></div>
             <div id="reflection-input-area">
-                <textarea id="reflection-textarea" placeholder="Tu reflexión. El Seer observará."></textarea>
+                <textarea id="reflection-textarea" placeholder="Tu reflexion. El Seer observara."></textarea>
                 <button id="reflect-button" disabled>Reflejar</button>
             </div>
         </div>
         <div id="metrics-panel">
             <div class="metric-box"><div class="metric-title">Estado</div><div id="state-metrics"></div></div>
             <div class="metric-box"><div class="metric-title">Convergencia</div><div id="convergence-metrics"></div></div>
-            <div class="metric-box"><div class="metric-title">Observación</div><div id="observation-metrics"></div></div>
+            <div class="metric-box"><div class="metric-title">Observacion</div><div id="observation-metrics"></div></div>
         </div>
-        <div id="info-panel">SYSTEM FRICTION INSTITUTE ◈ YOD · MICROMOMENTO · MERCURIO · ATRACTOR ◈</div>
+        <div id="info-panel">SYSTEM FRICTION INSTITUTE · YOD · MICROMOMENTO · MERCURIO · ATRACTOR</div>
     </div>
 
     <script type="importmap">
@@ -395,38 +385,108 @@
         import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
         import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 
-        // ====== ESTADO GLOBAL ======
         let apiConfig = { provider: 'anthropic', apiKey: null, apiUrl: 'https://api.anthropic.com/v1/messages' };
         let userBios = null;
         let conversations = [];
         let currentMetrics = { ihg: 0.5, nti: 70, phi: 10, ldi: 1.5 };
         let yodState = { scale: 1, complexity: 1, energy: 0 };
         let seerEnabled = false;
+        let metricsLog = []; // Observabilidad
 
-        // ====== API LLM ======
-        async function callLLM(prompt) {
-            if (!seerEnabled) throw new Error('API no configurada');
-            const body = {
-                model: "claude-3-7-sonnet-20250219",
-                max_tokens: 300,
-                system: prompt,
-                messages: [{ role: "user", content: "Analiza la reflexión según el contexto." }]
-            };
-            const response = await fetch(apiConfig.apiUrl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'x-api-key': apiConfig.apiKey,
-                    'anthropic-version': '2023-06-01'
-                },
-                body: JSON.stringify(body)
-            });
-            if (!response.ok) throw new Error(`API Error: ${response.status}`);
-            const data = await response.json();
-            return data.content[0].text;
+        // Funcion para registrar metricas de fallo
+        function logApiAttempt(provider, success, latency, errorCode = null) {
+            const logEntry = { timestamp: new Date().toISOString(), provider, success, latency, errorCode };
+            metricsLog.push(logEntry);
+            if (metricsLog.length > 50) metricsLog.shift();
+            localStorage.setItem('sf_api_metrics', JSON.stringify(metricsLog));
+            console.log(`API Metric: ${provider} | Success: ${success} | Latency: ${latency}ms | Error: ${errorCode || 'none'}`);
         }
 
-        // ====== MANEJADORES DE UI ======
+        // API LLM CON RESILIENCIA (Retry + Backoff)
+        async function callLLM(prompt, retries = 2, delay = 1000) {
+            if (!seerEnabled) throw new Error('API no configurada');
+            
+            if (apiConfig.provider === 'groq' && !apiConfig.apiKey.startsWith('gsk_')) {
+                throw new Error('La API Key de Groq debe comenzar con "gsk_". Verifica tu clave.');
+            }
+            if (apiConfig.provider === 'anthropic' && !apiConfig.apiKey.startsWith('sk-ant-')) {
+                throw new Error('La API Key de Anthropic debe comenzar con "sk-ant-". Verifica tu clave.');
+            }
+
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 30000);
+            const startTime = performance.now();
+            
+            const makeRequest = async () => {
+                if (apiConfig.provider === 'anthropic') {
+                    const body = {
+                        model: "claude-3-7-sonnet-20250219",
+                        max_tokens: 300,
+                        system: prompt,
+                        messages: [{ role: "user", content: "Analiza la reflexion segun el contexto." }]
+                    };
+                    const response = await fetch(apiConfig.apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'x-api-key': apiConfig.apiKey, 'anthropic-version': '2023-06-01' },
+                        body: JSON.stringify(body), signal: controller.signal
+                    });
+                    if (!response.ok) throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+                    const data = await response.json();
+                    return data.content[0].text;
+                } else {
+                    let groqFallbackAttempted = false;
+                    const attempt = async (model) => {
+                        const body = {
+                            model: model,
+                            messages: [{ role: "system", content: prompt }, { role: "user", content: "Analiza la reflexion segun el contexto del sistema." }],
+                            temperature: 0.3, max_tokens: 400
+                        };
+                        const response = await fetch(apiConfig.apiUrl, {
+                            method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiConfig.apiKey}` },
+                            body: JSON.stringify(body), signal: controller.signal
+                        });
+                        if (!response.ok) {
+                            if (response.status === 404 && !groqFallbackAttempted) throw new Error('MODEL_NOT_FOUND');
+                            throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+                        }
+                        const data = await response.json();
+                        if (data.choices && data.choices[0] && data.choices[0].message) return data.choices[0].message.content;
+                        throw new Error('Respuesta inesperada de Groq');
+                    };
+                    try { return await attempt("mixtral-8x7b-32768"); } 
+                    catch (err) {
+                        if (err.message.includes('MODEL_NOT_FOUND')) {
+                            console.warn("Mixtral no encontrado, fallback a Llama3...");
+                            return await attempt("llama3-70b-8192");
+                        }
+                        throw err;
+                    }
+                }
+            };
+
+            for (let i = 0; i <= retries; i++) {
+                try {
+                    const result = await makeRequest();
+                    const latency = Math.round(performance.now() - startTime);
+                    clearTimeout(timeoutId);
+                    logApiAttempt(apiConfig.provider, true, latency);
+                    return result;
+                } catch (err) {
+                    clearTimeout(timeoutId);
+                    const latency = Math.round(performance.now() - startTime);
+                    const isRetryable = (err.message.includes('429') || err.message.includes('500') || err.message.includes('502') || err.message.includes('503'));
+                    if (i === retries || !isRetryable) {
+                        logApiAttempt(apiConfig.provider, false, latency, err.message);
+                        throw new Error(`Error tras ${i+1} intentos: ${err.message}`);
+                    }
+                    const backoff = delay * Math.pow(2, i);
+                    console.warn(`Intento ${i+1} fallido, reintentando en ${backoff}ms...`);
+                    await new Promise(resolve => setTimeout(resolve, backoff));
+                }
+            }
+        }
+
+        // UI Handlers...
         const configOverlay = document.getElementById('config-overlay');
         const biosOverlay = document.getElementById('bios-overlay');
         const apiForm = document.getElementById('api-config-form');
@@ -435,10 +495,7 @@
         const textarea = document.getElementById('reflection-textarea');
         const reconfigBtn = document.getElementById('reconfig-btn');
 
-        function resetAndReconfigure() {
-            localStorage.removeItem('sf_api_config');
-            window.location.reload();
-        }
+        function resetAndReconfigure() { localStorage.removeItem('sf_api_config'); window.location.reload(); }
         reconfigBtn.addEventListener('click', resetAndReconfigure);
 
         function loadConfig() {
@@ -449,12 +506,8 @@
                     seerEnabled = true;
                     configOverlay.classList.add('hidden');
                     loadUserData();
-                } else {
-                    configOverlay.classList.remove('hidden');
-                }
-            } else {
-                configOverlay.classList.remove('hidden');
-            }
+                } else { configOverlay.classList.remove('hidden'); }
+            } else { configOverlay.classList.remove('hidden'); }
         }
 
         apiForm.addEventListener('submit', (e) => {
@@ -476,11 +529,11 @@
                 userBios = JSON.parse(stored);
                 const convStored = localStorage.getItem('sf-conversations');
                 if (convStored) conversations = JSON.parse(convStored);
+                const metricsStored = localStorage.getItem('sf_api_metrics');
+                if (metricsStored) metricsLog = JSON.parse(metricsStored);
                 biosOverlay.classList.add('hidden');
                 initApp();
-            } else {
-                biosOverlay.classList.remove('hidden');
-            }
+            } else { biosOverlay.classList.remove('hidden'); }
         }
 
         biosForm.addEventListener('submit', (e) => {
@@ -510,26 +563,19 @@
 
         function updateUIBios() {
             const biosDiv = document.getElementById('bios-display');
-            biosDiv.innerHTML = `
-                <div class="bios-item"><span class="bios-label">Nombre</span><span class="bios-value">${userBios.name}</span></div>
+            biosDiv.innerHTML = `<div class="bios-item"><span class="bios-label">Nombre</span><span class="bios-value">${userBios.name}</span></div>
                 <div class="bios-item"><span class="bios-label">Rol</span><span class="bios-value">${userBios.role}</span></div>
                 <div class="bios-item"><span class="bios-label">Foco</span><span class="bios-value">${userBios.focus}</span></div>
-                <div class="bios-item"><span class="bios-label">Reflexiones</span><span class="bios-value">${conversations.length}</span></div>
-            `;
+                <div class="bios-item"><span class="bios-label">Reflexiones</span><span class="bios-value">${conversations.length}</span></div>`;
         }
 
         function renderConversations() {
             const container = document.getElementById('conversation-history');
-            container.innerHTML = conversations.map(conv => `
-                <div class="conversation-entry">
-                    <div class="timestamp">${new Date(conv.timestamp).toLocaleTimeString()}</div>
-                    <div class="user-reflection">${escapeHtml(conv.userInput)}</div>
-                    <div class="seer-analysis">
-                        ${escapeHtml(conv.seerAnalysis)}
-                        <div class="metrics-display">IHG: ${conv.metrics.ihg.toFixed(2)} | NTI: ${conv.metrics.nti.toFixed(0)}% | Φ(t): ${conv.metrics.phi.toFixed(1)}</div>
-                    </div>
-                </div>
-            `).join('');
+            container.innerHTML = conversations.map(conv => `<div class="conversation-entry">
+                <div class="timestamp">${new Date(conv.timestamp).toLocaleTimeString()}</div>
+                <div class="user-reflection">${escapeHtml(conv.userInput)}</div>
+                <div class="seer-analysis">${escapeHtml(conv.seerAnalysis)}<div class="metrics-display">IHG: ${conv.metrics.ihg.toFixed(2)} | NTI: ${conv.metrics.nti.toFixed(0)}% | PHI: ${conv.metrics.phi.toFixed(1)}</div></div>
+            </div>`).join('');
         }
 
         async function reflectWithSeer() {
@@ -537,32 +583,26 @@
             if (!text) return;
             reflectBtn.disabled = true;
             reflectBtn.textContent = 'ANALIZANDO...';
-            const newConv = {
-                timestamp: new Date().toISOString(),
-                userInput: text,
-                seerAnalysis: null,
-                metrics: { ihg: 0.5, nti: 70, phi: 10, ldi: 1.5 }
-            };
+            const newConv = { timestamp: new Date().toISOString(), userInput: text, seerAnalysis: null, metrics: { ihg: 0.5, nti: 70, phi: 10, ldi: 1.5 } };
             if (seerEnabled) {
                 try {
-                    const systemPrompt = `Eres el Seer del Sistema de Fricción. BIOS: ${userBios.name} (${userBios.role}) · Foco: ${userBios.focus}
-Analiza en máximo 100 palabras:
-[PATRÓN] observado
-[IHG] estima fricción (0-1)
-[PREDICCIÓN] tendencia
-Tono clínico, quirúrgico.`;
+                    const systemPrompt = `Eres el Seer del Sistema de Friccion. BIOS: ${userBios.name} (${userBios.role}) · Foco: ${userBios.focus}
+Responde UNICAMENTE con un objeto JSON valido, sin texto adicional:
+{"patron": "descripcion (max 20 palabras)", "ihg": "numero 0-1", "prediccion": "tendencia (max 15 palabras)"}
+Ejemplo: {"patron": "repeticion de comparaciones", "ihg": "0.75", "prediccion": "aumento de friccion"}`;
                     const analysis = await callLLM(systemPrompt);
-                    newConv.seerAnalysis = analysis;
-                    const ihgMatch = analysis.match(/IHG[:\s]*([0-9.]+)/i);
-                    if (ihgMatch) newConv.metrics.ihg = Math.min(1, Math.max(0, parseFloat(ihgMatch[1])));
+                    let cleaned = analysis.replace(/```json\s*|\s*```/g, '').trim();
+                    const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+                    if (jsonMatch) {
+                        const parsed = JSON.parse(jsonMatch[0]);
+                        newConv.seerAnalysis = `Patron: ${parsed.patron} | Prediccion: ${parsed.prediccion}`;
+                        let ihgVal = parseFloat(parsed.ihg?.toString().replace('%', '').trim()) || 0.5;
+                        newConv.metrics.ihg = Math.min(1, Math.max(0, ihgVal));
+                    } else throw new Error('JSON invalido');
                     newConv.metrics.nti = 50 + Math.random() * 40;
                     newConv.metrics.phi = 5 + Math.random() * 15;
-                } catch (err) {
-                    newConv.seerAnalysis = `Error: ${err.message}`;
-                }
-            } else {
-                newConv.seerAnalysis = `[SEER INACTIVO] Configura API Key.`;
-            }
+                } catch (err) { newConv.seerAnalysis = `Error: ${err.message}`; }
+            } else { newConv.seerAnalysis = `SEER INACTIVO. Configura API Key.`; }
             conversations.push(newConv);
             localStorage.setItem('sf-conversations', JSON.stringify(conversations));
             textarea.value = '';
@@ -576,19 +616,19 @@ Tono clínico, quirúrgico.`;
         function updateMetricsPanel() {
             if (!conversations.length) return;
             const recent = conversations.slice(-5);
-            const avgIhg = recent.reduce((s,c) => s + (c.metrics?.ihg || 0),0)/recent.length;
-            const avgNti = recent.reduce((s,c) => s + (c.metrics?.nti || 0),0)/recent.length;
-            const avgPhi = recent.reduce((s,c) => s + (c.metrics?.phi || 0),0)/recent.length;
+            const avgIhg = recent.reduce((s,c)=>s+(c.metrics?.ihg||0),0)/recent.length;
+            const avgNti = recent.reduce((s,c)=>s+(c.metrics?.nti||0),0)/recent.length;
+            const avgPhi = recent.reduce((s,c)=>s+(c.metrics?.phi||0),0)/recent.length;
             document.getElementById('state-metrics').innerHTML = `<div class="metric-row"><span class="metric-label">IHG</span><span class="metric-value">${avgIhg.toFixed(2)}</span></div>
             <div class="metric-row"><span class="metric-label">NTI</span><span class="metric-value">${avgNti.toFixed(0)}%</span></div>`;
             const trend = recent.length >=2 ? (recent[recent.length-2].metrics?.ihg||0) - (recent[recent.length-1].metrics?.ihg||0) : 0;
-            document.getElementById('convergence-metrics').innerHTML = `<div class="metric-row"><span class="metric-label">Tendencia</span><span class="metric-value">${trend>0?'↓ Conv.':'↑ Div.'}</span></div>
-            <div class="metric-row"><span class="metric-label">Φ(t)</span><span class="metric-value">${avgPhi.toFixed(1)}</span></div>`;
+            document.getElementById('convergence-metrics').innerHTML = `<div class="metric-row"><span class="metric-label">Tendencia</span><span class="metric-value">${trend>0?'Convergiendo':'Divergiendo'}</span></div>
+            <div class="metric-row"><span class="metric-label">PHI</span><span class="metric-value">${avgPhi.toFixed(1)}</span></div>`;
             document.getElementById('observation-metrics').innerHTML = `<div class="metric-row"><span class="metric-label">Complejidad</span><span class="metric-value">${yodState.complexity.toFixed(2)}</span></div>
-            <div class="metric-row"><span class="metric-label">Energía</span><span class="metric-value">${(yodState.energy*100).toFixed(0)}%</span></div>`;
+            <div class="metric-row"><span class="metric-label">Energia</span><span class="metric-value">${(yodState.energy*100).toFixed(0)}%</span></div>`;
         }
 
-        // THREE.JS
+        // THREE.JS (YOD) - Sin cambios, solo se asegura de que exista
         let scene, camera, renderer, effectComposer, yodElements = {};
         function initThreeJS() {
             scene = new THREE.Scene(); scene.background = new THREE.Color(0x050510); scene.fog = new THREE.FogExp2(0x050510, 0.008);
