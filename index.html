@@ -305,7 +305,7 @@
                     <label for="provider-select">Proveedor de IA</label>
                     <select id="provider-select" name="provider" autocomplete="off">
                         <option value="anthropic">ANTHROPIC Claude</option>
-                        <option value="groq">GROQ Mixtral / Llama</option>
+                        <option value="groq">GROQ Llama3</option>
                     </select>
                 </div>
                 <div class="form-group">
@@ -321,31 +321,31 @@
         </div>
     </div>
 
-    <div id="bios-overlay" class="overlay hidden">
-        <div class="config-card">
-            <h1>BIOS Inicializacion</h1>
-            <p>Quien observa?</p>
-            <form id="bios-form">
-                <div class="form-group">
-                    <label for="bios-name">Nombre</label>
-                    <input type="text" id="bios-name" name="name" autocomplete="name" required>
-                </div>
-                <div class="form-group">
-                    <label for="bios-role">Rol / Funcion</label>
-                    <input type="text" id="bios-role" name="role" autocomplete="organization" required>
-                </div>
-                <div class="form-group">
-                    <label for="bios-focus">Foco actual</label>
-                    <input type="text" id="bios-focus" name="focus" autocomplete="off" required>
-                </div>
-                <div class="form-group">
-                    <label for="bios-context">Contexto</label>
-                    <textarea id="bios-context" name="context" autocomplete="off"></textarea>
-                </div>
-                <button type="submit">Iniciar</button>
-            </form>
-        </div>
+<div id="bios-overlay" class="overlay active">
+    <div class="config-card">
+        <h1>System Friction Institute</h1>
+        <p>BIOS · Inicialización</p>
+        <form id="bios-form">
+            <div class="form-group">
+                <label for="bios-name">¿Cómo te llamas?</label>
+                <input type="text" id="bios-name" name="name" autocomplete="name" placeholder="Nombre o alias" required>
+            </div>
+            <div class="form-group">
+                <label for="bios-role">¿Cuál es tu rol / función?</label>
+                <input type="text" id="bios-role" name="role" autocomplete="organization" placeholder="Rol o función" required>
+            </div>
+            <div class="form-group">
+                <label for="bios-focus">¿En qué estás enfocado?</label>
+                <input type="text" id="bios-focus" name="focus" autocomplete="off" placeholder="Área de atención" required>
+            </div>
+            <div class="form-group">
+                <label for="bios-context">Contexto (opcional)</label>
+                <textarea id="bios-context" name="context" autocomplete="off" placeholder="Contexto, restricciones, oportunidades"></textarea>
+            </div>
+            <button type="submit" class="form-submit">Inicializar</button>
+        </form>
     </div>
+</div>
 
     <div class="ui-container">
         <div class="header-group">
@@ -391,33 +391,30 @@
         let currentMetrics = { ihg: 0.5, nti: 70, phi: 10, ldi: 1.5 };
         let yodState = { scale: 1, complexity: 1, energy: 0 };
         let seerEnabled = false;
-        let metricsLog = []; // Observabilidad
+        let metricsLog = [];
 
-        // Funcion para registrar metricas de fallo
         function logApiAttempt(provider, success, latency, errorCode = null) {
             const logEntry = { timestamp: new Date().toISOString(), provider, success, latency, errorCode };
             metricsLog.push(logEntry);
             if (metricsLog.length > 50) metricsLog.shift();
             localStorage.setItem('sf_api_metrics', JSON.stringify(metricsLog));
-            console.log(`API Metric: ${provider} | Success: ${success} | Latency: ${latency}ms | Error: ${errorCode || 'none'}`);
         }
 
-        // API LLM CON RESILIENCIA (Retry + Backoff)
-        async function callLLM(prompt, retries = 2, delay = 1000) {
+        async function callLLM(prompt) {
             if (!seerEnabled) throw new Error('API no configurada');
             
             if (apiConfig.provider === 'groq' && !apiConfig.apiKey.startsWith('gsk_')) {
-                throw new Error('La API Key de Groq debe comenzar con "gsk_". Verifica tu clave.');
+                throw new Error('La API Key de Groq debe comenzar con "gsk_".');
             }
             if (apiConfig.provider === 'anthropic' && !apiConfig.apiKey.startsWith('sk-ant-')) {
-                throw new Error('La API Key de Anthropic debe comenzar con "sk-ant-". Verifica tu clave.');
+                throw new Error('La API Key de Anthropic debe comenzar con "sk-ant-".');
             }
 
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 30000);
             const startTime = performance.now();
-            
-            const makeRequest = async () => {
+
+            try {
                 if (apiConfig.provider === 'anthropic') {
                     const body = {
                         model: "claude-3-7-sonnet-20250219",
@@ -427,63 +424,60 @@
                     };
                     const response = await fetch(apiConfig.apiUrl, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'x-api-key': apiConfig.apiKey, 'anthropic-version': '2023-06-01' },
-                        body: JSON.stringify(body), signal: controller.signal
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'x-api-key': apiConfig.apiKey,
+                            'anthropic-version': '2023-06-01'
+                        },
+                        body: JSON.stringify(body),
+                        signal: controller.signal
                     });
+                    clearTimeout(timeoutId);
                     if (!response.ok) throw new Error(`HTTP ${response.status}: ${await response.text()}`);
                     const data = await response.json();
+                    logApiAttempt(apiConfig.provider, true, performance.now() - startTime);
                     return data.content[0].text;
-                } else {
-                    let groqFallbackAttempted = false;
-                    const attempt = async (model) => {
-                        const body = {
-                            model: model,
-                            messages: [{ role: "system", content: prompt }, { role: "user", content: "Analiza la reflexion segun el contexto del sistema." }],
-                            temperature: 0.3, max_tokens: 400
-                        };
-                        const response = await fetch(apiConfig.apiUrl, {
-                            method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiConfig.apiKey}` },
-                            body: JSON.stringify(body), signal: controller.signal
-                        });
-                        if (!response.ok) {
-                            if (response.status === 404 && !groqFallbackAttempted) throw new Error('MODEL_NOT_FOUND');
-                            throw new Error(`HTTP ${response.status}: ${await response.text()}`);
-                        }
-                        const data = await response.json();
-                        if (data.choices && data.choices[0] && data.choices[0].message) return data.choices[0].message.content;
-                        throw new Error('Respuesta inesperada de Groq');
-                    };
-                    try { return await attempt("mixtral-8x7b-32768"); } 
-                    catch (err) {
-                        if (err.message.includes('MODEL_NOT_FOUND')) {
-                            console.warn("Mixtral no encontrado, fallback a Llama3...");
-                            return await attempt("llama3-70b-8192");
-                        }
-                        throw err;
-                    }
                 }
-            };
 
-            for (let i = 0; i <= retries; i++) {
-                try {
-                    const result = await makeRequest();
-                    const latency = Math.round(performance.now() - startTime);
+                // GROQ (LLAMA 3 70B - Supported)
+                if (apiConfig.provider === 'groq') {
+                    const body = {
+                        model: "llama3-70b-8192",
+                        messages: [
+                            { role: "system", content: prompt },
+                            { role: "user", content: "Analiza la reflexion segun el contexto del sistema." }
+                        ],
+                        temperature: 0.3,
+                        max_tokens: 400
+                    };
+                    const response = await fetch(apiConfig.apiUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${apiConfig.apiKey}`
+                        },
+                        body: JSON.stringify(body),
+                        signal: controller.signal
+                    });
                     clearTimeout(timeoutId);
-                    logApiAttempt(apiConfig.provider, true, latency);
-                    return result;
-                } catch (err) {
-                    clearTimeout(timeoutId);
-                    const latency = Math.round(performance.now() - startTime);
-                    const isRetryable = (err.message.includes('429') || err.message.includes('500') || err.message.includes('502') || err.message.includes('503'));
-                    if (i === retries || !isRetryable) {
-                        logApiAttempt(apiConfig.provider, false, latency, err.message);
-                        throw new Error(`Error tras ${i+1} intentos: ${err.message}`);
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        logApiAttempt(apiConfig.provider, false, performance.now() - startTime, `HTTP ${response.status}`);
+                        throw new Error(`Groq API Error (${response.status}): ${errorText}`);
                     }
-                    const backoff = delay * Math.pow(2, i);
-                    console.warn(`Intento ${i+1} fallido, reintentando en ${backoff}ms...`);
-                    await new Promise(resolve => setTimeout(resolve, backoff));
+                    const data = await response.json();
+                    logApiAttempt(apiConfig.provider, true, performance.now() - startTime);
+                    if (data.choices && data.choices[0] && data.choices[0].message) {
+                        return data.choices[0].message.content;
+                    }
+                    throw new Error('Respuesta inesperada de Groq');
                 }
+            } catch (err) {
+                clearTimeout(timeoutId);
+                if (err.name === 'AbortError') throw new Error('Timeout: La API no respondió en 30 segundos.');
+                throw err;
             }
+            throw new Error(`Proveedor no soportado: ${apiConfig.provider}`);
         }
 
         // UI Handlers...
@@ -529,8 +523,6 @@
                 userBios = JSON.parse(stored);
                 const convStored = localStorage.getItem('sf-conversations');
                 if (convStored) conversations = JSON.parse(convStored);
-                const metricsStored = localStorage.getItem('sf_api_metrics');
-                if (metricsStored) metricsLog = JSON.parse(metricsStored);
                 biosOverlay.classList.add('hidden');
                 initApp();
             } else { biosOverlay.classList.remove('hidden'); }
@@ -628,7 +620,7 @@ Ejemplo: {"patron": "repeticion de comparaciones", "ihg": "0.75", "prediccion": 
             <div class="metric-row"><span class="metric-label">Energia</span><span class="metric-value">${(yodState.energy*100).toFixed(0)}%</span></div>`;
         }
 
-        // THREE.JS (YOD) - Sin cambios, solo se asegura de que exista
+        // THREE.JS (YOD)
         let scene, camera, renderer, effectComposer, yodElements = {};
         function initThreeJS() {
             scene = new THREE.Scene(); scene.background = new THREE.Color(0x050510); scene.fog = new THREE.FogExp2(0x050510, 0.008);
