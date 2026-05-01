@@ -4,6 +4,51 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>System Friction Institute</title>
+    
+    <!-- METAS PARA SEO Y ROBOTS -->
+    <meta name="robots" content="index, follow">
+    <meta name="googlebot" content="index, follow">
+    <meta name="description" content="Instrumento interactivo para medir fricción sistémica (IHG, NTI, Φ(t)). El Seer analiza reflexiones y la YOD geométrica responde en tiempo real. Basado en los postulados del System Friction Institute.">
+    <meta name="keywords" content="System Friction, IHG, NTI, YOD, Seer, análisis de fricción, conciencia sistémica, métricas de coherencia">
+    <meta name="author" content="System Friction Institute">
+    <link rel="canonical" href="https://systemfriction.org/seer-yod-atractor">
+
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-76H63FV9DG"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-76H63FV9DG');
+    </script>
+
+    <!-- DATOS ESTRUCTURADOS (Schema.org) para que los algoritmos entiendan la aplicación -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "Seer YOD Atractor - System Friction",
+        "applicationCategory": "MultimediaApplication",
+        "operatingSystem": "Web",
+        "description": "Aplicación interactiva que analiza reflexiones personales, calcula métricas de fricción sistémica (IHG, NTI, Φ(t)) y visualiza su evolución a través de una geometría YOD animada.",
+        "creator": {
+            "@type": "Organization",
+            "name": "System Friction Institute",
+            "url": "https://systemfriction.org"
+        },
+        "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD"
+        },
+        "interactionStatistic": {
+            "@type": "InteractionCounter",
+            "interactionType": "https://schema.org/UseAction",
+            "userInteractionCount": 1
+        }
+    }
+    </script>
+
     <style>
         * {
             margin: 0;
@@ -37,20 +82,16 @@
             pointer-events: none;
             z-index: 10;
         }
-
-        .ui-container > * {
-            pointer-events: auto;
-        }
+        .ui-container > * { pointer-events: auto; }
 
         .header-group {
             position: absolute;
             top: 20px;
             right: 20px;
-            z-index: 100;
             display: flex;
             gap: 12px;
+            z-index: 100;
         }
-
         #header {
             text-align: right;
             font-size: 10px;
@@ -62,7 +103,6 @@
             backdrop-filter: blur(4px);
             border: 1px solid #222;
         }
-        
         .reconfig-btn {
             background: rgba(0, 0, 0, 0.7);
             backdrop-filter: blur(4px);
@@ -73,12 +113,10 @@
             font-family: monospace;
             font-size: 10px;
             cursor: pointer;
-            transition: 0.2s;
         }
         .reconfig-btn:hover {
             background: #C8A951;
             color: #050510;
-            border-color: #E6FF00;
         }
 
         #reflection-panel {
@@ -93,41 +131,24 @@
             border-radius: 8px;
             display: flex;
             flex-direction: column;
-            padding: 0;
             overflow: hidden;
         }
-
         .panel-header {
             padding: 16px;
             border-bottom: 1px solid #222;
             font-size: 11px;
             color: #E6FF00;
             text-transform: uppercase;
-            letter-spacing: 1px;
         }
-
         #bios-display {
             padding: 12px 16px;
             border-bottom: 1px solid #222;
             font-size: 9px;
             color: #666;
-            line-height: 1.5;
         }
-
-        .bios-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 3px 0;
-        }
-
-        .bios-label {
-            color: #666;
-        }
-
-        .bios-value {
-            color: #C8A951;
-            font-weight: 600;
-        }
+        .bios-item { display: flex; justify-content: space-between; padding: 3px 0; }
+        .bios-label { color: #666; }
+        .bios-value { color: #C8A951; font-weight: 600; }
 
         #conversation-history {
             flex: 1;
@@ -137,18 +158,8 @@
             flex-direction: column;
             gap: 12px;
         }
-
-        .conversation-entry {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
-
-        .timestamp {
-            font-size: 8px;
-            color: #444;
-        }
-
+        .conversation-entry { display: flex; flex-direction: column; gap: 6px; }
+        .timestamp { font-size: 8px; color: #444; }
         .user-reflection {
             background: #0a0a0a;
             border: 1px solid #222;
@@ -157,7 +168,6 @@
             font-size: 10px;
             color: #aaa;
         }
-
         .seer-analysis {
             background: #0a0a0a;
             border: 1px solid #222;
@@ -166,7 +176,6 @@
             font-size: 9px;
             color: #888;
         }
-
         .metrics-display {
             font-size: 8px;
             color: #666;
@@ -174,7 +183,6 @@
             border-top: 1px solid #1a1a1a;
             margin-top: 4px;
         }
-
         #reflection-input-area {
             padding: 12px;
             border-top: 1px solid #222;
@@ -182,35 +190,27 @@
             flex-direction: column;
             gap: 8px;
         }
-
         #reflection-textarea {
             width: 100%;
             padding: 8px;
             background: #0a0a0a;
             border: 1px solid #222;
             color: #e0e0e0;
-            font-family: 'Courier New', monospace;
+            font-family: monospace;
             font-size: 9px;
             resize: none;
             height: 60px;
         }
-
         #reflect-button {
             padding: 8px;
             background: #E6FF00;
             color: #000;
             border: none;
-            font-family: 'Courier New', monospace;
-            font-size: 10px;
             font-weight: 600;
             text-transform: uppercase;
             cursor: pointer;
         }
-
-        #reflect-button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
+        #reflect-button:disabled { opacity: 0.5; cursor: not-allowed; }
 
         #metrics-panel {
             position: absolute;
@@ -223,38 +223,12 @@
             border-radius: 8px;
             padding: 16px;
             font-size: 10px;
-            color: #aaa;
         }
-
-        .metric-box {
-            margin-bottom: 16px;
-            padding-bottom: 12px;
-            border-bottom: 1px solid #222;
-        }
-
-        .metric-title {
-            font-size: 9px;
-            color: #E6FF00;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 8px;
-        }
-
-        .metric-row {
-            display: flex;
-            justify-content: space-between;
-            font-size: 9px;
-            padding: 3px 0;
-        }
-
-        .metric-label {
-            color: #666;
-        }
-
-        .metric-value {
-            color: #C8A951;
-            font-weight: 600;
-        }
+        .metric-box { margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid #222; }
+        .metric-title { font-size: 9px; color: #E6FF00; text-transform: uppercase; margin-bottom: 8px; }
+        .metric-row { display: flex; justify-content: space-between; font-size: 9px; padding: 3px 0; }
+        .metric-label { color: #666; }
+        .metric-value { color: #C8A951; font-weight: 600; }
 
         #info-panel {
             position: absolute;
@@ -267,7 +241,7 @@
             border-radius: 8px;
         }
 
-        /* Overlays */
+        /* Overlays semánticamente corregidos */
         .overlay {
             position: fixed;
             top: 0;
@@ -280,11 +254,7 @@
             justify-content: center;
             z-index: 1000;
         }
-
-        .overlay.hidden {
-            display: none;
-        }
-
+        .overlay.hidden { display: none; }
         .config-card {
             width: 100%;
             max-width: 600px;
@@ -293,26 +263,9 @@
             border: 1px solid #C8A951;
             border-radius: 8px;
         }
-
-        .config-card h1 {
-            font-size: 32px;
-            font-weight: 700;
-            color: #fff;
-            margin-bottom: 12px;
-        }
-
-        .config-card p {
-            font-size: 11px;
-            color: #888;
-            margin-bottom: 24px;
-        }
-
-        .form-group {
-            margin-bottom: 16px;
-            display: flex;
-            flex-direction: column;
-        }
-
+        .config-card h1 { font-size: 32px; font-weight: 700; color: #fff; margin-bottom: 12px; }
+        .config-card p { font-size: 11px; color: #888; margin-bottom: 24px; }
+        .form-group { margin-bottom: 16px; display: flex; flex-direction: column; }
         .form-group label {
             font-size: 10px;
             color: #C8A951;
@@ -321,10 +274,7 @@
             margin-bottom: 6px;
             font-weight: 600;
         }
-
-        .form-group input,
-        .form-group textarea,
-        .form-group select {
+        .form-group input, .form-group textarea, .form-group select {
             padding: 10px;
             background: #0a0a0a;
             border: 1px solid #222;
@@ -333,7 +283,6 @@
             font-size: 10px;
             border-radius: 2px;
         }
-
         button {
             padding: 10px 20px;
             background: #E6FF00;
@@ -346,7 +295,6 @@
             cursor: pointer;
             margin-top: 12px;
         }
-
         @media (max-width: 900px) {
             #reflection-panel { width: 300px; }
             #metrics-panel { width: 240px; }
@@ -355,53 +303,53 @@
 </head>
 <body>
 
-    <!-- Overlay Inicial: API Key y Configuración -->
+    <!-- API CONFIGURATION (semánticamente corregido) -->
     <div id="config-overlay" class="overlay">
         <div class="config-card">
-            <h1>⚡ SISTEMA FRICCIÓN</h1>
-            <p>Inicialización del Seer. Introduce tus claves de API (solo se guardan localmente).</p>
+            <h1>system friction institute</h1>
+            <p>Inicialización del Seer. Introduce tus claves de API.</p>
             <form id="api-config-form">
                 <div class="form-group">
-                    <label>Proveedor de IA</label>
-                    <select id="provider-select">
-                        <option value="anthropic">ANTHROPIC (Claude) · Modelo más chingón</option>
-                        <option value="groq">GROQ (Mixtral / Llama) · Alternativa rápida</option>
+                    <label for="provider-select">Proveedor de IA</label>
+                    <select id="provider-select" name="provider" autocomplete="off">
+                        <option value="anthropic">ANTHROPIC (Claude)</option>
+                        <option value="groq">GROQ (Mixtral / Llama)</option>
                     </select>
                 </div>
                 <div class="form-group">
-                    <label>API Key</label>
-                    <input type="password" id="api-key-input" placeholder="sk-ant-api... o gsk_..." required>
+                    <label for="api-key-input">API Key</label>
+                    <input type="password" id="api-key-input" name="apiKey" autocomplete="off" placeholder="sk-ant-api... o gsk_..." required>
                 </div>
                 <div class="form-group">
-                    <label>URL de API (Opcional, por defecto usa la oficial)</label>
-                    <input type="text" id="api-url-input" placeholder="https://api.anthropic.com/v1/messages">
+                    <label for="api-url-input">URL de API (Opcional)</label>
+                    <input type="text" id="api-url-input" name="apiUrl" autocomplete="url" placeholder="https://api.anthropic.com/v1/messages">
                 </div>
                 <button type="submit">Conectar y Continuar</button>
             </form>
         </div>
     </div>
 
-    <!-- Overlay de BIOS del Usuario -->
+    <!-- BIOS CONFIGURATION (semánticamente corregido) -->
     <div id="bios-overlay" class="overlay hidden">
         <div class="config-card">
             <h1>BIOS · Inicialización</h1>
             <p>¿Quién observa?</p>
             <form id="bios-form">
                 <div class="form-group">
-                    <label>Nombre</label>
-                    <input type="text" name="name" placeholder="Tu nombre o alias" required>
+                    <label for="bios-name">Nombre</label>
+                    <input type="text" id="bios-name" name="name" autocomplete="name" required>
                 </div>
                 <div class="form-group">
-                    <label>Rol / Función</label>
-                    <input type="text" name="role" placeholder="Tu rol en este sistema" required>
+                    <label for="bios-role">Rol / Función</label>
+                    <input type="text" id="bios-role" name="role" autocomplete="organization" required>
                 </div>
                 <div class="form-group">
-                    <label>Foco actual</label>
-                    <input type="text" name="focus" placeholder="Área de atención" required>
+                    <label for="bios-focus">Foco actual</label>
+                    <input type="text" id="bios-focus" name="focus" autocomplete="off" required>
                 </div>
                 <div class="form-group">
-                    <label>Contexto (opcional)</label>
-                    <textarea name="context" placeholder="Restricciones, oportunidades, etc."></textarea>
+                    <label for="bios-context">Contexto</label>
+                    <textarea id="bios-context" name="context" autocomplete="off"></textarea>
                 </div>
                 <button type="submit">Iniciar</button>
             </form>
@@ -411,27 +359,24 @@
     <!-- UI Principal -->
     <div class="ui-container">
         <div class="header-group">
-            <div id="header">⚡ <strong>SEER · YOD</strong> · ATRACTOR</div>
+            <div id="header"><strong>SEER · YOD</strong> · ATRACTOR</div>
             <button id="reconfig-btn" class="reconfig-btn">🔧 RE-CONFIG</button>
         </div>
-
         <div id="reflection-panel">
             <div class="panel-header">Reflexiones</div>
             <div id="bios-display"></div>
             <div id="conversation-history"></div>
             <div id="reflection-input-area">
                 <textarea id="reflection-textarea" placeholder="Tu reflexión. El Seer observará."></textarea>
-                <button id="reflect-button">Reflejar</button>
+                <button id="reflect-button" disabled>Reflejar</button>
             </div>
         </div>
-
         <div id="metrics-panel">
             <div class="metric-box"><div class="metric-title">Estado</div><div id="state-metrics"></div></div>
             <div class="metric-box"><div class="metric-title">Convergencia</div><div id="convergence-metrics"></div></div>
             <div class="metric-box"><div class="metric-title">Observación</div><div id="observation-metrics"></div></div>
         </div>
-
-        <div id="info-panel">◈ YOD · MICROMOMENTO · MERCURIO · ATRACTOR ◈</div>
+        <div id="info-panel">SYSTEM FRICTION INSTITUTE ◈ YOD · MICROMOMENTO · MERCURIO · ATRACTOR ◈</div>
     </div>
 
     <script type="importmap">
@@ -450,38 +395,23 @@
         import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
         import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 
-        // ====== CONFIGURACIÓN INICIAL ======
-        let apiConfig = {
-            provider: 'anthropic',
-            apiKey: null,
-            apiUrl: 'https://api.anthropic.com/v1/messages'
-        };
+        // ====== ESTADO GLOBAL ======
+        let apiConfig = { provider: 'anthropic', apiKey: null, apiUrl: 'https://api.anthropic.com/v1/messages' };
         let userBios = null;
         let conversations = [];
         let currentMetrics = { ihg: 0.5, nti: 70, phi: 10, ldi: 1.5 };
         let yodState = { scale: 1, complexity: 1, energy: 0 };
         let seerEnabled = false;
 
-        // Modelos disponibles (solo el mejor activo por defecto, otros comentados)
-        // PROVEEDOR ANTHROPIC (Claude) — Modelo más chingón para análisis
-        // Otros modelos de Anthropic: claude-3-haiku, claude-3-sonnet, etc.
-        // PROVEEDOR GROQ (Modelos rápidos y eficientes)
-        // Modelos GROQ disponibles: mixtral-8x7b-32768, llama3-70b-8192, gemma2-9b-it, etc.
-
+        // ====== API LLM ======
         async function callLLM(prompt) {
             if (!seerEnabled) throw new Error('API no configurada');
             const body = {
-                model: "claude-3-7-sonnet-20250219",  // El más chingón actual (Anthropic)
+                model: "claude-3-7-sonnet-20250219",
                 max_tokens: 300,
                 system: prompt,
                 messages: [{ role: "user", content: "Analiza la reflexión según el contexto." }]
             };
-            // Si usas GROQ (alternativa), cambia la URL y el body. Código comentado listo.
-            if (apiConfig.provider === 'groq') {
-                // body.model = "mixtral-8x7b-32768";
-                // Llamada a API de Groq (https://api.groq.com/openai/v1/chat/completions)
-                // headers['Authorization'] = `Bearer ${apiConfig.apiKey}`;
-            }
             const response = await fetch(apiConfig.apiUrl, {
                 method: 'POST',
                 headers: {
@@ -496,7 +426,7 @@
             return data.content[0].text;
         }
 
-        // DOM Elements
+        // ====== MANEJADORES DE UI ======
         const configOverlay = document.getElementById('config-overlay');
         const biosOverlay = document.getElementById('bios-overlay');
         const apiForm = document.getElementById('api-config-form');
@@ -505,14 +435,12 @@
         const textarea = document.getElementById('reflection-textarea');
         const reconfigBtn = document.getElementById('reconfig-btn');
 
-        // Reset config and reload
         function resetAndReconfigure() {
             localStorage.removeItem('sf_api_config');
             window.location.reload();
         }
         reconfigBtn.addEventListener('click', resetAndReconfigure);
 
-        // Cargar configuración guardada
         function loadConfig() {
             const stored = localStorage.getItem('sf_api_config');
             if (stored) {
@@ -534,9 +462,7 @@
             const provider = document.getElementById('provider-select').value;
             const apiKey = document.getElementById('api-key-input').value.trim();
             let apiUrl = document.getElementById('api-url-input').value.trim();
-            if (!apiUrl) {
-                apiUrl = provider === 'anthropic' ? 'https://api.anthropic.com/v1/messages' : 'https://api.groq.com/openai/v1/chat/completions';
-            }
+            if (!apiUrl) apiUrl = provider === 'anthropic' ? 'https://api.anthropic.com/v1/messages' : 'https://api.groq.com/openai/v1/chat/completions';
             apiConfig = { provider, apiKey, apiUrl };
             localStorage.setItem('sf_api_config', JSON.stringify(apiConfig));
             seerEnabled = true;
@@ -560,14 +486,14 @@
         biosForm.addEventListener('submit', (e) => {
             e.preventDefault();
             userBios = {
-                name: biosForm.querySelector('input[name="name"]').value,
-                role: biosForm.querySelector('input[name="role"]').value,
-                focus: biosForm.querySelector('input[name="focus"]').value,
-                context: biosForm.querySelector('textarea[name="context"]').value,
+                name: document.getElementById('bios-name').value,
+                role: document.getElementById('bios-role').value,
+                focus: document.getElementById('bios-focus').value,
+                context: document.getElementById('bios-context').value,
                 timestamp: new Date().toISOString(),
             };
             localStorage.setItem('sf-user-bios', JSON.stringify(userBios));
-            conversations = []; // clear previous (optional)
+            conversations = [];
             localStorage.removeItem('sf-conversations');
             biosOverlay.classList.add('hidden');
             initApp();
@@ -662,7 +588,7 @@ Tono clínico, quirúrgico.`;
             <div class="metric-row"><span class="metric-label">Energía</span><span class="metric-value">${(yodState.energy*100).toFixed(0)}%</span></div>`;
         }
 
-        // THREE.JS YOD ATTRACTOR
+        // THREE.JS
         let scene, camera, renderer, effectComposer, yodElements = {};
         function initThreeJS() {
             scene = new THREE.Scene(); scene.background = new THREE.Color(0x050510); scene.fog = new THREE.FogExp2(0x050510, 0.008);
