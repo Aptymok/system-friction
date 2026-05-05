@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>System Friction · Ejecución · El Atractor de Síntesis</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,600&amp;family=JetBrains+Mono:wght@300;400;500;700&amp;family=Syncopate:wght@400;700&amp;display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --gold: #D4AF37;
+            --gold-dim: rgba(212, 175, 55, 0.35);
+            --gold-faint: rgba(212, 175, 55, 0.12);
+            --ink: #1A1817;
+            --ink2: #3C3732;
+            --ink3: #6B635A;
+            --paper: #F7F4EA;
+            --mono: 'JetBrains Mono', monospace;
+            --serif: 'Cormorant Garamond', Georgia, serif;
+            --disp: 'Syncopate', sans-serif;
+        }
+
+        body {
+            background: #1c1b19;
+            font-family: var(--serif);
+            padding: 2rem 1rem;
+            color: #e8e4d9;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Dashboard superior */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        .card {
+            background: rgba(26, 24, 23, 0.7);
+            backdrop-filter: blur(4px);
+            border: 1px solid var(--gold-dim);
+            border-radius: 8px;
+            padding: 1rem;
+            text-align: center;
+            transition: all 0.2s;
+        }
+        .card:hover { border-color: var(--gold); box-shadow: 0 0 12px rgba(212, 175, 55, 0.2); }
+        .metric-label {
+            font-family: var(--disp);
+            font-size: 0.65rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--gold);
+            margin-bottom: 0.5rem;
+        }
+        .metric-value {
+            font-family: var(--mono);
+            font-size: 1.8rem;
+            font-weight: 500;
+            line-height: 1;
+        }
+        .metric-trend {
+            font-size: 0.7rem;
+            color: #9a948c;
+            margin-top: 0.3rem;
+        }
+
+        /* Paneles de ejecución */
+        .execution-panels {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .panel {
+            background: #24221f;
+            border: 1px solid #3e3a35;
+            border-radius: 12px;
+            padding: 1.2rem;
+        }
+        .panel-title {
+            font-family: var(--disp);
+            font-size: 0.8rem;
+            letter-spacing: 0.1em;
+            border-bottom: 1px solid #D4AF37;
+            padding-bottom: 0.5rem;
+            margin-bottom: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+        }
+        .task-list, .week-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+        }
+        .task-item, .week-item {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            border-left: 2px solid rgba(212, 175, 55, 0.4);
+            padding-left: 0.8rem;
+        }
+        input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: #D4AF37;
+            cursor: pointer;
+        }
+        .task-text, .week-text {
+            font-family: var(--mono);
+            font-size: 0.7rem;
+            flex: 1;
+        }
+        .task-date, .week-date {
+            font-size: 0.6rem;
+            color: #9a948c;
+        }
+
+        .bitacora-input {
+            display: flex;
+            gap: 0.5rem;
+            margin: 1rem 0;
+        }
+        #bitacoraTexto {
+            flex: 1;
+            background: #1c1b19;
+            border: 1px solid #3e3a35;
+            color: #e8e4d9;
+            padding: 0.5rem;
+            font-family: var(--mono);
+            font-size: 0.75rem;
+        }
+        button {
+            background: var(--gold);
+            border: none;
+            color: #1c1b19;
+            font-family: var(--mono);
+            font-weight: bold;
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        button:hover { background: #b18f2e; }
+        .bitacora-list {
+            max-height: 200px;
+            overflow-y: auto;
+            font-size: 0.7rem;
+        }
+        .bitacora-item {
+            border-bottom: 0.5px solid #3e3a35;
+            padding: 0.5rem 0;
+            display: flex;
+            justify-content: space-between;
+            gap: 0.5rem;
+        }
+
+        .recuerda {
+            text-align: center;
+            margin: 1.5rem 0;
+            padding: 1rem;
+            background: rgba(212, 175, 55, 0.08);
+            border-radius: 12px;
+            font-family: var(--disp);
+            font-size: 1rem;
+            font-weight: 600;
+            letter-spacing: 0.1em;
+            color: var(--gold);
+        }
+
+        details {
+            margin-bottom: 1rem;
+            border: 1px solid #3e3a35;
+            border-radius: 8px;
+            padding: 0.5rem 1rem;
+            background: #1c1b19;
+        }
+        summary {
+            font-family: var(--mono);
+            font-size: 0.8rem;
+            color: var(--gold);
+            cursor: pointer;
+            font-weight: 500;
+        }
+        .protocolo-content {
+            margin-top: 0.8rem;
+            padding-left: 1rem;
+            border-left: 1px solid var(--gold-dim);
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+        }
+        .capa {
+            font-family: var(--mono);
+            font-size: 0.7rem;
+            color: #e8e4d9;
+        }
+        .capa strong {
+            color: var(--gold);
+        }
+
+        .grafico {
+            margin-top: 2rem;
+            background: #24221f;
+            border: 1px solid #3e3a35;
+            border-radius: 12px;
+            padding: 1rem;
+        }
+        canvas { max-height: 200px; width: 100%; }
+        footer {
+            text-align: center;
+            margin-top: 2rem;
+            font-size: 0.65rem;
+            color: #6b655c;
+            border-top: 1px solid #3e3a35;
+            padding-top: 1rem;
+        }
+        .export-btn {
+            background: var(--gold-dim);
+            color: #1c1b19;
+            margin-right: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        @media (max-width: 700px) {
+            .execution-panels { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <!-- DASHBOARD DE CONTROL -->
+    <div class="dashboard-grid" id="dashboard-metrics">
+        <div class="card"><div class="metric-label">IHG (Fricción)</div><div class="metric-value" id="ihg-val">0.72</div><div class="metric-trend" id="ihg-trend">⬆️ sin atractor</div></div>
+        <div class="card"><div class="metric-label">NTI (Trazabilidad)</div><div class="metric-value" id="nti-val">12%</div><div class="metric-trend" id="nti-trend">modo ciego inicial</div></div>
+        <div class="card"><div class="metric-label">LDI (Latencia)</div><div class="metric-value" id="ldi-val">0.0d</div><div class="metric-trend" id="ldi-trend">primer registro pendiente</div></div>
+        <div class="card"><div class="metric-label">Sᵤ (Entropía Útil)</div><div class="metric-value" id="su-val">0</div><div class="metric-trend" id="su-trend">eventos registrados</div></div>
+        <div class="card"><div class="metric-label">Ω (Consistencia)</div><div class="metric-value" id="omega-val">0.00</div><div class="metric-trend">días activos / 7</div></div>
+    </div>
+
+    <!-- PANELES PRINCIPALES -->
+    <div class="execution-panels">
+        <!-- Panel izquierdo: Tareas de las Capas (Volúmenes I a VI) -->
+        <div class="panel">
+            <div class="panel-title">📡 EJECUCIÓN: CAPAS 0-4 + CALENDARIO</div>
+            <div class="task-list" id="capas-list">
+                <div class="task-item"><input type="checkbox" data-task="capa1"> <span class="task-text">Capa 1 (Sangre): Bot de WhatsApp con Manychat + webhook + Stripe (+$15USD/diagnóstico)</span> <span class="task-date" id="capa1-date"></span></div>
+                <div class="task-item"><input type="checkbox" data-task="capa2"> <span class="task-text">Capa 2 (Músculo): vender el ICE a 3 empresas ($5k/mes c/u)</span> <span class="task-date" id="capa2-date"></span></div>
+                <div class="task-item"><input type="checkbox" data-task="capa3"> <span class="task-text">Capa 3 (Esqueleto): publicar PTDH y ofrecer certificación anual</span> <span class="task-date" id="capa3-date"></span></div>
+                <div class="task-item"><input type="checkbox" data-task="capa4"> <span class="task-text">Capa 4 (Alma): music-map con Edwing + mapa de calor</span> <span class="task-date" id="capa4-date"></span></div>
+                <div class="task-item"><input type="checkbox" data-task="calendario1"> <span class="task-text">Semana 1: Lanzar bot de WhatsApp</span> <span class="task-date" id="calendario1-date"></span></div>
+                <div class="task-item"><input type="checkbox" data-task="calendario2"> <span class="task-text">Semana 2: Conseguir 3 pagos del bot</span> <span class="task-date" id="calendario2-date"></span></div>
+                <div class="task-item"><input type="checkbox" data-task="calendario3"> <span class="task-text">Semana 3: Contactar a 10 empresarios (ICE)</span> <span class="task-date" id="calendario3-date"></span></div>
+                <div class="task-item"><input type="checkbox" data-task="calendario4"> <span class="task-text">Semana 4: Primera sesión ICE pagada</span> <span class="task-date" id="calendario4-date"></span></div>
+                <div class="task-item"><input type="checkbox" data-task="calendario5"> <span class="task-text">Semana 5: Publicar PTDH en docs</span> <span class="task-date" id="calendario5-date"></span></div>
+                <div class="task-item"><input type="checkbox" data-task="calendario6"> <span class="task-text">Semana 6: Lanzar music-map (Edwing)</span> <span class="task-date" id="calendario6-date"></span></div>
+            </div>
+        </div>
+
+        <!-- Panel derecho: Bitácora de expansión (Volumen VIII) -->
+        <div class="panel">
+            <div class="panel-title">📝 BITÁCORA (el camino recorrido)</div>
+            <div class="bitacora-input">
+                <input type="text" id="bitacoraTexto" placeholder="Ej: Semana 1: bot creado. Primer pago recibido.">
+                <button id="registrarBtn">+ Registrar</button>
+            </div>
+            <div class="bitacora-list" id="bitacoraLista"></div>
+        </div>
+    </div>
+
+    <!-- SECCIÓN "RECUERDA" (EL DECRETO) -->
+    <div class="recuerda" id="recuerdaMensaje">
+        ◈ SÉ LO QUE QUIERO Y QUIERO IR A POR ÉL. ◈<br>
+        <span style="font-size:0.6rem;">No importa qué esté sucediendo. Cumpliré.</span>
+    </div>
+
+    <!-- PROTOCOLO COMPLETO (Volúmenes I a VII) en formato details -->
+    <details>
+        <summary>📜 VER PROTOCOLO COMPLETO (VOLÚMENES I A VII)</summary>
+        <div class="protocolo-content">
+            <div class="capa"><strong>VOLUMEN I – El Mapa de las Cuatro Capas</strong><br>0 Nodo Raíz: systemfriction.org, docs, Seer (ya).<br>1 Sangre (ingreso inmediato): Bot WhatsApp ($15 diagnóstico).<br>2 Músculo (ingreso empresarial): ICE a $5k/mes.<br>3 Esqueleto (certificación): PTDH + sello System Friction Certified.<br>4 Alma (difusión): music-map Edwing + mapa de calor IHG global.</div>
+            <div class="capa"><strong>VOLUMEN II – El instrumento de entrada (Capa 1)</strong><br>Manychat (12 preguntas MOP-H) → Webhook → Stripe → PDF por WhatsApp. Enlace en redes y widget.</div>
+            <div class="capa"><strong>VOLUMEN III – El informe empresarial (Capa 2)</strong><br>Identificar 10 empresas locales → ofrecer diagnóstico gratis → demostrar ahorro → vender ICE recurrente.</div>
+            <div class="capa"><strong>VOLUMEN IV – El protocolo de certificación (Capa 3)</strong><br>Con 300 pagos y 3 clientes ICE, publicar artículo en Medium y contactar tecnológicas. Propuesta anual: $100k USD.</div>
+            <div class="capa"><strong>VOLUMEN V – El Nodo Edwing (Capa 4)</strong><br>Edwing compone 10 piezas. Página music-map con formulario MOP-H reducido. Venta de pistas $5 USD + mapa de calor de IHG geolocalizado.</div>
+            <div class="capa"><strong>VOLUMEN VI – El Calendario de acción (sin ansiedad)</strong><br>Las 7 semanas están reflejadas en los checkboxes del panel izquierdo.<br>Cada semana: una acción clave. Después de la semana 7, el sistema mínimo de ingresos está en marcha.</div>
+            <div class="capa"><strong>VOLUMEN VII – El documento Medium</strong><br>Título: "El indicador que nadie mide (y por eso tus equipos fracasan)". Enlaces a bot, ICE, y docs.</div>
+        </div>
+    </details>
+
+    <!-- GRÁFICO DE IHG PERSONAL (HISTÓRICO) Y EXPORTACIÓN -->
+    <div class="grafico">
+        <div class="panel-title" style="border-bottom: none;">📈 EVOLUCIÓN DEL IHG PERSONAL (cuanto más marcas, más baja la fricción)</div>
+        <canvas id="trendChart" width="400" height="160"></canvas>
+        <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 1rem;">
+            <button id="exportarBtn" class="export-btn">⬇️ EXPORTAR JSON (EVIDENCIA)</button>
+            <input type="file" id="importarInput" accept=".json" style="display: none;">
+            <button id="importarBtn">⬆️ IMPORTAR JSON (RESTAURAR ESTADO)</button>
+        </div>
+    </div>
+    <footer>
+        System Friction · SF-004 · Instrumento de intervención. La medición modifica lo medido.<br>
+        Cada check, cada bitácora, actualiza las métricas. Si lo mides, es real. Si es real, ya está en marcha.
+    </footer>
+</div>
+
+<script>
+    // Estado del sistema (se guarda en localStorage)
+    let state = {
+        tasks: {
+            capa1: false, capa2: false, capa3: false, capa4: false,
+            calendario1: false, calendario2: false, calendario3: false,
+            calendario4: false, calendario5: false, calendario6: false
+        },
+        taskDates: {},
+        bitacora: [],   // {texto, timestamp}
+        suEventos: 0,
+        historicoIHG: []  // {date, value}
+    };
+
+    // Elementos del DOM
+    const ihgVal = document.getElementById('ihg-val');
+    const ntiVal = document.getElementById('nti-val');
+    const ldiVal = document.getElementById('ldi-val');
+    const suVal = document.getElementById('su-val');
+    const omegaVal = document.getElementById('omega-val');
+    const trendCanvas = document.getElementById('trendChart');
+    let chart;
+
+    // ---- Cálculo de métricas en base al estado ----
+    function calcularMetricas() {
+        const tasksDone = Object.values(state.tasks).filter(v => v === true).length;
+        const totalTasks = Object.keys(state.tasks).length;
+        const completitud = tasksDone / totalTasks;
+        const su = state.bitacora.length + tasksDone;
+        state.suEventos = su;
+        
+        // IHG: a más tareas completas y más bitácora, menor fricción
+        let ihg = 0.9 - (completitud * 0.4) - (Math.min(1, su / 15) * 0.2);
+        ihg = Math.min(0.95, Math.max(0.05, ihg));
+        
+        // NTI: se calcula como coherencia (si hay al menos una tarea y algún registro)
+        let nti = (tasksDone > 0 || su > 0) ? 0.3 : 0.05;
+        if (tasksDone >= 3) nti += 0.3;
+        if (su >= 5) nti += 0.2;
+        nti = Math.min(0.95, nti);
+        
+        // LDI: inferida de la diferencia horaria entre registros de bitácora
+        let ldi = 3.5;  // valor alto inicial (días)
+        if (state.bitacora.length >= 2) {
+            const lastTwo = state.bitacora.slice(-2);
+            const diffHoras = (lastTwo[1].timestamp - lastTwo[0].timestamp) / (3600*1000);
+            ldi = Math.min(7, Math.max(0.5, diffHoras / 24));
+        } else if (tasksDone > 0) {
+            ldi = 1.5;  // si hay tareas pero poca bitácora, latencia media
+        }
+        
+        // Ω (consistencia) = días con actividad en los últimos 7
+        let activityDays = new Set();
+        const now = Date.now();
+        const weekAgo = now - 7 * 24 * 3600 * 1000;
+        state.bitacora.forEach(b => { if (b.timestamp > weekAgo) activityDays.add(new Date(b.timestamp).toDateString()); });
+        Object.values(state.taskDates).forEach(ts => { if (ts && ts > weekAgo) activityDays.add(new Date(ts).toDateString()); });
+        const omega = Math.min(1, activityDays.size / 7);
+        
+        return { ihg: ihg.toFixed(2), nti: (nti*100).toFixed(0), ldi: ldi.toFixed(1), su: su, omega: omega.toFixed(2) };
+    }
+    
+    function actualizarDashboard() {
+        const m = calcularMetricas();
+        ihgVal.innerText = m.ihg;
+        ntiVal.innerText = m.nti + '%';
+        ldiVal.innerText = m.ldi + 'd';
+        suVal.innerText = m.su;
+        omegaVal.innerText = m.omega;
+        
+        const ihgNum = parseFloat(m.ihg);
+        document.getElementById('ihg-trend').innerHTML = ihgNum > 0.7 ? '⬆️ fricción elevada' : (ihgNum < 0.4 ? '⬇️ tendencia a coherencia' : '➡️ estable');
+        document.getElementById('nti-trend').innerHTML = parseInt(m.nti) > 50 ? 'señal parcial' : 'MODO CIEGO';
+        document.getElementById('ldi-trend').innerHTML = parseFloat(m.ldi) > 2.5 ? '⏳ por encima del umbral' : '✅ respuesta ágil';
+        document.getElementById('su-trend').innerHTML = m.su + ' eventos registrados';
+        guardarHistoricoIHG(parseFloat(m.ihg));
+    }
+    
+    // ---- Persistencia del histórico para el gráfico ----
+    function guardarHistoricoIHG(valor) {
+        const today = new Date().toISOString().slice(0,10);
+        if (state.historicoIHG.length === 0 || state.historicoIHG[state.historicoIHG.length-1].date !== today) {
+            state.historicoIHG.push({date: today, value: valor});
+            if (state.historicoIHG.length > 15) state.historicoIHG.shift();
+        } else {
+            state.historicoIHG[state.historicoIHG.length-1].value = valor;
+        }
+        localStorage.setItem('sf004_state', JSON.stringify(state));
+        dibujarGrafico();
+    }
+    
+    function dibujarGrafico() {
+        if (!trendCanvas) return;
+        const ctx = trendCanvas.getContext('2d');
+        const labels = state.historicoIHG.map(h => h.date.slice(5));
+        const data = state.historicoIHG.map(h => h.value);
+        if (chart) chart.destroy();
+        chart = new Chart(ctx, {
+            type: 'line',
+            data: { labels, datasets: [{ label: 'IHG personal', data, borderColor: '#D4AF37', backgroundColor: 'rgba(212, 175, 55, 0.05)', tension: 0.2, fill: true, pointBackgroundColor: '#D4AF37' }] },
+            options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { labels: { color: '#e8e4d9' } } }, scales: { y: { min: 0, max: 1, grid: { color: '#3e3a35' } }, x: { ticks: { color: '#9a948c' } } } }
+        });
+    }
+    
+    // ---- Interacciones con checkboxes y bitácora ----
+    function marcarTarea(tareaId, isChecked) {
+        state.tasks[tareaId] = isChecked;
+        if (isChecked && !state.taskDates[tareaId]) {
+            state.taskDates[tareaId] = Date.now();
+        } else if (!isChecked) {
+            state.taskDates[tareaId] = null;
+        }
+        localStorage.setItem('sf004_state', JSON.stringify(state));
+        renderTareasUI();
+        actualizarDashboard();
+    }
+    
+    function registrarBitacora() {
+        const texto = document.getElementById('bitacoraTexto').value.trim();
+        if (!texto) return;
+        state.bitacora.unshift({ texto, timestamp: Date.now() });
+        if (state.bitacora.length > 50) state.bitacora.pop();
+        localStorage.setItem('sf004_state', JSON.stringify(state));
+        renderBitacoraUI();
+        actualizarDashboard();
+        document.getElementById('bitacoraTexto').value = '';
+    }
+    
+    function renderTareasUI() {
+        for (const [taskId, isChecked] of Object.entries(state.tasks)) {
+            const chk = document.querySelector(`input[data-task="${taskId}"]`);
+            if (chk) chk.checked = isChecked;
+            const dateSpan = document.getElementById(`${taskId}-date`);
+            if (dateSpan && state.taskDates[taskId]) {
+                const d = new Date(state.taskDates[taskId]);
+                dateSpan.innerText = `✅ ${d.toLocaleDateString()}`;
+            } else if (dateSpan) {
+                dateSpan.innerText = '';
+            }
+        }
+    }
+    
+    function renderBitacoraUI() {
+        const container = document.getElementById('bitacoraLista');
+        container.innerHTML = state.bitacora.slice(0, 15).map(b => {
+            const d = new Date(b.timestamp);
+            return `<div class="bitacora-item"><span>${d.toLocaleString()}</span><span>${b.texto.substring(0, 70)}</span></div>`;
+        }).join('');
+    }
+    
+    // ---- Exportar / Importar estado completo ----
+    function exportarEstado() {
+        const dataStr = JSON.stringify(state, null, 2);
+        const blob = new Blob([dataStr], {type: 'application/json'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `sf004_estado_${new Date().toISOString().slice(0,19)}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+    
+    function importarEstado(file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const imported = JSON.parse(e.target.result);
+                if (imported.tasks && imported.bitacora && imported.taskDates) {
+                    state = imported;
+                    localStorage.setItem('sf004_state', JSON.stringify(state));
+                    renderTareasUI();
+                    renderBitacoraUI();
+                    actualizarDashboard();
+                } else alert('Formato inválido');
+            } catch(err) { alert('Error al leer el archivo'); }
+        };
+        reader.readAsText(file);
+    }
+    
+    // ---- Carga inicial desde localStorage ----
+    function loadState() {
+        const saved = localStorage.getItem('sf004_state');
+        if (saved) {
+            try {
+                const parsed = JSON.parse(saved);
+                state = { ...state, ...parsed };
+                if (!state.historicoIHG) state.historicoIHG = [];
+            } catch(e) {}
+        }
+        if (state.historicoIHG.length === 0) {
+            state.historicoIHG = [{date: new Date().toISOString().slice(0,10), value: 0.72}];
+        }
+        renderTareasUI();
+        renderBitacoraUI();
+        actualizarDashboard();
+    }
+    
+    // ---- Event Listeners ----
+    document.querySelectorAll('#capas-list input[type="checkbox"]').forEach(chk => {
+        chk.addEventListener('change', (e) => {
+            const taskId = e.target.dataset.task;
+            marcarTarea(taskId, e.target.checked);
+        });
+    });
+    document.getElementById('registrarBtn').addEventListener('click', registrarBitacora);
+    document.getElementById('exportarBtn').addEventListener('click', exportarEstado);
+    const importInput = document.getElementById('importarInput');
+    document.getElementById('importarBtn').addEventListener('click', () => importInput.click());
+    importInput.addEventListener('change', (e) => {
+        if (e.target.files[0]) importarEstado(e.target.files[0]);
+    });
+    
+    loadState();
+</script>
+</body>
+</html>
