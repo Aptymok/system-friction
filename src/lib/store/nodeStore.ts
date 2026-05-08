@@ -2,16 +2,20 @@
 
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { Audit, Metrics, Node } from '@/lib/types'
+import type { Audit, MemoryFact, Metrics, Node, OperationalAction } from '@/lib/types'
 
 interface NodeState {
   node: Node | null
   audits: Audit[]
+  memoryFacts: MemoryFact[]
+  actions: OperationalAction[]
   metrics: Metrics
   isAuthenticated: boolean
   loading: boolean
   setNode: (node: Node | null) => void
   setAudits: (audits: Audit[]) => void
+  setMemoryFacts: (facts: MemoryFact[]) => void
+  setActions: (actions: OperationalAction[]) => void
   addAudit: (audit: Audit) => void
   updateMetrics: (metrics: Partial<Metrics>) => void
   createAnonymousNode: () => Promise<Node | null>
@@ -27,11 +31,15 @@ export const useNodeStore = create<NodeState>()(
     (set, get) => ({
       node: null,
       audits: [],
+      memoryFacts: [],
+      actions: [],
       metrics: emptyMetrics,
       isAuthenticated: false,
       loading: false,
       setNode: (node) => set({ node, isAuthenticated: Boolean(node) }),
       setAudits: (audits) => set({ audits }),
+      setMemoryFacts: (memoryFacts) => set({ memoryFacts }),
+      setActions: (actions) => set({ actions }),
       addAudit: (audit) => set((state) => ({ audits: [audit, ...state.audits].slice(0, 50) })),
       updateMetrics: (metrics) => set((state) => ({ metrics: { ...state.metrics, ...metrics } })),
       createAnonymousNode: async () => {
@@ -44,8 +52,10 @@ export const useNodeStore = create<NodeState>()(
       },
       loadAudits: async (nodeId) => {
         const response = await fetch(`/api/node/${nodeId}`)
-        const result = (await response.json()) as { node?: Node; audits?: Audit[] }
+        const result = (await response.json()) as { node?: Node; audits?: Audit[]; memory_facts?: MemoryFact[]; actions?: OperationalAction[] }
         if (result.node) set({ node: result.node, isAuthenticated: true })
+        if (result.memory_facts) set({ memoryFacts: result.memory_facts })
+        if (result.actions) set({ actions: result.actions })
         if (result.audits) {
           set({ audits: result.audits })
           const last = result.audits[0]
@@ -77,7 +87,7 @@ export const useNodeStore = create<NodeState>()(
         set({ loading: false })
         return false
       },
-      clear: () => set({ node: null, audits: [], metrics: emptyMetrics, isAuthenticated: false })
+      clear: () => set({ node: null, audits: [], memoryFacts: [], actions: [], metrics: emptyMetrics, isAuthenticated: false })
     }),
     {
       name: 'sf-node-storage',

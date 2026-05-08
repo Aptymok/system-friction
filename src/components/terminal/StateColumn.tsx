@@ -5,6 +5,7 @@ import { useNodeStore } from '@/lib/store/nodeStore'
 import { MetricsPanel } from './MetricsPanel'
 import { SimulationCanvas } from './SimulationCanvas'
 import { Badge } from '@/components/shared/Badge'
+import { SystemLog } from './SystemLog'
 
 export function StateColumn() {
   const { audits, metrics } = useNodeStore()
@@ -14,6 +15,7 @@ export function StateColumn() {
   return (
     <div className="flex min-h-0 flex-col gap-5">
       <MetricsPanel metrics={metrics} hardStop={hardStop} />
+      <SystemLog />
       <SimulationCanvas />
 
       <section className="terminal-panel p-5">

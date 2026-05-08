@@ -3,8 +3,14 @@ import { z } from 'zod'
 export const intakeSchema = z.object({
   alias: z.string().min(2).max(64),
   email: z.string().email().max(160),
-  objective: z.string().min(8).max(800),
-  current_friction: z.string().min(8).max(1200)
+  responses: z.array(
+    z.object({
+      question_id: z.string().min(2).max(12),
+      question_text: z.string().min(3).max(400),
+      phase: z.string().min(2).max(120),
+      answer: z.string().min(1).max(1600)
+    })
+  ).min(6)
 })
 
 export const auditSchema = z.object({

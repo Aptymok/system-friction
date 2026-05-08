@@ -36,6 +36,31 @@ export interface Audit {
   whatsapp_session_id?: string
 }
 
+export interface MemoryFact {
+  id: string
+  node_id: string
+  audit_id?: string | null
+  fact_type: 'objective' | 'loop' | 'constraint' | 'emotion_pattern' | 'missed_action' | 'direction_change' | 'external_signal'
+  label: string
+  value: string
+  confidence: number
+  first_seen_at: string
+  last_seen_at: string
+  recurrence_count: number
+}
+
+export interface OperationalAction {
+  id: string
+  node_id: string
+  audit_id?: string | null
+  description: string
+  verification_criterion: string
+  due_at?: string | null
+  completed_at?: string | null
+  status: 'pending' | 'completed' | 'missed' | 'invalidated'
+  created_at: string
+}
+
 export interface Metrics {
   ihg: number
   nti: number
@@ -64,6 +89,8 @@ export interface AuditResult extends Metrics {
 export interface StoreSnapshot {
   nodes: Node[]
   audits: Audit[]
+  memory_facts?: MemoryFact[]
+  actions?: OperationalAction[]
   links: Array<{
     id: string
     token: string

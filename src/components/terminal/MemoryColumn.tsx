@@ -6,7 +6,7 @@ import { useNodeStore } from '@/lib/store/nodeStore'
 import { Badge } from '@/components/shared/Badge'
 
 export function MemoryColumn() {
-  const { audits, node } = useNodeStore()
+  const { audits, node, memoryFacts, actions } = useNodeStore()
   const [link, setLink] = useState<string>('')
 
   const generateLink = async () => {
@@ -27,10 +27,34 @@ export function MemoryColumn() {
           <HardDrive className="h-4 w-4 text-gold" />
           <span className="font-mono text-[10px] font-bold uppercase tracking-[0.32em] text-gold">Memoria operacional</span>
         </div>
-        <p className="font-mono text-[10px] text-zinc-600">Nodo: {node?.id.slice(0, 18) || 'sincronizando'} · {audits.length} eventos</p>
+        <p className="font-mono text-[10px] text-zinc-600">Nodo: {node?.id.slice(0, 18) || 'sincronizando'} · {audits.length} auditorias · {memoryFacts.length} hechos</p>
       </div>
 
       <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">
+        {memoryFacts.length > 0 && (
+          <div className="space-y-3 border-b border-gold/10 pb-4">
+            <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-gold">Hechos persistentes</p>
+            {memoryFacts.slice(0, 6).map((fact) => (
+              <article key={fact.id} className="border-l border-zinc-800 pl-3">
+                <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-zinc-600">{fact.fact_type} · {Math.round(fact.confidence * 100)}%</p>
+                <p className="mt-1 text-sm text-zinc-400">{fact.label}: {fact.value}</p>
+              </article>
+            ))}
+          </div>
+        )}
+
+        {actions.length > 0 && (
+          <div className="space-y-3 border-b border-gold/10 pb-4">
+            <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-gold">Acciones vivas</p>
+            {actions.slice(0, 4).map((action) => (
+              <article key={action.id} className="border-l border-gold/20 pl-3">
+                <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-zinc-600">{action.status} {action.due_at ? `· ${new Date(action.due_at).toLocaleString()}` : ''}</p>
+                <p className="mt-1 text-sm text-zinc-300">{action.description}</p>
+              </article>
+            ))}
+          </div>
+        )}
+
         {audits.length === 0 ? (
           <div className="py-16 text-center">
             <p className="font-serif text-lg italic text-zinc-500">No hay patrones longitudinales todavia.</p>

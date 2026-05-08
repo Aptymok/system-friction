@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { executeAudit } from '@/lib/agents/auditor'
+import { buildMOPHNarrative, deriveMOPHBaseline } from '@/lib/agents/moph'
 import { appendEvent } from '@/lib/db/events'
 import { checkRateLimit, rateLimitKey } from '@/lib/auth/rateLimit'
 import { extractMemoryFacts } from '@/lib/memory/facts'
@@ -36,7 +37,8 @@ export async function POST(request: NextRequest) {
 
     const userId = authUser.user?.id
     if (!userId) return NextResponse.json({ success: false, error: 'No se pudo crear identidad operacional.' }, { status: 500 })
-    const baselineNarrative = `Objetivo: ${input.objective}\nFriccion actual: ${input.current_friction}`
+    const baseline = deriveMOPHBaseline(input.responses)
+    const baselineNarrative = buildMOPHNarrative(input.responses)
     const auditResult = await executeAudit({ narrative: baselineNarrative })
 
     await supabase.from('profiles').upsert({
@@ -52,7 +54,7 @@ export async function POST(request: NextRequest) {
         user_id: userId,
         alias: input.alias,
         source: 'web',
-        objective: input.objective,
+        objective: baseline.objective,
         current_ihg: auditResult.ihg,
         current_nti: auditResult.nti,
         current_ldi: auditResult.ldi,
@@ -72,8 +74,8 @@ export async function POST(request: NextRequest) {
         node_id: node.id,
         alias: input.alias,
         email: input.email,
-        objective: input.objective,
-        current_friction: input.current_friction,
+        objective: baseline.objective,
+        current_friction: baseline.current_friction,
         initial_ihg: auditResult.ihg,
         initial_nti: auditResult.nti,
         initial_ldi: auditResult.ldi,
@@ -85,12 +87,13 @@ export async function POST(request: NextRequest) {
 
     if (sessionError || !session) throw sessionError || new Error('No se pudo crear sesion de entrada.')
 
-    await supabase.from('intake_responses').insert([
-      { intake_session_id: session.id, question_key: 'alias', answer: input.alias },
-      { intake_session_id: session.id, question_key: 'email', answer: input.email },
-      { intake_session_id: session.id, question_key: 'objective', answer: input.objective },
-      { intake_session_id: session.id, question_key: 'current_friction', answer: input.current_friction }
-    ])
+    await supabase.from('intake_responses').insert(
+      input.responses.map((response) => ({
+        intake_session_id: session.id,
+        question_key: response.question_id,
+        answer: response.answer
+      }))
+    )
 
     const { data: audit } = await supabase
       .from('audits')
@@ -122,7 +125,49 @@ export async function POST(request: NextRequest) {
       })
 
       const facts = extractMemoryFacts({ node_id: node.id, audit_id: audit.id, narrative: baselineNarrative, result: auditResult })
-      if (facts.length) await supabase.from('memory_facts').insert(facts)
+      const mophFacts = [
+        {
+          node_id: node.id,
+          audit_id: audit.id,
+          fact_type: 'objective',
+          label: 'objetivo declarado por MOP-H',
+          value: baseline.objective,
+          confidence: 0.72
+        },
+        {
+          node_id: node.id,
+          audit_id: audit.id,
+          fact_type: 'constraint',
+          label: 'friccion declarada inicial',
+          value: baseline.current_friction,
+          confidence: 0.78
+        },
+        {
+          node_id: node.id,
+          audit_id: audit.id,
+          fact_type: 'loop',
+          label: 'accion sabida no ejecutada',
+          value: baseline.declared_action_gap || 'No explicitada',
+          confidence: baseline.declared_action_gap ? 0.68 : 0.35
+        },
+        {
+          node_id: node.id,
+          audit_id: audit.id,
+          fact_type: 'emotion_pattern',
+          label: 'evitacion inicial',
+          value: baseline.initial_avoidance || 'No explicitada',
+          confidence: baseline.initial_avoidance ? 0.64 : 0.35
+        },
+        {
+          node_id: node.id,
+          audit_id: audit.id,
+          fact_type: 'constraint',
+          label: 'primer punto de ruptura esperado',
+          value: baseline.expected_break || 'No explicitado',
+          confidence: baseline.expected_break ? 0.62 : 0.35
+        }
+      ]
+      await supabase.from('memory_facts').insert([...facts, ...mophFacts])
       await storeMemoryVector({
         node_id: node.id,
         source_table: 'audits',

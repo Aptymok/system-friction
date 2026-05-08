@@ -2,13 +2,15 @@
 
 import { useEffect, useState } from 'react'
 import { Loader2 } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import { ConsoleColumn } from '@/components/terminal/ConsoleColumn'
 import { MemoryColumn } from '@/components/terminal/MemoryColumn'
 import { StateColumn } from '@/components/terminal/StateColumn'
 import { useNodeStore } from '@/lib/store/nodeStore'
 
 export default function TerminalPage() {
-  const { node, isAuthenticated, loading, createAnonymousNode, loadAudits } = useNodeStore()
+  const router = useRouter()
+  const { node, loading, loadAudits } = useNodeStore()
   const [initialized, setInitialized] = useState(false)
 
   useEffect(() => {
@@ -16,16 +18,16 @@ export default function TerminalPage() {
       const activeNodeId = window.localStorage.getItem('sf-active-node-id')
       if (activeNodeId && !node) {
         await loadAudits(activeNodeId)
-      } else if (!isAuthenticated || !node) {
-        const created = await createAnonymousNode()
-        if (created) await loadAudits(created.id)
+      } else if (!node) {
+        router.replace('/start')
+        return
       } else {
         await loadAudits(node.id)
       }
       setInitialized(true)
     }
     void init()
-  }, [])
+  }, [loadAudits, node, router])
 
   if (!initialized || loading) {
     return (
@@ -42,7 +44,7 @@ export default function TerminalPage() {
     <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(212,175,55,0.11),transparent_38%),#0A0905] p-3 md:p-6">
       <header className="mb-5 flex flex-col gap-4 border-b border-gold/10 pb-5 md:flex-row md:items-end md:justify-between">
         <div>
-          <p className="font-mono text-[10px] uppercase tracking-[0.35em] text-gold">SFI-CORE.v2 · Terminal operacional</p>
+          <p className="font-mono text-[10px] uppercase tracking-[0.35em] text-gold">SFI-CORE.vNEXT · Terminal viva</p>
           <h1 className="mt-2 font-display text-xl uppercase tracking-[0.08em] text-paper md:text-2xl">Nodo de observacion</h1>
         </div>
         <p className="max-w-xl font-serif text-sm italic leading-relaxed text-zinc-500">
