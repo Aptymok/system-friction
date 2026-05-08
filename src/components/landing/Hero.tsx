@@ -18,8 +18,8 @@ export function Hero() {
             Terminal para medir donde la intencion deja de convertirse en ejecucion.
           </p>
           <div className="mt-9 flex flex-wrap gap-3">
-            <Link href="/terminal" className="inline-flex items-center gap-2 bg-gold px-6 py-4 font-mono text-[11px] font-bold uppercase tracking-[0.22em] text-void transition hover:bg-ink hover:text-gold">
-              Acceder a terminal
+            <Link href="/start" className="inline-flex items-center gap-2 bg-gold px-6 py-4 font-mono text-[11px] font-bold uppercase tracking-[0.22em] text-void transition hover:bg-ink hover:text-gold">
+              Iniciar diagnostico operacional
               <ArrowRight className="h-4 w-4" />
             </Link>
             <Link href="/llms.txt" className="inline-flex items-center border border-ink/20 px-6 py-4 font-mono text-[11px] font-bold uppercase tracking-[0.22em] text-ink transition hover:border-gold hover:text-gold">

@@ -23,6 +23,14 @@
   },
   "dynamicRoutes": [
     {
+      "page": "/api/actions/[id]/verify",
+      "regex": "^/api/actions/([^/]+?)/verify(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/actions/(?<nxtPid>[^/]+?)/verify(?:/)?$"
+    },
+    {
       "page": "/api/node/[id]",
       "regex": "^/api/node/([^/]+?)(?:/)?$",
       "routeKeys": {
@@ -59,10 +67,34 @@
       "namedRegex": "^/_not\\-found(?:/)?$"
     },
     {
+      "page": "/api/amv/respond",
+      "regex": "^/api/amv/respond(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/amv/respond(?:/)?$"
+    },
+    {
+      "page": "/api/amv/session",
+      "regex": "^/api/amv/session(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/amv/session(?:/)?$"
+    },
+    {
       "page": "/api/audit",
       "regex": "^/api/audit(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/api/audit(?:/)?$"
+    },
+    {
+      "page": "/api/intake",
+      "regex": "^/api/intake(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/intake(?:/)?$"
+    },
+    {
+      "page": "/api/license",
+      "regex": "^/api/license(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/license(?:/)?$"
     },
     {
       "page": "/api/link/generate",
@@ -83,16 +115,52 @@
       "namedRegex": "^/api/node/bootstrap(?:/)?$"
     },
     {
+      "page": "/api/telemetry/ingest",
+      "regex": "^/api/telemetry/ingest(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/telemetry/ingest(?:/)?$"
+    },
+    {
+      "page": "/api/telemetry/sources",
+      "regex": "^/api/telemetry/sources(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/telemetry/sources(?:/)?$"
+    },
+    {
       "page": "/api/whatsapp/webhook",
       "regex": "^/api/whatsapp/webhook(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/api/whatsapp/webhook(?:/)?$"
     },
     {
+      "page": "/forgot",
+      "regex": "^/forgot(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/forgot(?:/)?$"
+    },
+    {
       "page": "/llms.txt",
       "regex": "^/llms\\.txt(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/llms\\.txt(?:/)?$"
+    },
+    {
+      "page": "/login",
+      "regex": "^/login(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/login(?:/)?$"
+    },
+    {
+      "page": "/register",
+      "regex": "^/register(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/register(?:/)?$"
+    },
+    {
+      "page": "/reset",
+      "regex": "^/reset(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/reset(?:/)?$"
     },
     {
       "page": "/robots.txt",
@@ -107,10 +175,22 @@
       "namedRegex": "^/sitemap\\.xml(?:/)?$"
     },
     {
+      "page": "/start",
+      "regex": "^/start(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/start(?:/)?$"
+    },
+    {
       "page": "/terminal",
       "regex": "^/terminal(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/terminal(?:/)?$"
+    },
+    {
+      "page": "/verify",
+      "regex": "^/verify(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/verify(?:/)?$"
     }
   ],
   "dataRoutes": [],

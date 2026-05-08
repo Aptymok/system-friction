@@ -4,9 +4,14 @@ export interface Node {
   id: string
   source: Source
   whatsapp_phone: string | null
+  user_id?: string | null
+  alias?: string | null
+  objective?: string | null
   current_ihg: number
   current_nti: number
   current_ldi: number
+  current_severity?: number
+  active_pattern?: string | null
   created_at: string
   updated_at: string
   last_sync: string | null

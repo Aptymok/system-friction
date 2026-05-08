@@ -13,7 +13,10 @@ export default function TerminalPage() {
 
   useEffect(() => {
     const init = async () => {
-      if (!isAuthenticated || !node) {
+      const activeNodeId = window.localStorage.getItem('sf-active-node-id')
+      if (activeNodeId && !node) {
+        await loadAudits(activeNodeId)
+      } else if (!isAuthenticated || !node) {
         const created = await createAnonymousNode()
         if (created) await loadAudits(created.id)
       } else {
