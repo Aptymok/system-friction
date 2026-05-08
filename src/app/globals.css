@@ -1,0 +1,89 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@300;400;500;700&family=Syncopate:wght@400;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --gold: #D4AF37;
+  --gold-soft: #C8A951;
+  --gold-dim: rgba(212, 175, 55, 0.35);
+  --gold-faint: rgba(212, 175, 55, 0.12);
+  --void: #0A0905;
+  --ink: #1A1817;
+  --paper: #F7F4EA;
+  --red: #B85050;
+  --blue: #4A7AAA;
+  --font-mono: 'JetBrains Mono';
+  --font-serif: 'Cormorant Garamond';
+  --font-display: 'Syncopate';
+}
+
+* { box-sizing: border-box; }
+
+html {
+  scroll-behavior: smooth;
+  background: var(--void);
+}
+
+body {
+  margin: 0;
+  background: var(--void);
+  color: var(--paper);
+  font-family: var(--font-serif), Georgia, serif;
+  letter-spacing: 0;
+}
+
+::selection {
+  background: var(--gold);
+  color: var(--void);
+}
+
+button, input, textarea {
+  font: inherit;
+}
+
+button:focus-visible,
+a:focus-visible,
+textarea:focus-visible,
+input:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 3px;
+}
+
+.terminal-panel {
+  border: 1px solid rgba(212, 175, 55, 0.15);
+  background: rgba(5, 5, 5, 0.72);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.36);
+}
+
+.scanline {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.scanline::after {
+  animation: scan 4s linear infinite;
+  background: linear-gradient(0deg, transparent, rgba(212, 175, 55, 0.08), transparent);
+  content: '';
+  height: 140px;
+  left: 0;
+  position: absolute;
+  right: 0;
+  top: -140px;
+}
+
+@keyframes scan {
+  to { transform: translateY(calc(100vh + 280px)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}

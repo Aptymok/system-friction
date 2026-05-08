@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>System Friction Institute · Terminal MOP-H</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;700&family=Syncopate:wght@400;700&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --gold: #C8A951;
+    --void: #050505;
+    --ink: #1A1918;
+    --paper: #F7F4EA;
+    --red: #C43A3A;
+    --neon: #E6FF00;
+  }
+  
+  body {
+    background-color: var(--void);
+    color: var(--paper);
+    font-family: 'JetBrains Mono', monospace;
+    overflow-x: hidden;
+    transition: filter 0.5s ease, background-color 0.5s ease;
+  }
+
+  /* ESTADOS DE FRICCIÓN VISUAL */
+  body.high-friction {
+    filter: sepia(0.3) contrast(1.1) hue-rotate(-10deg);
+    background-color: #0a0505;
+  }
+  
+  body.high-friction .scanline {
+    opacity: 0.4;
+    background: linear-gradient(0deg, rgba(196, 58, 58, 0) 0%, rgba(196, 58, 58, 0.3) 50%, rgba(196, 58, 58, 0) 100%);
+    animation-duration: 1.5s;
+  }
+
+  .font-disp { font-family: 'Syncopate', sans-serif; }
+  .font-serif { font-family: 'Cormorant Garamond', serif; }
+
+  .terminal-border {
+    border: 1px solid rgba(200, 169, 81, 0.15);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.8);
+    transition: all 0.3s ease;
+  }
+
+  .amv-notif {
+    border-left: 2px solid var(--gold);
+    background: rgba(200, 169, 81, 0.03);
+    margin-bottom: 12px;
+    animation: fadeIn 0.4s ease;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(5px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .scanline {
+    width: 100%;
+    height: 120px;
+    z-index: 10;
+    background: linear-gradient(0deg, rgba(200, 169, 81, 0) 0%, rgba(200, 169, 81, 0.05) 50%, rgba(200, 169, 81, 0) 100%);
+    opacity: 0.1;
+    position: absolute;
+    bottom: 100%;
+    animation: scan 3s linear infinite;
+    pointer-events: none;
+  }
+
+  @keyframes scan {
+    0% { bottom: 100%; }
+    100% { bottom: -120px; }
+  }
+
+  ::-webkit-scrollbar { width: 3px; }
+  ::-webkit-scrollbar-thumb { background: var(--gold); }
+
+  .instrument-locked {
+    filter: grayscale(1) opacity(0.3);
+    pointer-events: none;
+    position: relative;
+  }
+
+  .lock-label {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--gold);
+    color: black;
+    font-size: 8px;
+    padding: 2px 6px;
+    font-weight: bold;
+    white-space: nowrap;
+    z-index: 20;
+  }
+
+  .shimmer {
+    background: linear-gradient(90deg, transparent, rgba(200, 169, 81, 0.1), transparent);
+    background-size: 200% 100%;
+    animation: shimmer 2s infinite;
+  }
+
+  @keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  .btn-sparkle {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn-sparkle::after {
+    content: "";
+    position: absolute;
+    top: -50%; left: -50%;
+    width: 200%; height: 200%;
+    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .btn-sparkle:hover::after {
+    opacity: 1;
+  }
+</style>
+</head>
+<body class="p-2 md:p-6 min-h-screen flex flex-col">
+
+<!-- ACTIVACIÓN DE NODO -->
+<div id="auth-screen" class="fixed inset-0 z-[100] bg-[#020202] flex items-center justify-center p-6 transition-all duration-1000">
+  <div class="max-w-xl w-full terminal-border bg-[#080808] p-10 text-center relative overflow-hidden">
+    <div class="scanline"></div>
+    <div id="auth-diagnostic" class="space-y-8">
+      <div class="w-16 h-16 border border-[#C8A951] rotate-45 mx-auto mb-8 flex items-center justify-center">
+        <span class="rotate-[-45deg] text-[#C8A951] font-bold text-xl font-disp">SF</span>
+      </div>
+      <h2 class="font-disp text-[10px] tracking-[0.4em] mb-2 uppercase">Protocolo de Activación v3.5</h2>
+      
+      <div id="step-1" class="space-y-6">
+        <p class="font-serif italic text-sm text-gray-500">Iniciando auditoría de campo cognitivo...</p>
+        <button onclick="nextStep(1)" class="w-full border border-white/10 py-4 text-[10px] tracking-widest hover:border-[#C8A951] transition-all text-gray-400 hover:text-white uppercase">Activar Observación Longitudinal</button>
+      </div>
+
+      <div id="step-2" class="hidden space-y-6 animate-fadeIn">
+        <input type="email" id="email-access" placeholder="ID@NODO.SFI" class="w-full bg-transparent border-b border-[#C8A951]/20 p-2 text-center focus:outline-none focus:border-[#C8A951] transition-colors font-mono text-sm">
+        <label class="flex items-center justify-center gap-3 cursor-pointer group">
+          <input type="checkbox" id="auth-check" class="hidden">
+          <div id="check-box" class="w-4 h-4 border border-[#C8A951]/40 flex items-center justify-center group-hover:bg-[#C8A951]/10">
+            <i data-lucide="check" class="w-3 h-3 text-[#C8A951] hidden" id="check-icon"></i>
+          </div>
+          <span class="text-[9px] text-gray-500 tracking-wider uppercase">Vincular identidad persistente al servidor central</span>
+        </label>
+        <button id="login-btn" onclick="unlockTerminal()" class="w-full bg-[#C8A951] text-black py-4 text-[10px] tracking-[0.3em] font-bold uppercase">Sincronizar Nodo</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN UI -->
+<div id="main-ui" class="hidden opacity-0 transition-opacity duration-1000 flex-1 flex flex-col">
+  <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 border-b border-white/5 pb-4">
+    <div class="flex items-center gap-4">
+      <div class="w-10 h-10 border border-[#C8A951]/20 rotate-45 flex items-center justify-center">
+        <span class="rotate-[-45deg] text-[#C8A951] text-[10px] font-bold">SFI</span>
+      </div>
+      <div>
+        <h1 class="font-disp text-lg tracking-tight" id="user-node-id">NODO : [IDENTIFICANDO]</h1>
+        <div class="flex items-center gap-2">
+          <div class="w-1.5 h-1.5 bg-green-500 rounded-full" id="sync-dot"></div>
+          <span class="text-[8px] tracking-widest text-[#C8A951] uppercase">Observatorio Longitudinal Inteligente</span>
+        </div>
+      </div>
+    </div>
+    <div class="flex gap-4">
+      <div class="flex flex-col items-end">
+        <div class="text-[8px] text-gray-600 uppercase font-bold">Densidad de Datos</div>
+        <div class="flex gap-1 mt-1" id="data-density-dots"></div>
+      </div>
+    </div>
+  </header>
+
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1">
+    
+    <!-- AUDITORÍA (INPUT) -->
+    <div class="lg:col-span-3 space-y-6">
+      <section class="terminal-border p-5 bg-black/40 relative overflow-hidden">
+        <div class="scanline"></div>
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-[9px] tracking-widest text-[#C8A951] uppercase font-bold">Auditoría de Narrativa</h3>
+            <button onclick="extractSignal()" class="text-[7px] text-white/40 hover:text-white border border-white/10 px-2 py-1 rounded transition-colors flex items-center gap-1">
+                <i data-lucide="filter" class="w-2 h-2"></i>EXTRACTOR
+            </button>
+        </div>
+        <textarea id="user-narrative" class="w-full bg-black border border-white/10 p-3 text-xs focus:border-[#C8A951] outline-none min-h-[160px] font-serif italic" placeholder="Declara tu vector de hoy..."></textarea>
+        <button id="analyze-btn" onclick="analyzeNarrative()" class="mt-4 w-full bg-[#C8A951]/5 border border-[#C8A951]/30 py-3 text-[9px] tracking-widest hover:bg-[#C8A951] hover:text-black transition-all flex items-center justify-center gap-2 font-bold uppercase btn-sparkle">
+          <span>Procesar Colapso</span>
+          <div id="btn-loader" class="hidden animate-spin w-3 h-3 border-2 border-current border-t-transparent rounded-full"></div>
+        </button>
+      </section>
+
+      <section class="terminal-border p-5 bg-black/20">
+        <h3 class="text-[9px] tracking-widest text-[#C8A951] mb-4 uppercase font-bold">Estado del Campo</h3>
+        <div class="grid grid-cols-2 gap-3">
+          <div class="p-3 border border-white/5 text-center">
+            <div class="text-lg font-bold text-red-500 font-mono" id="val-ihg">0.000</div>
+            <div class="text-[7px] text-gray-500 uppercase mt-1">IHG (Fricción)</div>
+          </div>
+          <div class="p-3 border border-white/5 text-center">
+            <div class="text-lg font-bold text-blue-400 font-mono" id="val-nti">0.000</div>
+            <div class="text-[7px] text-gray-500 uppercase mt-1">NTI (Integridad)</div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- VISUALIZACIÓN Y TIMELINE -->
+    <div class="lg:col-span-6 space-y-6 flex flex-col">
+      <section class="terminal-border bg-black relative h-[280px] overflow-hidden">
+        <div class="absolute top-4 left-4 z-20">
+          <h3 class="text-[9px] tracking-widest text-[#C8A951] uppercase font-bold">Mapa $\mathcal{M}_F$</h3>
+        </div>
+        <canvas id="friction-canvas" class="w-full h-full"></canvas>
+      </section>
+
+      <section class="terminal-border p-6 bg-black/30 flex-1 flex flex-col overflow-hidden">
+        <h3 class="text-[9px] tracking-widest text-[#C8A951] mb-4 uppercase font-bold flex justify-between">
+          <span>Secuencia de Auditorías</span>
+          <span class="text-gray-600 font-mono" id="audit-count">0 EVENTOS</span>
+        </h3>
+        <div id="audit-log" class="flex-1 overflow-y-auto space-y-4 pr-2">
+          <div class="opacity-20 text-center py-10 text-[10px] font-serif italic" id="empty-log">
+            Memoria del nodo vacía.
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- AMV E INSTRUMENTOS -->
+    <div class="lg:col-span-3 flex flex-col h-full space-y-4">
+      <section class="terminal-border h-[45%] bg-[#080808] p-5 flex flex-col relative overflow-hidden">
+        <div class="scanline"></div>
+        <div class="flex items-center gap-3 mb-4 border-b border-white/5 pb-3">
+          <i data-lucide="cpu" class="w-4 h-4 text-[#C8A951]"></i>
+          <h4 class="text-[10px] font-bold uppercase tracking-widest">AMV (Inferencia)</h4>
+        </div>
+        <div id="amv-chat" class="flex-1 overflow-y-auto space-y-4 text-[10px] pr-2"></div>
+        <div class="mt-4 pt-3 border-t border-white/10 flex gap-2">
+          <input type="text" id="chat-input" placeholder="Interpelar..." class="flex-1 bg-black border border-white/10 p-2 text-[10px] outline-none focus:border-[#C8A951]">
+          <button onclick="sendChatMessage()" class="bg-[#C8A951]/10 border border-[#C8A951]/30 p-2 hover:bg-[#C8A951] hover:text-black transition-all">
+            <i data-lucide="send" class="w-3 h-3"></i>
+          </button>
+        </div>
+      </section>
+
+      <section class="terminal-border flex-1 bg-black/40 p-5">
+        <h3 class="text-[9px] tracking-widest text-[#C8A951] mb-4 uppercase font-bold">Instrumentos de Nodo</h3>
+        <div class="space-y-3" id="instruments-container">
+          <div onclick="runInstrument('gemelo')" class="instrument-locked p-3 border border-white/5 text-[8px] flex flex-col gap-1 cursor-pointer hover:bg-white/5 transition-colors" id="inst-gemelo">
+            <span class="font-bold tracking-widest">GEMELO COGNITIVO</span>
+            <p class="text-gray-600">Síntesis de identidad longitudinal.</p>
+            <div class="lock-label">BLOQUEADO (7 AUDITS)</div>
+          </div>
+          <div onclick="runInstrument('divergencia')" class="instrument-locked p-3 border border-white/5 text-[8px] flex flex-col gap-1 cursor-pointer hover:bg-white/5 transition-colors" id="inst-divergencia">
+            <span class="font-bold tracking-widest">DETECTOR DIVERGENCIA</span>
+            <p class="text-gray-600">Análisis de contradicción histórica.</p>
+            <div class="lock-label">BLOQUEADO (3 AUDITS)</div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <footer class="mt-6 pt-4 border-t border-white/5 flex justify-between items-center text-[8px] text-gray-600 font-mono">
+    <div>SFI · INFRAESTRUCTURA COGNITIVA · MMXXVI</div>
+    <div id="last-sync">ESTADO: SINCRONIZANDO...</div>
+  </footer>
+</div>
+
+<!-- MODAL DECRETO -->
+<div id="modal" class="fixed inset-0 z-[200] bg-black/95 backdrop-blur-lg hidden items-center justify-center p-6">
+  <div class="max-w-xl w-full terminal-border bg-[#080808] p-10 relative overflow-hidden">
+    <div id="modal-shimmer" class="absolute inset-0 shimmer hidden pointer-events-none opacity-20"></div>
+    <button onclick="closeModal()" class="absolute top-4 right-4 text-gray-500 hover:text-white z-30"><i data-lucide="x"></i></button>
+    <div class="text-[9px] tracking-[0.4em] text-[#C8A951] mb-8 font-disp uppercase" id="modal-title">Análisis de Colapso</div>
+    <div id="modal-content" class="font-serif text-lg md:text-xl text-gray-200 leading-relaxed italic mb-10 border-l-2 border-[#C8A951] pl-8 py-2 max-h-[60vh] overflow-y-auto"></div>
+    <div class="text-[7px] font-mono opacity-40 uppercase tracking-widest">Certificado por AMV Capa 0</div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js';
+import { getAuth, signInAnonymously, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js';
+import { getFirestore, collection, addDoc, onSnapshot, query, doc, setDoc, getDoc, updateDoc } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
+
+const firebaseConfig = JSON.parse(__firebase_config);
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
+// State
+let user = null;
+let audits = [];
+let currentMetrics = { ihg: 0, nti: 0 };
+const apiKey = "";
+
+// Elements
+const authScreen = document.getElementById('auth-screen');
+const mainUi = document.getElementById('main-ui');
+const auditLog = document.getElementById('audit-log');
+const amvChat = document.getElementById('amv-chat');
+const narrativeInput = document.getElementById('user-narrative');
+const auditCountEl = document.getElementById('audit-count');
+const dotsContainer = document.getElementById('data-density-dots');
+
+window.nextStep = (s) => {
+  document.getElementById(`step-${s}`).classList.add('hidden');
+  document.getElementById(`step-${s+1}`).classList.remove('hidden');
+};
+
+window.unlockTerminal = async () => {
+  const email = document.getElementById('email-access').value;
+  if (!email.includes('@') || !document.getElementById('auth-check').checked) return;
+  
+  const btn = document.getElementById('login-btn');
+  btn.disabled = true; btn.innerText = "ESTABLECIENDO NODO...";
+  try { await signInAnonymously(auth); } catch (e) { alert(e); btn.disabled = false; }
+};
+
+onAuthStateChanged(auth, async (u) => {
+  if (u) {
+    user = u;
+    const email = document.getElementById('email-access').value || "ANON@NODO.SFI";
+    const prefix = email.split('@')[0].toUpperCase();
+    const nodeId = `SF-${prefix}-${user.uid.slice(0,4)}`;
+    
+    document.getElementById('user-node-id').innerText = `NODO : ${nodeId}`;
+    
+    const profileRef = doc(db, 'artifacts', appId, 'users', user.uid, 'profile', 'data');
+    const snap = await getDoc(profileRef);
+    if(!snap.exists()) await setDoc(profileRef, { nodeId, email, created: Date.now() });
+
+    setupDataListener();
+
+    authScreen.classList.add('opacity-0');
+    setTimeout(() => { 
+      authScreen.style.display='none'; 
+      mainUi.classList.remove('hidden'); 
+      mainUi.classList.add('opacity-100'); 
+      initSimulation(); 
+    }, 1000);
+  }
+});
+
+function setupDataListener() {
+  const q = collection(db, 'artifacts', appId, 'users', user.uid, 'audits');
+  onSnapshot(q, (snap) => {
+    audits = []; snap.forEach(d => audits.push(d.data()));
+    audits.sort((a,b) => b.timestamp - a.timestamp);
+    renderAudits();
+    updateProgression();
+    if(audits.length > 0) applyFrictionVisuals(audits[0].ihg);
+  }, (err) => console.error(err));
+}
+
+function renderAudits() {
+  auditLog.innerHTML = "";
+  if(audits.length === 0) { document.getElementById('empty-log').classList.remove('hidden'); return; }
+  document.getElementById('empty-log').classList.add('hidden');
+  auditCountEl.innerText = `${audits.length} EVENTOS`;
+  
+  audits.forEach(a => {
+    const d = document.createElement('div');
+    d.className = 'border-l border-[#C8A951]/20 pl-4 py-2 hover:bg-white/[0.02] transition-all group';
+    d.innerHTML = `<div class="text-[7px] text-[#C8A951] font-mono group-hover:text-white transition-colors">${new Date(a.timestamp).toLocaleString()} | IHG: ${a.ihg.toFixed(3)}</div>
+                  <div class="text-[10px] text-gray-400 font-serif italic">"${a.narrative.slice(0,80)}..."</div>`;
+    auditLog.appendChild(d);
+  });
+}
+
+function updateProgression() {
+  const count = audits.length;
+  dotsContainer.innerHTML = "";
+  for(let i=0; i<10; i++) {
+    const dot = document.createElement('div');
+    dot.className = `w-1.5 h-1.5 ${i < count ? 'bg-[#C8A951]' : 'bg-white/10'} rounded-sm transition-all duration-700`;
+    dotsContainer.appendChild(dot);
+  }
+  
+  if(count >= 3) {
+    const inst = document.getElementById('inst-divergencia');
+    inst.classList.remove('instrument-locked');
+    inst.querySelector('.lock-label').style.display = 'none';
+  }
+  if(count >= 7) {
+    const inst = document.getElementById('inst-gemelo');
+    inst.classList.remove('instrument-locked');
+    inst.querySelector('.lock-label').style.display = 'none';
+  }
+}
+
+function applyFrictionVisuals(ihg) {
+  const friction = Math.abs(ihg);
+  document.body.classList.toggle('high-friction', friction > 0.6);
+  document.getElementById('val-ihg').innerText = ihg.toFixed(3);
+}
+
+async function callGemini(prompt, systemPrompt, useJSON = true) {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+  const payload = {
+    contents: [{ parts: [{ text: prompt }] }],
+    systemInstruction: { parts: [{ text: systemPrompt }] }
+  };
+  if (useJSON) {
+      payload.generationConfig = { responseMimeType: "application/json" };
+  }
+
+  const r = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  const d = await r.json();
+  const text = d.candidates[0].content.parts[0].text;
+  return useJSON ? JSON.parse(text) : text;
+}
+
+window.analyzeNarrative = async () => {
+  const text = narrativeInput.value.trim();
+  if(!text || !user) return;
+
+  const btn = document.getElementById('analyze-btn');
+  btn.disabled = true; document.getElementById('btn-loader').classList.remove('hidden');
+
+  const historyContext = audits.slice(0,5).map(a => `Fecha: ${new Date(a.timestamp).toLocaleDateString()}, IHG: ${a.ihg}, Narrativa: ${a.narrative}`).join('\n');
+
+  const systemPrompt = `Eres el AMV v3.5 del SFI. Inferencia longitudinal activa. 
+  Analiza la narrativa comparándola con el HISTORIAL. Detecta loops semánticos y estancamiento.
+  Responde con JSON: { "observacion": "...", "diagnostico": "...", "ihg": -0.XX, "nti": 0.XX, "colapso": "...", "loop_detectado": boolean }`;
+
+  try {
+    const res = await callGemini(`HISTORIAL:\n${historyContext}\n\nNARRATIVA ACTUAL: ${text}`, systemPrompt);
+    await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'audits'), {
+      ...res, narrative: text, timestamp: Date.now()
+    });
+    currentMetrics = { ihg: res.ihg, nti: res.nti };
+    document.getElementById('val-nti').innerText = res.nti.toFixed(3);
+    showModal("Análisis de Colapso", res.colapso);
+    pushAMV(res.loop_detectado ? "ALERTA: Detectada inercia semántica. La narrativa es un atractor cíclico sin vector de salida." : "Datos integrados. El nodo ha colapsado a un nuevo estado.");
+    narrativeInput.value = "";
+  } catch (e) {
+    console.error(e);
+    pushAMV("Fallo en el enlace de datos. Señal degradada.", "red");
+  } finally {
+    btn.disabled = false; document.getElementById('btn-loader').classList.add('hidden');
+  }
+};
+
+window.extractSignal = async () => {
+    const text = narrativeInput.value.trim();
+    if(!text) return;
+    pushAMV("✨ Extractor activado: Filtrando ruido narrativo para encontrar señal L0...");
+    const systemPrompt = "Eres un Extractor Narrativo del SFI. Tu objetivo es limpiar la declaración del usuario para encontrar la verdad técnica subyacente. Responde SOLO con la narrativa refinada, cruda y técnica. Sin adornos.";
+    try {
+        const refined = await callGemini(text, systemPrompt, false);
+        narrativeInput.value = refined;
+        pushAMV("✨ Señal extraída con éxito. Procede a la auditoría.");
+    } catch (e) {
+        pushAMV("Error en el refinamiento de señal.", "red");
+    }
+};
+
+window.runInstrument = async (type) => {
+    if (type === 'divergencia' && audits.length < 3) return;
+    if (type === 'gemelo' && audits.length < 7) return;
+
+    showModal(type === 'gemelo' ? "Sínteis de Gemelo Cognitivo" : "Detección de Divergencia", "Procesando dataset longitudinal...");
+    document.getElementById('modal-shimmer').classList.remove('hidden');
+
+    const history = audits.map(a => `[${new Date(a.timestamp).toLocaleDateString()}] N: ${a.narrative} | IHG: ${a.ihg}`).join('\n');
+    let systemPrompt = "";
+    
+    if (type === 'divergencia') {
+        systemPrompt = "Eres el Detector de Divergencia del SFI. Analiza el historial buscando contradicciones lógicas entre lo que el usuario decía que iba a hacer y lo que declara hoy. Lista 3 puntos críticos de divergencia.";
+    } else {
+        systemPrompt = "Eres el Modelador de Gemelo Cognitivo del SFI. Basado en el historial, crea un perfil psicológico-técnico del nodo: sus miedos operativos, sus loops de autosabotaje y su potencial de salto Φ. Tono clínico-místico.";
+    }
+
+    try {
+        const result = await callGemini(`HISTORIAL LONGITUDINAL:\n${history}`, systemPrompt, false);
+        document.getElementById('modal-content').innerText = result;
+    } catch (e) {
+        document.getElementById('modal-content').innerText = "Fallo en el colapso del instrumento.";
+    } finally {
+        document.getElementById('modal-shimmer').classList.add('hidden');
+    }
+}
+
+window.sendChatMessage = async () => {
+  const input = document.getElementById('chat-input');
+  const msg = input.value.trim();
+  if(!msg) return;
+  appendChat("USER", msg);
+  input.value = "";
+  try {
+    const res = await callGemini(msg, "AMV v3.5. Clínico e implacable. No eres Gemini, eres una instancia de NTI humano-agente. JSON: { \"respuesta\": \"...\" }");
+    appendChat("AMV", res.respuesta);
+  } catch (e) {
+    appendChat("AMV", "Error de comunicación.");
+  }
+};
+
+function appendChat(s, t) {
+  const div = document.createElement('div');
+  div.className = s === "USER" ? "ml-4 p-2 bg-white/5 mb-2 text-[10px] border-r border-[#C8A951]/20" : "amv-notif p-3";
+  div.innerHTML = `<span class="text-[7px] font-bold block mb-1 uppercase ${s === 'USER' ? 'text-gray-500' : 'text-[#C8A951]'}">${s}:</span>${t}`;
+  amvChat.prepend(div);
+}
+const pushAMV = (t, c) => appendChat("AMV", t);
+
+// Canvas
+let canvas, ctx, offset = 0;
+function initSimulation() {
+  canvas = document.getElementById('friction-canvas');
+  ctx = canvas.getContext('2d');
+  const r = () => { canvas.width = canvas.parentElement.offsetWidth; canvas.height = canvas.parentElement.offsetHeight; };
+  window.addEventListener('resize', r); r();
+  animate();
+}
+function animate() {
+  ctx.fillStyle = 'rgba(5, 5, 5, 0.2)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+  const ihg = Math.abs(currentMetrics.ihg) || 0.1;
+  const nti = currentMetrics.nti || 0.5;
+  ctx.beginPath(); ctx.strokeStyle = `rgba(200, 169, 81, ${0.1 + (ihg * 0.4)})`;
+  for(let i=0; i<canvas.width; i+=5) {
+    const y = (canvas.height/2) + Math.sin(i*0.02 + offset)*(40*ihg) + Math.cos(i*0.01 - offset*0.5)*(20/nti);
+    if(i===0) ctx.moveTo(i, y); else ctx.lineTo(i, y);
+  }
+  ctx.stroke(); offset += 0.02 + (ihg*0.05);
+  requestAnimationFrame(animate);
+}
+
+function showModal(title, content) { 
+    document.getElementById('modal-title').innerText = title;
+    document.getElementById('modal-content').innerText = content; 
+    document.getElementById('modal').classList.remove('hidden'); 
+    document.getElementById('modal').classList.add('flex'); 
+}
+window.closeModal = () => document.getElementById('modal').classList.add('hidden');
+
+lucide.createIcons();
+</script>
+</body>
+</html>

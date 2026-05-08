@@ -1,0 +1,16 @@
+{
+  "/(public)/page": "app/(public)/page.js",
+  "/(terminal)/link/[token]/page": "app/(terminal)/link/[token]/page.js",
+  "/(terminal)/terminal/page": "app/(terminal)/terminal/page.js",
+  "/_global-error/page": "app/_global-error/page.js",
+  "/_not-found/page": "app/_not-found/page.js",
+  "/api/audit/route": "app/api/audit/route.js",
+  "/api/link/generate/route": "app/api/link/generate/route.js",
+  "/api/link/verify/route": "app/api/link/verify/route.js",
+  "/api/node/[id]/route": "app/api/node/[id]/route.js",
+  "/api/node/bootstrap/route": "app/api/node/bootstrap/route.js",
+  "/api/whatsapp/webhook/route": "app/api/whatsapp/webhook/route.js",
+  "/llms.txt/route": "app/llms.txt/route.js",
+  "/robots.txt/route": "app/robots.txt/route.js",
+  "/sitemap.xml/route": "app/sitemap.xml/route.js"
+}

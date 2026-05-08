@@ -1,0 +1,5 @@
+1:"$Sreact.fragment"
+2:I[97367,["/_next/static/chunks/01xlw8hd842-c.js","/_next/static/chunks/00-csyj9a6t-x.js"],"ViewportBoundary"]
+3:I[97367,["/_next/static/chunks/01xlw8hd842-c.js","/_next/static/chunks/00-csyj9a6t-x.js"],"MetadataBoundary"]
+4:"$Sreact.suspense"
+0:{"rsc":["$","$1","h",{"children":[null,["$","$L2",null,{"children":[["$","meta","0",{"charSet":"utf-8"}],["$","meta","1",{"name":"viewport","content":"width=device-width, initial-scale=1"}]]}],["$","div",null,{"hidden":true,"children":["$","$L3",null,{"children":["$","$4",null,{"name":"Next.Metadata","children":[["$","title","0",{"children":"System Friction Institute"}],["$","meta","1",{"name":"description","content":"Terminal operacional para observar fricción entre intención, estructura y ejecución."}]]}]}]}],null]}],"isPartial":false,"staleTime":300,"varyParams":null,"buildId":"mD45v4i75rvhAOQT83rVN"}

@@ -1,0 +1,16 @@
+{
+  "/(public)/page": "/",
+  "/(terminal)/link/[token]/page": "/link/[token]",
+  "/(terminal)/terminal/page": "/terminal",
+  "/_global-error/page": "/_global-error",
+  "/_not-found/page": "/_not-found",
+  "/api/audit/route": "/api/audit",
+  "/api/link/generate/route": "/api/link/generate",
+  "/api/link/verify/route": "/api/link/verify",
+  "/api/node/[id]/route": "/api/node/[id]",
+  "/api/node/bootstrap/route": "/api/node/bootstrap",
+  "/api/whatsapp/webhook/route": "/api/whatsapp/webhook",
+  "/llms.txt/route": "/llms.txt",
+  "/robots.txt/route": "/robots.txt",
+  "/sitemap.xml/route": "/sitemap.xml"
+}

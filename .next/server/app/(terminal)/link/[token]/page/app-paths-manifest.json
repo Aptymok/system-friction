@@ -1,0 +1,3 @@
+{
+  "/(terminal)/link/[token]/page": "app/(terminal)/link/[token]/page.js"
+}

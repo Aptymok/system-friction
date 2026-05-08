@@ -1,0 +1,1159 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>System Friction Institute</title>
+  
+  <!-- Tipografías -->
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,600&family=JetBrains+Mono:wght@300;400;500;700&family=Syncopate:wght@400;700&display=swap" rel="stylesheet">
+  
+  <!-- Dependencias -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.260.0/lucide.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    /* ══════════════════════════════════════════════════ */
+    /* SYSTEM FRICTION · UNIFIED DESIGN SYSTEM */
+    /* ══════════════════════════════════════════════════ */
+
+    :root {
+      --gold: #D4AF37;
+      --gold-dim: rgba(212, 175, 55, 0.35);
+      --gold-faint: rgba(212, 175, 55, 0.12);
+      --red: #B85050;
+      --red-dim: rgba(184, 80, 80, 0.25);
+      --blue: #4A7AAA;
+      --ink: #1A1817;
+      --ink2: #3C3732;
+      --ink3: #6B635A;
+      --paper: #F7F4EA;
+      --void: #0A0905;
+      --mono: 'JetBrains Mono', monospace;
+      --serif: 'Cormorant Garamond', Georgia, serif;
+      --disp: 'Syncopate', sans-serif;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html, body {
+      font-family: var(--serif);
+      background: var(--paper);
+      color: var(--ink);
+      line-height: 1.6;
+      overflow-x: hidden;
+      scroll-behavior: smooth;
+    }
+
+    ::selection { background: var(--gold); color: var(--void); }
+
+    /* Utilidades base */
+    .hidden { display: none !important; }
+    .flex-center { display: flex; align-items: center; justify-content: center; }
+
+    /* ═══════════════════════════════════════════════════ */
+    /* 00 · HEADER / NAV */
+    /* ═══════════════════════════════════════════════════ */
+
+    header {
+      position: fixed;
+      top: 0; left: 0; right: 0; height: 60px;
+      background: rgba(247, 244, 234, 0.95);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--gold-faint);
+      z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 4vw;
+    }
+
+    .logo {
+      font-family: var(--disp); font-size: 16px; font-weight: 700;
+      letter-spacing: 0.15em; color: var(--ink); cursor: pointer;
+    }
+    .logo span { color: var(--gold); }
+
+    nav { display: flex; gap: 30px; font-family: var(--mono); font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase; }
+    nav a { color: var(--ink3); text-decoration: none; transition: color 0.3s; position: relative; }
+    nav a::after { content: ''; position: absolute; bottom: -4px; left: 0; width: 0; height: 1px; background: var(--gold); transition: width 0.3s; }
+    nav a:hover::after, nav a.active::after { width: 100%; }
+    nav a.active { color: var(--ink); font-weight: 700;}
+
+    .header-actions { display: flex; gap: 15px; align-items: center; }
+    
+    .btn-auth {
+      background: transparent; color: var(--ink); border: 1px solid var(--ink);
+      padding: 8px 15px; font-family: var(--mono); font-size: 9px; letter-spacing: 0.1em;
+      cursor: pointer; transition: all 0.3s;
+    }
+    .btn-auth:hover { background: var(--ink); color: var(--paper); }
+
+    .cta-header {
+      background: var(--gold); color: var(--void); padding: 10px 20px;
+      font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em;
+      border: none; cursor: pointer; font-weight: 600; transition: all 0.3s;
+    }
+    .cta-header:hover { background: var(--ink); color: var(--gold); }
+
+    @media (max-width: 900px) { nav { display: none; } }
+
+    /* ═══════════════════════════════════════════════════ */
+    /* 01 · HERO SECTION */
+    /* ═══════════════════════════════════════════════════ */
+
+    .hero {
+      margin-top: 60px; min-height: 90vh;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      position: relative; overflow: hidden;
+      background: linear-gradient(135deg, var(--paper) 0%, rgba(212, 175, 55, 0.05) 100%);
+      padding: 40px 20px;
+    }
+
+    .hero::before {
+      content: ''; position: absolute; top: -50%; right: -20%;
+      width: 800px; height: 800px;
+      background: radial-gradient(circle, rgba(212, 175, 55, 0.12) 0%, transparent 70%);
+      border-radius: 50%; pointer-events: none; animation: float 15s ease-in-out infinite;
+    }
+
+    @keyframes float { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(30px, -30px); } }
+
+    .hero-content { position: relative; z-index: 2; text-align: center; max-width: 900px; }
+
+    .yod-container { margin-bottom: 30px; display: flex; justify-content: center; }
+    .yod { width: 70px; height: 70px; position: relative; animation: spin 60s linear infinite; }
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    .yod svg { width: 100%; height: 100%; filter: drop-shadow(0 0 15px rgba(212, 175, 55, 0.3)); }
+
+    .hero h1 {
+      font-family: var(--disp); font-size: clamp(28px, 5vw, 60px); font-weight: 700;
+      letter-spacing: -0.02em; line-height: 1.1; margin-bottom: 20px; color: var(--ink);
+    }
+    .hero h1 .gold { color: var(--gold); }
+
+    .hero-subtitle {
+      font-family: var(--serif); font-size: clamp(18px, 2vw, 24px); font-weight: 400;
+      color: var(--ink2); margin-bottom: 40px; line-height: 1.5; font-style: italic;
+    }
+
+    .cta-primary {
+      background: var(--gold); color: var(--void); padding: 16px 40px;
+      font-family: var(--mono); font-size: 12px; letter-spacing: 0.15em; text-transform: uppercase;
+      border: none; cursor: pointer; font-weight: 600; transition: all 0.4s;
+      position: relative; overflow: hidden; display: inline-flex; align-items: center; gap: 10px;
+      margin-bottom: 30px;
+    }
+    .cta-primary:hover { background: var(--ink); color: var(--gold); transform: translateY(-2px); }
+
+    .hero-stats {
+      margin-top: 10px; display: inline-flex; flex-wrap: wrap; justify-content: center; gap: 20px;
+      background: rgba(26, 24, 23, 0.05); border: 1px solid var(--gold-faint); padding: 15px 30px;
+    }
+    .hero-stat-item { text-align: left; border-right: 1px solid var(--gold-faint); padding-right: 20px; }
+    .hero-stat-item:last-child { border-right: none; padding-right: 0; }
+    .hero-stat-label { font-family: var(--mono); font-size: 9px; letter-spacing: 0.1em; color: var(--ink3); text-transform: uppercase; margin-bottom: 4px;}
+    .hero-stat-val { font-family: var(--mono); font-size: 14px; font-weight: 700; color: var(--ink); }
+    .hero-stat-val.red { color: var(--red); }
+    .hero-verdict { font-family: var(--serif); font-size: 12px; font-style: italic; color: var(--ink2); align-self: center; max-width: 200px; text-align: left; padding-left: 10px;}
+
+    /* ═══════════════════════════════════════════════════ */
+    /* 02 · ESTRATOS (Módulo Integrado) */
+    /* ═══════════════════════════════════════════════════ */
+    .section-estratos {
+      padding: 100px 4vw; background: var(--void); color: var(--paper);
+      border-top: 1px solid var(--gold-dim); border-bottom: 1px solid var(--gold-dim);
+    }
+    
+    .section-header-dark { text-align: center; margin-bottom: 60px; }
+    .section-header-dark h2 { font-family: var(--disp); font-size: 32px; color: var(--gold); margin-bottom: 10px; }
+    .section-header-dark p { font-family: var(--serif); font-size: 16px; color: #888; font-style: italic; }
+
+    .estratos-container { max-width: 800px; margin: 0 auto; display: flex; flex-direction: column; gap: 30px; }
+    
+    .estrato-card {
+      border-left: 3px solid var(--gold); background: rgba(212, 175, 55, 0.05);
+      padding: 30px; position: relative; transition: transform 0.3s;
+    }
+    .estrato-card:hover { transform: translateX(10px); background: rgba(212, 175, 55, 0.08); }
+    
+    .estrato-meta { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;}
+    .estrato-id { font-family: var(--mono); font-size: 10px; color: var(--gold); letter-spacing: 0.1em; }
+    .estrato-badge { font-family: var(--mono); font-size: 9px; background: rgba(212,175,55,0.15); padding: 4px 10px; border: 1px solid var(--gold-dim); color: var(--paper);}
+    .estrato-card h3 { font-family: var(--disp); font-size: 20px; color: var(--paper); margin-top: 5px; }
+    .estrato-card p { font-family: var(--serif); font-size: 16px; color: #aaa; line-height: 1.6; }
+    
+    .estrato-tool {
+      margin-top: 20px; padding: 12px; background: rgba(0,0,0,0.5); border: 1px solid #333;
+      font-family: var(--mono); font-size: 10px; color: #888;
+    }
+    .estrato-tool span { color: var(--gold); margin-right: 10px; }
+
+    /* ═══════════════════════════════════════════════════ */
+    /* 03 · HERRAMIENTAS (Arsenal Técnico + Bot) */
+    /* ═══════════════════════════════════════════════════ */
+    .section-tools { padding: 100px 4vw; background: var(--ink); color: var(--paper); }
+    
+    .tools-grid {
+      display: grid; grid-template-columns: 1fr; gap: 40px; max-width: 1200px; margin: 0 auto;
+    }
+    @media (min-width: 900px) { .tools-grid { grid-template-columns: 1fr 1fr; } }
+
+    .tool-card {
+      background: var(--void); border: 1px solid var(--gold-faint); padding: 40px;
+      display: flex; flex-direction: column; transition: border-color 0.3s;
+    }
+    .tool-card:hover { border-color: var(--gold-dim); }
+    
+    .tool-card h3 { font-family: var(--mono); font-size: 14px; color: var(--gold); margin-bottom: 15px; display: flex; align-items: center; gap: 10px;}
+    .tool-card p { font-family: var(--serif); font-size: 15px; color: #888; margin-bottom: 25px; line-height: 1.6; flex-grow: 1; }
+    
+    /* Tool Inputs */
+    .tool-input {
+      width: 100%; background: #000; border: 1px solid #333; color: var(--paper);
+      padding: 15px; font-family: var(--mono); font-size: 12px; outline: none; margin-bottom: 15px; resize: none;
+    }
+    .tool-input:focus { border-color: var(--gold); }
+    
+    .btn-tool {
+      background: transparent; color: var(--gold); border: 1px solid var(--gold-dim);
+      padding: 12px; font-family: var(--mono); font-size: 10px; font-weight: bold;
+      cursor: pointer; transition: all 0.3s; width: 100%; text-transform: uppercase;
+    }
+    .btn-tool:hover { background: var(--gold-dim); color: var(--paper); }
+
+    .btn-group { display: flex; gap: 10px; }
+    .btn-group .btn-tool { flex: 1; border-color: #333; color: #888; }
+    .btn-group .btn-tool:hover { border-color: var(--gold); color: var(--gold); background: transparent; }
+    .btn-group .btn-tool.danger:hover { border-color: var(--red); color: var(--red); }
+    .btn-group .btn-tool.safe:hover { border-color: #4a9e6a; color: #4a9e6a; }
+
+    /* Result boxes inside tools */
+    .tool-result {
+      margin-top: 20px; padding: 15px; background: rgba(212,175,55,0.05);
+      border-left: 2px solid var(--gold); font-family: var(--mono); font-size: 11px; color: #ccc;
+    }
+
+    /* AMV Chat overrides for Grid */
+    .amv-container { display: flex; flex-direction: column; height: 450px; border: 1px solid var(--gold-dim); background: #000;}
+    .chat-history { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; }
+    .chat-bubble { font-family: var(--mono); font-size: 11px; padding: 12px; margin-bottom: 12px; max-width: 85%; line-height: 1.5; animation: slideUpChat 0.3s ease-out; }
+    @keyframes slideUpChat { from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);} }
+    .chat-sys { background: rgba(255,255,255,0.05); color: #ccc; border-left: 2px solid var(--gold); align-self: flex-start; }
+    .chat-usr { background: var(--gold-faint); color: var(--gold); align-self: flex-end; text-align: right; }
+    .chat-input-area { display: flex; border-top: 1px solid #333; }
+    .chat-input-area input { flex: 1; background: transparent; border: none; padding: 15px; color: #fff; font-family: var(--mono); font-size: 11px; outline: none; }
+    .chat-input-area button { background: var(--gold-dim); color: #fff; border: none; padding: 0 20px; font-family: var(--mono); font-size: 10px; cursor: pointer; }
+
+    /* ═══════════════════════════════════════════════════ */
+    /* 04 · OBSERVATORIO Y TELEMETRÍA (Global + Personal) */
+    /* ═══════════════════════════════════════════════════ */
+    .section-telemetry { padding: 100px 4vw; background: var(--void); color: var(--paper); border-top: 1px solid var(--gold-dim); }
+    
+    .telemetry-grid {
+      display: grid; grid-template-columns: 1fr; gap: 40px; max-width: 1200px; margin: 0 auto;
+    }
+    @media (min-width: 1000px) { .telemetry-grid { grid-template-columns: 1.2fr 0.8fr; } }
+
+    /* Global System */
+    .observatory-system {
+      background: var(--ink); border: 1px solid var(--gold-faint); height: 500px;
+      position: relative; display: flex; flex-direction: column; overflow: hidden;
+    }
+    .sys-header {
+      padding: 10px 15px; border-bottom: 1px solid rgba(255,255,255,0.05);
+      display: flex; justify-content: space-between; font-family: var(--mono); font-size: 9px; color: var(--gold);
+    }
+    .sys-body { flex: 1; display: flex; position: relative; }
+    #live-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0.6; z-index: 1; }
+    .sys-logs {
+      position: relative; z-index: 2; width: 60%; height: 100%; padding: 20px;
+      background: linear-gradient(90deg, rgba(26,24,23,0.95) 0%, transparent 100%);
+      display: flex; flex-direction: column; justify-content: flex-end; gap: 8px; pointer-events: none;
+    }
+    .log-line { font-family: var(--mono); font-size: 10px; color: #888; animation: slideIn 0.3s ease-out; }
+    .log-line.alert { color: var(--red); }
+    .log-line.stable { color: var(--gold); }
+    @keyframes slideIn { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: translateX(0); } }
+
+    /* Personal System */
+    .personal-telemetry {
+      display: flex; flex-direction: column; gap: 20px;
+    }
+    .chart-box {
+      background: var(--ink); border: 1px solid var(--gold-faint); padding: 20px;
+    }
+    .chart-box h4 { font-family: var(--mono); font-size: 10px; color: var(--gold); margin-bottom: 15px; text-transform: uppercase; letter-spacing: 0.1em; }
+    
+    .auth-overlay {
+      position: absolute; inset: 0; background: rgba(10,9,5,0.8); backdrop-filter: blur(4px);
+      z-index: 10; display: flex; flex-direction: column; align-items: center; justify-content: center;
+      text-align: center; padding: 20px; border: 1px solid var(--gold-dim);
+    }
+    .auth-overlay.hidden { display: none; }
+
+    /* ═══════════════════════════════════════════════════ */
+    /* MODALS & OVERLAYS */
+    /* ═══════════════════════════════════════════════════ */
+    .sf-modal {
+      position: fixed; inset: 0; background: rgba(5,5,5,0.95); backdrop-filter: blur(8px);
+      z-index: 200; display: flex; justify-content: center; align-items: center; padding: 20px;
+    }
+    .sf-modal-box {
+      background: var(--void); color: var(--paper); max-width: 500px; width: 100%;
+      padding: 40px; border: 1px solid var(--gold); box-shadow: 0 30px 60px rgba(0,0,0,0.5);
+      position: relative; max-height: 90vh; overflow-y: auto;
+    }
+    .close-modal { position: absolute; top: 20px; right: 20px; background: none; border: none; color: #888; cursor: pointer; }
+    .close-modal:hover { color: var(--gold); }
+
+    /* ═══════════════════════════════════════════════════ */
+    /* 05 · RESULTADO (PDF PREVIEW AVANZADO) */
+    /* ═══════════════════════════════════════════════════ */
+    .section-result { padding: 100px 4vw; background: var(--paper); border-top: 1px solid var(--gold-faint); }
+    
+    .result-container {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 80px;
+      align-items: center;
+    }
+
+    @media (min-width: 900px) {
+      .result-container {
+        flex-direction: row;
+      }
+    }
+
+    .result-text { flex: 1; }
+    .result-text h2 { font-family: var(--disp); font-size: 32px; color: var(--ink); margin-bottom: 20px; }
+    .result-text p { font-family: var(--serif); color: var(--ink2); margin-bottom: 20px; font-size: 18px; line-height: 1.6;}
+    .pdf-stack { flex: 1; position: relative; width: 100%; max-width: 450px; height: 550px; perspective: 1000px; }
+    .pdf-page { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #fff; border: 1px solid #ddd; box-shadow: -10px 20px 30px rgba(0,0,0,0.1); padding: 30px; transition: transform 0.5s ease; }
+    .pdf-page:nth-child(1) { transform: translate(20px, 20px) rotate(4deg); z-index: 1; opacity: 0.6; }
+    .pdf-page:nth-child(2) { transform: translate(10px, 10px) rotate(2deg); z-index: 2; opacity: 0.8; }
+    .pdf-page:nth-child(3) { transform: translate(0, 0) rotate(0deg); z-index: 3; }
+    .pdf-stack:hover .pdf-page:nth-child(1) { transform: translate(40px, 40px) rotate(8deg); }
+    .pdf-stack:hover .pdf-page:nth-child(2) { transform: translate(20px, 20px) rotate(4deg); }
+    .pdf-stack:hover .pdf-page:nth-child(3) { transform: translate(-10px, -10px) rotate(-2deg); }
+    .pdf-header { border-bottom: 2px solid var(--ink); padding-bottom: 10px; margin-bottom: 20px; font-family: var(--disp); font-size: 12px; display: flex; justify-content: space-between; align-items: flex-end;}
+    .pdf-stamp { font-family: var(--mono); font-size: 8px; color: var(--gold); border: 1px solid var(--gold); padding: 2px 4px; }
+    .pdf-metric-box { background: var(--void); color: var(--paper); padding: 20px; margin-bottom: 20px; text-align: center; }
+    .pdf-metric { font-family: var(--mono); font-size: 36px; color: var(--red); margin-bottom: 5px; font-weight: bold; letter-spacing: -2px;}
+    .pdf-label { font-family: var(--mono); font-size: 9px; text-transform: uppercase; color: #888;}
+    .pdf-body { font-family: var(--serif); font-size: 13px; line-height: 1.6; color: var(--ink2);}
+    .pdf-chart { height: 80px; width: 100%; border-bottom: 1px solid #eee; border-left: 1px solid #eee; margin: 20px 0; position: relative; display: flex; align-items: flex-end; gap: 10px; padding: 10px;}
+    .pdf-bar { background: var(--ink); width: 20px; }
+
+    /* ═══════════════════════════════════════════════════ */
+    /* 06 · FOOTER Y MISC */
+    /* ═══════════════════════════════════════════════════ */
+    footer { padding: 60px 4vw; background: var(--void); color: var(--paper); border-top: 1px solid var(--gold-dim); text-align: center; }
+    .footer-content { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 40px; margin-bottom: 40px; }
+    .footer-col h3 { font-family: var(--mono); font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--gold); margin-bottom: 20px; }
+    .footer-col a { display: block; font-family: var(--serif); font-size: 13px; color: #888; text-decoration: none; margin-bottom: 10px; transition: color 0.3s; }
+    .footer-col a:hover { color: var(--paper); }
+    .footer-bottom { font-family: var(--mono); font-size: 10px; color: var(--ink3); border-top: 1px solid rgba(255,255,255,0.05); padding-top: 40px; letter-spacing: 0.1em; }
+
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo" onclick="window.scrollTo(0,0)">SYSTEM <span>FRICTION</span></div>
+  <nav>
+    <a href="#estratos">Estratos</a>
+    <a href="#herramientas">Laboratorio</a>
+    <a href="#telemetria">Telemetría</a>
+    <a href="#documento">Archivo</a>
+  </nav>
+  <div class="header-actions">
+    <button class="btn-auth" id="btn-login-nav" onclick="showAuthModal()">[ INICIAR NODO ]</button>
+    <span id="user-display" class="hidden font-mono text-[10px] color-gold"></span>
+    <button class="cta-header" onclick="document.getElementById('herramientas').scrollIntoView({ behavior: 'smooth' })">Probar AMV</button>
+  </div>
+</header>
+
+<!-- 01 HERO -->
+<section class="hero">
+  <div class="hero-content">
+    <div class="yod-container">
+      <div class="yod">
+        <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <filter id="glow"><feGaussianBlur stdDeviation="2" result="coloredBlur"/><feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+          </defs>
+          <circle cx="100" cy="100" r="95" fill="none" stroke="#D4AF37" stroke-width="2" opacity="0.6" filter="url(#glow)"/>
+          <circle cx="100" cy="30" r="8" fill="#D4AF37" filter="url(#glow)"/>
+          <circle cx="160" cy="140" r="8" fill="#D4AF37" filter="url(#glow)"/>
+          <circle cx="40" cy="140" r="8" fill="#D4AF37" filter="url(#glow)"/>
+          <circle cx="100" cy="100" r="6" fill="#D4AF37" filter="url(#glow)"/>
+          <line x1="100" y1="30" x2="100" y2="100" stroke="#D4AF37" stroke-width="1.5" opacity="0.5"/>
+          <line x1="100" y1="100" x2="160" y2="140" stroke="#D4AF37" stroke-width="1.5" opacity="0.5"/>
+          <line x1="100" y1="100" x2="40" y2="140" stroke="#D4AF37" stroke-width="1.5" opacity="0.5"/>
+        </svg>
+      </div>
+    </div>
+
+    <h1>Detecta dónde tu intención <br>deja de convertirse en <span class="gold">acción</span>.</h1>
+    <p class="hero-subtitle">Obtén tu índice de coherencia operacional en menos de 4 minutos.</p>
+
+    <button class="cta-primary" onclick="document.getElementById('herramientas').scrollIntoView({ behavior: 'smooth' })">
+      Ejecutar Auditoría Inicial
+    </button>
+
+    <div style="margin-top:25px;font-family:var(--mono);font-size:10px;color:#777;letter-spacing:0.08em; text-transform: uppercase;">
+      MOP-H · IHG · NTI · LDI · PTDH · Worldspect Node
+    </div>
+
+    <div class="hero-stats" id="hero-metrics">
+      <div class="hero-stat-item">
+        <div class="hero-stat-label">IHG Promedio</div>
+        <div class="hero-stat-val red">-0.44</div>
+      </div>
+      <div class="hero-stat-item">
+        <div class="hero-stat-label">Latencia (LDI)</div>
+        <div class="hero-stat-val">72h</div>
+      </div>
+      <div class="hero-stat-item">
+        <div class="hero-stat-label">Transparencia</div>
+        <div class="hero-stat-val">0.31</div>
+      </div>
+      <div class="hero-verdict">
+        El sistema no falla por falta de intención. Falla por compensación sostenida.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 02 ESTRATOS GEOLÓGICOS (Integrado) -->
+<section class="section-estratos" id="estratos">
+  <div class="section-header-dark">
+    <h2>Los 4 Estratos Geológicos</h2>
+    <p>Cada uno sostiene al siguiente. Sin el primero, los demás colapsan.</p>
+  </div>
+
+  <div class="estratos-container">
+    <!-- Estrato 0 -->
+    <div class="estrato-card">
+      <div class="estrato-meta">
+        <span class="estrato-id">ESTRATO 0</span>
+        <span class="estrato-badge">Infraestructura Base</span>
+      </div>
+      <h3>El Nodo Raíz</h3>
+      <p>La infraestructura de tu propia observación. El ritual de calibración diaria donde mides las tres métricas base (IHG, NTI, LDI). Sin observabilidad local, no hay cambio verificable en el entorno.</p>
+      <div class="estrato-tool">
+        <span><i data-lucide="check-circle" style="width:12px;display:inline;"></i> REQUERIDO:</span> Observación cruda. Sin intervención.
+      </div>
+    </div>
+
+    <!-- Estrato 1 -->
+    <div class="estrato-card">
+      <div class="estrato-meta">
+        <span class="estrato-id">ESTRATO 1</span>
+        <span class="estrato-badge">Protocolo Base</span>
+      </div>
+      <h3>La Sangre</h3>
+      <p>El primer ciclo de validación operativa. Despliegue del Agente Mínimo Viable (AMV) para medir la fricción personal. No buscamos "construir marca", buscamos extraer datos reales y generar valor clínico instantáneo.</p>
+      <div class="estrato-tool">
+        <span><i data-lucide="cpu" style="width:12px;display:inline;"></i> HERRAMIENTA ACTIVA:</span> MOP-H Express · Agente de Extracción
+      </div>
+    </div>
+
+    <!-- Estrato 2 -->
+    <div class="estrato-card">
+      <div class="estrato-meta">
+        <span class="estrato-id">ESTRATO 2</span>
+        <span class="estrato-badge">Aplicación Organizacional</span>
+      </div>
+      <h3>El Músculo</h3>
+      <p>Escalamiento del sistema hacia la reducción de Latencia de Decisión en entornos corporativos. Implementación del Índice de Cohesión Ejecutiva (ICE) automatizado para juntas directivas y equipos de alto rendimiento.</p>
+      <div class="estrato-tool">
+        <span><i data-lucide="briefcase" style="width:12px;display:inline;"></i> HERRAMIENTA ACTIVA:</span> ICE Automatizado · Análisis Semántico
+      </div>
+    </div>
+
+    <!-- Estrato 3 -->
+    <div class="estrato-card">
+      <div class="estrato-meta">
+        <span class="estrato-id">ESTRATO 3</span>
+        <span class="estrato-badge">Estándar Global</span>
+      </div>
+      <h3>El Esqueleto</h3>
+      <p>Establecimiento del PTDH (Protocolo de Trazabilidad de Decisión Humana) como el estándar de la industria. Licenciamiento, certificaciones y adopción del marco por sistemas externos e inteligencias artificiales.</p>
+      <div class="estrato-tool">
+        <span><i data-lucide="globe" style="width:12px;display:inline;"></i> HERRAMIENTA ACTIVA:</span> Especificación PTDH v1.0
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 03 HERRAMIENTAS (Laboratorio unificado) -->
+<section class="section-tools" id="herramientas">
+  <div class="section-header-dark" style="margin-bottom: 40px;">
+    <h2>Laboratorio Operacional</h2>
+    <p>Instrumentos para extraer, simular y medir la fricción. Activos en este entorno.</p>
+  </div>
+
+  <div class="tools-grid">
+    <!-- Tool: AMV Chat -->
+    <div class="tool-card" style="padding:0; overflow:hidden;">
+      <div style="padding:20px; border-bottom:1px solid var(--gold-dim); display:flex; justify-content:space-between;">
+        <h3 style="margin:0;"><i data-lucide="message-square" style="width:16px;"></i>Auditoría Dinámica (AMV)</h3>
+        <span style="font-family:var(--mono); font-size:9px; color:var(--red);">LIVE AI</span>
+      </div>
+      <div class="amv-container" style="border:none;">
+        <div class="chat-history" id="chat-history">
+          <div class="chat-bubble chat-sys">
+            [SISTEMA INICIADO]<br>
+            Soy el Agente Mínimo Viable (AMV). Mi función es detectar evasión cognitiva.<br><br>
+            ¿Qué problema estás cargando actualmente que ya no puedes seguir sosteniendo igual?
+          </div>
+        </div>
+        <div class="chat-input-area" id="chat-input-area">
+          <input type="text" id="chat-input" placeholder="Describe la anomalía..." onkeypress="if(event.key === 'Enter') handleChat()">
+          <button onclick="handleChat()">ENVIAR</button>
+        </div>
+        <!-- Lock Overlay -->
+        <div class="bot-lock-overlay hidden" id="lock-overlay" style="position:absolute; inset:0; background:rgba(0,0,0,0.9); z-index:10; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:20px;">
+          <i data-lucide="lock" style="width:40px;height:40px;color:var(--red);margin-bottom:15px;"></i>
+          <h3 style="font-family:var(--disp);color:var(--paper);font-size:18px;margin-bottom:10px;">FRICCIÓN DETECTADA</h3>
+          <p style="font-family:var(--mono);font-size:10px;color:#aaa;max-width:250px;line-height:1.6;" id="lock-reason">
+            El sistema ha detectado una racionalización excesiva.
+          </p>
+          <div style="font-family:var(--mono); font-size:24px; color:var(--red); margin:15px 0;" id="lock-timer">23:59:59</div>
+          <button class="btn-tool" style="background:var(--paper); color:var(--ink); width:auto; padding:10px 20px;" onclick="showAuthModal()">Desbloquear Auditoría · $15 USD</button>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap:40px;">
+      <!-- Tool: Extracción Cognitiva -->
+      <div class="tool-card">
+        <h3><i data-lucide="brain-circuit" style="width:16px;"></i>Extracción Semántica Real</h3>
+        <p>Analiza texto mediante LLM para extraer nodos de conflicto y medir la transparencia del canal (NTI).</p>
+        <textarea id="cognitive-input" class="tool-input" rows="3" placeholder="Pega una conversación o correo aquí..."></textarea>
+        <button class="btn-tool" id="btn-extract" onclick="runCognitiveExtraction()">Analizar Estructura AI</button>
+      </div>
+
+      <!-- Tool: Gemelo Cognitivo -->
+      <div class="tool-card">
+        <h3><i data-lucide="cpu" style="width:16px;"></i>Simulador de Impacto</h3>
+        <p>Proyecta consecuencias basadas en la descripción cualitativa de una decisión crítica.</p>
+        <input type="text" id="decision-input" class="tool-input" style="padding:12px;" placeholder="Describe la decisión a simular...">
+        <div class="btn-group">
+          <button class="btn-tool safe" onclick="simulateDecision('ejecutar')">Proyectar</button>
+        </div>
+        <div id="simulation-result" class="tool-result hidden"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 04 TELEMETRÍA (Global + Personal integradas) -->
+<section class="section-telemetry" id="telemetria">
+  <div class="telemetry-grid">
+    
+    <!-- Red Global -->
+    <div>
+      <h2 style="font-family:var(--disp); font-size:28px; color:var(--gold); margin-bottom:15px;">Telemetría de Red</h2>
+      <p style="font-family:var(--serif); font-size:16px; color:#888; margin-bottom:30px;">Observación macro de la fricción estructural en tiempo real.</p>
+      
+      <div class="observatory-system">
+        <div class="sys-header">
+          <span>WORLDSPECT LIVE</span>
+          <span>ESTADO: ESTABLE</span>
+        </div>
+        <div class="sys-body">
+          <canvas id="live-canvas"></canvas>
+          <div class="sys-logs" id="sys-logs">
+            <!-- Logs JS -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Panel Personal (Requiere Auth) -->
+    <div style="position: relative;">
+      <h2 style="font-family:var(--disp); font-size:28px; color:var(--paper); margin-bottom:15px;">Métricas Locales</h2>
+      <p style="font-family:var(--serif); font-size:16px; color:#888; margin-bottom:30px;">Datos encriptados de tu propio nodo.</p>
+
+      <div class="personal-telemetry" id="personal-panel">
+        <div class="chart-box">
+          <h4>Equilibrio Paramétrico (IHG/NTI/LDI)</h4>
+          <canvas id="radarChart" height="200"></canvas>
+        </div>
+        <div class="chart-box">
+          <h4>Volatilidad IHG (Últimos Registros)</h4>
+          <canvas id="ihgTrend" height="150"></canvas>
+        </div>
+      </div>
+
+      <!-- Auth Overlay para ocultar si no está logueado -->
+      <div class="auth-overlay" id="auth-overlay">
+        <i data-lucide="lock" style="width:32px; color:var(--gold); margin-bottom:15px;"></i>
+        <h4 style="font-family:var(--mono); font-size:12px; color:var(--paper); margin-bottom:10px;">TELEMETRÍA ENCRIPTADA</h4>
+        <p style="font-family:var(--serif); font-size:14px; color:#aaa; margin-bottom:20px;">Inicia sesión como nodo para observar la evolución de tu fricción estructural.</p>
+        <button class="btn-tool" style="width:auto; padding:10px 30px;" onclick="showAuthModal()">INICIAR SESIÓN</button>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- 05 RESULTADO DOCUMENTAL -->
+<section class="section-result" id="documento">
+  <div class="result-container">
+    <div class="result-text">
+      <h2>El Diagnóstico Operativo</h2>
+      <p>No entregamos consejos. El resultado de la auditoría es un documento clínico de tu estado de red. Te muestra exactamente dónde estás fugando energía y qué debes desconectar para detener el colapso.</p>
+      <p style="font-size:14px; color:#888;">El reporte MOP-H (Formato PDF) incluye mapas de termodinámica relacional y directrices de "Hard Stop".</p>
+    </div>
+    <div class="pdf-stack">
+      <div class="pdf-page"></div><div class="pdf-page"></div>
+      <div class="pdf-page">
+        <div class="pdf-header"><span>MOP-H CLINICAL REPORT</span><span class="pdf-stamp">MOP-H ENGINE v1.3</span></div>
+        <div class="pdf-metric-box">
+          <div class="pdf-metric">-0.620</div><div class="pdf-label">ÍNDICE HOMEOSTÁTICO (CRÍTICO)</div>
+        </div>
+        <div class="pdf-chart">
+          <div class="pdf-bar" style="height: 20%;"></div><div class="pdf-bar" style="height: 50%;"></div>
+          <div class="pdf-bar" style="height: 30%;"></div><div class="pdf-bar" style="height: 90%; background: var(--red);"></div>
+        </div>
+        <div class="pdf-body">
+          <strong>Veredicto:</strong> El sistema invierte energía masiva en compensación. La asimetría de poder está comprometida.<br><br>
+          <strong>Acción Inmediata:</strong> Ejecutar Hard Stop en Zona FX.
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-content">
+    <div class="footer-col">
+      <h3>Producto</h3><a href="#herramientas">Protocolo Base (AMV)</a><a href="#estratos">ICE Organizacional</a>
+    </div>
+    <div class="footer-col">
+      <h3>Legitimidad</h3><a href="#documento">ATLAS v4 (Eidelon)</a><a href="#">Fórmulas (SFI-001)</a>
+    </div>
+    <div class="footer-col">
+      <h3>Sistema</h3><a href="#">Documento Cero</a><a href="#">MIHM v3.1</a>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    System Friction Institute © 2026 · CC BY 4.0<br><br>
+    La fricción revela la distancia entre intención y ejecución.
+  </div>
+</footer>
+
+<!-- MODALS GLOBALES -->
+
+<!-- Auth / Paywall Simulado -->
+<div class="sf-modal hidden" id="modal-auth">
+  <div class="sf-modal-box">
+    <button class="close-modal" onclick="closeModals()"><i data-lucide="x"></i></button>
+    <h3 style="font-family:var(--disp); font-size:20px; color:var(--gold); margin-bottom:10px;">ACCESO AL SISTEMA</h3>
+    <p style="font-family:var(--serif); font-size:16px; color:#aaa; margin-bottom:15px;">Ingresa para sincronizar tus métricas o desbloquea tu primera auditoría clínica.</p>
+    
+    <input type="email" id="auth-email" placeholder="correo@ejemplo.com" style="width:100%; background:#000; border:1px solid #333; color:#fff; padding:12px; font-family:var(--mono); font-size:11px; margin-bottom:15px; outline:none;">
+    
+    <button id="btn-simulate-auth" onclick="simulateAuth()" style="width:100%; background:var(--gold); color:var(--void); border:none; padding:15px; font-family:var(--mono); font-weight:bold; font-size:12px; cursor:pointer;">
+      INICIAR / DESBLOQUEAR
+    </button>
+
+    <p style="font-size:11px;color:#777;margin-top:15px;text-align:center; font-family:var(--serif); line-height:1.4;">
+      Al iniciar nodo aceptas recibir reportes, protocolos y actualizaciones del observatorio directo a tu canal de señal.
+    </p>
+  </div>
+</div>
+
+<!-- Modal Extracción Cognitiva -->
+<div class="sf-modal hidden" id="modal-cognitive">
+  <div class="sf-modal-box">
+    <button class="close-modal" onclick="closeModals()"><i data-lucide="x"></i></button>
+    <h3 style="font-family:var(--mono); font-size:12px; letter-spacing:0.1em; color:var(--gold); margin-bottom:20px; border-bottom:1px solid var(--gold-dim); padding-bottom:10px;">REPORTE AI DE EXTRACCIÓN</h3>
+    <div id="cognitive-results-content" style="font-family:var(--serif); font-size:14px; color:#ccc; line-height:1.6;">
+      <!-- JS Injects here -->
+    </div>
+  </div>
+</div>
+
+<script>
+  // Inicialización de Lucide tras la carga del DOM
+  window.addEventListener('load', function() {
+    if (typeof lucide !== 'undefined') {
+      lucide.createIcons();
+    }
+  });
+
+  // La API key se gestiona mediante el entorno de ejecución para seguridad en preview
+  // En producción, estas llamadas se redirigen a un Proxy/Edge Function (Vercel/Netlify)
+  const apiKey = ""; 
+
+  // ==========================================
+  // ESTADO GLOBAL UNIFICADO (SFState)
+  // ==========================================
+  const SFState = {
+    isAuth: false,
+    user: null,
+    metrics: {
+      ihgHistory: [0.85, 0.78, 0.75, 0.62, 0.58], 
+      nti: 0.45,
+      ldi: 120 
+    },
+    chatContext: []
+  };
+
+  let radarChartInstance = null;
+  let trendChartInstance = null;
+
+  // ==========================================
+  // GEMINI API UTILS
+  // ==========================================
+  async function callGemini(prompt, systemInstruction = "") {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+    
+    const payload = {
+      contents: [{ parts: [{ text: prompt }] }],
+      systemInstruction: { parts: [{ text: systemInstruction }] }
+    };
+
+    let delay = 1000;
+    for (let i = 0; i < 5; i++) {
+      try {
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (!response.ok) throw new Error('API Error');
+        const result = await response.json();
+        return result.candidates?.[0]?.content?.parts?.[0]?.text;
+      } catch (err) {
+        if (i === 4) throw err;
+        await new Promise(resolve => setTimeout(resolve, delay));
+        delay *= 2;
+      }
+    }
+  }
+
+  async function callGeminiStructured(prompt, systemInstruction, schema) {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+    
+    const payload = {
+      contents: [{ parts: [{ text: prompt }] }],
+      systemInstruction: { parts: [{ text: systemInstruction }] },
+      generationConfig: {
+        responseMimeType: "application/json",
+        responseSchema: schema
+      }
+    };
+
+    let delay = 1000;
+    for (let i = 0; i < 5; i++) {
+      try {
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const result = await response.json();
+        return JSON.parse(result.candidates?.[0]?.content?.parts?.[0]?.text);
+      } catch (err) {
+        if (i === 4) throw err;
+        await new Promise(resolve => setTimeout(resolve, delay));
+        delay *= 2;
+      }
+    }
+  }
+
+  // ==========================================
+  // UI CORE
+  // ==========================================
+  function updateGlobalUI() {
+    const authBtn = document.getElementById('btn-login-nav');
+    const userDisp = document.getElementById('user-display');
+    const overlay = document.getElementById('auth-overlay');
+    const heroMetrics = document.getElementById('hero-metrics');
+
+    if(SFState.isAuth) {
+      authBtn.innerText = "[ CERRAR NODO ]";
+      authBtn.onclick = logout;
+      userDisp.innerText = `NODO: ${SFState.user}`;
+      userDisp.classList.remove('hidden');
+      overlay.classList.add('hidden');
+      
+      const currentIHG = SFState.metrics.ihgHistory[SFState.metrics.ihgHistory.length - 1];
+      heroMetrics.innerHTML = `
+        <div class="hero-stat-item"><div class="hero-stat-label">Tu IHG Actual</div><div class="hero-stat-val ${currentIHG < 0 ? 'red' : ''}">${currentIHG.toFixed(2)}</div></div>
+        <div class="hero-stat-item"><div class="hero-stat-label">Latencia (LDI)</div><div class="hero-stat-val">${SFState.metrics.ldi}h</div></div>
+        <div class="hero-stat-item"><div class="hero-stat-label">Transparencia</div><div class="hero-stat-val">${SFState.metrics.nti.toFixed(2)}</div></div>
+      `;
+      
+      initCharts(); 
+    } else {
+      authBtn.innerText = "[ INICIAR NODO ]";
+      authBtn.onclick = showAuthModal;
+      userDisp.classList.add('hidden');
+      overlay.classList.remove('hidden');
+      
+      heroMetrics.innerHTML = `
+        <div class="hero-stat-item"><div class="hero-stat-label">IHG Promedio</div><div class="hero-stat-val red">-0.44</div></div>
+        <div class="hero-stat-item"><div class="hero-stat-label">Latencia (LDI)</div><div class="hero-stat-val">72h</div></div>
+        <div class="hero-stat-item"><div class="hero-stat-label">Transparencia</div><div class="hero-stat-val">0.31</div></div>
+      `;
+    }
+  }
+
+  function closeModals() {
+    document.querySelectorAll('.sf-modal').forEach(m => m.classList.add('hidden'));
+  }
+
+  function showAuthModal() {
+    document.getElementById('modal-auth').classList.remove('hidden');
+  }
+
+  function simulateAuth() {
+    const email = document.getElementById('auth-email').value || "usuario_anonimo";
+    const btn = document.getElementById('btn-simulate-auth');
+    btn.innerHTML = '<i data-lucide="loader" class="animate-spin"></i> Sincronizando...';
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+    
+    setTimeout(() => {
+      SFState.isAuth = true;
+      SFState.user = email.split('@')[0].toUpperCase();
+      btn.innerHTML = 'INICIAR / DESBLOQUEAR';
+      if (typeof lucide !== 'undefined') lucide.createIcons();
+      closeModals();
+      updateGlobalUI();
+    }, 1000);
+  }
+
+  function logout() {
+    SFState.isAuth = false;
+    SFState.user = null;
+    updateGlobalUI();
+  }
+
+  // ==========================================
+  // HERRAMIENTA: EXTRACCIÓN COGNITIVA
+  // ==========================================
+  async function runCognitiveExtraction() {
+    const text = document.getElementById('cognitive-input').value.trim();
+    if(!text) { alert("Ingresa un fragmento textual."); return; }
+    
+    const btn = document.getElementById('btn-extract');
+    btn.innerHTML = '<i data-lucide="loader" class="animate-spin"></i> PROCESANDO NODOS...';
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+    btn.disabled = true;
+
+    const schema = {
+      type: "OBJECT",
+      properties: {
+        ihg: { type: "NUMBER" },
+        nti: { type: "NUMBER" },
+        nodos: { type: "ARRAY", items: { type: "STRING" } },
+        analisis: { type: "STRING" },
+        riesgos: { type: "ARRAY", items: { type: "STRING" } }
+      }
+    };
+
+    const sysPrompt = "Eres un analizador del 'System Friction Institute'. Extrae la estructura cognitiva de los textos. El IHG mide la fricción (distancia entre lo dicho y lo oculto) entre -1 y 1. El NTI mide la transparencia comunicativa de 0 a 1.";
+
+    try {
+      const data = await callGeminiStructured(text, sysPrompt, schema);
+      
+      const html = `
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-bottom:20px;">
+          <div style="background:#000; border:1px solid #333; padding:15px; text-align:center;">
+            <div style="font-family:var(--mono); font-size:9px; color:#888;">IHG SEMÁNTICO</div>
+            <div style="font-family:var(--mono); font-size:20px; color:${data.ihg < 0 ? 'var(--red)' : 'var(--gold)'};">${data.ihg.toFixed(3)}</div>
+          </div>
+          <div style="background:#000; border:1px solid #333; padding:15px; text-align:center;">
+            <div style="font-family:var(--mono); font-size:9px; color:#888;">NTI DETECTADO</div>
+            <div style="font-family:var(--mono); font-size:20px; color:var(--paper);">${data.nti.toFixed(3)}</div>
+          </div>
+        </div>
+        <p style="margin-bottom:12px;"><strong>Foco de Fricción:</strong> ${data.analisis}</p>
+        <div style="margin-bottom:12px;">
+          <strong style="color:var(--gold); font-size:11px; display:block; margin-bottom:5px;">NODOS DE CONFLICTO:</strong>
+          <div style="display:flex; flex-wrap:wrap; gap:5px;">
+            ${data.nodos.map(n => `<span style="border:1px solid #333; padding:2px 8px; font-size:10px; font-family:var(--mono);">${n}</span>`).join('')}
+          </div>
+        </div>
+        <div>
+          <strong style="color:var(--red); font-size:11px; display:block; margin-bottom:5px;">RIESGOS ESTRUCTURALES:</strong>
+          <ul style="font-size:12px; color:#aaa; list-style:none;">
+            ${data.riesgos.map(r => `<li>- ${r}</li>`).join('')}
+          </ul>
+        </div>
+      `;
+      
+      document.getElementById('cognitive-results-content').innerHTML = html;
+      document.getElementById('modal-cognitive').classList.remove('hidden');
+    } catch (e) {
+      alert("Error en el procesador AI. Reintenta.");
+    } finally {
+      btn.innerHTML = 'Analizar Estructura AI';
+      btn.disabled = false;
+    }
+  }
+
+  // ==========================================
+  // HERRAMIENTA: GEMELO COGNITIVO
+  // ==========================================
+  async function simulateDecision() {
+    const dec = document.getElementById('decision-input').value.trim();
+    if(!dec) { alert("Describe la decisión."); return; }
+    
+    const res = document.getElementById('simulation-result');
+    res.classList.remove('hidden');
+    res.innerHTML = '<i data-lucide="loader" class="animate-spin"></i> Simulando trayectorias...';
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+
+    const prompt = `Simula las consecuencias de esta decisión dentro del marco 'System Friction': "${dec}".`;
+    const sysPrompt = "Eres el motor de simulación de System Friction. Calcula el Δ IHG (cambio en fricción) y la probabilidad de colapso. Sé técnico y directo.";
+    const schema = {
+      type: "OBJECT",
+      properties: {
+        ihgDelta: { type: "NUMBER" },
+        probColapso: { type: "STRING" },
+        consecuencia: { type: "STRING" }
+      }
+    };
+
+    try {
+      const data = await callGeminiStructured(prompt, sysPrompt, schema);
+      
+      res.innerHTML = `
+        <div style="color:var(--gold); font-size:10px; margin-bottom:5px;">PROYECCIÓN DE IMPACTO</div>
+        <p style="color:var(--paper); margin-bottom:10px; font-size:13px;">${data.consecuencia}</p>
+        <div style="display:flex; justify-content:space-between; border-top:1px solid #333; padding-top:10px; font-family:var(--mono); font-size:11px;">
+          <span>Δ IHG: <b style="color:var(--gold)">${data.ihgDelta > 0 ? '+' : ''}${data.ihgDelta.toFixed(2)}</b></span>
+          <span>Colapso: <b style="color:var(--red)">${data.probColapso}</b></span>
+        </div>
+      `;
+
+      if(SFState.isAuth) {
+        const last = SFState.metrics.ihgHistory[SFState.metrics.ihgHistory.length-1];
+        SFState.metrics.ihgHistory.push(Math.min(1, Math.max(-1, last + data.ihgDelta)));
+        updateGlobalUI();
+      }
+    } catch (e) {
+      res.innerHTML = "Error en la simulación.";
+    }
+  }
+
+  // ==========================================
+  // CHAT: AUDITORÍA DINÁMICA (AMV AI)
+  // ==========================================
+  const chatInput = document.getElementById('chat-input');
+  const chatHistory = document.getElementById('chat-history');
+  let chatStep = 0;
+
+  function appendChat(msg, isUser) {
+    const div = document.createElement('div');
+    div.className = `chat-bubble ${isUser ? 'chat-usr' : 'chat-sys'}`;
+    div.innerHTML = msg;
+    chatHistory.appendChild(div);
+    chatHistory.scrollTop = chatHistory.scrollHeight;
+  }
+
+  async function handleChat() {
+    const text = chatInput.value.trim();
+    if(!text) return;
+    
+    appendChat(`"${text}"`, true);
+    chatInput.value = '';
+    chatStep++;
+
+    SFState.chatContext.push({ role: "user", text });
+
+    const typing = document.createElement('div');
+    typing.className = 'chat-bubble chat-sys';
+    typing.innerHTML = '<span class="animate-pulse">Sincronizando con Nodo Raíz...</span>';
+    typing.id = 'typing';
+    chatHistory.appendChild(typing);
+    chatHistory.scrollTop = chatHistory.scrollHeight;
+
+    const sysPrompt = `Eres el Agente Mínimo Viable de System Friction. Tu objetivo es auditar la coherencia del usuario. 
+    No des consejos. Haz preguntas difíciles que rompan la racionalización. 
+    Si detectas que el usuario miente o evade, indícalo. 
+    En el paso 3 o si hay mucha evasión, debes bloquear el sistema para auditoría profunda.
+    Contexto actual de pasos: ${chatStep}/3.`;
+
+    try {
+      const response = await callGemini(`Usuario dice: "${text}". Genera la siguiente pregunta de auditoría MOP-H.`, sysPrompt);
+      if (document.getElementById('typing')) document.getElementById('typing').remove();
+      appendChat(response, false);
+
+      if (chatStep >= 3) {
+        setTimeout(() => {
+          document.getElementById('lock-overlay').classList.remove('hidden');
+          document.getElementById('chat-input-area').style.opacity = '0.2';
+          document.getElementById('chat-input-area').style.pointerEvents = 'none';
+          document.getElementById('lock-reason').innerText = "La auditoría AI ha detectado un umbral de fricción crítico. Se requiere intervención manual.";
+          if (typeof lucide !== 'undefined') lucide.createIcons();
+          
+          let time = 24 * 3600 - 1;
+          const timer = setInterval(() => {
+            let h = Math.floor(time/3600), m = Math.floor((time%3600)/60), s = time%60;
+            document.getElementById('lock-timer').innerText = 
+              `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+            time--;
+            if (time < 0) clearInterval(timer);
+          }, 1000);
+        }, 2000);
+      }
+    } catch (e) {
+      if (document.getElementById('typing')) document.getElementById('typing').remove();
+      appendChat("Error de enlace. Reintenta.", false);
+    }
+  }
+
+  // ==========================================
+  // GRÁFICOS (Chart.js)
+  // ==========================================
+  function initCharts() {
+    const ctxRadar = document.getElementById('radarChart')?.getContext('2d');
+    const ctxTrend = document.getElementById('ihgTrend')?.getContext('2d');
+    
+    if(!ctxRadar || !ctxTrend) return;
+
+    if(radarChartInstance) radarChartInstance.destroy();
+    if(trendChartInstance) trendChartInstance.destroy();
+
+    Chart.defaults.color = '#888';
+    Chart.defaults.font.family = "'JetBrains Mono', monospace";
+
+    const currIHG = SFState.metrics.ihgHistory[SFState.metrics.ihgHistory.length - 1];
+
+    radarChartInstance = new Chart(ctxRadar, {
+      type: 'radar',
+      data: {
+        labels: ['IHG', 'NTI', 'LDI_EFF'],
+        datasets: [{
+          label: 'Nodo Local',
+          data: [Math.abs(currIHG), SFState.metrics.nti, 0.6], 
+          backgroundColor: 'rgba(212, 175, 55, 0.2)',
+          borderColor: '#D4AF37',
+          pointBackgroundColor: '#D4AF37',
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        scales: {
+          r: {
+            angleLines: { color: '#3C3732' },
+            grid: { color: '#3C3732' },
+            pointLabels: { color: '#D4AF37' },
+            ticks: { display: false }
+          }
+        },
+        plugins: { legend: { display: false } }
+      }
+    });
+
+    const labelsTrend = SFState.metrics.ihgHistory.map((_, i) => `T${i+1}`);
+    trendChartInstance = new Chart(ctxTrend, {
+      type: 'line',
+      data: {
+        labels: labelsTrend,
+        datasets: [{
+          label: 'IHG',
+          data: SFState.metrics.ihgHistory,
+          borderColor: '#D4AF37',
+          backgroundColor: 'transparent',
+          tension: 0.3,
+          borderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true,
+        scales: {
+          y: { grid: { color: '#3C3732' } },
+          x: { grid: { color: '#3C3732' } }
+        },
+        plugins: { legend: { display: false } }
+      }
+    });
+  }
+
+  // ==========================================
+  // OBSERVATORIO GLOBAL (Canvas)
+  // ==========================================
+  const canvas = document.getElementById('live-canvas');
+  const ctx = canvas.getContext('2d');
+  
+  function resizeCanvas() {
+    canvas.width = canvas.parentElement.clientWidth;
+    canvas.height = canvas.parentElement.clientHeight;
+  }
+  window.addEventListener('resize', resizeCanvas);
+  resizeCanvas();
+
+  const nodes = Array.from({length: 40}, () => ({
+    x: Math.random() * canvas.width,
+    y: Math.random() * canvas.height,
+    vx: (Math.random() - 0.5) * 0.8,
+    vy: (Math.random() - 0.5) * 0.8,
+    r: Math.random() * 2 + 1,
+    color: Math.random() > 0.8 ? '#B85050' : '#D4AF37'
+  }));
+
+  function drawCanvas() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    for(let i=0; i<nodes.length; i++) {
+      for(let j=i+1; j<nodes.length; j++) {
+        let dist = Math.hypot(nodes[i].x - nodes[j].x, nodes[i].y - nodes[j].y);
+        if(dist < 80) {
+          ctx.beginPath();
+          ctx.strokeStyle = `rgba(212, 175, 55, ${0.4 - dist/200})`;
+          ctx.lineWidth = 0.5;
+          ctx.moveTo(nodes[i].x, nodes[i].y);
+          ctx.lineTo(nodes[j].x, nodes[j].y);
+          ctx.stroke();
+        }
+      }
+    }
+    nodes.forEach(n => {
+      n.x += n.vx; n.y += n.vy;
+      if(n.x < 0 || n.x > canvas.width) n.vx *= -1;
+      if(n.y < 0 || n.y > canvas.height) n.vy *= -1;
+      ctx.beginPath();
+      ctx.fillStyle = n.color;
+      ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
+      ctx.fill();
+    });
+    requestAnimationFrame(drawCanvas);
+  }
+  drawCanvas();
+
+  const logsContainer = document.getElementById('sys-logs');
+  const logEvents = [
+    { msg: "Colapso detectado por AI en Nodo_88X.", type: "alert" },
+    { msg: "Sincronizando auditoría semántica...", type: "stable" },
+    { msg: "Latencia crítica en vector intencional.", type: "alert" },
+    { msg: "Gemelo Cognitivo proyectando trayectorias.", type: "stable" }
+  ];
+
+  function addLog() {
+    if(logsContainer && logsContainer.children.length > 4) logsContainer.removeChild(logsContainer.firstChild);
+    const event = logEvents[Math.floor(Math.random() * logEvents.length)];
+    const time = new Date().toLocaleTimeString('en-US', { hour12: false });
+    const div = document.createElement('div');
+    div.className = `log-line ${event.type}`;
+    div.innerHTML = `[${time}] > ${event.msg}`;
+    if (logsContainer) logsContainer.appendChild(div);
+  }
+
+  addLog(); addLog();
+  setInterval(addLog, 3000);
+
+</script>
+</body>
+</html>
