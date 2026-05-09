@@ -85,6 +85,12 @@
       "namedRegex": "^/api/audit(?:/)?$"
     },
     {
+      "page": "/api/framework",
+      "regex": "^/api/framework(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/framework(?:/)?$"
+    },
+    {
       "page": "/api/intake",
       "regex": "^/api/intake(?:/)?$",
       "routeKeys": {},
@@ -109,10 +115,22 @@
       "namedRegex": "^/api/link/verify(?:/)?$"
     },
     {
+      "page": "/api/methodology",
+      "regex": "^/api/methodology(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/methodology(?:/)?$"
+    },
+    {
       "page": "/api/node/bootstrap",
       "regex": "^/api/node/bootstrap(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/api/node/bootstrap(?:/)?$"
+    },
+    {
+      "page": "/api/sfi-manifes",
+      "regex": "^/api/sfi\\-manifes(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/sfi\\-manifes(?:/)?$"
     },
     {
       "page": "/api/telemetry/ingest",

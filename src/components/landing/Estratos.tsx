@@ -1,57 +1,40 @@
 const estratos = [
-  [
-    '00',
-    'Lectura inicial',
-    'El sistema detecta contradicción, tensión y latencia desde la primera interacción.'
-  ],
-  [
-    '01',
-    'Memoria longitudinal',
-    'Cada auditoría modifica el estado del nodo y registra recurrencias observables.'
-  ],
-  [
-    '02',
-    'Prevención operacional',
-    'Los patrones repetidos aumentan severidad antes de convertirse en colapso.'
-  ],
-  [
-    '03',
-    'Resolución mínima',
-    'Toda auditoría termina con una acción concreta y verificable.'
-  ]
+  { n: '00', title: 'Lectura Inicial', desc: 'Detección de contradicción, tensión y latencia desde el primer contacto.' },
+  { n: '01', title: 'Memoria Longitudinal', desc: 'Cada auditoría modifica el estado del nodo y registra recurrencias.' },
+  { n: '02', title: 'Prevención Operacional', desc: 'Identificación de patrones de fallo antes de que ocurra el colapso.' },
+  { n: '03', title: 'Resolución Mínima', desc: 'Toda auditoría concluye con una acción concreta, verificable y finita.' }
 ]
 
 export function Estratos() {
   return (
-    <section className="bg-void px-6 py-24 text-paper">
-      <div className="mx-auto max-w-5xl">
-        <p className="font-mono text-[10px] uppercase tracking-[0.35em] text-gold">
-          Arquitectura operacional
-        </p>
+    <section className="bg-[#151311] py-32 px-6">
+      <div className="mx-auto max-w-6xl">
+        <div className="grid lg:grid-cols-2 gap-20 items-start">
+          <div>
+            <h2 className="font-display text-5xl font-bold uppercase tracking-tighter text-paper mb-8">
+              Arquitectura del <br /><span className="text-gold">Observatorio</span>
+            </h2>
+            <p className="text-zinc-500 font-serif text-xl italic leading-relaxed max-w-md">
+              El proceso de inducción MOP-H descompone tu estructura en estratos de profundidad operacional.
+            </p>
+          </div>
 
-        <h2 className="mt-4 font-display text-2xl uppercase tracking-[0.08em]">
-          Cómo funciona el observatorio
-        </h2>
-
-        <div className="mt-10 grid gap-4 md:grid-cols-2">
-          {estratos.map(([id, title, text]) => (
-            <article
-              key={id}
-              className="border-l-2 border-gold bg-gold/5 p-6"
-            >
-              <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-gold">
-                Estrato {id}
-              </p>
-
-              <h3 className="mt-3 font-display text-sm uppercase tracking-[0.08em]">
-                {title}
-              </h3>
-
-              <p className="mt-4 text-base leading-relaxed text-zinc-400">
-                {text}
-              </p>
-            </article>
-          ))}
+          <div className="space-y-12">
+            {estratos.map((estrato) => (
+              <div key={estrato.n} className="relative pl-16 group">
+                <span className="absolute left-0 top-0 font-mono text-xs text-gold/30 group-hover:text-gold transition-colors">
+                  [ ESTRATO_{estrato.n} ]
+                </span>
+                <h3 className="font-mono text-sm uppercase tracking-[0.2em] text-paper mb-3">
+                  {estrato.title}
+                </h3>
+                <p className="text-sm text-zinc-600 leading-relaxed max-w-sm">
+                  {estrato.desc}
+                </p>
+                <div className="mt-6 h-px w-0 bg-gold/20 group-hover:w-full transition-all duration-500" />
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </section>
