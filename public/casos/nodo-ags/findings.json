@@ -1,0 +1,29 @@
+{
+  "case_id": "nodo-ags",
+  "institution": "Aguascalientes - Sector público",
+  "audit_period": "2024-2026",
+  "baseline_metrics": {
+    "ihg_inicial": -0.44,
+    "nti_inicial": 0.31,
+    "ldi_inicial": 72
+  },
+  "patterns_detected": [
+    {
+      "name": "loop de latencia institucional",
+      "severity": "high",
+      "evidence": "decisiones repetidas cada 28 días sin cambio estructural"
+    }
+  ],
+  "observable_changes": [
+    {
+      "date": "2026-05-08",
+      "metric": "ihg",
+      "from": -0.44,
+      "to": -0.18,
+      "intervention": "transparencia operacional + NTI aplicado"
+    }
+  ],
+  "verification_method": "tercero audita tercero",
+  "public_access": true,
+  "ai_readable": true
+}
