@@ -1,11 +1,25 @@
 [
   {
-    "route": "/terminal",
-    "firstLoadUncompressedJsBytes": 547956,
+    "route": "/",
+    "firstLoadUncompressedJsBytes": 562407,
     "firstLoadChunkPaths": [
       ".next\\static\\chunks\\01xlw8hd842-c.js",
       ".next\\static\\chunks\\00-csyj9a6t-x.js",
-      ".next\\static\\chunks\\0tus-ximgau4-.js",
+      ".next\\static\\chunks\\09o.6h1~z1e4g.js",
+      ".next\\static\\chunks\\0v_on0d8xqxls.js",
+      ".next\\static\\chunks\\0pqt~8bl3ukh4.js",
+      ".next\\static\\chunks\\0m_p1bxtorv5i.js",
+      ".next\\static\\chunks\\0c7h~x4_chf35.js",
+      ".next\\static\\chunks\\turbopack-0tl_6cncjfqvw.js"
+    ]
+  },
+  {
+    "route": "/terminal",
+    "firstLoadUncompressedJsBytes": 548155,
+    "firstLoadChunkPaths": [
+      ".next\\static\\chunks\\01xlw8hd842-c.js",
+      ".next\\static\\chunks\\00-csyj9a6t-x.js",
+      ".next\\static\\chunks\\13s2yvmcj4jt-.js",
       ".next\\static\\chunks\\0v_on0d8xqxls.js",
       ".next\\static\\chunks\\0pqt~8bl3ukh4.js",
       ".next\\static\\chunks\\0m_p1bxtorv5i.js",
@@ -28,26 +42,12 @@
     ]
   },
   {
-    "route": "/",
-    "firstLoadUncompressedJsBytes": 525567,
-    "firstLoadChunkPaths": [
-      ".next\\static\\chunks\\01xlw8hd842-c.js",
-      ".next\\static\\chunks\\00-csyj9a6t-x.js",
-      ".next\\static\\chunks\\01e1mjunrfqp7.js",
-      ".next\\static\\chunks\\0v_on0d8xqxls.js",
-      ".next\\static\\chunks\\0pqt~8bl3ukh4.js",
-      ".next\\static\\chunks\\0m_p1bxtorv5i.js",
-      ".next\\static\\chunks\\0c7h~x4_chf35.js",
-      ".next\\static\\chunks\\turbopack-0tl_6cncjfqvw.js"
-    ]
-  },
-  {
     "route": "/start",
-    "firstLoadUncompressedJsBytes": 523031,
+    "firstLoadUncompressedJsBytes": 523700,
     "firstLoadChunkPaths": [
       ".next\\static\\chunks\\01xlw8hd842-c.js",
       ".next\\static\\chunks\\00-csyj9a6t-x.js",
-      ".next\\static\\chunks\\0fc6xoim9vl~y.js",
+      ".next\\static\\chunks\\0fgni9q4hq2-w.js",
       ".next\\static\\chunks\\0v_on0d8xqxls.js",
       ".next\\static\\chunks\\0pqt~8bl3ukh4.js",
       ".next\\static\\chunks\\0m_p1bxtorv5i.js",
