@@ -1,6 +1,26 @@
-export function GET() {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
-  return new Response(`User-agent: *\nAllow: /\nSitemap: ${baseUrl}/sitemap.xml\n`, {
-    headers: { 'Content-Type': 'text/plain' }
-  })
+import { MetadataRoute } from 'next'
+
+export default function robots(): MetadataRoute.Robots {
+
+  const baseUrl =
+    process.env.NEXT_PUBLIC_APP_URL ||
+    'https://systemfriction.org'
+
+  return {
+
+    rules: {
+      userAgent: '*',
+      allow: [
+        '/',
+        '/terminal',
+        '/systemprompt',
+        '/llms.txt'
+      ],
+      disallow: [
+        '/api/'
+      ]
+    },
+
+    sitemap: `${baseUrl}/sitemap.xml`
+  }
 }
