@@ -1,0 +1,14 @@
+# requirements.txt
+sentence-transformers>=2.2.0
+keybert>=0.8.0
+scikit-learn>=1.3.0
+scipy>=1.11.0
+numpy>=1.24.0
+pandas>=2.0.0
+networkx>=3.0
+plotly>=5.17.0
+sqlalchemy>=2.0.0
+psycopg2-binary>=2.9.0  # opcional para PostgreSQL
+openai-whisper>=20231117  # para transcripción de audio
+PyPDF2>=3.0.0
+httpx>=0.27.0

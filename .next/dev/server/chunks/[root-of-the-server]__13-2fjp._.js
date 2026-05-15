@@ -80,18 +80,63 @@ __turbopack_context__.s([
     "proxy",
     ()=>proxy
 ]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$supabase$2f$ssr$2f$dist$2f$module$2f$index$2e$js__$5b$middleware$5d$__$28$ecmascript$29$__$3c$locals$3e$__ = __turbopack_context__.i("[project]/node_modules/@supabase/ssr/dist/module/index.js [middleware] (ecmascript) <locals>");
+var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$supabase$2f$ssr$2f$dist$2f$module$2f$createServerClient$2e$js__$5b$middleware$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/@supabase/ssr/dist/module/createServerClient.js [middleware] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$server$2e$js__$5b$middleware$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/next/server.js [middleware] (ecmascript)");
 ;
-function proxy(request) {
-    const response = __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$server$2e$js__$5b$middleware$5d$__$28$ecmascript$29$__["NextResponse"].next();
+;
+async function proxy(request) {
+    // Creamos una respuesta mutable
+    let response = __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$server$2e$js__$5b$middleware$5d$__$28$ecmascript$29$__["NextResponse"].next();
+    // Configuramos el cliente de Supabase con manejo de cookies manual
+    const supabase = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$supabase$2f$ssr$2f$dist$2f$module$2f$createServerClient$2e$js__$5b$middleware$5d$__$28$ecmascript$29$__["createServerClient"])(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY, {
+        cookies: {
+            get (name) {
+                return request.cookies.get(name)?.value;
+            },
+            set (name, value, options) {
+                response.cookies.set({
+                    name,
+                    value,
+                    ...options
+                });
+            },
+            remove (name, options) {
+                response.cookies.set({
+                    name,
+                    value: '',
+                    ...options,
+                    maxAge: 0
+                });
+            }
+        }
+    });
+    // 1. INYECCIÓN DE CABECERAS DE SEGURIDAD (VHpD Compliance)
     response.headers.set('X-Frame-Options', 'DENY');
     response.headers.set('X-Content-Type-Options', 'nosniff');
     response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
-    if (request.nextUrl.pathname === '/' || request.nextUrl.pathname.startsWith('/llms')) {
+    // 2. GESTIÓN DE CACHÉ SEGÚN EL SEGMENTO DEL WORLD SPECTRUM
+    const { pathname } = request.nextUrl;
+    if (pathname === '/' || pathname.startsWith('/llms')) {
         response.headers.set('Cache-Control', 'public, max-age=3600, stale-while-revalidate=86400');
     }
-    if (request.nextUrl.pathname.startsWith('/terminal')) {
+    if (pathname.startsWith('/terminal')) {
         response.headers.set('Cache-Control', 'no-store, must-revalidate');
+    }
+    // 3. PROTOCOLO DE AUTENTICACIÓN Y VERIFICACIÓN DE NODO
+    const { data: { session } } = await supabase.auth.getSession();
+    // Protección de la Terminal y rutas de configuración
+    if (pathname.startsWith('/terminal') || pathname === '/setup-profile') {
+        // Redirección por ausencia de sesión activa
+        if (!session) {
+            return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$server$2e$js__$5b$middleware$5d$__$28$ecmascript$29$__["NextResponse"].redirect(new URL('/login', request.url));
+        }
+        // Validación de Integración Longitudinal (Perfil completo)
+        const { data: profile } = await supabase.from('profiles').select('setup_completed').eq('id', session.user.id).single();
+        // Evitar bucle de redirección
+        if (profile && !profile.setup_completed && pathname !== '/setup-profile') {
+            return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$server$2e$js__$5b$middleware$5d$__$28$ecmascript$29$__["NextResponse"].redirect(new URL('/setup-profile', request.url));
+        }
     }
     return response;
 }

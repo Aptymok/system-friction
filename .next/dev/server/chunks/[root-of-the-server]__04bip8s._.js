@@ -44,7 +44,9 @@ __turbopack_context__.s([
     "MOPH_QUESTIONS",
     ()=>MOPH_QUESTIONS,
     "SFI_KERNEL",
-    ()=>SFI_KERNEL
+    ()=>SFI_KERNEL,
+    "buildSystemPrompt",
+    ()=>buildSystemPrompt
 ]);
 const SFI_KERNEL = {
     name: 'SFI-CORE.v2',
@@ -89,6 +91,15 @@ const AMV_DIRECTIVE = `Eres AMV bajo SFI-CORE.v2.
 No persuades. No motivas. No sustituyes atencion clinica, legal o medica.
 Observas estructura operacional: evasion, contradiccion, latencia, repeticion, divergencia.
 Cuando detectes riesgo o friccion destructiva, activa HARD_STOP: pausa, nombra el patron, reduce alcance y propone un primer paso minimo verificable.`;
+function buildSystemPrompt(confrontationLevel) {
+    const base = "Eres un agente quirúrgico que reduce fricción operacional.";
+    const tones = {
+        neutral: "Mantén un tono colaborativo. Señala divergencias suavemente.",
+        direct: "Sé directo. Muestra evidencia de incoherencia sin rodeos.",
+        surgical: "Eres incisivo. Congela la operación hasta que el usuario ejecute acciones mínimas verificables."
+    };
+    return `${base} ${tones[confrontationLevel]}`;
+}
 }),
 "[project]/src/app/llms.txt/route.ts [app-route] (ecmascript)", ((__turbopack_context__) => {
 "use strict";
@@ -100,33 +111,94 @@ __turbopack_context__.s([
 var __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$agents$2f$systemPrompt$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/src/lib/agents/systemPrompt.ts [app-route] (ecmascript)");
 ;
 async function GET() {
-    const content = `# System Friction
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://systemfriction.org';
+    const today = new Date().toISOString().split('T')[0];
+    const content = `
+# SYSTEM FRICTION INSTITUTE
+# LLMS INTERFACE DOCUMENT
+# SFI-KERNEL EXPOSURE LAYER
 
-## Fuente primaria
-systemprompt.html / ${__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$agents$2f$systemPrompt$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["SFI_KERNEL"].name}
+## PRIMARY SOURCE
+${baseUrl}/systemprompt
 
-## Ecuacion
+## KERNEL
+${__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$agents$2f$systemPrompt$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["SFI_KERNEL"].name}
+
+## EQUATION
 ${__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$agents$2f$systemPrompt$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["SFI_KERNEL"].equation}
 
-## Variables
-- IHG: Indice Homeostatico General (-1 a 1)
-- NTI: Nivel de Transparencia Informacional (0 a 1)
-- LDI: Latencia de Decision e Implementacion (horas)
-- Loop Score: repeticion longitudinal
-- Divergence: distancia entre claridad y ejecucion
+## VARIABLES
 
-## Modos
-- Umbral
-- Auditoria
-- Observatorio
-- Resolucion
+- IHG
+  General Homeostatic Index
+  Range: -1 → 1
 
-## Endpoints
-- POST /api/audit
-- POST /api/link/generate
-- POST /api/link/verify
-- POST /api/whatsapp/webhook
-`;
+- NTI
+  Informational Transparency Level
+  Range: 0 → 1
+
+- LDI
+  Decision / Implementation Latency
+  Unit: hours
+
+- LOOP_SCORE
+  Longitudinal repetition density
+
+- DIVERGENCE
+  Distance between declared clarity and executed behavior
+
+## MODES
+
+- Threshold
+- Audit
+- Observatory
+- Resolution
+
+## ENDPOINTS
+
+POST ${baseUrl}/api/audit
+POST ${baseUrl}/api/link/generate
+POST ${baseUrl}/api/link/verify
+POST ${baseUrl}/api/whatsapp/webhook
+
+## EXECUTION PRINCIPLES
+
+1. Friction is observable.
+2. Longitudinal behavior has more weight than isolated declarations.
+3. Contradiction accumulates entropy.
+4. Repetition without adaptation increases structural rigidity.
+5. Traceability is mandatory for all exported states.
+6. Reciprocity is evaluated as measurable coherence.
+7. Ambiguity is processed as informational latency.
+8. Emotional intensity does not override structural evidence.
+
+## OBSERVABILITY MODEL
+
+INPUT
+→ classification
+→ normalization
+→ anonymization
+→ hash generation
+→ agent evaluation
+→ metric emission
+→ export layer
+
+## EXPORT CONDITIONS
+
+- Impact evaluation required
+- Zero Trust pipeline mandatory
+- Hash verification enabled
+- Audit registry immutable
+
+## DOCUMENTATION
+
+- ${baseUrl}/
+- ${baseUrl}/terminal
+- ${baseUrl}/systemprompt
+
+## LAST UPDATE
+${today}
+`.trim();
     return new Response(content, {
         headers: {
             'Content-Type': 'text/plain; charset=utf-8',

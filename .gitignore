@@ -2,3 +2,9 @@ node_modules
 node_modules
 .env.production
 git add .
+node_modules/
+.next/
+dist/
+build/
+*.log
+.venv

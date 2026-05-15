@@ -1,139 +1,100 @@
-import type { Audit, Metrics } from '@/lib/types'
-
-export interface LongitudinalAction {
-  id: string
-  description: string
-  verification_criterion: string
-  status: 'pending' | 'completed' | 'missed' | 'invalidated'
-  due_at?: string | null
-  completed_at?: string | null
-}
-
-export interface MemoryFact {
-  fact_type: 'objective' | 'loop' | 'constraint' | 'emotion_pattern' | 'missed_action' | 'direction_change' | 'external_signal'
-  label: string
-  value: string
-  confidence: number
-  recurrence_count: number
-}
-
-export interface LongitudinalInput {
-  currentNarrative: string
-  currentMetrics: Metrics
-  audits: Audit[]
-  actions: LongitudinalAction[]
-  memoryFacts: MemoryFact[]
-}
+import { executeAudit } from './auditor';
+import { CognitiveTwin } from './cognitive-twin';
+import { useNodeStore } from '../store/nodeStore';
+import { createClient } from '../supabase/server';
+import type { AuditResult } from './auditor';
 
 export interface LongitudinalOutput {
-  adjustedMetrics: Metrics
-  pattern: string
-  severity: number
-  risk: 'low' | 'medium' | 'high' | 'hard_stop'
-  nextQuestion: string
-  minimumAction: string
-  verificationCriterion: string
+  status: 'active' | 'completed' | 'failed';
+  metrics: any;
+  recommendations: string[];
+  entropyScore: number;
 }
 
-const clamp = (value: number, min = 0, max = 1) => Math.max(min, Math.min(max, value))
+export class LongitudinalAgent {
+  /**
+   * Proceso principal de auditoría longitudinal
+   * @param userId - ID del usuario (autenticado)
+   * @param input - Narrativa o texto a auditar
+   */
+  static async process(userId: string, input: string): Promise<LongitudinalOutput> {
+    const supabase = await createClient();
+    const addLog = useNodeStore.getState().addLog;
 
-function normalize(text: string) {
-  return text
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^\w\s]/g, ' ')
-}
+    try {
+      addLog(`Iniciando auditoría longitudinal para nodo: ${userId}`, 'info');
 
-export class LongitudinalEngine {
-  static evaluate(input: LongitudinalInput): LongitudinalOutput {
-    const text = normalize(input.currentNarrative)
-    const pendingActions = input.actions.filter((action) => action.status === 'pending')
-    const missedActions = input.actions.filter((action) => action.status === 'missed')
-    const recurringFacts = input.memoryFacts.filter((fact) => fact.recurrence_count >= 2)
-    const hasContradiction = /\b(quiero|necesito|debo)\b/.test(text) && /\bpero|aunque|sin embargo\b/.test(text)
-    const avoidance = /\b(evito|pospongo|manana|luego|no puedo|me cuesta)\b/.test(text)
-    const loopPenalty = clamp((recurringFacts.length + missedActions.length) / 6)
-    const actionPenalty = clamp(pendingActions.length / 4)
+      // 1. Extraer sesgos cognitivos (sin simulaciones, usando el twin real)
+      const cognitiveSeed = await CognitiveTwin.extractSeed(input);
 
-    const adjustedMetrics: Metrics = {
-      ihg: Math.max(-1, Math.min(1, input.currentMetrics.ihg - loopPenalty * 0.22 - actionPenalty * 0.18)),
-      nti: clamp(input.currentMetrics.nti + (hasContradiction ? 0.18 : 0) + (avoidance ? 0.14 : 0)),
-      ldi: input.currentMetrics.ldi + missedActions.length * 24 + recurringFacts.length * 12,
-      loop_score: clamp(input.currentMetrics.loop_score + loopPenalty * 0.35),
-      divergence: clamp(input.currentMetrics.divergence + (hasContradiction ? 0.15 : 0) + actionPenalty * 0.1)
+      // 2. Ejecutar auditoría de fricción (métricas reales IHG, NTI, LDI, etc.)
+      const auditResult = await executeAudit({ narrative: input });
+
+      // 3. Obtener node_id asociado al usuario
+      const { data: node, error: nodeError } = await supabase
+        .from('nodes')
+        .select('id')
+        .eq('user_id', userId)
+        .single();
+
+      if (nodeError || !node) {
+        throw new Error(`Nodo no encontrado para usuario ${userId}`);
+      }
+
+      // 4. Persistir auditoría en Supabase
+      const { error: insertError } = await supabase.from('audits').insert({
+        node_id: node.id,
+        source: 'web',
+        narrative: input,
+        ihg: auditResult.ihg,
+        nti: auditResult.nti,
+        ldi: auditResult.ldi,
+        verdict: auditResult.verdict,
+        diagnosis: auditResult.diagnosis,
+        loop_score: auditResult.loop_score,
+        divergence: auditResult.divergence,
+        pattern: auditResult.pattern,
+        hard_stop: auditResult.hard_stop,
+        proposed_action: auditResult.proposed_action
+      });
+
+      if (insertError) throw insertError;
+
+      // 5. Registrar en memoria (opcional)
+      addLog(`Auditoría completada. IHG: ${auditResult.ihg.toFixed(3)}`, 'success');
+
+      return {
+        status: 'completed',
+        metrics: {
+          ihg: auditResult.ihg,
+          nti: auditResult.nti,
+          ldi: auditResult.ldi,
+          loop_score: auditResult.loop_score,
+          divergence: auditResult.divergence,
+          pattern: auditResult.pattern,
+          hard_stop: auditResult.hard_stop
+        },
+        recommendations: [auditResult.proposed_action],
+        entropyScore: auditResult.ihg < 0 ? Math.abs(auditResult.ihg) : 0
+      };
+
+    } catch (error: any) {
+      addLog(`Fallo en proceso longitudinal: ${error.message}`, 'error');
+      return {
+        status: 'failed',
+        metrics: {},
+        recommendations: ['Reintentar sincronización de nodo'],
+        entropyScore: 1.0
+      };
     }
+  }
 
-    const severity = clamp(
-      Math.abs(Math.min(adjustedMetrics.ihg, 0)) * 0.35 +
-        adjustedMetrics.nti * 0.3 +
-        Math.min(adjustedMetrics.ldi / 168, 1) * 0.2 +
-        adjustedMetrics.loop_score * 0.15
-    )
-
-    const risk = severity > 0.82 ? 'hard_stop' : severity > 0.62 ? 'high' : severity > 0.38 ? 'medium' : 'low'
-    const pattern = hasContradiction
-      ? 'contradiccion longitudinal'
-      : missedActions.length > 0
-        ? 'accion minima no ejecutada'
-        : recurringFacts.length > 0
-          ? 'loop recurrente'
-          : avoidance
-            ? 'evitacion operacional'
-            : 'observacion base'
-
+  // Método auxiliar para análisis rápido (sin persistencia)
+  static async analyze(data: any) {
+    const friction = (data.length || 0) * 0.15;
     return {
-      adjustedMetrics,
-      pattern,
-      severity,
-      risk,
-      nextQuestion: this.nextQuestion({ pattern, pendingActions, recurringFacts }),
-      minimumAction: this.minimumAction({ risk, pattern, pendingActions }),
-      verificationCriterion: this.verificationCriterion({ pattern, pendingActions })
-    }
-  }
-
-  private static nextQuestion(input: {
-    pattern: string
-    pendingActions: LongitudinalAction[]
-    recurringFacts: MemoryFact[]
-  }) {
-    if (input.pendingActions.length > 0) {
-      return `La accion pendiente sigue abierta: "${input.pendingActions[0].description}". Que evidencia concreta existe hoy de avance o bloqueo?`
-    }
-    if (input.pattern.includes('contradiccion')) {
-      return 'Que costo operacional estas pagando por sostener ambas posiciones al mismo tiempo?'
-    }
-    if (input.recurringFacts.length > 0) {
-      return `Este patron ya aparecio antes: "${input.recurringFacts[0].label}". Que dato nuevo existe hoy?`
-    }
-    return 'Cual es el punto minimo donde la intencion deja de convertirse en ejecucion?'
-  }
-
-  private static minimumAction(input: {
-    risk: LongitudinalOutput['risk']
-    pattern: string
-    pendingActions: LongitudinalAction[]
-  }) {
-    if (input.risk === 'hard_stop') {
-      return 'Pausar toda accion expansiva durante 2 horas y aislar el nodo critico en una sola frase verificable.'
-    }
-    if (input.pendingActions.length > 0) {
-      return `Cerrar o invalidar la accion pendiente: "${input.pendingActions[0].description}".`
-    }
-    if (input.pattern.includes('contradiccion')) {
-      return 'Elegir una de las dos posiciones en conflicto y escribir que decision queda suspendida por 24 horas.'
-    }
-    return 'Registrar una accion de menos de 15 minutos con responsable, hora y criterio de cierre.'
-  }
-
-  private static verificationCriterion(input: {
-    pattern: string
-    pendingActions: LongitudinalAction[]
-  }) {
-    if (input.pendingActions.length > 0) return 'Existe evidencia fechada de cierre, avance o invalidacion consciente.'
-    if (input.pattern.includes('contradiccion')) return 'La decision suspendida queda nombrada por escrito y no se ejecuta durante 24 horas.'
-    return 'La accion queda completada o rechazada antes del siguiente ciclo de auditoria.'
+      complexity: friction > 0.8 ? 'high' : 'stable',
+      timestamp: new Date().toISOString()
+    };
   }
 }
-

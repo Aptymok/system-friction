@@ -1,56 +1,43 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { MOPH_QUESTIONS } from '@/lib/agents/systemPrompt'
-import { executeAudit } from '@/lib/agents/auditor'
-import { createAudit, createLink, createNode, getAudits } from '@/lib/store/runtimeStore'
-import { generateToken } from '@/lib/utils/tokens'
+import { NextResponse } from 'next/server';
 
-export async function POST(request: NextRequest) {
-  const body = await request.json()
-  const from = body.from as string | undefined
-  const responses = body.responses as string[] | undefined
-  const node = createNode('whatsapp', from || null)
+export async function POST(req: Request) {
+  try {
+    const payload = await req.json();
 
-  if (!responses?.length) {
-    return NextResponse.json({
-      message: `System Friction · MOP-H\n\n${MOPH_QUESTIONS[0]}`
-    })
+    // Verificación de estructura de mensaje de WhatsApp
+    if (payload.object === 'whatsapp_business_account') {
+      const entry = payload.entry?.[0];
+      const changes = entry?.changes?.[0];
+      const value = changes?.value;
+      const message = value?.messages?.[0];
+
+      if (message) {
+        console.log(`[MOP-H Flow] Mensaje recibido de ${message.from}: ${message.text?.body}`);
+        
+        // Aquí se dispara la lógica de integración homeostática
+        // puenteando hacia el Nodo de Trazabilidad Institucional
+      }
+    }
+
+    return NextResponse.json({ received: true }, { status: 200 });
+  } catch (error: unknown) {
+    return NextResponse.json({ 
+      error: 'Webhook Error', 
+      details: error instanceof Error ? error.message : 'Unknown' 
+    }, { status: 500 });
+  }
+}
+
+export async function GET(req: Request) {
+  const { searchParams } = new URL(req.url);
+  const mode = searchParams.get('hub.mode');
+  const token = searchParams.get('hub.verify_token');
+  const challenge = searchParams.get('hub.challenge');
+
+  // Verificación obligatoria para Meta/WhatsApp
+  if (mode === 'subscribe' && token === process.env.WHATSAPP_VERIFY_TOKEN) {
+    return new Response(challenge, { status: 200 });
   }
 
-  if (responses.length < MOPH_QUESTIONS.length) {
-    return NextResponse.json({ message: MOPH_QUESTIONS[responses.length] })
-  }
-
-  const result = await executeAudit({
-    responses: responses.map((answer, index) => ({ question_number: index + 1, answer })),
-    history: getAudits(node.id, 5)
-  })
-  const audit = createAudit({
-    node_id: node.id,
-    source: 'whatsapp',
-    narrative: responses.join(' | '),
-    ihg: result.ihg,
-    nti: result.nti,
-    ldi: result.ldi,
-    verdict: result.verdict,
-    diagnosis: result.diagnosis,
-    loop_score: result.loop_score,
-    divergence: result.divergence,
-    pattern: result.pattern,
-    hard_stop: result.hard_stop,
-    proposed_action: result.proposed_action
-  })
-
-  const token = generateToken()
-  createLink(node.id, token, new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString())
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
-
-  return NextResponse.json({
-    audit_id: audit.id,
-    message:
-      `AUDITORIA MOP-H COMPLETADA\n` +
-      `IHG: ${result.ihg.toFixed(3)} | NTI: ${result.nti.toFixed(3)} | LDI: ${result.ldi}h\n` +
-      `Patron: ${result.pattern}\n` +
-      `Veredicto: ${result.verdict}\n` +
-      `Terminal: ${baseUrl}/link/${token}`
-  })
+  return new Response('Forbidden', { status: 403 });
 }

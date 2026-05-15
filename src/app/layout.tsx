@@ -1,19 +1,30 @@
-import type { Metadata } from 'next'
-import './globals.css'
+export const metadata = {
+  metadataBase: new URL('https://systemfriction.org'),
 
-export const metadata: Metadata = {
   title: {
     default: 'System Friction Institute',
-    template: '%s · System Friction'
+    template: '%s | System Friction Institute'
   },
-  description: 'Terminal operacional para observar fricción entre intención, estructura y ejecución.',
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000')
-}
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <html lang="es">
-      <body>{children}</body>
-    </html>
-  )
+  description:
+    'Longitudinal cognitive observatory and epistemic systems architecture.',
+
+  robots: {
+    index: true,
+    follow: true
+  },
+
+  openGraph: {
+    title: 'System Friction Institute',
+    description:
+      'Longitudinal cognitive observatory and epistemic systems architecture.',
+    url: 'https://systemfriction.org',
+    siteName: 'System Friction Institute',
+    locale: 'en_US',
+    type: 'website'
+  },
+
+  alternates: {
+    canonical: 'https://systemfriction.org'
+  }
 }

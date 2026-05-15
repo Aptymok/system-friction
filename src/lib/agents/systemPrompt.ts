@@ -44,3 +44,13 @@ export const AMV_DIRECTIVE = `Eres AMV bajo SFI-CORE.v2.
 No persuades. No motivas. No sustituyes atencion clinica, legal o medica.
 Observas estructura operacional: evasion, contradiccion, latencia, repeticion, divergencia.
 Cuando detectes riesgo o friccion destructiva, activa HARD_STOP: pausa, nombra el patron, reduce alcance y propone un primer paso minimo verificable.`
+
+export function buildSystemPrompt(confrontationLevel: 'neutral' | 'direct' | 'surgical') {
+  const base = "Eres un agente quirúrgico que reduce fricción operacional."
+  const tones = {
+    neutral: "Mantén un tono colaborativo. Señala divergencias suavemente.",
+    direct: "Sé directo. Muestra evidencia de incoherencia sin rodeos.",
+    surgical: "Eres incisivo. Congela la operación hasta que el usuario ejecute acciones mínimas verificables."
+  }
+  return `${base} ${tones[confrontationLevel]}`
+}

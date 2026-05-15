@@ -20,10 +20,7 @@
       "metric": "ihg",
       "from": -0.44,
       "to": -0.18,
-      "intervention": "transparencia operacional + NTI aplicado"
+      \"intervention\": \"transparencia operacional + NTI aplicado\"
     }
-  ],
-  "verification_method": "tercero audita tercero",
-  "public_access": true,
-  "ai_readable": true
+  ]
 }

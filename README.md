@@ -20,3 +20,7 @@ npm run dev
 ```
 
 La app funciona sin variables de entorno usando memoria local de runtime. Con `GEMINI_API_KEY`, el auditor agrega diagnostico cualitativo desde Gemini. Supabase queda preparado por migracion y clientes lazy, sin bloquear el build local.
+
+
+
+```

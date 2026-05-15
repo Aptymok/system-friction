@@ -1,58 +1,46 @@
-'use client'
+import React from 'react';
+import { useNodeStore } from '@/lib/store/nodeStore';
 
-import { AlertTriangle, Activity, Eye, TimerReset } from 'lucide-react'
-import type { Metrics } from '@/lib/types'
-import { cn } from '@/lib/utils/cn'
+export const MetricsPanel = () => {
+  const { metrics, status } = useNodeStore();
 
-function barWidth(value: number, mode: 'signed' | 'unit' | 'hours') {
-  if (mode === 'signed') return `${Math.min(100, Math.abs(value) * 100)}%`
-  if (mode === 'hours') return `${Math.min(100, (value / 168) * 100)}%`
-  return `${Math.min(100, value * 100)}%`
-}
-
-export function MetricsPanel({ metrics, hardStop }: { metrics: Metrics; hardStop?: boolean }) {
-  const ihgTone = metrics.ihg < -0.3 ? 'bg-signalRed' : metrics.ihg > 0.3 ? 'bg-emerald-500' : 'bg-gold'
   return (
-    <section className="terminal-panel p-5">
-      <div className="mb-5 flex items-center justify-between gap-3">
-        <div>
-          <p className="font-mono text-[10px] uppercase tracking-[0.35em] text-gold">Sensores operativos</p>
-          <h2 className="mt-2 font-display text-sm uppercase tracking-[0.08em] text-paper">Estado del nodo</h2>
+    <div className="space-y-6 font-mono text-xs">
+      <div className="border border-green-900/50 p-3 bg-black/50">
+        <h3 className="text-green-500 mb-2 border-b border-green-900 pb-1">INSTRUMENTACIÓN</h3>
+        <div className="grid grid-cols-2 gap-2">
+          <span>IHG (Homeostasis):</span>
+          <span className={metrics.ihg < 0 ? 'text-red-500' : 'text-blue-400'}>{metrics.ihg.toFixed(4)}</span>
+          <span>NTI (Trazabilidad):</span>
+          <span className="text-yellow-500">{metrics.nti.toFixed(4)}</span>
+          <span>DIVERGENCIA:</span>
+          <span className="text-purple-400">{(metrics.divergence * 100).toFixed(1)}%</span>
         </div>
-        {hardStop ? <AlertTriangle className="h-5 w-5 text-signalRed" /> : <Activity className="h-5 w-5 text-gold" />}
       </div>
 
-      <div className="space-y-5">
-        <MetricLine label="IHG" value={metrics.ihg.toFixed(3)} icon={<Activity />} width={barWidth(metrics.ihg, 'signed')} fill={ihgTone} />
-        <MetricLine label="NTI" value={metrics.nti.toFixed(3)} icon={<Eye />} width={barWidth(metrics.nti, 'unit')} fill="bg-signalBlue" />
-        <MetricLine label="LDI" value={`${metrics.ldi}h`} icon={<TimerReset />} width={barWidth(metrics.ldi, 'hours')} fill="bg-zinc-300" />
+      <div className="border border-green-900/50 p-3 bg-black/50">
+        <h3 className="text-green-500 mb-2 border-b border-green-900 pb-1">ESTADO DEL NODO</h3>
+        <div className="flex items-center gap-2">
+          <div className={`h-2 w-2 rounded-full ${status === 'operational' ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
+          <span className="uppercase">{status}</span>
+        </div>
       </div>
-    </section>
-  )
-}
 
-function MetricLine({
-  label,
-  value,
-  icon,
-  width,
-  fill
-}: {
-  label: string
-  value: string
-  icon: React.ReactElement
-  width: string
-  fill: string
-}) {
-  return (
-    <div>
-      <div className="mb-2 flex items-center justify-between font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-400">
-        <span className="flex items-center gap-2">{icon && <span className="h-3 w-3 [&>svg]:h-3 [&>svg]:w-3">{icon}</span>}{label}</span>
-        <span className="text-paper">{value}</span>
-      </div>
-      <div className="h-1.5 overflow-hidden bg-zinc-900">
-        <div className={cn('h-full transition-all duration-700', fill)} style={{ width }} />
+      {/* Visualización del Atractor */}
+      <div className="h-32 border border-green-900/30 relative overflow-hidden bg-zinc-950">
+        <div 
+          className="absolute bg-blue-500/20 rounded-full blur-xl transition-all duration-1000"
+          style={{ 
+            width: '60px', 
+            height: '60px', 
+            left: `${50 + (metrics.ihg * 40)}%`, 
+            top: `${50 - (metrics.nti * 40)}%` 
+          }}
+        />
+        <div className="absolute inset-0 flex items-center justify-center text-[10px] text-zinc-700">
+          MAPA DE TRAYECTORIA
+        </div>
       </div>
     </div>
-  )
-}
+  );
+};

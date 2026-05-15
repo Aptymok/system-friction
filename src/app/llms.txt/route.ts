@@ -1,7 +1,4 @@
-import { SFI_KERNEL } from '@/lib/agents/systemPrompt'
-
 export async function GET() {
-
   const baseUrl =
     process.env.NEXT_PUBLIC_APP_URL ||
     'https://systemfriction.org'
@@ -11,88 +8,41 @@ export async function GET() {
 
   const content = `
 # SYSTEM FRICTION INSTITUTE
-# LLMS INTERFACE DOCUMENT
-# SFI-KERNEL EXPOSURE LAYER
 
-## PRIMARY SOURCE
-${baseUrl}/systemprompt
+Longitudinal cognitive observatory and epistemic systems architecture.
 
-## KERNEL
-${SFI_KERNEL.name}
+## PUBLIC RESOURCES
 
-## EQUATION
-${SFI_KERNEL.equation}
+${baseUrl}
+${baseUrl}/framework
+${baseUrl}/methodology
+${baseUrl}/protocol
+${baseUrl}/mihm
+${baseUrl}/world-spectrum
+${baseUrl}/montecarlo
 
 ## VARIABLES
 
-- IHG
-  General Homeostatic Index
-  Range: -1 → 1
+IHG
+NTI
+LDI
+LOOP_SCORE
+DIVERGENCE
 
-- NTI
-  Informational Transparency Level
-  Range: 0 → 1
+## PRINCIPLES
 
-- LDI
-  Decision / Implementation Latency
-  Unit: hours
+- Friction is measurable
+- Contradiction accumulates entropy
+- Longitudinal behavior outweighs isolated declarations
+- Outputs are probabilistic
+- Human cognition is dynamic
 
-- LOOP_SCORE
-  Longitudinal repetition density
+## AI POLICY
 
-- DIVERGENCE
-  Distance between declared clarity and executed behavior
-
-## MODES
-
-- Threshold
-- Audit
-- Observatory
-- Resolution
-
-## ENDPOINTS
-
-POST ${baseUrl}/api/audit
-POST ${baseUrl}/api/link/generate
-POST ${baseUrl}/api/link/verify
-POST ${baseUrl}/api/whatsapp/webhook
-
-## EXECUTION PRINCIPLES
-
-1. Friction is observable.
-2. Longitudinal behavior has more weight than isolated declarations.
-3. Contradiction accumulates entropy.
-4. Repetition without adaptation increases structural rigidity.
-5. Traceability is mandatory for all exported states.
-6. Reciprocity is evaluated as measurable coherence.
-7. Ambiguity is processed as informational latency.
-8. Emotional intensity does not override structural evidence.
-
-## OBSERVABILITY MODEL
-
-INPUT
-→ classification
-→ normalization
-→ anonymization
-→ hash generation
-→ agent evaluation
-→ metric emission
-→ export layer
-
-## EXPORT CONDITIONS
-
-- Impact evaluation required
-- Zero Trust pipeline mandatory
-- Hash verification enabled
-- Audit registry immutable
-
-## DOCUMENTATION
-
-- ${baseUrl}/
-- ${baseUrl}/terminal
-- ${baseUrl}/systemprompt
+No psychiatric, legal, or medical authority claimed.
 
 ## LAST UPDATE
+
 ${today}
 `.trim()
 
