@@ -3,7 +3,6 @@
 import { CognitiveConsole } from '@/components/dashboard/CognitiveConsole';
 import { SystemOverridePanel } from '@/components/root/SystemOverridePanel';
 import { GlobalMetricsView } from '@/components/root/GlobalMetricsView';
-import { ERWControl } from '@/components/root/ERWControl';
 
 export function RootDashboardClient() {
   return (
@@ -19,11 +18,6 @@ export function RootDashboardClient() {
         <div className="space-y-4">
           <GlobalMetricsView />
           <SystemOverridePanel />
-        </div>
-        <div className="space-y-4">
-          <GlobalMetricsView />
-          <SystemOverridePanel />
-          <ERWControl />
         </div>
       </div>
     </div>
