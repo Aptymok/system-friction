@@ -1,3 +1,6 @@
+import React from 'react'
+import './globals.css' // <--- ESTO ES LO QUE FALTA. IMPORTACIÓN DIRECTA DE LOS ESTILOS GLOBALES
+
 export const metadata = {
   metadataBase: new URL('https://systemfriction.org'),
 
@@ -28,6 +31,7 @@ export const metadata = {
     canonical: 'https://systemfriction.org'
   }
 }
+
 export default function RootLayout({
   children,
 }: {
@@ -35,7 +39,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es">
-      <body>{children}</body>
+      <body className="bg-black text-green-500 antialiased">
+        {children}
+      </body>
     </html>
   )
 }
