@@ -1,12 +1,12 @@
 // src/components/auth/SignupModal.tsx
 'use client';
 import { useState } from 'react';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { createBrowserSupabaseClient } from '@/lib/supabase/client';
 import { Dialog } from '@headlessui/react';
 import { MOPHFlow } from './MOPHFlow';
 
 export function SignupModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
-  const supabase = createClientComponentClient();
+  const supabase = createBrowserSupabaseClient();
   const [step, setStep] = useState<'signup' | 'moph' | 'subscription'>('signup');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

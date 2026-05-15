@@ -3,7 +3,7 @@
 import { useSystemState } from '@/lib/hooks/useSystemState';
 import { useGate } from '@/lib/hooks/useGate';
 
-export function CognitiveConsole() {
+export function CognitiveConsole({ readonly }: { readonly?: boolean } = {}) {
   const { gap, plans, systemStatus } = useSystemState();
   const { execute, escalate, block, canExecute } = useGate();
 

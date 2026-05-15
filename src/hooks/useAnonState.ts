@@ -1,6 +1,5 @@
 // src/hooks/useAnonState.ts
 import { useEffect, useState } from 'react';
-import { GlobalLearningAgent } from '@/lib/agents/GlobalLearningAgent';
 
 export function useAnonState() {
   const [metrics, setMetrics] = useState<any>({});
@@ -9,11 +8,14 @@ export function useAnonState() {
 
   useEffect(() => {
     Promise.all([
-      GlobalLearningAgent.getAggregatedMetrics(),
-      fetch('/api/world-spectrum').then(r => r.json())
+      fetch('/api/global-metrics').then(res => res.json()),
+      fetch('/api/world-spectrum').then(res => res.json())
     ]).then(([globalMetrics, ws]) => {
       setMetrics(globalMetrics);
       setWorldSpectrum(ws);
+      setLoading(false);
+    }).catch(err => {
+      console.error(err);
       setLoading(false);
     });
   }, []);

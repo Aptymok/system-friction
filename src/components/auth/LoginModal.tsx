@@ -1,7 +1,7 @@
 // src/components/auth/LoginModal.tsx
 'use client';
 import { useState } from 'react';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { createBrowserSupabaseClient } from '@/lib/supabase/client';
 import { Dialog } from '@headlessui/react';
 
 export function LoginModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
@@ -9,7 +9,7 @@ export function LoginModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [resetMode, setResetMode] = useState(false);
-  const supabase = createClientComponentClient();
+  const supabase = createBrowserSupabaseClient();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();

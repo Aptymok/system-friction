@@ -1,6 +1,6 @@
 import '@/app/globals.css';
 import { AuthProvider } from '@/components/auth/AuthProvider';
-import { initKernel } from '../lib/kernel/init';
+import { initKernel } from '@/lib/kernel/init'
 
 initKernel();
 
