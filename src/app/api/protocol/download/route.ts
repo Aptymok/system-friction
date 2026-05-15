@@ -1,16 +1,15 @@
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
-import { NextResponse } from 'next/server';
-import { generateSystemProtocol } from '@/lib/actions/generate-protocol';
+import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { NextResponse } from 'next/server'
+import { generateSystemProtocol } from '@/lib/actions/generate-protocol'
 
 export async function GET() {
-  const supabase = createRouteHandlerClient({ cookies });
-  const { data: { session } } = await supabase.auth.getSession();
-  
-  if (!session) return new NextResponse("No autorizado", { status: 401 });
+  const supabase = await createServerSupabaseClient()
+  const { data: { session } } = await supabase.auth.getSession()
 
-  const data = await generateSystemProtocol(session.user.id);
-  const { dictamen } = data;
+  if (!session) return new NextResponse('No autorizado', { status: 401 })
+
+  const data = await generateSystemProtocol(session.user.id)
+  const { dictamen } = data
 
   // Inyectamos los datos en tu Template HTML
   const htmlContent = `

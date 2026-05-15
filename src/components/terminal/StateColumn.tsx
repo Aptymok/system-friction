@@ -8,13 +8,13 @@ import { Badge } from '@/components/shared/Badge'
 import { SystemLog } from './SystemLog'
 
 export function StateColumn() {
-  const { audits, metrics } = useNodeStore()
+  const { audits } = useNodeStore()
   const last = audits[0]
   const hardStop = Boolean(last?.hard_stop)
 
   return (
     <div className="flex min-h-0 flex-col gap-5">
-      <MetricsPanel metrics={metrics} hardStop={hardStop} />
+      <MetricsPanel />
       <SystemLog />
       <SimulationCanvas />
 

@@ -1,3 +1,5 @@
+import type { AuditRequest, AuditResult } from '@/lib/types'
+
 // CognitiveTwin real – extrae sesgos mediante análisis semántico básico
 // En el futuro se puede reemplazar por embeddings + LLM.
 
@@ -42,5 +44,40 @@ export class CognitiveTwin {
       complexity,
       avoidanceScore
     };
+  }
+}
+
+export async function executeAudit(request: AuditRequest): Promise<AuditResult> {
+  const narrative = request.narrative ?? ''
+  const lengthScore = Math.min(1, narrative.length / 300)
+  const ihg = Math.max(-1, Math.min(1, 0.5 - lengthScore * 0.2 + (narrative.includes('no puedo') ? -0.15 : 0)))
+  const nti = Math.max(0, Math.min(1, 0.55 + lengthScore * 0.15))
+  const ldi = Math.max(0, Math.min(1, 0.35 + lengthScore * 0.1))
+  const loop_score = Math.min(1, lengthScore * 0.6 + (narrative.includes('contradiccion') ? 0.1 : 0))
+  const divergence = Math.min(1, Math.abs(ihg - 0.5) + lengthScore * 0.1)
+  const pattern = narrative.includes('contradiccion')
+    ? 'contradiccion interna'
+    : narrative.includes('miedo')
+    ? 'evitacion'
+    : 'trayectoria estable'
+  const hard_stop = divergence >= 0.75
+  const verdict = hard_stop ? 'nodo en riesgo' : 'ciclo viable'
+  const diagnosis = `Auditoría heurística generada. Longitud=${narrative.length}, confidencia en diagnostico moderada.`
+  const proposed_action = hard_stop
+    ? 'Revisa el objetivo y confirma una accion observable antes del proximo ciclo.'
+    : 'Define una accion minima medible para el siguiente umbral.'
+
+  return {
+    ihg,
+    nti,
+    ldi,
+    loop_score,
+    divergence,
+    verdict,
+    diagnosis,
+    entities: [],
+    pattern,
+    hard_stop,
+    proposed_action
   }
 }

@@ -14,7 +14,13 @@ export default function MagicLinkPage() {
 
   useEffect(() => {
     const verify = async () => {
-      const ok = await syncWithToken(params.token)
+      const token = params?.token
+      if (!token) {
+        setStatus('Token invalido o expirado.')
+        return
+      }
+
+      const ok = await syncWithToken(token)
       if (ok) {
         setStatus('Nodo sincronizado. Redirigiendo a terminal.')
         router.replace('/terminal')
@@ -23,7 +29,7 @@ export default function MagicLinkPage() {
       }
     }
     void verify()
-  }, [params.token, router, syncWithToken])
+  }, [params, router, syncWithToken])
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-void p-6">

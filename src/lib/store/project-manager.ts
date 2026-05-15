@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createServerSupabaseClient } from '@/lib/supabase/server';
 
 export interface Milestone {
   id?: string;
@@ -8,7 +8,7 @@ export interface Milestone {
 }
 
 export class ProjectManager {
-  private supabase = createClient();
+  private supabase = createServerSupabaseClient();
 
   async addMilestone(nodeId: string, name: string, dueDate: Date) {
     const supabase = await this.supabase;

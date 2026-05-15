@@ -11,7 +11,8 @@ export async function POST(req: Request) {
   try {
     const { stdout } = await execAsync(`python ${scriptPath} '${inputJson.replace(/'/g, "'\\''")}'`);
     return Response.json(JSON.parse(stdout));
-  } catch (error) {
-    return Response.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error'
+    return Response.json({ error: message }, { status: 500 })
   }
 }

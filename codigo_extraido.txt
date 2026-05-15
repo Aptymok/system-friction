@@ -3485,10 +3485,10 @@ export default async function ResetPage({ searchParams }: { searchParams: Promis
 "use client"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
+import { createServerSupabaseClientComponentClient } from "@supabase/auth-helpers-nextjs"
 
 export default function SetupProfilePage() {
-  const supabase = createClientComponentClient()
+  const supabase = createServerSupabaseClientComponentClient()
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [userEmail, setUserEmail] = useState("BUSCANDO_SEÑAL...")
@@ -4893,7 +4893,7 @@ export async function POST(request: NextRequest) {
 }
 
 --- src/app/api/webhooks/stripe/route.ts ---
-import { createClient } from '@supabase/supabase-js';
+import { createServerSupabaseClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 
@@ -4901,7 +4901,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2023-10-16', // o la versión más reciente
 });
 
-const supabase = createClient(
+const supabase = createServerSupabaseClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY! // Usa la Service Role Key para poder saltar reglas de seguridad
 );
@@ -7606,7 +7606,7 @@ export function verifyLink(token: string) {
 --- src/lib/supabase/client.ts ---
 import { createBrowserClient } from '@supabase/ssr'
 
-export function createClient() {
+export function createServerSupabaseClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   if (!url || !key) return null
@@ -7614,7 +7614,7 @@ export function createClient() {
 }
 
 --- src/lib/supabase/server.ts ---
-import { createClient } from '@supabase/supabase-js'
+import { createServerSupabaseClient } from '@supabase/supabase-js'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
@@ -7644,7 +7644,7 @@ export function createServiceSupabaseClient() {
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY
   if (!url || !key) return null
 
-  return createClient(url, key, {
+  return createServerSupabaseClient(url, key, {
     auth: {
       autoRefreshToken: false,
       persistSession: false

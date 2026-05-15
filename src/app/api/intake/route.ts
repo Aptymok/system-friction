@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
     if (!userId) return NextResponse.json({ success: false, error: 'No se pudo crear identidad operacional.' }, { status: 500 })
     const baseline = deriveMOPHBaseline(input.responses)
     const baselineNarrative = buildMOPHNarrative(input.responses)
-    const auditResult = await executeAudit({ narrative: baselineNarrative })
+    const auditResult = await executeAudit({ source: 'web', narrative: baselineNarrative })
 
     await supabase.from('profiles').upsert({
       user_id: userId,

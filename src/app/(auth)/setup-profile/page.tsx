@@ -1,10 +1,10 @@
 "use client"
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
+import { FormEvent, useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { createBrowserSupabaseClient } from '@/lib/supabase/client'
 
 export default function SetupProfilePage() {
-  const supabase = createClientComponentClient()
+  const supabase = createBrowserSupabaseClient()
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [userEmail, setUserEmail] = useState("BUSCANDO_SEÑAL...")
@@ -12,53 +12,65 @@ export default function SetupProfilePage() {
 
   useEffect(() => {
     const getSession = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user?.email) {
-        setUserEmail(user.email)
-      } else {
-        // Si no hay sesión real, abortar al login inmediatamente
-        router.push("/login")
+      if (!supabase) {
+        router.push('/login')
+        return
       }
+
+      const { data, error } = await supabase.auth.getUser()
+      if (error || !data.user?.email) {
+        router.push('/login')
+        return
+      }
+
+      setUserEmail(data.user.email)
     }
+
     getSession()
   }, [supabase, router])
 
-  const handleFinalize = async (e: React.FormEvent) => {
+  const handleFinalize = async (e: FormEvent) => {
     e.preventDefault()
     setLoading(true)
 
-    // 1. Inyección de Credenciales (Update Password)
+    if (!supabase) {
+      router.push('/login')
+      return
+    }
+
+    const { data: userData, error: getUserError } = await supabase.auth.getUser()
+    if (getUserError || !userData.user) {
+      setLoading(false)
+      router.push('/login')
+      return
+    }
+
     const { error: authError } = await supabase.auth.updateUser({
-      password: formData.password
+      password: formData.password,
     })
 
     if (authError) {
-      console.error("COLAPSO_AUTH:", authError.message)
+      console.error('COLAPSO_AUTH:', authError.message)
       setLoading(false)
       return
     }
 
-    // 2. Sincronización del Nodo (Profiles)
-    // Usamos el ID directamente del auth para evitar dobles pensamientos
-    const { data: { user } } = await supabase.auth.getUser()
-    
     const { error: profileError } = await supabase
       .from('profiles')
-      .update({ 
+      .update({
         full_name: formData.fullName,
         setup_completed: true,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       })
-      .eq('id', user?.id)
+      .eq('id', userData.user.id)
 
     if (!profileError) {
-      // Forzamos el refresh para que el Middleware detecte el setup_completed: true
       router.refresh()
       setTimeout(() => {
-        router.push("/terminal")
-      }, 1500) // Latencia estética para simular carga de módulos
+        router.push('/terminal')
+      }, 1500)
     } else {
-      console.error("ERROR_SINCRONIZACION_NODO")
+      console.error('ERROR_SINCRONIZACION_NODO:', profileError.message)
     }
     setLoading(false)
   }

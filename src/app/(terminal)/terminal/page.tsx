@@ -1,3 +1,5 @@
+'use client'
+
 import { ConsoleColumn } from '@/components/terminal/ConsoleColumn';
 import { MetricsPanel } from '@/components/terminal/MetricsPanel';
 import { MemoryColumn } from '@/components/terminal/MemoryColumn';

@@ -23,6 +23,9 @@ export async function POST(request: NextRequest) {
     .select('*')
     .single()
 
-  if (error) return NextResponse.json({ success: false, error: error.message }, { status: 500 })
+  if (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error'
+    return NextResponse.json({ success: false, error: message }, { status: 500 })
+  }
   return NextResponse.json({ success: true, source: data })
 }

@@ -1,47 +1,81 @@
-import { executeAudit } from './auditor';
-import { CognitiveTwin } from './cognitive-twin';
-import { useNodeStore } from '../store/nodeStore';
-import { createClient } from '../supabase/server';
-import type { AuditResult } from './auditor';
+﻿import { executeAudit } from './auditor'
+import { CognitiveTwin } from './cognitive-twin'
+import { useNodeStore } from '../store/nodeStore'
+import { createServerSupabaseClient } from '../supabase/server'
+import type { Audit, Metrics, MemoryFact, OperationalAction } from '@/lib/types'
+
+export type LongitudinalAction = OperationalAction
+export type LongitudinalMemoryFact = MemoryFact
+
+export interface LongitudinalEngineInput {
+  currentNarrative: string
+  currentMetrics: Metrics
+  audits: Audit[]
+  actions: LongitudinalAction[]
+  memoryFacts: MemoryFact[]
+}
+
+export interface LongitudinalEngineResult {
+  nextQuestion: string
+  pattern: string
+  severity: number
+  risk: 'low' | 'medium' | 'high' | 'hard_stop'
+  minimumAction: string
+  verificationCriterion: string
+}
+
+export const LongitudinalEngine = {
+  evaluate({ currentNarrative, currentMetrics, audits, actions, memoryFacts }: LongitudinalEngineInput): LongitudinalEngineResult {
+    const lastPattern = audits?.[0]?.pattern || memoryFacts?.[0]?.fact_type || 'estado neutro'
+    const severity = Math.min(1, Math.max(0, currentMetrics.divergence + (audits?.[0]?.loop_score ?? 0) * 0.15))
+    const risk = severity >= 0.8 ? 'hard_stop' : severity >= 0.55 ? 'high' : severity >= 0.3 ? 'medium' : 'low'
+
+    let nextQuestion = '¿Qué acción mínima concreta puedes ejecutar en los próximos 30 minutos?'
+    if (currentNarrative.includes('no puedo') || String(lastPattern).includes('contradiccion')) {
+      nextQuestion = '¿Qué evidencia externa valida la decisión más importante de este ciclo?'
+    }
+
+    const minimumAction = actions?.[0]?.description || 'Definir un criterio observable para el siguiente ciclo.'
+    const verificationCriterion = actions?.[0]?.verification_criterion || 'Debe existir un resultado observable antes de la próxima iteración.'
+
+    return {
+      nextQuestion,
+      pattern: String(lastPattern),
+      severity,
+      risk,
+      minimumAction,
+      verificationCriterion,
+    }
+  },
+}
 
 export interface LongitudinalOutput {
-  status: 'active' | 'completed' | 'failed';
-  metrics: any;
-  recommendations: string[];
-  entropyScore: number;
+  status: 'active' | 'completed' | 'failed'
+  metrics: Record<string, unknown>
+  recommendations: string[]
+  entropyScore: number
 }
 
 export class LongitudinalAgent {
-  /**
-   * Proceso principal de auditoría longitudinal
-   * @param userId - ID del usuario (autenticado)
-   * @param input - Narrativa o texto a auditar
-   */
   static async process(userId: string, input: string): Promise<LongitudinalOutput> {
-    const supabase = await createClient();
-    const addLog = useNodeStore.getState().addLog;
+    const supabase = await createServerSupabaseClient()
+    const addLog = useNodeStore.getState().addLog
 
     try {
-      addLog(`Iniciando auditoría longitudinal para nodo: ${userId}`, 'info');
+      addLog(`Iniciando auditoría longitudinal para nodo: ${userId}`, 'info')
+      const cognitiveSeed = await CognitiveTwin.extractSeed(input)
+      const auditResult = await executeAudit({ source: 'web', narrative: input })
 
-      // 1. Extraer sesgos cognitivos (sin simulaciones, usando el twin real)
-      const cognitiveSeed = await CognitiveTwin.extractSeed(input);
-
-      // 2. Ejecutar auditoría de fricción (métricas reales IHG, NTI, LDI, etc.)
-      const auditResult = await executeAudit({ narrative: input });
-
-      // 3. Obtener node_id asociado al usuario
       const { data: node, error: nodeError } = await supabase
         .from('nodes')
         .select('id')
         .eq('user_id', userId)
-        .single();
+        .single()
 
       if (nodeError || !node) {
-        throw new Error(`Nodo no encontrado para usuario ${userId}`);
+        throw new Error(`Nodo no encontrado para usuario ${userId}`)
       }
 
-      // 4. Persistir auditoría en Supabase
       const { error: insertError } = await supabase.from('audits').insert({
         node_id: node.id,
         source: 'web',
@@ -55,13 +89,12 @@ export class LongitudinalAgent {
         divergence: auditResult.divergence,
         pattern: auditResult.pattern,
         hard_stop: auditResult.hard_stop,
-        proposed_action: auditResult.proposed_action
-      });
+        proposed_action: auditResult.proposed_action,
+      })
 
-      if (insertError) throw insertError;
+      if (insertError) throw insertError
 
-      // 5. Registrar en memoria (opcional)
-      addLog(`Auditoría completada. IHG: ${auditResult.ihg.toFixed(3)}`, 'success');
+      addLog(`Auditoría completada. IHG: ${auditResult.ihg.toFixed(3)}`, 'success')
 
       return {
         status: 'completed',
@@ -72,29 +105,29 @@ export class LongitudinalAgent {
           loop_score: auditResult.loop_score,
           divergence: auditResult.divergence,
           pattern: auditResult.pattern,
-          hard_stop: auditResult.hard_stop
+          hard_stop: auditResult.hard_stop,
         },
         recommendations: [auditResult.proposed_action],
-        entropyScore: auditResult.ihg < 0 ? Math.abs(auditResult.ihg) : 0
-      };
-
-    } catch (error: any) {
-      addLog(`Fallo en proceso longitudinal: ${error.message}`, 'error');
+        entropyScore: auditResult.ihg < 0 ? Math.abs(auditResult.ihg) : 0,
+      }
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Error desconocido en auditoría'
+      addLog(`Fallo en proceso longitudinal: ${message}`, 'error')
       return {
         status: 'failed',
         metrics: {},
         recommendations: ['Reintentar sincronización de nodo'],
-        entropyScore: 1.0
-      };
+        entropyScore: 1.0,
+      }
     }
   }
 
-  // Método auxiliar para análisis rápido (sin persistencia)
-  static async analyze(data: any) {
-    const friction = (data.length || 0) * 0.15;
+  static async analyze(data: unknown) {
+    const size = Array.isArray(data) ? data.length : 0
+    const friction = size * 0.15
     return {
       complexity: friction > 0.8 ? 'high' : 'stable',
-      timestamp: new Date().toISOString()
-    };
+      timestamp: new Date().toISOString(),
+    }
   }
 }

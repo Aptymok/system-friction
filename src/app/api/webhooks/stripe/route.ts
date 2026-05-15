@@ -1,30 +1,35 @@
-import { createClient } from '@supabase/supabase-js';
-import { NextResponse } from 'next/server';
-import Stripe from 'stripe';
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2023-10-16', // o la versión más reciente
-});
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY! // Usa la Service Role Key para poder saltar reglas de seguridad
-);
+import { requireServiceSupabaseClient } from '@/lib/supabase/server'
+import { NextResponse } from 'next/server'
+import Stripe from 'stripe'
 
 export async function POST(req: Request) {
-  const payload = await req.text();
-  const signature = req.headers.get('stripe-signature')!;
+  if (!process.env.STRIPE_SECRET_KEY || !process.env.STRIPE_WEBHOOK_SECRET) {
+    return NextResponse.json({ error: 'Stripe configuration is not available.' }, { status: 500 })
+  }
 
-  let event;
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+    apiVersion: '2026-04-22.dahlia',
+  })
+
+  const supabase = requireServiceSupabaseClient()
+  const payload = await req.text()
+  const signature = req.headers.get('stripe-signature')
+
+  if (!signature) {
+    return NextResponse.json({ error: 'Falta la firma de Stripe' }, { status: 400 })
+  }
+
+  let event
 
   try {
     event = stripe.webhooks.constructEvent(
       payload,
       signature,
-      process.env.STRIPE_WEBHOOK_SECRET!
-    );
-  } catch (err: any) {
-    return NextResponse.json({ error: `Webhook Error: ${err.message}` }, { status: 400 });
+      process.env.STRIPE_WEBHOOK_SECRET!,
+    )
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Webhook signature invalid'
+    return NextResponse.json({ error: `Webhook Error: ${message}` }, { status: 400 })
   }
 
   // Cuando el pago es exitoso

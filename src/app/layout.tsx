@@ -28,3 +28,14 @@ export const metadata = {
     canonical: 'https://systemfriction.org'
   }
 }
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return (
+    <html lang="es">
+      <body>{children}</body>
+    </html>
+  )
+}

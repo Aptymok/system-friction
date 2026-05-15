@@ -1,28 +1,33 @@
-import { NextApiRequest, NextApiResponse } from 'next'
 import { v4 as uuidv4 } from 'uuid'
+import { requireServiceSupabaseClient } from '@/lib/supabase/server'
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' })
+export async function POST(req: Request) {
+  const body = await req.json()
+  const email = String(body.email || '')
+
+  if (!email) {
+    return new Response(JSON.stringify({ success: false, error: 'Email requerido' }), { status: 400, headers: { 'Content-Type': 'application/json' } })
   }
 
-  try {
-    const { email } = req.body
-    const magicToken = uuidv4()
-    const expires = new Date(Date.now() + 1000 * 60 * 15) // 15 minutos
+  const magicToken = uuidv4()
+  const expires = new Date(Date.now() + 1000 * 60 * 15)
+  const supabase = requireServiceSupabaseClient()
 
-    // Aquí se debe insertar la lógica de persistencia en tu DB
-    // db.magicLinks.create({ data: { email, token: magicToken, expires } })
-
-    const magicUrl = `https://systemfriction.org/api/link/verify?token=${magicToken}`
-
-    return res.status(200).json({ 
-      success: true, 
+  const { error } = await supabase
+    .from('magic_links')
+    .insert({
+      email,
       token: magicToken,
-      url: magicUrl,
-      message: 'Token de acceso generado correctamente' 
+      expires_at: expires.toISOString(),
+      created_at: new Date().toISOString(),
     })
-  } catch (error) {
-    return res.status(500).json({ success: false, error: 'Internal Server Error' })
+    .select()
+    .single()
+
+  if (error) {
+    return new Response(JSON.stringify({ success: false, error: 'No se pudo generar el enlace mágico' }), { status: 500, headers: { 'Content-Type': 'application/json' } })
   }
+
+  const magicUrl = `https://systemfriction.org/api/link/verify?token=${magicToken}`
+  return new Response(JSON.stringify({ success: true, token: magicToken, url: magicUrl, message: 'Token de acceso generado correctamente' }), { status: 200, headers: { 'Content-Type': 'application/json' } })
 }

@@ -1,5 +1,5 @@
-import { LongitudinalEngine, type LongitudinalAction, type MemoryFact } from './longitudinal'
-import type { Audit, Metrics } from '@/lib/types'
+import { LongitudinalEngine, type LongitudinalAction } from './longitudinal'
+import type { Audit, Metrics, MemoryFact } from '@/lib/types'
 
 export interface AMVContext {
   nodeId: string

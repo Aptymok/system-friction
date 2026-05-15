@@ -1,6 +1,0 @@
-{
-  "version": 3,
-  "sources": [],
-  "sections": [
-    {"offset": {"line": 4, "column": 0}, "map": {"version":3,"sources":["file:///D:/system%20friction/src/app/%28terminal%29/layout.tsx"],"sourcesContent":["export default function TerminalLayout({ children }: { children: React.ReactNode }) {\n  return <div className=\"min-h-screen bg-void text-paper\">{children}</div>\n}\n"],"names":["TerminalLayout","children","className"],"mappings":";;;;;;AAAe,SAASA,eAAe,EAAEC,QAAQ,EAAiC;IAChF,qBAAO,8OAAC;QAAIC,WAAU;kBAAmCD;;;;;;AAC3D"}}]
-}

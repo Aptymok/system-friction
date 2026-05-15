@@ -1,3 +1,21 @@
+export interface CognitiveState {
+  hesitation_factor: number
+  interaction_time: number
+  risk_score: 'high' | 'nominal'
+}
+
+export function trackCognitiveResistance(answer: string, startTime: number, deletions: number): CognitiveState {
+  const interaction_time = Math.max(1, (Date.now() - startTime) / 1000)
+  const hesitation_factor = deletions / interaction_time
+  const risk_score = hesitation_factor > 0.5 || answer.length < 60 ? 'high' : 'nominal'
+
+  return {
+    hesitation_factor,
+    interaction_time,
+    risk_score,
+  }
+}
+
 export class BehavioralTracker {
   private startTime: number = 0;
   private deletions: number = 0;

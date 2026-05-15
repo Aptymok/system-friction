@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { LongitudinalAgent } from '@/lib/agents/longitudinal';
-import { createClient } from '@/lib/supabase/server';
+import { createServerSupabaseClient } from '@/lib/supabase/server';
 
 export async function POST(req: NextRequest) {
   try {
-    const supabase = await createClient();
+    const supabase = await createServerSupabaseClient();
     const { data: { session } } = await supabase.auth.getSession();
 
     if (!session) {
@@ -27,11 +27,12 @@ export async function POST(req: NextRequest) {
       timestamp: new Date().toISOString()
     });
 
-  } catch (error: any) {
-    console.error('Audit API Error:', error);
-    return NextResponse.json({ 
-      success: false, 
-      error: error.message 
-    }, { status: 500 });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error'
+    console.error('Audit API Error:', message)
+    return NextResponse.json({
+      success: false,
+      error: message,
+    }, { status: 500 })
   }
 }

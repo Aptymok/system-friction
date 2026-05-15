@@ -34,8 +34,9 @@ export async function POST(req: Request) {
     const { stdout } = await execAsync(cmd);
     await unlink(tempPath);
     return Response.json(JSON.parse(stdout));
-  } catch (error) {
-    await unlink(tempPath).catch(() => {});
-    return Response.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    await unlink(tempPath).catch(() => {})
+    const message = error instanceof Error ? error.message : 'Unknown error'
+    return Response.json({ error: message }, { status: 500 })
   }
 }
