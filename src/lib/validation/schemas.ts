@@ -46,17 +46,31 @@ export const authSchema = z.object({
 
 export const telemetrySourceSchema = z.object({
   nodeId: z.string().min(3),
-  provider: z.enum(['github', 'medium', 'linkedin', 'x', 'telegram', 'rss', 'manual']),
+  provider: z.enum(['github', 'medium', 'linkedin', 'x', 'twitter', 'instagram', 'tiktok', 'telegram', 'rss', 'manual']),
   source_type: z.enum(['oauth', 'webhook', 'manual_import', 'rss', 'api']),
   handle: z.string().max(180).optional(),
+  access_token: z.string().min(8).optional(),
+  refresh_token: z.string().min(8).optional(),
+  expires_at: z.string().datetime().optional(),
+  external_account_id: z.string().max(240).optional(),
   consent_scope: z.record(z.string(), z.unknown()).default({})
 })
 
 export const telemetryIngestSchema = z.object({
   nodeId: z.string().min(3),
-  provider: z.enum(['github', 'medium', 'linkedin', 'x', 'telegram', 'rss', 'manual']),
+  provider: z.enum(['github', 'medium', 'linkedin', 'x', 'twitter', 'instagram', 'tiktok', 'telegram', 'rss', 'manual']),
   external_id: z.string().max(240).optional(),
   raw_text: z.string().min(1).max(8000),
   raw_payload: z.record(z.string(), z.unknown()).default({}),
   published_at: z.string().datetime().optional()
+})
+
+export const socialPostSchema = z.object({
+  nodeId: z.string().min(3),
+  provider: z.enum(['x', 'twitter', 'instagram', 'tiktok', 'linkedin']),
+  text: z.string().min(1).max(2800),
+  media_url: z.string().url().optional(),
+  scheduled_for: z.string().datetime().optional(),
+  autonomous_amv: z.boolean().default(false),
+  mode: z.enum(['publish_now', 'schedule']).default('schedule')
 })

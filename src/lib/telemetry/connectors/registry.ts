@@ -14,6 +14,9 @@ export const telemetryConnectors: Record<TelemetryProvider, TelemetryConnector> 
   medium: officialApiPlaceholder('medium'),
   linkedin: officialApiPlaceholder('linkedin'),
   x: officialApiPlaceholder('x'),
+  twitter: officialApiPlaceholder('twitter'),
+  instagram: officialApiPlaceholder('instagram'),
+  tiktok: officialApiPlaceholder('tiktok'),
   telegram: officialApiPlaceholder('telegram'),
   rss: officialApiPlaceholder('rss'),
   manual: manualConnector

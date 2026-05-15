@@ -1,17 +1,19 @@
-import { exec } from 'child_process';
-import { promisify } from 'util';
-import path from 'path';
+import { NextRequest, NextResponse } from "next/server";
+import { handleEvent } from "@/lib/kernel/entrypoint";
+import { assertEvent } from "@/lib/kernel/assertEvent";
 
-const execAsync = promisify(exec);
+export async function POST(req: NextRequest) {
+  const body = await req.json();
 
-export async function GET() {
-  const scriptPath = path.join(process.cwd(), 'services/python/world_cli.py');
-  try {
-    const { stdout } = await execAsync(`python ${scriptPath}`);
-    const data = JSON.parse(stdout);
-    return Response.json(data);
-  } catch (error) {
-    console.error(error);
-    return Response.json({ error: 'WorldSpectrum failed' }, { status: 500 });
-  }
+  assertEvent("world_spectrum");
+
+  const result = await handleEvent(
+    {
+      type: "world_spectrum",
+      payload: body,
+    },
+    body.metrics || {}
+  );
+
+  return NextResponse.json(result);
 }

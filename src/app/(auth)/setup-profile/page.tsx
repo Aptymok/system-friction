@@ -57,12 +57,16 @@ export default function SetupProfilePage() {
 
     const { error: profileError } = await supabase
       .from('profiles')
-      .update({
-        full_name: formData.fullName,
-        setup_completed: true,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', userData.user.id)
+      .upsert(
+        {
+          user_id: userData.user.id,
+          alias: formData.fullName,
+          email: userData.user.email || '',
+          updated_at: new Date().toISOString(),
+          last_seen_at: new Date().toISOString(),
+        },
+        { onConflict: 'user_id' }
+      )
 
     if (!profileError) {
       router.refresh()

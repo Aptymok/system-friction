@@ -1,3 +1,9 @@
+import '@/app/globals.css'
+import { AuthProvider } from '@/components/auth/AuthProvider'
+import { initKernel } from '../lib/kernel/init'
+
+initKernel();
+
 export const metadata = {
   metadataBase: new URL('https://systemfriction.org'),
 
@@ -28,14 +34,17 @@ export const metadata = {
     canonical: 'https://systemfriction.org'
   }
 }
+
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
   return (
-    <html lang="es">
-      <body>{children}</body>
+    <html lang="es" suppressHydrationWarning>
+      <body>
+        <AuthProvider>{children}</AuthProvider>
+      </body>
     </html>
   )
 }

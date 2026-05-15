@@ -88,3 +88,8 @@ export class MetricsEngine {
     return { ihg, nti, ldi, loop_score, divergence }
   }
 }
+export async function getMetricsHistory(userId?: string, limit = 20) {
+  // Implementación real: obtener historial de auditorías del usuario
+  // Por ahora devolvemos un array vacío
+  return [];
+}

@@ -1,0 +1,54 @@
+{
+  "routes": {
+    "/actions": {
+      "path": "/actions",
+      "exists": false,
+      "lastSeen": 1778880429229,
+      "health": "missing"
+    },
+    "/amv": {
+      "path": "/amv",
+      "exists": false,
+      "lastSeen": 1778880429229,
+      "health": "missing"
+    },
+    "/audit": {
+      "path": "/audit",
+      "exists": false,
+      "lastSeen": 1778880429229,
+      "health": "missing"
+    },
+    "/cron": {
+      "path": "/cron",
+      "exists": false,
+      "lastSeen": 1778880429229,
+      "health": "missing"
+    },
+    "/node": {
+      "path": "/node",
+      "exists": false,
+      "lastSeen": 1778880429229,
+      "health": "missing"
+    },
+    "/telemetry": {
+      "path": "/telemetry",
+      "exists": false,
+      "lastSeen": 1778880429229,
+      "health": "missing"
+    },
+    "/webhooks": {
+      "path": "/webhooks",
+      "exists": false,
+      "lastSeen": 1778880429229,
+      "health": "missing"
+    },
+    "/whatsapp": {
+      "path": "/whatsapp",
+      "exists": false,
+      "lastSeen": 1778880429229,
+      "health": "missing"
+    }
+  },
+  "tickVersion": 1,
+  "lastRebuild": 1778880429228
+}

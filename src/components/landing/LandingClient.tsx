@@ -14,9 +14,12 @@ import { AMVThoughts } from '@/components/landing/AMVThoughts'
 import { OperationalCTA } from '@/components/landing/OperationalCTA'
 import { Footer } from '@/components/landing/Footer'
 import { InterruptionAlert } from '@/components/landing/InterruptionAlert'
+import { PublicOperationalShell } from '@/components/landing/PublicOperationalShell'
+import { useTelemetryPulse } from '@/lib/hooks/useTelemetryPulse'
 
 export function LandingClient() {
   const [showExitAlert, setShowExitAlert] = useState(false)
+  useTelemetryPulse()
 
   useEffect(() => {
     const handleMouseLeave = (e: MouseEvent) => {
@@ -43,6 +46,7 @@ export function LandingClient() {
       />
 
       <Header />
+      <PublicOperationalShell />
 
       <article className="relative pt-16">
         <Hero />

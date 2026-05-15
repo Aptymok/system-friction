@@ -13,6 +13,9 @@ export type SFIEventType =
   | 'amv.question_asked'
   | 'amv.session_completed'
   | 'license.changed'
+  | 'publication.scheduled'
+  | 'publication.published'
+  | 'publication.failed'
 
 export async function appendEvent(input: {
   user_id?: string | null

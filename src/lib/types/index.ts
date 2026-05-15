@@ -49,6 +49,22 @@ export interface MemoryFact {
   recurrence_count: number
 }
 
+export type SocialProvider = 'x' | 'twitter' | 'instagram' | 'tiktok' | 'linkedin'
+
+export interface PublicationMetadata {
+  provider?: SocialProvider
+  text?: string
+  media_url?: string | null
+  scheduled_for?: string | null
+  external_post_id?: string | null
+  external_url?: string | null
+  autonomous_amv?: boolean
+  metrics?: Record<string, number>
+  error?: string | null
+  attempts?: number
+  published_at?: string | null
+}
+
 export interface OperationalAction {
   id: string
   node_id: string
@@ -58,6 +74,8 @@ export interface OperationalAction {
   due_at?: string | null
   completed_at?: string | null
   status: 'pending' | 'completed' | 'missed' | 'invalidated'
+  action_type?: 'operational' | 'publication' | string
+  metadata?: PublicationMetadata | Record<string, unknown> | null
   created_at: string
 }
 

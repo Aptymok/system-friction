@@ -1,11 +1,19 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from "next/server";
+import { handleEvent } from "@/lib/kernel/entrypoint";
+import { assertEvent } from "@/lib/kernel/assertEvent";
 
-export async function GET() {
-  return NextResponse.json({
-    framework: 'SFI-CORE.v2',
-    kernel: 'https://systemfriction.org/systemprompt.html',
-    reproducibility: 'open_source',
-    audit_process: 'MOP-H',
-    sensors: ['IHG', 'NTI', 'LDI']
-  })
+export async function POST(req: NextRequest) {
+  const body = await req.json();
+
+  assertEvent("methodology_request");
+
+  const result = await handleEvent(
+    {
+      type: "methodology_request",
+      payload: body,
+    },
+    body.metrics || {}
+  );
+
+  return NextResponse.json(result);
 }

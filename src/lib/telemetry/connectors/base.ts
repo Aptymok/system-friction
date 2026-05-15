@@ -1,4 +1,4 @@
-export type TelemetryProvider = 'github' | 'medium' | 'linkedin' | 'x' | 'telegram' | 'rss' | 'manual'
+export type TelemetryProvider = 'github' | 'medium' | 'linkedin' | 'x' | 'twitter' | 'instagram' | 'tiktok' | 'telegram' | 'rss' | 'manual'
 
 export interface RawSignal {
   provider: TelemetryProvider

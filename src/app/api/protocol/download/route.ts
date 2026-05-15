@@ -1,27 +1,19 @@
-import { createServerSupabaseClient } from '@/lib/supabase/server'
-import { NextResponse } from 'next/server'
-import { generateSystemProtocol } from '@/lib/actions/generate-protocol'
+import { NextRequest, NextResponse } from "next/server";
+import { handleEvent } from "@/lib/kernel/entrypoint";
+import { assertEvent } from "@/lib/kernel/assertEvent";
 
-export async function GET() {
-  const supabase = await createServerSupabaseClient()
-  const { data: { session } } = await supabase.auth.getSession()
+export async function POST(req: NextRequest) {
+  const body = await req.json();
 
-  if (!session) return new NextResponse('No autorizado', { status: 401 })
+  assertEvent("protocol_download");
 
-  const data = await generateSystemProtocol(session.user.id)
-  const { dictamen } = data
-
-  // Inyectamos los datos en tu Template HTML
-  const htmlContent = `
-    <div class="relacion-critica">"${dictamen.fractura}"</div>
-    <div class="metric-val c-gold">${dictamen.verdad_score}%</div>
-    <div class="relacion-critica" style="font-size: 16pt;">"${dictamen.accion_inmediata}"</div>
-    `;
-
-  return new NextResponse(htmlContent, {
-    headers: {
-      'Content-Type': 'text/html',
-      'Content-Disposition': 'attachment; filename=Dictamen_Ontologico_SFI.html',
+  const result = await handleEvent(
+    {
+      type: "protocol_download",
+      payload: body,
     },
-  });
+    body.metrics || {}
+  );
+
+  return NextResponse.json(result);
 }

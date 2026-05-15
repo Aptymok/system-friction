@@ -1,5 +1,5 @@
 ﻿import { cookies } from 'next/headers'
-import { createServerClient } from '@supabase/ssr'
+import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
 
 export async function createServerSupabaseClient() {
@@ -10,14 +10,18 @@ export async function createServerSupabaseClient() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value
+        getAll() {
+          return cookieStore.getAll()
         },
-        set() {
-          // Supabase SSR helper uses cookies automatically in App Router.
-        },
-        remove() {
-          // No-op on server-side helper.
+        setAll(cookiesToSet: Array<{ name: string; value: string; options: CookieOptions }>) {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            try {
+              cookieStore.set(name, value, options)
+            } catch {
+              // Reads still work in Server Components; mutations happen in
+              // Server Actions, Route Handlers and Proxy.
+            }
+          })
         },
       },
     }

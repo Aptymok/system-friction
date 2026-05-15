@@ -10,11 +10,13 @@ interface NodeState {
   memoryFacts: MemoryFact[]
   actions: OperationalAction[]
   snapshotHistory: NodeSnapshot[]
+  phase: number
   syncWithToken: (token: string) => Promise<boolean>
   metrics: Metrics
   status: 'operational' | 'standby' | 'critical' | 'frozen'
   logs: Array<{ type: string; content: string; timestamp: string }>
   updateMetrics: (newMetrics: Partial<Metrics>) => void
+  setPhase: (phase: number) => void
   addLog: (content: string, type?: string, signal?: TelemetrySignal) => void
   ingestSignal: (signal: TelemetrySignal, detail?: string) => void
   addSnapshot: (label: string, note?: string) => void
@@ -24,6 +26,7 @@ interface NodeState {
   setAudits: (audits: Audit[]) => void
   setMemoryFacts: (facts: MemoryFact[]) => void
   setActions: (actions: OperationalAction[]) => void
+  bootstrap: () => Promise<void>
 }
 
 function persistSnapshots(snapshots: NodeSnapshot[]) {
@@ -64,9 +67,11 @@ export const useNodeStore = create<NodeState>((set, get) => ({
     }
   },
   metrics: defaultMetrics,
+  phase: 1,
   status: 'operational',
   logs: [{ type: 'system', content: 'Nodo Soberano Iniciado', timestamp: new Date().toISOString() }],
 
+  setPhase: (phase) => set({ phase }),
   updateMetrics: (newMetrics) =>
     set((state) => {
       const nextMetrics = normalizeMetrics({ ...state.metrics, ...newMetrics })
@@ -146,4 +151,36 @@ export const useNodeStore = create<NodeState>((set, get) => ({
   setAudits: (audits) => set({ audits }),
   setMemoryFacts: (facts) => set({ memoryFacts: facts }),
   setActions: (actions) => set({ actions }),
+  bootstrap: async () => {
+    try {
+      const response = await fetch('/api/node/bootstrap', { cache: 'no-store' })
+      if (!response.ok) {
+        get().addLog('Bootstrap de nodo rechazado por capa auth', 'auth', 'evasion')
+        return
+      }
+      const result = await response.json()
+      const node = result.node as Node | null
+      const audits = (result.audits || []) as Audit[]
+      const memoryFacts = (result.memory_facts || []) as MemoryFact[]
+      const actions = (result.actions || []) as OperationalAction[]
+
+      set({
+        node,
+        audits,
+        memoryFacts,
+        actions,
+        status: 'operational',
+        metrics: normalizeMetrics({
+          ihg: Number(node?.current_ihg ?? audits[0]?.ihg ?? defaultMetrics.ihg),
+          nti: Number(node?.current_nti ?? audits[0]?.nti ?? defaultMetrics.nti),
+          ldi: Number(node?.current_ldi ?? audits[0]?.ldi ?? defaultMetrics.ldi),
+          divergence: Number(audits[0]?.divergence ?? defaultMetrics.divergence),
+          loop_score: Number(audits[0]?.loop_score ?? defaultMetrics.loop_score),
+        }),
+      })
+      get().addLog('Sesion hidratada: nodo longitudinal sincronizado', 'auth', 'syncPulse')
+    } catch {
+      get().addLog('Bootstrap local activo: telemetria sin persistencia remota', 'system', 'evasion')
+    }
+  },
 }))

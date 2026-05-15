@@ -1,8 +1,10 @@
 'use client'
 
-import { Activity, BrainCircuit, CircleDot, Clock3, Globe2, Layers, ShieldCheck, Sparkles, Wifi } from 'lucide-react'
+import { Activity, BrainCircuit, CircleDot, Clock3, Globe2, Layers, LogOut, ShieldCheck, Sparkles, Wifi } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import { useNodeStore } from '@/lib/store/nodeStore'
 import { Badge } from '@/components/shared/Badge'
+import { createBrowserSupabaseClient } from '@/lib/supabase/client'
 
 const MODE_ITEMS = [
   { label: 'Audit', icon: Activity },
@@ -39,8 +41,18 @@ function Heatband({ label, ratio }: { label: string; ratio: number }) {
   )
 }
 
+const PHASE_STEPS = [
+  { id: 1, label: 'Fase 1', subtitle: 'Infraestructura Visual' },
+  { id: 2, label: 'Fase 2', subtitle: 'WorldSpectrum' },
+  { id: 3, label: 'Fase 3', subtitle: 'Cognitive Twin' },
+  { id: 4, label: 'Fase 4', subtitle: 'Media MIHM' },
+  { id: 5, label: 'Fase 5', subtitle: 'Campaign Orchestration' },
+  { id: 6, label: 'Fase 6', subtitle: 'Longitudinal Memory' },
+]
+
 export function TerminalSidebar() {
-  const { node, metrics, status, audits, memoryFacts, actions, snapshotHistory } = useNodeStore()
+  const { node, metrics, status, audits, memoryFacts, actions, snapshotHistory, phase, setPhase } = useNodeStore()
+  const router = useRouter()
   const syncStatus = node ? 'sincronizado' : 'pendiente'
   const stability = metrics.divergence > 0.6 ? 'inestable' : metrics.divergence > 0.3 ? 'moderada' : 'estabilizada'
   const highNTI = metrics.nti > 0.72
@@ -49,6 +61,13 @@ export function TerminalSidebar() {
   const sidebarStateClass = highNTI ? 'animate-jitter border-rose-500/15 shadow-[0_0_40px_rgba(196,41,41,0.12)]' : highIHG ? 'border-cyan-500/10 bg-[#081212]/95 shadow-[0_0_40px_rgba(34,198,214,0.12)]' : ''
   const entropy = Math.min(1, Math.max(0, 0.28 + (1 - metrics.ihg) * 0.58))
   const pressure = Math.min(1, Math.max(0, 0.17 + (1 - metrics.nti) * 0.62))
+
+  const logout = async () => {
+    const supabase = createBrowserSupabaseClient()
+    await supabase?.auth.signOut()
+    router.refresh()
+    router.replace('/')
+  }
 
   return (
     <aside className="terminal-panel flex h-full flex-col border border-white/10 bg-[#080808]/95 p-4 shadow-[0_0_40px_rgba(0,0,0,0.26)] backdrop-blur-sm">
@@ -75,17 +94,17 @@ export function TerminalSidebar() {
       </div>
 
       <div className="mt-5 rounded border border-white/10 bg-[#050505]/80 p-4">
-        <p className="font-mono text-[10px] uppercase tracking-[0.32em] text-zinc-500">Capa de navegación</p>
+        <p className="font-mono text-[10px] uppercase tracking-[0.32em] text-zinc-500">Fases pendientes</p>
         <div className="mt-3 grid gap-2">
-          {MODE_ITEMS.map((item) => {
-            const Icon = item.icon
-            return (
-              <button key={item.label} className="group flex items-center gap-3 rounded border border-white/5 bg-[#070707]/80 px-3 py-2 text-left text-[11px] text-zinc-300 transition hover:border-gold/20 hover:text-paper">
-                <Icon className="h-4 w-4 text-zinc-500 group-hover:text-gold" />
-                <span>{item.label}</span>
-              </button>
-            )
-          })}
+          {PHASE_STEPS.map((step) => (
+            <button
+              key={step.id}
+              onClick={() => setPhase(step.id)}
+              className={`group flex flex-col gap-1 rounded border px-3 py-2 text-left text-[11px] transition ${phase === step.id ? 'border-gold bg-[#111111]/90 text-paper' : 'border-white/10 bg-[#070707]/80 text-zinc-300 hover:border-gold/20 hover:text-paper'}`}>
+              <span className="font-semibold uppercase tracking-[0.18em]">{step.label}</span>
+              <span className="text-[10px] text-zinc-500">{step.subtitle}</span>
+            </button>
+          ))}
         </div>
       </div>
 
@@ -129,6 +148,13 @@ export function TerminalSidebar() {
           <p>Acciones: {actions.length}</p>
           <p>Checkpoints: {snapshotHistory.length}</p>
         </div>
+        <button
+          onClick={() => void logout()}
+          className="mt-4 flex w-full items-center justify-center gap-2 rounded border border-white/10 bg-white/[0.03] px-3 py-2 font-mono text-[10px] uppercase tracking-[0.22em] text-zinc-500 transition hover:border-gold/30 hover:text-gold"
+        >
+          <LogOut className="h-3.5 w-3.5" />
+          Cerrar sesion
+        </button>
       </div>
     </aside>
   )

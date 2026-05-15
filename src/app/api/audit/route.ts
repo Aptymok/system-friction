@@ -1,38 +1,19 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { LongitudinalAgent } from '@/lib/agents/longitudinal';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { NextRequest, NextResponse } from "next/server";
+import { handleEvent } from "@/lib/kernel/entrypoint";
+import { assertEvent } from "@/lib/kernel/assertEvent";
 
 export async function POST(req: NextRequest) {
-  try {
-    const supabase = await createServerSupabaseClient();
-    const { data: { session } } = await supabase.auth.getSession();
+  const body = await req.json();
 
-    if (!session) {
-      return NextResponse.json({ error: 'Sovereign Node not authenticated' }, { status: 401 });
-    }
+  assertEvent("audit_request");
 
-    const body = await req.json();
-    const { input } = body;
+  const result = await handleEvent(
+    {
+      type: "audit_request",
+      payload: body,
+    },
+    body.metrics || {}
+  );
 
-    if (!input || typeof input !== 'string') {
-      return NextResponse.json({ error: 'No valid input provided for audit' }, { status: 400 });
-    }
-
-    // Ejecutar el proceso real (sin simulaciones)
-    const result = await LongitudinalAgent.process(session.user.id, input);
-
-    return NextResponse.json({
-      success: result.status === 'completed',
-      ...result,
-      timestamp: new Date().toISOString()
-    });
-
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Unknown error'
-    console.error('Audit API Error:', message)
-    return NextResponse.json({
-      success: false,
-      error: message,
-    }, { status: 500 })
-  }
+  return NextResponse.json(result);
 }
