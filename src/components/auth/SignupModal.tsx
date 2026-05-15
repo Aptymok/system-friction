@@ -7,6 +7,7 @@ import { MOPHFlow } from './MOPHFlow';
 
 export function SignupModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const supabase = createBrowserSupabaseClient();
+  if (!supabase) throw new Error('Supabase client is not configured');
   const [step, setStep] = useState<'signup' | 'moph' | 'subscription'>('signup');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

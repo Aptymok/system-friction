@@ -1,13 +1,15 @@
 // src/components/root/GlobalMetricsView.tsx
 'use client';
 import { useEffect, useState } from 'react';
-import { GlobalLearningAgent } from '@/lib/agents/GlobalLearningAgent';
 
 export function GlobalMetricsView() {
   const [metrics, setMetrics] = useState<any>(null);
 
   useEffect(() => {
-    GlobalLearningAgent.getAggregatedMetrics().then(setMetrics);
+    fetch('/api/global-metrics')
+      .then((res) => res.json())
+      .then(setMetrics)
+      .catch(() => setMetrics(null));
   }, []);
 
   return (

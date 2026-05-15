@@ -42,15 +42,23 @@ export function CognitiveConsole({ readonly }: { readonly?: boolean } = {}) {
       <div className="border-t border-gold/20 pt-4 flex gap-4">
         <button
           onClick={execute}
-          disabled={!canExecute}
+          disabled={readonly || !canExecute}
           className="bg-gold text-void px-4 py-2 rounded font-mono text-xs disabled:opacity-50"
         >
           EJECUTAR
         </button>
-        <button onClick={escalate} className="border border-gold/30 px-4 py-2 rounded font-mono text-xs">
+        <button
+          onClick={escalate}
+          disabled={readonly}
+          className="border border-gold/30 px-4 py-2 rounded font-mono text-xs disabled:opacity-50"
+        >
           ESCALAR
         </button>
-        <button onClick={block} className="border border-red-500/50 text-red-500 px-4 py-2 rounded font-mono text-xs">
+        <button
+          onClick={block}
+          disabled={readonly}
+          className="border border-red-500/50 text-red-500 px-4 py-2 rounded font-mono text-xs disabled:opacity-50"
+        >
           BLOQUEAR
         </button>
       </div>

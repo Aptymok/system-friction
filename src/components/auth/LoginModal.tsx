@@ -10,6 +10,7 @@ export function LoginModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =
   const [error, setError] = useState('');
   const [resetMode, setResetMode] = useState(false);
   const supabase = createBrowserSupabaseClient();
+  if (!supabase) throw new Error('Supabase client is not configured');
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
