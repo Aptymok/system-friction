@@ -67,6 +67,18 @@ export interface Metrics {
   ldi: number
   loop_score: number
   divergence: number
+  frictionLevel?: number
+  narrativeDrift?: number
+  executionStability?: number
+  contradiction?: number
+}
+
+export interface NodeSnapshot {
+  timestamp: string
+  label: string
+  note?: string
+  status: 'operational' | 'standby' | 'critical' | 'frozen'
+  metrics: Metrics
 }
 
 export interface AuditRequest {

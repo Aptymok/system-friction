@@ -28,7 +28,7 @@ html {
 
 body {
   margin: 0;
-  background: var(--void);
+  background: #070707;
   color: var(--paper);
   font-family: var(--font-serif), Georgia, serif;
   letter-spacing: 0;
@@ -52,9 +52,10 @@ input:focus-visible {
 }
 
 .terminal-panel {
-  border: 1px solid rgba(212, 175, 55, 0.15);
-  background: rgba(5, 5, 5, 0.72);
-  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.36);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(10, 10, 10, 0.88);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.24);
+  backdrop-filter: blur(8px);
 }
 
 .scanline {
@@ -77,6 +78,34 @@ input:focus-visible {
 
 @keyframes scan {
   to { transform: translateY(calc(100vh + 280px)); }
+}
+
+@keyframes jitter {
+  0%, 100% { transform: none; }
+  20% { transform: translate(0.4px, -0.4px); }
+  40% { transform: translate(-0.4px, 0.2px); }
+  60% { transform: translate(0.2px, 0.3px); }
+  80% { transform: translate(-0.2px, -0.3px); }
+}
+
+@keyframes glitch {
+  0%, 100% { clip-path: inset(0 0 0 0); transform: none; }
+  10% { clip-path: inset(0 0 25% 0); transform: translate(-0.5px, -0.5px); }
+  20% { clip-path: inset(25% 0 0 0); transform: translate(0.5px, 0.5px); }
+  30% { clip-path: inset(0 0 20% 0); transform: translate(-0.5px, 0.3px); }
+  40% { clip-path: inset(20% 0 0 0); transform: translate(0.3px, -0.5px); }
+  50% { clip-path: inset(0 0 30% 0); transform: translate(-0.3px, 0.4px); }
+  60% { clip-path: inset(30% 0 0 0); transform: translate(0.4px, -0.2px); }
+  70% { clip-path: inset(0 0 15% 0); transform: translate(-0.2px, 0.2px); }
+  80% { clip-path: inset(15% 0 0 0); transform: translate(0.2px, -0.4px); }
+}
+
+.animate-jitter {
+  animation: jitter 0.14s infinite linear;
+}
+
+.animate-glitch {
+  animation: glitch 2.2s infinite step-end;
 }
 
 @media (prefers-reduced-motion: reduce) {
