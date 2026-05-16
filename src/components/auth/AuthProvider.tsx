@@ -48,7 +48,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (event === 'SIGNED_IN') {
         router.refresh()
-        if (AUTH_ROUTES.has(pathname)) router.replace('/terminal')
+        if (AUTH_ROUTES.has(pathname)) router.replace('/')
       }
 
       if (event === 'SIGNED_OUT') {

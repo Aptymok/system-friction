@@ -1,58 +1,94 @@
-// src/app/page.tsx
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuthState } from '@/components/providers/AuthProvider';
 import { LoginModal } from '@/components/auth/LoginModal';
 import { SignupModal } from '@/components/auth/SignupModal';
 import { WorldSpectrumModal } from '@/components/auth/WorldSpectrumModal';
-import { useAuthState } from '@/components/providers/AuthProvider';
-import { AnonDashboard } from '@/components/dashboard/AnonDashboard';
 
 export default function HomePage() {
   const { session, status } = useAuthState();
+  const router = useRouter();
   const [showLogin, setShowLogin] = useState(false);
   const [showSignup, setShowSignup] = useState(false);
   const [showWorld, setShowWorld] = useState(false);
+  const [role, setRole] = useState<string | null>(null);
 
-  // Si el usuario ya está autenticado, mostrar el dashboard correspondiente
-  if (status === 'authenticated' && session) {
-    // El usuario ya tiene sesión, redirigir internamente a su dashboard
-    // (el middleware se encargará de la redirección real, pero aquí renderizamos directamente)
-    const role = (session.user?.user_metadata as any)?.role || 'observer';
-    if (role === 'root') {
-      import('@/app/root/page').then(mod => mod.default);
+  useEffect(() => {
+    if (status === 'authenticated' && session) {
+      const userRole = (session.user?.user_metadata as any)?.role;
+      if (userRole) {
+        setRole(userRole);
+        return;
+      }
+      const fetchRole = async () => {
+        const { createBrowserSupabaseClient } = await import('@/lib/supabase/client');
+        const supabase = createBrowserSupabaseClient();
+        if (!supabase) {
+          console.error('Supabase client not configured');
+          setRole('observer');
+          return;
+        }
+        const { data } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('user_id', session.user.id)
+          .single();
+        setRole(data?.role || 'observer');
+      };
+      fetchRole();
     } else {
-      import('@/app/user/page').then(mod => mod.default);
+      setRole(null);
     }
+  }, [status, session]);
+
+  useEffect(() => {
+    if (status === 'authenticated' && role) {
+      if (role === 'root') {
+        router.replace('/root');
+      } else {
+        router.replace('/user');
+      }
+    }
+  }, [status, role, router]);
+
+  if (status === 'authenticated' && !role) {
+    return (
+      <div className="min-h-screen bg-void text-paper flex items-center justify-center font-mono">
+        Cargando dashboard...
+      </div>
+    );
   }
 
-  return (
-    <div className="min-h-screen bg-void text-paper flex flex-col items-center justify-center p-6 font-mono">
-      {/* Pleca central */}
-      <div className="text-center space-y-8 max-w-3xl">
-        <div className="border border-gold/20 p-6">
-          <h1 className="text-2xl tracking-[0.3em] font-display text-gold">SYSTEM FRICTION INSTITUTE</h1>
+  if (status !== 'authenticated') {
+    return (
+      <div className="min-h-screen bg-void text-paper flex flex-col items-center justify-center p-6 font-mono">
+        <div className="text-center space-y-8 max-w-3xl">
+          <div className="border border-gold/20 p-6">
+            <h1 className="text-2xl tracking-[0.3em] font-display text-gold">SYSTEM FRICTION INSTITUTE</h1>
+          </div>
+          <p className="text-xl italic leading-relaxed text-zinc-300">
+            "Los sistemas no fallan por falta de intención,<br />
+            fallan cuando nadie registra lo que todos observan."
+          </p>
+          <div className="flex flex-col md:flex-row gap-4 justify-center mt-8">
+            <button onClick={() => setShowLogin(true)} className="border border-gold px-6 py-3 text-sm uppercase tracking-widest hover:bg-gold/10">
+              IDENTIFICAR NODO (LOGIN)
+            </button>
+            <button onClick={() => setShowSignup(true)} className="border border-gold px-6 py-3 text-sm uppercase tracking-widest hover:bg-gold/10">
+              AGREGAR NODO (SIGNUP)
+            </button>
+            <button onClick={() => setShowWorld(true)} className="border border-gold px-6 py-3 text-sm uppercase tracking-widest hover:bg-gold/10">
+              WORLD SPECTRUM OBSERVABILITY
+            </button>
+          </div>
         </div>
-        <p className="text-xl italic leading-relaxed text-zinc-300">
-          "Los sistemas no fallan por falta de intención,<br />
-          fallan cuando nadie registra lo que todos observan."
-        </p>
-        <div className="flex flex-col md:flex-row gap-4 justify-center mt-8">
-          <button onClick={() => setShowLogin(true)} className="border border-gold px-6 py-3 text-sm uppercase tracking-widest hover:bg-gold/10">
-            IDENTIFICAR NODO (LOGIN)
-          </button>
-          <button onClick={() => setShowSignup(true)} className="border border-gold px-6 py-3 text-sm uppercase tracking-widest hover:bg-gold/10">
-            AGREGAR NODO (SIGNUP)
-          </button>
-          <button onClick={() => setShowWorld(true)} className="border border-gold px-6 py-3 text-sm uppercase tracking-widest hover:bg-gold/10">
-            WORLD SPECTRUM OBSERVABILITY
-          </button>
-        </div>
+        <LoginModal isOpen={showLogin} onClose={() => setShowLogin(false)} />
+        <SignupModal isOpen={showSignup} onClose={() => setShowSignup(false)} />
+        <WorldSpectrumModal isOpen={showWorld} onClose={() => setShowWorld(false)} />
       </div>
+    );
+  }
 
-      {/* Modales */}
-      <LoginModal isOpen={showLogin} onClose={() => setShowLogin(false)} />
-      <SignupModal isOpen={showSignup} onClose={() => setShowSignup(false)} />
-      <WorldSpectrumModal isOpen={showWorld} onClose={() => setShowWorld(false)} />
-    </div>
-  );
+  return null;
 }
