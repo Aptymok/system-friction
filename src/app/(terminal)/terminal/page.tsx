@@ -1,15 +1,15 @@
 'use client'
 
 import { useEffect } from 'react'
-import { AMVChat } from '@/components/terminal/AMVChat'
-import { ConsoleColumn } from '@/components/terminal/ConsoleColumn'
-import { MemoryColumn } from '@/components/terminal/MemoryColumn'
-import { PhasePanel } from '@/components/terminal/PhasePanel'
-import { StateColumn } from '@/components/terminal/StateColumn'
-import { TerminalSidebar } from '@/components/terminal/TerminalSidebar'
-import { TerminalTimeline } from '@/components/terminal/TerminalTimeline'
-import { useTelemetryPulse } from '@/lib/hooks/useTelemetryPulse'
-import { useNodeStore } from '@/lib/store/nodeStore'
+import { AMVChat } from '@/observatory/components/terminal/AMVChat'
+import { ConsoleColumn } from '@/observatory/components/terminal/ConsoleColumn'
+import { MemoryColumn } from '@/observatory/components/terminal/MemoryColumn'
+import { PhasePanel } from '@/observatory/components/terminal/PhasePanel'
+import { StateColumn } from '@/observatory/components/terminal/StateColumn'
+import { TerminalSidebar } from '@/observatory/components/terminal/TerminalSidebar'
+import { TerminalTimeline } from '@/observatory/components/terminal/TerminalTimeline'
+import { useTelemetryPulse } from '@/observatory/hooks/useTelemetryPulse'
+import { useNodeStore } from '@/observatory/store/nodeStore'
 
 export default function TerminalPage() {
   useTelemetryPulse()

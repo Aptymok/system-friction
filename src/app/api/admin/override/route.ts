@@ -1,6 +1,6 @@
 // src/app/api/admin/override/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { createServerSupabaseClient } from '@/runtime/supabase/server';
 
 export async function POST(req: NextRequest) {
   const supabase = await createServerSupabaseClient();

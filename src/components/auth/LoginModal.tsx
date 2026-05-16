@@ -1,7 +1,7 @@
 // src/components/auth/LoginModal.tsx
 'use client';
 import { useState } from 'react';
-import { createBrowserSupabaseClient } from '@/lib/supabase/client';
+import { createBrowserSupabaseClient } from '@/runtime/supabase/client';
 import { Dialog } from '@headlessui/react';
 
 export function LoginModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {

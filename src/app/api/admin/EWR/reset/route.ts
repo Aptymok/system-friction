@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
-import { GlobalLearningAgent } from '@/lib/agents/GlobalLearningAgent';
+import { createServerSupabaseClient } from '@/runtime/supabase/server';
+import { GlobalLearningAgent } from '@/agents/GlobalLearningAgent';
 
 export async function POST() {
   const supabase = await createServerSupabaseClient();

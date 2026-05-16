@@ -1,6 +1,6 @@
 // src/app/api/subscription/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { createServerSupabaseClient } from '@/runtime/supabase/server';
 
 export async function GET(req: NextRequest) {
   const supabase = await createServerSupabaseClient();

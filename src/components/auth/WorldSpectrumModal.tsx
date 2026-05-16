@@ -2,7 +2,7 @@
 'use client';
 import { useState } from 'react';
 import { Dialog } from '@headlessui/react';
-import { AnonDashboard } from '@/components/dashboard/AnonDashboard';
+import { AnonDashboard } from '@/observatory/components/dashboard/AnonDashboard';
 
 export function WorldSpectrumModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const [email, setEmail] = useState('');

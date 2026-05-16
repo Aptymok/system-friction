@@ -1,19 +1,3 @@
-import { NextRequest, NextResponse } from "next/server";
-import { handleEvent } from "@/lib/kernel/entrypoint";
-import { assertEvent } from "@/lib/kernel/assertEvent";
+import { createKernelRoute } from "@/runtime/api/createKernelRoute";
 
-export async function POST(req: NextRequest) {
-  const body = await req.json();
-
-  assertEvent("mihm_execute");
-
-  const result = await handleEvent(
-    {
-      type: "mihm_execute",
-      payload: body,
-    },
-    body.metrics || {}
-  );
-
-  return NextResponse.json(result);
-}
+export const POST = createKernelRoute("mihm_execute");

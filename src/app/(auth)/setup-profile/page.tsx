@@ -1,7 +1,7 @@
 "use client"
 import { FormEvent, useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { createBrowserSupabaseClient } from '@/lib/supabase/client'
+import { createBrowserSupabaseClient } from '@/runtime/supabase/client'
 
 export default function SetupProfilePage() {
   const supabase = createBrowserSupabaseClient()

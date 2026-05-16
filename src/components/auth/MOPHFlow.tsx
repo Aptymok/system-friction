@@ -1,7 +1,7 @@
 // src/components/auth/MOPHFlow.tsx
 'use client';
 import { useState } from 'react';
-import { MOPH_QUESTIONS } from '@/lib/agents/systemPrompt';
+import { MOPH_QUESTIONS } from '@/agents/systemPrompt';
 
 export function MOPHFlow({ userId, onComplete }: { userId: string; onComplete: () => void }) {
   const [answers, setAnswers] = useState<Record<number, string>>({});

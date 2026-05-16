@@ -2,7 +2,7 @@
 
 import { redirect } from 'next/navigation'
 import { checkRateLimit, rateLimitKey } from '@/lib/auth/rateLimit'
-import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { createServerSupabaseClient } from '@/runtime/supabase/server'
 import { authSchema } from '@/lib/validation/schemas'
 
 function formValue(formData: FormData, key: string) {

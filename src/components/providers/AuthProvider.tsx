@@ -4,7 +4,7 @@
 import type { Session } from '@supabase/supabase-js';
 import { usePathname, useRouter } from 'next/navigation';
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { createBrowserSupabaseClient } from '@/lib/supabase/client';
+import { createBrowserSupabaseClient } from '@/runtime/supabase/client';
 
 type AuthState = {
   session: Session | null;

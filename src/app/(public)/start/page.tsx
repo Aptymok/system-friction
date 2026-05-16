@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { IntakeTerminal } from '@/components/landing/IntakeTerminal'
+import { IntakeTerminal } from '@/public/components/landing/IntakeTerminal'
 
 export const metadata: Metadata = {
   title: 'Activar Nodo',

@@ -1,4 +1,4 @@
-﻿import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { createServerSupabaseClient } from '@/runtime/supabase/server'
 
 export async function generateSystemProtocol(userId: string) {
   const supabase = await createServerSupabaseClient()

@@ -1,7 +1,7 @@
 // src/components/auth/SignupModal.tsx
 'use client';
 import { useState } from 'react';
-import { createBrowserSupabaseClient } from '@/lib/supabase/client';
+import { createBrowserSupabaseClient } from '@/runtime/supabase/client';
 import { Dialog } from '@headlessui/react';
 import { MOPHFlow } from './MOPHFlow';
 
