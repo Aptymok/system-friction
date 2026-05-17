@@ -1,4 +1,4 @@
-// src/lib/layers/IntentLayer.ts
+// src/runtime/layers/IntentLayer.ts
 import { createServerClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
 

@@ -1,4 +1,4 @@
-// src/lib/kernel/systemTick.ts
+// src/runtime/kernel/systemTick.ts
 import { createServerSupabaseClient } from '@/runtime/supabase/server';
 import { getActiveIntent } from '../layers/IntentLayer';
 import { generatePlans } from '../layers/Planner';

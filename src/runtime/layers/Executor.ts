@@ -1,4 +1,4 @@
-// src/lib/layers/Executor.ts
+// src/runtime/layers/Executor.ts
 import { Plan } from './Planner';
 
 // Ejecutor puro: no piensa, no reinterpreta, no observa

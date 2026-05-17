@@ -11,9 +11,9 @@ export const HARD_LIMITS = {
 
 export const PROTECTED_PATHS = [
   "src/lib/atlas/ontology.py",
-  "src/lib/kernel/metaKernel.ts",
-  "src/lib/kernel/bootstrap.ts",
-  "src/lib/kernel/systemTick.ts"
+  "src/experimental/kernel/metaKernel.ts",
+  "src/runtime/kernel/bootstrap.ts",
+  "src/runtime/kernel/systemTick.ts"
 ];
 
 let changeCounters = {

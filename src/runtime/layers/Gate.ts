@@ -1,4 +1,4 @@
-// src/lib/layers/Gate.ts
+// src/runtime/layers/Gate.ts
 import { Plan } from './Planner';
 import { SimulationResult } from './Simulator';
 import { GlobalLearningAgent } from '@/agents/GlobalLearningAgent';

@@ -1,4 +1,4 @@
-// src/lib/kernel/metaFlow.ts
+// src/experimental/kernel/metaFlow.ts
 export type TickStep = {
   name: string;
   condition?: (ctx: any) => boolean;

@@ -1,4 +1,4 @@
-// src/lib/kernel/patternMemory.ts
+// src/experimental/kernel/patternMemory.ts
 type PatternRecord = {
   errorRate: number;
   divergence: number;

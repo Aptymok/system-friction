@@ -27,7 +27,8 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json({
     success: true,
-    source: 'services/python/cognitive_twin',
+    source: 'observatory/operational/analysis',
+    cognitiveTwinService: 'available_not_invoked',
     reading,
     vector: cognitiveVector,
   });

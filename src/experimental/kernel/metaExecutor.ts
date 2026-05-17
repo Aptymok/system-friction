@@ -1,4 +1,4 @@
-// src/lib/kernel/metaExecutor.ts
+// src/experimental/kernel/metaExecutor.ts
 export async function executeFlowStep(
   step: { name: string; condition?: (ctx: any) => boolean; transform?: (ctx: any) => any },
   context: any,

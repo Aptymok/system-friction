@@ -1,5 +1,5 @@
 // src/app/api/test-supabase/route.ts
-import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { createServerSupabaseClient } from '@/runtime/supabase/server'
 import { NextResponse } from 'next/server'
 
 export async function GET() {

@@ -1,4 +1,4 @@
-// src/lib/layers/Observer.ts
+// src/runtime/layers/Observer.ts
 import { createServerClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
 import { GateDecision } from './Gate';
