@@ -1,48 +1,88 @@
 'use client'
 
 import { useEffect } from 'react'
-import { AMVChat } from '@/observatory/components/terminal/AMVChat'
-import { ConsoleColumn } from '@/observatory/components/terminal/ConsoleColumn'
-import { MemoryColumn } from '@/observatory/components/terminal/MemoryColumn'
-import { PhasePanel } from '@/observatory/components/terminal/PhasePanel'
-import { StateColumn } from '@/observatory/components/terminal/StateColumn'
-import { TerminalSidebar } from '@/observatory/components/terminal/TerminalSidebar'
-import { TerminalTimeline } from '@/observatory/components/terminal/TerminalTimeline'
+import { useState } from 'react'
+import { LiturgiaDiagnosticPanel } from '@/observatory/components/root/LiturgiaDiagnosticPanel'
 import { useTelemetryPulse } from '@/observatory/hooks/useTelemetryPulse'
 import { useNodeStore } from '@/observatory/store/nodeStore'
 
 export default function TerminalPage() {
   useTelemetryPulse()
   const bootstrap = useNodeStore((state) => state.bootstrap)
+  const [access, setAccess] = useState<'loading' | 'allowed' | 'payment'>('loading')
+  const [email, setEmail] = useState('')
 
   useEffect(() => {
-    void bootstrap()
+    let active = true
+    async function hydrate() {
+      await bootstrap()
+      try {
+        const response = await fetch('/api/node/bootstrap', { cache: 'no-store' })
+        if (!response.ok) {
+          if (active) setAccess('payment')
+          return
+        }
+        const data = await response.json()
+        const role = data.profile?.role
+        const licenseStatus = data.license?.status
+        const hasAccess =
+          role === 'root' ||
+          role === 'system' ||
+          data.entitlements?.full_access === true ||
+          licenseStatus === 'root_bypass' ||
+          licenseStatus === 'active' ||
+          licenseStatus === 'trialing'
+
+        if (active) {
+          setEmail(data.profile?.email || '')
+          setAccess(hasAccess ? 'allowed' : 'payment')
+        }
+      } catch {
+        if (active) setAccess('payment')
+      }
+    }
+    void hydrate()
+    return () => {
+      active = false
+    }
   }, [bootstrap])
 
-  return (
-    <main className="relative min-h-screen overflow-hidden bg-[#070707] text-paper">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(212,175,55,0.12),transparent_24%),radial-gradient(circle_at_80%_20%,rgba(74,122,170,0.1),transparent_28%),#070707]" />
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[length:48px_48px] opacity-10" />
-      <div className="scanline fixed inset-0" />
+  if (access === 'loading') {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-[#060605] text-paper">
+        <div className="border border-[rgba(200,169,81,0.12)] px-8 py-6 font-mono text-[10px] uppercase tracking-[0.24em] text-[#C8A951]">
+          HIDRATANDO NODO LONGITUDINAL
+        </div>
+      </main>
+    )
+  }
 
-      <div className="relative mx-auto grid min-h-screen max-w-[1880px] grid-cols-1 gap-4 px-4 py-4 lg:grid-cols-[300px_minmax(0,1fr)] xl:grid-cols-[300px_minmax(0,1.15fr)_380px] 2xl:grid-cols-[320px_minmax(0,1.25fr)_360px_400px] xl:px-6">
-        <TerminalSidebar />
-
-        <section className="flex min-h-[calc(100vh-56px)] flex-col gap-4">
-          <ConsoleColumn />
-          <TerminalTimeline />
+  if (access === 'payment') {
+    const encodedEmail = encodeURIComponent(email)
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-[#060605] px-4 text-[#c8c4b8]">
+        <section className="w-full max-w-xl border border-[rgba(200,169,81,0.12)] bg-black/30 p-7">
+          <p className="font-mono text-[10px] uppercase tracking-[0.34em] text-[#C8A951]">ACCESO LONGITUDINAL PENDIENTE</p>
+          <h1 className="mt-4 font-display text-lg uppercase tracking-[0.16em] text-[#C8A951]">ADQUIRIR LINEA BASE</h1>
+          <p className="mt-5 font-serif text-sm leading-7 text-[#5c5c52]">
+            La sesion existe. Falta peaje de auditoria para abrir el observatorio horizontal.
+          </p>
+          <div className="mt-7 grid gap-3 font-mono text-[10px] uppercase tracking-[0.18em]">
+            <a className="border border-[rgba(200,169,81,0.45)] bg-[rgba(200,169,81,0.07)] px-5 py-4 text-center text-[#C8A951]" href={`https://buy.stripe.com/3cIbJ29dY3qo2NVcWv5Ne01?prefilled_email=${encodedEmail}`}>
+              BUNDLE COMPLETO - $19 USD
+            </a>
+            <a className="border border-[rgba(200,169,81,0.22)] px-5 py-4 text-center text-[#C8A951]" href={`https://buy.stripe.com/7sYbJ2eyif964W3aOn5Ne04?prefilled_email=${encodedEmail}`}>
+              SOLO DICTAMEN - $9 USD
+            </a>
+          </div>
         </section>
+      </main>
+    )
+  }
 
-        <aside className="flex min-h-[calc(100vh-56px)] flex-col gap-4">
-          <AMVChat />
-          <MemoryColumn />
-          <PhasePanel />
-        </aside>
-
-        <aside className="flex min-h-[calc(100vh-56px)] flex-col gap-4 xl:col-span-3 2xl:col-span-1">
-          <StateColumn />
-        </aside>
-      </div>
+  return (
+    <main className="min-h-screen bg-[#060605] text-paper">
+      <LiturgiaDiagnosticPanel />
     </main>
   );
 }

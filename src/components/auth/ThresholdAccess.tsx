@@ -1,14 +1,15 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createBrowserSupabaseClient } from '@/runtime/supabase/client';
 
 const steps = [
-  'VALIDANDO TOPOLOGÍA',
+  'VALIDANDO TOPOLOGIA',
   'SINCRONIZANDO VECTOR TEMPORAL',
   'REVISANDO RESIDUO DE DERIVA',
-  'HIDRATANDO SESIÓN',
+  'HIDRATANDO SESION',
   'ACCESO AUTORIZADO',
 ];
 
@@ -35,9 +36,14 @@ export function ThresholdAccess({ error }: { error?: string }) {
 
   useEffect(() => {
     if (!supabase) return;
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session) router.replace('/terminal');
-    });
+    supabase.auth
+      .getSession()
+      .then(({ data }) => {
+        if (data.session) router.replace('/terminal');
+      })
+      .catch(() => {
+        void supabase.auth.signOut();
+      });
   }, [router, supabase]);
 
   const trackKey = (event: React.KeyboardEvent<HTMLInputElement>) => {
@@ -105,7 +111,7 @@ export function ThresholdAccess({ error }: { error?: string }) {
       <p className="font-mono text-[10px] uppercase tracking-[0.34em] text-[#C8A951]">SYSTEM FRICTION INSTITUTE</p>
       <h1 className="mt-4 font-display text-lg uppercase tracking-[0.18em] text-[#C8A951]">OBSERVATORIO COGNITIVO LONGITUDINAL</h1>
       <div className="mt-6 grid gap-2 border-y border-[rgba(200,169,81,0.08)] py-4 font-mono text-[10px] uppercase tracking-[0.22em] text-[#5c5c52]">
-        <span>NODO: PRODUCCIÓN</span>
+        <span>NODO: PRODUCCION</span>
         <span>ESTADO: ESPERANDO OBSERVADOR</span>
       </div>
 
@@ -136,9 +142,14 @@ export function ThresholdAccess({ error }: { error?: string }) {
           />
         </label>
         <button className="w-full border border-[rgba(200,169,81,0.4)] bg-[rgba(200,169,81,0.07)] px-5 py-3 font-mono text-[10px] uppercase tracking-[0.24em] text-[#C8A951]">
-          INICIALIZAR SESIÓN →
+          INICIALIZAR SESION →
         </button>
       </form>
+
+      <div className="mt-5 flex justify-between gap-4 font-mono text-[10px] uppercase tracking-[0.18em] text-[#5c5c52]">
+        <Link href="/register" className="hover:text-[#C8A951]">REGISTRAR OBSERVADOR</Link>
+        <Link href="/forgot" className="hover:text-[#C8A951]">RECUPERAR CLAVE</Link>
+      </div>
 
       <div className="mt-6 space-y-2 font-mono text-[10px] uppercase tracking-[0.18em]">
         {steps.map((step, index) => (
