@@ -1,6 +1,7 @@
 // src/runtime/layers/IntentLayer.ts
 import { createServerClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
+import { normalizeSupabaseUrl } from '@/runtime/supabase/url';
 
 export type Intent = {
   id: string;
@@ -15,7 +16,7 @@ export async function getActiveIntent(nodeId: string): Promise<Intent | null> {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? '';
   const cookieStore = cookies() as any;
-  const supabase = createServerClient(supabaseUrl, supabaseKey, { cookies: cookieStore });
+  const supabase = createServerClient(normalizeSupabaseUrl(supabaseUrl), supabaseKey, { cookies: cookieStore });
   const { data, error } = await supabase
     .from('intents')
     .select('*')
@@ -42,7 +43,7 @@ export async function createIntent(
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? '';
   const cookieStore = cookies() as any;
-  const supabase = createServerClient(supabaseUrl, supabaseKey, { cookies: cookieStore });
+  const supabase = createServerClient(normalizeSupabaseUrl(supabaseUrl), supabaseKey, { cookies: cookieStore });
   const { data, error } = await supabase
     .from('intents')
     .insert({
@@ -69,7 +70,7 @@ export async function updateIntent(
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? '';
   const cookieStore = cookies() as any;
-  const supabase = createServerClient(supabaseUrl, supabaseKey, { cookies: cookieStore });
+  const supabase = createServerClient(normalizeSupabaseUrl(supabaseUrl), supabaseKey, { cookies: cookieStore });
   // Obtener versión actual
   const { data: current } = await supabase
     .from('intents')

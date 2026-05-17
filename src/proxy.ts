@@ -1,6 +1,7 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import { normalizeSupabaseUrl } from '@/runtime/supabase/url'
 
 const AUTH_COOKIE_NAMES = ['sb-access-token', 'sb-refresh-token', 'supabase-auth-token']
 
@@ -49,7 +50,7 @@ export async function proxy(request: NextRequest) {
     return response
   }
 
-  const supabase = createServerClient(supabaseUrl, supabaseKey, {
+  const supabase = createServerClient(normalizeSupabaseUrl(supabaseUrl), supabaseKey, {
     cookies: {
       getAll() {
         return request.cookies.getAll()

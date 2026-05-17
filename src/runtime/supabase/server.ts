@@ -2,12 +2,13 @@
 import 'server-only'; // Importante: evita que se use en componentes cliente
 import { cookies } from 'next/headers';
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
+import { normalizeSupabaseUrl } from '@/runtime/supabase/url';
 
 export async function createServerSupabaseClient() {
   const cookieStore = await cookies();
 
   return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    normalizeSupabaseUrl(process.env.NEXT_PUBLIC_SUPABASE_URL!),
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
@@ -33,7 +34,7 @@ export function createServiceSupabaseClient() {
     throw new Error('Missing Supabase environment variables for service client');
   }
 
-  return createServerClient(supabaseUrl, serviceRoleKey, {
+  return createServerClient(normalizeSupabaseUrl(supabaseUrl), serviceRoleKey, {
     cookies: {
       get: async () => null,
       set: async () => {},

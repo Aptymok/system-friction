@@ -2,6 +2,7 @@
 import { createServerClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
 import { GateDecision } from './Gate';
+import { normalizeSupabaseUrl } from '@/runtime/supabase/url';
 
 export async function recordAction(
   nodeId: string,
@@ -13,7 +14,7 @@ export async function recordAction(
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? '';
   const cookieStore = cookies() as any;
-  const supabase = createServerClient(supabaseUrl, supabaseKey, { cookies: cookieStore });
+  const supabase = createServerClient(normalizeSupabaseUrl(supabaseUrl), supabaseKey, { cookies: cookieStore });
   // Guardar en la tabla de eventos (ya existente)
   await supabase.from('events').insert({
     node_id: nodeId,
@@ -40,7 +41,7 @@ export async function recordObservation(nodeId: string, metricType: string, valu
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? '';
   const cookieStore = cookies() as any;
-  const supabase = createServerClient(supabaseUrl, supabaseKey, { cookies: cookieStore });
+  const supabase = createServerClient(normalizeSupabaseUrl(supabaseUrl), supabaseKey, { cookies: cookieStore });
   await supabase.from('structured_observations').insert({
     node_id: nodeId,
     observation_type: metricType,
