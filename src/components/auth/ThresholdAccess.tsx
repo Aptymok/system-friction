@@ -97,7 +97,7 @@ export function ThresholdAccess({ error }: { error?: string }) {
     });
 
     router.refresh();
-    router.push('/terminal');
+    router.replace('/terminal');
   };
 
   return (

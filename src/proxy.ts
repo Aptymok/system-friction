@@ -2,6 +2,21 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
+const AUTH_COOKIE_NAMES = ['sb-access-token', 'sb-refresh-token', 'supabase-auth-token']
+
+function isRefreshTokenMissing(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error || '')
+  return message.toLowerCase().includes('refresh token not found') || message.toLowerCase().includes('refresh_token_not_found')
+}
+
+function clearSupabaseAuthCookies(response: NextResponse, request: NextRequest) {
+  const names = new Set(AUTH_COOKIE_NAMES)
+  request.cookies.getAll().forEach((cookie) => {
+    if (cookie.name.startsWith('sb-') || cookie.name.includes('supabase')) names.add(cookie.name)
+  })
+  names.forEach((name) => response.cookies.delete(name))
+}
+
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next()
   const { pathname } = request.nextUrl
@@ -48,13 +63,28 @@ export async function proxy(request: NextRequest) {
     },
   })
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  let user = null
+  try {
+    const result = await supabase.auth.getUser()
+    user = result.data.user
+    if (result.error && isRefreshTokenMissing(result.error)) {
+      clearSupabaseAuthCookies(response, request)
+      user = null
+    }
+  } catch (error) {
+    if (isRefreshTokenMissing(error)) {
+      clearSupabaseAuthCookies(response, request)
+      user = null
+    } else {
+      throw error
+    }
+  }
 
   if (requiresSession) {
     if (!user) {
-      return NextResponse.redirect(new URL('/login', request.url))
+      const redirect = NextResponse.redirect(new URL('/login', request.url))
+      clearSupabaseAuthCookies(redirect, request)
+      return redirect
     }
   }
 

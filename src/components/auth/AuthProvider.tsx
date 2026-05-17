@@ -46,18 +46,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return data?.role || 'observer'
     }
 
-    supabase.auth.getSession().then(async ({ data }) => {
-      if (!active) return
-      let role = null
-      if (data.session) {
-        role = await fetchUserRole(data.session.user.id)
-      }
-      setState({
-        session: data.session,
-        status: data.session ? 'authenticated' : 'anonymous',
-        userRole: role,
+    supabase.auth
+      .getSession()
+      .then(async ({ data, error }) => {
+        if (!active) return
+        if (error) {
+          await supabase.auth.signOut()
+          setState({ session: null, status: 'anonymous', userRole: null })
+          router.refresh()
+          return
+        }
+        let role = null
+        if (data.session) {
+          role = await fetchUserRole(data.session.user.id)
+        }
+        setState({
+          session: data.session,
+          status: data.session ? 'authenticated' : 'anonymous',
+          userRole: role,
+        })
       })
-    })
+      .catch(async () => {
+        if (!active) return
+        await supabase.auth.signOut()
+        setState({ session: null, status: 'anonymous', userRole: null })
+        router.refresh()
+      })
 
     const {
       data: { subscription },
@@ -78,8 +92,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (event === 'SIGNED_OUT') {
+        setState({ session: null, status: 'anonymous', userRole: null })
         router.refresh()
-        if (pathname.startsWith('/root') || pathname.startsWith('/user')) router.replace('/')
+        if (pathname.startsWith('/root') || pathname.startsWith('/user') || pathname.startsWith('/terminal')) router.replace('/login')
       }
     })
 
