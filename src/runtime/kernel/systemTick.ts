@@ -51,6 +51,8 @@ export async function systemTick(metrics: any, executor: any) {
   // 5. Registrar la decisión del Gate (incluye el ERW usado y el umbral dinámico)
   const { plan, gate } = approved;
   await supabase.from('decision_gate_logs').insert({
+    user_id: metrics.userId,
+    node_id: metrics.nodeId,
     plan_id: plan.label,                     // o podrías usar plan.id si existe
     decision_source: gate.source,
     approved: gate.approved,
