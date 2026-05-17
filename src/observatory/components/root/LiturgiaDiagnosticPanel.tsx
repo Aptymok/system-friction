@@ -165,6 +165,9 @@ export function LiturgiaDiagnosticPanel() {
   const [closeNotes, setCloseNotes] = useState('');
   const [log, setLog] = useState<LogItem[]>([{ time: nowTime(), phase: 'SISTEMA', event: 'Protocolo DIOL-SF v2.0 inicializado.' }]);
   const [persistStatus, setPersistStatus] = useState(node?.id ? 'persistencia pendiente' : 'sin nodo activo');
+  const [amvMessage, setAmvMessage] = useState('');
+  const [amvReply, setAmvReply] = useState('AMV interno en espera de observación.');
+  const [amvLoading, setAmvLoading] = useState(false);
 
   const phi = useMemo(() => (ihg * nti) / (1 + ldi) + xi, [ihg, nti, ldi, xi]);
   const regime = useMemo(() => detectRegime(ihg, nti, ldi, phi), [ihg, nti, ldi, phi]);
@@ -313,6 +316,45 @@ export function LiturgiaDiagnosticPanel() {
     registerLog('AMBULATORIO', 'Registro exportado.');
   };
 
+  const sendAmvMessage = async () => {
+    const message = amvMessage.trim();
+    if (!message || amvLoading) return;
+    setAmvLoading(true);
+    setAmvReply('Consultando wrapper interno...');
+
+    try {
+      const response = await fetch('/api/liturgia/amv', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          node_id: node?.id ?? null,
+          session_id: sessionId,
+          message,
+          context: {
+            entity,
+            phenomenon,
+            anomalies,
+            ihg,
+            nti,
+            ldi,
+            xi,
+            phi,
+            regime,
+          },
+        }),
+      });
+      const result = await response.json();
+      setAmvReply(String(result.message || 'AMV interno sin respuesta.'));
+      registerLog('PRESBITERIO', `Consulta AMV registrada: ${message.slice(0, 64)}`);
+      setAmvMessage('');
+    } catch {
+      setAmvReply('AMV interno sin respuesta.');
+      registerLog('PRESBITERIO', 'Consulta AMV no completada.');
+    } finally {
+      setAmvLoading(false);
+    }
+  };
+
   const contextLine = `${entity || '—'} · Φ_SF ${phi.toFixed(3)} · ${regime} · ${node?.id ? `nodo ${node.id.slice(0, 8)}` : 'sin nodo activo'}`;
   const scenarioA = (ihg * nti) / (1 + clamp(ldi + 0.5, 0, 3)) + xi;
   const scenarioB = (ihg * clamp(nti + 0.2, 0, 1)) / (1 + ldi) + xi;
@@ -451,8 +493,16 @@ export function LiturgiaDiagnosticPanel() {
           <div className="ld-divider" />
           <div className="ld-context">{contextLine}<br />Anomalías: {anomalies.join(', ') || '—'} · IHG {ihg.toFixed(2)} · LDI {ldi.toFixed(2)}</div>
           <div className="ld-chat">
-            <div className="ld-chat-head">◆ AMV-SFI · Agente de Observación Friccional <span>NO CONECTADO</span></div>
-            <p>AMV no conectado. No se invoca Anthropic desde navegador y no existe endpoint interno compatible de conversación diagnóstica.</p>
+            <div className="ld-chat-head">◆ AMV-SFI · Agente de Observación Friccional <span>INTERNO ACTIVO</span></div>
+            <p>{amvReply}</p>
+            <textarea
+              value={amvMessage}
+              onChange={(event) => setAmvMessage(event.target.value)}
+              placeholder="Formular observación estructural..."
+            />
+            <button type="button" onClick={sendAmvMessage} disabled={amvLoading || !amvMessage.trim()}>
+              {amvLoading ? 'Registrando' : 'Emitir'}
+            </button>
           </div>
           <p className="ld-label">Tipo de intervención</p>
           <div className="ld-tags">

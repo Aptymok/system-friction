@@ -8,9 +8,24 @@ export async function GET(req: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const { data: profile } = await supabase
     .from('profiles')
-    .select('subscription_tier, module_access, subscription_expires_at')
+    .select('role, subscription_tier, module_access, subscription_expires_at')
     .eq('user_id', user.id)
     .single();
+  if (profile?.role === 'root' || profile?.role === 'system') {
+    return NextResponse.json({
+      tier: 'root_bypass',
+      modules: {
+        full_access: true,
+        cognitive_twin: true,
+        orchestrator: true,
+        telemetry: true,
+        media_room: true,
+        amv: true,
+        experimental: true,
+      },
+      expiresAt: null,
+    });
+  }
   return NextResponse.json({
     tier: profile?.subscription_tier || 'free',
     modules: profile?.module_access || {},

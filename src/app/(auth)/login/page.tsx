@@ -1,7 +1,13 @@
-import { AuthTerminal } from '@/components/auth/AuthTerminal'
-import { loginAction } from '@/lib/auth/actions'
+import { redirect } from 'next/navigation'
+import { ThresholdAccess } from '@/components/auth/ThresholdAccess'
+import { createServerSupabaseClient } from '@/runtime/supabase/server'
 
 export default async function LoginPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
   const params = await searchParams
-  return <AuthTerminal title="Sincronizar identidad" action={loginAction} mode="login" error={params.error} />
+  const supabase = await createServerSupabaseClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (user) redirect('/terminal')
+  return <ThresholdAccess error={params.error} />
 }
