@@ -5,9 +5,13 @@ import { createServerSupabaseClient } from '@/runtime/supabase/server'
 export default async function LoginPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
   const params = await searchParams
   const supabase = await createServerSupabaseClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (user) redirect('/terminal')
+  try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    if (user) redirect('/terminal')
+  } catch {
+    // A corrupt Supabase refresh cookie must not prevent rendering the threshold.
+  }
   return <ThresholdAccess error={params.error} />
 }
