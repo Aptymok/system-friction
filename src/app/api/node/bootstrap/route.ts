@@ -37,6 +37,7 @@ export async function GET() {
 
   return NextResponse.json({
     node: ctx.node,
+    user: { id: ctx.user.id, email: ctx.user.email },
     profile: ctx.profile,
     audits: audits.data || [],
     memoryFacts: memoryFacts.data || [],

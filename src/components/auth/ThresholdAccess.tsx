@@ -19,7 +19,7 @@ async function sha256(input: string) {
   return Array.from(new Uint8Array(digest)).map((byte) => byte.toString(16).padStart(2, '0')).join('');
 }
 
-export function ThresholdAccess({ error }: { error?: string }) {
+export default function ThresholdAccess({ error }: { error?: string }) {
   const router = useRouter();
   const supabase = createBrowserSupabaseClient();
   const startedAt = useRef(Date.now());

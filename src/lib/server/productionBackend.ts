@@ -17,6 +17,11 @@ export function isRootRole(role?: string | null) {
   return role === 'root' || role === 'system';
 }
 
+export function isRootUser(role?: string | null, email?: string | null) {
+  const rootEmail = process.env.SYSTEM_ROOT_EMAIL || 'aptymok@gmail.com';
+  return isRootRole(role) || Boolean(email && email.toLowerCase() === rootEmail.toLowerCase());
+}
+
 export async function getServerUserContext() {
   const supabase = await createServerSupabaseClient();
   const service = createServiceSupabaseClient();
@@ -49,7 +54,7 @@ export async function getServerUserContext() {
     profile = data;
   }
 
-  return { supabase, service, user, profile, isRoot: isRootRole(profile?.role) };
+  return { supabase, service, user, profile, isRoot: isRootUser(profile?.role, user.email) };
 }
 
 export async function ensureOwnedNode(nodeId?: string | null) {

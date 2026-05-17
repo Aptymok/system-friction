@@ -24,17 +24,21 @@ export default function TerminalPage() {
         }
         const data = await response.json()
         const role = data.profile?.role
+        const userEmail = data.user?.email || data.profile?.email || ''
         const licenseStatus = data.license?.status
-        const hasAccess =
+        const isRoot =
           role === 'root' ||
           role === 'system' ||
+          userEmail.toLowerCase() === 'aptymok@gmail.com'
+        const hasAccess =
+          isRoot ||
           data.entitlements?.full_access === true ||
           licenseStatus === 'root_bypass' ||
           licenseStatus === 'active' ||
           licenseStatus === 'trialing'
 
         if (active) {
-          setEmail(data.profile?.email || '')
+          setEmail(userEmail)
           setAccess(hasAccess ? 'allowed' : 'payment')
         }
       } catch {
