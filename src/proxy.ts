@@ -21,8 +21,14 @@ export async function proxy(request: NextRequest) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
+  const requiresSession =
+    pathname.startsWith('/terminal') ||
+    pathname.startsWith('/root') ||
+    pathname.startsWith('/user') ||
+    pathname === '/setup-profile'
+
   if (!supabaseUrl || !supabaseKey) {
-    if (pathname.startsWith('/terminal') || pathname === '/setup-profile') {
+    if (requiresSession) {
       return NextResponse.redirect(new URL('/login?error=supabase_no_configurado', request.url))
     }
     return response
@@ -46,9 +52,21 @@ export async function proxy(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  if (pathname.startsWith('/terminal') || pathname === '/setup-profile') {
+  if (requiresSession) {
     if (!user) {
       return NextResponse.redirect(new URL('/login', request.url))
+    }
+  }
+
+  if (pathname.startsWith('/root') && user) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('user_id', user.id)
+      .single()
+
+    if (profile?.role !== 'root') {
+      return NextResponse.redirect(new URL('/user', request.url))
     }
   }
 
