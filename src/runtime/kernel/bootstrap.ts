@@ -18,17 +18,17 @@ function routeGenerator() {
 }
 
 // LOOP DE AUTO-REPARACIÓN
-export function bootstrapSelfHealing() {
+export async function bootstrapSelfHealing() {
   console.log("[KERNEL] bootstrapping self-healing layer");
 
   // Cargar estado previo si existe
-  loadKernelState();
+  await loadKernelState();
 
   // scan inicial
-  scanRoutes(EXPECTED_ROUTES);
+  await scanRoutes(EXPECTED_ROUTES);
 
   // ciclo continuo
   setInterval(() => {
-    healRoutes(routeGenerator);
+    void healRoutes(routeGenerator);
   }, 5000);
 }

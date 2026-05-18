@@ -1,15 +1,9 @@
-type RouteState = {
-  path: string;
-  exists: boolean;
-  lastSeen: number;
-  health: "ok" | "missing" | "corrupt";
-};
-
-type KernelState = {
-  routes: Record<string, RouteState>;
-  tickVersion: number;
-  lastRebuild: number;
-};
+import {
+  getKernelState as readKernelState,
+  setKernelState,
+  updateKernelState,
+  type KernelState,
+} from '@/lib/kernel/kernelState';
 
 let state: KernelState = {
   routes: {},
@@ -17,74 +11,86 @@ let state: KernelState = {
   lastRebuild: Date.now(),
 };
 
-// Persistencia simple (archivo)
-const fs = require("fs");
-const STATE_FILE = ".kernel-state.json";
-
-export function loadKernelState() {
-  if (fs.existsSync(STATE_FILE)) {
-    try {
-      const data = JSON.parse(fs.readFileSync(STATE_FILE, "utf8"));
-      state = { ...state, ...data };
-    } catch (e) {}
-  }
+export async function loadKernelState() {
+  state = await readKernelState();
 }
 
-export function saveKernelState() {
-  fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2));
+export async function saveKernelState() {
+  state = await setKernelState(state);
 }
 
-// REGISTRO AUTOMÁTICO DE RUTAS
-export function registerRoute(path: string) {
-  state.routes[path] = {
-    path,
-    exists: true,
-    lastSeen: Date.now(),
-    health: "ok",
-  };
-  saveKernelState();
-}
-
-// DETECCIÓN EN RUNTIME
-export function scanRoutes(expectedRoutes: string[]) {
-  for (const r of expectedRoutes) {
-    if (!state.routes[r]) {
-      state.routes[r] = {
-        path: r,
-        exists: false,
+// REGISTRO AUTOMATICO DE RUTAS
+export async function registerRoute(path: string) {
+  state = await updateKernelState((current) => ({
+    ...current,
+    routes: {
+      ...current.routes,
+      [path]: {
+        path,
+        exists: true,
         lastSeen: Date.now(),
-        health: "missing",
-      };
-    }
-  }
-  saveKernelState();
+        health: 'ok',
+      },
+    },
+  }));
 }
 
-// REPARACIÓN AUTOMÁTICA
-export function healRoutes(generator: () => string[]) {
-  const missing = Object.values(state.routes).filter(r => r.health !== "ok");
+// DETECCION EN RUNTIME
+export async function scanRoutes(expectedRoutes: string[]) {
+  state = await updateKernelState((current) => {
+    const routes = { ...current.routes };
+
+    for (const route of expectedRoutes) {
+      if (!routes[route]) {
+        routes[route] = {
+          path: route,
+          exists: false,
+          lastSeen: Date.now(),
+          health: 'missing',
+        };
+      }
+    }
+
+    return { ...current, routes };
+  });
+}
+
+// REPARACION AUTOMATICA
+export async function healRoutes(generator: () => string[]) {
+  const missing = Object.values(state.routes).filter(
+    (route) => route.health !== 'ok',
+  );
 
   if (missing.length === 0) return;
 
   const regenerated = generator();
 
-  for (const path of regenerated) {
-    state.routes[path] = {
-      path,
-      exists: true,
-      lastSeen: Date.now(),
-      health: "ok",
-    };
-  }
+  state = await updateKernelState((current) => {
+    const routes = { ...current.routes };
 
-  state.lastRebuild = Date.now();
-  saveKernelState();
+    for (const path of regenerated) {
+      routes[path] = {
+        path,
+        exists: true,
+        lastSeen: Date.now(),
+        health: 'ok',
+      };
+    }
+
+    return {
+      ...current,
+      routes,
+      lastRebuild: Date.now(),
+    };
+  });
 }
 
-// META-RECONFIGURACIÓN DEL KERNEL TICK
-export function evolveTick(fn: (prev: number) => number) {
-  state.tickVersion = fn(state.tickVersion);
-  saveKernelState();
+// META-RECONFIGURACION DEL KERNEL TICK
+export async function evolveTick(fn: (prev: number) => number) {
+  state = await updateKernelState((current) => ({
+    ...current,
+    tickVersion: fn(current.tickVersion),
+  }));
 }
 
 export function getKernelState() {

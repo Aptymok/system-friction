@@ -87,11 +87,15 @@ function resetCountersIfNeeded() {
 }
 
 function persistCounters() {
+  if (process.env.VERCEL || process.env.NODE_ENV === 'production') return;
+
   const fs = require('fs');
   fs.writeFileSync('.evolution-counters.json', JSON.stringify(changeCounters));
 }
 
 export function loadCounters() {
+  if (process.env.VERCEL || process.env.NODE_ENV === 'production') return;
+
   const fs = require('fs');
   if (fs.existsSync('.evolution-counters.json')) {
     changeCounters = JSON.parse(fs.readFileSync('.evolution-counters.json', 'utf8'));

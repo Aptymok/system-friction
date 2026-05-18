@@ -1,9 +1,6 @@
 import '@/app/globals.css';
 import type { Metadata } from 'next';
 import { AuthProvider } from '@/components/auth/AuthProvider';
-import { initKernel } from '@/runtime/kernel/init'
-
-initKernel();
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://systemfriction.org'),
