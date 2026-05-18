@@ -18,22 +18,151 @@ function stateValue(asset: SfiAsset, key: string) {
   return '-'
 }
 
-function EmptyAssetsState() {
+type CreateAssetPayload = {
+  target_system: Record<string, unknown>
+  objective: Record<string, unknown>
+  state_vector: Record<string, unknown>
+  current_phase: string
+  metadata: Record<string, unknown>
+}
+
+function classifyRegime(phi: number) {
+  if (phi > 0.6) return 'HOMEOSTATIC'
+  if (phi > 0.3) return 'TRANSITION'
+  return 'CRITICAL'
+}
+
+function calculatePhi(ihg: number, nti: number, ldiHours: number, xi: number) {
+  const ldiNormalized = Math.max(0, ldiHours / 72)
+  return Number(((ihg * nti) / (1 + ldiNormalized) + xi).toFixed(3))
+}
+
+function EmptyAssetsState({ onCreated }: { onCreated: (assets: SfiAsset[]) => void }) {
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+
+  const submit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    setSaving(true)
+    setError('')
+    const form = new FormData(event.currentTarget)
+    const ihg = Number(form.get('ihg') || 0)
+    const nti = Number(form.get('nti') || 0)
+    const ldiHours = Number(form.get('ldi_hours') || 0)
+    const xi = Number(form.get('xi_noise') || 0)
+    const phi = calculatePhi(ihg, nti, ldiHours, xi)
+    const regime = classifyRegime(phi)
+
+    const payload: CreateAssetPayload = {
+      target_system: {
+        name: String(form.get('target_name') || '').trim(),
+        type: String(form.get('target_type') || '').trim(),
+        location: String(form.get('target_location') || '').trim(),
+      },
+      objective: {
+        declaration: String(form.get('objective') || '').trim(),
+      },
+      state_vector: {
+        IHG: ihg,
+        NTI_obs: nti,
+        LDI_hours: ldiHours,
+        xi_noise: xi,
+        PHI_SF: phi,
+        regime,
+        runway_days: null,
+      },
+      current_phase: 'PHASE_0_ASSET_CREATED',
+      metadata: {
+        source: 'terminal_minimal_form',
+      },
+    }
+
+    try {
+      const assetResponse = await fetch('/api/sfi/assets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      const assetResult = await assetResponse.json()
+      if (!assetResponse.ok) throw new Error(assetResult.error || 'asset_create_failed')
+
+      const assetId = assetResult.asset.asset_id
+      const measurementResponse = await fetch(`/api/sfi/assets/${encodeURIComponent(assetId)}/measurements`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload.state_vector),
+      })
+      const measurementResult = await measurementResponse.json()
+      if (!measurementResponse.ok) throw new Error(measurementResult.error || 'measurement_create_failed')
+
+      const listResponse = await fetch('/api/sfi/assets', { cache: 'no-store' })
+      const listResult = await listResponse.json()
+      onCreated(Array.isArray(listResult.assets) ? listResult.assets : [assetResult.asset])
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'asset_create_failed')
+    } finally {
+      setSaving(false)
+    }
+  }
+
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[#060605] px-4 text-[#c8c4b8]">
-      <section className="w-full max-w-2xl border border-[rgba(200,169,81,0.12)] bg-black/30 p-7">
+    <main className="flex min-h-screen items-center justify-center bg-[#060605] px-4 py-8 text-[#c8c4b8]">
+      <section className="w-full max-w-3xl border border-[rgba(200,169,81,0.12)] bg-black/30 p-7">
         <p className="font-mono text-[10px] uppercase tracking-[0.34em] text-[#C8A951]">SFI-EVAL-ASSET</p>
         <h1 className="mt-4 font-display text-lg uppercase tracking-[0.16em] text-[#C8A951]">ESTADO VACIO OPERATIVO</h1>
         <p className="mt-5 font-serif text-sm leading-7 text-[#5c5c52]">
           No existen assets persistentes para esta sesion. El observatorio queda listo para leer datos reales desde Supabase cuando se registre el primer asset.
         </p>
-        <div className="mt-6 grid gap-2 font-mono text-[10px] uppercase tracking-[0.18em] text-[#5c5c52]">
-          <span>assets: 0</span>
-          <span>produccion simulada: desactivada</span>
-          <span>social engine: inactivo</span>
-        </div>
+        <form onSubmit={submit} className="mt-7 grid gap-4">
+          <div className="grid gap-4 md:grid-cols-3">
+            <Field name="target_name" label="nombre del sistema observado" required />
+            <Field name="target_type" label="tipo" required />
+            <Field name="target_location" label="ubicacion" required />
+          </div>
+          <Field name="objective" label="objetivo declarado" required />
+          <div className="grid gap-4 md:grid-cols-4">
+            <Field name="ihg" label="IHG" type="number" step="0.01" defaultValue="0.5" required />
+            <Field name="nti" label="NTI_obs" type="number" step="0.01" defaultValue="0.5" required />
+            <Field name="ldi_hours" label="LDI_hours" type="number" step="1" defaultValue="0" required />
+            <Field name="xi_noise" label="xi_noise" type="number" step="0.001" defaultValue="0.05" required />
+          </div>
+          <button disabled={saving} className="border border-[rgba(200,169,81,0.35)] bg-[rgba(200,169,81,0.07)] px-5 py-3 font-mono text-[10px] uppercase tracking-[0.24em] text-[#C8A951] disabled:opacity-50">
+            {saving ? 'CREANDO ASSET' : 'CREAR ASSET'}
+          </button>
+          {error && <p className="border-l border-[#b85050] bg-[#b85050]/10 p-3 font-mono text-[10px] uppercase tracking-[0.16em] text-[#b85050]">{error}</p>}
+        </form>
       </section>
     </main>
+  )
+}
+
+function Field({
+  name,
+  label,
+  type = 'text',
+  step,
+  defaultValue,
+  required,
+}: {
+  name: string
+  label: string
+  type?: string
+  step?: string
+  defaultValue?: string
+  required?: boolean
+}) {
+  return (
+    <label className="block font-mono text-[10px] uppercase tracking-[0.18em] text-[#5c5c52]">
+      {label}
+      <input
+        name={name}
+        type={type}
+        step={step}
+        defaultValue={defaultValue}
+        required={required}
+        className="mt-2 w-full border-0 border-b border-[rgba(200,169,81,0.18)] bg-black/30 px-3 py-3 font-mono text-sm text-[#c8c4b8] outline-none focus:border-[#C8A951]"
+      />
+    </label>
   )
 }
 
@@ -135,7 +264,7 @@ export default function TerminalPage() {
   }
 
   if (!assets.length) {
-    return <EmptyAssetsState />
+    return <EmptyAssetsState onCreated={setAssets} />
   }
 
   const activeAsset = assets[0]
