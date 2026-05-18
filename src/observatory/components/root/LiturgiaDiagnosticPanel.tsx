@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createBrowserSupabaseClient } from '@/runtime/supabase/client';
 import { useNodeStore } from '@/observatory/store/nodeStore';
+import type { SfiAsset } from '@/lib/types';
 
 type PhaseKey = 'NARTEX' | 'NAVE' | 'CRUCERO' | 'PRESBITERIO' | 'SANTUARIO' | 'AMBULATORIO';
 type Regime = 'Homeostático' | 'Crítico' | 'Entrópico';
@@ -137,27 +138,46 @@ function Radar({ ihg, nti, ldi, phi }: { ihg: number; nti: number; ldi: number; 
   );
 }
 
-export function LiturgiaDiagnosticPanel() {
+function textFromRecord(record: Record<string, unknown> | undefined, key: string) {
+  const value = record?.[key];
+  return typeof value === 'string' ? value : '';
+}
+
+function numberFromRecord(record: Record<string, unknown> | undefined, key: string) {
+  const value = record?.[key];
+  return typeof value === 'number' && Number.isFinite(value) ? value : null;
+}
+
+function normalizedAssetLdi(asset?: SfiAsset | null) {
+  const hours = numberFromRecord(asset?.state_vector, 'LDI_hours');
+  return hours === null ? null : clamp((hours / 72) * 3, 0, 3);
+}
+
+export function LiturgiaDiagnosticPanel({ asset }: { asset?: SfiAsset | null }) {
   const node = useNodeStore((state) => state.node);
   const nodeMetrics = useNodeStore((state) => state.metrics);
   const addNodeLog = useNodeStore((state) => state.addLog);
+  const assetIhg = numberFromRecord(asset?.state_vector, 'IHG');
+  const assetNti = numberFromRecord(asset?.state_vector, 'NTI_obs');
+  const assetLdi = normalizedAssetLdi(asset);
+  const assetXi = numberFromRecord(asset?.state_vector, 'xi_noise');
   const atlasRef = useRef<HTMLDivElement | null>(null);
   const panelRefs = useRef<Array<HTMLElement | null>>([]);
   const [activePhase, setActivePhase] = useState(0);
   const [sessionId] = useState(makeSessionId);
   const [timestamp, setTimestamp] = useState(() => new Date());
-  const [entity, setEntity] = useState(node?.alias || node?.objective || '');
+  const [entity, setEntity] = useState(textFromRecord(asset?.target_system, 'name') || node?.alias || node?.objective || '');
   const [sector, setSector] = useState('');
   const [role, setRole] = useState('');
   const [phenomenon, setPhenomenon] = useState('');
   const [anomalies, setAnomalies] = useState<string[]>([]);
-  const [nodesRaw, setNodesRaw] = useState(node?.id ? `Nodo ${node.id}` : '');
+  const [nodesRaw, setNodesRaw] = useState(asset?.asset_id || (node?.id ? `Nodo ${node.id}` : ''));
   const [traceability, setTraceability] = useState('');
   const [risk, setRisk] = useState(5);
-  const [ihg, setIhg] = useState(clamp(Number(nodeMetrics.ihg ?? node?.current_ihg ?? 0.5), 0, 1));
-  const [nti, setNti] = useState(clamp(Number(nodeMetrics.nti ?? node?.current_nti ?? 0.5), 0, 1));
-  const [ldi, setLdi] = useState(clamp(Number(nodeMetrics.ldi ?? node?.current_ldi ?? 0.5), 0, 3));
-  const [xi, setXi] = useState(clamp(Number(nodeMetrics.divergence ?? 0.05), 0.01, 0.25));
+  const [ihg, setIhg] = useState(clamp(Number(assetIhg ?? nodeMetrics.ihg ?? node?.current_ihg ?? 0.5), 0, 1));
+  const [nti, setNti] = useState(clamp(Number(assetNti ?? nodeMetrics.nti ?? node?.current_nti ?? 0.5), 0, 1));
+  const [ldi, setLdi] = useState(clamp(Number(assetLdi ?? nodeMetrics.ldi ?? node?.current_ldi ?? 0.5), 0, 3));
+  const [xi, setXi] = useState(clamp(Number(assetXi ?? nodeMetrics.divergence ?? 0.05), 0.01, 0.25));
   const [interventionType, setInterventionType] = useState<string[]>(['lingüística']);
   const [interventionNotes, setInterventionNotes] = useState('');
   const [nextObservation, setNextObservation] = useState('');
@@ -221,6 +241,16 @@ export function LiturgiaDiagnosticPanel() {
     setEntity((current) => current || node.alias || node.objective || '');
     setNodesRaw((current) => current || `Nodo ${node.id}`);
   }, [node]);
+
+  useEffect(() => {
+    if (!asset) return;
+    setEntity(textFromRecord(asset.target_system, 'name'));
+    setNodesRaw(asset.asset_id);
+    setIhg(clamp(Number(numberFromRecord(asset.state_vector, 'IHG') ?? 0.5), 0, 1));
+    setNti(clamp(Number(numberFromRecord(asset.state_vector, 'NTI_obs') ?? 0.5), 0, 1));
+    setLdi(clamp(Number(normalizedAssetLdi(asset) ?? 0.5), 0, 3));
+    setXi(clamp(Number(numberFromRecord(asset.state_vector, 'xi_noise') ?? 0.05), 0.01, 0.25));
+  }, [asset]);
 
   const gotoPanel = (index: number) => {
     panelRefs.current[index]?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' });
