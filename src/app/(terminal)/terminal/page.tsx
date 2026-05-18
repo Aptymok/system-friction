@@ -92,8 +92,11 @@ function EmptyAssetsState({ onCreated }: { onCreated: (assets: SfiAsset[]) => vo
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload.state_vector),
       })
-      const measurementResult = await measurementResponse.json()
-      if (!measurementResponse.ok) throw new Error(measurementResult.error || 'measurement_create_failed')
+      const measurementResult = await measurementResponse.json().catch(() => null)
+      if (!measurementResponse.ok) {
+        console.error('[SFI_MEASUREMENT_CLIENT_ERROR]', measurementResult)
+        throw new Error(measurementResult?.error || 'measurement_create_failed')
+      }
 
       const listResponse = await fetch('/api/sfi/assets', { cache: 'no-store' })
       const listResult = await listResponse.json()

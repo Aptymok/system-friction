@@ -7,11 +7,15 @@ function numeric(value: unknown) {
   return Number.isFinite(next) ? next : null;
 }
 
-export async function POST(req: NextRequest, { params }: { params: Promise<{ asset_id: string }> }) {
+export async function POST(
+  req: NextRequest,
+  { params }: { params: Promise<{ asset_id: string }> }
+) {
   const ctx = await getServerUserContext();
   if (!ctx.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const { asset_id: assetId } = await params;
+  console.log('[SFI_MEASUREMENT_POST]', { assetId });
   const { asset, error: assetError } = await getAccessibleSfiAsset(ctx, assetId);
   if (assetError) return NextResponse.json({ error: assetError }, { status: 500 });
   if (!asset) return NextResponse.json({ error: 'asset_not_found' }, { status: 404 });
@@ -34,7 +38,15 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ ass
     .select('*')
     .single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error('[SFI_MEASUREMENT_INSERT_ERROR]', error);
+    return NextResponse.json({
+      error: error.message,
+      details: error.details,
+      hint: error.hint,
+      code: error.code,
+    }, { status: 500 });
+  }
 
   await ctx.service
     .from('sfi_assets')
