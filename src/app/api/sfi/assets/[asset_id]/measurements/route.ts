@@ -19,11 +19,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ ass
   const body = await req.json().catch(() => null);
   const measurement = {
     asset_id: assetId,
-    IHG: numeric(body?.IHG),
-    NTI_obs: numeric(body?.NTI_obs),
-    LDI_hours: numeric(body?.LDI_hours),
+    ihg: numeric(body?.IHG ?? body?.ihg),
+    nti_obs: numeric(body?.NTI_obs ?? body?.nti_obs),
+    ldi_hours: numeric(body?.LDI_hours ?? body?.ldi_hours),
     xi_noise: numeric(body?.xi_noise),
-    PHI_SF: numeric(body?.PHI_SF),
+    phi_sf: numeric(body?.PHI_SF ?? body?.phi_sf),
     regime: typeof body?.regime === 'string' ? body.regime : null,
     runway_days: numeric(body?.runway_days),
   };
@@ -40,11 +40,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ ass
     .from('sfi_assets')
     .update({
       state_vector: {
-        IHG: measurement.IHG,
-        NTI_obs: measurement.NTI_obs,
-        LDI_hours: measurement.LDI_hours,
+        IHG: measurement.ihg,
+        NTI_obs: measurement.nti_obs,
+        LDI_hours: measurement.ldi_hours,
         xi_noise: measurement.xi_noise,
-        PHI_SF: measurement.PHI_SF,
+        PHI_SF: measurement.phi_sf,
         regime: measurement.regime,
         runway_days: measurement.runway_days,
       },
