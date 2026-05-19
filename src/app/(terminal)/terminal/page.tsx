@@ -222,7 +222,17 @@ function ReadingLine({ title, value }: { title: string; value: string }) {
   )
 }
 
-function AssetHeader({ assets, activeAsset, onSelect }: { assets: SfiAsset[]; activeAsset: SfiAsset; onSelect: (assetId: string) => void }) {
+function AssetHeader({
+  assets,
+  activeAsset,
+  onSelect,
+  onNewSignal,
+}: {
+  assets: SfiAsset[]
+  activeAsset: SfiAsset
+  onSelect: (assetId: string) => void
+  onNewSignal: () => void
+}) {
   return (
     <div className="border-b border-[rgba(200,169,81,0.08)] bg-[#060605] px-5 py-3">
       <div className="flex flex-wrap items-center gap-4 font-mono text-[10px] uppercase tracking-[0.18em] text-[#5c5c52]">
@@ -237,6 +247,13 @@ function AssetHeader({ assets, activeAsset, onSelect }: { assets: SfiAsset[]; ac
           ))}
         </select>
         <span>{summarizeAsset(activeAsset)}</span>
+        <button
+          type="button"
+          onClick={onNewSignal}
+          className="border border-[rgba(200,169,81,0.18)] px-3 py-2 text-[#C8A951]"
+        >
+          NUEVA SEÑAL
+        </button>
       </div>
       <h1 className="mt-2 font-display text-sm uppercase tracking-[0.16em] text-[#C8A951]">{assetLabel(activeAsset)}</h1>
     </div>
@@ -251,6 +268,7 @@ export default function TerminalPage() {
   const [nodeId, setNodeId] = useState<string | null>(null)
   const [assets, setAssets] = useState<SfiAsset[]>([])
   const [activeAssetId, setActiveAssetId] = useState('')
+  const [creatingSignal, setCreatingSignal] = useState(false)
 
   useEffect(() => {
     let active = true
@@ -328,18 +346,21 @@ export default function TerminalPage() {
     )
   }
 
-  if (!assets.length) {
-    return <SignalIntake onCreated={(nextAssets) => {
+  const handleAssetsCreated = (nextAssets: SfiAsset[]) => {
       setAssets(nextAssets)
       setActiveAssetId(nextAssets[0]?.asset_id || '')
-    }} />
+      setCreatingSignal(false)
+  }
+
+  if (!assets.length || creatingSignal) {
+    return <SignalIntake onCreated={handleAssetsCreated} />
   }
 
   const activeAsset = assets.find((asset) => asset.asset_id === activeAssetId) || assets[0]
 
   return (
     <main className="min-h-screen bg-[#060605] text-paper">
-      <AssetHeader assets={assets} activeAsset={activeAsset} onSelect={setActiveAssetId} />
+      <AssetHeader assets={assets} activeAsset={activeAsset} onSelect={setActiveAssetId} onNewSignal={() => setCreatingSignal(true)} />
       <LiturgiaDiagnosticPanel asset={activeAsset} nodeId={nodeId} />
     </main>
   )
