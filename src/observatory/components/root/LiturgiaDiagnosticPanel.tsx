@@ -275,6 +275,7 @@ function LoopSurface({
         loading: false,
         social: `Resonancia registrada · score ${score.toFixed(2)} · ${reading.continuity}`,
       }));
+      await refreshLoop();
     } catch (error) {
       setState((current) => ({ ...current, loading: false, error: error instanceof Error ? error.message : 'social_resonance_failed' }));
     }

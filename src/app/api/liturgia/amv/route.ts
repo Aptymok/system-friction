@@ -24,34 +24,48 @@ function dominantTension(context: LiturgiaContext, latestAudit?: any) {
   const ldi = Number(context.ldi ?? latestAudit?.ldi ?? 0);
   const nti = Number(context.nti ?? latestAudit?.nti ?? 0.5);
   const ihg = Number(context.ihg ?? latestAudit?.ihg ?? 0.5);
-  if (ldi > 1 || ldi > ihg * 1.5) return 'disipación longitudinal';
+  if (ldi > 1 || ldi > ihg * 1.5) return 'disipacion longitudinal';
   if (nti < 0.35) return 'opacidad de trazabilidad';
-  if (ihg < 0.35) return 'fragmentación de gobernanza';
-  return 'tensión residual estable';
+  if (ihg < 0.35) return 'fragmentacion de gobernanza';
+  return 'tension residual estable';
 }
 
 function observedLoop(context: LiturgiaContext, memoryFacts: any[], events: any[]) {
+  const socialEvent = events.find((event) => event.event_name === 'social_resonance_ingested');
+  if (socialEvent) {
+    const score = Number(socialEvent.payload?.resonance_score);
+    return Number.isFinite(score)
+      ? `retorno del campo social registrado con resonancia ${score.toFixed(2)}`
+      : 'retorno del campo social registrado';
+  }
+
   const loopFact = memoryFacts.find((fact) => fact.fact_type === 'loop');
   if (loopFact?.value) return String(loopFact.value);
   const anomaly = context.anomalies?.[0];
-  if (anomaly) return `reaparición de ${anomaly} sin cierre estructural`;
+  if (anomaly) return `reaparicion de ${anomaly} sin cierre estructural`;
   const repeated = events.find((event) => String(event.event_name || '').includes('registered'));
-  return repeated ? `registro recurrente: ${repeated.event_name}` : 'loop no consolidado; observación insuficiente';
+  return repeated ? `registro recurrente: ${repeated.event_name}` : 'loop no consolidado; observacion insuficiente';
 }
 
-function proposedAction(tension: string, context: LiturgiaContext) {
-  if (tension.includes('disipación')) return 'reducir latencia: registrar una acción mínima con responsable y fecha';
+function proposedAction(tension: string, context: LiturgiaContext, events: any[]) {
+  const hasSocialReturn = events.some((event) => event.event_name === 'social_resonance_ingested');
+  if (hasSocialReturn) {
+    return 'ajustar pieza activa: reducir saturacion, elevar evidencia y medir respuesta del campo';
+  }
+  if (tension.includes('disipacion')) return 'reducir latencia: registrar una accion minima con responsable y fecha';
   if (tension.includes('opacidad')) return 'aumentar trazabilidad: convertir evidencia parcial en evento verificable';
-  if (tension.includes('gobernanza')) return 'alinear autoridad: declarar un único criterio de decisión';
-  if ((context.anomalies || []).length > 0) return `cerrar anomalía dominante: ${context.anomalies?.[0]}`;
-  return 'mantener observación y capturar el próximo residuo operativo';
+  if (tension.includes('gobernanza')) return 'alinear autoridad: declarar un unico criterio de decision';
+  if ((context.anomalies || []).length > 0) return `cerrar anomalia dominante: ${context.anomalies?.[0]}`;
+  return 'mantener observacion y capturar el proximo residuo operativo';
 }
 
-function nextQuestion(tension: string) {
-  if (tension.includes('disipación')) return '¿Qué acción sigue viva pero perdió fecha, responsable o criterio de cierre?';
-  if (tension.includes('opacidad')) return '¿Qué evidencia existe pero todavía no está registrada como traza verificable?';
-  if (tension.includes('gobernanza')) return '¿Quién decide realmente cuando la intención y la ejecución divergen?';
-  return '¿Qué residuo se repite aunque el sistema declare estabilidad?';
+function nextQuestion(tension: string, events: any[]) {
+  const hasSocialReturn = events.some((event) => event.event_name === 'social_resonance_ingested');
+  if (hasSocialReturn) return 'Que variante reduce ruido narrativo y aumenta evidencia observable frente al campo?';
+  if (tension.includes('disipacion')) return 'Que accion sigue viva pero perdio fecha, responsable o criterio de cierre?';
+  if (tension.includes('opacidad')) return 'Que evidencia existe pero todavia no esta registrada como traza verificable?';
+  if (tension.includes('gobernanza')) return 'Quien decide realmente cuando la intencion y la ejecucion divergen?';
+  return 'Que residuo se repite aunque el sistema declare estabilidad?';
 }
 
 async function ensureAmvSession(service: any, nodeId: string, userId: string, liturgiaSessionId?: string) {
@@ -96,12 +110,13 @@ export async function POST(req: NextRequest) {
 
   const latestAudit = audits.data?.[0];
   const context = body.context || {};
+  const recentEvents = events.data || [];
   const tension = dominantTension(context, latestAudit);
-  const loop = observedLoop(context, memoryFacts.data || [], events.data || []);
-  const action = proposedAction(tension, context);
+  const loop = observedLoop(context, memoryFacts.data || [], recentEvents);
+  const action = proposedAction(tension, context, recentEvents);
   const confidence = Math.min(0.86, Math.max(0.42, 0.48 + (audits.data?.length || 0) * 0.03 + (memoryFacts.data?.length || 0) * 0.015));
-  const question = nextQuestion(tension);
-  const assistantMessage = `AMV interno registra ${tension}. Loop observado: ${loop}. Vector operativo: ${action}. Próxima pregunta: ${question}`;
+  const question = nextQuestion(tension, recentEvents);
+  const assistantMessage = `AMV interno registra ${tension}. Loop observado: ${loop}. Vector operativo: ${action}. Proxima pregunta: ${question}`;
 
   const amvSession = await ensureAmvSession(ctx.service, ctx.node.id, ctx.user.id, body.session_id);
   if (amvSession?.id) {
