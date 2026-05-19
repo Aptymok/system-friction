@@ -10,18 +10,35 @@ type FieldCommandInputProps = {
 };
 
 const placeholders: Record<FieldCommandMode, string> = {
-  project_manager: 'convertir esta intencion en tarea verificable...',
-  intervention: 'ajustar intervencion o definir evidencia...',
-  media: 'ajustar draft, copy, campania o validacion...',
-  calendar: 'fijar proxima observacion o ventana...',
-  social: 'registrar metricas, comentarios o resonancia...',
-  logbook: 'regenerar bitacora o fragmento publico...',
-  amv: 'pedir lectura operacional puntual...',
-  asset_eval: 'activar lectura del asset actual...',
-  evidence: 'anclar evidencia verificable...',
-  longitudinal: 'registrar cambio, riesgo o impacto observado...',
-  ontology: 'inspeccionar relacion del nodo con el asset...',
-  twin: 'registrar recurrencia o continuidad observada...',
+  project_manager: 'que deseas observar, resolver o intervenir?',
+  intervention: 'que accion minima puede moverse ahora?',
+  media: 'que pieza, copy o retorno quieres ajustar?',
+  calendar: 'cuando debe volver a observarse esto?',
+  social: 'que resultado o respuesta del campo aparecio?',
+  logbook: 'que debe quedar asentado?',
+  amv: 'que necesitas que el campo lea?',
+  mihm: 'que sostiene o rompe este sistema?',
+  asset_eval: 'que parte del asset debe leerse?',
+  evidence: 'que evidencia existe?',
+  longitudinal: 'que cambio se observo?',
+  ontology: 'que relacion necesitas ver?',
+  twin: 'que se repite?',
+};
+
+const visibleModes: Record<FieldCommandMode, string> = {
+  project_manager: 'Organizar',
+  intervention: 'Intervenir',
+  media: 'Ajustar',
+  calendar: 'Observar',
+  social: 'Retorno',
+  logbook: 'Asentar',
+  amv: 'Leer',
+  mihm: 'Estabilidad',
+  asset_eval: 'Asset',
+  evidence: 'Evidencia',
+  longitudinal: 'Seguimiento',
+  ontology: 'Origen',
+  twin: 'Continuidad',
 };
 
 export function FieldCommandInput({ activeNode, disabled, onExecute }: FieldCommandInputProps) {
@@ -46,8 +63,8 @@ export function FieldCommandInput({ activeNode, disabled, onExecute }: FieldComm
   return (
     <div className="field-command" aria-label="Linea de comando contextual del campo">
       <div className="mode-sigil">
-        <span>{activeNode?.label || 'Project Manager'}</span>
-        <small>{mode}</small>
+        <span>{activeNode?.label || 'Campo'}</span>
+        <small>{visibleModes[mode]}</small>
       </div>
       <input
         value={command}

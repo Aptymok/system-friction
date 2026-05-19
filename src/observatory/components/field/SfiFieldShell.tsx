@@ -3,6 +3,16 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { SfiAsset } from '@/lib/types';
 import { inferOperationalReading, type OperationalReading, type SignalKind } from '@/lib/sfi/inference';
+import {
+  buildLowFrictionRoute,
+  detectFieldPatterns,
+  fieldPatterns,
+  formatFieldAmvReading,
+  makeBitacoraEntry,
+  type BitacoraEntry,
+  type BitacoraEventType,
+  type FieldMode,
+} from '@/observatory/field/patternModel';
 import { SfiCognitiveField } from './SfiCognitiveField';
 import type { FieldCommandMode, FieldOntologyNode } from './fieldOntology';
 
@@ -33,7 +43,7 @@ type SfiFieldShellProps = {
 
 const phases = [
   { label: 'SENAL', node: 'nodo.aptymok.projectmanager' },
-  { label: 'ANALISIS', node: 'nodo.aptymok.amv' },
+  { label: 'ANALISIS', node: 'nodo.aptymok.mihm' },
   { label: 'INTERVENCION', node: 'nodo.aptymok.intervencion' },
   { label: 'SEGUIMIENTO', node: 'nodo.aptymok.bitacora' },
   { label: 'EJECUCION', node: 'nodo.aptymok.calendarizacion' },
@@ -48,6 +58,12 @@ function textFromRecord(record: Record<string, unknown> | undefined, key: string
 
 function assetName(asset?: SfiAsset | null) {
   return textFromRecord(asset?.target_system, 'name') || asset?.asset_id || 'senal sin nombre';
+}
+
+function visibleRegime(regime: string) {
+  if (regime === 'HOMEOSTATIC') return 'campo estable';
+  if (regime === 'CRITICAL') return 'campo critico';
+  return 'campo en transicion';
 }
 
 function kindFromCommand(command: string): SignalKind {
@@ -125,6 +141,8 @@ export function SfiFieldShell({
   const [phase, setPhase] = useState(0);
   const [activeCommandNode, setActiveCommandNode] = useState('nodo.aptymok.projectmanager');
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
+  const [fieldMode, setFieldMode] = useState<FieldMode>('SFI');
+  const [bitacora, setBitacora] = useState<BitacoraEntry[]>([]);
   const [amvState, setAmvState] = useState<{ status: string; message?: string; reading?: any }>({ status: 'idle' });
   const [mediaDrafts, setMediaDrafts] = useState<MediaDraft[]>([]);
   const [calendar, setCalendar] = useState<CalendarWindow[]>([]);
@@ -135,6 +153,27 @@ export function SfiFieldShell({
   const fieldAsset = activeAsset || makeDraftAsset(draftCommand);
   const reading = useMemo(() => readingFromAsset(activeAsset || fieldAsset), [activeAsset, fieldAsset]);
   const regime = reading.technical.regime;
+  const activePatterns = useMemo(
+    () => detectFieldPatterns({ asset: activeAsset || fieldAsset, reading, selectedNodeId: selectedNode }),
+    [activeAsset, fieldAsset, reading, selectedNode],
+  );
+  const route = useMemo(
+    () => buildLowFrictionRoute({ patterns: activePatterns, reading }),
+    [activePatterns, reading],
+  );
+
+  const appendBitacora = (
+    event_type: BitacoraEventType,
+    message: string,
+    options?: { node_id?: string; pattern_id?: string },
+  ) => {
+    const entry = makeBitacoraEntry({ event_type, message, ...options });
+    setBitacora((current) => [entry, ...current].slice(0, 10));
+    setRecentEvents((current) => [
+      { event_name: event_type.toLowerCase(), event_type, payload: { fragment: message, pattern_id: options?.pattern_id } },
+      ...current,
+    ].slice(0, 8));
+  };
 
   const refreshLoop = async () => {
     if (!nodeId || !activeAsset) return;
@@ -175,13 +214,18 @@ export function SfiFieldShell({
         fetchJson(`/api/media/drafts?node_id=${encodeURIComponent(nodeId)}`, { cache: 'no-store' }),
       ]);
 
-      setAmvState({ status: amv?.status || 'connected_internal', message: amv?.message, reading: amv?.reading });
+      setAmvState({
+        status: amv?.status || 'connected_internal',
+        message: formatFieldAmvReading(activePatterns.length ? activePatterns : fieldPatterns.slice(2, 3), reading),
+        reading: amv?.reading,
+      });
       setCalendar(Array.isArray(windows?.windows) ? windows.windows : []);
       setMediaDrafts(Array.isArray(drafts?.drafts) ? drafts.drafts : []);
       setRecentEvents([
         { event_name: 'liturgia_amv_internal_response', payload: { message: amv?.message, reading: amv?.reading } },
         { event_name: 'bitacora_regenerated', payload: { fragment: bitacora?.fragment } },
       ]);
+      appendBitacora('MIHM_ACTIVATED', 'Estabilidad revisada por el campo.', { pattern_id: activePatterns[0]?.id });
       setStatus('campo sincronizado');
     } catch (error) {
       setStatus(error instanceof Error ? error.message : 'field_sync_failed');
@@ -237,10 +281,11 @@ export function SfiFieldShell({
     setPhase(1);
     setActiveCommandNode('nodo.aptymok.amv');
     setRecentEvents([{ event_name: 'asset_created_from_field', payload: { fragment: 'AMV // asset generado desde el campo' } }]);
+    appendBitacora('PATTERN_DETECTED', 'Senal convertida en asset activo.', { pattern_id: activePatterns[0]?.id });
     return true;
   };
 
-  const handleCommand = async ({ command, mode, evidence }: { command: string; mode: FieldCommandMode; node: FieldOntologyNode | null; evidence?: File | null }) => {
+  const handleCommand = async ({ command, mode, node, evidence }: { command: string; mode: FieldCommandMode; node: FieldOntologyNode | null; evidence?: File | null }) => {
     if (!activeAsset) {
       setDraftCommand(command);
       return createAssetFromCommand(command, evidence);
@@ -250,7 +295,12 @@ export function SfiFieldShell({
       return createAssetFromCommand(command, evidence);
     }
 
-    setStatus(`${mode} // ejecutando`);
+    const pattern = detectFieldPatterns({ asset: activeAsset, reading, command })[0];
+    if (pattern) {
+      appendBitacora('PATTERN_DETECTED', pattern.oracion_visible, { node_id: node?.id, pattern_id: pattern.id });
+    }
+    appendBitacora('ROUTE_SUGGESTED', route.join(' -> '), { node_id: node?.id, pattern_id: pattern?.id });
+    setStatus('campo ejecutando');
     return false;
   };
 
@@ -265,8 +315,23 @@ export function SfiFieldShell({
         <div className="brand">SFI</div>
         <div className="header-state">
           <span>{nodeId ? 'nodo activo' : 'sin nodo'}</span>
-          <span>{regime}</span>
+          <span>{visibleRegime(regime)}</span>
           <span>{activeAsset ? assetName(activeAsset) : 'campo inicial'}</span>
+        </div>
+        <div className="field-mode-switch" aria-label="Modo del campo">
+          {(['SFI', 'CT', 'NODE_CT'] as FieldMode[]).map((mode) => (
+            <button
+              key={mode}
+              type="button"
+              className={fieldMode === mode ? 'active' : ''}
+              onClick={() => {
+                setFieldMode(mode);
+                appendBitacora('FIELD_MODE_CHANGED', `Modo ${mode} activo.`);
+              }}
+            >
+              {mode}
+            </button>
+          ))}
         </div>
         {assets.length > 1 && (
           <select value={activeAsset?.asset_id || ''} onChange={(event) => onActiveAssetChange(event.target.value)}>
@@ -288,9 +353,22 @@ export function SfiFieldShell({
           socialPulse={socialPulse}
           activeCommandNode={activeCommandNode}
           selectedNode={selectedNode}
-          onNodeSelect={(node) => setSelectedNode(node?.id || null)}
+          fieldMode={fieldMode}
+          ghostEvents={bitacora}
+          onNodeSelect={(node) => {
+            setSelectedNode(node?.id || null);
+            if (node) {
+              setFieldMode('NODE_CT');
+              appendBitacora('FIELD_MODE_CHANGED', `Nodo ${node.label} observado.`, { node_id: node.id });
+            }
+          }}
           onNodeTap={(node) => {
-            if (node.type === 'module') setActiveCommandNode(node.id);
+            if (node.type === 'module') {
+              setActiveCommandNode(node.id);
+              if (node.id === 'nodo.aptymok.mihm') {
+                appendBitacora('MIHM_ACTIVATED', 'Mide que sostiene o rompe el sistema.', { node_id: node.id, pattern_id: 'mihm_estabilidad' });
+              }
+            }
           }}
           onFieldEcho={(echo) => setRecentEvents((current) => [{ event_name: 'field_echo', payload: { fragment: echo } }, ...current].slice(0, 8))}
           onModeSuggest={handleModeSuggest}
@@ -314,6 +392,9 @@ export function SfiFieldShell({
         </nav>
 
         <div className="field-status">{status || (calendar[0] ? calendar[0].label : 'campo en observacion')}</div>
+        <div className="route-strip" aria-label="Ruta sugerida">
+          {route.map((item, index) => <span key={`${item}-${index}`}>{index + 1}. {item}</span>)}
+        </div>
       </div>
 
       <style jsx>{`
@@ -361,7 +442,6 @@ export function SfiFieldShell({
           white-space: nowrap;
         }
         select {
-          margin-left: auto;
           max-width: 18rem;
           border: 1px solid rgba(200,169,81,0.12);
           background: rgba(6,6,5,0.84);
@@ -371,6 +451,26 @@ export function SfiFieldShell({
           font-size: 0.5rem;
           letter-spacing: 0.1em;
           text-transform: uppercase;
+        }
+        .field-mode-switch {
+          margin-left: auto;
+          display: flex;
+          gap: 0.25rem;
+        }
+        .field-mode-switch button {
+          border: 1px solid rgba(200,169,81,0.11);
+          background: rgba(6,6,5,0.42);
+          color: rgba(200,196,184,0.32);
+          padding: 0.28rem 0.4rem;
+          font: inherit;
+          font-size: 0.45rem;
+          letter-spacing: 0.14em;
+          cursor: pointer;
+        }
+        .field-mode-switch button.active {
+          color: #C8A951;
+          border-color: rgba(200,169,81,0.28);
+          background: rgba(200,169,81,0.06);
         }
         .field-stage {
           position: fixed;
@@ -415,9 +515,34 @@ export function SfiFieldShell({
           letter-spacing: 0.18em;
           text-transform: uppercase;
         }
+        .route-strip {
+          position: absolute;
+          left: 1rem;
+          right: 1rem;
+          bottom: 4.45rem;
+          z-index: 5;
+          display: flex;
+          justify-content: center;
+          gap: 0.6rem;
+          color: rgba(200,196,184,0.3);
+          font-family: var(--font-mono), "JetBrains Mono", monospace;
+          font-size: 0.48rem;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
+          pointer-events: none;
+        }
+        .route-strip span {
+          border: 1px solid rgba(200,169,81,0.08);
+          background: rgba(6,6,5,0.35);
+          padding: 0.28rem 0.42rem;
+        }
         @media (max-width: 760px) {
           .header-state span:nth-child(3),
-          select {
+          select,
+          .field-mode-switch {
+            display: none;
+          }
+          .route-strip {
             display: none;
           }
           .mode-rail {

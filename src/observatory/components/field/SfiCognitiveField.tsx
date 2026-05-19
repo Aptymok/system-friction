@@ -110,6 +110,7 @@ const nodeTemplate = [
   ['TRAZABILIDAD', 0.72, 0.48, 'blue', 0.72],
   ['MEM_ESTRUC', 0.64, 0.72, 'blue', 0.68],
   ['LDI_T', 0.5, 0.57, 'red', 0.82],
+  ['MIHM', 0.57, 0.31, 'green', 0.78],
   ['DISIPACION', 0.24, 0.66, 'red', 0.64],
   ['CAMPO_LAT', 0.81, 0.61, 'red', 0.62],
   ['AMV_OBSERVATORIO', 0.49, 0.23, 'gold', 0.86],
@@ -128,7 +129,12 @@ const edges: FieldEdge[] = [
   { from: 'SFI_CORE', to: 'IHG_BASAL', strength: 0.9, kind: 'core' },
   { from: 'SFI_CORE', to: 'NTI_OBS', strength: 0.9, kind: 'core' },
   { from: 'SFI_CORE', to: 'LDI_T', strength: 0.95, kind: 'core' },
+  { from: 'SFI_CORE', to: 'MIHM', strength: 0.86, kind: 'core' },
   { from: 'SFI_CORE', to: 'AMV_OBSERVATORIO', strength: 0.75, kind: 'core' },
+  { from: 'MIHM', to: 'nodo.aptymok.mihm', strength: 0.78, kind: 'core' },
+  { from: 'MIHM', to: 'NTI_OBS', strength: 0.62, kind: 'resonance' },
+  { from: 'MIHM', to: 'IHG_BASAL', strength: 0.62, kind: 'resonance' },
+  { from: 'MIHM', to: 'LDI_T', strength: 0.62, kind: 'resonance' },
   { from: 'IHG_BASAL', to: 'GOBERNANZA', strength: 0.7, kind: 'core' },
   { from: 'IHG_BASAL', to: 'COHERENCIA', strength: 0.76, kind: 'resonance' },
   { from: 'NTI_OBS', to: 'TRAZABILIDAD', strength: 0.78, kind: 'core' },
@@ -180,11 +186,27 @@ function rgba(kind: NodeKind, alpha: number) {
 }
 
 function kindFromOntology(node: FieldOntologyNode): NodeKind {
+  if (node.commandMode === 'mihm') return 'green';
   if (node.type === 'module') return node.commandMode === 'social' || node.commandMode === 'media' ? 'blue' : 'gold';
   if (node.type === 'twin') return 'dim';
   if (node.id.includes('latencia')) return 'red';
   if (node.id.includes('resonancia')) return 'blue';
   return 'green';
+}
+
+function modeLabel(mode: FieldCommandMode) {
+  if (mode === 'project_manager') return 'organizar';
+  if (mode === 'intervention') return 'intervenir';
+  if (mode === 'media') return 'ajustar';
+  if (mode === 'calendar') return 'observar';
+  if (mode === 'social') return 'retorno';
+  if (mode === 'logbook') return 'asentar';
+  if (mode === 'mihm') return 'estabilidad';
+  if (mode === 'amv') return 'leer';
+  if (mode === 'evidence') return 'evidencia';
+  if (mode === 'longitudinal') return 'seguimiento';
+  if (mode === 'twin') return 'continuidad';
+  return 'origen';
 }
 
 function createNodes(width: number, height: number, ontologyNodes: FieldOntologyNode[]): FieldNode[] {
@@ -416,7 +438,7 @@ export function SfiCognitiveField(props: SfiCognitiveFieldProps) {
       if (nearest.ontology.type === 'module') {
         setInternalActiveNode(nearest.ontology.id);
         propsRef.current.onModeSuggest?.(nearest.ontology.commandMode);
-        pushEcho(`AMV // modo ${nearest.ontology.commandMode} activo`, nearest.kind);
+        pushEcho(`AMV // ${modeLabel(nearest.ontology.commandMode)} activo`, nearest.kind);
       } else {
         pushEcho(`AMV // nodo ${nearest.ontology.label} inspeccionado`, nearest.kind);
       }
@@ -488,6 +510,7 @@ export function SfiCognitiveField(props: SfiCognitiveFieldProps) {
         if (['IHG_BASAL', 'GOBERNANZA', 'COHERENCIA', 'SFI_CORE'].includes(node.id)) target += (1 - data.ihg) * 0.45;
         if (['NTI_OBS', 'TRAZABILIDAD', 'MEM_ESTRUC'].includes(node.id)) target += (1 - data.nti) * 0.42;
         if (['LDI_T', 'DISIPACION', 'CAMPO_LAT'].includes(node.id)) target += ldiPressure * 0.42;
+        if (['MIHM', 'nodo.aptymok.mihm'].includes(node.id)) target += lowPhiPressure * 0.38 + ldiPressure * 0.16 + (data.phase >= 1 ? 0.26 : 0);
         if (node.id === 'AMV_OBSERVATORIO') target += writingBoost + (data.amvMessage ? 0.38 : 0);
         if (node.id === 'CALENDARIZACION' && data.phase >= 3) target += 0.42;
         if (['SFI_EVAL_ASSET', 'REDES', 'MEDIA_ROOM'].includes(node.id) && data.evalAssetActive) target += 0.48;
@@ -593,9 +616,9 @@ export function SfiCognitiveField(props: SfiCognitiveFieldProps) {
 
       ctx.font = '10px "JetBrains Mono", monospace';
       ctx.fillStyle = 'rgba(200,169,81,0.38)';
-      ctx.fillText(`REGIMEN ${data.regime || 'TRANSITION'} // PHI ${data.phi.toFixed(3)} // NODE ${data.nodeId ? 'ACTIVO' : 'SIN NODO'}`, 18, height - 22);
+      ctx.fillText(`CAMPO ${data.regime || 'TRANSITION'} // ${data.nodeId ? 'NODO ACTIVO' : 'SIN NODO'}`, 18, height - 22);
       ctx.fillStyle = data.evalAssetActive ? 'rgba(74,143,168,0.5)' : 'rgba(92,92,82,0.26)';
-      ctx.fillText(data.evalAssetActive ? 'SFI-EVAL-ASSET ACTIVO // REDES EN OBSERVACION' : 'CAMPO BASAL // SIN ACTIVACION SOCIAL', 18, height - 42);
+      ctx.fillText(data.evalAssetActive ? 'EVALUACION ACTIVA // REDES EN OBSERVACION' : 'CAMPO BASAL // SIN ACTIVACION SOCIAL', 18, height - 42);
     };
 
     const drawEchoes = (time: number) => {
@@ -709,14 +732,20 @@ export function SfiCognitiveField(props: SfiCognitiveFieldProps) {
       try {
       const handled = await props.onCommandExecute?.({ command, mode, node: node || null, evidence });
       if (handled) return;
-      pushEcho(`CAMPO // ${mode} recibe instruccion`, 'gold');
+      pushEcho(`CAMPO // ${modeLabel(mode)} recibe instruccion`, 'gold');
 
       if (evidence) {
         pushEcho(`EVIDENCIA // ${evidence.name}`, 'blue');
       }
 
-      if (!props.nodeId && ['intervention', 'media', 'calendar', 'social', 'logbook', 'amv'].includes(mode)) {
+      if (!props.nodeId && ['intervention', 'media', 'calendar', 'social', 'logbook', 'amv', 'mihm'].includes(mode)) {
         pushEcho('AMV // sin nodo activo; instruccion retenida en campo', 'red');
+        return;
+      }
+
+      if (mode === 'mihm') {
+        const trace = data.nti < 0.3 ? 'No hay referencia suficiente. Se necesita validar el estado.' : 'La estabilidad depende de evidencia y ejecucion.';
+        pushEcho(`AMV // ${trace}`, data.nti < 0.3 ? 'red' : 'green');
         return;
       }
 

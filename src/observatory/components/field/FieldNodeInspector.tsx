@@ -26,6 +26,20 @@ export function FieldNodeInspector({
         ? 'patron observado'
         : 'nodo ontologico';
 
+  const modeLabel =
+    node.commandMode === 'project_manager' ? 'organizar' :
+    node.commandMode === 'intervention' ? 'intervenir' :
+    node.commandMode === 'media' ? 'ajustar' :
+    node.commandMode === 'calendar' ? 'observar' :
+    node.commandMode === 'social' ? 'retorno' :
+    node.commandMode === 'logbook' ? 'asentar' :
+    node.commandMode === 'mihm' ? 'estabilidad' :
+    node.commandMode === 'amv' ? 'leer' :
+    node.commandMode === 'evidence' ? 'evidencia' :
+    node.commandMode === 'longitudinal' ? 'seguimiento' :
+    node.commandMode === 'twin' ? 'continuidad' :
+    'origen';
+
   return (
     <aside className="field-inspector" aria-label="Inspector contextual de nodo">
       <div className="inspector-top">
@@ -38,7 +52,7 @@ export function FieldNodeInspector({
       <div className="inspector-grid">
         <div>
           <small>modo</small>
-          <strong>{node.commandMode}</strong>
+          <strong>{modeLabel}</strong>
         </div>
         <div>
           <small>activacion</small>
@@ -54,18 +68,18 @@ export function FieldNodeInspector({
       )}
 
       <div className="inspector-block">
-        <small>{node.type === 'module' ? 'componentes / endpoints' : 'variables / patrones'}</small>
+        <small>{node.type === 'module' ? 'puede hacer' : 'detecta'}</small>
         <p>
           {node.type === 'module'
-            ? [...node.linkedComponents, ...node.linkedEndpoints].join(' // ') || 'sin endpoint directo'
+            ? node.description
             : [...(node.variables || []), ...(node.patterns || [])].join(' // ') || 'sin variables declaradas'}
         </p>
       </div>
 
-      <div className="inspector-block">
-        <small>ADN SFI conectado</small>
+      <details className="inspector-block">
+        <summary>origen</summary>
         <p>{node.linkedSfNodes.join(' // ') || 'derivado operativo'}</p>
-      </div>
+      </details>
 
       {lastEvent && (
         <div className="inspector-block">
@@ -137,6 +151,13 @@ export function FieldNodeInspector({
           border: 1px solid rgba(200,169,81,0.08);
           background: rgba(0,0,0,0.18);
           padding: 0.62rem;
+        }
+        details.inspector-block summary {
+          color: rgba(200,169,81,0.48);
+          cursor: pointer;
+          font-size: 0.46rem;
+          letter-spacing: 0.2em;
+          text-transform: uppercase;
         }
         strong {
           display: block;

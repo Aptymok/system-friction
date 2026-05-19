@@ -8,6 +8,7 @@ export type FieldCommandMode =
   | 'social'
   | 'logbook'
   | 'amv'
+  | 'mihm'
   | 'asset_eval'
   | 'evidence'
   | 'longitudinal'
@@ -172,6 +173,20 @@ export const aptymokModuleNodes: FieldOntologyNode[] = [
     linkedSfNodes: ['SF_P_0003', 'SF_P_0011', 'SF_P_0060'],
     activationConditions: ['consulta interna', 'ajuste recomendado', 'actividad propuesta'],
     position: { x: 0.48, y: 0.25 },
+  },
+  {
+    id: 'nodo.aptymok.mihm',
+    type: 'module',
+    label: 'MIHM',
+    description: 'Mide que sostiene o rompe el sistema.',
+    commandMode: 'mihm',
+    linkedComponents: ['SfiCognitiveField', 'FieldCommandInput'],
+    linkedEndpoints: ['/api/mihm', '/api/mihm/process'],
+    linkedSfNodes: ['SF_P_0003', 'SF_P_0011', 'SF_P_0060'],
+    activationConditions: ['senal activa', 'asset activo', 'riesgo operativo', 'fase ANALISIS'],
+    variables: ['IHG', 'NTI', 'LDI', 'ICE', 'CRM', 'F'],
+    patterns: ['estabilidad', 'trazabilidad', 'latencia'],
+    position: { x: 0.59, y: 0.29 },
   },
   {
     id: 'nodo.aptymok.asset_eval',
