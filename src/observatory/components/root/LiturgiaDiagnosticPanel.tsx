@@ -1,12 +1,41 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { useEffect } from 'react';
 import type { SfiAsset } from '@/lib/types';
 import { inferOperationalReading, type OperationalReading } from '@/lib/sfi/inference';
 
 type LayerName = 'MUNDO' | 'REDES' | 'PROYECTO' | 'USUARIO';
 
 const phases = ['SEÑAL', 'ANÁLISIS', 'INTERVENCIÓN', 'SEGUIMIENTO', 'EJECUCIÓN'];
+
+type CalendarWindow = {
+  label: string;
+  starts_at: string;
+  ends_at: string;
+  execution_bias: string;
+  risk: string;
+  recommended_action: string;
+};
+
+type MediaDraft = {
+  id: string;
+  platform_target: string;
+  content: string;
+  status: string;
+  created_at: string;
+};
+
+type OperationalLoopState = {
+  amv: string;
+  amvConfidence: number | null;
+  bitacora: string;
+  calendar: CalendarWindow[];
+  drafts: MediaDraft[];
+  social: string;
+  loading: boolean;
+  error: string;
+};
 
 function textFromRecord(record: Record<string, unknown> | undefined, key: string) {
   const value = record?.[key];
@@ -92,6 +121,211 @@ function TechnicalDisclosure({ reading }: { reading: OperationalReading }) {
   );
 }
 
+function LoopSurface({
+  asset,
+  nodeId,
+  reading,
+}: {
+  asset?: SfiAsset | null;
+  nodeId?: string | null;
+  reading: OperationalReading;
+}) {
+  const [state, setState] = useState<OperationalLoopState>({
+    amv: 'AMV interno en espera de señal activa.',
+    amvConfidence: null,
+    bitacora: 'Bitácora emergente pendiente.',
+    calendar: [],
+    drafts: [],
+    social: 'Campo social sin retorno registrado.',
+    loading: false,
+    error: '',
+  });
+
+  const assetId = asset?.asset_id || null;
+  const context = useMemo(() => ({
+    entity: assetName(asset),
+    phenomenon: reading.phenomenon,
+    anomalies: [reading.risk.label, reading.latency.label],
+    ihg: reading.technical.IHG,
+    nti: reading.technical.NTI_obs,
+    ldi: reading.technical.LDI_hours / 72,
+    xi: reading.technical.xi_noise,
+    phi: reading.technical.PHI_SF,
+    regime: reading.technical.regime,
+  }), [asset, reading]);
+
+  const refreshLoop = async () => {
+    if (!nodeId) {
+      setState((current) => ({ ...current, error: 'sin nodo activo para loop operacional' }));
+      return;
+    }
+
+    setState((current) => ({ ...current, loading: true, error: '' }));
+    try {
+      const [amvRes, bitacoraRes, calendarRes, draftsRes] = await Promise.all([
+        fetch('/api/liturgia/amv', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            node_id: nodeId,
+            session_id: assetId || undefined,
+            message: `Leer asset activo y sostener presencia operacional: ${reading.nextAction}`,
+            context,
+          }),
+        }),
+        fetch('/api/bitacora/regenerate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ node_id: nodeId, mode: 'operational', asset_id: assetId }),
+        }),
+        fetch('/api/calendar/phenomenological', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ node_id: nodeId, horizon_days: 7, asset_id: assetId }),
+        }),
+        fetch(`/api/media/drafts?node_id=${encodeURIComponent(nodeId)}`, { cache: 'no-store' }),
+      ]);
+
+      const [amv, bitacora, calendar, drafts] = await Promise.all([
+        amvRes.json().catch(() => null),
+        bitacoraRes.json().catch(() => null),
+        calendarRes.json().catch(() => null),
+        draftsRes.json().catch(() => null),
+      ]);
+
+      setState((current) => ({
+        ...current,
+        amv: amv?.message || current.amv,
+        amvConfidence: typeof amv?.reading?.confidence === 'number' ? amv.reading.confidence : current.amvConfidence,
+        bitacora: bitacora?.fragment || current.bitacora,
+        calendar: Array.isArray(calendar?.windows) ? calendar.windows : current.calendar,
+        drafts: Array.isArray(drafts?.drafts) ? drafts.drafts : current.drafts,
+        loading: false,
+      }));
+    } catch (error) {
+      setState((current) => ({
+        ...current,
+        loading: false,
+        error: error instanceof Error ? error.message : 'loop_operational_failed',
+      }));
+    }
+  };
+
+  const createDraft = async () => {
+    if (!nodeId) return;
+    setState((current) => ({ ...current, loading: true, error: '' }));
+    try {
+      const res = await fetch('/api/media/drafts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          node_id: nodeId,
+          source_type: 'sfi_asset',
+          source_id: null,
+          platform_target: 'field',
+          content: `${reading.phenomenon}\n\n${reading.intervention}\n\n${reading.nextAction}`,
+          metadata: { asset_id: assetId, operational_reading: reading },
+        }),
+      });
+      const result = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(result?.error || 'draft_create_failed');
+      await refreshLoop();
+    } catch (error) {
+      setState((current) => ({ ...current, loading: false, error: error instanceof Error ? error.message : 'draft_create_failed' }));
+    }
+  };
+
+  const regeneratePublicFragment = async () => {
+    if (!nodeId) return;
+    setState((current) => ({ ...current, loading: true, error: '' }));
+    try {
+      const res = await fetch('/api/bitacora/regenerate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ node_id: nodeId, mode: 'public_fragment', asset_id: assetId }),
+      });
+      const result = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(result?.error || 'bitacora_public_failed');
+      await refreshLoop();
+    } catch (error) {
+      setState((current) => ({ ...current, loading: false, error: error instanceof Error ? error.message : 'bitacora_public_failed' }));
+    }
+  };
+
+  const ingestResonance = async () => {
+    if (!nodeId) return;
+    setState((current) => ({ ...current, loading: true, error: '' }));
+    try {
+      const score = Number((reading.risk.score * 0.4 + reading.traceability.score * 0.6).toFixed(2));
+      const res = await fetch('/api/social/resonance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          node_id: nodeId,
+          platform: 'field',
+          resonance_score: score,
+          comments_summary: `Retorno interno del asset ${assetId || 'activo'}: ${reading.continuity}`,
+          raw_payload: { asset_id: assetId, risk: reading.risk, traceability: reading.traceability },
+        }),
+      });
+      const result = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(result?.error || 'social_resonance_failed');
+      setState((current) => ({
+        ...current,
+        loading: false,
+        social: `Resonancia registrada · score ${score.toFixed(2)} · ${reading.continuity}`,
+      }));
+    } catch (error) {
+      setState((current) => ({ ...current, loading: false, error: error instanceof Error ? error.message : 'social_resonance_failed' }));
+    }
+  };
+
+  useEffect(() => {
+    void refreshLoop();
+  }, [nodeId, assetId]);
+
+  return (
+    <div className="loop-surface">
+      <div className="loop-grid">
+        <div className="loop-cell">
+          <p>AMV Presence</p>
+          <span>{state.amv}</span>
+          {state.amvConfidence !== null && <small>confianza interna {state.amvConfidence.toFixed(2)}</small>}
+        </div>
+        <div className="loop-cell">
+          <p>Bitácora emergente</p>
+          <span>{state.bitacora}</span>
+        </div>
+        <div className="loop-cell">
+          <p>Calendar Surface</p>
+          {state.calendar.length ? state.calendar.slice(0, 2).map((window) => (
+            <span key={`${window.starts_at}-${window.label}`}>
+              {window.label} · {new Date(window.starts_at).toLocaleString('es-MX')} · {window.recommended_action}
+            </span>
+          )) : <span>Sin ventana calculada.</span>}
+        </div>
+        <div className="loop-cell">
+          <p>Media Room</p>
+          {state.drafts.length ? state.drafts.slice(0, 2).map((draft) => (
+            <span key={draft.id}>{draft.status} · {draft.platform_target} · {draft.content.slice(0, 110)}</span>
+          )) : <span>Sin borradores pendientes.</span>}
+        </div>
+        <div className="loop-cell wide">
+          <p>Social Field</p>
+          <span>{state.social}</span>
+        </div>
+      </div>
+      <div className="loop-actions">
+        <button type="button" onClick={refreshLoop} disabled={state.loading}>actualizar loop</button>
+        <button type="button" onClick={regeneratePublicFragment} disabled={state.loading || !nodeId}>fragmento público</button>
+        <button type="button" onClick={createDraft} disabled={state.loading || !nodeId}>crear residuo</button>
+        <button type="button" onClick={ingestResonance} disabled={state.loading || !nodeId}>registrar resonancia</button>
+      </div>
+      {state.error && <p className="loop-error">{state.error}</p>}
+    </div>
+  );
+}
+
 function Seguimiento({ reading, asset }: { reading: OperationalReading; asset?: SfiAsset | null }) {
   const logbook = asset?.logbook || [];
   const entries = logbook.length
@@ -118,7 +352,7 @@ function Seguimiento({ reading, asset }: { reading: OperationalReading; asset?: 
   );
 }
 
-export function LiturgiaDiagnosticPanel({ asset }: { asset?: SfiAsset | null }) {
+export function LiturgiaDiagnosticPanel({ asset, nodeId }: { asset?: SfiAsset | null; nodeId?: string | null }) {
   const [active, setActive] = useState(0);
   const reading = useMemo(() => readingFromAsset(asset), [asset]);
   const signalKind = textFromRecord(asset?.metadata, 'signal_kind');
@@ -200,6 +434,7 @@ export function LiturgiaDiagnosticPanel({ asset }: { asset?: SfiAsset | null }) 
           <h2>SEGUIMIENTO DEL PROCESO</h2>
           <p className="subtitle">El sistema observará cambios y ajustará la intervención.</p>
           <Seguimiento reading={reading} asset={asset} />
+          <LoopSurface asset={asset} nodeId={nodeId} reading={reading} />
           <div className="layer-line">{layerNotes}</div>
         </section>
 
@@ -315,7 +550,7 @@ export function LiturgiaDiagnosticPanel({ asset }: { asset?: SfiAsset | null }) 
           line-height: 1.7;
           font-style: italic;
         }
-        .signal-card, .reading-block, .intervention, .evidence, .social-reading, .next-action, .execution-state, .technical, .layer-line {
+        .signal-card, .reading-block, .intervention, .evidence, .social-reading, .next-action, .execution-state, .technical, .layer-line, .loop-cell {
           border: 1px solid rgba(200,169,81,0.08);
           background: rgba(0,0,0,0.26);
         }
@@ -494,6 +729,72 @@ export function LiturgiaDiagnosticPanel({ asset }: { asset?: SfiAsset | null }) 
           font-size: 0.7rem;
           line-height: 1.6;
         }
+        .loop-surface {
+          max-width: 76rem;
+          margin-top: 1.4rem;
+        }
+        .loop-grid {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 0.75rem;
+        }
+        .loop-cell {
+          min-height: 8rem;
+          padding: 1rem;
+        }
+        .loop-cell.wide {
+          grid-column: 1 / -1;
+          min-height: 5rem;
+        }
+        .loop-cell p {
+          margin: 0 0 0.65rem;
+          color: #2e2e2a;
+          font-family: var(--font-mono), monospace;
+          font-size: 0.48rem;
+          letter-spacing: 0.22em;
+          text-transform: uppercase;
+        }
+        .loop-cell span, .loop-cell small {
+          display: block;
+          margin-top: 0.35rem;
+          color: #5c5c52;
+          font-family: var(--font-mono), monospace;
+          font-size: 0.66rem;
+          line-height: 1.6;
+        }
+        .loop-cell small {
+          color: rgba(200,169,81,0.45);
+        }
+        .loop-actions {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.45rem;
+          margin-top: 0.75rem;
+        }
+        .loop-actions button {
+          border: 1px solid rgba(200,169,81,0.18);
+          background: rgba(200,169,81,0.04);
+          color: #C8A951;
+          padding: 0.55rem 0.8rem;
+          font-family: var(--font-mono), monospace;
+          font-size: 0.48rem;
+          letter-spacing: 0.16em;
+          text-transform: uppercase;
+          cursor: pointer;
+        }
+        .loop-actions button:disabled {
+          opacity: 0.35;
+          cursor: default;
+        }
+        .loop-error {
+          border-left: 1px solid #b85050;
+          background: rgba(184,80,80,0.08);
+          padding: 0.7rem;
+          color: #b85050;
+          font-family: var(--font-mono), monospace;
+          font-size: 0.62rem;
+          letter-spacing: 0.08em;
+        }
         .execution-state {
           display: grid;
           grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -506,6 +807,8 @@ export function LiturgiaDiagnosticPanel({ asset }: { asset?: SfiAsset | null }) 
           .op-brand { display: none; }
           .op-phases button { font-size: 0.36rem; letter-spacing: 0.08em; }
           .reading-grid, .execution-state { grid-template-columns: 1fr; }
+          .loop-grid { grid-template-columns: 1fr; }
+          .loop-cell.wide { grid-column: auto; }
           .timeline div { grid-template-columns: 1fr; }
           h2 { font-size: 2.2rem; }
         }

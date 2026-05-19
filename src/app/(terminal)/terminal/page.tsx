@@ -248,6 +248,7 @@ export default function TerminalPage() {
   const bootstrap = useNodeStore((state) => state.bootstrap)
   const [access, setAccess] = useState<AccessState>('loading')
   const [email, setEmail] = useState('')
+  const [nodeId, setNodeId] = useState<string | null>(null)
   const [assets, setAssets] = useState<SfiAsset[]>([])
   const [activeAssetId, setActiveAssetId] = useState('')
 
@@ -279,6 +280,7 @@ export default function TerminalPage() {
         if (active) {
           const nextAssets = Array.isArray(data.sfi_assets) ? data.sfi_assets : []
           setEmail(userEmail)
+          setNodeId(data.node?.id || null)
           setAssets(nextAssets)
           setActiveAssetId(nextAssets[0]?.asset_id || '')
           setAccess(hasAccess ? 'allowed' : 'payment')
@@ -338,7 +340,7 @@ export default function TerminalPage() {
   return (
     <main className="min-h-screen bg-[#060605] text-paper">
       <AssetHeader assets={assets} activeAsset={activeAsset} onSelect={setActiveAssetId} />
-      <LiturgiaDiagnosticPanel asset={activeAsset} />
+      <LiturgiaDiagnosticPanel asset={activeAsset} nodeId={nodeId} />
     </main>
   )
 }
