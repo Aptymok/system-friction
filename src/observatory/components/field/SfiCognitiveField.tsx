@@ -2,6 +2,16 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { SfiAsset } from '@/lib/types';
+import { FieldCommandInput } from './FieldCommandInput';
+import { FieldNodeInspector } from './FieldNodeInspector';
+import {
+  aptymokModuleNodes,
+  baseTwinNodes,
+  getDefaultFieldNodes,
+  sfOntologyNodes,
+  type FieldCommandMode,
+  type FieldOntologyNode,
+} from './fieldOntology';
 
 type AmvState = {
   status: string;
@@ -24,7 +34,17 @@ export type SfiCognitiveFieldProps = {
   recentEvents?: any[];
   mediaDrafts?: any[];
   socialPulse?: SocialPulse;
+  activeCommandNode?: string | null;
+  selectedNode?: string | null;
+  fieldMode?: string;
+  ghostEvents?: any[];
+  moduleNodes?: FieldOntologyNode[];
+  twinNodes?: FieldOntologyNode[];
+  sfNodes?: FieldOntologyNode[];
+  onNodeTap?: (node: FieldOntologyNode) => void;
+  onNodeSelect?: (node: FieldOntologyNode | null) => void;
   onFieldEcho?: (echo: string) => void;
+  onModeSuggest?: (mode: FieldCommandMode) => void;
 };
 
 type NodeKind = 'gold' | 'blue' | 'green' | 'red' | 'dim';
@@ -42,6 +62,7 @@ type FieldNode = {
   kind: NodeKind;
   weight: number;
   attention: number;
+  ontology?: FieldOntologyNode;
 };
 
 type FieldEdge = {
@@ -120,6 +141,15 @@ const edges: FieldEdge[] = [
   { from: 'SOCIAL_FIELD', to: 'MUNDO', strength: 0.46, kind: 'latent' },
   { from: 'RUIDO_XI', to: 'DISIPACION', strength: 0.42, kind: 'latent' },
   { from: 'PATRON_RECUR', to: 'COHERENCIA', strength: 0.42, kind: 'latent' },
+  { from: 'AMV_OBSERVATORIO', to: 'nodo.aptymok.amv', strength: 0.72, kind: 'core' },
+  { from: 'INTERVENCION', to: 'nodo.aptymok.intervencion', strength: 0.7, kind: 'core' },
+  { from: 'CALENDARIZACION', to: 'nodo.aptymok.calendarizacion', strength: 0.64, kind: 'core' },
+  { from: 'MEDIA_ROOM', to: 'nodo.aptymok.media', strength: 0.72, kind: 'core' },
+  { from: 'SOCIAL_FIELD', to: 'nodo.aptymok.social_resonance', strength: 0.76, kind: 'core' },
+  { from: 'SFI_EVAL_ASSET', to: 'nodo.aptymok.asset_eval', strength: 0.68, kind: 'resonance' },
+  { from: 'PATRON_RECUR', to: 'nodo.usuario.friccion_recurrente', strength: 0.52, kind: 'latent' },
+  { from: 'nodo.sfi.friccion_sistemica', to: 'nodo.aptymok.intervencion', strength: 0.48, kind: 'latent' },
+  { from: 'nodo.sfi.resonancia_semantica', to: 'nodo.aptymok.social_resonance', strength: 0.52, kind: 'resonance' },
 ];
 
 const colors: Record<NodeKind, [number, number, number]> = {
@@ -147,8 +177,16 @@ function rgba(kind: NodeKind, alpha: number) {
   return `rgba(${r},${g},${b},${alpha})`;
 }
 
-function createNodes(width: number, height: number): FieldNode[] {
-  return nodeTemplate.map(([id, rx, ry, kind, weight]) => ({
+function kindFromOntology(node: FieldOntologyNode): NodeKind {
+  if (node.type === 'module') return node.commandMode === 'social' || node.commandMode === 'media' ? 'blue' : 'gold';
+  if (node.type === 'twin') return 'dim';
+  if (node.id.includes('latencia')) return 'red';
+  if (node.id.includes('resonancia')) return 'blue';
+  return 'green';
+}
+
+function createNodes(width: number, height: number, ontologyNodes: FieldOntologyNode[]): FieldNode[] {
+  const baseNodes = nodeTemplate.map(([id, rx, ry, kind, weight]) => ({
     id,
     label: id,
     x: rx * width,
@@ -162,6 +200,28 @@ function createNodes(width: number, height: number): FieldNode[] {
     weight,
     attention: 0,
   }));
+
+  const derivedNodes = ontologyNodes.map((node) => {
+    const kind = kindFromOntology(node);
+    const weight = node.type === 'module' ? 0.82 : node.type === 'sf' ? 0.7 : 0.52;
+    return {
+      id: node.id,
+      label: node.label,
+      x: node.position.x * width,
+      y: node.position.y * height,
+      baseX: node.position.x * width,
+      baseY: node.position.y * height,
+      vx: (Math.random() - 0.5) * 0.08,
+      vy: (Math.random() - 0.5) * 0.08,
+      radius: 4 + weight * 7,
+      kind,
+      weight,
+      attention: 0,
+      ontology: node,
+    } satisfies FieldNode;
+  });
+
+  return [...baseNodes, ...derivedNodes];
 }
 
 function metricFromAsset(asset: SfiAsset, key: string, fallback: number) {
@@ -214,7 +274,25 @@ export function SfiCognitiveField(props: SfiCognitiveFieldProps) {
   const frameRef = useRef<number | null>(null);
   const echoIdRef = useRef(0);
   const lastEchoRef = useRef('');
+  const propsRef = useRef(props);
+  const fieldNodesRef = useRef<FieldOntologyNode[]>([]);
+  const activeNodeRef = useRef('nodo.aptymok.projectmanager');
+  const selectedNodeRef = useRef<string | null>(null);
   const [failed, setFailed] = useState(false);
+  const fieldNodes = useMemo(
+    () => [
+      ...(props.sfNodes || sfOntologyNodes),
+      ...(props.moduleNodes || aptymokModuleNodes),
+      ...(props.twinNodes || baseTwinNodes),
+    ],
+    [props.sfNodes, props.moduleNodes, props.twinNodes],
+  );
+  const ontologyById = useMemo(() => new Map(fieldNodes.map((node) => [node.id, node])), [fieldNodes]);
+  const [internalActiveNode, setInternalActiveNode] = useState(props.activeCommandNode || 'nodo.aptymok.projectmanager');
+  const [internalSelectedNode, setInternalSelectedNode] = useState<string | null>(props.selectedNode || null);
+  const [commandBusy, setCommandBusy] = useState(false);
+  const activeNode = ontologyById.get(props.activeCommandNode || internalActiveNode) || null;
+  const selectedNode = ontologyById.get(props.selectedNode || internalSelectedNode || '') || null;
 
   const label = useMemo(() => {
     if (props.mediaDrafts?.some((draft) => draft.status === 'pending_human_validation')) return 'AMV // validacion humana pendiente';
@@ -224,8 +302,29 @@ export function SfiCognitiveField(props: SfiCognitiveFieldProps) {
   }, [props.amvState?.message, props.mediaDrafts, props.socialPulse?.active]);
 
   useEffect(() => {
+    propsRef.current = props;
     dataRef.current = deriveData(props);
   }, [props]);
+
+  useEffect(() => {
+    fieldNodesRef.current = fieldNodes;
+  }, [fieldNodes]);
+
+  useEffect(() => {
+    if (props.activeCommandNode) setInternalActiveNode(props.activeCommandNode);
+  }, [props.activeCommandNode]);
+
+  useEffect(() => {
+    if (props.selectedNode !== undefined) setInternalSelectedNode(props.selectedNode);
+  }, [props.selectedNode]);
+
+  useEffect(() => {
+    activeNodeRef.current = internalActiveNode;
+  }, [internalActiveNode]);
+
+  useEffect(() => {
+    selectedNodeRef.current = internalSelectedNode;
+  }, [internalSelectedNode]);
 
   useEffect(() => {
     const root = rootRef.current;
@@ -256,7 +355,7 @@ export function SfiCognitiveField(props: SfiCognitiveFieldProps) {
       canvas.style.height = `${height}px`;
       root.style.minHeight = `${height}px`;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      nodesRef.current = createNodes(width, height);
+      nodesRef.current = createNodes(width, height, fieldNodesRef.current.length ? fieldNodesRef.current : getDefaultFieldNodes());
       particles = Array.from({ length: reducedMotionRef.current ? 20 : 70 }, () => ({
         x: Math.random() * width,
         y: Math.random() * height,
@@ -298,8 +397,30 @@ export function SfiCognitiveField(props: SfiCognitiveFieldProps) {
       }
     };
 
+    const onClick = (event: MouseEvent) => {
+      const rect = root.getBoundingClientRect();
+      const x = event.clientX - rect.left;
+      const y = event.clientY - rect.top;
+      const nearest = nodesRef.current
+        .map((node) => ({ node, distance: Math.hypot(node.x - x, node.y - y) }))
+        .filter((item) => item.distance <= Math.max(28, item.node.radius * 2.4))
+        .sort((a, b) => a.distance - b.distance)[0]?.node;
+      if (!nearest?.ontology) return;
+      setInternalSelectedNode(nearest.ontology.id);
+      propsRef.current.onNodeSelect?.(nearest.ontology);
+      propsRef.current.onNodeTap?.(nearest.ontology);
+      if (nearest.ontology.type === 'module') {
+        setInternalActiveNode(nearest.ontology.id);
+        propsRef.current.onModeSuggest?.(nearest.ontology.commandMode);
+        pushEcho(`AMV // modo ${nearest.ontology.commandMode} activo`, nearest.kind);
+      } else {
+        pushEcho(`AMV // nodo ${nearest.ontology.label} inspeccionado`, nearest.kind);
+      }
+    };
+
     root.addEventListener('mousemove', onMove);
     root.addEventListener('mouseleave', onLeave);
+    root.addEventListener('click', onClick);
 
     const drawBackground = (time: number, pressure: number) => {
       ctx.fillStyle = '#060605';
@@ -369,6 +490,15 @@ export function SfiCognitiveField(props: SfiCognitiveFieldProps) {
         if (node.id === 'MEDIA_ROOM') target += draftBoost;
         if (['SOCIAL_FIELD', 'REDES', 'MUNDO'].includes(node.id)) target += socialBoost * 0.65;
         if (node.id === 'RUIDO_XI') target += data.xi * 1.7;
+        if (node.ontology?.type === 'module') target += 0.1;
+        if (node.id === activeNodeRef.current) target += 0.65;
+        if (node.id === selectedNodeRef.current) target += 0.95;
+        if (node.id === 'nodo.aptymok.intervencion' && data.amvMessage) target += 0.5;
+        if (node.id === 'nodo.aptymok.media') target += draftBoost;
+        if (node.id === 'nodo.aptymok.social_resonance') target += socialBoost * 0.85;
+        if (node.id === 'nodo.aptymok.calendarizacion' && data.phase >= 3) target += 0.45;
+        if (node.id === 'nodo.aptymok.asset_eval' && data.evalAssetActive) target += 0.6;
+        if (node.id === 'nodo.usuario.intencion' && data.writing) target += 0.6;
 
         const dist = mouseRef.current.active ? Math.hypot(node.x - mouseRef.current.x, node.y - mouseRef.current.y) : 999;
         if (dist < 90) target += (90 - dist) / 90;
@@ -517,6 +647,7 @@ export function SfiCognitiveField(props: SfiCognitiveFieldProps) {
       if (frameRef.current) window.cancelAnimationFrame(frameRef.current);
       root.removeEventListener('mousemove', onMove);
       root.removeEventListener('mouseleave', onLeave);
+      root.removeEventListener('click', onClick);
       resizeObserver.disconnect();
       observer.disconnect();
       reducedQuery?.removeEventListener?.('change', onReduced);
@@ -566,6 +697,119 @@ export function SfiCognitiveField(props: SfiCognitiveFieldProps) {
     if (dataRef.current.writing) pushEcho('AMV // escuchando senal', 'gold');
   }, [props.asset.metadata?.draft_signal_length, props.amvState?.status]);
 
+  const executeCommand = async (command: string, evidence?: File | null) => {
+    const node = activeNode || ontologyById.get('nodo.aptymok.projectmanager');
+    const mode = node?.commandMode || 'project_manager';
+    const data = dataRef.current;
+    setCommandBusy(true);
+    try {
+      pushEcho(`CAMPO // ${mode} recibe instruccion`, 'gold');
+
+      if (evidence) {
+        pushEcho(`EVIDENCIA // ${evidence.name}`, 'blue');
+      }
+
+      if (!props.nodeId && ['intervention', 'media', 'calendar', 'social', 'logbook', 'amv'].includes(mode)) {
+        pushEcho('AMV // sin nodo activo; instruccion retenida en campo', 'red');
+        return;
+      }
+
+      if (mode === 'intervention' || mode === 'amv') {
+        const res = await fetch('/api/liturgia/amv', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            node_id: props.nodeId,
+            session_id: props.asset.asset_id,
+            message: command,
+            context: {
+              entity: textFrom(props.asset.target_system?.name, props.asset.asset_id),
+              phenomenon: textFrom(props.operationalReading?.phenomenon, command),
+              anomalies: [textFrom(props.operationalReading?.risk?.label, 'campo_activo')],
+              ihg: data.ihg,
+              nti: data.nti,
+              ldi: data.ldiHours / 72,
+              xi: data.xi,
+              phi: data.phi,
+              regime: data.regime,
+            },
+          }),
+        });
+        const result = await res.json().catch(() => null);
+        if (!res.ok) throw new Error(result?.error || 'amv_command_failed');
+        pushEcho(`AMV // ${result?.message || 'ajuste recibido'}`, 'gold');
+        return;
+      }
+
+      if (mode === 'media') {
+        const res = await fetch('/api/media/drafts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            node_id: props.nodeId,
+            source_type: 'field_command',
+            source_id: null,
+            platform_target: 'field',
+            content: command,
+            metadata: { asset_id: props.asset.asset_id, command_mode: mode },
+          }),
+        });
+        const result = await res.json().catch(() => null);
+        if (!res.ok) throw new Error(result?.error || 'media_command_failed');
+        pushEcho('AMV // public_fragment enviado a validacion humana', 'blue');
+        return;
+      }
+
+      if (mode === 'calendar') {
+        const res = await fetch('/api/calendar/phenomenological', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ node_id: props.nodeId, horizon_days: 7, asset_id: props.asset.asset_id }),
+        });
+        const result = await res.json().catch(() => null);
+        if (!res.ok) throw new Error(result?.error || 'calendar_command_failed');
+        pushEcho(`AMV // ${result?.windows?.[0]?.label || 'ventana de baja friccion detectada'}`, 'gold');
+        return;
+      }
+
+      if (mode === 'social') {
+        const res = await fetch('/api/social/resonance', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            node_id: props.nodeId,
+            platform: 'field_command',
+            resonance_score: data.socialPulse.score ?? 0.5,
+            comments_summary: command,
+            raw_payload: { asset_id: props.asset.asset_id, command_mode: mode },
+          }),
+        });
+        const result = await res.json().catch(() => null);
+        if (!res.ok) throw new Error(result?.error || 'social_command_failed');
+        pushEcho('CAMPO SOCIAL // retorno integrado', 'blue');
+        return;
+      }
+
+      if (mode === 'logbook') {
+        const res = await fetch('/api/bitacora/regenerate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ node_id: props.nodeId, mode: command.toLowerCase().includes('public') ? 'public_fragment' : 'operational', asset_id: props.asset.asset_id }),
+        });
+        const result = await res.json().catch(() => null);
+        if (!res.ok) throw new Error(result?.error || 'logbook_command_failed');
+        pushEcho(`AMV // ${result?.fragment || 'bitacora regenerada'}`, 'gold');
+        return;
+      }
+
+      pushEcho(`AMV // ${node?.label || 'campo'} traduce instruccion a seguimiento`, 'green');
+    } catch (error) {
+      pushEcho(`AMV // ${error instanceof Error ? error.message : 'command_failed'}`, 'red');
+    } finally {
+      setCommandBusy(false);
+    }
+  };
+
   if (failed) {
     return (
       <div className="field-fallback" role="img" aria-label="Campo cognitivo activo con visualizacion reducida">
@@ -586,6 +830,25 @@ export function SfiCognitiveField(props: SfiCognitiveFieldProps) {
         <span>USUARIO</span>
       </div>
       <div className="field-status">{label}</div>
+      <FieldNodeInspector
+        node={selectedNode}
+        activationReason={selectedNode?.activationConditions[0]}
+        proposal={
+          selectedNode?.id === 'nodo.aptymok.intervencion'
+            ? textFrom(props.amvState?.reading?.proposed_action, textFrom(props.operationalReading?.intervention))
+            : selectedNode?.id === 'nodo.aptymok.media' && dataRef.current.pendingDrafts > 0
+              ? 'Draft pendiente de validacion humana.'
+              : selectedNode?.id === 'nodo.aptymok.calendarizacion'
+                ? 'Fijar proxima observacion o revisar ventana sugerida.'
+                : undefined
+        }
+        lastEvent={textFrom(props.recentEvents?.[0]?.event_name || props.recentEvents?.[0]?.event_type)}
+        onClose={() => {
+          setInternalSelectedNode(null);
+          props.onNodeSelect?.(null);
+        }}
+      />
+      <FieldCommandInput activeNode={activeNode} disabled={commandBusy} onExecute={executeCommand} />
       <style jsx>{`
         .sfi-field {
           position: relative;
@@ -597,6 +860,7 @@ export function SfiCognitiveField(props: SfiCognitiveFieldProps) {
             #060605;
           cursor: none;
           isolation: isolate;
+          padding-bottom: 4.6rem;
         }
         canvas {
           display: block;
