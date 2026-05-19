@@ -21,6 +21,7 @@ Flujo:
 - Mostrar AMV solo en FIELD_LAYER.
 - Registrar bitacora local de 10 ciclos.
 - Proponer ruta simple sin formulas visibles.
+- WorldSpect como lectura externa activada por interdependencia cognitiva.
 
 ## No hacer todavia
 

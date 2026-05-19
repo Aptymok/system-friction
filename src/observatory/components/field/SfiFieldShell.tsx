@@ -16,7 +16,11 @@ import {
 import { rankDetectedPatterns, type PatternRankResult } from '@/observatory/field/patternActivation';
 import { buildGraphVectorState } from '@/observatory/field/vectorMatrix';
 import type { UserSignalVector } from '@/observatory/field/vectorTypes';
+import { buildWorldSpectReading, formatWorldSpectAmvReading } from '@/observatory/worldspect/buildWorldSpectReading';
+import { detectWorldSpectTriggers } from '@/observatory/worldspect/detectWorldSpectTriggers';
+import { worldSpectSymbols } from '@/observatory/worldspect/worldSpectTypes';
 import { SfiCognitiveField } from './SfiCognitiveField';
+import { WorldSpectPanel } from './WorldSpectPanel';
 import { getDefaultFieldNodes, type FieldCommandMode, type FieldOntologyNode } from './fieldOntology';
 
 type CalendarWindow = {
@@ -169,7 +173,9 @@ export function SfiFieldShell({
   const [recentEvents, setRecentEvents] = useState<any[]>([]);
   const [socialPulse, setSocialPulse] = useState<{ active: boolean; score?: number; platform?: string }>({ active: false });
   const [status, setStatus] = useState('');
+  const [worldSpectOpen, setWorldSpectOpen] = useState(false);
   const lastGraphEventRef = useRef('');
+  const lastWorldSpectEventRef = useRef('');
 
   const fieldAsset = activeAsset || makeDraftAsset(draftCommand);
   const reading = useMemo(() => readingFromAsset(activeAsset || fieldAsset), [activeAsset, fieldAsset]);
@@ -231,6 +237,36 @@ export function SfiFieldShell({
     }),
     [allFieldNodes, rankedPatterns, selectedOntologyNode, activeCommandNode, userSignalVector],
   );
+  const mihmState = useMemo(() => ({
+    IHG: reading.technical.IHG,
+    NTI_obs: reading.technical.NTI_obs,
+    LDI_hours: reading.technical.LDI_hours,
+    PHI_SF: reading.technical.PHI_SF,
+    regime: reading.technical.regime,
+  }), [reading]);
+  const worldSpectDetection = useMemo(
+    () => detectWorldSpectTriggers({
+      command: userSignalVector.rawCommand,
+      activeNode: selectedOntologyNode || activeCommandNode,
+      fieldMode,
+      rankedPatterns,
+      mihmState,
+      recentEvents,
+    }),
+    [userSignalVector.rawCommand, selectedOntologyNode, activeCommandNode, fieldMode, rankedPatterns, mihmState, recentEvents],
+  );
+  const worldSpectReading = useMemo(() => {
+    if (!worldSpectDetection.shouldReadWorldSpect || !worldSpectDetection.primaryTrigger) return null;
+    return buildWorldSpectReading({
+      trigger: worldSpectDetection.primaryTrigger,
+      variables: worldSpectDetection.variables,
+      rankedPatterns,
+      activeNode: selectedOntologyNode || activeCommandNode,
+      intent: userSignalVector.detectedIntent,
+      mihmState,
+      recentEvents,
+    });
+  }, [worldSpectDetection, rankedPatterns, selectedOntologyNode, activeCommandNode, userSignalVector.detectedIntent, mihmState, recentEvents]);
   const route = useMemo(
     () => buildLowFrictionRoute({ patterns: visiblePatterns, reading }),
     [visiblePatterns, reading],
@@ -262,6 +298,17 @@ export function SfiFieldShell({
     ],
   });
 
+  const tracePayloadFromWorldSpect = () => ({
+    triggerId: worldSpectReading?.triggerId || worldSpectDetection.primaryTrigger?.id || null,
+    triggerSymbol: worldSpectReading?.triggerSymbol || worldSpectDetection.primaryTrigger?.symbol || null,
+    variables: worldSpectReading?.variables || worldSpectDetection.variables,
+    symbols: worldSpectReading?.symbols || worldSpectDetection.variables.map((variable) => worldSpectSymbols[variable]),
+    source: worldSpectReading?.source || 'local_context',
+    confidence: worldSpectReading?.confidence || 'limited',
+    activeNode: selectedOntologyNode?.id || activeCommandNode,
+    primaryPatternId: rankedPatterns.primaryPattern?.pattern.id || null,
+  });
+
   useEffect(() => {
     const key = [
       graphVectorState.primaryPatternId,
@@ -290,6 +337,58 @@ export function SfiFieldShell({
     graphVectorState.userSignal.activeNodeId,
     graphVectorState.userSignal.detectedIntent,
     graphVectorState.graphLayoutMode,
+  ]);
+
+  useEffect(() => {
+    if (!worldSpectReading || !worldSpectDetection.primaryTrigger) return;
+    const key = [
+      worldSpectReading.triggerId,
+      worldSpectReading.variables.join(','),
+      rankedPatterns.primaryPattern?.pattern.id || '',
+      selectedOntologyNode?.id || activeCommandNode,
+      userSignalVector.rawCommand.slice(0, 80),
+    ].join('|');
+    if (lastWorldSpectEventRef.current === key) return;
+    lastWorldSpectEventRef.current = key;
+
+    appendBitacora('WORLD_SPECT_TRIGGER_DETECTED', worldSpectDetection.primaryTrigger.visibleSummary, {
+      pattern_id: rankedPatterns.primaryPattern?.pattern.id,
+      trace_payload: tracePayloadFromWorldSpect(),
+    });
+    appendBitacora('WORLD_SPECT_READING_TRIGGERED', worldSpectReading.summary, {
+      pattern_id: rankedPatterns.primaryPattern?.pattern.id,
+      trace_payload: tracePayloadFromWorldSpect(),
+    });
+    if (worldSpectReading.observationWindow) {
+      appendBitacora('OBSERVATION_WINDOW_SUGGESTED', worldSpectReading.observationWindow.visibleSummary, {
+        pattern_id: rankedPatterns.primaryPattern?.pattern.id,
+        trace_payload: {
+          ...tracePayloadFromWorldSpect(),
+          options: worldSpectReading.observationWindow.options,
+        },
+      });
+    }
+    setWorldSpectOpen(true);
+    setAmvState((current) => ({
+      ...current,
+      status: current.status === 'idle' ? 'worldspect' : current.status,
+      message: formatWorldSpectAmvReading(worldSpectReading),
+      reading: {
+        ...(typeof current.reading === 'object' && current.reading ? current.reading : {}),
+        worldspect: worldSpectReading,
+      },
+    }));
+    setRecentEvents((current) => [
+      { event_name: 'world_spect_reading_triggered', payload: { fragment: worldSpectReading.summary, triggerId: worldSpectReading.triggerId } },
+      ...current,
+    ].slice(0, 8));
+  }, [
+    worldSpectReading,
+    worldSpectDetection.primaryTrigger,
+    rankedPatterns.primaryPattern?.pattern.id,
+    selectedOntologyNode,
+    activeCommandNode,
+    userSignalVector.rawCommand,
   ]);
 
   const refreshLoop = async () => {
@@ -521,6 +620,21 @@ export function SfiFieldShell({
           onFieldEcho={(echo) => setRecentEvents((current) => [{ event_name: 'field_echo', payload: { fragment: echo } }, ...current].slice(0, 8))}
           onModeSuggest={handleModeSuggest}
           onCommandExecute={handleCommand}
+        />
+
+        <WorldSpectPanel
+          reading={worldSpectReading}
+          open={worldSpectOpen}
+          onToggle={() => {
+            const nextOpen = !worldSpectOpen;
+            setWorldSpectOpen(nextOpen);
+            if (nextOpen && worldSpectReading) {
+              appendBitacora('WORLD_SPECT_PANEL_OPENED', 'WorldSpect abierto.', {
+                pattern_id: rankedPatterns.primaryPattern?.pattern.id,
+                trace_payload: tracePayloadFromWorldSpect(),
+              });
+            }
+          }}
         />
 
         <nav className="mode-rail" aria-label="Estados del campo">
