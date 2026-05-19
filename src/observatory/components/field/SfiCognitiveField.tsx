@@ -29,6 +29,7 @@ export type SfiCognitiveFieldProps = {
   asset: SfiAsset;
   nodeId?: string | null;
   phase: number;
+  fullScreen?: boolean;
   amvState?: AmvState;
   operationalReading?: any;
   recentEvents?: any[];
@@ -45,6 +46,7 @@ export type SfiCognitiveFieldProps = {
   onNodeSelect?: (node: FieldOntologyNode | null) => void;
   onFieldEcho?: (echo: string) => void;
   onModeSuggest?: (mode: FieldCommandMode) => void;
+  onCommandExecute?: (input: { command: string; mode: FieldCommandMode; node: FieldOntologyNode | null; evidence?: File | null }) => Promise<boolean | void> | boolean | void;
 };
 
 type NodeKind = 'gold' | 'blue' | 'green' | 'red' | 'dim';
@@ -348,7 +350,9 @@ export function SfiCognitiveField(props: SfiCognitiveFieldProps) {
 
     const resize = () => {
       width = root.clientWidth || 680;
-      height = Math.min(Math.max(width * 0.58, 360), 560);
+      height = propsRef.current.fullScreen
+        ? root.clientHeight || window.innerHeight
+        : Math.min(Math.max(width * 0.58, 360), 560);
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
       canvas.width = Math.floor(width * dpr);
       canvas.height = Math.floor(height * dpr);
@@ -698,11 +702,13 @@ export function SfiCognitiveField(props: SfiCognitiveFieldProps) {
   }, [props.asset.metadata?.draft_signal_length, props.amvState?.status]);
 
   const executeCommand = async (command: string, evidence?: File | null) => {
-    const node = activeNode || ontologyById.get('nodo.aptymok.projectmanager');
-    const mode = node?.commandMode || 'project_manager';
-    const data = dataRef.current;
-    setCommandBusy(true);
-    try {
+      const node = activeNode || ontologyById.get('nodo.aptymok.projectmanager');
+      const mode = node?.commandMode || 'project_manager';
+      const data = dataRef.current;
+      setCommandBusy(true);
+      try {
+      const handled = await props.onCommandExecute?.({ command, mode, node: node || null, evidence });
+      if (handled) return;
       pushEcho(`CAMPO // ${mode} recibe instruccion`, 'gold');
 
       if (evidence) {
@@ -819,7 +825,7 @@ export function SfiCognitiveField(props: SfiCognitiveFieldProps) {
   }
 
   return (
-    <div ref={rootRef} className="sfi-field" aria-label="Campo cognitivo vivo SFI">
+    <div ref={rootRef} className={`sfi-field ${props.fullScreen ? 'fullscreen' : ''}`} aria-label="Campo cognitivo vivo SFI">
       <canvas ref={canvasRef} />
       <div ref={dotRef} className="cursor-dot" />
       <div ref={ringRef} className="cursor-ring" />
@@ -861,6 +867,13 @@ export function SfiCognitiveField(props: SfiCognitiveFieldProps) {
           cursor: none;
           isolation: isolate;
           padding-bottom: 4.6rem;
+        }
+        .sfi-field.fullscreen {
+          width: 100%;
+          height: 100%;
+          min-height: 100%;
+          border: 0;
+          padding-bottom: 0;
         }
         canvas {
           display: block;
