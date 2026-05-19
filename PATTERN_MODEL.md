@@ -26,3 +26,30 @@ Los patrones no son adornos. Activan nodos, rutas, inhibiciones o bitacora.
 - FIELD_LAYER: lectura corta para operar.
 - TRACE_LAYER: origen, pesos, reglas y evidencia si el usuario lo pide.
 - DOCUMENT_LAYER: documentos, auditorias y protocolos.
+
+## Catalogo extendido 0-100
+
+La estructura queda separada:
+
+- patrones raiz = `coreFieldPatterns`
+- patrones criticos = `criticalSystemsPatterns`
+- export publica = `fieldPatterns`
+
+`fieldPatterns` combina ambos grupos:
+
+```ts
+export const fieldPatterns = [
+  ...coreFieldPatterns,
+  ...criticalSystemsPatterns,
+];
+```
+
+Cada patron critico puede activar:
+
+- nodo relacionado;
+- ruta minima;
+- bitacora;
+- lectura AMV en FIELD_LAYER;
+- trazabilidad solo si el usuario la pide.
+
+El catalogo completo no se muestra al usuario.

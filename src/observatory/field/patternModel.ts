@@ -1,5 +1,6 @@
 import type { SfiAsset } from '@/lib/types';
 import type { OperationalReading } from '@/lib/sfi/inference';
+import { criticalSystemsPatterns } from './criticalSystemsPatterns';
 
 export type FieldLanguageLayer = 'DOCUMENT_LAYER' | 'FIELD_LAYER' | 'TRACE_LAYER';
 
@@ -39,7 +40,7 @@ export type BitacoraEntry = {
   created_at: string;
 };
 
-export const fieldPatterns: FieldPattern[] = [
+export const coreFieldPatterns: FieldPattern[] = [
   {
     id: 'nti',
     nombre: 'Nodo de Trazabilidad Institucional',
@@ -114,8 +115,24 @@ export const fieldPatterns: FieldPattern[] = [
   },
 ];
 
+export const fieldPatterns: FieldPattern[] = [
+  ...coreFieldPatterns,
+  ...criticalSystemsPatterns,
+];
+
 function includesAny(text: string, values: string[]) {
   return values.some((value) => text.includes(value.toLowerCase()));
+}
+
+function normalizeText(text: string) {
+  return text
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+}
+
+function patternById(id: string) {
+  return fieldPatterns.find((pattern) => pattern.id === id);
 }
 
 function stateNumber(asset: SfiAsset, key: string, fallback: number) {
@@ -130,15 +147,19 @@ export function detectFieldPatterns(input: {
   selectedNodeId?: string | null;
   eventText?: string;
 }): FieldPattern[] {
-  const command = input.command?.toLowerCase() || '';
-  const eventText = input.eventText?.toLowerCase() || '';
+  const command = normalizeText(input.command || '');
+  const eventText = normalizeText(input.eventText || '');
   const reading = input.reading;
   const asset = input.asset;
   const nti = reading?.technical.NTI_obs ?? (asset ? stateNumber(asset, 'NTI_obs', 0.42) : 0.42);
-  const ldi = reading?.technical.LDI_hours ?? (asset ? stateNumber(asset, 'LDI_hours', 48) : 48);
+  const ldi = reading?.technical.LDI_hours ?? (asset ? stateNumber(asset, 'LDI_hours', 48) : 24);
   const phi = reading?.technical.PHI_SF ?? (asset ? stateNumber(asset, 'PHI_SF', 0.32) : 0.32);
-  const text = `${command} ${eventText} ${reading?.phenomenon || ''} ${reading?.nextAction || ''}`.toLowerCase();
+  const text = normalizeText(`${command} ${eventText} ${reading?.phenomenon || ''} ${reading?.nextAction || ''}`);
   const detected = new Set<FieldPattern>();
+  const addById = (id: string) => {
+    const pattern = patternById(id);
+    if (pattern) detected.add(pattern);
+  };
 
   if (nti < 0.38 || includesAny(text, ['origen', 'evidencia', 'fuente', 'traza'])) detected.add(fieldPatterns[0]);
   if (ldi > 42 || includesAny(text, ['pendiente', 'bloqueo', 'retraso', 'manana', 'no he'])) detected.add(fieldPatterns[1]);
@@ -146,6 +167,36 @@ export function detectFieldPatterns(input: {
   if (nti < 0.3 || includesAny(text, ['sin evidencia', 'sin fuente', 'origen'])) detected.add(fieldPatterns[3]);
   if (includesAny(text, ['repite', 'repeticion', 'mismo', 'otra vez', 'regresa'])) detected.add(fieldPatterns[4]);
   if (nti < 0.3 && (ldi > 62 || phi < 0.22)) detected.add(fieldPatterns[5]);
+  if (includesAny(text, ['publicar', 'post', 'pieza', 'copy', 'salida publica'])) {
+    addById('cs-009-deuda-de-decision');
+    addById('cs-005-escritura-sin-intencion-visible');
+  }
+  if (includesAny(text, ['no se', 'no s', 'incertidumbre', 'sin reglas', 'ambiguo'])) {
+    addById('cs-008-personas-en-alta-incertidumbre');
+    if (!includesAny(text, ['publicar', 'post', 'pieza', 'copy'])) addById('cs-030-deuda-de-claridad');
+  }
+  if (includesAny(text, ['nadie decidio', 'nadie decidi', 'se volvio parte', 'se volvi', 'zona gris'])) {
+    addById('cs-001-decisiones-que-nadie-tomo');
+    addById('cs-040-persistencia-de-error');
+    addById('cs-025-responsabilidad-distribuida');
+  }
+  if (includesAny(text, ['compliance', 'cumplimiento', 'auditoria'])) {
+    addById('cs-003-compliance-como-narrativa');
+    addById('cs-026-metricas-vs-realidad');
+    addById('cs-020-ficcion-institucional');
+  }
+  if (includesAny(text, ['alerta', 'alarma', 'indicador', 'monitor'])) {
+    addById('cs-006-sistemas-de-alerta-que-nadie-revisa');
+    addById('cs-011-alarmas-silenciosas');
+  }
+  if (includesAny(text, ['umbral', 'limite oficial', 'limite real'])) addById('cs-012-umbrales-oficiales-vs-reales');
+  if (includesAny(text, ['contexto', 'se perdio', 'registro incompleto'])) addById('cs-007-contexto-perdido');
+  if (includesAny(text, ['metrica', 'numero', 'indicador'])) addById('cs-026-metricas-vs-realidad');
+  if (includesAny(text, ['proxy', 'objetivo reemplazado'])) addById('cs-085-evaluacion-de-proxy-vs-objetivo');
+  if (includesAny(text, ['dependencia', 'depende de', 'interdependencia'])) {
+    addById('cs-034-dependencias-ocultas');
+    addById('cs-097-mapeo-de-dependencias-criticas');
+  }
 
   return [...detected].sort((a, b) => b.nivel_friccion - a.nivel_friccion).slice(0, 3);
 }
