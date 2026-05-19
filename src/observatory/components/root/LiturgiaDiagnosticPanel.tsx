@@ -4,8 +4,8 @@ import { useMemo, useState } from 'react';
 import { useEffect } from 'react';
 import type { SfiAsset } from '@/lib/types';
 import { inferOperationalReading, type OperationalReading } from '@/lib/sfi/inference';
+import { SfiCognitiveField } from '@/observatory/components/field/SfiCognitiveField';
 
-type LayerName = 'MUNDO' | 'REDES' | 'PROYECTO' | 'USUARIO';
 
 const phases = ['SEÑAL', 'ANÁLISIS', 'INTERVENCIÓN', 'SEGUIMIENTO', 'EJECUCIÓN'];
 
@@ -63,41 +63,6 @@ function assetName(asset?: SfiAsset | null) {
   return textFromRecord(asset?.target_system, 'name') || asset?.asset_id || 'Señal sin nombre';
 }
 
-function toneFor(value: number) {
-  if (value > 0.68) return 'high';
-  if (value > 0.38) return 'mid';
-  return 'low';
-}
-
-function PulseField({ layers }: { layers: OperationalReading['pressureLayers'] }) {
-  const layerMap = layers.reduce<Record<LayerName, number>>((acc, item) => {
-    acc[item.layer] = item.pressure;
-    return acc;
-  }, { MUNDO: 0.2, REDES: 0.2, PROYECTO: 0.2, USUARIO: 0.2 });
-
-  return (
-    <div className="live-field" aria-label="Campo vivo de presion operacional">
-      {(['MUNDO', 'REDES', 'PROYECTO', 'USUARIO'] as LayerName[]).map((layer, index) => {
-        const pressure = layerMap[layer] ?? 0.2;
-        return (
-          <div
-            key={layer}
-            className={`pulse-orbit ${toneFor(pressure)}`}
-            style={{
-              ['--scale' as string]: String(0.55 + pressure * 0.9),
-              ['--delay' as string]: `${index * 0.35}s`,
-              ['--offset' as string]: `${index * 18}px`,
-            }}
-          >
-            <span>{layer}</span>
-          </div>
-        );
-      })}
-      <div className="field-core" />
-    </div>
-  );
-}
-
 function ReadingBlock({ label, value }: { label: string; value: string }) {
   return (
     <div className="reading-block">
@@ -125,10 +90,20 @@ function LoopSurface({
   asset,
   nodeId,
   reading,
+  onAmvState,
+  onMediaDrafts,
+  onRecentEvents,
+  onSocialPulse,
+  onFieldEcho,
 }: {
   asset?: SfiAsset | null;
   nodeId?: string | null;
   reading: OperationalReading;
+  onAmvState?: (state: { status: string; message?: string; reading?: any }) => void;
+  onMediaDrafts?: (drafts: MediaDraft[]) => void;
+  onRecentEvents?: (events: any[]) => void;
+  onSocialPulse?: (pulse: { active: boolean; score?: number; platform?: string }) => void;
+  onFieldEcho?: (echo: string) => void;
 }) {
   const [state, setState] = useState<OperationalLoopState>({
     amv: 'AMV interno en espera de señal activa.',
@@ -202,6 +177,15 @@ function LoopSurface({
         drafts: Array.isArray(drafts?.drafts) ? drafts.drafts : current.drafts,
         loading: false,
       }));
+      const nextDrafts = Array.isArray(drafts?.drafts) ? drafts.drafts : [];
+      const nextEvents = [
+        { event_name: 'liturgia_amv_internal_response', payload: { message: amv?.message, reading: amv?.reading } },
+        { event_name: 'bitacora_regenerated', payload: { fragment: bitacora?.fragment } },
+      ];
+      onAmvState?.({ status: amv?.status || 'connected_internal', message: amv?.message, reading: amv?.reading });
+      onMediaDrafts?.(nextDrafts);
+      onRecentEvents?.(nextEvents);
+      if (bitacora?.fragment) onFieldEcho?.(`AMV // ${bitacora.fragment}`);
     } catch (error) {
       setState((current) => ({
         ...current,
@@ -229,6 +213,7 @@ function LoopSurface({
       });
       const result = await res.json().catch(() => null);
       if (!res.ok) throw new Error(result?.error || 'draft_create_failed');
+      onFieldEcho?.('AMV // residuo creado // validacion humana pendiente');
       await refreshLoop();
     } catch (error) {
       setState((current) => ({ ...current, loading: false, error: error instanceof Error ? error.message : 'draft_create_failed' }));
@@ -246,6 +231,10 @@ function LoopSurface({
       });
       const result = await res.json().catch(() => null);
       if (!res.ok) throw new Error(result?.error || 'bitacora_public_failed');
+      if (result?.fragment) {
+        onFieldEcho?.(`AMV // ${result.fragment}`);
+        onRecentEvents?.([{ event_name: 'bitacora_regenerated', payload: { fragment: result.fragment } }]);
+      }
       await refreshLoop();
     } catch (error) {
       setState((current) => ({ ...current, loading: false, error: error instanceof Error ? error.message : 'bitacora_public_failed' }));
@@ -275,6 +264,9 @@ function LoopSurface({
         loading: false,
         social: `Resonancia registrada · score ${score.toFixed(2)} · ${reading.continuity}`,
       }));
+      onSocialPulse?.({ active: true, score, platform: 'field' });
+      onRecentEvents?.([{ event_name: 'social_resonance_ingested', payload: { score, platform: 'field' } }]);
+      onFieldEcho?.('CAMPO SOCIAL // resonancia registrada');
       await refreshLoop();
     } catch (error) {
       setState((current) => ({ ...current, loading: false, error: error instanceof Error ? error.message : 'social_resonance_failed' }));
@@ -355,6 +347,10 @@ function Seguimiento({ reading, asset }: { reading: OperationalReading; asset?: 
 
 export function LiturgiaDiagnosticPanel({ asset, nodeId }: { asset?: SfiAsset | null; nodeId?: string | null }) {
   const [active, setActive] = useState(0);
+  const [fieldAmvState, setFieldAmvState] = useState<{ status: string; message?: string; reading?: any }>({ status: 'idle' });
+  const [fieldDrafts, setFieldDrafts] = useState<MediaDraft[]>([]);
+  const [fieldRecentEvents, setFieldRecentEvents] = useState<any[]>([]);
+  const [fieldSocialPulse, setFieldSocialPulse] = useState<{ active: boolean; score?: number; platform?: string }>({ active: false });
   const reading = useMemo(() => readingFromAsset(asset), [asset]);
   const signalKind = textFromRecord(asset?.metadata, 'signal_kind');
   const sourceSignal = textFromRecord(asset?.objective, 'observed_signal') || textFromRecord(asset?.objective, 'declaration');
@@ -362,6 +358,21 @@ export function LiturgiaDiagnosticPanel({ asset, nodeId }: { asset?: SfiAsset | 
   const evalAssetActive = Boolean(asset?.metadata?.eval_asset_active);
   const layerNotes = reading.pressureLayers.map((item) => `${item.layer}: ${item.note}`).join(' · ');
   const currentPhase = asset?.current_phase || 'SIGNAL_ANALYZED';
+
+  useEffect(() => {
+    setFieldAmvState({ status: 'idle' });
+    setFieldDrafts([]);
+    setFieldRecentEvents(asset?.logbook || []);
+    setFieldSocialPulse({ active: false });
+  }, [asset?.asset_id, asset?.logbook]);
+
+  useEffect(() => {
+    if (!fieldSocialPulse.active) return;
+    const timer = window.setTimeout(() => {
+      setFieldSocialPulse((current) => ({ ...current, active: false }));
+    }, 5200);
+    return () => window.clearTimeout(timer);
+  }, [fieldSocialPulse.active, fieldSocialPulse.score, fieldSocialPulse.platform]);
 
   return (
     <section className="op-root" aria-label="Sistema operativo SFI">
@@ -407,7 +418,18 @@ export function LiturgiaDiagnosticPanel({ asset, nodeId }: { asset?: SfiAsset | 
             <ReadingBlock label="Latencia" value={`${reading.latency.label} · ${reading.latency.detail}`} />
             <ReadingBlock label="Riesgo operativo" value={`${reading.risk.label} · ${reading.risk.detail}`} />
           </div>
-          <PulseField layers={reading.pressureLayers} />
+          {asset && (
+            <SfiCognitiveField
+              asset={asset}
+              nodeId={nodeId}
+              phase={active}
+              amvState={fieldAmvState}
+              operationalReading={reading}
+              recentEvents={fieldRecentEvents}
+              mediaDrafts={fieldDrafts}
+              socialPulse={fieldSocialPulse}
+            />
+          )}
           <p className="continuity">{reading.continuity}</p>
           <TechnicalDisclosure reading={reading} />
         </section>
@@ -435,7 +457,16 @@ export function LiturgiaDiagnosticPanel({ asset, nodeId }: { asset?: SfiAsset | 
           <h2>SEGUIMIENTO DEL PROCESO</h2>
           <p className="subtitle">El sistema observará cambios y ajustará la intervención.</p>
           <Seguimiento reading={reading} asset={asset} />
-          <LoopSurface asset={asset} nodeId={nodeId} reading={reading} />
+          <LoopSurface
+            asset={asset}
+            nodeId={nodeId}
+            reading={reading}
+            onAmvState={setFieldAmvState}
+            onMediaDrafts={setFieldDrafts}
+            onRecentEvents={setFieldRecentEvents}
+            onSocialPulse={setFieldSocialPulse}
+            onFieldEcho={(echo) => setFieldRecentEvents((current) => [{ event_name: 'bitacora_regenerated', payload: { fragment: echo } }, ...current].slice(0, 8))}
+          />
           <div className="layer-line">{layerNotes}</div>
         </section>
 
@@ -602,54 +633,8 @@ export function LiturgiaDiagnosticPanel({ asset, nodeId }: { asset?: SfiAsset | 
           font-weight: 400;
           line-height: 1.65;
         }
-        .live-field {
-          position: relative;
-          width: min(78vw, 620px);
-          height: 260px;
+        :global(.sfi-field) {
           margin: 2rem 0;
-          border: 1px solid rgba(200,169,81,0.05);
-          background:
-            radial-gradient(circle at 50% 50%, rgba(200,169,81,0.08), transparent 28%),
-            repeating-linear-gradient(90deg, transparent, transparent 3.5rem, rgba(200,169,81,0.018) 3.6rem);
-        }
-        .pulse-orbit {
-          position: absolute;
-          left: calc(50% - 95px + var(--offset));
-          top: 50%;
-          width: 190px;
-          height: 58px;
-          transform: translate(-50%, -50%) scale(var(--scale));
-          border: 1px solid rgba(200,169,81,0.16);
-          border-radius: 50%;
-          animation: pulse 3.8s ease-in-out infinite;
-          animation-delay: var(--delay);
-        }
-        .pulse-orbit span {
-          position: absolute;
-          right: -0.8rem;
-          top: -0.6rem;
-          color: #5c5c52;
-          font-family: var(--font-mono), monospace;
-          font-size: 0.46rem;
-          letter-spacing: 0.18em;
-        }
-        .pulse-orbit.high { border-color: rgba(184,80,80,0.38); }
-        .pulse-orbit.mid { border-color: rgba(200,169,81,0.32); }
-        .pulse-orbit.low { border-color: rgba(58,138,90,0.28); }
-        .field-core {
-          position: absolute;
-          left: 50%;
-          top: 50%;
-          width: 9px;
-          height: 9px;
-          transform: translate(-50%, -50%);
-          border-radius: 999px;
-          background: #C8A951;
-          box-shadow: 0 0 22px rgba(200,169,81,0.3);
-        }
-        @keyframes pulse {
-          0%, 100% { opacity: 0.35; }
-          50% { opacity: 0.85; }
         }
         .continuity {
           max-width: 40rem;

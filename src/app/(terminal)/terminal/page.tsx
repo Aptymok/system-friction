@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { LiturgiaDiagnosticPanel } from '@/observatory/components/root/LiturgiaDiagnosticPanel'
 import { useTelemetryPulse } from '@/observatory/hooks/useTelemetryPulse'
 import { useNodeStore } from '@/observatory/store/nodeStore'
+import { SfiCognitiveField } from '@/observatory/components/field/SfiCognitiveField'
 import type { SfiAsset } from '@/lib/types'
 import { inferOperationalReading, type SignalKind } from '@/lib/sfi/inference'
 
@@ -53,6 +54,43 @@ function SignalIntake({ onCreated }: { onCreated: (assets: SfiAsset[]) => void }
         : null,
     [kind, signal, evidenceName],
   )
+  const draftAsset = useMemo<SfiAsset>(() => {
+    const technical = reading?.technical || {
+      IHG: 0.42,
+      NTI_obs: 0.28,
+      LDI_hours: 48,
+      xi_noise: 0.06,
+      PHI_SF: 0.18,
+      regime: 'TRANSITION',
+      runway_days: null,
+    }
+    return {
+      asset_id: 'SFI-DRAFT-SIGNAL',
+      owner_user_id: 'draft',
+      target_system: {
+        name: signal.trim().slice(0, 72) || 'senal en captura',
+        type: kind,
+        source: 'signal_intake',
+      },
+      objective: {
+        declaration: reading?.nextAction || 'senal en captura',
+        observed_signal: signal,
+      },
+      state_vector: technical,
+      current_phase: 'SIGNAL_DRAFT',
+      metadata: {
+        source: 'terminal_signal_intake',
+        signal_kind: kind,
+        evidence_name: evidenceName || null,
+        operational_reading: reading,
+        eval_asset_active: ['campania_redes', 'audio', 'imagen', 'video'].includes(kind),
+        is_writing: Boolean(signal.trim()),
+        draft_signal_length: signal.length,
+      },
+      created_at: new Date(0).toISOString(),
+      updated_at: new Date(0).toISOString(),
+    }
+  }, [evidenceName, kind, reading, signal])
 
   const handleFile = async (file: File | null) => {
     if (!file) return
@@ -192,6 +230,19 @@ function SignalIntake({ onCreated }: { onCreated: (assets: SfiAsset[]) => void }
           </div>
 
           <div className="border border-[rgba(200,169,81,0.08)] bg-black/20 p-5">
+            <div className="mb-5">
+              <SfiCognitiveField
+                asset={draftAsset}
+                phase={0}
+                amvState={{
+                  status: signal.trim() ? 'listening' : 'idle',
+                  message: signal.trim() ? 'AMV // escuchando senal' : 'AMV // campo en espera',
+                }}
+                operationalReading={reading}
+                recentEvents={signal.trim() ? [{ event_name: 'draft_signal', payload: { length: signal.length } }] : []}
+                socialPulse={{ active: ['campania_redes', 'audio', 'imagen', 'video'].includes(kind), platform: kind }}
+              />
+            </div>
             {reading ? (
               <div className="space-y-5">
                 <ReadingLine title="fenómeno observado" value={reading.phenomenon} />
