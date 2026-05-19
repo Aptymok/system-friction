@@ -24,7 +24,7 @@ export function WorldSpectPanel({ reading, open, onToggle }: WorldSpectPanelProp
             <span className="trigger-symbol">{reading.triggerSymbol}</span>
             <div>
               <p>{reading.triggerSummary}</p>
-              <small>{reading.source === 'local_context' ? 'contexto local' : 'fuente externa'} · confianza {reading.confidence}</small>
+              <small>{reading.sourceDescriptor.label} · confianza {reading.sourceDescriptor.confidence}</small>
             </div>
           </div>
 
@@ -56,6 +56,27 @@ export function WorldSpectPanel({ reading, open, onToggle }: WorldSpectPanelProp
               </div>
             </div>
           )}
+
+          <details className="worldspect-trace">
+            <summary>trazabilidad</summary>
+            <p>
+              Estado: {reading.sourceDescriptor.sourceState}
+              <br />
+              Confianza: {reading.sourceDescriptor.confidence}
+              <br />
+              Externo: {reading.sourceDescriptor.isExternal ? 'si' : 'no'}
+              <br />
+              Simulado: {reading.sourceDescriptor.isSimulated ? 'si' : 'no'}
+              <br />
+              Timestamp: {reading.sourceDescriptor.timestamp}
+              {reading.sourceDescriptor.sourceUrl ? (
+                <>
+                  <br />
+                  URL: {reading.sourceDescriptor.sourceUrl}
+                </>
+              ) : null}
+            </p>
+          </details>
         </div>
       )}
 
@@ -180,6 +201,24 @@ export function WorldSpectPanel({ reading, open, onToggle }: WorldSpectPanelProp
           margin-top: 0.65rem;
           border-top: 1px solid rgba(200, 169, 81, 0.12);
           padding-top: 0.55rem;
+        }
+        .worldspect-trace {
+          margin-top: 0.65rem;
+          border-top: 1px solid rgba(80, 128, 116, 0.14);
+          padding-top: 0.55rem;
+        }
+        .worldspect-trace summary {
+          color: rgba(141, 187, 165, 0.58);
+          cursor: pointer;
+          font-size: 0.46rem;
+          letter-spacing: 0.16em;
+          text-transform: uppercase;
+        }
+        .worldspect-trace p {
+          margin-top: 0.42rem;
+          color: rgba(214, 211, 199, 0.5);
+          font-size: 0.52rem;
+          line-height: 1.55;
         }
         .worldspect-window div {
           display: flex;

@@ -103,6 +103,22 @@ export function FieldNodeInspector({
             Score: {String(tracePayload.activationScore ?? '0')}
             <br />
             Activacion: {Array.isArray(tracePayload.matchedTerms) ? tracePayload.matchedTerms.join(' // ') : 'sin terminos'}
+            <br />
+            Fuente: {String(tracePayload.sourceState || 'LOCAL_CONTEXT')}
+            <br />
+            Confianza: {String(tracePayload.confidence || 'limited')}
+            <br />
+            Externo: {tracePayload.isExternal ? 'si' : 'no'}
+            <br />
+            Simulado: {tracePayload.isSimulated ? 'si' : 'no'}
+            <br />
+            Timestamp: {String(tracePayload.timestamp || 'sin timestamp')}
+            {tracePayload.sourceUrl ? (
+              <>
+                <br />
+                URL: {String(tracePayload.sourceUrl)}
+              </>
+            ) : null}
           </p>
         </details>
       )}

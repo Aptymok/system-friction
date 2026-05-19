@@ -1,3 +1,5 @@
+import type { ObservationSourceDescriptor } from '@/observatory/source/sourceStateTypes';
+
 export type WorldSpectVariable =
   | 'macro'
   | 'social'
@@ -40,6 +42,8 @@ export type WorldSpectReading = {
   variables: WorldSpectVariable[];
   symbols: WorldSpectSymbol[];
   source: WorldSpectSource;
+  sourceState: 'WORLDSPECT_LOCAL' | 'WORLDSPECT_EXTERNAL';
+  sourceDescriptor: ObservationSourceDescriptor;
   confidence: WorldSpectConfidence;
   state: 'dormant' | 'reading' | 'watch';
   summary: string;

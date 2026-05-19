@@ -1,4 +1,6 @@
 import type { PatternRankResult } from '@/observatory/field/patternActivation';
+import { assertObservationClaim } from '@/observatory/source/assertObservationClaim';
+import { createObservationSourceDescriptor } from '@/observatory/source/sourceStateTypes';
 import type { WorldSpectReading, WorldSpectVariable, WorldSpectVector } from './worldSpectTypes';
 import { worldSpectSymbols } from './worldSpectTypes';
 import type { WorldSpectTrigger } from './worldSpectTriggers';
@@ -77,6 +79,25 @@ export function buildWorldSpectReading(input: BuildWorldSpectReadingInput): Worl
   const patternMeaning = primaryPattern?.oracion_visible || 'La senal depende del contexto donde va a operar.';
   const suggestedAction = primaryPattern?.accion_sugerida
     || (variables.includes('factual') ? 'Validar origen' : 'Observar antes de mover');
+  const sourceDescriptor = createObservationSourceDescriptor({
+    sourceState: 'WORLDSPECT_LOCAL',
+    label: 'contexto local',
+    confidence: 'limited',
+    isExternal: false,
+    isSimulated: false,
+  });
+  const requestedScope = variables.includes('platform')
+    ? ['platform' as const, 'social' as const]
+    : variables.includes('macro')
+      ? ['world' as const]
+      : variables.includes('factual')
+        ? ['external' as const]
+        : ['local_context' as const];
+  const assertedMeaning = assertObservationClaim({
+    claim: `${patternMeaning} Nodo observado: ${activeNode}.`,
+    sourceDescriptor,
+    requestedScope,
+  });
 
   const vectors: WorldSpectVector[] = variables.map((variable) => ({
     variable,
@@ -93,10 +114,14 @@ export function buildWorldSpectReading(input: BuildWorldSpectReadingInput): Worl
     variables,
     symbols,
     source: 'local_context',
+    sourceState: 'WORLDSPECT_LOCAL',
+    sourceDescriptor,
     confidence: 'limited',
     state: stabilityLow ? 'watch' : 'reading',
     summary: input.trigger.visibleSummary,
-    meaning: `${patternMeaning} Nodo observado: ${activeNode}.`,
+    meaning: assertedMeaning.visibleNotice
+      ? `${assertedMeaning.visibleNotice} ${assertedMeaning.claim}`
+      : assertedMeaning.claim,
     suggestedAction,
     vectors,
     observationWindow: needsObservationWindow(input.trigger, variables)

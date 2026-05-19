@@ -16,6 +16,7 @@ import {
 import { rankDetectedPatterns, type PatternRankResult } from '@/observatory/field/patternActivation';
 import { buildGraphVectorState } from '@/observatory/field/vectorMatrix';
 import type { UserSignalVector } from '@/observatory/field/vectorTypes';
+import { createObservationSourceDescriptor, type ObservationSourceDescriptor, type ObservationSourceState } from '@/observatory/source/sourceStateTypes';
 import { buildWorldSpectReading, formatWorldSpectAmvReading } from '@/observatory/worldspect/buildWorldSpectReading';
 import { detectWorldSpectTriggers } from '@/observatory/worldspect/detectWorldSpectTriggers';
 import { worldSpectSymbols } from '@/observatory/worldspect/worldSpectTypes';
@@ -285,6 +286,19 @@ export function SfiFieldShell({
     ].slice(0, 8));
   };
 
+  const sourceTrace = (sourceState: ObservationSourceState, descriptor?: ObservationSourceDescriptor) => {
+    const sourceDescriptor = descriptor || createObservationSourceDescriptor({ sourceState });
+    return {
+      sourceState: sourceDescriptor.sourceState,
+      confidence: sourceDescriptor.confidence,
+      isExternal: sourceDescriptor.isExternal,
+      isSimulated: sourceDescriptor.isSimulated,
+      timestamp: sourceDescriptor.timestamp,
+      sourceUrl: sourceDescriptor.sourceUrl,
+      expiresAt: sourceDescriptor.expiresAt,
+    };
+  };
+
   const tracePayloadFromRank = (rank: PatternRankResult, command = '') => ({
     primaryPatternId: rank.primaryPattern?.pattern.id || null,
     secondaryPatternIds: rank.secondaryPatterns.map((item) => item.pattern.id),
@@ -296,6 +310,7 @@ export function SfiFieldShell({
       ...(rank.primaryPattern?.matchedTerms || []),
       ...rank.secondaryPatterns.flatMap((item) => item.matchedTerms),
     ],
+    ...sourceTrace('INTERNAL_PATTERN'),
   });
 
   const tracePayloadFromWorldSpect = () => ({
@@ -304,9 +319,9 @@ export function SfiFieldShell({
     variables: worldSpectReading?.variables || worldSpectDetection.variables,
     symbols: worldSpectReading?.symbols || worldSpectDetection.variables.map((variable) => worldSpectSymbols[variable]),
     source: worldSpectReading?.source || 'local_context',
-    confidence: worldSpectReading?.confidence || 'limited',
     activeNode: selectedOntologyNode?.id || activeCommandNode,
     primaryPatternId: rankedPatterns.primaryPattern?.pattern.id || null,
+    ...sourceTrace(worldSpectReading?.sourceState || 'WORLDSPECT_LOCAL', worldSpectReading?.sourceDescriptor),
   });
 
   useEffect(() => {
@@ -328,6 +343,7 @@ export function SfiFieldShell({
         topActivatedNodeIds: graphVectorState.topActivatedNodeIds,
         userSignalIntent: graphVectorState.userSignal.detectedIntent,
         graphLayoutMode: graphVectorState.graphLayoutMode,
+        ...sourceTrace('VECTOR_MATRIX'),
       },
     });
   }, [
@@ -445,7 +461,10 @@ export function SfiFieldShell({
         pattern_id: rankedPatterns.primaryPattern?.pattern.id,
         trace_payload: tracePayloadFromRank(rankedPatterns),
       });
-      appendBitacora('MIHM_ACTIVATED', 'Estabilidad revisada por el campo.', { pattern_id: rankedPatterns.primaryPattern?.pattern.id });
+      appendBitacora('MIHM_ACTIVATED', 'Estabilidad revisada por el campo.', {
+        pattern_id: rankedPatterns.primaryPattern?.pattern.id,
+        trace_payload: sourceTrace('MIHM_INTERNAL'),
+      });
       setStatus('campo sincronizado');
     } catch (error) {
       setStatus(error instanceof Error ? error.message : 'field_sync_failed');
@@ -534,7 +553,14 @@ export function SfiFieldShell({
       });
       appendBitacora('PATTERN_DETECTED', pattern.oracion_visible, { node_id: node?.id, pattern_id: pattern.id });
     }
-    appendBitacora('ROUTE_SUGGESTED', route.join(' -> '), { node_id: node?.id, pattern_id: pattern?.id });
+    appendBitacora('ROUTE_SUGGESTED', route.join(' -> '), {
+      node_id: node?.id,
+      pattern_id: pattern?.id,
+      trace_payload: {
+        route,
+        ...sourceTrace('LOCAL_CONTEXT'),
+      },
+    });
     setAmvState((current) => ({
       ...current,
       message: formatFieldAmvReading([
@@ -613,7 +639,11 @@ export function SfiFieldShell({
             if (node.type === 'module') {
               setActiveCommandNode(node.id);
               if (node.id === 'nodo.aptymok.mihm') {
-                appendBitacora('MIHM_ACTIVATED', 'Mide que sostiene o rompe el sistema.', { node_id: node.id, pattern_id: 'mihm_estabilidad' });
+                appendBitacora('MIHM_ACTIVATED', 'Mide que sostiene o rompe el sistema.', {
+                  node_id: node.id,
+                  pattern_id: 'mihm_estabilidad',
+                  trace_payload: sourceTrace('MIHM_INTERNAL'),
+                });
               }
             }
           }}
