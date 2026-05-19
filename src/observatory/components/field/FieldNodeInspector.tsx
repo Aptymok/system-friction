@@ -7,6 +7,7 @@ type FieldNodeInspectorProps = {
   activationReason?: string;
   lastEvent?: string;
   proposal?: string;
+  tracePayload?: Record<string, unknown>;
   onClose: () => void;
 };
 
@@ -15,6 +16,7 @@ export function FieldNodeInspector({
   activationReason,
   lastEvent,
   proposal,
+  tracePayload,
   onClose,
 }: FieldNodeInspectorProps) {
   if (!node) return null;
@@ -86,6 +88,23 @@ export function FieldNodeInspector({
           <small>ultimo evento</small>
           <p>{lastEvent}</p>
         </div>
+      )}
+
+      {tracePayload && (
+        <details className="inspector-block">
+          <summary>trazabilidad</summary>
+          <p>
+            Primario: {String(tracePayload.primaryPatternId || 'sin patron')}
+            <br />
+            Secundarios: {Array.isArray(tracePayload.secondaryPatternIds) ? tracePayload.secondaryPatternIds.join(' // ') : 'sin secundarios'}
+            <br />
+            Ocultos: {Array.isArray(tracePayload.hiddenPatternIds) ? tracePayload.hiddenPatternIds.join(' // ') : 'sin ocultos'}
+            <br />
+            Score: {String(tracePayload.activationScore ?? '0')}
+            <br />
+            Activacion: {Array.isArray(tracePayload.matchedTerms) ? tracePayload.matchedTerms.join(' // ') : 'sin terminos'}
+          </p>
+        </details>
       )}
 
       <style jsx>{`

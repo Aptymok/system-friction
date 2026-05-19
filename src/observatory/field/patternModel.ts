@@ -24,6 +24,7 @@ export type BitacoraEventType =
   | 'PATTERN_DETECTED'
   | 'OUTPUT_INHIBITED'
   | 'MIHM_ACTIVATED'
+  | 'PATTERN_RANKED'
   | 'ROUTE_SUGGESTED'
   | 'REORGANIZATION_PROPOSED'
   | 'ACTION_ACCEPTED'
@@ -37,6 +38,7 @@ export type BitacoraEntry = {
   message: string;
   node_id?: string;
   pattern_id?: string;
+  trace_payload?: Record<string, unknown>;
   created_at: string;
 };
 
@@ -170,9 +172,10 @@ export function detectFieldPatterns(input: {
   if (includesAny(text, ['publicar', 'post', 'pieza', 'copy', 'salida publica'])) {
     addById('cs-009-deuda-de-decision');
     addById('cs-005-escritura-sin-intencion-visible');
+    addById('cs-007-contexto-perdido');
   }
   if (includesAny(text, ['no se', 'no s', 'incertidumbre', 'sin reglas', 'ambiguo'])) {
-    addById('cs-008-personas-en-alta-incertidumbre');
+    if (!includesAny(text, ['publicar', 'post', 'pieza', 'copy'])) addById('cs-008-personas-en-alta-incertidumbre');
     if (!includesAny(text, ['publicar', 'post', 'pieza', 'copy'])) addById('cs-030-deuda-de-claridad');
   }
   if (includesAny(text, ['nadie decidio', 'nadie decidi', 'se volvio parte', 'se volvi', 'zona gris'])) {
@@ -198,16 +201,18 @@ export function detectFieldPatterns(input: {
     addById('cs-097-mapeo-de-dependencias-criticas');
   }
 
-  return [...detected].sort((a, b) => b.nivel_friccion - a.nivel_friccion).slice(0, 3);
+  return [...detected].sort((a, b) => b.nivel_friccion - a.nivel_friccion);
 }
 
 export function formatFieldAmvReading(patterns: FieldPattern[], reading?: OperationalReading | null) {
   const primary = patterns[0];
-  const saw = primary?.oracion_visible || reading?.phenomenon || 'Hay una senal activa.';
-  const means = reading?.risk?.detail || primary?.que_detecta || 'El campo necesita una accion menor antes de expandirse.';
+  const saw = reading?.phenomenon || 'Hay una senal activa.';
+  const means = primary?.oracion_visible || reading?.risk?.detail || 'El campo necesita una accion menor antes de expandirse.';
   const next = primary?.accion_sugerida || reading?.nextAction || 'Elegir una accion verificable.';
+  const secondary = patterns.slice(1, 3).map((pattern) => pattern.palabra).filter(Boolean);
+  const also = secondary.length ? `\n\nTambien toca: ${secondary.join(', ')}.` : '';
 
-  return `Veo:\n${saw}\n\nSignifica:\n${means}\n\nSigue:\n${next}`;
+  return `Veo:\n${saw}\n\nSignifica:\n${means}\n\nSigue:\n${next}${also}`;
 }
 
 export function buildLowFrictionRoute(input: {
@@ -232,6 +237,7 @@ export function makeBitacoraEntry(input: {
   message: string;
   node_id?: string;
   pattern_id?: string;
+  trace_payload?: Record<string, unknown>;
 }): BitacoraEntry {
   return {
     id: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
@@ -239,6 +245,7 @@ export function makeBitacoraEntry(input: {
     message: input.message,
     node_id: input.node_id,
     pattern_id: input.pattern_id,
+    trace_payload: input.trace_payload,
     created_at: new Date().toISOString(),
   };
 }

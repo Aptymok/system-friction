@@ -13,8 +13,9 @@ import {
   type BitacoraEventType,
   type FieldMode,
 } from '@/observatory/field/patternModel';
+import { rankDetectedPatterns, type PatternRankResult } from '@/observatory/field/patternActivation';
 import { SfiCognitiveField } from './SfiCognitiveField';
-import type { FieldCommandMode, FieldOntologyNode } from './fieldOntology';
+import { getDefaultFieldNodes, type FieldCommandMode, type FieldOntologyNode } from './fieldOntology';
 
 type CalendarWindow = {
   label: string;
@@ -157,23 +158,58 @@ export function SfiFieldShell({
     () => detectFieldPatterns({ asset: activeAsset || fieldAsset, reading, selectedNodeId: selectedNode }),
     [activeAsset, fieldAsset, reading, selectedNode],
   );
+  const selectedOntologyNode = useMemo(
+    () => getDefaultFieldNodes().find((node) => node.id === selectedNode || node.id === activeCommandNode) || null,
+    [selectedNode, activeCommandNode],
+  );
+  const rankedPatterns = useMemo(
+    () => rankDetectedPatterns({
+      candidates: activePatterns,
+      activeNode: selectedOntologyNode || activeCommandNode,
+      fieldMode,
+      nodeVariables: selectedOntologyNode?.variables,
+      nodePatterns: selectedOntologyNode?.patterns,
+      recentEvents,
+    }),
+    [activePatterns, selectedOntologyNode, activeCommandNode, fieldMode, recentEvents],
+  );
+  const visiblePatterns = useMemo(
+    () => [
+      rankedPatterns.primaryPattern?.pattern,
+      ...rankedPatterns.secondaryPatterns.map((item) => item.pattern),
+    ].filter((pattern): pattern is NonNullable<typeof pattern> => Boolean(pattern)),
+    [rankedPatterns],
+  );
   const route = useMemo(
-    () => buildLowFrictionRoute({ patterns: activePatterns, reading }),
-    [activePatterns, reading],
+    () => buildLowFrictionRoute({ patterns: visiblePatterns, reading }),
+    [visiblePatterns, reading],
   );
 
   const appendBitacora = (
     event_type: BitacoraEventType,
     message: string,
-    options?: { node_id?: string; pattern_id?: string },
+    options?: { node_id?: string; pattern_id?: string; trace_payload?: Record<string, unknown> },
   ) => {
     const entry = makeBitacoraEntry({ event_type, message, ...options });
     setBitacora((current) => [entry, ...current].slice(0, 10));
     setRecentEvents((current) => [
-      { event_name: event_type.toLowerCase(), event_type, payload: { fragment: message, pattern_id: options?.pattern_id } },
+      { event_name: event_type.toLowerCase(), event_type, payload: { fragment: message, pattern_id: options?.pattern_id, trace_payload: options?.trace_payload } },
       ...current,
     ].slice(0, 8));
   };
+
+  const tracePayloadFromRank = (rank: PatternRankResult, command = '') => ({
+    primaryPatternId: rank.primaryPattern?.pattern.id || null,
+    secondaryPatternIds: rank.secondaryPatterns.map((item) => item.pattern.id),
+    hiddenPatternIds: rank.hiddenPatterns.map((item) => item.pattern.id),
+    activationScore: rank.activationScore,
+    inputExcerpt: command.slice(0, 180),
+    activeNode: selectedOntologyNode?.id || activeCommandNode,
+    matchedTerms: [
+      ...(rank.primaryPattern?.matchedTerms || []),
+      ...rank.secondaryPatterns.flatMap((item) => item.matchedTerms),
+    ],
+  });
 
   const refreshLoop = async () => {
     if (!nodeId || !activeAsset) return;
@@ -216,7 +252,7 @@ export function SfiFieldShell({
 
       setAmvState({
         status: amv?.status || 'connected_internal',
-        message: formatFieldAmvReading(activePatterns.length ? activePatterns : fieldPatterns.slice(2, 3), reading),
+        message: formatFieldAmvReading(visiblePatterns.length ? visiblePatterns : fieldPatterns.slice(2, 3), reading),
         reading: amv?.reading,
       });
       setCalendar(Array.isArray(windows?.windows) ? windows.windows : []);
@@ -225,7 +261,11 @@ export function SfiFieldShell({
         { event_name: 'liturgia_amv_internal_response', payload: { message: amv?.message, reading: amv?.reading } },
         { event_name: 'bitacora_regenerated', payload: { fragment: bitacora?.fragment } },
       ]);
-      appendBitacora('MIHM_ACTIVATED', 'Estabilidad revisada por el campo.', { pattern_id: activePatterns[0]?.id });
+      appendBitacora('PATTERN_RANKED', 'Patron principal seleccionado.', {
+        pattern_id: rankedPatterns.primaryPattern?.pattern.id,
+        trace_payload: tracePayloadFromRank(rankedPatterns),
+      });
+      appendBitacora('MIHM_ACTIVATED', 'Estabilidad revisada por el campo.', { pattern_id: rankedPatterns.primaryPattern?.pattern.id });
       setStatus('campo sincronizado');
     } catch (error) {
       setStatus(error instanceof Error ? error.message : 'field_sync_failed');
@@ -281,7 +321,7 @@ export function SfiFieldShell({
     setPhase(1);
     setActiveCommandNode('nodo.aptymok.amv');
     setRecentEvents([{ event_name: 'asset_created_from_field', payload: { fragment: 'AMV // asset generado desde el campo' } }]);
-    appendBitacora('PATTERN_DETECTED', 'Senal convertida en asset activo.', { pattern_id: activePatterns[0]?.id });
+    appendBitacora('PATTERN_DETECTED', 'Senal convertida en asset activo.', { pattern_id: rankedPatterns.primaryPattern?.pattern.id });
     return true;
   };
 
@@ -295,11 +335,33 @@ export function SfiFieldShell({
       return createAssetFromCommand(command, evidence);
     }
 
-    const pattern = detectFieldPatterns({ asset: activeAsset, reading, command })[0];
+    const candidates = detectFieldPatterns({ asset: activeAsset, reading, command });
+    const commandRank = rankDetectedPatterns({
+      candidates,
+      command,
+      activeNode: node,
+      fieldMode,
+      nodeVariables: node?.variables,
+      nodePatterns: node?.patterns,
+      recentEvents,
+    });
+    const pattern = commandRank.primaryPattern?.pattern;
     if (pattern) {
+      appendBitacora('PATTERN_RANKED', 'Patron principal seleccionado.', {
+        node_id: node?.id,
+        pattern_id: pattern.id,
+        trace_payload: tracePayloadFromRank(commandRank, command),
+      });
       appendBitacora('PATTERN_DETECTED', pattern.oracion_visible, { node_id: node?.id, pattern_id: pattern.id });
     }
     appendBitacora('ROUTE_SUGGESTED', route.join(' -> '), { node_id: node?.id, pattern_id: pattern?.id });
+    setAmvState((current) => ({
+      ...current,
+      message: formatFieldAmvReading([
+        ...(pattern ? [pattern] : []),
+        ...commandRank.secondaryPatterns.map((item) => item.pattern),
+      ], reading),
+    }));
     setStatus('campo ejecutando');
     return false;
   };
@@ -355,6 +417,10 @@ export function SfiFieldShell({
           selectedNode={selectedNode}
           fieldMode={fieldMode}
           ghostEvents={bitacora}
+          patternRank={{
+            primaryPatternId: rankedPatterns.primaryPattern?.pattern.id || null,
+            secondaryPatternIds: rankedPatterns.secondaryPatterns.map((item) => item.pattern.id),
+          }}
           onNodeSelect={(node) => {
             setSelectedNode(node?.id || null);
             if (node) {

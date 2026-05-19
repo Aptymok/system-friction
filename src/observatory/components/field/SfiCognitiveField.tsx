@@ -39,6 +39,10 @@ export type SfiCognitiveFieldProps = {
   selectedNode?: string | null;
   fieldMode?: string;
   ghostEvents?: any[];
+  patternRank?: {
+    primaryPatternId?: string | null;
+    secondaryPatternIds?: string[];
+  };
   moduleNodes?: FieldOntologyNode[];
   twinNodes?: FieldOntologyNode[];
   sfNodes?: FieldOntologyNode[];
@@ -99,6 +103,8 @@ type RuntimeData = {
   writing: boolean;
   signalLength: number;
   nodeId?: string | null;
+  primaryPatternId?: string | null;
+  secondaryPatternIds: string[];
 };
 
 const nodeTemplate = [
@@ -209,6 +215,27 @@ function modeLabel(mode: FieldCommandMode) {
   return 'origen';
 }
 
+function patternActivatesNode(patternId: string | null | undefined, node: FieldNode) {
+  if (!patternId) return false;
+  const id = node.id.toLowerCase();
+  if (patternId.includes('compliance') || patternId.includes('metrica') || patternId.includes('ficcion')) {
+    return id.includes('mihm') || id.includes('trazabilidad') || id.includes('sfi_core');
+  }
+  if (patternId.includes('decision') || patternId.includes('incertidumbre') || patternId.includes('claridad')) {
+    return id.includes('projectmanager') || id.includes('intencion') || id.includes('bitacora') || id === 'amv_observatorio';
+  }
+  if (patternId.includes('alerta') || patternId.includes('alarma')) {
+    return id.includes('mihm') || id.includes('calendarizacion') || id.includes('bitacora');
+  }
+  if (patternId.includes('contexto') || patternId.includes('origen')) {
+    return id.includes('trazabilidad') || id.includes('mem_estruc') || id.includes('evidencia');
+  }
+  if (patternId.includes('dependencia')) {
+    return id.includes('sfi_core') || id.includes('gobernanza') || id.includes('coherencia');
+  }
+  return Boolean(node.ontology?.patterns?.some((pattern) => pattern === patternId) || node.ontology?.linkedSfNodes?.some((linked) => linked === patternId));
+}
+
 function createNodes(width: number, height: number, ontologyNodes: FieldOntologyNode[]): FieldNode[] {
   const baseNodes = nodeTemplate.map(([id, rx, ry, kind, weight]) => ({
     id,
@@ -281,6 +308,8 @@ function deriveData(props: SfiCognitiveFieldProps): RuntimeData {
     writing: Boolean(metadata.is_writing || props.amvState?.status === 'listening'),
     signalLength,
     nodeId: props.nodeId,
+    primaryPatternId: props.patternRank?.primaryPatternId || null,
+    secondaryPatternIds: props.patternRank?.secondaryPatternIds || [],
   };
 }
 
@@ -526,6 +555,8 @@ export function SfiCognitiveField(props: SfiCognitiveFieldProps) {
         if (node.id === 'nodo.aptymok.calendarizacion' && data.phase >= 3) target += 0.45;
         if (node.id === 'nodo.aptymok.asset_eval' && data.evalAssetActive) target += 0.6;
         if (node.id === 'nodo.usuario.intencion' && data.writing) target += 0.6;
+        if (patternActivatesNode(data.primaryPatternId, node)) target += 0.9;
+        if (data.secondaryPatternIds.some((patternId) => patternActivatesNode(patternId, node))) target += 0.26;
 
         const dist = mouseRef.current.active ? Math.hypot(node.x - mouseRef.current.x, node.y - mouseRef.current.y) : 999;
         if (dist < 90) target += (90 - dist) / 90;
@@ -533,7 +564,8 @@ export function SfiCognitiveField(props: SfiCognitiveFieldProps) {
         node.attention += (clamp(target, 0, 1.7) - node.attention) * 0.055;
 
         if (!reducedMotionRef.current) {
-          const jitter = 0.18 + lowPhiPressure * 0.16 + ldiPressure * 0.06;
+          const primaryMotion = node.ontology?.patterns?.some((pattern) => pattern === data.primaryPatternId) ? 0.22 : 0;
+          const jitter = 0.18 + lowPhiPressure * 0.16 + ldiPressure * 0.06 + primaryMotion;
           node.vx += Math.sin(time / 1600 + node.baseY * 0.01) * 0.003 * jitter;
           node.vy += Math.cos(time / 1700 + node.baseX * 0.01) * 0.003 * jitter;
           node.x += node.vx;
@@ -878,6 +910,7 @@ export function SfiCognitiveField(props: SfiCognitiveFieldProps) {
                 : undefined
         }
         lastEvent={textFrom(props.recentEvents?.[0]?.event_name || props.recentEvents?.[0]?.event_type)}
+        tracePayload={(props.recentEvents?.find((event) => event?.payload?.trace_payload)?.payload?.trace_payload as Record<string, unknown> | undefined)}
         onClose={() => {
           setInternalSelectedNode(null);
           props.onNodeSelect?.(null);

@@ -53,3 +53,18 @@ Cada patron critico puede activar:
 - trazabilidad solo si el usuario la pide.
 
 El catalogo completo no se muestra al usuario.
+
+## Ranking de activacion
+
+La deteccion puede encontrar muchos patrones, pero FIELD_LAYER solo usa:
+
+- `primaryPattern`: 1 patron maximo.
+- `secondaryPatterns`: 2 patrones maximo.
+- `hiddenPatterns`: traza interna.
+
+El ranking vive en:
+
+`src/observatory/field/patternActivation.ts`
+
+FIELD_LAYER nunca muestra ids, scores ni catalogo completo.
+TRACE_LAYER puede mostrar origen, secundarios, ocultos, score y terminos activadores.
