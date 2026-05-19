@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { SfiAsset } from '@/lib/types';
 import { inferOperationalReading, type OperationalReading, type SignalKind } from '@/lib/sfi/inference';
 import {
@@ -14,6 +14,8 @@ import {
   type FieldMode,
 } from '@/observatory/field/patternModel';
 import { rankDetectedPatterns, type PatternRankResult } from '@/observatory/field/patternActivation';
+import { buildGraphVectorState } from '@/observatory/field/vectorMatrix';
+import type { UserSignalVector } from '@/observatory/field/vectorTypes';
 import { SfiCognitiveField } from './SfiCognitiveField';
 import { getDefaultFieldNodes, type FieldCommandMode, type FieldOntologyNode } from './fieldOntology';
 
@@ -65,6 +67,23 @@ function visibleRegime(regime: string) {
   if (regime === 'HOMEOSTATIC') return 'campo estable';
   if (regime === 'CRITICAL') return 'campo critico';
   return 'campo en transicion';
+}
+
+function normalizeCommand(command: string) {
+  return command
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+}
+
+function detectIntent(command: string) {
+  const text = normalizeCommand(command);
+  if (/(publicar|post|copy|pieza|redes)/.test(text)) return 'salida_publica';
+  if (/(compliance|cumplimiento|metrica|indicador)/.test(text)) return 'validacion_operativa';
+  if (/(nadie decidio|decision|decidir)/.test(text)) return 'decision_implicita';
+  if (/(evidencia|origen|fuente|traza)/.test(text)) return 'trazabilidad';
+  if (/(no se|incertidumbre|bloqueado|pendiente)/.test(text)) return 'friccion_de_accion';
+  return 'observacion';
 }
 
 function kindFromCommand(command: string): SignalKind {
@@ -150,17 +169,19 @@ export function SfiFieldShell({
   const [recentEvents, setRecentEvents] = useState<any[]>([]);
   const [socialPulse, setSocialPulse] = useState<{ active: boolean; score?: number; platform?: string }>({ active: false });
   const [status, setStatus] = useState('');
+  const lastGraphEventRef = useRef('');
 
   const fieldAsset = activeAsset || makeDraftAsset(draftCommand);
   const reading = useMemo(() => readingFromAsset(activeAsset || fieldAsset), [activeAsset, fieldAsset]);
   const regime = reading.technical.regime;
+  const allFieldNodes = useMemo(() => getDefaultFieldNodes(), []);
   const activePatterns = useMemo(
     () => detectFieldPatterns({ asset: activeAsset || fieldAsset, reading, selectedNodeId: selectedNode }),
     [activeAsset, fieldAsset, reading, selectedNode],
   );
   const selectedOntologyNode = useMemo(
-    () => getDefaultFieldNodes().find((node) => node.id === selectedNode || node.id === activeCommandNode) || null,
-    [selectedNode, activeCommandNode],
+    () => allFieldNodes.find((node) => node.id === selectedNode || node.id === activeCommandNode) || null,
+    [allFieldNodes, selectedNode, activeCommandNode],
   );
   const rankedPatterns = useMemo(
     () => rankDetectedPatterns({
@@ -179,6 +200,36 @@ export function SfiFieldShell({
       ...rankedPatterns.secondaryPatterns.map((item) => item.pattern),
     ].filter((pattern): pattern is NonNullable<typeof pattern> => Boolean(pattern)),
     [rankedPatterns],
+  );
+  const userSignalVector = useMemo<UserSignalVector>(() => {
+    const rawCommand = draftCommand
+      || textFromRecord(fieldAsset.objective, 'observed_signal')
+      || textFromRecord(fieldAsset.objective, 'declaration')
+      || '';
+    const matchedTerms = [
+      ...(rankedPatterns.primaryPattern?.matchedTerms || []),
+      ...rankedPatterns.secondaryPatterns.flatMap((item) => item.matchedTerms),
+    ];
+    return {
+      rawCommand,
+      normalizedCommand: normalizeCommand(rawCommand),
+      fieldMode,
+      activeNodeId: selectedOntologyNode?.id || activeCommandNode || null,
+      detectedIntent: detectIntent(rawCommand),
+      evidencePresent: Boolean(textFromRecord(fieldAsset.metadata, 'evidence_name')),
+      matchedTerms,
+      timestamp: new Date().toISOString(),
+    };
+  }, [draftCommand, fieldAsset, fieldMode, selectedOntologyNode, activeCommandNode, rankedPatterns]);
+  const graphVectorState = useMemo(
+    () => buildGraphVectorState({
+      nodes: allFieldNodes,
+      patterns: fieldPatterns,
+      rankedPatterns,
+      activeNode: selectedOntologyNode || activeCommandNode,
+      userSignal: userSignalVector,
+    }),
+    [allFieldNodes, rankedPatterns, selectedOntologyNode, activeCommandNode, userSignalVector],
   );
   const route = useMemo(
     () => buildLowFrictionRoute({ patterns: visiblePatterns, reading }),
@@ -210,6 +261,36 @@ export function SfiFieldShell({
       ...rank.secondaryPatterns.flatMap((item) => item.matchedTerms),
     ],
   });
+
+  useEffect(() => {
+    const key = [
+      graphVectorState.primaryPatternId,
+      graphVectorState.secondaryPatternIds.join(','),
+      graphVectorState.topActivatedNodeIds.join(','),
+      graphVectorState.userSignal.detectedIntent,
+      graphVectorState.graphLayoutMode,
+    ].join('|');
+    if (lastGraphEventRef.current === key) return;
+    lastGraphEventRef.current = key;
+    appendBitacora('GRAPH_VECTOR_STATE_UPDATED', 'Campo vectorial actualizado.', {
+      pattern_id: graphVectorState.primaryPatternId || undefined,
+      trace_payload: {
+        activeNodeId: graphVectorState.userSignal.activeNodeId,
+        primaryPatternId: graphVectorState.primaryPatternId,
+        secondaryPatternIds: graphVectorState.secondaryPatternIds,
+        topActivatedNodeIds: graphVectorState.topActivatedNodeIds,
+        userSignalIntent: graphVectorState.userSignal.detectedIntent,
+        graphLayoutMode: graphVectorState.graphLayoutMode,
+      },
+    });
+  }, [
+    graphVectorState.primaryPatternId,
+    graphVectorState.secondaryPatternIds,
+    graphVectorState.topActivatedNodeIds,
+    graphVectorState.userSignal.activeNodeId,
+    graphVectorState.userSignal.detectedIntent,
+    graphVectorState.graphLayoutMode,
+  ]);
 
   const refreshLoop = async () => {
     if (!nodeId || !activeAsset) return;
@@ -421,6 +502,7 @@ export function SfiFieldShell({
             primaryPatternId: rankedPatterns.primaryPattern?.pattern.id || null,
             secondaryPatternIds: rankedPatterns.secondaryPatterns.map((item) => item.pattern.id),
           }}
+          graphVectorState={graphVectorState}
           onNodeSelect={(node) => {
             setSelectedNode(node?.id || null);
             if (node) {

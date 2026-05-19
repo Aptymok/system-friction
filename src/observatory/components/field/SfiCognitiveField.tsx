@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { SfiAsset } from '@/lib/types';
+import type { GraphVectorState, FieldNodeVector } from '@/observatory/field/vectorTypes';
 import { FieldCommandInput } from './FieldCommandInput';
 import { FieldNodeInspector } from './FieldNodeInspector';
 import {
@@ -43,6 +44,7 @@ export type SfiCognitiveFieldProps = {
     primaryPatternId?: string | null;
     secondaryPatternIds?: string[];
   };
+  graphVectorState?: GraphVectorState;
   moduleNodes?: FieldOntologyNode[];
   twinNodes?: FieldOntologyNode[];
   sfNodes?: FieldOntologyNode[];
@@ -105,6 +107,7 @@ type RuntimeData = {
   nodeId?: string | null;
   primaryPatternId?: string | null;
   secondaryPatternIds: string[];
+  graphVectorState?: GraphVectorState;
 };
 
 const nodeTemplate = [
@@ -310,7 +313,41 @@ function deriveData(props: SfiCognitiveFieldProps): RuntimeData {
     nodeId: props.nodeId,
     primaryPatternId: props.patternRank?.primaryPatternId || null,
     secondaryPatternIds: props.patternRank?.secondaryPatternIds || [],
+    graphVectorState: props.graphVectorState,
   };
+}
+
+function vectorAliasForNode(node: FieldNode) {
+  const id = node.id.toLowerCase();
+  if (node.ontology?.id) return [node.ontology.id];
+  if (id === 'sfi_core' || id === 'gobernanza' || id === 'coherencia') return ['nodo.sfi.friccion_sistemica'];
+  if (id === 'mihm') return ['nodo.aptymok.mihm'];
+  if (id === 'amv_observatorio') return ['nodo.aptymok.amv'];
+  if (id === 'intervencion') return ['nodo.aptymok.intervencion'];
+  if (id === 'calendarizacion') return ['nodo.aptymok.calendarizacion'];
+  if (id === 'sfi_eval_asset') return ['nodo.aptymok.asset_eval', 'nodo.usuario.asset_actual'];
+  if (id === 'redes' || id === 'social_field' || id === 'mundo') return ['nodo.aptymok.social_resonance', 'nodo.sfi.resonancia_semantica'];
+  if (id === 'media_room') return ['nodo.aptymok.media'];
+  if (id === 'trazabilidad' || id === 'nti_obs' || id === 'mem_estruc') return ['nodo.aptymok.evidencia', 'nodo.usuario.evidencia'];
+  if (id === 'ldi_t' || id === 'disipacion' || id === 'campo_lat') return ['nodo.sfi.latencia'];
+  if (id === 'patron_recur') return ['nodo.usuario.friccion_recurrente'];
+  if (id === 'ruido_xi') return ['nodo.sfi.campo_cognitivo'];
+  return [node.id];
+}
+
+function vectorForFieldNode(graph: GraphVectorState | undefined, node: FieldNode): FieldNodeVector | null {
+  if (!graph) return null;
+  const aliases = vectorAliasForNode(node);
+  return graph.nodeVectors.find((vector) => aliases.includes(vector.nodeId)) || null;
+}
+
+function edgeWeightFromGraph(graph: GraphVectorState | undefined, edge: FieldEdge) {
+  if (!graph) return null;
+  const fromAliases = vectorAliasForNode({ id: edge.from } as FieldNode);
+  const toAliases = vectorAliasForNode({ id: edge.to } as FieldNode);
+  return graph.edgeVectors.find((vector) =>
+    fromAliases.includes(vector.fromNodeId) && toAliases.includes(vector.toNodeId)
+  )?.finalWeight || null;
 }
 
 export function SfiCognitiveField(props: SfiCognitiveFieldProps) {
@@ -555,8 +592,16 @@ export function SfiCognitiveField(props: SfiCognitiveFieldProps) {
         if (node.id === 'nodo.aptymok.calendarizacion' && data.phase >= 3) target += 0.45;
         if (node.id === 'nodo.aptymok.asset_eval' && data.evalAssetActive) target += 0.6;
         if (node.id === 'nodo.usuario.intencion' && data.writing) target += 0.6;
-        if (patternActivatesNode(data.primaryPatternId, node)) target += 0.9;
-        if (data.secondaryPatternIds.some((patternId) => patternActivatesNode(patternId, node))) target += 0.26;
+        const nodeVector = vectorForFieldNode(data.graphVectorState, node);
+        if (nodeVector) {
+          target += nodeVector.activation * 0.9;
+          target += nodeVector.traceScore * 0.08;
+          target += nodeVector.stabilityScore * 0.1;
+          target += nodeVector.activityScore * 0.18;
+        } else {
+          if (patternActivatesNode(data.primaryPatternId, node)) target += 0.45;
+          if (data.secondaryPatternIds.some((patternId) => patternActivatesNode(patternId, node))) target += 0.14;
+        }
 
         const dist = mouseRef.current.active ? Math.hypot(node.x - mouseRef.current.x, node.y - mouseRef.current.y) : 999;
         if (dist < 90) target += (90 - dist) / 90;
@@ -564,7 +609,8 @@ export function SfiCognitiveField(props: SfiCognitiveFieldProps) {
         node.attention += (clamp(target, 0, 1.7) - node.attention) * 0.055;
 
         if (!reducedMotionRef.current) {
-          const primaryMotion = node.ontology?.patterns?.some((pattern) => pattern === data.primaryPatternId) ? 0.22 : 0;
+          const nodeVector = vectorForFieldNode(data.graphVectorState, node);
+          const primaryMotion = nodeVector && data.graphVectorState?.topActivatedNodeIds.slice(0, 2).includes(nodeVector.nodeId) ? 0.22 : 0;
           const jitter = 0.18 + lowPhiPressure * 0.16 + ldiPressure * 0.06 + primaryMotion;
           node.vx += Math.sin(time / 1600 + node.baseY * 0.01) * 0.003 * jitter;
           node.vy += Math.cos(time / 1700 + node.baseX * 0.01) * 0.003 * jitter;
@@ -604,11 +650,12 @@ export function SfiCognitiveField(props: SfiCognitiveFieldProps) {
         if (!from || !to) return;
         const attention = (from.attention + to.attention) / 2;
         const social = data.socialPulse.active && ['REDES', 'SOCIAL_FIELD', 'MUNDO'].includes(edge.to) ? 0.36 : 0;
-        const alpha = clamp(0.045 + edge.strength * 0.06 + attention * 0.16 + social, 0.02, 0.58);
+        const vectorWeight = edgeWeightFromGraph(data.graphVectorState, edge);
+        const alpha = clamp(0.045 + (vectorWeight ?? edge.strength) * 0.08 + attention * 0.16 + social, 0.02, 0.58);
         ctx.save();
         if (edge.kind === 'latent') ctx.setLineDash([4, 9]);
-        if (edge.kind === 'resonance') ctx.lineWidth = 0.8 + attention * 0.8;
-        else ctx.lineWidth = 0.55 + attention * 0.7;
+        if (edge.kind === 'resonance') ctx.lineWidth = 0.8 + attention * 0.8 + (vectorWeight || 0) * 0.25;
+        else ctx.lineWidth = 0.55 + attention * 0.7 + (vectorWeight || 0) * 0.18;
         ctx.strokeStyle = edge.kind === 'latent' ? `rgba(74,143,168,${alpha})` : `rgba(200,169,81,${alpha})`;
         const wave = reducedMotionRef.current ? 0 : Math.sin(time / 800 + from.x * 0.01) * (1 + attention * 5);
         const mx = (from.x + to.x) / 2 + wave;
