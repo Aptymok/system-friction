@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerUserContext } from '@/lib/server/productionBackend';
 import { createSfiAssetId, hashPayload, loadSfiAssets } from '@/lib/server/sfiAssets';
+import { getEntitlements } from '@/lib/licensing/entitlements';
 
 function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
@@ -18,7 +19,25 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   const ctx = await getServerUserContext();
   if (!ctx.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  if (!ctx.isRoot) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+
+  if (!ctx.isRoot) {
+    const [{ data: licenses }, entitlements] = await Promise.all([
+      ctx.service
+        .from('licenses')
+        .select('status')
+        .eq('user_id', ctx.user.id)
+        .order('created_at', { ascending: false })
+        .limit(1),
+      getEntitlements(ctx.user.id),
+    ]);
+    const licenseStatus = licenses?.[0]?.status;
+    const hasAccess =
+      entitlements.full_access === true ||
+      licenseStatus === 'active' ||
+      licenseStatus === 'trialing';
+
+    if (!hasAccess) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
 
   const body = await req.json().catch(() => null);
   const targetSystem = asRecord(body?.target_system);
