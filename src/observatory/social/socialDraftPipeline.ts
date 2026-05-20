@@ -131,7 +131,7 @@ export function requestPublicationConfirmation(draft: SocialDraft): SocialDraft 
 export function assertCanPublishSocialDraft(_draft: SocialDraft) {
   return {
     canPublish: false,
-    reason: 'Publicación real no habilitada en esta fase.',
+    reason: 'OAuth write no habilitado.',
   };
 }
 

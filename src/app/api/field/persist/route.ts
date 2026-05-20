@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createHash, randomUUID } from 'crypto';
 import { ensureOwnedNode, getServerUserContext } from '@/lib/server/productionBackend';
+import { getConnectedSocialSources, ingestSocialMetrics } from '@/observatory/social/socialReadOnlyIngestion';
+import type { SocialProvider } from '@/observatory/social/socialOAuthTypes';
 
 function jsonOk(data?: unknown) {
   return NextResponse.json({ ok: true, mode: 'supabase', data });
@@ -187,6 +189,51 @@ export async function POST(req: NextRequest) {
       const { data, error } = await ctx.service.from('social_resonance_events').insert(payload).select('*').single();
       if (error) return localOnly(error.message);
       return jsonOk(data);
+    }
+
+    if (body.action === 'social_readonly_sources') {
+      const ctx = await ensureOwnedNode(body.node_id);
+      if (ctx.error) return localOnly('node_unavailable');
+      const sources = await getConnectedSocialSources(ctx);
+      return jsonOk({ sources });
+    }
+
+    if (body.action === 'social_readonly_ingest') {
+      const ctx = await ensureOwnedNode(body.node_id);
+      if (ctx.error) return localOnly('node_unavailable');
+      const provider = String(body.provider || 'x') as SocialProvider;
+      const result = await ingestSocialMetrics(ctx, provider);
+
+      if (result.ok) {
+        for (const snapshot of result.snapshots || []) {
+          const payload = {
+            provider: snapshot.provider,
+            post_id: snapshot.postId,
+            metrics: snapshot.engagement,
+            sourceState: 'SOCIAL_RETURN',
+            captureMode: 'oauth_read_only',
+            isSimulated: false,
+          };
+          await ctx.service.from('cognitive_event_stream').insert({
+            node_id: ctx.node.id,
+            stream_type: 'social',
+            event_name: 'SOCIAL_RETURN_CAPTURED',
+            payload,
+            emitted_by: 'SFI_FIELD',
+          });
+          if (body.asset_id) {
+            await ctx.service.from('sfi_logbook').insert({
+              asset_id: String(body.asset_id),
+              event_type: 'SOCIAL_RETURN_CAPTURED',
+              payload,
+              created_by: ctx.user.id,
+              hash: hashPayload(payload),
+            });
+          }
+        }
+      }
+
+      return jsonOk(result);
     }
 
     return localOnly('unknown_action');

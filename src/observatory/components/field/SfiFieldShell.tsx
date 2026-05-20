@@ -19,6 +19,8 @@ import type { UserSignalVector } from '@/observatory/field/vectorTypes';
 import { createObservationSourceDescriptor, type ObservationSourceDescriptor, type ObservationSourceState } from '@/observatory/source/sourceStateTypes';
 import {
   getLatestWorldSpectrumSnapshot,
+  getConnectedSocialSources,
+  ingestReadOnlySocialMetrics,
   persistFieldEvent,
   persistManualSocialPost,
   persistManualSocialReturn,
@@ -28,6 +30,7 @@ import {
   type PersistenceResult,
 } from '@/observatory/persistence/supabaseFieldPersistence';
 import type { ManualSocialPostInput, ManualSocialReturn } from '@/observatory/social/socialManualReturnTypes';
+import type { SocialProvider } from '@/observatory/social/socialOAuthTypes';
 import {
   approveSocialDraftContent,
   archiveSocialDraft,
@@ -203,6 +206,12 @@ export function SfiFieldShell({
   const [worldSpectOpen, setWorldSpectOpen] = useState(false);
   const [socialDraft, setSocialDraft] = useState<SocialDraft | null>(null);
   const [socialDraftOpen, setSocialDraftOpen] = useState(false);
+  const [autoSocialReturn, setAutoSocialReturn] = useState<{
+    status: 'sin_conexion' | 'conectado_read_only' | 'ultima_lectura' | 'metricas_capturadas';
+    provider?: SocialProvider;
+    lastSyncAt?: string;
+    capturedCount?: number;
+  }>({ status: 'sin_conexion' });
   const [latestWorldSnapshot, setLatestWorldSnapshot] = useState<Record<string, unknown> | null>(null);
   const lastGraphEventRef = useRef('');
   const lastWorldSpectEventRef = useRef('');
@@ -646,6 +655,21 @@ export function SfiFieldShell({
   }, [nodeId]);
 
   useEffect(() => {
+    if (!nodeId) return;
+    void getConnectedSocialSources({ node_id: nodeId }).then((result) => {
+      const source = result.data?.sources?.find((item) => item.status === 'connected_read_only');
+      if (source) {
+        setAutoSocialReturn({
+          status: 'conectado_read_only',
+          provider: source.provider,
+        });
+      } else {
+        setAutoSocialReturn({ status: 'sin_conexion' });
+      }
+    });
+  }, [nodeId]);
+
+  useEffect(() => {
     if (!socialPulse.active) return;
     const timer = window.setTimeout(() => setSocialPulse((current) => ({ ...current, active: false })), 5200);
     return () => window.clearTimeout(timer);
@@ -972,6 +996,47 @@ export function SfiFieldShell({
             setAmvState((current) => ({
               ...current,
               status: 'social_return_manual',
+              message: 'Veo:\nHay retorno registrado.\n\nSignifica:\nLa publicacion ya produjo una senal medible.\n\nSigue:\nActualizar el nodo social.',
+            }));
+          }}
+          autoReturn={autoSocialReturn}
+          onIngestReadOnly={async (provider) => {
+            const result = await ingestReadOnlySocialMetrics({
+              node_id: nodeId,
+              asset_id: activeAsset?.asset_id || null,
+              provider,
+            });
+            const ingestion = result.data;
+            if (!ingestion?.ok) {
+              setAutoSocialReturn({ status: 'sin_conexion', provider });
+              setAmvState((current) => ({
+                ...current,
+                status: 'social_read_only_missing',
+                message: 'Veo:\nNo hay conexion read-only activa.\n\nSignifica:\nNo existe retorno automatico medido.\n\nSigue:\nConectar una fuente o registrar retorno manual.',
+              }));
+              return;
+            }
+            setAutoSocialReturn({
+              status: ingestion.capturedCount ? 'metricas_capturadas' : 'ultima_lectura',
+              provider: ingestion.provider,
+              lastSyncAt: ingestion.lastSyncAt,
+              capturedCount: ingestion.capturedCount,
+            });
+            appendBitacora('SOCIAL_RETURN_CAPTURED', 'Retorno automatico read-only capturado.', {
+              pattern_id: rankedPatterns.primaryPattern?.pattern.id,
+              trace_payload: {
+                provider: ingestion.provider,
+                capturedCount: ingestion.capturedCount,
+                lastSyncAt: ingestion.lastSyncAt,
+                sourceState: 'SOCIAL_RETURN',
+                captureMode: 'oauth_read_only',
+                isSimulated: false,
+              },
+            });
+            setSocialPulse({ active: true, platform: ingestion.provider });
+            setAmvState((current) => ({
+              ...current,
+              status: 'social_return_captured',
               message: 'Veo:\nHay retorno registrado.\n\nSignifica:\nLa publicacion ya produjo una senal medible.\n\nSigue:\nActualizar el nodo social.',
             }));
           }}

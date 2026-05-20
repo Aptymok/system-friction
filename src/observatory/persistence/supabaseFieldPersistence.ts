@@ -1,5 +1,6 @@
 import type { BitacoraEventType } from '@/observatory/field/patternModel';
 import type { ManualSocialReturn } from '@/observatory/social/socialManualReturnTypes';
+import type { SocialIngestionResult, SocialProvider } from '@/observatory/social/socialOAuthTypes';
 import type { SocialDraft } from '@/observatory/social/socialDraftTypes';
 
 export type PersistenceResult<T = unknown> = {
@@ -89,4 +90,16 @@ export function persistManualSocialReturn(input: {
 
 export function getLatestWorldSpectrumSnapshot(input: { nodeId?: string | null; userId?: string | null }) {
   return postPersistence<Record<string, unknown> | null>('latest_world_spectrum_snapshot', input);
+}
+
+export function getConnectedSocialSources(input: { node_id?: string | null }) {
+  return postPersistence<{ sources: Array<{ provider: SocialProvider; status: string; scope: string[] }> }>('social_readonly_sources', input);
+}
+
+export function ingestReadOnlySocialMetrics(input: {
+  node_id?: string | null;
+  asset_id?: string | null;
+  provider: SocialProvider;
+}) {
+  return postPersistence<SocialIngestionResult>('social_readonly_ingest', input);
 }

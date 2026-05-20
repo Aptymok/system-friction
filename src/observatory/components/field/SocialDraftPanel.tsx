@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import type { ManualSocialPostInput, ManualSocialReturn } from '@/observatory/social/socialManualReturnTypes';
+import type { SocialProvider } from '@/observatory/social/socialOAuthTypes';
 import type { SocialDraft } from '@/observatory/social/socialDraftTypes';
 
 type SocialDraftPanelProps = {
@@ -14,6 +15,13 @@ type SocialDraftPanelProps = {
   onTextChange: (text: string) => void | Promise<void>;
   onRecordManualPost: (input: ManualSocialPostInput) => void | Promise<void>;
   onRecordManualReturn: (input: ManualSocialReturn) => void | Promise<void>;
+  autoReturn?: {
+    status: 'sin_conexion' | 'conectado_read_only' | 'ultima_lectura' | 'metricas_capturadas';
+    provider?: SocialProvider;
+    lastSyncAt?: string;
+    capturedCount?: number;
+  };
+  onIngestReadOnly: (provider: SocialProvider) => void | Promise<void>;
 };
 
 export function SocialDraftPanel({
@@ -26,6 +34,8 @@ export function SocialDraftPanel({
   onTextChange,
   onRecordManualPost,
   onRecordManualReturn,
+  autoReturn,
+  onIngestReadOnly,
 }: SocialDraftPanelProps) {
   const [postOpen, setPostOpen] = useState(false);
   const [returnOpen, setReturnOpen] = useState(false);
@@ -83,6 +93,19 @@ export function SocialDraftPanel({
           <br />
           externo: {draft.sourceDescriptor.isExternal ? 'si' : 'no'} · simulado: {draft.sourceDescriptor.isSimulated ? 'si' : 'no'}
         </p>
+      </div>
+
+      <div className="source-state">
+        <span>Retorno automatico</span>
+        <p>
+          {autoReturn?.status || 'sin_conexion'}
+          {autoReturn?.provider ? ` · ${autoReturn.provider}` : ''}
+          {autoReturn?.lastSyncAt ? ` · ${autoReturn.lastSyncAt}` : ''}
+          {autoReturn?.capturedCount !== undefined ? ` · metricas ${autoReturn.capturedCount}` : ''}
+        </p>
+        <button type="button" onClick={() => void onIngestReadOnly((autoReturn?.provider || draft.network || 'linkedin') as SocialProvider)}>
+          Leer read-only
+        </button>
       </div>
 
       <div className="actions">

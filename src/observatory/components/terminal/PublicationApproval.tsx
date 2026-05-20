@@ -76,7 +76,7 @@ export function PublicationApproval({
       return
     }
 
-    addLog(`Publicacion aceptada para ${provider}: ${new Date(scheduledFor).toLocaleString()}`, 'publication', 'executionMinimum')
+    addLog(`Publicacion guardada para revision ${provider}: ${new Date(scheduledFor).toLocaleString()}`, 'publication', 'executionMinimum')
     onAccepted?.()
     onClose()
   }
@@ -88,7 +88,7 @@ export function PublicationApproval({
         <div className="relative">
           <div className="mb-5 flex items-start justify-between gap-4 border-b border-gold/10 pb-4">
             <div>
-              <p className="font-mono text-[10px] uppercase tracking-[0.32em] text-gold">Aceptacion de publicacion</p>
+              <p className="font-mono text-[10px] uppercase tracking-[0.32em] text-gold">Revision de salida</p>
               <h2 className="mt-2 text-lg font-semibold uppercase tracking-[0.16em] text-paper">{provider}</h2>
             </div>
             <button onClick={onClose} className="rounded border border-white/10 p-2 text-zinc-500 transition hover:border-gold/30 hover:text-gold" aria-label="Cerrar">
@@ -136,7 +136,7 @@ export function PublicationApproval({
                 onChange={(event) => setAutonomousAmv(event.target.checked)}
                 className="h-4 w-4 accent-gold"
               />
-              Agente Minimo Viable Autonomo
+              Revision AMV requerida
             </label>
 
             {error && <p className="border-l border-signalRed bg-signalRed/10 p-3 font-mono text-[10px] uppercase tracking-[0.14em] text-red-200">{error}</p>}
@@ -145,7 +145,7 @@ export function PublicationApproval({
           <div className="mt-5 grid gap-2 sm:grid-cols-3">
             <button onClick={accept} disabled={loading} className="flex items-center justify-center gap-2 bg-gold px-4 py-3 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-void transition hover:bg-paper disabled:opacity-40">
               <Check className="h-4 w-4" />
-              {loading ? 'Guardando' : 'Aceptar y publicar'}
+              {loading ? 'Guardando' : 'Guardar revision'}
             </button>
             <button onClick={() => setEditing((value) => !value)} className="flex items-center justify-center gap-2 border border-white/10 px-4 py-3 font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-300 transition hover:border-gold/30 hover:text-gold">
               <Pencil className="h-4 w-4" />
