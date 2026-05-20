@@ -240,8 +240,11 @@ function patternActivatesNode(patternId: string | null | undefined, node: FieldN
   return Boolean(node.ontology?.patterns?.some((pattern) => pattern === patternId) || node.ontology?.linkedSfNodes?.some((linked) => linked === patternId));
 }
 
-function createNodes(width: number, height: number, ontologyNodes: FieldOntologyNode[]): FieldNode[] {
-  const baseNodes = nodeTemplate.map(([id, rx, ry, kind, weight]) => ({
+function createNodes(width: number, height: number, ontologyNodes: FieldOntologyNode[], includeOperationalNodes: boolean): FieldNode[] {
+  const hiddenInLocal = new Set(['REDES', 'MEDIA_ROOM', 'SOCIAL_FIELD', 'SFI_EVAL_ASSET']);
+  const baseNodes = nodeTemplate
+    .filter(([id]) => includeOperationalNodes || !hiddenInLocal.has(id))
+    .map(([id, rx, ry, kind, weight]) => ({
     id,
     label: id,
     x: rx * width,
@@ -254,14 +257,14 @@ function createNodes(width: number, height: number, ontologyNodes: FieldOntology
     kind,
     weight,
     attention: 0,
-  }));
+    }));
 
   const derivedNodes = ontologyNodes.map((node) => {
     const kind = kindFromOntology(node);
     const weight = node.type === 'module' ? 0.82 : node.type === 'sf' ? 0.7 : 0.52;
     return {
       id: node.id,
-      label: node.label,
+      label: node.labelVisible || node.label,
       x: node.position.x * width,
       y: node.position.y * height,
       baseX: node.position.x * width,
@@ -367,7 +370,7 @@ export function SfiCognitiveField(props: SfiCognitiveFieldProps) {
   const lastEchoRef = useRef('');
   const propsRef = useRef(props);
   const fieldNodesRef = useRef<FieldOntologyNode[]>([]);
-  const activeNodeRef = useRef('nodo.aptymok.projectmanager');
+  const activeNodeRef = useRef('nodo.usuario.intencion');
   const selectedNodeRef = useRef<string | null>(null);
   const [failed, setFailed] = useState(false);
   const fieldNodes = useMemo(
@@ -379,7 +382,7 @@ export function SfiCognitiveField(props: SfiCognitiveFieldProps) {
     [props.sfNodes, props.moduleNodes, props.twinNodes],
   );
   const ontologyById = useMemo(() => new Map(fieldNodes.map((node) => [node.id, node])), [fieldNodes]);
-  const [internalActiveNode, setInternalActiveNode] = useState(props.activeCommandNode || 'nodo.aptymok.projectmanager');
+  const [internalActiveNode, setInternalActiveNode] = useState(props.activeCommandNode || 'nodo.usuario.intencion');
   const [internalSelectedNode, setInternalSelectedNode] = useState<string | null>(props.selectedNode || null);
   const [commandBusy, setCommandBusy] = useState(false);
   const activeNode = ontologyById.get(props.activeCommandNode || internalActiveNode) || null;
@@ -448,7 +451,12 @@ export function SfiCognitiveField(props: SfiCognitiveFieldProps) {
       canvas.style.height = `${height}px`;
       root.style.minHeight = `${height}px`;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      nodesRef.current = createNodes(width, height, fieldNodesRef.current.length ? fieldNodesRef.current : getDefaultFieldNodes());
+      nodesRef.current = createNodes(
+        width,
+        height,
+        fieldNodesRef.current.length ? fieldNodesRef.current : getDefaultFieldNodes(),
+        Boolean(propsRef.current.nodeId),
+      );
       particles = Array.from({ length: reducedMotionRef.current ? 20 : 70 }, () => ({
         x: Math.random() * width,
         y: Math.random() * height,
@@ -507,7 +515,7 @@ export function SfiCognitiveField(props: SfiCognitiveFieldProps) {
         propsRef.current.onModeSuggest?.(nearest.ontology.commandMode);
         pushEcho(`AMV // ${modeLabel(nearest.ontology.commandMode)} activo`, nearest.kind);
       } else {
-        pushEcho(`AMV // nodo ${nearest.ontology.label} inspeccionado`, nearest.kind);
+        pushEcho(`AMV // nodo ${nearest.ontology.labelVisible || nearest.ontology.label} inspeccionado`, nearest.kind);
       }
     };
 
@@ -805,8 +813,8 @@ export function SfiCognitiveField(props: SfiCognitiveFieldProps) {
   }, [props.asset.metadata?.draft_signal_length, props.amvState?.status]);
 
   const executeCommand = async (command: string, evidence?: File | null) => {
-      const node = activeNode || ontologyById.get('nodo.aptymok.projectmanager');
-      const mode = node?.commandMode || 'project_manager';
+      const node = activeNode || ontologyById.get('nodo.usuario.intencion');
+      const mode = node?.commandMode || 'amv';
       const data = dataRef.current;
       setCommandBusy(true);
       try {
@@ -917,7 +925,7 @@ export function SfiCognitiveField(props: SfiCognitiveFieldProps) {
         return;
       }
 
-      pushEcho(`AMV // ${node?.label || 'campo'} traduce instruccion a seguimiento`, 'green');
+      pushEcho(`AMV // ${node?.labelVisible || node?.label || 'campo'} traduce instruccion a seguimiento`, 'green');
     } catch (error) {
       pushEcho(`AMV // ${error instanceof Error ? error.message : 'command_failed'}`, 'red');
     } finally {
@@ -939,10 +947,9 @@ export function SfiCognitiveField(props: SfiCognitiveFieldProps) {
       <div ref={dotRef} className="cursor-dot" />
       <div ref={ringRef} className="cursor-ring" />
       <div className="field-legend">
-        <span>MUNDO</span>
-        <span>REDES</span>
-        <span>PROYECTO</span>
-        <span>USUARIO</span>
+        {(props.nodeId ? ['MUNDO', 'RETORNO', 'PROYECTO', 'USUARIO'] : ['ESTADO', 'HECHO', 'RUTA', 'ACCION']).map((item) => (
+          <span key={item}>{item}</span>
+        ))}
       </div>
       <div className="field-status">{label}</div>
       <FieldNodeInspector

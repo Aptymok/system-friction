@@ -94,7 +94,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (event === 'SIGNED_OUT') {
         setState({ session: null, status: 'anonymous', userRole: null })
         router.refresh()
-        if (pathname.startsWith('/root') || pathname.startsWith('/user') || pathname.startsWith('/terminal')) router.replace('/login')
+        if (pathname.startsWith('/root') || pathname.startsWith('/user')) router.replace('/login')
       }
     })
 

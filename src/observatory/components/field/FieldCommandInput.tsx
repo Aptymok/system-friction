@@ -63,7 +63,7 @@ export function FieldCommandInput({ activeNode, disabled, onExecute }: FieldComm
   return (
     <div className="field-command" aria-label="Linea de comando contextual del campo">
       <div className="mode-sigil">
-        <span>{activeNode?.label || 'Campo'}</span>
+        <span>{activeNode?.labelVisible || activeNode?.label || 'Campo'}</span>
         <small>{visibleModes[mode]}</small>
       </div>
       <input

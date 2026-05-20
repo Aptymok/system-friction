@@ -31,6 +31,7 @@ import {
   persistWorldSpectrumSnapshot,
   type PersistenceResult,
 } from '@/observatory/persistence/supabaseFieldPersistence';
+import { canPersistToSupabase } from '@/observatory/persistence/persistenceGuard';
 import {
   shouldPersistFieldEvent,
   shouldPersistManualPost,
@@ -38,6 +39,8 @@ import {
 } from '@/observatory/runtime/deduplicateFieldEvents';
 import type { ManualSocialPostInput, ManualSocialReturn } from '@/observatory/social/socialManualReturnTypes';
 import type { SocialProvider } from '@/observatory/social/socialOAuthTypes';
+import { resolveFieldSurface } from '@/observatory/surface/fieldSurfaceRouter';
+import { surfaceNodes } from '@/observatory/surface/surfaceNodes';
 import {
   approveSocialDraftContent,
   archiveSocialDraft,
@@ -79,14 +82,24 @@ type SfiFieldShellProps = {
   activeAssetId?: string;
   onAssetsChange: (assets: SfiAsset[]) => void;
   onActiveAssetChange: (assetId: string) => void;
+  persistenceMode?: 'local_only' | 'supabase';
+  localNode?: Record<string, any> | null;
+  paywallLinks?: { full: string; report: string };
 };
 
 const phases = [
-  { label: 'SENAL', node: 'nodo.aptymok.projectmanager' },
+  { label: 'SENAL', node: 'nodo.usuario.intencion' },
   { label: 'ANALISIS', node: 'nodo.aptymok.mihm' },
   { label: 'INTERVENCION', node: 'nodo.aptymok.intervencion' },
   { label: 'SEGUIMIENTO', node: 'nodo.aptymok.bitacora' },
   { label: 'EJECUCION', node: 'nodo.aptymok.calendarizacion' },
+];
+
+const localPhases = [
+  { label: 'AUDITORIA', node: 'nodo.surface.contenido' },
+  { label: 'SIMULACION', node: 'nodo.surface.estabilidad' },
+  { label: 'RESULTADO', node: 'nodo.surface.estado' },
+  { label: 'ACCION', node: 'nodo.surface.siguiente_paso' },
 ];
 
 const socialKinds: SignalKind[] = ['campania_redes', 'audio', 'imagen', 'video'];
@@ -184,6 +197,39 @@ function makeDraftAsset(command = ''): SfiAsset {
   };
 }
 
+function assetFromLocalNode(localNode?: Record<string, any> | null, command = ''): SfiAsset {
+  if (!localNode?.localNodeId) return makeDraftAsset(command);
+  const signal = command || localNode.declaredObjective || localNode.advancementLoop || 'Nodo local calibrado.';
+  const reading = inferOperationalReading({ kind: 'proyecto', signal });
+  return {
+    asset_id: localNode.localNodeId,
+    owner_user_id: 'local',
+    target_system: {
+      name: localNode.declaredObjective || 'nodo local',
+      type: localNode.declaredEntityType || 'usuario',
+      source: 'local_landing_calibration',
+    },
+    objective: {
+      declaration: localNode.declaredObjective || reading.nextAction,
+      observed_signal: signal,
+      dailyActivity: localNode.dailyActivity || '',
+      recurrentActivity: localNode.recurrentActivity || '',
+      advancementLoop: localNode.advancementLoop || '',
+    },
+    state_vector: reading.technical,
+    current_phase: 'LOCAL_PREVIEW',
+    metadata: {
+      source: 'local_storage',
+      operational_reading: reading,
+      inferredPattern: localNode.inferredPattern || null,
+      cognitiveTwinUxState: localNode.cognitiveTwinUxState || {},
+      paymentState: localNode.paymentState || 'anonymous_local',
+    },
+    created_at: localNode.createdAt || new Date(0).toISOString(),
+    updated_at: localNode.updatedAt || localNode.createdAt || new Date(0).toISOString(),
+  };
+}
+
 async function fetchJson(url: string, init?: RequestInit) {
   const res = await fetch(url, init);
   const data = await res.json().catch(() => null);
@@ -197,11 +243,14 @@ export function SfiFieldShell({
   activeAssetId,
   onAssetsChange,
   onActiveAssetChange,
+  persistenceMode = 'supabase',
+  localNode,
+  paywallLinks,
 }: SfiFieldShellProps) {
   const activeAsset = assets.find((asset) => asset.asset_id === activeAssetId) || assets[0] || null;
   const [draftCommand, setDraftCommand] = useState('');
   const [phase, setPhase] = useState(0);
-  const [activeCommandNode, setActiveCommandNode] = useState('nodo.aptymok.projectmanager');
+  const [activeCommandNode, setActiveCommandNode] = useState('nodo.usuario.intencion');
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
   const [fieldMode, setFieldMode] = useState<FieldMode>('SFI');
   const [bitacora, setBitacora] = useState<BitacoraEntry[]>([]);
@@ -235,10 +284,54 @@ export function SfiFieldShell({
   const lastWorldSpectEventRef = useRef('');
   const socialDraftCommandRef = useRef('');
 
-  const fieldAsset = activeAsset || makeDraftAsset(draftCommand);
+  const canPersist = canPersistToSupabase({
+    authenticated: Boolean(nodeId),
+    licenseActive: persistenceMode === 'supabase',
+    paymentActive: persistenceMode === 'supabase',
+    crossedAccountPaywall: persistenceMode === 'supabase',
+  });
+  const fieldAsset = activeAsset || (localNode ? assetFromLocalNode(localNode, draftCommand) : makeDraftAsset(draftCommand));
   const reading = useMemo(() => readingFromAsset(activeAsset || fieldAsset), [activeAsset, fieldAsset]);
   const regime = reading.technical.regime;
-  const allFieldNodes = useMemo(() => getDefaultFieldNodes(), []);
+  const fieldSurface = useMemo(
+    () => resolveFieldSurface({
+      sfi_local_node: localNode,
+      currentCommand: draftCommand || textFromRecord(fieldAsset.objective, 'observed_signal') || textFromRecord(fieldAsset.objective, 'declaration'),
+      selectedFieldMode: fieldMode,
+      cognitiveTwinUxState: localNode?.cognitiveTwinUxState,
+      activeAssetKind: textFromRecord(fieldAsset.target_system, 'type'),
+    }),
+    [localNode, draftCommand, fieldAsset, fieldMode],
+  );
+  const allFieldNodes = useMemo(() => {
+    const base = getDefaultFieldNodes();
+    if (canPersist) return base;
+    const visibleLabels = new Set(fieldSurface.visibleNodeIds);
+    const surfaceVisible: FieldOntologyNode[] = surfaceNodes
+      .filter((surfaceNode) => visibleLabels.has(surfaceNode.id))
+      .map((surfaceNode, index) => ({
+        id: `nodo.surface.${surfaceNode.labelVisible.toLowerCase().replace(/[^a-z0-9]+/g, '_')}`,
+        type: 'module' as const,
+        label: surfaceNode.labelInternal,
+        labelVisible: surfaceNode.labelVisible,
+        labelInternal: surfaceNode.labelInternal,
+        visibility: 'public_surface' as const,
+        surfaceTags: [fieldSurface.intentProfile],
+        densityLevel: fieldSurface.density,
+        description: `${surfaceNode.labelVisible} disponible en vista local.`,
+        commandMode: surfaceNode.commandMode,
+        linkedComponents: ['SfiCognitiveField'],
+        linkedEndpoints: [],
+        linkedSfNodes: [],
+        activationConditions: ['nodo local', fieldSurface.intentProfile],
+        position: { x: 0.18 + (index % 3) * 0.28, y: 0.3 + Math.floor(index / 3) * 0.26 },
+      }));
+    return [
+      ...base.filter((node) => node.type === 'sf' || node.id === 'nodo.usuario.intencion' || node.id === 'nodo.usuario.friccion_recurrente'),
+      ...surfaceVisible,
+    ];
+  }, [canPersist, fieldSurface]);
+  const phaseItems = canPersist ? phases : localPhases;
   const activePatterns = useMemo(
     () => detectFieldPatterns({ asset: activeAsset || fieldAsset, reading, selectedNodeId: selectedNode }),
     [activeAsset, fieldAsset, reading, selectedNode],
@@ -353,6 +446,23 @@ export function SfiFieldShell({
       { event_name: event_type.toLowerCase(), event_type, payload: { fragment: message, pattern_id: options?.pattern_id, trace_payload: options?.trace_payload } },
       ...current,
     ].slice(0, 8));
+
+    if (!canPersist) {
+      if (typeof window !== 'undefined') {
+        const localEvents = JSON.parse(window.localStorage.getItem('sfi_local_events') || '[]') as unknown[];
+        window.localStorage.setItem('sfi_local_events', JSON.stringify([
+          { event_type, message, node_id: options?.node_id || null, pattern_id: options?.pattern_id || null, trace_payload: options?.trace_payload || {}, createdAt: new Date().toISOString() },
+          ...localEvents,
+        ].slice(0, 40)));
+      }
+      setRuntimeStatus((current) => ({
+        ...current,
+        persistence: 'local_only',
+        lastEvent: event_type,
+        latestPersistedEventAt: null,
+      }));
+      return;
+    }
 
     const node_id = options?.node_id || nodeId || undefined;
     const dedupe = shouldPersistFieldEvent({
@@ -482,13 +592,15 @@ export function SfiFieldShell({
     });
     setSocialDraft(draft);
     setSocialDraftOpen(true);
-    void persistSocialDraft({
-      node_id: nodeId,
-      draft,
-      fieldMode,
-      primaryPatternId: commandRank.primaryPattern?.pattern.id || null,
-      secondaryPatternIds: commandRank.secondaryPatterns.map((item) => item.pattern.id),
-    });
+    if (canPersist) {
+      void persistSocialDraft({
+        node_id: nodeId,
+        draft,
+        fieldMode,
+        primaryPatternId: commandRank.primaryPattern?.pattern.id || null,
+        secondaryPatternIds: commandRank.secondaryPatterns.map((item) => item.pattern.id),
+      });
+    }
     appendBitacora('SOCIAL_DRAFT_CREATED', 'Borrador social creado.', {
       pattern_id: commandRank.primaryPattern?.pattern.id,
       trace_payload: tracePayloadFromSocialDraft(draft),
@@ -505,13 +617,15 @@ export function SfiFieldShell({
       assetState: mihmState,
     });
     setSocialDraft(reviewed);
-    void persistSocialDraft({
-      node_id: nodeId,
-      draft: reviewed,
-      fieldMode,
-      primaryPatternId: commandRank.primaryPattern?.pattern.id || null,
-      secondaryPatternIds: commandRank.secondaryPatterns.map((item) => item.pattern.id),
-    });
+    if (canPersist) {
+      void persistSocialDraft({
+        node_id: nodeId,
+        draft: reviewed,
+        fieldMode,
+        primaryPatternId: commandRank.primaryPattern?.pattern.id || null,
+        secondaryPatternIds: commandRank.secondaryPatterns.map((item) => item.pattern.id),
+      });
+    }
     appendBitacora('SOCIAL_DRAFT_MIHM_REVIEWED', 'Borrador revisado por MIHM.', {
       pattern_id: commandRank.primaryPattern?.pattern.id,
       trace_payload: tracePayloadFromSocialDraft(reviewed, reviewed.mihmReview?.sourceDescriptor),
@@ -521,7 +635,7 @@ export function SfiFieldShell({
         pattern_id: commandRank.primaryPattern?.pattern.id,
         trace_payload: tracePayloadFromSocialDraft(reviewed, reviewed.worldSpectReview.sourceDescriptor),
       });
-      setWorldSpectOpen(true);
+      if (canPersist) setWorldSpectOpen(true);
     }
     setAmvState((current) => ({
       ...current,
@@ -567,6 +681,7 @@ export function SfiFieldShell({
   ]);
 
   useEffect(() => {
+    if (!canPersist) return;
     if (!worldSpectReading || !worldSpectDetection.primaryTrigger) return;
     const key = [
       worldSpectReading.triggerId,
@@ -586,21 +701,23 @@ export function SfiFieldShell({
       pattern_id: rankedPatterns.primaryPattern?.pattern.id,
       trace_payload: tracePayloadFromWorldSpect(),
     });
-    void persistWorldSpectrumSnapshot({
-      node_id: nodeId,
-      active_node_id: selectedOntologyNode?.id || activeCommandNode,
-      reading: {
-        ...worldSpectReading,
-        ts: worldSpectReading.sourceDescriptor.timestamp,
-      },
-    }).then((result) => {
-      setRuntimeStatus((current) => ({
-        ...current,
-        persistence: result.mode,
-        worldSpect: result.ok ? 'medido' : 'local',
-        lastError: result.ok ? current.lastError : result.error || current.lastError,
-      }));
-    });
+    if (canPersist) {
+      void persistWorldSpectrumSnapshot({
+        node_id: nodeId,
+        active_node_id: selectedOntologyNode?.id || activeCommandNode,
+        reading: {
+          ...worldSpectReading,
+          ts: worldSpectReading.sourceDescriptor.timestamp,
+        },
+      }).then((result) => {
+        setRuntimeStatus((current) => ({
+          ...current,
+          persistence: result.mode,
+          worldSpect: result.ok ? 'medido' : 'local',
+          lastError: result.ok ? current.lastError : result.error || current.lastError,
+        }));
+      });
+    }
     if (worldSpectReading.observationWindow) {
       appendBitacora('OBSERVATION_WINDOW_SUGGESTED', worldSpectReading.observationWindow.visibleSummary, {
         pattern_id: rankedPatterns.primaryPattern?.pattern.id,
@@ -610,7 +727,7 @@ export function SfiFieldShell({
         },
       });
     }
-    setWorldSpectOpen(true);
+    if (canPersist) setWorldSpectOpen(true);
     setAmvState((current) => ({
       ...current,
       status: current.status === 'idle' ? 'worldspect' : current.status,
@@ -631,6 +748,7 @@ export function SfiFieldShell({
     selectedOntologyNode,
     activeCommandNode,
     userSignalVector.rawCommand,
+    canPersist,
   ]);
 
   useEffect(() => {
@@ -645,7 +763,10 @@ export function SfiFieldShell({
   ]);
 
   const refreshLoop = async () => {
-    if (!nodeId || !activeAsset) return;
+    if (!canPersist || !nodeId || !activeAsset) {
+      setStatus('vista local');
+      return;
+    }
     try {
       const context = {
         entity: assetName(activeAsset),
@@ -709,11 +830,15 @@ export function SfiFieldShell({
   };
 
   useEffect(() => {
+    if (!canPersist) return;
     void refreshLoop();
-  }, [nodeId, activeAsset?.asset_id]);
+  }, [nodeId, activeAsset?.asset_id, canPersist]);
 
   useEffect(() => {
-    if (!nodeId) return;
+    if (!canPersist || !nodeId) {
+      setRuntimeStatus((current) => ({ ...current, persistence: 'local_only', worldSpect: 'sin_lectura' }));
+      return;
+    }
     void getLatestWorldSpectrumSnapshot({ nodeId }).then((result: PersistenceResult<Record<string, unknown> | null>) => {
       if (result.ok && result.data) {
         setLatestWorldSnapshot(result.data);
@@ -726,10 +851,14 @@ export function SfiFieldShell({
         setRuntimeStatus((current) => ({ ...current, worldSpect: worldSpectReading ? 'local' : 'sin_lectura' }));
       }
     });
-  }, [nodeId, worldSpectReading]);
+  }, [nodeId, worldSpectReading, canPersist]);
 
   useEffect(() => {
-    if (!nodeId) return;
+    if (!canPersist || !nodeId) {
+      setAutoSocialReturn({ status: 'sin_conexion' });
+      setRuntimeStatus((current) => ({ ...current, persistence: 'local_only', social: 'read_only_missing_token' }));
+      return;
+    }
     void getConnectedSocialSources({ node_id: nodeId }).then((result) => {
       const source = result.data?.sources?.find((item) => item.status === 'connected_read_only');
       if (source) {
@@ -743,10 +872,10 @@ export function SfiFieldShell({
         setRuntimeStatus((current) => ({ ...current, social: 'read_only_missing_token', persistence: result.mode }));
       }
     });
-  }, [nodeId]);
+  }, [nodeId, canPersist]);
 
   useEffect(() => {
-    if (!nodeId) return;
+    if (!canPersist || !nodeId) return;
     void getFieldRuntimeStatus({ node_id: nodeId }).then((result) => {
       if (!result.ok || !result.data) return;
       setRuntimeStatus((current) => ({
@@ -761,7 +890,7 @@ export function SfiFieldShell({
             : current.social,
       }));
     });
-  }, [nodeId]);
+  }, [nodeId, canPersist]);
 
   useEffect(() => {
     if (!socialPulse.active) return;
@@ -774,6 +903,40 @@ export function SfiFieldShell({
     const kind = kindFromCommand(command);
     const nextReading = inferOperationalReading({ kind, signal: command, evidenceLabel: evidence?.name });
     const targetName = command.split(/\n|\.|\?/)[0].replace(/\s+/g, ' ').trim().slice(0, 72) || `senal ${kind}`;
+
+    if (!canPersist) {
+      const today = new Date().toISOString().slice(0, 10);
+      const stored = typeof window !== 'undefined' ? window.localStorage.getItem('sfi_local_node') : null;
+      const local = stored ? JSON.parse(stored) : {};
+      const previewUsage = local.previewUsage || {};
+      const nextLocal = {
+        ...local,
+        localNodeId: local.localNodeId || `SFI-LOCAL-${Date.now().toString(36).toUpperCase()}`,
+        createdAt: local.createdAt || new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        declaredObjective: local.declaredObjective || command,
+        currentStep: 'field',
+        inferredPattern: local.inferredPattern || nextReading.phenomenon,
+        cognitiveTwinUxState: {
+          ...(local.cognitiveTwinUxState || {}),
+          lastLocalCommand: command,
+          lastScenario: fieldSurface.intentProfile,
+        },
+        previewUsage: {
+          ...previewUsage,
+          lastPreviewDate: today,
+          basalReadingsUsedToday: previewUsage.lastPreviewDate === today ? Math.min((previewUsage.basalReadingsUsedToday || 0) + 1, 1) : 1,
+          auditBriefUsedToday: previewUsage.auditBriefUsedToday || 0,
+          simulationBriefUsedToday: previewUsage.simulationBriefUsedToday || 0,
+        },
+        paymentState: 'anonymous_local',
+      };
+      window.localStorage.setItem('sfi_local_node', JSON.stringify(nextLocal));
+      setDraftCommand(command);
+      setStatus('vista local actualizada');
+      appendBitacora('PATTERN_DETECTED', 'Nodo local actualizado.', { pattern_id: rankedPatterns.primaryPattern?.pattern.id });
+      return true;
+    }
 
     const assetResult = await fetchJson('/api/sfi/assets', {
       method: 'POST',
@@ -813,6 +976,15 @@ export function SfiFieldShell({
   };
 
   const handleCommand = async ({ command, mode, node, evidence }: { command: string; mode: FieldCommandMode; node: FieldOntologyNode | null; evidence?: File | null }) => {
+    if (!canPersist) {
+      setDraftCommand(command);
+      if (/guardar|memoria|calendario|redes|subir archivo|archivo completo|fuente|conectar|historial|proyecto/i.test(command)) {
+        requestContinuity('continuidad');
+        return true;
+      }
+      return createAssetFromCommand(command, evidence);
+    }
+
     if (!activeAsset) {
       setDraftCommand(command);
       if (hasSocialDraftIntent(command)) await prepareSocialDraft(command);
@@ -869,6 +1041,17 @@ export function SfiFieldShell({
     setPhase(index);
   };
 
+  const requestContinuity = (reason = 'continuidad') => {
+    setAmvState((current) => ({
+      ...current,
+      status: 'paywall',
+      message: reason === 'license'
+        ? 'Instrumento bloqueado. La ejecucion longitudinal requiere licencia activa.'
+        : 'El nodo local llego a su limite. Para conservar memoria, ejecutar acciones y activar modulos longitudinales, crea una cuenta.',
+    }));
+    setStatus('continuidad bloqueada');
+  };
+
   return (
     <main className="field-shell">
       <header className="field-header">
@@ -920,11 +1103,14 @@ export function SfiFieldShell({
             secondaryPatternIds: rankedPatterns.secondaryPatterns.map((item) => item.pattern.id),
           }}
           graphVectorState={graphVectorState}
+          sfNodes={allFieldNodes}
+          moduleNodes={[]}
+          twinNodes={[]}
           onNodeSelect={(node) => {
             setSelectedNode(node?.id || null);
             if (node) {
               setFieldMode('NODE_CT');
-              appendBitacora('FIELD_MODE_CHANGED', `Nodo ${node.label} observado.`, { node_id: node.id });
+              appendBitacora('FIELD_MODE_CHANGED', `Nodo ${node.labelVisible || node.label} observado.`, { node_id: node.id });
             }
           }}
           onNodeTap={(node) => {
@@ -945,7 +1131,7 @@ export function SfiFieldShell({
         />
 
         <WorldSpectPanel
-          reading={worldSpectReading}
+          reading={canPersist ? worldSpectReading : null}
           open={worldSpectOpen}
           latestSnapshot={latestWorldSnapshot}
           onToggle={() => {
@@ -961,6 +1147,17 @@ export function SfiFieldShell({
         />
 
         <FieldRuntimePanel status={runtimeStatus} />
+
+        {!canPersist && amvState.status === 'paywall' && (
+          <aside className="local-boundary">
+            <p>El nodo local llego a su limite.</p>
+            <span>Para conservar memoria, ejecutar acciones y activar modulos longitudinales, crea una cuenta.</span>
+            <div>
+              <a href="/login">Crear cuenta</a>
+              {paywallLinks?.full ? <a href={paywallLinks.full}>Activar licencia</a> : null}
+            </div>
+          </aside>
+        )}
 
         <SocialDraftPanel
           draft={socialDraft}
@@ -978,13 +1175,15 @@ export function SfiFieldShell({
               assetState: mihmState,
             });
             setSocialDraft(reviewed);
-            void persistSocialDraft({
-              node_id: nodeId,
-              draft: reviewed,
-              fieldMode,
-              primaryPatternId: rankedPatterns.primaryPattern?.pattern.id || null,
-              secondaryPatternIds: rankedPatterns.secondaryPatterns.map((item) => item.pattern.id),
-            });
+            if (canPersist) {
+              void persistSocialDraft({
+                node_id: nodeId,
+                draft: reviewed,
+                fieldMode,
+                primaryPatternId: rankedPatterns.primaryPattern?.pattern.id || null,
+                secondaryPatternIds: rankedPatterns.secondaryPatterns.map((item) => item.pattern.id),
+              });
+            }
             appendBitacora('SOCIAL_DRAFT_MIHM_REVIEWED', 'Borrador revisado por MIHM.', {
               pattern_id: rankedPatterns.primaryPattern?.pattern.id,
               trace_payload: tracePayloadFromSocialDraft(reviewed, reviewed.mihmReview?.sourceDescriptor),
@@ -1000,13 +1199,15 @@ export function SfiFieldShell({
             if (!socialDraft) return;
             const approved = await approveSocialDraftContent(socialDraft);
             setSocialDraft(approved);
-            void persistSocialDraft({
-              node_id: nodeId,
-              draft: approved,
-              fieldMode,
-              primaryPatternId: rankedPatterns.primaryPattern?.pattern.id || null,
-              secondaryPatternIds: rankedPatterns.secondaryPatterns.map((item) => item.pattern.id),
-            });
+            if (canPersist) {
+              void persistSocialDraft({
+                node_id: nodeId,
+                draft: approved,
+                fieldMode,
+                primaryPatternId: rankedPatterns.primaryPattern?.pattern.id || null,
+                secondaryPatternIds: rankedPatterns.secondaryPatterns.map((item) => item.pattern.id),
+              });
+            }
             appendBitacora('SOCIAL_DRAFT_CONTENT_APPROVED', 'Contenido aprobado por humano.', {
               pattern_id: rankedPatterns.primaryPattern?.pattern.id,
               trace_payload: tracePayloadFromSocialDraft(approved, approved.approval?.sourceDescriptor),
@@ -1016,13 +1217,15 @@ export function SfiFieldShell({
             if (!socialDraft) return;
             const pending = requestPublicationConfirmation(socialDraft);
             setSocialDraft(pending);
-            void persistSocialDraft({
-              node_id: nodeId,
-              draft: pending,
-              fieldMode,
-              primaryPatternId: rankedPatterns.primaryPattern?.pattern.id || null,
-              secondaryPatternIds: rankedPatterns.secondaryPatterns.map((item) => item.pattern.id),
-            });
+            if (canPersist) {
+              void persistSocialDraft({
+                node_id: nodeId,
+                draft: pending,
+                fieldMode,
+                primaryPatternId: rankedPatterns.primaryPattern?.pattern.id || null,
+                secondaryPatternIds: rankedPatterns.secondaryPatterns.map((item) => item.pattern.id),
+              });
+            }
             appendBitacora('SOCIAL_DRAFT_CONFIRMATION_REQUIRED', 'Confirmacion requerida. Publicacion real deshabilitada.', {
               pattern_id: rankedPatterns.primaryPattern?.pattern.id,
               trace_payload: tracePayloadFromSocialDraft(pending),
@@ -1032,13 +1235,15 @@ export function SfiFieldShell({
             if (!socialDraft) return;
             const archived = archiveSocialDraft(socialDraft);
             setSocialDraft(archived);
-            void persistSocialDraft({
-              node_id: nodeId,
-              draft: archived,
-              fieldMode,
-              primaryPatternId: rankedPatterns.primaryPattern?.pattern.id || null,
-              secondaryPatternIds: rankedPatterns.secondaryPatterns.map((item) => item.pattern.id),
-            });
+            if (canPersist) {
+              void persistSocialDraft({
+                node_id: nodeId,
+                draft: archived,
+                fieldMode,
+                primaryPatternId: rankedPatterns.primaryPattern?.pattern.id || null,
+                secondaryPatternIds: rankedPatterns.secondaryPatterns.map((item) => item.pattern.id),
+              });
+            }
             appendBitacora('SOCIAL_DRAFT_ARCHIVED', 'Borrador archivado.', {
               pattern_id: rankedPatterns.primaryPattern?.pattern.id,
               trace_payload: tracePayloadFromSocialDraft(archived),
@@ -1048,15 +1253,21 @@ export function SfiFieldShell({
             if (!socialDraft) return;
             const updated = await updateSocialDraftText(socialDraft, text);
             setSocialDraft(updated);
-            void persistSocialDraft({
-              node_id: nodeId,
-              draft: updated,
-              fieldMode,
-              primaryPatternId: rankedPatterns.primaryPattern?.pattern.id || null,
-              secondaryPatternIds: rankedPatterns.secondaryPatterns.map((item) => item.pattern.id),
-            });
+            if (canPersist) {
+              void persistSocialDraft({
+                node_id: nodeId,
+                draft: updated,
+                fieldMode,
+                primaryPatternId: rankedPatterns.primaryPattern?.pattern.id || null,
+                secondaryPatternIds: rankedPatterns.secondaryPatterns.map((item) => item.pattern.id),
+              });
+            }
           }}
           onRecordManualPost={async (input) => {
+            if (!canPersist) {
+              requestContinuity('continuidad');
+              return;
+            }
             const dedupe = shouldPersistManualPost(input);
             const result = await persistManualSocialPost({
               node_id: nodeId,
@@ -1091,6 +1302,10 @@ export function SfiFieldShell({
             }));
           }}
           onRecordManualReturn={async (input) => {
+            if (!canPersist) {
+              requestContinuity('continuidad');
+              return;
+            }
             const dedupe = shouldPersistManualReturn(input);
             const result = await persistManualSocialReturn({
               node_id: nodeId,
@@ -1119,6 +1334,10 @@ export function SfiFieldShell({
           }}
           autoReturn={autoSocialReturn}
           onIngestReadOnly={async (provider) => {
+            if (!canPersist) {
+              requestContinuity('continuidad');
+              return;
+            }
             const result = await ingestReadOnlySocialMetrics({
               node_id: nodeId,
               asset_id: activeAsset?.asset_id || null,
@@ -1175,7 +1394,7 @@ export function SfiFieldShell({
         />
 
         <nav className="mode-rail" aria-label="Estados del campo">
-          {phases.map((item, index) => (
+          {phaseItems.map((item, index) => (
             <button
               key={item.label}
               type="button"
@@ -1312,6 +1531,47 @@ export function SfiFieldShell({
           font-family: var(--font-mono), "JetBrains Mono", monospace;
           font-size: 0.5rem;
           letter-spacing: 0.18em;
+          text-transform: uppercase;
+        }
+        .local-boundary {
+          position: absolute;
+          left: 1rem;
+          bottom: 6rem;
+          z-index: 8;
+          width: min(24rem, calc(100vw - 2rem));
+          border: 1px solid rgba(200,169,81,0.12);
+          background: rgba(6,6,5,0.58);
+          backdrop-filter: blur(14px);
+          padding: 0.72rem;
+          font-family: var(--font-mono), "JetBrains Mono", monospace;
+          pointer-events: auto;
+        }
+        .local-boundary p {
+          margin: 0;
+          color: rgba(200,169,81,0.82);
+          font-size: 0.58rem;
+          letter-spacing: 0.14em;
+          text-transform: uppercase;
+        }
+        .local-boundary span {
+          display: block;
+          margin-top: 0.35rem;
+          color: rgba(200,196,184,0.48);
+          font-size: 0.52rem;
+          line-height: 1.5;
+        }
+        .local-boundary div {
+          display: flex;
+          gap: 0.45rem;
+          margin-top: 0.55rem;
+        }
+        .local-boundary a {
+          border: 1px solid rgba(200,169,81,0.18);
+          color: rgba(200,169,81,0.82);
+          padding: 0.38rem 0.5rem;
+          text-decoration: none;
+          font-size: 0.48rem;
+          letter-spacing: 0.12em;
           text-transform: uppercase;
         }
         .route-strip {

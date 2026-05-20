@@ -48,7 +48,7 @@ export function FieldNodeInspector({
         <span>{title}</span>
         <button type="button" onClick={onClose} aria-label="Cerrar inspector">cerrar</button>
       </div>
-      <h3>{node.label}</h3>
+      <h3>{node.labelVisible || node.label}</h3>
       <p>{node.description}</p>
 
       <div className="inspector-grid">

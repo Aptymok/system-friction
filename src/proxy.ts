@@ -38,7 +38,6 @@ export async function proxy(request: NextRequest) {
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
   const requiresSession =
-    pathname.startsWith('/terminal') ||
     pathname.startsWith('/root') ||
     pathname.startsWith('/user') ||
     pathname === '/setup-profile'

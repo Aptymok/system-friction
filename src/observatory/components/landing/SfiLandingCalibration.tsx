@@ -9,6 +9,7 @@ type Scenario = 'publicar' | 'decidir' | 'auditar' | 'proyectar' | 'ejecutar' | 
 type LocalNode = {
   localNodeId: string;
   createdAt: string;
+  updatedAt: string;
   puzzleSignals: Record<string, unknown>;
   declaredObjective: string;
   dailyActivity: string;
@@ -16,8 +17,16 @@ type LocalNode = {
   advancementLoop: string;
   declaredEntityType: EntityType | '';
   inferredPattern: string;
+  cognitiveTwinUxState: Record<string, unknown>;
   currentStep: string;
   unlockedPreviewModules: string[];
+  previewUsage: {
+    basalReadingsUsedToday: number;
+    lastPreviewDate: string | null;
+    auditBriefUsedToday: number;
+    simulationBriefUsedToday: number;
+  };
+  paymentState: 'anonymous_local' | 'persisted';
 };
 
 const storageKey = 'sfi_local_node';
@@ -37,6 +46,7 @@ function createEmptyNode(): LocalNode {
   return {
     localNodeId: `SFI-LOCAL-${Date.now().toString(36).toUpperCase()}`,
     createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
     puzzleSignals: {},
     declaredObjective: '',
     dailyActivity: '',
@@ -44,8 +54,16 @@ function createEmptyNode(): LocalNode {
     advancementLoop: '',
     declaredEntityType: '',
     inferredPattern: 'calibracion inicial',
+    cognitiveTwinUxState: {},
     currentStep: 'puzzle',
     unlockedPreviewModules: ['auditoria', 'simulacion', 'resultado', 'accion'],
+    previewUsage: {
+      basalReadingsUsedToday: 0,
+      lastPreviewDate: null,
+      auditBriefUsedToday: 0,
+      simulationBriefUsedToday: 0,
+    },
+    paymentState: 'anonymous_local',
   };
 }
 
@@ -79,7 +97,7 @@ export function SfiLandingCalibration() {
     if (stored) {
       try {
         const parsed = JSON.parse(stored) as LocalNode;
-        setNode(parsed);
+        setNode({ ...createEmptyNode(), ...parsed });
         setStep(parsed.currentStep === 'field' ? 4 : 0);
       } catch {
         window.localStorage.removeItem(storageKey);
@@ -96,7 +114,7 @@ export function SfiLandingCalibration() {
 
   const updateNode = (patch: Partial<LocalNode>) => {
     setNode((current) => {
-      const next = { ...current, ...patch };
+      const next = { ...current, ...patch, updatedAt: new Date().toISOString() };
       next.inferredPattern = inferPattern(next);
       return next;
     });
@@ -116,7 +134,21 @@ export function SfiLandingCalibration() {
   };
 
   const unlockField = () => {
-    updateNode({ currentStep: 'field', inferredPattern: pattern });
+    const today = new Date().toISOString().slice(0, 10);
+    updateNode({
+      currentStep: 'field',
+      inferredPattern: pattern,
+      cognitiveTwinUxState: {
+        ...node.cognitiveTwinUxState,
+        initialScenario: selectedScenario,
+        initialEntityType: node.declaredEntityType,
+      },
+      previewUsage: {
+        ...node.previewUsage,
+        lastPreviewDate: today,
+        basalReadingsUsedToday: node.previewUsage.lastPreviewDate === today ? node.previewUsage.basalReadingsUsedToday : 1,
+      },
+    });
     setStep(4);
   };
 
