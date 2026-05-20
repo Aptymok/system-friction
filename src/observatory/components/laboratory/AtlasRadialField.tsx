@@ -5,7 +5,6 @@ import type { WorldSpectCategory } from '@/observatory/worldspect/worldSpectCate
 import type { WorldSpectLensState } from '@/observatory/worldspect/applyWorldSpectLens';
 import { getWorldSpectCategoryConfig } from '@/observatory/worldspect/worldSpectCategories';
 
-const clusterOrder = ['Nodo Vivo', 'Auditoria', 'Simulacion', 'Resultado', 'Accion', 'Memoria', 'Mundo', 'Presencia', 'Ventana'];
 const colorMap: Record<string, string> = {
   gold: '#C8A951',
   blue: '#6e9ac8',
@@ -26,17 +25,18 @@ function polar(index: number, total: number, radius: number, center = 50) {
 
 function nodePosition(node: LaboratoryGraphNode, graph: LaboratoryGraphState) {
   if (node.ring === 0) return { x: 50, y: 50 };
+  const ringOne = graph.nodes.filter((item) => item.ring === 1);
   if (node.ring === 1) {
-    const index = Math.max(0, clusterOrder.indexOf(node.label));
-    return polar(index, clusterOrder.length, 31);
+    const index = Math.max(0, ringOne.findIndex((item) => item.id === node.id));
+    return polar(index, Math.max(1, ringOne.length), node.weight >= 1 ? 28 : 34);
   }
   const activeCluster = graph.nodes.find((item) => item.ring === 1 && item.weight === 1)?.label || 'Auditoria';
-  const parentIndex = Math.max(0, clusterOrder.indexOf(activeCluster));
+  const parentIndex = Math.max(0, ringOne.findIndex((item) => item.label === activeCluster));
   const processNodes = graph.nodes.filter((item) => item.ring === 2);
   const processIndex = Math.max(0, processNodes.findIndex((item) => item.id === node.id));
-  const spread = processNodes.length > 1 ? (processIndex - (processNodes.length - 1) / 2) * 13 : 0;
-  const angle = (-90 + (360 / clusterOrder.length) * parentIndex + spread) * Math.PI / 180;
-  return { x: 50 + Math.cos(angle) * 43, y: 50 + Math.sin(angle) * 43 };
+  const spread = processNodes.length > 1 ? (processIndex - (processNodes.length - 1) / 2) * 11 : 0;
+  const angle = (-90 + (360 / Math.max(1, ringOne.length)) * parentIndex + spread) * Math.PI / 180;
+  return { x: 50 + Math.cos(angle) * 45, y: 50 + Math.sin(angle) * 45 };
 }
 
 function shapeClass(shape: LaboratoryGraphNode['shape']) {
@@ -66,6 +66,8 @@ export function AtlasRadialField({
 }) {
   const category = getWorldSpectCategoryConfig(activeWorldSpectCategory);
   const positions = new Map(graph.nodes.map((node) => [node.id, nodePosition(node, graph)]));
+  const clusterNodes = graph.nodes.filter((node) => node.ring === 1);
+  const processNodes = graph.nodes.filter((node) => node.ring === 2);
   const prioritized = new Set(worldSpectLensState?.prioritizedNodes || []);
   const suppressed = new Set(worldSpectLensState?.suppressedNodes || []);
   return (
@@ -73,6 +75,7 @@ export function AtlasRadialField({
       <svg className="atlas-edges" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
         <circle cx="50" cy="50" r="31" />
         <circle cx="50" cy="50" r="43" />
+        <circle cx="50" cy="50" r="18" className="inner" />
         {graph.edges.map((edge) => {
           const from = positions.get(edge.from);
           const to = positions.get(edge.to);
@@ -106,7 +109,7 @@ export function AtlasRadialField({
               left: `${pos.x}%`,
               top: `${pos.y}%`,
               ['--node-color' as string]: color,
-              ['--node-scale' as string]: isCenter ? 1.18 : node.ring === 2 ? 0.76 : 0.92 + node.weight * 0.16,
+              ['--node-scale' as string]: isCenter ? 1.28 : node.ring === 2 ? 0.72 + node.weight * 0.12 : 0.76 + node.weight * 0.34,
             }}
             onClick={() => node.ring === 2 ? onProcessSelect(node.label) : onClusterSelect(node.label)}
           >
@@ -119,10 +122,28 @@ export function AtlasRadialField({
         <b>{nodeLabel}</b>
         <span>{category.symbol} {category.label}</span>
       </div>
+      <div className="atlas-cluster-legend" aria-label="Leyenda de clusters">
+        {clusterNodes.map((node) => (
+          <button
+            key={`legend-${node.id}`}
+            type="button"
+            className={node.label === activeCluster ? 'active' : ''}
+            onClick={() => onClusterSelect(node.label)}
+            style={{ ['--legend-color' as string]: colorMap[node.color] }}
+          >
+            <i />
+            {node.label}
+          </button>
+        ))}
+      </div>
+      <div className="atlas-process-caption">
+        <span>{activeCluster}</span>
+        <b>{activeProcess || processNodes[0]?.label || 'selecciona proceso'}</b>
+      </div>
       <style jsx>{`
         .atlas-radial-field {
           position: relative;
-          width: min(72vw, 46rem);
+          width: min(74vw, 50rem);
           aspect-ratio: 1;
           margin: 0 auto;
           isolation: isolate;
@@ -138,6 +159,10 @@ export function AtlasRadialField({
           fill: none;
           stroke: rgba(200, 169, 81, 0.09);
           stroke-width: 0.16;
+        }
+        circle.inner {
+          stroke: rgba(200, 169, 81, 0.18);
+          stroke-dasharray: 1 2;
         }
         line {
           stroke: rgba(200, 169, 81, 0.62);
@@ -189,8 +214,8 @@ export function AtlasRadialField({
           opacity: 0.32;
         }
         .center {
-          width: clamp(5.8rem, 10vw, 7.8rem);
-          height: clamp(5.8rem, 10vw, 7.8rem);
+          width: clamp(7.2rem, 12vw, 9.8rem);
+          height: clamp(7.2rem, 12vw, 9.8rem);
           border-radius: 50%;
           background: radial-gradient(circle, rgba(200,169,81,0.22), rgba(30,24,8,0.3) 55%, rgba(5,5,5,0.72));
           color: #C8A951;
@@ -244,6 +269,70 @@ export function AtlasRadialField({
           pointer-events: none;
           z-index: 5;
         }
+        .atlas-cluster-legend {
+          position: absolute;
+          left: 50%;
+          bottom: -1.8rem;
+          transform: translateX(-50%);
+          display: flex;
+          justify-content: center;
+          gap: 0.35rem;
+          width: min(42rem, 92vw);
+          flex-wrap: wrap;
+          z-index: 7;
+        }
+        .atlas-cluster-legend button {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.34rem;
+          min-height: 1.8rem;
+          border: 1px solid rgba(200, 169, 81, 0.09);
+          background: rgba(5, 5, 5, 0.46);
+          color: rgba(216, 212, 200, 0.48);
+          font-family: "JetBrains Mono", monospace;
+          font-size: 0.48rem;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
+          padding: 0 0.55rem;
+          cursor: pointer;
+        }
+        .atlas-cluster-legend button.active {
+          color: #d8d4c8;
+          border-color: color-mix(in srgb, var(--legend-color) 52%, transparent);
+          background: color-mix(in srgb, var(--legend-color) 10%, transparent);
+        }
+        .atlas-cluster-legend i {
+          width: 0.42rem;
+          height: 0.42rem;
+          border-radius: 50%;
+          background: var(--legend-color);
+          box-shadow: 0 0 12px color-mix(in srgb, var(--legend-color) 45%, transparent);
+        }
+        .atlas-process-caption {
+          position: absolute;
+          left: 50%;
+          top: 4%;
+          transform: translateX(-50%);
+          display: grid;
+          gap: 0.22rem;
+          text-align: center;
+          font-family: "JetBrains Mono", monospace;
+          pointer-events: none;
+          z-index: 8;
+        }
+        .atlas-process-caption span {
+          color: rgba(200, 169, 81, 0.52);
+          font-size: 0.48rem;
+          letter-spacing: 0.16em;
+          text-transform: uppercase;
+        }
+        .atlas-process-caption b {
+          color: rgba(216, 212, 200, 0.68);
+          font-size: 0.62rem;
+          font-weight: 500;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+        }
         .atlas-center-copy b {
           color: rgba(216, 212, 200, 0.72);
           font-size: 0.54rem;
@@ -263,7 +352,7 @@ export function AtlasRadialField({
         }
         @media (max-width: 860px) {
           .atlas-radial-field {
-            width: min(112vw, 32rem);
+            width: min(112vw, 34rem);
             margin-top: 1rem;
           }
           .atlas-node {
@@ -274,11 +363,27 @@ export function AtlasRadialField({
             font-size: 0.45rem;
           }
           .center {
-            width: 5.7rem;
-            height: 5.7rem;
+            width: 6.6rem;
+            height: 6.6rem;
           }
           .atlas-center-copy {
             top: 64%;
+          }
+          .atlas-cluster-legend {
+            bottom: -2.7rem;
+            width: 96vw;
+            flex-wrap: nowrap;
+            justify-content: flex-start;
+            overflow-x: auto;
+            padding: 0 0.7rem;
+            scrollbar-width: none;
+          }
+          .atlas-cluster-legend::-webkit-scrollbar {
+            display: none;
+          }
+          .atlas-cluster-legend button {
+            min-width: max-content;
+            min-height: 44px;
           }
         }
       `}</style>

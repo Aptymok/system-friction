@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { runAiTask } from '@/observatory/ai/aiProviderRouter';
 import type { AiTask } from '@/observatory/ai/aiProviderTypes';
 
-const allowedTasks: AiTask[] = ['audit', 'simulate', 'explain', 'route', 'summarize'];
+const allowedTasks: AiTask[] = ['summarize', 'audit', 'simulate', 'explain', 'route', 'rewrite_blocked'];
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null);
@@ -21,7 +21,8 @@ export async function POST(req: NextRequest) {
     task,
     input,
     context: body?.context && typeof body.context === 'object' ? body.context : undefined,
-    preferredProvider: body?.preferredProvider,
+    mode: typeof body?.mode === 'string' ? body.mode : undefined,
+    providerPreference: body?.providerPreference || body?.preferredProvider,
   });
 
   return NextResponse.json(result);

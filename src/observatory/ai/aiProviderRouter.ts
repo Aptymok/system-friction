@@ -27,25 +27,31 @@ export function resolveAiProvider(preferredProvider?: AiProvider): AiProvider {
 }
 
 export async function runAiTask(request: AiProviderRequest): Promise<AiProviderResponse> {
-  const provider = resolveAiProvider(request.preferredProvider || process.env.DEFAULT_AI_PROVIDER as AiProvider | undefined);
+  const provider = resolveAiProvider(request.providerPreference || request.preferredProvider || process.env.DEFAULT_AI_PROVIDER as AiProvider | undefined);
 
   if (provider === 'local_stub') {
+    const output = 'Motor IA externo no configurado.';
     return {
       ok: false,
       provider,
       task: request.task,
-      text: 'Motor IA externo no configurado.',
+      output,
+      text: output,
       external: false,
       reason: 'missing_provider_key',
+      error: 'missing_provider_key',
     };
   }
 
+  const output = 'Proveedor IA detectado, pero la ejecucion externa permanece deshabilitada en esta fase.';
   return {
     ok: false,
     provider,
     task: request.task,
-    text: 'Proveedor IA detectado, pero la ejecucion externa permanece deshabilitada en esta fase.',
+    output,
+    text: output,
     external: false,
     reason: 'external_execution_disabled',
+    error: 'external_execution_disabled',
   };
 }

@@ -8,11 +8,11 @@ import { visibleGraphMode } from '@/observatory/laboratory/graphModes';
 import { applyWorldSpectLens } from '@/observatory/worldspect/applyWorldSpectLens';
 import type { WorldSpectCategory } from '@/observatory/worldspect/worldSpectCategories';
 import { getWorldSpectCategoryConfig } from '@/observatory/worldspect/worldSpectCategories';
-import { AtlasWorldSpectStrip } from './AtlasWorldSpectStrip';
-import { AtlasRadialField } from './AtlasRadialField';
-import { AtlasCommandPanel } from './AtlasCommandPanel';
+import { LaboratoryWorldSpectStrip } from './LaboratoryWorldSpectStrip';
+import { LaboratoryField } from './LaboratoryField';
+import { LaboratoryCommandPanel } from './LaboratoryCommandPanel';
 import { AtlasActionBar } from './AtlasActionBar';
-import { AtlasProcessRail } from './AtlasProcessRail';
+import { LaboratoryProcessRail } from './LaboratoryProcessRail';
 
 function clusterForCommand(command: string, fallback: string) {
   const text = command.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
@@ -137,10 +137,10 @@ export function AtlasLaboratoryShell({
 
   return (
     <main className="atlas-shell">
-      <AtlasWorldSpectStrip snapshot={latestWorldSnapshot} activeCategory={activeCategory} onCategorySelect={selectCategory} />
+      <LaboratoryWorldSpectStrip snapshot={latestWorldSnapshot} activeCategory={activeCategory} onCategorySelect={selectCategory} />
       <div className="atlas-grain" />
       <section className="atlas-field-wrap">
-        <AtlasRadialField
+        <LaboratoryField
           graph={graph}
           nodeLabel={nodeLabel || 'Nodo vivo'}
           activeCluster={activeCluster}
@@ -154,7 +154,7 @@ export function AtlasLaboratoryShell({
           onProcessSelect={setActiveProcess}
         />
       </section>
-      <AtlasCommandPanel
+      <LaboratoryCommandPanel
         activeCluster={activeCluster}
         activeProcess={activeProcess}
         activeStep={graph.activeStep}
@@ -169,7 +169,7 @@ export function AtlasLaboratoryShell({
         onProcessSelect={setActiveProcess}
         onContinue={() => canPersist ? setResponseText('Accion lista para ejecucion persistente.') : onContinuityRequest?.()}
       />
-      <AtlasProcessRail activeStep={graph.activeStep} />
+      <LaboratoryProcessRail activeStep={graph.activeStep} />
       <AtlasActionBar
         modeLabel={visibleGraphMode(graphModes[0])}
         placeholder={placeholderFor(activeCluster)}

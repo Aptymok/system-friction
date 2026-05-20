@@ -154,6 +154,27 @@ function kindFromCommand(command: string): SignalKind {
   return 'proyecto';
 }
 
+function updateCommunicationProfile(current: Record<string, any> | undefined, command: string) {
+  const text = normalizeCommand(command);
+  const profile = { ...(current || {}) };
+  if (/no entiendo|saturado|demasiado|me pierdo|confuso/.test(text)) {
+    profile.prefersShortAnswers = true;
+    profile.overloadDetectedCount = Number(profile.overloadDetectedCount || 0) + 1;
+    profile.preferredActionFormat = profile.preferredActionFormat || 'accion_minima';
+  }
+  if (/trazabilidad|origen|fuente|por partes|tecnico|tecnica/.test(text)) {
+    profile.prefersTechnicalTrace = true;
+  }
+  const rejected = command.match(/no digas\s+["“']?([^"”']+)/i);
+  if (rejected?.[1]) {
+    profile.rejectedPhrases = Array.from(new Set([...(profile.rejectedPhrases || []), rejected[1].trim().slice(0, 80)]));
+  }
+  if (/no entiendo|por que dices|no estoy de acuerdo/.test(text)) {
+    profile.lastMisunderstoodTerms = Array.from(new Set([...(profile.lastMisunderstoodTerms || []), command.slice(0, 120)]));
+  }
+  return profile;
+}
+
 function readingFromAsset(asset?: SfiAsset | null): OperationalReading {
   const metadataReading = asset?.metadata?.operational_reading as OperationalReading | undefined;
   if (metadataReading?.phenomenon) return metadataReading;
@@ -838,20 +859,34 @@ export function SfiFieldShell({
   }, [nodeId, activeAsset?.asset_id, canPersist]);
 
   useEffect(() => {
-    if (!canPersist || !nodeId) {
-      setRuntimeStatus((current) => ({ ...current, persistence: 'local_only', worldSpect: 'sin_lectura' }));
-      return;
-    }
+    void fetch('/api/worldspect/global', { cache: 'no-store' })
+      .then((res) => res.json())
+      .then((result) => {
+        if (result?.snapshot) {
+          setLatestWorldSnapshot(result.snapshot);
+          setRuntimeStatus((current) => ({ ...current, worldSpect: 'medido', persistence: canPersist ? current.persistence : 'local_only' }));
+          setRecentEvents((current) => [
+            { event_name: 'world_spectrum_snapshot_loaded', payload: { fragment: 'WorldSpect // ultima medicion global disponible', snapshot: result.snapshot } },
+            ...current,
+          ].slice(0, 8));
+          return;
+        }
+        setRuntimeStatus((current) => ({ ...current, worldSpect: 'sin_lectura', persistence: canPersist ? current.persistence : 'local_only' }));
+      })
+      .catch(() => setRuntimeStatus((current) => ({ ...current, worldSpect: 'sin_lectura', persistence: canPersist ? current.persistence : 'local_only' })));
+  }, [canPersist]);
+
+  useEffect(() => {
+    if (!canPersist || !nodeId) return;
     void getLatestWorldSpectrumSnapshot({ nodeId }).then((result: PersistenceResult<Record<string, unknown> | null>) => {
       if (result.ok && result.data) {
-        setLatestWorldSnapshot(result.data);
-        setRuntimeStatus((current) => ({ ...current, worldSpect: 'medido', persistence: result.mode }));
+        setRuntimeStatus((current) => ({ ...current, persistence: result.mode }));
         setRecentEvents((current) => [
           { event_name: 'world_spectrum_snapshot_loaded', payload: { fragment: 'WorldSpect // ultima lectura medida disponible', snapshot: result.data } },
           ...current,
         ].slice(0, 8));
       } else {
-        setRuntimeStatus((current) => ({ ...current, worldSpect: worldSpectReading ? 'local' : 'sin_lectura' }));
+        setRuntimeStatus((current) => ({ ...current, worldSpect: current.worldSpect || 'sin_lectura' }));
       }
     });
   }, [nodeId, worldSpectReading, canPersist]);
@@ -924,6 +959,7 @@ export function SfiFieldShell({
           ...(local.cognitiveTwinUxState || {}),
           lastLocalCommand: command,
           lastScenario: fieldSurface.intentProfile,
+          communicationProfile: updateCommunicationProfile(local.cognitiveTwinUxState?.communicationProfile, command),
         },
         previewUsage: {
           ...previewUsage,
