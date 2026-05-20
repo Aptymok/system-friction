@@ -1,4 +1,5 @@
 import type { BitacoraEventType } from '@/observatory/field/patternModel';
+import type { ManualSocialReturn } from '@/observatory/social/socialManualReturnTypes';
 import type { SocialDraft } from '@/observatory/social/socialDraftTypes';
 
 export type PersistenceResult<T = unknown> = {
@@ -70,12 +71,20 @@ export function persistSocialDraft(input: {
 export function persistManualSocialPost(input: {
   node_id?: string | null;
   network: string;
+  postUrl?: string | null;
   text: string;
   postedAt: string;
   externalPostId?: string | null;
   metadata?: Record<string, unknown>;
 }) {
   return postPersistence('manual_social_post', input);
+}
+
+export function persistManualSocialReturn(input: {
+  node_id?: string | null;
+  manualReturn: ManualSocialReturn;
+}) {
+  return postPersistence('manual_social_return', input);
 }
 
 export function getLatestWorldSpectrumSnapshot(input: { nodeId?: string | null; userId?: string | null }) {

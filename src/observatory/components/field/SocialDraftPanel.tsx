@@ -1,5 +1,7 @@
 'use client';
 
+import { useState } from 'react';
+import type { ManualSocialPostInput, ManualSocialReturn } from '@/observatory/social/socialManualReturnTypes';
 import type { SocialDraft } from '@/observatory/social/socialDraftTypes';
 
 type SocialDraftPanelProps = {
@@ -10,6 +12,8 @@ type SocialDraftPanelProps = {
   onRequestConfirmation: () => void | Promise<void>;
   onArchive: () => void | Promise<void>;
   onTextChange: (text: string) => void | Promise<void>;
+  onRecordManualPost: (input: ManualSocialPostInput) => void | Promise<void>;
+  onRecordManualReturn: (input: ManualSocialReturn) => void | Promise<void>;
 };
 
 export function SocialDraftPanel({
@@ -20,7 +24,22 @@ export function SocialDraftPanel({
   onRequestConfirmation,
   onArchive,
   onTextChange,
+  onRecordManualPost,
+  onRecordManualReturn,
 }: SocialDraftPanelProps) {
+  const [postOpen, setPostOpen] = useState(false);
+  const [returnOpen, setReturnOpen] = useState(false);
+  const [postInput, setPostInput] = useState<ManualSocialPostInput>({
+    network: draft?.network || 'linkedin',
+    postText: draft?.text || '',
+    postedAt: new Date().toISOString().slice(0, 16),
+  });
+  const [returnInput, setReturnInput] = useState<ManualSocialReturn>({
+    platform: draft?.network || 'linkedin',
+    engagement: {},
+    capturedAt: new Date().toISOString().slice(0, 16),
+  });
+
   if (!draft || !open) return null;
 
   return (
@@ -71,7 +90,51 @@ export function SocialDraftPanel({
         <button type="button" onClick={() => void onApprove()} disabled={!draft.mihmReview || !draft.worldSpectReview}>Aprobar contenido</button>
         <button type="button" onClick={() => void onRequestConfirmation()} disabled={!draft.contentApproved}>Pedir confirmacion</button>
         <button type="button" onClick={() => void onArchive()}>Archivar</button>
+        <button type="button" onClick={() => setPostOpen((value) => !value)}>Registrar post manual</button>
+        <button type="button" onClick={() => setReturnOpen((value) => !value)}>Registrar retorno</button>
       </div>
+
+      {postOpen && (
+        <div className="manual-block">
+          <small>post manual</small>
+          <input value={postInput.network} onChange={(event) => setPostInput((current) => ({ ...current, network: event.target.value }))} placeholder="network" />
+          <input value={postInput.postUrl || ''} onChange={(event) => setPostInput((current) => ({ ...current, postUrl: event.target.value }))} placeholder="postUrl opcional" />
+          <input value={postInput.externalPostId || ''} onChange={(event) => setPostInput((current) => ({ ...current, externalPostId: event.target.value }))} placeholder="externalPostId opcional" />
+          <input type="datetime-local" value={postInput.postedAt} onChange={(event) => setPostInput((current) => ({ ...current, postedAt: event.target.value }))} />
+          <textarea value={postInput.postText} onChange={(event) => setPostInput((current) => ({ ...current, postText: event.target.value }))} />
+          <button type="button" onClick={() => void onRecordManualPost(postInput)}>Guardar post manual</button>
+        </div>
+      )}
+
+      {returnOpen && (
+        <div className="manual-block">
+          <small>retorno social</small>
+          <p>{Object.values(returnInput.engagement).some((value) => value !== undefined) ? 'registrado manualmente' : 'sin metricas'}</p>
+          <input value={returnInput.platform} onChange={(event) => setReturnInput((current) => ({ ...current, platform: event.target.value }))} placeholder="platform" />
+          <input value={returnInput.postId || ''} onChange={(event) => setReturnInput((current) => ({ ...current, postId: event.target.value }))} placeholder="postId opcional" />
+          <input type="number" value={returnInput.resonanceScore ?? ''} onChange={(event) => setReturnInput((current) => ({ ...current, resonanceScore: event.target.value === '' ? undefined : Number(event.target.value) }))} placeholder="resonanceScore opcional" />
+          <div className="metric-grid">
+            {(['impressions', 'views', 'likes', 'comments', 'reposts', 'clicks'] as const).map((key) => (
+              <input
+                key={key}
+                type="number"
+                value={returnInput.engagement[key] ?? ''}
+                onChange={(event) => setReturnInput((current) => ({
+                  ...current,
+                  engagement: {
+                    ...current.engagement,
+                    [key]: event.target.value === '' ? undefined : Number(event.target.value),
+                  },
+                }))}
+                placeholder={key}
+              />
+            ))}
+          </div>
+          <input type="datetime-local" value={returnInput.capturedAt} onChange={(event) => setReturnInput((current) => ({ ...current, capturedAt: event.target.value }))} />
+          <textarea value={returnInput.commentsSummary || ''} onChange={(event) => setReturnInput((current) => ({ ...current, commentsSummary: event.target.value }))} placeholder="comentarios / lectura cualitativa" />
+          <button type="button" onClick={() => void onRecordManualReturn(returnInput)}>Guardar retorno</button>
+        </div>
+      )}
 
       <style jsx>{`
         .social-draft {
@@ -106,10 +169,10 @@ export function SocialDraftPanel({
           letter-spacing: 0.16em;
           font-size: 0.46rem;
         }
-        textarea {
+        textarea,
+        input {
           display: block;
           width: 100%;
-          min-height: 6.5rem;
           margin-top: 0.35rem;
           border: 1px solid rgba(200, 169, 81, 0.1);
           background: rgba(0, 0, 0, 0.18);
@@ -118,6 +181,9 @@ export function SocialDraftPanel({
           font: inherit;
           font-size: 0.62rem;
           line-height: 1.55;
+        }
+        textarea {
+          min-height: 6.5rem;
           resize: vertical;
         }
         .draft-objective,
@@ -163,6 +229,17 @@ export function SocialDraftPanel({
           flex-wrap: wrap;
           gap: 0.35rem;
           margin-top: 0.65rem;
+        }
+        .manual-block {
+          border: 1px solid rgba(141, 187, 165, 0.13);
+          background: rgba(8, 18, 16, 0.22);
+          margin-top: 0.6rem;
+          padding: 0.55rem;
+        }
+        .metric-grid {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 0.35rem;
         }
         button {
           border: 1px solid rgba(200, 169, 81, 0.14);

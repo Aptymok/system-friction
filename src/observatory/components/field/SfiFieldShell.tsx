@@ -20,11 +20,14 @@ import { createObservationSourceDescriptor, type ObservationSourceDescriptor, ty
 import {
   getLatestWorldSpectrumSnapshot,
   persistFieldEvent,
+  persistManualSocialPost,
+  persistManualSocialReturn,
   persistSfiLogbookEvent,
   persistSocialDraft,
   persistWorldSpectrumSnapshot,
   type PersistenceResult,
 } from '@/observatory/persistence/supabaseFieldPersistence';
+import type { ManualSocialPostInput, ManualSocialReturn } from '@/observatory/social/socialManualReturnTypes';
 import {
   approveSocialDraftContent,
   archiveSocialDraft,
@@ -371,6 +374,29 @@ export function SfiFieldShell({
     status: draft.status,
     primaryPatternId: rankedPatterns.primaryPattern?.pattern.id || null,
     ...sourceTrace(descriptor.sourceState, descriptor),
+  });
+
+  const tracePayloadFromManualPost = (input: ManualSocialPostInput) => ({
+    network: input.network,
+    externalPostId: input.externalPostId || null,
+    postUrl: input.postUrl || null,
+    postedAt: input.postedAt,
+    ...sourceTrace('LOCAL_CONTEXT'),
+  });
+
+  const tracePayloadFromManualReturn = (input: ManualSocialReturn) => ({
+    platform: input.platform,
+    postId: input.postId || null,
+    resonanceScore: input.resonanceScore ?? null,
+    engagement: input.engagement,
+    capturedAt: input.capturedAt,
+    ...sourceTrace('SOCIAL_RETURN', createObservationSourceDescriptor({
+      sourceState: 'SOCIAL_RETURN',
+      confidence: 'limited',
+      isExternal: true,
+      isSimulated: false,
+      timestamp: input.capturedAt || new Date().toISOString(),
+    })),
   });
 
   const prepareSocialDraft = async (command: string, commandRank = rankedPatterns) => {
@@ -909,6 +935,45 @@ export function SfiFieldShell({
               primaryPatternId: rankedPatterns.primaryPattern?.pattern.id || null,
               secondaryPatternIds: rankedPatterns.secondaryPatterns.map((item) => item.pattern.id),
             });
+          }}
+          onRecordManualPost={async (input) => {
+            await persistManualSocialPost({
+              node_id: nodeId,
+              network: input.network,
+              postUrl: input.postUrl || null,
+              text: input.postText,
+              postedAt: input.postedAt,
+              externalPostId: input.externalPostId || null,
+              metadata: {
+                draftId: socialDraft?.id,
+                source: 'manual_field_capture',
+              },
+            });
+            appendBitacora('SOCIAL_MANUAL_POST_RECORDED', 'Publicacion manual registrada.', {
+              pattern_id: rankedPatterns.primaryPattern?.pattern.id,
+              trace_payload: tracePayloadFromManualPost(input),
+            });
+            setAmvState((current) => ({
+              ...current,
+              status: 'social_manual_post',
+              message: 'Veo:\nLa publicacion ya existe.\n\nSignifica:\nTodavia no hay senal medida.\n\nSigue:\nRegistrar metricas cuando aparezcan.',
+            }));
+          }}
+          onRecordManualReturn={async (input) => {
+            await persistManualSocialReturn({
+              node_id: nodeId,
+              manualReturn: input,
+            });
+            appendBitacora('SOCIAL_RETURN_MANUAL_RECORDED', 'Retorno social manual registrado.', {
+              pattern_id: rankedPatterns.primaryPattern?.pattern.id,
+              trace_payload: tracePayloadFromManualReturn(input),
+            });
+            setSocialPulse({ active: true, score: input.resonanceScore, platform: input.platform });
+            setAmvState((current) => ({
+              ...current,
+              status: 'social_return_manual',
+              message: 'Veo:\nHay retorno registrado.\n\nSignifica:\nLa publicacion ya produjo una senal medible.\n\nSigue:\nActualizar el nodo social.',
+            }));
           }}
         />
 

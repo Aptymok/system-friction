@@ -158,8 +158,33 @@ export async function POST(req: NextRequest) {
         published_at: body.postedAt || new Date().toISOString(),
         status: 'published',
         external_post_id: body.externalPostId || null,
-        engagement_metrics: { _metadata: body.metadata || {} },
+        engagement_metrics: { _metadata: { ...(body.metadata || {}), postUrl: body.postUrl || null } },
       }).select('*').single();
+      if (error) return localOnly(error.message);
+      return jsonOk(data);
+    }
+
+    if (body.action === 'manual_social_return') {
+      const ctx = await ensureOwnedNode(body.node_id);
+      if (ctx.error) return localOnly('node_unavailable');
+      const manualReturn = body.manualReturn || {};
+      const payload = {
+        node_id: ctx.node.id,
+        platform: String(manualReturn.platform || 'manual'),
+        post_id: manualReturn.postId ? String(manualReturn.postId) : null,
+        resonance_score: manualReturn.resonanceScore === undefined || manualReturn.resonanceScore === null
+          ? null
+          : Number(manualReturn.resonanceScore),
+        engagement: manualReturn.engagement || {},
+        comments_summary: manualReturn.commentsSummary ? String(manualReturn.commentsSummary) : null,
+        raw_payload: {
+          ...(manualReturn.rawPayload || {}),
+          capturedAt: manualReturn.capturedAt || new Date().toISOString(),
+          sourceState: 'SOCIAL_RETURN',
+          captureMode: 'manual',
+        },
+      };
+      const { data, error } = await ctx.service.from('social_resonance_events').insert(payload).select('*').single();
       if (error) return localOnly(error.message);
       return jsonOk(data);
     }

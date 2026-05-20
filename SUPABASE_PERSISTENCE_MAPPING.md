@@ -110,7 +110,20 @@ Si no existe columna `metadata`, la metadata se anida dentro de `engagement_metr
 
 Uso: retorno real de plataforma.
 
-No se usa en este checkpoint salvo que existan metricas reales. No se simula retorno.
+Uso actual: retorno manual capturado por el usuario cuando hay metricas visibles en plataforma.
+
+Mapeo:
+
+- `node_id = active node`
+- `platform = manualReturn.platform`
+- `post_id = manualReturn.postId`
+- `resonance_score = manualReturn.resonanceScore`
+- `engagement = impressions/views/likes/comments/reposts/clicks`
+- `comments_summary = manualReturn.commentsSummary`
+- `raw_payload.sourceState = SOCIAL_RETURN`
+- `raw_payload.captureMode = manual`
+
+No se simula retorno. Si no hay metricas visibles, no debe registrarse como `SOCIAL_RETURN`.
 
 ## Pendiente
 
