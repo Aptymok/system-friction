@@ -17,10 +17,20 @@ import { rankDetectedPatterns, type PatternRankResult } from '@/observatory/fiel
 import { buildGraphVectorState } from '@/observatory/field/vectorMatrix';
 import type { UserSignalVector } from '@/observatory/field/vectorTypes';
 import { createObservationSourceDescriptor, type ObservationSourceDescriptor, type ObservationSourceState } from '@/observatory/source/sourceStateTypes';
+import {
+  approveSocialDraftContent,
+  archiveSocialDraft,
+  createSocialDraft,
+  requestPublicationConfirmation,
+  reviewSocialDraft,
+  updateSocialDraftText,
+} from '@/observatory/social/socialDraftPipeline';
+import type { SocialDraft } from '@/observatory/social/socialDraftTypes';
 import { buildWorldSpectReading, formatWorldSpectAmvReading } from '@/observatory/worldspect/buildWorldSpectReading';
 import { detectWorldSpectTriggers } from '@/observatory/worldspect/detectWorldSpectTriggers';
 import { worldSpectSymbols } from '@/observatory/worldspect/worldSpectTypes';
 import { SfiCognitiveField } from './SfiCognitiveField';
+import { SocialDraftPanel } from './SocialDraftPanel';
 import { WorldSpectPanel } from './WorldSpectPanel';
 import { getDefaultFieldNodes, type FieldCommandMode, type FieldOntologyNode } from './fieldOntology';
 
@@ -89,6 +99,11 @@ function detectIntent(command: string) {
   if (/(evidencia|origen|fuente|traza)/.test(text)) return 'trazabilidad';
   if (/(no se|incertidumbre|bloqueado|pendiente)/.test(text)) return 'friccion_de_accion';
   return 'observacion';
+}
+
+function hasSocialDraftIntent(command: string) {
+  const text = normalizeCommand(command);
+  return /(publicar|publicacion|post|linkedin|twitter|x\.com|instagram|tiktok|youtube|reddit|campana|campania|redes|copy|reel|pieza)/.test(text);
 }
 
 function kindFromCommand(command: string): SignalKind {
@@ -175,8 +190,11 @@ export function SfiFieldShell({
   const [socialPulse, setSocialPulse] = useState<{ active: boolean; score?: number; platform?: string }>({ active: false });
   const [status, setStatus] = useState('');
   const [worldSpectOpen, setWorldSpectOpen] = useState(false);
+  const [socialDraft, setSocialDraft] = useState<SocialDraft | null>(null);
+  const [socialDraftOpen, setSocialDraftOpen] = useState(false);
   const lastGraphEventRef = useRef('');
   const lastWorldSpectEventRef = useRef('');
+  const socialDraftCommandRef = useRef('');
 
   const fieldAsset = activeAsset || makeDraftAsset(draftCommand);
   const reading = useMemo(() => readingFromAsset(activeAsset || fieldAsset), [activeAsset, fieldAsset]);
@@ -324,6 +342,63 @@ export function SfiFieldShell({
     ...sourceTrace(worldSpectReading?.sourceState || 'WORLDSPECT_LOCAL', worldSpectReading?.sourceDescriptor),
   });
 
+  const tracePayloadFromSocialDraft = (draft: SocialDraft, descriptor: ObservationSourceDescriptor = draft.sourceDescriptor) => ({
+    draftId: draft.id,
+    network: draft.network,
+    status: draft.status,
+    primaryPatternId: rankedPatterns.primaryPattern?.pattern.id || null,
+    ...sourceTrace(descriptor.sourceState, descriptor),
+  });
+
+  const prepareSocialDraft = async (command: string, commandRank = rankedPatterns) => {
+    const cleanCommand = command.trim();
+    if (socialDraftCommandRef.current === cleanCommand) return socialDraft;
+    socialDraftCommandRef.current = cleanCommand;
+    const draft = await createSocialDraft({
+      text: cleanCommand,
+      objective: reading.nextAction,
+    });
+    setSocialDraft(draft);
+    setSocialDraftOpen(true);
+    appendBitacora('SOCIAL_DRAFT_CREATED', 'Borrador social creado.', {
+      pattern_id: commandRank.primaryPattern?.pattern.id,
+      trace_payload: tracePayloadFromSocialDraft(draft),
+    });
+
+    const reviewed = await reviewSocialDraft(draft, {
+      activeNode: selectedOntologyNode || activeCommandNode,
+      fieldMode,
+      rankedPatterns: commandRank,
+      mihmState,
+      recentEvents,
+      objective: reading.nextAction,
+      evidencePresent: userSignalVector.evidencePresent,
+      assetState: mihmState,
+    });
+    setSocialDraft(reviewed);
+    appendBitacora('SOCIAL_DRAFT_MIHM_REVIEWED', 'Borrador revisado por MIHM.', {
+      pattern_id: commandRank.primaryPattern?.pattern.id,
+      trace_payload: tracePayloadFromSocialDraft(reviewed, reviewed.mihmReview?.sourceDescriptor),
+    });
+    if (reviewed.worldSpectReview) {
+      appendBitacora('SOCIAL_DRAFT_WORLDSPECT_REVIEWED', 'Borrador revisado por WorldSpect.', {
+        pattern_id: commandRank.primaryPattern?.pattern.id,
+        trace_payload: tracePayloadFromSocialDraft(reviewed, reviewed.worldSpectReview.sourceDescriptor),
+      });
+      setWorldSpectOpen(true);
+    }
+    setAmvState((current) => ({
+      ...current,
+      status: 'social_draft',
+      message: reviewed.worldSpectReview?.visibleReading || reviewed.mihmReview?.visibleReading || current.message,
+      reading: {
+        ...(typeof current.reading === 'object' && current.reading ? current.reading : {}),
+        socialDraft: reviewed,
+      },
+    }));
+    return reviewed;
+  };
+
   useEffect(() => {
     const key = [
       graphVectorState.primaryPatternId,
@@ -405,6 +480,17 @@ export function SfiFieldShell({
     selectedOntologyNode,
     activeCommandNode,
     userSignalVector.rawCommand,
+  ]);
+
+  useEffect(() => {
+    if (socialDraft || !userSignalVector.rawCommand.trim()) return;
+    if (!hasSocialDraftIntent(userSignalVector.rawCommand)) return;
+    if (!worldSpectDetection.activeTriggers.some((trigger) => trigger.id === 'TR_PUBLICATION_INTENT' || trigger.id === 'TR_CAMPAIGN_INTENT')) return;
+    void prepareSocialDraft(userSignalVector.rawCommand);
+  }, [
+    socialDraft,
+    userSignalVector.rawCommand,
+    worldSpectDetection.activeTriggers,
   ]);
 
   const refreshLoop = async () => {
@@ -527,6 +613,7 @@ export function SfiFieldShell({
   const handleCommand = async ({ command, mode, node, evidence }: { command: string; mode: FieldCommandMode; node: FieldOntologyNode | null; evidence?: File | null }) => {
     if (!activeAsset) {
       setDraftCommand(command);
+      if (hasSocialDraftIntent(command)) await prepareSocialDraft(command);
       return createAssetFromCommand(command, evidence);
     }
 
@@ -545,6 +632,9 @@ export function SfiFieldShell({
       recentEvents,
     });
     const pattern = commandRank.primaryPattern?.pattern;
+    if (hasSocialDraftIntent(command)) {
+      await prepareSocialDraft(command, commandRank);
+    }
     if (pattern) {
       appendBitacora('PATTERN_RANKED', 'Patron principal seleccionado.', {
         node_id: node?.id,
@@ -664,6 +754,66 @@ export function SfiFieldShell({
                 trace_payload: tracePayloadFromWorldSpect(),
               });
             }
+          }}
+        />
+
+        <SocialDraftPanel
+          draft={socialDraft}
+          open={socialDraftOpen}
+          onReview={async () => {
+            if (!socialDraft) return;
+            const reviewed = await reviewSocialDraft(socialDraft, {
+              activeNode: selectedOntologyNode || activeCommandNode,
+              fieldMode,
+              rankedPatterns,
+              mihmState,
+              recentEvents,
+              objective: reading.nextAction,
+              evidencePresent: userSignalVector.evidencePresent,
+              assetState: mihmState,
+            });
+            setSocialDraft(reviewed);
+            appendBitacora('SOCIAL_DRAFT_MIHM_REVIEWED', 'Borrador revisado por MIHM.', {
+              pattern_id: rankedPatterns.primaryPattern?.pattern.id,
+              trace_payload: tracePayloadFromSocialDraft(reviewed, reviewed.mihmReview?.sourceDescriptor),
+            });
+            if (reviewed.worldSpectReview) {
+              appendBitacora('SOCIAL_DRAFT_WORLDSPECT_REVIEWED', 'Borrador revisado por WorldSpect.', {
+                pattern_id: rankedPatterns.primaryPattern?.pattern.id,
+                trace_payload: tracePayloadFromSocialDraft(reviewed, reviewed.worldSpectReview.sourceDescriptor),
+              });
+            }
+          }}
+          onApprove={async () => {
+            if (!socialDraft) return;
+            const approved = await approveSocialDraftContent(socialDraft);
+            setSocialDraft(approved);
+            appendBitacora('SOCIAL_DRAFT_CONTENT_APPROVED', 'Contenido aprobado por humano.', {
+              pattern_id: rankedPatterns.primaryPattern?.pattern.id,
+              trace_payload: tracePayloadFromSocialDraft(approved, approved.approval?.sourceDescriptor),
+            });
+          }}
+          onRequestConfirmation={() => {
+            if (!socialDraft) return;
+            const pending = requestPublicationConfirmation(socialDraft);
+            setSocialDraft(pending);
+            appendBitacora('SOCIAL_DRAFT_CONFIRMATION_REQUIRED', 'Confirmacion requerida. Publicacion real deshabilitada.', {
+              pattern_id: rankedPatterns.primaryPattern?.pattern.id,
+              trace_payload: tracePayloadFromSocialDraft(pending),
+            });
+          }}
+          onArchive={() => {
+            if (!socialDraft) return;
+            const archived = archiveSocialDraft(socialDraft);
+            setSocialDraft(archived);
+            appendBitacora('SOCIAL_DRAFT_ARCHIVED', 'Borrador archivado.', {
+              pattern_id: rankedPatterns.primaryPattern?.pattern.id,
+              trace_payload: tracePayloadFromSocialDraft(archived),
+            });
+          }}
+          onTextChange={async (text) => {
+            if (!socialDraft) return;
+            setSocialDraft(await updateSocialDraftText(socialDraft, text));
           }}
         />
 

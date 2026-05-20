@@ -106,7 +106,7 @@ export function detectWorldSpectTriggers(input: WorldSpectTriggerDetectionInput)
     addTrigger(triggers, worldSpectTriggers.TR_LOW_MIHM_STABILITY, variables);
   }
 
-  if (/(evento externo|noticia|mercado|mundo|contexto externo|cambio externo)/.test(text)) {
+  if (/(evento externo|noticia|mercado|mundo|contexto externo|cambio externo|tendencia|trend)/.test(text)) {
     addTrigger(triggers, worldSpectTriggers.TR_EXTERNAL_EVENT, variables);
   }
 
