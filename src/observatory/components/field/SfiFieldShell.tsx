@@ -18,6 +18,14 @@ import { buildGraphVectorState } from '@/observatory/field/vectorMatrix';
 import type { UserSignalVector } from '@/observatory/field/vectorTypes';
 import { createObservationSourceDescriptor, type ObservationSourceDescriptor, type ObservationSourceState } from '@/observatory/source/sourceStateTypes';
 import {
+  getLatestWorldSpectrumSnapshot,
+  persistFieldEvent,
+  persistSfiLogbookEvent,
+  persistSocialDraft,
+  persistWorldSpectrumSnapshot,
+  type PersistenceResult,
+} from '@/observatory/persistence/supabaseFieldPersistence';
+import {
   approveSocialDraftContent,
   archiveSocialDraft,
   createSocialDraft,
@@ -192,6 +200,7 @@ export function SfiFieldShell({
   const [worldSpectOpen, setWorldSpectOpen] = useState(false);
   const [socialDraft, setSocialDraft] = useState<SocialDraft | null>(null);
   const [socialDraftOpen, setSocialDraftOpen] = useState(false);
+  const [latestWorldSnapshot, setLatestWorldSnapshot] = useState<Record<string, unknown> | null>(null);
   const lastGraphEventRef = useRef('');
   const lastWorldSpectEventRef = useRef('');
   const socialDraftCommandRef = useRef('');
@@ -302,6 +311,20 @@ export function SfiFieldShell({
       { event_name: event_type.toLowerCase(), event_type, payload: { fragment: message, pattern_id: options?.pattern_id, trace_payload: options?.trace_payload } },
       ...current,
     ].slice(0, 8));
+    void persistFieldEvent({
+      event_type,
+      message,
+      node_id: options?.node_id || nodeId || undefined,
+      trace_payload: options?.trace_payload,
+    });
+    if (activeAsset?.asset_id) {
+      void persistSfiLogbookEvent({
+        asset_id: activeAsset.asset_id,
+        event_type,
+        message,
+        trace_payload: options?.trace_payload,
+      });
+    }
   };
 
   const sourceTrace = (sourceState: ObservationSourceState, descriptor?: ObservationSourceDescriptor) => {
@@ -360,6 +383,13 @@ export function SfiFieldShell({
     });
     setSocialDraft(draft);
     setSocialDraftOpen(true);
+    void persistSocialDraft({
+      node_id: nodeId,
+      draft,
+      fieldMode,
+      primaryPatternId: commandRank.primaryPattern?.pattern.id || null,
+      secondaryPatternIds: commandRank.secondaryPatterns.map((item) => item.pattern.id),
+    });
     appendBitacora('SOCIAL_DRAFT_CREATED', 'Borrador social creado.', {
       pattern_id: commandRank.primaryPattern?.pattern.id,
       trace_payload: tracePayloadFromSocialDraft(draft),
@@ -376,6 +406,13 @@ export function SfiFieldShell({
       assetState: mihmState,
     });
     setSocialDraft(reviewed);
+    void persistSocialDraft({
+      node_id: nodeId,
+      draft: reviewed,
+      fieldMode,
+      primaryPatternId: commandRank.primaryPattern?.pattern.id || null,
+      secondaryPatternIds: commandRank.secondaryPatterns.map((item) => item.pattern.id),
+    });
     appendBitacora('SOCIAL_DRAFT_MIHM_REVIEWED', 'Borrador revisado por MIHM.', {
       pattern_id: commandRank.primaryPattern?.pattern.id,
       trace_payload: tracePayloadFromSocialDraft(reviewed, reviewed.mihmReview?.sourceDescriptor),
@@ -449,6 +486,14 @@ export function SfiFieldShell({
     appendBitacora('WORLD_SPECT_READING_TRIGGERED', worldSpectReading.summary, {
       pattern_id: rankedPatterns.primaryPattern?.pattern.id,
       trace_payload: tracePayloadFromWorldSpect(),
+    });
+    void persistWorldSpectrumSnapshot({
+      node_id: nodeId,
+      active_node_id: selectedOntologyNode?.id || activeCommandNode,
+      reading: {
+        ...worldSpectReading,
+        ts: worldSpectReading.sourceDescriptor.timestamp,
+      },
     });
     if (worldSpectReading.observationWindow) {
       appendBitacora('OBSERVATION_WINDOW_SUGGESTED', worldSpectReading.observationWindow.visibleSummary, {
@@ -560,6 +605,19 @@ export function SfiFieldShell({
   useEffect(() => {
     void refreshLoop();
   }, [nodeId, activeAsset?.asset_id]);
+
+  useEffect(() => {
+    if (!nodeId) return;
+    void getLatestWorldSpectrumSnapshot({ nodeId }).then((result: PersistenceResult<Record<string, unknown> | null>) => {
+      if (result.ok && result.data) {
+        setLatestWorldSnapshot(result.data);
+        setRecentEvents((current) => [
+          { event_name: 'world_spectrum_snapshot_loaded', payload: { fragment: 'WorldSpect // ultima lectura medida disponible', snapshot: result.data } },
+          ...current,
+        ].slice(0, 8));
+      }
+    });
+  }, [nodeId]);
 
   useEffect(() => {
     if (!socialPulse.active) return;
@@ -745,6 +803,7 @@ export function SfiFieldShell({
         <WorldSpectPanel
           reading={worldSpectReading}
           open={worldSpectOpen}
+          latestSnapshot={latestWorldSnapshot}
           onToggle={() => {
             const nextOpen = !worldSpectOpen;
             setWorldSpectOpen(nextOpen);
@@ -773,6 +832,13 @@ export function SfiFieldShell({
               assetState: mihmState,
             });
             setSocialDraft(reviewed);
+            void persistSocialDraft({
+              node_id: nodeId,
+              draft: reviewed,
+              fieldMode,
+              primaryPatternId: rankedPatterns.primaryPattern?.pattern.id || null,
+              secondaryPatternIds: rankedPatterns.secondaryPatterns.map((item) => item.pattern.id),
+            });
             appendBitacora('SOCIAL_DRAFT_MIHM_REVIEWED', 'Borrador revisado por MIHM.', {
               pattern_id: rankedPatterns.primaryPattern?.pattern.id,
               trace_payload: tracePayloadFromSocialDraft(reviewed, reviewed.mihmReview?.sourceDescriptor),
@@ -788,6 +854,13 @@ export function SfiFieldShell({
             if (!socialDraft) return;
             const approved = await approveSocialDraftContent(socialDraft);
             setSocialDraft(approved);
+            void persistSocialDraft({
+              node_id: nodeId,
+              draft: approved,
+              fieldMode,
+              primaryPatternId: rankedPatterns.primaryPattern?.pattern.id || null,
+              secondaryPatternIds: rankedPatterns.secondaryPatterns.map((item) => item.pattern.id),
+            });
             appendBitacora('SOCIAL_DRAFT_CONTENT_APPROVED', 'Contenido aprobado por humano.', {
               pattern_id: rankedPatterns.primaryPattern?.pattern.id,
               trace_payload: tracePayloadFromSocialDraft(approved, approved.approval?.sourceDescriptor),
@@ -797,6 +870,13 @@ export function SfiFieldShell({
             if (!socialDraft) return;
             const pending = requestPublicationConfirmation(socialDraft);
             setSocialDraft(pending);
+            void persistSocialDraft({
+              node_id: nodeId,
+              draft: pending,
+              fieldMode,
+              primaryPatternId: rankedPatterns.primaryPattern?.pattern.id || null,
+              secondaryPatternIds: rankedPatterns.secondaryPatterns.map((item) => item.pattern.id),
+            });
             appendBitacora('SOCIAL_DRAFT_CONFIRMATION_REQUIRED', 'Confirmacion requerida. Publicacion real deshabilitada.', {
               pattern_id: rankedPatterns.primaryPattern?.pattern.id,
               trace_payload: tracePayloadFromSocialDraft(pending),
@@ -806,6 +886,13 @@ export function SfiFieldShell({
             if (!socialDraft) return;
             const archived = archiveSocialDraft(socialDraft);
             setSocialDraft(archived);
+            void persistSocialDraft({
+              node_id: nodeId,
+              draft: archived,
+              fieldMode,
+              primaryPatternId: rankedPatterns.primaryPattern?.pattern.id || null,
+              secondaryPatternIds: rankedPatterns.secondaryPatterns.map((item) => item.pattern.id),
+            });
             appendBitacora('SOCIAL_DRAFT_ARCHIVED', 'Borrador archivado.', {
               pattern_id: rankedPatterns.primaryPattern?.pattern.id,
               trace_payload: tracePayloadFromSocialDraft(archived),
@@ -813,7 +900,15 @@ export function SfiFieldShell({
           }}
           onTextChange={async (text) => {
             if (!socialDraft) return;
-            setSocialDraft(await updateSocialDraftText(socialDraft, text));
+            const updated = await updateSocialDraftText(socialDraft, text);
+            setSocialDraft(updated);
+            void persistSocialDraft({
+              node_id: nodeId,
+              draft: updated,
+              fieldMode,
+              primaryPatternId: rankedPatterns.primaryPattern?.pattern.id || null,
+              secondaryPatternIds: rankedPatterns.secondaryPatterns.map((item) => item.pattern.id),
+            });
           }}
         />
 

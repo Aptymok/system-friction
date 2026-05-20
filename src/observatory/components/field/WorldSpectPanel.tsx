@@ -5,10 +5,11 @@ import type { WorldSpectReading } from '@/observatory/worldspect/worldSpectTypes
 type WorldSpectPanelProps = {
   reading: WorldSpectReading | null;
   open: boolean;
+  latestSnapshot?: Record<string, unknown> | null;
   onToggle: () => void;
 };
 
-export function WorldSpectPanel({ reading, open, onToggle }: WorldSpectPanelProps) {
+export function WorldSpectPanel({ reading, open, latestSnapshot, onToggle }: WorldSpectPanelProps) {
   if (!reading) return null;
 
   return (
@@ -37,6 +38,13 @@ export function WorldSpectPanel({ reading, open, onToggle }: WorldSpectPanelProp
             <span>accion</span>
             <p>{reading.suggestedAction}</p>
           </div>
+
+          {latestSnapshot && (
+            <div className="worldspect-reading">
+              <span>ultima lectura medida</span>
+              <p>{String(latestSnapshot.observed_at || latestSnapshot.created_at || 'sin timestamp')}</p>
+            </div>
+          )}
 
           <div className="worldspect-vectors">
             {reading.vectors.map((vector) => (
