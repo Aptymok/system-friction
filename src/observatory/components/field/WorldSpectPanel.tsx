@@ -25,7 +25,7 @@ export function WorldSpectPanel({ reading, open, latestSnapshot, onToggle }: Wor
             <span className="trigger-symbol">{reading.triggerSymbol}</span>
             <div>
               <p>{reading.triggerSummary}</p>
-              <small>{reading.sourceDescriptor.label} · confianza {reading.sourceDescriptor.confidence}</small>
+              <small>{reading.sourceDescriptor.label} - confianza {reading.sourceDescriptor.confidence}</small>
             </div>
           </div>
 

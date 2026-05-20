@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { SfiAsset } from '@/lib/types';
+import { compressVisibleText } from '@/observatory/communication/amvVisibleFormatter';
 import type { GraphVectorState, FieldNodeVector } from '@/observatory/field/vectorTypes';
 import { FieldCommandInput } from './FieldCommandInput';
 import { FieldNodeInspector } from './FieldNodeInspector';
@@ -387,7 +388,7 @@ export function SfiCognitiveField(props: SfiCognitiveFieldProps) {
   const label = useMemo(() => {
     if (props.mediaDrafts?.some((draft) => draft.status === 'pending_human_validation')) return 'AMV // validacion humana pendiente';
     if (props.socialPulse?.active) return 'AMV // campo social actualizado';
-    if (props.amvState?.message) return `AMV // ${props.amvState.message}`;
+    if (props.amvState?.message) return `AMV // ${compressVisibleText(props.amvState.message)}`;
     return dataRef.current.writing ? 'AMV // escuchando senal' : 'AMV // campo cognitivo activo';
   }, [props.amvState?.message, props.mediaDrafts, props.socialPulse?.active]);
 
@@ -779,7 +780,7 @@ export function SfiCognitiveField(props: SfiCognitiveFieldProps) {
   };
 
   useEffect(() => {
-    if (props.amvState?.message) pushEcho(`AMV // ${props.amvState.message}`, 'gold');
+    if (props.amvState?.message) pushEcho(`AMV // ${compressVisibleText(props.amvState.message)}`, 'gold');
   }, [props.amvState?.message]);
 
   useEffect(() => {

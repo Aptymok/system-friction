@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { SfiAsset } from '@/lib/types';
 import { inferOperationalReading, type OperationalReading, type SignalKind } from '@/lib/sfi/inference';
+import { formatAmvVisibleResponse } from '@/observatory/communication/amvVisibleFormatter';
 import {
   buildLowFrictionRoute,
   detectFieldPatterns,
@@ -46,7 +47,7 @@ import {
   updateSocialDraftText,
 } from '@/observatory/social/socialDraftPipeline';
 import type { SocialDraft } from '@/observatory/social/socialDraftTypes';
-import { buildWorldSpectReading, formatWorldSpectAmvReading } from '@/observatory/worldspect/buildWorldSpectReading';
+import { buildWorldSpectReading } from '@/observatory/worldspect/buildWorldSpectReading';
 import { detectWorldSpectTriggers } from '@/observatory/worldspect/detectWorldSpectTriggers';
 import { worldSpectSymbols } from '@/observatory/worldspect/worldSpectTypes';
 import { SfiCognitiveField } from './SfiCognitiveField';
@@ -328,6 +329,18 @@ export function SfiFieldShell({
     () => buildLowFrictionRoute({ patterns: visiblePatterns, reading }),
     [visiblePatterns, reading],
   );
+  const visibleAmv = (
+    rawReading: unknown,
+    communicationIntent: 'direct' | 'structured' | 'trace' | 'explanation' | 'overload' | 'disagreement' | 'action' | 'system_status' = 'direct',
+    command = userSignalVector.rawCommand,
+  ) => formatAmvVisibleResponse({
+    rawReading,
+    communicationIntent,
+    userCommand: command,
+    activatedPattern: rankedPatterns.primaryPattern?.pattern || null,
+    activatedSurface: selectedOntologyNode?.label || activeCommandNode,
+    sourceTrace: (typeof rawReading === 'object' && rawReading ? rawReading as Record<string, unknown> : null),
+  }).primaryText;
 
   const appendBitacora = (
     event_type: BitacoraEventType,
@@ -513,7 +526,7 @@ export function SfiFieldShell({
     setAmvState((current) => ({
       ...current,
       status: 'social_draft',
-      message: reviewed.worldSpectReview?.visibleReading || reviewed.mihmReview?.visibleReading || current.message,
+      message: visibleAmv(reviewed.worldSpectReview?.visibleReading || reviewed.mihmReview?.visibleReading || current.message, 'direct'),
       reading: {
         ...(typeof current.reading === 'object' && current.reading ? current.reading : {}),
         socialDraft: reviewed,
@@ -601,7 +614,7 @@ export function SfiFieldShell({
     setAmvState((current) => ({
       ...current,
       status: current.status === 'idle' ? 'worldspect' : current.status,
-      message: formatWorldSpectAmvReading(worldSpectReading),
+      message: visibleAmv(`${worldSpectReading.triggerSummary}. ${worldSpectReading.meaning}. ${worldSpectReading.suggestedAction}.`, 'structured'),
       reading: {
         ...(typeof current.reading === 'object' && current.reading ? current.reading : {}),
         worldspect: worldSpectReading,
@@ -672,7 +685,7 @@ export function SfiFieldShell({
 
       setAmvState({
         status: amv?.status || 'connected_internal',
-        message: formatFieldAmvReading(visiblePatterns.length ? visiblePatterns : fieldPatterns.slice(2, 3), reading),
+        message: visibleAmv(formatFieldAmvReading(visiblePatterns.length ? visiblePatterns : fieldPatterns.slice(2, 3), reading), 'direct'),
         reading: amv?.reading,
       });
       setCalendar(Array.isArray(windows?.windows) ? windows.windows : []);
@@ -842,10 +855,10 @@ export function SfiFieldShell({
     });
     setAmvState((current) => ({
       ...current,
-      message: formatFieldAmvReading([
+      message: visibleAmv(formatFieldAmvReading([
         ...(pattern ? [pattern] : []),
         ...commandRank.secondaryPatterns.map((item) => item.pattern),
-      ], reading),
+      ], reading), undefined, command),
     }));
     setStatus('campo ejecutando');
     return false;
@@ -1074,7 +1087,7 @@ export function SfiFieldShell({
             setAmvState((current) => ({
               ...current,
               status: 'social_manual_post',
-              message: 'Veo:\nLa publicacion ya existe.\n\nSignifica:\nTodavia no hay senal medida.\n\nSigue:\nRegistrar metricas cuando aparezcan.',
+              message: 'La publicacion ya existe. Registra metricas cuando aparezcan.',
             }));
           }}
           onRecordManualReturn={async (input) => {
@@ -1101,7 +1114,7 @@ export function SfiFieldShell({
             setAmvState((current) => ({
               ...current,
               status: 'social_return_manual',
-              message: 'Veo:\nHay retorno registrado.\n\nSignifica:\nLa publicacion ya produjo una senal medible.\n\nSigue:\nActualizar el nodo social.',
+              message: 'Hay retorno registrado. Actualiza el nodo social.',
             }));
           }}
           autoReturn={autoSocialReturn}
@@ -1123,7 +1136,7 @@ export function SfiFieldShell({
               setAmvState((current) => ({
                 ...current,
                 status: 'social_read_only_missing',
-                message: 'Veo:\nNo hay conexion read-only activa.\n\nSignifica:\nNo existe retorno automatico medido.\n\nSigue:\nConectar una fuente o registrar retorno manual.',
+                message: 'No hay conexion read-only activa. Conecta una fuente o registra retorno manual.',
               }));
               return;
             }
@@ -1156,7 +1169,7 @@ export function SfiFieldShell({
             setAmvState((current) => ({
               ...current,
               status: 'social_return_captured',
-              message: 'Veo:\nHay retorno registrado.\n\nSignifica:\nLa publicacion ya produjo una senal medible.\n\nSigue:\nActualizar el nodo social.',
+              message: 'Hay retorno registrado. Actualiza el nodo social.',
             }));
           }}
         />

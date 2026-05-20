@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { compressVisibleText } from '@/observatory/communication/amvVisibleFormatter';
 import type { ManualSocialPostInput, ManualSocialReturn } from '@/observatory/social/socialManualReturnTypes';
 import type { SocialProvider } from '@/observatory/social/socialOAuthTypes';
 import type { SocialDraft } from '@/observatory/social/socialDraftTypes';
@@ -72,14 +73,14 @@ export function SocialDraftPanel({
       <div className="review-grid">
         <div>
           <small>MIHM</small>
-          <p>{draft.mihmReview?.visibleReading || 'pendiente de revision'}</p>
+          <p>{draft.mihmReview?.visibleReading ? compressVisibleText(draft.mihmReview.visibleReading, 'structured') : 'pendiente de revision'}</p>
           {draft.mihmReview && (
             <em>{draft.mihmReview.sourceDescriptor.sourceState} · {draft.mihmReview.sourceDescriptor.confidence}</em>
           )}
         </div>
         <div>
           <small>WorldSpect</small>
-          <p>{draft.worldSpectReview?.visibleReading || 'pendiente de lectura'}</p>
+          <p>{draft.worldSpectReview?.visibleReading ? compressVisibleText(draft.worldSpectReview.visibleReading, 'structured') : 'pendiente de lectura'}</p>
           {draft.worldSpectReview && (
             <em>{draft.worldSpectReview.sourceDescriptor.sourceState} · {draft.worldSpectReview.sourceDescriptor.confidence}</em>
           )}

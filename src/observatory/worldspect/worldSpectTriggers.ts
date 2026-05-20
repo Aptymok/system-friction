@@ -27,7 +27,7 @@ export const worldSpectTriggers: Record<WorldSpectTriggerId, WorldSpectTrigger> 
     name: 'Intencion de publicacion',
     activatesVariables: ['platform', 'semantic', 'social', 'factual'],
     condition: 'La senal apunta a publicacion, post, pieza o salida publica.',
-    visibleSummary: 'La senal quiere salir al campo publico.',
+    visibleSummary: 'La accion requiere salida publica.',
   },
   TR_CAMPAIGN_INTENT: {
     id: 'TR_CAMPAIGN_INTENT',
