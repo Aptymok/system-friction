@@ -58,6 +58,7 @@ import { FieldRuntimePanel, type FieldRuntimeStatus } from './FieldRuntimePanel'
 import { SocialDraftPanel } from './SocialDraftPanel';
 import { WorldSpectPanel } from './WorldSpectPanel';
 import { getDefaultFieldNodes, type FieldCommandMode, type FieldOntologyNode } from './fieldOntology';
+import { AtlasLaboratoryShell } from '@/observatory/components/laboratory/AtlasLaboratoryShell';
 
 type CalendarWindow = {
   label: string;
@@ -548,7 +549,7 @@ export function SfiFieldShell({
     source: worldSpectReading?.source || 'local_context',
     activeNode: selectedOntologyNode?.id || activeCommandNode,
     primaryPatternId: rankedPatterns.primaryPattern?.pattern.id || null,
-    ...sourceTrace(worldSpectReading?.sourceState || 'WORLDSPECT_LOCAL', worldSpectReading?.sourceDescriptor),
+    ...sourceTrace(worldSpectReading?.sourceState || 'LOCAL_CONTEXT', worldSpectReading?.sourceDescriptor),
   });
 
   const tracePayloadFromSocialDraft = (draft: SocialDraft, descriptor: ObservationSourceDescriptor = draft.sourceDescriptor) => ({
@@ -681,6 +682,8 @@ export function SfiFieldShell({
   ]);
 
   useEffect(() => {
+    const userTriggeredWorldSpectEnabled = false;
+    if (!userTriggeredWorldSpectEnabled) return;
     if (!canPersist) return;
     if (!worldSpectReading || !worldSpectDetection.primaryTrigger) return;
     const key = [
@@ -1052,6 +1055,36 @@ export function SfiFieldShell({
     setStatus('continuidad bloqueada');
   };
 
+  const atlasRuntimeSummary = `Persistencia ${runtimeStatus.persistence}. Realtime ${runtimeStatus.realtime.replace('_', ' ')}. WorldSpect ${runtimeStatus.worldSpect}. Social ${runtimeStatus.social}.`;
+  const atlasInitialCommand = draftCommand
+    || textFromRecord(fieldAsset.objective, 'observed_signal')
+    || textFromRecord(fieldAsset.objective, 'declaration')
+    || '';
+  const paywallFullLink = paywallLinks?.full || '';
+
+  return (
+    <AtlasLaboratoryShell
+      nodeLabel={activeAsset ? assetName(activeAsset) : textFromRecord(fieldAsset.target_system, 'name') || 'Nodo vivo'}
+      intentProfile={fieldSurface.intentProfile}
+      localNode={localNode}
+      canPersist={canPersist}
+      latestWorldSnapshot={latestWorldSnapshot}
+      runtimeSummary={atlasRuntimeSummary}
+      nextAction={reading.nextAction}
+      initialCommand={atlasInitialCommand}
+      onCommand={async (command) => {
+        const node = selectedOntologyNode || allFieldNodes.find((item) => item.id === activeCommandNode) || null;
+        await handleCommand({ command, mode: node?.commandMode || 'amv', node });
+      }}
+      onWorldSpectCategorySelect={(category, detail) => {
+        appendBitacora('WORLD_SPECT_CATEGORY_SELECTED', `WorldSpect ${category} activo.`, {
+          trace_payload: detail,
+        });
+      }}
+      onContinuityRequest={() => requestContinuity('continuidad')}
+    />
+  );
+
   return (
     <main className="field-shell">
       <header className="field-header">
@@ -1154,7 +1187,7 @@ export function SfiFieldShell({
             <span>Para conservar memoria, ejecutar acciones y activar modulos longitudinales, crea una cuenta.</span>
             <div>
               <a href="/login">Crear cuenta</a>
-              {paywallLinks?.full ? <a href={paywallLinks.full}>Activar licencia</a> : null}
+              {paywallFullLink ? <a href={paywallFullLink}>Activar licencia</a> : null}
             </div>
           </aside>
         )}

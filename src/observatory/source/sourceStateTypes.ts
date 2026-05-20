@@ -3,7 +3,6 @@ export type ObservationSourceState =
   | 'INTERNAL_PATTERN'
   | 'MIHM_INTERNAL'
   | 'VECTOR_MATRIX'
-  | 'WORLDSPECT_LOCAL'
   | 'WORLDSPECT_EXTERNAL'
   | 'SOCIAL_RETURN'
   | 'SIMULATED'
@@ -40,7 +39,6 @@ export function createObservationSourceDescriptor(input: {
     INTERNAL_PATTERN: { label: 'internal_pattern', visibleLabel: 'Patron interno.' },
     MIHM_INTERNAL: { label: 'mihm_internal', visibleLabel: 'MIHM interno.' },
     VECTOR_MATRIX: { label: 'vector_matrix', visibleLabel: 'Matriz vectorial.' },
-    WORLDSPECT_LOCAL: { label: 'worldspect_local', visibleLabel: 'Lectura local. Fuente externa no conectada.' },
     WORLDSPECT_EXTERNAL: { label: 'worldspect_external', visibleLabel: 'Fuente externa.' },
     SOCIAL_RETURN: { label: 'social_return', visibleLabel: 'Retorno real.' },
     SIMULATED: { label: 'simulated', visibleLabel: 'Simulacion.' },

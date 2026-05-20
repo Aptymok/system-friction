@@ -42,7 +42,7 @@ export type WorldSpectReading = {
   variables: WorldSpectVariable[];
   symbols: WorldSpectSymbol[];
   source: WorldSpectSource;
-  sourceState: 'WORLDSPECT_LOCAL' | 'WORLDSPECT_EXTERNAL';
+  sourceState: 'LOCAL_CONTEXT' | 'WORLDSPECT_EXTERNAL';
   sourceDescriptor: ObservationSourceDescriptor;
   confidence: WorldSpectConfidence;
   state: 'dormant' | 'reading' | 'watch';

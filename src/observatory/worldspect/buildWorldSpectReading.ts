@@ -80,7 +80,7 @@ export function buildWorldSpectReading(input: BuildWorldSpectReadingInput): Worl
   const suggestedAction = primaryPattern?.accion_sugerida
     || (variables.includes('factual') ? 'Validar origen' : 'Observar antes de mover');
   const sourceDescriptor = createObservationSourceDescriptor({
-    sourceState: 'WORLDSPECT_LOCAL',
+    sourceState: 'LOCAL_CONTEXT',
     label: 'contexto local',
     confidence: 'limited',
     isExternal: false,
@@ -114,7 +114,7 @@ export function buildWorldSpectReading(input: BuildWorldSpectReadingInput): Worl
     variables,
     symbols,
     source: 'local_context',
-    sourceState: 'WORLDSPECT_LOCAL',
+    sourceState: 'LOCAL_CONTEXT',
     sourceDescriptor,
     confidence: 'limited',
     state: stabilityLow ? 'watch' : 'reading',
