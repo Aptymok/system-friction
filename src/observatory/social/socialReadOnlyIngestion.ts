@@ -1,5 +1,6 @@
 import 'server-only';
 
+import { createHash } from 'crypto';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { createObservationSourceDescriptor } from '@/observatory/source/sourceStateTypes';
 import type {
@@ -38,6 +39,10 @@ function scoreFromEngagement(engagement: Record<string, number>) {
   const weighted = (engagement.likes || 0) + (engagement.reactions || 0) + (engagement.comments || 0) * 2 + (engagement.reposts || 0) * 2 + (engagement.clicks || 0) * 1.5;
   const exposure = Math.max(engagement.impressions || engagement.views || engagement.reach || weighted || 1, 1);
   return Math.max(0, Math.min(1, Number((weighted / exposure).toFixed(4))));
+}
+
+function hashEngagement(engagement: Record<string, number>) {
+  return createHash('sha256').update(JSON.stringify(Object.entries(engagement).sort())).digest('hex').slice(0, 24);
 }
 
 export function assertSocialWriteDisabled() {
@@ -185,6 +190,19 @@ export function normalizeSocialMetrics(provider: SocialProvider, rawPayload: Rec
 }
 
 export async function persistSocialMetricSnapshot(ctx: ServerContext, snapshot: SocialMetricSnapshot) {
+  const engagementHash = hashEngagement(snapshot.engagement);
+  const { data: existing } = await ctx.service
+    .from('social_resonance_events')
+    .select('*')
+    .eq('node_id', ctx.node?.id || null)
+    .eq('platform', snapshot.provider)
+    .eq('post_id', snapshot.postId)
+    .eq('raw_payload->>captureMode', 'oauth_read_only')
+    .eq('raw_payload->>engagementHash', engagementHash)
+    .limit(1)
+    .maybeSingle();
+  if (existing) return { data: existing, error: null };
+
   const payload = {
     node_id: ctx.node?.id || null,
     platform: snapshot.provider,
@@ -198,12 +216,23 @@ export async function persistSocialMetricSnapshot(ctx: ServerContext, snapshot: 
       captureMode: 'oauth_read_only',
       isSimulated: false,
       capturedAt: snapshot.capturedAt,
+      engagementHash,
     },
   };
   return ctx.service.from('social_resonance_events').insert(payload).select('*').single();
 }
 
 async function persistExternalSignal(ctx: ServerContext, telemetrySourceId: string | null, post: SocialIngestedPost) {
+  const { data: existing } = await ctx.service
+    .from('external_signals')
+    .select('*')
+    .eq('user_id', ctx.user.id)
+    .eq('provider', post.provider)
+    .eq('external_id', post.externalId)
+    .limit(1)
+    .maybeSingle();
+  if (existing) return { data: existing, error: null };
+
   return ctx.service.from('external_signals').insert({
     telemetry_source_id: telemetrySourceId,
     user_id: ctx.user.id,

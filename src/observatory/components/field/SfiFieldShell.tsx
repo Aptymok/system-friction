@@ -20,6 +20,7 @@ import { createObservationSourceDescriptor, type ObservationSourceDescriptor, ty
 import {
   getLatestWorldSpectrumSnapshot,
   getConnectedSocialSources,
+  getFieldRuntimeStatus,
   ingestReadOnlySocialMetrics,
   persistFieldEvent,
   persistManualSocialPost,
@@ -29,6 +30,11 @@ import {
   persistWorldSpectrumSnapshot,
   type PersistenceResult,
 } from '@/observatory/persistence/supabaseFieldPersistence';
+import {
+  shouldPersistFieldEvent,
+  shouldPersistManualPost,
+  shouldPersistManualReturn,
+} from '@/observatory/runtime/deduplicateFieldEvents';
 import type { ManualSocialPostInput, ManualSocialReturn } from '@/observatory/social/socialManualReturnTypes';
 import type { SocialProvider } from '@/observatory/social/socialOAuthTypes';
 import {
@@ -44,6 +50,7 @@ import { buildWorldSpectReading, formatWorldSpectAmvReading } from '@/observator
 import { detectWorldSpectTriggers } from '@/observatory/worldspect/detectWorldSpectTriggers';
 import { worldSpectSymbols } from '@/observatory/worldspect/worldSpectTypes';
 import { SfiCognitiveField } from './SfiCognitiveField';
+import { FieldRuntimePanel, type FieldRuntimeStatus } from './FieldRuntimePanel';
 import { SocialDraftPanel } from './SocialDraftPanel';
 import { WorldSpectPanel } from './WorldSpectPanel';
 import { getDefaultFieldNodes, type FieldCommandMode, type FieldOntologyNode } from './fieldOntology';
@@ -212,6 +219,16 @@ export function SfiFieldShell({
     lastSyncAt?: string;
     capturedCount?: number;
   }>({ status: 'sin_conexion' });
+  const [runtimeStatus, setRuntimeStatus] = useState<FieldRuntimeStatus>({
+    persistence: 'unknown',
+    lastEvent: null,
+    lastError: null,
+    worldSpect: 'sin_lectura',
+    social: 'unknown',
+    realtime: 'no_habilitado',
+    duplicatesBlocked: 0,
+    latestPersistedEventAt: null,
+  });
   const [latestWorldSnapshot, setLatestWorldSnapshot] = useState<Record<string, unknown> | null>(null);
   const lastGraphEventRef = useRef('');
   const lastWorldSpectEventRef = useRef('');
@@ -323,11 +340,37 @@ export function SfiFieldShell({
       { event_name: event_type.toLowerCase(), event_type, payload: { fragment: message, pattern_id: options?.pattern_id, trace_payload: options?.trace_payload } },
       ...current,
     ].slice(0, 8));
+
+    const node_id = options?.node_id || nodeId || undefined;
+    const dedupe = shouldPersistFieldEvent({
+      event_type,
+      message,
+      node_id,
+      pattern_id: options?.pattern_id,
+      trace_payload: options?.trace_payload,
+    });
+    if (!dedupe.persist) {
+      setRuntimeStatus((current) => ({
+        ...current,
+        lastEvent: `${event_type} bloqueado`,
+        duplicatesBlocked: current.duplicatesBlocked + 1,
+      }));
+      return;
+    }
+
     void persistFieldEvent({
       event_type,
       message,
-      node_id: options?.node_id || nodeId || undefined,
+      node_id,
       trace_payload: options?.trace_payload,
+    }).then((result) => {
+      setRuntimeStatus((current) => ({
+        ...current,
+        persistence: result.mode,
+        lastEvent: event_type,
+        lastError: result.ok ? null : result.error || null,
+        latestPersistedEventAt: result.ok ? new Date().toISOString() : current.latestPersistedEventAt,
+      }));
     });
     if (activeAsset?.asset_id) {
       void persistSfiLogbookEvent({
@@ -335,6 +378,14 @@ export function SfiFieldShell({
         event_type,
         message,
         trace_payload: options?.trace_payload,
+      }).then((result) => {
+        if (!result.ok) {
+          setRuntimeStatus((current) => ({
+            ...current,
+            persistence: result.mode,
+            lastError: result.error || current.lastError,
+          }));
+        }
       });
     }
   };
@@ -529,6 +580,13 @@ export function SfiFieldShell({
         ...worldSpectReading,
         ts: worldSpectReading.sourceDescriptor.timestamp,
       },
+    }).then((result) => {
+      setRuntimeStatus((current) => ({
+        ...current,
+        persistence: result.mode,
+        worldSpect: result.ok ? 'medido' : 'local',
+        lastError: result.ok ? current.lastError : result.error || current.lastError,
+      }));
     });
     if (worldSpectReading.observationWindow) {
       appendBitacora('OBSERVATION_WINDOW_SUGGESTED', worldSpectReading.observationWindow.visibleSummary, {
@@ -646,13 +704,16 @@ export function SfiFieldShell({
     void getLatestWorldSpectrumSnapshot({ nodeId }).then((result: PersistenceResult<Record<string, unknown> | null>) => {
       if (result.ok && result.data) {
         setLatestWorldSnapshot(result.data);
+        setRuntimeStatus((current) => ({ ...current, worldSpect: 'medido', persistence: result.mode }));
         setRecentEvents((current) => [
           { event_name: 'world_spectrum_snapshot_loaded', payload: { fragment: 'WorldSpect // ultima lectura medida disponible', snapshot: result.data } },
           ...current,
         ].slice(0, 8));
+      } else {
+        setRuntimeStatus((current) => ({ ...current, worldSpect: worldSpectReading ? 'local' : 'sin_lectura' }));
       }
     });
-  }, [nodeId]);
+  }, [nodeId, worldSpectReading]);
 
   useEffect(() => {
     if (!nodeId) return;
@@ -663,9 +724,29 @@ export function SfiFieldShell({
           status: 'conectado_read_only',
           provider: source.provider,
         });
+        setRuntimeStatus((current) => ({ ...current, social: 'read_only_ready', persistence: result.mode }));
       } else {
         setAutoSocialReturn({ status: 'sin_conexion' });
+        setRuntimeStatus((current) => ({ ...current, social: 'read_only_missing_token', persistence: result.mode }));
       }
+    });
+  }, [nodeId]);
+
+  useEffect(() => {
+    if (!nodeId) return;
+    void getFieldRuntimeStatus({ node_id: nodeId }).then((result) => {
+      if (!result.ok || !result.data) return;
+      setRuntimeStatus((current) => ({
+        ...current,
+        persistence: result.mode,
+        latestPersistedEventAt: result.data?.latestPersistedEventAt || current.latestPersistedEventAt,
+        worldSpect: result.data?.latestWorldSpectrumSnapshot ? 'medido' : current.worldSpect,
+        social: result.data?.latestSocialReturnAt
+          ? 'manual_return'
+          : result.data?.hasReadOnlyTokens
+            ? 'read_only_ready'
+            : current.social,
+      }));
     });
   }, [nodeId]);
 
@@ -866,6 +947,8 @@ export function SfiFieldShell({
           }}
         />
 
+        <FieldRuntimePanel status={runtimeStatus} />
+
         <SocialDraftPanel
           draft={socialDraft}
           open={socialDraftOpen}
@@ -961,7 +1044,8 @@ export function SfiFieldShell({
             });
           }}
           onRecordManualPost={async (input) => {
-            await persistManualSocialPost({
+            const dedupe = shouldPersistManualPost(input);
+            const result = await persistManualSocialPost({
               node_id: nodeId,
               network: input.network,
               postUrl: input.postUrl || null,
@@ -973,6 +1057,16 @@ export function SfiFieldShell({
                 source: 'manual_field_capture',
               },
             });
+            const duplicate = !dedupe.persist || Boolean((result.data as { duplicate?: boolean } | undefined)?.duplicate);
+            setRuntimeStatus((current) => ({
+              ...current,
+              persistence: result.mode,
+              social: 'manual_return',
+              lastEvent: duplicate ? 'SOCIAL_MANUAL_POST_RECORDED bloqueado' : 'SOCIAL_MANUAL_POST_RECORDED',
+              lastError: result.ok ? null : result.error || current.lastError,
+              duplicatesBlocked: duplicate ? current.duplicatesBlocked + 1 : current.duplicatesBlocked,
+            }));
+            if (duplicate) return;
             appendBitacora('SOCIAL_MANUAL_POST_RECORDED', 'Publicacion manual registrada.', {
               pattern_id: rankedPatterns.primaryPattern?.pattern.id,
               trace_payload: tracePayloadFromManualPost(input),
@@ -984,10 +1078,21 @@ export function SfiFieldShell({
             }));
           }}
           onRecordManualReturn={async (input) => {
-            await persistManualSocialReturn({
+            const dedupe = shouldPersistManualReturn(input);
+            const result = await persistManualSocialReturn({
               node_id: nodeId,
               manualReturn: input,
             });
+            const duplicate = !dedupe.persist || Boolean((result.data as { duplicate?: boolean } | undefined)?.duplicate);
+            setRuntimeStatus((current) => ({
+              ...current,
+              persistence: result.mode,
+              social: 'manual_return',
+              lastEvent: duplicate ? 'SOCIAL_RETURN_MANUAL_RECORDED bloqueado' : 'SOCIAL_RETURN_MANUAL_RECORDED',
+              lastError: result.ok ? null : result.error || current.lastError,
+              duplicatesBlocked: duplicate ? current.duplicatesBlocked + 1 : current.duplicatesBlocked,
+            }));
+            if (duplicate) return;
             appendBitacora('SOCIAL_RETURN_MANUAL_RECORDED', 'Retorno social manual registrado.', {
               pattern_id: rankedPatterns.primaryPattern?.pattern.id,
               trace_payload: tracePayloadFromManualReturn(input),
@@ -1009,6 +1114,12 @@ export function SfiFieldShell({
             const ingestion = result.data;
             if (!ingestion?.ok) {
               setAutoSocialReturn({ status: 'sin_conexion', provider });
+              setRuntimeStatus((current) => ({
+                ...current,
+                persistence: result.mode,
+                social: 'read_only_missing_token',
+                lastError: ingestion?.reason || result.error || current.lastError,
+              }));
               setAmvState((current) => ({
                 ...current,
                 status: 'social_read_only_missing',
@@ -1022,6 +1133,14 @@ export function SfiFieldShell({
               lastSyncAt: ingestion.lastSyncAt,
               capturedCount: ingestion.capturedCount,
             });
+            setRuntimeStatus((current) => ({
+              ...current,
+              persistence: result.mode,
+              social: 'captured',
+              lastEvent: 'SOCIAL_RETURN_CAPTURED',
+              lastError: null,
+              latestPersistedEventAt: ingestion.lastSyncAt || new Date().toISOString(),
+            }));
             appendBitacora('SOCIAL_RETURN_CAPTURED', 'Retorno automatico read-only capturado.', {
               pattern_id: rankedPatterns.primaryPattern?.pattern.id,
               trace_payload: {

@@ -151,16 +151,42 @@ export async function POST(req: NextRequest) {
     if (body.action === 'manual_social_post') {
       const ctx = await ensureOwnedNode(body.node_id);
       if (ctx.error) return localOnly('node_unavailable');
+      const provider = String(body.network || 'manual');
+      const externalPostId = body.externalPostId ? String(body.externalPostId) : null;
+      const postUrl = body.postUrl ? String(body.postUrl) : null;
+
+      if (externalPostId) {
+        const { data: existing } = await ctx.service
+          .from('social_posts')
+          .select('*')
+          .eq('user_id', ctx.user.id)
+          .eq('provider', provider)
+          .eq('external_post_id', externalPostId)
+          .limit(1)
+          .maybeSingle();
+        if (existing) return jsonOk({ ...existing, duplicate: true });
+      } else if (postUrl) {
+        const { data: existing } = await ctx.service
+          .from('social_posts')
+          .select('*')
+          .eq('user_id', ctx.user.id)
+          .eq('provider', provider)
+          .eq('engagement_metrics->_metadata->>postUrl', postUrl)
+          .limit(1)
+          .maybeSingle();
+        if (existing) return jsonOk({ ...existing, duplicate: true });
+      }
+
       const { data, error } = await ctx.service.from('social_posts').insert({
         id: randomUUID(),
         user_id: ctx.user.id,
         node_id: ctx.node.id,
-        provider: String(body.network || 'manual'),
+        provider,
         content: String(body.text || ''),
         published_at: body.postedAt || new Date().toISOString(),
         status: 'published',
-        external_post_id: body.externalPostId || null,
-        engagement_metrics: { _metadata: { ...(body.metadata || {}), postUrl: body.postUrl || null } },
+        external_post_id: externalPostId,
+        engagement_metrics: { _metadata: { ...(body.metadata || {}), postUrl } },
       }).select('*').single();
       if (error) return localOnly(error.message);
       return jsonOk(data);
@@ -170,10 +196,25 @@ export async function POST(req: NextRequest) {
       const ctx = await ensureOwnedNode(body.node_id);
       if (ctx.error) return localOnly('node_unavailable');
       const manualReturn = body.manualReturn || {};
+      const platform = String(manualReturn.platform || 'manual');
+      const postId = manualReturn.postId ? String(manualReturn.postId) : null;
+      const capturedAt = manualReturn.capturedAt || new Date().toISOString();
+
+      let existingQuery = ctx.service
+        .from('social_resonance_events')
+        .select('*')
+        .eq('node_id', ctx.node.id)
+        .eq('platform', platform)
+        .eq('raw_payload->>capturedAt', capturedAt)
+        .limit(1);
+      existingQuery = postId ? existingQuery.eq('post_id', postId) : existingQuery.is('post_id', null);
+      const { data: existing } = await existingQuery.maybeSingle();
+      if (existing) return jsonOk({ ...existing, duplicate: true });
+
       const payload = {
         node_id: ctx.node.id,
-        platform: String(manualReturn.platform || 'manual'),
-        post_id: manualReturn.postId ? String(manualReturn.postId) : null,
+        platform,
+        post_id: postId,
         resonance_score: manualReturn.resonanceScore === undefined || manualReturn.resonanceScore === null
           ? null
           : Number(manualReturn.resonanceScore),
@@ -181,7 +222,7 @@ export async function POST(req: NextRequest) {
         comments_summary: manualReturn.commentsSummary ? String(manualReturn.commentsSummary) : null,
         raw_payload: {
           ...(manualReturn.rawPayload || {}),
-          capturedAt: manualReturn.capturedAt || new Date().toISOString(),
+          capturedAt,
           sourceState: 'SOCIAL_RETURN',
           captureMode: 'manual',
         },
@@ -234,6 +275,74 @@ export async function POST(req: NextRequest) {
       }
 
       return jsonOk(result);
+    }
+
+    if (body.action === 'runtime_status') {
+      const ctx = await ensureOwnedNode(body.node_id);
+      if (ctx.error) return localOnly('node_unavailable');
+      const since = new Date(Date.now() - 5 * 60_000).toISOString();
+      const [
+        fieldEvents,
+        latestWorld,
+        socialPosts,
+        socialReturns,
+        tokens,
+        latestReturn,
+        latestEvent,
+      ] = await Promise.all([
+        ctx.service
+          .from('cognitive_event_stream')
+          .select('id', { count: 'exact', head: true })
+          .eq('node_id', ctx.node.id)
+          .gte('created_at', since),
+        ctx.service
+          .from('world_spectrum_snapshots')
+          .select('*')
+          .eq('node_id', ctx.node.id)
+          .eq('user_id', ctx.user.id)
+          .order('observed_at', { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+        ctx.service
+          .from('social_posts')
+          .select('id', { count: 'exact', head: true })
+          .eq('node_id', ctx.node.id)
+          .eq('user_id', ctx.user.id)
+          .gte('created_at', since),
+        ctx.service
+          .from('social_resonance_events')
+          .select('id', { count: 'exact', head: true })
+          .eq('node_id', ctx.node.id)
+          .gte('created_at', since),
+        ctx.service
+          .from('social_tokens')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', ctx.user.id),
+        ctx.service
+          .from('social_resonance_events')
+          .select('created_at')
+          .eq('node_id', ctx.node.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+        ctx.service
+          .from('cognitive_event_stream')
+          .select('created_at')
+          .eq('node_id', ctx.node.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+      ]);
+
+      return jsonOk({
+        recentFieldEventsCount: fieldEvents.count || 0,
+        latestWorldSpectrumSnapshot: latestWorld.data || null,
+        recentSocialPostsCount: socialPosts.count || 0,
+        recentSocialReturnsCount: socialReturns.count || 0,
+        hasReadOnlyTokens: Boolean(tokens.count),
+        latestSocialReturnAt: latestReturn.data?.created_at || null,
+        latestPersistedEventAt: latestEvent.data?.created_at || null,
+      });
     }
 
     return localOnly('unknown_action');

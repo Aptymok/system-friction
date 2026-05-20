@@ -103,3 +103,17 @@ export function ingestReadOnlySocialMetrics(input: {
 }) {
   return postPersistence<SocialIngestionResult>('social_readonly_ingest', input);
 }
+
+export type FieldRuntimeDiagnostics = {
+  recentFieldEventsCount: number;
+  latestWorldSpectrumSnapshot: Record<string, unknown> | null;
+  recentSocialPostsCount: number;
+  recentSocialReturnsCount: number;
+  hasReadOnlyTokens: boolean;
+  latestSocialReturnAt: string | null;
+  latestPersistedEventAt: string | null;
+};
+
+export function getFieldRuntimeStatus(input: { node_id?: string | null }) {
+  return postPersistence<FieldRuntimeDiagnostics>('runtime_status', input);
+}
