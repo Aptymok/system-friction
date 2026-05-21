@@ -4,56 +4,67 @@ export type EvidenceLevel = 'direct' | 'behavioral' | 'statistical' | 'semantic'
 
 export type FieldRegime = 'stable' | 'watch' | 'critical' | 'unknown';
 
+export type LogbookId = string;
+
+export type FieldMetricSet = {
+  ihg: number;
+  nti: number;
+  ldi: number;
+  phi?: number;
+  degradation: number;
+  operationalCapacity: number;
+};
+
+export type CanonicalEvidence = {
+  sourceState: SourceState;
+  evidenceLevel: EvidenceLevel;
+  confidence: number;
+  updatedAt: string;
+};
+
 export type FieldNode = {
   id: string;
   label: string;
   kind: string;
   status: 'active' | 'inactive' | 'degraded' | 'unknown';
-};
+} & CanonicalEvidence;
 
 export type FieldLink = {
   id: string;
   sourceNodeId: string;
   targetNodeId: string;
   relation: string;
-  confidence: number;
-};
+} & CanonicalEvidence;
 
-export type FieldState = {
+export type FieldState = CanonicalEvidence & {
   fieldId: string;
   nodeId: string;
   regime: FieldRegime;
+  metrics: FieldMetricSet;
   operationalCapacity: number;
   degradation: number;
   nodes: FieldNode[];
   links: FieldLink[];
-  sourceState: SourceState;
-  evidenceLevel: EvidenceLevel;
-  confidence: number;
-  updatedAt: string;
 };
 
-export type NodeState = {
+export type NodeState = CanonicalEvidence & {
   nodeId: string;
   ownerId: string;
   assets: Array<{ assetId: string; status: string }>;
-  updatedAt: string;
 };
 
-export type LogRecord = {
+export type LogRecord = CanonicalEvidence & {
   id: string;
   nodeId: string;
+  logbookId?: LogbookId;
   eventName: string;
-  sourceState: SourceState;
-  evidenceLevel: EvidenceLevel;
   payloadHash: string;
   createdAt: string;
 };
 
-export type SourceHealth = {
+export type SourceHealth = CanonicalEvidence & {
   sourceId: string;
   status: 'healthy' | 'degraded' | 'unavailable' | 'unknown';
   lastObservedAt?: string;
   message?: string;
 };
-
