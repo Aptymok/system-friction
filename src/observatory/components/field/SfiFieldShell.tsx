@@ -59,6 +59,7 @@ import { SocialDraftPanel } from './SocialDraftPanel';
 import { WorldSpectPanel } from './WorldSpectPanel';
 import { getDefaultFieldNodes, type FieldCommandMode, type FieldOntologyNode } from './fieldOntology';
 import { AtlasLaboratoryShell } from '@/observatory/components/laboratory/AtlasLaboratoryShell';
+import { declareTerminalSignal } from '@/lib/terminal/signalClient';
 
 type CalendarWindow = {
   label: string;
