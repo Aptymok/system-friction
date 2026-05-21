@@ -1,4 +1,4 @@
-export type ContractVersion = '2026-05-21.phase-2a' | '2026-05-21.phase-2d';
+export type ContractVersion = '2026-05-21.phase-2a' | '2026-05-21.phase-2d' | '2026-05-21.phase-3c';
 
 export type EpistemicClass =
   | 'observed'
@@ -86,9 +86,25 @@ export type LogEntryDTO = {
 export type SourceHealthDTO = {
   sourceId: string;
   status: 'healthy' | 'degraded' | 'unavailable' | 'unknown';
+  kind?: 'webhook' | 'oauth' | 'manual' | 'cron' | 'fixture' | 'public-api';
   lastObservedAt?: string;
+  checkedAt?: string;
   confidence: number;
   message?: string;
+};
+
+export type IntegrationEventDTO<TPayload = unknown> = {
+  contractVersion: ContractVersion;
+  integrationEventId: string;
+  sourceId: string;
+  sourceKind: 'webhook' | 'oauth' | 'manual' | 'cron' | 'fixture' | 'public-api';
+  eventName: string;
+  receivedAt: string;
+  occurredAt?: string;
+  payloadHash: string;
+  signatureVerified: boolean;
+  idempotencyKey?: string;
+  payload: TPayload;
 };
 
 export type ReadCapability =
