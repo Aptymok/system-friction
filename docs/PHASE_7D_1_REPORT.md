@@ -1,15 +1,12 @@
 # PHASE 7D.1 REPORT
 
-Fecha: 2026-05-22  
+Fecha: 2026-05-21  
 Agente: SFI Field Events Hardening Agent  
 Fase: FASE 7D.1 - Field events hardening
 
 ## Archivos modificados
 
 - `src/app/api/field/events/route.ts`
-
-## Archivos creados
-
 - `docs/PHASE_7D_1_REPORT.md`
 
 ## Objetivo
@@ -20,19 +17,19 @@ Endurecer `src/app/api/field/events/route.ts` sin cambiar clientes existentes ni
 
 ### Idempotency key endurecida
 
-Se reemplazo validacion minima manual (`length < 8`) por:
+La ruta usa:
 
 - `isValidIdempotencyKey()` desde `packages/security`.
 
 Resultado:
 
-- longitud alineada a politica centralizada;
+- longitud alineada a politica centralizada de 16 a 128 caracteres;
 - validacion consistente entre rutas;
 - menor riesgo de replay ambiguo.
 
 ### Sanitizacion de errores
 
-Se elimino devolucion directa de mensajes crudos de runtime/DB.
+La ruta evita devolver mensajes crudos de runtime/DB.
 
 Ahora:
 
@@ -42,7 +39,7 @@ Ahora:
 
 ### Payload hashing canonico
 
-Se agrego `canonicalize()` antes de `JSON.stringify()`.
+La ruta usa `canonicalize()` antes de `JSON.stringify()`.
 
 Resultado:
 
@@ -58,17 +55,21 @@ Se mantiene observacion activa:
 
 No se cambio runtime Supabase ni estrategia de acceso.
 
-## Validacion esperada
+## Validacion
 
-- route sigue paralela;
-- `/api/field/persist` intacto;
-- clientes existentes intactos;
-- no cambios en `/terminal`;
-- no cambios en `SfiFieldShell`;
-- no cambios en `nodeStore`;
-- no cambios en `field/persist`;
-- no cambios en CognitiveTwin;
-- no cambios en auth/Supabase runtime/.env.
+Comandos ejecutados:
+
+```bash
+npm run typecheck
+npm run check:boundaries
+npm run build
+```
+
+Resultados:
+
+- `npm run typecheck`: exitoso. `tsc --noEmit --pretty false --incremental false` finalizo con exit code 0.
+- `npm run check:boundaries`: exitoso. `Domain boundary check passed.`
+- `npm run build`: exitoso.
 
 ## Confirmaciones
 
@@ -81,3 +82,4 @@ No se cambio runtime Supabase ni estrategia de acceso.
 - No se modifico auth.
 - No se modifico Supabase runtime.
 - No se modifico `.env`.
+- No se cambio schema DB.
