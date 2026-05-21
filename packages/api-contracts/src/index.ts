@@ -126,3 +126,6 @@ export type ConsumerContract = {
   writes: WriteCapability[];
   directDatabaseAccess: false;
 };
+
+export type { NodeBootstrapResponseV1 } from './node-bootstrap';
+export { normalizeNodeBootstrapResponse } from './node-bootstrap';
