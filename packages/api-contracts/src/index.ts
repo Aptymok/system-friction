@@ -2,7 +2,8 @@ export type ContractVersion =
   | '2026-05-21.phase-2a'
   | '2026-05-21.phase-2d'
   | '2026-05-21.phase-3c'
-  | '2026-05-21.phase-6a';
+  | '2026-05-21.phase-6a'
+  | '2026-05-22.phase-8b';
 
 export type EpistemicClass =
   | 'observed'
@@ -118,7 +119,8 @@ export type ReadCapability =
   | 'source-health:read'
   | 'events:read'
   | 'proposals:read'
-  | 'risk-state:read';
+  | 'risk-state:read'
+  | 'evaluations:read';
 
 export type WriteCapability =
   | 'commands:write'
@@ -126,7 +128,8 @@ export type WriteCapability =
   | 'logs:write'
   | 'source-events:write'
   | 'proposals:write'
-  | 'annotations:write';
+  | 'annotations:write'
+  | 'evaluations:write';
 
 export type AppScope =
   | 'evaluator'
@@ -163,6 +166,44 @@ export type ObservatoryConsumerContract = {
   accessPath: 'observatory-api';
   evaluatorEnabled: false;
   notes?: string[];
+};
+
+export type EvaluationStatus = 'requested' | 'queued' | 'blocked' | 'completed' | 'failed';
+
+export type EvaluationArtifactRef = {
+  artifactId: string;
+  artifactType: string;
+  checksum?: string;
+  sourceState: EpistemicClass;
+};
+
+export type EvaluationRequest = {
+  contractVersion: ContractVersion;
+  evaluationId: string;
+  requestedBy: string;
+  artifact: EvaluationArtifactRef;
+  fieldId?: string;
+  nodeId?: string;
+  correlationId: string;
+  idempotencyKey: string;
+};
+
+export type InterventionProposal = {
+  proposalId: string;
+  title: string;
+  confidence: number;
+  requiresHumanReview: boolean;
+  notes?: string[];
+};
+
+export type EvaluationResponse = {
+  contractVersion: ContractVersion;
+  evaluationId: string;
+  status: EvaluationStatus;
+  confidence: number;
+  warnings: string[];
+  proposals: InterventionProposal[];
+  createdAt: string;
 };
 
 export type { NodeBootstrapResponseV1 } from './node-bootstrap';
