@@ -15,6 +15,9 @@ export function AtlasCommandPanel({
   worldSpectCategory,
   prioritizedNodes,
   suggestedProcesses,
+  viewMode,
+  eventLog,
+  selectedNodeLabel,
   nextAction,
   responseText,
   canPersist,
@@ -29,6 +32,9 @@ export function AtlasCommandPanel({
   worldSpectCategory: WorldSpectCategory;
   prioritizedNodes: string[];
   suggestedProcesses: string[];
+  viewMode: string;
+  eventLog: Array<{ event: string; detail: string; at: string }>;
+  selectedNodeLabel?: string | null;
   nextAction: string;
   responseText?: string | null;
   canPersist: boolean;
@@ -53,6 +59,7 @@ export function AtlasCommandPanel({
           <span className="kicker">{activeCluster}</span>
           <h2>{activeProcess || suggestedProcesses[0] || 'Siguiente accion'}</h2>
           <p>{responseText || nextAction}</p>
+          {selectedNodeLabel ? <p className="selected-node">Nodo seleccionado: {selectedNodeLabel}</p> : null}
           <div className="process-list">
             {suggestedProcesses.slice(0, 4).map((process) => (
               <button key={process} type="button" onClick={() => onProcessSelect(process)}>
@@ -73,6 +80,7 @@ export function AtlasCommandPanel({
             <div><dt>Cluster</dt><dd>{activeCluster}</dd></div>
             <div><dt>Proceso</dt><dd>{activeProcess || 'sin seleccion'}</dd></div>
             <div><dt>Modo</dt><dd>{graphModes.map(visibleGraphMode).join(' / ')}</dd></div>
+            <div><dt>Vista</dt><dd>{viewMode}</dd></div>
             <div><dt>Flujo</dt><dd>{activeStep}</dd></div>
             <div><dt>WorldSpect</dt><dd>{category.label}</dd></div>
           </dl>
@@ -89,6 +97,15 @@ export function AtlasCommandPanel({
             <div><dt>Modos internos</dt><dd>{graphModes.join(' / ')}</dd></div>
             <div><dt>Nodos priorizados</dt><dd>{prioritizedNodes.slice(0, 5).join(', ') || 'sin medicion'}</dd></div>
           </dl>
+          <div className="event-log">
+            {eventLog.slice(0, 6).map((entry) => (
+              <div key={`${entry.at}-${entry.event}`}>
+                <time>{entry.at}</time>
+                <b>{entry.event}</b>
+                <span>{entry.detail}</span>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
@@ -194,9 +211,39 @@ export function AtlasCommandPanel({
           line-height: 1.45;
         }
         .lens,
-        .trace {
+        .trace,
+        .selected-node {
           margin-top: 0.85rem;
           color: rgba(110, 200, 138, 0.66);
+        }
+        .event-log {
+          display: grid;
+          gap: 0.45rem;
+          margin-top: 0.9rem;
+          border-top: 1px solid rgba(200, 169, 81, 0.08);
+          padding-top: 0.8rem;
+        }
+        .event-log div {
+          display: grid;
+          grid-template-columns: 3.6rem 4.8rem 1fr;
+          gap: 0.4rem;
+          align-items: baseline;
+        }
+        .event-log time {
+          color: rgba(216, 212, 200, 0.24);
+          font-size: 0.48rem;
+        }
+        .event-log b {
+          color: rgba(200, 169, 81, 0.48);
+          font-size: 0.48rem;
+          font-weight: 500;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+        }
+        .event-log span {
+          color: rgba(216, 212, 200, 0.38);
+          font-size: 0.52rem;
+          line-height: 1.4;
         }
         @keyframes atlasFade {
           from { opacity: 0; transform: translateY(4px); }

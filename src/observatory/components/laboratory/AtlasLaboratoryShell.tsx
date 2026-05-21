@@ -5,6 +5,7 @@ import type { IntentProfile } from '@/observatory/surface/fieldSurfaceRouter';
 import { inferIntentProfile } from '@/observatory/surface/fieldSurfaceRouter';
 import { resolveLaboratoryGraph } from '@/observatory/laboratory/resolveLaboratoryGraph';
 import { visibleGraphMode } from '@/observatory/laboratory/graphModes';
+import type { LaboratoryViewMode } from '@/observatory/laboratory/laboratoryViewModes';
 import { applyWorldSpectLens } from '@/observatory/worldspect/applyWorldSpectLens';
 import type { WorldSpectCategory } from '@/observatory/worldspect/worldSpectCategories';
 import { getWorldSpectCategoryConfig } from '@/observatory/worldspect/worldSpectCategories';
@@ -75,11 +76,20 @@ export function AtlasLaboratoryShell({
   const [command, setCommand] = useState(initialCommand || '');
   const [activeCluster, setActiveCluster] = useState(() => clusterForCommand(initialCommand || '', 'Nodo Vivo'));
   const [activeProcess, setActiveProcess] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<LaboratoryViewMode>('CLUSTER');
+  const [selectedNodeLabel, setSelectedNodeLabel] = useState<string | null>(null);
+  const [fieldActivity, setFieldActivity] = useState({ tension: 0, density: 0, writing: false });
+  const [eventLog, setEventLog] = useState<Array<{ event: string; detail: string; at: string }>>([
+    { event: 'INIT', detail: 'Campo operacional activo.', at: new Date().toLocaleTimeString('es-MX', { hour12: false }) },
+  ]);
   const [activeCategory, setActiveCategory] = useState<WorldSpectCategory>(() => {
     const inferred = inferIntentProfile(initialCommand || '', localNode);
     return inferred === 'social_publication' ? 'cultural' : inferred === 'world_observation' ? 'factual' : 'semantic';
   });
   const [responseText, setResponseText] = useState<string | null>(null);
+  const logEvent = (event: string, detail: string) => {
+    setEventLog((current) => [{ event, detail, at: new Date().toLocaleTimeString('es-MX', { hour12: false }) }, ...current].slice(0, 30));
+  };
 
   const graph = useMemo(() => resolveLaboratoryGraph({
     intentProfile,
@@ -87,7 +97,8 @@ export function AtlasLaboratoryShell({
     activeProcess,
     cognitiveTwinUxState: localNode?.cognitiveTwinUxState as Record<string, unknown> | undefined,
     command,
-  }), [intentProfile, activeCluster, activeProcess, localNode, command]);
+    viewMode,
+  }), [intentProfile, activeCluster, activeProcess, localNode, command, viewMode]);
 
   const lens = useMemo(() => applyWorldSpectLens({
     baseGraph: { nodes: graph.nodes, edges: graph.edges },
@@ -105,7 +116,9 @@ export function AtlasLaboratoryShell({
     const nextCluster = clusterForCommand(value, activeCluster);
     setCommand(value);
     setActiveCluster(nextCluster);
-    setResponseText(responseForCommand(value, nextCluster));
+    const response = responseForCommand(value, nextCluster);
+    setResponseText(response);
+    logEvent('CMD', response);
     await onCommand(value);
   };
 
@@ -126,6 +139,7 @@ export function AtlasLaboratoryShell({
         source: 'user_selection',
       }));
     }
+    logEvent('LENTE', `WorldSpect ${categoryId}`);
     onWorldSpectCategorySelect?.(categoryId, {
       category: categoryId,
       snapshotId: latestWorldSnapshot?.id || null,
@@ -139,6 +153,8 @@ export function AtlasLaboratoryShell({
     <main className="atlas-shell">
       <LaboratoryWorldSpectStrip snapshot={latestWorldSnapshot} activeCategory={activeCategory} onCategorySelect={selectCategory} />
       <div className="atlas-grain" />
+      <div className="atlas-memory" aria-hidden="true" />
+      <div className="atlas-cursor-field" aria-hidden="true" />
       <section className="atlas-field-wrap">
         <LaboratoryField
           graph={graph}
@@ -147,13 +163,32 @@ export function AtlasLaboratoryShell({
           activeProcess={activeProcess}
           activeWorldSpectCategory={activeCategory}
           worldSpectLensState={lens}
+          viewMode={viewMode}
+          selectedNodeId={null}
           onClusterSelect={(cluster) => {
             setActiveCluster(cluster);
             setActiveProcess(null);
+            setSelectedNodeLabel(cluster);
+            logEvent('SEL', cluster);
           }}
-          onProcessSelect={setActiveProcess}
+          onProcessSelect={(process) => {
+            setActiveProcess(process);
+            setSelectedNodeLabel(process);
+            logEvent('PROC', process);
+          }}
+          onViewModeChange={(mode) => {
+            setViewMode(mode);
+            logEvent('MODO', mode);
+          }}
         />
       </section>
+      <div className="atlas-ghost-log" aria-hidden="true">
+        {eventLog.slice(0, 3).map((entry, index) => (
+          <span key={`${entry.at}-${entry.event}`} style={{ ['--ghost-index' as string]: index }}>
+            AMV · {entry.event} · {entry.detail}
+          </span>
+        ))}
+      </div>
       <LaboratoryCommandPanel
         activeCluster={activeCluster}
         activeProcess={activeProcess}
@@ -162,6 +197,9 @@ export function AtlasLaboratoryShell({
         worldSpectCategory={activeCategory}
         prioritizedNodes={lens.prioritizedNodes}
         suggestedProcesses={suggestedProcesses}
+        viewMode={viewMode}
+        eventLog={eventLog}
+        selectedNodeLabel={selectedNodeLabel}
         nextAction={lens.visibleReading || nextAction}
         responseText={responseText}
         canPersist={canPersist}
@@ -174,6 +212,11 @@ export function AtlasLaboratoryShell({
         modeLabel={visibleGraphMode(graphModes[0])}
         placeholder={placeholderFor(activeCluster)}
         suggestedProcesses={suggestedProcesses}
+        tension={fieldActivity.tension}
+        density={fieldActivity.density}
+        onActivityChange={(activity) => {
+          setFieldActivity({ tension: activity.tension, density: activity.density, writing: activity.writing });
+        }}
         onSubmit={submit}
       />
       <style jsx>{`
@@ -188,6 +231,14 @@ export function AtlasLaboratoryShell({
           color: #d8d4c8;
           font-family: "Cormorant Garamond", Georgia, serif;
         }
+        .atlas-shell::before {
+          content: '';
+          position: absolute;
+          inset: 0;
+          pointer-events: none;
+          opacity: 0.38;
+          background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.045'/%3E%3C/svg%3E");
+        }
         .atlas-grain {
           position: absolute;
           inset: 0;
@@ -195,6 +246,23 @@ export function AtlasLaboratoryShell({
           opacity: 0.22;
           background-image: linear-gradient(rgba(200,169,81,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(200,169,81,0.02) 1px, transparent 1px);
           background-size: 54px 54px;
+        }
+        .atlas-memory {
+          position: absolute;
+          inset: 14% 10% 12%;
+          pointer-events: none;
+          background:
+            radial-gradient(circle at 30% 60%, rgba(74,143,168,${fieldActivity.density * 0.08}), transparent 20rem),
+            radial-gradient(circle at 68% 42%, rgba(200,105,64,${fieldActivity.tension * 0.07}), transparent 22rem);
+          filter: blur(8px);
+          transition: background 180ms ease;
+        }
+        .atlas-cursor-field {
+          position: absolute;
+          inset: 0;
+          pointer-events: none;
+          background: ${fieldActivity.writing ? 'linear-gradient(90deg, rgba(200,169,81,0.018) 1px, transparent 1px)' : 'transparent'};
+          background-size: 72px 72px;
         }
         .atlas-field-wrap {
           position: absolute;
@@ -206,12 +274,38 @@ export function AtlasLaboratoryShell({
           place-items: center;
           min-width: 0;
         }
+        .atlas-ghost-log {
+          position: fixed;
+          left: 1.2rem;
+          top: calc(4.2rem + env(safe-area-inset-top, 0px));
+          z-index: 20;
+          display: grid;
+          gap: 0.45rem;
+          pointer-events: none;
+          max-width: min(28rem, 45vw);
+          font-family: "JetBrains Mono", monospace;
+        }
+        .atlas-ghost-log span {
+          color: rgba(200, 169, 81, 0.28);
+          font-size: 0.54rem;
+          letter-spacing: 0.08em;
+          white-space: nowrap;
+          opacity: calc(0.54 - var(--ghost-index) * 0.12);
+          animation: ghostDrift 8s ease-in-out infinite;
+        }
+        @keyframes ghostDrift {
+          0%, 100% { transform: translateX(0); }
+          50% { transform: translateX(10px); }
+        }
         @media (max-width: 860px) {
           .atlas-field-wrap {
             top: calc(5.8rem + env(safe-area-inset-top, 0px));
             right: 0;
             bottom: calc(17rem + env(safe-area-inset-bottom, 0px));
             align-items: start;
+          }
+          .atlas-ghost-log {
+            display: none;
           }
         }
       `}</style>

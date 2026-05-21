@@ -2,6 +2,7 @@ import type { IntentProfile } from '@/observatory/surface/fieldSurfaceRouter';
 import type { GraphMode } from './graphModes';
 import { getVisibleLaboratoryClusters, laboratoryClusters, normalizeClusterLabel } from './laboratoryClusters';
 import type { LaboratoryClusterColor, LaboratoryClusterShape } from './laboratoryClusters';
+import type { LaboratoryViewMode } from './laboratoryViewModes';
 
 export type LaboratoryCluster =
   | 'Nodo Vivo'
@@ -31,6 +32,7 @@ export type LaboratoryGraphEdge = {
   to: string;
   strength: number;
   dashed?: boolean;
+  status?: 'ACTIVE' | 'LATENT' | 'CRITICAL' | 'RESONANT' | 'DEGRADED';
 };
 
 export type LaboratoryGraphState = {
@@ -73,6 +75,7 @@ export function resolveLaboratoryGraph(input: {
   activeProcess?: string | null;
   cognitiveTwinUxState?: Record<string, unknown> | null;
   command?: string;
+  viewMode?: LaboratoryViewMode;
 }): LaboratoryGraphState {
   const activeCluster = normalizeClusterLabel(input.activeCluster || clusterFromIntent(input.intentProfile)) as LaboratoryCluster;
   const visibleClusters = getVisibleLaboratoryClusters({
@@ -127,11 +130,13 @@ export function resolveLaboratoryGraph(input: {
       from: 'center',
       to: node.id,
       strength: node.label === activeClusterConfig.label ? 1 : 0.34,
+      status: node.label === activeClusterConfig.label ? 'ACTIVE' as const : node.weight < 0.55 ? 'LATENT' as const : 'RESONANT' as const,
     })),
     ...processNodes.map((node) => ({
       from: parentClusterNode?.id || 'center',
       to: node.id,
       strength: input.activeProcess === node.label ? 0.95 : 0.7,
+      status: input.activeProcess === node.label ? 'ACTIVE' as const : activeClusterConfig.label === 'Accion' ? 'CRITICAL' as const : 'LATENT' as const,
     })),
   ];
 

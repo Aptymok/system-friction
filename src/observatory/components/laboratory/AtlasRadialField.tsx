@@ -4,6 +4,8 @@ import type { LaboratoryGraphNode, LaboratoryGraphState } from '@/observatory/la
 import type { WorldSpectCategory } from '@/observatory/worldspect/worldSpectCategories';
 import type { WorldSpectLensState } from '@/observatory/worldspect/applyWorldSpectLens';
 import { getWorldSpectCategoryConfig } from '@/observatory/worldspect/worldSpectCategories';
+import type { LaboratoryViewMode } from '@/observatory/laboratory/laboratoryViewModes';
+import { laboratoryViewModes } from '@/observatory/laboratory/laboratoryViewModes';
 
 const colorMap: Record<string, string> = {
   gold: '#C8A951',
@@ -23,9 +25,36 @@ function polar(index: number, total: number, radius: number, center = 50) {
   };
 }
 
-function nodePosition(node: LaboratoryGraphNode, graph: LaboratoryGraphState) {
+function nodePosition(node: LaboratoryGraphNode, graph: LaboratoryGraphState, viewMode: LaboratoryViewMode) {
   if (node.ring === 0) return { x: 50, y: 50 };
   const ringOne = graph.nodes.filter((item) => item.ring === 1);
+  if (viewMode === 'HIERARCHY') {
+    if (node.ring === 1) {
+      const index = Math.max(0, ringOne.findIndex((item) => item.id === node.id));
+      return { x: 18 + (64 / Math.max(1, ringOne.length - 1 || 1)) * index, y: node.weight >= 1 ? 34 : 44 };
+    }
+    const processes = graph.nodes.filter((item) => item.ring === 2);
+    const index = Math.max(0, processes.findIndex((item) => item.id === node.id));
+    return { x: 24 + (52 / Math.max(1, processes.length - 1 || 1)) * index, y: 72 };
+  }
+  if (viewMode === 'TEMPORAL') {
+    const all = graph.nodes.filter((item) => item.ring !== 0);
+    const index = Math.max(0, all.findIndex((item) => item.id === node.id));
+    return { x: 10 + (80 / Math.max(1, all.length - 1 || 1)) * index, y: node.ring === 1 ? 42 : 64 };
+  }
+  if (viewMode === 'MESH') {
+    const all = graph.nodes.filter((item) => item.ring !== 0);
+    const index = Math.max(0, all.findIndex((item) => item.id === node.id));
+    const cols = Math.ceil(Math.sqrt(all.length));
+    return { x: 22 + (index % cols) * (56 / Math.max(1, cols - 1 || 1)), y: 24 + Math.floor(index / cols) * 16 };
+  }
+  if (viewMode === 'WORLD') {
+    const all = graph.nodes.filter((item) => item.ring !== 0);
+    const index = Math.max(0, all.findIndex((item) => item.id === node.id));
+    const zones = [{ x: 18, y: 34 }, { x: 50, y: 48 }, { x: 82, y: 36 }, { x: 34, y: 72 }, { x: 70, y: 72 }];
+    const zone = zones[index % zones.length];
+    return { x: zone.x + ((index * 13) % 9) - 4, y: zone.y + ((index * 7) % 9) - 4 };
+  }
   if (node.ring === 1) {
     const index = Math.max(0, ringOne.findIndex((item) => item.id === node.id));
     return polar(index, Math.max(1, ringOne.length), node.weight >= 1 ? 28 : 34);
@@ -52,8 +81,11 @@ export function AtlasRadialField({
   activeProcess,
   activeWorldSpectCategory,
   worldSpectLensState,
+  viewMode,
+  selectedNodeId,
   onClusterSelect,
   onProcessSelect,
+  onViewModeChange,
 }: {
   graph: LaboratoryGraphState;
   nodeLabel: string;
@@ -61,11 +93,14 @@ export function AtlasRadialField({
   activeProcess?: string | null;
   activeWorldSpectCategory: WorldSpectCategory;
   worldSpectLensState?: WorldSpectLensState;
+  viewMode: LaboratoryViewMode;
+  selectedNodeId?: string | null;
   onClusterSelect: (cluster: string) => void;
   onProcessSelect: (process: string) => void;
+  onViewModeChange: (mode: LaboratoryViewMode) => void;
 }) {
   const category = getWorldSpectCategoryConfig(activeWorldSpectCategory);
-  const positions = new Map(graph.nodes.map((node) => [node.id, nodePosition(node, graph)]));
+  const positions = new Map(graph.nodes.map((node) => [node.id, nodePosition(node, graph, viewMode)]));
   const clusterNodes = graph.nodes.filter((node) => node.ring === 1);
   const processNodes = graph.nodes.filter((node) => node.ring === 2);
   const prioritized = new Set(worldSpectLensState?.prioritizedNodes || []);
@@ -87,7 +122,7 @@ export function AtlasRadialField({
               y1={from.y}
               x2={to.x}
               y2={to.y}
-              className={edge.dashed ? 'dashed' : ''}
+              className={`${edge.dashed ? 'dashed' : ''} ${edge.status || 'LATENT'}`}
               style={{ opacity: 0.08 + (edge.strength || 0.4) * 0.28 }}
             />
           );
@@ -97,7 +132,7 @@ export function AtlasRadialField({
         const pos = positions.get(node.id) || { x: 50, y: 50 };
         const color = colorMap[node.color];
         const isCenter = node.ring === 0;
-        const isActive = node.label === activeCluster || node.label === activeProcess || node.id === 'center';
+        const isActive = node.label === activeCluster || node.label === activeProcess || node.id === 'center' || selectedNodeId === node.id;
         const lensHit = prioritized.has(node.id) || category.prioritizedSurfaceNodes.some((item) => node.label.toLowerCase().includes(item.toLowerCase()));
         const low = suppressed.has(node.id);
         return (
@@ -140,6 +175,14 @@ export function AtlasRadialField({
         <span>{activeCluster}</span>
         <b>{activeProcess || processNodes[0]?.label || 'selecciona proceso'}</b>
       </div>
+      <div className="atlas-view-modes" aria-label="Modos de vista del laboratorio">
+        {laboratoryViewModes.map((mode) => (
+          <button key={mode.id} type="button" className={viewMode === mode.id ? 'active' : ''} onClick={() => onViewModeChange(mode.id)}>
+            <b>{mode.symbol}</b>
+            <span>{mode.label}</span>
+          </button>
+        ))}
+      </div>
       <style jsx>{`
         .atlas-radial-field {
           position: relative;
@@ -166,8 +209,28 @@ export function AtlasRadialField({
         }
         line {
           stroke: rgba(200, 169, 81, 0.62);
-          stroke-width: 0.18;
+          stroke-width: 0.13;
           vector-effect: non-scaling-stroke;
+        }
+        line.ACTIVE {
+          stroke: rgba(74, 143, 168, 0.8);
+          stroke-dasharray: 7 4;
+        }
+        line.RESONANT {
+          stroke: rgba(200, 169, 81, 0.72);
+          stroke-dasharray: 9 3;
+        }
+        line.CRITICAL {
+          stroke: rgba(200, 92, 78, 0.76);
+          stroke-width: 0.24;
+        }
+        line.DEGRADED {
+          stroke: rgba(68, 68, 68, 0.46);
+          stroke-dasharray: 2 10;
+        }
+        line.LATENT {
+          stroke: rgba(72, 72, 72, 0.55);
+          stroke-dasharray: 3 9;
         }
         line.dashed {
           stroke-dasharray: 2 2;
@@ -179,8 +242,8 @@ export function AtlasRadialField({
           place-items: center;
           width: clamp(4.2rem, 8vw, 6rem);
           height: clamp(4.2rem, 8vw, 6rem);
-          border: 1px solid color-mix(in srgb, var(--node-color) 50%, transparent);
-          background: rgba(12, 12, 10, 0.58);
+          border: 1px solid color-mix(in srgb, var(--node-color) 38%, transparent);
+          background: rgba(8, 8, 8, 0.52);
           color: rgba(216, 212, 200, 0.72);
           font-family: "JetBrains Mono", monospace;
           font-size: 0.52rem;
@@ -188,7 +251,7 @@ export function AtlasRadialField({
           text-transform: uppercase;
           cursor: pointer;
           backdrop-filter: blur(10px);
-          transition: opacity 220ms ease, border-color 220ms ease, box-shadow 220ms ease, transform 220ms ease;
+          transition: opacity 220ms ease, border-color 220ms ease, box-shadow 220ms ease, transform 220ms ease, background 220ms ease;
           z-index: 2;
         }
         .atlas-node span {
@@ -221,6 +284,9 @@ export function AtlasRadialField({
           color: #C8A951;
           animation: atlasPulse 5.8s ease-in-out infinite;
           z-index: 4;
+        }
+        .atlas-node:not(.center) {
+          animation: nodeBreath 6.8s ease-in-out infinite;
         }
         .doubleCircle,
         .circle,
@@ -320,6 +386,39 @@ export function AtlasRadialField({
           pointer-events: none;
           z-index: 8;
         }
+        .atlas-view-modes {
+          position: absolute;
+          left: 1rem;
+          top: 1rem;
+          display: flex;
+          gap: 0.25rem;
+          z-index: 8;
+          flex-wrap: wrap;
+          max-width: 24rem;
+        }
+        .atlas-view-modes button {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.26rem;
+          min-height: 1.65rem;
+          border: 1px solid rgba(200, 169, 81, 0.08);
+          background: rgba(8, 8, 8, 0.38);
+          color: rgba(216, 212, 200, 0.34);
+          font-family: "JetBrains Mono", monospace;
+          font-size: 0.46rem;
+          letter-spacing: 0.1em;
+          text-transform: uppercase;
+          padding: 0 0.45rem;
+          cursor: pointer;
+        }
+        .atlas-view-modes button.active {
+          color: #C8A951;
+          border-color: rgba(200, 169, 81, 0.35);
+          background: rgba(200, 169, 81, 0.06);
+        }
+        .atlas-view-modes b {
+          font-weight: 500;
+        }
         .atlas-process-caption span {
           color: rgba(200, 169, 81, 0.52);
           font-size: 0.48rem;
@@ -350,6 +449,10 @@ export function AtlasRadialField({
           0%, 100% { box-shadow: 0 0 34px rgba(200,169,81,0.22); }
           50% { box-shadow: 0 0 68px rgba(200,169,81,0.42); }
         }
+        @keyframes nodeBreath {
+          0%, 100% { filter: saturate(0.82); }
+          50% { filter: saturate(1.18); }
+        }
         @media (max-width: 860px) {
           .atlas-radial-field {
             width: min(112vw, 34rem);
@@ -368,6 +471,22 @@ export function AtlasRadialField({
           }
           .atlas-center-copy {
             top: 64%;
+          }
+          .atlas-view-modes {
+            left: 0.7rem;
+            right: 0.7rem;
+            top: -0.3rem;
+            overflow-x: auto;
+            flex-wrap: nowrap;
+            max-width: none;
+            scrollbar-width: none;
+          }
+          .atlas-view-modes::-webkit-scrollbar {
+            display: none;
+          }
+          .atlas-view-modes button {
+            min-width: max-content;
+            min-height: 36px;
           }
           .atlas-cluster-legend {
             bottom: -2.7rem;
