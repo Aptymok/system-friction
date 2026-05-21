@@ -2,6 +2,22 @@ export type SourceState = 'observed' | 'declared' | 'derived' | 'inferred' | 'si
 
 export type EvidenceLevel = 'direct' | 'behavioral' | 'statistical' | 'semantic' | 'speculative' | 'none';
 
+const sourceStates: SourceState[] = ['observed', 'declared', 'derived', 'inferred', 'simulated', 'fixture', 'missing'];
+
+const evidenceLevels: EvidenceLevel[] = ['direct', 'behavioral', 'statistical', 'semantic', 'speculative', 'none'];
+
+export function isSourceState(value: unknown): value is SourceState {
+  return typeof value === 'string' && sourceStates.includes(value as SourceState);
+}
+
+export function isEvidenceLevel(value: unknown): value is EvidenceLevel {
+  return typeof value === 'string' && evidenceLevels.includes(value as EvidenceLevel);
+}
+
+export function isCanonicalConfidence(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= 1;
+}
+
 export type FieldRegime = 'stable' | 'watch' | 'critical' | 'unknown';
 
 export type LogbookId = string;
