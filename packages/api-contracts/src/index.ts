@@ -208,3 +208,4 @@ export type EvaluationResponse = {
 
 export type { NodeBootstrapResponseV1 } from './node-bootstrap';
 export { normalizeNodeBootstrapResponse } from './node-bootstrap';
+export * from './terminal-read-model';
