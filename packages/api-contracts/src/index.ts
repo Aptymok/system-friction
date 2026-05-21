@@ -1,4 +1,8 @@
-export type ContractVersion = '2026-05-21.phase-2a' | '2026-05-21.phase-2d' | '2026-05-21.phase-3c';
+export type ContractVersion =
+  | '2026-05-21.phase-2a'
+  | '2026-05-21.phase-2d'
+  | '2026-05-21.phase-3c'
+  | '2026-05-21.phase-6a';
 
 export type EpistemicClass =
   | 'observed'
@@ -111,13 +115,36 @@ export type ReadCapability =
   | 'field-state:read'
   | 'node-state:read'
   | 'logs:read'
-  | 'source-health:read';
+  | 'source-health:read'
+  | 'events:read'
+  | 'proposals:read'
+  | 'risk-state:read';
 
 export type WriteCapability =
   | 'commands:write'
   | 'events:write'
   | 'logs:write'
-  | 'source-events:write';
+  | 'source-events:write'
+  | 'proposals:write'
+  | 'annotations:write';
+
+export type AppScope =
+  | 'evaluator'
+  | 'organizational-diagnosis'
+  | 'document-intake'
+  | 'personal-observation'
+  | 'editorial-curation'
+  | 'institutional-monitoring'
+  | 'experimental-lab'
+  | 'public-demo';
+
+export type AppIdentity = {
+  appId: string;
+  displayName: string;
+  scope: AppScope;
+  owner: 'sfi' | 'partner' | 'external' | 'public';
+  environment: 'production' | 'staging' | 'demo' | 'experimental';
+};
 
 export type ConsumerContract = {
   consumerId: string;
@@ -125,6 +152,17 @@ export type ConsumerContract = {
   reads: ReadCapability[];
   writes: WriteCapability[];
   directDatabaseAccess: false;
+};
+
+export type ObservatoryConsumerContract = {
+  contractVersion: ContractVersion;
+  app: AppIdentity;
+  reads: ReadCapability[];
+  writes: WriteCapability[];
+  directDatabaseAccess: false;
+  accessPath: 'observatory-api';
+  evaluatorEnabled: false;
+  notes?: string[];
 };
 
 export type { NodeBootstrapResponseV1 } from './node-bootstrap';
