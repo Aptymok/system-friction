@@ -56,8 +56,8 @@ Packages:
 - `packages/sources/src/index.ts`
 - `packages/ui/README.md`
 - `packages/ui/src/index.ts`
-- `packages/contracts/README.md`
-- `packages/contracts/src/index.ts`
+- `packages/api-contracts/README.md`
+- `packages/api-contracts/src/index.ts`
 - `packages/config/README.md`
 - `packages/config/src/index.ts`
 - `packages/testing/README.md`
@@ -91,6 +91,10 @@ La validacion debe confirmar:
 Nota: al listar `services/` aparece `services/python`, que ya existia antes de FASE 2A. La fase solo agrego `services/api`, `services/ingestion`, `services/agent` y `services/worker`.
 
 Nota de validacion: `tsc` actualizo transitoriamente `tsconfig.tsbuildinfo`; se restauro ese artefacto generado para mantener FASE 2A limitada a archivos nuevos de andamiaje y documentacion. La validacion final se ejecuto con `--incremental false`.
+
+## Correccion FASE 2A.1
+
+Se renombro `packages/contracts` a `packages/api-contracts` por correccion nominal. No se modifico logica, no se toco `src`, no se toco `package.json` y no se cambiaron APIs existentes.
 
 ## Riesgos y notas
 

@@ -31,7 +31,7 @@ FASE 2A no hace:
 
 ## Principio arquitectonico
 
-Los futuros aplicativos independientes consumen el Observatorio SFI mediante `services/api` y contratos publicados en `packages/contracts`.
+Los futuros aplicativos independientes consumen el Observatorio SFI mediante `services/api` y contratos publicados en `packages/api-contracts`.
 
 Ningun aplicativo accede directamente a base de datos.
 
@@ -64,7 +64,7 @@ packages/
   db/
   sources/
   ui/
-  contracts/
+  api-contracts/
   config/
   testing/
 docs/
@@ -237,7 +237,7 @@ FASE 2A:
 - declara `ViewState`;
 - declara `DisplayBoundary` con `mayComputeFieldTruth: false`.
 
-### `/packages/contracts`
+### `/packages/api-contracts`
 
 Contratos de API/eventos.
 
@@ -276,7 +276,7 @@ flowchart LR
   D["apps/demo"] --> API
 
   API --> SEC["packages/security"]
-  API --> C["packages/contracts"]
+  API --> C["packages/api-contracts"]
   API --> FIELD["packages/campo-ob"]
   API --> MIHM["packages/mihm-core"]
   API --> DB["packages/db"]
@@ -301,7 +301,7 @@ flowchart LR
 Permitido:
 
 - apps consumen `services/api`;
-- services usan `packages/contracts`;
+- services usan `packages/api-contracts`;
 - `services/api` coordina acceso a `packages/db`;
 - `packages/db` encapsula repositorios y migrations futuras;
 - `packages/security` decide autorizacion antes de comandos.
@@ -322,8 +322,7 @@ Se creo el andamiaje de carpetas y tipos base. No hay build orchestration, works
 ## Fases posteriores propuestas, no ejecutadas
 
 1. FASE 2B: agregar configuracion de workspaces sin mover codigo productivo.
-2. FASE 2C: extraer contratos reales desde endpoints existentes hacia `packages/contracts`.
+2. FASE 2C: extraer contratos reales desde endpoints existentes hacia `packages/api-contracts`.
 3. FASE 2D: crear API gateway versionado junto a APIs actuales, sin reemplazarlas.
 4. FASE 2E: migrar solo consumidores UI hacia contratos canonicos.
 5. FASE 2F: aislar CognitiveTwin como package experimental con tests de trazabilidad.
-

@@ -1,4 +1,4 @@
-# packages/contracts
+# packages/api-contracts
 
 OpenAPI/Zod schemas y contratos de eventos.
 
@@ -12,4 +12,3 @@ Limites:
 - no modifica APIs existentes;
 - no genera OpenAPI todavia;
 - solo declara tipos base.
-
