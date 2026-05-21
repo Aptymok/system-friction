@@ -51,22 +51,30 @@ function parseFieldEventCommand(input: unknown): FieldEventCommand | null {
   if (!isRecord(input)) return null;
   if (input.command !== 'field-events.create') return null;
   if (input.contractVersion !== 'field-events.v1') return null;
-  if (!isValidIdempotencyKey(input.idempotencyKey)) return null;
-  if (typeof input.node_id !== 'string' || input.node_id.trim().length === 0) return null;
-  if (typeof input.event_type !== 'string' || input.event_type.trim().length === 0) return null;
-  if (input.message !== undefined && typeof input.message !== 'string') return null;
-  if (input.correlationId !== undefined && typeof input.correlationId !== 'string') return null;
-  if (input.trace_payload !== undefined && !isRecord(input.trace_payload)) return null;
+
+  const idempotencyKey = typeof input.idempotencyKey === 'string' ? input.idempotencyKey.trim() : '';
+  const nodeId = typeof input.node_id === 'string' ? input.node_id.trim() : '';
+  const eventType = typeof input.event_type === 'string' ? input.event_type.trim() : '';
+  const message = typeof input.message === 'string' ? input.message : undefined;
+  const correlationId = typeof input.correlationId === 'string' ? input.correlationId : undefined;
+  const tracePayload = isRecord(input.trace_payload) ? input.trace_payload : undefined;
+
+  if (!isValidIdempotencyKey(idempotencyKey)) return null;
+  if (nodeId.length === 0) return null;
+  if (eventType.length === 0) return null;
+  if (input.message !== undefined && message === undefined) return null;
+  if (input.correlationId !== undefined && correlationId === undefined) return null;
+  if (input.trace_payload !== undefined && tracePayload === undefined) return null;
 
   return {
     command: 'field-events.create',
     contractVersion: 'field-events.v1',
-    idempotencyKey: input.idempotencyKey.trim(),
-    node_id: input.node_id.trim(),
-    event_type: input.event_type.trim(),
-    message: input.message,
-    trace_payload: input.trace_payload,
-    correlationId: input.correlationId,
+    idempotencyKey,
+    node_id: nodeId,
+    event_type: eventType,
+    message,
+    trace_payload: tracePayload,
+    correlationId,
   };
 }
 
