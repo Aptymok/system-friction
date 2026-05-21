@@ -14,3 +14,25 @@ Limites:
 - no acepta eventos externos sin pasar por `packages/security`;
 - no implementa Evaluator en esta fase.
 
+## FASE 5A scaffold
+
+Este servicio queda preparado como gateway futuro, sin reemplazar APIs Next existentes.
+
+Incluye:
+
+- categorias de rutas;
+- command envelope;
+- query envelope;
+- error shape;
+- marcadores de auth;
+- marcadores de metadata epistemica;
+- guards puros de forma.
+
+No incluye:
+
+- servidor HTTP;
+- handlers productivos;
+- DB;
+- Supabase;
+- migracion de endpoints;
+- cambios en `/terminal`.
