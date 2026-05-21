@@ -6,6 +6,8 @@ import { useTelemetryPulse } from '@/observatory/hooks/useTelemetryPulse'
 import { useNodeStore } from '@/observatory/store/nodeStore'
 import type { SfiAsset } from '@/lib/types'
 import { migrateLocalNodeToSupabase } from '@/observatory/persistence/migrateLocalNodeToSupabase'
+import { getSfiRuntimeFlags } from '@/lib/config/sfiFlags'
+import { readTerminalCanonicalState } from '@/lib/terminal/canonicalClient'
 
 type AccessState = 'loading' | 'allowed' | 'local'
 
@@ -29,26 +31,38 @@ export default function TerminalPage() {
         window.localStorage.removeItem('sfi_local_node')
       }
     }
+
     let active = true
+
     async function hydrate() {
       void bootstrap()
+
       try {
         const controller = new AbortController()
         const timeout = window.setTimeout(() => controller.abort(), 3000)
-        const response = await fetch('/api/node/bootstrap', { cache: 'no-store', signal: controller.signal })
+
+        const response = await fetch('/api/node/bootstrap', {
+          cache: 'no-store',
+          signal: controller.signal,
+        })
+
         window.clearTimeout(timeout)
+
         if (!response.ok) {
           if (active) setAccess('local')
           return
         }
+
         const data = await response.json()
         const role = data.profile?.role
         const userEmail = data.user?.email || data.profile?.email || ''
         const licenseStatus = data.license?.status
+
         const isRoot =
           role === 'root' ||
           role === 'system' ||
           userEmail.toLowerCase() === 'aptymok@gmail.com'
+
         const hasAccess =
           isRoot ||
           data.entitlements?.full_access === true ||
@@ -58,17 +72,29 @@ export default function TerminalPage() {
 
         if (active) {
           const nextAssets = Array.isArray(data.sfi_assets) ? data.sfi_assets : []
+
           setEmail(userEmail)
           setNodeId(data.node?.id || null)
           setAssets(nextAssets)
           setActiveAssetId(nextAssets[0]?.asset_id || '')
           setCanPersist(hasAccess)
           setAccess(hasAccess ? 'allowed' : 'local')
+
+          const flags = getSfiRuntimeFlags()
+
+          if (flags.canonicalFieldRead && data.node?.id) {
+            void readTerminalCanonicalState(data.node.id).catch(() => {
+              // Canonical read is passive and non-blocking during FASE 13B.
+            })
+          }
+
           if (hasAccess && stored) {
             try {
               const local = JSON.parse(stored)
+
               if (local?.paymentState !== 'persisted') {
                 const migration = await migrateLocalNodeToSupabase(local)
+
                 if (migration.ok) {
                   const migrated = {
                     ...local,
@@ -76,6 +102,7 @@ export default function TerminalPage() {
                     supabaseAssetId: migration.assetId,
                     updatedAt: new Date().toISOString(),
                   }
+
                   window.localStorage.setItem('sfi_local_node', JSON.stringify(migrated))
                   setLocalNode(migrated)
                 }
@@ -89,7 +116,9 @@ export default function TerminalPage() {
         if (active) setAccess('local')
       }
     }
+
     void hydrate()
+
     return () => {
       active = false
     }
@@ -107,6 +136,7 @@ export default function TerminalPage() {
 
   if (access === 'local') {
     const encodedEmail = encodeURIComponent(email)
+
     return (
       <SfiFieldShell
         nodeId={null}
