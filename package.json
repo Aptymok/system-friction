@@ -2,12 +2,19 @@
   "name": "system-friction-terminal",
   "version": "1.0.0",
   "private": true,
+  "workspaces": [
+    "apps/*",
+    "services/*",
+    "packages/*"
+  ],
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "check:boundaries": "node scripts/check-domain-boundaries.mjs"
+    "check:boundaries": "node scripts/check-domain-boundaries.mjs",
+    "typecheck": "tsc --noEmit --pretty false --incremental false",
+    "phase:verify": "npm run check:boundaries && npm run typecheck"
   },
   "dependencies": {
     "@headlessui/react": "^2.0.0",
