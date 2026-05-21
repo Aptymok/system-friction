@@ -51,25 +51,28 @@ function hashPayload(payload: unknown) {
 function parseSignalIntakeCommand(input: unknown): SignalIntakeCommand | null {
   if (!isRecord(input)) return null;
   if (input.contractVersion !== 'signals.v1') return null;
-  if (!isValidIdempotencyKey(input.idempotencyKey)) return null;
-  if (typeof input.node_id !== 'string' || input.node_id.trim().length === 0) return null;
   if (input.signal_type !== 'manual') return null;
-  if (typeof input.content !== 'string') return null;
 
-  const content = input.content.trim();
-  if (content.length === 0 || content.length > MAX_SIGNAL_CONTENT_LENGTH) return null;
+  const idempotencyKey = typeof input.idempotencyKey === 'string' ? input.idempotencyKey.trim() : '';
+  const nodeId = typeof input.node_id === 'string' ? input.node_id.trim() : '';
+  const rawContent = typeof input.content === 'string' ? input.content.trim() : '';
+  const context = isRecord(input.context) ? input.context : undefined;
+  const correlationId = typeof input.correlationId === 'string' ? input.correlationId : undefined;
 
-  if (input.context !== undefined && !isRecord(input.context)) return null;
-  if (input.correlationId !== undefined && typeof input.correlationId !== 'string') return null;
+  if (!isValidIdempotencyKey(idempotencyKey)) return null;
+  if (nodeId.length === 0) return null;
+  if (rawContent.length === 0 || rawContent.length > MAX_SIGNAL_CONTENT_LENGTH) return null;
+  if (input.context !== undefined && context === undefined) return null;
+  if (input.correlationId !== undefined && correlationId === undefined) return null;
 
   return {
     contractVersion: 'signals.v1',
-    idempotencyKey: input.idempotencyKey.trim(),
-    node_id: input.node_id.trim(),
+    idempotencyKey,
+    node_id: nodeId,
     signal_type: 'manual',
-    content,
-    context: input.context,
-    correlationId: input.correlationId,
+    content: rawContent,
+    context,
+    correlationId,
   };
 }
 
