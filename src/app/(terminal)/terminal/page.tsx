@@ -12,6 +12,13 @@ import { readTerminalCanonicalState, type TerminalCanonicalClientResult } from '
 type AccessState = 'loading' | 'allowed' | 'local'
 type TerminalMode = 'legacy' | 'canonical' | 'degraded'
 
+function canonicalFieldValue(fieldState: unknown, key: string) {
+  if (!fieldState || typeof fieldState !== 'object') return null
+  const value = (fieldState as Record<string, unknown>)[key]
+  if (typeof value === 'string' || typeof value === 'number') return value
+  return null
+}
+
 function TerminalStatusBadges({
   canonicalState,
   mode,
@@ -38,6 +45,41 @@ function TerminalStatusBadges({
         MODE: {mode}
       </span>
     </div>
+  )
+}
+
+function TerminalFieldStatePanel({ canonicalState }: { canonicalState: TerminalCanonicalClientResult | null }) {
+  const fieldState = canonicalState?.fieldState ?? null
+  const sourceState = canonicalFieldValue(fieldState, 'sourceState') ?? (fieldState ? 'derived' : 'missing')
+  const evidenceLevel = canonicalFieldValue(fieldState, 'evidenceLevel') ?? (fieldState ? 'behavioral' : 'none')
+  const regime = canonicalFieldValue(fieldState, 'regime') ?? 'unknown'
+  const confidence = canonicalFieldValue(fieldState, 'confidence') ?? 0
+  const degradation = canonicalFieldValue(fieldState, 'degradation') ?? 0
+  const operationalCapacity = canonicalFieldValue(fieldState, 'operationalCapacity') ?? 0
+  const updatedAt = canonicalFieldValue(fieldState, 'updatedAt') ?? 'missing'
+
+  return (
+    <aside className="pointer-events-none fixed bottom-4 right-4 z-[80] w-[min(360px,calc(100vw-2rem))] border border-[rgba(200,169,81,0.18)] bg-[#060605]/85 p-3 font-mono text-[#C8A951] shadow-[0_0_24px_rgba(0,0,0,0.45)] backdrop-blur-sm">
+      <div className="mb-2 flex items-center justify-between gap-3 text-[9px] uppercase tracking-[0.22em]">
+        <span>FIELDSTATE</span>
+        <span>{sourceState}</span>
+      </div>
+      <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-[10px] uppercase tracking-[0.12em] text-[#e8d18a]">
+        <span>regime</span>
+        <span className="text-right">{regime}</span>
+        <span>evidence</span>
+        <span className="text-right">{evidenceLevel}</span>
+        <span>confidence</span>
+        <span className="text-right">{confidence}</span>
+        <span>degradation</span>
+        <span className="text-right">{degradation}</span>
+        <span>capacity</span>
+        <span className="text-right">{operationalCapacity}</span>
+      </div>
+      <div className="mt-2 border-t border-[rgba(200,169,81,0.12)] pt-2 text-[8px] uppercase tracking-[0.14em] text-[#8e7b42]">
+        updated: {updatedAt}
+      </div>
+    </aside>
   )
 }
 
@@ -180,6 +222,7 @@ export default function TerminalPage() {
     return (
       <>
         <TerminalStatusBadges canonicalState={canonicalState} mode="legacy" />
+        <TerminalFieldStatePanel canonicalState={canonicalState} />
         <SfiFieldShell
           nodeId={null}
           assets={[]}
@@ -200,6 +243,7 @@ export default function TerminalPage() {
   return (
     <>
       <TerminalStatusBadges canonicalState={canonicalState} mode={terminalMode} />
+      <TerminalFieldStatePanel canonicalState={canonicalState} />
       <SfiFieldShell
         nodeId={nodeId}
         assets={assets}
