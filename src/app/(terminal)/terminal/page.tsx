@@ -7,9 +7,39 @@ import { useNodeStore } from '@/observatory/store/nodeStore'
 import type { SfiAsset } from '@/lib/types'
 import { migrateLocalNodeToSupabase } from '@/observatory/persistence/migrateLocalNodeToSupabase'
 import { getSfiRuntimeFlags } from '@/lib/config/sfiFlags'
-import { readTerminalCanonicalState } from '@/lib/terminal/canonicalClient'
+import { readTerminalCanonicalState, type TerminalCanonicalClientResult } from '@/lib/terminal/canonicalClient'
 
 type AccessState = 'loading' | 'allowed' | 'local'
+type TerminalMode = 'legacy' | 'canonical' | 'degraded'
+
+function TerminalStatusBadges({
+  canonicalState,
+  mode,
+}: {
+  canonicalState: TerminalCanonicalClientResult | null
+  mode: TerminalMode
+}) {
+  const fieldSource = canonicalState?.fieldState ? 'derived' : 'missing'
+  const signalCount = canonicalState?.signals?.signals.length ?? 0
+  const sourceStatus = canonicalState?.sourceHealth?.status ?? 'unknown'
+
+  return (
+    <div className="pointer-events-none fixed right-4 top-4 z-[80] flex max-w-[calc(100vw-2rem)] flex-wrap justify-end gap-2 font-mono text-[9px] uppercase tracking-[0.18em] text-[#C8A951]">
+      <span className="border border-[rgba(200,169,81,0.20)] bg-[#060605]/80 px-2 py-1 backdrop-blur-sm">
+        CANONICAL: {fieldSource}
+      </span>
+      <span className="border border-[rgba(200,169,81,0.20)] bg-[#060605]/80 px-2 py-1 backdrop-blur-sm">
+        SIGNALS: {signalCount}
+      </span>
+      <span className="border border-[rgba(200,169,81,0.20)] bg-[#060605]/80 px-2 py-1 backdrop-blur-sm">
+        SOURCE: {sourceStatus}
+      </span>
+      <span className="border border-[rgba(200,169,81,0.20)] bg-[#060605]/80 px-2 py-1 backdrop-blur-sm">
+        MODE: {mode}
+      </span>
+    </div>
+  )
+}
 
 export default function TerminalPage() {
   useTelemetryPulse()
@@ -21,6 +51,8 @@ export default function TerminalPage() {
   const [activeAssetId, setActiveAssetId] = useState('')
   const [localNode, setLocalNode] = useState<Record<string, any> | null>(null)
   const [canPersist, setCanPersist] = useState(false)
+  const [canonicalState, setCanonicalState] = useState<TerminalCanonicalClientResult | null>(null)
+  const [terminalMode, setTerminalMode] = useState<TerminalMode>('legacy')
 
   useEffect(() => {
     const stored = window.localStorage.getItem('sfi_local_node')
@@ -83,9 +115,17 @@ export default function TerminalPage() {
           const flags = getSfiRuntimeFlags()
 
           if (flags.canonicalFieldRead && data.node?.id) {
-            void readTerminalCanonicalState(data.node.id).catch(() => {
-              // Canonical read is passive and non-blocking during FASE 13B.
-            })
+            void readTerminalCanonicalState(data.node.id)
+              .then((result) => {
+                if (!active) return
+                setCanonicalState(result)
+                setTerminalMode(result.warnings.length ? 'degraded' : 'canonical')
+              })
+              .catch(() => {
+                if (!active) return
+                setCanonicalState(null)
+                setTerminalMode('degraded')
+              })
           }
 
           if (hasAccess && stored) {
@@ -138,31 +178,37 @@ export default function TerminalPage() {
     const encodedEmail = encodeURIComponent(email)
 
     return (
-      <SfiFieldShell
-        nodeId={null}
-        assets={[]}
-        activeAssetId=""
-        onAssetsChange={setAssets}
-        onActiveAssetChange={setActiveAssetId}
-        persistenceMode="local_only"
-        localNode={localNode}
-        paywallLinks={{
-          full: `https://buy.stripe.com/3cIbJ29dY3qo2NVcWv5Ne01?prefilled_email=${encodedEmail}`,
-          report: `https://buy.stripe.com/7sYbJ2eyif964W3aOn5Ne04?prefilled_email=${encodedEmail}`,
-        }}
-      />
+      <>
+        <TerminalStatusBadges canonicalState={canonicalState} mode="legacy" />
+        <SfiFieldShell
+          nodeId={null}
+          assets={[]}
+          activeAssetId=""
+          onAssetsChange={setAssets}
+          onActiveAssetChange={setActiveAssetId}
+          persistenceMode="local_only"
+          localNode={localNode}
+          paywallLinks={{
+            full: `https://buy.stripe.com/3cIbJ29dY3qo2NVcWv5Ne01?prefilled_email=${encodedEmail}`,
+            report: `https://buy.stripe.com/7sYbJ2eyif964W3aOn5Ne04?prefilled_email=${encodedEmail}`,
+          }}
+        />
+      </>
     )
   }
 
   return (
-    <SfiFieldShell
-      nodeId={nodeId}
-      assets={assets}
-      activeAssetId={activeAssetId}
-      onAssetsChange={setAssets}
-      onActiveAssetChange={setActiveAssetId}
-      persistenceMode={canPersist ? 'supabase' : 'local_only'}
-      localNode={localNode}
-    />
+    <>
+      <TerminalStatusBadges canonicalState={canonicalState} mode={terminalMode} />
+      <SfiFieldShell
+        nodeId={nodeId}
+        assets={assets}
+        activeAssetId={activeAssetId}
+        onAssetsChange={setAssets}
+        onActiveAssetChange={setActiveAssetId}
+        persistenceMode={canPersist ? 'supabase' : 'local_only'}
+        localNode={localNode}
+      />
+    </>
   )
 }
