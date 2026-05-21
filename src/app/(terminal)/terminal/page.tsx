@@ -19,37 +19,28 @@ function canonicalFieldValue(fieldState: unknown, key: string) {
   return null
 }
 
-function TerminalStatusBadges({
+function boundedPercent(value: unknown) {
+  const n = typeof value === 'number' ? value : Number(value || 0)
+  if (!Number.isFinite(n)) return 0
+  return Math.max(0, Math.min(100, Math.round(n * 100)))
+}
+
+function metricText(value: unknown) {
+  const n = typeof value === 'number' ? value : Number(value || 0)
+  if (!Number.isFinite(n)) return '0.00'
+  return n.toFixed(2)
+}
+
+function TerminalObservabilityHud({
   canonicalState,
   mode,
 }: {
   canonicalState: TerminalCanonicalClientResult | null
   mode: TerminalMode
 }) {
-  const fieldSource = canonicalState?.fieldState ? 'derived' : 'missing'
+  const fieldState = canonicalState?.fieldState ?? null
   const signalCount = canonicalState?.signals?.signals.length ?? 0
   const sourceStatus = canonicalState?.sourceHealth?.status ?? 'unknown'
-
-  return (
-    <div className="pointer-events-none fixed right-4 top-4 z-[80] flex max-w-[calc(100vw-2rem)] flex-wrap justify-end gap-2 font-mono text-[9px] uppercase tracking-[0.18em] text-[#C8A951]">
-      <span className="border border-[rgba(200,169,81,0.20)] bg-[#060605]/80 px-2 py-1 backdrop-blur-sm">
-        CANONICAL: {fieldSource}
-      </span>
-      <span className="border border-[rgba(200,169,81,0.20)] bg-[#060605]/80 px-2 py-1 backdrop-blur-sm">
-        SIGNALS: {signalCount}
-      </span>
-      <span className="border border-[rgba(200,169,81,0.20)] bg-[#060605]/80 px-2 py-1 backdrop-blur-sm">
-        SOURCE: {sourceStatus}
-      </span>
-      <span className="border border-[rgba(200,169,81,0.20)] bg-[#060605]/80 px-2 py-1 backdrop-blur-sm">
-        MODE: {mode}
-      </span>
-    </div>
-  )
-}
-
-function TerminalFieldStatePanel({ canonicalState }: { canonicalState: TerminalCanonicalClientResult | null }) {
-  const fieldState = canonicalState?.fieldState ?? null
   const sourceState = canonicalFieldValue(fieldState, 'sourceState') ?? (fieldState ? 'derived' : 'missing')
   const evidenceLevel = canonicalFieldValue(fieldState, 'evidenceLevel') ?? (fieldState ? 'behavioral' : 'none')
   const regime = canonicalFieldValue(fieldState, 'regime') ?? 'unknown'
@@ -57,29 +48,77 @@ function TerminalFieldStatePanel({ canonicalState }: { canonicalState: TerminalC
   const degradation = canonicalFieldValue(fieldState, 'degradation') ?? 0
   const operationalCapacity = canonicalFieldValue(fieldState, 'operationalCapacity') ?? 0
   const updatedAt = canonicalFieldValue(fieldState, 'updatedAt') ?? 'missing'
+  const degradationPct = boundedPercent(degradation)
+  const capacityPct = boundedPercent(operationalCapacity)
+  const confidencePct = boundedPercent(confidence)
+
+  const flowNodes = [
+    { label: 'SIGNAL', value: String(signalCount), state: signalCount > 0 ? 'active' : 'latent' },
+    { label: 'FIELD', value: String(sourceState), state: sourceState === 'missing' ? 'latent' : 'derived' },
+    { label: 'DEGRAD', value: `${degradationPct}%`, state: degradationPct > 45 ? 'critical' : degradationPct > 0 ? 'watch' : 'latent' },
+    { label: 'SOURCE', value: String(sourceStatus), state: sourceStatus === 'healthy' ? 'active' : 'latent' },
+  ]
 
   return (
-    <aside className="pointer-events-none fixed bottom-4 right-4 z-[80] w-[min(360px,calc(100vw-2rem))] border border-[rgba(200,169,81,0.18)] bg-[#060605]/85 p-3 font-mono text-[#C8A951] shadow-[0_0_24px_rgba(0,0,0,0.45)] backdrop-blur-sm">
-      <div className="mb-2 flex items-center justify-between gap-3 text-[9px] uppercase tracking-[0.22em]">
-        <span>FIELDSTATE</span>
-        <span>{sourceState}</span>
+    <section className="pointer-events-none fixed inset-x-3 top-3 z-[90] font-mono text-[#C8A951] sm:inset-x-auto sm:right-4 sm:top-4 sm:w-[390px]">
+      <div className="border border-[rgba(200,169,81,0.16)] bg-[#060605]/88 shadow-[0_0_34px_rgba(0,0,0,0.58)] backdrop-blur-md">
+        <div className="flex items-center justify-between border-b border-[rgba(200,169,81,0.10)] px-3 py-2">
+          <div className="flex min-w-0 flex-col">
+            <span className="text-[8px] uppercase tracking-[0.30em] text-[#8e7b42]">SFI · TERMINAL</span>
+            <span className="truncate text-[10px] uppercase tracking-[0.16em] text-[#e8d18a]">observatorio de campo</span>
+          </div>
+          <div className="flex items-center gap-2 text-[8px] uppercase tracking-[0.16em]">
+            <span className="border border-[rgba(200,169,81,0.18)] px-2 py-1 text-[#C8A951]">{mode}</span>
+            <span className="border border-[rgba(200,169,81,0.18)] px-2 py-1 text-[#8e7b42]">{regime}</span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-4 gap-0 border-b border-[rgba(200,169,81,0.08)]">
+          {flowNodes.map((item, index) => (
+            <div key={item.label} className="relative flex flex-col items-center gap-1 border-r border-[rgba(200,169,81,0.08)] px-2 py-2 last:border-r-0">
+              <span
+                className={[
+                  'h-2.5 w-2.5 rotate-45 border',
+                  item.state === 'active' ? 'border-[#40B070] bg-[#40B070]/25 shadow-[0_0_10px_rgba(64,176,112,0.45)]' : '',
+                  item.state === 'derived' ? 'border-[#C8A951] bg-[#C8A951]/20 shadow-[0_0_10px_rgba(200,169,81,0.35)]' : '',
+                  item.state === 'watch' ? 'border-[#b08030] bg-[#b08030]/20' : '',
+                  item.state === 'critical' ? 'border-[#E04040] bg-[#E04040]/20 shadow-[0_0_10px_rgba(224,64,64,0.35)]' : '',
+                  item.state === 'latent' ? 'border-[rgba(200,169,81,0.18)] bg-transparent' : '',
+                ].join(' ')}
+              />
+              <span className="text-[7px] uppercase tracking-[0.16em] text-[#8e7b42]">{item.label}</span>
+              <span className="max-w-full truncate text-[8px] uppercase tracking-[0.08em] text-[#e8d18a]">{item.value}</span>
+              {index < flowNodes.length - 1 && <span className="absolute right-[-5px] top-[15px] text-[9px] text-[rgba(200,169,81,0.30)]">→</span>}
+            </div>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-3 gap-2 px-3 py-2 text-[8px] uppercase tracking-[0.12em] text-[#8e7b42]">
+          <MetricBar label="ρ" value={confidencePct} raw={metricText(confidence)} />
+          <MetricBar label="D" value={degradationPct} raw={metricText(degradation)} />
+          <MetricBar label="CO" value={capacityPct} raw={metricText(operationalCapacity)} />
+        </div>
+
+        <div className="flex items-center justify-between gap-3 border-t border-[rgba(200,169,81,0.08)] px-3 py-2 text-[7px] uppercase tracking-[0.12em] text-[#6f6338]">
+          <span className="truncate">evidence: {evidenceLevel}</span>
+          <span className="truncate text-right">updated: {updatedAt}</span>
+        </div>
       </div>
-      <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-[10px] uppercase tracking-[0.12em] text-[#e8d18a]">
-        <span>regime</span>
-        <span className="text-right">{regime}</span>
-        <span>evidence</span>
-        <span className="text-right">{evidenceLevel}</span>
-        <span>confidence</span>
-        <span className="text-right">{confidence}</span>
-        <span>degradation</span>
-        <span className="text-right">{degradation}</span>
-        <span>capacity</span>
-        <span className="text-right">{operationalCapacity}</span>
+    </section>
+  )
+}
+
+function MetricBar({ label, value, raw }: { label: string; value: number; raw: string }) {
+  return (
+    <div className="min-w-0">
+      <div className="mb-1 flex items-center justify-between gap-2">
+        <span>{label}</span>
+        <span className="text-[#e8d18a]">{raw}</span>
       </div>
-      <div className="mt-2 border-t border-[rgba(200,169,81,0.12)] pt-2 text-[8px] uppercase tracking-[0.14em] text-[#8e7b42]">
-        updated: {updatedAt}
+      <div className="h-px w-full bg-[rgba(200,169,81,0.12)]">
+        <div className="h-px bg-[#C8A951]" style={{ width: `${value}%` }} />
       </div>
-    </aside>
+    </div>
   )
 }
 
@@ -221,8 +260,7 @@ export default function TerminalPage() {
 
     return (
       <>
-        <TerminalStatusBadges canonicalState={canonicalState} mode="legacy" />
-        <TerminalFieldStatePanel canonicalState={canonicalState} />
+        <TerminalObservabilityHud canonicalState={canonicalState} mode="legacy" />
         <SfiFieldShell
           nodeId={null}
           assets={[]}
@@ -242,8 +280,7 @@ export default function TerminalPage() {
 
   return (
     <>
-      <TerminalStatusBadges canonicalState={canonicalState} mode={terminalMode} />
-      <TerminalFieldStatePanel canonicalState={canonicalState} />
+      <TerminalObservabilityHud canonicalState={canonicalState} mode={terminalMode} />
       <SfiFieldShell
         nodeId={nodeId}
         assets={assets}
