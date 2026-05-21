@@ -1,0 +1,120 @@
+import { createHash } from 'crypto';
+import { NextRequest, NextResponse } from 'next/server';
+import { ensureOwnedNode } from '@/lib/server/productionBackend';
+import type { ApiResult } from '../../../../../packages/api-contracts/src';
+
+type FieldEventCommand = {
+  command: 'field-events.create';
+  contractVersion: 'field-events.v1';
+  idempotencyKey: string;
+  node_id: string;
+  event_type: string;
+  message?: string;
+  trace_payload?: Record<string, unknown>;
+  correlationId?: string;
+};
+
+function apiOk<TData>(data: TData, traceId?: string, warnings?: string[]) {
+  const result: ApiResult<TData> = { ok: true, data, traceId, warnings };
+  return NextResponse.json(result);
+}
+
+function apiError(error: string, status = 400, traceId?: string, details?: unknown) {
+  const result: ApiResult = { ok: false, error, traceId, details };
+  return NextResponse.json(result, { status });
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value && typeof value === 'object' && !Array.isArray(value));
+}
+
+function hashPayload(payload: unknown) {
+  return createHash('sha256').update(JSON.stringify(payload)).digest('hex').slice(0, 24);
+}
+
+function parseFieldEventCommand(input: unknown): FieldEventCommand | null {
+  if (!isRecord(input)) return null;
+  if (input.command !== 'field-events.create') return null;
+  if (input.contractVersion !== 'field-events.v1') return null;
+  if (typeof input.idempotencyKey !== 'string' || input.idempotencyKey.trim().length < 8) return null;
+  if (typeof input.node_id !== 'string' || input.node_id.trim().length === 0) return null;
+  if (typeof input.event_type !== 'string' || input.event_type.trim().length === 0) return null;
+  if (input.message !== undefined && typeof input.message !== 'string') return null;
+  if (input.correlationId !== undefined && typeof input.correlationId !== 'string') return null;
+  if (input.trace_payload !== undefined && !isRecord(input.trace_payload)) return null;
+
+  return {
+    command: 'field-events.create',
+    contractVersion: 'field-events.v1',
+    idempotencyKey: input.idempotencyKey.trim(),
+    node_id: input.node_id.trim(),
+    event_type: input.event_type.trim(),
+    message: input.message,
+    trace_payload: input.trace_payload,
+    correlationId: input.correlationId,
+  };
+}
+
+export async function POST(req: NextRequest) {
+  const rawBody = await req.json().catch(() => null);
+  const command = parseFieldEventCommand(rawBody);
+  const traceId = command?.correlationId || command?.idempotencyKey;
+
+  if (!command) {
+    return apiError('invalid_field_event_command', 400, undefined, {
+      expectedCommand: 'field-events.create',
+      expectedContractVersion: 'field-events.v1',
+    });
+  }
+
+  try {
+    const ctx = await ensureOwnedNode(command.node_id);
+    if (ctx.error || !ctx.node || !ctx.user) return apiError('node_unavailable', 404, traceId);
+
+    const payload = {
+      ...(command.trace_payload || {}),
+      message: command.message,
+      command: command.command,
+      contractVersion: command.contractVersion,
+      idempotencyKey: command.idempotencyKey,
+      correlationId: command.correlationId,
+      payloadHash: hashPayload({
+        event_type: command.event_type,
+        message: command.message,
+        trace_payload: command.trace_payload || {},
+      }),
+      source: 'field-events.route',
+    };
+
+    const { data: existing, error: existingError } = await ctx.service
+      .from('cognitive_event_stream')
+      .select('*')
+      .eq('node_id', ctx.node.id)
+      .eq('stream_type', 'field')
+      .eq('event_name', command.event_type)
+      .eq('payload->>idempotencyKey', command.idempotencyKey)
+      .limit(1)
+      .maybeSingle();
+
+    if (existingError) return apiError(existingError.message, 500, traceId);
+    if (existing) return apiOk({ event: existing, duplicate: true }, traceId, ['idempotent_replay']);
+
+    const { data, error } = await ctx.service
+      .from('cognitive_event_stream')
+      .insert({
+        node_id: ctx.node.id,
+        stream_type: 'field',
+        event_name: command.event_type,
+        payload,
+        emitted_by: 'SFI_FIELD_COMMAND',
+      })
+      .select('*')
+      .single();
+
+    if (error) return apiError(error.message, 500, traceId);
+
+    return apiOk({ event: data, duplicate: false }, traceId);
+  } catch (error) {
+    return apiError(error instanceof Error ? error.message : 'field_event_command_failed', 500, traceId);
+  }
+}
