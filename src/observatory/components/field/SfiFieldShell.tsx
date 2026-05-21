@@ -1014,37 +1014,35 @@ export function SfiFieldShell({
     return true;
   };
 
-  const handleCommand = async ({ command, mode, node, evidence }: { command: string; mode: FieldCommandMode; node: FieldOntologyNode | null; evidence?: File | null }) => {
-    
-    if (canPersist && nodeId && command.trim()) {
-  void declareTerminalSignal({
-    nodeId,
-    content: command,
-    context: {
-      fieldMode,
-      activeNode: node?.id || null,
-      commandMode: mode,
-      source: 'SfiFieldShell.handleCommand',
-    },
-  }).then((result) => {
-    setRuntimeStatus((current) => ({
-      ...current,
-      lastEvent: result.ok ? 'SIGNAL_DECLARED' : current.lastEvent,
-      lastError: result.ok ? current.lastError : result.error,
-      latestPersistedEventAt: result.ok ? new Date().toISOString() : current.latestPersistedEventAt,
-    }));
-  });
-}
-    
-    
-    if (!canPersist) {
-      setDraftCommand(command);
-      if (/guardar|memoria|calendario|redes|subir archivo|archivo completo|fuente|conectar|historial|proyecto/i.test(command)) {
-        requestContinuity('continuidad');
-        return true;
-      }
-      return createAssetFromCommand(command, evidence);
+const handleCommand = async ({ command, mode, node, evidence }: { command: string; mode: FieldCommandMode; node: FieldOntologyNode | null; evidence?: File | null }) => {
+  if (canPersist && nodeId && command.trim()) {
+    void declareTerminalSignal({
+      nodeId,
+      content: command,
+      context: {
+        fieldMode,
+        activeNode: node?.id || null,
+        commandMode: mode,
+        source: 'SfiFieldShell.handleCommand',
+      },
+    }).then((result) => {
+      setRuntimeStatus((current) => ({
+        ...current,
+        lastEvent: result.ok ? 'SIGNAL_DECLARED' : current.lastEvent,
+        lastError: result.ok ? current.lastError : result.error,
+        latestPersistedEventAt: result.ok ? new Date().toISOString() : current.latestPersistedEventAt,
+      }));
+    });
+  }
+
+  if (!canPersist) {
+    setDraftCommand(command);
+    if (/guardar|memoria|calendario|redes|subir archivo|archivo completo|fuente|conectar|historial|proyecto/i.test(command)) {
+      requestContinuity('continuidad');
+      return true;
     }
+    return createAssetFromCommand(command, evidence);
+  }
 
     if (!activeAsset) {
       setDraftCommand(command);
