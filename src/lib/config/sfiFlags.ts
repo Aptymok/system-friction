@@ -8,7 +8,9 @@ function envFlag(value: string | undefined): boolean {
 
 export function getSfiRuntimeFlags(): SfiRuntimeFlags {
   return {
-    canonicalFieldRead: envFlag(process.env.SFI_CANONICAL_FIELD_READ),
+    canonicalFieldRead:
+      envFlag(process.env.SFI_CANONICAL_FIELD_READ) ||
+      envFlag(process.env.NEXT_PUBLIC_SFI_CANONICAL_FIELD_READ),
   };
 }
 
