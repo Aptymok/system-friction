@@ -2,6 +2,7 @@ import { createHash } from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { ensureOwnedNode } from '@/lib/server/productionBackend';
 import type { ApiResult } from '../../../../../packages/api-contracts/src';
+import { isValidIdempotencyKey, sanitizeError } from '../../../../../packages/security/src';
 
 type FieldEventCommand = {
   command: 'field-events.create';
@@ -24,19 +25,33 @@ function apiError(error: string, status = 400, traceId?: string, details?: unkno
   return NextResponse.json(result, { status });
 }
 
+function apiSanitizedError(error: unknown, status = 500, traceId?: string) {
+  const sanitized = sanitizeError(error);
+  return apiError(sanitized.code, status, traceId);
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value && typeof value === 'object' && !Array.isArray(value));
 }
 
+function canonicalize(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(canonicalize);
+  if (!isRecord(value)) return value;
+  return Object.keys(value).sort().reduce<Record<string, unknown>>((current, key) => {
+    current[key] = canonicalize(value[key]);
+    return current;
+  }, {});
+}
+
 function hashPayload(payload: unknown) {
-  return createHash('sha256').update(JSON.stringify(payload)).digest('hex').slice(0, 24);
+  return createHash('sha256').update(JSON.stringify(canonicalize(payload))).digest('hex').slice(0, 24);
 }
 
 function parseFieldEventCommand(input: unknown): FieldEventCommand | null {
   if (!isRecord(input)) return null;
   if (input.command !== 'field-events.create') return null;
   if (input.contractVersion !== 'field-events.v1') return null;
-  if (typeof input.idempotencyKey !== 'string' || input.idempotencyKey.trim().length < 8) return null;
+  if (!isValidIdempotencyKey(input.idempotencyKey)) return null;
   if (typeof input.node_id !== 'string' || input.node_id.trim().length === 0) return null;
   if (typeof input.event_type !== 'string' || input.event_type.trim().length === 0) return null;
   if (input.message !== undefined && typeof input.message !== 'string') return null;
@@ -96,7 +111,7 @@ export async function POST(req: NextRequest) {
       .limit(1)
       .maybeSingle();
 
-    if (existingError) return apiError(existingError.message, 500, traceId);
+    if (existingError) return apiSanitizedError(existingError, 500, traceId);
     if (existing) return apiOk({ event: existing, duplicate: true }, traceId, ['idempotent_replay']);
 
     const { data, error } = await ctx.service
@@ -111,10 +126,10 @@ export async function POST(req: NextRequest) {
       .select('*')
       .single();
 
-    if (error) return apiError(error.message, 500, traceId);
+    if (error) return apiSanitizedError(error, 500, traceId);
 
     return apiOk({ event: data, duplicate: false }, traceId);
   } catch (error) {
-    return apiError(error instanceof Error ? error.message : 'field_event_command_failed', 500, traceId);
+    return apiSanitizedError(error, 500, traceId);
   }
 }
