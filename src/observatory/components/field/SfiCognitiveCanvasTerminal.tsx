@@ -45,12 +45,22 @@ type AmvMessage = {
   logged?: boolean
 }
 
+const ATLAS = {
+  void: '#050504',
+  paper: '#f4f1e8',
+  gold: '#c8a951',
+  red: '#c66f6f',
+  green: '#6fcf8d',
+  blue: '#6f9cc8',
+  purple: '#9b6bc8',
+} as const
+
 const C = {
   active: [200, 169, 81],
-  persistent: [74, 143, 168],
-  anomaly: [205, 92, 72],
-  opaque: [20, 20, 16],
-  institutional: [58, 122, 90],
+  persistent: [111, 156, 200],
+  anomaly: [198, 111, 111],
+  opaque: [18, 17, 14],
+  institutional: [111, 207, 141],
 } as const
 
 const EMPTY_WORLDSPECT: WorldSpectRealClientState = {
@@ -127,89 +137,59 @@ function makeNodes(width: number, height: number): FieldNode[] {
 }
 
 function nodeDegradationIndex(node: FieldNode, globalDegradation: number, worldSpectState: WorldSpectRealClientState, signalCount: number) {
-  const sourcePressure = worldSpectState.sourceState === 'degraded'
-    ? 0.18
-    : worldSpectState.sourceState === 'missing'
-      ? 0.08
-      : 0
+  const sourcePressure = worldSpectState.sourceState === 'degraded' ? 0.18 : worldSpectState.sourceState === 'missing' ? 0.08 : 0
   const degradedSourcePressure = Math.min(0.22, worldSpectState.degraded_sources.length * 0.045)
   const signalPressure = Math.min(0.16, signalCount * 0.018)
-  const typeMultiplier: Record<NodeKind, number> = {
-    active: 1,
-    persistent: 0.72,
-    anomaly: 1.46,
-    opaque: 1.18,
-    institutional: 0.62,
-  }
+  const typeMultiplier: Record<NodeKind, number> = { active: 1, persistent: 0.72, anomaly: 1.46, opaque: 1.18, institutional: 0.62 }
   const worldNodeBoost = /NTI|OBS|INEGI|CAMPO|SFI|ATLAS/i.test(node.lb) && worldSpectState.sourceState !== 'observed' ? 0.1 : 0
   return Math.max(0, Math.min(1, (globalDegradation + sourcePressure + degradedSourcePressure + signalPressure + worldNodeBoost) * typeMultiplier[node.t]))
-}
-
-function drawFutureOverlay(ctx: CanvasRenderingContext2D, core: FieldNode, width: number, height: number, t: number) {
-  const branches = [
-    { label: 'FUTURE_BRANCH_A', x: width * 0.22, y: height * 0.22, bend: -0.28 },
-    { label: 'FUTURE_BRANCH_B', x: width * 0.74, y: height * 0.2, bend: 0.18 },
-    { label: 'FUTURE_BRANCH_C', x: width * 0.82, y: height * 0.72, bend: 0.34 },
-    { label: 'FUTURE_BRANCH_D', x: width * 0.26, y: height * 0.76, bend: -0.2 },
-  ]
-  ctx.save()
-  ctx.font = '7px IBM Plex Mono, Courier New, monospace'
-  ctx.textAlign = 'left'
-  branches.forEach((branch, index) => {
-    const phase = Math.sin(t / 800 + index) * 10
-    const mx = (core.x + branch.x) / 2 + branch.bend * width
-    const my = (core.y + branch.y) / 2 + phase
-    ctx.setLineDash([4, 11])
-    ctx.strokeStyle = `rgba(74,143,168,${0.12 + index * 0.02})`
-    ctx.lineWidth = 0.7
-    ctx.beginPath()
-    ctx.moveTo(core.x, core.y)
-    ctx.quadraticCurveTo(mx, my, branch.x, branch.y)
-    ctx.stroke()
-    ctx.setLineDash([])
-    ctx.strokeStyle = 'rgba(74,143,168,.38)'
-    ctx.fillStyle = 'rgba(8,8,8,.18)'
-    ctx.beginPath()
-    ctx.arc(branch.x, branch.y, 8 + Math.sin(t / 900 + index) * 1.6, 0, Math.PI * 2)
-    ctx.fill()
-    ctx.stroke()
-    ctx.fillStyle = 'rgba(116,184,206,.56)'
-    ctx.fillText(branch.label, branch.x + 12, branch.y + 3)
-  })
-  ctx.setLineDash([2, 8])
-  ctx.strokeStyle = 'rgba(200,169,81,.18)'
-  ctx.beginPath()
-  ctx.arc(core.x, core.y, 54 + Math.sin(t / 700) * 7, 0, Math.PI * 2)
-  ctx.stroke()
-  ctx.setLineDash([])
-  ctx.fillStyle = 'rgba(200,169,81,.52)'
-  ctx.fillText('FUTURES OVERLAY · speculative · not persisted', 16, 45)
-  ctx.restore()
 }
 
 function FieldMetric({ label, value }: { label: string; value: number }) {
   return (
     <div className="min-w-0">
-      <div className="mb-1 flex justify-between gap-2 text-[7px] uppercase tracking-[0.10em] text-[rgba(200,169,81,.45)]">
+      <div className="mb-1 flex justify-between gap-2 text-[7px] uppercase tracking-[0.10em] text-[rgba(200,169,81,.50)]">
         <span className="truncate">{label}</span><span>{Math.round(value * 100)}%</span>
       </div>
-      <div className="h-px bg-[rgba(200,169,81,.12)]"><div className="h-px bg-[rgba(200,169,81,.75)]" style={{ width: `${Math.round(value * 100)}%` }} /></div>
+      <div className="h-px bg-[rgba(200,169,81,.14)]"><div className="h-px bg-[#c8a951]" style={{ width: `${Math.round(value * 100)}%` }} /></div>
     </div>
   )
 }
 
 function PanelButton({ active, children, onClick }: { active: boolean; children: ReactNode; onClick: () => void }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={active
-        ? 'border border-[rgba(200,169,81,.24)] bg-[rgba(200,169,81,.10)] px-2 py-2 text-left text-[#C8A951]'
-        : 'border border-[rgba(200,169,81,.08)] bg-[rgba(8,8,8,.24)] px-2 py-2 text-left text-[rgba(200,169,81,.42)] hover:text-[rgba(200,169,81,.72)]'}
-    >
+    <button type="button" onClick={onClick} className={active ? 'border border-[#c8a951]/30 bg-[#c8a951]/10 px-2 py-2 text-left text-[#c8a951]' : 'border border-[#c8a951]/10 bg-[#050504]/30 px-2 py-2 text-left text-[#c8a951]/45 hover:text-[#c8a951]/75'}>
       {children}
     </button>
   )
+}
+
+function drawFutureOverlay(ctx: CanvasRenderingContext2D, core: FieldNode, width: number, height: number, t: number) {
+  const branches = [
+    { label: 'FUTURE_BRANCH_A', x: width * 0.2, y: height * 0.22, bend: -0.24 },
+    { label: 'FUTURE_BRANCH_B', x: width * 0.74, y: height * 0.2, bend: 0.18 },
+    { label: 'FUTURE_BRANCH_C', x: width * 0.82, y: height * 0.72, bend: 0.28 },
+    { label: 'FUTURE_BRANCH_D', x: width * 0.25, y: height * 0.75, bend: -0.18 },
+  ]
+  ctx.save()
+  ctx.font = '7px JetBrains Mono, IBM Plex Mono, monospace'
+  branches.forEach((branch, index) => {
+    const mx = (core.x + branch.x) / 2 + branch.bend * width
+    const my = (core.y + branch.y) / 2 + Math.sin(t / 800 + index) * 10
+    ctx.setLineDash([4, 11])
+    ctx.strokeStyle = `rgba(111,156,200,${0.13 + index * 0.015})`
+    ctx.lineWidth = 0.7
+    ctx.beginPath(); ctx.moveTo(core.x, core.y); ctx.quadraticCurveTo(mx, my, branch.x, branch.y); ctx.stroke()
+    ctx.setLineDash([])
+    ctx.strokeStyle = 'rgba(111,156,200,.42)'
+    ctx.fillStyle = 'rgba(5,5,4,.16)'
+    ctx.beginPath(); ctx.arc(branch.x, branch.y, 8 + Math.sin(t / 900 + index) * 1.6, 0, Math.PI * 2); ctx.fill(); ctx.stroke()
+    ctx.fillStyle = 'rgba(111,156,200,.58)'
+    ctx.fillText(branch.label, branch.x + 12, branch.y + 3)
+  })
+  ctx.fillStyle = 'rgba(200,169,81,.54)'
+  ctx.fillText('FUTURES OVERLAY · speculative · not persisted', 16, 45)
+  ctx.restore()
 }
 
 export function SfiCognitiveCanvasTerminal({ nodeId, canPersist, canonicalState, mode, onSignalDeclared }: Props) {
@@ -245,13 +225,7 @@ export function SfiCognitiveCanvasTerminal({ nodeId, canPersist, canonicalState,
   const statusText = useMemo(() => mode === 'canonical' ? 'CANONICAL ACTIVE' : mode === 'degraded' ? 'CANONICAL DEGRADED' : 'LEGACY LOCAL', [mode])
   const worldSpectState = worldSpect ?? EMPTY_WORLDSPECT
   const worldLabel = worldSpectState.sourceState === 'observed' ? 'observed' : worldSpectState.sourceState === 'degraded' ? 'degraded' : 'missing'
-  const amvStatusLabel = amvStatus === 'thinking'
-    ? 'THINKING'
-    : amvStatus === 'ready'
-      ? 'GEMINI'
-      : amvStatus === 'degraded'
-        ? 'FALLBACK'
-        : 'LOCAL_ONLY'
+  const amvStatusLabel = amvStatus === 'thinking' ? 'THINKING' : amvStatus === 'ready' ? 'GEMINI' : amvStatus === 'degraded' ? 'FALLBACK' : 'LOCAL_ONLY'
   const memoryLabel = memoryStatus === 'logged' ? 'LOGGED' : memoryStatus === 'unlogged' ? 'UNLOGGED' : memoryStatus === 'local_only' ? 'LOCAL_ONLY' : 'UNKNOWN'
 
   const spawnGhost = useCallback((text: string, color: readonly number[] = C.active) => {
@@ -287,22 +261,7 @@ export function SfiCognitiveCanvasTerminal({ nodeId, canPersist, canonicalState,
       const response = await fetch('/api/amv/field-response', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          message,
-          node_id: nodeId,
-          fieldContext: {
-            nodeId,
-            regime,
-            sourceState,
-            evidenceLevel,
-            degradation,
-            capacity,
-            confidence,
-            wsi: worldSpectRef.current?.wsi ?? null,
-            nti: worldSpectRef.current?.nti ?? null,
-            worldSpectState: worldSpectRef.current?.sourceState ?? 'missing',
-          },
-        }),
+        body: JSON.stringify({ message, node_id: nodeId, fieldContext: { nodeId, regime, sourceState, evidenceLevel, degradation, capacity, confidence, wsi: worldSpectRef.current?.wsi ?? null, nti: worldSpectRef.current?.nti ?? null, worldSpectState: worldSpectRef.current?.sourceState ?? 'missing' } }),
       })
       const body: unknown = await response.json().catch(() => null)
       if (!response.ok || !body || typeof body !== 'object' || (body as Record<string, unknown>).ok !== true) throw new Error('amv_response_failed')
@@ -316,12 +275,7 @@ export function SfiCognitiveCanvasTerminal({ nodeId, canPersist, canonicalState,
       spawnGhost(responseLogged ? 'AMV_RESPONSE · LOGGED' : 'AMV_RESPONSE · UNLOGGED', responseLogged ? C.institutional : C.anomaly)
     } catch {
       setMemoryStatus(nodeId && canPersist ? 'unlogged' : 'local_only')
-      setMessages((current) => [...current, {
-        role: 'amv',
-        text: 'AMV operativo: respuesta degradada. La senal fue recibida, pero el agente no pudo resolver respuesta server-side.',
-        source: 'deterministic_fallback',
-        logged: false,
-      }])
+      setMessages((current) => [...current, { role: 'amv', text: 'AMV operativo: respuesta degradada. La senal fue recibida, pero el agente no pudo resolver respuesta server-side.', source: 'deterministic_fallback', logged: false }])
       setAmvStatus('degraded')
       spawnGhost('AMV · fallback local etiquetado', C.persistent)
     }
@@ -331,21 +285,14 @@ export function SfiCognitiveCanvasTerminal({ nodeId, canPersist, canonicalState,
     const content = input.trim()
     if (!content || amvStatus === 'thinking') return
     if (nodeId && canPersist) {
-      const result = await declareTerminalSignal({
-        nodeId,
-        content,
-        context: { source: 'SfiCognitiveCanvasTerminal', regime, sourceState, evidenceLevel, degradation, capacity, confidence, worldSpect: worldSpectState },
-      })
+      const result = await declareTerminalSignal({ nodeId, content, context: { source: 'SfiCognitiveCanvasTerminal', regime, sourceState, evidenceLevel, degradation, capacity, confidence, worldSpect: worldSpectState } })
       spawnGhost(result.ok ? 'SIGNAL_DECLARED · cognitive_event_stream' : 'SIGNAL_DECLARATION_FAILED', result.ok ? C.active : C.anomaly)
       if (result.ok) onSignalDeclared?.()
     } else {
       setMemoryStatus('local_only')
       spawnGhost('LOCAL_ONLY · senal no persistida', C.persistent)
     }
-    setMessages((current) => [
-      ...current,
-      { role: 'operator', text: content, source: nodeId && canPersist ? undefined : 'local_only' },
-    ])
+    setMessages((current) => [...current, { role: 'operator', text: content, source: nodeId && canPersist ? undefined : 'local_only' }])
     setTreeActive(true)
     setInput('')
     await requestAmvResponse(content)
@@ -413,43 +360,33 @@ export function SfiCognitiveCanvasTerminal({ nodeId, canPersist, canonicalState,
       const b = Math.sin((t / 4200) * Math.PI * 2) * 0.5 + 0.5
 
       ctx.clearRect(0, 0, width, height)
-      ctx.fillStyle = '#080808'
+      ctx.fillStyle = ATLAS.void
       ctx.fillRect(0, 0, width, height)
       const bg = ctx.createRadialGradient(width * 0.5, height * 0.44, 0, width * 0.5, height * 0.44, width * (0.62 + worldDensity))
-      bg.addColorStop(0, `rgba(13,18,24,${0.52 + b * 0.08 + worldDensity})`)
-      bg.addColorStop(0.52, `rgba(58,122,90,${worldSpectPressure * 0.08})`)
-      bg.addColorStop(0.72, `rgba(120,45,30,${degradedWorld ? 0.13 : degradation * 0.08})`)
-      bg.addColorStop(1, 'rgba(8,8,8,0)')
+      bg.addColorStop(0, `rgba(18,17,14,${0.72 + b * 0.05 + worldDensity})`)
+      bg.addColorStop(0.48, `rgba(200,169,81,${0.045 + worldSpectPressure * 0.06})`)
+      bg.addColorStop(0.7, `rgba(198,111,111,${degradedWorld ? 0.11 : degradation * 0.06})`)
+      bg.addColorStop(1, 'rgba(5,5,4,0)')
       ctx.fillStyle = bg
       ctx.fillRect(0, 0, width, height)
 
-      ctx.strokeStyle = `rgba(50,48,38,${0.02 + fs.tension * 0.01 + worldDensity * 0.07})`
+      ctx.strokeStyle = `rgba(200,169,81,${0.025 + fs.tension * 0.01 + worldDensity * 0.04})`
       ctx.lineWidth = 0.35
-      for (let x = 0; x < width; x += 64) {
-        const d = Math.sin(t / 1900 + x * 0.016) * (treeActive ? 12 : fs.tension * 7 + worldDensity * 12)
-        ctx.beginPath(); ctx.moveTo(x + d, 0); ctx.lineTo(x + d * 0.4, height); ctx.stroke()
-      }
-      for (let y = 0; y < height; y += 64) {
-        const d = Math.cos(t / 2100 + y * 0.016) * (treeActive ? 8 : fs.tension * 5 + worldDensity * 9)
-        ctx.beginPath(); ctx.moveTo(0, y + d); ctx.lineTo(width, y + d * 0.4); ctx.stroke()
-      }
+      for (let x = 0; x < width; x += 64) { const d = Math.sin(t / 1900 + x * 0.016) * (treeActive ? 12 : fs.tension * 7 + worldDensity * 12); ctx.beginPath(); ctx.moveTo(x + d, 0); ctx.lineTo(x + d * 0.4, height); ctx.stroke() }
+      for (let y = 0; y < height; y += 64) { const d = Math.cos(t / 2100 + y * 0.016) * (treeActive ? 8 : fs.tension * 5 + worldDensity * 9); ctx.beginPath(); ctx.moveTo(0, y + d); ctx.lineTo(width, y + d * 0.4); ctx.stroke() }
 
       EDG.forEach((edge) => {
         const a = nodes[edge.a], c = nodes[edge.b]
         if (!a || !c) return
-        const dA = nodeDegradationIndex(a, degradation, ws, signalCount)
-        const dB = nodeDegradationIndex(c, degradation, ws, signalCount)
-        const dEdge = (dA + dB) * 0.5
+        const dEdge = (nodeDegradationIndex(a, degradation, ws, signalCount) + nodeDegradationIndex(c, degradation, ws, signalCount)) * 0.5
         const att = (a.att + c.att) * 0.5
-        const isLatent = edge.k === 'l'
         ctx.save()
-        if (isLatent || dEdge > 0.36) ctx.setLineDash(dEdge > 0.6 ? [2, 14] : [3, 9])
+        if (edge.k === 'l' || dEdge > 0.36) ctx.setLineDash(dEdge > 0.6 ? [2, 14] : [3, 9])
         if (edge.k === 'r') ctx.setLineDash([8, 4])
-        const color = degradedWorld || dEdge > 0.5 ? [190, 86, 65] : edge.k === 'r' ? [108, 102, 72] : isLatent ? [55, 88, 105] : [88, 82, 62]
+        const color = degradedWorld || dEdge > 0.5 ? C.anomaly : edge.k === 'r' ? C.active : edge.k === 'l' ? C.persistent : [122, 112, 75]
         ctx.strokeStyle = `rgba(${color[0]},${color[1]},${color[2]},${0.045 + att * 0.18 + dEdge * 0.24 + worldDensity * 0.14})`
         ctx.lineWidth = edge.k === 's' ? 0.55 + att * 1.1 + dEdge * 1.2 : 0.4 + dEdge * 0.5
-        ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(c.x, c.y); ctx.stroke()
-        ctx.restore()
+        ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(c.x, c.y); ctx.stroke(); ctx.restore()
       })
 
       nodes.forEach((node) => {
@@ -462,8 +399,7 @@ export function SfiCognitiveCanvasTerminal({ nodeId, canPersist, canonicalState,
         node.vy *= 0.97 - dNode * 0.018
         node.vx += (node.rx * width - node.x) * (treeActive ? anchorStrength * 0.38 : anchorStrength * (1 - dNode * 0.52))
         node.vy += (node.ry * height - node.y) * (treeActive ? anchorStrength * 0.38 : anchorStrength * (1 - dNode * 0.52))
-        node.x += node.vx
-        node.y += node.vy
+        node.x += node.vx; node.y += node.vy
         const dx = node.x - mouseRef.current.x, dy = node.y - mouseRef.current.y
         const dist = Math.sqrt(dx * dx + dy * dy)
         const target = dist < 178 && mouseRef.current.active ? Math.pow(1 - dist / 178, 1.7) : 0
@@ -472,78 +408,39 @@ export function SfiCognitiveCanvasTerminal({ nodeId, canPersist, canonicalState,
 
       nodes.forEach((node) => {
         const dNode = nodeDegradationIndex(node, degradation, ws, signalCount)
-        const pulse = Math.sin(t / (1300 - dNode * 460) + node.phase)
+        const pulse = Math.sin(t / Math.max(680, 1300 - dNode * 460) + node.phase)
         const labelJitter = dNode > 0.32 ? Math.sin(t / 90 + node.id) * dNode * 2.5 : 0
         const base = 4 + node.w * 10
         const r = base * (1 + b * 0.07 + pulse * (0.05 + dNode * 0.09) + node.wp * 0.38 + worldDensity * 0.18) + node.att * 3.5
         node.wp = Math.max(0, node.wp - 0.018)
         const color = C[node.t]
         const nodeOpacity = node.t === 'opaque' ? Math.max(0.08, 0.42 - dNode * 0.28) : Math.max(0.08, 0.12 + node.att * 0.16 + node.wp * 0.14 - dNode * 0.04)
-        if (dNode > 0.48 && node.t !== 'opaque') {
-          ctx.strokeStyle = `rgba(205,92,72,${0.08 + dNode * 0.12})`
-          ctx.beginPath(); ctx.arc(node.x + Math.sin(t / 120 + node.id) * 6, node.y + Math.cos(t / 110 + node.id) * 5, r * 1.18, 0, Math.PI * 2); ctx.stroke()
-        }
-        if (node.t === 'opaque') {
-          ctx.fillStyle = `rgba(16,16,13,${nodeOpacity})`
-          ctx.beginPath(); ctx.arc(node.x, node.y, r, 0, Math.PI * 2); ctx.fill()
-          return
-        }
+        if (dNode > 0.48 && node.t !== 'opaque') { ctx.strokeStyle = `rgba(198,111,111,${0.08 + dNode * 0.12})`; ctx.beginPath(); ctx.arc(node.x + Math.sin(t / 120 + node.id) * 6, node.y + Math.cos(t / 110 + node.id) * 5, r * 1.18, 0, Math.PI * 2); ctx.stroke() }
+        if (node.t === 'opaque') { ctx.fillStyle = `rgba(18,17,14,${nodeOpacity})`; ctx.beginPath(); ctx.arc(node.x, node.y, r, 0, Math.PI * 2); ctx.fill(); return }
         const glow = ctx.createRadialGradient(node.x, node.y, r * 0.18, node.x, node.y, r * (2.6 + node.att * 2.2 + node.wp * 1.5 + dNode))
         glow.addColorStop(0, `rgba(${color[0]},${color[1]},${color[2]},${0.04 + node.att * 0.09 + node.wp * 0.07 + dNode * 0.06 + worldDensity * 0.05})`)
         glow.addColorStop(1, 'rgba(0,0,0,0)')
-        ctx.fillStyle = glow
-        ctx.beginPath(); ctx.arc(node.x, node.y, r * 2.8, 0, Math.PI * 2); ctx.fill()
+        ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(node.x, node.y, r * 2.8, 0, Math.PI * 2); ctx.fill()
         ctx.fillStyle = `rgba(${color[0]},${color[1]},${color[2]},${nodeOpacity})`
-        ctx.strokeStyle = node.t === 'institutional' && dNode > 0.25
-          ? `rgba(205,92,72,${0.38 + dNode * 0.28})`
-          : `rgba(${color[0]},${color[1]},${color[2]},${0.45 + node.att * 0.32 + node.wp * 0.24 + dNode * 0.14})`
+        ctx.strokeStyle = node.t === 'institutional' && dNode > 0.25 ? `rgba(198,111,111,${0.38 + dNode * 0.28})` : `rgba(${color[0]},${color[1]},${color[2]},${0.45 + node.att * 0.32 + node.wp * 0.24 + dNode * 0.14})`
         ctx.lineWidth = 0.85 + node.att * 0.6 + dNode * 0.85
         if (dNode > 0.52) ctx.setLineDash([2, 5])
-        if (node.t === 'active') {
-          ctx.beginPath(); ctx.moveTo(node.x, node.y - r); ctx.lineTo(node.x + r * 0.72, node.y); ctx.lineTo(node.x, node.y + r); ctx.lineTo(node.x - r * 0.72, node.y); ctx.closePath(); ctx.fill(); ctx.stroke()
-        } else if (node.t === 'institutional') {
-          ctx.beginPath()
-          for (let i = 0; i < 6; i += 1) {
-            const a = Math.PI / 3 * i - Math.PI / 6
-            if (i === 0) ctx.moveTo(node.x + r * Math.cos(a), node.y + r * Math.sin(a))
-            else ctx.lineTo(node.x + r * Math.cos(a), node.y + r * Math.sin(a))
-          }
-          ctx.closePath(); ctx.fill(); ctx.stroke()
-        } else {
-          ctx.beginPath(); ctx.arc(node.x, node.y, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke()
-        }
+        if (node.t === 'active') { ctx.beginPath(); ctx.moveTo(node.x, node.y - r); ctx.lineTo(node.x + r * 0.72, node.y); ctx.lineTo(node.x, node.y + r); ctx.lineTo(node.x - r * 0.72, node.y); ctx.closePath(); ctx.fill(); ctx.stroke() }
+        else if (node.t === 'institutional') { ctx.beginPath(); for (let i = 0; i < 6; i += 1) { const a = Math.PI / 3 * i - Math.PI / 6; if (i === 0) ctx.moveTo(node.x + r * Math.cos(a), node.y + r * Math.sin(a)); else ctx.lineTo(node.x + r * Math.cos(a), node.y + r * Math.sin(a)) } ctx.closePath(); ctx.fill(); ctx.stroke() }
+        else { ctx.beginPath(); ctx.arc(node.x, node.y, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke() }
         ctx.setLineDash([])
-        if (node.t === 'persistent' && dNode > 0.25) {
-          ctx.strokeStyle = `rgba(74,143,168,${0.1 + dNode * 0.12})`
-          ctx.beginPath(); ctx.arc(node.x, node.y, r * 1.7, 0, Math.PI * 2); ctx.stroke()
-        }
+        if (node.t === 'persistent' && dNode > 0.25) { ctx.strokeStyle = `rgba(111,156,200,${0.1 + dNode * 0.12})`; ctx.beginPath(); ctx.arc(node.x, node.y, r * 1.7, 0, Math.PI * 2); ctx.stroke() }
         ctx.fillStyle = `rgba(${color[0]},${color[1]},${color[2]},${width < 680 ? 0.34 + node.att * 0.5 : 0.2 + node.att * 0.55 + node.wp * 0.32})`
-        ctx.font = `${width < 680 ? 6.5 : 7.5}px IBM Plex Mono, Courier New, monospace`
-        ctx.textAlign = 'left'
-        ctx.fillText(node.lb, node.x + r + 4 + labelJitter, node.y + 2.5 - labelJitter)
+        ctx.font = `${width < 680 ? 6.5 : 7.5}px JetBrains Mono, IBM Plex Mono, monospace`
+        ctx.textAlign = 'left'; ctx.fillText(node.lb, node.x + r + 4 + labelJitter, node.y + 2.5 - labelJitter)
       })
 
       if (treeActive && nodes[26]) drawFutureOverlay(ctx, nodes[26], width, height, t)
-
-      ctx.font = 'bold 8px IBM Plex Mono, Courier New, monospace'
-      ctx.textAlign = 'left'
-      ctx.fillStyle = `rgba(200,169,81,${0.56 + b * 0.1})`
-      ctx.fillText('CAMPO COGNITIVO · SFI', 16, 17)
-      ctx.font = '7px IBM Plex Mono, Courier New, monospace'
-      ctx.fillStyle = 'rgba(122,118,92,.66)'
-      ctx.fillText(`WorldSpect: ${ws.sourceState} · FieldState: ${sourceState} · Bridge: read-only`, 16, 29)
-      ctx.textAlign = 'right'
-      ctx.fillStyle = `rgba(58,122,90,${0.5 + b * 0.09})`
-      ctx.fillText(`WSI=${displayNumber(ws.wsi)} · NTI=${displayNumber(ws.nti)} · W=${Math.round(ws.confidence * 100)}%`, width - 16, 17)
-      ctx.fillStyle = 'rgba(200,169,81,.58)'
-      ctx.fillText(statusText, width - 16, 29)
-
-      if (Date.now() - lastGhost > (fs.tension > 0.4 ? 3600 : 9000)) {
-        lastGhost = Date.now()
-        if (ws.sourceState === 'observed') spawnGhost('WORLDSPECT · observed', C.institutional)
-        else if (ws.sourceState === 'degraded') spawnGhost('WORLDSPECT · degraded source', C.anomaly)
-        else spawnGhost(signalCount > 0 ? 'FIELD · reduccion canonica activa' : 'AMV · campo en espera', signalCount > 0 ? C.active : C.persistent)
-      }
+      ctx.font = 'bold 8px Syncopate, IBM Plex Mono, monospace'; ctx.textAlign = 'left'; ctx.fillStyle = `rgba(200,169,81,${0.66 + b * 0.1})`; ctx.fillText('CAMPO COGNITIVO · SFI', 16, 17)
+      ctx.font = '7px JetBrains Mono, IBM Plex Mono, monospace'; ctx.fillStyle = 'rgba(244,241,232,.42)'; ctx.fillText(`WorldSpect: ${ws.sourceState} · FieldState: ${sourceState} · Bridge: read-only`, 16, 29)
+      ctx.textAlign = 'right'; ctx.fillStyle = `rgba(111,207,141,${0.5 + b * 0.09})`; ctx.fillText(`WSI=${displayNumber(ws.wsi)} · NTI=${displayNumber(ws.nti)} · W=${Math.round(ws.confidence * 100)}%`, width - 16, 17)
+      ctx.fillStyle = 'rgba(200,169,81,.58)'; ctx.fillText(statusText, width - 16, 29)
+      if (Date.now() - lastGhost > (fs.tension > 0.4 ? 3600 : 9000)) { lastGhost = Date.now(); if (ws.sourceState === 'observed') spawnGhost('WORLDSPECT · observed', C.institutional); else if (ws.sourceState === 'degraded') spawnGhost('WORLDSPECT · degraded source', C.anomaly); else spawnGhost(signalCount > 0 ? 'FIELD · reduccion canonica activa' : 'AMV · campo en espera', signalCount > 0 ? C.active : C.persistent) }
       frameRef.current = requestAnimationFrame(draw)
     }
     frameRef.current = requestAnimationFrame(draw)
@@ -554,140 +451,37 @@ export function SfiCognitiveCanvasTerminal({ nodeId, canPersist, canonicalState,
     setInput(value)
     const fs = fieldRef.current
     const now = Date.now()
-    fs.charBuf.push(now)
-    fs.charBuf = fs.charBuf.filter((time) => now - time < 1000)
-    fs.typingSpeed = fs.charBuf.length
+    fs.charBuf.push(now); fs.charBuf = fs.charBuf.filter((time) => now - time < 1000); fs.typingSpeed = fs.charBuf.length
     fs.wordCount = value.trim().split(/\s+/).filter(Boolean).length
     const punctuation = (value.match(/[.!?:;,]/g) || []).length
     const caps = (value.match(/[A-Z]/g) || []).length / (value.length || 1)
     fs.tension = fs.tension * 0.7 + Math.min(1, (fs.wordCount / 18 + punctuation / 5 + fs.typingSpeed / 12 + caps * 0.7) * 0.52) * 0.3
     fs.density = Math.min(1, fs.wordCount / 20 + fs.tension * 0.4)
-    if (value.length > 0 && nodesRef.current.length) {
-      const index = Math.abs(value.charCodeAt(value.length - 1) + (value.charCodeAt(Math.max(0, value.length - 2)) || 0)) % nodesRef.current.length
-      nodesRef.current[index].wp = 1
-      const edge = EDG.find((item) => item.a === index || item.b === index)
-      if (edge) nodesRef.current[edge.a === index ? edge.b : edge.a].wp = 0.5
-    }
+    if (value.length > 0 && nodesRef.current.length) { const index = Math.abs(value.charCodeAt(value.length - 1) + (value.charCodeAt(Math.max(0, value.length - 2)) || 0)) % nodesRef.current.length; nodesRef.current[index].wp = 1; const edge = EDG.find((item) => item.a === index || item.b === index); if (edge) nodesRef.current[edge.a === index ? edge.b : edge.a].wp = 0.5 }
   }
 
   return (
-    <main className="h-screen min-h-screen overflow-hidden bg-[#080808] text-[#C8A951]">
-      <div
-        ref={rootRef}
-        className="relative h-screen min-h-screen w-screen overflow-hidden bg-[radial-gradient(circle_at_50%_35%,rgba(24,28,31,.85),#080808_68%)] font-mono select-none"
-        onPointerMove={(event) => {
-          const rect = rootRef.current?.getBoundingClientRect()
-          if (!rect) return
-          mouseRef.current.x = event.clientX - rect.left
-          mouseRef.current.y = event.clientY - rect.top
-          mouseRef.current.active = true
-        }}
-        onPointerLeave={() => { mouseRef.current.active = false }}
-      >
+    <main className="h-screen min-h-screen overflow-hidden bg-[#050504] text-[#c8a951]">
+      <div ref={rootRef} className="relative h-screen min-h-screen w-screen overflow-hidden bg-[#050504] font-mono select-none" onPointerMove={(event) => { const rect = rootRef.current?.getBoundingClientRect(); if (!rect) return; mouseRef.current.x = event.clientX - rect.left; mouseRef.current.y = event.clientY - rect.top; mouseRef.current.active = true }} onPointerLeave={() => { mouseRef.current.active = false }}>
         <canvas ref={canvasRef} className="absolute inset-0 h-full w-full touch-none" />
         <div ref={ghostRef} className="pointer-events-none absolute inset-0 overflow-hidden" />
-
         <div className="absolute left-3 top-12 flex flex-wrap items-center gap-2">
-          <button type="button" onClick={() => { setTreeActive((value) => !value); spawnGhost('FUTURES · speculative overlay', C.active) }} className="border border-[rgba(74,143,168,.18)] bg-[#080808]/45 px-2 py-1 text-[7px] uppercase tracking-[0.10em] text-[rgba(74,143,168,.78)] backdrop-blur-[2px]">◈ FUTURES · SPECULATIVE</button>
-          <button type="button" onClick={() => { setSoundEnabled((value) => !value); spawnGhost(soundEnabled ? 'AUDIO · desactivado' : 'AUDIO · textura pendiente', C.institutional) }} className="border border-[rgba(58,122,90,.18)] bg-[#080808]/45 px-2 py-1 text-[7px] uppercase tracking-[0.10em] text-[rgba(58,122,90,.72)] backdrop-blur-[2px]">◎ SONIDO</button>
+          <button type="button" onClick={() => { setTreeActive((value) => !value); spawnGhost('FUTURES · speculative overlay', C.active) }} className="border border-[#6f9cc8]/25 bg-[#050504]/45 px-2 py-1 text-[7px] uppercase tracking-[0.10em] text-[#6f9cc8] backdrop-blur-[2px]">◈ FUTURES · SPECULATIVE</button>
+          <button type="button" onClick={() => { setSoundEnabled((value) => !value); spawnGhost(soundEnabled ? 'AUDIO · desactivado' : 'AUDIO · textura pendiente', C.institutional) }} className="border border-[#6fcf8d]/20 bg-[#050504]/45 px-2 py-1 text-[7px] uppercase tracking-[0.10em] text-[#6fcf8d] backdrop-blur-[2px]">◎ SONIDO</button>
         </div>
-
-        <section className={consoleCollapsed
-          ? 'absolute bottom-3 left-2 right-2 border border-[rgba(200,169,81,.14)] bg-[rgba(8,8,8,.18)] px-3 py-2 backdrop-blur-[3px] sm:left-4 sm:right-4'
-          : 'absolute bottom-3 left-2 right-2 max-h-[38vh] border border-[rgba(200,169,81,.14)] bg-[rgba(8,8,8,.16)] px-3 py-2 shadow-[0_-10px_28px_rgba(0,0,0,.12)] backdrop-blur-[4px] sm:bottom-4 sm:left-4 sm:right-4 sm:max-h-[34vh] sm:px-5'}>
-          <div className="mb-2 flex items-center justify-between gap-2 text-[8px] uppercase tracking-[0.12em] text-[rgba(200,169,81,.62)]">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="border border-[rgba(200,169,81,.12)] px-2 py-1">AMV {amvStatusLabel}</span>
-              <span className="border border-[rgba(200,169,81,.12)] px-2 py-1">MEM {memoryLabel}</span>
-              <span className="border border-[rgba(58,122,90,.14)] px-2 py-1">WORLD {worldLabel}</span>
-              <span className="border border-[rgba(74,143,168,.14)] px-2 py-1">SRC {sourceStatus}</span>
-            </div>
-            <button type="button" onClick={() => setConsoleCollapsed((value) => !value)} className="border border-[rgba(200,169,81,.14)] px-2 py-1 text-[rgba(200,169,81,.72)]">
-              {consoleCollapsed ? 'EXPANDIR' : 'COLAPSAR'}
-            </button>
+        <section className={consoleCollapsed ? 'absolute bottom-3 left-2 right-2 border border-[#c8a951]/14 bg-[#050504]/20 px-3 py-2 backdrop-blur-[3px] sm:left-4 sm:right-4' : 'absolute bottom-3 left-2 right-2 max-h-[38vh] border border-[#c8a951]/14 bg-[#050504]/18 px-3 py-2 shadow-[0_-10px_28px_rgba(0,0,0,.10)] backdrop-blur-[4px] sm:bottom-4 sm:left-4 sm:right-4 sm:max-h-[34vh] sm:px-5'}>
+          <div className="mb-2 flex items-center justify-between gap-2 text-[8px] uppercase tracking-[0.12em] text-[#c8a951]/65">
+            <div className="flex flex-wrap items-center gap-2"><span className="border border-[#c8a951]/15 px-2 py-1">AMV {amvStatusLabel}</span><span className="border border-[#c8a951]/15 px-2 py-1">MEM {memoryLabel}</span><span className="border border-[#6fcf8d]/20 px-2 py-1">WORLD {worldLabel}</span><span className="border border-[#6f9cc8]/20 px-2 py-1">SRC {sourceStatus}</span></div>
+            <button type="button" onClick={() => setConsoleCollapsed((value) => !value)} className="border border-[#c8a951]/15 px-2 py-1 text-[#c8a951]/75">{consoleCollapsed ? 'EXPANDIR' : 'COLAPSAR'}</button>
           </div>
-
-          {consoleCollapsed ? null : (
-            <>
-              <div className="grid grid-cols-3 gap-1 text-[8px] uppercase tracking-[0.12em]">
-                <PanelButton active={panel === 'amv'} onClick={() => setPanel('amv')}>🜂 AMV / CHAT</PanelButton>
-                <PanelButton active={panel === 'operation'} onClick={() => setPanel('operation')}>◈ OPERACION</PanelButton>
-                <PanelButton active={panel === 'worldspect'} onClick={() => setPanel('worldspect')}>◎ WORLDSPECT</PanelButton>
-              </div>
-
-              <div className="mt-2 max-h-[26vh] overflow-y-auto pr-1 sm:max-h-[22vh]">
-                {panel === 'amv' ? (
-                  <div className="grid gap-2 lg:grid-cols-[1fr_360px]">
-                    <div className="border border-[rgba(200,169,81,.10)] bg-[rgba(8,8,8,.14)] p-2">
-                      <div className="mb-2 max-h-24 space-y-1 overflow-y-auto text-[10px] leading-relaxed text-[rgba(222,213,185,.78)]">
-                        {messages.length === 0 ? <div className="text-[rgba(222,213,185,.72)]"><b>AMV · local_only</b>: AMV operativo listo. Declara una senal o consulta el estado del campo.</div> : null}
-                        {messages.map((message, index) => (
-                          <div key={`${message.role}-${index}`} className={message.role === 'operator' ? 'text-[rgba(116,184,206,.78)]' : 'text-[rgba(222,213,185,.82)]'}>
-                            <b>{message.role === 'operator' ? 'OPERADOR' : `AMV ${message.source ? `· ${message.source}` : ''}${typeof message.logged === 'boolean' ? ` · ${message.logged ? 'LOGGED' : 'UNLOGGED'}` : ''}`}</b>: {message.text}
-                          </div>
-                        ))}
-                        {amvStatus === 'thinking' ? <div className="text-[rgba(200,169,81,.72)]">AMV · procesando respuesta server-side...</div> : null}
-                      </div>
-                      <form onSubmit={(event) => { event.preventDefault(); void submitSignal() }} className="flex min-h-10 items-center gap-2 border border-[rgba(200,169,81,.12)] bg-[rgba(8,8,8,.22)] px-2 py-2">
-                        <span className="shrink-0 text-[11px]">🜂</span>
-                        <input
-                          value={input}
-                          onChange={(event) => onInputChange(event.target.value)}
-                          disabled={amvStatus === 'thinking'}
-                          className="min-w-0 flex-1 border-0 bg-transparent text-[11px] text-[rgba(238,228,196,.86)] outline-none caret-[rgba(200,169,81,.9)] placeholder:text-[rgba(110,104,82,.56)] disabled:opacity-60"
-                          autoComplete="off"
-                          spellCheck={false}
-                          placeholder="Declara una senal o pregunta al AMV operativo..."
-                        />
-                        <button type="submit" disabled={!input.trim() || amvStatus === 'thinking'} className="shrink-0 border border-[rgba(200,169,81,.2)] px-3 py-1 text-[8px] uppercase tracking-[0.12em] text-[#C8A951] disabled:text-[rgba(200,169,81,.28)]">Enviar</button>
-                      </form>
-                    </div>
-                    <div className="grid gap-2 text-[8px] uppercase tracking-[0.09em] text-[rgba(180,170,145,.66)] sm:grid-cols-3 lg:grid-cols-1">
-                      <FieldMetric label="rho confidence" value={confidence} />
-                      <FieldMetric label="D degradation" value={degradation} />
-                      <FieldMetric label="CO capacity" value={capacity} />
-                    </div>
-                  </div>
-                ) : null}
-
-                {panel === 'operation' ? (
-                  <div className="grid gap-2 text-[9px] leading-relaxed text-[rgba(222,213,185,.74)] lg:grid-cols-3">
-                    <div className="border border-[rgba(200,169,81,.10)] bg-[rgba(8,8,8,.14)] p-3"><b className="text-[#C8A951]">Que puedes hacer aqui</b><p>Declarar senales, observar degradacion, activar futures speculative, observar WorldSpect y generar perturbaciones minimas visuales.</p></div>
-                    <div className="border border-[rgba(58,122,90,.14)] bg-[rgba(8,8,8,.12)] p-3"><b className="text-[#C8A951]">Activo</b><p>/api/signals · /api/field/state · /api/worldspect/real · /api/amv/field-response · SourceHealth · FieldState minimo.</p></div>
-                    <div className="border border-[rgba(205,92,72,.14)] bg-[rgba(8,8,8,.12)] p-3"><b className="text-[#C8A951]">Cuarentena</b><p>CognitiveTwin · AMV legacy · webhooks · cron · telemetry ingestion · field/persist legacy.</p></div>
-                    <div className="border border-[rgba(74,143,168,.14)] p-3 lg:col-span-3"><b className="text-[#C8A951]">Futuros</b><p>Futuros no predice. Dibuja bifurcaciones especulativas desde el estado actual para observar rutas posibles sin persistirlas.</p></div>
-                  </div>
-                ) : null}
-
-                {panel === 'worldspect' ? (
-                  <div className="grid gap-2 text-[9px] text-[rgba(222,213,185,.74)] lg:grid-cols-[260px_1fr]">
-                    <div className="border border-[rgba(200,169,81,.12)] bg-[rgba(8,8,8,.14)] p-3">
-                      <div className="mb-2 flex items-center justify-between gap-2 text-[8px] uppercase tracking-[0.12em]"><b className="text-[#C8A951]">◎ WorldSpect</b><span className={worldSpectState.sourceState === 'observed' ? 'text-[rgba(58,190,128,.86)]' : 'text-[rgba(205,92,72,.86)]'}>{worldLabel}</span></div>
-                      <div className="grid grid-cols-2 gap-2">
-                        <div className="border border-[rgba(200,169,81,.10)] p-2"><span className="block text-[7px] uppercase text-[rgba(200,169,81,.42)]">WSI</span>{displayNumber(worldSpectState.wsi)}</div>
-                        <div className="border border-[rgba(200,169,81,.10)] p-2"><span className="block text-[7px] uppercase text-[rgba(200,169,81,.42)]">NTI</span>{displayNumber(worldSpectState.nti)}</div>
-                        <div className="border border-[rgba(200,169,81,.10)] p-2"><span className="block text-[7px] uppercase text-[rgba(200,169,81,.42)]">Confidence</span>{Math.round(worldSpectState.confidence * 100)}%</div>
-                        <div className="border border-[rgba(200,169,81,.10)] p-2"><span className="block text-[7px] uppercase text-[rgba(200,169,81,.42)]">Evidence</span>{worldSpectState.evidenceLevel}</div>
-                      </div>
-                      {worldSpectState.sourceState !== 'observed' ? <p className="mt-1 text-[8px] text-[rgba(205,92,72,.82)]">WorldSpect degradado, no inventado.</p> : null}
-                    </div>
-                    <div className="border border-[rgba(200,169,81,.10)] p-3">
-                      <b className="text-[#C8A951]">Degraded sources</b>
-                      <p className="mb-2 text-[8px] uppercase tracking-[0.10em] text-[rgba(205,200,185,.52)]">{worldSpectState.degraded_sources.length ? worldSpectState.degraded_sources.join(' · ') : 'ninguna reportada'}</p>
-                      <div className="grid gap-1 sm:grid-cols-2 xl:grid-cols-3">
-                        {worldSpectState.sourceHealth.length ? worldSpectState.sourceHealth.map((source) => (
-                          <div key={source.sourceId} className="border border-[rgba(200,169,81,.08)] bg-[#080808]/40 p-2">
-                            <div className="flex items-center justify-between gap-2 text-[8px] uppercase tracking-[0.08em]"><span className="truncate text-[#C8A951]">{source.sourceId}</span><span className={source.status === 'healthy' ? 'text-[rgba(58,190,128,.78)]' : 'text-[rgba(205,92,72,.78)]'}>{source.status}</span></div>
-                            <p className="text-[8px] text-[rgba(205,200,185,.56)]">confidence {Math.round(source.confidence * 100)}% {source.message ? `· ${source.message}` : ''}</p>
-                          </div>
-                        )) : <p className="text-[rgba(205,92,72,.74)]">Sin SourceHealth disponible.</p>}
-                      </div>
-                    </div>
-                  </div>
-                ) : null}
-              </div>
-            </>
-          )}
+          {consoleCollapsed ? null : <>
+            <div className="grid grid-cols-3 gap-1 text-[8px] uppercase tracking-[0.12em]"><PanelButton active={panel === 'amv'} onClick={() => setPanel('amv')}>🜂 AMV / CHAT</PanelButton><PanelButton active={panel === 'operation'} onClick={() => setPanel('operation')}>◈ OPERACION</PanelButton><PanelButton active={panel === 'worldspect'} onClick={() => setPanel('worldspect')}>◎ WORLDSPECT</PanelButton></div>
+            <div className="mt-2 max-h-[26vh] overflow-y-auto pr-1 sm:max-h-[22vh]">
+              {panel === 'amv' ? <div className="grid gap-2 lg:grid-cols-[1fr_360px]"><div className="border border-[#c8a951]/10 bg-[#050504]/14 p-2"><div className="mb-2 max-h-24 space-y-1 overflow-y-auto text-[10px] leading-relaxed text-[#f4f1e8]/78">{messages.length === 0 ? <div><b>AMV · local_only</b>: AMV operativo listo. Declara una señal o consulta el estado del campo.</div> : null}{messages.map((message, index) => <div key={`${message.role}-${index}`} className={message.role === 'operator' ? 'text-[#6f9cc8]/80' : 'text-[#f4f1e8]/82'}><b>{message.role === 'operator' ? 'OPERADOR' : `AMV ${message.source ? `· ${message.source}` : ''}${typeof message.logged === 'boolean' ? ` · ${message.logged ? 'LOGGED' : 'UNLOGGED'}` : ''}`}</b>: {message.text}</div>)}{amvStatus === 'thinking' ? <div className="text-[#c8a951]/75">AMV · procesando respuesta server-side...</div> : null}</div><form onSubmit={(event) => { event.preventDefault(); void submitSignal() }} className="flex min-h-10 items-center gap-2 border border-[#c8a951]/12 bg-[#050504]/22 px-2 py-2"><span className="shrink-0 text-[11px]">🜂</span><input value={input} onChange={(event) => onInputChange(event.target.value)} disabled={amvStatus === 'thinking'} className="min-w-0 flex-1 border-0 bg-transparent text-[11px] text-[#f4f1e8]/88 outline-none caret-[#c8a951] placeholder:text-[#f4f1e8]/35 disabled:opacity-60" autoComplete="off" spellCheck={false} placeholder="Declara una señal o pregunta al AMV operativo..." /><button type="submit" disabled={!input.trim() || amvStatus === 'thinking'} className="shrink-0 border border-[#c8a951]/20 px-3 py-1 text-[8px] uppercase tracking-[0.12em] text-[#c8a951] disabled:text-[#c8a951]/28">Enviar</button></form></div><div className="grid gap-2 text-[8px] uppercase tracking-[0.09em] text-[#f4f1e8]/60 sm:grid-cols-3 lg:grid-cols-1"><FieldMetric label="rho confidence" value={confidence} /><FieldMetric label="D degradation" value={degradation} /><FieldMetric label="CO capacity" value={capacity} /></div></div> : null}
+              {panel === 'operation' ? <div className="grid gap-2 text-[9px] leading-relaxed text-[#f4f1e8]/74 lg:grid-cols-3"><div className="border border-[#c8a951]/10 bg-[#050504]/14 p-3"><b className="text-[#c8a951]">Datos reales</b><p>Señales declaradas: {signalCount}. FieldState: {sourceState}. Evidencia: {evidenceLevel}. Régimen: {regime}.</p></div><div className="border border-[#6fcf8d]/16 bg-[#050504]/12 p-3"><b className="text-[#c8a951]">Activo</b><p>/api/signals · /api/field/state · /api/worldspect/real · /api/amv/field-response.</p></div><div className="border border-[#c66f6f]/16 bg-[#050504]/12 p-3"><b className="text-[#c8a951]">Cuarentena</b><p>CognitiveTwin avanzado · webhooks · cron · field/persist legacy.</p></div><div className="border border-[#6f9cc8]/16 p-3 lg:col-span-3"><b className="text-[#c8a951]">Futuros</b><p>Futuros no predice. Dibuja bifurcaciones especulativas desde el estado actual para observar rutas posibles sin persistirlas.</p></div></div> : null}
+              {panel === 'worldspect' ? <div className="grid gap-2 text-[9px] text-[#f4f1e8]/74 lg:grid-cols-[260px_1fr]"><div className="border border-[#c8a951]/12 bg-[#050504]/14 p-3"><div className="mb-2 flex items-center justify-between gap-2 text-[8px] uppercase tracking-[0.12em]"><b className="text-[#c8a951]">◎ WorldSpect</b><span className={worldSpectState.sourceState === 'observed' ? 'text-[#6fcf8d]' : 'text-[#c66f6f]'}>{worldLabel}</span></div><div className="grid grid-cols-2 gap-2"><div className="border border-[#c8a951]/10 p-2"><span className="block text-[7px] uppercase text-[#c8a951]/42">WSI</span>{displayNumber(worldSpectState.wsi)}</div><div className="border border-[#c8a951]/10 p-2"><span className="block text-[7px] uppercase text-[#c8a951]/42">NTI</span>{displayNumber(worldSpectState.nti)}</div><div className="border border-[#c8a951]/10 p-2"><span className="block text-[7px] uppercase text-[#c8a951]/42">Confidence</span>{Math.round(worldSpectState.confidence * 100)}%</div><div className="border border-[#c8a951]/10 p-2"><span className="block text-[7px] uppercase text-[#c8a951]/42">Evidence</span>{worldSpectState.evidenceLevel}</div></div>{worldSpectState.sourceState !== 'observed' ? <p className="mt-1 text-[8px] text-[#c66f6f]/85">WorldSpect degradado, no inventado.</p> : null}</div><div className="border border-[#c8a951]/10 p-3"><b className="text-[#c8a951]">Degraded sources</b><p className="mb-2 text-[8px] uppercase tracking-[0.10em] text-[#f4f1e8]/50">{worldSpectState.degraded_sources.length ? worldSpectState.degraded_sources.join(' · ') : 'ninguna reportada'}</p><div className="grid gap-1 sm:grid-cols-2 xl:grid-cols-3">{worldSpectState.sourceHealth.length ? worldSpectState.sourceHealth.map((source) => <div key={source.sourceId} className="border border-[#c8a951]/08 bg-[#050504]/40 p-2"><div className="flex items-center justify-between gap-2 text-[8px] uppercase tracking-[0.08em]"><span className="truncate text-[#c8a951]">{source.sourceId}</span><span className={source.status === 'healthy' ? 'text-[#6fcf8d]' : 'text-[#c66f6f]'}>{source.status}</span></div><p className="text-[8px] text-[#f4f1e8]/56">confidence {Math.round(source.confidence * 100)}% {source.message ? `· ${source.message}` : ''}</p></div>) : <p className="text-[#c66f6f]/75">Sin SourceHealth disponible.</p>}</div></div></div> : null}
+            </div>
+          </>}
         </section>
       </div>
     </main>
