@@ -1,11 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ensureOwnedNode } from '@/lib/server/productionBackend';
-import type { ApiResult } from '../../../../../../packages/api-contracts/src';
-import { deriveMinimalFieldStateFromSignals } from '../../../../../../packages/campo-ob/src/reducers';
-import { buildSignalReadModel } from '../../../../../../packages/events/src/signal-read-model';
-import { sanitizeError } from '../../../../../../packages/security/src';
 
 type EventRow = Record<string, unknown>;
+type ApiResult<TData = unknown> =
+  | { ok: true; data: TData; traceId?: string; warnings?: string[] }
+  | { ok: false; error: string; traceId?: string; details?: unknown };
+
+type SignalEventRecord = {
+  id: string;
+  node_id: string;
+  content: string;
+  signal_type: string;
+  sourceState: string;
+  evidenceLevel: string;
+  confidence: number;
+  payloadHash: string | null;
+  created_at: string | null;
+  idempotencyKey: string | null;
+};
 
 type TwinProposal = {
   nodeId: string;
@@ -43,9 +55,8 @@ function apiError(error: string, status = 400, traceId?: string, details?: unkno
   return NextResponse.json(result, { status });
 }
 
-function apiSanitizedError(error: unknown, status = 500, traceId?: string) {
-  const sanitized = sanitizeError(error);
-  return apiError(sanitized.code, status, traceId);
+function apiSanitizedError(_error: unknown, status = 500, traceId?: string) {
+  return apiError('internal_error', status, traceId);
 }
 
 function queryValue(req: NextRequest, key: string) {
@@ -64,6 +75,38 @@ function stringValue(value: unknown): string | null {
 function clamp01(value: unknown) {
   const number = typeof value === 'number' && Number.isFinite(value) ? value : Number(value ?? 0);
   return Number.isFinite(number) ? Math.max(0, Math.min(1, number)) : 0;
+}
+
+function mapSignalEventRow(row: EventRow): SignalEventRecord | null {
+  if (stringValue(row.stream_type) !== 'signal' || stringValue(row.event_name) !== 'SIGNAL_DECLARED') return null;
+  const payload = isRecord(row.payload) ? row.payload : {};
+  const content = stringValue(payload.content);
+  const nodeId = stringValue(row.node_id);
+  const id = stringValue(row.id);
+  if (!content || !nodeId || !id) return null;
+  return {
+    id,
+    node_id: nodeId,
+    content,
+    signal_type: stringValue(payload.signal_type) || 'manual',
+    sourceState: stringValue(payload.sourceState) || 'declared',
+    evidenceLevel: stringValue(payload.evidenceLevel) || 'direct',
+    confidence: clamp01(payload.confidence),
+    payloadHash: stringValue(payload.payloadHash),
+    created_at: stringValue(row.created_at),
+    idempotencyKey: stringValue(payload.idempotencyKey),
+  };
+}
+
+function buildSignalReadModel(rows: EventRow[]) {
+  const warnings: string[] = [];
+  const signals: SignalEventRecord[] = [];
+  for (const row of rows) {
+    const mapped = mapSignalEventRow(row);
+    if (mapped) signals.push(mapped);
+    else if (stringValue(row.stream_type) === 'signal' || stringValue(row.event_name) === 'SIGNAL_DECLARED') warnings.push('invalid_signal_event_row_ignored');
+  }
+  return { signals, warnings: Array.from(new Set(warnings)) };
 }
 
 function countAmvResponses(rows: EventRow[]) {
@@ -85,6 +128,20 @@ function topSignalContent(signals: Array<{ content: string }>) {
   return content && count ? { content, count } : null;
 }
 
+function deriveMinimalFieldStateFromSignals(signals: SignalEventRecord[]) {
+  if (!signals.length) {
+    return { degradation: 0, operationalCapacity: 0, confidence: 0 };
+  }
+  const confidence = clamp01(signals.reduce((sum, signal) => sum + signal.confidence, 0) / signals.length);
+  const recurrencePressure = Math.min(0.45, Math.max(0, signals.length - 1) * 0.045);
+  const degradation = clamp01((1 - confidence) * 0.35 + recurrencePressure);
+  return {
+    degradation,
+    operationalCapacity: clamp01(1 - degradation),
+    confidence,
+  };
+}
+
 function buildProposal(nodeId: string, rows: EventRow[]): TwinProposal {
   const warnings: string[] = [];
   const signalReadModel = buildSignalReadModel(rows);
@@ -92,12 +149,7 @@ function buildProposal(nodeId: string, rows: EventRow[]): TwinProposal {
 
   const signals = signalReadModel.signals;
   const amvResponseCount = countAmvResponses(rows);
-  const fieldState = deriveMinimalFieldStateFromSignals({
-    fieldId: `field:${nodeId}`,
-    nodeId,
-    signals,
-    updatedAt: new Date().toISOString(),
-  });
+  const fieldState = deriveMinimalFieldStateFromSignals(signals);
 
   const degradation = clamp01(fieldState.degradation);
   const operationalCapacity = clamp01(fieldState.operationalCapacity);
