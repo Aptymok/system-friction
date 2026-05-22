@@ -223,7 +223,9 @@ export function SfiCognitiveCanvasTerminal({ nodeId, canPersist, canonicalState,
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
           message,
+          node_id: nodeId,
           fieldContext: {
+            nodeId,
             regime,
             sourceState,
             evidenceLevel,
@@ -253,7 +255,7 @@ export function SfiCognitiveCanvasTerminal({ nodeId, canPersist, canonicalState,
       setAmvStatus('degraded')
       spawnGhost('AMV · fallback local etiquetado', C.persistent)
     }
-  }, [capacity, confidence, degradation, evidenceLevel, regime, sourceState, spawnGhost])
+  }, [capacity, confidence, degradation, evidenceLevel, nodeId, regime, sourceState, spawnGhost])
 
   const submitSignal = useCallback(async () => {
     const content = input.trim()

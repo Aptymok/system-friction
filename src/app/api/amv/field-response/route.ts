@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { ensureOwnedNode } from '@/lib/server/productionBackend';
 
 type FieldContext = {
   regime: string;
@@ -17,6 +18,12 @@ type AmvFieldResponseData = {
   responseSource: 'gemini' | 'deterministic_fallback';
   sourceState: 'observed' | 'degraded';
   confidence: number;
+};
+
+type ParsedRequest = {
+  message: string;
+  nodeId: string | null;
+  fieldContext: FieldContext;
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -39,11 +46,16 @@ function parseNullableNumber(value: unknown) {
   return typeof value === 'number' && Number.isFinite(value) ? value : null;
 }
 
-function parseRequest(value: unknown): { message: string; fieldContext: FieldContext } | null {
+function parseRequest(value: unknown): ParsedRequest | null {
   if (!isRecord(value) || typeof value.message !== 'string' || !isRecord(value.fieldContext)) return null;
   const context = value.fieldContext;
   return {
     message: sanitizeText(value.message, 500),
+    nodeId: typeof value.node_id === 'string' && value.node_id.trim().length > 0
+      ? value.node_id.trim()
+      : typeof context.nodeId === 'string' && context.nodeId.trim().length > 0
+        ? context.nodeId.trim()
+        : null,
     fieldContext: {
       regime: typeof context.regime === 'string' ? sanitizeText(context.regime, 64) : 'unknown',
       sourceState: typeof context.sourceState === 'string' ? sanitizeText(context.sourceState, 64) : 'missing',
@@ -58,6 +70,37 @@ function parseRequest(value: unknown): { message: string; fieldContext: FieldCon
         : 'missing',
     },
   };
+}
+
+async function logAmvResponse(input: {
+  nodeId: string | null;
+  message: string;
+  fieldContext: FieldContext;
+  response: AmvFieldResponseData;
+}) {
+  if (!input.nodeId) return;
+
+  try {
+    const ctx = await ensureOwnedNode(input.nodeId);
+    if (ctx.error || !ctx.node || !ctx.user) return;
+
+    await ctx.service.from('cognitive_event_stream').insert({
+      node_id: ctx.node.id,
+      stream_type: 'agent',
+      event_name: 'AMV_RESPONSE',
+      payload: {
+        message: input.message,
+        responseText: input.response.responseText,
+        responseSource: input.response.responseSource,
+        fieldContext: input.fieldContext,
+        confidence: input.response.confidence,
+        sourceState: input.response.sourceState,
+      },
+      emitted_by: 'api/amv/field-response',
+    });
+  } catch {
+    // Optional ledger logging must never block AMV visibility.
+  }
 }
 
 function deterministicFallback(message: string, context: FieldContext): AmvFieldResponseData {
@@ -130,19 +173,22 @@ export async function POST(req: NextRequest) {
   if (key) {
     try {
       const responseText = await callGemini(parsed.message, parsed.fieldContext, key);
-      return NextResponse.json({
-        ok: true,
-        data: {
-          responseText,
-          responseSource: 'gemini',
-          sourceState: parsed.fieldContext.worldSpectState === 'observed' ? 'observed' : 'degraded',
-          confidence: parsed.fieldContext.worldSpectState === 'observed' ? 0.78 : 0.58,
-        } satisfies AmvFieldResponseData,
-      });
+      const data: AmvFieldResponseData = {
+        responseText,
+        responseSource: 'gemini',
+        sourceState: parsed.fieldContext.worldSpectState === 'observed' ? 'observed' : 'degraded',
+        confidence: parsed.fieldContext.worldSpectState === 'observed' ? 0.78 : 0.58,
+      };
+      await logAmvResponse({ nodeId: parsed.nodeId, message: parsed.message, fieldContext: parsed.fieldContext, response: data });
+      return NextResponse.json({ ok: true, data });
     } catch {
-      return NextResponse.json({ ok: true, data: deterministicFallback(parsed.message, parsed.fieldContext) });
+      const data = deterministicFallback(parsed.message, parsed.fieldContext);
+      await logAmvResponse({ nodeId: parsed.nodeId, message: parsed.message, fieldContext: parsed.fieldContext, response: data });
+      return NextResponse.json({ ok: true, data });
     }
   }
 
-  return NextResponse.json({ ok: true, data: deterministicFallback(parsed.message, parsed.fieldContext) });
+  const data = deterministicFallback(parsed.message, parsed.fieldContext);
+  await logAmvResponse({ nodeId: parsed.nodeId, message: parsed.message, fieldContext: parsed.fieldContext, response: data });
+  return NextResponse.json({ ok: true, data });
 }
