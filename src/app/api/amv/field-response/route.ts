@@ -1,3 +1,4 @@
+import { createHash } from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { ensureOwnedNode } from '@/lib/server/productionBackend';
 
@@ -18,12 +19,20 @@ type AmvFieldResponseData = {
   responseSource: 'gemini' | 'deterministic_fallback';
   sourceState: 'observed' | 'degraded';
   confidence: number;
+  responseLogged: boolean;
 };
+
+type BaseAmvResponseData = Omit<AmvFieldResponseData, 'responseLogged'>;
 
 type ParsedRequest = {
   message: string;
   nodeId: string | null;
   fieldContext: FieldContext;
+};
+
+type AmvLogResult = {
+  responseLogged: boolean;
+  warnings: string[];
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -44,6 +53,19 @@ function parseNumber(value: unknown) {
 
 function parseNullableNumber(value: unknown) {
   return typeof value === 'number' && Number.isFinite(value) ? value : null;
+}
+
+function canonicalize(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(canonicalize);
+  if (!isRecord(value)) return value;
+  return Object.keys(value).sort().reduce<Record<string, unknown>>((current, key) => {
+    current[key] = canonicalize(value[key]);
+    return current;
+  }, {});
+}
+
+function hashPayload(payload: unknown) {
+  return createHash('sha256').update(JSON.stringify(canonicalize(payload))).digest('hex').slice(0, 24);
 }
 
 function parseRequest(value: unknown): ParsedRequest | null {
@@ -76,34 +98,51 @@ async function logAmvResponse(input: {
   nodeId: string | null;
   message: string;
   fieldContext: FieldContext;
-  response: AmvFieldResponseData;
-}) {
-  if (!input.nodeId) return;
+  response: BaseAmvResponseData;
+}): Promise<AmvLogResult> {
+  if (!input.nodeId) {
+    return { responseLogged: false, warnings: ['amv_response_not_logged', 'missing_node_id'] };
+  }
 
   try {
     const ctx = await ensureOwnedNode(input.nodeId);
-    if (ctx.error || !ctx.node || !ctx.user) return;
+    if (ctx.error || !ctx.node || !ctx.user) {
+      return { responseLogged: false, warnings: ['amv_response_not_logged', 'node_unavailable'] };
+    }
 
-    await ctx.service.from('cognitive_event_stream').insert({
+    const payloadBase = {
+      contractVersion: 'twin.mvt-02',
+      message: input.message,
+      responseText: input.response.responseText,
+      responseSource: input.response.responseSource,
+      fieldContext: input.fieldContext,
+      confidence: input.response.confidence,
+      sourceState: input.response.sourceState,
+      source: 'amv.field-response.route',
+    };
+
+    const { error } = await ctx.service.from('cognitive_event_stream').insert({
       node_id: ctx.node.id,
       stream_type: 'agent',
       event_name: 'AMV_RESPONSE',
       payload: {
-        message: input.message,
-        responseText: input.response.responseText,
-        responseSource: input.response.responseSource,
-        fieldContext: input.fieldContext,
-        confidence: input.response.confidence,
-        sourceState: input.response.sourceState,
+        ...payloadBase,
+        payloadHash: hashPayload(payloadBase),
       },
-      emitted_by: 'api/amv/field-response',
+      emitted_by: 'SFI_AMV_FIELD_RESPONSE',
     });
+
+    if (error) {
+      return { responseLogged: false, warnings: ['amv_response_not_logged'] };
+    }
+
+    return { responseLogged: true, warnings: [] };
   } catch {
-    // Optional ledger logging must never block AMV visibility.
+    return { responseLogged: false, warnings: ['amv_response_not_logged'] };
   }
 }
 
-function deterministicFallback(message: string, context: FieldContext): AmvFieldResponseData {
+function deterministicFallback(message: string, context: FieldContext): BaseAmvResponseData {
   const world = context.worldSpectState === 'observed'
     ? 'WorldSpect medido disponible'
     : context.worldSpectState === 'degraded'
@@ -163,6 +202,17 @@ async function callGemini(message: string, context: FieldContext, apiKey: string
   return sanitized;
 }
 
+function buildResponse(data: BaseAmvResponseData, logResult: AmvLogResult) {
+  return NextResponse.json({
+    ok: true,
+    data: {
+      ...data,
+      responseLogged: logResult.responseLogged,
+    } satisfies AmvFieldResponseData,
+    warnings: logResult.warnings.length ? logResult.warnings : undefined,
+  });
+}
+
 export async function POST(req: NextRequest) {
   const parsed = parseRequest(await req.json().catch(() => null));
   if (!parsed || !parsed.message) {
@@ -173,22 +223,22 @@ export async function POST(req: NextRequest) {
   if (key) {
     try {
       const responseText = await callGemini(parsed.message, parsed.fieldContext, key);
-      const data: AmvFieldResponseData = {
+      const data: BaseAmvResponseData = {
         responseText,
         responseSource: 'gemini',
         sourceState: parsed.fieldContext.worldSpectState === 'observed' ? 'observed' : 'degraded',
         confidence: parsed.fieldContext.worldSpectState === 'observed' ? 0.78 : 0.58,
       };
-      await logAmvResponse({ nodeId: parsed.nodeId, message: parsed.message, fieldContext: parsed.fieldContext, response: data });
-      return NextResponse.json({ ok: true, data });
+      const logResult = await logAmvResponse({ nodeId: parsed.nodeId, message: parsed.message, fieldContext: parsed.fieldContext, response: data });
+      return buildResponse(data, logResult);
     } catch {
       const data = deterministicFallback(parsed.message, parsed.fieldContext);
-      await logAmvResponse({ nodeId: parsed.nodeId, message: parsed.message, fieldContext: parsed.fieldContext, response: data });
-      return NextResponse.json({ ok: true, data });
+      const logResult = await logAmvResponse({ nodeId: parsed.nodeId, message: parsed.message, fieldContext: parsed.fieldContext, response: data });
+      return buildResponse(data, logResult);
     }
   }
 
   const data = deterministicFallback(parsed.message, parsed.fieldContext);
-  await logAmvResponse({ nodeId: parsed.nodeId, message: parsed.message, fieldContext: parsed.fieldContext, response: data });
-  return NextResponse.json({ ok: true, data });
+  const logResult = await logAmvResponse({ nodeId: parsed.nodeId, message: parsed.message, fieldContext: parsed.fieldContext, response: data });
+  return buildResponse(data, logResult);
 }
