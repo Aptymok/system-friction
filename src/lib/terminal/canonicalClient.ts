@@ -1,9 +1,11 @@
 import type { ApiResult, FieldStateDTO, SourceHealthDTO } from '../../../packages/api-contracts/src';
 import type { SignalReadModel } from '../../../packages/events/src/signal-read-model';
+import { readRealObservations, type RealObservationsReadModel } from './ingestClient';
 
 export type TerminalCanonicalClientResult = {
   fieldState: FieldStateDTO | null;
   signals: SignalReadModel | null;
+  ingest: RealObservationsReadModel | null;
   sourceHealth: SourceHealthDTO | null;
   warnings: string[];
 };
@@ -44,14 +46,17 @@ export async function readTerminalCanonicalState(nodeId: string): Promise<Termin
     readTerminalCanonicalSignals(nodeId),
     readTerminalInternalSourceHealth(),
   ]);
+  const ingestResult = await readRealObservations(nodeId);
 
   if (!fieldStateResult.ok) warnings.push('field_state_unavailable');
   if (!signalsResult.ok) warnings.push('signals_unavailable');
   if (!sourceHealthResult.ok) warnings.push('source_health_unavailable');
+  if (!ingestResult.ok) warnings.push('ingest_unavailable');
 
   return {
     fieldState: fieldStateResult.ok ? fieldStateResult.data : null,
     signals: signalsResult.ok ? signalsResult.data : null,
+    ingest: ingestResult.ok ? ingestResult.data : null,
     sourceHealth: sourceHealthResult.ok ? sourceHealthResult.data.sourceHealth : null,
     warnings,
   };

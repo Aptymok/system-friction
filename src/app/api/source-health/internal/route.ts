@@ -21,6 +21,7 @@ export async function GET() {
   return apiOk({
     reachable: true,
     timestamp: now,
+    ingestEndpointReachable: true,
     sourceState: 'observed',
     evidenceLevel: 'direct',
     confidence: 1,

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import type { TerminalCanonicalClientResult } from '@/lib/terminal/canonicalClient'
+import { ingestRealObservation } from '@/lib/terminal/ingestClient'
 import { declareTerminalSignal } from '@/lib/terminal/signalClient'
 import { readWorldSpectReal, type WorldSpectRealClientState } from '@/lib/worldspect/client'
 
@@ -215,6 +216,8 @@ export function SfiCognitiveCanvasTerminal({ nodeId, canPersist, canonicalState,
 
   const fieldState = canonicalState?.fieldState ?? null
   const signalCount = canonicalState?.signals?.signals.length ?? 0
+  const ingestCount = canonicalState?.ingest?.count ?? numberValue(getFieldValue(fieldState, 'ingestCount'))
+  const ingestTitles = canonicalState?.ingest?.observations.slice(0, 3).map((observation) => observation.title) ?? []
   const sourceStatus = canonicalState?.sourceHealth?.status ?? 'unknown'
   const regime = String(getFieldValue(fieldState, 'regime') ?? 'unknown')
   const sourceState = String(getFieldValue(fieldState, 'sourceState') ?? (fieldState ? 'derived' : 'missing'))
@@ -284,6 +287,40 @@ export function SfiCognitiveCanvasTerminal({ nodeId, canPersist, canonicalState,
   const submitSignal = useCallback(async () => {
     const content = input.trim()
     if (!content || amvStatus === 'thinking') return
+    const ingestCommand = content.startsWith('/ingest ') ? content.slice('/ingest '.length).trim() : ''
+    if (ingestCommand) {
+      if (nodeId && canPersist) {
+        const result = await ingestRealObservation({
+          nodeId,
+          source_id: 'operator_observation',
+          source_type: 'operator',
+          title: ingestCommand.slice(0, 80),
+          content: ingestCommand,
+          confidence: 0.75,
+          metadata: { source: 'terminal_prompt_command' },
+        })
+        if (!result.ok) {
+          setMemoryStatus('unlogged')
+          spawnGhost('REAL_OBSERVATION_INGEST_FAILED', C.anomaly)
+          setMessages((current) => [...current, { role: 'amv', text: 'Ingesta real fallida: no se persistio la observacion. No se declara exito local.', source: 'deterministic_fallback', logged: false }])
+          setInput('')
+          return
+        }
+        spawnGhost('REAL_OBSERVATION_INGESTED', C.institutional)
+        onSignalDeclared?.()
+      } else {
+        setMemoryStatus('local_only')
+        spawnGhost('REAL_OBSERVATION_BLOCKED · LOCAL_ONLY', C.anomaly)
+        setMessages((current) => [...current, { role: 'amv', text: 'Ingesta real bloqueada: no hay nodo persistible activo. No se escribio en cognitive_event_stream.', source: 'local_only', logged: false }])
+        setInput('')
+        return
+      }
+      setMessages((current) => [...current, { role: 'operator', text: ingestCommand }])
+      setTreeActive(true)
+      setInput('')
+      await requestAmvResponse(ingestCommand)
+      return
+    }
     if (nodeId && canPersist) {
       const result = await declareTerminalSignal({ nodeId, content, context: { source: 'SfiCognitiveCanvasTerminal', regime, sourceState, evidenceLevel, degradation, capacity, confidence, worldSpect: worldSpectState } })
       spawnGhost(result.ok ? 'SIGNAL_DECLARED · cognitive_event_stream' : 'SIGNAL_DECLARATION_FAILED', result.ok ? C.active : C.anomaly)
@@ -474,7 +511,7 @@ export function SfiCognitiveCanvasTerminal({ nodeId, canPersist, canonicalState,
             <div className="grid grid-cols-3 gap-1 text-[8px] uppercase tracking-[0.12em]"><PanelButton active={panel === 'amv'} onClick={() => setPanel('amv')}>🜂 AMV / CHAT</PanelButton><PanelButton active={panel === 'operation'} onClick={() => setPanel('operation')}>◈ OPERACION</PanelButton><PanelButton active={panel === 'worldspect'} onClick={() => setPanel('worldspect')}>◎ WORLDSPECT</PanelButton></div>
             <div className="mt-2 max-h-[34vh] overflow-y-auto pr-1 sm:max-h-[30vh]">
               {panel === 'amv' ? <div className="grid gap-2 lg:grid-cols-[1fr_300px]"><div className="border border-[#c8a951]/10 bg-[#050504]/14 p-2"><div className="mb-2 max-h-28 space-y-1 overflow-y-auto text-[10px] leading-relaxed text-[#f4f1e8]/78">{messages.length === 0 ? <div><b>AMV · local_only</b>: AMV operativo listo. Declara una señal o consulta el estado del campo.</div> : null}{messages.map((message, index) => <div key={`${message.role}-${index}`} className={message.role === 'operator' ? 'text-[#6f9cc8]/80' : 'text-[#f4f1e8]/82'}><b>{message.role === 'operator' ? 'OPERADOR' : `AMV ${message.source ? `· ${message.source}` : ''}${typeof message.logged === 'boolean' ? ` · ${message.logged ? 'LOGGED' : 'UNLOGGED'}` : ''}`}</b>: {message.text}</div>)}{amvStatus === 'thinking' ? <div className="text-[#c8a951]/75">AMV · procesando respuesta server-side...</div> : null}</div><form onSubmit={(event) => { event.preventDefault(); void submitSignal() }} className="flex min-h-[64px] items-center gap-2 border border-[#c8a951]/12 bg-[#050504]/28 px-3 py-3"><span className="shrink-0 text-[11px]">🜂</span><input value={input} onChange={(event) => onInputChange(event.target.value)} disabled={amvStatus === 'thinking'} className="min-w-0 flex-1 border-0 bg-transparent text-[12px] text-[#f4f1e8]/88 outline-none caret-[#c8a951] placeholder:text-[#f4f1e8]/35 disabled:opacity-60" autoComplete="off" spellCheck={false} placeholder="Declara una señal o pregunta al AMV operativo..." /><button type="submit" disabled={!input.trim() || amvStatus === 'thinking'} className="shrink-0 border border-[#c8a951]/20 px-3 py-2 text-[8px] uppercase tracking-[0.12em] text-[#c8a951] disabled:text-[#c8a951]/28">Enviar</button></form></div><div className="grid gap-2 text-[8px] uppercase tracking-[0.09em] text-[#f4f1e8]/60 sm:grid-cols-3 lg:grid-cols-1"><FieldMetric label="rho confidence" value={confidence} /><FieldMetric label="D degradation" value={degradation} /><FieldMetric label="CO capacity" value={capacity} /></div></div> : null}
-              {panel === 'operation' ? <div className="grid gap-2 text-[9px] leading-relaxed text-[#f4f1e8]/74 lg:grid-cols-3"><div className="border border-[#c8a951]/10 bg-[#050504]/14 p-3"><b className="text-[#c8a951]">Datos reales</b><p>Señales declaradas: {signalCount}. FieldState: {sourceState}. Evidencia: {evidenceLevel}. Régimen: {regime}.</p></div><div className="border border-[#6fcf8d]/16 bg-[#050504]/12 p-3"><b className="text-[#c8a951]">Activo</b><p>/api/signals · /api/field/state · /api/worldspect/real · /api/amv/field-response.</p></div><div className="border border-[#9f6a54]/20 bg-[#050504]/12 p-3"><b className="text-[#c8a951]">Cuarentena</b><p>CognitiveTwin avanzado · webhooks · cron · field/persist legacy.</p></div><div className="border border-[#6f9cc8]/16 p-3 lg:col-span-3"><b className="text-[#c8a951]">Futuros</b><p>Futuros no predice. Dibuja bifurcaciones especulativas desde el estado actual para observar rutas posibles sin persistirlas.</p></div></div> : null}
+              {panel === 'operation' ? <div className="grid gap-2 text-[9px] leading-relaxed text-[#f4f1e8]/74 lg:grid-cols-3"><div className="border border-[#c8a951]/10 bg-[#050504]/14 p-3"><b className="text-[#c8a951]">Datos reales</b><p>Señales declaradas: {signalCount}. INGEST: {ingestCount}. REAL: {ingestCount > 0 ? 'observed' : sourceState}. FieldState: {sourceState}. Evidencia: {evidenceLevel}. Régimen: {regime}.</p>{ingestTitles.length ? <p className="mt-1 text-[#f4f1e8]/52">{ingestTitles.join(' · ')}</p> : null}</div><div className="border border-[#6fcf8d]/16 bg-[#050504]/12 p-3"><b className="text-[#c8a951]">Activo</b><p>/api/signals · /api/field/state · /api/worldspect/real · /api/amv/field-response · /api/ingest/real · /api/ingest/read.</p></div><div className="border border-[#9f6a54]/20 bg-[#050504]/12 p-3"><b className="text-[#c8a951]">Cuarentena</b><p>CognitiveTwin avanzado · webhooks · cron · field/persist legacy.</p></div><div className="border border-[#6f9cc8]/16 p-3 lg:col-span-3"><b className="text-[#c8a951]">Futuros</b><p>Futuros no predice. Dibuja bifurcaciones especulativas desde el estado actual para observar rutas posibles sin persistirlas.</p></div></div> : null}
               {panel === 'worldspect' ? <div className="grid gap-2 text-[9px] text-[#f4f1e8]/74 lg:grid-cols-[260px_1fr]"><div className="border border-[#c8a951]/12 bg-[#050504]/14 p-3"><div className="mb-2 flex items-center justify-between gap-2 text-[8px] uppercase tracking-[0.12em]"><b className="text-[#c8a951]">◎ WorldSpect</b><span className={worldSpectState.sourceState === 'observed' ? 'text-[#6fcf8d]' : 'text-[#9f6a54]'}>{worldLabel}</span></div><div className="grid grid-cols-2 gap-2"><div className="border border-[#c8a951]/10 p-2"><span className="block text-[7px] uppercase text-[#c8a951]/42">WSI</span>{displayNumber(worldSpectState.wsi)}</div><div className="border border-[#c8a951]/10 p-2"><span className="block text-[7px] uppercase text-[#c8a951]/42">NTI</span>{displayNumber(worldSpectState.nti)}</div><div className="border border-[#c8a951]/10 p-2"><span className="block text-[7px] uppercase text-[#c8a951]/42">Confidence</span>{Math.round(worldSpectState.confidence * 100)}%</div><div className="border border-[#c8a951]/10 p-2"><span className="block text-[7px] uppercase text-[#c8a951]/42">Evidence</span>{worldSpectState.evidenceLevel}</div></div>{worldSpectState.sourceState !== 'observed' ? <p className="mt-1 text-[8px] text-[#9f6a54]/85">WorldSpect degradado, no inventado.</p> : null}</div><div className="border border-[#c8a951]/10 p-3"><b className="text-[#c8a951]">Degraded sources</b><p className="mb-2 text-[8px] uppercase tracking-[0.10em] text-[#f4f1e8]/50">{worldSpectState.degraded_sources.length ? worldSpectState.degraded_sources.join(' · ') : 'ninguna reportada'}</p><div className="grid gap-1 sm:grid-cols-2 xl:grid-cols-3">{worldSpectState.sourceHealth.length ? worldSpectState.sourceHealth.map((source) => <div key={source.sourceId} className="border border-[#c8a951]/08 bg-[#050504]/40 p-2"><div className="flex items-center justify-between gap-2 text-[8px] uppercase tracking-[0.08em]"><span className="truncate text-[#c8a951]">{source.sourceId}</span><span className={source.status === 'healthy' ? 'text-[#6fcf8d]' : 'text-[#9f6a54]'}>{source.status}</span></div><p className="text-[8px] text-[#f4f1e8]/56">confidence {Math.round(source.confidence * 100)}% {source.message ? `· ${source.message}` : ''}</p></div>) : <p className="text-[#9f6a54]/75">Sin SourceHealth disponible.</p>}</div></div></div> : null}
             </div>
           </>}
