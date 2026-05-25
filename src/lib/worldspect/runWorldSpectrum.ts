@@ -1,4 +1,5 @@
 import { spawn } from 'child_process';
+import fs from 'fs';
 import path from 'path';
 
 export type WorldSpectrumSource = {
@@ -37,13 +38,23 @@ export type WorldSpectrumRunResult = {
 
 const timeoutMs = 15_000;
 
-function emptyPayload(): WorldSpectrumCliPayload {
+function emptyPayload(errorCode?: string): WorldSpectrumCliPayload {
   return {
-    sources: [],
+    sources: errorCode
+      ? [{
+        key: 'worldspect_adapter',
+        label: 'WorldSpect Adapter',
+        value: null,
+        nti: 0,
+        simulated: true,
+        ts: new Date().toISOString(),
+        error: errorCode,
+      }]
+      : [],
     wsi: null,
     nti: null,
     ts: new Date().toISOString(),
-    degraded_sources: [],
+    degraded_sources: errorCode ? ['worldspect_adapter'] : [],
   };
 }
 
@@ -51,7 +62,7 @@ function degradedResult(errorCode: string): WorldSpectrumRunResult {
   return {
     ok: false,
     status: 'degraded',
-    payload: emptyPayload(),
+    payload: emptyPayload(errorCode),
     errorCode,
   };
 }
@@ -62,7 +73,17 @@ function sanitizeErrorCode(value: unknown): string {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '_')
     .replace(/^_+|_+$/g, '')
-    .slice(0, 64) || 'worldspect_adapter_failed';
+    .slice(0, 96) || 'worldspect_adapter_failed';
+}
+
+function classifyAdapterError(stderr: string, fallback: string) {
+  const normalized = `${stderr || ''} ${fallback || ''}`.toLowerCase();
+  if (normalized.includes('no such file') || normalized.includes('enoent')) return 'worldspect_cli_missing';
+  if (normalized.includes('module_not_found') || normalized.includes('modulenotfounderror')) return 'python_dependency_missing';
+  if (normalized.includes('permission denied') || normalized.includes('eacces')) return 'worldspect_cli_permission_denied';
+  if (normalized.includes('timed out') || normalized.includes('timeout')) return 'worldspect_timeout';
+  if (normalized.includes('python')) return sanitizeErrorCode(stderr || fallback || 'python_runtime_error');
+  return sanitizeErrorCode(stderr || fallback || 'worldspect_cli_failed');
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -87,7 +108,7 @@ function parseSource(value: unknown): WorldSpectrumSource | null {
     mihm_var: typeof value.mihm_var === 'string' ? value.mihm_var : undefined,
     simulated: value.simulated === true,
     ts: typeof value.ts === 'string' ? value.ts : undefined,
-    error: typeof value.error === 'string' ? 'source_unavailable' : undefined,
+    error: typeof value.error === 'string' ? sanitizeErrorCode(value.error) : undefined,
   };
 }
 
@@ -113,12 +134,23 @@ export async function runWorldSpectrum(): Promise<WorldSpectrumRunResult> {
   const cwd = path.join(/*turbopackIgnore: true*/ process.cwd(), 'services', 'python');
   const cliPath = path.join(cwd, 'world_cli.py');
 
+  if (!fs.existsSync(cliPath)) {
+    return degradedResult('worldspect_cli_missing');
+  }
+
   return new Promise((resolve) => {
-    const child = spawn(/*turbopackIgnore: true*/ python, [cliPath], {
-      cwd,
-      windowsHide: true,
-      stdio: ['ignore', 'pipe', 'pipe'],
-    });
+    let child;
+    try {
+      child = spawn(/*turbopackIgnore: true*/ python, [cliPath], {
+        cwd,
+        windowsHide: true,
+        stdio: ['ignore', 'pipe', 'pipe'],
+      });
+    } catch (error) {
+      resolve(degradedResult(classifyAdapterError('', error instanceof Error ? error.message : 'python_spawn_failed')));
+      return;
+    }
+
     let stdout = '';
     let stderr = '';
     let settled = false;
@@ -142,7 +174,7 @@ export async function runWorldSpectrum(): Promise<WorldSpectrumRunResult> {
       if (settled) return;
       settled = true;
       clearTimeout(timer);
-      resolve(degradedResult(sanitizeErrorCode(error instanceof Error ? error.name : 'spawn_error')));
+      resolve(degradedResult(classifyAdapterError(stderr, error instanceof Error ? error.message : 'python_spawn_error')));
     });
     child.on('close', (code) => {
       if (settled) return;
@@ -150,7 +182,7 @@ export async function runWorldSpectrum(): Promise<WorldSpectrumRunResult> {
       clearTimeout(timer);
 
       if (code !== 0) {
-        resolve(degradedResult(sanitizeErrorCode(stderr || 'worldspect_cli_failed')));
+        resolve(degradedResult(classifyAdapterError(stderr || stdout, `worldspect_cli_exit_${code ?? 'unknown'}`)));
         return;
       }
 
