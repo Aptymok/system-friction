@@ -1,13 +1,21 @@
 import { NextResponse } from 'next/server';
-import { getLatestGlobalWorldSpectSnapshot, nextWorldSpectMeasurementWindow } from '@/observatory/worldspect/globalWorldSpect';
+import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 
 export async function GET() {
-  const result = await getLatestGlobalWorldSpectSnapshot();
-  return NextResponse.json({
-    ok: result.ok,
-    snapshot: result.snapshot,
-    state: result.snapshot ? 'measured' : 'missing',
-    nextMeasurementAt: nextWorldSpectMeasurementWindow(),
-    error: result.error,
-  });
+  const supabase = createServiceSupabaseClient();
+  const { data, error } = await supabase
+    .from('worldspect_snapshots')
+    .select('*')
+    .order('observed_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error || !data) {
+    return NextResponse.json(
+      { status: 'stale', reason: 'database_hydration_pending' },
+      { status: 200 }
+    );
+  }
+
+  return NextResponse.json({ status: 'ok', snapshot: data }, { status: 200 });
 }
