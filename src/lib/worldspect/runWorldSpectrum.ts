@@ -131,7 +131,7 @@ function parseWorldSpectrumPayload(value: unknown): WorldSpectrumCliPayload | nu
 
 export async function runWorldSpectrum(): Promise<WorldSpectrumRunResult> {
   const python = process.env.PYTHON_BIN || process.env.PYTHON || 'python';
-  const cwd = path.join(/*turbopackIgnore: true*/ process.cwd(), 'services', 'python');
+  const cwd = path.join(__dirname, '../../../services/python');
   const cliPath = path.join(cwd, 'world_cli.py');
 
   if (!fs.existsSync(cliPath)) {
