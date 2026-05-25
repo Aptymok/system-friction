@@ -1,6 +1,11 @@
 import { NextResponse } from 'next/server';
 import type { ApiResult, SourceHealthDTO } from '../../../../../packages/api-contracts/src';
 import { runWorldSpectrum, type WorldSpectrumCliPayload, type WorldSpectrumSource } from '@/lib/worldspect/runWorldSpectrum';
+import {
+  getLatestWorldSpectSnapshot,
+  snapshotRowToApiData,
+  upsertWorldSpectSnapshot,
+} from '@/lib/worldspect/snapshotStore';
 
 export const runtime = 'nodejs';
 
@@ -27,6 +32,16 @@ type WorldSpectRealResponse = {
     observedAt: string;
     sourceIds: string[];
   } | null;
+  snapshot?: {
+    id: string;
+    observedAt: string;
+    createdAt: string;
+    ingestMode: string;
+    adapterStatus: string;
+    adapterError: string | null;
+    snapshotHash: string;
+    persisted: boolean;
+  };
 };
 
 function apiOk<TData>(data: TData, warnings?: string[]) {
@@ -108,9 +123,50 @@ function toResponse(payload: WorldSpectrumCliPayload, sourceState: WorldSpectRea
 }
 
 export async function GET() {
+  const latest = await getLatestWorldSpectSnapshot();
+
+  if (latest) {
+    return apiOk(snapshotRowToApiData(latest));
+  }
+
   const result = await runWorldSpectrum();
   const sourceState: WorldSpectRealSourceState = result.status === 'observed' ? 'observed' : 'degraded';
   const response = toResponse(result.payload, sourceState);
-  const warnings = result.ok ? undefined : [result.errorCode];
-  return apiOk(response, warnings);
+
+  const persisted = await upsertWorldSpectSnapshot({
+    sourceState: response.sourceState,
+    evidenceLevel: response.evidenceLevel,
+    confidence: response.confidence,
+    wsi: response.wsi,
+    nti: response.nti,
+    ts: response.ts,
+    sources: response.sources,
+    degraded_sources: response.degraded_sources,
+    sourceHealth: response.sourceHealth,
+    fieldStateSignal: response.fieldStateSignal,
+    rawPayload: result.payload,
+    adapterStatus: result.ok ? result.status : 'failed',
+    adapterError: result.ok ? null : result.errorCode,
+    ingestMode: 'fallback_runtime',
+  });
+
+  const warnings = [
+    'worldspect_snapshot_missing_used_runtime_fallback',
+    ...(result.ok ? [] : [result.errorCode]),
+    ...(persisted.ok ? [] : [persisted.error]),
+  ];
+
+  return apiOk({
+    ...response,
+    snapshot: {
+      id: persisted.ok && typeof persisted.data?.id === 'string' ? persisted.data.id : 'unpersisted',
+      observedAt: response.ts,
+      createdAt: new Date().toISOString(),
+      ingestMode: 'fallback_runtime',
+      adapterStatus: result.ok ? result.status : 'failed',
+      adapterError: result.ok ? null : result.errorCode,
+      snapshotHash: persisted.ok && typeof persisted.data?.snapshot_hash === 'string' ? persisted.data.snapshot_hash : 'unpersisted',
+      persisted: persisted.ok,
+    },
+  }, warnings);
 }
