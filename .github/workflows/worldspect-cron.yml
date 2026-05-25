@@ -1,19 +1,15 @@
-name: WorldSpect Ingest Cron
+name: WorldSpect Daily Ingestion
 
 on:
   schedule:
-    - cron: '0 3 * * *'
-  workflow_dispatch: {}
+    - cron: '0 3 * * *' # Ejecución automatizada desatendida a las 03:00 AM UTC diariamente
+  workflow_dispatch: # Activación manual habilitada desde la interfaz web de GitHub
 
 jobs:
-  ingest:
+  observe_world:
     runs-on: ubuntu-latest
-    env:
-      WORLDSPECT_INGEST_SECRET: ${{ secrets.WORLDSPECT_INGEST_SECRET }}
-      WORLDSPECT_API_URL: https://system-friction-hzy7jhyha-juan-antonio-marin-lieras-projects.vercel.app/api/worldspect/ingest-payload
-
     steps:
-      - name: Checkout repository
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
       - name: Setup Python 3.11
@@ -21,20 +17,27 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install dependencies if needed
+      - name: Install Ingestion Dependencies
         run: |
-          python -m pip install --upgrade pip
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          if [ -f services/python/cognitive_twin/requirements.txt ]; then
+            pip install -r services/python/cognitive_twin/requirements.txt
+          else
+            pip install httpx feedparser
+          fi
 
-      - name: Generate WorldSpect payload
+      - name: Execute Autonomous Observation
+        id: run_script
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
-          python services/python/world_cli.py > worldspect_payload.json
-          cat worldspect_payload.json
+          # El script procesa las señales globales y canaliza el stream a un JSON estático
+          python services/python/world_cli.py > world_payload.json
 
-      - name: Send payload to WorldSpect ingest endpoint
+      - name: Dispatch Secure Payload to Vercel Production
         run: |
-          curl --fail -X POST \
-            -H "Authorization: Bearer $WORLDSPECT_INGEST_SECRET" \
+          # Enlace perimetral seguro apuntando directamente a tu dominio de autoridad
+          curl -X POST https://www.systemfriction.org/api/worldspect/ingest-payload \
+            -H "Authorization: Bearer ${{ secrets.WORLDSPECT_INGEST_SECRET }}" \
             -H "Content-Type: application/json" \
-            --data-binary @worldspect_payload.json \
-            "$WORLDSPECT_API_URL"
+            -d @world_payload.json

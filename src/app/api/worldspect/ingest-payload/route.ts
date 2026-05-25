@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
   try {
-    // 1. CONTROL PERIMETRAL: Verificación del Token Secreto que subiste a Vercel
+    // 1. Control perimetral mediante el Token Secreto
     const authHeader = request.headers.get("Authorization");
     const expectedToken = process.env.WORLDSPECT_INGEST_SECRET;
 
@@ -16,37 +16,38 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 2. RECEPCIÓN DEL PAYLOAD: Leer los datos calculados por GitHub Actions
+    // 2. Extracción y validación del Payload de GitHub
     const body = await request.json();
-    const { payload } = body as { payload?: Record<string, unknown> };
-
-    if (!payload || !payload.Wmacro || !payload.NTI) {
+    
+    // Validamos que contenga la estructura necesaria
+    if (!body || typeof body.Wmacro === 'undefined' || typeof body.NTI === 'undefined') {
       return NextResponse.json(
-        { error: "Estructura inválida: Faltan índices macro geopolíticos (Wmacro, NTI)." },
+        { error: "Estructura corrupta: Faltan índices geopolíticos (Wmacro, NTI)." },
         { status: 400 }
       );
     }
 
-    // 3. PERSISTENCIA ATÓMICA: Guardar en la tabla oficial de Supabase usando el Service Role
+    // 3. Persistencia atómica en la tabla oficial worldspect_snapshots
     const supabase = createServiceSupabaseClient();
     const { data, error } = await supabase
       .from("worldspect_snapshots")
       .insert([
         {
-          wmacro: payload.Wmacro,
-          nti: payload.NTI,
-          feeds_parsed: payload.feeds_parsed || [],
+          wmacro: body.Wmacro,
+          nti: body.NTI,
+          feeds_parsed: body.feeds_parsed || [],
           observed_at: new Date().toISOString(),
-          payload: payload,
-        },
+          payload: body
+        }
       ])
       .select();
 
     if (error) {
-      return NextResponse.json({ error: "Supabase Error: " + error.message }, { status: 500 });
+      return NextResponse.json({ error: "Supabase Write Fault: " + error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ ok: true, snapshot_id: data?.[0]?.id }, { status: 200 });
+    return NextResponse.json({ ok: true, snapshot_id: data[0].id }, { status: 200 });
+
   } catch (err: any) {
     return NextResponse.json({ error: "Internal Server Fault: " + err.message }, { status: 500 });
   }
