@@ -1,5 +1,5 @@
 import { createHash } from 'crypto';
-import { createServiceSupabaseClient } from '@/runtime/supabase/server';
+import { createServiceSupabaseClient } from '@/lib/supabase/server';
 import type { SourceHealthDTO } from '../../../packages/api-contracts/src';
 import type { WorldSpectrumCliPayload, WorldSpectrumSource } from '@/lib/worldspect/runWorldSpectrum';
 
