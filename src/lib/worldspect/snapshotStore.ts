@@ -117,7 +117,7 @@ export async function getLatestWorldSpectSnapshot() {
     confidence: clamp01(Number(data.confidence ?? 0)),
     wsi: numberOrNull(data.wsi),
     nti: numberOrNull(data.nti),
-    degraded_sources: Array.isArray(data.degraded_sources) ? data.degraded_sources.filter((source): source is string => typeof source === 'string') : [],
+    degraded_sources: Array.isArray(data.degraded_sources) ? data.degraded_sources.filter((source: unknown): source is string => typeof source === 'string') : [],
     sources: Array.isArray(data.sources) ? data.sources as WorldSpectrumSource[] : [],
     source_health: Array.isArray(data.source_health) ? data.source_health as SourceHealthDTO[] : [],
     raw_payload: data.raw_payload as WorldSpectrumCliPayload,
