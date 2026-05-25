@@ -1,4 +1,4 @@
-import { createServiceSupabaseClient } from '@/lib/supabase/server'
+import { createServiceSupabaseClient } from '@/runtime/supabase/server'
 
 export async function storeMemoryVector(input: {
   node_id: string

@@ -1,19 +1,3 @@
-import { NextRequest, NextResponse } from "next/server";
-import { handleEvent } from "@/lib/kernel/entrypoint";
-import { assertEvent } from "@/lib/kernel/assertEvent";
+import { createKernelRoute } from "@/runtime/api/createKernelRoute";
 
-export async function POST(req: NextRequest) {
-  const body = await req.json();
-
-  assertEvent("cron_wake");
-
-  const result = await handleEvent(
-    {
-      type: "cron_wake",
-      payload: body,
-    },
-    body.metrics || {}
-  );
-
-  return NextResponse.json(result);
-}
+export const POST = createKernelRoute("cron_wake");

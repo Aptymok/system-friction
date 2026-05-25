@@ -1,6 +1,6 @@
 // src/components/auth/SubscriptionGate.tsx
 'use client';
-import { useAuthState } from '@/components/providers/AuthProvider';
+import { useAuthState } from '@/components/auth/AuthProvider';
 import { useEffect, useState } from 'react';
 import { ModuleContext } from '@/lib/context/ModuleContext';
 

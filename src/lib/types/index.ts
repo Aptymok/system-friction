@@ -130,3 +130,67 @@ export interface StoreSnapshot {
     created_at: string
   }>
 }
+
+export interface SfiMeasurement {
+  id?: string
+  asset_id: string
+  IHG: number | null
+  NTI_obs: number | null
+  LDI_hours: number | null
+  xi_noise: number | null
+  PHI_SF: number | null
+  regime: string | null
+  runway_days: number | null
+  measured_at: string
+}
+
+export interface SfiIntervention {
+  id?: string
+  asset_id: string
+  intervention_id?: string | null
+  type?: string | null
+  description?: string | null
+  target_variable?: string | null
+  expected_delta?: number | null
+  actual_delta?: number | null
+  verification?: boolean | null
+  payload?: Record<string, unknown> | null
+  occurred_at?: string | null
+  created_at?: string | null
+}
+
+export interface SfiOutput {
+  id?: string
+  asset_id: string
+  output_type: string
+  file_name?: string | null
+  storage_path?: string | null
+  metadata?: Record<string, unknown> | null
+  created_at?: string | null
+}
+
+export interface SfiLogbookEntry {
+  id?: string
+  asset_id: string
+  event_type: string
+  payload: Record<string, unknown>
+  created_by?: string | null
+  created_at: string
+  hash?: string | null
+}
+
+export interface SfiAsset {
+  asset_id: string
+  owner_user_id: string
+  target_system: Record<string, unknown>
+  objective: Record<string, unknown>
+  state_vector: Record<string, unknown>
+  current_phase?: string | null
+  metadata: Record<string, unknown>
+  created_at: string
+  updated_at: string
+  measurements?: SfiMeasurement[]
+  interventions?: SfiIntervention[]
+  outputs?: SfiOutput[]
+  logbook?: SfiLogbookEntry[]
+}

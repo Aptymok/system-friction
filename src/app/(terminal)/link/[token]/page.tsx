@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import { Loader2 } from 'lucide-react'
-import { useNodeStore } from '@/lib/store/nodeStore'
+import { useNodeStore } from '@/observatory/store/nodeStore'
 
 export default function MagicLinkPage() {
   const params = useParams<{ token: string }>()

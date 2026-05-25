@@ -2,7 +2,7 @@
 
 import { redirect } from 'next/navigation'
 import { checkRateLimit, rateLimitKey } from '@/lib/auth/rateLimit'
-import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { createServerSupabaseClient } from '@/runtime/supabase/server'
 import { authSchema } from '@/lib/validation/schemas'
 
 function formValue(formData: FormData, key: string) {
@@ -18,7 +18,7 @@ export async function registerAction(formData: FormData) {
 
   const supabase = await createServerSupabaseClient()
   if (!supabase) redirect('/register?error=supabase_no_configurado')
-  const origin = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+  const origin = process.env.NEXT_PUBLIC_APP_URL || 'https://systemfriction.org'
   const { error } = await supabase.auth.signUp({
     email: parsed.data.email,
     password: parsed.data.password,
@@ -48,7 +48,7 @@ export async function forgotPasswordAction(formData: FormData) {
   if (!limit.allowed) redirect('/forgot?error=rate_limit')
   const supabase = await createServerSupabaseClient()
   if (!supabase) redirect('/forgot?error=supabase_no_configurado')
-  const origin = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+  const origin = process.env.NEXT_PUBLIC_APP_URL || 'https://systemfriction.org'
   await supabase.auth.resetPasswordForEmail(email, { redirectTo: `${origin}/reset` })
   redirect('/forgot?state=sent')
 }

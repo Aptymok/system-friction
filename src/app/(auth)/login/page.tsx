@@ -1,7 +1,5 @@
-import { AuthTerminal } from '@/components/auth/AuthTerminal'
-import { loginAction } from '@/lib/auth/actions'
+import ThresholdAccess from '@/components/auth/ThresholdAccess'
 
-export default async function LoginPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
-  const params = await searchParams
-  return <AuthTerminal title="Sincronizar identidad" action={loginAction} mode="login" error={params.error} />
+export default function LoginPage() {
+  return <ThresholdAccess />
 }

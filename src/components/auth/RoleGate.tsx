@@ -1,6 +1,6 @@
 // src/components/auth/RoleGate.tsx
 'use client';
-import { useAuthState } from '@/components/providers/AuthProvider';
+import { useAuthState } from '@/components/auth/AuthProvider';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 

@@ -1,48 +1,118 @@
 'use client'
 
-import { useEffect } from 'react'
-import { AMVChat } from '@/components/terminal/AMVChat'
-import { ConsoleColumn } from '@/components/terminal/ConsoleColumn'
-import { MemoryColumn } from '@/components/terminal/MemoryColumn'
-import { PhasePanel } from '@/components/terminal/PhasePanel'
-import { StateColumn } from '@/components/terminal/StateColumn'
-import { TerminalSidebar } from '@/components/terminal/TerminalSidebar'
-import { TerminalTimeline } from '@/components/terminal/TerminalTimeline'
-import { useTelemetryPulse } from '@/lib/hooks/useTelemetryPulse'
-import { useNodeStore } from '@/lib/store/nodeStore'
+import { useEffect, useState } from 'react'
+import { SfiCognitiveCanvasTerminal } from '@/observatory/components/field/SfiCognitiveCanvasTerminal'
+import { useTelemetryPulse } from '@/observatory/hooks/useTelemetryPulse'
+import { useNodeStore } from '@/observatory/store/nodeStore'
+import { getSfiRuntimeFlags } from '@/lib/config/sfiFlags'
+import { readTerminalCanonicalState, type TerminalCanonicalClientResult } from '@/lib/terminal/canonicalClient'
+
+type AccessState = 'loading' | 'allowed' | 'local'
+type TerminalMode = 'legacy' | 'canonical' | 'degraded'
 
 export default function TerminalPage() {
   useTelemetryPulse()
   const bootstrap = useNodeStore((state) => state.bootstrap)
+  const [access, setAccess] = useState<AccessState>('loading')
+  const [nodeId, setNodeId] = useState<string | null>(null)
+  const [canPersist, setCanPersist] = useState(false)
+  const [canonicalState, setCanonicalState] = useState<TerminalCanonicalClientResult | null>(null)
+  const [terminalMode, setTerminalMode] = useState<TerminalMode>('legacy')
+
+  function refreshCanonicalState(nextNodeId: string | null) {
+    const flags = getSfiRuntimeFlags()
+
+    if (!flags.canonicalFieldRead || !nextNodeId) {
+      setTerminalMode('legacy')
+      return
+    }
+
+    void readTerminalCanonicalState(nextNodeId)
+      .then((result) => {
+        setCanonicalState(result)
+        setTerminalMode(result.warnings.length ? 'degraded' : 'canonical')
+      })
+      .catch(() => {
+        setCanonicalState(null)
+        setTerminalMode('degraded')
+      })
+  }
 
   useEffect(() => {
-    void bootstrap()
+    let active = true
+
+    async function hydrate() {
+      void bootstrap()
+
+      try {
+        const controller = new AbortController()
+        const timeout = window.setTimeout(() => controller.abort(), 3000)
+
+        const response = await fetch('/api/node/bootstrap', {
+          cache: 'no-store',
+          signal: controller.signal,
+        })
+
+        window.clearTimeout(timeout)
+
+        if (!response.ok) {
+          if (active) setAccess('local')
+          return
+        }
+
+        const data = await response.json()
+        const role = data.profile?.role
+        const userEmail = data.user?.email || data.profile?.email || ''
+        const licenseStatus = data.license?.status
+
+        const isRoot =
+          role === 'root' ||
+          role === 'system' ||
+          userEmail.toLowerCase() === 'aptymok@gmail.com'
+
+        const hasAccess =
+          isRoot ||
+          data.entitlements?.full_access === true ||
+          licenseStatus === 'root_bypass' ||
+          licenseStatus === 'active' ||
+          licenseStatus === 'trialing'
+
+        if (active) {
+          const nextNodeId = data.node?.id || null
+          setNodeId(nextNodeId)
+          setCanPersist(hasAccess)
+          setAccess(hasAccess ? 'allowed' : 'local')
+          refreshCanonicalState(nextNodeId)
+        }
+      } catch {
+        if (active) setAccess('local')
+      }
+    }
+
+    void hydrate()
+
+    return () => {
+      active = false
+    }
   }, [bootstrap])
 
+  if (access === 'loading') {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-[#080808] text-[#C8A951]">
+        <div className="border border-[rgba(200,169,81,0.12)] px-8 py-6 font-mono text-[10px] uppercase tracking-[0.24em]">
+          HIDRATANDO CAMPO COGNITIVO
+        </div>
+      </main>
+    )
+  }
+
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[#070707] text-paper">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(212,175,55,0.12),transparent_24%),radial-gradient(circle_at_80%_20%,rgba(74,122,170,0.1),transparent_28%),#070707]" />
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[length:48px_48px] opacity-10" />
-      <div className="scanline fixed inset-0" />
-
-      <div className="relative mx-auto grid min-h-screen max-w-[1880px] grid-cols-1 gap-4 px-4 py-4 lg:grid-cols-[300px_minmax(0,1fr)] xl:grid-cols-[300px_minmax(0,1.15fr)_380px] 2xl:grid-cols-[320px_minmax(0,1.25fr)_360px_400px] xl:px-6">
-        <TerminalSidebar />
-
-        <section className="flex min-h-[calc(100vh-56px)] flex-col gap-4">
-          <ConsoleColumn />
-          <TerminalTimeline />
-        </section>
-
-        <aside className="flex min-h-[calc(100vh-56px)] flex-col gap-4">
-          <AMVChat />
-          <MemoryColumn />
-          <PhasePanel />
-        </aside>
-
-        <aside className="flex min-h-[calc(100vh-56px)] flex-col gap-4 xl:col-span-3 2xl:col-span-1">
-          <StateColumn />
-        </aside>
-      </div>
-    </main>
-  );
+    <SfiCognitiveCanvasTerminal
+      nodeId={access === 'allowed' ? nodeId : null}
+      canPersist={access === 'allowed' && canPersist}
+      canonicalState={canonicalState}
+      mode={access === 'allowed' ? terminalMode : 'legacy'}
+      onSignalDeclared={() => refreshCanonicalState(nodeId)}
+    />
+  )
 }

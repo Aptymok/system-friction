@@ -11,9 +11,9 @@ export const HARD_LIMITS = {
 
 export const PROTECTED_PATHS = [
   "src/lib/atlas/ontology.py",
-  "src/lib/kernel/metaKernel.ts",
-  "src/lib/kernel/bootstrap.ts",
-  "src/lib/kernel/systemTick.ts"
+  "src/experimental/kernel/metaKernel.ts",
+  "src/runtime/kernel/bootstrap.ts",
+  "src/runtime/kernel/systemTick.ts"
 ];
 
 let changeCounters = {
@@ -87,11 +87,15 @@ function resetCountersIfNeeded() {
 }
 
 function persistCounters() {
+  if (process.env.VERCEL || process.env.NODE_ENV === 'production') return;
+
   const fs = require('fs');
   fs.writeFileSync('.evolution-counters.json', JSON.stringify(changeCounters));
 }
 
 export function loadCounters() {
+  if (process.env.VERCEL || process.env.NODE_ENV === 'production') return;
+
   const fs = require('fs');
   if (fs.existsSync('.evolution-counters.json')) {
     changeCounters = JSON.parse(fs.readFileSync('.evolution-counters.json', 'utf8'));

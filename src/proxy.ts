@@ -1,6 +1,22 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import { normalizeSupabaseUrl } from '@/runtime/supabase/url'
+
+const AUTH_COOKIE_NAMES = ['sb-access-token', 'sb-refresh-token', 'supabase-auth-token']
+
+function isRefreshTokenMissing(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error || '')
+  return message.toLowerCase().includes('refresh token not found') || message.toLowerCase().includes('refresh_token_not_found')
+}
+
+function clearSupabaseAuthCookies(response: NextResponse, request: NextRequest) {
+  const names = new Set(AUTH_COOKIE_NAMES)
+  request.cookies.getAll().forEach((cookie) => {
+    if (cookie.name.startsWith('sb-') || cookie.name.includes('supabase')) names.add(cookie.name)
+  })
+  names.forEach((name) => response.cookies.delete(name))
+}
 
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next()
@@ -21,14 +37,19 @@ export async function proxy(request: NextRequest) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
+  const requiresSession =
+    pathname.startsWith('/root') ||
+    pathname.startsWith('/user') ||
+    pathname === '/setup-profile'
+
   if (!supabaseUrl || !supabaseKey) {
-    if (pathname.startsWith('/terminal') || pathname === '/setup-profile') {
+    if (requiresSession) {
       return NextResponse.redirect(new URL('/login?error=supabase_no_configurado', request.url))
     }
     return response
   }
 
-  const supabase = createServerClient(supabaseUrl, supabaseKey, {
+  const supabase = createServerClient(normalizeSupabaseUrl(supabaseUrl), supabaseKey, {
     cookies: {
       getAll() {
         return request.cookies.getAll()
@@ -42,13 +63,40 @@ export async function proxy(request: NextRequest) {
     },
   })
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  let user = null
+  try {
+    const result = await supabase.auth.getUser()
+    user = result.data.user
+    if (result.error && isRefreshTokenMissing(result.error)) {
+      clearSupabaseAuthCookies(response, request)
+      user = null
+    }
+  } catch (error) {
+    if (isRefreshTokenMissing(error)) {
+      clearSupabaseAuthCookies(response, request)
+      user = null
+    } else {
+      throw error
+    }
+  }
 
-  if (pathname.startsWith('/terminal') || pathname === '/setup-profile') {
+  if (requiresSession) {
     if (!user) {
-      return NextResponse.redirect(new URL('/login', request.url))
+      const redirect = NextResponse.redirect(new URL('/login', request.url))
+      clearSupabaseAuthCookies(redirect, request)
+      return redirect
+    }
+  }
+
+  if (pathname.startsWith('/root') && user) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('user_id', user.id)
+      .single()
+
+    if (profile?.role !== 'root') {
+      return NextResponse.redirect(new URL('/user', request.url))
     }
   }
 

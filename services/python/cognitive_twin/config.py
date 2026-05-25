@@ -9,7 +9,7 @@ DATA_DIR.mkdir(exist_ok=True)
 # Base de datos
 DATABASE_URL = os.getenv("COGNITIVE_DB_URL", f"sqlite:///{DATA_DIR}/cognitive_twin.db")
 # Para usar PostgreSQL en producción:
-# DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://user:pass@localhost/cognitive_twin")
+# DATABASE_URL = os.getenv("DATABASE_URL")
 
 # Modelos de embeddings (multilingüe para español/inglés)
 EMBEDDING_MODEL = "paraphrase-multilingual-MiniLM-L12-v2"

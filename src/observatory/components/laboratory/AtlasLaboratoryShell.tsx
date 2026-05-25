@@ -1,0 +1,314 @@
+'use client';
+
+import { useMemo, useState } from 'react';
+import type { IntentProfile } from '@/observatory/surface/fieldSurfaceRouter';
+import { inferIntentProfile } from '@/observatory/surface/fieldSurfaceRouter';
+import { resolveLaboratoryGraph } from '@/observatory/laboratory/resolveLaboratoryGraph';
+import { visibleGraphMode } from '@/observatory/laboratory/graphModes';
+import type { LaboratoryViewMode } from '@/observatory/laboratory/laboratoryViewModes';
+import { applyWorldSpectLens } from '@/observatory/worldspect/applyWorldSpectLens';
+import type { WorldSpectCategory } from '@/observatory/worldspect/worldSpectCategories';
+import { getWorldSpectCategoryConfig } from '@/observatory/worldspect/worldSpectCategories';
+import { LaboratoryWorldSpectStrip } from './LaboratoryWorldSpectStrip';
+import { LaboratoryField } from './LaboratoryField';
+import { LaboratoryCommandPanel } from './LaboratoryCommandPanel';
+import { AtlasActionBar } from './AtlasActionBar';
+import { LaboratoryProcessRail } from './LaboratoryProcessRail';
+
+function clusterForCommand(command: string, fallback: string) {
+  const text = command.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  if (/saturado|no entiendo|carga/.test(text)) return 'Nodo Vivo';
+  if (/publicar|pieza|post|presencia|redes/.test(text)) return 'Presencia';
+  if (/audita|auditar|texto|origen|coherencia/.test(text)) return 'Auditoria';
+  if (/simula|proyecta|comparar|riesgo/.test(text)) return 'Simulacion';
+  if (/resultado|conclusion|sintesis/.test(text)) return 'Resultado';
+  if (/accion|ejecutar|hacer|cerrar/.test(text)) return 'Accion';
+  if (/recordar|pendiente|memoria/.test(text)) return 'Memoria';
+  if (/mundo|hoy|contexto/.test(text)) return 'Mundo';
+  if (/fecha|hora|ventana|calendario/.test(text)) return 'Ventana';
+  return fallback;
+}
+
+function responseForCommand(command: string, cluster: string) {
+  const text = command.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  if (/saturado|no entiendo/.test(text)) return 'Reduzco densidad. Queda un nodo activo y una accion minima.';
+  if (/audita|auditar/.test(text)) return 'Generacion bloqueada. Revisare coherencia, origen y riesgo.';
+  if (/publicar|pieza|post|redes/.test(text)) return 'No publicare. Preparare revision, ventana y retorno.';
+  if (/decidir|decision/.test(text)) return 'Comparo criterios y cierro una decision minima reversible.';
+  if (cluster === 'Simulacion') return 'Comparo rutas sin ejecutar.';
+  return 'Accion registrada en el campo local.';
+}
+
+function placeholderFor(cluster: string) {
+  if (cluster === 'Auditoria') return 'Pega el texto a auditar.';
+  if (cluster === 'Simulacion') return 'Describe el escenario.';
+  if (cluster === 'Presencia') return 'Sube o describe la pieza.';
+  if (cluster === 'Accion') return 'Define la accion.';
+  if (cluster === 'Ventana') return 'Indica fecha, hora o restriccion.';
+  return 'Que necesitas observar?';
+}
+
+export function AtlasLaboratoryShell({
+  nodeLabel,
+  intentProfile,
+  localNode,
+  canPersist,
+  latestWorldSnapshot,
+  runtimeSummary,
+  nextAction,
+  initialCommand,
+  onCommand,
+  onWorldSpectCategorySelect,
+  onContinuityRequest,
+}: {
+  nodeLabel: string;
+  intentProfile: IntentProfile;
+  localNode?: Record<string, unknown> | null;
+  canPersist: boolean;
+  latestWorldSnapshot?: Record<string, unknown> | null;
+  runtimeSummary: string;
+  nextAction: string;
+  initialCommand?: string;
+  onCommand: (command: string) => void | Promise<void>;
+  onWorldSpectCategorySelect?: (category: WorldSpectCategory, detail: Record<string, unknown>) => void;
+  onContinuityRequest?: () => void;
+}) {
+  const [command, setCommand] = useState(initialCommand || '');
+  const [activeCluster, setActiveCluster] = useState(() => clusterForCommand(initialCommand || '', 'Nodo Vivo'));
+  const [activeProcess, setActiveProcess] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<LaboratoryViewMode>('CLUSTER');
+  const [selectedNodeLabel, setSelectedNodeLabel] = useState<string | null>(null);
+  const [fieldActivity, setFieldActivity] = useState({ tension: 0, density: 0, writing: false });
+  const [eventLog, setEventLog] = useState<Array<{ event: string; detail: string; at: string }>>([
+    { event: 'INIT', detail: 'Campo operacional activo.', at: new Date().toLocaleTimeString('es-MX', { hour12: false }) },
+  ]);
+  const [activeCategory, setActiveCategory] = useState<WorldSpectCategory>(() => {
+    const inferred = inferIntentProfile(initialCommand || '', localNode);
+    return inferred === 'social_publication' ? 'cultural' : inferred === 'world_observation' ? 'factual' : 'semantic';
+  });
+  const [responseText, setResponseText] = useState<string | null>(null);
+  const logEvent = (event: string, detail: string) => {
+    setEventLog((current) => [{ event, detail, at: new Date().toLocaleTimeString('es-MX', { hour12: false }) }, ...current].slice(0, 30));
+  };
+
+  const graph = useMemo(() => resolveLaboratoryGraph({
+    intentProfile,
+    activeCluster,
+    activeProcess,
+    cognitiveTwinUxState: localNode?.cognitiveTwinUxState as Record<string, unknown> | undefined,
+    command,
+    viewMode,
+  }), [intentProfile, activeCluster, activeProcess, localNode, command, viewMode]);
+
+  const lens = useMemo(() => applyWorldSpectLens({
+    baseGraph: { nodes: graph.nodes, edges: graph.edges },
+    category: activeCategory,
+    worldSpectSnapshot: latestWorldSnapshot,
+    intentProfile,
+    cognitiveTwinUxState: localNode?.cognitiveTwinUxState as Record<string, unknown> | undefined,
+  }), [graph, activeCategory, latestWorldSnapshot, intentProfile, localNode]);
+
+  const category = getWorldSpectCategoryConfig(activeCategory);
+  const graphModes = lens.graphModes.length ? lens.graphModes : graph.graphModes;
+  const suggestedProcesses = lens.suggestedProcesses.length ? lens.suggestedProcesses : category.suggestedProcesses;
+
+  const submit = async (value: string) => {
+    const nextCluster = clusterForCommand(value, activeCluster);
+    setCommand(value);
+    setActiveCluster(nextCluster);
+    const response = responseForCommand(value, nextCluster);
+    setResponseText(response);
+    logEvent('CMD', response);
+    await onCommand(value);
+  };
+
+  const selectCategory = (categoryId: WorldSpectCategory) => {
+    setActiveCategory(categoryId);
+    const nextLens = applyWorldSpectLens({
+      baseGraph: { nodes: graph.nodes, edges: graph.edges },
+      category: categoryId,
+      worldSpectSnapshot: latestWorldSnapshot,
+      intentProfile,
+      cognitiveTwinUxState: localNode?.cognitiveTwinUxState as Record<string, unknown> | undefined,
+    });
+    if (!canPersist && typeof window !== 'undefined') {
+      window.localStorage.setItem('sfi_worldspect_lens', JSON.stringify({
+        category: categoryId,
+        selectedAt: new Date().toISOString(),
+        snapshotId: latestWorldSnapshot?.id || null,
+        source: 'user_selection',
+      }));
+    }
+    logEvent('LENTE', `WorldSpect ${categoryId}`);
+    onWorldSpectCategorySelect?.(categoryId, {
+      category: categoryId,
+      snapshotId: latestWorldSnapshot?.id || null,
+      graphModes: nextLens.graphModes,
+      prioritizedNodes: nextLens.prioritizedNodes,
+      suggestedProcesses: nextLens.suggestedProcesses,
+    });
+  };
+
+  return (
+    <main className="atlas-shell">
+      <LaboratoryWorldSpectStrip snapshot={latestWorldSnapshot} activeCategory={activeCategory} onCategorySelect={selectCategory} />
+      <div className="atlas-grain" />
+      <div className="atlas-memory" aria-hidden="true" />
+      <div className="atlas-cursor-field" aria-hidden="true" />
+      <section className="atlas-field-wrap">
+        <LaboratoryField
+          graph={graph}
+          nodeLabel={nodeLabel || 'Nodo vivo'}
+          activeCluster={activeCluster}
+          activeProcess={activeProcess}
+          activeWorldSpectCategory={activeCategory}
+          worldSpectLensState={lens}
+          viewMode={viewMode}
+          selectedNodeId={null}
+          onClusterSelect={(cluster) => {
+            setActiveCluster(cluster);
+            setActiveProcess(null);
+            setSelectedNodeLabel(cluster);
+            logEvent('SEL', cluster);
+          }}
+          onProcessSelect={(process) => {
+            setActiveProcess(process);
+            setSelectedNodeLabel(process);
+            logEvent('PROC', process);
+          }}
+          onViewModeChange={(mode) => {
+            setViewMode(mode);
+            logEvent('MODO', mode);
+          }}
+        />
+      </section>
+      <div className="atlas-ghost-log" aria-hidden="true">
+        {eventLog.slice(0, 3).map((entry, index) => (
+          <span key={`${entry.at}-${entry.event}`} style={{ ['--ghost-index' as string]: index }}>
+            AMV · {entry.event} · {entry.detail}
+          </span>
+        ))}
+      </div>
+      <LaboratoryCommandPanel
+        activeCluster={activeCluster}
+        activeProcess={activeProcess}
+        activeStep={graph.activeStep}
+        graphModes={graphModes}
+        worldSpectCategory={activeCategory}
+        prioritizedNodes={lens.prioritizedNodes}
+        suggestedProcesses={suggestedProcesses}
+        viewMode={viewMode}
+        eventLog={eventLog}
+        selectedNodeLabel={selectedNodeLabel}
+        nextAction={lens.visibleReading || nextAction}
+        responseText={responseText}
+        canPersist={canPersist}
+        runtimeSummary={runtimeSummary}
+        onProcessSelect={setActiveProcess}
+        onContinue={() => canPersist ? setResponseText('Accion lista para ejecucion persistente.') : onContinuityRequest?.()}
+      />
+      <LaboratoryProcessRail activeStep={graph.activeStep} />
+      <AtlasActionBar
+        modeLabel={visibleGraphMode(graphModes[0])}
+        placeholder={placeholderFor(activeCluster)}
+        suggestedProcesses={suggestedProcesses}
+        tension={fieldActivity.tension}
+        density={fieldActivity.density}
+        onActivityChange={(activity) => {
+          setFieldActivity({ tension: activity.tension, density: activity.density, writing: activity.writing });
+        }}
+        onSubmit={submit}
+      />
+      <style jsx>{`
+        .atlas-shell {
+          position: fixed;
+          inset: 0;
+          overflow: hidden;
+          background:
+            radial-gradient(circle at 50% 45%, rgba(200,169,81,0.09), transparent 22rem),
+            radial-gradient(circle at 70% 25%, rgba(72,170,136,0.07), transparent 26rem),
+            #050505;
+          color: #d8d4c8;
+          font-family: "Cormorant Garamond", Georgia, serif;
+        }
+        .atlas-shell::before {
+          content: '';
+          position: absolute;
+          inset: 0;
+          pointer-events: none;
+          opacity: 0.38;
+          background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.045'/%3E%3C/svg%3E");
+        }
+        .atlas-grain {
+          position: absolute;
+          inset: 0;
+          pointer-events: none;
+          opacity: 0.22;
+          background-image: linear-gradient(rgba(200,169,81,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(200,169,81,0.02) 1px, transparent 1px);
+          background-size: 54px 54px;
+        }
+        .atlas-memory {
+          position: absolute;
+          inset: 14% 10% 12%;
+          pointer-events: none;
+          background:
+            radial-gradient(circle at 30% 60%, rgba(74,143,168,${fieldActivity.density * 0.08}), transparent 20rem),
+            radial-gradient(circle at 68% 42%, rgba(200,105,64,${fieldActivity.tension * 0.07}), transparent 22rem);
+          filter: blur(8px);
+          transition: background 180ms ease;
+        }
+        .atlas-cursor-field {
+          position: absolute;
+          inset: 0;
+          pointer-events: none;
+          background: ${fieldActivity.writing ? 'linear-gradient(90deg, rgba(200,169,81,0.018) 1px, transparent 1px)' : 'transparent'};
+          background-size: 72px 72px;
+        }
+        .atlas-field-wrap {
+          position: absolute;
+          left: 0;
+          top: calc(3.2rem + env(safe-area-inset-top, 0px));
+          bottom: calc(5.2rem + env(safe-area-inset-bottom, 0px));
+          right: min(25rem, 32vw);
+          display: grid;
+          place-items: center;
+          min-width: 0;
+        }
+        .atlas-ghost-log {
+          position: fixed;
+          left: 1.2rem;
+          top: calc(4.2rem + env(safe-area-inset-top, 0px));
+          z-index: 20;
+          display: grid;
+          gap: 0.45rem;
+          pointer-events: none;
+          max-width: min(28rem, 45vw);
+          font-family: "JetBrains Mono", monospace;
+        }
+        .atlas-ghost-log span {
+          color: rgba(200, 169, 81, 0.28);
+          font-size: 0.54rem;
+          letter-spacing: 0.08em;
+          white-space: nowrap;
+          opacity: calc(0.54 - var(--ghost-index) * 0.12);
+          animation: ghostDrift 8s ease-in-out infinite;
+        }
+        @keyframes ghostDrift {
+          0%, 100% { transform: translateX(0); }
+          50% { transform: translateX(10px); }
+        }
+        @media (max-width: 860px) {
+          .atlas-field-wrap {
+            top: calc(5.8rem + env(safe-area-inset-top, 0px));
+            right: 0;
+            bottom: calc(17rem + env(safe-area-inset-bottom, 0px));
+            align-items: start;
+          }
+          .atlas-ghost-log {
+            display: none;
+          }
+        }
+      `}</style>
+    </main>
+  );
+}
