@@ -5,6 +5,7 @@ import {
   getLatestWorldSpectSnapshot,
   snapshotRowToApiData,
   upsertWorldSpectSnapshot,
+  type WorldSpectSnapshotRow,
 } from '@/lib/worldspect/snapshotStore';
 
 export const runtime = 'nodejs';
@@ -57,6 +58,15 @@ function isRealSource(source: WorldSpectrumSource) {
   return source.value !== null && source.simulated !== true && !source.error;
 }
 
+function isEmptyDegradedSnapshot(snapshot: WorldSpectSnapshotRow) {
+  return snapshot.source_state === 'degraded'
+    && snapshot.confidence === 0
+    && snapshot.wsi === null
+    && snapshot.nti === null
+    && snapshot.sources.length === 0
+    && snapshot.source_health.length === 0;
+}
+
 function sourceStatus(source: WorldSpectrumSource, degradedSources: string[]): SourceHealthDTO['status'] {
   if (degradedSources.includes(source.key)) return 'degraded';
   if (source.error || source.simulated === true) return 'degraded';
@@ -87,7 +97,7 @@ function toSourceHealth(payload: WorldSpectrumCliPayload): SourceHealthDTO[] {
     lastObservedAt: source.ts,
     checkedAt: payload.ts,
     confidence: sourceConfidence(source),
-    message: source.error ? 'source_unavailable' : undefined,
+    message: source.error ? source.error : undefined,
   }));
 }
 
@@ -125,7 +135,7 @@ function toResponse(payload: WorldSpectrumCliPayload, sourceState: WorldSpectRea
 export async function GET() {
   const latest = await getLatestWorldSpectSnapshot();
 
-  if (latest) {
+  if (latest && !isEmptyDegradedSnapshot(latest)) {
     return apiOk(snapshotRowToApiData(latest));
   }
 
@@ -151,7 +161,7 @@ export async function GET() {
   });
 
   const warnings = [
-    'worldspect_snapshot_missing_used_runtime_fallback',
+    latest ? 'worldspect_empty_degraded_snapshot_refreshed' : 'worldspect_snapshot_missing_used_runtime_fallback',
     ...(result.ok ? [] : [result.errorCode]),
     ...(persisted.ok ? [] : [persisted.error]),
   ];
