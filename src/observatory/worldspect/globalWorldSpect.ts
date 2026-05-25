@@ -1,4 +1,4 @@
-import { createServiceSupabaseClient } from '@/lib/supabase/server';
+import { createServiceSupabaseClient } from '../../runtime/supabase/server';
 
 export type GlobalWorldSpectSnapshot = {
   id?: string;
