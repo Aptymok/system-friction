@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import type { ApiResult, SourceHealthDTO } from '../../../../../../packages/api-contracts/src';
+import type { ApiResult, SourceHealthDTO } from '../../../../../packages/api-contracts/src';
 import { runWorldSpectrum, type WorldSpectrumCliPayload, type WorldSpectrumSource } from '@/lib/worldspect/runWorldSpectrum';
 import { upsertWorldSpectSnapshot } from '@/lib/worldspect/snapshotStore';
 
