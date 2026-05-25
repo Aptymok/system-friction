@@ -43,6 +43,8 @@ export type WorldSpectSnapshotRow = {
   snapshot_hash: string;
 };
 
+type SnapshotDbRow = Record<string, unknown>;
+
 function canonicalize(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(canonicalize);
   if (!value || typeof value !== 'object') return value;
@@ -85,6 +87,15 @@ function numberOrNull(value: unknown) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+function stringArray(value: unknown) {
+  if (!Array.isArray(value)) return [];
+  return value.filter((source: unknown): source is string => typeof source === 'string');
+}
+
+function jsonArray<T>(value: unknown) {
+  return Array.isArray(value) ? value as T[] : [];
+}
+
 function isWorldSpectSourceState(value: unknown): value is WorldSpectSourceState {
   return value === 'observed' || value === 'degraded';
 }
@@ -105,27 +116,28 @@ export async function getLatestWorldSpectSnapshot() {
 
   if (error || !data) return null;
 
-  const sourceState = isWorldSpectSourceState(data.source_state) ? data.source_state : 'degraded';
-  const ingestMode = isWorldSpectIngestMode(data.ingest_mode) ? data.ingest_mode : 'manual';
+  const row = data as SnapshotDbRow;
+  const sourceState = isWorldSpectSourceState(row.source_state) ? row.source_state : 'degraded';
+  const ingestMode = isWorldSpectIngestMode(row.ingest_mode) ? row.ingest_mode : 'manual';
 
   return {
-    id: String(data.id),
-    observed_at: String(data.observed_at),
-    created_at: String(data.created_at),
+    id: String(row.id),
+    observed_at: String(row.observed_at),
+    created_at: String(row.created_at),
     source_state: sourceState,
     evidence_level: 'direct',
-    confidence: clamp01(Number(data.confidence ?? 0)),
-    wsi: numberOrNull(data.wsi),
-    nti: numberOrNull(data.nti),
-    degraded_sources: Array.isArray(data.degraded_sources) ? data.degraded_sources.filter((source): source is string => typeof source === 'string') : [],
-    sources: Array.isArray(data.sources) ? data.sources as WorldSpectrumSource[] : [],
-    source_health: Array.isArray(data.source_health) ? data.source_health as SourceHealthDTO[] : [],
-    raw_payload: data.raw_payload as WorldSpectrumCliPayload,
-    field_state_signal: data.field_state_signal && typeof data.field_state_signal === 'object' ? data.field_state_signal as Record<string, unknown> : null,
-    adapter_status: String(data.adapter_status ?? 'unknown'),
-    adapter_error: typeof data.adapter_error === 'string' ? data.adapter_error : null,
+    confidence: clamp01(Number(row.confidence ?? 0)),
+    wsi: numberOrNull(row.wsi),
+    nti: numberOrNull(row.nti),
+    degraded_sources: stringArray(row.degraded_sources),
+    sources: jsonArray<WorldSpectrumSource>(row.sources),
+    source_health: jsonArray<SourceHealthDTO>(row.source_health),
+    raw_payload: row.raw_payload as WorldSpectrumCliPayload,
+    field_state_signal: row.field_state_signal && typeof row.field_state_signal === 'object' ? row.field_state_signal as Record<string, unknown> : null,
+    adapter_status: String(row.adapter_status ?? 'unknown'),
+    adapter_error: typeof row.adapter_error === 'string' ? row.adapter_error : null,
     ingest_mode: ingestMode,
-    snapshot_hash: String(data.snapshot_hash ?? ''),
+    snapshot_hash: String(row.snapshot_hash ?? ''),
   } satisfies WorldSpectSnapshotRow;
 }
 
