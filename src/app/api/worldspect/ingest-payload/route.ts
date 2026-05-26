@@ -244,7 +244,6 @@ export async function POST(request: NextRequest) {
       adapter_error: typeof body.adapter_error === 'string' ? body.adapter_error : null,
       ingest_mode: 'manual',
       snapshot_hash: snapshotHash,
-      unique_date: uniqueDate,
     };
 
     const { error } = await supabase
