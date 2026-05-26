@@ -202,13 +202,13 @@ export async function POST(request: NextRequest) {
     const observedAt = typeof body.ts === 'string' && body.ts.trim().length > 0
       ? new Date(body.ts).toISOString()
       : new Date().toISOString();
-    const uniqueDate = isoDateOnly(observedAt);
+    const observedDate = isoDateOnly(observedAt);
     const degradedSources = toJsonArray(body.degraded_sources);
     const sources = toJsonArray(body.sources);
     const sourceHealth = toJsonArray(body.source_health);
     const confidence = Math.max(0, Math.min(1, nti));
     const snapshotHash = createHash('sha256')
-      .update(JSON.stringify({ uniqueDate, wsi, nti, sources, sourceHealth, degradedSources }))
+      .update(JSON.stringify({ observedAt, wsi, nti, sources, sourceHealth, degradedSources }))
       .digest('hex');
 
     const supabase = createServiceSupabaseClient();
@@ -248,7 +248,7 @@ export async function POST(request: NextRequest) {
 
     const { error } = await supabase
       .from('worldspect_snapshots')
-      .upsert([row], { onConflict: 'unique_date' });
+      .insert([row]);
 
     if (error) {
       console.error('Supabase Ingest Error:', error);
@@ -264,7 +264,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    return NextResponse.json({ ok: true, unique_date: uniqueDate, snapshot_hash: snapshotHash });
+    return NextResponse.json({ ok: true, observed_date: observedDate, snapshot_hash: snapshotHash });
   } catch (err: unknown) {
     console.error('[worldspect/ingest] Exception:', errorStack(err));
     return NextResponse.json(
