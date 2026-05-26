@@ -3,6 +3,35 @@ import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import fs from 'fs';
 import path from 'path';
 
+function errorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
+
+function errorStack(err: unknown): string {
+  return err instanceof Error ? err.stack ?? err.message : String(err);
+}
+
+function decodeUtf16Be(buffer: Buffer): string {
+  const data = buffer.slice(2);
+  if (data.length % 2 !== 0) {
+    throw new Error('UTF-16 BE buffer contains an odd number of bytes');
+  }
+
+  const swapped = Buffer.allocUnsafe(data.length);
+  for (let i = 0; i < data.length; i += 2) {
+    swapped[i] = data[i + 1];
+    swapped[i + 1] = data[i];
+  }
+
+  return swapped.toString('utf16le');
+}
+
+function normalizeSupabaseError(error: unknown): string {
+  if (!error || typeof error !== 'object') return String(error ?? 'SUPABASE_INSERT_FAILED');
+  const maybe = error as Record<string, unknown>;
+  return String(maybe.message ?? maybe.error ?? maybe.details ?? maybe.name ?? maybe.code ?? 'SUPABASE_INSERT_FAILED');
+}
+
 export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
@@ -29,7 +58,7 @@ export async function POST(request: NextRequest) {
       body = JSON.parse(txtUtf8);
       console.log('[worldspect/ingest] parsed body as utf8, size=', txtUtf8.length);
     } catch (utf8Err) {
-      console.warn('[worldspect/ingest] UTF-8 parse failed, trying UTF-16 fallbacks:', utf8Err && utf8Err.message);
+      console.warn('[worldspect/ingest] UTF-8 parse failed, trying UTF-16 fallbacks:', errorMessage(utf8Err));
       let txt: string | null = null;
       let encodingDetected = 'unknown';
       if (buf.length >= 2 && buf[0] === 0xff && buf[1] === 0xfe) {
@@ -39,16 +68,19 @@ export async function POST(request: NextRequest) {
       } else if (buf.length >= 2 && buf[0] === 0xfe && buf[1] === 0xff) {
         encodingDetected = 'utf16be_bom';
         console.log('[worldspect/ingest] Detected UTF-16 BE BOM');
-        txt = buf.toString('utf16be');
+        try {
+          txt = decodeUtf16Be(buf);
+        } catch (decodeErr) {
+          console.error('[worldspect/ingest] UTF-16 BE decode failed:', errorStack(decodeErr));
+          return NextResponse.json(
+            { ok: false, stage: 'parse', error_code: 'UNSUPPORTED_ENCODING', encodingDetected },
+            { status: 400 }
+          );
+        }
       } else {
         // Intentar interpretar como utf16le por heurística
-        try {
-          txt = buf.toString('utf16le');
-          encodingDetected = 'utf16le_heuristic';
-        } catch (_) {
-          txt = buf.toString('utf8');
-          encodingDetected = 'utf8_fallback';
-        }
+        txt = buf.toString('utf16le');
+        encodingDetected = 'utf16le_heuristic';
       }
 
       try {
@@ -57,7 +89,7 @@ export async function POST(request: NextRequest) {
         body = JSON.parse(cleaned);
         console.log('[worldspect/ingest] manual JSON parse success, size=', cleaned.length, 'encoding=', encodingDetected);
       } catch (manualErr) {
-        console.error('[worldspect/ingest] manual JSON parse failed:', manualErr && (manualErr.stack || manualErr));
+        console.error('[worldspect/ingest] manual JSON parse failed:', errorStack(manualErr));
         const preview = buf.slice(0, 128).toString('hex');
         return NextResponse.json({ ok: false, stage: 'parse', error_code: 'JSON_PARSE_FAILED', encodingDetected, preview }, { status: 400 });
       }
@@ -77,6 +109,13 @@ export async function POST(request: NextRequest) {
         received: Object.keys(body) 
       }, { status: 400 });
     }
+
+    const sourceState = 'observed';
+    const evidenceLevel = 'direct';
+    const confidence = Number.isFinite(Number(nti)) ? Number(nti) : 0;
+    const degradedSources = Array.isArray(body.degraded_sources) ? body.degraded_sources : [];
+    const sourceHealth = Array.isArray(body.source_health) ? body.source_health : [];
+    const sourcesArray = Array.isArray(sources) ? sources : [];
 
     // 3. Persistencia con Rol de Servicio (Admin)
     const supabase = createServiceSupabaseClient();
@@ -103,11 +142,18 @@ export async function POST(request: NextRequest) {
       .insert([{
         wsi: Number(wsi),
         nti: Number(nti),
-        sources: sources,
-        observed_at: observed_at,
+        source_state: sourceState,
+        evidence_level: evidenceLevel,
+        confidence,
+        degraded_sources: degradedSources,
+        sources: sourcesArray,
+        source_health: sourceHealth,
         raw_payload: body,
-        ingest_mode: "cloud_automated",
-        snapshot_hash: "v1_prod"
+        observed_at: observed_at,
+        created_at: new Date().toISOString(),
+        adapter_status: 'observed',
+        ingest_mode: 'manual',
+        snapshot_hash: 'v1_prod'
       }]);
 
     if (error) {
@@ -126,13 +172,13 @@ export async function POST(request: NextRequest) {
         }
       }
       // Extract short error code if possible
-      const errorCode = (error && (error.message || error.error || error.name)) ? String(error.message || error.error || error.name) : 'SUPABASE_INSERT_FAILED';
+      const errorCode = normalizeSupabaseError(error);
       return NextResponse.json({ ok: false, stage: 'supabase_insert', error_code: errorCode, diagnostic_dump_written: wrote }, { status: 502 });
     }
 
     return NextResponse.json({ ok: true });
-  } catch (err: any) {
-    console.error('[worldspect/ingest] Exception:', err && (err.stack || err));
-    return NextResponse.json({ error: String(err && err.message) || 'unknown error' }, { status: 500 });
+  } catch (err: unknown) {
+    console.error('[worldspect/ingest] Exception:', errorStack(err));
+    return NextResponse.json({ error: errorMessage(err) || 'unknown error' }, { status: 500 });
   }
 }
