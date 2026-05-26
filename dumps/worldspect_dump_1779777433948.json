@@ -1,0 +1,79 @@
+{
+  "received_at": "2026-05-26T06:37:13.948Z",
+  "body": {
+    "sources": [
+      {
+        "key": "worldbank",
+        "label": "GDP Growth 2024",
+        "value": 0.6055345878494738,
+        "raw": 2.87194964204316,
+        "unit": "%",
+        "nti": 0.85,
+        "weight": 0.3,
+        "mihm_var": "E_r",
+        "simulated": false,
+        "ts": "2026-05-26T02:26:53.040057"
+      },
+      {
+        "key": "bbc_world",
+        "label": "BBC_WORLD",
+        "value": null,
+        "nti": 0,
+        "nti_base": 0.7,
+        "weight": 0.25,
+        "mihm_var": "D_cog",
+        "error": "Redirect response '302 Moved Temporarily' for url 'http://feeds.bbci.co.uk/news/rss.xml'\nRedirect lo",
+        "simulated": true,
+        "ts": "2026-05-26T02:26:53.105610"
+      },
+      {
+        "key": "hn",
+        "label": "hnrss.org",
+        "value": 0.2,
+        "raw": 20,
+        "unit": "items",
+        "nti": 0.75,
+        "weight": 0.2,
+        "mihm_var": "V_i",
+        "simulated": false,
+        "ts": "2026-05-26T02:26:54.237312"
+      },
+      {
+        "key": "aljazeera",
+        "label": "www.aljazeera.com",
+        "value": 0.5,
+        "raw": 25,
+        "unit": "items",
+        "nti": 0.75,
+        "weight": 0.15,
+        "mihm_var": "R_sem",
+        "simulated": false,
+        "ts": "2026-05-26T02:26:53.011455"
+      },
+      {
+        "key": "news_api",
+        "label": "rss.nytimes.com",
+        "value": 1,
+        "raw": 59,
+        "unit": "items",
+        "nti": 0.85,
+        "weight": 0.15,
+        "mihm_var": "R_sem",
+        "simulated": false,
+        "ts": "2026-05-26T02:26:53.043433"
+      }
+    ],
+    "wsi": 0.558325,
+    "nti": 0.64,
+    "ts": "2026-05-26T02:26:54.237469",
+    "degraded_sources": [
+      "bbc_world"
+    ]
+  },
+  "supabase_error": {
+    "message": "TypeError: fetch failed",
+    "details": "TypeError: fetch failed\n\nCaused by: Error: self-signed certificate in certificate chain (SELF_SIGNED_CERT_IN_CHAIN)\nError: self-signed certificate in certificate chain\n    at TLSSocket.onConnectSecure (node:internal/tls/wrap:1649:34)\n    at TLSSocket.emit (node:events:508:28)\n    at TLSSocket._finishInit (node:internal/tls/wrap:1095:8)\n    at ssl.onhandshakedone (node:internal/tls/wrap:881:12)\n    at TLSWrap.callbackTrampoline (node:internal/async_hooks:130:17)",
+    "hint": "",
+    "code": ""
+  }
+}
