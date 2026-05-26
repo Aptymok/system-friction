@@ -5,7 +5,6 @@ export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
   try {
-    // 1. Verificación de seguridad
     const authHeader = request.headers.get("Authorization");
     if (!authHeader || authHeader.split(" ")[1] !== process.env.WORLDSPECT_INGEST_SECRET) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -13,32 +12,30 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     
-    // 2. Normalización Inteligente: El receptor acepta cualquier variante
-    // Esto hace que tu API sea inmune a cambios de nombres de variables en el script de Python
-    const wmacro = body.wsi ?? body.WSI ?? body.Wmacro ?? body.wmacro;
-    const nti = body.nti ?? body.NTI;
+    // Normalización directa basada en tu JSON de Python
+    const wsi = body.wsi;
+    const nti = body.nti;
+    const sources = body.sources;
+    const observed_at = body.ts;
 
-    if (wmacro === undefined || nti === undefined) {
-      return NextResponse.json(
-        { 
-          error: "Estructura inválida", 
-          debug: "Se esperaban WSI/Wmacro y NTI",
-          received_keys: Object.keys(body) 
-        },
-        { status: 400 }
-      );
+    if (wsi === undefined || nti === undefined) {
+      return NextResponse.json({ 
+        error: "Estructura inválida", 
+        received: Object.keys(body) 
+      }, { status: 400 });
     }
 
-    // 3. Inserción en Supabase
     const supabase = createServiceSupabaseClient();
     const { error } = await supabase
       .from("worldspect_snapshots")
       .insert([{
-        wmacro: Number(wmacro),
+        wsi: Number(wsi),
         nti: Number(nti),
-        feeds_parsed: body.sources || [],
-        observed_at: body.ts || new Date().toISOString(),
-        payload: body
+        sources: sources,
+        observed_at: observed_at,
+        raw_payload: body,
+        ingest_mode: "cloud_automated",
+        snapshot_hash: "v1_prod"
       }]);
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });

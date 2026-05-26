@@ -338,12 +338,42 @@ export function SfiCognitiveCanvasTerminal({ nodeId, canPersist, canonicalState,
   useEffect(() => {
     let active = true
     async function loadWorldSpect() {
-      const result = await readWorldSpectReal()
-      if (!active) return
-      setWorldSpect(result)
-      worldSpectRef.current = result
-      spawnGhost(result.sourceState === 'observed' ? 'WORLDSPECT · observed' : 'WORLDSPECT · degraded source', result.sourceState === 'observed' ? C.institutional : C.anomaly)
+      try {
+        const response = await fetch('/api/worldspect/global', { cache: 'no-store' })
+        if (!active) return
+        
+        if (!response.ok) {
+          setWorldSpect(EMPTY_WORLDSPECT)
+          return
+        }
+
+        const body = await response.json()
+        
+        // Si el endpoint global nos da el snapshot, lo usamos; si no, estado vacío
+        if (body.status === 'ok' && body.snapshot) {
+          const snapshot = body.snapshot
+          const data: WorldSpectRealClientState = {
+            sourceState: 'observed',
+            evidenceLevel: 'direct',
+            confidence: 1, // Confirmado por base de datos
+            wsi: snapshot.wsi ?? null,
+            nti: snapshot.nti ?? null,
+            degraded_sources: snapshot.degraded_sources ?? [],
+            sourceHealth: snapshot.sourceHealth ?? [],
+            warnings: []
+          }
+          setWorldSpect(data)
+          worldSpectRef.current = data
+          spawnGhost('WORLDSPECT · observed via Supabase', C.institutional)
+        } else {
+          setWorldSpect(EMPTY_WORLDSPECT)
+          spawnGhost('WORLDSPECT · missing or pending', C.anomaly)
+        }
+      } catch (err) {
+        if (active) setWorldSpect(EMPTY_WORLDSPECT)
+      }
     }
+    
     void loadWorldSpect()
     const timer = window.setInterval(loadWorldSpect, 60_000)
     return () => { active = false; window.clearInterval(timer) }
