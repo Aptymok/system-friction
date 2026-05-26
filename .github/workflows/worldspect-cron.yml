@@ -2,12 +2,13 @@ name: WorldSpect Daily Ingestion
 
 on:
   schedule:
-    - cron: '0 3 * * *' # Ejecución automatizada desatendida a las 03:00 AM UTC diariamente
-  workflow_dispatch: # Activación manual habilitada desde la interfaz web de GitHub
+    - cron: '0 3 * * *'
+  workflow_dispatch:
 
 jobs:
   observe_world:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -19,6 +20,8 @@ jobs:
 
       - name: Install Ingestion Dependencies
         run: |
+          python -m pip install --upgrade pip
+
           if [ -f services/python/cognitive_twin/requirements.txt ]; then
             pip install -r services/python/cognitive_twin/requirements.txt
           else
@@ -31,15 +34,26 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
-          # El script procesa las señales globales y canaliza el stream a un JSON estático
           python services/python/world_cli.py > world_payload.json
+
+          test -s world_payload.json
+          python -m json.tool world_payload.json > /dev/null
 
       - name: Dispatch Secure Payload to Vercel Production
         env:
-          VERCEL_APP_URL: https://system-friction-hzy7jhyha-juan-antonio-marin-lieras-projects.vercel.app
+          VERCEL_APP_URL: ${{ secrets.VERCEL_APP_URL }}
+          WORLDSPECT_INGEST_SECRET: ${{ secrets.WORLDSPECT_INGEST_SECRET }}
         run: |
-          # Enlace perimetral seguro apuntando directamente al dominio de despliegue Vercel
-          curl --fail -X POST "$VERCEL_APP_URL/api/worldspect/ingest-payload" \
-            -H "Authorization: Bearer ${{ secrets.WORLDSPECT_INGEST_SECRET }}" \
+          test -n "$VERCEL_APP_URL"
+          test -n "$WORLDSPECT_INGEST_SECRET"
+
+          curl --fail-with-body -X POST "$VERCEL_APP_URL/api/worldspect/ingest-payload" \
+            -H "Authorization: Bearer $WORLDSPECT_INGEST_SECRET" \
             -H "Content-Type: application/json" \
             --data-binary @world_payload.json
+
+      - name: Verify Canonical Read
+        env:
+          VERCEL_APP_URL: ${{ secrets.VERCEL_APP_URL }}
+        run: |
+          curl --fail-with-body "$VERCEL_APP_URL/api/worldspect/real"
