@@ -35,9 +35,11 @@ jobs:
           python services/python/world_cli.py > world_payload.json
 
       - name: Dispatch Secure Payload to Vercel Production
+        env:
+          VERCEL_APP_URL: https://system-friction-hzy7jhyha-juan-antonio-marin-lieras-projects.vercel.app
         run: |
-          # Enlace perimetral seguro apuntando directamente a tu dominio de autoridad
-          curl -X POST https://www.systemfriction.org/api/worldspect/ingest-payload \
+          # Enlace perimetral seguro apuntando directamente al dominio de despliegue Vercel
+          curl --fail -X POST "$VERCEL_APP_URL/api/worldspect/ingest-payload" \
             -H "Authorization: Bearer ${{ secrets.WORLDSPECT_INGEST_SECRET }}" \
             -H "Content-Type: application/json" \
-            -d @world_payload.json
+            --data-binary @world_payload.json

@@ -1,8 +1,3 @@
-import { NextRequest, NextResponse } from "next/server";
-import { createServiceSupabaseClient } from "@/runtime/supabase/server";
-
-export const dynamic = "force-dynamic";
-
 export async function POST(request: NextRequest) {
   try {
     const authHeader = request.headers.get("Authorization");
@@ -12,16 +7,18 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     
-    // Normalización directa basada en tu JSON de Python
+    // Mapeo preciso basado en el JSON que genera tu script de Python:
+    // {"wsi": 0.64, "nti": 0.52, "sources": [...], "ts": "..."}
     const wsi = body.wsi;
     const nti = body.nti;
     const sources = body.sources;
     const observed_at = body.ts;
 
+    // Validación simplificada
     if (wsi === undefined || nti === undefined) {
       return NextResponse.json({ 
-        error: "Estructura inválida", 
-        received: Object.keys(body) 
+        error: "Estructura inválida: Esperaba wsi y nti", 
+        recibido: Object.keys(body) 
       }, { status: 400 });
     }
 
