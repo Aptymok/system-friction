@@ -1,21 +1,27 @@
 import { NextResponse } from 'next/server';
-import { createServiceSupabaseClient } from '@/runtime/supabase/server';
+import type { ApiResult, WorldSpectResponse } from '../../../../../packages/api-contracts/src';
+import { missingWorldSpectResponse } from '@/lib/worldspect/contract';
+import { getLatestWorldSpectSnapshot, snapshotRowToApiData } from '@/lib/worldspect/snapshotStore';
+
+export const dynamic = 'force-dynamic';
+
+function apiOk<TData>(data: TData, warnings?: string[]) {
+  const result: ApiResult<TData> = { ok: true, data, warnings };
+  return NextResponse.json(result);
+}
 
 export async function GET() {
-  const supabase = createServiceSupabaseClient();
-  const { data, error } = await supabase
-    .from('worldspect_snapshots')
-    .select('*')
-    .order('observed_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  const latest = await getLatestWorldSpectSnapshot();
 
-  if (error || !data) {
-    return NextResponse.json(
-      { status: 'stale', reason: 'database_hydration_pending' },
-      { status: 200 }
+  if (!latest) {
+    return apiOk<WorldSpectResponse & { status: 'missing' }>(
+      { ...missingWorldSpectResponse(), status: 'missing' },
+      ['worldspect_snapshot_missing'],
     );
   }
 
-  return NextResponse.json({ status: 'ok', snapshot: data }, { status: 200 });
+  return apiOk<WorldSpectResponse & { status: 'ok' }>({
+    ...snapshotRowToApiData(latest),
+    status: 'ok',
+  });
 }
