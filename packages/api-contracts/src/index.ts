@@ -89,9 +89,14 @@ export type LogEntryDTO = {
 };
 
 export type SourceHealthDTO = {
+  key?: string;
   sourceId: string;
-  status: 'healthy' | 'degraded' | 'unavailable' | 'unknown';
+  status: 'healthy' | 'degraded' | 'missing' | 'simulated' | 'unavailable' | 'unknown';
   kind?: 'webhook' | 'oauth' | 'manual' | 'cron' | 'fixture' | 'public-api';
+  nti?: number | null;
+  simulated?: boolean;
+  last_ok?: string | null;
+  last_error?: string | null;
   lastObservedAt?: string;
   checkedAt?: string;
   confidence: number;
@@ -209,3 +214,4 @@ export type EvaluationResponse = {
 export type { NodeBootstrapResponseV1 } from './node-bootstrap';
 export { normalizeNodeBootstrapResponse } from './node-bootstrap';
 export * from './terminal-read-model';
+export * from './worldspect';
