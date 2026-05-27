@@ -12,17 +12,11 @@ export async function POST(req: Request) {
   }
 
   const body = await req.json().catch(() => ({}));
-
   const result = await evaluateThoughtClosure({
     actorId: ctx.user.id,
     thoughtType: body?.thoughtType,
     claim: body?.claim,
-    evidence: Array.isArray(body?.evidence)
-      ? body.evidence
-      : Array.from({ length: Number(body?.evidenceCount ?? 0) }, (_, index) => ({
-        type: Array.isArray(body?.evidenceTypes) ? body.evidenceTypes[index] ?? 'declared' : 'declared',
-        confidence: 0.5,
-      })),
+    evidence: Array.isArray(body?.evidence) ? body.evidence : [],
     payload: body?.payload && typeof body.payload === 'object' ? body.payload : {},
   });
 

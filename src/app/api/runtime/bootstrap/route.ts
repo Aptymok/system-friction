@@ -7,6 +7,7 @@ import { missingWorldSpectResponse } from '@/lib/worldspect/contract';
 import { getLatestKernelCycle } from '@/lib/kernel/kernelCycleStore';
 import { readGovernanceRuntime } from '@/lib/governance/governanceRuntime';
 import { readRecentThoughtInhibitions } from '@/lib/governance/thoughtInhibition';
+import { readRecentThoughtClosures } from '@/lib/cognitive/thoughtClosure';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,12 +33,13 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ ok: false, error: nodeError ?? 'node_not_found' }, { status: nodeError ? 500 : 404 });
   }
 
-  const [graph, latestWorldSpect, latestKernelCycle, governance, recentThoughtInhibitions, entitlements] = await Promise.all([
+  const [graph, latestWorldSpect, latestKernelCycle, governance, recentThoughtInhibitions, recentThoughtClosures, entitlements] = await Promise.all([
     readCanonicalGraphState(profile),
     getLatestWorldSpectSnapshot(),
     getLatestKernelCycle(),
     readGovernanceRuntime(),
     readRecentThoughtInhibitions(),
+    readRecentThoughtClosures(),
     ctx.isRoot ? Promise.resolve(ROOT_ENTITLEMENTS) : getEntitlements(ctx.user.id),
   ]);
 
@@ -96,6 +98,7 @@ export async function GET(request: NextRequest) {
       governance,
       governanceRuntime: {
         recentThoughtInhibitions,
+        recentThoughtClosures,
       },
       entitlements,
       loadedAt: now,
