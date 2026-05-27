@@ -51,3 +51,6 @@ export function evaluatePolicy(input: {
 
   return { allowed: true, reason: 'policy_allowed', thresholds, trace };
 }
+
+export { evaluateKernelPolicy } from '../../policy-runtime/src';
+export type { KernelPolicyDecision } from '../../policy-runtime/src';

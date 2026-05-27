@@ -53,3 +53,6 @@ export function computeDelta(input: DeltaInput): DeltaResult {
     ],
   };
 }
+
+export { computeKernelDelta } from '../../delta-engine/src';
+export type { KernelDeltaInput, KernelDeltaResult } from '../../delta-engine/src';

@@ -118,6 +118,11 @@ export type CampoWorldSpectSnapshot = {
   ts: string;
   sources: CampoWorldSpectSource[];
   degraded_sources: string[];
+  snapshot?: {
+    id?: string;
+    snapshotHash?: string;
+    observedAt?: string;
+  };
 };
 
 export type CampoObNode = {

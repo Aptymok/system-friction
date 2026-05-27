@@ -35,6 +35,36 @@ export type MihmComputationResult = {
   warnings: string[];
 };
 
+export type ReducedMihmCampoInput = {
+  confidence: number;
+  sourceState: 'observed' | 'degraded' | 'missing';
+  nodes: Array<{
+    type: string;
+    weight: number;
+    value: number | null;
+    nti: number | null;
+    simulated: boolean;
+  }>;
+};
+
+export type ReducedMihmGraphInput = {
+  sourceState: 'observed' | 'degraded' | 'missing';
+  nodes: unknown[];
+  edges: Array<{ weight?: number | null }>;
+};
+
+export type ReducedMihmInput = {
+  observedAt: string;
+  campo: ReducedMihmCampoInput;
+  graph: ReducedMihmGraphInput;
+};
+
+export type ReducedMihmResult = MihmComputationResult & {
+  sourceIds: string[];
+  degradation: number;
+  operationalCapacity: number;
+};
+
 export function clamp01(value: number) {
   if (!Number.isFinite(value)) return 0;
   return Math.min(1, Math.max(0, value));
@@ -98,4 +128,59 @@ export function deriveRegime(
   if (p < 0.25 || d >= 0.75 || co < 0.25) return 'critical';
   if (p < 0.5 || d >= 0.45 || co < 0.5) return 'watch';
   return 'stable';
+}
+
+function average(values: number[]) {
+  return values.length > 0 ? values.reduce((sum, value) => sum + value, 0) / values.length : 0;
+}
+
+export function computeReducedMihm(input: ReducedMihmInput): ReducedMihmResult {
+  const campoNodes = input.campo.nodes;
+  const graphNodeCount = input.graph.nodes.length;
+  const graphEdgeCount = input.graph.edges.length;
+  const totalGraph = Math.max(1, graphNodeCount + graphEdgeCount);
+  const graphDensity = clamp01(graphEdgeCount / totalGraph);
+  const avgWeight = clamp01(average(campoNodes.map((node) => node.weight)));
+  const avgValue = clamp01(average(campoNodes.map((node) => typeof node.value === 'number' ? node.value : 0)));
+  const avgNti = clamp01(average(campoNodes.map((node) => typeof node.nti === 'number' ? node.nti : 0)));
+  const simulatedRatio = clamp01(campoNodes.filter((node) => node.simulated).length / Math.max(1, campoNodes.length));
+  const sourcePenalty = input.campo.sourceState === 'missing'
+    ? 1
+    : input.campo.sourceState === 'degraded'
+      ? 0.45
+      : 0;
+  const graphPenalty = input.graph.sourceState === 'observed' && graphEdgeCount > 0 ? 0 : 0.35;
+
+  const ihg = clamp01((input.campo.confidence * 0.45) + (avgWeight * 0.25) + (graphDensity * 0.2) + (avgValue * 0.1));
+  const nti = clamp01((avgNti * 0.55) + (sourcePenalty * 0.25) + (simulatedRatio * 0.2));
+  const ldi = clamp01((sourcePenalty * 0.45) + (graphPenalty * 0.25) + ((1 - input.campo.confidence) * 0.2) + (simulatedRatio * 0.1));
+  const phi = clamp01(ihg * (1 - ldi) * (1 - (nti * 0.35)));
+  const qualified = qualifyNode({
+    id: 'sfi.kernel',
+    type: 'field',
+    vector: { ihg, nti, ldi, phi },
+    weight: avgWeight,
+  });
+  const degradation = degradeNode(qualified, 0.35, 1, ldi * 0.25);
+  const operationalCapacityValue = operationalCapacity(qualified, degradation, avgWeight, graphDensity);
+  const warnings = [
+    ...(input.campo.sourceState === 'observed' ? [] : [`campo_${input.campo.sourceState}`]),
+    ...(input.graph.sourceState === 'observed' && graphEdgeCount > 0 ? [] : ['graph_not_observed']),
+    ...(simulatedRatio > 0 ? ['simulated_sources_present'] : []),
+  ];
+
+  return {
+    regime: deriveRegime(phi, degradation, operationalCapacityValue),
+    vector: {
+      ihg: Number(ihg.toFixed(4)),
+      nti: Number(nti.toFixed(4)),
+      ldi: Number(ldi.toFixed(4)),
+      phi: Number(phi.toFixed(4)),
+    },
+    confidence: Number(clamp01(input.campo.confidence * (1 - (sourcePenalty * 0.3)) * (1 - (graphPenalty * 0.2))).toFixed(4)),
+    warnings,
+    sourceIds: campoNodes.map((node) => node.type),
+    degradation: Number(degradation.toFixed(4)),
+    operationalCapacity: Number(operationalCapacityValue.toFixed(4)),
+  };
 }
