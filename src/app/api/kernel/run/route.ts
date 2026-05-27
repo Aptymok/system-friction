@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getServerUserContext } from '@/lib/server/productionBackend';
-import { readGovernanceRuntime } from '@/lib/governance/governanceRuntime';
+import { readGovernanceRuntime, recordBlindModePolicyBlock } from '@/lib/governance/governanceRuntime';
 import { runKernelCycle } from '@/lib/kernel/runKernelCycle';
 
 export const dynamic = 'force-dynamic';
@@ -15,6 +15,7 @@ export async function GET() {
   const governance = await readGovernanceRuntime();
 
   if (governance.blindMode) {
+    await recordBlindModePolicyBlock(ctx.user.id, 'kernel.run', governance);
     return NextResponse.json({
       ok: false,
       error: 'kernel_blocked_by_blind_mode',
