@@ -39,6 +39,20 @@ type FieldNode = {
 
 type FieldEdge = { a: number; b: number; k: 's' | 'l' | 'r' }
 
+type GraphApiNode = {
+  nodeId: string
+  label: string
+  ontologyType: string
+  attributes?: Record<string, unknown>
+}
+
+type GraphApiEdge = {
+  sourceNodeId: string
+  targetNodeId: string
+  relation: string
+  attributes?: Record<string, unknown>
+}
+
 type AmvMessage = {
   role: 'operator' | 'amv'
   text: string
@@ -133,8 +147,49 @@ function displayNumber(value: number | null) {
   return typeof value === 'number' ? value.toFixed(3) : 'missing'
 }
 
-function makeNodes(width: number, height: number): FieldNode[] {
-  return RND.map((node) => ({ ...node, x: node.rx * width, y: node.ry * height, vx: 0, vy: 0, phase: Math.random() * Math.PI * 2, att: 0, wp: 0 }))
+function isNodeKind(value: unknown): value is NodeKind {
+  return value === 'active' || value === 'persistent' || value === 'anomaly' || value === 'opaque' || value === 'institutional'
+}
+
+function canvasKindFromRelation(relation: string): FieldEdge['k'] {
+  if (relation === 'latent') return 'l'
+  if (relation === 'resonance') return 'r'
+  return 's'
+}
+
+function toCanvasNode(node: GraphApiNode, index: number): Omit<FieldNode, 'x' | 'y' | 'vx' | 'vy' | 'phase' | 'att' | 'wp'> {
+  const attributes = node.attributes ?? {}
+  const rx = numberValue(attributes.rx)
+  const ry = numberValue(attributes.ry)
+  const weight = numberValue(attributes.weight)
+  return {
+    id: index,
+    lb: node.label,
+    t: isNodeKind(attributes.canvasKind) ? attributes.canvasKind : node.ontologyType === 'institutional' ? 'institutional' : 'active',
+    rx: rx || 0.5,
+    ry: ry || 0.5,
+    w: weight || 0.5,
+  }
+}
+
+function makeNodes(width: number, height: number, canonicalNodes: GraphApiNode[] = []): FieldNode[] {
+  const source = canonicalNodes.length ? canonicalNodes.map(toCanvasNode) : RND
+  return source.map((node) => ({ ...node, x: node.rx * width, y: node.ry * height, vx: 0, vy: 0, phase: Math.random() * Math.PI * 2, att: 0, wp: 0 }))
+}
+
+function makeEdges(canonicalNodes: GraphApiNode[], canonicalEdges: GraphApiEdge[]): FieldEdge[] {
+  if (!canonicalNodes.length || !canonicalEdges.length) return EDG
+  const indexes = new Map(canonicalNodes.map((node, index) => [node.nodeId, index]))
+  const edges = canonicalEdges
+    .map((edge) => {
+      const a = indexes.get(edge.sourceNodeId)
+      const b = indexes.get(edge.targetNodeId)
+      if (typeof a !== 'number' || typeof b !== 'number') return null
+      const canvasKind = edge.attributes?.canvasKind
+      return { a, b, k: canvasKind === 's' || canvasKind === 'l' || canvasKind === 'r' ? canvasKind : canvasKindFromRelation(edge.relation) } satisfies FieldEdge
+    })
+    .filter((edge): edge is FieldEdge => Boolean(edge))
+  return edges.length ? edges : EDG
 }
 
 function nodeDegradationIndex(node: FieldNode, globalDegradation: number, worldSpectState: WorldSpectRealClientState, signalCount: number) {
@@ -198,6 +253,7 @@ export function SfiCognitiveCanvasTerminal({ nodeId, canPersist, canonicalState,
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const ghostRef = useRef<HTMLDivElement | null>(null)
   const nodesRef = useRef<FieldNode[]>([])
+  const edgesRef = useRef<FieldEdge[]>(EDG)
   const mouseRef = useRef({ x: 0, y: 0, active: false })
   const fieldRef = useRef({ tension: 0, density: 0, typingSpeed: 0, charBuf: [] as number[], wordCount: 0 })
   const frameRef = useRef<number | null>(null)
@@ -213,6 +269,9 @@ export function SfiCognitiveCanvasTerminal({ nodeId, canPersist, canonicalState,
   const [amvStatus, setAmvStatus] = useState<'idle' | 'thinking' | 'ready' | 'degraded'>('idle')
   const [memoryStatus, setMemoryStatus] = useState<MemoryStatus>('unknown')
   const [worldSpect, setWorldSpect] = useState<WorldSpectRealClientState | null>(null)
+  const [graphSourceState, setGraphSourceState] = useState<'observed' | 'degraded'>('degraded')
+  const [graphNodes, setGraphNodes] = useState<GraphApiNode[]>([])
+  const [graphEdges, setGraphEdges] = useState<GraphApiEdge[]>([])
 
   const fieldState = canonicalState?.fieldState ?? null
   const signalCount = canonicalState?.signals?.signals.length ?? 0
@@ -380,6 +439,36 @@ export function SfiCognitiveCanvasTerminal({ nodeId, canPersist, canonicalState,
   }, [spawnGhost])
 
   useEffect(() => {
+    let active = true
+    async function loadGraph() {
+      try {
+        const response = await fetch('/api/graph/state?profile=sfi', { cache: 'no-store' })
+        const body: unknown = await response.json().catch(() => null)
+        if (!active || !response.ok || !body || typeof body !== 'object') return
+        const data = (body as { data?: { sourceState?: unknown; nodes?: unknown; edges?: unknown } }).data
+        const nodes = Array.isArray(data?.nodes)
+          ? data.nodes.filter((node): node is GraphApiNode => Boolean(node && typeof node === 'object' && 'nodeId' in node && 'label' in node && 'ontologyType' in node))
+          : []
+        const edges = Array.isArray(data?.edges)
+          ? data.edges.filter((edge): edge is GraphApiEdge => Boolean(edge && typeof edge === 'object' && 'sourceNodeId' in edge && 'targetNodeId' in edge && 'relation' in edge))
+          : []
+        if (!nodes.length) return
+        setGraphNodes(nodes)
+        setGraphEdges(edges)
+        setGraphSourceState(data?.sourceState === 'observed' ? 'observed' : 'degraded')
+        edgesRef.current = makeEdges(nodes, edges)
+        nodesRef.current = makeNodes(width, height, nodes)
+        spawnGhost(data?.sourceState === 'observed' ? 'GRAPH DB observed' : 'GRAPH fallback degraded', data?.sourceState === 'observed' ? C.institutional : C.anomaly)
+      } catch {
+        setGraphSourceState('degraded')
+      }
+    }
+
+    void loadGraph()
+    return () => { active = false }
+  }, [height, spawnGhost, width])
+
+  useEffect(() => {
     const root = rootRef.current
     if (!root) return
     const updateSize = () => {
@@ -387,14 +476,15 @@ export function SfiCognitiveCanvasTerminal({ nodeId, canPersist, canonicalState,
       const nextHeight = window.innerHeight || root.offsetHeight || 560
       setWidth(nextWidth)
       setHeight(nextHeight)
-      nodesRef.current = makeNodes(nextWidth, nextHeight)
+      edgesRef.current = makeEdges(graphNodes, graphEdges)
+      nodesRef.current = makeNodes(nextWidth, nextHeight, graphNodes)
       mouseRef.current.x = nextWidth / 2
       mouseRef.current.y = nextHeight / 2
     }
     updateSize()
     window.addEventListener('resize', updateSize)
     return () => window.removeEventListener('resize', updateSize)
-  }, [])
+  }, [graphEdges, graphNodes])
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -442,7 +532,7 @@ export function SfiCognitiveCanvasTerminal({ nodeId, canPersist, canonicalState,
       for (let x = 0; x < width; x += 64) { const d = Math.sin(t / 1900 + x * 0.016) * (treeActive ? 12 : fs.tension * 7 + worldDensity * 12); ctx.beginPath(); ctx.moveTo(x + d, 0); ctx.lineTo(x + d * 0.4, height); ctx.stroke() }
       for (let y = 0; y < height; y += 64) { const d = Math.cos(t / 2100 + y * 0.016) * (treeActive ? 8 : fs.tension * 5 + worldDensity * 9); ctx.beginPath(); ctx.moveTo(0, y + d); ctx.lineTo(width, y + d * 0.4); ctx.stroke() }
 
-      EDG.forEach((edge) => {
+      edgesRef.current.forEach((edge) => {
         const a = nodes[edge.a], c = nodes[edge.b]
         if (!a || !c) return
         const dEdge = (nodeDegradationIndex(a, degradation, ws, signalCount) + nodeDegradationIndex(c, degradation, ws, signalCount)) * 0.5
@@ -504,7 +594,7 @@ export function SfiCognitiveCanvasTerminal({ nodeId, canPersist, canonicalState,
 
       if (treeActive && nodes[26]) drawFutureOverlay(ctx, nodes[26], width, height, t)
       ctx.font = 'bold 8px Syncopate, IBM Plex Mono, monospace'; ctx.textAlign = 'left'; ctx.fillStyle = `rgba(200,169,81,${0.66 + b * 0.1})`; ctx.fillText('CAMPO COGNITIVO · SFI', 16, 17)
-      ctx.font = '7px JetBrains Mono, IBM Plex Mono, monospace'; ctx.fillStyle = 'rgba(244,241,232,.42)'; ctx.fillText(`WorldSpect: ${ws.sourceState} · FieldState: ${sourceState} · Bridge: read-only`, 16, 29)
+      ctx.font = '7px JetBrains Mono, IBM Plex Mono, monospace'; ctx.fillStyle = 'rgba(244,241,232,.42)'; ctx.fillText(`WorldSpect: ${ws.sourceState} · FieldState: ${sourceState} · Graph: ${graphSourceState}`, 16, 29)
       ctx.textAlign = 'right'; ctx.fillStyle = `rgba(111,207,141,${0.5 + b * 0.09})`; ctx.fillText(`WSI=${displayNumber(ws.wsi)} · NTI=${displayNumber(ws.nti)} · W=${Math.round(ws.confidence * 100)}%`, width - 16, 17)
       ctx.fillStyle = 'rgba(200,169,81,.58)'; ctx.fillText(statusText, width - 16, 29)
       if (Date.now() - lastGhost > (fs.tension > 0.4 ? 3600 : 9000)) { lastGhost = Date.now(); if (ws.sourceState === 'observed') spawnGhost('WORLDSPECT · observed', C.institutional); else if (ws.sourceState === 'degraded') spawnGhost('WORLDSPECT · degraded source', C.anomaly); else spawnGhost(signalCount > 0 ? 'FIELD · reduccion canonica activa' : 'AMV · campo en espera', signalCount > 0 ? C.active : C.persistent) }
@@ -512,7 +602,7 @@ export function SfiCognitiveCanvasTerminal({ nodeId, canPersist, canonicalState,
     }
     frameRef.current = requestAnimationFrame(draw)
     return () => { if (frameRef.current) cancelAnimationFrame(frameRef.current) }
-  }, [degradation, height, signalCount, sourceState, spawnGhost, statusText, treeActive, width])
+  }, [degradation, graphSourceState, height, signalCount, sourceState, spawnGhost, statusText, treeActive, width])
 
   const onInputChange = (value: string) => {
     setInput(value)
@@ -524,7 +614,7 @@ export function SfiCognitiveCanvasTerminal({ nodeId, canPersist, canonicalState,
     const caps = (value.match(/[A-Z]/g) || []).length / (value.length || 1)
     fs.tension = fs.tension * 0.7 + Math.min(1, (fs.wordCount / 18 + punctuation / 5 + fs.typingSpeed / 12 + caps * 0.7) * 0.52) * 0.3
     fs.density = Math.min(1, fs.wordCount / 20 + fs.tension * 0.4)
-    if (value.length > 0 && nodesRef.current.length) { const index = Math.abs(value.charCodeAt(value.length - 1) + (value.charCodeAt(Math.max(0, value.length - 2)) || 0)) % nodesRef.current.length; nodesRef.current[index].wp = 1; const edge = EDG.find((item) => item.a === index || item.b === index); if (edge) nodesRef.current[edge.a === index ? edge.b : edge.a].wp = 0.5 }
+    if (value.length > 0 && nodesRef.current.length) { const index = Math.abs(value.charCodeAt(value.length - 1) + (value.charCodeAt(Math.max(0, value.length - 2)) || 0)) % nodesRef.current.length; nodesRef.current[index].wp = 1; const edge = edgesRef.current.find((item) => item.a === index || item.b === index); if (edge) nodesRef.current[edge.a === index ? edge.b : edge.a].wp = 0.5 }
   }
 
   return (
