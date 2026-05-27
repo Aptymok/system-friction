@@ -4,6 +4,7 @@ import { getEntitlements } from '@/lib/licensing/entitlements';
 import { parseGraphProfile, readCanonicalGraphState } from '@/lib/graph/canonicalGraph';
 import { getLatestWorldSpectSnapshot, snapshotRowToApiData } from '@/lib/worldspect/snapshotStore';
 import { missingWorldSpectResponse } from '@/lib/worldspect/contract';
+import { getLatestKernelCycle } from '@/lib/kernel/kernelCycleStore';
 
 export const dynamic = 'force-dynamic';
 
@@ -41,9 +42,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ ok: false, error: nodeError ?? 'node_not_found' }, { status: nodeError ? 500 : 404 });
   }
 
-  const [graph, latestWorldSpect, entitlements] = await Promise.all([
+  const [graph, latestWorldSpect, latestKernelCycle, entitlements] = await Promise.all([
     readCanonicalGraphState(profile),
     getLatestWorldSpectSnapshot(),
+    getLatestKernelCycle(),
     ctx.isRoot ? Promise.resolve(ROOT_ENTITLEMENTS) : getEntitlements(ctx.user.id),
   ]);
   const now = new Date().toISOString();
@@ -80,12 +82,25 @@ export async function GET(request: NextRequest) {
       field,
       graph,
       worldspect: latestWorldSpect ? snapshotRowToApiData(latestWorldSpect) : missingWorldSpectResponse(now),
+      kernel: latestKernelCycle
+        ? {
+          status: latestKernelCycle.status,
+          cycleId: latestKernelCycle.cycle_id,
+          observedAt: latestKernelCycle.observed_at,
+          confidence: latestKernelCycle.confidence,
+          sourceState: latestKernelCycle.source_state,
+          graphNodeCount: latestKernelCycle.graph_node_count,
+          graphEdgeCount: latestKernelCycle.graph_edge_count,
+          epistemicEventId: latestKernelCycle.epistemic_event_id,
+        }
+        : null,
       entitlements,
       loadedAt: now,
       warnings: [
         ...(nodeError ? [nodeError] : []),
         ...(graph.degradedReason ? [graph.degradedReason] : []),
         ...(latestWorldSpect ? [] : ['worldspect_snapshot_missing']),
+        ...(latestKernelCycle ? [] : ['kernel_cycle_missing']),
       ],
     },
   });
