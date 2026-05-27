@@ -73,6 +73,10 @@ export async function GET(request: NextRequest) {
       metrics: { ihg: 0, nti: 0, ldi: 0 },
     };
 
+  const latestCampoState = latestKernelCycle?.campo_state && typeof latestKernelCycle.campo_state === 'object'
+    ? latestKernelCycle.campo_state as Record<string, unknown>
+    : null;
+
   return NextResponse.json({
     ok: true,
     data: {
@@ -84,14 +88,15 @@ export async function GET(request: NextRequest) {
       worldspect: latestWorldSpect ? snapshotRowToApiData(latestWorldSpect) : missingWorldSpectResponse(now),
       kernel: latestKernelCycle
         ? {
+          id: latestKernelCycle.id,
           status: latestKernelCycle.status,
-          cycleId: latestKernelCycle.cycle_id,
-          observedAt: latestKernelCycle.observed_at,
-          confidence: latestKernelCycle.confidence,
-          sourceState: latestKernelCycle.source_state,
-          graphNodeCount: latestKernelCycle.graph_node_count,
-          graphEdgeCount: latestKernelCycle.graph_edge_count,
-          epistemicEventId: latestKernelCycle.epistemic_event_id,
+          cycleId: typeof latestCampoState?.cycleId === 'string' ? latestCampoState.cycleId : latestKernelCycle.id,
+          observedAt: typeof latestCampoState?.observedAt === 'string' ? latestCampoState.observedAt : latestKernelCycle.created_at,
+          confidence: typeof latestCampoState?.confidence === 'number' ? latestCampoState.confidence : null,
+          sourceState: typeof latestCampoState?.sourceState === 'string' ? latestCampoState.sourceState : null,
+          graphNodeCount: typeof latestCampoState?.graphNodeCount === 'number' ? latestCampoState.graphNodeCount : null,
+          graphEdgeCount: typeof latestCampoState?.graphEdgeCount === 'number' ? latestCampoState.graphEdgeCount : null,
+          epistemicEventId: latestKernelCycle.event_id,
         }
         : null,
       entitlements,
