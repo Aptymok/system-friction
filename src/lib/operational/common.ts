@@ -33,6 +33,33 @@ export function recordValue(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
 }
 
+export function buildMutationLogbookRow(input: {
+  proposalId: string;
+  eventId: string;
+  actorId: string;
+  mutationType: string;
+  status: ProposalStatus;
+  target?: string | null;
+  currentState?: unknown;
+  proposedState?: unknown;
+  coherenceDelta?: number;
+  payload: Record<string, unknown>;
+}) {
+  return {
+    event_id: input.eventId,
+    mutation_key: `mutation:${input.proposalId}:${input.status}`,
+    target: input.target ?? 'action_proposals',
+    current_state: input.currentState ?? null,
+    proposed_state: input.proposedState ?? null,
+    coherence_delta: typeof input.coherenceDelta === 'number' ? input.coherenceDelta : 0,
+    status: input.status,
+    proposal_id: input.proposalId,
+    actor_id: input.actorId,
+    mutation_type: input.mutationType,
+    payload: input.payload,
+  };
+}
+
 export async function requireGovernedActor(action: string) {
   const ctx = await getServerUserContext();
 
@@ -158,10 +185,30 @@ export async function readOperationalContext() {
 export async function updateActionProposalStatus(input: {
   proposalId: string;
   status: ProposalStatus;
+  actorId: string;
+  isRoot: boolean;
+  proposalType: string;
+  expectedStatuses: ProposalStatus[];
   eventId?: string | null;
   payloadPatch?: Record<string, unknown>;
 }) {
   const service = createServiceSupabaseClient();
+  let selectQuery = service
+    .from('action_proposals')
+    .select('*')
+    .eq('id', input.proposalId)
+    .eq('proposal_type', input.proposalType)
+    .in('status', input.expectedStatuses)
+    .limit(1);
+
+  if (!input.isRoot) {
+    selectQuery = selectQuery.eq('actor_id', input.actorId);
+  }
+
+  const { data: existing, error: selectError } = await selectQuery.maybeSingle();
+  if (selectError) return { ok: false as const, error: 'action_proposal_lookup_failed', details: selectError.message };
+  if (!existing) return { ok: false as const, error: 'action_proposal_not_found_or_forbidden' };
+
   const update: Record<string, unknown> = {
     status: input.status,
     updated_at: new Date().toISOString(),
@@ -173,6 +220,7 @@ export async function updateActionProposalStatus(input: {
     .from('action_proposals')
     .update(update)
     .eq('id', input.proposalId)
+    .eq('proposal_type', input.proposalType)
     .select('*')
     .single();
 

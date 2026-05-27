@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
-import { appendOperationalEvent, createActionProposal, readOperationalContext, requireGovernedActor, sha256, stringValue } from '@/lib/operational/common';
+import { appendOperationalEvent, buildMutationLogbookRow, createActionProposal, readOperationalContext, requireGovernedActor, sha256, stringValue } from '@/lib/operational/common';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,11 +10,13 @@ export async function POST(req: Request) {
 
   const body = await req.json().catch(() => ({}));
   const mutationType = stringValue(body.mutationType) ?? 'design_review';
+  const mutation = body.mutation ?? body;
+  const target = stringValue(body.target) ?? 'action_proposals';
   const context = await readOperationalContext();
   const payload = {
     mutation_type: mutationType,
-    mutation: body.mutation ?? body,
-    mutation_hash: sha256(body.mutation ?? body),
+    mutation,
+    mutation_hash: sha256(mutation),
     quarantine: true,
     requires_approval: true,
     graph_node_count: context.graph.nodes.length,
@@ -39,14 +41,18 @@ export async function POST(req: Request) {
   const service = createServiceSupabaseClient();
   const { data, error } = await service
     .from('logbook_mutations')
-    .insert({
-      proposal_id: proposal.data.id,
-      event_id: event.data.id,
-      actor_id: gate.ctx.user.id,
-      mutation_type: mutationType,
+    .insert(buildMutationLogbookRow({
+      proposalId: proposal.data.id,
+      eventId: event.data.id,
+      actorId: gate.ctx.user.id,
+      mutationType,
       status: 'proposed',
+      target,
+      currentState: body.currentState ?? null,
+      proposedState: body.proposedState ?? mutation,
+      coherenceDelta: typeof body.coherenceDelta === 'number' ? body.coherenceDelta : 0,
       payload,
-    })
+    }))
     .select('*')
     .single();
 

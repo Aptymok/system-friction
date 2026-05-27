@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
-import { appendOperationalEvent, requireGovernedActor, stringValue, updateActionProposalStatus } from '@/lib/operational/common';
+import { appendOperationalEvent, buildMutationLogbookRow, requireGovernedActor, stringValue, updateActionProposalStatus } from '@/lib/operational/common';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,18 +20,29 @@ export async function POST(req: Request) {
   });
   if (!event.ok) return NextResponse.json(event, { status: 400 });
 
-  const proposal = await updateActionProposalStatus({ proposalId, status: 'rejected', eventId: event.data.id });
+  const proposal = await updateActionProposalStatus({
+    proposalId,
+    status: 'rejected',
+    actorId: gate.ctx.user.id,
+    isRoot: gate.ctx.isRoot,
+    proposalType: 'mutation',
+    expectedStatuses: ['proposed', 'queued'],
+    eventId: event.data.id,
+  });
   if (!proposal.ok) return NextResponse.json(proposal, { status: 400 });
 
   const service = createServiceSupabaseClient();
-  await service.from('logbook_mutations').insert({
-    proposal_id: proposalId,
-    event_id: event.data.id,
-    actor_id: gate.ctx.user.id,
-    mutation_type: 'design_review',
+  const reason = stringValue(body.reason) ?? 'design_rejected';
+  await service.from('logbook_mutations').insert(buildMutationLogbookRow({
+    proposalId,
+    eventId: event.data.id,
+    actorId: gate.ctx.user.id,
+    mutationType: 'design_review',
     status: 'rejected',
-    payload: { proposal_id: proposalId, reason: stringValue(body.reason) ?? 'design_rejected' },
-  });
+    currentState: { proposal_id: proposalId, status: 'proposed' },
+    proposedState: { proposal_id: proposalId, status: 'rejected', reason },
+    payload: { proposal_id: proposalId, reason },
+  }));
 
   return NextResponse.json({ ok: true, data: proposal.data });
 }
