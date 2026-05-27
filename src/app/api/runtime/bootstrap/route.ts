@@ -5,6 +5,7 @@ import { parseGraphProfile, readCanonicalGraphState } from '@/lib/graph/canonica
 import { getLatestWorldSpectSnapshot, snapshotRowToApiData } from '@/lib/worldspect/snapshotStore';
 import { missingWorldSpectResponse } from '@/lib/worldspect/contract';
 import { getLatestKernelCycle } from '@/lib/kernel/kernelCycleStore';
+import { readGovernanceRuntime } from '@/lib/governance/governanceRuntime';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,10 +31,11 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ ok: false, error: nodeError ?? 'node_not_found' }, { status: nodeError ? 500 : 404 });
   }
 
-  const [graph, latestWorldSpect, latestKernelCycle, entitlements] = await Promise.all([
+  const [graph, latestWorldSpect, latestKernelCycle, governance, entitlements] = await Promise.all([
     readCanonicalGraphState(profile),
     getLatestWorldSpectSnapshot(),
     getLatestKernelCycle(),
+    readGovernanceRuntime(),
     ctx.isRoot ? Promise.resolve(ROOT_ENTITLEMENTS) : getEntitlements(ctx.user.id),
   ]);
   const now = new Date().toISOString();
@@ -87,11 +89,13 @@ export async function GET(request: NextRequest) {
           epistemicEventId: latestKernelCycle.event_id,
         }
         : null,
+      governance,
       entitlements,
       loadedAt: now,
       warnings: [
         ...(nodeError ? [`legacy_nodes_read:${nodeError}`] : []),
         ...(graph.degradedReason ? [graph.degradedReason] : []),
+        ...(governance.warning ? [governance.warning] : []),
         ...(latestWorldSpect ? [] : ['worldspect_snapshot_missing']),
         ...(latestKernelCycle ? [] : ['kernel_cycle_missing']),
       ],
