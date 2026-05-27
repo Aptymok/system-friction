@@ -6,6 +6,7 @@ import { getLatestWorldSpectSnapshot, snapshotRowToApiData } from '@/lib/worldsp
 import { missingWorldSpectResponse } from '@/lib/worldspect/contract';
 import { getLatestKernelCycle } from '@/lib/kernel/kernelCycleStore';
 import { readGovernanceRuntime } from '@/lib/governance/governanceRuntime';
+import { readRecentThoughtInhibitions } from '@/lib/governance/thoughtInhibition';
 
 export const dynamic = 'force-dynamic';
 
@@ -31,14 +32,17 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ ok: false, error: nodeError ?? 'node_not_found' }, { status: nodeError ? 500 : 404 });
   }
 
-  const [graph, latestWorldSpect, latestKernelCycle, governance, entitlements] = await Promise.all([
+  const [graph, latestWorldSpect, latestKernelCycle, governance, recentThoughtInhibitions, entitlements] = await Promise.all([
     readCanonicalGraphState(profile),
     getLatestWorldSpectSnapshot(),
     getLatestKernelCycle(),
     readGovernanceRuntime(),
+    readRecentThoughtInhibitions(),
     ctx.isRoot ? Promise.resolve(ROOT_ENTITLEMENTS) : getEntitlements(ctx.user.id),
   ]);
+
   const now = new Date().toISOString();
+
   const field = node
     ? {
       fieldId: `field:${node.id}`,
@@ -90,6 +94,9 @@ export async function GET(request: NextRequest) {
         }
         : null,
       governance,
+      governanceRuntime: {
+        recentThoughtInhibitions,
+      },
       entitlements,
       loadedAt: now,
       warnings: [
