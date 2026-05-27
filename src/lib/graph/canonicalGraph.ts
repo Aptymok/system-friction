@@ -98,23 +98,6 @@ function profileFromAttributes(attributes: Record<string, unknown>) {
   return isGraphProfile(attributes.profile) ? attributes.profile : 'shared';
 }
 
-function graphStateFromRows(
-  profile: GraphProfile,
-  nodes: CanonicalGraphNode[],
-  edges: CanonicalGraphEdge[],
-  degradedReason: string | null,
-): CanonicalGraphState {
-  return {
-    profile,
-    sourceState: nodes.length > 0 && edges.length > 0 ? 'observed' : 'degraded',
-    degradedReason: nodes.length > 0 && edges.length > 0 ? null : degradedReason,
-    nodes,
-    edges,
-    schemas: { node: graphNodeJsonSchema, edge: graphEdgeJsonSchema },
-    loadedAt: now(),
-  };
-}
-
 export function defaultCanonicalGraph(profile: GraphProfile, reason: string): CanonicalGraphState {
   const loadedAt = now();
   const nodes = fallbackNodes
@@ -272,10 +255,18 @@ export async function readCanonicalGraphState(profile: GraphProfile): Promise<Ca
   }
 
   if (edges.length === 0) {
-    return graphStateFromRows(profile, nodes, edges, 'graph_edges_empty');
+    return defaultCanonicalGraph(profile, 'graph_edges_empty');
   }
 
-  return graphStateFromRows(profile, nodes, edges, null);
+  return {
+    profile,
+    sourceState: 'observed',
+    degradedReason: null,
+    nodes,
+    edges,
+    schemas: { node: graphNodeJsonSchema, edge: graphEdgeJsonSchema },
+    loadedAt: now(),
+  };
 }
 
 export function parseGraphProfile(value: string | null): GraphProfile {
