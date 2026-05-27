@@ -133,28 +133,30 @@ export function defaultCanonicalGraph(profile: GraphProfile, reason: string): Ca
       },
     }));
   const nodeIds = new Set(nodes.map((node) => node.nodeId));
-  const edges = fallbackEdges
-    .filter((edge) => nodeIds.has(edge[0]) && nodeIds.has(edge[1]))
-    .map((edge): CanonicalGraphEdge => ({
-      ...canonicalGraphEdge({
-        edgeId: `${edge[0]}:${edge[1]}:${edge[2]}`,
-        sourceNodeId: edge[0],
-        targetNodeId: edge[1],
-        relation: edge[2],
-        weight: edge[2] === 'structural' ? 0.9 : edge[2] === 'resonance' ? 0.68 : 0.45,
+  const edges = reason === 'graph_edges_empty'
+    ? []
+    : fallbackEdges
+      .filter((edge) => nodeIds.has(edge[0]) && nodeIds.has(edge[1]))
+      .map((edge): CanonicalGraphEdge => ({
+        ...canonicalGraphEdge({
+          edgeId: `${edge[0]}:${edge[1]}:${edge[2]}`,
+          sourceNodeId: edge[0],
+          targetNodeId: edge[1],
+          relation: edge[2],
+          weight: edge[2] === 'structural' ? 0.9 : edge[2] === 'resonance' ? 0.68 : 0.45,
+          profile: 'sfi',
+          origin: 'legacy_canvas_topology',
+          provenance: 'src.observatory.components.field.SfiCognitiveCanvasTerminal',
+          lineage: ['MACROPHASE_B_BOOTSTRAP_GRAPH'],
+          attributes: { profile: 'sfi', canvasKind: edge[2] },
+          createdAt: loadedAt,
+          updatedAt: loadedAt,
+        }),
         profile: 'sfi',
         origin: 'legacy_canvas_topology',
         provenance: 'src.observatory.components.field.SfiCognitiveCanvasTerminal',
-        lineage: ['MACROPHASE_B_BOOTSTRAP_GRAPH'],
         attributes: { profile: 'sfi', canvasKind: edge[2] },
-        createdAt: loadedAt,
-        updatedAt: loadedAt,
-      }),
-      profile: 'sfi',
-      origin: 'legacy_canvas_topology',
-      provenance: 'src.observatory.components.field.SfiCognitiveCanvasTerminal',
-      attributes: { profile: 'sfi', canvasKind: edge[2] },
-    }));
+      }));
 
   return {
     profile,
