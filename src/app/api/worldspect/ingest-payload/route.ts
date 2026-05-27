@@ -8,6 +8,7 @@ import {
   toStringArray,
   toWorldSpectSources,
 } from '@/lib/worldspect/contract';
+import { recordWorldSpectLogbook } from '@/lib/worldspect/logbook';
 import { upsertWorldSpectSnapshot } from '@/lib/worldspect/snapshotStore';
 
 export const dynamic = 'force-dynamic';
@@ -218,6 +219,7 @@ export async function POST(request: NextRequest) {
     const observedDate = isoDateOnly(observedAt);
     const degradedSources = toStringArray(body.degraded_sources);
     const sources = toWorldSpectSources(body.sources);
+    const ingestMode = ingestModeFromRequest(request);
     const response = buildWorldSpectResponse({
       wsi,
       nti,
@@ -255,7 +257,7 @@ export async function POST(request: NextRequest) {
       rawPayload: body,
       adapterStatus: adapterStatusFor(body, degradedSources, sources),
       adapterError: typeof body.adapter_error === 'string' ? body.adapter_error : null,
-      ingestMode: ingestModeFromRequest(request),
+      ingestMode,
     });
 
     if (!persisted.ok) {
@@ -272,12 +274,42 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const snapshotRef = {
+      id: typeof persisted.data?.id === 'string' ? persisted.data.id : '',
+      snapshot_hash: typeof persisted.data?.snapshot_hash === 'string' ? persisted.data.snapshot_hash : '',
+      observed_at: typeof persisted.data?.observed_at === 'string' ? persisted.data.observed_at : observedAt,
+    };
+    const logbook = await recordWorldSpectLogbook({
+      response,
+      snapshot: snapshotRef,
+      ingestMode,
+    });
+
+    if (!logbook.ok) {
+      console.error('WorldSpect Logbook Error:', logbook);
+      const wrote = writeDiagnosticDump(body, { logbook_error: logbook });
+      return NextResponse.json(
+        {
+          ok: false,
+          stage: logbook.stage,
+          error_code: logbook.error,
+          diagnostic_dump_written: wrote,
+        },
+        { status: 502 },
+      );
+    }
+
     return NextResponse.json({
       ok: true,
       observed_date: observedDate,
-      snapshot_hash: typeof persisted.data?.snapshot_hash === 'string' ? persisted.data.snapshot_hash : null,
+      snapshot_hash: snapshotRef.snapshot_hash || null,
       sourceState: response.sourceState,
-      ingestMode: ingestModeFromRequest(request),
+      ingestMode,
+      logbook: {
+        epistemic_events: 1,
+        logbook_signals: logbook.signalCount,
+        logbook_regime: logbook.regimeCount,
+      },
     });
   } catch (err: unknown) {
     console.error('[worldspect/ingest] Exception:', errorStack(err));
