@@ -29,6 +29,22 @@ export type ThoughtInhibitionInput = {
   payload?: Record<string, unknown>;
 };
 
+export async function readRecentThoughtInhibitions(limit = 5) {
+  const service = createServiceSupabaseClient();
+  const { data, error } = await service
+    .from('epistemic_events')
+    .select('id,event_id,event_name,confidence,payload,occurred_at,created_at')
+    .eq('event_name', 'governance.thought.inhibited')
+    .order('occurred_at', { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    return [];
+  }
+
+  return Array.isArray(data) ? data : [];
+}
+
 export async function evaluateThoughtInhibition(input: ThoughtInhibitionInput) {
   const governance = await readGovernanceRuntime();
   const evidenceCount = Number(input.evidenceCount ?? 0);
