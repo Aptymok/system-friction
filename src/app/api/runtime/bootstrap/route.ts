@@ -16,8 +16,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
   }
 
-  let node = null;
-  let nodeError: string | null = null;
   const { data: nodes, error: selectNodeError } = await ctx.service
     .from('nodes')
     .select('*')
@@ -25,18 +23,8 @@ export async function GET(request: NextRequest) {
     .order('created_at', { ascending: false })
     .limit(1);
 
-  node = nodes?.[0] ?? null;
-  nodeError = selectNodeError?.message ?? null;
-
-  if (!node && !selectNodeError) {
-    const { data, error } = await ctx.service
-      .from('nodes')
-      .insert({ user_id: ctx.user.id, source: 'web', current_ihg: 0.52, current_nti: 0.48, current_ldi: 1.12 })
-      .select('*')
-      .single();
-    node = data;
-    nodeError = error?.message ?? null;
-  }
+  const node = nodes?.[0] ?? null;
+  const nodeError = selectNodeError?.message ?? null;
 
   if (!node && !ctx.isRoot) {
     return NextResponse.json({ ok: false, error: nodeError ?? 'node_not_found' }, { status: nodeError ? 500 : 404 });
@@ -102,7 +90,7 @@ export async function GET(request: NextRequest) {
       entitlements,
       loadedAt: now,
       warnings: [
-        ...(nodeError ? [nodeError] : []),
+        ...(nodeError ? [`legacy_nodes_read:${nodeError}`] : []),
         ...(graph.degradedReason ? [graph.degradedReason] : []),
         ...(latestWorldSpect ? [] : ['worldspect_snapshot_missing']),
         ...(latestKernelCycle ? [] : ['kernel_cycle_missing']),
