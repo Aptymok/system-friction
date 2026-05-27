@@ -112,6 +112,52 @@ async function getLatestEventHash() {
   return typeof data?.hash_self === 'string' ? data.hash_self : null;
 }
 
+export async function recordBlindModePolicyBlock(actorId: string | null, action: string, governance: GovernanceRuntimeState) {
+  const service = createServiceSupabaseClient();
+  const occurredAt = nowIso();
+  const eventId = `governance:blind:block:${action}:${occurredAt}`;
+  const payload = { governanceKey: GOVERNANCE_KEY, action, governance };
+  const checksum = hashPayload(payload);
+  const hashPrev = await getLatestEventHash();
+  const hashSelf = hashPayload({ event_id: eventId, payload, hash_prev: hashPrev, occurred_at: occurredAt });
+
+  const { data: event, error: eventError } = await service
+    .from('epistemic_events')
+    .insert({
+      event_id: eventId,
+      event_name: 'governance.blind_mode.blocked',
+      logbook_id: 'BR',
+      epistemic_class: 'observed',
+      schema_version: SCHEMA_VERSION,
+      source: { sourceId: 'SFI_RUNTIME', sourceType: 'governance' },
+      actor_id: actorId,
+      node_id: null,
+      confidence: 1,
+      payload,
+      checksum,
+      lineage: governance.eventId ? [governance.eventId] : [],
+      uncertainty: null,
+      occurred_at: occurredAt,
+      hash_prev: hashPrev,
+      hash_self: hashSelf,
+    })
+    .select('id')
+    .single();
+
+  if (!eventError && event?.id) {
+    await service.from('policy_decisions').insert({
+      event_id: event.id,
+      allow_llm: false,
+      allow_proposal: false,
+      allow_execution: false,
+      requires_approval: true,
+      max_tokens: 0,
+      reason: 'blind_mode_active',
+      payload,
+    });
+  }
+}
+
 export async function recordAcpSeen(actorId: string | null, actorEmail: string | null) {
   const service = createServiceSupabaseClient();
   const previous = await readGovernanceRuntime();
