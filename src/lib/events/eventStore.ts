@@ -111,7 +111,19 @@ export async function appendEpistemicEvent(input: Partial<SFIEvent> & { logbookI
 }
 
 export async function streamEpistemicEvents(logbookId = 'default', limit = 100) {
-  const service = createServiceSupabaseClient();
+  let service;
+
+  try {
+    service = createServiceSupabaseClient();
+  } catch (error) {
+    return {
+      ok: true as const,
+      data: [],
+      warnings: ['epistemic_event_store_unavailable'],
+      details: error instanceof Error ? error.message : String(error),
+    };
+  }
+
   const { data, error } = await service
     .from('epistemic_events')
     .select('*')
@@ -119,7 +131,15 @@ export async function streamEpistemicEvents(logbookId = 'default', limit = 100) 
     .order('sequence', { ascending: true })
     .limit(Math.max(1, Math.min(500, limit)));
 
-  if (error) return { ok: false as const, error: 'epistemic_event_stream_failed', details: error.message };
+  if (error) {
+    return {
+      ok: true as const,
+      data: [],
+      warnings: ['epistemic_event_stream_unavailable'],
+      details: error.message,
+    };
+  }
+
   return { ok: true as const, data: data ?? [] };
 }
 
