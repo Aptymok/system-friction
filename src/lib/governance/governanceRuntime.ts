@@ -25,6 +25,7 @@ type EpistemicEventRow = {
   payload: Record<string, unknown> | null;
   occurred_at: string | null;
   created_at: string;
+  hash_self?: string | null;
 };
 
 const GOVERNANCE_KEY = 'SFI_ROOT' as const;
@@ -75,7 +76,7 @@ export async function readGovernanceRuntime(): Promise<GovernanceRuntimeState> {
   const service = createServiceSupabaseClient();
   const { data, error } = await service
     .from('epistemic_events')
-    .select('id,event_id,event_name,logbook_id,epistemic_class,confidence,payload,occurred_at,created_at')
+    .select('id,event_id,event_name,logbook_id,epistemic_class,confidence,payload,occurred_at,created_at,hash_self')
     .in('event_name', ['governance.acp.seen', 'governance.blind_mode.entered', 'governance.acp.returned'])
     .eq('logbook_id', 'BR')
     .order('occurred_at', { ascending: false })
@@ -99,10 +100,23 @@ export async function readGovernanceRuntime(): Promise<GovernanceRuntimeState> {
   return stateFromEvent(data as EpistemicEventRow | null);
 }
 
+async function getLatestEventHash() {
+  const service = createServiceSupabaseClient();
+  const { data } = await service
+    .from('epistemic_events')
+    .select('hash_self')
+    .order('sequence', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  return typeof data?.hash_self === 'string' ? data.hash_self : null;
+}
+
 export async function recordAcpSeen(actorId: string | null, actorEmail: string | null) {
   const service = createServiceSupabaseClient();
   const previous = await readGovernanceRuntime();
   const occurredAt = nowIso();
+  const eventName = previous.blindMode ? 'governance.acp.returned' : 'governance.acp.seen';
   const eventId = `governance:acp:seen:${occurredAt}`;
   const payload = {
     governanceKey: GOVERNANCE_KEY,
@@ -113,12 +127,30 @@ export async function recordAcpSeen(actorId: string | null, actorEmail: string |
     previous,
   };
   const checksum = hashPayload(payload);
+  const hashPrev = await getLatestEventHash();
+  const hashSelf = hashPayload({
+    event_id: eventId,
+    event_name: eventName,
+    logbook_id: 'BR',
+    epistemic_class: 'observed',
+    schema_version: SCHEMA_VERSION,
+    source: { sourceId: 'SFI_RUNTIME', sourceType: 'governance' },
+    actor_id: actorId,
+    node_id: null,
+    confidence: 1,
+    payload,
+    checksum,
+    lineage: previous.eventId ? [previous.eventId] : [],
+    uncertainty: null,
+    occurred_at: occurredAt,
+    hash_prev: hashPrev,
+  });
 
   const { data: event, error: eventError } = await service
     .from('epistemic_events')
     .insert({
       event_id: eventId,
-      event_name: previous.blindMode ? 'governance.acp.returned' : 'governance.acp.seen',
+      event_name: eventName,
       logbook_id: 'BR',
       epistemic_class: 'observed',
       schema_version: SCHEMA_VERSION,
@@ -131,6 +163,8 @@ export async function recordAcpSeen(actorId: string | null, actorEmail: string |
       lineage: previous.eventId ? [previous.eventId] : [],
       uncertainty: null,
       occurred_at: occurredAt,
+      hash_prev: hashPrev,
+      hash_self: hashSelf,
     })
     .select('id')
     .single();
@@ -142,13 +176,14 @@ export async function recordAcpSeen(actorId: string | null, actorEmail: string |
   const nextState = stateFromEvent({
     id: event.id,
     event_id: eventId,
-    event_name: previous.blindMode ? 'governance.acp.returned' : 'governance.acp.seen',
+    event_name: eventName,
     logbook_id: 'BR',
     epistemic_class: 'observed',
     confidence: 1,
     payload,
     occurred_at: occurredAt,
     created_at: occurredAt,
+    hash_self: hashSelf,
   });
 
   if (previous.status !== nextState.status || previous.blindMode !== nextState.blindMode) {
