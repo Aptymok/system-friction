@@ -23,6 +23,15 @@ export type SFIEvent<TPayload = unknown> = {
   uncertainty?: string;
 };
 
+export type EpistemicEventRecord<TPayload = unknown> = SFIEvent<TPayload> & {
+  id?: string;
+  logbookId: string;
+  schemaVersion: string;
+  hashPrev: string | null;
+  hashSelf: string;
+  createdAt: string;
+};
+
 const epistemicClasses: EpistemicClass[] = [
   'observed',
   'declared',
@@ -65,4 +74,16 @@ export function validateEpistemicEventShape(event: unknown): boolean {
     if (event.source.sourceType !== undefined && typeof event.source.sourceType !== 'string') return false;
   }
   return true;
+}
+
+export function canonicalizeEventPayload(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(canonicalizeEventPayload);
+  if (!value || typeof value !== 'object') return value;
+
+  return Object.keys(value as Record<string, unknown>)
+    .sort()
+    .reduce<Record<string, unknown>>((acc, key) => {
+      acc[key] = canonicalizeEventPayload((value as Record<string, unknown>)[key]);
+      return acc;
+    }, {});
 }

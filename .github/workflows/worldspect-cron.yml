@@ -44,11 +44,12 @@ jobs:
           VERCEL_APP_URL: ${{ secrets.VERCEL_APP_URL }}
           WORLDSPECT_INGEST_SECRET: ${{ secrets.WORLDSPECT_INGEST_SECRET }}
         run: |
-          test -n "$VERCEL_APP_URL"
-          test -n "$WORLDSPECT_INGEST_SECRET"
+          test -n "$VERCEL_APP_URL" || (echo "Missing VERCEL_APP_URL secret" && exit 1)
+          test -n "$WORLDSPECT_INGEST_SECRET" || (echo "Missing WORLDSPECT_INGEST_SECRET secret" && exit 1)
 
           curl --fail-with-body -X POST "$VERCEL_APP_URL/api/worldspect/ingest-payload" \
             -H "Authorization: Bearer $WORLDSPECT_INGEST_SECRET" \
+            -H "X-SFI-Ingest-Mode: daily_cron" \
             -H "Content-Type: application/json" \
             --data-binary @world_payload.json
 
@@ -56,4 +57,5 @@ jobs:
         env:
           VERCEL_APP_URL: ${{ secrets.VERCEL_APP_URL }}
         run: |
+          test -n "$VERCEL_APP_URL" || (echo "Missing VERCEL_APP_URL secret" && exit 1)
           curl --fail-with-body "$VERCEL_APP_URL/api/worldspect/real"

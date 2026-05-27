@@ -1,23 +1,30 @@
 import { createHash } from 'crypto';
 import { createServiceSupabaseClient } from '../../runtime/supabase/server';
-import type { SourceHealthDTO } from '../../../packages/api-contracts/src';
-import type { WorldSpectrumCliPayload, WorldSpectrumSource } from '@/lib/worldspect/runWorldSpectrum';
+import type {
+  WorldSpectIngestMode,
+  WorldSpectFieldStateSignal,
+  WorldSpectResponse,
+  WorldSpectSource,
+  WorldSpectSourceHealth,
+  WorldSpectSourceState,
+} from '../../../packages/api-contracts/src';
+import type { WorldSpectCanonicalPayload } from './contract';
+import { deriveWorldSpectSourceHealth } from './contract';
 
-export type WorldSpectSourceState = 'observed' | 'degraded';
-export type WorldSpectIngestMode = 'daily_cron' | 'manual' | 'fallback_runtime';
+type PersistedWorldSpectSourceState = Exclude<WorldSpectSourceState, 'missing'>;
 
 export type WorldSpectSnapshotInput = {
-  sourceState: WorldSpectSourceState;
+  sourceState: PersistedWorldSpectSourceState;
   evidenceLevel: 'direct';
   confidence: number;
   wsi: number | null;
   nti: number | null;
   ts: string;
-  sources: WorldSpectrumSource[];
+  sources: WorldSpectSource[];
   degraded_sources: string[];
-  sourceHealth: SourceHealthDTO[];
+  sourceHealth: WorldSpectSourceHealth[];
   fieldStateSignal: Record<string, unknown> | null;
-  rawPayload: WorldSpectrumCliPayload;
+  rawPayload: unknown;
   adapterStatus: 'observed' | 'degraded' | 'failed';
   adapterError?: string | null;
   ingestMode: WorldSpectIngestMode;
@@ -27,16 +34,16 @@ export type WorldSpectSnapshotRow = {
   id: string;
   observed_at: string;
   created_at: string;
-  source_state: WorldSpectSourceState;
+  source_state: PersistedWorldSpectSourceState;
   evidence_level: 'direct';
   confidence: number;
   wsi: number | null;
   nti: number | null;
   degraded_sources: string[];
-  sources: WorldSpectrumSource[];
-  source_health: SourceHealthDTO[];
-  raw_payload: WorldSpectrumCliPayload;
-  field_state_signal: Record<string, unknown> | null;
+  sources: WorldSpectSource[];
+  source_health: WorldSpectSourceHealth[];
+  raw_payload: WorldSpectCanonicalPayload;
+  field_state_signal: WorldSpectFieldStateSignal;
   adapter_status: string;
   adapter_error: string | null;
   ingest_mode: WorldSpectIngestMode;
@@ -85,12 +92,12 @@ function numberOrNull(value: unknown) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-function isWorldSpectSourceState(value: unknown): value is WorldSpectSourceState {
+function isWorldSpectSourceState(value: unknown): value is PersistedWorldSpectSourceState {
   return value === 'observed' || value === 'degraded';
 }
 
 function isWorldSpectIngestMode(value: unknown): value is WorldSpectIngestMode {
-  return value === 'daily_cron' || value === 'manual' || value === 'fallback_runtime';
+  return value === 'daily_cron' || value === 'manual' || value === 'diagnostic' || value === 'fallback_runtime';
 }
 
 export async function getLatestWorldSpectSnapshot() {
@@ -118,10 +125,16 @@ export async function getLatestWorldSpectSnapshot() {
     wsi: numberOrNull(data.wsi),
     nti: numberOrNull(data.nti),
     degraded_sources: Array.isArray(data.degraded_sources) ? data.degraded_sources.filter((source: unknown): source is string => typeof source === 'string') : [],
-    sources: Array.isArray(data.sources) ? data.sources as WorldSpectrumSource[] : [],
-    source_health: Array.isArray(data.source_health) ? data.source_health as SourceHealthDTO[] : [],
-    raw_payload: data.raw_payload as WorldSpectrumCliPayload,
-    field_state_signal: data.field_state_signal && typeof data.field_state_signal === 'object' ? data.field_state_signal as Record<string, unknown> : null,
+    sources: Array.isArray(data.sources) ? data.sources as WorldSpectSource[] : [],
+    source_health: Array.isArray(data.source_health) && data.source_health.length > 0
+      ? data.source_health as WorldSpectSourceHealth[]
+      : deriveWorldSpectSourceHealth(
+        Array.isArray(data.sources) ? data.sources as WorldSpectSource[] : [],
+        Array.isArray(data.degraded_sources) ? data.degraded_sources.filter((source: unknown): source is string => typeof source === 'string') : [],
+        String(data.observed_at),
+      ),
+    raw_payload: data.raw_payload as WorldSpectCanonicalPayload,
+    field_state_signal: data.field_state_signal && typeof data.field_state_signal === 'object' ? data.field_state_signal as WorldSpectFieldStateSignal : null,
     adapter_status: String(data.adapter_status ?? 'unknown'),
     adapter_error: typeof data.adapter_error === 'string' ? data.adapter_error : null,
     ingest_mode: ingestMode,
@@ -188,5 +201,5 @@ export function snapshotRowToApiData(row: WorldSpectSnapshotRow) {
       snapshotHash: row.snapshot_hash,
       persisted: true,
     },
-  };
+  } satisfies WorldSpectResponse;
 }

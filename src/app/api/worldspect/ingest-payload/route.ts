@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createHash } from 'crypto';
 import fs from 'fs';
 import path from 'path';
-import { createServiceSupabaseClient } from '@/runtime/supabase/server';
+import type { WorldSpectIngestMode } from '../../../../../packages/api-contracts/src';
+import {
+  buildWorldSpectResponse,
+  finiteNumberOrNull,
+  toStringArray,
+  toWorldSpectSources,
+} from '@/lib/worldspect/contract';
+import { upsertWorldSpectSnapshot } from '@/lib/worldspect/snapshotStore';
 
 export const dynamic = 'force-dynamic';
 
@@ -128,16 +134,23 @@ function parsePayloadFromBuffer(buf: Buffer): { body: WorldSpectPayload; encodin
 }
 
 function toFiniteNumber(value: unknown): number | null {
-  const numeric = Number(value);
-  return Number.isFinite(numeric) ? numeric : null;
-}
-
-function toJsonArray(value: unknown): unknown[] {
-  return Array.isArray(value) ? value : [];
+  return finiteNumberOrNull(value);
 }
 
 function isoDateOnly(iso: string): string {
   return new Date(iso).toISOString().slice(0, 10);
+}
+
+function ingestModeFromRequest(request: NextRequest): WorldSpectIngestMode {
+  const header = request.headers.get('X-SFI-Ingest-Mode')?.trim();
+  if (header === 'daily_cron' || header === 'manual' || header === 'diagnostic') return header;
+  return 'daily_cron';
+}
+
+function adapterStatusFor(body: WorldSpectPayload, degradedSources: string[], sources: ReturnType<typeof toWorldSpectSources>) {
+  if (typeof body.adapter_error === 'string' && body.adapter_error.length > 0) return 'failed' as const;
+  if (degradedSources.length > 0 || sources.some((source) => source.error || source.simulated === true)) return 'degraded' as const;
+  return 'observed' as const;
 }
 
 export async function POST(request: NextRequest) {
@@ -203,68 +216,69 @@ export async function POST(request: NextRequest) {
       ? new Date(body.ts).toISOString()
       : new Date().toISOString();
     const observedDate = isoDateOnly(observedAt);
-    const degradedSources = toJsonArray(body.degraded_sources);
-    const sources = toJsonArray(body.sources);
-    const sourceHealth = toJsonArray(body.source_health);
-    const confidence = Math.max(0, Math.min(1, nti));
-    const snapshotHash = createHash('sha256')
-      .update(JSON.stringify({ observedAt, wsi, nti, sources, sourceHealth, degradedSources }))
-      .digest('hex');
-
-    const supabase = createServiceSupabaseClient();
-
-    if (!supabase) {
-      console.error('[worldspect/ingest] createServiceSupabaseClient() returned falsy');
-      const wrote = writeDiagnosticDump(body, { note: 'no supabase client' });
-      return NextResponse.json(
-        {
-          ok: false,
-          stage: 'supabase_insert',
-          error_code: 'NO_SUPABASE_CLIENT',
-          diagnostic_dump_written: wrote,
-        },
-        { status: 502 },
-      );
-    }
-
-    const row = {
+    const degradedSources = toStringArray(body.degraded_sources);
+    const sources = toWorldSpectSources(body.sources);
+    const response = buildWorldSpectResponse({
       wsi,
       nti,
-      source_state: degradedSources.length > 0 ? 'degraded' : 'observed',
-      evidence_level: 'observed',
-      confidence,
-      degraded_sources: degradedSources,
+      ts: observedAt,
       sources,
-      source_health: sourceHealth,
-      raw_payload: body,
-      field_state_signal: body.field_state_signal ?? null,
-      observed_at: observedAt,
-      created_at: new Date().toISOString(),
-      adapter_status: degradedSources.length > 0 ? 'degraded' : 'ok',
-      adapter_error: typeof body.adapter_error === 'string' ? body.adapter_error : null,
-      ingest_mode: 'manual',
-      snapshot_hash: snapshotHash,
-    };
+      degraded_sources: degradedSources,
+      source_health: body.source_health,
+      field_state_signal: body.field_state_signal,
+      adapter_error: body.adapter_error,
+    });
 
-    const { error } = await supabase
-      .from('worldspect_snapshots')
-      .insert([row]);
+    if (response.sourceState === 'missing') {
+      return NextResponse.json(
+        {
+          ok: false,
+          stage: 'validate',
+          error_code: 'MISSING_PAYLOAD',
+          error_message: 'Expected valid WorldSpect metrics or sources',
+        },
+        { status: 400 },
+      );
+    }
 
-    if (error) {
-      console.error('Supabase Ingest Error:', error);
-      const wrote = writeDiagnosticDump(body, { supabase_error: error });
+    const persisted = await upsertWorldSpectSnapshot({
+      sourceState: response.sourceState,
+      evidenceLevel: 'direct',
+      confidence: response.confidence,
+      wsi: response.wsi,
+      nti: response.nti,
+      ts: response.ts,
+      sources: response.sources,
+      degraded_sources: response.degraded_sources,
+      sourceHealth: response.sourceHealth,
+      fieldStateSignal: response.fieldStateSignal,
+      rawPayload: body,
+      adapterStatus: adapterStatusFor(body, degradedSources, sources),
+      adapterError: typeof body.adapter_error === 'string' ? body.adapter_error : null,
+      ingestMode: ingestModeFromRequest(request),
+    });
+
+    if (!persisted.ok) {
+      console.error('Supabase Ingest Error:', persisted);
+      const wrote = writeDiagnosticDump(body, { supabase_error: persisted });
       return NextResponse.json(
         {
           ok: false,
           stage: 'supabase_insert',
-          error_code: normalizeSupabaseError(error),
+          error_code: normalizeSupabaseError(persisted),
           diagnostic_dump_written: wrote,
         },
         { status: 502 },
       );
     }
 
-    return NextResponse.json({ ok: true, observed_date: observedDate, snapshot_hash: snapshotHash });
+    return NextResponse.json({
+      ok: true,
+      observed_date: observedDate,
+      snapshot_hash: typeof persisted.data?.snapshot_hash === 'string' ? persisted.data.snapshot_hash : null,
+      sourceState: response.sourceState,
+      ingestMode: ingestModeFromRequest(request),
+    });
   } catch (err: unknown) {
     console.error('[worldspect/ingest] Exception:', errorStack(err));
     return NextResponse.json(
