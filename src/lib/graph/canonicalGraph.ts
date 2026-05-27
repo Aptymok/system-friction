@@ -193,18 +193,19 @@ function edgeFromRow(row: Row, nodeIdByStoredId: Map<string, string>): Canonical
   const attributes = asRecord(row.attributes ?? row.payload ?? row.metadata);
   const createdAt = typeof row.created_at === 'string' ? row.created_at : now();
   const updatedAt = typeof row.updated_at === 'string' ? row.updated_at : createdAt;
-  const relation = stringValue(row.relation, row.edge_type, row.type) ?? 'related_to';
-  const rawSourceNodeId = stringValue(row.source_node_id, row.source_id, row.from_node_id, row.from_id, row.source, row.from);
-  const rawTargetNodeId = stringValue(row.target_node_id, row.target_id, row.to_node_id, row.to_id, row.target, row.to);
+  const relation = stringValue(row.relation_type, row.relation, row.edge_type, row.type) ?? 'related_to';
+  const rawSourceNodeId = stringValue(row.source_node_key, row.source_node_id, row.source_id, row.from_node_id, row.from_id, row.source, row.from);
+  const rawTargetNodeId = stringValue(row.target_node_key, row.target_node_id, row.target_id, row.to_node_id, row.to_id, row.target, row.to);
   const sourceNodeId = rawSourceNodeId ? nodeIdByStoredId.get(rawSourceNodeId) ?? rawSourceNodeId : '';
   const targetNodeId = rawTargetNodeId ? nodeIdByStoredId.get(rawTargetNodeId) ?? rawTargetNodeId : '';
+  const weightValue = row.w_ij ?? row.weight ?? 0;
 
   return {
     edgeId: stringValue(row.edge_id, row.edge_key, row.key, row.id) ?? `${sourceNodeId}:${targetNodeId}:${relation}`,
     sourceNodeId,
     targetNodeId,
     relation,
-    weight: Math.max(0, Math.min(1, Number(row.weight ?? 0))),
+    weight: Math.max(0, Math.min(1, Number(weightValue))),
     profile: isGraphProfile(row.profile) ? row.profile : profileFromAttributes(attributes),
     origin: stringValue(row.origin, attributes.origin) ?? 'database',
     provenance: stringValue(row.provenance, attributes.provenance) ?? 'graph_edges',
