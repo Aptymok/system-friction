@@ -1,0 +1,58 @@
+{
+  "name": "SFI Public Field Schema",
+  "version": "1.0.0",
+  "node": {
+    "id": "string",
+    "label": "string",
+    "ontologyType": "string",
+    "ring": "string",
+    "provenance": "string"
+  },
+  "edge": {
+    "source": "string",
+    "target": "string",
+    "relation": [
+      "structural_inferred",
+      "correlational_observed",
+      "causal_verified",
+      "degraded",
+      "latent"
+    ],
+    "weight": "number",
+    "confidence": "number"
+  },
+  "documentary_evidence": {
+    "evidence_id": "string",
+    "title": "string",
+    "type": "document | post | agreement | issue | pr | brief | image | audio | note | event | artifact",
+    "source": "black_envelope | notebook | atlas | site | observatory | github | external | manual",
+    "timestamp": "ISO-8601",
+    "field_density": "number",
+    "evidence_weight": "number",
+    "confidence": "number",
+    "regime": "threshold | audit | observatory | resolution | mutation | projection",
+    "attractors": "array",
+    "nodes": "array",
+    "linked_artifacts": "array",
+    "status": "raw | reviewed | weighted | projected | canonized | rejected | sealed",
+    "visibility": "public | licensed | acp | private",
+    "interpretation_limit": "string"
+  },
+  "field_brief": {
+    "regime_observed": "string",
+    "dominant_friction": "string",
+    "emergent_pattern": "string",
+    "evidence": "array",
+    "minimal_perturbation": "string",
+    "interpretation_limit": "string"
+  },
+  "regime_jump_readiness": {
+    "authority_density": "number",
+    "evidence_coherence": "number",
+    "field_persistence": "number",
+    "public_observability": "number",
+    "canon_stability": "number",
+    "attractor_alignment": "number",
+    "invitation_probability": "number"
+  }
+}

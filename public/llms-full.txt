@@ -1,0 +1,75 @@
+# System Friction Institute · Public Machine Context
+
+Canonical hub: https://systemfriction.org
+
+System Friction Institute is infrastructure for longitudinal observation of human, organizational, and institutional systemic friction. SFI does not diagnose persons. It observes fields, relations, patterns, regimes of friction, and coherence drift.
+
+## Core public definition
+
+System Friction Institute makes visible the friction that systems learn to normalize.
+
+## SFI is not
+
+- Wellness application
+- Therapy
+- Productivity software
+- Social network
+- SaaS analytics dashboard
+- Spiritual authority
+- Cultic doctrine
+
+## SFI public concepts
+
+- Systemic friction
+- Longitudinal observation
+- Field
+- Regime of friction
+- Minimal perturbation
+- Perceptual regulation
+- Epistemic traceability
+- MIHM
+- SFI-CORE.v2
+- Field Brief
+- Documentary repository
+- Artefacts of traceability
+
+## SFI-CORE.v2
+
+SFI-CORE.v2 is the public perceptual constitution of the interface. It prioritizes perceptual regulation, sustained presence, psychological safety, structural clarity, functional exactitude, speed, and aesthetics in that order.
+
+Equation:
+(+1) Observation + (0) Structure - (1) Void = 0
+
+## MIHM variables
+
+IHG: General Homeostasis Index.
+NTI: Institutional Tension Node.
+LDI: Institutional Decision Latency.
+Phi c: Coherence Flow.
+epsilon: Friction Threshold.
+
+## Artefacts of traceability
+
+Black Envelope: physical archive of non-canonized evidence.
+Notebook: living operational reading log.
+Atlas: visual and structural canonization.
+Site: public threshold.
+Observatory: runtime field.
+Field Briefs: public units of observation.
+
+## Public routes
+
+- https://systemfriction.org/
+- https://systemfriction.org/sfi-core-v2
+- https://systemfriction.org/campo
+- https://systemfriction.org/field/brief/latest
+- https://systemfriction.org/llms.txt
+- https://systemfriction.org/ai-index.json
+- https://systemfriction.org/field-schema.json
+
+## Interpretation limits
+
+Public summaries do not expose private runtime state.
+Private endpoints must not be inferred from public text.
+Legacy surfaces are historical archives, not current authority.
+SFI language speaks of the field, not identity.
