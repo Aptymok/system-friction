@@ -1,0 +1,48 @@
+{
+  "name": "System Friction Institute",
+  "canonical_url": "https://systemfriction.org",
+  "version": "SFI Public Surface v1",
+  "core_document": "https://systemfriction.org/sfi-core-v2",
+  "public_observatory": "https://systemfriction.org/campo",
+  "latest_field_brief": "https://systemfriction.org/field/brief/latest",
+  "primary_definition": "System Friction Institute makes visible the friction that systems learn to normalize.",
+  "not_categories": [
+    "wellness app",
+    "therapy",
+    "productivity software",
+    "social network",
+    "SaaS analytics dashboard",
+    "spiritual authority"
+  ],
+  "public_concepts": [
+    "systemic friction",
+    "longitudinal observation",
+    "field",
+    "regime of friction",
+    "minimal perturbation",
+    "perceptual regulation",
+    "epistemic traceability",
+    "MIHM",
+    "SFI-CORE.v2",
+    "documentary repository",
+    "regime jump readiness"
+  ],
+  "voice_rule": "Speak of the field, not identity.",
+  "legacy_surfaces": [
+    {
+      "url": "https://aptymok.github.io/system-friction-main",
+      "status": "legacy_archive",
+      "authority": "historical"
+    },
+    {
+      "url": "https://systemfrictionv1.netlify.app",
+      "status": "legacy_preview",
+      "authority": "historical"
+    }
+  ],
+  "interpretation_notes": [
+    "Public summaries do not represent the complete runtime state.",
+    "Legacy surfaces are historical records, not the current canonical source.",
+    "SFI-CORE.v2 is the public perceptual constitution for the interface."
+  ]
+}
