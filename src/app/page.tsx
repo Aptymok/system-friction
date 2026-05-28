@@ -1,5 +1,5 @@
-import { redirect } from 'next/navigation';
+import { SfiObservatoryOS } from '@/observatory/components/os/SfiObservatoryOS';
 
 export default function HomePage() {
-  redirect('/landing');
+  return <SfiObservatoryOS />;
 }
