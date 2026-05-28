@@ -1,0 +1,14 @@
+User-agent: *
+Allow: /
+
+Disallow: /api/
+Allow: /api/public/
+
+Disallow: /admin/
+Disallow: /private/
+Disallow: /terminal/internal/
+Disallow: /sandbox/internal/
+Disallow: /_next/
+
+Sitemap: https://systemfriction.org/sitemap.xml
+Host: https://systemfriction.org
