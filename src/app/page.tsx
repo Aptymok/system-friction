@@ -1,5 +1,5 @@
-import { SfiLandingCalibration } from '@/observatory/components/landing/SfiLandingCalibration';
+import { SfiFinalPublicSurface } from '@/observatory/components/public/SfiFinalPublicSurface';
 
 export default function HomePage() {
-  return <SfiLandingCalibration />;
+  return <SfiFinalPublicSurface />;
 }
