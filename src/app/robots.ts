@@ -13,12 +13,18 @@ export default function robots(): MetadataRoute.Robots {
           '/methodology',
           '/protocol',
           '/mihm',
-          '/world-spectrum'
+          '/world-spectrum',
+          '/sfi-core-v2',
+          '/field/brief/latest',
+          '/campo',
+          '/observatory',
+          '/llms-full.txt',
+          '/ai-index.json',
+          '/field-schema.json'
         ],
         disallow: [
           '/api/',
           '/auth/',
-          '/terminal/',
           '/dashboard/',
           '/private/',
           '/admin/',

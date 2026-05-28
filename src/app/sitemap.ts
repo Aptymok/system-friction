@@ -10,6 +10,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     '/protocol',
     '/mihm',
     '/world-spectrum',
+    '/sfi-core-v2',
+    '/field/brief/latest',
+    '/campo',
+    '/observatory',
+    '/llms-full.txt',
+    '/ai-index.json',
+    '/field-schema.json',
     '/montecarlo',
     '/stochastic',
     '/sfi-manifest'

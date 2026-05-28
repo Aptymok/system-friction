@@ -1,5 +1,5 @@
-import { SfiObservatoryOS } from '@/observatory/components/os/SfiObservatoryOS';
+import { SfiFinalPublicSurface } from '@/observatory/components/public/SfiFinalPublicSurface';
 
 export default function HomePage() {
-  return <SfiObservatoryOS />;
+  return <SfiFinalPublicSurface />;
 }
