@@ -1,5 +1,5 @@
-import { SfiObservatoryOS } from '@/observatory/components/os/SfiObservatoryOS';
+import { SfiLandingCalibration } from '@/observatory/components/landing/SfiLandingCalibration';
 
 export default function HomePage() {
-  return <SfiObservatoryOS />;
+  return <SfiLandingCalibration />;
 }
