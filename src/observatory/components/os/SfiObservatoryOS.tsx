@@ -14,7 +14,6 @@ import {
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { createBrowserSupabaseClient } from '@/runtime/supabase/client';
 import { useAuthState } from '@/components/auth/AuthProvider';
-import { attractors, documentaryEvidence, regimeJumpReadiness, regimeLabel, regimeMilestones } from '@/observatory/publicSurface/content';
 
 type SourceState = 'observed' | 'degraded' | 'missing' | 'blocked' | 'active' | 'blind' | 'failed' | string;
 type JsonRecord = Record<string, unknown>;
@@ -393,25 +392,6 @@ export function SfiObservatoryOS() {
   const sourceState = stringValue(worldspect.sourceState ?? graph?.sourceState, 'missing');
   const kernelStatus = stringValue(observatory?.kernel?.status, 'missing');
   const integrity = computeIntegrity(observatory);
-  const regimeMetrics = useMemo(() => {
-    const authorityDensity = blindMode ? 0.28 : 0.62;
-    const evidenceCoherence = Math.min(0.84, 0.46 + documentaryEvidence.length * 0.08);
-    const fieldPersistence = observatory ? 0.66 : 0.34;
-    const publicObservability = nodes.length > 0 && edges.length > 0 ? 0.72 : 0.44;
-    const canonStability = 0.74;
-    const attractorAlignment = 0.68;
-    const invitationProbability = 0.44;
-    return {
-      authorityDensity,
-      evidenceCoherence,
-      fieldPersistence,
-      publicObservability,
-      canonStability,
-      attractorAlignment,
-      invitationProbability,
-      readiness: regimeJumpReadiness({ authorityDensity, evidenceCoherence, fieldPersistence, publicObservability, canonStability, attractorAlignment, invitationProbability }),
-    };
-  }, [blindMode, edges.length, nodes.length, observatory]);
   const pendingProposals = records(observatory?.latestProposals).filter((row) => ['queued', 'proposed'].includes(stringValue(row.status, '').toLowerCase())).length;
   const approvedMutations = records(observatory?.mutations).filter((row) => stringValue(row.status, '').toLowerCase() === 'design_approved').length;
 
@@ -543,7 +523,6 @@ export function SfiObservatoryOS() {
             active={activeMemory}
             setActive={setActiveMemory}
             items={filteredMemory}
-            regimeMetrics={regimeMetrics}
             onOpen={(item) => {
               setHighlight(item.lineage);
               setDrawer({ title: item.title, payload: item.payload, lineage: item.lineage, proposalId: typeof item.payload.proposal_id === 'string' ? item.payload.proposal_id : typeof item.payload.id === 'string' && item.kind === 'proposal' ? item.payload.id : null });
@@ -843,7 +822,7 @@ function FieldMetric({ label, value, data }: { label: string; value: string; dat
   );
 }
 
-function CausalMemory({ active, setActive, items, regimeMetrics, onOpen }: { active: string; setActive: (tab: 'ALL' | 'EVENTS' | 'MUTATIONS' | 'PROPOSALS' | 'INHIBITIONS') => void; items: MemoryItem[]; regimeMetrics: Record<string, number>; onOpen: (item: MemoryItem) => void }) {
+function CausalMemory({ active, setActive, items, onOpen }: { active: string; setActive: (tab: 'ALL' | 'EVENTS' | 'MUTATIONS' | 'PROPOSALS' | 'INHIBITIONS') => void; items: MemoryItem[]; onOpen: (item: MemoryItem) => void }) {
   const tabs = ['ALL', 'EVENTS', 'MUTATIONS', 'PROPOSALS', 'INHIBITIONS'] as const;
   return (
     <aside className="min-h-0 overflow-y-auto border border-white/10 bg-[#11100e]/88 p-3 backdrop-blur">
@@ -874,72 +853,7 @@ function CausalMemory({ active, setActive, items, regimeMetrics, onOpen }: { act
           </button>
         ))}
       </div>
-      <DocumentaryRepository regimeMetrics={regimeMetrics} />
     </aside>
-  );
-}
-
-function DocumentaryRepository({ regimeMetrics }: { regimeMetrics: Record<string, number> }) {
-  const metrics = [
-    ['AUTHORITY DENSITY', regimeMetrics.authorityDensity],
-    ['EVIDENCE COHERENCE', regimeMetrics.evidenceCoherence],
-    ['FIELD PERSISTENCE', regimeMetrics.fieldPersistence],
-    ['PUBLIC OBSERVABILITY', regimeMetrics.publicObservability],
-    ['CANON STABILITY', regimeMetrics.canonStability],
-    ['ATTRACTOR ALIGNMENT', regimeMetrics.attractorAlignment],
-    ['INVITATION PROBABILITY', regimeMetrics.invitationProbability],
-    ['REGIME JUMP READINESS', regimeMetrics.readiness],
-  ] as const;
-
-  return (
-    <div className="mt-4 border-t border-white/10 pt-4">
-      <SectionTitle icon={<Archive className="h-4 w-4" />} title="DOCUMENTAL REPOSITORY" subtitle="PUBLIC STRUCTURE · PRIVATE DEPTH RESERVED" />
-      <div className="space-y-2">
-        {documentaryEvidence.map((item) => (
-          <div key={item.evidenceId} className="border border-white/10 bg-black/20 p-3">
-            <div className="flex items-start justify-between gap-2">
-              <div>
-                <p className="font-mono text-[8px] uppercase text-zinc-600">{item.evidenceId} · {item.source}</p>
-                <h3 className="mt-1 font-mono text-[10px] uppercase text-paper">{item.title}</h3>
-              </div>
-              <span className="border border-amber-200/20 bg-amber-200/10 px-2 py-1 font-mono text-[8px] uppercase text-amber-100">{item.status}</span>
-            </div>
-            <p className="mt-2 font-mono text-[9px] uppercase text-zinc-500">{item.visibility} · {item.regime} · {item.nodes.join(', ')}</p>
-          </div>
-        ))}
-      </div>
-      <div className="mt-4 border border-white/10 bg-black/20 p-3">
-        <p className="font-mono text-[10px] uppercase text-teal-100">FIELD DENSITY</p>
-        <div className="mt-3 space-y-2">
-          {metrics.map(([label, value]) => (
-            <div key={label}>
-              <div className="flex justify-between font-mono text-[8px] uppercase text-zinc-500"><span>{label}</span><span>{Math.round(value * 100)}%</span></div>
-              <div className="mt-1 h-1 bg-white/10"><div className="h-full bg-teal-200/70" style={{ width: `${Math.round(value * 100)}%` }} /></div>
-            </div>
-          ))}
-        </div>
-        <p className="mt-3 font-mono text-[9px] uppercase text-amber-100">{regimeLabel(regimeMetrics.readiness)}</p>
-      </div>
-      <div className="mt-4 grid gap-2">
-        <p className="font-mono text-[10px] uppercase text-teal-100">ATTRACTOR MATRIX</p>
-        {attractors.map((item) => <span key={item} className="border border-white/10 px-2 py-1 font-mono text-[8px] uppercase text-zinc-500">{item}</span>)}
-      </div>
-      <div className="mt-4 border border-white/10 bg-black/20 p-3">
-        <p className="font-mono text-[10px] uppercase text-teal-100">REGIME / PERTURBATION / JUMP</p>
-        <p className="mt-2 font-mono text-[9px] leading-5 text-zinc-500">
-          Regimen actual: consolidacion institucional temprana. Perturbacion minima: publicar Field Brief 001 con estado de evidencia claro. El vector privado ACP no se muestra en campo publico.
-        </p>
-      </div>
-      <div className="mt-4 space-y-2">
-        <p className="font-mono text-[10px] uppercase text-teal-100">WHEN X THEN Y</p>
-        {regimeMilestones.slice(0, 4).map(([name, condition]) => (
-          <div key={name} className="border border-white/10 p-2">
-            <p className="font-mono text-[8px] uppercase text-paper">{name}</p>
-            <p className="mt-1 font-mono text-[8px] leading-4 text-zinc-500">{condition}</p>
-          </div>
-        ))}
-      </div>
-    </div>
   );
 }
 
