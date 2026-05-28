@@ -19,7 +19,10 @@ ${baseUrl}/methodology
 ${baseUrl}/protocol
 ${baseUrl}/mihm
 ${baseUrl}/world-spectrum
-${baseUrl}/montecarlo
+${baseUrl}/sfi-core-v2
+${baseUrl}/field/brief/latest
+${baseUrl}/campo
+${baseUrl}/field-schema.json
 
 ## VARIABLES
 
@@ -31,11 +34,11 @@ DIVERGENCE
 
 ## PRINCIPLES
 
-- Friction is measurable
-- Contradiction accumulates entropy
-- Longitudinal behavior outweighs isolated declarations
-- Outputs are probabilistic
-- Human cognition is dynamic
+- Friction is observed as field relation, not identity diagnosis
+- Evidence requires state, provenance and interpretation limits
+- SFI-CORE.v2 regulates perceptual architecture
+- MIHM formalizes distance, tension, latency, threshold and flow
+- Irreversible mutation requires governance
 
 ## AI POLICY
 
