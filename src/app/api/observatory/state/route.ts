@@ -7,6 +7,10 @@ import { getLatestKernelCycle } from '@/lib/kernel/kernelCycleStore';
 import { latestActionProposals, latestRows } from '@/lib/operational/common';
 import { readTwinSelfObservation } from '@/lib/operational/twinState';
 import { getLatestWorldSpectSnapshot, snapshotRowToApiData } from '@/lib/worldspect/snapshotStore';
+import { buildDocumentCatalog } from '@/observatory/field/catalog/sfDocumentCatalog';
+import { buildMihmRuntimeMatrix } from '@/observatory/field/catalog/mihmRuntimeMatrix';
+import { buildNodeCatalog } from '@/observatory/field/catalog/sfNodeCatalog';
+import { buildPatternCatalog } from '@/observatory/field/catalog/patternCatalog';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,6 +29,8 @@ export async function GET() {
     mihm,
     multimedia,
     latestProposals,
+    logbookKnowledge,
+    logbookSignals,
   ] = await Promise.all([
     getLatestWorldSpectSnapshot(),
     readCanonicalGraphState('sfi'),
@@ -39,7 +45,23 @@ export async function GET() {
     latestRows('mihm_analyses', 10),
     latestActionProposals(['multimedia', 'calendar_payload'], 10),
     latestActionProposals(undefined, 25),
+    latestRows('logbook_knowledge', 50),
+    latestRows('logbook_signals', 25),
   ]);
+
+  const worldspectData = worldspect ? snapshotRowToApiData(worldspect) : null;
+  const nodeCatalog = buildNodeCatalog(graph);
+  const documentCatalog = buildDocumentCatalog({ logbookKnowledge: logbookKnowledge.data });
+  const patternCatalog = buildPatternCatalog();
+  const executionCatalog: unknown[] = latestProposals.data;
+  const mihmRuntimeMatrix = buildMihmRuntimeMatrix({
+    mihmAnalyses: mihm.data,
+    kernel,
+    worldspect: worldspectData,
+    graph,
+    logbookSignals: logbookSignals.data,
+  });
+
   const warnings = [
     graph.degradedReason,
     governance.warning,
@@ -49,6 +71,9 @@ export async function GET() {
     mihm.error,
     multimedia.error,
     latestProposals.error,
+    logbookKnowledge.error,
+    logbookSignals.error,
+    ...mihmRuntimeMatrix.warnings,
     ...(worldspect ? [] : ['worldspect_snapshot_missing']),
     ...(kernel ? [] : ['kernel_cycle_missing']),
   ].filter(Boolean);
@@ -56,7 +81,7 @@ export async function GET() {
   return NextResponse.json({
     ok: true,
     data: {
-      worldspect: worldspect ? snapshotRowToApiData(worldspect) : null,
+      worldspect: worldspectData,
       graph,
       kernel,
       governance,
@@ -71,6 +96,11 @@ export async function GET() {
       mihm: mihm.data,
       multimedia: multimedia.data,
       latestProposals: latestProposals.data,
+      nodeCatalog,
+      documentCatalog,
+      patternCatalog,
+      executionCatalog,
+      mihmRuntimeMatrix,
       loadedAt: new Date().toISOString(),
       warnings,
     },
