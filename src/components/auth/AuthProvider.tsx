@@ -19,6 +19,11 @@ const AuthContext = createContext<AuthState>({
 
 const AUTH_ROUTES = new Set(['/login', '/register', '/forgot', '/reset', '/verify'])
 
+function fallbackRole(errorCode?: string | null) {
+  if (errorCode === 'PGRST116') return 'observer'
+  return 'observer'
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
@@ -38,11 +43,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .from('profiles')
         .select('role')
         .eq('user_id', userId)
-        .single()
+        .maybeSingle()
+
       if (error) {
-        console.error('Error fetching role:', error)
-        return 'observer'
+        if (process.env.NODE_ENV !== 'production') {
+          console.warn('Profile role unavailable; falling back to observer.', {
+            code: error.code,
+            message: error.message,
+          })
+        }
+        return fallbackRole(error.code)
       }
+
       return data?.role || 'observer'
     }
 
