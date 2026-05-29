@@ -7,7 +7,9 @@ import { getServerUserContext } from '@/lib/server/productionBackend';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { getLatestWorldSpectSnapshot, snapshotRowToApiData } from '@/lib/worldspect/snapshotStore';
 
-export type ProposalStatus = 'queued' | 'proposed' | 'accepted' | 'design_approved' | 'rejected';
+export type ProposalStatus = 'queued' | 'proposed' | 'accepted' | 'design_approved' | 'rejected' | 'draft';
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export function canonicalize(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(canonicalize);
@@ -31,6 +33,17 @@ export function stringValue(value: unknown) {
 
 export function recordValue(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
+function proposalTypeFrom(row: Record<string, unknown>) {
+  const expectedDelta = recordValue(row.expected_field_delta);
+  const proportionality = recordValue(row.proportionality_check);
+  return stringValue(row.proposal_type)
+    ?? stringValue(expectedDelta.proposalType)
+    ?? stringValue(expectedDelta.proposal_type)
+    ?? stringValue(proportionality.proposalType)
+    ?? stringValue(proportionality.proposal_type)
+    ?? null;
 }
 
 export function buildMutationLogbookRow(input: {
@@ -121,26 +134,35 @@ export async function createActionProposal(input: {
   payload: Record<string, unknown>;
 }) {
   const service = createServiceSupabaseClient();
+  const expectedFieldDelta = {
+    proposalType: input.proposalType,
+    objective: input.objective ?? null,
+    seed: input.seed ?? null,
+    worldspectSnapshotId: input.worldspectSnapshotId ?? null,
+    graphNodeCount: input.graphNodeCount ?? 0,
+    graphEdgeCount: input.graphEdgeCount ?? 0,
+    inputVectorHash: input.inputVectorHash ?? null,
+    specHash: input.specHash ?? null,
+    contentHash: input.contentHash ?? null,
+    promptHash: input.promptHash ?? null,
+    actorId: input.actorId,
+    payload: input.payload,
+  };
   const { data, error } = await service
     .from('action_proposals')
     .insert({
-      proposal_type: input.proposalType,
-      title: input.title ?? null,
-      objective: input.objective ?? null,
-      objective_hash: input.objective ? sha256(input.objective) : null,
-      seed: input.seed ?? null,
-      worldspect_snapshot_id: input.worldspectSnapshotId ?? null,
-      graph_node_count: input.graphNodeCount ?? 0,
-      graph_edge_count: input.graphEdgeCount ?? 0,
-      input_vector_hash: input.inputVectorHash ?? null,
-      spec_hash: input.specHash ?? null,
-      content_hash: input.contentHash ?? null,
-      prompt_hash: input.promptHash ?? null,
-      status: input.status ?? 'queued',
-      requires_approval: true,
-      actor_id: input.actorId,
-      event_id: input.eventId ?? null,
-      payload: input.payload,
+      title: input.title ?? input.proposalType,
+      description: input.objective ?? null,
+      status: input.status ?? 'draft',
+      expected_field_delta: expectedFieldDelta,
+      risk_level: 'low',
+      proportionality_check: {
+        proposalType: input.proposalType,
+        approvalRequired: true,
+        objectiveHash: input.objective ? sha256(input.objective) : null,
+      },
+      approval_required: true,
+      event_id: input.eventId && UUID_RE.test(input.eventId) ? input.eventId : null,
     })
     .select('*')
     .single();
@@ -151,18 +173,22 @@ export async function createActionProposal(input: {
 
 export async function latestActionProposals(proposalTypes?: string[], limit = 20) {
   const service = createServiceSupabaseClient();
-  let query = service
+  const { data, error } = await service
     .from('action_proposals')
     .select('*')
     .order('created_at', { ascending: false })
     .limit(limit);
 
-  if (proposalTypes?.length) {
-    query = query.in('proposal_type', proposalTypes);
-  }
-
-  const { data, error } = await query;
-  return { data: error ? [] : data ?? [], error: error?.message ?? null };
+  if (error) return { data: [], error: error.message };
+  const rows = data ?? [];
+  if (!proposalTypes?.length) return { data: rows, error: null };
+  return {
+    data: rows.filter((row) => {
+      const proposalType = proposalTypeFrom(recordValue(row));
+      return proposalType ? proposalTypes.includes(proposalType) : false;
+    }),
+    error: null,
+  };
 }
 
 export async function readOperationalContext() {
@@ -197,30 +223,37 @@ export async function updateActionProposalStatus(input: {
     .from('action_proposals')
     .select('*')
     .eq('id', input.proposalId)
-    .eq('proposal_type', input.proposalType)
     .in('status', input.expectedStatuses)
     .limit(1);
-
-  if (!input.isRoot) {
-    selectQuery = selectQuery.eq('actor_id', input.actorId);
-  }
 
   const { data: existing, error: selectError } = await selectQuery.maybeSingle();
   if (selectError) return { ok: false as const, error: 'action_proposal_lookup_failed', details: selectError.message };
   if (!existing) return { ok: false as const, error: 'action_proposal_not_found_or_forbidden' };
 
+  const existingRecord = recordValue(existing);
+  const existingType = proposalTypeFrom(existingRecord);
+  const expectedDelta = recordValue(existingRecord.expected_field_delta);
+  if (existingType && existingType !== input.proposalType) return { ok: false as const, error: 'action_proposal_type_mismatch' };
+  if (!input.isRoot && stringValue(expectedDelta.actorId) && expectedDelta.actorId !== input.actorId) {
+    return { ok: false as const, error: 'action_proposal_not_found_or_forbidden' };
+  }
+
   const update: Record<string, unknown> = {
     status: input.status,
-    updated_at: new Date().toISOString(),
+    outcome: {
+      ...(recordValue(existingRecord.outcome)),
+      actorId: input.actorId,
+      proposalType: input.proposalType,
+      eventId: input.eventId ?? null,
+      payloadPatch: input.payloadPatch ?? null,
+      updatedAt: new Date().toISOString(),
+    },
   };
-  if (input.eventId) update.event_id = input.eventId;
-  if (input.payloadPatch) update.payload = input.payloadPatch;
 
   const { data, error } = await service
     .from('action_proposals')
     .update(update)
     .eq('id', input.proposalId)
-    .eq('proposal_type', input.proposalType)
     .select('*')
     .single();
 
