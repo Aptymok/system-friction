@@ -1,4 +1,5 @@
 import { documentaryEvidence } from '@/observatory/publicSurface/content';
+import { sfStaticDataset } from './sfStaticDataset';
 import { asRecord, asStringArray, clamp01, stringValue, type FieldDocumentCatalogItem } from './fieldMatrixBuilder';
 
 function visibility(value: unknown): FieldDocumentCatalogItem['visibility'] {
@@ -6,10 +7,31 @@ function visibility(value: unknown): FieldDocumentCatalogItem['visibility'] {
   return 'public';
 }
 
+function datasetDocuments(): FieldDocumentCatalogItem[] {
+  const documents = Array.isArray(sfStaticDataset.documents) ? sfStaticDataset.documents : [];
+  return documents.map((item): FieldDocumentCatalogItem => {
+    const record = asRecord(item);
+    return {
+      documentId: String(record.id || record.doc_id || 'unknown-document'),
+      title: String(record.title || record.doc_id || record.id || 'Untitled document'),
+      source: 'sfStaticDataset',
+      status: String(record.stability || record.version || 'indexed'),
+      visibility: visibility(record.visibility),
+      linkedNodes: [stringValue(record.nodeId)].filter((node): node is string => Boolean(node)),
+      linkedPatterns: asStringArray(record.patterns),
+      attractors: [stringValue(record.mihm_variable), stringValue(record.sf_pattern)].filter((item): item is string => Boolean(item)),
+      evidenceWeight: clamp01(Number(record.contentLength || 0) / 4000, 0.5),
+      confidence: record.contentHash ? 0.82 : 0.62,
+      interpretationLimit: String(record.summary || record.mihm_note || 'Documento indexado como metadato de campo.'),
+    };
+  });
+}
+
 export function buildDocumentCatalog(input?: {
   logbookKnowledge?: unknown[];
   epistemicEvents?: unknown[];
 }): FieldDocumentCatalogItem[] {
+  const datasetDocs = datasetDocuments();
   const staticDocuments = documentaryEvidence.map((item): FieldDocumentCatalogItem => ({
     documentId: item.evidenceId,
     title: item.title,
@@ -43,7 +65,7 @@ export function buildDocumentCatalog(input?: {
   });
 
   const byId = new Map<string, FieldDocumentCatalogItem>();
-  for (const document of [...staticDocuments, ...knowledgeDocuments]) {
+  for (const document of [...datasetDocs, ...staticDocuments, ...knowledgeDocuments]) {
     byId.set(document.documentId, document);
   }
   return [...byId.values()].sort((a, b) => b.evidenceWeight - a.evidenceWeight || a.title.localeCompare(b.title));
