@@ -1,10 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerUserContext } from '@/lib/server/productionBackend';
-import { createSfiAssetId, hashPayload, loadSfiAssets } from '@/lib/server/sfiAssets';
-import { getEntitlements } from '@/lib/licensing/entitlements';
+import { loadSfiAssets } from '@/lib/server/sfiAssets';
 
 function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
+}
+
+function hasAssetWriteAccess(profile: unknown, isRoot: boolean) {
+  if (isRoot) return true;
+  const record = asRecord(profile);
+  const modules = asRecord(record.module_access);
+  const tier = String(record.subscription_tier || '').toLowerCase();
+  return tier === 'pro' || tier === 'enterprise' || modules.observatory === true || modules.simulator === true || modules.planner === true;
 }
 
 export async function GET() {
@@ -19,58 +26,12 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   const ctx = await getServerUserContext();
   if (!ctx.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!hasAssetWriteAccess(ctx.profile, ctx.isRoot)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
-  if (!ctx.isRoot) {
-    const [{ data: licenses }, entitlements] = await Promise.all([
-      ctx.service
-        .from('licenses')
-        .select('status')
-        .eq('user_id', ctx.user.id)
-        .order('created_at', { ascending: false })
-        .limit(1),
-      getEntitlements(ctx.user.id),
-    ]);
-    const licenseStatus = licenses?.[0]?.status;
-    const hasAccess =
-      entitlements.full_access === true ||
-      licenseStatus === 'active' ||
-      licenseStatus === 'trialing';
+  await req.json().catch(() => null);
 
-    if (!hasAccess) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  }
-
-  const body = await req.json().catch(() => null);
-  const targetSystem = asRecord(body?.target_system);
-  const objective = asRecord(body?.objective);
-  const stateVector = asRecord(body?.state_vector);
-  const metadata = asRecord(body?.metadata);
-  const currentPhase = typeof body?.current_phase === 'string' ? body.current_phase : 'PHASE_0_ASSET_CREATED';
-  const assetId = createSfiAssetId(targetSystem);
-
-  const { data: asset, error } = await ctx.service
-    .from('sfi_assets')
-    .insert({
-      asset_id: assetId,
-      owner_user_id: ctx.user.id,
-      target_system: targetSystem,
-      objective,
-      state_vector: stateVector,
-      current_phase: currentPhase,
-      metadata,
-    })
-    .select('*')
-    .single();
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-
-  const payload = { target_system: targetSystem, objective, state_vector: stateVector, current_phase: currentPhase };
-  await ctx.service.from('sfi_logbook').insert({
-    asset_id: assetId,
-    event_type: 'ASSET_CREATED',
-    payload,
-    created_by: ctx.user.id,
-    hash: hashPayload(payload),
-  });
-
-  return NextResponse.json({ asset }, { status: 201 });
+  return NextResponse.json({
+    error: 'asset_write_schema_not_reconciled',
+    message: 'Asset writes are blocked until the route is mapped to the current action_proposals / graph / logbook schema. No missing licenses or sfi_assets table is touched.',
+  }, { status: 501 });
 }
