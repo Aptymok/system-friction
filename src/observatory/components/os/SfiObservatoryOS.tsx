@@ -134,6 +134,7 @@ const NODE_TYPES: Record<string, { label: string; ring: string; color: string; d
 };
 
 const COMMANDS = ['/observe', '/propose', '/project', '/simulate', '/mutate', '/inhibit', '/visualize', '/calendar', '/explain'];
+const REGIME_CHIPS = ['Observación', 'Contradicción', 'Energía', 'Validación', 'Temporalidad', 'Gobernanza'];
 
 function isRecord(value: unknown): value is JsonRecord {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
@@ -185,10 +186,10 @@ function stateTone(state: unknown) {
 
 function edgeStyle(edge: GraphEdge) {
   const relation = stringValue(edge.relation, stringValue(edge.attributes?.canvasKind, 'inferred'));
-  if (relation.includes('causal_verified')) return { stroke: '#ef4444', width: 2.2, dash: '' };
-  if (relation.includes('correlational_observed') || relation.includes('resonance')) return { stroke: '#f59e0b', width: 1.3, dash: '4 4' };
-  if (relation.includes('structural') || relation.includes('structural_inferred')) return { stroke: '#2dd4bf', width: 1.1, dash: '' };
-  return { stroke: '#71717a', width: 0.8, dash: '2 6' };
+  if (relation.includes('causal_verified')) return { stroke: '#ef4444', width: 0.9, dash: '' };
+  if (relation.includes('correlational_observed') || relation.includes('resonance')) return { stroke: '#f59e0b', width: 0.55, dash: '4 4' };
+  if (relation.includes('structural') || relation.includes('structural_inferred')) return { stroke: '#2dd4bf', width: 0.45, dash: '' };
+  return { stroke: '#71717a', width: 0.35, dash: '2 6' };
 }
 
 function nodeType(node: GraphNode) {
@@ -338,7 +339,7 @@ export function SfiObservatoryOS() {
   const [highlight, setHighlight] = useState<string[]>([]);
   const [drawer, setDrawer] = useState<DrawerState | null>(null);
   const [command, setCommand] = useState('/observe ');
-  const [commandState, setCommandState] = useState<CommandState>({ status: 'idle', message: 'FIELD LINK WAITING' });
+  const [commandState, setCommandState] = useState<CommandState>({ status: 'idle', message: 'El campo está listo para observación' });
   const [authForm, setAuthForm] = useState({ email: '', password: '' });
   const [authMessage, setAuthMessage] = useState<string | null>(null);
   const [readOnlyField, setReadOnlyField] = useState(false);
@@ -362,7 +363,7 @@ export function SfiObservatoryOS() {
     if (observatoryResult.status === 200 && isRecord(observatoryResult.body) && isRecord(observatoryResult.body.data)) {
       setObservatory(observatoryResult.body.data as ObservatoryState);
       setLoadState('ready');
-      setCommandState((prev) => prev.status === 'running' ? { status: 'done', message: 'FIELD LINK ESTABLISHED' } : prev);
+      setCommandState((prev) => prev.status === 'running' ? { status: 'done', message: 'El campo está listo para observación' } : prev);
     } else {
       setLoadState('degraded');
       setLoadError(stringValue(isRecord(observatoryResult.body) ? observatoryResult.body.error : null, 'observatory_state_unavailable'));
@@ -436,15 +437,15 @@ export function SfiObservatoryOS() {
     const [verb, ...rest] = command.trim().split(/\s+/);
     const text = rest.join(' ').trim() || 'constitutional observation';
     if (blindMode && verb !== '/observe' && verb !== '/explain') {
-      setCommandState({ status: 'error', message: 'LOCKED BY GOVERNANCE' });
+      setCommandState({ status: 'error', message: 'Gobernanza bloquea esta acción' });
       return;
     }
     if (auth.status !== 'authenticated' && verb !== '/observe' && verb !== '/explain') {
-      setCommandState({ status: 'error', message: 'CONSTITUTIONAL ACCESS REQUIRED' });
+      setCommandState({ status: 'error', message: 'Autenticación requerida para modificar el campo' });
       return;
     }
 
-    setCommandState({ status: 'running', message: 'COMMAND UNDER POLICY' });
+    setCommandState({ status: 'running', message: 'Procesando observación bajo política' });
     try {
       if (verb === '/observe') {
         await refresh();
@@ -463,10 +464,10 @@ export function SfiObservatoryOS() {
       } else if (verb === '/explain') {
         setDrawer({ title: 'STATE EXPLANATION · DERIVED', payload: { source: 'observatory_state', observatory, systemIntegrity: integrity }, lineage: [] });
       } else {
-        throw new Error('UNKNOWN CONSTITUTIONAL COMMAND');
+        throw new Error('Comando no reconocido por el observatorio');
       }
       await refresh();
-      setCommandState({ status: 'done', message: 'PROPOSAL RECORDED UNDER POLICY' });
+      setCommandState({ status: 'done', message: 'Observación registrada en el campo' });
     } catch (error) {
       setCommandState({ status: 'error', message: error instanceof Error ? error.message : 'COMMAND FAILED' });
     }
@@ -474,7 +475,7 @@ export function SfiObservatoryOS() {
 
   async function reviewMutation(proposalId: string, action: 'accept' | 'reject') {
     if (blindMode) {
-      setCommandState({ status: 'error', message: 'LOCKED BY GOVERNANCE' });
+      setCommandState({ status: 'error', message: 'Gobernanza bloquea esta acción' });
       return;
     }
     setCommandState({ status: 'running', message: `${action.toUpperCase()} UNDER POLICY` });
@@ -517,6 +518,7 @@ export function SfiObservatoryOS() {
             multimediaCount={records(observatory?.multimedia).length}
             sandboxCount={records(observatory?.sandbox).length}
             highlight={highlight}
+            publicReading={publicFieldReading(observatory)}
             onNode={(node) => setDrawer({ title: `${node.label} · ${nodeType(node)}`, payload: { node, provenance: node.provenance ?? 'graph_nodes' }, lineage: node.lineage ?? [] })}
           />
           <CausalMemory
@@ -595,7 +597,7 @@ function TopBar(props: {
           <StatusPill label="FIELD" value={stringValue(props.graphState, 'missing')} />
           <StatusPill label="KERNEL" value={props.kernelStatus} />
           <StatusPill label="CONF" value={props.confidence === null ? 'missing' : percent(props.confidence)} state={props.confidence !== null && props.confidence < 0.45 ? 'degraded' : 'observed'} />
-          <StatusPill label="MIHM" value={percent(props.mihmCapacity)} state={props.mihmCapacity ? 'observed' : 'missing'} />
+          <StatusPill label="MIHM" value={props.mihmCapacity ? percent(props.mihmCapacity) : 'latente'} state={props.mihmCapacity ? 'observed' : 'latent'} />
           <StatusPill label="SOURCE" value={props.sourceState} />
           <StatusPill label="ACP" value={acp} icon={props.governance?.blindMode ? <Lock className="h-3 w-3" /> : undefined} />
           <StatusPill label="INTEGRITY" value={props.integrity.value === null ? 'missing' : percent(props.integrity.value)} state={props.integrity.label} />
@@ -639,10 +641,10 @@ function RuntimeLayer({ data, bootstrap, onHighlight }: { data: ObservatoryState
         ['eventId', shortHash(kernel.epistemicEventId ?? kernel.event_id)],
       ]} />
       <RuntimeModule title="MIHM" source="kernel.mihm | mihm.latest" onClick={() => onHighlight(['INF', 'PERC', 'CULT', 'BIO'])} rows={[
-        ['regime', mihm.regime ?? 'missing'],
+        ['regime', mihm.regime ?? 'latente'],
         ['capacity', percent(mihm.operationalCapacity ?? mihm.capacity)],
-        ['degradation', mihm.degradation ?? 'missing'],
-        ['vector', isRecord(mihm.homeostatic_vector) ? Object.keys(mihm.homeostatic_vector).join(', ') || 'empty' : 'missing'],
+        ['degradation', mihm.degradation ?? 'latente'],
+        ['vector', isRecord(mihm.homeostatic_vector) ? Object.keys(mihm.homeostatic_vector).join(', ') || 'empty' : 'latente'],
       ]} />
       <RuntimeModule title="DELTA" source="kernel.delta | latestProposals" rows={[
         ['pending', records(data?.latestProposals).filter((row) => ['queued', 'proposed'].includes(stringValue(row.status, '').toLowerCase())).length],
@@ -738,6 +740,12 @@ function CognitiveField(props: {
         <LayerMark label="SIMULATION SHADOW" active={props.sandboxCount > 0} />
         <LayerMark label="MUTATION VECTOR" active={props.approvedMutations > 0} />
         <LayerMark label="PERCEPTUAL LAYER" active={props.multimediaCount > 0} />
+      </div>
+      <div className="absolute left-4 top-20 z-10 max-w-sm border border-white/10 bg-black/45 p-3 backdrop-blur">
+        <p className="font-mono text-[9px] uppercase text-teal-100">Public Field Reading</p>
+        <ul className="mt-2 space-y-1 font-mono text-[10px] leading-relaxed text-zinc-300">
+          {props.publicReading.map((line) => <li key={line}>{line}</li>)}
+        </ul>
       </div>
       <svg viewBox="0 0 100 100" className="absolute inset-0 h-full w-full">
         <defs>
@@ -870,23 +878,24 @@ function ConstitutionalInput(props: {
       <form onSubmit={props.onSubmit} className="flex flex-col gap-3 lg:flex-row lg:items-center">
         <div className="flex items-center gap-3 font-mono text-[10px] uppercase text-zinc-500">
           {props.blindMode ? <Lock className="h-4 w-4 text-red-200" /> : <Terminal className="h-4 w-4 text-teal-100" />}
-          <span>{props.blindMode ? 'LOCKED BY GOVERNANCE' : 'INPUT CONSTITUTIONAL'}</span>
+          <span>{props.blindMode ? 'Gobernanza bloquea esta acción' : 'Observación del campo'}</span>
         </div>
         <input
           value={props.command}
           onChange={(event) => props.setCommand(event.target.value)}
           disabled={props.blindMode}
           className="min-w-0 flex-1 border border-white/10 bg-black/40 px-3 py-3 font-mono text-xs text-paper outline-none focus:border-teal-200/40 disabled:cursor-not-allowed disabled:border-red-300/20 disabled:text-red-100"
-          aria-label="constitutional command"
+          aria-label="observación narrativa del campo"
+          placeholder="Describe qué quieres observar del campo…"
         />
         <button type="submit" disabled={props.blindMode} className="inline-flex items-center justify-center gap-2 border border-teal-200/30 bg-teal-200/10 px-4 py-3 font-mono text-[10px] uppercase text-teal-100 disabled:border-red-300/20 disabled:bg-red-300/10 disabled:text-red-100">
-          <Play className="h-3 w-3" /> Execute
+          <Play className="h-3 w-3" /> Observar
         </button>
       </form>
       <div className="mt-2 flex flex-wrap items-center gap-2">
         {COMMANDS.map((cmd) => <button key={cmd} type="button" onClick={() => props.setCommand(`${cmd} `)} className="border border-white/10 px-2 py-1 font-mono text-[8px] uppercase text-zinc-500 hover:text-paper">{cmd}</button>)}
         <span className={`ml-auto font-mono text-[9px] uppercase ${props.state.status === 'error' ? 'text-red-200' : props.state.status === 'done' ? 'text-teal-100' : 'text-zinc-500'}`}>
-          {props.authenticated ? props.state.message : 'READ MODE · AUTH REQUIRED FOR MUTATION'}
+          {props.authenticated ? props.state.message : 'Modo lectura · autentica para modificar el campo'}
         </span>
       </div>
     </footer>
