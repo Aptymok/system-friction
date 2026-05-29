@@ -30,10 +30,13 @@ export function buildMihmRuntimeMatrix(input: {
   const observed = latest(input.mihmAnalyses);
   if (observed) {
     const payload = asRecord(observed.payload || observed.result || observed.analysis);
-    const ihg = pickNumber(observed, ['ihg', 'IHG']) ?? pickNumber(payload, ['ihg', 'IHG']);
-    const nti = pickNumber(observed, ['nti', 'NTI', 'nti_obs']) ?? pickNumber(payload, ['nti', 'NTI', 'NTI_obs']);
-    const ldi = pickNumber(observed, ['ldi', 'LDI', 'ldi_hours']) ?? pickNumber(payload, ['ldi', 'LDI', 'LDI_hours']);
-    const phi = pickNumber(observed, ['phi', 'PHI_SF']) ?? pickNumber(payload, ['phi', 'PHI_SF']);
+    const vector = asRecord(observed.homeostatic_vector || payload.homeostatic_vector || payload.homeostaticVector);
+    const visible = asRecord(observed.visible_variables || payload.visible_variables || payload.visibleVariables);
+    const sensitive = asRecord(observed.sensitive_variables || payload.sensitive_variables || payload.sensitiveVariables);
+    const ihg = pickNumber(observed, ['ihg', 'IHG']) ?? pickNumber(vector, ['ihg', 'IHG']);
+    const nti = pickNumber(observed, ['nti', 'NTI', 'nti_obs']) ?? pickNumber(vector, ['nti', 'NTI', 'NTI_obs']);
+    const ldi = pickNumber(observed, ['ldi', 'LDI', 'ldi_hours']) ?? pickNumber(vector, ['ldi', 'LDI', 'LDI_hours']);
+    const phi = pickNumber(observed, ['phi', 'PHI_SF']) ?? pickNumber(vector, ['phi', 'PHI_SF']);
     return {
       ihg,
       nti,
@@ -41,8 +44,8 @@ export function buildMihmRuntimeMatrix(input: {
       phi,
       regime: stringValue(observed.regime, payload.regime, regimeFrom(ihg, nti, ldi)) ?? regimeFrom(ihg, nti, ldi),
       sourceState: 'observed',
-      contributingNodes: asStringArray(payload.contributingNodes),
-      contributingEvidence: asStringArray(payload.contributingEvidence),
+      contributingNodes: asStringArray(visible.contributingNodes || visible.nodes),
+      contributingEvidence: asStringArray(visible.contributingEvidence || visible.evidence).concat(asStringArray(sensitive.evidence)),
       warnings,
     };
   }
