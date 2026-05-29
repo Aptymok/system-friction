@@ -12,6 +12,7 @@ export async function POST(req: Request) {
   const contentType = req.headers.get('content-type') ?? '';
   const input = contentType.includes('application/json') ? await req.json().catch(() => ({})) : await req.text();
   const analysis = analyzeMihmInput(input);
+  const inputKind = contentType.includes('application/json') ? 'json' : 'text';
   const event = await appendOperationalEvent({
     eventName: 'mihm.analysis.created',
     actorId: gate.ctx.user.id,
@@ -21,21 +22,31 @@ export async function POST(req: Request) {
   });
   if (!event.ok) return NextResponse.json(event, { status: 400 });
 
+  const visibleVariables = {
+    detected_dimensions: analysis.detected_dimensions,
+    claims: analysis.claims,
+    evidence: analysis.evidence,
+    source: 'api_mihm_process',
+  };
+  const sensitiveVariables = {
+    tensions: analysis.tensions,
+    risks: analysis.risks,
+    actor_id: gate.ctx.user.id,
+    payload: { input: recordValue(input), contentType },
+  };
+
   const service = createServiceSupabaseClient();
   const { data, error } = await service
     .from('mihm_analyses')
     .insert({
       event_id: event.data.id,
-      actor_id: gate.ctx.user.id,
-      input_hash: analysis.input_hash,
-      detected_dimensions: analysis.detected_dimensions,
-      claims: analysis.claims,
-      evidence: analysis.evidence,
-      tensions: analysis.tensions,
-      risks: analysis.risks,
+      input_kind: inputKind,
+      input_ref: analysis.input_hash,
+      visible_variables: visibleVariables,
+      sensitive_variables: sensitiveVariables,
       confidence: analysis.confidence,
       homeostatic_vector: analysis.homeostatic_vector,
-      payload: { input: recordValue(input), contentType },
+      uncertainty: analysis.confidence >= 0.7 ? 'low' : analysis.confidence >= 0.45 ? 'medium' : 'high',
     })
     .select('*')
     .single();
