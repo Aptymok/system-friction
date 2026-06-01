@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { appendOperationalEvent, requireGovernedActor, updateActionProposalStatus } from '@/lib/operational/common';
+import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 
 export const dynamic = 'force-dynamic';
 
@@ -45,11 +46,24 @@ function buildExecutionPlan(input: Record<string, unknown>) {
       'await_explicit_execution_authorization',
     ],
     guardrails: [
-      'do_not_execute_external_action',
-      'do_not_mutate_field_without_followup_approval',
+      'no_external_execution',
+      'no_field_mutation_without_followup_approval',
       'preserve_audit_trail',
     ],
   };
+}
+
+async function readProposalForPlan(proposalId: string) {
+  const service = createServiceSupabaseClient();
+  const { data, error } = await service
+    .from('action_proposals')
+    .select('*')
+    .eq('id', proposalId)
+    .eq('status', 'design_approved')
+    .maybeSingle();
+
+  if (error) return { data: null, error: error.message };
+  return { data, error: null };
 }
 
 export async function POST(req: Request, ctx: RouteContext) {
@@ -62,6 +76,11 @@ export async function POST(req: Request, ctx: RouteContext) {
 
   const body = await req.json().catch(() => ({}));
   const note = typeof body.note === 'string' && body.note.trim().length > 0 ? body.note.trim() : null;
+  const existing = await readProposalForPlan(proposalId);
+  if (existing.error) return NextResponse.json({ ok: false, error: 'proposal_lookup_failed', details: existing.error }, { status: 400 });
+  if (!existing.data) return NextResponse.json({ ok: false, error: 'action_proposal_not_found_or_forbidden' }, { status: 400 });
+
+  const executionPlan = buildExecutionPlan(asRecord(existing.data));
 
   const event = await appendOperationalEvent({
     eventName: 'acp.proposal.execution_prepared',
@@ -72,6 +91,7 @@ export async function POST(req: Request, ctx: RouteContext) {
       status: 'queued',
       preparation_only: true,
       execution_allowed: false,
+      executionPlan,
       note,
     },
     lineage: [proposalId],
@@ -89,13 +109,13 @@ export async function POST(req: Request, ctx: RouteContext) {
     payloadPatch: {
       preparationOnly: true,
       executionAllowed: false,
+      executionPlan,
       note,
     },
   });
 
   if (!proposal.ok) return NextResponse.json(proposal, { status: 400 });
 
-  const executionPlan = buildExecutionPlan(asRecord(proposal.data));
   return NextResponse.json({
     ok: true,
     data: {
