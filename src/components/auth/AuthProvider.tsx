@@ -66,9 +66,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return data?.role || 'observer'
     }
 
-    supabase.auth
-      .getSession()
-      .then(async ({ data, error }) => {
+    async function hydrateSession() {
+      try {
+        const { data, error } = await supabase.auth.getSession()
         if (!active) return
         if (error) {
           await supabase.auth.signOut()
@@ -77,45 +77,50 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return
         }
         let role = null
-        if (data.session) {
-          role = await fetchUserRole(data.session.user.id)
-        }
+        if (data.session) role = await fetchUserRole(data.session.user.id)
+        if (!active) return
         setState({
           session: data.session,
           status: data.session ? 'authenticated' : 'anonymous',
           userRole: role,
         })
-      })
-      .catch(async () => {
+      } catch {
         if (!active) return
         await supabase.auth.signOut()
         setState({ session: null, status: 'anonymous', userRole: null })
         router.refresh()
-      })
+      }
+    }
+
+    void hydrateSession()
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      let role = null
-      if (session) {
-        role = await fetchUserRole(session.user.id)
-      }
+    } = supabase.auth.onAuthStateChange((event, session) => {
       setState({
         session,
         status: session ? 'authenticated' : 'anonymous',
-        userRole: role,
+        userRole: session ? 'observer' : null,
       })
 
-      if (event === 'SIGNED_IN') {
-        router.refresh()
-        if (AUTH_ROUTES.has(pathname)) router.replace(postAuthPath(role, session?.user.email))
-      }
+      window.setTimeout(() => {
+        if (!active) return
+        if (event === 'SIGNED_IN' && session) {
+          void fetchUserRole(session.user.id).then((role) => {
+            if (!active) return
+            setState({ session, status: 'authenticated', userRole: role })
+            router.refresh()
+            if (AUTH_ROUTES.has(pathname)) router.replace(postAuthPath(role, session.user.email))
+          })
+          return
+        }
 
-      if (event === 'SIGNED_OUT') {
-        setState({ session: null, status: 'anonymous', userRole: null })
-        router.refresh()
-        if (pathname.startsWith('/root') || pathname.startsWith('/user')) router.replace('/login')
-      }
+        if (event === 'SIGNED_OUT') {
+          setState({ session: null, status: 'anonymous', userRole: null })
+          router.refresh()
+          if (pathname.startsWith('/root') || pathname.startsWith('/user')) router.replace('/login')
+        }
+      }, 0)
     })
 
     return () => {
