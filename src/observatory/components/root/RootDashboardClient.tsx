@@ -10,6 +10,7 @@ import { LiturgiaDiagnosticPanel } from '@/observatory/components/root/LiturgiaD
 import { AcpProposalConsole } from '@/observatory/components/root/AcpProposalConsole';
 import { AcpAgentRegistryPanel } from '@/observatory/components/root/AcpAgentRegistryPanel';
 import { NodeClusterSurface } from '@/observatory/components/root/NodeClusterSurface';
+import { TwinInteractionPanel } from '@/observatory/components/root/TwinInteractionPanel';
 
 type ModuleId = 'campo' | 'grafo' | 'twin' | 'propuestas' | 'perturbaciones' | 'artefactos' | 'agentes' | 'evidencia' | 'diagnostico';
 
@@ -132,33 +133,6 @@ function ArtifactPanel() {
             <button type="button" className="mt-4 w-full border border-[#8a7035] bg-[#2e2410] px-3 py-2 font-mono text-[8px] uppercase tracking-[0.16em] text-[#c8a951]">{artifact.action}</button>
           </article>
         ))}
-      </div>
-    </section>
-  );
-}
-
-function TwinInteractionPanel() {
-  const prompts = [
-    '¿Qué parte del campo no estoy viendo?',
-    'Propón una perturbación mínima verificable.',
-    '¿Qué ruta escogerías tú y por qué?',
-    'Clasifica esta anomalía: Atlas, Cuadernillo o Sobre Negro.',
-  ];
-  return (
-    <section className="border border-[#1e1c17] bg-[#0e0d0b]">
-      <div className="border-b border-[#1e1c17] px-4 py-3">
-        <p className="font-mono text-[8px] uppercase tracking-[0.22em] text-[#8a7035]">Twin Conversacional ACP</p>
-        <h2 className="mt-1 font-serif text-lg text-[#c8a951]">Interacción con el campo</h2>
-        <p className="mt-1 font-mono text-[9px] tracking-[0.08em] text-[#7a7568]">Debe responder sobre SFI, sobre el campo, sobre tu historia operativa y sobre la decisión siguiente.</p>
-      </div>
-      <div className="p-3">
-        <textarea className="min-h-28 w-full resize-none border border-[#1e1c17] bg-[#060605] p-3 font-mono text-xs text-[#ccc8bc] outline-none placeholder:text-[#35312a] focus:border-[#8a7035]" placeholder="Pregunta al Twin como ACP: describe el campo, solicita dirección, pide perturbación o exige clasificación…" />
-        <div className="mt-2 grid grid-cols-1 gap-1 md:grid-cols-2">
-          {prompts.map((prompt) => (
-            <button key={prompt} type="button" className="border border-[#1e1c17] bg-[#131210] px-3 py-2 text-left font-mono text-[9px] text-[#7a7568] hover:border-[#8a7035] hover:text-[#c8a951]">{prompt}</button>
-          ))}
-        </div>
-        <button type="button" className="mt-3 border border-[#8a7035] bg-[#2e2410] px-4 py-2 font-mono text-[9px] uppercase tracking-[0.16em] text-[#c8a951]">Enviar al Twin</button>
       </div>
     </section>
   );
