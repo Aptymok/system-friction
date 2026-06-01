@@ -19,6 +19,25 @@ async function sha256(input: string) {
   return Array.from(new Uint8Array(digest)).map((byte) => byte.toString(16).padStart(2, '0')).join('');
 }
 
+function isRootIdentity(role?: string | null, email?: string | null) {
+  return role === 'root' || role === 'system' || email?.toLowerCase() === 'aptymok@gmail.com';
+}
+
+async function resolvePostLoginPath(supabase: NonNullable<ReturnType<typeof createBrowserSupabaseClient>>) {
+  const { data: userData } = await supabase.auth.getUser();
+  const user = userData.user;
+  if (!user) return '/login';
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('user_id', user.id)
+    .maybeSingle();
+
+  if (isRootIdentity(profile?.role, user.email)) return '/root';
+  return '/user';
+}
+
 export default function ThresholdAccess({ error }: { error?: string }) {
   const router = useRouter();
   const supabase = createBrowserSupabaseClient();
@@ -38,8 +57,8 @@ export default function ThresholdAccess({ error }: { error?: string }) {
     if (!supabase) return;
     supabase.auth
       .getSession()
-      .then(({ data }) => {
-        if (data.session) router.replace('/terminal');
+      .then(async ({ data }) => {
+        if (data.session) router.replace(await resolvePostLoginPath(supabase));
       })
       .catch(() => {
         void supabase.auth.signOut();
@@ -103,7 +122,7 @@ export default function ThresholdAccess({ error }: { error?: string }) {
     });
 
     router.refresh();
-    router.replace('/terminal');
+    router.replace(await resolvePostLoginPath(supabase));
   };
 
   return (
