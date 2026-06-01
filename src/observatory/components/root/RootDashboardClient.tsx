@@ -9,6 +9,7 @@ import { OperationalActivationPanel } from '@/observatory/components/root/Operat
 import { LiturgiaDiagnosticPanel } from '@/observatory/components/root/LiturgiaDiagnosticPanel';
 import { AcpProposalConsole } from '@/observatory/components/root/AcpProposalConsole';
 import { AcpAgentRegistryPanel } from '@/observatory/components/root/AcpAgentRegistryPanel';
+import { NodeClusterSurface } from '@/observatory/components/root/NodeClusterSurface';
 
 type ModuleId = 'campo' | 'grafo' | 'twin' | 'propuestas' | 'perturbaciones' | 'artefactos' | 'agentes' | 'evidencia' | 'diagnostico';
 
@@ -33,7 +34,7 @@ type TwinState = {
 
 const MODULES: Array<{ id: ModuleId; label: string; badge: string }> = [
   { id: 'campo', label: 'Campo', badge: 'lectura' },
-  { id: 'grafo', label: 'Grafo', badge: 'nodos' },
+  { id: 'grafo', label: 'Grafo', badge: 'clusters' },
   { id: 'twin', label: 'Twin', badge: 'respuesta' },
   { id: 'propuestas', label: 'Propuestas', badge: 'ACP' },
   { id: 'perturbaciones', label: 'Perturbaciones', badge: 'sandbox' },
@@ -42,19 +43,6 @@ const MODULES: Array<{ id: ModuleId; label: string; badge: string }> = [
   { id: 'evidencia', label: 'Evidencia', badge: 'hub' },
   { id: 'diagnostico', label: 'Diagnóstico', badge: 'loop' },
 ];
-
-const CORE_NODES = [
-  ['ACP', 'Asiento Cognitivo Primario', 50, 14, 'alta'],
-  ['PERC', 'Percepción', 25, 30, 'alta'],
-  ['CULT', 'Cultura', 73, 29, 'media'],
-  ['INF', 'Información', 80, 52, 'media'],
-  ['AGT', 'Agencia', 64, 76, 'baja'],
-  ['ECON', 'Economía', 25, 76, 'media'],
-  ['BIO', 'Biología', 14, 55, 'baja'],
-  ['DIG', 'Digital', 50, 90, 'alta'],
-  ['INST', 'Institución', 88, 18, 'media'],
-  ['MIHM', 'Matriz Runtime', 50, 50, 'alta'],
-] as const;
 
 const LAYERS = ['Observación', 'Contradicción', 'Energía', 'Validación', 'Temporalidad', 'Gobernanza', 'Memoria', 'Evidencia'];
 
@@ -106,43 +94,6 @@ function ModuleButton({ active, label, badge, onClick }: { active: boolean; labe
       <span className="ml-2 border border-current px-1.5 py-px text-[7px] opacity-60">{badge}</span>
       {active ? <span className="absolute inset-x-0 bottom-0 h-px bg-[#c8a951]" /> : null}
     </button>
-  );
-}
-
-function FieldGraph({ totalNodes }: { totalNodes: number }) {
-  return (
-    <div className="relative min-h-[380px] overflow-hidden border-b border-[#1e1c17] bg-[#0a0a09] md:min-h-[460px]">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(200,169,81,0.09),transparent_47%)]" />
-      <div className="absolute inset-0 opacity-[0.04] [background-image:linear-gradient(#c8a951_1px,transparent_1px),linear-gradient(90deg,#c8a951_1px,transparent_1px)] [background-size:140px_92px]" />
-      <svg className="relative h-[380px] w-full md:h-[460px]" viewBox="0 0 700 460" role="img" aria-label="SFI ACP field graph">
-        <defs>
-          <radialGradient id="sfi-node-glow" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="#c8a951" stopOpacity="0.15" />
-            <stop offset="100%" stopColor="#c8a951" stopOpacity="0" />
-          </radialGradient>
-        </defs>
-        <g stroke="#c8a951" strokeOpacity="0.28">
-          {CORE_NODES.filter((node) => node[0] !== 'MIHM').map((node) => (
-            <line key={`edge-${node[0]}`} x1="350" y1="230" x2={(node[2] / 100) * 700} y2={(node[3] / 100) * 460} strokeWidth={node[4] === 'alta' ? 0.9 : node[4] === 'media' ? 0.55 : 0.35} strokeDasharray={node[4] === 'baja' ? '3 7' : undefined} />
-          ))}
-        </g>
-        <circle cx="350" cy="230" r="62" fill="url(#sfi-node-glow)" stroke="#c8a951" strokeOpacity="0.45" strokeWidth="1" />
-        <circle cx="350" cy="230" r="8" fill="#c8a951" opacity="0.9" />
-        <text x="350" y="222" textAnchor="middle" fontFamily="JetBrains Mono" fontSize="10" fill="#c8a951" fontWeight="700">MIHM</text>
-        <text x="350" y="240" textAnchor="middle" fontFamily="JetBrains Mono" fontSize="7" fill="#8a7035">runtime matrix</text>
-        {CORE_NODES.filter((node) => node[0] !== 'MIHM').map(([id, label, x, y, pressure]) => (
-          <g key={id}>
-            <circle cx={(x / 100) * 700} cy={(y / 100) * 460} r={pressure === 'alta' ? 19 : pressure === 'media' ? 15 : 12} fill="rgba(200,169,81,.055)" stroke="#c8a951" strokeOpacity={pressure === 'alta' ? 0.85 : 0.55} strokeWidth={pressure === 'alta' ? 1 : 0.65} />
-            <text x={(x / 100) * 700} y={(y / 100) * 460 - 3} textAnchor="middle" fontFamily="JetBrains Mono" fontSize="7.5" fill="#c8a951">{id}</text>
-            <text x={(x / 100) * 700} y={(y / 100) * 460 + 10} textAnchor="middle" fontFamily="JetBrains Mono" fontSize="5.5" fill="#8a7035">{label}</text>
-          </g>
-        ))}
-        <rect x="20" y="436" width="300" height="1" fill="#1e1c17" />
-        <rect x="20" y="436" width={Math.max(40, Math.min(300, totalNodes * 1.2))} height="1" fill="#c8a951" opacity="0.8" />
-        <text x="20" y="454" fontFamily="JetBrains Mono" fontSize="7" fill="#8a7035">catálogo observado · {totalNodes || '—'} nodos</text>
-        <text x="250" y="454" fontFamily="JetBrains Mono" fontSize="7" fill="#8a7035">posiciones core · no aleatorias · falta layout por cluster</text>
-      </svg>
-    </div>
   );
 }
 
@@ -320,7 +271,7 @@ export function RootDashboardClient() {
             <div className="ml-auto px-4 py-2">Kernel <span className="ml-2 text-[#c8a951]">gobernado</span></div>
           </div>
 
-          {(activeModule === 'campo' || activeModule === 'grafo') ? <FieldGraph totalNodes={counts.nodes} /> : null}
+          {(activeModule === 'campo' || activeModule === 'grafo') ? <NodeClusterSurface twin={twin} /> : null}
 
           <div className="space-y-4 p-4">
             {activeModule === 'campo' ? (
