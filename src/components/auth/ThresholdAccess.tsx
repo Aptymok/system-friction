@@ -23,16 +23,26 @@ function isRootIdentity(role?: string | null, email?: string | null) {
   return role === 'root' || role === 'system' || email?.toLowerCase() === 'aptymok@gmail.com';
 }
 
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = window.setTimeout(() => reject(new Error(label)), ms);
+    promise
+      .then((value) => resolve(value))
+      .catch((error) => reject(error))
+      .finally(() => window.clearTimeout(timer));
+  });
+}
+
 async function resolvePostLoginPath(supabase: NonNullable<ReturnType<typeof createBrowserSupabaseClient>>) {
-  const { data: userData } = await supabase.auth.getUser();
+  const { data: userData } = await withTimeout(supabase.auth.getUser(), 5000, 'AUTH_USER_TIMEOUT');
   const user = userData.user;
   if (!user) return '/login';
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('user_id', user.id)
-    .maybeSingle();
+  const { data: profile } = await withTimeout(
+    supabase.from('profiles').select('role').eq('user_id', user.id).maybeSingle(),
+    5000,
+    'PROFILE_ROLE_TIMEOUT',
+  );
 
   if (isRootIdentity(profile?.role, user.email)) return '/root';
   return '/user';
@@ -83,46 +93,49 @@ export default function ThresholdAccess({ error }: { error?: string }) {
       return;
     }
 
-    for (let i = 0; i < steps.length - 1; i += 1) {
-      setStepIndex(i);
-      await new Promise((resolve) => setTimeout(resolve, 180));
-    }
+    try {
+      for (let i = 0; i < steps.length - 1; i += 1) {
+        setStepIndex(i);
+        await new Promise((resolve) => setTimeout(resolve, 180));
+      }
 
-    const { error: signInError } = await supabase.auth.signInWithPassword({
-      email: identifier,
-      password,
-    });
+      const { error: signInError } = await withTimeout(
+        supabase.auth.signInWithPassword({ email: identifier, password }),
+        10000,
+        'SIGN_IN_TIMEOUT',
+      );
 
-    if (signInError) {
+      if (signInError) {
+        setStepIndex(-1);
+        setMessage(signInError.message);
+        return;
+      }
+
+      setStepIndex(steps.length - 1);
+      const now = Date.now();
+      const telemetry = {
+        time_to_first_key: firstKeyAt.current ? Number(((firstKeyAt.current - startedAt.current) / 1000).toFixed(3)) : null,
+        typing_latency: latencies.current.length
+          ? Number((latencies.current.reduce((sum, value) => sum + value, 0) / latencies.current.length).toFixed(2))
+          : null,
+        backspace_count: backspaceCount,
+        field_abandonment: fieldAbandonment,
+        submit_attempts: submitAttempts + 1,
+        total_seconds: Number(((now - startedAt.current) / 1000).toFixed(3)),
+      };
+
+      void fetch('/api/auth/threshold', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email_hash: await sha256(identifier), telemetry }),
+      });
+
+      router.refresh();
+      router.replace(await resolvePostLoginPath(supabase));
+    } catch (loginError) {
       setStepIndex(-1);
-      setMessage(signInError.message);
-      return;
+      setMessage(loginError instanceof Error ? loginError.message : 'LOGIN_FLOW_FAILED');
     }
-
-    setStepIndex(steps.length - 1);
-    const now = Date.now();
-    const telemetry = {
-      time_to_first_key: firstKeyAt.current ? Number(((firstKeyAt.current - startedAt.current) / 1000).toFixed(3)) : null,
-      typing_latency: latencies.current.length
-        ? Number((latencies.current.reduce((sum, value) => sum + value, 0) / latencies.current.length).toFixed(2))
-        : null,
-      backspace_count: backspaceCount,
-      field_abandonment: fieldAbandonment,
-      submit_attempts: submitAttempts + 1,
-      total_seconds: Number(((now - startedAt.current) / 1000).toFixed(3)),
-    };
-
-    await fetch('/api/auth/threshold', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        email_hash: await sha256(identifier),
-        telemetry,
-      }),
-    });
-
-    router.refresh();
-    router.replace(await resolvePostLoginPath(supabase));
   };
 
   return (
