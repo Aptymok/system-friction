@@ -10,7 +10,7 @@ import { LiturgiaDiagnosticPanel } from '@/observatory/components/root/LiturgiaD
 import { AcpProposalConsole } from '@/observatory/components/root/AcpProposalConsole';
 import { AcpAgentRegistryPanel } from '@/observatory/components/root/AcpAgentRegistryPanel';
 
-type ModuleId = 'campo' | 'grafo' | 'twin' | 'propuestas' | 'perturbaciones' | 'artefactos' | 'agentes' | 'evidencia';
+type ModuleId = 'campo' | 'grafo' | 'twin' | 'propuestas' | 'perturbaciones' | 'artefactos' | 'agentes' | 'evidencia' | 'diagnostico';
 
 type TwinState = {
   ok?: boolean;
@@ -40,6 +40,7 @@ const MODULES: Array<{ id: ModuleId; label: string; badge: string }> = [
   { id: 'artefactos', label: 'Atlas · Cuadernillo · Sobre Negro', badge: 'PCP' },
   { id: 'agentes', label: 'Agentes', badge: 'multi' },
   { id: 'evidencia', label: 'Evidencia', badge: 'hub' },
+  { id: 'diagnostico', label: 'Diagnóstico', badge: 'loop' },
 ];
 
 const CORE_NODES = [
@@ -97,7 +98,7 @@ function ModuleButton({ active, label, badge, onClick }: { active: boolean; labe
     <button
       type="button"
       onClick={onClick}
-      className={`relative h-full border-r border-[#1e1c17] px-4 font-mono text-[9px] uppercase tracking-[0.14em] transition ${
+      className={`relative h-full shrink-0 border-r border-[#1e1c17] px-4 font-mono text-[9px] uppercase tracking-[0.14em] transition ${
         active ? 'bg-[#c8a951]/5 text-[#c8a951]' : 'text-[#35312a] hover:bg-[#c8a951]/[0.03] hover:text-[#7a7568]'
       }`}
     >
@@ -110,10 +111,10 @@ function ModuleButton({ active, label, badge, onClick }: { active: boolean; labe
 
 function FieldGraph({ totalNodes }: { totalNodes: number }) {
   return (
-    <div className="relative min-h-[460px] overflow-hidden border-b border-[#1e1c17] bg-[#0a0a09]">
+    <div className="relative min-h-[380px] overflow-hidden border-b border-[#1e1c17] bg-[#0a0a09] md:min-h-[460px]">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(200,169,81,0.09),transparent_47%)]" />
       <div className="absolute inset-0 opacity-[0.04] [background-image:linear-gradient(#c8a951_1px,transparent_1px),linear-gradient(90deg,#c8a951_1px,transparent_1px)] [background-size:140px_92px]" />
-      <svg className="relative h-[460px] w-full" viewBox="0 0 700 460" role="img" aria-label="SFI ACP field graph">
+      <svg className="relative h-[380px] w-full md:h-[460px]" viewBox="0 0 700 460" role="img" aria-label="SFI ACP field graph">
         <defs>
           <radialGradient id="sfi-node-glow" cx="50%" cy="50%" r="50%">
             <stop offset="0%" stopColor="#c8a951" stopOpacity="0.15" />
@@ -139,7 +140,7 @@ function FieldGraph({ totalNodes }: { totalNodes: number }) {
         <rect x="20" y="436" width="300" height="1" fill="#1e1c17" />
         <rect x="20" y="436" width={Math.max(40, Math.min(300, totalNodes * 1.2))} height="1" fill="#c8a951" opacity="0.8" />
         <text x="20" y="454" fontFamily="JetBrains Mono" fontSize="7" fill="#8a7035">catálogo observado · {totalNodes || '—'} nodos</text>
-        <text x="250" y="454" fontFamily="JetBrains Mono" fontSize="7" fill="#8a7035">ACP activo · grafo raíz</text>
+        <text x="250" y="454" fontFamily="JetBrains Mono" fontSize="7" fill="#8a7035">posiciones core · no aleatorias · falta layout por cluster</text>
       </svg>
     </div>
   );
@@ -295,15 +296,15 @@ export function RootDashboardClient() {
       </header>
 
       <main className="grid min-h-screen grid-cols-1 bg-[#0a0a09] pt-12 lg:grid-cols-[220px_minmax(0,1fr)_320px]">
-        <aside className="border-r border-[#1e1c17] bg-[#0e0d0b]">
+        <aside className="border-r border-[#1e1c17] bg-[#0e0d0b] lg:min-h-[calc(100vh-48px)]">
           <div className="border-b border-[#1e1c17] px-4 py-3 font-mono text-[8px] uppercase tracking-[0.2em] text-[#35312a]">Field Layers <span className="float-right text-[#8a7035]">{LAYERS.length}</span></div>
-          <div className="flex flex-col gap-1 p-3">
+          <div className="grid grid-cols-2 gap-1 p-3 lg:flex lg:flex-col">
             {LAYERS.map((layer) => (
               <button key={layer} type="button" className="flex items-center gap-2 border border-[#1e1c17] bg-[#131210] px-3 py-2 text-left font-mono text-[9px] uppercase tracking-[0.12em] text-[#7a7568] hover:border-[#8a7035] hover:text-[#c8a951]"><span className="h-1.5 w-1.5 rounded-full bg-current" />{layer}</button>
             ))}
           </div>
           <div className="border-y border-[#1e1c17] px-4 py-3 font-mono text-[8px] uppercase tracking-[0.2em] text-[#35312a]">Catálogo <span className="float-right text-[#8a7035]">observed</span></div>
-          <div className="grid grid-cols-1 gap-1 p-3 font-mono text-[9px]">
+          <div className="grid grid-cols-2 gap-1 p-3 font-mono text-[9px] lg:grid-cols-1">
             <div className="border border-[#1e1c17] bg-[#131210] p-2"><span className="text-[#35312a]">nodos</span><br /><span className="text-[#c8a951]">{counts.nodes || '—'}</span></div>
             <div className="border border-[#1e1c17] bg-[#131210] p-2"><span className="text-[#35312a]">patrones</span><br /><span className="text-[#c8a951]">{counts.patterns || '—'}</span></div>
             <div className="border border-[#1e1c17] bg-[#131210] p-2"><span className="text-[#35312a]">documentos</span><br /><span className="text-[#c8a951]">{counts.docs || '—'}</span></div>
@@ -312,11 +313,11 @@ export function RootDashboardClient() {
         </aside>
 
         <section className="min-h-[calc(100vh-48px)] border-r border-[#1e1c17]">
-          <div className="flex h-9 items-center border-b border-[#1e1c17] bg-[#0e0d0b] font-mono text-[9px] uppercase tracking-[0.12em] text-[#35312a]">
-            <div className="border-r border-[#1e1c17] px-4">Twin <span className="ml-2 text-[#c8a951]">constitucional</span></div>
-            <div className="border-r border-[#1e1c17] px-4">MIHM <span className="ml-2 text-[#6ab88a]">{counts.source}</span></div>
-            <div className="border-r border-[#1e1c17] px-4">Régimen <span className="ml-2 text-[#c8a951]">{counts.regime}</span></div>
-            <div className="ml-auto px-4">Kernel <span className="ml-2 text-[#c8a951]">gobernado</span></div>
+          <div className="flex min-h-9 flex-wrap items-center border-b border-[#1e1c17] bg-[#0e0d0b] font-mono text-[9px] uppercase tracking-[0.12em] text-[#35312a]">
+            <div className="border-r border-[#1e1c17] px-4 py-2">Twin <span className="ml-2 text-[#c8a951]">constitucional</span></div>
+            <div className="border-r border-[#1e1c17] px-4 py-2">MIHM <span className="ml-2 text-[#6ab88a]">{counts.source}</span></div>
+            <div className="border-r border-[#1e1c17] px-4 py-2">Régimen <span className="ml-2 text-[#c8a951]">{counts.regime}</span></div>
+            <div className="ml-auto px-4 py-2">Kernel <span className="ml-2 text-[#c8a951]">gobernado</span></div>
           </div>
 
           {(activeModule === 'campo' || activeModule === 'grafo') ? <FieldGraph totalNodes={counts.nodes} /> : null}
@@ -335,21 +336,20 @@ export function RootDashboardClient() {
             {activeModule === 'artefactos' ? <ArtifactPanel /> : null}
             {activeModule === 'agentes' ? <AcpAgentRegistryPanel /> : null}
             {activeModule === 'evidencia' ? <EvidenceHub /> : null}
+            {activeModule === 'diagnostico' ? <LiturgiaDiagnosticPanel /> : null}
           </div>
         </section>
 
-        <aside className="bg-[#0e0d0b]">
+        <aside className="bg-[#0e0d0b] lg:min-h-[calc(100vh-48px)]">
           <RootReading twin={twin} />
           <div className="space-y-4 p-4">
             {activeModule === 'agentes' ? <SystemOverridePanel /> : null}
-            {activeModule !== 'agentes' ? <AcpAgentRegistryPanel /> : null}
+            {activeModule !== 'agentes' && activeModule !== 'diagnostico' ? <AcpAgentRegistryPanel /> : null}
             <GlobalMetricsView />
             <SystemOverridePanel />
           </div>
         </aside>
       </main>
-
-      <LiturgiaDiagnosticPanel />
     </div>
   );
 }
