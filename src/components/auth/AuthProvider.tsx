@@ -44,10 +44,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!supabase) return
+    const client = supabase
     let active = true
 
     const fetchUserRole = async (userId: string) => {
-      const { data, error } = await supabase
+      const { data, error } = await client
         .from('profiles')
         .select('role')
         .eq('user_id', userId)
@@ -68,10 +69,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     async function hydrateSession() {
       try {
-        const { data, error } = await supabase.auth.getSession()
+        const { data, error } = await client.auth.getSession()
         if (!active) return
         if (error) {
-          await supabase.auth.signOut()
+          await client.auth.signOut()
           setState({ session: null, status: 'anonymous', userRole: null })
           router.refresh()
           return
@@ -86,7 +87,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         })
       } catch {
         if (!active) return
-        await supabase.auth.signOut()
+        await client.auth.signOut()
         setState({ session: null, status: 'anonymous', userRole: null })
         router.refresh()
       }
@@ -96,14 +97,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
+    } = client.auth.onAuthStateChange((event, session) => {
       setState({
         session,
         status: session ? 'authenticated' : 'anonymous',
         userRole: session ? 'observer' : null,
       })
 
-      window.setTimeout(() => {
+      globalThis.setTimeout(() => {
         if (!active) return
         if (event === 'SIGNED_IN' && session) {
           void fetchUserRole(session.user.id).then((role) => {
