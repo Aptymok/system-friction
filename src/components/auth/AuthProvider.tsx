@@ -24,12 +24,21 @@ function fallbackRole(errorCode?: string | null) {
   return 'observer'
 }
 
+function isRootEmail(email?: string | null) {
+  return email?.toLowerCase() === 'aptymok@gmail.com'
+}
+
 function isRootIdentity(role?: string | null, email?: string | null) {
-  return role === 'root' || role === 'system' || email?.toLowerCase() === 'aptymok@gmail.com'
+  return role === 'root' || role === 'system' || isRootEmail(email)
 }
 
 function postAuthPath(role?: string | null, email?: string | null) {
   return isRootIdentity(role, email) ? '/root' : '/user'
+}
+
+function roleWithRootEmailFallback(role: string | null, email?: string | null) {
+  if (isRootEmail(email)) return 'root'
+  return role
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -47,7 +56,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const client = supabase
     let active = true
 
-    const fetchUserRole = async (userId: string) => {
+    const fetchUserRole = async (userId: string, email?: string | null) => {
+      if (isRootEmail(email)) return 'root'
+
       const { data, error } = await client
         .from('profiles')
         .select('role')
@@ -64,7 +75,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return fallbackRole(error.code)
       }
 
-      return data?.role || 'observer'
+      return roleWithRootEmailFallback(data?.role || 'observer', email)
     }
 
     async function hydrateSession() {
@@ -78,7 +89,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return
         }
         let role = null
-        if (data.session) role = await fetchUserRole(data.session.user.id)
+        if (data.session) role = await fetchUserRole(data.session.user.id, data.session.user.email)
         if (!active) return
         setState({
           session: data.session,
@@ -98,16 +109,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const {
       data: { subscription },
     } = client.auth.onAuthStateChange((event, session) => {
+      const immediateRole = session && isRootEmail(session.user.email) ? 'root' : session ? 'observer' : null
       setState({
         session,
         status: session ? 'authenticated' : 'anonymous',
-        userRole: session ? 'observer' : null,
+        userRole: immediateRole,
       })
 
       globalThis.setTimeout(() => {
         if (!active) return
         if (event === 'SIGNED_IN' && session) {
-          void fetchUserRole(session.user.id).then((role) => {
+          void fetchUserRole(session.user.id, session.user.email).then((role) => {
             if (!active) return
             setState({ session, status: 'authenticated', userRole: role })
             router.refresh()
