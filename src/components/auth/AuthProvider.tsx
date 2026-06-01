@@ -24,6 +24,14 @@ function fallbackRole(errorCode?: string | null) {
   return 'observer'
 }
 
+function isRootIdentity(role?: string | null, email?: string | null) {
+  return role === 'root' || role === 'system' || email?.toLowerCase() === 'aptymok@gmail.com'
+}
+
+function postAuthPath(role?: string | null, email?: string | null) {
+  return isRootIdentity(role, email) ? '/root' : '/user'
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
@@ -100,7 +108,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (event === 'SIGNED_IN') {
         router.refresh()
-        if (AUTH_ROUTES.has(pathname)) router.replace('/terminal')
+        if (AUTH_ROUTES.has(pathname)) router.replace(postAuthPath(role, session?.user.email))
       }
 
       if (event === 'SIGNED_OUT') {
