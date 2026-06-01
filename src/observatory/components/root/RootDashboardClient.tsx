@@ -2,19 +2,16 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { CognitiveConsole } from '@/observatory/components/dashboard/CognitiveConsole';
 import { SystemOverridePanel } from '@/observatory/components/root/SystemOverridePanel';
-import { GlobalMetricsView } from '@/observatory/components/root/GlobalMetricsView';
-import { OperationalActivationPanel } from '@/observatory/components/root/OperationalActivationPanel';
 import { LiturgiaDiagnosticPanel } from '@/observatory/components/root/LiturgiaDiagnosticPanel';
 import { AcpProposalConsole } from '@/observatory/components/root/AcpProposalConsole';
 import { AcpAgentRegistryPanel } from '@/observatory/components/root/AcpAgentRegistryPanel';
-import { NodeClusterSurface } from '@/observatory/components/root/NodeClusterSurface';
 import { TwinInteractionPanel } from '@/observatory/components/root/TwinInteractionPanel';
 import { ArtifactRoutingPanel } from '@/observatory/components/root/ArtifactRoutingPanel';
 import { AcpFieldRegimeView } from '@/observatory/components/root/AcpFieldRegimeView';
 
-type ModuleId = 'campo' | 'regimen' | 'grafo' | 'twin' | 'propuestas' | 'perturbaciones' | 'artefactos' | 'agentes' | 'evidencia' | 'diagnostico';
+type ModuleId = 'campo' | 'propuestas' | 'artefactos' | 'diagnostico' | 'control';
+type RightPanel = 'chat' | 'propuestas' | 'artefactos' | 'agentes' | 'control';
 
 type TwinState = {
   ok?: boolean;
@@ -35,36 +32,39 @@ type TwinState = {
   };
 };
 
-const MODULES: Array<{ id: ModuleId; label: string; badge: string }> = [
-  { id: 'campo', label: 'Campo', badge: 'lectura' },
-  { id: 'regimen', label: 'Régimen Vivo', badge: 'canvas' },
-  { id: 'grafo', label: 'Grafo', badge: 'clusters' },
-  { id: 'twin', label: 'Twin', badge: 'respuesta' },
-  { id: 'propuestas', label: 'Propuestas', badge: 'ACP' },
-  { id: 'perturbaciones', label: 'Perturbaciones', badge: 'sandbox' },
-  { id: 'artefactos', label: 'Atlas · Cuadernillo · Sobre Negro', badge: 'PCP' },
-  { id: 'agentes', label: 'Agentes', badge: 'multi' },
-  { id: 'evidencia', label: 'Evidencia', badge: 'hub' },
-  { id: 'diagnostico', label: 'Diagnóstico', badge: 'loop' },
+const MODULES: Array<{ id: ModuleId; label: string }> = [
+  { id: 'campo', label: 'Campo Vivo' },
+  { id: 'propuestas', label: 'Propuestas' },
+  { id: 'artefactos', label: 'Atlas / Cuad / SN' },
+  { id: 'diagnostico', label: 'Diagnóstico' },
+  { id: 'control', label: 'Root' },
 ];
 
-const LAYERS = ['Observación', 'Contradicción', 'Energía', 'Validación', 'Temporalidad', 'Gobernanza', 'Memoria', 'Evidencia'];
-
-const EVIDENCE = [
-  ['SFI-CORE', 'formalización', 'live'],
-  ['Nodo AGS', 'caso empírico', 'live'],
-  ['Archivo de casos', 'repetibilidad', 'live'],
-  ['DIOL-SF', 'instrumento', 'draft'],
-  ['SFI-QOM', 'instrumento', 'draft'],
-  ['CIMPS 2026', 'validación académica', 'pending'],
-  ['Unipres', 'piloto institucional', 'pending'],
+const FIELD_TOOLS = [
+  { id: 'observacion', label: 'OBS', title: 'Observación', hint: 'Muestra nodos con evidencia observada.' },
+  { id: 'contradiccion', label: 'CON', title: 'Contradicción', hint: 'Enfoca tensión entre intención, evidencia y ejecución.' },
+  { id: 'energia', label: 'ENE', title: 'Energía', hint: 'Enfoca presión, consumo y transferencia entre nodos.' },
+  { id: 'validacion', label: 'VAL', title: 'Validación', hint: 'Enfoca loops de aprobación y evidencia insuficiente.' },
+  { id: 'temporalidad', label: 'TMP', title: 'Temporalidad', hint: 'Enfoca señales que requieren seguimiento.' },
+  { id: 'gobernanza', label: 'GOV', title: 'Gobernanza', hint: 'Enfoca propuestas, cierre y control ACP.' },
+  { id: 'memoria', label: 'MEM', title: 'Memoria', hint: 'Enfoca Atlas, Cuadernillo y Sobre Negro.' },
+  { id: 'atractores', label: 'ATT', title: 'Atractores', hint: 'Proyecta dirección y estabilidad del campo.' },
 ];
 
-function valueOrDash(value?: number) {
+function fmt(value?: number) {
   return typeof value === 'number' ? value.toFixed(3) : '—';
 }
 
-function ModuleButton({ active, label, badge, onClick }: { active: boolean; label: string; badge: string; onClick: () => void }) {
+function MetricChip({ label, value, tone = 'gold' }: { label: string; value: string | number; tone?: 'gold' | 'green' | 'red' | 'muted' }) {
+  const color = tone === 'green' ? 'text-[#6ab88a]' : tone === 'red' ? 'text-[#c87060]' : tone === 'muted' ? 'text-[#7a7568]' : 'text-[#c8a951]';
+  return (
+    <div className="border-l border-[#1e1c17] px-3 py-1 font-mono text-[9px] uppercase tracking-[0.12em]">
+      <span className="text-[#35312a]">{label}</span> <span className={color}>{value}</span>
+    </div>
+  );
+}
+
+function ModuleButton({ active, label, onClick }: { active: boolean; label: string; onClick: () => void }) {
   return (
     <button
       type="button"
@@ -74,79 +74,44 @@ function ModuleButton({ active, label, badge, onClick }: { active: boolean; labe
       }`}
     >
       {label}
-      <span className="ml-2 border border-current px-1.5 py-px text-[7px] opacity-60">{badge}</span>
       {active ? <span className="absolute inset-x-0 bottom-0 h-px bg-[#c8a951]" /> : null}
     </button>
   );
 }
 
-function RootReading({ twin }: { twin: TwinState | null }) {
-  const matrix = twin?.data?.seed?.mihmRuntimeMatrix;
+function FieldToolButton({ tool, active, onClick }: { tool: (typeof FIELD_TOOLS)[number]; active: boolean; onClick: () => void }) {
   return (
-    <div className="border-b border-[#1e1c17] p-4">
-      <div className="mb-2 font-mono text-[8px] uppercase tracking-[0.2em] text-[#8a7035]">Lectura ACP del campo</div>
-      <div className="font-serif text-[13px] italic leading-7 text-[#7a7568]">
-        El observatorio raíz no es una vista de membresía. Es una superficie de decisión: lee campo, conserva memoria, acepta perturbaciones propuestas y exige evidencia antes de permitir ejecución.
-      </div>
-      <div className="mt-4 grid grid-cols-2 gap-1 font-mono text-[9px]">
-        <div className="bg-[#131210] p-2"><span className="text-[#35312a]">IHG</span><br /><span className="text-[#c8a951]">{valueOrDash(matrix?.ihg)}</span></div>
-        <div className="bg-[#131210] p-2"><span className="text-[#35312a]">NTI</span><br /><span className="text-[#c8a951]">{valueOrDash(matrix?.nti)}</span></div>
-        <div className="bg-[#131210] p-2"><span className="text-[#35312a]">LDI</span><br /><span className="text-[#c8a951]">{valueOrDash(matrix?.ldi)}</span></div>
-        <div className="bg-[#131210] p-2"><span className="text-[#35312a]">Φ</span><br /><span className="text-[#c8a951]">{valueOrDash(matrix?.phi)}</span></div>
-      </div>
-    </div>
+    <button
+      type="button"
+      title={`${tool.title}: ${tool.hint}`}
+      onClick={onClick}
+      className={`group relative h-10 w-10 rounded-full border font-mono text-[8px] uppercase tracking-[0.08em] transition ${
+        active ? 'border-[#c8a951] bg-[#2e2410] text-[#c8a951]' : 'border-[#1e1c17] bg-[#0e0d0b]/90 text-[#7a7568] hover:border-[#8a7035] hover:text-[#c8a951]'
+      }`}
+    >
+      {tool.label}
+      <span className="pointer-events-none absolute left-12 top-1/2 z-30 hidden w-56 -translate-y-1/2 border border-[#1e1c17] bg-[#060605] p-2 text-left text-[8px] normal-case leading-4 tracking-normal text-[#8a7568] group-hover:block">
+        <b className="block uppercase tracking-[0.14em] text-[#c8a951]">{tool.title}</b>{tool.hint}
+      </span>
+    </button>
   );
 }
 
-function PerturbationPanel() {
+function Accordion({ title, open, onClick, children }: { title: string; open: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
-    <section className="border border-[#1e1c17] bg-[#0e0d0b]">
-      <div className="border-b border-[#1e1c17] px-4 py-3">
-        <p className="font-mono text-[8px] uppercase tracking-[0.22em] text-[#8a7035]">Perturbation Sandbox</p>
-        <h2 className="mt-1 font-serif text-lg text-[#c8a951]">Perturbaciones propuestas</h2>
-      </div>
-      <div className="grid grid-cols-1 gap-1 p-3 lg:grid-cols-3">
-        {[
-          ['P-Δ01', 'Reducir explicación. Aumentar evidencia verificable. Cierre menor a 25 minutos.', 'bajo'],
-          ['P-Δ02', 'Mover anomalía sin clasificación al Sobre Negro durante 24h antes de integrarla.', 'medio'],
-          ['P-Δ03', 'Forzar contraste entre propuesta Twin y evidencia documental antes de aprobar.', 'bajo'],
-        ].map(([id, body, risk]) => (
-          <article key={id} className="border border-[#1e1c17] bg-[#131210] p-3">
-            <div className="font-mono text-[8px] uppercase tracking-[0.16em] text-[#6a9ac8]">{id}</div>
-            <p className="mt-2 text-xs leading-6 text-[#7a7568]">{body}</p>
-            <div className="mt-3 flex gap-1">
-              <span className="border border-[#2e2c24] px-2 py-px font-mono text-[8px] uppercase text-[#7a7568]">riesgo {risk}</span>
-              <button type="button" className="ml-auto border border-[#2a5a3a] px-2 py-px font-mono text-[8px] uppercase text-[#6ab88a]">proponer</button>
-            </div>
-          </article>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function EvidenceHub() {
-  return (
-    <section className="border border-[#1e1c17] bg-[#0e0d0b]">
-      <div className="border-b border-[#1e1c17] px-4 py-3">
-        <p className="font-mono text-[8px] uppercase tracking-[0.22em] text-[#8a7035]">Evidence Hub</p>
-        <h2 className="mt-1 font-serif text-lg text-[#c8a951]">Autoridad verificable</h2>
-      </div>
-      <div className="grid grid-cols-1 gap-1 p-3 md:grid-cols-2 xl:grid-cols-3">
-        {EVIDENCE.map(([name, type, state]) => (
-          <div key={name} className="border border-[#1e1c17] bg-[#131210] p-3 font-mono text-[9px]">
-            <div className="text-[#c8a951]">{name}</div>
-            <div className="mt-1 text-[#7a7568]">{type}</div>
-            <div className={state === 'live' ? 'mt-2 text-[#6ab88a]' : state === 'draft' ? 'mt-2 text-[#8a7035]' : 'mt-2 text-[#c87060]'}>{state}</div>
-          </div>
-        ))}
-      </div>
+    <section className="border-b border-[#1e1c17]">
+      <button type="button" onClick={onClick} className="flex w-full items-center justify-between px-3 py-2 font-mono text-[9px] uppercase tracking-[0.16em] text-[#8a7035] hover:bg-[#131210]">
+        {title}<span className="text-[#35312a]">{open ? '−' : '+'}</span>
+      </button>
+      {open ? <div className="max-h-[48vh] overflow-y-auto p-3">{children}</div> : null}
     </section>
   );
 }
 
 export function RootDashboardClient() {
   const [activeModule, setActiveModule] = useState<ModuleId>('campo');
+  const [activeTool, setActiveTool] = useState('observacion');
+  const [openPanel, setOpenPanel] = useState<RightPanel>('chat');
   const [twin, setTwin] = useState<TwinState | null>(null);
 
   useEffect(() => {
@@ -164,75 +129,76 @@ export function RootDashboardClient() {
       patterns: seed?.patternCatalog?.length ?? 0,
       source: seed?.mihmRuntimeMatrix?.sourceState ?? '—',
       regime: seed?.mihmRuntimeMatrix?.regime ?? '—',
+      ihg: seed?.mihmRuntimeMatrix?.ihg,
+      nti: seed?.mihmRuntimeMatrix?.nti,
+      ldi: seed?.mihmRuntimeMatrix?.ldi,
+      phi: seed?.mihmRuntimeMatrix?.phi,
     };
   }, [twin]);
 
   return (
-    <div className="min-h-screen bg-[#060605] text-[#ccc8bc]">
-      <header className="fixed inset-x-0 top-0 z-50 flex h-12 items-center border-b border-[#2e2c24] bg-[#060605]/95 backdrop-blur-xl">
-        <div className="border-r border-[#2e2c24] px-5 font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-[#c8a951]">SFI Observatory</div>
-        <div className="hidden h-full items-center border-r border-[#1e1c17] px-5 font-mono text-[9px] uppercase tracking-[0.14em] text-[#7a7568] md:flex">ACP · raíz autenticada</div>
-        <div className="flex h-full min-w-0 flex-1 overflow-x-auto">
+    <div className="h-screen overflow-hidden bg-[#060605] text-[#ccc8bc]">
+      <header className="fixed inset-x-0 top-0 z-50 border-b border-[#2e2c24] bg-[#060605]/95 backdrop-blur-xl">
+        <div className="flex h-9 items-center">
+          <div className="px-4 font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-[#c8a951]">SFI · ACP ROOT</div>
+          <MetricChip label="IHG" value={fmt(counts.ihg)} tone="red" />
+          <MetricChip label="NTI" value={fmt(counts.nti)} />
+          <MetricChip label="LDI" value={fmt(counts.ldi)} />
+          <MetricChip label="Φ" value={fmt(counts.phi)} tone="green" />
+          <MetricChip label="MIHM" value={counts.source} tone="green" />
+          <MetricChip label="Régimen" value={counts.regime} />
+          <MetricChip label="Nodos" value={counts.nodes || '—'} tone="muted" />
+          <div className="ml-auto hidden items-center gap-2 px-4 font-mono text-[9px] uppercase tracking-[0.14em] text-[#7a7568] md:flex">
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#c8a951]" /> activo
+          </div>
+        </div>
+        <div className="flex h-9 min-w-0 overflow-x-auto border-t border-[#1e1c17]">
           {MODULES.map((module) => (
-            <ModuleButton key={module.id} active={activeModule === module.id} label={module.label} badge={module.badge} onClick={() => setActiveModule(module.id)} />
+            <ModuleButton key={module.id} active={activeModule === module.id} label={module.label} onClick={() => setActiveModule(module.id)} />
           ))}
         </div>
-        <div className="hidden h-full items-center gap-2 border-l border-[#1e1c17] px-5 font-mono text-[9px] uppercase tracking-[0.14em] text-[#7a7568] lg:flex"><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#c8a951]" />Governance activa</div>
       </header>
 
-      <main className="grid min-h-screen grid-cols-1 bg-[#0a0a09] pt-12 lg:grid-cols-[220px_minmax(0,1fr)_320px]">
-        <aside className="border-r border-[#1e1c17] bg-[#0e0d0b] lg:min-h-[calc(100vh-48px)]">
-          <div className="border-b border-[#1e1c17] px-4 py-3 font-mono text-[8px] uppercase tracking-[0.2em] text-[#35312a]">Field Layers <span className="float-right text-[#8a7035]">{LAYERS.length}</span></div>
-          <div className="grid grid-cols-2 gap-1 p-3 lg:flex lg:flex-col">
-            {LAYERS.map((layer) => (
-              <button key={layer} type="button" className="flex items-center gap-2 border border-[#1e1c17] bg-[#131210] px-3 py-2 text-left font-mono text-[9px] uppercase tracking-[0.12em] text-[#7a7568] hover:border-[#8a7035] hover:text-[#c8a951]"><span className="h-1.5 w-1.5 rounded-full bg-current" />{layer}</button>
+      <main className="grid h-screen grid-cols-1 bg-[#080808] pt-[72px] lg:grid-cols-[minmax(0,1fr)_360px]">
+        <section className="relative min-h-0 overflow-hidden border-r border-[#1e1c17]">
+          <div className="absolute left-3 top-3 z-20 flex flex-col gap-2">
+            {FIELD_TOOLS.map((tool) => (
+              <FieldToolButton key={tool.id} tool={tool} active={activeTool === tool.id} onClick={() => setActiveTool(tool.id)} />
             ))}
           </div>
-          <div className="border-y border-[#1e1c17] px-4 py-3 font-mono text-[8px] uppercase tracking-[0.2em] text-[#35312a]">Catálogo <span className="float-right text-[#8a7035]">observed</span></div>
-          <div className="grid grid-cols-2 gap-1 p-3 font-mono text-[9px] lg:grid-cols-1">
-            <div className="border border-[#1e1c17] bg-[#131210] p-2"><span className="text-[#35312a]">nodos</span><br /><span className="text-[#c8a951]">{counts.nodes || '—'}</span></div>
-            <div className="border border-[#1e1c17] bg-[#131210] p-2"><span className="text-[#35312a]">patrones</span><br /><span className="text-[#c8a951]">{counts.patterns || '—'}</span></div>
-            <div className="border border-[#1e1c17] bg-[#131210] p-2"><span className="text-[#35312a]">documentos</span><br /><span className="text-[#c8a951]">{counts.docs || '—'}</span></div>
-            <div className="border border-[#1e1c17] bg-[#131210] p-2"><span className="text-[#35312a]">fuente</span><br /><span className="text-[#c8a951]">{counts.source}</span></div>
-          </div>
-        </aside>
 
-        <section className="min-h-[calc(100vh-48px)] border-r border-[#1e1c17]">
-          <div className="flex min-h-9 flex-wrap items-center border-b border-[#1e1c17] bg-[#0e0d0b] font-mono text-[9px] uppercase tracking-[0.12em] text-[#35312a]">
-            <div className="border-r border-[#1e1c17] px-4 py-2">Twin <span className="ml-2 text-[#c8a951]">constitucional</span></div>
-            <div className="border-r border-[#1e1c17] px-4 py-2">MIHM <span className="ml-2 text-[#6ab88a]">{counts.source}</span></div>
-            <div className="border-r border-[#1e1c17] px-4 py-2">Régimen <span className="ml-2 text-[#c8a951]">{counts.regime}</span></div>
-            <div className="ml-auto px-4 py-2">Kernel <span className="ml-2 text-[#c8a951]">gobernado</span></div>
-          </div>
+          {activeModule === 'campo' ? (
+            <div className="h-full overflow-y-auto">
+              <AcpFieldRegimeView twin={twin} focusMode={activeTool} />
+            </div>
+          ) : null}
+          {activeModule === 'propuestas' ? <div className="h-full overflow-y-auto p-4"><AcpProposalConsole /></div> : null}
+          {activeModule === 'artefactos' ? <div className="h-full overflow-y-auto p-4"><ArtifactRoutingPanel /></div> : null}
+          {activeModule === 'diagnostico' ? <div className="h-full overflow-y-auto p-4"><LiturgiaDiagnosticPanel /></div> : null}
+          {activeModule === 'control' ? <div className="h-full overflow-y-auto p-4"><SystemOverridePanel /></div> : null}
 
-          {(activeModule === 'campo' || activeModule === 'grafo') ? <NodeClusterSurface twin={twin} /> : null}
-          {activeModule === 'regimen' ? <AcpFieldRegimeView twin={twin} /> : null}
-
-          <div className="space-y-4 p-4">
-            {activeModule === 'campo' ? (
-              <>
-                <TwinInteractionPanel />
-                <OperationalActivationPanel />
-              </>
-            ) : null}
-            {activeModule === 'grafo' ? <CognitiveConsole /> : null}
-            {activeModule === 'twin' ? <TwinInteractionPanel /> : null}
-            {activeModule === 'propuestas' ? <AcpProposalConsole /> : null}
-            {activeModule === 'perturbaciones' ? <PerturbationPanel /> : null}
-            {activeModule === 'artefactos' ? <ArtifactRoutingPanel /> : null}
-            {activeModule === 'agentes' ? <AcpAgentRegistryPanel /> : null}
-            {activeModule === 'evidencia' ? <EvidenceHub /> : null}
-            {activeModule === 'diagnostico' ? <LiturgiaDiagnosticPanel /> : null}
+          <div className="pointer-events-none absolute bottom-3 left-3 z-20 border border-[#1e1c17] bg-[#060605]/85 px-3 py-2 font-mono text-[8px] uppercase tracking-[0.12em] text-[#8a7035]">
+            filtro activo: {FIELD_TOOLS.find((tool) => tool.id === activeTool)?.title}
           </div>
         </section>
 
-        <aside className="bg-[#0e0d0b] lg:min-h-[calc(100vh-48px)]">
-          <RootReading twin={twin} />
-          <div className="space-y-4 p-4">
-            {activeModule === 'agentes' ? <SystemOverridePanel /> : null}
-            {activeModule !== 'agentes' && activeModule !== 'diagnostico' ? <AcpAgentRegistryPanel /> : null}
-            <GlobalMetricsView />
-            <SystemOverridePanel />
+        <aside className="min-h-0 overflow-hidden bg-[#0e0d0b]">
+          <div className="flex h-full flex-col">
+            <Accordion title="Chat Twin" open={openPanel === 'chat'} onClick={() => setOpenPanel(openPanel === 'chat' ? 'propuestas' : 'chat')}>
+              <TwinInteractionPanel compact />
+            </Accordion>
+            <Accordion title="Propuestas" open={openPanel === 'propuestas'} onClick={() => setOpenPanel(openPanel === 'propuestas' ? 'chat' : 'propuestas')}>
+              <AcpProposalConsole compact />
+            </Accordion>
+            <Accordion title="Atlas / Cuad / SN" open={openPanel === 'artefactos'} onClick={() => setOpenPanel(openPanel === 'artefactos' ? 'chat' : 'artefactos')}>
+              <ArtifactRoutingPanel compact />
+            </Accordion>
+            <Accordion title="Agentes" open={openPanel === 'agentes'} onClick={() => setOpenPanel(openPanel === 'agentes' ? 'chat' : 'agentes')}>
+              <AcpAgentRegistryPanel compact />
+            </Accordion>
+            <Accordion title="Root" open={openPanel === 'control'} onClick={() => setOpenPanel(openPanel === 'control' ? 'chat' : 'control')}>
+              <SystemOverridePanel />
+            </Accordion>
           </div>
         </aside>
       </main>
