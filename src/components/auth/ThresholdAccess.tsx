@@ -33,19 +33,24 @@ function withTimeout<T>(operation: PromiseLike<T>, ms: number, label: string): P
   });
 }
 
-async function resolvePostLoginPath(supabase: NonNullable<ReturnType<typeof createBrowserSupabaseClient>>) {
-  const { data: userData } = await withTimeout(supabase.auth.getUser(), 5000, 'AUTH_USER_TIMEOUT');
-  const user = userData.user;
-  if (!user) return '/login';
+async function resolvePathFromUser(
+  supabase: NonNullable<ReturnType<typeof createBrowserSupabaseClient>>,
+  userId?: string | null,
+  email?: string | null,
+) {
+  if (!userId) return email?.toLowerCase() === 'aptymok@gmail.com' ? '/root' : '/user';
+  if (email?.toLowerCase() === 'aptymok@gmail.com') return '/root';
 
-  const { data: profile } = await withTimeout(
-    supabase.from('profiles').select('role').eq('user_id', user.id).maybeSingle(),
-    5000,
-    'PROFILE_ROLE_TIMEOUT',
-  );
-
-  if (isRootIdentity(profile?.role, user.email)) return '/root';
-  return '/user';
+  try {
+    const { data: profile } = await withTimeout(
+      supabase.from('profiles').select('role').eq('user_id', userId).maybeSingle(),
+      2500,
+      'PROFILE_ROLE_TIMEOUT',
+    );
+    return isRootIdentity(profile?.role, email) ? '/root' : '/user';
+  } catch {
+    return email?.toLowerCase() === 'aptymok@gmail.com' ? '/root' : '/user';
+  }
 }
 
 export default function ThresholdAccess({ error }: { error?: string }) {
@@ -68,7 +73,8 @@ export default function ThresholdAccess({ error }: { error?: string }) {
     supabase.auth
       .getSession()
       .then(async ({ data }) => {
-        if (data.session) router.replace(await resolvePostLoginPath(supabase));
+        const user = data.session?.user;
+        if (user) router.replace(await resolvePathFromUser(supabase, user.id, user.email));
       })
       .catch(() => {
         void supabase.auth.signOut();
@@ -99,7 +105,7 @@ export default function ThresholdAccess({ error }: { error?: string }) {
         await new Promise((resolve) => setTimeout(resolve, 180));
       }
 
-      const { error: signInError } = await withTimeout(
+      const { data: signInData, error: signInError } = await withTimeout(
         supabase.auth.signInWithPassword({ email: identifier, password }),
         10000,
         'SIGN_IN_TIMEOUT',
@@ -130,8 +136,10 @@ export default function ThresholdAccess({ error }: { error?: string }) {
         body: JSON.stringify({ email_hash: await sha256(identifier), telemetry }),
       });
 
+      const user = signInData.user;
+      const destination = await resolvePathFromUser(supabase, user?.id, user?.email ?? identifier);
       router.refresh();
-      router.replace(await resolvePostLoginPath(supabase));
+      router.replace(destination);
     } catch (loginError) {
       setStepIndex(-1);
       setMessage(loginError instanceof Error ? loginError.message : 'LOGIN_FLOW_FAILED');
@@ -185,7 +193,7 @@ export default function ThresholdAccess({ error }: { error?: string }) {
 
       <div className="mt-6 space-y-2 font-mono text-[10px] uppercase tracking-[0.18em]">
         {steps.map((step, index) => (
-          <div key={step} className={index <= stepIndex ? 'text-[#C8A951]' : 'text-[#2e2e2a]'}>
+          <div key={step} className={index <= stepIndex ? 'text-[#C8A951]' : 'text-[#2e2e2a'}>
             {step}
           </div>
         ))}
