@@ -5,6 +5,7 @@ import { SystemOverridePanel } from '@/observatory/components/root/SystemOverrid
 import { GlobalMetricsView } from '@/observatory/components/root/GlobalMetricsView';
 import { OperationalActivationPanel } from '@/observatory/components/root/OperationalActivationPanel';
 import { LiturgiaDiagnosticPanel } from '@/observatory/components/root/LiturgiaDiagnosticPanel';
+import { AcpProposalConsole } from '@/observatory/components/root/AcpProposalConsole';
 
 export function RootDashboardClient() {
   return (
@@ -16,6 +17,7 @@ export function RootDashboardClient() {
       <div className="grid grid-cols-1 gap-4 p-4 lg:grid-cols-3">
         <div className="lg:col-span-2">
           <OperationalActivationPanel />
+          <AcpProposalConsole />
           <CognitiveConsole />
         </div>
         <div className="space-y-4">
