@@ -11,6 +11,7 @@ import { AcpProposalConsole } from '@/observatory/components/root/AcpProposalCon
 import { AcpAgentRegistryPanel } from '@/observatory/components/root/AcpAgentRegistryPanel';
 import { NodeClusterSurface } from '@/observatory/components/root/NodeClusterSurface';
 import { TwinInteractionPanel } from '@/observatory/components/root/TwinInteractionPanel';
+import { ArtifactRoutingPanel } from '@/observatory/components/root/ArtifactRoutingPanel';
 
 type ModuleId = 'campo' | 'grafo' | 'twin' | 'propuestas' | 'perturbaciones' | 'artefactos' | 'agentes' | 'evidencia' | 'diagnostico';
 
@@ -46,27 +47,6 @@ const MODULES: Array<{ id: ModuleId; label: string; badge: string }> = [
 ];
 
 const LAYERS = ['Observación', 'Contradicción', 'Energía', 'Validación', 'Temporalidad', 'Gobernanza', 'Memoria', 'Evidencia'];
-
-const ARTIFACTS = [
-  {
-    title: 'Atlas',
-    subtitle: 'baja entropía · patrones estabilizados',
-    function: 'Recibe lo que ya puede organizarse: conceptos, mapas, nodos, taxonomías, evidencias y relaciones verificadas.',
-    action: 'Agregar patrón / consolidar nodo / ordenar evidencia',
-  },
-  {
-    title: 'Cuadernillo',
-    subtitle: 'bifurcación · trabajo activo',
-    function: 'Recibe lo que todavía está en proceso: preguntas, hipótesis, fricciones vivas, tensiones que necesitan trabajo manual.',
-    action: 'Abrir ciclo / formular pregunta / cerrar acción mínima',
-  },
-  {
-    title: 'Sobre Negro',
-    subtitle: 'sumidero · residuo no metabolizado',
-    function: 'Recibe lo que no debe ordenar el sistema todavía: ruido, dolor, anomalía, contradicción sin clasificación, material sin destino.',
-    action: 'Depositar residuo / diferir clasificación / revisar en ciclo',
-  },
-];
 
 const EVIDENCE = [
   ['SFI-CORE', 'formalización', 'live'],
@@ -113,28 +93,6 @@ function RootReading({ twin }: { twin: TwinState | null }) {
         <div className="bg-[#131210] p-2"><span className="text-[#35312a]">Φ</span><br /><span className="text-[#c8a951]">{valueOrDash(matrix?.phi)}</span></div>
       </div>
     </div>
-  );
-}
-
-function ArtifactPanel() {
-  return (
-    <section className="border border-[#1e1c17] bg-[#0e0d0b]">
-      <div className="border-b border-[#1e1c17] px-4 py-3">
-        <p className="font-mono text-[8px] uppercase tracking-[0.22em] text-[#8a7035]">PCP · Personal Field Protocol</p>
-        <h2 className="mt-1 font-serif text-lg text-[#c8a951]">Atlas · Cuadernillo · Sobre Negro</h2>
-        <p className="mt-1 font-mono text-[9px] tracking-[0.08em] text-[#7a7568]">Tres artefactos. Tres destinos de energía. Ninguno sustituye al otro.</p>
-      </div>
-      <div className="grid grid-cols-1 gap-1 p-3 xl:grid-cols-3">
-        {ARTIFACTS.map((artifact) => (
-          <article key={artifact.title} className="border border-[#1e1c17] bg-[#131210] p-4">
-            <div className="font-serif text-xl text-[#c8a951]">{artifact.title}</div>
-            <div className="mt-1 font-mono text-[8px] uppercase tracking-[0.16em] text-[#8a7035]">{artifact.subtitle}</div>
-            <p className="mt-4 text-xs leading-6 text-[#7a7568]">{artifact.function}</p>
-            <button type="button" className="mt-4 w-full border border-[#8a7035] bg-[#2e2410] px-3 py-2 font-mono text-[8px] uppercase tracking-[0.16em] text-[#c8a951]">{artifact.action}</button>
-          </article>
-        ))}
-      </div>
-    </section>
   );
 }
 
@@ -258,7 +216,7 @@ export function RootDashboardClient() {
             {activeModule === 'twin' ? <TwinInteractionPanel /> : null}
             {activeModule === 'propuestas' ? <AcpProposalConsole /> : null}
             {activeModule === 'perturbaciones' ? <PerturbationPanel /> : null}
-            {activeModule === 'artefactos' ? <ArtifactPanel /> : null}
+            {activeModule === 'artefactos' ? <ArtifactRoutingPanel /> : null}
             {activeModule === 'agentes' ? <AcpAgentRegistryPanel /> : null}
             {activeModule === 'evidencia' ? <EvidenceHub /> : null}
             {activeModule === 'diagnostico' ? <LiturgiaDiagnosticPanel /> : null}
