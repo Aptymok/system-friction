@@ -238,6 +238,8 @@ export async function updateActionProposalStatus(input: {
     return { ok: false as const, error: 'action_proposal_not_found_or_forbidden' };
   }
 
+  const now = new Date().toISOString();
+
   const update: Record<string, unknown> = {
     status: input.status,
     outcome: {
@@ -246,9 +248,13 @@ export async function updateActionProposalStatus(input: {
       proposalType: input.proposalType,
       eventId: input.eventId ?? null,
       payloadPatch: input.payloadPatch ?? null,
-      updatedAt: new Date().toISOString(),
+      updatedAt: now,
     },
   };
+
+  if (input.status === 'design_approved') {
+    update.approved_at = now;
+  }
 
   const { data, error } = await service
     .from('action_proposals')
