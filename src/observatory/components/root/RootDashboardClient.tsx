@@ -12,8 +12,9 @@ import { AcpAgentRegistryPanel } from '@/observatory/components/root/AcpAgentReg
 import { NodeClusterSurface } from '@/observatory/components/root/NodeClusterSurface';
 import { TwinInteractionPanel } from '@/observatory/components/root/TwinInteractionPanel';
 import { ArtifactRoutingPanel } from '@/observatory/components/root/ArtifactRoutingPanel';
+import { AcpFieldRegimeView } from '@/observatory/components/root/AcpFieldRegimeView';
 
-type ModuleId = 'campo' | 'grafo' | 'twin' | 'propuestas' | 'perturbaciones' | 'artefactos' | 'agentes' | 'evidencia' | 'diagnostico';
+type ModuleId = 'campo' | 'regimen' | 'grafo' | 'twin' | 'propuestas' | 'perturbaciones' | 'artefactos' | 'agentes' | 'evidencia' | 'diagnostico';
 
 type TwinState = {
   ok?: boolean;
@@ -36,6 +37,7 @@ type TwinState = {
 
 const MODULES: Array<{ id: ModuleId; label: string; badge: string }> = [
   { id: 'campo', label: 'Campo', badge: 'lectura' },
+  { id: 'regimen', label: 'Régimen Vivo', badge: 'canvas' },
   { id: 'grafo', label: 'Grafo', badge: 'clusters' },
   { id: 'twin', label: 'Twin', badge: 'respuesta' },
   { id: 'propuestas', label: 'Propuestas', badge: 'ACP' },
@@ -204,6 +206,7 @@ export function RootDashboardClient() {
           </div>
 
           {(activeModule === 'campo' || activeModule === 'grafo') ? <NodeClusterSurface twin={twin} /> : null}
+          {activeModule === 'regimen' ? <AcpFieldRegimeView twin={twin} /> : null}
 
           <div className="space-y-4 p-4">
             {activeModule === 'campo' ? (
