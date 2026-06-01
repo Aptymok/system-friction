@@ -18,6 +18,11 @@ function clearSupabaseAuthCookies(response: NextResponse, request: NextRequest) 
   names.forEach((name) => response.cookies.delete(name))
 }
 
+function isRootRouteUser(role?: string | null, email?: string | null) {
+  const rootEmail = process.env.SYSTEM_ROOT_EMAIL || 'aptymok@gmail.com'
+  return role === 'root' || role === 'system' || Boolean(email && email.toLowerCase() === rootEmail.toLowerCase())
+}
+
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next()
   const { pathname } = request.nextUrl
@@ -95,7 +100,7 @@ export async function proxy(request: NextRequest) {
       .eq('user_id', user.id)
       .single()
 
-    if (profile?.role !== 'root') {
+    if (!isRootRouteUser(profile?.role, user.email)) {
       return NextResponse.redirect(new URL('/user', request.url))
     }
   }
