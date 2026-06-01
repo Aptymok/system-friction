@@ -23,13 +23,13 @@ function isRootIdentity(role?: string | null, email?: string | null) {
   return role === 'root' || role === 'system' || email?.toLowerCase() === 'aptymok@gmail.com';
 }
 
-function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+function withTimeout<T>(operation: PromiseLike<T>, ms: number, label: string): Promise<T> {
   return new Promise((resolve, reject) => {
-    const timer = window.setTimeout(() => reject(new Error(label)), ms);
-    promise
+    const timer = globalThis.setTimeout(() => reject(new Error(label)), ms);
+    Promise.resolve(operation)
       .then((value) => resolve(value))
       .catch((error) => reject(error))
-      .finally(() => window.clearTimeout(timer));
+      .finally(() => globalThis.clearTimeout(timer));
   });
 }
 
