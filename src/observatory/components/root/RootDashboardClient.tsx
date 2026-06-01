@@ -6,6 +6,7 @@ import { GlobalMetricsView } from '@/observatory/components/root/GlobalMetricsVi
 import { OperationalActivationPanel } from '@/observatory/components/root/OperationalActivationPanel';
 import { LiturgiaDiagnosticPanel } from '@/observatory/components/root/LiturgiaDiagnosticPanel';
 import { AcpProposalConsole } from '@/observatory/components/root/AcpProposalConsole';
+import { AcpAgentRegistryPanel } from '@/observatory/components/root/AcpAgentRegistryPanel';
 
 export function RootDashboardClient() {
   return (
@@ -22,6 +23,7 @@ export function RootDashboardClient() {
         </div>
         <div className="space-y-4">
           <GlobalMetricsView />
+          <AcpAgentRegistryPanel />
           <SystemOverridePanel />
         </div>
       </div>
