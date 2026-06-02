@@ -3,7 +3,7 @@ import { appendEpistemicEvent } from '@/lib/events/eventStore';
 import { readCanonicalGraphState } from '@/lib/graph/canonicalGraph';
 import { readGovernanceRuntime, recordBlindModePolicyBlock } from '@/lib/governance/governanceRuntime';
 import { getLatestKernelCycle } from '@/lib/kernel/kernelCycleStore';
-import { auditRootAction } from '@/lib/root/server';
+import { auditRootAction, recordUsageObservation } from '@/lib/root/server';
 import { getServerUserContext } from '@/lib/server/productionBackend';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { getLatestWorldSpectSnapshot, snapshotRowToApiData } from '@/lib/worldspect/snapshotStore';
@@ -93,6 +93,12 @@ export async function requireGovernedActor(action: string) {
   }
 
   if (ctx.isRoot) {
+    await recordUsageObservation({
+      actorId: ctx.user.id,
+      kind: `governed_action:${action}`,
+      amount: 1,
+      metadata: { action, surface: 'root' },
+    });
     const audit = await auditRootAction({
       actorId: ctx.user.id,
       action,

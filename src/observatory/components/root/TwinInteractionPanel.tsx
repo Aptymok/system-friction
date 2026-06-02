@@ -51,7 +51,17 @@ function deriveFocus(input: string) {
 function requestedOutput(input: string) {
   const normalized = normalize(input);
   if (normalized.includes('degrad') || normalized.includes('peor') || normalized.includes('atorado')) return 'degradation_reading';
-  if (normalized.includes('atractor') || normalized.includes('sostener') || normalized.includes('cerrar primero') || normalized.includes('avance')) return 'attractor_definition';
+  if (
+    normalized.includes('define atractor')
+    || normalized.includes('proyecta atractor')
+    || normalized.includes('que quiero sostener')
+    || normalized.includes('hacia donde voy')
+    || normalized.includes('que no debo repetir')
+    || normalized.includes('atractor')
+    || normalized.includes('sostener')
+    || normalized.includes('cerrar primero')
+    || normalized.includes('avance')
+  ) return 'attractor_projection';
   if (normalized.includes('reconecta') || normalized.includes('conexion') || normalized.includes('conexi')) return 'reconnection_proposal';
   if (normalized.includes('perturb') || normalized.includes('accion') || normalized.includes('hacer')) return 'perturbation_route';
   if (normalized.includes('atlas') || normalized.includes('cuadernillo') || normalized.includes('sobre')) return 'artifact_routing';
@@ -110,13 +120,13 @@ function acpAnswer(input: string, result: TwinProposalResult, selectedNodeLabel?
     };
   }
 
-  if (output === 'attractor_definition') {
+  if (output === 'attractor_projection') {
     return {
       title: 'Twin',
-      happening: 'Falta declarar hacia donde cuenta como avance.',
-      doThis: 'Define que sostener, que cerrar y que no repetir.',
-      place: 'Deja el atractor como propuesta preparada. La evidencia de cambio va al Cuadernillo hasta que se pruebe.',
-      avoid: 'No declares cambio de regimen sin una senal verificable.',
+      happening: 'Procesando alineacion del atractor de campo. Falta declarar hacia donde cuenta como avance.',
+      doThis: 'Contesta que quieres sostener, que quieres cerrar y que no debe repetirse.',
+      place: 'Ya deje un borrador de gobernanza como propuesta ACP. La evidencia de cambio va al Cuadernillo hasta que se pruebe.',
+      avoid: 'No ejecutes nada externo ni declares cambio de regimen sin una senal verificable.',
       meta: `Propuesta tecnica guardada: ${proposalId}.`,
     };
   }
@@ -161,6 +171,7 @@ export function TwinInteractionPanel({
     const trimmed = value.trim();
     if (!trimmed) return;
     const output = requestedOutput(trimmed);
+    const isAttractor = output === 'attractor_projection';
     if (output === 'artifact_routing') onArtifactIntent?.();
     setLoading(true);
     setResult(null);
@@ -175,9 +186,18 @@ export function TwinInteractionPanel({
             objective: trimmed,
             focus: deriveFocus(trimmed),
             requested_output: output,
-            proposalType: output,
+            proposalType: isAttractor ? 'attractor_draft' : output,
             selected_node: selectedNodeLabel ?? null,
-            acp_instruction: 'Responder simple. Crear propuesta gobernada sin ejecucion automatica.',
+            contextQuestions: isAttractor ? [
+              'Que quieres sostener?',
+              'Que quieres cerrar?',
+              'Que no quieres repetir?',
+              'Que evidencia probaria avance?',
+              'Que no debe sacrificarse?',
+            ] : undefined,
+            acp_instruction: isAttractor
+              ? 'Crear borrador de atractor gobernado. No ejecutar comandos ni acciones externas. Fijar siguiente accion verificable.'
+              : 'Responder simple. Crear propuesta gobernada sin ejecucion automatica.',
           },
         }),
       }).then(async (res) => {

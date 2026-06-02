@@ -10,6 +10,8 @@ type RootTableState = {
   warning?: string | null;
 };
 
+type RootRow = Record<string, unknown> & { id?: string; status?: string; created_at?: string };
+
 type RootStateResponse = {
   ok?: boolean;
   data?: {
@@ -72,12 +74,32 @@ export function RootOperationsConsole() {
     }
   }
 
+  async function closeMutation(id?: string) {
+    if (!id) return;
+    setBusy(true);
+    setMessage(null);
+    try {
+      const response = await fetch(`/api/root/mutations/${id}/close`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ result: 'closed_from_root_console' }),
+      });
+      const result = await response.json().catch(() => ({ ok: false, error: `HTTP_${response.status}` }));
+      setMessage(result.ok ? 'Mutacion cerrada con auditoria root.' : result.error ?? 'No se pudo cerrar mutacion.');
+      if (result.ok) await load();
+    } finally {
+      setBusy(false);
+    }
+  }
+
   useEffect(() => {
     void load();
   }, []);
 
   const tablesByName = useMemo(() => new Map((state?.data?.tables ?? []).map((table) => [table.table, table])), [state]);
   const visibleTables = GROUPS[active].map((table) => tablesByName.get(table)).filter(Boolean) as RootTableState[];
+  const mutations = (tablesByName.get('logbook_mutations')?.latest ?? []).filter((row): row is RootRow => Boolean(row && typeof row === 'object' && !Array.isArray(row)));
 
   return (
     <section className="border border-[#1e1c17] bg-[#0e0d0b]">
@@ -113,6 +135,27 @@ export function RootOperationsConsole() {
           </div>
         ))}
       </div>
+
+      {active === 'bitacora' ? (
+        <div className="border-t border-[#1e1c17] p-3">
+          <div className="font-mono text-[8px] uppercase tracking-[0.18em] text-[#8a7035]">Cerrar mutaciones</div>
+          <div className="mt-2 grid gap-1">
+            {mutations.slice(0, 5).map((mutation) => (
+              <div key={String(mutation.id)} className="grid grid-cols-[1fr_auto] gap-2 border border-[#1e1c17] bg-[#131210] p-2 font-mono text-[8px]">
+                <div>
+                  <div className="text-[#ccc8bc]">{String(mutation.id ?? '-').slice(0, 12)}</div>
+                  <div className="text-[#7a7568]">{String(mutation.status ?? '-')} / {String(mutation.created_at ?? '-').slice(0, 19)}</div>
+                </div>
+                {mutation.status !== 'closed' ? (
+                  <button type="button" disabled={busy} onClick={() => void closeMutation(mutation.id)} className="border border-[#8a7035] px-2 py-1 uppercase tracking-[0.12em] text-[#c8a951] disabled:opacity-40">
+                    Cerrar
+                  </button>
+                ) : <span className="px-2 py-1 uppercase tracking-[0.12em] text-[#5a5855]">cerrada</span>}
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
 
       <form onSubmit={(event) => void submitEvidence(event)} className="border-t border-[#1e1c17] p-3">
         <div className="font-mono text-[8px] uppercase tracking-[0.18em] text-[#8a7035]">Registrar evidencia</div>

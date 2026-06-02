@@ -17,6 +17,10 @@ type Proposal = {
     mihmSourceState?: string | null;
     accessMode?: string | null;
   };
+  expected_field_delta?: {
+    objective?: string | null;
+    payload?: Record<string, unknown>;
+  };
 };
 
 type ApiState = {
@@ -58,10 +62,59 @@ function payloadFor(route: string) {
   return { note: 'ACP state advanced from root console. No external execution.' };
 }
 
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
+function stringValue(value: unknown) {
+  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;
+}
+
+function numberValue(value: unknown) {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null;
+}
+
+function attractorSummary(proposal: Proposal) {
+  const payload = asRecord(proposal.expected_field_delta?.payload);
+  const proposalPayload = asRecord(payload.proposal);
+  const seedEvidence = proposal.seedEvidenceSummary ?? {};
+
+  return {
+    objective: stringValue(proposal.expected_field_delta?.objective)
+      ?? stringValue(proposalPayload.objective)
+      ?? proposal.title,
+    direction: stringValue(proposalPayload.direction)
+      ?? stringValue(proposalPayload.vector_direction)
+      ?? 'pendiente: definir direccion vectorial',
+    nextAction: stringValue(proposalPayload.next_action)
+      ?? stringValue(proposalPayload.nextAction)
+      ?? 'Responder las preguntas del atractor y preparar cierre verificable.',
+    frictionNodesCount: numberValue(proposalPayload.frictionNodesCount)
+      ?? numberValue(proposalPayload.friction_nodes_count)
+      ?? seedEvidence.nodes
+      ?? 0,
+    alignedNodesCount: numberValue(proposalPayload.alignedNodesCount)
+      ?? numberValue(proposalPayload.aligned_nodes_count)
+      ?? seedEvidence.documents
+      ?? 0,
+  };
+}
+
 function plainDescription(proposal: Proposal) {
   const type = proposal.proposalType || 'propuesta';
   const preparedOnly = proposal.status === 'design_approved' || proposal.status === 'queued';
   const artifact = type === 'artifact_routing' || type.includes('artifact') || type.includes('routing');
+  const attractor = type === 'attractor_draft';
+  if (attractor) {
+    return {
+      what: 'Un borrador de atractor para decidir hacia donde debe converger el campo.',
+      changes: 'Ordena direccion, nodos alineados, nodos en friccion y evidencia necesaria antes de declarar avance.',
+      accept: 'Esto NO ejecuta comandos ni acciones externas. Solo aprueba el diseno del atractor para prepararlo.',
+      reject: 'Si rechazas, queda trazado que esta direccion no sostiene el sistema y la friccion sigue abierta.',
+      stored: 'Queda guardado en el ledger ACP. La evidencia que lo pruebe debe cerrarse en Cuadernillo o Atlas.',
+      next: 'Siguiente paso: fijar una accion verificable y cerrar el registro solo cuando exista evidencia.',
+    };
+  }
   return {
     what: type === 'twin_proposal' ? 'Una lectura del Twin convertida en propuesta ACP.' : `Una propuesta de tipo ${type}.`,
     changes: artifact ? 'Prepara una entrada para Atlas, Cuadernillo o Sobre Negro.' : 'Cambia el estado del registro gobernado, no el mundo externo.',
@@ -154,6 +207,7 @@ export function AcpProposalConsole({ compact = false }: { compact?: boolean }) {
           const evidence = proposal.seedEvidenceSummary ?? {};
           const route = routeFor(proposal.status);
           const description = plainDescription(proposal);
+          const attractor = proposal.proposalType === 'attractor_draft' ? attractorSummary(proposal) : null;
           return (
             <article key={proposal.id} className="border border-[#1e1c17] bg-[#131210] p-3 hover:border-[#2e2c24]">
               <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
@@ -181,6 +235,15 @@ export function AcpProposalConsole({ compact = false }: { compact?: boolean }) {
                 <p><span className="font-mono text-[8px] uppercase tracking-[0.12em] text-[#35312a]">Donde queda</span><br />{description.stored}</p>
                 <p><span className="font-mono text-[8px] uppercase tracking-[0.12em] text-[#35312a]">Siguiente paso</span><br />{description.next}</p>
               </div>
+
+              {attractor ? (
+                <div className="mt-3 grid grid-cols-1 gap-1 border border-[#2e2410] bg-[#0b0a09] p-3 font-mono text-[9px] text-[#8a7568] md:grid-cols-2">
+                  <div><span className="uppercase tracking-[0.12em] text-[#8a7035]">Objetivo del Atractor</span><br /><span className="text-[#ccc8bc]">{attractor.objective}</span></div>
+                  <div><span className="uppercase tracking-[0.12em] text-[#8a7035]">Direccion vectorial</span><br /><span className="text-[#ccc8bc]">{attractor.direction}</span></div>
+                  <div><span className="uppercase tracking-[0.12em] text-[#8a7035]">Siguiente Accion</span><br /><span className="text-[#ccc8bc]">{attractor.nextAction}</span></div>
+                  <div><span className="uppercase tracking-[0.12em] text-[#8a7035]">Conteos</span><br /><span className="text-[#ccc8bc]">friccion {attractor.frictionNodesCount} / alineados {attractor.alignedNodesCount}</span></div>
+                </div>
+              ) : null}
 
               <div className="mt-3 grid grid-cols-2 gap-1 font-mono text-[9px] lg:grid-cols-3">
                 <div className="bg-[#181614] p-2"><span className="text-[#35312a]">nodes</span><br /><span className="text-[#ccc8bc]">{evidence.nodes ?? 0}</span></div>

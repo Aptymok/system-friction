@@ -87,3 +87,52 @@ export async function readTableHealth(table: string, limit = 5) {
     warning: latest.error?.message ?? null,
   };
 }
+
+export async function recordUsageObservation(input: {
+  actorId: string;
+  kind: string;
+  amount?: number;
+  metadata?: Record<string, unknown>;
+}) {
+  const service = createServiceSupabaseClient();
+  const membership = await service
+    .from('account_members')
+    .select('account_id')
+    .eq('user_id', input.actorId)
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  if (membership.error || !membership.data?.account_id) {
+    return { ok: true as const, skipped: true, reason: membership.error?.message ?? 'account_membership_missing' };
+  }
+
+  const amount = typeof input.amount === 'number' ? input.amount : 1;
+  const ledger = await service
+    .from('usage_ledger')
+    .insert({
+      account_id: membership.data.account_id,
+      actor_id: input.actorId,
+      kind: input.kind,
+      amount,
+      unit: 'operation',
+      metadata: input.metadata ?? {},
+    })
+    .select('*')
+    .single();
+
+  if (ledger.error) return { ok: false as const, error: 'usage_ledger_insert_failed', details: ledger.error.message };
+
+  const balance = await service
+    .from('account_balance')
+    .upsert({
+      account_id: membership.data.account_id,
+      balance: 0,
+      reserved: 0,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'account_id' })
+    .select('*')
+    .single();
+
+  return { ok: true as const, data: { ledger: ledger.data, balance: balance.error ? null : balance.data } };
+}

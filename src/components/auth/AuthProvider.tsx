@@ -135,7 +135,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (pathname.startsWith('/root') || pathname.startsWith('/user')) router.replace('/login')
     }
   }, 0)
-})
+})FSF
 
     return () => {
       active = false

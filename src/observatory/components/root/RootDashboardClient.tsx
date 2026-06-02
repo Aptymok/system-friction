@@ -10,6 +10,7 @@ import { TwinInteractionPanel } from '@/observatory/components/root/TwinInteract
 import { ArtifactRoutingPanel } from '@/observatory/components/root/ArtifactRoutingPanel';
 import { AcpFieldRegimeView } from '@/observatory/components/root/AcpFieldRegimeView';
 import { AcpFreeNodesView } from '@/observatory/components/root/AcpFreeNodesView';
+import { AcpAttractorFieldView } from '@/observatory/components/root/AcpAttractorFieldView';
 import { RootOperationsConsole } from '@/observatory/components/root/RootOperationsConsole';
 
 type RightPanel = 'chat' | 'propuestas' | 'artefactos' | 'agentes' | 'control';
@@ -17,10 +18,13 @@ type RightPanel = 'chat' | 'propuestas' | 'artefactos' | 'agentes' | 'control';
 type TwinState = {
   ok?: boolean;
   data?: {
+    proposals?: unknown[];
     seed?: {
       nodeCatalog?: unknown[];
       documentCatalog?: unknown[];
       patternCatalog?: unknown[];
+      executionCatalog?: unknown[];
+      recentEvents?: unknown[];
       mihmRuntimeMatrix?: {
         sourceState?: string;
         ihg?: number;
@@ -90,6 +94,7 @@ function Accordion({ title, open, onClick, children }: { title: string; open: bo
 
 export function RootDashboardClient() {
   const [activeTool, setActiveTool] = useState('observacion');
+  const [isAttractorConsolidation, setIsAttractorConsolidation] = useState(false);
   const [openPanel, setOpenPanel] = useState<RightPanel>('chat');
   const [selectedNodeLabel, setSelectedNodeLabel] = useState<string | null>(null);
   const [twin, setTwin] = useState<TwinState | null>(null);
@@ -135,6 +140,18 @@ export function RootDashboardClient() {
           <div className="ml-auto hidden shrink-0 items-center gap-2 px-4 font-mono text-[9px] uppercase tracking-[0.14em] text-[#7a7568] md:flex">
             <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#c8a951]" /> campo activo
           </div>
+          <button
+            type="button"
+            className="mr-3 shrink-0 border border-[#d4af7d]/40 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.1em]"
+            style={{ background: 'transparent', color: isAttractorConsolidation ? '#fff' : 'rgba(212, 175, 125, 0.6)' }}
+            onClick={() => {
+              const nextState = !isAttractorConsolidation;
+              setIsAttractorConsolidation(nextState);
+              setActiveTool(nextState ? 'atractores' : 'libres');
+            }}
+          >
+            {isAttractorConsolidation ? 'T-ATTRACTOR CONSOLIDATION: ON' : 'ATRACTOR: OFF'}
+          </button>
         </div>
       </header>
 
@@ -142,11 +159,22 @@ export function RootDashboardClient() {
         <section className="relative min-h-0 overflow-hidden border-r border-[#1e1c17]">
           <div className="absolute left-3 top-3 z-20 flex flex-col gap-2">
             {FIELD_TOOLS.map((tool) => (
-              <FieldToolButton key={tool.id} tool={tool} active={activeTool === tool.id} onClick={() => setActiveTool(tool.id)} />
+              <FieldToolButton key={tool.id} tool={tool} active={activeTool === tool.id} onClick={() => {
+                setActiveTool(tool.id);
+                setIsAttractorConsolidation(tool.id === 'atractores');
+              }} />
             ))}
           </div>
 
-          {activeTool === 'libres' ? (
+          {activeTool === 'atractores' ? (
+            <AcpAttractorFieldView
+              twin={twin}
+              onBackToCognitive={() => {
+                setIsAttractorConsolidation(false);
+                setActiveTool('libres');
+              }}
+            />
+          ) : activeTool === 'libres' ? (
             <AcpFreeNodesView
               twin={twin}
               onOpenTwin={(node) => {

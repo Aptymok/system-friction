@@ -9,11 +9,15 @@ function asRecord(value: unknown): Record<string, unknown> {
 
 function proposalTypeFrom(row: Record<string, unknown>) {
   const expectedDelta = asRecord(row.expected_field_delta);
+  const payload = asRecord(expectedDelta.payload);
+  const proposal = asRecord(payload.proposal);
   const proportionality = asRecord(row.proportionality_check);
 
   return String(
     expectedDelta.proposalType
     ?? expectedDelta.proposal_type
+    ?? proposal.proposalType
+    ?? proposal.proposal_type
     ?? proportionality.proposalType
     ?? proportionality.proposal_type
     ?? 'unknown'

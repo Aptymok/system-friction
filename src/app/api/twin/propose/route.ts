@@ -13,6 +13,14 @@ function termsFromProposal(value: unknown) {
     .filter((term) => term.length >= 4);
 }
 
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
+function stringValue(value: unknown) {
+  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;
+}
+
 function intersects(haystack: string[], needles: string[]) {
   return needles.some((needle) => haystack.includes(needle));
 }
@@ -108,6 +116,10 @@ export async function POST(req: Request) {
     accessMode: gate.ctx.isRoot ? 'root' : undefined,
   });
   const proposalInput = body.proposal ?? body;
+  const proposalInputRecord = asRecord(proposalInput);
+  const proposalType = stringValue(proposalInputRecord.proposalType)
+    ?? (stringValue(proposalInputRecord.requested_output) === 'attractor_projection' ? 'attractor_draft' : null)
+    ?? 'twin_proposal';
   const seedEvidence = summarizeSeedEvidence(selfObservation, proposalInput);
   const selfObservationPayload = {
     observed_graph_nodes: selfObservation.observed_graph_nodes,
@@ -146,9 +158,9 @@ export async function POST(req: Request) {
   if (!event.ok) return NextResponse.json(event, { status: 400 });
 
   const proposal = await createActionProposal({
-    proposalType: 'twin_proposal',
+    proposalType,
     actorId: gate.ctx.user.id,
-    title: 'cognitive_twin.proposal.created',
+    title: proposalType === 'attractor_draft' ? 'attractor_draft.created' : 'cognitive_twin.proposal.created',
     graphNodeCount: selfObservation.observed_graph_nodes,
     graphEdgeCount: selfObservation.observed_graph_edges,
     inputVectorHash: sha256(payload.self_observation),
