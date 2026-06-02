@@ -8,6 +8,10 @@ import './CulturalVectorDashboard.css';
 type EvidenceEntry = {
   id: string;
   source_name: string;
+  evidence_type?: string;
+  reliability_score?: number;
+  provenance_notes?: string | null;
+  source_coverage_contribution?: number;
   evidence_hash: string;
   created_at: string;
   summary: string;
@@ -39,6 +43,15 @@ type ProposalPayload = {
   verification_plan?: Record<string, unknown>;
 };
 
+type TwinProposalResponse = {
+  ok?: boolean;
+  error?: string;
+  data?: {
+    id?: string;
+    status?: string;
+  };
+};
+
 const GOLD = '200,169,81';
 const RED = '184,80,80';
 const GREEN = '58,138,90';
@@ -57,6 +70,17 @@ function nowTime() {
 
 function shortHash(value?: string) {
   return value ? `${value.slice(0, 8)}…${value.slice(-4)}` : 'sin hash';
+}
+
+function formatEvidenceEntry(entry: EvidenceEntry) {
+  return [
+    `${entry.source_name}/${entry.evidence_type ?? 'evidence'}`,
+    `r:${entry.reliability_score?.toFixed(2) ?? '0.50'}`,
+    `cov:${entry.source_coverage_contribution?.toFixed(2) ?? '0.00'}`,
+    shortHash(entry.evidence_hash),
+    entry.summary,
+    entry.provenance_notes || null,
+  ].filter(Boolean).join(' · ');
 }
 
 function fit(canvas: HTMLCanvasElement) {
@@ -95,6 +119,12 @@ export default function CulturalVectorDashboard() {
   const [platform, setPlatform] = useState('soundcloud');
   const [busy, setBusy] = useState(false);
   const [lastPrototypeId, setLastPrototypeId] = useState<string | null>(null);
+  const [audioStatus, setAudioStatus] = useState('melodía: sin archivo');
+  const [intakeType, setIntakeType] = useState('producer_log');
+  const [intakeSource, setIntakeSource] = useState('producer_log');
+  const [intakeReliability, setIntakeReliability] = useState('0.60');
+  const [intakeProvenance, setIntakeProvenance] = useState('');
+  const [intakeStatus, setIntakeStatus] = useState('intake listo');
 
   const canvasRoot = useRef<HTMLDivElement | null>(null);
 
@@ -196,6 +226,32 @@ export default function CulturalVectorDashboard() {
     setBusy(true);
     setAgentMessages((items) => [...items, { role: 'Usuario', text: question }]);
     try {
+      const twinResponse = await fetch('/api/twin/propose', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          proposal: {
+            objective: question,
+            proposalType: 'scorefriction_twin_interaction',
+            requested_output: 'scorefriction_cultural_response',
+            selected_node: caseId,
+            focus: ['scorefriction', caseId, 'cultural_vector', 'evidence_coverage'],
+            context: {
+              case_id: caseId,
+              vector: data?.cultural_vector ?? null,
+              sources: data?.sources ?? null,
+              interpretation: data?.interpretation ?? null,
+              evidence_count: data?.evidence?.observation_count ?? evidence.length,
+              source_coverage: data?.evidence?.source_coverage ?? 0,
+              latest_evidence: evidence.slice(0, 5),
+            },
+            acp_instruction: 'Responder simple: qué está pasando, qué hacer, dónde guardar o qué botón tocar, y qué no hacer todavía. No ejecutar sistemas externos.',
+          },
+        }),
+      }).catch(() => null);
+      const twinJson = twinResponse ? await twinResponse.json().catch(() => null) as TwinProposalResponse | null : null;
+
       const response = await fetch('/api/scorefriction/propose', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
@@ -213,6 +269,7 @@ export default function CulturalVectorDashboard() {
       setAgentMessages((items) => [...items, {
         role: 'Agente',
         text: [
+          twinResponse?.ok && twinJson?.data?.id ? `Twin: propuesta gobernada ${twinJson.data.id}` : `Twin: ${twinJson?.error ?? 'sin propuesta gobernada; inicia sesión si el Twin lo requiere'}`,
           `Fricción: ${data?.interpretation.friction ?? 'pendiente'}`,
           `Protoatractor: ${payload.prototype_name ?? 'prototipo preparado'}`,
           `Brief de producción: ${JSON.stringify(payload.production_brief ?? {})}`,
@@ -222,6 +279,66 @@ export default function CulturalVectorDashboard() {
       setAgentQuestion('');
     } catch (err) {
       setAgentMessages((items) => [...items, { role: 'Agente', text: err instanceof Error ? err.message : 'Error' }]);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function uploadMelody(file: File | null) {
+    if (!file) return;
+    setBusy(true);
+    setAudioStatus(`seleccionado: ${file.name}`);
+    try {
+      setAudioStatus('subiendo melodía...');
+      const form = new FormData();
+      form.set('file', file);
+      form.set('case_id', caseId);
+      form.set('source_name', 'manual_upload');
+      form.set('territory', 'MX');
+      form.set('title', file.name);
+      setAudioStatus('analizando melodía...');
+      const response = await fetch('/api/scorefriction/audio/analyze', { method: 'POST', body: form });
+      const json = await response.json().catch(() => null) as { ok?: boolean; error?: string; evidence_hash?: string; warnings?: string[] } | null;
+      if (!response.ok || !json?.ok) throw new Error(json?.error ?? 'No se pudo analizar melodía');
+      setAudioStatus(`guardado: ${shortHash(json.evidence_hash)}`);
+      setAgentMessages((items) => [...items, {
+        role: 'Melodía',
+        text: `Melodía guardada como evidencia. ${json.warnings?.length ? `Warnings: ${json.warnings.join(', ')}` : 'Vector acústico registrado.'}`,
+      }]);
+      await load(caseId);
+    } catch (err) {
+      setAudioStatus(err instanceof Error ? err.message : 'error al analizar melodía');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function ingestEvidenceFile(file: File | null) {
+    if (!file) return;
+    setBusy(true);
+    setIntakeStatus(`seleccionado: ${file.name}`);
+    try {
+      const reliability = Number.parseFloat(intakeReliability);
+      const form = new FormData();
+      form.set('file', file);
+      form.set('case_id', caseId);
+      form.set('source_name', intakeSource || 'producer_log');
+      form.set('territory', 'MX');
+      form.set('evidence_type', intakeType || 'producer_log');
+      form.set('reliability_score', Number.isFinite(reliability) ? String(Math.max(0, Math.min(1, reliability))) : '0.5');
+      form.set('provenance_notes', intakeProvenance || `operator upload: ${file.name}`);
+      setIntakeStatus('guardando evidencia...');
+      const response = await fetch('/api/scorefriction/ingest', { method: 'POST', body: form });
+      const json = await response.json().catch(() => null) as { ok?: boolean; error?: string; accepted?: number; failed?: number } | null;
+      if (!response.ok || !json?.ok) throw new Error(json?.error ?? `fallo intake: ${json?.failed ?? 1}`);
+      setIntakeStatus(`guardado: ${json.accepted ?? 1} entrada(s)`);
+      setAgentMessages((items) => [...items, {
+        role: 'Evidencia',
+        text: `${file.name} entró como ${intakeType}. No se toma como verdad: queda con procedencia, confiabilidad y cobertura.`,
+      }]);
+      await load(caseId);
+    } catch (err) {
+      setIntakeStatus(err instanceof Error ? err.message : 'error de intake');
     } finally {
       setBusy(false);
     }
@@ -264,6 +381,8 @@ export default function CulturalVectorDashboard() {
         <div className="sf-cvd-stat">PAC <span>{vector?.PAC.toFixed(2) ?? '—'}</span></div>
         <div className="sf-cvd-stat">VFE <span>{vector?.VFE.toFixed(2) ?? '—'}</span></div>
         <div className="sf-cvd-stat">SCR <span>{vector?.SCR.toFixed(2) ?? '—'}</span></div>
+        <div className="sf-cvd-stat">EVD <span>{data?.evidence?.observation_count ?? 0}</span></div>
+        <div className="sf-cvd-stat">COV <span>{data?.evidence?.source_coverage?.toFixed(2) ?? '0.00'}</span></div>
         <div className="sf-cvd-stat" style={{ marginLeft: 'auto' }}>{loading ? 'cargando' : nowTime()}</div>
       </header>
 
@@ -324,7 +443,7 @@ export default function CulturalVectorDashboard() {
                   {error ? <LogEntry time={nowTime()} body={error} /> : null}
                   {data?.evidence?.warning ? <LogEntry time={nowTime()} body={`warning: ${data.evidence.warning}`} /> : null}
                   {evidence.length === 0 ? <LogEntry time="—" body="sin evidencia registrada; usar observe/manual" /> : evidence.map((entry) => (
-                    <LogEntry key={entry.id} time={entry.created_at.slice(11, 19)} body={`${entry.source_name} · ${shortHash(entry.evidence_hash)} · ${entry.summary}`} />
+                    <LogEntry key={entry.id} time={entry.created_at.slice(11, 19)} body={formatEvidenceEntry(entry)} />
                   ))}
                 </div>
               </div>
@@ -337,6 +456,34 @@ export default function CulturalVectorDashboard() {
                 <div className="sf-agent-footer">
                   <input className="sf-agent-in" value={agentQuestion} onChange={(event) => setAgentQuestion(event.target.value)} placeholder="Pregunta: ¿qué debe producir Edwing desde este vector?" onKeyDown={(event) => { if (event.key === 'Enter') void askAgent(); }} />
                   <button className="sf-agent-send" disabled={busy} onClick={() => void askAgent()}>→</button>
+                </div>
+                <div className="sf-intake-box">
+                  <div className="sf-file-row">
+                    <span className="sf-file-label">CARGA DE MELODÍA</span>
+                    <input type="file" accept="audio/*" disabled={busy} onChange={(event) => void uploadMelody(event.currentTarget.files?.[0] ?? null)} />
+                  </div>
+                  <div className="sf-status">{audioStatus}</div>
+                </div>
+                <div className="sf-intake-box">
+                  <div className="sf-file-label">INTAKE UNIVERSAL DE EVIDENCIA</div>
+                  <div className="sf-file-row">
+                    <select value={intakeType} disabled={busy} onChange={(event) => setIntakeType(event.target.value)}>
+                      <option value="producer_log">producer_log</option>
+                      <option value="lyrics">lyrics</option>
+                      <option value="comments">comments</option>
+                      <option value="audio_metadata">audio_metadata</option>
+                      <option value="platform_snapshot">platform_snapshot</option>
+                      <option value="community_observation">community_observation</option>
+                      <option value="dataset_export">dataset_export</option>
+                    </select>
+                    <input value={intakeSource} disabled={busy} onChange={(event) => setIntakeSource(event.target.value)} placeholder="source_name" />
+                    <input value={intakeReliability} disabled={busy} onChange={(event) => setIntakeReliability(event.target.value)} placeholder="0.60" />
+                  </div>
+                  <input value={intakeProvenance} disabled={busy} onChange={(event) => setIntakeProvenance(event.target.value)} placeholder="provenance_notes" />
+                  <div className="sf-file-row">
+                    <input type="file" accept=".txt,.md,.json,.csv" disabled={busy} onChange={(event) => void ingestEvidenceFile(event.currentTarget.files?.[0] ?? null)} />
+                    <span className="sf-status">{intakeStatus}</span>
+                  </div>
                 </div>
                 <div className="sf-verify-footer">
                   <input className="sf-verify-in" value={platform} onChange={(event) => setPlatform(event.target.value)} />

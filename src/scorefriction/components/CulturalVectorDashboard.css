@@ -380,3 +380,49 @@
   letter-spacing: 0.1em;
   margin-left: auto;
 }
+
+.sf-intake-box {
+  border-top: 1px solid rgba(200, 169, 81, 0.055);
+  padding: 0.42rem 0.65rem;
+  display: grid;
+  gap: 0.35rem;
+  flex-shrink: 0;
+  background: rgba(200, 169, 81, 0.012);
+}
+
+.sf-file-row {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.sf-file-label {
+  color: rgba(200, 169, 81, 0.42);
+  font-size: 0.36rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.sf-intake-box input,
+.sf-intake-box select {
+  min-width: 0;
+  background: rgba(6, 6, 5, 0.78);
+  border: 1px solid rgba(200, 169, 81, 0.12);
+  color: rgba(200, 169, 81, 0.66);
+  font-family: var(--mono);
+  font-size: 0.4rem;
+  padding: 0.26rem 0.36rem;
+  outline: none;
+}
+
+.sf-intake-box input[type='file'] {
+  flex: 1;
+  border-color: rgba(200, 169, 81, 0.08);
+  color: rgba(200, 169, 81, 0.44);
+}
+
+.sf-intake-box input::placeholder {
+  color: #24231f;
+}
