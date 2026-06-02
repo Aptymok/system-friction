@@ -82,7 +82,7 @@ function destinationLabel(destination: Destination) {
   return 'Sobre Negro';
 }
 
-export function ArtifactRoutingPanel() {
+export function ArtifactRoutingPanel({ compact = false }: { compact?: boolean }) {
   const [drafts, setDrafts] = useState<Record<Destination, string>>({ atlas: '', workbook: '', black_envelope: '' });
   const [busy, setBusy] = useState<Destination | null>(null);
   const [result, setResult] = useState<{ destination: Destination; response: ProposalResult } | null>(null);
@@ -132,7 +132,7 @@ export function ArtifactRoutingPanel() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-1 p-3 xl:grid-cols-3">
+      <div className={`grid grid-cols-1 gap-1 p-3 ${compact ? '' : 'xl:grid-cols-3'}`}>
         {ARTIFACTS.map((artifact) => (
           <article key={artifact.destination} className="border border-[#1e1c17] bg-[#131210] p-4">
             <div className="font-serif text-xl text-[#c8a951]">{artifact.title}</div>
