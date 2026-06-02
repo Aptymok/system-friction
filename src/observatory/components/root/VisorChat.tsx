@@ -7,22 +7,24 @@ export function VisorChat({
   open,
   context,
   messages,
+  loading,
   onSubmit,
   onClose,
 }: {
   open: boolean;
   context: VisorContextItem;
   messages: VisorChatMessage[];
-  onSubmit: (prompt: string) => void;
+  loading?: boolean;
+  onSubmit: (prompt: string) => void | Promise<void>;
   onClose: () => void;
 }) {
   const [input, setInput] = useState('');
   if (!open) return null;
 
-  function submit() {
+  async function submit() {
     const prompt = input.trim();
-    if (!prompt) return;
-    onSubmit(prompt);
+    if (!prompt || loading) return;
+    await onSubmit(prompt);
     setInput('');
   }
 
@@ -53,6 +55,12 @@ export function VisorChat({
             {message.text}
           </div>
         ))}
+        {loading ? (
+          <div className="border-l border-[#d4af37]/35 bg-white/[0.02] px-3 py-2 font-mono text-[11px] leading-5 text-white/40">
+            <div className="mb-1 text-[8px] uppercase tracking-[0.18em] text-white/25">visor</div>
+            leyendo el campo...
+          </div>
+        ) : null}
       </div>
       <footer className="border-t border-white/10 p-3">
         <textarea
@@ -61,15 +69,15 @@ export function VisorChat({
           onKeyDown={(event) => {
             if (event.key === 'Enter' && !event.shiftKey) {
               event.preventDefault();
-              submit();
+              void submit();
             }
           }}
-          placeholder={`Ask about ${context.label}...`}
+          placeholder={`Pregunta libre sobre ${context.label}...`}
           className="h-24 w-full resize-none border border-white/10 bg-white/[0.025] p-3 font-mono text-[11px] leading-5 text-white/75 outline-none placeholder:text-white/20 focus:border-[#d4af37]/45"
         />
         <div className="mt-2 flex items-center justify-between">
-          <span className="font-mono text-[8px] uppercase tracking-[0.14em] text-white/25">observa / interroga / no ejecuta</span>
-          <button type="button" onClick={submit} className="border border-[#d4af37]/45 px-3 py-1.5 font-mono text-[9px] uppercase tracking-[0.16em] text-[#d4af37] hover:bg-[#d4af37]/10">
+          <span className="font-mono text-[8px] uppercase tracking-[0.14em] text-white/25">voz del sistema / no ejecuta</span>
+          <button type="button" disabled={loading} onClick={() => void submit()} className="border border-[#d4af37]/45 px-3 py-1.5 font-mono text-[9px] uppercase tracking-[0.16em] text-[#d4af37] hover:bg-[#d4af37]/10 disabled:opacity-40">
             preguntar
           </button>
         </div>

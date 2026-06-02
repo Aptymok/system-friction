@@ -55,6 +55,7 @@ export function VisorMode({
         open={chat.open}
         context={context}
         messages={chat.messages}
+        loading={chat.loading}
         onSubmit={chat.submit}
         onClose={() => chat.setOpen(false)}
       />

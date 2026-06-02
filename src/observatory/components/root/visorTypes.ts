@@ -22,6 +22,14 @@ export type VisorChatMessage = {
   text: string;
 };
 
+export type VisorSnapshot = {
+  proposals: number;
+  nodes: number;
+  documents: number;
+  patterns: number;
+  events: number;
+};
+
 export const VISOR_CONTEXTS: VisorContextItem[] = [
   { key: 'bitacoras', label: 'Bitacoras', description: 'Entradas de usuario, sistema y agentes.', children: ['Usuario', 'Sistema', 'Agentes'] },
   { key: 'atlas', label: 'Atlas', description: 'Registros activos, cerrados y archivados.', children: ['Activos', 'Cerrados', 'Archivados'] },
