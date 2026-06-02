@@ -1,7 +1,8 @@
-﻿// src/lib/supabase/server.ts
-import 'server-only'; // Importante: evita que se use en componentes cliente
+﻿// src/runtime/supabase/server.ts
+import 'server-only';
 import { cookies } from 'next/headers';
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
+import { createClient } from '@supabase/supabase-js';
 import { normalizeSupabaseUrl } from '@/runtime/supabase/url';
 
 export async function createServerSupabaseClient() {
@@ -34,11 +35,16 @@ export function createServiceSupabaseClient() {
     throw new Error('Missing Supabase environment variables for service client');
   }
 
-  return createServerClient(normalizeSupabaseUrl(supabaseUrl), serviceRoleKey, {
-    cookies: {
-      get: async () => null,
-      set: async () => {},
-      remove: async () => {},
+  return createClient(normalizeSupabaseUrl(supabaseUrl), serviceRoleKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+    },
+    global: {
+      headers: {
+        'X-Client-Info': 'sfi-service-role',
+      },
     },
   });
 }
