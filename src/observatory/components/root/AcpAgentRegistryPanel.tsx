@@ -26,7 +26,7 @@ type AgentResponse = {
   error?: string;
 };
 
-export function AcpAgentRegistryPanel() {
+export function AcpAgentRegistryPanel({ compact = false }: { compact?: boolean }) {
   const [state, setState] = useState<AgentResponse | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -71,7 +71,7 @@ export function AcpAgentRegistryPanel() {
 
       {!state?.ok && state?.error ? <div className="m-3 border border-[#5a2020] bg-[#5a2020]/20 p-3 font-mono text-[9px] text-[#c87060]">{state.error}</div> : null}
 
-      <div className="flex flex-col gap-1 p-3">
+      <div className={`flex flex-col gap-1 p-3 ${compact ? 'text-sm' : ''}`}>
         {agents.map((agent) => (
           <article key={agent.agentId} className="border border-[#1e1c17] bg-[#131210] p-3 hover:border-[#2e2c24]">
             <div className="flex flex-wrap items-center gap-2">
