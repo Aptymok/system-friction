@@ -3,8 +3,6 @@ import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { computeCulturalVector } from './cultural-vector-scoring';
 import type { CulturalVectorResponse, PlatformVector } from './cultural-vector-contract';
 import { findCulturalWaveCase } from './cultural-wave-cases';
-import { evidenceTypeVectorEffects, inferEvidenceType, sourceCoverageContribution } from './evidence-vector-mapper';
-import { isScoreFrictionEvidenceType } from './evidence-contract';
 import { deriveVectors, evidenceHash, normalizeObservation } from './normalize';
 import type { ScoreFrictionObservationInput } from './types';
 
@@ -236,7 +234,7 @@ export async function evaluateScoreFrictionCase(caseId: string): Promise<Cultura
 
   const observations = await service
     .from('scorefriction_observations')
-    .select('id, source_name, evidence_type, reliability_score, source_coverage_contribution, evidence_hash, normalized_payload, created_at')
+    .select('id, source_name, evidence_hash, normalized_payload, created_at')
     .eq('case_id', caseId)
     .order('created_at', { ascending: false })
     .limit(25);
@@ -265,7 +263,7 @@ export async function evaluateScoreFrictionCase(caseId: string): Promise<Cultura
   const sources = { ...fallback.sources };
   rows.forEach((row) => {
     const key = sourceKey(row.source_name);
-    if (key) sources[key] = Math.min(1, numberValue(sources[key], 0) + numberValue(row.source_coverage_contribution, 0.05));
+    if (key) sources[key] = Math.min(1, numberValue(sources[key], 0) + 0.05);
   });
 
   return {
@@ -280,7 +278,6 @@ export async function evaluateScoreFrictionCase(caseId: string): Promise<Cultura
       latest_hash: stringValue(rows[0]?.evidence_hash) ?? undefined,
       observation_count: rows.length,
       last_observed_at: stringValue(rows[0]?.created_at) ?? undefined,
-      source_coverage: rows.reduce((sum, row) => sum + numberValue(row.source_coverage_contribution, 0), 0),
     },
   };
 }
@@ -395,7 +392,7 @@ export async function readScoreFrictionEvidence(caseId: string) {
 
   const result = await service
     .from('scorefriction_observations')
-    .select('id, source_name, evidence_type, reliability_score, provenance_notes, source_coverage_contribution, evidence_hash, created_at, normalized_payload, raw_payload')
+    .select('id, source_name, evidence_hash, created_at, normalized_payload, raw_payload')
     .eq('case_id', caseId)
     .order('created_at', { ascending: false })
     .limit(50);
@@ -411,10 +408,6 @@ export async function readScoreFrictionEvidence(caseId: string) {
       return {
         id: String(row.id),
         source_name: String(row.source_name ?? 'unknown'),
-        evidence_type: String(row.evidence_type ?? 'unknown'),
-        reliability_score: numberValue(row.reliability_score, 0.5),
-        provenance_notes: stringValue(row.provenance_notes) ?? null,
-        source_coverage_contribution: numberValue(row.source_coverage_contribution, 0),
         evidence_hash: String(row.evidence_hash ?? ''),
         created_at: String(row.created_at ?? ''),
         summary: stringValue(normalized.title)
