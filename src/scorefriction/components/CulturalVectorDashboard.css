@@ -1,0 +1,382 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500&family=Cormorant+Garamond:wght@300;400;600&family=Syncopate:wght@400;700&display=swap');
+
+.sf-cvd {
+  --void: #060605;
+  --dark: #0a0a09;
+  --surface: #0d0d0c;
+  --gold: #c8a951;
+  --red: #b85050;
+  --green: #3a8a5a;
+  --blue: #5078b8;
+  --mono: 'JetBrains Mono', monospace;
+  --serif: 'Cormorant Garamond', serif;
+  --disp: 'Syncopate', sans-serif;
+  min-height: 100vh;
+  overflow: hidden;
+  background: var(--void);
+  color: #c8c4b8;
+  font-family: var(--mono);
+  cursor: crosshair;
+}
+
+.sf-cvd * { box-sizing: border-box; }
+
+.sf-cvd-header {
+  height: 28px;
+  border-bottom: 1px solid rgba(200, 169, 81, 0.07);
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0 0.7rem;
+  background: rgba(6, 6, 5, 0.98);
+}
+
+.sf-cvd-brand {
+  font-family: var(--disp);
+  font-size: 0.52rem;
+  letter-spacing: 0.32em;
+  color: var(--gold);
+  font-weight: 700;
+}
+
+.sf-cvd-sep {
+  width: 1px;
+  height: 14px;
+  background: rgba(200, 169, 81, 0.1);
+}
+
+.sf-cvd-stat {
+  font-size: 0.4rem;
+  letter-spacing: 0.14em;
+  color: #292820;
+  white-space: nowrap;
+  text-transform: uppercase;
+}
+
+.sf-cvd-stat span { color: rgba(200, 169, 81, 0.72); }
+.sf-cvd-regime { font-size: 0.38rem; letter-spacing: 0.2em; text-transform: uppercase; white-space: nowrap; }
+.sf-reg-latente { color: rgba(200, 169, 81, 0.45); }
+.sf-reg-proto { color: var(--gold); }
+.sf-reg-crystal { color: var(--green); }
+.sf-reg-sat { color: var(--red); }
+
+.sf-cvd-body {
+  height: calc(100vh - 28px);
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  overflow: hidden;
+}
+
+.sf-cvd-side {
+  border-right: 1px solid rgba(200, 169, 81, 0.06);
+  background: rgba(6, 6, 5, 0.98);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.7rem 0;
+}
+
+.sf-side-topo {
+  font-size: 0.32rem;
+  letter-spacing: 0.15em;
+  color: #1c1c19;
+  text-transform: uppercase;
+  writing-mode: vertical-rl;
+  margin: 0.45rem 0 0.2rem;
+}
+
+.sf-side-node {
+  width: 32px;
+  height: 32px;
+  border: 1px solid transparent;
+  display: grid;
+  place-items: center;
+  color: rgba(200, 169, 81, 0.45);
+  background: transparent;
+  cursor: pointer;
+  font-size: 0.48rem;
+}
+
+.sf-side-node:hover {
+  border-color: rgba(200, 169, 81, 0.22);
+  background: rgba(200, 169, 81, 0.035);
+  color: rgba(200, 169, 81, 0.8);
+}
+
+.sf-cvd-main {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.sf-zone {
+  display: flex;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  flex-shrink: 0;
+  border-bottom: 1px solid rgba(200, 169, 81, 0.045);
+}
+
+.sf-zone::-webkit-scrollbar { display: none; }
+.sf-zone-a { height: 38%; }
+.sf-zone-b { height: 34%; }
+.sf-zone-c { height: 28%; }
+
+.sf-zone-label {
+  position: sticky;
+  left: 0;
+  width: 18px;
+  flex-shrink: 0;
+  height: 100%;
+  writing-mode: vertical-rl;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.3rem;
+  letter-spacing: 0.2em;
+  color: #171713;
+  text-transform: uppercase;
+  background: var(--void);
+  z-index: 3;
+}
+
+.sf-panel {
+  height: 100%;
+  flex-shrink: 0;
+  position: relative;
+  background: var(--void);
+  border-right: 1px solid rgba(200, 169, 81, 0.055);
+  overflow: hidden;
+}
+
+.sf-panel:hover { border-color: rgba(200, 169, 81, 0.15); }
+.sf-panel canvas { width: 100%; height: 100%; display: block; }
+
+.sf-p-core { width: 255px; }
+.sf-p-field { width: 380px; }
+.sf-p-twin { width: 340px; }
+.sf-p-platform { width: 330px; }
+.sf-p-wave { width: 430px; }
+.sf-p-sem { width: 360px; }
+.sf-p-proj { width: 360px; }
+.sf-p-unc { width: 280px; }
+.sf-p-trace { width: 540px; }
+.sf-p-log { width: 350px; }
+.sf-p-agent { width: 420px; }
+
+.sf-panel-label {
+  position: absolute;
+  top: 0.45rem;
+  left: 0.6rem;
+  z-index: 5;
+  font-size: 0.36rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(200, 169, 81, 0.28);
+  pointer-events: none;
+}
+
+.sf-panel-topo {
+  position: absolute;
+  top: 0.45rem;
+  right: 0.6rem;
+  z-index: 5;
+  font-size: 0.3rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: #20201c;
+  pointer-events: none;
+}
+
+.sf-core-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  pointer-events: none;
+}
+
+.sf-core-val {
+  font-family: var(--disp);
+  font-size: 2.55rem;
+  line-height: 1;
+  font-weight: 700;
+  letter-spacing: -0.05em;
+}
+
+.sf-core-eq {
+  font-size: 0.36rem;
+  color: #20201c;
+  margin-top: 0.45rem;
+  letter-spacing: 0.08em;
+}
+
+.sf-core-regime {
+  font-size: 0.38rem;
+  margin-top: 0.32rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+.sf-core-vars {
+  position: absolute;
+  bottom: 0.55rem;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-around;
+  padding: 0 0.5rem;
+  pointer-events: none;
+}
+
+.sf-core-var { text-align: center; }
+.sf-core-var-name { font-size: 0.31rem; color: #1f1f1b; letter-spacing: 0.1em; }
+.sf-core-var-val { font-size: 0.68rem; color: rgba(200, 169, 81, 0.58); }
+
+.sf-case-select {
+  position: absolute;
+  left: 0.7rem;
+  bottom: 0.55rem;
+  z-index: 20;
+  background: rgba(6, 6, 5, 0.9);
+  border: 1px solid rgba(200, 169, 81, 0.16);
+  color: rgba(200, 169, 81, 0.72);
+  font-family: var(--mono);
+  font-size: 0.42rem;
+  letter-spacing: 0.08em;
+  padding: 0.28rem 0.45rem;
+  outline: none;
+}
+
+.sf-sem-inner,
+.sf-log-inner,
+.sf-agent-inner {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.sf-sem-canvas { position: absolute; inset: 0; pointer-events: none; z-index: 1; }
+.sf-sem-textarea {
+  position: relative;
+  z-index: 2;
+  flex: 1;
+  margin-top: 1.75rem;
+  background: transparent;
+  border: none;
+  outline: none;
+  resize: none;
+  color: #777267;
+  font-family: var(--mono);
+  font-size: 0.55rem;
+  line-height: 1.6;
+  padding: 0.5rem 0.75rem 0.8rem;
+}
+
+.sf-sem-textarea::placeholder { color: #24231f; }
+.sf-sem-actions {
+  position: relative;
+  z-index: 3;
+  border-top: 1px solid rgba(200, 169, 81, 0.055);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.6rem;
+  font-size: 0.38rem;
+  color: rgba(200, 169, 81, 0.45);
+}
+
+.sf-mini-btn {
+  border: 1px solid rgba(200, 169, 81, 0.18);
+  background: transparent;
+  color: rgba(200, 169, 81, 0.65);
+  font-family: var(--mono);
+  font-size: 0.38rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 0.25rem 0.45rem;
+  cursor: pointer;
+}
+
+.sf-mini-btn:disabled { opacity: 0.35; cursor: default; }
+
+.sf-log-scroll,
+.sf-agent-msgs {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.65rem 0.65rem 0.45rem;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(200, 169, 81, 0.1) transparent;
+}
+
+.sf-log-entry {
+  display: flex;
+  gap: 0.5rem;
+  border-bottom: 1px solid rgba(200, 169, 81, 0.035);
+  padding: 0.26rem 0;
+}
+
+.sf-log-t {
+  min-width: 3.3rem;
+  flex-shrink: 0;
+  color: rgba(200, 169, 81, 0.38);
+  font-size: 0.38rem;
+}
+
+.sf-log-body {
+  font-size: 0.41rem;
+  color: #464237;
+  line-height: 1.48;
+}
+
+.sf-agent-msg {
+  font-size: 0.44rem;
+  line-height: 1.55;
+  color: #5f594c;
+  margin-bottom: 0.55rem;
+  border-left: 1px solid rgba(200, 169, 81, 0.12);
+  padding-left: 0.55rem;
+}
+
+.sf-agent-msg strong { color: rgba(200, 169, 81, 0.72); font-weight: 400; }
+
+.sf-agent-footer,
+.sf-verify-footer {
+  border-top: 1px solid rgba(200, 169, 81, 0.055);
+  display: flex;
+  flex-shrink: 0;
+}
+
+.sf-agent-in,
+.sf-verify-in {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #7a7568;
+  font-family: var(--mono);
+  font-size: 0.5rem;
+  padding: 0.48rem 0.65rem;
+}
+
+.sf-agent-send {
+  background: none;
+  border: none;
+  border-left: 1px solid rgba(200, 169, 81, 0.065);
+  color: rgba(200, 169, 81, 0.55);
+  padding: 0 0.8rem;
+  cursor: pointer;
+  font-family: var(--mono);
+  font-size: 0.45rem;
+}
+
+.sf-status {
+  color: rgba(200, 169, 81, 0.45);
+  font-size: 0.38rem;
+  letter-spacing: 0.1em;
+  margin-left: auto;
+}
