@@ -12,6 +12,8 @@ import { AcpFieldRegimeView } from '@/observatory/components/root/AcpFieldRegime
 import { AcpFreeNodesView } from '@/observatory/components/root/AcpFreeNodesView';
 import { AcpAttractorFieldView } from '@/observatory/components/root/AcpAttractorFieldView';
 import { RootOperationsConsole } from '@/observatory/components/root/RootOperationsConsole';
+import { VisorMode } from '@/observatory/components/root/VisorMode';
+import { useVisorMode } from '@/observatory/components/root/visorHooks';
 
 type RightPanel = 'chat' | 'propuestas' | 'artefactos' | 'agentes' | 'control';
 
@@ -98,6 +100,7 @@ export function RootDashboardClient() {
   const [openPanel, setOpenPanel] = useState<RightPanel>('chat');
   const [selectedNodeLabel, setSelectedNodeLabel] = useState<string | null>(null);
   const [twin, setTwin] = useState<TwinState | null>(null);
+  const visor = useVisorMode();
 
   useEffect(() => {
     fetch(`/api/twin/state?ts=${Date.now()}`, { credentials: 'include' })
@@ -122,7 +125,13 @@ export function RootDashboardClient() {
   }, [twin]);
 
   return (
-    <div className="h-screen overflow-hidden bg-[#060605] text-[#ccc8bc]">
+    <div className={`h-screen overflow-hidden bg-[#060605] text-[#ccc8bc] ${visor.enabled ? 'sfi-visor-freeze' : ''}`}>
+      <style>{`
+        .sfi-visor-freeze * {
+          animation-play-state: paused !important;
+          transition-duration: 0ms !important;
+        }
+      `}</style>
       <header className="fixed inset-x-0 top-0 z-50 border-b border-[#2e2c24] bg-[#060605]/95 backdrop-blur-xl">
         <div className="flex h-9 items-center overflow-x-auto">
           <div className="flex shrink-0 items-center gap-2 px-4 font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-[#c8a951]">
@@ -138,8 +147,17 @@ export function RootDashboardClient() {
           <MetricChip label="Docs" value={counts.docs || '-'} tone="muted" />
           <MetricChip label="Patrones" value={counts.patterns || '-'} tone="muted" />
           <div className="ml-auto hidden shrink-0 items-center gap-2 px-4 font-mono text-[9px] uppercase tracking-[0.14em] text-[#7a7568] md:flex">
-            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#c8a951]" /> campo activo
+            <span className={`h-1.5 w-1.5 rounded-full ${visor.enabled ? 'bg-white/30' : 'animate-pulse bg-[#c8a951]'}`} /> {visor.enabled ? 'campo congelado' : 'campo activo'}
           </div>
+          <button
+            type="button"
+            className={`mr-2 shrink-0 border px-2 py-1 font-mono text-[10px] uppercase tracking-[0.1em] transition ${
+              visor.enabled ? 'border-[#d4af37] bg-[#d4af37]/10 text-[#f2d16b]' : 'border-white/15 bg-transparent text-white/45 hover:border-[#d4af37]/45 hover:text-[#d4af37]'
+            }`}
+            onClick={visor.toggle}
+          >
+            {visor.enabled ? 'VISOR MODE: ON' : 'VISOR MODE: OFF'}
+          </button>
           <button
             type="button"
             className="mr-3 shrink-0 border border-[#d4af7d]/40 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.1em]"
@@ -155,7 +173,7 @@ export function RootDashboardClient() {
         </div>
       </header>
 
-      <main className="grid h-screen grid-cols-1 bg-[#080808] pt-9 lg:grid-cols-[minmax(0,1fr)_380px]">
+      <main className={`relative grid h-screen grid-cols-1 bg-[#080808] pt-9 lg:grid-cols-[minmax(0,1fr)_380px] ${visor.enabled ? 'grayscale' : ''}`}>
         <section className="relative min-h-0 overflow-hidden border-r border-[#1e1c17]">
           <div className="absolute left-3 top-3 z-20 flex flex-col gap-2">
             {FIELD_TOOLS.map((tool) => (
@@ -220,6 +238,7 @@ export function RootDashboardClient() {
             </Accordion>
           </div>
         </aside>
+        <VisorMode enabled={visor.enabled} twin={twin} />
       </main>
     </div>
   );
