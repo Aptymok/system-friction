@@ -2,13 +2,14 @@
 
 import type React from 'react';
 import { useEffect, useMemo, useState } from 'react';
-import { Archive, BrainCircuit, CheckCircle2, Clock3, Compass, Eye, GitBranch, ShieldCheck, Zap } from 'lucide-react';
+import { Archive, BrainCircuit, CheckCircle2, Clock3, Compass, Eye, GitBranch, ShieldCheck, Sparkles, Zap } from 'lucide-react';
 import { SystemOverridePanel } from '@/observatory/components/root/SystemOverridePanel';
 import { AcpProposalConsole } from '@/observatory/components/root/AcpProposalConsole';
 import { AcpAgentRegistryPanel } from '@/observatory/components/root/AcpAgentRegistryPanel';
 import { TwinInteractionPanel } from '@/observatory/components/root/TwinInteractionPanel';
 import { ArtifactRoutingPanel } from '@/observatory/components/root/ArtifactRoutingPanel';
 import { AcpFieldRegimeView } from '@/observatory/components/root/AcpFieldRegimeView';
+import { AcpFreeNodesView } from '@/observatory/components/root/AcpFreeNodesView';
 
 type RightPanel = 'chat' | 'propuestas' | 'artefactos' | 'agentes' | 'control';
 
@@ -33,6 +34,7 @@ type TwinState = {
 
 const FIELD_TOOLS: Array<{ id: string; title: string; hint: string; Icon: React.ComponentType<{ size?: number; strokeWidth?: number }> }> = [
   { id: 'observacion', title: 'Observacion', hint: 'Nodos observados, relaciones disponibles y evidencia visible.', Icon: Eye },
+7  { id: 'libres', title: 'Nodos libres', hint: 'Todos los nodos sueltos, flotando, sin anclaje por cluster; útil para ver fricción dispersa.', Icon: Sparkles },
   { id: 'contradiccion', title: 'Contradiccion', hint: 'Alta degradacion con evidencia incompleta.', Icon: GitBranch },
   { id: 'energia', title: 'Energia', hint: 'Flujos, grosor de edges y presion acumulada.', Icon: Zap },
   { id: 'validacion', title: 'Validacion', hint: 'Lo que falta aprobar, preparar o cerrar.', Icon: CheckCircle2 },
@@ -143,14 +145,24 @@ export function RootDashboardClient() {
             ))}
           </div>
 
-          <AcpFieldRegimeView
-            twin={twin}
-            focusMode={activeTool}
-            onOpenTwin={(node) => {
-              setSelectedNodeLabel(node?.label ?? null);
-              setOpenPanel('chat');
-            }}
-          />
+          {activeTool === 'libres' ? (
+            <AcpFreeNodesView
+              twin={twin}
+              onOpenTwin={(node) => {
+                setSelectedNodeLabel(node?.label ?? null);
+                setOpenPanel('chat');
+              }}
+            />
+          ) : (
+            <AcpFieldRegimeView
+              twin={twin}
+              focusMode={activeTool}
+              onOpenTwin={(node) => {
+                setSelectedNodeLabel(node?.label ?? null);
+                setOpenPanel('chat');
+              }}
+            />
+          )}
 
           <div className="pointer-events-none absolute bottom-3 left-3 z-20 border border-[#1e1c17] bg-[#060605]/85 px-3 py-2 font-mono text-[8px] uppercase tracking-[0.12em] text-[#8a7035]">
             lente: {FIELD_TOOLS.find((tool) => tool.id === activeTool)?.title}
