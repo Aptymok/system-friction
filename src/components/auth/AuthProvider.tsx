@@ -24,21 +24,19 @@ function fallbackRole(errorCode?: string | null) {
   return 'observer'
 }
 
-function isRootEmail(email?: string | null) {
-  return email?.toLowerCase() === 'aptymok@gmail.com'
+function isRootIdentity(role?: string | null) {
+  return role === 'root' || role === 'system'
 }
 
-function isRootIdentity(role?: string | null, email?: string | null) {
-  return role === 'root' || role === 'system' || isRootEmail(email)
+function postAuthPath(role?: string | null) {
+  return isRootIdentity(role) ? '/root' : '/user'
 }
 
-function postAuthPath(role?: string | null, email?: string | null) {
-  return isRootIdentity(role, email) ? '/root' : '/user'
-}
-
-function roleWithRootEmailFallback(role: string | null, email?: string | null) {
-  if (isRootEmail(email)) return 'root'
-  return role
+async function readServerIdentity() {
+  const response = await fetch('/api/root/me', { credentials: 'include' })
+  if (!response.ok) return null
+  const body = await response.json().catch(() => null)
+  return body?.ok ? body.data as { role?: string | null; isRoot?: boolean } : null
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -56,8 +54,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const client = supabase
     let active = true
 
-    const fetchUserRole = async (userId: string, email?: string | null) => {
-      if (isRootEmail(email)) return 'root'
+    const fetchUserRole = async (userId: string) => {
+      const identity = await readServerIdentity()
+      if (identity?.isRoot) return 'root'
+      if (identity?.role) return identity.role
 
       const { data, error } = await client
         .from('profiles')
@@ -75,7 +75,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return fallbackRole(error.code)
       }
 
-      return roleWithRootEmailFallback(data?.role || 'observer', email)
+      return data?.role || 'observer'
     }
 
     async function hydrateSession() {
@@ -89,7 +89,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return
         }
         let role = null
-        if (data.session) role = await fetchUserRole(data.session.user.id, data.session.user.email)
+        if (data.session) role = await fetchUserRole(data.session.user.id)
         if (!active) return
         setState({
           session: data.session,
@@ -109,7 +109,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const {
       data: { subscription },
     } = client.auth.onAuthStateChange((event, session) => {
-      const immediateRole = session && isRootEmail(session.user.email) ? 'root' : session ? 'observer' : null
+      const immediateRole = session ? 'observer' : null
       setState({
         session,
         status: session ? 'authenticated' : 'anonymous',
@@ -119,11 +119,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       globalThis.setTimeout(() => {
         if (!active) return
         if (event === 'SIGNED_IN' && session) {
-          void fetchUserRole(session.user.id, session.user.email).then((role) => {
+          void fetchUserRole(session.user.id).then((role) => {
             if (!active) return
             setState({ session, status: 'authenticated', userRole: role })
             router.refresh()
-            if (AUTH_ROUTES.has(pathname)) router.replace(postAuthPath(role, session.user.email))
+            if (AUTH_ROUTES.has(pathname)) router.replace(postAuthPath(role))
           })
           return
         }

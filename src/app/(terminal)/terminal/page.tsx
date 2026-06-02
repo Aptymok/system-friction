@@ -62,13 +62,11 @@ export default function TerminalPage() {
 
         const data = await response.json()
         const role = data.profile?.role
-        const userEmail = data.user?.email || data.profile?.email || ''
         const licenseStatus = data.license?.status
 
         const isRoot =
           role === 'root' ||
-          role === 'system' ||
-          userEmail.toLowerCase() === 'aptymok@gmail.com'
+          role === 'system'
 
         const hasAccess =
           isRoot ||

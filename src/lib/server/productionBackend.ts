@@ -18,8 +18,8 @@ export function isRootRole(role?: string | null) {
 }
 
 export function isRootUser(role?: string | null, email?: string | null) {
-  const rootEmail = process.env.SYSTEM_ROOT_EMAIL || 'aptymok@gmail.com';
-  return isRootRole(role) || Boolean(email && email.toLowerCase() === rootEmail.toLowerCase());
+  const rootEmail = process.env.SYSTEM_ROOT_EMAIL;
+  return isRootRole(role) || Boolean(rootEmail && email && email.toLowerCase() === rootEmail.toLowerCase());
 }
 
 export async function getServerUserContext() {

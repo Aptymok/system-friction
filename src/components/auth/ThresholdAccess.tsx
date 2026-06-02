@@ -19,8 +19,8 @@ async function sha256(input: string) {
   return Array.from(new Uint8Array(digest)).map((byte) => byte.toString(16).padStart(2, '0')).join('');
 }
 
-function isRootIdentity(role?: string | null, email?: string | null) {
-  return role === 'root' || role === 'system' || email?.toLowerCase() === 'aptymok@gmail.com';
+function isRootIdentity(role?: string | null) {
+  return role === 'root' || role === 'system';
 }
 
 function withTimeout<T>(operation: PromiseLike<T>, ms: number, label: string): Promise<T> {
@@ -36,20 +36,25 @@ function withTimeout<T>(operation: PromiseLike<T>, ms: number, label: string): P
 async function resolvePathFromUser(
   supabase: NonNullable<ReturnType<typeof createBrowserSupabaseClient>>,
   userId?: string | null,
-  email?: string | null,
 ) {
-  if (!userId) return email?.toLowerCase() === 'aptymok@gmail.com' ? '/root' : '/user';
-  if (email?.toLowerCase() === 'aptymok@gmail.com') return '/root';
+  if (!userId) return '/user';
 
   try {
+    const identity = await withTimeout(
+      fetch('/api/root/me', { credentials: 'include' }).then((res) => res.ok ? res.json() : null),
+      2500,
+      'ROOT_ME_TIMEOUT',
+    );
+    if (identity?.ok && identity.data?.isRoot) return '/root';
+
     const { data: profile } = await withTimeout(
       supabase.from('profiles').select('role').eq('user_id', userId).maybeSingle(),
       2500,
       'PROFILE_ROLE_TIMEOUT',
     );
-    return isRootIdentity(profile?.role, email) ? '/root' : '/user';
+    return isRootIdentity(profile?.role) ? '/root' : '/user';
   } catch {
-    return email?.toLowerCase() === 'aptymok@gmail.com' ? '/root' : '/user';
+    return '/user';
   }
 }
 
@@ -74,7 +79,7 @@ export default function ThresholdAccess({ error }: { error?: string }) {
       .getSession()
       .then(async ({ data }) => {
         const user = data.session?.user;
-        if (user) router.replace(await resolvePathFromUser(supabase, user.id, user.email));
+        if (user) router.replace(await resolvePathFromUser(supabase, user.id));
       })
       .catch(() => {
         void supabase.auth.signOut();
@@ -137,7 +142,7 @@ export default function ThresholdAccess({ error }: { error?: string }) {
       });
 
       const user = signInData.user;
-      const destination = await resolvePathFromUser(supabase, user?.id, user?.email ?? identifier);
+      const destination = await resolvePathFromUser(supabase, user?.id);
       router.refresh();
       router.replace(destination);
     } catch (loginError) {

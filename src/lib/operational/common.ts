@@ -3,6 +3,7 @@ import { appendEpistemicEvent } from '@/lib/events/eventStore';
 import { readCanonicalGraphState } from '@/lib/graph/canonicalGraph';
 import { readGovernanceRuntime, recordBlindModePolicyBlock } from '@/lib/governance/governanceRuntime';
 import { getLatestKernelCycle } from '@/lib/kernel/kernelCycleStore';
+import { auditRootAction } from '@/lib/root/server';
 import { getServerUserContext } from '@/lib/server/productionBackend';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { getLatestWorldSpectSnapshot, snapshotRowToApiData } from '@/lib/worldspect/snapshotStore';
@@ -89,6 +90,18 @@ export async function requireGovernedActor(action: string) {
       status: 423,
       body: { ok: false, error: 'blocked_by_governance', governance },
     };
+  }
+
+  if (ctx.isRoot) {
+    const audit = await auditRootAction({
+      actorId: ctx.user.id,
+      action,
+      target: 'governed_runtime',
+      payload: { automatic: true },
+    });
+    if (!audit.ok) {
+      return { ok: false as const, status: 500, body: { ok: false, error: 'root_audit_required_failed', details: audit } };
+    }
   }
 
   return { ok: true as const, ctx, governance };

@@ -19,8 +19,8 @@ function clearSupabaseAuthCookies(response: NextResponse, request: NextRequest) 
 }
 
 function isRootRouteUser(role?: string | null, email?: string | null) {
-  const rootEmail = process.env.SYSTEM_ROOT_EMAIL || 'aptymok@gmail.com'
-  return role === 'root' || role === 'system' || Boolean(email && email.toLowerCase() === rootEmail.toLowerCase())
+  const rootEmail = process.env.SYSTEM_ROOT_EMAIL
+  return role === 'root' || role === 'system' || Boolean(rootEmail && email && email.toLowerCase() === rootEmail.toLowerCase())
 }
 
 export async function proxy(request: NextRequest) {

@@ -10,6 +10,7 @@ import { TwinInteractionPanel } from '@/observatory/components/root/TwinInteract
 import { ArtifactRoutingPanel } from '@/observatory/components/root/ArtifactRoutingPanel';
 import { AcpFieldRegimeView } from '@/observatory/components/root/AcpFieldRegimeView';
 import { AcpFreeNodesView } from '@/observatory/components/root/AcpFreeNodesView';
+import { RootOperationsConsole } from '@/observatory/components/root/RootOperationsConsole';
 
 type RightPanel = 'chat' | 'propuestas' | 'artefactos' | 'agentes' | 'control';
 
@@ -184,7 +185,10 @@ export function RootDashboardClient() {
               <AcpAgentRegistryPanel compact />
             </Accordion>
             <Accordion title="Root" open={openPanel === 'control'} onClick={() => setOpenPanel(openPanel === 'control' ? 'chat' : 'control')}>
-              <SystemOverridePanel />
+              <RootOperationsConsole />
+              <div className="mt-3">
+                <SystemOverridePanel />
+              </div>
             </Accordion>
           </div>
         </aside>
