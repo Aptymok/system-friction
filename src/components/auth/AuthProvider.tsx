@@ -109,32 +109,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const {
       data: { subscription },
     } = client.auth.onAuthStateChange((event, session) => {
-      const immediateRole = session ? 'observer' : null
-      setState({
-        session,
-        status: session ? 'authenticated' : 'anonymous',
-        userRole: immediateRole,
-      })
+  const immediateRole = null
 
-      globalThis.setTimeout(() => {
+  setState({
+    session,
+    status: session ? 'authenticated' : 'anonymous',
+    userRole: immediateRole,
+  })
+
+  globalThis.setTimeout(() => {
+    if (!active) return
+    if (event === 'SIGNED_IN' && session) {
+      void fetchUserRole(session.user.id).then((role) => {
         if (!active) return
-        if (event === 'SIGNED_IN' && session) {
-          void fetchUserRole(session.user.id).then((role) => {
-            if (!active) return
-            setState({ session, status: 'authenticated', userRole: role })
-            router.refresh()
-            if (AUTH_ROUTES.has(pathname)) router.replace(postAuthPath(role))
-          })
-          return
-        }
+        setState({ session, status: 'authenticated', userRole: role })
+        router.refresh()
+        if (AUTH_ROUTES.has(pathname)) router.replace(postAuthPath(role))
+      })
+      return
+    }
 
-        if (event === 'SIGNED_OUT') {
-          setState({ session: null, status: 'anonymous', userRole: null })
-          router.refresh()
-          if (pathname.startsWith('/root') || pathname.startsWith('/user')) router.replace('/login')
-        }
-      }, 0)
-    })
+    if (event === 'SIGNED_OUT') {
+      setState({ session: null, status: 'anonymous', userRole: null })
+      router.refresh()
+      if (pathname.startsWith('/root') || pathname.startsWith('/user')) router.replace('/login')
+    }
+  }, 0)
+})
 
     return () => {
       active = false
