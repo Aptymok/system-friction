@@ -5,11 +5,12 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => ({}));
-  if (!body.prototype_id || !body.platform) {
-    return NextResponse.json({ ok: false, error: 'prototype_id_and_platform_required' }, { status: 400 });
+  if (!body.platform) {
+    return NextResponse.json({ ok: false, error: 'platform_required' }, { status: 400 });
   }
   const result = await recordScoreFrictionVerification({
-    prototype_id: String(body.prototype_id),
+    prototype_id: body.prototype_id ? String(body.prototype_id) : null,
+    case_id: body.case_id ? String(body.case_id) : null,
     platform: String(body.platform),
     metrics: body.metrics ?? {},
     interpretation: body.interpretation ?? {},

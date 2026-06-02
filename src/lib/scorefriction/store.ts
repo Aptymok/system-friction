@@ -1,10 +1,59 @@
 import { appendEpistemicEvent } from '@/lib/events/eventStore';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
+import { computeCulturalVector } from './cultural-vector-scoring';
+import type { CulturalVectorResponse, PlatformVector } from './cultural-vector-contract';
+import { findCulturalWaveCase } from './cultural-wave-cases';
 import { deriveVectors, evidenceHash, normalizeObservation } from './normalize';
 import type { ScoreFrictionObservationInput } from './types';
 
 function record(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
+function numberValue(value: unknown, fallback = 0) {
+  const parsed = Number(value ?? fallback);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function stringValue(value: unknown) {
+  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;
+}
+
+function sourceKey(value: unknown): keyof PlatformVector | null {
+  const source = stringValue(value);
+  if (!source) return null;
+  if (source.includes('youtube')) return 'youtube';
+  if (source.includes('tiktok')) return 'tiktok';
+  if (source.includes('soundcloud')) return 'soundcloud';
+  if (source.includes('spotify')) return 'spotify';
+  if (source.includes('genius') || source.includes('lyrics') || source.includes('manual')) return 'lyrics';
+  return null;
+}
+
+function fallbackCulturalVector(caseId: string, warning?: string): CulturalVectorResponse | null {
+  const found = findCulturalWaveCase(caseId);
+  if (!found) return null;
+  const scored = computeCulturalVector(found.seedVector);
+  return {
+    case_id: found.case_id,
+    case_name: found.name,
+    cultural_vector: {
+      ...found.seedVector,
+      cvphi: scored.cvphi,
+      regime: scored.regime,
+    },
+    sources: found.sources,
+    interpretation: {
+      phenomenon: found.phenomenon,
+      friction: found.friction,
+      proposal: found.hypothesis,
+      producerBrief: `${found.prototypeHint.bpm} · ${found.prototypeHint.rhythm}`,
+    },
+    evidence: {
+      observation_count: 0,
+      warning,
+    },
+  };
 }
 
 export async function recordScoreFrictionObservation(input: ScoreFrictionObservationInput) {
@@ -107,6 +156,67 @@ export async function evaluateScoreFrictionObservation(input: { observation_id?:
   return { ok: true as const, data: { normalized: fullNormalized, vectors } };
 }
 
+export async function evaluateScoreFrictionCase(caseId: string): Promise<CulturalVectorResponse | null> {
+  const fallback = fallbackCulturalVector(caseId);
+  if (!fallback) return null;
+
+  let service;
+  try {
+    service = createServiceSupabaseClient();
+  } catch (error) {
+    return fallbackCulturalVector(caseId, error instanceof Error ? error.message : 'supabase_unavailable');
+  }
+
+  const observations = await service
+    .from('scorefriction_observations')
+    .select('id, source_name, evidence_hash, normalized_payload, created_at')
+    .eq('case_id', caseId)
+    .order('created_at', { ascending: false })
+    .limit(25);
+
+  if (observations.error) return fallbackCulturalVector(caseId, observations.error.message);
+  const rows = observations.data ?? [];
+  if (rows.length === 0) return fallback;
+
+  const latestIds = rows.map((row) => row.id);
+  const vectors = await service
+    .from('scorefriction_vectors')
+    .select('observation_id, mihm_cultural_vector, platform_vector')
+    .in('observation_id', latestIds);
+
+  if (vectors.error) return { ...fallback, evidence: { ...fallback.evidence, warning: vectors.error.message } };
+
+  const vectorRows = vectors.data ?? [];
+  const merged = { ...fallback.cultural_vector };
+  const keys = ['NTI_C', 'IHG_C', 'ICE_C', 'CRM_C', 'FS_C', 'LCP', 'PAC', 'VFE', 'SCR'] as const;
+  keys.forEach((key) => {
+    const values = vectorRows.map((row) => numberValue(record(row.mihm_cultural_vector)[key], NaN)).filter(Number.isFinite);
+    if (values.length) merged[key] = values.reduce((sum, value) => sum + value, 0) / values.length;
+  });
+
+  const scored = computeCulturalVector(merged);
+  const sources = { ...fallback.sources };
+  rows.forEach((row) => {
+    const key = sourceKey(row.source_name);
+    if (key) sources[key] = Math.min(1, numberValue(sources[key], 0) + 0.05);
+  });
+
+  return {
+    ...fallback,
+    cultural_vector: {
+      ...merged,
+      cvphi: scored.cvphi,
+      regime: scored.regime,
+    },
+    sources,
+    evidence: {
+      latest_hash: stringValue(rows[0]?.evidence_hash) ?? undefined,
+      observation_count: rows.length,
+      last_observed_at: stringValue(rows[0]?.created_at) ?? undefined,
+    },
+  };
+}
+
 export async function createScoreFrictionPrototype(input: {
   case_id: string;
   mihm_cultural_vector?: Record<string, unknown>;
@@ -179,15 +289,15 @@ export async function createScoreFrictionPrototype(input: {
   };
 }
 
-export async function recordScoreFrictionVerification(input: { prototype_id: string; platform: string; metrics?: Record<string, unknown>; interpretation?: Record<string, unknown> }) {
+export async function recordScoreFrictionVerification(input: { prototype_id?: string | null; case_id?: string | null; platform: string; metrics?: Record<string, unknown>; interpretation?: Record<string, unknown> }) {
   const service = createServiceSupabaseClient();
   const inserted = await service
     .from('scorefriction_verifications')
     .insert({
-      prototype_id: input.prototype_id,
+      prototype_id: input.prototype_id ?? null,
       platform: input.platform,
       metrics: input.metrics ?? {},
-      interpretation: input.interpretation ?? {},
+      interpretation: input.interpretation ?? { case_id: input.case_id ?? null, status: 'verification_recorded' },
     })
     .select('*')
     .single();
@@ -201,8 +311,46 @@ export async function recordScoreFrictionVerification(input: { prototype_id: str
     payload: inserted.data,
     source: { sourceId: 'SCOREFRICTION', sourceType: 'verification_loop' },
     logbookId: 'SCOREFRICTION',
-    lineage: [input.prototype_id],
+    lineage: [input.prototype_id ?? input.case_id ?? input.platform],
   });
 
-  return { ok: true as const, data: inserted.data };
+  return { ok: true as const, verification_id: inserted.data.id, interpretation: inserted.data.interpretation, data: inserted.data };
+}
+
+export async function readScoreFrictionEvidence(caseId: string) {
+  let service;
+  try {
+    service = createServiceSupabaseClient();
+  } catch (error) {
+    return { ok: true as const, case_id: caseId, entries: [], warning: error instanceof Error ? error.message : 'supabase_unavailable' };
+  }
+
+  const result = await service
+    .from('scorefriction_observations')
+    .select('id, source_name, evidence_hash, created_at, normalized_payload, raw_payload')
+    .eq('case_id', caseId)
+    .order('created_at', { ascending: false })
+    .limit(50);
+
+  if (result.error) return { ok: true as const, case_id: caseId, entries: [], warning: result.error.message };
+
+  return {
+    ok: true as const,
+    case_id: caseId,
+    entries: (result.data ?? []).map((row) => {
+      const normalized = record(row.normalized_payload);
+      const raw = record(row.raw_payload);
+      return {
+        id: String(row.id),
+        source_name: String(row.source_name ?? 'unknown'),
+        evidence_hash: String(row.evidence_hash ?? ''),
+        created_at: String(row.created_at ?? ''),
+        summary: stringValue(normalized.title)
+          ?? stringValue(raw.title)
+          ?? stringValue(raw.text)
+          ?? stringValue(record(raw.raw_payload).text)
+          ?? 'observacion scorefriction',
+      };
+    }),
+  };
 }
