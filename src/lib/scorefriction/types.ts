@@ -13,7 +13,18 @@ export type ScoreFrictionObservationInput = {
   source_name?: ScoreFrictionSourceName | null;
   source_url?: string | null;
   territory?: string | null;
+  evidence_type?: string | null;
+  reliability_score?: number | null;
+  provenance_notes?: string | null;
+  source_coverage_contribution?: number | null;
   raw_payload?: Record<string, unknown> | null;
+  vector_overrides?: {
+    acoustic_vector?: Record<string, unknown>;
+    semantic_vector?: Record<string, unknown>;
+    memetic_vector?: Record<string, unknown>;
+    platform_vector?: Record<string, unknown>;
+    mihm_cultural_vector?: Record<string, unknown>;
+  } | null;
   youtubeUrl?: string | null;
   spotifyUrl?: string | null;
   soundcloudUrl?: string | null;
@@ -40,11 +51,11 @@ export type ScoreFrictionNormalizedObservation = {
 };
 
 export type ScoreFrictionVectors = {
-  acoustic_vector: Record<string, number>;
-  semantic_vector: Record<string, number>;
-  memetic_vector: Record<string, number>;
-  platform_vector: Record<string, number>;
-  mihm_cultural_vector: Record<string, number>;
+  acoustic_vector: Record<string, unknown>;
+  semantic_vector: Record<string, unknown>;
+  memetic_vector: Record<string, unknown>;
+  platform_vector: Record<string, unknown>;
+  mihm_cultural_vector: Record<string, unknown>;
 };
 
 export type ScoreFrictionCaseStudy = {

@@ -3,6 +3,8 @@ import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { computeCulturalVector } from './cultural-vector-scoring';
 import type { CulturalVectorResponse, PlatformVector } from './cultural-vector-contract';
 import { findCulturalWaveCase } from './cultural-wave-cases';
+import { evidenceTypeVectorEffects, inferEvidenceType, sourceCoverageContribution } from './evidence-vector-mapper';
+import { isScoreFrictionEvidenceType } from './evidence-contract';
 import { deriveVectors, evidenceHash, normalizeObservation } from './normalize';
 import type { ScoreFrictionObservationInput } from './types';
 
@@ -70,7 +72,13 @@ export async function recordScoreFrictionObservation(input: ScoreFrictionObserva
     caseStudy: input.caseStudy ?? null,
   };
   const normalized = normalizeObservation({ ...input, raw_payload: rawPayload });
-  const hash = evidenceHash({ rawPayload, normalized });
+  const evidenceType = isScoreFrictionEvidenceType(input.evidence_type)
+    ? input.evidence_type
+    : inferEvidenceType({ source_name: input.source_name, raw_payload: rawPayload });
+  const reliabilityScore = Math.max(0, Math.min(1, numberValue(input.reliability_score, 0.5)));
+  const coverageContribution = sourceCoverageContribution({ evidence_type: evidenceType, reliability_score: reliabilityScore });
+  const provenanceNotes = input.provenance_notes ?? null;
+  const hash = evidenceHash({ rawPayload, normalized, evidenceType, reliabilityScore, provenanceNotes });
 
   const observation = await service
     .from('scorefriction_observations')
@@ -79,6 +87,10 @@ export async function recordScoreFrictionObservation(input: ScoreFrictionObserva
       source_name: normalized.sourceName,
       source_url: normalized.sourceUrl,
       territory: normalized.territory,
+      evidence_type: evidenceType,
+      reliability_score: reliabilityScore,
+      provenance_notes: provenanceNotes,
+      source_coverage_contribution: input.source_coverage_contribution ?? coverageContribution,
       raw_payload: rawPayload,
       normalized_payload: normalized,
       evidence_hash: hash,
@@ -88,7 +100,21 @@ export async function recordScoreFrictionObservation(input: ScoreFrictionObserva
 
   if (observation.error) return { ok: false as const, error: 'scorefriction_observation_insert_failed', details: observation.error.message };
 
-  const vectors = deriveVectors(normalized);
+  const baseVectors = deriveVectors(normalized);
+  const evidenceEffects = evidenceTypeVectorEffects(evidenceType, rawPayload);
+  const vectors = {
+    acoustic_vector: { ...baseVectors.acoustic_vector, ...evidenceEffects.acoustic_vector, ...input.vector_overrides?.acoustic_vector },
+    semantic_vector: { ...baseVectors.semantic_vector, ...evidenceEffects.semantic_vector, ...input.vector_overrides?.semantic_vector },
+    memetic_vector: { ...baseVectors.memetic_vector, ...evidenceEffects.memetic_vector, ...input.vector_overrides?.memetic_vector },
+    platform_vector: {
+      ...baseVectors.platform_vector,
+      ...evidenceEffects.platform_vector,
+      source_coverage: input.source_coverage_contribution ?? coverageContribution,
+      reliability_score: reliabilityScore,
+      ...input.vector_overrides?.platform_vector,
+    },
+    mihm_cultural_vector: { ...baseVectors.mihm_cultural_vector, ...evidenceEffects.mihm_cultural_vector, ...input.vector_overrides?.mihm_cultural_vector },
+  };
   const vector = await service
     .from('scorefriction_vectors')
     .insert({
@@ -99,13 +125,17 @@ export async function recordScoreFrictionObservation(input: ScoreFrictionObserva
     .single();
 
   await appendEpistemicEvent({
-    eventName: 'scorefriction.observation.recorded',
+    eventName: evidenceType === 'audio_file_analysis' ? 'scorefriction.audio.observation.recorded' : 'scorefriction.observation.recorded',
     epistemicClass: 'observed',
     confidence: 0.78,
     payload: {
       observationId: observation.data.id,
       caseId: normalized.caseId,
       sourceName: normalized.sourceName,
+      evidenceType,
+      reliabilityScore,
+      provenanceNotes,
+      sourceCoverageContribution: input.source_coverage_contribution ?? coverageContribution,
       evidenceHash: hash,
       mihmCulturalVector: vectors.mihm_cultural_vector,
     },
@@ -116,6 +146,43 @@ export async function recordScoreFrictionObservation(input: ScoreFrictionObserva
 
   if (vector.error) return { ok: false as const, error: 'scorefriction_vector_insert_failed', details: vector.error.message, data: { observation: observation.data } };
   return { ok: true as const, data: { observation: observation.data, vector: vector.data, normalized, evidence_hash: hash } };
+}
+
+export async function recordScoreFrictionAudioObservation(input: {
+  case_id?: string | null;
+  source_name?: string | null;
+  territory?: string | null;
+  title?: string | null;
+  artist?: string | null;
+  file_name: string;
+  file_size_bytes: number;
+  mime_type: string;
+  acoustic_vector: Record<string, unknown>;
+  warnings?: string[];
+}) {
+  return recordScoreFrictionObservation({
+    case_id: input.case_id,
+    source_name: input.source_name ?? 'manual_upload',
+    source_url: `upload://${input.file_name}`,
+    territory: input.territory ?? 'MX',
+    evidence_type: 'audio_file_analysis',
+    reliability_score: 0.62,
+    provenance_notes: `audio upload: ${input.file_name}`,
+    raw_payload: {
+      type: 'audio_file_analysis',
+      title: input.title ?? input.file_name,
+      artist: input.artist ?? null,
+      file_name: input.file_name,
+      file_size_bytes: input.file_size_bytes,
+      mime_type: input.mime_type,
+      warnings: input.warnings ?? [],
+      audioMetadata: input.acoustic_vector,
+    },
+    vector_overrides: {
+      acoustic_vector: input.acoustic_vector,
+      platform_vector: { source_coverage: 0.1, reliability_score: 0.62 },
+    },
+  });
 }
 
 export async function readScoreFrictionState() {
@@ -169,7 +236,7 @@ export async function evaluateScoreFrictionCase(caseId: string): Promise<Cultura
 
   const observations = await service
     .from('scorefriction_observations')
-    .select('id, source_name, evidence_hash, normalized_payload, created_at')
+    .select('id, source_name, evidence_type, reliability_score, source_coverage_contribution, evidence_hash, normalized_payload, created_at')
     .eq('case_id', caseId)
     .order('created_at', { ascending: false })
     .limit(25);
@@ -198,7 +265,7 @@ export async function evaluateScoreFrictionCase(caseId: string): Promise<Cultura
   const sources = { ...fallback.sources };
   rows.forEach((row) => {
     const key = sourceKey(row.source_name);
-    if (key) sources[key] = Math.min(1, numberValue(sources[key], 0) + 0.05);
+    if (key) sources[key] = Math.min(1, numberValue(sources[key], 0) + numberValue(row.source_coverage_contribution, 0.05));
   });
 
   return {
@@ -213,6 +280,7 @@ export async function evaluateScoreFrictionCase(caseId: string): Promise<Cultura
       latest_hash: stringValue(rows[0]?.evidence_hash) ?? undefined,
       observation_count: rows.length,
       last_observed_at: stringValue(rows[0]?.created_at) ?? undefined,
+      source_coverage: rows.reduce((sum, row) => sum + numberValue(row.source_coverage_contribution, 0), 0),
     },
   };
 }
@@ -327,7 +395,7 @@ export async function readScoreFrictionEvidence(caseId: string) {
 
   const result = await service
     .from('scorefriction_observations')
-    .select('id, source_name, evidence_hash, created_at, normalized_payload, raw_payload')
+    .select('id, source_name, evidence_type, reliability_score, provenance_notes, source_coverage_contribution, evidence_hash, created_at, normalized_payload, raw_payload')
     .eq('case_id', caseId)
     .order('created_at', { ascending: false })
     .limit(50);
@@ -343,6 +411,10 @@ export async function readScoreFrictionEvidence(caseId: string) {
       return {
         id: String(row.id),
         source_name: String(row.source_name ?? 'unknown'),
+        evidence_type: String(row.evidence_type ?? 'unknown'),
+        reliability_score: numberValue(row.reliability_score, 0.5),
+        provenance_notes: stringValue(row.provenance_notes) ?? null,
+        source_coverage_contribution: numberValue(row.source_coverage_contribution, 0),
         evidence_hash: String(row.evidence_hash ?? ''),
         created_at: String(row.created_at ?? ''),
         summary: stringValue(normalized.title)
