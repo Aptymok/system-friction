@@ -46,6 +46,7 @@ export type CulturalVectorResponse = {
     latest_hash?: string;
     observation_count?: number;
     last_observed_at?: string;
+    source_coverage?: number;
     warning?: string;
   };
 };
