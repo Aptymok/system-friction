@@ -34,7 +34,7 @@ type TwinState = {
 
 const FIELD_TOOLS: Array<{ id: string; title: string; hint: string; Icon: React.ComponentType<{ size?: number; strokeWidth?: number }> }> = [
   { id: 'observacion', title: 'Observacion', hint: 'Nodos observados, relaciones disponibles y evidencia visible.', Icon: Eye },
-7  { id: 'libres', title: 'Nodos libres', hint: 'Todos los nodos sueltos, flotando, sin anclaje por cluster; útil para ver fricción dispersa.', Icon: Sparkles },
+  { id: 'libres', title: 'Nodos libres', hint: 'Todos los nodos sueltos, flotando, sin anclaje por cluster; útil para ver fricción dispersa.', Icon: Sparkles },
   { id: 'contradiccion', title: 'Contradiccion', hint: 'Alta degradacion con evidencia incompleta.', Icon: GitBranch },
   { id: 'energia', title: 'Energia', hint: 'Flujos, grosor de edges y presion acumulada.', Icon: Zap },
   { id: 'validacion', title: 'Validacion', hint: 'Lo que falta aprobar, preparar o cerrar.', Icon: CheckCircle2 },
