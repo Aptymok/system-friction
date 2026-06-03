@@ -59,17 +59,19 @@ function timestampFor(event: unknown) {
 
 function mapLogbookEntries(events: unknown[] | undefined): LogbookEntry[] {
   if (!Array.isArray(events)) return [];
-  return events.map((event, index) => {
-    const record = event && typeof event === 'object' ? event as Record<string, unknown> : {};
-    const summary = summaryFor(event);
-    if (!summary) return null;
-    return {
-      id: valueText(record.id) || `event-${index}`,
-      actor: actorFor(record),
-      timestamp: timestampFor(event),
-      summary,
-    };
-  }).filter((entry): entry is LogbookEntry => Boolean(entry));
+  return events
+    .map((event, index): LogbookEntry | null => {
+      const record = event && typeof event === 'object' ? event as Record<string, unknown> : {};
+      const summary = summaryFor(event);
+      if (!summary) return null;
+      return {
+        id: valueText(record.id) || `event-${index}`,
+        actor: actorFor(record),
+        timestamp: timestampFor(event),
+        summary,
+      };
+    })
+    .filter((entry): entry is LogbookEntry => entry !== null);
 }
 
 function VisorLogbookPanel({
