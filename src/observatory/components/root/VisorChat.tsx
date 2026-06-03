@@ -33,7 +33,7 @@ export function VisorChat({
       <header className="border-b border-white/10 px-4 py-3">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <h2 className="font-mono text-[11px] uppercase tracking-[0.22em] text-[#d4af37]">SFI Visor Chat</h2>
+            <h2 className="font-mono text-[11px] uppercase tracking-[0.22em] text-[#d4af37]">ROOT VISOR / Chat operativo</h2>
             <p className="mt-1 font-mono text-[9px] uppercase tracking-[0.12em] text-white/35">{context.label} / {context.description}</p>
           </div>
           <button type="button" onClick={onClose} className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/45 hover:text-white">
@@ -58,7 +58,7 @@ export function VisorChat({
         {loading ? (
           <div className="border-l border-[#d4af37]/35 bg-white/[0.02] px-3 py-2 font-mono text-[11px] leading-5 text-white/40">
             <div className="mb-1 text-[8px] uppercase tracking-[0.18em] text-white/25">visor</div>
-            leyendo el campo...
+            leyendo memoria visible...
           </div>
         ) : null}
       </div>
@@ -72,11 +72,11 @@ export function VisorChat({
               void submit();
             }
           }}
-          placeholder={`Pregunta libre sobre ${context.label}...`}
+          placeholder={`Pregunta libre a ROOT VISOR desde ${context.label}...`}
           className="h-24 w-full resize-none border border-white/10 bg-white/[0.025] p-3 font-mono text-[11px] leading-5 text-white/75 outline-none placeholder:text-white/20 focus:border-[#d4af37]/45"
         />
         <div className="mt-2 flex items-center justify-between">
-          <span className="font-mono text-[8px] uppercase tracking-[0.14em] text-white/25">voz del sistema / no ejecuta</span>
+          <span className="font-mono text-[8px] uppercase tracking-[0.14em] text-white/25">interlocutor operativo / no ejecuta</span>
           <button type="button" disabled={loading} onClick={() => void submit()} className="border border-[#d4af37]/45 px-3 py-1.5 font-mono text-[9px] uppercase tracking-[0.16em] text-[#d4af37] hover:bg-[#d4af37]/10 disabled:opacity-40">
             preguntar
           </button>
