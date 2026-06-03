@@ -3,6 +3,8 @@
 import { useMemo, useState } from 'react';
 import { findVisorContext, type VisorChatMessage, type VisorContextKey, type VisorSnapshot } from './visorTypes';
 
+type VisibleRecord = Record<string, unknown>;
+
 type TwinState = {
   ok?: boolean;
   data?: {
@@ -16,7 +18,7 @@ type TwinState = {
   };
 };
 
-type VisorIntent = 'site' | 'attractor' | 'theory' | 'explain' | 'support' | 'closure' | 'reading' | 'personal_unknown' | 'logbook' | 'memory' | 'observatory_gap' | 'open';
+type VisorIntent = 'site' | 'attractor' | 'acp' | 'theory' | 'explain' | 'support' | 'closure' | 'reading' | 'personal_unknown' | 'logbook' | 'memory' | 'observatory_gap' | 'open';
 
 const SFI_VISOR_ROOT_PROMPT = `Eres VISOR ROOT, interlocutor operativo de SystemFriction Institute.
 
@@ -25,58 +27,25 @@ No eres un inventario de nodos.
 Eres el observador conversacional del instituto.
 
 Tienes acceso al contexto visible del instituto:
-nodos, documentos, evidencias, patrones, propuestas, bitácoras, atlas, workbook, ledger y eventos recientes.
+nodos, documentos, evidencias, patrones, propuestas, bitacoras, atlas, workbook, ledger y eventos recientes.
 
-Tu función:
+Tu funcion:
 ayudar al usuario root a entender, usar y consolidar SFI.
 
-Puedes:
-- explicar
-- teorizar
-- inferir
-- proponer rutas
-- diseñar módulos
-- traducir bitácoras
-- orientar uso del observatorio
-- sugerir nuevos observatorios
-- detectar huecos
-- generar prompts para Codex
-- responder preguntas generales con conocimiento amplio
+Puedes explicar, teorizar, inferir, proponer rutas, traducir bitacoras, orientar uso del observatorio, sugerir nuevos observatorios, detectar huecos y generar prompts para Codex.
 
-No puedes:
-- ejecutar acciones
-- crear registros
-- aprobar decisiones
-- fingir que algo está registrado si no está
-- inventar evidencia
+No puedes ejecutar acciones, crear registros, aprobar decisiones, fingir que algo esta registrado si no esta, ni inventar evidencia.
 
-Regla crítica:
+Regla critica:
 No abras respuestas con conteos de nodos.
-Sólo menciona conteos si el usuario pide inventario, estado o auditoría.
+Solo menciona conteos si el usuario pide inventario, estado o auditoria.
 
-Si algo está registrado:
-usa el registro.
+Si algo esta registrado, usa el registro.
+Si algo no esta registrado, dilo y ofrece inferencia, explicacion general, hipotesis o ruta de observacion.
 
-Si algo no está registrado:
-di “No lo veo registrado en SFI.”
-Luego ofrece:
-- inferencia
-- explicación general
-- hipótesis
-- ruta de observación
+Toda respuesta debe acercar SFI a mas claridad, mejor arquitectura, mejor uso del observatorio, mejor decision y mejor consolidacion.
 
-Toda respuesta debe acercar SFI a:
-- más claridad
-- mejor arquitectura
-- mejor uso del observatorio
-- mejor decisión
-- mejor consolidación
-
-Tono:
-claro, simple, directo.
-Sin tecnicismos innecesarios.
-No imitar al usuario.
-Conocer su fricción desde la memoria visible, pero responder estable.`;
+Tono: claro, simple y directo.`;
 
 function count(value: unknown[] | undefined) {
   return Array.isArray(value) ? value.length : 0;
@@ -109,6 +78,7 @@ function normalize(input: string) {
 
 function intentFor(prompt: string): VisorIntent {
   const normalized = normalize(prompt);
+  if (normalized.includes('acp') || normalized.includes('propuesta') || normalized.includes('propuestas') || normalized.includes('configurando')) return 'acp';
   if (normalized.includes('bitacora') || normalized.includes('logbook') || normalized.includes('recent event')) return 'logbook';
   if (normalized.includes('que sabes de mi') || normalized.includes('memoria visible') || normalized.includes('sobre mi') || normalized.includes('en el instituto')) return 'memory';
   if (normalized.includes('observatorio falta') || normalized.includes('que observatorio') || normalized.includes('nuevo observatorio') || normalized.includes('modulo falta')) return 'observatory_gap';
@@ -123,34 +93,71 @@ function intentFor(prompt: string): VisorIntent {
   return 'open';
 }
 
-function lensText(contextKey: VisorContextKey, snapshot: VisorSnapshot) {
-  const context = findVisorContext(contextKey);
-  const contextHasData = contextDataAvailable(contextKey, snapshot);
-  return contextHasData
-    ? `Registro visible: en la capa ${context.label} hay señal conectada que puede orientar la lectura.`
-    : `No lo veo registrado en SFI para la capa ${context.label}. Sin embargo puedo inferir, explicar o proponerte una ruta de observación sin fingir registro.`;
+function asRecord(value: unknown): VisibleRecord | null {
+  return value && typeof value === 'object' ? value as VisibleRecord : null;
 }
 
-function readableList(value: unknown[] | undefined, label: string) {
+function field(record: VisibleRecord | null, keys: string[]) {
+  if (!record) return undefined;
+  for (const key of keys) {
+    const value = record[key];
+    if (typeof value === 'string' && value.trim()) return value.trim();
+    if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+  }
+  return undefined;
+}
+
+function titleFor(value: unknown, fallback: string) {
+  const record = asRecord(value);
+  return field(record, ['title', 'name', 'label', 'summary', 'event_name', 'type', 'id']) || (typeof value === 'string' ? value : fallback);
+}
+
+function detailFor(value: unknown) {
+  const record = asRecord(value);
+  if (!record) return typeof value === 'string' ? value : undefined;
+  const parts = [
+    field(record, ['status', 'state', 'phase']),
+    field(record, ['risk', 'risk_level']),
+    field(record, ['expected_time', 'timeframe', 'horizon']),
+    field(record, ['description', 'hypothesis', 'rationale', 'notes', 'payload']),
+  ].filter(Boolean);
+  return parts.length ? parts.join(' · ') : undefined;
+}
+
+function readableEntries(value: unknown[] | undefined, label: string, limit = 6) {
   if (!Array.isArray(value) || value.length === 0) return `${label}: sin entradas visibles.`;
-  return `${label}: ${value.slice(0, 4).map((item) => {
-    if (item && typeof item === 'object') {
-      const record = item as Record<string, unknown>;
-      return String(record.title || record.label || record.name || record.summary || record.type || record.id || 'entrada visible');
-    }
-    return String(item);
-  }).join('; ')}.`;
+  return `${label}:\n${value.slice(0, limit).map((item, index) => {
+    const detail = detailFor(item);
+    return `- ${titleFor(item, `entrada ${index + 1}`)}${detail ? ` — ${detail}` : ''}`;
+  }).join('\n')}`;
 }
 
 function visibleMemory(twin: TwinState | null) {
   const seed = twin?.data?.seed;
   return [
-    readableList(seed?.nodeCatalog, 'Nodos'),
-    readableList(seed?.documentCatalog, 'Documentos/evidencias'),
-    readableList(seed?.patternCatalog, 'Patrones'),
-    readableList(twin?.data?.proposals, 'Propuestas'),
-    readableList(seed?.recentEvents, 'Eventos recientes'),
-  ].join('\n');
+    readableEntries(seed?.nodeCatalog, 'Nodos visibles', 5),
+    readableEntries(seed?.documentCatalog, 'Documentos/evidencias visibles', 5),
+    readableEntries(seed?.patternCatalog, 'Patrones visibles', 5),
+    readableEntries(twin?.data?.proposals, 'Propuestas ACP visibles', 7),
+    readableEntries(seed?.recentEvents, 'Eventos recientes visibles', 7),
+  ].join('\n\n');
+}
+
+function focusedMemory(twin: TwinState | null, intent: VisorIntent) {
+  const seed = twin?.data?.seed;
+  if (intent === 'acp') return [readableEntries(twin?.data?.proposals, 'Propuestas ACP visibles', 10), readableEntries(seed?.recentEvents, 'Eventos recientes ligados al registro', 8)].join('\n\n');
+  if (intent === 'attractor') return [readableEntries(twin?.data?.proposals, 'Propuestas con posible direccion de atractor', 8), readableEntries(seed?.patternCatalog, 'Patrones que pueden sostener atractor', 8)].join('\n\n');
+  if (intent === 'logbook') return readableEntries(seed?.recentEvents, 'Entradas de bitacora/eventos recientes', 10);
+  if (intent === 'memory') return visibleMemory(twin);
+  return visibleMemory(twin);
+}
+
+function lensText(contextKey: VisorContextKey, snapshot: VisorSnapshot) {
+  const context = findVisorContext(contextKey);
+  const contextHasData = contextDataAvailable(contextKey, snapshot);
+  return contextHasData
+    ? `Registro visible: la capa ${context.label} tiene datos conectados.`
+    : `No veo registro directo en la capa ${context.label}. Puedo inferir o proponerte ruta sin fingir registro.`;
 }
 
 function localCompanionResponse(contextKey: VisorContextKey, prompt: string, twin: TwinState | null) {
@@ -158,54 +165,63 @@ function localCompanionResponse(contextKey: VisorContextKey, prompt: string, twi
   const snapshot = readSnapshot(twin);
   const intent = intentFor(prompt);
   const lensLimit = lensText(contextKey, snapshot);
+  const memory = focusedMemory(twin, intent);
 
   if (intent === 'site') {
-    return 'SystemFriction Institute es el campo donde estás convirtiendo fricción, memoria, evidencia y decisión en un sistema observable. No es sólo un sitio: es una herramienta para operar bitácoras, atlas, nodos, atractores, propuestas, decisiones, observatorios y rutas de ejecución.';
+    return 'SystemFriction Institute es el campo donde estas convirtiendo friccion, memoria, evidencia y decision en un sistema observable. No es solo un sitio: es una herramienta para operar bitacoras, atlas, nodos, atractores, propuestas, decisiones, observatorios y rutas de ejecucion.';
   }
 
   if (intent === 'personal_unknown') {
-    return 'No lo veo registrado en SFI. Aun así puedo conversar sobre eso. Cuéntame qué pasa y lo observamos sin forzarlo a nodo: conducta, contexto, señal, repetición y qué te preocupa.';
+    return 'No lo veo registrado en SFI. Aun asi puedo conversar sobre eso. Cuentame que pasa y lo observamos sin forzarlo a nodo: conducta, contexto, senal, repeticion y que te preocupa.';
+  }
+
+  if (intent === 'acp') {
+    return [
+      'Lectura ACP desde memoria visible:',
+      memory,
+      'Traduccion: ACP esta intentando convertir posibilidades en propuestas observables. Lo que ya tenga estado, riesgo, horizonte o evento asociado puede leerse como configuracion visible. Lo que no tenga evidencia suficiente queda como hipotesis, no como cierre.',
+      'Para hacerlo util: el siguiente paso es escoger una propuesta, exigir evidencia minima, definir criterio de cierre y decidir si se promueve a atractor, bitacora o ejecucion.',
+    ].join('\n\n');
   }
 
   if (intent === 'logbook') {
     return [
-      'La bitácora en VISOR debe funcionar como memoria viva: qué pasó, qué se repitió, qué quedó abierto y qué pide cierre.',
-      snapshot.events > 0
-        ? 'Registro visible: hay eventos recientes conectados. Úsalos como entradas Usuario/Sistema/Agente antes de convertirlos en conclusión.'
-        : 'Bitácora sin entradas legibles. Falta mapear recentEvents/logbook a entradas Usuario/Sistema/Agente.',
-      'Ruta útil: leer la entrada, separar registro/inferencia/hipótesis, decidir si requiere evidencia y sólo después proponer una ruta de registro o cierre.',
+      'Bitacora visible en VISOR:',
+      memory,
+      'Lectura: cada entrada debe separarse en registro, inferencia e hipotesis. Si una entrada se repite, puede volverse patron. Si un patron jala decisiones, puede sostener atractor. Si no tiene evidencia, no se cierra.',
     ].join('\n\n');
   }
 
   if (intent === 'memory') {
     return [
-      'Puedo leer la memoria visible que llega al VISOR: nodos, documentos/evidencias, patrones, propuestas y eventos recientes. No leo capas privadas que no estén conectadas a este contexto.',
-      visibleMemory(twin),
-      'Inferencia: si una capa aparece vacía, no significa que no exista en tu historia; significa que no está visible para SFI en esta vista. Puedo ayudarte a decidir qué conviene registrar y qué conviene dejar como conversación.',
+      'Esto es lo que VISOR recibe como memoria visible ahora:',
+      memory,
+      'Si algo que esperas no aparece aqui, el problema no es interpretacion: falta mapear esa fuente al twin/state o a visible_memory.',
     ].join('\n\n');
   }
 
   if (intent === 'observatory_gap') {
     return [
-      'Hipótesis operativa: puede faltar un observatorio de traducción entre bitácora y ejecución mínima.',
-      'Ruta propuesta: 1) detectar entrada repetida, 2) exigir evidencia mínima, 3) formular perturbación MOP-H de bajo riesgo, 4) declarar criterio de cierre, 5) registrar sólo si el resultado deja rastro verificable.',
-      'También pueden faltar observatorios por ecosistema digital: identidad/acceso, publicaciones, ventas, soporte, comunidad, automatizaciones y deuda técnica. Puedo convertir cualquiera en mapa de señales, riesgos y próximos pasos.',
+      'Hipotesis operativa: puede faltar un observatorio de traduccion entre bitacora y ejecucion minima.',
+      'Ruta propuesta: 1) detectar entrada repetida, 2) exigir evidencia minima, 3) formular perturbacion de bajo riesgo, 4) declarar criterio de cierre, 5) registrar solo si el resultado deja rastro verificable.',
+      'Tambien pueden faltar observatorios por ecosistema digital: identidad/acceso, publicaciones, ventas, soporte, comunidad, automatizaciones y deuda tecnica.',
     ].join('\n\n');
   }
 
   if (intent === 'attractor') {
     return [
-      'Un atractor en SFI es una dirección de convergencia: no ordena por sí mismo, pero permite observar si decisiones, evidencias y acciones se alinean o se dispersan.',
+      'Lectura de atractores desde memoria visible:',
+      memory,
       lensLimit,
-      'Inferencia útil: si la misma fricción vuelve, hay patrón posible; si el patrón arrastra decisiones hacia una misma forma, hay atractor probable; si falta evidencia, queda como hipótesis y no como registro cerrado.',
+      'Interpretacion: un atractor no es una etiqueta; es una direccion de convergencia. Si una propuesta se repite, tiene horizonte y aparece conectada a patrones, puede tratarse como atractor provisional. Si no aparece en memoria visible, solo puedo inferirlo.',
     ].join('\n\n');
   }
 
   if (intent === 'theory') {
     return [
-      'Puedo teorizar, pero separando capas: registro, inferencia e hipótesis.',
+      'Puedo teorizar, pero separando capas: registro, inferencia e hipotesis.',
       lensLimit,
-      'Conocimiento general: en sistemas complejos importa más la repetición que la intensidad aislada. En SFI eso se traduce en observar rastros, no sólo sensaciones fuertes.',
+      'Conocimiento general: en sistemas complejos importa mas la repeticion que la intensidad aislada. En SFI eso se traduce en observar rastros, no solo sensaciones fuertes.',
     ].join('\n\n');
   }
 
@@ -213,34 +229,40 @@ function localCompanionResponse(contextKey: VisorContextKey, prompt: string, twi
     return [
       `Lectura desde ${context.label}: ${context.description}`,
       lensLimit,
-      'Si lo que preguntas no está en SFI, no lo convierto en dato. Puedo explicarlo con conocimiento general o proponerte cómo observarlo sin crear registros desde el chat.',
+      'Si lo que preguntas no esta en SFI, no lo convierto en dato. Puedo explicarlo con conocimiento general o proponerte como observarlo sin crear registros desde el chat.',
     ].join('\n\n');
   }
 
   if (intent === 'support') {
     return [
-      'Sí. Puedo acompañar la pregunta sin ejecutar nada ni crear registros.',
-      'Dime el residuo en una frase. Yo lo devuelvo como: registro visible si existe, inferencia si hay base, hipótesis si falta evidencia, y ruta mínima si conviene observarlo.',
+      'Si. Puedo acompanar la pregunta sin ejecutar nada ni crear registros.',
+      'Dime el residuo en una frase. Yo lo devuelvo como: registro visible si existe, inferencia si hay base, hipotesis si falta evidencia, y ruta minima si conviene observarlo.',
     ].join('\n\n');
   }
 
   if (intent === 'closure') {
     return [
-      'Para cerrar algo en SFI hace falta una cadena mínima: qué pasó, qué evidencia lo sostiene, qué patrón toca, qué decisión pide y qué criterio permite decir “cerrado”.',
+      'Para cerrar algo en SFI hace falta una cadena minima: que paso, que evidencia lo sostiene, que patron toca, que decision pide y que criterio permite decir cerrado.',
       lensLimit,
-      'Si falta una pieza, no conviene cerrarlo. Conviene dejarlo como hipótesis, pendiente de workbook o ruta de observación.',
+      'Si falta una pieza, no conviene cerrarlo. Conviene dejarlo como hipotesis, pendiente de workbook o ruta de observacion.',
     ].join('\n\n');
   }
 
   if (intent === 'reading') {
     return [
-      'Lectura operativa: busca repetición, no dramatismo. Una fricción pequeña pero recurrente suele pesar más que una señal intensa y aislada.',
+      'Lectura operativa: busca repeticion, no dramatismo. Una friccion pequena pero recurrente suele pesar mas que una senal intensa y aislada.',
       lensLimit,
-      'Puedo ayudarte a convertir esa lectura en pregunta observable, bitácora legible o ruta de perturbación mínima sin ejecutar cambios desde el chat.',
+      'Puedo ayudarte a convertir esa lectura en pregunta observable, bitacora legible o ruta de perturbacion minima sin ejecutar cambios desde el chat.',
     ].join('\n\n');
   }
 
-  return 'Sí. Puedo dialogar libremente contigo desde VISOR. Uso SFI como memoria y marco cuando aplica, y conocimiento general cuando la pregunta lo requiere. Mi límite es no mentir: no invento registros ni ejecuto cambios. Puedo ayudarte a pensar, traducir, proyectar, diseñar rutas y consolidar el instituto.';
+  return [
+    'Si. Puedo dialogar libremente contigo desde VISOR.',
+    'Uso SFI como memoria y marco cuando aplica, y conocimiento general cuando la pregunta lo requiere.',
+    'Memoria visible disponible:',
+    memory,
+    'Mi limite es no mentir: no invento registros ni ejecuto cambios. Puedo ayudarte a pensar, traducir, proyectar, disenar rutas y consolidar el instituto.',
+  ].join('\n\n');
 }
 
 async function llmCompanionResponse(contextKey: VisorContextKey, prompt: string, twin: TwinState | null) {
