@@ -136,6 +136,9 @@ function compactJson(value: unknown) {
 
 function titleFor(value: unknown, fallback: string) {
   const record = asRecord(value);
+  const summary = asRecord(record?.visor_summary);
+  const summaryTitle = field(summary, ['objective', 'artifact_entry_excerpt', 'title', 'hypothesis']);
+  if (summaryTitle) return summaryTitle;
   const inner = unwrapPayload(value);
   return field(inner, ['title', 'name', 'label', 'summary', 'objective', 'requested_output', 'proposalType'])
     || field(record, ['title', 'name', 'label', 'summary', 'event_name', 'type'])
@@ -144,6 +147,28 @@ function titleFor(value: unknown, fallback: string) {
 
 function detailFor(value: unknown) {
   const record = asRecord(value);
+  const summary = asRecord(record?.visor_summary);
+  if (summary) {
+    const rawPayload = asRecord(summary.raw_payload);
+    const payloadProposal = asRecord(rawPayload?.proposal);
+    const seedNodes = Array.isArray(summary.seed_nodes) ? summary.seed_nodes : [];
+    const seedPatterns = Array.isArray(summary.seed_patterns) ? summary.seed_patterns : [];
+    const seedDocuments = Array.isArray(summary.seed_documents) ? summary.seed_documents : [];
+    const parts = [
+      field(summary, ['status']),
+      field(summary, ['risk']),
+      field(summary, ['horizon']),
+      field(summary, ['objective']),
+      field(summary, ['artifact_entry_excerpt']),
+      field(summary, ['artifact_destination']),
+      field(summary, ['hypothesis']),
+      seedNodes.length ? `${seedNodes.length} nodos semilla` : undefined,
+      seedPatterns.length ? `${seedPatterns.length} patrones semilla` : undefined,
+      seedDocuments.length ? `${seedDocuments.length} documentos semilla` : undefined,
+      payloadProposal ? undefined : 'Veo propuesta ACP, pero payload.proposal no esta disponible.',
+    ].filter(Boolean);
+    return parts.length ? parts.join(' · ') : undefined;
+  }
   const inner = unwrapPayload(value);
   if (!record && !inner) return typeof value === 'string' ? value : undefined;
   const seedEvidence = nestedRecord(nestedRecord(record, ['payload']), ['seed_evidence']);
