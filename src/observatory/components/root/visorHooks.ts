@@ -94,7 +94,25 @@ function intentFor(prompt: string): VisorIntent {
 }
 
 function asRecord(value: unknown): VisibleRecord | null {
-  return value && typeof value === 'object' ? value as VisibleRecord : null;
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as VisibleRecord : null;
+}
+
+function nestedRecord(record: VisibleRecord | null, keys: string[]): VisibleRecord | null {
+  if (!record) return null;
+  for (const key of keys) {
+    const value = record[key];
+    const nested = asRecord(value);
+    if (nested) return nested;
+  }
+  return null;
+}
+
+function unwrapPayload(value: unknown): VisibleRecord | null {
+  const record = asRecord(value);
+  if (!record) return null;
+  const payload = nestedRecord(record, ['payload', 'metadata', 'data', 'details']);
+  const proposal = nestedRecord(payload, ['proposal', 'action', 'input']) || nestedRecord(record, ['proposal', 'action', 'input']);
+  return proposal || payload || record;
 }
 
 function field(record: VisibleRecord | null, keys: string[]) {
@@ -107,19 +125,36 @@ function field(record: VisibleRecord | null, keys: string[]) {
   return undefined;
 }
 
+function compactJson(value: unknown) {
+  try {
+    const text = JSON.stringify(value);
+    return text && text.length > 220 ? `${text.slice(0, 220)}...` : text;
+  } catch {
+    return undefined;
+  }
+}
+
 function titleFor(value: unknown, fallback: string) {
   const record = asRecord(value);
-  return field(record, ['title', 'name', 'label', 'summary', 'event_name', 'type', 'id']) || (typeof value === 'string' ? value : fallback);
+  const inner = unwrapPayload(value);
+  return field(inner, ['title', 'name', 'label', 'summary', 'objective', 'requested_output', 'proposalType'])
+    || field(record, ['title', 'name', 'label', 'summary', 'event_name', 'type'])
+    || (typeof value === 'string' ? value : fallback);
 }
 
 function detailFor(value: unknown) {
   const record = asRecord(value);
-  if (!record) return typeof value === 'string' ? value : undefined;
+  const inner = unwrapPayload(value);
+  if (!record && !inner) return typeof value === 'string' ? value : undefined;
+  const seedEvidence = nestedRecord(nestedRecord(record, ['payload']), ['seed_evidence']);
   const parts = [
+    field(inner, ['status', 'state', 'phase']),
     field(record, ['status', 'state', 'phase']),
-    field(record, ['risk', 'risk_level']),
-    field(record, ['expected_time', 'timeframe', 'horizon']),
-    field(record, ['description', 'hypothesis', 'rationale', 'notes', 'payload']),
+    field(inner, ['risk', 'risk_level', 'riskLevel']),
+    field(record, ['risk', 'risk_level', 'riskLevel']),
+    field(inner, ['expected_time', 'timeframe', 'horizon', 'time_horizon']),
+    field(inner, ['description', 'hypothesis', 'rationale', 'notes', 'prompt', 'question']),
+    seedEvidence ? `evidencia semilla: ${compactJson(seedEvidence)}` : undefined,
   ].filter(Boolean);
   return parts.length ? parts.join(' · ') : undefined;
 }
