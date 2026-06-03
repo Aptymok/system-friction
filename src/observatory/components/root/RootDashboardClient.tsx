@@ -173,8 +173,8 @@ export function RootDashboardClient() {
         </div>
       </header>
 
-      <main className={`relative grid h-screen grid-cols-1 bg-[#080808] pt-9 lg:grid-cols-[minmax(0,1fr)_380px] ${visor.enabled ? 'grayscale' : ''}`}>
-        <section className="relative min-h-0 overflow-hidden border-r border-[#1e1c17]">
+      <main className="relative grid h-screen grid-cols-1 bg-[#080808] pt-9 lg:grid-cols-[minmax(0,1fr)_380px]">
+        <section className={`relative min-h-0 overflow-hidden border-r border-[#1e1c17] ${visor.enabled ? 'grayscale' : ''}`}>
           <div className="absolute left-3 top-3 z-20 flex flex-col gap-2">
             {FIELD_TOOLS.map((tool) => (
               <FieldToolButton key={tool.id} tool={tool} active={activeTool === tool.id} onClick={() => {
@@ -216,7 +216,7 @@ export function RootDashboardClient() {
           </div>
         </section>
 
-        <aside className="min-h-0 overflow-hidden bg-[#0e0d0b]">
+        <aside className={`min-h-0 overflow-hidden bg-[#0e0d0b] ${visor.enabled ? 'grayscale' : ''}`}>
           <div className="flex h-full flex-col">
             <Accordion title="Chat Twin" open={openPanel === 'chat'} onClick={() => setOpenPanel(openPanel === 'chat' ? 'propuestas' : 'chat')}>
               <TwinInteractionPanel compact selectedNodeLabel={selectedNodeLabel} onArtifactIntent={() => setOpenPanel('artefactos')} />
@@ -238,7 +238,7 @@ export function RootDashboardClient() {
             </Accordion>
           </div>
         </aside>
-        <VisorMode enabled={visor.enabled} twin={twin} />
+        <VisorMode enabled={visor.enabled} twin={twin} onEnable={() => visor.setEnabled(true)} />
       </main>
     </div>
   );
