@@ -15,6 +15,9 @@ type TwinState = {
       documentCatalog?: unknown[];
       patternCatalog?: unknown[];
       recentEvents?: unknown[];
+      logbook?: unknown[];
+      events?: unknown[];
+      mutations?: unknown[];
     };
   };
 };
@@ -30,11 +33,29 @@ function valueText(value: unknown) {
   return typeof value === 'string' && value.trim() ? value.trim() : undefined;
 }
 
+function recordValue(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
+function payloadOf(event: Record<string, unknown>) {
+  return recordValue(event.payload);
+}
+
 function actorFor(event: Record<string, unknown>): LogbookEntry['actor'] {
-  const source = `${valueText(event.actor) || valueText(event.source) || valueText(event.role) || valueText(event.type) || ''}`.toLowerCase();
+  const payload = payloadOf(event);
+  const source = `${valueText(event.actor)
+    || valueText(event.actor_id)
+    || valueText(event.source)
+    || valueText(payload.source)
+    || valueText(event.role)
+    || valueText(event.event_name)
+    || valueText(event.mutation_type)
+    || valueText(event.type)
+    || ''}`.toLowerCase();
+
   if (source.includes('user') || source.includes('usuario')) return 'Usuario';
-  if (source.includes('agent') || source.includes('agente')) return 'Agente';
-  if (source.includes('system') || source.includes('sistema')) return 'Sistema';
+  if (source.includes('agent') || source.includes('agente') || source.includes('proposal')) return 'Agente';
+  if (source.includes('system') || source.includes('sistema') || source.includes('governance') || source.includes('kernel')) return 'Sistema';
   return 'Evento';
 }
 
@@ -42,19 +63,57 @@ function summaryFor(event: unknown) {
   if (typeof event === 'string') return event;
   if (!event || typeof event !== 'object') return undefined;
   const record = event as Record<string, unknown>;
-  return valueText(record.summary)
+  const payload = payloadOf(record);
+  const proposedState = recordValue(record.proposed_state);
+
+  const direct = valueText(record.summary)
     || valueText(record.message)
     || valueText(record.description)
     || valueText(record.title)
     || valueText(record.label)
     || valueText(record.event)
+    || valueText(record.event_name)
+    || valueText(record.mutation_type)
     || valueText(record.type);
+
+  const payloadText = valueText(payload.summary)
+    || valueText(payload.message)
+    || valueText(payload.description)
+    || valueText(payload.title)
+    || valueText(payload.content)
+    || valueText(payload.evidenceType)
+    || valueText(payload.eventName)
+    || valueText(payload.action);
+
+  const proposedText = valueText(proposedState.summary)
+    || valueText(proposedState.title)
+    || valueText(proposedState.content)
+    || valueText(proposedState.description);
+
+  return direct || payloadText || proposedText;
 }
 
 function timestampFor(event: unknown) {
   if (!event || typeof event !== 'object') return undefined;
   const record = event as Record<string, unknown>;
-  return valueText(record.timestamp) || valueText(record.createdAt) || valueText(record.created_at) || valueText(record.time) || valueText(record.date);
+  return valueText(record.timestamp)
+    || valueText(record.occurred_at)
+    || valueText(record.createdAt)
+    || valueText(record.created_at)
+    || valueText(record.updated_at)
+    || valueText(record.time)
+    || valueText(record.date);
+}
+
+function collectSeedEvents(twin: TwinState | null): unknown[] {
+  const seed = twin?.data?.seed;
+  return [
+    ...(Array.isArray(seed?.recentEvents) ? seed.recentEvents : []),
+    ...(Array.isArray(seed?.logbook) ? seed.logbook : []),
+    ...(Array.isArray(seed?.events) ? seed.events : []),
+    ...(Array.isArray(seed?.mutations) ? seed.mutations : []),
+    ...(Array.isArray(twin?.data?.proposals) ? twin.data.proposals : []),
+  ];
 }
 
 function mapLogbookEntries(events: unknown[] | undefined): LogbookEntry[] {
@@ -65,7 +124,7 @@ function mapLogbookEntries(events: unknown[] | undefined): LogbookEntry[] {
       const summary = summaryFor(event);
       if (!summary) return null;
       return {
-        id: valueText(record.id) || `event-${index}`,
+        id: valueText(record.id) || valueText(record.event_id) || valueText(record.mutation_key) || `event-${index}`,
         actor: actorFor(record),
         timestamp: timestampFor(event),
         summary,
@@ -85,12 +144,12 @@ function VisorLogbookPanel({
     <section className="absolute bottom-6 left-6 z-[88] max-h-[42vh] w-[min(380px,calc(100vw-32px))] overflow-hidden border border-white/10 bg-black/80 shadow-2xl">
       <header className="border-b border-white/10 px-3 py-2">
         <h3 className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#d4af37]">Bitácora visible</h3>
-        <p className="mt-1 font-mono text-[8px] uppercase tracking-[0.12em] text-white/30">recentEvents / sólo lectura</p>
+        <p className="mt-1 font-mono text-[8px] uppercase tracking-[0.12em] text-white/30">runtime / sólo lectura</p>
       </header>
       <div className="max-h-[34vh] overflow-y-auto p-3">
         {entries.length === 0 ? (
           <p className="border-l border-white/15 px-3 py-2 font-mono text-[11px] leading-5 text-white/45">
-            Bitácora sin entradas legibles. Falta mapear recentEvents/logbook a entradas Usuario/Sistema/Agente.
+            Bitácora sin entradas disponibles. Ejecuta una carga root/evidence o revisa permisos de lectura del estado ROOT.
           </p>
         ) : entries.map((entry) => (
           <article key={entry.id} className="mb-3 border border-white/10 bg-white/[0.025] p-3 last:mb-0">
@@ -124,7 +183,7 @@ export function VisorMode({
 }) {
   const { contextKey, context, setContextKey } = useVisorContext('bitacoras');
   const chat = useVisorChat(contextKey, twin);
-  const logbookEntries = useMemo(() => mapLogbookEntries(twin?.data?.seed?.recentEvents), [twin]);
+  const logbookEntries = useMemo(() => mapLogbookEntries(collectSeedEvents(twin)), [twin]);
 
   const { setOpen } = chat;
 
