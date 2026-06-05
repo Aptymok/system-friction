@@ -14,6 +14,9 @@ type Proposal = {
     nodes?: number;
     patterns?: number;
     documents?: number;
+    nodeNames?: string[];
+    patternNames?: string[];
+    documentNames?: string[];
     mihmSourceState?: string | null;
     accessMode?: string | null;
   };
@@ -125,6 +128,30 @@ function plainDescription(proposal: Proposal) {
   };
 }
 
+function seedEvidenceReason(proposal: Proposal) {
+  const evidence = proposal.seedEvidenceSummary;
+  if (!evidence) return null;
+  const nodeNames = evidence.nodeNames?.length ? ` (${evidence.nodeNames.slice(0, 3).join(', ')})` : '';
+  const patternNames = evidence.patternNames?.length ? ` (${evidence.patternNames.slice(0, 3).join(', ')})` : '';
+  const documentNames = evidence.documentNames?.length ? ` (${evidence.documentNames.slice(0, 3).join(', ')})` : '';
+  return [
+    `nodos ${evidence.nodes ?? 0}${nodeNames}`,
+    `patrones ${evidence.patterns ?? 0}${patternNames}`,
+    `documentos ${evidence.documents ?? 0}${documentNames}`,
+    `MIHM ${evidence.mihmSourceState ?? 'sin estado visible'}`,
+    `acceso ${evidence.accessMode ?? 'sin modo visible'}`,
+  ].join(' / ');
+}
+
+function hasNamedSeedContext(proposal: Proposal) {
+  const evidence = proposal.seedEvidenceSummary;
+  return Boolean(
+    evidence?.nodeNames?.length
+    || evidence?.patternNames?.length
+    || evidence?.documentNames?.length
+  );
+}
+
 export function AcpProposalConsole({ compact = false }: { compact?: boolean }) {
   const [state, setState] = useState<ApiState | null>(null);
   const [loading, setLoading] = useState(false);
@@ -183,6 +210,16 @@ export function AcpProposalConsole({ compact = false }: { compact?: boolean }) {
         </button>
       </div>
 
+      <div className="m-3 border border-[#2e2410] bg-[#12100d] p-3">
+        <div className="font-mono text-[8px] uppercase tracking-[0.18em] text-[#8a7035]">Lectura ROOT</div>
+        <div className="mt-2 grid gap-1 text-xs leading-5 text-[#8a7568]">
+          <p>ACP es una cola de decision para propuestas del Cognitive Twin.</p>
+          <p>Proposed significa que todavia no esta autorizada. Design approved significa aprobada internamente, no ejecutada fuera del sistema.</p>
+          <p>Queued significa lista para outcome o cierre. Closed significa completada con outcome registrado.</p>
+          <p>Aprobar no ejecuta una accion externa. Rechazar deja trazado que ROOT no autorizo la propuesta.</p>
+        </div>
+      </div>
+
       {!compact ? (
         <div className="grid grid-cols-4 border-b border-[#1e1c17] text-center font-mono text-[9px]">
           {[
@@ -208,6 +245,8 @@ export function AcpProposalConsole({ compact = false }: { compact?: boolean }) {
           const route = routeFor(proposal.status);
           const description = plainDescription(proposal);
           const attractor = proposal.proposalType === 'attractor_draft' ? attractorSummary(proposal) : null;
+          const reason = seedEvidenceReason(proposal);
+          const missingContext = proposal.seedEvidenceSummary && !hasNamedSeedContext(proposal);
           return (
             <article key={proposal.id} className="border border-[#1e1c17] bg-[#131210] p-3 hover:border-[#2e2c24]">
               <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
@@ -235,6 +274,15 @@ export function AcpProposalConsole({ compact = false }: { compact?: boolean }) {
                 <p><span className="font-mono text-[8px] uppercase tracking-[0.12em] text-[#35312a]">Donde queda</span><br />{description.stored}</p>
                 <p><span className="font-mono text-[8px] uppercase tracking-[0.12em] text-[#35312a]">Siguiente paso</span><br />{description.next}</p>
               </div>
+
+              {reason ? (
+                <div className="mt-3 border border-[#2e2410] bg-[#0b0a09] p-3 text-xs leading-5 text-[#8a7568]">
+                  <p><span className="font-mono text-[8px] uppercase tracking-[0.12em] text-[#8a7035]">Why this exists</span><br />La propuesta aparece porque el Twin recibio evidencia semilla: {reason}.</p>
+                  {missingContext ? (
+                    <p className="mt-2"><span className="font-mono text-[8px] uppercase tracking-[0.12em] text-[#8a7035]">Missing context</span><br />Hay conteos de nodos, patrones o documentos, pero no nombres visibles. ROOT puede evaluar la cola, pero no debe tratar esos conteos como explicacion completa.</p>
+                  ) : null}
+                </div>
+              ) : null}
 
               {attractor ? (
                 <div className="mt-3 grid grid-cols-1 gap-1 border border-[#2e2410] bg-[#0b0a09] p-3 font-mono text-[9px] text-[#8a7568] md:grid-cols-2">

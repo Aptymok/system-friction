@@ -28,6 +28,38 @@ const GROUPS = {
   cuentas: ['accounts', 'account_members', 'usage_ledger', 'account_balance'],
 };
 
+const ROOT_READINGS: Record<keyof typeof GROUPS, string[]> = {
+  bitacora: [
+    'Bitacora muestra mutaciones internas, eventos epistemicos y eventos de auditoria root.',
+    'Actualizar solo recarga estado; no muta datos.',
+    'Cerrar mutacion cierra una mutacion interna en cola y deja rastro de auditoria root. No valida verdad ni prueba el evento.',
+  ],
+  evidencia: [
+    'Evidencia muestra entradas de evidencia, nodos del grafo, relaciones del grafo y propuestas de accion.',
+    'Registrar evidencia crea una entrada root de evidencia. Debe usarse solo cuando exista contenido minimo verificable.',
+    'Actualizar solo recarga estado; no muta datos.',
+  ],
+  cuentas: [
+    'Cuentas muestra contenedores de cuenta, miembros, ledger de uso y balance.',
+    'Esta vista sirve para leer estado operativo de cuentas, no para aprobar decisiones ni corregir saldos desde aqui.',
+    'Actualizar solo recarga estado; no muta datos.',
+  ],
+};
+
+const TABLE_MEANINGS: Record<string, string> = {
+  logbook_mutations: 'Cambios internos de bitacora pendientes o cerrados.',
+  epistemic_events: 'Eventos de conocimiento observables en la memoria SFI.',
+  root_audit_events: 'Rastro de auditoria de nivel root.',
+  root_evidence_entries: 'Evidencia registrada desde root o fuentes del sistema.',
+  graph_nodes: 'Entidades, conceptos o activos del grafo SFI.',
+  graph_edges: 'Relaciones entre nodos del grafo.',
+  action_proposals: 'Acciones propuestas bajo gobierno.',
+  accounts: 'Contenedores de cuenta.',
+  account_members: 'Personas o usuarios vinculados a cuentas.',
+  usage_ledger: 'Ledger de uso y actividad de cuenta.',
+  account_balance: 'Estado de balance de cuenta.',
+};
+
 export function RootOperationsConsole() {
   const [state, setState] = useState<RootStateResponse | null>(null);
   const [active, setActive] = useState<keyof typeof GROUPS>('bitacora');
@@ -126,11 +158,21 @@ export function RootOperationsConsole() {
         </div>
       ) : null}
 
+      <div className="m-3 border border-[#2e2410] bg-[#12100d] p-3">
+        <div className="font-mono text-[8px] uppercase tracking-[0.18em] text-[#8a7035]">Lectura ROOT</div>
+        <div className="mt-2 grid gap-1 text-xs leading-5 text-[#8a7568]">
+          {ROOT_READINGS[active].map((item) => (
+            <p key={item}>{item}</p>
+          ))}
+        </div>
+      </div>
+
       <div className="grid gap-1 p-3 font-mono text-[9px]">
         {visibleTables.map((table) => (
           <div key={table.table} className="grid grid-cols-[1fr_auto] border border-[#1e1c17] bg-[#131210] p-2">
             <span className={table.ok ? 'text-[#ccc8bc]' : 'text-[#c87060]'}>{table.table}</span>
             <span className="text-[#c8a951]">{table.count ?? '-'}</span>
+            <span className="col-span-2 mt-1 text-[#7a7568]">{TABLE_MEANINGS[table.table] ?? 'Tabla operativa visible desde root.'}</span>
             {table.warning ? <span className="col-span-2 mt-1 text-[#c87060]">{table.warning}</span> : null}
           </div>
         ))}
@@ -139,12 +181,14 @@ export function RootOperationsConsole() {
       {active === 'bitacora' ? (
         <div className="border-t border-[#1e1c17] p-3">
           <div className="font-mono text-[8px] uppercase tracking-[0.18em] text-[#8a7035]">Cerrar mutaciones</div>
+          <p className="mt-2 text-xs leading-5 text-[#8a7568]">Cerrar una mutacion es administrativo. No prueba el evento; solo la quita de la cola pendiente y deja auditoria.</p>
           <div className="mt-2 grid gap-1">
             {mutations.slice(0, 5).map((mutation) => (
               <div key={String(mutation.id)} className="grid grid-cols-[1fr_auto] gap-2 border border-[#1e1c17] bg-[#131210] p-2 font-mono text-[8px]">
                 <div>
                   <div className="text-[#ccc8bc]">{String(mutation.id ?? '-').slice(0, 12)}</div>
                   <div className="text-[#7a7568]">{String(mutation.status ?? '-')} / {String(mutation.created_at ?? '-').slice(0, 19)}</div>
+                  <div className="mt-1 text-[#7a7568]">Cierre administrativo: no valida verdad ni evidencia.</div>
                 </div>
                 {mutation.status !== 'closed' ? (
                   <button type="button" disabled={busy} onClick={() => void closeMutation(mutation.id)} className="border border-[#8a7035] px-2 py-1 uppercase tracking-[0.12em] text-[#c8a951] disabled:opacity-40">
@@ -159,6 +203,7 @@ export function RootOperationsConsole() {
 
       <form onSubmit={(event) => void submitEvidence(event)} className="border-t border-[#1e1c17] p-3">
         <div className="font-mono text-[8px] uppercase tracking-[0.18em] text-[#8a7035]">Registrar evidencia</div>
+        <p className="mt-2 text-xs leading-5 text-[#8a7568]">Usa esto solo cuando la evidencia tenga contenido minimo. No lo uses como scratchpad.</p>
         <input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="titulo" className="mt-2 w-full border border-[#1e1c17] bg-[#060605] p-2 font-mono text-xs text-[#ccc8bc] outline-none focus:border-[#8a7035]" />
         <textarea required value={content} onChange={(event) => setContent(event.target.value)} placeholder="evidencia" className="mt-2 min-h-24 w-full resize-none border border-[#1e1c17] bg-[#060605] p-2 font-mono text-xs text-[#ccc8bc] outline-none focus:border-[#8a7035]" />
         <input value={targetNodeId} onChange={(event) => setTargetNodeId(event.target.value)} placeholder="graph node destino opcional" className="mt-2 w-full border border-[#1e1c17] bg-[#060605] p-2 font-mono text-xs text-[#ccc8bc] outline-none focus:border-[#8a7035]" />

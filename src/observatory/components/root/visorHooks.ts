@@ -212,6 +212,65 @@ function focusedMemory(twin: TwinState | null, intent: VisorIntent) {
   return visibleMemory(twin);
 }
 
+function isInventoryRequest(prompt: string) {
+  const normalized = normalize(prompt);
+  return [
+    'inventario',
+    'lista',
+    'conteo',
+    'estado',
+    'auditoria',
+    'muestrame entradas',
+    'ver entradas',
+    'cuantas',
+    'cuantos',
+    'entries',
+  ].some((term) => normalized.includes(term));
+}
+
+function logbookAnalystResponse(prompt: string, twin: TwinState | null, memory: string) {
+  const events = twin?.data?.seed?.recentEvents ?? [];
+  const entry = events[0];
+  const title = entry ? titleFor(entry, 'entrada visible') : null;
+  const detail = entry ? detailFor(entry) : null;
+
+  if (isInventoryRequest(prompt)) {
+    return [
+      'Veo la consulta como una revision de bitacora visible.',
+      '',
+      memory,
+      '',
+      'Lectura operativa: esta lista sirve para ubicar registros, no para convertirlos automaticamente en hechos consolidados. Cada entrada necesita evidencia conectada, criterio de cierre y trazabilidad antes de sostener una decision.',
+    ].join('\n');
+  }
+
+  if (!entry) {
+    return [
+      'Veo la consulta como una lectura de bitacora, no como una orden de registro.',
+      '',
+      'Registro visible: no encuentro entradas recientes conectadas a la memoria visible de VISOR.',
+      '',
+      'Lectura / interpretacion: puedo ayudarte a formular que tendria que observarse, pero no debo convertir una pregunta en registro ni tratarla como evidencia.',
+      '',
+      'Limite de evidencia: si la entrada no aparece conectada aqui, no puedo hablar de ella como hecho institucional.',
+      '',
+      'Siguiente observacion util: ubicar la fuente que deberia alimentar bitacora, confirmar si llega al twin/state y revisar si deja trazabilidad suficiente para lectura posterior.',
+    ].join('\n');
+  }
+
+  return [
+    'Veo la consulta como una lectura de bitacora, no como una orden de registro.',
+    '',
+    `Registro visible: aparece una entrada legible como "${title}".${detail ? ` Su rastro visible dice: ${detail}.` : ''}`,
+    '',
+    'Lectura / interpretacion: la entrada parece estar intentando mover una observacion hacia un artefacto, protocolo o ruta institucional. Eso no significa que el movimiento ya este cerrado; significa que hay una senal registrada que necesita trazabilidad.',
+    '',
+    'Limite de evidencia: si la evidencia que sostiene esa lectura no aparece conectada en la memoria visible, no debo tratarla como hecho consolidado. Puedo leerla como hipotesis de organizacion o como pendiente de verificacion.',
+    '',
+    'Siguiente observacion util: revisar que define el destino, que evidencia minima lo sostiene, quien o que sistema lo emitio y que criterio permitiria cerrarlo sin forzar interpretacion.',
+  ].join('\n');
+}
+
 function lensText(contextKey: VisorContextKey, snapshot: VisorSnapshot) {
   const context = findVisorContext(contextKey);
   const contextHasData = contextDataAvailable(contextKey, snapshot);
@@ -245,11 +304,7 @@ function localCompanionResponse(contextKey: VisorContextKey, prompt: string, twi
   }
 
   if (intent === 'logbook') {
-    return [
-      'Bitacora visible en VISOR:',
-      memory,
-      'Lectura: cada entrada debe separarse en registro, inferencia e hipotesis. Si una entrada se repite, puede volverse patron. Si un patron jala decisiones, puede sostener atractor. Si no tiene evidencia, no se cierra.',
-    ].join('\n\n');
+    return logbookAnalystResponse(prompt, twin, memory);
   }
 
   if (intent === 'memory') {
