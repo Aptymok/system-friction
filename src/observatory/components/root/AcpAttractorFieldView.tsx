@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { buildRootAttractorState } from '@/lib/root/rootAttractorState';
+import { translateRootState } from '@/lib/root/rootStateTranslator';
 
 type RuntimeNode = {
   nodeKey?: string;
@@ -345,6 +347,7 @@ export const AcpAttractorFieldView: React.FC<AcpAttractorFieldViewProps> = ({ tw
   const selectedNodeRef = useRef<EvidenceNode | null>(null);
   const selectedAtractorRef = useRef(false);
   const prepared = useMemo(() => prepareField(twin), [twin]);
+  const attractorState = useMemo(() => buildRootAttractorState(twin ?? {}), [twin]);
   const preparedRef = useRef(prepared);
   const [selectedNode, setSelectedNode] = useState<EvidenceNode | null>(null);
   const [selectedAtractor, setSelectedAtractor] = useState(false);
@@ -666,35 +669,40 @@ export const AcpAttractorFieldView: React.FC<AcpAttractorFieldViewProps> = ({ tw
         <div className="absolute bottom-[6%] right-[4%] z-30 w-[340px] border border-[#d4af7d]/40 bg-black/95 p-4 font-mono text-[10px] text-[#d4af7d]">
           <div className="mb-2 border-b border-dashed border-[#d4af7d]/30 pb-2 font-bold text-white">{selectedNode.id}</div>
           <div>TIPO: <span className="text-[#ffe1aa]">{selectedNode.sourceType}</span></div>
-          <div>ESTADO: <span className="text-[#ffe1aa]">{selectedNode.status}</span></div>
-          <div>IHG: <span className="text-[#ffe1aa]">{selectedNode.ihg}</span></div>
-          <div>NTI: <span className="text-[#ffe1aa]">{selectedNode.nti}</span></div>
-          <div>LDI: <span className="text-[#ffe1aa]">{selectedNode.ldi}</span></div>
-          <div>TIMESTAMP: <span className="text-[#ffe1aa]">{selectedNode.timestamp.replace('T', ' ').slice(0, 19)}</span></div>
-          <div className="break-all text-[8px]">HASH: <span className="text-[#ffe1aa]">{selectedNode.hash}</span></div>
-          <div className="mt-1 border-t border-[#d4af7d]/15 pt-1">DEGRADATION: <span className="font-bold text-[#ff9d5c]">{selectedNode.lifetime.toFixed(2)}%</span></div>
+          <div>ESTADO: <span className="text-[#ffe1aa]">{translateRootState(selectedNode.status).label}</span></div>
+          <div>LECTURA: <span className="text-[#ffe1aa]">no alimenta atractor sin peso direccional visible.</span></div>
+          <div>FECHA: <span className="text-[#ffe1aa]">{selectedNode.timestamp.replace('T', ' ').slice(0, 19)}</span></div>
+          <div className="mt-1 border-t border-[#d4af7d]/15 pt-1">ACCION: <span className="font-bold text-[#ff9d5c]">revisar evidencia, direccion y cierre.</span></div>
           <button type="button" className="mt-3 text-white underline" onClick={() => setIsModalOpen('evidence')}>Leer mas // Analisis documental</button>
         </div>
       ) : null}
 
       {selectedAtractor ? (
         <div className="absolute bottom-[6%] left-[4%] z-30 w-[340px] border border-[#ffebbe]/50 bg-black/95 p-4 font-mono text-[10px] text-[#d4af7d]">
-          <div className="mb-2 border-b border-dashed border-[#d4af7d]/30 pb-2 font-bold text-white">NUCLEO ATRACTOR // CENTRAL</div>
-          <div className="mb-2 text-white/60">Horizonte critico de convergencia sistemica y colapso de flujos entrantes.</div>
-          <div>TIEMPO PREFIJADO AL ATRACTOR: <span className="text-[#ffe1aa]">144.00 Hz / Delta T</span></div>
-          <div># DE EVIDENCIAS EN ORBITA: <span className="text-[#ffe1aa]">{hudMetrics.evCount}</span></div>
-          <div>INDICE DE COHERENCIA GLOBAL: <span className="text-[#ffe1aa]">{hudMetrics.coherence}</span></div>
-          <table className="mt-2 w-full border-t border-dashed border-[#d4af7d]/30 text-[9px]">
-            <tbody>
-              <tr><td>IHG</td><td>&gt; 4500</td><td className="text-[#ffe1aa]">{hudMetrics.igh}</td></tr>
-              <tr><td>NTI</td><td>&gt; 50</td><td className="text-[#ffe1aa]">{hudMetrics.nti}</td></tr>
-              <tr><td>LDI</td><td>&gt; 750</td><td className="text-[#ffe1aa]">{hudMetrics.ldi}</td></tr>
-              <tr><td>F_S</td><td>1.250</td><td className="text-[#ffe1aa]">{hudMetrics.fs}</td></tr>
-            </tbody>
-          </table>
+          <div className="mb-2 border-b border-dashed border-[#d4af7d]/30 pb-2 font-bold text-white">LECTURA DEL ATRACTOR</div>
+          <div className="mb-2 text-white/60">Direccion real del sistema segun soporte direccional visible. Si falta soporte, no se consolida.</div>
+          <div>ATRACTOR ACTIVO: <span className="text-[#ffe1aa]">{attractorState.activeAttractor}</span></div>
+          <div>DIRECCION: <span className="text-[#ffe1aa]">{attractorState.currentDirection}</span></div>
+          <div>FUERZA: <span className="text-[#ffe1aa]">{attractorState.stabilizationForce}</span></div>
+          <div>PESO DIRECCIONAL: <span className="text-[#ffe1aa]">{attractorState.directionalWeight}</span></div>
+          <div>VALIDACION EXTERNA: <span className="text-[#ffe1aa]">{attractorState.externalValidation}</span></div>
+          <div>RIESGO CIRCUITO CERRADO: <span className="text-[#ffe1aa]">{attractorState.closedCircuitRisk}</span></div>
+          <div className="mt-2 border-t border-dashed border-[#d4af7d]/30 pt-2">ACCION: <span className="text-[#ffe1aa]">{attractorState.recommendedAction}</span></div>
           <button type="button" className="mt-3 text-white underline" onClick={() => setIsModalOpen('atractor')}>Leer mas // Cartografia full</button>
         </div>
       ) : null}
+
+      <aside className="absolute left-4 top-4 z-20 w-[min(360px,calc(100vw-32px))] border border-[#d4af7d]/24 bg-black/80 p-3 font-mono text-[9px] leading-5 text-[#d4af7d]">
+        <div className="mb-2 text-[8px] uppercase tracking-[0.18em] text-[#8a7035]">Atractor / eyectores</div>
+        <p><span className="text-white/45">Direccion:</span> <span className="text-[#ffe1aa]">{attractorState.currentDirection}</span></p>
+        <p><span className="text-white/45">Soporte:</span> <span className="text-[#ffe1aa]">{attractorState.sufficient ? `${attractorState.supportingEvidence.length} evidencia(s) con peso direccional` : 'Sin lectura suficiente.'}</span></p>
+        <p><span className="text-white/45">Patrones:</span> <span className="text-[#ffe1aa]">{attractorState.reinforcingPatterns.length ? attractorState.reinforcingPatterns.slice(0, 3).join(', ') : 'sin patron direccional visible'}</span></p>
+        <div className="mt-2 border-t border-[#d4af7d]/15 pt-2">
+          {attractorState.ejectors.length ? attractorState.ejectors.slice(0, 3).map((ejector) => (
+            <p key={`${ejector.name}-${ejector.origin}`}><span className="text-white/45">{ejector.status === 'possible' ? 'posible eyector' : 'eyector'}:</span> {ejector.name} / {ejector.severity}</p>
+          )) : <p>Sin eyectores visibles.</p>}
+        </div>
+      </aside>
 
       {isModalOpen ? (
         <div className="fixed inset-0 z-[1000] overflow-y-auto bg-black px-[10%] py-[6%] font-mono text-[#d4af7d]">
@@ -704,13 +712,13 @@ export const AcpAttractorFieldView: React.FC<AcpAttractorFieldViewProps> = ({ tw
             </h1>
             {isModalOpen === 'atractor' ? (
               <div className="text-sm">
-                <p>El atractor central representa el punto de convergencia entre evidencia, MIHM, degradacion y decisiones ACP. Su lectura no declara certeza: indica que variables sostener, que cierre falta y que evidencia mantiene la direccion.</p>
+                <p>El atractor central solo puede leerse cuando hay evidencia con peso direccional visible. Pruebas, simulaciones, auditoria tecnica y propuestas aceptadas sin ejecucion verificable no alimentan atractor.</p>
                 <table className="my-6 w-full border-collapse text-xs">
                   <tbody>
-                    <tr><td className="border border-[#d4af7d]/20 p-2">IHG</td><td className="border border-[#d4af7d]/20 p-2">Estabilidad de conexiones finas.</td></tr>
-                    <tr><td className="border border-[#d4af7d]/20 p-2">NTI</td><td className="border border-[#d4af7d]/20 p-2">Canales activos de transmision inmaterial.</td></tr>
-                    <tr><td className="border border-[#d4af7d]/20 p-2">LDI</td><td className="border border-[#d4af7d]/20 p-2">Friccion acumulada y disipacion inversa.</td></tr>
-                    <tr><td className="border border-[#d4af7d]/20 p-2">F_S</td><td className="border border-[#d4af7d]/20 p-2">Velocidad orbital corregida por evidencia.</td></tr>
+                    <tr><td className="border border-[#d4af7d]/20 p-2">Atractor activo</td><td className="border border-[#d4af7d]/20 p-2">{attractorState.activeAttractor}</td></tr>
+                    <tr><td className="border border-[#d4af7d]/20 p-2">Fuerza</td><td className="border border-[#d4af7d]/20 p-2">{attractorState.stabilizationForce}</td></tr>
+                    <tr><td className="border border-[#d4af7d]/20 p-2">Eyectores</td><td className="border border-[#d4af7d]/20 p-2">{attractorState.ejectors.length ? attractorState.ejectors.map((item) => `${item.name} (${item.status})`).join(' / ') : 'sin eyectores visibles'}</td></tr>
+                    <tr><td className="border border-[#d4af7d]/20 p-2">Accion</td><td className="border border-[#d4af7d]/20 p-2">{attractorState.recommendedAction}</td></tr>
                   </tbody>
                 </table>
               </div>

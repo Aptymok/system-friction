@@ -2,6 +2,7 @@
 'use client';
 
 import { useAuthState } from '@/components/auth/AuthProvider';
+import { translateRootAccess } from '@/lib/root/rootGovernanceTranslator';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
@@ -47,8 +48,30 @@ export function RoleGate({ children, allowedRoles }: { children: React.ReactNode
     }
   }, [status, resolvingRole, roleAllowed, rootAllowed, router]);
 
-  if (status === 'hydrating' || resolvingRole) return <div>Verificando permisos...</div>;
-  if (status === 'authenticated' && !(roleAllowed || rootAllowed)) return <div>Verificando permisos...</div>;
+  if (status === 'hydrating' || resolvingRole) {
+    return (
+      <div className="grid min-h-screen place-items-center bg-[#060605] p-6 text-[#c8c4b8]">
+        <div className="border border-[#1e1c17] bg-[#0e0d0b] p-5">
+          <div className="font-mono text-[8px] uppercase tracking-[0.22em] text-[#8a7035]">Umbral ROOT</div>
+          <div className="mt-2 text-sm text-[#c8a951]">Verificando permiso raiz.</div>
+          <p className="mt-2 text-xs leading-5 text-[#8a7568]">Si ROOT recarga, debe ser por cambio o expiracion de sesion.</p>
+        </div>
+      </div>
+    );
+  }
+  if (status === 'authenticated' && !(roleAllowed || rootAllowed)) {
+    const access = translateRootAccess({ error: 'root_required', isRoot: false });
+    return (
+      <div className="grid min-h-screen place-items-center bg-[#060605] p-6 text-[#c8c4b8]">
+        <div className="border border-[#1e1c17] bg-[#0e0d0b] p-5">
+          <div className="font-mono text-[8px] uppercase tracking-[0.22em] text-[#8a7035]">Umbral ROOT</div>
+          <div className="mt-2 text-sm text-[#c87060]">{access.state}</div>
+          <p className="mt-2 text-xs leading-5 text-[#8a7568]">{access.reason}</p>
+          <p className="mt-1 text-xs leading-5 text-[#8a7568]">Accion siguiente: {access.nextAction}</p>
+        </div>
+      </div>
+    );
+  }
 
   return <>{children}</>;
 }

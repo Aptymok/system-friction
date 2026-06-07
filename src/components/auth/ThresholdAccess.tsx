@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { translateRootAccess } from '@/lib/root/rootGovernanceTranslator';
 import { createBrowserSupabaseClient } from '@/runtime/supabase/client';
 
 const steps = [
@@ -100,7 +101,7 @@ export default function ThresholdAccess({ error }: { error?: string }) {
     setMessage('');
 
     if (!supabase) {
-      setMessage('SUPABASE NO CONFIGURADO');
+      setMessage('Acceso bloqueado porque no hay lectura de sesion disponible.');
       return;
     }
 
@@ -118,7 +119,7 @@ export default function ThresholdAccess({ error }: { error?: string }) {
 
       if (signInError) {
         setStepIndex(-1);
-        setMessage(signInError.message);
+        setMessage('Acceso bloqueado porque la sesion no pudo validarse.');
         return;
       }
 
@@ -147,17 +148,19 @@ export default function ThresholdAccess({ error }: { error?: string }) {
       router.replace(destination);
     } catch (loginError) {
       setStepIndex(-1);
-      setMessage(loginError instanceof Error ? loginError.message : 'LOGIN_FLOW_FAILED');
+      setMessage(loginError instanceof Error ? 'Acceso bloqueado porque la sesion cambio o expiro.' : 'Acceso bloqueado porque el flujo de entrada no pudo cerrarse.');
     }
   };
 
+  const accessReading = message ? translateRootAccess({ error: message }) : null;
+
   return (
     <section className="mx-auto w-full max-w-xl border border-[rgba(200,169,81,0.12)] bg-[#060605] p-7 text-[#c8c4b8] shadow-[0_30px_100px_rgba(0,0,0,0.55)]">
-      <p className="font-mono text-[10px] uppercase tracking-[0.34em] text-[#C8A951]">SYSTEM FRICTION INSTITUTE</p>
-      <h1 className="mt-4 font-display text-lg uppercase tracking-[0.18em] text-[#C8A951]">OBSERVATORIO COGNITIVO LONGITUDINAL</h1>
+      <p className="font-mono text-[10px] uppercase tracking-[0.34em] text-[#C8A951]">Umbral ROOT</p>
+      <h1 className="mt-4 font-display text-lg uppercase tracking-[0.18em] text-[#C8A951]">Acceso operativo Aptymok</h1>
       <div className="mt-6 grid gap-2 border-y border-[rgba(200,169,81,0.08)] py-4 font-mono text-[10px] uppercase tracking-[0.22em] text-[#5c5c52]">
-        <span>NODO: PRODUCCION</span>
-        <span>ESTADO: ESPERANDO OBSERVADOR</span>
+        <span>Acceso: pendiente de validacion</span>
+        <span>Accion siguiente: iniciar sesion raiz</span>
       </div>
 
       <form onSubmit={submit} className="mt-7 space-y-5">
@@ -187,7 +190,7 @@ export default function ThresholdAccess({ error }: { error?: string }) {
           />
         </label>
         <button className="w-full border border-[rgba(200,169,81,0.4)] bg-[rgba(200,169,81,0.07)] px-5 py-3 font-mono text-[10px] uppercase tracking-[0.24em] text-[#C8A951]">
-          INICIALIZAR SESION →
+          INICIAR SESION RAIZ
         </button>
       </form>
 
@@ -198,12 +201,18 @@ export default function ThresholdAccess({ error }: { error?: string }) {
 
       <div className="mt-6 space-y-2 font-mono text-[10px] uppercase tracking-[0.18em]">
         {steps.map((step, index) => (
-          <div key={step} className={index <= stepIndex ? 'text-[#C8A951]' : 'text-[#2e2e2a'}>
+          <div key={step} className={index <= stepIndex ? 'text-[#C8A951]' : 'text-[#2e2e2a]'}>
             {step}
           </div>
         ))}
       </div>
-      {message && <p className="mt-5 border-l border-[#b85050] bg-[#b85050]/10 p-3 font-mono text-[10px] uppercase tracking-[0.14em] text-[#b85050]">{message}</p>}
+      {accessReading ? (
+        <div className="mt-5 border-l border-[#b85050] bg-[#b85050]/10 p-3 font-mono text-[10px] uppercase tracking-[0.14em] text-[#b85050]">
+          <p>{accessReading.state}</p>
+          <p className="mt-2 text-[#c8c4b8]">{accessReading.reason}</p>
+          <p className="mt-2 text-[#8a7568]">{accessReading.nextAction}</p>
+        </div>
+      ) : null}
     </section>
   );
 }
