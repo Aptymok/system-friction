@@ -1002,93 +1002,545 @@ No eliminar evidencias negadas; mover a Archivo Cuestionado.
 
 # FASE 11 — Gobernanza, acceso y operaciones
 
-## PROMPT
+## PROMPT PARA CODEX
 
-```txt
-Implementa Fase 11 de ROOT: Gobernanza, acceso y operaciones.
+Lee primero, en este orden:
+
+1. docs/root/CODEX_START.md
+2. docs/root/AGENT_RULES.md
+3. Phases.md
+4. Constitution.md
+5. docs/root/ROOT_PHASE_0_ALIGNMENT.md
+6. docs/root/ROOT_PHASE_1_TRANSLATED_INVENTORY.md
+7. docs/root/ROOT_PHASE_2_LAYER_SEPARATION.md
+8. docs/root/ROOT_PHASE_3_STATE_TRANSLATION.md
+9. docs/root/ROOT_PHASE_4_FIELD_STATE.md
+10. docs/root/ROOT_PHASE_5_LIVE_NODE_FIELD.md
+11. docs/root/ROOT_PHASE_6_LOGBOOK_VISOR_INDEX.md
+12. docs/root/ROOT_PHASE_7_FREE_VISOR_CHAT.md
+13. docs/root/ROOT_PHASE_8_TWIN_AGENT.md
+14. docs/root/ROOT_PHASE_9_WSV_MIHM.md
+15. docs/root/ROOT_PHASE_10_ATTRACTOR_EJECTORS.md, si ya existe.
+
+Implementa únicamente Fase 11 de ROOT:
+
+Gobernanza, acceso y operaciones.
+
+No ejecutes Fase 12 ni Fase 13.
 
 Objetivo:
-cerrar capa de control: acceso sólo Aptymok, bloqueos traducidos, operaciones reconciliables, override manual con justificación.
+cerrar la capa de control operativo de ROOT sin volverla críptica.
 
-Debe integrar:
-Acceso ROOT sólo operador raíz.
-ThresholdAccess / RoleGate traducidos como Umbral ROOT.
-Bloqueos de gobernanza traducidos.
-Centro de operaciones.
-Reconciliación propuesta → ejecución → evidencia → cierre.
-Override manual con justificación obligatoria.
-Registro de riesgo del Twin antes de override.
-Límites de override.
-Fallo de agentes y recuperación si ya está modelado.
+ROOT debe traducir:
 
-No mostrar blocked_by_governance.
-Mostrar:
-Bloqueado porque falta evidencia.
-Bloqueado porque es simulación.
-Bloqueado porque afecta el atractor.
-Bloqueado porque requiere aprobación raíz.
+- acceso
+- bloqueos
+- operaciones abiertas
+- reconciliación
+- override manual
+- auditoría técnica
+- agentes internos
+- continuidad de sesión
+
+a lenguaje operativo para Aptymok.
+
+ROOT no debe mostrar primero lenguaje técnico como:
+
+- blocked_by_governance
+- root_required
+- Unauthorized
+- payload
+- runtime
+- table health
+- endpoint
+- audit event
+
+Si aparece, debe estar en auditoría secundaria, no en la experiencia principal.
+
+---
+
+## 1. ACCESO ROOT / UMBRAL
+
+ROOT es sólo para Aptymok.
+
+Traducir ThresholdAccess / RoleGate como:
+
+“Umbral ROOT”
+
+Debe mostrar:
+
+- acceso permitido
+- acceso bloqueado
+- razón del bloqueo
+- acción siguiente
+- si falta sesión
+- si falta rol raíz
+- si la sesión expiró
+- si hubo recarga por seguridad
+
+Forma correcta:
+
+“Acceso bloqueado porque esta sesión no tiene permiso raíz.”
+
+Forma incorrecta:
+
+“Unauthorized”
+“root_required”
+“RoleGate failed”
+
+No convertir ROOT en multiusuario.
+
+No modificar permisos productivos salvo traducción visual o helper interpretativo.
+
+---
+
+## 2. BLOQUEOS DE GOBERNANZA
+
+Crear o ajustar un traductor operativo de gobernanza:
+
+src/lib/root/rootGovernanceTranslator.ts
+
+Debe traducir bloqueos internos a frases humanas.
+
+Ejemplos:
+
+blocked_by_governance →
+“Bloqueado por regla de gobernanza.”
+
+missing_evidence →
+“Bloqueado porque falta evidencia.”
+
+simulation_detected →
+“Bloqueado porque es simulación.”
+
+attractor_risk →
+“Bloqueado porque puede afectar el atractor.”
+
+root_approval_required →
+“Bloqueado porque requiere aprobación raíz.”
+
+phase_not_authorized →
+“Bloqueado porque esta fase no autoriza esta operación.”
+
+unknown_block →
+“Bloqueado, pero falta razón visible. Revisar auditoría.”
+
+Cada bloqueo debe mostrar:
+
+- estado
+- razón
+- consecuencia
+- acción siguiente
+- capa afectada
+- fase relacionada si existe
+
+No debe aparecer blocked_by_governance sin traducción.
+
+---
+
+## 3. CENTRO DE OPERACIONES
+
+Ajustar RootOperationsConsole para que las operaciones abiertas se lean como operaciones, no como tablas.
 
 Cada operación abierta debe mostrar:
-Estado
-Razón
-Consecuencia
-Acción siguiente
-Fecha
-Fase relacionada
-Capa afectada
 
-Entrega:
-- Ajustar governanceRuntime.
-- Ajustar SystemOverridePanel.
-- Ajustar RootOperationsConsole.
-- Ajustar ThresholdAccess / RoleGate si aplica.
-- Crear rootGovernanceTranslator.ts.
-- docs/root/ROOT_PHASE_11_GOVERNANCE_OPERATIONS.md
-```
+- nombre operativo
+- estado traducido
+- razón
+- consecuencia
+- acción siguiente
+- fecha
+- fase relacionada
+- capa afectada
+- si requiere cierre
+- si requiere evidencia
+- si requiere aprobación raíz
+- si debe ir a Sandbox
 
-## MATRIZ DE VERIFICACIÓN
+No mostrar como lectura principal:
 
-| Campo               | Verificación                                                  |
-| ------------------- | ------------------------------------------------------------- |
-| Objetivo            | Control, acceso, bloqueos, operaciones y override traducidos. |
-| Qué debe pasar      | Todo bloqueo tiene razón, consecuencia y acción.              |
-| Qué no debe pasar   | No convertir ROOT en multiusuario. No override sin evidencia. |
-| Verificación humana | Aptymok entiende por qué algo está bloqueado y qué hacer.     |
-| Cierre              | Operaciones abiertas tienen estado, razón y siguiente acción. |
-| Falla si            | Aparece `blocked_by_governance` sin traducción.               |
+- nombres de tabla
+- hashes
+- payloads
+- endpoints
+- columnas internas
 
-## ARCHIVOS QUE DEBEN MODIFICARSE / CREARSE
+Eso puede quedar en auditoría o linaje secundario.
 
-```txt
-src/lib/root/governanceRuntime.ts
+La lectura humana debe responder:
+
+“¿Qué está abierto?”
+“¿Por qué sigue abierto?”
+“¿Qué pasa si no lo cierro?”
+“¿Qué debo hacer?”
+
+---
+
+## 4. RECONCILIACIÓN
+
+Preparar lectura de reconciliación:
+
+propuesta → ejecución → evidencia → cierre
+
+No crear Acciones de Realidad todavía.
+
+Sólo traducir si una operación está en alguno de estos estados:
+
+- propuesta sin ejecución
+- propuesta aceptada
+- ejecución preparada
+- evidencia registrada
+- cierre pendiente
+- cierre completado
+- cierre bloqueado
+
+Reglas:
+
+- propuesta aceptada no es acción ejecutada
+- acción preparada no es evidencia externa
+- evidencia registrada no siempre modifica realidad
+- cierre administrativo no equivale a validación externa
+
+Mostrar:
+
+“Esta propuesta fue aceptada, pero no hay ejecución verificable.”
+“Esta operación tiene evidencia registrada, pero falta cierre.”
+“Esta acción está preparada, pero no ejecutada.”
+
+---
+
+## 5. OVERRIDE MANUAL
+
+Ajustar SystemOverridePanel.
+
+El override manual debe ser una excepción controlada, no botón mágico.
+
+Debe requerir:
+
+- tipo de override
+- justificación
+- elemento afectado
+- riesgo estimado
+- consecuencia
+- duración si aplica
+- confirmación raíz
+
+Si no existe backend suficiente para ejecutar override real, NO inventarlo.
+Sólo preparar la lectura visual / operativa.
+
+Tipos posibles:
+
+- sobre evidencia
+- sobre bloqueo
+- sobre atractor
+- sobre régimen
+- sobre deuda
+- sobre override previo
+
+Cada override debe mostrar advertencia:
+
+“Esta anulación modifica una regla del sistema. Debe dejar justificación.”
+
+No permitir override sin justificación visible.
+
+No permitir que agentes hagan override.
+
+Sólo Aptymok puede solicitar override.
+
+---
+
+## 6. RIESGO DEL TWIN ANTES DE OVERRIDE
+
+Si existe Twin o lectura de propuesta disponible, mostrar riesgo antes del override:
+
+- bajo
+- medio
+- alto
+- sin lectura suficiente
+
+Ejemplo:
+
+“Riesgo medio: esta operación puede debilitar separación entre Observatorio Vivo y Atractor.”
+
+Si no hay datos suficientes:
+
+“No hay lectura suficiente para estimar riesgo. No se debe tratar como seguro.”
+
+No inventar riesgo numérico.
+
+---
+
+## 7. REGISTRO DE AGENTES INTERNOS
+
+Ajustar AcpAgentRegistryPanel.
+
+Renombrar visualmente:
+
+“ACP Agent Registry”
+
+a:
+
+“Agentes internos de ROOT”
+
+o:
+
+“Registro de roles internos”
+
+La lectura debe dejar claro:
+
+- ningún agente tiene autoridad externa
+- ningún agente ejecuta fuera de ROOT sin decisión raíz
+- ningún agente modifica Constitución
+- ningún agente sustituye a Aptymok
+- cada agente sólo observa, propone, traduce, verifica o prepara
+
+Cada agente debe mostrar, si hay datos suficientes:
+
+- nombre operativo
+- función
+- qué observa
+- qué puede proponer
+- qué no puede hacer
+- qué evidencia genera
+- qué capa toca
+- estado traducido
+- acción siguiente si existe
+
+Ejemplos de nombres operativos:
+
+Twin / AMV →
+“Interlocutor operativo”
+
+Visor →
+“Intérprete de memoria visible”
+
+WSV →
+“Lectura del mundo observado”
+
+MIHM →
+“Lectura homeostática”
+
+Codex →
+“Agente técnico de implementación”
+
+Calendario →
+“Reloj operativo”
+
+Governance →
+“Regla de control”
+
+No crear agentes nuevos salvo traducción de los que ya existan.
+
+---
+
+## 8. CONTINUIDAD DE SESIÓN / RECARGA CASTROSA
+
+Agregar a Fase 11 una lectura operativa de continuidad de sesión.
+
+Problema observado por Aptymok:
+Cada vez que Aptymok cambia de pestaña, se va del navegador o vuelve a ROOT, la página recarga o pierde estado visible. Esto genera fricción operativa alta porque interrumpe la observación continua, rompe el flujo del Visor y obliga a reconstruir contexto.
+
+Objetivo:
+ROOT debe preservar continuidad visual y operativa cuando Aptymok cambia de pestaña o vuelve al navegador.
+
+Requisitos:
+
+- No recargar innecesariamente ROOT al cambiar de pestaña.
+- Preservar modo activo: ROOT normal / Visor / Freeze / sección seleccionada.
+- Preservar panel abierto.
+- Preservar acordeón abierto.
+- Preservar scroll cuando sea razonable.
+- Preservar conversación visible del Visor cuando sea posible.
+- No perder contexto local si Aptymok cambia temporalmente de pestaña.
+- Si por seguridad o sesión expirada debe recargar, mostrar frase clara:
+  “ROOT recargó porque la sesión cambió o expiró.”
+- Si no hay razón real para recargar, evitarlo.
+- No crear persistencia insegura.
+- No guardar datos sensibles en localStorage.
+- Usar sessionStorage o estado de URL sólo para estado visual no sensible, si aplica.
+- No tocar autenticación productiva salvo lectura mínima.
+- No cambiar permisos.
+- No tocar Supabase.
+- No tocar migraciones.
+
+Lecturas operativas esperadas:
+
+“Continuidad de observación: activa.”
+
+“Continuidad de observación: interrumpida por recarga.”
+
+“ROOT perdió estado visual al cambiar de pestaña. Esto debe corregirse porque afecta uso real.”
+
+Si no puede corregirse completamente en esta fase, documentar:
+
+- causa probable
+- archivo responsable
+- qué queda pendiente
+- cómo reproducirlo
+- qué NO se tocó por seguridad
+
+Esto no es bug visual menor.
+Es pérdida de continuidad observacional.
+
+---
+
+## 9. AUDITORÍA TÉCNICA
+
+La auditoría técnica puede existir, pero no gobierna la vista principal.
+
+Debe moverse visualmente a lectura secundaria cuando aparezca como:
+
+- logs
+- endpoints
+- table health
+- payload
+- hashes
+- raw events
+- internal runtime
+- Supabase status
+
+La vista principal siempre debe decir primero:
+
+“qué significa”
+“qué afecta”
+“qué hacer”
+
+Sólo después puede mostrar linaje técnico.
+
+---
+
+## 10. ARCHIVOS QUE PUEDE MODIFICAR
+
+Archivos probables:
+
 src/lib/root/rootGovernanceTranslator.ts
+src/lib/root/rootAgentRoleTranslator.ts
 src/observatory/components/root/SystemOverridePanel.tsx
 src/observatory/components/root/RootOperationsConsole.tsx
+src/observatory/components/root/AcpAgentRegistryPanel.tsx
 src/observatory/components/root/ThresholdAccess.tsx
 src/observatory/components/root/RoleGate.tsx
+src/observatory/components/root/RootDashboardClient.tsx
+src/observatory/components/root/VisorMode.tsx
+src/observatory/components/root/VisorChat.tsx
+src/observatory/components/root/VisorSidebar.tsx
 docs/root/ROOT_PHASE_11_GOVERNANCE_OPERATIONS.md
-```
 
-Posibles:
+Sólo si existen y son responsables:
 
-```txt
-supabase/migrations/20260601093000_root_operations_reconcile.sql
+src/lib/root/governanceRuntime.ts
+src/lib/root/server.ts
 src/app/api/root/me/route.ts
 src/app/api/root/state/route.ts
-```
 
-Sólo tocar migración si explícitamente se autoriza.
+No tocar migraciones.
+No tocar Supabase.
+No tocar datos reales.
 
-## LÍMITES OPERATIVOS
+---
 
-```txt
-No cambiar acceso a multiusuario.
+## 11. ENTREGABLE OBLIGATORIO
+
+Crear o actualizar:
+
+docs/root/ROOT_PHASE_11_GOVERNANCE_OPERATIONS.md
+
+Debe incluir:
+
+- archivos modificados
+- qué cerró Fase 11
+- cómo se tradujeron bloqueos
+- cómo quedó el override
+- cómo quedó el registro de agentes internos
+- qué se hizo sobre continuidad de sesión
+- qué NO se tocó por límite operativo
+- riesgos detectados
+- cómo verificar localmente
+
+---
+
+## 12. LÍMITES OPERATIVOS
+
+No ejecutar Fase 12 ni Fase 13.
+No limpiar datos.
+No borrar memoria.
+No mover pruebas a Sandbox todavía.
+No tocar Supabase.
+No tocar migraciones.
+No cambiar permisos productivos.
+No convertir ROOT en multiusuario.
 No crear override sin justificación.
-No borrar auditoría.
-No ocultar bloqueos.
-No permitir que agentes externos modifiquen Constitución.
-No tocar Supabase sin autorización explícita.
-```
+No crear ejecución autónoma de agentes.
+No permitir autoridad externa a agentes.
+No hardcodear métricas.
+No crear cálculos falsos de RCE/deuda.
+No crear Acciones de Realidad reales.
+No cambiar Constitution.md ni Phases.md.
+No rediseñar estética global.
+No crear dashboards duplicados.
+
+MATRIZ DE VERIFICACIÓN FASE 11
+Objetivo:
+ROOT traduce gobernanza, acceso, operaciones, override, agentes internos y continuidad de sesión.
+
+Debe pasar:
+- Todo bloqueo aparece con razón humana.
+- Ninguna operación abierta aparece sólo como tabla o payload.
+- Override exige justificación.
+- Agentes internos no tienen autoridad externa.
+- ROOT conserva mejor estado visual al cambiar de pestaña o documenta la causa si no puede corregirse.
+
+No debe pasar:
+- Mostrar blocked_by_governance como lectura principal.
+- Convertir ROOT en multiusuario.
+- Dar ejecución autónoma a agentes.
+- Tocar Supabase.
+- Tocar migraciones.
+- Crear Acciones de Realidad.
+- Hacer limpieza de datos.
+- Calcular RCE/deuda sin modelo visible.
+
+Verificación humana:
+Aptymok puede entender:
+- por qué algo está bloqueado
+- qué operación sigue abierta
+- qué agente hace qué
+- qué significa override
+- por qué ROOT recarga o cómo se preserva continuidad
+
+Cierre:
+Fase 11 cierra cuando operaciones, bloqueos, override, agentes y continuidad quedan en lenguaje operativo.
+
+Falla si:
+- aparece blocked_by_governance sin traducción
+- aparece Unauthorized sin lectura humana
+- ACP Agent Registry sigue como título principal sin traducción
+- override parece botón libre
+- la recarga al cambiar de pestaña queda ignorada sin documentación
+
+Y para Codex, si ya está ejecutando 10–11, puedes pasarle sólo este suplemento:
+
+SUPLEMENTO FASE 11:
+
+Además de lo ya indicado para Fase 11, integra continuidad de sesión:
+
+ROOT recarga o pierde estado visible cuando Aptymok cambia de pestaña o vuelve al navegador. Esto debe tratarse como fricción operativa de continuidad observacional.
+
+Debe corregirse si es posible sin tocar autenticación productiva ni guardar datos sensibles. Si no se corrige totalmente, documentar causa probable y pendiente en ROOT_PHASE_11_GOVERNANCE_OPERATIONS.md.
+
+Preservar cuando sea posible:
+- modo activo
+- Visor abierto/cerrado
+- panel seleccionado
+- acordeón abierto
+- scroll
+- conversación visible del Visor
+
+No usar localStorage para datos sensibles.
+No tocar Supabase.
+No tocar migraciones.
+No cambiar permisos.
+
 
 ---
 
