@@ -1,6 +1,7 @@
 ﻿'use client';
 
 import { useEffect, useState } from 'react';
+import { translateRootState } from '@/lib/root/rootStateTranslator';
 import { translateRootTwinProposal } from '@/lib/root/rootTwinProposalTranslator';
 
 type Proposal = {
