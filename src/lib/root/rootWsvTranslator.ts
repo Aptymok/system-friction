@@ -1,0 +1,119 @@
+import { translateRootState, type RootStateTranslation } from './rootStateTranslator';
+
+export type RootWsvTranslation = {
+  label: string;
+  state: RootStateTranslation;
+  worldToday: string;
+  activeSources: string;
+  degradedSource: string;
+  dominantField: string;
+  lastRealReading: string;
+  integrity: string;
+  implicationForAptymok: string;
+};
+
+type VisibleRecord = Record<string, unknown>;
+
+function record(value: unknown): VisibleRecord {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as VisibleRecord : {};
+}
+
+function text(value: unknown) {
+  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : undefined;
+}
+
+function numberValue(value: unknown) {
+  return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
+}
+
+function array(value: unknown): unknown[] {
+  return Array.isArray(value) ? value : [];
+}
+
+function sourceLabel(value: unknown) {
+  const source = record(value);
+  return text(source.label) || text(source.key) || text(source.sourceId) || 'fuente sin nombre';
+}
+
+function isoDate(value: unknown) {
+  const raw = text(value);
+  if (!raw) return null;
+  const date = new Date(raw);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+}
+
+function isSameUtcDay(left: string | null, right = new Date()) {
+  if (!left) return false;
+  const date = new Date(left);
+  return date.getUTCFullYear() === right.getUTCFullYear()
+    && date.getUTCMonth() === right.getUTCMonth()
+    && date.getUTCDate() === right.getUTCDate();
+}
+
+function sourceHealth(input: VisibleRecord) {
+  return array(input.sourceHealth ?? input.source_health).map(record);
+}
+
+function sourceStatus(source: VisibleRecord) {
+  return text(source.status) ?? 'unknown';
+}
+
+function dominantField(input: VisibleRecord) {
+  const signal = record(input.fieldStateSignal ?? input.field_state_signal);
+  const sourceIds = array(signal.sourceIds).filter((item): item is string => typeof item === 'string');
+  if (sourceIds.length) return `campo sostenido por ${sourceIds.slice(0, 3).join(', ')}`;
+  const sources = array(input.sources).map(record).filter((source) => source.simulated !== true && !text(source.error));
+  if (sources.length) return `campo observado por ${sources.slice(0, 3).map(sourceLabel).join(', ')}`;
+  return 'sin campo dominante suficiente';
+}
+
+function integrityFor(input: VisibleRecord, health: VisibleRecord[]) {
+  const confidence = numberValue(input.confidence);
+  const degraded = health.filter((source) => ['degraded', 'missing', 'simulated', 'unavailable'].includes(sourceStatus(source))).length
+    + array(input.degraded_sources).length;
+  if (confidence === undefined) return degraded ? 'integridad incompleta: hay fuente degradada sin confianza consolidada' : 'integridad pendiente: confianza no visible';
+  const confidenceText = `confianza ${confidence.toFixed(3)}`;
+  if (degraded > 0) return `integridad degradada (${confidenceText})`;
+  if (confidence >= 0.75) return `integridad alta (${confidenceText})`;
+  if (confidence >= 0.4) return `integridad media (${confidenceText})`;
+  return `integridad baja (${confidenceText})`;
+}
+
+export function translateRootWsv(value: unknown, now = new Date()): RootWsvTranslation {
+  const input = record(value);
+  const sourceState = text(input.sourceState) || text(input.source_state) || 'missing';
+  const state = translateRootState(sourceState);
+  const observedAt = isoDate(input.ts ?? input.observedAt ?? input.observed_at ?? record(input.snapshot).observedAt);
+  const health = sourceHealth(input);
+  const active = health.filter((source) => sourceStatus(source) === 'healthy');
+  const degraded = [
+    ...array(input.degraded_sources).filter((item): item is string => typeof item === 'string'),
+    ...health.filter((source) => ['degraded', 'missing', 'simulated', 'unavailable'].includes(sourceStatus(source))).map(sourceLabel),
+  ];
+  const hasReading = Object.keys(input).length > 0 && state.normalizedState !== 'missing';
+  const dayText = isSameUtcDay(observedAt, now)
+    ? 'Hay lectura del dia para el mundo observado.'
+    : observedAt
+      ? 'No hay lectura del dia; uso la ultima lectura disponible.'
+      : 'Lectura WSV pendiente: no hay timestamp real visible.';
+
+  return {
+    label: 'WSV / mundo observado',
+    state,
+    worldToday: hasReading ? `${dayText} Estado traducido: ${state.label}` : 'WSV sin lectura suficiente; no se usa como OK.',
+    activeSources: active.length
+      ? active.map(sourceLabel).slice(0, 5).join(', ')
+      : array(input.sources).length
+        ? 'hay fuentes declaradas, pero ninguna aparece como activa saludable'
+        : 'sin fuentes activas visibles',
+    degradedSource: degraded.length ? degraded.slice(0, 5).join(', ') : 'sin fuente degradada declarada',
+    dominantField: dominantField(input),
+    lastRealReading: observedAt ? observedAt : 'sin lectura real fechada',
+    integrity: integrityFor(input, health),
+    implicationForAptymok: degraded.length
+      ? 'Usar WSV con cautela: una fuente degradada baja fuerza operativa y no debe sostener cierre fuerte.'
+      : hasReading
+        ? 'Puede orientar contexto externo si se conserva fecha, fuente y estado.'
+        : 'No tomar decisiones apoyadas en WSV hasta tener lectura real.',
+  };
+}

@@ -52,6 +52,9 @@ export function VisorChat({
             }`}
           >
             <div className="mb-1 text-[8px] uppercase tracking-[0.18em] text-white/25">{message.role === 'user' ? 'consulta' : 'visor'}</div>
+            {message.classification ? (
+              <div className="mb-2 text-[8px] uppercase tracking-[0.14em] text-[#d4af37]/70">{message.classification}</div>
+            ) : null}
             {message.text}
           </div>
         ))}
@@ -76,7 +79,7 @@ export function VisorChat({
           className="h-24 w-full resize-none border border-white/10 bg-white/[0.025] p-3 font-mono text-[11px] leading-5 text-white/75 outline-none placeholder:text-white/20 focus:border-[#d4af37]/45"
         />
         <div className="mt-2 flex items-center justify-between">
-          <span className="font-mono text-[8px] uppercase tracking-[0.14em] text-white/25">interlocutor operativo / no ejecuta</span>
+          <span className="font-mono text-[8px] uppercase tracking-[0.14em] text-white/25">registro / inferencia / conocimiento general</span>
           <button type="button" disabled={loading} onClick={() => void submit()} className="border border-[#d4af37]/45 px-3 py-1.5 font-mono text-[9px] uppercase tracking-[0.16em] text-[#d4af37] hover:bg-[#d4af37]/10 disabled:opacity-40">
             preguntar
           </button>

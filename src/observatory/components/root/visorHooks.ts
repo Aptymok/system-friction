@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { classifyRootVisorPrompt } from '@/lib/root/rootVisorClassifier';
 import { findVisorContext, type VisorChatMessage, type VisorContextKey, type VisorSnapshot } from './visorTypes';
 
 type VisibleRecord = Record<string, unknown>;
@@ -42,6 +43,9 @@ Solo menciona conteos si el usuario pide inventario, estado o auditoria.
 
 Si algo esta registrado, usa el registro.
 Si algo no esta registrado, dilo y ofrece inferencia, explicacion general, hipotesis o ruta de observacion.
+Si el usuario trae una senal personal o corporal, tratala como senal nueva o conversacion, no como diagnostico ni evidencia institucional.
+Si una propuesta fue aceptada, no la trates como accion ejecutada sin Accion de Realidad verificable.
+Si algo es simulacion, prueba o sandbox, no lo uses para sostener regimen ni atractor.
 
 Toda respuesta debe acercar SFI a mas claridad, mejor arquitectura, mejor uso del observatorio, mejor decision y mejor consolidacion.
 
@@ -285,6 +289,31 @@ function localCompanionResponse(contextKey: VisorContextKey, prompt: string, twi
   const intent = intentFor(prompt);
   const lensLimit = lensText(contextKey, snapshot);
   const memory = focusedMemory(twin, intent);
+  const promptFrame = classifyRootVisorPrompt(prompt, contextDataAvailable(contextKey, snapshot));
+
+  if (promptFrame.kind === 'personal_signal') {
+    return [
+      'No lo voy a tratar como evidencia institucional automaticamente.',
+      '',
+      'Registro visible: si no aparece en bitacora o evidencia conectada, queda como senal nueva de conversacion.',
+      '',
+      'Lectura posible: podemos observar contexto, repeticion, intensidad, momento y que decision pide. Si es corporal o de salud, esto no sustituye atencion profesional.',
+      '',
+      'Siguiente paso util: decir que paso, desde cuando, si se repite y que necesitas decidir ahora. Despues se puede convertir en ruta de observacion, no en hecho cerrado.',
+    ].join('\n');
+  }
+
+  if (promptFrame.kind === 'possible_evidence') {
+    return [
+      'Posible evidencia, pero no la veo conectada como registro suficiente.',
+      '',
+      lensLimit,
+      '',
+      'Implicacion: no puedo usarla para sostener regimen, atractor o cierre hasta que tenga fuente visible y criterio de validacion.',
+      '',
+      'Accion recomendada: trae la fuente, el objeto observado, fecha y relacion con nodo o patron. Con eso puedo leerla sin inventar peso.',
+    ].join('\n');
+  }
 
   if (intent === 'site') {
     return 'SystemFriction Institute es el campo donde estas convirtiendo friccion, memoria, evidencia y decision en un sistema observable. No es solo un sitio: es una herramienta para operar bitacoras, atlas, nodos, atractores, propuestas, decisiones, observatorios y rutas de ejecucion.';
@@ -383,6 +412,7 @@ function localCompanionResponse(contextKey: VisorContextKey, prompt: string, twi
 async function llmCompanionResponse(contextKey: VisorContextKey, prompt: string, twin: TwinState | null) {
   const context = findVisorContext(contextKey);
   const snapshot = readSnapshot(twin);
+  const promptFrame = classifyRootVisorPrompt(prompt, contextDataAvailable(contextKey, snapshot));
   const response = await fetch('/api/ai', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
@@ -400,6 +430,7 @@ async function llmCompanionResponse(contextKey: VisorContextKey, prompt: string,
           proposals: twin?.data?.proposals ?? [],
           recentEvents: twin?.data?.seed?.recentEvents ?? [],
         },
+        prompt_classification: promptFrame,
         rule: SFI_VISOR_ROOT_PROMPT,
       },
     }),
@@ -430,7 +461,7 @@ export function useVisorChat(contextKey: VisorContextKey, twin: TwinState | null
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [messages, setMessages] = useState<VisorChatMessage[]>([
-    { role: 'visor', text: 'Soy VISOR ROOT. Puedo dialogar contigo desde la memoria visible de SFI y desde conocimiento general cuando aplique. No ejecuto acciones, no creo registros y no invento evidencia.' },
+    { role: 'visor', text: 'Soy VISOR ROOT. Puedo dialogar contigo desde memoria visible, inferencia declarada o conocimiento general. Si algo no esta registrado, lo digo.' },
   ]);
 
   async function submit(prompt: string) {
@@ -439,8 +470,14 @@ export function useVisorChat(contextKey: VisorContextKey, twin: TwinState | null
     setLoading(true);
     setMessages((current) => [...current, { role: 'user', text: trimmed }]);
     try {
+      const snapshot = readSnapshot(twin);
+      const promptFrame = classifyRootVisorPrompt(trimmed, contextDataAvailable(contextKey, snapshot));
       const llmText = await llmCompanionResponse(contextKey, trimmed, twin);
-      setMessages((current) => [...current, { role: 'visor', text: llmText ?? localCompanionResponse(contextKey, trimmed, twin) }]);
+      setMessages((current) => [...current, {
+        role: 'visor',
+        classification: promptFrame.label,
+        text: llmText ?? localCompanionResponse(contextKey, trimmed, twin),
+      }]);
     } finally {
       setLoading(false);
     }

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { translateRootTwinProposal } from '@/lib/root/rootTwinProposalTranslator';
 
 type Proposal = {
   id: string;
@@ -24,6 +25,11 @@ type Proposal = {
     objective?: string | null;
     payload?: Record<string, unknown>;
   };
+  created_at?: string | null;
+  updated_at?: string | null;
+  payload?: Record<string, unknown>;
+  linked_event_payload?: Record<string, unknown>;
+  visor_summary?: Record<string, unknown>;
 };
 
 type ApiState = {
@@ -201,9 +207,9 @@ export function AcpProposalConsole({ compact = false }: { compact?: boolean }) {
     <section className="border border-[#1e1c17] bg-[#0e0d0b]">
       <div className="flex items-start justify-between gap-3 border-b border-[#1e1c17] px-4 py-3">
         <div>
-          <p className="font-mono text-[8px] uppercase tracking-[0.22em] text-[#8a7035]">ACP Proposal Console</p>
-          <h2 className="mt-1 font-serif text-lg text-[#c8a951]">Cola de decision</h2>
-          <p className="mt-1 font-mono text-[9px] tracking-[0.08em] text-[#7a7568]">Nada se ejecuta sin autorizacion explicita.</p>
+          <p className="font-mono text-[8px] uppercase tracking-[0.22em] text-[#8a7035]">Twin / AMV</p>
+          <h2 className="mt-1 font-serif text-lg text-[#c8a951]">Propuestas operativas</h2>
+          <p className="mt-1 font-mono text-[9px] tracking-[0.08em] text-[#7a7568]">Twin propone; ROOT decide. Aceptar no significa ejecutar.</p>
         </div>
         <button type="button" onClick={() => void load()} disabled={loading} className="border border-[#8a7035] bg-[#2e2410] px-3 py-1 font-mono text-[8px] uppercase tracking-[0.16em] text-[#c8a951] disabled:opacity-40">
           {loading ? 'Cargando' : 'Actualizar'}
@@ -213,10 +219,9 @@ export function AcpProposalConsole({ compact = false }: { compact?: boolean }) {
       <div className="m-3 border border-[#2e2410] bg-[#12100d] p-3">
         <div className="font-mono text-[8px] uppercase tracking-[0.18em] text-[#8a7035]">Lectura ROOT</div>
         <div className="mt-2 grid gap-1 text-xs leading-5 text-[#8a7568]">
-          <p>ACP es una cola de decision para propuestas del Cognitive Twin.</p>
-          <p>Proposed significa que todavia no esta autorizada. Design approved significa aprobada internamente, no ejecutada fuera del sistema.</p>
-          <p>Queued significa lista para outcome o cierre. Closed significa completada con outcome registrado.</p>
-          <p>Aprobar no ejecuta una accion externa. Rechazar deja trazado que ROOT no autorizo la propuesta.</p>
+          <p>El Twin / AMV formula propuestas, mutaciones o acciones pendientes; no ejecuta ni bloquea decision raiz.</p>
+          <p>Propuesta aceptada no es Accion de Realidad. Accion ejecutada tampoco es evidencia externa sin testigo visible.</p>
+          <p>Cuando falta evidencia, nodo afectado, resultado o aprendizaje, ROOT lo declara antes de permitir cierre fuerte.</p>
         </div>
       </div>
 
@@ -240,10 +245,10 @@ export function AcpProposalConsole({ compact = false }: { compact?: boolean }) {
       {!state?.ok && state?.error ? <div className="m-3 border border-[#5a2020] bg-[#5a2020]/20 p-3 font-mono text-[9px] text-[#c87060]">{state.error}</div> : null}
 
       <div className="flex flex-col gap-1 p-3">
-        {proposals.map((proposal) => {
+        {proposals.map((proposal, index) => {
           const evidence = proposal.seedEvidenceSummary ?? {};
           const route = routeFor(proposal.status);
-          const description = plainDescription(proposal);
+          const translated = translateRootTwinProposal(proposal, index);
           const attractor = proposal.proposalType === 'attractor_draft' ? attractorSummary(proposal) : null;
           const reason = seedEvidenceReason(proposal);
           const missingContext = proposal.seedEvidenceSummary && !hasNamedSeedContext(proposal);
@@ -252,11 +257,11 @@ export function AcpProposalConsole({ compact = false }: { compact?: boolean }) {
               <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="border border-[#8a7035] px-2 py-px font-mono text-[8px] uppercase tracking-[0.12em] text-[#c8a951]">{proposal.status}</span>
-                    <span className="border border-[#2e2c24] px-2 py-px font-mono text-[8px] uppercase tracking-[0.12em] text-[#7a7568]">{proposal.proposalType}</span>
-                    <span className="border border-[#2e2c24] px-2 py-px font-mono text-[8px] uppercase tracking-[0.12em] text-[#7a7568]">risk {proposal.risk_level}</span>
+                    <span className="border border-[#8a7035] px-2 py-px font-mono text-[8px] uppercase tracking-[0.12em] text-[#c8a951]">{translated.state.label}</span>
+                    <span className="border border-[#2e2c24] px-2 py-px font-mono text-[8px] uppercase tracking-[0.12em] text-[#7a7568]">{translated.kind}</span>
+                    <span className="border border-[#2e2c24] px-2 py-px font-mono text-[8px] uppercase tracking-[0.12em] text-[#7a7568]">{translated.layerLabel}</span>
                   </div>
-                  <h3 className="mt-2 text-sm text-[#ccc8bc]">{proposal.title}</h3>
+                  <h3 className="mt-2 text-sm text-[#ccc8bc]">{translated.operationalTitle}</h3>
                   <p className="mt-1 font-mono text-[9px] text-[#35312a]">{proposal.id}</p>
                 </div>
                 {route ? (
@@ -267,19 +272,24 @@ export function AcpProposalConsole({ compact = false }: { compact?: boolean }) {
               </div>
 
               <div className="mt-3 grid grid-cols-1 gap-1 text-xs leading-5 text-[#8a7568]">
-                <p><span className="font-mono text-[8px] uppercase tracking-[0.12em] text-[#35312a]">Que es</span><br />{description.what}</p>
-                <p><span className="font-mono text-[8px] uppercase tracking-[0.12em] text-[#35312a]">Que cambia</span><br />{description.changes}</p>
-                <p className="text-[#c8a951]"><span className="font-mono text-[8px] uppercase tracking-[0.12em] text-[#8a7035]">Si acepto</span><br />{description.accept}</p>
-                <p><span className="font-mono text-[8px] uppercase tracking-[0.12em] text-[#35312a]">Si rechazo</span><br />{description.reject}</p>
-                <p><span className="font-mono text-[8px] uppercase tracking-[0.12em] text-[#35312a]">Donde queda</span><br />{description.stored}</p>
-                <p><span className="font-mono text-[8px] uppercase tracking-[0.12em] text-[#35312a]">Siguiente paso</span><br />{description.next}</p>
+                <p><span className="font-mono text-[8px] uppercase tracking-[0.12em] text-[#35312a]">Motivo</span><br />{translated.reason}</p>
+                <p><span className="font-mono text-[8px] uppercase tracking-[0.12em] text-[#35312a]">Evidencia que la sostiene</span><br />{translated.evidence}</p>
+                <p><span className="font-mono text-[8px] uppercase tracking-[0.12em] text-[#35312a]">Nodo afectado</span><br />{translated.affectedNode}</p>
+                <p><span className="font-mono text-[8px] uppercase tracking-[0.12em] text-[#35312a]">Atractor afectado</span><br />{translated.affectedAttractor}</p>
+                <p className="text-[#c8a951]"><span className="font-mono text-[8px] uppercase tracking-[0.12em] text-[#8a7035]">Si acepto</span><br />{translated.consequenceIfAccepted}</p>
+                <p><span className="font-mono text-[8px] uppercase tracking-[0.12em] text-[#35312a]">Si rechazo</span><br />{translated.consequenceIfRejected}</p>
+                <p><span className="font-mono text-[8px] uppercase tracking-[0.12em] text-[#35312a]">Fecha / caducidad</span><br />{translated.date} / {translated.expiresAt}</p>
+                <p><span className="font-mono text-[8px] uppercase tracking-[0.12em] text-[#35312a]">Resultado</span><br />{translated.result}</p>
+                <p><span className="font-mono text-[8px] uppercase tracking-[0.12em] text-[#35312a]">Aprendizaje derivado</span><br />{translated.derivedLearning}</p>
+                <p><span className="font-mono text-[8px] uppercase tracking-[0.12em] text-[#35312a]">Que falta</span><br />{translated.missing}</p>
+                <p><span className="font-mono text-[8px] uppercase tracking-[0.12em] text-[#35312a]">Accion recomendada</span><br />{translated.recommendedAction}</p>
               </div>
 
               {reason ? (
                 <div className="mt-3 border border-[#2e2410] bg-[#0b0a09] p-3 text-xs leading-5 text-[#8a7568]">
-                  <p><span className="font-mono text-[8px] uppercase tracking-[0.12em] text-[#8a7035]">Why this exists</span><br />La propuesta aparece porque el Twin recibio evidencia semilla: {reason}.</p>
+                  <p><span className="font-mono text-[8px] uppercase tracking-[0.12em] text-[#8a7035]">Rastro semilla</span><br />La propuesta aparece porque el Twin recibio este rastro: {reason}.</p>
                   {missingContext ? (
-                    <p className="mt-2"><span className="font-mono text-[8px] uppercase tracking-[0.12em] text-[#8a7035]">Missing context</span><br />Hay conteos de nodos, patrones o documentos, pero no nombres visibles. ROOT puede evaluar la cola, pero no debe tratar esos conteos como explicacion completa.</p>
+                    <p className="mt-2"><span className="font-mono text-[8px] uppercase tracking-[0.12em] text-[#8a7035]">Contexto faltante</span><br />Hay conteos de nodos, patrones o documentos, pero no nombres visibles. ROOT puede evaluar la cola, pero no debe tratar esos conteos como explicacion completa.</p>
                   ) : null}
                 </div>
               ) : null}
