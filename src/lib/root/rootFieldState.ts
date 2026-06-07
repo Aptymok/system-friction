@@ -1,6 +1,8 @@
 import { classifyRootLayer, separatesRealityLayers, type RootLayer } from './rootLayers';
 import { getRootLayerLabel } from './rootLayerLabels';
+import { translateRootMihm } from './rootMihmTranslator';
 import { translateRootState, type RootStateTranslation } from './rootStateTranslator';
+import { translateRootWsv } from './rootWsvTranslator';
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -161,6 +163,7 @@ function limitAlerts(alerts: RootFieldAlert[]) {
 function buildWsv(data: UnknownRecord) {
   const seed = asRecord(data.seed);
   const worldspect = asRecord(data.worldspect ?? seed.latestWorldSpect);
+  const translated = translateRootWsv(worldspect);
   const sourceState = stringValue(worldspect.sourceState, worldspect.source_state) ?? 'missing';
   const state = translateRootState(sourceState);
   const observedAt = observedAtOf(worldspect);
@@ -172,8 +175,8 @@ function buildWsv(data: UnknownRecord) {
       label: 'Lectura del mundo observado',
       state,
       observedAt: null,
-      detail: 'No hay lectura WSV disponible en el estado visible.',
-      implication: 'No usar WSV como evidencia hasta que exista lectura real.',
+      detail: translated.worldToday,
+      implication: translated.implicationForAptymok,
     };
   }
 
@@ -182,8 +185,8 @@ function buildWsv(data: UnknownRecord) {
       label: 'Lectura del mundo observado',
       state,
       observedAt,
-      detail: observedAt ? `No hay lectura WSV utilizable. Ultima marca visible: ${observedAt}.` : 'No hay lectura WSV utilizable.',
-      implication: 'Declarar ausencia y no sostener regimen con WSV.',
+      detail: translated.worldToday,
+      implication: translated.implicationForAptymok,
     };
   }
 
@@ -191,16 +194,17 @@ function buildWsv(data: UnknownRecord) {
   const degradedText = degraded.length ? ` Fuente degradada: ${degraded.join(', ')}.` : '';
   return {
     label: 'Lectura del mundo observado',
-    state,
+    state: translated.state,
     observedAt,
-    detail: `${sourceText}.${degradedText || ' Sin fuente degradada declarada.'}`,
-    implication: degraded.length ? 'Usar con cautela; fuente degradada no sostiene evidencia fuerte.' : 'Puede orientar lectura externa si la fecha es vigente.',
+    detail: `${translated.worldToday} ${sourceText}.${degradedText || ' Sin fuente degradada declarada.'} ${translated.dominantField}.`,
+    implication: translated.implicationForAptymok,
   };
 }
 
 function buildMihm(data: UnknownRecord) {
   const seed = asRecord(data.seed);
   const mihm = asRecord(data.mihmRuntimeMatrix ?? seed.mihmRuntimeMatrix);
+  const translated = translateRootMihm(mihm);
   const state = translateRootState(stringValue(mihm.sourceState, mihm.source_state, mihm.regime) ?? 'missing');
   const observedObject = stringValue(mihm.object, mihm.observedObject, mihm.observed_object, mihm.target, mihm.targetObject);
   const observedAt = observedAtOf(mihm);
@@ -210,7 +214,7 @@ function buildMihm(data: UnknownRecord) {
       label: 'Lectura homeostatica',
       state,
       observedObject: null,
-      detail: 'No hay lectura MIHM disponible.',
+      detail: translated.missing,
       implication: 'MIHM no puede orientar decision sin lectura visible.',
     };
   }
@@ -220,17 +224,17 @@ function buildMihm(data: UnknownRecord) {
       label: 'Lectura homeostatica',
       state,
       observedObject: null,
-      detail: observedAt ? `MIHM tiene lectura con fecha ${observedAt}, pero no declara objeto observado.` : 'MIHM no puede interpretarse porque no declara objeto observado.',
+      detail: observedAt ? `MIHM tiene lectura con fecha ${observedAt}, pero no declara objeto observado. ${translated.resultingRegime}.` : translated.resultingRegime,
       implication: 'No mostrar como decision fuerte hasta declarar objeto observado.',
     };
   }
 
   return {
     label: 'Lectura homeostatica',
-    state,
+    state: translated.state,
     observedObject,
-    detail: `MIHM observado sobre: ${observedObject}. Regimen visible: ${stringValue(mihm.regime) ?? 'sin regimen declarado'}.`,
-    implication: 'Puede orientar lectura homeostatica con objeto, fuente y fecha visibles.',
+    detail: `MIHM observado sobre: ${observedObject}. Regimen visible: ${translated.resultingRegime}. Direccion: ${translated.direction}.`,
+    implication: translated.decisionGrade ? 'Puede orientar lectura homeostatica con objeto, fuente y fecha visibles.' : 'No interpretar como decision fuerte.',
   };
 }
 

@@ -15,6 +15,8 @@ import { RootOperationsConsole } from '@/observatory/components/root/RootOperati
 import { VisorMode } from '@/observatory/components/root/VisorMode';
 import { useVisorMode } from '@/observatory/components/root/visorHooks';
 import { buildRootFieldState } from '@/lib/root/rootFieldState';
+import { translateRootMihm } from '@/lib/root/rootMihmTranslator';
+import { translateRootWsv } from '@/lib/root/rootWsvTranslator';
 
 type RightPanel = 'chat' | 'propuestas' | 'artefactos' | 'agentes' | 'control';
 
@@ -125,6 +127,8 @@ export function RootDashboardClient() {
   }, []);
 
   const fieldState = useMemo(() => buildRootFieldState(twin ?? {}), [twin]);
+  const wsvReading = useMemo(() => translateRootWsv(twin?.data?.worldspect ?? twin?.data?.seed?.latestWorldSpect), [twin]);
+  const mihmReading = useMemo(() => translateRootMihm(twin?.data?.mihmRuntimeMatrix ?? twin?.data?.seed?.mihmRuntimeMatrix), [twin]);
 
   return (
     <div className={`h-screen overflow-hidden bg-[#060605] text-[#ccc8bc] ${visor.enabled ? 'sfi-visor-freeze' : ''}`}>
@@ -140,8 +144,8 @@ export function RootDashboardClient() {
             <BrainCircuit size={14} strokeWidth={1.8} /> SFI / ACP ROOT
           </div>
           <MetricChip label="Sistema" value={fieldState.regime.label} />
-          <MetricChip label="WSV" value={fieldState.wsv.state.label} tone={fieldState.wsv.state.severity === 'warning' ? 'red' : 'green'} />
-          <MetricChip label="MIHM" value={fieldState.mihm.observedObject ? fieldState.mihm.state.label : 'sin objeto'} tone={fieldState.mihm.observedObject ? 'green' : 'red'} />
+          <MetricChip label="WSV" value={wsvReading.state.label} tone={wsvReading.state.severity === 'warning' ? 'red' : 'green'} />
+          <MetricChip label="MIHM" value={mihmReading.decisionGrade ? mihmReading.state.label : 'sin objeto'} tone={mihmReading.decisionGrade ? 'green' : 'red'} />
           <MetricChip label="Cerrar" value={fieldState.openMutations.length || '-'} tone={fieldState.openMutations.length ? 'red' : 'muted'} />
           <MetricChip label="RCE" value="sin lectura suficiente" tone="muted" />
           <MetricChip label="Archivo" value={fieldState.layerCounts.sfi_archive || '-'} tone="muted" />
