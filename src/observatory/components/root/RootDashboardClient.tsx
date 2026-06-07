@@ -14,6 +14,7 @@ import { AcpAttractorFieldView } from '@/observatory/components/root/AcpAttracto
 import { RootOperationsConsole } from '@/observatory/components/root/RootOperationsConsole';
 import { VisorMode } from '@/observatory/components/root/VisorMode';
 import { useVisorMode } from '@/observatory/components/root/visorHooks';
+import { buildRootAttractorState } from '@/lib/root/rootAttractorState';
 import { buildRootFieldState } from '@/lib/root/rootFieldState';
 import { translateRootMihm } from '@/lib/root/rootMihmTranslator';
 import { translateRootWsv } from '@/lib/root/rootWsvTranslator';
@@ -58,6 +59,15 @@ const FIELD_TOOLS: Array<{ id: string; title: string; hint: string; Icon: React.
   { id: 'memoria', title: 'Memoria', hint: 'Atlas, Cuadernillo, Sobre Negro y documentos.', Icon: Archive },
   { id: 'atractores', title: 'Atractores', hint: 'Direccion, tension y alineacion del campo.', Icon: Compass },
 ];
+
+const FIELD_TOOL_IDS = FIELD_TOOLS.map((tool) => tool.id);
+const RIGHT_PANEL_IDS: RightPanel[] = ['chat', 'propuestas', 'artefactos', 'agentes', 'control'];
+
+function readVisualSessionValue<T extends string>(key: string, fallback: T, allowed: readonly T[]) {
+  if (typeof window === 'undefined') return fallback;
+  const stored = window.sessionStorage.getItem(key) as T | null;
+  return stored && allowed.includes(stored) ? stored : fallback;
+}
 
 function MetricChip({ label, value, tone = 'gold' }: { label: string; value: string | number; tone?: 'gold' | 'green' | 'red' | 'muted' }) {
   const color = tone === 'green' ? 'text-[#6ab88a]' : tone === 'red' ? 'text-[#c87060]' : tone === 'muted' ? 'text-[#7a7568]' : 'text-[#c8a951]';
@@ -112,9 +122,10 @@ function FieldStateItem({ question, answer, detail }: { question: string; answer
 }
 
 export function RootDashboardClient() {
-  const [activeTool, setActiveTool] = useState('observacion');
-  const [isAttractorConsolidation, setIsAttractorConsolidation] = useState(false);
-  const [openPanel, setOpenPanel] = useState<RightPanel>('chat');
+  const [activeTool, setActiveTool] = useState(() => readVisualSessionValue('root:active-tool', 'observacion', FIELD_TOOL_IDS));
+  const [isAttractorConsolidation, setIsAttractorConsolidation] = useState(() => readVisualSessionValue('root:active-tool', 'observacion', FIELD_TOOL_IDS) === 'atractores');
+  const [openPanel, setOpenPanel] = useState<RightPanel>(() => readVisualSessionValue('root:open-panel', 'chat', RIGHT_PANEL_IDS));
+  const [continuityNotice, setContinuityNotice] = useState('Continuidad de observacion: activa.');
   const [selectedNodeLabel, setSelectedNodeLabel] = useState<string | null>(null);
   const [twin, setTwin] = useState<TwinState | null>(null);
   const visor = useVisorMode();
@@ -127,8 +138,36 @@ export function RootDashboardClient() {
   }, []);
 
   const fieldState = useMemo(() => buildRootFieldState(twin ?? {}), [twin]);
+  const attractorState = useMemo(() => buildRootAttractorState(twin ?? {}), [twin]);
   const wsvReading = useMemo(() => translateRootWsv(twin?.data?.worldspect ?? twin?.data?.seed?.latestWorldSpect), [twin]);
   const mihmReading = useMemo(() => translateRootMihm(twin?.data?.mihmRuntimeMatrix ?? twin?.data?.seed?.mihmRuntimeMatrix), [twin]);
+
+  useEffect(() => {
+    window.sessionStorage.setItem('root:active-tool', activeTool);
+  }, [activeTool]);
+
+  useEffect(() => {
+    window.sessionStorage.setItem('root:open-panel', openPanel);
+  }, [openPanel]);
+
+  useEffect(() => {
+    const navigation = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined;
+    if (navigation?.type === 'reload') {
+      setContinuityNotice('Continuidad de observacion: interrumpida por recarga. ROOT recargo porque la sesion cambio, expiro o el navegador recargo la pagina.');
+    }
+
+    const onVisibilityChange = () => {
+      window.sessionStorage.setItem('root:last-visibility', document.visibilityState);
+      if (document.visibilityState === 'visible') {
+        setContinuityNotice('Continuidad de observacion: activa.');
+      }
+    };
+
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', onVisibilityChange);
+  }, []);
+
+  const continuityActive = continuityNotice.includes('activa');
 
   return (
     <div className={`h-screen overflow-hidden bg-[#060605] text-[#ccc8bc] ${visor.enabled ? 'sfi-visor-freeze' : ''}`}>
@@ -146,8 +185,11 @@ export function RootDashboardClient() {
           <MetricChip label="Sistema" value={fieldState.regime.label} />
           <MetricChip label="WSV" value={wsvReading.state.label} tone={wsvReading.state.severity === 'warning' ? 'red' : 'green'} />
           <MetricChip label="MIHM" value={mihmReading.decisionGrade ? mihmReading.state.label : 'sin objeto'} tone={mihmReading.decisionGrade ? 'green' : 'red'} />
+          <MetricChip label="Atractor" value={attractorState.sufficient ? attractorState.directionalWeight : 'sin lectura'} tone={attractorState.sufficient ? 'green' : 'muted'} />
+          <MetricChip label="Eyectores" value={attractorState.ejectors.length || '-'} tone={attractorState.ejectors.length ? 'red' : 'muted'} />
           <MetricChip label="Cerrar" value={fieldState.openMutations.length || '-'} tone={fieldState.openMutations.length ? 'red' : 'muted'} />
           <MetricChip label="RCE" value="sin lectura suficiente" tone="muted" />
+          <MetricChip label="Continuidad" value={continuityActive ? 'activa' : 'interrumpida'} tone={continuityActive ? 'green' : 'red'} />
           <MetricChip label="Archivo" value={fieldState.layerCounts.sfi_archive || '-'} tone="muted" />
           <MetricChip label="Vivo" value={fieldState.layerCounts.living_observatory || '-'} tone="muted" />
           <MetricChip label="Sandbox" value={fieldState.layerCounts.sandbox || '-'} tone="muted" />
@@ -222,7 +264,8 @@ export function RootDashboardClient() {
           )}
 
           <div className="pointer-events-none absolute bottom-3 left-3 z-20 border border-[#1e1c17] bg-[#060605]/85 px-3 py-2 font-mono text-[8px] uppercase tracking-[0.12em] text-[#8a7035]">
-            lente: {FIELD_TOOLS.find((tool) => tool.id === activeTool)?.title}
+            <div>lente: {FIELD_TOOLS.find((tool) => tool.id === activeTool)?.title}</div>
+            <div className={continuityActive ? 'text-[#6ab88a]' : 'text-[#c87060]'}>{continuityNotice}</div>
           </div>
         </section>
 

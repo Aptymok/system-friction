@@ -1,6 +1,10 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { translateRootGovernanceBlock } from '@/lib/root/rootGovernanceTranslator';
+import { classifyRootLayer } from '@/lib/root/rootLayers';
+import { getRootLayerLabel } from '@/lib/root/rootLayerLabels';
+import { translateRootState } from '@/lib/root/rootStateTranslator';
 
 type RootTableState = {
   table: string;
@@ -59,6 +63,46 @@ const TABLE_MEANINGS: Record<string, string> = {
   usage_ledger: 'Ledger de uso y actividad de cuenta.',
   account_balance: 'Estado de balance de cuenta.',
 };
+
+const OPERATION_NAMES: Record<string, string> = {
+  logbook_mutations: 'Mutaciones de bitacora',
+  epistemic_events: 'Eventos de conocimiento',
+  root_audit_events: 'Auditoria ROOT',
+  root_evidence_entries: 'Evidencia ROOT',
+  graph_nodes: 'Nodos del campo',
+  graph_edges: 'Relaciones del campo',
+  action_proposals: 'Propuestas de accion',
+  accounts: 'Cuentas',
+  account_members: 'Miembros de cuenta',
+  usage_ledger: 'Uso registrado',
+  account_balance: 'Balance de cuenta',
+};
+
+function operationReading(table: RootTableState) {
+  const block = table.ok ? null : translateRootGovernanceBlock(table.warning ?? 'unknown_block');
+  const layer = getRootLayerLabel(classifyRootLayer({
+    title: table.table,
+    type: table.table,
+    status: table.ok ? 'observed' : 'blocked',
+  }).layer).label;
+  const state = table.ok ? translateRootState(table.count ? 'observed' : 'missing') : translateRootState('blocked');
+  const requiresEvidence = table.table.includes('evidence') || table.table.includes('proposal') || table.table.includes('mutation');
+  const requiresClosure = table.table.includes('mutation') || table.table.includes('proposal');
+  return {
+    name: OPERATION_NAMES[table.table] ?? 'Operacion ROOT',
+    state: state.label,
+    reason: block?.reason ?? TABLE_MEANINGS[table.table] ?? 'Operacion visible desde ROOT.',
+    consequence: block?.consequence ?? (requiresClosure ? 'Si queda abierta, aumenta pendiente de cierre.' : 'Sirve como lectura; no debe gobernar por si sola.'),
+    nextAction: block?.nextAction ?? (requiresClosure ? 'revisar cierre, evidencia o archivo.' : 'mantener como lectura secundaria.'),
+    date: table.latest[0] && typeof table.latest[0] === 'object' ? String((table.latest[0] as RootRow).created_at ?? 'sin fecha visible') : 'sin fecha visible',
+    phase: block?.relatedPhase ?? 'Fase 11',
+    layer,
+    requiresClosure,
+    requiresEvidence,
+    requiresRootApproval: table.table.includes('action_proposals') || table.table.includes('root'),
+    shouldSandbox: !table.ok,
+  };
+}
 
 export function RootOperationsConsole() {
   const [state, setState] = useState<RootStateResponse | null>(null);
@@ -154,7 +198,7 @@ export function RootOperationsConsole() {
 
       {state?.data?.warnings?.length ? (
         <div className="m-3 border border-[#5a2020] bg-[#5a2020]/10 p-3 font-mono text-[8px] leading-4 text-[#c87060]">
-          {state.data.warnings.slice(0, 4).join(' / ')}
+          {state.data.warnings.slice(0, 4).map((warning) => translateRootGovernanceBlock(warning).reason).join(' / ')}
         </div>
       ) : null}
 
@@ -168,14 +212,29 @@ export function RootOperationsConsole() {
       </div>
 
       <div className="grid gap-1 p-3 font-mono text-[9px]">
-        {visibleTables.map((table) => (
-          <div key={table.table} className="grid grid-cols-[1fr_auto] border border-[#1e1c17] bg-[#131210] p-2">
-            <span className={table.ok ? 'text-[#ccc8bc]' : 'text-[#c87060]'}>{table.table}</span>
-            <span className="text-[#c8a951]">{table.count ?? '-'}</span>
-            <span className="col-span-2 mt-1 text-[#7a7568]">{TABLE_MEANINGS[table.table] ?? 'Tabla operativa visible desde root.'}</span>
-            {table.warning ? <span className="col-span-2 mt-1 text-[#c87060]">{table.warning}</span> : null}
-          </div>
-        ))}
+        {visibleTables.map((table) => {
+          const reading = operationReading(table);
+          return (
+            <div key={table.table} className="border border-[#1e1c17] bg-[#131210] p-2">
+              <div className="flex items-start justify-between gap-3">
+                <span className={table.ok ? 'text-[#ccc8bc]' : 'text-[#c87060]'}>{reading.name}</span>
+                <span className="text-[#c8a951]">{reading.state}</span>
+              </div>
+              <div className="mt-2 grid gap-1 text-[#7a7568]">
+                <span>Razon: {reading.reason}</span>
+                <span>Consecuencia: {reading.consequence}</span>
+                <span>Accion siguiente: {reading.nextAction}</span>
+                <span>Fecha: {reading.date}</span>
+                <span>Capa: {reading.layer} / {reading.phase}</span>
+                <span>{reading.requiresClosure ? 'Requiere cierre.' : 'No declara cierre pendiente.'} {reading.requiresEvidence ? 'Requiere evidencia visible.' : 'No requiere evidencia principal.'} {reading.requiresRootApproval ? 'Requiere aprobacion raiz si avanza.' : 'No requiere aprobacion raiz para lectura.'} {reading.shouldSandbox ? 'Debe revisarse antes de salir de Sandbox.' : ''}</span>
+              </div>
+              <details className="mt-2 text-[#35312a]">
+                <summary className="cursor-pointer uppercase tracking-[0.12em]">linaje tecnico secundario</summary>
+                <div className="mt-1">tabla: {table.table} / registros: {table.count ?? '-'}{table.warning ? ` / aviso: ${table.warning}` : ''}</div>
+              </details>
+            </div>
+          );
+        })}
       </div>
 
       {active === 'bitacora' ? (
@@ -186,9 +245,10 @@ export function RootOperationsConsole() {
             {mutations.slice(0, 5).map((mutation) => (
               <div key={String(mutation.id)} className="grid grid-cols-[1fr_auto] gap-2 border border-[#1e1c17] bg-[#131210] p-2 font-mono text-[8px]">
                 <div>
-                  <div className="text-[#ccc8bc]">{String(mutation.id ?? '-').slice(0, 12)}</div>
-                  <div className="text-[#7a7568]">{String(mutation.status ?? '-')} / {String(mutation.created_at ?? '-').slice(0, 19)}</div>
-                  <div className="mt-1 text-[#7a7568]">Cierre administrativo: no valida verdad ni evidencia.</div>
+                  <div className="text-[#ccc8bc]">Operacion de bitacora</div>
+                  <div className="text-[#7a7568]">{translateRootState(mutation.status ?? 'pending').label} / {String(mutation.created_at ?? 'sin fecha visible').slice(0, 19)}</div>
+                  <div className="mt-1 text-[#7a7568]">Esta operacion tiene evidencia registrada solo si su linaje lo muestra; cierre administrativo no equivale a validacion externa.</div>
+                  <details className="mt-1 text-[#35312a]"><summary>linaje</summary>{String(mutation.id ?? '-')}</details>
                 </div>
                 {mutation.status !== 'closed' ? (
                   <button type="button" disabled={busy} onClick={() => void closeMutation(mutation.id)} className="border border-[#8a7035] px-2 py-1 uppercase tracking-[0.12em] text-[#c8a951] disabled:opacity-40">

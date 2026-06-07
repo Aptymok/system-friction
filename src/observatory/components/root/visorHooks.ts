@@ -443,7 +443,21 @@ async function llmCompanionResponse(contextKey: VisorContextKey, prompt: string,
 }
 
 export function useVisorMode() {
-  const [enabled, setEnabled] = useState(false);
+  const [enabled, setEnabledState] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return window.sessionStorage.getItem('root:visor-enabled') === 'true';
+  });
+
+  function setEnabled(next: boolean | ((current: boolean) => boolean)) {
+    setEnabledState((current) => {
+      const value = typeof next === 'function' ? next(current) : next;
+      if (typeof window !== 'undefined') {
+        window.sessionStorage.setItem('root:visor-enabled', value ? 'true' : 'false');
+      }
+      return value;
+    });
+  }
+
   return {
     enabled,
     setEnabled,

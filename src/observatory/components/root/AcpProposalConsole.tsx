@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useState } from 'react';
 import { translateRootTwinProposal } from '@/lib/root/rootTwinProposalTranslator';
@@ -83,6 +83,10 @@ function numberValue(value: unknown) {
   return typeof value === 'number' && Number.isFinite(value) ? value : null;
 }
 
+function translatedSeedState(value?: string | null) {
+  return translateRootState(value ?? 'missing').label;
+}
+
 function attractorSummary(proposal: Proposal) {
   const payload = asRecord(proposal.expected_field_delta?.payload);
   const proposalPayload = asRecord(payload.proposal);
@@ -114,6 +118,7 @@ function plainDescription(proposal: Proposal) {
   const preparedOnly = proposal.status === 'design_approved' || proposal.status === 'queued';
   const artifact = type === 'artifact_routing' || type.includes('artifact') || type.includes('routing');
   const attractor = type === 'attractor_draft';
+
   if (attractor) {
     return {
       what: 'Un borrador de atractor para decidir hacia donde debe converger el campo.',
@@ -124,6 +129,7 @@ function plainDescription(proposal: Proposal) {
       next: 'Siguiente paso: fijar una accion verificable y cerrar el registro solo cuando exista evidencia.',
     };
   }
+
   return {
     what: type === 'twin_proposal' ? 'Una lectura del Twin convertida en propuesta ACP.' : `Una propuesta de tipo ${type}.`,
     changes: artifact ? 'Prepara una entrada para Atlas, Cuadernillo o Sobre Negro.' : 'Cambia el estado del registro gobernado, no el mundo externo.',
@@ -137,14 +143,16 @@ function plainDescription(proposal: Proposal) {
 function seedEvidenceReason(proposal: Proposal) {
   const evidence = proposal.seedEvidenceSummary;
   if (!evidence) return null;
+
   const nodeNames = evidence.nodeNames?.length ? ` (${evidence.nodeNames.slice(0, 3).join(', ')})` : '';
   const patternNames = evidence.patternNames?.length ? ` (${evidence.patternNames.slice(0, 3).join(', ')})` : '';
   const documentNames = evidence.documentNames?.length ? ` (${evidence.documentNames.slice(0, 3).join(', ')})` : '';
+
   return [
     `nodos ${evidence.nodes ?? 0}${nodeNames}`,
     `patrones ${evidence.patterns ?? 0}${patternNames}`,
     `documentos ${evidence.documents ?? 0}${documentNames}`,
-    `MIHM ${evidence.mihmSourceState ?? 'sin estado visible'}`,
+    `MIHM ${translatedSeedState(evidence.mihmSourceState)}`,
     `acceso ${evidence.accessMode ?? 'sin modo visible'}`,
   ].join(' / ');
 }
@@ -177,8 +185,10 @@ export function AcpProposalConsole({ compact = false }: { compact?: boolean }) {
   async function advance(proposal: Proposal) {
     const route = routeFor(proposal.status);
     if (!route) return;
+
     setBusy(proposal.id);
     setMessage(null);
+
     try {
       const result = await fetch(`/api/acp/proposals/${proposal.id}/${route}`, {
         method: 'POST',
@@ -186,8 +196,10 @@ export function AcpProposalConsole({ compact = false }: { compact?: boolean }) {
         credentials: 'include',
         body: JSON.stringify(payloadFor(route)),
       }).then((res) => res.json());
-      if (!result.ok) setMessage(result.error ?? 'No fue posible avanzar la propuesta.');
-      else {
+
+      if (!result.ok) {
+        setMessage(result.error ?? 'No fue posible avanzar la propuesta.');
+      } else {
         setMessage(`Propuesta ${proposal.id.slice(0, 8)} actualizada.`);
         await load();
       }
@@ -247,11 +259,13 @@ export function AcpProposalConsole({ compact = false }: { compact?: boolean }) {
       <div className="flex flex-col gap-1 p-3">
         {proposals.map((proposal, index) => {
           const evidence = proposal.seedEvidenceSummary ?? {};
+          const mihmSourceState = translatedSeedState(evidence.mihmSourceState);
           const route = routeFor(proposal.status);
           const translated = translateRootTwinProposal(proposal, index);
           const attractor = proposal.proposalType === 'attractor_draft' ? attractorSummary(proposal) : null;
           const reason = seedEvidenceReason(proposal);
           const missingContext = proposal.seedEvidenceSummary && !hasNamedSeedContext(proposal);
+
           return (
             <article key={proposal.id} className="border border-[#1e1c17] bg-[#131210] p-3 hover:border-[#2e2c24]">
               <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
@@ -307,7 +321,7 @@ export function AcpProposalConsole({ compact = false }: { compact?: boolean }) {
                 <div className="bg-[#181614] p-2"><span className="text-[#35312a]">nodes</span><br /><span className="text-[#ccc8bc]">{evidence.nodes ?? 0}</span></div>
                 <div className="bg-[#181614] p-2"><span className="text-[#35312a]">patterns</span><br /><span className="text-[#ccc8bc]">{evidence.patterns ?? 0}</span></div>
                 <div className="bg-[#181614] p-2"><span className="text-[#35312a]">docs</span><br /><span className="text-[#ccc8bc]">{evidence.documents ?? 0}</span></div>
-                <div className="bg-[#181614] p-2"><span className="text-[#35312a]">MIHM</span><br /><span className="text-[#ccc8bc]">{evidence.mihmSourceState ?? '-'}</span></div>
+                <div className="bg-[#181614] p-2"><span className="text-[#35312a]">MIHM</span><br /><span className="text-[#ccc8bc]">{mihmSourceState}</span></div>
                 <div className="bg-[#181614] p-2"><span className="text-[#35312a]">access</span><br /><span className="text-[#ccc8bc]">{evidence.accessMode ?? '-'}</span></div>
                 <div className="bg-[#181614] p-2"><span className="text-[#35312a]">hash</span><br /><span className="text-[#ccc8bc]">{shortHash(proposal.seedHash ?? proposal.specHash)}</span></div>
               </div>
