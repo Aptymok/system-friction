@@ -14,19 +14,25 @@ import { AcpAttractorFieldView } from '@/observatory/components/root/AcpAttracto
 import { RootOperationsConsole } from '@/observatory/components/root/RootOperationsConsole';
 import { VisorMode } from '@/observatory/components/root/VisorMode';
 import { useVisorMode } from '@/observatory/components/root/visorHooks';
+import { buildRootFieldState } from '@/lib/root/rootFieldState';
 
 type RightPanel = 'chat' | 'propuestas' | 'artefactos' | 'agentes' | 'control';
 
 type TwinState = {
   ok?: boolean;
   data?: {
+    worldspect?: unknown;
+    mihmRuntimeMatrix?: unknown;
+    kernel?: unknown;
     proposals?: unknown[];
+    warnings?: string[];
     seed?: {
       nodeCatalog?: unknown[];
       documentCatalog?: unknown[];
       patternCatalog?: unknown[];
       executionCatalog?: unknown[];
       recentEvents?: unknown[];
+      latestWorldSpect?: unknown;
       mihmRuntimeMatrix?: {
         sourceState?: string;
         ihg?: number;
@@ -50,10 +56,6 @@ const FIELD_TOOLS: Array<{ id: string; title: string; hint: string; Icon: React.
   { id: 'memoria', title: 'Memoria', hint: 'Atlas, Cuadernillo, Sobre Negro y documentos.', Icon: Archive },
   { id: 'atractores', title: 'Atractores', hint: 'Direccion, tension y alineacion del campo.', Icon: Compass },
 ];
-
-function fmt(value?: number) {
-  return typeof value === 'number' ? value.toFixed(3) : '-';
-}
 
 function MetricChip({ label, value, tone = 'gold' }: { label: string; value: string | number; tone?: 'gold' | 'green' | 'red' | 'muted' }) {
   const color = tone === 'green' ? 'text-[#6ab88a]' : tone === 'red' ? 'text-[#c87060]' : tone === 'muted' ? 'text-[#7a7568]' : 'text-[#c8a951]';
@@ -94,6 +96,19 @@ function Accordion({ title, open, onClick, children }: { title: string; open: bo
   );
 }
 
+function shortText(value: string, max = 58) {
+  return value.length > max ? `${value.slice(0, max - 3)}...` : value;
+}
+
+function FieldStateItem({ question, answer, detail }: { question: string; answer: string; detail: string }) {
+  return (
+    <div title={`${question}: ${detail}`} className="min-w-[210px] border-l border-[#1e1c17] px-3 py-2">
+      <div className="font-mono text-[8px] uppercase tracking-[0.14em] text-[#4d4639]">{question}</div>
+      <div className="mt-1 truncate text-[11px] leading-4 text-[#c8a951]">{shortText(answer)}</div>
+    </div>
+  );
+}
+
 export function RootDashboardClient() {
   const [activeTool, setActiveTool] = useState('observacion');
   const [isAttractorConsolidation, setIsAttractorConsolidation] = useState(false);
@@ -109,20 +124,7 @@ export function RootDashboardClient() {
       .catch(() => setTwin(null));
   }, []);
 
-  const counts = useMemo(() => {
-    const seed = twin?.data?.seed;
-    return {
-      nodes: seed?.nodeCatalog?.length ?? 0,
-      docs: seed?.documentCatalog?.length ?? 0,
-      patterns: seed?.patternCatalog?.length ?? 0,
-      source: seed?.mihmRuntimeMatrix?.sourceState ?? '-',
-      regime: seed?.mihmRuntimeMatrix?.regime ?? '-',
-      ihg: seed?.mihmRuntimeMatrix?.ihg,
-      nti: seed?.mihmRuntimeMatrix?.nti,
-      ldi: seed?.mihmRuntimeMatrix?.ldi,
-      phi: seed?.mihmRuntimeMatrix?.phi,
-    };
-  }, [twin]);
+  const fieldState = useMemo(() => buildRootFieldState(twin ?? {}), [twin]);
 
   return (
     <div className={`h-screen overflow-hidden bg-[#060605] text-[#ccc8bc] ${visor.enabled ? 'sfi-visor-freeze' : ''}`}>
@@ -137,15 +139,14 @@ export function RootDashboardClient() {
           <div className="flex shrink-0 items-center gap-2 px-4 font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-[#c8a951]">
             <BrainCircuit size={14} strokeWidth={1.8} /> SFI / ACP ROOT
           </div>
-          <MetricChip label="IHG" value={fmt(counts.ihg)} tone="red" />
-          <MetricChip label="NTI" value={fmt(counts.nti)} />
-          <MetricChip label="LDI" value={fmt(counts.ldi)} />
-          <MetricChip label="PHI" value={fmt(counts.phi)} tone="green" />
-          <MetricChip label="MIHM" value={counts.source} tone="green" />
-          <MetricChip label="Regimen" value={counts.regime} />
-          <MetricChip label="Nodos" value={counts.nodes || '-'} tone="muted" />
-          <MetricChip label="Docs" value={counts.docs || '-'} tone="muted" />
-          <MetricChip label="Patrones" value={counts.patterns || '-'} tone="muted" />
+          <MetricChip label="Sistema" value={fieldState.regime.label} />
+          <MetricChip label="WSV" value={fieldState.wsv.state.label} tone={fieldState.wsv.state.severity === 'warning' ? 'red' : 'green'} />
+          <MetricChip label="MIHM" value={fieldState.mihm.observedObject ? fieldState.mihm.state.label : 'sin objeto'} tone={fieldState.mihm.observedObject ? 'green' : 'red'} />
+          <MetricChip label="Cerrar" value={fieldState.openMutations.length || '-'} tone={fieldState.openMutations.length ? 'red' : 'muted'} />
+          <MetricChip label="RCE" value="sin lectura suficiente" tone="muted" />
+          <MetricChip label="Archivo" value={fieldState.layerCounts.sfi_archive || '-'} tone="muted" />
+          <MetricChip label="Vivo" value={fieldState.layerCounts.living_observatory || '-'} tone="muted" />
+          <MetricChip label="Sandbox" value={fieldState.layerCounts.sandbox || '-'} tone="muted" />
           <div className="ml-auto hidden shrink-0 items-center gap-2 px-4 font-mono text-[9px] uppercase tracking-[0.14em] text-[#7a7568] md:flex">
             <span className={`h-1.5 w-1.5 rounded-full ${visor.enabled ? 'bg-white/30' : 'animate-pulse bg-[#c8a951]'}`} /> {visor.enabled ? 'campo congelado' : 'campo activo'}
           </div>
@@ -171,9 +172,14 @@ export function RootDashboardClient() {
             {isAttractorConsolidation ? 'T-ATTRACTOR CONSOLIDATION: ON' : 'ATRACTOR: OFF'}
           </button>
         </div>
+        <div className="flex h-14 items-stretch overflow-x-auto border-t border-[#1e1c17] bg-[#090806]">
+          {fieldState.answers.map((item) => (
+            <FieldStateItem key={item.question} question={item.question} answer={item.answer} detail={item.detail} />
+          ))}
+        </div>
       </header>
 
-      <main className="relative grid h-screen grid-cols-1 bg-[#080808] pt-9 lg:grid-cols-[minmax(0,1fr)_380px]">
+      <main className="relative grid h-screen grid-cols-1 bg-[#080808] pt-[92px] lg:grid-cols-[minmax(0,1fr)_380px]">
         <section className={`relative min-h-0 overflow-hidden border-r border-[#1e1c17] ${visor.enabled ? 'grayscale' : ''}`}>
           <div className="absolute left-3 top-3 z-20 flex flex-col gap-2">
             {FIELD_TOOLS.map((tool) => (
