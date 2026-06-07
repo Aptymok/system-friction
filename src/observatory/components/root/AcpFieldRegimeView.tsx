@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { translateRootNode, type RootNodeTranslation } from '@/lib/root/rootNodeTranslator';
 
 type FieldMode = 'topology' | 'degradation' | 'energy' | 'governance' | 'memory' | 'attractors';
 type EdgeKind = 'verified' | 'inferred' | 'degraded' | 'resonant' | 'blocked' | 'pending';
@@ -95,6 +96,7 @@ type FieldNode = {
   documents: string[];
   runtimeState: string;
   evidenceCount: number;
+  translated: RootNodeTranslation;
 };
 
 type FieldEdge = {
@@ -305,9 +307,10 @@ function makeNodes(twin: TwinState | null, width: number, height: number) {
     const pressure = pressureOf(node);
     const degradation = deriveNodeDegradation(node, context);
     const evidenceCount = stringArray(node.linkedDocuments).length + (context.documentsByNode.get(id)?.length ?? 0);
+    const translated = translateRootNode({ ...node, evidenceCount }, id);
     return {
       id,
-      label: labelOf(node),
+      label: translated.operationalName,
       type: node.nodeType || node.ontologyType || 'sf',
       cluster,
       shape: shapeOf(node, cluster),
@@ -325,6 +328,7 @@ function makeNodes(twin: TwinState | null, width: number, height: number) {
       documents: stringArray(node.linkedDocuments),
       runtimeState: node.runtimeState || 'unknown',
       evidenceCount,
+      translated,
     };
   });
 }
@@ -741,17 +745,30 @@ export function AcpFieldRegimeView({
           <div className="flex items-start justify-between gap-3">
             <div>
               <div className="font-mono text-[8px] uppercase tracking-[0.18em] text-[#8a7035]">{CLUSTERS[selected.cluster]?.label ?? selected.cluster}</div>
-              <h3 className="mt-1 text-sm leading-5 text-[#ccc8bc]">{selected.label}</h3>
+              <h3 className="mt-1 text-sm leading-5 text-[#ccc8bc]">{selected.translated.operationalName}</h3>
             </div>
             <button type="button" onClick={() => setSelected(null)} className="font-mono text-[10px] text-[#5a5855] hover:text-[#c8a951]">x</button>
           </div>
-          <div className="mt-3 grid grid-cols-2 gap-1 font-mono text-[8px] uppercase tracking-[0.08em]">
+          <div className="hidden">
             <div className="bg-[#181614] p-2 text-[#7a7568]">degradacion<br /><span className="text-[#c8a951]">{selected.degradation.toFixed(2)} · {selected.band}</span></div>
             <div className="bg-[#181614] p-2 text-[#7a7568]">presion<br /><span className="text-[#c8a951]">{selected.pressure.toFixed(2)}</span></div>
             <div className="bg-[#181614] p-2 text-[#7a7568]">evidencia<br /><span className="text-[#c8a951]">{selected.evidenceCount}</span></div>
             <div className="bg-[#181614] p-2 text-[#7a7568]">runtime<br /><span className="text-[#c8a951]">{selected.runtimeState}</span></div>
           </div>
+          <div className="mt-3 grid grid-cols-2 gap-1 font-mono text-[8px] uppercase tracking-[0.08em]">
+            <div className="bg-[#181614] p-2 text-[#7a7568]">capa<br /><span className="text-[#c8a951]">{selected.translated.layerLabel}</span></div>
+            <div className="bg-[#181614] p-2 text-[#7a7568]">estado<br /><span className="text-[#c8a951]">{selected.translated.state.label}</span></div>
+            <div className="bg-[#181614] p-2 text-[#7a7568]">peso general<br /><span className="text-[#c8a951]">{selected.translated.generalWeight}</span></div>
+            <div className="bg-[#181614] p-2 text-[#7a7568]">peso direccional<br /><span className="text-[#c8a951]">{selected.translated.directionalWeight}</span></div>
+          </div>
+          <div className="mt-3 space-y-2 font-mono text-[9px] leading-4 text-[#8a7568]">
+            <p><span className="uppercase tracking-[0.14em] text-[#5a5855]">Funcion:</span> {selected.translated.function}</p>
+            <p><span className="uppercase tracking-[0.14em] text-[#5a5855]">Dependencias:</span> {selected.translated.dependencies.length ? selected.translated.dependencies.join(', ') : 'sin dependencias visibles'}</p>
+          </div>
           <p className="mt-3 text-xs leading-5 text-[#8a7568]">
+            {selected.translated.consequenceIfDegrades} Accion recomendada: {selected.translated.recommendedAction}
+          </p>
+          <p className="hidden">
             {selected.band === 'critical'
               ? 'Esto esta atorado aqui. Primero registra evidencia o mandalo al Sobre Negro 24h. No lo cierres todavia.'
               : selected.evidenceCount === 0

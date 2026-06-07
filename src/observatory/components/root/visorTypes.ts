@@ -20,6 +20,7 @@ export type VisorContextItem = {
 export type VisorChatMessage = {
   role: 'user' | 'visor';
   text: string;
+  classification?: string;
 };
 
 export type VisorSnapshot = {
@@ -31,16 +32,16 @@ export type VisorSnapshot = {
 };
 
 export const VISOR_CONTEXTS: VisorContextItem[] = [
-  { key: 'bitacoras', label: 'Bitacoras', description: 'Entradas de usuario, sistema y agentes.', children: ['Usuario', 'Sistema', 'Agentes'] },
-  { key: 'atlas', label: 'Atlas', description: 'Registros activos, cerrados y archivados.', children: ['Activos', 'Cerrados', 'Archivados'] },
-  { key: 'workbook', label: 'Workbook', description: 'Ideas, hipotesis y pendientes aun no promovidos.', children: ['Ideas', 'Hipotesis', 'Pendientes'] },
-  { key: 'amc', label: 'AMC', description: 'Mutaciones, cambios y transiciones observables.', children: ['Mutaciones', 'Cambios', 'Transiciones'] },
-  { key: 'attractors', label: 'Atractores', description: 'Atractores en diseno, activos o congelados.', children: ['En diseno', 'Activos', 'Congelados'] },
-  { key: 'evidence', label: 'Evidencia', description: 'Evidencia sin validar, validada y persistente.', children: ['Sin validar', 'Validada', 'Persistente'] },
-  { key: 'folders', label: 'Folders', description: 'Carpetas operativas disponibles para consulta.', children: ['Atlas', 'Cuadernillo', 'Twin', 'ACP'] },
-  { key: 'acp', label: 'ACP', description: 'Estado de gobierno y autorizacion ACP.', children: ['Propuestas', 'Decisiones', 'Cierres'] },
-  { key: 'ledger', label: 'Ledger', description: 'Rastro de eventos, decisiones y registros.', children: ['Eventos', 'Propuestas', 'Resultados'] },
-  { key: 'nodes', label: 'Nodes', description: 'Catalogo nodal y relaciones disponibles.', children: ['Operativos', 'Latentes', 'Degradados'] },
+  { key: 'bitacoras', label: 'Bitacoras', description: 'Entradas visibles con origen, capa y siguiente accion.', children: ['Usuario', 'Sistema', 'Agentes'] },
+  { key: 'atlas', label: 'Atlas', description: 'Registros activos, cerrados y archivados sin mezclar capas.', children: ['Activos', 'Cerrados', 'Archivados'] },
+  { key: 'workbook', label: 'Cuadernillo', description: 'Ideas, hipotesis y pendientes no promovidos.', children: ['Ideas', 'Hipotesis', 'Pendientes'] },
+  { key: 'amc', label: 'Mutaciones', description: 'Cambios y transiciones observables.', children: ['Mutaciones', 'Cambios', 'Transiciones'] },
+  { key: 'attractors', label: 'Atractores', description: 'Direcciones propuestas, activas o congeladas.', children: ['En diseno', 'Activos', 'Congelados'] },
+  { key: 'evidence', label: 'Evidencia', description: 'Rastros sin validar, validados o persistentes.', children: ['Sin validar', 'Validada', 'Persistente'] },
+  { key: 'folders', label: 'Carpetas', description: 'Espacios operativos disponibles para consulta.', children: ['Atlas', 'Cuadernillo', 'Twin', 'ACP'] },
+  { key: 'acp', label: 'ACP', description: 'Gobierno, autorizacion y cierre.', children: ['Propuestas', 'Decisiones', 'Cierres'] },
+  { key: 'ledger', label: 'Indice de rastros', description: 'Eventos, propuestas y resultados visibles.', children: ['Eventos', 'Propuestas', 'Resultados'] },
+  { key: 'nodes', label: 'Nodos', description: 'Catalogo nodal y relaciones disponibles.', children: ['Operativos', 'Latentes', 'Degradados'] },
 ];
 
 export function findVisorContext(key: VisorContextKey) {

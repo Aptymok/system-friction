@@ -13,7 +13,10 @@ export function VisorSidebar({
   return (
     <aside className="absolute left-0 top-0 z-[80] h-full w-60 border-r border-white/10 bg-black/80 px-3 py-14 opacity-20 backdrop-grayscale transition-opacity duration-200 hover:opacity-95 focus-within:opacity-95">
       <div className="mb-5 border-b border-white/10 pb-3 font-mono text-[9px] uppercase tracking-[0.22em] text-white/45">
-        Visor Index
+        Indice del Visor
+        <div className="mt-2 text-[8px] leading-4 tracking-[0.12em] text-white/25">
+          Orienta la lectura; el chat sigue libre.
+        </div>
       </div>
       <div className="space-y-4 overflow-y-auto pr-1">
         {VISOR_CONTEXTS.map((section) => (
