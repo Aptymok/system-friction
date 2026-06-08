@@ -184,7 +184,7 @@ export function RootDashboardClient() {
           </div>
           <MetricChip label="Sistema" value={fieldState.regime.label} />
           <MetricChip label="WSV" value={wsvReading.state.label} tone={wsvReading.state.severity === 'warning' ? 'red' : 'green'} />
-          <MetricChip label="MIHM" value={mihmReading.decisionGrade ? mihmReading.state.label : 'sin objeto'} tone={mihmReading.decisionGrade ? 'green' : 'red'} />
+          <MetricChip label="MIHM" value={mihmReading.decisionGrade ? mihmReading.state.label : 'MIHM basal · Aptymok / n_0'} tone={mihmReading.decisionGrade ? 'green' : 'muted'} />
           <MetricChip label="Atractor" value={attractorState.sufficient ? attractorState.directionalWeight : 'sin lectura'} tone={attractorState.sufficient ? 'green' : 'muted'} />
           <MetricChip label="Eyectores" value={attractorState.ejectors.length || '-'} tone={attractorState.ejectors.length ? 'red' : 'muted'} />
           <MetricChip label="Cerrar" value={fieldState.openMutations.length || '-'} tone={fieldState.openMutations.length ? 'red' : 'muted'} />
@@ -271,7 +271,7 @@ export function RootDashboardClient() {
 
         <aside className={`min-h-0 overflow-hidden bg-[#0e0d0b] ${visor.enabled ? 'grayscale' : ''}`}>
           <div className="flex h-full flex-col">
-            <Accordion title="Chat Twin" open={openPanel === 'chat'} onClick={() => setOpenPanel(openPanel === 'chat' ? 'propuestas' : 'chat')}>
+            <Accordion title="AMV" open={openPanel === 'chat'} onClick={() => setOpenPanel(openPanel === 'chat' ? 'propuestas' : 'chat')}>
               <TwinInteractionPanel compact selectedNodeLabel={selectedNodeLabel} onArtifactIntent={() => setOpenPanel('artefactos')} />
             </Accordion>
             <Accordion title="Propuestas" open={openPanel === 'propuestas'} onClick={() => setOpenPanel(openPanel === 'propuestas' ? 'chat' : 'propuestas')}>

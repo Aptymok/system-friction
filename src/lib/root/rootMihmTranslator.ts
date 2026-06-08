@@ -52,7 +52,7 @@ function band(value: unknown, low: string, medium: string, high: string) {
 function confidenceFor(input: VisibleRecord, hasObject: boolean) {
   const warnings = arrayText(input.warnings);
   const sourceState = text(input.sourceState) || text(input.source_state) || 'missing';
-  if (!hasObject) return 'baja: falta objeto observado';
+  if (!hasObject) return 'basal: falta objeto focal para orientar decision';
   if (sourceState === 'observed' && warnings.length === 0) return 'media-alta: fuente observada sin advertencias visibles';
   if (sourceState === 'derived') return 'media-baja: lectura derivada, requiere objeto y evidencia';
   if (warnings.length) return `degradada: ${warnings.slice(0, 3).join(', ')}`;
@@ -97,9 +97,9 @@ export function translateRootMihm(value: unknown): RootMihmTranslation {
     resultingRegime: observedObject
       ? text(input.regime) || state.label
       : hasValues
-        ? 'lectura incompleta: hay valores sin objeto observado'
-        : 'sin regimen interpretable',
-    direction: observedObject ? directionFor(input) : 'no puede orientar decision sin objeto observado',
+        ? 'MIHM basal · Aptymok / n_0'
+        : 'MIHM basal · sin evidencia nueva',
+    direction: observedObject ? directionFor(input) : 'estado basal; no orienta decision fuerte',
     confidence: confidenceFor(input, Boolean(observedObject)),
     missing: missing.length ? `falta ${missing.join(', ')}` : 'sin faltante critico visible',
     decisionGrade: Boolean(observedObject) && hasValues,

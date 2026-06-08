@@ -115,7 +115,7 @@ export function VisorMode({
   if (!enabled) {
     return (
       <div className="pointer-events-none absolute inset-0 z-30">
-        <VisorGoldenNode label="ROOT VISOR" onClick={activateVisor} dormant />
+        <VisorGoldenNode label="AMV ROOT" onClick={activateVisor} dormant />
       </div>
     );
   }
@@ -127,7 +127,7 @@ export function VisorMode({
       <div className="absolute inset-0 backdrop-grayscale" />
 
       <div className="absolute left-1/2 top-4 z-[85] -translate-x-1/2 border border-white/10 bg-black/75 px-3 py-1.5 font-mono text-[9px] uppercase tracking-[0.24em] text-white/45">
-        VISOR MODE / lectura libre
+        AMV ROOT / lectura libre
       </div>
 
       <VisorSidebar activeContext={contextKey} onSelect={(nextContext) => {
@@ -135,7 +135,7 @@ export function VisorMode({
         chat.setOpen(true);
       }} />
 
-      <VisorGoldenNode label="ROOT VISOR" onClick={() => chat.setOpen(true)} />
+      <VisorGoldenNode label="AMV ROOT" onClick={() => chat.setOpen(true)} />
 
       {contextKey === 'bitacoras' ? (
         <RootLogbookAccordion

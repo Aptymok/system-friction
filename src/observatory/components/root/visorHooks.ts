@@ -21,6 +21,18 @@ type TwinState = {
 
 type VisorIntent = 'site' | 'attractor' | 'acp' | 'theory' | 'explain' | 'support' | 'closure' | 'reading' | 'personal_unknown' | 'logbook' | 'memory' | 'observatory_gap' | 'open';
 
+type AmvRuntimeResponse = {
+  ok?: boolean;
+  error?: string;
+  response?: {
+    evento?: string;
+    resultado?: string;
+    efecto?: string;
+    ventana?: string;
+    ruta_unica?: string;
+  };
+};
+
 const SFI_VISOR_ROOT_PROMPT = `Eres VISOR ROOT, interlocutor operativo de SystemFriction Institute.
 
 No eres una base de datos con chat.
@@ -409,37 +421,32 @@ function localCompanionResponse(contextKey: VisorContextKey, prompt: string, twi
   ].join('\n\n');
 }
 
-async function llmCompanionResponse(contextKey: VisorContextKey, prompt: string, twin: TwinState | null) {
-  const context = findVisorContext(contextKey);
-  const snapshot = readSnapshot(twin);
-  const promptFrame = classifyRootVisorPrompt(prompt, contextDataAvailable(contextKey, snapshot));
-  const response = await fetch('/api/ai', {
+function formatAmvResponse(payload: AmvRuntimeResponse | null) {
+  const response = payload?.response;
+  if (!payload?.ok || !response) return payload?.error ? `AMV no pudo responder: ${payload.error}.` : 'AMV no pudo responder desde scope ROOT.';
+  return [
+    `Evento: ${response.evento ?? 'Senal recibida.'}`,
+    `Resultado: ${response.resultado ?? 'Lectura estable.'}`,
+    `Efecto: ${response.efecto ?? 'No se ejecutan cambios.'}`,
+    `Ventana: ${response.ventana ?? 'Siguiente ciclo operativo.'}`,
+    `Ruta unica: ${response.ruta_unica ?? 'Mantener observacion.'}`,
+  ].join('\n');
+}
+
+async function amvRootResponse(prompt: string) {
+  const response = await fetch('/api/amv', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
+    credentials: 'include',
     body: JSON.stringify({
-      task: 'explain',
-      input: prompt,
-      mode: 'sfi_visor_companion',
-      context: {
-        visor_context: context,
-        system_snapshot: snapshot,
-        visible_memory: {
-          nodes: twin?.data?.seed?.nodeCatalog ?? [],
-          documents: twin?.data?.seed?.documentCatalog ?? [],
-          patterns: twin?.data?.seed?.patternCatalog ?? [],
-          proposals: twin?.data?.proposals ?? [],
-          recentEvents: twin?.data?.seed?.recentEvents ?? [],
-        },
-        prompt_classification: promptFrame,
-        rule: SFI_VISOR_ROOT_PROMPT,
-      },
+      scope: 'root',
+      message: prompt,
+      selectedContext: {},
     }),
   }).catch(() => null);
-
-  if (!response?.ok) return null;
-  const json = await response.json().catch(() => null) as { ok?: boolean; text?: string; output?: string } | null;
-  if (!json?.ok) return null;
-  return json.text || json.output || null;
+  if (!response) return 'AMV no pudo responder desde scope ROOT.';
+  const json = await response.json().catch(() => null) as AmvRuntimeResponse | null;
+  return formatAmvResponse(json);
 }
 
 export function useVisorMode() {
@@ -475,7 +482,7 @@ export function useVisorChat(contextKey: VisorContextKey, twin: TwinState | null
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [messages, setMessages] = useState<VisorChatMessage[]>([
-    { role: 'visor', text: 'Soy VISOR ROOT. Puedo dialogar contigo desde memoria visible, inferencia declarada o conocimiento general. Si algo no esta registrado, lo digo.' },
+    { role: 'visor', text: 'Soy AMV ROOT. Respondo desde scope=root con evento, resultado, efecto, ventana y ruta unica.' },
   ]);
 
   async function submit(prompt: string) {
@@ -486,11 +493,11 @@ export function useVisorChat(contextKey: VisorContextKey, twin: TwinState | null
     try {
       const snapshot = readSnapshot(twin);
       const promptFrame = classifyRootVisorPrompt(trimmed, contextDataAvailable(contextKey, snapshot));
-      const llmText = await llmCompanionResponse(contextKey, trimmed, twin);
+      const amvText = await amvRootResponse(trimmed);
       setMessages((current) => [...current, {
         role: 'visor',
-        classification: promptFrame.label,
-        text: llmText ?? localCompanionResponse(contextKey, trimmed, twin),
+        classification: `scope=root / ${promptFrame.label}`,
+        text: amvText,
       }]);
     } finally {
       setLoading(false);

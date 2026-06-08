@@ -79,7 +79,7 @@ export function GlobalMetricsView() {
       <div className="border-b border-[#1e1c17] px-4 py-3">
         <p className="font-mono text-[8px] uppercase tracking-[0.22em] text-[#8a7035]">WSV / MIHM</p>
         <h3 className="mt-1 font-serif text-lg text-[#c8a951]">Lecturas interpretables del campo</h3>
-        <p className="mt-1 text-xs leading-5 text-[#8a7568]">WSV no se resume como OK. MIHM no orienta decision sin objeto observado.</p>
+        <p className="mt-1 text-xs leading-5 text-[#8a7568]">WSV no se resume como OK. MIHM solo orienta decision cuando declara objeto focal.</p>
       </div>
 
       <div className="grid grid-cols-1 gap-2 p-3 text-xs leading-5 text-[#8a7568]">
@@ -99,11 +99,11 @@ export function GlobalMetricsView() {
         <section className="bg-[#131210] p-3">
           <div className="mb-2 font-mono text-[8px] uppercase tracking-[0.18em] text-[#8a7035]">{mihm.label}</div>
           <div className="grid gap-2">
-            <FieldLine label="objeto observado">{mihm.observedObject ?? 'sin objeto observado; no puede interpretarse como lectura de decision'}</FieldLine>
+            <FieldLine label="objeto observado">{mihm.observedObject ?? 'MIHM basal · Aptymok / n_0'}</FieldLine>
             {mihm.decisionGrade ? mihm.indicators.map((indicator) => (
               <FieldLine key={indicator.key} label={indicator.key}>{indicator.value} / {indicator.reading}</FieldLine>
             )) : (
-              <FieldLine label="indicadores">lectura incompleta: existen o pueden existir valores, pero no se muestran como regimen valido sin objeto observado</FieldLine>
+              <FieldLine label="indicadores">MIHM basal · sin evidencia nueva</FieldLine>
             )}
             <FieldLine label="regimen resultante">{mihm.resultingRegime}</FieldLine>
             <FieldLine label="direccion">{mihm.direction}</FieldLine>

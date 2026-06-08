@@ -195,7 +195,7 @@ export function translateRootTwinProposal(value: unknown, index = 0): RootTwinPr
     operationalTitle: titleFor(proposal, innerProposal, expected, index),
     reason: firstText(innerProposal, ['reason', 'why', 'rationale', 'hypothesis'])
       ?? firstText(summary, ['objective', 'hypothesis'])
-      ?? 'Twin / AMV propone una lectura; el motivo especifico no esta declarado.',
+      ?? 'AMV propone una lectura; el motivo especifico no esta declarado.',
     evidence,
     affectedNode: node,
     affectedAttractor: affectedAttractorFor(proposal, innerProposal, expected),

@@ -277,9 +277,9 @@ function buildAlerts(input: {
   if (!input.mihm.observedObject) {
     alerts.push({
       severity: 'medium',
-      title: 'MIHM sin objeto observado',
+      title: 'MIHM basal',
       detail: input.mihm.detail,
-      recommendedAction: 'declarar objeto observado antes de interpretar MIHM.',
+      recommendedAction: 'declarar objeto focal antes de interpretar MIHM como decision.',
     });
   }
 
@@ -379,9 +379,9 @@ export function buildRootFieldState(input: unknown): RootFieldState {
         detail: open.length ? open.slice(0, 3).map((item) => titleOf(item, 'pendiente')).join(' / ') : 'No convertir ausencia de pendientes en metricas inventadas.',
       },
       {
-        question: 'Que propone el Twin / AMV?',
+        question: 'Que propone AMV?',
         answer: mainProposal ? titleOf(mainProposal, 'propuesta visible') : 'Sin propuesta principal visible.',
-        detail: mainProposal ? translateRootState(statusOf(mainProposal) ?? 'missing').implication : 'No se inventa propuesta si el Twin no expone una.',
+        detail: mainProposal ? translateRootState(statusOf(mainProposal) ?? 'missing').implication : 'No se inventa propuesta si AMV no expone una.',
       },
       {
         question: 'Que cambio desde la ultima vez?',

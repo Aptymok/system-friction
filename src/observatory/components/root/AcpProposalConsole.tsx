@@ -220,9 +220,9 @@ export function AcpProposalConsole({ compact = false }: { compact?: boolean }) {
     <section className="border border-[#1e1c17] bg-[#0e0d0b]">
       <div className="flex items-start justify-between gap-3 border-b border-[#1e1c17] px-4 py-3">
         <div>
-          <p className="font-mono text-[8px] uppercase tracking-[0.22em] text-[#8a7035]">Twin / AMV</p>
+          <p className="font-mono text-[8px] uppercase tracking-[0.22em] text-[#8a7035]">AMV</p>
           <h2 className="mt-1 font-serif text-lg text-[#c8a951]">Propuestas operativas</h2>
-          <p className="mt-1 font-mono text-[9px] tracking-[0.08em] text-[#7a7568]">Twin propone; ROOT decide. Aceptar no significa ejecutar.</p>
+          <p className="mt-1 font-mono text-[9px] tracking-[0.08em] text-[#7a7568]">AMV propone; ROOT decide. Aceptar no significa ejecutar.</p>
         </div>
         <button type="button" onClick={() => void load()} disabled={loading} className="border border-[#8a7035] bg-[#2e2410] px-3 py-1 font-mono text-[8px] uppercase tracking-[0.16em] text-[#c8a951] disabled:opacity-40">
           {loading ? 'Cargando' : 'Actualizar'}
@@ -232,7 +232,7 @@ export function AcpProposalConsole({ compact = false }: { compact?: boolean }) {
       <div className="m-3 border border-[#2e2410] bg-[#12100d] p-3">
         <div className="font-mono text-[8px] uppercase tracking-[0.18em] text-[#8a7035]">Lectura ROOT</div>
         <div className="mt-2 grid gap-1 text-xs leading-5 text-[#8a7568]">
-          <p>El Twin / AMV formula propuestas, mutaciones o acciones pendientes; no ejecuta ni bloquea decision raiz.</p>
+          <p>AMV formula propuestas, mutaciones o acciones pendientes; no ejecuta ni bloquea decision raiz.</p>
           <p>Propuesta aceptada no es Accion de Realidad. Accion ejecutada tampoco es evidencia externa sin testigo visible.</p>
           <p>Cuando falta evidencia, nodo afectado, resultado o aprendizaje, ROOT lo declara antes de permitir cierre fuerte.</p>
         </div>

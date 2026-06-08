@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 
 const NAV = [
   ['/scorefriction', 'Observatorio'],
+  ['/scorefriction/wide', 'Wide'],
   ['/scorefriction/lab', 'Lab'],
   ['/scorefriction/wave', 'Wave'],
   ['/scorefriction/cases', 'Cases'],
