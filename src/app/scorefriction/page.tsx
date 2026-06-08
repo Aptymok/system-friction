@@ -1,11 +1,14 @@
 import { ScoreFrictionPanel, ScoreFrictionShell } from '@/scorefriction/components/ScoreFrictionShell';
 import { scorefrictionDashboardSpec } from '@/lib/amv/scopes/scorefriction/scorefrictionDashboardSpec';
 import { ScopedDashboardShell } from '@/observatory/components/amv/ScopedDashboardShell';
+import { buildScoreFrictionScopeState } from '@/lib/amv/scopes/scorefriction/scorefrictionStateConnector';
 
-export default function ScoreFrictionPage() {
+export default async function ScoreFrictionPage() {
+  const state = await buildScoreFrictionScopeState();
+
   return (
     <div className="grid gap-4">
-      <ScopedDashboardShell spec={scorefrictionDashboardSpec} />
+      <ScopedDashboardShell spec={scorefrictionDashboardSpec} state={state} />
       <ScoreFrictionShell
         title="Observatorio"
         subtitle="Observa fuentes culturales imperfectas, declara su friccion, normaliza senal y verifica si un protoatractor cultural adquiere forma."
