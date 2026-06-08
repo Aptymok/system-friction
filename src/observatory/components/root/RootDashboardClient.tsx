@@ -12,6 +12,8 @@ import { AcpFieldRegimeView } from '@/observatory/components/root/AcpFieldRegime
 import { AcpFreeNodesView } from '@/observatory/components/root/AcpFreeNodesView';
 import { AcpAttractorFieldView } from '@/observatory/components/root/AcpAttractorFieldView';
 import { RootOperationsConsole } from '@/observatory/components/root/RootOperationsConsole';
+import { RootObservatoryIndex } from '@/observatory/components/root/RootObservatoryIndex';
+import { RootLogbookConsole } from '@/observatory/components/root/RootLogbookConsole';
 import { VisorMode } from '@/observatory/components/root/VisorMode';
 import { useVisorMode } from '@/observatory/components/root/visorHooks';
 import { buildRootAttractorState } from '@/lib/root/rootAttractorState';
@@ -28,6 +30,17 @@ type TwinState = {
     mihmRuntimeMatrix?: unknown;
     kernel?: unknown;
     proposals?: unknown[];
+    amvScopes?: Array<{
+      scope: string;
+      label: string;
+      state: string;
+      sourceTrust: string;
+      latestReading?: { label?: string; summary?: string; observedAt?: string } | null;
+      evidenceCount: number;
+      canFeedRegime: boolean;
+      canSupportAttractor: boolean;
+      warnings: string[];
+    }>;
     warnings?: string[];
     seed?: {
       nodeCatalog?: unknown[];
@@ -148,7 +161,12 @@ export function RootDashboardClient() {
 
   useEffect(() => {
     window.sessionStorage.setItem('root:open-panel', openPanel);
+    if (openPanel === 'control') visor.setEnabled(false);
   }, [openPanel]);
+
+  useEffect(() => {
+    return () => visor.setEnabled(false);
+  }, []);
 
   useEffect(() => {
     const navigation = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined;
@@ -284,6 +302,10 @@ export function RootDashboardClient() {
               <AcpAgentRegistryPanel compact />
             </Accordion>
             <Accordion title="Root" open={openPanel === 'control'} onClick={() => setOpenPanel(openPanel === 'control' ? 'chat' : 'control')}>
+              <RootObservatoryIndex scopes={twin?.data?.amvScopes} />
+              <div className="mt-3">
+                <RootLogbookConsole />
+              </div>
               <RootOperationsConsole />
               <div className="mt-3">
                 <SystemOverridePanel />
@@ -291,7 +313,7 @@ export function RootDashboardClient() {
             </Accordion>
           </div>
         </aside>
-        <VisorMode enabled={visor.enabled} twin={twin} onEnable={() => visor.setEnabled(true)} />
+        <VisorMode enabled={visor.enabled} twin={twin} onEnable={() => visor.setEnabled(true)} onDisable={() => visor.setEnabled(false)} />
       </main>
     </div>
   );

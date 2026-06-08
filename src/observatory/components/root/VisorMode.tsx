@@ -93,10 +93,12 @@ export function VisorMode({
   enabled,
   twin,
   onEnable,
+  onDisable,
 }: {
   enabled: boolean;
   twin: TwinState | null;
   onEnable: () => void;
+  onDisable: () => void;
 }) {
   const { contextKey, context, setContextKey } = useVisorContext('bitacoras');
   const chat = useVisorChat(contextKey, twin);
@@ -129,6 +131,13 @@ export function VisorMode({
       <div className="absolute left-1/2 top-4 z-[85] -translate-x-1/2 border border-white/10 bg-black/75 px-3 py-1.5 font-mono text-[9px] uppercase tracking-[0.24em] text-white/45">
         AMV ROOT / lectura libre
       </div>
+      <button
+        type="button"
+        onClick={onDisable}
+        className="absolute right-4 top-4 z-[86] border border-[#d4af37]/40 bg-black/75 px-3 py-1.5 font-mono text-[9px] uppercase tracking-[0.16em] text-[#d4af37] hover:bg-[#d4af37]/10"
+      >
+        Salir de VISOR
+      </button>
 
       <VisorSidebar activeContext={contextKey} onSelect={(nextContext) => {
         setContextKey(nextContext);
