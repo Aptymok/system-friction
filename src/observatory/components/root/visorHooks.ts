@@ -450,17 +450,11 @@ async function amvRootResponse(prompt: string) {
 }
 
 export function useVisorMode() {
-  const [enabled, setEnabledState] = useState(() => {
-    if (typeof window === 'undefined') return false;
-    return window.sessionStorage.getItem('root:visor-enabled') === 'true';
-  });
+  const [enabled, setEnabledState] = useState(false);
 
   function setEnabled(next: boolean | ((current: boolean) => boolean)) {
     setEnabledState((current) => {
       const value = typeof next === 'function' ? next(current) : next;
-      if (typeof window !== 'undefined') {
-        window.sessionStorage.setItem('root:visor-enabled', value ? 'true' : 'false');
-      }
       return value;
     });
   }
