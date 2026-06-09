@@ -42,6 +42,15 @@ function latestLabel(row: Row | undefined) {
   return str(normalized.title) || str(raw.title) || str(row.case_id) || 'Observacion ScoreFriction'
 }
 
+function isScoreFrictionEvent(row: Row) {
+  const payload = record(row.payload)
+  const source = record(row.source)
+  const eventName = str(row.event_name).toLowerCase()
+  return str(source.sourceId).toUpperCase() === 'SCOREFRICTION'
+    || str(payload.logbookAlias).toUpperCase() === 'SCOREFRICTION'
+    || eventName.startsWith('scorefriction.')
+}
+
 function logSupabaseClientDiagnostics() {
   const serviceRolePresent = Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY)
 
@@ -85,14 +94,14 @@ export async function buildScoreFrictionSelectedContext() {
       queryRows(service, 'scorefriction_vectors'),
       queryRows(service, 'scorefriction_prototypes'),
       queryRows(service, 'scorefriction_verifications', '*', 'verified_at'),
-      queryRows(service, 'epistemic_events', '*', 'created_at', 25, { column: 'logbook_id', value: 'SCOREFRICTION' }),
+      queryRows(service, 'epistemic_events', '*', 'created_at', 50, { column: 'logbook_id', value: 'ROOT' }),
     ])
 
     observations = obs.rows
     vectors = vec.rows
     prototypes = proto.rows
     verifications = ver.rows
-    events = evt.rows
+    events = evt.rows.filter(isScoreFrictionEvent)
     warnings.push(...[obs.warning, vec.warning, proto.warning, ver.warning, evt.warning].filter((item): item is string => Boolean(item)))
   } catch (error) {
     const warning = error instanceof Error ? error.message : 'scorefriction_state_unavailable'
