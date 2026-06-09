@@ -1,0 +1,216 @@
+# ScoreFriction — Codex main execution prompts
+
+Regla global para todos los prompts:
+
+- Trabaja sobre `main`.
+- No crees branch.
+- No generes mock data.
+- No dejes TODOs.
+- No dejes pantallas desconectadas.
+- Implementa, prueba, corrige y commitea.
+- Ejecuta `npm run lint` y `npm run build`.
+- Si falla el build, corrige hasta que compile.
+- Cada fase debe terminar con commit en `main`.
+
+---
+
+## PROMPT 1 — FASE 7: Protoatractores reales
+
+Implementa la FASE 7 completa de ScoreFriction: protoatractores reales.
+
+Objetivo: convertir observaciones y vectores MIHM-Cultural persistidos en objetos observables llamados protoatractores.
+
+Implementa:
+
+1. Migración Supabase nueva para `scorefriction_proto_attractors`.
+2. Columnas obligatorias: `id`, `case_id`, `name`, `description`, `scope`, `confidence`, `density`, `persistence`, `status`, `evidence_count`, `observation_count`, `supporting_vectors`, `worldspect_snapshot`, `mihm_snapshot`, `generated_by`, `first_seen`, `last_seen`, `created_at`, `updated_at`.
+3. Estados permitidos: `latent`, `emerging`, `crystallizing`, `consolidated`, `degraded`.
+4. Servicio `src/lib/scorefriction/proto-attractors.ts`.
+5. Endpoint `POST /api/scorefriction/proto-attractors/detect`.
+6. Endpoint `GET /api/scorefriction/proto-attractors?case_id=...`.
+7. Integración visual en `/scorefriction` dentro de `ScoreFrictionUnifiedObservatoryV2`.
+8. Panel visible: nombre, estado, confianza, densidad, persistencia, evidencia, última actualización.
+9. Sin datos simulados. Si no hay evidencia, mostrar `sin protoatractores detectados`.
+
+Criterio de cierre:
+
+- `/scorefriction` detecta protoatractores desde datos reales.
+- El resultado se persiste en Supabase.
+- El panel se actualiza desde endpoint real.
+- `npm run lint` pasa.
+- `npm run build` pasa.
+- Commit final: `feat(scorefriction): implement proto-attractors`.
+
+---
+
+## PROMPT 2 — FASE 8: Observación longitudinal
+
+Implementa la FASE 8 completa de ScoreFriction: observación longitudinal real.
+
+Objetivo: registrar snapshots temporales de protoatractores para observar evolución cultural.
+
+Implementa:
+
+1. Migración Supabase nueva para `scorefriction_attractor_snapshots`.
+2. Columnas obligatorias: `id`, `proto_attractor_id`, `case_id`, `density`, `confidence`, `persistence`, `status`, `observation_count`, `evidence_count`, `mihm_snapshot`, `worldspect_snapshot`, `created_at`.
+3. Servicio `src/lib/scorefriction/longitudinal.ts`.
+4. Endpoint `POST /api/scorefriction/longitudinal/snapshot`.
+5. Endpoint `GET /api/scorefriction/longitudinal?case_id=...`.
+6. Integración en `/scorefriction` dentro del panel Cronología Viva.
+7. La cronología debe leer snapshots reales.
+8. Si no hay snapshots, mostrar `sin trayectoria longitudinal`.
+9. Después de detectar protoatractores, crear snapshot automático.
+
+Criterio de cierre:
+
+- La cronología deja de ser simulada.
+- Los snapshots se persisten.
+- La UI muestra trayectoria real por caso.
+- `npm run lint` pasa.
+- `npm run build` pasa.
+- Commit final: `feat(scorefriction): implement longitudinal attractor snapshots`.
+
+---
+
+## PROMPT 3 — FASE 9: Cognitive Twin Cultural
+
+Implementa la FASE 9 completa de ScoreFriction: Cognitive Twin Cultural.
+
+Objetivo: registrar hipótesis culturales vivas derivadas de protoatractores y observaciones.
+
+Implementa:
+
+1. Migración Supabase nueva para `scorefriction_cultural_hypotheses`.
+2. Columnas obligatorias: `id`, `case_id`, `proto_attractor_id`, `title`, `statement`, `confidence`, `status`, `verification_window_days`, `expected_signal`, `actual_signal`, `result`, `created_from`, `created_at`, `updated_at`.
+3. Estados permitidos: `open`, `tracking`, `verified`, `refuted`, `expired`.
+4. Servicio `src/lib/scorefriction/cultural-twin.ts`.
+5. Endpoint `POST /api/scorefriction/cultural-twin/hypotheses/generate`.
+6. Endpoint `GET /api/scorefriction/cultural-twin?case_id=...`.
+7. Panel nuevo en `/scorefriction`: Cognitive Twin Cultural.
+8. Mostrar hipótesis, estado, confianza, ventana de verificación y resultado.
+9. No generar hipótesis si no existe protoatractor con evidencia suficiente.
+
+Criterio de cierre:
+
+- El twin cultural genera hipótesis reales desde protoatractores.
+- Las hipótesis se persisten.
+- La UI muestra hipótesis reales.
+- `npm run lint` pasa.
+- `npm run build` pasa.
+- Commit final: `feat(scorefriction): implement cultural twin hypotheses`.
+
+---
+
+## PROMPT 4 — FASE 10: Proposal Engine
+
+Implementa la FASE 10 completa de ScoreFriction: Proposal Engine operacional.
+
+Objetivo: generar propuestas de acción desde hipótesis culturales y protoatractores, reutilizando la tabla global `action_proposals` si ya existe.
+
+Implementa:
+
+1. Revisa el contrato actual de `action_proposals`.
+2. No dupliques tabla si ya existe.
+3. Servicio `src/lib/scorefriction/proposal-engine.ts`.
+4. Endpoint `POST /api/scorefriction/proposals/generate`.
+5. Endpoint `GET /api/scorefriction/proposals?case_id=...`.
+6. Cada propuesta debe incluir: acción, fundamento, evidencia, riesgo, impacto esperado, ventana de verificación, estado.
+7. Estados: `draft`, `proposed`, `accepted`, `rejected`, `executed`, `verified`.
+8. Integrar panel Propuestas en `/scorefriction`.
+9. No generar propuestas sin hipótesis cultural activa.
+
+Criterio de cierre:
+
+- Las propuestas se generan desde hipótesis reales.
+- Las propuestas se guardan en tabla persistente.
+- La UI muestra propuestas reales.
+- `npm run lint` pasa.
+- `npm run build` pasa.
+- Commit final: `feat(scorefriction): implement proposal engine`.
+
+---
+
+## PROMPT 5 — FASE 11: Verification Engine
+
+Implementa la FASE 11 completa de ScoreFriction: Verification Engine.
+
+Objetivo: cerrar el ciclo propuesta → ejecución → resultado → aprendizaje.
+
+Implementa:
+
+1. Migración Supabase nueva para `scorefriction_proposal_verifications` si no existe tabla equivalente.
+2. Columnas obligatorias: `id`, `proposal_id`, `case_id`, `expected_result`, `actual_result`, `delta`, `verified`, `confidence`, `evidence_payload`, `verified_at`, `created_at`.
+3. Servicio `src/lib/scorefriction/verification-engine.ts`.
+4. Endpoint `POST /api/scorefriction/verifications/record`.
+5. Endpoint `GET /api/scorefriction/verifications?case_id=...`.
+6. Integrar panel Verificación en `/scorefriction`.
+7. Al verificar, actualizar propuesta e hipótesis asociada.
+8. Si el resultado contradice la hipótesis, marcarla como `refuted`.
+9. Si el resultado confirma la hipótesis, marcarla como `verified`.
+
+Criterio de cierre:
+
+- Se puede registrar verificación real.
+- La propuesta cambia de estado.
+- La hipótesis cambia de estado.
+- La UI muestra el cierre del ciclo.
+- `npm run lint` pasa.
+- `npm run build` pasa.
+- Commit final: `feat(scorefriction): implement verification engine`.
+
+---
+
+## PROMPT 6 — FASE 12: Worldspect convergence
+
+Implementa la FASE 12 completa de ScoreFriction: convergencia con Worldspect.
+
+Objetivo: integrar ScoreFriction con snapshots Worldspect para que cada protoatractor, hipótesis, propuesta y verificación pueda leer contexto externo.
+
+Implementa:
+
+1. Revisa `worldspect_snapshots` y contratos existentes.
+2. No crees tabla duplicada si ya existe `worldspect_snapshots`.
+3. Servicio `src/lib/scorefriction/worldspect-convergence.ts`.
+4. Endpoint `GET /api/scorefriction/worldspect?case_id=...`.
+5. Vincular latest Worldspect snapshot con protoatractores y snapshots longitudinales.
+6. Agregar `worldspect_snapshot` donde falte en servicios nuevos.
+7. Integrar panel Worldspect real en `/scorefriction`.
+8. El panel debe mostrar snapshot real o estado `worldspect_unavailable`.
+9. No usar barras simuladas cuando exista dato real.
+
+Criterio de cierre:
+
+- ScoreFriction lee Worldspect real si existe.
+- Protoatractores y snapshots guardan contexto Worldspect.
+- La UI muestra contexto externo real.
+- `npm run lint` pasa.
+- `npm run build` pasa.
+- Commit final: `feat(scorefriction): converge with worldspect`.
+
+---
+
+## PROMPT 7 — Cierre de integración
+
+Ejecuta cierre de integración ScoreFriction.
+
+Objetivo: dejar `/scorefriction` como observatorio único y operativo.
+
+Implementa:
+
+1. Revisar `/scorefriction`, `/scorefriction/wave`, `/scorefriction/cases`, `/scorefriction/evidence`, `/scorefriction/lab`.
+2. Mantener rutas secundarias solo si no duplican el observatorio principal.
+3. La ruta principal `/scorefriction` debe concentrar observación, evaluación, protoatractores, hipótesis, propuestas y verificaciones.
+4. Eliminar navegación que fragmente el uso principal.
+5. Corregir imports muertos.
+6. Corregir componentes no usados.
+7. Ejecutar lint.
+8. Ejecutar build.
+9. Corregir todo error de TypeScript o Next.
+10. Commit final: `chore(scorefriction): finalize unified observatory integration`.
+
+Criterio de cierre:
+
+- `/scorefriction` funciona como observatorio principal.
+- No hay mock visual donde existan datos reales.
+- No hay build roto.
+- No hay rutas principales duplicando operación.
