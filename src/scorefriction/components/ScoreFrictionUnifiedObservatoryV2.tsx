@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { AmvScopeState } from '@/lib/amv/core/amvScopeStateTypes';
 
 type Row = Record<string, unknown>;
@@ -18,6 +18,28 @@ type ApiResult = {
   warnings?: string[];
   route?: string;
   normalizedPreview?: Row;
+};
+
+type RuntimeLayer = {
+  proto: Row[];
+  longitudinal: Row[];
+  hypotheses: Row[];
+  proposals: Row[];
+  verifications: Row[];
+  worldspect: Row | null;
+  worldspectStatus: string;
+  messages: Record<string, string>;
+};
+
+const EMPTY_RUNTIME: RuntimeLayer = {
+  proto: [],
+  longitudinal: [],
+  hypotheses: [],
+  proposals: [],
+  verifications: [],
+  worldspect: null,
+  worldspectStatus: 'worldspect_unavailable',
+  messages: {},
 };
 
 const START_PAYLOAD = {
@@ -95,6 +117,15 @@ function Metric({ label, value }: { label: string; value: string }) {
   );
 }
 
+function CompactRow({ title, meta }: { title: string; meta: string }) {
+  return (
+    <div className="mb-2 border border-[#c8a95112] bg-[#080706] p-3 font-mono">
+      <div className="text-[10px] text-[#ead8aa]">{title}</div>
+      <div className="mt-1 text-[9px] uppercase tracking-[0.12em] text-[#6f6658]">{meta}</div>
+    </div>
+  );
+}
+
 function Trace({ result }: { result: ApiResult | null }) {
   const data = record(result?.data);
   const normalized = record(data.normalized ?? result?.normalizedPreview);
@@ -129,6 +160,7 @@ export function ScoreFrictionUnifiedObservatoryV2({ initialState }: { initialSta
   const [log, setLog] = useState<string[]>(['INIT · ScoreFriction unificado']);
   const [chat, setChat] = useState('');
   const [busy, setBusy] = useState<string | null>(null);
+  const [runtime, setRuntime] = useState<RuntimeLayer>(EMPTY_RUNTIME);
 
   const phi = useMemo(() => phiState(state, result), [state, result]);
   const context = contextOf(state);
@@ -138,6 +170,7 @@ export function ScoreFrictionUnifiedObservatoryV2({ initialState }: { initialSta
   const normalized = record(data.normalized ?? result?.normalizedPreview);
   const vectors = record(data.vectors);
   const mihm = record(vectors.mihm_cultural_vector);
+  const currentCaseId = s(normalized.caseId ?? normalized.case_id ?? context.case_id ?? START_PAYLOAD.case_id, 'CW-011');
 
   function push(entry: string) {
     const stamp = new Date().toISOString().split('T')[1]?.slice(0, 8) ?? '00:00:00';
@@ -156,6 +189,65 @@ export function ScoreFrictionUnifiedObservatoryV2({ initialState }: { initialSta
     return json;
   }
 
+  async function readLayer(path: string) {
+    const response = await fetch(`${path}${path.includes('?') ? '&' : '?'}case_id=${encodeURIComponent(currentCaseId)}`, { cache: 'no-store' });
+    return response.json() as Promise<{ ok?: boolean; data?: unknown; status?: string; message?: string; error?: string }>;
+  }
+
+  async function refreshRuntime() {
+    try {
+      const [proto, longitudinal, hypotheses, proposals, verifications, worldspect] = await Promise.all([
+        readLayer('/api/scorefriction/proto-attractors'),
+        readLayer('/api/scorefriction/longitudinal'),
+        readLayer('/api/scorefriction/cultural-twin'),
+        readLayer('/api/scorefriction/proposals'),
+        readLayer('/api/scorefriction/verifications'),
+        readLayer('/api/scorefriction/worldspect'),
+      ]);
+      setRuntime({
+        proto: Array.isArray(proto.data) ? proto.data as Row[] : [],
+        longitudinal: Array.isArray(longitudinal.data) ? longitudinal.data as Row[] : [],
+        hypotheses: Array.isArray(hypotheses.data) ? hypotheses.data as Row[] : [],
+        proposals: Array.isArray(proposals.data) ? proposals.data as Row[] : [],
+        verifications: Array.isArray(verifications.data) ? verifications.data as Row[] : [],
+        worldspect: worldspect.data ? record(worldspect.data) : null,
+        worldspectStatus: worldspect.status ?? 'worldspect_unavailable',
+        messages: {
+          proto: proto.message ?? proto.error ?? 'sin protoatractores detectados',
+          longitudinal: longitudinal.message ?? longitudinal.error ?? 'sin trayectoria longitudinal',
+          hypotheses: hypotheses.message ?? hypotheses.error ?? 'sin hipotesis culturales',
+          proposals: proposals.message ?? proposals.error ?? 'sin propuestas scorefriction',
+          verifications: verifications.message ?? verifications.error ?? 'sin verificaciones scorefriction',
+        },
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'runtime scorefriction no disponible';
+      setRuntime({ ...EMPTY_RUNTIME, messages: { proto: message, longitudinal: message, hypotheses: message, proposals: message, verifications: message } });
+    }
+  }
+
+  async function triggerLayer(kind: 'proto' | 'hypotheses' | 'proposals') {
+    setBusy(kind);
+    const endpoint = kind === 'proto'
+      ? '/api/scorefriction/proto-attractors/detect'
+      : kind === 'hypotheses'
+        ? '/api/scorefriction/cultural-twin/hypotheses/generate'
+        : '/api/scorefriction/proposals/generate';
+    try {
+      const response = await fetch(endpoint, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ case_id: currentCaseId }) });
+      const json = await response.json() as { ok?: boolean; error?: string; message?: string };
+      push(`${kind.toUpperCase()} Â· ${json.ok === false ? json.error ?? 'fallo' : json.message ?? 'ok'}`);
+      await refreshRuntime();
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  useEffect(() => {
+    void refreshRuntime();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentCaseId]);
+
   async function run(mode: 'preflight' | 'evaluate' | 'record') {
     setBusy(mode);
     setPreviousPhi(phi.phi);
@@ -169,7 +261,10 @@ export function ScoreFrictionUnifiedObservatoryV2({ initialState }: { initialSta
       const json = await response.json() as ApiResult;
       setResult(json);
       push(`${mode.toUpperCase()} · ${json.ok === false ? json.error ?? 'fallo' : json.route ?? 'ejecutado'}`);
-      if (mode === 'record' && json.ok !== false) await refresh();
+      if (mode === 'record' && json.ok !== false) {
+        await refresh();
+        await refreshRuntime();
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'operacion fallida';
       setResult({ ok: false, error: message });
@@ -230,7 +325,20 @@ export function ScoreFrictionUnifiedObservatoryV2({ initialState }: { initialSta
           </Panel>
 
           <Panel title="WORLD SPECTRUM" topo="TOPO-III" width="w-[320px]">
-            <div className="mt-12 grid gap-2">{['memeticSat', 'colAnxiety', 'econPress', 'infoVel'].map((label, idx) => <div key={label} className="h-5 border border-[#c8a95112] bg-[#0a0a09]"><div className="h-full bg-[#c8a95122]" style={{ width: `${55 + idx * 10}%` }} /></div>)}</div>
+            <div className="mt-12 font-mono text-[10px] leading-5 text-[#9c9282]">
+              {runtime.worldspect ? (
+                <div className="border border-[#c8a95112] bg-[#080706] p-3">
+                  <div className="text-[#ead8aa]">{runtime.worldspectStatus}</div>
+                  <div className="mt-2 grid grid-cols-2 gap-2">
+                    <Metric label="WSI" value={n(runtime.worldspect.wsi).toFixed(2)} />
+                    <Metric label="NTI" value={n(runtime.worldspect.nti).toFixed(2)} />
+                  </div>
+                  <div className="mt-2 text-[9px] text-[#4a4a45]">{s(runtime.worldspect.observed_at, 'sin timestamp')}</div>
+                </div>
+              ) : (
+                <div className="border border-[#c8a95112] bg-[#080706] p-3 text-[#6f6658]">worldspect_unavailable</div>
+              )}
+            </div>
           </Panel>
         </div>
 
@@ -249,8 +357,47 @@ export function ScoreFrictionUnifiedObservatoryV2({ initialState }: { initialSta
 
         <div className="flex h-[29%] overflow-x-auto [scrollbar-width:none]">
           <Panel title="CRONOLOGIA VIVA" topo="TOPO-III" width="w-[420px]">
-            <div className="mt-14 flex items-end gap-3">{Array.from({ length: 9 }).map((_, idx) => <div key={idx} className="flex h-24 w-8 items-end border-b border-[#c8a95122]"><div className="w-full bg-[#c8a95133]" style={{ height: `${25 + ((idx * 17) % 70)}%` }} /></div>)}</div>
+            <div className="mt-14 flex items-end gap-3">{runtime.longitudinal.length ? runtime.longitudinal.slice(-9).map((item) => <div key={s(item.id)} className="flex h-24 w-8 items-end border-b border-[#c8a95122]"><div className="w-full bg-[#c8a95133]" style={{ height: `${Math.max(8, Math.round(n(item.density) * 100))}%` }} /></div>) : <div className="font-mono text-[10px] text-[#6f6658]">{runtime.messages.longitudinal ?? 'sin trayectoria longitudinal'}</div>}</div>
             <div className="mt-3 font-mono text-[9px] uppercase tracking-[0.2em] text-[#4a4a45]">Obs {Number(tables.observations ?? 0)} · Vec {Number(tables.vectors ?? 0)} · Ver {Number(tables.verifications ?? 0)} · Events {Number(tables.events ?? 0)}</div>
+          </Panel>
+
+          <Panel title="PROTOATRACTORES" topo="TOPO-III" width="w-[420px]">
+            <div className="mt-9 flex items-center justify-between font-mono text-[9px] uppercase tracking-[0.18em] text-[#4a4a45]">
+              <span>Caso <span className="text-[#c8a95199]">{currentCaseId}</span></span>
+              <button onClick={() => void triggerLayer('proto')} disabled={Boolean(busy)} className="border border-[#c8a95133] px-3 py-2 text-[#c8a951]">Detectar</button>
+            </div>
+            <div className="mt-3 max-h-[150px] overflow-auto">
+              {runtime.proto.length ? runtime.proto.map((item) => (
+                <CompactRow key={s(item.id, s(item.name))} title={s(item.name, 'protoatractor')} meta={`${s(item.status, 'latent')} / C ${n(item.confidence).toFixed(2)} / D ${n(item.density).toFixed(2)} / P ${n(item.persistence).toFixed(2)} / Ev ${n(item.evidence_count)}`} />
+              )) : <CompactRow title={runtime.messages.proto ?? 'sin protoatractores detectados'} meta="endpoint real / sin filas persistidas" />}
+            </div>
+          </Panel>
+
+          <Panel title="COGNITIVE TWIN CULTURAL" topo="TOPO-III" width="w-[430px]">
+            <div className="mt-9 flex justify-end"><button onClick={() => void triggerLayer('hypotheses')} disabled={Boolean(busy)} className="border border-[#c8a95133] px-3 py-2 font-mono text-[9px] uppercase tracking-[0.18em] text-[#c8a951]">Generar</button></div>
+            <div className="mt-3 max-h-[150px] overflow-auto">
+              {runtime.hypotheses.length ? runtime.hypotheses.map((item) => (
+                <CompactRow key={s(item.id, s(item.title))} title={s(item.title, 'hipotesis cultural')} meta={`${s(item.status, 'open')} / C ${n(item.confidence).toFixed(2)} / ventana ${n(item.verification_window_days, 21)}d / ${s(item.result, 'sin resultado')}`} />
+              )) : <CompactRow title={runtime.messages.hypotheses ?? 'sin hipotesis culturales'} meta="requiere protoatractor con evidencia suficiente" />}
+            </div>
+          </Panel>
+
+          <Panel title="PROPUESTAS" topo="TOPO-III" width="w-[420px]">
+            <div className="mt-9 flex justify-end"><button onClick={() => void triggerLayer('proposals')} disabled={Boolean(busy)} className="border border-[#c8a95133] px-3 py-2 font-mono text-[9px] uppercase tracking-[0.18em] text-[#c8a951]">Generar</button></div>
+            <div className="mt-3 max-h-[150px] overflow-auto">
+              {runtime.proposals.length ? runtime.proposals.map((item) => {
+                const delta = record(item.expected_field_delta);
+                return <CompactRow key={s(item.id, s(item.title))} title={s(item.title, 'propuesta')} meta={`${s(item.status, 'draft')} / riesgo ${s(item.risk_level, 'low')} / ${s(delta.impacto_esperado, s(item.objective, 'sin impacto esperado'))}`} />;
+              }) : <CompactRow title={runtime.messages.proposals ?? 'sin propuestas scorefriction'} meta="requiere hipotesis cultural activa" />}
+            </div>
+          </Panel>
+
+          <Panel title="VERIFICACION" topo="TOPO-III" width="w-[400px]">
+            <div className="mt-9 max-h-[170px] overflow-auto">
+              {runtime.verifications.length ? runtime.verifications.map((item) => (
+                <CompactRow key={s(item.id)} title={s(item.actual_result, 'verificacion registrada')} meta={`${item.verified ? 'verified' : 'refuted'} / delta ${n(item.delta).toFixed(2)} / C ${n(item.confidence).toFixed(2)}`} />
+              )) : <CompactRow title={runtime.messages.verifications ?? 'sin verificaciones scorefriction'} meta="POST /api/scorefriction/verifications/record" />}
+            </div>
           </Panel>
 
           <Panel title="BITACORA OPERACIONAL" topo="TOPO-III" width="w-[380px]"><div className="mt-9 max-h-[160px] overflow-auto font-mono text-[10px] leading-5 text-[#9c9282]">{log.map((item, idx) => <div key={`${item}-${idx}`} className="border-b border-[#c8a95108] py-1">{item}</div>)}</div></Panel>
