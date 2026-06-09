@@ -81,7 +81,7 @@ const REGION_LAYOUT: Record<string, Pick<HorizonRegion, 'id' | 'label' | 'route'
   moph: {
     id: 'moph',
     label: 'MOP-H',
-    route: '/terminal',
+    route: '/moph',
     desc: 'Instrumento de observacion humana no clinica y perturbacion minima.',
     x: 0.12,
     z: 0.04,
