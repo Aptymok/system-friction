@@ -83,9 +83,13 @@ function caseIdFrom(input: ScoreFrictionObservationInput, raw: Record<string, un
 function sourceAccessFrom(input: ScoreFrictionObservationInput, raw: Record<string, unknown>) {
   const analysisMode = text(raw.analysis_mode) ?? text(raw.analysisMode);
   const sourceAccess = text(recordFrom(raw.metadata).sourceAccess);
+  const sourceUrl = urlFrom(input, raw);
+  const evidenceType = text(raw.evidence_type) ?? text(raw.type);
+
   if (analysisMode) return analysisMode;
   if (sourceAccess) return sourceAccess;
-  if (input.source_url ?? raw.source_url ?? raw.sourceUrl) return 'url_observation';
+  if (evidenceType === 'audio_file_analysis' || sourceUrl?.startsWith('upload://')) return 'audio_file_analysis';
+  if (sourceUrl?.startsWith('http://') || sourceUrl?.startsWith('https://')) return 'url_observation';
   return 'manual_or_connector';
 }
 
@@ -125,7 +129,7 @@ export function normalizeObservation(input: ScoreFrictionObservationInput): Scor
       sourceAccess: sourceAccessFrom(input, raw),
       analysisMode: text(raw.analysis_mode) ?? text(raw.analysisMode) ?? null,
       observationGoal: text(raw.observation_goal) ?? text(raw.observationGoal) ?? null,
-      focusVariables: Array.isArray(raw.focus_variables) ? raw.focus_variables : [],
+      focusVariables: Array.isArray(raw.focus_variables) ? raw.focus_variables : Array.isArray(input.focus_variables) ? input.focus_variables : [],
     },
     collectedAt: text(raw.collected_at) ?? text(raw.collectedAt) ?? new Date().toISOString(),
   };
