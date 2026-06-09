@@ -3,6 +3,7 @@
 import type React from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import { Archive, BrainCircuit, CheckCircle2, Clock3, Compass, Eye, GitBranch, ShieldCheck, Sparkles, Zap } from 'lucide-react';
+import { LogoutLink } from '@/components/auth/LogoutLink';
 import { SystemOverridePanel } from '@/observatory/components/root/SystemOverridePanel';
 import { AcpProposalConsole } from '@/observatory/components/root/AcpProposalConsole';
 import { AcpAgentRegistryPanel } from '@/observatory/components/root/AcpAgentRegistryPanel';
@@ -235,6 +236,7 @@ export function RootDashboardClient() {
           >
             {isAttractorConsolidation ? 'T-ATTRACTOR CONSOLIDATION: ON' : 'ATRACTOR: OFF'}
           </button>
+          <LogoutLink className="mr-3 shrink-0 border border-[#c87060]/40 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.1em] text-[#c87060] hover:border-[#c87060] hover:text-[#f08a72]" />
         </div>
         <div className="flex h-14 items-stretch overflow-x-auto border-t border-[#1e1c17] bg-[#090806]">
           {fieldState.answers.map((item) => (

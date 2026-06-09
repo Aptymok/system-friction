@@ -1,4 +1,5 @@
 import type { AmvScopeState } from '@/lib/amv/core/amvScopeStateTypes'
+import { LogoutLink } from '@/components/auth/LogoutLink'
 
 export function ScoreFrictionStateBanner({ state }: { state: AmvScopeState }) {
   const live = Boolean(state.latestReading)
@@ -15,6 +16,7 @@ export function ScoreFrictionStateBanner({ state }: { state: AmvScopeState }) {
         <span className="text-[#8f8678]">
           {state.latestReading?.label ?? 'Contrato observable disponible. Sin estado vivo suficiente.'}
         </span>
+        <LogoutLink className="border border-[#26221b] px-3 py-2 text-[#a89469] hover:border-[#b8924b] hover:text-[#ead8aa]" />
       </div>
     </section>
   )

@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
+import { LogoutLink } from '@/components/auth/LogoutLink';
 
 const NAV = [
   ['/scorefriction', 'Observatorio'],
@@ -26,6 +27,7 @@ export function ScoreFrictionShell({ title, subtitle, children }: { title: strin
                 {label}
               </Link>
             ))}
+            <LogoutLink />
           </nav>
         </div>
       </header>
