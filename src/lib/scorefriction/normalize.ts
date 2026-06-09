@@ -45,53 +45,89 @@ function tagsFrom(value: unknown): string[] {
   return asText ? asText.split(/[,\s#]+/).map((item) => item.trim()).filter(Boolean).slice(0, 24) : [];
 }
 
+function recordFrom(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
 function sourceFrom(input: ScoreFrictionObservationInput, raw: Record<string, unknown>) {
+  const rawSource = text(raw.source_name) ?? text(raw.sourceName);
   if (input.source_name) return input.source_name;
-  if (input.soundcloudUrl) return 'soundcloud_public_v2';
-  if (input.tiktokUrl) return 'tiktok_research_alternative';
-  if (input.youtubeUrl) return 'youtube';
-  if (input.spotifyUrl) return 'spotify';
+  if (rawSource) return rawSource;
+  if (input.soundcloudUrl || text(raw.soundcloudUrl)) return 'soundcloud_public_v2';
+  if (input.tiktokUrl || text(raw.tiktokUrl)) return 'tiktok_research_alternative';
+  if (input.youtubeUrl || text(raw.youtubeUrl)) return 'youtube_public_v1';
+  if (input.spotifyUrl || text(raw.spotifyUrl)) return 'spotify_public_v1';
   if (input.lyrics || raw.lyrics) return 'genius';
   return 'manual_upload';
 }
 
-function urlFrom(input: ScoreFrictionObservationInput) {
-  return input.source_url ?? input.soundcloudUrl ?? input.tiktokUrl ?? input.youtubeUrl ?? input.spotifyUrl ?? null;
+function urlFrom(input: ScoreFrictionObservationInput, raw: Record<string, unknown>) {
+  return input.source_url
+    ?? text(raw.source_url)
+    ?? text(raw.sourceUrl)
+    ?? input.soundcloudUrl
+    ?? text(raw.soundcloudUrl)
+    ?? input.tiktokUrl
+    ?? text(raw.tiktokUrl)
+    ?? input.youtubeUrl
+    ?? text(raw.youtubeUrl)
+    ?? input.spotifyUrl
+    ?? text(raw.spotifyUrl)
+    ?? null;
+}
+
+function caseIdFrom(input: ScoreFrictionObservationInput, raw: Record<string, unknown>) {
+  return input.case_id ?? text(raw.case_id) ?? text(raw.caseId) ?? input.caseStudy ?? text(raw.caseStudy) ?? null;
+}
+
+function sourceAccessFrom(input: ScoreFrictionObservationInput, raw: Record<string, unknown>) {
+  const analysisMode = text(raw.analysis_mode) ?? text(raw.analysisMode);
+  const sourceAccess = text(recordFrom(raw.metadata).sourceAccess);
+  if (analysisMode) return analysisMode;
+  if (sourceAccess) return sourceAccess;
+  if (input.source_url ?? raw.source_url ?? raw.sourceUrl) return 'url_observation';
+  return 'manual_or_connector';
 }
 
 export function normalizeObservation(input: ScoreFrictionObservationInput): ScoreFrictionNormalizedObservation {
   const raw = input.raw_payload ?? {};
   const sourceName = sourceFrom(input, raw);
   const comments = commentsFrom(input.comments ?? raw.comments);
-  const audioMetadata = input.audioMetadata ?? (raw.audioMetadata && typeof raw.audioMetadata === 'object' ? raw.audioMetadata as Record<string, unknown> : {});
+  const metadata = recordFrom(raw.metadata);
+  const audioMetadata = input.audioMetadata
+    ?? recordFrom(raw.audioMetadata)
+    ?? recordFrom(metadata.audioMetadata);
 
   return {
     title: text(raw.title) ?? text(raw.name) ?? text(raw.sound_title),
     artist: text(raw.artist) ?? text((raw.user as Record<string, unknown> | undefined)?.username) ?? text(raw.channel),
     sourceName,
-    sourceUrl: urlFrom(input),
-    territory: input.territory ?? text(raw.region) ?? 'MX',
-    caseId: input.case_id ?? input.caseStudy ?? null,
+    sourceUrl: urlFrom(input, raw),
+    territory: input.territory ?? text(raw.territory) ?? text(raw.region) ?? 'MX',
+    caseId: caseIdFrom(input, raw),
     lyrics: input.lyrics ?? text(raw.lyrics),
     comments,
     metrics: {
       playback_count: num(raw.playback_count ?? raw.playCount ?? raw.views ?? raw.viewCount),
       likes_count: num(raw.likes_count ?? raw.likeCount),
       reposts_count: num(raw.reposts_count ?? raw.reposts ?? raw.share_count),
-      comments_count: num(raw.comment_count ?? raw.commentCount ?? comments.length),
+      comments_count: num(raw.comments_count ?? raw.comment_count ?? raw.commentCount ?? comments.length),
       video_count: num(raw.video_count),
-      duration_ms: num(raw.duration),
+      duration_ms: num(raw.duration_ms ?? raw.duration),
       tempo_bpm: num(audioMetadata.tempo_bpm),
       rms_energy: num(audioMetadata.rms_energy),
     },
     tags: [...tagsFrom(raw.tags), ...tagsFrom(raw.tag_list), ...tagsFrom(raw.genre)].slice(0, 24),
     metadata: {
       description: text(raw.description) ?? text(raw.caption),
-      waveform_url: text(raw.waveform_url),
+      waveform_url: text(raw.waveform_url) ?? text(metadata.waveform_url),
       audioMetadata,
-      sourceAccess: 'manual_or_connector',
+      sourceAccess: sourceAccessFrom(input, raw),
+      analysisMode: text(raw.analysis_mode) ?? text(raw.analysisMode) ?? null,
+      observationGoal: text(raw.observation_goal) ?? text(raw.observationGoal) ?? null,
+      focusVariables: Array.isArray(raw.focus_variables) ? raw.focus_variables : [],
     },
-    collectedAt: text(raw.collected_at) ?? new Date().toISOString(),
+    collectedAt: text(raw.collected_at) ?? text(raw.collectedAt) ?? new Date().toISOString(),
   };
 }
 
