@@ -15,6 +15,7 @@ async function ingestOne(input: ScoreFrictionEvidenceInput) {
     reliability_score: input.reliability_score ?? 0.5,
     provenance_notes: input.provenance_notes ?? null,
     raw_payload: input.raw_payload,
+    vector_overrides: input.vector_overrides,
   });
 
   return result.ok

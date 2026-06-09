@@ -1,0 +1,10 @@
+numpy
+librosa
+soundfile
+scipy
+pandas
+httpx
+certifi
+
+# Optional. lyrics_extractor.py works with provided text without this package.
+openai-whisper

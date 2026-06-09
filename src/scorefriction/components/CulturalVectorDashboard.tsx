@@ -52,6 +52,50 @@ type TwinProposalResponse = {
   };
 };
 
+type PythonAnalysisResponse = {
+  ok?: boolean;
+  error?: string;
+  message?: string;
+  analyzer?: string;
+  mode?: string;
+  status?: string;
+  mihm_vector?: Record<string, unknown>;
+  acoustic_vector?: Record<string, unknown>;
+  semantic_vector?: Record<string, unknown>;
+  mihm_cultural_vector?: Record<string, unknown>;
+  ihg_raw?: number | null;
+  ihg_final?: number | null;
+  nti_used?: number | null;
+  duration_sec?: number | null;
+  emission_valid?: boolean;
+  operational_reading?: Record<string, unknown>;
+  warnings?: string[];
+  ingest_payload?: Record<string, unknown>;
+  analysis_message?: string;
+};
+
+type MonteCarloResponse = {
+  ok?: boolean;
+  data?: {
+    best?: Array<Record<string, unknown>>;
+    worst?: Array<Record<string, unknown>>;
+    interpretation?: string;
+  };
+  error?: string;
+};
+
+type WorldSpectrumPythonResponse = {
+  ok?: boolean;
+  data?: {
+    wsi?: number | null;
+    nti?: number | null;
+    ts?: string;
+    degraded_sources?: string[];
+    sources?: Array<Record<string, unknown>>;
+  };
+  error?: string;
+};
+
 const GOLD = '200,169,81';
 const RED = '184,80,80';
 const GREEN = '58,138,90';
@@ -70,6 +114,10 @@ function nowTime() {
 
 function shortHash(value?: string) {
   return value ? `${value.slice(0, 8)}…${value.slice(-4)}` : 'sin hash';
+}
+
+function displayValue(value: unknown) {
+  return typeof value === 'number' && Number.isFinite(value) ? value.toFixed(3) : value === null || value === undefined ? 'sin dato' : String(value);
 }
 
 function formatEvidenceEntry(entry: EvidenceEntry) {
@@ -125,6 +173,14 @@ export default function CulturalVectorDashboard() {
   const [intakeReliability, setIntakeReliability] = useState('0.60');
   const [intakeProvenance, setIntakeProvenance] = useState('');
   const [intakeStatus, setIntakeStatus] = useState('intake listo');
+  const [pythonAudioFile, setPythonAudioFile] = useState<File | null>(null);
+  const [pythonTextFile, setPythonTextFile] = useState<File | null>(null);
+  const [pythonText, setPythonText] = useState('');
+  const [pythonNti, setPythonNti] = useState('0.5');
+  const [pythonStatus, setPythonStatus] = useState('nucleo Python MIHM listo');
+  const [pythonResult, setPythonResult] = useState<PythonAnalysisResponse | null>(null);
+  const [monteCarlo, setMonteCarlo] = useState<MonteCarloResponse['data'] | null>(null);
+  const [worldPython, setWorldPython] = useState<WorldSpectrumPythonResponse['data'] | null>(null);
 
   const canvasRoot = useRef<HTMLDivElement | null>(null);
 
@@ -346,6 +402,103 @@ export default function CulturalVectorDashboard() {
     }
   }
 
+  async function runPythonMihm() {
+    if (!pythonAudioFile && !pythonText.trim() && !pythonTextFile) {
+      setPythonStatus('agrega audio, texto o archivo de letra');
+      return;
+    }
+    setBusy(true);
+    setPythonStatus('ejecutando nucleo Python MIHM...');
+    try {
+      const form = new FormData();
+      form.set('case_id', caseId);
+      form.set('source_name', 'manual_upload');
+      form.set('evidence_type', pythonAudioFile ? 'audio_file_analysis' : 'lyrics');
+      form.set('nti', pythonNti);
+      if (pythonAudioFile) form.set('audio', pythonAudioFile);
+      if (pythonTextFile) form.set('lyrics_file', pythonTextFile);
+      if (pythonText.trim()) form.set('text', pythonText.trim());
+      const response = await fetch('/api/scorefriction/python/analyze', { method: 'POST', body: form });
+      const json = await response.json().catch(() => null) as PythonAnalysisResponse | null;
+      if (!response.ok || !json?.ok) throw new Error(json?.message ?? json?.error ?? 'python_mihm_failed');
+      setPythonResult(json);
+      setPythonStatus(json.analysis_message ?? 'analisis Python completado');
+      setAgentMessages((items) => [...items, {
+        role: 'Python MIHM',
+        text: [
+          `IHG final: ${displayValue(json.ihg_final)} / NTI: ${displayValue(json.nti_used)}`,
+          `Emision valida: ${json.emission_valid ? 'si' : 'no'}`,
+          `Ruta: ${String(json.operational_reading?.productionDirection ?? 'sin ruta')}`,
+          json.warnings?.length ? `Warnings: ${json.warnings.join(', ')}` : null,
+        ].filter(Boolean).join('\n'),
+      }]);
+    } catch (err) {
+      setPythonStatus(err instanceof Error ? err.message : 'error Python MIHM');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function savePythonEvidence() {
+    if (!pythonResult?.ingest_payload) {
+      setPythonStatus('no hay resultado Python guardable');
+      return;
+    }
+    setBusy(true);
+    setPythonStatus('guardando evidencia ScoreFriction...');
+    try {
+      const response = await fetch('/api/scorefriction/ingest', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(pythonResult.ingest_payload),
+      });
+      const json = await response.json().catch(() => null) as { ok?: boolean; results?: Array<{ evidence_hash?: string; error?: string }> } | null;
+      if (!response.ok || !json?.ok) throw new Error(json?.results?.[0]?.error ?? 'scorefriction_ingest_failed');
+      setPythonStatus(`guardado como evidencia: ${shortHash(json.results?.[0]?.evidence_hash)}`);
+      await load(caseId);
+    } catch (err) {
+      setPythonStatus(err instanceof Error ? err.message : 'no se pudo guardar evidencia');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function simulateMonteCarlo() {
+    setBusy(true);
+    setPythonStatus('simulando ventanas de coherencia...');
+    try {
+      const response = await fetch('/api/scorefriction/python/analyze?action=montecarlo', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ mihm_vector: pythonResult?.mihm_vector ?? null }),
+      });
+      const json = await response.json().catch(() => null) as MonteCarloResponse | null;
+      if (!response.ok || !json?.ok) throw new Error(json?.error ?? 'montecarlo_failed');
+      setMonteCarlo(json.data ?? null);
+      setPythonStatus('Monte Carlo completado');
+    } catch (err) {
+      setPythonStatus(err instanceof Error ? err.message : 'Monte Carlo no disponible');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function updateWorldSpectrumPython() {
+    setBusy(true);
+    setPythonStatus('actualizando World Spectrum Python...');
+    try {
+      const response = await fetch('/api/scorefriction/python/analyze?action=worldspectrum', { method: 'POST' });
+      const json = await response.json().catch(() => null) as WorldSpectrumPythonResponse | null;
+      if (!response.ok || !json?.ok) throw new Error(json?.error ?? 'worldspectrum_python_failed');
+      setWorldPython(json.data ?? null);
+      setPythonStatus('World Spectrum actualizado');
+    } catch (err) {
+      setPythonStatus(err instanceof Error ? err.message : 'World Spectrum Python degradado');
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function registerVerification() {
     setBusy(true);
     try {
@@ -458,6 +611,64 @@ export default function CulturalVectorDashboard() {
                 <div className="sf-agent-footer">
                   <input className="sf-agent-in" value={agentQuestion} onChange={(event) => setAgentQuestion(event.target.value)} placeholder="Pregunta: ¿qué debe producir Edwing desde este vector?" onKeyDown={(event) => { if (event.key === 'Enter') void askAgent(); }} />
                   <button className="sf-agent-send" disabled={busy} onClick={() => void askAgent()}>→</button>
+                </div>
+                <div className="sf-intake-box">
+                  <div className="sf-file-label">NUCLEO PYTHON MIHM</div>
+                  <div className="sf-file-row">
+                    <input type="file" accept=".mp3,.wav,.m4a,.aac,.ogg,.flac,audio/*" disabled={busy} onChange={(event) => setPythonAudioFile(event.currentTarget.files?.[0] ?? null)} />
+                    <input type="file" accept=".txt,.md" disabled={busy} onChange={(event) => setPythonTextFile(event.currentTarget.files?.[0] ?? null)} />
+                    <input value={pythonNti} disabled={busy} onChange={(event) => setPythonNti(event.target.value)} placeholder="NTI" />
+                  </div>
+                  <textarea className="sf-python-text" value={pythonText} disabled={busy} onChange={(event) => setPythonText(event.target.value)} placeholder="Pegar letra/texto opcional para R_sem y C_sem." />
+                  <div className="sf-file-row">
+                    <button className="sf-mini-btn" disabled={busy || (!pythonAudioFile && !pythonText.trim() && !pythonTextFile)} onClick={() => void runPythonMihm()}>Analizar con nucleo Python MIHM</button>
+                    <button className="sf-mini-btn" disabled={busy || !pythonResult?.ingest_payload} onClick={() => void savePythonEvidence()}>Guardar como evidencia ScoreFriction</button>
+                  </div>
+                  <div className="sf-file-row">
+                    <button className="sf-mini-btn" disabled={busy} onClick={() => void simulateMonteCarlo()}>Simular ventanas de coherencia</button>
+                    <button className="sf-mini-btn" disabled={busy} onClick={() => void updateWorldSpectrumPython()}>Actualizar World Spectrum</button>
+                    <span className="sf-status">{pythonStatus}</span>
+                  </div>
+                  {pythonResult ? (
+                    <div className="sf-python-result">
+                      <div className="sf-python-grid">
+                        {(['F_s', 'D_i', 'G_f', 'C_s', 'D_cog', 'E_r', 'V_i', 'I_mc', 'Phi', 'R_sem', 'C_sem'] as const).map((key) => (
+                          <span key={key}><b>{key}</b>{displayValue(pythonResult.mihm_vector?.[key] ?? pythonResult.semantic_vector?.[key])}</span>
+                        ))}
+                        <span><b>ihg_raw</b>{displayValue(pythonResult.ihg_raw)}</span>
+                        <span><b>ihg_final</b>{displayValue(pythonResult.ihg_final)}</span>
+                        <span><b>nti_used</b>{displayValue(pythonResult.nti_used)}</span>
+                        <span><b>emission_valid</b>{pythonResult.emission_valid ? 'si' : 'no'}</span>
+                      </div>
+                      <div className="sf-python-op">
+                        <p><b>Friccion cultural</b>{String(pythonResult.operational_reading?.friction ?? 'sin lectura')}</p>
+                        <p><b>Densidad de interaccion</b>{String(pythonResult.operational_reading?.interactionDensity ?? 'sin lectura')}</p>
+                        <p><b>Coherencia sistemica</b>{String(pythonResult.operational_reading?.systemicCoherence ?? 'sin lectura')}</p>
+                        <p><b>Energia relacional</b>{String(pythonResult.operational_reading?.relationalEnergy ?? 'sin lectura')}</p>
+                        <p><b>Vector intencional</b>{String(pythonResult.operational_reading?.intentionalVector ?? 'sin lectura')}</p>
+                        <p><b>Riesgo de invisibilidad</b>{String(pythonResult.operational_reading?.invisibilityRisk ?? 'sin lectura')}</p>
+                        <p><b>Protoatractor</b>{String(pythonResult.operational_reading?.protoattractor ?? 'sin lectura')}</p>
+                        <p><b>Direccion de produccion</b>{String(pythonResult.operational_reading?.productionDirection ?? 'sin lectura')}</p>
+                      </div>
+                    </div>
+                  ) : null}
+                  {monteCarlo ? (
+                    <div className="sf-python-result">
+                      <div className="sf-file-label">MONTE CARLO</div>
+                      <div className="sf-python-columns">
+                        <div><b>Mejores ventanas</b>{monteCarlo.best?.map((row, index) => <p key={`best-${index}`}>{String(row.raw ?? JSON.stringify(row))}</p>)}</div>
+                        <div><b>Peores ventanas</b>{monteCarlo.worst?.map((row, index) => <p key={`worst-${index}`}>{String(row.raw ?? JSON.stringify(row))}</p>)}</div>
+                      </div>
+                      <p>{monteCarlo.interpretation}</p>
+                    </div>
+                  ) : null}
+                  {worldPython ? (
+                    <div className="sf-python-result">
+                      <div className="sf-file-label">WORLD SPECTRUM PYTHON</div>
+                      <p>WSI {displayValue(worldPython.wsi)} · NTI {displayValue(worldPython.nti)} · {worldPython.ts ?? 'sin timestamp'}</p>
+                      <p>Fuentes degradadas: {worldPython.degraded_sources?.length ? worldPython.degraded_sources.join(', ') : 'ninguna reportada'}</p>
+                    </div>
+                  ) : null}
                 </div>
                 <div className="sf-intake-box">
                   <div className="sf-file-row">

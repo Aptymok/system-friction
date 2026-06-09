@@ -158,6 +158,9 @@ export async function recordScoreFrictionAudioObservation(input: {
   file_size_bytes: number;
   mime_type: string;
   acoustic_vector: Record<string, unknown>;
+  semantic_vector?: Record<string, unknown>;
+  mihm_cultural_vector?: Record<string, unknown>;
+  raw_payload?: Record<string, unknown>;
   warnings?: string[];
 }) {
   return recordScoreFrictionObservation({
@@ -168,7 +171,7 @@ export async function recordScoreFrictionAudioObservation(input: {
     evidence_type: 'audio_file_analysis',
     reliability_score: 0.62,
     provenance_notes: `audio upload: ${input.file_name}`,
-    raw_payload: {
+    raw_payload: input.raw_payload ?? {
       type: 'audio_file_analysis',
       title: input.title ?? input.file_name,
       artist: input.artist ?? null,
@@ -180,6 +183,8 @@ export async function recordScoreFrictionAudioObservation(input: {
     },
     vector_overrides: {
       acoustic_vector: input.acoustic_vector,
+      semantic_vector: input.semantic_vector,
+      mihm_cultural_vector: input.mihm_cultural_vector,
       platform_vector: { source_coverage: 0.1, reliability_score: 0.62 },
     },
   });

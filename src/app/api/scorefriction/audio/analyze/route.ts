@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createScoreFrictionPrototype, evaluateScoreFrictionCase, evaluateScoreFrictionObservation, recordScoreFrictionAudioObservation } from '@/lib/scorefriction/store';
 import { buildScoreFrictionAudioFallbackVector } from '@/lib/scorefriction/evidence-vector-mapper';
+import { runPythonScoreFrictionAnalysis } from '@/lib/scorefriction/python/pythonBridge';
+import { buildScoreFrictionOperationalReading } from '@/lib/scorefriction/python/pythonMihmToOperational';
 
 export const dynamic = 'force-dynamic';
 
@@ -34,13 +36,80 @@ function buildFallback(file: File, sourceName: string, evidenceType: string, aud
   });
 }
 
-async function analyzerVector(file: File, sourceName: string, evidenceType: string, audioMetadata: Record<string, unknown>, warnings: string[], state: { mode: string; message: string }) {
+function record(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
+function numberOrNull(value: unknown) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function buildPythonVectors(payload: Record<string, unknown>) {
+  const mihm = record(payload.mihm_vector);
+  return {
+    acoustic_vector: {
+      F_s: mihm.F_s ?? null,
+      D_i: mihm.D_i ?? null,
+      G_f: mihm.G_f ?? null,
+      C_s: mihm.C_s ?? null,
+      D_cog: mihm.D_cog ?? null,
+      E_r: mihm.E_r ?? null,
+      V_i: mihm.V_i ?? null,
+      I_mc: mihm.I_mc ?? null,
+      Phi: mihm.Phi ?? null,
+      duration_sec: payload.duration_sec ?? null,
+      ihg_raw: payload.ihg_raw ?? null,
+      ihg_final: payload.ihg_final ?? null,
+    },
+    semantic_vector: {
+      R_sem: mihm.R_sem ?? null,
+      C_sem: mihm.C_sem ?? null,
+    },
+    mihm_cultural_vector: {
+      ...mihm,
+      ihg_raw: payload.ihg_raw ?? null,
+      ihg_final: payload.ihg_final ?? null,
+      nti_used: payload.nti_used ?? null,
+      emission_valid: payload.emission_valid ?? payload.status === 'OK',
+    },
+  };
+}
+
+async function analyzerVector(file: File, sourceName: string, evidenceType: string, audioMetadata: Record<string, unknown>, warnings: string[], state: { mode: string; message: string; pythonPayload?: Record<string, unknown>; semanticVector?: Record<string, unknown>; mihmCulturalVector?: Record<string, unknown>; operationalReading?: Record<string, unknown> }, input: { text?: string | null; nti?: number | null; caseId?: string | null }) {
+  const pythonResult = await runPythonScoreFrictionAnalysis({
+    audioFile: file,
+    text: input.text,
+    nti: input.nti,
+    caseId: input.caseId,
+    evidenceType,
+    metadata: audioMetadata,
+  });
+
+  if (pythonResult.ok) {
+    const vectors = buildPythonVectors(pythonResult.data);
+    state.mode = 'local_python';
+    state.message = 'Audio analizado con nucleo Python MIHM.';
+    state.pythonPayload = pythonResult.data;
+    state.semanticVector = vectors.semantic_vector;
+    state.mihmCulturalVector = vectors.mihm_cultural_vector;
+    state.operationalReading = buildScoreFrictionOperationalReading({
+      mihmVector: vectors.mihm_cultural_vector,
+      ihgFinal: pythonResult.data.ihg_final,
+      emissionValid: pythonResult.data.emission_valid ?? pythonResult.data.status === 'OK',
+      ntiUsed: pythonResult.data.nti_used,
+    }) as unknown as Record<string, unknown>;
+    if (record(pythonResult.data.mihm_vector).R_sem === null || record(pythonResult.data.mihm_vector).C_sem === null) warnings.push('python_mihm_semantic_not_measured');
+    return vectors.acoustic_vector;
+  }
+
+  warnings.push(`python_mihm_unavailable:${pythonResult.error}`);
   const analyzerUrl = process.env.SCOREFRICTION_AUDIO_ANALYZER_URL;
   if (!analyzerUrl) {
     warnings.push('audio_analyzer_unavailable');
     const fallback = buildFallback(file, sourceName, evidenceType, audioMetadata);
     state.mode = fallback.analysis_mode;
-    state.message = fallback.analysis_message;
+    state.message = 'Python MIHM no disponible; se uso vector minimo de emergencia.';
     if (!fallback.has_declared_metadata) warnings.push('audio_metadata_missing');
     return fallback.acoustic_vector;
   }
@@ -52,7 +121,7 @@ async function analyzerVector(file: File, sourceName: string, evidenceType: stri
     warnings.push('audio_analyzer_failed');
     const fallback = buildFallback(file, sourceName, evidenceType, audioMetadata);
     state.mode = fallback.analysis_mode;
-    state.message = 'Audio analyzer failed. Using deterministic fallback from metadata.';
+    state.message = 'Python MIHM no disponible; se uso vector minimo de emergencia.';
     if (!fallback.has_declared_metadata) warnings.push('audio_metadata_missing');
     return fallback.acoustic_vector;
   }
@@ -67,7 +136,7 @@ async function analyzerVector(file: File, sourceName: string, evidenceType: stri
 
   const fallback = buildFallback(file, sourceName, evidenceType, audioMetadata);
   state.mode = fallback.analysis_mode;
-  state.message = fallback.analysis_message;
+  state.message = 'Python MIHM no disponible; se uso vector minimo de emergencia.';
   if (!fallback.has_declared_metadata) warnings.push('audio_metadata_missing');
   return fallback.acoustic_vector;
 }
@@ -96,9 +165,11 @@ export async function POST(request: NextRequest) {
     const title = String(form.get('title') ?? file.name);
     const artist = form.get('artist') ? String(form.get('artist')) : null;
     const evidenceType = String(form.get('evidence_type') ?? 'audio_file_analysis');
+    const text = String(form.get('text') ?? form.get('lyrics') ?? '').trim();
+    const nti = numberOrNull(form.get('nti')) ?? 0.5;
     const audioMetadata = parseAudioMetadata(form);
-    const responseState = { mode: 'fallback_heuristic', message: 'Audio analyzer no conectado. Se genero vector fallback con metadata declarada.' };
-    const acousticVector = await analyzerVector(file, sourceName, evidenceType, audioMetadata, warnings, responseState);
+    const responseState: { mode: string; message: string; pythonPayload?: Record<string, unknown>; semanticVector?: Record<string, unknown>; mihmCulturalVector?: Record<string, unknown>; operationalReading?: Record<string, unknown> } = { mode: 'fallback_heuristic', message: 'Audio analyzer no conectado. Se genero vector fallback con metadata declarada.' };
+    const acousticVector = await analyzerVector(file, sourceName, evidenceType, audioMetadata, warnings, responseState, { text, nti, caseId });
     const recorded = await recordScoreFrictionAudioObservation({
       case_id: caseId,
       source_name: sourceName,
@@ -109,6 +180,20 @@ export async function POST(request: NextRequest) {
       file_size_bytes: file.size,
       mime_type: file.type || 'application/octet-stream',
       acoustic_vector: acousticVector,
+      semantic_vector: responseState.semanticVector,
+      mihm_cultural_vector: responseState.mihmCulturalVector,
+      raw_payload: responseState.pythonPayload ? {
+        type: 'audio_file_analysis',
+        analyzer: 'python_mihm',
+        title,
+        artist,
+        file_name: file.name,
+        file_size_bytes: file.size,
+        mime_type: file.type || 'application/octet-stream',
+        text_supplied: Boolean(text),
+        python_output: responseState.pythonPayload,
+        operational_reading: responseState.operationalReading,
+      } : undefined,
       warnings,
     });
 
@@ -130,6 +215,14 @@ export async function POST(request: NextRequest) {
       observation_id: recorded.data.observation.id,
       evidence_hash: recorded.data.evidence_hash,
       acoustic_vector: acousticVector,
+      semantic_vector: responseState.semanticVector ?? null,
+      mihm_vector: responseState.pythonPayload?.mihm_vector ?? null,
+      mihm_cultural_vector: responseState.mihmCulturalVector ?? null,
+      ihg_final: responseState.pythonPayload?.ihg_final ?? null,
+      duration_sec: responseState.pythonPayload?.duration_sec ?? null,
+      analyzer: responseState.mode === 'local_python' ? 'python_mihm' : 'fallback',
+      mode: responseState.mode,
+      operational_reading: responseState.operationalReading ?? null,
       cultural_vector: culturalVector?.cultural_vector ?? null,
       worldspect_context: ws,
       proposal,

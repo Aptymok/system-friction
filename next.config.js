@@ -1,6 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   poweredByHeader: false,
+  experimental: {
+    proxyClientMaxBodySize: '50mb',
+  },
   outputFileTracingExcludes: {
     '*': [
       'services/python/**',

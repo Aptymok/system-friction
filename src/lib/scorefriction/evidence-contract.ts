@@ -22,6 +22,13 @@ export type ScoreFrictionEvidenceInput = {
   reliability_score?: number;
   provenance_notes?: string | null;
   raw_payload: Record<string, unknown>;
+  vector_overrides?: {
+    acoustic_vector?: Record<string, unknown>;
+    semantic_vector?: Record<string, unknown>;
+    memetic_vector?: Record<string, unknown>;
+    platform_vector?: Record<string, unknown>;
+    mihm_cultural_vector?: Record<string, unknown>;
+  } | null;
 };
 
 export type ScoreFrictionEvidenceResult = {

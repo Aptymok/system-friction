@@ -87,5 +87,12 @@ export function normalizeEvidenceInput(value: unknown): ScoreFrictionEvidenceInp
     reliability_score: typeof row.reliability_score === 'number' ? row.reliability_score : undefined,
     provenance_notes: typeof row.provenance_notes === 'string' ? row.provenance_notes : null,
     raw_payload: rawPayload,
+    vector_overrides: row.vector_overrides && typeof row.vector_overrides === 'object' && !Array.isArray(row.vector_overrides)
+      ? row.vector_overrides as ScoreFrictionEvidenceInput['vector_overrides']
+      : {
+        acoustic_vector: row.acoustic_vector && typeof row.acoustic_vector === 'object' && !Array.isArray(row.acoustic_vector) ? row.acoustic_vector as Record<string, unknown> : undefined,
+        semantic_vector: row.semantic_vector && typeof row.semantic_vector === 'object' && !Array.isArray(row.semantic_vector) ? row.semantic_vector as Record<string, unknown> : undefined,
+        mihm_cultural_vector: row.mihm_cultural_vector && typeof row.mihm_cultural_vector === 'object' && !Array.isArray(row.mihm_cultural_vector) ? row.mihm_cultural_vector as Record<string, unknown> : undefined,
+      },
   };
 }
