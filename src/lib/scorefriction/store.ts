@@ -266,10 +266,10 @@ function evaluatedObservationInput(input: ScoreFrictionObservationInput & { norm
 }
 
 export async function evaluateScoreFrictionObservation(input: ScoreFrictionObservationInput & { observation_id?: string; normalized_payload?: unknown; raw_payload?: unknown }) {
-  const service = createServiceSupabaseClient();
   let evaluationInput = evaluatedObservationInput(input);
 
   if (input.observation_id) {
+    const service = createServiceSupabaseClient();
     const found = await service
       .from('scorefriction_observations')
       .select('case_id, source_name, source_url, territory, normalized_payload, raw_payload')
@@ -284,8 +284,8 @@ export async function evaluateScoreFrictionObservation(input: ScoreFrictionObser
       source_name: stringValue(row.source_name) ?? input.source_name,
       source_url: stringValue(row.source_url) ?? input.source_url,
       territory: stringValue(row.territory) ?? input.territory,
-      normalized_payload: row.normalized_payload,
-      raw_payload: row.raw_payload,
+      normalized_payload: record(row.normalized_payload),
+      raw_payload: record(row.raw_payload),
     });
   }
 
