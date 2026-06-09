@@ -95,6 +95,37 @@ Criterio de cierre:
 - `npm run build` pasa.
 - Commit final: `feat(moph): implement field gate instrument`.
 
+REFERENCIAS OBLIGATORIAS
+
+Leer y analizar:
+
+docs/reference/foundation-field-repository.html
+docs/reference/moph-h.html
+
+Estos archivos son referencias visuales,
+conductuales,
+narrativas
+y fenomenológicas.
+
+NO desplegarlos directamente.
+
+NO reutilizar su código.
+
+Reconstruirlos como componentes React/Next
+integrados al ecosistema SFI.
+
+Preservar:
+
+- campo observable
+- perturbaciones
+- narrativa interactiva
+- observación longitudinal
+- aparición contextual de nodos
+- instrumentación MOP-H
+- trazabilidad fenomenológica
+- estética SFI
+- negro / blanco / dorado
+- lenguaje institucional
 ---
 
 ## PROMPT 1 — FASE 7: Protoatractores reales
