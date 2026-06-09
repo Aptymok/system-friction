@@ -53,6 +53,50 @@ Criterio de cierre:
 
 ---
 
+## PROMPT 0.1 — Instrumento MOP-H / Field Gate
+
+Implementa el instrumento MOP-H Field Gate como parte del ecosistema SFI.
+
+Objetivo: crear una experiencia de observación interactiva que funcione como instrumento fenomenológico, no como cuento decorativo ni demo aislada. El instrumento debe observar el comportamiento del usuario mientras navega un campo narrativo y debe convertir esa interacción en evidencia operativa MOP-H.
+
+Implementa:
+
+1. Crear ruta estable `src/app/moph/page.tsx` o `src/app/instruments/moph/page.tsx`. Usa una sola ruta y enlázala desde el Repositorio Fundacional.
+2. Crear componente React operativo `src/components/sfi/MophFieldGate.tsx` o ubicación equivalente usada por el proyecto.
+3. No pegar HTML crudo. Convertir el diseño a React/Next funcional.
+4. Mantener la estética del diseño de referencia: fondo negro, grano, viñeta, marco dorado, letras arrastrables, campo canvas, nodos emergentes, capítulo flotante no modal, panel MOP-H, gate final y puertas de salida.
+5. Implementar motor de campo con canvas: partículas, perturbaciones, marcas, formas fenomenológicas, árbol/raíz, nodos conductuales y conexiones al final.
+6. Implementar letras arrastrables del título `LA SUTURA DEL OBSERVADOR`. Deben poder moverse, cambiar color con `C`, ocultarse con Delete/Backspace y persistir en localStorage.
+7. Implementar capítulos como paneles inline, no modales bloqueantes. Deben tener texto, acciones, preguntas, decisiones y campo de escritura.
+8. Implementar historia base con capítulos equivalentes a: carta, preludio, cap1-cap12 y epílogo. El contenido debe poder vivir en archivo separado `src/lib/moph/story.ts` para mantenimiento.
+9. Implementar nodos conductuales emergentes: `errancia`, `persistencia`, `fuga`, `resonancia`, `hesitacion`. Deben aparecer por comportamiento observado, no por temporizador arbitrario.
+10. Implementar métricas MOP-H reales derivadas de la sesión: `IHG`, `NTI`, `LDI`, `G.O.`, `epsilon`, `Phi(t)`.
+11. Registrar señales de sesión: tiempo de lectura, capítulos reabiertos, capítulos saltados, recorrido del mouse, marcas, pausas, elecciones, texto escrito, latencias y patrones de evasión.
+12. Persistir sesión en localStorage para continuidad local. No enviar datos externos sin endpoint explícito.
+13. Crear endpoint opcional `POST /api/moph/session` solo si existe patrón de persistencia compatible en el proyecto. Si se crea, debe guardar payload fenomenológico con timestamp, métricas y evidencia. No debe guardar datos sensibles innecesarios.
+14. El gate final debe mostrar métricas calculadas y declarar que el usuario produjo evidencia, no solo que leyó un cuento.
+15. Agregar enlace desde el Repositorio Fundacional al instrumento MOP-H.
+16. Agregar enlace desde MOP-H hacia `/repository`, `/scorefriction` y `/root` si las rutas existen.
+17. No usar mock metrics. Si una métrica no puede calcularse, mostrar `no calculable` y explicar por qué en el panel.
+18. Separar claramente: lectura narrativa, observación conductual, evidencia generada y decisión de salida.
+19. Ejecutar `npm run lint` y `npm run build`. Corregir errores.
+20. Hacer commit directo a `main`.
+
+Criterio de cierre:
+
+- Existe ruta MOP-H funcional.
+- El instrumento permite interacción real con campo, letras, capítulos, preguntas y nodos emergentes.
+- Las métricas MOP-H se calculan desde comportamiento observable de la sesión.
+- La sesión se conserva localmente.
+- El gate final muestra evidencia y métricas reales de la sesión.
+- El Repositorio Fundacional enlaza MOP-H como instrumento del ecosistema.
+- No hay HTML crudo pegado como página muerta.
+- `npm run lint` pasa.
+- `npm run build` pasa.
+- Commit final: `feat(moph): implement field gate instrument`.
+
+---
+
 ## PROMPT 1 — FASE 7: Protoatractores reales
 
 Implementa la FASE 7 completa de ScoreFriction: protoatractores reales.
@@ -253,12 +297,14 @@ Implementa:
 8. Ejecutar build.
 9. Corregir todo error de TypeScript o Next.
 10. Verificar que `/repository` o `/foundation` exista y conecte SFI, Carta Fundacional y ScoreFriction.
-11. Commit final: `chore(scorefriction): finalize unified observatory integration`.
+11. Verificar que `/moph` o `/instruments/moph` exista y funcione como instrumento MOP-H Field Gate dentro del ecosistema.
+12. Commit final: `chore(scorefriction): finalize unified observatory integration`.
 
 Criterio de cierre:
 
 - `/scorefriction` funciona como observatorio principal.
 - El Repositorio Fundacional existe como campo navegable dentro del ecosistema.
+- El instrumento MOP-H existe como Field Gate operativo.
 - No hay mock visual donde existan datos reales.
 - No hay build roto.
 - No hay rutas principales duplicando operación.
