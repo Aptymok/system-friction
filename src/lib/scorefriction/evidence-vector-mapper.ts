@@ -48,6 +48,82 @@ export function sourceCoverageContribution(input: { evidence_type?: ScoreFrictio
   return clamp01((base[input.evidence_type ?? 'community_observation'] ?? 0.05) * (0.5 + reliability));
 }
 
+function hashSeed(value: string) {
+  let seed = 0;
+  for (let index = 0; index < value.length; index += 1) seed = (seed * 31 + value.charCodeAt(index)) >>> 0;
+  return seed;
+}
+
+function hashUnit(value: string) {
+  return (hashSeed(value) % 1000) / 1000;
+}
+
+function firstNumber(values: unknown[]) {
+  for (const value of values) {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return null;
+}
+
+export function buildScoreFrictionAudioFallbackVector(input: {
+  fileName: string;
+  mimeType: string;
+  fileSizeBytes: number;
+  sourceName: string;
+  evidenceType: string;
+  audioMetadata?: Record<string, unknown> | null;
+}) {
+  const metadata = input.audioMetadata ?? {};
+  const declaredBpm = firstNumber([metadata.bpm, metadata.tempo_bpm, metadata.tempo]);
+  const declaredDensity = firstNumber([metadata.density, metadata.spectral_density, metadata.sound_density]);
+  const declaredNoiseFloor = firstNumber([metadata.noise_floor, metadata.noiseFloor, metadata.noise]);
+  const declaredDuration = firstNumber([metadata.duration, metadata.duration_sec, metadata.durationSeconds, metadata.duration_ms ? Number(metadata.duration_ms) / 1000 : null]);
+  const nameKey = `${input.fileName}|${input.sourceName}|${input.evidenceType}`;
+  const fileFactor = clamp01(input.fileSizeBytes / 25000000);
+  const nameFactor = hashUnit(nameKey);
+  const metadataCount = Object.keys(metadata).length;
+  const hasDeclaredMetadata = declaredBpm !== null || declaredDensity !== null || declaredNoiseFloor !== null || declaredDuration !== null || metadataCount > 0;
+  const durationSeconds = declaredDuration !== null
+    ? Math.max(1, declaredDuration)
+    : Math.max(8, Math.round(18 + fileFactor * 160 + nameFactor * 38));
+  const bpm = declaredBpm !== null
+    ? Math.max(40, Math.round(declaredBpm))
+    : Math.max(48, Math.round(70 + fileFactor * 36 + nameFactor * 20));
+  const density = declaredDensity !== null
+    ? clamp01(declaredDensity)
+    : clamp01(0.22 + fileFactor * 0.5 + nameFactor * 0.26);
+  const noiseFloor = declaredNoiseFloor !== null
+    ? clamp01(declaredNoiseFloor)
+    : clamp01(0.16 + (1 - fileFactor) * 0.24 + (1 - nameFactor) * 0.1);
+
+  return {
+    acoustic_vector: {
+      bpm,
+      density,
+      noise_floor: noiseFloor,
+      duration: durationSeconds,
+      duration_sec: durationSeconds,
+      filename: input.fileName,
+      source_name: input.sourceName,
+      evidence_type: input.evidenceType,
+      file_size_bytes: input.fileSizeBytes,
+      mime_type: input.mimeType,
+      tempo_bpm: bpm,
+      rms_energy: clamp01(1 - noiseFloor * 0.62 + density * 0.2),
+      spectral_density: clamp01(density + fileFactor * 0.12),
+      percussive_load: clamp01(0.18 + fileFactor * 0.35 + density * 0.24),
+      harmonic_stability: clamp01(0.5 + (1 - noiseFloor) * 0.24 - density * 0.05),
+      dynamic_range: clamp01(0.34 + (1 - noiseFloor) * 0.28 + (1 - fileFactor) * 0.12),
+    },
+    analysis_mode: hasDeclaredMetadata ? 'fallback_metadata' : 'fallback_heuristic',
+    analysis_message: hasDeclaredMetadata
+      ? 'Audio analyzer no conectado. Se genero vector fallback con metadata declarada.'
+      : 'Falta metadata de audio para analisis minimo. Se uso degradacion deterministica.',
+    has_declared_metadata: hasDeclaredMetadata,
+  };
+}
+
 export function evidenceTypeVectorEffects(evidenceType: ScoreFrictionEvidenceType, rawPayload: Record<string, unknown>) {
   const textBlock = [
     text(rawPayload.text),

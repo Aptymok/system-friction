@@ -298,12 +298,14 @@ export default function CulturalVectorDashboard() {
       form.set('title', file.name);
       setAudioStatus('analizando melodía...');
       const response = await fetch('/api/scorefriction/audio/analyze', { method: 'POST', body: form });
-      const json = await response.json().catch(() => null) as { ok?: boolean; error?: string; evidence_hash?: string; warnings?: string[] } | null;
+      const json = await response.json().catch(() => null) as { ok?: boolean; error?: string; evidence_hash?: string; warnings?: string[]; analysis_message?: string; analysis_mode?: string } | null;
       if (!response.ok || !json?.ok) throw new Error(json?.error ?? 'No se pudo analizar melodía');
       setAudioStatus(`guardado: ${shortHash(json.evidence_hash)}`);
       setAgentMessages((items) => [...items, {
         role: 'Melodía',
-        text: `Melodía guardada como evidencia. ${json.warnings?.length ? `Warnings: ${json.warnings.join(', ')}` : 'Vector acústico registrado.'}`,
+        text: json.analysis_message
+          ? `Melodía guardada como evidencia. ${json.analysis_message}${json.warnings?.length ? ` Warnings: ${json.warnings.join(', ')}` : ''}`
+          : `Melodía guardada como evidencia. ${json.warnings?.length ? `Warnings: ${json.warnings.join(', ')}` : 'Vector acústico registrado.'}`,
       }]);
       await load(caseId);
     } catch (err) {

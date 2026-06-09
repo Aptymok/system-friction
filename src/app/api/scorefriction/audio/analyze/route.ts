@@ -1,27 +1,48 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createScoreFrictionPrototype, evaluateScoreFrictionCase, evaluateScoreFrictionObservation, recordScoreFrictionAudioObservation } from '@/lib/scorefriction/store';
+import { buildScoreFrictionAudioFallbackVector } from '@/lib/scorefriction/evidence-vector-mapper';
 
 export const dynamic = 'force-dynamic';
 
-function fallbackAudioVector(file: { size: number; type: string }) {
-  const sizeFactor = Math.max(0, Math.min(1, file.size / 12000000));
-  const mimeSeed = file.type.split('').reduce((sum, char) => sum + char.charCodeAt(0), 0) % 100;
-  return {
-    duration_sec: null,
-    file_size_bytes: file.size,
-    mime_type: file.type,
-    spectral_density: Math.max(0.12, Math.min(1, sizeFactor * 0.72 + mimeSeed / 500)),
-    percussive_load: Math.max(0.1, Math.min(1, sizeFactor * 0.55 + 0.21)),
-    harmonic_stability: Math.max(0.1, Math.min(1, 0.72 - sizeFactor * 0.22 + mimeSeed / 1000)),
-    dynamic_range: Math.max(0.1, Math.min(1, 0.35 + sizeFactor * 0.45)),
-  };
+function parseAudioMetadata(form: FormData) {
+  const jsonValue = form.get('audio_metadata');
+  if (typeof jsonValue === 'string' && jsonValue.trim()) {
+    try {
+      const parsed = JSON.parse(jsonValue);
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) return parsed as Record<string, unknown>;
+    } catch {
+      // ignore malformed JSON and fall back to flat fields
+    }
+  }
+
+  const metadata: Record<string, unknown> = {};
+  for (const key of ['bpm', 'density', 'noise_floor', 'duration', 'duration_sec', 'tempo_bpm', 'rms_energy', 'spectral_density', 'percussive_load', 'harmonic_stability', 'dynamic_range']) {
+    const value = form.get(key);
+    if (value !== null && String(value).trim()) metadata[key] = value;
+  }
+  return metadata;
 }
 
-async function analyzerVector(file: File, warnings: string[]): Promise<Record<string, unknown>> {
+function buildFallback(file: File, sourceName: string, evidenceType: string, audioMetadata: Record<string, unknown>) {
+  return buildScoreFrictionAudioFallbackVector({
+    fileName: file.name,
+    mimeType: file.type || 'application/octet-stream',
+    fileSizeBytes: file.size,
+    sourceName,
+    evidenceType,
+    audioMetadata,
+  });
+}
+
+async function analyzerVector(file: File, sourceName: string, evidenceType: string, audioMetadata: Record<string, unknown>, warnings: string[], state: { mode: string; message: string }) {
   const analyzerUrl = process.env.SCOREFRICTION_AUDIO_ANALYZER_URL;
   if (!analyzerUrl) {
     warnings.push('audio_analyzer_unavailable');
-    return fallbackAudioVector({ size: file.size, type: file.type });
+    const fallback = buildFallback(file, sourceName, evidenceType, audioMetadata);
+    state.mode = fallback.analysis_mode;
+    state.message = fallback.analysis_message;
+    if (!fallback.has_declared_metadata) warnings.push('audio_metadata_missing');
+    return fallback.acoustic_vector;
   }
 
   const form = new FormData();
@@ -29,11 +50,26 @@ async function analyzerVector(file: File, warnings: string[]): Promise<Record<st
   const response = await fetch(analyzerUrl, { method: 'POST', body: form }).catch(() => null);
   if (!response?.ok) {
     warnings.push('audio_analyzer_failed');
-    return fallbackAudioVector({ size: file.size, type: file.type });
+    const fallback = buildFallback(file, sourceName, evidenceType, audioMetadata);
+    state.mode = fallback.analysis_mode;
+    state.message = 'Audio analyzer failed. Using deterministic fallback from metadata.';
+    if (!fallback.has_declared_metadata) warnings.push('audio_metadata_missing');
+    return fallback.acoustic_vector;
   }
+
   const json = await response.json().catch(() => null);
   const vector = json?.audio_vector ?? json?.data ?? json;
-  return vector && typeof vector === 'object' ? vector as Record<string, unknown> : fallbackAudioVector({ size: file.size, type: file.type });
+  if (vector && typeof vector === 'object') {
+    state.mode = 'analyzer';
+    state.message = 'Audio analyzer connected. Acoustic vector recorded.';
+    return vector as Record<string, unknown>;
+  }
+
+  const fallback = buildFallback(file, sourceName, evidenceType, audioMetadata);
+  state.mode = fallback.analysis_mode;
+  state.message = fallback.analysis_message;
+  if (!fallback.has_declared_metadata) warnings.push('audio_metadata_missing');
+  return fallback.acoustic_vector;
 }
 
 async function worldspectContext(request: NextRequest, warnings: string[]) {
@@ -59,7 +95,10 @@ export async function POST(request: NextRequest) {
     const territory = String(form.get('territory') ?? 'MX');
     const title = String(form.get('title') ?? file.name);
     const artist = form.get('artist') ? String(form.get('artist')) : null;
-    const acousticVector = await analyzerVector(file, warnings);
+    const evidenceType = String(form.get('evidence_type') ?? 'audio_file_analysis');
+    const audioMetadata = parseAudioMetadata(form);
+    const responseState = { mode: 'fallback_heuristic', message: 'Audio analyzer no conectado. Se genero vector fallback con metadata declarada.' };
+    const acousticVector = await analyzerVector(file, sourceName, evidenceType, audioMetadata, warnings, responseState);
     const recorded = await recordScoreFrictionAudioObservation({
       case_id: caseId,
       source_name: sourceName,
@@ -95,6 +134,9 @@ export async function POST(request: NextRequest) {
       worldspect_context: ws,
       proposal,
       warnings,
+      analysis_mode: responseState.mode,
+      analysis_message: responseState.message,
+      audio_analyzer_url_present: Boolean(process.env.SCOREFRICTION_AUDIO_ANALYZER_URL),
     });
   }
 
