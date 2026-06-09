@@ -13,6 +13,9 @@ export type ScoreFrictionObservationInput = {
   source_name?: ScoreFrictionSourceName | null;
   source_url?: string | null;
   territory?: string | null;
+  analysis_mode?: string | null;
+  focus_variables?: unknown[] | null;
+  observation_goal?: string | null;
   evidence_type?: string | null;
   reliability_score?: number | null;
   provenance_notes?: string | null;
