@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SFI — System Friction Institute · Repositorio Fundacional · Referencia</title>
+<style>
+/*
+  REFERENCIA VISUAL / CONDUCTUAL — NO USAR COMO PRODUCCION
+
+  Origen: prototipo HTML entregado por Aptymok para el Repositorio Fundacional SFI.
+  Uso para Codex: reconstruir en React/Next como campo nodal navegable.
+  Ruta objetivo sugerida: /repository o /foundation.
+  Componente objetivo sugerido: FoundationFieldRepository.
+
+  Requisitos que deben preservarse:
+  - Fondo negro institucional.
+  - Dorado SFI.
+  - Tipografia mono + serif.
+  - Canvas de campo.
+  - Entrada ritual.
+  - Nodos conectados.
+  - Tarjetas de lectura.
+  - Minimap.
+  - Pan / zoom / hover / selection.
+  - Nodos: manifiesto, principios, fundador, actualidad, mision, metodologias, wsv, mihm, valores, ecosistema, scorefriction, root, worldspect.
+  - El contenido debe venir de docs/ y Carta Fundacional. No inventar datos.
+*/
+:root{--bg:#050507;--gold:#c9a84c;--gold2:#e8c96a;--txt:#e8e4d8;--txt2:#9a9580;--txt3:#4a4840;--border:#1a1a20}
+*{box-sizing:border-box;margin:0;padding:0}html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--txt);font-family:'Share Tech Mono',monospace;cursor:none}
+#fieldCanvas{position:fixed;inset:0;width:100%;height:100%;z-index:1}.header{position:fixed;top:0;left:0;right:0;z-index:10;padding:20px 32px;display:flex;justify-content:space-between;background:linear-gradient(var(--bg),transparent);pointer-events:none}.h-institute{font-family:serif;font-size:9px;letter-spacing:6px;color:var(--gold);text-transform:uppercase}.h-sigil{font-size:11px;color:var(--txt3);letter-spacing:2px;font-style:italic}.entry{position:fixed;inset:0;z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--bg)}.entry-pre{font-size:9px;letter-spacing:8px;color:#6b5820;text-transform:uppercase;margin-bottom:24px}.entry-title{font-family:serif;font-size:clamp(36px,5vw,64px);font-weight:300;letter-spacing:4px;text-align:center;line-height:1.1}.entry-title em{color:var(--gold)}.entry-sub{margin-top:20px;font-size:11px;letter-spacing:3px;color:var(--txt3);text-transform:uppercase}.node-card{position:fixed;z-index:30;width:min(520px,90vw);background:rgba(5,5,7,.96);border:1px solid #6b5820;opacity:0;pointer-events:none;transform:translate(-50%,-50%)}.node-card.visible{opacity:1;pointer-events:auto}.node-card header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between}.super{font-size:7px;letter-spacing:4px;color:#6b5820;text-transform:uppercase}.title{font-family:serif;font-size:20px;font-style:italic}.body{padding:18px 20px;max-height:60vh;overflow:auto}.section-title{font-size:8px;letter-spacing:3px;color:var(--gold);text-transform:uppercase;margin:14px 0}.text{font-family:serif;font-size:15px;line-height:1.8;color:var(--txt2)}.connections{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}.conn{padding:2px 8px;font-size:8px;letter-spacing:2px;border:1px solid var(--border);color:var(--txt3);cursor:pointer;text-transform:uppercase}.conn:hover{border-color:var(--gold);color:var(--gold)}.minimap{position:fixed;bottom:20px;right:20px;z-index:10;width:120px;height:80px;border:1px solid var(--border);background:rgba(5,5,7,.7)}.breadcrumb{position:fixed;bottom:20px;left:32px;z-index:10;font-size:8px;letter-spacing:3px;color:var(--txt3);text-transform:uppercase}.breadcrumb span{color:var(--gold)}
+</style>
+</head>
+<body>
+<div class="entry" id="entry">
+  <div class="entry-pre">System Friction Institute</div>
+  <div class="entry-title">El campo<br>no espera<br><em>tu permiso</em><br>para existir.</div>
+  <div class="entry-sub">Repositorio Fundacional · v1.0 · 2026</div>
+</div>
+<div class="header"><div class="h-institute">System Friction Institute</div><div class="h-sigil">Observación · Fricción · Memoria · Continuidad</div></div>
+<canvas id="fieldCanvas"></canvas>
+<div class="node-card" id="nodeCard"><header><div><div class="super" id="super">Nodo</div><div class="title" id="title">—</div></div><button onclick="closeCard()">cerrar</button></header><div class="body" id="body"></div></div>
+<div class="minimap"><canvas id="minimapCanvas" width="120" height="80"></canvas></div>
+<div class="breadcrumb">SFI · <span id="bcNode">campo</span></div>
+<script>
+const NODES=[
+{id:'manifiesto',label:'Manifiesto Fundacional',category:'foundation',x:0,y:0,r:28,connections:['principios','fundador','mision'],super:'Carta · Origen',title:'Manifiesto Fundacional',content:'No nacimos para simplificar. Nacimos para hacer visible la fricción que otros eligieron ignorar.'},
+{id:'principios',label:'Principios Operativos',category:'doctrine',x:380,y:-180,r:22,connections:['manifiesto','valores','metodologias'],super:'Doctrina · Reglas del campo',title:'Principios Operativos',content:'Fricción como señal. Observabilidad inter-especie. Traducción antes que técnica. Soberanía del nodo. Fricción mínima necesaria. Override con trazabilidad.'},
+{id:'fundador',label:'Carta del Fundador',category:'foundation',x:-320,y:-200,r:20,connections:['manifiesto','actualidad','mision'],super:'Aptymok · Origen personal',title:'Carta del Fundador',content:'Construí esto durante años en los márgenes de lo que el mundo consideraba trabajo real. En los márgenes, la observación es más honesta.'},
+{id:'actualidad',label:'Observación de la Actualidad',category:'context',x:-400,y:160,r:22,connections:['fundador','mision','metodologias'],super:'Campo · Contexto actual',title:'Observación de la Actualidad',content:'La crisis contemporánea ya no ocurre como evento discreto. Ocurre como estado.'},
+{id:'mision',label:'Misión · Visión · Valores',category:'doctrine',x:120,y:280,r:24,connections:['manifiesto','principios','valores','ecosistema'],super:'Doctrina · Propósito institucional',title:'Misión · Visión · Valores',content:'Dotar a nodos observadores de infraestructura de observación longitudinal.'},
+{id:'metodologias',label:'Metodologías y Modelos',category:'technical',x:300,y:200,r:26,connections:['mision','ecosistema','wsv','mihm'],super:'Técnico · Núcleo metodológico',title:'Metodologías y Modelos Aplicados',content:'Φ_SF = (IHG · NTI_obs) / (1 + LDI) + ξ.'},
+{id:'wsv',label:'World Spect Vector',category:'technical',x:560,y:80,r:18,connections:['metodologias','mihm','ecosistema'],super:'Modelo · WSV',title:'World Spect Vector',content:'Lectura del estado del mundo exterior percibido por un nodo observador.'},
+{id:'mihm',label:'MIHM',category:'technical',x:560,y:300,r:20,connections:['wsv','metodologias','ecosistema'],super:'Modelo · Multi-Dimensional Homeostasis',title:'MIHM',content:'Lectura del estado interno del objeto observado: IHG, NTI, LDI, PHI.'},
+{id:'valores',label:'Valores & Evidencia',category:'doctrine',x:-180,y:280,r:18,connections:['principios','mision','actualidad'],super:'Doctrina · Trust de evidencia',title:'Valores Operativos y Trust de Evidencia',content:'Un output, un operador o un régimen no son evidencia por sí mismos.'},
+{id:'ecosistema',label:'Ecosistema de Observatorios',category:'platform',x:180,y:-80,r:30,connections:['metodologias','mision','wsv','mihm','scorefriction','root','worldspect'],super:'Plataforma · Instrumentos',title:'Ecosistema de Observatorios SFI',content:'ROOT, ScoreFriction, Cluster Atlas, Signal Vane, Twin Engine, Reality Layer.'},
+{id:'scorefriction',label:'ScoreFriction',category:'platform',x:20,y:-320,r:22,connections:['ecosistema','mihm','worldspect'],super:'Observatorio · Cultura',title:'ScoreFriction',content:'Observatorio longitudinal de señales culturales, protoatractores, hipótesis, propuestas y verificación.'},
+{id:'root',label:'ROOT',category:'platform',x:-90,y:-330,r:22,connections:['ecosistema','fundador'],super:'Observatorio · Raíz',title:'ROOT',content:'Observatorio Personal Raíz: el observador como objeto.'},
+{id:'worldspect',label:'Worldspect',category:'technical',x:300,y:-330,r:22,connections:['ecosistema','wsv','scorefriction'],super:'Entorno · WSV',title:'Worldspect',content:'Lectura del entorno externo para objetos observados.'}
+];
+const c=document.getElementById('fieldCanvas'),ctx=c.getContext('2d'),mm=document.getElementById('minimapCanvas').getContext('2d');let W,H,camX=0,camY=0,scale=1,drag=false,last={x:0,y:0},active=null;function resize(){W=c.width=innerWidth;H=c.height=innerHeight}resize();addEventListener('resize',resize);function sx(x){return(x-camX)*scale+W/2}function sy(y){return(y-camY)*scale+H/2}function wx(x){return(x-W/2)/scale+camX}function wy(y){return(y-H/2)/scale+camY}function draw(){ctx.fillStyle='#050507';ctx.fillRect(0,0,W,H);ctx.strokeStyle='rgba(255,255,255,.025)';for(let x=0;x<W;x+=50){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke()}for(let y=0;y<H;y+=50){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke()}NODES.forEach(n=>n.connections.forEach(id=>{const b=NODES.find(x=>x.id===id);if(!b)return;ctx.beginPath();ctx.moveTo(sx(n.x),sy(n.y));ctx.lineTo(sx(b.x),sy(b.y));ctx.strokeStyle='rgba(201,168,76,.16)';ctx.stroke()}));NODES.forEach(n=>{ctx.beginPath();ctx.arc(sx(n.x),sy(n.y),n.r*scale,0,Math.PI*2);ctx.fillStyle=n.id===active?'rgba(201,168,76,.35)':'rgba(201,168,76,.12)';ctx.fill();ctx.strokeStyle='rgba(201,168,76,.65)';ctx.stroke();ctx.fillStyle='rgba(232,228,216,.75)';ctx.font='11px monospace';ctx.textAlign='center';ctx.fillText(n.label,sx(n.x),sy(n.y)+n.r+16)});drawMini();requestAnimationFrame(draw)}function drawMini(){mm.clearRect(0,0,120,80);mm.fillStyle='rgba(5,5,7,.9)';mm.fillRect(0,0,120,80);NODES.forEach(n=>{mm.beginPath();mm.arc(60+n.x*.06,40+n.y*.06,2,0,Math.PI*2);mm.fillStyle=n.id===active?'#c9a84c':'rgba(201,168,76,.35)';mm.fill()})}draw();c.addEventListener('mousedown',e=>{drag=true;last={x:e.clientX,y:e.clientY}});addEventListener('mouseup',e=>{if(!drag)return;const moved=Math.abs(e.clientX-last.x)+Math.abs(e.clientY-last.y);drag=false;if(moved<8){const X=wx(e.clientX),Y=wy(e.clientY);const n=NODES.find(n=>Math.hypot(n.x-X,n.y-Y)<n.r*1.6);if(n)openNode(n.id)}});addEventListener('mousemove',e=>{if(drag){camX-=(e.clientX-last.x)/scale;camY-=(e.clientY-last.y)/scale;last={x:e.clientX,y:e.clientY}}});c.addEventListener('wheel',e=>{e.preventDefault();scale=Math.max(.35,Math.min(2.8,scale*(e.deltaY>0?.9:1.1)))},{passive:false});function openNode(id){const n=NODES.find(x=>x.id===id);active=id;document.getElementById('super').textContent=n.super;document.getElementById('title').textContent=n.title;document.getElementById('body').innerHTML='<div class="section-title">lectura</div><div class="text">'+n.content+'</div><div class="connections">'+n.connections.map(c=>'<button class="conn" onclick="openNode(\''+c+'\')">→ '+c+'</button>').join('')+'</div>';document.getElementById('bcNode').textContent=n.label;const card=document.getElementById('nodeCard');card.classList.add('visible');card.style.left='50%';card.style.top='50%'}function closeCard(){document.getElementById('nodeCard').classList.remove('visible');active=null}document.getElementById('entry').addEventListener('click',e=>e.currentTarget.style.display='none');
+</script>
+</body>
+</html>
