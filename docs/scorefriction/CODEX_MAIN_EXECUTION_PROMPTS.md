@@ -11,6 +11,45 @@ Regla global para todos los prompts:
 - Ejecuta `npm run lint` y `npm run build`.
 - Si falla el build, corrige hasta que compile.
 - Cada fase debe terminar con commit en `main`.
+- Considera siempre el ecosistema completo SFI: Carta Fundacional, modelos MIHM/WSV, ROOT, ScoreFriction, Cluster Atlas, Signal Vane, Cognitive Twin Engine y Reality Layer.
+- Mantén coherencia visual con la estética SFI: fondo negro, dorado institucional, tipografía mono/serif, campo nodal navegable, tarjetas de lectura, conexiones entre nodos, minimapa o equivalente, y lenguaje operativo.
+- Ninguna fase debe quedar aislada como módulo CRUD. Cada fase debe integrarse al observatorio y al repositorio fundacional del ecosistema.
+
+---
+
+## PROMPT 0 — Repositorio Fundacional / Campo Navegable SFI
+
+Implementa un lugar real dentro del ecosistema SFI para contener la Carta Fundacional, los modelos, los principios, los observatorios y sus conexiones.
+
+Objetivo: crear un repositorio fundacional navegable como campo nodal vivo, no como página estática. Debe usar el lenguaje visual del diseño de referencia: campo negro, nodos dorados, conexiones, tarjetas de lectura, entrada ritual mínima, navegación por nodos, minimapa o vista de orientación, y contenido institucional conectado.
+
+Implementa:
+
+1. Crear ruta principal `src/app/repository/page.tsx` o `src/app/foundation/page.tsx`. Usa una sola ruta estable y enlázala desde la navegación SFI si existe.
+2. Crear componente React operativo `src/components/sfi/FoundationFieldRepository.tsx` o ruta equivalente ya usada por el proyecto.
+3. No pegar HTML crudo. Convertir el diseño a React/Next funcional.
+4. Implementar nodos mínimos: `manifiesto`, `principios`, `fundador`, `actualidad`, `mision`, `metodologias`, `wsv`, `mihm`, `valores`, `ecosistema`, `scorefriction`, `root`, `worldspect`.
+5. Cada nodo debe tener: `id`, `label`, `category`, `position`, `radius`, `connections`, `super`, `title`, `content`.
+6. El contenido debe tomar como base la Carta Fundacional, Constitución, principios SFI, modelos MIHM/WSV y la información institucional existente en `docs/`, sin inventar datos nuevos.
+7. Si existe información en documentos internos del repo, usarla. Si falta contenido, declarar `contenido institucional pendiente de formalización` dentro de la tarjeta, no inventar narrativa.
+8. Implementar canvas o SVG para campo nodal. Debe permitir pan, zoom, hover, selección de nodo y apertura de tarjeta.
+9. Implementar tarjeta de nodo con secciones, conexiones clicables y cierre.
+10. Implementar minimapa o panel de orientación.
+11. Integrar enlaces hacia `/scorefriction`, `/root` y demás observatorios existentes sin romper rutas.
+12. El repositorio fundacional debe funcionar como índice ontológico del ecosistema, no como landing decorativa.
+13. No usar datos simulados para métricas. Solo se permite contenido institucional estático tomado del repo.
+14. Ejecutar `npm run lint` y `npm run build`. Corregir errores.
+15. Hacer commit directo a `main`.
+
+Criterio de cierre:
+
+- Existe una ruta navegable del Repositorio Fundacional.
+- La ruta muestra un campo nodal real con tarjetas de lectura.
+- Los nodos conectan Carta Fundacional, modelos y observatorios.
+- `/scorefriction` queda enlazado como parte del ecosistema, no como módulo aislado.
+- `npm run lint` pasa.
+- `npm run build` pasa.
+- Commit final: `feat(sfi): implement foundational field repository`.
 
 ---
 
@@ -31,12 +70,14 @@ Implementa:
 7. Integración visual en `/scorefriction` dentro de `ScoreFrictionUnifiedObservatoryV2`.
 8. Panel visible: nombre, estado, confianza, densidad, persistencia, evidencia, última actualización.
 9. Sin datos simulados. Si no hay evidencia, mostrar `sin protoatractores detectados`.
+10. Enlazar protoatractores con el Repositorio Fundacional si existe. El nodo `scorefriction` debe poder explicar qué protoatractores está observando sin duplicar datos.
 
 Criterio de cierre:
 
 - `/scorefriction` detecta protoatractores desde datos reales.
 - El resultado se persiste en Supabase.
 - El panel se actualiza desde endpoint real.
+- La relación con el Repositorio Fundacional queda visible o preparada por contrato.
 - `npm run lint` pasa.
 - `npm run build` pasa.
 - Commit final: `feat(scorefriction): implement proto-attractors`.
@@ -60,6 +101,7 @@ Implementa:
 7. La cronología debe leer snapshots reales.
 8. Si no hay snapshots, mostrar `sin trayectoria longitudinal`.
 9. Después de detectar protoatractores, crear snapshot automático.
+10. La trayectoria longitudinal debe poder referenciarse desde el nodo `scorefriction` del Repositorio Fundacional.
 
 Criterio de cierre:
 
@@ -89,6 +131,7 @@ Implementa:
 7. Panel nuevo en `/scorefriction`: Cognitive Twin Cultural.
 8. Mostrar hipótesis, estado, confianza, ventana de verificación y resultado.
 9. No generar hipótesis si no existe protoatractor con evidencia suficiente.
+10. El Repositorio Fundacional debe explicar que el Cognitive Twin Cultural observa hipótesis, no gustos musicales.
 
 Criterio de cierre:
 
@@ -118,6 +161,7 @@ Implementa:
 7. Estados: `draft`, `proposed`, `accepted`, `rejected`, `executed`, `verified`.
 8. Integrar panel Propuestas en `/scorefriction`.
 9. No generar propuestas sin hipótesis cultural activa.
+10. Las propuestas deben poder mapearse al ecosistema SFI como intervenciones observables, no como recomendaciones sueltas.
 
 Criterio de cierre:
 
@@ -147,6 +191,7 @@ Implementa:
 7. Al verificar, actualizar propuesta e hipótesis asociada.
 8. Si el resultado contradice la hipótesis, marcarla como `refuted`.
 9. Si el resultado confirma la hipótesis, marcarla como `verified`.
+10. El Repositorio Fundacional debe poder describir el ciclo propuesta → verificación como ley operativa del observatorio.
 
 Criterio de cierre:
 
@@ -177,6 +222,7 @@ Implementa:
 7. Integrar panel Worldspect real en `/scorefriction`.
 8. El panel debe mostrar snapshot real o estado `worldspect_unavailable`.
 9. No usar barras simuladas cuando exista dato real.
+10. El nodo `worldspect` del Repositorio Fundacional debe explicar el rol de WSV/Worldspect como entorno externo del objeto observado.
 
 Criterio de cierre:
 
@@ -206,11 +252,13 @@ Implementa:
 7. Ejecutar lint.
 8. Ejecutar build.
 9. Corregir todo error de TypeScript o Next.
-10. Commit final: `chore(scorefriction): finalize unified observatory integration`.
+10. Verificar que `/repository` o `/foundation` exista y conecte SFI, Carta Fundacional y ScoreFriction.
+11. Commit final: `chore(scorefriction): finalize unified observatory integration`.
 
 Criterio de cierre:
 
 - `/scorefriction` funciona como observatorio principal.
+- El Repositorio Fundacional existe como campo navegable dentro del ecosistema.
 - No hay mock visual donde existan datos reales.
 - No hay build roto.
 - No hay rutas principales duplicando operación.
