@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { LogoutLink } from '@/components/auth/LogoutLink';
 
 const NAV = [
+  ['/repository', 'Repositorio'],
   ['/scorefriction', 'Observatorio'],
   ['/scorefriction/wide', 'Wide'],
   ['/scorefriction/lab', 'Lab'],

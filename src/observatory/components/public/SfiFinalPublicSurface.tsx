@@ -96,9 +96,9 @@ const REGION_LAYOUT: Record<string, Pick<HorizonRegion, 'id' | 'label' | 'route'
   },
   constitution: {
     id: 'constitution',
-    label: 'CONSTITUCION',
-    route: '/sfi-core-v2',
-    desc: 'Regla de pertenencia: observable, falseable, trazable, longitudinal y corregible.',
+    label: 'REPOSITORIO',
+    route: '/repository',
+    desc: 'Campo fundacional navegable: carta, modelos, observatorios y conexiones del ecosistema SFI.',
     x: 0,
     z: -0.62,
   },
