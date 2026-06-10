@@ -125,6 +125,7 @@ export function MophFieldGate() {
   const [selectedLetter, setSelectedLetter] = useState<number | null>(null);
   const [textDraft, setTextDraft] = useState('');
   const [metricsTick, setMetricsTick] = useState(0);
+  const [persistStatus, setPersistStatus] = useState<string | null>(null);
 
   const activeIndex = Math.max(0, MOPH_STORY.findIndex((chapter) => chapter.key === session.activeKey));
   const active = MOPH_STORY[activeIndex] ?? MOPH_STORY[0];
@@ -369,6 +370,59 @@ export function MophFieldGate() {
     openChapter(MOPH_STORY[0]);
   }
 
+  async function movementDigest() {
+    const stats = statsRef.current;
+    const payload = JSON.stringify({
+      mouseTotal: stats.mouseTotal,
+      idleCount: stats.idleCount,
+      pauses: stats.pauses,
+      bounds: [Math.round(stats.minX), Math.round(stats.maxX), Math.round(stats.minY), Math.round(stats.maxY)],
+      chapters: Object.keys(stats.chapterEvents).sort(),
+      choices: session.choices.length,
+      texts: session.texts.length,
+    });
+    const bytes = new TextEncoder().encode(payload);
+    const digest = await window.crypto.subtle.digest('SHA-256', bytes);
+    return Array.from(new Uint8Array(digest)).map((byte) => byte.toString(16).padStart(2, '0')).join('');
+  }
+
+  async function persistAnonymousSession() {
+    setPersistStatus('persistiendo');
+    try {
+      const digest = await movementDigest();
+      const response = await fetch('/api/moph/session', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          sessionKey: `moph_${session.startedAt.toString(36)}`,
+          consentState: 'anonymous_persisted',
+          movementTraceDigest: digest,
+          choices: session.choices,
+          texts: session.texts.map((item) => ({ chapter: item.chapter, length: item.length, editRatio: 0 })),
+          behavioralNodes: behaviorNodes.map((node) => node.id),
+          metrics: {
+            ihg: metrics.IHG,
+            nti: metrics.NTI,
+            ldi: metrics.LDI,
+            go: metrics.GO,
+            epsilon: metrics.epsilon,
+            phi: metrics.phi,
+          },
+          publicSummary: {
+            chaptersRead: session.done.length,
+            marks: session.marks.length,
+            hiddenLetters: session.letters.filter((letter) => letter.hidden).length,
+          },
+        }),
+      });
+      const json = await response.json() as { ok?: boolean; session?: { stored?: boolean; warnings?: string[] }; error?: string };
+      if (!json.ok) throw new Error(json.error ?? 'moph_session_failed');
+      setPersistStatus(json.session?.stored ? 'sesion anonima persistida' : `sesion anonima retenida localmente / ${json.session?.warnings?.[0] ?? 'store degradado'}`);
+    } catch (error) {
+      setPersistStatus(error instanceof Error ? error.message : 'moph_session_failed');
+    }
+  }
+
   const behaviorNodes = useMemo(() => {
     const events = Object.values(statsRef.current.chapterEvents);
     const shortReads = events.filter((event) => event.readTime > 0 && event.readTime < 4).length;
@@ -533,7 +587,7 @@ export function MophFieldGate() {
           <section className="w-[min(880px,90vw)] border border-[#b996484d] bg-[#080806fa] p-8 md:p-14">
             <p className="font-mono text-[10px] uppercase tracking-[0.28em] text-[#b99648]">System Friction Institute / MOP-H session complete</p>
             <h2 className="mt-4 font-serif text-[clamp(2rem,4vw,3.2rem)] uppercase leading-none">El campo te ha visto.</h2>
-            <p className="mt-5 max-w-2xl font-serif text-base leading-7 text-[#e8ddc399]">No solo leiste una historia. Produjiste evidencia local: recorrido, pausas, marcas, decisiones, texto y latencias. La sesion se conserva en localStorage y no se envia a ningun endpoint externo.</p>
+            <p className="mt-5 max-w-2xl font-serif text-base leading-7 text-[#e8ddc399]">No solo leiste una historia. Produjiste evidencia local: recorrido, pausas, marcas, decisiones, texto y latencias. Por defecto queda local; si aceptas, se envia una sesion anonima sin texto completo ni coordenadas crudas.</p>
             <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-5">
               {Object.entries({ IHG: metrics.IHG, NTI: metrics.NTI, LDI: metrics.LDI, GO: metrics.GO, epsilon: metrics.epsilon }).map(([label, value]) => (
                 <div key={label} className="border border-[#b9964824] bg-black/35 p-4 text-center">
@@ -547,8 +601,10 @@ export function MophFieldGate() {
               <Link href="/repository" className="border border-[#b9964866] px-5 py-3 font-mono text-[10px] uppercase tracking-[0.18em] text-[#b99648]">Repositorio</Link>
               <Link href="/scorefriction" className="border border-[#b9964866] px-5 py-3 font-mono text-[10px] uppercase tracking-[0.18em] text-[#b99648]">ScoreFriction</Link>
               <Link href="/root" className="border border-[#b9964866] px-5 py-3 font-mono text-[10px] uppercase tracking-[0.18em] text-[#b99648]">ROOT</Link>
+              <button onClick={() => void persistAnonymousSession()} className="border border-[#b9964866] px-5 py-3 font-mono text-[10px] uppercase tracking-[0.18em] text-[#b99648]">Persistir anonimo</button>
               <button onClick={resetLocal} className="border border-[#e8ddc326] px-5 py-3 font-mono text-[10px] uppercase tracking-[0.18em] text-[#e8ddc380]">Reiniciar local</button>
             </div>
+            {persistStatus ? <div className="mt-4 font-mono text-[10px] uppercase tracking-[0.14em] text-[#b99648]">{persistStatus}</div> : null}
           </section>
         </div>
       ) : null}
