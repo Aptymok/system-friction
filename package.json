@@ -12,6 +12,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "audit:routes": "node scripts/audit-routes.mjs",
     "check:boundaries": "node scripts/check-domain-boundaries.mjs",
     "typecheck": "tsc --noEmit --pretty false --incremental false",
     "phase:verify": "npm run check:boundaries && npm run typecheck"
