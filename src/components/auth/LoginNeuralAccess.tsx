@@ -7,6 +7,7 @@ import { SfiFieldCanvas } from '@/components/sfi/SfiFieldCanvas';
 import { SfiMark } from '@/components/sfi/SfiMark';
 import { SfiMetricRail } from '@/components/sfi/SfiMetricRail';
 import { evaluateSfi } from '@/lib/sfi/math';
+import { SFI_OBSERVATORIES } from '@/lib/sfi/observatories';
 
 type AccessNode = {
   id: string;
@@ -21,12 +22,12 @@ type AccessNode = {
 
 const ACCESS_NODES: AccessNode[] = [
   { id: 'SFI', label: 'SFI', x: 0, y: 0, radius: 34, density: 0.86, connections: ['SFI_OBS_N0', 'SCOREFRICTION', 'ACCESS', 'EVIDENCE_LEDGER'], text: 'Campo institucional raiz. La entrada no abre una pantalla plana: abre un umbral de observacion.' },
-  { id: 'SFI_OBS_N0', label: 'SFI-OBS-N0', x: -260, y: -140, radius: 25, density: 0.72, connections: ['AMV', 'MOPH', 'ACCESS'], text: 'Nodo raiz publico. ROOT queda como alias tecnico interno; la topologia visible opera como SFI-OBS-N0.' },
-  { id: 'SCOREFRICTION', label: 'ScoreFriction', x: 220, y: 140, radius: 27, density: 0.76, connections: ['WORLDSPECTRUMVECTOR', 'MIHM', 'PHENOMENON_ENGINE'], text: 'Campo cultural conectado a MIHM y WorldSpectrumVector. No es ranking ni panel decorativo.' },
+  { id: 'SFI_OBS_N0', label: SFI_OBSERVATORIES.SFI_OBS_N0.publicLabel, x: -260, y: -140, radius: 25, density: SFI_OBSERVATORIES.SFI_OBS_N0.weight, connections: ['AMV', 'MOPH', 'ACCESS'], text: `${SFI_OBSERVATORIES.SFI_OBS_N0.description} ROOT queda como alias tecnico interno.` },
+  { id: 'SCOREFRICTION', label: SFI_OBSERVATORIES.SCOREFRICTION.publicLabel, x: 220, y: 140, radius: 27, density: SFI_OBSERVATORIES.SCOREFRICTION.weight, connections: ['WORLDSPECTRUMVECTOR', 'MIHM', 'PHENOMENON_ENGINE'], text: SFI_OBSERVATORIES.SCOREFRICTION.description },
   { id: 'WORLDSPECTRUMVECTOR', label: 'WorldSpectrumVector', x: 360, y: -70, radius: 24, density: 0.68, connections: ['MIHM', 'SCOREFRICTION', 'PHENOMENON_ENGINE'], text: 'Vector rector externo. Lee presion de mundo antes de convertirla en decision interna.' },
   { id: 'MIHM', label: 'MIHM', x: 120, y: -230, radius: 24, density: 0.74, connections: ['WORLDSPECTRUMVECTOR', 'AMV', 'ACCESS'], text: 'Evaluador interno. Comprime IHG, NTI, LDI y perturbacion sin sustituir evidencia.' },
   { id: 'AMV', label: 'AMV', x: -90, y: -300, radius: 22, density: 0.64, connections: ['SFI_OBS_N0', 'MIHM', 'EVIDENCE_LEDGER'], text: 'Agente operativo. Propone lectura solo desde evidencia y declara incertidumbre.' },
-  { id: 'MOPH', label: 'MOP-H', x: -330, y: 90, radius: 22, density: 0.60, connections: ['SFI_OBS_N0', 'EVIDENCE_LEDGER'], text: 'Instrumento fenomenologico. La evidencia privada aumenta densidad, no exposicion.' },
+  { id: 'MOPH', label: SFI_OBSERVATORIES.MOPH.publicLabel, x: -330, y: 90, radius: 22, density: SFI_OBSERVATORIES.MOPH.weight, connections: ['SFI_OBS_N0', 'EVIDENCE_LEDGER'], text: `${SFI_OBSERVATORIES.MOPH.description} La evidencia privada aumenta densidad, no exposicion.` },
   { id: 'EVIDENCE_LEDGER', label: 'Evidence Ledger', x: -80, y: 205, radius: 23, density: 0.70, connections: ['SFI', 'AMV', 'PHENOMENON_ENGINE', 'ACCESS'], text: 'Hashes, resumen publico y referencias privadas. La entrada deja traza minima de umbral.' },
   { id: 'PHENOMENON_ENGINE', label: 'Phenomenon Engine', x: 370, y: 185, radius: 23, density: 0.58, connections: ['SCOREFRICTION', 'WORLDSPECTRUMVECTOR', 'EVIDENCE_LEDGER'], text: 'Promueve fenomenos solo si hay evidencia, tiempo y degradacion declarada.' },
   { id: 'ACCESS', label: 'ACCESS', x: 0, y: 260, radius: 30, density: 0.78, connections: ['SFI', 'SFI_OBS_N0', 'MIHM', 'EVIDENCE_LEDGER'], text: 'Activar este nodo abre el flujo real de autenticacion.' },
