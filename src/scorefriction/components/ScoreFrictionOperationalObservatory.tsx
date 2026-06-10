@@ -196,29 +196,37 @@ export function ScoreFrictionOperationalObservatory({ initialState }: { initialS
 
   return (
     <div className="fixed inset-0 cursor-crosshair overflow-hidden bg-[#050504] text-[#d8d0bd]">
-      <header className="fixed left-0 right-0 top-0 z-30 flex h-[26px] items-center gap-4 border-b border-[#d8b64a20] bg-[#050504]/95 pl-12 pr-3 font-mono">
+      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_50%_28%,rgba(216,182,74,.065),transparent_42%),linear-gradient(rgba(216,182,74,.024)_1px,transparent_1px),linear-gradient(90deg,rgba(216,182,74,.02)_1px,transparent_1px)] [background-size:auto,42px_42px,42px_42px]" />
+      <header className="fixed left-0 right-0 top-0 z-30 flex h-[28px] items-center gap-4 border-b border-[#d8b64a24] bg-[#050504]/96 pl-12 pr-3 font-mono backdrop-blur">
         <div className="text-[10px] font-bold uppercase tracking-[0.34em] text-[#e0c46c]">SFI</div>
         <div className="h-4 w-px bg-[#d8b64a33]" />
-        <div className="text-[9px] uppercase tracking-[0.18em] text-[#8a8172]">ScoreFriction / triplanar operational observatory</div>
+        <div className="text-[9px] uppercase tracking-[0.18em] text-[#b8ad98]">SCOREFRICTION / OBSERVATORIO OPERACIONAL</div>
+        <div className="h-4 w-px bg-[#d8b64a22]" />
+        <div className="text-[9px] uppercase tracking-[0.14em] text-[#8a8172]">ΦSF <span className="text-[#e0c46c]">{metrics.phi.toFixed(3)}</span></div>
+        <div className="text-[9px] uppercase tracking-[0.14em] text-[#8a8172]">IHG <span className="text-[#e0c46c]">{metrics.ihg.toFixed(2)}</span></div>
+        <div className="text-[9px] uppercase tracking-[0.14em] text-[#8a8172]">NTI <span className="text-[#e0c46c]">{metrics.nti.toFixed(2)}</span></div>
+        <div className="text-[9px] uppercase tracking-[0.14em] text-[#8a8172]">LDI <span className={metrics.ldi > 0.7 ? 'text-[#d05c52]' : 'text-[#e0c46c]'}>{metrics.ldi.toFixed(2)}</span></div>
         <div className="ml-auto text-[9px] uppercase tracking-[0.16em] text-[#8a8172]">case {caseId} / {pipeline.status}</div>
       </header>
-      <aside className="fixed bottom-0 left-0 top-[26px] z-20 flex w-[38px] flex-col items-center gap-4 border-r border-[#d8b64a20] bg-[#050504]/95 py-3">
-        {['A', 'B', 'C'].map((zone) => <div key={zone} className="[writing-mode:vertical-rl] font-mono text-[8px] tracking-[0.22em] text-[#6f6658]">ZONE {zone}</div>)}
+      <aside className="fixed bottom-0 left-0 top-[28px] z-20 flex w-[38px] flex-col items-center justify-between border-r border-[#d8b64a20] bg-[#050504]/96 py-4">
+        {['TOPO I', 'TOPO II', 'TOPO III'].map((zone) => (
+          <div key={zone} className="[writing-mode:vertical-rl] font-mono text-[8px] uppercase tracking-[0.22em] text-[#6f6658]">{zone}</div>
+        ))}
       </aside>
-      <main className="fixed bottom-0 left-[38px] right-0 top-[26px] flex flex-col overflow-hidden">
-        <div className="zone-a flex h-[38%] overflow-x-auto border-b border-[#d8b64a20] [scrollbar-width:none]">
+      <main className="fixed bottom-0 left-[38px] right-0 top-[28px] grid min-h-0 grid-rows-[38fr_33fr_29fr] gap-px overflow-hidden bg-[#d8b64a12]">
+        <div className="grid min-h-0 grid-cols-[1.04fr_1.42fr_1.2fr_1.16fr] gap-px overflow-hidden bg-[#050504]">
           <PanelPhi context={context} />
           <PanelCField context={context} />
           <PanelVectorTwin context={context} />
           <PanelWorldSpectrum context={context} />
         </div>
-        <div className="zone-b flex h-[33%] overflow-x-auto border-b border-[#d8b64a20] [scrollbar-width:none]">
+        <div className="grid min-h-0 grid-cols-[1.34fr_1.08fr_1.2fr_1fr] gap-px overflow-hidden bg-[#050504]">
           <PanelLongitudinalTension context={context} />
           <PanelSemanticPressure onText={setSemanticText} />
           <PanelStochasticProjection context={context} />
           <PanelAgentEntropy context={context} />
         </div>
-        <div className="zone-c flex h-[29%] overflow-x-auto [scrollbar-width:none]">
+        <div className="grid min-h-0 grid-cols-[1.58fr_1.1fr_1.16fr_1.16fr] gap-px overflow-hidden bg-[#050504]">
           <PanelChronology context={context} />
           <PanelAmvChat context={context} />
           <PanelEvidenceLoad pipeline={pipeline} onRun={runScoreFrictionPipeline} />
