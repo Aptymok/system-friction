@@ -91,7 +91,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const ctx = await ensureOwnedNode(command.node_id);
-    if (ctx.error || !ctx.node || !ctx.user) return apiError('node_unavailable', 404, traceId);
+    if (ctx.error || !ctx.node || !ctx.user) return apiError('node_not_ready', 404, traceId);
 
     const payloadHash = hashPayload({
       signal_type: command.signal_type,

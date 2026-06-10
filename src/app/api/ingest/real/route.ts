@@ -112,7 +112,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const ctx = await ensureOwnedNode(parsed.node_id);
-    if (ctx.error || !ctx.node || !ctx.user) return apiError('node_unavailable', 404, parsed.node_id);
+    if (ctx.error || !ctx.node || !ctx.user) return apiError('node_not_ready', 404, parsed.node_id);
 
     const evidenceLevel = evidenceFor(parsed);
     const payloadBase = {
@@ -155,6 +155,6 @@ export async function POST(req: NextRequest) {
       ingested: true,
     }, parsed.node_id);
   } catch {
-    return apiError('node_unavailable', 404, parsed.node_id);
+    return apiError('node_not_ready', 404, parsed.node_id);
   }
 }

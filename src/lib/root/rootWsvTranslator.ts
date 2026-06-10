@@ -69,7 +69,7 @@ function dominantField(input: VisibleRecord) {
 
 function integrityFor(input: VisibleRecord, health: VisibleRecord[]) {
   const confidence = numberValue(input.confidence);
-  const degraded = health.filter((source) => ['degraded', 'missing', 'simulated', 'unavailable'].includes(sourceStatus(source))).length
+  const degraded = health.filter((source) => ['degraded', 'missing', 'simulated', 'not_ready'].includes(sourceStatus(source))).length
     + array(input.degraded_sources).length;
   if (confidence === undefined) return degraded ? 'integridad incompleta: hay fuente degradada sin confianza consolidada' : 'integridad pendiente: confianza no visible';
   const confidenceText = `confianza ${confidence.toFixed(3)}`;
@@ -88,7 +88,7 @@ export function translateRootWsv(value: unknown, now = new Date()): RootWsvTrans
   const active = health.filter((source) => sourceStatus(source) === 'healthy');
   const degraded = [
     ...array(input.degraded_sources).filter((item): item is string => typeof item === 'string'),
-    ...health.filter((source) => ['degraded', 'missing', 'simulated', 'unavailable'].includes(sourceStatus(source))).map(sourceLabel),
+    ...health.filter((source) => ['degraded', 'missing', 'simulated', 'not_ready'].includes(sourceStatus(source))).map(sourceLabel),
   ];
   const hasReading = Object.keys(input).length > 0 && state.normalizedState !== 'missing';
   const dayText = isSameUtcDay(observedAt, now)

@@ -27,7 +27,7 @@ export async function GET() {
     return NextResponse.json({
       ok: false,
       source: 'python',
-      warning: 'python_engine_unavailable',
+      warning: 'python_engine_not_ready',
       detail: error instanceof Error ? error.message : 'unknown',
     }, {
       status: 502,

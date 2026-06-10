@@ -28,7 +28,7 @@ async function postPersistence<T>(action: string, payload: Record<string, unknow
     return {
       ok: false,
       mode: 'local_only',
-      error: error instanceof Error ? error.message : 'persistence_unavailable',
+      error: error instanceof Error ? error.message : 'persistence_not_ready',
     };
   }
 }

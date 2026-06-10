@@ -103,10 +103,10 @@ async function analyzerVector(file: File, sourceName: string, evidenceType: stri
     return vectors.acoustic_vector;
   }
 
-  warnings.push(`python_mihm_unavailable:${pythonResult.error}`);
+  warnings.push(`python_mihm_not_ready:${pythonResult.error}`);
   const analyzerUrl = process.env.SCOREFRICTION_AUDIO_ANALYZER_URL;
   if (!analyzerUrl) {
-    warnings.push('audio_analyzer_unavailable');
+    warnings.push('audio_analyzer_not_ready');
     const fallback = buildFallback(file, sourceName, evidenceType, audioMetadata);
     state.mode = fallback.analysis_mode;
     state.message = 'Python MIHM no disponible; se uso vector minimo de emergencia.';
@@ -145,7 +145,7 @@ async function worldspectContext(request: NextRequest, warnings: string[]) {
   const url = new URL('/api/worldspect/real', request.url);
   const response = await fetch(url, { cache: 'no-store' }).catch(() => null);
   if (!response?.ok) {
-    warnings.push('worldspect_context_unavailable');
+    warnings.push('worldspect_context_not_ready');
     return null;
   }
   return response.json().catch(() => null);

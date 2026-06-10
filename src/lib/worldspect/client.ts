@@ -9,7 +9,7 @@ export type WorldSpectRealClientState = {
   degraded_sources: string[]
   sourceHealth: Array<{
     sourceId: string
-    status: 'healthy' | 'degraded' | 'unavailable' | 'unknown'
+    status: 'healthy' | 'degraded' | 'not_ready' | 'unknown'
     kind?: string
     lastObservedAt?: string
     checkedAt?: string
@@ -26,7 +26,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function sourceHealthStatus(value: unknown): SourceHealthStatus {
-  return value === 'healthy' || value === 'degraded' || value === 'unavailable' || value === 'unknown' ? value : 'unknown'
+  return value === 'healthy' || value === 'degraded' || value === 'not_ready' || value === 'unknown' ? value : 'unknown'
 }
 
 function numberOrNull(value: unknown): number | null {
@@ -34,7 +34,7 @@ function numberOrNull(value: unknown): number | null {
 }
 
 function normalizeWorldSpectPayload(payload: unknown, warnings: string[] = []): WorldSpectRealClientState {
-  if (!isRecord(payload)) return unavailableState(warnings)
+  if (!isRecord(payload)) return not_readyState(warnings)
   const sourceState = payload.sourceState === 'observed' || payload.sourceState === 'degraded' ? payload.sourceState : 'degraded'
   const sourceHealth = Array.isArray(payload.sourceHealth)
     ? payload.sourceHealth.filter(isRecord).map((source) => ({
@@ -60,7 +60,7 @@ function normalizeWorldSpectPayload(payload: unknown, warnings: string[] = []): 
   }
 }
 
-function unavailableState(warnings: string[] = ['worldspect_unavailable']): WorldSpectRealClientState {
+function not_readyState(warnings: string[] = ['worldspect_not_ready']): WorldSpectRealClientState {
   return {
     sourceState: 'degraded',
     evidenceLevel: 'none',
@@ -77,10 +77,10 @@ export async function readWorldSpectReal(): Promise<WorldSpectRealClientState> {
   try {
     const response = await fetch('/api/worldspect/real', { cache: 'no-store' })
     const body: unknown = await response.json().catch(() => null)
-    if (!response.ok || !isRecord(body) || body.ok !== true) return unavailableState()
+    if (!response.ok || !isRecord(body) || body.ok !== true) return not_readyState()
     const warnings = Array.isArray(body.warnings) ? body.warnings.filter((item): item is string => typeof item === 'string') : []
     return normalizeWorldSpectPayload(body.data, warnings)
   } catch {
-    return unavailableState()
+    return not_readyState()
   }
 }

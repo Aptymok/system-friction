@@ -28,7 +28,7 @@ export function PanelVectorTwin({ context }: { context: ScoreFrictionPanelContex
         })}
       </svg>
       <div className="font-mono text-[9px] uppercase tracking-[0.16em] text-[#6f6658]">
-        {context.world ? 'WorldSpectVector activo' : 'worldspect_unavailable / twin degradado'}
+        {context.world ? `WorldSpectVector ${context.world.status ?? 'ACTIVE'}` : 'BOOTSTRAPPED / awaiting external evidence'}
       </div>
     </PanelFrame>
   )

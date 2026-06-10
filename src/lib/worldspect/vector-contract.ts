@@ -23,6 +23,8 @@ export type WorldSpectVector = {
   trust: number;
   degradation: number;
   observed_at: string;
+  status?: 'ACTIVE' | 'BOOTSTRAPPED' | 'DEGRADED_BLOCKING';
+  sources?: string[];
 };
 
 export type WorldSpectVectorSnapshot = {
@@ -32,4 +34,7 @@ export type WorldSpectVectorSnapshot = {
   wsi: number;
   nti: number;
   regime: 'LOW' | 'TENSION' | 'CRITICAL';
+  status?: 'ACTIVE' | 'BOOTSTRAPPED' | 'DEGRADED_BLOCKING';
+  sourceCoverage?: number;
+  degradedSources?: string[];
 };

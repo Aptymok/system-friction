@@ -70,7 +70,7 @@ export async function POST(request: Request) {
       id = str(data?.id, id)
     }
   } catch (error) {
-    warnings.push(`sfi_evidence_ledger_unavailable:${error instanceof Error ? error.message : 'unknown'}`)
+    warnings.push(`sfi_evidence_ledger_not_ready:${error instanceof Error ? error.message : 'unknown'}`)
   }
 
   return NextResponse.json({

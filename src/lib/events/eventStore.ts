@@ -119,7 +119,7 @@ export async function streamEpistemicEvents(logbookId = 'default', limit = 100) 
     return {
       ok: true as const,
       data: [],
-      warnings: ['epistemic_event_store_unavailable'],
+      warnings: ['epistemic_event_store_not_ready'],
       details: error instanceof Error ? error.message : String(error),
     };
   }
@@ -135,7 +135,7 @@ export async function streamEpistemicEvents(logbookId = 'default', limit = 100) 
     return {
       ok: true as const,
       data: [],
-      warnings: ['epistemic_event_stream_unavailable'],
+      warnings: ['epistemic_event_stream_not_ready'],
       details: error.message,
     };
   }

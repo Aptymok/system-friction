@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
   try {
     if (body.action === 'field_event') {
       const ctx = await ensureOwnedNode(body.node_id);
-      if (ctx.error) return localOnly('node_unavailable');
+      if (ctx.error) return localOnly('node_not_ready');
       const payload = {
         ...(body.trace_payload || {}),
         message: body.message,
@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
         return localOnly('worldspect_snapshot_not_measured');
       }
       const ctx = await ensureOwnedNode(body.node_id);
-      if (ctx.error) return localOnly('node_unavailable');
+      if (ctx.error) return localOnly('node_not_ready');
       const { data, error } = await ctx.service.from('world_spectrum_snapshots').insert({
         node_id: ctx.node.id,
         user_id: ctx.user.id,
@@ -92,7 +92,7 @@ export async function POST(req: NextRequest) {
 
     if (body.action === 'latest_world_spectrum_snapshot') {
       const ctx = await ensureOwnedNode(body.nodeId);
-      if (ctx.error) return localOnly('node_unavailable');
+      if (ctx.error) return localOnly('node_not_ready');
       const { data, error } = await ctx.service
         .from('world_spectrum_snapshots')
         .select('*')
@@ -107,7 +107,7 @@ export async function POST(req: NextRequest) {
 
     if (body.action === 'social_draft') {
       const ctx = await ensureOwnedNode(body.node_id);
-      if (ctx.error) return localOnly('node_unavailable');
+      if (ctx.error) return localOnly('node_not_ready');
       const draft = body.draft || {};
       const metadata = {
         draftId: draft.id,
@@ -150,7 +150,7 @@ export async function POST(req: NextRequest) {
 
     if (body.action === 'manual_social_post') {
       const ctx = await ensureOwnedNode(body.node_id);
-      if (ctx.error) return localOnly('node_unavailable');
+      if (ctx.error) return localOnly('node_not_ready');
       const provider = String(body.network || 'manual');
       const externalPostId = body.externalPostId ? String(body.externalPostId) : null;
       const postUrl = body.postUrl ? String(body.postUrl) : null;
@@ -194,7 +194,7 @@ export async function POST(req: NextRequest) {
 
     if (body.action === 'manual_social_return') {
       const ctx = await ensureOwnedNode(body.node_id);
-      if (ctx.error) return localOnly('node_unavailable');
+      if (ctx.error) return localOnly('node_not_ready');
       const manualReturn = body.manualReturn || {};
       const platform = String(manualReturn.platform || 'manual');
       const postId = manualReturn.postId ? String(manualReturn.postId) : null;
@@ -234,14 +234,14 @@ export async function POST(req: NextRequest) {
 
     if (body.action === 'social_readonly_sources') {
       const ctx = await ensureOwnedNode(body.node_id);
-      if (ctx.error) return localOnly('node_unavailable');
+      if (ctx.error) return localOnly('node_not_ready');
       const sources = await getConnectedSocialSources(ctx);
       return jsonOk({ sources });
     }
 
     if (body.action === 'social_readonly_ingest') {
       const ctx = await ensureOwnedNode(body.node_id);
-      if (ctx.error) return localOnly('node_unavailable');
+      if (ctx.error) return localOnly('node_not_ready');
       const provider = String(body.provider || 'x') as SocialProvider;
       const result = await ingestSocialMetrics(ctx, provider);
 
@@ -279,7 +279,7 @@ export async function POST(req: NextRequest) {
 
     if (body.action === 'runtime_status') {
       const ctx = await ensureOwnedNode(body.node_id);
-      if (ctx.error) return localOnly('node_unavailable');
+      if (ctx.error) return localOnly('node_not_ready');
       const since = new Date(Date.now() - 5 * 60_000).toISOString();
       const [
         fieldEvents,

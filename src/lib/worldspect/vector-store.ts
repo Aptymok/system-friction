@@ -1,4 +1,5 @@
 import { getLatestWorldSpectSnapshot } from './snapshotStore';
+import { createBootstrappedWorldSpectSnapshot } from './bootstrap';
 import { WORLDSPECT_DOMAINS, type WorldSpectDomain, type WorldSpectVector, type WorldSpectVectorSnapshot } from './vector-contract';
 
 type SourceLike = {
@@ -52,6 +53,8 @@ function aggregateDomain(domain: WorldSpectDomain, sources: SourceLike[], observ
       trust: 0,
       degradation: 1,
       observed_at: observedAt,
+      status: 'BOOTSTRAPPED',
+      sources: [],
     };
   }
 
@@ -71,12 +74,14 @@ function aggregateDomain(domain: WorldSpectDomain, sources: SourceLike[], observ
     trust: Number(trust.toFixed(4)),
     degradation: Number((1 - trust).toFixed(4)),
     observed_at: observedAt,
+    status: 'ACTIVE',
+    sources: usable.map((source) => source.key),
   };
 }
 
-export async function readWorldSpectVectorSnapshot(): Promise<{ ok: true; snapshot: WorldSpectVectorSnapshot } | { ok: false; error: 'worldspect_unavailable'; snapshot: null }> {
+export async function readWorldSpectVectorSnapshot(): Promise<{ ok: true; status: 'ACTIVE' | 'BOOTSTRAPPED'; snapshot: WorldSpectVectorSnapshot }> {
   const row = await getLatestWorldSpectSnapshot();
-  if (!row) return { ok: false, error: 'worldspect_unavailable', snapshot: null };
+  if (!row) return { ok: true, status: 'BOOTSTRAPPED', snapshot: createBootstrappedWorldSpectSnapshot() };
 
   const sources = row.sources.map((source) => ({
     key: source.key,
@@ -92,7 +97,7 @@ export async function readWorldSpectVectorSnapshot(): Promise<{ ok: true; snapsh
   const active = vectors.filter((vector) => vector.source_count > 0);
 
   if (active.length === 0 && row.wsi === null && row.nti === null) {
-    return { ok: false, error: 'worldspect_unavailable', snapshot: null };
+    return { ok: true, status: 'BOOTSTRAPPED', snapshot: createBootstrappedWorldSpectSnapshot() };
   }
 
   const wsi = clamp01(numeric(row.wsi) ?? active.reduce((sum, vector) => sum + vector.value * vector.trust, 0) / Math.max(1, active.length));
@@ -108,6 +113,10 @@ export async function readWorldSpectVectorSnapshot(): Promise<{ ok: true; snapsh
       wsi: Number(wsi.toFixed(4)),
       nti: Number(nti.toFixed(4)),
       regime,
+      status: active.length > 0 ? 'ACTIVE' : 'BOOTSTRAPPED',
+      sourceCoverage: active.length / Math.max(1, vectors.length),
+      degradedSources: [],
     },
+    status: active.length > 0 ? 'ACTIVE' : 'BOOTSTRAPPED',
   };
 }

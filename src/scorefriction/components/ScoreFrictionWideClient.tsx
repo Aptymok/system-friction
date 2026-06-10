@@ -264,7 +264,7 @@ export function ScoreFrictionWideClient() {
         }),
       });
       const data = (await response.json()) as AmvResponse;
-      if (!response.ok || !data.ok) throw new Error(data.error ?? 'amv_unavailable');
+      if (!response.ok || !data.ok) throw new Error(data.error ?? 'amv_not_ready');
       setAmv(data);
     } catch {
       setAmv({
@@ -277,7 +277,7 @@ export function ScoreFrictionWideClient() {
           ventana: 'Reintentar cuando /api/amv este disponible.',
           ruta_unica: 'Mantener observacion local sin abrir rutas paralelas.',
         },
-        warnings: ['amv_unavailable'],
+        warnings: ['amv_not_ready'],
       });
     } finally {
       setBusy(false);

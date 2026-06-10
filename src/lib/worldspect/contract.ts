@@ -117,7 +117,6 @@ export function normalizeWorldSpectSourceHealth(
       || statusValue === 'degraded'
       || statusValue === 'missing'
       || statusValue === 'simulated'
-      || statusValue === 'unavailable'
       ? statusValue
       : 'unknown';
     const nti = finiteNumberOrNull(source.nti);

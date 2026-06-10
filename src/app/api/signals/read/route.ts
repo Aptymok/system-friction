@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
 
   try {
     const ctx = await ensureOwnedNode(nodeId);
-    if (ctx.error || !ctx.node || !ctx.user) return apiError('node_unavailable', 404, traceId);
+    if (ctx.error || !ctx.node || !ctx.user) return apiError('node_not_ready', 404, traceId);
 
     const { data, error } = await ctx.service
       .from('cognitive_event_stream')

@@ -59,7 +59,7 @@ export async function saveMophSession(payload: MophSessionPayload): Promise<Stor
       return rowToSession(data as Record<string, unknown>)
     }
   } catch (error) {
-    warnings.push(`moph_sessions_unavailable:${error instanceof Error ? error.message : 'unknown'}`)
+    warnings.push(`moph_sessions_not_ready:${error instanceof Error ? error.message : 'unknown'}`)
   }
 
   const fallback: StoredMophSession = {

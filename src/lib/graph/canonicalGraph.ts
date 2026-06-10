@@ -222,7 +222,7 @@ export async function readCanonicalGraphState(profile: GraphProfile): Promise<Ca
   try {
     service = createServiceSupabaseClient();
   } catch (error) {
-    return defaultCanonicalGraph(profile, error instanceof Error ? error.message : 'graph_store_unavailable');
+    return defaultCanonicalGraph(profile, error instanceof Error ? error.message : 'graph_store_not_ready');
   }
 
   const [nodesResult, edgesResult] = await Promise.all([

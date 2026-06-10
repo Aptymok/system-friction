@@ -16,11 +16,11 @@ export async function readScoreFrictionWorldspect(caseId: string) {
     .limit(1)
     .maybeSingle();
 
-  if (snapshot.error) return { ok: true as const, case_id: cleanCaseId, data: null, status: 'worldspect_unavailable', warning: snapshot.error.message };
+  if (snapshot.error) return { ok: true as const, case_id: cleanCaseId, data: null, status: 'worldspect_not_ready', warning: snapshot.error.message };
   return {
     ok: true as const,
     case_id: cleanCaseId,
     data: snapshot.data ?? null,
-    status: snapshot.data ? 'worldspect_available' : 'worldspect_unavailable',
+    status: snapshot.data ? 'worldspect_available' : 'worldspect_not_ready',
   };
 }

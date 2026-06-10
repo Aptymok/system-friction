@@ -191,7 +191,7 @@ const STATE_ALIASES: Record<string, string> = {
   invalid: 'failed',
   fallback: 'partial',
   derived: 'partial',
-  unavailable: 'missing',
+  not_ready: 'missing',
   unknown: 'missing',
 };
 

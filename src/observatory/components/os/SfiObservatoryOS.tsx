@@ -384,7 +384,7 @@ export function SfiObservatoryOS() {
       setCommandState((prev) => prev.status === 'running' ? { status: 'done', message: 'El campo estÃ¡ listo para observaciÃ³n' } : prev);
     } else {
       setLoadState('degraded');
-      setLoadError(stringValue(isRecord(observatoryResult.body) ? observatoryResult.body.error : null, 'observatory_state_unavailable'));
+      setLoadError(stringValue(isRecord(observatoryResult.body) ? observatoryResult.body.error : null, 'observatory_state_not_ready'));
     }
   }, []);
 

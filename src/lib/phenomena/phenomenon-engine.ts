@@ -115,7 +115,7 @@ export async function promotePhenomenonCandidate(input: PhenomenonCandidateInput
     return { ok: true as const, promoted: true, record, data, stored: true }
   } catch (error) {
     fallbackStore().set(record.phenomenonKey, record)
-    return { ok: true as const, promoted: true, record, stored: false, warning: error instanceof Error ? error.message : 'sfi_phenomena_unavailable' }
+    return { ok: true as const, promoted: true, record, stored: false, warning: error instanceof Error ? error.message : 'sfi_phenomena_not_ready' }
   }
 }
 
@@ -129,6 +129,6 @@ export async function listPhenomena(module?: string) {
     return { ok: true as const, data: data ?? [], source: 'supabase' }
   } catch (error) {
     const values = Array.from(fallbackStore().values()).filter((item) => !module || item.module === module)
-    return { ok: true as const, data: values, source: 'memory', warning: error instanceof Error ? error.message : 'sfi_phenomena_unavailable' }
+    return { ok: true as const, data: values, source: 'memory', warning: error instanceof Error ? error.message : 'sfi_phenomena_not_ready' }
   }
 }

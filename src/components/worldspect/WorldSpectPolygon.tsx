@@ -4,7 +4,7 @@ import { WORLDSPECT_DOMAINS, type WorldSpectVectorSnapshot } from '@/lib/worldsp
 
 export function WorldSpectPolygon({ snapshot, className = '' }: { snapshot: WorldSpectVectorSnapshot | null; className?: string }) {
   if (!snapshot) {
-    return <div className={`border border-[#b8505033] p-4 font-mono text-[10px] uppercase tracking-[0.16em] text-[#b85050] ${className}`}>worldspect_unavailable</div>;
+    return <div className={`border border-[#c8a95133] p-4 font-mono text-[10px] uppercase tracking-[0.16em] text-[#c8a951] ${className}`}>BOOTSTRAPPED · awaiting external evidence</div>;
   }
 
   const center = 120;

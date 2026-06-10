@@ -71,7 +71,7 @@ export async function buildWorldSpectState(): Promise<WorldSpectState> {
       time_window: 'unknown',
       dominant_external_pressures: [],
       relevance_to_sfi: 'WSV degradado por error de lectura.',
-      warnings: [error instanceof Error ? error.message : 'worldspect_state_unavailable'],
+      warnings: [error instanceof Error ? error.message : 'worldspect_state_not_ready'],
     }
   }
 }

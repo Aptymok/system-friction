@@ -14,6 +14,7 @@
     "lint": "next lint",
     "audit:routes": "node scripts/audit-routes.mjs",
     "audit:dead-components": "node scripts/find-dead-components.mjs",
+    "preflight:runtime": "node scripts/runtime-preflight.mjs",
     "check:boundaries": "node scripts/check-domain-boundaries.mjs",
     "typecheck": "tsc --noEmit --pretty false --incremental false",
     "phase:verify": "npm run check:boundaries && npm run typecheck"

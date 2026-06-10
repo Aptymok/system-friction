@@ -137,7 +137,7 @@ export async function buildScoreFrictionSelectedContext() {
     events = evt.rows.filter(isScoreFrictionRootEvent)
     ;[obs.warning, vec.warning, proto.warning, ver.warning, evt.warning].forEach((warning) => pushWarning(warnings, warning))
   } catch (error) {
-    pushWarning(warnings, error instanceof Error ? error.message : 'scorefriction_state_unavailable')
+    pushWarning(warnings, error instanceof Error ? error.message : 'scorefriction_state_not_ready')
   }
 
   const latestObservation = observations[0]

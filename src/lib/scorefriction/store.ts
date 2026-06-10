@@ -302,7 +302,7 @@ export async function evaluateScoreFrictionCase(caseId: string): Promise<Cultura
   try {
     service = createServiceSupabaseClient();
   } catch (error) {
-    return fallbackCulturalVector(caseId, error instanceof Error ? error.message : 'supabase_unavailable');
+    return fallbackCulturalVector(caseId, error instanceof Error ? error.message : 'supabase_not_ready');
   }
 
   const observations = await service
@@ -461,7 +461,7 @@ export async function readScoreFrictionEvidence(caseId: string) {
   try {
     service = createServiceSupabaseClient();
   } catch (error) {
-    return { ok: true as const, case_id: caseId, entries: [], warning: error instanceof Error ? error.message : 'supabase_unavailable' };
+    return { ok: true as const, case_id: caseId, entries: [], warning: error instanceof Error ? error.message : 'supabase_not_ready' };
   }
 
   const result = await service

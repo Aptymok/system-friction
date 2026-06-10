@@ -30,7 +30,7 @@ export async function getLatestGlobalWorldSpectSnapshot(): Promise<{
     return {
       ok: false,
       snapshot: null,
-      error: error instanceof Error ? error.message : 'worldspect_unavailable',
+      error: error instanceof Error ? error.message : 'worldspect_not_ready',
     };
   }
 }

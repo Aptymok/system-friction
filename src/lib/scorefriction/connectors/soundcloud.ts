@@ -30,7 +30,7 @@ export async function resolveSoundCloudClientId() {
 
 async function soundCloudGet(path: string, params: Record<string, string | number | undefined>) {
   const clientId = await resolveSoundCloudClientId();
-  if (!clientId) return { ok: false as const, error: 'soundcloud_client_id_unavailable' };
+  if (!clientId) return { ok: false as const, error: 'soundcloud_client_id_not_ready' };
   const url = new URL(`https://api-v2.soundcloud.com${path}`);
   url.searchParams.set('client_id', clientId);
   Object.entries(params).forEach(([key, value]) => {

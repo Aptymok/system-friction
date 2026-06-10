@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic';
 export async function GET() {
   const result = await readWorldSpectVectorSnapshot();
   return NextResponse.json(result, {
-    status: result.ok ? 200 : 503,
+    status: 200,
     headers: { 'cache-control': 'no-store' },
   });
 }

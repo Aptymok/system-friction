@@ -67,7 +67,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (error) {
         if (process.env.NODE_ENV !== 'production') {
-          console.warn('Profile role unavailable; falling back to observer.', {
+          console.warn('Profile role not_ready; falling back to observer.', {
             code: error.code,
             message: error.message,
           })

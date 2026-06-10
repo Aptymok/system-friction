@@ -107,7 +107,7 @@ async function logAmvResponse(input: {
   try {
     const ctx = await ensureOwnedNode(input.nodeId);
     if (ctx.error || !ctx.node || !ctx.user) {
-      return { responseLogged: false, warnings: ['amv_response_not_logged', 'node_unavailable'] };
+      return { responseLogged: false, warnings: ['amv_response_not_logged', 'node_not_ready'] };
     }
 
     const payloadBase = {

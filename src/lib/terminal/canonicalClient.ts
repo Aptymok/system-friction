@@ -48,10 +48,10 @@ export async function readTerminalCanonicalState(nodeId: string): Promise<Termin
   ]);
   const ingestResult = await readRealObservations(nodeId);
 
-  if (!fieldStateResult.ok) warnings.push('field_state_unavailable');
-  if (!signalsResult.ok) warnings.push('signals_unavailable');
-  if (!sourceHealthResult.ok) warnings.push('source_health_unavailable');
-  if (!ingestResult.ok) warnings.push('ingest_unavailable');
+  if (!fieldStateResult.ok) warnings.push('field_state_not_ready');
+  if (!signalsResult.ok) warnings.push('signals_not_ready');
+  if (!sourceHealthResult.ok) warnings.push('source_health_not_ready');
+  if (!ingestResult.ok) warnings.push('ingest_not_ready');
 
   return {
     fieldState: fieldStateResult.ok ? fieldStateResult.data : null,
