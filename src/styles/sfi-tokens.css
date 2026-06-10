@@ -1,0 +1,93 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=JetBrains+Mono:wght@300;400;500;700&family=Syncopate:wght@400;700&display=swap');
+
+:root {
+  --sfi-void: #060605;
+  --sfi-void-deep: #020202;
+  --sfi-dark: #0a0a09;
+  --sfi-surface: #0d0d0c;
+  --sfi-surface-2: #141310;
+  --sfi-gold: #c8a951;
+  --sfi-gold-soft: rgba(200, 169, 81, 0.25);
+  --sfi-gold-faint: rgba(200, 169, 81, 0.08);
+  --sfi-gold-barely: rgba(200, 169, 81, 0.04);
+  --sfi-red: #b85050;
+  --sfi-red-soft: rgba(184, 80, 80, 0.15);
+  --sfi-green: #3a8a5a;
+  --sfi-blue: #718ca6;
+  --sfi-cream: #e8ddc3;
+  --sfi-text: #c8c4b8;
+  --sfi-muted: #8a8678;
+  --sfi-faint: #4a4a45;
+  --sfi-rule: rgba(200, 169, 81, 0.08);
+
+  --sfi-font-mono: 'JetBrains Mono', monospace;
+  --sfi-font-serif: 'Cormorant Garamond', serif;
+  --sfi-font-display: 'Syncopate', sans-serif;
+
+  --sfi-header-height: 26px;
+  --sfi-side-width: 38px;
+}
+
+.sfi-screen {
+  background: var(--sfi-void);
+  color: var(--sfi-text);
+  font-family: var(--sfi-font-mono);
+}
+
+.sfi-title {
+  font-family: var(--sfi-font-display);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+.sfi-serif {
+  font-family: var(--sfi-font-serif);
+}
+
+.sfi-panel {
+  background: var(--sfi-void);
+  border: 1px solid var(--sfi-rule);
+  position: relative;
+  overflow: hidden;
+}
+
+.sfi-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(rgba(200,169,81,.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(200,169,81,.03) 1px, transparent 1px);
+  background-size: 28px 28px;
+  opacity: .35;
+}
+
+.sfi-panel-label {
+  position: absolute;
+  top: .4rem;
+  left: .55rem;
+  z-index: 2;
+  font-family: var(--sfi-font-mono);
+  font-size: .36rem;
+  letter-spacing: .22em;
+  text-transform: uppercase;
+  color: rgba(200,169,81,.30);
+}
+
+.sfi-viscous-grid {
+  background:
+    radial-gradient(circle at 50% 50%, rgba(200,169,81,.07), transparent 55%),
+    linear-gradient(rgba(200,169,81,.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(200,169,81,.035) 1px, transparent 1px),
+    var(--sfi-void);
+  background-size: auto, 38px 38px, 38px 38px, auto;
+}
+
+.sfi-hidden-scrollbar {
+  scrollbar-width: none;
+}
+
+.sfi-hidden-scrollbar::-webkit-scrollbar {
+  display: none;
+}
