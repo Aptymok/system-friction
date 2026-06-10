@@ -1,0 +1,41 @@
+# SFI Final QA Matrix
+
+Generated: 2026-06-10
+
+| Vista | URL | Modulo | Archivo | Que usa | Funcion | Pipeline | Estado | Criticidad | Salvaguarda | Accion |
+|---|---|---|---|---|---|---|---|---|---|---|
+| Public surface | `/` | SFI public | `src/app/page.tsx` | observatory/public state | Entrada institucional | Public read model | OK | P0 | Build + route audit | Mantener |
+| Login neural access | `/login` | Auth/SFI | `src/app/(auth)/login/page.tsx` | `LoginNeuralAccess`, `ThresholdAccess`, phenomena | Acceso y umbral real | Auth threshold + phenomenon field | OK | P0 | No expone password antes de ACCESS | Mantener |
+| Repository field | `/repository` | Repository | `src/app/repository/page.tsx` | `FoundationRepositoryField`, AMV, PhenomenonField | Grafo fundacional vivo | Node graph + AMV + phenomena | OK | P1 | No borra contratos docs | Mantener |
+| MOP-H | `/moph` | MOP-H | `src/app/moph/page.tsx` | `MophFieldGate`, AMV, `/api/moph/session` | Instrumento fenomenologico | Local session + anonymous persisted digest | OK | P1 | No guarda texto completo ni coordenadas crudas | Mantener |
+| ScoreFriction | `/scorefriction` | ScoreFriction | `src/app/scorefriction/page.tsx` | `ScoreFrictionOperationalObservatory` | Consola triplanar | Evidence -> WorldSpect -> SFI engine -> Monte Carlo -> AMV | OK | P1 | Estados explicitamente degradados | Mantener |
+| ScoreFriction lab | `/scorefriction/lab` | ScoreFriction | `src/app/scorefriction/lab/page.tsx` | `ScoreFrictionLabClient` | Laboratorio especifico | Lab client + shell | OK | P2 | Ruta activa en build | Mantener |
+| ScoreFriction evidence | `/scorefriction/evidence` | ScoreFriction | `src/app/scorefriction/evidence/page.tsx` | `ScoreFrictionShell` | Vista de evidencia | Evidence read surface | OK | P2 | Separada de consola principal | Mantener |
+| ScoreFriction wide | `/scorefriction/wide` | ScoreFriction/AMV | `src/app/scorefriction/wide/page.tsx` | `ScoreFrictionWideClient` | Consola wide AMV | Scoped AMV + local fallback etiquetado | OK | P1 | Mantiene layout wide | Mantener |
+| ROOT private console | `/root` | SFI-OBS-N0/root | `src/app/root/page.tsx` | `RootDashboardClient` | Observatorio nodo raiz | ROOT scoped runtime | OK | P0 | `/root` conserva compatibilidad interna | Mantener |
+| AMV chat API | `/api/amv/chat` | AMV | `src/app/api/amv/chat/route.ts` | `amv-core`, `amv-memory` | Agente trazable | Inferencia + memoria local | OK | P1 | No afirma sin evidencia; valida humano por riesgo | Mantener |
+| AMV memory API | `/api/amv/memory` | AMV | `src/app/api/amv/memory/route.ts` | `amv-memory` | Lectura de memoria | Session/module memory | OK | P2 | Memoria local, no simula Supabase | Mantener |
+| WorldSpect vector | `/api/worldspect/vector` | WorldSpect | `src/app/api/worldspect/vector/route.ts` | vector store | Vector externo oficial | Latest snapshot -> vector contract | DEGRADED | P1 | Devuelve `worldspect_unavailable` si falta dato | Aplicar snapshots reales |
+| SFI engine evaluate | `/api/sfi-engine/evaluate` | SFI engine | `src/app/api/sfi-engine/evaluate/route.ts` | `evaluateWithSfiEngine` | Evaluacion MIHM/SFI | Python engine or TS fallback | DEGRADED | P1 | `source` declara fallback | Conectar `SFI_ENGINE_URL` |
+| SFI engine Monte Carlo | `/api/sfi-engine/montecarlo` | SFI engine | `src/app/api/sfi-engine/montecarlo/route.ts` | `evaluateWithSfiEngine` | Proyeccion estocastica | Python engine or fallback warning | DEGRADED | P2 | Warning `montecarlo_python_result_missing` | Completar servicio Python |
+| Evidence ledger API | `/api/sfi/evidence` | SFI evidence | `src/app/api/sfi/evidence/route.ts` | `createEvidenceEnvelope`, Supabase | Crear envelope anonimizado | Envelope -> optional `sfi_evidence_ledger` | DEGRADED | P1 | `stored=false` y warnings si tabla no aplicada | Aplicar migracion |
+| MOP-H session API | `/api/moph/session` | MOP-H | `src/app/api/moph/session/route.ts` | `session-contract`, `session-store` | Persistencia anonima | Sanitized payload -> `sfi_moph_sessions` or fallback | DEGRADED | P1 | Rechaza `local_only`; no texto completo | Aplicar migracion/base |
+| MOP-H session read | `/api/moph/session/[id]` | MOP-H | `src/app/api/moph/session/[id]/route.ts` | `session-store` | Leer sesion por key | Supabase or memory fallback | OK | P2 | No lee datos crudos | Mantener |
+| Phenomena list | `/api/phenomena` | Phenomena | `src/app/api/phenomena/route.ts` | `phenomenon-engine` | Listar/evaluar fenomenos | `sfi_phenomena` or memory | DEGRADED | P1 | No promueve sin evidencia/tiempo | Aplicar migracion/base |
+| Phenomena promote | `/api/phenomena/promote` | Phenomena | `src/app/api/phenomena/promote/route.ts` | `promotePhenomenonCandidate` | Promocion persistente | Candidate -> promotion policy -> store | OK | P1 | Requiere evidencia y minimo 3 dias | Mantener |
+| Cultural object API | `/api/scorefriction/cultural-object` | ScoreFriction | `src/app/api/scorefriction/cultural-object/route.ts` | cultural object + mapper | Objeto cultural a fenomeno | Source evidence -> density/trust/persistence | OK | P1 | URL/cancion son fuente, no fenomeno | Mantener |
+| ScoreFriction preflight | `/api/scorefriction/preflight` | ScoreFriction | `src/app/api/scorefriction/preflight/route.ts` | preflight | Validacion de carga | Payload -> preflight result | OK | P1 | No registra si falta contexto | Mantener |
+| ScoreFriction evaluate | `/api/scorefriction/evaluate` | ScoreFriction | `src/app/api/scorefriction/evaluate/route.ts` | evaluator | Evaluacion cultural | Payload -> vectors/MIHM | OK | P1 | Warnings y missing explicitos | Mantener |
+| ScoreFriction observe | `/api/scorefriction/observe` | ScoreFriction | `src/app/api/scorefriction/observe/route.ts` | observe pipeline | Registro observacional | Observation -> Supabase if available | DEGRADED | P1 | Degrada si Supabase falta | Validar tablas |
+| Proto-attractors | `/api/scorefriction/proto-attractors` | ScoreFriction | `src/app/api/scorefriction/proto-attractors/route.ts` | proto-attractors | Lectura de atractores | Case id -> rows | DEGRADED | P1 | Mensaje sin datos si no hay filas | Alimentar evidencia real |
+| Proto-attractor detect | `/api/scorefriction/proto-attractors/detect` | ScoreFriction | `src/app/api/scorefriction/proto-attractors/detect/route.ts` | detector | Deteccion derivada | Evidence -> world -> upsert | DEGRADED | P1 | No inventa si no hay observaciones | Aplicar migraciones |
+| ScoreFriction proposals | `/api/scorefriction/proposals` | ScoreFriction | `src/app/api/scorefriction/proposals/route.ts` | proposals | Propuestas operativas | Case id -> proposals | DEGRADED | P2 | Estado sin propuestas explicito | Alimentar hipotesis |
+| ScoreFriction verifications | `/api/scorefriction/verifications` | ScoreFriction | `src/app/api/scorefriction/verifications/route.ts` | verifications | Verificaciones | Case id -> verifications | DEGRADED | P2 | No verifica por narrativa | Registrar evidencia |
+| ScoreFriction Python analyze | `/api/scorefriction/python/analyze` | ScoreFriction Python | `src/app/api/scorefriction/python/analyze/route.ts` | Python bridge | Analisis MIHM real/local | Multipart/upload -> Python | DEGRADED | P1 | Declara python_not_available si falla | Configurar runtime |
+| Dead surfaces audit | `npm run audit:dead-components` | QA | `scripts/find-dead-components.mjs` | source import scan | Reporte de componentes no importados | Static scan -> markdown | OK | P3 | No borra automaticamente | Revisar antes de borrar |
+
+## Notes
+
+- `DEGRADED` no implica roto: marca rutas que dependen de Supabase aplicado, snapshot WorldSpect o engine Python externo.
+- `ScoreFrictionUnifiedObservatory*` y `FoundationFieldRepository` fueron eliminados tras quedar sin imports activos.
+- Las eliminaciones masivas de docs vistas en el working tree no forman parte de esta matriz ni fueron staged por esta ejecucion.
