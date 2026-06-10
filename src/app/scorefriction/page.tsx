@@ -1,7 +1,7 @@
 import { buildScoreFrictionScopeState } from '@/lib/amv/scopes/scorefriction/scorefrictionStateConnector';
-import { ScoreFrictionUnifiedObservatoryV2 } from '@/scorefriction/components/ScoreFrictionUnifiedObservatoryV2';
+import { ScoreFrictionOperationalObservatory } from '@/scorefriction/components/ScoreFrictionOperationalObservatory';
 
 export default async function ScoreFrictionPage() {
   const state = await buildScoreFrictionScopeState();
-  return <ScoreFrictionUnifiedObservatoryV2 initialState={state} />;
+  return <ScoreFrictionOperationalObservatory initialState={state} />;
 }
