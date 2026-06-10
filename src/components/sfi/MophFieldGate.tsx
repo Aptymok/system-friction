@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { AmvChat } from '@/components/amv/AmvChat';
 import { MOPH_BEHAVIOR_NODES, MOPH_STORY, type MophChapter } from '@/lib/moph/story';
 
 type Letter = { ch: string; x: number; y: number; color: number; hidden: boolean };
@@ -426,6 +427,21 @@ export function MophFieldGate() {
           <Link href="/root" className="border border-[#b9964830] px-3 py-2 text-[#b99648]">ROOT</Link>
         </nav>
       </header>
+
+      <aside className="absolute right-8 top-24 z-30 w-[min(390px,34vw)]">
+        <AmvChat
+          module="moph"
+          sessionId="moph-field-gate"
+          title="AMV / MOP-H"
+          context={{
+            activeChapter: active.key,
+            done: session.done.length,
+            metrics,
+            behaviorNodes: behaviorNodes.map((node) => node.id),
+          }}
+          compact
+        />
+      </aside>
 
       <div className="absolute inset-0 z-10">
         {session.letters.map((letter, index) => letter.ch === ' ' ? null : (

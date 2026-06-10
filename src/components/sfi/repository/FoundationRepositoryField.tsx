@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { AmvChat } from '@/components/amv/AmvChat';
 import { SfiMark } from '@/components/sfi/SfiMark';
 import { SfiNodeCard } from '@/components/sfi/SfiNodeCard';
 import { FOUNDATION_COPY } from './foundation-copy';
@@ -200,6 +201,15 @@ export function FoundationRepositoryField() {
                 );
               })}
             </div>
+            {selected.id === 'AMV' ? (
+              <AmvChat
+                module="repository"
+                sessionId="repository-amv-node"
+                title="AMV / nodo fundacional"
+                context={{ nodeId: selected.id, title: selected.title, evidenceCount: selected.evidenceCount }}
+                compact
+              />
+            ) : null}
           </div>
         </SfiNodeCard>
       ) : null}

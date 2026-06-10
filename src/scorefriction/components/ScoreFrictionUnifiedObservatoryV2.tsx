@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { AmvChat } from '@/components/amv/AmvChat';
 import type { AmvScopeState } from '@/lib/amv/core/amvScopeStateTypes';
 
 type Row = Record<string, unknown>;
@@ -99,6 +100,7 @@ function FieldDelta({ before, after }: { before: number; after: number }) {
 }
 
 function Panel({ title, topo, width, children }: { title: string; topo: string; width: string; children: ReactNode }) {
+  if (title.startsWith('AGENTE')) return null;
   return (
     <section className={`relative h-full shrink-0 overflow-hidden border-r border-[#c8a95112] bg-[#060605] p-4 ${width}`}>
       <div className="pointer-events-none absolute left-4 top-3 z-10 font-mono text-[9px] uppercase tracking-[0.28em] text-[#c8a95155]">{title}</div>
@@ -401,6 +403,25 @@ export function ScoreFrictionUnifiedObservatoryV2({ initialState }: { initialSta
           </Panel>
 
           <Panel title="BITACORA OPERACIONAL" topo="TOPO-III" width="w-[380px]"><div className="mt-9 max-h-[160px] overflow-auto font-mono text-[10px] leading-5 text-[#9c9282]">{log.map((item, idx) => <div key={`${item}-${idx}`} className="border-b border-[#c8a95108] py-1">{item}</div>)}</div></Panel>
+
+          <Panel title="AMV SCORE" topo="TOPO-I" width="w-[460px]">
+            <div className="mt-8">
+              <AmvChat
+                module="scorefriction"
+                sessionId={`scorefriction-${currentCaseId}`}
+                title="AMV ScoreFriction"
+                context={{
+                  caseId: currentCaseId,
+                  state: state.state,
+                  evidenceSummary: state.evidenceSummary,
+                  latestReading: latest,
+                  result,
+                  runtimeStatus: runtime.messages,
+                }}
+                compact
+              />
+            </div>
+          </Panel>
 
           <Panel title="AGENTE · CARGA" topo="TOPO-I" width="w-[420px]">
             <div className="mt-9 font-mono text-[10px] leading-5 text-[#8a8172]">Pregunta “preflight”, “evalua” o “registra” para ejecutar sobre la carga actual.</div>

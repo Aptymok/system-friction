@@ -274,7 +274,7 @@ export function ScoreFrictionUnifiedObservatory({ initialState }: { initialState
           </Panel>
 
           <Panel title="AGENTE · CARGA" topo="TOPO-I" className="w-[400px]">
-            <div className="mt-9 font-mono text-[10px] leading-5 text-[#8a8172]">AMV-SFI en linea. Pregunta “evalua”, “registra” o “preflight” para ejecutar sobre la carga actual.</div>
+            <div className="mt-9 font-mono text-[10px] leading-5 text-[#8a8172]">Agente de carga disponible. Pregunta “evalua”, “registra” o “preflight” para ejecutar sobre la carga actual.</div>
             <div className="absolute bottom-0 left-0 right-0 flex border-t border-[#c8a95112]">
               <input value={chat} onChange={(event) => setChat(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') void sendChat(); }} placeholder="Observacion estructural..." className="flex-1 bg-transparent px-3 py-3 font-mono text-[11px] text-[#d8d0bd] outline-none" />
               <button onClick={() => void sendChat()} className="border-l border-[#c8a95112] px-4 font-mono text-[10px] uppercase tracking-[0.2em] text-[#c8a951]">→</button>
