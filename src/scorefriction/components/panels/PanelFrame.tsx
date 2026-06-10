@@ -2,7 +2,10 @@ import type { ReactNode } from 'react'
 
 export function PanelFrame({ title, topo, className = '', children }: { title: string; topo: string; className?: string; children: ReactNode }) {
   return (
-    <section className={`group relative h-full min-h-0 min-w-0 shrink-0 overflow-hidden border border-[#d8b64a1f] bg-[#060605] shadow-[inset_0_0_42px_rgba(200,169,81,.025)] ${className} !w-auto`}>
+    <section
+      className={`group relative h-full min-h-0 min-w-0 overflow-hidden border border-[#d8b64a1f] bg-[#060605] shadow-[inset_0_0_42px_rgba(200,169,81,.025)] ${className}`}
+      style={{ width: '100%' }}
+    >
       <div className="pointer-events-none absolute inset-0 opacity-70 [background-image:linear-gradient(rgba(216,182,74,.032)_1px,transparent_1px),linear-gradient(90deg,rgba(216,182,74,.026)_1px,transparent_1px)] [background-size:34px_34px]" />
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_45%,rgba(216,182,74,.055),transparent_58%)]" />
       <div className="pointer-events-none absolute left-0 right-0 top-0 z-20 flex h-9 items-center justify-between border-b border-[#d8b64a16] bg-[#060605]/88 px-3 backdrop-blur-sm">
