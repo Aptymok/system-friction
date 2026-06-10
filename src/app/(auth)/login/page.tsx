@@ -1,5 +1,5 @@
-import ThresholdAccess from '@/components/auth/ThresholdAccess'
+import { LoginNeuralAccess } from '@/components/auth/LoginNeuralAccess'
 
 export default function LoginPage() {
-  return <ThresholdAccess />
+  return <LoginNeuralAccess />
 }
