@@ -388,6 +388,17 @@ body.latent .hdr-silence{opacity:0.6 !important;}
   flex-shrink:0;width:12px;z-index:10;
   pointer-events:none;
 }
+
+/* ── HOTFIX FINAL: AMV visible + campo observable ── */
+.pw-agent{width:560px;}
+#panelAgent{box-shadow:inset 0 0 0 1px rgba(200,169,81,0.035);}
+.agent-msgs{font-size:0.5rem;line-height:1.7;max-height:none;}
+.a-msg-agt{white-space:pre-wrap;color:#d8d0bd;background:rgba(200,169,81,0.025);padding:0.45rem 0.6rem;border-left:1px solid rgba(200,169,81,0.25);}
+.a-msg-obs{color:#8fb3d1;background:rgba(111,156,200,0.035);padding:0.25rem 0.45rem;border-left:1px solid rgba(111,156,200,0.2);}
+.file-drop{min-height:34px;flex-wrap:wrap;}
+#panelField::after{content:'mueve / da clic para observar el campo';position:absolute;left:.6rem;bottom:.45rem;font-size:.34rem;letter-spacing:.16em;text-transform:uppercase;color:rgba(200,169,81,.22);pointer-events:none;}
+#panelField{cursor:none;}
+
 </style>
 </head>
 <body>
@@ -597,7 +608,7 @@ body.latent .hdr-silence{opacity:0.6 !important;}
     </div>
 
     <div class="obs-panel pw-agent" id="panelAgent">
-      <div class="panel-label">AGENTE · CARGA</div>
+      <div class="panel-label">AMV · RESPUESTA / EVIDENCIA</div>
       <div class="agent-inner">
         <div class="agent-header">
           <div style="font-size:0.36rem;letter-spacing:0.2em;color:#4a4a45;text-transform:uppercase">AMV-SFI</div>
@@ -606,7 +617,7 @@ body.latent .hdr-silence{opacity:0.6 !important;}
         <div class="agent-msgs" id="agentMsgs">
           <div class="a-msg-agt" style="color:#4a4a45;font-size:0.4rem">
             Observatorio inicializado.<br>
-            Escribe una observación o carga un archivo.
+            Chat AMV separado de carga. La respuesta queda visible aquí.
           </div>
         </div>
         <div class="agent-footer">
@@ -636,6 +647,7 @@ body.latent .hdr-silence{opacity:0.6 !important;}
 </div>
 
 <script>
+
 /* ────────────────────────────────────
    ESTADO GLOBAL DEL OBSERVATORIO
 ──────────────────────────────────── */
@@ -838,6 +850,32 @@ function drawFrictionField() {
       ctx.lineWidth=0.5;
       ctx.stroke();
     }
+  }
+
+
+  if (O.obs.pointer) {
+    const px = O.obs.pointer.x * c.width;
+    const py = O.obs.pointer.y * c.height;
+    if (O.obs.pointer.active) {
+      ctx.beginPath();
+      ctx.arc(px, py, 18 + Math.sin(t * 4) * 4, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(${GOLD_RGB},0.35)`;
+      ctx.lineWidth = 0.8;
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(px, py, 2, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(${GOLD_RGB},0.75)`;
+      ctx.fill();
+    }
+    O.obs.pointer.clicks.forEach((p, i) => {
+      const age = (Date.now() - p.t) / 1000;
+      const a = Math.max(0, 0.45 - age * 0.06);
+      ctx.beginPath();
+      ctx.arc(p.x * c.width, p.y * c.height, 5 + i * 0.6, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(${GOLD_RGB},${a})`;
+      ctx.lineWidth = 0.7;
+      ctx.stroke();
+    });
   }
 }
 
@@ -1240,6 +1278,8 @@ async function sendAgent() {
   document.getElementById('agentStatus').style.color = 'var(--gold)';
 
   try {
+    await persistEvidence('operator_observation', txt, 'Pregunta/observación enviada a AMV');
+
     const res = await fetch('/api/amv/chat', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
@@ -1251,39 +1291,49 @@ async function sendAgent() {
           sys: O.sys,
           obs: O.obs,
           world: O.world,
-          source: 'scorefriction-operational-html'
+          source: 'scorefriction-operational-html',
+          evidenceMode: 'longitudinal-twitter-mexico-2016-present'
         }
       })
     });
 
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
+    O.agent.lastResponse = data;
+
     const answer =
       data?.response ||
+      data?.answer ||
       data?.message ||
+      data?.content ||
+      data?.result?.response ||
+      data?.result?.message ||
       data?.inference?.summary ||
       data?.inference?.interpretation ||
+      data?.amv?.response ||
+      JSON.stringify(data, null, 2).slice(0, 1800) ||
       'AMV registró la observación, pero no devolvió interpretación visible.';
 
     loadDiv.classList.remove('a-msg-loading');
     loadDiv.innerHTML = String(answer).replace(/\n/g, '<br>');
 
-    if (data?.inference?.metrics) {
-      const m = data.inference.metrics;
-      if (typeof m.ihg === 'number') O.sys.ihg = m.ihg;
-      if (typeof m.nti === 'number') O.sys.nti = m.nti;
-      if (typeof m.ldi === 'number') O.sys.ldi = m.ldi;
-      if (typeof m.xi === 'number') O.sys.xi = m.xi;
-    } else {
-      O.sys.xi = Math.max(0, O.sys.xi - 0.008);
-      O.sys.ihg = Math.min(1, O.sys.ihg + 0.015);
-    }
+    const inf = data?.inference || {};
+    const m = inf?.metrics || data?.metrics || {};
+    if (typeof m.ihg === 'number') O.sys.ihg = clamp01(m.ihg);
+    if (typeof m.nti === 'number') O.sys.nti = clamp01(m.nti);
+    if (typeof m.ldi === 'number') O.sys.ldi = Math.max(0, Math.min(1.6, m.ldi));
+    if (typeof m.xi === 'number') O.sys.xi = Math.max(0.01, Math.min(0.2, m.xi));
 
+    if (typeof inf.uncertainty === 'number') O.agent.uncertainty = clamp01(inf.uncertainty);
+    if (typeof inf.impact === 'number') O.agent.confidence = clamp01(inf.impact);
+
+    O.sys.xi = Math.max(0.01, O.sys.xi - 0.006);
+    O.sys.ihg = Math.min(1, O.sys.ihg + 0.012);
     computePhi();
     updateDOM();
 
-    document.getElementById('agentStatus').innerText = '◉ EN LÍNEA';
-    document.getElementById('agentStatus').style.color = 'var(--green)';
-    pushLog('AGENT_OUT', 'Respuesta AMV emitida desde /api/amv/chat.');
+    document.getElementById('agentStatus').innerText = res.ok ? '◉ EN LÍNEA' : '△ DEGRADADO';
+    document.getElementById('agentStatus').style.color = res.ok ? 'var(--green)' : 'var(--red)';
+    pushLog('AGENT_OUT', `Respuesta AMV visible. status=${res.status}`);
     msgs.scrollTop = msgs.scrollHeight;
   } catch (error) {
     loadDiv.classList.remove('a-msg-loading');
@@ -1294,23 +1344,26 @@ async function sendAgent() {
   }
 }
 
+
+
 async function handleFile(input) {
   const file = input.files[0];
   if(!file) return;
 
   O.lastInteraction = Date.now();
   const chip = document.getElementById('fileChip');
-  chip.innerText = file.name.substring(0,12) + (file.name.length>12?'...':'');
+  chip.innerText = file.name.substring(0,18) + (file.name.length>18?'...':'');
   chip.style.display = 'inline-block';
 
   pushLog('FILE', `Archivo detectado: ${file.name} (${file.size}B)`);
 
   const text = await file.text().catch(() => '');
-  await persistEvidence('file', text.slice(0, 12000), file.name);
+  const evidence = await persistEvidence('file', text.slice(0, 24000), file.name);
 
-  pushLog('FILE_PARSED', 'Evidencia enviada al ledger. Ajustando NTI/LDI por carga observacional.');
+  pushLog('FILE_PARSED', evidence?.stored ? 'Evidencia persistida en ledger.' : 'Evidencia en envelope local/degradado.');
   O.sys.nti = Math.min(1, O.sys.nti + 0.08);
   O.sys.ldi = Math.max(0.1, O.sys.ldi - 0.05);
+  O.obs.semanticPressure = Math.min(1, O.obs.semanticPressure + Math.min(0.35, text.length / 120000));
   computePhi();
   updateDOM();
 }
@@ -1390,6 +1443,171 @@ function scrollToPanel(id) {
   }
 }
 
+
+function clamp01(v) { return Math.max(0, Math.min(1, Number(v) || 0)); }
+
+function deepNumber(source, keys, fallback) {
+  const wanted = keys.map(k => k.toLowerCase());
+  const seen = new Set();
+  function walk(value) {
+    if (!value || typeof value !== 'object' || seen.has(value)) return undefined;
+    seen.add(value);
+    for (const [k, v] of Object.entries(value)) {
+      if (wanted.includes(k.toLowerCase()) && Number.isFinite(Number(v))) return Number(v);
+      if (v && typeof v === 'object') {
+        const found = walk(v);
+        if (found !== undefined) return found;
+      }
+    }
+    return undefined;
+  }
+  const found = walk(source);
+  return found === undefined ? fallback : found;
+}
+
+async function fetchJson(path) {
+  const res = await fetch(path, { cache: 'no-store' });
+  const json = await res.json().catch(() => ({}));
+  return { ok: res.ok, status: res.status, json };
+}
+
+async function hydrateRealWorldSpect() {
+  try {
+    const { ok, status, json } = await fetchJson('/api/worldspect/vector');
+    const snap = json?.snapshot || json?.data || json;
+    if (!ok || !snap) {
+      pushLog('WORLDSPECT', `Sin snapshot externo. status=${status}. Campo base conservado.`);
+      return;
+    }
+
+    const cells = snap.cells || snap.domains || snap.vector || snap.world || {};
+    const getVal = (keys, fallback) => {
+      for (const key of keys) {
+        const cell = cells[key] ?? cells[key.toLowerCase()] ?? cells[key.toUpperCase()];
+        const v = cell?.value ?? cell?.v ?? cell;
+        const n = Number(v);
+        if (Number.isFinite(n)) return clamp01(n);
+      }
+      return fallback;
+    };
+
+    O.world.memeticSat.v = getVal(['MEMETIC','memetic','cultural','culture'], O.world.memeticSat.v);
+    O.world.colAnxiety.v = getVal(['AFFECTIVE','affective','anxiety','social'], O.world.colAnxiety.v);
+    O.world.econPress.v = getVal(['ECONOMY','economic','econ'], O.world.econPress.v);
+    O.world.polar.v = getVal(['GEOPOLITICAL','political','polarization'], O.world.polar.v);
+    O.world.infoVel.v = getVal(['TECH','information','velocity','info'], O.world.infoVel.v);
+
+    const nti = deepNumber(snap, ['nti','NTI','networkTensionIndex'], NaN);
+    const ihg = deepNumber(snap, ['ihg','IHG','historicalIntensity'], NaN);
+    const ldi = deepNumber(snap, ['ldi','LDI','longitudinalDegradation'], NaN);
+    if (Number.isFinite(nti)) O.sys.nti = clamp01(nti);
+    if (Number.isFinite(ihg)) O.sys.ihg = clamp01(ihg);
+    if (Number.isFinite(ldi)) O.sys.ldi = Math.max(0, Math.min(1.6, ldi));
+
+    pushLog('WORLDSPECT', `Vector externo integrado: ${snap.status || json.status || 'ACTIVE'}`);
+    computePhi();
+    updateDOM();
+  } catch (error) {
+    pushLog('WORLDSPECT', 'WorldSpect no disponible. Campo base conservado.');
+  }
+}
+
+async function hydrateScoreFrictionRuntime() {
+  const endpoints = [
+    ['/api/scorefriction/longitudinal', 'LONGITUDINAL'],
+    ['/api/scorefriction/cultural-twin', 'CULTURAL_TWIN'],
+    ['/api/scorefriction/proto-attractors?limit=6', 'PROTO_ATTRACTORS'],
+    ['/api/scorefriction/proposals', 'PROPOSALS'],
+    ['/api/scorefriction/verifications', 'VERIFICATIONS']
+  ];
+
+  let integrated = 0;
+  for (const [path, label] of endpoints) {
+    try {
+      const { ok, status, json } = await fetchJson(path);
+      if (!ok) {
+        pushLog(label, `Endpoint degradado status=${status}`);
+        continue;
+      }
+      integrated++;
+      const ihg = deepNumber(json, ['ihg','IHG','historicalIntensity'], NaN);
+      const nti = deepNumber(json, ['nti','NTI','networkTensionIndex','tension'], NaN);
+      const ldi = deepNumber(json, ['ldi','LDI','degradation','longitudinalDegradation'], NaN);
+      const xi = deepNumber(json, ['xi','frictionNoise','perturbation'], NaN);
+      if (Number.isFinite(ihg)) O.sys.ihg = clamp01(ihg);
+      if (Number.isFinite(nti)) O.sys.nti = clamp01(nti);
+      if (Number.isFinite(ldi)) O.sys.ldi = Math.max(0, Math.min(1.6, ldi));
+      if (Number.isFinite(xi)) O.sys.xi = Math.max(0.01, Math.min(0.2, xi));
+      pushLog(label, 'Módulo integrado al campo ScoreFriction.');
+    } catch (error) {
+      pushLog(label, 'No disponible; conservando campo base.');
+    }
+  }
+  if (integrated > 0) {
+    O.sys.nti = Math.min(1, O.sys.nti + integrated * 0.01);
+    computePhi();
+    updateDOM();
+  }
+}
+
+async function persistEvidence(kind, raw, label) {
+  try {
+    const res = await fetch('/api/sfi/evidence', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        module: 'scorefriction',
+        caseId: O.sid,
+        kind,
+        label,
+        raw: typeof raw === 'string' ? raw : JSON.stringify(raw),
+        verified: false,
+        sourceName: label || kind
+      })
+    });
+    const data = await res.json().catch(() => ({}));
+    pushLog('EVIDENCE', data?.stored ? 'Evidencia persistida.' : 'Envelope creado; persistencia degradada.');
+    return data;
+  } catch (error) {
+    pushLog('EVIDENCE', 'No se pudo persistir evidencia.');
+    return null;
+  }
+}
+
+function bindObservationField() {
+  const field = document.getElementById('panelField');
+  if (!field) return;
+  O.obs.pointer = { x: 0.5, y: 0.5, active: false, clicks: [] };
+
+  field.addEventListener('pointermove', (e) => {
+    const r = field.getBoundingClientRect();
+    O.obs.pointer.x = (e.clientX - r.left) / r.width;
+    O.obs.pointer.y = (e.clientY - r.top) / r.height;
+    O.obs.pointer.active = true;
+    O.lastInteraction = Date.now();
+    O.obs.semanticPressure = Math.min(1, O.obs.semanticPressure + 0.002);
+    O.sys.ldi = Math.min(1.4, O.sys.ldi + 0.001);
+    computePhi();
+    updateDOM();
+  });
+
+  field.addEventListener('pointerleave', () => { if (O.obs.pointer) O.obs.pointer.active = false; });
+  field.addEventListener('click', async (e) => {
+    const r = field.getBoundingClientRect();
+    const x = (e.clientX - r.left) / r.width;
+    const y = (e.clientY - r.top) / r.height;
+    O.obs.pointer.clicks.push({ x, y, t: Date.now() });
+    if (O.obs.pointer.clicks.length > 18) O.obs.pointer.clicks.shift();
+    O.sys.nti = Math.min(1, O.sys.nti + 0.015);
+    O.sys.xi = Math.max(0.01, O.sys.xi - 0.004);
+    computePhi();
+    updateDOM();
+    pushLog('FIELD_CLICK', `Punto observado x=${x.toFixed(2)} y=${y.toFixed(2)}.`);
+    await persistEvidence('field_click', { x, y, sys: O.sys, obs: O.obs, timestamp: new Date().toISOString() }, 'Interacción de campo ScoreFriction');
+  });
+}
+
+
 /* ────────────────────────────────────
    LOOP PRINCIPAL Y CONFIGURACIÓN
    Sincronizado a los frames del motor
@@ -1407,6 +1625,8 @@ function initAll() {
 
   computePhi();
   hydrateRealWorldSpect();
+  hydrateScoreFrictionRuntime();
+  bindObservationField();
   // Gestión de scroll horizontal por trackpad
   document.querySelectorAll('.obs-zone').forEach(z => {
     z.addEventListener('wheel', (e) => {
@@ -1465,65 +1685,16 @@ function initAll() {
   requestAnimationFrame(loop);
 }
 
-async function hydrateRealWorldSpect() {
-  try {
-    const res = await fetch('/api/worldspect/vector', { cache: 'no-store' });
-    const data = await res.json();
-    const snap = data?.snapshot || data;
 
-    if (!snap) {
-      pushLog('WORLDSPECT', 'Sin snapshot externo. Operando con campo base.');
-      return;
-    }
 
-    const cells = snap.cells || snap.domains || snap.vector || {};
-    const getVal = (key, fallback) => {
-      const v = cells[key]?.value ?? cells[key]?.v ?? cells[key];
-      const n = Number(v);
-      return Number.isFinite(n) ? Math.max(0, Math.min(1, n)) : fallback;
-    };
 
-    O.world.memeticSat.v = getVal('MEMETIC', O.world.memeticSat.v);
-    O.world.colAnxiety.v = getVal('AFFECTIVE', O.world.colAnxiety.v);
-    O.world.econPress.v = getVal('ECONOMY', O.world.econPress.v);
-    O.world.polar.v = getVal('GEOPOLITICAL', O.world.polar.v);
-    O.world.infoVel.v = getVal('TECH', O.world.infoVel.v);
 
-    const nti = Number(snap.nti ?? snap.NTI ?? snap.metrics?.nti);
-    if (Number.isFinite(nti)) O.sys.nti = Math.max(0, Math.min(1, nti));
 
-    pushLog('WORLDSPECT', `Vector externo integrado: ${snap.status || 'ACTIVE'}`);
-    computePhi();
-    updateDOM();
-  } catch (error) {
-    pushLog('WORLDSPECT', 'WorldSpect no disponible. Campo base conservado.');
-  }
-}
 
-async function persistEvidence(kind, raw, label) {
-  try {
-    const res = await fetch('/api/sfi/evidence', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        module: 'scorefriction',
-        caseId: O.sid,
-        kind,
-        label,
-        raw,
-        verified: false
-      })
-    });
-    const data = await res.json();
-    pushLog('EVIDENCE', data?.stored ? 'Evidencia persistida.' : 'Envelope creado; persistencia degradada.');
-    return data;
-  } catch (error) {
-    pushLog('EVIDENCE', 'No se pudo persistir evidencia.');
-    return null;
-  }
-}
+
 
 window.onload = initAll;
+
 </script>
 </body>
 </html>
