@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AmvChat } from '@/components/amv/AmvChat';
+import { PhenomenonField } from '@/components/phenomena/PhenomenonField';
 import { SfiMark } from '@/components/sfi/SfiMark';
 import { SfiNodeCard } from '@/components/sfi/SfiNodeCard';
 import { FOUNDATION_COPY } from './foundation-copy';
@@ -210,6 +211,7 @@ export function FoundationRepositoryField() {
                 compact
               />
             ) : null}
+            {selected.id === 'PHENOMENON_ENGINE' ? <PhenomenonField compact /> : null}
           </div>
         </SfiNodeCard>
       ) : null}

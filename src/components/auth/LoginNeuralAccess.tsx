@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import ThresholdAccess from '@/components/auth/ThresholdAccess';
+import { PhenomenonField } from '@/components/phenomena/PhenomenonField';
 import { SfiFieldCanvas } from '@/components/sfi/SfiFieldCanvas';
 import { SfiMark } from '@/components/sfi/SfiMark';
 import { SfiMetricRail } from '@/components/sfi/SfiMetricRail';
@@ -136,6 +137,11 @@ export function LoginNeuralAccess({ error }: { error?: string }) {
           {selected.id === 'ACCESS' ? (
             <div className="mt-5">
               <ThresholdAccess error={error} />
+            </div>
+          ) : selected.id === 'PHENOMENON_ENGINE' ? (
+            <div className="mt-5 space-y-4">
+              <p className="font-serif text-[17px] leading-7 text-[#bdb49c]">{selected.text}</p>
+              <PhenomenonField compact />
             </div>
           ) : (
             <p className="mt-5 font-serif text-[17px] leading-7 text-[#bdb49c]">{selected.text}</p>
