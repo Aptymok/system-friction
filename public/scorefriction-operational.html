@@ -1,0 +1,1529 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SFI · OBSERVATORIO OPERACIONAL</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Syncopate:wght@400;700&display=swap" rel="stylesheet">
+<style>
+/* ══════════════════════════════════════════
+   VESTIMENTA SAGRADA — SFI OBSERVATORIO
+   Consola de observación triplanar.
+   No interfaz. Instrumento.
+══════════════════════════════════════════ */
+:root {
+  --void:      #060605;
+  --dark:      #0a0a09;
+  --surface:   #0d0d0c;
+  --gold:      #C8A951;
+  --gold-2:    rgba(200,169,81,0.25);
+  --gold-3:    rgba(200,169,81,0.08);
+  --gold-4:    rgba(200,169,81,0.04);
+  --red:       #b85050;
+  --red-2:     rgba(184,80,80,0.15);
+  --green:     #3a8a5a;
+  --mono:      'JetBrains Mono', monospace;
+  --serif:     'Cormorant Garamond', serif;
+  --disp:      'Syncopate', sans-serif;
+  --h-header: 26px;
+  --w-side:   38px;
+  --panel-gap: 1px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{
+  background:var(--void);
+  font-family:var(--mono);
+  color:#c8c4b8;
+  width:100vw;height:100vh;
+  overflow:hidden;
+  cursor:crosshair;
+}
+
+/* ── HEADER ── */
+#hdr{
+  position:fixed;top:0;left:0;right:0;
+  height:var(--h-header);
+  background:rgba(6,6,5,0.98);
+  border-bottom:1px solid rgba(200,169,81,0.06);
+  display:flex;align-items:center;
+  z-index:300;
+  padding:0 0.5rem 0 calc(var(--w-side) + 0.5rem);
+  gap:1.5rem;
+}
+.hdr-brand{
+  font-family:var(--disp);
+  font-size:0.5rem;
+  letter-spacing:0.3em;
+  color:var(--gold);
+  white-space:nowrap;
+  font-weight:700;
+}
+.hdr-sep{width:1px;height:14px;background:rgba(200,169,81,0.1);}
+.hdr-stat{
+  font-size:0.4rem;
+  letter-spacing:0.15em;
+  color:#1e1e1c;
+  white-space:nowrap;
+}
+.hdr-stat span{color:var(--gold);opacity:0.6;}
+.hdr-phi{
+  font-size:0.48rem;
+  color:rgba(200,169,81,0.5);
+  letter-spacing:0.1em;
+}
+.hdr-phi em{color:var(--gold);font-style:normal;font-size:0.56rem;}
+.hdr-regime{
+  font-size:0.38rem;
+  letter-spacing:0.2em;
+  text-transform:uppercase;
+}
+.reg-homeost{color:var(--green);}
+.reg-critico{color:var(--gold);}
+.reg-entrop {color:var(--red);}
+.hdr-right{margin-left:auto;display:flex;gap:1rem;align-items:center;}
+.hdr-session{font-size:0.35rem;color:#4a4a45;letter-spacing:0.12em;}
+.hdr-clock{font-size:0.4rem;color:rgba(200,169,81,0.3);}
+.hdr-silence{
+  font-size:0.35rem;letter-spacing:0.2em;
+  color:var(--red);opacity:0;
+  transition:opacity 1s;text-transform:uppercase;
+}
+.hdr-silence.active{opacity:0.6;}
+
+/* ── SIDEBAR ── */
+#sidebar{
+  position:fixed;top:var(--h-header);left:0;bottom:0;
+  width:var(--w-side);
+  background:rgba(6,6,5,0.98);
+  border-right:1px solid rgba(200,169,81,0.05);
+  display:flex;flex-direction:column;align-items:center;
+  padding:0.7rem 0;
+  gap:0.15rem;
+  z-index:200;
+}
+.side-node{
+  width:30px;height:30px;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;position:relative;
+  border:1px solid transparent;
+  transition:all 0.3s;
+  flex-shrink:0;
+}
+.side-node:hover{border-color:rgba(200,169,81,0.15);}
+.side-node.active{border-color:rgba(200,169,81,0.25);background:rgba(200,169,81,0.03);}
+.side-node svg{width:14px;height:14px;opacity:0.2;transition:opacity 0.3s;}
+.side-node:hover svg,.side-node.active svg{opacity:0.55;}
+.side-node-label{
+  position:absolute;left:calc(100% + 6px);top:50%;transform:translateY(-50%);
+  font-size:0.36rem;letter-spacing:0.18em;text-transform:uppercase;
+  color:var(--gold);background:var(--void);
+  padding:0.15rem 0.4rem;border:1px solid rgba(200,169,81,0.15);
+  white-space:nowrap;opacity:0;pointer-events:none;
+  transition:opacity 0.2s;z-index:400;
+}
+.side-node:hover .side-node-label{opacity:1;}
+.side-topo{
+  font-size:0.32rem;letter-spacing:0.15em;color:#4a4a45;
+  text-transform:uppercase;writing-mode:vertical-rl;
+  margin:0.4rem 0 0.15rem;
+}
+
+/* ── OBSERVATORY MAIN ── */
+#obs{
+  position:fixed;
+  top:var(--h-header);
+  left:var(--w-side);
+  right:0;bottom:0;
+  display:flex;flex-direction:column;
+  overflow:hidden;
+}
+
+/* ── ZONA (row) ── */
+.obs-zone{
+  display:flex;
+  overflow-x:auto;
+  overflow-y:hidden;
+  scrollbar-width:none;
+  flex-shrink:0;
+  border-bottom:1px solid rgba(200,169,81,0.04);
+}
+.obs-zone::-webkit-scrollbar{display:none;}
+.obs-zone:last-child{border-bottom:none;}
+.zone-a{height:38%;}
+.zone-b{height:33%;}
+.zone-c{height:29%;}
+
+/* ── PANEL ── */
+.obs-panel{
+  flex-shrink:0;
+  height:100%;
+  border-right:1px solid rgba(200,169,81,0.05);
+  background:var(--void);
+  overflow:hidden;
+  position:relative;
+  cursor:pointer;
+  transition:border-color 0.3s;
+}
+.obs-panel:hover{border-color:rgba(200,169,81,0.12);}
+.obs-panel canvas,.obs-panel svg{
+  display:block;width:100%;height:100%;
+}
+.panel-label{
+  position:absolute;top:0.4rem;left:0.55rem;
+  font-size:0.36rem;letter-spacing:0.22em;
+  text-transform:uppercase;
+  color:rgba(200,169,81,0.2);
+  pointer-events:none;z-index:5;
+}
+.panel-topo{
+  position:absolute;top:0.4rem;right:0.55rem;
+  font-size:0.3rem;letter-spacing:0.15em;
+  text-transform:uppercase;
+  color:#4a4a45;
+  pointer-events:none;z-index:5;
+}
+
+/* Panel widths */
+.pw-phi    {width:240px;}
+.pw-field  {width:360px;}
+.pw-twin   {width:320px;}
+.pw-world  {width:300px;}
+.pw-spectr {width:400px;}
+.pw-sem    {width:320px;}
+.pw-proj   {width:340px;}
+.pw-entrop {width:260px;}
+.pw-chron  {width:520px;}
+.pw-log    {width:300px;}
+.pw-agent  {width:360px;}
+
+/* ── PHI PANEL — valores densos ── */
+#panelPhi .phi-core{
+  position:absolute;top:50%;left:50%;
+  transform:translate(-50%,-50%);
+  text-align:center;
+  pointer-events:none;
+}
+.phi-big{
+  font-family:var(--disp);
+  font-size:2.6rem;
+  font-weight:700;
+  letter-spacing:-0.04em;
+  line-height:1;
+  transition:color 0.8s;
+}
+.phi-big.crit{color:var(--red);}
+.phi-big.warn{color:var(--gold);}
+.phi-big.ok{color:var(--green);}
+.phi-eq{font-size:0.38rem;color:#4a4a45;margin-top:0.4rem;letter-spacing:0.08em;}
+.phi-regime{
+  font-size:0.38rem;letter-spacing:0.22em;text-transform:uppercase;
+  margin-top:0.3rem;
+}
+.phi-vars{
+  position:absolute;bottom:0.5rem;left:0;right:0;
+  display:flex;justify-content:space-around;
+  padding:0 0.5rem;
+  pointer-events:none;
+}
+.phi-var{text-align:center;}
+.phi-var-name{font-size:0.32rem;color:#4a4a45;letter-spacing:0.1em;}
+.phi-var-val{font-size:0.7rem;color:rgba(200,169,81,0.5);}
+.phi-bg-canvas{position:absolute;inset:0;width:100%;height:100%;z-index:0;}
+
+/* ── SEMANTIC PANEL ── */
+#panelSem{cursor:text;}
+.sem-inner{
+  position:absolute;inset:0;display:flex;flex-direction:column;
+}
+.sem-canvas{position:absolute;inset:0;pointer-events:none;z-index:1;}
+.sem-label-area{
+  position:relative;z-index:2;
+  padding:1.8rem 0.7rem 0.3rem;
+  flex-shrink:0;
+}
+.sem-textarea{
+  position:relative;z-index:2;
+  flex:1;background:transparent;border:none;outline:none;resize:none;
+  font-family:var(--mono);font-size:0.56rem;
+  color:#c8c4b8;line-height:1.6;
+  padding:0.4rem 0.7rem 0.7rem;
+  cursor:text;
+}
+.sem-textarea::placeholder{color:#4a4a45;}
+.sem-pressure{
+  position:absolute;bottom:0.4rem;right:0.5rem;z-index:3;
+  font-size:0.36rem;letter-spacing:0.15em;color:rgba(200,169,81,0.3);
+}
+
+/* ── LOG PANEL ── */
+#panelLog{cursor:default;}
+.log-inner{position:absolute;inset:0;display:flex;flex-direction:column;}
+.log-header{
+  padding:1.8rem 0.7rem 0.3rem;flex-shrink:0;
+  border-bottom:1px solid rgba(200,169,81,0.05);
+}
+.log-scroll{
+  flex:1;overflow-y:auto;padding:0.4rem 0.6rem;
+  scrollbar-width:thin;
+  scrollbar-color:rgba(200,169,81,0.1) transparent;
+}
+.log-entry{
+  display:flex;gap:0.5rem;padding:0.22rem 0;
+  border-bottom:1px solid rgba(200,169,81,0.03);
+}
+.log-t{
+  font-size:0.38rem;color:rgba(200,169,81,0.3);
+  white-space:nowrap;min-width:3.2rem;flex-shrink:0;
+}
+.log-body{font-size:0.4rem;color:#8a8a82;line-height:1.5;flex:1;}
+.log-body .lk{color:rgba(200,169,81,0.45);}
+.log-body .lv{color:#c8c4b8;}
+
+/* ── AGENT PANEL ── */
+#panelAgent{cursor:default;}
+.agent-inner{position:absolute;inset:0;display:flex;flex-direction:column;}
+.agent-header{
+  padding:1.8rem 0.7rem 0.3rem;flex-shrink:0;
+  display:flex;justify-content:space-between;align-items:flex-end;
+}
+.agent-status{font-size:0.36rem;letter-spacing:0.15em;color:var(--green);}
+.agent-msgs{
+  flex:1;overflow-y:auto;padding:0.4rem 0.6rem;
+  scrollbar-width:thin;
+  scrollbar-color:rgba(200,169,81,0.1) transparent;
+}
+.a-msg-obs{
+  font-size:0.44rem;color:rgba(200,169,81,0.5);
+  margin-bottom:0.25rem;
+  letter-spacing:0.05em;
+}
+.a-msg-agt{
+  font-size:0.44rem;color:#c8c4b8;
+  padding-left:0.6rem;border-left:1px solid rgba(200,169,81,0.12);
+  margin-bottom:0.6rem;line-height:1.55;
+}
+.a-msg-loading::after {
+  content: '...';
+  animation: ldots 1s step-end infinite;
+}
+@keyframes ldots {
+  0% { content: '.'; }
+  33% { content: '..'; }
+  66% { content: '...'; }
+}
+.agent-footer{
+  border-top:1px solid rgba(200,169,81,0.05);
+  display:flex;align-items:stretch;
+  flex-shrink:0;
+}
+.agent-in{
+  flex:1;background:transparent;border:none;outline:none;
+  font-family:var(--mono);font-size:0.5rem;
+  color:#c8c4b8;padding:0.45rem 0.6rem;
+  cursor:text;
+}
+.agent-in::placeholder{color:#4a4a45;}
+.agent-send{
+  background:none;border:none;border-left:1px solid rgba(200,169,81,0.06);
+  color:rgba(200,169,81,0.3);font-family:var(--mono);font-size:0.38rem;
+  padding:0 0.7rem;cursor:pointer;letter-spacing:0.15em;
+  text-transform:uppercase;transition:color 0.2s;
+}
+.agent-send:hover{color:var(--gold);}
+
+/* ── FILE UPLOAD ── */
+.file-drop{
+  border-top:1px solid rgba(200,169,81,0.05);
+  padding:0.35rem 0.6rem;
+  display:flex;align-items:center;gap:0.5rem;
+  cursor:pointer;
+  background: var(--void);
+}
+.file-drop:hover{background:rgba(200,169,81,0.02);}
+.file-drop-label{font-size:0.38rem;color:#4a4a45;letter-spacing:0.12em;}
+.file-drop-label span{color:rgba(200,169,81,0.3);}
+.file-drop input{display:none;}
+.file-chip{
+  font-size:0.36rem;color:rgba(200,169,81,0.4);
+  border:1px solid rgba(200,169,81,0.12);
+  padding:0.1rem 0.3rem;
+}
+
+/* ── ZOOM OVERLAY ── */
+#zoom-overlay{
+  position:fixed;inset:0;z-index:500;
+  background:rgba(6,6,5,0.88);
+  opacity:0;pointer-events:none;
+  transition:opacity 0.35s;
+}
+#zoom-overlay.active{opacity:1;pointer-events:all;}
+#zoom-panel{
+  position:fixed;z-index:600;
+  background:var(--void);
+  border:1px solid rgba(200,169,81,0.15);
+  transition:all 0.35s cubic-bezier(0.25,0.46,0.45,0.94);
+  overflow:hidden;
+}
+.zoom-close{
+  position:absolute;top:0.5rem;right:0.6rem;z-index:10;
+  font-size:0.36rem;color:rgba(200,169,81,0.3);cursor:pointer;
+  letter-spacing:0.2em;text-transform:uppercase;
+  transition:color 0.2s;background:none;border:none;
+  font-family:var(--mono);
+}
+.zoom-close:hover{color:var(--gold);}
+
+/* Latency mode */
+body.latent #obs{opacity:0.55;}
+body.latent .hdr-silence{opacity:0.6 !important;}
+
+/* ── TOPOS label on zones ── */
+.zone-topo-label{
+  position:sticky;left:0.5rem;
+  writing-mode:vertical-rl;
+  font-size:0.3rem;letter-spacing:0.2em;
+  color:#1e1e1c;text-transform:uppercase;
+  height:100%;display:flex;align-items:center;
+  flex-shrink:0;width:12px;z-index:10;
+  pointer-events:none;
+}
+</style>
+</head>
+<body>
+
+<header id="hdr">
+  <div class="hdr-brand">SFI</div>
+  <div class="hdr-sep"></div>
+  <div class="hdr-stat">OBSERVATORIO <span>OPERACIONAL</span></div>
+  <div class="hdr-sep"></div>
+  <div class="hdr-phi">Φ_SF <em id="hdrPhi">—</em></div>
+  <div class="hdr-sep"></div>
+  <div class="hdr-regime" id="hdrRegime">—</div>
+  <div class="hdr-sep"></div>
+  <div class="hdr-stat">IHG <span id="hdrIHG">—</span></div>
+  <div class="hdr-stat">NTI <span id="hdrNTI">—</span></div>
+  <div class="hdr-stat">LDI <span id="hdrLDI">—</span></div>
+  <div class="hdr-right">
+    <div class="hdr-silence" id="silenceBadge">◌ LATENCIA</div>
+    <div class="hdr-clock" id="hdrClock">—</div>
+    <div class="hdr-session" id="hdrSid">—</div>
+  </div>
+</header>
+
+<aside id="sidebar">
+  <div class="side-topo">I</div>
+  <div class="side-node active" id="sn-twin" onclick="scrollToPanel('panelTwin')">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2" color="var(--gold)">
+      <ellipse cx="8" cy="6" rx="4" ry="3.5"/>
+      <path d="M4 9.5 Q2 12 3 14 Q8 11 13 14 Q14 12 12 9.5"/>
+    </svg>
+    <span class="side-node-label">Cognitive Twin</span>
+  </div>
+  <div class="side-node" id="sn-sem" onclick="scrollToPanel('panelSem')">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2" color="var(--gold)">
+      <path d="M2 4h12M2 8h8M2 12h10"/>
+    </svg>
+    <span class="side-node-label">Presión Semántica</span>
+  </div>
+  <div class="side-node" id="sn-entrop" onclick="scrollToPanel('panelEntrop')">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2" color="var(--gold)">
+      <circle cx="8" cy="8" r="5"/><circle cx="8" cy="8" r="2"/>
+      <path d="M8 3v2M8 11v2M3 8h2M11 8h2" stroke-width="0.8"/>
+    </svg>
+    <span class="side-node-label">Entropía del Agente</span>
+  </div>
+  <div class="side-topo">II</div>
+  <div class="side-node" id="sn-phi" onclick="scrollToPanel('panelPhi')">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2" color="var(--gold)">
+      <circle cx="8" cy="8" r="6"/><line x1="8" y1="2" x2="8" y2="14"/>
+    </svg>
+    <span class="side-node-label">Φ_SF · Régimen</span>
+  </div>
+  <div class="side-node" id="sn-field" onclick="scrollToPanel('panelField')">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2" color="var(--gold)">
+      <path d="M2 8 Q5 2 8 8 Q11 14 14 8"/>
+      <path d="M2 5 Q5 1 8 5 Q11 9 14 5" opacity="0.5"/>
+      <path d="M2 11 Q5 7 8 11 Q11 15 14 11" opacity="0.5"/>
+    </svg>
+    <span class="side-node-label">Campo de Fricción</span>
+  </div>
+  <div class="side-node" id="sn-spectr" onclick="scrollToPanel('panelSpectr')">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2" color="var(--gold)">
+      <rect x="1" y="3" width="2" height="10" opacity="0.3"/>
+      <rect x="4" y="5" width="2" height="8" opacity="0.5"/>
+      <rect x="7" y="1" width="2" height="12" opacity="0.8"/>
+      <rect x="10" y="4" width="2" height="9" opacity="0.6"/>
+      <rect x="13" y="6" width="2" height="7" opacity="0.4"/>
+    </svg>
+    <span class="side-node-label">Tensión Longitudinal</span>
+  </div>
+  <div class="side-node" id="sn-proj" onclick="scrollToPanel('panelProj')">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2" color="var(--gold)">
+      <path d="M2 12 L6 8 L10 5 L14 3"/>
+      <path d="M6 8 L9 11" opacity="0.4"/>
+      <path d="M10 5 L13 7" opacity="0.3"/>
+      <path d="M10 5 L12 3" opacity="0.5"/>
+    </svg>
+    <span class="side-node-label">Proyección Estocástica</span>
+  </div>
+  <div class="side-topo">III</div>
+  <div class="side-node" id="sn-world" onclick="scrollToPanel('panelWorld')">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2" color="var(--gold)">
+      <circle cx="8" cy="8" r="6"/>
+      <path d="M2 8 Q5 5 8 8 Q11 11 14 8" stroke-width="0.7"/>
+      <path d="M8 2 Q11 5 8 8 Q5 11 8 14" stroke-width="0.7"/>
+    </svg>
+    <span class="side-node-label">World Spectrum</span>
+  </div>
+  <div class="side-node" id="sn-chron" onclick="scrollToPanel('panelChron')">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2" color="var(--gold)">
+      <line x1="1" y1="4" x2="15" y2="4"/>
+      <line x1="1" y1="8" x2="15" y2="8"/>
+      <line x1="1" y1="12" x2="15" y2="12"/>
+      <circle cx="5" cy="4" r="1.5" fill="currentColor" opacity="0.4"/>
+      <circle cx="10" cy="8" r="1.5" fill="currentColor" opacity="0.6"/>
+      <circle cx="7" cy="12" r="1.5" fill="currentColor" opacity="0.8"/>
+    </svg>
+    <span class="side-node-label">Cronología Viva</span>
+  </div>
+  <div class="side-node" id="sn-log" onclick="scrollToPanel('panelLog')">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2" color="var(--gold)">
+      <rect x="2" y="2" width="12" height="12" rx="1"/>
+      <line x1="5" y1="6" x2="11" y2="6" stroke-width="0.8"/>
+      <line x1="5" y1="9" x2="9" y2="9" stroke-width="0.8"/>
+      <line x1="5" y1="12" x2="10" y2="12" stroke-width="0.8"/>
+    </svg>
+    <span class="side-node-label">Bitácora · Agente</span>
+  </div>
+</aside>
+
+<main id="obs">
+
+  <div class="obs-zone zone-a">
+    <div class="zone-topo-label">campo · topo-i · topo-ii</div>
+
+    <div class="obs-panel pw-phi" id="panelPhi" onclick="zoomPanel(this)">
+      <div class="panel-label">Φ_SF · RÉGIMEN</div>
+      <div class="panel-topo">TOPO-II</div>
+      <canvas class="phi-bg-canvas" id="cPhi"></canvas>
+      <div class="phi-core">
+        <div class="phi-big warn" id="phiBig">0.000</div>
+        <div class="phi-eq">IHG·NTI / (1+LDI) + ξ</div>
+        <div class="phi-regime reg-critico" id="phiRegime">Crítico</div>
+      </div>
+      <div class="phi-vars">
+        <div class="phi-var"><div class="phi-var-name">IHG</div><div class="phi-var-val" id="pv-ihg">—</div></div>
+        <div class="phi-var"><div class="phi-var-name">NTI</div><div class="phi-var-val" id="pv-nti">—</div></div>
+        <div class="phi-var"><div class="phi-var-name">LDI</div><div class="phi-var-val" id="pv-ldi">—</div></div>
+        <div class="phi-var"><div class="phi-var-name">ξ</div><div class="phi-var-val" id="pv-xi">—</div></div>
+      </div>
+    </div>
+
+    <div class="obs-panel pw-field" id="panelField" onclick="zoomPanel(this)">
+      <div class="panel-label">CAMPO DE FRICCIÓN</div>
+      <div class="panel-topo">TOPO-II</div>
+      <canvas id="cField"></canvas>
+    </div>
+
+    <div class="obs-panel pw-twin" id="panelTwin" onclick="zoomPanel(this)">
+      <div class="panel-label">COGNITIVE TWIN</div>
+      <div class="panel-topo">TOPO-I</div>
+      <canvas id="cTwin"></canvas>
+    </div>
+
+    <div class="obs-panel pw-world" id="panelWorld" onclick="zoomPanel(this)">
+      <div class="panel-label">WORLD SPECTRUM</div>
+      <div class="panel-topo">TOPO-III</div>
+      <canvas id="cWorld"></canvas>
+    </div>
+  </div>
+
+  <div class="obs-zone zone-b">
+    <div class="zone-topo-label">estado · lecturas · inferencia</div>
+
+    <div class="obs-panel pw-spectr" id="panelSpectr" onclick="zoomPanel(this)">
+      <div class="panel-label">TENSIÓN LONGITUDINAL</div>
+      <div class="panel-topo">TOPO-II</div>
+      <canvas id="cSpectr"></canvas>
+    </div>
+
+    <div class="obs-panel pw-sem" id="panelSem">
+      <div class="panel-label">PRESIÓN SEMÁNTICA</div>
+      <div class="panel-topo">TOPO-I</div>
+      <div class="sem-inner">
+        <canvas class="sem-canvas" id="cSem"></canvas>
+        <div class="sem-label-area"></div>
+        <textarea class="sem-textarea" id="semInput"
+          placeholder="Observación estructural. Escribe. El sistema responde."
+          oninput="analyzeSemantic(this.value)"></textarea>
+        <div class="sem-pressure" id="semPressureVal">ψ —</div>
+      </div>
+    </div>
+
+    <div class="obs-panel pw-proj" id="panelProj" onclick="zoomPanel(this)">
+      <div class="panel-label">PROYECCIÓN ESTOCÁSTICA</div>
+      <div class="panel-topo">TOPO-II</div>
+      <canvas id="cProj"></canvas>
+    </div>
+
+    <div class="obs-panel pw-entrop" id="panelEntrop" onclick="zoomPanel(this)">
+      <div class="panel-label">ENTROPÍA · AGENTE</div>
+      <div class="panel-topo">TOPO-I</div>
+      <canvas id="cEntrop"></canvas>
+    </div>
+  </div>
+
+  <div class="obs-zone zone-c">
+    <div class="zone-topo-label">registro · agencia</div>
+
+    <div class="obs-panel pw-chron" id="panelChron" onclick="zoomPanel(this)">
+      <div class="panel-label">CRONOLOGÍA VIVA — ESTRATOS</div>
+      <div class="panel-topo">TOPO-III</div>
+      <canvas id="cChron"></canvas>
+    </div>
+
+    <div class="obs-panel pw-log" id="panelLog">
+      <div class="panel-label">BITÁCORA OPERACIONAL</div>
+      <div class="log-inner">
+        <div class="log-header"></div>
+        <div class="log-scroll" id="logScroll">
+          <div class="log-entry">
+            <div class="log-t" id="logInitTime">—</div>
+            <div class="log-body"><span class="lk">[INIT]</span> <span class="lv">Observatorio cargado. Campo inactivo.</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="obs-panel pw-agent" id="panelAgent">
+      <div class="panel-label">AGENTE · CARGA</div>
+      <div class="agent-inner">
+        <div class="agent-header">
+          <div style="font-size:0.36rem;letter-spacing:0.2em;color:#4a4a45;text-transform:uppercase">AMV-SFI</div>
+          <div class="agent-status" id="agentStatus">◉ EN LÍNEA</div>
+        </div>
+        <div class="agent-msgs" id="agentMsgs">
+          <div class="a-msg-agt" style="color:#4a4a45;font-size:0.4rem">
+            Observatorio inicializado.<br>
+            Escribe una observación o carga un archivo.
+          </div>
+        </div>
+        <div class="agent-footer">
+          <input type="text" class="agent-in" id="agentIn"
+            placeholder="Observación estructural..."
+            onkeypress="if(event.key==='Enter')sendAgent()">
+          <button class="agent-send" onclick="sendAgent()">→</button>
+        </div>
+        <div class="file-drop" onclick="document.getElementById('fileIn').click()">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="rgba(200,169,81,0.3)" stroke-width="1">
+            <path d="M6 8V2M3 5l3-3 3 3M2 10h8"/>
+          </svg>
+          <span class="file-drop-label">Cargar archivo — <span>extraer métricas + cultura</span></span>
+          <span class="file-chip" id="fileChip" style="display:none"></span>
+          <input type="file" id="fileIn" accept=".txt,.md,.csv,.json"
+            onchange="handleFile(this)">
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<div id="zoom-overlay" onclick="closeZoom()"></div>
+<div id="zoom-panel">
+  <button class="zoom-close" onclick="closeZoom()">ESC · cerrar</button>
+</div>
+
+<script>
+/* ────────────────────────────────────
+   ESTADO GLOBAL DEL OBSERVATORIO
+──────────────────────────────────── */
+const O = {
+  sid: 'OBS-' + Date.now().toString(36).toUpperCase(),
+  t0: Date.now(),
+
+  // Topo-II: El sistema
+  sys: { ihg:0.52, nti:0.48, ldi:0.61, xi:0.07, phi:0, regime:'Crítico' },
+
+  // Topo-I: El observador
+  obs: { energy:0.65, clarity:0.55, drift:0.28, coherence:0.72,
+         semanticPressure:0, semanticAmbiguity:0, semanticContradiction:0 },
+
+  // Topo-III: El mundo (autónomo)
+  world: {
+    memeticSat:  { v:0.72, f:0.00017, p:0 },
+    colAnxiety:  { v:0.65, f:0.00023, p:1.2 },
+    econPress:   { v:0.58, f:0.00013, p:2.4 },
+    polar:       { v:0.81, f:0.00029, p:0.7 },
+    infoVel:     { v:0.90, f:0.00019, p:3.1 },
+  },
+
+  // Agente
+  agent: { confidence:0.6, uncertainty:0.4, unresolvedCount:2 },
+
+  // Cronología
+  epochs: [],
+  // Log
+  log: [],
+
+  // Tension history
+  tensionHistory: [],
+
+  // Silencio
+  lastInteraction: Date.now(),
+  latent: false,
+
+  // Frame counter
+  frame: 0
+};
+
+/* Compute Phi */
+function computePhi() {
+  const { ihg, nti, ldi, xi } = O.sys;
+  O.sys.phi = (ihg * nti) / (1 + ldi) + xi;
+
+  const { phi, ihg: i, ldi: l, nti: n } = O.sys;
+  if (l > 1.2 && l > i*1.5) O.sys.regime = 'Entrópico';
+  else if (phi > 0.62 && n > 0.55 && l < 0.5) O.sys.regime = 'Homeostático';
+  else O.sys.regime = 'Crítico';
+}
+
+function phiClass(p) {
+  if (p < 0.22) return 'crit';
+  if (p > 0.58) return 'ok';
+  return 'warn';
+}
+
+/* Init epochs */
+function initEpochs() {
+  const labels = ['S-08','S-07','S-06','S-05','S-04','S-03','S-02','S-01','NOW'];
+  O.epochs = labels.map((l,i) => ({
+    label:l,
+    phi: 0.3 + Math.random()*0.5,
+    density: 0.2 + Math.random()*0.7,
+    event: i===4 || i===7,
+    weight: 0.3 + Math.random()*0.6
+  }));
+}
+
+/* ────────────────────────────────────
+   CANVAS UTILITIES
+──────────────────────────────────── */
+function fitCanvas(c) {
+  const r = c.parentElement.getBoundingClientRect();
+  c.width  = r.width;
+  c.height = r.height;
+}
+
+function hexToRgb(hex) {
+  const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
+  return `${r},${g},${b}`;
+}
+const GOLD_RGB = hexToRgb('#C8A951');
+const RED_RGB  = hexToRgb('#b85050');
+const GRN_RGB  = hexToRgb('#3a8a5a');
+
+/* ────────────────────────────────────
+   C1 · PHI BACKGROUND
+──────────────────────────────────── */
+function drawPhiBg() {
+  const c = document.getElementById('cPhi');
+  if (!c.width) return;
+  const ctx = c.getContext('2d');
+  const { phi, regime } = O.sys;
+  const t = O.frame * 0.008;
+  ctx.clearRect(0,0,c.width,c.height);
+  ctx.fillStyle = 'transparent';
+
+  const rgb = regime==='Homeostático' ? GRN_RGB : regime==='Entrópico' ? RED_RGB : GOLD_RGB;
+  const rings = 5;
+  for (let r=rings;r>0;r--) {
+    const rad = (c.width * 0.38) * (r/rings);
+    const osc = Math.sin(t + r*0.7) * 0.015;
+    const alpha = (0.02 + osc) * (r/rings);
+    ctx.beginPath();
+    ctx.arc(c.width/2, c.height/2, rad, 0, Math.PI*2);
+    ctx.strokeStyle = `rgba(${rgb},${Math.max(0.01,alpha)})`;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+  const pulseA = regime==='Entrópico' ? Math.abs(Math.sin(t*2))*0.06 : 0.02;
+  const grad = ctx.createRadialGradient(c.width/2,c.height/2,0,c.width/2,c.height/2,c.width/2);
+  grad.addColorStop(0, `rgba(${rgb},${pulseA})`);
+  grad.addColorStop(1, `rgba(${rgb},0)`);
+  ctx.fillStyle = grad;
+  ctx.fillRect(0,0,c.width,c.height);
+}
+
+/* ────────────────────────────────────
+   C2 · CAMPO DE FRICCIÓN
+──────────────────────────────────── */
+const fieldState = { particles: null };
+
+function initFieldParticles(c) {
+  fieldState.particles = [];
+  for (let i=0;i<160;i++) {
+    fieldState.particles.push({
+      x: Math.random()*c.width,
+      y: Math.random()*c.height,
+      vx:0, vy:0,
+      age: Math.random(),
+      maxAge: 0.6 + Math.random()*0.8,
+    });
+  }
+}
+
+function drawFrictionField() {
+  const c = document.getElementById('cField');
+  if (!c.width) return;
+  const ctx = c.getContext('2d');
+  if (!fieldState.particles) initFieldParticles(c);
+
+  const { phi, ldi } = O.sys;
+  const t = O.frame * 0.005;
+
+  ctx.fillStyle = 'rgba(6,6,5,0.08)';
+  ctx.fillRect(0,0,c.width,c.height);
+
+  const coh = phi;
+  const fric = 1 - coh;
+
+  fieldState.particles.forEach(p => {
+    const nx = p.x / c.width - 0.5;
+    const ny = p.y / c.height - 0.5;
+    const dist = Math.sqrt(nx*nx + ny*ny);
+
+    const angle = Math.atan2(ny, nx);
+    const perturb = fric * (
+      Math.sin(nx*6 + t*1.3) * Math.cos(ny*5 - t) +
+      Math.sin(dist*8 - t*1.7) * ldi * 0.6
+    );
+
+    const flowAngle = angle + Math.PI/2 * coh + perturb;
+    const speed = 0.6 + dist * 1.2;
+
+    p.vx = p.vx * 0.85 + Math.cos(flowAngle) * speed * 0.15;
+    p.vy = p.vy * 0.85 + Math.sin(flowAngle) * speed * 0.15;
+
+    p.x += p.vx; p.y += p.vy;
+    p.age += 0.008;
+
+    if (p.age > p.maxAge || p.x<0||p.x>c.width||p.y<0||p.y>c.height) {
+      p.x = Math.random()*c.width;
+      p.y = Math.random()*c.height;
+      p.vx=0; p.vy=0; p.age=0;
+    }
+
+    const life = Math.sin((p.age/p.maxAge)*Math.PI);
+    const alpha = life * (0.04 + coh * 0.1);
+    const rgb = phi < 0.25 ? RED_RGB : phi > 0.6 ? GRN_RGB : GOLD_RGB;
+
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 0.8, 0, Math.PI*2);
+    ctx.fillStyle = `rgba(${rgb},${alpha})`;
+    ctx.fill();
+  });
+
+  if (fric > 0.5) {
+    const nFrac = Math.floor(fric * 5);
+    for (let i=0;i<nFrac;i++) {
+      const fx = (Math.sin(t*0.3+i*2.1)*.5+.5)*c.width;
+      const fy = (Math.cos(t*0.2+i*1.7)*.5+.5)*c.height;
+      const fl = fric * 30 * (Math.sin(t+i)*.5+.5);
+      ctx.beginPath();
+      ctx.moveTo(fx,fy);
+      ctx.lineTo(fx+fl*Math.cos(t+i), fy+fl*Math.sin(t*0.7+i));
+      ctx.strokeStyle=`rgba(${RED_RGB},${fric*0.08})`;
+      ctx.lineWidth=0.5;
+      ctx.stroke();
+    }
+  }
+}
+
+/* ────────────────────────────────────
+   C3 · COGNITIVE TWIN
+──────────────────────────────────── */
+function drawCognitiveTwin() {
+  const c = document.getElementById('cTwin');
+  if (!c.width) return;
+  const ctx = c.getContext('2d');
+  const { energy, clarity, drift, coherence } = O.obs;
+  const t = O.frame * 0.004;
+
+  ctx.clearRect(0,0,c.width,c.height);
+
+  const cx = c.width/2, cy = c.height/2;
+  const R = Math.min(c.width,c.height) * 0.33;
+
+  const layers = [
+    { label:'D', offset: drift*12,   alpha: clarity*0.35+0.05,  phase:0    },
+    { label:'E', offset: drift*8,    alpha: energy*0.3+0.05,    phase:1.57 },
+    { label:'I', offset: drift*4,    alpha: coherence*0.3+0.05, phase:3.14 },
+    { label:'A', offset: drift*14,   alpha: 0.1,                phase:4.71 },
+  ];
+
+  layers.forEach((layer,li) => {
+    const pts = 12;
+    const misalign = layer.offset * (1-coherence);
+    const offX = Math.cos(layer.phase + t*0.3) * misalign;
+    const offY = Math.sin(layer.phase + t*0.3) * misalign;
+    const r = R * (0.55 + li*0.14) * (0.85 + energy*0.15);
+
+    ctx.beginPath();
+    for (let i=0; i<=pts; i++) {
+      const a = (i/pts) * Math.PI*2;
+      const noise = Math.sin(a*3+t+li) * drift * 0.18 +
+                    Math.cos(a*5-t*0.7+li) * (1-clarity) * 0.12;
+      const pr = r * (1 + noise);
+      const px = cx + offX + Math.cos(a)*pr;
+      const py = cy + offY + Math.sin(a)*pr;
+      i===0 ? ctx.moveTo(px,py) : ctx.lineTo(px,py);
+    }
+    ctx.closePath();
+    ctx.fillStyle=`rgba(${GOLD_RGB},${layer.alpha})`;
+    ctx.fill();
+    ctx.strokeStyle=`rgba(${GOLD_RGB},${layer.alpha*2})`;
+    ctx.lineWidth=0.8;
+    ctx.stroke();
+  });
+
+  const gr = ctx.createRadialGradient(cx,cy,0,cx,cy,R*0.22);
+  gr.addColorStop(0,`rgba(${GOLD_RGB},${coherence*0.35})`);
+  gr.addColorStop(1,`rgba(${GOLD_RGB},0)`);
+  ctx.beginPath();
+  ctx.arc(cx,cy,R*0.22,0,Math.PI*2);
+  ctx.fillStyle=gr;
+  ctx.fill();
+
+  ctx.font = `${c.width*0.022}px 'JetBrains Mono'`;
+  ctx.fillStyle = `rgba(${GOLD_RGB},0.15)`;
+  ctx.textAlign = 'center';
+  ctx.fillText('TWIN · TOPO-I', cx, c.height - 10);
+}
+
+/* ────────────────────────────────────
+   C4 · WORLD SPECTRUM
+──────────────────────────────────── */
+function drawWorldSpectrum() {
+  const c = document.getElementById('cWorld');
+  if (!c.width) return;
+  const ctx = c.getContext('2d');
+  const t = Date.now() * 0.001;
+
+  ctx.clearRect(0,0,c.width,c.height);
+
+  const W = O.world;
+  const worldVals = [
+    W.memeticSat.v + Math.sin(t*W.memeticSat.f*1000 + W.memeticSat.p)*0.08,
+    W.colAnxiety.v + Math.sin(t*W.colAnxiety.f*1000 + W.colAnxiety.p)*0.05,
+    W.econPress.v + Math.sin(t*W.econPress.f*1000 + W.econPress.p)*0.06,
+    W.polar.v + Math.sin(t*W.polar.f*1000 + W.polar.p)*0.04,
+    W.infoVel.v + Math.sin(t*W.infoVel.f*1000 + W.infoVel.p)*0.03,
+  ];
+
+  const padding = 25;
+  const graphH = c.height - padding * 2;
+  const barGap = (c.width - padding * 2) / worldVals.length;
+
+  worldVals.forEach((v, i) => {
+    const val = Math.max(0.05, Math.min(1, v));
+    const bx = padding + i * barGap + barGap * 0.15;
+    const bw = barGap * 0.7;
+    const bh = graphH * val;
+    const by = c.height - padding - bh;
+
+    ctx.fillStyle = `rgba(${GOLD_RGB},0.02)`;
+    ctx.fillRect(bx, padding, bw, graphH);
+
+    ctx.fillStyle = `rgba(${GOLD_RGB},0.12)`;
+    ctx.fillRect(bx, by, bw, bh);
+
+    ctx.strokeStyle = `rgba(${GOLD_RGB},0.4)`;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(bx, by);
+    ctx.lineTo(bx + bw, by);
+    ctx.stroke();
+
+    ctx.fillStyle = 'rgba(200,169,81,0.2)';
+    ctx.font = '5px "JetBrains Mono"';
+    ctx.textAlign = 'center';
+    ctx.fillText(val.toFixed(2), bx + bw/2, by - 4);
+  });
+}
+
+/* ────────────────────────────────────
+   C5 · TENSIÓN LONGITUDINAL
+──────────────────────────────────── */
+function drawLongitudinalTension() {
+  const c = document.getElementById('cSpectr');
+  if (!c.width) return;
+  const ctx = c.getContext('2d');
+  ctx.clearRect(0,0,c.width,c.height);
+
+  const t = O.frame;
+  if (t % 4 === 0) {
+    const baseT = (O.sys.ldi * 0.6) + (O.obs.drift * 0.4);
+    O.tensionHistory.push(baseT + (Math.sin(t*0.08)*0.08) + (Math.random()*0.04));
+    if (O.tensionHistory.length > 80) O.tensionHistory.shift();
+  }
+
+  if (O.tensionHistory.length < 2) return;
+
+  const padLeft = 30, padRight = 20, padTop = 30, padBot = 20;
+  const w = c.width - padLeft - padRight;
+  const h = c.height - padTop - padBot;
+
+  ctx.strokeStyle = 'rgba(200,169,81,0.03)';
+  ctx.lineWidth = 0.5;
+  for(let g=1; g<=4; g++) {
+    const gy = padTop + (h * (g/4));
+    ctx.beginPath(); ctx.moveTo(padLeft, gy); ctx.lineTo(padLeft+w, gy); ctx.stroke();
+  }
+
+  ctx.beginPath();
+  O.tensionHistory.forEach((v, idx) => {
+    const x = padLeft + (w * (idx / (O.tensionHistory.length - 1)));
+    const y = c.height - padBot - (h * Math.max(0, Math.min(1, v)));
+    idx === 0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+  });
+  ctx.strokeStyle = `rgba(${GOLD_RGB},0.45)`;
+  ctx.lineWidth = 1.2;
+  ctx.stroke();
+
+  const lastV = O.tensionHistory[O.tensionHistory.length-1];
+  const lx = padLeft + w;
+  const ly = c.height - padBot - (h * Math.max(0, Math.min(1, lastV)));
+  ctx.beginPath(); ctx.arc(lx, ly, 2, 0, Math.PI*2);
+  ctx.fillStyle = lastV > 0.75 ? `rgb(${RED_RGB})` : `rgb(${GOLD_RGB})`;
+  ctx.fill();
+}
+
+/* ────────────────────────────────────
+   C6 · PRESIÓN SEMÁNTICA (Fondo de red)
+──────────────────────────────────── */
+function drawSemanticBg() {
+  const c = document.getElementById('cSem');
+  if (!c.width) return;
+  const ctx = c.getContext('2d');
+  ctx.clearRect(0,0,c.width,c.height);
+
+  const t = O.frame * 0.006;
+  const p = O.obs.semanticPressure;
+
+  if (p > 0.05) {
+    ctx.strokeStyle = `rgba(${GOLD_RGB},${p * 0.06})`;
+    ctx.lineWidth = 0.6;
+    ctx.beginPath();
+    const steps = 6;
+    for(let i=0; i<=steps; i++) {
+      const x = (c.width/steps)*i + Math.sin(t+i)*12*p;
+      ctx.moveTo(x, 0); ctx.lineTo(x, c.height);
+      const y = (c.height/steps)*i + Math.cos(t+i)*12*p;
+      ctx.moveTo(0, y); ctx.lineTo(c.width, y);
+    }
+    ctx.stroke();
+  }
+}
+
+/* ────────────────────────────────────
+   C7 · PROYECCIÓN ESTOCÁSTICA
+──────────────────────────────────── */
+function drawStochasticProjection() {
+  const c = document.getElementById('cProj');
+  if (!c.width) return;
+  const ctx = c.getContext('2d');
+  ctx.clearRect(0,0,c.width,c.height);
+
+  const cx = c.width * 0.25, cy = c.height * 0.55;
+  const w = c.width * 0.65, h = c.height * 0.5;
+  const t = O.frame * 0.005;
+
+  ctx.strokeStyle = 'rgba(200,169,81,0.04)';
+  ctx.lineWidth = 0.5;
+  ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx+w, cy); ctx.stroke();
+
+  const paths = 5;
+  const steps = 24;
+  const phi = O.sys.phi;
+
+  for (let p=0; p<paths; p++) {
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    let currY = cy;
+    for (let s=1; s<=steps; s++) {
+      const px = cx + (w * (s/steps));
+      const driftFactor = (s/steps) * (1.2 - phi) * 45;
+      const noise = Math.sin(s*0.4 + t + p) * Math.cos(s*0.7 - t*0.3 + p);
+      const py = cy + noise * driftFactor + (Math.sin(t*0.5 + p)*5*(s/steps));
+      ctx.lineTo(px, py);
+    }
+    ctx.strokeStyle = p === 0 ? `rgba(${GOLD_RGB},0.5)` : `rgba(${GOLD_RGB},0.06)`;
+    ctx.lineWidth = p === 0 ? 1.2 : 0.6;
+    ctx.stroke();
+  }
+}
+
+/* ────────────────────────────────────
+   C8 · ENTROPÍA DEL AGENTE
+──────────────────────────────────── */
+function drawAgentEntropy() {
+  const c = document.getElementById('cEntrop');
+  if (!c.width) return;
+  const ctx = c.getContext('2d');
+  ctx.clearRect(0,0,c.width,c.height);
+
+  const cx = c.width/2, cy = c.height/2;
+  const r = Math.min(c.width, c.height) * 0.28;
+  const t = O.frame * 0.015;
+  const ent = O.agent.uncertainty;
+
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI*2);
+  ctx.strokeStyle = 'rgba(200,169,81,0.04)';
+  ctx.stroke();
+
+  const nodes = 14;
+  ctx.fillStyle = `rgba(${GOLD_RGB},0.35)`;
+  for(let i=0; i<nodes; i++) {
+    const angle = (i/nodes) * Math.PI*2 + (t * 0.1);
+    const radNoise = Math.sin(t + i*1.7) * ent * 14;
+    const nx = cx + Math.cos(angle) * (r + radNoise);
+    const ny = cy + Math.sin(angle) * (r + radNoise);
+
+    ctx.beginPath();
+    ctx.arc(nx, ny, 1, 0, Math.PI*2);
+    ctx.fill();
+
+    if (ent > 0.3 && Math.random() < ent*0.08) {
+      ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(nx, ny);
+      ctx.strokeStyle = `rgba(${GOLD_RGB},0.03)`;
+      ctx.stroke();
+    }
+  }
+}
+
+/* ────────────────────────────────────
+   C9 · CRONOLOGÍA VIVA
+──────────────────────────────────── */
+function drawChronology() {
+  const c = document.getElementById('cChron');
+  if (!c.width) return;
+  const ctx = c.getContext('2d');
+  ctx.clearRect(0,0,c.width,c.height);
+
+  if (!O.epochs.length) initEpochs();
+
+  const padLeft = 40, padRight = 40;
+  const w = c.width - padLeft - padRight;
+  const cy = c.height * 0.6;
+
+  ctx.strokeStyle = 'rgba(200,169,81,0.08)';
+  ctx.lineWidth = 0.8;
+  ctx.beginPath(); ctx.moveTo(padLeft, cy); ctx.lineTo(padLeft+w, cy); ctx.stroke();
+
+  const space = w / (O.epochs.length - 1);
+  O.epochs.forEach((ep, i) => {
+    const x = padLeft + i * space;
+    const barH = ep.phi * 35;
+
+    ctx.fillStyle = `rgba(${GOLD_RGB},0.03)`;
+    ctx.fillRect(x - 3, cy - 40, 6, 80);
+
+    ctx.beginPath();
+    ctx.moveTo(x, cy);
+    ctx.lineTo(x, cy - barH);
+    ctx.strokeStyle = ep.event ? `rgb(${RED_RGB})` : `rgba(${GOLD_RGB},0.5)`;
+    ctx.lineWidth = ep.event ? 1.5 : 1;
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.arc(x, cy - barH, ep.event ? 2.5 : 1.5, 0, Math.PI*2);
+    ctx.fillStyle = ep.event ? `rgb(${RED_RGB})` : `rgb(${GOLD_RGB})`;
+    ctx.fill();
+
+    ctx.fillStyle = '#4a4a45';
+    ctx.font = '5px "JetBrains Mono"';
+    ctx.textAlign = 'center';
+    ctx.fillText(ep.label, x, cy + 12);
+  });
+}
+
+/* ────────────────────────────────────
+   SISTEMA DE ACTUALIZACIÓN RÁPIDA
+──────────────────────────────────── */
+function updateDOM() {
+  document.getElementById('hdrPhi').innerText = O.sys.phi.toFixed(3);
+  const rEl = document.getElementById('hdrRegime');
+  rEl.innerText = O.sys.regime;
+  rEl.className = 'hdr-regime ' + (O.sys.regime==='Homeostático'?'reg-homeost':O.sys.regime==='Entrópico'?'reg-entrop':'reg-critico');
+
+  document.getElementById('hdrIHG').innerText = O.sys.ihg.toFixed(2);
+  document.getElementById('hdrNTI').innerText = O.sys.nti.toFixed(2);
+  document.getElementById('hdrLDI').innerText = O.sys.ldi.toFixed(2);
+
+  const phiB = document.getElementById('phiBig');
+  if (phiB) {
+    phiB.innerText = O.sys.phi.toFixed(3);
+    phiB.className = 'phi-big ' + phiClass(O.sys.phi);
+    document.getElementById('phiRegime').innerText = O.sys.regime;
+    document.getElementById('phiRegime').className = 'phi-regime ' + (O.sys.regime==='Homeostático'?'reg-homeost':O.sys.regime==='Entrópico'?'reg-entrop':'reg-critico');
+
+    document.getElementById('pv-ihg').innerText = O.sys.ihg.toFixed(2);
+    document.getElementById('pv-nti').innerText = O.sys.nti.toFixed(2);
+    document.getElementById('pv-ldi').innerText = O.sys.ldi.toFixed(2);
+    document.getElementById('pv-xi').innerText = O.sys.xi.toFixed(2);
+  }
+
+  const d = new Date();
+  document.getElementById('hdrClock').innerText = d.toISOString().replace('T',' ').substring(0,19);
+
+  const lat = Date.now() - O.lastInteraction > 24000;
+  if (lat !== O.latent) {
+    O.latent = lat;
+    lat ? document.body.classList.add('latent') : document.body.classList.remove('latent');
+    document.getElementById('silenceBadge').classList.toggle('active', lat);
+  }
+}
+
+function pushLog(tag, text) {
+  const d = new Date();
+  const ts = d.toISOString().split('T')[1].substring(0,8);
+  const container = document.getElementById('logScroll');
+  if (!container) return;
+
+  const entry = document.createElement('div');
+  entry.className = 'log-entry';
+  entry.innerHTML = `<div class="log-t">${ts}</div><div class="log-body"><span class="lk">[${tag}]</span> <span class="lv">${text}</span></div>`;
+  container.appendChild(entry);
+  container.scrollTop = container.scrollHeight;
+}
+
+function analyzeSemantic(val) {
+  O.lastInteraction = Date.now();
+  const len = val.length;
+  O.obs.semanticPressure = Math.min(1, len / 240);
+  O.obs.drift = Math.min(1, 0.2 + (len / 600));
+
+  document.getElementById('semPressureVal').innerText = `ψ ${O.obs.semanticPressure.toFixed(3)}`;
+
+  if (len > 0 && len % 35 === 0) {
+    pushLog('SEMANTIC', `Presión analizada: len=${len} | ψ=${O.obs.semanticPressure.toFixed(2)}`);
+  }
+}
+
+
+async function sendAgent() {
+  const input = document.getElementById('agentIn');
+  const txt = input.value.trim();
+  if (!txt) return;
+
+  O.lastInteraction = Date.now();
+  input.value = '';
+
+  const msgs = document.getElementById('agentMsgs');
+  const obsDiv = document.createElement('div');
+  obsDiv.className = 'a-msg-obs';
+  obsDiv.innerText = `> ${txt}`;
+  msgs.appendChild(obsDiv);
+
+  pushLog('AGENT_IN', 'Observación de entrada registrada.');
+
+  const loadDiv = document.createElement('div');
+  loadDiv.className = 'a-msg-agt a-msg-loading';
+  loadDiv.innerText = 'AMV-SFI procesando vector';
+  msgs.appendChild(loadDiv);
+  msgs.scrollTop = msgs.scrollHeight;
+
+  document.getElementById('agentStatus').innerText = '○ COMPUTANDO';
+  document.getElementById('agentStatus').style.color = 'var(--gold)';
+
+  try {
+    const res = await fetch('/api/amv/chat', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        module: 'scorefriction',
+        sessionId: O.sid,
+        message: txt,
+        context: {
+          sys: O.sys,
+          obs: O.obs,
+          world: O.world,
+          source: 'scorefriction-operational-html'
+        }
+      })
+    });
+
+    const data = await res.json();
+    const answer =
+      data?.response ||
+      data?.message ||
+      data?.inference?.summary ||
+      data?.inference?.interpretation ||
+      'AMV registró la observación, pero no devolvió interpretación visible.';
+
+    loadDiv.classList.remove('a-msg-loading');
+    loadDiv.innerHTML = String(answer).replace(/\n/g, '<br>');
+
+    if (data?.inference?.metrics) {
+      const m = data.inference.metrics;
+      if (typeof m.ihg === 'number') O.sys.ihg = m.ihg;
+      if (typeof m.nti === 'number') O.sys.nti = m.nti;
+      if (typeof m.ldi === 'number') O.sys.ldi = m.ldi;
+      if (typeof m.xi === 'number') O.sys.xi = m.xi;
+    } else {
+      O.sys.xi = Math.max(0, O.sys.xi - 0.008);
+      O.sys.ihg = Math.min(1, O.sys.ihg + 0.015);
+    }
+
+    computePhi();
+    updateDOM();
+
+    document.getElementById('agentStatus').innerText = '◉ EN LÍNEA';
+    document.getElementById('agentStatus').style.color = 'var(--green)';
+    pushLog('AGENT_OUT', 'Respuesta AMV emitida desde /api/amv/chat.');
+    msgs.scrollTop = msgs.scrollHeight;
+  } catch (error) {
+    loadDiv.classList.remove('a-msg-loading');
+    loadDiv.innerHTML = 'AMV no respondió. La observación quedó en bitácora local.';
+    document.getElementById('agentStatus').innerText = '△ DEGRADADO';
+    document.getElementById('agentStatus').style.color = 'var(--red)';
+    pushLog('AMV_ERROR', String(error));
+  }
+}
+
+async function handleFile(input) {
+  const file = input.files[0];
+  if(!file) return;
+
+  O.lastInteraction = Date.now();
+  const chip = document.getElementById('fileChip');
+  chip.innerText = file.name.substring(0,12) + (file.name.length>12?'...':'');
+  chip.style.display = 'inline-block';
+
+  pushLog('FILE', `Archivo detectado: ${file.name} (${file.size}B)`);
+
+  const text = await file.text().catch(() => '');
+  await persistEvidence('file', text.slice(0, 12000), file.name);
+
+  pushLog('FILE_PARSED', 'Evidencia enviada al ledger. Ajustando NTI/LDI por carga observacional.');
+  O.sys.nti = Math.min(1, O.sys.nti + 0.08);
+  O.sys.ldi = Math.max(0.1, O.sys.ldi - 0.05);
+  computePhi();
+  updateDOM();
+}
+
+
+/* ────────────────────────────────────
+   ZOOM ENGINE (VISTA EXPANDIDA)
+──────────────────────────────────── */
+let zoomedPanel = null;
+
+function zoomPanel(panel) {
+  if (zoomedPanel) return;
+  O.lastInteraction = Date.now();
+
+  zoomedPanel = panel;
+  const overlay = document.getElementById('zoom-overlay');
+  const zPanel = document.getElementById('zoom-panel');
+
+  const rect = panel.getBoundingClientRect();
+  zPanel.style.top = rect.top + 'px';
+  zPanel.style.left = rect.left + 'px';
+  zPanel.style.width = rect.width + 'px';
+  zPanel.style.height = rect.height + 'px';
+
+  overlay.classList.add('active');
+
+  setTimeout(() => {
+    zPanel.style.top = '10vh';
+    zPanel.style.left = '10vw';
+    zPanel.style.width = '80vw';
+    zPanel.style.height = '80vh';
+
+    const innerCanvas = panel.querySelector('canvas');
+    if (innerCanvas) {
+      const cloneCanvas = document.createElement('canvas');
+      cloneCanvas.id = 'zoomCanvas';
+      cloneCanvas.style.width = '100%';
+      cloneCanvas.style.height = '100%';
+      zPanel.appendChild(cloneCanvas);
+      cloneCanvas.width = window.innerWidth * 0.8;
+      cloneCanvas.height = window.innerHeight * 0.8;
+    }
+  }, 10);
+}
+
+function closeZoom() {
+  if (!zoomedPanel) return;
+  O.lastInteraction = Date.now();
+
+  const zPanel = document.getElementById('zoom-panel');
+  const overlay = document.getElementById('zoom-overlay');
+  const rect = zoomedPanel.getBoundingClientRect();
+
+  const zCanvas = document.getElementById('zoomCanvas');
+  if (zCanvas) zCanvas.remove();
+
+  zPanel.style.top = rect.top + 'px';
+  zPanel.style.left = rect.left + 'px';
+  zPanel.style.width = rect.width + 'px';
+  zPanel.style.height = rect.height + 'px';
+
+  overlay.classList.remove('active');
+
+  setTimeout(() => {
+    zoomedPanel = null;
+  }, 350);
+}
+
+function scrollToPanel(id) {
+  O.lastInteraction = Date.now();
+  const p = document.getElementById(id);
+  if (p) {
+    p.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    document.querySelectorAll('.side-node').forEach(n => n.classList.remove('active'));
+    const btnNode = document.querySelector(`[onclick="scrollToPanel('${id}')"]`);
+    if(btnNode) btnNode.classList.add('active');
+  }
+}
+
+/* ────────────────────────────────────
+   LOOP PRINCIPAL Y CONFIGURACIÓN
+   Sincronizado a los frames del motor
+──────────────────────────────────── */
+function initAll() {
+  document.getElementById('hdrSid').innerText = O.sid;
+  document.getElementById('logInitTime').innerText = new Date().toISOString().split('T')[1].substring(0,8);
+
+  document.querySelectorAll('canvas').forEach(fitCanvas);
+  window.addEventListener('resize', () => {
+    document.querySelectorAll('canvas').forEach(c => {
+      if(c.id !== 'zoomCanvas') fitCanvas(c);
+    });
+  });
+
+  computePhi();
+  hydrateRealWorldSpect();
+  // Gestión de scroll horizontal por trackpad
+  document.querySelectorAll('.obs-zone').forEach(z => {
+    z.addEventListener('wheel', (e) => {
+      if (e.deltaY !== 0 && !zoomedPanel) {
+        z.scrollLeft += e.deltaY;
+        e.preventDefault();
+      }
+    }, { passive: false });
+  });
+
+  // Tecla ESC para cerrar zoom
+  window.addEventListener('keydown', (e) => {
+    if(e.key === 'Escape') closeZoom();
+  });
+
+  function loop() {
+    O.frame++;
+
+    // Modulaciones menores de entorno autónomo
+    if (O.frame % 30 === 0) {
+      O.sys.xi += (Math.random() - 0.5) * 0.004;
+      O.sys.xi = Math.max(0.01, Math.min(0.2, O.sys.xi));
+      computePhi();
+      updateDOM();
+    }
+
+    // Dibujado triplanar
+    drawPhiBg();
+    drawFrictionField();
+    drawCognitiveTwin();
+    drawWorldSpectrum();
+    drawLongitudinalTension();
+    drawSemanticBg();
+    drawStochasticProjection();
+    drawAgentEntropy();
+    drawChronology();
+
+    // Loop de dibujo en zoom si está activo
+    const zCanvas = document.getElementById('zoomCanvas');
+    if (zCanvas && zoomedPanel) {
+      const zCtx = zCanvas.getContext('2d');
+      zCtx.clearRect(0,0,zCanvas.width,zCanvas.height);
+      const activeId = zoomedPanel.querySelector('canvas').id;
+      if (activeId === 'cPhi') {
+        const rgb = O.sys.regime==='Homeostático' ? GRN_RGB : O.sys.regime==='Entrópico' ? RED_RGB : GOLD_RGB;
+        zCtx.beginPath(); zCtx.arc(zCanvas.width/2, zCanvas.height/2, zCanvas.height * 0.38, 0, Math.PI*2);
+        zCtx.strokeStyle = `rgba(${rgb},0.25)`; zCtx.lineWidth = 1.5; zCtx.stroke();
+      } else {
+        zCtx.font = '14px "JetBrains Mono"'; zCtx.fillStyle = `rgba(${GOLD_RGB},0.6)`;
+        zCtx.textAlign = 'center'; zCtx.fillText(`[ANÁLISIS DE CAPA EXPANDIDA · ${activeId.toUpperCase()}]`, zCanvas.width/2, zCanvas.height/2);
+      }
+    }
+
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+}
+
+async function hydrateRealWorldSpect() {
+  try {
+    const res = await fetch('/api/worldspect/vector', { cache: 'no-store' });
+    const data = await res.json();
+    const snap = data?.snapshot || data;
+
+    if (!snap) {
+      pushLog('WORLDSPECT', 'Sin snapshot externo. Operando con campo base.');
+      return;
+    }
+
+    const cells = snap.cells || snap.domains || snap.vector || {};
+    const getVal = (key, fallback) => {
+      const v = cells[key]?.value ?? cells[key]?.v ?? cells[key];
+      const n = Number(v);
+      return Number.isFinite(n) ? Math.max(0, Math.min(1, n)) : fallback;
+    };
+
+    O.world.memeticSat.v = getVal('MEMETIC', O.world.memeticSat.v);
+    O.world.colAnxiety.v = getVal('AFFECTIVE', O.world.colAnxiety.v);
+    O.world.econPress.v = getVal('ECONOMY', O.world.econPress.v);
+    O.world.polar.v = getVal('GEOPOLITICAL', O.world.polar.v);
+    O.world.infoVel.v = getVal('TECH', O.world.infoVel.v);
+
+    const nti = Number(snap.nti ?? snap.NTI ?? snap.metrics?.nti);
+    if (Number.isFinite(nti)) O.sys.nti = Math.max(0, Math.min(1, nti));
+
+    pushLog('WORLDSPECT', `Vector externo integrado: ${snap.status || 'ACTIVE'}`);
+    computePhi();
+    updateDOM();
+  } catch (error) {
+    pushLog('WORLDSPECT', 'WorldSpect no disponible. Campo base conservado.');
+  }
+}
+
+async function persistEvidence(kind, raw, label) {
+  try {
+    const res = await fetch('/api/sfi/evidence', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        module: 'scorefriction',
+        caseId: O.sid,
+        kind,
+        label,
+        raw,
+        verified: false
+      })
+    });
+    const data = await res.json();
+    pushLog('EVIDENCE', data?.stored ? 'Evidencia persistida.' : 'Envelope creado; persistencia degradada.');
+    return data;
+  } catch (error) {
+    pushLog('EVIDENCE', 'No se pudo persistir evidencia.');
+    return null;
+  }
+}
+
+window.onload = initAll;
+</script>
+</body>
+</html>
