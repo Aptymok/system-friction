@@ -1,4 +1,4 @@
-export type ScoreFrictionSourceName =
+﻿export type ScoreFrictionSourceName =
   | 'youtube'
   | 'spotify'
   | 'genius'
@@ -50,6 +50,10 @@ export type ScoreFrictionNormalizedObservation = {
   metrics: Record<string, number>;
   tags: string[];
   metadata: Record<string, unknown>;
+  contentFingerprint?: string | null;
+  objectKind?: ScoreFrictionObjectKind | string | null;
+  objectLabel?: string | null;
+  semanticText?: string | null;
   collectedAt: string;
 };
 
@@ -73,3 +77,11 @@ export type ScoreFrictionCaseStudy = {
   verificationMetric: string;
   status: string;
 };
+
+export type ScoreFrictionObjectKind = string;
+
+export type ScoreFrictionGenerationRequest = any;
+
+
+
+
