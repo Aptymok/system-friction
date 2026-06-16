@@ -12,15 +12,31 @@ function isRefreshTokenMissing(error: unknown) {
 
 function clearSupabaseAuthCookies(response: NextResponse, request: NextRequest) {
   const names = new Set(AUTH_COOKIE_NAMES)
+
   request.cookies.getAll().forEach((cookie) => {
-    if (cookie.name.startsWith('sb-') || cookie.name.includes('supabase')) names.add(cookie.name)
+    if (cookie.name.startsWith('sb-') || cookie.name.includes('supabase')) {
+      names.add(cookie.name)
+    }
   })
+
   names.forEach((name) => response.cookies.delete(name))
 }
 
 function isRootRouteUser(role?: string | null, email?: string | null) {
   const rootEmail = process.env.SYSTEM_ROOT_EMAIL
-  return role === 'root' || role === 'system' || Boolean(rootEmail && email && email.toLowerCase() === rootEmail.toLowerCase())
+
+  return (
+    role === 'root' ||
+    role === 'system' ||
+    Boolean(rootEmail && email && email.toLowerCase() === rootEmail.toLowerCase())
+  )
+}
+
+function redirectToLoginWithNext(request: NextRequest) {
+  const loginUrl = new URL('/login', request.url)
+  loginUrl.searchParams.set('next', `${request.nextUrl.pathname}${request.nextUrl.search}`)
+
+  return NextResponse.redirect(loginUrl)
 }
 
 export async function proxy(request: NextRequest) {
@@ -35,7 +51,7 @@ export async function proxy(request: NextRequest) {
     response.headers.set('Cache-Control', 'public, max-age=3600, stale-while-revalidate=86400')
   }
 
-  if (pathname.startsWith('/terminal')) {
+  if (pathname.startsWith('/terminal') || pathname.startsWith('/root') || pathname.startsWith('/user')) {
     response.headers.set('Cache-Control', 'no-store, must-revalidate')
   }
 
@@ -45,12 +61,17 @@ export async function proxy(request: NextRequest) {
   const requiresSession =
     pathname.startsWith('/root') ||
     pathname.startsWith('/user') ||
+    pathname.startsWith('/terminal') ||
     pathname === '/setup-profile'
 
   if (!supabaseUrl || !supabaseKey) {
     if (requiresSession) {
-      return NextResponse.redirect(new URL('/login?error=supabase_no_configurado', request.url))
+      const loginUrl = new URL('/login', request.url)
+      loginUrl.searchParams.set('error', 'supabase_no_configurado')
+      loginUrl.searchParams.set('next', `${request.nextUrl.pathname}${request.nextUrl.search}`)
+      return NextResponse.redirect(loginUrl)
     }
+
     return response
   }
 
@@ -69,9 +90,11 @@ export async function proxy(request: NextRequest) {
   })
 
   let user = null
+
   try {
     const result = await supabase.auth.getUser()
     user = result.data.user
+
     if (result.error && isRefreshTokenMissing(result.error)) {
       clearSupabaseAuthCookies(response, request)
       user = null
@@ -85,12 +108,8 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  if (requiresSession) {
-    if (!user) {
-      const redirect = NextResponse.redirect(new URL('/login', request.url))
-      clearSupabaseAuthCookies(redirect, request)
-      return redirect
-    }
+  if (requiresSession && !user) {
+    return redirectToLoginWithNext(request)
   }
 
   if (pathname.startsWith('/root') && user) {
@@ -98,7 +117,7 @@ export async function proxy(request: NextRequest) {
       .from('profiles')
       .select('role')
       .eq('user_id', user.id)
-      .single()
+      .maybeSingle()
 
     if (!isRootRouteUser(profile?.role, user.email)) {
       return NextResponse.redirect(new URL('/user', request.url))

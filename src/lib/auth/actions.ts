@@ -9,6 +9,14 @@ function formValue(formData: FormData, key: string) {
   return String(formData.get(key) || '')
 }
 
+function safeInternalRedirect(value: string) {
+  if (!value) return '/root'
+  if (!value.startsWith('/')) return '/root'
+  if (value.startsWith('//')) return '/root'
+  if (value.startsWith('/login')) return '/root'
+  return value
+}
+
 export async function registerAction(formData: FormData) {
   const input = { email: formValue(formData, 'email'), password: formValue(formData, 'password') }
   const parsed = authSchema.safeParse(input)
@@ -30,16 +38,18 @@ export async function registerAction(formData: FormData) {
 
 export async function loginAction(formData: FormData) {
   const input = { email: formValue(formData, 'email'), password: formValue(formData, 'password') }
+  const next = safeInternalRedirect(formValue(formData, 'next'))
   const parsed = authSchema.safeParse(input)
-  if (!parsed.success) redirect('/login?error=entrada_invalida')
+  if (!parsed.success) redirect(`/login?error=entrada_invalida&next=${encodeURIComponent(next)}`)
   const limit = checkRateLimit(rateLimitKey('login', input.email), 8, 60_000)
-  if (!limit.allowed) redirect('/login?error=rate_limit')
+  if (!limit.allowed) redirect(`/login?error=rate_limit&next=${encodeURIComponent(next)}`)
 
   const supabase = await createServerSupabaseClient()
-  if (!supabase) redirect('/login?error=supabase_no_configurado')
+  if (!supabase) redirect(`/login?error=supabase_no_configurado&next=${encodeURIComponent(next)}`)
   const { error } = await supabase.auth.signInWithPassword(parsed.data)
-  if (error) redirect(`/login?error=${encodeURIComponent(error.message)}`)
-  redirect('/terminal')
+  if (error) redirect(`/login?error=${encodeURIComponent(error.message)}&next=${encodeURIComponent(next)}`)
+
+  redirect(next)
 }
 
 export async function forgotPasswordAction(formData: FormData) {

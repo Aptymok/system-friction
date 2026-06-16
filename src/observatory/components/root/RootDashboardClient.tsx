@@ -15,6 +15,7 @@ import { AcpAttractorFieldView } from '@/observatory/components/root/AcpAttracto
 import { RootOperationsConsole } from '@/observatory/components/root/RootOperationsConsole';
 import { RootObservatoryIndex } from '@/observatory/components/root/RootObservatoryIndex';
 import { RootLogbookConsole } from '@/observatory/components/root/RootLogbookConsole';
+import { PersistentSignalFieldPanel } from '@/observatory/components/root/PersistentSignalFieldPanel';
 import { VisorMode } from '@/observatory/components/root/VisorMode';
 import { useVisorMode } from '@/observatory/components/root/visorHooks';
 import { buildRootAttractorState } from '@/lib/root/rootAttractorState';
@@ -22,7 +23,7 @@ import { buildRootFieldState } from '@/lib/root/rootFieldState';
 import { translateRootMihm } from '@/lib/root/rootMihmTranslator';
 import { translateRootWsv } from '@/lib/root/rootWsvTranslator';
 
-type RightPanel = 'chat' | 'propuestas' | 'artefactos' | 'agentes' | 'control';
+type RightPanel = 'chat' | 'signals' | 'propuestas' | 'artefactos' | 'agentes' | 'control';
 
 type TwinState = {
   ok?: boolean;
@@ -75,7 +76,7 @@ const FIELD_TOOLS: Array<{ id: string; title: string; hint: string; Icon: React.
 ];
 
 const FIELD_TOOL_IDS = FIELD_TOOLS.map((tool) => tool.id);
-const RIGHT_PANEL_IDS: RightPanel[] = ['chat', 'propuestas', 'artefactos', 'agentes', 'control'];
+const RIGHT_PANEL_IDS: RightPanel[] = ['chat', 'signals', 'propuestas', 'artefactos', 'agentes', 'control'];
 
 function readVisualSessionValue<T extends string>(key: string, fallback: T, allowed: readonly T[]) {
   if (typeof window === 'undefined') return fallback;
@@ -224,6 +225,12 @@ export function RootDashboardClient() {
           >
             {visor.enabled ? 'VISOR MODE: ON' : 'VISOR MODE: OFF'}
           </button>
+          <a
+            href="/surfaces"
+            className="mr-2 shrink-0 border border-[#d4af37]/30 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.1em] text-[#d4af37]/70 hover:border-[#d4af37]/60 hover:text-[#d4af37]"
+          >
+            Surfaces
+          </a>
           <button
             type="button"
             className="mr-3 shrink-0 border border-[#d4af7d]/40 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.1em]"
@@ -293,6 +300,9 @@ export function RootDashboardClient() {
           <div className="flex h-full flex-col">
             <Accordion title="AMV" open={openPanel === 'chat'} onClick={() => setOpenPanel(openPanel === 'chat' ? 'propuestas' : 'chat')}>
               <TwinInteractionPanel compact selectedNodeLabel={selectedNodeLabel} onArtifactIntent={() => setOpenPanel('artefactos')} />
+            </Accordion>
+            <Accordion title="Signals" open={openPanel === 'signals'} onClick={() => setOpenPanel(openPanel === 'signals' ? 'chat' : 'signals')}>
+              {openPanel === 'signals' ? <PersistentSignalFieldPanel /> : null}
             </Accordion>
             <Accordion title="Propuestas" open={openPanel === 'propuestas'} onClick={() => setOpenPanel(openPanel === 'propuestas' ? 'chat' : 'propuestas')}>
               <AcpProposalConsole compact />
