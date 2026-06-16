@@ -83,6 +83,16 @@ export const SFI_NAVIGATION: SfiNavItem[] = [
     priority: 12,
   },
   {
+    id: 'sfi-lab',
+    title: 'SFI Lab',
+    href: '/sfi-lab',
+    description: 'Instrumento longitudinal para detectar señales persistentes y generar reportes operativos.',
+    area: 'instrument',
+    status: 'active',
+    instrument: 'SFI-PSI',
+    priority: 13,
+  },
+  {
     id: 'terminal',
     title: 'Terminal',
     href: '/terminal',
