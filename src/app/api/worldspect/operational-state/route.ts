@@ -1,52 +1,47 @@
 ﻿import { NextResponse } from 'next/server';
 import { readWorldSpectVectorSnapshot } from '@/lib/worldspect/vector-store';
 
+type SourceKind = 'public-api' | 'internal-evidence';
+
 export const dynamic = 'force-dynamic';
 
-function n(value: unknown, fallback = 0) {
-  const parsed = typeof value === 'number' ? value : Number(value);
-  return Number.isFinite(parsed) ? parsed : fallback;
+function round4(value: number) {
+  return Number(Number.isFinite(value) ? value.toFixed(4) : 0);
 }
 
-function sourceKind(sourceId: string) {
-  if (sourceId.includes('_sfi_internal_evidence')) return 'internal-evidence';
-  if (sourceId.includes('_public')) return 'public-api';
-  if (sourceId.includes('worldbank') || sourceId.includes('github') || sourceId.includes('hn') || sourceId.includes('open_meteo') || sourceId.includes('clinicaltrials')) return 'public-api';
-  return 'unknown';
+function sourceKind(sourceId: string): SourceKind {
+  return sourceId.includes('_sfi_internal_evidence') ? 'internal-evidence' : 'public-api';
 }
 
-function sourceProvider(sourceId: string) {
-  if (sourceId.includes('sfi_internal')) return 'SFI internal evidence';
-  if (sourceId.includes('gdelt')) return 'GDELT';
+function providerForSource(sourceId: string) {
   if (sourceId.includes('worldbank')) return 'World Bank';
-  if (sourceId.includes('hn')) return 'Hacker News / Algolia';
-  if (sourceId.includes('github')) return 'GitHub';
   if (sourceId.includes('open_meteo')) return 'Open-Meteo';
   if (sourceId.includes('clinicaltrials')) return 'ClinicalTrials.gov';
+  if (sourceId.includes('github')) return 'GitHub';
+  if (sourceId.includes('_hn_')) return 'Hacker News / Algolia';
+  if (sourceId.includes('gdelt')) return 'GDELT';
+  if (sourceId.includes('_sfi_internal_evidence')) return 'SFI internal evidence';
   return 'unknown provider';
 }
 
-function sourceLabel(sourceId: string) {
-  return sourceId
-    .replace(/_sfi_internal_evidence/g, ' Â· SFI evidence')
-    .replace(/_gdelt_public/g, ' Â· GDELT')
-    .replace(/_worldbank_public/g, ' Â· World Bank')
-    .replace(/_hn_public/g, ' Â· HN')
-    .replace(/_github_public/g, ' Â· GitHub')
-    .replace(/_open_meteo_public/g, ' Â· Open-Meteo')
-    .replace(/_clinicaltrials_public/g, ' Â· ClinicalTrials')
-    .replace(/_/g, ' ');
+function shortProvider(sourceId: string) {
+  if (sourceId.includes('worldbank')) return 'World Bank';
+  if (sourceId.includes('open_meteo')) return 'Open-Meteo';
+  if (sourceId.includes('clinicaltrials')) return 'ClinicalTrials';
+  if (sourceId.includes('github')) return 'GitHub';
+  if (sourceId.includes('_hn_')) return 'HN';
+  if (sourceId.includes('gdelt')) return 'GDELT';
+  if (sourceId.includes('_sfi_internal_evidence')) return 'SFI evidence';
+  return sourceId;
 }
 
-function classifyVector(vector: { trust?: unknown; persistence?: unknown; degradation?: unknown; source_count?: unknown }) {
-  const trust = n(vector.trust);
-  const persistence = n(vector.persistence);
-  const degradation = n(vector.degradation, 1);
-  if (n(vector.source_count) <= 0) return 'sin fuente activa';
-  if (trust >= 0.65 && persistence >= 0.55 && degradation <= 0.4) return 'persistente confiable';
-  if (persistence >= 0.5 && trust < 0.55) return 'seÃ±al dÃ©bil coherente';
-  if (degradation >= 0.55) return 'degradaciÃ³n alta';
-  return 'observaciÃ³n activa';
+function interpretationFor(vector: { trust: number; persistence: number; degradation: number; value: number; source_count: number }) {
+  if (vector.source_count <= 0) return 'sin fuente activa';
+  if (vector.degradation >= 0.65) return 'degradado';
+  if (vector.trust >= 0.68 && vector.persistence >= 0.6) return 'persistente confiable';
+  if (vector.trust >= 0.56) return 'observacion activa';
+  if (vector.persistence >= 0.5) return 'senal debil coherente';
+  return 'senal inicial';
 }
 
 export async function GET() {
@@ -56,7 +51,6 @@ export async function GET() {
   const degraded = new Set(snapshot.degradedSources ?? []);
 
   const source_health = vectors.map((vector) => {
-    const sourceIds = Array.isArray(vector.sources) ? vector.sources.map(String) : [];
     const health = vector.source_count > 0
       ? 'real input'
       : degraded.has(vector.domain)
@@ -65,27 +59,33 @@ export async function GET() {
           ? 'unavailable'
           : 'degraded';
 
-    const source_details = sourceIds.map((sourceId) => ({
-      id: sourceId,
-      label: sourceLabel(sourceId),
-      kind: sourceKind(sourceId),
-      provider: sourceProvider(sourceId),
-      domain: vector.domain,
-    }));
+    const sourceDetails = (vector.sources ?? []).map((sourceId) => {
+      const kind = sourceKind(sourceId);
+      return {
+        id: sourceId,
+        label: `${vector.domain.toLowerCase()} - ${shortProvider(sourceId)}`,
+        kind,
+        provider: providerForSource(sourceId),
+        domain: vector.domain,
+      };
+    });
+
+    const publicSources = sourceDetails.filter((source) => source.kind === 'public-api').length;
+    const internalSources = sourceDetails.filter((source) => source.kind === 'internal-evidence').length;
 
     return {
       vector: vector.domain,
       health,
       source_count: vector.source_count,
-      sources: sourceIds,
-      source_details,
-      public_sources: source_details.filter((source) => source.kind === 'public-api').length,
-      internal_sources: source_details.filter((source) => source.kind === 'internal-evidence').length,
+      sources: vector.sources ?? [],
+      source_details: sourceDetails,
+      public_sources: publicSources,
+      internal_sources: internalSources,
       trust: vector.trust,
       persistence: vector.persistence,
       degradation: vector.degradation,
       value: vector.value,
-      interpretation: classifyVector(vector),
+      interpretation: interpretationFor(vector),
       reason: vector.source_count > 0
         ? null
         : degraded.has(vector.domain)
@@ -99,13 +99,25 @@ export async function GET() {
   const publicSourceCount = source_health.reduce((sum, item) => sum + item.public_sources, 0);
   const internalSourceCount = source_health.reduce((sum, item) => sum + item.internal_sources, 0);
 
+  const vector_readout = vectors.map((vector) => ({
+    domain: vector.domain,
+    value: vector.value,
+    trust: vector.trust,
+    persistence: vector.persistence,
+    degradation: vector.degradation,
+    source_count: vector.source_count,
+    status: vector.status,
+    sources: vector.sources ?? [],
+    interpretation: interpretationFor(vector),
+  }));
+
   return NextResponse.json({
     ok: true,
     status: result.status === 'ACTIVE' ? 'real input' : 'degraded',
     world_regime: snapshot.regime,
     selected_vector: vectors[0]?.domain ?? null,
     direction: snapshot.nti > 0.6 ? 'tension rising' : snapshot.wsi > 0.55 ? 'consolidating' : 'low signal',
-    degradation: vectors.reduce((sum, vector) => sum + vector.degradation, 0) / Math.max(1, vectors.length),
+    degradation: round4(vectors.reduce((sum, vector) => sum + vector.degradation, 0) / Math.max(1, vectors.length)),
     weak_signals: vectors.filter((vector) => vector.persistence > 0 && vector.trust < 0.55),
     persistent_signals: vectors.filter((vector) => vector.persistence >= 0.45),
     source_health,
@@ -114,22 +126,10 @@ export async function GET() {
       missingOrDegradedCount,
       publicSourceCount,
       internalSourceCount,
-      sourceCoverage: snapshot.sourceCoverage ?? realInputCount / Math.max(1, source_health.length),
+      sourceCoverage: round4(realInputCount / Math.max(1, source_health.length)),
     },
-    vector_readout: vectors.map((vector) => ({
-      domain: vector.domain,
-      value: vector.value,
-      trust: vector.trust,
-      persistence: vector.persistence,
-      degradation: vector.degradation,
-      source_count: vector.source_count,
-      status: vector.status,
-      sources: vector.sources ?? [],
-      interpretation: classifyVector(vector),
-    })),
+    vector_readout,
     snapshot,
     calculated_at: new Date().toISOString(),
-  }, {
-    headers: { 'content-type': 'application/json; charset=utf-8' },
   });
 }

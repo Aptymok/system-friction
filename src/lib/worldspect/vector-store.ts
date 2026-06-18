@@ -1,4 +1,4 @@
-import { getLatestWorldSpectSnapshot } from './snapshotStore';
+﻿import { getLatestWorldSpectSnapshot } from './snapshotStore';
 import { createBootstrappedWorldSpectSnapshot } from './bootstrap';
 import { WORLDSPECT_DOMAINS, type WorldSpectDomain, type WorldSpectVector, type WorldSpectVectorSnapshot } from './vector-contract';
 
@@ -8,6 +8,7 @@ type SourceLike = {
   value: number | null;
   nti?: number;
   weight?: number;
+  mihm_var?: string;
   simulated?: boolean;
   error?: string;
 };
@@ -22,18 +23,47 @@ function numeric(value: unknown): number | null {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+function normalizeDomain(value: unknown): WorldSpectDomain | null {
+  if (typeof value !== 'string') return null;
+  const normalized = value.trim().toUpperCase().replace(/[\s-]+/g, '_');
+  return (WORLDSPECT_DOMAINS as readonly string[]).includes(normalized)
+    ? normalized as WorldSpectDomain
+    : null;
+}
+
+function sourcePrefixDomain(source: SourceLike): WorldSpectDomain | null {
+  const key = source.key.toLowerCase();
+  if (key.startsWith('cultural_')) return 'CULTURAL';
+  if (key.startsWith('economy_')) return 'ECONOMY';
+  if (key.startsWith('geo_digital_')) return 'GEO_DIGITAL';
+  if (key.startsWith('geopolitical_')) return 'GEOPOLITICAL';
+  if (key.startsWith('bio_')) return 'BIO';
+  if (key.startsWith('climate_')) return 'CLIMATE';
+  if (key.startsWith('institutional_')) return 'INSTITUTIONAL';
+  if (key.startsWith('memetic_')) return 'MEMETIC';
+  if (key.startsWith('tech_')) return 'TECH';
+  if (key.startsWith('affective_')) return 'AFFECTIVE';
+  return null;
+}
+
 function domainForSource(source: SourceLike): WorldSpectDomain {
+  const explicit = normalizeDomain(source.mihm_var);
+  if (explicit) return explicit;
+
+  const prefixed = sourcePrefixDomain(source);
+  if (prefixed) return prefixed;
+
   const text = `${source.key} ${source.label ?? ''}`.toLowerCase();
   if (/music|culture|cultural|score|song|artist|media/.test(text)) return 'CULTURAL';
   if (/market|econom|price|inflation|finance|gdp/.test(text)) return 'ECONOMY';
   if (/geo.?digital|platform|network|search|social|traffic/.test(text)) return 'GEO_DIGITAL';
+  if (/tech|ai|model|compute|software|code|github|hacker/.test(text)) return 'TECH';
   if (/war|policy|geopolit|state|border|election/.test(text)) return 'GEOPOLITICAL';
   if (/bio|health|medical|organism|species/.test(text)) return 'BIO';
   if (/climate|weather|carbon|temperature|water/.test(text)) return 'CLIMATE';
-  if (/institution|governance|law|regulat|public/.test(text)) return 'INSTITUTIONAL';
   if (/meme|trend|attention|viral|narrative/.test(text)) return 'MEMETIC';
-  if (/tech|ai|model|compute|software|code/.test(text)) return 'TECH';
   if (/affect|sentiment|emotion|mood|feeling/.test(text)) return 'AFFECTIVE';
+  if (/institution|governance|law|regulat/.test(text)) return 'INSTITUTIONAL';
   return 'INSTITUTIONAL';
 }
 
@@ -89,6 +119,7 @@ export async function readWorldSpectVectorSnapshot(): Promise<{ ok: true; status
     value: numeric(source.value),
     nti: numeric(source.nti) ?? undefined,
     weight: numeric(source.weight) ?? undefined,
+    mihm_var: typeof source.mihm_var === 'string' ? source.mihm_var : undefined,
     simulated: source.simulated,
     error: source.error,
   }));

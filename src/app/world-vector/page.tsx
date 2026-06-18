@@ -1,8 +1,11 @@
-﻿'use client';
+'use client';
 
 import { useEffect, useMemo, useState } from 'react';
 
 type Row = Record<string, unknown>;
+
+const DOMAIN_ORDER = ['CULTURAL', 'ECONOMY', 'GEO_DIGITAL', 'GEOPOLITICAL', 'BIO', 'CLIMATE', 'INSTITUTIONAL', 'MEMETIC', 'TECH', 'AFFECTIVE'];
+const FILTERS = ['WORLD', ...DOMAIN_ORDER];
 
 function rows(value: unknown): Row[] {
   return Array.isArray(value) ? value.filter((item): item is Row => Boolean(item) && typeof item === 'object' && !Array.isArray(item)) : [];
@@ -21,236 +24,339 @@ function pct(value: unknown) {
   return `${Math.round(num(value) * 100)}%`;
 }
 
-function text(value: unknown, fallback = 'sin datos') {
-  return typeof value === 'string' && value.length > 0 ? value : fallback;
+function fixed(value: unknown, digits = 3) {
+  return num(value).toFixed(digits);
 }
 
-function sourceDetails(source: Row) {
-  return rows(source.source_details);
+function label(value: unknown, fallback = 'sin datos') {
+  return typeof value === 'string' && value.trim() ? value : fallback;
 }
 
-function tone(value: unknown) {
+function metricTone(value: unknown) {
   const n = num(value);
-  if (n >= 0.65) return 'text-[#d9f99d]';
-  if (n >= 0.45) return 'text-[#e0c46c]';
-  return 'text-[#fca5a5]';
+  if (n >= 0.7) return 'wv-good';
+  if (n >= 0.45) return 'wv-watch';
+  return 'wv-low';
 }
 
-function normalizeFilter(filter: string) {
-  const map: Record<string, string> = {
-    global: 'global',
-    cultura: 'CULTURAL',
-    discurso: 'MEMETIC',
-    musica: 'CULTURAL',
-    cine: 'CULTURAL',
-    escritura: 'CULTURAL',
-    tecnologia: 'TECH',
-    economia: 'ECONOMY',
-    politica: 'GEOPOLITICAL',
-    territorio: 'GEO_DIGITAL',
-    plataforma: 'GEO_DIGITAL',
-    institucional: 'INSTITUTIONAL',
-    clima: 'CLIMATE',
-    bio: 'BIO',
-    afectivo: 'AFFECTIVE',
-  };
-  return map[filter] ?? filter.toUpperCase();
+function selectedVectorFrom(snapshot: Row | null, domain: string) {
+  const vectors = rows(snapshot?.vectors);
+  if (domain === 'WORLD') return null;
+  return vectors.find((vector) => String(vector.domain) === domain) ?? null;
+}
+
+function sourceDetails(source: Row | null) {
+  return rows(source?.source_details);
+}
+
+function opportunityScore(vector: Row) {
+  const trust = num(vector.trust);
+  const persistence = num(vector.persistence);
+  const value = num(vector.value);
+  const degradation = num(vector.degradation);
+  return Number((trust * 0.28 + persistence * 0.34 + value * 0.2 + (1 - degradation) * 0.18).toFixed(4));
+}
+
+function signalClass(vector: Row) {
+  const persistence = num(vector.persistence);
+  const trust = num(vector.trust);
+  const degradation = num(vector.degradation);
+  if (degradation >= 0.55) return 'degradada';
+  if (persistence >= 0.6 && trust >= 0.58) return 'persistente';
+  if (persistence >= 0.45 && trust < 0.58) return 'emergente';
+  return 'latente';
+}
+
+function fileToText(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result ?? ''));
+    reader.onerror = () => reject(reader.error ?? new Error('file_read_failed'));
+    reader.readAsText(file);
+  });
 }
 
 export default function WorldVectorPage() {
   const [state, setState] = useState<Row | null>(null);
-  const [filter, setFilter] = useState('global');
-  const [signalType, setSignalType] = useState('all');
-  const [timeRange, setTimeRange] = useState('7d');
+  const [history, setHistory] = useState<Row | null>(null);
+  const [domain, setDomain] = useState('WORLD');
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [objectText, setObjectText] = useState('');
-  const [mode, setMode] = useState('MIHM');
+  const [question, setQuestion] = useState('');
   const [evaluation, setEvaluation] = useState<Row | null>(null);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    fetch('/api/worldspect/operational-state', { cache: 'no-store' })
-      .then((response) => response.json())
-      .then(setState)
-      .catch((error) => setState({ ok: false, status: 'unavailable', error: error instanceof Error ? error.message : 'worldspect_unavailable' }));
+    Promise.all([
+      fetch('/api/worldspect/operational-state', { cache: 'no-store' }).then((res) => res.json()),
+      fetch('/api/worldspect/longitudinal?limit=80', { cache: 'no-store' }).then((res) => res.json()),
+    ]).then(([operational, longitudinal]) => {
+      setState(operational);
+      setHistory(longitudinal);
+      const timeline = rows(longitudinal.timeline);
+      setSelectedIndex(timeline.length ? timeline.length - 1 : null);
+    }).catch((error) => {
+      setState({ ok: false, status: 'unavailable', error: error instanceof Error ? error.message : 'worldspect_unavailable' });
+      setHistory({ ok: false, timeline: [] });
+    });
   }, []);
 
-  const snapshot = record(state?.snapshot);
-  const vectors = rows(snapshot.vectors);
-  const vectorReadout = rows(state?.vector_readout);
+  const timeline = rows(history?.timeline);
+  const selectedSnapshot = selectedIndex !== null ? timeline[selectedIndex] ?? null : null;
+  const latestSnapshot = selectedSnapshot ?? record(state?.snapshot);
+  const latestVectors = rows(latestSnapshot?.vectors).length ? rows(latestSnapshot?.vectors) : rows(state?.vector_readout);
+  const selectedVector = selectedVectorFrom({ vectors: latestVectors }, domain);
   const sourceHealth = rows(state?.source_health);
   const sourceMix = record(state?.source_mix);
-  const selectedKey = normalizeFilter(filter);
+  const selectedSource = domain === 'WORLD' ? null : sourceHealth.find((item) => String(item.vector) === domain) ?? null;
 
-  const selected = useMemo(() => {
-    if (selectedKey === 'global') return vectorReadout[0] ?? vectors[0] ?? null;
-    return vectorReadout.find((vector) => String(vector.domain ?? '') === selectedKey) ?? vectors.find((vector) => String(vector.domain ?? '') === selectedKey) ?? vectorReadout[0] ?? vectors[0] ?? null;
-  }, [selectedKey, vectorReadout, vectors]);
+  const dominant = useMemo(() => [...latestVectors].sort((a, b) => num(b.persistence) - num(a.persistence))[0] ?? null, [latestVectors]);
+  const emergent = useMemo(() => latestVectors.filter((vector) => signalClass(vector) === 'emergente'), [latestVectors]);
+  const degraded = useMemo(() => latestVectors.filter((vector) => signalClass(vector) === 'degradada'), [latestVectors]);
+  const opportunities = useMemo<Row[]>(() => latestVectors
+    .map((vector) => ({ ...(vector as Row), opportunity: opportunityScore(vector) }))
+    .sort((a, b) => num(b.opportunity) - num(a.opportunity)), [latestVectors]);
 
-  const selectedSource = useMemo(() => {
-    if (!selected) return null;
-    return sourceHealth.find((source) => String(source.vector ?? '') === String(selected.domain ?? '')) ?? null;
-  }, [selected, sourceHealth]);
+  async function runContrast() {
+    if (!objectText.trim()) {
+      setEvaluation({ ok: false, object_presence: 'missing', answer: 'Carga un objeto primero. Sin objeto solo existe lectura del mundo.' });
+      return;
+    }
+    setLoading(true);
+    try {
+      const response = await fetch('/api/scorefriction/operational-cycle', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          case_id: `WSV-${Date.now().toString(36)}`,
+          objective: question.trim() || `Contraste contra ${domain}`,
+          scope: domain === 'WORLD' ? 'world' : domain === 'CULTURAL' ? 'culture' : 'custom',
+          analysis_modes: ['MIHM', 'PSI', 'WSV', 'SCOREFRICTION', 'AMV'],
+          evaluated_object: objectText,
+          run_contrast: true,
+        }),
+      }).then((res) => res.json());
+      setEvaluation(response.state ?? response);
+    } finally {
+      setLoading(false);
+    }
+  }
 
-  const weakSignals = rows(state?.weak_signals);
-  const persistent = rows(state?.persistent_signals);
+  async function handleUpload(file: File | null) {
+    if (!file) return;
+    const content = await fileToText(file);
+    setObjectText(content);
+  }
 
-  async function runEvaluation() {
-    const response = await fetch('/api/scorefriction/operational-cycle', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        case_id: `WSV-${Date.now().toString(36)}`,
-        objective: `Contraste ${mode} contra ${filter}`,
-        scope: filter === 'global' ? 'world' : 'culture',
-        analysis_modes: [mode, 'WSV', 'SCOREFRICTION', 'AMV'],
-        evaluated_object: objectText,
-        run_contrast: true,
-      }),
-    }).then((res) => res.json());
-    setEvaluation(response);
+  function downloadReport() {
+    const payload = evaluation ?? { world: state, history };
+    const report = `# WorldSpectrumVector Longitudinal Report\n\n` +
+      `Generated: ${new Date().toISOString()}\n\n` +
+      `## Current world\n\nRegime: ${label(latestSnapshot?.regime ?? state?.world_regime)}\n\nWSI: ${fixed(latestSnapshot?.wsi ?? record(state?.snapshot).wsi)}\n\nNTI: ${fixed(latestSnapshot?.nti ?? record(state?.snapshot).nti)}\n\nCoverage: ${pct(sourceMix.sourceCoverage ?? latestSnapshot?.sourceCoverage)}\n\nDominant attractor: ${label(dominant?.domain)} persistence ${fixed(dominant?.persistence)}\n\n` +
+      `## Selected vector\n\n${domain}\n\n` +
+      `## Evaluation\n\n\`\`\`json\n${JSON.stringify(payload, null, 2)}\n\`\`\`\n`;
+    const blob = new Blob([report], { type: 'text/markdown;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `worldvector-report-${Date.now().toString(36)}.md`;
+    link.click();
+    URL.revokeObjectURL(url);
   }
 
   return (
-    <main className="min-h-screen bg-[#050504] text-[#d8d0bd]">
-      <header className="border-b border-[#d8b64a24] bg-[#080706] px-5 py-4 font-mono">
-        <div className="text-[10px] uppercase tracking-[0.3em] text-[#e0c46c]">WorldSpectrumVector Observatory</div>
-        <div className="mt-3 grid gap-3 text-[11px] uppercase tracking-[0.14em] text-[#8a8172] md:grid-cols-6">
-          <div>Regimen mundial <b className="block text-[#d8d0bd]">{String(state?.world_regime ?? 'sin datos')}</b></div>
-          <div>Vector <b className="block text-[#d8d0bd]">{String(selected?.domain ?? state?.selected_vector ?? 'sin vector')}</b></div>
-          <div>Direccion <b className="block text-[#d8d0bd]">{String(state?.direction ?? 'sin lectura')}</b></div>
-          <div>Degradacion <b className="block text-[#d8d0bd]">{pct(state?.degradation)}</b></div>
-          <div>Cobertura <b className="block text-[#d8d0bd]">{pct(sourceMix.sourceCoverage ?? snapshot.sourceCoverage)}</b></div>
-          <div>Ultimo calculo <b className="block text-[#d8d0bd]">{String(snapshot.observed_at ?? state?.calculated_at ?? 'sin timestamp')}</b></div>
+    <main className="wv-root">
+      <header className="wv-header">
+        <div>
+          <div className="wv-kicker">WorldSpectrumVector Observatory</div>
+          <h1>Regime timeline + signal field</h1>
+        </div>
+        <div className="wv-metrics">
+          <div><span>regime</span><b>{label(latestSnapshot?.regime ?? state?.world_regime)}</b></div>
+          <div><span>coverage</span><b>{pct(sourceMix.sourceCoverage ?? latestSnapshot?.sourceCoverage)}</b></div>
+          <div><span>dominant attractor</span><b>{label(dominant?.domain)}</b></div>
+          <div><span>degradation</span><b>{pct(state?.degradation)}</b></div>
+          <div><span>snapshots</span><b>{timeline.length || '1'}</b></div>
         </div>
       </header>
 
-      <section className="grid gap-4 p-5 font-mono xl:grid-cols-[300px_1fr_380px]">
-        <aside className="space-y-4 border border-[#d8b64a24] bg-[#080706] p-4">
-          <div className="text-[9px] uppercase tracking-[0.18em] text-[#e0c46c]">Filtros vectoriales</div>
-          <select value={filter} onChange={(event) => setFilter(event.target.value)} className="w-full border border-[#d8b64a24] bg-[#050504] p-2 text-[11px]">
-            {['global', 'cultura', 'discurso', 'musica', 'cine', 'escritura', 'tecnologia', 'economia', 'politica', 'territorio', 'plataforma', 'institucional', 'clima', 'bio', 'afectivo'].map((item) => <option key={item} value={item}>{item}</option>)}
-          </select>
-          <select value={timeRange} onChange={(event) => setTimeRange(event.target.value)} className="w-full border border-[#d8b64a24] bg-[#050504] p-2 text-[11px]">
-            {['24h', '7d', '30d', '90d'].map((item) => <option key={item}>{item}</option>)}
-          </select>
-          <select value={signalType} onChange={(event) => setSignalType(event.target.value)} className="w-full border border-[#d8b64a24] bg-[#050504] p-2 text-[11px]">
-            {['all', 'latente', 'emergente', 'persistente', 'degradada'].map((item) => <option key={item}>{item}</option>)}
-          </select>
-
-          <div className="grid grid-cols-2 gap-2 text-[10px]">
-            <div className="border border-[#d8b64a18] bg-black/30 p-3">publicas<br /><b className="text-[#e0c46c]">{String(sourceMix.publicSourceCount ?? 0)}</b></div>
-            <div className="border border-[#d8b64a18] bg-black/30 p-3">internas<br /><b className="text-[#e0c46c]">{String(sourceMix.internalSourceCount ?? 0)}</b></div>
-            <div className="border border-[#d8b64a18] bg-black/30 p-3">real input<br /><b className="text-[#e0c46c]">{String(sourceMix.realInputCount ?? 0)}</b></div>
-            <div className="border border-[#d8b64a18] bg-black/30 p-3">degradadas<br /><b className="text-[#e0c46c]">{String(sourceMix.missingOrDegradedCount ?? 0)}</b></div>
+      <section className="wv-layout">
+        <aside className="wv-left">
+          <div className="wv-panel-title">Vector filter</div>
+          <div className="wv-filter-grid">
+            {FILTERS.map((item) => (
+              <button key={item} type="button" className={domain === item ? 'active' : ''} onClick={() => setDomain(item)}>{item}</button>
+            ))}
           </div>
 
-          <div className="text-[9px] leading-5 text-[#7a7568]">
-            Las fuentes no son contenido principal. Alimentan el vector. Se muestra su salud, tipo y peso operativo para trazabilidad mÃ­nima.
+          <div className="wv-card">
+            <span>Source mix</span>
+            <div className="wv-mix">
+              <b>{String(sourceMix.publicSourceCount ?? 0)}</b><small>public</small>
+              <b>{String(sourceMix.internalSourceCount ?? 0)}</b><small>internal</small>
+              <b>{String(sourceMix.realInputCount ?? 0)}</b><small>real input</small>
+            </div>
+          </div>
+
+          <div className="wv-scroll-panel short">
+            <div className="wv-panel-title">Sources for selected vector</div>
+            {domain === 'WORLD' ? <p>World view uses all active vector sources.</p> : sourceDetails(selectedSource).length ? sourceDetails(selectedSource).map((source) => (
+              <article key={String(source.id)}>
+                <b>{label(source.provider)}</b>
+                <span>{label(source.kind)} / {label(source.id)}</span>
+              </article>
+            )) : <p>No active source detail for this vector.</p>}
           </div>
         </aside>
 
-        <section className="min-h-[560px] border border-[#d8b64a24] bg-[radial-gradient(circle_at_center,#171208_0%,#050504_58%,#000_100%)] p-5">
-          <div className="flex items-start justify-between gap-4">
+        <section className="wv-center">
+          <div className="wv-map-header">
             <div>
-              <div className="text-[9px] uppercase tracking-[0.24em] text-[#e0c46c]">Campo vivo seleccionado</div>
-              <h1 className="mt-2 text-3xl uppercase tracking-[0.18em] text-[#f5e7bd]">{String(selected?.domain ?? 'WORLD')}</h1>
-              <p className="mt-2 max-w-2xl text-[11px] leading-6 text-[#9c9282]">{text(selected?.interpretation, 'observaciÃ³n activa')} Â· rÃ©gimen {String(state?.world_regime ?? 'LOW')} Â· direcciÃ³n {String(state?.direction ?? 'low signal')}</p>
+              <div className="wv-kicker">Living attractor map</div>
+              <h2>{domain === 'WORLD' ? 'WORLD FIELD' : domain}</h2>
+              <p>{domain === 'WORLD' ? 'The center displays global regime pressure. Each vector is positioned by persistence, trust and degradation.' : `Selected vector: ${domain}. Use the orbit, timeline and opportunity panel to decide whether to observe, wait, or contrast an object.`}</p>
             </div>
-            <div className="text-right text-[10px] uppercase tracking-[0.14em] text-[#8a8172]">
-              trust <b className={`block text-xl ${tone(selected?.trust)}`}>{pct(selected?.trust)}</b>
-              persistencia <b className={`block text-xl ${tone(selected?.persistence)}`}>{pct(selected?.persistence)}</b>
-            </div>
+            <button type="button" onClick={downloadReport}>Download report</button>
           </div>
 
-          <div className="relative mt-8 h-[320px] overflow-hidden border border-[#d8b64a18] bg-black/30">
-            <div className="absolute left-1/2 top-1/2 h-44 w-44 -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#e0c46c66] bg-[#e0c46c10] shadow-[0_0_90px_rgba(224,196,108,0.15)]" />
-            <div className="absolute left-1/2 top-1/2 h-20 w-20 -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#e0c46c] bg-[#e0c46c22] shadow-[0_0_40px_rgba(224,196,108,0.35)]" />
-            {vectorReadout.map((vector, index) => {
-              const angle = (Math.PI * 2 * index) / Math.max(1, vectorReadout.length);
-              const radius = 128 + num(vector.persistence) * 44;
-              const x = Math.cos(angle) * radius;
-              const y = Math.sin(angle) * radius;
+          <div className="wv-regime-river" aria-label="Regime timeline">
+            <svg viewBox="0 0 1000 180" preserveAspectRatio="none">
+              <line x1="0" y1="140" x2="1000" y2="140" />
+              <line x1="0" y1="90" x2="1000" y2="90" />
+              <line x1="0" y1="40" x2="1000" y2="40" />
+              <polyline points={timeline.map((snap, index) => {
+                const x = timeline.length <= 1 ? 500 : (index / (timeline.length - 1)) * 1000;
+                const y = 160 - num(snap.nti) * 120;
+                return `${x},${y}`;
+              }).join(' ')} />
+              {timeline.map((snap, index) => {
+                const x = timeline.length <= 1 ? 500 : (index / Math.max(1, timeline.length - 1)) * 1000;
+                const y = 160 - num(snap.nti) * 120;
+                return <circle key={String(snap.id ?? index)} cx={x} cy={y} r={selectedIndex === index ? 9 : 5} onClick={() => setSelectedIndex(index)} />;
+              })}
+            </svg>
+            <div className="wv-river-caption">Timeline reads NTI/regime pressure from persisted snapshots. If there is only one point, the system is observed but not yet longitudinal.</div>
+          </div>
+
+          <div className="wv-field-orbit">
+            <div className="wv-core">
+              <span>{label(latestSnapshot?.regime ?? state?.world_regime)}</span>
+              <b>{label(dominant?.domain)}</b>
+              <small>world attractor</small>
+            </div>
+            {latestVectors.map((vector, index) => {
+              const angle = (Math.PI * 2 * index) / Math.max(1, latestVectors.length);
+              const distance = 28 + num(vector.persistence) * 28 - num(vector.degradation) * 8;
+              const x = 50 + Math.cos(angle) * distance;
+              const y = 50 + Math.sin(angle) * distance * 0.7;
+              const size = 12 + num(vector.trust) * 18;
               return (
-                <div key={String(vector.domain ?? index)} className="absolute left-1/2 top-1/2" style={{ transform: `translate(${x}px, ${y}px)` }}>
-                  <div className="h-3 w-3 rounded-full bg-[#e0c46c] shadow-[0_0_18px_rgba(224,196,108,0.75)]" />
-                  <div className="mt-1 whitespace-nowrap text-[9px] uppercase tracking-[0.12em] text-[#d8d0bd]">{String(vector.domain)}</div>
-                </div>
+                <button key={String(vector.domain)} type="button" className={`wv-orbit-node ${domain === String(vector.domain) ? 'active' : ''}`} style={{ left: `${x}%`, top: `${y}%`, width: size, height: size }} onClick={() => setDomain(String(vector.domain))} title={String(vector.domain)}>
+                  <span>{String(vector.domain)}</span>
+                </button>
               );
             })}
           </div>
-
-          <div className="mt-5 grid gap-3 md:grid-cols-3">
-            <div className="border border-[#d8b64a18] bg-black/30 p-3 text-[10px]">valor<br /><b className="text-[#e0c46c]">{pct(selected?.value)}</b></div>
-            <div className="border border-[#d8b64a18] bg-black/30 p-3 text-[10px]">degradaciÃ³n<br /><b className="text-[#e0c46c]">{pct(selected?.degradation)}</b></div>
-            <div className="border border-[#d8b64a18] bg-black/30 p-3 text-[10px]">fuentes<br /><b className="text-[#e0c46c]">{String(selected?.source_count ?? 0)}</b></div>
-          </div>
-
-          <div className="mt-5 border border-[#d8b64a18] bg-black/30 p-4">
-            <div className="text-[9px] uppercase tracking-[0.18em] text-[#e0c46c]">Fuentes del vector</div>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {selectedSource && sourceDetails(selectedSource).length ? sourceDetails(selectedSource).map((source) => (
-                <span key={String(source.id)} className="border border-[#d8b64a24] bg-[#080706] px-2 py-1 text-[9px] text-[#d8d0bd]">
-                  {String(source.label)} Â· {String(source.kind)}
-                </span>
-              )) : <span className="text-[10px] text-[#7a7568]">sin fuentes activas</span>}
-            </div>
-          </div>
         </section>
 
-        <aside className="space-y-4">
-          <section className="border border-[#d8b64a24] bg-[#080706] p-4">
-            <h2 className="text-[10px] uppercase tracking-[0.18em] text-[#e0c46c]">Salud de fuente</h2>
-            {sourceHealth.map((source, index) => (
-              <div key={index} className="mt-3 border-b border-[#d8b64a14] pb-3 text-[10px]">
-                <div className="flex justify-between gap-3">
-                  <b>{String(source.vector)}</b>
-                  <span className={source.health === 'real input' ? 'text-[#d9f99d]' : 'text-[#fca5a5]'}>{String(source.health)}</span>
-                </div>
-                <div className="mt-1 text-[#8a8172]">{String(source.source_count ?? 0)} fuentes Â· {text(source.interpretation, '')}</div>
-                <div className="mt-2 flex flex-wrap gap-1">
-                  {sourceDetails(source).map((detail) => (
-                    <span key={String(detail.id)} className="border border-[#d8b64a18] px-1.5 py-0.5 text-[8px] text-[#9c9282]">{String(detail.provider)}</span>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </section>
+        <aside className="wv-right">
+          <div className="wv-scroll-panel">
+            <div className="wv-panel-title">Emerging signals</div>
+            {emergent.length ? emergent.map((vector) => (
+              <article key={String(vector.domain)}>
+                <b>{String(vector.domain)}</b>
+                <span>persistence {pct(vector.persistence)} / trust {pct(vector.trust)}</span>
+                <small>This is an emerging signal because persistence exists but trust is not yet high enough.</small>
+              </article>
+            )) : <p>No emergent signal in this snapshot.</p>}
+          </div>
 
-          <section className="border border-[#d8b64a24] bg-[#080706] p-4">
-            <h2 className="text-[10px] uppercase tracking-[0.18em] text-[#e0c46c]">SeÃ±ales dÃ©biles</h2>
-            {weakSignals.map((signal, index) => (
-              <div key={index} className="mt-3 border-b border-[#d8b64a14] pb-2 text-[11px]">
-                <b>{String(signal.vector ?? signal.domain ?? 'seÃ±al')}</b>
-                <div>recurrencia {pct(signal.persistence)} Â· coherencia {pct(signal.trust)}</div>
-                <div>estado {String(signal.status ?? 'emergente')}</div>
-              </div>
-            ))}
-            {!weakSignals.length ? <p className="mt-3 text-[11px] text-[#7a7568]">sin datos suficientes</p> : null}
-          </section>
+          <div className="wv-scroll-panel">
+            <div className="wv-panel-title">Degraded signals</div>
+            {degraded.length ? degraded.map((vector) => (
+              <article key={String(vector.domain)}>
+                <b>{String(vector.domain)}</b>
+                <span>degradation {pct(vector.degradation)}</span>
+                <small>Requires source improvement or more comparable evidence.</small>
+              </article>
+            )) : <p>No degraded vector above threshold.</p>}
+          </div>
 
-          <section className="border border-[#d8b64a24] bg-[#080706] p-4">
-            <h2 className="text-[10px] uppercase tracking-[0.18em] text-[#e0c46c]">Persistencia</h2>
-            {persistent.slice(0, 8).map((signal, index) => (
-              <div key={index} className="mt-3 border-b border-[#d8b64a14] pb-2 text-[11px]">
-                <b>{String(signal.domain ?? signal.vector)}</b>
-                <div>duraciÃ³n {pct(signal.persistence)} Â· aceleraciÃ³n {pct(signal.velocity)}</div>
-                <div>coherencia {pct(signal.trust)} Â· cambio vectorial {pct(signal.volatility)}</div>
-              </div>
+          <div className="wv-scroll-panel tall">
+            <div className="wv-panel-title">Emergent opportunities</div>
+            {opportunities.slice(0, 8).map((vector) => (
+              <article key={String(vector.domain)}>
+                <b>{String(vector.domain)}</b>
+                <span>opportunity {pct(vector.opportunity)} / persistence {pct(vector.persistence)}</span>
+                <small>Derived from trust, persistence, value and inverse degradation. This is not a recommendation; it is a ranked observation target.</small>
+              </article>
             ))}
-          </section>
+          </div>
         </aside>
-
-        <section className="border border-[#d8b64a24] bg-[#080706] p-4 xl:col-span-3">
-          <h2 className="text-[10px] uppercase tracking-[0.18em] text-[#e0c46c]">Evaluador opcional</h2>
-          <div className="mt-3 grid gap-3 md:grid-cols-[180px_1fr_auto]">
-            <select value={mode} onChange={(event) => setMode(event.target.value)} className="border border-[#d8b64a24] bg-[#050504] p-2 text-[11px]">
-              {['MIHM', 'PSI', 'SCOREFRICTION'].map((item) => <option key={item}>{item}</option>)}
-            </select>
-            <textarea value={objectText} onChange={(event) => setObjectText(event.target.value)} className="h-24 border border-[#d8b64a24] bg-[#050504] p-2 text-[11px]" placeholder="texto/audio/objeto/anÃ¡lisis..." />
-            <button disabled={!objectText.trim()} onClick={() => void runEvaluation()} className="border border-[#d8b64a44] px-3 text-[10px] uppercase tracking-[0.14em] text-[#e0c46c] disabled:text-[#6f6658]">Contrastar</button>
-          </div>
-          {evaluation ? <pre className="mt-3 max-h-56 overflow-auto whitespace-pre-wrap text-[10px] text-[#8a8172]">{JSON.stringify(evaluation.state ?? evaluation, null, 2)}</pre> : null}
-        </section>
       </section>
+
+      <section className="wv-evaluator">
+        <div>
+          <div className="wv-panel-title">Object contrast</div>
+          <p>Upload or paste an object. Then SFI compares object vs current world + selected filtered vector. Without object, the system must not recommend intervention.</p>
+        </div>
+        <input type="file" onChange={(event) => void handleUpload(event.target.files?.[0] ?? null)} />
+        <textarea value={objectText} onChange={(event) => setObjectText(event.target.value)} placeholder="Paste text, lyrics, campaign, decision, script, observation..." />
+        <textarea value={question} onChange={(event) => setQuestion(event.target.value)} placeholder="Ask the observatory what you need to know about this object vs the world..." />
+        <button type="button" disabled={loading} onClick={() => void runContrast()}>{loading ? 'Analyzing...' : 'Run real contrast'}</button>
+        {evaluation ? <pre>{JSON.stringify(evaluation, null, 2)}</pre> : null}
+      </section>
+
+      <style jsx>{`
+        .wv-root { min-height: 100vh; background: #030302; color: #e7dcc4; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+        .wv-header { position: sticky; top: 0; z-index: 20; display: grid; grid-template-columns: 1fr 2fr; gap: 20px; padding: 18px 22px; border-bottom: 1px solid rgba(216,182,74,.18); background: rgba(3,3,2,.9); backdrop-filter: blur(18px); }
+        .wv-kicker, .wv-panel-title { color: #e0c46c; font-size: 10px; letter-spacing: .22em; text-transform: uppercase; }
+        h1, h2 { margin: 6px 0 0; letter-spacing: .12em; text-transform: uppercase; }
+        .wv-metrics { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; }
+        .wv-metrics div { border: 1px solid rgba(216,182,74,.12); padding: 10px; background: #070604; }
+        .wv-metrics span { display: block; color: #8a8172; font-size: 9px; text-transform: uppercase; }
+        .wv-metrics b { display: block; margin-top: 4px; font-size: 12px; color: #f5e7bd; }
+        .wv-layout { display: grid; grid-template-columns: 300px minmax(480px, 1fr) 360px; gap: 14px; padding: 16px; }
+        .wv-left, .wv-right, .wv-center, .wv-evaluator { border: 1px solid rgba(216,182,74,.16); background: #070604; padding: 14px; }
+        .wv-filter-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 12px; }
+        button { border: 1px solid rgba(216,182,74,.22); background: #050504; color: #9c9282; padding: 8px 10px; text-transform: uppercase; letter-spacing: .1em; font-size: 10px; cursor: pointer; }
+        button.active, button:hover { color: #f5e7bd; border-color: rgba(224,196,108,.7); background: rgba(224,196,108,.1); }
+        button:disabled { opacity: .45; cursor: not-allowed; }
+        .wv-card { margin-top: 14px; border: 1px solid rgba(216,182,74,.12); padding: 12px; }
+        .wv-card span { color: #8a8172; font-size: 10px; text-transform: uppercase; }
+        .wv-mix { display: grid; grid-template-columns: auto 1fr; gap: 6px 10px; margin-top: 10px; }
+        .wv-mix b { color: #e0c46c; }
+        .wv-mix small { color: #8a8172; }
+        .wv-scroll-panel { max-height: 240px; overflow: auto; border: 1px solid rgba(216,182,74,.12); background: #050504; padding: 12px; margin-top: 14px; }
+        .wv-scroll-panel.short { max-height: 210px; }
+        .wv-scroll-panel.tall { max-height: 320px; }
+        article { border-bottom: 1px solid rgba(216,182,74,.10); padding: 10px 0; }
+        article b { display: block; color: #f5e7bd; font-size: 11px; }
+        article span, article small, p { display: block; color: #9c9282; font-size: 10px; line-height: 1.6; }
+        .wv-map-header { display: flex; justify-content: space-between; gap: 18px; align-items: flex-start; }
+        .wv-map-header p { max-width: 720px; }
+        .wv-regime-river { margin-top: 18px; border: 1px solid rgba(216,182,74,.12); background: #020201; padding: 12px; }
+        .wv-regime-river svg { width: 100%; height: 160px; display: block; }
+        .wv-regime-river line { stroke: rgba(216,182,74,.12); stroke-width: 1; }
+        .wv-regime-river polyline { fill: none; stroke: #e0c46c; stroke-width: 3; filter: drop-shadow(0 0 8px rgba(224,196,108,.35)); }
+        .wv-regime-river circle { fill: #050504; stroke: #e0c46c; stroke-width: 2; cursor: pointer; }
+        .wv-river-caption { margin-top: 8px; color: #8a8172; font-size: 10px; }
+        .wv-field-orbit { position: relative; height: 440px; margin-top: 14px; overflow: hidden; border: 1px solid rgba(216,182,74,.12); background: radial-gradient(circle at center, rgba(224,196,108,.13), transparent 34%), #020201; }
+        .wv-field-orbit:before, .wv-field-orbit:after { content: ''; position: absolute; inset: 12%; border: 1px dashed rgba(216,182,74,.18); border-radius: 50%; }
+        .wv-field-orbit:after { inset: 25%; border-style: solid; opacity: .65; }
+        .wv-core { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); width: 170px; height: 170px; border: 1px solid rgba(224,196,108,.85); border-radius: 50%; display: grid; place-content: center; text-align: center; background: rgba(224,196,108,.08); box-shadow: 0 0 80px rgba(224,196,108,.16); }
+        .wv-core span, .wv-core small { color: #8a8172; font-size: 10px; text-transform: uppercase; }
+        .wv-core b { color: #f5e7bd; font-size: 18px; letter-spacing: .14em; }
+        .wv-orbit-node { position: absolute; transform: translate(-50%,-50%); border-radius: 999px; padding: 0; background: #e0c46c; box-shadow: 0 0 22px rgba(224,196,108,.55); }
+        .wv-orbit-node span { position: absolute; left: 50%; top: 120%; transform: translateX(-50%); color: #e7dcc4; font-size: 9px; white-space: nowrap; }
+        .wv-orbit-node.active { background: #f5e7bd; box-shadow: 0 0 36px rgba(245,231,189,.85); }
+        .wv-good { color: #d9f99d; } .wv-watch { color: #e0c46c; } .wv-low { color: #fca5a5; }
+        .wv-evaluator { margin: 0 16px 18px; display: grid; grid-template-columns: 280px 220px 1fr 1fr 140px; gap: 12px; align-items: start; }
+        .wv-evaluator input, .wv-evaluator textarea { width: 100%; min-height: 72px; border: 1px solid rgba(216,182,74,.2); background: #030302; color: #e7dcc4; padding: 10px; font: inherit; font-size: 11px; }
+        .wv-evaluator input { min-height: auto; }
+        .wv-evaluator pre { grid-column: 1 / -1; max-height: 320px; overflow: auto; background: #020201; border: 1px solid rgba(216,182,74,.12); padding: 12px; color: #9c9282; font-size: 10px; white-space: pre-wrap; }
+        @media (max-width: 1100px) { .wv-header, .wv-layout, .wv-evaluator { grid-template-columns: 1fr; } .wv-metrics { grid-template-columns: repeat(2, 1fr); } }
+      `}</style>
     </main>
   );
 }

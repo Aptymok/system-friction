@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import type { CSSProperties } from 'react';
-import { Activity, AlertTriangle, Beaker, BookOpen, Brain, FileText, Gauge, Layers3, Radio, Sparkles } from 'lucide-react';
+import { Activity, Beaker, BookOpen, Brain, FileText, Gauge, Layers3, Radio, Sparkles } from 'lucide-react';
 import SfiLabClient from '@/components/scorefriction/SfiLabClient';
 
 type Row = Record<string, unknown>;
@@ -22,6 +22,11 @@ function scalar(value: unknown, fallback = 'sin datos suficientes') {
   if (value === null || typeof value === 'undefined' || value === '') return fallback;
   if (typeof value === 'number') return Number.isInteger(value) ? String(value) : value.toFixed(2);
   return String(value);
+}
+
+function n(value: unknown, fallback = 0) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
 }
 
 function severityTone(severity: unknown) {
@@ -47,6 +52,8 @@ export function ScoreFrictionFieldExperience() {
   const [drawer, setDrawer] = useState<(typeof DRAWERS)[number]>('SFI-LAB / Campaign Generator');
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [mediaResult, setMediaResult] = useState<Row | null>(null);
+  const [question, setQuestion] = useState('');
+  const [answer, setAnswer] = useState('');
 
   useEffect(() => {
     let cancelled = false;
@@ -76,12 +83,18 @@ export function ScoreFrictionFieldExperience() {
   const degradation = record(cycle?.degradation);
   const alert = record(cycle?.alert);
   const technical = record(cycle?.technical_state);
+  const analysis = record(cycle?.operational_analysis);
+  const world = record(analysis.world);
+  const filtered = record(analysis.filtered_vector);
+  const mihm = record(analysis.mihm_values);
+  const psi = record(analysis.psi_values);
+  const score = record(analysis.scorefriction_values);
+  const experiment = record(rows(cycle?.recommended_experiments)[0] ?? rows(analysis.recommended_experiments)[0]);
   const severity = severityTone(alert.severity);
   const graphNodes = rows(graph?.nodes);
   const signalNodes = [
     ...rows(cycle?.weak_signals).map((node, index) => ({ ...node, type: 'senal', id: `weak-${index}` })),
     ...rows(cycle?.persistent_signals).map((node, index) => ({ ...node, type: 'persistencia', id: `persistent-${index}` })),
-    ...rows(cycle?.attractors).map((node, index) => ({ ...node, type: 'atractor', id: `attractor-${index}` })),
     ...graphNodes.slice(0, 10),
   ];
   const fieldNodes = signalNodes.length ? signalNodes : graphNodes;
@@ -94,9 +107,18 @@ export function ScoreFrictionFieldExperience() {
     const result = await fetch('/api/scorefriction/media/render', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ case_id: caseId, prompt: scalar(cycle?.minimal_action, 'ScoreFriction minimal action'), assets: ['text', 'image'] }),
+      body: JSON.stringify({ case_id: caseId, prompt: scalar(experiment.action, 'ScoreFriction minimal action'), assets: ['text', 'image'] }),
     }).then((res) => res.json()).catch((error) => ({ ok: false, status: 'render_failed', error: String(error) }));
     setMediaResult(result);
+  }
+
+  async function askAmv() {
+    const response = await fetch('/api/scorefriction/amv/ask', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ question, case_id: caseId, objective: cycle?.objective, scope: scope.toLowerCase(), evaluated_object: scalar(experiment.hypothesis, '') }),
+    }).then((res) => res.json());
+    setAnswer(String(response.answer ?? 'sin respuesta'));
   }
 
   return (
@@ -107,7 +129,7 @@ export function ScoreFrictionFieldExperience() {
         <div><span>REGIMEN</span><b>{scalar(regime.vector ?? regime.world)}</b></div>
         <div><span>DIRECCION</span><b>{scalar(direction.current)}</b></div>
         <div><span>DEGRADACION</span><b>{scalar(degradation.level)}</b></div>
-        <div className={`sf-alert sf-alert-${severity}`}><span>ALERTA</span><b>{scalar(alert.severity, 'none')}</b></div>
+        <div className={`sf-alert sf-alert-${severity}`}><span>EXPERIMENTO</span><b>{scalar(experiment.status, 'watch_only')}</b></div>
       </header>
 
       <aside className="sf-left-rail" aria-label="Filtros vectoriales">
@@ -123,8 +145,8 @@ export function ScoreFrictionFieldExperience() {
         <div className="sf-field-label">Neural Field / Attractor Map</div>
         <div className="sf-core">
           <div className="sf-core-pulse" />
-          <h1>{scalar(direction.projected ?? direction.current, 'sin direccion suficiente')}</h1>
-          <p>{scalar(alert.action_required ?? cycle?.minimal_action, 'Esperando evidencia para proponer accion minima.')}</p>
+          <h1>{scalar(record(analysis.object_world_fit).verdict ?? direction.projected ?? direction.current, 'sin direccion suficiente')}</h1>
+          <p>{scalar(experiment.plain_language ?? experiment.action, 'Esperando evidencia para proponer experimento verificable.')}</p>
         </div>
         {fieldNodes.length ? fieldNodes.slice(0, 18).map((node, index) => {
           const angle = (index / Math.max(1, fieldNodes.length)) * Math.PI * 2;
@@ -143,17 +165,34 @@ export function ScoreFrictionFieldExperience() {
       </section>
 
       <aside className="sf-right-panel">
-        <div className="sf-panel-title"><Brain size={16} /> AMV Thoughts</div>
+        <div className="sf-panel-title"><Brain size={16} /> AMV operativo</div>
         <div className="sf-thought">
-          {thoughts[0] ? scalar(thoughts[0].thought) : severity === 'critical' ? 'Veo degradacion alta. Necesito evidencia antes/despues para confirmar direccion.' : 'Esta senal aun no basta. Necesito mas evidencia.'}
+          {scalar(experiment.plain_language ?? thoughts[0]?.thought, 'No hagas campaÃ±a todavÃ­a. Guarda evidencia y observa el siguiente cambio real del vector.')}
         </div>
         <div className="sf-action-box">
-          <span>Accion minima</span>
-          <p>{scalar(alert.action_required ?? record(cycle?.minimal_action).action, 'Abrir observacion y registrar evidencia puntual.')}</p>
+          <span>Hoy en el mundo</span>
+          <p>{scalar(world.summary)}</p>
         </div>
         <div className="sf-action-box">
-          <span>Evidencia requerida</span>
-          <p>{scalar(alert.evidence_required, 'Antes/despues, fuente, outcome y ventana de verificacion.')}</p>
+          <span>Vector seleccionado</span>
+          <p>{scalar(filtered.summary)}</p>
+        </div>
+        <div className="sf-action-box">
+          <span>Valores</span>
+          <p>MIHM coherencia {scalar(mihm.coherence)} Â· PSI persistencia {scalar(psi.persistence)} Â· oportunidad {scalar(score.opportunity)}</p>
+        </div>
+        <div className="sf-action-box">
+          <span>Accion verificable</span>
+          <p>{scalar(experiment.action)}</p>
+        </div>
+        <div className="sf-action-box">
+          <span>Condicion</span>
+          <p>{scalar(experiment.success_condition)}</p>
+        </div>
+        <div className="sf-ask">
+          <input value={question} onChange={(event) => setQuestion(event.target.value)} placeholder="pregunta: Â¿quÃ© hago?, Â¿quÃ© verifico?" />
+          <button onClick={() => void askAmv()}>Preguntar</button>
+          {answer ? <p>{answer}</p> : null}
         </div>
         <div className="sf-drawer-buttons">
           {DRAWERS.map((item) => (
@@ -186,7 +225,7 @@ export function ScoreFrictionFieldExperience() {
           </div>
           <div className="sf-drawer-body">
             {drawer === 'SFI-LAB / Campaign Generator' ? <SfiLabClient embedded /> : null}
-            {drawer === 'Evaluador' ? <pre>{JSON.stringify({ contrast: cycle?.contrast, analysis_modes: ['MIHM', 'PSI', 'WSV', 'SCOREFRICTION', 'AMV'] }, null, 2)}</pre> : null}
+            {drawer === 'Evaluador' ? <pre>{JSON.stringify({ world, filtered, mihm, psi, score, experiment }, null, 2)}</pre> : null}
             {drawer === 'Media Render' ? (
               <div>
                 <button type="button" className="sf-primary" onClick={() => void runMediaRender()}><Sparkles size={14} /> Ejecutar Media Render</button>
@@ -200,408 +239,51 @@ export function ScoreFrictionFieldExperience() {
         </div>
       ) : null}
       <style jsx>{`
-        .sf-field {
-          --gold: #d8b64a;
-          --paper: #e6dcc8;
-          --muted: #8a8172;
-          --line: rgba(216, 182, 74, 0.16);
-          position: relative;
-          min-height: 100vh;
-          overflow: hidden;
-          background:
-            radial-gradient(circle at 50% 48%, rgba(216, 182, 74, calc(0.08 + var(--alert-alpha))) 0, transparent 28%),
-            radial-gradient(circle at 50% 50%, rgba(140, 34, 34, calc(var(--degradation) * 0.16)) 0, transparent 52%),
-            #040403;
-          color: var(--paper);
-        }
-        .sf-header {
-          position: fixed;
-          inset: 0 0 auto 0;
-          z-index: 30;
-          display: grid;
-          grid-template-columns: 180px repeat(5, minmax(120px, 1fr));
-          gap: 1px;
-          border-bottom: 1px solid var(--line);
-          background: rgba(4, 4, 3, 0.82);
-          backdrop-filter: blur(18px);
-          font-family: var(--font-mono), monospace;
-        }
-        .sf-header > div {
-          min-height: 58px;
-          padding: 12px 14px;
-          border-left: 1px solid rgba(216, 182, 74, 0.08);
-        }
-        .sf-brand {
-          color: var(--gold);
-          text-transform: uppercase;
-          letter-spacing: 0.24em;
-          font-size: 11px;
-          font-weight: 700;
-        }
-        .sf-header span {
-          display: block;
-          color: rgba(230, 220, 200, 0.38);
-          font-size: 9px;
-          letter-spacing: 0.16em;
-          text-transform: uppercase;
-        }
-        .sf-header b {
-          display: block;
-          margin-top: 6px;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-          color: var(--paper);
-          font-size: 12px;
-          font-weight: 500;
-        }
-        .sf-alert-critical b { color: #ff7568; }
-        .sf-alert-warning b { color: #ffc266; }
-        .sf-alert-watch b { color: #d8b64a; }
-        .sf-left-rail {
-          position: fixed;
-          left: 18px;
-          top: 92px;
-          bottom: 160px;
-          z-index: 20;
-          display: flex;
-          width: 132px;
-          flex-direction: column;
-          gap: 8px;
-        }
-        .sf-left-rail button,
-        .sf-drawer-buttons button,
-        .sf-drawer-header button,
-        .sf-primary {
-          border: 1px solid rgba(216, 182, 74, 0.18);
-          background: rgba(8, 7, 6, 0.62);
-          color: rgba(230, 220, 200, 0.62);
-          font-family: var(--font-mono), monospace;
-          font-size: 10px;
-          letter-spacing: 0.12em;
-          text-transform: uppercase;
-          cursor: pointer;
-        }
-        .sf-left-rail button {
-          padding: 11px 12px;
-          text-align: left;
-        }
-        .sf-left-rail button.active {
-          border-color: rgba(216, 182, 74, 0.62);
-          background: rgba(216, 182, 74, 0.11);
-          color: var(--gold);
-        }
-        .sf-center {
-          position: absolute;
-          inset: 58px 360px 134px 160px;
-          overflow: hidden;
-        }
-        .sf-field-bg {
-          position: absolute;
-          inset: 4%;
-          background-image:
-            linear-gradient(rgba(216, 182, 74, 0.05) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(216, 182, 74, 0.035) 1px, transparent 1px);
-          background-size: 56px 56px;
-          mask-image: radial-gradient(circle, black 0 58%, transparent 78%);
-        }
-        .sf-orbit {
-          position: absolute;
-          left: 50%;
-          top: 50%;
-          border: 1px solid rgba(216, 182, 74, 0.18);
-          border-radius: 50%;
-          transform: translate(-50%, -50%) rotate(-8deg);
-        }
-        .sf-orbit-a {
-          width: min(70vw, 860px);
-          height: min(45vw, 520px);
-          box-shadow: 0 0 90px rgba(216, 182, 74, 0.06);
-        }
-        .sf-orbit-b {
-          width: min(48vw, 620px);
-          height: min(31vw, 360px);
-          transform: translate(-50%, -50%) rotate(18deg);
-        }
-        .sf-core {
-          position: absolute;
-          left: 50%;
-          top: 50%;
-          z-index: 5;
-          width: min(430px, 44vw);
-          transform: translate(-50%, -50%);
-          text-align: center;
-        }
-        .sf-field-label {
-          position: absolute;
-          left: 50%;
-          top: 6%;
-          z-index: 6;
-          transform: translateX(-50%);
-          color: rgba(216, 182, 74, 0.82);
-          font-size: 0.7rem;
-          font-weight: 800;
-          letter-spacing: 0.16em;
-          text-transform: uppercase;
-          white-space: nowrap;
-        }
-        .sf-core-pulse {
-          margin: 0 auto 18px;
-          width: 84px;
-          height: 84px;
-          border: 1px solid rgba(216, 182, 74, 0.54);
-          border-radius: 50%;
-          background: radial-gradient(circle, rgba(216, 182, 74, 0.24), transparent 64%);
-          box-shadow: 0 0 70px rgba(216, 182, 74, calc(0.16 + var(--alert-alpha)));
-        }
-        .sf-core h1 {
-          margin: 0;
-          color: #fff7df;
-          font-size: clamp(28px, 4vw, 58px);
-          font-weight: 600;
-          letter-spacing: 0;
-          line-height: 1.02;
-        }
-        .sf-core p {
-          margin: 16px auto 0;
-          max-width: 460px;
-          color: rgba(230, 220, 200, 0.66);
-          font-size: 14px;
-          line-height: 1.7;
-        }
-        .sf-node {
-          position: absolute;
-          z-index: 7;
-          max-width: 170px;
-          transform: translate(-50%, -50%);
-          border-left: 1px solid rgba(216, 182, 74, 0.38);
-          background: rgba(4, 4, 3, 0.72);
-          padding: 8px 10px;
-          backdrop-filter: blur(12px);
-        }
-        .sf-node span {
-          display: block;
-          color: rgba(216, 182, 74, 0.62);
-          font-family: var(--font-mono), monospace;
-          font-size: 8px;
-          letter-spacing: 0.14em;
-          text-transform: uppercase;
-        }
-        .sf-node b {
-          display: block;
-          margin-top: 4px;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-          color: rgba(230, 220, 200, 0.82);
-          font-size: 11px;
-          font-weight: 500;
-        }
-        .sf-empty-field {
-          position: absolute;
-          left: 50%;
-          top: 68%;
-          transform: translateX(-50%);
-          color: rgba(230, 220, 200, 0.36);
-          font-family: var(--font-mono), monospace;
-          font-size: 11px;
-          letter-spacing: 0.16em;
-          text-transform: uppercase;
-        }
-        .sf-right-panel {
-          position: fixed;
-          right: 18px;
-          top: 92px;
-          bottom: 160px;
-          z-index: 20;
-          width: 320px;
-          border: 1px solid rgba(216, 182, 74, 0.16);
-          background: rgba(8, 7, 6, 0.72);
-          padding: 16px;
-          backdrop-filter: blur(18px);
-        }
-        .sf-panel-title {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          color: var(--gold);
-          font-family: var(--font-mono), monospace;
-          font-size: 10px;
-          letter-spacing: 0.16em;
-          text-transform: uppercase;
-        }
-        .sf-thought {
-          margin-top: 18px;
-          color: #fff1d0;
-          font-size: 20px;
-          line-height: 1.35;
-        }
-        .sf-action-box {
-          margin-top: 18px;
-          border-top: 1px solid rgba(216, 182, 74, 0.12);
-          padding-top: 14px;
-        }
-        .sf-action-box span {
-          color: rgba(216, 182, 74, 0.7);
-          font-family: var(--font-mono), monospace;
-          font-size: 9px;
-          letter-spacing: 0.16em;
-          text-transform: uppercase;
-        }
-        .sf-action-box p {
-          margin: 8px 0 0;
-          color: rgba(230, 220, 200, 0.72);
-          font-size: 13px;
-          line-height: 1.6;
-        }
-        .sf-drawer-buttons {
-          position: absolute;
-          left: 16px;
-          right: 16px;
-          bottom: 16px;
-          display: grid;
-          gap: 8px;
-        }
-        .sf-drawer-buttons button,
-        .sf-primary {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          padding: 10px 11px;
-          text-align: left;
-        }
-        .sf-timeline {
-          position: fixed;
-          left: 18px;
-          right: 18px;
-          bottom: 18px;
-          z-index: 22;
-          display: grid;
-          grid-template-columns: 170px minmax(0, 1fr);
-          gap: 14px;
-          border: 1px solid rgba(216, 182, 74, 0.14);
-          background: rgba(5, 5, 4, 0.78);
-          padding: 12px;
-          backdrop-filter: blur(18px);
-        }
-        .sf-timeline-label {
-          color: var(--gold);
-          font-family: var(--font-mono), monospace;
-          font-size: 10px;
-          letter-spacing: 0.16em;
-          text-transform: uppercase;
-        }
-        .sf-timeline-items {
-          display: flex;
-          gap: 10px;
-          overflow-x: auto;
-        }
-        .sf-timeline article {
-          min-width: 260px;
-          border-left: 1px solid rgba(216, 182, 74, 0.18);
-          padding-left: 10px;
-        }
-        .sf-timeline span {
-          color: rgba(230, 220, 200, 0.34);
-          font-family: var(--font-mono), monospace;
-          font-size: 8px;
-        }
-        .sf-timeline b {
-          display: block;
-          margin-top: 4px;
-          color: rgba(230, 220, 200, 0.82);
-          font-size: 12px;
-        }
-        .sf-timeline p {
-          margin: 4px 0 0;
-          color: rgba(230, 220, 200, 0.52);
-          font-size: 11px;
-          line-height: 1.4;
-        }
-        .sf-drawer {
-          position: fixed;
-          inset: 76px 40px 40px 170px;
-          z-index: 60;
-          border: 1px solid rgba(216, 182, 74, 0.22);
-          background: rgba(3, 3, 2, 0.96);
-          box-shadow: 0 30px 160px rgba(0, 0, 0, 0.7);
-          backdrop-filter: blur(22px);
-        }
-        .sf-drawer-header {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          border-bottom: 1px solid rgba(216, 182, 74, 0.14);
-          padding: 14px 16px;
-          color: var(--gold);
-          font-family: var(--font-mono), monospace;
-          font-size: 11px;
-          letter-spacing: 0.16em;
-          text-transform: uppercase;
-        }
-        .sf-drawer-header div {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-        .sf-drawer-header button {
-          padding: 8px 12px;
-        }
-        .sf-drawer-body {
-          height: calc(100% - 54px);
-          overflow: auto;
-          padding: 18px;
-        }
-        .sf-drawer-body pre {
-          white-space: pre-wrap;
-          border: 1px solid rgba(216, 182, 74, 0.14);
-          background: rgba(0, 0, 0, 0.34);
-          padding: 14px;
-          color: rgba(230, 220, 200, 0.72);
-          font-size: 12px;
-          line-height: 1.6;
-        }
-        .sf-primary {
-          margin-bottom: 12px;
-          color: var(--gold);
-        }
-        @media (max-width: 980px) {
-          .sf-header {
-            grid-template-columns: 1fr 1fr;
-            position: relative;
-          }
-          .sf-center {
-            inset: 220px 16px 360px 16px;
-          }
-          .sf-left-rail {
-            top: 154px;
-            right: 16px;
-            bottom: auto;
-            left: 16px;
-            width: auto;
-            flex-direction: row;
-            overflow-x: auto;
-          }
-          .sf-right-panel {
-            top: auto;
-            right: 16px;
-            bottom: 160px;
-            left: 16px;
-            width: auto;
-            height: 190px;
-          }
-          .sf-drawer-buttons {
-            position: static;
-            margin-top: 12px;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-          }
-          .sf-timeline {
-            grid-template-columns: 1fr;
-          }
-          .sf-drawer {
-            inset: 30px 12px;
-          }
-        }
+        .sf-field { --gold: #d8b64a; --paper: #e6dcc8; --muted: #8a8172; --line: rgba(216,182,74,.16); position: relative; min-height: 100vh; overflow: hidden; background: radial-gradient(circle at 50% 48%, rgba(216,182,74,calc(.08 + var(--alert-alpha))) 0, transparent 28%), radial-gradient(circle at 50% 50%, rgba(140,34,34,calc(var(--degradation) * .16)) 0, transparent 52%), #040403; color: var(--paper); }
+        .sf-header { position: fixed; inset: 0 0 auto 0; z-index: 30; display: grid; grid-template-columns: 180px repeat(5,minmax(120px,1fr)); gap: 1px; border-bottom: 1px solid var(--line); background: rgba(4,4,3,.82); backdrop-filter: blur(18px); font-family: monospace; }
+        .sf-header>div { min-height: 58px; padding: 12px 14px; border-left: 1px solid var(--line); }
+        .sf-brand { color: var(--gold); text-transform: uppercase; letter-spacing: .22em; font-size: 12px; }
+        .sf-header span { display: block; color: var(--muted); font-size: 9px; letter-spacing: .18em; }
+        .sf-header b { display: block; margin-top: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; font-weight: 500; }
+        .sf-left-rail { position: fixed; z-index: 25; top: 88px; bottom: 150px; left: 18px; display: flex; flex-direction: column; gap: 8px; }
+        .sf-left-rail button { width: 118px; border: 1px solid var(--line); background: rgba(8,7,6,.72); padding: 9px 10px; color: var(--muted); font: 10px monospace; text-align: left; text-transform: uppercase; letter-spacing: .13em; }
+        .sf-left-rail button.active { border-color: rgba(216,182,74,.7); background: rgba(216,182,74,.12); color: var(--paper); }
+        .sf-center { position: absolute; inset: 58px 390px 148px 150px; overflow: hidden; }
+        .sf-field-bg, .sf-orbit { position: absolute; inset: 10%; border: 1px solid rgba(216,182,74,.12); border-radius: 999px; }
+        .sf-orbit-a { inset: 18%; transform: rotate(-8deg); }
+        .sf-orbit-b { inset: 30%; transform: rotate(16deg); }
+        .sf-field-label { position: absolute; left: 22px; top: 22px; color: var(--gold); font: 10px monospace; letter-spacing: .18em; text-transform: uppercase; }
+        .sf-core { position: absolute; left: 50%; top: 50%; width: min(520px,60vw); transform: translate(-50%,-50%); text-align: center; }
+        .sf-core-pulse { width: 96px; height: 96px; margin: 0 auto 20px; border-radius: 999px; background: rgba(216,182,74,.16); box-shadow: 0 0 90px rgba(216,182,74,.22); }
+        .sf-core h1 { margin: 0; font-size: clamp(28px,5vw,76px); font-weight: 300; letter-spacing: -.07em; }
+        .sf-core p { margin: 18px auto 0; max-width: 680px; color: #a69b88; line-height: 1.6; font-size: 14px; }
+        .sf-node { position: absolute; transform: translate(-50%,-50%); max-width: 150px; border: 1px solid rgba(216,182,74,.22); background: rgba(0,0,0,.72); padding: 8px 10px; font: 10px monospace; }
+        .sf-node span { display:block; color: var(--muted); text-transform: uppercase; font-size: 8px; }
+        .sf-node b { color: var(--paper); font-weight: 500; }
+        .sf-empty-field { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); color: var(--muted); font: 12px monospace; }
+        .sf-right-panel { position: fixed; z-index: 25; right: 18px; top: 82px; bottom: 150px; width: 350px; overflow: auto; border: 1px solid var(--line); background: rgba(8,7,6,.86); padding: 16px; backdrop-filter: blur(16px); }
+        .sf-panel-title { display:flex; gap:8px; align-items:center; color:var(--gold); font: 11px monospace; letter-spacing:.16em; text-transform:uppercase; }
+        .sf-thought, .sf-action-box { margin-top: 13px; border: 1px solid rgba(216,182,74,.14); background: rgba(0,0,0,.35); padding: 12px; color:#c9bea8; font: 12px monospace; line-height: 1.5; }
+        .sf-action-box span { display:block; color:var(--muted); font-size:9px; text-transform:uppercase; letter-spacing:.14em; margin-bottom:6px; }
+        .sf-action-box p { margin:0; }
+        .sf-ask { margin-top:13px; display:grid; gap:8px; }
+        .sf-ask input { border:1px solid rgba(216,182,74,.18); background:#050504; color:var(--paper); padding:9px; font:11px monospace; }
+        .sf-ask button, .sf-primary { border:1px solid rgba(216,182,74,.38); background:rgba(216,182,74,.1); color:var(--gold); padding:9px; font:10px monospace; text-transform:uppercase; }
+        .sf-ask p { margin:0; border:1px solid rgba(216,182,74,.14); padding:10px; font:11px monospace; color:#d8d0bd; }
+        .sf-drawer-buttons { display:grid; gap:8px; margin-top:14px; }
+        .sf-drawer-buttons button { display:flex; gap:8px; align-items:center; border:1px solid rgba(216,182,74,.14); background:#050504; color:#9b927f; padding:10px; font:10px monospace; text-align:left; }
+        .sf-timeline { position:fixed; z-index:26; left:18px; right:18px; bottom:18px; height:112px; border:1px solid var(--line); background:rgba(8,7,6,.86); padding:12px; display:grid; grid-template-columns:150px 1fr; gap:12px; backdrop-filter: blur(16px); }
+        .sf-timeline-label { color:var(--gold); font:9px monospace; letter-spacing:.16em; text-transform:uppercase; }
+        .sf-timeline-items { display:flex; gap:10px; overflow:auto; }
+        .sf-timeline article { min-width:240px; border-left:1px solid rgba(216,182,74,.22); padding-left:10px; font:10px monospace; color:#9b927f; }
+        .sf-timeline b { display:block; color:#d8d0bd; margin:3px 0; }
+        .sf-drawer { position:fixed; z-index:60; inset:76px 70px 40px 70px; border:1px solid rgba(216,182,74,.28); background:rgba(5,5,4,.96); backdrop-filter: blur(22px); box-shadow:0 30px 90px rgba(0,0,0,.55); }
+        .sf-drawer-header { display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(216,182,74,.18); padding:14px 18px; color:var(--gold); font:11px monospace; text-transform:uppercase; letter-spacing:.14em; }
+        .sf-drawer-header div { display:flex; gap:8px; align-items:center; }
+        .sf-drawer-header button { border:1px solid rgba(216,182,74,.22); background:transparent; color:var(--paper); padding:7px 10px; }
+        .sf-drawer-body { height:calc(100% - 52px); overflow:auto; padding:18px; }
+        .sf-drawer pre { white-space:pre-wrap; color:#b8ad99; font:11px monospace; }
+        @media(max-width: 1100px){ .sf-header{grid-template-columns:1fr 1fr}.sf-left-rail{position:static; padding-top:70px; flex-direction:row; overflow:auto}.sf-center{inset:140px 16px 420px 16px}.sf-right-panel{left:16px; right:16px; top:auto; bottom:150px; width:auto; height:250px}.sf-timeline{height:116px}.sf-drawer{inset:40px 16px;} }
       `}</style>
     </main>
   );
