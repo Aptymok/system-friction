@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server'
 import type { SourceObservation } from '@/lib/worldspect/source-adapter-contract'
-import { aggregateWorldSpect } from '@/lib/worldspect/vector-aggregator'
 import { buildCulturalSourceObservation } from '@/lib/worldspect/cultural-vector'
+import { persistWorldSpectObservations, runWorldSpectAdapters } from '@/lib/worldspect/runAdapters'
 
+export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 function record(value: unknown): Record<string, unknown> {
@@ -14,8 +15,7 @@ function num(value: unknown, fallback = 0) {
   return Number.isFinite(parsed) ? parsed : fallback
 }
 
-export async function POST(request: Request) {
-  const body = record(await request.json().catch(() => ({})))
+function manualCulturalObservation(body: Record<string, unknown>): SourceObservation[] {
   const observations: SourceObservation[] = []
 
   if (body.cultural && typeof body.cultural === 'object') {
@@ -31,6 +31,37 @@ export async function POST(request: Request) {
     }))
   }
 
-  const snapshot = aggregateWorldSpect(observations)
-  return NextResponse.json({ ok: true, status: snapshot.status, snapshot })
+  return observations
+}
+
+export async function POST(request: Request) {
+  const body = record(await request.json().catch(() => ({})))
+  const observations = manualCulturalObservation(body)
+  const includePublicAdapters = body.includePublicAdapters !== false
+
+  if (observations.length === 0 && includePublicAdapters) {
+    const result = await runWorldSpectAdapters('manual')
+    return NextResponse.json({
+      ok: result.ok,
+      status: result.status,
+      snapshot: result.snapshot,
+      sourceHealth: result.sourceHealth,
+      persistence: result.persistence,
+      degraded_sources: result.degraded_sources,
+    })
+  }
+
+  const result = await persistWorldSpectObservations(observations, 'manual', {
+    manual_ingest: true,
+    includePublicAdapters,
+  })
+
+  return NextResponse.json({
+    ok: result.ok,
+    status: result.status,
+    snapshot: result.snapshot,
+    sourceHealth: result.sourceHealth,
+    persistence: result.persistence,
+    degraded_sources: result.degraded_sources,
+  })
 }
