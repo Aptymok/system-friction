@@ -307,9 +307,8 @@ export function ScoreFrictionInterpretationPanel({ initialState }: { initialStat
       ) : null}
 
       <div className="flex flex-wrap gap-2 font-mono text-[10px] uppercase tracking-[0.14em]">
-        <Link href="/scorefriction/wave" className="border border-[#2b261d] px-3 py-2 text-[#a89469] hover:border-[#b8924b] hover:text-[#ead8aa]">Ir a Wave</Link>
-        <Link href="/scorefriction/wide" className="border border-[#2b261d] px-3 py-2 text-[#a89469] hover:border-[#b8924b] hover:text-[#ead8aa]">Ir a Wide</Link>
-        <Link href="/scorefriction/lab" className="border border-[#2b261d] px-3 py-2 text-[#a89469] hover:border-[#b8924b] hover:text-[#ead8aa]">Registrar evidencia</Link>
+        <Link href="/scorefriction" className="border border-[#2b261d] px-3 py-2 text-[#a89469] hover:border-[#b8924b] hover:text-[#ead8aa]">Abrir ScoreFriction</Link>
+        <Link href="/scorefriction" className="border border-[#2b261d] px-3 py-2 text-[#a89469] hover:border-[#b8924b] hover:text-[#ead8aa]">Registrar evidencia</Link>
       </div>
 
       <details className="border border-[#2b261d] bg-[#080706] p-4">

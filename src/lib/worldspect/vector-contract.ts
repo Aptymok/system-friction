@@ -1,4 +1,4 @@
-export const WORLDSPECT_DOMAINS = [
+﻿export const WORLDSPECT_DOMAINS = [
   'CULTURAL',
   'ECONOMY',
   'GEO_DIGITAL',
@@ -38,3 +38,25 @@ export type WorldSpectVectorSnapshot = {
   sourceCoverage?: number;
   degradedSources?: string[];
 };
+
+export type WorldSpectLensDomain = WorldSpectDomain | 'TOTAL';
+
+export type WorldSpectSupportLevel =
+  | 'native'
+  | 'derived'
+  | 'fallback'
+  | 'unsupported'
+  | 'unknown';
+
+export function normalizeWorldSpectLensDomain(
+  value: unknown,
+  fallback: WorldSpectDomain = 'CULTURAL'
+): WorldSpectDomain {
+  if (typeof value !== 'string') return fallback;
+  const normalized = value.trim().toUpperCase().replace(/[\s-]+/g, '_');
+  return (WORLDSPECT_DOMAINS as readonly string[]).includes(normalized)
+    ? (normalized as WorldSpectDomain)
+    : fallback;
+}
+
+

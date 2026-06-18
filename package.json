@@ -16,8 +16,12 @@
     "audit:dead-components": "node scripts/find-dead-components.mjs",
     "preflight:runtime": "node scripts/runtime-preflight.mjs",
     "check:boundaries": "node scripts/check-domain-boundaries.mjs",
+    "qa:sfi-runtime": "node scripts/qa-sfi-runtime.mjs",
+    "qa:sfi-convergence": "node scripts/qa-sfi-convergence.mjs",
+    "qa:sfi-execution": "node scripts/qa-sfi-execution.js",
     "typecheck": "tsc --noEmit --pretty false --incremental false",
-    "phase:verify": "npm run check:boundaries && npm run typecheck"
+    "phase:verify": "npm run check:boundaries && npm run typecheck",
+    "qa:sfi-pipeline": "node scripts/qa-sfi-minimal-pipeline.mjs"
   },
   "dependencies": {
     "@headlessui/react": "^2.0.0",

@@ -16,6 +16,9 @@ import { RootOperationsConsole } from '@/observatory/components/root/RootOperati
 import { RootObservatoryIndex } from '@/observatory/components/root/RootObservatoryIndex';
 import { RootLogbookConsole } from '@/observatory/components/root/RootLogbookConsole';
 import { PersistentSignalFieldPanel } from '@/observatory/components/root/PersistentSignalFieldPanel';
+import { LogbookSelectorPanel } from '@/observatory/components/root/LogbookSelectorPanel';
+import { RootLiveGraphPanel } from '@/observatory/components/root/RootLiveGraphPanel';
+import { SelfObservabilityPanel } from '@/observatory/components/root/SelfObservabilityPanel';
 import { VisorMode } from '@/observatory/components/root/VisorMode';
 import { useVisorMode } from '@/observatory/components/root/visorHooks';
 import { buildRootAttractorState } from '@/lib/root/rootAttractorState';
@@ -289,6 +292,7 @@ export function RootDashboardClient() {
               }}
             />
           )}
+          <RootLiveGraphPanel />
 
           <div className="pointer-events-none absolute bottom-3 left-3 z-20 border border-[#1e1c17] bg-[#060605]/85 px-3 py-2 font-mono text-[8px] uppercase tracking-[0.12em] text-[#8a7035]">
             <div>lente: {FIELD_TOOLS.find((tool) => tool.id === activeTool)?.title}</div>
@@ -315,6 +319,12 @@ export function RootDashboardClient() {
             </Accordion>
             <Accordion title="Root" open={openPanel === 'control'} onClick={() => setOpenPanel(openPanel === 'control' ? 'chat' : 'control')}>
               <RootObservatoryIndex scopes={twin?.data?.amvScopes} />
+              <div className="mt-3">
+                <SelfObservabilityPanel />
+              </div>
+              <div className="mt-3">
+                <LogbookSelectorPanel />
+              </div>
               <div className="mt-3">
                 <RootLogbookConsole />
               </div>

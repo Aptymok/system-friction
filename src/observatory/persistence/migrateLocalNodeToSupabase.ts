@@ -18,7 +18,7 @@ export async function migrateLocalNodeToSupabase(localNode: LocalNodeForMigratio
     return { ok: true, duplicate: true, assetId: localNode.supabaseAssetId };
   }
 
-  const response = await fetch('/api/sfi/assets', {
+  const response = await fetch('/api/scorefriction/assets', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({

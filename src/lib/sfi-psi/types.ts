@@ -1,6 +1,6 @@
 export type SfiLabMode = 'detect_signals' | 'generate_report' | 'propose_campaign' | 'generate_assets';
 
-export type SfiDataMode = 'deterministic_demo' | 'real_input' | 'provider_enriched';
+export type SfiDataMode = 'no_input' | 'real_input' | 'provider_enriched';
 
 export type SfiEvidenceStatus =
   | 'insufficient_longitudinal_data'
@@ -138,7 +138,7 @@ export type SfiMediaPlan = {
     google: 'configured' | 'missing_key';
     fallback: 'available';
   };
-  renderEndpoint: '/api/sfi/media/render';
+  renderEndpoint: '/api/scorefriction/media/render';
   placeholders: string[];
 };
 

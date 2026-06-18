@@ -1,5 +1,6 @@
 import type { SfiMetrics } from '@/lib/sfi/math'
 import type { EvidenceEnvelope } from '@/lib/sfi/evidence'
+import type { CulturalVectorResponse } from '@/lib/scorefriction/cultural-vector-contract'
 import type { WorldSpectVectorSnapshot } from '@/lib/worldspect/vector-contract'
 
 export type Row = Record<string, unknown>
@@ -21,6 +22,9 @@ export type ScoreFrictionPanelContext = {
   caseId: string
   metrics: SfiMetrics
   world: WorldSpectVectorSnapshot | null
+  cultural: CulturalVectorResponse | null
+  evidenceEntries: Row[]
+  operationalState: Row | null
   pipeline: ScoreFrictionPipeline
   runtime: {
     chronology: Row[]

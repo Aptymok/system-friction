@@ -63,14 +63,14 @@ export const SFI_NAVIGATION: SfiNavItem[] = [
     priority: 10,
   },
   {
-    id: 'scorefriction-operational',
-    title: 'ScoreFriction Operational',
-    href: '/scorefriction-operational',
+    id: 'world-vector',
+    title: 'WorldSpectrumVector',
+    href: '/world-vector',
     description: 'Superficie operacional para campañas, evidencia, proto-atractores y cierre institucional.',
-    area: 'dashboard',
+    area: 'observatory',
     status: 'active',
-    instrument: 'SCOREFRICTION',
-    priority: 11,
+    instrument: 'WSV',
+    priority: 12,
   },
   {
     id: 'scorefriction',
@@ -80,12 +80,12 @@ export const SFI_NAVIGATION: SfiNavItem[] = [
     area: 'instrument',
     status: 'active',
     instrument: 'SCOREFRICTION',
-    priority: 12,
+    priority: 11,
   },
   {
-    id: 'sfi-lab',
-    title: 'SFI Lab',
-    href: '/sfi-lab',
+    id: 'sfi-lab-internal',
+    title: 'SFI-LAB internal',
+    href: '/scorefriction',
     description: 'Instrumento longitudinal para detectar señales persistentes y generar reportes operativos.',
     area: 'instrument',
     status: 'active',
@@ -205,9 +205,9 @@ export const SFI_NAVIGATION: SfiNavItem[] = [
     priority: 101,
   },
   {
-    id: 'api-sfi-operational-state',
-    title: 'SFI Operational State API',
-    href: '/api/sfi/operational-state',
+    id: 'api-scorefriction-cycle',
+    title: 'ScoreFriction Operational Cycle API',
+    href: '/api/scorefriction/operational-cycle',
     description: 'Estado operacional transversal de SFI.',
     area: 'api',
     status: 'api',
@@ -215,9 +215,9 @@ export const SFI_NAVIGATION: SfiNavItem[] = [
     priority: 102,
   },
   {
-    id: 'api-sfi-execution-state',
-    title: 'SFI Execution State API',
-    href: '/api/sfi/execution-state',
+    id: 'api-scorefriction-execution-state',
+    title: 'ScoreFriction Execution State API',
+    href: '/api/scorefriction/execution-state',
     description: 'Estado de ejecución, ledger y aprendizaje operacional.',
     area: 'api',
     status: 'api',
@@ -238,7 +238,7 @@ export const SFI_NAVIGATION: SfiNavItem[] = [
   {
     id: 'api-sfi-surfaces',
     title: 'SFI Surfaces API',
-    href: '/api/sfi/surfaces',
+    href: '/api/root/self-observability',
     description: 'Mapa estático de conexiones entre superficies institucionales.',
     area: 'api',
     status: 'api',
@@ -266,3 +266,4 @@ export function navByIds(ids: string[]) {
   const lookup = new Map(SFI_NAVIGATION.map((item) => [item.id, item]));
   return ids.map((id) => lookup.get(id)).filter((item): item is SfiNavItem => Boolean(item));
 }
+

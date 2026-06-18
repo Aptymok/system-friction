@@ -44,7 +44,7 @@ export default function HomePage() {
   const dashboards = navByArea('dashboard');
   const access = navByIds(['login', 'user', 'terminal']);
   const primary = SFI_NAVIGATION.find((item) => item.id === 'root');
-  const score = SFI_NAVIGATION.find((item) => item.id === 'scorefriction-operational') ?? SFI_NAVIGATION.find((item) => item.id === 'scorefriction');
+  const score = SFI_NAVIGATION.find((item) => item.id === 'scorefriction');
 
   return (
     <main className="min-h-screen bg-[#060605] text-[#c8c4b8]">
@@ -53,7 +53,8 @@ export default function HomePage() {
           <Link href="/" className="mr-auto text-[#c8a951]">SFI</Link>
           <Link href="/">Inicio</Link>
           <Link href="/root">Observatorio</Link>
-          <Link href="/scorefriction-operational">ScoreFriction</Link>
+          <Link href="/scorefriction">ScoreFriction</Link>
+          <Link href="/world-vector">WorldVector</Link>
           <Link href="/instruments">Instrumentos</Link>
           <Link href="/surfaces">Superficies</Link>
           <Link href="/contact">Contacto</Link>

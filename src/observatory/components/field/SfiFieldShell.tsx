@@ -978,7 +978,7 @@ export function SfiFieldShell({
       return true;
     }
 
-    const assetResult = await fetchJson('/api/sfi/assets', {
+    const assetResult = await fetchJson('/api/scorefriction/assets', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -997,13 +997,13 @@ export function SfiFieldShell({
     });
 
     const assetId = assetResult.asset.asset_id;
-    await fetchJson(`/api/sfi/assets/${encodeURIComponent(assetId)}/measurements`, {
+    await fetchJson(`/api/scorefriction/assets/${encodeURIComponent(assetId)}/measurements`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(nextReading.technical),
     });
 
-    const list = await fetchJson('/api/sfi/assets', { cache: 'no-store' });
+    const list = await fetchJson('/api/scorefriction/assets', { cache: 'no-store' });
     const nextAssets = Array.isArray(list?.assets) ? list.assets : [assetResult.asset];
     onAssetsChange(nextAssets);
     onActiveAssetChange(assetId);

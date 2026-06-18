@@ -3,7 +3,12 @@ import path from 'node:path';
 
 const root = process.cwd();
 const required = [
+  'src/app/api/root/state/route.ts',
+  'src/app/api/sfi/operational-state/route.ts',
+  'src/app/api/amv/state/route.ts',
+  'src/app/api/worldspect/state/route.ts',
   'src/app/api/worldspect/vector/route.ts',
+  'src/app/api/worldspect/ingest-payload/route.ts',
   'src/app/api/sfi-engine/evaluate/route.ts',
   'src/app/api/amv/chat/route.ts',
   'src/app/api/scorefriction/evidence/ingest/route.ts',

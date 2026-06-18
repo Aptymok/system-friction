@@ -33,8 +33,14 @@ const ACCESS_NODES: AccessNode[] = [
   { id: 'ACCESS', label: 'ACCESS', x: 0, y: 260, radius: 30, density: 0.78, connections: ['SFI', 'SFI_OBS_N0', 'MIHM', 'EVIDENCE_LEDGER'], text: 'Activar este nodo abre el flujo real de autenticacion.' },
 ];
 
-export function LoginNeuralAccess({ error }: { error?: string }) {
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+export function LoginNeuralAccess({
+  error,
+  next = '/terminal',
+}: {
+  error?: string;
+  next?: string;
+}) {
+  const [selectedId, setSelectedId] = useState<string | null>('ACCESS');
   const [view, setView] = useState({ x: 0, y: 0, scale: 1 });
   const selected = ACCESS_NODES.find((node) => node.id === selectedId) ?? null;
   const byId = useMemo(() => new Map(ACCESS_NODES.map((node) => [node.id, node])), []);
@@ -51,10 +57,14 @@ export function LoginNeuralAccess({ error }: { error?: string }) {
   return (
     <main className="sfi-screen relative min-h-screen overflow-hidden bg-[#060605] text-[#c8c4b8]">
       <SfiFieldCanvas className="absolute inset-0 opacity-80" density={0.48} drift={0.42} />
+
       <header className="fixed left-0 right-0 top-0 z-30 flex h-[30px] items-center border-b border-[#c8a95112] bg-[#060605]/90 px-4 backdrop-blur">
         <SfiMark className="mr-3 h-4 w-4" />
         <div className="sfi-title text-[9px] text-[#c8a951]">SFI</div>
         <div className="ml-4 font-mono text-[9px] uppercase tracking-[0.2em] text-[#4a4a45]">ACCESS FIELD</div>
+        <div className="ml-auto font-mono text-[8px] uppercase tracking-[0.18em] text-[#6b5820]">
+          destino: {next}
+        </div>
       </header>
 
       <FrameNote className="left-5 top-16" text="esto esta vivo" />
@@ -68,7 +78,9 @@ export function LoginNeuralAccess({ error }: { error?: string }) {
             {ACCESS_NODES.flatMap((node) => node.connections.map((targetId) => {
               const target = byId.get(targetId);
               if (!target) return null;
+
               const active = selectedId === node.id || selectedId === target.id;
+
               return (
                 <line
                   key={`${node.id}-${target.id}`}
@@ -87,6 +99,7 @@ export function LoginNeuralAccess({ error }: { error?: string }) {
         {ACCESS_NODES.map((node) => {
           const active = selectedId === node.id;
           const size = node.radius * 2.75 * view.scale;
+
           return (
             <button
               key={node.id}
@@ -120,9 +133,16 @@ export function LoginNeuralAccess({ error }: { error?: string }) {
       </div>
 
       <SfiMetricRail metrics={metrics} />
+
       <div className="fixed bottom-[172px] right-5 z-50 w-[220px] border border-[#c8a95114] bg-[#060605]/90 p-3 font-mono text-[10px] uppercase tracking-[0.14em] text-[#8a8678]">
-        <div className="flex justify-between border-b border-[#c8a95110] py-1"><span>WORLD</span><span className="text-[#c8a951]">TENSION</span></div>
-        <div className="flex justify-between py-1"><span>EVIDENCE</span><span className="text-[#c8a951]">PRIVATE+DENSE</span></div>
+        <div className="flex justify-between border-b border-[#c8a95110] py-1">
+          <span>WORLD</span>
+          <span className="text-[#c8a951]">TENSION</span>
+        </div>
+        <div className="flex justify-between py-1">
+          <span>EVIDENCE</span>
+          <span className="text-[#c8a951]">PRIVATE+DENSE</span>
+        </div>
       </div>
 
       {selected ? (
@@ -132,12 +152,14 @@ export function LoginNeuralAccess({ error }: { error?: string }) {
               <p className="font-mono text-[8px] uppercase tracking-[0.34em] text-[#6b5820]">Nodo / {selected.id}</p>
               <h1 className="mt-2 font-serif text-3xl italic text-[#e8ddc3]">{selected.label}</h1>
             </div>
-            <button onClick={() => setSelectedId(null)} className="border border-[#c8a95122] px-3 py-2 font-mono text-[9px] uppercase tracking-[0.16em] text-[#8a8678] hover:border-[#c8a951] hover:text-[#c8a951]">cerrar</button>
+            <button onClick={() => setSelectedId(null)} className="border border-[#c8a95122] px-3 py-2 font-mono text-[9px] uppercase tracking-[0.16em] text-[#8a8678] hover:border-[#c8a951] hover:text-[#c8a951]">
+              cerrar
+            </button>
           </div>
 
           {selected.id === 'ACCESS' ? (
             <div className="mt-5">
-              <ThresholdAccess error={error} />
+              <ThresholdAccess error={error} next={next} />
             </div>
           ) : selected.id === 'PHENOMENON_ENGINE' ? (
             <div className="mt-5 space-y-4">

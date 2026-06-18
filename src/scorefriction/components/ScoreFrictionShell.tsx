@@ -5,11 +5,7 @@ import { LogoutLink } from '@/components/auth/LogoutLink';
 const NAV = [
   ['/repository', 'Repositorio'],
   ['/scorefriction', 'Observatorio'],
-  ['/scorefriction/wide', 'Wide'],
-  ['/scorefriction/lab', 'Lab'],
-  ['/scorefriction/wave', 'Wave'],
-  ['/scorefriction/cases', 'Cases'],
-  ['/scorefriction/evidence', 'Evidence'],
+  ['/scorefriction', 'Operacion unica'],
 ];
 
 export function ScoreFrictionShell({ title, subtitle, children }: { title: string; subtitle: string; children: ReactNode }) {

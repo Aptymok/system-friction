@@ -1,10 +1,9 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { loginAction } from '@/lib/auth/actions';
 import { translateRootAccess } from '@/lib/root/rootGovernanceTranslator';
-import { createBrowserSupabaseClient } from '@/runtime/supabase/client';
 
 const steps = [
   'VALIDANDO TOPOLOGIA',
@@ -14,189 +13,134 @@ const steps = [
   'ACCESO AUTORIZADO',
 ];
 
-async function sha256(input: string) {
-  const data = new TextEncoder().encode(input.toLowerCase().trim());
-  const digest = await crypto.subtle.digest('SHA-256', data);
-  return Array.from(new Uint8Array(digest)).map((byte) => byte.toString(16).padStart(2, '0')).join('');
+function safeDestination(value?: string | null) {
+  if (!value) return '/terminal';
+  if (!value.startsWith('/')) return '/terminal';
+  if (value.startsWith('//')) return '/terminal';
+  if (value.startsWith('/login')) return '/terminal';
+
+  return value;
 }
 
-function isRootIdentity(role?: string | null) {
-  return role === 'root' || role === 'system';
-}
-
-function withTimeout<T>(operation: PromiseLike<T>, ms: number, label: string): Promise<T> {
-  return new Promise((resolve, reject) => {
-    const timer = globalThis.setTimeout(() => reject(new Error(label)), ms);
-    Promise.resolve(operation)
-      .then((value) => resolve(value))
-      .catch((error) => reject(error))
-      .finally(() => globalThis.clearTimeout(timer));
-  });
-}
-
-async function resolvePathFromUser(
-  supabase: NonNullable<ReturnType<typeof createBrowserSupabaseClient>>,
-  userId?: string | null,
-) {
-  if (!userId) return '/user';
-
-  try {
-    const identity = await withTimeout(
-      fetch('/api/root/me', { credentials: 'include' }).then((res) => res.ok ? res.json() : null),
-      2500,
-      'ROOT_ME_TIMEOUT',
-    );
-    if (identity?.ok && identity.data?.isRoot) return '/root';
-
-    const { data: profile } = await withTimeout(
-      supabase.from('profiles').select('role').eq('user_id', userId).maybeSingle(),
-      2500,
-      'PROFILE_ROLE_TIMEOUT',
-    );
-    return isRootIdentity(profile?.role) ? '/root' : '/user';
-  } catch {
-    return '/user';
-  }
-}
-
-export default function ThresholdAccess({ error }: { error?: string }) {
-  const router = useRouter();
-  const supabase = createBrowserSupabaseClient();
+export default function ThresholdAccess({
+  error,
+  next = '/terminal',
+}: {
+  error?: string;
+  next?: string;
+}) {
   const startedAt = useRef(Date.now());
   const firstKeyAt = useRef<number | null>(null);
   const lastKeyAt = useRef<number | null>(null);
   const latencies = useRef<number[]>([]);
-  const [identifier, setIdentifier] = useState('');
-  const [password, setPassword] = useState('');
+
   const [backspaceCount, setBackspaceCount] = useState(0);
   const [fieldAbandonment, setFieldAbandonment] = useState(0);
   const [submitAttempts, setSubmitAttempts] = useState(0);
   const [stepIndex, setStepIndex] = useState(-1);
-  const [message, setMessage] = useState(error || '');
+  const [message] = useState(error || '');
 
-  useEffect(() => {
-    if (!supabase) return;
-    supabase.auth
-      .getSession()
-      .then(async ({ data }) => {
-        const user = data.session?.user;
-        if (user) router.replace(await resolvePathFromUser(supabase, user.id));
-      })
-      .catch(() => {
-        void supabase.auth.signOut();
-      });
-  }, [router, supabase]);
+  const destination = safeDestination(next);
+  const accessReading = message ? translateRootAccess({ error: message }) : null;
 
-  const trackKey = (event: React.KeyboardEvent<HTMLInputElement>) => {
+  function trackKey(event: React.KeyboardEvent<HTMLInputElement>) {
     const now = Date.now();
+
     if (!firstKeyAt.current) firstKeyAt.current = now;
     if (lastKeyAt.current) latencies.current.push(now - lastKeyAt.current);
+
     lastKeyAt.current = now;
-    if (event.key === 'Backspace') setBackspaceCount((value) => value + 1);
-  };
 
-  const submit = async (event: React.FormEvent) => {
-    event.preventDefault();
+    if (event.key === 'Backspace') {
+      setBackspaceCount((value) => value + 1);
+    }
+  }
+
+  function prepareSubmit() {
     setSubmitAttempts((value) => value + 1);
-    setMessage('');
+    setStepIndex(steps.length - 1);
+  }
 
-    if (!supabase) {
-      setMessage('Acceso bloqueado porque no hay lectura de sesion disponible.');
-      return;
-    }
+  const now = Date.now();
 
-    try {
-      for (let i = 0; i < steps.length - 1; i += 1) {
-        setStepIndex(i);
-        await new Promise((resolve) => setTimeout(resolve, 180));
-      }
+  const timeToFirstKey = firstKeyAt.current
+    ? Number(((firstKeyAt.current - startedAt.current) / 1000).toFixed(3))
+    : '';
 
-      const { data: signInData, error: signInError } = await withTimeout(
-        supabase.auth.signInWithPassword({ email: identifier, password }),
-        10000,
-        'SIGN_IN_TIMEOUT',
-      );
+  const typingLatency = latencies.current.length
+    ? Number((latencies.current.reduce((sum, value) => sum + value, 0) / latencies.current.length).toFixed(2))
+    : '';
 
-      if (signInError) {
-        setStepIndex(-1);
-        setMessage('Acceso bloqueado porque la sesion no pudo validarse.');
-        return;
-      }
-
-      setStepIndex(steps.length - 1);
-      const now = Date.now();
-      const telemetry = {
-        time_to_first_key: firstKeyAt.current ? Number(((firstKeyAt.current - startedAt.current) / 1000).toFixed(3)) : null,
-        typing_latency: latencies.current.length
-          ? Number((latencies.current.reduce((sum, value) => sum + value, 0) / latencies.current.length).toFixed(2))
-          : null,
-        backspace_count: backspaceCount,
-        field_abandonment: fieldAbandonment,
-        submit_attempts: submitAttempts + 1,
-        total_seconds: Number(((now - startedAt.current) / 1000).toFixed(3)),
-      };
-
-      void fetch('/api/auth/threshold', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email_hash: await sha256(identifier), telemetry }),
-      });
-
-      const user = signInData.user;
-      const destination = await resolvePathFromUser(supabase, user?.id);
-      router.refresh();
-      router.replace(destination);
-    } catch (loginError) {
-      setStepIndex(-1);
-      setMessage(loginError instanceof Error ? 'Acceso bloqueado porque la sesion cambio o expiro.' : 'Acceso bloqueado porque el flujo de entrada no pudo cerrarse.');
-    }
-  };
-
-  const accessReading = message ? translateRootAccess({ error: message }) : null;
+  const totalSeconds = Number(((now - startedAt.current) / 1000).toFixed(3));
 
   return (
     <section className="mx-auto w-full max-w-xl border border-[rgba(200,169,81,0.12)] bg-[#060605] p-7 text-[#c8c4b8] shadow-[0_30px_100px_rgba(0,0,0,0.55)]">
-      <p className="font-mono text-[10px] uppercase tracking-[0.34em] text-[#C8A951]">Umbral ROOT</p>
-      <h1 className="mt-4 font-display text-lg uppercase tracking-[0.18em] text-[#C8A951]">Acceso operativo Aptymok</h1>
+      <p className="font-mono text-[10px] uppercase tracking-[0.34em] text-[#C8A951]">
+        Umbral ROOT
+      </p>
+
+      <h1 className="mt-4 font-display text-lg uppercase tracking-[0.18em] text-[#C8A951]">
+        Acceso operativo Aptymok
+      </h1>
+
+      <div className="mt-3 border border-[#c8a95114] bg-black/20 p-2 font-mono text-[9px] uppercase tracking-[0.14em] text-[#6b5820]">
+        destino solicitado: <span className="text-[#C8A951]">{destination}</span>
+      </div>
+
       <div className="mt-6 grid gap-2 border-y border-[rgba(200,169,81,0.08)] py-4 font-mono text-[10px] uppercase tracking-[0.22em] text-[#5c5c52]">
         <span>Acceso: pendiente de validacion</span>
         <span>Accion siguiente: iniciar sesion raiz</span>
       </div>
 
-      <form onSubmit={submit} className="mt-7 space-y-5">
+      <form action={loginAction} onSubmit={prepareSubmit} className="mt-7 space-y-5">
+        <input type="hidden" name="next" value={destination} />
+        <input type="hidden" name="time_to_first_key" value={timeToFirstKey} />
+        <input type="hidden" name="typing_latency" value={typingLatency} />
+        <input type="hidden" name="backspace_count" value={backspaceCount} />
+        <input type="hidden" name="field_abandonment" value={fieldAbandonment} />
+        <input type="hidden" name="submit_attempts" value={submitAttempts + 1} />
+        <input type="hidden" name="total_seconds" value={totalSeconds} />
+
         <label className="block font-mono text-[10px] uppercase tracking-[0.24em] text-[#5c5c52]">
           IDENTIFICADOR
           <input
             required
+            name="email"
             type="email"
             autoComplete="email"
-            value={identifier}
-            onBlur={() => identifier && !password && setFieldAbandonment((value) => value + 1)}
+            onBlur={(event) => event.currentTarget.value && setFieldAbandonment((value) => value + 1)}
             onKeyDown={trackKey}
-            onChange={(event) => setIdentifier(event.target.value)}
             className="mt-2 w-full border-0 border-b border-[rgba(200,169,81,0.18)] bg-black/30 px-3 py-3 font-mono text-sm text-[#c8c4b8] outline-none focus:border-[#C8A951]"
           />
         </label>
+
         <label className="block font-mono text-[10px] uppercase tracking-[0.24em] text-[#5c5c52]">
           CLAVE DE INSTANCIA
           <input
             required
+            name="password"
             type="password"
             autoComplete="current-password"
-            value={password}
             onKeyDown={trackKey}
-            onChange={(event) => setPassword(event.target.value)}
             className="mt-2 w-full border-0 border-b border-[rgba(200,169,81,0.18)] bg-black/30 px-3 py-3 font-mono text-sm text-[#c8c4b8] outline-none focus:border-[#C8A951]"
           />
         </label>
-        <button className="w-full border border-[rgba(200,169,81,0.4)] bg-[rgba(200,169,81,0.07)] px-5 py-3 font-mono text-[10px] uppercase tracking-[0.24em] text-[#C8A951]">
+
+        <button
+          type="submit"
+          className="w-full border border-[rgba(200,169,81,0.4)] bg-[rgba(200,169,81,0.07)] px-5 py-3 font-mono text-[10px] uppercase tracking-[0.24em] text-[#C8A951]"
+        >
           INICIAR SESION RAIZ
         </button>
       </form>
 
       <div className="mt-5 flex justify-between gap-4 font-mono text-[10px] uppercase tracking-[0.18em] text-[#5c5c52]">
-        <Link href="/register" className="hover:text-[#C8A951]">REGISTRAR OBSERVADOR</Link>
-        <Link href="/forgot" className="hover:text-[#C8A951]">RECUPERAR CLAVE</Link>
+        <Link href="/register" className="hover:text-[#C8A951]">
+          REGISTRAR OBSERVADOR
+        </Link>
+        <Link href="/forgot" className="hover:text-[#C8A951]">
+          RECUPERAR CLAVE
+        </Link>
       </div>
 
       <div className="mt-6 space-y-2 font-mono text-[10px] uppercase tracking-[0.18em]">
@@ -206,6 +150,7 @@ export default function ThresholdAccess({ error }: { error?: string }) {
           </div>
         ))}
       </div>
+
       {accessReading ? (
         <div className="mt-5 border-l border-[#b85050] bg-[#b85050]/10 p-3 font-mono text-[10px] uppercase tracking-[0.14em] text-[#b85050]">
           <p>{accessReading.state}</p>

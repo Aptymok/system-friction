@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { auditRootAction, readTableHealth, requireRootActor } from '@/lib/root/server';
+import { readRootNeuralGraphRuntime } from '@/lib/root/neuralGraphRuntime';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,6 +19,15 @@ const CRITICAL_TABLES = [
   'account_members',
   'usage_ledger',
   'account_balance',
+  'sfi_evidence_ledger',
+  'sfi_graph_nodes',
+  'sfi_graph_edges',
+  'sfi_attractors',
+  'sfi_ejectors',
+  'sfi_phenomena',
+  'sfi_phenomenon_evidence',
+  'sfi_moph_sessions',
+  'sfi_amv_memory',
 ];
 
 export async function GET(req: Request) {
@@ -38,6 +48,8 @@ export async function GET(req: Request) {
   });
   if (!audit.ok) return NextResponse.json(audit, { status: 500 });
 
+  const rootNeuralGraphRuntime = await readRootNeuralGraphRuntime();
+
   return NextResponse.json({
     ok: warnings.length === 0,
     data: {
@@ -55,6 +67,7 @@ export async function GET(req: Request) {
         canAudit: true,
       },
       tables,
+      rootNeuralGraphRuntime,
       warnings,
     },
   });

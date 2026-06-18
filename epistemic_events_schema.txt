@@ -1,0 +1,142 @@
+﻿create table if not exists public.epistemic_events (
+  id uuid primary key default gen_random_uuid(),
+  sequence bigint generated always as identity,
+  event_id text not null unique,
+  event_name text not null,
+  logbook_id text not null,
+  epistemic_class text not null check (epistemic_class in ('observed', 'declared', 'derived', 'inferred', 'simulated', 'fixture', 'missing')),
+  schema_version text not null,
+  source jsonb not null default '{}'::jsonb,
+  confidence numeric not null default 0 check (confidence >= 0 and confidence <= 1),
+  payload jsonb not null,
+  checksum text not null,
+  lineage text[] not null default '{}',
+  uncertainty text null,
+  occurred_at timestamptz not null,
+  created_at timestamptz not null default now(),
+  hash_prev text null,
+  hash_self text not null unique
+);
+
+create index if not exists epistemic_events_logbook_sequence_idx
+on public.epistemic_events (logbook_id, sequence);
+
+create index if not exists epistemic_events_created_at_idx
+on public.epistemic_events (created_at desc);
+
+alter table public.epistemic_events enable row level security;
+-- Reconcile existing epistemic_events tables created before the SFI event-store contract.
+-- CREATE TABLE IF NOT EXISTS does not add missing columns when the table already exists.
+
+create extension if not exists pgcrypto;
+
+create table if not exists public.epistemic_events (
+  id uuid primary key default gen_random_uuid()
+);
+
+alter table public.epistemic_events
+  add column if not exists sequence bigint generated always as identity,
+  add column if not exists event_id text,
+  add column if not exists event_name text,
+  add column if not exists logbook_id text,
+  add column if not exists epistemic_class text,
+  add column if not exists schema_version text,
+  add column if not exists source jsonb,
+  add column if not exists confidence numeric,
+  add column if not exists payload jsonb,
+  add column if not exists checksum text,
+  add column if not exists lineage text[],
+  add column if not exists uncertainty text,
+  add column if not exists occurred_at timestamptz,
+  add column if not exists created_at timestamptz default now(),
+  add column if not exists hash_prev text,
+  add column if not exists hash_self text;
+
+update public.epistemic_events
+set event_id = coalesce(event_id, id::text)
+where event_id is null;
+
+update public.epistemic_events
+set event_name = coalesce(event_name, event_type, type, 'epistemic.event')
+where event_name is null;
+
+update public.epistemic_events
+set logbook_id = coalesce(logbook_id, 'default')
+where logbook_id is null;
+
+update public.epistemic_events
+set epistemic_class = coalesce(epistemic_class, 'missing')
+where epistemic_class is null;
+
+update public.epistemic_events
+set schema_version = coalesce(schema_version, '2026-05-27.epistemic-events.v1')
+where schema_version is null;
+
+update public.epistemic_events
+set source = coalesce(source, '{}'::jsonb)
+where source is null;
+
+update public.epistemic_events
+set confidence = coalesce(confidence, 0)
+where confidence is null;
+
+update public.epistemic_events
+set payload = coalesce(payload, '{}'::jsonb)
+where payload is null;
+
+update public.epistemic_events
+set checksum = coalesce(checksum, encode(digest(coalesce(payload, '{}'::jsonb)::text, 'sha256'), 'hex'))
+where checksum is null;
+
+update public.epistemic_events
+set lineage = coalesce(lineage, '{}'::text[])
+where lineage is null;
+
+update public.epistemic_events
+set occurred_at = coalesce(occurred_at, created_at, now())
+where occurred_at is null;
+
+update public.epistemic_events
+set created_at = coalesce(created_at, now())
+where created_at is null;
+
+update public.epistemic_events
+set hash_self = coalesce(hash_self, encode(digest(coalesce(event_id, id::text) || ':' || coalesce(checksum, ''), 'sha256'), 'hex'))
+where hash_self is null;
+
+alter table public.epistemic_events
+  alter column event_id set not null,
+  alter column event_name set not null,
+  alter column logbook_id set not null,
+  alter column epistemic_class set not null,
+  alter column schema_version set not null,
+  alter column source set default '{}'::jsonb,
+  alter column source set not null,
+  alter column confidence set default 0,
+  alter column confidence set not null,
+  alter column payload set default '{}'::jsonb,
+  alter column payload set not null,
+  alter column checksum set not null,
+  alter column lineage set default '{}'::text[],
+  alter column lineage set not null,
+  alter column occurred_at set not null,
+  alter column created_at set default now(),
+  alter column created_at set not null,
+  alter column hash_self set not null;
+
+create unique index if not exists epistemic_events_event_id_idx
+on public.epistemic_events (event_id);
+
+create unique index if not exists epistemic_events_hash_self_idx
+on public.epistemic_events (hash_self);
+
+create index if not exists epistemic_events_logbook_sequence_idx
+on public.epistemic_events (logbook_id, sequence);
+
+create index if not exists epistemic_events_created_at_idx
+on public.epistemic_events (created_at desc);
+
+create index if not exists epistemic_events_epistemic_class_idx
+on public.epistemic_events (epistemic_class);
+
+alter table public.epistemic_events enable row level security;

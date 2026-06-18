@@ -1,4 +1,3 @@
-import { spawn } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 
@@ -36,8 +35,6 @@ export type WorldSpectrumRunResult = {
   errorCode: string;
 };
 
-const timeoutMs = 15_000;
-
 function emptyPayload(errorCode?: string): WorldSpectrumCliPayload {
   return {
     sources: errorCode
@@ -74,16 +71,6 @@ function sanitizeErrorCode(value: unknown): string {
     .replace(/[^a-z0-9]+/g, '_')
     .replace(/^_+|_+$/g, '')
     .slice(0, 96) || 'worldspect_adapter_failed';
-}
-
-function classifyAdapterError(stderr: string, fallback: string) {
-  const normalized = `${stderr || ''} ${fallback || ''}`.toLowerCase();
-  if (normalized.includes('no such file') || normalized.includes('enoent')) return 'worldspect_cli_missing';
-  if (normalized.includes('module_not_found') || normalized.includes('modulenotfounderror')) return 'python_dependency_missing';
-  if (normalized.includes('permission denied') || normalized.includes('eacces')) return 'worldspect_cli_permission_denied';
-  if (normalized.includes('timed out') || normalized.includes('timeout')) return 'worldspect_timeout';
-  if (normalized.includes('python')) return sanitizeErrorCode(stderr || fallback || 'python_runtime_error');
-  return sanitizeErrorCode(stderr || fallback || 'worldspect_cli_failed');
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -130,78 +117,12 @@ function parseWorldSpectrumPayload(value: unknown): WorldSpectrumCliPayload | nu
 }
 
 export async function runWorldSpectrum(): Promise<WorldSpectrumRunResult> {
-  const python = process.env.PYTHON_BIN || process.env.PYTHON || 'python';
-  const cwd = path.join(__dirname, '../../../services/python');
+  const cwd = path.join(/*turbopackIgnore: true*/ process.cwd(), 'services', 'python');
   const cliPath = path.join(cwd, 'world_cli.py');
 
   if (!fs.existsSync(cliPath)) {
     return degradedResult('worldspect_cli_missing');
   }
 
-  return new Promise((resolve) => {
-    let child;
-    try {
-      child = spawn(/*turbopackIgnore: true*/ python, [cliPath], {
-        cwd,
-        windowsHide: true,
-        stdio: ['ignore', 'pipe', 'pipe'],
-      });
-    } catch (error) {
-      resolve(degradedResult(classifyAdapterError('', error instanceof Error ? error.message : 'python_spawn_failed')));
-      return;
-    }
-
-    let stdout = '';
-    let stderr = '';
-    let settled = false;
-
-    const timer = setTimeout(() => {
-      if (settled) return;
-      settled = true;
-      child.kill();
-      resolve(degradedResult('worldspect_timeout'));
-    }, timeoutMs);
-
-    child.stdout.setEncoding('utf8');
-    child.stderr.setEncoding('utf8');
-    child.stdout.on('data', (chunk) => {
-      stdout += String(chunk);
-    });
-    child.stderr.on('data', (chunk) => {
-      stderr += String(chunk);
-    });
-    child.on('error', (error) => {
-      if (settled) return;
-      settled = true;
-      clearTimeout(timer);
-      resolve(degradedResult(classifyAdapterError(stderr, error instanceof Error ? error.message : 'python_spawn_error')));
-    });
-    child.on('close', (code) => {
-      if (settled) return;
-      settled = true;
-      clearTimeout(timer);
-
-      if (code !== 0) {
-        resolve(degradedResult(classifyAdapterError(stderr || stdout, `worldspect_cli_exit_${code ?? 'unknown'}`)));
-        return;
-      }
-
-      try {
-        const parsed = parseWorldSpectrumPayload(JSON.parse(stdout));
-        if (!parsed) {
-          resolve(degradedResult('invalid_worldspect_payload'));
-          return;
-        }
-        const hasRealSources = parsed.sources.some((source) => source.value !== null && source.simulated !== true);
-        const hasDegradedSources = parsed.degraded_sources.length > 0 || parsed.sources.some((source) => source.simulated === true);
-        resolve({
-          ok: true,
-          status: hasRealSources && !hasDegradedSources ? 'observed' : 'degraded',
-          payload: parsed,
-        });
-      } catch {
-        resolve(degradedResult('invalid_worldspect_json'));
-      }
-    });
-  });
+  return degradedResult('worldspect_python_bridge_disabled_in_next_bundle');
 }

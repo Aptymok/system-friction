@@ -325,7 +325,7 @@ export function analyzeSfiLabInput(input: SfiLabAnalyzeInput): SfiLabAnalysis {
     createdAt: new Date().toISOString(),
     mode,
     source: input.source?.trim() || input.file?.name || 'sfi-lab',
-    dataMode: events.length ? 'real_input' : 'deterministic_demo',
+    dataMode: events.length ? 'real_input' : 'no_input',
     events,
     reappearances,
     signals,

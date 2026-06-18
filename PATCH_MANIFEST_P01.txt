@@ -1,0 +1,19 @@
+SFI P01 · Membrana Operacional
+
+Archivos agregados:
+- docs/OPERATIONAL_PATCH_P01.md
+- src/lib/operational/organs.ts
+- src/app/api/sfi/operational-state/route.ts
+- src/app/scorefriction-operational/page.tsx
+- src/app/api/publisher/draft/route.ts
+- src/app/api/market/opportunities/route.ts
+- src/app/api/governance/access-request/route.ts
+
+Archivos existentes tocados:
+- Ninguno.
+
+Política:
+- No se borró nada.
+- No se movió nada a cuarentena.
+- No se tocó auth, Supabase, Stripe ni APIs existentes.
+- Se agregó una membrana central para empezar a vincular órganos.

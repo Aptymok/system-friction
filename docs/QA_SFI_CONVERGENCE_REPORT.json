@@ -1,0 +1,75 @@
+{
+  "generated_at": "2026-06-14T18:53:06.889Z",
+  "host": "http://localhost:3000",
+  "timeout_ms": 5000,
+  "results": [
+    {
+      "route": "/api/root/state",
+      "url": "http://localhost:3000/api/root/state",
+      "ok": false,
+      "status": 401,
+      "json": {
+        "ok": false,
+        "error": "Unauthorized"
+      },
+      "classification": "BLOCKED",
+      "detections": {
+        "root_graph_missing": false,
+        "root_graph_degraded": false,
+        "scorefriction_evidence_missing": false,
+        "worldspect_missing": false,
+        "graph_degraded": false,
+        "auth_required": true,
+        "network_timeout": false
+      }
+    },
+    {
+      "route": "/api/sfi/operational-state",
+      "url": "http://localhost:3000/api/sfi/operational-state",
+      "ok": false,
+      "status": null,
+      "json": null,
+      "networkError": "timeout",
+      "classification": "BLOCKED",
+      "detections": {
+        "network_timeout": true
+      }
+    },
+    {
+      "route": "/api/graph/state?profile=sfi",
+      "url": "http://localhost:3000/api/graph/state?profile=sfi",
+      "ok": false,
+      "status": null,
+      "json": null,
+      "networkError": "timeout",
+      "classification": "BLOCKED",
+      "detections": {
+        "network_timeout": true
+      }
+    },
+    {
+      "route": "/api/worldspect/state",
+      "url": "http://localhost:3000/api/worldspect/state",
+      "ok": false,
+      "status": null,
+      "json": null,
+      "networkError": "timeout",
+      "classification": "BLOCKED",
+      "detections": {
+        "network_timeout": true
+      }
+    },
+    {
+      "route": "/api/scorefriction/state",
+      "url": "http://localhost:3000/api/scorefriction/state",
+      "ok": false,
+      "status": null,
+      "json": null,
+      "networkError": "timeout",
+      "classification": "BLOCKED",
+      "detections": {
+        "network_timeout": true
+      }
+    }
+  ]
+}

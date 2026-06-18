@@ -1,4 +1,6 @@
 import { createServiceSupabaseClient } from '@/runtime/supabase/server'
+import { readSfiOperationalEventsAsync } from '@/lib/sfi/operational/events'
+import { mapMihmCulturalVector } from '@/lib/scorefriction/mihm-cultural-mapper'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { AmvScopeState } from '@/lib/amv/core/amvScopeStateTypes'
 import type { AmvEvidenceTrust } from '@/lib/amv/core/evidenceTypes'
@@ -52,6 +54,12 @@ function trustFromEvent(row: Row): AmvEvidenceTrust {
   if (klass === 'declared') return 'declared'
   if (klass === 'derived' || klass === 'inferred') return 'inferred'
   if (klass === 'simulated' || klass === 'fixture') return 'sandbox'
+  const status = str(row.status).toLowerCase()
+  if (status === 'observed') return 'verified'
+  if (status === 'derived' || status === 'inferred') return 'inferred'
+  if (status === 'simulated' || status === 'sandbox') return 'sandbox'
+  const kind = str(row.kind).toLowerCase()
+  if (kind.includes('manual')) return 'sandbox'
   return 'unknown'
 }
 
@@ -59,7 +67,39 @@ function latestLabel(row: Row | undefined) {
   if (!row) return 'Sin lectura viva'
   const normalized = record(row.normalized_payload)
   const raw = record(row.raw_payload)
-  return str(normalized.title) || str(raw.title) || str(row.case_id) || 'Observacion ScoreFriction'
+  return str(normalized.title) || str(raw.title) || str(row.title) || str(row.event_name) || str(row.case_id) || 'Observacion ScoreFriction'
+}
+
+function isNumber(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value)
+}
+
+function numberRecord(value: unknown): Record<string, number> {
+  const recordValue = record(value)
+  return Object.fromEntries(
+    Object.entries(recordValue).filter(([, entryValue]) => isNumber(entryValue)),
+  ) as Record<string, number>
+}
+
+function deriveMihmCulturalVector(vectors: Row | null) {
+  if (!vectors) return null
+  const existing = record(vectors.mihm_cultural_vector)
+  if (Object.keys(existing).length > 0) return existing
+
+  const semantic_vector = numberRecord(vectors.semantic_vector)
+  const memetic_vector = numberRecord(vectors.memetic_vector)
+  const platform_vector = numberRecord(vectors.platform_vector)
+
+  if (!Object.keys(semantic_vector).length && !Object.keys(memetic_vector).length && !Object.keys(platform_vector).length) {
+    return null
+  }
+
+  return mapMihmCulturalVector({
+    acoustic_vector: { waveform_presence: 0 },
+    semantic_vector,
+    memetic_vector,
+    platform_vector,
+  })
 }
 
 function isScoreFrictionRootEvent(row: Row) {
@@ -130,11 +170,17 @@ export async function buildScoreFrictionSelectedContext() {
       queryRows(service, 'epistemic_events', '*', 'created_at', 100, { column: 'logbook_id', value: 'ROOT' }),
     ])
 
+    const sfiEvents = await readSfiOperationalEventsAsync()
+    const memoryEvents = sfiEvents
+      .filter((event) => str(event.organ).toLowerCase() === 'scorefriction' || str(event.kind).toLowerCase().includes('scorefriction'))
+      .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)))
+
     observations = obs.rows
     vectors = vec.rows
     prototypes = proto.rows
     verifications = ver.rows
-    events = evt.rows.filter(isScoreFrictionRootEvent)
+    const rootEvents = evt.rows.filter(isScoreFrictionRootEvent)
+    events = memoryEvents.length > 0 ? memoryEvents : rootEvents
     ;[obs.warning, vec.warning, proto.warning, ver.warning, evt.warning].forEach((warning) => pushWarning(warnings, warning))
   } catch (error) {
     pushWarning(warnings, error instanceof Error ? error.message : 'scorefriction_state_not_ready')
@@ -142,6 +188,10 @@ export async function buildScoreFrictionSelectedContext() {
 
   const latestObservation = observations[0]
   const latestVectors = vectors.find((row) => str(row.observation_id) === str(latestObservation?.id)) ?? vectors[0] ?? null
+  const latestVectorsWithMihm = latestVectors ? {
+    ...latestVectors,
+    mihm_cultural_vector: deriveMihmCulturalVector(record(latestVectors.mihm_cultural_vector)) || record(latestVectors.mihm_cultural_vector)
+  } : null
   const latestEvent = events[0] ?? null
   const evidenceCount = observations.length + verifications.length
   const sourceCoverage = observations.reduce((sum, row) => sum + num(row.source_coverage_contribution, 0), 0)
@@ -157,7 +207,7 @@ export async function buildScoreFrictionSelectedContext() {
   return {
     case_id: str(latestObservation?.case_id) || null,
     latest_observation: latestObservation ?? null,
-    latest_vectors: latestVectors,
+    latest_vectors: latestVectorsWithMihm,
     evidence_count: evidenceCount,
     source_coverage: sourceCoverage,
     latest_event: latestEvent,

@@ -1,4 +1,3 @@
-import { spawn } from 'child_process';
 import { randomUUID } from 'crypto';
 import { promises as fs } from 'fs';
 import os from 'os';
@@ -54,7 +53,7 @@ function pythonBin() {
 }
 
 function pythonRoot() {
-  return path.join(process.cwd(), 'python', 'scorefriction');
+  return path.join(/*turbopackIgnore: true*/ process.cwd(), 'python', 'scorefriction');
 }
 
 function scriptPath(script: keyof typeof SCRIPT_NAMES) {
@@ -124,119 +123,28 @@ async function writeTempText(text: string): Promise<TempFile> {
 
 async function runPythonJson<T>(script: keyof typeof SCRIPT_NAMES, args: string[], timeoutMs = PYTHON_TIMEOUT_MS): Promise<PythonBridgeResult<T>> {
   const fullScriptPath = assertKnownScript(script);
+  void fullScriptPath;
+  void args;
+  void timeoutMs;
 
-  return new Promise((resolve) => {
-    let child;
-    try {
-      child = spawn(/*turbopackIgnore: true*/ pythonBin(), [fullScriptPath, ...args], {
-        cwd: pythonRoot(),
-        windowsHide: true,
-        stdio: ['ignore', 'pipe', 'pipe'],
-      });
-    } catch (error) {
-      resolve({ ok: false, error: 'python_not_available', technical: error instanceof Error ? error.message : 'python_spawn_failed' });
-      return;
-    }
-
-    let stdout = '';
-    let stderr = '';
-    let settled = false;
-
-    const timer = setTimeout(() => {
-      if (settled) return;
-      settled = true;
-      child.kill();
-      resolve({ ok: false, error: 'scorefriction_python_timeout', stderr: sanitizeStderr(stderr) });
-    }, timeoutMs);
-
-    child.stdout.setEncoding('utf8');
-    child.stderr.setEncoding('utf8');
-    child.stdout.on('data', (chunk) => {
-      stdout += String(chunk);
-    });
-    child.stderr.on('data', (chunk) => {
-      stderr += String(chunk);
-    });
-    child.on('error', (error) => {
-      if (settled) return;
-      settled = true;
-      clearTimeout(timer);
-      resolve({ ok: false, error: errorCode(error.message || 'python_spawn_error'), stderr: sanitizeStderr(stderr) });
-    });
-    child.on('close', (code) => {
-      if (settled) return;
-      settled = true;
-      clearTimeout(timer);
-      if (code !== 0) {
-        resolve({
-          ok: false,
-          error: errorCode(stdout || stderr || `python_exit_${code ?? 'unknown'}`),
-          stderr: sanitizeStderr(stderr),
-          technical: stdout.trim().slice(0, 2000),
-        });
-        return;
-      }
-
-      try {
-        resolve({ ok: true, data: safeJsonParse(stdout) as T, stderr: sanitizeStderr(stderr) || undefined });
-      } catch (error) {
-        resolve({ ok: false, error: 'scorefriction_python_invalid_json', stderr: sanitizeStderr(stderr), technical: error instanceof Error ? error.message : stdout.slice(0, 500) });
-      }
-    });
-  });
+  return {
+    ok: false,
+    error: 'python_bridge_disabled_in_next_bundle',
+    technical: 'Python execution is disabled inside Next route bundles to avoid broad Turbopack tracing. Use an external worker or explicit service boundary.',
+  };
 }
 
 async function runPythonText(script: keyof typeof SCRIPT_NAMES, args: string[], timeoutMs = PYTHON_TIMEOUT_MS): Promise<PythonBridgeResult<string>> {
   const fullScriptPath = assertKnownScript(script);
+  void fullScriptPath;
+  void args;
+  void timeoutMs;
 
-  return new Promise((resolve) => {
-    let child;
-    try {
-      child = spawn(/*turbopackIgnore: true*/ pythonBin(), [fullScriptPath, ...args], {
-        cwd: pythonRoot(),
-        windowsHide: true,
-        stdio: ['ignore', 'pipe', 'pipe'],
-      });
-    } catch (error) {
-      resolve({ ok: false, error: 'python_not_available', technical: error instanceof Error ? error.message : 'python_spawn_failed' });
-      return;
-    }
-
-    let stdout = '';
-    let stderr = '';
-    let settled = false;
-    const timer = setTimeout(() => {
-      if (settled) return;
-      settled = true;
-      child.kill();
-      resolve({ ok: false, error: 'scorefriction_python_timeout', stderr: sanitizeStderr(stderr) });
-    }, timeoutMs);
-
-    child.stdout.setEncoding('utf8');
-    child.stderr.setEncoding('utf8');
-    child.stdout.on('data', (chunk) => {
-      stdout += String(chunk);
-    });
-    child.stderr.on('data', (chunk) => {
-      stderr += String(chunk);
-    });
-    child.on('error', (error) => {
-      if (settled) return;
-      settled = true;
-      clearTimeout(timer);
-      resolve({ ok: false, error: errorCode(error.message || 'python_spawn_error'), stderr: sanitizeStderr(stderr) });
-    });
-    child.on('close', (code) => {
-      if (settled) return;
-      settled = true;
-      clearTimeout(timer);
-      if (code !== 0) {
-        resolve({ ok: false, error: errorCode(stderr || stdout || `python_exit_${code ?? 'unknown'}`), stderr: sanitizeStderr(stderr), technical: stdout.slice(0, 2000) });
-        return;
-      }
-      resolve({ ok: true, data: stdout, stderr: sanitizeStderr(stderr) || undefined });
-    });
-  });
+  return {
+    ok: false,
+    error: 'python_bridge_disabled_in_next_bundle',
+    technical: 'Python execution is disabled inside Next route bundles to avoid broad Turbopack tracing. Use an external worker or explicit service boundary.',
+  };
 }
 
 export async function runMihmFullExtractor(audioPath: string, options: { text?: string | null; nti?: number | null; noText?: boolean } = {}) {

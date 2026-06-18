@@ -1,0 +1,208 @@
+﻿
+--- 20260525073000_create_worldspect_snapshots.sql ---
+create table if not exists public.worldspect_snapshots (
+create unique index if not exists worldspect_snapshots_unique_daily
+on public.worldspect_snapshots (unique_date, ingest_mode);
+create index if not exists worldspect_snapshots_observed_at_idx
+on public.worldspect_snapshots (observed_at desc);
+create index if not exists worldspect_snapshots_source_state_idx
+on public.worldspect_snapshots (source_state);
+create index if not exists worldspect_snapshots_degraded_sources_idx
+on public.worldspect_snapshots using gin (degraded_sources);
+alter table public.worldspect_snapshots enable row level security;
+on public.worldspect_snapshots;
+on public.worldspect_snapshots
+
+--- 20260527081000_worldspect_diagnostic_ingest_mode.sql ---
+alter table public.worldspect_snapshots
+drop constraint if exists worldspect_snapshots_ingest_mode_check;
+alter table public.worldspect_snapshots
+add constraint worldspect_snapshots_ingest_mode_check
+
+--- 20260527082000_create_epistemic_events.sql ---
+create table if not exists public.epistemic_events (
+logbook_id text not null,
+create index if not exists epistemic_events_logbook_sequence_idx
+on public.epistemic_events (logbook_id, sequence);
+create index if not exists epistemic_events_created_at_idx
+on public.epistemic_events (created_at desc);
+alter table public.epistemic_events enable row level security;
+
+--- 20260527083000_create_graph_nodes_edges.sql ---
+create table if not exists public.graph_nodes (
+create table if not exists public.graph_edges (
+create table if not exists public.graph_history (
+alter table public.graph_nodes enable row level security;
+alter table public.graph_edges enable row level security;
+alter table public.graph_history enable row level security;
+
+--- 20260527093000_reconcile_epistemic_events_columns.sql ---
+-- Reconcile existing epistemic_events tables created before the SFI event-store contract.
+-- CREATE TABLE IF NOT EXISTS does not add missing columns when the table already exists.
+create table if not exists public.epistemic_events (
+alter table public.epistemic_events
+add column if not exists logbook_id text,
+update public.epistemic_events
+update public.epistemic_events
+update public.epistemic_events
+set logbook_id = coalesce(logbook_id, 'default')
+where logbook_id is null;
+update public.epistemic_events
+update public.epistemic_events
+update public.epistemic_events
+update public.epistemic_events
+update public.epistemic_events
+update public.epistemic_events
+update public.epistemic_events
+update public.epistemic_events
+update public.epistemic_events
+update public.epistemic_events
+alter table public.epistemic_events
+alter column logbook_id set not null,
+create unique index if not exists epistemic_events_event_id_idx
+on public.epistemic_events (event_id);
+create unique index if not exists epistemic_events_hash_self_idx
+on public.epistemic_events (hash_self);
+create index if not exists epistemic_events_logbook_sequence_idx
+on public.epistemic_events (logbook_id, sequence);
+create index if not exists epistemic_events_created_at_idx
+on public.epistemic_events (created_at desc);
+create index if not exists epistemic_events_epistemic_class_idx
+on public.epistemic_events (epistemic_class);
+alter table public.epistemic_events enable row level security;
+
+--- 20260527112000_seed_canonical_graph_runtime.sql ---
+('sfi.core', 'SFI_CORE', 'institutional', array['MACROPHASE_B_BOOTSTRAP_GRAPH'], '{"profile":"sfi","origin":"legacy_canvas_topology","provenance":"SfiCognitiveCanvasTerminal.RND","rx":0.5,"ry":0.43,"weight":1,"canvasKind":"institutional"}'::jsonb),
+
+--- 20260527113000_seed_graph_edges_final_schema.sql ---
+
+--- 20260527124000_create_kernel_cycles.sql ---
+create table if not exists public.kernel_cycles (
+epistemic_event_id uuid null references public.epistemic_events(id),
+worldspect_snapshot_id uuid null references public.worldspect_snapshots(id),
+alter table public.kernel_cycles enable row level security;
+
+--- 20260527213000_create_operational_closure_tables.sql ---
+alter table public.action_proposals
+add column if not exists worldspect_snapshot_id uuid,
+alter table public.logbook_mutations
+alter table public.policy_decisions
+alter table public.mihm_analyses
+create index if not exists logbook_mutations_status_idx
+on public.logbook_mutations (status, created_at desc);
+create index if not exists mihm_analyses_created_idx
+on public.mihm_analyses (created_at desc);
+
+--- 20260601093000_root_operations_reconcile.sql ---
+create table if not exists public.profiles (
+alter table public.profiles
+alter table public.profiles drop constraint if exists profiles_role_check;
+alter table public.profiles add constraint profiles_role_check
+create table if not exists public.nodes (
+alter table public.nodes
+create table if not exists public.action_proposals (
+alter table public.action_proposals
+create table if not exists public.logbook_mutations (
+alter table public.logbook_mutations
+create table if not exists public.mihm_analyses (
+create table if not exists public.accounts (
+create table if not exists public.account_members (
+create table if not exists public.usage_ledger (
+create table if not exists public.account_balance (
+alter table public.account_balance
+create table if not exists public.root_audit_events (
+create table if not exists public.root_evidence_entries (
+create index if not exists logbook_mutations_status_idx on public.logbook_mutations(status, created_at desc);
+create index if not exists mihm_analyses_created_idx on public.mihm_analyses(created_at desc);
+alter table public.accounts enable row level security;
+alter table public.account_members enable row level security;
+alter table public.usage_ledger enable row level security;
+alter table public.account_balance enable row level security;
+alter table public.root_audit_events enable row level security;
+alter table public.root_evidence_entries enable row level security;
+
+--- 20260602120000_create_scorefriction_cultural_wave.sql ---
+create table if not exists scorefriction_sources (
+create table if not exists scorefriction_observations (
+create table if not exists scorefriction_case_studies (
+create table if not exists scorefriction_vectors (
+observation_id uuid references scorefriction_observations(id) on delete cascade,
+mihm_cultural_vector jsonb,
+create table if not exists scorefriction_prototypes (
+case_id text references scorefriction_case_studies(case_id),
+create table if not exists scorefriction_verifications (
+prototype_id uuid references scorefriction_prototypes(id) on delete cascade,
+insert into scorefriction_sources (source_name, source_type, access_mode, reliability_score, rate_limit_notes, legal_notes)
+insert into scorefriction_case_studies (case_id, name, phenomenon, friction, hypothesis, status)
+
+--- 20260602153000_scorefriction_evidence_ingestion_upgrade.sql ---
+alter table public.scorefriction_observations
+create index if not exists scorefriction_observations_evidence_type_idx
+on public.scorefriction_observations (evidence_type);
+create index if not exists scorefriction_observations_case_type_created_idx
+on public.scorefriction_observations (case_id, evidence_type, created_at desc);
+insert into scorefriction_sources (source_name, source_type, access_mode, reliability_score, rate_limit_notes, legal_notes)
+
+--- 20260609090000_create_scorefriction_proto_attractors.sql ---
+create table if not exists public.scorefriction_proto_attractors (
+worldspect_snapshot jsonb,
+mihm_snapshot jsonb,
+generated_by text not null default 'scorefriction_proto_attractor_detector_v1',
+create index if not exists scorefriction_proto_attractors_case_idx
+on public.scorefriction_proto_attractors (case_id, updated_at desc);
+create index if not exists scorefriction_proto_attractors_status_idx
+on public.scorefriction_proto_attractors (status, updated_at desc);
+
+--- 20260609091000_create_scorefriction_attractor_snapshots.sql ---
+create table if not exists public.scorefriction_attractor_snapshots (
+proto_attractor_id uuid not null references public.scorefriction_proto_attractors(id) on delete cascade,
+mihm_snapshot jsonb,
+worldspect_snapshot jsonb,
+create index if not exists scorefriction_attractor_snapshots_case_idx
+on public.scorefriction_attractor_snapshots (case_id, created_at desc);
+create index if not exists scorefriction_attractor_snapshots_proto_idx
+on public.scorefriction_attractor_snapshots (proto_attractor_id, created_at desc);
+
+--- 20260609092000_create_scorefriction_cultural_hypotheses.sql ---
+create table if not exists public.scorefriction_cultural_hypotheses (
+proto_attractor_id uuid references public.scorefriction_proto_attractors(id) on delete set null,
+create index if not exists scorefriction_cultural_hypotheses_case_idx
+on public.scorefriction_cultural_hypotheses (case_id, updated_at desc);
+create index if not exists scorefriction_cultural_hypotheses_status_idx
+on public.scorefriction_cultural_hypotheses (status, updated_at desc);
+
+--- 20260609093000_create_scorefriction_proposal_verifications.sql ---
+create table if not exists public.scorefriction_proposal_verifications (
+create index if not exists scorefriction_proposal_verifications_case_idx
+on public.scorefriction_proposal_verifications (case_id, verified_at desc);
+create index if not exists scorefriction_proposal_verifications_proposal_idx
+on public.scorefriction_proposal_verifications (proposal_id, verified_at desc);
+
+--- 20260610000100_sfi_final_convergence_core.sql ---
+create table if not exists sfi_evidence_ledger (
+create index if not exists sfi_evidence_ledger_module_idx on sfi_evidence_ledger(module);
+create index if not exists sfi_evidence_ledger_case_idx on sfi_evidence_ledger(case_id);
+create index if not exists sfi_evidence_ledger_hash_idx on sfi_evidence_ledger(evidence_hash);
+create table if not exists sfi_graph_nodes (
+create index if not exists sfi_graph_nodes_module_idx on sfi_graph_nodes(module);
+create index if not exists sfi_graph_nodes_layer_idx on sfi_graph_nodes(layer);
+create index if not exists sfi_graph_nodes_weight_idx on sfi_graph_nodes(weight desc);
+create table if not exists sfi_graph_edges (
+create index if not exists sfi_graph_edges_from_idx on sfi_graph_edges(from_key);
+create index if not exists sfi_graph_edges_to_idx on sfi_graph_edges(to_key);
+create table if not exists sfi_attractors (
+create index if not exists sfi_attractors_module_idx on sfi_attractors(module);
+create index if not exists sfi_attractors_weight_idx on sfi_attractors(weight desc);
+create table if not exists sfi_ejectors (
+create index if not exists sfi_ejectors_module_idx on sfi_ejectors(module);
+create index if not exists sfi_ejectors_weight_idx on sfi_ejectors(weight desc);
+create table if not exists sfi_phenomena (
+create index if not exists sfi_phenomena_module_idx on sfi_phenomena(module);
+create index if not exists sfi_phenomena_regime_idx on sfi_phenomena(regime);
+create index if not exists sfi_phenomena_density_idx on sfi_phenomena(density desc);
+create table if not exists sfi_phenomenon_evidence (
+evidence_id uuid not null references sfi_evidence_ledger(id) on delete cascade,
+create table if not exists sfi_moph_sessions (
+create table if not exists sfi_amv_memory (
+create index if not exists sfi_amv_memory_module_idx on sfi_amv_memory(module);
+create index if not exists sfi_amv_memory_created_idx on sfi_amv_memory(created_at desc);

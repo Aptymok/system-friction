@@ -5,12 +5,12 @@ const instruments = [
   { name: 'MIHM', description: 'Régimen dinámico del sistema.', href: '/api/mihm/state', status: 'API', doc: 'docs/instruments' },
   { name: 'ScoreFriction', description: 'Vector cultural/audio y fricción sistémica.', href: '/scorefriction', status: 'active', doc: 'docs/scorefriction' },
   { name: 'SFI-PSI', description: 'Señales persistentes transmodales.', href: '/api/signals/state', status: 'API', doc: 'docs/instruments/SFI_PSI.md' },
-  { name: 'WorldSpectrumVector', description: 'Presión externa y contexto.', href: '/api/worldspect/vector', status: 'API', doc: 'docs/root/ROOT_PHASE_9_WSV_MIHM.md' },
+  { name: 'WorldSpectrumVector', description: 'Presión externa y contexto.', href: '/world-vector', status: 'active', doc: 'docs/root/ROOT_PHASE_9_WSV_MIHM.md' },
   { name: 'ROOT', description: 'Integración operativa.', href: '/root', status: 'protected', doc: 'docs/root' },
 ];
 
 export default function InstrumentsPage() {
-  const surfaces = navByIds(['root', 'scorefriction', 'scorefriction-operational', 'api-signals-state', 'api-worldspect-vector']);
+  const surfaces = navByIds(['root', 'scorefriction', 'world-vector', 'api-signals-state', 'api-worldspect-vector']);
 
   return (
     <main className="min-h-screen bg-[#060605] px-6 py-16 text-[#c8c4b8]">
@@ -51,3 +51,4 @@ export default function InstrumentsPage() {
     </main>
   );
 }
+

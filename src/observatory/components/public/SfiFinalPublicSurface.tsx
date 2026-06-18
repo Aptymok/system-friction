@@ -65,7 +65,7 @@ const REGION_LAYOUT: Record<string, Pick<HorizonRegion, 'id' | 'label' | 'route'
   scorefriction: {
     id: 'scorefriction',
     label: 'SCOREFRICTION',
-    route: '/scorefriction/wave',
+    route: '/scorefriction',
     desc: 'Observatorio de emergencia cultural, evidencia musical y protoatractores creativos.',
     x: 0.44,
     z: 0.34,

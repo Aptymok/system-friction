@@ -186,3 +186,40 @@ create table if not exists sfi_amv_memory (
 
 create index if not exists sfi_amv_memory_module_idx on sfi_amv_memory(module);
 create index if not exists sfi_amv_memory_created_idx on sfi_amv_memory(created_at desc);
+
+alter table public.sfi_evidence_ledger enable row level security;
+alter table public.sfi_graph_nodes enable row level security;
+alter table public.sfi_graph_edges enable row level security;
+alter table public.sfi_attractors enable row level security;
+alter table public.sfi_ejectors enable row level security;
+alter table public.sfi_phenomena enable row level security;
+alter table public.sfi_phenomenon_evidence enable row level security;
+alter table public.sfi_moph_sessions enable row level security;
+alter table public.sfi_amv_memory enable row level security;
+
+drop policy if exists "sfi evidence ledger is readable by authenticated users" on public.sfi_evidence_ledger;
+create policy "sfi evidence ledger is readable by authenticated users" on public.sfi_evidence_ledger for select to authenticated using (true);
+
+drop policy if exists "sfi graph nodes are readable by authenticated users" on public.sfi_graph_nodes;
+create policy "sfi graph nodes are readable by authenticated users" on public.sfi_graph_nodes for select to authenticated using (true);
+
+drop policy if exists "sfi graph edges are readable by authenticated users" on public.sfi_graph_edges;
+create policy "sfi graph edges are readable by authenticated users" on public.sfi_graph_edges for select to authenticated using (true);
+
+drop policy if exists "sfi attractors are readable by authenticated users" on public.sfi_attractors;
+create policy "sfi attractors are readable by authenticated users" on public.sfi_attractors for select to authenticated using (true);
+
+drop policy if exists "sfi ejectors are readable by authenticated users" on public.sfi_ejectors;
+create policy "sfi ejectors are readable by authenticated users" on public.sfi_ejectors for select to authenticated using (true);
+
+drop policy if exists "sfi phenomena are readable by authenticated users" on public.sfi_phenomena;
+create policy "sfi phenomena are readable by authenticated users" on public.sfi_phenomena for select to authenticated using (true);
+
+drop policy if exists "sfi phenomenon evidence is readable by authenticated users" on public.sfi_phenomenon_evidence;
+create policy "sfi phenomenon evidence is readable by authenticated users" on public.sfi_phenomenon_evidence for select to authenticated using (true);
+
+drop policy if exists "sfi moph sessions are readable by authenticated users" on public.sfi_moph_sessions;
+create policy "sfi moph sessions are readable by authenticated users" on public.sfi_moph_sessions for select to authenticated using (true);
+
+drop policy if exists "sfi amv memory is readable by authenticated users" on public.sfi_amv_memory;
+create policy "sfi amv memory is readable by authenticated users" on public.sfi_amv_memory for select to authenticated using (true);

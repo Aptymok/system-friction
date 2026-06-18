@@ -71,7 +71,7 @@ export function buildMediaPlan(analysis: Pick<SfiLabAnalysis, 'analysisId' | 'no
       google: hasGoogle ? 'configured' : 'missing_key',
       fallback: 'available',
     },
-    renderEndpoint: '/api/sfi/media/render',
+    renderEndpoint: '/api/scorefriction/media/render',
     placeholders: [
       `placeholder:image:${label}`,
       `placeholder:video-storyboard:${label}`,
