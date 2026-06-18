@@ -146,6 +146,7 @@ export function RootDashboardClient() {
   const [continuityNotice, setContinuityNotice] = useState('Continuidad de observacion: activa.');
   const [selectedNodeLabel, setSelectedNodeLabel] = useState<string | null>(null);
   const [twin, setTwin] = useState<TwinState | null>(null);
+  const [operationalLayers, setOperationalLayers] = useState<Record<string, unknown> | null>(null);
   const visor = useVisorMode();
 
   useEffect(() => {
@@ -153,6 +154,21 @@ export function RootDashboardClient() {
       .then((res) => res.json())
       .then((data) => setTwin(data))
       .catch(() => setTwin(null));
+  }, []);
+
+  useEffect(() => {
+    Promise.all([
+      fetch('/api/worldspect/operational-state', { cache: 'no-store' }).then((res) => res.json()),
+      fetch('/api/worldspect/longitudinal?limit=40', { cache: 'no-store' }).then((res) => res.json()),
+      fetch('/api/worldspect/evidence-trace', { cache: 'no-store' }).then((res) => res.json()),
+      fetch('/api/worldspect/attractors?limit=40', { cache: 'no-store' }).then((res) => res.json()),
+      fetch('/api/worldspect/opportunities?limit=40', { cache: 'no-store' }).then((res) => res.json()),
+      fetch('/api/scorefriction/operational-cycle?case_id=ROOT-LIVE', { cache: 'no-store' }).then((res) => res.json()),
+    ]).then(([worldspect, longitudinal, evidenceTrace, attractors, opportunities, cycle]) => {
+      setOperationalLayers({ worldspect, longitudinal, evidenceTrace, attractors, opportunities, cycle });
+    }).catch((error) => {
+      setOperationalLayers({ ok: false, error: error instanceof Error ? error.message : 'root_operational_layers_failed' });
+    });
   }, []);
 
   const fieldState = useMemo(() => buildRootFieldState(twin ?? {}), [twin]);
@@ -293,6 +309,15 @@ export function RootDashboardClient() {
             />
           )}
           <RootLiveGraphPanel />
+          <div className="absolute right-3 top-3 z-20 w-[320px] border border-[#1e1c17] bg-[#060605]/88 p-3 font-mono text-[9px] uppercase tracking-[0.12em] text-[#8a7035] backdrop-blur">
+            <div className="mb-2 text-[#c8a951]">Operational organism</div>
+            <div>WSV: {String((operationalLayers?.worldspect as Record<string, unknown> | undefined)?.status ?? 'loading')}</div>
+            <div>timeline: {String((operationalLayers?.longitudinal as Record<string, unknown> | undefined)?.count ?? 0)} snapshots</div>
+            <div>trace: {String(((operationalLayers?.evidenceTrace as Record<string, unknown> | undefined)?.traceCoverage as Record<string, unknown> | undefined)?.total_vectors ?? 0)} vectors</div>
+            <div>attractors: {String(((operationalLayers?.attractors as Record<string, unknown> | undefined)?.attractors as unknown[] | undefined)?.length ?? 0)}</div>
+            <div>opportunities: {String(((operationalLayers?.opportunities as Record<string, unknown> | undefined)?.opportunities as unknown[] | undefined)?.length ?? 0)}</div>
+            <div>cycle: {String(((operationalLayers?.cycle as Record<string, unknown> | undefined)?.state as Record<string, unknown> | undefined)?.object_presence ?? 'world only')}</div>
+          </div>
 
           <div className="pointer-events-none absolute bottom-3 left-3 z-20 border border-[#1e1c17] bg-[#060605]/85 px-3 py-2 font-mono text-[8px] uppercase tracking-[0.12em] text-[#8a7035]">
             <div>lente: {FIELD_TOOLS.find((tool) => tool.id === activeTool)?.title}</div>

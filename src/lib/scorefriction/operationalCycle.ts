@@ -8,6 +8,7 @@ import { readScoreFrictionEvidence } from './store';
 import { evaluateRegimeWatch } from './regimeWatch';
 import type {
   MihmReadout,
+  EvaluatedObjectType,
   OperationalCycleInput,
   OperationalCycleState,
   OperationalExperiment,
@@ -51,6 +52,25 @@ function objectText(value: unknown): string {
   } catch {
     return String(value);
   }
+}
+
+function detectObjectType(value: unknown): EvaluatedObjectType {
+  if (!value) return 'unknown';
+  if (typeof value === 'string') return value.trim() ? 'text' : 'unknown';
+  const item = record(value);
+  const declared = String(item.object_type ?? item.type ?? item.media_type ?? item.mime ?? '').toLowerCase();
+  if (/audio|mp3|wav|m4a|flac|ogg/.test(declared)) return 'audio';
+  if (/image|png|jpg|jpeg|webp|gif/.test(declared)) return 'image';
+  if (/video|mp4|mov|webm/.test(declared)) return 'video';
+  if (/document|pdf|docx|markdown|md|txt/.test(declared)) return 'document';
+  if (/campaign/.test(declared)) return 'campaign';
+  if (typeof item.text === 'string' || typeof item.content === 'string' || typeof item.body === 'string') return 'document';
+  if (Array.isArray(item.assets) || Array.isArray(item.posts) || item.campaign) return 'campaign';
+  return 'unknown';
+}
+
+function objectTypeSupportsLexical(type: EvaluatedObjectType) {
+  return type === 'text' || type === 'document' || type === 'campaign';
 }
 
 function hasObject(input: Partial<OperationalCycleInput>) {
@@ -152,6 +172,30 @@ function unavailableScore(reason: string): ScoreFrictionReadout {
     perturbation_need: null,
     opportunity: null,
     meaning: 'ScoreFriction no decide intervenciÃ³n sin objeto. Solo puede leer el mundo; no puede decir quÃ© hacer con algo que no existe en la entrada.',
+  };
+}
+
+function unavailableMihmForType(objectType: EvaluatedObjectType): MihmReadout {
+  const reason = `analysis_unavailable_${objectType}`;
+  return {
+    ...unavailableMihm(reason),
+    meaning: `MIHM no esta disponible para objeto tipo ${objectType} sin analizador especifico conectado. No se trata como texto JSON.`,
+  };
+}
+
+function unavailablePsiForType(objectType: EvaluatedObjectType): PsiReadout {
+  const reason = `analysis_unavailable_${objectType}`;
+  return {
+    ...unavailablePsi(reason),
+    meaning: `PSI no esta disponible para objeto tipo ${objectType} sin analizador especifico conectado. No se trata como texto JSON.`,
+  };
+}
+
+function unavailableScoreForType(objectType: EvaluatedObjectType): ScoreFrictionReadout {
+  const reason = `analysis_unavailable_${objectType}`;
+  return {
+    ...unavailableScore(reason),
+    meaning: `ScoreFriction no calcula intervencion para objeto tipo ${objectType} sin analizador especifico conectado. No se trata como texto JSON.`,
   };
 }
 
@@ -301,6 +345,7 @@ function buildReport(state: OperationalCycleState) {
     '',
     `case_id: ${state.case_id}`,
     `object_presence: ${state.object_presence}`,
+    `object_type: ${state.object_type}`,
     `world_regime: ${state.regime.world ?? 'sin datos'}`,
     `filtered_vector: ${safeDomain(record(state.filtered_vector))}`,
     '',
@@ -329,6 +374,18 @@ function buildReport(state: OperationalCycleState) {
       `failure_condition: ${exp.failure_condition}`,
       `plain_language: ${exp.plain_language}`,
     ].join('\n') : 'Sin experimento.',
+    '',
+    '## Claims allowed',
+    (state.allowed_claims ?? []).map((claim) => `- ${claim}`).join('\n') || 'Sin claims operativos permitidos.',
+    '',
+    '## Claims blocked',
+    (state.blocked_claims ?? []).map((claim) => `- ${claim}`).join('\n') || 'Sin claims bloqueados registrados.',
+    '',
+    '## Analyzer availability',
+    JSON.stringify(state.analyzer_availability ?? {}, null, 2),
+    '',
+    '## Warnings / fallbacks',
+    state.technical_state.warnings.map((warning) => `- ${warning}`).join('\n') || 'Sin warnings.',
     '',
   ].join('\n');
 
@@ -382,20 +439,35 @@ export async function buildOperationalCycle(input: Partial<OperationalCycleInput
   ];
 
   const hasObjectInput = hasObject(input);
+  const objectType = detectObjectType(input.evaluated_object ?? input.evidence_input);
+  const lexicalSupported = objectTypeSupportsLexical(objectType);
   const text = objectText(input.evaluated_object) || objectText(input.evidence_input);
   const worldContext = buildWorldContext(record(snapshot));
-  const readouts = hasObjectInput
+  const readouts = hasObjectInput && lexicalSupported
     ? buildObjectReadouts(text, filtered, weakSignals)
-    : {
+    : hasObjectInput ? {
+        mihm: unavailableMihmForType(objectType),
+        psi: unavailablePsiForType(objectType),
+        scorefriction: unavailableScoreForType(objectType),
+      } : {
         mihm: unavailableMihm('missing_evaluated_object'),
         psi: unavailablePsi('missing_evaluated_object'),
         scorefriction: unavailableScore('missing_evaluated_object'),
       };
+  const analyzerAvailability: OperationalCycleState['analyzer_availability'] = {
+    text: lexicalSupported ? 'available' : 'analysis_unavailable',
+    audio: objectType === 'audio' ? 'analysis_unavailable' : 'analysis_unavailable',
+    image: objectType === 'image' ? 'analysis_unavailable' : 'analysis_unavailable',
+    video: objectType === 'video' ? 'analysis_unavailable' : 'analysis_unavailable',
+    document: objectType === 'document' && lexicalSupported ? 'available' : 'analysis_unavailable',
+    campaign: objectType === 'campaign' && lexicalSupported ? 'available' : 'analysis_unavailable',
+  };
 
   const provisional: OperationalCycleState = {
     case_id: caseId,
     objective: str(input.objective),
     object_presence: hasObjectInput ? 'provided' : 'missing',
+    object_type: hasObjectInput ? objectType : 'unknown',
     twin_state: scoreState,
     world_vector: snapshot,
     filtered_vector: filtered,
@@ -435,6 +507,15 @@ export async function buildOperationalCycle(input: Partial<OperationalCycleInput
     minimal_action: null,
     evidence,
     amv_learning: thoughts,
+    analyzer_availability: analyzerAvailability,
+    allowed_claims: hasObjectInput && lexicalSupported
+      ? ['world reading', 'object lexical contrast', 'MIHM heuristic readout', 'PSI lexical persistence readout', 'bounded experiment proposal']
+      : ['world reading', 'evidence gap report'],
+    blocked_claims: hasObjectInput
+      ? lexicalSupported
+        ? ['full user calibration without user/case evidence', 'campaign success prediction']
+        : [`${objectType} MIHM/PSI/ScoreFriction without analyzer`, 'campaign/intervention recommendation']
+      : ['object contrast', 'intervention recommendation', 'user calibration'],
     technical_state: {
       worldspect_ok: Boolean(worldResult?.ok && snapshot),
       scorefriction_ok: Boolean(scoreState?.ok),
@@ -447,7 +528,7 @@ export async function buildOperationalCycle(input: Partial<OperationalCycleInput
   };
 
   const experiment = buildExperiment({
-    hasObjectInput,
+    hasObjectInput: hasObjectInput && lexicalSupported,
     caseId,
     filtered,
     worldContext,

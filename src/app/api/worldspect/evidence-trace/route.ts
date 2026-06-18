@@ -1,27 +1,17 @@
 import { NextResponse } from 'next/server';
 import { getLatestWorldSpectSnapshot } from '@/lib/worldspect/snapshotStore';
 import { readWorldSpectVectorSnapshot } from '@/lib/worldspect/vector-store';
-import { WORLDSPECT_DOMAINS, type WorldSpectDomain } from '@/lib/worldspect/vector-contract';
+import {
+  WORLDSPECT_DOMAINS,
+  type EvidenceLevel,
+  type EvidenceTrace,
+  type VectorEvidenceTrace,
+  type WorldSpectDomain,
+} from '@/lib/worldspect/vector-contract';
 
 export const dynamic = 'force-dynamic';
 
 type Row = Record<string, unknown>;
-
-type EvidenceTrace = {
-  id: string;
-  kind: 'internal' | 'external';
-  vector: WorldSpectDomain;
-  source_key: string;
-  label: string;
-  provider: string;
-  observed_at: string;
-  value: number | null;
-  weight: number | null;
-  trust: number | null;
-  evidence_ref: string;
-  summary: string;
-  payload: Row;
-};
 
 function record(value: unknown): Row {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Row : {};
@@ -99,27 +89,47 @@ function sourceLabel(source: Row, domain: WorldSpectDomain, kind: 'internal' | '
 }
 
 function traceFromSource(source: Row, domain: WorldSpectDomain, observedAt: string): EvidenceTrace {
-  const kind = isInternalSource(source) ? 'internal' : 'external';
-  const key = str(source.key, `${domain.toLowerCase()}_${kind}_unknown`);
+  const level: EvidenceLevel = isInternalSource(source) ? 'sfi_internal' : 'world_external';
+  const key = str(source.key, `${domain.toLowerCase()}_${level}_unknown`);
   const value = num(source.value);
   const weight = num(source.weight ?? source.nti);
   return {
-    id: `${domain}:${kind}:${key}`,
-    kind,
+    id: `${domain}:${level}:${key}`,
+    level,
     vector: domain,
-    source_key: key,
-    label: sourceLabel(source, domain, kind),
-    provider: sourceProvider(source, kind),
+    source_id: key,
+    provider: sourceProvider(source, level === 'sfi_internal' ? 'internal' : 'external'),
     observed_at: str(source.observed_at ?? source.ts, observedAt),
     value,
     weight,
     trust: weight ?? value,
-    evidence_ref: kind === 'internal' ? `sfi://worldspect/internal/${key}` : `external://worldspect/${key}`,
-    summary: kind === 'internal'
+    evidence_ref: level === 'sfi_internal' ? `sfi://worldspect/internal/${key}` : `external://worldspect/${key}`,
+    summary: level === 'sfi_internal'
       ? `Internal SFI evidence used by ${domain}. Source ${key}.`
       : `External source used by ${domain}. Source ${key}.`,
     payload: source,
   };
+}
+
+function traceState(input: {
+  world: EvidenceTrace[];
+  sfi: EvidenceTrace[];
+  user: EvidenceTrace[];
+  caseEvidence: EvidenceTrace[];
+}) {
+  if (input.user.length || input.caseEvidence.length) return 'user_calibrated' as const;
+  if (input.sfi.length) return 'institutionally_supported' as const;
+  if (input.world.length) return 'world_observed' as const;
+  return 'unobserved' as const;
+}
+
+function explanation(trace: Pick<VectorEvidenceTrace, 'state' | 'missing'>) {
+  if (trace.state === 'user_calibrated') return 'World reading and user/case calibration are traceable for this vector.';
+  if (trace.state === 'institutionally_supported') return 'World reading has external evidence and SFI internal support. User/case calibration is not present yet.';
+  if (trace.state === 'world_observed') return 'World reading is allowed from external evidence. User/case calibration is absent and must not be claimed.';
+  return trace.missing.world_external
+    ? 'No traceable external evidence is linked to this vector. The system cannot claim a world reading for it.'
+    : 'Trace is incomplete; allowed claims are limited to the evidence levels present.';
 }
 
 export async function GET() {
@@ -133,7 +143,7 @@ export async function GET() {
   const vectors = rows(snapshot.vectors);
   const rawSources = rows(row?.sources ?? []);
 
-  const traces = vectors.map((vector) => {
+  const traces: VectorEvidenceTrace[] = vectors.map((vector) => {
     const domain = str(vector.domain).toUpperCase() as WorldSpectDomain;
     const sourceKeys = Array.isArray(vector.sources) ? vector.sources.map((item) => String(item)) : [];
     const candidates = rawSources.filter((source) => {
@@ -142,37 +152,53 @@ export async function GET() {
       return sourceDomain === domain || sourceKeys.includes(key);
     });
 
-    const internal_evidence = candidates
+    const sfi_internal_evidence = candidates
       .filter(isInternalSource)
       .map((source) => traceFromSource(source, domain, observedAt));
 
-    const external_evidence = candidates
+    const world_external_evidence = candidates
       .filter((source) => !isInternalSource(source))
       .filter((source) => !source.error && source.simulated !== true)
       .map((source) => traceFromSource(source, domain, observedAt));
+    const user_internal_evidence: EvidenceTrace[] = [];
+    const case_internal_evidence: EvidenceTrace[] = [];
+    const state = traceState({
+      world: world_external_evidence,
+      sfi: sfi_internal_evidence,
+      user: user_internal_evidence,
+      caseEvidence: case_internal_evidence,
+    });
+    const missing = {
+      world_external: world_external_evidence.length === 0,
+      sfi_internal: sfi_internal_evidence.length === 0,
+      user_internal: user_internal_evidence.length === 0,
+      case_internal: case_internal_evidence.length === 0,
+    };
 
-    return {
+    const trace: VectorEvidenceTrace = {
       vector: domain,
       value: num(vector.value),
       trust: num(vector.trust),
       persistence: num(vector.persistence),
-      source_count: num(vector.source_count),
-      internal_evidence,
-      external_evidence,
-      internal_complete: internal_evidence.length > 0,
-      external_complete: external_evidence.length > 0,
-      complete: internal_evidence.length > 0 && external_evidence.length > 0,
-      missing: {
-        internal: internal_evidence.length === 0,
-        external: external_evidence.length === 0,
-      },
+      degradation: num(vector.degradation),
+      world_external_evidence,
+      sfi_internal_evidence,
+      user_internal_evidence,
+      case_internal_evidence,
+      state,
+      can_claim_world_reading: world_external_evidence.length > 0,
+      can_claim_sfi_reading: world_external_evidence.length > 0 && sfi_internal_evidence.length > 0,
+      can_claim_user_reading: user_internal_evidence.length > 0 || case_internal_evidence.length > 0,
+      missing,
+      explanation: '',
     };
+    return { ...trace, explanation: explanation(trace) };
   });
 
   const total = traces.length;
-  const vectorsWithInternal = traces.filter((trace) => trace.internal_complete).length;
-  const vectorsWithExternal = traces.filter((trace) => trace.external_complete).length;
-  const complete = traces.filter((trace) => trace.complete).length;
+  const vectorsWithWorld = traces.filter((trace) => trace.can_claim_world_reading || trace.state === 'unobserved').length;
+  const vectorsWithSfi = traces.filter((trace) => trace.can_claim_sfi_reading).length;
+  const vectorsWithUser = traces.filter((trace) => trace.can_claim_user_reading).length;
 
   return NextResponse.json({
     ok: true,
@@ -183,13 +209,15 @@ export async function GET() {
     traces,
     traceCoverage: {
       total_vectors: total,
-      vectors_with_internal_evidence: vectorsWithInternal,
-      vectors_with_external_evidence: vectorsWithExternal,
-      complete_vectors: complete,
-      complete_ratio: total ? complete / total : 0,
+      vectors_with_world_external_evidence: vectorsWithWorld,
+      vectors_with_sfi_internal_evidence: vectorsWithSfi,
+      vectors_with_user_or_case_evidence: vectorsWithUser,
+      world_observed_or_explicitly_unobserved: vectorsWithWorld,
+      user_calibration_ratio: total ? vectorsWithUser / total : 0,
     },
-    missingInternal: traces.filter((trace) => !trace.internal_complete).map((trace) => trace.vector),
-    missingExternal: traces.filter((trace) => !trace.external_complete).map((trace) => trace.vector),
-    rule: 'A vector is trace-complete only when it has exact internal evidence and exact external evidence. If one side is missing, the UI must say so.',
+    userCalibration: traces.map((trace) => ({ vector: trace.vector, state: trace.can_claim_user_reading ? 'user_calibrated' : 'user_not_calibrated' })),
+    missingWorldExternal: traces.filter((trace) => trace.missing.world_external).map((trace) => trace.vector),
+    missingSfiInternal: traces.filter((trace) => trace.missing.sfi_internal).map((trace) => trace.vector),
+    rule: 'World readings require world_external evidence. SFI internal and user/case calibration are separate levels. New users may be user_not_calibrated without failing world traceability.',
   });
 }

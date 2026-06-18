@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { buildOperationalCycle } from '@/lib/scorefriction/operationalCycle';
-import { answerOperationalQuestion } from '@/lib/scorefriction/actionableAnalysis';
+import { answerAmvOperationalQuestion } from '@/lib/amv/experimentAnswer';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,6 +14,6 @@ export async function POST(request: Request) {
     evaluated_object: body.evaluated_object ?? body.text ?? '',
     run_contrast: true,
   });
-  const answer = answerOperationalQuestion(String(body.question ?? ''), state.operational_analysis as Record<string, unknown>);
+  const answer = answerAmvOperationalQuestion(String(body.question ?? ''), state);
   return NextResponse.json({ ok: true, answer, state });
 }

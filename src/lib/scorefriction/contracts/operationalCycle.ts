@@ -26,6 +26,8 @@ export type OperationalCycleInput = {
 
 export type ObjectPresence = 'missing' | 'provided';
 
+export type EvaluatedObjectType = 'text' | 'audio' | 'image' | 'video' | 'document' | 'campaign' | 'unknown';
+
 export type MihmReadout = {
   available: boolean;
   reason?: string;
@@ -84,6 +86,7 @@ export type OperationalCycleState = {
   case_id: string;
   objective: string | null;
   object_presence: ObjectPresence;
+  object_type: EvaluatedObjectType;
   twin_state: unknown;
   world_vector: unknown;
   filtered_vector: unknown;
@@ -118,6 +121,9 @@ export type OperationalCycleState = {
     can_answer: boolean;
   };
   formal_report?: FormalOperationalReport;
+  analyzer_availability?: Record<string, 'available' | 'analysis_unavailable'>;
+  allowed_claims?: string[];
+  blocked_claims?: string[];
   degradation: {
     level: number | null;
     trend: 'rising' | 'falling' | 'stable' | 'unknown';

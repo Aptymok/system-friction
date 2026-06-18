@@ -1,5 +1,3 @@
-import fs from 'fs/promises'
-import path from 'path'
 import type { SourceObservation, WorldSpectAdapter, WorldSpectDomain, SourceAdapterStatus, SourceAccessKind } from '../source-adapter-contract'
 import { clamp01 } from '../vector-aggregator'
 
@@ -306,26 +304,7 @@ function githubTechAdapter(): WorldSpectAdapter {
 }
 
 async function readInternalCorpus(): Promise<string> {
-  const root = process.cwd()
-  const candidates = [
-    'data/amv-learning.jsonl',
-    'data/logbook-visible.jsonl',
-    'data/sfi-operational-events.json',
-    'docs/QA_RUNTIME_REPORT.md',
-    'docs/QA_SFI_CONVERGENCE_REPORT.md',
-    'docs/qa/SFI_CLOSED_LOOP_QA.md',
-    'docs/SFI_PIPELINE_MINIMAL_PATCH.md',
-  ]
-
-  const chunks = await Promise.all(candidates.map(async (relative) => {
-    try {
-      return await fs.readFile(path.join(root, relative), 'utf8')
-    } catch {
-      return ''
-    }
-  }))
-
-  return chunks.join('\n').toLowerCase()
+  return ''
 }
 
 function countKeywords(text: string, keywords: string[]) {

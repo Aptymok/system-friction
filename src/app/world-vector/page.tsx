@@ -11,6 +11,10 @@ function rows(value: unknown): Row[] {
   return Array.isArray(value) ? value.filter((item): item is Row => Boolean(item) && typeof item === 'object' && !Array.isArray(item)) : [];
 }
 
+function values(value: unknown): unknown[] {
+  return Array.isArray(value) ? value : [];
+}
+
 function record(value: unknown): Row {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Row : {};
 }
@@ -79,6 +83,9 @@ function fileToText(file: File): Promise<string> {
 export default function WorldVectorPage() {
   const [state, setState] = useState<Row | null>(null);
   const [history, setHistory] = useState<Row | null>(null);
+  const [traceability, setTraceability] = useState<Row | null>(null);
+  const [worldAttractors, setWorldAttractors] = useState<Row | null>(null);
+  const [worldOpportunities, setWorldOpportunities] = useState<Row | null>(null);
   const [domain, setDomain] = useState('WORLD');
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [objectText, setObjectText] = useState('');
@@ -90,14 +97,23 @@ export default function WorldVectorPage() {
     Promise.all([
       fetch('/api/worldspect/operational-state', { cache: 'no-store' }).then((res) => res.json()),
       fetch('/api/worldspect/longitudinal?limit=80', { cache: 'no-store' }).then((res) => res.json()),
-    ]).then(([operational, longitudinal]) => {
+      fetch('/api/worldspect/evidence-trace', { cache: 'no-store' }).then((res) => res.json()),
+      fetch('/api/worldspect/attractors?limit=80', { cache: 'no-store' }).then((res) => res.json()),
+      fetch('/api/worldspect/opportunities?limit=80', { cache: 'no-store' }).then((res) => res.json()),
+    ]).then(([operational, longitudinal, evidenceTrace, attractors, canonicalOpportunities]) => {
       setState(operational);
       setHistory(longitudinal);
+      setTraceability(evidenceTrace);
+      setWorldAttractors(attractors);
+      setWorldOpportunities(canonicalOpportunities);
       const timeline = rows(longitudinal.timeline);
       setSelectedIndex(timeline.length ? timeline.length - 1 : null);
     }).catch((error) => {
       setState({ ok: false, status: 'unavailable', error: error instanceof Error ? error.message : 'worldspect_unavailable' });
       setHistory({ ok: false, timeline: [] });
+      setTraceability({ ok: false, traces: [] });
+      setWorldAttractors({ ok: false, attractors: [] });
+      setWorldOpportunities({ ok: false, opportunities: [] });
     });
   }, []);
 
@@ -109,6 +125,10 @@ export default function WorldVectorPage() {
   const sourceHealth = rows(state?.source_health);
   const sourceMix = record(state?.source_mix);
   const selectedSource = domain === 'WORLD' ? null : sourceHealth.find((item) => String(item.vector) === domain) ?? null;
+  const evidenceTraces = rows(traceability?.traces);
+  const selectedTrace = domain === 'WORLD' ? null : evidenceTraces.find((trace) => String(trace.vector) === domain) ?? null;
+  const canonicalAttractors = rows(worldAttractors?.attractors);
+  const canonicalOpportunities = rows(worldOpportunities?.opportunities);
 
   const dominant = useMemo(() => [...latestVectors].sort((a, b) => num(b.persistence) - num(a.persistence))[0] ?? null, [latestVectors]);
   const emergent = useMemo(() => latestVectors.filter((vector) => signalClass(vector) === 'emergente'), [latestVectors]);
@@ -284,15 +304,57 @@ export default function WorldVectorPage() {
 
           <div className="wv-scroll-panel tall">
             <div className="wv-panel-title">Emergent opportunities</div>
-            {opportunities.slice(0, 8).map((vector) => (
-              <article key={String(vector.domain)}>
-                <b>{String(vector.domain)}</b>
-                <span>opportunity {pct(vector.opportunity)} / persistence {pct(vector.persistence)}</span>
-                <small>Derived from trust, persistence, value and inverse degradation. This is not a recommendation; it is a ranked observation target.</small>
+            {(canonicalOpportunities.length ? canonicalOpportunities : opportunities.slice(0, 8)).map((vector) => (
+              <article key={String(vector.id ?? vector.domain)}>
+                <b>{String(vector.title ?? vector.domain)}</b>
+                <span>score {pct(vector.score ?? vector.opportunity)} / risk {label(vector.risk, 'observacion')}</span>
+                <small>{values(record(vector.basis).evidence_refs).length ? `basis refs: ${values(record(vector.basis).evidence_refs).length}` : label(vector.explanation, 'Derived from evidence and deltas. This is not an intervention recommendation.')}</small>
               </article>
             ))}
           </div>
+
+          <div className="wv-scroll-panel tall">
+            <div className="wv-panel-title">Attractor clusters</div>
+            {canonicalAttractors.length ? canonicalAttractors.map((attractor) => (
+              <article key={String(attractor.id)}>
+                <b>{label(attractor.label)}</b>
+                <span>{values(attractor.vectors).join(' + ') || String(attractor.vectors ?? '')}</span>
+                <small>direction {label(attractor.direction)} / confidence {pct(attractor.confidence)} / evidence {values(attractor.evidence_basis).length}</small>
+              </article>
+            )) : <p>No evidence-based attractor cluster available yet.</p>}
+          </div>
         </aside>
+      </section>
+
+      <section className="wv-trace">
+        <div className="wv-panel-title">Evidence Trace Explorer</div>
+        <div className="wv-trace-grid">
+          {(domain === 'WORLD' ? evidenceTraces : selectedTrace ? [selectedTrace] : []).map((trace) => (
+            <details key={String(trace.vector)} open={domain !== 'WORLD'}>
+              <summary>
+                <b>{String(trace.vector)}</b>
+                <span>{label(trace.state)} / world claim {String(Boolean(trace.can_claim_world_reading))} / user claim {String(Boolean(trace.can_claim_user_reading))}</span>
+              </summary>
+              <p>{label(trace.explanation)}</p>
+              {[
+                ['WORLD EXTERNAL', rows(trace.world_external_evidence)],
+                ['SFI INTERNAL', rows(trace.sfi_internal_evidence)],
+                ['USER / CASE', [...rows(trace.user_internal_evidence), ...rows(trace.case_internal_evidence)]],
+              ].map(([title, list]) => (
+                <div key={String(title)} className="wv-trace-level">
+                  <h3>{String(title)}</h3>
+                  {Array.isArray(list) && list.length ? list.map((item) => (
+                    <article key={String(item.id)}>
+                      <b>{label(item.source_id ?? item.provider)}</b>
+                      <span>{label(item.provider)} / {label(item.observed_at)} / trust {fixed(item.trust)}</span>
+                      <small>{label(item.evidence_ref)} — {label(item.summary)}</small>
+                    </article>
+                  )) : <p>{String(title) === 'USER / CASE' ? 'User not calibrated yet. Upload/evaluate an object to build case evidence.' : 'No exact linked evidence for this level.'}</p>}
+                </div>
+              ))}
+            </details>
+          ))}
+        </div>
       </section>
 
       <section className="wv-evaluator">
@@ -352,10 +414,17 @@ export default function WorldVectorPage() {
         .wv-orbit-node.active { background: #f5e7bd; box-shadow: 0 0 36px rgba(245,231,189,.85); }
         .wv-good { color: #d9f99d; } .wv-watch { color: #e0c46c; } .wv-low { color: #fca5a5; }
         .wv-evaluator { margin: 0 16px 18px; display: grid; grid-template-columns: 280px 220px 1fr 1fr 140px; gap: 12px; align-items: start; }
+        .wv-trace { margin: 0 16px 16px; border: 1px solid rgba(216,182,74,.16); background: #070604; padding: 14px; }
+        .wv-trace-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; max-height: 420px; overflow: auto; margin-top: 12px; }
+        .wv-trace details { border: 1px solid rgba(216,182,74,.12); background: #050504; padding: 10px; }
+        .wv-trace summary { cursor: pointer; color: #f5e7bd; }
+        .wv-trace summary span { display: block; color: #9c9282; font-size: 10px; margin-top: 4px; }
+        .wv-trace-level { margin-top: 12px; border-top: 1px solid rgba(216,182,74,.1); padding-top: 8px; }
+        .wv-trace-level h3 { margin: 0 0 6px; color: #e0c46c; font-size: 10px; letter-spacing: .16em; }
         .wv-evaluator input, .wv-evaluator textarea { width: 100%; min-height: 72px; border: 1px solid rgba(216,182,74,.2); background: #030302; color: #e7dcc4; padding: 10px; font: inherit; font-size: 11px; }
         .wv-evaluator input { min-height: auto; }
         .wv-evaluator pre { grid-column: 1 / -1; max-height: 320px; overflow: auto; background: #020201; border: 1px solid rgba(216,182,74,.12); padding: 12px; color: #9c9282; font-size: 10px; white-space: pre-wrap; }
-        @media (max-width: 1100px) { .wv-header, .wv-layout, .wv-evaluator { grid-template-columns: 1fr; } .wv-metrics { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 1100px) { .wv-header, .wv-layout, .wv-evaluator, .wv-trace-grid { grid-template-columns: 1fr; } .wv-metrics { grid-template-columns: repeat(2, 1fr); } }
       `}</style>
     </main>
   );
