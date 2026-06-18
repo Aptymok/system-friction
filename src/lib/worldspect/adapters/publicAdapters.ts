@@ -1,4 +1,4 @@
-﻿import fs from 'fs/promises'
+import fs from 'fs/promises'
 import path from 'path'
 import type { SourceObservation, WorldSpectAdapter, WorldSpectDomain, SourceAdapterStatus, SourceAccessKind } from '../source-adapter-contract'
 import { clamp01 } from '../vector-aggregator'
@@ -336,6 +336,18 @@ function countKeywords(text: string, keywords: string[]) {
   }, 0)
 }
 
+
+function internalEvidenceScore(text: string, keywords: string[]) {
+  const counts = keywords.map((keyword) => countKeywords(text, [keyword]))
+  const total = counts.reduce((sum, count) => sum + count, 0)
+  const matched = counts.filter((count) => count > 0).length
+  const diversity = clamp01(matched / Math.max(1, keywords.length))
+  // Softer than normalizeCount(total, 40). Prevents internal evidence from saturating every vector.
+  const intensity = clamp01(Math.log10(total + 1) / Math.log10(180))
+  const value = clamp01((intensity * 0.62 + diversity * 0.38) * 0.82)
+  return { total, matched, diversity, intensity, value }
+}
+
 function internalEvidenceAdapter(config: {
   sourceId: string
   domain: WorldSpectDomain
@@ -348,22 +360,25 @@ function internalEvidenceAdapter(config: {
     async observe() {
       try {
         const corpus = await readInternalCorpus()
-        const count = countKeywords(corpus, config.keywords)
-        const value = normalizeCount(count, 40)
+        const score = internalEvidenceScore(corpus, config.keywords)
         return observation({
           sourceId: config.sourceId,
           domain: config.domain,
-          value,
-          trust: count > 0 ? (config.trust ?? 0.52) : 0,
-          velocity: value,
-          volatility: clamp01(value * 0.3),
-          persistence: clamp01(value * 0.66),
-          rawCount: count,
+          value: score.value,
+          trust: score.total > 0 ? clamp01((config.trust ?? 0.48) + score.diversity * 0.12) : 0,
+          velocity: clamp01(score.value * 0.42),
+          volatility: clamp01((1 - score.diversity) * 0.34 + score.value * 0.16),
+          persistence: clamp01(score.value * 0.48 + score.diversity * 0.18),
+          rawCount: score.total,
           accessKind: 'internal-evidence',
-          signal: signal(config.signalKey, value),
+          signal: signal(config.signalKey, score.value),
           raw: {
             provider: 'sfi_internal_evidence',
-            keyword_count: count,
+            keyword_count: score.total,
+            matched_keywords: score.matched,
+            diversity: Number(score.diversity.toFixed(4)),
+            intensity: Number(score.intensity.toFixed(4)),
+            calibrated: true,
             keywords: config.keywords,
           },
         })
