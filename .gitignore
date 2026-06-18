@@ -33,3 +33,5 @@ venv/
 public/generated
  *.zip
 _sfi_exports/
+__pycache__/
+*.pyc
