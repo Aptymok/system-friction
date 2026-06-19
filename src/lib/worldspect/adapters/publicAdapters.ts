@@ -90,6 +90,26 @@ function observation(input: {
   }
 }
 
+function emptyResult(input: {
+  sourceId: string
+  domain: WorldSpectDomain
+  raw?: unknown
+  signal?: SourceObservation['signal']
+  accessKind?: SourceAccessKind
+}): SourceObservation {
+  return observation({
+    sourceId: input.sourceId,
+    domain: input.domain,
+    value: 0,
+    trust: 0,
+    rawCount: 0,
+    status: 'EMPTY_RESULT',
+    accessKind: input.accessKind,
+    signal: input.signal ?? {},
+    raw: input.raw ?? { reason: 'empty_result' },
+  })
+}
+
 function degraded(sourceId: string, domain: WorldSpectDomain, error: unknown): SourceObservation {
   const message = error instanceof Error ? error.message : String(error)
   return observation({
@@ -124,6 +144,14 @@ function gdeltAdapter(config: {
         const json = record(await fetchJson(url))
         const articles = array(json.articles)
         const count = articles.length
+        if (count === 0) {
+          return emptyResult({
+            sourceId: config.sourceId,
+            domain: config.domain,
+            signal: signal(config.signalKey, 0),
+            raw: { provider: 'gdelt', count, query: config.query, reason: 'empty_result' },
+          })
+        }
         const value = normalizeCount(count, config.scale ?? 50)
         const avgTitleLength = articles.reduce<number>((sum, item) => {
           const title = String(record(item).title ?? '')
@@ -135,7 +163,7 @@ function gdeltAdapter(config: {
           sourceId: config.sourceId,
           domain: config.domain,
           value,
-          trust: count > 0 ? 0.66 : 0,
+          trust: 0.66,
           velocity: value,
           volatility,
           persistence: clamp01(value * 0.72),
@@ -165,12 +193,20 @@ function hnSearchAdapter(config: {
         const url = `https://hn.algolia.com/api/v1/search?query=${encodeURIComponent(config.query)}&tags=story`
         const json = record(await fetchJson(url))
         const hits = finite(json.nbHits, 0)
+        if (hits === 0) {
+          return emptyResult({
+            sourceId: config.sourceId,
+            domain: config.domain,
+            signal: signal(config.signalKey, 0),
+            raw: { provider: 'hn_algolia', query: config.query, hits, reason: 'empty_result' },
+          })
+        }
         const value = normalizeCount(hits, config.scale ?? 100000)
         return observation({
           sourceId: config.sourceId,
           domain: config.domain,
           value,
-          trust: hits > 0 ? (config.trust ?? 0.6) : 0,
+          trust: config.trust ?? 0.6,
           velocity: value,
           volatility: clamp01(value * 0.48),
           persistence: clamp01(value * 0.62),
@@ -192,6 +228,14 @@ function worldBankEconomyAdapter(): WorldSpectAdapter {
       try {
         const json = await fetchJson('https://api.worldbank.org/v2/country/WLD/indicator/NY.GDP.MKTP.KD.ZG?format=json&per_page=5')
         const rows = array(array(json)[1])
+        if (rows.length === 0) {
+          return emptyResult({
+            sourceId: 'economy_worldbank_public',
+            domain: 'ECONOMY',
+            signal: { economicStress: 0 },
+            raw: { provider: 'worldbank', indicator: 'NY.GDP.MKTP.KD.ZG', reason: 'empty_result' },
+          })
+        }
         const latest = record(rows.find((row) => Number.isFinite(finite(record(row).value, NaN))) ?? rows[0])
         const growth = finite(latest.value, 0)
         const stress = clamp01(Math.abs(growth) / 8)
@@ -199,7 +243,7 @@ function worldBankEconomyAdapter(): WorldSpectAdapter {
           sourceId: 'economy_worldbank_public',
           domain: 'ECONOMY',
           value: stress,
-          trust: rows.length > 0 ? 0.72 : 0,
+          trust: 0.72,
           velocity: stress,
           volatility: stress,
           persistence: clamp01(0.45 + stress * 0.35),
@@ -256,12 +300,20 @@ function clinicalTrialsBioAdapter(): WorldSpectAdapter {
         const json = record(await fetchJson('https://clinicaltrials.gov/api/v2/studies?query.term=health&format=json&pageSize=10'))
         const studies = array(json.studies)
         const count = studies.length
+        if (count === 0) {
+          return emptyResult({
+            sourceId: 'bio_clinicaltrials_public',
+            domain: 'BIO',
+            signal: { bioStress: 0 },
+            raw: { provider: 'clinicaltrials_gov', count, reason: 'empty_result' },
+          })
+        }
         const value = normalizeCount(count, 10)
         return observation({
           sourceId: 'bio_clinicaltrials_public',
           domain: 'BIO',
           value,
-          trust: count > 0 ? 0.58 : 0,
+          trust: 0.58,
           velocity: value,
           volatility: clamp01(value * 0.35),
           persistence: clamp01(value * 0.55),
@@ -283,12 +335,20 @@ function githubTechAdapter(): WorldSpectAdapter {
       try {
         const json = record(await fetchJson('https://api.github.com/search/repositories?q=AI+OR+machine-learning+OR+agent&sort=updated&order=desc&per_page=1'))
         const total = finite(json.total_count, 0)
+        if (total === 0) {
+          return emptyResult({
+            sourceId: 'tech_github_public',
+            domain: 'TECH',
+            signal: { techStress: 0, attention: 0 },
+            raw: { provider: 'github_search', total_count: total, reason: 'empty_result' },
+          })
+        }
         const value = normalizeCount(total, 10000000)
         return observation({
           sourceId: 'tech_github_public',
           domain: 'TECH',
           value,
-          trust: total > 0 ? 0.64 : 0,
+          trust: 0.64,
           velocity: value,
           volatility: clamp01(value * 0.42),
           persistence: clamp01(value * 0.62),
@@ -315,7 +375,6 @@ function countKeywords(text: string, keywords: string[]) {
   }, 0)
 }
 
-
 function internalEvidenceScore(text: string, keywords: string[]) {
   const counts = keywords.map((keyword) => countKeywords(text, [keyword]))
   const total = counts.reduce((sum, count) => sum + count, 0)
@@ -340,11 +399,26 @@ function internalEvidenceAdapter(config: {
       try {
         const corpus = await readInternalCorpus()
         const score = internalEvidenceScore(corpus, config.keywords)
+        if (score.total === 0) {
+          return emptyResult({
+            sourceId: config.sourceId,
+            domain: config.domain,
+            accessKind: 'internal-evidence',
+            signal: signal(config.signalKey, 0),
+            raw: {
+              provider: 'sfi_internal_evidence',
+              keyword_count: 0,
+              matched_keywords: 0,
+              reason: 'empty_result',
+              keywords: config.keywords,
+            },
+          })
+        }
         return observation({
           sourceId: config.sourceId,
           domain: config.domain,
           value: score.value,
-          trust: score.total > 0 ? clamp01((config.trust ?? 0.48) + score.diversity * 0.12) : 0,
+          trust: clamp01((config.trust ?? 0.48) + score.diversity * 0.12),
           velocity: clamp01(score.value * 0.42),
           volatility: clamp01((1 - score.diversity) * 0.34 + score.value * 0.16),
           persistence: clamp01(score.value * 0.48 + score.diversity * 0.18),
