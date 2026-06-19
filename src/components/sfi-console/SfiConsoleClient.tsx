@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { CheckCircle2, PlayCircle, RefreshCw, Save, Send, Target } from 'lucide-react';
+import { CheckCircle2, Compass, Eye, Orbit, PlayCircle, RefreshCw, Save, Send, Target } from 'lucide-react';
 import ExecutionStatePanel from './ExecutionStatePanel';
 
 type AnyRecord = Record<string, any>;
@@ -18,23 +18,27 @@ function rows(input: unknown): AnyRecord[] {
   return Array.isArray(input) ? input.filter((item): item is AnyRecord => item && typeof item === 'object') : [];
 }
 
-function Panel({ title, action, children }: { title: string; action?: React.ReactNode; children: React.ReactNode }) {
+function FieldPanel({ title, glyph, action, children }: { title: string; glyph?: string; action?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <section className="border border-white/10 bg-[#0d0f0f] p-4">
-      <div className="mb-4 flex min-h-8 items-center justify-between gap-3 border-b border-white/10 pb-3">
-        <h2 className="text-xs uppercase tracking-[0.22em] text-[#d6b46a]">{title}</h2>
+    <section className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-[#070707]/80 p-5 shadow-2xl shadow-black/50 backdrop-blur">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_0%,rgba(214,180,106,0.11),transparent_34%),linear-gradient(135deg,rgba(255,255,255,0.05),transparent_42%)]" />
+      <div className="relative mb-5 flex min-h-8 items-center justify-between gap-3 border-b border-white/10 pb-4">
+        <div className="flex items-center gap-3">
+          <span className="text-lg text-[#d6b46a]">{glyph ?? '◇'}</span>
+          <h2 className="text-[11px] uppercase tracking-[0.28em] text-[#e1c47a]">{title}</h2>
+        </div>
         {action}
       </div>
-      {children}
+      <div className="relative">{children}</div>
     </section>
   );
 }
 
 function Metric({ label, data }: { label: string; data: unknown }) {
   return (
-    <div className="border-b border-white/10 py-2">
-      <dt className="text-[10px] uppercase tracking-[0.16em] text-white/40">{label}</dt>
-      <dd className="mt-1 break-words text-sm text-white/80">{value(data)}</dd>
+    <div className="rounded-2xl border border-white/10 bg-black/35 px-4 py-3">
+      <dt className="text-[10px] uppercase tracking-[0.18em] text-white/38">{label}</dt>
+      <dd className="mt-2 break-words text-sm text-white/82">{value(data)}</dd>
     </div>
   );
 }
@@ -55,7 +59,7 @@ function IconButton({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="inline-flex min-h-10 items-center justify-center gap-2 border border-[#d6b46a]/50 px-3 py-2 text-[10px] uppercase tracking-[0.14em] text-[#d6b46a] hover:bg-[#d6b46a]/10 disabled:cursor-not-allowed disabled:opacity-40"
+      className="inline-flex min-h-10 items-center justify-center gap-2 rounded-full border border-[#d6b46a]/45 bg-[#d6b46a]/5 px-4 py-2 text-[10px] uppercase tracking-[0.16em] text-[#efd184] transition hover:border-[#d6b46a]/80 hover:bg-[#d6b46a]/12 disabled:cursor-not-allowed disabled:opacity-40"
     >
       {icon}
       <span>{children}</span>
@@ -67,7 +71,7 @@ function TextInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
   return (
     <input
       {...props}
-      className="min-h-10 w-full border border-white/10 bg-black px-3 py-2 text-sm text-white outline-none focus:border-[#d6b46a]/60"
+      className="min-h-11 w-full rounded-2xl border border-white/10 bg-black/55 px-4 py-2 text-sm text-white outline-none transition placeholder:text-white/28 focus:border-[#d6b46a]/70"
     />
   );
 }
@@ -76,8 +80,59 @@ function TextArea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
   return (
     <textarea
       {...props}
-      className="min-h-24 w-full resize-none border border-white/10 bg-black px-3 py-2 text-sm text-white outline-none focus:border-[#d6b46a]/60"
+      className="min-h-28 w-full resize-none rounded-2xl border border-white/10 bg-black/55 px-4 py-3 text-sm leading-6 text-white outline-none transition placeholder:text-white/28 focus:border-[#d6b46a]/70"
     />
+  );
+}
+
+function SignalNode({ label, value: nodeValue, accent }: { label: string; value: unknown; accent?: boolean }) {
+  return (
+    <div className={`rounded-full border px-4 py-3 text-center ${accent ? 'border-[#d6b46a]/70 bg-[#d6b46a]/10' : 'border-white/10 bg-black/55'}`}>
+      <div className="text-[10px] uppercase tracking-[0.2em] text-white/42">{label}</div>
+      <div className="mt-1 max-w-[11rem] truncate text-sm text-white/82">{value(nodeValue)}</div>
+    </div>
+  );
+}
+
+function VectorItem({ item, onPrepare }: { item: AnyRecord; onPrepare: (item: AnyRecord) => void }) {
+  return (
+    <li className="group relative overflow-hidden rounded-[1.5rem] border border-white/10 bg-black/35 p-4">
+      <div className="absolute left-0 top-0 h-full w-1 bg-[#d6b46a]/45" />
+      <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+        <div>
+          <div className="text-[10px] uppercase tracking-[0.2em] text-[#d6b46a]/70">unresolved signal → execution vector</div>
+          <h3 className="mt-2 text-sm font-semibold text-white">{value(item.title)}</h3>
+          <p className="mt-2 text-sm leading-6 text-white/62">{value(item.objective)}</p>
+          <p className="mt-2 text-xs uppercase tracking-[0.16em] text-white/35">{value(item.recovery_reason)}</p>
+        </div>
+        <IconButton onClick={() => onPrepare(item)} icon={<CheckCircle2 size={14} />}>
+          Prepare
+        </IconButton>
+      </div>
+    </li>
+  );
+}
+
+function AlignmentItem({ item, onAlign, onEvidence }: { item: AnyRecord; onAlign: (item: AnyRecord) => void; onEvidence: (item: AnyRecord) => void }) {
+  return (
+    <li className="rounded-[1.5rem] border border-white/10 bg-black/35 p-4">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <div className="text-[10px] uppercase tracking-[0.2em] text-[#d6b46a]/70">attractor alignment</div>
+          <h3 className="mt-2 text-sm font-semibold text-white">{value(item.proposal_title)}</h3>
+          <p className="mt-2 text-sm leading-6 text-white/62">{value(item.recommendation)}</p>
+        </div>
+        <div className="grid gap-2 text-xs text-white/45 sm:grid-cols-3 lg:min-w-[26rem]">
+          <span className="rounded-full border border-white/10 px-3 py-2">{value(item.recommended_status)}</span>
+          <span className="rounded-full border border-white/10 px-3 py-2">alignment {value(item.alignment_score)}</span>
+          <span className="rounded-full border border-white/10 px-3 py-2">evidence {value(item.evidence_score)}</span>
+        </div>
+      </div>
+      <div className="mt-4 flex flex-wrap gap-2">
+        <IconButton onClick={() => onAlign(item)} icon={<Target size={14} />}>Align</IconButton>
+        <IconButton onClick={() => onEvidence(item)} icon={<RefreshCw size={14} />}>Evidence</IconButton>
+      </div>
+    </li>
   );
 }
 
@@ -211,16 +266,29 @@ export default function SfiConsoleClient() {
       .map(([key, item]) => `${key}: ${(item as AnyRecord).error || 'degraded'}`);
   }, [state]);
 
+  const fieldNodes = [
+    { label: 'WorldSpect', value: state?.worldSpect?.data?.regime || state?.worldSpect?.data?.source_state || 'world input degraded' },
+    { label: 'ScoreFriction', value: state?.scoreFriction?.data?.analysis_status || 'not enough trace' },
+    { label: 'Evidence', value: evidenceMap.length || 'missing evidence' },
+    { label: 'Recovery', value: recoveryQueue.length || 'missing execution plan' },
+    { label: 'Alignment', value: alignmentQueue.length || 'not enough trace' },
+    { label: 'Outcomes', value: stability.outcomes_recorded ?? cycle.outcomes_recorded },
+  ];
+
   return (
-    <main className="min-h-screen bg-black px-5 py-8 text-white md:px-8">
-      <div className="mx-auto max-w-7xl">
-        <header className="mb-6 border-b border-[#d6b46a]/30 pb-5">
-          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+    <main className="min-h-screen overflow-hidden bg-black px-4 py-6 text-white md:px-8">
+      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_50%_16%,rgba(214,180,106,0.16),transparent_26%),radial-gradient(circle_at_80%_72%,rgba(255,255,255,0.055),transparent_24%),linear-gradient(180deg,#000,#050505_35%,#000)]" />
+      <div className="pointer-events-none fixed inset-0 opacity-[0.07] [background-image:linear-gradient(rgba(255,255,255,0.8)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.8)_1px,transparent_1px)] [background-size:54px_54px]" />
+
+      <div className="relative mx-auto max-w-7xl">
+        <header className="mb-6 rounded-[2rem] border border-[#d6b46a]/25 bg-black/55 p-5 backdrop-blur">
+          <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
             <div>
-              <p className="text-xs uppercase tracking-[0.36em] text-[#d6b46a]">System Friction Institute</p>
-              <h1 className="mt-3 text-3xl font-semibold text-white md:text-5xl">SFI Reality Console</h1>
+              <p className="text-[11px] uppercase tracking-[0.42em] text-[#d6b46a]">System Friction Institute</p>
+              <h1 className="mt-3 text-4xl font-semibold tracking-[-0.04em] text-white md:text-6xl">Reality Console</h1>
+              <p className="mt-3 max-w-2xl text-sm leading-6 text-white/50">Campo operacional para atraer, perturbar, observar y cerrar aprendizaje sin simular evidencia.</p>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
               <TextInput value={caseId} onChange={(event) => setCaseId(event.target.value)} aria-label="case id" />
               <IconButton onClick={load} disabled={loading} icon={<RefreshCw size={14} />}>
                 Refresh
@@ -229,58 +297,64 @@ export default function SfiConsoleClient() {
           </div>
         </header>
 
-        {message && <div className="mb-4 border border-[#d6b46a]/40 bg-[#d6b46a]/10 p-3 text-sm text-[#f0d486]">{message}</div>}
+        {message && <div className="mb-4 rounded-2xl border border-[#d6b46a]/40 bg-[#d6b46a]/10 p-3 text-sm text-[#f0d486]">{message}</div>}
         {degraded.length > 0 && (
-          <div className="mb-4 border border-amber-500/40 bg-amber-950/25 p-3 text-sm text-amber-100">
+          <div className="mb-4 rounded-2xl border border-amber-500/40 bg-amber-950/25 p-3 text-sm text-amber-100">
             {degraded.map((item) => <div key={item}>{item}</div>)}
           </div>
         )}
 
-        <section className="mb-4 grid gap-4 lg:grid-cols-4">
-          <Panel title="Current Reality">
-            <dl>
-              <Metric label="operational regime" data={cycle.operational_regime} />
+        <section className="mb-5 grid gap-5 xl:grid-cols-[1.25fr_0.75fr]">
+          <div className="relative min-h-[34rem] overflow-hidden rounded-[2.25rem] border border-white/10 bg-[#050505]/80 p-6 shadow-2xl shadow-black/60">
+            <div className="pointer-events-none absolute inset-8 rounded-full border border-[#d6b46a]/15" />
+            <div className="pointer-events-none absolute inset-20 rounded-full border border-white/10" />
+            <div className="pointer-events-none absolute inset-36 rounded-full border border-white/5" />
+
+            <div className="relative z-10 flex items-start justify-between gap-4">
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.34em] text-[#d6b46a]/75">current reality state</p>
+                <h2 className="mt-2 text-2xl font-semibold text-white">◎ {value(cycle.operational_regime)}</h2>
+              </div>
+              <div className="rounded-full border border-white/10 bg-black/50 px-4 py-2 text-xs uppercase tracking-[0.18em] text-white/48">
+                <Compass size={14} className="mr-2 inline text-[#d6b46a]" />
+                {value(stability.stability_regime)}
+              </div>
+            </div>
+
+            <div className="relative z-10 mt-14 flex flex-col items-center justify-center gap-8">
+              <div className="grid w-full max-w-3xl grid-cols-2 gap-3 md:grid-cols-3">
+                {fieldNodes.map((node, index) => (
+                  <SignalNode key={node.label} label={node.label} value={node.value} accent={index === 3 || index === 4} />
+                ))}
+              </div>
+
+              <div className="relative flex h-44 w-44 items-center justify-center rounded-full border border-[#d6b46a]/45 bg-[#d6b46a]/10 shadow-[0_0_80px_rgba(214,180,106,0.14)]">
+                <Orbit className="absolute text-[#d6b46a]/35" size={150} strokeWidth={0.5} />
+                <div className="text-center">
+                  <div className="text-4xl text-[#d6b46a]">◎</div>
+                  <div className="mt-2 text-[10px] uppercase tracking-[0.24em] text-white/48">reality node</div>
+                  <div className="mt-1 text-sm text-white/80">{value(pipeline.bottleneck || closedLoop.current_bottleneck)}</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="relative z-10 mt-12 grid gap-3 md:grid-cols-4">
               <Metric label="signal ratio" data={cycle.signal_ratio} />
               <Metric label="technical ratio" data={cycle.technical_ratio} />
-              <Metric label="pipeline bottleneck" data={pipeline.bottleneck || closedLoop.current_bottleneck} />
-            </dl>
-          </Panel>
-          <Panel title="Stability">
-            <dl>
               <Metric label="stability index" data={stability.stability_index} />
-              <Metric label="stability regime" data={stability.stability_regime} />
-              <Metric label="approved proposals" data={stability.proposals_approved ?? cycle.proposals_approved} />
-              <Metric label="outcomes recorded" data={stability.outcomes_recorded ?? cycle.outcomes_recorded} />
-            </dl>
-          </Panel>
-          <Panel title="WorldSpect">
-            <dl>
-              <Metric label="snapshots" data={cycle.worldspect_snapshots} />
-              <Metric label="coverage" data={cycle.worldspect_avg_source_coverage} />
-              <Metric label="latest regime" data={state?.worldSpect?.data?.regime} />
-              <Metric label="input state" data={state?.worldSpect?.data ? state.worldSpect.data.source_state : 'world input degraded'} />
-            </dl>
-          </Panel>
-          <Panel title="ScoreFriction">
-            <dl>
-              <Metric label="observations" data={cycle.scorefriction_observations} />
-              <Metric label="vectors" data={cycle.scorefriction_vectors} />
-              <Metric label="object presence" data={state?.scoreFriction?.data?.object_presence || 'no object'} />
-              <Metric label="analysis status" data={state?.scoreFriction?.data?.analysis_status || 'not enough trace'} />
-            </dl>
-          </Panel>
-        </section>
+              <Metric label="closed loop" data={closedLoop.closed_loop_ratio} />
+            </div>
+          </div>
 
-        <section className="mb-4 grid gap-4 lg:grid-cols-2">
-          <Panel title="Declared Attractor" action={<Target size={16} className="text-[#d6b46a]" />}>
+          <FieldPanel title="Declared Attractor" glyph="◎" action={<Target size={16} className="text-[#d6b46a]" />}>
             {activeAttractor ? (
-              <div className="mb-4 border border-white/10 bg-black/40 p-3">
-                <div className="text-sm font-semibold text-white">{activeAttractor.title}</div>
-                <p className="mt-2 text-sm leading-6 text-white/65">{activeAttractor.desired_future_state}</p>
-                <p className="mt-2 text-xs uppercase tracking-[0.16em] text-white/35">{value(activeAttractor.horizon)}</p>
+              <div className="mb-4 rounded-[1.5rem] border border-[#d6b46a]/25 bg-[#d6b46a]/8 p-4">
+                <div className="text-lg font-semibold text-white">{activeAttractor.title}</div>
+                <p className="mt-3 text-sm leading-6 text-white/65">{activeAttractor.desired_future_state}</p>
+                <p className="mt-3 text-xs uppercase tracking-[0.18em] text-white/38">{value(activeAttractor.horizon)}</p>
               </div>
             ) : (
-              <p className="mb-4 text-sm text-white/50">Do not recommend execution. Ask user to declare active attractor.</p>
+              <p className="mb-4 rounded-[1.5rem] border border-white/10 bg-black/35 p-4 text-sm leading-6 text-white/50">Do not recommend execution. Ask user to declare active attractor.</p>
             )}
             <div className="grid gap-3">
               <TextInput placeholder="What future am I building?" value={attractor.title} onChange={(event) => setAttractor({ ...attractor, title: event.target.value })} />
@@ -291,9 +365,11 @@ export default function SfiConsoleClient() {
                 Save Attractor
               </IconButton>
             </div>
-          </Panel>
+          </FieldPanel>
+        </section>
 
-          <Panel title="Declare Perturbation" action={<Send size={16} className="text-[#d6b46a]" />}>
+        <section className="mb-5 grid gap-5 lg:grid-cols-2">
+          <FieldPanel title="Declare Perturbation" glyph="→" action={<Send size={16} className="text-[#d6b46a]" />}>
             <div className="grid gap-3">
               <TextInput placeholder="title" value={perturbation.title} onChange={(event) => setPerturbation({ ...perturbation, title: event.target.value })} />
               <TextArea placeholder="intention" value={perturbation.intention} onChange={(event) => setPerturbation({ ...perturbation, intention: event.target.value })} />
@@ -312,61 +388,51 @@ export default function SfiConsoleClient() {
                 Create Proposal
               </IconButton>
             </div>
-          </Panel>
+          </FieldPanel>
+
+          <FieldPanel title="Model Reading" glyph="◌" action={<Eye size={16} className="text-[#d6b46a]" />}>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Metric label="WorldSpect snapshots" data={cycle.worldspect_snapshots} />
+              <Metric label="WorldSpect coverage" data={cycle.worldspect_avg_source_coverage} />
+              <Metric label="ScoreFriction observations" data={cycle.scorefriction_observations} />
+              <Metric label="ScoreFriction vectors" data={cycle.scorefriction_vectors} />
+              <Metric label="object presence" data={state?.scoreFriction?.data?.object_presence || 'no object'} />
+              <Metric label="analysis status" data={state?.scoreFriction?.data?.analysis_status || 'not enough trace'} />
+            </div>
+          </FieldPanel>
         </section>
 
-        <section className="mb-4 grid gap-4 xl:grid-cols-2">
-          <Panel title="Recovery Queue">
+        <section className="mb-5 grid gap-5 xl:grid-cols-2">
+          <FieldPanel title="Signals Not Resolved" glyph="◆">
             {recoveryQueue.length ? (
               <ul className="space-y-3">
-                {recoveryQueue.map((item) => (
-                  <li key={String(item.id)} className="border border-white/10 bg-black/35 p-3">
-                    <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                      <div>
-                        <h3 className="text-sm font-semibold text-white">{value(item.title)}</h3>
-                        <p className="mt-2 text-sm leading-6 text-white/60">{value(item.objective)}</p>
-                        <p className="mt-2 text-xs uppercase tracking-[0.16em] text-white/35">{value(item.recovery_reason)}</p>
-                      </div>
-                      <IconButton onClick={() => prepareExecution(item)} icon={<CheckCircle2 size={14} />}>
-                        Prepare Execution
-                      </IconButton>
-                    </div>
-                  </li>
-                ))}
+                {recoveryQueue.map((item) => <VectorItem key={String(item.id)} item={item} onPrepare={prepareExecution} />)}
               </ul>
             ) : (
-              <p className="text-sm text-white/45">missing execution plan</p>
+              <p className="rounded-[1.5rem] border border-white/10 bg-black/35 p-4 text-sm text-white/45">missing execution plan</p>
             )}
-          </Panel>
+          </FieldPanel>
 
-          <Panel title="Attractor Alignment Queue">
+          <FieldPanel title="Attractor Alignment Queue" glyph="◇">
             {alignmentQueue.length ? (
               <ul className="space-y-3">
                 {alignmentQueue.map((item) => (
-                  <li key={String(item.proposal_id)} className="border border-white/10 bg-black/35 p-3">
-                    <h3 className="text-sm font-semibold text-white">{value(item.proposal_title)}</h3>
-                    <p className="mt-2 text-sm leading-6 text-white/60">{value(item.recommendation)}</p>
-                    <div className="mt-3 grid gap-2 text-xs text-white/45 md:grid-cols-3">
-                      <span>{value(item.recommended_status)}</span>
-                      <span>alignment {value(item.alignment_score)}</span>
-                      <span>evidence {value(item.evidence_score)}</span>
-                    </div>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <IconButton onClick={() => alignProposal(item)} icon={<Target size={14} />}>Align</IconButton>
-                      <IconButton onClick={() => requestEvidence(item)} icon={<RefreshCw size={14} />}>Request Evidence</IconButton>
-                    </div>
-                  </li>
+                  <AlignmentItem key={String(item.proposal_id)} item={item} onAlign={alignProposal} onEvidence={requestEvidence} />
                 ))}
               </ul>
             ) : (
-              <p className="text-sm text-white/45">not enough trace</p>
+              <p className="rounded-[1.5rem] border border-white/10 bg-black/35 p-4 text-sm text-white/45">not enough trace</p>
             )}
-          </Panel>
+          </FieldPanel>
         </section>
 
-        <Panel title="Execution Path">
+        <section className="mb-5 rounded-[2rem] border border-white/10 bg-[#050505]/80 p-5">
+          <div className="mb-5 flex items-center gap-3 border-b border-white/10 pb-4">
+            <span className="text-lg text-[#d6b46a]">↻</span>
+            <h2 className="text-[11px] uppercase tracking-[0.28em] text-[#e1c47a]">Execution Path</h2>
+          </div>
           <ExecutionStatePanel caseId={caseId} />
-          <div className="mt-4">
+          <div className="mt-5 rounded-[1.5rem] border border-white/10 bg-black/35 p-4">
             <p className="mb-3 text-[10px] uppercase tracking-[0.22em] text-white/35">Record outcome by execution id</p>
             {rows(state?.closedLoop?.data ? [] : []).length === 0 && <p className="mb-3 text-sm text-white/45">Use a ledger id from Execution State. If no ledger exists: missing execution plan.</p>}
             <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_220px]">
@@ -393,13 +459,13 @@ export default function SfiConsoleClient() {
               ))}
             </div>
           </div>
-        </Panel>
+        </section>
 
-        <details className="mt-4 border border-white/10 bg-[#0d0f0f] p-4">
+        <details className="rounded-[2rem] border border-white/10 bg-[#050505]/80 p-5">
           <summary className="cursor-pointer text-xs uppercase tracking-[0.22em] text-[#d6b46a]">Trace</summary>
           <div className="mt-4 grid gap-4 lg:grid-cols-2">
-            <pre className="max-h-96 overflow-auto whitespace-pre-wrap text-xs leading-5 text-white/60">{JSON.stringify({ evidenceMap, closedLoop }, null, 2)}</pre>
-            <pre className="max-h-96 overflow-auto whitespace-pre-wrap text-xs leading-5 text-white/60">{JSON.stringify(state, null, 2)}</pre>
+            <pre className="max-h-96 overflow-auto whitespace-pre-wrap rounded-2xl border border-white/10 bg-black/45 p-4 text-xs leading-5 text-white/60">{JSON.stringify({ evidenceMap, closedLoop }, null, 2)}</pre>
+            <pre className="max-h-96 overflow-auto whitespace-pre-wrap rounded-2xl border border-white/10 bg-black/45 p-4 text-xs leading-5 text-white/60">{JSON.stringify(state, null, 2)}</pre>
           </div>
         </details>
       </div>
