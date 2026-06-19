@@ -41,9 +41,10 @@ export function aggregateWorldSpect(observations: SourceObservation[]): WorldSpe
   const wsi = clamp01(vectors.reduce((sum, vector) => sum + vector.value * vector.trust * (1 - vector.degradation), 0) / Math.max(1, vectors.length))
   const nti = clamp01(vectors.reduce((sum, vector) => sum + ((vector.velocity + vector.volatility) / 2) * Math.max(0.2, vector.trust), 0) / Math.max(1, vectors.length))
   const degradedSources = observations.filter((obs) => obs.status === 'DEGRADED_BLOCKING' || obs.status === 'RATE_LIMITED').map((obs) => obs.sourceId)
+  const hasReading = activeVectors.length > 0
   return {
     observedAt: new Date().toISOString(),
-    status: degradedSources.length > 0 ? 'DEGRADED_BLOCKING' : activeVectors.length > 0 ? 'ACTIVE' : 'BOOTSTRAPPED',
+    status: degradedSources.length > 0 ? (hasReading ? 'PARTIAL_EXTERNAL_FAILURE' : 'DEGRADED_BLOCKING') : activeVectors.length > 0 ? 'ACTIVE' : 'BOOTSTRAPPED',
     vectors,
     wsi,
     nti,
