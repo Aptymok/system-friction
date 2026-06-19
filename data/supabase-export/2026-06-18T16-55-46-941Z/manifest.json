@@ -1,0 +1,154 @@
+{
+  "ok": false,
+  "exported_at": "2026-06-18T16:55:46.945Z",
+  "outDir": "data\\supabase-export\\2026-06-18T16-55-46-941Z",
+  "tables": [
+    {
+      "table": "worldspect_snapshots",
+      "exists": true,
+      "count": 0,
+      "exported": false,
+      "error": "Invalid path specified in request URL"
+    },
+    {
+      "table": "scorefriction_sources",
+      "exists": true,
+      "count": 0,
+      "exported": false,
+      "error": "Invalid path specified in request URL"
+    },
+    {
+      "table": "scorefriction_observations",
+      "exists": true,
+      "count": 0,
+      "exported": false,
+      "error": "Invalid path specified in request URL"
+    },
+    {
+      "table": "scorefriction_vectors",
+      "exists": true,
+      "count": 0,
+      "exported": false,
+      "error": "Invalid path specified in request URL"
+    },
+    {
+      "table": "scorefriction_evidence",
+      "exists": true,
+      "count": 0,
+      "exported": false,
+      "error": "Invalid path specified in request URL"
+    },
+    {
+      "table": "epistemic_events",
+      "exists": true,
+      "count": 0,
+      "exported": false,
+      "error": "Invalid path specified in request URL"
+    },
+    {
+      "table": "graph_edges",
+      "exists": true,
+      "count": 0,
+      "exported": false,
+      "error": "Invalid path specified in request URL"
+    },
+    {
+      "table": "graph_nodes",
+      "exists": true,
+      "count": 0,
+      "exported": false,
+      "error": "Invalid path specified in request URL"
+    },
+    {
+      "table": "logbook_visible",
+      "exists": true,
+      "count": 0,
+      "exported": false,
+      "error": "Invalid path specified in request URL"
+    },
+    {
+      "table": "logbook_events",
+      "exists": true,
+      "count": 0,
+      "exported": false,
+      "error": "Invalid path specified in request URL"
+    },
+    {
+      "table": "logbook_signals",
+      "exists": true,
+      "count": 0,
+      "exported": false,
+      "error": "Invalid path specified in request URL"
+    },
+    {
+      "table": "logbook_regime",
+      "exists": true,
+      "count": 0,
+      "exported": false,
+      "error": "Invalid path specified in request URL"
+    },
+    {
+      "table": "logbook_knowledge",
+      "exists": true,
+      "count": 0,
+      "exported": false,
+      "error": "Invalid path specified in request URL"
+    },
+    {
+      "table": "logbook_frictions",
+      "exists": true,
+      "count": 0,
+      "exported": false,
+      "error": "Invalid path specified in request URL"
+    },
+    {
+      "table": "logbook_mutations",
+      "exists": true,
+      "count": 0,
+      "exported": false,
+      "error": "Invalid path specified in request URL"
+    },
+    {
+      "table": "amv_learning",
+      "exists": true,
+      "count": 0,
+      "exported": false,
+      "error": "Invalid path specified in request URL"
+    },
+    {
+      "table": "action_proposals",
+      "exists": true,
+      "count": 0,
+      "exported": false,
+      "error": "Invalid path specified in request URL"
+    },
+    {
+      "table": "evidence_ledger",
+      "exists": true,
+      "count": 0,
+      "exported": false,
+      "error": "Invalid path specified in request URL"
+    },
+    {
+      "table": "root_neural_nodes",
+      "exists": true,
+      "count": 0,
+      "exported": false,
+      "error": "Invalid path specified in request URL"
+    },
+    {
+      "table": "root_neural_edges",
+      "exists": true,
+      "count": 0,
+      "exported": false,
+      "error": "Invalid path specified in request URL"
+    },
+    {
+      "table": "profiles",
+      "exists": true,
+      "count": 0,
+      "exported": false,
+      "error": "Invalid path specified in request URL"
+    }
+  ]
+}

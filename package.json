@@ -1,52 +1,57 @@
 {
-  "name": "system-friction-terminal",
-  "version": "1.0.0",
-  "private": true,
-  "workspaces": [
-    "apps/*",
-    "services/*",
-    "packages/*"
-  ],
-  "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint",
-    "audit:routes": "node scripts/audit-routes.mjs",
-    "audit:dead-components": "node scripts/find-dead-components.mjs",
-    "preflight:runtime": "node scripts/runtime-preflight.mjs",
-    "check:boundaries": "node scripts/check-domain-boundaries.mjs",
-    "qa:sfi-runtime": "node scripts/qa-sfi-runtime.mjs",
-    "qa:sfi-convergence": "node scripts/qa-sfi-convergence.mjs",
-    "qa:sfi-execution": "node scripts/qa-sfi-execution.js",
-    "typecheck": "tsc --noEmit --pretty false --incremental false",
-    "phase:verify": "npm run check:boundaries && npm run typecheck",
-    "qa:sfi-pipeline": "node scripts/qa-sfi-minimal-pipeline.mjs"
-  },
-  "dependencies": {
-    "@headlessui/react": "^2.0.0",
-    "@supabase/auth-helpers-nextjs": "^0.15.0",
-    "@supabase/ssr": "^0.5.2",
-    "@supabase/supabase-js": "^2.105.4",
-    "jsonwebtoken": "^9.0.3",
-    "lucide-react": "^0.468.0",
-    "next": "^16.2.6",
-    "react": "^19.2.6",
-    "react-dom": "^19.2.6",
-    "recharts": "^3.8.1",
-    "stripe": "^22.1.1",
-    "uuid": "^14.0.0",
-    "zod": "^4.4.3",
-    "zustand": "^4.5.5"
-  },
-  "devDependencies": {
-    "@types/node": "^20.17.10",
-    "@types/react": "^19.2.14",
-    "@types/react-dom": "^19.2.3",
-    "autoprefixer": "^10.4.20",
-    "postcss": "^8.4.49",
-    "supabase": "^2.98.2",
-    "tailwindcss": "^3.4.16",
-    "typescript": "^5.7.2"
-  }
+    "name":  "system-friction-terminal",
+    "version":  "1.0.0",
+    "private":  true,
+    "workspaces":  [
+                       "apps/*",
+                       "services/*",
+                       "packages/*"
+                   ],
+    "scripts":  {
+                    "dev":  "next dev",
+                    "build":  "next build",
+                    "start":  "next start",
+                    "lint":  "next lint",
+                    "audit:routes":  "node scripts/audit-routes.mjs",
+                    "audit:dead-components":  "node scripts/find-dead-components.mjs",
+                    "preflight:runtime":  "node scripts/runtime-preflight.mjs",
+                    "check:boundaries":  "node scripts/check-domain-boundaries.mjs",
+                    "qa:sfi-runtime":  "node scripts/qa-sfi-runtime.mjs",
+                    "qa:sfi-convergence":  "node scripts/qa-sfi-convergence.mjs",
+                    "qa:sfi-execution":  "node scripts/qa-sfi-execution.js",
+                    "typecheck":  "tsc --noEmit --pretty false --incremental false",
+                    "phase:verify":  "npm run check:boundaries \u0026\u0026 npm run typecheck",
+                    "qa:sfi-pipeline":  "node scripts/qa-sfi-minimal-pipeline.mjs",
+                    "db:export":  "node scripts/db/export-supabase.mjs",
+                    "db:inventory":  "node scripts/db/inventory-supabase.mjs",
+                    "db:reset:sfi":  "node scripts/db/reset-sfi-operational-tables.mjs",
+                    "db:seed:sfi":  "node scripts/db/seed-sfi-canonical-history.mjs",
+                    "db:verify:sfi":  "node scripts/db/verify-sfi-database.mjs"
+                },
+    "dependencies":  {
+                         "@headlessui/react":  "^2.0.0",
+                         "@supabase/auth-helpers-nextjs":  "^0.15.0",
+                         "@supabase/ssr":  "^0.5.2",
+                         "@supabase/supabase-js":  "^2.105.4",
+                         "jsonwebtoken":  "^9.0.3",
+                         "lucide-react":  "^0.468.0",
+                         "next":  "^16.2.6",
+                         "react":  "^19.2.6",
+                         "react-dom":  "^19.2.6",
+                         "recharts":  "^3.8.1",
+                         "stripe":  "^22.1.1",
+                         "uuid":  "^14.0.0",
+                         "zod":  "^4.4.3",
+                         "zustand":  "^4.5.5"
+                     },
+    "devDependencies":  {
+                            "@types/node":  "^20.17.10",
+                            "@types/react":  "^19.2.14",
+                            "@types/react-dom":  "^19.2.3",
+                            "autoprefixer":  "^10.4.20",
+                            "postcss":  "^8.4.49",
+                            "supabase":  "^2.98.2",
+                            "tailwindcss":  "^3.4.16",
+                            "typescript":  "^5.7.2"
+                        }
 }
