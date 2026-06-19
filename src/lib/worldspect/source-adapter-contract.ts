@@ -3,7 +3,7 @@ export type WorldSpectDomain =
   | 'CLIMATE' | 'INSTITUTIONAL' | 'MEMETIC' | 'TECH' | 'AFFECTIVE'
 
 export type SourceAccessKind = 'public-api' | 'oauth' | 'official-feed' | 'manual-upload' | 'internal-evidence' | 'licensed-api'
-export type SourceAdapterStatus = 'ACTIVE' | 'BOOTSTRAPPED' | 'AWAITING_CREDENTIALS' | 'RATE_LIMITED' | 'DEGRADED_BLOCKING' | 'DISABLED'
+export type SourceAdapterStatus = 'ACTIVE' | 'BOOTSTRAPPED' | 'EMPTY_RESULT' | 'AWAITING_CREDENTIALS' | 'RATE_LIMITED' | 'DEGRADED_BLOCKING' | 'DISABLED'
 
 export type SourceObservation = {
   sourceId: string
