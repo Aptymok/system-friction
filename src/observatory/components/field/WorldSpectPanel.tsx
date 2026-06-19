@@ -15,7 +15,7 @@ export function WorldSpectPanel({ reading, open, latestSnapshot, onToggle }: Wor
   return (
     <aside className={`worldspect ${open ? 'open' : ''}`} aria-label="WorldSpect">
       <button type="button" className="worldspect-trigger" onClick={onToggle}>
-        <span>WorldSpect</span>
+        <span>Lectura del mundo</span>
         <strong>{reading.symbols.join(' ')}</strong>
       </button>
 
@@ -30,23 +30,23 @@ export function WorldSpectPanel({ reading, open, latestSnapshot, onToggle }: Wor
           </div>
 
           <div className="worldspect-reading">
-            <span>lectura</span>
+            <span>que esta pasando</span>
             <p>{reading.meaning}</p>
           </div>
 
           <div className="worldspect-reading">
-            <span>accion</span>
+            <span>que hacer</span>
             <p>{reading.suggestedAction}</p>
           </div>
 
           {latestSnapshot && (
             <div className="worldspect-reading">
-              <span>ultima lectura medida</span>
+              <span>ultima evidencia medida</span>
               <p>{String(latestSnapshot.observed_at || latestSnapshot.created_at || 'sin timestamp')}</p>
             </div>
           )}
 
-          <div className="worldspect-vectors">
+          <div className="worldspect-vectors" aria-label="areas observadas">
             {reading.vectors.map((vector) => (
               <div key={vector.variable} className={`worldspect-vector ${vector.state}`}>
                 <strong>{vector.symbol}</strong>
@@ -66,17 +66,17 @@ export function WorldSpectPanel({ reading, open, latestSnapshot, onToggle }: Wor
           )}
 
           <details className="worldspect-trace">
-            <summary>trazabilidad</summary>
+            <summary>detalle tecnico secundario</summary>
             <p>
-              Estado: {reading.sourceDescriptor.sourceState}
+              Estado fuente: {reading.sourceDescriptor.sourceState}
               <br />
               Confianza: {reading.sourceDescriptor.confidence}
               <br />
-              Externo: {reading.sourceDescriptor.isExternal ? 'si' : 'no'}
+              Fuente externa: {reading.sourceDescriptor.isExternal ? 'si' : 'no'}
               <br />
               Simulado: {reading.sourceDescriptor.isSimulated ? 'si' : 'no'}
               <br />
-              Timestamp: {reading.sourceDescriptor.timestamp}
+              Momento de lectura: {reading.sourceDescriptor.timestamp}
               {reading.sourceDescriptor.sourceUrl ? (
                 <>
                   <br />

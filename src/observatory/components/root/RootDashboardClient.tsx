@@ -67,15 +67,15 @@ type TwinState = {
 };
 
 const FIELD_TOOLS: Array<{ id: string; title: string; hint: string; Icon: React.ComponentType<{ size?: number; strokeWidth?: number }> }> = [
-  { id: 'observacion', title: 'Observacion', hint: 'Nodos observados, relaciones disponibles y evidencia visible.', Icon: Eye },
-  { id: 'libres', title: 'Nodos libres', hint: 'Todos los nodos sueltos, flotando, sin anclaje por cluster; útil para ver fricción dispersa.', Icon: Sparkles },
-  { id: 'contradiccion', title: 'Contradiccion', hint: 'Alta degradacion con evidencia incompleta.', Icon: GitBranch },
-  { id: 'energia', title: 'Energia', hint: 'Flujos, grosor de edges y presion acumulada.', Icon: Zap },
-  { id: 'validacion', title: 'Validacion', hint: 'Lo que falta aprobar, preparar o cerrar.', Icon: CheckCircle2 },
-  { id: 'temporalidad', title: 'Temporalidad', hint: 'Latencia, senales viejas y seguimiento pendiente.', Icon: Clock3 },
-  { id: 'gobernanza', title: 'Gobernanza', hint: 'ACP, propuestas, bloqueos y autorizaciones.', Icon: ShieldCheck },
-  { id: 'memoria', title: 'Memoria', hint: 'Atlas, Cuadernillo, Sobre Negro y documentos.', Icon: Archive },
-  { id: 'atractores', title: 'Atractores', hint: 'Direccion, tension y alineacion del campo.', Icon: Compass },
+  { id: 'observacion', title: 'Observacion', hint: 'Muestra que existe, que esta conectado y que evidencia lo sostiene.', Icon: Eye },
+  { id: 'libres', title: 'Sin anclaje', hint: 'Elementos presentes que aun no tienen lugar claro dentro del sistema.', Icon: Sparkles },
+  { id: 'contradiccion', title: 'Friccion', hint: 'Puntos donde hay tension, evidencia incompleta o direccion confusa.', Icon: GitBranch },
+  { id: 'energia', title: 'Presion', hint: 'Donde se acumula actividad y donde puede requerirse accion minima.', Icon: Zap },
+  { id: 'validacion', title: 'Pendiente', hint: 'Lo que falta aprobar, preparar, cerrar o registrar como resultado.', Icon: CheckCircle2 },
+  { id: 'temporalidad', title: 'Tiempo', hint: 'Senales viejas, latencia y seguimiento pendiente.', Icon: Clock3 },
+  { id: 'gobernanza', title: 'Decision', hint: 'Propuestas, autorizaciones, bloqueos y control operativo.', Icon: ShieldCheck },
+  { id: 'memoria', title: 'Archivo', hint: 'Atlas, Cuadernillo, Sobre Negro y documentos usados como evidencia.', Icon: Archive },
+  { id: 'atractores', title: 'Futuro', hint: 'Direccion declarada, tension y alineacion del campo.', Icon: Compass },
 ];
 
 const FIELD_TOOL_IDS = FIELD_TOOLS.map((tool) => tool.id);
@@ -219,21 +219,21 @@ export function RootDashboardClient() {
       <header className="fixed inset-x-0 top-0 z-50 border-b border-[#2e2c24] bg-[#060605]/95 backdrop-blur-xl">
         <div className="flex h-9 items-center overflow-x-auto">
           <div className="flex shrink-0 items-center gap-2 px-4 font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-[#c8a951]">
-            <BrainCircuit size={14} strokeWidth={1.8} /> SFI / ACP ROOT
+            <BrainCircuit size={14} strokeWidth={1.8} /> SFI / ROOT
           </div>
-          <MetricChip label="Sistema" value={fieldState.regime.label} />
-          <MetricChip label="WSV" value={wsvReading.state.label} tone={wsvReading.state.severity === 'warning' ? 'red' : 'green'} />
-          <MetricChip label="MIHM" value={mihmReading.decisionGrade ? mihmReading.state.label : 'MIHM basal · Aptymok / n_0'} tone={mihmReading.decisionGrade ? 'green' : 'muted'} />
-          <MetricChip label="Atractor" value={attractorState.sufficient ? attractorState.directionalWeight : 'sin lectura'} tone={attractorState.sufficient ? 'green' : 'muted'} />
-          <MetricChip label="Eyectores" value={attractorState.ejectors.length || '-'} tone={attractorState.ejectors.length ? 'red' : 'muted'} />
-          <MetricChip label="Cerrar" value={fieldState.openMutations.length || '-'} tone={fieldState.openMutations.length ? 'red' : 'muted'} />
+          <MetricChip label="Estado" value={fieldState.regime.label} />
+          <MetricChip label="Mundo" value={wsvReading.state.label} tone={wsvReading.state.severity === 'warning' ? 'red' : 'green'} />
+          <MetricChip label="Matriz" value={mihmReading.decisionGrade ? mihmReading.state.label : 'basal · Aptymok / n_0'} tone={mihmReading.decisionGrade ? 'green' : 'muted'} />
+          <MetricChip label="Futuro" value={attractorState.sufficient ? attractorState.directionalWeight : 'sin lectura'} tone={attractorState.sufficient ? 'green' : 'muted'} />
+          <MetricChip label="Riesgos" value={attractorState.ejectors.length || '-'} tone={attractorState.ejectors.length ? 'red' : 'muted'} />
+          <MetricChip label="Pendiente" value={fieldState.openMutations.length || '-'} tone={fieldState.openMutations.length ? 'red' : 'muted'} />
           <MetricChip label="RCE" value="sin lectura suficiente" tone="muted" />
           <MetricChip label="Continuidad" value={continuityActive ? 'activa' : 'interrumpida'} tone={continuityActive ? 'green' : 'red'} />
           <MetricChip label="Archivo" value={fieldState.layerCounts.sfi_archive || '-'} tone="muted" />
           <MetricChip label="Vivo" value={fieldState.layerCounts.living_observatory || '-'} tone="muted" />
-          <MetricChip label="Sandbox" value={fieldState.layerCounts.sandbox || '-'} tone="muted" />
+          <MetricChip label="Prueba" value={fieldState.layerCounts.sandbox || '-'} tone="muted" />
           <div className="ml-auto hidden shrink-0 items-center gap-2 px-4 font-mono text-[9px] uppercase tracking-[0.14em] text-[#7a7568] md:flex">
-            <span className={`h-1.5 w-1.5 rounded-full ${visor.enabled ? 'bg-white/30' : 'animate-pulse bg-[#c8a951]'}`} /> {visor.enabled ? 'campo congelado' : 'campo activo'}
+            <span className={`h-1.5 w-1.5 rounded-full ${visor.enabled ? 'bg-white/30' : 'animate-pulse bg-[#c8a951]'}`} /> {visor.enabled ? 'campo pausado' : 'campo activo'}
           </div>
           <button
             type="button"
@@ -242,13 +242,13 @@ export function RootDashboardClient() {
             }`}
             onClick={visor.toggle}
           >
-            {visor.enabled ? 'VISOR MODE: ON' : 'VISOR MODE: OFF'}
+            {visor.enabled ? 'VISOR: ACTIVO' : 'VISOR: INACTIVO'}
           </button>
           <a
             href="/surfaces"
             className="mr-2 shrink-0 border border-[#d4af37]/30 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.1em] text-[#d4af37]/70 hover:border-[#d4af37]/60 hover:text-[#d4af37]"
           >
-            Surfaces
+            Vistas
           </a>
           <button
             type="button"
@@ -260,7 +260,7 @@ export function RootDashboardClient() {
               setActiveTool(nextState ? 'atractores' : 'libres');
             }}
           >
-            {isAttractorConsolidation ? 'T-ATTRACTOR CONSOLIDATION: ON' : 'ATRACTOR: OFF'}
+            {isAttractorConsolidation ? 'FUTURO: ACTIVO' : 'FUTURO: SIN FOCO'}
           </button>
           <LogoutLink className="mr-3 shrink-0 border border-[#c87060]/40 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.1em] text-[#c87060] hover:border-[#c87060] hover:text-[#f08a72]" />
         </div>
@@ -310,13 +310,13 @@ export function RootDashboardClient() {
           )}
           <RootLiveGraphPanel />
           <div className="absolute right-3 top-3 z-20 w-[320px] border border-[#1e1c17] bg-[#060605]/88 p-3 font-mono text-[9px] uppercase tracking-[0.12em] text-[#8a7035] backdrop-blur">
-            <div className="mb-2 text-[#c8a951]">Operational organism</div>
-            <div>WSV: {String((operationalLayers?.worldspect as Record<string, unknown> | undefined)?.status ?? 'loading')}</div>
-            <div>timeline: {String((operationalLayers?.longitudinal as Record<string, unknown> | undefined)?.count ?? 0)} snapshots</div>
-            <div>trace: {String(((operationalLayers?.evidenceTrace as Record<string, unknown> | undefined)?.traceCoverage as Record<string, unknown> | undefined)?.total_vectors ?? 0)} vectors</div>
-            <div>attractors: {String(((operationalLayers?.attractors as Record<string, unknown> | undefined)?.attractors as unknown[] | undefined)?.length ?? 0)}</div>
-            <div>opportunities: {String(((operationalLayers?.opportunities as Record<string, unknown> | undefined)?.opportunities as unknown[] | undefined)?.length ?? 0)}</div>
-            <div>cycle: {String(((operationalLayers?.cycle as Record<string, unknown> | undefined)?.state as Record<string, unknown> | undefined)?.object_presence ?? 'world only')}</div>
+            <div className="mb-2 text-[#c8a951]">Estado operativo</div>
+            <div>Mundo: {String((operationalLayers?.worldspect as Record<string, unknown> | undefined)?.status ?? 'cargando')}</div>
+            <div>Lecturas: {String((operationalLayers?.longitudinal as Record<string, unknown> | undefined)?.count ?? 0)}</div>
+            <div>Evidencia: {String(((operationalLayers?.evidenceTrace as Record<string, unknown> | undefined)?.traceCoverage as Record<string, unknown> | undefined)?.total_vectors ?? 0)} vectores</div>
+            <div>Futuro: {String(((operationalLayers?.attractors as Record<string, unknown> | undefined)?.attractors as unknown[] | undefined)?.length ?? 0)}</div>
+            <div>Oportunidades: {String(((operationalLayers?.opportunities as Record<string, unknown> | undefined)?.opportunities as unknown[] | undefined)?.length ?? 0)}</div>
+            <div>Ciclo: {String(((operationalLayers?.cycle as Record<string, unknown> | undefined)?.state as Record<string, unknown> | undefined)?.object_presence ?? 'sin objeto definido')}</div>
           </div>
 
           <div className="pointer-events-none absolute bottom-3 left-3 z-20 border border-[#1e1c17] bg-[#060605]/85 px-3 py-2 font-mono text-[8px] uppercase tracking-[0.12em] text-[#8a7035]">
@@ -327,13 +327,13 @@ export function RootDashboardClient() {
 
         <aside className={`min-h-0 overflow-hidden bg-[#0e0d0b] ${visor.enabled ? 'grayscale' : ''}`}>
           <div className="flex h-full flex-col">
-            <Accordion title="AMV" open={openPanel === 'chat'} onClick={() => setOpenPanel(openPanel === 'chat' ? 'propuestas' : 'chat')}>
+            <Accordion title="Conversacion" open={openPanel === 'chat'} onClick={() => setOpenPanel(openPanel === 'chat' ? 'propuestas' : 'chat')}>
               <TwinInteractionPanel compact selectedNodeLabel={selectedNodeLabel} onArtifactIntent={() => setOpenPanel('artefactos')} />
             </Accordion>
-            <Accordion title="Signals" open={openPanel === 'signals'} onClick={() => setOpenPanel(openPanel === 'signals' ? 'chat' : 'signals')}>
+            <Accordion title="Senales" open={openPanel === 'signals'} onClick={() => setOpenPanel(openPanel === 'signals' ? 'chat' : 'signals')}>
               {openPanel === 'signals' ? <PersistentSignalFieldPanel /> : null}
             </Accordion>
-            <Accordion title="Propuestas" open={openPanel === 'propuestas'} onClick={() => setOpenPanel(openPanel === 'propuestas' ? 'chat' : 'propuestas')}>
+            <Accordion title="Decisiones" open={openPanel === 'propuestas'} onClick={() => setOpenPanel(openPanel === 'propuestas' ? 'chat' : 'propuestas')}>
               <AcpProposalConsole compact />
             </Accordion>
             <Accordion title="Atlas / Cuadernillo / Sobre Negro" open={openPanel === 'artefactos'} onClick={() => setOpenPanel(openPanel === 'artefactos' ? 'chat' : 'artefactos')}>
@@ -342,7 +342,7 @@ export function RootDashboardClient() {
             <Accordion title="Agentes" open={openPanel === 'agentes'} onClick={() => setOpenPanel(openPanel === 'agentes' ? 'chat' : 'agentes')}>
               <AcpAgentRegistryPanel compact />
             </Accordion>
-            <Accordion title="Root" open={openPanel === 'control'} onClick={() => setOpenPanel(openPanel === 'control' ? 'chat' : 'control')}>
+            <Accordion title="Control" open={openPanel === 'control'} onClick={() => setOpenPanel(openPanel === 'control' ? 'chat' : 'control')}>
               <RootObservatoryIndex scopes={twin?.data?.amvScopes} />
               <div className="mt-3">
                 <SelfObservabilityPanel />
