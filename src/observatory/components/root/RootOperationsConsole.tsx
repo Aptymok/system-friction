@@ -32,46 +32,52 @@ const GROUPS = {
   cuentas: ['accounts', 'account_members', 'usage_ledger', 'account_balance'],
 };
 
+const GROUP_LABELS: Record<keyof typeof GROUPS, string> = {
+  bitacora: 'Registro',
+  evidencia: 'Evidencia',
+  cuentas: 'Cuentas',
+};
+
 const ROOT_READINGS: Record<keyof typeof GROUPS, string[]> = {
   bitacora: [
-    'Bitacora muestra mutaciones internas, eventos epistemicos y eventos de auditoria root.',
-    'Actualizar solo recarga estado; no muta datos.',
-    'Cerrar mutacion cierra una mutacion interna en cola y deja rastro de auditoria root. No valida verdad ni prueba el evento.',
+    'Registro muestra cambios internos, eventos de conocimiento y rastro de auditoria.',
+    'Actualizar solo recarga la lectura; no cambia datos.',
+    'Cerrar un pendiente solo lo quita de la cola operativa. No prueba que el evento sea verdadero.',
   ],
   evidencia: [
-    'Evidencia muestra entradas de evidencia, nodos del grafo, relaciones del grafo y propuestas de accion.',
-    'Registrar evidencia crea una entrada root de evidencia. Debe usarse solo cuando exista contenido minimo verificable.',
-    'Actualizar solo recarga estado; no muta datos.',
+    'Evidencia muestra registros, elementos del campo, relaciones y acciones propuestas.',
+    'Registrar evidencia debe usarse solo cuando exista contenido minimo verificable.',
+    'Actualizar solo recarga la lectura; no cambia datos.',
   ],
   cuentas: [
-    'Cuentas muestra contenedores de cuenta, miembros, ledger de uso y balance.',
-    'Esta vista sirve para leer estado operativo de cuentas, no para aprobar decisiones ni corregir saldos desde aqui.',
-    'Actualizar solo recarga estado; no muta datos.',
+    'Cuentas muestra contenedores, miembros, uso registrado y balance.',
+    'Esta vista sirve para leer estado operativo de cuentas, no para aprobar decisiones financieras.',
+    'Actualizar solo recarga la lectura; no cambia datos.',
   ],
 };
 
 const TABLE_MEANINGS: Record<string, string> = {
-  logbook_mutations: 'Cambios internos de bitacora pendientes o cerrados.',
+  logbook_mutations: 'Cambios internos pendientes o cerrados.',
   epistemic_events: 'Eventos de conocimiento observables en la memoria SFI.',
-  root_audit_events: 'Rastro de auditoria de nivel root.',
-  root_evidence_entries: 'Evidencia registrada desde root o fuentes del sistema.',
-  graph_nodes: 'Entidades, conceptos o activos del grafo SFI.',
-  graph_edges: 'Relaciones entre nodos del grafo.',
+  root_audit_events: 'Rastro de auditoria de control.',
+  root_evidence_entries: 'Evidencia registrada desde control o fuentes del sistema.',
+  graph_nodes: 'Entidades, conceptos o activos del campo SFI.',
+  graph_edges: 'Relaciones entre elementos del campo.',
   action_proposals: 'Acciones propuestas bajo gobierno.',
   accounts: 'Contenedores de cuenta.',
   account_members: 'Personas o usuarios vinculados a cuentas.',
-  usage_ledger: 'Ledger de uso y actividad de cuenta.',
+  usage_ledger: 'Uso y actividad de cuenta.',
   account_balance: 'Estado de balance de cuenta.',
 };
 
 const OPERATION_NAMES: Record<string, string> = {
-  logbook_mutations: 'Mutaciones de bitacora',
+  logbook_mutations: 'Pendientes de registro',
   epistemic_events: 'Eventos de conocimiento',
-  root_audit_events: 'Auditoria ROOT',
-  root_evidence_entries: 'Evidencia ROOT',
-  graph_nodes: 'Nodos del campo',
+  root_audit_events: 'Auditoria de control',
+  root_evidence_entries: 'Evidencia registrada',
+  graph_nodes: 'Elementos del campo',
   graph_edges: 'Relaciones del campo',
-  action_proposals: 'Propuestas de accion',
+  action_proposals: 'Acciones propuestas',
   accounts: 'Cuentas',
   account_members: 'Miembros de cuenta',
   usage_ledger: 'Uso registrado',
@@ -89,9 +95,9 @@ function operationReading(table: RootTableState) {
   const requiresEvidence = table.table.includes('evidence') || table.table.includes('proposal') || table.table.includes('mutation');
   const requiresClosure = table.table.includes('mutation') || table.table.includes('proposal');
   return {
-    name: OPERATION_NAMES[table.table] ?? 'Operacion ROOT',
+    name: OPERATION_NAMES[table.table] ?? 'Operacion de control',
     state: state.label,
-    reason: block?.reason ?? TABLE_MEANINGS[table.table] ?? 'Operacion visible desde ROOT.',
+    reason: block?.reason ?? TABLE_MEANINGS[table.table] ?? 'Operacion visible desde control.',
     consequence: block?.consequence ?? (requiresClosure ? 'Si queda abierta, aumenta pendiente de cierre.' : 'Sirve como lectura; no debe gobernar por si sola.'),
     nextAction: block?.nextAction ?? (requiresClosure ? 'revisar cierre, evidencia o archivo.' : 'mantener como lectura secundaria.'),
     date: table.latest[0] && typeof table.latest[0] === 'object' ? String((table.latest[0] as RootRow).created_at ?? 'sin fecha visible') : 'sin fecha visible',
@@ -162,7 +168,7 @@ export function RootOperationsConsole() {
         body: JSON.stringify({ result: 'closed_from_root_console' }),
       });
       const result = await response.json().catch(() => ({ ok: false, error: `HTTP_${response.status}` }));
-      setMessage(result.ok ? 'Mutacion cerrada con auditoria root.' : result.error ?? 'No se pudo cerrar mutacion.');
+      setMessage(result.ok ? 'Pendiente cerrado con auditoria.' : result.error ?? 'No se pudo cerrar el pendiente.');
       if (result.ok) await load();
     } finally {
       setBusy(false);
@@ -181,9 +187,9 @@ export function RootOperationsConsole() {
     <section className="border border-[#1e1c17] bg-[#0e0d0b]">
       <div className="flex items-start justify-between gap-3 border-b border-[#1e1c17] px-4 py-3">
         <div>
-          <p className="font-mono text-[8px] uppercase tracking-[0.22em] text-[#8a7035]">Root operaciones</p>
-          <h2 className="mt-1 font-serif text-lg text-[#c8a951]">Bitacora / Evidencia / Cuentas</h2>
-          <p className="mt-1 font-mono text-[9px] text-[#7a7568]">{state?.data?.identity?.role ?? 'sin rol'} / {state?.data?.identity?.isRoot ? 'root verificado' : 'sin root'}</p>
+          <p className="font-mono text-[8px] uppercase tracking-[0.22em] text-[#8a7035]">Control operativo</p>
+          <h2 className="mt-1 font-serif text-lg text-[#c8a951]">Registro / Evidencia / Cuentas</h2>
+          <p className="mt-1 font-mono text-[9px] text-[#7a7568]">{state?.data?.identity?.role ?? 'sin rol'} / {state?.data?.identity?.isRoot ? 'control verificado' : 'sin control verificado'}</p>
         </div>
         <button type="button" onClick={() => void load()} className="border border-[#8a7035] bg-[#2e2410] px-3 py-1 font-mono text-[8px] uppercase tracking-[0.16em] text-[#c8a951]">Actualizar</button>
       </div>
@@ -191,7 +197,7 @@ export function RootOperationsConsole() {
       <div className="grid grid-cols-3 border-b border-[#1e1c17] font-mono text-[8px] uppercase tracking-[0.13em]">
         {Object.keys(GROUPS).map((key) => (
           <button key={key} type="button" onClick={() => setActive(key as keyof typeof GROUPS)} className={`border-r border-[#1e1c17] px-2 py-2 last:border-r-0 ${active === key ? 'bg-[#2e2410] text-[#c8a951]' : 'text-[#7a7568]'}`}>
-            {key}
+            {GROUP_LABELS[key as keyof typeof GROUPS]}
           </button>
         ))}
       </div>
@@ -203,7 +209,7 @@ export function RootOperationsConsole() {
       ) : null}
 
       <div className="m-3 border border-[#2e2410] bg-[#12100d] p-3">
-        <div className="font-mono text-[8px] uppercase tracking-[0.18em] text-[#8a7035]">Lectura ROOT</div>
+        <div className="font-mono text-[8px] uppercase tracking-[0.18em] text-[#8a7035]">Lectura de control</div>
         <div className="mt-2 grid gap-1 text-xs leading-5 text-[#8a7568]">
           {ROOT_READINGS[active].map((item) => (
             <p key={item}>{item}</p>
@@ -226,10 +232,10 @@ export function RootOperationsConsole() {
                 <span>Accion siguiente: {reading.nextAction}</span>
                 <span>Fecha: {reading.date}</span>
                 <span>Capa: {reading.layer} / {reading.phase}</span>
-                <span>{reading.requiresClosure ? 'Requiere cierre.' : 'No declara cierre pendiente.'} {reading.requiresEvidence ? 'Requiere evidencia visible.' : 'No requiere evidencia principal.'} {reading.requiresRootApproval ? 'Requiere aprobacion raiz si avanza.' : 'No requiere aprobacion raiz para lectura.'} {reading.shouldSandbox ? 'Debe revisarse antes de salir de Sandbox.' : ''}</span>
+                <span>{reading.requiresClosure ? 'Requiere cierre.' : 'No declara cierre pendiente.'} {reading.requiresEvidence ? 'Requiere evidencia visible.' : 'No requiere evidencia principal.'} {reading.requiresRootApproval ? 'Requiere aprobacion de control si avanza.' : 'No requiere aprobacion de control para lectura.'} {reading.shouldSandbox ? 'Debe revisarse antes de salir de prueba.' : ''}</span>
               </div>
               <details className="mt-2 text-[#35312a]">
-                <summary className="cursor-pointer uppercase tracking-[0.12em]">linaje tecnico secundario</summary>
+                <summary className="cursor-pointer uppercase tracking-[0.12em]">detalle tecnico secundario</summary>
                 <div className="mt-1">tabla: {table.table} / registros: {table.count ?? '-'}{table.warning ? ` / aviso: ${table.warning}` : ''}</div>
               </details>
             </div>
@@ -239,13 +245,13 @@ export function RootOperationsConsole() {
 
       {active === 'bitacora' ? (
         <div className="border-t border-[#1e1c17] p-3">
-          <div className="font-mono text-[8px] uppercase tracking-[0.18em] text-[#8a7035]">Cerrar mutaciones</div>
-          <p className="mt-2 text-xs leading-5 text-[#8a7568]">Cerrar una mutacion es administrativo. No prueba el evento; solo la quita de la cola pendiente y deja auditoria.</p>
+          <div className="font-mono text-[8px] uppercase tracking-[0.18em] text-[#8a7035]">Cerrar pendientes</div>
+          <p className="mt-2 text-xs leading-5 text-[#8a7568]">Cerrar un pendiente es administrativo. No prueba el evento; solo lo quita de la cola pendiente y deja auditoria.</p>
           <div className="mt-2 grid gap-1">
             {mutations.slice(0, 5).map((mutation) => (
               <div key={String(mutation.id)} className="grid grid-cols-[1fr_auto] gap-2 border border-[#1e1c17] bg-[#131210] p-2 font-mono text-[8px]">
                 <div>
-                  <div className="text-[#ccc8bc]">Operacion de bitacora</div>
+                  <div className="text-[#ccc8bc]">Operacion de registro</div>
                   <div className="text-[#7a7568]">{translateRootState(mutation.status ?? 'pending').label} / {String(mutation.created_at ?? 'sin fecha visible').slice(0, 19)}</div>
                   <div className="mt-1 text-[#7a7568]">Esta operacion tiene evidencia registrada solo si su linaje lo muestra; cierre administrativo no equivale a validacion externa.</div>
                   <details className="mt-1 text-[#35312a]"><summary>linaje</summary>{String(mutation.id ?? '-')}</details>
@@ -263,11 +269,11 @@ export function RootOperationsConsole() {
 
       <form onSubmit={(event) => void submitEvidence(event)} className="border-t border-[#1e1c17] p-3">
         <div className="font-mono text-[8px] uppercase tracking-[0.18em] text-[#8a7035]">Registrar evidencia</div>
-        <p className="mt-2 text-xs leading-5 text-[#8a7568]">Usa esto solo cuando la evidencia tenga contenido minimo. No lo uses como scratchpad.</p>
-        <input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="titulo" className="mt-2 w-full border border-[#1e1c17] bg-[#060605] p-2 font-mono text-xs text-[#ccc8bc] outline-none focus:border-[#8a7035]" />
-        <textarea required value={content} onChange={(event) => setContent(event.target.value)} placeholder="evidencia" className="mt-2 min-h-24 w-full resize-none border border-[#1e1c17] bg-[#060605] p-2 font-mono text-xs text-[#ccc8bc] outline-none focus:border-[#8a7035]" />
-        <input value={targetNodeId} onChange={(event) => setTargetNodeId(event.target.value)} placeholder="graph node destino opcional" className="mt-2 w-full border border-[#1e1c17] bg-[#060605] p-2 font-mono text-xs text-[#ccc8bc] outline-none focus:border-[#8a7035]" />
-        <input value={proposalType} onChange={(event) => setProposalType(event.target.value)} placeholder="proposalType opcional" className="mt-2 w-full border border-[#1e1c17] bg-[#060605] p-2 font-mono text-xs text-[#ccc8bc] outline-none focus:border-[#8a7035]" />
+        <p className="mt-2 text-xs leading-5 text-[#8a7568]">Usa esto solo cuando la evidencia tenga contenido minimo. No lo uses como nota temporal.</p>
+        <input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="titulo visible" className="mt-2 w-full border border-[#1e1c17] bg-[#060605] p-2 font-mono text-xs text-[#ccc8bc] outline-none focus:border-[#8a7035]" />
+        <textarea required value={content} onChange={(event) => setContent(event.target.value)} placeholder="contenido de evidencia" className="mt-2 min-h-24 w-full resize-none border border-[#1e1c17] bg-[#060605] p-2 font-mono text-xs text-[#ccc8bc] outline-none focus:border-[#8a7035]" />
+        <input value={targetNodeId} onChange={(event) => setTargetNodeId(event.target.value)} placeholder="destino opcional dentro del campo" className="mt-2 w-full border border-[#1e1c17] bg-[#060605] p-2 font-mono text-xs text-[#ccc8bc] outline-none focus:border-[#8a7035]" />
+        <input value={proposalType} onChange={(event) => setProposalType(event.target.value)} placeholder="tipo de accion opcional" className="mt-2 w-full border border-[#1e1c17] bg-[#060605] p-2 font-mono text-xs text-[#ccc8bc] outline-none focus:border-[#8a7035]" />
         <button disabled={busy || !content.trim()} className="mt-3 border border-[#8a7035] bg-[#2e2410] px-3 py-2 font-mono text-[8px] uppercase tracking-[0.16em] text-[#c8a951] disabled:opacity-40">
           {busy ? 'Guardando' : 'Guardar evidencia'}
         </button>
