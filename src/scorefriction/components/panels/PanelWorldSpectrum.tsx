@@ -21,6 +21,15 @@ function pct(value: unknown) {
   return `${Math.round(n(value, 0) * 100)}%`
 }
 
+function filterLabel(value: string) {
+  if (value === 'all') return 'todo'
+  if (value === 'worldspect') return 'mundo'
+  if (value === 'scorefriction') return 'cultura'
+  if (value === 'high') return 'alta presion'
+  if (value === 'sources') return 'fuentes'
+  return value
+}
+
 function neuralGraph(context: ScoreFrictionPanelContext) {
   const runtime = record(context.operationalState?.rootNeuralGraphRuntime ?? context.operationalState?.neuralGraphRuntime)
   return {
@@ -55,7 +64,7 @@ export function PanelWorldSpectrum({ context }: { context: ScoreFrictionPanelCon
   })
 
   return (
-    <PanelFrame title="WORLD SPECTRUM / CAMPO Y FUENTES" topo="ZONE-A" className="w-[430px]">
+    <PanelFrame title="LECTURA DEL MUNDO / CAMPO Y FUENTES" topo="ZONE-A" className="w-[430px]">
       <div className="grid h-full grid-cols-[minmax(280px,0.9fr)_minmax(390px,1.1fr)] gap-3 p-3">
         <div className="grid min-h-0 grid-rows-[1fr_auto] gap-3">
           <WorldSpectPolygon snapshot={context.world} className="min-h-0" />
@@ -63,16 +72,16 @@ export function PanelWorldSpectrum({ context }: { context: ScoreFrictionPanelCon
         </div>
         <div className="grid min-h-0 grid-rows-[auto_auto_1fr_auto] gap-2">
           <div className="grid grid-cols-4 gap-2 font-mono text-[8px] uppercase tracking-[0.13em] text-[#8a8172]">
-            <div className="border border-[#d8b64a18] bg-[#080706] p-2">coverage<br /><span className="text-[#e0c46c]">{pct(sourceMix.sourceCoverage)}</span></div>
-            <div className="border border-[#d8b64a18] bg-[#080706] p-2">real<br /><span className="text-[#e0c46c]">{s(sourceMix.realInputCount, '0')}</span></div>
-            <div className="border border-[#d8b64a18] bg-[#080706] p-2">public<br /><span className="text-[#e0c46c]">{s(sourceMix.publicSourceCount, '0')}</span></div>
-            <div className="border border-[#d8b64a18] bg-[#080706] p-2">internal<br /><span className="text-[#e0c46c]">{s(sourceMix.internalSourceCount, '0')}</span></div>
+            <div className="border border-[#d8b64a18] bg-[#080706] p-2">cobertura<br /><span className="text-[#e0c46c]">{pct(sourceMix.sourceCoverage)}</span></div>
+            <div className="border border-[#d8b64a18] bg-[#080706] p-2">entradas reales<br /><span className="text-[#e0c46c]">{s(sourceMix.realInputCount, '0')}</span></div>
+            <div className="border border-[#d8b64a18] bg-[#080706] p-2">externas<br /><span className="text-[#e0c46c]">{s(sourceMix.publicSourceCount, '0')}</span></div>
+            <div className="border border-[#d8b64a18] bg-[#080706] p-2">internas<br /><span className="text-[#e0c46c]">{s(sourceMix.internalSourceCount, '0')}</span></div>
           </div>
 
           <div className="flex flex-wrap gap-2">
             {(['all', 'worldspect', 'scorefriction', 'high', 'sources'] as const).map((item) => (
               <button key={item} onClick={() => setFilter(item)} className={filter === item ? 'border border-[#d8b64a66] bg-[#d8b64a18] px-2 py-1 font-mono text-[8px] uppercase tracking-[0.14em] text-[#e0c46c]' : 'border border-[#d8b64a24] px-2 py-1 font-mono text-[8px] uppercase tracking-[0.14em] text-[#8a8172]'}>
-                {item}
+                {filterLabel(item)}
               </button>
             ))}
           </div>
@@ -82,32 +91,32 @@ export function PanelWorldSpectrum({ context }: { context: ScoreFrictionPanelCon
               sourceHealth.length ? sourceHealth.map((source, index) => (
                 <div key={`${s(source.vector, String(index))}-${index}`} className="mb-2 border-b border-[#d8b64a12] pb-2">
                   <div className="flex justify-between gap-3 text-[#e0c46c]">
-                    <span>{s(source.vector, 'VECTOR')}</span>
-                    <span>{s(source.health, 'unknown')}</span>
+                    <span>{s(source.vector, 'AREA OBSERVADA')}</span>
+                    <span>{s(source.health, 'sin estado')}</span>
                   </div>
-                  <div>fuentes {s(source.source_count, '0')} Â· confianza {pct(source.trust)} Â· persistencia {pct(source.persistence)}</div>
-                  <div>{rows(source.source_details).map((detail) => s(detail.label ?? detail.id, '')).filter(Boolean).join(' Â· ') || s(source.reason, 'sin detalle')}</div>
+                  <div>fuentes {s(source.source_count, '0')} · confianza {pct(source.trust)} · persistencia {pct(source.persistence)}</div>
+                  <div>{rows(source.source_details).map((detail) => s(detail.label ?? detail.id, '')).filter(Boolean).join(' · ') || s(source.reason, 'sin detalle')}</div>
                 </div>
               )) : MISSING
             ) : filteredNodes.length ? filteredNodes.slice(0, 32).map((node, index) => (
               <div key={`${s(node.id, String(index))}-${index}`} className="mb-2 border-b border-[#d8b64a12] pb-2">
                 <div className="text-[#e0c46c]">{s(node.label ?? node.name ?? node.id, MISSING)}</div>
-                <div>scope {s(node.scope ?? node.module ?? node.source, 'world')}</div>
-                <div>activation {n(node.activation ?? node.score ?? node.weight ?? node.phi, 0).toFixed(2)}</div>
+                <div>origen {s(node.scope ?? node.module ?? node.source, 'mundo')}</div>
+                <div>presion {n(node.activation ?? node.score ?? node.weight ?? node.phi, 0).toFixed(2)}</div>
               </div>
             )) : readout.length ? readout.slice(0, 16).map((vector, index) => (
               <div key={`${s(vector.domain, String(index))}-${index}`} className="mb-2 border-b border-[#d8b64a12] pb-2">
-                <div className="text-[#e0c46c]">{s(vector.domain, 'VECTOR')}</div>
-                <div>trust {pct(vector.trust)} Â· persistence {pct(vector.persistence)} Â· degradation {pct(vector.degradation)}</div>
-                <div>{s(vector.interpretation, 'observaciÃ³n activa')}</div>
+                <div className="text-[#e0c46c]">{s(vector.domain, 'AREA OBSERVADA')}</div>
+                <div>confianza {pct(vector.trust)} · persistencia {pct(vector.persistence)} · costo operativo {pct(vector.degradation)}</div>
+                <div>{s(vector.interpretation, 'observacion activa')}</div>
               </div>
             )) : MISSING}
           </div>
 
           <div className="grid grid-cols-3 gap-2 font-mono text-[8px] uppercase tracking-[0.13em] text-[#8a8172]">
-            <div className="border border-[#d8b64a18] bg-[#080706] p-2">nodes<br /><span className="text-[#e0c46c]">{graph.nodes.length || MISSING}</span></div>
-            <div className="border border-[#d8b64a18] bg-[#080706] p-2">edges<br /><span className="text-[#e0c46c]">{graph.edges.length || MISSING}</span></div>
-            <div className="border border-[#d8b64a18] bg-[#080706] p-2">filter<br /><span className="text-[#e0c46c]">{filter}</span></div>
+            <div className="border border-[#d8b64a18] bg-[#080706] p-2">elementos<br /><span className="text-[#e0c46c]">{graph.nodes.length || MISSING}</span></div>
+            <div className="border border-[#d8b64a18] bg-[#080706] p-2">relaciones<br /><span className="text-[#e0c46c]">{graph.edges.length || MISSING}</span></div>
+            <div className="border border-[#d8b64a18] bg-[#080706] p-2">filtro<br /><span className="text-[#e0c46c]">{filterLabel(filter)}</span></div>
           </div>
         </div>
       </div>
