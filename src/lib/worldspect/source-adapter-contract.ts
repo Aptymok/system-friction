@@ -37,6 +37,8 @@ export type SourceObservation = {
   error?: string | null
 }
 
+export type WorldSpectOperationalStatus = 'ACTIVE' | 'BOOTSTRAPPED' | 'PARTIAL_EXTERNAL_FAILURE' | 'DEGRADED_BLOCKING'
+
 export type WorldSpectVectorCell = {
   domain: WorldSpectDomain
   value: number
@@ -53,7 +55,7 @@ export type WorldSpectVectorCell = {
 
 export type WorldSpectVectorSnapshot = {
   observedAt: string
-  status: 'ACTIVE' | 'BOOTSTRAPPED' | 'DEGRADED_BLOCKING'
+  status: WorldSpectOperationalStatus
   vectors: WorldSpectVectorCell[]
   wsi: number
   nti: number
