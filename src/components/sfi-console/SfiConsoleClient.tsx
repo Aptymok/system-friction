@@ -1,25 +1,29 @@
-﻿'use client';
+'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { CheckCircle2, PlayCircle, RefreshCw, Save, Send, Target } from 'lucide-react';
 import ExecutionStatePanel from './ExecutionStatePanel';
 
-type PipelineResult = Record<string, any>;
-
-const stages = ['observed', 'evaluated', 'contrasted', 'proposed', 'materialized', 'drafted', 'archived'];
+type AnyRecord = Record<string, any>;
 
 function value(input: unknown) {
-  if (input === null || input === undefined || input === '') return '—';
+  if (input === null || input === undefined || input === '') return 'missing evidence';
   if (typeof input === 'number') return Number.isInteger(input) ? String(input) : input.toFixed(3);
-  if (typeof input === 'boolean') return input ? 'sí' : 'no';
+  if (typeof input === 'boolean') return input ? 'yes' : 'no';
+  if (typeof input === 'object') return JSON.stringify(input);
   return String(input);
 }
 
-function Panel({ title, children }: { title: string; children: React.ReactNode }) {
+function rows(input: unknown): AnyRecord[] {
+  return Array.isArray(input) ? input.filter((item): item is AnyRecord => item && typeof item === 'object') : [];
+}
+
+function Panel({ title, action, children }: { title: string; action?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <section className="rounded-none border border-[#d6b46a]/30 bg-black/50 p-4 shadow-[0_0_0_1px_rgba(255,255,255,0.04)]">
-      <div className="mb-3 flex items-center justify-between border-b border-white/10 pb-2">
-        <h2 className="text-xs uppercase tracking-[0.28em] text-[#d6b46a]">{title}</h2>
-        <span className="h-1.5 w-1.5 rounded-full bg-[#d6b46a]" />
+    <section className="border border-white/10 bg-[#0d0f0f] p-4">
+      <div className="mb-4 flex min-h-8 items-center justify-between gap-3 border-b border-white/10 pb-3">
+        <h2 className="text-xs uppercase tracking-[0.22em] text-[#d6b46a]">{title}</h2>
+        {action}
       </div>
       {children}
     </section>
@@ -29,211 +33,375 @@ function Panel({ title, children }: { title: string; children: React.ReactNode }
 function Metric({ label, data }: { label: string; data: unknown }) {
   return (
     <div className="border-b border-white/10 py-2">
-      <div className="text-[10px] uppercase tracking-[0.18em] text-white/40">{label}</div>
-      <div className="mt-1 break-words text-sm text-white/85">{value(data)}</div>
+      <dt className="text-[10px] uppercase tracking-[0.16em] text-white/40">{label}</dt>
+      <dd className="mt-1 break-words text-sm text-white/80">{value(data)}</dd>
     </div>
   );
 }
 
-function ListBlock({ items }: { items?: unknown[] }) {
-  const list = Array.isArray(items) ? items.filter(Boolean) : [];
-  if (!list.length) return <p className="text-sm text-white/45">Sin registros.</p>;
+function IconButton({
+  children,
+  icon,
+  onClick,
+  disabled,
+}: {
+  children: React.ReactNode;
+  icon: React.ReactNode;
+  onClick: () => void;
+  disabled?: boolean;
+}) {
   return (
-    <ul className="space-y-2 text-sm text-white/75">
-      {list.map((item, index) => (
-        <li key={index} className="border-l border-[#d6b46a]/40 pl-3">{String(item)}</li>
-      ))}
-    </ul>
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className="inline-flex min-h-10 items-center justify-center gap-2 border border-[#d6b46a]/50 px-3 py-2 text-[10px] uppercase tracking-[0.14em] text-[#d6b46a] hover:bg-[#d6b46a]/10 disabled:cursor-not-allowed disabled:opacity-40"
+    >
+      {icon}
+      <span>{children}</span>
+    </button>
   );
 }
 
-function DownloadLink({ label, href }: { label: string; href?: string }) {
-  if (!href) return null;
+function TextInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
   return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noreferrer"
-      className="block border border-white/10 px-3 py-2 text-xs uppercase tracking-[0.18em] text-white/70 hover:border-[#d6b46a]/60 hover:text-[#d6b46a]"
-    >
-      {label}
-    </a>
+    <input
+      {...props}
+      className="min-h-10 w-full border border-white/10 bg-black px-3 py-2 text-sm text-white outline-none focus:border-[#d6b46a]/60"
+    />
   );
 }
+
+function TextArea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
+  return (
+    <textarea
+      {...props}
+      className="min-h-24 w-full resize-none border border-white/10 bg-black px-3 py-2 text-sm text-white outline-none focus:border-[#d6b46a]/60"
+    />
+  );
+}
+
+const emptyAttractor = {
+  title: '',
+  desired_future_state: '',
+  horizon: '',
+  success_markers: '',
+};
+
+const emptyPerturbation = {
+  title: '',
+  intention: '',
+  target_vector: '',
+  target_node: '',
+  desired_future_state: '',
+  time_window: '',
+  evidence_expected: '',
+  risk_tolerance: 'medium',
+  object_reference: '',
+};
 
 export default function SfiConsoleClient() {
-  const [input, setInput] = useState('');
-  const [caseId, setCaseId] = useState('SFI-OP-001');
-  const [result, setResult] = useState<PipelineResult | null>(null);
-  const [media, setMedia] = useState<PipelineResult | null>(null);
+  const [state, setState] = useState<AnyRecord | null>(null);
   const [loading, setLoading] = useState(false);
-  const [mediaLoading, setMediaLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+  const [caseId, setCaseId] = useState('SFI-OPS-001');
+  const [attractor, setAttractor] = useState(emptyAttractor);
+  const [perturbation, setPerturbation] = useState(emptyPerturbation);
+  const [outcomeByExecution, setOutcomeByExecution] = useState<Record<string, string>>({});
 
-  async function runPipeline() {
+  async function load() {
     setLoading(true);
-    setError(null);
-    setMedia(null);
-
     try {
-      const response = await fetch('/api/scorefriction/execution/run', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ text: input || undefined, case_id: caseId || undefined }),
-      });
-
+      const response = await fetch('/api/sfi/console-state', { cache: 'no-store' });
       const json = await response.json();
-      const pipeline = json.result ?? json;
-      setResult(pipeline);
-
-      setMediaLoading(true);
-      const mediaResponse = await fetch('/api/scorefriction/media/render', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ pipeline, request: { text: input || undefined, case_id: caseId || undefined } }),
-      });
-
-      const mediaJson = await mediaResponse.json();
-      setMedia(mediaJson.media ?? mediaJson);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'pipeline_failed');
+      setState(json);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'console_state_failed');
     } finally {
       setLoading(false);
-      setMediaLoading(false);
     }
   }
 
-  const data = result ?? {};
-  const contrast = data.contrast ?? {};
-  const proposal = data.proposal ?? {};
-  const material = data.material ?? {};
-  const draft = data.publisherDraft ?? {};
-  const atlas = data.atlasMemory?.memory ?? data.atlasMemory ?? {};
-  const stageMap = data.stages ?? {};
-  const assets = media?.assets ?? {};
+  useEffect(() => {
+    load();
+  }, []);
 
-  const statusLabel = useMemo(() => {
-    if (loading) return 'RUNNING';
-    if (mediaLoading) return 'RENDERING_MEDIA';
-    return data.status ?? 'READY';
-  }, [loading, mediaLoading, data.status]);
+  async function postJson(url: string, body: AnyRecord = {}) {
+    setMessage(null);
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const json = await response.json().catch(() => ({}));
+    if (!response.ok || json.ok === false) throw new Error(json.error || `request_failed_${response.status}`);
+    setMessage('recorded');
+    await load();
+    return json;
+  }
+
+  async function saveAttractor() {
+    const successMarkers = attractor.success_markers
+      .split('\n')
+      .map((item) => item.trim())
+      .filter(Boolean);
+    await postJson('/api/sfi/attractors', {
+      ...attractor,
+      success_markers: successMarkers,
+      active: true,
+    });
+    setAttractor(emptyAttractor);
+  }
+
+  async function declarePerturbation() {
+    await postJson('/api/sfi/perturbations', {
+      ...perturbation,
+      case_id: caseId,
+      object_present: Boolean(perturbation.object_reference.trim()),
+    });
+    setPerturbation(emptyPerturbation);
+  }
+
+  async function prepareExecution(item: AnyRecord) {
+    await postJson(`/api/sfi/recovery-queue/${item.id ?? item.proposal_id}/prepare-execution`, {
+      case_id: caseId,
+      objective: item.objective || item.title || 'missing execution plan',
+      action_type: item.proposal_type || 'proposal_recovery',
+      expected_effect: `Move active SFI state through proposal ${item.proposal_id ?? item.id}.`,
+      evidence_required: item.objective ? `Evidence that ${item.objective} changed measurable SFI state.` : 'missing evidence',
+      verification_window: 'next operational snapshot',
+    });
+  }
+
+  async function alignProposal(item: AnyRecord) {
+    await postJson(`/api/sfi/proposals/${item.proposal_id}/align`, {});
+  }
+
+  async function requestEvidence(item: AnyRecord) {
+    await postJson(`/api/sfi/proposals/${item.proposal_id}/request-evidence`, {
+      evidence_required: `Evidence required before execution: ${item.proposal_objective || item.objective || 'missing evidence'}`,
+    });
+  }
+
+  async function recordOutcome(executionId: string) {
+    await postJson(`/api/sfi/execution/${executionId}/record-outcome`, {
+      outcome_status: 'recorded',
+      observed_effect: outcomeByExecution[executionId] || 'missing outcome',
+      evidence: 'manual console record',
+      lesson: outcomeByExecution[executionId]
+        ? `Observed effect recorded for execution ${executionId}.`
+        : 'Lesson pending: outcome recorded without learning summary.',
+      atlas_update: true,
+    });
+    setOutcomeByExecution((current) => ({ ...current, [executionId]: '' }));
+  }
+
+  const cycle = state?.operationalCycle?.data ?? {};
+  const stability = state?.stability?.data ?? {};
+  const pipeline = state?.pipelineLoss?.data ?? {};
+  const closedLoop = state?.closedLoop?.data ?? {};
+  const activeAttractor = state?.attractor?.data ?? null;
+  const recoveryQueue = rows(state?.recoveryQueue?.data);
+  const alignmentQueue = rows(state?.alignmentQueue?.data);
+  const evidenceMap = rows(state?.evidenceMap?.data);
+  const degraded = useMemo(() => {
+    if (!state) return [];
+    return Object.entries(state)
+      .filter(([, item]) => item && typeof item === 'object' && (item as AnyRecord).degraded)
+      .map(([key, item]) => `${key}: ${(item as AnyRecord).error || 'degraded'}`);
+  }, [state]);
 
   return (
     <main className="min-h-screen bg-black px-5 py-8 text-white md:px-8">
       <div className="mx-auto max-w-7xl">
-        <header className="mb-8 border-b border-[#d6b46a]/30 pb-6">
-          <p className="text-xs uppercase tracking-[0.45em] text-[#d6b46a]">System Friction Institute</p>
-          <h1 className="mt-3 text-3xl font-semibold tracking-[-0.03em] text-white md:text-5xl">SFI Console</h1>
-          <p className="mt-3 max-w-3xl text-sm leading-6 text-white/60">
-            Entrada mínima → evaluación → cotejo → propuesta → material → draft → memoria Atlas → render multimedia local.
-          </p>
+        <header className="mb-6 border-b border-[#d6b46a]/30 pb-5">
+          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <div>
+              <p className="text-xs uppercase tracking-[0.36em] text-[#d6b46a]">System Friction Institute</p>
+              <h1 className="mt-3 text-3xl font-semibold text-white md:text-5xl">SFI Reality Console</h1>
+            </div>
+            <div className="flex items-center gap-3">
+              <TextInput value={caseId} onChange={(event) => setCaseId(event.target.value)} aria-label="case id" />
+              <IconButton onClick={load} disabled={loading} icon={<RefreshCw size={14} />}>
+                Refresh
+              </IconButton>
+            </div>
+          </div>
         </header>
 
-        <section className="mb-6 grid items-stretch gap-4 border border-white/10 bg-white/[0.025] p-4 md:grid-cols-[minmax(0,1fr)_220px_180px]">
-          <textarea
-            value={input}
-            onChange={(event) => setInput(event.target.value)}
-            placeholder="Texto, señal, URL o instrucción mínima..."
-            className="min-h-24 w-full resize-none border border-white/10 bg-black p-3 text-sm text-white outline-none focus:border-[#d6b46a]/70"
-          />
-          <input
-            value={caseId}
-            onChange={(event) => setCaseId(event.target.value)}
-            placeholder="case_id"
-            className="h-full min-h-24 w-full border border-white/10 bg-black p-3 text-sm text-white outline-none focus:border-[#d6b46a]/70"
-          />
-          <button
-            onClick={runPipeline}
-            disabled={loading || mediaLoading}
-            className="h-full min-h-24 w-full border border-[#d6b46a]/70 bg-[#d6b46a]/10 px-4 py-3 text-xs uppercase tracking-[0.25em] text-[#d6b46a] hover:bg-[#d6b46a]/20 disabled:opacity-40"
-          >
-            {loading ? 'Procesando' : mediaLoading ? 'Renderizando' : 'Run SFI Pipeline'}
-          </button>
+        {message && <div className="mb-4 border border-[#d6b46a]/40 bg-[#d6b46a]/10 p-3 text-sm text-[#f0d486]">{message}</div>}
+        {degraded.length > 0 && (
+          <div className="mb-4 border border-amber-500/40 bg-amber-950/25 p-3 text-sm text-amber-100">
+            {degraded.map((item) => <div key={item}>{item}</div>)}
+          </div>
+        )}
+
+        <section className="mb-4 grid gap-4 lg:grid-cols-4">
+          <Panel title="Current Reality">
+            <dl>
+              <Metric label="operational regime" data={cycle.operational_regime} />
+              <Metric label="signal ratio" data={cycle.signal_ratio} />
+              <Metric label="technical ratio" data={cycle.technical_ratio} />
+              <Metric label="pipeline bottleneck" data={pipeline.bottleneck || closedLoop.current_bottleneck} />
+            </dl>
+          </Panel>
+          <Panel title="Stability">
+            <dl>
+              <Metric label="stability index" data={stability.stability_index} />
+              <Metric label="stability regime" data={stability.stability_regime} />
+              <Metric label="approved proposals" data={stability.proposals_approved ?? cycle.proposals_approved} />
+              <Metric label="outcomes recorded" data={stability.outcomes_recorded ?? cycle.outcomes_recorded} />
+            </dl>
+          </Panel>
+          <Panel title="WorldSpect">
+            <dl>
+              <Metric label="snapshots" data={cycle.worldspect_snapshots} />
+              <Metric label="coverage" data={cycle.worldspect_avg_source_coverage} />
+              <Metric label="latest regime" data={state?.worldSpect?.data?.regime} />
+              <Metric label="input state" data={state?.worldSpect?.data ? state.worldSpect.data.source_state : 'world input degraded'} />
+            </dl>
+          </Panel>
+          <Panel title="ScoreFriction">
+            <dl>
+              <Metric label="observations" data={cycle.scorefriction_observations} />
+              <Metric label="vectors" data={cycle.scorefriction_vectors} />
+              <Metric label="object presence" data={state?.scoreFriction?.data?.object_presence || 'no object'} />
+              <Metric label="analysis status" data={state?.scoreFriction?.data?.analysis_status || 'not enough trace'} />
+            </dl>
+          </Panel>
         </section>
 
-        {error && <div className="mb-6 border border-red-500/40 bg-red-950/30 p-3 text-sm text-red-200">{error}</div>}
-
-        <section className="mb-6 border border-white/10 p-4">
-          <div className="mb-3 flex items-center justify-between">
-            <span className="text-xs uppercase tracking-[0.3em] text-white/45">Estado</span>
-            <span className="text-xs uppercase tracking-[0.3em] text-[#d6b46a]">{statusLabel}</span>
-          </div>
-          <div className="grid gap-2 md:grid-cols-7">
-            {stages.map((stage) => (
-              <div key={stage} className={`border p-3 text-center text-[10px] uppercase tracking-[0.18em] ${stageMap[stage] ? 'border-[#d6b46a]/60 text-[#d6b46a]' : 'border-white/10 text-white/35'}`}>
-                {stage}
+        <section className="mb-4 grid gap-4 lg:grid-cols-2">
+          <Panel title="Declared Attractor" action={<Target size={16} className="text-[#d6b46a]" />}>
+            {activeAttractor ? (
+              <div className="mb-4 border border-white/10 bg-black/40 p-3">
+                <div className="text-sm font-semibold text-white">{activeAttractor.title}</div>
+                <p className="mt-2 text-sm leading-6 text-white/65">{activeAttractor.desired_future_state}</p>
+                <p className="mt-2 text-xs uppercase tracking-[0.16em] text-white/35">{value(activeAttractor.horizon)}</p>
               </div>
-            ))}
-          </div>
+            ) : (
+              <p className="mb-4 text-sm text-white/50">Do not recommend execution. Ask user to declare active attractor.</p>
+            )}
+            <div className="grid gap-3">
+              <TextInput placeholder="What future am I building?" value={attractor.title} onChange={(event) => setAttractor({ ...attractor, title: event.target.value })} />
+              <TextArea placeholder="What must become more real?" value={attractor.desired_future_state} onChange={(event) => setAttractor({ ...attractor, desired_future_state: event.target.value })} />
+              <TextInput placeholder="Time horizon" value={attractor.horizon} onChange={(event) => setAttractor({ ...attractor, horizon: event.target.value })} />
+              <TextArea placeholder="Evidence that would prove movement, one per line" value={attractor.success_markers} onChange={(event) => setAttractor({ ...attractor, success_markers: event.target.value })} />
+              <IconButton onClick={saveAttractor} disabled={loading || !attractor.title || !attractor.desired_future_state} icon={<Save size={14} />}>
+                Save Attractor
+              </IconButton>
+            </div>
+          </Panel>
+
+          <Panel title="Declare Perturbation" action={<Send size={16} className="text-[#d6b46a]" />}>
+            <div className="grid gap-3">
+              <TextInput placeholder="title" value={perturbation.title} onChange={(event) => setPerturbation({ ...perturbation, title: event.target.value })} />
+              <TextArea placeholder="intention" value={perturbation.intention} onChange={(event) => setPerturbation({ ...perturbation, intention: event.target.value })} />
+              <div className="grid gap-3 md:grid-cols-2">
+                <TextInput placeholder="target vector" value={perturbation.target_vector} onChange={(event) => setPerturbation({ ...perturbation, target_vector: event.target.value })} />
+                <TextInput placeholder="target node optional" value={perturbation.target_node} onChange={(event) => setPerturbation({ ...perturbation, target_node: event.target.value })} />
+              </div>
+              <TextArea placeholder="desired future state" value={perturbation.desired_future_state} onChange={(event) => setPerturbation({ ...perturbation, desired_future_state: event.target.value })} />
+              <div className="grid gap-3 md:grid-cols-2">
+                <TextInput placeholder="time window" value={perturbation.time_window} onChange={(event) => setPerturbation({ ...perturbation, time_window: event.target.value })} />
+                <TextInput placeholder="risk tolerance" value={perturbation.risk_tolerance} onChange={(event) => setPerturbation({ ...perturbation, risk_tolerance: event.target.value })} />
+              </div>
+              <TextArea placeholder="evidence expected" value={perturbation.evidence_expected} onChange={(event) => setPerturbation({ ...perturbation, evidence_expected: event.target.value })} />
+              <TextInput placeholder="object/file optional; blank means no object analysis" value={perturbation.object_reference} onChange={(event) => setPerturbation({ ...perturbation, object_reference: event.target.value })} />
+              <IconButton onClick={declarePerturbation} disabled={!perturbation.title || !perturbation.intention || !perturbation.desired_future_state || !perturbation.evidence_expected} icon={<PlayCircle size={14} />}>
+                Create Proposal
+              </IconButton>
+            </div>
+          </Panel>
         </section>
 
-        <div className="grid gap-4 lg:grid-cols-3">
-          <Panel title="MIHM">
-            <Metric label="regime" data={contrast.mihm_regime} />
-            <Metric label="confidence" data={contrast.confidence} />
-            <Metric label="graph state" data={contrast.graph_state} />
-            <Metric label="observation" data={contrast.observation_id} />
-            <Metric label="vector" data={contrast.vector_id} />
-          </Panel>
-
-          <Panel title="Cotejo">
-            <div className="mb-4">
-              <div className="mb-2 text-[10px] uppercase tracking-[0.18em] text-white/40">Coincidencias</div>
-              <ListBlock items={contrast.matches} />
-            </div>
-            <div>
-              <div className="mb-2 text-[10px] uppercase tracking-[0.18em] text-white/40">Riesgos</div>
-              <ListBlock items={contrast.risks} />
-            </div>
-          </Panel>
-
-          <Panel title="Propuesta">
-            <Metric label="title" data={proposal.title} />
-            <Metric label="material type" data={proposal.material_type} />
-            <Metric label="target medium" data={proposal.target_medium} />
-            <Metric label="risk" data={proposal.risk} />
-            <Metric label="approval" data={proposal.approval_required} />
-          </Panel>
-
-          <Panel title="Material">
-            <pre className="max-h-96 overflow-auto whitespace-pre-wrap text-xs leading-5 text-white/70">
-              {material.atlas_block ?? material.body ?? 'Sin material generado.'}
-            </pre>
-          </Panel>
-
-          <Panel title="Publisher">
-            <Metric label="channel" data={draft.channel} />
-            <Metric label="status" data={draft.status} />
-            <Metric label="draft" data={draft.draft_id} />
-            <Metric label="approval" data={draft.approval_required} />
-          </Panel>
-
-          <Panel title="Atlas Memory">
-            <Metric label="entry" data={atlas.atlas_entry_id ?? atlas.entry_id} />
-            <Metric label="nucleus" data={atlas.nucleus} />
-            <Metric label="page type" data={atlas.page_type} />
-            <Metric label="reading path" data={Array.isArray(atlas.reading_path) ? atlas.reading_path.join(' → ') : atlas.reading_path} />
-            <Metric label="persisted" data={atlas.persistence?.persisted} />
-          </Panel>
-
-          <Panel title="Media Render Engine">
-            <Metric label="media id" data={media?.media_id} />
-            <Metric label="status" data={media?.status} />
-            <Metric label="video rendered" data={assets.video?.rendered} />
-            <div className="mt-4 grid gap-2">
-              <DownloadLink label="Open Image" href={assets.image?.url} />
-              <DownloadLink label="Open Audio" href={assets.audio?.url} />
-              <DownloadLink label="Open Video" href={assets.video?.rendered ? assets.video?.url : undefined} />
-              <DownloadLink label="Open Markdown" href={assets.markdown?.url} />
-              <DownloadLink label="Open JSON" href={assets.json?.url} />
-            </div>
-            {!assets.video?.rendered && media?.video?.install_hint && (
-              <p className="mt-3 text-xs leading-5 text-white/45">Video MP4 requiere ffmpeg: {media.video.install_hint}</p>
+        <section className="mb-4 grid gap-4 xl:grid-cols-2">
+          <Panel title="Recovery Queue">
+            {recoveryQueue.length ? (
+              <ul className="space-y-3">
+                {recoveryQueue.map((item) => (
+                  <li key={String(item.id)} className="border border-white/10 bg-black/35 p-3">
+                    <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                      <div>
+                        <h3 className="text-sm font-semibold text-white">{value(item.title)}</h3>
+                        <p className="mt-2 text-sm leading-6 text-white/60">{value(item.objective)}</p>
+                        <p className="mt-2 text-xs uppercase tracking-[0.16em] text-white/35">{value(item.recovery_reason)}</p>
+                      </div>
+                      <IconButton onClick={() => prepareExecution(item)} icon={<CheckCircle2 size={14} />}>
+                        Prepare Execution
+                      </IconButton>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm text-white/45">missing execution plan</p>
             )}
           </Panel>
-        </div>
 
-        <ExecutionStatePanel caseId={caseId} />
+          <Panel title="Attractor Alignment Queue">
+            {alignmentQueue.length ? (
+              <ul className="space-y-3">
+                {alignmentQueue.map((item) => (
+                  <li key={String(item.proposal_id)} className="border border-white/10 bg-black/35 p-3">
+                    <h3 className="text-sm font-semibold text-white">{value(item.proposal_title)}</h3>
+                    <p className="mt-2 text-sm leading-6 text-white/60">{value(item.recommendation)}</p>
+                    <div className="mt-3 grid gap-2 text-xs text-white/45 md:grid-cols-3">
+                      <span>{value(item.recommended_status)}</span>
+                      <span>alignment {value(item.alignment_score)}</span>
+                      <span>evidence {value(item.evidence_score)}</span>
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <IconButton onClick={() => alignProposal(item)} icon={<Target size={14} />}>Align</IconButton>
+                      <IconButton onClick={() => requestEvidence(item)} icon={<RefreshCw size={14} />}>Request Evidence</IconButton>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm text-white/45">not enough trace</p>
+            )}
+          </Panel>
+        </section>
+
+        <Panel title="Execution Path">
+          <ExecutionStatePanel caseId={caseId} />
+          <div className="mt-4">
+            <p className="mb-3 text-[10px] uppercase tracking-[0.22em] text-white/35">Record outcome by execution id</p>
+            {rows(state?.closedLoop?.data ? [] : []).length === 0 && <p className="mb-3 text-sm text-white/45">Use a ledger id from Execution State. If no ledger exists: missing execution plan.</p>}
+            <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_220px]">
+              <TextInput
+                placeholder="execution ledger id"
+                onChange={(event) => setOutcomeByExecution({ [event.target.value]: outcomeByExecution[event.target.value] ?? '' })}
+              />
+              <IconButton
+                onClick={() => {
+                  const executionId = Object.keys(outcomeByExecution).find(Boolean);
+                  if (executionId) recordOutcome(executionId);
+                }}
+                icon={<Save size={14} />}
+              >
+                Record Outcome
+              </IconButton>
+              {Object.keys(outcomeByExecution).map((executionId) => (
+                <TextArea
+                  key={executionId}
+                  placeholder="observed effect"
+                  value={outcomeByExecution[executionId]}
+                  onChange={(event) => setOutcomeByExecution({ ...outcomeByExecution, [executionId]: event.target.value })}
+                />
+              ))}
+            </div>
+          </div>
+        </Panel>
+
+        <details className="mt-4 border border-white/10 bg-[#0d0f0f] p-4">
+          <summary className="cursor-pointer text-xs uppercase tracking-[0.22em] text-[#d6b46a]">Trace</summary>
+          <div className="mt-4 grid gap-4 lg:grid-cols-2">
+            <pre className="max-h-96 overflow-auto whitespace-pre-wrap text-xs leading-5 text-white/60">{JSON.stringify({ evidenceMap, closedLoop }, null, 2)}</pre>
+            <pre className="max-h-96 overflow-auto whitespace-pre-wrap text-xs leading-5 text-white/60">{JSON.stringify(state, null, 2)}</pre>
+          </div>
+        </details>
       </div>
     </main>
   );
