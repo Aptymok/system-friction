@@ -1,0 +1,225 @@
+{
+  "ok": true,
+  "verified_at": "2026-06-20T05:00:12.411Z",
+  "query_timeout_ms": 8000,
+  "insecure_local_tls_allowed": true,
+  "tls_risk": "SFI_ALLOW_INSECURE_LOCAL_TLS=true disables TLS certificate verification only for this Node process. Use local diagnostics only.",
+  "connection": {
+    "ok": true,
+    "error_classification": null,
+    "error": null
+  },
+  "failures": [],
+  "canonical_objects": [
+    {
+      "object": "action_proposals",
+      "kind": "table",
+      "required": true,
+      "status": "CONFIRMED_IN_DB",
+      "exists": true,
+      "count": 29,
+      "error": null,
+      "error_classification": null
+    },
+    {
+      "object": "sfi_execution_ledger",
+      "kind": "table",
+      "required": true,
+      "status": "CONFIRMED_IN_DB",
+      "exists": true,
+      "count": 23,
+      "error": null,
+      "error_classification": null
+    },
+    {
+      "object": "sfi_outcomes",
+      "kind": "table",
+      "required": true,
+      "status": "CONFIRMED_IN_DB",
+      "exists": true,
+      "count": 1,
+      "error": null,
+      "error_classification": null
+    },
+    {
+      "object": "sfi_declared_attractors",
+      "kind": "table",
+      "required": true,
+      "status": "CONFIRMED_IN_DB",
+      "exists": true,
+      "count": 0,
+      "error": null,
+      "error_classification": null
+    },
+    {
+      "object": "sfi_amv_memory",
+      "kind": "table",
+      "required": true,
+      "status": "CONFIRMED_IN_DB",
+      "exists": true,
+      "count": 0,
+      "error": null,
+      "error_classification": null
+    },
+    {
+      "object": "vw_sfi_closed_loop_state",
+      "kind": "view",
+      "required": true,
+      "status": "CONFIRMED_IN_DB",
+      "exists": true,
+      "count": 1,
+      "error": null,
+      "error_classification": null
+    },
+    {
+      "object": "vw_sfi_operational_cycle",
+      "kind": "view",
+      "required": true,
+      "status": "CONFIRMED_IN_DB",
+      "exists": true,
+      "count": 1,
+      "error": null,
+      "error_classification": null
+    },
+    {
+      "object": "vw_sfi_stability",
+      "kind": "view",
+      "required": true,
+      "status": "CONFIRMED_IN_DB",
+      "exists": true,
+      "count": 1,
+      "error": null,
+      "error_classification": null
+    },
+    {
+      "object": "vw_sfi_pipeline_loss",
+      "kind": "view",
+      "required": true,
+      "status": "CONFIRMED_IN_DB",
+      "exists": true,
+      "count": 1,
+      "error": null,
+      "error_classification": null
+    },
+    {
+      "object": "vw_sfi_execution_recovery_queue",
+      "kind": "view",
+      "required": true,
+      "status": "CONFIRMED_IN_DB",
+      "exists": true,
+      "count": 15,
+      "error": null,
+      "error_classification": null
+    },
+    {
+      "object": "vw_sfi_evidence_map",
+      "kind": "view",
+      "required": true,
+      "status": "CONFIRMED_IN_DB",
+      "exists": true,
+      "count": 3,
+      "error": null,
+      "error_classification": null
+    },
+    {
+      "object": "vw_sfi_attractor_alignment_queue",
+      "kind": "view",
+      "required": true,
+      "status": "CONFIRMED_IN_DB",
+      "exists": true,
+      "count": 13,
+      "error": null,
+      "error_classification": null
+    },
+    {
+      "object": "worldspect_snapshots",
+      "kind": "table",
+      "required": true,
+      "status": "CONFIRMED_IN_DB",
+      "exists": true,
+      "count": 25,
+      "error": null,
+      "error_classification": null
+    },
+    {
+      "object": "scorefriction_observations",
+      "kind": "table",
+      "required": true,
+      "status": "CONFIRMED_IN_DB",
+      "exists": true,
+      "count": 8,
+      "error": null,
+      "error_classification": null
+    },
+    {
+      "object": "scorefriction_vectors",
+      "kind": "table",
+      "required": true,
+      "status": "CONFIRMED_IN_DB",
+      "exists": true,
+      "count": 8,
+      "error": null,
+      "error_classification": null
+    },
+    {
+      "object": "scorefriction_evidence",
+      "kind": "table",
+      "required": true,
+      "status": "CONFIRMED_IN_DB",
+      "exists": true,
+      "count": 0,
+      "error": null,
+      "error_classification": null
+    },
+    {
+      "object": "scorefriction_proposal_verifications",
+      "kind": "table",
+      "required": true,
+      "status": "CONFIRMED_IN_DB",
+      "exists": true,
+      "count": 0,
+      "error": null,
+      "error_classification": null
+    }
+  ],
+  "legacy_objects": [
+    {
+      "object": "audits",
+      "kind": "table",
+      "required": false,
+      "status": "CONFIRMED_IN_DB",
+      "exists": true,
+      "count": 0,
+      "error": null,
+      "error_classification": null
+    },
+    {
+      "object": "external_reality_weights",
+      "kind": "table",
+      "required": false,
+      "status": "CONFIRMED_IN_DB",
+      "exists": true,
+      "count": 0,
+      "error": null,
+      "error_classification": null
+    },
+    {
+      "object": "systemic_patterns",
+      "kind": "table",
+      "required": false,
+      "status": "CONFIRMED_IN_DB",
+      "exists": true,
+      "count": 0,
+      "error": null,
+      "error_classification": null
+    }
+  ],
+  "classification_contract": [
+    "CONFIRMED_IN_DB",
+    "MISSING_IN_DB",
+    "PERMISSION_BLOCKED",
+    "FETCH_BLOCKED",
+    "MIGRATION_REQUIRED"
+  ],
+  "note": "This verifies SFI DB object presence through Supabase using service-role credentials loaded from .env.local before validation."
+}

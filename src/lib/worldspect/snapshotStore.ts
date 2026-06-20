@@ -1,5 +1,6 @@
 import { createHash } from 'crypto';
 import { createServiceSupabaseClient } from '../../runtime/supabase/server';
+import { executeAbortableQuery } from '@/lib/supabase/abortableQuery';
 import type {
   WorldSpectIngestMode,
   WorldSpectFieldStateSignal,
@@ -103,12 +104,12 @@ function isWorldSpectIngestMode(value: unknown): value is WorldSpectIngestMode {
 export async function getLatestWorldSpectSnapshot() {
   const service = createServiceSupabaseClient();
 
-  const { data, error } = await service
+  const { data, error } = await executeAbortableQuery(service
     .from('worldspect_snapshots')
     .select('*')
     .order('observed_at', { ascending: false })
     .limit(1)
-    .maybeSingle();
+    .maybeSingle());
 
   if (error || !data) return null;
 
@@ -164,13 +165,13 @@ export async function upsertWorldSpectSnapshot(input: WorldSpectSnapshotInput) {
     snapshot_hash: hashSnapshot(input),
   };
 
-  const { data, error } = await service
+  const { data, error } = await executeAbortableQuery(service
     .from('worldspect_snapshots')
     .upsert(row, {
       onConflict: 'unique_date,ingest_mode',
     })
     .select('*')
-    .single();
+    .single(), 5000);
 
   if (error) {
     return { ok: false as const, error: 'worldspect_snapshot_persist_failed', details: error.message };

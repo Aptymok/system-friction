@@ -1,0 +1,51 @@
+{
+  "ok": true,
+  "generated_at": "2026-06-20T04:58:56.528Z",
+  "host": "http://127.0.0.1:3000",
+  "timeout_ms": 8000,
+  "insecure_local_tls_allowed": true,
+  "root_unauthenticated": {
+    "status": 401,
+    "classification": "CONFIRMED_401",
+    "body": {
+      "ok": false,
+      "error": "Unauthorized"
+    },
+    "error": null
+  },
+  "root_authenticated": {
+    "status": null,
+    "classification": "BLOCKED_BY_AUTH_FIXTURE",
+    "body": null,
+    "error": "BLOCKED_BY_AUTH_FIXTURE: set SFI_ROOT_COOKIE_HEADER to a valid authenticated ROOT Supabase cookie header",
+    "required_fixture": "SFI_ROOT_COOKIE_HEADER with a valid authenticated ROOT actor session"
+  },
+  "sfi_operational_state": {
+    "status": 200,
+    "ok": true,
+    "body_ok": true,
+    "state": null,
+    "closed_loop": {
+      "ok": true,
+      "data": {
+        "proposals_approved": 17,
+        "execution_plans_created": 23,
+        "executions_executed": 23,
+        "outcomes_recorded": 1,
+        "proposal_to_execution_ratio": 1.3529,
+        "execution_to_outcome_ratio": 0.0435,
+        "closed_loop_ratio": 0.0588,
+        "current_bottleneck": "execution_to_outcome",
+        "interpretation": "executions require outcome evidence and lesson capture"
+      },
+      "source": "vw_sfi_closed_loop_state"
+    },
+    "error": null
+  },
+  "sfi_console": {
+    "status": 200,
+    "ok": true,
+    "html_contains_sfi_console": true,
+    "error": null
+  }
+}

@@ -2,6 +2,7 @@
 import path from 'path';
 import { createHash } from 'crypto';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
+import { executeAbortableQuery } from '@/lib/supabase/abortableQuery';
 
 export type SfiOperationalEventRisk = 'low' | 'medium' | 'high' | 'critical' | 'unknown';
 export type SfiOperationalEventStatus =
@@ -63,7 +64,7 @@ async function writeSupabaseEvent(event: SfiOperationalEvent): Promise<boolean> 
     const input = JSON.stringify(event);
     const inputHash = sha256(input);
 
-    const { error } = await service.from('sfi_amv_memory').insert({
+    const { error } = await executeAbortableQuery(service.from('sfi_amv_memory').insert({
       session_id: 'sfi-operational',
       module: event.organ || 'sfi',
       input_hash: inputHash,
@@ -88,7 +89,7 @@ async function writeSupabaseEvent(event: SfiOperationalEvent): Promise<boolean> 
       uncertainty: event.risk === 'high' ? 0.55 : event.risk === 'medium' ? 0.35 : 0.18,
       source_trust: event.status === 'observed' ? 0.82 : 0.55,
       requires_human_validation: event.risk === 'high'
-    });
+    }), 5000);
 
     if (error) throw error;
     lastSfiSupabaseWriteError = null;
@@ -103,12 +104,12 @@ async function writeSupabaseEvent(event: SfiOperationalEvent): Promise<boolean> 
 async function readSupabaseEvents(): Promise<SfiOperationalEvent[] | null> {
   try {
     const service = createServiceSupabaseClient();
-    const { data, error } = await service
+    const { data, error } = await executeAbortableQuery(service
       .from('sfi_amv_memory')
       .select('*')
       .eq('session_id', 'sfi-operational')
       .order('created_at', { ascending: true })
-      .limit(500);
+      .limit(500));
 
     if (error) throw error;
 

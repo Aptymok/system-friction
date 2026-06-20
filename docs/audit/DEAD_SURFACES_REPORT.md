@@ -1,6 +1,6 @@
 # Dead Surfaces Report
 
-Generated: 2026-06-10T07:08:27.691Z
+Generated: 2026-06-20T04:59:37.175Z
 
 This report is advisory. It does not delete files automatically.
 
@@ -10,7 +10,7 @@ This report is advisory. It does not delete files automatically.
 | REFERENCED | `src/components/auth/AuthProvider.tsx` | `src/app/layout.tsx`<br>`src/components/auth/RoleGate.tsx`<br>`src/components/auth/SubscriptionGate.tsx`<br>`src/observatory/components/os/SfiObservatoryOS.tsx` |
 | REFERENCED | `src/components/auth/AuthTerminal.tsx` | `src/app/(auth)/forgot/page.tsx`<br>`src/app/(auth)/register/page.tsx`<br>`src/app/(auth)/reset/page.tsx` |
 | UNREFERENCED | `src/components/auth/LoginModal.tsx` | none |
-| REFERENCED | `src/components/auth/LoginNeuralAccess.tsx` | `src/app/(auth)/login/page.tsx` |
+| UNREFERENCED | `src/components/auth/LoginNeuralAccess.tsx` | none |
 | REFERENCED | `src/components/auth/LogoutLink.tsx` | `src/observatory/components/amv/ObservatoryOfObservatories.tsx`<br>`src/observatory/components/amv/ScopedDashboardShell.tsx`<br>`src/observatory/components/root/RootDashboardClient.tsx`<br>`src/scorefriction/components/ScoreFrictionShell.tsx`<br>`src/scorefriction/components/ScoreFrictionStateBanner.tsx` |
 | REFERENCED | `src/components/auth/MOPHFlow.tsx` | `src/components/auth/SignupModal.tsx` |
 | REFERENCED | `src/components/auth/RoleGate.tsx` | `src/app/root/layout.tsx` |
@@ -19,6 +19,9 @@ This report is advisory. It does not delete files automatically.
 | REFERENCED | `src/components/auth/ThresholdAccess.tsx` | `src/components/auth/LoginNeuralAccess.tsx` |
 | UNREFERENCED | `src/components/auth/WorldSpectrumModal.tsx` | none |
 | REFERENCED | `src/components/phenomena/PhenomenonField.tsx` | `src/components/auth/LoginNeuralAccess.tsx`<br>`src/components/sfi/repository/FoundationRepositoryField.tsx` |
+| REFERENCED | `src/components/scorefriction/SfiLabClient.tsx` | `src/scorefriction/components/ScoreFrictionFieldExperience.tsx` |
+| REFERENCED | `src/components/sfi-console/ExecutionStatePanel.tsx` | `src/components/sfi-console/SfiConsoleClient.tsx` |
+| REFERENCED | `src/components/sfi-console/SfiConsoleClient.tsx` | `src/app/sfi-console/page.tsx` |
 | REFERENCED | `src/components/sfi/MophFieldGate.tsx` | `src/app/moph/page.tsx` |
 | REFERENCED | `src/components/sfi/repository/FoundationRepositoryField.tsx` | `src/app/repository/page.tsx` |
 | REFERENCED | `src/components/sfi/SfiFieldCanvas.tsx` | `src/components/auth/LoginNeuralAccess.tsx`<br>`src/components/sfi/SfiLoadingField.tsx` |
@@ -30,6 +33,7 @@ This report is advisory. It does not delete files automatically.
 | UNREFERENCED | `src/components/sfi/SfiPanel.tsx` | none |
 | REFERENCED | `src/components/shared/Badge.tsx` | `src/observatory/components/terminal/MemoryColumn.tsx`<br>`src/observatory/components/terminal/PhasePanel.tsx`<br>`src/observatory/components/terminal/StateColumn.tsx`<br>`src/observatory/components/terminal/SystemLog.tsx`<br>`src/observatory/components/terminal/TerminalSidebar.tsx` |
 | UNREFERENCED | `src/components/shared/LicenseGate.tsx` | none |
+| UNREFERENCED | `src/components/worldspect/WorldSpectEvidenceTracePanel.tsx` | none |
 | REFERENCED | `src/components/worldspect/WorldSpectPolygon.tsx` | `src/scorefriction/components/panels/PanelWorldSpectrum.tsx` |
 | REFERENCED | `src/components/worldspect/WorldSpectTimeline.tsx` | `src/scorefriction/components/panels/PanelWorldSpectrum.tsx` |
 | UNREFERENCED | `src/observatory/components/amv/AmvGraphField.tsx` | none |
@@ -69,7 +73,8 @@ This report is advisory. It does not delete files automatically.
 | REFERENCED | `src/observatory/components/laboratory/LaboratoryWorldSpectStrip.tsx` | `src/observatory/components/laboratory/AtlasLaboratoryShell.tsx` |
 | REFERENCED | `src/observatory/components/landing/SfiLandingCalibration.tsx` | `src/app/(public)/landing/page.tsx` |
 | REFERENCED | `src/observatory/components/os/SfiObservatoryOS.tsx` | `src/app/campo/page.tsx`<br>`src/app/observatory/page.tsx` |
-| REFERENCED | `src/observatory/components/public/SfiFinalPublicSurface.tsx` | `src/app/page.tsx` |
+| UNREFERENCED | `src/observatory/components/public/SfiFinalPublicSurface.tsx` | none |
+| UNREFERENCED | `src/observatory/components/public/SfiOperationalIndex.tsx` | none |
 | REFERENCED | `src/observatory/components/root/AcpAgentRegistryPanel.tsx` | `src/observatory/components/root/RootDashboardClient.tsx` |
 | REFERENCED | `src/observatory/components/root/AcpAttractorFieldView.tsx` | `src/observatory/components/root/RootDashboardClient.tsx` |
 | REFERENCED | `src/observatory/components/root/AcpFieldRegimeView.tsx` | `src/observatory/components/root/RootDashboardClient.tsx` |
@@ -79,12 +84,16 @@ This report is advisory. It does not delete files automatically.
 | UNREFERENCED | `src/observatory/components/root/EWRControl.tsx` | none |
 | UNREFERENCED | `src/observatory/components/root/GlobalMetricsView.tsx` | none |
 | UNREFERENCED | `src/observatory/components/root/LiturgiaDiagnosticPanel.tsx` | none |
+| REFERENCED | `src/observatory/components/root/LogbookSelectorPanel.tsx` | `src/observatory/components/root/RootDashboardClient.tsx` |
 | UNREFERENCED | `src/observatory/components/root/NodeClusterSurface.tsx` | none |
 | UNREFERENCED | `src/observatory/components/root/OperationalActivationPanel.tsx` | none |
+| REFERENCED | `src/observatory/components/root/PersistentSignalFieldPanel.tsx` | `src/observatory/components/root/RootDashboardClient.tsx` |
 | REFERENCED | `src/observatory/components/root/RootDashboardClient.tsx` | `src/app/root/page.tsx` |
+| REFERENCED | `src/observatory/components/root/RootLiveGraphPanel.tsx` | `src/observatory/components/root/RootDashboardClient.tsx` |
 | REFERENCED | `src/observatory/components/root/RootLogbookConsole.tsx` | `src/observatory/components/root/RootDashboardClient.tsx` |
 | REFERENCED | `src/observatory/components/root/RootObservatoryIndex.tsx` | `src/observatory/components/root/RootDashboardClient.tsx` |
 | REFERENCED | `src/observatory/components/root/RootOperationsConsole.tsx` | `src/observatory/components/root/RootDashboardClient.tsx` |
+| REFERENCED | `src/observatory/components/root/SelfObservabilityPanel.tsx` | `src/observatory/components/root/RootDashboardClient.tsx` |
 | REFERENCED | `src/observatory/components/root/SystemOverridePanel.tsx` | `src/observatory/components/root/RootDashboardClient.tsx` |
 | REFERENCED | `src/observatory/components/root/TwinInteractionPanel.tsx` | `src/observatory/components/root/RootDashboardClient.tsx` |
 | REFERENCED | `src/observatory/components/root/VisorChat.tsx` | `src/observatory/components/root/visorHooks.ts`<br>`src/observatory/components/root/VisorMode.tsx`<br>`src/observatory/components/root/visorTypes.ts` |
@@ -103,23 +112,29 @@ This report is advisory. It does not delete files automatically.
 | UNREFERENCED | `src/observatory/components/terminal/TerminalSidebar.tsx` | none |
 | UNREFERENCED | `src/observatory/components/terminal/TerminalTimeline.tsx` | none |
 | REFERENCED | `src/observatory/components/user/UserDashboardClient.tsx` | `src/app/user/page.tsx` |
-| REFERENCED | `src/scorefriction/components/CulturalVectorDashboard.tsx` | `src/app/scorefriction/wave/page.tsx` |
+| UNREFERENCED | `src/scorefriction/components/CulturalVectorDashboard.tsx` | none |
 | REFERENCED | `src/scorefriction/components/panels/PanelAgentEntropy.tsx` | `src/scorefriction/components/ScoreFrictionOperationalObservatory.tsx` |
 | REFERENCED | `src/scorefriction/components/panels/PanelAmvChat.tsx` | `src/scorefriction/components/ScoreFrictionOperationalObservatory.tsx` |
 | REFERENCED | `src/scorefriction/components/panels/PanelCField.tsx` | `src/scorefriction/components/ScoreFrictionOperationalObservatory.tsx` |
 | REFERENCED | `src/scorefriction/components/panels/PanelChronology.tsx` | `src/scorefriction/components/ScoreFrictionOperationalObservatory.tsx` |
-| REFERENCED | `src/scorefriction/components/panels/PanelEvidenceLoad.tsx` | `src/scorefriction/components/ScoreFrictionOperationalObservatory.tsx` |
-| REFERENCED | `src/scorefriction/components/panels/PanelFrame.tsx` | `src/scorefriction/components/panels/PanelAgentEntropy.tsx`<br>`src/scorefriction/components/panels/PanelAmvChat.tsx`<br>`src/scorefriction/components/panels/PanelCField.tsx`<br>`src/scorefriction/components/panels/PanelChronology.tsx`<br>`src/scorefriction/components/panels/PanelEvidenceLoad.tsx`<br>`src/scorefriction/components/panels/PanelLongitudinalTension.tsx`<br>`src/scorefriction/components/panels/PanelPhi.tsx`<br>`src/scorefriction/components/panels/PanelSemanticPressure.tsx`<br>`src/scorefriction/components/panels/PanelStochasticProjection.tsx`<br>`src/scorefriction/components/panels/PanelUserAttractor.tsx`<br>`src/scorefriction/components/panels/PanelVectorTwin.tsx`<br>`src/scorefriction/components/panels/PanelWorldSpectrum.tsx` |
+| REFERENCED | `src/scorefriction/components/panels/PanelCulturalTrace.tsx` | `src/scorefriction/components/ScoreFrictionOperationalObservatory.tsx` |
+| REFERENCED | `src/scorefriction/components/panels/PanelCulturalWaveform.tsx` | `src/scorefriction/components/ScoreFrictionOperationalObservatory.tsx` |
+| REFERENCED | `src/scorefriction/components/panels/PanelCulturalWaveReadout.tsx` | `src/scorefriction/components/ScoreFrictionOperationalObservatory.tsx` |
+| REFERENCED | `src/scorefriction/components/panels/PanelEvidenceLoad.tsx` | `src/scorefriction/components/panels/PanelObjectLoad.tsx`<br>`src/scorefriction/components/ScoreFrictionOperationalObservatory.tsx` |
+| REFERENCED | `src/scorefriction/components/panels/PanelFrame.tsx` | `src/scorefriction/components/panels/PanelAgentEntropy.tsx`<br>`src/scorefriction/components/panels/PanelAmvChat.tsx`<br>`src/scorefriction/components/panels/PanelCField.tsx`<br>`src/scorefriction/components/panels/PanelChronology.tsx`<br>`src/scorefriction/components/panels/PanelCulturalTrace.tsx`<br>`src/scorefriction/components/panels/PanelCulturalWaveform.tsx`<br>`src/scorefriction/components/panels/PanelCulturalWaveReadout.tsx`<br>`src/scorefriction/components/panels/PanelEvidenceLoad.tsx`<br>`src/scorefriction/components/panels/PanelLongitudinalTension.tsx`<br>`src/scorefriction/components/panels/PanelModelUncertainty.tsx`<br>`src/scorefriction/components/panels/PanelObjectLoad.tsx`<br>`src/scorefriction/components/panels/PanelPhi.tsx`<br>`src/scorefriction/components/panels/PanelSemanticPressure.tsx`<br>`src/scorefriction/components/panels/PanelStochasticProjection.tsx`<br>`src/scorefriction/components/panels/PanelUserAttractor.tsx`<br>`src/scorefriction/components/panels/PanelVectorTwin.tsx`<br>`src/scorefriction/components/panels/PanelWorldSpectrum.tsx` |
 | REFERENCED | `src/scorefriction/components/panels/PanelLongitudinalTension.tsx` | `src/scorefriction/components/ScoreFrictionOperationalObservatory.tsx` |
+| REFERENCED | `src/scorefriction/components/panels/PanelModelUncertainty.tsx` | `src/scorefriction/components/ScoreFrictionOperationalObservatory.tsx` |
+| REFERENCED | `src/scorefriction/components/panels/PanelObjectLoad.tsx` | `src/scorefriction/components/ScoreFrictionOperationalObservatory.tsx` |
 | REFERENCED | `src/scorefriction/components/panels/PanelPhi.tsx` | `src/scorefriction/components/ScoreFrictionOperationalObservatory.tsx` |
 | REFERENCED | `src/scorefriction/components/panels/PanelSemanticPressure.tsx` | `src/scorefriction/components/ScoreFrictionOperationalObservatory.tsx` |
 | REFERENCED | `src/scorefriction/components/panels/PanelStochasticProjection.tsx` | `src/scorefriction/components/ScoreFrictionOperationalObservatory.tsx` |
 | REFERENCED | `src/scorefriction/components/panels/PanelUserAttractor.tsx` | `src/scorefriction/components/ScoreFrictionOperationalObservatory.tsx` |
 | REFERENCED | `src/scorefriction/components/panels/PanelVectorTwin.tsx` | `src/scorefriction/components/ScoreFrictionOperationalObservatory.tsx` |
 | REFERENCED | `src/scorefriction/components/panels/PanelWorldSpectrum.tsx` | `src/scorefriction/components/ScoreFrictionOperationalObservatory.tsx` |
-| REFERENCED | `src/scorefriction/components/ScoreFrictionInterpretationPanel.tsx` | `src/app/scorefriction/wave/page.tsx`<br>`src/app/scorefriction/wide/page.tsx` |
-| REFERENCED | `src/scorefriction/components/ScoreFrictionLabClient.tsx` | `src/app/scorefriction/lab/page.tsx` |
-| REFERENCED | `src/scorefriction/components/ScoreFrictionOperationalObservatory.tsx` | `src/app/scorefriction/page.tsx` |
-| REFERENCED | `src/scorefriction/components/ScoreFrictionShell.tsx` | `src/app/scorefriction/cases/page.tsx`<br>`src/app/scorefriction/evidence/page.tsx`<br>`src/app/scorefriction/lab/page.tsx` |
-| REFERENCED | `src/scorefriction/components/ScoreFrictionStateBanner.tsx` | `src/app/scorefriction/wave/page.tsx`<br>`src/app/scorefriction/wide/page.tsx` |
-| REFERENCED | `src/scorefriction/components/ScoreFrictionWideClient.tsx` | `src/app/scorefriction/wide/page.tsx` |
+| REFERENCED | `src/scorefriction/components/ScoreFrictionFieldExperience.tsx` | `src/app/scorefriction/page.tsx` |
+| UNREFERENCED | `src/scorefriction/components/ScoreFrictionInterpretationPanel.tsx` | none |
+| UNREFERENCED | `src/scorefriction/components/ScoreFrictionLabClient.tsx` | none |
+| UNREFERENCED | `src/scorefriction/components/ScoreFrictionOperationalObservatory.tsx` | none |
+| UNREFERENCED | `src/scorefriction/components/ScoreFrictionShell.tsx` | none |
+| UNREFERENCED | `src/scorefriction/components/ScoreFrictionStateBanner.tsx` | none |
+| UNREFERENCED | `src/scorefriction/components/ScoreFrictionWideClient.tsx` | none |

@@ -1,0 +1,215 @@
+{
+  "ok": true,
+  "verified_at": "2026-06-20T04:54:47.020Z",
+  "case_id": "SFI_LIVE_PROOF_2026-06-20T04-54-44-753Z",
+  "marker": "SFI_LIVE_PROOF",
+  "insecure_local_tls_allowed": true,
+  "created": {
+    "case_id": "SFI_LIVE_PROOF_2026-06-20T04-54-44-753Z",
+    "marker": "SFI_LIVE_PROOF",
+    "perturbation_id": "4a0ce11d-dec7-4d04-9617-d2a4bf2c5122",
+    "proposal_id": "1c7bc029-6ab1-461b-b33e-5b87928fae3a",
+    "execution_id": "a9912b6d-0e18-46a1-b696-80bd3b72a755",
+    "outcome_id": "09462e67-886a-48ca-b1cd-79a61f948688",
+    "lesson_id": "3956c292-55cf-454c-9f6d-b757982bd4a1"
+  },
+  "steps": [
+    {
+      "name": "insert_perturbation",
+      "ok": true,
+      "data": {
+        "id": "4a0ce11d-dec7-4d04-9617-d2a4bf2c5122",
+        "case_id": "SFI_LIVE_PROOF_2026-06-20T04-54-44-753Z",
+        "source_observation_id": null,
+        "source_vector_id": null,
+        "proposal_id": null,
+        "perturbation_type": "SFI_LIVE_PROOF",
+        "target_domain": "live_proof",
+        "target_audience": "runtime_audit",
+        "minimal_action": "SFI_LIVE_PROOF: minimal closed-loop fixture",
+        "expected_effect": "SFI_LIVE_PROOF: prove proposal to ledger to outcome",
+        "risk_level": "low",
+        "status": "candidate",
+        "source_pipeline": {
+          "marker": "SFI_LIVE_PROOF",
+          "test_safe": true,
+          "created_by": "scripts/db/sfi-live-proof.mjs",
+          "production_semantics": false
+        },
+        "created_at": "2026-06-20T04:54:45.093808+00:00"
+      },
+      "error": null,
+      "error_classification": null
+    },
+    {
+      "name": "insert_action_proposal",
+      "ok": true,
+      "data": {
+        "id": "1c7bc029-6ab1-461b-b33e-5b87928fae3a",
+        "node_id": null,
+        "policy_decision_id": null,
+        "event_id": null,
+        "status": "queued",
+        "title": "SFI_LIVE_PROOF: closed-loop fixture",
+        "description": "SFI_LIVE_PROOF: test-safe proposal for runtime proof",
+        "expected_field_delta": {
+          "marker": "SFI_LIVE_PROOF",
+          "objective": "prove closed-loop persistence",
+          "test_safe": true,
+          "perturbation_id": "4a0ce11d-dec7-4d04-9617-d2a4bf2c5122"
+        },
+        "risk_level": "low",
+        "proportionality_check": {
+          "marker": "SFI_LIVE_PROOF",
+          "reason": "runtime proof fixture only",
+          "approvalRequired": false
+        },
+        "approval_required": false,
+        "approved_at": "2026-06-20T04:54:45.222+00:00",
+        "executed_at": null,
+        "outcome": {
+          "marker": "SFI_LIVE_PROOF",
+          "retained_for_audit": true
+        },
+        "created_at": "2026-06-20T04:54:45.336642+00:00",
+        "proposal_type": null,
+        "objective": "SFI_LIVE_PROOF: prove closed-loop persistence without production semantic claim",
+        "updated_at": "2026-06-20T04:54:45.336642+00:00"
+      },
+      "error": null,
+      "error_classification": null
+    },
+    {
+      "name": "link_perturbation_to_proposal",
+      "ok": true,
+      "data": {
+        "id": "4a0ce11d-dec7-4d04-9617-d2a4bf2c5122",
+        "case_id": "SFI_LIVE_PROOF_2026-06-20T04-54-44-753Z",
+        "source_observation_id": null,
+        "source_vector_id": null,
+        "proposal_id": "1c7bc029-6ab1-461b-b33e-5b87928fae3a",
+        "perturbation_type": "SFI_LIVE_PROOF",
+        "target_domain": "live_proof",
+        "target_audience": "runtime_audit",
+        "minimal_action": "SFI_LIVE_PROOF: minimal closed-loop fixture",
+        "expected_effect": "SFI_LIVE_PROOF: prove proposal to ledger to outcome",
+        "risk_level": "low",
+        "status": "proposed",
+        "source_pipeline": {
+          "marker": "SFI_LIVE_PROOF",
+          "test_safe": true,
+          "created_by": "scripts/db/sfi-live-proof.mjs",
+          "production_semantics": false
+        },
+        "created_at": "2026-06-20T04:54:45.093808+00:00"
+      },
+      "error": null,
+      "error_classification": null
+    },
+    {
+      "name": "insert_execution_ledger",
+      "ok": true,
+      "data": {
+        "id": "a9912b6d-0e18-46a1-b696-80bd3b72a755",
+        "perturbation_id": "4a0ce11d-dec7-4d04-9617-d2a4bf2c5122",
+        "case_id": "SFI_LIVE_PROOF_2026-06-20T04-54-44-753Z",
+        "actor": "sfi_live_proof",
+        "artifact_type": "runtime_fixture",
+        "artifact_url": null,
+        "artifact_hash": "SFI_LIVE_PROOF",
+        "execution_status": "outcome_recorded",
+        "verification_status": "observed",
+        "executed_at": "2026-06-20T04:54:45.708+00:00",
+        "source_payload": {
+          "marker": "SFI_LIVE_PROOF",
+          "test_safe": true,
+          "proposal_id": "1c7bc029-6ab1-461b-b33e-5b87928fae3a",
+          "external_execution_allowed": false
+        },
+        "created_at": "2026-06-20T04:54:45.791416+00:00"
+      },
+      "error": null,
+      "error_classification": null
+    },
+    {
+      "name": "insert_outcome",
+      "ok": true,
+      "data": {
+        "id": "09462e67-886a-48ca-b1cd-79a61f948688",
+        "execution_id": "a9912b6d-0e18-46a1-b696-80bd3b72a755",
+        "case_id": "SFI_LIVE_PROOF_2026-06-20T04-54-44-753Z",
+        "outcome_status": "recorded",
+        "observed_effect": {
+          "effect": "closed-loop fixture persisted",
+          "marker": "SFI_LIVE_PROOF",
+          "evidence": "direct service-role insert plus view read"
+        },
+        "unexpected_effects": [],
+        "prediction_accuracy": 1,
+        "created_at": "2026-06-20T04:54:45.987659+00:00"
+      },
+      "error": null,
+      "error_classification": null
+    },
+    {
+      "name": "insert_lesson",
+      "ok": true,
+      "data": {
+        "id": "3956c292-55cf-454c-9f6d-b757982bd4a1",
+        "outcome_id": "09462e67-886a-48ca-b1cd-79a61f948688",
+        "case_id": "SFI_LIVE_PROOF_2026-06-20T04-54-44-753Z",
+        "lesson": "SFI_LIVE_PROOF: closed-loop fixture reached outcome persistence.",
+        "updates_direction_engine": false,
+        "updates_risk_engine": false,
+        "updates_capability_engine": false,
+        "atlas_update": false,
+        "created_at": "2026-06-20T04:54:46.204647+00:00"
+      },
+      "error": null,
+      "error_classification": null
+    },
+    {
+      "name": "read_closed_loop_view",
+      "ok": true,
+      "data": {
+        "proposals_approved": 17,
+        "execution_plans_created": 23,
+        "executions_executed": 23,
+        "outcomes_recorded": 1,
+        "proposal_to_execution_ratio": 1.3529,
+        "execution_to_outcome_ratio": 0.0435,
+        "closed_loop_ratio": 0.0588,
+        "current_bottleneck": "execution_to_outcome",
+        "interpretation": "executions require outcome evidence and lesson capture"
+      },
+      "error": null,
+      "error_classification": null
+    },
+    {
+      "name": "verify_fixture_rows",
+      "ok": true,
+      "data": {
+        "proposal": {
+          "id": "1c7bc029-6ab1-461b-b33e-5b87928fae3a",
+          "title": "SFI_LIVE_PROOF: closed-loop fixture",
+          "status": "queued"
+        },
+        "ledger": {
+          "id": "a9912b6d-0e18-46a1-b696-80bd3b72a755",
+          "case_id": "SFI_LIVE_PROOF_2026-06-20T04-54-44-753Z",
+          "execution_status": "outcome_recorded",
+          "verification_status": "observed"
+        },
+        "outcome": {
+          "id": "09462e67-886a-48ca-b1cd-79a61f948688",
+          "case_id": "SFI_LIVE_PROOF_2026-06-20T04-54-44-753Z",
+          "outcome_status": "recorded"
+        }
+      },
+      "error": null,
+      "error_classification": null
+    }
+  ],
+  "cleanup_command": "node scripts/db/cleanup-sfi-live-proof.mjs SFI_LIVE_PROOF_2026-06-20T04-54-44-753Z",
+  "retained_records": "Fixture records retained as live proof evidence until cleanup command is executed."
+}

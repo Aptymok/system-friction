@@ -10,6 +10,7 @@ import {
   type GraphProfile,
 } from '../../../packages/graph/src';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
+import { executeAbortableQuery } from '@/lib/supabase/abortableQuery';
 
 type Row = Record<string, unknown>;
 
@@ -226,8 +227,8 @@ export async function readCanonicalGraphState(profile: GraphProfile): Promise<Ca
   }
 
   const [nodesResult, edgesResult] = await Promise.all([
-    service.from('graph_nodes').select('*').order('created_at', { ascending: true }),
-    service.from('graph_edges').select('*').order('created_at', { ascending: true }),
+    executeAbortableQuery(service.from('graph_nodes').select('*').order('created_at', { ascending: true })),
+    executeAbortableQuery(service.from('graph_edges').select('*').order('created_at', { ascending: true })),
   ]);
 
   if (nodesResult.error || edgesResult.error) {

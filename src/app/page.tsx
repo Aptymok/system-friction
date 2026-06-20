@@ -43,6 +43,7 @@ export default function HomePage() {
   const instruments = navByArea('instrument');
   const dashboards = navByArea('dashboard');
   const access = navByIds(['login', 'user', 'terminal']);
+  const canonical = navByIds(['home', 'sfi-console', 'root', 'scorefriction', 'world-vector', 'amv', 'closed-loop', 'repository']);
   const primary = SFI_NAVIGATION.find((item) => item.id === 'root');
   const score = SFI_NAVIGATION.find((item) => item.id === 'scorefriction');
 
@@ -51,12 +52,14 @@ export default function HomePage() {
       <header className="sticky top-0 z-40 border-b border-[#1e1c17] bg-[#060605]/95 backdrop-blur">
         <nav className="mx-auto flex max-w-7xl items-center gap-5 overflow-x-auto px-6 py-4 font-mono text-[10px] uppercase tracking-[0.18em] text-[#8f8878]">
           <Link href="/" className="mr-auto text-[#c8a951]">SFI</Link>
-          <Link href="/">Inicio</Link>
-          <Link href="/root">Observatorio</Link>
+          <Link href="/">Instituto</Link>
+          <Link href="/sfi-console">SFI Console</Link>
+          <Link href="/root">ROOT</Link>
           <Link href="/scorefriction">ScoreFriction</Link>
-          <Link href="/world-vector">WorldVector</Link>
-          <Link href="/instruments">Instrumentos</Link>
-          <Link href="/surfaces">Superficies</Link>
+          <Link href="/world-vector">WorldSpect</Link>
+          <Link href="/root">AMV</Link>
+          <Link href="/sfi-console">Closed Loop</Link>
+          <Link href="/repository">Archivo</Link>
           <Link href="/contact">Contacto</Link>
           <Link href="/login">Log in</Link>
         </nav>
@@ -70,7 +73,8 @@ export default function HomePage() {
             Observatorio, laboratorio e infraestructura para detectar señales persistentes, fricción sistémica y trayectorias emergentes.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
-            {primary ? <Link href={primary.href} className="border border-[#c8a951] bg-[#c8a951] px-5 py-3 font-mono text-[11px] uppercase tracking-[0.16em] text-[#060605]">Entrar al observatorio</Link> : null}
+            <Link href="/sfi-console" className="border border-[#c8a951] bg-[#c8a951] px-5 py-3 font-mono text-[11px] uppercase tracking-[0.16em] text-[#060605]">Abrir SFI Console</Link>
+            {primary ? <Link href={primary.href} className="border border-[#c8a95155] px-5 py-3 font-mono text-[11px] uppercase tracking-[0.16em] text-[#c8a951]">Entrar a ROOT</Link> : null}
             {score ? <Link href={score.href} className="border border-[#c8a95155] px-5 py-3 font-mono text-[11px] uppercase tracking-[0.16em] text-[#c8a951]">Explorar ScoreFriction</Link> : null}
           </div>
         </div>
@@ -84,6 +88,7 @@ export default function HomePage() {
       </section>
 
       <div className="mx-auto max-w-7xl px-6">
+        <Section id="canonicos" title="Observatorios canonicos" items={canonical} />
         <Section id="observatorios" title="Observatorios" items={observatories} />
         <Section id="instrumentos" title="Instrumentos" items={instruments} />
         <Section id="dashboards" title="Dashboards y superficies" items={dashboards} />

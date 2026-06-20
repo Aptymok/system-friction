@@ -209,7 +209,7 @@ export default function SfiConsoleClient() {
   async function load() {
     setLoading(true);
     try {
-      const response = await fetch('/api/sfi/console-state', { cache: 'no-store' });
+      const response = await fetch('/api/sfi/operational-state', { cache: 'no-store' });
       const json = await response.json();
       setState(json);
     } catch (error) {

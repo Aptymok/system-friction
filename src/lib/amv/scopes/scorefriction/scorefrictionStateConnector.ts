@@ -1,4 +1,5 @@
 import { createServiceSupabaseClient } from '@/runtime/supabase/server'
+import { executeAbortableQuery } from '@/lib/supabase/abortableQuery'
 import { readSfiOperationalEventsAsync } from '@/lib/sfi/operational/events'
 import { mapMihmCulturalVector } from '@/lib/scorefriction/mihm-cultural-mapper'
 import type { SupabaseClient } from '@supabase/supabase-js'
@@ -141,7 +142,7 @@ async function queryRows(
 ) {
   let query = service.from(table).select(select).order(order, { ascending: false }).limit(limit)
   if (eq) query = query.eq(eq.column, eq.value)
-  const { data, error } = await query
+  const { data, error } = await executeAbortableQuery(query)
   return { rows: asRows(data), warning: error ? `${table}: ${error.message}` : null }
 }
 

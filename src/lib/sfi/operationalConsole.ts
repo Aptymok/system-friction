@@ -35,10 +35,23 @@ export function numericValue(value: unknown, fallback: number | null = null) {
   return fallback;
 }
 
+const SFI_READ_TIMEOUT_MS = Number(process.env.SFI_OPERATIONAL_READ_TIMEOUT_MS ?? 1800);
+
+function createReadAbortController() {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), SFI_READ_TIMEOUT_MS);
+  return { controller, timeout };
+}
+
 export async function readSingleFromView(view: string): Promise<SfiReadResult<SfiRecord | null>> {
+  const { controller, timeout } = createReadAbortController();
   try {
     const supabase = createServiceSupabaseClient();
-    const { data, error } = await supabase.from(view).select('*').limit(1).maybeSingle();
+    const query = supabase.from(view).select('*').limit(1).maybeSingle();
+    const executable = 'abortSignal' in query
+      ? (query as typeof query & { abortSignal: (signal: AbortSignal) => typeof query }).abortSignal(controller.signal)
+      : query;
+    const { data, error } = await executable;
     if (error) throw error;
     return { ok: true, data: data ?? null, source: view };
   } catch (error) {
@@ -49,13 +62,20 @@ export async function readSingleFromView(view: string): Promise<SfiReadResult<Sf
       degraded: true,
       error: errorMessage(error, `${view}_read_failed`),
     };
+  } finally {
+    clearTimeout(timeout);
   }
 }
 
 export async function readListFromView(view: string, limit = 50): Promise<SfiReadResult<SfiRecord[]>> {
+  const { controller, timeout } = createReadAbortController();
   try {
     const supabase = createServiceSupabaseClient();
-    const { data, error } = await supabase.from(view).select('*').limit(limit);
+    const query = supabase.from(view).select('*').limit(limit);
+    const executable = 'abortSignal' in query
+      ? (query as typeof query & { abortSignal: (signal: AbortSignal) => typeof query }).abortSignal(controller.signal)
+      : query;
+    const { data, error } = await executable;
     if (error) throw error;
     return { ok: true, data: data ?? [], source: view };
   } catch (error) {
@@ -66,6 +86,8 @@ export async function readListFromView(view: string, limit = 50): Promise<SfiRea
       degraded: true,
       error: errorMessage(error, `${view}_read_failed`),
     };
+  } finally {
+    clearTimeout(timeout);
   }
 }
 
