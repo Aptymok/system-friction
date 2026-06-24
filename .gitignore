@@ -35,3 +35,17 @@ public/generated
 _sfi_exports/
 __pycache__/
 *.pyc
+
+# --- SFI local operational junk ---
+patch-*.ps1
+patch-*.cjs
+*.bak-*
+build-report.txt
+dependency-graph.txt
+ts-prune-report.txt
+sfi_*inventory*.txt
+sfi_*report*.txt
+sfi_delete_or_migrate_candidates.txt
+docs/db/SFI_DB_VERIFY_*.json
+docs/db/SFI_LIVE_PROOF_*.json
+_sfi_local_junk_*/
