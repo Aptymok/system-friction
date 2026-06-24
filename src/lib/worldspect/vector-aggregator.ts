@@ -210,3 +210,4 @@ export function aggregateWorldSpect(observations: SourceObservation[]): WorldSpe
     degradedSources,
   }
 }
+

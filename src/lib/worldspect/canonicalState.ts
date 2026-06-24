@@ -81,7 +81,7 @@ function sourceIsDegraded(source: unknown, degradedSources: string[]) {
 }
 
 function cleanLabel(value: unknown, fallback: string) {
-  return textValue(value, fallback).replace(/ÃâÃÂ·|Ã‚Â·|Â·|·/g, '·');
+  return textValue(value, fallback).replace(/Ãâ·|Ã‚·|·|·/g, '·');
 }
 
 function summarizeSources(sources: unknown[]) {
@@ -362,7 +362,7 @@ export async function buildCanonicalWorldSpectState() {
       adapter_count: rawPayload.adapter_count ?? null,
       adapter_ids: rawPayload.adapter_ids ?? [],
       source_state_reason: rawPayload.source_state_reason ?? null,
-      gdelt_mode: rawPayload.gdelt_mode ?? null,
+
     },
     is_stale: stale.is_stale,
     staleness_hours: stalenessHours,
@@ -398,4 +398,6 @@ export async function refreshCanonicalWorldSpectState() {
     state,
   };
 }
+
+
 
