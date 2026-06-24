@@ -80,8 +80,19 @@ function sourceIsDegraded(source: unknown, degradedSources: string[]) {
   return degradedSources.includes(key) || Boolean(error);
 }
 
+function cleanText(value: unknown, fallback = '') {
+  return textValue(value, fallback)
+    .replace(/Â·/g, '·')
+    .replace(/Ã‚Â·/g, '·')
+    .replace(/Ã‚·/g, '·')
+    .replace(/Ãâ·/g, '·')
+    .replace(/fÃsica/g, 'física')
+    .replace(/seÃ±ales/g, 'señales')
+    .replace(/segÃºn/g, 'según')
+}
+
 function cleanLabel(value: unknown, fallback: string) {
-  return textValue(value, fallback).replace(/Ãâ·|Ã‚·|·|·/g, '·');
+  return cleanText(value, fallback)
 }
 
 function summarizeSources(sources: unknown[]) {
@@ -100,9 +111,9 @@ function summarizeSources(sources: unknown[]) {
       layer: textValue(item.layer, 'UNKNOWN'),
       meaning: {
         indicator: textValue(meaning.indicator, key),
-        description: textValue(meaning.description, ''),
-        high_means: textValue(meaning.high_means, ''),
-        low_means: textValue(meaning.low_means, ''),
+        description: cleanText(meaning.description, ''),
+        high_means: cleanText(meaning.high_means, ''),
+        low_means: cleanText(meaning.low_means, ''),
       },
       status: textValue(item.status, ''),
       simulated: Boolean(item.simulated),
@@ -398,6 +409,7 @@ export async function refreshCanonicalWorldSpectState() {
     state,
   };
 }
+
 
 
 
