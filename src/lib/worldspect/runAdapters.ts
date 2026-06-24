@@ -18,7 +18,7 @@ function sleep(ms: number) {
 function observationToSource(obs: SourceObservation): WorldSpectSource {
   return {
     key: obs.sourceId,
-    label: `${obs.domain} Â· ${obs.sourceId}`,
+    label: `${obs.domain} · ${obs.sourceId}`,
     value: obs.status === 'ACTIVE' ? obs.value : null,
     raw: obs.raw,
     unit: 'normalized_0_1',
@@ -28,7 +28,12 @@ function observationToSource(obs: SourceObservation): WorldSpectSource {
     simulated: false,
     ts: obs.observedAt,
     error: obs.error ?? undefined,
-  }
+
+    // SEM-01: semantic metadata for public canonical API.
+    layer: obs.layer,
+    status: obs.status,
+    meaning: obs.meaning,
+  } as WorldSpectSource
 }
 
 export async function persistWorldSpectObservations(
@@ -160,6 +165,7 @@ export async function runWorldSpectAdapters(ingestMode: WorldSpectIngestMode = '
     gdelt_mode: 'sequential_backoff',
   })
 }
+
 
 
 
