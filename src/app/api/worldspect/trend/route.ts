@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getRecentWorldSpectSnapshots } from '@/lib/worldspect/snapshotStore';
 import { aggregateWorldSpect } from '@/lib/worldspect/vector-aggregator';
-import { WORLDSPECT_DOMAINS } from '@/lib/worldspect/vector-contract';
+import { WORLDSPECT_DOMAINS, type WorldSpectDomain } from '@/lib/worldspect/vector-contract';
 import type { WorldSpectIngestMode } from '../../../../../packages/api-contracts/src';
 
 export const runtime = 'nodejs';
@@ -14,6 +14,10 @@ type DomainTrendStatus = 'missing' | 'thin' | 'usable';
 type DomainSample = {
   observed_at: string;
   value: number;
+};
+
+type VectorSample = DomainSample & {
+  domain: WorldSpectDomain;
 };
 
 function record(value: unknown): Record<string, unknown> {
@@ -75,7 +79,59 @@ function roundTrendValue(value: number | null) {
   return typeof value === 'number' && Number.isFinite(value) ? Number(value.toFixed(6)) : null;
 }
 
-function samplesFromSnapshot(row: { observed_at: string; raw_payload: unknown }) {
+function numberValue(value: unknown) {
+  if (value === null || typeof value === 'undefined') return null;
+  const parsed = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function isWorldSpectDomain(value: unknown): value is WorldSpectDomain {
+  return typeof value === 'string' && (WORLDSPECT_DOMAINS as readonly string[]).includes(value);
+}
+
+function vectorRows(value: unknown): Record<string, unknown>[] {
+  return Array.isArray(value)
+    ? value.filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === 'object' && !Array.isArray(item))
+    : [];
+}
+
+function historicalVectorContainers(payload: Record<string, unknown>) {
+  const snapshot = record(payload.snapshot);
+  const data = record(payload.data);
+  const state = record(payload.state);
+  const worldspect = record(payload.worldspect);
+  const vectorSnapshot = record(payload.vector_snapshot);
+
+  return [
+    payload.vectors,
+    snapshot.vectors,
+    data.vectors,
+    state.vectors,
+    worldspect.vectors,
+    vectorSnapshot.vectors,
+  ];
+}
+
+function samplesFromHistoricalVectors(row: { observed_at: string; raw_payload: unknown }): VectorSample[] {
+  const payload = record(row.raw_payload);
+  const vectors = historicalVectorContainers(payload).flatMap(vectorRows);
+
+  return vectors
+    .map((vector) => {
+      const domain = vector.domain ?? vector.vector ?? vector.name;
+      const value = numberValue(vector.value ?? vector.current_value ?? vector.score);
+      if (!isWorldSpectDomain(domain) || value === null) return null;
+
+      return {
+        domain,
+        observed_at: row.observed_at,
+        value,
+      };
+    })
+    .filter((sample): sample is VectorSample => sample !== null);
+}
+
+function samplesFromSnapshot(row: { observed_at: string; raw_payload: unknown }): VectorSample[] {
   const observations = record(row.raw_payload).observations;
   if (!Array.isArray(observations) || observations.length === 0) return [];
 
@@ -83,7 +139,7 @@ function samplesFromSnapshot(row: { observed_at: string; raw_payload: unknown })
     const snapshot = aggregateWorldSpect(observations as any[]);
     return snapshot.vectors
       .filter((vector) => vector.status === 'ACTIVE' && typeof vector.value === 'number' && Number.isFinite(vector.value))
-      .map((vector) => ({
+      .map((vector): VectorSample => ({
         domain: vector.domain,
         observed_at: row.observed_at,
         value: vector.value as number,
@@ -91,6 +147,11 @@ function samplesFromSnapshot(row: { observed_at: string; raw_payload: unknown })
   } catch {
     return [];
   }
+}
+
+function compatibleSamplesFromSnapshot(row: { observed_at: string; raw_payload: unknown }) {
+  const observationSamples = samplesFromSnapshot(row);
+  return observationSamples.length > 0 ? observationSamples : samplesFromHistoricalVectors(row);
 }
 
 export async function GET(request: Request) {
@@ -111,7 +172,7 @@ export async function GET(request: Request) {
     );
 
     for (const snapshot of snapshots) {
-      for (const sample of samplesFromSnapshot(snapshot)) {
+      for (const sample of compatibleSamplesFromSnapshot(snapshot)) {
         const rows = domainSamples.get(sample.domain) ?? [];
         rows.push({
           observed_at: sample.observed_at,
