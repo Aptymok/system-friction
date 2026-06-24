@@ -148,7 +148,7 @@ function summarizeSources(sources: unknown[]) {
 
     return {
       key,
-      label: cleanText(`${domain} · ${key}`),
+      label: ${domain} :: ,
       value: typeof item.value === 'number' ? item.value : null,
       unit: textValue(item.unit, 'normalized_0_1'),
       trust: numberValue(item.nti ?? item.trust, 0),
@@ -456,6 +456,7 @@ export async function refreshCanonicalWorldSpectState() {
     state,
   };
 }
+
 
 
 
