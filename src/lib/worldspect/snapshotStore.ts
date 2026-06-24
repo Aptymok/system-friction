@@ -13,6 +13,7 @@ import type { WorldSpectCanonicalPayload } from './contract';
 import { deriveWorldSpectSourceHealth } from './contract';
 
 type PersistedWorldSpectSourceState = Exclude<WorldSpectSourceState, 'missing'>;
+type RecentWorldSpectIngestMode = WorldSpectIngestMode | 'all';
 
 export type WorldSpectSnapshotInput = {
   sourceState: PersistedWorldSpectSourceState;
@@ -101,6 +102,38 @@ function isWorldSpectIngestMode(value: unknown): value is WorldSpectIngestMode {
   return value === 'daily_cron' || value === 'manual' || value === 'diagnostic' || value === 'fallback_runtime';
 }
 
+function normalizeWorldSpectSnapshotRow(data: Record<string, any>): WorldSpectSnapshotRow {
+  const sourceState = isWorldSpectSourceState(data.source_state) ? data.source_state : 'degraded';
+  const ingestMode = isWorldSpectIngestMode(data.ingest_mode) ? data.ingest_mode : 'manual';
+  const observedAt = String(data.observed_at);
+  const sources = Array.isArray(data.sources) ? data.sources as WorldSpectSource[] : [];
+  const degradedSources = Array.isArray(data.degraded_sources)
+    ? data.degraded_sources.filter((source: unknown): source is string => typeof source === 'string')
+    : [];
+
+  return {
+    id: String(data.id),
+    observed_at: observedAt,
+    created_at: String(data.created_at),
+    source_state: sourceState,
+    evidence_level: 'direct',
+    confidence: clamp01(Number(data.confidence ?? 0)),
+    wsi: numberOrNull(data.wsi),
+    nti: numberOrNull(data.nti),
+    degraded_sources: degradedSources,
+    sources,
+    source_health: Array.isArray(data.source_health) && data.source_health.length > 0
+      ? data.source_health as WorldSpectSourceHealth[]
+      : deriveWorldSpectSourceHealth(sources, degradedSources, observedAt),
+    raw_payload: data.raw_payload as WorldSpectCanonicalPayload,
+    field_state_signal: data.field_state_signal && typeof data.field_state_signal === 'object' ? data.field_state_signal as WorldSpectFieldStateSignal : null,
+    adapter_status: String(data.adapter_status ?? 'unknown'),
+    adapter_error: typeof data.adapter_error === 'string' ? data.adapter_error : null,
+    ingest_mode: ingestMode,
+    snapshot_hash: String(data.snapshot_hash ?? ''),
+  } satisfies WorldSpectSnapshotRow;
+}
+
 export async function getLatestWorldSpectSnapshot() {
   const service = createServiceSupabaseClient();
 
@@ -113,34 +146,36 @@ export async function getLatestWorldSpectSnapshot() {
 
   if (error || !data) return null;
 
-  const sourceState = isWorldSpectSourceState(data.source_state) ? data.source_state : 'degraded';
-  const ingestMode = isWorldSpectIngestMode(data.ingest_mode) ? data.ingest_mode : 'manual';
+  return normalizeWorldSpectSnapshotRow(data);
+}
 
-  return {
-    id: String(data.id),
-    observed_at: String(data.observed_at),
-    created_at: String(data.created_at),
-    source_state: sourceState,
-    evidence_level: 'direct',
-    confidence: clamp01(Number(data.confidence ?? 0)),
-    wsi: numberOrNull(data.wsi),
-    nti: numberOrNull(data.nti),
-    degraded_sources: Array.isArray(data.degraded_sources) ? data.degraded_sources.filter((source: unknown): source is string => typeof source === 'string') : [],
-    sources: Array.isArray(data.sources) ? data.sources as WorldSpectSource[] : [],
-    source_health: Array.isArray(data.source_health) && data.source_health.length > 0
-      ? data.source_health as WorldSpectSourceHealth[]
-      : deriveWorldSpectSourceHealth(
-        Array.isArray(data.sources) ? data.sources as WorldSpectSource[] : [],
-        Array.isArray(data.degraded_sources) ? data.degraded_sources.filter((source: unknown): source is string => typeof source === 'string') : [],
-        String(data.observed_at),
-      ),
-    raw_payload: data.raw_payload as WorldSpectCanonicalPayload,
-    field_state_signal: data.field_state_signal && typeof data.field_state_signal === 'object' ? data.field_state_signal as WorldSpectFieldStateSignal : null,
-    adapter_status: String(data.adapter_status ?? 'unknown'),
-    adapter_error: typeof data.adapter_error === 'string' ? data.adapter_error : null,
-    ingest_mode: ingestMode,
-    snapshot_hash: String(data.snapshot_hash ?? ''),
-  } satisfies WorldSpectSnapshotRow;
+export async function getRecentWorldSpectSnapshots(input?: {
+  days?: number;
+  ingestMode?: RecentWorldSpectIngestMode;
+  limit?: number;
+}) {
+  const service = createServiceSupabaseClient();
+  const days = Number.isFinite(input?.days) ? Math.max(1, Number(input?.days)) : 90;
+  const ingestMode = input?.ingestMode ?? 'all';
+  const limit = Number.isFinite(input?.limit) ? Math.max(1, Number(input?.limit)) : 120;
+  const observedSince = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+
+  let query = service
+    .from('worldspect_snapshots')
+    .select('*')
+    .gte('observed_at', observedSince);
+
+  if (ingestMode !== 'all' && isWorldSpectIngestMode(ingestMode)) {
+    query = query.eq('ingest_mode', ingestMode);
+  }
+
+  const { data, error } = await executeAbortableQuery(query
+    .order('observed_at', { ascending: true })
+    .limit(limit));
+
+  if (error || !Array.isArray(data)) return [];
+
+  return data.map((row) => normalizeWorldSpectSnapshotRow(row));
 }
 
 export async function upsertWorldSpectSnapshot(input: WorldSpectSnapshotInput) {
