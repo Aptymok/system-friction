@@ -13,6 +13,10 @@ function rows(value: unknown): Row[] {
     : [];
 }
 
+function record(value: unknown): Row {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as Row : {};
+}
+
 function num(value: unknown, fallback = 0) {
   const parsed = typeof value === 'number' ? value : Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
@@ -20,6 +24,25 @@ function num(value: unknown, fallback = 0) {
 
 function str(value: unknown, fallback = '') {
   return typeof value === 'string' && value.trim() ? value : fallback;
+}
+
+function isInternalWorldSpectSource(source: Row) {
+  const key = str(source.key ?? source.id ?? source.sourceId, '');
+  const provider = str(record(source.raw).provider ?? source.provider, '');
+  return key.includes('_sfi_internal_evidence') || provider === 'sfi_internal_evidence';
+}
+
+function sourceHasRealValue(source: Row) {
+  return typeof source.value === 'number' && Number.isFinite(source.value);
+}
+
+function sourceHealthStatus(source: Row) {
+  const raw = record(source.raw);
+  if (source.error) return 'degraded';
+  if (source.simulated === true) return 'simulated';
+  if (!sourceHasRealValue(source)) return 'missing';
+  if (raw.reason === 'empty_result') return 'missing';
+  return 'healthy';
 }
 
 function round4(value: number) {
@@ -46,7 +69,7 @@ function buildResponse(input: {
 }) {
   const source_health = input.sources.map((source) => ({
     vector: source.domain.toUpperCase(),
-    health: source.healthy ? 'real input' : 'degraded',
+    health: source.healthy ? 'real input' : source.reason?.includes('missing') || source.reason?.includes('empty_result') || source.reason?.includes('source value') ? 'missing' : 'degraded',
     source_count: source.healthy ? 1 : 0,
     sources: [source.key],
     source_details: [{
@@ -60,10 +83,10 @@ function buildResponse(input: {
     internal_sources: source.internal ? 1 : 0,
     trust: source.trust,
     persistence: source.healthy ? 1 : 0,
-    degradation: source.healthy ? 0 : 1,
+    degradation: source.healthy ? 0 : source.reason?.includes('missing') || source.reason?.includes('empty_result') || source.reason?.includes('source value') ? 0 : 1,
     value: source.healthy ? source.value : 0,
-    status: source.healthy ? 'real input' : 'degraded',
-    interpretation: source.healthy ? 'observacion activa' : 'fuente degradada',
+    status: source.healthy ? 'real input' : source.reason?.includes('missing') || source.reason?.includes('empty_result') || source.reason?.includes('source value') ? 'missing' : 'degraded',
+    interpretation: source.healthy ? 'observacion activa' : source.reason?.includes('missing') || source.reason?.includes('empty_result') || source.reason?.includes('source value') ? 'sin evidencia suficiente' : 'fuente degradada',
     reason: source.healthy ? null : source.reason ?? 'source degraded',
   }));
 
@@ -144,16 +167,28 @@ function fromRealSnapshot(real: Row) {
     regime: str(real.regime ?? real.world_regime, 'WORLD_OBSERVED'),
     sources: sources.map((source) => {
       const key = str(source.key ?? source.id ?? source.sourceId, 'unknown_source');
-      const unhealthy = degradedSources.has(key) || Boolean(source.error) || source.simulated === true;
+      const internal = isInternalWorldSpectSource(source);
+      const healthStatus = sourceHealthStatus(source);
+      const unhealthy = degradedSources.has(key) || healthStatus === 'degraded' || healthStatus === 'simulated' || healthStatus === 'missing';
+      const raw = record(source.raw);
+      const reason = degradedSources.has(key)
+        ? str(source.error, 'source degraded')
+        : healthStatus === 'missing'
+          ? str(raw.reason, 'source_value_missing')
+          : healthStatus === 'simulated'
+            ? 'simulated source'
+            : undefined;
+
       return {
         key,
         label: str(source.label, key),
         domain: str(source.domain ?? source.mihm_var, 'WORLD'),
-        provider: str(source.provider ?? source.label, 'public source'),
+        provider: str(source.provider ?? raw.provider ?? source.label, internal ? 'SFI internal evidence' : 'public source'),
         healthy: !unhealthy,
-        trust: num(source.nti ?? real.nti ?? real.confidence, 0.5),
-        value: num(source.value, unhealthy ? 0 : 1),
-        reason: unhealthy ? str(source.error, 'source degraded') : undefined,
+        trust: !unhealthy ? num(source.nti ?? real.nti ?? real.confidence, 0.5) : 0,
+        value: !unhealthy ? num(source.value, 0) : 0,
+        internal,
+        reason,
       };
     }),
     snapshot: real,
@@ -223,6 +258,10 @@ export async function GET() {
 
   return NextResponse.json(noRealSnapshotResponse());
 }
+
+
+
+
 
 
 
