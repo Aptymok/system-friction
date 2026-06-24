@@ -95,12 +95,12 @@ export function translateRootWsv(value: unknown, now = new Date()): RootWsvTrans
     ? 'Hay lectura del dia para el mundo observado.'
     : observedAt
       ? 'No hay lectura del dia; uso la ultima lectura disponible.'
-      : 'Lectura WSV pendiente: no hay timestamp real visible.';
+      : 'Lectura WorldSpect pendiente: no hay timestamp real visible.';
 
   return {
-    label: 'WSV / mundo observado',
+    label: 'WorldSpect / mundo observado',
     state,
-    worldToday: hasReading ? `${dayText} Estado traducido: ${state.label}` : 'WSV sin lectura suficiente; no se usa como OK.',
+    worldToday: hasReading ? `${dayText} Estado traducido: ${state.label}` : 'WorldSpect sin lectura suficiente; no se usa como OK.',
     activeSources: active.length
       ? active.map(sourceLabel).slice(0, 5).join(', ')
       : array(input.sources).length
@@ -111,10 +111,15 @@ export function translateRootWsv(value: unknown, now = new Date()): RootWsvTrans
     lastRealReading: observedAt ? observedAt : 'sin lectura real fechada',
     integrity: integrityFor(input, health),
     implicationForAptymok: degraded.length
-      ? 'Usar WSV con cautela: una fuente degradada baja fuerza operativa y no debe sostener cierre fuerte.'
+      ? 'Usar WorldSpect con cautela: una fuente degradada baja fuerza operativa y no debe sostener cierre fuerte.'
       : hasReading
         ? 'Puede orientar contexto externo si se conserva fecha, fuente y estado.'
-        : 'No tomar decisiones apoyadas en WSV hasta tener lectura real.',
+        : 'No tomar decisiones apoyadas en WorldSpect hasta tener lectura real.',
   };
 }
+
+
+
+
+
 

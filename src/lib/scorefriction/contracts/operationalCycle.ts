@@ -1,9 +1,9 @@
-export type AnalysisMode = 'MIHM' | 'PSI' | 'WORLDSPECT' | 'WSV' | 'SCOREFRICTION' | 'AMV';
+﻿export type AnalysisMode = 'MIHM' | 'PSI' | 'WORLDSPECT' | 'WSV' | 'SCOREFRICTION' | 'AMV';
 
 export function normalizeAnalysisMode(value: unknown): AnalysisMode | null {
   if (typeof value !== 'string') return null;
   const upper = value.trim().toUpperCase();
-  if (upper === 'WSV' || upper === 'WORLDSPECTRUMVECTOR' || upper === 'WORLD_SPECTRUM_VECTOR') return 'WORLDSPECT';
+  if (upper === 'WSV' || upper === 'WORLDSPECTRUMVECTOR' || upper === 'WORLDSPECT') return 'WORLDSPECT';
   if (upper === 'WORLDSPECT' || upper === 'MIHM' || upper === 'PSI' || upper === 'SCOREFRICTION' || upper === 'AMV') return upper as AnalysisMode;
   return null;
 }
@@ -176,3 +176,4 @@ export type OperationalCycleState = {
     warnings: string[];
   };
 };
+

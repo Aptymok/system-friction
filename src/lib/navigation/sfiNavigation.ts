@@ -186,7 +186,7 @@ export const SFI_NAVIGATION: SfiNavItem[] = [
     id: 'instruments',
     title: 'Instruments',
     href: '/instruments',
-    description: 'Mapa conceptual de instrumentos SFI: MIHM, ScoreFriction, PSI, WSV y ROOT.',
+    description: 'Mapa conceptual de instrumentos SFI: MIHM, ScoreFriction, PSI, WorldSpect y ROOT.',
     area: 'instrument',
     status: 'active',
     public: true,
@@ -296,5 +296,6 @@ export function navByIds(ids: string[]) {
   const lookup = new Map(SFI_NAVIGATION.map((item) => [item.id, item]));
   return ids.map((id) => lookup.get(id)).filter((item): item is SfiNavItem => Boolean(item));
 }
+
 
 

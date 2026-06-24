@@ -1,4 +1,4 @@
-export type RootStateSeverity = 'info' | 'notice' | 'warning' | 'critical';
+﻿export type RootStateSeverity = 'info' | 'notice' | 'warning' | 'critical';
 
 export type RootStateTranslation = {
   rawState: string;
@@ -40,10 +40,10 @@ const ROOT_STATE_TRANSLATIONS: Record<string, Omit<RootStateTranslation, 'rawSta
     severity: 'warning',
   },
   degraded: {
-    label: 'Perdiendo confiabilidad.',
-    explanation: 'La lectura, fuente o elemento muestra perdida de calidad o estabilidad.',
-    implication: 'No debe sostener una decision fuerte sin reobservacion.',
-    recommendedAction: 'identificar causa, reobservar y usar con cautela.',
+    label: 'Lectura degradada.',
+    explanation: 'La lectura existe, pero alguna fuente, adaptador o evidencia requiere reobservacion antes de sostener cierre fuerte.',
+    implication: 'Puede orientar contexto, pero no debe presentarse como cierre definitivo sin fuente visible y lectura reciente.',
+    recommendedAction: 'reobservar fuente, fecha y cobertura; si la lectura ya esta activa, mostrarla como operativa con advertencia.',
     severity: 'warning',
   },
   active: {
@@ -227,3 +227,7 @@ export function listRootStateTranslations() {
     ...translation,
   }));
 }
+
+
+
+

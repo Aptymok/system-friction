@@ -190,7 +190,7 @@ export default function WorldVectorPage() {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
-          case_id: `WSV-${Date.now().toString(36)}`,
+          case_id: `WorldSpect-${Date.now().toString(36)}`,
           objective: question.trim() || `Contraste contra ${domain}`,
           scope: domain === 'WORLD' ? 'world' : domain === 'CULTURAL' ? 'culture' : 'custom',
           analysis_modes: ['MIHM', 'PSI', 'WorldSpect', 'SCOREFRICTION', 'AMV'],
@@ -551,6 +551,7 @@ export default function WorldVectorPage() {
     </main>
   );
 }
+
 
 
 
