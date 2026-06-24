@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useMemo, useState } from 'react';
 import type { CSSProperties } from 'react';
@@ -41,6 +41,17 @@ function nodeLabel(node: Row, index: number) {
   return scalar(node.label ?? node.name ?? node.vector ?? node.domain ?? node.id, `nodo ${index + 1}`);
 }
 
+async function safeJson<T>(response: Response, fallback: T): Promise<T> {
+  const text = await response.text().catch(() => '');
+  if (!text.trim()) return fallback;
+
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    return fallback;
+  }
+}
+
 export function ScoreFrictionFieldExperience() {
   const [caseId] = useState('SFI-OP-LOCAL');
   const [scope, setScope] = useState('Culture');
@@ -59,11 +70,21 @@ export function ScoreFrictionFieldExperience() {
     let cancelled = false;
     async function load() {
       const [cycleResponse, graphResponse, thoughtsResponse, logbookResponse, selfResponse] = await Promise.all([
-        fetch(`/api/scorefriction/operational-cycle?case_id=${encodeURIComponent(caseId)}&scope=${scope.toLowerCase()}`, { cache: 'no-store' }).then((res) => res.json()).catch((error) => ({ ok: false, error: String(error) })),
-        fetch(`/api/root/neural-graph/live?case_id=${encodeURIComponent(caseId)}`, { cache: 'no-store' }).then((res) => res.json()).catch((error) => ({ ok: false, error: String(error), nodes: [] })),
-        fetch(`/api/amv/thoughts/live?case_id=${encodeURIComponent(caseId)}`, { cache: 'no-store' }).then((res) => res.json()).catch(() => ({ thoughts: [] })),
-        fetch(`/api/logbook/visible?role=system&case_id=${encodeURIComponent(caseId)}`, { cache: 'no-store' }).then((res) => res.json()).catch(() => ({ entries: [] })),
-        fetch('/api/root/self-observability', { cache: 'no-store' }).then((res) => res.json()).catch((error) => ({ ok: false, system_health: 'critical', error: String(error) })),
+        fetch(`/api/scorefriction/operational-cycle?case_id=${encodeURIComponent(caseId)}&scope=${scope.toLowerCase()}`, { cache: 'no-store' })
+          .then((res) => safeJson<Row>(res, { ok: false, state: {}, error: 'scorefriction_empty_response' }))
+          .catch((error) => ({ ok: false, state: {}, error: String(error) })),
+        fetch(`/api/root/neural-graph/live?case_id=${encodeURIComponent(caseId)}`, { cache: 'no-store' })
+          .then((res) => safeJson<Row>(res, { ok: false, error: 'neural_graph_empty_response', nodes: [] }))
+          .catch((error) => ({ ok: false, error: String(error), nodes: [] })),
+        fetch(`/api/amv/thoughts/live?case_id=${encodeURIComponent(caseId)}`, { cache: 'no-store' })
+          .then((res) => safeJson<Row>(res, { thoughts: [] }))
+          .catch(() => ({ thoughts: [] })),
+        fetch(`/api/logbook/visible?role=system&case_id=${encodeURIComponent(caseId)}`, { cache: 'no-store' })
+          .then((res) => safeJson<Row>(res, { entries: [] }))
+          .catch(() => ({ entries: [] })),
+        fetch('/api/root/self-observability', { cache: 'no-store' })
+          .then((res) => safeJson<Row>(res, { ok: false, system_health: 'critical', error: 'self_observability_empty_response' }))
+          .catch((error) => ({ ok: false, system_health: 'critical', error: String(error) })),
       ]);
       if (cancelled) return;
       setCycle(record(cycleResponse.state));
@@ -108,7 +129,9 @@ export function ScoreFrictionFieldExperience() {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ case_id: caseId, prompt: scalar(experiment.action, 'ScoreFriction minimal action'), assets: ['text', 'image'] }),
-    }).then((res) => res.json()).catch((error) => ({ ok: false, status: 'render_failed', error: String(error) }));
+    })
+      .then((res) => safeJson<Row>(res, { ok: false, status: 'render_empty_response' }))
+      .catch((error) => ({ ok: false, status: 'render_failed', error: String(error) }));
     setMediaResult(result);
   }
 
@@ -117,7 +140,9 @@ export function ScoreFrictionFieldExperience() {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ question, case_id: caseId, objective: cycle?.objective, scope: scope.toLowerCase(), evaluated_object: scalar(experiment.hypothesis, '') }),
-    }).then((res) => res.json());
+    })
+      .then((res) => safeJson<Row>(res, { ok: false, answer: 'sin respuesta' }))
+      .catch((error) => ({ ok: false, answer: 'sin respuesta', error: String(error) }));
     setAnswer(String(response.answer ?? 'sin respuesta'));
   }
 
@@ -167,7 +192,7 @@ export function ScoreFrictionFieldExperience() {
       <aside className="sf-right-panel">
         <div className="sf-panel-title"><Brain size={16} /> AMV operativo</div>
         <div className="sf-thought">
-          {scalar(experiment.plain_language ?? thoughts[0]?.thought, 'No hagas campaÃ±a todavÃ­a. Guarda evidencia y observa el siguiente cambio real del vector.')}
+          {scalar(experiment.plain_language ?? thoughts[0]?.thought, 'No hagas campaÃƒÂ±a todavÃƒÂ­a. Guarda evidencia y observa el siguiente cambio real del vector.')}
         </div>
         <div className="sf-action-box">
           <span>Hoy en el mundo</span>
@@ -179,7 +204,7 @@ export function ScoreFrictionFieldExperience() {
         </div>
         <div className="sf-action-box">
           <span>Valores</span>
-          <p>MIHM coherencia {scalar(mihm.coherence)} Â· PSI persistencia {scalar(psi.persistence)} Â· oportunidad {scalar(score.opportunity)}</p>
+          <p>MIHM coherencia {scalar(mihm.coherence)} Ã‚Â· PSI persistencia {scalar(psi.persistence)} Ã‚Â· oportunidad {scalar(score.opportunity)}</p>
         </div>
         <div className="sf-action-box">
           <span>Accion verificable</span>
@@ -190,7 +215,7 @@ export function ScoreFrictionFieldExperience() {
           <p>{scalar(experiment.success_condition)}</p>
         </div>
         <div className="sf-ask">
-          <input value={question} onChange={(event) => setQuestion(event.target.value)} placeholder="pregunta: Â¿quÃ© hago?, Â¿quÃ© verifico?" />
+          <input value={question} onChange={(event) => setQuestion(event.target.value)} placeholder="pregunta: Ã‚Â¿quÃƒÂ© hago?, Ã‚Â¿quÃƒÂ© verifico?" />
           <button onClick={() => void askAmv()}>Preguntar</button>
           {answer ? <p>{answer}</p> : null}
         </div>

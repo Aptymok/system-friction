@@ -1,4 +1,4 @@
-import asyncio
+﻿import asyncio
 import sys
 import time
 import math
@@ -9,7 +9,7 @@ import ssl
 import httpx
 from config import DATA_SOURCES, NASA_API_KEY
 
-# ── CACHE ──
+# â”€â”€ CACHE â”€â”€
 _CACHE: Dict[str, dict] = {}
 
 def _is_fresh(key: str) -> bool:
@@ -40,7 +40,7 @@ def _make_error_source(key: str, error: str) -> dict:
 def _normalize_value(raw: float, src_key: str) -> float:
     if src_key == "worldbank":
         return min(1.0, max(0.0, (raw + 5.0) / 13.0))
-    if src_key in ("bbc_world", "reuters", "aljazeera", "news_api"):
+    if src_key in ("gdelt_global", "reuters", "aljazeera", "news_api"):
         return min(1.0, raw / 50.0)
     if src_key == "hn":
         return min(1.0, raw / 100.0)
@@ -80,6 +80,36 @@ async def _fetch_worldbank() -> dict:
     except Exception as e:
         return _make_error_source(key, str(e)[:100])
 
+async def _fetch_gdelt_global() -> dict:
+    key = "gdelt_global"
+    if _is_fresh(key):
+        return _CACHE[key]
+    cfg = DATA_SOURCES[key]
+    try:
+        async with httpx.AsyncClient(timeout=15.0, follow_redirects=True) as client:
+            r = await client.get(cfg["url"], headers={"User-Agent": "SFI-Agent/3.1"})
+        r.raise_for_status()
+        payload = r.json()
+        articles = payload.get("articles", []) if isinstance(payload, dict) else []
+        raw_count = len(articles)
+        norm_val = _normalize_value(raw_count, key)
+        result = {
+            "key": key,
+            "label": "GDELT Global Knowledge Graph",
+            "value": norm_val,
+            "raw": raw_count,
+            "unit": "articles",
+            "nti": cfg["nti_base"],
+            "weight": cfg["weight"],
+            "mihm_var": cfg["mihm_var"],
+            "simulated": False,
+            "ts": datetime.utcnow().isoformat(),
+        }
+        _cache_set(key, result)
+        return result
+    except Exception as e:
+        return _make_error_source(key, str(e)[:100])
+
 async def _fetch_rss(src_key: str) -> dict:
     if _is_fresh(src_key):
         return _CACHE[src_key]
@@ -112,7 +142,7 @@ async def _fetch_rss(src_key: str) -> dict:
 async def get_world_spectrum() -> dict:
     results = await asyncio.gather(
         _fetch_worldbank(),
-        _fetch_rss("bbc_world"),
+        _fetch_gdelt_global(),
         _fetch_rss("hn"),
         _fetch_rss("aljazeera"),
         _fetch_rss("news_api"),

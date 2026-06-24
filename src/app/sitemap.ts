@@ -1,24 +1,24 @@
-import type { MetadataRoute } from 'next'
+﻿import type { MetadataRoute } from 'next'
 
 const BASE_URL = 'https://systemfriction.org'
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const routes = [
     '',
-    '/framework',
-    '/methodology',
-    '/protocol',
-    '/mihm',
-    '/world-spectrum',
-    '/sfi-core-v2',
-    '/field/brief/latest',
+    '/sfi-console',
+    '/root',
+    '/scorefriction',
+    '/world-vector',
+    '/repository',
+    '/contact',
     '/campo',
     '/observatory',
+    '/moph',
+    '/instruments',
+    '/surfaces',
     '/llms-full.txt',
     '/ai-index.json',
     '/field-schema.json',
-    '/montecarlo',
-    '/stochastic',
     '/sfi-manifest'
   ]
 

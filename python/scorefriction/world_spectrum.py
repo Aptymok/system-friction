@@ -1,4 +1,4 @@
-# core/world_spectrum.py - Versión corregida con manejo SSL
+﻿# core/world_spectrum.py - VersiÃ³n corregida con manejo SSL
 
 import asyncio
 import sys
@@ -11,7 +11,7 @@ import ssl
 import certifi
 import httpx
 
-# ── CONSTANTES CON URLs CORREGIDAS ──
+# â”€â”€ CONSTANTES CON URLs CORREGIDAS â”€â”€
 DATA_SOURCES = {
     "nasa": {
         "url": "https://api.nasa.gov/DONKI/FLR",
@@ -28,14 +28,14 @@ DATA_SOURCES = {
         "mihm_var": "E_r",
     },
     "bbc_world": {
-        "url": "http://feeds.bbci.co.uk/news/rss.xml",  # ← HTTP en lugar de HTTPS
+        "url": "http://feeds.bbci.co.uk/news/rss.xml",  # â† HTTP en lugar de HTTPS
         "ttl_hours": 0.5,
         "weight": 0.25,
         "nti_base": 0.70,
         "mihm_var": "D_cog",
     },
     "hn": {
-        "url": "https://hnrss.org/frontpage",  # ← URL alternativa más confiable
+        "url": "https://hnrss.org/frontpage",  # â† URL alternativa mÃ¡s confiable
         "ttl_hours": 0.33,
         "weight": 0.20,
         "nti_base": 0.75,
@@ -57,7 +57,7 @@ DATA_SOURCES = {
     },
 }
 
-# ── CACHE ──
+# â”€â”€ CACHE â”€â”€
 _CACHE: Dict[str, dict] = {}
 
 def _is_fresh(key: str) -> bool:
@@ -93,7 +93,7 @@ def _normalize_value(raw: float, src_key: str) -> float:
         return min(1.0, raw / 20.0)
     if src_key == "worldbank":
         return min(1.0, max(0.0, (raw + 5.0) / 13.0))
-    if src_key in ("bbc_world", "reuters"):
+    if src_key in ("gdelt_global", "reuters"):
         return min(1.0, raw / 50.0)
     if src_key == "hn":
         return min(1.0, raw / 100.0)  # HNRSS tiene menos items
@@ -118,9 +118,9 @@ def _get_stale_fallback(key: str, max_age_hours: int = 24) -> Optional[dict]:
     return result
 
 
-# ── SENSORES CON SSL CORREGIDO ──
+# â”€â”€ SENSORES CON SSL CORREGIDO â”€â”€
 async def _fetch_nasa_eonet() -> dict:
-    """EONET es más estable y no requiere API key para uso básico"""
+    """EONET es mÃ¡s estable y no requiere API key para uso bÃ¡sico"""
     key = "eonet"
     url = "https://eonet.gsfc.nasa.gov/api/v2.1/events?limit=100"
     
@@ -151,7 +151,7 @@ async def _fetch_worldbank(retry_count=2) -> dict:
     if _is_fresh(key):
         return _cache_get(key)
     
-    # URL más simple y confiable
+    # URL mÃ¡s simple y confiable
     url = "https://api.worldbank.org/v2/country/WLD/indicator/NY.GDP.MKTP.KD.ZG?format=json"
     
     sys.stderr.write(f"[WorldBank] Fetching GDP data...")
@@ -181,7 +181,7 @@ async def _fetch_worldbank(retry_count=2) -> dict:
             # Extraer datos
             if isinstance(payload, list) and len(payload) > 1:
                 records = payload[1]
-                # Buscar el valor más reciente no nulo
+                # Buscar el valor mÃ¡s reciente no nulo
                 rec = None
                 for item in records:
                     if item.get("value") is not None:
@@ -220,6 +220,37 @@ async def _fetch_worldbank(retry_count=2) -> dict:
     
     return _make_error_source(key, "all_retries_failed")
 
+async def _fetch_gdelt_global() -> dict:
+    key = "gdelt_global"
+    if _is_fresh(key):
+        return _cache_get(key)
+    cfg = DATA_SOURCES[key]
+    try:
+        async with httpx.AsyncClient(timeout=15.0, follow_redirects=True) as client:
+            r = await client.get(cfg["url"], headers={"User-Agent": "SFI-Agent/3.1 (systemfriction.org)"})
+        r.raise_for_status()
+        payload = r.json()
+        articles = payload.get("articles", []) if isinstance(payload, dict) else []
+        raw_count = len(articles)
+        norm_val = _normalize_value(raw_count, key)
+        result = {
+            "key": key,
+            "label": "GDELT Global Knowledge Graph",
+            "value": norm_val,
+            "raw": raw_count,
+            "unit": "articles",
+            "nti": DATA_SOURCES[key]["nti_base"],
+            "nti_base": DATA_SOURCES[key]["nti_base"],
+            "weight": DATA_SOURCES[key]["weight"],
+            "mihm_var": DATA_SOURCES[key]["mihm_var"],
+            "simulated": False,
+            "ts": datetime.utcnow().isoformat(),
+        }
+        _cache_set(key, result)
+        return result
+    except Exception as e:
+        return _make_error_source(key, str(e)[:100])
+
 async def _fetch_rss(src_key: str) -> dict:
     if _is_fresh(src_key):
         return _cache_get(src_key)
@@ -235,7 +266,7 @@ async def _fetch_rss(src_key: str) -> dict:
         async with httpx.AsyncClient(
             timeout=15.0, 
             follow_redirects=True,
-            verify=False  # Deshabilitar verificación SSL para RSS (seguridad baja para fuentes públicas)
+            verify=False  # Deshabilitar verificaciÃ³n SSL para RSS (seguridad baja para fuentes pÃºblicas)
         ) as client:
             r = await client.get(cfg["url"], headers=headers)
         
@@ -282,14 +313,14 @@ async def _fetch_rss(src_key: str) -> dict:
     except Exception as e:
         return _make_error_source(src_key, str(e)[:100])
 
-# ── AGREGADOR PRINCIPAL ──
+# â”€â”€ AGREGADOR PRINCIPAL â”€â”€
 async def get_world_spectrum(nasa_key: str = "DEMO_KEY") -> dict:
     results = await asyncio.gather(
         _fetch_nasa_eonet(),
         _fetch_worldbank(),
-        _fetch_rss("bbc_world"),
+        _fetch_gdelt_global(),
         _fetch_rss("hn"),
-        _fetch_rss("aljazeera"),  # ← Cambiado de reuters
+        _fetch_rss("aljazeera"),  # â† Cambiado de reuters
         return_exceptions=False,
     )
     sources = [r for r in results if isinstance(r, dict)]
@@ -317,7 +348,7 @@ async def get_world_spectrum(nasa_key: str = "DEMO_KEY") -> dict:
         "degraded_sources": [s["key"] for s in sources if s.get("simulated")],
     }
 
-# ── CLI ──
+# â”€â”€ CLI â”€â”€
 async def main():
     import json
     try:

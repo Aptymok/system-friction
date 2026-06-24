@@ -1,4 +1,4 @@
-import os
+﻿import os
 
 # API Keys (se leen de variables de entorno o usan valor por defecto)
 NASA_API_KEY = os.getenv("NASA_API_KEY", "DEMO_KEY")

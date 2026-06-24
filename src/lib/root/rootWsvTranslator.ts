@@ -1,4 +1,4 @@
-import { translateRootState, type RootStateTranslation } from './rootStateTranslator';
+﻿import { translateRootState, type RootStateTranslation } from './rootStateTranslator';
 
 export type RootWsvTranslation = {
   label: string;
@@ -71,7 +71,7 @@ function integrityFor(input: VisibleRecord, health: VisibleRecord[]) {
   const confidence = numberValue(input.confidence);
   const degraded = health.filter((source) => ['degraded', 'missing', 'simulated', 'not_ready'].includes(sourceStatus(source))).length
     + array(input.degraded_sources).length;
-  if (confidence === undefined) return degraded ? 'integridad incompleta: hay fuente degradada sin confianza consolidada' : 'integridad pendiente: confianza no visible';
+  if (confidence === undefined) return degraded ? 'integridad operativa pendiente: hay fuente degradada; confianza no consolidada en esta lectura' : 'integridad operativa pendiente: confianza no expuesta en esta lectura';
   const confidenceText = `confianza ${confidence.toFixed(3)}`;
   if (degraded > 0) return `integridad degradada (${confidenceText})`;
   if (confidence >= 0.75) return `integridad alta (${confidenceText})`;
@@ -104,8 +104,8 @@ export function translateRootWsv(value: unknown, now = new Date()): RootWsvTrans
     activeSources: active.length
       ? active.map(sourceLabel).slice(0, 5).join(', ')
       : array(input.sources).length
-        ? 'hay fuentes declaradas, pero ninguna aparece como activa saludable'
-        : 'sin fuentes activas visibles',
+        ? 'hay fuentes declaradas; confirmar estado saludable en source_health'
+        : 'fuentes activas no expuestas en esta lectura',
     degradedSource: degraded.length ? degraded.slice(0, 5).join(', ') : 'sin fuente degradada declarada',
     dominantField: dominantField(input),
     lastRealReading: observedAt ? observedAt : 'sin lectura real fechada',
@@ -117,3 +117,4 @@ export function translateRootWsv(value: unknown, now = new Date()): RootWsvTrans
         : 'No tomar decisiones apoyadas en WSV hasta tener lectura real.',
   };
 }
+

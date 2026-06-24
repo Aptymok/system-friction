@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useMemo, useState } from 'react';
 
@@ -41,6 +41,46 @@ function metricTone(value: unknown) {
   if (n >= 0.7) return 'wv-good';
   if (n >= 0.45) return 'wv-watch';
   return 'wv-low';
+}
+
+async function safeJson<T>(response: Response, fallback: T): Promise<T> {
+  const text = await response.text().catch(() => '');
+  if (!text.trim()) return fallback;
+
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    return fallback;
+  }
+}
+
+
+function operatorLabel(state: Row) {
+  return label(state.label, 'Sin lectura');
+}
+
+function operatorSummary(state: Row) {
+  return label(state.summary, 'WorldSpect no tiene una lectura operativa disponible.');
+}
+
+function operatorAction(state: Row) {
+  return label(state.action, 'No ejecutar decisiones apoyadas en WorldSpect hasta recuperar lectura mínima.');
+}
+
+function operatorDecisionUse(state: Row) {
+  const value = label(state.decisionUse, 'hold');
+  if (value === 'execute') return 'Puede orientar decisión';
+  if (value === 'observe') return 'Usar para observar';
+  if (value === 'internal_only') return 'Sólo lectura interna';
+  return 'No ejecutar';
+}
+
+function operatorStatusClass(state: Row) {
+  const status = label(state.status, 'sin_lectura');
+  if (status === 'observacion_confiable') return 'wv-op-good';
+  if (status === 'observacion_parcial') return 'wv-op-partial';
+  if (status === 'observacion_interna') return 'wv-op-internal';
+  return 'wv-op-hold';
 }
 
 function selectedVectorFrom(snapshot: Row | null, domain: string) {
@@ -95,11 +135,11 @@ export default function WorldVectorPage() {
 
   useEffect(() => {
     Promise.all([
-      fetch('/api/worldspect/operational-state', { cache: 'no-store' }).then((res) => res.json()),
-      fetch('/api/worldspect/longitudinal?limit=80', { cache: 'no-store' }).then((res) => res.json()),
-      fetch('/api/worldspect/evidence-trace', { cache: 'no-store' }).then((res) => res.json()),
-      fetch('/api/worldspect/attractors?limit=80', { cache: 'no-store' }).then((res) => res.json()),
-      fetch('/api/worldspect/opportunities?limit=80', { cache: 'no-store' }).then((res) => res.json()),
+      fetch('/api/worldspect/operational-state', { cache: 'no-store' }).then((res) => safeJson<Row>(res, { ok: false, status: 'empty_worldspect_operational_state' })),
+      fetch('/api/worldspect/longitudinal?limit=80', { cache: 'no-store' }).then((res) => safeJson<Row>(res, { ok: false, timeline: [] })),
+      fetch('/api/worldspect/evidence-trace', { cache: 'no-store' }).then((res) => safeJson<Row>(res, { ok: false, traces: [] })),
+      fetch('/api/worldspect/attractors?limit=80', { cache: 'no-store' }).then((res) => safeJson<Row>(res, { ok: false, attractors: [] })),
+      fetch('/api/worldspect/opportunities?limit=80', { cache: 'no-store' }).then((res) => safeJson<Row>(res, { ok: false, opportunities: [] })),
     ]).then(([operational, longitudinal, evidenceTrace, attractors, canonicalOpportunities]) => {
       setState(operational);
       setHistory(longitudinal);
@@ -124,6 +164,8 @@ export default function WorldVectorPage() {
   const selectedVector = selectedVectorFrom({ vectors: latestVectors }, domain);
   const sourceHealth = rows(state?.source_health);
   const sourceMix = record(state?.source_mix);
+  const operatorState = record(state?.operator_state);
+  const operatorEvidence = record(operatorState.evidence);
   const selectedSource = domain === 'WORLD' ? null : sourceHealth.find((item) => String(item.vector) === domain) ?? null;
   const evidenceTraces = rows(traceability?.traces);
   const selectedTrace = domain === 'WORLD' ? null : evidenceTraces.find((trace) => String(trace.vector) === domain) ?? null;
@@ -151,12 +193,12 @@ export default function WorldVectorPage() {
           case_id: `WSV-${Date.now().toString(36)}`,
           objective: question.trim() || `Contraste contra ${domain}`,
           scope: domain === 'WORLD' ? 'world' : domain === 'CULTURAL' ? 'culture' : 'custom',
-          analysis_modes: ['MIHM', 'PSI', 'WSV', 'SCOREFRICTION', 'AMV'],
+          analysis_modes: ['MIHM', 'PSI', 'WorldSpect', 'SCOREFRICTION', 'AMV'],
           evaluated_object: objectText,
           run_contrast: true,
         }),
-      }).then((res) => res.json());
-      setEvaluation(response.state ?? response);
+      }).then((res) => safeJson<Row>(res, { ok: false, error: 'empty_scorefriction_contrast_response' }));
+      setEvaluation(record(response.state ?? response));
     } finally {
       setLoading(false);
     }
@@ -170,7 +212,7 @@ export default function WorldVectorPage() {
 
   function downloadReport() {
     const payload = evaluation ?? { world: state, history };
-    const report = `# WorldSpectrumVector Longitudinal Report\n\n` +
+    const report = `# WorldSpect Longitudinal Report\n\n` +
       `Generated: ${new Date().toISOString()}\n\n` +
       `## Current world\n\nRegime: ${label(latestSnapshot?.regime ?? state?.world_regime)}\n\nWSI: ${fixed(latestSnapshot?.wsi ?? record(state?.snapshot).wsi)}\n\nNTI: ${fixed(latestSnapshot?.nti ?? record(state?.snapshot).nti)}\n\nCoverage: ${pct(sourceMix.sourceCoverage ?? latestSnapshot?.sourceCoverage)}\n\nDominant attractor: ${label(dominant?.domain)} persistence ${fixed(dominant?.persistence)}\n\n` +
       `## Selected vector\n\n${domain}\n\n` +
@@ -188,7 +230,7 @@ export default function WorldVectorPage() {
     <main className="wv-root">
       <header className="wv-header">
         <div>
-          <div className="wv-kicker">WorldSpectrumVector Observatory</div>
+          <div className="wv-kicker">WorldSpect Observatory</div>
           <h1>Regime timeline + signal field</h1>
         </div>
         <div className="wv-metrics">
@@ -199,6 +241,24 @@ export default function WorldVectorPage() {
           <div><span>snapshots</span><b>{timeline.length || '1'}</b></div>
         </div>
       </header>
+
+      <section className={`wv-operator-card ${operatorStatusClass(operatorState)}`} aria-label="WorldSpect estado operativo">
+        <div>
+          <p className="wv-eyebrow">Estado operativo</p>
+          <h2>{operatorLabel(operatorState)}</h2>
+          <p>{operatorSummary(operatorState)}</p>
+        </div>
+        <div className="wv-operator-action">
+          <span>{operatorDecisionUse(operatorState)}</span>
+          <strong>{operatorAction(operatorState)}</strong>
+        </div>
+        <div className="wv-operator-evidence">
+          <span>Cobertura: {String(operatorEvidence.sourceCoverage ?? sourceMix.sourceCoverage ?? 'n/d')}</span>
+          <span>Fuentes vivas: {String(operatorEvidence.realInputCount ?? sourceMix.realInputCount ?? 'n/d')}</span>
+          <span>Fuentes pendientes: {String(operatorEvidence.missingOrDegradedCount ?? sourceMix.missingOrDegradedCount ?? 'n/d')}</span>
+          <span>Estado técnico: {String(state?.technical_status ?? state?.status ?? 'n/d')}</span>
+        </div>
+      </section>
 
       <section className="wv-layout">
         <aside className="wv-left">
@@ -225,7 +285,7 @@ export default function WorldVectorPage() {
                 <b>{label(source.provider)}</b>
                 <span>{label(source.kind)} / {label(source.id)}</span>
               </article>
-            )) : <p>No active source detail for this vector.</p>}
+            )) : <p>Source detail is not exposed for this vector in the current snapshot.</p>}
           </div>
         </aside>
 
@@ -285,7 +345,7 @@ export default function WorldVectorPage() {
             {emergent.length ? emergent.map((vector) => (
               <article key={String(vector.domain)}>
                 <b>{String(vector.domain)}</b>
-                <span>persistence {pct(vector.persistence)} / trust {pct(vector.trust)}</span>
+                <span>persistence {pct(vector.persistence)} / confidence {pct(vector.trust)}</span>
                 <small>This is an emerging signal because persistence exists but trust is not yet high enough.</small>
               </article>
             )) : <p>No emergent signal in this snapshot.</p>}
@@ -319,7 +379,7 @@ export default function WorldVectorPage() {
               <article key={String(attractor.id)}>
                 <b>{label(attractor.label)}</b>
                 <span>{values(attractor.vectors).join(' + ') || String(attractor.vectors ?? '')}</span>
-                <small>direction {label(attractor.direction)} / confidence {pct(attractor.confidence)} / evidence {values(attractor.evidence_basis).length}</small>
+                <small>direction {label(attractor.direction)} / operational confidence {pct(attractor.confidence)} / evidence {values(attractor.evidence_basis).length}</small>
               </article>
             )) : <p>No evidence-based attractor cluster available yet.</p>}
           </div>
@@ -347,7 +407,7 @@ export default function WorldVectorPage() {
                     <article key={String(item.id)}>
                       <b>{label(item.source_id ?? item.provider)}</b>
                       <span>{label(item.provider)} / {label(item.observed_at)} / trust {fixed(item.trust)}</span>
-                      <small>{label(item.evidence_ref)} — {label(item.summary)}</small>
+                      <small>{label(item.evidence_ref)} â€” {label(item.summary)}</small>
                     </article>
                   )) : <p>{String(title) === 'USER / CASE' ? 'User not calibrated yet. Upload/evaluate an object to build case evidence.' : 'No exact linked evidence for this level.'}</p>}
                 </div>
@@ -378,6 +438,68 @@ export default function WorldVectorPage() {
         .wv-metrics div { border: 1px solid rgba(216,182,74,.12); padding: 10px; background: #070604; }
         .wv-metrics span { display: block; color: #8a8172; font-size: 9px; text-transform: uppercase; }
         .wv-metrics b { display: block; margin-top: 4px; font-size: 12px; color: #f5e7bd; }
+        .wv-operator-card {
+          margin: 16px;
+          border: 1px solid rgba(141, 187, 165, 0.28);
+          background: rgba(7, 14, 13, 0.72);
+          padding: 16px;
+          display: grid;
+          gap: 12px;
+        }
+        .wv-operator-card h2 {
+          margin: 4px 0 6px;
+          color: #f5e7bd;
+          font-size: clamp(24px, 3vw, 38px);
+          line-height: 1;
+          letter-spacing: .12em;
+          text-transform: uppercase;
+        }
+        .wv-operator-card p {
+          margin: 0;
+          color: #9c9282;
+          line-height: 1.6;
+        }
+        .wv-eyebrow {
+          color: #e0c46c !important;
+          font-size: 10px;
+          letter-spacing: .22em;
+          text-transform: uppercase;
+        }
+        .wv-operator-action {
+          border-top: 1px solid rgba(141, 187, 165, 0.16);
+          padding-top: 10px;
+          display: grid;
+          gap: 6px;
+        }
+        .wv-operator-action span {
+          color: #e0c46c;
+          font-size: 10px;
+          letter-spacing: .18em;
+          text-transform: uppercase;
+        }
+        .wv-operator-action strong {
+          color: #e7dcc4;
+          font-size: 13px;
+          font-weight: 500;
+          line-height: 1.5;
+        }
+        .wv-operator-evidence {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+        }
+        .wv-operator-evidence span {
+          border: 1px solid rgba(141, 187, 165, 0.16);
+          background: rgba(141, 187, 165, 0.055);
+          color: #9c9282;
+          padding: 6px 8px;
+          font-size: 11px;
+        }
+        .wv-op-good { border-color: rgba(80, 220, 160, 0.36); }
+        .wv-op-partial { border-color: rgba(245, 158, 11, 0.42); }
+        .wv-op-internal { border-color: rgba(96, 165, 250, 0.38); }
+        .wv-op-hold { border-color: rgba(248, 113, 113, 0.38); }
+
         .wv-layout { display: grid; grid-template-columns: 300px minmax(480px, 1fr) 360px; gap: 14px; padding: 16px; }
         .wv-left, .wv-right, .wv-center, .wv-evaluator { border: 1px solid rgba(216,182,74,.16); background: #070604; padding: 14px; }
         .wv-filter-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 12px; }
@@ -429,3 +551,6 @@ export default function WorldVectorPage() {
     </main>
   );
 }
+
+
+
