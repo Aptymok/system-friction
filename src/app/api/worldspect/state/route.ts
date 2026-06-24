@@ -9,7 +9,13 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    return NextResponse.json(await buildCanonicalWorldSpectState());
+    return NextResponse.json(await buildCanonicalWorldSpectState(), {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+      },
+    });
   } catch (error) {
     return NextResponse.json({
       ok: false,
@@ -22,7 +28,13 @@ export async function GET() {
 
 export async function POST() {
   try {
-    return NextResponse.json(await refreshCanonicalWorldSpectState());
+    return NextResponse.json(await refreshCanonicalWorldSpectState(), {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+      },
+    });
   } catch (error) {
     return NextResponse.json({
       ok: false,
@@ -32,3 +44,4 @@ export async function POST() {
     }, { status: 500 });
   }
 }
+

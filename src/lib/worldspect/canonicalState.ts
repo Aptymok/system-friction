@@ -143,11 +143,12 @@ function summarizeSources(sources: unknown[]) {
   return sources.map((source) => {
     const item = record(source);
     const key = textValue(item.key, textValue(item.sourceId, 'unknown'));
+    const domain = textValue(item.domain, key.includes('_') ? key.split('_')[0].toUpperCase() : 'UNKNOWN');
     const meaning = record(item.meaning);
 
     return {
       key,
-      label: cleanLabel(item.label, key),
+      label: cleanText(`${domain} · ${key}`),
       value: typeof item.value === 'number' ? item.value : null,
       unit: textValue(item.unit, 'normalized_0_1'),
       trust: numberValue(item.nti ?? item.trust, 0),
@@ -318,6 +319,7 @@ export async function buildCanonicalWorldSpectState() {
       ok: false,
       generated_at: generatedAt,
       source: 'worldspect_canonical_state' as const,
+    build_marker: 'WSV_UTF8_LABEL_REBUILD_2026_06_24',
       observed_at: null,
       source_state: 'missing',
       snapshot_available: false,
@@ -384,6 +386,7 @@ export async function buildCanonicalWorldSpectState() {
     ok: !stale.is_stale,
     generated_at: generatedAt,
     source: 'worldspect_canonical_state' as const,
+    build_marker: 'WSV_UTF8_LABEL_REBUILD_2026_06_24',
     observed_at: latest.observed_at,
     source_state: latest.source_state,
     snapshot_available: true,
@@ -453,6 +456,7 @@ export async function refreshCanonicalWorldSpectState() {
     state,
   };
 }
+
 
 
 
