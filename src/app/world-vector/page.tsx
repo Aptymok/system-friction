@@ -240,7 +240,7 @@ export default function WorldVectorPage() {
     const payload = evaluation ?? { world: state, history };
     const report = `# WorldSpect Longitudinal Report\n\n` +
       `Generated: ${new Date().toISOString()}\n\n` +
-      `## Current world\n\nRegime: ${label(latestSnapshot?.regime ?? state?.world_regime)}\n\nWSI: ${fixed(latestSnapshot?.wsi ?? record(state?.snapshot).wsi)}\n\nNTI: ${fixed(latestSnapshot?.nti ?? record(state?.snapshot).nti)}\n\nCoverage: ${pct(sourceMix.sourceCoverage ?? latestSnapshot?.sourceCoverage)}\n\nDominant attractor: ${label(dominant?.domain)} persistence ${fixed(dominant?.persistence)}\n\n` +
+      `## Current world\n\nRegime: ${label(latestSnapshot?.regime ?? state?.world_regime)}\n\nWSI: ${fixed(latestSnapshot?.wsi ?? record(state?.snapshot).wsi)}\n\nNTI: ${fixed(latestSnapshot?.nti ?? record(state?.snapshot).nti)}\n\nCoverage: ${pct(sourceMix.sourceCoverage ?? latestSnapshot?.sourceCoverage)}\n\nDominant external vector: ${label(dominant?.domain)} persistence ${fixed(dominant?.persistence)}\n\n` +
       `## Selected vector\n\n${domain}\n\n` +
       `## Evaluation\n\n\`\`\`json\n${JSON.stringify(payload, null, 2)}\n\`\`\`\n`;
     const blob = new Blob([report], { type: 'text/markdown;charset=utf-8' });
@@ -262,11 +262,15 @@ export default function WorldVectorPage() {
         <div className="wv-metrics">
           <div><span>regime</span><b>{label(latestSnapshot?.regime ?? state?.world_regime)}</b></div>
           <div><span>coverage</span><b>{pct(sourceMix.sourceCoverage ?? latestSnapshot?.sourceCoverage)}</b></div>
-          <div><span>dominant attractor</span><b>{label(dominant?.domain)}</b></div>
+          <div><span>dominant external vector</span><b>{label(dominant?.domain)}</b></div>
           <div><span>degradation</span><b>{pct(state?.degradation)}</b></div>
           <div><span>snapshots</span><b>{timeline.length || '1'}</b></div>
         </div>
       </header>
+
+      <section className="wv-boundary" aria-label="WorldSpect observation boundary">
+        WorldSpect observes external world conditions only. It does not recommend intervention and does not treat internal SFI evidence, user documents, Medium, Atlas, REM618, KXTXR or declared attractors as world evidence.
+      </section>
 
       <section className={`wv-operator-card ${operatorStatusClass(operatorState)}`} aria-label="WorldSpect estado operativo">
         <div>
@@ -318,9 +322,9 @@ export default function WorldVectorPage() {
         <section className="wv-center">
           <div className="wv-map-header">
             <div>
-              <div className="wv-kicker">Living attractor map</div>
+              <div className="wv-kicker">External signal field</div>
               <h2>{domain === 'WORLD' ? 'WORLD FIELD' : domain}</h2>
-              <p>{domain === 'WORLD' ? 'The center displays global regime pressure. Each vector is positioned by persistence, trust and degradation.' : `Selected vector: ${domain}. Use the orbit, timeline and opportunity panel to decide whether to observe, wait, or contrast an object.`}</p>
+              <p>{domain === 'WORLD' ? 'The center displays global regime pressure. Each vector is positioned by persistence, trust and degradation.' : `Selected vector: ${domain}. Use the orbit, timeline and signal window panel to observe, wait, or pass an object into ScoreFriction contrast.`}</p>
             </div>
             <button type="button" onClick={downloadReport}>Download report</button>
           </div>
@@ -348,7 +352,7 @@ export default function WorldVectorPage() {
             <div className="wv-core">
               <span>{label(latestSnapshot?.regime ?? state?.world_regime)}</span>
               <b>{label(dominant?.domain)}</b>
-              <small>world attractor</small>
+              <small>external vector</small>
             </div>
             {latestVectors.map((vector, index) => {
               const angle = (Math.PI * 2 * index) / Math.max(1, latestVectors.length);
@@ -389,25 +393,25 @@ export default function WorldVectorPage() {
           </div>
 
           <div className="wv-scroll-panel tall">
-            <div className="wv-panel-title">Emergent opportunities</div>
+            <div className="wv-panel-title">Observable signal windows</div>
             {(canonicalOpportunities.length ? canonicalOpportunities : opportunities.slice(0, 8)).map((vector) => (
               <article key={String(vector.id ?? vector.domain)}>
                 <b>{String(vector.title ?? vector.domain)}</b>
                 <span>score {pct(vector.score ?? vector.opportunity)} / risk {label(vector.risk, 'observacion')}</span>
-                <small>{values(record(vector.basis).evidence_refs).length ? `basis refs: ${values(record(vector.basis).evidence_refs).length}` : label(vector.explanation, 'Derived from evidence and deltas. This is not an intervention recommendation.')}</small>
+                <small>{values(record(vector.basis).evidence_refs).length ? `basis refs: ${values(record(vector.basis).evidence_refs).length}` : label(vector.explanation, 'Derived from external evidence and deltas. This is an observation window, not an action recommendation.')}</small>
               </article>
             ))}
           </div>
 
           <div className="wv-scroll-panel tall">
-            <div className="wv-panel-title">Attractor clusters</div>
+            <div className="wv-panel-title">External signal clusters</div>
             {canonicalAttractors.length ? canonicalAttractors.map((attractor) => (
               <article key={String(attractor.id)}>
                 <b>{label(attractor.label)}</b>
                 <span>{values(attractor.vectors).join(' + ') || String(attractor.vectors ?? '')}</span>
                 <small>direction {label(attractor.direction)} / operational confidence {pct(attractor.confidence)} / evidence {values(attractor.evidence_basis).length}</small>
               </article>
-            )) : <p>No evidence-based attractor cluster available yet.</p>}
+            )) : <p>No external signal cluster available yet.</p>}
           </div>
         </aside>
       </section>
@@ -445,8 +449,8 @@ export default function WorldVectorPage() {
 
       <section className="wv-evaluator">
         <div>
-          <div className="wv-panel-title">Object contrast</div>
-          <p>Upload or paste an object. Then SFI compares object vs current world + selected filtered vector. Without object, the system must not recommend intervention.</p>
+          <div className="wv-panel-title">ScoreFriction object contrast boundary</div>
+          <p>Upload or paste an object to pass it into ScoreFriction contrast against current external conditions. WorldSpect does not convert that contrast into intervention guidance.</p>
         </div>
         <input type="file" onChange={(event) => void handleUpload(event.target.files?.[0] ?? null)} />
         <textarea value={objectText} onChange={(event) => setObjectText(event.target.value)} placeholder="Paste text, lyrics, campaign, decision, script, observation..." />
@@ -525,6 +529,15 @@ export default function WorldVectorPage() {
         .wv-op-partial { border-color: rgba(245, 158, 11, 0.42); }
         .wv-op-internal { border-color: rgba(96, 165, 250, 0.38); }
         .wv-op-hold { border-color: rgba(248, 113, 113, 0.38); }
+        .wv-boundary {
+          margin: 16px 16px 0;
+          border: 1px solid rgba(141, 187, 165, 0.22);
+          background: rgba(7, 14, 13, 0.58);
+          color: #cfc5ad;
+          padding: 12px 14px;
+          font-size: 12px;
+          line-height: 1.7;
+        }
 
         .wv-layout { display: grid; grid-template-columns: 300px minmax(480px, 1fr) 360px; gap: 14px; padding: 16px; }
         .wv-left, .wv-right, .wv-center, .wv-evaluator { border: 1px solid rgba(216,182,74,.16); background: #070604; padding: 14px; }
