@@ -73,6 +73,15 @@ export async function persistWorldSpectObservations(
       degraded_sources,
       source_health: sourceHealth,
       observations,
+      source_coverage: sourceCoverage,
+      degradation_ratio: degradationRatio,
+      active_source_count: activeSources.length,
+      total_source_count: observations.length,
+      source_state_reason: sourceState === 'observed'
+        ? 'coverage_above_threshold'
+        : activeSources.length === 0
+          ? 'no_active_sources'
+          : 'coverage_or_degradation_below_threshold',
     },
     adapterStatus: sourceState === 'observed' ? 'observed' : 'degraded',
     adapterError,
@@ -124,4 +133,5 @@ export async function runWorldSpectAdapters(ingestMode: WorldSpectIngestMode = '
     adapter_ids: adapters.map((adapter) => adapter.sourceId),
   })
 }
+
 

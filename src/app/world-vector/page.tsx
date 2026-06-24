@@ -132,15 +132,18 @@ export default function WorldVectorPage() {
   const [question, setQuestion] = useState('');
   const [evaluation, setEvaluation] = useState<Row | null>(null);
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    Promise.all([
-      fetch('/api/worldspect/operational-state', { cache: 'no-store' }).then((res) => safeJson<Row>(res, { ok: false, status: 'empty_worldspect_operational_state' })),
-      fetch('/api/worldspect/longitudinal?limit=80', { cache: 'no-store' }).then((res) => safeJson<Row>(res, { ok: false, timeline: [] })),
-      fetch('/api/worldspect/evidence-trace', { cache: 'no-store' }).then((res) => safeJson<Row>(res, { ok: false, traces: [] })),
-      fetch('/api/worldspect/attractors?limit=80', { cache: 'no-store' }).then((res) => safeJson<Row>(res, { ok: false, attractors: [] })),
-      fetch('/api/worldspect/opportunities?limit=80', { cache: 'no-store' }).then((res) => safeJson<Row>(res, { ok: false, opportunities: [] })),
-    ]).then(([operational, longitudinal, evidenceTrace, attractors, canonicalOpportunities]) => {
+  async function loadWorldSpect() {
+    try {
+      const [operational, longitudinal, evidenceTrace, attractors, canonicalOpportunities] = await Promise.all([
+        fetch('/api/worldspect/operational-state', { cache: 'no-store' }).then((res) => safeJson<Row>(res, { ok: false, status: 'empty_worldspect_operational_state' })),
+        fetch('/api/worldspect/longitudinal?limit=80', { cache: 'no-store' }).then((res) => safeJson<Row>(res, { ok: false, timeline: [] })),
+        fetch('/api/worldspect/evidence-trace', { cache: 'no-store' }).then((res) => safeJson<Row>(res, { ok: false, traces: [] })),
+        fetch('/api/worldspect/attractors?limit=80', { cache: 'no-store' }).then((res) => safeJson<Row>(res, { ok: false, attractors: [] })),
+        fetch('/api/worldspect/opportunities?limit=80', { cache: 'no-store' }).then((res) => safeJson<Row>(res, { ok: false, opportunities: [] })),
+      ]);
+
       setState(operational);
       setHistory(longitudinal);
       setTraceability(evidenceTrace);
@@ -148,14 +151,37 @@ export default function WorldVectorPage() {
       setWorldOpportunities(canonicalOpportunities);
       const timeline = rows(longitudinal.timeline);
       setSelectedIndex(timeline.length ? timeline.length - 1 : null);
-    }).catch((error) => {
+    } catch (error) {
       setState({ ok: false, status: 'unavailable', error: error instanceof Error ? error.message : 'worldspect_unavailable' });
       setHistory({ ok: false, timeline: [] });
       setTraceability({ ok: false, traces: [] });
       setWorldAttractors({ ok: false, attractors: [] });
       setWorldOpportunities({ ok: false, opportunities: [] });
-    });
+    }
+  }
+
+  useEffect(() => {
+    void loadWorldSpect();
   }, []);
+
+  async function refreshRealWorldSpect() {
+    setRefreshing(true);
+    try {
+      const ingest = await fetch('/api/cron/worldspect', { method: 'POST', cache: 'no-store' })
+        .then((res) => safeJson<Row>(res, { ok: false, error: 'empty_worldspect_ingest_response' }));
+
+      if (ingest.ok === false) {
+        setState({ ok: false, status: 'ingest_failed', error: label(ingest.error ?? ingest.message, 'worldspect_ingest_failed'), ingest });
+        return;
+      }
+
+      await loadWorldSpect();
+    } catch (error) {
+      setState({ ok: false, status: 'ingest_failed', error: error instanceof Error ? error.message : 'worldspect_ingest_failed' });
+    } finally {
+      setRefreshing(false);
+    }
+  }
 
   const timeline = rows(history?.timeline);
   const selectedSnapshot = selectedIndex !== null ? timeline[selectedIndex] ?? null : null;
@@ -551,6 +577,7 @@ export default function WorldVectorPage() {
     </main>
   );
 }
+
 
 
 
