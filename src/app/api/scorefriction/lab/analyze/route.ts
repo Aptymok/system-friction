@@ -1,66 +1,170 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { appendAmvLearning } from '@/lib/amv/learning';
-import { appendLogbookEntry } from '@/lib/logbook/query';
-import { analyzeSfiLabInput } from '@/lib/sfi-psi/analyzer';
-import { saveSfiLabAnalysis } from '@/lib/sfi-psi/store';
-import type { SfiFileMetadata, SfiLabAnalyzeInput } from '@/lib/sfi-psi/types';
+﻿import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
-function asTags(value: unknown) {
-  if (Array.isArray(value)) return value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0);
-  if (typeof value === 'string') return value.split(',').map((item) => item.trim()).filter(Boolean);
-  return [];
+function getSupabaseClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
+  const key =
+    process.env.SUPABASE_SERVICE_ROLE_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!url || !key) return null;
+
+  return createClient(url, key, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
 }
 
-async function inputFromRequest(request: NextRequest): Promise<SfiLabAnalyzeInput> {
-  const contentType = request.headers.get('content-type') ?? '';
-  if (contentType.includes('multipart/form-data')) {
-    const form = await request.formData();
-    const file = form.get('file');
-    const metadata: SfiFileMetadata | null = file instanceof File ? { name: file.name, type: file.type, size: file.size, lastModified: file.lastModified } : null;
-    const fileText = file instanceof File && file.type.startsWith('text/') ? await file.text().catch(() => '') : '';
-    return {
-      text: String(form.get('text') ?? fileText ?? ''),
-      mode: String(form.get('mode') ?? 'detect_signals'),
-      source: String(form.get('source') ?? metadata?.name ?? 'scorefriction-lab-upload'),
-      tags: asTags(form.get('tags')),
-      file: metadata,
-    };
-  }
-  if (contentType.includes('text/plain')) {
-    return { text: await request.text(), mode: 'detect_signals', source: 'scorefriction-lab-text', tags: [], file: null };
-  }
-  const body = await request.json().catch(() => ({})) as Record<string, unknown>;
+function normalizePayload(body: any) {
+  const case_id =
+    body?.case_id ||
+    body?.caseId ||
+    body?.caseID ||
+    "SFI-OP-LOCAL";
+
+  const scope =
+    body?.scope ||
+    body?.domain ||
+    "culture";
+
+  const input_text =
+    body?.input_text ||
+    body?.inputText ||
+    body?.text ||
+    body?.content ||
+    body?.prompt ||
+    "";
+
+  return { case_id, scope, input_text };
+}
+
+function analyzeLocally(input_text: string, scope: string) {
+  const text = String(input_text || "");
+
+  const tokens = text
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .split(/[^a-z0-9_]+/i)
+    .filter(Boolean);
+
+  const unique = Array.from(new Set(tokens));
+
+  const signalTerms = [
+    "senal",
+    "friccion",
+    "persistencia",
+    "archivo",
+    "mundo",
+    "cultura",
+    "trayectoria",
+    "vector",
+    "ruido",
+    "anomalia",
+    "regimen",
+    "observacion",
+  ];
+
+  const hits = unique.filter((t) => signalTerms.includes(t));
+
   return {
-    text: typeof body.text === 'string' ? body.text : '',
-    mode: body.mode as string | undefined,
-    source: typeof body.source === 'string' ? body.source : 'scorefriction-lab-json',
-    tags: asTags(body.tags),
-    file: body.file && typeof body.file === 'object' ? body.file as SfiFileMetadata : null,
+    scope,
+    input_length: text.length,
+    token_count: tokens.length,
+    unique_token_count: unique.length,
+    signal_hits: hits,
+    signal_score: tokens.length
+      ? Number((hits.length / signalTerms.length).toFixed(4))
+      : 0,
+    regime:
+      hits.length >= 5
+        ? "SIGNAL_DENSE"
+        : hits.length >= 2
+          ? "SIGNAL_PRESENT"
+          : "LOW_SIGNAL",
+    generated_at: new Date().toISOString(),
   };
 }
 
-export async function POST(request: NextRequest) {
-  const input = await inputFromRequest(request);
-  const analysis = analyzeSfiLabInput(input);
-  const persistence = await saveSfiLabAnalysis(analysis);
-  await appendAmvLearning({
-    case_id: analysis.analysisId,
-    source: 'scorefriction.lab.analyze',
-    event_type: 'lab_analysis',
-    summary: `SFI-LAB detecto ${analysis.signals.length} senales y ${analysis.nodes.length} nodos.`,
-    payload: { analysis, persistence },
-  });
-  await appendLogbookEntry({
-    scope: 'scorefriction',
-    visibility: 'root',
-    case_id: analysis.analysisId,
-    event_type: 'lab_analysis',
-    title: 'SFI-LAB analysis',
-    summary: `Analisis SFI-LAB registrado: ${analysis.reappearances.length} reapariciones.`,
-    payload: { analysis, persistence },
-  });
-  return NextResponse.json({ ...analysis, persistence });
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json().catch(() => ({}));
+    const { case_id, scope, input_text } = normalizePayload(body);
+    const result = analyzeLocally(input_text, scope);
+
+    const supabase = getSupabaseClient();
+
+    if (!supabase) {
+      return NextResponse.json({
+        ok: true,
+        persisted: false,
+        degraded: true,
+        source: "memory_fallback",
+        reason: "supabase_client_unavailable",
+        data: result,
+      });
+    }
+
+    const { data, error } = await supabase
+      .from("sfi_lab_analyses")
+      .insert({
+        case_id,
+        scope,
+        input_text,
+        result,
+      })
+      .select("*")
+      .single();
+
+    if (error) {
+      console.error("[sfi-lab] supabase persistence unavailable; using local memory", error);
+
+      return NextResponse.json({
+        ok: true,
+        persisted: false,
+        degraded: true,
+        source: "memory_fallback",
+        supabase_error: {
+          code: error.code ?? null,
+          message: error.message ?? String(error),
+          details: error.details ?? null,
+          hint: error.hint ?? null,
+        },
+        data: result,
+      });
+    }
+
+    return NextResponse.json({
+      ok: true,
+      persisted: true,
+      degraded: false,
+      source: "supabase",
+      record: data,
+      data: result,
+    });
+  } catch (error: any) {
+    console.error("[sfi-lab] fatal analyze error", error);
+
+    return NextResponse.json(
+      {
+        ok: false,
+        persisted: false,
+        degraded: true,
+        source: "fatal_fallback",
+        error: error?.message ?? String(error),
+        data: null,
+      },
+      { status: 200 }
+    );
+  }
 }
 
+export async function GET() {
+  return NextResponse.json({
+    ok: true,
+    endpoint: "/api/scorefriction/lab/analyze",
+    status: "ready",
+  });
+}
