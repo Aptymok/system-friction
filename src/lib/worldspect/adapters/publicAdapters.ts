@@ -25,6 +25,12 @@ function finite(value: unknown, fallback = 0): number {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
+function strictFinite(value: unknown, fallback = Number.NaN): number {
+  if (value === null || value === undefined || value === '') return fallback;
+  const parsed = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
 function normalizeCount(count: number, scale: number): number {
   return clamp01(Math.log10(Math.max(0, count) + 1) / Math.log10(scale + 1));
 }
@@ -404,15 +410,15 @@ function worldBankEconomyAdapter(): WorldSpectAdapter {
       try {
         const json = await fetchJson('https://api.worldbank.org/v2/country/WLD/indicator/NY.GDP.MKTP.KD.ZG?format=json&per_page=8');
         const rows = array(array(json)[1]).map(record);
-        const latest = rows.find((row) => Number.isFinite(finite(row.value, NaN))) ?? rows[0] ?? {};
-        const growth = finite(latest.value, NaN);
+        const latest = rows.find((row) => Number.isFinite(strictFinite(row.value, NaN))) ?? rows[0] ?? {};
+        const growth = strictFinite(latest.value, NaN);
 
         if (!Number.isFinite(growth)) {
           return emptyResult({
             sourceId: 'economy_worldbank_public',
             domain: 'ECONOMY',
             signal: { economicStress: 0 },
-            raw: { provider: 'worldbank', indicator: 'NY.GDP.MKTP.KD.ZG', latest, reason: 'value_missing' },
+            raw: { provider: 'worldbank', indicator: 'NY.GDP.MKTP.KD.ZG', latest, reason: 'missing_or_stale_macro_value' },
           });
         }
 
@@ -451,15 +457,15 @@ function worldBankIndicatorAdapter(config: {
         const url = `https://api.worldbank.org/v2/country/WLD/indicator/${encodeURIComponent(config.indicator)}?format=json&per_page=8`;
         const json = await fetchJson(url);
         const rows = array(array(json)[1]).map(record);
-        const latest = rows.find((row) => Number.isFinite(finite(row.value, NaN))) ?? rows[0] ?? {};
-        const rawValue = finite(latest.value, NaN);
+        const latest = rows.find((row) => Number.isFinite(strictFinite(row.value, NaN))) ?? rows[0] ?? {};
+        const rawValue = strictFinite(latest.value, NaN);
 
         if (!Number.isFinite(rawValue)) {
           return emptyResult({
             sourceId: config.sourceId,
             domain: 'ECONOMY',
             signal: signal(config.signalKey, 0),
-            raw: { provider: 'worldbank', indicator: config.indicator, latest, reason: 'value_missing' },
+            raw: { provider: 'worldbank', indicator: config.indicator, latest, reason: 'missing_or_stale_macro_value' },
           });
         }
 
@@ -713,6 +719,7 @@ export function getWorldSpectPublicAdapters(): WorldSpectAdapter[] {
     }),
   ];
 }
+
 
 
 
