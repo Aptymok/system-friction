@@ -1,4 +1,4 @@
-import type {
+﻿import type {
   WorldSpectFieldStateSignal,
   WorldSpectResponse,
   WorldSpectSource,
@@ -206,3 +206,4 @@ export function missingWorldSpectResponse(now = new Date().toISOString()): World
     fieldStateSignal: null,
   };
 }
+
