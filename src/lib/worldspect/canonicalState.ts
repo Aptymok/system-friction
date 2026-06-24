@@ -88,6 +88,7 @@ function summarizeSources(sources: unknown[]) {
   return sources.map((source) => {
     const item = record(source);
     const key = textValue(item.key, textValue(item.sourceId, 'unknown'));
+    const meaning = record(item.meaning);
 
     return {
       key,
@@ -96,6 +97,14 @@ function summarizeSources(sources: unknown[]) {
       unit: textValue(item.unit, 'normalized_0_1'),
       trust: numberValue(item.nti ?? item.trust, 0),
       weight: numberValue(item.weight ?? item.persistence, 0),
+      layer: textValue(item.layer, 'UNKNOWN'),
+      meaning: {
+        indicator: textValue(meaning.indicator, key),
+        description: textValue(meaning.description, ''),
+        high_means: textValue(meaning.high_means, ''),
+        low_means: textValue(meaning.low_means, ''),
+      },
+      status: textValue(item.status, ''),
       simulated: Boolean(item.simulated),
       ts: textValue(item.ts, ''),
       error: textValue(item.error, '') || null,
@@ -389,3 +398,4 @@ export async function refreshCanonicalWorldSpectState() {
     state,
   };
 }
+

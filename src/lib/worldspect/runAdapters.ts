@@ -1,4 +1,4 @@
-import type { WorldSpectSource } from '../../../packages/api-contracts/src'
+﻿import type { WorldSpectSource } from '../../../packages/api-contracts/src'
 import type { SourceObservation } from './source-adapter-contract'
 import { deriveWorldSpectSourceHealth } from './contract'
 import { upsertWorldSpectSnapshot } from './snapshotStore'
@@ -18,7 +18,7 @@ function sleep(ms: number) {
 function observationToSource(obs: SourceObservation): WorldSpectSource {
   return {
     key: obs.sourceId,
-    label: `${obs.domain} · ${obs.sourceId}`,
+    label: `${obs.domain} Â· ${obs.sourceId}`,
     value: obs.status === 'ACTIVE' ? obs.value : null,
     raw: obs.raw,
     unit: 'normalized_0_1',
@@ -109,9 +109,16 @@ function failedObservation(adapter: { sourceId: string } | undefined, index: num
     sourceId: adapter?.sourceId ?? `worldspect_adapter_${index}`,
     domain: 'INSTITUTIONAL',
     observedAt: new Date().toISOString(),
+    layer: 'UNKNOWN',
+    meaning: {
+      indicator: adapter?.sourceId ?? 'worldspect_adapter_' + index,
+      description: 'Failed WorldSpect adapter observation.',
+      high_means: 'No operational meaning because the adapter failed.',
+      low_means: 'No operational meaning because the adapter failed.',
+    },
     accessKind: 'public-api',
     status: 'DEGRADED_BLOCKING',
-    value: 0,
+    value: null,
     velocity: 0,
     volatility: 0,
     persistence: 0,
@@ -153,6 +160,8 @@ export async function runWorldSpectAdapters(ingestMode: WorldSpectIngestMode = '
     gdelt_mode: 'sequential_backoff',
   })
 }
+
+
 
 
 

@@ -1,4 +1,4 @@
-import type { SourceObservation, WorldSpectAdapter } from '../source-adapter-contract'
+﻿import type { SourceObservation, WorldSpectAdapter } from '../source-adapter-contract'
 import type { WorldSpectSourceDefinition } from '../source-registry'
 
 export function createBootstrapAdapter(definition: WorldSpectSourceDefinition): WorldSpectAdapter {
@@ -10,9 +10,16 @@ export function createBootstrapAdapter(definition: WorldSpectSourceDefinition): 
         sourceId: definition.sourceId,
         domain: definition.domain,
         observedAt: new Date().toISOString(),
+        layer: 'UNKNOWN',
+        meaning: {
+          indicator: definition.sourceId,
+          description: 'Bootstrap placeholder for a WorldSpect source definition.',
+          high_means: 'No operational meaning until the source is active.',
+          low_means: 'No operational meaning until the source is active.',
+        },
         accessKind: definition.accessKind,
         status: missingEnv.length ? 'AWAITING_CREDENTIALS' : 'BOOTSTRAPPED',
-        value: 0,
+        value: null,
         velocity: 0,
         volatility: 0,
         persistence: 0,
@@ -26,3 +33,4 @@ export function createBootstrapAdapter(definition: WorldSpectSourceDefinition): 
     },
   }
 }
+

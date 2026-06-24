@@ -1,4 +1,4 @@
-import type { SourceObservation } from './source-adapter-contract'
+﻿import type { SourceObservation } from './source-adapter-contract'
 import { clamp01 } from './vector-aggregator'
 
 export type CulturalVectorInput = {
@@ -19,6 +19,13 @@ export function buildCulturalSourceObservation(input: CulturalVectorInput): Sour
     sourceId: input.sourceId,
     domain: 'CULTURAL',
     observedAt: input.observedAt ?? new Date().toISOString(),
+    layer: 'ATTENTION',
+    meaning: {
+      indicator: input.sourceId,
+      description: 'Internal cultural evidence vector. This is not external WorldSpect observation.',
+      high_means: 'High internal cultural signal density.',
+      low_means: 'Low internal cultural signal density.',
+    },
     accessKind: 'internal-evidence',
     status: input.evidenceCount > 0 ? 'ACTIVE' : 'BOOTSTRAPPED',
     value,
@@ -37,3 +44,4 @@ export function buildCulturalSourceObservation(input: CulturalVectorInput): Sour
     },
   }
 }
+

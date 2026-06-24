@@ -1,9 +1,11 @@
 ﻿import type {
   SourceAccessKind,
   SourceAdapterStatus,
+  SourceMeaning,
   SourceObservation,
   WorldSpectAdapter,
   WorldSpectDomain,
+  WorldSpectLayer,
 } from '../source-adapter-contract';
 import { clamp01 } from '../vector-aggregator';
 
@@ -37,6 +39,28 @@ function normalizeCount(count: number, scale: number): number {
 
 function todayIso(): string {
   return new Date().toISOString();
+}
+
+function inferLayer(sourceId: string, domain: WorldSpectDomain): WorldSpectLayer {
+  if (sourceId.includes('open_meteo')) return 'PHYSICAL';
+  if (sourceId.includes('worldbank')) return 'MACRO';
+  if (sourceId.includes('github') && domain === 'TECH') return 'DIGITAL_ACTIVITY';
+  if (sourceId.includes('github') && domain === 'GEO_DIGITAL') return 'DIGITAL_ACTIVITY';
+  if (sourceId.includes('github') && domain === 'AFFECTIVE') return 'AFFECTIVE_PROXY';
+  if (sourceId.includes('github') && domain === 'ECONOMY') return 'MARKET';
+  if (sourceId.includes('clinicaltrials')) return 'BIO_HEALTH';
+  if (domain === 'INSTITUTIONAL') return 'GOVERNANCE';
+  if (sourceId.includes('wikipedia') || sourceId.includes('wikimedia') || sourceId.includes('hn')) return 'ATTENTION';
+  return 'UNKNOWN';
+}
+
+function inferMeaning(sourceId: string, domain: WorldSpectDomain, layer: WorldSpectLayer): SourceMeaning {
+  return {
+    indicator: sourceId,
+    description: `${domain} signal observed through ${layer}.`,
+    high_means: `High ${domain} pressure/activity in layer ${layer}.`,
+    low_means: `Low ${domain} pressure/activity in layer ${layer}.`,
+  };
 }
 
 async function fetchJson(url: string, timeoutMs = DEFAULT_TIMEOUT_MS): Promise<unknown> {
@@ -100,8 +124,10 @@ async function fetchJsonWithRetry(url: string, input: {
 function observation(input: {
   sourceId: string;
   domain: WorldSpectDomain;
-  value: number;
+  value: number | null;
   trust: number;
+  layer?: WorldSpectLayer;
+  meaning?: SourceMeaning;
   velocity?: number;
   volatility?: number;
   persistence?: number;
@@ -112,23 +138,29 @@ function observation(input: {
   raw?: unknown;
   error?: string | null;
 }): SourceObservation {
-  const trust = clamp01(input.trust);
-  const status = input.status ?? (trust > 0 ? 'ACTIVE' : 'DEGRADED_BLOCKING');
+  const layer = input.layer ?? inferLayer(input.sourceId, input.domain);
+  const meaning = input.meaning ?? inferMeaning(input.sourceId, input.domain, layer);
+  const hasValue = typeof input.value === 'number' && Number.isFinite(input.value);
+  const trust = hasValue ? clamp01(input.trust) : 0;
+  const status = input.status ?? (hasValue && trust > 0 ? 'ACTIVE' : 'MISSING_DATA');
+  const normalizedValue = hasValue ? clamp01(input.value as number) : null;
 
   return {
     sourceId: input.sourceId,
     domain: input.domain,
+    layer,
+    meaning,
     observedAt: todayIso(),
     accessKind: input.accessKind ?? 'public-api',
     status,
-    value: clamp01(input.value),
-    velocity: clamp01(input.velocity ?? input.value),
-    volatility: clamp01(input.volatility ?? Math.abs(input.value - trust)),
-    persistence: clamp01(input.persistence ?? trust),
+    value: normalizedValue,
+    velocity: clamp01(input.velocity ?? normalizedValue ?? 0),
+    volatility: clamp01(input.volatility ?? (normalizedValue !== null ? Math.abs(normalizedValue - trust) : 1)),
+    persistence: clamp01(input.persistence ?? (normalizedValue !== null ? trust : 0)),
     rawCount: Math.max(0, Math.floor(input.rawCount ?? 0)),
     sourceCount: status === 'ACTIVE' ? 1 : 0,
     trust,
-    degradation: clamp01(1 - trust),
+    degradation: status === 'ACTIVE' ? clamp01(1 - trust) : 1,
     signal: input.signal ?? {},
     raw: input.raw,
     error: input.error ?? null,
@@ -145,10 +177,10 @@ function emptyResult(input: {
   return observation({
     sourceId: input.sourceId,
     domain: input.domain,
-    value: 0,
+    value: null,
     trust: 0,
     rawCount: 0,
-    status: 'EMPTY_RESULT',
+    status: 'MISSING_DATA',
     accessKind: input.accessKind,
     signal: input.signal ?? {},
     raw: input.raw ?? { reason: 'empty_result' },
@@ -161,7 +193,7 @@ function degraded(sourceId: string, domain: WorldSpectDomain, error: unknown): S
   return observation({
     sourceId,
     domain,
-    value: 0,
+    value: null,
     trust: 0,
     rawCount: 0,
     status: 'DEGRADED_BLOCKING',
@@ -720,6 +752,7 @@ export function getWorldSpectPublicAdapters(): WorldSpectAdapter[] {
     }),
   ];
 }
+
 
 
 
