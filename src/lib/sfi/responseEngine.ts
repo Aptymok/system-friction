@@ -123,9 +123,14 @@ function evidenceTiedToProposal(proposalId: string | null, evidenceMap: SfiRecor
     item.proposal_id,
     item.proposalId,
     item.evidence_ref,
+    item.domain,
+    item.evidence_side,
+    item.source_table,
+    item.source_label,
     item.summary,
     item.payload,
     item.source_payload,
+    item,
   ).includes(id));
 }
 
@@ -311,3 +316,4 @@ export async function generateSfiOperationalResponse(): Promise<SfiOperationalRe
     },
   };
 }
+

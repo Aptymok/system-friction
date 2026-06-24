@@ -1,4 +1,4 @@
-import { generateSfiOperationalResponse } from '@/lib/sfi/responseEngine';
+﻿import { generateSfiOperationalResponse } from '@/lib/sfi/responseEngine';
 import { asRecord, errorMessage, numericValue, readLatestProposalAlignments, readListFromView, readSingleFromView, textValue, type SfiRecord } from '@/lib/sfi/operationalConsole';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 
@@ -120,7 +120,21 @@ function hasOutcomeMeasure(proposal: SfiRecord) {
 }
 
 function evidenceTiedToProposal(proposalId: string, evidenceMap: SfiRecord[]) {
-  return evidenceMap.some((item) => textBlob(item.id, item.proposal_id, item.evidence_ref, item.summary, item.payload, item.source_payload).includes(proposalId.toLowerCase()));
+  const id = proposalId.toLowerCase();
+  return evidenceMap.some((item) => textBlob(
+    item.id,
+    item.proposal_id,
+    item.proposalId,
+    item.evidence_ref,
+    item.domain,
+    item.evidence_side,
+    item.source_table,
+    item.source_label,
+    item.summary,
+    item.payload,
+    item.source_payload,
+    item,
+  ).includes(id));
 }
 
 function requirement(code: MissingEvidenceCode, severity: MissingEvidenceRequirement['severity'], message: string, suggested_fix: string): MissingEvidenceRequirement {
@@ -291,3 +305,4 @@ export async function buildSfiEvidenceRequirements(input: { proposalId?: string 
     items,
   };
 }
+
