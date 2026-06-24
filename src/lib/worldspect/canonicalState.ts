@@ -143,12 +143,13 @@ function summarizeSources(sources: unknown[]) {
   return sources.map((source) => {
     const item = record(source);
     const key = textValue(item.key, textValue(item.sourceId, 'unknown'));
-    const domain = textValue(item.domain, key.includes('_') ? key.split('_')[0].toUpperCase() : 'UNKNOWN');
+    const inferredDomain = key.includes('_') ? key.split('_')[0].toUpperCase() : 'UNKNOWN';
+    const domain = textValue(item.domain, inferredDomain);
     const meaning = record(item.meaning);
 
     return {
       key,
-      label: ${domain} :: ,
+      label: domain + ' :: ' + key,
       value: typeof item.value === 'number' ? item.value : null,
       unit: textValue(item.unit, 'normalized_0_1'),
       trust: numberValue(item.nti ?? item.trust, 0),
@@ -168,7 +169,6 @@ function summarizeSources(sources: unknown[]) {
     };
   });
 }
-
 function buildVectors(rawPayload: AnyRecord) {
   const observations = arrayValue(rawPayload.observations);
   if (observations.length === 0) {
@@ -456,6 +456,8 @@ export async function refreshCanonicalWorldSpectState() {
     state,
   };
 }
+
+
 
 
 
