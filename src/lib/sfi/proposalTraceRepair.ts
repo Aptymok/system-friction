@@ -149,6 +149,9 @@ export function generateProposalTraceRepairDraft(input: {
       proposal_id: proposalId,
       external_execution_allowed: false,
       can_prepare_execution: false,
+      success_marker_mapping: buildSuccessMarkerMapping(input.attractor),
+      evidence_attachment_plan: buildEvidenceAttachmentPlan(proposalId, input.missingCodes),
+      active_attractor_success_markers: markerList(input.attractor),
     },
     success_marker_mapping: buildSuccessMarkerMapping(input.attractor),
     evidence_attachment_plan: buildEvidenceAttachmentPlan(proposalId, input.missingCodes),
@@ -385,3 +388,4 @@ export async function applyProposalTraceRepair(input: {
     warnings,
   };
 }
+
