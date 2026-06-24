@@ -145,7 +145,7 @@ function unavailableMihm(reason: string): MihmReadout {
     coherence: null,
     degradation: null,
     regime: 'insufficient_object',
-    meaning: 'MIHM no se calcula sin objeto. Primero carga texto, audio, imagen descrita, campaÃ±a, canciÃ³n, decisiÃ³n o evidencia concreta.',
+    meaning: 'MIHM no se calcula sin objeto. Primero carga texto, audio, imagen descrita, campaña, canción, decisión o evidencia concreta.',
   };
 }
 
@@ -158,7 +158,7 @@ function unavailablePsi(reason: string): PsiReadout {
     persistence: null,
     signal_life: 'none',
     weak_signal_count: 0,
-    meaning: 'PSI no se calcula sin objeto. PSI requiere una seÃ±al observable para medir reapariciÃ³n, identidad simbÃ³lica y vida de seÃ±al.',
+    meaning: 'PSI no se calcula sin objeto. PSI requiere una señal observable para medir reaparición, identidad simbólica y vida de señal.',
   };
 }
 
@@ -171,7 +171,7 @@ function unavailableScore(reason: string): ScoreFrictionReadout {
     friction: null,
     perturbation_need: null,
     opportunity: null,
-    meaning: 'ScoreFriction no decide intervenciÃ³n sin objeto. Solo puede leer el mundo; no puede decir quÃ© hacer con algo que no existe en la entrada.',
+    meaning: 'ScoreFriction no decide intervención sin objeto. Solo puede leer el mundo; no puede decir qué hacer con algo que no existe en la entrada.',
   };
 }
 
@@ -232,7 +232,7 @@ function buildObjectReadouts(text: string, filtered: Row | null, weakSignals: Ro
       coherence,
       degradation,
       regime,
-      meaning: `MIHM mide estabilidad interna del objeto contra el vector filtrado. Coherencia ${coherence} indica ${coherence >= 0.62 ? 'buena conversaciÃ³n con el vector' : coherence >= 0.42 ? 'conversaciÃ³n parcial con fricciÃ³n manejable' : 'baja conversaciÃ³n con el vector'}. FricciÃ³n ${friction} indica ${friction > 0.65 ? 'choque alto' : friction > 0.42 ? 'tensiÃ³n media' : 'baja tensiÃ³n'}.`,
+      meaning: `MIHM mide estabilidad interna del objeto contra el vector filtrado. Coherencia ${coherence} indica ${coherence >= 0.62 ? 'buena conversación con el vector' : coherence >= 0.42 ? 'conversación parcial con fricción manejable' : 'baja conversación con el vector'}. Fricción ${friction} indica ${friction > 0.65 ? 'choque alto' : friction > 0.42 ? 'tensión media' : 'baja tensión'}.`,
     },
     psi: {
       available: true,
@@ -241,7 +241,7 @@ function buildObjectReadouts(text: string, filtered: Row | null, weakSignals: Ro
       persistence: recurrence,
       signal_life: signalLife,
       weak_signal_count: weakSignals.length,
-      meaning: `PSI mide si el objeto puede sostener seÃ±al simbÃ³lica. Vida ${signalLife}; identidad ${symbolicIdentity}. No se confirma por intensidad aislada, sino por retorno comparable en snapshots posteriores.`,
+      meaning: `PSI mide si el objeto puede sostener señal simbólica. Vida ${signalLife}; identidad ${symbolicIdentity}. No se confirma por intensidad aislada, sino por retorno comparable en snapshots posteriores.`,
     },
     scorefriction: {
       available: true,
@@ -250,7 +250,7 @@ function buildObjectReadouts(text: string, filtered: Row | null, weakSignals: Ro
       friction,
       perturbation_need: perturbationNeed,
       opportunity,
-      meaning: `ScoreFriction mide si conviene intervenir. Oportunidad ${opportunity}; necesidad de perturbaciÃ³n ${perturbationNeed}. ${opportunity >= 0.58 ? 'Puede abrirse experimento controlado.' : 'No conviene campaÃ±a fuerte; falta confirmaciÃ³n o timing.'}`,
+      meaning: `ScoreFriction mide si conviene intervenir. Oportunidad ${opportunity}; necesidad de perturbación ${perturbationNeed}. ${opportunity >= 0.58 ? 'Puede abrirse experimento controlado.' : 'No conviene campaña fuerte; falta confirmación o timing.'}`,
     },
   };
 }
@@ -270,13 +270,13 @@ function buildExperiment(params: {
       id: `EXP-${Date.now().toString(36)}`,
       vector,
       status: 'blocked_no_object',
-      hypothesis: 'No hay objeto evaluado. No se puede inferir impacto, intervenciÃ³n ni campaÃ±a.',
+      hypothesis: 'No hay objeto evaluado. No se puede inferir impacto, intervención ni campaña.',
       recommended_surface: null,
-      action: 'Carga un objeto o pega evidencia. Puede ser texto, letra, descripciÃ³n de imagen, campaÃ±a, canciÃ³n, decisiÃ³n o reporte.',
+      action: 'Carga un objeto o pega evidencia. Puede ser texto, letra, descripción de imagen, campaña, canción, decisión o reporte.',
       expected_effect: 'Habilitar contraste real objeto vs mundo + vector filtrado.',
       verification_window: 'sin ventana; falta objeto',
       success_condition: 'Exito = el usuario carga un objeto y el sistema calcula MIHM, PSI y ScoreFriction sobre ese objeto.',
-      failure_condition: 'Fallo = se intenta recomendar acciÃ³n sin objeto.',
+      failure_condition: 'Fallo = se intenta recomendar acción sin objeto.',
       evidence_required: ['objeto a evaluar', 'contexto/fuente', 'objetivo declarado'],
       confidence: null,
       plain_language: 'No puedo decirte que publiques, esperes o intervengas porque no me diste un objeto. Solo puedo leer el estado del mundo.',
@@ -292,22 +292,22 @@ function buildExperiment(params: {
     id: `EXP-${Date.now().toString(36)}`,
     vector,
     status: ready ? 'ready_for_test' : 'watch_only',
-    hypothesis: `Si el objeto conserva coherencia MIHM ${coherence} y persistencia PSI ${recurrence} contra ${vector}, puede generar seÃ±al emergente sin forzar ruido.`,
+    hypothesis: `Si el objeto conserva coherencia MIHM ${coherence} y persistencia PSI ${recurrence} contra ${vector}, puede generar señal emergente sin forzar ruido.`,
     recommended_surface: ready ? 'ScoreFriction / SFI-LAB campaign panel' : 'Evidence Ledger / WorldVector watch',
     action: ready
-      ? `Ejecutar experimento pequeÃ±o: publicar una pieza de prueba del objeto en ${vector}, con una tesis, evidencia y pregunta medible.`
-      : 'No ejecutar campaÃ±a todavÃ­a. Registrar objeto como evidencia y comparar contra los prÃ³ximos snapshots.',
+      ? `Ejecutar experimento pequeño: publicar una pieza de prueba del objeto en ${vector}, con una tesis, evidencia y pregunta medible.`
+      : 'No ejecutar campaña todavía. Registrar objeto como evidencia y comparar contra los próximos snapshots.',
     expected_effect: ready
       ? 'Detectar si el objeto produce retorno comparable o mejora coherencia del vector filtrado.'
-      : 'Evitar ruido hasta que aparezca aceleraciÃ³n, retorno comparable o mejora de coherencia.',
+      : 'Evitar ruido hasta que aparezca aceleración, retorno comparable o mejora de coherencia.',
     verification_window: ready ? '48-72 horas' : '3 snapshots o 72 horas',
-    success_condition: `Exito = aparece evidencia comparable nueva o ${vector} sube persistencia >= ${(num(params.filtered?.persistence, 0) + 0.05).toFixed(4)} sin aumentar degradaciÃ³n > 0.08.`,
-    failure_condition: 'Fallo = no aparece evidencia comparable, aumenta degradaciÃ³n > 0.08, o el objeto pierde coherencia con el vector.',
+    success_condition: `Exito = aparece evidencia comparable nueva o ${vector} sube persistencia >= ${(num(params.filtered?.persistence, 0) + 0.05).toFixed(4)} sin aumentar degradación > 0.08.`,
+    failure_condition: 'Fallo = no aparece evidencia comparable, aumenta degradación > 0.08, o el objeto pierde coherencia con el vector.',
     evidence_required: ['objeto analizado', 'timestamp', 'fuente/contexto', 'metrica antes', 'metrica despues', 'outcome'],
     confidence: round4((opportunity + coherence + recurrence + (1 - degradation)) / 4),
     plain_language: ready
-      ? 'Puedes hacer una prueba pequeÃ±a y medir. No escales campaÃ±a hasta ver retorno.'
-      : 'No hagas campaÃ±a fuerte. Guarda evidencia y observa el siguiente cambio real.',
+      ? 'Puedes hacer una prueba pequeña y medir. No escales campaña hasta ver retorno.'
+      : 'No hagas campaña fuerte. Guarda evidencia y observa el siguiente cambio real.',
   };
 }
 
@@ -317,8 +317,8 @@ function answerAmv(question: string | null, hasObjectInput: boolean, experiment:
       question,
       can_answer: true,
       answer: hasObjectInput
-        ? `${experiment.plain_language} AcciÃ³n: ${experiment.action}`
-        : 'Lectura disponible: el mundo estÃ¡ observado, pero falta objeto. Carga algo para hacer contraste real.',
+        ? `${experiment.plain_language} Acción: ${experiment.action}`
+        : 'Lectura disponible: el mundo está observado, pero falta objeto. Carga algo para hacer contraste real.',
     };
   }
 
@@ -327,7 +327,7 @@ function answerAmv(question: string | null, hasObjectInput: boolean, experiment:
     return {
       question,
       can_answer: false,
-      answer: 'No puedo responder operaciÃ³n sobre un objeto que no fue cargado. Primero sube o pega el objeto; despuÃ©s calculo MIHM, PSI, ScoreFriction y experimento verificable.',
+      answer: 'No puedo responder operación sobre un objeto que no fue cargado. Primero sube o pega el objeto; después calculo MIHM, PSI, ScoreFriction y experimento verificable.',
     };
   }
 
@@ -546,7 +546,7 @@ export async function buildOperationalCycle(input: Partial<OperationalCycleInput
     severity: hasObjectInput ? watch.severity : 'none',
     reason: hasObjectInput && watch.active ? 'Regime Watch detecto cambio de direccion, degradacion o persistencia acumulada.' : 'Sin alerta operativa; falta objeto o no hay cambio suficiente.',
     window: hasObjectInput ? watch.critical_window : null,
-    action_required: hasObjectInput ? watch.minimal_action : 'Cargar objeto para evaluar antes de recomendar acciÃ³n.',
+    action_required: hasObjectInput ? watch.minimal_action : 'Cargar objeto para evaluar antes de recomendar acción.',
   };
 
   return provisional;

@@ -1,4 +1,4 @@
-﻿import type { WorldSpectLensDomain, WorldSpectVector } from '@/lib/worldspect/vector-contract';
+import type { WorldSpectLensDomain, WorldSpectVector } from '@/lib/worldspect/vector-contract';
 import type { ScoreFrictionAuditResult, ScoreFrictionGenerativeOption, ScoreFrictionObject, ScoreFrictionObjectMetrics, ScoreFrictionWorldContrast } from './object-friction-contract';
 import { readScoreFrictionWorldspect } from './worldspect-convergence';
 import type { ScoreFrictionGenerationRequest } from './types';

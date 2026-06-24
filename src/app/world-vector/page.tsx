@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useEffect, useMemo, useState } from 'react';
 
@@ -433,7 +433,7 @@ export default function WorldVectorPage() {
                     <article key={String(item.id)}>
                       <b>{label(item.source_id ?? item.provider)}</b>
                       <span>{label(item.provider)} / {label(item.observed_at)} / trust {fixed(item.trust)}</span>
-                      <small>{label(item.evidence_ref)} â€” {label(item.summary)}</small>
+                      <small>{label(item.evidence_ref)} — {label(item.summary)}</small>
                     </article>
                   )) : <p>{String(title) === 'USER / CASE' ? 'User not calibrated yet. Upload/evaluate an object to build case evidence.' : 'No exact linked evidence for this level.'}</p>}
                 </div>

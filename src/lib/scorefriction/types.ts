@@ -1,4 +1,4 @@
-﻿export type ScoreFrictionSourceName =
+export type ScoreFrictionSourceName =
   | 'youtube'
   | 'spotify'
   | 'genius'

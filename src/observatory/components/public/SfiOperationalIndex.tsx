@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
@@ -9,13 +9,13 @@ function record(value: unknown): ApiState {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as ApiState : {}
 }
 
-function text(value: unknown, fallback = 'â€”') {
+function text(value: unknown, fallback = '—') {
   return typeof value === 'string' && value.trim() ? value.trim() : fallback
 }
 
 function numberText(value: unknown) {
   const parsed = Number(value)
-  return Number.isFinite(parsed) ? parsed.toFixed(2) : 'â€”'
+  return Number.isFinite(parsed) ? parsed.toFixed(2) : '—'
 }
 
 const INSTRUMENTS = [
@@ -91,7 +91,7 @@ export function SfiOperationalIndex() {
             <section className="border border-[#1e1c17] bg-[#0a0a09] p-5">
               <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-[#7a7568]">rutas claras</p>
               <div className="mt-4 grid gap-2">
-                <Link href="/scorefriction" className="border border-[#1e1c17] px-3 py-2 text-sm text-[#d7cdb8] hover:border-[#8a7035]">ScoreFriction Â· objeto â†” WSV</Link>
+                <Link href="/scorefriction" className="border border-[#1e1c17] px-3 py-2 text-sm text-[#d7cdb8] hover:border-[#8a7035]">ScoreFriction · objeto ↔ WSV</Link>
                 <Link href="/repository" className="border border-[#1e1c17] px-3 py-2 text-sm text-[#d7cdb8] hover:border-[#8a7035]">Atlas / Repositorio</Link>
                 <Link href="/root" className="border border-[#1e1c17] px-3 py-2 text-sm text-[#d7cdb8] hover:border-[#8a7035]">ROOT</Link>
               </div>

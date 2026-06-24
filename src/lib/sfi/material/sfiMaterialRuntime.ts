@@ -1,4 +1,4 @@
-﻿import { buildSfiProposalRuntime, type SfiProposalRuntimeResult } from '@/lib/sfi/proposals/sfiProposalRuntime';
+import { buildSfiProposalRuntime, type SfiProposalRuntimeResult } from '@/lib/sfi/proposals/sfiProposalRuntime';
 
 export type SfiMaterialRuntimeResult = {
   status: 'OK' | 'DEGRADED' | 'BLOCKED';
@@ -47,7 +47,7 @@ export async function buildSfiMaterialRuntime(): Promise<SfiMaterialRuntimeResul
     'Oportunidades:',
     lines(contrast.opportunities),
     '',
-    '## LÃ­mite',
+    '## Límite',
     lines(contrast.limits),
   ].join('\n');
 
@@ -64,7 +64,7 @@ export async function buildSfiMaterialRuntime(): Promise<SfiMaterialRuntimeResul
     contrast.matches[0] ?? 'Sin lectura suficiente.',
     '',
     'Dirección:',
-    contrast.opportunities[0] ?? 'Mantener observaciÃ³n; no escalar sin evidencia adicional.',
+    contrast.opportunities[0] ?? 'Mantener observación; no escalar sin evidencia adicional.',
   ].join('\n');
 
   return {
@@ -73,9 +73,9 @@ export async function buildSfiMaterialRuntime(): Promise<SfiMaterialRuntimeResul
     material_type: proposal.material_type,
     title: proposal.title,
     body,
-    image_prompt: 'Campo negro SFI, nodos finos, lÃ­neas blancas, foco dorado mÃ­nimo; representar una señal cultural convertida en trazabilidad institucional. Sin ornamento, sin exceso cromÃ¡tico.',
-    song_brief: 'Estructura sobria: intro de textura baja, pulso contenido, motivo persistente, cierre sin explosión. Letra mÃ­nima sobre persistencia, evidencia y Dirección.',
-    video_shotlist: 'Duración 12-18s. Plano 1: campo oscuro con nodo activo. Plano 2: lÃ­nea de evidencia conectÃ¡ndose. Plano 3: salida editorial en dorado mÃ­nimo. Movimiento leve, sin glitch excesivo.',
+    image_prompt: 'Campo negro SFI, nodos finos, líneas blancas, foco dorado mínimo; representar una señal cultural convertida en trazabilidad institucional. Sin ornamento, sin exceso cromático.',
+    song_brief: 'Estructura sobria: intro de textura baja, pulso contenido, motivo persistente, cierre sin explosión. Letra mínima sobre persistencia, evidencia y Dirección.',
+    video_shotlist: 'Duración 12-18s. Plano 1: campo oscuro con nodo activo. Plano 2: línea de evidencia conectándose. Plano 3: salida editorial en dorado mínimo. Movimiento leve, sin glitch excesivo.',
     atlas_block: atlasBlock,
     report: body,
     approval_required: proposal.approval_required,

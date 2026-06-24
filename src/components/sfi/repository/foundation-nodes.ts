@@ -1,4 +1,4 @@
-﻿import type { FoundationCopyKey } from './foundation-copy';
+import type { FoundationCopyKey } from './foundation-copy';
 
 export type FoundationNode = {
   id: string;

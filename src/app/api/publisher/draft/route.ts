@@ -1,4 +1,4 @@
-﻿import { NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { buildPublisherDraftRuntime } from '@/lib/publisher/publisherRuntime';
 
 export const dynamic = 'force-dynamic';

@@ -1,4 +1,4 @@
-﻿import { createServiceSupabaseClient } from '@/runtime/supabase/server';
+import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import type { MihmRuntimeMatrix } from '@/observatory/field/catalog/fieldMatrixBuilder';
 
 function clamp01(value: number): number {

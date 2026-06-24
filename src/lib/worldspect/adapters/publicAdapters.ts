@@ -1,4 +1,4 @@
-﻿import type { SourceObservation, WorldSpectAdapter, WorldSpectDomain, SourceAdapterStatus, SourceAccessKind } from '../source-adapter-contract'
+import type { SourceObservation, WorldSpectAdapter, WorldSpectDomain, SourceAdapterStatus, SourceAccessKind } from '../source-adapter-contract'
 import { clamp01 } from '../vector-aggregator'
 
 type JsonRecord = Record<string, unknown>

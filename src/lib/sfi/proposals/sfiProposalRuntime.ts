@@ -1,4 +1,4 @@
-﻿import type { SfiContrastRuntimeResult } from '@/lib/sfi/contrast/sfiContrastRuntime';
+import type { SfiContrastRuntimeResult } from '@/lib/sfi/contrast/sfiContrastRuntime';
 export type SfiProposalRuntimeResult = { [key: string]: any };
 import { buildSfiContrastRuntime } from '@/lib/sfi/contrast/sfiContrastRuntime';
 

@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useEffect, useMemo, useState } from 'react';
 import type { CSSProperties } from 'react';
@@ -192,7 +192,7 @@ export function ScoreFrictionFieldExperience() {
       <aside className="sf-right-panel">
         <div className="sf-panel-title"><Brain size={16} /> AMV operativo</div>
         <div className="sf-thought">
-          {scalar(experiment.plain_language ?? thoughts[0]?.thought, 'No hagas campaÃƒÂ±a todavÃƒÂ­a. Guarda evidencia y observa el siguiente cambio real del vector.')}
+          {scalar(experiment.plain_language ?? thoughts[0]?.thought, 'No hagas campaña todavía. Guarda evidencia y observa el siguiente cambio real del vector.')}
         </div>
         <div className="sf-action-box">
           <span>Hoy en el mundo</span>
@@ -204,7 +204,7 @@ export function ScoreFrictionFieldExperience() {
         </div>
         <div className="sf-action-box">
           <span>Valores</span>
-          <p>MIHM coherencia {scalar(mihm.coherence)} Ã‚Â· PSI persistencia {scalar(psi.persistence)} Ã‚Â· oportunidad {scalar(score.opportunity)}</p>
+          <p>MIHM coherencia {scalar(mihm.coherence)} · PSI persistencia {scalar(psi.persistence)} · oportunidad {scalar(score.opportunity)}</p>
         </div>
         <div className="sf-action-box">
           <span>Accion verificable</span>
@@ -215,7 +215,7 @@ export function ScoreFrictionFieldExperience() {
           <p>{scalar(experiment.success_condition)}</p>
         </div>
         <div className="sf-ask">
-          <input value={question} onChange={(event) => setQuestion(event.target.value)} placeholder="pregunta: Ã‚Â¿quÃƒÂ© hago?, Ã‚Â¿quÃƒÂ© verifico?" />
+          <input value={question} onChange={(event) => setQuestion(event.target.value)} placeholder="pregunta: ¿qué hago?, ¿qué verifico?" />
           <button onClick={() => void askAmv()}>Preguntar</button>
           {answer ? <p>{answer}</p> : null}
         </div>

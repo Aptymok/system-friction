@@ -1,4 +1,4 @@
-﻿// src/runtime/supabase/server.ts
+// src/runtime/supabase/server.ts
 import 'server-only';
 import { cookies } from 'next/headers';
 import { createServerClient, type CookieOptions } from '@supabase/ssr';

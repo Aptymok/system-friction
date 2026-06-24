@@ -1,4 +1,4 @@
-﻿// src/hooks/useAnonState.ts
+// src/hooks/useAnonState.ts
 import { useEffect, useState } from 'react';
 
 export function useAnonState() {

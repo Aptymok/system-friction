@@ -1,4 +1,4 @@
-﻿const base = process.env.QA_BASE_URL || 'http://127.0.0.1:3000';
+const base = process.env.QA_BASE_URL || 'http://127.0.0.1:3000';
 
 async function json(path) {
   const response = await fetch(`${base}${path}`, { cache: 'no-store' });

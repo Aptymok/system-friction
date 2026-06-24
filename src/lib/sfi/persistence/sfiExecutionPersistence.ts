@@ -1,4 +1,4 @@
-﻿import { createServiceSupabaseClient } from '@/runtime/supabase/server';
+import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 
 type AnyRecord = Record<string, any>;
 

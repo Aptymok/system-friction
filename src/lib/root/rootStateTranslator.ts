@@ -1,4 +1,4 @@
-﻿export type RootStateSeverity = 'info' | 'notice' | 'warning' | 'critical';
+export type RootStateSeverity = 'info' | 'notice' | 'warning' | 'critical';
 
 export type RootStateTranslation = {
   rawState: string;

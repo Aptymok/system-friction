@@ -1,4 +1,4 @@
-﻿import { NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { getLatestWorldSpectSnapshot, snapshotRowToApiData } from '@/lib/worldspect/snapshotStore';
 import { buildWorldSpectOperatorState } from '@/lib/worldspect/operator-state';
 
@@ -225,7 +225,7 @@ function noRealSnapshotResponse() {
     status_label: 'Sin lectura real',
     decision_use: 'hold',
     action: 'Ejecutar POST /api/cron/worldspect para medir adaptadores externos reales.',
-    summary: 'No hay lectura real persistida. WorldSpect no estÃ¡ autorizado a inventar evidencia con runtime interno.',
+    summary: 'No hay lectura real persistida. WorldSpect no está autorizado a inventar evidencia con runtime interno.',
     technical_status: 'no_real_snapshot',
     world_regime: 'NO_REAL_WORLD_SNAPSHOT',
     selected_vector: null,

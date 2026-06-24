@@ -1,4 +1,4 @@
-﻿import { createServiceSupabaseClient } from '@/runtime/supabase/server';
+import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { buildDerivedMihmRuntime } from '@/lib/evaluator/derivedMihmRuntime';
 
 type JsonRecord = Record<string, any>;

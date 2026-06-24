@@ -1,4 +1,4 @@
-﻿export type AnalysisMode = 'MIHM' | 'PSI' | 'WORLDSPECT' | 'WSV' | 'SCOREFRICTION' | 'AMV';
+export type AnalysisMode = 'MIHM' | 'PSI' | 'WORLDSPECT' | 'WSV' | 'SCOREFRICTION' | 'AMV';
 
 export function normalizeAnalysisMode(value: unknown): AnalysisMode | null {
   if (typeof value !== 'string') return null;

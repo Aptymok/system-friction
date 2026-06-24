@@ -61,7 +61,7 @@ export function WorldSpectEvidenceTracePanel({ trace }: { trace: unknown }) {
               <div className="mt-1 space-y-1">
                 {external.length ? external.map((ev, evIndex) => (
                   <div key={evIndex} className="rounded border border-[#d8b64a14] px-2 py-1 text-[9px] text-[#b8ae9d]">
-                    {text(ev.provider)} Â· {text(ev.source_id)}
+                    {text(ev.provider)} · {text(ev.source_id)}
                   </div>
                 )) : <div className="text-[9px] text-[#fca5a5]">falta evidencia externa exacta</div>}
               </div>
@@ -70,7 +70,7 @@ export function WorldSpectEvidenceTracePanel({ trace }: { trace: unknown }) {
               <div className="mt-1 space-y-1">
                 {internal.length ? internal.map((ev, evIndex) => (
                   <div key={evIndex} className="rounded border border-[#d8b64a14] px-2 py-1 text-[9px] text-[#b8ae9d]">
-                    {text(ev.provider)} Â· {text(ev.evidence_ref)}
+                    {text(ev.provider)} · {text(ev.evidence_ref)}
                   </div>
                 )) : <div className="text-[9px] text-[#fca5a5]">falta evidencia interna exacta</div>}
               </div>

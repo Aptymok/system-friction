@@ -1,4 +1,4 @@
-﻿import Link from 'next/link';
+import Link from 'next/link';
 import { navByIds, type SfiNavItem } from '@/lib/navigation/sfiNavigation';
 
 const contactEmail = process.env.NEXT_PUBLIC_CONTACT_EMAIL || 'contact@systemfriction.org';
@@ -61,7 +61,7 @@ export default function HomePage() {
           <p className="font-mono text-[10px] uppercase tracking-[0.28em] text-[#c8a951]">Observatorio institucional</p>
           <h1 className="mt-5 max-w-4xl text-5xl font-semibold leading-tight text-[#f1ede0] md:text-7xl">System Friction Institute</h1>
           <p className="mt-6 max-w-3xl text-lg leading-8 text-[#9b9484]">
-            Infraestructura viva para observar mundo, fricciÃ³n cultural, evidencia, propuestas, ejecuciÃ³n y aprendizaje institucional.
+            Infraestructura viva para observar mundo, fricción cultural, evidencia, propuestas, ejecución y aprendizaje institucional.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             {primary ? <Link href={primary.href} className="border border-[#c8a951] bg-[#c8a951] px-5 py-3 font-mono text-[11px] uppercase tracking-[0.16em] text-[#060605]">Abrir SFI Console</Link> : null}
@@ -70,7 +70,7 @@ export default function HomePage() {
           </div>
         </div>
         <aside className="border border-[#1e1c17] bg-[#0b0b09] p-5">
-          <h2 className="font-mono text-[11px] uppercase tracking-[0.18em] text-[#c8a951]">Estado de operaciÃ³n</h2>
+          <h2 className="font-mono text-[11px] uppercase tracking-[0.18em] text-[#c8a951]">Estado de operación</h2>
           <p className="mt-4 text-sm leading-6 text-[#8f8878]">
             Las rutas duplicadas o internas ya no se muestran como superficies independientes. AMV vive dentro de ROOT y Closed Loop vive dentro de SFI Console.
           </p>

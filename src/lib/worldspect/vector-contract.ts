@@ -1,4 +1,4 @@
-﻿export const WORLDSPECT_DOMAINS = [
+export const WORLDSPECT_DOMAINS = [
   'CULTURAL',
   'ECONOMY',
   'GEO_DIGITAL',

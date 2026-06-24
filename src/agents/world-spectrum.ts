@@ -1,4 +1,4 @@
-﻿// WorldSpectrum â€“ cliente que consume la API real (servicio Python)
+// WorldSpectrum – cliente que consume la API real (servicio Python)
 export interface WorldVariable {
   label: string;
   value: number;
@@ -18,10 +18,10 @@ export class WorldSpectrum {
           volatility: src.error ? 0.3 : 0.1
         }));
       }
-      throw new Error('Respuesta invÃ¡lida');
+      throw new Error('Respuesta inválida');
     } catch (error) {
       console.error('WorldSpectrum error:', error);
-      // No simulamos, devolvemos array vacÃ­o y se maneja en el componente
+      // No simulamos, devolvemos array vacío y se maneja en el componente
       return [];
     }
   }

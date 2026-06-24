@@ -1,4 +1,4 @@
-﻿import fs from 'fs';
+import fs from 'fs';
 import path from 'path';
 import { createHash } from 'crypto';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';

@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useMemo, useState } from 'react';
 import ThresholdAccess from '@/components/auth/ThresholdAccess';

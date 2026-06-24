@@ -42,7 +42,7 @@ export function summarizeEvaluatedObject(input: unknown): ObjectInputSummary {
       ? JSON.stringify(input)
       : '';
   const text = raw.trim();
-  const words = Array.from(new Set((text.toLowerCase().match(/[a-zÃ¡Ã©Ã­Ã³ÃºÃ¼Ã±0-9_]{3,}/gi) ?? []).slice(0, 60)));
+  const words = Array.from(new Set((text.toLowerCase().match(/[a-záéíóúüñ0-9_]{3,}/gi) ?? []).slice(0, 60)));
   const kind = text.startsWith('{') || text.startsWith('[') ? 'json' : text.length ? 'text' : 'unknown';
   return {
     kind,
@@ -72,7 +72,7 @@ export function deriveMihmValues(input: { object: ObjectInputSummary; vector: Ro
     coherence: round(coherence),
     degradation: round(degradation),
     regime,
-    meaning: `MIHM lee estabilidad interna. Coherencia ${round(coherence)} significa que el objeto ${coherence >= 0.55 ? 'sÃ­ conversa' : 'todavÃ­a no conversa'} con el vector filtrado. FricciÃ³n ${round(friction)} indica ${friction >= 0.55 ? 'choque operativo relevante' : 'fricciÃ³n manejable'}.`,
+    meaning: `MIHM lee estabilidad interna. Coherencia ${round(coherence)} significa que el objeto ${coherence >= 0.55 ? 'sí conversa' : 'todavía no conversa'} con el vector filtrado. Fricción ${round(friction)} indica ${friction >= 0.55 ? 'choque operativo relevante' : 'fricción manejable'}.`,
   };
 }
 
@@ -89,7 +89,7 @@ export function derivePsiValues(input: { object: ObjectInputSummary; vector: Row
     persistence: round(persistence),
     signal_life: signalLife,
     weak_signal_count: weakSignalCount,
-    meaning: `PSI lee reapariciÃ³n simbÃ³lica. La seÃ±al tiene vida ${signalLife}; no se confirma por intensidad, se confirma por retorno comparable en el tiempo.`,
+    meaning: `PSI lee reaparición simbólica. La señal tiene vida ${signalLife}; no se confirma por intensidad, se confirma por retorno comparable en el tiempo.`,
   };
 }
 
@@ -106,7 +106,7 @@ export function deriveScoreFrictionValues(input: { object: ObjectInputSummary; v
     friction: round(friction),
     perturbation_need: round(perturbationNeed),
     opportunity: round(clamp01(opportunity)),
-    meaning: `ScoreFriction lee si conviene intervenir. Oportunidad ${round(opportunity)} y necesidad ${round(perturbationNeed)}: ${opportunity > perturbationNeed ? 'observar/publicar con baja intensidad' : 'no intervenir todavÃ­a; falta evidencia o mejor timing'}.`,
+    meaning: `ScoreFriction lee si conviene intervenir. Oportunidad ${round(opportunity)} y necesidad ${round(perturbationNeed)}: ${opportunity > perturbationNeed ? 'observar/publicar con baja intensidad' : 'no intervenir todavía; falta evidencia o mejor timing'}.`,
   };
 }
 
@@ -128,7 +128,7 @@ export function deriveWorldReading(snapshot: Row | null, sourceMix: Row | null) 
     wsi,
     nti,
     sourceCoverage: coverage,
-    summary: `Hoy el campo mundial estÃ¡ en rÃ©gimen ${regime}. La seÃ±al global es baja/moderada: WSI ${wsi}, NTI ${nti}, cobertura ${coverage}. Los vectores mÃ¡s persistentes son ${top.map((x) => `${x.domain} (${x.persistence})`).join(', ') || 'sin persistencia suficiente'}.`,
+    summary: `Hoy el campo mundial está en régimen ${regime}. La señal global es baja/moderada: WSI ${wsi}, NTI ${nti}, cobertura ${coverage}. Los vectores más persistentes son ${top.map((x) => `${x.domain} (${x.persistence})`).join(', ') || 'sin persistencia suficiente'}.`,
     top_vectors: top,
   };
 }
@@ -140,7 +140,7 @@ export function deriveFilteredReading(vector: Row | null, sourceHealth: Row | nu
   const trust = round(n(v.trust ?? h.trust));
   const persistence = round(n(v.persistence ?? h.persistence));
   const degradation = round(n(v.degradation ?? h.degradation, 1));
-  const interpretation = s(h.interpretation, persistence >= 0.65 ? 'persistente confiable' : trust < 0.55 ? 'seÃ±al dÃ©bil coherente' : 'observaciÃ³n activa');
+  const interpretation = s(h.interpretation, persistence >= 0.65 ? 'persistente confiable' : trust < 0.55 ? 'señal débil coherente' : 'observación activa');
   return {
     domain,
     trust,
@@ -157,7 +157,7 @@ export function deriveFilteredReading(vector: Row | null, sourceHealth: Row | nu
       kind: s(source.kind),
       label: s(source.label),
     })),
-    summary: `${domain} se encuentra como ${interpretation}. Confianza ${trust}, persistencia ${persistence}, degradaciÃ³n ${degradation}.`,
+    summary: `${domain} se encuentra como ${interpretation}. Confianza ${trust}, persistencia ${persistence}, degradación ${degradation}.`,
   };
 }
 
@@ -165,9 +165,9 @@ function surfaceForScope(scope: ScoreFrictionScope) {
   if (scope === 'music' || scope === 'culture') return 'ScoreFriction / SFI-LAB campaign panel';
   if (scope === 'writing') return 'Medium / LinkedIn / ensayo breve';
   if (scope === 'cinema') return 'pieza audiovisual corta / storyboard';
-  if (scope === 'institution') return 'nota tÃ©cnica / invitaciÃ³n institucional';
+  if (scope === 'institution') return 'nota técnica / invitación institucional';
   if (scope === 'project') return 'release note / evidencia de producto';
-  return 'observaciÃ³n registrada en bitÃ¡cora';
+  return 'observación registrada en bitácora';
 }
 
 export function buildRecommendedExperiments(input: {
@@ -190,27 +190,27 @@ export function buildRecommendedExperiments(input: {
   const window = filtered.persistence >= 0.65 ? '48 horas' : filtered.persistence >= 0.45 ? '72 horas' : '5 snapshots';
   const surface = surfaceForScope(input.scope);
   const action = shouldAct
-    ? `Publicar una observaciÃ³n verificable en ${surface}: tÃ­tulo operativo, 1 evidencia del objeto, 1 comparaciÃ³n contra ${filtered.domain}, 1 pregunta de seguimiento.`
-    : `No publicar todavÃ­a. Registrar el objeto como evidencia y esperar variaciÃ³n mayor a 0.10 en ${filtered.domain} o un segundo retorno comparable.`;
+    ? `Publicar una observación verificable en ${surface}: título operativo, 1 evidencia del objeto, 1 comparación contra ${filtered.domain}, 1 pregunta de seguimiento.`
+    : `No publicar todavía. Registrar el objeto como evidencia y esperar variación mayor a 0.10 en ${filtered.domain} o un segundo retorno comparable.`;
 
   return [{
     id: `EXP-${Date.now().toString(36)}`,
     vector: filtered.domain,
     status: shouldAct ? 'ready_to_run' : 'watch_only',
-    hypothesis: `Si el objeto mantiene coherencia MIHM ${n(input.mihm.coherence)} y persistencia PSI ${n(input.psi.persistence)} contra ${filtered.domain}, puede abrir oportunidad de seÃ±al emergente sin forzar viralidad.`,
+    hypothesis: `Si el objeto mantiene coherencia MIHM ${n(input.mihm.coherence)} y persistencia PSI ${n(input.psi.persistence)} contra ${filtered.domain}, puede abrir oportunidad de señal emergente sin forzar viralidad.`,
     recommended_surface: surface,
     action,
     expected_effect: shouldAct
-      ? `Aumentar evidencia comparable en ${filtered.domain} sin subir degradaciÃ³n por encima de ${round(filtered.degradation + 0.08)}.`
-      : `Evitar ruido operativo hasta que el campo muestre aceleraciÃ³n o retorno comparable.`,
+      ? `Aumentar evidencia comparable en ${filtered.domain} sin subir degradación por encima de ${round(filtered.degradation + 0.08)}.`
+      : `Evitar ruido operativo hasta que el campo muestre aceleración o retorno comparable.`,
     verification_window: window,
-    success_condition: `Ã‰xito = aparece al menos 1 evidencia nueva comparable o el vector ${filtered.domain} sube persistencia >= ${round(filtered.persistence + 0.05)} sin aumentar degradaciÃ³n > 0.08.`,
-    failure_condition: `Fallo = no aparece evidencia comparable, aumenta degradaciÃ³n > 0.08, o el objeto no conserva coherencia con ${filtered.domain}.`,
-    evidence_required: ['objeto analizado', 'timestamp', 'fuente/contexto', 'mÃ©trica antes', 'mÃ©trica despuÃ©s', 'outcome'],
+    success_condition: `Éxito = aparece al menos 1 evidencia nueva comparable o el vector ${filtered.domain} sube persistencia >= ${round(filtered.persistence + 0.05)} sin aumentar degradación > 0.08.`,
+    failure_condition: `Fallo = no aparece evidencia comparable, aumenta degradación > 0.08, o el objeto no conserva coherencia con ${filtered.domain}.`,
+    evidence_required: ['objeto analizado', 'timestamp', 'fuente/contexto', 'métrica antes', 'métrica después', 'outcome'],
     confidence: round((n(input.mihm.coherence) + n(input.psi.persistence) + n(input.scorefriction.opportunity)) / 3),
     plain_language: shouldAct
-      ? `Haz una prueba pequeÃ±a y medible. No es campaÃ±a completa. Publica una observaciÃ³n, mide si aparece respuesta comparable y decide despuÃ©s.`
-      : `No hagas campaÃ±a todavÃ­a. Guarda evidencia y observa el siguiente cambio real del vector.`,
+      ? `Haz una prueba pequeña y medible. No es campaña completa. Publica una observación, mide si aparece respuesta comparable y decide después.`
+      : `No hagas campaña todavía. Guarda evidencia y observa el siguiente cambio real del vector.`,
     world_context: world.summary,
   }];
 }
@@ -254,8 +254,8 @@ export function buildOperationalInterpretation(input: {
     scorefriction_values: scorefriction,
     object_world_fit: {
       compared_against: `${filtered.domain} + world regime ${world.regime}`,
-      verdict: scorefriction.opportunity >= 0.6 ? 'alto potencial de oportunidad' : scorefriction.opportunity >= 0.42 ? 'potencial moderado; probar bajo control' : 'bajo potencial; observar sin campaÃ±a',
-      explanation: `El objeto se compara contra el mundo actual y el vector filtrado. No se dicta si es "bueno"; se estima si tiene coherencia, fricciÃ³n y oportunidad de producir seÃ±al observable.`,
+      verdict: scorefriction.opportunity >= 0.6 ? 'alto potencial de oportunidad' : scorefriction.opportunity >= 0.42 ? 'potencial moderado; probar bajo control' : 'bajo potencial; observar sin campaña',
+      explanation: `El objeto se compara contra el mundo actual y el vector filtrado. No se dicta si es "bueno"; se estima si tiene coherencia, fricción y oportunidad de producir señal observable.`,
     },
     recommended_experiments: experiments,
     report_sections: [
@@ -266,7 +266,7 @@ export function buildOperationalInterpretation(input: {
       'Valores ScoreFriction',
       'Objeto vs mundo/vector',
       'Experimento recomendado',
-      'Condiciones de verificaciÃ³n',
+      'Condiciones de verificación',
     ],
   };
 }
@@ -281,14 +281,14 @@ export function answerOperationalQuestion(question: string, analysis: Row | null
   const world = record(a.world);
   const filtered = record(a.filtered_vector);
 
-  if (!question.trim()) return 'Escribe una pregunta operacional: Â¿quÃ© hago?, Â¿quÃ© significa MIHM?, Â¿quÃ© vector pesa mÃ¡s?, Â¿conviene publicar?, Â¿quÃ© verifico?';
-  if (/que hago|quÃ© hago|siguiente|accion|acciÃ³n|ok/.test(text)) return s(exp.plain_language) + ' AcciÃ³n: ' + s(exp.action);
-  if (/mihm/.test(text)) return s(mihm.meaning) + ` Valores: homeostasis ${mihm.homeostasis}, fricciÃ³n ${mihm.friction}, coherencia ${mihm.coherence}, degradaciÃ³n ${mihm.degradation}.`;
+  if (!question.trim()) return 'Escribe una pregunta operacional: ¿qué hago?, ¿qué significa MIHM?, ¿qué vector pesa más?, ¿conviene publicar?, ¿qué verifico?';
+  if (/que hago|qué hago|siguiente|accion|acción|ok/.test(text)) return s(exp.plain_language) + ' Acción: ' + s(exp.action);
+  if (/mihm/.test(text)) return s(mihm.meaning) + ` Valores: homeostasis ${mihm.homeostasis}, fricción ${mihm.friction}, coherencia ${mihm.coherence}, degradación ${mihm.degradation}.`;
   if (/psi/.test(text)) return s(psi.meaning) + ` Recurrencia ${psi.recurrence}, identidad ${psi.symbolic_identity}, persistencia ${psi.persistence}.`;
-  if (/scorefriction|friccion|fricciÃ³n/.test(text)) return s(sf.meaning) + ` Oportunidad ${sf.opportunity}, atracciÃ³n ${sf.attraction}, necesidad de perturbaciÃ³n ${sf.perturbation_need}.`;
+  if (/scorefriction|friccion|fricción/.test(text)) return s(sf.meaning) + ` Oportunidad ${sf.opportunity}, atracción ${sf.attraction}, necesidad de perturbación ${sf.perturbation_need}.`;
   if (/mundo|world/.test(text)) return s(world.summary);
   if (/vector|cultural|bio|tech|memetic/.test(text)) return s(filtered.summary);
-  if (/exito|Ã©xito|verifico|medir/.test(text)) return `Verifica asÃ­: ${s(exp.success_condition)} Fallo: ${s(exp.failure_condition)} Ventana: ${s(exp.verification_window)}.`;
+  if (/exito|éxito|verifico|medir/.test(text)) return `Verifica así: ${s(exp.success_condition)} Fallo: ${s(exp.failure_condition)} Ventana: ${s(exp.verification_window)}.`;
   return `Lectura: ${s(a.object_world_fit && record(a.object_world_fit).verdict)}. Siguiente: ${s(exp.plain_language)}`;
 }
 
@@ -321,27 +321,27 @@ ${rows(filtered.sources).map((source) => `- ${s(source.provider)} (${s(source.ki
 ## 3. Valores MIHM
 
 - Homeostasis: ${mihm.homeostasis}
-- FricciÃ³n: ${mihm.friction}
+- Fricción: ${mihm.friction}
 - Coherencia: ${mihm.coherence}
-- DegradaciÃ³n: ${mihm.degradation}
-- RÃ©gimen: ${mihm.regime}
+- Degradación: ${mihm.degradation}
+- Régimen: ${mihm.regime}
 
 ${s(mihm.meaning)}
 
 ## 4. Valores PSI
 
 - Recurrencia: ${psi.recurrence}
-- Identidad simbÃ³lica: ${psi.symbolic_identity}
+- Identidad simbólica: ${psi.symbolic_identity}
 - Persistencia: ${psi.persistence}
-- Vida de seÃ±al: ${psi.signal_life}
+- Vida de señal: ${psi.signal_life}
 
 ${s(psi.meaning)}
 
 ## 5. Valores ScoreFriction
 
-- AtracciÃ³n: ${sf.attraction}
-- FricciÃ³n: ${sf.friction}
-- Necesidad de perturbaciÃ³n: ${sf.perturbation_need}
+- Atracción: ${sf.attraction}
+- Fricción: ${sf.friction}
+- Necesidad de perturbación: ${sf.perturbation_need}
 - Oportunidad: ${sf.opportunity}
 
 ${s(sf.meaning)}
@@ -354,10 +354,10 @@ ${s(fit.explanation)}
 
 ## 7. Experimento recomendado
 
-HipÃ³tesis:
+Hipótesis:
 ${s(experiment.hypothesis)}
 
-AcciÃ³n:
+Acción:
 ${s(experiment.action)}
 
 Superficie:
@@ -369,18 +369,18 @@ ${s(experiment.expected_effect)}
 Ventana:
 ${s(experiment.verification_window)}
 
-CondiciÃ³n de Ã©xito:
+Condición de éxito:
 ${s(experiment.success_condition)}
 
-CondiciÃ³n de fallo:
+Condición de fallo:
 ${s(experiment.failure_condition)}
 
 ## 8. Evidencia requerida
 
-${rows(experiment.evidence_required).map((item) => `- ${String(item)}`).join('\n') || '- objeto, fuente, timestamp, antes/despuÃ©s, outcome'}
+${rows(experiment.evidence_required).map((item) => `- ${String(item)}`).join('\n') || '- objeto, fuente, timestamp, antes/después, outcome'}
 
 ## 9. Cierre
 
-Este reporte no promete impacto. Define una observaciÃ³n verificable contra el estado actual del mundo y del vector filtrado.
+Este reporte no promete impacto. Define una observación verificable contra el estado actual del mundo y del vector filtrado.
 `;
 }

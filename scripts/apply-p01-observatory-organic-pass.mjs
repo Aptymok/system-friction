@@ -1,4 +1,4 @@
-﻿import fs from 'node:fs';
+import fs from 'node:fs';
 import path from 'node:path';
 
 const target = path.join(process.cwd(), 'src/observatory/components/os/SfiObservatoryOS.tsx');

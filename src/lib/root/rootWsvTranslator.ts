@@ -1,4 +1,4 @@
-﻿import { translateRootState, type RootStateTranslation } from './rootStateTranslator';
+import { translateRootState, type RootStateTranslation } from './rootStateTranslator';
 
 export type RootWsvTranslation = {
   label: string;

@@ -1,4 +1,4 @@
-﻿import { getLatestWorldSpectSnapshot } from './snapshotStore';
+import { getLatestWorldSpectSnapshot } from './snapshotStore';
 import { createBootstrappedWorldSpectSnapshot } from './bootstrap';
 import { WORLDSPECT_DOMAINS, type WorldSpectDomain, type WorldSpectVector, type WorldSpectVectorSnapshot } from './vector-contract';
 

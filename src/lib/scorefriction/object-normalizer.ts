@@ -1,4 +1,4 @@
-﻿import crypto from 'crypto';
+import crypto from 'crypto';
 import { normalizeWorldSpectLensDomain } from '@/lib/worldspect/vector-contract';
 import type { ScoreFrictionObject } from './object-friction-contract';
 import type { ScoreFrictionGenerationRequest, ScoreFrictionNormalizedObservation, ScoreFrictionObjectKind, ScoreFrictionObservationInput } from './types';

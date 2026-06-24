@@ -1,4 +1,4 @@
-﻿import { buildPublisherDraftRuntime } from '@/lib/publisher/publisherRuntime';
+import { buildPublisherDraftRuntime } from '@/lib/publisher/publisherRuntime';
 
 export type AtlasMemoryRuntimeResult = { [key: string]: any };
 

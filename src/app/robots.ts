@@ -1,4 +1,4 @@
-﻿import type { MetadataRoute } from 'next'
+import type { MetadataRoute } from 'next'
 
 const BASE_URL = 'https://systemfriction.org'
 

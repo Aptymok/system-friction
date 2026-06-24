@@ -1,4 +1,4 @@
-﻿create extension if not exists "pgcrypto";
+create extension if not exists "pgcrypto";
 
 create table if not exists public.sfi_field_perturbations (
   id uuid primary key default gen_random_uuid(),

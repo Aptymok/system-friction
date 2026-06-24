@@ -1,4 +1,4 @@
-﻿export type WorldSpectOperatorStatus =
+export type WorldSpectOperatorStatus =
   | 'observacion_confiable'
   | 'observacion_parcial'
   | 'observacion_interna'

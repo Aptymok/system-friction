@@ -1,4 +1,4 @@
-﻿import { executeAudit } from './auditor'
+import { executeAudit } from './auditor'
 import { CognitiveTwin } from './cognitive-twin'
 import { useNodeStore } from '@/observatory/store/nodeStore'
 import { createServerSupabaseClient } from '@/runtime/supabase/server'

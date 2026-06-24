@@ -159,7 +159,7 @@ const NODE_TYPES: Record<string, { label: string; ring: string; color: string; d
 };
 
 const COMMANDS = ['/observe', '/propose', '/project', '/simulate', '/mutate', '/inhibit', '/visualize', '/calendar', '/explain'];
-const REGIME_CHIPS = ['ObservaciÃ³n', 'ContradicciÃ³n', 'EnergÃ­a', 'ValidaciÃ³n', 'Temporalidad', 'Gobernanza'];
+const REGIME_CHIPS = ['Observación', 'Contradicción', 'Energía', 'Validación', 'Temporalidad', 'Gobernanza'];
 
 function isRecord(value: unknown): value is JsonRecord {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
@@ -385,7 +385,7 @@ export function SfiObservatoryOS() {
   const [highlight, setHighlight] = useState<string[]>([]);
   const [drawer, setDrawer] = useState<DrawerState | null>(null);
   const [command, setCommand] = useState('/observe ');
-  const [commandState, setCommandState] = useState<CommandState>({ status: 'idle', message: 'El campo estÃ¡ listo para observaciÃ³n' });
+  const [commandState, setCommandState] = useState<CommandState>({ status: 'idle', message: 'El campo está listo para observación' });
   const [authForm, setAuthForm] = useState({ email: '', password: '' });
   const [authMessage, setAuthMessage] = useState<string | null>(null);
   const [readOnlyField, setReadOnlyField] = useState(false);
@@ -409,7 +409,7 @@ export function SfiObservatoryOS() {
     if (observatoryResult.status === 200 && isRecord(observatoryResult.body) && isRecord(observatoryResult.body.data)) {
       setObservatory(observatoryResult.body.data as ObservatoryState);
       setLoadState('ready');
-      setCommandState((prev) => prev.status === 'running' ? { status: 'done', message: 'El campo estÃ¡ listo para observaciÃ³n' } : prev);
+      setCommandState((prev) => prev.status === 'running' ? { status: 'done', message: 'El campo está listo para observación' } : prev);
     } else {
       setLoadState('degraded');
       setLoadError(stringValue(isRecord(observatoryResult.body) ? observatoryResult.body.error : null, 'observatory_state_not_ready'));
@@ -506,15 +506,15 @@ export function SfiObservatoryOS() {
     const [verb, ...rest] = command.trim().split(/\s+/);
     const text = rest.join(' ').trim() || 'constitutional observation';
     if (blindMode && verb !== '/observe' && verb !== '/explain') {
-      setCommandState({ status: 'error', message: 'Gobernanza bloquea esta acciÃ³n' });
+      setCommandState({ status: 'error', message: 'Gobernanza bloquea esta acción' });
       return;
     }
     if (auth.status !== 'authenticated' && verb !== '/observe' && verb !== '/explain') {
-      setCommandState({ status: 'error', message: 'AutenticaciÃ³n requerida para modificar el campo' });
+      setCommandState({ status: 'error', message: 'Autenticación requerida para modificar el campo' });
       return;
     }
 
-    setCommandState({ status: 'running', message: 'Procesando observaciÃ³n bajo polÃ­tica' });
+    setCommandState({ status: 'running', message: 'Procesando observación bajo política' });
     try {
       if (verb === '/observe') {
         await refresh();
@@ -531,12 +531,12 @@ export function SfiObservatoryOS() {
       } else if (verb === '/calendar') {
         await postJson('/api/calendar/propose-jsonb', { calendar_payload: { title: text, source: 'observatory_os' } });
       } else if (verb === '/explain') {
-        setDrawer({ title: 'STATE EXPLANATION Â· DERIVED', payload: { source: 'observatory_state', observatory, systemIntegrity: integrity }, lineage: [] });
+        setDrawer({ title: 'STATE EXPLANATION · DERIVED', payload: { source: 'observatory_state', observatory, systemIntegrity: integrity }, lineage: [] });
       } else {
         throw new Error('Comando no reconocido por el observatorio');
       }
       await refresh();
-      setCommandState({ status: 'done', message: 'ObservaciÃ³n registrada en el campo' });
+      setCommandState({ status: 'done', message: 'Observación registrada en el campo' });
     } catch (error) {
       setCommandState({ status: 'error', message: error instanceof Error ? error.message : 'COMMAND FAILED' });
     }
@@ -544,14 +544,14 @@ export function SfiObservatoryOS() {
 
   async function reviewMutation(proposalId: string, action: 'accept' | 'reject') {
     if (blindMode) {
-      setCommandState({ status: 'error', message: 'Gobernanza bloquea esta acciÃ³n' });
+      setCommandState({ status: 'error', message: 'Gobernanza bloquea esta acción' });
       return;
     }
     setCommandState({ status: 'running', message: `${action.toUpperCase()} UNDER POLICY` });
     try {
       await postJson(`/api/mutations/${action}`, { proposalId, reason: action === 'reject' ? 'observatory_review_rejected' : undefined });
       await refresh();
-      setCommandState({ status: 'done', message: action === 'accept' ? 'DESIGN APPROVED Â· GRAPH UNCHANGED' : 'PROPOSAL REJECTED' });
+      setCommandState({ status: 'done', message: action === 'accept' ? 'DESIGN APPROVED · GRAPH UNCHANGED' : 'PROPOSAL REJECTED' });
     } catch (error) {
       setCommandState({ status: 'error', message: error instanceof Error ? error.message : 'REVIEW FAILED' });
     }
@@ -604,7 +604,7 @@ export function SfiObservatoryOS() {
             sandboxCount={records(observatory?.sandbox).length}
             highlight={highlight}
             publicReading={publicFieldReading(observatory)}
-            onNode={(node) => setDrawer({ title: `${node.label} Â· ${nodeType(node)}`, payload: { node, provenance: node.provenance ?? 'graph_nodes' }, lineage: node.lineage ?? [] })}
+            onNode={(node) => setDrawer({ title: `${node.label} · ${nodeType(node)}`, payload: { node, provenance: node.provenance ?? 'graph_nodes' }, lineage: node.lineage ?? [] })}
           />
           <CausalMemory
             active={activeMemory}
@@ -995,7 +995,7 @@ function CausalMemory({ active, setActive, items, onOpen }: { active: string; se
           <button key={`${item.kind}:${item.id}`} type="button" onClick={() => onOpen(item)} className="block w-full border border-white/10 bg-black/20 p-3 text-left transition hover:border-teal-200/30">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <p className="font-mono text-[9px] uppercase text-zinc-500">{dateLabel(item.timestamp)} Â· {item.kind}</p>
+                <p className="font-mono text-[9px] uppercase text-zinc-500">{dateLabel(item.timestamp)} · {item.kind}</p>
                 <h3 className="mt-1 truncate font-mono text-[10px] uppercase text-paper">{item.title}</h3>
               </div>
               <span className={`border px-2 py-1 font-mono text-[8px] uppercase ${stateTone(item.policy)}`}>{item.policy}</span>
@@ -1025,15 +1025,15 @@ function ConstitutionalInput(props: {
       <form onSubmit={props.onSubmit} className="flex flex-col gap-3 lg:flex-row lg:items-center">
         <div className="flex items-center gap-3 font-mono text-[10px] uppercase text-zinc-500">
           {props.blindMode ? <Lock className="h-4 w-4 text-red-200" /> : <Terminal className="h-4 w-4 text-teal-100" />}
-          <span>{props.blindMode ? 'Gobernanza bloquea esta acciÃ³n' : 'ObservaciÃ³n del campo'}</span>
+          <span>{props.blindMode ? 'Gobernanza bloquea esta acción' : 'Observación del campo'}</span>
         </div>
         <input
           value={props.command}
           onChange={(event) => props.setCommand(event.target.value)}
           disabled={props.blindMode}
           className="min-w-0 flex-1 border border-white/10 bg-black/40 px-3 py-3 font-mono text-xs text-paper outline-none focus:border-teal-200/40 disabled:cursor-not-allowed disabled:border-red-300/20 disabled:text-red-100"
-          aria-label="observaciÃ³n narrativa del campo"
-          placeholder="Describe quÃ© quieres observar del campoâ€¦"
+          aria-label="observación narrativa del campo"
+          placeholder="Describe qué quieres observar del campo…"
         />
         <button type="submit" disabled={props.blindMode} className="inline-flex items-center justify-center gap-2 border border-teal-200/30 bg-teal-200/10 px-4 py-3 font-mono text-[10px] uppercase text-teal-100 disabled:border-red-300/20 disabled:bg-red-300/10 disabled:text-red-100">
           <Play className="h-3 w-3" /> Observar
@@ -1042,7 +1042,7 @@ function ConstitutionalInput(props: {
       <div className="mt-2 flex flex-wrap items-center gap-2">
         {COMMANDS.map((cmd) => <button key={cmd} type="button" onClick={() => props.setCommand(`${cmd} `)} className="border border-white/10 px-2 py-1 font-mono text-[8px] uppercase text-zinc-500 hover:text-paper">{cmd}</button>)}
         <span className={`ml-auto font-mono text-[9px] uppercase ${props.state.status === 'error' ? 'text-red-200' : props.state.status === 'done' ? 'text-teal-100' : 'text-zinc-500'}`}>
-          {props.authenticated ? props.state.message : 'Modo lectura Â· autentica para modificar el campo'}
+          {props.authenticated ? props.state.message : 'Modo lectura · autentica para modificar el campo'}
         </span>
       </div>
     </footer>

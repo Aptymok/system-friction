@@ -22,6 +22,7 @@
                     "typecheck":  "tsc --noEmit --pretty false --incremental false",
                     "phase:verify":  "npm run check:boundaries \u0026\u0026 npm run typecheck",
                     "qa:sfi-pipeline":  "node scripts/qa-sfi-minimal-pipeline.mjs",
+                    "repair:mojibake":  "node scripts/repair-mojibake.mjs",
                     "db:export":  "node scripts/db/export-supabase.mjs",
                     "db:inventory":  "node scripts/db/inventory-supabase.mjs",
                     "db:reset:sfi":  "node scripts/db/reset-sfi-operational-tables.mjs",

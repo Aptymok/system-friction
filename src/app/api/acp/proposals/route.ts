@@ -1,4 +1,4 @@
-﻿import { NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { latestActionProposals, requireGovernedActor } from '@/lib/operational/common';
 
 export const dynamic = 'force-dynamic';

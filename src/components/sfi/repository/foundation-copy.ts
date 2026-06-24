@@ -1,4 +1,4 @@
-﻿export const FOUNDATION_COPY = {
+export const FOUNDATION_COPY = {
   entryTitle: ['El campo', 'no espera', 'tu permiso', 'para existir.'],
   quote: 'Los sistemas no colapsan por falta de intencion. Colapsan porque nadie registra lo que todos observan.',
   carta: `

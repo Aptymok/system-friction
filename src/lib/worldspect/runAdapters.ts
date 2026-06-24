@@ -1,4 +1,4 @@
-﻿import type { WorldSpectSource } from '../../../packages/api-contracts/src'
+import type { WorldSpectSource } from '../../../packages/api-contracts/src'
 import type { SourceObservation } from './source-adapter-contract'
 import { deriveWorldSpectSourceHealth } from './contract'
 import { upsertWorldSpectSnapshot } from './snapshotStore'
@@ -18,7 +18,7 @@ function sleep(ms: number) {
 function observationToSource(obs: SourceObservation): WorldSpectSource {
   return {
     key: obs.sourceId,
-    label: `${obs.domain} Ã‚Â· ${obs.sourceId}`,
+    label: `${obs.domain} · ${obs.sourceId}`,
     value: obs.status === 'ACTIVE' ? obs.value : null,
     raw: obs.raw,
     unit: 'normalized_0_1',
