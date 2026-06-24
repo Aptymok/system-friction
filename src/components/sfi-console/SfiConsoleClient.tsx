@@ -198,6 +198,7 @@ const emptyPerturbation = { title: '', intention: '', target_vector: '', target_
 export default function SfiConsoleClient() {
   const [state, setState] = useState<AnyRecord | null>(null);
   const [graphState, setGraphState] = useState<AnyRecord | null>(null);
+  const [responseState, setResponseState] = useState<AnyRecord | null>(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [caseId, setCaseId] = useState('SFI-OPS-001');
@@ -210,21 +211,25 @@ export default function SfiConsoleClient() {
   async function load() {
     setLoading(true);
     try {
-      const [stateResponse, graphResponse] = await Promise.all([
+      const [stateResponse, graphResponse, responseResponse] = await Promise.all([
         fetch('/api/sfi/operational-state', { cache: 'no-store' }),
         fetch('/api/graph/state?profile=sfi', { cache: 'no-store' }),
+        fetch('/api/sfi/respond', { cache: 'no-store' }),
       ]);
 
-      const [json, graphJson] = await Promise.all([
+      const [json, graphJson, responseJson] = await Promise.all([
         stateResponse.json(),
         graphResponse.json().catch(() => ({})),
+        responseResponse.json().catch(() => ({})),
       ]);
 
       setState(json);
       setGraphState(graphJson?.data ?? null);
+      setResponseState(responseJson?.ok === false ? responseJson : responseJson ?? null);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'console_state_failed');
       setGraphState(null);
+      setResponseState(null);
     } finally {
       setLoading(false);
     }
@@ -397,7 +402,7 @@ export default function SfiConsoleClient() {
             <p className="mt-2 text-xs leading-5 text-white/45">Portable operational field. No static dashboard. No fake evidence.</p>
           </div>
 
-          <FieldPanel title="World Spectrum Vector Observatory" glyph="□">
+          <FieldPanel title="WorldSpect Observatory" glyph="□">
             <dl>
               <Metric label="regime" data={cycle.operational_regime} />
               <Metric label="signal ratio" data={cycle.signal_ratio} />
@@ -413,6 +418,28 @@ export default function SfiConsoleClient() {
 
           {message && <div className="mt-3 border border-[#d6b46a]/40 bg-[#d6b46a]/10 p-3 text-sm text-[#f0d486]">{message}</div>}
           {degraded.length > 0 && <div className="mt-3 border border-amber-500/40 bg-amber-950/25 p-3 text-xs text-amber-100">{degraded.map((item) => <div key={item}>{item}</div>)}</div>}
+          {responseState && (
+            <div className="mt-3">
+              <FieldPanel title="SFI RESPONSE" glyph="◆">
+                <dl>
+                  <Metric label="decision" data={responseState.decision} />
+                  <Metric label="priority" data={responseState.priority} />
+                  <Metric label="next action" data={responseState.next_action} />
+                  <Metric label="blocking condition" data={responseState.blocking_condition || 'none'} />
+                  <Metric label="confidence" data={responseState.confidence} />
+                </dl>
+                <div className="mt-3 border border-white/10 bg-black/45 p-3">
+                  <div className="text-[9px] uppercase tracking-[0.18em] text-white/35">reason</div>
+                  <p className="mt-2 text-xs leading-5 text-white/65">{value(responseState.reason)}</p>
+                </div>
+                {responseState.target_route ? (
+                  <div className="mt-3 border border-[#d6b46a]/25 bg-[#d6b46a]/8 p-3 text-xs text-[#f0d486]">
+                    target route: {value(responseState.target_route)}
+                  </div>
+                ) : null}
+              </FieldPanel>
+            </div>
+          )}
         </aside>
 
         <section className="relative min-h-screen">
@@ -522,3 +549,4 @@ export default function SfiConsoleClient() {
     </main>
   );
 }
+
