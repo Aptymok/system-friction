@@ -4,7 +4,7 @@ import { clamp01 } from '../vector-aggregator'
 type JsonRecord = Record<string, unknown>
 type SignalKey = keyof SourceObservation['signal']
 
-const DEFAULT_TIMEOUT_MS = 8500
+const DEFAULT_TIMEOUT_MS = 16000
 
 function record(value: unknown): JsonRecord {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as JsonRecord : {}
@@ -51,6 +51,34 @@ async function fetchJson(url: string, timeoutMs = DEFAULT_TIMEOUT_MS): Promise<u
   } finally {
     clearTimeout(timeout)
   }
+}
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+async function fetchJsonWithRetry(url: string, input: {
+  timeoutMs?: number
+  attempts?: number
+  baseDelayMs?: number
+} = {}): Promise<unknown> {
+  const attempts = Math.max(1, input.attempts ?? 2)
+  const baseDelayMs = Math.max(0, input.baseDelayMs ?? 900)
+  let lastError: unknown = null
+
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      return await fetchJson(url, input.timeoutMs ?? DEFAULT_TIMEOUT_MS)
+    } catch (error) {
+      lastError = error
+      const message = error instanceof Error ? error.message : String(error)
+      const retryable = message.includes('aborted') || message.includes('fetch failed') || message.includes('http_429') || message.includes('429')
+      if (!retryable || attempt >= attempts) break
+      await sleep(baseDelayMs * attempt)
+    }
+  }
+
+  throw lastError instanceof Error ? lastError : new Error(String(lastError ?? 'fetch_failed'))
 }
 
 function observation(input: {
@@ -141,7 +169,7 @@ function gdeltAdapter(config: {
     async observe() {
       try {
         const url = `https://api.gdeltproject.org/api/v2/doc/doc?query=${encodeURIComponent(config.query)}&mode=artlist&format=json&maxrecords=50&sort=hybridrel`
-        const json = record(await fetchJson(url))
+        const json = record(await fetchJsonWithRetry(url, { timeoutMs: 18000, attempts: 2, baseDelayMs: 1400 }))
         const articles = array(json.articles)
         const count = articles.length
         if (count === 0) {
@@ -191,7 +219,7 @@ function hnSearchAdapter(config: {
     async observe() {
       try {
         const url = `https://hn.algolia.com/api/v1/search?query=${encodeURIComponent(config.query)}&tags=story`
-        const json = record(await fetchJson(url))
+        const json = record(await fetchJsonWithRetry(url, { timeoutMs: 18000, attempts: 2, baseDelayMs: 1400 }))
         const hits = finite(json.nbHits, 0)
         if (hits === 0) {
           return emptyResult({
@@ -264,7 +292,7 @@ function openMeteoClimateAdapter(): WorldSpectAdapter {
     async observe() {
       try {
         const url = 'https://api.open-meteo.com/v1/forecast?latitude=20.6736&longitude=-103.344&current=temperature_2m,relative_humidity_2m,wind_speed_10m&timezone=UTC'
-        const json = record(await fetchJson(url))
+        const json = record(await fetchJsonWithRetry(url, { timeoutMs: 18000, attempts: 2, baseDelayMs: 1400 }))
         const current = record(json.current)
         const temp = finite(current.temperature_2m, 22)
         const humidity = finite(current.relative_humidity_2m, 50)
@@ -588,4 +616,6 @@ export function getWorldSpectPublicAdapters(): WorldSpectAdapter[] {
     }),
   ]
 }
+
+
 

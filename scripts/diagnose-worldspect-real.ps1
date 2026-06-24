@@ -27,6 +27,8 @@ Write-Host ("realInputCount: " + $after.source_mix.realInputCount)
 Write-Host ("missingOrDegradedCount: " + $after.source_mix.missingOrDegradedCount)
 Write-Host ("publicSourceCount: " + $after.source_mix.publicSourceCount)
 Write-Host ("internalSourceCount: " + $after.source_mix.internalSourceCount)
+Write-Host ("internalMissingCount: " + $after.source_mix.internalMissingCount)
+Write-Host ("coverageDenominator: " + $after.source_mix.coverageDenominator)
 Write-Host ("sourceCoverage: " + $after.source_mix.sourceCoverage)
 
 if ($after.source_health) {
@@ -36,3 +38,4 @@ if ($after.source_health) {
     Write-Host ("- " + $_.vector + " / " + $_.health + " / " + ($_.sources -join ","))
   }
 }
+

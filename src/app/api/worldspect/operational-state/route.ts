@@ -90,12 +90,15 @@ function buildResponse(input: {
     reason: source.healthy ? null : source.reason ?? 'source degraded',
   }));
 
-  const realInputCount = source_health.filter((source) => source.health === 'real input').length;
-  const missingOrDegradedCount = source_health.length - realInputCount;
+  const coverageSources = source_health.filter((source) => !(source.internal_sources > 0 && source.health === 'missing'));
+  const realInputCount = coverageSources.filter((source) => source.health === 'real input').length;
+  const missingOrDegradedCount = coverageSources.length - realInputCount;
   const publicSourceCount = source_health.reduce((sum, source) => sum + source.public_sources, 0);
   const internalSourceCount = source_health.reduce((sum, source) => sum + source.internal_sources, 0);
-  const sourceCoverage = round4(realInputCount / Math.max(1, source_health.length));
-  const degradation = round4(missingOrDegradedCount / Math.max(1, source_health.length));
+  const internalMissingCount = source_health.filter((source) => source.internal_sources > 0 && source.health === 'missing').length;
+  const coverageDenominator = Math.max(1, coverageSources.length);
+  const sourceCoverage = round4(realInputCount / coverageDenominator);
+  const degradation = round4(missingOrDegradedCount / coverageDenominator);
 
   const operator_state = buildWorldSpectOperatorState({
     runtimeStatus: input.technicalStatus,
@@ -105,7 +108,7 @@ function buildResponse(input: {
     missingOrDegradedCount,
     realInputCount,
     degradation,
-    degradedSources: source_health.filter((source) => source.health !== 'real input').map((source) => String(source.sources[0])),
+    degradedSources: coverageSources.filter((source) => source.health !== 'real input').map((source) => String(source.sources[0])),
     hasSnapshot: source_health.length > 0,
   });
 
@@ -142,6 +145,8 @@ function buildResponse(input: {
       missingOrDegradedCount,
       publicSourceCount,
       internalSourceCount,
+      internalMissingCount,
+      coverageDenominator,
       sourceCoverage,
     },
     vector_readout,
@@ -258,6 +263,7 @@ export async function GET() {
 
   return NextResponse.json(noRealSnapshotResponse());
 }
+
 
 
 

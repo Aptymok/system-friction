@@ -11,6 +11,10 @@ function clamp01(value: number) {
   return Math.max(0, Math.min(1, Number.isFinite(value) ? value : 0))
 }
 
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
 function observationToSource(obs: SourceObservation): WorldSpectSource {
   return {
     key: obs.sourceId,
@@ -100,39 +104,56 @@ export async function persistWorldSpectObservations(
   }
 }
 
+function failedObservation(adapter: { sourceId: string } | undefined, index: number, reason: unknown): SourceObservation {
+  return {
+    sourceId: adapter?.sourceId ?? `worldspect_adapter_${index}`,
+    domain: 'INSTITUTIONAL',
+    observedAt: new Date().toISOString(),
+    accessKind: 'public-api',
+    status: 'DEGRADED_BLOCKING',
+    value: 0,
+    velocity: 0,
+    volatility: 0,
+    persistence: 0,
+    rawCount: 0,
+    sourceCount: 0,
+    trust: 0,
+    degradation: 1,
+    signal: {},
+    raw: { error: reason instanceof Error ? reason.message : String(reason) },
+    error: reason instanceof Error ? reason.message : String(reason),
+  }
+}
+
 export async function runWorldSpectAdapters(ingestMode: WorldSpectIngestMode = 'manual') {
   const adapters = getWorldSpectPublicAdapters()
-  const settled = await Promise.allSettled(adapters.map(async (adapter) => adapter.observe()))
+  const gdeltAdapters = adapters.filter((adapter) => adapter.sourceId.includes('_gdelt_'))
+  const otherAdapters = adapters.filter((adapter) => !adapter.sourceId.includes('_gdelt_'))
 
-  const observations = settled.map((result, index): SourceObservation => {
+  const otherSettled = await Promise.allSettled(otherAdapters.map(async (adapter) => adapter.observe()))
+  const observations: SourceObservation[] = otherSettled.map((result, index): SourceObservation => {
     if (result.status === 'fulfilled') return result.value
-
-    const adapter = adapters[index]
-    return {
-      sourceId: adapter?.sourceId ?? `worldspect_adapter_${index}`,
-      domain: 'INSTITUTIONAL',
-      observedAt: new Date().toISOString(),
-      accessKind: 'public-api',
-      status: 'DEGRADED_BLOCKING',
-      value: 0,
-      velocity: 0,
-      volatility: 0,
-      persistence: 0,
-      rawCount: 0,
-      sourceCount: 0,
-      trust: 0,
-      degradation: 1,
-      signal: {},
-      raw: { error: result.reason instanceof Error ? result.reason.message : String(result.reason) },
-      error: result.reason instanceof Error ? result.reason.message : String(result.reason),
-    }
+    return failedObservation(otherAdapters[index], index, result.reason)
   })
+
+  for (const adapter of gdeltAdapters) {
+    try {
+      observations.push(await adapter.observe())
+    } catch (error) {
+      observations.push(failedObservation(adapter, observations.length, error))
+    }
+
+    // GDELT is public and rate-limits aggressively. Do not hammer it.
+    await sleep(1200)
+  }
 
   return persistWorldSpectObservations(observations, ingestMode, {
     adapter_count: adapters.length,
     adapter_ids: adapters.map((adapter) => adapter.sourceId),
+    gdelt_mode: 'sequential_backoff',
   })
 }
+
 
 
 
