@@ -1,4 +1,4 @@
-import type { WorldSpectSource } from '../../../packages/api-contracts/src'
+﻿import type { WorldSpectSource } from '../../../packages/api-contracts/src'
 import type { SourceObservation } from './source-adapter-contract'
 import { deriveWorldSpectSourceHealth } from './contract'
 import { upsertWorldSpectSnapshot } from './snapshotStore'
@@ -14,7 +14,7 @@ function clamp01(value: number) {
 function observationToSource(obs: SourceObservation): WorldSpectSource {
   return {
     key: obs.sourceId,
-    label: `${obs.domain} Â· ${obs.sourceId}`,
+    label: `${obs.domain} Ã‚Â· ${obs.sourceId}`,
     value: obs.status === 'ACTIVE' ? obs.value : null,
     raw: obs.raw,
     unit: 'normalized_0_1',
@@ -41,8 +41,16 @@ export async function persistWorldSpectObservations(
 
   const sourceHealth = deriveWorldSpectSourceHealth(sources, degraded_sources, ts)
   const activeSources = observations.filter((obs) => obs.status === 'ACTIVE')
-  const sourceState = degraded_sources.length > 0 || activeSources.length === 0 ? 'degraded' : 'observed'
-  const confidence = clamp01(activeSources.reduce((sum, obs) => sum + obs.trust, 0) / Math.max(1, observations.length))
+  const totalSources = Math.max(1, observations.length)
+  const sourceCoverage = clamp01(activeSources.length / totalSources)
+  const degradationRatio = clamp01(degraded_sources.length / totalSources)
+  const sourceState =
+    activeSources.length === 0
+      ? 'degraded'
+      : sourceCoverage >= 0.75 && degradationRatio < 0.35
+        ? 'observed'
+        : 'degraded'
+  const confidence = clamp01(activeSources.reduce((sum, obs) => sum + obs.trust, 0) / totalSources)
   const adapterError = degraded_sources.length > 0 ? `degraded_sources:${degraded_sources.join(',')}` : null
 
   const persistence = await upsertWorldSpectSnapshot({
@@ -116,3 +124,4 @@ export async function runWorldSpectAdapters(ingestMode: WorldSpectIngestMode = '
     adapter_ids: adapters.map((adapter) => adapter.sourceId),
   })
 }
+

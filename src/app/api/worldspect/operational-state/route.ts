@@ -160,61 +160,56 @@ function fromRealSnapshot(real: Row) {
   });
 }
 
-function internalRuntimeResponse() {
-  return buildResponse({
-    technicalStatus: 'internal_runtime',
-    wsi: 0.58,
-    nti: 0.64,
-    regime: 'SFI_INTERNAL_OBSERVATION',
-    sources: [
-      {
-        key: 'sfi_runtime_graph',
-        label: 'SFI Runtime Graph',
-        domain: 'GRAPH',
-        provider: 'SFI internal runtime',
-        healthy: true,
-        trust: 0.7,
-        value: 1,
-        internal: true,
+function noRealSnapshotResponse() {
+  const calculatedAt = new Date().toISOString();
+
+  return {
+    ok: false,
+    operator_state: {
+      status: 'sin_lectura',
+      label: 'Sin lectura real',
+      summary: 'WorldSpect no tiene snapshot real persistido. No se usa fallback interno como evidencia del mundo.',
+      decisionUse: 'hold',
+      action: 'Ejecutar POST /api/cron/worldspect para medir adaptadores externos reales.',
+      evidence: {
+        sourceCoverage: 0,
+        publicSourceCount: 0,
+        internalSourceCount: 0,
+        missingOrDegradedCount: 0,
+        realInputCount: 0,
+        degradedSources: [],
+        degradation: 0,
       },
-      {
-        key: 'sfi_observatory_state',
-        label: 'SFI Observatory State',
-        domain: 'OBSERVATORY',
-        provider: 'SFI internal runtime',
-        healthy: true,
-        trust: 0.68,
-        value: 1,
-        internal: true,
-      },
-      {
-        key: 'sfi_root_neural_graph',
-        label: 'ROOT Neural Graph Live',
-        domain: 'ROOT',
-        provider: 'SFI internal runtime',
-        healthy: true,
-        trust: 0.66,
-        value: 1,
-        internal: true,
-      },
-      {
-        key: 'external_world_feed_pending',
-        label: 'External World Feed Pending',
-        domain: 'EXTERNAL',
-        provider: 'external adapter',
-        healthy: true,
-        trust: 0.55,
-        value: 0.55,
-        internal: true,
-        reason: 'external adapter pending; internal runtime remains usable as observation',
-      },
-    ],
-    snapshot: {
-      source: 'internal_runtime_fallback',
-      reason: 'worldspect_snapshot_missing',
-      observed_at: new Date().toISOString(),
     },
-  });
+    status: 'sin_lectura_real',
+    status_label: 'Sin lectura real',
+    decision_use: 'hold',
+    action: 'Ejecutar POST /api/cron/worldspect para medir adaptadores externos reales.',
+    summary: 'No hay lectura real persistida. WorldSpect no estÃ¡ autorizado a inventar evidencia con runtime interno.',
+    technical_status: 'no_real_snapshot',
+    world_regime: 'NO_REAL_WORLD_SNAPSHOT',
+    selected_vector: null,
+    direction: 'no signal',
+    degradation: 0,
+    weak_signals: [],
+    persistent_signals: [],
+    source_health: [],
+    source_mix: {
+      realInputCount: 0,
+      missingOrDegradedCount: 0,
+      publicSourceCount: 0,
+      internalSourceCount: 0,
+      sourceCoverage: 0,
+    },
+    vector_readout: [],
+    snapshot: {
+      source: 'none',
+      reason: 'worldspect_snapshot_missing',
+      observed_at: null,
+      calculated_at: calculatedAt,
+    },
+    calculated_at: calculatedAt,
+  };
 }
 
 export async function GET() {
@@ -226,6 +221,7 @@ export async function GET() {
     if (realResponse) return NextResponse.json(realResponse);
   }
 
-  return NextResponse.json(internalRuntimeResponse());
+  return NextResponse.json(noRealSnapshotResponse());
 }
+
 
