@@ -20,6 +20,13 @@ type VectorSample = DomainSample & {
   domain: WorldSpectDomain;
 };
 
+type ExtractionMethod = 'observations' | 'legacy_vectors' | 'persisted_sources' | 'empty';
+
+type ExtractionResult = {
+  method: ExtractionMethod;
+  samples: VectorSample[];
+};
+
 function record(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
 }
@@ -89,6 +96,12 @@ function isWorldSpectDomain(value: unknown): value is WorldSpectDomain {
   return typeof value === 'string' && (WORLDSPECT_DOMAINS as readonly string[]).includes(value);
 }
 
+function normalizeDomain(value: unknown): WorldSpectDomain | null {
+  if (typeof value !== 'string') return null;
+  const normalized = value.trim().toUpperCase().replace(/[\s-]+/g, '_');
+  return isWorldSpectDomain(normalized) ? normalized : null;
+}
+
 function vectorRows(value: unknown): Record<string, unknown>[] {
   return Array.isArray(value)
     ? value.filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === 'object' && !Array.isArray(item))
@@ -118,9 +131,9 @@ function samplesFromHistoricalVectors(row: { observed_at: string; raw_payload: u
 
   return vectors
     .map((vector) => {
-      const domain = vector.domain ?? vector.vector ?? vector.name;
+      const domain = normalizeDomain(vector.domain ?? vector.vector ?? vector.name);
       const value = numberValue(vector.value ?? vector.current_value ?? vector.score);
-      if (!isWorldSpectDomain(domain) || value === null) return null;
+      if (!domain || value === null) return null;
 
       return {
         domain,
@@ -129,6 +142,29 @@ function samplesFromHistoricalVectors(row: { observed_at: string; raw_payload: u
       };
     })
     .filter((sample): sample is VectorSample => sample !== null);
+}
+
+function samplesFromPersistedSources(row: { observed_at: string; sources?: unknown[] }): VectorSample[] {
+  const byDomain = new Map<WorldSpectDomain, number[]>();
+
+  for (const source of vectorRows(row.sources)) {
+    const domain = normalizeDomain(source.domain);
+    if (!domain) continue;
+
+    const signal = record(source.signal);
+    const value = numberValue(source.value ?? source.score ?? source.current_value ?? signal.value);
+    if (value === null) continue;
+
+    const values = byDomain.get(domain) ?? [];
+    values.push(value);
+    byDomain.set(domain, values);
+  }
+
+  return Array.from(byDomain.entries()).map(([domain, values]) => ({
+    domain,
+    observed_at: row.observed_at,
+    value: values.reduce((sum, value) => sum + value, 0) / values.length,
+  }));
 }
 
 function samplesFromSnapshot(row: { observed_at: string; raw_payload: unknown }): VectorSample[] {
@@ -149,9 +185,23 @@ function samplesFromSnapshot(row: { observed_at: string; raw_payload: unknown })
   }
 }
 
-function compatibleSamplesFromSnapshot(row: { observed_at: string; raw_payload: unknown }) {
+function compatibleSamplesFromSnapshot(row: { observed_at: string; raw_payload: unknown; sources?: unknown[] }): ExtractionResult {
   const observationSamples = samplesFromSnapshot(row);
-  return observationSamples.length > 0 ? observationSamples : samplesFromHistoricalVectors(row);
+  if (observationSamples.length > 0) {
+    return { method: 'observations', samples: observationSamples };
+  }
+
+  const legacyVectorSamples = samplesFromHistoricalVectors(row);
+  if (legacyVectorSamples.length > 0) {
+    return { method: 'legacy_vectors', samples: legacyVectorSamples };
+  }
+
+  const persistedSourceSamples = samplesFromPersistedSources(row);
+  if (persistedSourceSamples.length > 0) {
+    return { method: 'persisted_sources', samples: persistedSourceSamples };
+  }
+
+  return { method: 'empty', samples: [] };
 }
 
 export async function GET(request: Request) {
@@ -159,6 +209,7 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
   const days = numberParam(url.searchParams.get('days'), 90);
   const ingestMode = ingestModeParam(url.searchParams.get('ingest_mode'));
+  const debug = url.searchParams.get('debug') === '1';
 
   try {
     const snapshots = await getRecentWorldSpectSnapshots({
@@ -170,9 +221,21 @@ export async function GET(request: Request) {
     const domainSamples = new Map<string, DomainSample[]>(
       WORLDSPECT_DOMAINS.map((domain) => [domain, []]),
     );
+    const extractionCounts = {
+      observations_samples: 0,
+      legacy_vector_samples: 0,
+      persisted_source_samples: 0,
+      empty_snapshots: 0,
+    };
 
     for (const snapshot of snapshots) {
-      for (const sample of compatibleSamplesFromSnapshot(snapshot)) {
+      const extracted = compatibleSamplesFromSnapshot(snapshot);
+      if (extracted.method === 'observations') extractionCounts.observations_samples += extracted.samples.length;
+      if (extracted.method === 'legacy_vectors') extractionCounts.legacy_vector_samples += extracted.samples.length;
+      if (extracted.method === 'persisted_sources') extractionCounts.persisted_source_samples += extracted.samples.length;
+      if (extracted.method === 'empty') extractionCounts.empty_snapshots += 1;
+
+      for (const sample of extracted.samples) {
         const rows = domainSamples.get(sample.domain) ?? [];
         rows.push({
           observed_at: sample.observed_at,
@@ -206,7 +269,7 @@ export async function GET(request: Request) {
       };
     });
 
-    return NextResponse.json({
+    const response = {
       ok: snapshots.length > 0,
       source: 'worldspect_trend',
       generated_at: generatedAt,
@@ -216,7 +279,10 @@ export async function GET(request: Request) {
       observed_to: snapshots[snapshots.length - 1]?.observed_at ?? null,
       trend_quality: trendQuality(snapshots.length),
       domains,
-    }, {
+      ...(debug ? { debug: extractionCounts } : {}),
+    };
+
+    return NextResponse.json(response, {
       headers: {
         'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
         'Pragma': 'no-cache',
