@@ -43,12 +43,45 @@ function staleState(stalenessHours: number | null) {
   return { is_stale: false, stale_level: 'fresh' };
 }
 
+function isInternalSfiWorldSpectSource(value: unknown) {
+  return textValue(value).toLowerCase().includes('_sfi_internal_evidence');
+}
+
+function externalOnlySources(sources: unknown[]) {
+  return sources.filter((source) => {
+    const item = record(source);
+    const key = textValue(item.key, textValue(item.sourceId, ''));
+    return !isInternalSfiWorldSpectSource(key);
+  });
+}
+
+function sourceHasValue(source: unknown) {
+  const item = record(source);
+  return typeof item.value === 'number' && numberValue(item.nti ?? item.trust, 0) > 0;
+}
+
+function sourceIsDegraded(source: unknown, degradedSources: string[]) {
+  const item = record(source);
+  const key = textValue(item.key, textValue(item.sourceId, ''));
+  const error = textValue(item.error, '');
+  return degradedSources.includes(key) || Boolean(error);
+}
+
+function qualityFromCoverage(sourceCoverage: number, degradationRatio: number) {
+  if (sourceCoverage >= 0.75 && degradationRatio < 0.35) return 'strong';
+  if (sourceCoverage >= 0.45 && degradationRatio < 0.50) return 'partial';
+  return 'weak';
+}
+
 function summarizeSources(sources: unknown[]) {
   return sources.map((source) => {
     const item = record(source);
+    const key = textValue(item.key, textValue(item.sourceId, 'unknown'));
+    const rawLabel = textValue(item.label, key);
+
     return {
-      key: textValue(item.key, textValue(item.sourceId, 'unknown')),
-      label: textValue(item.label, textValue(item.key, 'unknown')),
+      key,
+      label: rawLabel.replace(/ÃâÃÂ·|Â·|·/g, '·'),
       value: typeof item.value === 'number' ? item.value : null,
       unit: textValue(item.unit, 'normalized_0_1'),
       trust: numberValue(item.nti ?? item.trust, 0),
@@ -56,6 +89,7 @@ function summarizeSources(sources: unknown[]) {
       simulated: Boolean(item.simulated),
       ts: textValue(item.ts, ''),
       error: textValue(item.error, '') || null,
+      internal_sfi_source: isInternalSfiWorldSpectSource(key),
     };
   });
 }
@@ -86,30 +120,29 @@ function buildVectors(rawPayload: AnyRecord) {
 
 function interpretation(input: {
   sourceState: string;
-  confidence: number;
-  wsi: number | null;
-  nti: number | null;
   sourceCoverage: number;
   degradationRatio: number;
   isStale: boolean;
+  observationQuality: string;
+  decisionStrength: string;
 }) {
   if (input.isStale) {
     return 'WSV existe, pero está viejo; puede servir para contexto histórico, no para decisión operacional fuerte.';
   }
 
+  if (input.observationQuality === 'strong') {
+    return 'WSV observado correctamente: snapshot reciente, fuentes suficientes y contrato canónico disponible.';
+  }
+
+  if (input.observationQuality === 'partial') {
+    return 'WSV parcial: hay observación externa disponible, pero la decisión debe tratarse como limitada.';
+  }
+
   if (input.sourceState !== 'observed') {
-    return 'WSV está degradado: hay snapshot, pero cobertura o salud de fuentes insuficiente.';
+    return 'WSV disponible pero débil: hay snapshot, pero cobertura o salud de fuentes insuficiente.';
   }
 
-  if (input.sourceCoverage < 0.75) {
-    return 'WSV parcial: hay observación externa, pero no cubre suficientes fuentes para decisión fuerte.';
-  }
-
-  if (input.degradationRatio >= 0.35) {
-    return 'WSV observado con demasiada degradación de fuentes; usar como señal débil.';
-  }
-
-  return 'WSV observado correctamente: snapshot reciente, fuentes suficientes y contrato canónico disponible.';
+  return 'WSV disponible con fuerza débil; usar como contexto, no como decisión dura.';
 }
 
 export async function buildCanonicalWorldSpectState() {
@@ -123,6 +156,9 @@ export async function buildCanonicalWorldSpectState() {
       source: 'worldspect_canonical_state' as const,
       observed_at: null,
       source_state: 'missing',
+      snapshot_available: false,
+      observation_quality: 'missing',
+      decision_strength: 'none',
       confidence: 0,
       wsi: null,
       nti: null,
@@ -155,27 +191,41 @@ export async function buildCanonicalWorldSpectState() {
   const reconstructed = buildVectors(rawPayload);
   const stalenessHours = hoursSince(latest.observed_at);
   const stale = staleState(stalenessHours);
-  const sourceCoverage = numberValue(rawPayload.source_coverage, numberValue((reconstructed as AnyRecord).sourceCoverage, 0));
-  const degradationRatio = numberValue(rawPayload.degradation_ratio, 0);
-  const activeSourceCount = numberValue(rawPayload.active_source_count, 0);
-  const totalSourceCount = numberValue(rawPayload.total_source_count, latest.sources.length);
+
+  const externalSources = externalOnlySources(latest.sources);
+  const externalTotalSourceCount = externalSources.length;
+  const externalActiveSourceCount = externalSources.filter(sourceHasValue).length;
+  const externalDegradedSourceCount = externalSources.filter((source) => sourceIsDegraded(source, latest.degraded_sources)).length;
+
+  const sourceCoverage = externalTotalSourceCount === 0 ? 0 : externalActiveSourceCount / externalTotalSourceCount;
+  const degradationRatio = externalTotalSourceCount === 0 ? 1 : externalDegradedSourceCount / externalTotalSourceCount;
+  const observationQuality = qualityFromCoverage(sourceCoverage, degradationRatio);
+  const decisionStrength = observationQuality === 'strong' && !stale.is_stale
+    ? 'strong'
+    : observationQuality === 'partial' && !stale.is_stale
+      ? 'limited'
+      : 'weak';
+
   const wsi = typeof latest.wsi === 'number' ? latest.wsi : numberValue(rawPayload.wsi, 0);
   const nti = typeof latest.nti === 'number' ? latest.nti : numberValue(rawPayload.nti, 0);
 
   return {
-    ok: latest.source_state === 'observed' && !stale.is_stale,
+    ok: !stale.is_stale,
     generated_at: generatedAt,
     source: 'worldspect_canonical_state' as const,
     observed_at: latest.observed_at,
     source_state: latest.source_state,
+    snapshot_available: true,
+    observation_quality: observationQuality,
+    decision_strength: decisionStrength,
     confidence: latest.confidence,
     wsi,
     nti,
     regime: regimeFrom(wsi, nti),
     source_coverage: sourceCoverage,
     degradation_ratio: degradationRatio,
-    active_source_count: activeSourceCount,
-    total_source_count: totalSourceCount,
+    active_source_count: externalActiveSourceCount,
+    total_source_count: externalTotalSourceCount,
     degraded_sources: latest.degraded_sources,
     sources: summarizeSources(latest.sources),
     source_health: latest.source_health,
@@ -185,6 +235,12 @@ export async function buildCanonicalWorldSpectState() {
     snapshot_hash: latest.snapshot_hash,
     adapter_status: latest.adapter_status,
     adapter_error: latest.adapter_error,
+    worldspect_external_purity: {
+      internal_sfi_sources_excluded: latest.sources.length - externalTotalSourceCount,
+      external_active_source_count: externalActiveSourceCount,
+      external_total_source_count: externalTotalSourceCount,
+      external_degraded_source_count: externalDegradedSourceCount,
+    },
     raw_payload_summary: {
       adapter_count: rawPayload.adapter_count ?? null,
       adapter_ids: rawPayload.adapter_ids ?? [],
@@ -196,12 +252,11 @@ export async function buildCanonicalWorldSpectState() {
     stale_level: stale.stale_level,
     interpretation: interpretation({
       sourceState: latest.source_state,
-      confidence: latest.confidence,
-      wsi,
-      nti,
       sourceCoverage,
       degradationRatio,
       isStale: stale.is_stale,
+      observationQuality,
+      decisionStrength,
     }),
     role_boundary: {
       worldspect: 'observa mundo externo',
