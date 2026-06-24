@@ -90,9 +90,9 @@ function layerInterpretation(domain: WorldSpectDomain, selectedLayer: WorldSpect
   if (!selectedLayer) return `${domain}: sin dato usable para este ciclo.`
   if (domain === 'ECONOMY' && selectedLayer === 'MACRO') return 'ECONOMY: lectura basada en dato macro duro.'
   if (domain === 'ECONOMY' && selectedLayer === 'MARKET') return 'ECONOMY: macro ausente; lectura basada en mercado.'
-  if (domain === 'ECONOMY' && selectedLayer === 'ATTENTION') return 'ECONOMY: macro/mercado ausente; lectura basada en atención.'
-  if (domain === 'CLIMATE' && selectedLayer === 'PHYSICAL') return 'CLIMATE: lectura física prioritaria.'
-  if (domain === 'CLIMATE' && selectedLayer === 'ATTENTION') return 'CLIMATE: sin lectura física; lectura de atención.'
+  if (domain === 'ECONOMY' && selectedLayer === 'ATTENTION') return 'ECONOMY: macro/mercado ausente; lectura basada en atencion.'
+  if (domain === 'CLIMATE' && selectedLayer === 'PHYSICAL') return 'CLIMATE: lectura fisica prioritaria.'
+  if (domain === 'CLIMATE' && selectedLayer === 'ATTENTION') return 'CLIMATE: sin lectura fisica; lectura de atencion.'
   return `${domain}: lectura basada en capa ${selectedLayer}.`
 }
 
@@ -210,4 +210,5 @@ export function aggregateWorldSpect(observations: SourceObservation[]): WorldSpe
     degradedSources,
   }
 }
+
 

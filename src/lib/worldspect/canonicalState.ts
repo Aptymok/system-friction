@@ -41,14 +41,94 @@ function hoursSince(value: string | null) {
   return Math.max(0, (Date.now() - observed) / 36e5);
 }
 
-function regimeFrom(wsi: number | null, nti: number | null) {
-  const w = numberValue(wsi, 0);
-  const n = numberValue(nti, 0);
+function vectorValue(vector: unknown) {
+  const row = record(vector);
+  return typeof row.value === 'number' && Number.isFinite(row.value) ? row.value : null;
+}
+
+function domainName(vector: unknown) {
+  return textValue(record(vector).domain, 'UNKNOWN');
+}
+
+function sectorSpikeDetails(vectors: unknown[]) {
+  const rows = Array.isArray(vectors) ? vectors.map(record) : [];
+
+  const active = rows
+    .map((row) => ({
+      domain: textValue(row.domain, 'UNKNOWN'),
+      value: typeof row.value === 'number' && Number.isFinite(row.value) ? row.value : null,
+      trust: numberValue(row.trust, 0),
+      status: textValue(row.status, ''),
+      layer_keys: row.layers && typeof row.layers === 'object' ? Object.keys(row.layers) : [],
+    }))
+    .filter((row) => row.status === 'ACTIVE' && typeof row.value === 'number');
+
+  const sorted = [...active].sort((a, b) => Number(b.value) - Number(a.value));
+  const max = sorted[0] ?? null;
+
+  const spikeDomains = active
+    .filter((row) => typeof row.value === 'number' && row.value >= 0.90)
+    .map((row) => row.domain);
+
+  const elevatedDomains = active
+    .filter((row) => typeof row.value === 'number' && row.value >= 0.70)
+    .map((row) => row.domain);
+
+  return {
+    has_sector_spike: spikeDomains.length > 0,
+    spike_threshold: 0.90,
+    elevated_threshold: 0.70,
+    max_domain: max?.domain ?? null,
+    max_value: max?.value ?? null,
+    spike_count: spikeDomains.length,
+    spike_domains: spikeDomains,
+    elevated_domains: elevatedDomains,
+    reading: spikeDomains.length > 0
+      ? 'Global pressure may be low, but one or more domains are saturated.'
+      : 'No saturated sector spike detected.',
+  };
+}
+
+function regimeFromState(input: {
+  wsi: number | null;
+  nti: number | null;
+  vectors: unknown[];
+}) {
+  const w = numberValue(input.wsi, 0);
+  const n = numberValue(input.nti, 0);
+  const spikes = sectorSpikeDetails(input.vectors);
+
   if (w >= 0.65 || n >= 0.70) return 'CRITICAL';
-  if (w >= 0.38 || n >= 0.42) return 'TENSION';
+  if (w >= 0.38 || n >= 0.42) return spikes.has_sector_spike ? 'TENSION_WITH_SECTOR_SPIKE' : 'TENSION';
+
+  if (spikes.has_sector_spike) return 'GLOBAL_LOW_SECTOR_SPIKE';
+
+  if (spikes.elevated_domains.length >= 3) return 'GLOBAL_LOW_MULTI_DOMAIN_ELEVATION';
+
   return 'LOW';
 }
 
+function regimeDetailsFromState(input: {
+  wsi: number | null;
+  nti: number | null;
+  vectors: unknown[];
+}) {
+  const w = numberValue(input.wsi, 0);
+  const n = numberValue(input.nti, 0);
+  const spikes = sectorSpikeDetails(input.vectors);
+  const regime = regimeFromState(input);
+
+  return {
+    regime,
+    wsi: w,
+    nti: n,
+    sector_spike: spikes,
+    rule: 'WSI-01 sector-spike-aware regime logic',
+    interpretation: spikes.has_sector_spike
+      ? `Regime is not plain LOW because saturated domains were detected: ${spikes.spike_domains.join(', ')}.`
+      : 'Regime follows global WSI/NTI thresholds; no saturated domain spike detected.',
+  };
+}
 function staleState(stalenessHours: number | null) {
   if (stalenessHours === null) return { is_stale: true, stale_level: 'missing' };
   if (stalenessHours > 72) return { is_stale: true, stale_level: 'critical' };
@@ -319,7 +399,7 @@ export async function buildCanonicalWorldSpectState() {
       ok: false,
       generated_at: generatedAt,
       source: 'worldspect_canonical_state' as const,
-    build_marker: 'WSV_ASCII_LABELS_2026_06_24',
+    build_marker: 'WSI_01_SECTOR_SPIKE_2026_06_24',
       observed_at: null,
       source_state: 'missing',
       snapshot_available: false,
@@ -386,7 +466,7 @@ export async function buildCanonicalWorldSpectState() {
     ok: !stale.is_stale,
     generated_at: generatedAt,
     source: 'worldspect_canonical_state' as const,
-    build_marker: 'WSV_ASCII_LABELS_2026_06_24',
+    build_marker: 'WSI_01_SECTOR_SPIKE_2026_06_24',
     observed_at: latest.observed_at,
     source_state: latest.source_state,
     snapshot_available: true,
@@ -395,7 +475,8 @@ export async function buildCanonicalWorldSpectState() {
     confidence: latest.confidence,
     wsi,
     nti,
-    regime: regimeFrom(wsi, nti),
+    regime: regimeFromState({ wsi, nti, vectors: reconstructedVectors }),
+    regime_details: regimeDetailsFromState({ wsi, nti, vectors: reconstructedVectors }),
     source_coverage: sourceCoverage,
     degradation_ratio: degradationRatio,
     active_source_count: externalActiveSourceCount,
@@ -456,6 +537,7 @@ export async function refreshCanonicalWorldSpectState() {
     state,
   };
 }
+
 
 
 
