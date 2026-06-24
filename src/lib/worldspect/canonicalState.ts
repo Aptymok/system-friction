@@ -319,7 +319,7 @@ export async function buildCanonicalWorldSpectState() {
       ok: false,
       generated_at: generatedAt,
       source: 'worldspect_canonical_state' as const,
-    build_marker: 'WSV_UTF8_LABEL_REBUILD_2026_06_24',
+    build_marker: 'WSV_ASCII_LABELS_2026_06_24',
       observed_at: null,
       source_state: 'missing',
       snapshot_available: false,
@@ -348,7 +348,7 @@ export async function buildCanonicalWorldSpectState() {
       interpretation: 'No hay snapshot WorldSpect persistido.',
       role_boundary: {
         worldspect: 'observa mundo externo',
-        scorefriction: 'detecta objetos y señales según filtro seleccionado',
+        scorefriction: 'detecta objetos y senales segun filtro seleccionado',
         sfi_response: 'decide respuesta interna con atractores y evidencia',
       },
     });
@@ -386,7 +386,7 @@ export async function buildCanonicalWorldSpectState() {
     ok: !stale.is_stale,
     generated_at: generatedAt,
     source: 'worldspect_canonical_state' as const,
-    build_marker: 'WSV_UTF8_LABEL_REBUILD_2026_06_24',
+    build_marker: 'WSV_ASCII_LABELS_2026_06_24',
     observed_at: latest.observed_at,
     source_state: latest.source_state,
     snapshot_available: true,
@@ -432,7 +432,7 @@ export async function buildCanonicalWorldSpectState() {
     }),
     role_boundary: {
       worldspect: 'observa mundo externo',
-      scorefriction: 'detecta objetos y señales según filtro seleccionado',
+      scorefriction: 'detecta objetos y senales segun filtro seleccionado',
       sfi_response: 'decide respuesta interna con atractores y evidencia',
     },
   });
@@ -456,6 +456,7 @@ export async function refreshCanonicalWorldSpectState() {
     state,
   };
 }
+
 
 
 
