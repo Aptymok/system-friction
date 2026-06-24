@@ -1,4 +1,4 @@
-import type { SourceObservation, WorldSpectAdapter, WorldSpectDomain, SourceAdapterStatus, SourceAccessKind } from '../source-adapter-contract'
+﻿import type { SourceObservation, WorldSpectAdapter, WorldSpectDomain, SourceAdapterStatus, SourceAccessKind } from '../source-adapter-contract'
 import { clamp01 } from '../vector-aggregator'
 
 type JsonRecord = Record<string, unknown>
@@ -470,91 +470,187 @@ function internalEvidenceAdapter(config: {
   }
 }
 
+
+function wikipediaSearchAdapter(config: {
+  sourceId: string
+  domain: WorldSpectDomain
+  query: string
+  signalKey: SignalKey
+  scale?: number
+  trust?: number
+}): WorldSpectAdapter {
+  return {
+    sourceId: config.sourceId,
+    async observe() {
+      try {
+        const url = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(config.query)}&srlimit=50&format=json&origin=*`
+        const json = record(await fetchJsonWithRetry(url, { timeoutMs: 18000, attempts: 2, baseDelayMs: 900 }))
+        const query = record(json.query)
+        const search = array(query.search)
+        const searchInfo = record(query.searchinfo)
+        const totalHits = finite(searchInfo.totalhits, search.length)
+        const count = Math.max(search.length, totalHits)
+
+        if (count === 0) {
+          return emptyResult({
+            sourceId: config.sourceId,
+            domain: config.domain,
+            signal: signal(config.signalKey, 0),
+            raw: { provider: 'wikipedia_search', query: config.query, count, reason: 'empty_result' },
+          })
+        }
+
+        const value = normalizeCount(count, config.scale ?? 50000)
+        const avgSnippetLength = search.reduce<number>((sum, item) => {
+          const snippet = String(record(item).snippet ?? '')
+          return sum + snippet.length
+        }, 0) / Math.max(1, search.length)
+
+        return observation({
+          sourceId: config.sourceId,
+          domain: config.domain,
+          value,
+          trust: config.trust ?? 0.56,
+          velocity: value,
+          volatility: clamp01(avgSnippetLength / 260),
+          persistence: clamp01(value * 0.52),
+          rawCount: count,
+          signal: signal(config.signalKey, value),
+          raw: {
+            provider: 'wikipedia_search',
+            query: config.query,
+            result_count: search.length,
+            total_hits: totalHits,
+          },
+        })
+      } catch (error) {
+        return degraded(config.sourceId, config.domain, error)
+      }
+    },
+  }
+}
+
+function reliefWebReportsAdapter(config: {
+  sourceId: string
+  domain: WorldSpectDomain
+  query: string
+  signalKey: SignalKey
+  scale?: number
+  trust?: number
+}): WorldSpectAdapter {
+  return {
+    sourceId: config.sourceId,
+    async observe() {
+      try {
+        const url = `https://api.reliefweb.int/v1/reports?appname=systemfriction-worldspect&profile=list&preset=latest&limit=50&query[value]=${encodeURIComponent(config.query)}`
+        const json = record(await fetchJsonWithRetry(url, { timeoutMs: 18000, attempts: 2, baseDelayMs: 900 }))
+        const data = array(json.data)
+        const totalCount = finite(record(json.totalCount).value, data.length)
+        const count = Math.max(data.length, totalCount)
+
+        if (count === 0) {
+          return emptyResult({
+            sourceId: config.sourceId,
+            domain: config.domain,
+            signal: signal(config.signalKey, 0),
+            raw: { provider: 'reliefweb_reports', query: config.query, count, reason: 'empty_result' },
+          })
+        }
+
+        const value = normalizeCount(count, config.scale ?? 5000)
+        const recentItems = data.slice(0, 10).map((item) => {
+          const fields = record(record(item).fields)
+          return {
+            title: fields.title ?? null,
+            date: fields.date ?? null,
+            country: fields.country ?? null,
+            source: fields.source ?? null,
+          }
+        })
+
+        return observation({
+          sourceId: config.sourceId,
+          domain: config.domain,
+          value,
+          trust: config.trust ?? 0.62,
+          velocity: value,
+          volatility: clamp01(value * 0.46),
+          persistence: clamp01(value * 0.58),
+          rawCount: count,
+          signal: signal(config.signalKey, value),
+          raw: {
+            provider: 'reliefweb_reports',
+            query: config.query,
+            result_count: data.length,
+            total_count: totalCount,
+            recent_items: recentItems,
+          },
+        })
+      } catch (error) {
+        return degraded(config.sourceId, config.domain, error)
+      }
+    },
+  }
+}
 export function getWorldSpectPublicAdapters(): WorldSpectAdapter[] {
   return [
-    // PUBLIC EXTERNAL SIGNALS
-    gdeltAdapter({
-      sourceId: 'cultural_gdelt_public',
+    // EXTERNAL WORLD EYES ONLY.
+    // WorldSpect observes the outside world.
+    // Internal SFI evidence belongs to ScoreFriction / SFI Response.
+
+    wikipediaSearchAdapter({
+      sourceId: 'cultural_wikipedia_public',
       domain: 'CULTURAL',
-      query: '(culture OR music OR film OR art OR literature)',
+      query: 'culture music film art literature festival',
       signalKey: 'attention',
+      trust: 0.56,
+      scale: 80000,
     }),
-    hnSearchAdapter({
-      sourceId: 'cultural_hn_public',
-      domain: 'CULTURAL',
-      query: 'music culture film art writing',
-      signalKey: 'attention',
-      trust: 0.54,
-    }),
-    gdeltAdapter({
-      sourceId: 'geopolitical_gdelt_public',
-      domain: 'GEOPOLITICAL',
-      query: '(geopolitical OR conflict OR election OR border OR diplomacy)',
-      signalKey: 'geoStress',
-    }),
-    hnSearchAdapter({
-      sourceId: 'geopolitical_hn_public',
-      domain: 'GEOPOLITICAL',
-      query: 'election policy conflict government regulation',
-      signalKey: 'geoStress',
-      trust: 0.52,
-    }),
-    gdeltAdapter({
-      sourceId: 'bio_gdelt_public',
-      domain: 'BIO',
-      query: '(health OR disease OR outbreak OR hospital OR organism)',
-      signalKey: 'bioStress',
-    }),
-    clinicalTrialsBioAdapter(),
-    gdeltAdapter({
-      sourceId: 'climate_gdelt_public',
-      domain: 'CLIMATE',
-      query: '(climate OR weather OR flood OR drought OR heatwave OR carbon)',
-      signalKey: 'climateStress',
-    }),
-    openMeteoClimateAdapter(),
-    gdeltAdapter({
-      sourceId: 'institutional_gdelt_public',
-      domain: 'INSTITUTIONAL',
-      query: '(institution OR governance OR regulation OR law OR public policy)',
-      signalKey: 'institutionalStress',
-    }),
-    gdeltAdapter({
-      sourceId: 'memetic_gdelt_public',
-      domain: 'MEMETIC',
-      query: '(viral OR meme OR trend OR narrative OR attention)',
-      signalKey: 'memeticPressure',
-    }),
-    hnSearchAdapter({
-      sourceId: 'memetic_hn_public',
-      domain: 'MEMETIC',
-      query: 'viral meme trend narrative attention',
-      signalKey: 'memeticPressure',
-      trust: 0.53,
-    }),
-    gdeltAdapter({
-      sourceId: 'affective_gdelt_public',
-      domain: 'AFFECTIVE',
-      query: '(emotion OR anger OR anxiety OR fear OR hope OR sentiment)',
-      signalKey: 'affect',
-    }),
-    hnSearchAdapter({
-      sourceId: 'affective_hn_public',
-      domain: 'AFFECTIVE',
-      query: 'anxiety anger fear hope sentiment',
-      signalKey: 'affect',
-      trust: 0.51,
-    }),
+
     worldBankEconomyAdapter(),
+
     hnSearchAdapter({
       sourceId: 'geo_digital_hn_public',
       domain: 'GEO_DIGITAL',
-      query: 'platform network social AI',
+      query: 'platform network social AI infrastructure',
       signalKey: 'attention',
       scale: 100000,
       trust: 0.62,
     }),
+
+    reliefWebReportsAdapter({
+      sourceId: 'geopolitical_reliefweb_public',
+      domain: 'GEOPOLITICAL',
+      query: 'conflict displacement border election diplomacy sanctions',
+      signalKey: 'geoStress',
+      trust: 0.62,
+      scale: 5000,
+    }),
+
+    clinicalTrialsBioAdapter(),
+
+    openMeteoClimateAdapter(),
+
+    reliefWebReportsAdapter({
+      sourceId: 'institutional_reliefweb_public',
+      domain: 'INSTITUTIONAL',
+      query: 'governance coordination regulation institution policy response',
+      signalKey: 'institutionalStress',
+      trust: 0.60,
+      scale: 5000,
+    }),
+
+    wikipediaSearchAdapter({
+      sourceId: 'memetic_wikipedia_public',
+      domain: 'MEMETIC',
+      query: 'internet meme viral trend narrative attention social media',
+      signalKey: 'memeticPressure',
+      trust: 0.52,
+      scale: 60000,
+    }),
+
     githubTechAdapter(),
+
     hnSearchAdapter({
       sourceId: 'tech_hn_public',
       domain: 'TECH',
@@ -564,58 +660,17 @@ export function getWorldSpectPublicAdapters(): WorldSpectAdapter[] {
       trust: 0.58,
     }),
 
-    // REAL INTERNAL EVIDENCE BACKSTOPS.
-    // These are not synthetic values. They are derived from persisted SFI evidence/logbooks/docs.
-    internalEvidenceAdapter({
-      sourceId: 'cultural_sfi_internal_evidence',
-      domain: 'CULTURAL',
-      keywords: ['culture', 'cultural', 'music', 'song', 'film', 'cinema', 'writing', 'art', 'campaign', 'kxtxr', 'rem618'],
-      signalKey: 'attention',
-    }),
-    internalEvidenceAdapter({
-      sourceId: 'geopolitical_sfi_internal_evidence',
-      domain: 'GEOPOLITICAL',
-      keywords: ['geopolitical', 'policy', 'political', 'government', 'regime', 'conflict', 'governance'],
-      signalKey: 'geoStress',
-    }),
-    internalEvidenceAdapter({
-      sourceId: 'bio_sfi_internal_evidence',
-      domain: 'BIO',
-      keywords: ['bio', 'health', 'body', 'organism', 'medical', 'disease', 'wellbeing'],
-      signalKey: 'bioStress',
-    }),
-    internalEvidenceAdapter({
-      sourceId: 'climate_sfi_internal_evidence',
-      domain: 'CLIMATE',
-      keywords: ['climate', 'weather', 'heat', 'temperature', 'carbon', 'flood', 'drought'],
-      signalKey: 'climateStress',
-    }),
-    internalEvidenceAdapter({
-      sourceId: 'institutional_sfi_internal_evidence',
-      domain: 'INSTITUTIONAL',
-      keywords: ['institution', 'governance', 'law', 'regulation', 'root', 'evidence', 'logbook', 'supabase'],
-      signalKey: 'institutionalStress',
-    }),
-    internalEvidenceAdapter({
-      sourceId: 'memetic_sfi_internal_evidence',
-      domain: 'MEMETIC',
-      keywords: ['meme', 'memetic', 'trend', 'viral', 'attention', 'narrative', 'signal'],
-      signalKey: 'memeticPressure',
-    }),
-    internalEvidenceAdapter({
-      sourceId: 'tech_sfi_internal_evidence',
-      domain: 'TECH',
-      keywords: ['tech', 'technology', 'ai', 'model', 'python', 'typescript', 'api', 'software', 'code', 'github'],
-      signalKey: 'techStress',
-    }),
-    internalEvidenceAdapter({
-      sourceId: 'affective_sfi_internal_evidence',
+    wikipediaSearchAdapter({
+      sourceId: 'affective_wikipedia_public',
       domain: 'AFFECTIVE',
-      keywords: ['affective', 'emotion', 'anger', 'fear', 'hope', 'anxiety', 'sentiment', 'friction'],
+      query: 'anxiety anger fear hope sentiment emotion society',
       signalKey: 'affect',
+      trust: 0.52,
+      scale: 60000,
     }),
   ]
 }
+
 
 
 
