@@ -80,15 +80,59 @@ function sourceIsDegraded(source: unknown, degradedSources: string[]) {
   return degradedSources.includes(key) || Boolean(error);
 }
 
+function mojibakeScore(value: string) {
+  return (value.match(/[ÃÂâ�]/g) ?? []).length;
+}
+
+function repairUtf8Mojibake(value: string) {
+  if (!/[ÃÂâ]/.test(value)) return value;
+
+  try {
+    const bytes = Uint8Array.from(Array.from(value), (char) => char.charCodeAt(0) & 0xff);
+    const decoded = new TextDecoder('utf-8', { fatal: false }).decode(bytes);
+
+    if (decoded.includes('�')) return value;
+    return mojibakeScore(decoded) < mojibakeScore(value) ? decoded : value;
+  } catch {
+    return value;
+  }
+}
+
 function cleanText(value: unknown, fallback = '') {
-  return textValue(value, fallback)
-    .replace(/Â·/g, '·')
+  const raw = textValue(value, fallback);
+
+  const direct = raw
     .replace(/Ã‚Â·/g, '·')
     .replace(/Ã‚·/g, '·')
     .replace(/Ãâ·/g, '·')
+    .replace(/Â·/g, '·')
+    .replace(/fÃ­sica/g, 'física')
     .replace(/fÃsica/g, 'física')
     .replace(/seÃ±ales/g, 'señales')
-    .replace(/segÃºn/g, 'según')
+    .replace(/segÃºn/g, 'según');
+
+  return repairUtf8Mojibake(direct)
+    .replace(/Â·/g, '·')
+    .replace(/fÃ­sica/g, 'física')
+    .replace(/fÃsica/g, 'física')
+    .replace(/seÃ±ales/g, 'señales')
+    .replace(/segÃºn/g, 'según');
+}
+
+function cleanOutput<T>(value: T): T {
+  if (typeof value === 'string') return cleanText(value) as T;
+
+  if (Array.isArray(value)) {
+    return value.map((item) => cleanOutput(item)) as T;
+  }
+
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>).map(([key, item]) => [key, cleanOutput(item)])
+    ) as T;
+  }
+
+  return value;
 }
 
 function cleanLabel(value: unknown, fallback: string) {
@@ -270,7 +314,7 @@ export async function buildCanonicalWorldSpectState() {
   const generatedAt = new Date().toISOString();
 
   if (!latest) {
-    return {
+    return cleanOutput({
       ok: false,
       generated_at: generatedAt,
       source: 'worldspect_canonical_state' as const,
@@ -305,7 +349,7 @@ export async function buildCanonicalWorldSpectState() {
         scorefriction: 'detecta objetos y señales según filtro seleccionado',
         sfi_response: 'decide respuesta interna con atractores y evidencia',
       },
-    };
+    });
   }
 
   const rawPayload = record(latest.raw_payload);
@@ -336,7 +380,7 @@ export async function buildCanonicalWorldSpectState() {
   const wsi = typeof latest.wsi === 'number' ? latest.wsi : numberValue(rawPayload.wsi, 0);
   const nti = typeof latest.nti === 'number' ? latest.nti : numberValue(rawPayload.nti, 0);
 
-  return {
+  return cleanOutput({
     ok: !stale.is_stale,
     generated_at: generatedAt,
     source: 'worldspect_canonical_state' as const,
@@ -388,7 +432,7 @@ export async function buildCanonicalWorldSpectState() {
       scorefriction: 'detecta objetos y señales según filtro seleccionado',
       sfi_response: 'decide respuesta interna con atractores y evidencia',
     },
-  };
+  });
 }
 
 export async function refreshCanonicalWorldSpectState() {
@@ -409,6 +453,7 @@ export async function refreshCanonicalWorldSpectState() {
     state,
   };
 }
+
 
 
 
