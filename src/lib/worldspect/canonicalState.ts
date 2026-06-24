@@ -4,6 +4,19 @@ import { runWorldSpectAdapters } from '@/lib/worldspect/runAdapters';
 
 type AnyRecord = Record<string, any>;
 
+const WORLDSPECT_DOMAINS = [
+  'CULTURAL',
+  'ECONOMY',
+  'GEO_DIGITAL',
+  'GEOPOLITICAL',
+  'BIO',
+  'CLIMATE',
+  'INSTITUTIONAL',
+  'MEMETIC',
+  'TECH',
+  'AFFECTIVE',
+] as const;
+
 function record(value: unknown): AnyRecord {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as AnyRecord : {};
 }
@@ -67,21 +80,18 @@ function sourceIsDegraded(source: unknown, degradedSources: string[]) {
   return degradedSources.includes(key) || Boolean(error);
 }
 
-function qualityFromCoverage(sourceCoverage: number, degradationRatio: number) {
-  if (sourceCoverage >= 0.75 && degradationRatio < 0.35) return 'strong';
-  if (sourceCoverage >= 0.45 && degradationRatio < 0.50) return 'partial';
-  return 'weak';
+function cleanLabel(value: unknown, fallback: string) {
+  return textValue(value, fallback).replace(/ÃâÃÂ·|Ã‚Â·|Â·|·/g, '·');
 }
 
 function summarizeSources(sources: unknown[]) {
   return sources.map((source) => {
     const item = record(source);
     const key = textValue(item.key, textValue(item.sourceId, 'unknown'));
-    const rawLabel = textValue(item.label, key);
 
     return {
       key,
-      label: rawLabel.replace(/ÃâÃÂ·|Â·|·/g, '·'),
+      label: cleanLabel(item.label, key),
       value: typeof item.value === 'number' ? item.value : null,
       unit: textValue(item.unit, 'normalized_0_1'),
       trust: numberValue(item.nti ?? item.trust, 0),
@@ -118,31 +128,121 @@ function buildVectors(rawPayload: AnyRecord) {
   }
 }
 
-function interpretation(input: {
-  sourceState: string;
+function buildDomainQuorum(vectors: unknown[], minSourcesPerDomain = 2) {
+  const vectorRows = Array.isArray(vectors) ? vectors.map(record) : [];
+
+  const domains = WORLDSPECT_DOMAINS.map((domain) => {
+    const found = vectorRows.find((row) => textValue(row.domain) === domain);
+    const sourceCount = numberValue(found?.sourceCount, 0);
+    const status = textValue(found?.status, 'BOOTSTRAPPED');
+    const sources = Array.isArray(found?.sources) ? found.sources.filter((item: unknown): item is string => typeof item === 'string') : [];
+    const trust = numberValue(found?.trust, 0);
+    const value = numberValue(found?.value, 0);
+    const degradation = numberValue(found?.degradation, 1);
+
+    const active = status === 'ACTIVE' && sourceCount > 0 && trust > 0;
+    const quorumMet = active && sourceCount >= minSourcesPerDomain;
+
+    return {
+      domain,
+      status,
+      active,
+      quorum_met: quorumMet,
+      source_count: sourceCount,
+      min_sources_required: minSourcesPerDomain,
+      trust,
+      value,
+      degradation,
+      sources,
+      weakness: quorumMet
+        ? null
+        : active
+          ? 'single_source_domain'
+          : 'missing_active_source',
+    };
+  });
+
+  const observedDomains = domains.filter((domain) => domain.active);
+  const quorumDomains = domains.filter((domain) => domain.quorum_met);
+  const missingDomains = domains.filter((domain) => !domain.active);
+  const singleSourceDomains = domains.filter((domain) => domain.active && !domain.quorum_met);
+
+  return {
+    min_sources_per_domain: minSourcesPerDomain,
+    total_domain_count: domains.length,
+    observed_domain_count: observedDomains.length,
+    quorum_domain_count: quorumDomains.length,
+    missing_domain_count: missingDomains.length,
+    single_source_domain_count: singleSourceDomains.length,
+    missing_domains: missingDomains.map((domain) => domain.domain),
+    single_source_domains: singleSourceDomains.map((domain) => domain.domain),
+    quorum_domains: quorumDomains.map((domain) => domain.domain),
+    domains,
+  };
+}
+
+function qualityFromState(input: {
   sourceCoverage: number;
   degradationRatio: number;
   isStale: boolean;
+  domainQuorum: ReturnType<typeof buildDomainQuorum>;
+}) {
+  if (input.isStale) return 'weak';
+
+  const observedEnough = input.domainQuorum.observed_domain_count >= 8;
+  const noMissingCritical = input.domainQuorum.missing_domain_count === 0;
+  const quorumEnough = input.domainQuorum.quorum_domain_count >= 7;
+
+  if (
+    input.sourceCoverage >= 0.75
+    && input.degradationRatio < 0.35
+    && observedEnough
+    && noMissingCritical
+    && quorumEnough
+  ) {
+    return 'strong';
+  }
+
+  if (
+    input.sourceCoverage >= 0.50
+    && input.degradationRatio < 0.50
+    && input.domainQuorum.observed_domain_count >= 7
+  ) {
+    return 'partial';
+  }
+
+  return 'weak';
+}
+
+function decisionStrengthFromQuality(quality: string, isStale: boolean) {
+  if (isStale) return 'weak';
+  if (quality === 'strong') return 'strong';
+  if (quality === 'partial') return 'limited';
+  return 'weak';
+}
+
+function interpretation(input: {
+  isStale: boolean;
   observationQuality: string;
-  decisionStrength: string;
+  domainQuorum: ReturnType<typeof buildDomainQuorum>;
 }) {
   if (input.isStale) {
     return 'WSV existe, pero está viejo; puede servir para contexto histórico, no para decisión operacional fuerte.';
   }
 
   if (input.observationQuality === 'strong') {
-    return 'WSV observado correctamente: snapshot reciente, fuentes suficientes y contrato canónico disponible.';
+    return 'WSV observado con robustez: snapshot fresco, fuentes externas limpias y quorum suficiente por dominio.';
   }
 
-  if (input.observationQuality === 'partial') {
-    return 'WSV parcial: hay observación externa disponible, pero la decisión debe tratarse como limitada.';
+  if (input.domainQuorum.missing_domain_count > 0) {
+    return `WSV disponible pero limitado: faltan dominios activos (${input.domainQuorum.missing_domains.join(', ')}).`;
   }
 
-  if (input.sourceState !== 'observed') {
-    return 'WSV disponible pero débil: hay snapshot, pero cobertura o salud de fuentes insuficiente.';
+  if (input.domainQuorum.single_source_domain_count > 0) {
+    return `WSV disponible pero limitado: hay dominios con un solo ojo (${input.domainQuorum.single_source_domains.join(', ')}).`;
   }
 
-  return 'WSV disponible con fuerza débil; usar como contexto, no como decisión dura.';
+  return 'WSV disponible como lectura parcial; usar como contexto, no como decisión dura.';
 }
 
 export async function buildCanonicalWorldSpectState() {
@@ -171,6 +271,7 @@ export async function buildCanonicalWorldSpectState() {
       sources: [],
       source_health: [],
       vectors: [],
+      domain_quorum: buildDomainQuorum([]),
       ingest_mode: null,
       snapshot_hash: null,
       adapter_status: null,
@@ -189,6 +290,9 @@ export async function buildCanonicalWorldSpectState() {
 
   const rawPayload = record(latest.raw_payload);
   const reconstructed = buildVectors(rawPayload);
+  const reconstructedVectors = Array.isArray((reconstructed as AnyRecord).vectors) ? (reconstructed as AnyRecord).vectors : [];
+  const domainQuorum = buildDomainQuorum(reconstructedVectors);
+
   const stalenessHours = hoursSince(latest.observed_at);
   const stale = staleState(stalenessHours);
 
@@ -199,12 +303,15 @@ export async function buildCanonicalWorldSpectState() {
 
   const sourceCoverage = externalTotalSourceCount === 0 ? 0 : externalActiveSourceCount / externalTotalSourceCount;
   const degradationRatio = externalTotalSourceCount === 0 ? 1 : externalDegradedSourceCount / externalTotalSourceCount;
-  const observationQuality = qualityFromCoverage(sourceCoverage, degradationRatio);
-  const decisionStrength = observationQuality === 'strong' && !stale.is_stale
-    ? 'strong'
-    : observationQuality === 'partial' && !stale.is_stale
-      ? 'limited'
-      : 'weak';
+
+  const observationQuality = qualityFromState({
+    sourceCoverage,
+    degradationRatio,
+    isStale: stale.is_stale,
+    domainQuorum,
+  });
+
+  const decisionStrength = decisionStrengthFromQuality(observationQuality, stale.is_stale);
 
   const wsi = typeof latest.wsi === 'number' ? latest.wsi : numberValue(rawPayload.wsi, 0);
   const nti = typeof latest.nti === 'number' ? latest.nti : numberValue(rawPayload.nti, 0);
@@ -229,7 +336,8 @@ export async function buildCanonicalWorldSpectState() {
     degraded_sources: latest.degraded_sources,
     sources: summarizeSources(latest.sources),
     source_health: latest.source_health,
-    vectors: Array.isArray((reconstructed as AnyRecord).vectors) ? (reconstructed as AnyRecord).vectors : [],
+    vectors: reconstructedVectors,
+    domain_quorum: domainQuorum,
     vector_status: textValue((reconstructed as AnyRecord).status, 'unknown'),
     ingest_mode: latest.ingest_mode,
     snapshot_hash: latest.snapshot_hash,
@@ -251,12 +359,9 @@ export async function buildCanonicalWorldSpectState() {
     staleness_hours: stalenessHours,
     stale_level: stale.stale_level,
     interpretation: interpretation({
-      sourceState: latest.source_state,
-      sourceCoverage,
-      degradationRatio,
       isStale: stale.is_stale,
       observationQuality,
-      decisionStrength,
+      domainQuorum,
     }),
     role_boundary: {
       worldspect: 'observa mundo externo',
