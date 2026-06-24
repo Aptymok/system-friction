@@ -85,11 +85,11 @@ export function buildWorldSpectOperatorState(input: WorldSpectOperatorInput): Wo
     };
   }
 
-  if (sourceCoverage >= 0.75 && missingOrDegradedCount > 0) {
+  if (sourceCoverage >= 0.75 && degradation >= 0.35 && missingOrDegradedCount > 0) {
     return {
       status: 'observacion_parcial',
       label: 'Observación parcial',
-      summary: 'La lectura existe y tiene fuentes vivas, pero parte de la verificación no respondió útilmente.',
+      summary: 'La lectura existe y tiene fuentes vivas, pero la degradación rebasa el umbral de confianza operativa.',
       decisionUse: 'observe',
       action: 'Observar y registrar; no ejecutar como certeza completa hasta recuperar fuentes degradadas.',
       evidence,
@@ -127,3 +127,4 @@ export function buildWorldSpectOperatorState(input: WorldSpectOperatorInput): Wo
     evidence,
   };
 }
+

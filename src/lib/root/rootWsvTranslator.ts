@@ -55,7 +55,12 @@ function sourceHealth(input: VisibleRecord) {
 }
 
 function sourceStatus(source: VisibleRecord) {
-  return text(source.status) ?? 'unknown';
+  return text(source.status) ?? text(source.health) ?? 'unknown';
+}
+
+function isActiveSource(source: VisibleRecord) {
+  const status = sourceStatus(source);
+  return ['healthy', 'real input', 'observed', 'active'].includes(status);
 }
 
 function dominantField(input: VisibleRecord) {
@@ -85,7 +90,7 @@ export function translateRootWsv(value: unknown, now = new Date()): RootWsvTrans
   const state = translateRootState(sourceState);
   const observedAt = isoDate(input.ts ?? input.observedAt ?? input.observed_at ?? record(input.snapshot).observedAt);
   const health = sourceHealth(input);
-  const active = health.filter((source) => sourceStatus(source) === 'healthy');
+  const active = health.filter(isActiveSource);
   const degraded = [
     ...array(input.degraded_sources).filter((item): item is string => typeof item === 'string'),
     ...health.filter((source) => ['degraded', 'missing', 'simulated', 'not_ready'].includes(sourceStatus(source))).map(sourceLabel),
@@ -117,6 +122,8 @@ export function translateRootWsv(value: unknown, now = new Date()): RootWsvTrans
         : 'No tomar decisiones apoyadas en WorldSpect hasta tener lectura real.',
   };
 }
+
+
 
 
 
