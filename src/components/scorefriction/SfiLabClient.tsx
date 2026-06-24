@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
@@ -6,16 +6,16 @@ import { Clipboard, FileDown, FileText, Layers3, Play, Upload } from 'lucide-rea
 import type { SfiLabAnalysis, SfiLabMode, SfiReport } from '@/lib/sfi-psi/types';
 
 const MODES: Array<{ value: SfiLabMode; label: string }> = [
-  { value: 'detect_signals', label: 'Detectar señales' },
+  { value: 'detect_signals', label: 'Detectar seÃ±ales' },
   { value: 'generate_report', label: 'Generar reporte' },
-  { value: 'propose_campaign', label: 'Proponer campaña' },
+  { value: 'propose_campaign', label: 'Proponer campaÃ±a' },
   { value: 'generate_assets', label: 'Generar assets' },
 ];
 
-const SAMPLE_TEXT = `2026-06-14 señal: la comunidad repite fricción institucional y archivo vivo.
-2026-06-15 señal: archivo vivo reaparece como necesidad de reporte operativo.
-2026-06-16 señal: fricción institucional reaparece y pide campaña sobria.
-2026-06-16 señal: archivo vivo conserva identidad aunque la coherencia sea baja.`;
+const SAMPLE_TEXT = `2026-06-14 seÃ±al: la comunidad repite fricciÃ³n institucional y archivo vivo.
+2026-06-15 seÃ±al: archivo vivo reaparece como necesidad de reporte operativo.
+2026-06-16 seÃ±al: fricciÃ³n institucional reaparece y pide campaÃ±a sobria.
+2026-06-16 seÃ±al: archivo vivo conserva identidad aunque la coherencia sea baja.`;
 
 type HistoryItem = {
   id: string;
@@ -94,13 +94,22 @@ export default function SfiLabClient({ embedded = false }: { embedded?: boolean 
       const json = await response.json() as SfiLabAnalysis;
       setAnalysis(json);
       setReport(null);
+      const responseAny: any = json;
+      const labData: any = responseAny?.data ?? {};
+      const safeAnalysisId = String(responseAny?.record?.id ?? responseAny?.analysisId ?? crypto.randomUUID());
+      const safeCreatedAt = String(responseAny?.createdAt ?? responseAny?.record?.created_at ?? labData?.generated_at ?? new Date().toISOString());
+      const safeNodes = Array.isArray(responseAny?.nodes) ? responseAny.nodes : [];
+      const safeSignals = Array.isArray(responseAny?.signals) ? responseAny.signals : [];
+      const safeReappearances = Array.isArray(responseAny?.reappearances) ? responseAny.reappearances : [];
+
+
       const nextHistory = [
-        { id: json.analysisId, createdAt: json.createdAt, source: json.source, label: json.nodes[0]?.name || json.signals[0]?.name || 'analisis SFI' },
-        ...history.filter((item) => item.id !== json.analysisId),
+        { id: safeAnalysisId, createdAt: safeCreatedAt, source: json.source, label: safeNodes[0]?.name || safeSignals[0]?.name || 'analisis SFI' },
+        ...history.filter((item) => item.id !== safeAnalysisId),
       ].slice(0, 8);
       setHistory(nextHistory);
       window.localStorage.setItem('sfi-lab-history', JSON.stringify(nextHistory));
-      setStatus(`Analisis listo: ${json.reappearances.length} reapariciones, ${json.signals.length} señales, ${json.nodes.length} nodos.`);
+      setStatus(`Analisis listo: ${safeReappearances.length} reapariciones, ${safeSignals.length} seÃ±ales, ${safeNodes.length} nodos.`);
     } catch (error) {
       setStatus(error instanceof Error ? error.message : 'sfi_lab_analyze_failed');
     } finally {
@@ -160,7 +169,7 @@ export default function SfiLabClient({ embedded = false }: { embedded?: boolean 
           <div className="border border-[#3a3020] bg-[#090908] p-5">
             <div className="font-mono text-[10px] uppercase tracking-[0.32em] text-[#c4a24d]">System Friction Institute</div>
             <h1 className="mt-3 text-3xl font-semibold text-white">SFI-LAB / Campaign Generator</h1>
-            <p className="mt-2 text-sm leading-6 text-[#b8ad98]">Instrumento longitudinal para detectar señales persistentes y generar reportes operativos.</p>
+            <p className="mt-2 text-sm leading-6 text-[#b8ad98]">Instrumento longitudinal para detectar seÃ±ales persistentes y generar reportes operativos.</p>
           </div>
 
           <Panel title="Entrada">
@@ -176,7 +185,7 @@ export default function SfiLabClient({ embedded = false }: { embedded?: boolean 
               <Upload size={16} /> Upload archivo
               <input name="file" type="file" className="hidden" onChange={(event) => void handleFile(event.target.files?.[0])} />
             </label>
-            {fileMeta ? <p className="mt-2 font-mono text-[11px] text-[#8f846f]">{fileMeta.name} · {Math.round(fileMeta.size / 1024)}kb</p> : null}
+            {fileMeta ? <p className="mt-2 font-mono text-[11px] text-[#8f846f]">{fileMeta.name} Â· {Math.round(fileMeta.size / 1024)}kb</p> : null}
           </Panel>
 
           <Panel title="Historial">
@@ -193,7 +202,7 @@ export default function SfiLabClient({ embedded = false }: { embedded?: boolean 
         </aside>
 
         <section className="space-y-4">
-          <Panel title="Archivo / señal">
+          <Panel title="Archivo / seÃ±al">
             <textarea
               value={text}
               onChange={(event) => setText(event.target.value)}
@@ -230,17 +239,17 @@ export default function SfiLabClient({ embedded = false }: { embedded?: boolean 
           <div className="grid gap-4 md:grid-cols-2">
             <Panel title="Reappearances">
               <ul className="space-y-2 text-sm text-[#d8d0bd]">
-                {analysis?.reappearances.slice(0, 6).map((item) => <li key={item.id}>{item.pattern} · recurrence {item.recurrence}</li>) ?? <li>Sin analisis.</li>}
+                {analysis?.reappearances.slice(0, 6).map((item) => <li key={item.id}>{item.pattern} Â· recurrence {item.recurrence}</li>) ?? <li>Sin analisis.</li>}
               </ul>
             </Panel>
             <Panel title="Signals">
               <ul className="space-y-2 text-sm text-[#d8d0bd]">
-                {analysis?.signals.slice(0, 6).map((item) => <li key={item.id}>{item.name} · {item.status}</li>) ?? <li>Sin analisis.</li>}
+                {analysis?.signals.slice(0, 6).map((item) => <li key={item.id}>{item.name} Â· {item.status}</li>) ?? <li>Sin analisis.</li>}
               </ul>
             </Panel>
             <Panel title="Nodes">
               <ul className="space-y-2 text-sm text-[#d8d0bd]">
-                {analysis?.nodes.length ? analysis.nodes.map((item) => <li key={item.id}>{item.name} · identity {metric(item.identityScore)}</li>) : <li>Sin nodo confirmado; mantener como señal débil.</li>}
+                {analysis?.nodes.length ? analysis.nodes.map((item) => <li key={item.id}>{item.name} Â· identity {metric(item.identityScore)}</li>) : <li>Sin nodo confirmado; mantener como seÃ±al dÃ©bil.</li>}
               </ul>
             </Panel>
             <Panel title="SFI Vector">
@@ -272,3 +281,5 @@ export default function SfiLabClient({ embedded = false }: { embedded?: boolean 
     </main>
   );
 }
+
+
