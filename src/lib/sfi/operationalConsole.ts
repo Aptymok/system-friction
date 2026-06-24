@@ -91,6 +91,55 @@ export async function readListFromView(view: string, limit = 50): Promise<SfiRea
   }
 }
 
+export async function readLatestProposalAlignments(proposalIds: string[]): Promise<SfiReadResult<SfiRecord[]>> {
+  const ids = [...new Set(proposalIds.map((item) => item.trim()).filter(Boolean))];
+  if (ids.length === 0) return { ok: true, data: [], source: 'sfi_proposal_alignment' };
+
+  const { controller, timeout } = createReadAbortController();
+  try {
+    const supabase = createServiceSupabaseClient();
+    const query = supabase
+      .from('sfi_proposal_alignment')
+      .select('*')
+      .in('proposal_id', ids)
+      .order('created_at', { ascending: false })
+      .limit(Math.max(25, ids.length * 5));
+    const executable = 'abortSignal' in query
+      ? (query as typeof query & { abortSignal: (signal: AbortSignal) => typeof query }).abortSignal(controller.signal)
+      : query;
+    const { data, error } = await executable;
+    if (error) throw error;
+
+    const byProposal = new Map<string, SfiRecord>();
+    for (const row of data ?? []) {
+      const proposalId = textValue(row.proposal_id);
+      if (proposalId && !byProposal.has(proposalId)) byProposal.set(proposalId, row);
+    }
+
+    return { ok: true, data: [...byProposal.values()], source: 'sfi_proposal_alignment' };
+  } catch (error) {
+    return {
+      ok: false,
+      data: [],
+      source: 'sfi_proposal_alignment',
+      degraded: true,
+      error: errorMessage(error, 'sfi_proposal_alignment_read_failed'),
+    };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+export async function readLatestProposalAlignment(proposalId: string | null): Promise<SfiReadResult<SfiRecord | null>> {
+  const id = textValue(proposalId);
+  if (!id) return { ok: true, data: null, source: 'sfi_proposal_alignment' };
+  const result = await readLatestProposalAlignments([id]);
+  return {
+    ...result,
+    data: result.data[0] ?? null,
+  };
+}
+
 export async function readOperationalConsoleState() {
   const [operationalCycle, stability, pipelineLoss, recoveryQueue, worldSpect, scoreFriction, evidenceMap, closedLoop, attractor, alignmentQueue] =
     await Promise.all([

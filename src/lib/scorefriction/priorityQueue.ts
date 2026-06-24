@@ -1,4 +1,5 @@
 import { buildScoreFrictionRiskGraph, clamp01, type ScoreFrictionRiskNode } from '@/lib/scorefriction/riskGraph';
+import { numericValue, readLatestProposalAlignments, textValue } from '@/lib/sfi/operationalConsole';
 
 export type ScoreFrictionPriorityItem = {
   id: string;
@@ -46,6 +47,19 @@ function priorityScore(node: ScoreFrictionRiskNode, impact_score: number) {
   ).toFixed(4));
 }
 
+function proposalIdFromNode(node: ScoreFrictionRiskNode) {
+  if (node.kind !== 'proposal' || !node.id.startsWith('proposal-')) return null;
+  if (node.source !== 'vw_sfi_execution_recovery_queue' && node.source !== 'vw_sfi_attractor_alignment_queue') return null;
+  return node.id.slice('proposal-'.length).replace(/-alignment$/, '');
+}
+
+function alignmentBlocksExecution(alignment: Record<string, unknown> | null | undefined) {
+  if (!alignment) return true;
+  const status = textValue(alignment.recommended_status);
+  const score = numericValue(alignment.alignment_score, null);
+  return status === 'request_evidence' || score === null || score < 0.45;
+}
+
 function statusFor(node: ScoreFrictionRiskNode, noActiveAttractor: boolean): ScoreFrictionPriorityItem['recommended_status'] {
   if (node.evidence_count <= 0) return 'request_evidence';
   if (noActiveAttractor) return node.kind === 'proposal' ? 'request_evidence' : 'observe';
@@ -64,6 +78,11 @@ function rationaleFor(node: ScoreFrictionRiskNode, status: ScoreFrictionPriority
   return `Derived from ${node.source} with emergence risk ${node.emergence_risk.toFixed(4)}.`;
 }
 
+function alignmentRationale(alignment: Record<string, unknown> | null | undefined) {
+  if (!alignment) return 'Latest alignment is unavailable, so the proposal remains blocked pending alignment evidence.';
+  return `Latest alignment status is ${textValue(alignment.recommended_status, 'unknown')} with alignment_score ${String(numericValue(alignment.alignment_score, null) ?? 'missing')}; evidence is required before execution-like handling.`;
+}
+
 export async function buildScoreFrictionPriorityQueue(input: {
   caseId?: string;
 } = {}): Promise<{
@@ -78,12 +97,20 @@ export async function buildScoreFrictionPriorityQueue(input: {
   const graph = await buildScoreFrictionRiskGraph({ caseId });
   const responseNode = graph.nodes.find((node) => node.kind === 'sfi_response');
   const noActiveAttractor = responseNode?.label === 'request_attractor' || responseNode?.recommended_action === 'observe' && responseNode.evidence_count <= 0;
+  const proposalIds = graph.nodes.map(proposalIdFromNode).filter((id): id is string => Boolean(id));
+  const latestAlignmentsResult = await readLatestProposalAlignments(proposalIds);
+  const latestAlignmentByProposal = new Map(
+    latestAlignmentsResult.data.map((alignment) => [textValue(alignment.proposal_id), alignment] as const).filter(([id]) => Boolean(id)),
+  );
 
   const items = graph.nodes
     .filter((node) => node.kind !== 'evidence' && node.kind !== 'lesson')
     .map((node) => {
       const impact_score = impactScore(node);
-      const recommended_status = statusFor(node, Boolean(noActiveAttractor));
+      const proposalId = proposalIdFromNode(node);
+      const latestAlignment = proposalId ? latestAlignmentByProposal.get(proposalId) ?? null : null;
+      const blockedByAlignment = Boolean(proposalId) && alignmentBlocksExecution(latestAlignment);
+      const recommended_status = blockedByAlignment ? 'request_evidence' : statusFor(node, Boolean(noActiveAttractor));
       return {
         id: `priority-${node.id}`,
         label: node.label,
@@ -97,8 +124,8 @@ export async function buildScoreFrictionPriorityQueue(input: {
         degradation_score: node.degradation_score,
         confidence: node.confidence,
         recommended_status,
-        rationale: rationaleFor(node, recommended_status, Boolean(noActiveAttractor)),
-        blocking_condition: node.evidence_count <= 0 ? 'missing_evidence' : node.risk_status === 'watch_only' ? 'watch_only' : null,
+        rationale: blockedByAlignment ? alignmentRationale(latestAlignment) : rationaleFor(node, recommended_status, Boolean(noActiveAttractor)),
+        blocking_condition: blockedByAlignment ? 'alignment_requires_evidence' : node.evidence_count <= 0 ? 'missing_evidence' : node.risk_status === 'watch_only' ? 'watch_only' : null,
         source_node_id: node.id,
       } satisfies ScoreFrictionPriorityItem;
     })
@@ -109,7 +136,7 @@ export async function buildScoreFrictionPriorityQueue(input: {
     generated_at: new Date().toISOString(),
     source: 'scorefriction_priority_queue',
     case_id: caseId,
-    degraded: graph.degraded,
+    degraded: graph.degraded || !latestAlignmentsResult.ok,
     items,
   };
 }
