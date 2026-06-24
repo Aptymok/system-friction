@@ -703,15 +703,16 @@ export function getWorldSpectPublicAdapters(): WorldSpectAdapter[] {
       scale: 10000000,
       trust: 0.56,
     }),
-    hnSearchAdapter({
-      sourceId: 'affective_hn_public',
+    githubSearchAdapter({
+      sourceId: 'affective_github_mental_health_public',
       domain: 'AFFECTIVE',
-      query: 'mental health anxiety burnout emotion sentiment',
+      query: 'mental-health OR burnout OR anxiety OR wellbeing',
       signalKey: 'affect',
-      scale: 100000,
-      trust: 0.50,
+      scale: 10000000,
+      trust: 0.54,
     }),
   ];
 }
+
 
 
