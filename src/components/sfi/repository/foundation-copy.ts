@@ -1,4 +1,4 @@
-export const FOUNDATION_COPY = {
+﻿export const FOUNDATION_COPY = {
   entryTitle: ['El campo', 'no espera', 'tu permiso', 'para existir.'],
   quote: 'Los sistemas no colapsan por falta de intencion. Colapsan porque nadie registra lo que todos observan.',
   carta: `
@@ -26,13 +26,13 @@ Un mundo donde la complejidad inter-especie - lo digital, lo biologico, lo veget
 Observacion antes que afirmacion. Evidencia antes que narrativa. Memoria antes que reaccion. Friccion como senal honesta. Decision solo cuando aumenta trazabilidad.
 `,
   methodology: `
-SFI observa objetos, contextos y trayectorias. MIHM evalua homeostasis interna. WorldSpectrumVector registra presion externa. Phi_SF traduce friccion residual. Los atractores y eyectores no son decoracion: son hipotesis operativas sujetas a evidencia.
+SFI observa objetos, contextos y trayectorias. MIHM evalua homeostasis interna. WorldSpect registra presion externa. Phi_SF traduce friccion residual. Los atractores y eyectores no son decoracion: son hipotesis operativas sujetas a evidencia.
 `,
   mihm: `
 MIHM estima IHG, NTI, LDI y perturbacion xi para leer si un objeto conserva estructura, memoria y capacidad de continuidad bajo presion.
 `,
   worldspect: `
-WorldSpectrumVector organiza presion externa en dominios culturales, economicos, geo-digitales, geopoliticos, biologicos, climaticos, institucionales, memeticos, tecnologicos y afectivos.
+WorldSpect organiza presion externa en dominios culturales, economicos, geo-digitales, geopoliticos, biologicos, climaticos, institucionales, memeticos, tecnologicos y afectivos.
 `,
   fieldEquation: `
 Phi_SF = (IHG * NTIobs) / (1 + LDIn) + xi. FS = clamp01(1 - Phi_SF). La ecuacion no reemplaza la evidencia: la comprime para decidir que observar despues.
@@ -47,7 +47,7 @@ La deuda de realidad aumenta cuando una decision no produce accion verificable, 
 SFI-OBS-N0 es el alias publico del nodo raiz operativo. ROOT puede seguir existiendo como nombre tecnico interno, pero el campo visual debe hablar desde SFI-OBS-N0.
 `,
   scorefriction: `
-ScoreFriction observa senales culturales como fenomenos en tension, no como gustos ni rankings. Consume MIHM, WorldSpectrumVector, evidencia y trayectoria.
+ScoreFriction observa senales culturales como fenomenos en tension, no como gustos ni rankings. Consume MIHM, WorldSpect, evidencia y trayectoria.
 `,
   clusterAtlas: `
 Cluster Atlas agrupa campos, nodos y regiones de friccion sin convertirlos en metricas ornamentales.
@@ -79,3 +79,4 @@ Variable operacional del campo. Su lectura depende de evidencia, contexto y deca
 };
 
 export type FoundationCopyKey = keyof typeof FOUNDATION_COPY;
+

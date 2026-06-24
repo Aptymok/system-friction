@@ -36,7 +36,7 @@ async function fetchJson(url: string, timeoutMs = DEFAULT_TIMEOUT_MS): Promise<u
       signal: controller.signal,
       headers: {
         accept: 'application/json,text/plain;q=0.8,*/*;q=0.5',
-        'user-agent': 'SystemFrictionInstitute-WorldSpectrumVector/2.0',
+        'user-agent': 'SystemFrictionInstitute-WorldSpect/2.0',
       },
       cache: 'no-store',
     })

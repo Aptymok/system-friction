@@ -1,4 +1,4 @@
-export const SFI_COLORS = {
+﻿export const SFI_COLORS = {
   void: '#060605',
   dark: '#0a0a09',
   surface: '#0d0d0c',
@@ -56,8 +56,9 @@ export const SFI_CANONICAL_LABELS = {
   evidence: 'EVIDENCIA',
   attractor: 'ATRACTOR',
   ejector: 'EYECTOR',
-  world: 'WORLDSPECTRUMVECTOR',
+  world: 'WorldSpect',
   mihm: 'MIHM',
   amv: 'AMV',
   moph: 'MOP-H',
 } as const;
+

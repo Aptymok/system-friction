@@ -10,7 +10,7 @@ export async function POST(request: Request) {
     case_id: typeof body.case_id === 'string' ? body.case_id : 'SFI-OP-LOCAL',
     objective: typeof body.objective === 'string' ? body.objective : null,
     scope: body.scope,
-    analysis_modes: ['MIHM', 'PSI', 'WSV', 'SCOREFRICTION', 'AMV'],
+    analysis_modes: ['MIHM', 'PSI', 'WORLDSPECT', 'SCOREFRICTION', 'AMV'],
     evaluated_object: body.evaluated_object ?? body.text ?? '',
     run_contrast: true,
   });

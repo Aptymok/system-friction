@@ -13,7 +13,7 @@ export async function buildRootNeuralGraphLive(caseId = 'SFI-OP-LOCAL') {
   const nodes = [
     { id: 'twin', type: 'usuario/twin', label: 'Twin', payload: cycle.twin_state },
     { id: 'objective', type: 'objetivo', label: cycle.objective ?? 'sin objetivo declarado', payload: cycle.objective },
-    { id: 'world-vector', type: 'vector mundial', label: cycle.regime.world ?? 'WorldSpectrumVector', payload: cycle.world_vector },
+    { id: 'world-vector', type: 'vector mundial', label: cycle.regime.world ?? 'WorldSpect', payload: cycle.world_vector },
     { id: 'regime', type: 'regimen', label: cycle.regime.vector ?? 'sin regimen suficiente', payload: cycle.regime },
     { id: 'degradation', type: 'degradacion', label: String(cycle.degradation.level ?? 'sin datos suficientes'), payload: cycle.degradation },
     { id: 'alert', type: 'alerta', label: cycle.alert?.severity ?? 'none', payload: cycle.alert },

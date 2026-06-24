@@ -1,5 +1,4 @@
-﻿'use client';
-
+'use client';
 import {
   Archive,
   Check,
@@ -25,6 +24,32 @@ type GraphNode = {
   lineage?: string[];
   provenance?: string | null;
   attributes?: JsonRecord;
+};
+
+
+type HubWorldSpectRuntime = {
+  ok?: boolean;
+  status?: string;
+  status_label?: string;
+  summary?: string;
+  action?: string;
+  decision_use?: string;
+  technical_status?: string;
+  source_mix?: {
+    sourceCoverage?: number;
+    realInputCount?: number;
+    missingOrDegradedCount?: number;
+    publicSourceCount?: number;
+    internalSourceCount?: number;
+  };
+};
+
+type HubRootNeuralGraphRuntime = {
+  ok?: boolean;
+  case_id?: string;
+  nodes?: Array<{ id?: string; label?: string; type?: string; weight?: number; status?: string }>;
+  edges?: Array<{ from?: string; to?: string; relation?: string; weight?: number }>;
+  generated_at?: string;
 };
 
 type GraphEdge = {
@@ -186,10 +211,10 @@ function stateTone(state: unknown) {
 
 function edgeStyle(edge: GraphEdge) {
   const relation = stringValue(edge.relation, stringValue(edge.attributes?.canvasKind, 'inferred'));
-  if (relation.includes('causal_verified')) return { stroke: '#ef4444', width: 0.9, dash: '' };
-  if (relation.includes('correlational_observed') || relation.includes('resonance')) return { stroke: '#f59e0b', width: 0.55, dash: '4 4' };
-  if (relation.includes('structural') || relation.includes('structural_inferred')) return { stroke: '#2dd4bf', width: 0.45, dash: '' };
-  return { stroke: '#71717a', width: 0.35, dash: '2 6' };
+  if (relation.includes('causal_verified')) return { stroke: '#ef4444', width: 1.65, dash: '' };
+  if (relation.includes('correlational_observed') || relation.includes('resonance')) return { stroke: '#f59e0b', width: 1.28, dash: '2 2' };
+  if (relation.includes('structural') || relation.includes('structural_inferred')) return { stroke: '#2dd4bf', width: 1.12, dash: '' };
+  return { stroke: '#a1a1aa', width: 0.92, dash: '1.5 2.5' };
 }
 
 function nodeType(node: GraphNode) {
@@ -350,6 +375,9 @@ export function SfiObservatoryOS() {
   const auth = useAuthState();
   const supabase = useMemo(() => createBrowserSupabaseClient(), []);
   const [observatory, setObservatory] = useState<ObservatoryState | null>(null);
+
+  const [hubWorldSpect, setHubWorldSpect] = useState<HubWorldSpectRuntime | null>(null);
+  const [hubRootGraph, setHubRootGraph] = useState<HubRootNeuralGraphRuntime | null>(null);
   const [bootstrap, setBootstrap] = useState<BootstrapState | null>(null);
   const [loadState, setLoadState] = useState<'loading' | 'ready' | 'degraded'>('loading');
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -390,6 +418,29 @@ export function SfiObservatoryOS() {
 
   useEffect(() => {
     void refresh();
+    const loadHubRuntime = async () => {
+      const [worldSpectResponse, rootGraphResponse] = await Promise.allSettled([
+        fetch('/api/worldspect/operational-state', { cache: 'no-store' }).then((response) => response.json()),
+        fetch('/api/root/neural-graph/live?case_id=SFI-OPS-001', { cache: 'no-store' }).then((response) => response.json()),
+      ]);
+
+      setHubWorldSpect(
+        worldSpectResponse.status === 'fulfilled'
+          ? worldSpectResponse.value
+          : {
+              ok: false,
+              status_label: 'Sin lectura',
+              summary: 'WorldSpect no respondió.',
+              action: 'No ejecutar decisiones apoyadas en WorldSpect hasta recuperar endpoint.',
+              decision_use: 'hold',
+            },
+      );
+
+      setHubRootGraph(rootGraphResponse.status === 'fulfilled' ? rootGraphResponse.value : { ok: false, nodes: [], edges: [] });
+    };
+
+    void loadHubRuntime();
+
     const id = window.setInterval(() => void refresh(), 45000);
     return () => window.clearInterval(id);
   }, [refresh]);
@@ -526,7 +577,23 @@ export function SfiObservatoryOS() {
 
         <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 overflow-y-auto px-3 pb-3 lg:grid-cols-[310px_minmax(420px,1fr)_360px]">
           <RuntimeLayer data={observatory} bootstrap={bootstrap} onHighlight={setHighlight} />
-          <CognitiveField
+          <SfiHubRuntimePanel worldSpect={hubWorldSpect} rootGraph={hubRootGraph} />
+
+        
+        <section data-sfi-runtime-panel="SFI_RUNTIME_PANEL_MARKER" className="grid gap-3 lg:grid-cols-2">
+          <article className="rounded-2xl border border-teal-300/15 bg-black/35 p-4">
+            <p className="font-mono text-[9px] uppercase tracking-[0.24em] text-teal-100/65">WorldSpect operativo</p>
+            <h3 className="mt-2 text-lg font-semibold text-stone-100">Lectura operacional activa</h3>
+            <p className="mt-2 text-xs leading-5 text-stone-300/75">El Hub consulta /api/worldspect/operational-state como lectura visible del mundo.</p>
+          </article>
+          <article className="rounded-2xl border border-amber-300/15 bg-black/35 p-4">
+            <p className="font-mono text-[9px] uppercase tracking-[0.24em] text-amber-100/65">ROOT Neural Graph Live</p>
+            <h3 className="mt-2 text-lg font-semibold text-stone-100">Grafo ROOT conectado</h3>
+            <p className="mt-2 text-xs leading-5 text-stone-300/75">El Hub reconoce /api/root/neural-graph/live como capa viva de ROOT.</p>
+          </article>
+        </section>
+
+<CognitiveField
             nodes={nodes}
             edges={edges}
             state={graph?.sourceState}
@@ -728,6 +795,57 @@ function RuntimeModule({ title, source, rows, onClick }: { title: string; source
   );
 }
 
+
+function SfiHubRuntimePanel({
+  worldSpect,
+  rootGraph,
+}: {
+  worldSpect: HubWorldSpectRuntime | null;
+  rootGraph: HubRootNeuralGraphRuntime | null;
+}) {
+  const mix = worldSpect?.source_mix ?? {};
+  const nodes = rootGraph?.nodes ?? [];
+  const edges = rootGraph?.edges ?? [];
+
+  return (
+    <section className="grid gap-3 lg:grid-cols-2">
+      <article className="rounded-2xl border border-teal-300/15 bg-black/35 p-4">
+        <p className="font-mono text-[9px] uppercase tracking-[0.24em] text-teal-100/65">WorldSpect operativo</p>
+        <h3 className="mt-2 text-lg font-semibold text-stone-100">{worldSpect?.status_label ?? 'Sin lectura'}</h3>
+        <p className="mt-2 text-xs leading-5 text-stone-300/75">{worldSpect?.summary ?? 'Lectura del mundo no disponible.'}</p>
+        <div className="mt-3 rounded-xl border border-stone-500/15 bg-stone-950/35 p-3">
+          <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-stone-400">Acción</p>
+          <p className="mt-1 text-xs text-stone-200">{worldSpect?.action ?? 'No ejecutar decisiones con WorldSpect hasta recuperar lectura.'}</p>
+        </div>
+        <div className="mt-3 grid grid-cols-2 gap-2 text-[10px] text-stone-300/70">
+          <span className="rounded-lg border border-stone-500/15 px-2 py-1">Cobertura: {String(mix.sourceCoverage ?? 'n/d')}</span>
+          <span className="rounded-lg border border-stone-500/15 px-2 py-1">Vivas: {String(mix.realInputCount ?? 'n/d')}</span>
+          <span className="rounded-lg border border-stone-500/15 px-2 py-1">Pendientes: {String(mix.missingOrDegradedCount ?? 'n/d')}</span>
+          <span className="rounded-lg border border-stone-500/15 px-2 py-1">Técnico: {String(worldSpect?.technical_status ?? 'n/d')}</span>
+        </div>
+      </article>
+
+      <article className="rounded-2xl border border-amber-300/15 bg-black/35 p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="font-mono text-[9px] uppercase tracking-[0.24em] text-amber-100/65">ROOT Neural Graph Live</p>
+            <h3 className="mt-2 text-lg font-semibold text-stone-100">{nodes.length} nodes · {edges.length} edges</h3>
+          </div>
+          <span className="rounded-full border border-amber-300/20 px-2 py-1 font-mono text-[9px] text-amber-100/70">{rootGraph?.case_id ?? 'SFI-OPS-001'}</span>
+        </div>
+        <div className="mt-3 grid max-h-36 gap-1 overflow-auto text-[10px] text-stone-300/70">
+          {nodes.slice(0, 10).map((node) => (
+            <div key={String(node.id)} className="rounded-lg border border-stone-500/10 px-2 py-1">
+              {String(node.label ?? node.id ?? 'node')} · {String(node.type ?? 'node')}
+            </div>
+          ))}
+          {!nodes.length ? <div className="rounded-lg border border-stone-500/10 px-2 py-1">Sin nodos ROOT visibles.</div> : null}
+        </div>
+      </article>
+    </section>
+  );
+}
+
 function CognitiveField(props: {
   nodes: GraphNode[];
   edges: GraphEdge[];
@@ -761,7 +879,8 @@ function CognitiveField(props: {
         <LayerMark label="PERCEPTUAL LAYER" active={props.multimediaCount > 0} />
       </div>
       <div className="absolute left-4 top-20 z-10 max-w-sm border border-white/10 bg-black/45 p-3 backdrop-blur">
-        <p className="font-mono text-[9px] uppercase text-teal-100">Public Field Reading</p>
+        <p className="font-mono text-[9px] uppercase text-teal-100">Public Field Reading · {props.nodes.length} nodes · {props.edges.length} edges</p>
+          <p className="mt-1 text-[10px] text-teal-100/60">WorldSpect operativo · ROOT Neural Graph Live</p>
         <ul className="mt-2 space-y-1 font-mono text-[10px] leading-relaxed text-zinc-300">
           {props.publicReading.map((line: string) => <li key={line}>{line}</li>)}
         </ul>
@@ -772,6 +891,13 @@ function CognitiveField(props: {
             <feGaussianBlur stdDeviation="0.7" result="blur" />
             <feMerge>
               <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+          <filter id="edgeGlow">
+            <feGaussianBlur stdDeviation="0.45" result="edgeBlur" />
+            <feMerge>
+              <feMergeNode in="edgeBlur" />
               <feMergeNode in="SourceGraphic" />
             </feMerge>
           </filter>
@@ -788,7 +914,7 @@ function CognitiveField(props: {
           const target = positions.get(edge.targetNodeId);
           if (!source || !target) return null;
           const style = edgeStyle(edge);
-          const opacity = Math.max(0.18, Math.min(0.82, numberValue(edge.confidence) ?? numberValue(edge.weight) ?? 0.44));
+          const opacity = Math.max(0.48, Math.min(0.96, numberValue(edge.confidence) ?? numberValue(edge.weight) ?? 0.72));
           return (
             <line
               key={edge.edgeId}
@@ -800,6 +926,8 @@ function CognitiveField(props: {
               strokeWidth={style.width}
               strokeDasharray={style.dash}
               opacity={opacity}
+              filter="url(#edgeGlow)"
+              strokeLinecap="round"
             />
           );
         })}

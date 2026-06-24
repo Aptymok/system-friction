@@ -175,7 +175,7 @@ export function ScoreFrictionOperationalObservatory({ initialState }: { initialS
         case_id: input.caseId,
         objective: input.label,
         scope: 'culture',
-        analysis_modes: ['MIHM', 'PSI', 'WSV', 'SCOREFRICTION', 'AMV'],
+        analysis_modes: ['MIHM', 'PSI', 'WORLDSPECT', 'SCOREFRICTION', 'AMV'],
         evidence_input: input,
         evaluated_object: input,
         run_contrast: true,
@@ -283,7 +283,7 @@ export function ScoreFrictionOperationalObservatory({ initialState }: { initialS
             </div>
             <div className="grid grid-cols-6 gap-3 text-[10px] leading-4 text-[#b8ad98]">
               <div className="border-l border-[#d8b64a24] pl-3"><b className="block text-[#e0c46c]">Overview</b>{String(record(cycleState).objective ?? 'Objetivo no declarado.')}</div>
-              <div className="border-l border-[#d8b64a24] pl-3"><b className="block text-[#e0c46c]">WorldSpectrumVector Snapshot</b>{rows(record(cycleState).weak_signals).length} senales debiles; {rows(record(cycleState).persistent_signals).length} persistentes.</div>
+              <div className="border-l border-[#d8b64a24] pl-3"><b className="block text-[#e0c46c]">WorldSpect Snapshot</b>{rows(record(cycleState).weak_signals).length} senales debiles; {rows(record(cycleState).persistent_signals).length} persistentes.</div>
               <div className="border-l border-[#d8b64a24] pl-3"><b className="block text-[#e0c46c]">Regime Watch</b>{String(regimeWatch?.minimal_action ?? 'sin accion requerida')}</div>
               <div className="border-l border-[#d8b64a24] pl-3"><b className="block text-[#e0c46c]">AMV Thoughts</b>{amvThoughts[0] ? String(amvThoughts[0].thought) : 'Sin aprendizaje suficiente todavia.'}</div>
               <div className="border-l border-[#d8b64a24] pl-3"><b className="block text-[#e0c46c]">Self Observability Snapshot</b>{String(selfObservability?.system_health ?? 'sin chequeo')}</div>
@@ -339,7 +339,7 @@ export function ScoreFrictionOperationalObservatory({ initialState }: { initialS
           <div className="col-span-4 min-h-[360px] border border-[#d8b64a24] bg-[#080706] p-4 font-mono text-[10px] text-[#b8ad98]">
             <div className="mb-2 text-[9px] uppercase tracking-[0.18em] text-[#e0c46c]">MIHM / PSI / Verificacion / Technical State</div>
             <pre className="max-h-72 overflow-auto whitespace-pre-wrap text-[9px] text-[#7a7568]">{JSON.stringify({
-              analysis_modes: ['MIHM', 'PSI', 'WSV', 'SCOREFRICTION', 'AMV'],
+              analysis_modes: ['MIHM', 'PSI', 'WORLDSPECT', 'SCOREFRICTION', 'AMV'],
               signal_lifetimes: record(cycleState).signal_lifetimes,
               technical_state: record(cycleState).technical_state,
               self_observability: selfObservability,

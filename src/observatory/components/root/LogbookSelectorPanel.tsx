@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useState } from 'react';
 
@@ -7,7 +7,7 @@ type Row = Record<string, unknown>;
 const FILTERS = [
   ['all', 'Todas'],
   ['twin', 'Mi Twin'],
-  ['world', 'WorldSpectrumVector'],
+  ['world', 'WorldSpect'],
   ['scorefriction', 'ScoreFriction'],
   ['amv', 'AMV Thoughts'],
   ['self_observability', 'Self Observability'],
@@ -44,4 +44,5 @@ export function LogbookSelectorPanel() {
     </div>
   );
 }
+
 

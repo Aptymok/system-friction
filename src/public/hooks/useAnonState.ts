@@ -1,4 +1,4 @@
-// src/hooks/useAnonState.ts
+﻿// src/hooks/useAnonState.ts
 import { useEffect, useState } from 'react';
 
 export function useAnonState() {
@@ -9,7 +9,7 @@ export function useAnonState() {
   useEffect(() => {
     Promise.all([
       fetch('/api/global-metrics').then(res => res.json()),
-      fetch('/api/world-spectrum').then(res => res.json())
+      fetch('/api/worldspect/global').then(res => res.json())
     ]).then(([globalMetrics, ws]) => {
       setMetrics(globalMetrics);
       setWorldSpectrum(ws);
@@ -22,3 +22,4 @@ export function useAnonState() {
 
   return { metrics, worldSpectrum, loading };
 }
+

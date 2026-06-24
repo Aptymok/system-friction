@@ -1,12 +1,12 @@
-import Link from 'next/link';
+﻿import Link from 'next/link';
 import { navByIds } from '@/lib/navigation/sfiNavigation';
 
 const instruments = [
-  { name: 'MIHM', description: 'Régimen dinámico del sistema.', href: '/api/mihm/state', status: 'API', doc: 'docs/instruments' },
-  { name: 'ScoreFriction', description: 'Vector cultural/audio y fricción sistémica.', href: '/scorefriction', status: 'active', doc: 'docs/scorefriction' },
-  { name: 'SFI-PSI', description: 'Señales persistentes transmodales.', href: '/api/signals/state', status: 'API', doc: 'docs/instruments/SFI_PSI.md' },
-  { name: 'WorldSpectrumVector', description: 'Presión externa y contexto.', href: '/world-vector', status: 'active', doc: 'docs/root/ROOT_PHASE_9_WSV_MIHM.md' },
-  { name: 'ROOT', description: 'Integración operativa.', href: '/root', status: 'protected', doc: 'docs/root' },
+  { name: 'MIHM', description: 'RÃ©gimen dinÃ¡mico del sistema.', href: '/api/mihm/state', status: 'API', doc: 'docs/instruments' },
+  { name: 'ScoreFriction', description: 'Vector cultural/audio y fricciÃ³n sistÃ©mica.', href: '/scorefriction', status: 'active', doc: 'docs/scorefriction' },
+  { name: 'SFI-PSI', description: 'SeÃ±ales persistentes transmodales.', href: '/api/signals/state', status: 'API', doc: 'docs/instruments/SFI_PSI.md' },
+  { name: 'WorldSpect', description: 'PresiÃ³n externa y contexto.', href: '/world-vector', status: 'active', doc: 'docs/root/ROOT_PHASE_9_WSV_MIHM.md' },
+  { name: 'ROOT', description: 'IntegraciÃ³n operativa.', href: '/root', status: 'protected', doc: 'docs/root' },
 ];
 
 export default function InstrumentsPage() {
@@ -18,7 +18,7 @@ export default function InstrumentsPage() {
         <p className="font-mono text-[10px] uppercase tracking-[0.28em] text-[#c8a951]">SFI instruments</p>
         <h1 className="mt-5 text-4xl font-semibold text-[#f1ede0]">Instrumentos</h1>
         <p className="mt-4 max-w-3xl text-base leading-7 text-[#8f8878]">
-          MIHM mide el régimen dinámico del sistema. PSI mide qué señal sobrevive al ruido.
+          MIHM mide el rÃ©gimen dinÃ¡mico del sistema. PSI mide quÃ© seÃ±al sobrevive al ruido.
         </p>
         <div className="mt-8 grid gap-3 md:grid-cols-2">
           {instruments.map((instrument) => (
@@ -51,4 +51,5 @@ export default function InstrumentsPage() {
     </main>
   );
 }
+
 

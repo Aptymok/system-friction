@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -57,7 +57,7 @@ const REGION_LAYOUT: Record<string, Pick<HorizonRegion, 'id' | 'label' | 'route'
   worldspect: {
     id: 'worldspect',
     label: 'WORLDSPECT',
-    route: '/worldspect',
+    route: '/world-vector',
     desc: 'Observatorio de degradacion sistemica, tension externa y lectura de campo global.',
     x: -0.62,
     z: 0.18,
@@ -407,7 +407,7 @@ export function SfiFinalPublicSurface() {
             </button>
           ))}
         </nav>
-        <div className="text-[10px] uppercase tracking-[0.18em] text-[#b5aa89]">{nodeLabel} · {loading ? 'cargando' : 'observando'}</div>
+        <div className="text-[10px] uppercase tracking-[0.18em] text-[#b5aa89]">{nodeLabel} Â· {loading ? 'cargando' : 'observando'}</div>
       </header>
 
       <section className="fixed left-[30px] top-[94px] z-10 w-[340px] border border-[#c8a95138] bg-black/75 p-5 shadow-2xl backdrop-blur-xl max-md:left-4 max-md:right-4 max-md:w-auto">
@@ -481,7 +481,7 @@ export function SfiFinalPublicSurface() {
       )}
 
       <footer className="fixed bottom-3 left-1/2 z-10 -translate-x-1/2 text-center text-[10px] uppercase tracking-[0.18em] text-[#6f664d] max-md:hidden">
-        Arrastra para rotar · scroll para acercar · click en nodo para abrir · datos operativos SFI
+        Arrastra para rotar Â· scroll para acercar Â· click en nodo para abrir Â· datos operativos SFI
       </footer>
     </main>
   );
@@ -710,7 +710,7 @@ function HorizonCanvas({ model, focus, onNodeOpen, onRouteDepth }: {
         <div className="pointer-events-none fixed z-30 w-[280px] border border-[#ffd86647] bg-black/90 p-4 backdrop-blur-lg" style={{ left: hover.x + 20, top: Math.max(76, hover.y - 20) }}>
           <h4 className="mb-3 text-[11px] uppercase tracking-[0.22em] text-[#ffd866]">{hover.node.label}</h4>
           <p className="text-[11px] leading-5 text-[#b8ad8e]">{hover.node.desc}</p>
-          <p className="mt-3 text-[11px] text-[#ffd866]">Evidencia: {formatMetric(hover.node.evidence)} · Eventos: {formatMetric(hover.node.events)}</p>
+          <p className="mt-3 text-[11px] text-[#ffd866]">Evidencia: {formatMetric(hover.node.evidence)} Â· Eventos: {formatMetric(hover.node.events)}</p>
           <p className="mt-2 text-[10px] uppercase tracking-[0.14em] text-[#6f664d]">{hover.node.sourceState}</p>
         </div>
       )}
@@ -758,3 +758,4 @@ function formatMetric(value: number | null, decimals = 0) {
   if (value === null || !Number.isFinite(value)) return 'sin datos';
   return decimals > 0 ? value.toFixed(decimals) : String(Math.round(value));
 }
+

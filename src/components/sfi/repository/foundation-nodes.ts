@@ -1,4 +1,4 @@
-import type { FoundationCopyKey } from './foundation-copy';
+﻿import type { FoundationCopyKey } from './foundation-copy';
 
 export type FoundationNode = {
   id: string;
@@ -127,7 +127,7 @@ export const FOUNDATION_NODES: FoundationNode[] = [
     y: -160,
     z: 0,
     radius: 28,
-    connections: ['MIHM', 'WORLDSPECTRUMVECTOR', 'FIELD_EQUATION', 'ATTRACTOR_MAPPING'],
+    connections: ['MIHM', 'WorldSpect', 'FIELD_EQUATION', 'ATTRACTOR_MAPPING'],
     superLabel: 'Metodo / Nucleo operativo',
     title: 'Metodologia SFI',
     contentKey: 'methodology',
@@ -157,8 +157,8 @@ export const FOUNDATION_NODES: FoundationNode[] = [
     weight: 0.80,
   },
   {
-    id: 'WORLDSPECTRUMVECTOR',
-    label: 'WorldSpectrumVector',
+    id: 'WorldSpect',
+    label: 'WorldSpect',
     category: 'model',
     layer: 2,
     x: 650,
@@ -167,7 +167,7 @@ export const FOUNDATION_NODES: FoundationNode[] = [
     radius: 24,
     connections: ['CULTURAL', 'ECONOMY', 'GEO_DIGITAL', 'GEOPOLITICAL', 'BIO', 'CLIMATE', 'INSTITUTIONAL', 'MEMETIC', 'TECH', 'AFFECTIVE'],
     superLabel: 'Modelo / Entorno externo',
-    title: 'WorldSpectrumVector',
+    title: 'WorldSpect',
     contentKey: 'worldspect',
     evidenceCount: 0,
     privateEvidenceCount: 0,
@@ -260,7 +260,7 @@ export const FOUNDATION_NODES: FoundationNode[] = [
     y: 320,
     z: 0,
     radius: 30,
-    connections: ['WORLDSPECTRUMVECTOR', 'MIHM', 'PHENOMENON_ENGINE', 'ATTRACTOR_MAPPING'],
+    connections: ['WorldSpect', 'MIHM', 'PHENOMENON_ENGINE', 'ATTRACTOR_MAPPING'],
     superLabel: 'Observatorio / Campo cultural',
     title: 'ScoreFriction',
     contentKey: 'scorefriction',
@@ -298,7 +298,7 @@ export const FOUNDATION_NODES: FoundationNode[] = [
     y: 500,
     z: 2,
     radius: 20,
-    connections: ['WORLDSPECTRUMVECTOR', 'CLUSTER_ATLAS'],
+    connections: ['WorldSpect', 'CLUSTER_ATLAS'],
     superLabel: 'Instrumento / Orientacion',
     title: 'Signal Vane',
     contentKey: 'signalVane',
@@ -452,7 +452,7 @@ export const FOUNDATION_NODES: FoundationNode[] = [
       y: 80 + Math.sin(angle) * 190,
       z: 3,
       radius: 13,
-      connections: ['WORLDSPECTRUMVECTOR'],
+      connections: ['WorldSpect'],
       superLabel: 'Vector / WorldSpect',
       title: id,
       contentKey: variableContent,
@@ -464,3 +464,4 @@ export const FOUNDATION_NODES: FoundationNode[] = [
     };
   }),
 ];
+

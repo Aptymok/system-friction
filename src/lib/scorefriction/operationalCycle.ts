@@ -490,7 +490,7 @@ export async function buildOperationalCycle(input: Partial<OperationalCycleInput
     degradation: {
       level: degradationLevel,
       trend: degradationLevel > 0.55 ? 'rising' : degradationLevel < 0.25 ? 'falling' : 'stable',
-      notes: degradationLevel >= 1 ? ['WorldSpectrumVector sin fuente suficiente para este filtro.'] : [],
+      notes: degradationLevel >= 1 ? ['WorldSpect sin fuente suficiente para este filtro.'] : [],
     },
     regime: {
       world: currentRegime,

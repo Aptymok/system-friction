@@ -1,4 +1,4 @@
-// WorldSpectrum – cliente que consume la API real (servicio Python)
+﻿// WorldSpectrum â€“ cliente que consume la API real (servicio Python)
 export interface WorldVariable {
   label: string;
   value: number;
@@ -8,7 +8,7 @@ export interface WorldVariable {
 export class WorldSpectrum {
   static async getGlobalEntropy(): Promise<WorldVariable[]> {
     try {
-      const res = await fetch('/api/world-spectrum');
+      const res = await fetch('/api/worldspect/global');
       const data = await res.json();
       // data.sources es un array con las fuentes (worldbank, bbc, etc.)
       if (data.sources && Array.isArray(data.sources)) {
@@ -18,10 +18,10 @@ export class WorldSpectrum {
           volatility: src.error ? 0.3 : 0.1
         }));
       }
-      throw new Error('Respuesta inválida');
+      throw new Error('Respuesta invÃ¡lida');
     } catch (error) {
       console.error('WorldSpectrum error:', error);
-      // No simulamos, devolvemos array vacío y se maneja en el componente
+      // No simulamos, devolvemos array vacÃ­o y se maneja en el componente
       return [];
     }
   }
@@ -31,3 +31,4 @@ export class WorldSpectrum {
     return variables.reduce((acc, v) => acc + (v.value * (1 + v.volatility)), 0) / variables.length;
   }
 }
+

@@ -197,6 +197,7 @@ const emptyPerturbation = { title: '', intention: '', target_vector: '', target_
 
 export default function SfiConsoleClient() {
   const [state, setState] = useState<AnyRecord | null>(null);
+  const [graphState, setGraphState] = useState<AnyRecord | null>(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [caseId, setCaseId] = useState('SFI-OPS-001');
@@ -209,11 +210,21 @@ export default function SfiConsoleClient() {
   async function load() {
     setLoading(true);
     try {
-      const response = await fetch('/api/sfi/operational-state', { cache: 'no-store' });
-      const json = await response.json();
+      const [stateResponse, graphResponse] = await Promise.all([
+        fetch('/api/sfi/operational-state', { cache: 'no-store' }),
+        fetch('/api/graph/state?profile=sfi', { cache: 'no-store' }),
+      ]);
+
+      const [json, graphJson] = await Promise.all([
+        stateResponse.json(),
+        graphResponse.json().catch(() => ({})),
+      ]);
+
       setState(json);
+      setGraphState(graphJson?.data ?? null);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'console_state_failed');
+      setGraphState(null);
     } finally {
       setLoading(false);
     }
@@ -308,6 +319,41 @@ export default function SfiConsoleClient() {
       nodes.push({ id: `aq-${index}`, label: String(item.proposal_title || 'ALIGNMENT'), x: 500 + Math.cos(angle) * 225, y: 380 + Math.sin(angle) * 190, size: 4.5, ring: 3, kind: 'governance', value: item.recommendation || item.recommended_status || 'not enough trace' });
     });
 
+
+    const graphNodeIds = new Set<string>();
+
+    rows(graphState?.nodes).slice(0, 80).forEach((item, index) => {
+      const attrs = item.attributes && typeof item.attributes === 'object' && !Array.isArray(item.attributes) ? item.attributes as AnyRecord : {};
+      const nodeId = String(item.nodeId || item.node_id || item.id || `live-${index}`);
+      const rx = typeof attrs.rx === 'number' ? attrs.rx : null;
+      const ry = typeof attrs.ry === 'number' ? attrs.ry : null;
+      const totalGraphNodes = rows(graphState?.nodes).length || 12;
+      const angle = (Math.PI * 2 * index) / Math.max(12, totalGraphNodes);
+      const ontology = String(item.ontologyType || item.ontology_type || item.type || attrs.canvasKind || '').toLowerCase();
+
+      const kind: FieldNode['kind'] =
+        ontology.includes('institution') || ontology.includes('governance') ? 'governance' :
+        ontology.includes('evidence') ? 'evidence' :
+        ontology.includes('culture') || ontology.includes('memetic') ? 'culture' :
+        ontology.includes('execution') || ontology.includes('proposal') ? 'execution' :
+        ontology.includes('learning') || ontology.includes('lesson') ? 'learning' :
+        ontology.includes('world') || ontology.includes('regime') ? 'world' :
+        'core';
+
+      graphNodeIds.add(nodeId);
+
+      nodes.push({
+        id: `g:${nodeId}`,
+        label: String(item.label || nodeId).slice(0, 28),
+        x: rx !== null ? 80 + rx * 840 : 500 + Math.cos(angle) * 335,
+        y: ry !== null ? 80 + ry * 600 : 380 + Math.sin(angle) * 285,
+        size: Math.max(4, Math.min(10, Number(attrs.weight ?? item.weight ?? 0.55) * 9)),
+        ring: 4,
+        kind,
+        value: item.provenance || item.origin || item.ontologyType || item.ontology_type || 'canonical graph node',
+      });
+    });
+
     const baseLinks: FieldLink[] = [
       { from: 'reality', to: 'worldspect', strength: 1.2 }, { from: 'reality', to: 'scorefriction', strength: 1.1 }, { from: 'reality', to: 'evidence', strength: 1.0 },
       { from: 'reality', to: 'attractor', strength: 1.5 }, { from: 'reality', to: 'recovery', strength: 1.3 }, { from: 'reality', to: 'alignment', strength: 1.0 },
@@ -320,8 +366,26 @@ export default function SfiConsoleClient() {
     recoveryQueue.slice(0, 8).forEach((_, index) => baseLinks.push({ from: 'recovery', to: `rq-${index}`, strength: 0.6 }, { from: `rq-${index}`, to: 'outcomes', strength: 0.35 }));
     alignmentQueue.slice(0, 8).forEach((_, index) => baseLinks.push({ from: 'alignment', to: `aq-${index}`, strength: 0.5 }, { from: `aq-${index}`, to: 'attractor', strength: 0.45 }));
 
+
+    rows(graphState?.edges).slice(0, 180).forEach((item) => {
+      const source = String(item.sourceNodeId || item.source_node_id || item.source || item.from || '');
+      const target = String(item.targetNodeId || item.target_node_id || item.target || item.to || '');
+
+      if (!source || !target || !graphNodeIds.has(source) || !graphNodeIds.has(target)) return;
+
+      baseLinks.push({
+        from: `g:${source}`,
+        to: `g:${target}`,
+        strength: Math.max(0.35, Math.min(1.8, Number(item.weight ?? item.w_ij ?? 0.65) * 1.35)),
+      });
+    });
+
+    if (graphNodeIds.has('sfi.core')) {
+      baseLinks.push({ from: 'reality', to: 'g:sfi.core', strength: 1.7 });
+    }
+
     return { nodes, links: baseLinks };
-  }, [activeAttractor?.title, alignmentQueue, closedLoop.current_bottleneck, cycle, evidenceMap.length, pipeline.bottleneck, recoveryQueue, stability, state?.scoreFriction?.data, state?.worldSpect?.data]);
+  }, [activeAttractor?.title, alignmentQueue, closedLoop.current_bottleneck, cycle, evidenceMap.length, graphState, pipeline.bottleneck, recoveryQueue, stability, state?.scoreFriction?.data, state?.worldSpect?.data]);
 
   return (
     <main className="min-h-screen bg-black text-white">

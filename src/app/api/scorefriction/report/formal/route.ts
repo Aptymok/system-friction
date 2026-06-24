@@ -10,7 +10,7 @@ export async function POST(request: Request) {
     case_id: typeof body.case_id === 'string' ? body.case_id : `REPORT-${Date.now().toString(36)}`,
     objective: typeof body.objective === 'string' ? body.objective : null,
     scope: body.scope,
-    analysis_modes: Array.isArray(body.analysis_modes) ? body.analysis_modes : ['MIHM', 'PSI', 'WSV', 'SCOREFRICTION', 'AMV'],
+    analysis_modes: Array.isArray(body.analysis_modes) ? body.analysis_modes : ['MIHM', 'PSI', 'WORLDSPECT', 'SCOREFRICTION', 'AMV'],
     evaluated_object: body.evaluated_object ?? body.text ?? body.object ?? '',
     run_contrast: true,
   });

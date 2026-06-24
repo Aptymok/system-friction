@@ -1,4 +1,4 @@
-export type SfiSurfaceStatus =
+﻿export type SfiSurfaceStatus =
   | 'active'
   | 'protected'
   | 'experimental'
@@ -26,7 +26,7 @@ export type SfiNavItem = {
   status: SfiSurfaceStatus;
   protected?: boolean;
   public?: boolean;
-  instrument?: 'ROOT' | 'MIHM' | 'SCOREFRICTION' | 'SFI-PSI' | 'WSV' | 'AMV';
+  instrument?: 'ROOT' | 'MIHM' | 'SCOREFRICTION' | 'SFI-PSI' | 'WorldSpect' | 'AMV';
   priority: number;
 };
 
@@ -35,7 +35,7 @@ export const SFI_NAVIGATION: SfiNavItem[] = [
     id: 'home',
     title: 'System Friction Institute',
     href: '/',
-    description: 'Landing institucional y navegación principal del ecosistema SFI.',
+    description: 'Landing institucional y navegaciÃ³n principal del ecosistema SFI.',
     area: 'home',
     status: 'active',
     public: true,
@@ -55,7 +55,7 @@ export const SFI_NAVIGATION: SfiNavItem[] = [
     id: 'root',
     title: 'ROOT Observatory',
     href: '/root',
-    description: 'Integración operativa de campo, señales, ScoreFriction, MIHM y WorldSpectrumVector.',
+    description: 'IntegraciÃ³n operativa de campo, seÃ±ales, ScoreFriction, MIHM y WorldSpect.',
     area: 'observatory',
     status: 'protected',
     protected: true,
@@ -66,10 +66,10 @@ export const SFI_NAVIGATION: SfiNavItem[] = [
     id: 'world-vector',
     title: 'WorldSpect',
     href: '/world-vector',
-    description: 'Superficie operacional para campañas, evidencia, proto-atractores y cierre institucional.',
+    description: 'Superficie operacional para campaÃ±as, evidencia, proto-atractores y cierre institucional.',
     area: 'observatory',
     status: 'active',
-    instrument: 'WSV',
+    instrument: 'WorldSpect',
     priority: 12,
   },
   {
@@ -87,7 +87,7 @@ export const SFI_NAVIGATION: SfiNavItem[] = [
     id: 'scorefriction',
     title: 'ScoreFriction',
     href: '/scorefriction',
-    description: 'Observatorio longitudinal de fricción cultural y vectores de evidencia.',
+    description: 'Observatorio longitudinal de fricciÃ³n cultural y vectores de evidencia.',
     area: 'instrument',
     status: 'active',
     instrument: 'SCOREFRICTION',
@@ -97,7 +97,7 @@ export const SFI_NAVIGATION: SfiNavItem[] = [
     id: 'sfi-lab-internal',
     title: 'SFI-LAB internal',
     href: '/scorefriction',
-    description: 'Instrumento longitudinal para detectar señales persistentes y generar reportes operativos.',
+    description: 'Instrumento longitudinal para detectar seÃ±ales persistentes y generar reportes operativos.',
     area: 'instrument',
     status: 'active',
     instrument: 'SFI-PSI',
@@ -107,7 +107,7 @@ export const SFI_NAVIGATION: SfiNavItem[] = [
     id: 'terminal',
     title: 'Terminal',
     href: '/terminal',
-    description: 'Terminal cognitiva protegida para operación del campo.',
+    description: 'Terminal cognitiva protegida para operaciÃ³n del campo.',
     area: 'dashboard',
     status: 'protected',
     protected: true,
@@ -146,7 +146,7 @@ export const SFI_NAVIGATION: SfiNavItem[] = [
     id: 'cluster-atlas',
     title: 'Cluster Atlas',
     href: '/cluster-atlas',
-    description: 'Superficie pública de lectura atlas y memoria de campo.',
+    description: 'Superficie pÃºblica de lectura atlas y memoria de campo.',
     area: 'observatory',
     status: 'active',
     public: true,
@@ -156,7 +156,7 @@ export const SFI_NAVIGATION: SfiNavItem[] = [
     id: 'observatories',
     title: 'Observatories',
     href: '/observatories',
-    description: 'Índice público de observatorios del ecosistema.',
+    description: 'Ãndice pÃºblico de observatorios del ecosistema.',
     area: 'observatory',
     status: 'active',
     public: true,
@@ -166,7 +166,7 @@ export const SFI_NAVIGATION: SfiNavItem[] = [
     id: 'repository',
     title: 'Repository',
     href: '/repository',
-    description: 'Repositorio institucional de evidencia, materiales y referencias públicas.',
+    description: 'Repositorio institucional de evidencia, materiales y referencias pÃºblicas.',
     area: 'observatory',
     status: 'active',
     public: true,
@@ -176,7 +176,7 @@ export const SFI_NAVIGATION: SfiNavItem[] = [
     id: 'moph',
     title: 'MOP-H',
     href: '/moph',
-    description: 'Instrumento fenomenológico humano de registro local.',
+    description: 'Instrumento fenomenolÃ³gico humano de registro local.',
     area: 'instrument',
     status: 'active',
     public: true,
@@ -206,7 +206,7 @@ export const SFI_NAVIGATION: SfiNavItem[] = [
     id: 'contact',
     title: 'Contact',
     href: '/contact',
-    description: 'Contacto institucional para colaboración, análisis e integración.',
+    description: 'Contacto institucional para colaboraciÃ³n, anÃ¡lisis e integraciÃ³n.',
     area: 'contact',
     status: 'active',
     public: true,
@@ -216,7 +216,7 @@ export const SFI_NAVIGATION: SfiNavItem[] = [
     id: 'api-signals-state',
     title: 'SFI-PSI State API',
     href: '/api/signals/state',
-    description: 'Estado longitudinal de señales persistentes transmodales.',
+    description: 'Estado longitudinal de seÃ±ales persistentes transmodales.',
     area: 'api',
     status: 'api',
     public: false,
@@ -248,7 +248,7 @@ export const SFI_NAVIGATION: SfiNavItem[] = [
     id: 'api-scorefriction-execution-state',
     title: 'ScoreFriction Execution State API',
     href: '/api/scorefriction/execution-state',
-    description: 'Estado de ejecución, ledger y aprendizaje operacional.',
+    description: 'Estado de ejecuciÃ³n, ledger y aprendizaje operacional.',
     area: 'api',
     status: 'api',
     public: false,
@@ -258,7 +258,7 @@ export const SFI_NAVIGATION: SfiNavItem[] = [
     id: 'api-root-me',
     title: 'ROOT Identity API',
     href: '/api/root/me',
-    description: 'Lectura de identidad y autorización ROOT.',
+    description: 'Lectura de identidad y autorizaciÃ³n ROOT.',
     area: 'api',
     status: 'api',
     public: false,
@@ -269,7 +269,7 @@ export const SFI_NAVIGATION: SfiNavItem[] = [
     id: 'api-sfi-surfaces',
     title: 'SFI Surfaces API',
     href: '/api/root/self-observability',
-    description: 'Mapa estático de conexiones entre superficies institucionales.',
+    description: 'Mapa estÃ¡tico de conexiones entre superficies institucionales.',
     area: 'api',
     status: 'api',
     public: false,
@@ -277,13 +277,13 @@ export const SFI_NAVIGATION: SfiNavItem[] = [
   },
   {
     id: 'api-worldspect-vector',
-    title: 'WorldSpectrumVector API',
+    title: 'WorldSpect API',
     href: '/api/worldspect/vector',
-    description: 'Vector externo de presión y contexto.',
+    description: 'Vector externo de presiÃ³n y contexto.',
     area: 'api',
     status: 'api',
     public: false,
-    instrument: 'WSV',
+    instrument: 'WorldSpect',
     priority: 106,
   },
 ];
@@ -296,4 +296,5 @@ export function navByIds(ids: string[]) {
   const lookup = new Map(SFI_NAVIGATION.map((item) => [item.id, item]));
   return ids.map((id) => lookup.get(id)).filter((item): item is SfiNavItem => Boolean(item));
 }
+
 

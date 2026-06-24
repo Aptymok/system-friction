@@ -5,8 +5,8 @@ import type { AnalysisMode } from '@/lib/scorefriction/contracts/operationalCycl
 export const dynamic = 'force-dynamic';
 
 function modes(value: unknown): AnalysisMode[] {
-  if (!Array.isArray(value)) return ['MIHM', 'PSI', 'WSV', 'SCOREFRICTION', 'AMV'];
-  return value.filter((item): item is AnalysisMode => ['MIHM', 'PSI', 'WSV', 'SCOREFRICTION', 'AMV'].includes(String(item) as AnalysisMode));
+  if (!Array.isArray(value)) return ['MIHM', 'PSI', 'WORLDSPECT', 'SCOREFRICTION', 'AMV'];
+  return value.filter((item): item is AnalysisMode => ['MIHM', 'PSI', 'WORLDSPECT', 'SCOREFRICTION', 'AMV'].includes(String(item) as AnalysisMode));
 }
 
 export async function GET(request: NextRequest) {
@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
     case_id: url.searchParams.get('case_id') ?? 'SFI-OP-LOCAL',
     objective: url.searchParams.get('objective'),
     scope: normalizeScope(url.searchParams.get('scope')),
-    analysis_modes: ['MIHM', 'PSI', 'WSV', 'SCOREFRICTION', 'AMV'],
+    analysis_modes: ['MIHM', 'PSI', 'WORLDSPECT', 'SCOREFRICTION', 'AMV'],
     user_question: url.searchParams.get('q'),
     run_contrast: false,
   });
