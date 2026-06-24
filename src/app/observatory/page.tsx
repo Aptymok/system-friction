@@ -1,8 +1,10 @@
-import { SfiObservatoryOS } from '@/observatory/components/os/SfiObservatoryOS';
+﻿import { SfiObservatoryOS } from '@/observatory/components/os/SfiObservatoryOS';
+import CanonicalWorldSpectStatus from '@/components/worldspect/CanonicalWorldSpectStatus';
 
 export default function ObservatoryPage() {
   return (
     <>
+      <CanonicalWorldSpectStatus surface="observatory" />
       <section
         data-sfi-runtime-panel="SFI_RUNTIME_PANEL_MARKER"
         className="mx-auto my-4 grid max-w-7xl gap-3 px-4 lg:grid-cols-2"
@@ -13,7 +15,7 @@ export default function ObservatoryPage() {
           </p>
           <h2 className="mt-2 text-lg font-semibold">Lectura operacional activa</h2>
           <p className="mt-2 text-xs leading-5 text-stone-300/75">
-            /api/worldspect/operational-state queda montado como lectura visible del mundo.
+            /api/worldspect/state queda montado como lectura canónica visible del mundo.
           </p>
         </article>
 
@@ -32,3 +34,4 @@ export default function ObservatoryPage() {
     </>
   );
 }
+

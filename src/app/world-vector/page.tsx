@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useMemo, useState } from 'react';
 
@@ -64,14 +64,14 @@ function operatorSummary(state: Row) {
 }
 
 function operatorAction(state: Row) {
-  return label(state.action, 'No ejecutar decisiones apoyadas en WorldSpect hasta recuperar lectura mínima.');
+  return label(state.action, 'No ejecutar decisiones apoyadas en WorldSpect hasta recuperar lectura mÃ­nima.');
 }
 
 function operatorDecisionUse(state: Row) {
   const value = label(state.decisionUse, 'hold');
-  if (value === 'execute') return 'Puede orientar decisión';
+  if (value === 'execute') return 'Puede orientar decisiÃ³n';
   if (value === 'observe') return 'Usar para observar';
-  if (value === 'internal_only') return 'Sólo lectura interna';
+  if (value === 'internal_only') return 'SÃ³lo lectura interna';
   return 'No ejecutar';
 }
 
@@ -137,14 +137,27 @@ export default function WorldVectorPage() {
   async function loadWorldSpect() {
     try {
       const [operational, longitudinal, evidenceTrace, attractors, canonicalOpportunities] = await Promise.all([
-        fetch('/api/worldspect/operational-state', { cache: 'no-store' }).then((res) => safeJson<Row>(res, { ok: false, status: 'empty_worldspect_operational_state' })),
+        fetch('/api/worldspect/state', { cache: 'no-store' }).then((res) => safeJson<Row>(res, { ok: false, status: 'empty_worldspect_canonical_state' })),
         fetch('/api/worldspect/longitudinal?limit=80', { cache: 'no-store' }).then((res) => safeJson<Row>(res, { ok: false, timeline: [] })),
         fetch('/api/worldspect/evidence-trace', { cache: 'no-store' }).then((res) => safeJson<Row>(res, { ok: false, traces: [] })),
         fetch('/api/worldspect/attractors?limit=80', { cache: 'no-store' }).then((res) => safeJson<Row>(res, { ok: false, attractors: [] })),
         fetch('/api/worldspect/opportunities?limit=80', { cache: 'no-store' }).then((res) => safeJson<Row>(res, { ok: false, opportunities: [] })),
       ]);
 
-      setState(operational);
+      setState({
+        ...operational,
+        status: operational.source_state ?? operational.status,
+        snapshot: { vectors: operational.vectors ?? [] },
+        vector_readout: operational.vectors ?? [],
+        source_health: operational.source_health ?? [],
+        source_mix: operational.worldspect_external_purity ?? {},
+        operator_state: {
+          status: operational.observation_quality,
+          decisionUse: operational.decision_strength === 'strong' ? 'execute' : 'observe',
+          label: operational.interpretation,
+          evidence: operational.domain_quorum ?? {},
+        },
+      });
       setHistory(longitudinal);
       setTraceability(evidenceTrace);
       setWorldAttractors(attractors);
@@ -167,7 +180,7 @@ export default function WorldVectorPage() {
   async function refreshRealWorldSpect() {
     setRefreshing(true);
     try {
-      const ingest = await fetch('/api/cron/worldspect', { method: 'POST', cache: 'no-store' })
+      const ingest = await fetch('/api/worldspect/state', { method: 'POST', cache: 'no-store' })
         .then((res) => safeJson<Row>(res, { ok: false, error: 'empty_worldspect_ingest_response' }));
 
       if (ingest.ok === false) {
@@ -286,7 +299,7 @@ export default function WorldVectorPage() {
           <span>Cobertura: {String(operatorEvidence.sourceCoverage ?? sourceMix.sourceCoverage ?? 'n/d')}</span>
           <span>Fuentes vivas: {String(operatorEvidence.realInputCount ?? sourceMix.realInputCount ?? 'n/d')}</span>
           <span>Fuentes pendientes: {String(operatorEvidence.missingOrDegradedCount ?? sourceMix.missingOrDegradedCount ?? 'n/d')}</span>
-          <span>Estado técnico: {String(state?.technical_status ?? state?.status ?? 'n/d')}</span>
+          <span>Estado tÃ©cnico: {String(state?.technical_status ?? state?.status ?? 'n/d')}</span>
         </div>
       </section>
 
@@ -437,7 +450,7 @@ export default function WorldVectorPage() {
                     <article key={String(item.id)}>
                       <b>{label(item.source_id ?? item.provider)}</b>
                       <span>{label(item.provider)} / {label(item.observed_at)} / trust {fixed(item.trust)}</span>
-                      <small>{label(item.evidence_ref)} — {label(item.summary)}</small>
+                      <small>{label(item.evidence_ref)} â€” {label(item.summary)}</small>
                     </article>
                   )) : <p>{String(title) === 'USER / CASE' ? 'User not calibrated yet. Upload/evaluate an object to build case evidence.' : 'No exact linked evidence for this level.'}</p>}
                 </div>
@@ -590,6 +603,7 @@ export default function WorldVectorPage() {
     </main>
   );
 }
+
 
 
 
