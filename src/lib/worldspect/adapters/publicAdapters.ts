@@ -595,12 +595,13 @@ export function getWorldSpectPublicAdapters(): WorldSpectAdapter[] {
     }),
 
     worldBankEconomyAdapter(),
-    worldBankIndicatorAdapter({
-      sourceId: 'economy_worldbank_inflation_public',
-      indicator: 'FP.CPI.TOTL.ZG',
+    githubSearchAdapter({
+      sourceId: 'economy_github_market_stress_public',
+      domain: 'ECONOMY',
+      query: 'inflation OR recession OR layoffs OR market-risk OR interest-rates OR commodity-prices',
       signalKey: 'economicStress',
-      transform: 'absolute_20',
-      trust: 0.70,
+      scale: 10000000,
+      trust: 0.58,
     }),
 
     hnSearchAdapter({
@@ -719,6 +720,7 @@ export function getWorldSpectPublicAdapters(): WorldSpectAdapter[] {
     }),
   ];
 }
+
 
 
 
