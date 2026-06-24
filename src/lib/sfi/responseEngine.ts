@@ -1,4 +1,4 @@
-import { asRecord, numericValue, readLatestProposalAlignment, readOperationalConsoleState, textValue, type SfiRecord } from '@/lib/sfi/operationalConsole';
+﻿import { asRecord, numericValue, readLatestProposalAlignment, readOperationalConsoleState, textValue, type SfiRecord } from '@/lib/sfi/operationalConsole';
 
 export type SfiResponseDecision =
   | 'observe'
@@ -106,6 +106,29 @@ function alignmentPayload(recoveryTargetId: string | null, latestAlignment: SfiR
   };
 }
 
+function textBlob(...values: unknown[]) {
+  return values.map((value) => {
+    if (typeof value === 'string') return value;
+    if (value && typeof value === 'object') return JSON.stringify(value);
+    return '';
+  }).join(' ').toLowerCase();
+}
+
+function evidenceTiedToProposal(proposalId: string | null, evidenceMap: SfiRecord[]) {
+  const id = textValue(proposalId).toLowerCase();
+  if (!id) return false;
+
+  return evidenceMap.some((item) => textBlob(
+    item.id,
+    item.proposal_id,
+    item.proposalId,
+    item.evidence_ref,
+    item.summary,
+    item.payload,
+    item.source_payload,
+  ).includes(id));
+}
+
 export async function generateSfiOperationalResponse(): Promise<SfiOperationalResponse> {
   const state = await readOperationalConsoleState();
 
@@ -175,6 +198,7 @@ export async function generateSfiOperationalResponse(): Promise<SfiOperationalRe
       EXECUTION_ALIGNMENT_STATUSES.has(latestAlignmentStatus) &&
       alignmentScore !== null &&
       alignmentScore >= 0.45;
+    const directEvidencePresent = evidenceTiedToProposal(recoveryTargetId, evidenceMap);
 
     if (!latestAlignment) {
       decision = {
@@ -203,18 +227,33 @@ export async function generateSfiOperationalResponse(): Promise<SfiOperationalRe
         payload: alignmentPayload(recoveryTargetId, latestAlignment),
         confidence: 0.9,
       };
+    } else if (!directEvidencePresent) {
+      decision = {
+        decision: 'request_evidence',
+        priority: 'high',
+        reason: 'Latest candidate alignment allows execution preparation, but no evidence map entry is directly tied to the selected proposal id.',
+        blocking_condition: 'missing_evidence_attachment',
+        next_action: 'Attach or reference evidence using the selected proposal id before preparing execution.',
+        target_route: '/api/sfi/evidence-requirements',
+        target_id: recoveryTargetId,
+        payload: {
+          ...alignmentPayload(recoveryTargetId, latestAlignment),
+          direct_evidence_required: true,
+        },
+        confidence: 0.91,
+      };
     } else {
-    decision = {
-      decision: 'prepare_execution',
-      priority: 'high',
-      reason: 'A recovery item, evidence map entries, active attractor, and latest candidate alignment allow execution preparation without external execution.',
-      blocking_condition: null,
-      next_action: 'Prepare a pending execution ledger record for manual review; do not execute externally.',
-      target_route: '/api/sfi/recovery-queue/[id]/prepare-execution',
-      target_id: recoveryTargetId,
-      payload: { ...buildPayload(firstRecovery, 'recovery_queue_item'), ...alignmentPayload(recoveryTargetId, latestAlignment) },
-      confidence: 0.84,
-    };
+      decision = {
+        decision: 'prepare_execution',
+        priority: 'high',
+        reason: 'A recovery item, direct proposal evidence, active attractor, and latest candidate alignment allow execution preparation without external execution.',
+        blocking_condition: null,
+        next_action: 'Prepare a pending execution ledger record for manual review; do not execute externally.',
+        target_route: '/api/sfi/recovery-queue/[id]/prepare-execution',
+        target_id: recoveryTargetId,
+        payload: { ...buildPayload(firstRecovery, 'recovery_queue_item'), ...alignmentPayload(recoveryTargetId, latestAlignment) },
+        confidence: 0.84,
+      };
     }
   } else if (degraded.length > 0) {
     decision = {
