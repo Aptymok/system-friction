@@ -642,13 +642,13 @@ export function getWorldSpectPublicAdapters(): WorldSpectAdapter[] {
     }),
 
     openMeteoClimateAdapter(),
-    wikipediaPageviewsAdapter({
-      sourceId: 'climate_wikimedia_pageviews_public',
+    wikipediaSearchAdapter({
+      sourceId: 'climate_wikipedia_public',
       domain: 'CLIMATE',
-      page: 'Climate change',
+      query: 'climate change heatwave drought flood carbon emissions weather',
       signalKey: 'climateStress',
       trust: 0.56,
-      scale: 3000000,
+      scale: 80000,
     }),
 
     wikipediaSearchAdapter({
@@ -703,13 +703,14 @@ export function getWorldSpectPublicAdapters(): WorldSpectAdapter[] {
       trust: 0.52,
       scale: 60000,
     }),
-    wikipediaPageviewsAdapter({
-      sourceId: 'affective_wikimedia_pageviews_public',
+    wikipediaSearchAdapter({
+      sourceId: 'affective_wikipedia_social_public',
       domain: 'AFFECTIVE',
-      page: 'Emotion',
+      query: 'public emotion anxiety fear anger hope sentiment society',
       signalKey: 'affect',
       trust: 0.54,
-      scale: 2000000,
+      scale: 80000,
     }),
   ];
 }
+
