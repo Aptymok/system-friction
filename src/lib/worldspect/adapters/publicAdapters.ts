@@ -695,22 +695,23 @@ export function getWorldSpectPublicAdapters(): WorldSpectAdapter[] {
       trust: 0.58,
     }),
 
-    wikipediaSearchAdapter({
-      sourceId: 'affective_wikipedia_public',
+    githubSearchAdapter({
+      sourceId: 'affective_github_sentiment_public',
       domain: 'AFFECTIVE',
-      query: 'anxiety anger fear hope sentiment emotion society',
+      query: 'sentiment analysis emotion anxiety mental-health',
       signalKey: 'affect',
-      trust: 0.52,
-      scale: 60000,
+      scale: 10000000,
+      trust: 0.56,
     }),
-    wikipediaSearchAdapter({
-      sourceId: 'affective_wikipedia_social_public',
+    hnSearchAdapter({
+      sourceId: 'affective_hn_public',
       domain: 'AFFECTIVE',
-      query: 'public emotion anxiety fear anger hope sentiment society',
+      query: 'mental health anxiety burnout emotion sentiment',
       signalKey: 'affect',
-      trust: 0.54,
-      scale: 80000,
+      scale: 100000,
+      trust: 0.50,
     }),
   ];
 }
+
 
