@@ -3,7 +3,6 @@ export type SfiSurfaceStatus =
   | 'protected'
   | 'experimental'
   | 'api'
-  | 'legacy'
   | 'missing';
 
 export type SfiSurfaceArea =
@@ -14,8 +13,7 @@ export type SfiSurfaceArea =
   | 'dashboard'
   | 'api'
   | 'contact'
-  | 'user'
-  | 'legacy';
+  | 'user';
 
 export type SfiNavItem = {
   id: string;
