@@ -12,7 +12,6 @@ const SCRIPT_NAMES = {
   lyricsExtractor: 'lyrics_extractor.py',
   mihmFull: 'mihm_extract_full.py',
   monteCarlo: 'montecarlo.py',
-  worldCli: 'world_cli.py',
 } as const;
 
 export type PythonBridgeFile = {
@@ -196,10 +195,6 @@ export async function runMonteCarlo(_input: Record<string, unknown> = {}) {
   return { ok: true as const, data: parseMonteCarlo(result.data), stderr: result.stderr };
 }
 
-export async function runWorldSpectrum() {
-  return runPythonJson<Record<string, unknown>>('worldCli', []);
-}
-
 export async function runPythonScoreFrictionAnalysis(input: PythonScoreFrictionAnalysisInput): Promise<PythonBridgeResult<Record<string, unknown>>> {
   const tempFiles: TempFile[] = [];
   try {
@@ -218,29 +213,26 @@ export async function runPythonScoreFrictionAnalysis(input: PythonScoreFrictionA
       return {
         ok: true,
         data: {
-          analyzer: 'python_mihm',
-          mode: 'local_python',
-          case_id: input.caseId ?? null,
-          evidence_type: input.evidenceType ?? 'audio_file_analysis',
-          metadata: input.metadata ?? {},
           ...data,
+          metadata: input.metadata ?? {},
+          caseId: input.caseId ?? null,
+          evidenceType: input.evidenceType ?? null,
+          runtime: 'python_bridge',
         },
-        stderr: result.stderr,
       };
     }
 
     if (text) {
-      const result = await runLyricsExtractor({ text });
+      const result = await runLyricsExtractor({ text, language: 'auto' });
       if (!result.ok) return result;
       return {
         ok: true,
         data: {
-          analyzer: 'python_lyrics',
-          mode: 'local_python',
-          case_id: input.caseId ?? null,
-          evidence_type: input.evidenceType ?? 'lyrics',
-          metadata: input.metadata ?? {},
           ...result.data,
+          metadata: input.metadata ?? {},
+          caseId: input.caseId ?? null,
+          evidenceType: input.evidenceType ?? null,
+          runtime: 'python_bridge_text',
         },
         stderr: result.stderr,
       };
@@ -248,16 +240,16 @@ export async function runPythonScoreFrictionAnalysis(input: PythonScoreFrictionA
 
     return { ok: false, error: 'scorefriction_python_input_required' };
   } catch (error) {
-    return { ok: false, error: errorCode(error instanceof Error ? error.message : 'scorefriction_python_failed') };
+    return {
+      ok: false,
+      error: errorCode(error instanceof Error ? error.message : error),
+      technical: error instanceof Error ? error.message : String(error),
+    };
   } finally {
     await Promise.all(tempFiles.map((file) => file.cleanup()));
   }
 }
 
-export const scoreFrictionPythonBridgeConfig = {
-  pythonRoot,
-  timeoutMs: PYTHON_TIMEOUT_MS,
-  maxFileSizeBytes: MAX_FILE_SIZE_BYTES,
-  audioExtensions: [...AUDIO_EXTENSIONS],
-  textExtensions: [...TEXT_EXTENSIONS],
-};
+void pythonBin;
+void sanitizeStderr;
+void safeJsonParse;
