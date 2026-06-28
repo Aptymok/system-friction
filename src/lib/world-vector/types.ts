@@ -103,3 +103,27 @@ export type WorldVectorStatus = {
   current_cycle_day: WorldVectorCycleDay;
   warnings: string[];
 };
+
+export type WorldVectorOperationalState = {
+  status: WorldVectorStatus;
+  today: {
+    cycle_day: WorldVectorCycleDay;
+    cycle_range: WorldVectorCycleRange;
+    observation: WorldVectorObservation;
+    persistence: WorldVectorPersistenceStatus;
+  };
+  reports: {
+    internal: WorldVectorReport;
+    public: WorldVectorReport;
+  };
+  close_cycle: {
+    ready: boolean;
+    reason: string;
+  };
+  agent_audit: {
+    memory_enabled: boolean;
+    pulse_available: boolean;
+    warnings: string[];
+    blocked: string[];
+  };
+};
