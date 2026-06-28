@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getWorldVectorToday } from '@/lib/world-vector/readModel';
 import { buildWorldVectorPublicReport } from '@/lib/world-vector/reportBuilder';
-import { persistWorldVectorReport } from '@/lib/world-vector/persistence';
+import { getWorldVectorPersistenceStatus, persistWorldVectorReport } from '@/lib/world-vector/persistence';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -20,7 +20,7 @@ export async function GET(request: Request) {
       cycleRange: today.cycle_range,
       observation: today.observation,
     })
-    : { enabled: false as const, reason: 'read_only_default' };
+    : await getWorldVectorPersistenceStatus();
 
   return NextResponse.json({
     ok: true,

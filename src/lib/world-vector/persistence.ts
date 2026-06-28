@@ -4,6 +4,7 @@ import type {
   WorldVectorCycleRange,
   WorldVectorObservation,
   WorldVectorPersistenceStatus,
+  WorldVectorPersistenceResult,
   WorldVectorReport,
   WorldVectorReportType,
 } from './types';
@@ -15,10 +16,6 @@ export const REQUIRED_WORLD_VECTOR_TABLES = [
 ];
 
 type BlockReason = Extract<WorldVectorPersistenceStatus, { enabled: false }>['reason'];
-
-type PersistenceResult<T> =
-  | { ok: true; data: T; persisted: true; existing?: boolean }
-  | { ok: false; blocked: true; reason: BlockReason; details?: string };
 
 type ReportRow = {
   id: string;
@@ -128,7 +125,7 @@ async function ensureCycle(range: WorldVectorCycleRange, observation?: WorldVect
 export async function persistWorldVectorObservation(input: {
   observation: WorldVectorObservation;
   cycleRange: WorldVectorCycleRange;
-}): Promise<PersistenceResult<Record<string, unknown>>> {
+}): Promise<WorldVectorPersistenceResult<Record<string, unknown>>> {
   const readiness = await getWorldVectorPersistenceStatus();
   if (!readiness.enabled) return blocked(readiness.reason, readiness.details);
   if (!input.observation.observed_at) return blocked('world_vector_tables_not_installed', 'worldspect_snapshot_missing');
@@ -179,13 +176,27 @@ export async function persistWorldVectorReport(input: {
   report: WorldVectorReport;
   cycleRange: WorldVectorCycleRange;
   observation?: WorldVectorObservation;
-}): Promise<PersistenceResult<ReportRow>> {
+}): Promise<WorldVectorPersistenceResult<ReportRow>> {
   const readiness = await getWorldVectorPersistenceStatus();
   if (!readiness.enabled) return blocked(readiness.reason, readiness.details);
 
   const service = createServiceSupabaseClient();
   const cycle = await ensureCycle(input.cycleRange, input.observation);
   if (!cycle.ok) return blocked('world_vector_table_read_failed', cycle.error);
+
+  const { data: existing, error: selectError } = await service
+    .from('world_vector_reports')
+    .select('*')
+    .eq('report_type', input.report.report_type)
+    .eq('target_audience', input.report.target_audience)
+    .eq('period_start', input.report.period_start)
+    .eq('period_end', input.report.period_end)
+    .eq('status', 'draft')
+    .limit(1)
+    .maybeSingle();
+
+  if (selectError) return blocked(tableMissing(selectError.message) ? 'world_vector_tables_not_installed' : 'world_vector_table_read_failed', selectError.message);
+  if (existing) return { ok: true, data: existing as ReportRow, persisted: true, existing: true };
 
   const { data, error } = await service
     .from('world_vector_reports')

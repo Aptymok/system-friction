@@ -82,6 +82,15 @@ export type WorldVectorReport = {
   json_payload: Record<string, unknown>;
 };
 
+export type WorldVectorPersistenceResult<T = Record<string, unknown>> =
+  | { ok: true; data: T; persisted: true; existing?: boolean }
+  | {
+    ok: false;
+    blocked: true;
+    reason: Extract<WorldVectorPersistenceStatus, { enabled: false }>['reason'];
+    details?: string;
+  };
+
 export type WorldVectorStatus = {
   ok: true;
   mode: 'read_only';

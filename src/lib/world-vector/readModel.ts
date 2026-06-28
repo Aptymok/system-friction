@@ -7,9 +7,10 @@ import type { WorldVectorStatus } from './types';
 export async function getWorldVectorToday() {
   const cycleDay = getCurrentWorldVectorCycleDay();
   const cycleRange = getWorldVectorCycleRange();
-  const [latest, recent] = await Promise.all([
+  const [latest, recent, persistence] = await Promise.all([
     getLatestWorldSpectSnapshot(),
     getRecentWorldSpectSnapshots({ days: 90, ingestMode: 'all', limit: 120 }),
+    getWorldVectorPersistenceStatus(),
   ]);
 
   return {
@@ -18,10 +19,7 @@ export async function getWorldVectorToday() {
     observation: deriveWorldVectorObservation(latest, cycleDay, {
       recentSampleCount: recent.length,
     }),
-    persistence: {
-      enabled: false as const,
-      reason: 'world_vector_tables_not_installed' as const,
-    },
+    persistence,
   };
 }
 
