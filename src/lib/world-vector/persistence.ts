@@ -218,6 +218,27 @@ export async function persistWorldVectorReport(input: {
   return { ok: true, data: data as ReportRow, persisted: true };
 }
 
+export async function readLatestWorldVectorReport(input: {
+  reportType: WorldVectorReportType;
+  targetAudience: string;
+}): Promise<{ ok: true; data: ReportRow | null } | { ok: false; reason: BlockReason; details?: string }> {
+  const readiness = await getWorldVectorPersistenceStatus();
+  if (!readiness.enabled) return { ok: false, reason: readiness.reason, details: readiness.details };
+
+  const service = createServiceSupabaseClient();
+  const { data, error } = await service
+    .from('world_vector_reports')
+    .select('*')
+    .eq('report_type', input.reportType)
+    .eq('target_audience', input.targetAudience)
+    .order('generated_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) return { ok: false, reason: tableMissing(error.message) ? 'world_vector_tables_not_installed' : 'world_vector_table_read_failed', details: error.message };
+  return { ok: true, data: data as ReportRow | null };
+}
+
 export async function closeWorldVectorCycle(input: {
   cycleRange: WorldVectorCycleRange;
   report: WorldVectorReport;
