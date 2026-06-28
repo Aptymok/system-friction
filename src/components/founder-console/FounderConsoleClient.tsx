@@ -254,7 +254,9 @@ function MyPanelMode({ state }: { state: FounderConsoleState }) {
         <section key={label as string} className="border border-[#272219] bg-[#080806] p-4">
           <div className="text-[10px] uppercase tracking-[0.18em] text-[#c8a951]">{label as string}</div>
           <ul className="mt-3 space-y-2 text-sm text-[#cfc3aa]">
-            {(values as string[]).map((value) => <li key={value}>{value}</li>)}
+            {(values as string[]).map((value, index) => (
+              <li key={`${label as string}-${index}`}>{value}</li>
+            ))}
           </ul>
         </section>
       ))}
