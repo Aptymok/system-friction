@@ -16,6 +16,19 @@ export type WorldVectorCycleDay = {
 
 export type WorldVectorObservationStatus = 'observed' | 'thin' | 'degraded' | 'failed';
 
+export type WorldVectorPersistenceStatus =
+  | {
+    enabled: true;
+    reason: 'world_vector_tables_ready';
+    required_tables: string[];
+  }
+  | {
+    enabled: false;
+    reason: 'world_vector_tables_not_installed' | 'world_vector_table_read_failed';
+    required_tables: string[];
+    details?: string;
+  };
+
 export type WorldVectorDomainValue = {
   domain: string;
   value: number | null;
@@ -45,10 +58,28 @@ export type WorldVectorObservation = {
   warnings: string[];
 };
 
-export type WorldVectorMemoryStatus = {
-  enabled: false;
-  reason: 'world_vector_tables_not_installed';
-  required_tables: string[];
+export type WorldVectorCycleRange = {
+  cycle_start_date: string;
+  cycle_end_date: string;
+};
+
+export type WorldVectorPersistedObservation = WorldVectorObservation & {
+  id: string;
+  cycle_id: string | null;
+  created_at: string;
+};
+
+export type WorldVectorReportType = 'internal_daily' | 'public_weekly' | 'cycle_close';
+export type WorldVectorReportAudience = 'founder' | 'linkedin' | 'repository';
+
+export type WorldVectorReport = {
+  title: string;
+  body: string;
+  report_type: WorldVectorReportType;
+  target_audience: WorldVectorReportAudience;
+  period_start: string | null;
+  period_end: string | null;
+  json_payload: Record<string, unknown>;
 };
 
 export type WorldVectorStatus = {
@@ -59,7 +90,7 @@ export type WorldVectorStatus = {
     latest_observed_at: string | null;
     sample_count: number;
   };
-  memory: WorldVectorMemoryStatus;
+  memory: WorldVectorPersistenceStatus;
   current_cycle_day: WorldVectorCycleDay;
   warnings: string[];
 };

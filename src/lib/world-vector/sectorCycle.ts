@@ -1,4 +1,4 @@
-import type { WorldVectorCycleDay, WorldVectorSector } from './types';
+import type { WorldVectorCycleDay, WorldVectorCycleRange, WorldVectorSector } from './types';
 
 const UTC_DAYS: Array<{
   dayOfWeek: string;
@@ -20,5 +20,24 @@ export function getCurrentWorldVectorCycleDay(input: Date = new Date()): WorldVe
   return {
     ...cycleDay,
     isCycleClose: cycleDay.sector === 'cycle_close',
+  };
+}
+
+function utcDateOnly(input: Date): string {
+  return input.toISOString().slice(0, 10);
+}
+
+export function getWorldVectorCycleRange(input: Date = new Date()): WorldVectorCycleRange {
+  const current = new Date(Date.UTC(input.getUTCFullYear(), input.getUTCMonth(), input.getUTCDate()));
+  const day = current.getUTCDay();
+  const daysSinceMonday = day === 0 ? 6 : day - 1;
+  const start = new Date(current);
+  start.setUTCDate(current.getUTCDate() - daysSinceMonday);
+  const end = new Date(start);
+  end.setUTCDate(start.getUTCDate() + 6);
+
+  return {
+    cycle_start_date: utcDateOnly(start),
+    cycle_end_date: utcDateOnly(end),
   };
 }
