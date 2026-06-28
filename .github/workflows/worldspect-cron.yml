@@ -13,6 +13,26 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      - name: Resolve UTC Measurement Slot
+        run: |
+          HOUR=$(date -u +%H)
+          if [ "$HOUR" -lt 6 ]; then
+            MODE="daily_cron"
+            SLOT="00"
+          elif [ "$HOUR" -lt 12 ]; then
+            MODE="manual"
+            SLOT="06"
+          elif [ "$HOUR" -lt 18 ]; then
+            MODE="diagnostic"
+            SLOT="12"
+          else
+            MODE="fallback_runtime"
+            SLOT="18"
+          fi
+          echo "WORLDSPECT_INGEST_MODE=$MODE" >> "$GITHUB_ENV"
+          echo "WORLDSPECT_MEASUREMENT_SLOT=$SLOT" >> "$GITHUB_ENV"
+          echo "WorldSpect slot=$SLOT mode=$MODE"
+
       - name: Setup Python 3.11
         uses: actions/setup-python@v5
         with:
@@ -49,7 +69,8 @@ jobs:
 
           curl --fail-with-body -X POST "$VERCEL_APP_URL/api/worldspect/ingest-payload" \
             -H "Authorization: Bearer $WORLDSPECT_INGEST_SECRET" \
-            -H "X-SFI-Ingest-Mode: daily_cron" \
+            -H "X-SFI-Ingest-Mode: $WORLDSPECT_INGEST_MODE" \
+            -H "X-SFI-Measurement-Slot: $WORLDSPECT_MEASUREMENT_SLOT" \
             -H "Content-Type: application/json" \
             --data-binary @world_payload.json
 
@@ -62,7 +83,9 @@ jobs:
           test -n "$WORLDSPECT_INGEST_SECRET" || (echo "Missing WORLDSPECT_INGEST_SECRET secret" && exit 1)
 
           curl --fail-with-body -X POST "$VERCEL_APP_URL/api/cron/worldspect" \
-            -H "Authorization: Bearer $WORLDSPECT_INGEST_SECRET"
+            -H "Authorization: Bearer $WORLDSPECT_INGEST_SECRET" \
+            -H "X-SFI-Ingest-Mode: $WORLDSPECT_INGEST_MODE" \
+            -H "X-SFI-Measurement-Slot: $WORLDSPECT_MEASUREMENT_SLOT"
 
       - name: Verify Canonical Reads
         env:
@@ -70,4 +93,4 @@ jobs:
         run: |
           test -n "$VERCEL_APP_URL" || (echo "Missing VERCEL_APP_URL secret" && exit 1)
           curl --fail-with-body "$VERCEL_APP_URL/api/worldspect/real"
-          curl --fail-with-body "$VERCEL_APP_URL/api/worldspect/trend?days=90"
+          curl --fail-with-body "$VERCEL_APP_URL/api/worldspect/trend?days=90&debug=1"
