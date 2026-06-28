@@ -1,8 +1,8 @@
-name: WorldSpect Daily Ingestion
+name: WorldSpect Four Daily Measurements
 
 on:
   schedule:
-    - cron: '0 3 * * *'
+    - cron: '0 */6 * * *'
   workflow_dispatch:
 
 jobs:
@@ -28,7 +28,7 @@ jobs:
             pip install httpx feedparser
           fi
 
-      - name: Execute Autonomous Observation
+      - name: Execute Autonomous Observation Payload
         id: run_script
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
@@ -53,9 +53,21 @@ jobs:
             -H "Content-Type: application/json" \
             --data-binary @world_payload.json
 
-      - name: Verify Canonical Read
+      - name: Execute Canonical Adapter Measurement
+        env:
+          VERCEL_APP_URL: ${{ secrets.VERCEL_APP_URL }}
+          WORLDSPECT_INGEST_SECRET: ${{ secrets.WORLDSPECT_INGEST_SECRET }}
+        run: |
+          test -n "$VERCEL_APP_URL" || (echo "Missing VERCEL_APP_URL secret" && exit 1)
+          test -n "$WORLDSPECT_INGEST_SECRET" || (echo "Missing WORLDSPECT_INGEST_SECRET secret" && exit 1)
+
+          curl --fail-with-body -X POST "$VERCEL_APP_URL/api/cron/worldspect" \
+            -H "Authorization: Bearer $WORLDSPECT_INGEST_SECRET"
+
+      - name: Verify Canonical Reads
         env:
           VERCEL_APP_URL: ${{ secrets.VERCEL_APP_URL }}
         run: |
           test -n "$VERCEL_APP_URL" || (echo "Missing VERCEL_APP_URL secret" && exit 1)
           curl --fail-with-body "$VERCEL_APP_URL/api/worldspect/real"
+          curl --fail-with-body "$VERCEL_APP_URL/api/worldspect/trend?days=90"
