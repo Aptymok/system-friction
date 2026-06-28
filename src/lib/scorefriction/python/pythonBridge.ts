@@ -1,4 +1,4 @@
-import { randomUUID } from 'crypto';
+﻿import { randomUUID } from 'crypto';
 import { promises as fs } from 'fs';
 import os from 'os';
 import path from 'path';
@@ -12,6 +12,14 @@ const SCRIPT_NAMES = {
   lyricsExtractor: 'lyrics_extractor.py',
   mihmFull: 'mihm_extract_full.py',
   monteCarlo: 'montecarlo.py',
+} as const;
+
+
+export const scoreFrictionPythonBridgeConfig = {
+  timeoutMs: PYTHON_TIMEOUT_MS,
+  maxFileSizeBytes: MAX_FILE_SIZE_BYTES,
+  audioExtensions: Array.from(AUDIO_EXTENSIONS),
+  textExtensions: Array.from(TEXT_EXTENSIONS),
 } as const;
 
 export type PythonBridgeFile = {
@@ -253,3 +261,4 @@ export async function runPythonScoreFrictionAnalysis(input: PythonScoreFrictionA
 void pythonBin;
 void sanitizeStderr;
 void safeJsonParse;
+

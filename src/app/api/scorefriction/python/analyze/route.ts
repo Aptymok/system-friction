@@ -1,9 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import { buildScoreFrictionOperationalReading } from '@/lib/scorefriction/python/pythonMihmToOperational';
 import {
   runMonteCarlo,
   runPythonScoreFrictionAnalysis,
-  runWorldSpectrum,
   scoreFrictionPythonBridgeConfig,
   type PythonBridgeFile,
 } from '@/lib/scorefriction/python/pythonBridge';
@@ -139,11 +138,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(result, { status: result.ok ? 200 : 400 });
   }
 
-  if (action === 'worldspectrum') {
-    const result = await runWorldSpectrum();
-    return NextResponse.json(result, { status: result.ok ? 200 : 400 });
-  }
-
   if (contentType.includes('multipart/form-data')) {
     const form = await request.formData();
     const caseId = String(form.get('case_id') ?? 'PY-MIHM');
@@ -200,3 +194,4 @@ export async function POST(request: NextRequest) {
 
   return NextResponse.json(responseFrom(result.data, { caseId, sourceName, evidenceType, metadata: record(body.metadata) }));
 }
+
