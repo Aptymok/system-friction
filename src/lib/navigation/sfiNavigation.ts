@@ -1,19 +1,6 @@
-export type SfiSurfaceStatus =
-  | 'active'
-  | 'protected'
-  | 'experimental'
-  | 'api'
-  | 'missing';
+export type SfiSurfaceStatus = 'active' | 'protected' | 'api' | 'internal' | 'missing';
 
-export type SfiSurfaceArea =
-  | 'home'
-  | 'auth'
-  | 'observatory'
-  | 'instrument'
-  | 'dashboard'
-  | 'api'
-  | 'contact'
-  | 'user';
+export type SfiSurfaceArea = 'home' | 'auth' | 'product' | 'root' | 'studio' | 'repository' | 'contact' | 'api';
 
 export type SfiNavItem = {
   id: string;
@@ -24,269 +11,21 @@ export type SfiNavItem = {
   status: SfiSurfaceStatus;
   protected?: boolean;
   public?: boolean;
-  instrument?: 'ROOT' | 'MIHM' | 'SCOREFRICTION' | 'SFI-PSI' | 'WorldSpect' | 'AMV';
   priority: number;
 };
 
 export const SFI_NAVIGATION: SfiNavItem[] = [
-  {
-    id: 'home',
-    title: 'System Friction Institute',
-    href: '/',
-    description: 'Landing institucional y navegación principal del ecosistema SFI.',
-    area: 'home',
-    status: 'active',
-    public: true,
-    priority: 1,
-  },
-  {
-    id: 'login',
-    title: 'Log in',
-    href: '/login',
-    description: 'Acceso normal a superficies protegidas.',
-    area: 'auth',
-    status: 'active',
-    public: true,
-    priority: 2,
-  },
-  {
-    id: 'root',
-    title: 'ROOT Observatory',
-    href: '/root',
-    description: 'Integración operativa de campo, señales, ScoreFriction, MIHM y WorldSpect.',
-    area: 'observatory',
-    status: 'protected',
-    protected: true,
-    instrument: 'ROOT',
-    priority: 10,
-  },
-  {
-    id: 'world-vector',
-    title: 'WorldSpect',
-    href: '/world-vector',
-    description: 'Superficie operacional para campañas, evidencia, proto-atractores y cierre institucional.',
-    area: 'observatory',
-    status: 'active',
-    instrument: 'WorldSpect',
-    priority: 12,
-  },
-  {
-    id: 'amv',
-    title: 'AMV',
-    href: '/root',
-    description: 'Memoria y agente operativo conectado a ROOT y APIs AMV; no se expone como dashboard paralelo.',
-    area: 'observatory',
-    status: 'protected',
-    protected: true,
-    instrument: 'AMV',
-    priority: 14,
-  },
-  {
-    id: 'scorefriction',
-    title: 'ScoreFriction',
-    href: '/scorefriction',
-    description: 'Observatorio longitudinal de fricción cultural y vectores de evidencia.',
-    area: 'instrument',
-    status: 'active',
-    instrument: 'SCOREFRICTION',
-    priority: 11,
-  },
-  {
-    id: 'sfi-lab-internal',
-    title: 'SFI-LAB internal',
-    href: '/scorefriction',
-    description: 'Instrumento longitudinal para detectar señales persistentes y generar reportes operativos.',
-    area: 'instrument',
-    status: 'active',
-    instrument: 'SFI-PSI',
-    priority: 13,
-  },
-  {
-    id: 'terminal',
-    title: 'Terminal',
-    href: '/terminal',
-    description: 'Terminal cognitiva protegida para operación del campo.',
-    area: 'dashboard',
-    status: 'protected',
-    protected: true,
-    priority: 20,
-  },
-  {
-    id: 'founder-console',
-    title: 'Founder Console',
-    href: '/founder-console',
-    description: 'Superficie canonica SFI-01: WorldSpect, evidencia, evaluacion, Atlas derivado, decisiones y disposicion de rutas.',
-    area: 'dashboard',
-    status: 'protected',
-    protected: true,
-    instrument: 'ROOT',
-    priority: 8,
-  },
-  {
-    id: 'sfi-console',
-    title: 'SFI Console internal',
-    href: '/sfi-console',
-    description: 'Superficie operacional interna reutilizada como proveedor durante la transicion a Founder Console.',
-    area: 'dashboard',
-    status: 'protected',
-    protected: true,
-    instrument: 'ROOT',
-    priority: 90,
-  },
-  {
-    id: 'user',
-    title: 'User Space',
-    href: '/user',
-    description: 'Espacio de usuario autenticado cuando no hay rol ROOT.',
-    area: 'user',
-    status: 'protected',
-    protected: true,
-    priority: 21,
-  },
-  {
-    id: 'cluster-atlas',
-    title: 'Cluster Atlas',
-    href: '/cluster-atlas',
-    description: 'Superficie subordinada; Atlas operativo se deriva dentro de Founder Console.',
-    area: 'observatory',
-    status: 'experimental',
-    public: true,
-    priority: 80,
-  },
-  {
-    id: 'observatories',
-    title: 'Observatories',
-    href: '/observatories',
-    description: 'Índice subordinado; no compite con Founder Console como centro operativo.',
-    area: 'observatory',
-    status: 'experimental',
-    public: true,
-    priority: 81,
-  },
-  {
-    id: 'repository',
-    title: 'Repository',
-    href: '/repository',
-    description: 'Repositorio institucional de evidencia, materiales y referencias públicas.',
-    area: 'observatory',
-    status: 'active',
-    public: true,
-    priority: 32,
-  },
-  {
-    id: 'moph',
-    title: 'MOP-H',
-    href: '/moph',
-    description: 'Instrumento fenomenológico humano de registro local.',
-    area: 'instrument',
-    status: 'active',
-    public: true,
-    priority: 33,
-  },
-  {
-    id: 'instruments',
-    title: 'Instruments',
-    href: '/instruments',
-    description: 'Mapa auxiliar; los instrumentos operativos se resumen en Founder Console.',
-    area: 'instrument',
-    status: 'experimental',
-    public: true,
-    priority: 82,
-  },
-  {
-    id: 'surfaces',
-    title: 'Surfaces',
-    href: '/surfaces',
-    description: 'Mapa auxiliar; Route Disposition en Founder Console es la lectura operativa.',
-    area: 'dashboard',
-    status: 'experimental',
-    public: true,
-    priority: 83,
-  },
-  {
-    id: 'contact',
-    title: 'Contact',
-    href: '/contact',
-    description: 'Contacto institucional para colaboración, análisis e integración.',
-    area: 'contact',
-    status: 'active',
-    public: true,
-    priority: 50,
-  },
-  {
-    id: 'api-signals-state',
-    title: 'SFI-PSI State API',
-    href: '/api/signals/state',
-    description: 'Estado longitudinal de señales persistentes transmodales.',
-    area: 'api',
-    status: 'api',
-    public: false,
-    instrument: 'SFI-PSI',
-    priority: 100,
-  },
-  {
-    id: 'api-scorefriction-state',
-    title: 'ScoreFriction State API',
-    href: '/api/scorefriction/state',
-    description: 'Estado operacional de ScoreFriction.',
-    area: 'api',
-    status: 'api',
-    public: false,
-    instrument: 'SCOREFRICTION',
-    priority: 101,
-  },
-  {
-    id: 'api-scorefriction-cycle',
-    title: 'ScoreFriction Operational Cycle API',
-    href: '/api/scorefriction/operational-cycle',
-    description: 'Estado operacional transversal de SFI.',
-    area: 'api',
-    status: 'api',
-    public: false,
-    priority: 102,
-  },
-  {
-    id: 'api-scorefriction-execution-state',
-    title: 'ScoreFriction Execution State API',
-    href: '/api/scorefriction/execution-state',
-    description: 'Estado de ejecución, ledger y aprendizaje operacional.',
-    area: 'api',
-    status: 'api',
-    public: false,
-    priority: 103,
-  },
-  {
-    id: 'api-root-me',
-    title: 'ROOT Identity API',
-    href: '/api/root/me',
-    description: 'Lectura de identidad y autorización ROOT.',
-    area: 'api',
-    status: 'api',
-    public: false,
-    instrument: 'ROOT',
-    priority: 104,
-  },
-  {
-    id: 'api-sfi-surfaces',
-    title: 'SFI Surfaces API',
-    href: '/api/root/self-observability',
-    description: 'Mapa estático de conexiones entre superficies institucionales.',
-    area: 'api',
-    status: 'api',
-    public: false,
-    priority: 105,
-  },
-  {
-    id: 'api-worldspect-vector',
-    title: 'WorldSpect API',
-    href: '/api/worldspect/vector',
-    description: 'Vector externo de presión y contexto.',
-    area: 'api',
-    status: 'api',
-    public: false,
-    instrument: 'WorldSpect',
-    priority: 106,
-  },
+  { id: 'home', title: 'System Friction Institute', href: '/', description: 'Public landing and invitation to enter.', area: 'home', status: 'active', public: true, priority: 1 },
+  { id: 'login', title: 'Login', href: '/login', description: 'Sign in.', area: 'auth', status: 'active', public: true, priority: 2 },
+  { id: 'signup', title: 'Signup', href: '/signup', description: 'Create account.', area: 'auth', status: 'active', public: true, priority: 3 },
+  { id: 'field', title: 'Field', href: '/field', description: 'Authenticated user operational field.', area: 'product', status: 'protected', protected: true, priority: 10 },
+  { id: 'root', title: 'ROOT', href: '/root', description: 'Private founder/root console.', area: 'root', status: 'protected', protected: true, priority: 11 },
+  { id: 'studio', title: 'Studio', href: '/studio', description: 'Private Edwing / REM618 producer field.', area: 'studio', status: 'protected', protected: true, priority: 12 },
+  { id: 'repository', title: 'Repository', href: '/repository', description: 'Public documentation and approved evidence repository.', area: 'repository', status: 'active', public: true, priority: 20 },
+  { id: 'contact', title: 'Contact', href: '/contact', description: 'Contact form and external links.', area: 'contact', status: 'active', public: true, priority: 30 },
+  { id: 'privacy', title: 'Privacy', href: '/privacy', description: 'Privacy policy.', area: 'contact', status: 'active', public: true, priority: 31 },
+  { id: 'api-field-persist', title: 'Field persistence API', href: '/api/field/persist', description: 'Existing authenticated event persistence where owned-node context exists.', area: 'api', status: 'api', public: false, priority: 100 },
+  { id: 'api-root-founder-state', title: 'ROOT SFI state API', href: '/api/root/founder-state', description: 'ROOT-gated SFI-01 read model and action capabilities.', area: 'api', status: 'api', public: false, priority: 101 },
 ];
 
 export function navByArea(area: SfiSurfaceArea) {
@@ -297,6 +36,3 @@ export function navByIds(ids: string[]) {
   const lookup = new Map(SFI_NAVIGATION.map((item) => [item.id, item]));
   return ids.map((id) => lookup.get(id)).filter((item): item is SfiNavItem => Boolean(item));
 }
-
-
-

@@ -8,10 +8,10 @@ type LoginPageProps = {
 };
 
 function safeNextPath(value?: string) {
-  if (!value) return '/root';
-  if (!value.startsWith('/')) return '/root';
-  if (value.startsWith('//')) return '/root';
-  if (value.startsWith('/login')) return '/root';
+  if (!value) return '/field';
+  if (!value.startsWith('/')) return '/field';
+  if (value.startsWith('//')) return '/field';
+  if (value.startsWith('/login')) return '/field';
   return value;
 }
 

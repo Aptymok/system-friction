@@ -35,7 +35,7 @@ const ACCESS_NODES: AccessNode[] = [
 
 export function LoginNeuralAccess({
   error,
-  next = '/terminal',
+  next = '/field',
 }: {
   error?: string;
   next?: string;

@@ -1,3 +1,5 @@
+import { publicAgentSummary } from '@/lib/agents/finalProductAgents';
+
 export async function GET() {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://systemfriction.org';
   return Response.json({
@@ -6,10 +8,11 @@ export async function GET() {
     purpose: 'Longitudinal observation of systemic friction across human, organizational and institutional fields.',
     routes: {
       home: `${baseUrl}/`,
-      core: `${baseUrl}/sfi-core-v2`,
-      latest_field_brief: `${baseUrl}/field/brief/latest`,
-      public_field: `${baseUrl}/campo`,
-      operational_observatory: `${baseUrl}/observatory`,
+      repository: `${baseUrl}/repository`,
+      contact: `${baseUrl}/contact`,
+      privacy: `${baseUrl}/privacy`,
+      login: `${baseUrl}/login`,
+      signup: `${baseUrl}/signup`,
       schema: `${baseUrl}/field-schema.json`,
     },
     constraints: [
@@ -18,6 +21,7 @@ export async function GET() {
       'Speak about fields and regimes, not identity diagnosis.',
       'Irreversible mutations require governance.',
     ],
+    agents: publicAgentSummary(),
   }, {
     headers: { 'Cache-Control': 'public, max-age=3600' },
   });

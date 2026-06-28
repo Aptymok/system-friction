@@ -4,29 +4,23 @@ export async function GET() {
   const content = `
 # SYSTEM FRICTION INSTITUTE
 
-Canonical public surface for longitudinal observation of systemic friction.
-
-## Canonical Routes
+Canonical public structure:
 
 - ${baseUrl}/
-- ${baseUrl}/sfi-core-v2
-- ${baseUrl}/field/brief/latest
-- ${baseUrl}/campo
-- ${baseUrl}/observatory
+- ${baseUrl}/repository
+- ${baseUrl}/contact
+- ${baseUrl}/privacy
+- ${baseUrl}/login
+- ${baseUrl}/signup
 - ${baseUrl}/field-schema.json
 
-## Public Doctrine
+Private operational routes:
 
-SFI observes fields, relations, patterns and regimes of friction.
-It does not diagnose identities. It does not present private runtime data as public proof.
+- /root: founder/root console.
+- /field: authenticated user field.
+- /studio: private producer field.
 
-## Core Concepts
-
-- SFI-CORE.v2: perceptual operating canon.
-- MIHM: multidimensional homeostasis model.
-- Field Brief: minimal public observation unit.
-- Documentary Repository: evidence with state, provenance and interpretation limits.
-- Governance: irreversible mutation requires traceable approval.
+Former product surfaces such as /world-vector, /scorefriction, /founder-console, /sfi-console, /campo, /observatory, /moph and /terminal are not public product centers.
 
 ## Last Update
 

@@ -17,7 +17,7 @@ const AuthContext = createContext<AuthState>({
   userRole: null,
 })
 
-const AUTH_ROUTES = new Set(['/login', '/register', '/forgot', '/reset', '/verify'])
+const AUTH_ROUTES = new Set(['/login', '/signup', '/forgot', '/reset', '/verify'])
 
 function fallbackRole(errorCode?: string | null) {
   if (errorCode === 'PGRST116') return 'observer'
@@ -29,7 +29,7 @@ function isRootIdentity(role?: string | null) {
 }
 
 function postAuthPath(role?: string | null) {
-  return isRootIdentity(role) ? '/root' : '/user'
+  return isRootIdentity(role) ? '/root' : '/field'
 }
 
 async function readServerIdentity() {
@@ -132,7 +132,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (event === 'SIGNED_OUT') {
           setState({ session: null, status: 'anonymous', userRole: null })
           router.refresh()
-          if (pathname.startsWith('/root') || pathname.startsWith('/user')) router.replace('/login')
+          if (pathname.startsWith('/root') || pathname.startsWith('/field') || pathname.startsWith('/studio')) router.replace('/login')
         }
       }, 0)
     })

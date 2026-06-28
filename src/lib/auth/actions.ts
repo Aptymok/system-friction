@@ -10,29 +10,29 @@ function formValue(formData: FormData, key: string) {
 }
 
 function safeInternalRedirect(value: string) {
-  if (!value) return '/root'
-  if (!value.startsWith('/')) return '/root'
-  if (value.startsWith('//')) return '/root'
-  if (value.startsWith('/login')) return '/root'
+  if (!value) return '/field'
+  if (!value.startsWith('/')) return '/field'
+  if (value.startsWith('//')) return '/field'
+  if (value.startsWith('/login')) return '/field'
   return value
 }
 
 export async function registerAction(formData: FormData) {
   const input = { email: formValue(formData, 'email'), password: formValue(formData, 'password') }
   const parsed = authSchema.safeParse(input)
-  if (!parsed.success) redirect('/register?error=entrada_invalida')
+  if (!parsed.success) redirect('/signup?error=entrada_invalida')
   const limit = checkRateLimit(rateLimitKey('register', input.email), 5, 60_000)
-  if (!limit.allowed) redirect('/register?error=rate_limit')
+  if (!limit.allowed) redirect('/signup?error=rate_limit')
 
   const supabase = await createServerSupabaseClient()
-  if (!supabase) redirect('/register?error=supabase_no_configurado')
+  if (!supabase) redirect('/signup?error=supabase_no_configurado')
   const origin = process.env.NEXT_PUBLIC_APP_URL || 'https://systemfriction.org'
   const { error } = await supabase.auth.signUp({
     email: parsed.data.email,
     password: parsed.data.password,
     options: { emailRedirectTo: `${origin}/verify` }
   })
-  if (error) redirect(`/register?error=${encodeURIComponent(error.message)}`)
+  if (error) redirect(`/signup?error=${encodeURIComponent(error.message)}`)
   redirect('/verify?state=pending')
 }
 
@@ -71,7 +71,7 @@ export async function resetPasswordAction(formData: FormData) {
   if (!supabase) redirect('/reset?error=supabase_no_configurado')
   const { error } = await supabase.auth.updateUser({ password })
   if (error) redirect(`/reset?error=${encodeURIComponent(error.message)}`)
-  redirect('/terminal')
+  redirect('/field')
 }
 
 export async function logoutAction() {

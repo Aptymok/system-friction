@@ -39,7 +39,7 @@ export function AuthTerminal({
 
         <div className="mt-6 flex flex-wrap gap-4 font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-600">
           {mode !== 'login' && <Link href="/login">Login</Link>}
-          {mode !== 'register' && <Link href="/register">Registro</Link>}
+          {mode !== 'register' && <Link href="/signup">Registro</Link>}
           {mode !== 'forgot' && <Link href="/forgot">Reset</Link>}
         </div>
       </div>

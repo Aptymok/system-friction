@@ -32,6 +32,16 @@ function isRootRouteUser(role?: string | null, email?: string | null) {
   )
 }
 
+function isStudioRouteUser(role?: string | null, email?: string | null) {
+  if (isRootRouteUser(role, email)) return true
+  const allowed = (process.env.STUDIO_AUTHORIZED_EMAILS || '')
+    .split(',')
+    .map((item) => item.trim().toLowerCase())
+    .filter(Boolean)
+
+  return Boolean(email && allowed.includes(email.toLowerCase()))
+}
+
 function redirectToLoginWithNext(request: NextRequest) {
   const loginUrl = new URL('/login', request.url)
   loginUrl.searchParams.set('next', `${request.nextUrl.pathname}${request.nextUrl.search}`)
@@ -51,7 +61,7 @@ export async function proxy(request: NextRequest) {
     response.headers.set('Cache-Control', 'public, max-age=3600, stale-while-revalidate=86400')
   }
 
-  if (pathname.startsWith('/terminal') || pathname.startsWith('/root') || pathname.startsWith('/user')) {
+  if (pathname.startsWith('/root') || pathname === '/field' || pathname.startsWith('/studio')) {
     response.headers.set('Cache-Control', 'no-store, must-revalidate')
   }
 
@@ -60,9 +70,8 @@ export async function proxy(request: NextRequest) {
 
   const requiresSession =
     pathname.startsWith('/root') ||
-    pathname.startsWith('/user') ||
-    pathname.startsWith('/terminal') ||
-    pathname === '/setup-profile'
+    pathname === '/field' ||
+    pathname.startsWith('/studio')
 
   if (!supabaseUrl || !supabaseKey) {
     if (requiresSession) {
@@ -112,15 +121,19 @@ export async function proxy(request: NextRequest) {
     return redirectToLoginWithNext(request)
   }
 
-  if (pathname.startsWith('/root') && user) {
+  if ((pathname.startsWith('/root') || pathname.startsWith('/studio')) && user) {
     const { data: profile } = await supabase
       .from('profiles')
       .select('role')
       .eq('user_id', user.id)
       .maybeSingle()
 
-    if (!isRootRouteUser(profile?.role, user.email)) {
-      return NextResponse.redirect(new URL('/user', request.url))
+    if (pathname.startsWith('/root') && !isRootRouteUser(profile?.role, user.email)) {
+      return NextResponse.redirect(new URL('/field', request.url))
+    }
+
+    if (pathname.startsWith('/studio') && !isStudioRouteUser(profile?.role, user.email)) {
+      return NextResponse.redirect(new URL('/unauthorized', request.url))
     }
   }
 

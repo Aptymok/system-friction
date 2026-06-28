@@ -1,8 +1,9 @@
-﻿// src/app/(root)/page.tsx
-import { RootDashboardClient } from '@/observatory/components/root/RootDashboardClient';
-import CanonicalWorldSpectStatus from '@/components/worldspect/CanonicalWorldSpectStatus';
+import FounderConsoleClient from '@/components/founder-console/FounderConsoleClient';
+import { buildFounderConsoleState } from '@/lib/founder-console/readModel';
 
-export default function RootDashboardPage() {
-  return <RootDashboardClient />;
+export const dynamic = 'force-dynamic';
+
+export default async function RootDashboardPage() {
+  const state = await buildFounderConsoleState();
+  return <FounderConsoleClient initialState={state} surface="root" />;
 }
-

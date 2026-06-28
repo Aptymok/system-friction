@@ -332,7 +332,7 @@ function RouteDispositionMode({ state }: { state: FounderConsoleState }) {
   );
 }
 
-export default function FounderConsoleClient({ initialState }: { initialState: FounderConsoleState }) {
+export default function FounderConsoleClient({ initialState, surface = 'root' }: { initialState: FounderConsoleState; surface?: 'root' }) {
   const [state, setState] = useState(initialState);
   const [loadState, setLoadState] = useState<LoadState>({ status: 'ready' });
   const [actionState, setActionState] = useState<ActionState>({ status: 'idle' });
@@ -343,7 +343,7 @@ export default function FounderConsoleClient({ initialState }: { initialState: F
   async function refresh() {
     setLoadState({ status: 'loading' });
     try {
-      const response = await fetch('/api/founder-console/state', { cache: 'no-store' });
+      const response = await fetch('/api/root/founder-state', { cache: 'no-store' });
       const json = await response.json();
       if (!response.ok) throw new Error(json.error ?? 'founder_console_state_failed');
       setState(json);

@@ -14,17 +14,17 @@ const steps = [
 ];
 
 function safeDestination(value?: string | null) {
-  if (!value) return '/terminal';
-  if (!value.startsWith('/')) return '/terminal';
-  if (value.startsWith('//')) return '/terminal';
-  if (value.startsWith('/login')) return '/terminal';
+  if (!value) return '/field';
+  if (!value.startsWith('/')) return '/field';
+  if (value.startsWith('//')) return '/field';
+  if (value.startsWith('/login')) return '/field';
 
   return value;
 }
 
 export default function ThresholdAccess({
   error,
-  next = '/terminal',
+  next = '/field',
 }: {
   error?: string;
   next?: string;
@@ -135,7 +135,7 @@ export default function ThresholdAccess({
       </form>
 
       <div className="mt-5 flex justify-between gap-4 font-mono text-[10px] uppercase tracking-[0.18em] text-[#5c5c52]">
-        <Link href="/register" className="hover:text-[#C8A951]">
+        <Link href="/signup" className="hover:text-[#C8A951]">
           REGISTRAR OBSERVADOR
         </Link>
         <Link href="/forgot" className="hover:text-[#C8A951]">
