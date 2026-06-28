@@ -9,7 +9,9 @@ async def main():
         result = await get_world_spectrum()
         print(json.dumps(result))
     except Exception as e:
-        print(json.dumps({"error": str(e)}))
+        payload = {"ok": False, "error": str(e), "stage": "world_spectrum_cli"}
+        print(json.dumps(payload))
+        print(f"WORLD_SPECTRUM_CLI_FAILED: {e}", file=sys.stderr)
         sys.exit(1)
 
 if __name__ == "__main__":
