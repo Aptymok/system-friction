@@ -36,9 +36,9 @@ function Section({ id, title, items }: { id: string; title: string; items: SfiNa
 }
 
 export default function HomePage() {
-  const liveSurfaces = navByIds(['sfi-console', 'root', 'scorefriction', 'world-vector', 'repository']);
-  const auxiliarySurfaces = navByIds(['moph', 'instruments', 'surfaces', 'contact']);
-  const primary = liveSurfaces.find((item) => item.id === 'sfi-console');
+  const liveSurfaces = navByIds(['founder-console', 'root', 'scorefriction', 'world-vector', 'repository']);
+  const auxiliarySurfaces = navByIds(['moph', 'contact']);
+  const primary = liveSurfaces.find((item) => item.id === 'founder-console');
   const score = liveSurfaces.find((item) => item.id === 'scorefriction');
 
   return (
@@ -46,7 +46,7 @@ export default function HomePage() {
       <header className="sticky top-0 z-40 border-b border-[#1e1c17] bg-[#060605]/95 backdrop-blur">
         <nav className="mx-auto flex max-w-7xl items-center gap-5 overflow-x-auto px-6 py-4 font-mono text-[10px] uppercase tracking-[0.18em] text-[#8f8878]">
           <Link href="/" className="mr-auto text-[#c8a951]">SFI</Link>
-          <Link href="/sfi-console">SFI Console</Link>
+          <Link href="/founder-console">Founder Console</Link>
           <Link href="/root">ROOT</Link>
           <Link href="/scorefriction">ScoreFriction</Link>
           <Link href="/world-vector">WorldVector</Link>
@@ -64,7 +64,7 @@ export default function HomePage() {
             Infraestructura viva para observar mundo, fricción cultural, evidencia, propuestas, ejecución y aprendizaje institucional.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
-            {primary ? <Link href={primary.href} className="border border-[#c8a951] bg-[#c8a951] px-5 py-3 font-mono text-[11px] uppercase tracking-[0.16em] text-[#060605]">Abrir SFI Console</Link> : null}
+            {primary ? <Link href={primary.href} className="border border-[#c8a951] bg-[#c8a951] px-5 py-3 font-mono text-[11px] uppercase tracking-[0.16em] text-[#060605]">Abrir Founder Console</Link> : null}
             <Link href="/root" className="border border-[#c8a95155] px-5 py-3 font-mono text-[11px] uppercase tracking-[0.16em] text-[#c8a951]">Entrar a ROOT</Link>
             {score ? <Link href={score.href} className="border border-[#c8a95155] px-5 py-3 font-mono text-[11px] uppercase tracking-[0.16em] text-[#c8a951]">Explorar ScoreFriction</Link> : null}
           </div>
@@ -72,7 +72,7 @@ export default function HomePage() {
         <aside className="border border-[#1e1c17] bg-[#0b0b09] p-5">
           <h2 className="font-mono text-[11px] uppercase tracking-[0.18em] text-[#c8a951]">Estado de operación</h2>
           <p className="mt-4 text-sm leading-6 text-[#8f8878]">
-            Las rutas duplicadas o internas ya no se muestran como superficies independientes. AMV vive dentro de ROOT y Closed Loop vive dentro de SFI Console.
+            Las rutas duplicadas o internas ya no se muestran como superficies independientes. AMV vive protegido; SFI-01 y Closed Loop operan desde Founder Console.
           </p>
           <a href={contactHref} className="mt-5 inline-block border border-[#c8a95166] px-4 py-2 font-mono text-[10px] uppercase tracking-[0.16em] text-[#c8a951]">Contactar</a>
         </aside>
@@ -90,7 +90,6 @@ export default function HomePage() {
             <p className="mt-2 text-sm text-[#7d7668]">Registrar no es concluir. Registrar es sostener la trayectoria.</p>
           </div>
           <div className="flex gap-4 font-mono text-[10px] uppercase tracking-[0.14em] text-[#8f8878]">
-            <Link href="/surfaces">Surfaces</Link>
             <Link href="/contact">Contact</Link>
             <Link href="/login">Log in</Link>
           </div>

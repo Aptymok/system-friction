@@ -103,7 +103,7 @@ export async function GET(request: NextRequest) {
       entitlements,
       loadedAt: now,
       warnings: [
-        ...(nodeError ? [`legacy_nodes_read:${nodeError}`] : []),
+        ...(nodeError ? [`user_nodes_read:${nodeError}`] : []),
         ...(graph.degradedReason ? [graph.degradedReason] : []),
         ...(governance.warning ? [governance.warning] : []),
         ...(latestWorldSpect ? [] : ['worldspect_snapshot_missing']),

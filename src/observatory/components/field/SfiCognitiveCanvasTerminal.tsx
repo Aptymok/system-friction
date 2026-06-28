@@ -7,7 +7,7 @@ import { ingestRealObservation } from '@/lib/terminal/ingestClient'
 import { declareTerminalSignal } from '@/lib/terminal/signalClient'
 import { readWorldSpectReal, type WorldSpectRealClientState } from '@/lib/worldspect/client'
 
-type TerminalMode = 'legacy' | 'canonical' | 'degraded'
+type TerminalMode = 'local' | 'canonical' | 'degraded'
 type AccordionPanel = 'amv' | 'operation' | 'worldspect'
 type NodeKind = 'active' | 'persistent' | 'anomaly' | 'opaque' | 'institutional'
 type AmvSource = 'gemini' | 'deterministic_fallback' | 'local_only'
@@ -89,49 +89,6 @@ const EMPTY_WORLDSPECT: WorldSpectRealClientState = {
   warnings: ['worldspect_not_loaded'],
 }
 
-const RND: Array<Omit<FieldNode, 'x' | 'y' | 'vx' | 'vy' | 'phase' | 'att' | 'wp'>> = [
-  { id: 0, lb: 'IHG_BASAL', t: 'active', rx: 0.42, ry: 0.41, w: 1 },
-  { id: 1, lb: 'NTI_OBS', t: 'active', rx: 0.58, ry: 0.37, w: 0.85 },
-  { id: 2, lb: 'FRICCION_SEM', t: 'active', rx: 0.68, ry: 0.56, w: 0.75 },
-  { id: 3, lb: 'PERTURBACION', t: 'active', rx: 0.28, ry: 0.57, w: 0.7 },
-  { id: 4, lb: 'NOD_DECISION', t: 'active', rx: 0.73, ry: 0.31, w: 0.65 },
-  { id: 5, lb: 'DISIPACION', t: 'active', rx: 0.47, ry: 0.68, w: 0.8 },
-  { id: 6, lb: 'CAMPO_LAT', t: 'active', rx: 0.82, ry: 0.62, w: 0.58 },
-  { id: 7, lb: 'VEC_DIV', t: 'active', rx: 0.22, ry: 0.33, w: 0.55 },
-  { id: 8, lb: 'LDI_T', t: 'persistent', rx: 0.5, ry: 0.53, w: 0.88 },
-  { id: 9, lb: 'COH_HIST', t: 'persistent', rx: 0.32, ry: 0.74, w: 0.7 },
-  { id: 10, lb: 'MEM_ESTRUC', t: 'persistent', rx: 0.62, ry: 0.76, w: 0.65 },
-  { id: 11, lb: 'REG_ENT', t: 'persistent', rx: 0.14, ry: 0.51, w: 0.75 },
-  { id: 12, lb: 'ESTAB_RES', t: 'persistent', rx: 0.87, ry: 0.44, w: 0.58 },
-  { id: 13, lb: 'PAT_RECUR', t: 'persistent', rx: 0.4, ry: 0.25, w: 0.55 },
-  { id: 14, lb: 'TRAZ_PASIVA', t: 'persistent', rx: 0.71, ry: 0.83, w: 0.5 },
-  { id: 15, lb: 'SNL_ATEN', t: 'persistent', rx: 0.24, ry: 0.84, w: 0.45 },
-  { id: 16, lb: 'ANOMALIA_01', t: 'anomaly', rx: 0.5, ry: 0.19, w: 0.78 },
-  { id: 17, lb: 'TRANS_CRITICA', t: 'anomaly', rx: 0.79, ry: 0.51, w: 0.73 },
-  { id: 18, lb: 'BIFURCACION', t: 'anomaly', rx: 0.2, ry: 0.19, w: 0.68 },
-  { id: 19, lb: 'EVENTO_SING', t: 'anomaly', rx: 0.89, ry: 0.79, w: 0.63 },
-  { id: 20, lb: 'EPS_A', t: 'opaque', rx: 0.1, ry: 0.67, w: 0.48 },
-  { id: 21, lb: 'EPS_B', t: 'opaque', rx: 0.91, ry: 0.23, w: 0.43 },
-  { id: 22, lb: 'EPS_C', t: 'opaque', rx: 0.56, ry: 0.91, w: 0.38 },
-  { id: 23, lb: 'EPS_D', t: 'opaque', rx: 0.07, ry: 0.35, w: 0.33 },
-  { id: 24, lb: 'EPS_E', t: 'opaque', rx: 0.76, ry: 0.13, w: 0.28 },
-  { id: 25, lb: 'INEGI_EE3', t: 'institutional', rx: 0.35, ry: 0.47, w: 0.8 },
-  { id: 26, lb: 'SFI_CORE', t: 'institutional', rx: 0.5, ry: 0.43, w: 1 },
-  { id: 27, lb: 'CIMPS_2026', t: 'institutional', rx: 0.63, ry: 0.43, w: 0.68 },
-  { id: 28, lb: 'UNIPRES_PIL', t: 'institutional', rx: 0.42, ry: 0.6, w: 0.73 },
-  { id: 29, lb: 'ATLAS_PROTO', t: 'institutional', rx: 0.58, ry: 0.61, w: 0.78 },
-]
-
-const EDG: FieldEdge[] = [
-  { a: 26, b: 0, k: 's' }, { a: 26, b: 1, k: 's' }, { a: 26, b: 8, k: 's' }, { a: 26, b: 5, k: 's' },
-  { a: 26, b: 25, k: 's' }, { a: 26, b: 29, k: 's' }, { a: 26, b: 27, k: 's' }, { a: 0, b: 1, k: 's' },
-  { a: 0, b: 3, k: 's' }, { a: 1, b: 27, k: 's' }, { a: 5, b: 28, k: 's' }, { a: 8, b: 11, k: 's' },
-  { a: 7, b: 18, k: 'l' }, { a: 7, b: 13, k: 'l' }, { a: 3, b: 11, k: 'l' }, { a: 2, b: 17, k: 'l' },
-  { a: 6, b: 17, k: 'l' }, { a: 10, b: 14, k: 'l' }, { a: 13, b: 16, k: 'l' }, { a: 20, b: 3, k: 'l' },
-  { a: 0, b: 8, k: 'r' }, { a: 1, b: 2, k: 'r' }, { a: 27, b: 2, k: 'r' }, { a: 16, b: 1, k: 'r' },
-  { a: 17, b: 12, k: 'r' }, { a: 29, b: 10, k: 'r' }, { a: 26, b: 28, k: 'r' },
-]
-
 function getFieldValue(fieldState: unknown, key: string) {
   if (!fieldState || typeof fieldState !== 'object') return null
   const value = (fieldState as Record<string, unknown>)[key]
@@ -173,12 +130,11 @@ function toCanvasNode(node: GraphApiNode, index: number): Omit<FieldNode, 'x' | 
 }
 
 function makeNodes(width: number, height: number, canonicalNodes: GraphApiNode[] = []): FieldNode[] {
-  const source = canonicalNodes.length ? canonicalNodes.map(toCanvasNode) : RND
-  return source.map((node) => ({ ...node, x: node.rx * width, y: node.ry * height, vx: 0, vy: 0, phase: Math.random() * Math.PI * 2, att: 0, wp: 0 }))
+  return canonicalNodes.map(toCanvasNode).map((node) => ({ ...node, x: node.rx * width, y: node.ry * height, vx: 0, vy: 0, phase: Math.random() * Math.PI * 2, att: 0, wp: 0 }))
 }
 
 function makeEdges(canonicalNodes: GraphApiNode[], canonicalEdges: GraphApiEdge[]): FieldEdge[] {
-  if (!canonicalNodes.length || !canonicalEdges.length) return EDG
+  if (!canonicalNodes.length || !canonicalEdges.length) return []
   const indexes = new Map(canonicalNodes.map((node, index) => [node.nodeId, index]))
   const edges = canonicalEdges
     .map((edge) => {
@@ -189,7 +145,7 @@ function makeEdges(canonicalNodes: GraphApiNode[], canonicalEdges: GraphApiEdge[
       return { a, b, k: canvasKind === 's' || canvasKind === 'l' || canvasKind === 'r' ? canvasKind : canvasKindFromRelation(edge.relation) } satisfies FieldEdge
     })
     .filter((edge): edge is FieldEdge => Boolean(edge))
-  return edges.length ? edges : EDG
+  return edges
 }
 
 function nodeDegradationIndex(node: FieldNode, globalDegradation: number, worldSpectState: WorldSpectRealClientState, signalCount: number) {
@@ -253,7 +209,7 @@ export function SfiCognitiveCanvasTerminal({ nodeId, canPersist, canonicalState,
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const ghostRef = useRef<HTMLDivElement | null>(null)
   const nodesRef = useRef<FieldNode[]>([])
-  const edgesRef = useRef<FieldEdge[]>(EDG)
+  const edgesRef = useRef<FieldEdge[]>([])
   const mouseRef = useRef({ x: 0, y: 0, active: false })
   const fieldRef = useRef({ tension: 0, density: 0, typingSpeed: 0, charBuf: [] as number[], wordCount: 0 })
   const frameRef = useRef<number | null>(null)
@@ -284,7 +240,7 @@ export function SfiCognitiveCanvasTerminal({ nodeId, canPersist, canonicalState,
   const degradation = numberValue(getFieldValue(fieldState, 'degradation'))
   const capacity = numberValue(getFieldValue(fieldState, 'operationalCapacity'))
   const confidence = numberValue(getFieldValue(fieldState, 'confidence'))
-  const statusText = useMemo(() => mode === 'canonical' ? 'CANONICAL ACTIVE' : mode === 'degraded' ? 'CANONICAL DEGRADED' : 'LEGACY LOCAL', [mode])
+  const statusText = useMemo(() => mode === 'canonical' ? 'CANONICAL ACTIVE' : mode === 'degraded' ? 'CANONICAL DEGRADED' : 'LOCAL READ ONLY', [mode])
   const worldSpectState = worldSpect ?? EMPTY_WORLDSPECT
   const worldLabel = worldSpectState.sourceState === 'observed' ? 'observed' : worldSpectState.sourceState === 'degraded' ? 'degraded' : 'missing'
   const amvStatusLabel = amvStatus === 'thinking' ? 'THINKING' : amvStatus === 'ready' ? 'GEMINI' : amvStatus === 'degraded' ? 'FALLBACK' : 'LOCAL_ONLY'
@@ -452,14 +408,24 @@ export function SfiCognitiveCanvasTerminal({ nodeId, canPersist, canonicalState,
         const edges = Array.isArray(data?.edges)
           ? data.edges.filter((edge): edge is GraphApiEdge => Boolean(edge && typeof edge === 'object' && 'sourceNodeId' in edge && 'targetNodeId' in edge && 'relation' in edge))
           : []
-        if (!nodes.length) return
         setGraphNodes(nodes)
         setGraphEdges(edges)
         setGraphSourceState(data?.sourceState === 'observed' ? 'observed' : 'degraded')
         edgesRef.current = makeEdges(nodes, edges)
         nodesRef.current = makeNodes(width, height, nodes)
-        spawnGhost(data?.sourceState === 'observed' ? 'GRAPH DB observed' : 'GRAPH fallback degraded', data?.sourceState === 'observed' ? C.institutional : C.anomaly)
+        spawnGhost(
+          data?.sourceState === 'observed'
+            ? 'GRAPH DB observed'
+            : nodes.length
+              ? 'GRAPH edges repair required'
+              : 'GRAPH empty repair required',
+          data?.sourceState === 'observed' ? C.institutional : C.anomaly,
+        )
       } catch {
+        setGraphNodes([])
+        setGraphEdges([])
+        edgesRef.current = []
+        nodesRef.current = []
         setGraphSourceState('degraded')
       }
     }
@@ -532,6 +498,18 @@ export function SfiCognitiveCanvasTerminal({ nodeId, canPersist, canonicalState,
       for (let x = 0; x < width; x += 64) { const d = Math.sin(t / 1900 + x * 0.016) * (treeActive ? 12 : fs.tension * 7 + worldDensity * 12); ctx.beginPath(); ctx.moveTo(x + d, 0); ctx.lineTo(x + d * 0.4, height); ctx.stroke() }
       for (let y = 0; y < height; y += 64) { const d = Math.cos(t / 2100 + y * 0.016) * (treeActive ? 8 : fs.tension * 5 + worldDensity * 9); ctx.beginPath(); ctx.moveTo(0, y + d); ctx.lineTo(width, y + d * 0.4); ctx.stroke() }
 
+      if (nodes.length === 0) {
+        ctx.save()
+        ctx.textAlign = 'center'
+        ctx.fillStyle = 'rgba(200,169,81,.72)'
+        ctx.font = 'bold 10px JetBrains Mono, IBM Plex Mono, monospace'
+        ctx.fillText('GRAPH EMPTY · REPAIR REQUIRED', width / 2, height / 2 - 10)
+        ctx.font = '8px JetBrains Mono, IBM Plex Mono, monospace'
+        ctx.fillStyle = 'rgba(244,241,232,.48)'
+        ctx.fillText('public.graph_nodes / public.graph_edges are not rendered from local fallback topology', width / 2, height / 2 + 10)
+        ctx.restore()
+      }
+
       edgesRef.current.forEach((edge) => {
         const a = nodes[edge.a], c = nodes[edge.b]
         if (!a || !c) return
@@ -592,7 +570,8 @@ export function SfiCognitiveCanvasTerminal({ nodeId, canPersist, canonicalState,
         ctx.textAlign = 'left'; ctx.fillText(node.lb, node.x + r + 4 + labelJitter, node.y + 2.5 - labelJitter)
       })
 
-      if (treeActive && nodes[26]) drawFutureOverlay(ctx, nodes[26], width, height, t)
+      const coreNode = nodes.find((node) => node.lb === 'SFI_CORE' || node.lb === 'ROOT' || node.t === 'institutional')
+      if (treeActive && coreNode) drawFutureOverlay(ctx, coreNode, width, height, t)
       ctx.font = 'bold 8px Syncopate, IBM Plex Mono, monospace'; ctx.textAlign = 'left'; ctx.fillStyle = `rgba(200,169,81,${0.66 + b * 0.1})`; ctx.fillText('CAMPO COGNITIVO · SFI', 16, 17)
       ctx.font = '7px JetBrains Mono, IBM Plex Mono, monospace'; ctx.fillStyle = 'rgba(244,241,232,.42)'; ctx.fillText(`WorldSpect: ${ws.sourceState} · FieldState: ${sourceState} · Graph: ${graphSourceState}`, 16, 29)
       ctx.textAlign = 'right'; ctx.fillStyle = `rgba(111,207,141,${0.5 + b * 0.09})`; ctx.fillText(`WSI=${displayNumber(ws.wsi)} · NTI=${displayNumber(ws.nti)} · W=${Math.round(ws.confidence * 100)}%`, width - 16, 17)
@@ -631,7 +610,7 @@ export function SfiCognitiveCanvasTerminal({ nodeId, canPersist, canonicalState,
             <div className="grid grid-cols-3 gap-1 text-[8px] uppercase tracking-[0.12em]"><PanelButton active={panel === 'amv'} onClick={() => setPanel('amv')}>🜂 AMV / CHAT</PanelButton><PanelButton active={panel === 'operation'} onClick={() => setPanel('operation')}>◈ OPERACION</PanelButton><PanelButton active={panel === 'worldspect'} onClick={() => setPanel('worldspect')}>◎ WORLDSPECT</PanelButton></div>
             <div className="mt-2 max-h-[34vh] overflow-y-auto pr-1 sm:max-h-[30vh]">
               {panel === 'amv' ? <div className="grid gap-2 lg:grid-cols-[1fr_300px]"><div className="border border-[#c8a951]/10 bg-[#050504]/14 p-2"><div className="mb-2 max-h-28 space-y-1 overflow-y-auto text-[10px] leading-relaxed text-[#f4f1e8]/78">{messages.length === 0 ? <div><b>AMV · local_only</b>: AMV operativo listo. Declara una señal o consulta el estado del campo.</div> : null}{messages.map((message, index) => <div key={`${message.role}-${index}`} className={message.role === 'operator' ? 'text-[#6f9cc8]/80' : 'text-[#f4f1e8]/82'}><b>{message.role === 'operator' ? 'OPERADOR' : `AMV ${message.source ? `· ${message.source}` : ''}${typeof message.logged === 'boolean' ? ` · ${message.logged ? 'LOGGED' : 'UNLOGGED'}` : ''}`}</b>: {message.text}</div>)}{amvStatus === 'thinking' ? <div className="text-[#c8a951]/75">AMV · procesando respuesta server-side...</div> : null}</div><form onSubmit={(event) => { event.preventDefault(); void submitSignal() }} className="flex min-h-[64px] items-center gap-2 border border-[#c8a951]/12 bg-[#050504]/28 px-3 py-3"><span className="shrink-0 text-[11px]">🜂</span><input value={input} onChange={(event) => onInputChange(event.target.value)} disabled={amvStatus === 'thinking'} className="min-w-0 flex-1 border-0 bg-transparent text-[12px] text-[#f4f1e8]/88 outline-none caret-[#c8a951] placeholder:text-[#f4f1e8]/35 disabled:opacity-60" autoComplete="off" spellCheck={false} placeholder="Declara una señal o pregunta al AMV operativo..." /><button type="submit" disabled={!input.trim() || amvStatus === 'thinking'} className="shrink-0 border border-[#c8a951]/20 px-3 py-2 text-[8px] uppercase tracking-[0.12em] text-[#c8a951] disabled:text-[#c8a951]/28">Enviar</button></form></div><div className="grid gap-2 text-[8px] uppercase tracking-[0.09em] text-[#f4f1e8]/60 sm:grid-cols-3 lg:grid-cols-1"><FieldMetric label="rho confidence" value={confidence} /><FieldMetric label="D degradation" value={degradation} /><FieldMetric label="CO capacity" value={capacity} /></div></div> : null}
-              {panel === 'operation' ? <div className="grid gap-2 text-[9px] leading-relaxed text-[#f4f1e8]/74 lg:grid-cols-3"><div className="border border-[#c8a951]/10 bg-[#050504]/14 p-3"><b className="text-[#c8a951]">Datos reales</b><p>Señales declaradas: {signalCount}. INGEST: {ingestCount}. REAL: {ingestCount > 0 ? 'observed' : sourceState}. FieldState: {sourceState}. Evidencia: {evidenceLevel}. Régimen: {regime}.</p>{ingestTitles.length ? <p className="mt-1 text-[#f4f1e8]/52">{ingestTitles.join(' · ')}</p> : null}</div><div className="border border-[#6fcf8d]/16 bg-[#050504]/12 p-3"><b className="text-[#c8a951]">Activo</b><p>/api/signals · /api/field/state · /api/worldspect/real · /api/amv/field-response · /api/ingest/real · /api/ingest/read.</p></div><div className="border border-[#9f6a54]/20 bg-[#050504]/12 p-3"><b className="text-[#c8a951]">Cuarentena</b><p>CognitiveTwin avanzado · webhooks · cron · field/persist legacy.</p></div><div className="border border-[#6f9cc8]/16 p-3 lg:col-span-3"><b className="text-[#c8a951]">Futuros</b><p>Futuros no predice. Dibuja bifurcaciones especulativas desde el estado actual para observar rutas posibles sin persistirlas.</p></div></div> : null}
+              {panel === 'operation' ? <div className="grid gap-2 text-[9px] leading-relaxed text-[#f4f1e8]/74 lg:grid-cols-3"><div className="border border-[#c8a951]/10 bg-[#050504]/14 p-3"><b className="text-[#c8a951]">Datos reales</b><p>Señales declaradas: {signalCount}. INGEST: {ingestCount}. REAL: {ingestCount > 0 ? 'observed' : sourceState}. FieldState: {sourceState}. Evidencia: {evidenceLevel}. Régimen: {regime}.</p>{ingestTitles.length ? <p className="mt-1 text-[#f4f1e8]/52">{ingestTitles.join(' · ')}</p> : null}</div><div className="border border-[#6fcf8d]/16 bg-[#050504]/12 p-3"><b className="text-[#c8a951]">Activo</b><p>/api/signals · /api/field/state · /api/worldspect/real · /api/amv/field-response · /api/ingest/real · /api/ingest/read.</p></div><div className="border border-[#9f6a54]/20 bg-[#050504]/12 p-3"><b className="text-[#c8a951]">Cuarentena</b><p>CognitiveTwin avanzado · webhooks · cron · field/persist requiere migracion.</p></div><div className="border border-[#6f9cc8]/16 p-3 lg:col-span-3"><b className="text-[#c8a951]">Futuros</b><p>Futuros no predice. Dibuja bifurcaciones especulativas desde el estado actual para observar rutas posibles sin persistirlas.</p></div></div> : null}
               {panel === 'worldspect' ? <div className="grid gap-2 text-[9px] text-[#f4f1e8]/74 lg:grid-cols-[260px_1fr]"><div className="border border-[#c8a951]/12 bg-[#050504]/14 p-3"><div className="mb-2 flex items-center justify-between gap-2 text-[8px] uppercase tracking-[0.12em]"><b className="text-[#c8a951]">◎ WorldSpect</b><span className={worldSpectState.sourceState === 'observed' ? 'text-[#6fcf8d]' : 'text-[#9f6a54]'}>{worldLabel}</span></div><div className="grid grid-cols-2 gap-2"><div className="border border-[#c8a951]/10 p-2"><span className="block text-[7px] uppercase text-[#c8a951]/42">WSI</span>{displayNumber(worldSpectState.wsi)}</div><div className="border border-[#c8a951]/10 p-2"><span className="block text-[7px] uppercase text-[#c8a951]/42">NTI</span>{displayNumber(worldSpectState.nti)}</div><div className="border border-[#c8a951]/10 p-2"><span className="block text-[7px] uppercase text-[#c8a951]/42">Confidence</span>{Math.round(worldSpectState.confidence * 100)}%</div><div className="border border-[#c8a951]/10 p-2"><span className="block text-[7px] uppercase text-[#c8a951]/42">Evidence</span>{worldSpectState.evidenceLevel}</div></div>{worldSpectState.sourceState !== 'observed' ? <p className="mt-1 text-[8px] text-[#9f6a54]/85">WorldSpect degradado, no inventado.</p> : null}</div><div className="border border-[#c8a951]/10 p-3"><b className="text-[#c8a951]">Degraded sources</b><p className="mb-2 text-[8px] uppercase tracking-[0.10em] text-[#f4f1e8]/50">{worldSpectState.degraded_sources.length ? worldSpectState.degraded_sources.join(' · ') : 'ninguna reportada'}</p><div className="grid gap-1 sm:grid-cols-2 xl:grid-cols-3">{worldSpectState.sourceHealth.length ? worldSpectState.sourceHealth.map((source) => <div key={source.sourceId} className="border border-[#c8a951]/08 bg-[#050504]/40 p-2"><div className="flex items-center justify-between gap-2 text-[8px] uppercase tracking-[0.08em]"><span className="truncate text-[#c8a951]">{source.sourceId}</span><span className={source.status === 'healthy' ? 'text-[#6fcf8d]' : 'text-[#9f6a54]'}>{source.status}</span></div><p className="text-[8px] text-[#f4f1e8]/56">confidence {Math.round(source.confidence * 100)}% {source.message ? `· ${source.message}` : ''}</p></div>) : <p className="text-[#9f6a54]/75">Sin SourceHealth disponible.</p>}</div></div></div> : null}
             </div>
           </>}

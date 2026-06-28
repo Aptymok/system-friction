@@ -9,7 +9,9 @@
                    ],
     "scripts":  {
                     "dev":  "next dev",
+                    "dev:local-insecure":  "powershell -NoProfile -ExecutionPolicy Bypass -Command \"$env:NODE_TLS_REJECT_UNAUTHORIZED='0'; $env:SFI_ALLOW_INSECURE_LOCAL_TLS='true'; Get-Content .env.local | ForEach-Object { if ($_ -match '^([^#=]+)=(.*)$') { [Environment]::SetEnvironmentVariable($matches[1].Trim(), $matches[2], 'Process') } }; next dev\"",
                     "build":  "next build",
+                    "build:local-insecure":  "powershell -NoProfile -ExecutionPolicy Bypass -Command \"$env:NODE_TLS_REJECT_UNAUTHORIZED='0'; $env:SFI_ALLOW_INSECURE_LOCAL_TLS='true'; Get-Content .env.local | ForEach-Object { if ($_ -match '^([^#=]+)=(.*)$') { [Environment]::SetEnvironmentVariable($matches[1].Trim(), $matches[2], 'Process') } }; next build\"",
                     "start":  "next start",
                     "lint":  "next lint",
                     "audit:routes":  "node scripts/audit-routes.mjs",

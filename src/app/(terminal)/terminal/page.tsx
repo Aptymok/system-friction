@@ -8,7 +8,7 @@ import { getSfiRuntimeFlags } from '@/lib/config/sfiFlags'
 import { readTerminalCanonicalState, type TerminalCanonicalClientResult } from '@/lib/terminal/canonicalClient'
 
 type AccessState = 'loading' | 'allowed' | 'local'
-type TerminalMode = 'legacy' | 'canonical' | 'degraded'
+type TerminalMode = 'local' | 'canonical' | 'degraded'
 
 export default function TerminalPage() {
   useTelemetryPulse()
@@ -17,13 +17,14 @@ export default function TerminalPage() {
   const [nodeId, setNodeId] = useState<string | null>(null)
   const [canPersist, setCanPersist] = useState(false)
   const [canonicalState, setCanonicalState] = useState<TerminalCanonicalClientResult | null>(null)
-  const [terminalMode, setTerminalMode] = useState<TerminalMode>('legacy')
+  const [terminalMode, setTerminalMode] = useState<TerminalMode>('local')
 
   function refreshCanonicalState(nextNodeId: string | null) {
     const flags = getSfiRuntimeFlags()
 
     if (!flags.canonicalFieldRead || !nextNodeId) {
-      setTerminalMode('legacy')
+      setCanonicalState(null)
+      setTerminalMode(nextNodeId ? 'degraded' : 'local')
       return
     }
 
@@ -109,7 +110,7 @@ export default function TerminalPage() {
       nodeId={access === 'allowed' ? nodeId : null}
       canPersist={access === 'allowed' && canPersist}
       canonicalState={canonicalState}
-      mode={access === 'allowed' ? terminalMode : 'legacy'}
+      mode={access === 'allowed' ? terminalMode : 'local'}
       onSignalDeclared={() => refreshCanonicalState(nodeId)}
     />
   )

@@ -19,6 +19,15 @@ npm install
 npm run dev
 ```
 
+### Local institutional TLS
+
+```bash
+npm run dev:local-insecure
+npm run build:local-insecure
+```
+
+This command exists because the local institutional machine intercepts TLS certificates. Use only for local proof. Do not use in production.
+
 La app funciona sin variables de entorno usando memoria local de runtime. Con `GEMINI_API_KEY`, el auditor agrega diagnostico cualitativo desde Gemini. Supabase queda preparado por migracion y clientes lazy, sin bloquear el build local.
 
 

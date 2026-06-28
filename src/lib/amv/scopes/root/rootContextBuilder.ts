@@ -108,7 +108,7 @@ export function rootTwinProposalTranslator(selectedContext: unknown) {
 }
 
 const ROOT_AGENTS: AmvAgentDescriptor[] = [
-  { id: 'amv', label: 'AMV legacy adapter', source: 'src/agents/amv.ts', status: 'adapter', trust: 'derived' },
+  { id: 'amv', label: 'AMV scoped adapter', source: 'src/agents/amv.ts', status: 'adapter', trust: 'derived' },
   { id: 'longitudinal', label: 'Longitudinal Engine', source: 'src/agents/longitudinal.ts', status: 'adapter', trust: 'derived' },
   { id: 'cognitive-twin', label: 'Cognitive Twin', source: 'src/agents/cognitive-twin.ts', status: 'adapter', trust: 'derived' },
   { id: 'moph', label: 'MOP-H baseline', source: 'src/agents/moph.ts', status: 'available', trust: 'derived' },
