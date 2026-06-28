@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { Disc3, FileAudio, Instagram, Lock, Send, TimerReset } from 'lucide-react';
-import type { StudioEvaluationReport, StudioObjectKind } from '@/lib/studio/evaluation';
+import type { StudioEvaluationReport, StudioFinalState, StudioObjectKind } from '@/lib/studio/evaluation';
 
 type DecisionGate = 'continuar' | 'terminar' | 'publicar' | 'vender' | 'colaborar' | 'revisar' | 'archivar' | 'matar' | 'decision_required';
 type EvidenceState = 'missing' | 'attached' | 'validated';
@@ -54,7 +54,6 @@ type StudioProject = {
   note: string;
   audio: AudioMetadata | null;
   audioFeatures: AudioFeatures | null;
-  evaluation: string;
   report: StudioEvaluationReport | null;
   tasks: ProducerTask[];
   decision: DecisionGate;
@@ -140,6 +139,7 @@ async function extractAudioFeatures(file: File): Promise<AudioFeatures> {
       const data = buffer.getChannelData(channel);
       for (let index = 0; index < data.length; index += 1) mono[index] += data[index] / buffer.numberOfChannels;
     }
+
     let peak = 0;
     let square = 0;
     let clipped = 0;
@@ -149,6 +149,7 @@ async function extractAudioFeatures(file: File): Promise<AudioFeatures> {
       square += mono[index] * mono[index];
       if (abs >= 0.98) clipped += 1;
     }
+
     const energies = segmentEnergy(mono);
     const rms = Math.sqrt(square / Math.max(1, mono.length));
     const minEnergy = Math.min(...energies);
@@ -197,47 +198,9 @@ async function extractAudioFeatures(file: File): Promise<AudioFeatures> {
   }
 }
 
-function readTextBlob(project: Pick<StudioProject, 'title' | 'referenceGenre' | 'currentState' | 'deadline' | 'note'>, audio: AudioMetadata | null) {
-  return `${project.title} ${project.referenceGenre} ${project.currentState} ${project.deadline} ${project.note} ${audio?.fileName ?? ''}`.toLowerCase();
-}
-
-function buildEvaluation(project: Pick<StudioProject, 'title' | 'referenceGenre' | 'currentState' | 'deadline' | 'note'>, audio: AudioMetadata | null) {
-  const text = readTextBlob(project, audio);
-  const duration = audio?.duration ?? null;
-  const isShort = duration !== null && duration <= 45;
-  const isSketch = /idea|sketch|loop|borrador|draft|demo/.test(text);
-  const hasHookLanguage = /hook|coro|riff|motivo|lead|melodia|melodía/.test(text);
-  const hasBeatLanguage = /beat|drum|bateria|batería|808|kick|snare|groove|ritmo/.test(text);
-  const hasMixRisk = /low|sub|bass|bajo|808|mud|sucio|clip|dist/.test(text);
-  const rem618 = /rem618|rem 618|618/.test(text);
-  const urgent = /hoy|semana|deadline|fecha|publicar|release/.test(text);
-  const genre = project.referenceGenre.trim() || 'sin referencia declarada';
-
-  return [
-    `Identidad / que parece ser: ${isSketch ? 'borrador operativo' : isShort ? 'loop o idea corta' : 'demo o pieza en desarrollo'} para ${project.title || 'proyecto sin titulo'}.`,
-    `Direccion emocional: ${/oscuro|dark|triste|melanc/.test(text) ? 'oscura/melancolica' : /club|dance|perreo|energia|energía/.test(text) ? 'corporal y energetica' : 'todavia depende de una referencia emocional concreta'}.`,
-    `Proximidad de genero: ${genre}. Si no hay referencia audible, la lectura queda como hipotesis.`,
-    `Hook potential: ${hasHookLanguage || isShort ? 'hay posibilidad de hook si el motivo se repite y se prueba en 15-30 segundos' : 'no hay hook declarado; necesita una frase, lead o motivo reconocible'}.`,
-    `Rhythm/beat clarity: ${hasBeatLanguage ? 'hay intencion ritmica declarada' : 'ritmo no probado; requiere bounce con bateria o pulso claro'}.`,
-    `Melodic clarity: ${hasHookLanguage ? 'melodia/motivo presente en metadata' : 'claridad melodica no demostrada por metadata'}.`,
-    `Mix risks: ${hasMixRisk ? 'riesgo en low-end, saturacion o balance de graves' : 'riesgo de mezcla no medido; falta referencia A/B'}.`,
-    `Completion risk: ${urgent ? 'alto por ventana temporal activa' : audio ? 'medio: existe audio, falta decision de salida' : 'alto: falta evidencia audible'}.`,
-    `Portfolio value: ${audio ? 'usable como evidencia si se compara con referencia y se exporta un fragmento limpio' : 'bloqueado hasta tener audio o referencia verificable'}.`,
-    `REM618 continuity value: ${rem618 ? 'conecta con continuidad REM618 sin encerrar todo el output en REM618' : 'puede vivir fuera de REM618 como material de productor'}.`,
-    `Instagram/reel potential: ${isShort || duration === null ? 'probar reel corto con visual simple y hook temprano' : 'extraer 12-20 segundos de mayor tension para reel'}.`,
-    `Client acquisition value: ${audio ? 'puede entrar a beat pack o muestra de oferta si hay version exportable' : 'no vender todavia; preparar evidencia audible primero'}.`,
-    `MIHM: tension=${audio ? 'media' : 'alta'}, latencia=${project.deadline ? 'declarada' : 'sin fecha'}, flujo=${hasBeatLanguage || hasHookLanguage ? 'parcial' : 'bloqueado por falta de forma'}.`,
-    `WorldSpectrumVector Cultural Tension: atencion fragmentada, necesidad de prueba corta y presion de publicacion verificable. Emergencia: loops breves con identidad clara pueden convertirse en senal si se publican con evidencia de respuesta.`,
-    `Proyecciones y oportunidades: crear un loop de 30 segundos, comparar contra una referencia, preparar reel manual, empaquetar 3 ideas compatibles y redactar una oferta de productor con prueba audible.`,
-    `Next minimal action: ${audio ? 'escuchar, marcar el mejor fragmento y exportar un bounce de 30 segundos' : 'subir o seleccionar audio antes de evaluar cierre'}.`,
-    `Required evidence: audio exportado, referencia de genero, captura de publicacion o registro manual de envio/respuesta.`,
-    `Decision gate: ${audio ? 'decide continuar, terminar, publicar, vender, colaborar, revisar, archivar o matar' : 'decision_required hasta adjuntar evidencia audible'}.`,
-  ].join('\n');
-}
-
-function generateTasks(project: StudioProject): ProducerTask[] {
+function fallbackTasks(project: StudioProject): ProducerTask[] {
   const hasAudio = Boolean(project.audio);
-  const base: ProducerTask[] = [
+  return [
     {
       id: `task-${project.id}-bounce`,
       title: 'Exportar bounce de 30 segundos',
@@ -267,67 +230,20 @@ function generateTasks(project: StudioProject): ProducerTask[] {
       closureBlocker: project.referenceGenre ? null : 'evidence_required',
     },
     {
-      id: `task-${project.id}-hook`,
-      title: 'Probar hook temprano',
-      reason: 'Instagram y clientes necesitan reconocer una idea rapido.',
-      requiredEvidence: 'Timestamp del hook o nota de ausencia de hook.',
-      suggestedTime: '25 minutos',
-      deadline: project.deadline || '72h',
-      successCondition: 'Hook aparece antes de 15 segundos o se decide revisar.',
-      failureCondition: 'La idea tarda demasiado en mostrar identidad.',
-      nextAction: 'Mover el motivo mas claro al inicio.',
+      id: `task-${project.id}-api`,
+      title: 'Ejecutar reporte SFI Music Evaluation',
+      reason: 'Las tareas finales deben salir del endpoint /api/studio/evaluate, no de plantilla local.',
+      requiredEvidence: 'Reporte con MIHM, WorldSpectVector, Cultural Vector, Conclusion y perturbaciones.',
+      suggestedTime: '5 minutos',
+      deadline: 'ahora',
+      successCondition: 'Existe reporte SFI estructurado.',
+      failureCondition: 'La pieza queda en metadata local.',
+      nextAction: 'Presionar Evaluar.',
       evidenceState: 'missing',
       closed: false,
-      closureBlocker: 'evidence_required',
-    },
-    {
-      id: `task-${project.id}-reel`,
-      title: 'Preparar reel manual',
-      reason: 'La senal externa se prueba publicando una unidad minima.',
-      requiredEvidence: 'URL/captura/descripcion del post o reel.',
-      suggestedTime: '35 minutos',
-      deadline: project.deadline || 'esta semana',
-      successCondition: 'Existe registro de publicacion o decision de no publicar.',
-      failureCondition: 'No hay senal de campo.',
-      nextAction: 'Extraer 12-20 segundos y escribir caption funcional.',
-      evidenceState: 'missing',
-      closed: false,
-      closureBlocker: 'evidence_required',
-    },
-    {
-      id: `task-${project.id}-offer`,
-      title: 'Convertir en oferta de productor',
-      reason: 'El material debe presionar cliente, portfolio o archivo; no quedarse flotando.',
-      requiredEvidence: 'Draft de oferta o mensaje de pitch.',
-      suggestedTime: '20 minutos',
-      deadline: project.deadline || 'esta semana',
-      successCondition: 'Hay pitch manual listo para enviar.',
-      failureCondition: 'No existe uso externo concreto.',
-      nextAction: 'Generar oferta y seleccionar destinatario manual.',
-      evidenceState: 'missing',
-      closed: false,
-      closureBlocker: 'evidence_required',
+      closureBlocker: 'sfi_report_required',
     },
   ];
-
-  if (/rem618|618/i.test(`${project.title} ${project.note}`)) {
-    base.push({
-      id: `task-${project.id}-rem618`,
-      title: 'Separar continuidad REM618 de material productor',
-      reason: 'REM618 debe preservar continuidad sin absorber todo el output.',
-      requiredEvidence: 'Etiqueta: REM618, producer portfolio, cliente, experimento o release candidate.',
-      suggestedTime: '10 minutos',
-      deadline: project.deadline || '24h',
-      successCondition: 'La pieza tiene carril definido.',
-      failureCondition: 'La pieza queda en tal vez infinito.',
-      nextAction: 'Elegir carril y registrar razon.',
-      evidenceState: 'missing',
-      closed: false,
-      closureBlocker: 'evidence_required',
-    });
-  }
-
-  return base.slice(0, 7);
 }
 
 function buildOffer(project: StudioProject) {
@@ -342,7 +258,7 @@ function buildOffer(project: StudioProject) {
   ].join('\n');
 }
 
-function conclusionToDecisionGate(state: StudioEvaluationReport['conclusion']['json']['final_recommendation']): DecisionGate {
+function conclusionToDecisionGate(state: StudioFinalState): DecisionGate {
   if (state === 'finish_this_week') return 'terminar';
   if (state === 'sell_pitch') return 'vender';
   if (state === 'continue') return 'continuar';
@@ -371,6 +287,29 @@ function perturbationsToTasks(projectId: string, perturbations: StudioEvaluation
   }));
 }
 
+function normalizeStoredProject(value: unknown): StudioProject | null {
+  if (!value || typeof value !== 'object') return null;
+  const item = value as Partial<StudioProject> & { evaluation?: unknown };
+  if (!item.id || !item.title) return null;
+  return {
+    id: String(item.id),
+    objectKind: (item.objectKind || 'demo') as StudioObjectKind,
+    title: String(item.title),
+    referenceGenre: String(item.referenceGenre || ''),
+    currentState: String(item.currentState || 'draft'),
+    deadline: String(item.deadline || ''),
+    note: String(item.note || ''),
+    audio: item.audio || null,
+    audioFeatures: item.audioFeatures || null,
+    report: item.report || null,
+    tasks: Array.isArray(item.tasks) ? item.tasks : [],
+    decision: item.decision || 'decision_required',
+    instagramSignal: String(item.instagramSignal || ''),
+    producerOffer: String(item.producerOffer || ''),
+    updatedAt: String(item.updatedAt || new Date(0).toISOString()),
+  };
+}
+
 function ReportSection({ title, mode, text, limits, children }: { title: string; mode: string; text: string; limits: string[]; children: React.ReactNode }) {
   return (
     <article className="border border-[#272219] p-3 text-sm leading-6 text-[#d8d2c2]">
@@ -378,7 +317,7 @@ function ReportSection({ title, mode, text, limits, children }: { title: string;
         <h3 className="font-mono text-[10px] uppercase tracking-[0.14em] text-[#c8a951]">{title}</h3>
         <span className="border border-[#2f2a1e] px-2 py-1 font-mono text-[9px] uppercase tracking-[0.12em] text-[#6f9cc8]">{mode}</span>
       </div>
-      <p className="mt-2 text-[#d8d2c2]">{text}</p>
+      <p className="mt-2 whitespace-pre-wrap text-[#d8d2c2]">{text}</p>
       <div className="mt-2 space-y-1 text-xs text-[#9f9788]">{children}</div>
       {limits.length ? <p className="mt-2 text-xs text-[#d08b63]">Limits: {limits.join(' | ')}</p> : null}
     </article>
@@ -416,10 +355,14 @@ export default function StudioFieldClient() {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) return;
     try {
-      const parsed = JSON.parse(raw) as StudioProject[];
+      const parsed = JSON.parse(raw) as unknown[];
       if (Array.isArray(parsed)) {
-        setProjects(parsed);
-        setSelectedId(parsed[0]?.id ?? null);
+        const normalized = parsed.map(normalizeStoredProject).filter((project): project is StudioProject => Boolean(project));
+        setProjects(normalized);
+        setSelectedId(normalized[0]?.id ?? null);
+        if (normalized.length !== parsed.length || parsed.some((item: any) => item?.evaluation && !item?.report)) {
+          setMessage('Stale template evaluations were discarded. Press Evaluar to generate the SFI report from /api/studio/evaluate.');
+        }
       }
     } catch {
       setMessage('localStorage_read_failed: studio metadata ignored.');
@@ -470,7 +413,6 @@ export default function StudioFieldClient() {
       note,
       audio,
       audioFeatures,
-      evaluation: '',
       report: null,
       tasks: [],
       decision: 'decision_required',
@@ -489,7 +431,7 @@ export default function StudioFieldClient() {
 
   async function evaluateProject(project: StudioProject) {
     setEvaluating(true);
-    setMessage('Evaluando con Studio SFI stack: audio features, MIHM, ScoreFriction, WorldSpect y Cultural Vector cuando esten disponibles.');
+    setMessage('Evaluando con /api/studio/evaluate: audio features, MIHM, ScoreFriction, WorldSpect y Cultural Vector.');
     try {
       const response = await fetch('/api/studio/evaluate', {
         method: 'POST',
@@ -517,17 +459,10 @@ export default function StudioFieldClient() {
       const report = json.report as StudioEvaluationReport;
       patchProject(project.id, {
         report,
-        evaluation: [
-          report.mihm.human,
-          report.worldspect.human,
-          report.culturalVector.human,
-          report.musicEvaluation.human,
-          report.conclusion.human,
-        ].join('\n\n'),
         tasks: perturbationsToTasks(project.id, report.perturbations),
         decision: conclusionToDecisionGate(report.conclusion.json.final_recommendation),
       });
-      setMessage(`Studio SFI report generated. mode=${json.mode}; blocked=${Array.isArray(json.blocked) ? json.blocked.length : 0}.`);
+      setMessage(`Studio SFI report generated from /api/studio/evaluate. mode=${json.mode}; blocked=${Array.isArray(json.blocked) ? json.blocked.length : 0}.`);
     } catch (error) {
       setMessage(`Studio evaluation failed: ${error instanceof Error ? error.message : 'unknown_error'}`);
     } finally {
@@ -536,9 +471,9 @@ export default function StudioFieldClient() {
   }
 
   function generateProjectTasks(project: StudioProject) {
-    const tasks = project.report ? perturbationsToTasks(project.id, project.report.perturbations) : generateTasks(project);
+    const tasks = project.report ? perturbationsToTasks(project.id, project.report.perturbations) : fallbackTasks(project);
     patchProject(project.id, { tasks });
-    setMessage(project.report ? 'Tareas generadas desde perturbaciones del reporte SFI. Ninguna tarea puede cerrar sin evidencia.' : 'Tareas generadas localmente. Ninguna tarea puede cerrar sin evidencia.');
+    setMessage(project.report ? 'Tareas generadas desde perturbaciones del reporte SFI.' : 'Tareas fallback. Ejecuta Evaluar para tareas desde reporte SFI.');
   }
 
   function attachTaskEvidence(projectId: string, taskId: string) {
@@ -649,9 +584,9 @@ export default function StudioFieldClient() {
 
           {selected ? (
             <>
-              <Panel title="Music evaluation panel">
+              <Panel title="SFI Music Evaluation Report">
                 <div className="flex flex-wrap gap-2">
-                  <button type="button" disabled={evaluating} onClick={() => void evaluateProject(selected)} className="border border-[#6f9cc8] px-4 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-[#6f9cc8] disabled:opacity-45">{evaluating ? 'Evaluando' : 'Evaluar'}</button>
+                  <button type="button" disabled={evaluating} onClick={() => void evaluateProject(selected)} className="border border-[#6f9cc8] px-4 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-[#6f9cc8] disabled:opacity-45">{evaluating ? 'Evaluando' : 'Evaluar con SFI'}</button>
                   <button type="button" onClick={() => generateProjectTasks(selected)} className="border border-[#c8a951] px-4 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-[#c8a951]">Generar tareas</button>
                 </div>
                 {selected.report ? (
@@ -662,6 +597,7 @@ export default function StudioFieldClient() {
                     <ReportSection title="WorldSpectVector Contrast" mode={selected.report.worldspect.mode} text={selected.report.worldspect.human} limits={selected.report.worldspect.limits}>
                       <p>World: {selected.report.worldspect.current_world_summary}</p>
                       <p>Tensions: {selected.report.worldspect.current_tensions.join(', ')}</p>
+                      <p>Source state: {selected.report.worldspect.source_state}</p>
                       <p>Relation: {selected.report.worldspect.object_relation}</p>
                       <p>Perturbation: {selected.report.worldspect.perturbation_potential}</p>
                     </ReportSection>
@@ -669,19 +605,31 @@ export default function StudioFieldClient() {
                       <p>Fit: {selected.report.culturalVector.cultural_fit}</p>
                       <p>Contrast: {selected.report.culturalVector.cultural_contrast}</p>
                       <p>Audience: {selected.report.culturalVector.audience_hypothesis}</p>
+                      <p>Attention/friction: {selected.report.culturalVector.attention_friction_hypothesis}</p>
                       <p>Instagram: {selected.report.culturalVector.instagram_reel_potential}</p>
                       <p>Placement: {selected.report.culturalVector.placement}</p>
                     </ReportSection>
                     <ReportSection title="Evaluacion de musica" mode={selected.report.musicEvaluation.mode} text={selected.report.musicEvaluation.human} limits={selected.report.musicEvaluation.limits}>
                       <p>Identity: {selected.report.musicEvaluation.identity}</p>
+                      <p>Emotion: {selected.report.musicEvaluation.emotional_direction}</p>
+                      <p>Genre/reference: {selected.report.musicEvaluation.genre_reference_proximity}</p>
                       <p>Hook: {selected.report.musicEvaluation.hook_analysis}</p>
                       <p>Rhythm: {selected.report.musicEvaluation.rhythm_beat_analysis}</p>
+                      <p>Melody: {selected.report.musicEvaluation.melodic_analysis}</p>
+                      <p>Arrangement: {selected.report.musicEvaluation.arrangement_status}</p>
                       <p>Mix risk: {selected.report.musicEvaluation.mix_risk}</p>
+                      <p>Low-end: {selected.report.musicEvaluation.low_end_risk}</p>
+                      <p>Loudness/export: {selected.report.musicEvaluation.loudness_export_risk}</p>
+                      <p>Structure: {selected.report.musicEvaluation.structure_energy_evolution}</p>
                       <p>Release: {selected.report.musicEvaluation.release_readiness}</p>
                       <p>Known: {selected.report.musicEvaluation.known.join(' | ') || 'not_available'}</p>
+                      <p>Unknown: {selected.report.musicEvaluation.unknown.join(' | ') || 'not_available'}</p>
                       <p>Missing evidence: {selected.report.musicEvaluation.missing_evidence.join(' | ')}</p>
                     </ReportSection>
                     <ReportSection title="Conclusion" mode={selected.report.conclusion.mode} text={selected.report.conclusion.human} limits={selected.report.conclusion.limits}>
+                      <ul className="list-inside list-disc">
+                        {selected.report.conclusion.answers.map((answer) => <li key={answer}>{answer}</li>)}
+                      </ul>
                       <pre className="mt-2 whitespace-pre-wrap text-xs leading-5 text-[#d8d2c2]">{JSON.stringify(selected.report.conclusion.json, null, 2)}</pre>
                     </ReportSection>
                     <ReportSection title="Addendum: Necessary Perturbations" mode="local_heuristic" text="No perturbation closes without evidence." limits={[]}>
@@ -689,8 +637,13 @@ export default function StudioFieldClient() {
                         {selected.report.perturbations.map((item) => (
                           <li key={`${item.title}-${item.deadline}`} className="border border-[#272219] p-2">
                             <div className="text-[#f1ead8]">{item.title}</div>
+                            <div>Why: {item.why_it_matters}</div>
                             <div>Action: {item.exact_action}</div>
                             <div>Evidence: {item.required_evidence}</div>
+                            <div>Deadline: {item.deadline}</div>
+                            <div>Success: {item.success_condition}</div>
+                            <div>Failure: {item.failure_condition}</div>
+                            <div>Effect: {item.expected_field_effect}</div>
                             <div>Unlocks: {item.decision_unlocked}</div>
                           </li>
                         ))}
@@ -701,7 +654,11 @@ export default function StudioFieldClient() {
                       <pre className="mt-3 max-h-96 overflow-auto whitespace-pre-wrap text-[#d8d2c2]">{JSON.stringify(selected.report.raw, null, 2)}</pre>
                     </details>
                   </div>
-                ) : selected.evaluation ? <pre className="mt-3 whitespace-pre-wrap text-sm leading-6 text-[#d8d2c2]">{selected.evaluation}</pre> : <p className="mt-3 text-sm text-[#8f8878]">Presiona Evaluar para producir reporte SFI Music Evaluation. No hay JSON crudo por defecto.</p>}
+                ) : (
+                  <div className="mt-3 border border-[#272219] p-3 text-sm leading-6 text-[#8f8878]">
+                    No hay reporte SFI vigente para este proyecto. Presiona <span className="text-[#c8a951]">Evaluar con SFI</span>. Las evaluaciones de plantilla anteriores fueron retiradas para evitar bluff.
+                  </div>
+                )}
               </Panel>
 
               <Panel title="Producer tasks">
@@ -720,7 +677,7 @@ export default function StudioFieldClient() {
                         <button type="button" onClick={() => closeTask(selected.id, task.id)} className="border border-[#2f2a1e] px-3 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-[#c8a951]">{task.closed ? 'cerrada' : task.closureBlocker ? `blocked:${task.closureBlocker}` : 'Cerrar tarea'}</button>
                       </div>
                     </article>
-                  )) : <p className="text-sm text-[#8f8878]">Presiona Generar tareas para crear 3-7 tareas de productor.</p>}
+                  )) : <p className="text-sm text-[#8f8878]">Presiona Generar tareas para crear tareas. Las tareas finales salen del reporte SFI si existe.</p>}
                 </div>
               </Panel>
 
