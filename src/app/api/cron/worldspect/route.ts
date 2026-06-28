@@ -6,6 +6,55 @@ export const dynamic = 'force-dynamic'
 
 type CronIngestMode = 'daily_cron' | 'manual' | 'diagnostic' | 'fallback_runtime'
 
+function cronSecret() {
+  return process.env.WORLDSPECT_CRON_SECRET
+    || process.env.WORLDSPECT_INGEST_SECRET
+    || process.env.CRON_SECRET
+    || ''
+}
+
+function bearerToken(request: NextRequest) {
+  const authorization = request.headers.get('authorization') ?? ''
+  const match = authorization.match(/^Bearer\s+(.+)$/i)
+  return match?.[1]?.trim() ?? ''
+}
+
+function authorizeCron(request: NextRequest) {
+  const secret = cronSecret()
+  const token = bearerToken(request)
+  const production = process.env.NODE_ENV === 'production'
+
+  if (!secret && production) {
+    return {
+      ok: false as const,
+      response: NextResponse.json({
+        ok: false,
+        error: 'worldspect_cron_secret_missing',
+        message: 'WORLDSPECT_CRON_SECRET, WORLDSPECT_INGEST_SECRET or CRON_SECRET must be configured in production.',
+      }, { status: 503 }),
+    }
+  }
+
+  if (!secret && !production) {
+    return {
+      ok: true as const,
+      warnings: ['worldspect_cron_secret_missing_local_dev_allowed'],
+    }
+  }
+
+  if (!token || token !== secret) {
+    return {
+      ok: false as const,
+      response: NextResponse.json({
+        ok: false,
+        error: 'unauthorized_worldspect_cron',
+      }, { status: 401 }),
+    }
+  }
+
+  return { ok: true as const, warnings: [] }
+}
+
 function ingestModeFromRequest(request: NextRequest): CronIngestMode {
   const header = request.headers.get('X-SFI-Ingest-Mode')?.trim()
   if (header === 'daily_cron' || header === 'manual' || header === 'diagnostic' || header === 'fallback_runtime') return header
@@ -18,6 +67,9 @@ function ingestModeFromRequest(request: NextRequest): CronIngestMode {
 }
 
 export async function GET(request: NextRequest) {
+  const auth = authorizeCron(request)
+  if (!auth.ok) return auth.response
+
   const ingestMode = ingestModeFromRequest(request)
   const result = await runWorldSpectAdapters(ingestMode)
 
@@ -33,6 +85,7 @@ export async function GET(request: NextRequest) {
     degraded_sources: result.degraded_sources,
     writesPerformed: result.persistence.ok,
     persistence: result.persistence,
+    warnings: auth.warnings,
   })
 }
 

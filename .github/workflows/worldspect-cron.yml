@@ -38,6 +38,11 @@ jobs:
         with:
           python-version: '3.11'
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
       - name: Install Ingestion Dependencies
         run: |
           python -m pip install --upgrade pip
@@ -87,10 +92,10 @@ jobs:
             -H "X-SFI-Ingest-Mode: $WORLDSPECT_INGEST_MODE" \
             -H "X-SFI-Measurement-Slot: $WORLDSPECT_MEASUREMENT_SLOT"
 
-      - name: Verify Canonical Reads
+      - name: Run World Vector Pulse QA
         env:
           VERCEL_APP_URL: ${{ secrets.VERCEL_APP_URL }}
+          WORLDSPECT_INGEST_SECRET: ${{ secrets.WORLDSPECT_INGEST_SECRET }}
         run: |
           test -n "$VERCEL_APP_URL" || (echo "Missing VERCEL_APP_URL secret" && exit 1)
-          curl --fail-with-body "$VERCEL_APP_URL/api/worldspect/real"
-          curl --fail-with-body "$VERCEL_APP_URL/api/worldspect/trend?days=90&debug=1"
+          node scripts/qa-world-vector-pulse.mjs
