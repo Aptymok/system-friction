@@ -6,6 +6,17 @@ World Vector cron is a system actor. It may read WorldSpect snapshots, derive Wo
 
 It must not close cycles, approve drafts, publish externally or mutate governed ROOT state.
 
+The current operating principle is:
+
+- Cron breathes.
+- Field captures.
+- Library formalizes.
+- World Vector contextualizes.
+- Prediction Registry preserves evidence.
+- Atlas accumulates longitudinal memory.
+- Agents compare and propose.
+- ROOT decides.
+
 ## Daily loop
 
 Every scheduled run:
@@ -33,6 +44,9 @@ The system actor may prepare draft material, but it does not close the cycle. Cl
 ## Surfaces
 
 - `/world-vector`: minimal observatory dashboard.
+- `/library`: public technical library index over the static editorial package.
+- `/field`: Phase 01 capture boundary foundation.
+- `/root/agents`: ROOT-gated read-only agent boundary placeholder.
 - `/api/world-vector/agents/system-run`: system actor execution endpoint.
 - `/api/world-vector/agents/health`: read-only health endpoint.
 - `/api/world-vector/agents/close-cycle`: ROOT-only close-cycle endpoint.

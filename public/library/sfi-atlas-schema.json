@@ -1,0 +1,37 @@
+{
+  "prediction_entry": {
+    "case_id": "",
+    "hypothesis_id": "",
+    "case_label": "",
+    "operator_mode": "",
+    "fenotipo_estimado": "",
+    "ep_estado_inicial": "",
+    "ssp_esperada": "",
+    "ssp_observada": "",
+    "perturbacion_tipo": "",
+    "perturbacion_aplicada": "",
+    "prediccion_explicita": "",
+    "probabilidad_estimativa": null,
+    "friccion_respuesta_campo": "",
+    "resultado_72h": "",
+    "resultado_7d": "",
+    "resultado_30d": "",
+    "resultado_90d": "",
+    "ep_t_registrada": "",
+    "cp_dias": null,
+    "fallo_hipotesis": "",
+    "refinamiento": "",
+    "estado_observacion": "pendiente",
+    "created_at": "",
+    "updated_at": ""
+  },
+  "evidence_states": [
+    "OBSERVED",
+    "VERIFIED",
+    "DEGRADED",
+    "UNCERTAIN",
+    "PENDING",
+    "ARCHIVED"
+  ],
+  "created_at": "2026-06-28T21:59:20.715409+00:00"
+}
