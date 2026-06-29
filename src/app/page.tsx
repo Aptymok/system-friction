@@ -3,6 +3,9 @@ import Link from 'next/link';
 const footerLinks = [
   ['Politica de privacidad', '/privacy'],
   ['Centro de privacidad', '/privacy#centro'],
+  ['Biblioteca', '/library'],
+  ['World Vector', '/world-vector'],
+  ['Field', '/field'],
   ['Informacion', '/repository'],
   ['Crear cuenta', '/signup'],
   ['Solicitar auditoria', '/contact?reason=audit'],
@@ -25,7 +28,9 @@ export default function HomePage() {
         </p>
         <div className="mt-9 flex flex-wrap gap-3">
           <Link href="/login" className="border border-[#c8a951] bg-[#c8a951] px-5 py-3 font-mono text-[11px] uppercase tracking-[0.16em] text-[#060605]">Ingresar</Link>
-          <Link href="/signup" className="border border-[#c8a95166] px-5 py-3 font-mono text-[11px] uppercase tracking-[0.16em] text-[#c8a951]">Crear cuenta</Link>
+          <Link href="/library" className="border border-[#c8a95166] px-5 py-3 font-mono text-[11px] uppercase tracking-[0.16em] text-[#c8a951]">Biblioteca</Link>
+          <Link href="/world-vector" className="border border-[#2f2a1e] px-5 py-3 font-mono text-[11px] uppercase tracking-[0.16em] text-[#d8d2c2]">World Vector</Link>
+          <Link href="/field" className="border border-[#2f2a1e] px-5 py-3 font-mono text-[11px] uppercase tracking-[0.16em] text-[#d8d2c2]">Field</Link>
           <Link href="/repository" className="border border-[#2f2a1e] px-5 py-3 font-mono text-[11px] uppercase tracking-[0.16em] text-[#d8d2c2]">Repositorio</Link>
         </div>
       </section>

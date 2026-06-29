@@ -27,7 +27,7 @@ export async function requireWorldVectorSystemActor(action: string) {
     };
   }
 
-  const expected = process.env.SFI_AGENT_SECRET || process.env.WORLD_VECTOR_AGENT_SECRET;
+  const expected = process.env.SFI_AGENT_SECRET;
   if (!expected) {
     return {
       ok: false as const,

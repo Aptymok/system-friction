@@ -1,0 +1,16 @@
+{
+  "package": "SFI Foundational Editorial Package",
+  "version": "1.0",
+  "created_at": "2026-06-28T21:59:20.715630+00:00",
+  "documents": [
+    "index.html",
+    "SFI-DT-001_Longitudinal_Observation_Framework.html",
+    "SFI-WB-001_Operator_Workbook.html",
+    "SFI-WB-002_Participant_Workbook.html",
+    "sfi-atlas-schema.json",
+    "sfi_prediction_registry.py",
+    "README.md",
+    "assets/sfi-editorial-system.css",
+    "assets/sfi-mark.svg"
+  ]
+}
