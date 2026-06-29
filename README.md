@@ -9,6 +9,8 @@ Base Next.js App Router construida alrededor de `systemprompt.html` como contrat
 - `/world-vector` observatorio World Vector build-safe con panel runtime
 - `/field` frontera publica de captura
 - `/root/agents` frontera ROOT para agentes pasivos
+- `/root/predictions` registro privado de predicciones gobernado por ROOT
+- `/root/predictions/new` captura de hipotesis antes de perturbacion
 - `/terminal` terminal principal con auditoria, AMV, patrones, hard stop y memoria
 - `/llms.txt` protocolo legible para agentes
 - `/api/audit` auditoria operacional
@@ -39,6 +41,8 @@ La app funciona sin variables de entorno usando memoria local de runtime. Con `G
 Cron breathes. Field captures. Library formalizes. World Vector contextualizes. Prediction Registry preserves evidence. Atlas accumulates longitudinal memory. Agents compare and propose. ROOT decides.
 
 Phase 01 agents are deterministic and passive. They may expose health, integrity, blockers and structured proposals. They must not publish, close cycles, mutate governed ROOT state, rewrite protocols, rewrite phenotypes, promote Atlas entries or expose private evidence.
+
+Phase 02 adds a private Prediction Registry. ROOT can register hypotheses before perturbation and update 72h, 7d, 30d and 90d returns. Agents classify evidence state and pending return windows only; Atlas promotion and publication remain out of scope.
 
 
 

@@ -26,7 +26,8 @@ export default function OperatorFieldPage() {
           <h1 className="mt-4 text-4xl font-semibold text-[#f5eedc]">Capture before claim, prediction before perturbation.</h1>
           <p className="mt-3 max-w-3xl text-sm leading-6 text-[#9f9788]">
             This Phase 01 route aligns to WB-001 and names the capture contract. It does not write to Supabase,
-            close cycles, publish, diagnose or mutate protocols.
+            close cycles, publish, diagnose or mutate protocols. Phase 02 uses this capture boundary before ROOT
+            registers a live prediction.
           </p>
         </header>
 
@@ -43,8 +44,12 @@ export default function OperatorFieldPage() {
           <p className="mt-4 text-sm leading-6 text-[#9f9788]">
             Operator capture can support future Prediction Registry entries only when source, timestamp, operator note,
             EP_estado and SSP context are present. ROOT remains responsible for governed approvals and Atlas promotion.
+            Prediction registration must happen before perturbation to count as predictive evidence.
           </p>
           <div className="mt-5 flex flex-wrap gap-3">
+            <Link href="/root/predictions/new" className="border border-[#c8a95166] px-4 py-2 font-mono text-[10px] uppercase tracking-[0.16em] text-[#c8a951]">
+              ROOT Prediction
+            </Link>
             <Link href="/library/SFI-WB-001_Operator_Workbook.html" className="border border-[#c8a95166] px-4 py-2 font-mono text-[10px] uppercase tracking-[0.16em] text-[#c8a951]">
               Open WB-001
             </Link>

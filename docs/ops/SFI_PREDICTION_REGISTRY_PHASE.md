@@ -4,6 +4,22 @@
 
 Prediction Registry is planned as governed hypothesis memory. Phase 01 defines the type contract and operational boundary only. It does not create database writes, automatic publication, Atlas promotion, protocol mutation or phenotype mutation.
 
+## Phase 02 implementation status
+
+Phase 02 creates the first live ROOT-governed Prediction Registry layer:
+
+- table: `public.sfi_prediction_entries`
+- migration: `supabase/migrations/20260629100000_create_sfi_prediction_entries.sql`
+- health API: `/api/sfi/predictions/health`
+- ROOT list/create API: `/api/sfi/predictions`
+- ROOT detail API: `/api/sfi/predictions/[hypothesisId]`
+- ROOT returns API: `/api/sfi/predictions/[hypothesisId]/returns`
+- ROOT UI: `/root/predictions`
+- ROOT create UI: `/root/predictions/new`
+- ROOT detail UI: `/root/predictions/[hypothesisId]`
+
+The implementation is private by default. It does not add public prediction browsing, participant DB writes, Atlas promotion or automatic publication.
+
 ## Core rule
 
 A prediction must be registered before perturbation to count as predictive evidence. If the prediction is added after perturbation, it is retrospective observation, not predictive evidence.
