@@ -1,0 +1,41 @@
+name: World Vector Agents
+
+on:
+  schedule:
+    - cron: '20 */6 * * *'
+  workflow_dispatch:
+    inputs:
+      job:
+        description: 'Agent job: daily, reports, audit, all'
+        required: false
+        default: 'all'
+
+jobs:
+  run_world_vector_agents:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Resolve Agent Job
+        run: |
+          JOB="${{ github.event.inputs.job }}"
+          if [ -z "$JOB" ]; then JOB="all"; fi
+          echo "WORLD_VECTOR_AGENT_JOB=$JOB" >> "$GITHUB_ENV"
+          echo "World Vector job=$JOB"
+
+      - name: Run World Vector System Actor
+        env:
+          VERCEL_APP_URL: ${{ secrets.VERCEL_APP_URL }}
+          SFI_AGENT_SECRET: ${{ secrets.SFI_AGENT_SECRET }}
+        run: |
+          test -n "$VERCEL_APP_URL" || (echo "Missing VERCEL_APP_URL secret" && exit 1)
+          test -n "$SFI_AGENT_SECRET" || (echo "Missing SFI_AGENT_SECRET secret" && exit 1)
+
+          curl --fail-with-body -X POST "$VERCEL_APP_URL/api/world-vector/agents/system-run?job=$WORLD_VECTOR_AGENT_JOB&persist=true" \
+            -H "Authorization: Bearer $SFI_AGENT_SECRET"
+
+      - name: Read World Vector Health
+        env:
+          VERCEL_APP_URL: ${{ secrets.VERCEL_APP_URL }}
+        run: |
+          test -n "$VERCEL_APP_URL" || (echo "Missing VERCEL_APP_URL secret" && exit 1)
+          curl --fail-with-body "$VERCEL_APP_URL/api/world-vector/agents/health"
