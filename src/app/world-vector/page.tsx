@@ -1,15 +1,51 @@
 import { getWorldVectorStatus, getWorldVectorToday } from '@/lib/world-vector/readModel';
 
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
+type SafeWorldVectorState = Awaited<ReturnType<typeof getSafeWorldVectorState>>;
+
 function formatMetric(value: number | null | undefined) {
   return typeof value === 'number' ? value.toFixed(2) : 'n/a';
 }
 
-export default async function WorldVectorPage() {
-  const [status, today] = await Promise.all([
-    getWorldVectorStatus(),
-    getWorldVectorToday(),
-  ]);
+async function getSafeWorldVectorState() {
+  try {
+    const [status, today] = await Promise.all([
+      getWorldVectorStatus(),
+      getWorldVectorToday(),
+    ]);
+    return { ok: true as const, status, today, error: null };
+  } catch (error) {
+    return {
+      ok: false as const,
+      status: null,
+      today: null,
+      error: error instanceof Error ? error.message : 'world_vector_runtime_unavailable',
+    };
+  }
+}
 
+function RuntimeBlocked({ state }: { state: Extract<SafeWorldVectorState, { ok: false }> }) {
+  return (
+    <main className="min-h-screen bg-[#060605] px-6 py-10 text-[#d8d2c2]">
+      <div className="mx-auto max-w-4xl border border-[#2f2a1e] bg-[#0b0b09] p-6">
+        <p className="font-mono text-[10px] uppercase tracking-[0.28em] text-[#c8a951]">System Friction Institute</p>
+        <h1 className="mt-4 text-4xl font-semibold text-[#f5eedc]">World Vector Observatory</h1>
+        <p className="mt-4 text-sm leading-7 text-[#9f9788]">
+          Runtime blocked. World Vector requires Supabase service environment variables at runtime. Build remains valid; observation activates when environment is configured.
+        </p>
+        <pre className="mt-5 overflow-auto border border-[#2f2a1e] bg-[#060605] p-4 font-mono text-xs text-[#8f8878]">{state.error}</pre>
+      </div>
+    </main>
+  );
+}
+
+export default async function WorldVectorPage() {
+  const state = await getSafeWorldVectorState();
+  if (!state.ok) return <RuntimeBlocked state={state} />;
+
+  const { status, today } = state;
   const observation = today.observation;
   const dominant = observation.domain_values[0];
 
