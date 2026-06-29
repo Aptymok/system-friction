@@ -12,6 +12,7 @@ export default function FieldPage() {
           <p className="mt-3 max-w-3xl text-sm leading-6 text-[#9f9788]">
             Field is the future capture surface. In Phase 01 it routes participants and operators to the correct workbook
             boundary without storing private observations, diagnosing anyone or interpreting phenotype patterns publicly.
+            In Phase 02, operator capture may lead to a ROOT-governed Prediction Registry entry.
           </p>
         </header>
 
@@ -44,6 +45,9 @@ export default function FieldPage() {
               <Link href="/operator/field" className="border border-[#c8a95166] px-4 py-2 font-mono text-[10px] uppercase tracking-[0.16em] text-[#c8a951]">
                 Operator Field
               </Link>
+              <Link href="/root/predictions/new" className="border border-[#2f2a1e] px-4 py-2 font-mono text-[10px] uppercase tracking-[0.16em] text-[#d8d2c2]">
+                ROOT Prediction
+              </Link>
               <Link href="/library/SFI-WB-001_Operator_Workbook.html" className="border border-[#2f2a1e] px-4 py-2 font-mono text-[10px] uppercase tracking-[0.16em] text-[#d8d2c2]">
                 WB-001
               </Link>
@@ -55,7 +59,8 @@ export default function FieldPage() {
           <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[#c8a951]">Operational position</div>
           <p className="mt-4 text-sm leading-6 text-[#9f9788]">
             Library formalizes the method. World Vector contextualizes the world. Field captures signal.
-            Prediction Registry stores hypotheses. Atlas stores longitudinal memory. ROOT decides.
+            Prediction Registry stores ROOT-timestamped hypotheses. Atlas stores longitudinal memory later.
+            ROOT decides what becomes evidence, archive, Atlas candidate or public output.
           </p>
         </section>
       </div>

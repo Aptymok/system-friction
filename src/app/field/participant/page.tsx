@@ -11,7 +11,7 @@ export default function ParticipantFieldPage() {
           <h1 className="mt-4 text-4xl font-semibold text-[#f5eedc]">72-hour marks without technical interpretation.</h1>
           <p className="mt-3 text-sm leading-6 text-[#9f9788]">
             This Phase 01 route is a public-safe placeholder for WB-002-aligned capture. It explains the future boundary
-            and links to the workbook; it does not collect private data yet.
+            and links to the workbook; it does not collect private data or submit DB writes yet.
           </p>
         </header>
 
@@ -22,6 +22,7 @@ export default function ParticipantFieldPage() {
             <li>Reflect on what changed, what was noticed, what was avoided and what was yours.</li>
             <li>Do not receive phenotype interpretation, diagnosis or operator inference by default.</li>
             <li>Keep observation low-friction and privacy-preserving until a governed capture layer exists.</li>
+            <li>Technical interpretation remains operator/ROOT governed.</li>
           </ul>
           <Link href="/library/SFI-WB-002_Participant_Workbook.html" className="mt-5 inline-block border border-[#c8a95166] px-4 py-2 font-mono text-[10px] uppercase tracking-[0.16em] text-[#c8a951]">
             Open WB-002
