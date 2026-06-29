@@ -6,7 +6,7 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
-  const gate = await requireWorldVectorAgentActor('daily');
+  const gate = await requireWorldVectorAgentActor('daily', { allowSystemActor: true });
   if (!gate.ok) return NextResponse.json(gate.body, { status: gate.status });
 
   const url = new URL(request.url);
