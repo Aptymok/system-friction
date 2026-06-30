@@ -13,6 +13,10 @@ export type AgentTrace = {
   persistence_status: 'not_persisted' | 'local_fallback' | 'persisted' | 'blocked';
 };
 
+const STOPWORDS = new Set([
+  'ahi', 'algo', 'ante', 'aqui', 'cada', 'casi', 'como', 'cual', 'cuales', 'cuando', 'desde', 'donde', 'ella', 'ello', 'ellos', 'esta', 'este', 'esto', 'estos', 'hace', 'hagas', 'hacer', 'hacia', 'mismo', 'mucho', 'nada', 'para', 'pero', 'porque', 'puede', 'pueden', 'quiero', 'sobre', 'solo', 'tiene', 'tienen', 'todo', 'todos', 'toma', 'toman', 'veo', 'ves', 'visto', 'with', 'from', 'that', 'this', 'the', 'and', 'una', 'uno', 'unos', 'del', 'las', 'los', 'por', 'que', 'sin', 'sus', 'mas', 'muy', 'era', 'ser', 'son', 'soy', 'fue', 'han', 'hay', 'esa', 'ese', 'eso', 'asi', 'aun', 'aqui', 'alli', 'bien', 'mal', 'mis', 'tus', 'sus', 'nos', 'les', 'ver', 'vez', 'dos', 'tres', 'pues', 'entonces', 'detecta', 'detecto', 'detectar', 'guarda', 'guardar', 'pega', 'aqui', 'despues', 'antes', 'tambien', 'ya', 'no', 'si'
+]);
+
 export function nowIso() {
   return new Date().toISOString();
 }
@@ -51,12 +55,15 @@ export function compactText(value: unknown, max = 260) {
 export function tokenize(value: string) {
   return value
     .toLowerCase()
+    .replace(/ñ/g, 'n')
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .replace(/[^a-z0-9\s-]/g, ' ')
     .split(/\s+/)
+    .map((item) => item.trim())
     .filter((item) => item.length > 2)
-    .filter((item) => !['para', 'como', 'with', 'from', 'that', 'this', 'the', 'and', 'del', 'las', 'los', 'una', 'uno'].includes(item));
+    .filter((item) => !STOPWORDS.has(item))
+    .filter((item) => !/^\d+$/.test(item));
 }
 
 export function textScore(query: string, candidate: string) {
