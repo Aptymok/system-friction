@@ -1,4 +1,4 @@
-import { SfiWorldInterfaceHero } from '@/components/sfi/SfiWorldInterfaceHero';
+import { SfiWorldInterfaceTelemetryHero } from '@/components/sfi/SfiWorldInterfaceTelemetryHero';
 import { buildSfiWorldInterfaceState } from '@/lib/sfi/worldInterfaceState';
 
 export const revalidate = 300;
@@ -8,7 +8,7 @@ export default async function HomePage() {
 
   return (
     <main className="min-h-screen bg-[#030302] text-[#e7dcc1]">
-      <SfiWorldInterfaceHero state={state} />
+      <SfiWorldInterfaceTelemetryHero state={state} />
     </main>
   );
 }
