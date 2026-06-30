@@ -70,7 +70,6 @@ export async function proxy(request: NextRequest) {
 
   const requiresSession =
     pathname.startsWith('/root') ||
-    pathname === '/field' ||
     pathname.startsWith('/studio')
 
   if (!supabaseUrl || !supabaseKey) {

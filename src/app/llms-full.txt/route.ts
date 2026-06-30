@@ -17,7 +17,7 @@ Canonical public structure:
 Private operational routes:
 
 - /root: founder/root console.
-- /field: authenticated user field.
+- /field: public Mini MOP-H intake; authenticated User Twin and persistence remain gated by account state.
 - /studio: private producer field.
 
 Former product surfaces such as /world-vector, /scorefriction, /founder-console, /sfi-console, /campo, /observatory, /moph and /terminal are not public product centers.
