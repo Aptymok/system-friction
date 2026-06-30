@@ -1,12 +1,17 @@
 import { NextResponse } from 'next/server'
 import { createServiceSupabaseClient } from '@/runtime/supabase/server'
-import { getLatestWorldSpectSnapshot, getRecentWorldSpectSnapshots } from '@/lib/worldspect/snapshotStore'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 type HealthStatus = 'healthy' | 'degraded' | 'failed'
 type TrendQuality = 'missing' | 'thin' | 'usable'
+type HealthSnapshotRow = {
+  observed_at: string
+  sources: unknown[]
+  degraded_sources: string[]
+  adapter_error: string | null
+}
 
 const EXPECTED_MEASUREMENTS_TODAY = 4
 const SLOT_HOURS = [0, 6, 12, 18]
@@ -67,14 +72,41 @@ async function alertTableWarnings() {
   }
 }
 
+async function readHealthSnapshots() {
+  const service = createServiceSupabaseClient()
+  const observedSince = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString()
+  const { data, error } = await service
+    .from('worldspect_snapshots')
+    .select('observed_at,sources,degraded_sources,adapter_error')
+    .gte('observed_at', observedSince)
+    .order('observed_at', { ascending: true })
+    .limit(120)
+
+  if (error) throw error
+
+  return Array.isArray(data)
+    ? data
+      .map((row) => {
+        const record = row as Record<string, unknown>
+        return {
+          observed_at: typeof record.observed_at === 'string' ? record.observed_at : '',
+          sources: Array.isArray(record.sources) ? record.sources : [],
+          degraded_sources: Array.isArray(record.degraded_sources)
+            ? record.degraded_sources.filter((source): source is string => typeof source === 'string')
+            : [],
+          adapter_error: typeof record.adapter_error === 'string' ? record.adapter_error : null,
+        } satisfies HealthSnapshotRow
+      })
+      .filter((row) => row.observed_at)
+    : []
+}
+
 export async function GET() {
   const generatedAt = new Date().toISOString()
 
   try {
-    const [latest, recent90d] = await Promise.all([
-      getLatestWorldSpectSnapshot(),
-      getRecentWorldSpectSnapshots({ days: 90, ingestMode: 'all', limit: 120 }),
-    ])
+    const recent90d = await readHealthSnapshots()
+    const latest = recent90d[recent90d.length - 1] ?? null
 
     const alertWarnings = await alertTableWarnings()
 
