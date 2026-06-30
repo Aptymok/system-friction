@@ -12,7 +12,12 @@ interface WorldVectorHealthResponse {
     enabled?: boolean;
     reason?: string | null;
   };
-  current_cycle_day?: number | null;
+  current_cycle_day?: {
+    dayOfWeek?: string | null;
+    sector?: string | null;
+    sectorLabel?: string | null;
+    isCycleClose?: boolean | null;
+  } | number | string | null;
   observation?: {
     observed_at?: string | null;
     status?: string | null;
@@ -31,6 +36,14 @@ function formatFlag(value: boolean | undefined, positive: string, negative: stri
   if (value === true) return positive;
   if (value === false) return negative;
   return 'unknown';
+}
+
+function formatCycleDay(value: WorldVectorHealthResponse['current_cycle_day']) {
+  if (value == null) return 'unknown';
+  if (typeof value === 'string' || typeof value === 'number') return String(value);
+  const day = value.dayOfWeek ?? 'unknown day';
+  const sector = value.sectorLabel ?? value.sector ?? 'unknown sector';
+  return `${day} / ${sector}${value.isCycleClose ? ' / cycle close' : ''}`;
 }
 
 export default function WorldVectorRuntimePanel() {
@@ -114,7 +127,7 @@ export default function WorldVectorRuntimePanel() {
         </div>
         <div className="border border-[#2f2a1e] bg-[#060605] p-4">
           <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-[#8f8878]">Cycle day</div>
-          <div className="mt-2 text-lg text-[#f5eedc]">{health?.current_cycle_day ?? 'unknown'}</div>
+          <div className="mt-2 text-lg text-[#f5eedc]">{formatCycleDay(health?.current_cycle_day)}</div>
           <div className="mt-2 font-mono text-[11px] text-[#8f8878]">observation={health?.observation?.status ?? 'unknown'}</div>
         </div>
       </div>

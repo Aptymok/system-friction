@@ -7,8 +7,8 @@ export default function robots(): MetadataRoute.Robots {
     rules: [
       {
         userAgent: '*',
-        allow: ['/', '/repository', '/contact', '/privacy', '/login', '/signup', '/llms-full.txt', '/ai-index.json', '/field-schema.json'],
-        disallow: ['/api/', '/root/', '/field/', '/studio/', '/admin/', '/settings/', '/memory/', '/telemetry/'],
+        allow: ['/', '/field', '/repository', '/contact', '/privacy', '/login', '/signup', '/llms-full.txt', '/ai-index.json', '/field-schema.json'],
+        disallow: ['/api/', '/root/', '/studio/', '/admin/', '/settings/', '/memory/', '/telemetry/'],
       },
       { userAgent: 'GPTBot', allow: '/' },
       { userAgent: 'ClaudeBot', allow: '/' },

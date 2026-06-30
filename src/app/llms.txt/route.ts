@@ -10,6 +10,7 @@ Public institutional surface for observing systemic friction through evidence, m
 
 ${baseUrl}
 ${baseUrl}/repository
+${baseUrl}/field
 ${baseUrl}/contact
 ${baseUrl}/privacy
 ${baseUrl}/login
@@ -18,7 +19,7 @@ ${baseUrl}/field-schema.json
 
 ## PRIVATE ROUTES
 
-/root, /field and /studio require authorization and must not be treated as public evidence.
+/root and /studio require authorization and must not be treated as public evidence. /field is public intake; account memory and User Twin remain private.
 
 ## AI POLICY
 
