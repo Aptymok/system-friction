@@ -114,11 +114,13 @@ function WorldField({
   activeNodeId,
   setHoverNodeId,
   setPinnedNodeId,
+  openPanel,
 }: {
   state: SfiWorldInterfaceState;
   activeNodeId: string;
   setHoverNodeId: (id: string | null) => void;
   setPinnedNodeId: (id: string) => void;
+  openPanel: () => void;
 }) {
   const nodeById = useMemo(() => new Map(state.nodes.map((node) => [node.id, node])), [state.nodes]);
 
@@ -182,9 +184,15 @@ function WorldField({
               onMouseLeave={() => setHoverNodeId(null)}
               onFocus={() => setHoverNodeId(node.id)}
               onBlur={() => setHoverNodeId(null)}
-              onClick={() => setPinnedNodeId(node.id)}
+              onClick={() => {
+                setPinnedNodeId(node.id);
+                openPanel();
+              }}
               onKeyDown={(event) => {
-                if (event.key === 'Enter' || event.key === ' ') setPinnedNodeId(node.id);
+                if (event.key === 'Enter' || event.key === ' ') {
+                  setPinnedNodeId(node.id);
+                  openPanel();
+                }
               }}
             >
               <circle className="node-halo" r="25" />
@@ -204,6 +212,7 @@ export function SfiWorldInterfaceHero({ state }: Props) {
   const initialNodeId = state.nodes[0]?.id ?? 'sfi-hq';
   const [hoverNodeId, setHoverNodeId] = useState<string | null>(null);
   const [pinnedNodeId, setPinnedNodeId] = useState(initialNodeId);
+  const [panelOpen, setPanelOpen] = useState(false);
   const activeNodeId = hoverNodeId ?? pinnedNodeId;
   const activeNode = state.nodes.find((node) => node.id === activeNodeId) ?? state.nodes[0];
 
@@ -254,14 +263,20 @@ export function SfiWorldInterfaceHero({ state }: Props) {
       </nav>
 
       <div className="world-stage">
-        <WorldField state={state} activeNodeId={activeNodeId} setHoverNodeId={setHoverNodeId} setPinnedNodeId={setPinnedNodeId} />
+        <WorldField
+          state={state}
+          activeNodeId={activeNodeId}
+          setHoverNodeId={setHoverNodeId}
+          setPinnedNodeId={setPinnedNodeId}
+          openPanel={() => setPanelOpen(true)}
+        />
         <div className="world-caption">SYSTEMIC ZONES · VISUAL TOPOLOGY · NOT GEOPOLITICAL DATA</div>
 
-        {activeNode ? (
+        {activeNode && panelOpen ? (
           <aside className={`node-popup tone-${activeNode.state}`} aria-live="polite">
             <header>
               <span>NODE · SFI · LIVE</span>
-              <button type="button" onClick={() => setPinnedNodeId(initialNodeId)} aria-label="Restaurar nodo inicial">
+              <button type="button" onClick={() => setPanelOpen(false)} aria-label="Cerrar panel del nodo">
                 ×
               </button>
             </header>
@@ -281,6 +296,14 @@ export function SfiWorldInterfaceHero({ state }: Props) {
           </aside>
         ) : null}
       </div>
+
+      {!panelOpen ? (
+        <button className="node-panel-launcher" type="button" onClick={() => setPanelOpen(true)} aria-label="Abrir lectura del nodo SFI activo">
+          <span>NODE</span>
+          <strong>{activeNode?.label ?? 'SFI-HQ-01'}</strong>
+          <em>{activeNode ? nodeStateLabel(activeNode.state) : 'active'}</em>
+        </button>
+      ) : null}
 
       <div className="hud-left" aria-label="HUD izquierdo SFI">
         {leftMetrics.map((metric) => <HudCard key={metric.title} {...metric} />)}
@@ -561,6 +584,48 @@ export function SfiWorldInterfaceHero({ state }: Props) {
         .node-degraded .node-core, .node-unknown .node-core { fill: rgba(180, 176, 160, 0.54); }
         .node-degraded .node-orbit, .node-unknown .node-orbit { stroke: rgba(180, 176, 160, 0.28); }
 
+        .node-panel-launcher {
+          position: absolute;
+          right: 32px;
+          bottom: 154px;
+          z-index: 42;
+          display: grid;
+          min-width: 218px;
+          gap: 5px;
+          border: 1px solid rgba(240, 207, 120, 0.4);
+          background: linear-gradient(180deg, rgba(13, 11, 7, 0.9), rgba(4, 4, 3, 0.82));
+          box-shadow: 0 18px 52px rgba(0, 0, 0, 0.52), 0 0 28px rgba(200, 169, 81, 0.1);
+          color: rgba(232, 221, 195, 0.76);
+          cursor: pointer;
+          padding: 13px 16px;
+          text-align: left;
+          text-transform: uppercase;
+          backdrop-filter: blur(7px);
+        }
+        .node-panel-launcher span {
+          color: rgba(240, 207, 120, 0.72);
+          font-size: 9px;
+          letter-spacing: 0.3em;
+        }
+        .node-panel-launcher strong {
+          color: rgba(240, 207, 120, 0.96);
+          font-size: 13px;
+          font-weight: 500;
+          letter-spacing: 0.16em;
+        }
+        .node-panel-launcher em {
+          color: rgba(232, 221, 195, 0.58);
+          font-size: 9px;
+          font-style: normal;
+          letter-spacing: 0.2em;
+        }
+        .node-panel-launcher:hover,
+        .node-panel-launcher:focus-visible {
+          border-color: rgba(255, 232, 164, 0.7);
+          color: #fff0bf;
+          outline: none;
+        }
+
         .hud-left,
         .hud-right {
           top: 160px;
@@ -702,6 +767,7 @@ export function SfiWorldInterfaceHero({ state }: Props) {
           .world-stage { height: min(78vw, 620px); min-height: 390px; margin-top: 20px; }
           .hud-left, .hud-right { width: 100%; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 12px; }
           .node-popup { right: 14px; bottom: 12px; left: 14px; top: auto; width: auto; transform: none; }
+          .node-panel-launcher { position: fixed; right: 16px; bottom: 16px; min-width: 190px; z-index: 70; }
           .bottom-dock { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 12px; }
           .dock-panel { border-right: 1px solid rgba(200, 169, 81, 0.17); border-bottom: 1px solid rgba(200, 169, 81, 0.17); }
           .join-network { grid-column: 1 / -1; }
