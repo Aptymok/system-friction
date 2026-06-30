@@ -1,7 +1,7 @@
 import { SfiWorldInterfaceHero } from '@/components/sfi/SfiWorldInterfaceHero';
 import { buildSfiWorldInterfaceState } from '@/lib/sfi/worldInterfaceState';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 300;
 
 export default async function HomePage() {
   const state = await buildSfiWorldInterfaceState();
