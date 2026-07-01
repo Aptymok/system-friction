@@ -1,4 +1,4 @@
-export type SfiPredictionObservationState =
+﻿export type SfiPredictionObservationState =
   | 'pendiente'
   | 'registrada_pre_perturbacion'
   | 'retrospective_observation'
@@ -117,7 +117,7 @@ export interface SfiPredictionReturnWindowStatus {
 }
 
 export interface SfiPredictionAgentResult {
-  agent: 'evidenceStateAgent' | 'returnWindowAgent';
+  agent: 'evidenceStateAgent' | 'returnWindowAgent' | 'verificationAgent';
   mode: 'passive_deterministic';
   ok: boolean;
   hypothesis_id: string | null;
@@ -181,3 +181,116 @@ export interface SfiPredictionAgentComparison {
   perturbation_family_blocked: boolean | null;
   root_approval_required: true;
 }
+
+// ---------------------------------------------------------------------------
+// DT-TRUTH-001 â€” Capa B: Verification Layer.
+// EvalÃºa una predicciÃ³n de sfi_prediction_entries contra fuente externa
+// jerarquizada. No reescribe la predicciÃ³n original: vive en la tabla hija
+// sfi_prediction_verifications, una fila por ventana de retorno.
+// ---------------------------------------------------------------------------
+
+export type SfiEvaluationResult = 'TRUE' | 'FALSE' | 'PARTIAL' | 'UNVERIFIABLE' | 'NOT_EVALUATED';
+
+export const SFI_EVALUATION_RESULTS: SfiEvaluationResult[] = [
+  'TRUE',
+  'FALSE',
+  'PARTIAL',
+  'UNVERIFIABLE',
+  'NOT_EVALUATED',
+];
+
+export type SfiVerificationState = 'OPEN' | 'DUE' | 'OVERDUE' | 'CLOSED' | 'DISPUTED' | 'SUPERSEDED';
+
+export const SFI_VERIFICATION_STATES: SfiVerificationState[] = [
+  'OPEN',
+  'DUE',
+  'OVERDUE',
+  'CLOSED',
+  'DISPUTED',
+  'SUPERSEDED',
+];
+
+/** JerarquÃ­a de fuentes, DT-TRUTH-001 SecciÃ³n 8. 0 = mÃ¡s autorizada. */
+export type SfiSourceQualityTier = 0 | 1 | 2 | 3 | 4;
+
+/**
+ * Contrato mÃ­nimo de regla verificable (DT-TRUTH-001 SecciÃ³n 12). Debe
+ * declararse antes de que la ventana cierre. Sin este objeto, una hipÃ³tesis
+ * puede registrarse en la Capa A, pero no entra al cÃ¡lculo de PFI.
+ */
+export interface SfiVerificationRule {
+  observable: string;
+  entity: string;
+  window: SfiPredictionReturnWindow;
+  comparator: 'equals' | 'contains' | 'greater_than' | 'less_than' | 'appears' | 'disappears' | 'changes_by';
+  threshold: string;
+  source_priority: Array<`tier_${SfiSourceQualityTier}`>;
+  source_query: string;
+  true_condition: string;
+  false_condition: string;
+  partial_condition: string | null;
+  unverifiable_condition: string;
+}
+
+export interface SfiPredictionVerification {
+  id: string;
+  prediction_entry_id: string;
+  hypothesis_id: string;
+  return_window: SfiPredictionReturnWindow;
+  verification_state: SfiVerificationState;
+  evaluation_result: SfiEvaluationResult;
+  verification_rule: SfiVerificationRule;
+  ground_truth_source_type: string;
+  ground_truth_source_url: string | null;
+  ground_truth_source_query: string | null;
+  source_quality_tier: SfiSourceQualityTier;
+  source_snapshot_hash: string | null;
+  source_checked_at: string | null;
+  source_value: unknown;
+  evaluation_confidence: number | null;
+  evidence_state_after_verification: SfiPredictionEvidenceState | null;
+  verification_notes: string | null;
+  verified_by: string | null;
+  superseded_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateSfiPredictionVerificationInput {
+  prediction_entry_id: string;
+  hypothesis_id: string;
+  return_window: SfiPredictionReturnWindow;
+  verification_rule: SfiVerificationRule;
+  ground_truth_source_type: string;
+  ground_truth_source_url?: string | null;
+  ground_truth_source_query?: string | null;
+  source_quality_tier: SfiSourceQualityTier;
+}
+
+export interface CloseSfiPredictionVerificationInput {
+  id: string;
+  evaluation_result: SfiEvaluationResult;
+  source_snapshot_hash?: string | null;
+  source_value?: unknown;
+  evaluation_confidence?: number | null;
+  evidence_state_after_verification?: SfiPredictionEvidenceState | null;
+  verification_notes?: string | null;
+  verified_by?: string | null;
+}
+
+/**
+ * Resultado del Verification Agent pasivo: agrega el estado de verificaciÃ³n
+ * de una predicciÃ³n a travÃ©s de sus ventanas. No inventa fuente, no cierra
+ * sin regla, no publica.
+ */
+export interface SfiPredictionVerificationAgentResult extends SfiPredictionAgentResult {
+  agent: 'verificationAgent';
+  verifications: SfiPredictionVerification[];
+  closed_count: number;
+  disputed_count: number;
+  unformalized_windows: SfiPredictionReturnWindow[];
+  pfi_eligible: boolean;
+  pfi_contribution: 'TRUE' | 'FALSE' | null;
+  legacy_fallo_hipotesis_present_unformalized: boolean;
+}
+

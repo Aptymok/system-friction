@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { requireRootActor } from '@/lib/root/server';
 import { getPredictionEntry } from '@/lib/sfi/predictions/service';
-import { runEvidenceStateAgent, runReturnWindowAgent } from '@/lib/sfi/predictions/agents';
+import { listVerificationsForPrediction } from '@/lib/sfi/predictions/verificationService';
+import { runEvidenceStateAgent, runReturnWindowAgent, runVerificationAgent } from '@/lib/sfi/predictions/agents';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -43,12 +44,16 @@ export async function GET(_request: Request, ctx: RouteContext) {
   const result = await getPredictionEntry(hypothesisId);
   if (!result.ok) return NextResponse.json(result, { status: result.status ?? 400 });
 
+  const verificationsResult = await listVerificationsForPrediction(result.data.id);
+  const verifications = verificationsResult.ok ? verificationsResult.data : [];
+
   return NextResponse.json({
     ok: true,
     entry: result.data,
     agents: {
-      evidenceStateAgent: runEvidenceStateAgent(result.data),
+      evidenceStateAgent: runEvidenceStateAgent(result.data, verifications),
       returnWindowAgent: runReturnWindowAgent(result.data),
+      verificationAgent: runVerificationAgent(result.data, verifications),
     },
     private: true,
   });

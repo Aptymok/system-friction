@@ -411,7 +411,7 @@ export async function getPredictionRegistryHealth(): Promise<SfiPredictionHealth
   }
 
   const entries = (rowsResult.data ?? []).map(predictionEntryFromRow);
-  const evidenceAgents = entries.map(runEvidenceStateAgent);
+  const evidenceAgents = entries.map((entry) => runEvidenceStateAgent(entry));
   const returnAgents = entries.map((entry) => runReturnWindowAgent(entry));
   const pendingReturnsCount = returnAgents.reduce((total, result) => total + result.pending_count, 0);
   const overdueReturnsCount = returnAgents.reduce((total, result) => total + result.overdue_count, 0);
