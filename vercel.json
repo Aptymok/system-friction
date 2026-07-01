@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/sfi-indicators",
+      "schedule": "0 8 * * *"
+    }
+  ]
+}
