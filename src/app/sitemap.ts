@@ -8,6 +8,7 @@ const routes: { path: string; priority: number; changeFrequency: MetadataRoute.S
   { path: '/library', priority: 0.9, changeFrequency: 'weekly' },
   { path: '/library/phenotypes', priority: 0.7, changeFrequency: 'weekly' },
   { path: '/world-vector', priority: 0.9, changeFrequency: 'daily' },
+  { path: '/observatory', priority: 1.0, changeFrequency: 'always' },
   { path: '/field', priority: 0.8, changeFrequency: 'weekly' },
   { path: '/root/agents', priority: 0.5, changeFrequency: 'weekly' },
   { path: '/contact', priority: 0.6, changeFrequency: 'monthly' },
