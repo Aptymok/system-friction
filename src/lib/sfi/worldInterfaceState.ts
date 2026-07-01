@@ -6,6 +6,9 @@ import { readRootNeuralGraphRuntime } from '@/lib/root/neuralGraphRuntime';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { getPredictionRegistryHealth } from '@/lib/sfi/predictions/service';
 import { buildWorldVectorOperationalState } from '@/lib/world-vector/operationalState';
+import type { WorldVectorDomainValue } from '@/lib/world-vector/types';
+import { deriveCoreIndicators } from '@/lib/sfi/coreIndicators';
+import { readSnapshotNear24hAgo } from '@/lib/sfi/indicatorSnapshot';
 
 export type SfiWorldInterfaceNodeState = 'stable' | 'active' | 'elevated' | 'critical' | 'degraded' | 'unknown';
 
@@ -55,6 +58,17 @@ export type SfiWorldInterfaceState = {
     value: string;
     detail: string;
   };
+  coreIndicators: {
+    ihg: { value: number; delta24h: number | null };
+    nti: { value: number; delta24h: number | null };
+    ldi: { value: number; delta24h: number | null };
+    wsv: { value: number; delta24h: number | null };
+  };
+  indicatorHistory: {
+    available: boolean;
+    referenceCapturedAt: string | null;
+  };
+  domainBreakdown: WorldVectorDomainValue[];
   nodes: Array<{
     id: string;
     label: string;
@@ -306,7 +320,7 @@ function resultWarning<T>(label: string, result: PromiseSettledResult<T>) {
 
 export async function buildSfiWorldInterfaceState(): Promise<SfiWorldInterfaceState> {
   const generatedAt = new Date().toISOString();
-  const [worldVectorResult, scheduleResult, amvResult, graphRuntimeResult, graphAgentResult, predictionResult] = await Promise.allSettled([
+  const [worldVectorResult, scheduleResult, amvResult, graphRuntimeResult, graphAgentResult, predictionResult, historyResult] = await Promise.allSettled([
     buildWorldVectorOperationalState(),
     readScheduleHealth(),
     readAmvOperationalMemory({ query: 'SFI world interface live operating state', limit: 18, useEmbeddings: true }),
@@ -317,6 +331,7 @@ export async function buildSfiWorldInterfaceState(): Promise<SfiWorldInterfaceSt
       generateInterpretation: false,
     }),
     getPredictionRegistryHealth(),
+    readSnapshotNear24hAgo(),
   ]);
 
   const worldVector = resultValue(worldVectorResult);
@@ -337,8 +352,10 @@ export async function buildSfiWorldInterfaceState(): Promise<SfiWorldInterfaceSt
   const graphRuntime = resultValue(graphRuntimeResult);
   const graphAgent = resultValue(graphAgentResult);
   const predictions = resultValue(predictionResult);
+  const history = resultValue(historyResult);
 
   const worldObservation = worldVector?.today.observation ?? null;
+  const domainBreakdown: WorldVectorDomainValue[] = worldObservation?.domain_values ?? [];
   const rawWorldWarnings = unique([
     ...(worldVector?.agent_audit.warnings ?? []),
     ...(worldObservation?.warnings ?? []),
@@ -567,6 +584,27 @@ export async function buildSfiWorldInterfaceState(): Promise<SfiWorldInterfaceSt
     { from: 'system-health', to: 'sfi-hq', strength: strainValue === null ? 0.24 : 1 - strainValue },
   ];
 
+  const currentIndicators = deriveCoreIndicators({
+    signalState: {
+      status: effectiveWorldStatus,
+      value: percent(worldObservation?.confidence ?? schedule.sourceCoverage),
+      detail: '',
+    },
+    frictionLevel: {
+      status: strainState,
+      value: percent(sourceGap),
+      trend: '',
+    },
+    nodes,
+    sfiIndex: {
+      value: sfiIndexValue === null ? 'manual_mode' : `${Number((sfiIndexValue * 100).toFixed(1))}`,
+      detail: '',
+    },
+  });
+
+  const delta = (key: keyof typeof currentIndicators) =>
+    history ? Number((currentIndicators[key] - history[key]).toFixed(3)) : null;
+
   return {
     generatedAt,
     signalState: {
@@ -625,6 +663,17 @@ export async function buildSfiWorldInterfaceState(): Promise<SfiWorldInterfaceSt
         ? 'degraded/manual mode; insufficient public read model inputs'
         : 'derived_from_public_read_model; not an external claim',
     },
+    coreIndicators: {
+      ihg: { value: currentIndicators.ihg, delta24h: delta('ihg') },
+      nti: { value: currentIndicators.nti, delta24h: delta('nti') },
+      ldi: { value: currentIndicators.ldi, delta24h: delta('ldi') },
+      wsv: { value: currentIndicators.wsv, delta24h: delta('wsv') },
+    },
+    indicatorHistory: {
+      available: history !== null,
+      referenceCapturedAt: history?.captured_at ?? null,
+    },
+    domainBreakdown,
     nodes,
     connections,
     warnings: unique([
