@@ -1,11 +1,13 @@
 import '@/app/globals.css';
 import type { Metadata } from 'next';
+import Script from 'next/script';
 import { AuthProvider } from '@/components/auth/AuthProvider';
 
 const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://systemfriction.org';
 const SITE_NAME = 'System Friction Institute';
 const SITE_DESCRIPTION =
   'System Friction Institute makes visible the friction that systems learn to normalize. Infrastructure for longitudinal observation of human, organizational, and institutional systemic friction.';
+const GOOGLE_ANALYTICS_ID = 'G-76H63FV9DG';
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -82,6 +84,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           // eslint-disable-next-line react/no-danger
           dangerouslySetInnerHTML={{ __html: JSON.stringify(researchProjectJsonLd) }}
         />
+        <Script
+          src={`https://www.googletagmanager.com/gtag/js?id=${GOOGLE_ANALYTICS_ID}`}
+          strategy="afterInteractive"
+        />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){window.dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', '${GOOGLE_ANALYTICS_ID}');
+          `}
+        </Script>
       </head>
       <body>
         <AuthProvider>{children}</AuthProvider>
