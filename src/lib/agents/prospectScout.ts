@@ -13,7 +13,9 @@ export type ProspectScoutCandidate = {
   next_step: string;
 };
 
-const CATALOG: Record<string, ProspectScoutCandidate[]> = {
+type Tuple = [string, string, string, string, ProspectScoutCandidate['offer']];
+
+const CATALOG: Record<string, Tuple[]> = {
   TECH: [
     ['Kavak', 'automotive marketplace / operations', 'operations / strategy lead', 'operational coordination, financing, logistics and customer experience friction', 'SFI-DR01'],
     ['Konfio', 'fintech / credit / data', 'risk / data / operations lead', 'credit, data quality, decision velocity and operational scaling pressure', 'SFI-AI01'],
@@ -38,7 +40,7 @@ const CATALOG: Record<string, ProspectScoutCandidate[]> = {
   ],
   CULTURAL: [
     ['Ocesa', 'live entertainment / operations', 'operations / audience experience lead', 'audience flows, ticketing, venue pressure and cultural demand volatility', 'SFI-CX01'],
-    ['Cinépolis', 'entertainment / customer experience', 'customer experience / digital lead', 'attendance shifts, digital channels and service consistency friction', 'SFI-CX01'],
+    ['Cinepolis', 'entertainment / customer experience', 'customer experience / digital lead', 'attendance shifts, digital channels and service consistency friction', 'SFI-CX01'],
     ['Spotify Mexico', 'media / cultural signals', 'editorial / market insights lead', 'memetic change, audience fragmentation and cultural signal interpretation', 'SFI-NA01'],
   ],
   GEO_DIGITAL: [
@@ -47,8 +49,6 @@ const CATALOG: Record<string, ProspectScoutCandidate[]> = {
     ['Alestra', 'telecom / enterprise infrastructure', 'enterprise services / operations lead', 'connectivity, enterprise continuity and digital infrastructure pressure', 'SFI-DR01'],
   ],
 };
-
-type Tuple = [string, string, string, string, ProspectScoutCandidate['offer']];
 
 function row(item: Tuple, vector: string): ProspectScoutCandidate {
   const [name, sector, role, signal, offer] = item;
@@ -74,7 +74,7 @@ function normalizeVector(value: unknown) {
 export function runProspectScout(input: { vector?: string; seeds?: string[]; limit?: number }) {
   const vector = normalizeVector(input.vector);
   const limit = Math.max(1, Math.min(12, Number(input.limit ?? 6)));
-  const base = (CATALOG[vector] ?? CATALOG.TECH).map((item) => row(item as Tuple, vector));
+  const base = (CATALOG[vector] ?? CATALOG.TECH).map((item) => row(item, vector));
   const seeded = Array.isArray(input.seeds) ? input.seeds.filter(Boolean).slice(0, 8).map((name) => ({
     name,
     sector: vector.toLowerCase(),
