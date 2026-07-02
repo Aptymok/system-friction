@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import type { SfiWorldInterfaceNodeState, SfiWorldInterfaceState } from '@/lib/sfi/worldInterfaceState';
+import { SfiLiveWorldMap } from '@/components/sfi/SfiLiveWorldMap';
 
 type Props = {
   state: SfiWorldInterfaceState;
@@ -232,7 +233,7 @@ export function SfiWorldInterfaceHero({ state }: Props) {
 
   return (
     <section id="sfi" className="sfi-world-interface" aria-label="SFI Operational World Interface">
-      <div className="codex-reference-layer" aria-hidden="true" />
+      <div className="live-map-reference-layer" aria-hidden="true"><SfiLiveWorldMap state={state} /></div>
       <div className="interface-shade" aria-hidden="true" />
       <span className="corner corner-nw" />
       <span className="corner corner-ne" />
@@ -388,7 +389,147 @@ export function SfiWorldInterfaceHero({ state }: Props) {
           background: url('/sfi/world-interface/codex-operational-reference.png') center center / cover no-repeat;
           filter: saturate(1.02) contrast(1.04) brightness(0.94);
           opacity: 0.94;
+        }        .live-map-reference-layer {
+          position: absolute;
+          inset: 0;
+          z-index: 0;
+          pointer-events: none;
+          opacity: 0.96;
+          overflow: hidden;
         }
+
+        .sfi-live-world-map,
+        .sfi-live-world-svg,
+        .sfi-viscosity-canvas {
+          position: absolute;
+          inset: 0;
+          width: 100%;
+          height: 100%;
+        }
+
+        .sfi-live-world-map {
+          background:
+            radial-gradient(circle at 50% 42%, rgba(200, 169, 81, 0.09), transparent 38%),
+            linear-gradient(180deg, rgba(2,2,1,0.98), rgba(2,2,1,0.78) 48%, rgba(2,2,1,0.98));
+        }
+
+        .sfi-viscosity-canvas {
+          opacity: 0.12;
+          background:
+            radial-gradient(circle at 25% 30%, rgba(184, 80, 80, 0.18), transparent 28%),
+            radial-gradient(circle at 70% 45%, rgba(200, 169, 81, 0.16), transparent 34%),
+            repeating-linear-gradient(45deg, rgba(255,255,255,0.018) 0 1px, transparent 1px 7px);
+          animation: sfiViscosityBreath 9s ease-in-out infinite alternate;
+        }
+
+        .sfi-live-world-svg {
+          opacity: 0.92;
+          filter: saturate(0.95) contrast(1.08);
+        }
+
+        .geo-grid line {
+          stroke: rgba(200, 169, 81, 0.055);
+          stroke-width: 1;
+          vector-effect: non-scaling-stroke;
+        }
+
+        .continent-layer path {
+          fill: rgba(200, 169, 81, 0.045);
+          stroke: rgba(200, 169, 81, 0.18);
+          stroke-width: 1;
+          vector-effect: non-scaling-stroke;
+        }
+
+        .night-band {
+          fill: url('#sfiNightBand');
+          opacity: 0.72;
+          animation: sfiNightDrift 48s linear infinite;
+        }
+
+        .solar-bloom {
+          fill: url('#sfiSolarBloom');
+          mix-blend-mode: screen;
+          opacity: 0.72;
+          animation: sfiSolarPulse 7s ease-in-out infinite alternate;
+        }
+
+        .night-lights circle {
+          fill: rgba(240, 207, 120, 0.9);
+          animation: sfiLightPulse 5.4s ease-in-out infinite alternate;
+        }
+
+        .map-flow {
+          fill: none;
+          stroke: rgba(240, 207, 120, 0.55);
+          stroke-width: 1;
+          stroke-dasharray: 4 12;
+          vector-effect: non-scaling-stroke;
+          animation: sfiFlowMove 8s linear infinite;
+        }
+
+        .live-node-ring {
+          fill: none;
+          stroke: rgba(240, 207, 120, 0.5);
+          stroke-width: 1;
+          vector-effect: non-scaling-stroke;
+          animation: sfiNodePulse 4.8s ease-in-out infinite;
+        }
+
+        .live-node-core {
+          fill: rgba(240, 207, 120, 0.88);
+          filter: url('#sfiMapGlow');
+        }
+
+        .live-map-node-critical .live-node-ring,
+        .live-map-node-degraded .live-node-ring {
+          stroke: rgba(184, 80, 80, 0.72);
+        }
+
+        .live-map-node-critical .live-node-core,
+        .live-map-node-degraded .live-node-core {
+          fill: rgba(255, 155, 112, 0.9);
+        }
+
+        .map-meta {
+          fill: rgba(200, 169, 81, 0.42);
+          font-size: 9px;
+          letter-spacing: 0.18em;
+          font-family: var(--sfi-font-mono), 'JetBrains Mono', monospace;
+        }
+
+        .map-meta.right {
+          text-anchor: end;
+        }
+
+        @keyframes sfiViscosityBreath {
+          from { opacity: 0.08; transform: scale(1); }
+          to { opacity: 0.19; transform: scale(1.025); }
+        }
+
+        @keyframes sfiNightDrift {
+          from { transform: translateX(-120px); }
+          to { transform: translateX(120px); }
+        }
+
+        @keyframes sfiSolarPulse {
+          from { opacity: 0.46; transform: scale(0.985); }
+          to { opacity: 0.78; transform: scale(1.025); }
+        }
+
+        @keyframes sfiLightPulse {
+          from { opacity: 0.14; }
+          to { opacity: 0.58; }
+        }
+
+        @keyframes sfiFlowMove {
+          to { stroke-dashoffset: -64; }
+        }
+
+        @keyframes sfiNodePulse {
+          0%, 100% { opacity: 0.18; transform: scale(0.92); }
+          50% { opacity: 0.72; transform: scale(1.08); }
+        }
+
 
         .interface-shade,
         .sfi-world-interface::before,
