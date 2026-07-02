@@ -19,6 +19,28 @@ export async function requireRootActor(action: string) {
   return { ok: true as const, ctx, action };
 }
 
+// perf: suppress read-time audit and epistemic writes.
+//
+// Auditoría de la fuga real (2026-07-02): auditRootAction() es el único
+// punto de escritura hacia root_audit_events + epistemic_events, y
+// requireGovernedActor() (usada en 18+ rutas) lo llamaba en CADA request sin
+// distinguir lectura de mutación. Las propias rutas ya nombraban la acción
+// como lectura ('acp.agents.read', 'acp.proposals.list', 'me.read',
+// 'me.head', 'state.read') — el sistema se autodeclaraba lectura y la
+// función lo ignoraba.
+//
+// Regla operativa (no inferida, declarada): una acción cuyo nombre termina
+// en uno de estos sufijos es de solo lectura y NUNCA debe producir un
+// root_audit_event ni un epistemic_event. Cualquier acción nueva que
+// necesite ese sufijo debe ser de lectura; cualquier mutación nueva debe
+// evitar estos sufijos exactos. Esto convierte la convención de nombres que
+// el propio código ya usaba en una regla exigible, no solo documental.
+const READ_ONLY_ACTION_SUFFIXES = ['.read', '.list', '.head', '.state', '.health', '.preview', '.lookup'] as const;
+
+function isReadOnlyAction(action: string): boolean {
+  return READ_ONLY_ACTION_SUFFIXES.some((suffix) => action.endsWith(suffix));
+}
+
 export async function auditRootAction(input: {
   actorId: string;
   action: string;
@@ -26,6 +48,16 @@ export async function auditRootAction(input: {
   payload?: Record<string, unknown>;
   request?: Request;
 }) {
+  if (isReadOnlyAction(input.action)) {
+    // No se escribe root_audit_event ni epistemic_event por una lectura.
+    // DT-TRUTH-001 / R19 en espíritu: una lectura no es evidencia nueva, es
+    // solo consultar lo que ya existe. Se devuelve ok:true con skipped:true
+    // para que quien llama pueda seguir su flujo normal sin tratarlo como
+    // fallo, pero quede visible en logs de desarrollo que se omitió a
+    // propósito, no por error silencioso.
+    return { ok: true as const, skipped: true as const, reason: 'read_only_action_not_audited' as const };
+  }
+
   const service = createServiceSupabaseClient();
   const payload = input.payload ?? {};
   const auditInsert = await service
@@ -65,8 +97,9 @@ export async function auditRootAction(input: {
     return { ok: false as const, error: 'root_epistemic_audit_failed', details: event };
   }
 
-  return { ok: true as const, audit: auditInsert.data, epistemicEvent: event.data };
+  return { ok: true as const, skipped: false as const, audit: auditInsert.data, epistemicEvent: event.data };
 }
+
 
 export async function readTableHealth(table: string, limit = 5) {
   const service = createServiceSupabaseClient();
