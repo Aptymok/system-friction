@@ -36,7 +36,7 @@ export async function POST(request: Request) {
       },
     },
     warnings,
-    300,
+    3600,
   );
 
   if (!result.ok) {
