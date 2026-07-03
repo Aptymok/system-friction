@@ -10,6 +10,13 @@ export type ScoreFrictionPredictionDraft = {
   falsification_condition: string;
   root_approval_required: boolean;
   persistence: 'draft_not_persisted';
+  case_id: string | null;
+  scorefriction_observation_id: string | null;
+  evidence_hash: string | null;
+  substrate_kind: ScoreFrictionEvaluationContract['substrate']['kind'];
+  metrics: ScoreFrictionEvaluationContract['metrics'];
+  indices: ScoreFrictionEvaluationContract['indices'];
+  domains: ScoreFrictionEvaluationContract['domains'];
 };
 
 function compactId(value: string) {
@@ -46,6 +53,9 @@ export function buildScoreFrictionPredictionDraft(input: {
   contract: ScoreFrictionEvaluationContract;
   objectLabel?: string | null;
   declaredIntent?: string | null;
+  caseId?: string | null;
+  scorefrictionObservationId?: string | null;
+  evidenceHash?: string | null;
 }): ScoreFrictionPredictionDraft {
   const label = input.objectLabel?.trim() || `${input.contract.substrate.kind}_substrate`;
   const window = verificationWindow(input.contract);
@@ -63,5 +73,12 @@ export function buildScoreFrictionPredictionDraft(input: {
     falsification_condition: 'No observable evidence appears in the verification window, or the observed movement contradicts the declared substrate and cluster mapping.',
     root_approval_required: true,
     persistence: 'draft_not_persisted',
+    case_id: input.caseId?.trim() || null,
+    scorefriction_observation_id: input.scorefrictionObservationId?.trim() || null,
+    evidence_hash: input.evidenceHash?.trim() || null,
+    substrate_kind: input.contract.substrate.kind,
+    metrics: input.contract.metrics,
+    indices: input.contract.indices,
+    domains: input.contract.domains,
   };
 }
