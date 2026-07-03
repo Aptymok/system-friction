@@ -85,16 +85,20 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const body = record(await request.json().catch(() => ({})));
+  const rawPayload = record(body.raw_payload);
   const contract = buildContract(body);
   const predictionDraft = buildScoreFrictionPredictionDraft({
     contract,
     objectLabel: stringValue(body.object_label ?? body.title ?? body.case_id),
     declaredIntent: stringValue(body.declared_intent ?? body.observation_goal ?? body.intent),
+    caseId: stringValue(body.case_id),
+    scorefrictionObservationId: stringValue(body.observation_id),
+    evidenceHash: stringValue(rawPayload.evidence_hash),
   });
   const result = await evaluateScoreFrictionObservation({
     ...body,
     raw_payload: {
-      ...record(body.raw_payload),
+      ...rawPayload,
       substrate_contract: contract,
       prediction_draft: predictionDraft,
     },
