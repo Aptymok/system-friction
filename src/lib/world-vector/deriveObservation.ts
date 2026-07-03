@@ -1,4 +1,5 @@
 import type { WorldSpectSnapshotRow } from '@/lib/worldspect/snapshotStore';
+import type { SourceObservation } from '@/lib/worldspect/source-adapter-contract';
 import { aggregateWorldSpect } from '@/lib/worldspect/vector-aggregator';
 import type {
   WorldVectorCycleDay,
@@ -98,6 +99,12 @@ function isUsableSource(source: SourceRecord): boolean {
   return source.simulated !== true && !source.error && sourceValue(source) !== null;
 }
 
+function rawPayloadObservations(snapshot: WorldSpectSnapshotRow | null): SourceObservation[] {
+  const rawPayload = asRecord(snapshot?.raw_payload);
+  const observations = rawPayload.observations;
+  return Array.isArray(observations) ? observations as SourceObservation[] : [];
+}
+
 function buildDomainValues(sources: SourceRecord[]): WorldVectorDomainValue[] {
   const groups = new Map<string, Array<{ value: number; confidence: number | null }>>();
 
@@ -129,14 +136,12 @@ function buildDomainValues(sources: SourceRecord[]): WorldVectorDomainValue[] {
 }
 
 function vectorDomainValues(snapshot: WorldSpectSnapshotRow | null): WorldVectorDomainValue[] {
-  const observations = Array.isArray(snapshot?.raw_payload?.observations)
-    ? snapshot.raw_payload.observations
-    : [];
+  const observations = rawPayloadObservations(snapshot);
 
   if (!observations.length) return [];
 
   try {
-    const aggregated = aggregateWorldSpect(observations as never[]);
+    const aggregated = aggregateWorldSpect(observations);
     return aggregated.vectors
       .filter((vector) => vector.status === 'ACTIVE' && typeof vector.value === 'number')
       .map((vector) => ({
