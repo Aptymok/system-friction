@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { buildScoreFrictionEvaluationContract } from '@/lib/scorefriction/evaluationContract';
 import { createScoreFrictionPrototype, evaluateScoreFrictionCase, evaluateScoreFrictionObservation, recordScoreFrictionAudioObservation } from '@/lib/scorefriction/store';
 import { buildScoreFrictionAudioFallbackVector } from '@/lib/scorefriction/evidence-vector-mapper';
 import { runPythonScoreFrictionAnalysis } from '@/lib/scorefriction/python/pythonBridge';
@@ -43,6 +44,22 @@ function record(value: unknown): Record<string, unknown> {
 function numberOrNull(value: unknown) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
+}
+
+function buildAudioSubstrateContract(input: { hasText: boolean; evidenceType: string }) {
+  return buildScoreFrictionEvaluationContract(input.hasText
+    ? {
+      substrate: 'multimodal',
+      subtype: input.evidenceType.toLowerCase().includes('lyrics') ? 'lyrics' : 'unknown',
+      modalities: ['audio', 'text'],
+      confidence: 0.86,
+      notes: ['audio_route', 'audio_text_coupling_enabled', 'lyrics_is_text_subtype_when_declared'],
+    }
+    : {
+      substrate: 'audio',
+      confidence: 0.8,
+      notes: ['audio_route', 'audio_file_analysis'],
+    });
 }
 
 function buildPythonVectors(payload: Record<string, unknown>) {
@@ -168,6 +185,7 @@ export async function POST(request: NextRequest) {
     const text = String(form.get('text') ?? form.get('lyrics') ?? '').trim();
     const nti = numberOrNull(form.get('nti')) ?? 0.5;
     const audioMetadata = parseAudioMetadata(form);
+    const substrateContract = buildAudioSubstrateContract({ hasText: Boolean(text), evidenceType });
     const responseState: { mode: string; message: string; pythonPayload?: Record<string, unknown>; semanticVector?: Record<string, unknown>; mihmCulturalVector?: Record<string, unknown>; operationalReading?: Record<string, unknown> } = { mode: 'fallback_heuristic', message: 'Audio analyzer no conectado. Se genero vector fallback con metadata declarada.' };
     const acousticVector = await analyzerVector(file, sourceName, evidenceType, audioMetadata, warnings, responseState, { text, nti, caseId });
     const recorded = await recordScoreFrictionAudioObservation({
@@ -191,9 +209,10 @@ export async function POST(request: NextRequest) {
         file_size_bytes: file.size,
         mime_type: file.type || 'application/octet-stream',
         text_supplied: Boolean(text),
+        substrate_contract: substrateContract,
         python_output: responseState.pythonPayload,
         operational_reading: responseState.operationalReading,
-      } : undefined,
+      } : { substrate_contract: substrateContract },
       warnings,
     });
 
@@ -214,6 +233,7 @@ export async function POST(request: NextRequest) {
       ok: true,
       observation_id: recorded.data.observation.id,
       evidence_hash: recorded.data.evidence_hash,
+      substrate_contract: substrateContract,
       acoustic_vector: acousticVector,
       semantic_vector: responseState.semanticVector ?? null,
       mihm_vector: responseState.pythonPayload?.mihm_vector ?? null,
@@ -235,6 +255,7 @@ export async function POST(request: NextRequest) {
 
   const body = await request.json().catch(() => ({}));
   const audioMetadata = body.audioMetadata && typeof body.audioMetadata === 'object' ? body.audioMetadata : {};
+  const substrateContract = buildAudioSubstrateContract({ hasText: Boolean(body.lyrics), evidenceType: 'audio_metadata_analysis' });
   const result = await evaluateScoreFrictionObservation({
     raw_payload: {
       title: body.title ?? null,
@@ -242,7 +263,8 @@ export async function POST(request: NextRequest) {
       audioMetadata,
       comments: body.comments ?? [],
       lyrics: body.lyrics ?? null,
+      substrate_contract: substrateContract,
     },
   });
-  return NextResponse.json(result, { status: result.ok ? 200 : 400 });
+  return NextResponse.json({ ...result, substrate_contract: substrateContract }, { status: result.ok ? 200 : 400 });
 }
