@@ -24,6 +24,15 @@ type Indicator = {
   delta24h: number | null;
 };
 
+type WsvComponent = Indicator & {
+  explanation: string;
+  meaning: string;
+  gapToCore: number;
+  gapToOptimum: number;
+  confidence: number | null;
+  sourceCount: number;
+};
+
 const WSV_NODES = new Set(['sfi-hq', 'world-vector', 'field', 'system-health', 'scorefriction']);
 
 const NAV_ITEMS = [
@@ -34,6 +43,36 @@ const NAV_ITEMS = [
   { n: '05', label: 'ROOT', sub: 'Gobernanza', href: '/root/agents' },
   { n: '06', label: 'CONTACTO', sub: 'Instituto', href: '/contact?offer=SFI-DR01' },
 ];
+
+const DOMAIN_LABELS: Record<string, string> = {
+  INSTITUTIONAL: 'INSTITUCIONAL',
+  TECHNOLOGY_AI_DATA: 'TECNOLÓGICO',
+  ECONOMY_MARKET_CAPITAL: 'ECONÓMICO',
+  CULTURE_SIGNAL_NARRATIVE: 'CULTURAL',
+  SOCIAL_BEHAVIORAL: 'SOCIAL',
+  ARCHITECTURE_CITY_SPACE: 'ESPACIAL',
+  AFFECTIVE: 'AFECTIVO',
+  BIO: 'BIO',
+  CLIMATE: 'CLIMA',
+  CULTURAL: 'CULTURAL',
+  ECONOMY: 'ECONOMÍA',
+  NEO_DIGITAL: 'NEO-DIGITAL',
+};
+
+const DOMAIN_MEANINGS: Record<string, string> = {
+  INSTITUTIONAL: 'Instituciones, autorización, gobernanza, legitimidad y ejecución pública.',
+  TECHNOLOGY_AI_DATA: 'Infraestructura tecnológica, datos, automatización, IA y superficie digital.',
+  ECONOMY_MARKET_CAPITAL: 'Mercado, capital, presión económica, consumo y capacidad material.',
+  CULTURE_SIGNAL_NARRATIVE: 'Narrativa pública, símbolos, sincronía cultural, medios y atención colectiva.',
+  SOCIAL_BEHAVIORAL: 'Conducta social, coordinación, hábitos, tensión relacional y respuesta colectiva.',
+  ARCHITECTURE_CITY_SPACE: 'Espacio físico, ciudad, infraestructura, movilidad y condiciones territoriales.',
+  AFFECTIVE: 'Carga afectiva colectiva: ansiedad, calma, habituación, duelo, entusiasmo o anestesia.',
+  BIO: 'Condición biológica, salud, vitalidad, carga corporal y señales de supervivencia sistémica.',
+  CLIMATE: 'Presión climática y ambiental; no mide opinión, mide carga del campo climático.',
+  CULTURAL: 'Atención, ritual, narrativa, símbolos y sincronización cultural; puede inflarse por eventos masivos.',
+  ECONOMY: 'Presión económica, intercambio, poder adquisitivo, mercado y fricción material.',
+  NEO_DIGITAL: 'Capa digital emergente: plataformas, IA, señal memética, datos y circulación técnica.',
+};
 
 function clamp(v: number) {
   return Math.max(0, Math.min(1, Number.isFinite(v) ? v : 0));
@@ -66,6 +105,28 @@ function lonLatToSvg(point: LonLat) {
 function terminatorPath(points: MapPoint[] | undefined) {
   if (!points?.length) return '';
   return points.map((point, index) => `${index === 0 ? 'M' : 'L'}${sx(point.x).toFixed(2)} ${sy(point.y).toFixed(2)}`).join(' ');
+}
+function domainKey(value: string) {
+  return value.trim().toUpperCase().replace(/[^A-Z0-9]+/g, '_');
+}
+function labelForDomain(domain: string) {
+  return DOMAIN_LABELS[domainKey(domain)] ?? domain.replace(/_/g, ' ').toUpperCase();
+}
+function meaningForDomain(domain: string) {
+  return DOMAIN_MEANINGS[domainKey(domain)] ?? 'Variable WSV de dominio: mide activación relativa del campo, brecha al núcleo, brecha al óptimo y riesgo de saturación.';
+}
+function wsvBand(value: number) {
+  if (value < 0.34) return 'URGENCIA';
+  if (value < 0.67) return 'CRITICIDAD MEDIA';
+  if (value < 0.85) return 'ADECUACIÓN RELATIVA';
+  return 'SATURACIÓN / ÓPTIMO APARENTE';
+}
+function wsvInterpretation(domain: string, value: number, confidence: number | null, sourceCount: number) {
+  const band = wsvBand(value);
+  const gap = Number((1 - value).toFixed(2));
+  const core = Number(value.toFixed(2));
+  const confidenceText = confidence === null ? 'confianza no disponible' : `confianza ${(confidence * 100).toFixed(0)}%`;
+  return `${labelForDomain(domain)} · ${band}. Valor ${idx100(value)}/100. Brecha al núcleo ${core}; brecha al óptimo ${gap}. ${confidenceText}; ${sourceCount} fuente(s). Un valor alto no significa bienestar: significa activación relativa o proximidad al óptimo aparente del eje.`;
 }
 
 function GaugeRing({ value, tone }: { value: number; tone: 'gold' | 'red' | 'amber' }) {
@@ -102,7 +163,7 @@ function GaugeCard({ ind, tone }: { ind: Indicator; tone: 'gold' | 'red' | 'ambe
   );
 }
 
-function Radar({ indicators }: { indicators: Indicator[] }) {
+function Radar({ indicators, selectedKey, onSelect }: { indicators: WsvComponent[]; selectedKey?: string | null; onSelect?: (key: string) => void }) {
   const c = 90;
   const max = 62;
   const count = indicators.length;
@@ -113,13 +174,24 @@ function Radar({ indicators }: { indicators: Indicator[] }) {
       return `${c + Math.cos(a) * r},${c + Math.sin(a) * r}`;
     })
     .join(' ');
+
+  if (count < 3) {
+    return (
+      <div className="radar-empty">
+        <strong>WSV DOMAIN SOURCE GAP</strong>
+        <span>Se requieren al menos 3 dominios World Vector para formar radar. No se sustituye con MIHM.</span>
+      </div>
+    );
+  }
+
   return (
-    <svg className="radar" viewBox="0 0 180 180" aria-hidden="true">
+    <svg className="radar" viewBox="0 0 180 180" aria-label="Diagrama WSV por dominio observado">
       {[0.33, 0.66, 1].map((l) => <circle key={l} cx={c} cy={c} r={max * l} />)}
       {indicators.map((d, i) => {
         const a = -Math.PI / 2 + (i / count) * Math.PI * 2;
         return (
-          <g key={d.key}>
+          <g key={d.key} className={selectedKey === d.key ? 'radar-axis active' : 'radar-axis'} onClick={() => onSelect?.(d.key)}>
+            <title>{d.explanation}</title>
             <line x1={c} y1={c} x2={c + Math.cos(a) * max} y2={c + Math.sin(a) * max} />
             <text x={c + Math.cos(a) * (max + 16)} y={c + Math.sin(a) * (max + 16)}>{d.label}</text>
           </g>
@@ -127,6 +199,11 @@ function Radar({ indicators }: { indicators: Indicator[] }) {
       })}
       <polygon className="radar-fill" points={poly} />
       <polygon className="radar-edge" points={poly} />
+      {indicators.map((d, i) => {
+        const a = -Math.PI / 2 + (i / count) * Math.PI * 2;
+        const r = 12 + d.value * (max - 12);
+        return <circle key={`point-${d.key}`} className={selectedKey === d.key ? 'radar-point active' : 'radar-point'} cx={c + Math.cos(a) * r} cy={c + Math.sin(a) * r} r="2.8" onClick={() => onSelect?.(d.key)}><title>{d.explanation}</title></circle>;
+      })}
     </svg>
   );
 }
@@ -139,6 +216,7 @@ export function SfiObservatoryHero({ state, terminator, subsolar, interpretation
   );
   const [selected, setSelected] = useState(usableNodes[0]?.id ?? 'sfi-hq');
   const [open, setOpen] = useState(false);
+  const [selectedWsvKey, setSelectedWsvKey] = useState<string | null>(null);
   const node = usableNodes.find((n) => n.id === selected) ?? usableNodes[0];
   const { ihg, nti, ldi, wsv } = state.coreIndicators;
   const operational = state.warnings.length === 0 || (!state.warnings.includes('worldspect_snapshot_missing') && ihg.value > 0);
@@ -151,30 +229,29 @@ export function SfiObservatoryHero({ state, terminator, subsolar, interpretation
     { key: 'ldi', label: 'LDI', sublabel: 'Índice de Desgaste Sistémico', value: ldi.value, display: idx100(ldi.value).toString(), level: level(ldi.value), detail: state.frictionLevel.trend, delta24h: ldi.delta24h },
   ];
 
-  const DOMAIN_LABELS: Record<string, string> = {
-    INSTITUTIONAL: 'INSTITUCIONAL',
-    TECHNOLOGY_AI_DATA: 'TECNOLÓGICO',
-    ECONOMY_MARKET_CAPITAL: 'ECONÓMICO',
-    CULTURE_SIGNAL_NARRATIVE: 'CULTURAL',
-    SOCIAL_BEHAVIORAL: 'SOCIAL',
-    ARCHITECTURE_CITY_SPACE: 'ESPACIAL',
-  };
-  const domainRadar: Indicator[] = state.domainBreakdown
+  const wsvComponents: WsvComponent[] = state.domainBreakdown
     .filter((d) => d.value !== null)
-    .slice(0, 6)
-    .map((d) => ({
-      key: d.domain,
-      label: DOMAIN_LABELS[d.domain] ?? d.domain,
-      sublabel: `${d.source_count} fuente(s)`,
-      value: clamp(d.value ?? 0),
-      display: idx100(d.value ?? 0).toString(),
-      level: level(d.value ?? 0),
-      detail: d.confidence !== null ? `confianza ${(d.confidence * 100).toFixed(0)}%` : 'confianza no disponible',
-      delta24h: null,
-    }));
-  const radarIndicators: Indicator[] = domainRadar.length >= 3
-    ? domainRadar
-    : [...indicators, { key: 'wsv', label: 'WSV', sublabel: 'World Spect Vector', value: wsv.value, display: wsv.value.toFixed(2), level: wsv.value >= 0.5 ? 'INESTABLE' : 'ESTABLE', detail: state.signalState.detail, delta24h: wsv.delta24h }];
+    .map((d) => {
+      const value = clamp(d.value ?? 0);
+      const key = domainKey(d.domain);
+      return {
+        key,
+        label: labelForDomain(d.domain),
+        sublabel: `${d.source_count} fuente(s) · ${d.confidence !== null ? `${(d.confidence * 100).toFixed(0)}%` : 'sin confianza'}`,
+        value,
+        display: idx100(value).toString(),
+        level: level(value),
+        detail: wsvBand(value),
+        delta24h: null,
+        meaning: meaningForDomain(d.domain),
+        explanation: wsvInterpretation(d.domain, value, d.confidence, d.source_count),
+        gapToCore: value,
+        gapToOptimum: 1 - value,
+        confidence: d.confidence,
+        sourceCount: d.source_count,
+      };
+    });
+  const selectedWsv = wsvComponents.find((component) => component.key === selectedWsvKey) ?? wsvComponents[0] ?? null;
 
   const generated = new Date(state.generatedAt);
   const generatedLabel = Number.isFinite(generated.getTime()) ? `${generated.toISOString().replace('T', ' ').slice(11, 19)} UTC` : 'pending_source';
@@ -194,8 +271,19 @@ export function SfiObservatoryHero({ state, terminator, subsolar, interpretation
 
       <div className="rail left-rail">
         {indicators.map((ind, i) => <GaugeCard key={ind.key} ind={ind} tone={i === 2 ? 'red' : i === 1 ? 'amber' : 'gold'} />)}
-        <article className="gcard wsv-card"><h3>WORLD SPECT VECTOR</h3><div className="readout"><strong>{wsv.value.toFixed(2)}</strong><em className={`lvl lvl-${wsv.value >= 0.5 ? 'alto' : 'bajo'}`}>{wsv.value >= 0.5 ? 'INESTABLE' : 'ESTABLE'}</em></div></article>
-        <article className="gcard radar-card"><h3>WSV COMPONENTES</h3><p>{domainRadar.length >= 3 ? 'Composición por dominio observado' : 'Composición base'}</p><Radar indicators={radarIndicators} /></article>
+        <article className="gcard wsv-card"><h3>WORLD SPECT VECTOR</h3><div className="readout"><strong>{wsv.value.toFixed(2)}</strong><em className={`lvl lvl-${wsv.value >= 0.5 ? 'alto' : 'bajo'}`}>{wsv.value >= 0.5 ? 'INESTABLE' : 'ESTABLE'}</em></div><p className="detail">Persistencia vectorial del campo observado; no equivale a bienestar.</p></article>
+        <article className="gcard radar-card wsv-breakdown"><h3>WSV COMPONENTES</h3><p>Composición por dominio World Vector. Nunca sustituye con MIHM.</p><Radar indicators={wsvComponents} selectedKey={selectedWsv?.key ?? null} onSelect={setSelectedWsvKey} />
+          <div className="wsv-component-list">
+            {wsvComponents.map((component) => (
+              <button key={component.key} type="button" className={selectedWsv?.key === component.key ? 'wsv-component active' : 'wsv-component'} onClick={() => setSelectedWsvKey(component.key)} title={component.explanation}>
+                <span><strong>{component.label}</strong><em>{component.display}/100</em></span>
+                <i>{component.detail}</i>
+                <span className="component-tip">{component.explanation}</span>
+              </button>
+            ))}
+          </div>
+          {selectedWsv ? <div className="wsv-selected"><strong>{selectedWsv.label}</strong><span>{selectedWsv.meaning}</span><em>{selectedWsv.explanation}</em></div> : <div className="wsv-selected"><strong>WSV sin dominios</strong><span>WorldVector no entregó suficientes dominios para desglose. Se mantiene vacío para no mostrar MIHM por sustitución.</span></div>}
+        </article>
       </div>
 
       <svg className="field" viewBox="0 0 1200 600" role="img" aria-label="Mapa operacional SFI con terminador día noche y densidad de nodos">
@@ -244,14 +332,18 @@ export function SfiObservatoryHero({ state, terminator, subsolar, interpretation
         .top { top:24px; display:grid; gap:6px; text-transform:uppercase; letter-spacing:.14em; font-size:10px; color:rgba(232,221,195,.7); }
         .top.left { left:28px; } .top.right { right:28px; text-align:right; } .top b { color:var(--g); font-size:9px; } .top em { font-style:normal; } .top .ok { color:#8fae5a; } .top .warn { color:var(--a); }
         .brand { top:20px; left:50%; transform:translateX(-50%); text-align:center; pointer-events:none; } .brand h1 { margin:0; font-family:var(--sfi-font-display),'Syncopate',sans-serif; font-size:clamp(2rem,3.4vw,3.4rem); font-weight:400; letter-spacing:.42em; color:var(--gb); } .brand p { margin:8px 0 0; font-size:9px; letter-spacing:.4em; color:rgba(232,221,195,.7); }
-        .rail.left-rail { top:84px; left:22px; width:210px; display:grid; gap:12px; bottom:118px; overflow-y:auto; }
+        .rail.left-rail { top:84px; left:22px; width:210px; display:grid; gap:12px; bottom:118px; overflow-y:auto; overflow-x:visible; }
         .gcard { border:1px solid rgba(200,169,81,.26); background:linear-gradient(180deg,rgba(12,11,8,.82),rgba(3,3,2,.72)); box-shadow:0 0 30px rgba(0,0,0,.4); padding:12px 14px; }
         .gcard header { display:flex; align-items:flex-start; justify-content:space-between; gap:10px; } .gcard h3 { margin:0; font-size:11px; letter-spacing:.16em; color:var(--gb); font-weight:500; } .gcard p { margin:4px 0 0; font-size:8px; color:rgba(232,221,195,.55); line-height:1.45; }
         .gauge { width:34px; height:34px; flex-shrink:0; } .gauge .track { fill:none; stroke:rgba(200,169,81,.16); stroke-width:3; } .gauge .fill { fill:none; stroke-width:3; stroke-linecap:round; transition:stroke-dashoffset .6s ease; }
         .readout { display:flex; align-items:baseline; gap:8px; margin-top:10px; } .readout strong { font-family:var(--sfi-font-serif),serif; font-size:26px; font-weight:400; color:#e7dcc1; } .readout span { font-size:9px; color:rgba(232,221,195,.45); }
         .lvl { margin-left:auto; font-style:normal; font-size:9px; letter-spacing:.12em; padding:2px 6px; border:1px solid currentColor; } .lvl-alto,.lvl-inestable { color:var(--r); } .lvl-medio { color:var(--a); } .lvl-bajo,.lvl-estable { color:#8fae5a; }
         .delta { margin-top:8px; font-size:9px; color:rgba(232,221,195,.42); } .detail { margin-top:8px; font-size:8px; line-height:1.5; color:rgba(232,221,195,.42); }
-        .radar-card .radar { width:100%; height:auto; margin-top:8px; } .radar circle,.radar line { fill:none; stroke:rgba(200,169,81,.22); } .radar text { fill:rgba(232,221,195,.6); font-size:8px; text-anchor:middle; } .radar-fill { fill:rgba(200,169,81,.18); } .radar-edge { fill:none; stroke:var(--gb); stroke-width:1.3; }
+        .radar-card .radar { width:100%; height:auto; margin-top:8px; } .radar circle,.radar line { fill:none; stroke:rgba(200,169,81,.22); } .radar text { fill:rgba(232,221,195,.6); font-size:7px; text-anchor:middle; cursor:pointer; } .radar-axis { cursor:pointer; } .radar-axis.active line,.radar-axis:hover line { stroke:var(--gb); stroke-width:1.4; } .radar-fill { fill:rgba(200,169,81,.18); } .radar-edge { fill:none; stroke:var(--gb); stroke-width:1.3; } .radar-point { fill:var(--gb); stroke:#020201; stroke-width:.8; cursor:pointer; } .radar-point.active,.radar-point:hover { fill:var(--r); }
+        .radar-empty { margin-top:10px; border:1px dashed rgba(200,169,81,.28); padding:12px; display:grid; gap:6px; } .radar-empty strong { color:var(--a); font-size:9px; letter-spacing:.12em; } .radar-empty span { color:rgba(232,221,195,.5); font-size:8px; line-height:1.5; }
+        .wsv-component-list { display:grid; gap:6px; margin-top:10px; } .wsv-component { position:relative; border:1px solid rgba(200,169,81,.16); background:rgba(2,2,1,.24); color:rgba(232,221,195,.7); padding:7px 8px; text-align:left; cursor:pointer; } .wsv-component:hover,.wsv-component.active { border-color:rgba(240,207,120,.54); color:var(--gb); background:rgba(200,169,81,.08); } .wsv-component span:first-child { display:flex; justify-content:space-between; gap:8px; align-items:center; } .wsv-component strong { font-size:8px; letter-spacing:.08em; } .wsv-component em { font-size:8px; font-style:normal; color:rgba(232,221,195,.55); } .wsv-component i { display:block; margin-top:3px; font-style:normal; font-size:7px; color:rgba(232,221,195,.44); }
+        .component-tip { position:absolute; left:calc(100% + 8px); top:0; width:220px; padding:10px; border:1px solid rgba(240,207,120,.34); background:rgba(8,7,5,.96); color:rgba(232,221,195,.78); font-size:9px; line-height:1.55; opacity:0; transform:translateX(-4px); pointer-events:none; transition:opacity .15s ease, transform .15s ease; z-index:40; box-shadow:0 0 30px rgba(0,0,0,.5); } .wsv-component:hover .component-tip,.wsv-component:focus .component-tip,.wsv-component.active .component-tip { opacity:1; transform:translateX(0); }
+        .wsv-selected { margin-top:10px; border-top:1px solid rgba(200,169,81,.18); padding-top:10px; display:grid; gap:6px; } .wsv-selected strong { color:var(--gb); font-size:9px; letter-spacing:.12em; } .wsv-selected span { color:rgba(232,221,195,.62); font-size:8px; line-height:1.5; } .wsv-selected em { color:rgba(232,221,195,.46); font-size:8px; line-height:1.55; font-style:normal; }
         .field { top:90px; right:300px; bottom:150px; left:260px; width:auto; height:auto; max-width:calc(100% - 580px); min-height:360px; z-index:4; overflow:visible; }
         .night-shade { fill:rgba(2,2,1,.48); stroke:none; mix-blend-mode:multiply; } .terminator { fill:none; stroke:rgba(240,207,120,.45); stroke-width:1.2; stroke-dasharray:5 7; } .density-glow { fill:url(#density); filter:url(#obs-glow); pointer-events:none; } .sun-badge circle:first-child { fill:var(--gb); } .sun-badge circle:last-child { fill:none; stroke:rgba(240,207,120,.45); stroke-width:1.2; }
         .conn { fill:none; stroke:rgba(240,207,120,.34); stroke-width:1.1; stroke-dasharray:5 7; filter:url(#obs-glow); } .node { cursor:pointer; } .node .halo { fill:rgba(240,207,120,.08); stroke:rgba(240,207,120,.24); } .node .ring { fill:rgba(2,2,1,.72); stroke:var(--gb); stroke-width:1.6; } .node .core { fill:var(--gb); } .node.critical .ring,.node.degraded .ring { stroke:var(--r); } .node.critical .core,.node.degraded .core { fill:var(--r); } .node .hit { fill:transparent; }
@@ -260,7 +352,7 @@ export function SfiObservatoryHero({ state, terminator, subsolar, interpretation
         .legend-bar { left:280px; right:320px; bottom:118px; display:flex; align-items:center; gap:12px; font-size:9px; letter-spacing:.14em; color:rgba(232,221,195,.62); } .gradient { flex:1; height:5px; background:linear-gradient(90deg,#8fae5a,var(--g),var(--a),var(--r)); box-shadow:0 0 22px rgba(240,207,120,.25); } .lg-labels { display:flex; gap:12px; } .lg-labels em { font-style:normal; }
         .bottom-nav { left:22px; right:22px; bottom:32px; display:grid; grid-template-columns:repeat(6,1fr); gap:8px; } .bottom-nav a { position:relative; min-height:58px; border:1px solid rgba(200,169,81,.22); background:rgba(8,7,5,.78); padding:10px 12px; color:rgba(232,221,195,.76); text-decoration:none; display:grid; gap:3px; } .bottom-nav a.active { border-color:var(--gb); color:var(--gb); } .bottom-nav .n { font-size:9px; color:rgba(232,221,195,.42); } .bottom-nav strong { font-size:10px; letter-spacing:.12em; } .bottom-nav em { font-style:normal; font-size:8px; color:rgba(232,221,195,.45); } .live-badge { position:absolute; top:-9px; right:8px; border:1px solid var(--gb); background:#020201; color:var(--gb); padding:2px 6px; font-size:8px; }
         .obs-footer { left:24px; right:24px; bottom:8px; display:flex; justify-content:space-between; gap:16px; font-size:8px; letter-spacing:.1em; color:rgba(232,221,195,.42); text-transform:uppercase; } .obs-footer a { color:rgba(232,221,195,.6); text-decoration:none; } .dot { display:inline-block; width:6px; height:6px; border-radius:999px; background:#8fae5a; box-shadow:0 0 12px #8fae5a; margin-right:6px; }
-        @media (max-width: 980px) { .sfi-observatory { min-height:1300px; } .brand { top:68px; } .top.right { display:none; } .rail.left-rail { left:18px; right:18px; top:150px; width:auto; bottom:auto; grid-template-columns:repeat(2,minmax(0,1fr)); } .field { left:20px; right:20px; top:580px; max-width:none; } .reading { left:18px; right:18px; top:960px; width:auto; max-height:260px; } .legend-bar { left:18px; right:18px; bottom:210px; } .bottom-nav { grid-template-columns:repeat(2,1fr); bottom:48px; } .obs-footer { display:none; } }
+        @media (max-width: 980px) { .sfi-observatory { min-height:1300px; } .brand { top:68px; } .top.right { display:none; } .rail.left-rail { left:18px; right:18px; top:150px; width:auto; bottom:auto; grid-template-columns:repeat(2,minmax(0,1fr)); } .field { left:20px; right:20px; top:580px; max-width:none; } .reading { left:18px; right:18px; top:960px; width:auto; max-height:260px; } .legend-bar { left:18px; right:18px; bottom:210px; } .bottom-nav { grid-template-columns:repeat(2,1fr); bottom:48px; } .obs-footer { display:none; } .component-tip { left:auto; right:0; top:100%; width:min(260px,80vw); } }
       `}</style>
     </section>
   );
