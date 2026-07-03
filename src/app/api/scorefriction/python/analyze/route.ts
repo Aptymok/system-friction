@@ -1,4 +1,5 @@
-﻿import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { buildScoreFrictionEvaluationContract } from '@/lib/scorefriction/evaluationContract';
 import { buildScoreFrictionOperationalReading } from '@/lib/scorefriction/python/pythonMihmToOperational';
 import {
   runMonteCarlo,
@@ -34,6 +35,36 @@ function fileFrom(value: FormDataEntryValue | null): PythonBridgeFile | null {
   return value instanceof File ? value : null;
 }
 
+function buildSubstrateContract(input: { evidenceType: string; hasAudio: boolean; hasText: boolean }) {
+  const evidence = input.evidenceType.toLowerCase();
+  const textSubtype = evidence.includes('lyrics') ? 'lyrics' : evidence.includes('technical') ? 'technical_document' : 'unknown';
+
+  if (input.hasAudio && input.hasText) {
+    return buildScoreFrictionEvaluationContract({
+      substrate: 'multimodal',
+      subtype: textSubtype,
+      modalities: ['audio', 'text'],
+      confidence: 0.82,
+      notes: ['audio_text_input', 'lyrics_is_text_subtype_when_declared'],
+    });
+  }
+
+  if (input.hasAudio || evidence.includes('audio')) {
+    return buildScoreFrictionEvaluationContract({
+      substrate: 'audio',
+      confidence: 0.78,
+      notes: ['audio_file_analysis'],
+    });
+  }
+
+  return buildScoreFrictionEvaluationContract({
+    substrate: 'text',
+    subtype: textSubtype,
+    confidence: 0.72,
+    notes: [evidence.includes('lyrics') ? 'lyrics_as_text_subtype' : 'text_analysis'],
+  });
+}
+
 function buildVectors(payload: Record<string, unknown>) {
   const mihm = record(payload.mihm_vector);
   const semantic = {
@@ -66,8 +97,9 @@ function buildVectors(payload: Record<string, unknown>) {
   return { acoustic, semantic, mihmCultural };
 }
 
-function responseFrom(payload: Record<string, unknown>, input: { caseId: string; sourceName: string; evidenceType: string; metadata: Record<string, unknown> }) {
+function responseFrom(payload: Record<string, unknown>, input: { caseId: string; sourceName: string; evidenceType: string; metadata: Record<string, unknown>; hasAudio: boolean; hasText: boolean }) {
   const mihm = record(payload.mihm_vector);
+  const substrateContract = buildSubstrateContract({ evidenceType: input.evidenceType, hasAudio: input.hasAudio, hasText: input.hasText });
   const operational = buildScoreFrictionOperationalReading({
     mihmVector: mihm,
     ihgFinal: payload.ihg_final,
@@ -88,6 +120,7 @@ function responseFrom(payload: Record<string, unknown>, input: { caseId: string;
     status: payload.status ?? 'OK',
     case_id: input.caseId,
     evidence_type: input.evidenceType,
+    substrate_contract: substrateContract,
     mihm_vector: mihm,
     acoustic_vector: vectors.acoustic,
     semantic_vector: vectors.semantic,
@@ -99,7 +132,7 @@ function responseFrom(payload: Record<string, unknown>, input: { caseId: string;
     emission_valid: payload.emission_valid ?? payload.status === 'OK',
     operational_reading: operational,
     warnings,
-    analysis_message: 'Audio analizado con nucleo Python MIHM.',
+    analysis_message: input.hasAudio ? 'Audio analizado con nucleo Python MIHM.' : 'Texto analizado con nucleo Python MIHM.',
     ingest_payload: {
       case_id: input.caseId,
       source_name: input.sourceName,
@@ -108,8 +141,8 @@ function responseFrom(payload: Record<string, unknown>, input: { caseId: string;
       evidence_type: isScoreFrictionEvidenceType(input.evidenceType) ? input.evidenceType : 'audio_file_analysis',
       reliability_score: 0.72,
       provenance_notes: 'local python MIHM analysis',
-      raw_payload: payload,
-      normalized_payload: operational,
+      raw_payload: { ...payload, substrate_contract: substrateContract },
+      normalized_payload: { ...operational, substrate_contract: substrateContract },
       vector_overrides: {
         acoustic_vector: vectors.acoustic,
         semantic_vector: vectors.semantic,
@@ -142,14 +175,16 @@ export async function POST(request: NextRequest) {
     const form = await request.formData();
     const caseId = String(form.get('case_id') ?? 'PY-MIHM');
     const sourceName = String(form.get('source_name') ?? 'manual_upload');
-    const evidenceType = String(form.get('evidence_type') ?? (form.get('audio') || form.get('file') ? 'audio_file_analysis' : 'lyrics'));
+    const audioFile = fileFrom(form.get('audio')) ?? fileFrom(form.get('file'));
+    const textFile = fileFrom(form.get('lyrics_file')) ?? fileFrom(form.get('text_file'));
+    const evidenceType = String(form.get('evidence_type') ?? (audioFile ? 'audio_file_analysis' : 'lyrics'));
     const metadata = parseMetadata(form.get('metadata'));
     const textValue = String(form.get('text') ?? '').trim();
     const nti = numeric(form.get('nti')) ?? 0.5;
 
     const result = await runPythonScoreFrictionAnalysis({
-      audioFile: fileFrom(form.get('audio')) ?? fileFrom(form.get('file')),
-      textFile: fileFrom(form.get('lyrics_file')) ?? fileFrom(form.get('text_file')),
+      audioFile,
+      textFile,
       text: textValue || null,
       metadata,
       nti,
@@ -168,15 +203,16 @@ export async function POST(request: NextRequest) {
       }, { status: 503 });
     }
 
-    return NextResponse.json(responseFrom(result.data, { caseId, sourceName, evidenceType, metadata }));
+    return NextResponse.json(responseFrom(result.data, { caseId, sourceName, evidenceType, metadata, hasAudio: Boolean(audioFile), hasText: Boolean(textValue || textFile) }));
   }
 
   const body = record(await request.json().catch(() => ({})));
   const caseId = String(body.case_id ?? 'PY-MIHM');
   const sourceName = String(body.source_name ?? 'manual_upload');
   const evidenceType = String(body.evidence_type ?? 'lyrics');
+  const text = typeof body.text === 'string' ? body.text : '';
   const result = await runPythonScoreFrictionAnalysis({
-    text: typeof body.text === 'string' ? body.text : null,
+    text: text.trim() ? text : null,
     metadata: record(body.metadata),
     nti: numeric(body.nti) ?? 0.5,
     caseId,
@@ -192,6 +228,5 @@ export async function POST(request: NextRequest) {
     }, { status: 503 });
   }
 
-  return NextResponse.json(responseFrom(result.data, { caseId, sourceName, evidenceType, metadata: record(body.metadata) }));
+  return NextResponse.json(responseFrom(result.data, { caseId, sourceName, evidenceType, metadata: record(body.metadata), hasAudio: false, hasText: Boolean(text.trim()) }));
 }
-
