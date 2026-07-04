@@ -1,15 +1,7 @@
-import StudioFieldClient from '@/components/studio/StudioFieldClient';
-import StudioStartProtocol from '@/components/studio/StudioStartProtocol';
+import StudioCulturalInterventionLab from '@/components/studio/StudioCulturalInterventionLab';
 
 export const dynamic = 'force-dynamic';
 
 export default function StudioPage() {
-  return (
-    <>
-      <StudioStartProtocol />
-      <div id="studio-console">
-        <StudioFieldClient />
-      </div>
-    </>
-  );
+  return <StudioCulturalInterventionLab />;
 }
