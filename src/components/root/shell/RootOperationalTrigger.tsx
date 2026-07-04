@@ -2,21 +2,23 @@
 
 import { useState } from 'react';
 
-type RootOperationalJob = 'all' | 'reports';
+type RootOperationalJob = 'daily' | 'reports' | 'audit' | 'all';
 
-export function RootOperationalTrigger({ job, compact = false }: { job: RootOperationalJob; compact?: boolean }) {
-  const [state, setState] = useState<'idle' | 'running' | 'done' | 'failed'>('idle');
+const ROOT_ROUTE = ['/api/root/operational', 'trigger-observation'].join('/');
+
+export function RootOperationalTrigger({ job = 'all', compact = false }: { job?: RootOperationalJob; compact?: boolean }) {
+  const [state, setState] = useState<'idle' | 'running' | 'done' | 'blocked'>('idle');
 
   async function run() {
     setState('running');
     try {
-      const response = await fetch(`/api/world-vector/agents/system-run?job=${encodeURIComponent(job)}&persist=true`, { method: 'POST' });
-      setState(response.ok ? 'done' : 'failed');
+      const response = await fetch(`${ROOT_ROUTE}?job=${encodeURIComponent(job)}`, { method: 'POST' });
+      setState(response.ok ? 'done' : 'blocked');
     } catch {
-      setState('failed');
+      setState('blocked');
     }
   }
 
-  const label = state === 'running' ? 'RUNNING' : state === 'done' ? 'SYNCED' : state === 'failed' ? 'GATED' : compact ? 'SYNC' : 'RUN ROOT SYNC';
-  return <button type="button" className="rc-btn" onClick={run} disabled={state === 'running'} title="Runs an existing World Vector agent endpoint. No ROOT governance queue is created.">{label}</button>;
+  const label = state === 'running' ? 'RUNNING' : state === 'done' ? 'SYNCED' : state === 'blocked' ? 'GATED' : compact ? 'SYNC' : 'RUN ROOT SYNC';
+  return <button type="button" className="rc-btn" onClick={run} disabled={state === 'running'} title="Runs the governed ROOT observation route. No parallel queue is created.">{label}</button>;
 }
