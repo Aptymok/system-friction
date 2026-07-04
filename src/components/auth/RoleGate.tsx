@@ -6,26 +6,43 @@ import { translateRootAccess } from '@/lib/root/rootGovernanceTranslator';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
+let cachedRootAccess: boolean | null = null;
+let cachedRootUserId: string | null = null;
+
 export function RoleGate({ children, allowedRoles }: { children: React.ReactNode; allowedRoles: string[] }) {
   const { session, status, userRole } = useAuthState();
   const router = useRouter();
   const requiresRoot = allowedRoles.includes('root');
-  const [serverRoot, setServerRoot] = useState<boolean | null>(requiresRoot ? null : false);
+  const sessionUserId = session?.user.id ?? null;
+  const [serverRoot, setServerRoot] = useState<boolean | null>(
+    requiresRoot && cachedRootAccess === true ? true : requiresRoot ? null : false,
+  );
 
   useEffect(() => {
     let active = true;
 
     async function verifyRoot() {
       if (!requiresRoot) return;
-      if (status !== 'authenticated' || !session) return;
+      if (status !== 'authenticated' || !sessionUserId) return;
 
-      setServerRoot(null);
+      if (cachedRootAccess === true && cachedRootUserId === sessionUserId) {
+        setServerRoot(true);
+        return;
+      }
 
-      const response = await fetch('/api/root/me', { credentials: 'include' }).catch(() => null);
+      setServerRoot((current) => (current === true ? true : null));
+
+      const response = await fetch('/api/root/me', {
+        credentials: 'include',
+        cache: 'no-store',
+      }).catch(() => null);
       const body = response ? await response.json().catch(() => null) : null;
+      const isRoot = Boolean(response?.ok && body?.ok && body?.data?.isRoot);
 
       if (!active) return;
-      setServerRoot(Boolean(response?.ok && body?.ok && body?.data?.isRoot));
+      cachedRootAccess = isRoot;
+      cachedRootUserId = sessionUserId;
+      setServerRoot(isRoot);
     }
 
     void verifyRoot();
@@ -33,11 +50,11 @@ export function RoleGate({ children, allowedRoles }: { children: React.ReactNode
     return () => {
       active = false;
     };
-  }, [requiresRoot, status, session]);
+  }, [requiresRoot, status, sessionUserId]);
 
   const roleAllowed = Boolean(userRole && allowedRoles.includes(userRole));
   const rootAllowed = requiresRoot && serverRoot === true;
-  const resolvingRole = status === 'authenticated' && session && (requiresRoot ? serverRoot === null : !userRole);
+  const resolvingRole = status === 'authenticated' && Boolean(sessionUserId) && (requiresRoot ? serverRoot === null : !userRole);
 
   useEffect(() => {
     if (status === 'authenticated') {
@@ -53,8 +70,8 @@ export function RoleGate({ children, allowedRoles }: { children: React.ReactNode
       <div className="grid min-h-screen place-items-center bg-[#060605] p-6 text-[#c8c4b8]">
         <div className="border border-[#1e1c17] bg-[#0e0d0b] p-5">
           <div className="font-mono text-[8px] uppercase tracking-[0.22em] text-[#8a7035]">Umbral ROOT</div>
-          <div className="mt-2 text-sm text-[#c8a951]">Verificando permiso raiz.</div>
-          <p className="mt-2 text-xs leading-5 text-[#8a7568]">Si ROOT recarga, debe ser por cambio o expiracion de sesion.</p>
+          <div className="mt-2 text-sm text-[#c8a951]">Verificando permiso raíz.</div>
+          <p className="mt-2 text-xs leading-5 text-[#8a7568]">Sesión conservada. Validación de rol en curso.</p>
         </div>
       </div>
     );
