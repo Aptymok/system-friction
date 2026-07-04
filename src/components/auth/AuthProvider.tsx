@@ -2,7 +2,7 @@
 
 import type { Session } from '@supabase/supabase-js'
 import { usePathname, useRouter } from 'next/navigation'
-import { createContext, useContext, useEffect, useMemo, useState } from 'react'
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { createBrowserSupabaseClient } from '@/runtime/supabase/client'
 
 type AuthState = {
@@ -33,7 +33,7 @@ function postAuthPath(role?: string | null) {
 }
 
 async function readServerIdentity() {
-  const response = await fetch('/api/root/me', { credentials: 'include' })
+  const response = await fetch('/api/root/me', { credentials: 'include', cache: 'no-store' })
   if (!response.ok) return null
   const body = await response.json().catch(() => null)
   return body?.ok ? body.data as { role?: string | null; isRoot?: boolean } : null
@@ -42,6 +42,7 @@ async function readServerIdentity() {
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
+  const pathnameRef = useRef(pathname)
   const supabase = useMemo(() => createBrowserSupabaseClient(), [])
   const [state, setState] = useState<AuthState>({
     session: null,
@@ -50,12 +51,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   })
 
   useEffect(() => {
+    pathnameRef.current = pathname
+  }, [pathname])
+
+  useEffect(() => {
     if (!supabase) return
     const client = supabase
     let active = true
 
     const fetchUserRole = async (userId: string) => {
-      const identity = await readServerIdentity()
+      const identity = await readServerIdentity().catch(() => null)
       if (identity?.isRoot) return 'root'
       if (identity?.role) return identity.role
 
@@ -78,30 +83,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return data?.role || 'observer'
     }
 
-    async function hydrateSession() {
-      try {
-        const { data, error } = await client.auth.getSession()
-        if (!active) return
-        if (error) {
-          await client.auth.signOut()
-          setState({ session: null, status: 'anonymous', userRole: null })
-          router.refresh()
-          return
-        }
-        let role = null
-        if (data.session) role = await fetchUserRole(data.session.user.id)
-        if (!active) return
-        setState({
-          session: data.session,
-          status: data.session ? 'authenticated' : 'anonymous',
-          userRole: role,
-        })
-      } catch {
-        if (!active) return
-        await client.auth.signOut()
-        setState({ session: null, status: 'anonymous', userRole: null })
-        router.refresh()
+    const commitAuthenticatedSession = async (session: Session, options?: { redirectFromAuthRoute?: boolean }) => {
+      setState((previous) => ({
+        session,
+        status: 'authenticated',
+        userRole: previous.session?.user.id === session.user.id ? previous.userRole : null,
+      }))
+
+      const role = await fetchUserRole(session.user.id).catch(() => null)
+      if (!active) return
+
+      setState({
+        session,
+        status: 'authenticated',
+        userRole: role || 'observer',
+      })
+
+      const currentPath = pathnameRef.current
+      if (options?.redirectFromAuthRoute && AUTH_ROUTES.has(currentPath)) {
+        router.replace(postAuthPath(role))
       }
+    }
+
+    async function hydrateSession() {
+      const { data, error } = await client.auth.getSession().catch(() => ({ data: { session: null }, error: null }))
+      if (!active) return
+
+      if (error) {
+        setState({ session: null, status: 'anonymous', userRole: null })
+        return
+      }
+
+      if (data.session) {
+        await commitAuthenticatedSession(data.session)
+        return
+      }
+
+      setState({ session: null, status: 'anonymous', userRole: null })
     }
 
     void hydrateSession()
@@ -109,31 +127,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const {
       data: { subscription },
     } = client.auth.onAuthStateChange((event, session) => {
-      const immediateRole = null
+      if (event === 'SIGNED_OUT') {
+        setState({ session: null, status: 'anonymous', userRole: null })
+        const currentPath = pathnameRef.current
+        if (currentPath.startsWith('/root') || currentPath.startsWith('/studio')) router.replace('/login')
+        return
+      }
 
-      setState({
-        session,
-        status: session ? 'authenticated' : 'anonymous',
-        userRole: immediateRole,
-      })
+      if (!session) {
+        setState({ session: null, status: 'anonymous', userRole: null })
+        return
+      }
 
       globalThis.setTimeout(() => {
         if (!active) return
-        if (event === 'SIGNED_IN' && session) {
-          void fetchUserRole(session.user.id).then((role) => {
-            if (!active) return
-            setState({ session, status: 'authenticated', userRole: role })
-            router.refresh()
-            if (AUTH_ROUTES.has(pathname)) router.replace(postAuthPath(role))
-          })
-          return
-        }
-
-        if (event === 'SIGNED_OUT') {
-          setState({ session: null, status: 'anonymous', userRole: null })
-          router.refresh()
-          if (pathname.startsWith('/root') || pathname.startsWith('/studio')) router.replace('/login')
-        }
+        void commitAuthenticatedSession(session, { redirectFromAuthRoute: event === 'SIGNED_IN' })
       }, 0)
     })
 
@@ -141,7 +149,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       active = false
       subscription.unsubscribe()
     }
-  }, [pathname, router, supabase])
+  }, [router, supabase])
 
   return <AuthContext.Provider value={state}>{children}</AuthContext.Provider>
 }
