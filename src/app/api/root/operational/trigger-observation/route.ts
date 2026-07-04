@@ -5,6 +5,8 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 const DEFAULT_JOB: RootObservationJob = 'all';
+const RUNNER_PATH = '@/lib/root/rootObservationRunner';
+const RUNNER_KEY = 'runRootObservationJob';
 
 function resolveJob(request: Request): RootObservationJob {
   const url = new URL(request.url);
@@ -17,6 +19,9 @@ export async function GET(request: Request) {
   return NextResponse.json({ ok: true, route: 'root_operation_ready', default_job: DEFAULT_JOB, job: resolveJob(request) });
 }
 
-export async function POST() {
-  return NextResponse.json({ ok: false, blocked: true, reason: 'runtime_wiring_pending' }, { status: 200 });
+export async function POST(request: Request) {
+  const mod = await import(RUNNER_PATH);
+  const handler = mod[RUNNER_KEY] as (job: RootObservationJob) => Promise<{ status: number; body: unknown }>;
+  const output = await handler(resolveJob(request));
+  return NextResponse.json(output.body, { status: output.status });
 }
