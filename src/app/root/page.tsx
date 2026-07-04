@@ -4,7 +4,7 @@ import { buildWorldVectorOperationalState } from '@/lib/world-vector/operational
 
 export const dynamic = 'force-dynamic';
 
-export default async function RootDashboardPage() {
+export default async function RootPage() {
   const [worldVector, agentic] = await Promise.all([
     buildWorldVectorOperationalState(),
     buildAgenticRootState(),
