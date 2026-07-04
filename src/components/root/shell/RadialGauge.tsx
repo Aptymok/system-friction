@@ -1,6 +1,10 @@
 'use client';
 
+import type { CSSProperties } from 'react';
+
 export type GaugeTone = 'ok' | 'watch' | 'bad' | 'muted';
+
+type GaugeStyle = CSSProperties & { '--gauge-color': string };
 
 function clamp01(value: number | null) {
   if (value === null || !Number.isFinite(value)) return null;
@@ -19,8 +23,9 @@ export function RadialGauge({ value01, label, sublabel, tone }: { value01: numbe
   const pct = value === null ? 'GATED' : `${Math.round(value * 100)}%`;
   const dash = value === null ? 0 : Math.round(value * 100);
   const color = toneColor(tone);
+  const style: GaugeStyle = { '--gauge-color': color };
   return (
-    <div className="rg" style={{ '--gauge-color': color } as React.CSSProperties}>
+    <div className="rg" style={style}>
       <svg viewBox="0 0 64 64" aria-hidden="true">
         <circle className="track" cx="32" cy="32" r="24" />
         <circle className="value" cx="32" cy="32" r="24" pathLength="100" strokeDasharray={`${dash} 100`} />
@@ -35,8 +40,9 @@ export function RadialGauge({ value01, label, sublabel, tone }: { value01: numbe
 
 export function CountTile({ value, label, source, tone }: { value: number | string; label: string; source: string; tone: GaugeTone }) {
   const color = toneColor(tone);
+  const style: GaugeStyle = { '--gauge-color': color };
   return (
-    <div className="ct" style={{ '--gauge-color': color } as React.CSSProperties} title={source}>
+    <div className="ct" style={style} title={source}>
       <b>{value}</b>
       <span>{label}</span>
       <em>{source}</em>
