@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import type { RefObject } from 'react';
 import type { AgenticRootState } from '@/lib/agents/sfiAgents';
 import type { RootHudGovernanceSnapshot } from '@/lib/root/hudGovernance';
 import { pct, text, toDataSnapshot } from './rootConsoleAdapters';
@@ -131,7 +132,7 @@ function buildRootUniverse(
   };
 }
 
-function useLiveRootField(canvasRef: React.RefObject<HTMLCanvasElement>, telemetry: RootFieldTelemetry) {
+function useLiveRootField(canvasRef: RefObject<HTMLCanvasElement | null>, telemetry: RootFieldTelemetry) {
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
