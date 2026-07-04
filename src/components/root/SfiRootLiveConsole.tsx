@@ -1,15 +1,9 @@
 'use client';
 
-import RootConsoleScreen from './RootConsoleScreen';
-import { RootConsoleInstitutionalOverride } from './RootConsoleInstitutionalOverride';
+import RootLiveObservatory from './RootLiveObservatory';
 
-type RootConsoleScreenProps = Parameters<typeof RootConsoleScreen>[0];
+type RootLiveObservatoryProps = Parameters<typeof RootLiveObservatory>[0];
 
-export default function SfiRootLiveConsole(props: RootConsoleScreenProps) {
-  return (
-    <>
-      <RootConsoleInstitutionalOverride />
-      <RootConsoleScreen {...props} />
-    </>
-  );
+export default function SfiRootLiveConsole(props: RootLiveObservatoryProps) {
+  return <RootLiveObservatory {...props} />;
 }
