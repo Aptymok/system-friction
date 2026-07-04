@@ -1,71 +1,87 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { StudioArtifactKind } from '@/lib/studio/cultural-lab/types';
 
-type IntakeKind = StudioArtifactKind | 'image' | 'text' | 'community' | 'time_coordinate' | 'civilizational_gap';
+type IntakeStatus = 'idle' | 'reading' | 'running' | 'complete' | 'error';
 
-type IntakeStatus = 'idle' | 'running' | 'complete' | 'error';
+function titleFromFile(file: File) {
+  return file.name.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ').trim() || file.name;
+}
 
-const intakeKinds: Array<{ kind: IntakeKind; label: string; hint: string }> = [
-  { kind: 'song', label: 'MUSICA / AUDIO', hint: 'cancion, demo, letra, audio, REM618, evidencia sonora' },
-  { kind: 'video', label: 'VIDEO', hint: 'clip, documental, registro audiovisual, performance' },
-  { kind: 'image', label: 'IMAGEN', hint: 'foto, poster, frame, mapa, evidencia visual' },
-  { kind: 'text', label: 'TEXTO', hint: 'ensayo, letra, post, manifiesto, documento' },
-  { kind: 'community', label: 'COMUNIDAD', hint: 'grupo, fandom, escena, institucion, ecosistema social' },
-  { kind: 'time_coordinate', label: 'COORDENADA TEMPORAL', hint: '1500-1550, Britania, civilizacion, brecha historica' },
-  { kind: 'civilizational_gap', label: 'GAP CIVILIZATORIO', hint: 'periodo intermedio, tension historica, campo cultural' },
-  { kind: 'campaign', label: 'CAMPANA', hint: 'narrativa publica, lanzamiento, intervencion cultural' },
-];
+function inferKind(file: File): StudioArtifactKind {
+  const name = file.name.toLowerCase();
+  const mime = file.type.toLowerCase();
+  if (mime.startsWith('audio/') || /\.(mp3|wav|m4a|flac|ogg|aiff)$/.test(name)) return 'song';
+  if (mime.startsWith('video/') || /\.(mp4|mov|webm|mkv)$/.test(name)) return 'video';
+  if (/\.(md|txt|rtf)$/.test(name)) return 'article';
+  if (/\.(pdf|doc|docx)$/.test(name)) return 'research';
+  if (/campaign|campana|lanzamiento|release/.test(name)) return 'campaign';
+  return 'other';
+}
 
-function normalizeKind(kind: IntakeKind): StudioArtifactKind {
-  if (kind === 'image' || kind === 'text' || kind === 'community' || kind === 'time_coordinate' || kind === 'civilizational_gap') return 'other';
-  return kind;
+function inferDeclaredObject(file: File) {
+  const name = file.name.toLowerCase();
+  const mime = file.type.toLowerCase();
+  if (mime.startsWith('audio/') || /\.(mp3|wav|m4a|flac|ogg|aiff)$/.test(name)) return 'music_audio';
+  if (mime.startsWith('video/') || /\.(mp4|mov|webm|mkv)$/.test(name)) return 'video';
+  if (mime.startsWith('image/') || /\.(png|jpg|jpeg|webp|gif)$/.test(name)) return 'image';
+  if (/community|comunidad|fandom|scene|escena/.test(name)) return 'community';
+  if (/1500|1550|britania|civilization|civilizacion|gap|coordinate|coordenada|timeframe/.test(name)) return 'time_coordinate_gap';
+  if (/\.(md|txt|rtf|pdf|doc|docx)$/.test(name)) return 'text_document';
+  return 'cultural_object';
+}
+
+async function readTextIfPossible(file: File) {
+  const name = file.name.toLowerCase();
+  if (!file.type.startsWith('text/') && !/\.(md|txt|csv|json|rtf)$/.test(name)) return '';
+  return file.text();
 }
 
 export function StudioObjectIntakePanel() {
-  const [kind, setKind] = useState<IntakeKind>('song');
-  const [title, setTitle] = useState('');
-  const [sourceUrl, setSourceUrl] = useState('');
-  const [coordinate, setCoordinate] = useState('');
-  const [community, setCommunity] = useState('');
-  const [text, setText] = useState('');
-  const [fileLabel, setFileLabel] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
   const [status, setStatus] = useState<IntakeStatus>('idle');
-  const [result, setResult] = useState('SIN EJECUCION');
+  const [result, setResult] = useState('ESPERANDO OBJETO');
+  const [lastObject, setLastObject] = useState('SIN OBJETO CARGADO');
 
-  async function submit() {
-    const safeTitle = title.trim() || fileLabel || coordinate || 'OBJETO SIN TITULO';
-    const enrichedNotes = [
-      `declared_kind=${kind}`,
-      coordinate ? `coordinate=${coordinate}` : null,
-      community ? `community=${community}` : null,
-      fileLabel ? `file=${fileLabel}` : null,
-    ].filter(Boolean).join('\n');
-
-    setStatus('running');
-    setResult('Ejecutando pipeline real /api/studio/pipeline...');
+  async function handleFile(file: File | null) {
+    if (!file) return;
+    const title = titleFromFile(file);
+    const kind = inferKind(file);
+    const declaredObject = inferDeclaredObject(file);
+    setLastObject(`${title} · ${declaredObject}`);
+    setStatus('reading');
+    setResult('Leyendo metadata local del objeto...');
 
     try {
+      const text = await readTextIfPossible(file);
+      setStatus('running');
+      setResult('Ejecutando pipeline real /api/studio/pipeline...');
+
       const response = await fetch('/api/studio/pipeline', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          kind: normalizeKind(kind),
-          title: safeTitle,
-          sourceUrl: sourceUrl.trim() || undefined,
-          text: text.trim() || undefined,
-          notes: enrichedNotes,
-          targetAudience: community.trim() || undefined,
-          desiredShift: coordinate.trim() || undefined,
+          kind,
+          title,
+          text: text || undefined,
+          notes: [
+            `declared_object=${declaredObject}`,
+            `file_name=${file.name}`,
+            `file_type=${file.type || 'unknown'}`,
+            `file_size=${file.size}`,
+            'intake_mode=single_upload_button',
+            'binary_storage=pending',
+          ].join('\n'),
           createdAt: new Date().toISOString(),
         }),
       });
+
       const payload = await response.json();
       if (!response.ok || !payload?.ok) throw new Error(payload?.error || 'studio_pipeline_failed');
       const stages = Array.isArray(payload.trace?.stages) ? payload.trace.stages.length : 0;
       setStatus('complete');
-      setResult(`PIPELINE COMPLETO · ${stages} etapas · ${payload.trace?.artifactId ?? safeTitle}`);
+      setResult(`PIPELINE COMPLETO · ${stages} etapas · ${payload.trace?.artifactId ?? title}`);
     } catch (error) {
       setStatus('error');
       setResult(error instanceof Error ? error.message : 'object_intake_failed');
@@ -74,63 +90,45 @@ export function StudioObjectIntakePanel() {
 
   return (
     <section className="sfi-studio-gold sfi-studio-gold__object-intake">
-      <div className="sfi-studio-gold__panel">
+      <div className="sfi-studio-gold__panel sfi-studio-gold__object-intake-panel">
         <div className="sfi-studio-gold__panel-title">
           <div>
             <h2>CARGA DE OBJETO</h2>
-            <p>MUSICA · VIDEO · IMAGEN · TEXTO · COMUNIDAD · COORDENADA HISTORICA</p>
+            <p>UN BOTON · NOMBRE AUTOMATICO · PIPELINE REAL</p>
           </div>
-          <button type="button" onClick={submit}>{status === 'running' ? 'EVALUANDO' : 'EJECUTAR'}</button>
+          <button type="button" onClick={() => inputRef.current?.click()}>{status === 'running' ? 'EVALUANDO' : 'CARGAR OBJETO'}</button>
         </div>
-
-        <div className="sfi-studio-gold__intake-grid">
-          <div className="sfi-studio-gold__intake-kinds">
-            {intakeKinds.map((item) => (
-              <button type="button" key={item.kind} className={kind === item.kind ? 'is-active' : ''} onClick={() => setKind(item.kind)}>
-                <strong>{item.label}</strong>
-                <span>{item.hint}</span>
-              </button>
-            ))}
-          </div>
-
-          <div className="sfi-studio-gold__intake-form">
-            <label>TITULO / IDENTIFICADOR<input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="REM618 / manifiesto / comunidad / coordenada" /></label>
-            <label>ARCHIVO LOCAL / EVIDENCIA<input type="file" onChange={(event) => setFileLabel(event.target.files?.[0]?.name ?? '')} /></label>
-            <label>URL / FUENTE<input value={sourceUrl} onChange={(event) => setSourceUrl(event.target.value)} placeholder="https://..." /></label>
-            <label>COMUNIDAD / CAMPO SOCIAL<input value={community} onChange={(event) => setCommunity(event.target.value)} placeholder="escena, fandom, ciudad, institucion, ecosistema" /></label>
-            <label>COORDENADA / GAP TEMPORAL<input value={coordinate} onChange={(event) => setCoordinate(event.target.value)} placeholder="1500-1550 · Britania · civilizacion · in-between gap" /></label>
-            <label className="is-wide">TEXTO / DESCRIPCION / LETRA / HIPOTESIS<textarea value={text} onChange={(event) => setText(event.target.value)} placeholder="Pega texto, describe imagen/video/audio, declara evidencia o formula la coordenada a medir." /></label>
-          </div>
-
+        <input ref={inputRef} type="file" className="sfi-studio-gold__intake-hidden" onChange={(event) => handleFile(event.target.files?.[0] ?? null)} />
+        <div className="sfi-studio-gold__intake-single">
+          <button type="button" className="sfi-studio-gold__intake-drop" onClick={() => inputRef.current?.click()}>
+            <strong>+</strong>
+            <span>SUBIR MUSICA · VIDEO · IMAGEN · TEXTO · COMUNIDAD · COORDENADA HISTORICA</span>
+            <em>Ejemplo: archivo TXT/MD con “1500-1550 · Britania · civilizacion · in-between gap”.</em>
+          </button>
           <div className={`sfi-studio-gold__intake-status is-${status}`}>
-            <span>ESTADO DE CARGA</span>
-            <strong>{status.toUpperCase()}</strong>
+            <span>OBJETO DETECTADO</span>
+            <strong>{lastObject}</strong>
             <p>{result}</p>
-            <em>La carga ejecuta el pipeline real existente. Los archivos binarios se registran como metadata hasta conectar storage persistente.</em>
+            <em>Audio/video/imagen se evalua por metadata hasta conectar storage binario persistente. Texto y coordenadas en TXT/MD se leen directo.</em>
           </div>
         </div>
       </div>
-
       <style>{`
 .sfi-studio-gold__object-intake { min-height: auto; padding: 0 8px 8px; background: #050608; }
-.sfi-studio-gold__intake-grid { display: grid; grid-template-columns: 310px minmax(0, 1fr) 260px; gap: 10px; padding: 10px; }
-.sfi-studio-gold__intake-kinds { display: grid; gap: 6px; }
-.sfi-studio-gold__intake-kinds button { text-align: left; border: 1px solid rgba(193,132,45,.18); padding: 8px; background: rgba(5,6,8,.65); }
-.sfi-studio-gold__intake-kinds button.is-active { border-color: rgba(244,199,106,.62); box-shadow: inset 0 0 18px rgba(244,199,106,.08); }
-.sfi-studio-gold__intake-kinds strong { display: block; color: var(--sfi-gold-bright); font: 700 9px ui-monospace, monospace; letter-spacing: .12em; }
-.sfi-studio-gold__intake-kinds span { display: block; margin-top: 4px; color: var(--sfi-muted); font: 600 8px/1.35 ui-monospace, monospace; }
-.sfi-studio-gold__intake-form { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 8px; }
-.sfi-studio-gold__intake-form label { display: grid; gap: 5px; color: var(--sfi-gold); font: 700 8px ui-monospace, monospace; letter-spacing: .12em; }
-.sfi-studio-gold__intake-form label.is-wide { grid-column: 1 / -1; }
-.sfi-studio-gold__intake-form input, .sfi-studio-gold__intake-form textarea { width: 100%; border: 1px solid rgba(193,132,45,.22); background: rgba(2,3,4,.82); color: var(--sfi-text); padding: 8px; font: 600 10px ui-monospace, monospace; }
-.sfi-studio-gold__intake-form textarea { min-height: 84px; resize: vertical; }
-.sfi-studio-gold__intake-status { border: 1px solid rgba(193,132,45,.22); padding: 12px; background: rgba(5,6,8,.7); }
-.sfi-studio-gold__intake-status span { color: var(--sfi-gold); font: 700 9px ui-monospace, monospace; letter-spacing: .14em; }
-.sfi-studio-gold__intake-status strong { display: block; margin-top: 8px; color: var(--sfi-gold-bright); font: 700 18px ui-monospace, monospace; }
-.sfi-studio-gold__intake-status p { margin: 10px 0 0; color: var(--sfi-text); font: 600 10px/1.45 ui-monospace, monospace; }
-.sfi-studio-gold__intake-status em { display: block; margin-top: 12px; color: var(--sfi-muted); font: 600 9px/1.45 ui-monospace, monospace; font-style: normal; }
-.sfi-studio-gold__intake-status.is-error strong { color: var(--sfi-danger); }
-@media (max-width: 1180px) { .sfi-studio-gold__object-intake { padding: 0 14px 10px; } .sfi-studio-gold__intake-grid, .sfi-studio-gold__intake-form { grid-template-columns: 1fr; } }
+.sfi-studio-gold__object-intake-panel { overflow: hidden; }
+.sfi-studio-gold__intake-hidden { display: none; }
+.sfi-studio-gold__intake-single { display: grid; grid-template-columns: 320px minmax(0,1fr); gap: 10px; padding: 10px; }
+.sfi-studio-gold__intake-drop { min-height: 132px; display: grid; place-items: center; gap: 8px; border: 1px dashed rgba(255,121,217,.45); background: radial-gradient(circle at 50% 30%, rgba(186,92,255,.14), transparent 60%), rgba(5,6,8,.72); text-align: center; }
+.sfi-studio-gold__intake-drop strong { color: #ff79d9; font: 700 34px ui-monospace, monospace; text-shadow: 0 0 18px rgba(255,121,217,.55); }
+.sfi-studio-gold__intake-drop span { color: #f4d6ff; font: 700 10px ui-monospace, monospace; letter-spacing: .14em; }
+.sfi-studio-gold__intake-drop em { max-width: 270px; color: #9b88a8; font: 600 9px/1.45 ui-monospace, monospace; font-style: normal; }
+.sfi-studio-gold__intake-status { border: 1px solid rgba(186,92,255,.26); padding: 14px; background: rgba(9,6,14,.78); }
+.sfi-studio-gold__intake-status span { color: #ff79d9; font: 700 9px ui-monospace, monospace; letter-spacing: .16em; }
+.sfi-studio-gold__intake-status strong { display: block; margin-top: 8px; color: #f4d6ff; font: 700 16px ui-monospace, monospace; letter-spacing: .08em; }
+.sfi-studio-gold__intake-status p { margin: 10px 0 0; color: #d8d2c2; font: 600 10px/1.45 ui-monospace, monospace; }
+.sfi-studio-gold__intake-status em { display: block; margin-top: 12px; color: #9b88a8; font: 600 9px/1.45 ui-monospace, monospace; font-style: normal; }
+.sfi-studio-gold__intake-status.is-error strong { color: #ff5b7e; }
+@media (max-width: 1180px) { .sfi-studio-gold__object-intake { padding: 0 14px 10px; } .sfi-studio-gold__intake-single { grid-template-columns: 1fr; } }
       `}</style>
     </section>
   );
