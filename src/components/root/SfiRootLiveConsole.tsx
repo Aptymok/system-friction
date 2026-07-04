@@ -1,9 +1,9 @@
 'use client';
 
-import RootLiveObservatory from './RootLiveObservatory';
+import RootFieldExactConsole from './RootFieldExactConsole';
 
-type RootLiveObservatoryProps = Parameters<typeof RootLiveObservatory>[0];
+type RootFieldExactConsoleProps = Parameters<typeof RootFieldExactConsole>[0];
 
-export default function SfiRootLiveConsole(props: RootLiveObservatoryProps) {
-  return <RootLiveObservatory {...props} />;
+export default function SfiRootLiveConsole(props: RootFieldExactConsoleProps) {
+  return <RootFieldExactConsole {...props} />;
 }
