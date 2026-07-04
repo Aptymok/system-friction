@@ -27,7 +27,7 @@ export function StudioGoldHeader({ state }: { state: StudioGoldState }) {
       </div>
 
       <nav className="sfi-studio-gold__nav" aria-label="Studio modes">
-        {['OBSERVAR', 'MODELAR', 'SIMULAR', 'GOBERNAR', 'EJECUTAR'].map((item) => (
+        {['OBSERVAR', 'MODELAR', 'EVALUAR', 'SIMULAR', 'GOBERNAR', 'EJECUTAR'].map((item) => (
           <span key={item}>{item}</span>
         ))}
       </nav>
