@@ -1,9 +1,72 @@
+import { RootSceneViewport } from '../scene/RootSceneViewport';
+import type { RootSceneModel } from '../scene/rootSceneTypes';
 import { buildRootExpansionModel } from '../rootExpansionModel';
 
 type Props = { confidence: number; amvCount: number; predictionCount: number; evidenceCount: number };
-function pct(value: number) { return `${Math.round(Math.max(0, Math.min(1, value)) * 100)}%`; }
+
+function pct(value: number) {
+  return `${Math.round(Math.max(0, Math.min(1, value)) * 100)}%`;
+}
 
 export default function ExpansionViewEngine(props: Props) {
   const model = buildRootExpansionModel(props);
-  return <div className="expansion-engine"><div className="engine-title"><span>OPPORTUNITY FIELD</span><b>EMERGING ROUTES</b></div><svg viewBox="0 0 100 86" className="expansion-svg" aria-hidden="true"><circle cx="50" cy="43" r="8" fill="#050403" stroke="#f0cf78" strokeWidth="0.5" /><text x="50" y="44" textAnchor="middle" fill="#f0cf78" fontSize="2.2" fontFamily="monospace">FIELD</text>{model.themes.map((theme, index) => { const angle = (index / model.themes.length) * Math.PI * 2 - Math.PI / 2; const radius = 20 + theme.persistence * 20; const x = 50 + Math.cos(angle) * radius; const y = 43 + Math.sin(angle) * radius; const opacity = 0.2 + theme.persistence * 0.62; return <g key={theme.id}><line x1="50" y1="43" x2={x} y2={y} stroke="#c8a951" strokeOpacity={opacity} strokeWidth="0.25" /><circle cx={x} cy={y} r={3.6 + theme.persistence * 2.3} fill="#060504" stroke="#f0cf78" strokeOpacity={opacity} strokeWidth="0.35" /><text x={x} y={y + 0.8} textAnchor="middle" fill="#e7dcc1" fontSize="1.35" fontFamily="monospace">{theme.recommendation.toUpperCase()}</text></g>; })}</svg><div className="expansion-readout"><span>themes <b>{model.themes.length}</b></span><span>investigations <b>{model.investigations.length}</b></span><span>attractor <b>{pct(model.attractorIndex)}</b></span><span>derived <b>YES</b></span></div></div>;
+  const themeNodes = model.themes.map((theme, index) => {
+    const angle = (index / model.themes.length) * Math.PI * 2 - Math.PI / 2;
+    const radius = 20 + theme.persistence * 26;
+    return {
+      id: `theme-${theme.id}`,
+      label: theme.recommendation.toUpperCase(),
+      x: 50 + Math.cos(angle) * radius,
+      y: 50 + Math.sin(angle) * radius,
+      value: pct(theme.persistence),
+      status: theme.recommendation,
+      kind: 'opportunity',
+      source: theme.source,
+      meaning: `${theme.label}. Velocity ${pct(theme.velocity)}. Recommendation ${theme.recommendation}.`,
+      dataClass: 'derived' as const,
+    };
+  });
+
+  const scene: RootSceneModel = {
+    title: 'Expansion Investigation',
+    subtitle: 'Opportunity field',
+    nodes: [
+      {
+        id: 'expansion-core',
+        label: 'ROOT',
+        x: 50,
+        y: 50,
+        value: 'DER',
+        status: 'derived',
+        kind: 'core',
+        source: model.source,
+        meaning: 'Derived opportunity field. It indicates investigation pressure, not a completed external publication.',
+        dataClass: 'derived',
+      },
+      ...themeNodes,
+    ],
+    edges: themeNodes.map((node) => ({
+      id: `expansion-${node.id}`,
+      from: 'expansion-core',
+      to: node.id,
+      weight: Number.parseInt(String(node.value), 10) / 100,
+      kind: node.status,
+      source: node.source,
+      meaning: `${node.label} opportunity route derived from current ROOT signals.`,
+    })),
+    rings: [
+      { id: 'study-field', radius: 18, weight: .35, label: 'STUDY', source: 'rootExpansionModel recommendations', meaning: 'Study route band.' },
+      { id: 'build-field', radius: 31, weight: model.attractorIndex, label: 'BUILD', source: 'rootExpansionModel.attractorIndex', meaning: 'Build route band.' },
+      { id: 'hold-field', radius: 44, weight: 1 - model.attractorIndex, label: 'HOLD', source: 'rootExpansionModel.attractorIndex', meaning: 'Hold route band.' },
+    ],
+    annotations: [{ id: 'derived-label', label: 'DERIVED', x: 50, y: 12, source: model.source, meaning: 'Scene values are derived from existing ROOT counts.', dataClass: 'derived' }],
+    readouts: [
+      { id: 'themes', label: 'themes', value: model.themes.length, source: 'rootExpansionModel.themes.length', meaning: 'Derived opportunity theme count.', dataClass: 'derived' },
+      { id: 'investigations', label: 'investigations', value: model.investigations.length, source: 'rootExpansionModel.investigations.length', meaning: 'Derived investigation queue count.', dataClass: 'derived' },
+      { id: 'attractor', label: 'attractor', value: pct(model.attractorIndex), source: 'rootExpansionModel.attractorIndex', meaning: 'Derived attractor persistence index.', dataClass: 'derived' },
+      { id: 'data-class', label: 'data', value: 'DERIVED', source: model.source, meaning: 'All expansion routes are derived from live ROOT counts.', dataClass: 'derived' },
+    ],
+  };
+
+  return <RootSceneViewport model={scene} />;
 }

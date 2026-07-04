@@ -1,3 +1,5 @@
+import { RootSceneViewport } from '../scene/RootSceneViewport';
+import type { RootSceneModel } from '../scene/rootSceneTypes';
 import { buildAgentLatticeModel } from './agentLatticeModel';
 
 type Props = {
@@ -12,39 +14,52 @@ type Props = {
   warningCount: number;
 };
 
-function colorFor(status: string) {
-  if (status === 'active') return '#8bd27c';
-  if (status === 'degraded') return '#d8b651';
-  if (status === 'queued') return '#84a9c9';
-  return '#8e836c';
-}
-
 function percent(value: number) {
   return `${Math.round(Math.max(0, Math.min(1, value)) * 100)}%`;
 }
 
-export default function AgentViewEngine(props: Props) {
+function buildAgentScene(props: Props): RootSceneModel {
   const model = buildAgentLatticeModel(props);
-  const byId = Object.fromEntries(model.nodes.map((node) => [node.id, node]));
-  return (
-    <div className="agent-engine">
-      <div className="engine-title"><span>INTERNAL AGENT LATTICE</span><b>ROOT ORCHESTRATOR</b></div>
-      <svg viewBox="0 0 100 76" className="agent-svg" aria-hidden="true">
-        {[14, 24, 34].map((r) => <circle key={r} cx="50" cy="44" r={r} fill="none" stroke="#c8a951" strokeOpacity="0.18" strokeWidth="0.2" />)}
-        {model.links.map((link) => {
-          const from = byId[link.from];
-          const to = byId[link.to];
-          if (!from || !to) return null;
-          return <line key={link.id} x1={from.x} y1={from.y} x2={to.x} y2={to.y} stroke={link.kind === 'failed' ? '#e36a52' : '#c8a951'} strokeOpacity={link.weight} strokeWidth={link.kind === 'primary' ? '0.38' : '0.22'} strokeDasharray={link.kind === 'weak' ? '1 2' : undefined} />;
-        })}
-        {model.nodes.map((node) => <g key={node.id}><circle cx={node.x} cy={node.y} r={node.id === 'root-orchestrator' ? 7.2 : 5.1} fill="#060504" stroke={colorFor(node.status)} strokeOpacity="0.92" strokeWidth="0.42" /><text x={node.x} y={node.y - 0.8} textAnchor="middle" fill="#f0cf78" fontSize="1.75" fontFamily="monospace">{node.label.split(' ')[0]}</text><text x={node.x} y={node.y + 2.5} textAnchor="middle" fill="#a99d82" fontSize="1.45" fontFamily="monospace">{node.status}</text></g>)}
-      </svg>
-      <div className="agent-readout">
-        <span>health <b>{percent(model.healthIndex)}</b></span>
-        <span>deps <b>{percent(model.dependencyHealth)}</b></span>
-        <span>memory <b>{percent(model.memoryIntegrity)}</b></span>
-        <span>throughput <b>{percent(model.throughputScore)}</b></span>
-      </div>
-    </div>
-  );
+
+  return {
+    title: 'Agentic Operations',
+    subtitle: 'ROOT orchestrator lattice',
+    nodes: model.nodes.map((node) => ({
+      id: node.id,
+      label: node.id === 'root-orchestrator' ? 'ROOT' : node.label.replace(' Agent', ''),
+      x: node.x,
+      y: node.y,
+      value: node.throughput,
+      status: node.status,
+      kind: node.id === 'root-orchestrator' ? 'core' : 'agent',
+      source: node.source,
+      meaning: `${node.label}. Memory integrity ${percent(node.memoryIntegrity)}. Warnings ${node.warnings}. Dependency failures ${node.dependencyFailures}.`,
+      dataClass: node.source.includes('derived') ? 'derived' : 'mixed',
+    })),
+    edges: model.links.map((link) => ({
+      id: link.id,
+      from: link.from,
+      to: link.to,
+      weight: link.weight,
+      kind: link.kind,
+      source: 'agentLatticeModel.links',
+      meaning: `Agent dependency link classified as ${link.kind}.`,
+    })),
+    rings: [
+      { id: 'inner-orchestration', radius: 14, weight: model.healthIndex, label: 'ROOT', source: 'agentLatticeModel.healthIndex', meaning: 'Inner orchestration stability.' },
+      { id: 'dependency-orbit', radius: 26, weight: model.dependencyHealth, label: 'DEPS', source: 'agentLatticeModel.dependencyHealth', meaning: 'Dependency integrity orbit.' },
+      { id: 'memory-orbit', radius: 38, weight: model.memoryIntegrity, label: 'MEM', source: 'agentLatticeModel.memoryIntegrity', meaning: 'Memory integrity orbit.' },
+    ],
+    annotations: [],
+    readouts: [
+      { id: 'health', label: 'health', value: percent(model.healthIndex), source: 'agentLatticeModel.healthIndex', meaning: 'Derived health index across agent nodes.', dataClass: 'derived' },
+      { id: 'deps', label: 'deps', value: percent(model.dependencyHealth), source: 'agentLatticeModel.dependencyHealth', meaning: 'Derived dependency health.', dataClass: 'derived' },
+      { id: 'memory', label: 'memory', value: percent(model.memoryIntegrity), source: 'agentLatticeModel.memoryIntegrity', meaning: 'Derived memory integrity.', dataClass: 'derived' },
+      { id: 'throughput', label: 'flow', value: percent(model.throughputScore), source: 'agentLatticeModel.throughputScore', meaning: 'Derived throughput score.', dataClass: 'derived' },
+    ],
+  };
+}
+
+export default function AgentViewEngine(props: Props) {
+  return <RootSceneViewport model={buildAgentScene(props)} />;
 }
