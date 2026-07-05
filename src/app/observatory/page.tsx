@@ -5,7 +5,7 @@ import { readObservatoryGoldState } from '@/lib/observatory/gold/observatoryGold
 export const revalidate = 300;
 
 export const metadata: Metadata = {
-  title: 'Observatory · World Spectrum Vector',
+  title: 'Observatory / World Spectrum Vector',
   description:
     'SFI Observatory: public World Spectrum Vector console for global tensions, daily reading, vector flows, and longitudinal WorldSpect observation.',
 };
