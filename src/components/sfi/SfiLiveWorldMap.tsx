@@ -3,38 +3,11 @@
 import { useMemo } from 'react';
 import type { SfiWorldInterfaceState } from '@/lib/sfi/worldInterfaceState';
 
-type Props = {
-  state: SfiWorldInterfaceState;
-};
-
-const NIGHT_LIGHTS = [
-  [-99.13, 19.43, 0.86],
-  [-102.29, 21.88, 0.46],
-  [-74.0, 40.71, 0.82],
-  [-118.24, 34.05, 0.72],
-  [-0.12, 51.5, 0.78],
-  [2.35, 48.85, 0.62],
-  [13.4, 52.52, 0.54],
-  [37.62, 55.75, 0.45],
-  [72.87, 19.07, 0.76],
-  [77.21, 28.61, 0.68],
-  [116.4, 39.9, 0.8],
-  [139.69, 35.68, 0.88],
-  [151.21, -33.86, 0.58],
-  [-46.63, -23.55, 0.7],
-  [28.04, -26.2, 0.52],
-] as const;
+type Props = { state: SfiWorldInterfaceState };
 
 function clamp01(value: number) {
   if (!Number.isFinite(value)) return 0;
   return Math.max(0, Math.min(1, value));
-}
-
-function project(lon: number, lat: number) {
-  return {
-    x: ((lon + 180) / 360) * 1200,
-    y: ((90 - lat) / 180) * 600,
-  };
 }
 
 function nodeTone(status: string) {
@@ -58,20 +31,19 @@ export function SfiLiveWorldMap({ state }: Props) {
 
   const sunX = solarX(generated);
   const viscosity = clamp01(
-    0.35
-      + nodeTone(state.systemStrain.status) * 0.28
-      + nodeTone(state.frictionLevel.status) * 0.22
-      + (state.warnings.length > 0 ? 0.15 : 0),
+    0.35 + nodeTone(state.systemStrain.status) * 0.28 + nodeTone(state.frictionLevel.status) * 0.22 + (state.warnings.length > 0 ? 0.15 : 0),
   );
+
+  const densityNodes = state.nodes.slice(0, 28);
 
   return (
     <div className="sfi-live-world-map" aria-hidden="true">
-      <canvas className="sfi-viscosity-canvas" />
+      <div className="sfi-viscosity-canvas" />
       <svg className="sfi-live-world-svg" viewBox="0 0 1200 600" preserveAspectRatio="xMidYMid slice">
         <defs>
           <radialGradient id="sfiSolarBloom" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="#f0cf78" stopOpacity="0.35" />
-            <stop offset="50%" stopColor="#c8a951" stopOpacity="0.1" />
+            <stop offset="0%" stopColor="#f0cf78" stopOpacity="0.24" />
+            <stop offset="55%" stopColor="#c8a951" stopOpacity="0.07" />
             <stop offset="100%" stopColor="#000000" stopOpacity="0" />
           </radialGradient>
           <linearGradient id="sfiNightBand" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -81,22 +53,15 @@ export function SfiLiveWorldMap({ state }: Props) {
             <stop offset="100%" stopColor="#020201" stopOpacity="0.78" />
           </linearGradient>
           <filter id="sfiMapGlow">
-            <feGaussianBlur stdDeviation="2.2" result="blur" />
-            <feMerge>
-              <feMergeNode in="blur" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
+            <feGaussianBlur stdDeviation="1.6" result="blur" />
+            <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
           </filter>
         </defs>
 
         <rect width="1200" height="600" fill="#020201" />
         <g className="geo-grid">
-          {Array.from({ length: 13 }).map((_, index) => (
-            <line key={`v-${index}`} x1={index * 100} y1="0" x2={index * 100} y2="600" />
-          ))}
-          {Array.from({ length: 7 }).map((_, index) => (
-            <line key={`h-${index}`} x1="0" y1={index * 100} x2="1200" y2={index * 100} />
-          ))}
+          {Array.from({ length: 13 }).map((_, index) => <line key={`v-${index}`} x1={index * 100} y1="0" x2={index * 100} y2="600" />)}
+          {Array.from({ length: 7 }).map((_, index) => <line key={`h-${index}`} x1="0" y1={index * 100} x2="1200" y2={index * 100} />)}
         </g>
 
         <g className="continent-layer">
@@ -111,61 +76,35 @@ export function SfiLiveWorldMap({ state }: Props) {
         <circle className="solar-bloom" cx={sunX} cy="235" r="300" />
 
         <g className="night-lights" filter="url(#sfiMapGlow)">
-          {NIGHT_LIGHTS.map(([lon, lat, strength]) => {
-            const point = project(lon, lat);
-            return (
-              <circle
-                key={`${lon}-${lat}`}
-                cx={point.x}
-                cy={point.y}
-                r={1.2 + strength * 2.4}
-                style={{ opacity: 0.14 + strength * 0.34 }}
-              />
-            );
-          })}
-        </g>
-
-        <g className="map-flow-layer">
-          {state.connections.slice(0, 16).map((connection, index) => {
-            const from = state.nodes.find((node) => node.id === connection.from);
-            const to = state.nodes.find((node) => node.id === connection.to);
-            if (!from || !to) return null;
-            const x1 = clamp01(from.x / 100) * 1200;
-            const y1 = clamp01(from.y / 100) * 600;
-            const x2 = clamp01(to.x / 100) * 1200;
-            const y2 = clamp01(to.y / 100) * 600;
-            const mx = (x1 + x2) / 2;
-            const my = Math.min(y1, y2) - 40 - Math.abs(x2 - x1) * 0.08;
-            return (
-              <path
-                key={`${connection.from}-${connection.to}-${index}`}
-                className="map-flow"
-                d={`M ${x1.toFixed(1)} ${y1.toFixed(1)} Q ${mx.toFixed(1)} ${my.toFixed(1)} ${x2.toFixed(1)} ${y2.toFixed(1)}`}
-                style={{
-                  opacity: 0.14 + clamp01(connection.strength) * 0.35,
-                  animationDelay: `${index * -0.7}s`,
-                }}
-              />
-            );
-          })}
-        </g>
-
-        <g className="map-node-layer">
-          {state.nodes.map((node, index) => {
+          {densityNodes.map((node, index) => {
             const x = clamp01(node.x / 100) * 1200;
             const y = clamp01(node.y / 100) * 600;
             const intensity = clamp01(node.intensity);
             return (
-              <g key={node.id} className={`live-map-node live-map-node-${node.state}`} transform={`translate(${x.toFixed(1)} ${y.toFixed(1)})`}>
-                <circle className="live-node-ring" r={12 + intensity * 18} style={{ animationDelay: `${index * -0.35}s` }} />
-                <circle className="live-node-core" r={2.8 + intensity * 2.4} />
+              <g key={`density-${node.id}`} className={`real-density real-density-${node.state}`} style={{ animationDelay: `${index * -0.22}s` }}>
+                <circle className="density-shadow" cx={x} cy={y} r={14 + intensity * 28} style={{ opacity: 0.035 + intensity * 0.08 }} />
+                <circle className="density-core" cx={x} cy={y} r={1.4 + intensity * 2.1} style={{ opacity: 0.18 + intensity * 0.22 }} />
               </g>
             );
           })}
         </g>
 
-        <text className="map-meta" x="34" y="552">SOLAR CYCLE Â· HUMAN ACTIVITY LAYER Â· SFI VISCOSITY {Math.round(viscosity * 100)}%</text>
-        <text className="map-meta right" x="1166" y="552">SNAPSHOT Â· {generated.toISOString().slice(0, 19)}Z</text>
+        <g className="map-node-layer">
+          {densityNodes.map((node, index) => {
+            const x = clamp01(node.x / 100) * 1200;
+            const y = clamp01(node.y / 100) * 600;
+            const intensity = clamp01(node.intensity);
+            return (
+              <g key={node.id} className={`live-map-node live-map-node-${node.state}`} transform={`translate(${x.toFixed(1)} ${y.toFixed(1)})`}>
+                <circle className="live-node-ring" r={8 + intensity * 14} style={{ animationDelay: `${index * -0.35}s` }} />
+                <circle className="live-node-core" r={1.8 + intensity * 1.8} />
+              </g>
+            );
+          })}
+        </g>
+
+        <text className="map-meta" x="34" y="552">SFI NODE DENSITY LAYER · VISCOSITY {Math.round(viscosity * 100)}%</text>
+        <text className="map-meta right" x="1166" y="552">SNAPSHOT · {generated.toISOString().slice(0, 19)}Z</text>
       </svg>
     </div>
   );
