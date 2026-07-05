@@ -14,12 +14,10 @@ const CONTOURS = [
   'M44 484 C180 452 305 468 420 520 C520 566 666 548 782 510',
 ] as const;
 
-const LIGHTS = [
-  [270, 236, 0.95], [352, 184, 0.72], [206, 224, 0.55], [448, 171, 0.5],
-  [600, 128, 0.86], [608, 137, 0.68], [641, 124, 0.56], [686, 164, 0.48],
-  [735, 199, 0.6], [842, 216, 0.58], [949, 170, 0.86], [988, 194, 0.72],
-  [1048, 176, 0.9], [1080, 186, 0.66], [1000, 360, 0.54], [430, 378, 0.58],
-] as const;
+function clamp01(value: number) {
+  if (!Number.isFinite(value)) return 0;
+  return Math.max(0, Math.min(1, value));
+}
 
 export function SfiTopographicNightMap({ state }: Props) {
   return (
@@ -28,61 +26,41 @@ export function SfiTopographicNightMap({ state }: Props) {
       <svg className="sfi-topographic-overlay" viewBox="0 0 1200 600" preserveAspectRatio="xMidYMid slice">
         <defs>
           <radialGradient id="sfiTopoLight" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="#fff0a8" stopOpacity="0.8" />
-            <stop offset="45%" stopColor="#f0cf78" stopOpacity="0.22" />
+            <stop offset="0%" stopColor="#fff0a8" stopOpacity="0.55" />
+            <stop offset="45%" stopColor="#f0cf78" stopOpacity="0.14" />
             <stop offset="100%" stopColor="#f0cf78" stopOpacity="0" />
           </radialGradient>
-          <filter id="sfiTopoGlow"><feGaussianBlur stdDeviation="2.6" result="b" /><feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge></filter>
+          <filter id="sfiTopoGlow"><feGaussianBlur stdDeviation="1.8" result="b" /><feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge></filter>
         </defs>
         <g className="sfi-topo-contours">
           {CONTOURS.map((d, index) => <path key={d} d={d} style={{ animationDelay: `${index * -0.4}s` }} />)}
           {CONTOURS.map((d, index) => <path key={`thin-${d}`} d={d} className="thin" transform={`translate(0 ${index % 2 ? -16 : 16})`} />)}
         </g>
         <g className="sfi-topo-light-layer" filter="url(#sfiTopoGlow)">
-          {LIGHTS.map(([x, y, strength], index) => (
-            <g key={`${x}-${y}`} style={{ animationDelay: `${index * -0.18}s` }}>
-              <circle className="bloom" cx={x} cy={y} r={10 + strength * 18} style={{ opacity: 0.1 + strength * 0.18 }} />
-              <circle className="core" cx={x} cy={y} r={1.2 + strength * 2.2} style={{ opacity: 0.3 + strength * 0.5 }} />
-            </g>
-          ))}
+          {state.nodes.slice(0, 28).map((node, index) => {
+            const x = clamp01(node.x / 100) * 1200;
+            const y = clamp01(node.y / 100) * 600;
+            const intensity = clamp01(node.intensity);
+            return (
+              <g key={`topo-${node.id}`} style={{ animationDelay: `${index * -0.18}s` }}>
+                <circle className="bloom" cx={x} cy={y} r={10 + intensity * 18} style={{ opacity: 0.04 + intensity * 0.08 }} />
+                <circle className="core" cx={x} cy={y} r={0.9 + intensity * 1.6} style={{ opacity: 0.16 + intensity * 0.18 }} />
+              </g>
+            );
+          })}
         </g>
       </svg>
       <style jsx global>{`
         .sfi-topographic-night-map { position:absolute; inset:0; overflow:hidden; background:#020201; }
-        .sfi-topographic-night-map .sfi-live-world-map,
-        .sfi-topographic-night-map .sfi-live-world-svg,
-        .sfi-topographic-night-map .sfi-viscosity-canvas { position:absolute; inset:0; width:100%; height:100%; }
-        .sfi-topographic-night-map .sfi-live-world-map { opacity:.76; filter:saturate(1.14) contrast(1.2) brightness(.88); transform:scale(1.018); background:radial-gradient(circle at 50% 42%, rgba(200,169,81,.11), transparent 38%), linear-gradient(180deg, rgba(2,2,1,.98), rgba(2,2,1,.78) 48%, rgba(2,2,1,.98)); }
-        .sfi-topographic-night-map .sfi-viscosity-canvas { opacity:.18; background:radial-gradient(circle at 25% 30%, rgba(184,80,80,.18), transparent 28%), radial-gradient(circle at 70% 45%, rgba(200,169,81,.16), transparent 34%), repeating-linear-gradient(45deg, rgba(255,255,255,.018) 0 1px, transparent 1px 7px); animation:sfiViscosityBreath 7s ease-in-out infinite alternate; }
-        .sfi-topographic-night-map .sfi-live-world-svg { opacity:.98; filter:saturate(1.02) contrast(1.12); }
-        .sfi-topographic-night-map .geo-grid line { stroke:rgba(200,169,81,.055); stroke-width:1; vector-effect:non-scaling-stroke; }
-        .sfi-topographic-night-map .continent-layer path { fill:rgba(200,169,81,.045); stroke:rgba(200,169,81,.18); stroke-width:1; vector-effect:non-scaling-stroke; }
-        .sfi-topographic-night-map .night-band { fill:url('#sfiNightBand'); opacity:.62; animation:sfiNightDrift 36s linear infinite; }
-        .sfi-topographic-night-map .solar-bloom { fill:url('#sfiSolarBloom'); mix-blend-mode:screen; opacity:.86; animation:sfiSolarPulse 5.2s ease-in-out infinite alternate; }
-        .sfi-topographic-night-map .night-lights circle { fill:rgba(240,207,120,.9); animation:sfiLightPulse 3.8s ease-in-out infinite alternate; }
-        .sfi-topographic-night-map .map-flow { fill:none; stroke:rgba(240,207,120,.62); stroke-width:1; stroke-dasharray:4 12; vector-effect:non-scaling-stroke; animation:sfiFlowMove 5.8s linear infinite; }
-        .sfi-topographic-night-map .live-node-ring { fill:none; stroke:rgba(240,207,120,.7); stroke-width:1; vector-effect:non-scaling-stroke; animation:sfiNodePulse 3.8s ease-in-out infinite; }
-        .sfi-topographic-night-map .live-node-core { fill:rgba(240,207,120,.96); filter:url('#sfiMapGlow'); }
-        .sfi-topographic-night-map .live-map-node-critical .live-node-ring,
-        .sfi-topographic-night-map .live-map-node-degraded .live-node-ring { stroke:rgba(184,80,80,.72); }
-        .sfi-topographic-night-map .live-map-node-critical .live-node-core,
-        .sfi-topographic-night-map .live-map-node-degraded .live-node-core { fill:rgba(255,155,112,.9); }
-        .sfi-topographic-night-map .map-meta { fill:rgba(200,169,81,.42); font-size:9px; letter-spacing:.18em; font-family:var(--sfi-font-mono),'JetBrains Mono',monospace; }
-        .sfi-topographic-night-map .map-meta.right { text-anchor:end; }
-        .sfi-topographic-overlay { position:absolute; inset:0; width:100%; height:100%; opacity:.86; mix-blend-mode:screen; pointer-events:none; }
-        .sfi-topo-contours path { fill:none; stroke:rgba(240,207,120,.13); stroke-width:.9; stroke-dasharray:1 8; vector-effect:non-scaling-stroke; animation:sfiTopoContour 10s ease-in-out infinite alternate; }
-        .sfi-topo-contours path.thin { stroke:rgba(200,169,81,.06); stroke-width:.6; stroke-dasharray:1 12; }
+        .sfi-topographic-night-map .map-flow { display:none !important; }
+        .sfi-topographic-overlay { position:absolute; inset:0; width:100%; height:100%; opacity:.62; mix-blend-mode:screen; pointer-events:none; }
+        .sfi-topo-contours path { fill:none; stroke:rgba(240,207,120,.09); stroke-width:.8; stroke-dasharray:1 8; vector-effect:non-scaling-stroke; animation:sfiTopoContour 16s ease-in-out infinite alternate; }
+        .sfi-topo-contours path.thin { stroke:rgba(200,169,81,.045); stroke-width:.55; stroke-dasharray:1 12; }
         .sfi-topo-light-layer .bloom { fill:url(#sfiTopoLight); }
-        .sfi-topo-light-layer .core { fill:rgba(240,207,120,.9); }
-        .sfi-topo-light-layer g { animation:sfiTopoPulse 3.8s ease-in-out infinite alternate; }
-        @keyframes sfiTopoContour { from { opacity:.38; transform:translateY(-2px); } to { opacity:.9; transform:translateY(2px); } }
-        @keyframes sfiTopoPulse { from { opacity:.62; } to { opacity:1; } }
-        @keyframes sfiViscosityBreath { from { opacity:.08; transform:scale(1); } to { opacity:.19; transform:scale(1.025); } }
-        @keyframes sfiNightDrift { from { transform:translateX(-120px); } to { transform:translateX(120px); } }
-        @keyframes sfiSolarPulse { from { opacity:.46; transform:scale(.985); } to { opacity:.78; transform:scale(1.025); } }
-        @keyframes sfiLightPulse { from { opacity:.14; } to { opacity:.58; } }
-        @keyframes sfiFlowMove { to { stroke-dashoffset:-64; } }
-        @keyframes sfiNodePulse { 0%,100% { opacity:.18; transform:scale(.92); } 50% { opacity:.72; transform:scale(1.08); } }
+        .sfi-topo-light-layer .core { fill:rgba(240,207,120,.72); }
+        .sfi-topo-light-layer g { animation:sfiTopoPulse 7s ease-in-out infinite alternate; }
+        @keyframes sfiTopoContour { from { opacity:.24; transform:translateY(-2px); } to { opacity:.56; transform:translateY(2px); } }
+        @keyframes sfiTopoPulse { from { opacity:.42; } to { opacity:.74; } }
       `}</style>
     </div>
   );
