@@ -30,6 +30,12 @@ export function SfiObservatoryTopographicHero(props: Props) {
         .sfi-observatory-topographic-ui .sfi-observatory > .map { opacity:.34; background:url('/sfi/world-interface/codex-operational-reference.png') center/cover no-repeat; filter:saturate(1.04) contrast(1.04) brightness(.82); }
         .sfi-observatory-topographic-ui .shade { background:linear-gradient(90deg,rgba(2,2,1,.5),transparent 22%,transparent 78%,rgba(2,2,1,.5)),linear-gradient(180deg,rgba(2,2,1,.52),transparent 16%,transparent 76%,rgba(2,2,1,.68)); }
         .sfi-observatory-topographic-ui .component-tip { display:none !important; }
+        .sfi-observatory-topographic-ui .conn,
+        .sfi-observatory-topographic-ui .terminator { animation:sfiFlowMove 6s linear infinite; }
+        .sfi-observatory-topographic-ui .density-glow,
+        .sfi-observatory-topographic-ui .node .halo,
+        .sfi-observatory-topographic-ui .node .ring { animation:sfiNodePulse 4s ease-in-out infinite; }
+        .sfi-observatory-topographic-ui .node:hover .ring { stroke-width:2.2; }
         .sfi-observatory-topographic-ui .rail.left-rail,
         .sfi-observatory-topographic-ui .reading { scrollbar-width:thin; scrollbar-color:transparent transparent; transition:scrollbar-color .18s ease, border-color .18s ease; }
         .sfi-observatory-topographic-ui .rail.left-rail:hover,
