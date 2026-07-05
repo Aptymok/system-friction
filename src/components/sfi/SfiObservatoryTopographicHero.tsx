@@ -24,11 +24,11 @@ export function SfiObservatoryTopographicHero(props: Props) {
       </div>
       <style jsx global>{`
         .sfi-observatory-topographic-shell { position:relative; min-height:max(900px,100svh); overflow:hidden; background:#020201; isolation:isolate; }
-        .sfi-observatory-topographic-stage { position:absolute; inset:0; z-index:0; pointer-events:none; opacity:1; mix-blend-mode:screen; }
+        .sfi-observatory-topographic-stage { position:absolute; inset:0; z-index:0; pointer-events:none; opacity:.84; mix-blend-mode:screen; }
         .sfi-observatory-topographic-ui { position:relative; z-index:1; }
         .sfi-observatory-topographic-ui .sfi-observatory { background:transparent; }
-        .sfi-observatory-topographic-ui .sfi-observatory > .map { opacity:.58; background:url('/sfi/world-interface/codex-operational-reference.png') center/cover no-repeat; filter:saturate(1.08) contrast(1.1) brightness(.86); }
-        .sfi-observatory-topographic-ui .shade { background:linear-gradient(90deg,rgba(2,2,1,.56),transparent 22%,transparent 78%,rgba(2,2,1,.56)),linear-gradient(180deg,rgba(2,2,1,.6),transparent 16%,transparent 76%,rgba(2,2,1,.72)); }
+        .sfi-observatory-topographic-ui .sfi-observatory > .map { opacity:.34; background:url('/sfi/world-interface/codex-operational-reference.png') center/cover no-repeat; filter:saturate(1.04) contrast(1.04) brightness(.82); }
+        .sfi-observatory-topographic-ui .shade { background:linear-gradient(90deg,rgba(2,2,1,.5),transparent 22%,transparent 78%,rgba(2,2,1,.5)),linear-gradient(180deg,rgba(2,2,1,.52),transparent 16%,transparent 76%,rgba(2,2,1,.68)); }
         .sfi-observatory-topographic-ui .component-tip { display:none !important; }
         .sfi-observatory-topographic-ui .rail.left-rail,
         .sfi-observatory-topographic-ui .reading { scrollbar-width:thin; scrollbar-color:transparent transparent; transition:scrollbar-color .18s ease, border-color .18s ease; }
