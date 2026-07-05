@@ -24,18 +24,33 @@ export function SfiObservatoryTopographicHero(props: Props) {
       </div>
       <style jsx global>{`
         .sfi-observatory-topographic-shell { position:relative; min-height:max(900px,100svh); overflow:hidden; background:#020201; isolation:isolate; }
-        .sfi-observatory-topographic-stage { position:absolute; inset:0; z-index:0; pointer-events:none; opacity:.84; mix-blend-mode:screen; }
+        .sfi-observatory-topographic-stage { position:absolute; inset:0; z-index:0; pointer-events:none; opacity:.62; mix-blend-mode:screen; }
         .sfi-observatory-topographic-ui { position:relative; z-index:1; }
         .sfi-observatory-topographic-ui .sfi-observatory { background:transparent; }
-        .sfi-observatory-topographic-ui .sfi-observatory > .map { opacity:.34; background:url('/sfi/world-interface/codex-operational-reference.png') center/cover no-repeat; filter:saturate(1.04) contrast(1.04) brightness(.82); }
+        .sfi-observatory-topographic-ui .sfi-observatory > .map { opacity:.28; background:url('/sfi/world-interface/codex-operational-reference.png') center/cover no-repeat; filter:saturate(1.02) contrast(1.02) brightness(.78); }
         .sfi-observatory-topographic-ui .shade { background:linear-gradient(90deg,rgba(2,2,1,.5),transparent 22%,transparent 78%,rgba(2,2,1,.5)),linear-gradient(180deg,rgba(2,2,1,.52),transparent 16%,transparent 76%,rgba(2,2,1,.68)); }
         .sfi-observatory-topographic-ui .component-tip { display:none !important; }
+
         .sfi-observatory-topographic-ui .conn,
-        .sfi-observatory-topographic-ui .terminator { animation:sfiFlowMove 6s linear infinite; }
-        .sfi-observatory-topographic-ui .density-glow,
-        .sfi-observatory-topographic-ui .node .halo,
-        .sfi-observatory-topographic-ui .node .ring { animation:sfiNodePulse 4s ease-in-out infinite; }
-        .sfi-observatory-topographic-ui .node:hover .ring { stroke-width:2.2; }
+        .sfi-observatory-topographic-stage .map-flow { display:none !important; }
+
+        .sfi-observatory-topographic-ui .terminator { animation:sfiFlowMove 12s linear infinite; opacity:.26 !important; }
+        .sfi-observatory-topographic-ui .density-glow { opacity:.13 !important; animation:sfiNodePulse 8s ease-in-out infinite; }
+        .sfi-observatory-topographic-ui .node .halo { fill:rgba(240,207,120,.035) !important; stroke:rgba(240,207,120,.11) !important; animation:sfiNodePulse 7s ease-in-out infinite; }
+        .sfi-observatory-topographic-ui .node .ring { stroke:rgba(240,207,120,.32) !important; stroke-width:.9 !important; animation:none !important; }
+        .sfi-observatory-topographic-ui .node .core { fill:rgba(240,207,120,.62) !important; }
+        .sfi-observatory-topographic-ui .node:hover .halo { fill:rgba(240,207,120,.07) !important; stroke:rgba(240,207,120,.18) !important; }
+        .sfi-observatory-topographic-ui .node:hover .ring { stroke:rgba(240,207,120,.55) !important; stroke-width:1.2 !important; }
+
+        .sfi-observatory-topographic-stage .solar-bloom { opacity:.24 !important; }
+        .sfi-observatory-topographic-stage .night-lights circle { opacity:.28 !important; }
+        .sfi-observatory-topographic-stage .live-node-ring { stroke:rgba(240,207,120,.22) !important; opacity:.28 !important; }
+        .sfi-observatory-topographic-stage .live-node-core { fill:rgba(240,207,120,.46) !important; opacity:.5 !important; }
+        .sfi-observatory-topographic-stage .live-map-node-critical .live-node-ring,
+        .sfi-observatory-topographic-stage .live-map-node-degraded .live-node-ring { stroke:rgba(184,80,80,.24) !important; }
+        .sfi-observatory-topographic-stage .sfi-topo-light-layer .bloom { opacity:.12 !important; }
+        .sfi-observatory-topographic-stage .sfi-topo-light-layer .core { opacity:.34 !important; }
+
         .sfi-observatory-topographic-ui .rail.left-rail,
         .sfi-observatory-topographic-ui .reading { scrollbar-width:thin; scrollbar-color:transparent transparent; transition:scrollbar-color .18s ease, border-color .18s ease; }
         .sfi-observatory-topographic-ui .rail.left-rail:hover,
