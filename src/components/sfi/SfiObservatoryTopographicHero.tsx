@@ -22,6 +22,13 @@ export function SfiObservatoryTopographicHero(props: Props) {
       <div className="sfi-observatory-topographic-ui">
         <SfiObservatoryHero {...props} />
       </div>
+      <style jsx global>{`
+        .sfi-observatory-topographic-shell { position:relative; min-height:max(900px,100svh); overflow:hidden; background:#020201; isolation:isolate; }
+        .sfi-observatory-topographic-stage { position:absolute; inset:0; z-index:0; pointer-events:none; }
+        .sfi-observatory-topographic-ui { position:relative; z-index:1; }
+        .sfi-observatory-topographic-ui .sfi-observatory { background:transparent; }
+        .sfi-observatory-topographic-ui .sfi-observatory > .map { opacity:0; background:none; }
+      `}</style>
     </div>
   );
 }
