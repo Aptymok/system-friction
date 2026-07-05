@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { SfiObservatoryHero } from '@/components/sfi/SfiObservatoryHero';
+import { SfiObservatoryTopographicHero } from '@/components/sfi/SfiObservatoryTopographicHero';
 import { buildSfiWorldInterfaceState } from '@/lib/sfi/worldInterfaceState';
 import { buildWorldInterpretation } from '@/lib/sfi/observatory/worldInterpretation';
 import { terminatorMapPoints, subsolarPoint } from '@/lib/sfi/observatory/solarTerminator';
@@ -9,7 +9,7 @@ export const revalidate = 300;
 export const metadata: Metadata = {
   title: 'Observatorio · Lectura en tiempo real',
   description:
-    'Observatorio SFI: lectura longitudinal en vivo de IHG, NTI, LDI y World Spect Vector sobre el campo de fricción sistémica global, con interpretación generada por IA y terminador día/noche real.',
+    'Observatorio SFI: lectura longitudinal en vivo de IHG, NTI, LDI y World Spect Vector sobre un mapa topográfico nocturno con capa de actividad luminosa, interpretación generada por IA y terminador día/noche real.',
 };
 
 export default async function ObservatoryPage() {
@@ -29,7 +29,7 @@ export default async function ObservatoryPage() {
 
   return (
     <main className="min-h-screen bg-[#020201]">
-      <SfiObservatoryHero
+      <SfiObservatoryTopographicHero
         state={state}
         terminator={terminator}
         subsolar={subsolar}
