@@ -80,9 +80,48 @@ function dec(value: number) {
   return value.toFixed(2);
 }
 
+function nullableDec(value: number | null) {
+  return value === null ? 'SIN DATO' : dec(value);
+}
+
 export function StudioLowerAnalysisGrid({ state }: { state: StudioGoldState }) {
   return (
     <section className="sfi-studio-gold__lower-grid">
+      <article className="sfi-studio-gold__panel sfi-studio-gold__object-eval">
+        <div className="sfi-studio-gold__panel-title">
+          <div>
+            <h2>OBJETO A EVALUAR</h2>
+            <p>PRODUCTOR MUSICAL / PANEL MULTIAGENTICO</p>
+          </div>
+          <button type="button">{state.objectEvaluation.measurementState.toUpperCase()}</button>
+        </div>
+        <div className="sfi-studio-gold__object-head">
+          <strong>{state.objectEvaluation.title}</strong>
+          <span>{state.objectEvaluation.objectId ?? 'SIN OBJETO'} / {state.objectEvaluation.objectType ?? 'SIN TIPO'}</span>
+        </div>
+        <div className="sfi-studio-gold__object-measures">
+          {state.objectEvaluation.measurements.map((item) => (
+            <div key={item.id} title={item.source}>
+              <span>{item.id}</span>
+              <em>{item.label}</em>
+              <strong>{nullableDec(item.value)}</strong>
+            </div>
+          ))}
+        </div>
+        <div className="sfi-studio-gold__agent-strip">
+          {state.objectEvaluation.agents.map((agent) => (
+            <span key={agent.id} className={`is-${agent.state}`} title={agent.role}>
+              {agent.label}
+              <strong>{nullableDec(agent.value)}</strong>
+            </span>
+          ))}
+        </div>
+        <div className="sfi-studio-gold__hypothesis compact">
+          <span>DECISION DEL PRODUCTOR</span>
+          <p>{state.objectEvaluation.producerWorkflow.currentDecision}</p>
+        </div>
+      </article>
+
       <article className="sfi-studio-gold__panel">
         <h2>OBSERVABLES</h2>
         <p>MATRIZ MULTIDIMENSIONAL</p>

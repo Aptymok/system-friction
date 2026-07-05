@@ -40,6 +40,17 @@ export function StudioMobileConsole({ state }: { state: StudioGoldState }) {
       </section>
 
       <section className="sfi-studio-gold__mobile-panel">
+        <div className="sfi-studio-gold__mobile-panel-title">OBJETO A EVALUAR / PRODUCTOR MUSICAL</div>
+        <h2>{state.objectEvaluation.title}</h2>
+        <p>{state.objectEvaluation.objectId ?? 'SIN OBJETO'} / {state.objectEvaluation.measurementState.toUpperCase()}</p>
+        <div className="sfi-studio-gold__mobile-triplet">
+          {state.objectEvaluation.measurements.slice(0, 3).map((item) => (
+            <span key={item.id}>{item.id} <strong>{item.value === null ? 'SIN DATO' : dec(item.value)}</strong></span>
+          ))}
+        </div>
+      </section>
+
+      <section className="sfi-studio-gold__mobile-panel">
         <div className="sfi-studio-gold__mobile-panel-title">CULTURAL WAVE / RESUMEN</div>
         <div className="sfi-studio-gold__mobile-wave">
           <StudioCulturalWaveRenderer wave={state.culturalWave} />

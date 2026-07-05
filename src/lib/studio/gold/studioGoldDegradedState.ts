@@ -65,6 +65,31 @@ export function buildStudioGoldDegradedState(params?: {
       totalObservables: 0,
       activePercentage: 0,
     },
+    objectEvaluation: {
+      objectId: null,
+      title: 'SIN OBJETO MUSICAL CARGADO',
+      objectType: null,
+      measurementState: 'blocked',
+      measurements: [
+        { id: 'OBJ-WSV', label: 'Ajuste WorldSpect', value: null, source: 'SOURCE_UNAVAILABLE' },
+        { id: 'OBJ-CUL', label: 'Coherencia cultural', value: null, source: 'SOURCE_UNAVAILABLE' },
+        { id: 'OBJ-SYM', label: 'Densidad simbolica', value: null, source: 'SOURCE_UNAVAILABLE' },
+        { id: 'OBJ-MIHM', label: 'Lectura MIHM sistemica', value: null, source: 'SOURCE_UNAVAILABLE' },
+        { id: 'OBJ-PMV', label: 'Impacto productor / PMV', value: null, source: 'WAITING_FOR_OBJECT' },
+      ],
+      agents: [
+        { id: 'agent-observation', label: 'Agente de escucha', role: 'Espera objeto musical y evidencia conectada.', value: null, state: 'blocked' },
+        { id: 'agent-modeling', label: 'Agente MIHM', role: 'Bloqueado sin objeto evaluable.', value: null, state: 'blocked' },
+        { id: 'agent-scorefriction', label: 'Agente ScoreFriction', role: 'Bloqueado sin caso u objeto activo.', value: null, state: 'blocked' },
+        { id: 'agent-producer', label: 'Agente productor', role: 'No decide release sin medicion real.', value: null, state: 'blocked' },
+        { id: 'agent-synthesis', label: 'Agente de sintesis', role: 'Sin sintesis de objeto disponible.', value: null, state: 'blocked' },
+      ],
+      producerWorkflow: {
+        currentDecision: 'Cargar objeto musical real antes de decidir.',
+        nextAction: 'Conectar evidencia/caso activo antes de ejecutar PMV.',
+        risk: 'Sin audio, texto o caso activo no hay medicion del objeto.',
+      },
+    },
     pmv: {
       id: 'PMV-BLOQUEADA',
       intensity: 'sin objeto evaluado',

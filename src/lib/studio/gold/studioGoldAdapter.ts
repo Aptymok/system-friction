@@ -94,6 +94,12 @@ function buildPmvField(reach: number, coverage: number, impact: number) {
   });
 }
 
+function statefulDecisionFrom(impact: number) {
+  if (impact >= 0.66) return 'Preparar prueba de release y narrativa de posicionamiento.';
+  if (impact >= 0.34) return 'Refinar arreglo, evidencia de audiencia y tension narrativa.';
+  return 'Mantener objeto en observacion antes de invertir produccion.';
+}
+
 function systemStateFrom(params: {
   worldspectOk: boolean;
   scorefrictionOk: boolean;
@@ -250,6 +256,26 @@ export async function readStudioGoldState(): Promise<StudioGoldState> {
     const activePercentage = totalObservables > 0
       ? roundMetric(avg([analyticCoverage, normalizeValue(evidenceCount / Math.max(1, totalObservables))]), 3)
       : 0;
+    const objectMeasurementState: StudioGoldState['objectEvaluation']['measurementState'] = !caseId
+      ? 'blocked'
+      : degradedSources.length
+        ? 'degraded'
+        : 'ready';
+    const objectMeasurements: StudioGoldState['objectEvaluation']['measurements'] = [
+      { id: 'OBJ-WSV', label: 'Ajuste WorldSpect', value: global, source: 'readWorldSpectVectorSnapshot' },
+      { id: 'OBJ-CUL', label: 'Coherencia cultural', value: coherenceGlobal, source: 'culturalWave.coherenceGlobal' },
+      { id: 'OBJ-SYM', label: 'Densidad simbolica', value: symbolicDensity, source: 'culturalWave.symbolicDensity' },
+      { id: 'OBJ-MIHM', label: 'Lectura MIHM sistemica', value: systemic, source: hasMihmData ? 'buildOperationalCycle.mihm' : 'MIHM_SOURCE_UNAVAILABLE' },
+      { id: 'OBJ-PMV', label: 'Impacto productor / PMV', value: pmvState === 'blocked' ? null : pmvImpact, source: pmvState === 'blocked' ? 'WAITING_FOR_OBJECT' : 'recommended_experiments[0]' },
+    ];
+    const engines: StudioGoldState['engines'] = [
+      { id: 'observation', label: 'Motor de Observacion', description: 'Cobertura y calidad de datos', value: analyticCoverage, state: engineState(analyticCoverage) },
+      { id: 'modeling', label: 'Motor de Modelado', description: 'Precision de modelos', value: individual, state: engineState(individual, !cycle?.mihm?.available) },
+      { id: 'simulation', label: 'Motor de Simulacion', description: 'Fiabilidad predictiva', value: pmvImpact, state: engineState(pmvImpact, pmvState === 'blocked') },
+      { id: 'intervention', label: 'Motor de Intervencion', description: 'Eficacia de perturbaciones', value: pmvReach, state: engineState(pmvReach, pmvState === 'blocked') },
+      { id: 'learning', label: 'Motor de Aprendizaje', description: 'Adaptacion y mejora continua', value: sourceCoverage, state: engineState(sourceCoverage) },
+      { id: 'synthesis', label: 'Motor de Sintesis', description: 'Coherencia integradora', value: coherenceGlobal, state: engineState(coherenceGlobal) },
+    ];
 
     const state: StudioGoldState = {
       generatedAt,
@@ -313,6 +339,25 @@ export async function readStudioGoldState(): Promise<StudioGoldState> {
         totalObservables,
         activePercentage,
       },
+      objectEvaluation: {
+        objectId: caseId || null,
+        title: str(latestReading.label) || (caseId ? `Objeto ${caseId}` : 'SIN OBJETO MUSICAL CARGADO'),
+        objectType: caseId ? str(cycle?.object_type) || str(cycle?.object_presence) || 'cultural_object' : null,
+        measurementState: objectMeasurementState,
+        measurements: objectMeasurements,
+        agents: [
+          { id: 'agent-observation', label: 'Agente de escucha', role: 'Detecta evidencia y senales del objeto musical.', value: analyticCoverage, state: engines[0].state },
+          { id: 'agent-modeling', label: 'Agente MIHM', role: 'Modela friccion, coherencia y lectura multinivel.', value: systemic, state: engines[1].state },
+          { id: 'agent-scorefriction', label: 'Agente ScoreFriction', role: 'Evalua oportunidad, atraccion y necesidad de perturbacion.', value: pmvImpact, state: engines[2].state },
+          { id: 'agent-producer', label: 'Agente productor', role: 'Ordena decision musical, release y siguiente accion.', value: pmvReach, state: engines[3].state },
+          { id: 'agent-synthesis', label: 'Agente de sintesis', role: 'Integra lectura cultural en una decision de produccion.', value: coherenceGlobal, state: engines[5].state },
+        ],
+        producerWorkflow: {
+          currentDecision: pmvState === 'blocked' ? 'Cargar objeto musical real antes de decidir.' : str(experiment?.hypothesis) || statefulDecisionFrom(pmvImpact),
+          nextAction: str(cycle?.alert?.action_required) || str(experiment?.action) || 'Registrar evidencia concreta antes de ejecutar.',
+          risk: pmvState === 'blocked' ? 'Sin audio, texto o caso activo no hay medicion del objeto.' : (warnings[0] ?? null),
+        },
+      },
       pmv: {
         id: experiment?.id ?? (caseId ? `PMV-${caseId}` : 'PMV-BLOQUEADA'),
         intensity: pmvState === 'blocked' ? 'bloqueada' : pmvImpact >= 0.66 ? 'alta' : pmvImpact >= 0.34 ? 'media' : 'baja',
@@ -330,14 +375,7 @@ export async function readStudioGoldState(): Promise<StudioGoldState> {
         nextAction: str(cycle?.alert?.action_required) || str(experiment?.action) || 'Registrar evidencia concreta antes de ejecutar.',
         confidence: roundMetric(avg([coherenceGlobal, analyticCoverage, pmvImpact]), 3),
       },
-      engines: [
-        { id: 'observation', label: 'Motor de Observacion', description: 'Cobertura y calidad de datos', value: analyticCoverage, state: engineState(analyticCoverage) },
-        { id: 'modeling', label: 'Motor de Modelado', description: 'Precision de modelos', value: individual, state: engineState(individual, !cycle?.mihm?.available) },
-        { id: 'simulation', label: 'Motor de Simulacion', description: 'Fiabilidad predictiva', value: pmvImpact, state: engineState(pmvImpact, pmvState === 'blocked') },
-        { id: 'intervention', label: 'Motor de Intervencion', description: 'Eficacia de perturbaciones', value: pmvReach, state: engineState(pmvReach, pmvState === 'blocked') },
-        { id: 'learning', label: 'Motor de Aprendizaje', description: 'Adaptacion y mejora continua', value: sourceCoverage, state: engineState(sourceCoverage) },
-        { id: 'synthesis', label: 'Motor de Sintesis', description: 'Coherencia integradora', value: coherenceGlobal, state: engineState(coherenceGlobal) },
-      ],
+      engines,
       provenance: {
         basedOn: [
           'buildScoreFrictionScopeState',

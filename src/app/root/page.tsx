@@ -1,16 +1,9 @@
-import SfiRootLiveConsole from '@/components/root/SfiRootLiveConsole';
-import { buildAgenticRootState } from '@/lib/agents/sfiAgents';
-import { getRootHudGovernanceSnapshot } from '@/lib/root/hudGovernance';
-import { buildWorldVectorOperationalState } from '@/lib/world-vector/operationalState';
+import { RootGovernanceConsole } from '@/components/root/gold/RootGovernanceConsole';
+import { readRootGovernanceState } from '@/lib/root/gold/rootGovernanceAdapter';
 
 export const dynamic = 'force-dynamic';
 
 export default async function RootPage() {
-  const [worldVector, agentic, governance] = await Promise.all([
-    buildWorldVectorOperationalState(),
-    buildAgenticRootState(),
-    getRootHudGovernanceSnapshot(),
-  ]);
-
-  return <SfiRootLiveConsole initialState={agentic} worldVector={worldVector} governance={governance} />;
+  const state = await readRootGovernanceState();
+  return <RootGovernanceConsole state={state} />;
 }

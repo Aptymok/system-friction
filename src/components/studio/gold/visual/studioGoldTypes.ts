@@ -70,6 +70,31 @@ export type StudioGoldState = {
     activePercentage: number;
   };
 
+  objectEvaluation: {
+    objectId: string | null;
+    title: string;
+    objectType: string | null;
+    measurementState: 'empty' | 'measuring' | 'ready' | 'degraded' | 'blocked';
+    measurements: Array<{
+      id: string;
+      label: string;
+      value: number | null;
+      source: string;
+    }>;
+    agents: Array<{
+      id: string;
+      label: string;
+      role: string;
+      value: number | null;
+      state: StudioGoldEngineState;
+    }>;
+    producerWorkflow: {
+      currentDecision: string;
+      nextAction: string;
+      risk: string | null;
+    };
+  };
+
   pmv: {
     id: string;
     intensity: string;
