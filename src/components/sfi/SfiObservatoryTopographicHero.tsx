@@ -24,10 +24,27 @@ export function SfiObservatoryTopographicHero(props: Props) {
       </div>
       <style jsx global>{`
         .sfi-observatory-topographic-shell { position:relative; min-height:max(900px,100svh); overflow:hidden; background:#020201; isolation:isolate; }
-        .sfi-observatory-topographic-stage { position:absolute; inset:0; z-index:0; pointer-events:none; }
+        .sfi-observatory-topographic-stage { position:absolute; inset:0; z-index:0; pointer-events:none; opacity:.55; }
         .sfi-observatory-topographic-ui { position:relative; z-index:1; }
         .sfi-observatory-topographic-ui .sfi-observatory { background:transparent; }
-        .sfi-observatory-topographic-ui .sfi-observatory > .map { opacity:0; background:none; }
+        .sfi-observatory-topographic-ui .sfi-observatory > .map { opacity:.96; background:url('/sfi/world-interface/codex-operational-reference.png') center/cover no-repeat; filter:saturate(1.06) contrast(1.08) brightness(.9); }
+        .sfi-observatory-topographic-ui .component-tip { display:none !important; }
+        .sfi-observatory-topographic-ui .rail.left-rail,
+        .sfi-observatory-topographic-ui .reading { scrollbar-width:thin; scrollbar-color:transparent transparent; transition:scrollbar-color .18s ease, border-color .18s ease; }
+        .sfi-observatory-topographic-ui .rail.left-rail:hover,
+        .sfi-observatory-topographic-ui .rail.left-rail:focus-within,
+        .sfi-observatory-topographic-ui .reading:hover,
+        .sfi-observatory-topographic-ui .reading:focus-within { scrollbar-color:rgba(240,207,120,.26) transparent; }
+        .sfi-observatory-topographic-ui .rail.left-rail::-webkit-scrollbar,
+        .sfi-observatory-topographic-ui .reading::-webkit-scrollbar { width:3px; height:3px; }
+        .sfi-observatory-topographic-ui .rail.left-rail::-webkit-scrollbar-track,
+        .sfi-observatory-topographic-ui .reading::-webkit-scrollbar-track { background:transparent; }
+        .sfi-observatory-topographic-ui .rail.left-rail::-webkit-scrollbar-thumb,
+        .sfi-observatory-topographic-ui .reading::-webkit-scrollbar-thumb { background:transparent; border-radius:999px; }
+        .sfi-observatory-topographic-ui .rail.left-rail:hover::-webkit-scrollbar-thumb,
+        .sfi-observatory-topographic-ui .rail.left-rail:focus-within::-webkit-scrollbar-thumb,
+        .sfi-observatory-topographic-ui .reading:hover::-webkit-scrollbar-thumb,
+        .sfi-observatory-topographic-ui .reading:focus-within::-webkit-scrollbar-thumb { background:rgba(240,207,120,.22); }
       `}</style>
     </div>
   );
