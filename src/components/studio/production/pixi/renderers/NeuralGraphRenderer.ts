@@ -1,10 +1,38 @@
 import { featureValues, safeValue, type StudioPixiRenderer } from './rendererTypes';
 
+const vectorLabels = [
+  'HARMONIC / MELODY',
+  'DRUMS / ONSET',
+  'BASS / LOW-END',
+  'VOCAL PRESENCE',
+  'ATMOSPHERE',
+  'FX / TEXTURE',
+  'MASTER CHAIN',
+  'MIHM VECTOR',
+  'COHERENCE',
+  'SYSTEM STRAIN',
+];
+
+function drawLabel(input: Parameters<StudioPixiRenderer>[0], text: string, x: number, y: number, fill: number) {
+  const label = new input.PIXI.Text({
+    text,
+    style: {
+      fill,
+      fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
+      fontSize: 7,
+      letterSpacing: 1.1,
+    },
+  });
+  label.x = x;
+  label.y = y;
+  input.app.stage.addChild(label);
+}
+
 export const NeuralGraphRenderer: StudioPixiRenderer = ({ PIXI, app, state, width, height, time }) => {
   const g = new PIXI.Graphics();
   const nodes = state.objectFeatures.graph.nodes;
   const values = featureValues(state);
-  const count = Math.max(6, nodes.length || values.length || 6);
+  const count = Math.max(10, nodes.length || values.length || 10);
   const cx = width / 2;
   const cy = height / 2;
   const radius = Math.min(width, height) * 0.28;
@@ -30,4 +58,12 @@ export const NeuralGraphRenderer: StudioPixiRenderer = ({ PIXI, app, state, widt
   g.circle(cx, cy, state.activeObject.id ? 28 : 18);
   g.fill({ color: state.activeObject.id ? 0xff79d9 : 0x392044, alpha: state.activeObject.id ? 0.72 : 0.34 });
   app.stage.addChild(g);
+
+  vectorLabels.forEach((item, index) => {
+    const left = index % 2 === 0;
+    const x = left ? 18 : width - 160;
+    const y = 18 + Math.floor(index / 2) * 32;
+    const status = state.activeObject.id ? 'NO_TIME_SERIES_AVAILABLE' : 'MISSING';
+    drawLabel({ PIXI, app, state, width, height, time }, `${item}\n${status}`, x, y, left ? 0x45f0ff : 0xff79d9);
+  });
 };
