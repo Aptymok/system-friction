@@ -11,12 +11,12 @@ export function StudioFooterTransport({ state }: { state: StudioProductionState 
         <strong>PLAY · PAUSE · STOP · +10S · {hasObject ? 'TIMELINE READY' : 'NO TIMELINE'}</strong>
       </div>
       <div>
-        <span>ANALYSIS JOB</span>
-        <a href={analyzeHref}>{state.activeObject.status.toUpperCase()}</a>
+        <span>AUDIO CONTROLS</span>
+        <strong>{hasObject ? 'CURSOR AVAILABLE AFTER ANALYSIS' : 'WAITING_OBJECT'}</strong>
       </div>
       <div>
-        <span>EXPORT</span>
-        <a href="/api/studio/exports/build">BUILD PACKAGE</a>
+        <span>ANALYSIS JOB</span>
+        <a href={analyzeHref}>{state.activeObject.status.toUpperCase()}</a>
       </div>
     </section>
   );
