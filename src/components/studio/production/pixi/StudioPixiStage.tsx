@@ -5,6 +5,7 @@ import type { StudioProductionState } from '@/lib/studio/production/studioProduc
 import { ArchiveTimelineRenderer } from './renderers/ArchiveTimelineRenderer';
 import { NeuralGraphRenderer } from './renderers/NeuralGraphRenderer';
 import { SpectralCloudRenderer } from './renderers/SpectralCloudRenderer';
+import { StudioOverviewFieldRenderer } from './renderers/StudioOverviewFieldRenderer';
 import { TimelineDensityRenderer } from './renderers/TimelineDensityRenderer';
 import { VectorScopeRenderer } from './renderers/VectorScopeRenderer';
 import { WaveformRenderer } from './renderers/WaveformRenderer';
@@ -13,7 +14,7 @@ import type { StudioPixiRenderer } from './renderers/rendererTypes';
 export type StudioPixiStageVariant = 'overview' | 'waveform' | 'spectral' | 'timeline' | 'vector' | 'archive' | 'graph';
 
 const renderers: Record<StudioPixiStageVariant, StudioPixiRenderer> = {
-  overview: NeuralGraphRenderer,
+  overview: StudioOverviewFieldRenderer,
   waveform: WaveformRenderer,
   spectral: SpectralCloudRenderer,
   timeline: TimelineDensityRenderer,
