@@ -10,7 +10,9 @@ export type StudioProductionScreen =
   | 'mix-console'
   | 'mastering'
   | 'neural-audio-graph'
-  | 'memory-archives';
+  | 'memory-archives'
+  | 'deliverables'
+  | 'settings';
 
 export const studioProductionScreens: Array<{ id: StudioProductionScreen; label: string; code: string }> = [
   { id: 'overview', label: 'Overview', code: '01' },
