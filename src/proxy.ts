@@ -49,6 +49,12 @@ function redirectToLoginWithNext(request: NextRequest) {
   return NextResponse.redirect(loginUrl)
 }
 
+function isLocalStudioBypass(request: NextRequest) {
+  if (process.env.SFI_LOCAL_STUDIO_AUTH_BYPASS !== 'true') return false
+  const host = request.nextUrl.hostname
+  return host === 'localhost' || host === '127.0.0.1' || host === '0.0.0.0'
+}
+
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next()
   const { pathname } = request.nextUrl
@@ -65,22 +71,31 @@ export async function proxy(request: NextRequest) {
     response.headers.set('Cache-Control', 'no-store, must-revalidate')
   }
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
   const requiresSession =
     pathname.startsWith('/root') ||
     pathname.startsWith('/studio')
 
-  if (!supabaseUrl || !supabaseKey) {
-    if (requiresSession) {
-      const loginUrl = new URL('/login', request.url)
-      loginUrl.searchParams.set('error', 'supabase_no_configurado')
-      loginUrl.searchParams.set('next', `${request.nextUrl.pathname}${request.nextUrl.search}`)
-      return NextResponse.redirect(loginUrl)
-    }
-
+  // Public routes must not pay the Supabase Auth cost. A degraded Supabase Auth
+  // edge should not make /, /library, /repository, /contact, etc. wait 40s.
+  if (!requiresSession) {
     return response
+  }
+
+  // Local-only visual inspection escape hatch. This never applies in production
+  // unless the host is localhost and the explicit env flag is present.
+  if (pathname.startsWith('/studio') && isLocalStudioBypass(request)) {
+    response.headers.set('X-SFI-Auth-Bypass', 'local-studio')
+    return response
+  }
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+  if (!supabaseUrl || !supabaseKey) {
+    const loginUrl = new URL('/login', request.url)
+    loginUrl.searchParams.set('error', 'supabase_no_configurado')
+    loginUrl.searchParams.set('next', `${request.nextUrl.pathname}${request.nextUrl.search}`)
+    return NextResponse.redirect(loginUrl)
   }
 
   const supabase = createServerClient(normalizeSupabaseUrl(supabaseUrl), supabaseKey, {
@@ -116,24 +131,22 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  if (requiresSession && !user) {
+  if (!user) {
     return redirectToLoginWithNext(request)
   }
 
-  if ((pathname.startsWith('/root') || pathname.startsWith('/studio')) && user) {
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('user_id', user.id)
-      .maybeSingle()
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('user_id', user.id)
+    .maybeSingle()
 
-    if (pathname.startsWith('/root') && !isRootRouteUser(profile?.role, user.email)) {
-      return NextResponse.redirect(new URL('/field', request.url))
-    }
+  if (pathname.startsWith('/root') && !isRootRouteUser(profile?.role, user.email)) {
+    return NextResponse.redirect(new URL('/field', request.url))
+  }
 
-    if (pathname.startsWith('/studio') && !isStudioRouteUser(profile?.role, user.email)) {
-      return NextResponse.redirect(new URL('/unauthorized', request.url))
-    }
+  if (pathname.startsWith('/studio') && !isStudioRouteUser(profile?.role, user.email)) {
+    return NextResponse.redirect(new URL('/unauthorized', request.url))
   }
 
   return response
