@@ -1,4 +1,4 @@
-import { safeValue, type StudioPixiRenderer } from './rendererTypes';
+﻿import { safeValue, type StudioPixiRenderer } from './rendererTypes';
 
 const PINK = 0xff79d9;
 const PURPLE = 0xba5cff;
@@ -90,7 +90,7 @@ export const StudioOverviewFieldRenderer: StudioPixiRenderer = (input) => {
     { id: 'OBJECT', value: objectReady, color: PINK, angle: -Math.PI / 2, count: state.objectFeatures.metrics.length || 1 },
     { id: 'FEATURES', value: featureReady, color: CYAN, angle: 0, count: state.objectFeatures.layers.length || 1 },
     { id: 'CULTURAL', value: cultural, color: PURPLE, angle: Math.PI / 2, count: state.culturalLens?.domainValues.length || 1 },
-    { id: 'MIHM', value: mihm, color: ORANGE, angle: Math.PI, count: state.mihmReport.thresholdsTriggered?.length || 1 },
+    { id: 'MIHM', value: mihm, color: ORANGE, angle: Math.PI, count: ((state.hypotheses?.hypotheses.length ?? 0) + (state.hypotheses?.correlations.length ?? 0)) || 1 },
     { id: 'ARCHIVE', value: Math.max(archive, exportReady), color: GREEN, angle: Math.PI * 1.35, count: state.archive.events.length || 1 },
   ];
 
@@ -185,3 +185,4 @@ export const StudioOverviewFieldRenderer: StudioPixiRenderer = (input) => {
     drawText(PIXI, app, label, x, height - 38, MUTED, 7);
   });
 };
+
