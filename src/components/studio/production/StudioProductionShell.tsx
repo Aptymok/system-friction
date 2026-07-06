@@ -18,6 +18,14 @@ function pct(value: number | null | undefined) {
   return value === null || value === undefined ? 'SIN DATO' : `${Math.round(Math.max(0, Math.min(1, value)) * 100)}%`;
 }
 
+function readinessValue(value: string | null | undefined) {
+  const text = String(value ?? '').toLowerCase();
+  if (text.includes('ready') || text.includes('complete')) return 1;
+  if (text.includes('partial') || text.includes('degraded') || text.includes('uploaded')) return 0.46;
+  if (text.includes('blocked') || text.includes('missing') || text.includes('failed')) return 0.08;
+  return 0.18;
+}
+
 function Panel({ title, children, action }: { title: string; children: React.ReactNode; action?: React.ReactNode }) {
   return (
     <section className="sfi-production__panel">
@@ -57,30 +65,99 @@ function ObjectSummary({ state, onOpenIntake }: { state: StudioProductionState; 
   );
 }
 
-function OverviewScreen({ state, onOpenIntake }: { state: StudioProductionState; onOpenIntake: () => void }) {
+function OverviewStatusBar({ label, value, tone }: { label: string; value: number; tone: 'pink' | 'cyan' | 'orange' | 'green' }) {
   return (
-    <>
-      <PixiPanel state={state} variant="overview" title="OVERVIEW / OBJECT FIELD" subtitle="CAMPO VIVO DEL OBJETO" />
-      <div className="sfi-production__grid sfi-production__grid--overview">
-        <ObjectSummary state={state} onOpenIntake={onOpenIntake} />
-        <Panel title="READINESS">
-          <div className="sfi-production__metric-list">
-            <span>OBJECT <b>{state.activeObject.readiness.toUpperCase()}</b></span>
-            <span>FEATURES <b>{state.objectFeatures.readiness.toUpperCase()}</b></span>
-            <span>MIHM <b>{metric(state.mihmReport.score)}</b></span>
-            <span>CULTURAL LENS <b>{metric(state.culturalLens?.confidence)}</b></span>
+    <div className={`sfi-overview__bar is-${tone}`}>
+      <span>{label}</span>
+      <i><b style={{ width: `${Math.max(4, Math.round(value * 100))}%` }} /></i>
+      <em>{Math.round(value * 100)}%</em>
+    </div>
+  );
+}
+
+function OverviewDashboard({ state, onOpenIntake }: { state: StudioProductionState; onOpenIntake: () => void }) {
+  const objectReady = readinessValue(state.activeObject.readiness);
+  const featureReady = readinessValue(state.objectFeatures.readiness);
+  const cultural = Math.max(0, Math.min(1, state.culturalLens?.confidence ?? 0));
+  const mihm = Math.max(0, Math.min(1, state.mihmReport.score ?? 0));
+  const archive = readinessValue(state.archive.integrity);
+  const hasObject = Boolean(state.activeObject.id);
+  const hypothesisCount = (state.hypotheses?.hypotheses.length ?? 0) + (state.hypotheses?.correlations.length ?? 0);
+  const diagnostic = state.degradedSources[0] ?? 'studio object source unavailable';
+
+  return (
+    <section className="sfi-overview">
+      <div className="sfi-overview__topline">
+        <div>
+          <span>01 / OVERVIEW HUB</span>
+          <strong>STUDIO OBJECT COMMAND FIELD</strong>
+        </div>
+        <button type="button" onClick={onOpenIntake}>INTAKE OBJECT</button>
+      </div>
+
+      <div className="sfi-overview__field">
+        <div className="sfi-overview__micro sfi-overview__micro--left">
+          <span>ACTIVE OBJECT</span>
+          <strong>{state.activeObject.title}</strong>
+          <p>{state.activeObject.type.toUpperCase()} · {state.activeObject.readiness.toUpperCase()}</p>
+        </div>
+        <div className="sfi-overview__micro sfi-overview__micro--right">
+          <span>SYSTEM STATE</span>
+          <strong>{state.systemState.toUpperCase()}</strong>
+          <p>{state.generatedAt}</p>
+        </div>
+        <div className="sfi-overview__micro sfi-overview__micro--bottom-left">
+          <span>FEATURE GRAPH</span>
+          <strong>{state.objectFeatures.graph.nodes.length} NODES / {state.objectFeatures.graph.edges.length} EDGES</strong>
+          <p>{state.objectFeatures.readiness.toUpperCase()}</p>
+        </div>
+        <div className="sfi-overview__micro sfi-overview__micro--bottom-right">
+          <span>HYPOTHESIS ENGINE</span>
+          <strong>{hypothesisCount} SIGNALS</strong>
+          <p>{state.hypotheses?.summary ?? 'BLOCKED_BY_MISSING_LAYERS'}</p>
+        </div>
+        <div className="sfi-overview__frame sfi-overview__frame--a" />
+        <div className="sfi-overview__frame sfi-overview__frame--b" />
+        <StudioPixiStage state={state} variant="overview" label="Overview object field" />
+        {!hasObject && (
+          <div className="sfi-overview__blocked">
+            <span>BLOCKED SOURCE</span>
+            <strong>SIN OBJETO PERSISTIDO</strong>
+            <p>{diagnostic}</p>
           </div>
-        </Panel>
-        <Panel title="PIPELINE STATE">
+        )}
+      </div>
+
+      <div className="sfi-overview__lower">
+        <section className="sfi-overview__dock sfi-overview__dock--wide">
+          <header><span>READINESS MATRIX</span><b>LIVE DIAGNOSTIC</b></header>
+          <OverviewStatusBar label="OBJECT" value={objectReady} tone="pink" />
+          <OverviewStatusBar label="FEATURES" value={featureReady} tone="cyan" />
+          <OverviewStatusBar label="CULTURAL" value={cultural} tone="orange" />
+          <OverviewStatusBar label="MIHM" value={mihm} tone="green" />
+          <OverviewStatusBar label="ARCHIVE" value={archive} tone="cyan" />
+        </section>
+
+        <section className="sfi-overview__dock">
+          <header><span>PIPELINE</span><b>NO MOCK DATA</b></header>
           <ol className="sfi-production__pipeline">
             {['OBJECT', 'ANALYSIS', 'LAYERS', 'HYPOTHESIS', 'PMV', 'VALIDATION', 'ARCHIVE'].map((item, index) => (
-              <li key={item} className={index <= (state.activeObject.id ? 2 : 0) ? 'is-live' : ''}>{item}</li>
+              <li key={item} className={index <= (hasObject ? 2 : 0) ? 'is-live' : ''}>{item}</li>
             ))}
           </ol>
-        </Panel>
+        </section>
+
+        <section className="sfi-overview__dock">
+          <header><span>PROVENANCE</span><b>{state.provenance.basedOn.length} SOURCES</b></header>
+          {(state.provenance.basedOn.length ? state.provenance.basedOn : ['NO_PROVENANCE_DECLARED']).slice(0, 5).map((item) => <p key={item}>{item}</p>)}
+        </section>
       </div>
-    </>
+    </section>
   );
+}
+
+function OverviewScreen({ state, onOpenIntake }: { state: StudioProductionState; onOpenIntake: () => void }) {
+  return <OverviewDashboard state={state} onOpenIntake={onOpenIntake} />;
 }
 
 function SessionsScreen({ state, onOpenIntake }: { state: StudioProductionState; onOpenIntake: () => void }) {
@@ -302,6 +379,7 @@ const productionCss = `
 .sfi-production {
   --bg: #050309;
   --panel: rgba(8, 5, 14, .92);
+  --panel2: rgba(15, 7, 22, .95);
   --line: rgba(186, 92, 255, .28);
   --line2: rgba(69, 240, 255, .18);
   --pink: #ff79d9;
@@ -309,6 +387,7 @@ const productionCss = `
   --cyan: #45f0ff;
   --orange: #ff9f43;
   --green: #7cffb2;
+  --red: #ff5f7a;
   --text: #f2e9ff;
   --muted: #9584a7;
   min-height: 100vh;
@@ -319,6 +398,7 @@ const productionCss = `
   background:
     radial-gradient(circle at 50% 30%, rgba(186, 92, 255, .18), transparent 42%),
     radial-gradient(circle at 78% 58%, rgba(69, 240, 255, .09), transparent 34%),
+    linear-gradient(135deg, rgba(255, 121, 217, .06), transparent 28%, rgba(69, 240, 255, .05)),
     var(--bg);
   color: var(--text);
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
@@ -343,21 +423,23 @@ const productionCss = `
 .sfi-production__evaluation-strip {
   border: 1px solid var(--line);
   background: linear-gradient(180deg, rgba(15, 7, 22, .95), rgba(5, 3, 9, .94));
-  box-shadow: inset 0 0 40px rgba(186, 92, 255, .045);
+  box-shadow: inset 0 0 40px rgba(186, 92, 255, .045), 0 0 28px rgba(69, 240, 255, .035);
 }
-.sfi-production__sidebar { display: grid; grid-template-rows: auto 1fr auto; min-height: calc(100vh - 20px); }
+.sfi-production__sidebar { display: grid; grid-template-rows: auto 1fr auto; min-height: calc(100vh - 20px); overflow: hidden; }
 .sfi-production__brand { display: flex; align-items: center; gap: 12px; padding: 18px; border-bottom: 1px solid var(--line); }
 .sfi-production__mark { width: 32px; height: 32px; border: 1px solid var(--pink); border-radius: 50%; box-shadow: 0 0 24px rgba(255, 121, 217, .38); }
 .sfi-production__brand strong { display: block; font-size: 20px; letter-spacing: .18em; }
 .sfi-production__brand em { display: block; color: var(--pink); font-style: normal; font-size: 10px; letter-spacing: .32em; }
 .sfi-production__sidebar nav { display: grid; align-content: start; gap: 4px; padding: 12px; }
-.sfi-production__sidebar nav button { width: 100%; padding: 11px 12px; text-align: left; color: var(--muted); }
-.sfi-production__sidebar nav button.is-active { color: var(--cyan); border-color: var(--cyan); background: rgba(69, 240, 255, .08); }
+.sfi-production__sidebar nav button { width: 100%; padding: 10px 12px; text-align: left; color: var(--muted); display: grid; grid-template-columns: 28px 1fr; gap: 10px; align-items: center; }
+.sfi-production__sidebar nav button span { color: var(--pink); opacity: .82; }
+.sfi-production__sidebar nav button b { font-size: 9px; font-weight: 800; }
+.sfi-production__sidebar nav button.is-active { color: var(--cyan); border-color: var(--cyan); background: linear-gradient(90deg, rgba(69, 240, 255, .12), rgba(255, 121, 217, .06)); box-shadow: inset 0 0 28px rgba(69, 240, 255, .08); }
 .sfi-production__side-status { padding: 14px; border-top: 1px solid var(--line); }
 .sfi-production__side-status span, .sfi-production__panel header span, .sfi-production__right-rail span, .sfi-production__transport span { color: var(--muted); font-size: 9px; letter-spacing: .18em; text-transform: uppercase; }
 .sfi-production__side-status strong { display: block; margin-top: 8px; color: var(--green); }
-.sfi-production__side-status p, .sfi-production__panel p, .sfi-production__right-rail p { color: var(--muted); font-size: 10px; line-height: 1.55; }
-.sfi-production__main { display: grid; grid-template-rows: auto minmax(430px, 1fr) auto auto; gap: 10px; min-width: 0; }
+.sfi-production__side-status p, .sfi-production__panel p, .sfi-production__right-rail p, .sfi-overview__dock p { color: var(--muted); font-size: 10px; line-height: 1.55; }
+.sfi-production__main { display: grid; grid-template-rows: auto minmax(540px, 1fr) auto auto; gap: 10px; min-width: 0; }
 .sfi-production__header { display: grid; grid-template-columns: 1fr 1.3fr auto; gap: 16px; padding: 14px 18px; align-items: center; }
 .sfi-production__header span { display: block; color: var(--muted); font-size: 9px; letter-spacing: .2em; }
 .sfi-production__header strong { display: block; margin-top: 5px; color: var(--pink); font-size: 12px; letter-spacing: .16em; }
@@ -371,11 +453,42 @@ const productionCss = `
 .sfi-production__pixi-stage { position: relative; min-height: 390px; overflow: hidden; background: radial-gradient(circle at 50% 50%, rgba(186, 92, 255, .18), transparent 48%); }
 .sfi-production__pixi-host, .sfi-production__pixi-host canvas, .sfi-production__pixi-fallback { position: absolute; inset: 0; width: 100%; height: 100%; }
 .sfi-production__pixi-host { z-index: 2; }
-.sfi-production__pixi-fallback { z-index: 1; opacity: .75; }
+.sfi-production__pixi-fallback { z-index: 1; opacity: .42; }
 .sfi-production__pixi-fallback circle { fill: var(--pink); opacity: .55; }
 .sfi-production__pixi-fallback text { fill: var(--muted); font-size: 5px; letter-spacing: .25em; }
+.sfi-overview { min-height: 100%; display: grid; grid-template-rows: auto minmax(430px, 1fr) auto; gap: 10px; }
+.sfi-overview__topline { border: 1px solid var(--line); background: linear-gradient(90deg, rgba(255, 121, 217, .08), rgba(69, 240, 255, .04)); padding: 12px 14px; display: flex; align-items: center; justify-content: space-between; box-shadow: inset 0 0 40px rgba(255, 121, 217, .035); }
+.sfi-overview__topline span, .sfi-overview__micro span, .sfi-overview__dock header span, .sfi-overview__bar span, .sfi-overview__blocked span { display: block; color: var(--muted); font-size: 9px; letter-spacing: .2em; text-transform: uppercase; }
+.sfi-overview__topline strong { display: block; margin-top: 4px; color: var(--pink); font-size: 14px; letter-spacing: .22em; }
+.sfi-overview__topline button { padding: 10px 14px; }
+.sfi-overview__field { position: relative; min-height: 500px; border: 1px solid var(--line); overflow: hidden; background: radial-gradient(circle at 50% 45%, rgba(186, 92, 255, .24), transparent 34%), linear-gradient(180deg, rgba(8, 5, 14, .96), rgba(5, 3, 9, .98)); box-shadow: inset 0 0 90px rgba(69, 240, 255, .035), inset 0 0 120px rgba(255, 121, 217, .055); }
+.sfi-overview__field:before { content: ''; position: absolute; inset: 0; background-image: linear-gradient(rgba(186, 92, 255, .13) 1px, transparent 1px), linear-gradient(90deg, rgba(69, 240, 255, .08) 1px, transparent 1px); background-size: 36px 36px; opacity: .28; z-index: 0; }
+.sfi-overview__field .sfi-production__pixi-stage { position: absolute; inset: 0; min-height: 100%; z-index: 1; background: transparent; }
+.sfi-overview__micro { position: absolute; z-index: 4; width: min(285px, 30%); padding: 12px; border: 1px solid var(--line2); background: rgba(5, 3, 9, .72); backdrop-filter: blur(8px); box-shadow: inset 0 0 28px rgba(69, 240, 255, .04); }
+.sfi-overview__micro strong { display: block; margin-top: 8px; color: var(--cyan); font-size: 13px; letter-spacing: .08em; text-transform: uppercase; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sfi-overview__micro p { margin: 8px 0 0; color: var(--muted); font-size: 9px; line-height: 1.45; max-height: 42px; overflow: hidden; }
+.sfi-overview__micro--left { top: 18px; left: 18px; }
+.sfi-overview__micro--right { top: 18px; right: 18px; text-align: right; }
+.sfi-overview__micro--bottom-left { bottom: 18px; left: 18px; }
+.sfi-overview__micro--bottom-right { bottom: 18px; right: 18px; text-align: right; }
+.sfi-overview__frame { position: absolute; z-index: 3; pointer-events: none; border: 1px solid rgba(255, 121, 217, .16); }
+.sfi-overview__frame--a { inset: 54px 72px; box-shadow: 0 0 70px rgba(255, 121, 217, .05); }
+.sfi-overview__frame--b { inset: 96px 146px; border-color: rgba(69, 240, 255, .16); transform: skewX(-4deg); }
+.sfi-overview__blocked { position: absolute; z-index: 5; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(430px, 70%); padding: 18px; text-align: center; border: 1px solid rgba(255, 95, 122, .5); background: rgba(10, 4, 12, .78); backdrop-filter: blur(10px); box-shadow: 0 0 48px rgba(255, 95, 122, .12); }
+.sfi-overview__blocked strong { display: block; color: var(--red); margin: 10px 0; letter-spacing: .18em; }
+.sfi-overview__blocked p { color: var(--muted); font-size: 10px; }
+.sfi-overview__lower { display: grid; grid-template-columns: 1.35fr .9fr .95fr; gap: 10px; }
+.sfi-overview__dock { min-height: 150px; padding: 12px; border: 1px solid var(--line); background: linear-gradient(180deg, rgba(15, 7, 22, .92), rgba(5, 3, 9, .96)); box-shadow: inset 0 0 32px rgba(186, 92, 255, .04); }
+.sfi-overview__dock header { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+.sfi-overview__dock header b { color: var(--pink); font-size: 9px; letter-spacing: .14em; }
+.sfi-overview__bar { display: grid; grid-template-columns: 92px 1fr 42px; gap: 10px; align-items: center; margin: 8px 0; }
+.sfi-overview__bar i { display: block; height: 8px; background: rgba(255,255,255,.04); border: 1px solid var(--line2); overflow: hidden; }
+.sfi-overview__bar b { display: block; height: 100%; background: var(--cyan); box-shadow: 0 0 18px rgba(69, 240, 255, .32); }
+.sfi-overview__bar em { color: var(--muted); font-style: normal; font-size: 9px; text-align: right; }
+.sfi-overview__bar.is-pink b { background: var(--pink); box-shadow: 0 0 18px rgba(255, 121, 217, .32); }
+.sfi-overview__bar.is-orange b { background: var(--orange); box-shadow: 0 0 18px rgba(255, 159, 67, .24); }
+.sfi-overview__bar.is-green b { background: var(--green); box-shadow: 0 0 18px rgba(124, 255, 178, .24); }
 .sfi-production__grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 10px; }
-.sfi-production__grid--overview { grid-template-columns: 1.25fr .9fr 1fr; }
 .sfi-production__screen-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; align-content: start; }
 .sfi-production__panel { min-height: 140px; padding: 14px; }
 .sfi-production__panel header { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
@@ -387,7 +500,7 @@ const productionCss = `
 .sfi-production__metric-list b { color: var(--cyan); }
 .sfi-production__pipeline { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
 .sfi-production__pipeline li { padding: 7px 9px; border: 1px solid var(--line2); color: var(--muted); font-size: 10px; letter-spacing: .12em; }
-.sfi-production__pipeline li.is-live { color: var(--green); border-color: rgba(124, 255, 178, .32); }
+.sfi-production__pipeline li.is-live { color: var(--green); border-color: rgba(124, 255, 178, .32); background: rgba(124, 255, 178, .035); }
 .sfi-production__filter-row { display: flex; gap: 8px; flex-wrap: wrap; }
 .sfi-production__filter-row button { padding: 9px 10px; }
 .sfi-production__faders { display: grid; grid-template-columns: repeat(8, minmax(64px, 1fr)); gap: 8px; min-height: 260px; padding: 14px; border: 1px solid var(--line); background: var(--panel); align-items: end; }
@@ -413,11 +526,9 @@ const productionCss = `
 .sfi-production__icon-button { position: absolute; top: 10px; right: 10px; width: 30px; height: 30px; }
 @media (max-width: 1180px) {
   .sfi-production { display: block; padding: 8px; }
-  .sfi-production__sidebar, .sfi-production__right-rail { display: none; }
-  .sfi-production__main { display: grid; gap: 8px; }
-  .sfi-production__header, .sfi-production__grid, .sfi-production__grid--overview, .sfi-production__screen-grid, .sfi-production__transport, .sfi-production__evaluation-strip { grid-template-columns: 1fr; }
-  .sfi-production__live-panel { min-height: 360px; }
-  .sfi-production__pixi-stage { min-height: 320px; }
-  .sfi-production__faders { grid-template-columns: repeat(3, minmax(64px, 1fr)); }
+  .sfi-production__sidebar, .sfi-production__right-rail { min-height: auto; margin-bottom: 10px; }
+  .sfi-production__main { display: block; }
+  .sfi-overview__lower, .sfi-production__grid, .sfi-production__screen-grid { grid-template-columns: 1fr; }
+  .sfi-overview__field { min-height: 420px; }
 }
 `;
