@@ -31,7 +31,12 @@ function fallbackPoints(state: StudioProductionState) {
     y: 50 + Math.sin(index * 1.7) * (18 + index * 1.4),
     value: node.value ?? 0.08,
   }));
-  return [{ id: 'source-unavailable', x: 50, y: 50, value: 0.04 }];
+  return Array.from({ length: 10 }, (_, index) => ({
+    id: `missing-vector-${index + 1}`,
+    x: 50 + Math.cos((index / 10) * Math.PI * 2) * 24,
+    y: 50 + Math.sin((index / 10) * Math.PI * 2) * 16,
+    value: 0.03,
+  }));
 }
 
 export function StudioPixiStage({ state, variant, label }: { state: StudioProductionState; variant: StudioPixiStageVariant; label: string }) {
@@ -97,8 +102,8 @@ export function StudioPixiStage({ state, variant, label }: { state: StudioProduc
       <svg className="sfi-production__pixi-fallback" viewBox="0 0 100 100" preserveAspectRatio="none">
         <defs>
           <radialGradient id={`sfi-production-glow-${variant}`} cx="50%" cy="50%" r="48%">
-            <stop offset="0%" stopColor="#ff79d9" stopOpacity="0.45" />
-            <stop offset="56%" stopColor="#45f0ff" stopOpacity="0.1" />
+            <stop offset="0%" stopColor="#ff79d9" stopOpacity={state.activeObject.id ? '0.45' : '0.22'} />
+            <stop offset="56%" stopColor="#45f0ff" stopOpacity={state.activeObject.id ? '0.1' : '0.06'} />
             <stop offset="100%" stopColor="#000000" stopOpacity="0" />
           </radialGradient>
         </defs>
@@ -106,7 +111,7 @@ export function StudioPixiStage({ state, variant, label }: { state: StudioProduc
         {fallback.map((point) => (
           <circle key={point.id} cx={point.x} cy={point.y} r={1.4 + point.value * 5} />
         ))}
-        {state.activeObject.id ? null : <text x="50" y="52" textAnchor="middle">SOURCE_UNAVAILABLE</text>}
+        {state.activeObject.id ? null : <text x="50" y="52" textAnchor="middle">MISSING_OBJECT</text>}
       </svg>
       <div ref={hostRef} className="sfi-production__pixi-host" />
     </div>
