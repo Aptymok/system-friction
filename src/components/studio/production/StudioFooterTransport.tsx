@@ -1,17 +1,18 @@
 import type { StudioProductionState } from '@/lib/studio/production/studioProductionTypes';
 
 export function StudioFooterTransport({ state }: { state: StudioProductionState }) {
+  const hasObject = Boolean(state.activeObject.id);
+  const analyzeHref = hasObject ? `/api/studio/objects/${state.activeObject.id}/analyze` : '/api/studio/production/state';
+
   return (
     <section className="sfi-production__transport">
       <div>
-        <span>FLOW</span>
-        <strong>OBJECT - ANALYSIS - HYPOTHESIS - PMV - VALIDATION - ARCHIVE</strong>
+        <span>TRANSPORT</span>
+        <strong>PLAY · PAUSE · STOP · +10S · {hasObject ? 'TIMELINE READY' : 'NO TIMELINE'}</strong>
       </div>
       <div>
         <span>ANALYSIS JOB</span>
-        <a href={state.activeObject.id ? `/api/studio/objects/${state.activeObject.id}/analyze` : '/api/studio/production/state'}>
-          {state.activeObject.status.toUpperCase()}
-        </a>
+        <a href={analyzeHref}>{state.activeObject.status.toUpperCase()}</a>
       </div>
       <div>
         <span>EXPORT</span>
