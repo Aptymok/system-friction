@@ -2,7 +2,7 @@ import type { StudioProductionState } from '@/lib/studio/production/studioProduc
 
 export function StudioFooterTransport({ state }: { state: StudioProductionState }) {
   const hasObject = Boolean(state.activeObject.id);
-  const analyzeHref = hasObject ? `/api/studio/objects/${state.activeObject.id}/analyze` : '/api/studio/production/state';
+  const analyzeHref = hasObject ? `/api/studio/objects/${state.activeObject.id}` : '/api/studio/production/state';
 
   return (
     <section className="sfi-production__transport">
