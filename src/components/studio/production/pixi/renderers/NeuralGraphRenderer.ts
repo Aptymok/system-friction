@@ -8,6 +8,7 @@ export const NeuralGraphRenderer: StudioPixiRenderer = ({ PIXI, app, state, widt
   const cx = width / 2;
   const cy = height / 2;
   const radius = Math.min(width, height) * 0.28;
+  const density = state.activeObject.id ? 1 : 0.34;
 
   for (let i = 0; i < count; i += 1) {
     const angle = (i / count) * Math.PI * 2 + time * 0.00015;
@@ -16,14 +17,14 @@ export const NeuralGraphRenderer: StudioPixiRenderer = ({ PIXI, app, state, widt
     const y = cy + Math.sin(angle) * radius * (0.7 + value * 0.3);
     g.moveTo(cx, cy);
     g.lineTo(x, y);
-    g.stroke({ width: 1 + value * 2, color: 0xba5cff, alpha: 0.18 + value * 0.45 });
+    g.stroke({ width: (1 + value * 2) * density, color: 0xba5cff, alpha: (0.18 + value * 0.45) * density });
     g.circle(x, y, 4 + value * 10);
-    g.fill({ color: i % 3 === 0 ? 0x45f0ff : 0xff79d9, alpha: 0.32 + value * 0.55 });
+    g.fill({ color: i % 3 === 0 ? 0x45f0ff : 0xff79d9, alpha: (0.32 + value * 0.55) * density });
   }
 
   for (let ring = 0; ring < 5; ring += 1) {
     g.circle(cx, cy, 34 + ring * 28 + Math.sin(time * 0.001 + ring) * 3);
-    g.stroke({ width: 1, color: ring % 2 ? 0xff79d9 : 0x45f0ff, alpha: 0.1 + ring * 0.035 });
+    g.stroke({ width: 1, color: ring % 2 ? 0xff79d9 : 0x45f0ff, alpha: (0.1 + ring * 0.035) * density });
   }
 
   g.circle(cx, cy, state.activeObject.id ? 28 : 18);
