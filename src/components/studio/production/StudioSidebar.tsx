@@ -10,23 +10,19 @@ export type StudioProductionScreen =
   | 'mix-console'
   | 'mastering'
   | 'neural-audio-graph'
-  | 'memory-archives'
-  | 'deliverables'
-  | 'settings';
+  | 'memory-archives';
 
-export const studioProductionScreens: Array<{ id: StudioProductionScreen; label: string }> = [
-  { id: 'overview', label: 'Overview' },
-  { id: 'sessions', label: 'Sessions' },
-  { id: 'live-desk', label: 'Live Desk' },
-  { id: 'composition', label: 'Composition' },
-  { id: 'sound-design', label: 'Sound Design' },
-  { id: 'arrangements', label: 'Arrangements' },
-  { id: 'mix-console', label: 'Mix Console' },
-  { id: 'mastering', label: 'Mastering' },
-  { id: 'neural-audio-graph', label: 'Neural Audio Graph' },
-  { id: 'memory-archives', label: 'Memory / Archives' },
-  { id: 'deliverables', label: 'Deliverables' },
-  { id: 'settings', label: 'Settings' },
+export const studioProductionScreens: Array<{ id: StudioProductionScreen; label: string; code: string }> = [
+  { id: 'overview', label: 'Overview', code: '01' },
+  { id: 'sessions', label: 'Sessions', code: '02' },
+  { id: 'live-desk', label: 'Live Desk', code: '03' },
+  { id: 'composition', label: 'Composition', code: '04' },
+  { id: 'sound-design', label: 'Sound Design', code: '05' },
+  { id: 'arrangements', label: 'Arrangements', code: '06' },
+  { id: 'mix-console', label: 'Mix Console', code: '07' },
+  { id: 'mastering', label: 'Mastering', code: '08' },
+  { id: 'neural-audio-graph', label: 'Neural Audio Graph', code: '09' },
+  { id: 'memory-archives', label: 'Memory / Archives', code: '10' },
 ];
 
 export function StudioSidebar({
@@ -55,14 +51,15 @@ export function StudioSidebar({
             className={screen.id === active ? 'is-active' : ''}
             onClick={() => onSelect(screen.id)}
           >
-            {screen.label}
+            <span>{screen.code}</span>
+            <b>{screen.label}</b>
           </button>
         ))}
       </nav>
       <div className="sfi-production__side-status">
         <span>SESSION STATUS</span>
         <strong>{sessionStatus.toUpperCase()}</strong>
-        <p>No collaborator module mounted.</p>
+        <p>Core Studio surface only. No collaborator module mounted.</p>
       </div>
     </aside>
   );
