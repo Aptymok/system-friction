@@ -18,6 +18,9 @@ export function StudioHeader({ state }: { state: StudioProductionState }) {
         <strong>{state.systemState.toUpperCase()}</strong>
         <em>{time} UTC</em>
       </div>
+      <style jsx global>{`
+        .sfi-overview__blocked { display: none !important; }
+      `}</style>
     </header>
   );
 }
