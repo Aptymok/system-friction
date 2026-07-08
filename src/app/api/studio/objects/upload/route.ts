@@ -5,6 +5,8 @@ import { createStudioUploadObject } from '@/lib/studio/production/studioProducti
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
+const STUDIO_BUCKET = 'studio-objects';
+
 function inferObjectType(file: File) {
   const mime = file.type.toLowerCase();
   const name = file.name.toLowerCase();
@@ -13,6 +15,24 @@ function inferObjectType(file: File) {
   if (mime.startsWith('image/') || /\.(png|jpg|jpeg|webp|gif)$/.test(name)) return 'image';
   if (/\.(txt|md|rtf|pdf|doc|docx)$/.test(name)) return 'text';
   return 'unknown';
+}
+
+function safeFileName(name: string) {
+  return name.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 180) || 'studio-object';
+}
+
+async function ensureStudioBucket(supabase: ReturnType<typeof createServiceSupabaseClient>) {
+  const current = await supabase.storage.getBucket(STUDIO_BUCKET);
+  if (!current.error) return;
+
+  const missing = current.error.message.toLowerCase().includes('not found') || current.error.message.toLowerCase().includes('does not exist');
+  if (!missing) throw current.error;
+
+  const created = await supabase.storage.createBucket(STUDIO_BUCKET, {
+    public: false,
+    fileSizeLimit: 1024 * 1024 * 500,
+  });
+  if (created.error) throw created.error;
 }
 
 export async function POST(request: Request) {
@@ -25,9 +45,12 @@ export async function POST(request: Request) {
     const objectType = String(form?.get('objectType') || inferObjectType(file));
     const title = String(form?.get('title') || file.name.replace(/\.[^.]+$/, '') || file.name);
     const sessionId = typeof form?.get('sessionId') === 'string' ? String(form.get('sessionId')) : null;
-    const storagePath = `studio/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+    const storagePath = `studio/${Date.now()}-${safeFileName(file.name)}`;
     const bytes = await file.arrayBuffer();
-    const upload = await supabase.storage.from('studio-objects').upload(storagePath, bytes, {
+
+    await ensureStudioBucket(supabase);
+
+    const upload = await supabase.storage.from(STUDIO_BUCKET).upload(storagePath, bytes, {
       contentType: file.type || 'application/octet-stream',
       upsert: false,
     });
