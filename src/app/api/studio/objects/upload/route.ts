@@ -6,6 +6,7 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 const STUDIO_BUCKET = 'studio-objects';
+const STUDIO_FILE_SIZE_LIMIT = 1024 * 1024 * 500;
 
 function inferObjectType(file: File) {
   const mime = file.type.toLowerCase();
@@ -23,22 +24,42 @@ function safeFileName(name: string) {
 
 async function ensureStudioBucket(supabase: ReturnType<typeof createServiceSupabaseClient>) {
   const current = await supabase.storage.getBucket(STUDIO_BUCKET);
-  if (!current.error) return;
+  if (current.error) {
+    const missing = current.error.message.toLowerCase().includes('not found') || current.error.message.toLowerCase().includes('does not exist');
+    if (!missing) throw current.error;
 
-  const missing = current.error.message.toLowerCase().includes('not found') || current.error.message.toLowerCase().includes('does not exist');
-  if (!missing) throw current.error;
+    const created = await supabase.storage.createBucket(STUDIO_BUCKET, {
+      public: false,
+      fileSizeLimit: STUDIO_FILE_SIZE_LIMIT,
+    });
+    if (created.error) throw created.error;
+    return;
+  }
 
-  const created = await supabase.storage.createBucket(STUDIO_BUCKET, {
-    public: false,
-    fileSizeLimit: 1024 * 1024 * 500,
-  });
-  if (created.error) throw created.error;
+  const existingLimit = Number(current.data?.file_size_limit ?? 0);
+  if (!Number.isFinite(existingLimit) || existingLimit < STUDIO_FILE_SIZE_LIMIT) {
+    const updated = await supabase.storage.updateBucket(STUDIO_BUCKET, {
+      public: false,
+      fileSizeLimit: STUDIO_FILE_SIZE_LIMIT,
+    });
+    if (updated.error) throw updated.error;
+  }
 }
 
 export async function POST(request: Request) {
   const form = await request.formData().catch(() => null);
   const file = form?.get('file');
   if (!(file instanceof File)) return NextResponse.json({ ok: false, error: 'file_required' }, { status: 400 });
+
+  if (file.size > STUDIO_FILE_SIZE_LIMIT) {
+    return NextResponse.json({
+      ok: false,
+      error: 'studio_upload_file_too_large',
+      details: `File size ${file.size} exceeds Studio limit ${STUDIO_FILE_SIZE_LIMIT}`,
+      maxBytes: STUDIO_FILE_SIZE_LIMIT,
+      receivedBytes: file.size,
+    }, { status: 413 });
+  }
 
   try {
     const supabase = createServiceSupabaseClient();
