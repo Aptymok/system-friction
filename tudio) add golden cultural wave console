@@ -1,0 +1,18 @@
+warning: in the working copy of 'src/app/studio/page.tsx', LF will be replaced by CRLF the next time Git touches it
+[1mdiff --git a/src/app/studio/page.tsx b/src/app/studio/page.tsx[m
+[1mindex ca920a6..02d9e87 100644[m
+[1m--- a/src/app/studio/page.tsx[m
+[1m+++ b/src/app/studio/page.tsx[m
+[36m@@ -1,7 +1,9 @@[m
+[31m-import StudioCulturalInterventionLab from '@/components/studio/StudioCulturalInterventionLab';[m
+[32m+[m[32mimport { StudioGoldConsole } from '@/components/studio/gold/StudioGoldConsole';[m
+[32m+[m[32mimport { readStudioGoldState } from '@/lib/studio/gold/studioGoldAdapter';[m
+ [m
+ export const dynamic = 'force-dynamic';[m
+ [m
+[31m-export default function StudioPage() {[m
+[31m-  return <StudioCulturalInterventionLab />;[m
+[32m+[m[32mexport default async function StudioPage() {[m
+[32m+[m[32m  const state = await readStudioGoldState();[m
+[32m+[m[32m  return <StudioGoldConsole state={state} />;[m
+ }[m
