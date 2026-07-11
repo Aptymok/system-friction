@@ -75,6 +75,20 @@ function MetricCard({ metric }: { metric: MetricValue }) {
   );
 }
 
+function AudioPlayback({ state }: { state: StudioProductionState }) {
+  const canPlay = Boolean(state.activeObject.id && state.activeObject.type === 'music' && state.activeObject.storageStatus === 'OBSERVED');
+  if (!canPlay) {
+    return <p>Playback unavailable: an audio object with verified storage is required.</p>;
+  }
+
+  return (
+    <div className="sfi-production__audio-player">
+      <span>AUDIO PLAYBACK</span>
+      <audio controls preload="metadata" src={`/api/studio/objects/${encodeURIComponent(state.activeObject.id as string)}/audio`} />
+    </div>
+  );
+}
+
 function PhaseList({ phases }: { phases: PhaseState[] }) {
   return (
     <ol className="sfi-production__phase-list">
@@ -262,25 +276,26 @@ function Overview({ state, onOpenIntake }: { state: StudioProductionState; onOpe
 }
 
 function Measure({ state }: { state: StudioProductionState }) {
-  const technicalKeys = ['rms', 'peak', 'clippingRisk', 'spectralCentroid', 'dynamicRange', 'lufs'];
+  const technicalKeys = ['rms_dbfs', 'peak_dbfs', 'clipping_risk', 'spectral_centroid_hz', 'dynamic_range_db', 'crest_factor_db', 'headroom_db'];
   const technicalMetrics = technicalKeys.map((key) => metricByKey(state, key)).filter((metric): metric is MetricValue => Boolean(metric));
   const hasAudioData = state.audioFeatures.waveform.length > 0 || technicalMetrics.some((metric) => metric.status !== 'MISSING');
 
   return (
     <div className="sfi-production__module">
       <Panel title="LIVE SIGNAL">
+        <AudioPlayback state={state} />
         {hasAudioData ? <StudioPixiStage state={state} variant="waveform" label="Live signal waveform" /> : <p>No animar waveform: no hay audio analizable persistido ni buffer Web Audio activo.</p>}
         <div className="sfi-production__metric-grid">
           {technicalMetrics.length ? technicalMetrics.map((metric) => <MetricCard key={metric.key} metric={metric} />) : <MetricCard metric={{ key: 'live_signal_missing', label: 'Live Signal', value: null, unit: null, status: 'MISSING', source: null, evidenceIds: [], confidence: 0, observedAt: null, formulaVersion: null, warnings: ['AUDIO_EVIDENCE_REQUIRED'], explanation: 'No persisted audio features or active browser audio analysis are available.' }} />}
         </div>
       </Panel>
       <Panel title="COMPOSITION">
-        <p>{state.textFeatures.sections === null ? 'Segmentation unavailable. Manual markers require a persistence endpoint before controls are shown.' : `${state.textFeatures.sections} sections observed.`}</p>
+        <p>{state.timeCoordinateFeatures.placeLabel ? `Persisted ${state.timeCoordinateFeatures.placeLabel} marker at ${state.timeCoordinateFeatures.timeRange ?? 'MISSING_TIME_RANGE'}.` : 'Segmentation unavailable. Manual markers require a persistence endpoint before controls are shown.'}</p>
         {state.textFeatures.motifs.map((item) => <p key={item}>{item}</p>)}
       </Panel>
       <Panel title="SOUND DESIGN">
         <div className="sfi-production__metric-grid">
-          {['spectralCentroid', 'spectral_rolloff', 'spectral_flux', 'noise_floor', 'dynamicRange', 'harmonic_stability', 'percussive_load', 'transient_density', 'stereo_width'].map((key) => metricByKey(state, key) ?? {
+          {['spectral_centroid_hz', 'spectral_rolloff_hz', 'spectral_flux', 'noise_floor_dbfs', 'dynamic_range_db', 'harmonic_stability', 'percussive_load', 'transient_density', 'stereo_width'].map((key) => metricByKey(state, key) ?? {
             key,
             label: key.replace(/_/g, ' ').toUpperCase(),
             value: null,
@@ -298,7 +313,7 @@ function Measure({ state }: { state: StudioProductionState }) {
       </Panel>
       <Panel title="MASTERING TECHNICAL">
         <div className="sfi-production__metric-grid">
-          {['lufs', 'true_peak', 'loudness_range', 'crest_factor', 'clippingRisk', 'headroom', 'stereo_width', 'tonal_balance'].map((key) => metricByKey(state, key) ?? {
+          {['lufs_integrated', 'true_peak_dbtp', 'loudness_range_lu', 'crest_factor_db', 'clipping_risk', 'headroom_db', 'stereo_width', 'tonal_balance'].map((key) => metricByKey(state, key) ?? {
             key,
             label: key.replace(/_/g, ' ').toUpperCase(),
             value: null,
@@ -326,10 +341,14 @@ function Structure({ state }: { state: StudioProductionState }) {
         <StatusPill status="MISSING" />
       </Panel>
       <Panel title="ARRANGEMENTS">
-        <p>Blocked until stems, layers, sections or events are persisted.</p>
+        <p>{state.timeCoordinateFeatures.timeRange ? `Observed marker: ${state.timeCoordinateFeatures.placeLabel ?? 'marker'} / ${state.timeCoordinateFeatures.timeRange}` : 'Blocked until stems, layers, sections or events are persisted.'}</p>
       </Panel>
       <Panel title="MIX">
         <p>No faders rendered: real channels are required for mute, solo, meter, masking, panorama, correlation and energy controls.</p>
+      </Panel>
+      <Panel title="WAVEFORM / ENERGY">
+        {state.audioFeatures.waveform.length ? <StudioPixiStage state={state} variant="waveform" label="Persisted waveform peaks" /> : <p>MISSING: waveform peaks require decoded audio evidence.</p>}
+        <p>{state.audioFeatures.energySegments.length ? `${state.audioFeatures.energySegments.length} energy segments persisted.` : 'MISSING: energy segments require decoded audio evidence.'}</p>
       </Panel>
       <Panel title="NEURAL GRAPH">
         <FieldGraphInspector state={state} />
@@ -550,6 +569,9 @@ const productionCss = `
 .sfi-production__metric-card dt { color: var(--cyan); font-size: 9px; }
 .sfi-production__metric-card dd { margin: 0; overflow-wrap: anywhere; }
 .sfi-production__warning { color: var(--orange) !important; }
+.sfi-production__audio-player { border: 1px solid var(--line2); padding: 10px; margin-bottom: 10px; display: grid; gap: 8px; }
+.sfi-production__audio-player span { color: var(--cyan); font-size: 9px; letter-spacing: .12em; }
+.sfi-production__audio-player audio { width: 100%; height: 34px; }
 .sfi-production__field-panel { min-height: 430px; display: grid; grid-template-rows: auto minmax(360px, 1fr); }
 .sfi-production__pixi-stage { position: relative; min-height: 360px; overflow: hidden; background: radial-gradient(circle at 50% 50%, rgba(157,92,255,.16), transparent 48%); }
 .sfi-production__pixi-host, .sfi-production__pixi-host canvas, .sfi-production__pixi-fallback { position: absolute; inset: 0; width: 100%; height: 100%; }
