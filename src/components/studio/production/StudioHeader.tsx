@@ -1,4 +1,5 @@
 import type { StudioProductionState } from '@/lib/studio/production/studioProductionTypes';
+import './studio-console-overrides.css';
 
 export function StudioHeader({ state, stage, onOpenIntake }: { state: StudioProductionState; stage: string; onOpenIntake: () => void }) {
   const time = new Date(state.generatedAt).toISOString().slice(11, 19);
