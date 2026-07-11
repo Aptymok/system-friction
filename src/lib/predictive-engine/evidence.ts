@@ -20,13 +20,18 @@ function featureRows(value: unknown): PredictiveFeatureInput[] {
   })).filter((item) => item.key);
 }
 
+function evidenceTrust(value: unknown): PredictiveEvidenceInput['trust'] {
+  if (value === 'VERIFIED' || value === 'OBSERVED' || value === 'DECLARED' || value === 'INFERRED') return value;
+  return 'UNKNOWN';
+}
+
 function evidenceRows(value: unknown): PredictiveEvidenceInput[] {
   if (!Array.isArray(value)) return [];
-  return value.map((item) => record(item)).map((item) => ({
+  return value.map((item) => record(item)).map((item): PredictiveEvidenceInput => ({
     id: typeof item.id === 'string' ? item.id : undefined,
     key: String(item.key ?? ''),
     source: typeof item.source === 'string' ? item.source : 'unknown',
-    trust: item.trust === 'VERIFIED' || item.trust === 'OBSERVED' || item.trust === 'DECLARED' || item.trust === 'INFERRED' ? item.trust : 'UNKNOWN',
+    trust: evidenceTrust(item.trust),
     value: item.value,
     observedAt: typeof item.observedAt === 'string' ? item.observedAt : null,
   })).filter((item) => item.key);
