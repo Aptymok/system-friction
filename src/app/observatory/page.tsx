@@ -1,16 +1,25 @@
 import type { Metadata } from 'next';
-import { ObservatoryGoldConsole } from '@/components/observatory/gold/ObservatoryGoldConsole';
+import { PublicWorldVectorObservatory } from '@/components/observatory/public/PublicWorldVectorObservatory';
 import { readObservatoryGoldState } from '@/lib/observatory/gold/observatoryGoldAdapter';
 
 export const revalidate = 300;
 
 export const metadata: Metadata = {
-  title: 'Observatory / World Spectrum Vector',
+  title: 'Public Observatory · World Vector · System Friction Institute',
   description:
-    'SFI Observatory: public World Spectrum Vector console for global tensions, daily reading, vector flows, and longitudinal WorldSpect observation.',
+    'Public World Vector, longitudinal WorldSpect observation, current tensions and the Daily Reading by System Friction Institute.',
+  robots: {
+    index: true,
+    follow: true,
+  },
+  openGraph: {
+    title: 'Public Observatory · World Vector',
+    description: 'Longitudinal observation of the world and the Daily Reading by System Friction Institute.',
+    type: 'website',
+  },
 };
 
 export default async function ObservatoryPage() {
   const state = await readObservatoryGoldState();
-  return <ObservatoryGoldConsole state={state} />;
+  return <PublicWorldVectorObservatory state={state} />;
 }
