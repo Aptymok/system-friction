@@ -43,7 +43,7 @@ export type StudioProductionObject = {
 export type StudioFeatureMetric = {
   id: string;
   label: string;
-  value: number | null;
+  value: number | string | null;
   unit: string | null;
   source: string | null;
   status: MetricStatus;

@@ -1,109 +1,80 @@
 import { NextResponse } from 'next/server';
-import { analyzeStudioAudioObject } from '@/lib/studio/audio/analyzeStudioAudioObject';
-import { toStudioAudioApiError } from '@/lib/studio/audio/audioErrors';
+import { AccessDeniedError, requireAuthenticatedUser } from '@/lib/system/access/server';
+import { analyzeStudioObject } from '@/lib/studio/multimodal/analyzeStudioObject';
+import { buildStudioUploadDescriptor } from '@/lib/studio/multimodal/detect';
+import {
+  completeStudioSignedUpload,
+  prepareStudioSignedUpload,
+  STUDIO_OBJECT_BUCKET,
+} from '@/lib/studio/multimodal/storage';
+import { StudioMultimodalError, toStudioMultimodalApiError } from '@/lib/studio/multimodal/types';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
-import { createStudioUploadObject } from '@/lib/studio/production/studioProductionRepository';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+export const maxDuration = 300;
 
-const STUDIO_BUCKET = 'studio-objects';
-const STUDIO_FILE_SIZE_LIMIT = 1024 * 1024 * 500;
-
-function inferObjectType(file: File) {
-  const mime = file.type.toLowerCase();
-  const name = file.name.toLowerCase();
-  if (mime.startsWith('audio/') || /\.(mp3|wav|m4a|flac|ogg|aiff)$/.test(name)) return 'music';
-  if (mime.startsWith('video/') || /\.(mp4|mov|webm|mkv)$/.test(name)) return 'video';
-  if (mime.startsWith('image/') || /\.(png|jpg|jpeg|webp|gif)$/.test(name)) return 'image';
-  if (/\.(txt|md|rtf|pdf|doc|docx)$/.test(name)) return 'text';
-  return 'unknown';
-}
-
-function safeFileName(name: string) {
-  return name.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 180) || 'studio-object';
-}
-
-async function ensureStudioBucket(supabase: ReturnType<typeof createServiceSupabaseClient>) {
-  const current = await supabase.storage.getBucket(STUDIO_BUCKET);
-  if (current.error) {
-    const missing = current.error.message.toLowerCase().includes('not found') || current.error.message.toLowerCase().includes('does not exist');
-    if (!missing) throw current.error;
-
-    const created = await supabase.storage.createBucket(STUDIO_BUCKET, {
-      public: false,
-      fileSizeLimit: STUDIO_FILE_SIZE_LIMIT,
-    });
-    if (created.error) throw created.error;
-    return;
-  }
-
-  const existingLimit = Number(current.data?.file_size_limit ?? 0);
-  if (!Number.isFinite(existingLimit) || existingLimit < STUDIO_FILE_SIZE_LIMIT) {
-    const updated = await supabase.storage.updateBucket(STUDIO_BUCKET, {
-      public: false,
-      fileSizeLimit: STUDIO_FILE_SIZE_LIMIT,
-    });
-    if (updated.error) throw updated.error;
-  }
+function legacyMultipartLimit() {
+  const configured = Number(process.env.STUDIO_LEGACY_MULTIPART_MAX_MB);
+  const megabytes = Number.isFinite(configured) && configured > 0 ? configured : 8;
+  return Math.floor(megabytes * 1024 * 1024);
 }
 
 export async function POST(request: Request) {
-  const form = await request.formData().catch(() => null);
-  const file = form?.get('file');
-  if (!(file instanceof File)) return NextResponse.json({ ok: false, error: 'file_required' }, { status: 400 });
-
-  if (file.size > STUDIO_FILE_SIZE_LIMIT) {
-    return NextResponse.json({
-      ok: false,
-      error: 'studio_upload_file_too_large',
-      details: `File size ${file.size} exceeds Studio limit ${STUDIO_FILE_SIZE_LIMIT}`,
-      maxBytes: STUDIO_FILE_SIZE_LIMIT,
-      receivedBytes: file.size,
-    }, { status: 413 });
-  }
-
   try {
-    const supabase = createServiceSupabaseClient();
-    const objectType = String(form?.get('objectType') || inferObjectType(file));
-    const title = String(form?.get('title') || file.name.replace(/\.[^.]+$/, '') || file.name);
-    const sessionId = typeof form?.get('sessionId') === 'string' ? String(form.get('sessionId')) : null;
-    const storagePath = `studio/${Date.now()}-${safeFileName(file.name)}`;
-    const bytes = await file.arrayBuffer();
+    const { user } = await requireAuthenticatedUser();
+    const form = await request.formData().catch(() => null);
+    const file = form?.get('file');
+    if (!(file instanceof File)) return NextResponse.json({ ok: false, error: 'FILE_REQUIRED' }, { status: 400 });
 
-    await ensureStudioBucket(supabase);
-
-    const upload = await supabase.storage.from(STUDIO_BUCKET).upload(storagePath, bytes, {
-      contentType: file.type || 'application/octet-stream',
-      upsert: false,
-    });
-    if (upload.error) throw upload.error;
-
-    const result = await createStudioUploadObject({
-      sessionId,
-      title,
-      objectType,
-      mimeType: file.type || null,
-      sizeBytes: file.size,
-      storagePath,
-    });
-    if (!result.ok) return NextResponse.json(result, { status: result.status });
-
-    const objectId = String(result.data.id ?? '');
-    let analysis: unknown = { ok: false, status: 'not_started', reason: 'non_audio_object' };
-    if (objectType === 'music' && objectId) {
-      analysis = await analyzeStudioAudioObject(objectId, {}).catch((error) => ({
-        ...toStudioAudioApiError(error),
-        status: 'blocked',
-      }));
+    const limit = legacyMultipartLimit();
+    if (file.size > limit) {
+      return NextResponse.json({
+        ok: false,
+        error: 'SIGNED_DIRECT_UPLOAD_REQUIRED',
+        details: 'This file must use the signed direct upload flow.',
+        maxLegacyMultipartBytes: limit,
+        receivedBytes: file.size,
+      }, { status: 413 });
     }
 
-    return NextResponse.json({ ...result, analysis }, { status: 201 });
-  } catch (error) {
+    const descriptor = buildStudioUploadDescriptor({
+      fileName: file.name,
+      mimeType: file.type,
+      sizeBytes: file.size,
+      title: form?.get('title'),
+      requestedObjectType: form?.get('objectType'),
+    });
+    const prepared = await prepareStudioSignedUpload({
+      descriptor,
+      ownerId: user.id,
+      sessionId: typeof form?.get('sessionId') === 'string' ? String(form.get('sessionId')) : null,
+    });
+
+    const bytes = Buffer.from(await file.arrayBuffer());
+    const supabase = createServiceSupabaseClient();
+    const stored = await supabase.storage.from(STUDIO_OBJECT_BUCKET).upload(prepared.storagePath, bytes, {
+      contentType: descriptor.mimeType ?? 'application/octet-stream',
+      upsert: false,
+    });
+    if (stored.error) throw new StudioMultimodalError('PERSISTENCE_FAILED', stored.error.message, 503, { objectId: prepared.objectId });
+
+    await completeStudioSignedUpload(prepared.objectId, user.id);
+    const analysis = await analyzeStudioObject(prepared.objectId, { requestedByUserId: user.id })
+      .catch((error) => toStudioMultimodalApiError(error));
+
     return NextResponse.json({
-      ok: false,
-      error: 'studio_upload_unavailable',
-      details: error instanceof Error ? error.message : String(error),
-    }, { status: 503 });
+      ok: true,
+      data: { id: prepared.objectId, session_id: prepared.sessionId, object_type: descriptor.objectType },
+      upload: { storagePath: prepared.storagePath, mode: 'server_compatibility' },
+      analysis,
+    }, { status: 201 });
+  } catch (error) {
+    if (error instanceof AccessDeniedError) {
+      return NextResponse.json({ ok: false, error: error.code, details: error.message }, { status: error.status });
+    }
+    const body = toStudioMultimodalApiError(error);
+    const status = error instanceof StudioMultimodalError ? error.status : 500;
+    return NextResponse.json(body, { status });
   }
 }

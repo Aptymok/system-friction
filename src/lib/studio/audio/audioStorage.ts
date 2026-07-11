@@ -11,7 +11,7 @@ import {
   type StudioStoredAudio,
 } from './audioTypes';
 
-const DEFAULT_MAX_FILE_BYTES = 75 * 1024 * 1024;
+const DEFAULT_MAX_FILE_BYTES = 150 * 1024 * 1024;
 
 function maxFileBytes(options: StudioAudioAnalysisOptions) {
   const fromEnv = Number(process.env.STUDIO_AUDIO_MAX_FILE_MB);

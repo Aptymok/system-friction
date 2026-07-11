@@ -1,7 +1,7 @@
 import type { MetricStatus } from '@/lib/studio/production/studioProductionTypes';
 
-export const STUDIO_AUDIO_ENGINE_NAME = 'studio_audio_node_wav_engine';
-export const STUDIO_AUDIO_ENGINE_VERSION = '2026-07-11.1';
+export const STUDIO_AUDIO_ENGINE_NAME = 'studio_audio_ffmpeg_pcm_feature_engine';
+export const STUDIO_AUDIO_ENGINE_VERSION = '2026-07-11.2';
 export const STUDIO_AUDIO_BUCKET = 'studio-objects';
 export const STUDIO_AUDIO_DBFS_FLOOR = -120;
 

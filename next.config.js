@@ -4,6 +4,20 @@ const nextConfig = {
   experimental: {
     proxyClientMaxBodySize: '50mb',
   },
+  serverExternalPackages: [
+    'ffmpeg-static',
+    'ffprobe-static',
+    'sharp',
+    'mammoth',
+    'pdf-parse',
+    'music-metadata',
+  ],
+  outputFileTracingIncludes: {
+    '/api/studio/objects/[id]/analyze': [
+      './node_modules/ffmpeg-static/**/*',
+      './node_modules/ffprobe-static/**/*',
+    ],
+  },
   outputFileTracingExcludes: {
     '*': [
       'services/python/**',
