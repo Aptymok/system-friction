@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import MiniMophField from '@/components/field/MiniMophField';
 
-export const dynamic = 'force-static';
+export const dynamic = 'force-dynamic';
 
 const stages = [
   ['Signal intake', 'Sistema atorado'],
@@ -22,14 +22,13 @@ export default function FieldPage() {
                 Mini MOP-H para convertir friccion declarada en una perturbacion minima.
               </h1>
               <p className="mt-3 max-w-3xl text-sm leading-6 text-[#9f9788]">
-                Field captura senal publica o declarada. Participant y Operator conservan sus workbooks; User Twin y persistencia siguen ligados a cuenta.
+                FIELD es una superficie autenticada. Los casos, evidencias y retornos pertenecen al usuario y permanecen privados por defecto.
               </p>
             </div>
             <nav className="flex flex-wrap gap-2 font-mono text-[10px] uppercase tracking-[0.14em]">
               <Link href="/" className="border border-[#2f2a1e] px-3 py-2 text-[#d8d2c2]">SFI</Link>
               <Link href="/world-vector" className="border border-[#2f2a1e] px-3 py-2 text-[#d8d2c2]">World Vector</Link>
               <Link href="/repository" className="border border-[#2f2a1e] px-3 py-2 text-[#d8d2c2]">Repository</Link>
-              <Link href="/login?next=%2Ffield" className="border border-[#c8a95166] px-3 py-2 text-[#c8a951]">Iniciar sesion</Link>
             </nav>
           </div>
         </header>
@@ -72,9 +71,6 @@ export default function FieldPage() {
               <Link href="/operator/field" className="border border-[#c8a95166] px-4 py-2 font-mono text-[10px] uppercase tracking-[0.16em] text-[#c8a951]">
                 Operator Field
               </Link>
-              <Link href="/root/predictions/new" className="border border-[#2f2a1e] px-4 py-2 font-mono text-[10px] uppercase tracking-[0.16em] text-[#d8d2c2]">
-                ROOT Prediction
-              </Link>
               <Link href="/library/SFI-WB-001_Operator_Workbook.html" className="border border-[#2f2a1e] px-4 py-2 font-mono text-[10px] uppercase tracking-[0.16em] text-[#d8d2c2]">
                 WB-001
               </Link>
@@ -89,11 +85,11 @@ export default function FieldPage() {
           </article>
           <article className="border border-[#2f2a1e] bg-[#0b0b09] p-5">
             <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[#c8a951]">User Twin</div>
-            <p className="mt-3 text-sm leading-6 text-[#9f9788]">Con cuenta, el historial puede conectar lecturas, perturbaciones y retornos. Sin cuenta, la lectura queda como preview local.</p>
+            <p className="mt-3 text-sm leading-6 text-[#9f9788]">El historial conecta lecturas, perturbaciones y retornos únicamente dentro de la cuenta propietaria.</p>
           </article>
           <article className="border border-[#2f2a1e] bg-[#0b0b09] p-5">
             <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[#c8a951]">Operational position</div>
-            <p className="mt-3 text-sm leading-6 text-[#9f9788]">Library formalizes the method. World Vector contextualizes the world. Field captures signal. ROOT decides what becomes evidence, archive, Atlas candidate or public output.</p>
+            <p className="mt-3 text-sm leading-6 text-[#9f9788]">Library formalizes the method. World Vector contextualizes the world. FIELD captures evidence. ROOT governs without exposing administrative actions to FIELD users.</p>
           </article>
         </section>
       </div>
