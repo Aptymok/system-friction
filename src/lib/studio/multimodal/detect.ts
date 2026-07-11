@@ -1,4 +1,5 @@
 import { StudioMultimodalError, type StudioDatabaseObjectType, type StudioModality, type StudioUploadDescriptor } from './types';
+export type { StudioUploadDescriptor } from './types';
 
 const AUDIO_EXTENSIONS = new Set(['wav', 'wave', 'mp3', 'm4a', 'aac', 'flac', 'ogg', 'oga', 'opus', 'aiff', 'aif']);
 const VIDEO_EXTENSIONS = new Set(['mp4', 'mov', 'webm', 'mkv', 'm4v']);
