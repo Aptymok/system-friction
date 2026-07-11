@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { analyzeStudioAudioObject } from '@/lib/studio/audio/analyzeStudioAudioObject';
+import { loadStudioAudioBytes } from '@/lib/studio/audio/audioStorage';
 import { isStudioAudioError, toStudioAudioApiError } from '@/lib/studio/audio/audioErrors';
 import { createServerSupabaseClient } from '@/runtime/supabase/server';
 
@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 
 type RouteContext = { params: Promise<{ id: string }> | { id: string } };
 
-export async function POST(request: Request, ctx: RouteContext) {
+export async function GET(_request: Request, ctx: RouteContext) {
   const params = await Promise.resolve(ctx.params);
   const objectId = decodeURIComponent(params.id);
 
@@ -23,13 +23,18 @@ export async function POST(request: Request, ctx: RouteContext) {
       }, { status: 401 });
     }
 
-    const body = await request.json().catch(() => ({})) as { force?: unknown };
-    const result = await analyzeStudioAudioObject(objectId, {
-      force: body.force === true,
-      requestedByUserId: user.id,
+    const stored = await loadStudioAudioBytes(objectId, {});
+    const body = new ArrayBuffer(stored.bytes.byteLength);
+    new Uint8Array(body).set(stored.bytes);
+    return new NextResponse(body, {
+      status: 200,
+      headers: {
+        'Content-Type': stored.upload.mime_type ?? stored.object.mime_type ?? 'audio/wav',
+        'Content-Length': String(stored.byteLength),
+        'Cache-Control': 'private, no-store',
+        'X-Studio-Audio-Checksum': stored.checksumSha256,
+      },
     });
-
-    return NextResponse.json(result, { status: result.reused ? 200 : 202 });
   } catch (error) {
     const body = toStudioAudioApiError(error);
     const status = isStudioAudioError(error) ? error.status : 500;
