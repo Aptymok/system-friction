@@ -1,7 +1,7 @@
 import 'server-only';
 
+import { inflateSync } from 'node:zlib';
 import mammoth from 'mammoth';
-import { PDFParse } from 'pdf-parse';
 import type { StudioGenericFeature } from './types';
 import { StudioMultimodalError } from './types';
 
@@ -27,6 +27,114 @@ function stripRtf(input: string) {
     .replace(/\\'[0-9a-fA-F]{2}/g, ' ')
     .replace(/\\[a-zA-Z]+-?\d* ?/g, ' ')
     .replace(/[{}]/g, ' ');
+}
+
+function decodePdfLiteral(input: string) {
+  return input
+    .replace(/\\([0-7]{1,3})/g, (_match, octal: string) => String.fromCharCode(Number.parseInt(octal, 8)))
+    .replace(/\\n/g, '\n')
+    .replace(/\\r/g, '\r')
+    .replace(/\\t/g, '\t')
+    .replace(/\\b/g, '\b')
+    .replace(/\\f/g, '\f')
+    .replace(/\\\(/g, '(')
+    .replace(/\\\)/g, ')')
+    .replace(/\\\\/g, '\\');
+}
+
+function decodePdfHex(input: string) {
+  const normalized = input.replace(/\s+/g, '');
+  if (!normalized || !/^[0-9a-fA-F]+$/.test(normalized)) return '';
+  const padded = normalized.length % 2 === 0 ? normalized : `${normalized}0`;
+  const bytes = Buffer.from(padded, 'hex');
+  const utf16 = bytes.length >= 2 && ((bytes[0] === 0xfe && bytes[1] === 0xff) || (bytes[0] === 0xff && bytes[1] === 0xfe));
+  if (utf16) {
+    const body = bytes.subarray(2);
+    if (bytes[0] === 0xff) body.swap16();
+    return body.toString('utf16le');
+  }
+  return bytes.toString('latin1');
+}
+
+function extractTextOperators(content: string) {
+  const parts: string[] = [];
+  const literal = /\(((?:\\.|[^\\()])*)\)\s*Tj/g;
+  const hex = /<([0-9a-fA-F\s]+)>\s*Tj/g;
+  const arrays = /\[((?:[^\]]|\](?!\s*TJ))*)\]\s*TJ/gs;
+
+  for (const match of content.matchAll(literal)) parts.push(decodePdfLiteral(match[1] ?? ''));
+  for (const match of content.matchAll(hex)) parts.push(decodePdfHex(match[1] ?? ''));
+  for (const match of content.matchAll(arrays)) {
+    const body = match[1] ?? '';
+    for (const item of body.matchAll(/\(((?:\\.|[^\\()])*)\)|<([0-9a-fA-F\s]+)>/g)) {
+      parts.push(item[1] !== undefined ? decodePdfLiteral(item[1]) : decodePdfHex(item[2] ?? ''));
+    }
+    parts.push('\n');
+  }
+
+  return parts.join(' ');
+}
+
+function extractPdfTextFallback(bytes: Buffer): TextExtraction {
+  const binary = bytes.toString('latin1');
+  if (!binary.startsWith('%PDF-')) {
+    throw new StudioMultimodalError('DOCUMENT_PARSE_FAILED', 'The uploaded file does not contain a valid PDF header.', 422);
+  }
+
+  const contents: string[] = [binary];
+  const streamPattern = /<<(.*?)>>\s*stream\r?\n([\s\S]*?)\r?\nendstream/gs;
+  for (const match of binary.matchAll(streamPattern)) {
+    const dictionary = match[1] ?? '';
+    const raw = Buffer.from(match[2] ?? '', 'latin1');
+    if (/\/FlateDecode\b/.test(dictionary)) {
+      try {
+        contents.push(inflateSync(raw).toString('latin1'));
+      } catch {
+        // A malformed or unsupported stream is skipped; other streams may still contain usable text.
+      }
+    } else if (!/\/Filter\b/.test(dictionary)) {
+      contents.push(raw.toString('latin1'));
+    }
+  }
+
+  const text = contents.map(extractTextOperators).filter(Boolean).join('\n');
+  const pageCount = Math.max(0, (binary.match(/\/Type\s*\/Page\b/g) ?? []).length) || null;
+  if (!text.trim()) {
+    throw new StudioMultimodalError(
+      'DOCUMENT_PARSE_FAILED',
+      'PDF contains no text extractable by the server-safe parser. It may be scanned, encrypted, or use unsupported font encodings.',
+      422,
+      { parser: 'pdf_node_stream_text_v1' },
+    );
+  }
+
+  return {
+    text,
+    parser: 'pdf_node_stream_text_v1',
+    warnings: ['PDF_LAYOUT_NOT_PRESERVED', 'PDF_COMPLEX_FONT_ENCODINGS_MAY_BE_INCOMPLETE'],
+    pageCount,
+  };
+}
+
+async function extractPdfText(bytes: Buffer): Promise<TextExtraction> {
+  if (typeof globalThis.DOMMatrix !== 'undefined') {
+    try {
+      const { PDFParse } = await import('pdf-parse');
+      const parser = new PDFParse({ data: bytes });
+      try {
+        const result = await parser.getText();
+        return { text: result.text, parser: 'pdf-parse_v2', warnings: [], pageCount: result.total };
+      } finally {
+        await parser.destroy().catch(() => undefined);
+      }
+    } catch {
+      const fallback = extractPdfTextFallback(bytes);
+      return { ...fallback, warnings: ['PDF_PARSE_LIBRARY_FAILED_USING_NODE_FALLBACK', ...fallback.warnings] };
+    }
+  }
+
+  const fallback = extractPdfTextFallback(bytes);
+  return { ...fallback, warnings: ['PDF_DOMMATRIX_UNAVAILABLE_USING_NODE_FALLBACK', ...fallback.warnings] };
 }
 
 async function extractText(bytes: Buffer, extension: string): Promise<TextExtraction> {
@@ -55,17 +163,7 @@ async function extractText(bytes: Buffer, extension: string): Promise<TextExtrac
   }
 
   if (extension === 'pdf') {
-    const parser = new PDFParse({ data: bytes });
-    try {
-      const result = await parser.getText();
-      return { text: result.text, parser: 'pdf-parse_v2', warnings: [], pageCount: result.total };
-    } catch (error) {
-      throw new StudioMultimodalError('DOCUMENT_PARSE_FAILED', 'PDF text extraction failed.', 422, {
-        cause: error instanceof Error ? error.message : String(error),
-      });
-    } finally {
-      await parser.destroy().catch(() => undefined);
-    }
+    return extractPdfText(bytes);
   }
 
   throw new StudioMultimodalError('UNSUPPORTED_FILE_TYPE', 'No document parser is connected for this extension.', 415, { extension });
