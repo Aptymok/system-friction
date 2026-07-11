@@ -1,0 +1,32 @@
+name: Predictive Engine Typecheck Diagnostic
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  diagnostic:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Capture TypeScript diagnostics
+        shell: bash
+        run: |
+          set +e
+          npx tsc --noEmit --pretty false > predictive-engine-type-errors.txt 2>&1
+          status=$?
+          echo "TYPECHECK_EXIT=$status" >> predictive-engine-type-errors.txt
+          exit 0
+      - uses: actions/upload-artifact@v4
+        with:
+          name: predictive-engine-type-errors
+          path: predictive-engine-type-errors.txt
+          if-no-files-found: error
