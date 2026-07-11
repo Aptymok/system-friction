@@ -16,12 +16,12 @@ jobs:
         with:
           node-version: 20
           cache: npm
-      - run: npm ci
+      - run: npm install --no-audit --no-fund
       - name: Capture TypeScript diagnostics
         shell: bash
         run: |
           set +e
-          npx tsc --noEmit --pretty false > predictive-engine-type-errors.txt 2>&1
+          npm run typecheck -- --pretty false > predictive-engine-type-errors.txt 2>&1
           status=$?
           echo "TYPECHECK_EXIT=$status" >> predictive-engine-type-errors.txt
           exit 0
