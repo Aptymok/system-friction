@@ -374,8 +374,9 @@ function energyValues(value: unknown): number[] {
   }).filter((item): item is number => item !== null);
 }
 
-function metricNumber(metrics: StudioFeatureMetric[], key: string) {
-  return metrics.find((item) => item.id === key)?.value ?? null;
+function metricNumber(metrics: StudioFeatureMetric[], key: string): number | null {
+  const value = metrics.find((item) => item.id === key)?.value ?? null;
+  return typeof value === 'number' ? value : null;
 }
 
 function statusFromUpload(row: Row | null): MetricStatus {
