@@ -7,7 +7,7 @@ export function StudioHeader({ state }: { state: StudioProductionState }) {
     <header className="sfi-production__header">
       <div>
         <span>SYSTEM FRICTION INSTITUTE</span>
-        <strong>STUDIO / PRODUCTION ENVIRONMENT</strong>
+        <strong>STUDIO / OBJECT EVALUATION LAB</strong>
       </div>
       <div className="sfi-production__header-object">
         <span>ACTIVE OBJECT</span>
@@ -18,9 +18,6 @@ export function StudioHeader({ state }: { state: StudioProductionState }) {
         <strong>{state.systemState.toUpperCase()}</strong>
         <em>{time} UTC</em>
       </div>
-      <style jsx global>{`
-        .sfi-overview__blocked { display: none !important; }
-      `}</style>
     </header>
   );
 }

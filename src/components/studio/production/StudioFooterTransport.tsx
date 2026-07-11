@@ -2,21 +2,20 @@ import type { StudioProductionState } from '@/lib/studio/production/studioProduc
 
 export function StudioFooterTransport({ state }: { state: StudioProductionState }) {
   const hasObject = Boolean(state.activeObject.id);
-  const analyzeHref = hasObject ? `/api/studio/objects/${state.activeObject.id}` : '/api/studio/production/state';
 
   return (
     <section className="sfi-production__transport">
       <div>
         <span>TRANSPORT</span>
-        <strong>PLAY · PAUSE · STOP · +10S · {hasObject ? 'TIMELINE READY' : 'NO TIMELINE'}</strong>
+        <strong>{hasObject && state.audioFeatures.waveform.length ? 'AUDIO BUFFER OBSERVED' : 'NO PLAYBACK BUFFER'}</strong>
       </div>
       <div>
-        <span>AUDIO CONTROLS</span>
-        <strong>{hasObject ? 'CURSOR AVAILABLE AFTER ANALYSIS' : 'WAITING_OBJECT'}</strong>
+        <span>PHASE EVENTS</span>
+        <strong>{state.phaseStates.filter((item) => item.status === 'FAILED' || item.status === 'MISSING').length} BLOCKED / MISSING</strong>
       </div>
       <div>
         <span>ANALYSIS JOB</span>
-        <a href={analyzeHref}>{state.activeObject.status.toUpperCase()}</a>
+        <strong>{state.activeObject.analysisStatus}</strong>
       </div>
     </section>
   );

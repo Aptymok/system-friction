@@ -1,8 +1,10 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { useRef, useState } from 'react';
 
 export function StudioObjectIntake({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const router = useRouter();
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [status, setStatus] = useState<'idle' | 'uploading' | 'complete' | 'blocked'>('idle');
   const [message, setMessage] = useState('Carga un objeto real: audio, video, imagen, texto, comunidad o coordenada temporal.');
@@ -23,7 +25,9 @@ export function StudioObjectIntake({ open, onClose }: { open: boolean; onClose: 
       return;
     }
     setStatus('complete');
-    setMessage('Objeto registrado. Recarga Studio para leer el estado persistido.');
+    setMessage(`Objeto registrado: ${body?.data?.id ?? 'studio_object_created'}`);
+    router.refresh();
+    window.setTimeout(onClose, 450);
   }
 
   return (
@@ -37,7 +41,7 @@ export function StudioObjectIntake({ open, onClose }: { open: boolean; onClose: 
           const file = event.currentTarget.files?.[0];
           if (file) void upload(file);
         }} />
-        <button type="button" onClick={() => inputRef.current?.click()}>
+        <button type="button" onClick={() => inputRef.current?.click()} disabled={status === 'uploading'}>
           SELECCIONAR OBJETO
         </button>
         <em>{status.toUpperCase()}</em>
