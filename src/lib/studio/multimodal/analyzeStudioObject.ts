@@ -1,9 +1,7 @@
 import 'server-only';
 
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
-import { analyzeStudioAudioObject } from '@/lib/studio/audio/analyzeStudioAudioObject';
 import { buildStudioUploadDescriptor } from './detect';
-import { analyzeStudioImage } from './imageAnalyzer';
 import {
   createMultimodalJob,
   findCompletedMultimodalJob,
@@ -14,15 +12,29 @@ import {
   updateMultimodalJob,
 } from './persistence';
 import { loadStudioObjectBytes } from './storage';
-import { analyzeStructuredStudioObject } from './structuredAnalyzer';
-import { analyzeStudioText } from './textAnalyzer';
-import { StudioMultimodalError, type StudioModality, type StudioMultimodalAnalysisResult } from './types';
-import { analyzeStudioVideo } from './videoAnalyzer';
+import {
+  StudioMultimodalError,
+  type StudioGenericFeature,
+  type StudioModality,
+  type StudioMultimodalAnalysisResult,
+} from './types';
 
 export const STUDIO_MULTIMODAL_ENGINE = 'studio_multimodal_engine';
-export const STUDIO_MULTIMODAL_ENGINE_VERSION = '2026-07-11.1';
+export const STUDIO_MULTIMODAL_ENGINE_VERSION = '2026-07-11.2';
 
 type Row = Record<string, unknown>;
+type SpecializedTable =
+  | 'studio_text_features'
+  | 'studio_image_features'
+  | 'studio_video_features'
+  | 'studio_community_features'
+  | 'studio_time_coordinates';
+
+type AnalyzerResult = {
+  features: StudioGenericFeature[];
+  row: Record<string, unknown>;
+  warnings: string[];
+};
 
 function record(value: unknown): Row {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Row : {};
@@ -68,6 +80,7 @@ export async function analyzeStudioObject(
 ): Promise<StudioMultimodalAnalysisResult | Record<string, unknown>> {
   const descriptorState = await readObjectDescriptor(objectId);
   if (descriptorState.descriptor.modality === 'audio') {
+    const { analyzeStudioAudioObject } = await import('@/lib/studio/audio/analyzeStudioAudioObject');
     return analyzeStudioAudioObject(objectId, options);
   }
 
@@ -115,25 +128,26 @@ export async function analyzeStudioObject(
     }, supabase);
     await updateMultimodalJob(jobId, 'running', null, { ...basePayload, startedAt: new Date().toISOString() }, supabase);
 
-    let analysis:
-      | Awaited<ReturnType<typeof analyzeStudioText>>
-      | Awaited<ReturnType<typeof analyzeStudioImage>>
-      | Awaited<ReturnType<typeof analyzeStudioVideo>>
-      | ReturnType<typeof analyzeStructuredStudioObject>;
-    let table: 'studio_text_features' | 'studio_image_features' | 'studio_video_features' | 'studio_community_features' | 'studio_time_coordinates';
+    let analysis: AnalyzerResult;
+    let table: SpecializedTable;
 
     if (modality === 'text') {
+      const { analyzeStudioText } = await import('./textAnalyzer');
       analysis = await analyzeStudioText(stored.bytes, descriptorState.descriptor.extension);
       table = 'studio_text_features';
     } else if (modality === 'image') {
+      const { analyzeStudioImage } = await import('./imageAnalyzer');
       analysis = await analyzeStudioImage(stored.bytes);
       table = 'studio_image_features';
     } else if (modality === 'video') {
+      const { analyzeStudioVideo } = await import('./videoAnalyzer');
       analysis = await analyzeStudioVideo(stored.bytes, descriptorState.descriptor.extension);
       table = 'studio_video_features';
     } else if (modality === 'community' || modality === 'time_coordinate') {
-      analysis = analyzeStructuredStudioObject(stored.bytes, descriptorState.descriptor.extension, modality);
-      table = analysis.table;
+      const { analyzeStructuredStudioObject } = await import('./structuredAnalyzer');
+      const structuredAnalysis = analyzeStructuredStudioObject(stored.bytes, descriptorState.descriptor.extension, modality);
+      analysis = structuredAnalysis;
+      table = structuredAnalysis.table;
     } else {
       throw new StudioMultimodalError('UNSUPPORTED_FILE_TYPE', 'No analyzer is registered for this modality.', 415, { modality });
     }
