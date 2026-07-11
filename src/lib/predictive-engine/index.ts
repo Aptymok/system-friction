@@ -7,6 +7,7 @@ export {
   runPrediction,
 } from './service';
 
+export { fulfillPredictiveEvidence } from './evidence';
 export { predictStudioFieldResponse, studioProjectionFeatures } from './adapters/studio';
 
 export type {
