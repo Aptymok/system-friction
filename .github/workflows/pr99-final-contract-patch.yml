@@ -1,0 +1,229 @@
+name: PR99 Final Contract Patch
+
+on:
+  push:
+    branches:
+      - codex/studio-multimodal-ingestion
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: codex/studio-multimodal-ingestion
+      - name: Apply exact contract patches
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace(path, old, new):
+              p = Path(path)
+              text = p.read_text(encoding='utf-8')
+              if old not in text:
+                  raise SystemExit(f'Expected block not found in {path}: {old[:100]!r}')
+              p.write_text(text.replace(old, new), encoding='utf-8')
+
+          replace(
+              'src/lib/studio/production/studioProductionTypes.ts',
+              '  value: number | null;\n',
+              '  value: number | string | null;\n',
+          )
+
+          replace(
+              'src/lib/studio/production/studioProductionAdapter.ts',
+              'async function queryLatestSessionAndObject(): Promise<StudioStoredState> {',
+              'async function queryLatestSessionAndObject(ownerId?: string | null, includeLegacy = false): Promise<StudioStoredState> {',
+          )
+          replace(
+              'src/lib/studio/production/studioProductionAdapter.ts',
+              """    const { data: session, error: sessionError } = await supabase
+              .from('studio_sessions')
+              .select('*')
+              .order('updated_at', { ascending: false })
+              .limit(1)
+              .maybeSingle();""",
+              """    let sessionQuery = supabase
+              .from('studio_sessions')
+              .select('*');
+
+            if (ownerId) {
+              sessionQuery = includeLegacy
+                ? sessionQuery.or(`owner_id.eq.${ownerId},owner_id.is.null`)
+                : sessionQuery.eq('owner_id', ownerId);
+            }
+
+            const { data: session, error: sessionError } = await sessionQuery
+              .order('updated_at', { ascending: false })
+              .limit(1)
+              .maybeSingle();""",
+          )
+          replace(
+              'src/lib/studio/production/studioProductionAdapter.ts',
+              """    const numeric = asNumber(row.numeric_value);
+                const payload = asRecord(row.payload);
+                const key = asString(row.feature_key, asString(row.id, 'feature')) ?? 'feature';
+                return {
+                  id: key,
+                  label: asString(row.label, key).toUpperCase(),
+                  value: numeric,
+                  unit: asString(row.unit),
+                  source: asString(row.source, 'studio_object_features'),
+                  status: (asString(payload.status) as MetricStatus) || (numeric === null ? 'MISSING' as const : 'OBSERVED' as const),
+                  confidence: clampConfidence(row.confidence ?? (numeric === null ? 0 : 1)),""",
+              """    const numeric = asNumber(row.numeric_value);
+                const text = asString(row.text_value) || null;
+                const value = numeric ?? text;
+                const payload = asRecord(row.payload);
+                const key = asString(row.feature_key, asString(row.id, 'feature')) ?? 'feature';
+                return {
+                  id: key,
+                  label: asString(row.label, key).toUpperCase(),
+                  value,
+                  unit: asString(row.unit),
+                  source: asString(row.source, 'studio_object_features'),
+                  status: (asString(payload.status) as MetricStatus) || (value === null ? 'MISSING' as const : 'OBSERVED' as const),
+                  confidence: clampConfidence(row.confidence ?? (value === null ? 0 : 1)),""",
+          )
+          replace(
+              'src/lib/studio/production/studioProductionAdapter.ts',
+              """function metricNumber(metrics: StudioFeatureMetric[], key: string) {
+              return metrics.find((item) => item.id === key)?.value ?? null;
+            }""",
+              """function metricNumber(metrics: StudioFeatureMetric[], key: string) {
+              const value = metrics.find((item) => item.id === key)?.value ?? null;
+              return typeof value === 'number' ? value : null;
+            }""",
+          )
+          replace(
+              'src/lib/studio/production/studioProductionAdapter.ts',
+              "explanation: 'Count of persisted feature rows with numeric values over total persisted feature rows.',",
+              "explanation: 'Count of persisted feature rows with numeric or textual values over total persisted feature rows.',",
+          )
+          replace(
+              'src/lib/studio/production/studioProductionAdapter.ts',
+              'export async function readStudioProductionState(): Promise<StudioProductionState> {',
+              'export async function readStudioProductionState(options: { ownerId?: string | null; includeLegacy?: boolean } = {}): Promise<StudioProductionState> {',
+          )
+          replace(
+              'src/lib/studio/production/studioProductionAdapter.ts',
+              '      queryLatestSessionAndObject(),',
+              '      queryLatestSessionAndObject(options.ownerId, options.includeLegacy ?? false),',
+          )
+          replace(
+              'src/lib/studio/production/studioProductionAdapter.ts',
+              '      weight: metric.value,',
+              "      weight: typeof metric.value === 'number' ? metric.value : null,",
+          )
+          replace(
+              'src/lib/studio/production/studioProductionAdapter.ts',
+              "...metrics.filter((metric) => metric.value !== null).map((metric) => ({ id: metric.id, label: metric.label, layer: 'feature', value: metric.value })),",
+              "...metrics.filter((metric) => typeof metric.value === 'number').map((metric) => ({ id: metric.id, label: metric.label, layer: 'feature', value: metric.value as number })),",
+          )
+
+          Path('src/app/studio/page.tsx').write_text("""import { StudioProductionConsole } from '@/components/studio/production/StudioProductionConsole';
+          import { readStudioProductionState } from '@/lib/studio/production/studioProductionAdapter';
+          import { requireAuthenticatedUser, requireFounder } from '@/lib/system/access/server';
+
+          export const dynamic = 'force-dynamic';
+
+          export default async function StudioPage() {
+            const { user } = await requireAuthenticatedUser();
+            let includeLegacy = false;
+            try {
+              await requireFounder();
+              includeLegacy = true;
+            } catch {
+              includeLegacy = false;
+            }
+            const state = await readStudioProductionState({ ownerId: user.id, includeLegacy });
+            return <StudioProductionConsole state={state} />;
+          }
+          """.replace(/^          /gm, ''), encoding='utf-8')
+
+          replace(
+              'src/components/studio/production/StudioProductionShell.tsx',
+              '<dd>{Number(metric.confidence.toFixed(3))}</dd>',
+              "<dd>{metric.status === 'MISSING' || metric.source === null ? 'UNKNOWN' : Number(metric.confidence.toFixed(3))}</dd>",
+          )
+          replace(
+              'src/components/studio/production/StudioProductionShell.tsx',
+              '<dt>Confidence</dt><dd>{Number(selected.confidence.toFixed(3))}</dd>',
+              "<dt>Confidence</dt><dd>{selected.status === 'MISSING' || selected.source === null ? 'UNKNOWN' : Number(selected.confidence.toFixed(3))}</dd>",
+          )
+          replace(
+              'src/components/studio/production/StudioProductionShell.tsx',
+              """      </dl>
+                </Panel>
+              );
+            }
+
+            function ExecutiveReading""",
+              """      </dl>
+                  {state.activeObject.id ? (
+                    <a href={`/api/studio/objects/${encodeURIComponent(state.activeObject.id)}/content`} target="_blank" rel="noreferrer">
+                      OPEN PRIVATE OBJECT
+                    </a>
+                  ) : null}
+                </Panel>
+              );
+            }
+
+            function ExecutiveReading""",
+          )
+
+          replace(
+              'src/components/studio/production/StudioEvaluationStrip.tsx',
+              "<em>{item ? `${item.status} / ${item.source ?? 'NO_SOURCE'} / ${Number(item.confidence.toFixed(2))}` : 'MISSING'}</em>",
+              "<em>{item ? `${item.status} / ${item.source ?? 'NO_SOURCE'} / ${item.status === 'MISSING' || item.source === null ? 'UNKNOWN' : Number(item.confidence.toFixed(2))}` : 'MISSING'}</em>",
+          )
+
+          replace(
+              'src/lib/studio/multimodal/textAnalyzer.ts',
+              '      themes,\n      motifs,',
+              "      themes: themes.map((item) => `${item.term}:${item.count}`),\n      motifs: motifs.map((item) => `${item.phrase}:${item.count}`),",
+          )
+          replace(
+              'src/lib/studio/multimodal/structuredAnalyzer.ts',
+              '        topic_clusters: clusters,',
+              "        topic_clusters: clusters.map((item) => `${item.term}:${item.count}`),",
+          )
+          replace(
+              'src/lib/studio/multimodal/structuredAnalyzer.ts',
+              '      semantic_anchors: anchors,',
+              "      semantic_anchors: anchors.map((item) => `${item.term}:${item.count}`),",
+          )
+          replace(
+              'src/lib/studio/multimodal/imageAnalyzer.ts',
+              '        dominant_colors: measured.dominantColors,',
+              "        dominant_colors: measured.dominantColors.map((item) => `${item.hex}:${item.share}`),",
+          )
+
+          replace(
+              'src/lib/studio/audio/audioTypes.ts',
+              "export const STUDIO_AUDIO_ENGINE_NAME = 'studio_audio_node_wav_engine';\nexport const STUDIO_AUDIO_ENGINE_VERSION = '2026-07-11.1';",
+              "export const STUDIO_AUDIO_ENGINE_NAME = 'studio_audio_ffmpeg_pcm_feature_engine';\nexport const STUDIO_AUDIO_ENGINE_VERSION = '2026-07-11.2';",
+          )
+          replace(
+              'src/lib/studio/audio/audioStorage.ts',
+              'const DEFAULT_MAX_FILE_BYTES = 75 * 1024 * 1024;',
+              'const DEFAULT_MAX_FILE_BYTES = 150 * 1024 * 1024;',
+          )
+          PY
+      - name: Commit patch
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src
+          if git diff --cached --quiet; then
+            echo "No patch changes required."
+            exit 0
+          fi
+          git commit -m "fix(studio): scope state and expose multimodal evidence"
+          git push origin HEAD:codex/studio-multimodal-ingestion
