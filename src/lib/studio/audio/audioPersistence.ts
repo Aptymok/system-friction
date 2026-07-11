@@ -55,6 +55,44 @@ function energyForColumn(segments: EnergySegment[]) {
   }));
 }
 
+async function deletePriorAudioAnalysisRows(
+  supabase: SupabaseClient,
+  objectId: string,
+  idempotencyKey: string,
+) {
+  const operations = [
+    supabase
+      .from('studio_object_features')
+      .delete()
+      .eq('object_id', objectId)
+      .contains('payload', { idempotencyKey }),
+    supabase
+      .from('studio_audio_features')
+      .delete()
+      .eq('object_id', objectId)
+      .contains('payload', { idempotencyKey }),
+    supabase
+      .from('studio_time_coordinates')
+      .delete()
+      .eq('object_id', objectId)
+      .contains('payload', { idempotencyKey }),
+    supabase
+      .from('studio_evidence_traces')
+      .delete()
+      .eq('object_id', objectId)
+      .contains('payload', { idempotencyKey }),
+  ];
+
+  const results = await Promise.all(operations);
+  const failure = results.find((result) => result.error)?.error;
+  if (failure) {
+    throw new StudioAudioError('PERSISTENCE_FAILED', failure.message, 500, {
+      objectId,
+      operation: 'delete_prior_audio_analysis_rows',
+    });
+  }
+}
+
 export async function findExistingStudioAudioAnalysis(
   supabase: SupabaseClient,
   objectId: string,
@@ -155,6 +193,10 @@ export async function persistStudioAudioAnalysis(
     probe,
   };
 
+  // A failed prior attempt may have persisted only part of the result set.
+  // Remove rows for this exact analysis identity before reinserting them.
+  await deletePriorAudioAnalysisRows(supabase, result.objectId, result.idempotencyKey);
+
   const objectFeatureRows = result.features.map((item) => ({
     object_id: result.objectId,
     feature_key: item.key,
@@ -218,14 +260,15 @@ export async function persistStudioAudioAnalysis(
     if (timeError) throw new StudioAudioError('PERSISTENCE_FAILED', timeError.message, 500, { table: 'studio_time_coordinates' });
   }
 
+  const reliability = result.status === 'COMPLETE' ? 0.86 : 0.62;
   const { error: evidenceError } = await supabase.from('studio_evidence_traces').insert({
     object_id: result.objectId,
     source: result.engine,
     label: 'Studio audio extraction',
-    reliability: result.status === 'COMPLETE' ? 0.86 : 0.62,
-    uri: object.source_uri,
     payload: {
       ...commonPayload,
+      reliability,
+      uri: object.source_uri,
       status: result.status,
       warnings: result.warnings,
       featureCount: result.features.length,
