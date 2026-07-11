@@ -10,6 +10,18 @@ type IntakeType = 'auto' | 'audio' | 'video' | 'image' | 'text' | 'community' | 
 
 type IntakeStatus = 'idle' | 'preparing' | 'uploading' | 'verifying' | 'analyzing' | 'complete' | 'blocked';
 
+function responseFailure(response: Response, payload: Record<string, unknown> | null, prefix: string) {
+  const code = payload?.error ?? payload?.code;
+  const detail = payload?.details ?? payload?.message;
+  const requestId = response.headers.get('x-vercel-id') ?? response.headers.get('x-request-id');
+  const parts = [
+    typeof code === 'string' ? code : `${prefix}_HTTP_${response.status}`,
+    typeof detail === 'string' ? detail : null,
+    requestId ? `REQUEST_ID=${requestId}` : null,
+  ].filter((value): value is string => Boolean(value));
+  return parts.join(' · ');
+}
+
 export function StudioObjectIntake({ open, onClose }: { open: boolean; onClose: () => void }) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -41,7 +53,7 @@ export function StudioObjectIntake({ open, onClose }: { open: boolean; onClose: 
       });
       const prepared = await jsonResponse(prepareResponse);
       if (!prepareResponse.ok || prepared?.ok !== true) {
-        throw new Error(String(prepared?.details ?? prepared?.error ?? `PREPARE_HTTP_${prepareResponse.status}`));
+        throw new Error(responseFailure(prepareResponse, prepared, 'PREPARE'));
       }
 
       const storagePath = String(prepared.storagePath ?? '');
@@ -69,7 +81,7 @@ export function StudioObjectIntake({ open, onClose }: { open: boolean; onClose: 
       });
       const completed = await jsonResponse(completeResponse);
       if (!completeResponse.ok || completed?.ok !== true) {
-        throw new Error(String(completed?.details ?? completed?.error ?? `COMPLETE_HTTP_${completeResponse.status}`));
+        throw new Error(responseFailure(completeResponse, completed, 'COMPLETE'));
       }
 
       setStatus('analyzing');
@@ -81,7 +93,7 @@ export function StudioObjectIntake({ open, onClose }: { open: boolean; onClose: 
       });
       const analysis = await jsonResponse(analyzeResponse);
       if (!analyzeResponse.ok || analysis?.ok === false) {
-        throw new Error(String(analysis?.details ?? analysis?.error ?? `ANALYZE_HTTP_${analyzeResponse.status}`));
+        throw new Error(responseFailure(analyzeResponse, analysis, 'ANALYZE'));
       }
 
       setStatus('complete');

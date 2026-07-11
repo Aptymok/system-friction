@@ -52,6 +52,19 @@ function binary(kind: 'ffmpeg' | 'ffprobe') {
   return value;
 }
 
+function processLaunchFailure(error: Error, executable: string) {
+  const code = (error as NodeJS.ErrnoException).code;
+  if (code === 'ENOENT' || code === 'EACCES') {
+    return new StudioMultimodalError(
+      'EXTRACTION_RUNTIME_UNAVAILABLE',
+      'The deployed media binary is missing or not executable.',
+      503,
+      { code, binary: executable.includes('ffprobe') ? 'ffprobe' : 'ffmpeg' },
+    );
+  }
+  return new StudioMultimodalError('TRANSCODE_FAILED', error.message, 500, { code: code ?? null });
+}
+
 async function runBinary(
   executable: string,
   args: string[],
@@ -78,7 +91,6 @@ async function runBinary(
 
     const timer = setTimeout(() => {
       finishError(new StudioMultimodalError('TRANSCODE_FAILED', 'Media process exceeded the configured execution timeout.', 504, {
-        executable,
         timeoutMs: timeoutMs(),
       }));
     }, timeoutMs());
@@ -97,7 +109,7 @@ async function runBinary(
       if (stderrBytes <= maxStderrBytes) stderr.push(Buffer.from(chunk));
     });
 
-    child.on('error', (error) => finishError(error));
+    child.on('error', (error) => finishError(processLaunchFailure(error, executable)));
     child.on('close', (code) => {
       if (settled) return;
       settled = true;
