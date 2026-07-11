@@ -36,7 +36,7 @@ export function StudioEvaluationStrip({ state }: { state: StudioProductionState 
         <div key={item?.key ?? 'missing'}>
           <span>{item?.label ?? 'MISSING'}</span>
           <strong>{value(item)}</strong>
-          <em>{item ? `${item.status} / ${item.source ?? 'NO_SOURCE'} / ${Number(item.confidence.toFixed(2))}` : 'MISSING'}</em>
+          <em>{item ? `${item.status} / ${item.source ?? 'NO_SOURCE'} / ${item.status === 'MISSING' || item.source === null ? 'UNKNOWN' : Number(item.confidence.toFixed(2))}` : 'MISSING'}</em>
         </div>
       ))}
     </footer>

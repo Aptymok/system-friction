@@ -133,7 +133,7 @@ export async function analyzeStudioImage(bytes: Buffer) {
     return {
       features,
       row: {
-        dominant_colors: measured.dominantColors,
+        dominant_colors: measured.dominantColors.map((item) => `${item.hex}:${item.share}`),
         texture_density: measured.textureDensity,
         visual_entropy: measured.visualEntropy,
         spatial_balance: measured.spatialBalance,

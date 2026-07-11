@@ -172,8 +172,8 @@ export async function analyzeStudioText(bytes: Buffer, extension: string) {
     row: {
       tokens: tokens.length,
       sections: paragraphs.length,
-      themes,
-      motifs,
+      themes: themes.map((item) => `${item.term}:${item.count}`),
+      motifs: motifs.map((item) => `${item.phrase}:${item.count}`),
       sentiment_arousal: null,
       narrative_arc: paragraphArc(text),
       semantic_density: semanticDensity,

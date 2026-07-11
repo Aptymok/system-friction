@@ -90,13 +90,21 @@ function inferObjectType(value: unknown): StudioObjectType {
   return 'unknown';
 }
 
-async function queryLatestSessionAndObject(): Promise<StudioStoredState> {
+async function queryLatestSessionAndObject(ownerId?: string | null, includeLegacy = false): Promise<StudioStoredState> {
   const degraded: string[] = [];
   try {
     const supabase = createServiceSupabaseClient();
-    const { data: session, error: sessionError } = await supabase
+    let sessionQuery = supabase
       .from('studio_sessions')
-      .select('*')
+      .select('*');
+
+    if (ownerId) {
+      sessionQuery = includeLegacy
+        ? sessionQuery.or(`owner_id.eq.${ownerId},owner_id.is.null`)
+        : sessionQuery.eq('owner_id', ownerId);
+    }
+
+    const { data: session, error: sessionError } = await sessionQuery
       .order('updated_at', { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -309,16 +317,18 @@ function objectFrom(row: Row | null, session: StudioProductionSession): StudioPr
 function metricsFromFeatureRows(rows: Row[]): StudioFeatureMetric[] {
   return rows.map((row) => {
     const numeric = asNumber(row.numeric_value);
+    const text = asString(row.text_value) || null;
+    const value = numeric ?? text;
     const payload = asRecord(row.payload);
     const key = asString(row.feature_key, asString(row.id, 'feature')) ?? 'feature';
     return {
       id: key,
       label: asString(row.label, key).toUpperCase(),
-      value: numeric,
+      value,
       unit: asString(row.unit),
       source: asString(row.source, 'studio_object_features'),
-      status: (asString(payload.status) as MetricStatus) || (numeric === null ? 'MISSING' as const : 'OBSERVED' as const),
-      confidence: clampConfidence(row.confidence ?? (numeric === null ? 0 : 1)),
+      status: (asString(payload.status) as MetricStatus) || (value === null ? 'MISSING' as const : 'OBSERVED' as const),
+      confidence: clampConfidence(row.confidence ?? (value === null ? 0 : 1)),
       explanation: asString(asRecord(row.payload).explanation, 'Persisted Studio object feature row.'),
       evidenceIds: [asString(row.id, key) ?? key],
     };
@@ -467,7 +477,7 @@ function metricValuesFromState(input: {
         confidence: metrics.reduce((sum, metric) => sum + metric.confidence, 0) / metrics.length,
         observedAt: asString(stored.features[0]?.created_at),
         formulaVersion: 'studio.feature_coverage.v1',
-        explanation: 'Count of persisted feature rows with numeric values over total persisted feature rows.',
+        explanation: 'Count of persisted feature rows with numeric or textual values over total persisted feature rows.',
       })
       : missingMetric('feature_coverage', 'Feature Coverage', 'No persisted object feature rows exist.', ['studio_object_features']),
     mihmScore !== null && activeObject.id
@@ -691,13 +701,13 @@ function buildNextAction(activeObject: StudioProductionObject, metrics: StudioFe
   };
 }
 
-export async function readStudioProductionState(): Promise<StudioProductionState> {
+export async function readStudioProductionState(options: { ownerId?: string | null; includeLegacy?: boolean } = {}): Promise<StudioProductionState> {
   const generatedAt = new Date().toISOString();
   try {
     const [gold, lens, stored] = await Promise.all([
       readStudioGoldState(),
       buildStudioCulturalLens().catch(() => null),
-      queryLatestSessionAndObject(),
+      queryLatestSessionAndObject(options.ownerId, options.includeLegacy ?? false),
     ]);
 
     const session = sessionFrom(stored.session, generatedAt);
@@ -724,7 +734,7 @@ export async function readStudioProductionState(): Promise<StudioProductionState
       id: metric.id,
       label: metric.label,
       kind: activeObject.type,
-      weight: metric.value,
+      weight: typeof metric.value === 'number' ? metric.value : null,
       status: metric.status,
     }));
 
@@ -736,7 +746,7 @@ export async function readStudioProductionState(): Promise<StudioProductionState
     const metricValues = metricValuesFromState({ activeObject: activeObjectWithStatus, metrics, evidence, lens, mihmScore, gold, stored });
     const graphNodes: StudioProductionState['objectFeatures']['graph']['nodes'] = [
       activeObjectWithStatus.id ? { id: activeObjectWithStatus.id, label: activeObjectWithStatus.title, layer: 'object', value: null } : null,
-      ...metrics.filter((metric) => metric.value !== null).map((metric) => ({ id: metric.id, label: metric.label, layer: 'feature', value: metric.value })),
+      ...metrics.filter((metric) => typeof metric.value === 'number').map((metric) => ({ id: metric.id, label: metric.label, layer: 'feature', value: metric.value as number })),
       lens ? { id: 'cultural-lens', label: 'CULTURAL LENS', layer: 'context', value: lens.confidence } : null,
       activeObjectWithStatus.id && mihmScore !== null ? { id: 'mihm', label: 'MIHM', layer: 'model', value: Number(mihmScore.toFixed(3)) } : null,
     ].filter((item): item is { id: string; label: string; layer: string; value: number | null } => Boolean(item));

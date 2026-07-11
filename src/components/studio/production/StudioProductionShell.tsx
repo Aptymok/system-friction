@@ -64,7 +64,7 @@ function MetricCard({ metric }: { metric: MetricValue }) {
         <dt>Source</dt>
         <dd>{metric.source ?? 'NO_SOURCE'}</dd>
         <dt>Confidence</dt>
-        <dd>{Number(metric.confidence.toFixed(3))}</dd>
+        <dd>{metric.status === 'MISSING' || metric.source === null ? 'UNKNOWN' : Number(metric.confidence.toFixed(3))}</dd>
         <dt>Formula</dt>
         <dd>{metric.formulaVersion ?? 'NO_FORMULA'}</dd>
         <dt>Evidence</dt>
@@ -190,6 +190,11 @@ function ActiveObject({ state, onOpenIntake }: { state: StudioProductionState; o
         <dt>Analysis</dt><dd><StatusPill status={state.activeObject.analysisStatus} /></dd>
         <dt>Version</dt><dd>{state.activeObject.version ?? 'MISSING'}</dd>
       </dl>
+      {state.activeObject.id ? (
+        <a href={`/api/studio/objects/${encodeURIComponent(state.activeObject.id)}/content`} target="_blank" rel="noreferrer">
+          OPEN PRIVATE OBJECT
+        </a>
+      ) : null}
     </Panel>
   );
 }
@@ -246,7 +251,7 @@ function FieldGraphInspector({ state }: { state: StudioProductionState }) {
             <dt>Status</dt><dd><StatusPill status={selected.status} /></dd>
             <dt>Source</dt><dd>{selected.source ?? 'NO_SOURCE'}</dd>
             <dt>Formula</dt><dd>{selected.formulaVersion ?? 'NO_FORMULA'}</dd>
-            <dt>Confidence</dt><dd>{Number(selected.confidence.toFixed(3))}</dd>
+            <dt>Confidence</dt><dd>{selected.status === 'MISSING' || selected.source === null ? 'UNKNOWN' : Number(selected.confidence.toFixed(3))}</dd>
             <dt>Explanation</dt><dd>{selected.explanation}</dd>
             <dt>Evidence IDs</dt><dd>{selected.evidenceIds.join(', ') || 'NO_EVIDENCE'}</dd>
           </dl>
