@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { PublicWorldVectorObservatory } from '@/components/observatory/public/PublicWorldVectorObservatory';
-import { readObservatoryGoldState } from '@/lib/observatory/gold/observatoryGoldAdapter';
+import { readPublicObservatoryState } from '@/lib/observatory/public/readPublicObservatoryState';
 
 const PUBLIC_OBSERVATORY_DESCRIPTION =
   'Public 90-day World Vector, longitudinal WorldSpect observation, current tensions and the Daily Reading by System Friction Institute.';
@@ -22,6 +22,6 @@ export const metadata: Metadata = {
 };
 
 export default async function ObservatoryPage() {
-  const state = await readObservatoryGoldState();
+  const state = await readPublicObservatoryState();
   return <PublicWorldVectorObservatory state={state} />;
 }
