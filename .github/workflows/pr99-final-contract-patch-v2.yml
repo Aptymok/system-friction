@@ -1,0 +1,36 @@
+name: PR99 Final Contract Patch V2
+
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - synchronize
+      - reopened
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.head_ref == 'codex/studio-multimodal-ingestion' && github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: codex/studio-multimodal-ingestion
+          fetch-depth: 0
+      - name: Apply deterministic patch
+        run: python scripts/pr99-final-contract-patch.py
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src
+          if git diff --cached --quiet; then
+            echo "No source changes required."
+            exit 0
+          fi
+          git commit -m "fix(studio): scope state and expose multimodal evidence"
+          git push origin HEAD:codex/studio-multimodal-ingestion
