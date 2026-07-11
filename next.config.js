@@ -1,4 +1,9 @@
 /** @type {import('next').NextConfig} */
+const mediaRuntimeFiles = [
+  './node_modules/ffmpeg-static/**/*',
+  './node_modules/ffprobe-static/**/*',
+];
+
 const nextConfig = {
   poweredByHeader: false,
   experimental: {
@@ -13,10 +18,10 @@ const nextConfig = {
     'music-metadata',
   ],
   outputFileTracingIncludes: {
-    '/api/studio/objects/[id]/analyze': [
-      './node_modules/ffmpeg-static/**/*',
-      './node_modules/ffprobe-static/**/*',
-    ],
+    // Next route tracing keys use glob matching. The previous unescaped [id]
+    // pattern could be interpreted as a character class and omit the binaries.
+    '/api/studio/objects/*/analyze': mediaRuntimeFiles,
+    '/api/studio/objects/\\[id\\]/analyze': mediaRuntimeFiles,
   },
   outputFileTracingExcludes: {
     '*': [
