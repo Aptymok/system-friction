@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+import { analyzeStudioAudioObject } from '@/lib/studio/audio/analyzeStudioAudioObject';
+import { toStudioAudioApiError } from '@/lib/studio/audio/audioErrors';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { createStudioUploadObject } from '@/lib/studio/production/studioProductionRepository';
 
@@ -85,7 +87,18 @@ export async function POST(request: Request) {
       sizeBytes: file.size,
       storagePath,
     });
-    return NextResponse.json(result, { status: result.ok ? 201 : result.status });
+    if (!result.ok) return NextResponse.json(result, { status: result.status });
+
+    const objectId = String(result.data.id ?? '');
+    let analysis: unknown = { ok: false, status: 'not_started', reason: 'non_audio_object' };
+    if (objectType === 'music' && objectId) {
+      analysis = await analyzeStudioAudioObject(objectId, {}).catch((error) => ({
+        ...toStudioAudioApiError(error),
+        status: 'blocked',
+      }));
+    }
+
+    return NextResponse.json({ ...result, analysis }, { status: 201 });
   } catch (error) {
     return NextResponse.json({
       ok: false,
