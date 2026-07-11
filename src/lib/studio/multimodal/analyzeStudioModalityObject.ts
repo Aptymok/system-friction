@@ -1,5 +1,6 @@
 import 'server-only';
 
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { buildStudioUploadDescriptor } from './detect';
 import {
@@ -20,9 +21,10 @@ import {
 } from './types';
 
 export const STUDIO_MULTIMODAL_ENGINE = 'studio_multimodal_engine';
-export const STUDIO_MULTIMODAL_ENGINE_VERSION = '2026-07-11.2';
+export const STUDIO_MULTIMODAL_ENGINE_VERSION = '2026-07-11.3';
 
 type Row = Record<string, unknown>;
+type SupportedModality = Exclude<StudioModality, 'audio' | 'unknown'>;
 type SpecializedTable =
   | 'studio_text_features'
   | 'studio_image_features'
@@ -30,11 +32,18 @@ type SpecializedTable =
   | 'studio_community_features'
   | 'studio_time_coordinates';
 
-type AnalyzerResult = {
+export type StudioScopedAnalysis = {
   features: StudioGenericFeature[];
   row: Record<string, unknown>;
   warnings: string[];
+  table: SpecializedTable;
 };
+
+export type StudioScopedAnalyzer = (input: {
+  bytes: Buffer;
+  extension: string;
+  modality: SupportedModality;
+}) => Promise<StudioScopedAnalysis> | StudioScopedAnalysis;
 
 function record(value: unknown): Row {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Row : {};
@@ -44,10 +53,19 @@ function stringValue(value: unknown) {
   return typeof value === 'string' && value.trim() ? value.trim() : null;
 }
 
-async function readObjectDescriptor(objectId: string) {
-  const supabase = createServiceSupabaseClient();
-  const { data: object, error: objectError } = await supabase.from('studio_objects').select('*').eq('id', objectId).maybeSingle();
-  if (objectError || !object) throw new StudioMultimodalError('OBJECT_NOT_FOUND', 'Studio object was not found.', 404, { objectId });
+export async function resolveStudioObjectDescriptor(
+  objectId: string,
+  supabase: SupabaseClient = createServiceSupabaseClient(),
+) {
+  const { data: object, error: objectError } = await supabase
+    .from('studio_objects')
+    .select('*')
+    .eq('id', objectId)
+    .maybeSingle();
+  if (objectError || !object) {
+    throw new StudioMultimodalError('OBJECT_NOT_FOUND', 'Studio object was not found.', 404, { objectId });
+  }
+
   const { data: upload, error: uploadError } = await supabase
     .from('studio_uploads')
     .select('*')
@@ -55,10 +73,14 @@ async function readObjectDescriptor(objectId: string) {
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle();
-  if (uploadError || !upload) throw new StudioMultimodalError('UPLOAD_NOT_FOUND', 'Studio upload was not found.', 404, { objectId });
+  if (uploadError || !upload) {
+    throw new StudioMultimodalError('UPLOAD_NOT_FOUND', 'Studio upload was not found.', 404, { objectId });
+  }
 
   const metadata = record(object.metadata);
-  const fileName = stringValue(metadata.originalFileName) ?? stringValue(upload.storage_path)?.split('/').at(-1) ?? String(object.title || 'studio-object');
+  const fileName = stringValue(metadata.originalFileName)
+    ?? stringValue(upload.storage_path)?.split('/').at(-1)
+    ?? String(object.title || 'studio-object');
   const descriptor = buildStudioUploadDescriptor({
     fileName,
     mimeType: upload.mime_type ?? object.mime_type,
@@ -66,34 +88,44 @@ async function readObjectDescriptor(objectId: string) {
     title: object.title,
     requestedObjectType: metadata.modality ?? object.object_type,
   });
+
   return { object: object as Row, upload: upload as Row, descriptor };
 }
 
 function failedStatus(error: unknown): 'blocked' | 'failed' {
   if (!(error instanceof StudioMultimodalError)) return 'failed';
-  return ['UNSUPPORTED_FILE_TYPE', 'FILE_TOO_LARGE', 'EXTRACTION_RUNTIME_UNAVAILABLE', 'UPLOAD_NOT_COMPLETE'].includes(error.code) ? 'blocked' : 'failed';
+  return ['UNSUPPORTED_FILE_TYPE', 'FILE_TOO_LARGE', 'EXTRACTION_RUNTIME_UNAVAILABLE', 'UPLOAD_NOT_COMPLETE']
+    .includes(error.code)
+    ? 'blocked'
+    : 'failed';
 }
 
-export async function analyzeStudioObject(
+export async function analyzeStudioModalityObject(
   objectId: string,
-  options: { force?: boolean; requestedByUserId?: string | null } = {},
+  input: {
+    expectedModalities: SupportedModality[];
+    analyze: StudioScopedAnalyzer;
+    force?: boolean;
+    requestedByUserId?: string | null;
+  },
 ): Promise<StudioMultimodalAnalysisResult | Record<string, unknown>> {
-  const descriptorState = await readObjectDescriptor(objectId);
-  if (descriptorState.descriptor.modality === 'audio') {
-    const { analyzeStudioAudioObject } = await import('@/lib/studio/audio/analyzeStudioAudioObject');
-    return analyzeStudioAudioObject(objectId, options);
-  }
+  const descriptorState = await resolveStudioObjectDescriptor(objectId);
+  const modality = descriptorState.descriptor.modality;
 
-  if (descriptorState.descriptor.modality === 'unknown') {
-    throw new StudioMultimodalError('UNSUPPORTED_FILE_TYPE', 'Studio cannot analyze an unknown object modality.', 415, { objectId });
+  if (modality === 'audio' || modality === 'unknown' || !input.expectedModalities.includes(modality)) {
+    throw new StudioMultimodalError(
+      'UNSUPPORTED_FILE_TYPE',
+      'The object modality does not match this analysis function.',
+      415,
+      { objectId, modality, expectedModalities: input.expectedModalities },
+    );
   }
 
   const stored = await loadStudioObjectBytes(objectId);
-  const modality = descriptorState.descriptor.modality as Exclude<StudioModality, 'audio' | 'unknown'>;
   const idempotencyKey = `studio-multimodal:${objectId}:${stored.checksumSha256}:${STUDIO_MULTIMODAL_ENGINE_VERSION}:${modality}`;
   const supabase = createServiceSupabaseClient();
 
-  if (!options.force) {
+  if (!input.force) {
     const existing = await findCompletedMultimodalJob(objectId, idempotencyKey, supabase);
     if (existing) {
       return {
@@ -115,7 +147,7 @@ export async function analyzeStudioObject(
     modality,
     checksumSha256: stored.checksumSha256,
     byteLength: stored.byteLength,
-    requestedByUserId: options.requestedByUserId ?? null,
+    requestedByUserId: input.requestedByUserId ?? null,
     extension: descriptorState.descriptor.extension,
   };
   const job = await createMultimodalJob(objectId, basePayload, supabase);
@@ -126,31 +158,16 @@ export async function analyzeStudioObject(
       ...record(descriptorState.object.metadata),
       multimodalAnalysis: { ...basePayload, jobId, status: 'RUNNING', startedAt: new Date().toISOString() },
     }, supabase);
-    await updateMultimodalJob(jobId, 'running', null, { ...basePayload, startedAt: new Date().toISOString() }, supabase);
+    await updateMultimodalJob(jobId, 'running', null, {
+      ...basePayload,
+      startedAt: new Date().toISOString(),
+    }, supabase);
 
-    let analysis: AnalyzerResult;
-    let table: SpecializedTable;
-
-    if (modality === 'text') {
-      const { analyzeStudioText } = await import('./textAnalyzer');
-      analysis = await analyzeStudioText(stored.bytes, descriptorState.descriptor.extension);
-      table = 'studio_text_features';
-    } else if (modality === 'image') {
-      const { analyzeStudioImage } = await import('./imageAnalyzer');
-      analysis = await analyzeStudioImage(stored.bytes);
-      table = 'studio_image_features';
-    } else if (modality === 'video') {
-      const { analyzeStudioVideo } = await import('./videoAnalyzer');
-      analysis = await analyzeStudioVideo(stored.bytes, descriptorState.descriptor.extension);
-      table = 'studio_video_features';
-    } else if (modality === 'community' || modality === 'time_coordinate') {
-      const { analyzeStructuredStudioObject } = await import('./structuredAnalyzer');
-      const structuredAnalysis = analyzeStructuredStudioObject(stored.bytes, descriptorState.descriptor.extension, modality);
-      analysis = structuredAnalysis;
-      table = structuredAnalysis.table;
-    } else {
-      throw new StudioMultimodalError('UNSUPPORTED_FILE_TYPE', 'No analyzer is registered for this modality.', 415, { modality });
-    }
+    const analysis = await input.analyze({
+      bytes: stored.bytes,
+      extension: descriptorState.descriptor.extension,
+      modality,
+    });
 
     await persistGenericFeatures({
       objectId,
@@ -162,7 +179,7 @@ export async function analyzeStudioObject(
       modality,
       supabase,
     });
-    await replaceSpecializedRow({ table, objectId, row: analysis.row, supabase });
+    await replaceSpecializedRow({ table: analysis.table, objectId, row: analysis.row, supabase });
     await recordMultimodalEvidence({
       objectId,
       label: `${modality} analysis ${STUDIO_MULTIMODAL_ENGINE_VERSION}`,
@@ -176,9 +193,14 @@ export async function analyzeStudioObject(
       supabase,
     });
 
-    const meaningfulFeatures = analysis.features.filter((feature) => feature.status !== 'MISSING' && (feature.numericValue !== null || feature.textValue !== null));
-    const semanticStatus: 'COMPLETE' | 'DEGRADED' = meaningfulFeatures.length === analysis.features.length ? 'COMPLETE' : 'DEGRADED';
+    const meaningfulFeatures = analysis.features.filter(
+      (feature) => feature.status !== 'MISSING' && (feature.numericValue !== null || feature.textValue !== null),
+    );
+    const semanticStatus: 'COMPLETE' | 'DEGRADED' = meaningfulFeatures.length === analysis.features.length
+      ? 'COMPLETE'
+      : 'DEGRADED';
     const completedAt = new Date().toISOString();
+
     await updateMultimodalJob(jobId, 'complete', null, {
       ...basePayload,
       semanticStatus,

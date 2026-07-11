@@ -1,12 +1,11 @@
 import { NextResponse } from 'next/server';
 import { AccessDeniedError, requireObjectOwner } from '@/lib/system/access/server';
-import { isStudioAudioError, toStudioAudioApiError } from '@/lib/studio/audio/audioErrors';
-import { analyzeStudioObject } from '@/lib/studio/multimodal/analyzeStudioObject';
+import { resolveStudioObjectDescriptor } from '@/lib/studio/multimodal/analyzeStudioModalityObject';
 import { StudioMultimodalError, toStudioMultimodalApiError } from '@/lib/studio/multimodal/types';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-export const maxDuration = 300;
+export const maxDuration = 60;
 
 type RouteContext = { params: Promise<{ id: string }> | { id: string } };
 
@@ -15,20 +14,27 @@ export async function POST(request: Request, ctx: RouteContext) {
   const objectId = decodeURIComponent(params.id);
 
   try {
-    const context = await requireObjectOwner(objectId);
-    const body = await request.json().catch(() => ({})) as { force?: unknown };
-    const result = await analyzeStudioObject(objectId, {
-      force: body.force === true,
-      requestedByUserId: context.user.id,
-    });
-    const reused = Boolean((result as Record<string, unknown>).reused);
-    return NextResponse.json(result, { status: reused ? 200 : 202 });
+    await requireObjectOwner(objectId);
+    const { descriptor } = await resolveStudioObjectDescriptor(objectId);
+    const segment = descriptor.modality === 'community' || descriptor.modality === 'time_coordinate'
+      ? 'structured'
+      : descriptor.modality;
+
+    if (!['audio', 'text', 'image', 'video', 'structured'].includes(segment)) {
+      throw new StudioMultimodalError(
+        'UNSUPPORTED_FILE_TYPE',
+        'Studio cannot route an unknown object modality to an analyzer.',
+        415,
+        { objectId, modality: descriptor.modality },
+      );
+    }
+
+    const target = new URL(request.url);
+    target.pathname = `${target.pathname}/${segment}`;
+    return NextResponse.redirect(target, 307);
   } catch (error) {
     if (error instanceof AccessDeniedError) {
       return NextResponse.json({ ok: false, error: error.code, details: error.message }, { status: error.status });
-    }
-    if (isStudioAudioError(error)) {
-      return NextResponse.json(toStudioAudioApiError(error), { status: error.status });
     }
     const body = toStudioMultimodalApiError(error);
     const status = error instanceof StudioMultimodalError ? error.status : 500;

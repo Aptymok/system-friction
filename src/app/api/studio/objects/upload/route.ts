@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { AccessDeniedError, requireAuthenticatedUser } from '@/lib/system/access/server';
-import { analyzeStudioObject } from '@/lib/studio/multimodal/analyzeStudioObject';
 import { buildStudioUploadDescriptor } from '@/lib/studio/multimodal/detect';
 import {
   completeStudioSignedUpload,
@@ -60,14 +59,15 @@ export async function POST(request: Request) {
     if (stored.error) throw new StudioMultimodalError('PERSISTENCE_FAILED', stored.error.message, 503, { objectId: prepared.objectId });
 
     await completeStudioSignedUpload(prepared.objectId, user.id);
-    const analysis = await analyzeStudioObject(prepared.objectId, { requestedByUserId: user.id })
-      .catch((error) => toStudioMultimodalApiError(error));
 
     return NextResponse.json({
       ok: true,
       data: { id: prepared.objectId, session_id: prepared.sessionId, object_type: descriptor.objectType },
       upload: { storagePath: prepared.storagePath, mode: 'server_compatibility' },
-      analysis,
+      analysis: {
+        status: 'PENDING',
+        dispatchPath: `/api/studio/objects/${encodeURIComponent(prepared.objectId)}/analyze`,
+      },
     }, { status: 201 });
   } catch (error) {
     if (error instanceof AccessDeniedError) {

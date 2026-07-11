@@ -1,8 +1,15 @@
 /** @type {import('next').NextConfig} */
-const mediaRuntimeFiles = [
-  './node_modules/ffmpeg-static/**/*',
-  './node_modules/ffprobe-static/**/*',
-];
+const path = require('node:path');
+
+function tracingPath(filePath) {
+  if (typeof filePath !== 'string' || !filePath) return null;
+  const relative = path.relative(process.cwd(), filePath).replace(/\\/g, '/');
+  return relative.startsWith('.') ? relative : `./${relative}`;
+}
+
+const ffmpegPath = tracingPath(require('ffmpeg-static'));
+const ffprobePath = tracingPath(require('ffprobe-static').path);
+const mediaRuntimeFiles = [ffmpegPath, ffprobePath].filter(Boolean);
 
 const nextConfig = {
   poweredByHeader: false,
@@ -18,10 +25,10 @@ const nextConfig = {
     'music-metadata',
   ],
   outputFileTracingIncludes: {
-    // Next route tracing keys use glob matching. The previous unescaped [id]
-    // pattern could be interpreted as a character class and omit the binaries.
-    '/api/studio/objects/*/analyze': mediaRuntimeFiles,
-    '/api/studio/objects/\\[id\\]/analyze': mediaRuntimeFiles,
+    '/api/studio/objects/*/analyze/audio': mediaRuntimeFiles,
+    '/api/studio/objects/\\[id\\]/analyze/audio': mediaRuntimeFiles,
+    '/api/studio/objects/*/analyze/video': mediaRuntimeFiles,
+    '/api/studio/objects/\\[id\\]/analyze/video': mediaRuntimeFiles,
   },
   outputFileTracingExcludes: {
     '*': [
