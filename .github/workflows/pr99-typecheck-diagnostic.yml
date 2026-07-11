@@ -1,0 +1,30 @@
+name: PR99 Typecheck Diagnostic
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  diagnostic:
+    if: github.head_ref == 'codex/studio-multimodal-ingestion'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm install --no-audit --no-fund
+      - name: Capture TypeScript diagnostics
+        run: |
+          npm run typecheck > typecheck-pr99.log 2>&1 || true
+          cat typecheck-pr99.log
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pr99-typecheck-log
+          path: typecheck-pr99.log
+          if-no-files-found: error
