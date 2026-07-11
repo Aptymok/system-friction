@@ -14,4 +14,17 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm install --legacy-peer-deps --silent
-      - run: npx tsc --noEmit --pretty false
+      - name: Capture typecheck
+        run: |
+          set +e
+          npx tsc --noEmit --pretty false > studio-typecheck.log 2>&1
+          echo $? > studio-typecheck.exit
+          exit 0
+      - uses: actions/upload-artifact@v4
+        with:
+          name: studio-typecheck
+          path: |
+            studio-typecheck.log
+            studio-typecheck.exit
+      - name: Enforce typecheck
+        run: test "$(cat studio-typecheck.exit)" = "0"
