@@ -288,15 +288,15 @@ export function StudioUnifiedIntelligence({ objectId, view }: { objectId: string
       setState('loading');
       setMessage(null);
       const [contextResponse, synthesisResponse, projectionResponse] = await Promise.all([
-        fetch(`/api/studio/objects/${encodeURIComponent(objectId)}/context`, { cache: 'no-store' }),
-        fetch(`/api/studio/objects/${encodeURIComponent(objectId)}/synthesize`, { cache: 'no-store' }),
-        fetch(`/api/studio/objects/${encodeURIComponent(objectId)}/project`, { cache: 'no-store' }),
+        fetch(`/api/studio/objects/${encodeURIComponent(objectId as string)}/context`, { cache: 'no-store' }),
+        fetch(`/api/studio/objects/${encodeURIComponent(objectId as string)}/synthesize`, { cache: 'no-store' }),
+        fetch(`/api/studio/objects/${encodeURIComponent(objectId as string)}/project`, { cache: 'no-store' }),
       ]);
       const contextBody = await contextResponse.json().catch(() => null);
       const synthesisBody = await synthesisResponse.json().catch(() => null);
       let projectionBody = await projectionResponse.json().catch(() => null);
       if (!projectionResponse.ok || projectionBody?.ok !== true) {
-        const generated = await fetch(`/api/studio/objects/${encodeURIComponent(objectId)}/project`, {
+        const generated = await fetch(`/api/studio/objects/${encodeURIComponent(objectId as string)}/project`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ persist: false }),
@@ -328,7 +328,7 @@ export function StudioUnifiedIntelligence({ objectId, view }: { objectId: string
   async function generateProjection() {
     setState('running');
     setMessage('Recalculando objeto, mundo, MIHM, compatibilidad, predicción y rutas.');
-    const response = await fetch(`/api/studio/objects/${encodeURIComponent(objectId)}/project`, {
+    const response = await fetch(`/api/studio/objects/${encodeURIComponent(objectId as string)}/project`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ persist: true }),
@@ -350,7 +350,7 @@ export function StudioUnifiedIntelligence({ objectId, view }: { objectId: string
   async function savePreferences() {
     setState('saving');
     setMessage('Guardando preferencias opcionales y recalculando la ruta.');
-    const response = await fetch(`/api/studio/objects/${encodeURIComponent(objectId)}/context`, {
+    const response = await fetch(`/api/studio/objects/${encodeURIComponent(objectId as string)}/context`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(context),
