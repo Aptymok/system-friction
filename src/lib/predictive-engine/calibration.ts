@@ -34,7 +34,11 @@ export function logistic(value: number) {
   return z / (1 + z);
 }
 
-export function calibrationStatus(model: Pick<PredictiveModelState, 'status' | 'verifiedSampleCount' | 'metrics'>) {
+export function calibrationStatus(model: {
+  status: PredictiveModelState['status'];
+  verifiedSampleCount: number;
+  metrics: Record<string, unknown>;
+}) {
   if (model.status === 'FROZEN') return 'FROZEN' as const;
   const brier = typeof model.metrics.brier === 'number' ? model.metrics.brier : null;
   const bias = typeof model.metrics.bias === 'number' ? Math.abs(model.metrics.bias) : null;
