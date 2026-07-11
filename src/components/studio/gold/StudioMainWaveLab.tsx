@@ -25,7 +25,7 @@ export function StudioMainWaveLab({ state }: { state: StudioGoldState }) {
         </div>
         <div className="sfi-studio-gold__wave-controls">
           <span>VISTA:</span>
-          <button type="button">TOPOLOGIA</button>
+          <span>TOPOLOGIA</span>
           <Maximize2 size={15} strokeWidth={1.4} aria-hidden="true" />
         </div>
       </div>

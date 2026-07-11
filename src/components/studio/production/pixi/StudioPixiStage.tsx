@@ -24,19 +24,14 @@ const renderers: Record<StudioPixiStageVariant, StudioPixiRenderer> = {
 };
 
 function fallbackPoints(state: StudioProductionState) {
-  const nodes = state.objectFeatures.graph.nodes;
+  const nodes = state.fieldGraph.nodes.filter((node) => node.status !== 'MISSING' && node.explanation);
   if (nodes.length) return nodes.map((node, index) => ({
     id: node.id,
     x: 50 + Math.cos(index * 1.7) * (22 + index * 2),
     y: 50 + Math.sin(index * 1.7) * (18 + index * 1.4),
-    value: node.value ?? 0.08,
+    value: typeof node.value === 'number' ? Math.max(0, Math.min(1, node.value > 1 ? node.value / 100 : node.value)) : node.confidence,
   }));
-  return Array.from({ length: 10 }, (_, index) => ({
-    id: `missing-vector-${index + 1}`,
-    x: 50 + Math.cos((index / 10) * Math.PI * 2) * 24,
-    y: 50 + Math.sin((index / 10) * Math.PI * 2) * 16,
-    value: 0.03,
-  }));
+  return [];
 }
 
 export function StudioPixiStage({ state, variant, label }: { state: StudioProductionState; variant: StudioPixiStageVariant; label: string }) {
@@ -111,7 +106,7 @@ export function StudioPixiStage({ state, variant, label }: { state: StudioProduc
         {fallback.map((point) => (
           <circle key={point.id} cx={point.x} cy={point.y} r={1.4 + point.value * 5} />
         ))}
-        {state.activeObject.id ? null : <text x="50" y="52" textAnchor="middle">MISSING_OBJECT</text>}
+        {!fallback.length ? <text x="50" y="52" textAnchor="middle">NO_RENDERABLE_NODES</text> : null}
       </svg>
       <div ref={hostRef} className="sfi-production__pixi-host" />
     </div>

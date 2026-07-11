@@ -93,7 +93,7 @@ export function StudioLowerAnalysisGrid({ state }: { state: StudioGoldState }) {
             <h2>OBJETO A EVALUAR</h2>
             <p>PRODUCTOR MUSICAL / PANEL MULTIAGENTICO</p>
           </div>
-          <button type="button">{state.objectEvaluation.measurementState.toUpperCase()}</button>
+          <span>{state.objectEvaluation.measurementState.toUpperCase()}</span>
         </div>
         <div className="sfi-studio-gold__object-head">
           <strong>{state.objectEvaluation.title}</strong>
@@ -159,7 +159,7 @@ export function StudioLowerAnalysisGrid({ state }: { state: StudioGoldState }) {
             <h2>SEGUIMIENTO LONGITUDINAL</h2>
             <p>TRAYECTORIAS DE SENALES</p>
           </div>
-          <button type="button">90 DIAS</button>
+          <span>90 DIAS</span>
         </div>
         <div className="sfi-studio-gold__trajectory-list">
           {state.longitudinalTracking.length ? state.longitudinalTracking.map((item) => (
@@ -170,7 +170,7 @@ export function StudioLowerAnalysisGrid({ state }: { state: StudioGoldState }) {
             </div>
           )) : <p className="sfi-studio-gold__empty">Sin trayectoria longitudinal conectada.</p>}
         </div>
-        <button className="sfi-studio-gold__action" type="button">VER TODAS LAS TRAYECTORIAS →</button>
+        <p className="sfi-studio-gold__action">Trayectorias adicionales no montadas en esta vista.</p>
       </article>
 
       <article className="sfi-studio-gold__panel sfi-studio-gold__synthesis">

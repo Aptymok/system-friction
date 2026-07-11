@@ -45,6 +45,7 @@ export const StudioOverviewFieldRenderer: StudioPixiRenderer = (input) => {
   const { PIXI, app, state, width, height, time } = input;
   const g = new PIXI.Graphics();
   const hasObject = Boolean(state.activeObject.id);
+  const nodes = state.fieldGraph.nodes.filter((node) => node.status !== 'MISSING' && node.explanation);
   const density = hasObject ? 1 : 0.26;
   const cx = width * 0.5;
   const cy = height * 0.52;
@@ -68,15 +69,21 @@ export const StudioOverviewFieldRenderer: StudioPixiRenderer = (input) => {
     g.lineTo(width, y);
   }
   g.stroke({ width: 1, color: 0x2c1738, alpha: 0.18 });
+  if (!nodes.length) {
+    app.stage.addChild(g);
+    drawMissingOverlay(input, state.degradedSources[0] ?? 'No explainable Studio nodes are available');
+    return;
+  }
 
   [0.16, 0.26, 0.36].forEach((factor, index) => {
     g.circle(cx, cy, min * factor + Math.sin(time * 0.001 + index) * 2);
     g.stroke({ width: 1, color: index % 2 ? 0x45f0ff : 0xba5cff, alpha: (0.07 - index * 0.01) * density });
   });
 
-  const particleCount = hasObject ? Math.min(140, 54 + state.objectFeatures.metrics.length * 8 + state.objectFeatures.layers.length * 6) : 84;
+  const particleCount = Math.min(140, 32 + nodes.length * 8);
   for (let i = 0; i < particleCount; i += 1) {
-    const value = hasObject ? values[i % values.length] : 0.05;
+    const sourceNode = nodes[i % nodes.length];
+    const value = typeof sourceNode.value === 'number' ? safeValue(sourceNode.value, sourceNode.confidence) : sourceNode.confidence;
     const angle = i * 2.39996 + time * 0.00012 * (0.4 + value);
     const radius = min * (0.12 + ((i % 34) / 34) * 0.34) * (0.72 + value * 0.32);
     const x = cx + Math.cos(angle) * radius * 1.28;

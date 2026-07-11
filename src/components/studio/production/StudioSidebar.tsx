@@ -2,29 +2,19 @@
 
 export type StudioProductionScreen =
   | 'overview'
-  | 'sessions'
-  | 'live-desk'
-  | 'composition'
-  | 'sound-design'
-  | 'arrangements'
-  | 'mix-console'
-  | 'mastering'
-  | 'neural-audio-graph'
-  | 'memory-archives'
-  | 'deliverables'
-  | 'settings';
+  | 'measure'
+  | 'structure'
+  | 'field'
+  | 'intervention'
+  | 'memory';
 
 export const studioProductionScreens: Array<{ id: StudioProductionScreen; label: string; code: string }> = [
-  { id: 'overview', label: 'Overview', code: '01' },
-  { id: 'sessions', label: 'Sessions', code: '02' },
-  { id: 'live-desk', label: 'Live Desk', code: '03' },
-  { id: 'composition', label: 'Composition', code: '04' },
-  { id: 'sound-design', label: 'Sound Design', code: '05' },
-  { id: 'arrangements', label: 'Arrangements', code: '06' },
-  { id: 'mix-console', label: 'Mix Console', code: '07' },
-  { id: 'mastering', label: 'Mastering', code: '08' },
-  { id: 'neural-audio-graph', label: 'Neural Audio Graph', code: '09' },
-  { id: 'memory-archives', label: 'Memory / Archives', code: '10' },
+  { id: 'overview', label: 'OVERVIEW', code: '01' },
+  { id: 'measure', label: 'MEASURE', code: '02' },
+  { id: 'structure', label: 'STRUCTURE', code: '03' },
+  { id: 'field', label: 'FIELD', code: '04' },
+  { id: 'intervention', label: 'INTERVENTION', code: '05' },
+  { id: 'memory', label: 'MEMORY', code: '06' },
 ];
 
 export function StudioSidebar({
@@ -45,7 +35,7 @@ export function StudioSidebar({
           <em>STUDIO</em>
         </div>
       </div>
-      <nav aria-label="Studio production screens">
+      <nav aria-label="Studio modules">
         {studioProductionScreens.map((screen) => (
           <button
             key={screen.id}
@@ -61,7 +51,7 @@ export function StudioSidebar({
       <div className="sfi-production__side-status">
         <span>SESSION STATUS</span>
         <strong>{sessionStatus.toUpperCase()}</strong>
-        <p>Core Studio surface only. No collaborator module mounted.</p>
+        <p>Canonical Studio object laboratory.</p>
       </div>
     </aside>
   );

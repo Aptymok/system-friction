@@ -1,11 +1,11 @@
 import type { StudioProductionState } from '@/lib/studio/production/studioProductionTypes';
 
 function value(value: number | null, suffix = '') {
-  return value === null ? 'SIN DATO' : `${value.toFixed(2)}${suffix}`;
+  return value === null ? 'SIN DATO' : `${Number(value.toFixed(3))}${suffix}`;
 }
 
 export function StudioRightRail({ state }: { state: StudioProductionState }) {
-  const hypotheses = state.hypotheses?.hypotheses.slice(0, 4) ?? [];
+  const hypotheses = state.fieldGraph.nodes.filter((item) => item.type === 'hypothesis').slice(0, 4);
 
   return (
     <aside className="sfi-production__right-rail">
@@ -22,19 +22,13 @@ export function StudioRightRail({ state }: { state: StudioProductionState }) {
       <section>
         <span>HYPOTHESES</span>
         {hypotheses.length ? hypotheses.map((item) => (
-          <a key={item.id} href="/api/studio/hypotheses/build">
-            <b>{item.severity.toUpperCase()}</b>
-            <p>{item.statement}</p>
-          </a>
+          <p key={item.id}>{item.status}: {item.explanation}</p>
         )) : <p>BLOCKED_UNTIL_OBJECT_FEATURES_EXIST</p>}
       </section>
       <section>
         <span>INTERVENTIONS</span>
         {state.interventions.length ? state.interventions.map((item) => (
-          <a key={item.id} href="/api/studio/interventions/simulate">
-            <b>{item.state.toUpperCase()}</b>
-            <p>{item.title}</p>
-          </a>
+          <p key={item.id}>{item.state.toUpperCase()}: {item.title}</p>
         )) : <p>NO_VERIFIED_INTERVENTION_QUEUE</p>}
       </section>
     </aside>

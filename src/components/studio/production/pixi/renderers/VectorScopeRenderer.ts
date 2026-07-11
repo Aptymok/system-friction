@@ -5,7 +5,17 @@ export const VectorScopeRenderer: StudioPixiRenderer = ({ PIXI, app, state, widt
   const cx = width / 2;
   const cy = height / 2;
   const radius = Math.min(width, height) * 0.34;
-  const stereo = safeValue(state.audioFeatures.stereoImage, state.activeObject.id ? 0.35 : 0.08);
+  if (state.audioFeatures.stereoImage === null) {
+    const label = new PIXI.Text({
+      text: 'MISSING_STEREO_WIDTH',
+      style: { fill: 0x787184, fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace', fontSize: 11, letterSpacing: 1.4 },
+    });
+    label.x = cx - 88;
+    label.y = cy - 8;
+    app.stage.addChild(label);
+    return;
+  }
+  const stereo = safeValue(state.audioFeatures.stereoImage, 0);
 
   for (let i = 0; i < 64; i += 1) {
     const angle = (i / 64) * Math.PI * 2;
