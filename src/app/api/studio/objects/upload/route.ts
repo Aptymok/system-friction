@@ -60,10 +60,8 @@ export async function POST(request: Request) {
     if (stored.error) throw new StudioMultimodalError('PERSISTENCE_FAILED', stored.error.message, 503, { objectId: prepared.objectId });
 
     await completeStudioSignedUpload(prepared.objectId, user.id);
-    const analysis = await analyzeStudioObject(prepared.objectId, { requestedByUserId: user.id }).catch((error) => ({
-      ok: false,
-      ...toStudioMultimodalApiError(error),
-    }));
+    const analysis = await analyzeStudioObject(prepared.objectId, { requestedByUserId: user.id })
+      .catch((error) => toStudioMultimodalApiError(error));
 
     return NextResponse.json({
       ok: true,
