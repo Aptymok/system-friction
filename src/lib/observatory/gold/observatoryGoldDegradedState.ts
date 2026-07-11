@@ -1,25 +1,70 @@
 import type { ObservatoryGoldState } from './observatoryGoldState';
 
+const EMPTY_VECTORS: ObservatoryGoldState['vectors'] = [
+  ['cultural', 'Cultural', ['CULTURAL']],
+  ['memetic', 'Memético', ['MEMETIC']],
+  ['affective', 'Afectivo', ['AFFECTIVE']],
+  ['tech', 'Tecnológico', ['TECH']],
+  ['geo-digital', 'Geodigital', ['GEO_DIGITAL']],
+  ['economy', 'Económico', ['ECONOMY']],
+  ['geopolitical', 'Geopolítico', ['GEOPOLITICAL']],
+  ['institutional', 'Institucional', ['INSTITUTIONAL']],
+  ['climate', 'Climático', ['CLIMATE']],
+  ['bio', 'Biológico', ['BIO']],
+].map(([id, label, domainKeys]) => ({
+  id: String(id),
+  label: String(label),
+  domainKeys: domainKeys as string[],
+  active: false,
+  value: 0,
+  persistence: null,
+  volatility: null,
+  trust: null,
+  confidence: null,
+  sourceCount: 0,
+  observedAt: null,
+  sourceState: 'missing',
+  delta: null,
+  trend: 'unavailable' as const,
+}));
+
 export function buildObservatoryGoldDegradedState(params?: {
   generatedAt?: string;
   degradedSources?: string[];
   limits?: string[];
 }): ObservatoryGoldState {
   const generatedAt = params?.generatedAt ?? new Date().toISOString();
+  const limits = params?.limits ?? ['source_unavailable'];
 
   return {
     generatedAt,
     systemState: 'degraded',
+    publicContract: {
+      scope: 'PUBLIC',
+      institution: 'SYSTEM FRICTION INSTITUTE',
+      horizonDays: 90,
+      sourceState: 'missing',
+      observedAt: null,
+    },
     wsv: {
       globalIndex: 0,
       coherence: 0,
       resilience: 0,
       alignment: 0,
       tension: 0,
+      regime: 'SOURCE_UNAVAILABLE',
+    },
+    longitudinal: {
+      horizonDays: 90,
+      sampleCount: 0,
+      firstObservedAt: null,
+      lastObservedAt: null,
+      points: [],
+      deltas: { wsi: null, nti: null, confidence: null },
     },
     explanation: {
-      title: 'SOURCE_UNAVAILABLE',
-      body: 'WSV no puede calcularse con la evidencia disponible. El observatorio queda en modo degradado sin sustituir datos por valores simulados.',
+      title: 'FUENTE NO DISPONIBLE',
+      body: 'El World Vector no puede calcularse con la evidencia disponible. El observatorio permanece público en modo degradado y no sustituye observaciones por valores simulados.',
       methodologyAvailable: false,
     },
     highlightedSignals: [],
@@ -31,49 +76,32 @@ export function buildObservatoryGoldDegradedState(params?: {
     },
     dailyReading: {
       date: generatedAt,
-      title: 'Lectura no disponible',
-      summary: 'No hay lectura diaria con fuente suficiente. Se requiere snapshot WorldSpect o estado Observatory disponible.',
+      title: 'Lectura del día no disponible',
+      summary: 'No existe evidencia suficiente para emitir una lectura institucional del día.',
       tensionIndex: 0,
       stability: 'crítica',
       fullReadingUrl: null,
+      institution: 'SYSTEM FRICTION INSTITUTE',
+      byline: 'Lectura del día · System Friction Institute',
+      confidence: null,
+      sourceState: 'missing',
+      evidenceCount: 0,
+      evidence: [],
+      limits,
     },
-    vectors: [
-      { id: 'cultural', label: 'Cultural', active: false, value: 0 },
-      { id: 'tec', label: 'Tec', active: false, value: 0 },
-      { id: 'geo', label: 'Geopolitico', active: false, value: 0 },
-      { id: 'ambiental', label: 'Ambiental', active: false, value: 0 },
-      { id: 'eco', label: 'Economico', active: false, value: 0 },
-      { id: 'clima', label: 'Clima', active: false, value: 0 },
-      { id: 'pol', label: 'Politico', active: false, value: 0 },
-      { id: 'bio', label: 'Bio', active: false, value: 0 },
-    ],
+    vectors: EMPTY_VECTORS,
     worldTensions: [],
-    regionalTensions: [
-      { region: 'America del Norte', value: 0, trend: 'stable' },
-      { region: 'America Latina', value: 0, trend: 'stable' },
-      { region: 'Europa', value: 0, trend: 'stable' },
-      { region: 'Africa', value: 0, trend: 'stable' },
-      { region: 'Medio Oriente', value: 0, trend: 'stable' },
-      { region: 'Asia', value: 0, trend: 'stable' },
-      { region: 'Oceania', value: 0, trend: 'stable' },
-    ],
+    regionalTensions: [],
     mapFilters: {
       minimumIntensity: 0,
       tensionType: 'todas',
       region: 'todas',
     },
-    timeline: [
-      {
-        time: generatedAt.slice(11, 16),
-        title: 'SOURCE_UNAVAILABLE',
-        description: 'Sin eventos WorldSpect confirmados para la linea de tiempo.',
-        active: true,
-      },
-    ],
+    timeline: [],
     provenance: {
       basedOn: [],
       degradedSources: params?.degradedSources ?? ['observatory_gold_adapter'],
-      limits: params?.limits ?? ['source_unavailable'],
+      limits,
     },
   };
 }

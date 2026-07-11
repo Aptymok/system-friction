@@ -3,56 +3,74 @@ import { buildSfiWorldInterfaceState } from '@/lib/sfi/worldInterfaceState';
 import { getRecentWorldSpectSnapshots } from '@/lib/worldspect/snapshotStore';
 import { buildWorldSpectState } from '@/lib/worldspect/worldspectStateBuilder';
 import { readWorldSpectVectorSnapshot } from '@/lib/worldspect/vector-store';
-import type { ObservatoryGoldDomain, ObservatoryGoldState, ObservatoryGoldTrend } from './observatoryGoldState';
+import type { ObservatoryGoldState, ObservatoryGoldTrend } from './observatoryGoldState';
 import { buildObservatoryGoldDegradedState } from './observatoryGoldDegradedState';
 import { clamp01 } from '@/components/observatory/gold/visual/worldMapProjection';
 
 type Row = Record<string, unknown>;
 
-const DOMAIN_ANCHORS: Record<string, { lat: number; lon: number; label: string; goldDomain: ObservatoryGoldDomain }> = {
-  CULTURAL: { lat: 19.43, lon: -99.13, label: 'Cultural', goldDomain: 'cultural' },
-  MEMETIC: { lat: 34.05, lon: -118.24, label: 'Memetico', goldDomain: 'cultural' },
-  AFFECTIVE: { lat: -23.55, lon: -46.63, label: 'Afectivo', goldDomain: 'soc' },
-  TECH: { lat: 37.77, lon: -122.42, label: 'Tec', goldDomain: 'tec' },
-  GEO_DIGITAL: { lat: 1.35, lon: 103.82, label: 'Geo Digital', goldDomain: 'tec' },
-  ECONOMY: { lat: 40.71, lon: -74.01, label: 'Economico', goldDomain: 'eco' },
-  GEOPOLITICAL: { lat: 50.45, lon: 30.52, label: 'Geopolitico', goldDomain: 'geo' },
-  INSTITUTIONAL: { lat: 50.85, lon: 4.35, label: 'Politico', goldDomain: 'pol' },
-  CLIMATE: { lat: 64.15, lon: -21.94, label: 'Clima', goldDomain: 'clima' },
-  BIO: { lat: -1.29, lon: 36.82, label: 'Bio', goldDomain: 'bio' },
+type VectorDefinition = {
+  id: string;
+  label: string;
+  domains: string[];
 };
 
-const VECTOR_ORDER = [
-  ['cultural', 'Cultural', ['CULTURAL', 'MEMETIC', 'AFFECTIVE']],
-  ['tec', 'Tec', ['TECH', 'GEO_DIGITAL']],
-  ['geo', 'Geopolitico', ['GEOPOLITICAL']],
-  ['ambiental', 'Ambiental', ['CLIMATE', 'BIO']],
-  ['eco', 'Economico', ['ECONOMY']],
-  ['clima', 'Clima', ['CLIMATE']],
-  ['pol', 'Politico', ['INSTITUTIONAL']],
-  ['bio', 'Bio', ['BIO']],
-] as const;
+const PUBLIC_HORIZON_DAYS = 90;
+
+const VECTOR_DEFINITIONS: VectorDefinition[] = [
+  { id: 'cultural', label: 'Cultural', domains: ['CULTURAL'] },
+  { id: 'memetic', label: 'Memético', domains: ['MEMETIC'] },
+  { id: 'affective', label: 'Afectivo', domains: ['AFFECTIVE'] },
+  { id: 'tech', label: 'Tecnológico', domains: ['TECH'] },
+  { id: 'geo-digital', label: 'Geodigital', domains: ['GEO_DIGITAL'] },
+  { id: 'economy', label: 'Económico', domains: ['ECONOMY'] },
+  { id: 'geopolitical', label: 'Geopolítico', domains: ['GEOPOLITICAL'] },
+  { id: 'institutional', label: 'Institucional', domains: ['INSTITUTIONAL'] },
+  { id: 'climate', label: 'Climático', domains: ['CLIMATE'] },
+  { id: 'bio', label: 'Biológico', domains: ['BIO'] },
+];
+
+const DOMAIN_LABELS: Record<string, string> = {
+  CULTURAL: 'Cultural',
+  MEMETIC: 'Memético',
+  AFFECTIVE: 'Afectivo',
+  TECH: 'Tecnológico',
+  GEO_DIGITAL: 'Geodigital',
+  ECONOMY: 'Económico',
+  GEOPOLITICAL: 'Geopolítico',
+  INSTITUTIONAL: 'Institucional',
+  CLIMATE: 'Climático',
+  BIO: 'Biológico',
+};
 
 function record(value: unknown): Row {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Row : {};
 }
 
 function rows(value: unknown): Row[] {
-  return Array.isArray(value) ? value.filter((item): item is Row => Boolean(item) && typeof item === 'object' && !Array.isArray(item)) : [];
+  return Array.isArray(value)
+    ? value.filter((item): item is Row => Boolean(item) && typeof item === 'object' && !Array.isArray(item))
+    : [];
 }
 
 function str(value: unknown, fallback = '') {
   return typeof value === 'string' && value.trim() ? value.trim() : fallback;
 }
 
-function num(value: unknown, fallback = 0) {
-  const parsed = Number(value ?? fallback);
-  return Number.isFinite(parsed) ? parsed : fallback;
+function numeric(value: unknown): number | null {
+  if (value === null || typeof value === 'undefined' || value === '') return null;
+  const parsed = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function normalizeNullable(value: unknown): number | null {
+  const parsed = numeric(value);
+  if (parsed === null) return null;
+  return clamp01(parsed > 1 ? parsed / 100 : parsed);
 }
 
 function normalize(value: unknown, fallback = 0) {
-  const parsed = num(value, fallback);
-  return parsed > 1 ? clamp01(parsed / 100) : clamp01(parsed);
+  return normalizeNullable(value) ?? clamp01(fallback);
 }
 
 function average(values: number[]) {
@@ -60,17 +78,31 @@ function average(values: number[]) {
   return valid.length ? valid.reduce((sum, value) => sum + value, 0) / valid.length : 0;
 }
 
+function averageNullable(values: Array<number | null>) {
+  const valid = values.filter((value): value is number => value !== null && Number.isFinite(value));
+  return valid.length ? average(valid) : null;
+}
+
 function round(value: number, digits = 3) {
   return Number(clamp01(value).toFixed(digits));
 }
 
-function trendFromDelta(current: number, previous: number): ObservatoryGoldTrend {
-  if (current - previous > 0.035) return 'up';
-  if (previous - current > 0.035) return 'down';
+function roundSigned(value: number, digits = 4) {
+  return Number(value.toFixed(digits));
+}
+
+function deltaBetween(first: number | null, last: number | null) {
+  return first === null || last === null ? null : roundSigned(last - first);
+}
+
+function trendFromDelta(delta: number | null): ObservatoryGoldTrend | 'unavailable' {
+  if (delta === null) return 'unavailable';
+  if (delta > 0.025) return 'up';
+  if (delta < -0.025) return 'down';
   return 'stable';
 }
 
-async function withSourceTimeout<T>(source: string, promise: Promise<T>, ms = 3600): Promise<T> {
+async function withSourceTimeout<T>(source: string, promise: Promise<T>, ms = 4200): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | null = null;
   try {
     return await Promise.race([
@@ -84,13 +116,69 @@ async function withSourceTimeout<T>(source: string, promise: Promise<T>, ms = 36
   }
 }
 
-function domainValue(vectors: Row[], domains: readonly string[]) {
-  const active = vectors.filter((vector) => domains.includes(str(vector.domain).toUpperCase()) && num(vector.source_count) > 0);
-  return round(average(active.map((vector) => normalize(vector.value))), 3);
+function sourceDomain(source: Row) {
+  const explicit = str(source.mihm_var).toUpperCase().replace(/[\s-]+/g, '_');
+  if (DOMAIN_LABELS[explicit]) return explicit;
+
+  const key = str(source.key).toLowerCase();
+  if (key.startsWith('cultural_')) return 'CULTURAL';
+  if (key.startsWith('memetic_')) return 'MEMETIC';
+  if (key.startsWith('affective_')) return 'AFFECTIVE';
+  if (key.startsWith('tech_')) return 'TECH';
+  if (key.startsWith('geo_digital_')) return 'GEO_DIGITAL';
+  if (key.startsWith('economy_')) return 'ECONOMY';
+  if (key.startsWith('geopolitical_')) return 'GEOPOLITICAL';
+  if (key.startsWith('institutional_')) return 'INSTITUTIONAL';
+  if (key.startsWith('climate_')) return 'CLIMATE';
+  if (key.startsWith('bio_')) return 'BIO';
+
+  const text = `${key} ${str(source.label)}`.toLowerCase();
+  if (/meme|viral|attention|narrative/.test(text)) return 'MEMETIC';
+  if (/affect|sentiment|emotion|mood/.test(text)) return 'AFFECTIVE';
+  if (/music|culture|artist|media/.test(text)) return 'CULTURAL';
+  if (/geo.?digital|platform|network|traffic|search/.test(text)) return 'GEO_DIGITAL';
+  if (/tech|ai|model|compute|software|code/.test(text)) return 'TECH';
+  if (/market|econom|price|inflation|finance|gdp/.test(text)) return 'ECONOMY';
+  if (/war|geopolit|border|election/.test(text)) return 'GEOPOLITICAL';
+  if (/institution|governance|law|regulat/.test(text)) return 'INSTITUTIONAL';
+  if (/climate|weather|carbon|temperature|water/.test(text)) return 'CLIMATE';
+  if (/bio|health|medical|organism|species/.test(text)) return 'BIO';
+  return 'INSTITUTIONAL';
 }
 
-function domainVector(vectors: Row[], domain: string) {
-  return vectors.find((vector) => str(vector.domain).toUpperCase() === domain) ?? null;
+function usableSources(value: unknown) {
+  return rows(value).filter((source) => (
+    normalizeNullable(source.value) !== null
+    && source.simulated !== true
+    && !str(source.error)
+  ));
+}
+
+function snapshotDomainValue(snapshot: Row, domains: string[]) {
+  const values = usableSources(snapshot.sources)
+    .filter((source) => domains.includes(sourceDomain(source)))
+    .map((source) => normalizeNullable(source.value))
+    .filter((value): value is number => value !== null);
+  return values.length ? round(average(values), 4) : null;
+}
+
+function currentVectorRows(vectors: Row[], domains: string[]) {
+  return vectors.filter((vector) => domains.includes(str(vector.domain).toUpperCase()) && (numeric(vector.source_count) ?? 0) > 0);
+}
+
+function aggregateCurrentVector(vectors: Row[], domains: string[]) {
+  const active = currentVectorRows(vectors, domains);
+  const sourceCount = active.reduce((sum, vector) => sum + (numeric(vector.source_count) ?? 0), 0);
+  return {
+    value: active.length ? round(average(active.map((vector) => normalize(vector.value))), 4) : 0,
+    persistence: averageNullable(active.map((vector) => normalizeNullable(vector.persistence))),
+    volatility: averageNullable(active.map((vector) => normalizeNullable(vector.volatility))),
+    trust: averageNullable(active.map((vector) => normalizeNullable(vector.trust))),
+    confidence: averageNullable(active.map((vector) => normalizeNullable(vector.trust))),
+    sourceCount,
+    observedAt: active.map((vector) => str(vector.observed_at)).filter(Boolean).sort().at(-1) ?? null,
+    sourceState: active.length ? 'observed' : 'missing',
+  };
 }
 
 function stabilityFromTension(tension: number): ObservatoryGoldState['dailyReading']['stability'] {
@@ -115,76 +203,39 @@ function signalLabel(value: string) {
     .trim();
 }
 
-function domainToGold(value: string): ObservatoryGoldDomain {
+function goldDomain(value: string): ObservatoryGoldState['highlightedSignals'][number]['domain'] {
   const domain = value.toUpperCase();
-  if (/TECH|DIGITAL|AI|DATA/.test(domain)) return 'tec';
+  if (/TECH|DIGITAL/.test(domain)) return 'tec';
   if (/GEO/.test(domain)) return 'geo';
-  if (/ECON|MARKET|CAPITAL/.test(domain)) return 'eco';
-  if (/SOC|AFFECT|MEMETIC/.test(domain)) return 'soc';
-  if (/POL|INSTITUTION/.test(domain)) return 'pol';
+  if (/ECON/.test(domain)) return 'eco';
+  if (/AFFECT|MEMETIC/.test(domain)) return 'soc';
+  if (/INSTITUTION/.test(domain)) return 'pol';
   if (/BIO/.test(domain)) return 'bio';
   if (/CLIMATE/.test(domain)) return 'clima';
   return 'cultural';
 }
 
-function activeVectorCount(vectors: ObservatoryGoldState['vectors']) {
-  return vectors.filter((vector) => vector.active).length;
-}
-
-function buildNodes(vectors: Row[]) {
-  return vectors
-    .filter((vector) => num(vector.source_count) > 0)
-    .map((vector) => {
-      const domain = str(vector.domain).toUpperCase();
-      const anchor = DOMAIN_ANCHORS[domain] ?? { lat: 0, lon: 0, label: domain || 'WorldSpect', goldDomain: domainToGold(domain) };
-      return {
-        id: domain || str(vector.observed_at) || anchor.label,
-        label: anchor.label,
-        lat: anchor.lat,
-        lon: anchor.lon,
-        intensity: round(average([normalize(vector.value), normalize(vector.persistence), normalize(vector.trust)]), 3),
-        domain,
-      };
-    });
-}
-
-function buildFlows(nodes: ReturnType<typeof buildNodes>) {
-  return nodes
-    .slice()
-    .sort((a, b) => b.intensity - a.intensity)
-    .slice(0, 7)
-    .flatMap((node, index, list) => {
-      const next = list[index + 1];
-      if (!next) return [];
-      return {
-        fromLat: node.lat,
-        fromLon: node.lon,
-        toLat: next.lat,
-        toLon: next.lon,
-        intensity: round(average([node.intensity, next.intensity]), 3),
-        domain: `${node.domain}:${next.domain}`,
-      };
-    });
-}
-
-function buildTimeline(generatedAt: string, pressures: string[], snapshots: Row[]) {
-  const observed = snapshots
+function buildLongitudinalPoints(snapshots: Row[]): ObservatoryGoldState['longitudinal']['points'] {
+  return snapshots
     .map((snapshot) => ({
-      time: str(snapshot.observed_at).slice(11, 16) || str(snapshot.created_at).slice(11, 16),
-      title: str(snapshot.source_state, 'WorldSpect'),
-      description: `confidence ${normalize(snapshot.confidence).toFixed(2)} · WSI ${normalize(snapshot.wsi).toFixed(2)} · NTI ${normalize(snapshot.nti).toFixed(2)}`,
+      observedAt: str(snapshot.observed_at ?? snapshot.created_at),
+      wsi: normalizeNullable(snapshot.wsi),
+      nti: normalizeNullable(snapshot.nti),
+      confidence: normalizeNullable(snapshot.confidence),
+      sourceState: str(snapshot.source_state, 'unknown'),
+      ingestMode: str(snapshot.ingest_mode, 'unknown'),
     }))
-    .filter((item) => item.time)
-    .slice(-5);
+    .filter((point) => point.observedAt)
+    .sort((a, b) => a.observedAt.localeCompare(b.observedAt));
+}
 
-  const current = {
-    time: generatedAt.slice(11, 16),
-    title: 'Tiempo',
-    description: pressures[0] ? titleFromPressure(pressures[0]) : 'Sin presion dominante confirmada',
-    active: true,
-  };
-
-  return observed.length ? [...observed, current].slice(-7) : [current];
+function buildTimeline(points: ObservatoryGoldState['longitudinal']['points']) {
+  return points.slice(-8).map((point, index, list) => ({
+    time: point.observedAt.slice(5, 10),
+    title: point.sourceState.toUpperCase(),
+    description: `WSV ${point.wsi === null ? 'n/d' : point.wsi.toFixed(2)} · NTI ${point.nti === null ? 'n/d' : point.nti.toFixed(2)} · confianza ${point.confidence === null ? 'n/d' : point.confidence.toFixed(2)}`,
+    active: index === list.length - 1,
+  }));
 }
 
 export async function readObservatoryGoldState(): Promise<ObservatoryGoldState> {
@@ -209,7 +260,7 @@ export async function readObservatoryGoldState(): Promise<ObservatoryGoldState> 
         limits.push(error instanceof Error ? error.message : 'readWorldSpectVectorSnapshot_failed');
         return null;
       }),
-      withSourceTimeout('getRecentWorldSpectSnapshots', getRecentWorldSpectSnapshots({ days: 7, limit: 12 })).catch((error) => {
+      withSourceTimeout('getRecentWorldSpectSnapshots', getRecentWorldSpectSnapshots({ days: PUBLIC_HORIZON_DAYS, limit: 120 })).catch((error) => {
         degradedSources.push('getRecentWorldSpectSnapshots');
         limits.push(error instanceof Error ? error.message : 'getRecentWorldSpectSnapshots_failed');
         return [];
@@ -217,7 +268,7 @@ export async function readObservatoryGoldState(): Promise<ObservatoryGoldState> 
     ]);
 
     const interpretation = worldInterface
-      ? await withSourceTimeout('buildWorldInterpretation', buildWorldInterpretation(worldInterface), 4200).catch((error) => {
+      ? await withSourceTimeout('buildWorldInterpretation', buildWorldInterpretation(worldInterface), 4800).catch((error) => {
           degradedSources.push('buildWorldInterpretation');
           limits.push(error instanceof Error ? error.message : 'buildWorldInterpretation_failed');
           return null;
@@ -226,12 +277,22 @@ export async function readObservatoryGoldState(): Promise<ObservatoryGoldState> 
 
     const snapshot = record(vectorResult?.snapshot);
     const vectorsRaw = rows(snapshot.vectors);
-    const activeVectorsRaw = vectorsRaw.filter((vector) => num(vector.source_count) > 0);
+    const activeVectorsRaw = vectorsRaw.filter((vector) => (numeric(vector.source_count) ?? 0) > 0);
+    const snapshots = recentSnapshots.map((item) => record(item));
+    const longitudinalPoints = buildLongitudinalPoints(snapshots);
+    const firstPoint = longitudinalPoints[0] ?? null;
+    const lastPoint = longitudinalPoints.at(-1) ?? null;
+
     const globalIndex = round(normalize(worldInterface?.coreIndicators.wsv.value ?? snapshot.wsi), 3);
     const coherence = round(normalize(worldInterface?.coreIndicators.ihg.value ?? worldSpect?.confidence), 3);
-    const resilience = round(average([normalize(snapshot.sourceCoverage), normalize(worldSpect?.confidence), 1 - normalize(snapshot.nti)]), 3);
+    const resilience = round(average([
+      normalize(snapshot.sourceCoverage),
+      normalize(worldSpect?.confidence),
+      1 - normalize(snapshot.nti),
+    ]), 3);
     const alignment = round(average([globalIndex, coherence, resilience]), 3);
     const tension = round(normalize(worldInterface?.coreIndicators.nti.value ?? snapshot.nti), 3);
+    const regime = str(snapshot.regime, tension >= 0.7 ? 'CRITICAL' : tension >= 0.42 ? 'TENSION' : 'LOW');
 
     if (!worldInterface) degradedSources.push('sfi_world_interface_state');
     if (!worldSpect || worldSpect.source_state !== 'observed') degradedSources.push('worldspect_state');
@@ -239,101 +300,168 @@ export async function readObservatoryGoldState(): Promise<ObservatoryGoldState> 
       degradedSources.push('worldspect_vector_snapshot');
       limits.push('worldspect vector snapshot inactive or bootstrapped');
     }
-    if (!recentSnapshots.length) limits.push('worldspect_recent_snapshots_unavailable');
+    if (!longitudinalPoints.length) limits.push('worldspect_recent_snapshots_unavailable');
+
+    limits.push('regional or geographic claims are not displayed without source-level regional metadata');
+    limits.push('the daily reading is an institutional interpretation of observed signals, not a forecast');
+
+    const vectors: ObservatoryGoldState['vectors'] = VECTOR_DEFINITIONS.map((definition) => {
+      const current = aggregateCurrentVector(vectorsRaw, definition.domains);
+      const history = snapshots
+        .map((item) => ({ observedAt: str(item.observed_at ?? item.created_at), value: snapshotDomainValue(item, definition.domains) }))
+        .filter((item): item is { observedAt: string; value: number } => Boolean(item.observedAt) && item.value !== null);
+      const delta = history.length > 1 ? deltaBetween(history[0].value, history.at(-1)?.value ?? null) : null;
+      return {
+        id: definition.id,
+        label: definition.label,
+        domainKeys: definition.domains,
+        active: current.sourceCount > 0,
+        value: current.value,
+        persistence: current.persistence === null ? null : round(current.persistence, 4),
+        volatility: current.volatility === null ? null : round(current.volatility, 4),
+        trust: current.trust === null ? null : round(current.trust, 4),
+        confidence: current.confidence === null ? null : round(current.confidence, 4),
+        sourceCount: current.sourceCount,
+        observedAt: current.observedAt,
+        sourceState: current.sourceState,
+        delta,
+        trend: trendFromDelta(delta),
+      };
+    });
 
     const pressures = worldSpect?.dominant_external_pressures ?? [];
-    const signals = pressures.slice(0, 5).map((pressure, index) => {
+    const pressureSignals = pressures.slice(0, 5).map((pressure, index) => {
       const domain = pressure.split(':')[0] ?? 'WORLD';
       const match = pressure.match(/value=([0-9.]+)/);
       return {
         time: generatedAt.slice(11, 16),
         label: signalLabel(pressure) || titleFromPressure(pressure),
-        domain: domainToGold(domain),
+        domain: goldDomain(domain),
         intensity: round(normalize(match?.[1] ?? activeVectorsRaw[index]?.value), 3),
       };
     });
 
-    const nodes = buildNodes(vectorsRaw);
-    const flows = buildFlows(nodes);
-    const values = nodes.map((node) => node.intensity);
-    if (!nodes.length) limits.push('global map has no active geolocated WorldSpect nodes; no crisis nodes synthesized');
-    limits.push('map node coordinates are deterministic domain anchors, not claims about geopolitical event locations');
-    limits.push('regional tension values require regionalized source metadata; unavailable regions remain zero');
-
-    const vectors = VECTOR_ORDER.map(([id, label, domains]) => {
-      const value = domainValue(vectorsRaw, domains);
-      return { id, label, active: value > 0, value };
-    });
-
-    const tensions = activeVectorsRaw
-      .map((vector) => {
-        const domain = str(vector.domain).toUpperCase();
-        const value = round(average([normalize(vector.value), normalize(vector.volatility), normalize(vector.persistence), 1 - normalize(vector.trust)]), 3);
-        return { label: DOMAIN_ANCHORS[domain]?.label ?? domain.replace(/_/g, ' '), value, domain };
-      })
+    const fallbackSignals = vectors
+      .filter((vector) => vector.active)
       .sort((a, b) => b.value - a.value)
       .slice(0, 5)
+      .map((vector) => ({
+        time: generatedAt.slice(11, 16),
+        label: `${vector.label} · ${vector.sourceCount} fuentes observadas`,
+        domain: goldDomain(vector.domainKeys[0]),
+        intensity: vector.value,
+      }));
+
+    const worldTensions = activeVectorsRaw
+      .map((vector) => {
+        const domain = str(vector.domain).toUpperCase();
+        const value = round(average([
+          normalize(vector.value),
+          normalize(vector.volatility),
+          normalize(vector.persistence),
+          1 - normalize(vector.trust),
+        ]), 3);
+        return { label: DOMAIN_LABELS[domain] ?? domain.replace(/_/g, ' '), value, domain };
+      })
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 7)
       .map((item, index) => ({ rank: index + 1, ...item }));
 
-    const regionalTensions: ObservatoryGoldState['regionalTensions'] = [
-      { region: 'America del Norte', value: 0, trend: 'stable' },
-      { region: 'America Latina', value: 0, trend: 'stable' },
-      { region: 'Europa', value: 0, trend: 'stable' },
-      { region: 'Africa', value: 0, trend: 'stable' },
-      { region: 'Medio Oriente', value: 0, trend: 'stable' },
-      { region: 'Asia', value: 0, trend: 'stable' },
-      { region: 'Oceania', value: 0, trend: 'stable' },
+    const sourceCount = vectors.reduce((sum, vector) => sum + vector.sourceCount, 0);
+    const activeCount = vectors.filter((vector) => vector.active).length;
+    const observedAt = str(worldSpect?.observed_at ?? snapshot.observed_at, '') || null;
+    const sourceState = str(worldSpect?.source_state, vectorResult?.status === 'ACTIVE' ? 'observed' : 'degraded');
+    const dailyConfidence = normalizeNullable(worldSpect?.confidence ?? snapshot.sourceCoverage);
+    const dominantVector = vectors.filter((vector) => vector.active).sort((a, b) => b.value - a.value)[0] ?? null;
+    const readingTitle = pressures[0]
+      ? titleFromPressure(pressures[0])
+      : dominantVector
+        ? `${dominantVector.label} concentra la mayor presión observable`
+        : 'Lectura WorldSpect';
+
+    const evidence = [
+      `${activeCount} de ${vectors.length} vectores con fuentes activas`,
+      `${sourceCount} fuentes utilizables en el snapshot actual`,
+      `${longitudinalPoints.length} observaciones persistidas dentro de ${PUBLIC_HORIZON_DAYS} días`,
+      ...worldTensions.slice(0, 3).map((item) => `${item.label}: tensión ${item.value.toFixed(3)}`),
     ];
 
     const state: ObservatoryGoldState = {
       generatedAt,
       systemState: !worldInterface && !vectorResult
         ? 'offline'
-        : degradedSources.length || limits.length
+        : degradedSources.length
           ? 'degraded'
           : tension >= 0.78
             ? 'critical'
             : 'nominal',
+      publicContract: {
+        scope: 'PUBLIC',
+        institution: 'SYSTEM FRICTION INSTITUTE',
+        horizonDays: PUBLIC_HORIZON_DAYS,
+        sourceState,
+        observedAt,
+      },
       wsv: {
         globalIndex,
         coherence,
         resilience,
         alignment,
         tension,
+        regime,
+      },
+      longitudinal: {
+        horizonDays: PUBLIC_HORIZON_DAYS,
+        sampleCount: longitudinalPoints.length,
+        firstObservedAt: firstPoint?.observedAt ?? null,
+        lastObservedAt: lastPoint?.observedAt ?? null,
+        points: longitudinalPoints,
+        deltas: {
+          wsi: deltaBetween(firstPoint?.wsi ?? null, lastPoint?.wsi ?? null),
+          nti: deltaBetween(firstPoint?.nti ?? null, lastPoint?.nti ?? null),
+          confidence: deltaBetween(firstPoint?.confidence ?? null, lastPoint?.confidence ?? null),
+        },
       },
       explanation: {
-        title: '¿QUE SIGNIFICA ESTO?',
+        title: 'QUÉ MIDE EL WORLD VECTOR',
         body: worldSpect?.relevance_to_sfi
-          || 'WSV mide salud sistemica del mundo a traves de vectores observables. Sin fuente suficiente, la lectura queda degradada.',
-        methodologyAvailable: Boolean(worldSpect?.observed_at || worldInterface),
+          || 'El World Vector condensa presión, coherencia, resiliencia, alineación y tensión a partir de señales observables. La ausencia de fuente se conserva como ausencia.',
+        methodologyAvailable: Boolean(observedAt || worldInterface),
       },
-      highlightedSignals: signals,
+      highlightedSignals: pressureSignals.length ? pressureSignals : fallbackSignals,
       globalMap: {
-        tensionIntensityMin: values.length ? round(Math.min(...values), 3) : 0,
-        tensionIntensityMax: values.length ? round(Math.max(...values), 3) : 0,
-        nodes,
-        flows,
+        tensionIntensityMin: 0,
+        tensionIntensityMax: 0,
+        nodes: [],
+        flows: [],
       },
       dailyReading: {
-        date: worldSpect?.observed_at ?? generatedAt,
-        title: pressures[0] ? titleFromPressure(pressures[0]) : 'Lectura WorldSpect',
-        summary: interpretation?.text ?? worldSpect?.relevance_to_sfi ?? 'Sin lectura diaria con fuente suficiente.',
+        date: observedAt ?? generatedAt,
+        title: readingTitle,
+        summary: interpretation?.text ?? worldSpect?.relevance_to_sfi ?? 'No existe una interpretación diaria con fuente suficiente.',
         tensionIndex: tension,
         stability: stabilityFromTension(tension),
         fullReadingUrl: '/world-vector',
+        institution: 'SYSTEM FRICTION INSTITUTE',
+        byline: 'Lectura del día · System Friction Institute',
+        confidence: dailyConfidence,
+        sourceState,
+        evidenceCount: sourceCount + longitudinalPoints.length,
+        evidence,
+        limits: Array.from(new Set(limits)),
       },
       vectors,
-      worldTensions: tensions,
-      regionalTensions,
+      worldTensions,
+      regionalTensions: [],
       mapFilters: {
-        minimumIntensity: 0.4,
+        minimumIntensity: 0,
         tensionType: 'todas',
         region: 'todas',
       },
-      timeline: buildTimeline(generatedAt, pressures, recentSnapshots.map(record)),
+      timeline: buildTimeline(longitudinalPoints),
       provenance: {
         basedOn: [
-          '/api/observatory/state',
+          'worldspect_snapshots',
           'buildSfiWorldInterfaceState',
           'buildWorldInterpretation',
           'buildWorldSpectState',
@@ -345,8 +473,8 @@ export async function readObservatoryGoldState(): Promise<ObservatoryGoldState> 
       },
     };
 
-    if (activeVectorCount(state.vectors) === 0) {
-      state.provenance.limits.push('WSV cannot be calculated from active vectors; UI shows empty numeric state');
+    if (activeCount === 0) {
+      state.provenance.limits.push('World Vector unavailable: no canonical domain has active usable sources');
     }
 
     return state;
