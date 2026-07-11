@@ -1,0 +1,50 @@
+name: PR99 Numeric Metric Selector Fix
+
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - synchronize
+      - reopened
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.head_ref == 'codex/studio-multimodal-ingestion' && github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: codex/studio-multimodal-ingestion
+      - name: Patch numeric metric selector
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('src/lib/studio/production/studioProductionAdapter.ts')
+          text = path.read_text(encoding='utf-8')
+          old = """function metricNumber(metrics: StudioFeatureMetric[], key: string) {
+            return metrics.find((item) => item.id === key)?.value ?? null;
+          }"""
+          new = """function metricNumber(metrics: StudioFeatureMetric[], key: string): number | null {
+            const value = metrics.find((item) => item.id === key)?.value ?? null;
+            return typeof value === 'number' ? value : null;
+          }"""
+          if new not in text:
+              if old not in text:
+                  raise SystemExit('metricNumber source block not found')
+              path.write_text(text.replace(old, new, 1), encoding='utf-8')
+          PY
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/lib/studio/production/studioProductionAdapter.ts
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m "fix(studio): narrow numeric feature consumers"
+          git push origin HEAD:codex/studio-multimodal-ingestion
