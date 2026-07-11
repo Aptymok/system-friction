@@ -8,7 +8,7 @@ export const runtime = 'nodejs';
 const FILTERS = new Set<NeuralGraphFilter>(['evidence', 'signal', 'prospect', 'hypothesis', 'prediction', 'outcome', 'report', 'atlas', 'moph', 'world_vector', 'amv']);
 
 export async function POST(request: Request) {
-  const gate = await requireRootActor('agentic.neural_graph');
+  const gate = await requireRootActor('agentic.neural_graph.read');
   if (!gate.ok) return NextResponse.json(gate.body, { status: gate.status });
 
   const body = await request.json().catch(() => ({})) as Record<string, unknown>;

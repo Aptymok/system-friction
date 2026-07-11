@@ -1,6 +1,7 @@
 import { appendEpistemicEvent } from '@/lib/events/eventStore';
 import { getServerUserContext } from '@/lib/server/productionBackend';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
+import { redirect } from 'next/navigation';
 
 export type RootGate = Awaited<ReturnType<typeof requireRootActor>>;
 
@@ -17,6 +18,13 @@ export async function requireRootActor(action: string) {
   if (!ctx.user) return { ok: false as const, status: 401, body: { ok: false, error: 'Unauthorized' } };
   if (!ctx.isRoot) return { ok: false as const, status: 403, body: { ok: false, error: 'root_required' } };
   return { ok: true as const, ctx, action };
+}
+
+export async function requireFounderPage(pathname: string) {
+  const ctx = await getServerUserContext();
+  if (!ctx.user) redirect(`/login?next=${encodeURIComponent(pathname)}`);
+  if (!ctx.isRoot) redirect('/unauthorized');
+  return ctx;
 }
 
 // perf: suppress read-time audit and epistemic writes.
