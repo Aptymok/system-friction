@@ -309,6 +309,7 @@ function objectFrom(row: Row | null, session: StudioProductionSession): StudioPr
 function metricsFromFeatureRows(rows: Row[]): StudioFeatureMetric[] {
   return rows.map((row) => {
     const numeric = asNumber(row.numeric_value);
+    const payload = asRecord(row.payload);
     const key = asString(row.feature_key, asString(row.id, 'feature')) ?? 'feature';
     return {
       id: key,
@@ -316,7 +317,7 @@ function metricsFromFeatureRows(rows: Row[]): StudioFeatureMetric[] {
       value: numeric,
       unit: asString(row.unit),
       source: asString(row.source, 'studio_object_features'),
-      status: numeric === null ? 'MISSING' as const : 'OBSERVED' as const,
+      status: (asString(payload.status) as MetricStatus) || (numeric === null ? 'MISSING' as const : 'OBSERVED' as const),
       confidence: clampConfidence(row.confidence ?? (numeric === null ? 0 : 1)),
       explanation: asString(asRecord(row.payload).explanation, 'Persisted Studio object feature row.'),
       evidenceIds: [asString(row.id, key) ?? key],
@@ -325,26 +326,46 @@ function metricsFromFeatureRows(rows: Row[]): StudioFeatureMetric[] {
 }
 
 function layerInputsFromMetrics(metrics: StudioFeatureMetric[]): StudioLayerInput[] {
-  if (!metrics.some((metric) => metric.value !== null)) return [];
-  return metrics.slice(0, 5).map((metric, index) => {
-    const value = metric.value ?? 0;
-    return {
-      id: metric.id,
-      name: metric.label,
-      peak: value,
-      rms: value * 0.72,
-      clippingRisk: metric.id.includes('entropy') ? value : null,
-      dynamicRange: metric.id.includes('plasticity') ? value : null,
-      silenceStartSeconds: null,
-      silenceEndSeconds: null,
-      energySegments: Array.from({ length: 12 }, (_, segment) => Number(Math.max(0, Math.min(1, value * (0.72 + ((segment + index) % 5) * 0.07))).toFixed(3))),
-      structureNote: metric.source,
-    };
-  });
+  const realLayerMetrics = metrics.filter((metric) => metric.id.startsWith('layer_') || metric.id.startsWith('stem_'));
+  if (!realLayerMetrics.length) return [];
+  return realLayerMetrics.map((metric) => ({
+    id: metric.id,
+    name: metric.label,
+    peak: null,
+    rms: null,
+    clippingRisk: null,
+    dynamicRange: null,
+    silenceStartSeconds: null,
+    silenceEndSeconds: null,
+    energySegments: [],
+    structureNote: metric.source,
+  }));
 }
 
 function numberArray(value: unknown): number[] {
   return asArray(value).map((item) => asNumber(item)).filter((item): item is number => item !== null);
+}
+
+function waveformValues(value: unknown): number[] {
+  return asArray(value).map((item) => {
+    if (typeof item === 'number') return item;
+    const row = asRecord(item);
+    const min = asNumber(row.min);
+    const max = asNumber(row.max);
+    if (min === null || max === null) return null;
+    return Math.max(Math.abs(min), Math.abs(max));
+  }).filter((item): item is number => item !== null);
+}
+
+function energyValues(value: unknown): number[] {
+  return asArray(value).map((item) => {
+    if (typeof item === 'number') return item;
+    return asNumber(asRecord(item).rms);
+  }).filter((item): item is number => item !== null);
+}
+
+function metricNumber(metrics: StudioFeatureMetric[], key: string) {
+  return metrics.find((item) => item.id === key)?.value ?? null;
 }
 
 function statusFromUpload(row: Row | null): MetricStatus {
@@ -513,6 +534,7 @@ function phaseStatesFromState(input: {
   const jobStatus = asString(latestJob?.status);
   const hasMetadata = Boolean(activeObject.mimeType || activeObject.sizeBytes !== null || activeObject.sourceUri);
   const hasFeatures = metrics.some((metric) => metric.value !== null);
+  const hasFeatureRows = metrics.length > 0;
   const hasHypotheses = Boolean(hypotheses?.hypotheses.length || stored.hypotheses.length);
   const hasIntervention = interventions.length > 0;
   const hasExports = exportsRows.length > 0;
@@ -524,7 +546,15 @@ function phaseStatesFromState(input: {
     phase({ key: 'object_received', label: 'OBJECT RECEIVED', status: activeObject.id ? 'OBSERVED' : 'MISSING', progress: activeObject.id ? 1 : null, completedAt: activeObject.uploadedAt, requirements: ['studio_object'] }),
     phase({ key: 'storage_verified', label: 'STORAGE VERIFIED', status: uploadStatus, progress: uploadStatus === 'OBSERVED' ? 1 : null, completedAt: asString(latest(stored.uploads)?.created_at), error: uploadStatus === 'FAILED' ? asString(latest(stored.uploads)?.status) : null, requirements: ['studio_uploads'] }),
     phase({ key: 'metadata_extracted', label: 'METADATA EXTRACTED', status: hasMetadata ? 'OBSERVED' : 'MISSING', progress: hasMetadata ? 1 : null, completedAt: activeObject.uploadedAt, requirements: ['mime_type', 'size_bytes', 'source_uri'] }),
-    phase({ key: 'feature_extraction', label: 'FEATURE EXTRACTION', status: hasFeatures ? 'COMPLETE' : jobStatus === 'failed' ? 'FAILED' : jobStatus === 'blocked' ? 'FAILED' : activeObject.id ? 'MISSING' : 'MISSING', progress: hasFeatures ? 1 : null, error: jobStatus === 'failed' || jobStatus === 'blocked' ? asString(latestJob?.reason, 'feature_extractors_not_connected') : null, nextAction: hasFeatures ? null : 'Run analysis job to record blocked or complete status.', requirements: ['studio_object_features'] }),
+    phase({
+      key: 'feature_extraction',
+      label: 'FEATURE EXTRACTION',
+      status: hasFeatures ? 'COMPLETE' : hasFeatureRows || jobStatus === 'complete' ? 'DEGRADED' : jobStatus === 'running' || jobStatus === 'queued' ? 'RUNNING' : jobStatus === 'failed' || jobStatus === 'blocked' ? 'FAILED' : 'MISSING',
+      progress: hasFeatures ? 1 : jobStatus === 'running' ? 0.5 : null,
+      error: jobStatus === 'failed' || jobStatus === 'blocked' ? asString(latestJob?.reason, 'feature_extractors_not_connected') : null,
+      nextAction: hasFeatures ? null : 'Run analysis job to record blocked or complete status.',
+      requirements: ['studio_object_features'],
+    }),
     phase({ key: 'mihm_evaluation', label: 'MIHM EVALUATION', status: activeObject.id ? 'DERIVED' : 'MISSING', progress: activeObject.id ? 1 : null, details: 'Existing Phase 1 MIHM formulas are read, not modified.', requirements: ['active_object'] }),
     phase({ key: 'cultural_vector', label: 'CULTURAL VECTOR', status: lens ? (lens.status === 'degraded' || lens.status === 'thin' ? 'DEGRADED' : 'DERIVED') : 'MISSING', progress: lens ? 1 : null, error: lens?.status === 'failed' ? lens.interpretation : null, requirements: ['world_vector', 'cultural_lens'] }),
     phase({ key: 'wsv_timing', label: 'WSV TIMING', status: lens ? (lens.status === 'degraded' || lens.status === 'thin' ? 'DEGRADED' : 'DERIVED') : 'MISSING', progress: lens ? 1 : null, details: lens ? 'Uses existing Studio cultural lens/WorldSpect snapshot adapter; not recalculated by render.' : null, requirements: ['worldspect_snapshots'] }),
@@ -674,12 +704,21 @@ export async function readStudioProductionState(): Promise<StudioProductionState
     const activeObject = objectFrom(stored.object, session);
     const uploadStatus = statusFromUpload(latest(stored.uploads));
     const metrics = metricsFromFeatureRows(stored.features);
+    const latestJob = latest(stored.jobs);
+    const latestJobStatus = asString(latestJob?.status);
     const readiness = activeObject.id ? readinessFromMetrics(metrics) : 'missing';
+    const observedFeatureCount = metrics.filter((metric) => metric.value !== null).length;
     const activeObjectWithStatus = {
       ...activeObject,
       readiness,
       storageStatus: uploadStatus,
-      analysisStatus: metrics.some((metric) => metric.value !== null) ? 'COMPLETE' as const : activeObject.analysisStatus,
+      analysisStatus: observedFeatureCount > 0
+        ? 'COMPLETE' as const
+        : latestJobStatus === 'running' || latestJobStatus === 'queued'
+          ? 'RUNNING' as const
+          : latestJobStatus === 'failed' || latestJobStatus === 'blocked'
+            ? 'FAILED' as const
+            : activeObject.analysisStatus,
     };
     const layers = metrics.map((metric) => ({
       id: metric.id,
@@ -772,10 +811,14 @@ export async function readStudioProductionState(): Promise<StudioProductionState
     }));
     const viewContracts = buildViewContracts({ activeObject: activeObjectWithStatus, metrics, lens, hypotheses, stored });
     const nextAction = buildNextAction(activeObjectWithStatus, metrics, stored);
+    const latestAudio = latest(stored.audio);
+    const waveform = waveformValues(latestAudio?.waveform);
+    const energySegments = energyValues(latestAudio?.energy_segments);
+    const hasOperationalGaps = !activeObjectWithStatus.id || !observedFeatureCount || stored.degraded.length > 0 || gold.systemState !== 'nominal';
 
     return {
       generatedAt,
-      systemState: stored.degraded.length || gold.systemState !== 'nominal' || !activeObjectWithStatus.id ? 'degraded' : 'nominal',
+      systemState: hasOperationalGaps ? 'degraded' : 'nominal',
       session,
       activeObject: activeObjectWithStatus,
       objectFeatures: {
@@ -792,18 +835,18 @@ export async function readStudioProductionState(): Promise<StudioProductionState
       fieldGraph: { nodes: fieldNodes, edges: fieldEdges },
       nextAction,
       audioFeatures: {
-        waveform: numberArray(asRecord(latest(stored.audio)?.payload).waveform).length ? numberArray(asRecord(latest(stored.audio)?.payload).waveform) : numberArray(latest(stored.audio)?.waveform),
-        rms: metrics.find((item) => item.id === 'rms')?.value ?? null,
-        peak: metrics.find((item) => item.id === 'peak')?.value ?? null,
-        clippingRisk: metrics.find((item) => item.id === 'clippingRisk')?.value ?? null,
-        dynamicRange: metrics.find((item) => item.id === 'dynamicRange')?.value ?? null,
-        lufs: metrics.find((item) => item.id === 'lufs')?.value ?? null,
-        spectralCentroid: metrics.find((item) => item.id === 'spectralCentroid')?.value ?? null,
-        frequencyBands: numberArray(latest(stored.audio)?.frequency_bands),
-        stereoImage: null,
+        waveform,
+        rms: metricNumber(metrics, 'rms_dbfs'),
+        peak: metricNumber(metrics, 'peak_dbfs'),
+        clippingRisk: metricNumber(metrics, 'clipping_risk'),
+        dynamicRange: metricNumber(metrics, 'dynamic_range_db'),
+        lufs: metricNumber(metrics, 'lufs_integrated'),
+        spectralCentroid: metricNumber(metrics, 'spectral_centroid_hz'),
+        frequencyBands: numberArray(latestAudio?.frequency_bands),
+        stereoImage: metricNumber(metrics, 'stereo_width'),
         silenceStartSeconds: null,
         silenceEndSeconds: null,
-        energySegments: numberArray(latest(stored.audio)?.energy_segments),
+        energySegments,
         stemCorrelation: hypotheses?.correlations.map((item) => ({ a: item.layerA, b: item.layerB, value: item.correlation })) ?? [],
       },
       videoFeatures: {
