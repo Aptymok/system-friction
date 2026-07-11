@@ -7,20 +7,21 @@ export function StudioHeader({ state, stage, onOpenIntake }: { state: StudioProd
   return (
     <header className="sfi-production__header">
       <div className="sfi-production__header-title">
-        <span>SYSTEM FRICTION INSTITUTE</span>
-        <strong>STUDIO · {stage}</strong>
-      </div>
-      <div className="sfi-production__header-object">
-        <span>OBJETO ACTIVO</span>
+        <span>SFI STUDIO · {state.session.status.toUpperCase()}</span>
         <strong>{state.activeObject.title}</strong>
         <small>{state.activeObject.type.toUpperCase()} · {state.activeObject.analysisStatus}</small>
       </div>
-      <div className="sfi-production__header-state">
-        <span>SISTEMA</span>
-        <strong>{state.systemState.toUpperCase()}</strong>
-        <em>{Math.round(confidence * 100)}% MAX CONF · {time} UTC</em>
+      <div className="sfi-production__header-center">
+        <span>SYSTEM FRICTION INSTITUTE</span>
+        <strong>STUDIO</strong>
+        <small>{stage} · OBJECT INTELLIGENCE ENVIRONMENT</small>
       </div>
-      <button type="button" onClick={onOpenIntake}>NUEVO OBJETO</button>
+      <div className="sfi-production__header-state">
+        <span>SYSTEM STATE</span>
+        <strong>{state.systemState.toUpperCase()} · {Math.round(confidence * 100)}% MAX CONF</strong>
+        <em>{time} UTC · {state.activeObject.readiness.toUpperCase()}</em>
+      </div>
+      <button type="button" onClick={onOpenIntake}>CARGAR OBJETO</button>
     </header>
   );
 }
