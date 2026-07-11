@@ -4,6 +4,7 @@ import { scorefrictionScope } from '../scopes/scorefriction/scorefrictionScope'
 import { clusterAtlasScope } from '../scopes/cluster-atlas/cluster-atlasScope'
 import { signalVaneScope } from '../scopes/signal-vane/signal-vaneScope'
 import { cognitiveTwinEngineScope } from '../scopes/cognitive-twin-engine/cognitive-twin-engineScope'
+import { predictiveEngineScope } from '../scopes/predictive-engine/predictive-engineScope'
 import type { AmvScopeDefinition } from '../core/amvTypes'
 import { getAmvInstrumentByScope } from './instrumentRegistry'
 
@@ -14,6 +15,7 @@ const AMV_SCOPES: Record<string, AmvScopeDefinition> = {
   [clusterAtlasScope.id]: clusterAtlasScope,
   [signalVaneScope.id]: signalVaneScope,
   [cognitiveTwinEngineScope.id]: cognitiveTwinEngineScope,
+  [predictiveEngineScope.id]: predictiveEngineScope,
 }
 
 export function getAmvScope(scope: string) {
