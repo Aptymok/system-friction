@@ -1,31 +1,18 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import type { MetricStatus, MetricValue, PhaseState, StudioFieldNode, StudioProductionState } from '@/lib/studio/production/studioProductionTypes';
-import { StudioEvaluationStrip } from './StudioEvaluationStrip';
-import { StudioFooterTransport } from './StudioFooterTransport';
+import type { MetricStatus, MetricValue, PhaseState, StudioProductionState } from '@/lib/studio/production/studioProductionTypes';
 import { StudioHeader } from './StudioHeader';
 import { StudioObjectIntake } from './StudioObjectIntake';
+import { StudioUnifiedIntelligence } from './StudioUnifiedIntelligence';
 import { StudioPixiStage } from './pixi/StudioPixiStage';
-import { StudioSidebar, type StudioProductionScreen } from './StudioSidebar';
-
-const STATUS_LABEL: Record<MetricStatus, string> = {
-  PENDING: 'PENDING',
-  RUNNING: 'RUNNING',
-  OBSERVED: 'OBSERVED',
-  DERIVED: 'DERIVED',
-  DEGRADED: 'DEGRADED',
-  MISSING: 'MISSING',
-  FAILED: 'FAILED',
-  COMPLETE: 'COMPLETE',
-  EXPERIMENTAL: 'EXPERIMENTAL',
-};
+import { StudioSidebar, studioProductionScreens, type StudioProductionScreen } from './StudioSidebar';
 
 function statusClass(status: MetricStatus) {
   return `is-${status.toLowerCase()}`;
 }
 
-function formatMetricValue(metric: MetricValue) {
+function formatValue(metric: MetricValue) {
   if (metric.value === null) return 'SIN DATO';
   if (typeof metric.value === 'number') return `${Number(metric.value.toFixed(3))}${metric.unit ? ` ${metric.unit}` : ''}`;
   return metric.unit ? `${metric.value} ${metric.unit}` : metric.value;
@@ -35,11 +22,11 @@ function metricByKey(state: StudioProductionState, key: string) {
   return state.metricValues.find((metric) => metric.key === key) ?? null;
 }
 
-function Panel({ title, children, action }: { title: string; children: React.ReactNode; action?: React.ReactNode }) {
+function Panel({ title, eyebrow, action, children, wide = false }: { title: string; eyebrow?: string; action?: React.ReactNode; children: React.ReactNode; wide?: boolean }) {
   return (
-    <section className="sfi-production__panel">
+    <section className={`sfi-production__panel${wide ? ' is-wide' : ''}`}>
       <header>
-        <span>{title}</span>
+        <div>{eyebrow ? <small>{eyebrow}</small> : null}<span>{title}</span></div>
         {action}
       </header>
       {children}
@@ -47,443 +34,193 @@ function Panel({ title, children, action }: { title: string; children: React.Rea
   );
 }
 
-function StatusPill({ status }: { status: MetricStatus }) {
-  return <b className={`sfi-production__status ${statusClass(status)}`}>{STATUS_LABEL[status]}</b>;
+function Status({ status }: { status: MetricStatus }) {
+  return <b className={`sfi-production__status ${statusClass(status)}`}>{status}</b>;
 }
 
-function MetricCard({ metric }: { metric: MetricValue }) {
+function MetricCard({ metric, compact = false }: { metric: MetricValue; compact?: boolean }) {
   return (
-    <article className={`sfi-production__metric-card ${statusClass(metric.status)}`}>
-      <div>
-        <span>{metric.label}</span>
-        <StatusPill status={metric.status} />
-      </div>
-      <strong>{formatMetricValue(metric)}</strong>
+    <article className={`sfi-production__metric-card ${statusClass(metric.status)}${compact ? ' is-compact' : ''}`}>
+      <div><span>{metric.label}</span><Status status={metric.status} /></div>
+      <strong>{formatValue(metric)}</strong>
       <p>{metric.explanation}</p>
-      <dl>
-        <dt>Source</dt>
-        <dd>{metric.source ?? 'NO_SOURCE'}</dd>
-        <dt>Confidence</dt>
-        <dd>{metric.status === 'MISSING' || metric.source === null ? 'UNKNOWN' : Number(metric.confidence.toFixed(3))}</dd>
-        <dt>Formula</dt>
-        <dd>{metric.formulaVersion ?? 'NO_FORMULA'}</dd>
-        <dt>Evidence</dt>
-        <dd>{metric.evidenceIds.length ? metric.evidenceIds.join(', ') : 'NO_EVIDENCE'}</dd>
-      </dl>
-      {metric.warnings.length ? <p className="sfi-production__warning">{metric.warnings.join(' / ')}</p> : null}
+      {!compact ? (
+        <details>
+          <summary>TRAZABILIDAD</summary>
+          <dl>
+            <dt>Source</dt><dd>{metric.source ?? 'NO_SOURCE'}</dd>
+            <dt>Confidence</dt><dd>{metric.source ? Number(metric.confidence.toFixed(3)) : 'UNKNOWN'}</dd>
+            <dt>Formula</dt><dd>{metric.formulaVersion ?? 'NO_FORMULA'}</dd>
+            <dt>Evidence</dt><dd>{metric.evidenceIds.join(', ') || 'NO_EVIDENCE'}</dd>
+          </dl>
+        </details>
+      ) : null}
     </article>
   );
 }
 
-function AudioPlayback({ state }: { state: StudioProductionState }) {
-  const canPlay = Boolean(state.activeObject.id && state.activeObject.type === 'music' && state.activeObject.storageStatus === 'OBSERVED');
-  if (!canPlay) {
-    return <p>Playback unavailable: an audio object with verified storage is required.</p>;
-  }
-
+function PhaseRail({ phases }: { phases: PhaseState[] }) {
   return (
-    <div className="sfi-production__audio-player">
-      <span>AUDIO PLAYBACK</span>
-      <audio controls preload="metadata" src={`/api/studio/objects/${encodeURIComponent(state.activeObject.id as string)}/audio`} />
-    </div>
-  );
-}
-
-function PhaseList({ phases }: { phases: PhaseState[] }) {
-  return (
-    <ol className="sfi-production__phase-list">
-      {phases.map((item) => (
-        <li key={item.key} className={statusClass(item.status)}>
-          <div>
-            <span>{item.label}</span>
-            <StatusPill status={item.status} />
-          </div>
-          <p>{item.details ?? item.error ?? item.nextAction ?? item.requirements.join(', ')}</p>
-          {item.progress !== null ? <i><b style={{ width: `${Math.round(item.progress * 100)}%` }} /></i> : null}
+    <ol className="sfi-production__phase-rail">
+      {phases.map((phase, index) => (
+        <li key={phase.key} className={statusClass(phase.status)}>
+          <span>{String(index + 1).padStart(2, '0')}</span>
+          <div><strong>{phase.label}</strong><p>{phase.details ?? phase.error ?? phase.nextAction ?? phase.requirements.join(', ')}</p></div>
+          <Status status={phase.status} />
         </li>
       ))}
     </ol>
   );
 }
 
-function EvidenceMatrix({ state }: { state: StudioProductionState }) {
-  const counts = state.metricValues.reduce<Record<MetricStatus, number>>((acc, metric) => {
-    acc[metric.status] += 1;
-    return acc;
-  }, {
-    PENDING: 0,
-    RUNNING: 0,
-    OBSERVED: 0,
-    DERIVED: 0,
-    DEGRADED: 0,
-    MISSING: 0,
-    FAILED: 0,
-    COMPLETE: 0,
-    EXPERIMENTAL: 0,
-  });
-
-  return (
-    <div className="sfi-production__evidence-matrix">
-      {(['OBSERVED', 'DERIVED', 'DEGRADED', 'MISSING', 'FAILED'] as MetricStatus[]).map((status) => (
-        <details key={status} open={status === 'MISSING' || status === 'OBSERVED'}>
-          <summary><span>{status}</span><strong>{counts[status]}</strong></summary>
-          {state.metricValues.filter((metric) => metric.status === status).map((metric) => (
-            <p key={metric.key}>{metric.label}: {metric.source ?? metric.explanation}</p>
-          ))}
-          {!state.metricValues.some((metric) => metric.status === status) ? <p>NO_ITEMS</p> : null}
-        </details>
-      ))}
-    </div>
-  );
+function AudioPlayer({ state }: { state: StudioProductionState }) {
+  const playable = Boolean(state.activeObject.id && state.activeObject.type === 'music' && state.activeObject.storageStatus === 'OBSERVED');
+  if (!playable) return <p className="sfi-production__muted">Playback requiere un objeto de audio persistido y autorizado.</p>;
+  return <audio controls preload="metadata" src={`/api/studio/objects/${encodeURIComponent(state.activeObject.id as string)}/audio`} />;
 }
 
-function NextAction({ state, onOpenIntake }: { state: StudioProductionState; onOpenIntake: () => void }) {
-  const [actionState, setActionState] = useState<'idle' | 'running' | 'complete' | 'failed'>('idle');
-  const [message, setMessage] = useState<string | null>(null);
-  const action = state.nextAction;
-
-  async function execute() {
-    if (!action.endpoint || action.method !== 'POST') return;
-    setActionState('running');
-    setMessage('Ejecutando accion contra endpoint POST real.');
-    const response = await fetch(action.endpoint, { method: 'POST' });
-    const body = await response.json().catch(() => null);
-    if (!response.ok || body?.ok === false) {
-      setActionState('failed');
-      setMessage(body?.details || body?.reason || body?.error || `HTTP_${response.status}`);
-      return;
-    }
-    setActionState('complete');
-    setMessage(body?.status || 'Accion completada.');
-  }
-
-  const canOpenIntake = action.code === 'UPLOAD_OBJECT';
-  const canExecute = Boolean(action.endpoint && action.method === 'POST' && !action.disabledReason);
-
+function ObjectStage({ state, onOpenIntake }: { state: StudioProductionState; onOpenIntake: () => void }) {
+  const objectExists = Boolean(state.activeObject.id);
   return (
-    <Panel title="NEXT ACTION">
-      <div className="sfi-production__next-action">
-        <strong>{action.action}</strong>
-        <p>{action.reason}</p>
-        <span>{action.requirement ?? 'NO_REQUIREMENT'}</span>
-        {canOpenIntake ? <button type="button" onClick={onOpenIntake}>CARGAR OBJETO</button> : null}
-        {canExecute ? <button type="button" onClick={execute} disabled={actionState === 'running'}>EJECUTAR ACCION</button> : null}
-        {!canOpenIntake && !canExecute ? <em>{action.disabledReason ?? action.code}</em> : null}
-        {message ? <p className={`sfi-production__action-result is-${actionState}`}>{message}</p> : null}
-      </div>
-    </Panel>
-  );
-}
-
-function ActiveObject({ state, onOpenIntake }: { state: StudioProductionState; onOpenIntake: () => void }) {
-  return (
-    <Panel title="ACTIVE OBJECT" action={<button type="button" onClick={onOpenIntake}>CARGAR</button>}>
-      <dl className="sfi-production__object-grid">
-        <dt>Title</dt><dd>{state.activeObject.title}</dd>
-        <dt>Type</dt><dd>{state.activeObject.type}</dd>
-        <dt>Source URI</dt><dd>{state.activeObject.sourceUri ?? 'MISSING'}</dd>
-        <dt>MIME</dt><dd>{state.activeObject.mimeType ?? 'MISSING'}</dd>
-        <dt>Size</dt><dd>{state.activeObject.sizeBytes === null ? 'MISSING' : `${state.activeObject.sizeBytes} bytes`}</dd>
-        <dt>Created</dt><dd>{state.activeObject.uploadedAt ?? 'MISSING'}</dd>
-        <dt>Session</dt><dd>{state.activeObject.sessionId ?? state.session.id ?? 'MISSING'}</dd>
-        <dt>Storage</dt><dd><StatusPill status={state.activeObject.storageStatus} /></dd>
-        <dt>Analysis</dt><dd><StatusPill status={state.activeObject.analysisStatus} /></dd>
-        <dt>Version</dt><dd>{state.activeObject.version ?? 'MISSING'}</dd>
-      </dl>
-      {state.activeObject.id ? (
-        <a href={`/api/studio/objects/${encodeURIComponent(state.activeObject.id)}/content`} target="_blank" rel="noreferrer">
-          OPEN PRIVATE OBJECT
-        </a>
-      ) : null}
-    </Panel>
-  );
-}
-
-function ExecutiveReading({ state }: { state: StudioProductionState }) {
-  const hasEvidence = state.evidence.length > 0 && state.metricValues.some((metric) => metric.status === 'OBSERVED' || metric.status === 'DERIVED');
-  const dominantHypothesis = state.fieldGraph.nodes.find((node) => node.type === 'hypothesis');
-  const cultural = metricByKey(state, 'cultural_resonance');
-  const mihm = metricByKey(state, 'mihm_activation');
-
-  if (!hasEvidence || !dominantHypothesis) {
-    return (
-      <Panel title="EXECUTIVE READING">
-        <p>No existe evidencia suficiente para generar lectura ejecutiva.</p>
-        <p>Limitaciones: {state.provenance.limits.join(' / ') || 'NO_LIMITS_DECLARED'}</p>
-      </Panel>
-    );
-  }
-
-  return (
-    <Panel title="EXECUTIVE READING">
-      <div className="sfi-production__reading">
-        <span>Tension principal</span><strong>{dominantHypothesis.label}</strong>
-        <span>Direccion observada</span><p>{cultural?.explanation ?? 'MISSING'}</p>
-        <span>Atractor declarado</span><p>{state.culturalLens?.dominantSignal ?? 'MISSING'}</p>
-        <span>Hipotesis dominante</span><p>{dominantHypothesis.explanation}</p>
-        <span>Confidence</span><p>{Number(Math.min(cultural?.confidence ?? 0, mihm?.confidence ?? 0).toFixed(3))}</p>
-        <span>Limitaciones</span><p>{state.provenance.limits.join(' / ') || 'NO_LIMITS_DECLARED'}</p>
-      </div>
-    </Panel>
-  );
-}
-
-function FieldGraphInspector({ state }: { state: StudioProductionState }) {
-  const [selectedId, setSelectedId] = useState<string | null>(state.fieldGraph.nodes[0]?.id ?? null);
-  const selected = state.fieldGraph.nodes.find((node) => node.id === selectedId) ?? null;
-
-  return (
-    <Panel title="FIELD NODE INSPECTOR">
-      <div className="sfi-production__node-layout">
-        <div className="sfi-production__node-list">
-          {state.fieldGraph.nodes.map((node) => (
-            <button key={node.id} type="button" className={node.id === selectedId ? 'is-active' : ''} onClick={() => setSelectedId(node.id)}>
-              {node.label}
-            </button>
-          ))}
-          {!state.fieldGraph.nodes.length ? <p>No renderable nodes: every node requires source, status, confidence and explanation.</p> : null}
+    <div className="sfi-production__stage">
+      <section className="sfi-production__object-hero">
+        <div>
+          <span>OBJETO ACTIVO</span>
+          <h1>{state.activeObject.title}</h1>
+          <p>{objectExists ? 'El objeto está conectado a almacenamiento, análisis, evidencia y proyección.' : 'No existe un objeto persistido en la sesión actual.'}</p>
+          <div className="sfi-production__hero-actions">
+            <button type="button" onClick={onOpenIntake}>{objectExists ? 'CARGAR OTRO OBJETO' : 'CARGAR OBJETO'}</button>
+            {state.activeObject.id ? <a href={`/api/studio/objects/${encodeURIComponent(state.activeObject.id)}/content`} target="_blank" rel="noreferrer">ABRIR ORIGINAL PRIVADO</a> : null}
+          </div>
         </div>
-        {selected ? (
-          <dl className="sfi-production__object-grid">
-            <dt>Label</dt><dd>{selected.label}</dd>
-            <dt>Type</dt><dd>{selected.type}</dd>
-            <dt>Value</dt><dd>{selected.value ?? 'MISSING'}</dd>
-            <dt>Status</dt><dd><StatusPill status={selected.status} /></dd>
-            <dt>Source</dt><dd>{selected.source ?? 'NO_SOURCE'}</dd>
-            <dt>Formula</dt><dd>{selected.formulaVersion ?? 'NO_FORMULA'}</dd>
-            <dt>Confidence</dt><dd>{selected.status === 'MISSING' || selected.source === null ? 'UNKNOWN' : Number(selected.confidence.toFixed(3))}</dd>
-            <dt>Explanation</dt><dd>{selected.explanation}</dd>
-            <dt>Evidence IDs</dt><dd>{selected.evidenceIds.join(', ') || 'NO_EVIDENCE'}</dd>
-          </dl>
-        ) : null}
-      </div>
-    </Panel>
-  );
-}
-
-function Overview({ state, onOpenIntake }: { state: StudioProductionState; onOpenIntake: () => void }) {
-  return (
-    <div className="sfi-production__module">
-      <div className="sfi-production__overview-grid">
-        <ActiveObject state={state} onOpenIntake={onOpenIntake} />
-        <Panel title="PIPELINE REAL"><PhaseList phases={state.phaseStates} /></Panel>
-        <Panel title="EVIDENCE MATRIX"><EvidenceMatrix state={state} /></Panel>
-        <ExecutiveReading state={state} />
-        <NextAction state={state} onOpenIntake={onOpenIntake} />
-      </div>
-      <section className="sfi-production__field-panel">
-        <header><span>VISUAL FIELD</span><strong>OBSERVED / DERIVED NODES ONLY</strong></header>
-        <StudioPixiStage state={state} variant="overview" label="Studio overview field" />
+        <div className="sfi-production__object-orbit">
+          <StudioPixiStage state={state} variant="overview" label="Object state field" />
+        </div>
       </section>
-      <FieldGraphInspector state={state} />
-    </div>
-  );
-}
 
-function Measure({ state }: { state: StudioProductionState }) {
-  const technicalKeys = ['rms_dbfs', 'peak_dbfs', 'clipping_risk', 'spectral_centroid_hz', 'dynamic_range_db', 'crest_factor_db', 'headroom_db'];
-  const technicalMetrics = technicalKeys.map((key) => metricByKey(state, key)).filter((metric): metric is MetricValue => Boolean(metric));
-  const hasAudioData = state.audioFeatures.waveform.length > 0 || technicalMetrics.some((metric) => metric.status !== 'MISSING');
+      <div className="sfi-production__grid-2">
+        <Panel title="IDENTIDAD" eyebrow="01 / REGISTRO">
+          <dl className="sfi-production__facts">
+            <dt>Tipo</dt><dd>{state.activeObject.type}</dd>
+            <dt>MIME</dt><dd>{state.activeObject.mimeType ?? 'MISSING'}</dd>
+            <dt>Tamaño</dt><dd>{state.activeObject.sizeBytes === null ? 'MISSING' : `${(state.activeObject.sizeBytes / 1024 / 1024).toFixed(2)} MB`}</dd>
+            <dt>Versión</dt><dd>{state.activeObject.version ?? 'MISSING'}</dd>
+            <dt>Session</dt><dd>{state.activeObject.sessionId ?? state.session.id ?? 'MISSING'}</dd>
+            <dt>Uploaded</dt><dd>{state.activeObject.uploadedAt ?? 'MISSING'}</dd>
+          </dl>
+        </Panel>
+        <Panel title="ESTADO OPERATIVO" eyebrow="02 / PIPELINE">
+          <div className="sfi-production__state-cards">
+            <div><span>Storage</span><Status status={state.activeObject.storageStatus} /></div>
+            <div><span>Analysis</span><Status status={state.activeObject.analysisStatus} /></div>
+            <div><span>Readiness</span><strong>{state.activeObject.readiness.toUpperCase()}</strong></div>
+            <div><span>System</span><strong>{state.systemState.toUpperCase()}</strong></div>
+          </div>
+          <AudioPlayer state={state} />
+        </Panel>
+      </div>
 
-  return (
-    <div className="sfi-production__module">
-      <Panel title="LIVE SIGNAL">
-        <AudioPlayback state={state} />
-        {hasAudioData ? <StudioPixiStage state={state} variant="waveform" label="Live signal waveform" /> : <p>No animar waveform: no hay audio analizable persistido ni buffer Web Audio activo.</p>}
-        <div className="sfi-production__metric-grid">
-          {technicalMetrics.length ? technicalMetrics.map((metric) => <MetricCard key={metric.key} metric={metric} />) : <MetricCard metric={{ key: 'live_signal_missing', label: 'Live Signal', value: null, unit: null, status: 'MISSING', source: null, evidenceIds: [], confidence: 0, observedAt: null, formulaVersion: null, warnings: ['AUDIO_EVIDENCE_REQUIRED'], explanation: 'No persisted audio features or active browser audio analysis are available.' }} />}
-        </div>
+      <Panel title="CICLO DEL OBJETO" eyebrow="03 / ESTADO REAL" wide>
+        <PhaseRail phases={state.phaseStates} />
       </Panel>
-      <Panel title="COMPOSITION">
-        <p>{state.timeCoordinateFeatures.placeLabel ? `Persisted ${state.timeCoordinateFeatures.placeLabel} marker at ${state.timeCoordinateFeatures.timeRange ?? 'MISSING_TIME_RANGE'}.` : 'Segmentation unavailable. Manual markers require a persistence endpoint before controls are shown.'}</p>
-        {state.textFeatures.motifs.map((item) => <p key={item}>{item}</p>)}
-      </Panel>
-      <Panel title="SOUND DESIGN">
-        <div className="sfi-production__metric-grid">
-          {['spectral_centroid_hz', 'spectral_rolloff_hz', 'spectral_flux', 'noise_floor_dbfs', 'dynamic_range_db', 'harmonic_stability', 'percussive_load', 'transient_density', 'stereo_width'].map((key) => metricByKey(state, key) ?? {
-            key,
-            label: key.replace(/_/g, ' ').toUpperCase(),
-            value: null,
-            unit: null,
-            status: 'MISSING' as MetricStatus,
-            source: null,
-            evidenceIds: [],
-            confidence: 0,
-            observedAt: null,
-            formulaVersion: null,
-            warnings: ['ACOUSTIC_FEATURE_REQUIRED'],
-            explanation: 'No persisted acoustic feature row exists for this value.',
-          }).map((metric) => <MetricCard key={metric.key} metric={metric} />)}
-        </div>
-      </Panel>
-      <Panel title="MASTERING TECHNICAL">
-        <div className="sfi-production__metric-grid">
-          {['lufs_integrated', 'true_peak_dbtp', 'loudness_range_lu', 'crest_factor_db', 'clipping_risk', 'headroom_db', 'stereo_width', 'tonal_balance'].map((key) => metricByKey(state, key) ?? {
-            key,
-            label: key.replace(/_/g, ' ').toUpperCase(),
-            value: null,
-            unit: null,
-            status: 'MISSING' as MetricStatus,
-            source: null,
-            evidenceIds: [],
-            confidence: 0,
-            observedAt: null,
-            formulaVersion: null,
-            warnings: ['MASTERING_FEATURE_REQUIRED'],
-            explanation: 'No persisted mastering technical feature row exists for this value.',
-          }).map((metric) => <MetricCard key={metric.key} metric={metric} />)}
+
+      <Panel title="SIGUIENTE ACCIÓN" eyebrow="04 / OPERACIÓN" wide action={state.nextAction.code === 'UPLOAD_OBJECT' ? <button type="button" onClick={onOpenIntake}>EJECUTAR</button> : null}>
+        <div className="sfi-production__next-action">
+          <strong>{state.nextAction.action}</strong>
+          <p>{state.nextAction.reason}</p>
+          <small>{state.nextAction.requirement ?? state.nextAction.disabledReason ?? state.nextAction.code}</small>
         </div>
       </Panel>
     </div>
   );
 }
 
-function Structure({ state }: { state: StudioProductionState }) {
+function ObservationStage({ state }: { state: StudioProductionState }) {
+  const preferred = ['rms_dbfs', 'peak_dbfs', 'dynamic_range_db', 'crest_factor_db', 'spectral_centroid_hz', 'spectral_flux', 'clipping_risk', 'stereo_width'];
+  const keyMetrics = preferred.map((key) => metricByKey(state, key)).filter((metric): metric is MetricValue => Boolean(metric));
+  const measured = state.metricValues.filter((metric) => metric.status === 'OBSERVED' || metric.status === 'DERIVED');
+  const missing = state.metricValues.filter((metric) => metric.status === 'MISSING' || metric.status === 'FAILED' || metric.status === 'DEGRADED');
+
   return (
-    <div className="sfi-production__module">
-      <Panel title="LAYERS">
-        <p>{state.objectFeatures.layers.length ? 'Persisted generic feature rows exist, but no stem/layer evidence is connected.' : 'MULTILAYER_EVIDENCE_REQUIRED'}</p>
-        <StatusPill status="MISSING" />
+    <div className="sfi-production__stage">
+      <section className="sfi-production__stage-intro"><span>02 / OBSERVACIÓN</span><h1>Lo que el objeto demuestra</h1><p>Features medidas y derivadas. La interfaz separa observación, inferencia y ausencia de evidencia.</p></section>
+      <Panel title="SEÑAL Y ESTRUCTURA TEMPORAL" eyebrow="OBJETO DECODIFICADO" wide>
+        <AudioPlayer state={state} />
+        {state.audioFeatures.waveform.length ? <StudioPixiStage state={state} variant="waveform" label="Persisted waveform and energy" /> : <p className="sfi-production__muted">No existe waveform persistido para esta modalidad.</p>}
+        <div className="sfi-production__observation-summary">
+          <span>{state.audioFeatures.waveform.length} PEAKS</span>
+          <span>{state.audioFeatures.energySegments.length} SEGMENTOS</span>
+          <span>{state.objectFeatures.graph.nodes.length} NODOS</span>
+          <span>{state.evidence.length} EVIDENCIAS</span>
+        </div>
       </Panel>
-      <Panel title="ARRANGEMENTS">
-        <p>{state.timeCoordinateFeatures.timeRange ? `Observed marker: ${state.timeCoordinateFeatures.placeLabel ?? 'marker'} / ${state.timeCoordinateFeatures.timeRange}` : 'Blocked until stems, layers, sections or events are persisted.'}</p>
-      </Panel>
-      <Panel title="MIX">
-        <p>No faders rendered: real channels are required for mute, solo, meter, masking, panorama, correlation and energy controls.</p>
-      </Panel>
-      <Panel title="WAVEFORM / ENERGY">
-        {state.audioFeatures.waveform.length ? <StudioPixiStage state={state} variant="waveform" label="Persisted waveform peaks" /> : <p>MISSING: waveform peaks require decoded audio evidence.</p>}
-        <p>{state.audioFeatures.energySegments.length ? `${state.audioFeatures.energySegments.length} energy segments persisted.` : 'MISSING: energy segments require decoded audio evidence.'}</p>
-      </Panel>
-      <Panel title="NEURAL GRAPH">
-        <FieldGraphInspector state={state} />
-      </Panel>
+
+      <div className="sfi-production__metric-grid">
+        {keyMetrics.map((metric) => <MetricCard key={metric.key} metric={metric} />)}
+        {!keyMetrics.length ? <div className="sfi-production__empty">No hay métricas principales persistidas para esta modalidad.</div> : null}
+      </div>
+
+      <div className="sfi-production__grid-2">
+        <Panel title="OBSERVADO / DERIVADO" eyebrow="COBERTURA DISPONIBLE">
+          <div className="sfi-production__compact-list">{measured.map((metric) => <MetricCard key={metric.key} metric={metric} compact />)}</div>
+        </Panel>
+        <Panel title="AUSENCIAS REALES" eyebrow="NO SIMULADO">
+          <div className="sfi-production__compact-list">{missing.map((metric) => <MetricCard key={metric.key} metric={metric} compact />)}</div>
+          {!missing.length ? <p className="sfi-production__muted">No existen métricas degradadas, faltantes o fallidas.</p> : null}
+        </Panel>
+      </div>
+
+      <details className="sfi-production__trace-drawer">
+        <summary>TRAZABILIDAD COMPLETA DEL OBJETO</summary>
+        <div className="sfi-production__trace-grid">
+          <div><span>Based on</span>{state.provenance.basedOn.map((item) => <p key={item}>{item}</p>)}</div>
+          <div><span>Derived from</span>{state.provenance.derivedFrom.map((item) => <p key={item}>{item}</p>)}</div>
+          <div><span>Limits</span>{state.provenance.limits.map((item) => <p key={item}>{item}</p>)}</div>
+        </div>
+      </details>
     </div>
   );
 }
 
-function Field({ state }: { state: StudioProductionState }) {
-  const internal = ['mihm_activation', 'feature_coverage'].map((key) => metricByKey(state, key)).filter((metric): metric is MetricValue => Boolean(metric));
-  const cultural = metricByKey(state, 'cultural_resonance');
-
+function SystemStage({ state, view }: { state: StudioProductionState; view: 'systemic' | 'projection' | 'decision' | 'return' }) {
+  const titles = {
+    systemic: ['03 / LECTURA SISTÉMICA', 'Qué significa dentro del campo'],
+    projection: ['04 / PROYECCIÓN', 'Qué podría ocurrir y durante cuánto tiempo'],
+    decision: ['05 / DECISIÓN', 'Qué conviene mover sin destruir el objeto'],
+    return: ['06 / RETORNO', 'Qué ocurrió, cuánto se equivocó y qué aprendió'],
+  } as const;
   return (
-    <div className="sfi-production__module">
-      <Panel title="INTERNAL SIGNAL">
-        <p>INTERNAL_SIGNAL_RANKING / NOT_EXTERNAL_PREDICTION / PROVISIONAL_NO_TRACEABILITY_NO_HISTORICAL_CALIBRATION</p>
-        <div className="sfi-production__metric-grid">{internal.map((metric) => <MetricCard key={metric.key} metric={metric} />)}</div>
-      </Panel>
-      <Panel title="CULTURAL FIELD">
-        <MetricCard metric={cultural ?? { key: 'cultural_resonance', label: 'Cultural Resonance', value: null, unit: null, status: 'MISSING', source: null, evidenceIds: [], confidence: 0, observedAt: null, formulaVersion: null, warnings: ['CULTURAL_VECTOR_REQUIRED'], explanation: 'Cultural Vector evidence is unavailable.' }} />
-      </Panel>
-      <Panel title="WORLD TIMING">
-        <dl className="sfi-production__object-grid">
-          <dt>Snapshot ID</dt><dd>MISSING</dd>
-          <dt>Observed At</dt><dd>{state.culturalLens?.observedAt ?? 'MISSING'}</dd>
-          <dt>Confidence</dt><dd>{state.culturalLens ? Number(state.culturalLens.confidence.toFixed(3)) : 'MISSING'}</dd>
-          <dt>Degraded Sources</dt><dd>{state.culturalLens?.warnings.join(', ') || 'MISSING'}</dd>
-          <dt>Regime</dt><dd>MISSING</dd>
-          <dt>Timing Fit</dt><dd>{state.culturalLens ? state.culturalLens.status.toUpperCase() : 'MISSING'}</dd>
-        </dl>
-      </Panel>
-      <Panel title="FIELD TENSIONS">
-        {state.fieldGraph.nodes.filter((node) => node.type === 'hypothesis').map((node) => <MetricCard key={node.id} metric={{ key: node.id, label: node.label, value: node.value, unit: null, status: node.status, source: node.source, evidenceIds: node.evidenceIds, confidence: node.confidence, observedAt: null, formulaVersion: node.formulaVersion, warnings: [], explanation: node.explanation }} />)}
-        {!state.fieldGraph.nodes.some((node) => node.type === 'hypothesis') ? <p>No tensions generated: relationships require MIHM, Cultural Vector, WSV, external evidence or declared attractor evidence.</p> : null}
-      </Panel>
-    </div>
-  );
-}
-
-function Intervention({ state }: { state: StudioProductionState }) {
-  const hypotheses = state.fieldGraph.nodes.filter((node) => node.type === 'hypothesis');
-  return (
-    <div className="sfi-production__module">
-      <Panel title="MINIMUM PERTURBATION">
-        {!hypotheses.length ? <p>No mostrar intervencion: no existe hipotesis activa.</p> : hypotheses.map((node) => <p key={node.id}>{node.explanation}</p>)}
-      </Panel>
-      <Panel title="CANDIDATE ACTIONS">
-        {state.interventions.length ? state.interventions.map((item) => <p key={item.id}>{item.title} / {item.state} / {item.source}</p>) : <p>NO_VERIFIED_INTERVENTION_QUEUE</p>}
-      </Panel>
-      <Panel title="SIMULATION">
-        <p>SIMULATION_NOT_AVAILABLE</p>
-        <p>El endpoint POST existe, pero declara `simulation_engine_not_connected`; no se muestra boton.</p>
-      </Panel>
-      <Panel title="VERIFICATION WINDOW">
-        <p>72 h, 7 d y 30 d se habilitan solo cuando una hipotesis persistida declara tipo y expectedSignal.</p>
-      </Panel>
-      <Panel title="OUTCOME REGISTRATION">
-        <p>Registrar outcome requiere endpoint de persistencia explicito. No se muestra control hasta que exista.</p>
-      </Panel>
-    </div>
-  );
-}
-
-function Memory({ state }: { state: StudioProductionState }) {
-  return (
-    <div className="sfi-production__module">
-      <Panel title="SESSIONS">
-        <table className="sfi-production__table">
-          <thead><tr><th>Session</th><th>Object</th><th>Date</th><th>Phase</th><th>Status</th><th>Evidence</th><th>Hypothesis</th><th>Intervention</th><th>Outcome</th><th>Confidence</th></tr></thead>
-          <tbody>
-            <tr>
-              <td>{state.session.id ?? 'MISSING'}</td>
-              <td>{state.activeObject.id ?? 'MISSING'}</td>
-              <td>{state.session.updatedAt ?? state.generatedAt}</td>
-              <td>{state.phaseStates.find((item) => item.status !== 'COMPLETE' && item.status !== 'OBSERVED')?.label ?? 'COMPLETE'}</td>
-              <td>{state.systemState}</td>
-              <td>{state.evidence.length}</td>
-              <td>{state.fieldGraph.nodes.filter((node) => node.type === 'hypothesis').length}</td>
-              <td>{state.interventions.length}</td>
-              <td>{state.archive.events.filter((event) => event.label.toLowerCase().includes('outcome')).length}</td>
-              <td>{Number(Math.max(...state.metricValues.map((metric) => metric.confidence), 0).toFixed(3))}</td>
-            </tr>
-          </tbody>
-        </table>
-      </Panel>
-      <Panel title="TIMELINE"><PhaseList phases={state.phaseStates} /></Panel>
-      <Panel title="ARCHIVES">
-        {state.archive.events.length ? state.archive.events.map((event) => <p key={event.id}>{event.time} / {event.label} / {event.source}</p>) : <p>NO_ARCHIVE_EVENTS</p>}
-      </Panel>
-      <Panel title="VERSIONS">
-        <p>{state.activeObject.version ? `Active version: ${state.activeObject.version}` : 'No comparable versions persisted for this object.'}</p>
-      </Panel>
-      <Panel title="DELIVERABLES">
-        {state.exports.packages.length ? state.exports.packages.map((item) => (
-          <p key={item.id}>{item.label} / {item.state} {item.url ? <a href={item.url}>DESCARGAR</a> : null}</p>
-        )) : <p>BLOCKED: no studio_exports rows. Generation buttons are hidden until real generation endpoints exist.</p>}
-      </Panel>
-      <Panel title="LEARNING">
-        <p>No ajustar pesos automaticamente: falta muestra minima definida y learning archive event.</p>
-      </Panel>
+    <div className="sfi-production__stage">
+      <section className="sfi-production__stage-intro"><span>{titles[view][0]}</span><h1>{titles[view][1]}</h1><p>La lectura conserva evidencia, incertidumbre, hipótesis y retorno. Ninguna recomendación equivale a ejecución automática.</p></section>
+      <StudioUnifiedIntelligence objectId={state.activeObject.id} view={view} />
     </div>
   );
 }
 
 function Screen({ active, state, onOpenIntake }: { active: StudioProductionScreen; state: StudioProductionState; onOpenIntake: () => void }) {
-  switch (active) {
-    case 'measure': return <Measure state={state} />;
-    case 'structure': return <Structure state={state} />;
-    case 'field': return <Field state={state} />;
-    case 'intervention': return <Intervention state={state} />;
-    case 'memory': return <Memory state={state} />;
-    case 'overview':
-    default:
-      return <Overview state={state} onOpenIntake={onOpenIntake} />;
-  }
+  if (active === 'object') return <ObjectStage state={state} onOpenIntake={onOpenIntake} />;
+  if (active === 'observation') return <ObservationStage state={state} />;
+  if (active === 'systemic') return <SystemStage state={state} view="systemic" />;
+  if (active === 'projection') return <SystemStage state={state} view="projection" />;
+  if (active === 'decision') return <SystemStage state={state} view="decision" />;
+  return <SystemStage state={state} view="return" />;
 }
 
 export function StudioProductionShell({ state }: { state: StudioProductionState }) {
-  const [active, setActive] = useState<StudioProductionScreen>('overview');
+  const [active, setActive] = useState<StudioProductionScreen>('object');
   const [intakeOpen, setIntakeOpen] = useState(false);
   const css = useMemo(() => productionCss, []);
+  const stage = studioProductionScreens.find((screen) => screen.id === active)?.label ?? 'STUDIO';
 
   return (
     <main className="sfi-production">
       <StudioSidebar active={active} onSelect={setActive} sessionStatus={state.session.status} />
       <section className="sfi-production__main">
-        <StudioHeader state={state} />
+        <StudioHeader state={state} stage={stage} onOpenIntake={() => setIntakeOpen(true)} />
         <Screen active={active} state={state} onOpenIntake={() => setIntakeOpen(true)} />
-        <StudioFooterTransport state={state} />
-        <StudioEvaluationStrip state={state} />
+        <footer className="sfi-production__footer">
+          <span>SFI STUDIO</span><strong>{state.activeObject.id ? state.activeObject.id.slice(0, 8) : 'NO OBJECT'}</strong><em>{state.generatedAt}</em>
+        </footer>
       </section>
       <StudioObjectIntake open={intakeOpen} onClose={() => setIntakeOpen(false)} />
       <style jsx global>{css}</style>
@@ -492,122 +229,182 @@ export function StudioProductionShell({ state }: { state: StudioProductionState 
 }
 
 const productionCss = `
+* { box-sizing: border-box; }
+body { margin: 0; background: #07070a; color: #f1f0f4; }
 .sfi-production {
-  --bg: #05020a;
-  --panel: rgba(12, 7, 18, .94);
-  --panel2: rgba(18, 9, 27, .96);
-  --line: rgba(154, 92, 255, .28);
-  --line2: rgba(69, 220, 235, .2);
-  --purple: #9d5cff;
-  --cyan: #45dceb;
-  --orange: #f59e42;
-  --green: #78e6a3;
-  --red: #ee5d70;
-  --missing: #787184;
-  --text: #efe8fb;
-  --muted: #9b8daa;
+  --bg: #07070a;
+  --panel: #101014;
+  --panel-2: #15151a;
+  --panel-3: #1a1a20;
+  --line: rgba(255,255,255,.09);
+  --line-strong: rgba(255,255,255,.16);
+  --text: #f1f0f4;
+  --muted: #94939d;
+  --violet: #9b7cff;
+  --cyan: #62d6e8;
+  --green: #6fd39b;
+  --orange: #e5a45f;
+  --red: #ed6d7d;
   min-height: 100vh;
   display: grid;
-  grid-template-columns: 220px minmax(0, 1fr);
-  gap: 10px;
-  padding: 10px;
-  background: radial-gradient(circle at 52% 32%, rgba(157,92,255,.14), transparent 38%), linear-gradient(135deg, #05020a, #0c0613 48%, #040208);
-  color: var(--text);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  grid-template-columns: 250px minmax(0, 1fr);
+  background: radial-gradient(circle at 72% -20%, rgba(155,124,255,.12), transparent 38%), var(--bg);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
-.sfi-production * { box-sizing: border-box; }
-.sfi-production button, .sfi-production a { border: 1px solid var(--line); background: rgba(157,92,255,.08); color: var(--text); text-decoration: none; font: 800 10px ui-monospace, monospace; letter-spacing: .08em; text-transform: uppercase; cursor: pointer; }
-.sfi-production button:disabled { cursor: not-allowed; opacity: .45; }
-.sfi-production__sidebar, .sfi-production__header, .sfi-production__panel, .sfi-production__field-panel, .sfi-production__transport, .sfi-production__evaluation-strip { border: 1px solid var(--line); background: linear-gradient(180deg, var(--panel2), var(--panel)); box-shadow: inset 0 0 36px rgba(157,92,255,.04); }
-.sfi-production__sidebar { display: grid; grid-template-rows: auto 1fr auto; min-height: calc(100vh - 20px); }
-.sfi-production__brand { display: flex; align-items: center; gap: 12px; padding: 18px; border-bottom: 1px solid var(--line); }
-.sfi-production__mark { width: 30px; height: 30px; border: 1px solid var(--purple); border-radius: 50%; box-shadow: 0 0 18px rgba(157,92,255,.3); }
-.sfi-production__brand strong { display: block; font-size: 20px; letter-spacing: .16em; }
-.sfi-production__brand em { display: block; color: var(--cyan); font-style: normal; font-size: 10px; letter-spacing: .26em; }
-.sfi-production__sidebar nav { display: grid; align-content: start; gap: 5px; padding: 12px; }
-.sfi-production__sidebar nav button { width: 100%; display: grid; grid-template-columns: 28px 1fr; gap: 10px; padding: 11px; text-align: left; color: var(--muted); }
-.sfi-production__sidebar nav button.is-active { border-color: var(--cyan); color: var(--cyan); background: rgba(69,220,235,.09); }
-.sfi-production__side-status { padding: 14px; border-top: 1px solid var(--line); }
-.sfi-production__side-status span, .sfi-production__panel header span, .sfi-production__field-panel header span, .sfi-production__transport span { color: var(--muted); font-size: 9px; letter-spacing: .15em; text-transform: uppercase; }
-.sfi-production__side-status strong { display: block; margin-top: 8px; color: var(--green); }
-.sfi-production__side-status p, .sfi-production__panel p, .sfi-production__panel dd, .sfi-production__panel td { color: var(--muted); font-size: 11px; line-height: 1.5; }
-.sfi-production__main { display: grid; grid-template-rows: auto minmax(0, 1fr) auto auto; gap: 10px; min-width: 0; }
-.sfi-production__header { display: grid; grid-template-columns: 1fr 1.2fr auto; gap: 16px; padding: 14px 18px; align-items: center; }
-.sfi-production__header span { display: block; color: var(--muted); font-size: 9px; letter-spacing: .16em; }
-.sfi-production__header strong { display: block; margin-top: 5px; color: var(--purple); font-size: 12px; letter-spacing: .12em; }
-.sfi-production__module { display: grid; gap: 10px; align-content: start; }
-.sfi-production__overview-grid { display: grid; grid-template-columns: minmax(260px, .9fr) minmax(360px, 1.4fr) minmax(260px, .9fr); gap: 10px; }
-.sfi-production__panel { min-height: 128px; padding: 14px; overflow: hidden; }
-.sfi-production__panel header, .sfi-production__field-panel header { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
-.sfi-production__panel header button, .sfi-production__panel header a { padding: 7px 9px; }
-.sfi-production__object-grid { display: grid; grid-template-columns: 130px minmax(0, 1fr); gap: 8px 12px; margin: 0; }
-.sfi-production__object-grid dt { color: var(--cyan); font-size: 10px; text-transform: uppercase; }
-.sfi-production__object-grid dd { margin: 0; overflow-wrap: anywhere; }
-.sfi-production__status { display: inline-block; border: 1px solid currentColor; padding: 3px 6px; font-size: 9px; color: var(--muted); }
+.sfi-production button, .sfi-production input, .sfi-production textarea, .sfi-production select { font: inherit; }
+.sfi-production button, .sfi-production a { transition: .18s ease; }
+.sfi-production button { cursor: pointer; }
+.sfi-production__sidebar { position: sticky; top: 0; height: 100vh; padding: 28px 18px; border-right: 1px solid var(--line); background: rgba(8,8,11,.96); display: flex; flex-direction: column; gap: 24px; z-index: 4; }
+.sfi-production__brand { display: flex; gap: 12px; align-items: center; }
+.sfi-production__mark { width: 34px; height: 34px; border: 1px solid var(--violet); border-radius: 50%; box-shadow: inset 0 0 0 8px rgba(155,124,255,.08); }
+.sfi-production__brand div { display: grid; }
+.sfi-production__brand strong { font-size: 19px; letter-spacing: .18em; }
+.sfi-production__brand em { color: var(--violet); font-style: normal; font-size: 10px; letter-spacing: .32em; }
+.sfi-production__side-kicker { margin: -12px 0 0; color: var(--muted); font-size: 9px; letter-spacing: .18em; }
+.sfi-production__sidebar nav { display: grid; gap: 6px; }
+.sfi-production__sidebar nav button { width: 100%; border: 1px solid transparent; border-radius: 12px; padding: 12px; color: var(--muted); background: transparent; display: grid; grid-template-columns: 30px 1fr; align-items: start; text-align: left; }
+.sfi-production__sidebar nav button > span { font-size: 10px; padding-top: 2px; }
+.sfi-production__sidebar nav button div { display: grid; gap: 4px; }
+.sfi-production__sidebar nav b { color: inherit; font-size: 11px; letter-spacing: .08em; }
+.sfi-production__sidebar nav small { font-size: 10px; color: #66656d; line-height: 1.35; }
+.sfi-production__sidebar nav button:hover, .sfi-production__sidebar nav button.is-active { border-color: var(--line-strong); background: linear-gradient(135deg, rgba(155,124,255,.12), rgba(98,214,232,.04)); color: var(--text); transform: translateX(2px); }
+.sfi-production__sidebar nav button.is-active > span { color: var(--violet); }
+.sfi-production__side-status { margin-top: auto; border-top: 1px solid var(--line); padding-top: 16px; display: grid; gap: 5px; }
+.sfi-production__side-status span, .sfi-production__side-status p { color: var(--muted); font-size: 10px; }
+.sfi-production__side-status strong { font-size: 12px; color: var(--green); }
+.sfi-production__main { min-width: 0; }
+.sfi-production__header { min-height: 86px; padding: 18px 28px; border-bottom: 1px solid var(--line); display: grid; grid-template-columns: minmax(260px,1.5fr) minmax(200px,1fr) minmax(170px,.7fr) auto; gap: 22px; align-items: center; background: rgba(7,7,10,.86); backdrop-filter: blur(18px); position: sticky; top: 0; z-index: 3; }
+.sfi-production__header > div { display: grid; gap: 4px; }
+.sfi-production__header span { color: var(--muted); font-size: 9px; letter-spacing: .16em; }
+.sfi-production__header strong { font-size: 12px; letter-spacing: .07em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sfi-production__header small, .sfi-production__header em { color: var(--muted); font-size: 9px; font-style: normal; }
+.sfi-production__header button, .sfi-production__hero-actions button, .sfi-production__hero-actions a, .sfi-intel button, .sfi-production__panel > header button { border: 1px solid rgba(155,124,255,.48); background: rgba(155,124,255,.12); color: var(--text); padding: 10px 14px; border-radius: 9px; font-size: 10px; letter-spacing: .08em; text-decoration: none; }
+.sfi-production__header button:hover, .sfi-production__hero-actions button:hover, .sfi-production__hero-actions a:hover, .sfi-intel button:hover { background: rgba(155,124,255,.24); }
+.sfi-production__stage { padding: 30px; display: grid; gap: 18px; max-width: 1500px; margin: 0 auto; }
+.sfi-production__stage-intro { padding: 10px 0 6px; }
+.sfi-production__stage-intro span { color: var(--violet); font-size: 10px; letter-spacing: .2em; }
+.sfi-production__stage-intro h1 { margin: 8px 0; font-size: clamp(26px,4vw,48px); letter-spacing: -.04em; }
+.sfi-production__stage-intro p { color: var(--muted); max-width: 760px; line-height: 1.6; }
+.sfi-production__object-hero { min-height: 390px; border: 1px solid var(--line); border-radius: 18px; background: linear-gradient(135deg, rgba(155,124,255,.12), rgba(98,214,232,.025) 55%, rgba(255,255,255,.02)); display: grid; grid-template-columns: minmax(300px,.8fr) minmax(420px,1.2fr); overflow: hidden; }
+.sfi-production__object-hero > div:first-child { padding: clamp(28px,5vw,64px); display: flex; flex-direction: column; justify-content: center; }
+.sfi-production__object-hero span { color: var(--violet); font-size: 10px; letter-spacing: .2em; }
+.sfi-production__object-hero h1 { margin: 12px 0; font-size: clamp(34px,5vw,66px); letter-spacing: -.055em; }
+.sfi-production__object-hero p { color: var(--muted); line-height: 1.7; max-width: 520px; }
+.sfi-production__object-orbit { min-height: 360px; border-left: 1px solid var(--line); }
+.sfi-production__object-orbit > div { height: 100%; min-height: 360px; }
+.sfi-production__hero-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+.sfi-production__grid-2, .sfi-intel__grid-2, .sfi-intel__hero-grid, .sfi-intel__projection-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 16px; }
+.sfi-production__panel, .sfi-intel__card { border: 1px solid var(--line); border-radius: 14px; background: var(--panel); padding: 18px; min-width: 0; }
+.sfi-production__panel > header, .sfi-intel__card > header { display: flex; justify-content: space-between; gap: 12px; align-items: center; padding-bottom: 14px; border-bottom: 1px solid var(--line); margin-bottom: 14px; }
+.sfi-production__panel > header div { display: grid; gap: 3px; }
+.sfi-production__panel > header span, .sfi-intel__card > header span { font-size: 10px; letter-spacing: .14em; }
+.sfi-production__panel > header small { color: var(--violet); font-size: 8px; letter-spacing: .16em; }
+.sfi-production__facts { display: grid; grid-template-columns: 120px 1fr; gap: 10px 16px; font-size: 12px; }
+.sfi-production__facts dt { color: var(--muted); }
+.sfi-production__facts dd { margin: 0; overflow-wrap: anywhere; }
+.sfi-production__state-cards { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; margin-bottom: 14px; }
+.sfi-production__state-cards > div { border: 1px solid var(--line); border-radius: 9px; padding: 12px; display: flex; justify-content: space-between; align-items: center; }
+.sfi-production__state-cards span { color: var(--muted); font-size: 10px; }
+.sfi-production__status { display: inline-flex; width: fit-content; padding: 5px 7px; border-radius: 999px; border: 1px solid var(--line-strong); font-size: 8px; letter-spacing: .08em; }
 .sfi-production__status.is-observed, .sfi-production__status.is-complete { color: var(--green); }
-.sfi-production__status.is-derived { color: var(--cyan); }
-.sfi-production__status.is-degraded, .sfi-production__status.is-pending { color: var(--orange); }
-.sfi-production__status.is-missing { color: var(--missing); }
+.sfi-production__status.is-derived, .sfi-production__status.is-experimental { color: var(--cyan); }
+.sfi-production__status.is-missing, .sfi-production__status.is-degraded, .sfi-production__status.is-pending { color: var(--orange); }
 .sfi-production__status.is-failed { color: var(--red); }
-.sfi-production__phase-list { display: grid; gap: 7px; margin: 0; padding: 0; list-style: none; }
-.sfi-production__phase-list li { border: 1px solid var(--line2); padding: 8px; }
-.sfi-production__phase-list li div { display: flex; justify-content: space-between; gap: 8px; }
-.sfi-production__phase-list li span { color: var(--text); font-size: 10px; }
-.sfi-production__phase-list li i { display: block; height: 6px; border: 1px solid var(--line2); margin-top: 8px; }
-.sfi-production__phase-list li i b { display: block; height: 100%; background: var(--green); }
-.sfi-production__evidence-matrix { display: grid; gap: 8px; }
-.sfi-production__evidence-matrix details { border: 1px solid var(--line2); padding: 8px; }
-.sfi-production__evidence-matrix summary { cursor: pointer; display: flex; justify-content: space-between; color: var(--cyan); }
-.sfi-production__reading { display: grid; gap: 7px; }
-.sfi-production__reading span { color: var(--cyan); font-size: 10px; text-transform: uppercase; }
-.sfi-production__reading strong { color: var(--orange); }
-.sfi-production__next-action strong { display: block; color: var(--cyan); font-size: 16px; }
-.sfi-production__next-action span, .sfi-production__next-action em { display: block; color: var(--orange); font-style: normal; margin: 8px 0; }
-.sfi-production__next-action button { padding: 10px 12px; }
-.sfi-production__action-result { border: 1px solid var(--line2); padding: 8px; }
-.sfi-production__metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; }
-.sfi-production__metric-card { border: 1px solid var(--line2); padding: 10px; background: rgba(5,2,10,.38); }
-.sfi-production__metric-card div { display: flex; justify-content: space-between; gap: 8px; }
-.sfi-production__metric-card span { color: var(--muted); font-size: 10px; text-transform: uppercase; }
-.sfi-production__metric-card strong { display: block; margin: 10px 0; color: var(--cyan); font-size: 18px; overflow-wrap: anywhere; }
-.sfi-production__metric-card dl { display: grid; grid-template-columns: 78px minmax(0,1fr); gap: 5px; margin: 10px 0 0; }
-.sfi-production__metric-card dt { color: var(--cyan); font-size: 9px; }
-.sfi-production__metric-card dd { margin: 0; overflow-wrap: anywhere; }
-.sfi-production__warning { color: var(--orange) !important; }
-.sfi-production__audio-player { border: 1px solid var(--line2); padding: 10px; margin-bottom: 10px; display: grid; gap: 8px; }
-.sfi-production__audio-player span { color: var(--cyan); font-size: 9px; letter-spacing: .12em; }
-.sfi-production__audio-player audio { width: 100%; height: 34px; }
-.sfi-production__field-panel { min-height: 430px; display: grid; grid-template-rows: auto minmax(360px, 1fr); }
-.sfi-production__pixi-stage { position: relative; min-height: 360px; overflow: hidden; background: radial-gradient(circle at 50% 50%, rgba(157,92,255,.16), transparent 48%); }
-.sfi-production__pixi-host, .sfi-production__pixi-host canvas, .sfi-production__pixi-fallback { position: absolute; inset: 0; width: 100%; height: 100%; }
-.sfi-production__pixi-host { z-index: 2; }
-.sfi-production__pixi-fallback { z-index: 1; opacity: .5; }
-.sfi-production__pixi-fallback circle { fill: var(--cyan); opacity: .5; }
-.sfi-production__pixi-fallback text { fill: var(--muted); font-size: 5px; letter-spacing: .12em; }
-.sfi-production__node-layout { display: grid; grid-template-columns: 220px minmax(0,1fr); gap: 12px; }
-.sfi-production__node-list { display: grid; align-content: start; gap: 7px; }
-.sfi-production__node-list button { padding: 8px; text-align: left; }
-.sfi-production__node-list button.is-active { border-color: var(--cyan); color: var(--cyan); }
-.sfi-production__transport { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 12px; padding: 12px; }
-.sfi-production__transport strong { display: block; margin-top: 5px; color: var(--cyan); }
-.sfi-production__evaluation-strip { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 1px; padding: 8px; }
-.sfi-production__evaluation-strip div { border: 1px solid var(--line2); padding: 9px; min-width: 0; }
-.sfi-production__evaluation-strip span, .sfi-production__evaluation-strip em { display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; color: var(--muted); font-size: 8px; letter-spacing: .1em; font-style: normal; }
-.sfi-production__evaluation-strip strong { display: block; margin: 6px 0; color: var(--purple); font-size: 12px; }
-.sfi-production__intake { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; background: rgba(0,0,0,.72); backdrop-filter: blur(8px); }
-.sfi-production__intake-panel { position: relative; width: min(520px, calc(100vw - 32px)); border: 1px solid var(--line); background: rgba(8,5,14,.98); padding: 26px; box-shadow: 0 0 70px rgba(157,92,255,.22); }
-.sfi-production__intake-panel input { display: none; }
-.sfi-production__intake-panel h2 { color: var(--purple); letter-spacing: .1em; }
-.sfi-production__intake-panel p { color: var(--muted); line-height: 1.6; }
-.sfi-production__intake-panel button:not(.sfi-production__icon-button) { width: 100%; padding: 16px; margin-top: 14px; }
-.sfi-production__icon-button { position: absolute; top: 10px; right: 10px; width: 30px; height: 30px; }
-.sfi-production__table { width: 100%; border-collapse: collapse; min-width: 920px; }
-.sfi-production__table th, .sfi-production__table td { border: 1px solid var(--line2); padding: 8px; text-align: left; }
-.sfi-production__table th { color: var(--cyan); font-size: 9px; text-transform: uppercase; }
-@media (max-width: 1180px) {
+.sfi-production audio { width: 100%; filter: grayscale(1) contrast(1.12); }
+.sfi-production__phase-rail { list-style: none; margin: 0; padding: 0; display: grid; gap: 7px; }
+.sfi-production__phase-rail li { display: grid; grid-template-columns: 34px 1fr auto; align-items: center; gap: 12px; border: 1px solid var(--line); padding: 10px; border-radius: 9px; }
+.sfi-production__phase-rail li > span { color: var(--violet); font-size: 9px; }
+.sfi-production__phase-rail strong { font-size: 11px; }
+.sfi-production__phase-rail p { margin: 3px 0 0; color: var(--muted); font-size: 10px; }
+.sfi-production__next-action strong { font-size: 22px; }
+.sfi-production__next-action p { color: var(--muted); }
+.sfi-production__next-action small { color: var(--violet); }
+.sfi-production__metric-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); gap: 12px; }
+.sfi-production__metric-card { border: 1px solid var(--line); border-radius: 12px; background: var(--panel); padding: 15px; min-width: 0; }
+.sfi-production__metric-card > div { display: flex; justify-content: space-between; gap: 8px; }
+.sfi-production__metric-card span { color: var(--muted); font-size: 9px; letter-spacing: .08em; }
+.sfi-production__metric-card > strong { display: block; font-size: 24px; margin: 16px 0 8px; }
+.sfi-production__metric-card p { color: var(--muted); font-size: 11px; line-height: 1.5; }
+.sfi-production__metric-card details { border-top: 1px solid var(--line); margin-top: 12px; padding-top: 10px; }
+.sfi-production__metric-card summary, .sfi-production__trace-drawer summary, .sfi-intel details summary { cursor: pointer; font-size: 9px; letter-spacing: .1em; color: var(--violet); }
+.sfi-production__metric-card dl { display: grid; grid-template-columns: 80px 1fr; gap: 6px; font-size: 9px; overflow-wrap: anywhere; }
+.sfi-production__metric-card dt { color: var(--muted); }
+.sfi-production__metric-card dd { margin: 0; }
+.sfi-production__metric-card.is-compact > strong { font-size: 16px; margin: 9px 0 4px; }
+.sfi-production__metric-card.is-compact p { margin-bottom: 0; }
+.sfi-production__compact-list { display: grid; gap: 8px; max-height: 620px; overflow: auto; padding-right: 4px; }
+.sfi-production__observation-summary { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.sfi-production__observation-summary span { border: 1px solid var(--line); padding: 7px 9px; border-radius: 999px; color: var(--muted); font-size: 9px; }
+.sfi-production__trace-drawer, .sfi-intel__preferences, .sfi-intel__trace { border: 1px solid var(--line); border-radius: 12px; padding: 15px; background: var(--panel); }
+.sfi-production__trace-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 16px; margin-top: 16px; }
+.sfi-production__trace-grid span { color: var(--violet); font-size: 9px; }
+.sfi-production__trace-grid p { color: var(--muted); font-size: 10px; overflow-wrap: anywhere; }
+.sfi-production__empty, .sfi-intel__empty { border: 1px dashed var(--line-strong); border-radius: 12px; padding: 30px; color: var(--muted); text-align: center; }
+.sfi-production__muted, .sfi-intel__muted { color: var(--muted); }
+.sfi-production__footer { padding: 13px 30px 22px; color: var(--muted); display: flex; justify-content: space-between; gap: 14px; font-size: 9px; letter-spacing: .08em; }
+.sfi-intel { display: grid; gap: 16px; }
+.sfi-intel__actions { display: flex; justify-content: space-between; gap: 12px; align-items: center; }
+.sfi-intel__actions span { color: var(--muted); font-size: 9px; }
+.sfi-intel__message { margin: 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: 9px; color: var(--muted); }
+.sfi-intel__message.is-failed { border-color: rgba(237,109,125,.42); color: var(--red); }
+.sfi-intel__stack { display: grid; gap: 16px; }
+.sfi-intel__hero, .sfi-intel__score-card, .sfi-intel__decision-hero { border: 1px solid var(--line); border-radius: 16px; padding: 24px; background: linear-gradient(145deg, rgba(155,124,255,.10), rgba(255,255,255,.015)); }
+.sfi-intel__hero > span, .sfi-intel__score-card > span, .sfi-intel__decision-hero > span { color: var(--violet); font-size: 9px; letter-spacing: .16em; }
+.sfi-intel__hero h2, .sfi-intel__decision-hero h2 { margin: 10px 0; font-size: 28px; }
+.sfi-intel__hero p, .sfi-intel__score-card p, .sfi-intel__decision-hero p, .sfi-intel__card p { color: var(--muted); line-height: 1.6; }
+.sfi-intel__score-card > strong { display: block; font-size: clamp(56px,8vw,106px); letter-spacing: -.07em; line-height: .95; margin: 22px 0 8px; }
+.sfi-intel__score-card h3 { margin: 0 0 14px; color: var(--violet); font-size: 12px; letter-spacing: .12em; }
+.sfi-intel__metric-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.sfi-intel__metric { min-width: 130px; flex: 1; border: 1px solid var(--line); border-radius: 10px; padding: 11px; background: rgba(255,255,255,.018); }
+.sfi-intel__metric span, .sfi-intel__metric small { display: block; color: var(--muted); font-size: 8px; }
+.sfi-intel__metric strong { display: block; margin: 5px 0; font-size: 15px; }
+.sfi-intel__metric.is-warn strong { color: var(--orange); }
+.sfi-intel__metric.is-good strong { color: var(--green); }
+.sfi-intel__metric.is-risk strong { color: var(--red); }
+.sfi-intel__statement { border-left: 2px solid rgba(155,124,255,.55); padding: 4px 0 4px 12px; margin: 12px 0; }
+.sfi-intel__statement strong { font-size: 11px; }
+.sfi-intel__statement p { margin: 5px 0; }
+.sfi-intel__statement small { color: var(--muted); font-size: 8px; }
+.sfi-intel__property-grid, .sfi-intel__dimension-grid, .sfi-intel__route-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(190px,1fr)); gap: 9px; }
+.sfi-intel__property, .sfi-intel__dimension-grid > div, .sfi-intel__route-grid > div { border: 1px solid var(--line); padding: 13px; border-radius: 10px; background: rgba(255,255,255,.018); }
+.sfi-intel__property span, .sfi-intel__dimension-grid span, .sfi-intel__route-grid span { color: var(--violet); font-size: 9px; }
+.sfi-intel__property strong, .sfi-intel__dimension-grid strong, .sfi-intel__route-grid strong { display: block; margin: 8px 0; }
+.sfi-intel__property p, .sfi-intel__dimension-grid p, .sfi-intel__route-grid p { font-size: 10px; margin: 5px 0; }
+.sfi-intel__property small, .sfi-intel__dimension-grid small, .sfi-intel__route-grid small { color: var(--muted); font-size: 8px; line-height: 1.5; }
+.sfi-intel__property.is-missing { opacity: .58; }
+.sfi-intel__route-grid > div.is-selected { border-color: rgba(155,124,255,.65); background: rgba(155,124,255,.10); }
+.sfi-intel__notice { margin-top: 12px; padding: 10px; border-left: 2px solid var(--orange); background: rgba(229,164,95,.07); color: #d8b98f; font-size: 10px; line-height: 1.5; }
+.sfi-intel__list { margin: 8px 0; padding-left: 18px; color: var(--muted); }
+.sfi-intel__list li { margin: 7px 0; line-height: 1.5; }
+.sfi-intel__preferences { display: grid; gap: 14px; }
+.sfi-intel__preferences > p { color: var(--muted); }
+.sfi-intel__form-grid, .sfi-intel__outcome-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; margin: 16px 0; }
+.sfi-intel label { display: grid; gap: 6px; color: var(--muted); font-size: 9px; letter-spacing: .06em; }
+.sfi-intel input, .sfi-intel textarea, .sfi-intel select { width: 100%; border: 1px solid var(--line-strong); border-radius: 9px; background: #09090c; color: var(--text); padding: 10px; }
+.sfi-intel textarea { min-height: 90px; resize: vertical; }
+@media (max-width: 1050px) {
+  .sfi-production { grid-template-columns: 86px minmax(0,1fr); }
+  .sfi-production__sidebar { padding: 20px 10px; }
+  .sfi-production__brand div, .sfi-production__side-kicker, .sfi-production__sidebar nav button div, .sfi-production__side-status p { display: none; }
+  .sfi-production__sidebar nav button { grid-template-columns: 1fr; text-align: center; }
+  .sfi-production__header { grid-template-columns: 1fr auto; }
+  .sfi-production__header-object, .sfi-production__header-state { display: none !important; }
+  .sfi-production__object-hero { grid-template-columns: 1fr; }
+  .sfi-production__object-orbit { border-left: 0; border-top: 1px solid var(--line); }
+}
+@media (max-width: 760px) {
   .sfi-production { display: block; }
-  .sfi-production__sidebar { min-height: auto; margin-bottom: 10px; }
-  .sfi-production__overview-grid, .sfi-production__node-layout { grid-template-columns: 1fr; }
-  .sfi-production__header, .sfi-production__transport, .sfi-production__evaluation-strip { grid-template-columns: 1fr; }
+  .sfi-production__sidebar { position: sticky; height: auto; top: 0; flex-direction: row; align-items: center; overflow-x: auto; border-right: 0; border-bottom: 1px solid var(--line); padding: 8px; }
+  .sfi-production__brand, .sfi-production__side-status { display: none; }
+  .sfi-production__sidebar nav { display: flex; }
+  .sfi-production__sidebar nav button { min-width: 58px; padding: 8px; }
+  .sfi-production__header { top: 49px; padding: 12px 14px; }
+  .sfi-production__header-title span { display: none; }
+  .sfi-production__header-title strong { font-size: 10px; }
+  .sfi-production__stage { padding: 16px; }
+  .sfi-production__grid-2, .sfi-intel__grid-2, .sfi-intel__hero-grid, .sfi-intel__projection-grid, .sfi-intel__form-grid, .sfi-intel__outcome-grid, .sfi-production__trace-grid { grid-template-columns: 1fr; }
+  .sfi-production__object-hero > div:first-child { padding: 28px 20px; }
+  .sfi-production__object-hero h1 { font-size: 38px; }
+  .sfi-intel__score-card > strong { font-size: 64px; }
 }
 `;
