@@ -7,20 +7,50 @@ import { createBrowserSupabaseClient } from '@/runtime/supabase/client';
 const ACCEPTED = '.wav,.wave,.mp3,.m4a,.aac,.flac,.ogg,.oga,.opus,.aiff,.aif,.mp4,.mov,.webm,.mkv,.m4v,.png,.jpg,.jpeg,.webp,.gif,.tif,.tiff,.txt,.md,.markdown,.json,.csv,.tsv,.rtf,.pdf,.docx';
 
 type IntakeType = 'auto' | 'audio' | 'video' | 'image' | 'text' | 'community' | 'time_coordinate';
-type IntakeStatus = 'idle' | 'preparing' | 'uploading' | 'verifying' | 'analyzing' | 'synthesizing' | 'complete' | 'blocked';
+type IntakeStatus = 'idle' | 'preparing' | 'uploading' | 'verifying' | 'analyzing' | 'synthesizing' | 'projecting' | 'complete' | 'blocked';
 
-type Synthesis = {
+type Projection = {
   status: string;
-  objectReading: { summary: string; interpretability: string; limitations: string[] };
-  worldContext: { relation: string; explanation: string; dominantSignal: string | null; confidence: number | null };
-  mihm: { status: string; coverage: number; coreCoverage: number; ihg: number | null; summary: string; limitations: string[] };
-  leverage: {
+  world: {
+    regime: string;
+    summary: string;
+    dominantDomain: string | null;
+    crossVectorTensions: Array<{ between: [string, string]; description: string }>;
+    inferredAttractors: Array<{ label: string; description: string; confidence: number }>;
+  };
+  object: {
+    summary: string;
+    interpretability: string;
+    mihmStatus: string;
+    mihmCoverage: number;
+    mihmCoreCoverage: number;
+  };
+  fit: {
+    percentage: number | null;
+    band: string;
+    confidence: number;
+    explanation: string;
+    acceptanceReason: string;
+  };
+  opportunityWindow: {
     status: string;
-    minimumPerturbation: string | null;
-    rationale: string;
-    expectedSignal: string | null;
-    verificationWindow: string | null;
-    falsificationCriterion: string | null;
+    starts: string;
+    minimumDays: number | null;
+    maximumDays: number | null;
+    basis: string;
+  };
+  strategy: {
+    selectedAttractor: string | null;
+    selectedRouteId: string | null;
+    selectionReason: string;
+    routes: Array<{
+      id: string;
+      title: string;
+      suitability: number;
+      rationale: string;
+      microAdjustments: string[];
+      verification: string[];
+    }>;
   };
 };
 
@@ -36,8 +66,14 @@ function responseFailure(response: Response, payload: Record<string, unknown> | 
   return parts.join(' · ');
 }
 
-function confidence(value: number | null) {
+function metric(value: number | null) {
   return value === null ? 'UNKNOWN' : Number(value.toFixed(3));
+}
+
+function windowLabel(projection: Projection) {
+  const window = projection.opportunityWindow;
+  if (window.minimumDays === null || window.maximumDays === null) return `${window.status} · ${window.starts}`;
+  return `${window.status} · ${window.starts} · ${window.minimumDays}–${window.maximumDays} días`;
 }
 
 export function StudioObjectIntake({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -45,12 +81,8 @@ export function StudioObjectIntake({ open, onClose }: { open: boolean; onClose: 
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [status, setStatus] = useState<IntakeStatus>('idle');
   const [objectType, setObjectType] = useState<IntakeType>('auto');
-  const [declaredAttractor, setDeclaredAttractor] = useState('');
-  const [desiredShift, setDesiredShift] = useState('');
-  const [targetAudience, setTargetAudience] = useState('');
-  const [prohibitedEffects, setProhibitedEffects] = useState('');
-  const [synthesis, setSynthesis] = useState<Synthesis | null>(null);
-  const [message, setMessage] = useState('Carga un objeto real. Studio almacenará el archivo de forma privada, ejecutará su extractor y después intentará interpretar su relación con el campo.');
+  const [projection, setProjection] = useState<Projection | null>(null);
+  const [message, setMessage] = useState('Carga un objeto real. Studio inferirá su posición frente al mundo, MIHM parcial, compatibilidad de campo, ventana y rutas sin pedirte teoría previa.');
 
   if (!open) return null;
 
@@ -59,9 +91,9 @@ export function StudioObjectIntake({ open, onClose }: { open: boolean; onClose: 
   }
 
   async function upload(file: File) {
-    setSynthesis(null);
+    setProjection(null);
     setStatus('preparing');
-    setMessage('Preparando objeto, ownership, contexto declarado y URL firmada.');
+    setMessage('Preparando objeto, ownership y URL firmada.');
 
     try {
       const prepareResponse = await fetch('/api/studio/objects/upload/prepare', {
@@ -73,18 +105,10 @@ export function StudioObjectIntake({ open, onClose }: { open: boolean; onClose: 
           sizeBytes: file.size,
           title: file.name.replace(/\.[^.]+$/, ''),
           objectType: objectType === 'auto' ? null : objectType,
-          context: {
-            declaredAttractor: declaredAttractor.trim() || null,
-            desiredShift: desiredShift.trim() || null,
-            targetAudience: targetAudience.trim() || null,
-            prohibitedEffects: prohibitedEffects.split(/[,;\n]+/).map((item) => item.trim()).filter(Boolean),
-          },
         }),
       });
       const prepared = await jsonResponse(prepareResponse);
-      if (!prepareResponse.ok || prepared?.ok !== true) {
-        throw new Error(responseFailure(prepareResponse, prepared, 'PREPARE'));
-      }
+      if (!prepareResponse.ok || prepared?.ok !== true) throw new Error(responseFailure(prepareResponse, prepared, 'PREPARE'));
 
       const storagePath = String(prepared.storagePath ?? '');
       const token = String(prepared.token ?? '');
@@ -110,9 +134,7 @@ export function StudioObjectIntake({ open, onClose }: { open: boolean; onClose: 
         body: JSON.stringify({ objectId }),
       });
       const completed = await jsonResponse(completeResponse);
-      if (!completeResponse.ok || completed?.ok !== true) {
-        throw new Error(responseFailure(completeResponse, completed, 'COMPLETE'));
-      }
+      if (!completeResponse.ok || completed?.ok !== true) throw new Error(responseFailure(completeResponse, completed, 'COMPLETE'));
 
       setStatus('analyzing');
       setMessage('Archivo almacenado. Ejecutando el extractor real de su modalidad.');
@@ -122,26 +144,33 @@ export function StudioObjectIntake({ open, onClose }: { open: boolean; onClose: 
         body: JSON.stringify({ force: false }),
       });
       const analysis = await jsonResponse(analyzeResponse);
-      if (!analyzeResponse.ok || analysis?.ok === false) {
-        throw new Error(responseFailure(analyzeResponse, analysis, 'ANALYZE'));
-      }
+      if (!analyzeResponse.ok || analysis?.ok === false) throw new Error(responseFailure(analyzeResponse, analysis, 'ANALYZE'));
 
       setStatus('synthesizing');
-      setMessage('Extracción completa. Comparando objeto, MIHM parcial, Cultural Vector y trayectoria WorldSpect.');
+      setMessage('Construyendo vector MIHM parcial y trazabilidad del objeto.');
       const synthesisResponse = await fetch(`/api/studio/objects/${encodeURIComponent(objectId)}/synthesize`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ persist: true }),
       });
       const synthesisPayload = await jsonResponse(synthesisResponse);
-      if (!synthesisResponse.ok || synthesisPayload?.ok !== true) {
-        throw new Error(responseFailure(synthesisResponse, synthesisPayload, 'SYNTHESIS'));
-      }
-      const result = synthesisPayload.synthesis as Synthesis | undefined;
-      if (!result) throw new Error('SYNTHESIS_CONTRACT_INCOMPLETE');
-      setSynthesis(result);
+      if (!synthesisResponse.ok || synthesisPayload?.ok !== true) throw new Error(responseFailure(synthesisResponse, synthesisPayload, 'SYNTHESIS'));
+
+      setStatus('projecting');
+      setMessage('Observando el mundo longitudinal, tensiones vectoriales, compatibilidad, ventana y microajustes por escenario.');
+      const projectionResponse = await fetch(`/api/studio/objects/${encodeURIComponent(objectId)}/project`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ persist: true }),
+      });
+      const projectionPayload = await jsonResponse(projectionResponse);
+      if (!projectionResponse.ok || projectionPayload?.ok !== true) throw new Error(responseFailure(projectionResponse, projectionPayload, 'PROJECTION'));
+      const result = projectionPayload.projection as Projection | undefined;
+      if (!result) throw new Error('PROJECTION_CONTRACT_INCOMPLETE');
+
+      setProjection(result);
       setStatus('complete');
-      setMessage(`Objeto ${objectId} analizado e interpretado con estado ${result.status}. La perturbación solo aparece cuando existe atractor y una regla calibrada.`);
+      setMessage(`Objeto ${objectId} analizado y proyectado. El porcentaje es compatibilidad de campo; aceptación permanece sin calibrar hasta acumular outcomes comparables.`);
       router.refresh();
       if (inputRef.current) inputRef.current.value = '';
     } catch (error) {
@@ -150,14 +179,15 @@ export function StudioObjectIntake({ open, onClose }: { open: boolean; onClose: 
     }
   }
 
-  const busy = ['preparing', 'uploading', 'verifying', 'analyzing', 'synthesizing'].includes(status);
+  const busy = ['preparing', 'uploading', 'verifying', 'analyzing', 'synthesizing', 'projecting'].includes(status);
+  const selectedRoute = projection?.strategy.routes.find((route) => route.id === projection.strategy.selectedRouteId) ?? projection?.strategy.routes[0] ?? null;
 
   return (
     <div className="sfi-production__intake">
       <div className="sfi-production__intake-panel">
         <button type="button" className="sfi-production__icon-button" onClick={onClose}>X</button>
         <span>OBJECT INTAKE</span>
-        <h2>INGESTA + INTERPRETACIÓN TRAZABLE</h2>
+        <h2>INGESTA + LECTURA ESTRATÉGICA</h2>
         <p>{message}</p>
         <label>
           MODALIDAD
@@ -171,48 +201,29 @@ export function StudioObjectIntake({ open, onClose }: { open: boolean; onClose: 
             <option value="time_coordinate">COORDENADA TEMPORAL</option>
           </select>
         </label>
-        <label>
-          ATRACTOR DECLARADO · QUÉ DEBE PRESERVARSE O ALCANZARSE
-          <textarea value={declaredAttractor} onChange={(event) => setDeclaredAttractor(event.target.value)} disabled={busy} placeholder="Ej. preservar la tensión central de la pieza sin perder legibilidad ni energía." />
-        </label>
-        <label>
-          DESPLAZAMIENTO DESEADO
-          <textarea value={desiredShift} onChange={(event) => setDesiredShift(event.target.value)} disabled={busy} placeholder="Qué cambio esperas observar en el objeto, audiencia o contexto." />
-        </label>
-        <label>
-          AUDIENCIA / CAMPO OBJETIVO
-          <input value={targetAudience} onChange={(event) => setTargetAudience(event.target.value)} disabled={busy} placeholder="Audiencia, comunidad o contexto de recepción." />
-        </label>
-        <label>
-          EFECTOS PROHIBIDOS
-          <textarea value={prohibitedEffects} onChange={(event) => setProhibitedEffects(event.target.value)} disabled={busy} placeholder="Separados por coma o línea. Ej. no reducir intensidad; no cambiar duración." />
-        </label>
         <input ref={inputRef} type="file" accept={ACCEPTED} onChange={(event) => {
           const file = event.currentTarget.files?.[0];
           if (file) void upload(file);
         }} />
-        <button type="button" onClick={() => inputRef.current?.click()} disabled={busy}>
-          SELECCIONAR OBJETO
-        </button>
-        <small>Sin atractor, Studio puede describir y diagnosticar, pero bloqueará la perturbación. Un audio sin letra/contexto solo permite lectura formal, no significado cultural.</small>
+        <button type="button" onClick={() => inputRef.current?.click()} disabled={busy}>SELECCIONAR OBJETO</button>
+        <small>Studio genera atractores, guardrails y rutas automáticamente. Después puedes precisar en lenguaje normal si buscas integración, singularidad o solo corrección técnica.</small>
         <em>{status.toUpperCase()}</em>
 
-        {synthesis ? (
+        {projection ? (
           <section className="sfi-production__panel">
-            <header><span>OBJECT–WORLD SYNTHESIS</span><strong>{synthesis.status}</strong></header>
+            <header><span>FIELD PROJECTION</span><strong>{projection.status}</strong></header>
             <dl className="sfi-production__object-grid">
-              <dt>Qué es observable</dt><dd>{synthesis.objectReading.summary}</dd>
-              <dt>Interpretabilidad</dt><dd>{synthesis.objectReading.interpretability}</dd>
-              <dt>Relación con el mundo</dt><dd>{synthesis.worldContext.relation}: {synthesis.worldContext.explanation}</dd>
-              <dt>World confidence</dt><dd>{confidence(synthesis.worldContext.confidence)}</dd>
-              <dt>MIHM</dt><dd>{synthesis.mihm.status} · coverage {Number(synthesis.mihm.coverage.toFixed(3))} · core {Number(synthesis.mihm.coreCoverage.toFixed(3))}</dd>
-              <dt>IHG</dt><dd>{synthesis.mihm.ihg === null ? 'BLOCKED_UNTIL_CORE_COVERAGE' : Number(synthesis.mihm.ihg.toFixed(4))}</dd>
-              <dt>Qué significa</dt><dd>{synthesis.mihm.summary}</dd>
-              <dt>Punto de palanca</dt><dd>{synthesis.leverage.status}: {synthesis.leverage.rationale}</dd>
-              <dt>Perturbación mínima</dt><dd>{synthesis.leverage.minimumPerturbation ?? 'NO_PERTURBATION_EMITTED'}</dd>
-              <dt>Señal esperada</dt><dd>{synthesis.leverage.expectedSignal ?? 'MISSING'}</dd>
-              <dt>Verificación</dt><dd>{synthesis.leverage.verificationWindow ?? 'MISSING'} · {synthesis.leverage.falsificationCriterion ?? 'NO_FALSIFICATION_CRITERION'}</dd>
-              <dt>Límites</dt><dd>{[...synthesis.objectReading.limitations, ...synthesis.mihm.limitations].join(' / ') || 'NONE'}</dd>
+              <dt>El mundo</dt><dd>{projection.world.summary}</dd>
+              <dt>Régimen</dt><dd>{projection.world.regime}</dd>
+              <dt>Atractor inferido</dt><dd>{projection.strategy.selectedAttractor ?? 'INDETERMINATE'}</dd>
+              <dt>El objeto</dt><dd>{projection.object.summary}</dd>
+              <dt>MIHM</dt><dd>{projection.object.mihmStatus} · coverage {metric(projection.object.mihmCoverage)} · core {metric(projection.object.mihmCoreCoverage)}</dd>
+              <dt>Compatibilidad</dt><dd>{projection.fit.percentage === null ? 'NO ESTIMABLE' : `${projection.fit.percentage}%`} · {projection.fit.band} · confidence {metric(projection.fit.confidence)}</dd>
+              <dt>Aceptación</dt><dd>NO CALIBRADA · {projection.fit.acceptanceReason}</dd>
+              <dt>Ventana</dt><dd>{windowLabel(projection)} · {projection.opportunityWindow.basis}</dd>
+              <dt>Ruta principal</dt><dd>{selectedRoute?.title ?? 'NO_ROUTE'} · {projection.strategy.selectionReason}</dd>
+              <dt>Microajustes</dt><dd>{selectedRoute?.microAdjustments.join(' / ') ?? 'NO_ADJUSTMENTS'}</dd>
+              <dt>Verificación</dt><dd>{selectedRoute?.verification.join(' / ') ?? 'NO_VERIFICATION'}</dd>
             </dl>
           </section>
         ) : null}
