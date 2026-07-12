@@ -6,8 +6,10 @@ export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 export const maxDuration = 60;
 
-function record(value: unknown): Record<string, unknown> {
-  return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
+type Row = Record<string, unknown>;
+
+function record(value: unknown): Row {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as Row : {};
 }
 
 function text(value: unknown, maximum = 6000) {
@@ -28,15 +30,37 @@ function failure(error: unknown) {
     return NextResponse.json({ ok: false, error: error.code, details: error.message }, { status: error.status });
   }
   const details = error instanceof Error ? error.message : String(error);
-  const status = details.includes('_REQUIRED') ? 400 : details.includes('NOT_FOUND') ? 404 : 500;
+  const status = details.includes('_REQUIRED') || details.includes('_INVALID') || details.includes('_NOT_OPEN') || details.includes('_NOT_READY')
+    ? 400
+    : details.includes('NOT_FOUND')
+      ? 404
+      : 500;
   return NextResponse.json({ ok: false, error: 'FIELD_CYCLE_FAILED', details }, { status });
+}
+
+function withReturnAvailability(value: unknown) {
+  if (!Array.isArray(value)) return [];
+  const now = Date.now();
+  return value.map((item) => {
+    const row = record(item);
+    const metadata = record(row.metadata);
+    const expectedAt = typeof metadata.expectedAt === 'string' ? new Date(metadata.expectedAt).getTime() : Number.NaN;
+    const persistedStatus = text(row.status, 80) || 'UNKNOWN';
+    const returnAvailable = persistedStatus === 'WAITING_RETURN' && Number.isFinite(expectedAt) && now >= expectedAt;
+    return {
+      ...row,
+      persisted_status: persistedStatus,
+      status: persistedStatus === 'WAITING_RETURN' && !returnAvailable ? 'SEALED_WINDOW_ACTIVE' : persistedStatus,
+      return_available: returnAvailable,
+    };
+  });
 }
 
 export async function GET() {
   try {
     const { user } = await requireAuthenticatedUser();
     const result = await listFieldCycles(user.id);
-    return NextResponse.json({ ok: true, ...result });
+    return NextResponse.json({ ok: true, ...result, cases: withReturnAvailability(result.cases) });
   } catch (error) {
     return failure(error);
   }
