@@ -33,6 +33,9 @@ export type AmvPredictionGate = {
     fieldCoverage: number;
     worldConfidence: number;
     evidenceCount: number;
+    externalEvidenceCount: number;
+    externalEvidenceCoverage: number;
+    missingExternalKeys: string[];
     missingDimensions: string[];
   };
   state: 'READY_PROVISIONAL' | 'EXPERIMENTAL_INSUFFICIENT_EVIDENCE' | 'CONSENT_REQUIRED';
@@ -49,6 +52,9 @@ type GateInput = {
   worldConfidence: number;
   evidenceIds: string[];
   missingDimensions: string[];
+  externalEvidenceCount?: number;
+  externalEvidenceCoverage?: number;
+  missingExternalKeys?: string[];
 };
 
 function record(value: unknown): Record<string, unknown> {
@@ -100,6 +106,9 @@ export function buildAmvPredictionGate(input: GateInput): AmvPredictionGate {
   const fieldCoverage = clamp01(input.fieldCoverage);
   const worldConfidence = clamp01(input.worldConfidence);
   const evidenceCount = Array.from(new Set(input.evidenceIds.filter(Boolean))).length;
+  const externalEvidenceCount = Math.max(0, Number(input.externalEvidenceCount ?? 0));
+  const externalEvidenceCoverage = clamp01(input.externalEvidenceCoverage ?? 0);
+  const missingExternalKeys = Array.from(new Set((input.missingExternalKeys ?? []).filter(Boolean)));
   const missingDimensions = Array.from(new Set(input.missingDimensions.filter(Boolean)));
 
   const phase1Complete = input.mihmStatus === 'VALID' && coreCoverage >= 0.999;
@@ -109,10 +118,14 @@ export function buildAmvPredictionGate(input: GateInput): AmvPredictionGate {
       ? 'PARTIAL'
       : 'BLOCKED';
 
-  const phase2Complete = fieldCoverage >= 0.667 && worldConfidence >= 0.25 && evidenceCount > 0;
+  const phase2Complete = fieldCoverage >= 0.667
+    && worldConfidence >= 0.25
+    && evidenceCount > 0
+    && externalEvidenceCount > 0
+    && externalEvidenceCoverage >= 0.999;
   const phase2State: AmvPredictionGate['phase2']['state'] = phase2Complete
     ? 'COMPLETE'
-    : fieldCoverage > 0 || evidenceCount > 0
+    : fieldCoverage > 0 || evidenceCount > 0 || externalEvidenceCount > 0
       ? 'PARTIAL'
       : 'BLOCKED';
 
@@ -120,6 +133,8 @@ export function buildAmvPredictionGate(input: GateInput): AmvPredictionGate {
   if (consent.required && !consent.documented) blockers.push('CONSENT_EVIDENCE_REQUIRED');
   if (!phase1Complete) blockers.push('PHASE_1_INTERNAL_SIGNAL_INCOMPLETE');
   if (!phase2Complete) blockers.push('PHASE_2_EXTERNAL_EVIDENCE_INCOMPLETE');
+  if (!externalEvidenceCount) blockers.push('NO_EXTERNAL_EVIDENCE_OBSERVATIONS');
+  if (missingExternalKeys.length) blockers.push(...missingExternalKeys.map((item) => `MISSING_EXTERNAL_EVIDENCE:${item}`));
   if (missingDimensions.length) blockers.push(...missingDimensions.map((item) => `MISSING_DIMENSION:${item}`));
 
   const state: AmvPredictionGate['state'] = consent.required && !consent.documented
@@ -141,6 +156,9 @@ export function buildAmvPredictionGate(input: GateInput): AmvPredictionGate {
       fieldCoverage,
       worldConfidence,
       evidenceCount,
+      externalEvidenceCount,
+      externalEvidenceCoverage,
+      missingExternalKeys,
       missingDimensions,
     },
     state,
