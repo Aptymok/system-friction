@@ -168,7 +168,7 @@ export function RootSovereignConsole({ initialState }: { initialState: RootSover
         {view === 'overview' ? <RootOverviewView state={state} onSelect={setSelection} />
           : view === 'governance' ? <RootGovernanceView {...props} />
             : view === 'agents' ? <RootAgentsView {...props} />
-              : view === 'predictions' ? <RootPredictionsView state={state} onSelect={setSelection} />
+              : view === 'predictions' ? <RootPredictionsView {...props} />
                 : view === 'amv' ? <RootAmvView {...props} />
                   : view === 'evidence' ? <RootEvidenceAtlasView {...props} />
                     : <RootExecutionView {...props} />}
