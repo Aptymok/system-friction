@@ -1,33 +1,151 @@
 {
   "name": "System Friction Institute",
+  "abbreviation": "SFI",
   "canonical_url": "https://systemfriction.org",
-  "version": "SFI Public Surface v1",
-  "core_document": "https://systemfriction.org/sfi-core-v2",
-  "public_observatory": "https://systemfriction.org/campo",
-  "latest_field_brief": "https://systemfriction.org/field/brief/latest",
+  "language": "es-MX",
+  "version": "SFI Public Machine Index v2.0.0",
+  "updated_at": "2026-07-12",
+  "institution_type": "independent structural-field research institute",
   "primary_definition": "System Friction Institute makes visible the friction that systems learn to normalize.",
-  "not_categories": [
-    "wellness app",
-    "therapy",
-    "productivity software",
-    "social network",
-    "SaaS analytics dashboard",
-    "spiritual authority"
+  "operational_definition": "An evidence-governed instrument for observing a signal inside a changing field, proposing a minimal intervention and learning from the documented difference between prediction and outcome.",
+  "canonical_question": "What structural configuration of a signal, under what world state and field conditions, produces particular patterns of propagation, persistence, transformation or disappearance?",
+  "founder": {
+    "name": "Juan Antonio Marín Liera",
+    "role": "Founder and accountable human governor"
+  },
+  "instruments": [
+    {
+      "key": "MIHM",
+      "name": "Marco Integrado de Homeostasis Multivariable",
+      "purpose": "Measure structural variables and friction/homeostasis conditions with explicit evidence and missing-data handling."
+    },
+    {
+      "key": "MOP-H",
+      "name": "Minimal Observation and Perturbation Protocol",
+      "purpose": "Form a governed minimal-intervention hypothesis, preserve a return hash and compare later evidence against the initial state."
+    },
+    {
+      "key": "WorldSpect",
+      "name": "World Spectrum Observation",
+      "purpose": "Persist world-state snapshots, source health, confidence and longitudinal domain observations."
+    },
+    {
+      "key": "World Vector",
+      "name": "World Vector",
+      "purpose": "Represent current domain values, tensions, dominant signals and observed context."
+    },
+    {
+      "key": "AMV",
+      "name": "Adaptive Meta-Observer",
+      "purpose": "Accumulate internal signal measurements, external evidence, provisional predictions, interventions, outcomes and governed model learning."
+    },
+    {
+      "key": "Atlas",
+      "name": "Atlas / SFI Reference Bank",
+      "purpose": "Normalize observable cases and link each case to explicit evidence relations, prediction-at-T0, outcomes and model versions."
+    }
   ],
-  "public_concepts": [
-    "systemic friction",
-    "longitudinal observation",
-    "field",
-    "regime of friction",
-    "minimal perturbation",
-    "perceptual regulation",
-    "epistemic traceability",
-    "MIHM",
-    "SFI-CORE.v2",
-    "documentary repository",
-    "regime jump readiness"
+  "public_routes": [
+    { "path": "/", "purpose": "Institutional threshold and hub orientation", "indexable": true },
+    { "path": "/observatory", "purpose": "Public world-state observation", "indexable": true },
+    { "path": "/world-vector", "purpose": "World Vector instrument", "indexable": true },
+    { "path": "/field", "purpose": "Participant and organization MOP-H entry", "indexable": true },
+    { "path": "/field/participant", "purpose": "Participant workbook surface", "indexable": true },
+    { "path": "/moph", "purpose": "MOP-H method surface", "indexable": true },
+    { "path": "/scorefriction", "purpose": "Cultural and signal observation", "indexable": true },
+    { "path": "/scorefriction/wave", "purpose": "Cultural Wave", "indexable": true },
+    { "path": "/scorefriction/cases", "purpose": "Admissible public cases", "indexable": true },
+    { "path": "/repository", "purpose": "Documentary repository", "indexable": true },
+    { "path": "/library", "purpose": "Books and public materials", "indexable": true },
+    { "path": "/privacy", "purpose": "Privacy, evidence and analytics policy", "indexable": true }
   ],
-  "voice_rule": "Speak of the field, not identity.",
+  "private_routes": [
+    { "path_prefix": "/root", "purpose": "Founder governance console" },
+    { "path_prefix": "/studio", "purpose": "Authenticated object laboratory" },
+    { "path_prefix": "/operator", "purpose": "Authenticated operator surface" },
+    { "path_prefix": "/api", "purpose": "Runtime and mutation contracts" },
+    { "path_prefix": "/settings", "purpose": "Private configuration" },
+    { "path_prefix": "/telemetry", "purpose": "Private operational telemetry" }
+  ],
+  "object_classes": [
+    "music",
+    "article",
+    "social_post",
+    "website",
+    "institution",
+    "company",
+    "ai_response",
+    "historical_event",
+    "cultural_signal",
+    "person",
+    "organization",
+    "movement",
+    "other"
+  ],
+  "epistemic_classes": [
+    "observed",
+    "declared",
+    "derived",
+    "inferred",
+    "projected",
+    "simulated",
+    "weak_signal",
+    "missing",
+    "archived"
+  ],
+  "evidence_relations": [
+    "SUPPORTS",
+    "CONTRADICTS",
+    "CONTEXTUALIZES",
+    "VERIFIES_OUTCOME",
+    "DOCUMENTS_INTERVENTION",
+    "GOVERNS",
+    "RECORDS_ACCESS"
+  ],
+  "phase_model": [
+    { "phase": 0, "name": "Infrastructure", "output": "Persistent evidence, snapshots, audit, cases and model contracts" },
+    { "phase": 1, "name": "Internal signal", "output": "MIHM structural measurement and internal signal strength" },
+    { "phase": 2, "name": "External evidence", "output": "Audited External Evidence Vector with explicit reliability and missing values" },
+    { "phase": 3, "name": "Provisional prediction", "output": "Gated prediction with interval, confidence and calibration warning" },
+    { "phase": 4, "name": "Minimal intervention", "output": "Governed low-cost reversible intervention and return window" },
+    { "phase": 5, "name": "Outcome and error", "output": "Observed outcome, residual, absolute error, squared error and error class" },
+    { "phase": 6, "name": "Historical calibration", "output": "Governed model promotion after an eligible closed-case corpus" },
+    { "phase": 7, "name": "Operational UI", "output": "Role-appropriate ROOT, Studio, FIELD and Observatory surfaces" },
+    { "phase": 8, "name": "Governance and cost", "output": "Consent, audit, explicit confirmation, degraded mode and budget controls" }
+  ],
+  "calibration_contract": {
+    "minimum_closed_cases": 30,
+    "requires_non_musical_case": true,
+    "automatic_active_model_mutation": false,
+    "promotion_authority": "ROOT explicit human confirmation",
+    "public_prediction_before_calibration": "PROVISIONAL_NO_HISTORICAL_CALIBRATION"
+  },
+  "consent_contract": {
+    "required_object_classes": ["person", "organization", "movement"],
+    "required_fields": ["documented", "evidence_note", "evidence_id"],
+    "rule": "No Phase 1 observation of a person, organization or movement without documented explicit consent."
+  },
+  "interpretation_limits": [
+    "Missing data must remain MISSING and must not be converted to zero or an average.",
+    "A provisional prediction is not historically validated.",
+    "Platform reach does not establish artistic, moral or cultural value.",
+    "Operational access events are governance traces, not phenomenon evidence unless explicitly linked.",
+    "Public summaries do not expose private evidence, private identities or founder-only runtime state.",
+    "Do not infer undisclosed psychological states, motives or diagnoses."
+  ],
+  "analytics": {
+    "provider": "Google Analytics 4",
+    "measurement_id": "G-7YKTPLX3QD",
+    "allowed_scope": "Page navigation and non-PII instrument-use events",
+    "forbidden_parameters": ["email", "phone", "name", "free_text_evidence", "objective", "private_user_id", "actor_id"]
+  },
+  "machine_resources": {
+    "short_context": "https://systemfriction.org/llms.txt",
+    "full_context": "https://systemfriction.org/llms-full.txt",
+    "field_schema": "https://systemfriction.org/field-schema.json",
+    "sitemap": "https://systemfriction.org/sitemap.xml",
+    "robots": "https://systemfriction.org/robots.txt"
+  },
   "legacy_surfaces": [
     {
       "url": "https://aptymok.github.io/system-friction-main",
@@ -39,10 +157,5 @@
       "status": "legacy_preview",
       "authority": "historical"
     }
-  ],
-  "interpretation_notes": [
-    "Public summaries do not represent the complete runtime state.",
-    "Legacy surfaces are historical records, not the current canonical source.",
-    "SFI-CORE.v2 is the public perceptual constitution for the interface."
   ]
 }
