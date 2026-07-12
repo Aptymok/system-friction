@@ -1,5 +1,6 @@
 import 'server-only';
 
+import { assertAmvPredictionGate, type AmvPredictionGate } from '@/lib/amv/epistemicGate';
 import type { StudioFieldProjection } from '@/lib/studio/production/objectFieldProjection';
 import { runPrediction } from '../service';
 import type { PredictiveFeatureInput } from '../types';
@@ -97,10 +98,13 @@ export function studioProjectionFeatures(projection: StudioFieldProjection): Pre
 export async function predictStudioFieldResponse(input: {
   objectId: string;
   projection: StudioFieldProjection;
+  epistemicGate: AmvPredictionGate;
   ownerId?: string | null;
   createdBy?: string | null;
   persist?: boolean;
 }) {
+  assertAmvPredictionGate(input.epistemicGate);
+
   return runPrediction({
     scope: 'studio',
     subjectType: 'studio_object',
@@ -121,6 +125,7 @@ export async function predictStudioFieldResponse(input: {
           world: input.projection.world,
           object: input.projection.object,
           strategy: input.projection.strategy,
+          epistemicGate: input.epistemicGate,
         },
         observedAt: input.projection.generatedAt,
       },
@@ -131,6 +136,8 @@ export async function predictStudioFieldResponse(input: {
       selectedRoute: input.projection.strategy.selectedRouteId,
       opportunityWindow: input.projection.opportunityWindow,
       calibrationWarning: input.projection.calibration,
+      epistemicGate: input.epistemicGate,
+      epistemicLabel: 'PROVISIONAL_NO_HISTORICAL_CALIBRATION',
     },
     verificationRule: {
       observable: 'normalized_field_response_30d',
