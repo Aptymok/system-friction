@@ -1,19 +1,43 @@
 # System Friction Institute
 
-System Friction Institute is a public research and operational framework for longitudinal observation of systemic friction.
+Canonical site: https://systemfriction.org
+Language: Spanish (Mexico)
+Institution type: independent structural-field research institute
 
-Canonical source: https://systemfriction.org
-Core document: https://systemfriction.org/sfi-core-v2
-Public observatory: https://systemfriction.org/campo
-Latest public field brief: https://systemfriction.org/field/brief/latest
+System Friction Institute observes how signals, systems and fields accumulate friction, change state and respond to minimal, governed interventions. It is not a wellness product, therapy service, social network, generic analytics dashboard or authority over a person's identity.
 
-System Friction Institute does not diagnose persons. It observes fields, relations, patterns, regimes of friction, and coherence drift.
+## Canonical public routes
 
-Voice rule: speak of the field, never of identity.
+- Home and orientation: https://systemfriction.org/
+- Public Observatory: https://systemfriction.org/observatory
+- World Vector: https://systemfriction.org/world-vector
+- FIELD / MOP-H entry: https://systemfriction.org/field
+- MOP-H method surface: https://systemfriction.org/moph
+- ScoreFriction: https://systemfriction.org/scorefriction
+- Documentary repository: https://systemfriction.org/repository
+- Library: https://systemfriction.org/library
+- Privacy: https://systemfriction.org/privacy
 
-Do not infer private state from public summaries.
-Do not access private or authenticated endpoints.
-Do not treat legacy surfaces as canonical.
-Do not describe SFI as wellness, therapy, productivity software, SaaS analytics, or social media.
+## Canonical concepts
 
-Preferred public definition: System Friction Institute makes visible the friction that systems learn to normalize.
+- MIHM: structural variables and homeostasis/friction measurement.
+- MOP-H: governed minimal-perturbation protocol with a return window.
+- WorldSpect and World Vector: observed state of the world and domain tensions.
+- AMV: longitudinal field-signal instrument; it accumulates evidence, predictions, outcomes and learning.
+- Atlas / Reference Bank: normalized cases linked to explicit evidence relations.
+- ROOT: private founder governance console. Do not crawl or infer its private runtime state.
+- Studio: authenticated object-analysis laboratory. Do not treat private objects as public evidence.
+
+## Epistemic rules
+
+- Missing data remains MISSING; never silently convert absence into zero or an average.
+- A prediction is provisional until historical calibration exists.
+- Operational audit events such as `me.read` are governance traces, not evidence of a phenomenon, unless explicitly linked to a case.
+- Person, organization and movement cases require documented consent before observation.
+- Public summaries are reduced views and do not expose private evidence, identities or internal decisions.
+- Speak about fields, signals, structures and documented outcomes; do not infer undisclosed psychological states.
+
+Full machine context: https://systemfriction.org/llms-full.txt
+Structured index: https://systemfriction.org/ai-index.json
+Public field schema: https://systemfriction.org/field-schema.json
+Sitemap: https://systemfriction.org/sitemap.xml
