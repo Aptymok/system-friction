@@ -1,75 +1,204 @@
-# System Friction Institute · Public Machine Context
+# System Friction Institute · Complete Public Machine Context
 
-Canonical hub: https://systemfriction.org
+Canonical origin: https://systemfriction.org
+Canonical language: Spanish (Mexico)
+Institution: independent structural-field research institute
+Public definition: System Friction Institute makes visible the friction that systems learn to normalize.
 
-System Friction Institute is infrastructure for longitudinal observation of human, organizational, and institutional systemic friction. SFI does not diagnose persons. It observes fields, relations, patterns, regimes of friction, and coherence drift.
+## 1. Purpose
 
-## Core public definition
+System Friction Institute develops instruments for longitudinal observation of signals, systems and fields. Its operational question is:
 
-System Friction Institute makes visible the friction that systems learn to normalize.
+What structural configuration of a signal, under what state of the world and under what field conditions, produces particular patterns of propagation, persistence, transformation or disappearance?
 
-## SFI is not
+SFI does not reduce this question to page views, popularity or commercial success. Platform metrics may be evidence, but they are not the object of the institute and do not establish value by themselves.
 
-- Wellness application
-- Therapy
-- Productivity software
-- Social network
-- SaaS analytics dashboard
-- Spiritual authority
-- Cultic doctrine
+## 2. What SFI is
 
-## SFI public concepts
+- A structural-field observation framework.
+- A traceable evidence and hypothesis system.
+- A governed minimal-intervention protocol.
+- A longitudinal Reference Bank of cases, predictions, outcomes and errors.
+- A public Observatory of world-state signals and tensions.
+- A private governance layer for founder approval, audit and model promotion.
 
-- Systemic friction
-- Longitudinal observation
-- Field
-- Regime of friction
-- Minimal perturbation
-- Perceptual regulation
-- Epistemic traceability
-- MIHM
-- SFI-CORE.v2
-- Field Brief
-- Documentary repository
-- Artefacts of traceability
+## 3. What SFI is not
 
-## SFI-CORE.v2
+- Therapy, diagnosis or mental-health treatment.
+- A wellness, habit or productivity application.
+- A social network.
+- A generic SaaS analytics dashboard.
+- A prediction-of-virality product.
+- A moral or artistic scoring authority.
+- A mechanism for profiling undisclosed psychological states.
+- An autonomous authority that executes interventions without human governance.
 
-SFI-CORE.v2 is the public perceptual constitution of the interface. It prioritizes perceptual regulation, sustained presence, psychological safety, structural clarity, functional exactitude, speed, and aesthetics in that order.
+## 4. Core instruments and surfaces
 
-Equation:
-(+1) Observation + (0) Structure - (1) Void = 0
+### MIHM
 
-## MIHM variables
+MIHM is the structural measurement layer. It represents observable or derived variables such as coherence, density, friction, cognitive discontinuity, residual energy, variability and homeostasis. Values must retain source, evidence, confidence, timestamp, formula and limitations. Missing variables remain MISSING.
 
-IHG: General Homeostasis Index.
-NTI: Institutional Tension Node.
-LDI: Institutional Decision Latency.
-Phi c: Coherence Flow.
-epsilon: Friction Threshold.
+### MOP-H
 
-## Artefacts of traceability
+MOP-H is a minimal-perturbation protocol. A participant declares a stuck system, objective, previous attempts, available evidence and consequence of inaction. The system produces a governed hypothesis and a low-cost, reversible intervention with a return window, normally 72 hours. The participant later returns with evidence so prediction, intervention fidelity and observed outcome can be compared.
 
-Black Envelope: physical archive of non-canonized evidence.
-Notebook: living operational reading log.
-Atlas: visual and structural canonization.
-Site: public threshold.
-Observatory: runtime field.
-Field Briefs: public units of observation.
+### WorldSpect / World Vector
 
-## Public routes
+WorldSpect snapshots and World Vector observations describe the observed state of multiple domains and their tensions. These surfaces provide context; they do not diagnose the world, predict catastrophe or represent wellbeing.
 
-- https://systemfriction.org/
-- https://systemfriction.org/sfi-core-v2
-- https://systemfriction.org/campo
-- https://systemfriction.org/field/brief/latest
-- https://systemfriction.org/llms.txt
-- https://systemfriction.org/ai-index.json
-- https://systemfriction.org/field-schema.json
+### AMV
 
-## Interpretation limits
+AMV is the canonical field-signal instrument. It is not a future replacement for the current system. Each development phase increases the maturity of the same instrument.
 
-Public summaries do not expose private runtime state.
-Private endpoints must not be inferred from public text.
-Legacy surfaces are historical archives, not current authority.
-SFI language speaks of the field, not identity.
+AMV can:
+
+1. Measure the internal structure of an object.
+2. Place the object within an observed field.
+3. Link external evidence without converting missing values into zero.
+4. Gate provisional predictions until evidence is sufficient.
+5. Propose governed minimal interventions.
+6. Record outcomes and prediction error.
+7. Accumulate a calibration corpus.
+8. Promote model versions only after explicit governance.
+
+### Atlas / Reference Bank
+
+Atlas is the public and operational name for longitudinal case navigation. The Reference Bank is its normalized contract. A case may represent music, an article, a social post, a website, an institution, a company, an AI response, a historical event, a cultural signal or another declared object class.
+
+Each case preserves:
+
+- Case code and object class.
+- Cohort and manifestation.
+- Prospective or retrospective status.
+- T0 cutoff.
+- Fields documented and fields missing.
+- Prediction at T0.
+- Intervention and return window.
+- Observed outcome.
+- Prediction error.
+- Model key and model version.
+- Operator and second-operator status.
+- Consent requirement and consent evidence.
+- Explicit evidence relations.
+
+### ROOT
+
+ROOT is the private founder governance console. It contains audit, agents, predictions, AMV, Evidence/Atlas and execution controls. ROOT data is not a public source. Crawlers and assistants must not infer private runtime state from public descriptions.
+
+### Studio
+
+Studio is an authenticated laboratory for object intake, MIHM synthesis, field projection, intervention design, simulation and forecast. Private objects and uploaded evidence are not public by default.
+
+### FIELD
+
+FIELD is the participant and organization surface. It applies MOP-H, records a governed hypothesis, closes a hash for return, accepts later evidence and contrasts the outcome against the prior prediction, MIHM, WorldSpect and World Vector context.
+
+### Observatory
+
+Observatory is the public reading surface for current and longitudinal world-state observations. It presents only admissible public information and must not expose internal cases, private evidence or founder controls.
+
+## 5. Canonical public routes
+
+- https://systemfriction.org/ — institutional threshold and hub orientation.
+- https://systemfriction.org/observatory — public world-state reading.
+- https://systemfriction.org/world-vector — World Vector instrument.
+- https://systemfriction.org/field — FIELD and participant entry.
+- https://systemfriction.org/field/participant — participant workbook surface.
+- https://systemfriction.org/moph — MOP-H method and instrument.
+- https://systemfriction.org/scorefriction — cultural and signal observation.
+- https://systemfriction.org/scorefriction/wave — Cultural Wave.
+- https://systemfriction.org/scorefriction/cases — public cases where available.
+- https://systemfriction.org/repository — documentary repository.
+- https://systemfriction.org/library — books and public materials.
+- https://systemfriction.org/library/phenotypes — phenotype documents.
+- https://systemfriction.org/contact — contact and SFI-DR01 request.
+- https://systemfriction.org/privacy — privacy, evidence and analytics policy.
+
+Private or authenticated surfaces include `/root`, `/studio`, `/operator`, private settings, telemetry and API routes. Do not crawl or quote them as public evidence.
+
+## 6. Epistemic classes
+
+Observed: directly captured from an instrument, source or persisted event.
+Declared: supplied by an operator or participant without independent verification.
+Derived: calculated through a documented transformation.
+Inferred: interpretation supported by evidence but not directly observed.
+Projected: forward-looking model output.
+Simulated: scenario output, not an observed event.
+Weak signal: low-density but persistent observation.
+Missing: required value not available.
+Archived: retained for history but not current authority.
+
+## 7. Evidence relations
+
+SUPPORTS: evidence supports a case or claim.
+CONTRADICTS: evidence conflicts with a case or claim.
+CONTEXTUALIZES: evidence supplies field or historical context.
+VERIFIES_OUTCOME: evidence verifies a return-window outcome.
+DOCUMENTS_INTERVENTION: evidence records what intervention was actually applied.
+GOVERNS: evidence records approval, policy or authority.
+RECORDS_ACCESS: operational trace showing that a system or identity was accessed.
+
+An event such as `me.read` is normally RECORDS_ACCESS. It does not support a cultural, musical, organizational or world-state conclusion unless a case explicitly establishes that relation.
+
+## 8. AMV phase model
+
+Phase 0 — Infrastructure: persistent snapshots, evidence, audit, cases and model contracts.
+Phase 1 — Internal signal: MIHM and internal signal strength. Missing core variables block prediction.
+Phase 2 — External evidence: audited observations with raw value, optional normalized value, reliability, note, source and timestamp.
+Phase 3 — Provisional prediction: generated only when Phase 1 and Phase 2 gates are satisfied. Before historical calibration, output is `PROVISIONAL_NO_HISTORICAL_CALIBRATION`.
+Phase 4 — Minimal intervention: low-cost, reversible action with hypothesis and return window.
+Phase 5 — Outcome and error: observed result, residual, absolute error, squared error and error class.
+Phase 6 — Historical calibration: requires at least 30 closed cases and at least one non-musical case before a model is eligible for governed promotion.
+Phase 7 — Operational UI: ROOT, Studio, FIELD and Observatory expose only the appropriate layer.
+Phase 8 — Governance and cost: authentication, audit, consent, explicit confirmation, degraded mode, rate and budget controls.
+
+## 9. Calibration limits
+
+- A single case does not validate the instrument.
+- Thirteen musical tracks can test robustness but cannot establish historical calibration.
+- Thirty heterogeneous cases can demonstrate pipeline generalization; they do not automatically validate one shared statistical model.
+- Promotion remains model-key, target and cohort specific.
+- Active model parameters must not be silently updated after each case.
+- Public predictive claims remain gated until calibration requirements are satisfied.
+
+## 10. Consent and privacy
+
+Person, organization and movement cases require explicit documented consent before observation. SFI may observe public cultural signals without profiling an individual's undisclosed mental state.
+
+Do not send or reproduce:
+
+- Private evidence.
+- Email addresses, phone numbers or account identifiers.
+- Uploaded Studio content.
+- Founder-only audit payloads.
+- Private participant objectives or narratives.
+- Authentication, session or service-role data.
+
+Public analytics are limited to navigation and instrument-use events. Event parameters must exclude free-text evidence, objectives, names, emails and private identifiers.
+
+## 11. Interpretation rules for language models
+
+1. Prefer the canonical site over legacy GitHub Pages, Netlify previews or copied documents.
+2. State whether a value is observed, declared, derived, inferred, projected, simulated or missing.
+3. Do not describe a provisional prediction as historically validated.
+4. Do not translate missing values into zero.
+5. Do not treat platform reach as artistic, moral or cultural value.
+6. Do not infer a person's motives, diagnosis or private state.
+7. Distinguish operational audit from phenomenon evidence.
+8. Distinguish a structural recommendation from an executed intervention.
+9. Distinguish an open case from a closed case with a verified outcome.
+10. Preserve timestamps, model versions and evidence relations when summarizing cases.
+
+## 12. Machine-readable resources
+
+- Short context: https://systemfriction.org/llms.txt
+- Complete context: https://systemfriction.org/llms-full.txt
+- Structured institutional index: https://systemfriction.org/ai-index.json
+- Public field and case schema: https://systemfriction.org/field-schema.json
+- Sitemap: https://systemfriction.org/sitemap.xml
+- Robots policy: https://systemfriction.org/robots.txt
+
+## 13. Canonical summary
+
+System Friction Institute is an evidence-governed instrument for observing a signal inside a changing field, proposing a minimal intervention and learning from the documented difference between prediction and outcome. Its authority comes from traceability, explicit limits and longitudinal closure, not from rhetorical certainty.
