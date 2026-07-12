@@ -1,8 +1,17 @@
+import type { Metadata } from 'next';
 import { RootSovereignConsole } from '@/components/root/sovereign/RootSovereignConsole';
 import { requireFounderPage } from '@/lib/root/server';
 import { readRootSovereignState } from '@/lib/root/sovereign/rootSovereignAdapter';
 
 export const dynamic = 'force-dynamic';
+
+export const metadata: Metadata = {
+  robots: {
+    index: false,
+    follow: false,
+    nocache: true,
+  },
+};
 
 export default async function RootPage() {
   await requireFounderPage('/root');
