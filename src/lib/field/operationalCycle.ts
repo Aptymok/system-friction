@@ -34,6 +34,7 @@ export type ReturnFieldCycleInput = {
 };
 
 type Row = Record<string, unknown>;
+type ServiceClient = ReturnType<typeof createServiceSupabaseClient>;
 
 type WorldContext = {
   worldspect: Row | null;
@@ -55,6 +56,10 @@ type FieldCaseWithRelations = Row & {
 
 const FORMULA_VERSION = 'FIELD_MIHM_EVIDENCE_PROXY_V1';
 const OPEN_RETURN_STATUS = 'WAITING_RETURN';
+const PROCESSING_RETURN_STATUS = 'PROCESSING_RETURN';
+const PROCESSING_CASE_STATUS = 'RETURN_PROCESSING';
+const FIELD_BUCKET = 'field-evidence';
+const FIELD_STORAGE_PREFIX = `storage://${FIELD_BUCKET}/`;
 
 function record(value: unknown): Row {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Row : {};
@@ -84,6 +89,12 @@ function clamp01(value: unknown) {
 function nullableNumber(value: unknown) {
   if (value === null || typeof value === 'undefined' || value === '') return null;
   const parsed = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function parseTimestamp(value: unknown) {
+  if (typeof value !== 'string' || !value.trim()) return null;
+  const parsed = new Date(value).getTime();
   return Number.isFinite(parsed) ? parsed : null;
 }
 
@@ -152,13 +163,28 @@ function metric(input: {
   };
 }
 
-function baselineMihm(input: CreateFieldCycleInput, world: WorldContext) {
+async function validateOwnedFieldArtifact(service: ServiceClient, ownerId: string, uri?: string | null) {
+  const value = uri?.trim() ?? '';
+  if (!value.startsWith(FIELD_STORAGE_PREFIX)) return false;
+  const storagePath = value.slice(FIELD_STORAGE_PREFIX.length);
+  if (!storagePath.startsWith(`${ownerId}/field/`) || storagePath.includes('..')) return false;
+  const parts = storagePath.split('/').filter(Boolean);
+  if (parts.length < 4) return false;
+  const filename = parts.pop();
+  if (!filename) return false;
+  const directory = parts.join('/');
+  const listed = await service.storage.from(FIELD_BUCKET).list(directory, { limit: 20, search: filename });
+  if (listed.error) return false;
+  return (listed.data ?? []).some((item) => item.name === filename);
+}
+
+function baselineMihm(input: CreateFieldCycleInput, world: WorldContext, artifactVerified: boolean) {
   const required = [input.stuckSystem, input.objective, input.attempts, input.evidence, input.consequence];
   const coverage = required.filter((item) => item.trim().length >= 8).length / required.length;
   const traceability = clamp01(
     (input.evidence.trim().length >= 24 ? 0.45 : 0.1)
       + (input.evidenceSource.trim() ? 0.25 : 0)
-      + (input.evidenceUri ? 0.2 : 0)
+      + (artifactVerified ? 0.2 : 0)
       + clamp01(input.reliability) * 0.1,
   );
   const coherence = clamp01(
@@ -189,6 +215,7 @@ function baselineMihm(input: CreateFieldCycleInput, world: WorldContext) {
     tensions: [
       coverage < 1 ? 'BASELINE_FIELDS_INCOMPLETE' : null,
       traceability < 0.55 ? 'EVIDENCE_TRACEABILITY_THIN' : null,
+      input.evidenceUri && !artifactVerified ? 'BASELINE_ARTIFACT_NOT_VERIFIED' : null,
       world.warnings.length ? 'WORLD_CONTEXT_DEGRADED' : null,
     ].filter((item): item is string => Boolean(item)),
   };
@@ -324,6 +351,40 @@ async function audit(actorId: string, action: string, targetId: string, afterSta
   if (result.error) throw new Error(`FIELD_AUDIT_FAILED:${result.error.message}`);
 }
 
+async function claimReturn(service: ServiceClient, ownerId: string, caseId: string, returnId: string) {
+  const returnClaim = await service.from('field_returns')
+    .update({ status: PROCESSING_RETURN_STATUS })
+    .eq('id', returnId)
+    .eq('owner_id', ownerId)
+    .eq('case_id', caseId)
+    .eq('status', OPEN_RETURN_STATUS)
+    .select('id')
+    .maybeSingle();
+  if (returnClaim.error || !returnClaim.data) throw new Error('FIELD_RETURN_ALREADY_CLOSED_OR_NOT_READY');
+
+  const now = new Date().toISOString();
+  const caseClaim = await service.from('field_cases')
+    .update({ status: PROCESSING_CASE_STATUS, updated_at: now })
+    .eq('id', caseId)
+    .eq('owner_id', ownerId)
+    .eq('status', OPEN_RETURN_STATUS)
+    .select('id')
+    .maybeSingle();
+  if (caseClaim.error || !caseClaim.data) {
+    await service.from('field_returns').update({ status: OPEN_RETURN_STATUS }).eq('id', returnId).eq('owner_id', ownerId).eq('status', PROCESSING_RETURN_STATUS);
+    throw new Error('FIELD_RETURN_ALREADY_CLOSED_OR_NOT_READY');
+  }
+}
+
+async function releaseReturnClaim(service: ServiceClient, ownerId: string, caseId: string, returnId: string) {
+  const existingOutcome = await service.from('field_outcomes').select('id').eq('case_id', caseId).eq('owner_id', ownerId).limit(1).maybeSingle();
+  if (existingOutcome.data) return;
+  await Promise.all([
+    service.from('field_returns').update({ status: OPEN_RETURN_STATUS }).eq('id', returnId).eq('owner_id', ownerId).eq('status', PROCESSING_RETURN_STATUS),
+    service.from('field_cases').update({ status: OPEN_RETURN_STATUS, updated_at: new Date().toISOString() }).eq('id', caseId).eq('owner_id', ownerId).eq('status', PROCESSING_CASE_STATUS),
+  ]);
+}
+
 export async function createFieldCycle(ownerId: string, input: CreateFieldCycleInput) {
   if (!input.consent) throw new Error('FIELD_CONSENT_REQUIRED');
   if (input.title.trim().length < 3) throw new Error('FIELD_TITLE_REQUIRED');
@@ -332,6 +393,7 @@ export async function createFieldCycle(ownerId: string, input: CreateFieldCycleI
   if (input.evidence.trim().length < 8) throw new Error('FIELD_BASELINE_EVIDENCE_REQUIRED');
 
   const service = createServiceSupabaseClient();
+  const baselineArtifactVerified = await validateOwnedFieldArtifact(service, ownerId, input.evidenceUri);
   const world = await readWorldContext();
   const moph = await runMophAgent({
     stuckSystem: input.stuckSystem,
@@ -341,7 +403,7 @@ export async function createFieldCycle(ownerId: string, input: CreateFieldCycleI
     consequence: input.consequence,
     accountId: ownerId,
   });
-  const baseline = baselineMihm(input, world);
+  const baseline = baselineMihm(input, world, baselineArtifactVerified);
   const openedAt = new Date().toISOString();
   const expectedAt = dueAt(input.verificationWindow);
   const minimumChange = interventionForWindow(moph.minimal_perturbation, input.verificationWindow);
@@ -361,6 +423,7 @@ export async function createFieldCycle(ownerId: string, input: CreateFieldCycleI
       attempts: input.attempts.trim(),
       consequence: input.consequence.trim(),
       workflowVersion: 'FIELD_OPERATIONAL_CYCLE_V1',
+      baselineArtifactVerified,
       worldAtT0: world,
     },
   }).select('*').single();
@@ -379,7 +442,8 @@ export async function createFieldCycle(ownerId: string, input: CreateFieldCycleI
     visibility: 'private',
     payload: {
       note: input.evidence.trim(),
-      epistemicClass: input.evidenceUri ? 'observed' : 'declared',
+      epistemicClass: baselineArtifactVerified ? 'observed' : 'declared',
+      artifactVerified: baselineArtifactVerified,
       objective: input.objective.trim(),
       observedBeforeIntervention: true,
     },
@@ -466,7 +530,7 @@ export async function createFieldCycle(ownerId: string, input: CreateFieldCycleI
     evidenceId,
     worldObservedAt: world.observedAt,
   };
-  const seal = returnHash(sealPayload);
+  const seal = createHash('sha256').update(JSON.stringify(sealPayload)).digest('hex');
 
   const returnInsert = await service.from('field_returns').insert({
     case_id: caseId,
@@ -483,12 +547,14 @@ export async function createFieldCycle(ownerId: string, input: CreateFieldCycleI
 
   const caseUpdate = await service.from('field_cases').update({
     status: OPEN_RETURN_STATUS,
+    updated_at: openedAt,
     metadata: {
       ...record(fieldCase.metadata),
       objective: input.objective.trim(),
       attempts: input.attempts.trim(),
       consequence: input.consequence.trim(),
       workflowVersion: 'FIELD_OPERATIONAL_CYCLE_V1',
+      baselineArtifactVerified,
       returnHash: seal,
       expectedValue,
       expectedAt,
@@ -503,6 +569,7 @@ export async function createFieldCycle(ownerId: string, input: CreateFieldCycleI
   if (caseUpdate.error || !caseUpdate.data) throw new Error(`FIELD_CASE_SEAL_FAILED:${caseUpdate.error?.message ?? 'unknown'}`);
 
   const warnings = [...world.warnings, ...moph.warnings];
+  if (input.evidenceUri && !baselineArtifactVerified) warnings.push('BASELINE_ARTIFACT_NOT_VERIFIED');
   try {
     const reference = await registerReferenceCase({
       caseCode: `FIELD-${caseId.slice(0, 8)}`,
@@ -518,7 +585,7 @@ export async function createFieldCycle(ownerId: string, input: CreateFieldCycleI
       phaseStatus: {
         phase0: 'READY',
         phase1: 'PARTIAL_FIELD_PROXY',
-        phase2: 'DECLARED_BASELINE',
+        phase2: baselineArtifactVerified ? 'OBSERVED_BASELINE' : 'DECLARED_BASELINE',
         phase3: 'PROVISIONAL_NO_HISTORICAL_CALIBRATION',
         phase4: 'SEALED_READY',
         phase5: 'WAITING_RETURN',
@@ -581,190 +648,213 @@ export async function submitFieldReturn(ownerId: string, caseId: string, input: 
   if (!hypothesisResult.data || !interventionResult.data || !returnResult.data) throw new Error('FIELD_CYCLE_INCOMPLETE');
   if (text(returnResult.data.status) !== OPEN_RETURN_STATUS || existingOutcome.data) throw new Error('FIELD_RETURN_ALREADY_CLOSED_OR_NOT_READY');
 
+  const expectedAtMs = parseTimestamp(returnResult.data.expected_at) ?? parseTimestamp(metadata.expectedAt);
+  if (expectedAtMs === null) throw new Error('FIELD_RETURN_WINDOW_INVALID');
+  const serverNow = Date.now();
+  if (serverNow < expectedAtMs) throw new Error(`FIELD_RETURN_WINDOW_NOT_OPEN:${new Date(expectedAtMs).toISOString()}`);
+
   const observedAt = iso(input.observedAt);
-  const evidenceInsert = await service.from('field_case_evidence').insert({
-    case_id: caseId,
-    owner_id: ownerId,
-    evidence_type: 'return_observation',
-    label: 'Return-window evidence',
-    source: input.evidenceSource.trim() || 'participant_return',
-    reliability: clamp01(input.reliability),
-    uri: input.evidenceUri?.trim() || null,
-    visibility: 'private',
-    payload: {
-      note: input.evidenceNote.trim(),
-      epistemicClass: input.evidenceUri ? 'observed' : 'declared',
-      actualOutcome: clamp01(input.actualOutcome),
-      interventionFidelity: clamp01(input.interventionFidelity),
-      sealedHash: metadata.returnHash ?? null,
-    },
-    observed_at: observedAt,
-  }).select('*').single();
-  if (evidenceInsert.error || !evidenceInsert.data) throw new Error(`FIELD_RETURN_EVIDENCE_CREATE_FAILED:${evidenceInsert.error?.message ?? 'unknown'}`);
-  const evidence = record(evidenceInsert.data);
-  const evidenceId = String(evidence.id);
+  const observedAtMs = parseTimestamp(observedAt) ?? serverNow;
+  if (observedAtMs < expectedAtMs) throw new Error('FIELD_RETURN_OBSERVED_BEFORE_WINDOW');
+  if (observedAtMs > serverNow + 5 * 60 * 1000) throw new Error('FIELD_RETURN_OBSERVED_IN_FUTURE');
 
-  const returnReading = returnMihm(input, expectedValue, record(baselineResult.data), world);
-  const readingInsert = await service.from('field_mihm_readings').insert({
-    case_id: caseId,
-    owner_id: ownerId,
-    status: returnReading.status,
-    metrics: returnReading.metrics,
-    tensions: returnReading.tensions,
-    formula_version: FORMULA_VERSION,
-    evidence_ids: [evidenceId],
-  }).select('*').single();
-  if (readingInsert.error || !readingInsert.data) throw new Error(`FIELD_RETURN_MIHM_FAILED:${readingInsert.error?.message ?? 'unknown'}`);
-
-  const actualValue = clamp01(input.actualOutcome);
-  const delta = actualValue - expectedValue;
-  const accepted = clamp01(input.reliability) >= 0.55 && input.evidenceNote.trim().length >= 12;
-  const verified = Boolean(input.evidenceUri) && clamp01(input.reliability) >= 0.75 && clamp01(input.interventionFidelity) >= 0.6;
-  const learned = !accepted
-    ? 'La evidencia se conserva como declarada, pero no alcanza el umbral operativo de aceptación.'
-    : Math.abs(delta) <= 0.15
-      ? 'El resultado observado quedó dentro del rango operativo esperado; requiere más casos antes de calibrar.'
-      : delta > 0
-        ? 'El resultado superó la expectativa provisional. Revisar qué parte de la intervención y del campo explica la diferencia.'
-        : 'El resultado quedó por debajo de la expectativa provisional. Revisar fidelidad, evidencia faltante y cambio de campo.';
-
-  const outcomeInsert = await service.from('field_outcomes').insert({
-    case_id: caseId,
-    owner_id: ownerId,
-    intervention_id: interventionResult.data.id,
-    expected: `normalized movement ${expectedValue.toFixed(3)}`,
-    actual: `normalized movement ${actualValue.toFixed(3)}`,
-    delta,
-    verified,
-    learned,
-    evidence_ids: [evidenceId],
-  }).select('*').single();
-  if (outcomeInsert.error || !outcomeInsert.data) throw new Error(`FIELD_OUTCOME_CREATE_FAILED:${outcomeInsert.error?.message ?? 'unknown'}`);
-  const outcome = record(outcomeInsert.data);
-
-  const returnUpdate = await service.from('field_returns').update({
-    returned_at: observedAt,
-    status: accepted ? 'RETURN_ACCEPTED' : 'RETURN_RECORDED_UNVERIFIED',
-    evidence_ids: [evidenceId],
-    payload: {
-      ...record(returnResult.data.payload),
-      actualValue,
-      expectedValue,
-      delta,
-      accepted,
-      verified,
-      reliability: clamp01(input.reliability),
-      interventionFidelity: clamp01(input.interventionFidelity),
-      worldAtReturn: world,
-    },
-  }).eq('id', returnResult.data.id).eq('owner_id', ownerId).eq('status', OPEN_RETURN_STATUS);
-  if (returnUpdate.error) throw new Error(`FIELD_RETURN_CLOSE_FAILED:${returnUpdate.error.message}`);
-
-  const caseClose = await service.from('field_cases').update({
-    status: verified ? 'CLOSED_VERIFIED' : accepted ? 'CLOSED_OBSERVED' : 'CLOSED_UNVERIFIED',
-    metadata: {
-      ...metadata,
-      returnedAt: observedAt,
-      returnEvidenceId: evidenceId,
-      fieldOutcomeId: outcome.id,
-      actualValue,
-      delta,
-      accepted,
-      verified,
-      worldAtReturn: world,
-    },
-  }).eq('id', caseId).eq('owner_id', ownerId).eq('status', OPEN_RETURN_STATUS);
-  if (caseClose.error) throw new Error(`FIELD_CASE_CLOSE_FAILED:${caseClose.error.message}`);
-
-  await Promise.all([
-    service.from('field_interventions').update({
-      status: 'COMPLETED',
-      completed_at: observedAt,
-      evidence_ids: [evidenceId],
-    }).eq('id', interventionResult.data.id).eq('owner_id', ownerId),
-    service.from('field_hypotheses').update({
-      status: verified ? 'VERIFIED_RETURN' : accepted ? 'OBSERVED_RETURN' : 'UNVERIFIED_RETURN',
-      evidence_ids: [evidenceId],
-    }).eq('id', hypothesisResult.data.id).eq('owner_id', ownerId),
-    service.from('field_lessons').insert({
-      case_id: caseId,
-      owner_id: ownerId,
-      outcome_id: outcome.id,
-      statement: learned,
-      evidence_ids: [evidenceId],
-    }),
-  ]);
+  const artifactVerified = await validateOwnedFieldArtifact(service, ownerId, input.evidenceUri);
+  await claimReturn(service, ownerId, caseId, String(returnResult.data.id));
 
   try {
-    const referenceResult = await service.from('sfi_reference_cases').select('id,metadata').eq('object_id', caseId).maybeSingle();
-    if (referenceResult.data?.id) {
-      const referenceUpdate = await service.from('sfi_reference_cases').update({
-        status: verified || accepted ? 'CLOSED' : 'UNVERIFIABLE',
-        closed_at: observedAt,
-        phase_status: {
-          phase0: 'READY',
-          phase1: 'PARTIAL_FIELD_PROXY',
-          phase2: accepted ? 'RETURN_EVIDENCE_ACCEPTED' : 'RETURN_EVIDENCE_THIN',
-          phase3: 'PROVISIONAL_NO_HISTORICAL_CALIBRATION',
-          phase4: 'EXECUTED',
-          phase5: verified ? 'VERIFIED' : accepted ? 'OBSERVED' : 'UNVERIFIABLE',
-          phase6: 'ACCUMULATING_CALIBRATION_CORPUS',
-        },
-        missing_fields: accepted ? [] : ['field.verified_return_source'],
-        metadata: {
-          ...record(referenceResult.data.metadata),
-          fieldCaseId: caseId,
-          fieldOutcomeId: outcome.id,
-          returnHash: metadata.returnHash,
-          expectedValue,
-          actualValue,
-          delta,
-          accepted,
-          verified,
-        },
-      }).eq('id', referenceResult.data.id);
-      if (referenceUpdate.error) throw new Error(referenceUpdate.error.message);
-      await Promise.all([
-        linkCaseEvidence({
-          caseId: String(referenceResult.data.id),
-          evidenceSource: 'field_case_evidence',
-          evidenceId,
-          relationType: 'VERIFIES_OUTCOME',
-          createdBy: ownerId,
-        }),
-        linkCaseEvidence({
-          caseId: String(referenceResult.data.id),
-          evidenceSource: 'field_outcomes',
-          evidenceId: String(outcome.id),
-          relationType: 'VERIFIES_OUTCOME',
-          createdBy: ownerId,
-        }),
-      ]);
+    const evidenceInsert = await service.from('field_case_evidence').insert({
+      case_id: caseId,
+      owner_id: ownerId,
+      evidence_type: 'return_observation',
+      label: 'Return-window evidence',
+      source: input.evidenceSource.trim() || 'participant_return',
+      reliability: clamp01(input.reliability),
+      uri: input.evidenceUri?.trim() || null,
+      visibility: 'private',
+      payload: {
+        note: input.evidenceNote.trim(),
+        epistemicClass: artifactVerified ? 'observed' : 'declared',
+        artifactVerified,
+        actualOutcome: clamp01(input.actualOutcome),
+        interventionFidelity: clamp01(input.interventionFidelity),
+        sealedHash: metadata.returnHash ?? null,
+      },
+      observed_at: observedAt,
+    }).select('*').single();
+    if (evidenceInsert.error || !evidenceInsert.data) throw new Error(`FIELD_RETURN_EVIDENCE_CREATE_FAILED:${evidenceInsert.error?.message ?? 'unknown'}`);
+    const evidence = record(evidenceInsert.data);
+    const evidenceId = String(evidence.id);
+
+    const returnReading = returnMihm(input, expectedValue, record(baselineResult.data), world);
+    const readingInsert = await service.from('field_mihm_readings').insert({
+      case_id: caseId,
+      owner_id: ownerId,
+      status: returnReading.status,
+      metrics: returnReading.metrics,
+      tensions: returnReading.tensions,
+      formula_version: FORMULA_VERSION,
+      evidence_ids: [evidenceId],
+    }).select('*').single();
+    if (readingInsert.error || !readingInsert.data) throw new Error(`FIELD_RETURN_MIHM_FAILED:${readingInsert.error?.message ?? 'unknown'}`);
+
+    const actualValue = clamp01(input.actualOutcome);
+    const delta = actualValue - expectedValue;
+    const accepted = clamp01(input.reliability) >= 0.55 && input.evidenceNote.trim().length >= 12;
+    const verified = artifactVerified && clamp01(input.reliability) >= 0.75 && clamp01(input.interventionFidelity) >= 0.6;
+    const learned = !accepted
+      ? 'La evidencia se conserva como declarada, pero no alcanza el umbral operativo de aceptación.'
+      : Math.abs(delta) <= 0.15
+        ? 'El resultado observado quedó dentro del rango operativo esperado; requiere más casos antes de calibrar.'
+        : delta > 0
+          ? 'El resultado superó la expectativa provisional. Revisar qué parte de la intervención y del campo explica la diferencia.'
+          : 'El resultado quedó por debajo de la expectativa provisional. Revisar fidelidad, evidencia faltante y cambio de campo.';
+
+    const outcomeInsert = await service.from('field_outcomes').insert({
+      case_id: caseId,
+      owner_id: ownerId,
+      intervention_id: interventionResult.data.id,
+      expected: `normalized movement ${expectedValue.toFixed(3)}`,
+      actual: `normalized movement ${actualValue.toFixed(3)}`,
+      delta,
+      verified,
+      learned,
+      evidence_ids: [evidenceId],
+    }).select('*').single();
+    if (outcomeInsert.error || !outcomeInsert.data) throw new Error(`FIELD_OUTCOME_CREATE_FAILED:${outcomeInsert.error?.message ?? 'unknown'}`);
+    const outcome = record(outcomeInsert.data);
+
+    const returnUpdate = await service.from('field_returns').update({
+      returned_at: observedAt,
+      status: accepted ? 'RETURN_ACCEPTED' : 'RETURN_RECORDED_UNVERIFIED',
+      evidence_ids: [evidenceId],
+      payload: {
+        ...record(returnResult.data.payload),
+        actualValue,
+        expectedValue,
+        delta,
+        accepted,
+        verified,
+        artifactVerified,
+        reliability: clamp01(input.reliability),
+        interventionFidelity: clamp01(input.interventionFidelity),
+        worldAtReturn: world,
+      },
+    }).eq('id', returnResult.data.id).eq('owner_id', ownerId).eq('status', PROCESSING_RETURN_STATUS);
+    if (returnUpdate.error) throw new Error(`FIELD_RETURN_CLOSE_FAILED:${returnUpdate.error.message}`);
+
+    const caseClose = await service.from('field_cases').update({
+      status: verified ? 'CLOSED_VERIFIED' : accepted ? 'CLOSED_OBSERVED' : 'CLOSED_UNVERIFIED',
+      updated_at: observedAt,
+      metadata: {
+        ...metadata,
+        returnedAt: observedAt,
+        returnEvidenceId: evidenceId,
+        fieldOutcomeId: outcome.id,
+        actualValue,
+        delta,
+        accepted,
+        verified,
+        artifactVerified,
+        worldAtReturn: world,
+      },
+    }).eq('id', caseId).eq('owner_id', ownerId).eq('status', PROCESSING_CASE_STATUS);
+    if (caseClose.error) throw new Error(`FIELD_CASE_CLOSE_FAILED:${caseClose.error.message}`);
+
+    await Promise.all([
+      service.from('field_interventions').update({
+        status: 'COMPLETED',
+        completed_at: observedAt,
+        evidence_ids: [evidenceId],
+      }).eq('id', interventionResult.data.id).eq('owner_id', ownerId),
+      service.from('field_hypotheses').update({
+        status: verified ? 'VERIFIED_RETURN' : accepted ? 'OBSERVED_RETURN' : 'UNVERIFIED_RETURN',
+        evidence_ids: [evidenceId],
+      }).eq('id', hypothesisResult.data.id).eq('owner_id', ownerId),
+      service.from('field_lessons').insert({
+        case_id: caseId,
+        owner_id: ownerId,
+        outcome_id: outcome.id,
+        statement: learned,
+        evidence_ids: [evidenceId],
+      }),
+    ]);
+
+    try {
+      const referenceResult = await service.from('sfi_reference_cases').select('id,metadata').eq('object_id', caseId).maybeSingle();
+      if (referenceResult.data?.id) {
+        const referenceUpdate = await service.from('sfi_reference_cases').update({
+          status: verified || accepted ? 'CLOSED' : 'UNVERIFIABLE',
+          closed_at: observedAt,
+          phase_status: {
+            phase0: 'READY',
+            phase1: 'PARTIAL_FIELD_PROXY',
+            phase2: accepted ? 'RETURN_EVIDENCE_ACCEPTED' : 'RETURN_EVIDENCE_THIN',
+            phase3: 'PROVISIONAL_NO_HISTORICAL_CALIBRATION',
+            phase4: 'EXECUTED',
+            phase5: verified ? 'VERIFIED' : accepted ? 'OBSERVED' : 'UNVERIFIABLE',
+            phase6: 'ACCUMULATING_CALIBRATION_CORPUS',
+          },
+          missing_fields: accepted ? [] : ['field.verified_return_source'],
+          metadata: {
+            ...record(referenceResult.data.metadata),
+            fieldCaseId: caseId,
+            fieldOutcomeId: outcome.id,
+            returnHash: metadata.returnHash,
+            expectedValue,
+            actualValue,
+            delta,
+            accepted,
+            verified,
+            artifactVerified,
+          },
+        }).eq('id', referenceResult.data.id);
+        if (referenceUpdate.error) throw new Error(referenceUpdate.error.message);
+        await Promise.all([
+          linkCaseEvidence({
+            caseId: String(referenceResult.data.id),
+            evidenceSource: 'field_case_evidence',
+            evidenceId,
+            relationType: 'VERIFIES_OUTCOME',
+            createdBy: ownerId,
+          }),
+          linkCaseEvidence({
+            caseId: String(referenceResult.data.id),
+            evidenceSource: 'field_outcomes',
+            evidenceId: String(outcome.id),
+            relationType: 'VERIFIES_OUTCOME',
+            createdBy: ownerId,
+          }),
+        ]);
+      }
+    } catch {
+      // Reference Bank degradation must not erase a valid participant return.
     }
-  } catch {
-    // Reference Bank degradation must not erase a valid participant return.
+
+    await audit(ownerId, 'field.cycle.returned', caseId, { evidenceId, fieldOutcomeId: outcome.id, actualValue, expectedValue, delta, accepted, verified, artifactVerified });
+
+    return {
+      caseId,
+      evidence,
+      mihm: returnReading,
+      expectedValue,
+      actualValue,
+      delta,
+      accepted,
+      verified,
+      artifactVerified,
+      explanation: learned,
+      nextStep: !accepted
+        ? 'Add a traceable source or a clearer observed result; the current return remains preserved but unverified.'
+        : Math.abs(delta) > 0.25
+          ? 'Open a second controlled cycle with only one revised variable and preserve this case as the baseline.'
+          : 'Close this cycle and decide whether the intervention should be retained, reverted or tested in another comparable case.',
+      world,
+      outcome,
+    };
+  } catch (error) {
+    await releaseReturnClaim(service, ownerId, caseId, String(returnResult.data.id));
+    throw error;
   }
-
-  await audit(ownerId, 'field.cycle.returned', caseId, { evidenceId, fieldOutcomeId: outcome.id, actualValue, expectedValue, delta, accepted, verified });
-
-  return {
-    caseId,
-    evidence,
-    mihm: returnReading,
-    expectedValue,
-    actualValue,
-    delta,
-    accepted,
-    verified,
-    explanation: learned,
-    nextStep: !accepted
-      ? 'Add a traceable source or a clearer observed result; the current return remains preserved but unverified.'
-      : Math.abs(delta) > 0.25
-        ? 'Open a second controlled cycle with only one revised variable and preserve this case as the baseline.'
-        : 'Close this cycle and decide whether the intervention should be retained, reverted or tested in another comparable case.',
-    world,
-    outcome,
-  };
 }
 
 export async function listFieldCycles(ownerId: string) {
