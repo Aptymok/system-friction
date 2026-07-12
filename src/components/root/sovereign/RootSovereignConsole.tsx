@@ -15,6 +15,7 @@ import { RootOverviewView } from './views/RootOverviewView';
 import { RootPredictionsView } from './views/RootPredictionsView';
 import type { RootActionRequest, RootSelection, RootSessionEvent, RootViewId } from './sovereignTypes';
 import './root-sovereign.css';
+import './root-action-strip.css';
 
 const VIEWS = new Set<RootViewId>(['overview','governance','agents','predictions','amv','evidence','execution']);
 function viewFromUrl(): RootViewId { if (typeof window === 'undefined') return 'overview'; const value = new URLSearchParams(window.location.search).get('view') as RootViewId | null; return value && VIEWS.has(value) ? value : 'overview'; }
