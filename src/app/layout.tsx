@@ -1,41 +1,70 @@
 import '@/app/globals.css';
 import type { Metadata } from 'next';
-import Script from 'next/script';
 import { AuthProvider } from '@/components/auth/AuthProvider';
+import { GoogleAnalytics } from '@/components/analytics/GoogleAnalytics';
 
 const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://systemfriction.org';
 const SITE_NAME = 'System Friction Institute';
 const SITE_DESCRIPTION =
-  'System Friction Institute makes visible the friction that systems learn to normalize. Infrastructure for longitudinal observation of human, organizational, and institutional systemic friction.';
-const GOOGLE_ANALYTICS_ID = 'G-76H63FV9DG';
+  'System Friction Institute observes how signals, systems and fields accumulate friction, change state and respond to minimal interventions through MIHM, MOP-H, WorldSpect, World Vector, AMV and a longitudinal evidence Atlas.';
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
+  applicationName: SITE_NAME,
   title: {
-    default: `${SITE_NAME} · Longitudinal Observation Framework`,
+    default: `${SITE_NAME} · Structural Field Observation`,
     template: `%s · ${SITE_NAME}`,
   },
   description: SITE_DESCRIPTION,
   authors: [{ name: 'Juan Antonio Marín Liera' }],
+  creator: 'Juan Antonio Marín Liera',
+  publisher: SITE_NAME,
+  category: 'Research Institute',
+  keywords: [
+    'systemic friction',
+    'longitudinal observation',
+    'MIHM',
+    'MOP-H',
+    'WorldSpect',
+    'World Vector',
+    'AMV',
+    'epistemic traceability',
+    'minimal intervention',
+    'structural observation',
+  ],
   alternates: {
     canonical: SITE_URL,
+    languages: {
+      'es-MX': SITE_URL,
+    },
+    types: {
+      'text/plain': `${SITE_URL}/llms.txt`,
+      'application/json': `${SITE_URL}/ai-index.json`,
+    },
   },
   openGraph: {
     type: 'website',
     url: SITE_URL,
     siteName: SITE_NAME,
-    title: `${SITE_NAME} · Longitudinal Observation Framework`,
+    title: `${SITE_NAME} · Structural Field Observation`,
     description: SITE_DESCRIPTION,
     locale: 'es_MX',
   },
   twitter: {
     card: 'summary_large_image',
-    title: `${SITE_NAME} · Longitudinal Observation Framework`,
+    title: `${SITE_NAME} · Structural Field Observation`,
     description: SITE_DESCRIPTION,
   },
   robots: {
     index: true,
     follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+      'max-video-preview': -1,
+    },
   },
   verification: {
     google: 'h11ee87RhR3lQPzsFXKLEunIUppdYXwfQeIq2E8SNxs',
@@ -44,7 +73,8 @@ export const metadata: Metadata = {
 
 const organizationJsonLd = {
   '@context': 'https://schema.org',
-  '@type': 'Organization',
+  '@type': 'ResearchOrganization',
+  '@id': `${SITE_URL}/#organization`,
   name: SITE_NAME,
   alternateName: 'SFI',
   url: SITE_URL,
@@ -53,51 +83,59 @@ const organizationJsonLd = {
     '@type': 'Person',
     name: 'Juan Antonio Marín Liera',
   },
-  sameAs: [],
+  knowsAbout: [
+    'Systemic friction',
+    'Longitudinal field observation',
+    'MIHM',
+    'MOP-H',
+    'WorldSpect',
+    'World Vector',
+    'AMV',
+    'Epistemic traceability',
+  ],
 };
 
 const researchProjectJsonLd = {
   '@context': 'https://schema.org',
   '@type': 'ResearchProject',
-  name: 'MIHM — Marco de Observación Longitudinal de Fricción Sistémica',
+  '@id': `${SITE_URL}/#instrument`,
+  name: 'SFI Structural Field-Signal Instrument',
+  alternateName: 'AMV',
   description:
-    'Framework algorítmico para detectar, predecir y redirigir la entropía sistémica antes del punto de colapso, mediante observación longitudinal de campos, relaciones y regímenes de fricción.',
+    'Instrumento longitudinal para situar una señal en un campo, registrar evidencia, formular hipótesis gobernadas, observar resultados y acumular aprendizaje estadístico auditable.',
   url: `${SITE_URL}/repository`,
   provider: {
-    '@type': 'Organization',
-    name: SITE_NAME,
-    url: SITE_URL,
+    '@id': `${SITE_URL}/#organization`,
+  },
+};
+
+const webSiteJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  '@id': `${SITE_URL}/#website`,
+  name: SITE_NAME,
+  url: SITE_URL,
+  inLanguage: 'es-MX',
+  publisher: {
+    '@id': `${SITE_URL}/#organization`,
   },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es">
+    <html lang="es-MX">
       <head>
-        <script
-          type="application/ld+json"
-          // eslint-disable-next-line react/no-danger
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
-        />
-        <script
-          type="application/ld+json"
-          // eslint-disable-next-line react/no-danger
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(researchProjectJsonLd) }}
-        />
-        <Script
-          src={`https://www.googletagmanager.com/gtag/js?id=${GOOGLE_ANALYTICS_ID}`}
-          strategy="afterInteractive"
-        />
-        <Script id="google-analytics" strategy="afterInteractive">
-          {`
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){window.dataLayer.push(arguments);}
-            gtag('js', new Date());
-            gtag('config', '${GOOGLE_ANALYTICS_ID}');
-          `}
-        </Script>
+        {[organizationJsonLd, researchProjectJsonLd, webSiteJsonLd].map((entry) => (
+          <script
+            key={entry['@id']}
+            type="application/ld+json"
+            // eslint-disable-next-line react/no-danger
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(entry) }}
+          />
+        ))}
       </head>
       <body>
+        <GoogleAnalytics />
         <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
