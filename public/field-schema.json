@@ -4,7 +4,7 @@
   "version": "2.0.0",
   "canonical_url": "https://systemfriction.org/field-schema.json",
   "updated_at": "2026-07-12",
-  "definitions": {
+  "$defs": {
     "epistemic_class": {
       "type": "string",
       "enum": [
