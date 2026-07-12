@@ -20,6 +20,18 @@ export function dateValue(value: unknown): string | null {
   return value;
 }
 
+export function errorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (error && typeof error === 'object') {
+    const record = error as Record<string, unknown>;
+    const parts = [record.message, record.details, record.hint, record.code]
+      .filter((value): value is string => typeof value === 'string' && value.trim().length > 0);
+    if (parts.length) return [...new Set(parts)].join(' | ');
+  }
+  if (typeof error === 'string' && error.trim()) return error.trim();
+  return 'unknown_source_error';
+}
+
 export async function bounded<T>(label: string, task: () => Promise<T>, timeoutMs = 5500): Promise<{ data: T | null; error: string | null }> {
   let timeout: ReturnType<typeof setTimeout> | null = null;
   try {
@@ -29,7 +41,7 @@ export async function bounded<T>(label: string, task: () => Promise<T>, timeoutM
     ]);
     return { data, error: null };
   } catch (error) {
-    return { data: null, error: `${label}:${error instanceof Error ? error.message : 'failed'}` };
+    return { data: null, error: `${label}:${errorMessage(error)}` };
   } finally {
     if (timeout) clearTimeout(timeout);
   }
@@ -41,7 +53,7 @@ export async function selectRows(input: { table: string; select: string; limit?:
     let query = service.from(input.table).select(input.select).limit(input.limit ?? 30);
     if (input.order) query = query.order(input.order, { ascending: false });
     const { data, error } = await query;
-    if (error) throw error;
+    if (error) throw new Error(errorMessage(error));
     return (data ?? []) as unknown as RootRow[];
   });
   return { rows: result.data ?? [], error: result.error };

@@ -1,43 +1,131 @@
 import 'server-only';
-import { buildAgenticRootState } from '@/lib/agents/sfiAgents';
-import type { RootAgent, RootRow } from '../rootSovereignState';
-import { bounded, dateValue, row, source, text } from './readerSupport';
+import type { RootAgent, RootDataStatus, RootRow } from '../rootSovereignState';
+import { dateValue, selectRows, source, text } from './readerSupport';
 
-function agent(input: RootRow, id: string, role: string): RootAgent {
-  const state = text(input.state ?? input.status ?? input.current_signal_state ?? input.availability, 'SIN DATO');
-  const observedAt = dateValue(input.last_run ?? input.lastRun ?? input.updated_at);
+type AgentInput = {
+  id: string;
+  role: string;
+  sourceName: string;
+  row: RootRow | null;
+  error: string | null;
+  observedAt: string | null;
+  stateValue: string | null;
+  lastResult: string | null;
+};
+
+function agent(input: AgentInput): RootAgent {
+  const status: RootDataStatus = input.error ? 'degraded' : input.row ? 'observed' : 'missing';
+  const stateValue = input.error ? 'degraded' : input.stateValue ?? (input.row ? 'observed' : 'empty');
   return {
-    id,
-    role,
+    id: input.id,
+    role: input.role,
     state: {
-      value: state,
-      status: state === 'SIN DATO' ? 'missing' : 'observed',
-      source: text(input.source, 'buildAgenticRootState'),
-      observedAt,
+      value: stateValue,
+      status,
+      source: input.sourceName,
+      observedAt: input.observedAt,
       confidence: null,
       evidenceIds: [],
-      explanation: 'Estado reportado por el runtime del agente; no es un health score.',
-      warning: text(input.error ?? input.warning, '') || null,
+      explanation: 'Estado derivado de la última fila persistida del subsistema; no es un health score.',
+      warning: input.error,
     },
-    provider: text(input.provider, '') || null,
-    model: text(input.model, '') || null,
-    lastRun: observedAt,
-    lastResult: text(input.last_result ?? input.lastResult ?? input.result, '') || null,
-    availability: text(input.availability, state),
-    error: text(input.error ?? input.warning, '') || null,
+    provider: null,
+    model: null,
+    lastRun: input.observedAt,
+    lastResult: input.lastResult,
+    availability: input.error ? 'degraded' : input.row ? 'available' : 'empty',
+    error: input.error,
   };
 }
 
 export async function readRootAgents() {
-  const result = await bounded('buildAgenticRootState', () => buildAgenticRootState());
-  const state = row(result.data);
-  const providers = Array.isArray(state.providers) ? state.providers.map(row) : [];
-  const agents = [
-    agent(row(state.worldVectorAgent), 'WORLD-VECTOR', 'World Vector observation'),
-    agent(row(state.neuralGraphAgent ?? state.systemHealth), 'NEURAL-GRAPH', 'Persistent evidence graph'),
-    agent(row(state.amvAgent), 'AMV', 'Operational memory'),
-    agent(row(state.predictionAgent), 'PREDICTION', 'Prediction registry'),
-    ...providers.map((provider, index) => agent(provider, text(provider.id ?? provider.name, `LLM-${index + 1}`), 'LLM provider')),
+  const [world, sfiGraph, canonicalGraph, amv, prediction] = await Promise.all([
+    selectRows({
+      table: 'world_vector_observations',
+      select: 'id,status,confidence,dominant_signal,warnings,observed_at,created_at',
+      order: 'observed_at',
+      limit: 1,
+    }),
+    selectRows({
+      table: 'sfi_graph_nodes',
+      select: 'id,node_key,status,updated_at,created_at',
+      order: 'updated_at',
+      limit: 1,
+    }),
+    selectRows({
+      table: 'graph_nodes',
+      select: 'id,node_key,node_type,epistemic_class,updated_at,created_at',
+      order: 'updated_at',
+      limit: 1,
+    }),
+    selectRows({
+      table: 'sfi_amv_memory',
+      select: 'id,module,evaluation,requires_human_validation,created_at',
+      order: 'created_at',
+      limit: 1,
+    }),
+    selectRows({
+      table: 'sfi_predictive_runs',
+      select: 'id,status,calibration_status,subject_type,subject_id,updated_at,created_at',
+      order: 'updated_at',
+      limit: 1,
+    }),
+  ]);
+
+  const worldRow = world.rows[0] ?? null;
+  const graphRow = sfiGraph.rows[0] ?? canonicalGraph.rows[0] ?? null;
+  const graphError = [sfiGraph.error, canonicalGraph.error].filter(Boolean).join(' | ') || null;
+  const amvRow = amv.rows[0] ?? null;
+  const predictionRow = prediction.rows[0] ?? null;
+
+  const agents: RootAgent[] = [
+    agent({
+      id: 'WORLD-VECTOR',
+      role: 'World Vector observation',
+      sourceName: 'world_vector_observations',
+      row: worldRow,
+      error: world.error,
+      observedAt: dateValue(worldRow?.observed_at ?? worldRow?.created_at),
+      stateValue: text(worldRow?.status, '') || null,
+      lastResult: text(worldRow?.dominant_signal, '') || null,
+    }),
+    agent({
+      id: 'NEURAL-GRAPH',
+      role: 'Persistent evidence graph',
+      sourceName: 'sfi_graph_nodes + graph_nodes',
+      row: graphRow,
+      error: graphError,
+      observedAt: dateValue(graphRow?.updated_at ?? graphRow?.created_at),
+      stateValue: text(graphRow?.status ?? graphRow?.epistemic_class, '') || null,
+      lastResult: graphRow ? text(graphRow.node_key ?? graphRow.id, 'node persisted') : null,
+    }),
+    agent({
+      id: 'AMV',
+      role: 'Operational memory',
+      sourceName: 'sfi_amv_memory',
+      row: amvRow,
+      error: amv.error,
+      observedAt: dateValue(amvRow?.created_at),
+      stateValue: amvRow ? 'persisted' : null,
+      lastResult: amvRow ? text(amvRow.module, 'memory persisted') : null,
+    }),
+    agent({
+      id: 'PREDICTION',
+      role: 'Predictive learning engine',
+      sourceName: 'sfi_predictive_runs',
+      row: predictionRow,
+      error: prediction.error,
+      observedAt: dateValue(predictionRow?.updated_at ?? predictionRow?.created_at),
+      stateValue: text(predictionRow?.status, '') || null,
+      lastResult: predictionRow ? [predictionRow.subject_type, predictionRow.subject_id].filter(Boolean).map(String).join(' · ') || null : null,
+    }),
   ];
-  return source({ agents }, 'buildAgenticRootState', [result.error], agents.map((item) => item.lastRun).find(Boolean) ?? null, !result.data);
+
+  return source(
+    { agents },
+    'persisted subsystem status',
+    [world.error, graphError, amv.error, prediction.error],
+    agents.map((item) => item.lastRun).find(Boolean) ?? null,
+    false,
+  );
 }
