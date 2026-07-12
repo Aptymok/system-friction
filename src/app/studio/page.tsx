@@ -18,7 +18,7 @@ export default async function StudioPage() {
   return (
     <>
       <div className="bg-[#060605] px-4 pt-4">
-        <AmvPhaseStatusPanel endpoint="/api/root/instrument/status" compact title="STUDIO · INSTRUMENT GATE" />
+        <AmvPhaseStatusPanel endpoint="/api/observatory/instrument-status" compact title="STUDIO · INSTRUMENT GATE" />
       </div>
       <StudioProductionConsole state={state} />
     </>
