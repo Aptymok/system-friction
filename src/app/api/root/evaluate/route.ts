@@ -8,6 +8,7 @@ import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
+export const maxDuration = 60;
 
 function normalizedThemes(value: unknown) {
   if (!Array.isArray(value)) return [];
@@ -33,13 +34,19 @@ export async function POST(request: Request) {
   try {
     const synthesis = await synthesizeStudioObject(objectId, { persist: true });
     const projection = await projectStudioObjectField(objectId, { persist: true });
-    const prediction = await predictStudioFieldResponse({
-      objectId,
-      projection,
-      ownerId: gate.ctx.user.id,
-      createdBy: gate.ctx.user.id,
-      persist: true,
-    });
+    let prediction: Awaited<ReturnType<typeof predictStudioFieldResponse>> | null = null;
+    let predictionWarning: string | null = null;
+    try {
+      prediction = await predictStudioFieldResponse({
+        objectId,
+        projection,
+        ownerId: gate.ctx.user.id,
+        createdBy: gate.ctx.user.id,
+        persist: true,
+      });
+    } catch (error) {
+      predictionWarning = `PREDICTIVE_ENGINE_UNAVAILABLE:${error instanceof Error ? error.message : String(error)}`;
+    }
 
     if (themes.length) {
       const service = createServiceSupabaseClient();
@@ -61,8 +68,9 @@ export async function POST(request: Request) {
         mihmStatus: synthesis.mihm.status,
         projectionStatus: projection.status,
         fitScore: projection.fit.score,
-        predictionRunId: prediction.id,
-        predictionStatus: prediction.status,
+        predictionRunId: prediction?.id ?? null,
+        predictionStatus: prediction?.status ?? null,
+        predictionWarning,
         themes,
       },
       request,
@@ -104,7 +112,7 @@ export async function POST(request: Request) {
           expectedShift: selectedRoute.expectedShift,
         } : null,
       },
-      prediction: {
+      prediction: prediction ? {
         id: prediction.id,
         status: prediction.status,
         prediction: prediction.prediction,
@@ -116,11 +124,12 @@ export async function POST(request: Request) {
         calibrationStatus: prediction.model.calibrationStatus,
         calibrationNotice: prediction.calibrationNotice,
         missingEvidence: prediction.missingEvidence,
-      },
+      } : null,
+      warnings: predictionWarning ? [predictionWarning] : [],
       atlas: {
         objectId,
         themes,
-        runId: prediction.id,
+        runId: prediction?.id ?? null,
       },
       audit,
     }, { status: 201 });
