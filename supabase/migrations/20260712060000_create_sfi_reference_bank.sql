@@ -36,6 +36,24 @@ create table if not exists public.sfi_reference_cases (
   updated_at timestamptz not null default now()
 );
 
+alter table public.sfi_reference_cases
+  drop constraint if exists sfi_reference_cases_sensitive_consent_required;
+alter table public.sfi_reference_cases
+  add constraint sfi_reference_cases_sensitive_consent_required
+  check (
+    object_class not in ('person', 'organization', 'movement')
+    or consent_required = true
+  );
+
+alter table public.sfi_reference_cases
+  drop constraint if exists sfi_reference_cases_consent_evidence_required;
+alter table public.sfi_reference_cases
+  add constraint sfi_reference_cases_consent_evidence_required
+  check (
+    consent_required = false
+    or consent_evidence_id is not null
+  );
+
 create index if not exists sfi_reference_cases_object_idx
   on public.sfi_reference_cases (object_id, opened_at desc);
 create index if not exists sfi_reference_cases_class_idx
