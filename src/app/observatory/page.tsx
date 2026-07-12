@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { AmvPhaseStatusPanel } from '@/components/amv/AmvPhaseStatusPanel';
 import { PublicWorldVectorObservatory } from '@/components/observatory/public/PublicWorldVectorObservatory';
 import { readPublicObservatoryState } from '@/lib/observatory/public/readPublicObservatoryState';
 
@@ -23,5 +24,12 @@ export const metadata: Metadata = {
 
 export default async function ObservatoryPage() {
   const state = await readPublicObservatoryState();
-  return <PublicWorldVectorObservatory state={state} />;
+  return (
+    <>
+      <div className="bg-[#060605] px-4 pt-4">
+        <AmvPhaseStatusPanel endpoint="/api/observatory/instrument-status" compact title="OBSERVATORY · INSTRUMENT MATURITY" />
+      </div>
+      <PublicWorldVectorObservatory state={state} />
+    </>
+  );
 }
