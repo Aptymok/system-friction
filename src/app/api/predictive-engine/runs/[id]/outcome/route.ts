@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { AccessDeniedError, requireAuthenticatedUser, requireFounder } from '@/lib/system/access/server';
-import { getPredictiveRun, registerPredictiveOutcome } from '@/lib/predictive-engine/service';
+import { registerGovernedPredictiveOutcome } from '@/lib/predictive-engine/governedOutcome';
+import { getPredictiveRun } from '@/lib/predictive-engine/service';
 import type { PredictiveReturnWindow } from '@/lib/predictive-engine/types';
 
 export const runtime = 'nodejs';
@@ -54,7 +55,7 @@ export async function POST(request: Request, ctx: RouteContext) {
       return NextResponse.json({ ok: false, error: 'INTERVENTION_FIDELITY_OUT_OF_RANGE' }, { status: 400 });
     }
 
-    const result = await registerPredictiveOutcome({
+    const result = await registerGovernedPredictiveOutcome({
       runId,
       returnWindow: returnWindow(body.returnWindow ?? current.run.requested_return_window),
       actualValue,
