@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { buildAmvPredictionGate, AmvEpistemicGateError } from '@/lib/amv/epistemicGate';
 import { AccessDeniedError, requireObjectOwner } from '@/lib/system/access/server';
 import {
   getPersistedStudioFieldProjection,
@@ -6,6 +7,7 @@ import {
 } from '@/lib/studio/production/objectFieldProjection';
 import { predictStudioFieldResponse } from '@/lib/predictive-engine/adapters/studio';
 import { getLatestPredictiveRun } from '@/lib/predictive-engine/service';
+import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -44,24 +46,43 @@ export async function POST(request: Request, ctx: RouteContext) {
     const body = await request.json().catch(() => ({})) as { persist?: unknown };
     const persist = body.persist !== false;
     const projection = await projectStudioObjectField(objectId, { persist });
+    const service = createServiceSupabaseClient();
+    const objectResult = await service.from('studio_objects').select('id,object_type,metadata').eq('id', objectId).maybeSingle();
+    if (objectResult.error || !objectResult.data) throw new Error(objectResult.error?.message ?? 'STUDIO_OBJECT_NOT_FOUND');
+
+    const epistemicGate = buildAmvPredictionGate({
+      objectType: objectResult.data.object_type,
+      metadata: objectResult.data.metadata,
+      mihmStatus: projection.object.mihmStatus,
+      mihmCoreCoverage: projection.object.mihmCoreCoverage,
+      fieldCoverage: projection.fit.coverage,
+      worldConfidence: projection.world.confidence,
+      evidenceIds: projection.evidenceIds,
+      missingDimensions: projection.fit.missingDimensions,
+    });
+
     let predictiveRun = null;
     const warnings: string[] = [];
     try {
       predictiveRun = await predictStudioFieldResponse({
         objectId,
         projection,
+        epistemicGate,
         ownerId: access.user.id,
         createdBy: access.user.id,
         persist,
       });
     } catch (error) {
-      warnings.push(`PREDICTIVE_ENGINE_UNAVAILABLE:${error instanceof Error ? error.message : String(error)}`);
+      if (error instanceof AmvEpistemicGateError) warnings.push(`${error.code}:${error.gate.blockers.join(',')}`);
+      else warnings.push(`PREDICTIVE_ENGINE_UNAVAILABLE:${error instanceof Error ? error.message : String(error)}`);
     }
     return NextResponse.json({
       ok: true,
       status: projection.status,
       projection,
+      epistemicGate,
       predictiveRun,
+      epistemicLabel: predictiveRun ? 'PROVISIONAL_NO_HISTORICAL_CALIBRATION' : epistemicGate.epistemicLabel,
       warnings,
     }, { status: 201 });
   } catch (error) {
