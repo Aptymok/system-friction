@@ -1,4 +1,15 @@
 import type { StudioCulturalLens, StudioHypothesisReport } from './hypothesisEngine';
+import type {
+  EvidenceRef,
+  MetricStatus,
+  MetricValue,
+  PhaseState,
+  StudioFieldEdge,
+  StudioFieldNode,
+  StudioNextAction,
+  ViewContract,
+} from './studioContracts';
+export type { EvidenceRef, MetricStatus, MetricValue, PhaseState, StudioFieldEdge, StudioFieldNode, StudioNextAction, ViewContract } from './studioContracts';
 
 export type StudioProductionSystemState = 'nominal' | 'degraded' | 'critical' | 'offline';
 export type StudioObjectType = 'music' | 'video' | 'image' | 'text' | 'community' | 'time_coordinate' | 'unknown';
@@ -20,18 +31,25 @@ export type StudioProductionObject = {
   type: StudioObjectType;
   sourceUri: string | null;
   mimeType: string | null;
+  sizeBytes: number | null;
   status: StudioJobState;
   readiness: StudioReadinessState;
   uploadedAt: string | null;
+  version: string | null;
+  storageStatus: MetricStatus;
+  analysisStatus: MetricStatus;
 };
 
 export type StudioFeatureMetric = {
   id: string;
   label: string;
-  value: number | null;
-  unit?: string;
-  source: string;
-  status: StudioReadinessState;
+  value: number | string | null;
+  unit: string | null;
+  source: string | null;
+  status: MetricStatus;
+  confidence: number;
+  explanation: string;
+  evidenceIds: string[];
 };
 
 export type StudioFeaturePoint = {
@@ -50,7 +68,7 @@ export type StudioObjectFeatures = {
     label: string;
     kind: string;
     weight: number | null;
-    status: StudioReadinessState;
+    status: MetricStatus;
   }>;
   graph: {
     nodes: Array<{ id: string; label: string; layer: string; value: number | null }>;
@@ -147,6 +165,15 @@ export type StudioProductionState = {
   session: StudioProductionSession;
   activeObject: StudioProductionObject;
   objectFeatures: StudioObjectFeatures;
+  metricValues: MetricValue[];
+  phaseStates: PhaseState[];
+  evidence: EvidenceRef[];
+  viewContracts: ViewContract[];
+  fieldGraph: {
+    nodes: StudioFieldNode[];
+    edges: StudioFieldEdge[];
+  };
+  nextAction: StudioNextAction;
   audioFeatures: StudioAudioFeatures;
   videoFeatures: StudioVideoFeatures;
   imageFeatures: StudioImageFeatures;

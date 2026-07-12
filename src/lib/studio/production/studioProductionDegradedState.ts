@@ -1,4 +1,5 @@
 import type { StudioProductionState } from './studioProductionTypes';
+import { missingMetric, phase } from './studioContracts';
 
 export function buildStudioProductionDegradedState(reason: string): StudioProductionState {
   const generatedAt = new Date().toISOString();
@@ -20,9 +21,13 @@ export function buildStudioProductionDegradedState(reason: string): StudioProduc
       type: 'unknown',
       sourceUri: null,
       mimeType: null,
+      sizeBytes: null,
       status: 'blocked',
       readiness: 'missing',
       uploadedAt: null,
+      version: null,
+      storageStatus: 'MISSING',
+      analysisStatus: 'FAILED',
     },
     objectFeatures: {
       modality: 'unknown',
@@ -30,6 +35,45 @@ export function buildStudioProductionDegradedState(reason: string): StudioProduc
       metrics: [],
       layers: [],
       graph: { nodes: [], edges: [] },
+    },
+    metricValues: [
+      missingMetric('active_object', 'Active Object', 'Studio cannot identify an active persisted object.', ['studio_objects readable row']),
+      missingMetric('storage_verified', 'Storage Verified', 'Storage verification is unavailable in degraded state.', ['studio_uploads readable row']),
+      missingMetric('feature_coverage', 'Feature Coverage', 'No feature rows were available.', ['studio_object_features rows']),
+    ],
+    phaseStates: [
+      phase({
+        key: 'object_received',
+        label: 'OBJECT RECEIVED',
+        status: 'FAILED',
+        error: reason,
+        details: 'Studio production state could not be built.',
+        nextAction: 'Inspect Supabase/Studio runtime error.',
+        requirements: ['studio_sessions', 'studio_objects', 'studio_uploads'],
+      }),
+    ],
+    evidence: [],
+    viewContracts: [
+      {
+        key: 'overview',
+        title: 'OVERVIEW',
+        purpose: 'Show active object and pipeline state.',
+        inputs: ['Studio production state'],
+        outputs: ['Object status', 'pipeline', 'next action'],
+        requiredEvidence: ['studio_object'],
+        status: 'FAILED',
+        blockedReason: reason,
+      },
+    ],
+    fieldGraph: { nodes: [], edges: [] },
+    nextAction: {
+      code: 'NO_ACTION_AVAILABLE',
+      action: 'NO_ACTION_AVAILABLE',
+      reason,
+      requirement: 'Restore Studio production state.',
+      endpoint: null,
+      method: null,
+      disabledReason: reason,
     },
     audioFeatures: {
       waveform: [],

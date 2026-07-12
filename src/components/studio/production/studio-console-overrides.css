@@ -1,0 +1,14 @@
+.sfi-telemetry__gauges { display: none; }
+.sfi-telemetry__bars > div:nth-child(3) { grid-template-columns: 1fr auto; }
+.sfi-telemetry__bars > div:nth-child(3) > i { display: none; }
+.sfi-console-stage-state {
+  min-height: 180px;
+  border: 1px solid var(--line-strong);
+  display: grid;
+  place-items: center;
+  color: var(--copper);
+  background: rgba(5,8,12,.96);
+  font-size: 8px;
+  letter-spacing: .16em;
+}
+.sfi-console-stage-state.is-failed { color: var(--red); border-color: rgba(217,101,118,.35); }

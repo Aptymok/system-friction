@@ -4,6 +4,14 @@ import { readRootSovereignState } from '@/lib/root/sovereign/rootSovereignAdapte
 
 export const dynamic = 'force-dynamic';
 
+export const metadata: Metadata = {
+  robots: {
+    index: false,
+    follow: false,
+    nocache: true,
+  },
+};
+
 export default async function RootPage() {
   await requireFounderPage('/root');
   const state = await readRootSovereignState();

@@ -7,9 +7,9 @@ const intensityLabel = {
 };
 
 const trendGlyph = {
-  up: '↑',
-  down: '↓',
-  stable: '→',
+  up: 'UP',
+  down: 'DOWN',
+  stable: 'STABLE',
 };
 
 function pct(value: number) {
@@ -26,7 +26,7 @@ export function StudioLeftRail({ state }: { state: StudioGoldState }) {
       <section className="sfi-studio-gold__panel sfi-studio-gold__active-case">
         <div className="sfi-studio-gold__panel-title">
           <h2>CASO ACTIVO</h2>
-          <button type="button">VER TODOS</button>
+          <span>LECTURA</span>
         </div>
         <p className="sfi-studio-gold__eyebrow">{state.activeCase.id ?? 'SIN ID OPERATIVO'}</p>
         <h3>{state.activeCase.title}</h3>
@@ -48,7 +48,7 @@ export function StudioLeftRail({ state }: { state: StudioGoldState }) {
       <section className="sfi-studio-gold__panel">
         <div className="sfi-studio-gold__panel-title">
           <h2>OBSERVABLES CLAVE</h2>
-          <button type="button">VER TODOS</button>
+          <span>LECTURA</span>
         </div>
         <div className="sfi-studio-gold__list">
           {state.keyObservables.length ? state.keyObservables.map((item) => (
@@ -64,7 +64,7 @@ export function StudioLeftRail({ state }: { state: StudioGoldState }) {
       <section className="sfi-studio-gold__panel sfi-studio-gold__signals">
         <div className="sfi-studio-gold__panel-title">
           <h2>SENALES PERSISTENTES</h2>
-          <button type="button">VER TODOS</button>
+          <span>LECTURA</span>
         </div>
         <div className="sfi-studio-gold__list">
           {state.persistentSignals.length ? state.persistentSignals.map((signal) => (

@@ -13,7 +13,7 @@ export type StudioPixiRendererInput = {
 
 export type StudioPixiRenderer = (input: StudioPixiRendererInput) => void;
 
-export function safeValue(value: number | null | undefined, fallback = 0) {
+export function safeValue(value: number | string | null | undefined, fallback = 0) {
   const parsed = Number(value ?? fallback);
   if (!Number.isFinite(parsed)) return fallback;
   return Math.max(0, Math.min(1, parsed > 1 ? parsed / 100 : parsed));

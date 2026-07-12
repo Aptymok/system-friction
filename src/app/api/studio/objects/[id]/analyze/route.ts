@@ -1,25 +1,43 @@
 import { NextResponse } from 'next/server';
-import { getStudioObjectFeatures, recordStudioAnalysisBlocked } from '@/lib/studio/production/studioProductionRepository';
+import { AccessDeniedError, requireObjectOwner } from '@/lib/system/access/server';
+import { resolveStudioObjectDescriptor } from '@/lib/studio/multimodal/analyzeStudioModalityObject';
+import { StudioMultimodalError, toStudioMultimodalApiError } from '@/lib/studio/multimodal/types';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
 
 type RouteContext = { params: Promise<{ id: string }> | { id: string } };
 
-export async function POST(_request: Request, ctx: RouteContext) {
+export async function POST(request: Request, ctx: RouteContext) {
   const params = await Promise.resolve(ctx.params);
   const objectId = decodeURIComponent(params.id);
-  const features = await getStudioObjectFeatures(objectId);
-  if (!features.ok) return NextResponse.json(features, { status: features.status });
-  if (!features.data.features.length) {
-    const result = await recordStudioAnalysisBlocked(objectId, 'feature_extractors_not_connected');
-    return NextResponse.json({
-      ok: false,
-      status: 'blocked',
-      reason: 'feature_extractors_not_connected',
-      job: result.ok ? result.data : null,
-      degraded: result.ok ? [] : [result.error],
-    }, { status: 202 });
+
+  try {
+    await requireObjectOwner(objectId);
+    const { descriptor } = await resolveStudioObjectDescriptor(objectId);
+    const segment = descriptor.modality === 'community' || descriptor.modality === 'time_coordinate'
+      ? 'structured'
+      : descriptor.modality;
+
+    if (!['audio', 'text', 'image', 'video', 'structured'].includes(segment)) {
+      throw new StudioMultimodalError(
+        'UNSUPPORTED_FILE_TYPE',
+        'Studio cannot route an unknown object modality to an analyzer.',
+        415,
+        { objectId, modality: descriptor.modality },
+      );
+    }
+
+    const target = new URL(request.url);
+    target.pathname = `${target.pathname}/${segment}`;
+    return NextResponse.redirect(target, 307);
+  } catch (error) {
+    if (error instanceof AccessDeniedError) {
+      return NextResponse.json({ ok: false, error: error.code, details: error.message }, { status: error.status });
+    }
+    const body = toStudioMultimodalApiError(error);
+    const status = error instanceof StudioMultimodalError ? error.status : 500;
+    return NextResponse.json(body, { status });
   }
-  return NextResponse.json({ ok: true, status: 'complete', object: features.data.object, features: features.data.features });
 }
