@@ -23,6 +23,16 @@ function solarX(date: Date) {
   return (hour / 24) * 1200;
 }
 
+function mapPoint(node: { x: number; y: number }) {
+  return { x: clamp01(node.x / 100) * 1200, y: clamp01(node.y / 100) * 600 };
+}
+
+function flowPath(from: { x: number; y: number }, to: { x: number; y: number }) {
+  const middleX = (from.x + to.x) / 2;
+  const lift = Math.max(18, Math.min(90, Math.abs(to.x - from.x) * 0.12));
+  return `M ${from.x.toFixed(1)} ${from.y.toFixed(1)} Q ${middleX.toFixed(1)} ${(Math.min(from.y, to.y) - lift).toFixed(1)} ${to.x.toFixed(1)} ${to.y.toFixed(1)}`;
+}
+
 export function SfiLiveWorldMap({ state }: Props) {
   const generated = useMemo(() => {
     const parsed = new Date(state.generatedAt);
@@ -33,8 +43,11 @@ export function SfiLiveWorldMap({ state }: Props) {
   const viscosity = clamp01(
     0.35 + nodeTone(state.systemStrain.status) * 0.28 + nodeTone(state.frictionLevel.status) * 0.22 + (state.warnings.length > 0 ? 0.15 : 0),
   );
-
   const densityNodes = state.nodes.slice(0, 28);
+  const nodeById = new Map(densityNodes.map((node) => [node.id, node]));
+  const observedConnections = state.connections
+    .filter((connection) => nodeById.has(connection.from) && nodeById.has(connection.to))
+    .slice(0, 30);
 
   return (
     <div className="sfi-live-world-map" aria-hidden="true">
@@ -75,10 +88,30 @@ export function SfiLiveWorldMap({ state }: Props) {
         <rect className="night-band" width="1200" height="600" />
         <circle className="solar-bloom" cx={sunX} cy="235" r="300" />
 
+        <g className="map-flow-layer">
+          {observedConnections.map((connection, index) => {
+            const fromNode = nodeById.get(connection.from);
+            const toNode = nodeById.get(connection.to);
+            if (!fromNode || !toNode) return null;
+            const path = flowPath(mapPoint(fromNode), mapPoint(toNode));
+            return (
+              <path
+                key={`${connection.from}-${connection.to}-${index}`}
+                className="map-flow"
+                d={path}
+                style={{
+                  opacity: 0.12 + clamp01(connection.strength) * 0.36,
+                  strokeWidth: 0.45 + clamp01(connection.strength) * 0.85,
+                  animationDelay: `${index * -0.41}s`,
+                }}
+              />
+            );
+          })}
+        </g>
+
         <g className="night-lights" filter="url(#sfiMapGlow)">
           {densityNodes.map((node, index) => {
-            const x = clamp01(node.x / 100) * 1200;
-            const y = clamp01(node.y / 100) * 600;
+            const { x, y } = mapPoint(node);
             const intensity = clamp01(node.intensity);
             return (
               <g key={`density-${node.id}`} className={`real-density real-density-${node.state}`} style={{ animationDelay: `${index * -0.22}s` }}>
@@ -91,8 +124,7 @@ export function SfiLiveWorldMap({ state }: Props) {
 
         <g className="map-node-layer">
           {densityNodes.map((node, index) => {
-            const x = clamp01(node.x / 100) * 1200;
-            const y = clamp01(node.y / 100) * 600;
+            const { x, y } = mapPoint(node);
             const intensity = clamp01(node.intensity);
             return (
               <g key={node.id} className={`live-map-node live-map-node-${node.state}`} transform={`translate(${x.toFixed(1)} ${y.toFixed(1)})`}>
@@ -103,7 +135,7 @@ export function SfiLiveWorldMap({ state }: Props) {
           })}
         </g>
 
-        <text className="map-meta" x="34" y="552">SFI NODE DENSITY LAYER · VISCOSITY {Math.round(viscosity * 100)}%</text>
+        <text className="map-meta" x="34" y="552">SFI NODE DENSITY · REAL CONNECTIONS {observedConnections.length} · VISCOSITY {Math.round(viscosity * 100)}%</text>
         <text className="map-meta right" x="1166" y="552">SNAPSHOT · {generated.toISOString().slice(0, 19)}Z</text>
       </svg>
     </div>
