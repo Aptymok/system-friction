@@ -1,15 +1,12 @@
 /**
  * Umbrales MIHM para evaluación de audio en /studio.
  *
- * Regla operativa (instrucción explícita de Juan): NO siempre debe haber
- * una recomendación de cambio. Un umbral solo dispara una hipótesis si el
- * valor observado realmente lo cruza. Si nada cruza, la respuesta correcta
- * es "sin cambios estructurales requeridos" — eso también es información,
- * no un vacío.
+ * Regla operativa: NO siempre debe haber una recomendación de cambio.
+ * Un umbral solo dispara una hipótesis si el valor observado realmente lo cruza.
+ * Si nada cruza, la respuesta correcta es "sin cambios estructurales requeridos".
  *
- * Cada umbral documenta: qué mide, por qué ese valor, y qué acción sugiere.
- * Esto es DERIVED (fórmula fija sobre datos reales), nunca una opinión
- * generada sin trazabilidad.
+ * Cada umbral documenta qué mide, por qué ese valor y qué acción mínima sugiere.
+ * Esto es DERIVED sobre datos observados, nunca una opinión sin trazabilidad.
  */
 
 export type ThresholdSeverity = 'info' | 'watch' | 'action';
@@ -35,15 +32,15 @@ export const MIHM_AUDIO_THRESHOLDS: ThresholdDefinition[] = [
   {
     id: 'dynamic_range_flat',
     metric: 'dynamicRange',
-    rationale: 'Diferencia entre el segmento de mayor y menor energía RMS (8 segmentos). Por debajo de 0.05 la pieza no tiene contraste seccional perceptible.',
-    test: (value) => value < 0.05,
+    rationale: 'Rango dinámico expresado en dB entre el percentil 95 y el percentil 10 del RMS por ventanas. Por debajo de 5 dB existe contraste seccional reducido; no significa por sí solo que la pieza esté mal.',
+    test: (value) => value < 5,
     severity: 'watch',
-    recommendedChange: 'Introducir contraste dinámico entre secciones (ej. reducir densidad en un verso) antes de considerar la pieza cerrada estructuralmente.',
+    recommendedChange: 'Probar una sola ventana de contraste local antes de alterar la estructura global; verificar que el rango aumente al menos 2 dB sin elevar clipping.',
   },
   {
     id: 'long_lead_silence',
     metric: 'silenceStartSeconds',
-    rationale: 'Segundos antes del primer sonido detectado (umbral de amplitud 0.015). Más de 3s de silencio inicial suele ser no intencional en un demo de referencia.',
+    rationale: 'Segundos antes del primer sonido detectado (umbral de amplitud 0.015). Más de 3 s de silencio inicial puede ser no intencional en un archivo de distribución.',
     test: (value) => value > 3,
     severity: 'info',
     recommendedChange: 'Verificar si el silencio inicial es intencional; si no, recortar antes de distribuir.',
@@ -51,7 +48,7 @@ export const MIHM_AUDIO_THRESHOLDS: ThresholdDefinition[] = [
   {
     id: 'excess_tail_silence',
     metric: 'silenceEndSeconds',
-    rationale: 'Segundos de silencio al final del archivo tras el último sonido detectado. Más de 4s suele indicar cola de exportación sin recortar.',
+    rationale: 'Segundos de silencio al final del archivo tras el último sonido detectado. Más de 4 s suele indicar cola de exportación sin recortar.',
     test: (value) => value > 4,
     severity: 'info',
     recommendedChange: 'Recortar la cola de silencio en el bounce final.',

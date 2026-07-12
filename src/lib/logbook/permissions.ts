@@ -3,6 +3,7 @@ export type LogbookScope =
   | 'root'
   | 'scorefriction'
   | 'amv'
+  | 'predictive-engine'
   | 'twin'
   | 'user'
   | 'system'
@@ -44,4 +45,3 @@ export function canViewLogbookEntry(entry: LogbookEntry, viewer: LogbookViewer) 
   if (viewer.role === 'operator') return entry.visibility === 'operator' || entry.owner_user_id === viewer.user_id;
   return entry.visibility === 'private' && entry.owner_user_id === viewer.user_id;
 }
-

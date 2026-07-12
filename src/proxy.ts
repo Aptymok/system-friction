@@ -12,40 +12,45 @@ function isRefreshTokenMissing(error: unknown) {
 
 function clearSupabaseAuthCookies(response: NextResponse, request: NextRequest) {
   const names = new Set(AUTH_COOKIE_NAMES)
-
   request.cookies.getAll().forEach((cookie) => {
-    if (cookie.name.startsWith('sb-') || cookie.name.includes('supabase')) {
-      names.add(cookie.name)
-    }
+    if (cookie.name.startsWith('sb-') || cookie.name.includes('supabase')) names.add(cookie.name)
   })
-
   names.forEach((name) => response.cookies.delete(name))
 }
 
-function isRootRouteUser(role?: string | null, email?: string | null) {
-  const rootEmail = process.env.SYSTEM_ROOT_EMAIL
+function configuredFounderIds() {
+  return new Set((process.env.SFI_FOUNDER_USER_IDS || '').split(',').map((value) => value.trim()).filter(Boolean))
+}
 
-  return (
-    role === 'root' ||
-    role === 'system' ||
-    Boolean(rootEmail && email && email.toLowerCase() === rootEmail.toLowerCase())
+function configuredFounderEmails() {
+  return new Set(
+    [process.env.SYSTEM_ROOT_EMAIL, ...(process.env.SFI_FOUNDER_EMAILS || '').split(',')]
+      .map((value) => value?.trim().toLowerCase())
+      .filter((value): value is string => Boolean(value)),
   )
 }
 
-function isStudioRouteUser(role?: string | null, email?: string | null) {
-  if (isRootRouteUser(role, email)) return true
+function isRootRouteUser(userId?: string | null, role?: string | null, email?: string | null) {
+  return (
+    Boolean(userId && configuredFounderIds().has(userId)) ||
+    role === 'root' ||
+    role === 'system' ||
+    Boolean(email && configuredFounderEmails().has(email.toLowerCase()))
+  )
+}
+
+function isStudioRouteUser(userId?: string | null, role?: string | null, email?: string | null) {
+  if (isRootRouteUser(userId, role, email)) return true
   const allowed = (process.env.STUDIO_AUTHORIZED_EMAILS || '')
     .split(',')
     .map((item) => item.trim().toLowerCase())
     .filter(Boolean)
-
   return Boolean(email && allowed.includes(email.toLowerCase()))
 }
 
 function redirectToLoginWithNext(request: NextRequest) {
   const loginUrl = new URL('/login', request.url)
   loginUrl.searchParams.set('next', `${request.nextUrl.pathname}${request.nextUrl.search}`)
-
   return NextResponse.redirect(loginUrl)
 }
 
@@ -67,22 +72,13 @@ export async function proxy(request: NextRequest) {
     response.headers.set('Cache-Control', 'public, max-age=3600, stale-while-revalidate=86400')
   }
 
-  if (pathname.startsWith('/root') || pathname === '/field' || pathname.startsWith('/studio')) {
+  if (pathname.startsWith('/root') || pathname.startsWith('/field') || pathname.startsWith('/studio')) {
     response.headers.set('Cache-Control', 'no-store, must-revalidate')
   }
 
-  const requiresSession =
-    pathname.startsWith('/root') ||
-    pathname.startsWith('/studio')
+  const requiresSession = pathname.startsWith('/root') || pathname.startsWith('/field') || pathname.startsWith('/studio')
+  if (!requiresSession) return response
 
-  // Public routes must not pay the Supabase Auth cost. A degraded Supabase Auth
-  // edge should not make /, /library, /repository, /contact, etc. wait 40s.
-  if (!requiresSession) {
-    return response
-  }
-
-  // Local-only visual inspection escape hatch. This never applies in production
-  // unless the host is localhost and the explicit env flag is present.
   if (pathname.startsWith('/studio') && isLocalStudioBypass(request)) {
     response.headers.set('X-SFI-Auth-Bypass', 'local-studio')
     return response
@@ -90,7 +86,6 @@ export async function proxy(request: NextRequest) {
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
   if (!supabaseUrl || !supabaseKey) {
     const loginUrl = new URL('/login', request.url)
     loginUrl.searchParams.set('error', 'supabase_no_configurado')
@@ -100,9 +95,7 @@ export async function proxy(request: NextRequest) {
 
   const supabase = createServerClient(normalizeSupabaseUrl(supabaseUrl), supabaseKey, {
     cookies: {
-      getAll() {
-        return request.cookies.getAll()
-      },
+      getAll() { return request.cookies.getAll() },
       setAll(cookiesToSet: Array<{ name: string; value: string; options: CookieOptions }>) {
         cookiesToSet.forEach(({ name, value, options }) => {
           request.cookies.set(name, value)
@@ -113,11 +106,9 @@ export async function proxy(request: NextRequest) {
   })
 
   let user = null
-
   try {
     const result = await supabase.auth.getUser()
     user = result.data.user
-
     if (result.error && isRefreshTokenMissing(result.error)) {
       clearSupabaseAuthCookies(response, request)
       user = null
@@ -131,9 +122,7 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  if (!user) {
-    return redirectToLoginWithNext(request)
-  }
+  if (!user) return redirectToLoginWithNext(request)
 
   const { data: profile } = await supabase
     .from('profiles')
@@ -141,11 +130,11 @@ export async function proxy(request: NextRequest) {
     .eq('user_id', user.id)
     .maybeSingle()
 
-  if (pathname.startsWith('/root') && !isRootRouteUser(profile?.role, user.email)) {
-    return NextResponse.redirect(new URL('/field', request.url))
+  if (pathname.startsWith('/root') && !isRootRouteUser(user.id, profile?.role, user.email)) {
+    return NextResponse.redirect(new URL('/unauthorized', request.url))
   }
 
-  if (pathname.startsWith('/studio') && !isStudioRouteUser(profile?.role, user.email)) {
+  if (pathname.startsWith('/studio') && !isStudioRouteUser(user.id, profile?.role, user.email)) {
     return NextResponse.redirect(new URL('/unauthorized', request.url))
   }
 

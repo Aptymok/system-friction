@@ -1,36 +1,40 @@
 'use client';
 
-import { useMemo, useState } from 'react';
-import type { StudioProductionState } from '@/lib/studio/production/studioProductionTypes';
-import { StudioEvaluationStrip } from './StudioEvaluationStrip';
-import { StudioFooterTransport } from './StudioFooterTransport';
+import { useState } from 'react';
+import type { MetricStatus, MetricValue, PhaseState, StudioProductionState } from '@/lib/studio/production/studioProductionTypes';
 import { StudioHeader } from './StudioHeader';
 import { StudioObjectIntake } from './StudioObjectIntake';
-import { StudioRightRail } from './StudioRightRail';
-import { StudioPixiStage, type StudioPixiStageVariant } from './pixi/StudioPixiStage';
-import { StudioSidebar, type StudioProductionScreen } from './StudioSidebar';
+import { StudioUnifiedIntelligence } from './StudioUnifiedIntelligence';
+import { StudioVisualStage } from './StudioVisualStage';
+import { StudioTelemetryRail, StudioTimelineStrip } from './StudioVisualInstruments';
+import { StudioPixiStage } from './pixi/StudioPixiStage';
+import { StudioSidebar, studioProductionScreens, type StudioProductionScreen } from './StudioSidebar';
+import './studio-console.css';
 
-function metric(value: number | null | undefined) {
-  return value === null || value === undefined ? 'SIN DATO' : value.toFixed(2);
+function statusClass(status: MetricStatus) {
+  return `is-${status.toLowerCase()}`;
 }
 
-function pct(value: number | null | undefined) {
-  return value === null || value === undefined ? 'SIN DATO' : `${Math.round(Math.max(0, Math.min(1, value)) * 100)}%`;
+function encodeObjectId(value: string | null) {
+  if (!value) throw new Error('STUDIO_OBJECT_ID_REQUIRED');
+  return encodeURIComponent(value);
 }
 
-function readinessValue(value: string | null | undefined) {
-  const text = String(value ?? '').toLowerCase();
-  if (text.includes('ready') || text.includes('complete')) return 1;
-  if (text.includes('partial') || text.includes('degraded') || text.includes('uploaded')) return 0.46;
-  if (text.includes('blocked') || text.includes('missing') || text.includes('failed')) return 0.08;
-  return 0.18;
+function formatValue(metric: MetricValue) {
+  if (metric.value === null) return 'SIN DATO';
+  if (typeof metric.value === 'number') return `${Number(metric.value.toFixed(3))}${metric.unit ? ` ${metric.unit}` : ''}`;
+  return metric.unit ? `${metric.value} ${metric.unit}` : metric.value;
 }
 
-function Panel({ title, children, action }: { title: string; children: React.ReactNode; action?: React.ReactNode }) {
+function metricByKey(state: StudioProductionState, key: string) {
+  return state.metricValues.find((metric) => metric.key === key) ?? null;
+}
+
+function Panel({ title, eyebrow, action, children, wide = false }: { title: string; eyebrow?: string; action?: React.ReactNode; children: React.ReactNode; wide?: boolean }) {
   return (
-    <section className="sfi-production__panel">
+    <section className={`sfi-production__panel${wide ? ' is-wide' : ''}`}>
       <header>
-        <span>{title}</span>
+        <div>{eyebrow ? <small>{eyebrow}</small> : null}<span>{title}</span></div>
         {action}
       </header>
       {children}
@@ -38,497 +42,197 @@ function Panel({ title, children, action }: { title: string; children: React.Rea
   );
 }
 
-function PixiPanel({ state, variant, title, subtitle }: { state: StudioProductionState; variant: StudioPixiStageVariant; title: string; subtitle: string }) {
+function Status({ status }: { status: MetricStatus }) {
+  return <b className={`sfi-production__status ${statusClass(status)}`}>{status}</b>;
+}
+
+function MetricCard({ metric, compact = false }: { metric: MetricValue; compact?: boolean }) {
   return (
-    <section className="sfi-production__live-panel">
-      <header>
+    <article className={`sfi-production__metric-card ${statusClass(metric.status)}${compact ? ' is-compact' : ''}`} style={{ '--meter': `${Math.max(0, Math.min(100, metric.confidence * 100))}%` } as React.CSSProperties}>
+      <div><span>{metric.label}</span><Status status={metric.status} /></div>
+      <strong>{formatValue(metric)}</strong>
+      <p>{metric.explanation}</p>
+      {!compact ? (
+        <details>
+          <summary>TRAZABILIDAD</summary>
+          <dl>
+            <dt>Source</dt><dd>{metric.source ?? 'NO_SOURCE'}</dd>
+            <dt>Confidence</dt><dd>{metric.source ? Number(metric.confidence.toFixed(3)) : 'UNKNOWN'}</dd>
+            <dt>Formula</dt><dd>{metric.formulaVersion ?? 'NO_FORMULA'}</dd>
+            <dt>Evidence</dt><dd>{metric.evidenceIds.join(', ') || 'NO_EVIDENCE'}</dd>
+          </dl>
+        </details>
+      ) : null}
+    </article>
+  );
+}
+
+function PhaseRail({ phases }: { phases: PhaseState[] }) {
+  return (
+    <ol className="sfi-production__phase-rail">
+      {phases.map((phase, index) => (
+        <li key={phase.key} className={statusClass(phase.status)}>
+          <span>{String(index + 1).padStart(2, '0')}</span>
+          <div><strong>{phase.label}</strong><p>{phase.details ?? phase.error ?? phase.nextAction ?? phase.requirements.join(', ')}</p></div>
+          <Status status={phase.status} />
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+function AudioPlayer({ state }: { state: StudioProductionState }) {
+  const playable = Boolean(state.activeObject.id && state.activeObject.type === 'music' && state.activeObject.storageStatus === 'OBSERVED');
+  if (!playable) return <p className="sfi-production__muted">Playback requiere un objeto de audio persistido y autorizado.</p>;
+  return <audio controls preload="metadata" src={`/api/studio/objects/${encodeObjectId(state.activeObject.id)}/audio`} />;
+}
+
+function ObjectStage({ state, onOpenIntake }: { state: StudioProductionState; onOpenIntake: () => void }) {
+  const objectExists = Boolean(state.activeObject.id);
+  return (
+    <div className="sfi-production__stage">
+      <section className="sfi-production__object-hero">
         <div>
-          <span>{title}</span>
-          <strong>{subtitle}</strong>
-        </div>
-        <em>{state.activeObject.readiness.toUpperCase()}</em>
-      </header>
-      <StudioPixiStage state={state} variant={variant} label={title} />
-    </section>
-  );
-}
-
-function ObjectSummary({ state, onOpenIntake }: { state: StudioProductionState; onOpenIntake: () => void }) {
-  return (
-    <Panel title="OBJETO A EVALUAR" action={<button type="button" onClick={onOpenIntake}>CARGAR</button>}>
-      <div className="sfi-production__object-card">
-        <strong>{state.activeObject.title}</strong>
-        <span>{state.activeObject.type.toUpperCase()} / {state.activeObject.status.toUpperCase()}</span>
-        <p>{state.activeObject.sourceUri ?? 'NO_SOURCE_URI'}</p>
-      </div>
-    </Panel>
-  );
-}
-
-function OverviewStatusBar({ label, value, tone }: { label: string; value: number; tone: 'pink' | 'cyan' | 'orange' | 'green' }) {
-  return (
-    <div className={`sfi-overview__bar is-${tone}`}>
-      <span>{label}</span>
-      <i><b style={{ width: `${Math.max(4, Math.round(value * 100))}%` }} /></i>
-      <em>{Math.round(value * 100)}%</em>
-    </div>
-  );
-}
-
-function OverviewDashboard({ state, onOpenIntake }: { state: StudioProductionState; onOpenIntake: () => void }) {
-  const objectReady = readinessValue(state.activeObject.readiness);
-  const featureReady = readinessValue(state.objectFeatures.readiness);
-  const cultural = Math.max(0, Math.min(1, state.culturalLens?.confidence ?? 0));
-  const mihm = Math.max(0, Math.min(1, state.mihmReport.score ?? 0));
-  const archive = readinessValue(state.archive.integrity);
-  const hasObject = Boolean(state.activeObject.id);
-  const hypothesisCount = (state.hypotheses?.hypotheses.length ?? 0) + (state.hypotheses?.correlations.length ?? 0);
-  const diagnostic = state.degradedSources[0] ?? 'studio object source unavailable';
-
-  return (
-    <section className="sfi-overview">
-      <div className="sfi-overview__topline">
-        <div>
-          <span>01 / OVERVIEW HUB</span>
-          <strong>STUDIO OBJECT COMMAND FIELD</strong>
-        </div>
-        <button type="button" onClick={onOpenIntake}>INTAKE OBJECT</button>
-      </div>
-
-      <div className="sfi-overview__field">
-        <div className="sfi-overview__micro sfi-overview__micro--left">
-          <span>ACTIVE OBJECT</span>
-          <strong>{state.activeObject.title}</strong>
-          <p>{state.activeObject.type.toUpperCase()} · {state.activeObject.readiness.toUpperCase()}</p>
-        </div>
-        <div className="sfi-overview__micro sfi-overview__micro--right">
-          <span>SYSTEM STATE</span>
-          <strong>{state.systemState.toUpperCase()}</strong>
-          <p>{state.generatedAt}</p>
-        </div>
-        <div className="sfi-overview__micro sfi-overview__micro--bottom-left">
-          <span>FEATURE GRAPH</span>
-          <strong>{state.objectFeatures.graph.nodes.length} NODES / {state.objectFeatures.graph.edges.length} EDGES</strong>
-          <p>{state.objectFeatures.readiness.toUpperCase()}</p>
-        </div>
-        <div className="sfi-overview__micro sfi-overview__micro--bottom-right">
-          <span>HYPOTHESIS ENGINE</span>
-          <strong>{hypothesisCount} SIGNALS</strong>
-          <p>{state.hypotheses?.summary ?? 'BLOCKED_BY_MISSING_LAYERS'}</p>
-        </div>
-        <div className="sfi-overview__frame sfi-overview__frame--a" />
-        <div className="sfi-overview__frame sfi-overview__frame--b" />
-        <StudioPixiStage state={state} variant="overview" label="Overview object field" />
-        {!hasObject && (
-          <div className="sfi-overview__blocked">
-            <span>BLOCKED SOURCE</span>
-            <strong>SIN OBJETO PERSISTIDO</strong>
-            <p>{diagnostic}</p>
+          <span>OBJETO ACTIVO</span>
+          <h1>{state.activeObject.title}</h1>
+          <p>{objectExists ? 'El objeto está conectado a almacenamiento, análisis, evidencia y proyección.' : 'No existe un objeto persistido en la sesión actual.'}</p>
+          <div className="sfi-production__hero-actions">
+            <button type="button" onClick={onOpenIntake}>{objectExists ? 'CARGAR OTRO OBJETO' : 'CARGAR OBJETO'}</button>
+            {state.activeObject.id ? <a href={`/api/studio/objects/${encodeObjectId(state.activeObject.id)}/content`} target="_blank" rel="noreferrer">ABRIR ORIGINAL PRIVADO</a> : null}
           </div>
-        )}
-      </div>
-
-      <div className="sfi-overview__lower">
-        <section className="sfi-overview__dock sfi-overview__dock--wide">
-          <header><span>READINESS MATRIX</span><b>LIVE DIAGNOSTIC</b></header>
-          <OverviewStatusBar label="OBJECT" value={objectReady} tone="pink" />
-          <OverviewStatusBar label="FEATURES" value={featureReady} tone="cyan" />
-          <OverviewStatusBar label="CULTURAL" value={cultural} tone="orange" />
-          <OverviewStatusBar label="MIHM" value={mihm} tone="green" />
-          <OverviewStatusBar label="ARCHIVE" value={archive} tone="cyan" />
-        </section>
-
-        <section className="sfi-overview__dock">
-          <header><span>PIPELINE</span><b>NO MOCK DATA</b></header>
-          <ol className="sfi-production__pipeline">
-            {['OBJECT', 'ANALYSIS', 'LAYERS', 'HYPOTHESIS', 'PMV', 'VALIDATION', 'ARCHIVE'].map((item, index) => (
-              <li key={item} className={index <= (hasObject ? 2 : 0) ? 'is-live' : ''}>{item}</li>
-            ))}
-          </ol>
-        </section>
-
-        <section className="sfi-overview__dock">
-          <header><span>PROVENANCE</span><b>{state.provenance.basedOn.length} SOURCES</b></header>
-          {(state.provenance.basedOn.length ? state.provenance.basedOn : ['NO_PROVENANCE_DECLARED']).slice(0, 5).map((item) => <p key={item}>{item}</p>)}
-        </section>
-      </div>
-    </section>
-  );
-}
-
-function OverviewScreen({ state, onOpenIntake }: { state: StudioProductionState; onOpenIntake: () => void }) {
-  return <OverviewDashboard state={state} onOpenIntake={onOpenIntake} />;
-}
-
-function SessionsScreen({ state, onOpenIntake }: { state: StudioProductionState; onOpenIntake: () => void }) {
-  return (
-    <div className="sfi-production__screen-grid">
-      <Panel title="SESSION HUB" action={<a href="/api/studio/sessions">API</a>}>
-        <div className="sfi-production__object-card">
-          <strong>{state.session.title}</strong>
-          <span>{state.session.id ?? 'NO_SESSION_ID'}</span>
-          <p>{state.session.status.toUpperCase()}</p>
         </div>
+        <div className="sfi-production__object-orbit">
+          <StudioPixiStage state={state} variant="overview" label="Object state field" />
+        </div>
+      </section>
+
+      <div className="sfi-production__grid-2">
+        <Panel title="IDENTIDAD" eyebrow="01 / REGISTRO">
+          <dl className="sfi-production__facts">
+            <dt>Tipo</dt><dd>{state.activeObject.type}</dd>
+            <dt>MIME</dt><dd>{state.activeObject.mimeType ?? 'MISSING'}</dd>
+            <dt>Tamaño</dt><dd>{state.activeObject.sizeBytes === null ? 'MISSING' : `${(state.activeObject.sizeBytes / 1024 / 1024).toFixed(2)} MB`}</dd>
+            <dt>Versión</dt><dd>{state.activeObject.version ?? 'MISSING'}</dd>
+            <dt>Session</dt><dd>{state.activeObject.sessionId ?? state.session.id ?? 'MISSING'}</dd>
+            <dt>Uploaded</dt><dd>{state.activeObject.uploadedAt ?? 'MISSING'}</dd>
+          </dl>
+        </Panel>
+        <Panel title="ESTADO OPERATIVO" eyebrow="02 / PIPELINE">
+          <div className="sfi-production__state-cards">
+            <div><span>Storage</span><Status status={state.activeObject.storageStatus} /></div>
+            <div><span>Analysis</span><Status status={state.activeObject.analysisStatus} /></div>
+            <div><span>Readiness</span><strong>{state.activeObject.readiness.toUpperCase()}</strong></div>
+            <div><span>System</span><strong>{state.systemState.toUpperCase()}</strong></div>
+          </div>
+          <AudioPlayer state={state} />
+        </Panel>
+      </div>
+
+      <Panel title="CICLO DEL OBJETO" eyebrow="03 / ESTADO REAL" wide>
+        <PhaseRail phases={state.phaseStates} />
       </Panel>
-      <ObjectSummary state={state} onOpenIntake={onOpenIntake} />
-      <Panel title="SESSION OBJECTS">
-        <p>{state.activeObject.id ? state.activeObject.title : 'No hay objetos persistidos en studio_objects.'}</p>
-      </Panel>
-      <Panel title="SEARCH / FILTERS">
-        <div className="sfi-production__filter-row">
-          <button type="button">ACTIVE</button>
-          <button type="button">ARCHIVE</button>
-          <button type="button">FAVORITES</button>
+
+      <Panel title="SIGUIENTE ACCIÓN" eyebrow="04 / OPERACIÓN" wide action={state.nextAction.code === 'UPLOAD_OBJECT' ? <button type="button" onClick={onOpenIntake}>EJECUTAR</button> : null}>
+        <div className="sfi-production__next-action">
+          <strong>{state.nextAction.action}</strong>
+          <p>{state.nextAction.reason}</p>
+          <small>{state.nextAction.requirement ?? state.nextAction.disabledReason ?? state.nextAction.code}</small>
         </div>
       </Panel>
     </div>
   );
 }
 
-function LiveDeskScreen({ state }: { state: StudioProductionState }) {
-  return (
-    <>
-      <PixiPanel state={state} variant="waveform" title="LIVE DESK" subtitle="WAVEFORM / VECTOR SCOPE / ANOMALIAS" />
-      <div className="sfi-production__grid">
-        <Panel title="SIGNAL HEALTH">
-          <div className="sfi-production__metric-list">
-            <span>RMS <b>{metric(state.audioFeatures.rms)}</b></span>
-            <span>PEAK <b>{metric(state.audioFeatures.peak)}</b></span>
-            <span>CLIP RISK <b>{metric(state.audioFeatures.clippingRisk)}</b></span>
-          </div>
-        </Panel>
-        <Panel title="INTERVENTION QUEUE" action={<a href="/api/studio/interventions/simulate">SIMULATE</a>}>
-          {state.interventions.length ? state.interventions.map((item) => <p key={item.id}>{item.title}</p>) : <p>NO_VERIFIED_INTERVENTIONS</p>}
-        </Panel>
-      </div>
-    </>
-  );
-}
+function ObservationStage({ state }: { state: StudioProductionState }) {
+  const preferred = ['rms_dbfs', 'peak_dbfs', 'dynamic_range_db', 'crest_factor_db', 'spectral_centroid_hz', 'spectral_flux', 'clipping_risk', 'stereo_width'];
+  const keyMetrics = preferred.map((key) => metricByKey(state, key)).filter((metric): metric is MetricValue => Boolean(metric));
+  const measured = state.metricValues.filter((metric) => metric.status === 'OBSERVED' || metric.status === 'DERIVED');
+  const missing = state.metricValues.filter((metric) => metric.status === 'MISSING' || metric.status === 'FAILED' || metric.status === 'DEGRADED');
 
-function CompositionScreen({ state }: { state: StudioProductionState }) {
   return (
-    <>
-      <PixiPanel state={state} variant="timeline" title="COMPOSITION" subtitle="STRUCTURE / MOTIFS / EMOTIONAL ARC" />
-      <div className="sfi-production__grid">
-        <Panel title="MOTIFS">{state.textFeatures.motifs.length ? state.textFeatures.motifs.slice(0, 8).map((item) => <p key={item}>{item}</p>) : <p>MOTIF_EXTRACTION_UNAVAILABLE</p>}</Panel>
-        <Panel title="HYPOTHESES">{state.hypotheses?.summary ?? 'HYPOTHESIS_ENGINE_BLOCKED_BY_MISSING_LAYERS'}</Panel>
-      </div>
-    </>
-  );
-}
-
-function SoundDesignScreen({ state }: { state: StudioProductionState }) {
-  return (
-    <>
-      <PixiPanel state={state} variant="spectral" title="SOUND DESIGN" subtitle="SPECTRAL CLOUD / TEXTURE CLUSTERS" />
-      <div className="sfi-production__grid">
-        <Panel title="TIMBRE DNA">
-          <div className="sfi-production__metric-list">
-            <span>SPECTRAL CENTROID <b>{metric(state.audioFeatures.spectralCentroid)}</b></span>
-            <span>TEXTURE DENSITY <b>{metric(state.imageFeatures.textureDensity)}</b></span>
-            <span>SEMANTIC DENSITY <b>{metric(state.textFeatures.semanticDensity)}</b></span>
-          </div>
-        </Panel>
-        <Panel title="CULTURAL FIT">{state.culturalLens?.dominantSignal ?? 'NO_DOMINANT_SIGNAL'}</Panel>
-      </div>
-    </>
-  );
-}
-
-function ArrangementsScreen({ state }: { state: StudioProductionState }) {
-  return (
-    <>
-      <PixiPanel state={state} variant="timeline" title="ARRANGEMENTS" subtitle="DENSITY / SILENCE / TRANSITIONS" />
-      <div className="sfi-production__grid">
-        <Panel title="LAYERS">{state.objectFeatures.layers.map((layer) => <p key={layer.id}>{layer.label} / {pct(layer.weight)}</p>)}</Panel>
-        <Panel title="TRANSITIONS"><p>TRANSITION_SCORING_NOT_CONNECTED</p></Panel>
-      </div>
-    </>
-  );
-}
-
-function MixConsoleScreen({ state }: { state: StudioProductionState }) {
-  return (
-    <>
-      <PixiPanel state={state} variant="vector" title="MIX CONSOLE" subtitle="METERS / ROUTING / PHASE" />
-      <div className="sfi-production__faders">
-        {state.objectFeatures.layers.length ? state.objectFeatures.layers.map((layer) => (
-          <div key={layer.id}>
-            <span>{layer.label}</span>
-            <i style={{ height: `${Math.max(12, Math.round((layer.weight ?? 0.05) * 100))}%` }} />
-            <b>{pct(layer.weight)}</b>
-          </div>
-        )) : <p>NO_STEMS_CONNECTED</p>}
-      </div>
-    </>
-  );
-}
-
-function MasteringScreen({ state }: { state: StudioProductionState }) {
-  return (
-    <div className="sfi-production__screen-grid">
-      <PixiPanel state={state} variant="vector" title="MASTERING" subtitle="LOUDNESS / STEREO / EXPORT READINESS" />
-      <Panel title="MASTER READINESS">
-        <div className="sfi-production__metric-list">
-          <span>LUFS <b>{metric(state.audioFeatures.lufs)}</b></span>
-          <span>DYNAMIC RANGE <b>{metric(state.audioFeatures.dynamicRange)}</b></span>
-          <span>SIGNOFF <b>{state.exports.signoffReadiness.toUpperCase()}</b></span>
+    <div className="sfi-production__stage">
+      <section className="sfi-production__stage-intro"><span>02 / OBSERVACIÓN</span><h1>Lo que el objeto demuestra</h1><p>Features medidas y derivadas. La interfaz separa observación, inferencia y ausencia de evidencia.</p></section>
+      <Panel title="SEÑAL Y ESTRUCTURA TEMPORAL" eyebrow="OBJETO DECODIFICADO" wide>
+        <AudioPlayer state={state} />
+        {state.audioFeatures.waveform.length ? <StudioPixiStage state={state} variant="waveform" label="Persisted waveform and energy" /> : <p className="sfi-production__muted">No existe waveform persistido para esta modalidad.</p>}
+        <div className="sfi-production__observation-summary">
+          <span>{state.audioFeatures.waveform.length} PEAKS</span>
+          <span>{state.audioFeatures.energySegments.length} SEGMENTOS</span>
+          <span>{state.objectFeatures.graph.nodes.length} NODOS</span>
+          <span>{state.evidence.length} EVIDENCIAS</span>
         </div>
       </Panel>
+
+      <div className="sfi-production__metric-grid">
+        {keyMetrics.map((metric) => <MetricCard key={metric.key} metric={metric} />)}
+        {!keyMetrics.length ? <div className="sfi-production__empty">No hay métricas principales persistidas para esta modalidad.</div> : null}
+      </div>
+
+      <div className="sfi-production__grid-2">
+        <Panel title="OBSERVADO / DERIVADO" eyebrow="COBERTURA DISPONIBLE">
+          <div className="sfi-production__compact-list">{measured.map((metric) => <MetricCard key={metric.key} metric={metric} compact />)}</div>
+        </Panel>
+        <Panel title="AUSENCIAS REALES" eyebrow="NO SIMULADO">
+          <div className="sfi-production__compact-list">{missing.map((metric) => <MetricCard key={metric.key} metric={metric} compact />)}</div>
+          {!missing.length ? <p className="sfi-production__muted">No existen métricas degradadas, faltantes o fallidas.</p> : null}
+        </Panel>
+      </div>
+
+      <details className="sfi-production__trace-drawer">
+        <summary>TRAZABILIDAD COMPLETA DEL OBJETO</summary>
+        <div className="sfi-production__trace-grid">
+          <div><span>Based on</span>{state.provenance.basedOn.map((item) => <p key={item}>{item}</p>)}</div>
+          <div><span>Derived from</span>{state.provenance.derivedFrom.map((item) => <p key={item}>{item}</p>)}</div>
+          <div><span>Limits</span>{state.provenance.limits.map((item) => <p key={item}>{item}</p>)}</div>
+        </div>
+      </details>
     </div>
   );
 }
 
-function NeuralAudioGraphScreen({ state, onOpenIntake }: { state: StudioProductionState; onOpenIntake: () => void }) {
+function SystemStage({ state, view }: { state: StudioProductionState; view: 'systemic' | 'projection' | 'decision' | 'return' }) {
+  const titles = {
+    systemic: ['03 / LECTURA SISTÉMICA', 'Qué significa dentro del campo'],
+    projection: ['04 / PROYECCIÓN', 'Qué podría ocurrir y durante cuánto tiempo'],
+    decision: ['05 / DECISIÓN', 'Qué conviene mover sin destruir el objeto'],
+    return: ['06 / RETORNO', 'Qué ocurrió, cuánto se equivocó y qué aprendió'],
+  } as const;
   return (
-    <>
-      <PixiPanel state={state} variant="graph" title="NEURAL AUDIO GRAPH" subtitle="CAUSAL GRAPH / FEATURE LAYERS / MIHM LINKS" />
-      <div className="sfi-production__grid">
-        <Panel title="NODE INSPECTOR" action={<button type="button" onClick={onOpenIntake}>INTAKE</button>}>
-          {state.objectFeatures.graph.nodes.map((node) => <p key={node.id}>{node.label} / {node.layer} / {metric(node.value)}</p>)}
-          {!state.objectFeatures.graph.nodes.length && <p>GRAPH_REQUIRES_OBJECT_FEATURES</p>}
-        </Panel>
-        <Panel title="CAUSAL EXPLANATION">
-          {state.objectFeatures.graph.edges.map((edge) => <p key={`${edge.from}-${edge.to}`}>{edge.from} - {edge.to} / {metric(edge.weight)}</p>)}
-          {!state.objectFeatures.graph.edges.length && <p>NO_WEIGHTED_EDGES</p>}
-        </Panel>
-      </div>
-    </>
-  );
-}
-
-function MemoryArchivesScreen({ state }: { state: StudioProductionState }) {
-  return (
-    <>
-      <PixiPanel state={state} variant="archive" title="MEMORY / ARCHIVES" subtitle="LONGITUDINAL TRACE / EVIDENCE DOTS" />
-      <div className="sfi-production__grid">
-        <Panel title="ARCHIVE EVENTS" action={<a href="/api/studio/archive">API</a>}>
-          {state.archive.events.length ? state.archive.events.map((event) => <p key={event.id}>{event.label}</p>) : <p>NO_ARCHIVE_EVENTS</p>}
-        </Panel>
-        <Panel title="EVIDENCE INTEGRITY">{state.archive.integrity.toUpperCase()}</Panel>
-      </div>
-    </>
-  );
-}
-
-function DeliverablesScreen({ state }: { state: StudioProductionState }) {
-  return (
-    <div className="sfi-production__screen-grid">
-      <Panel title="EXPORT PACKAGES" action={<a href="/api/studio/deliverables">API</a>}>
-        {state.exports.packages.length ? state.exports.packages.map((item) => <p key={item.id}>{item.label}</p>) : <p>NO_EXPORT_PACKAGES</p>}
-      </Panel>
-      <Panel title="SIGNOFF READINESS">{state.exports.signoffReadiness.toUpperCase()}</Panel>
-      <Panel title="BUILD EXPORT" action={<a href="/api/studio/exports/build">POST</a>}>
-        <p>Export builder returns blocked until evidence bundle and destination are connected.</p>
-      </Panel>
-    </div>
-  );
-}
-
-function SettingsScreen({ state }: { state: StudioProductionState }) {
-  return (
-    <div className="sfi-production__screen-grid">
-      <Panel title="PROVENANCE">{state.provenance.basedOn.map((item) => <p key={item}>{item}</p>)}</Panel>
-      <Panel title="DEGRADED SOURCES">{state.degradedSources.length ? state.degradedSources.map((item) => <p key={item}>{item}</p>) : <p>NONE_DECLARED</p>}</Panel>
-      <Panel title="LIMITS">{state.provenance.limits.map((item) => <p key={item}>{item}</p>)}</Panel>
+    <div className="sfi-production__stage">
+      <section className="sfi-production__stage-intro"><span>{titles[view][0]}</span><h1>{titles[view][1]}</h1><p>La visualización principal usa exactamente la misma evidencia que la lectura auditada inferior.</p></section>
+      <StudioVisualStage objectId={state.activeObject.id} view={view} />
+      <StudioUnifiedIntelligence objectId={state.activeObject.id} view={view} />
     </div>
   );
 }
 
 function Screen({ active, state, onOpenIntake }: { active: StudioProductionScreen; state: StudioProductionState; onOpenIntake: () => void }) {
-  switch (active) {
-    case 'sessions': return <SessionsScreen state={state} onOpenIntake={onOpenIntake} />;
-    case 'live-desk': return <LiveDeskScreen state={state} />;
-    case 'composition': return <CompositionScreen state={state} />;
-    case 'sound-design': return <SoundDesignScreen state={state} />;
-    case 'arrangements': return <ArrangementsScreen state={state} />;
-    case 'mix-console': return <MixConsoleScreen state={state} />;
-    case 'mastering': return <MasteringScreen state={state} />;
-    case 'neural-audio-graph': return <NeuralAudioGraphScreen state={state} onOpenIntake={onOpenIntake} />;
-    case 'memory-archives': return <MemoryArchivesScreen state={state} />;
-    case 'deliverables': return <DeliverablesScreen state={state} />;
-    case 'settings': return <SettingsScreen state={state} />;
-    case 'overview':
-    default:
-      return <OverviewScreen state={state} onOpenIntake={onOpenIntake} />;
-  }
+  if (active === 'object') return <ObjectStage state={state} onOpenIntake={onOpenIntake} />;
+  if (active === 'observation') return <ObservationStage state={state} />;
+  if (active === 'systemic') return <SystemStage state={state} view="systemic" />;
+  if (active === 'projection') return <SystemStage state={state} view="projection" />;
+  if (active === 'decision') return <SystemStage state={state} view="decision" />;
+  return <SystemStage state={state} view="return" />;
 }
 
 export function StudioProductionShell({ state }: { state: StudioProductionState }) {
-  const [active, setActive] = useState<StudioProductionScreen>('overview');
+  const [active, setActive] = useState<StudioProductionScreen>('object');
   const [intakeOpen, setIntakeOpen] = useState(false);
-  const css = useMemo(() => productionCss, []);
+  const stage = studioProductionScreens.find((screen) => screen.id === active)?.label ?? 'STUDIO';
 
   return (
     <main className="sfi-production">
       <StudioSidebar active={active} onSelect={setActive} sessionStatus={state.session.status} />
       <section className="sfi-production__main">
-        <StudioHeader state={state} />
-        <Screen active={active} state={state} onOpenIntake={() => setIntakeOpen(true)} />
-        <StudioFooterTransport state={state} />
-        <StudioEvaluationStrip state={state} />
+        <StudioHeader state={state} stage={stage} onOpenIntake={() => setIntakeOpen(true)} />
+        <div className="sfi-production__workspace"><Screen active={active} state={state} onOpenIntake={() => setIntakeOpen(true)} /></div>
+        <StudioTimelineStrip state={state} />
+        <footer className="sfi-production__footer">
+          <span>SFI STUDIO</span><strong>{state.activeObject.id ? state.activeObject.id.slice(0, 8) : 'NO OBJECT'}</strong><em>{state.generatedAt}</em>
+        </footer>
       </section>
-      <StudioRightRail state={state} />
+      <StudioTelemetryRail state={state} />
       <StudioObjectIntake open={intakeOpen} onClose={() => setIntakeOpen(false)} />
-      <style jsx global>{css}</style>
     </main>
   );
 }
-
-const productionCss = `
-.sfi-production {
-  --bg: #050309;
-  --panel: rgba(8, 5, 14, .92);
-  --panel2: rgba(15, 7, 22, .95);
-  --line: rgba(186, 92, 255, .28);
-  --line2: rgba(69, 240, 255, .18);
-  --pink: #ff79d9;
-  --purple: #ba5cff;
-  --cyan: #45f0ff;
-  --orange: #ff9f43;
-  --green: #7cffb2;
-  --red: #ff5f7a;
-  --text: #f2e9ff;
-  --muted: #9584a7;
-  min-height: 100vh;
-  display: grid;
-  grid-template-columns: 230px minmax(0, 1fr) 280px;
-  gap: 10px;
-  padding: 10px;
-  background:
-    radial-gradient(circle at 50% 30%, rgba(186, 92, 255, .18), transparent 42%),
-    radial-gradient(circle at 78% 58%, rgba(69, 240, 255, .09), transparent 34%),
-    linear-gradient(135deg, rgba(255, 121, 217, .06), transparent 28%, rgba(69, 240, 255, .05)),
-    var(--bg);
-  color: var(--text);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-}
-.sfi-production * { box-sizing: border-box; }
-.sfi-production button, .sfi-production a {
-  border: 1px solid var(--line);
-  background: rgba(255, 121, 217, .06);
-  color: var(--text);
-  text-decoration: none;
-  font: 700 10px ui-monospace, monospace;
-  letter-spacing: .12em;
-  text-transform: uppercase;
-  cursor: pointer;
-}
-.sfi-production__sidebar,
-.sfi-production__right-rail,
-.sfi-production__header,
-.sfi-production__panel,
-.sfi-production__live-panel,
-.sfi-production__transport,
-.sfi-production__evaluation-strip {
-  border: 1px solid var(--line);
-  background: linear-gradient(180deg, rgba(15, 7, 22, .95), rgba(5, 3, 9, .94));
-  box-shadow: inset 0 0 40px rgba(186, 92, 255, .045), 0 0 28px rgba(69, 240, 255, .035);
-}
-.sfi-production__sidebar { display: grid; grid-template-rows: auto 1fr auto; min-height: calc(100vh - 20px); overflow: hidden; }
-.sfi-production__brand { display: flex; align-items: center; gap: 12px; padding: 18px; border-bottom: 1px solid var(--line); }
-.sfi-production__mark { width: 32px; height: 32px; border: 1px solid var(--pink); border-radius: 50%; box-shadow: 0 0 24px rgba(255, 121, 217, .38); }
-.sfi-production__brand strong { display: block; font-size: 20px; letter-spacing: .18em; }
-.sfi-production__brand em { display: block; color: var(--pink); font-style: normal; font-size: 10px; letter-spacing: .32em; }
-.sfi-production__sidebar nav { display: grid; align-content: start; gap: 4px; padding: 12px; }
-.sfi-production__sidebar nav button { width: 100%; padding: 10px 12px; text-align: left; color: var(--muted); display: grid; grid-template-columns: 28px 1fr; gap: 10px; align-items: center; }
-.sfi-production__sidebar nav button span { color: var(--pink); opacity: .82; }
-.sfi-production__sidebar nav button b { font-size: 9px; font-weight: 800; }
-.sfi-production__sidebar nav button.is-active { color: var(--cyan); border-color: var(--cyan); background: linear-gradient(90deg, rgba(69, 240, 255, .12), rgba(255, 121, 217, .06)); box-shadow: inset 0 0 28px rgba(69, 240, 255, .08); }
-.sfi-production__side-status { padding: 14px; border-top: 1px solid var(--line); }
-.sfi-production__side-status span, .sfi-production__panel header span, .sfi-production__right-rail span, .sfi-production__transport span { color: var(--muted); font-size: 9px; letter-spacing: .18em; text-transform: uppercase; }
-.sfi-production__side-status strong { display: block; margin-top: 8px; color: var(--green); }
-.sfi-production__side-status p, .sfi-production__panel p, .sfi-production__right-rail p, .sfi-overview__dock p { color: var(--muted); font-size: 10px; line-height: 1.55; }
-.sfi-production__main { display: grid; grid-template-rows: auto minmax(540px, 1fr) auto auto; gap: 10px; min-width: 0; }
-.sfi-production__header { display: grid; grid-template-columns: 1fr 1.3fr auto; gap: 16px; padding: 14px 18px; align-items: center; }
-.sfi-production__header span { display: block; color: var(--muted); font-size: 9px; letter-spacing: .2em; }
-.sfi-production__header strong { display: block; margin-top: 5px; color: var(--pink); font-size: 12px; letter-spacing: .16em; }
-.sfi-production__header-state { text-align: right; }
-.sfi-production__header-state em { display: block; color: var(--cyan); font-style: normal; font-size: 10px; margin-top: 5px; }
-.sfi-production__live-panel { min-height: 430px; display: grid; grid-template-rows: auto 1fr; }
-.sfi-production__live-panel > header { display: flex; justify-content: space-between; gap: 12px; padding: 12px 14px; border-bottom: 1px solid var(--line); }
-.sfi-production__live-panel > header span { display: block; color: var(--pink); font-size: 10px; letter-spacing: .22em; }
-.sfi-production__live-panel > header strong { display: block; color: var(--muted); font-size: 9px; letter-spacing: .18em; margin-top: 4px; }
-.sfi-production__live-panel > header em { color: var(--green); font-style: normal; font-size: 10px; letter-spacing: .16em; }
-.sfi-production__pixi-stage { position: relative; min-height: 390px; overflow: hidden; background: radial-gradient(circle at 50% 50%, rgba(186, 92, 255, .18), transparent 48%); }
-.sfi-production__pixi-host, .sfi-production__pixi-host canvas, .sfi-production__pixi-fallback { position: absolute; inset: 0; width: 100%; height: 100%; }
-.sfi-production__pixi-host { z-index: 2; }
-.sfi-production__pixi-fallback { z-index: 1; opacity: .42; }
-.sfi-production__pixi-fallback circle { fill: var(--pink); opacity: .55; }
-.sfi-production__pixi-fallback text { fill: var(--muted); font-size: 5px; letter-spacing: .25em; }
-.sfi-overview { min-height: 100%; display: grid; grid-template-rows: auto minmax(430px, 1fr) auto; gap: 10px; }
-.sfi-overview__topline { border: 1px solid var(--line); background: linear-gradient(90deg, rgba(255, 121, 217, .08), rgba(69, 240, 255, .04)); padding: 12px 14px; display: flex; align-items: center; justify-content: space-between; box-shadow: inset 0 0 40px rgba(255, 121, 217, .035); }
-.sfi-overview__topline span, .sfi-overview__micro span, .sfi-overview__dock header span, .sfi-overview__bar span, .sfi-overview__blocked span { display: block; color: var(--muted); font-size: 9px; letter-spacing: .2em; text-transform: uppercase; }
-.sfi-overview__topline strong { display: block; margin-top: 4px; color: var(--pink); font-size: 14px; letter-spacing: .22em; }
-.sfi-overview__topline button { padding: 10px 14px; }
-.sfi-overview__field { position: relative; min-height: 500px; border: 1px solid var(--line); overflow: hidden; background: radial-gradient(circle at 50% 45%, rgba(186, 92, 255, .24), transparent 34%), linear-gradient(180deg, rgba(8, 5, 14, .96), rgba(5, 3, 9, .98)); box-shadow: inset 0 0 90px rgba(69, 240, 255, .035), inset 0 0 120px rgba(255, 121, 217, .055); }
-.sfi-overview__field:before { content: ''; position: absolute; inset: 0; background-image: linear-gradient(rgba(186, 92, 255, .13) 1px, transparent 1px), linear-gradient(90deg, rgba(69, 240, 255, .08) 1px, transparent 1px); background-size: 36px 36px; opacity: .28; z-index: 0; }
-.sfi-overview__field .sfi-production__pixi-stage { position: absolute; inset: 0; min-height: 100%; z-index: 1; background: transparent; }
-.sfi-overview__micro { position: absolute; z-index: 4; width: min(285px, 30%); padding: 12px; border: 1px solid var(--line2); background: rgba(5, 3, 9, .72); backdrop-filter: blur(8px); box-shadow: inset 0 0 28px rgba(69, 240, 255, .04); }
-.sfi-overview__micro strong { display: block; margin-top: 8px; color: var(--cyan); font-size: 13px; letter-spacing: .08em; text-transform: uppercase; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.sfi-overview__micro p { margin: 8px 0 0; color: var(--muted); font-size: 9px; line-height: 1.45; max-height: 42px; overflow: hidden; }
-.sfi-overview__micro--left { top: 18px; left: 18px; }
-.sfi-overview__micro--right { top: 18px; right: 18px; text-align: right; }
-.sfi-overview__micro--bottom-left { bottom: 18px; left: 18px; }
-.sfi-overview__micro--bottom-right { bottom: 18px; right: 18px; text-align: right; }
-.sfi-overview__frame { position: absolute; z-index: 3; pointer-events: none; border: 1px solid rgba(255, 121, 217, .16); }
-.sfi-overview__frame--a { inset: 54px 72px; box-shadow: 0 0 70px rgba(255, 121, 217, .05); }
-.sfi-overview__frame--b { inset: 96px 146px; border-color: rgba(69, 240, 255, .16); transform: skewX(-4deg); }
-.sfi-overview__blocked { position: absolute; z-index: 5; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(430px, 70%); padding: 18px; text-align: center; border: 1px solid rgba(255, 95, 122, .5); background: rgba(10, 4, 12, .78); backdrop-filter: blur(10px); box-shadow: 0 0 48px rgba(255, 95, 122, .12); }
-.sfi-overview__blocked strong { display: block; color: var(--red); margin: 10px 0; letter-spacing: .18em; }
-.sfi-overview__blocked p { color: var(--muted); font-size: 10px; }
-.sfi-overview__lower { display: grid; grid-template-columns: 1.35fr .9fr .95fr; gap: 10px; }
-.sfi-overview__dock { min-height: 150px; padding: 12px; border: 1px solid var(--line); background: linear-gradient(180deg, rgba(15, 7, 22, .92), rgba(5, 3, 9, .96)); box-shadow: inset 0 0 32px rgba(186, 92, 255, .04); }
-.sfi-overview__dock header { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
-.sfi-overview__dock header b { color: var(--pink); font-size: 9px; letter-spacing: .14em; }
-.sfi-overview__bar { display: grid; grid-template-columns: 92px 1fr 42px; gap: 10px; align-items: center; margin: 8px 0; }
-.sfi-overview__bar i { display: block; height: 8px; background: rgba(255,255,255,.04); border: 1px solid var(--line2); overflow: hidden; }
-.sfi-overview__bar b { display: block; height: 100%; background: var(--cyan); box-shadow: 0 0 18px rgba(69, 240, 255, .32); }
-.sfi-overview__bar em { color: var(--muted); font-style: normal; font-size: 9px; text-align: right; }
-.sfi-overview__bar.is-pink b { background: var(--pink); box-shadow: 0 0 18px rgba(255, 121, 217, .32); }
-.sfi-overview__bar.is-orange b { background: var(--orange); box-shadow: 0 0 18px rgba(255, 159, 67, .24); }
-.sfi-overview__bar.is-green b { background: var(--green); box-shadow: 0 0 18px rgba(124, 255, 178, .24); }
-.sfi-production__grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 10px; }
-.sfi-production__screen-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; align-content: start; }
-.sfi-production__panel { min-height: 140px; padding: 14px; }
-.sfi-production__panel header { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
-.sfi-production__panel header a, .sfi-production__panel header button { padding: 7px 9px; }
-.sfi-production__object-card strong { display: block; color: var(--text); font-size: 18px; letter-spacing: .08em; text-transform: uppercase; }
-.sfi-production__object-card span { display: block; color: var(--cyan); margin-top: 10px; font-size: 10px; letter-spacing: .16em; }
-.sfi-production__metric-list { display: grid; gap: 8px; }
-.sfi-production__metric-list span { display: flex; justify-content: space-between; gap: 10px; border-bottom: 1px solid var(--line2); padding-bottom: 6px; color: var(--muted); font-size: 10px; }
-.sfi-production__metric-list b { color: var(--cyan); }
-.sfi-production__pipeline { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
-.sfi-production__pipeline li { padding: 7px 9px; border: 1px solid var(--line2); color: var(--muted); font-size: 10px; letter-spacing: .12em; }
-.sfi-production__pipeline li.is-live { color: var(--green); border-color: rgba(124, 255, 178, .32); background: rgba(124, 255, 178, .035); }
-.sfi-production__filter-row { display: flex; gap: 8px; flex-wrap: wrap; }
-.sfi-production__filter-row button { padding: 9px 10px; }
-.sfi-production__faders { display: grid; grid-template-columns: repeat(8, minmax(64px, 1fr)); gap: 8px; min-height: 260px; padding: 14px; border: 1px solid var(--line); background: var(--panel); align-items: end; }
-.sfi-production__faders div { height: 230px; display: grid; grid-template-rows: auto 1fr auto; justify-items: center; gap: 8px; color: var(--muted); font-size: 9px; }
-.sfi-production__faders i { width: 18px; align-self: end; background: linear-gradient(180deg, var(--pink), var(--cyan)); box-shadow: 0 0 24px rgba(255, 121, 217, .35); }
-.sfi-production__right-rail { display: grid; gap: 8px; align-content: start; padding: 8px; min-height: calc(100vh - 20px); }
-.sfi-production__right-rail section { border: 1px solid var(--line2); padding: 12px; background: rgba(5, 3, 9, .58); }
-.sfi-production__right-rail strong { display: block; margin: 10px 0; color: var(--cyan); font-size: 22px; letter-spacing: .08em; }
-.sfi-production__right-rail a { display: block; margin-top: 8px; padding: 8px; }
-.sfi-production__right-rail b { color: var(--orange); font-size: 9px; }
-.sfi-production__transport { display: grid; grid-template-columns: 1fr auto auto; gap: 12px; padding: 12px; align-items: center; }
-.sfi-production__transport strong, .sfi-production__transport a { display: block; margin-top: 5px; color: var(--cyan); }
-.sfi-production__evaluation-strip { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 1px; padding: 8px; }
-.sfi-production__evaluation-strip div { border: 1px solid var(--line2); padding: 9px; min-width: 0; }
-.sfi-production__evaluation-strip span, .sfi-production__evaluation-strip em { display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; color: var(--muted); font-size: 8px; letter-spacing: .12em; font-style: normal; }
-.sfi-production__evaluation-strip strong { display: block; margin: 6px 0; color: var(--pink); font-size: 12px; }
-.sfi-production__intake { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; background: rgba(0, 0, 0, .72); backdrop-filter: blur(8px); }
-.sfi-production__intake-panel { position: relative; width: min(520px, calc(100vw - 32px)); border: 1px solid var(--line); background: rgba(8, 5, 14, .98); padding: 26px; box-shadow: 0 0 90px rgba(186, 92, 255, .24); }
-.sfi-production__intake-panel input { display: none; }
-.sfi-production__intake-panel h2 { color: var(--pink); letter-spacing: .12em; }
-.sfi-production__intake-panel p { color: var(--muted); line-height: 1.6; }
-.sfi-production__intake-panel button:not(.sfi-production__icon-button) { width: 100%; padding: 16px; margin-top: 14px; }
-.sfi-production__icon-button { position: absolute; top: 10px; right: 10px; width: 30px; height: 30px; }
-@media (max-width: 1180px) {
-  .sfi-production { display: block; padding: 8px; }
-  .sfi-production__sidebar, .sfi-production__right-rail { min-height: auto; margin-bottom: 10px; }
-  .sfi-production__main { display: block; }
-  .sfi-overview__lower, .sfi-production__grid, .sfi-production__screen-grid { grid-template-columns: 1fr; }
-  .sfi-overview__field { min-height: 420px; }
-}
-`;
