@@ -7,16 +7,16 @@ function strings(value: unknown): string[] {
 }
 
 function nodeFrom(row: RootRow, table: string): RootEvidenceNode {
-  const payload = row.payload && typeof row.payload === 'object' && !Array.isArray(row.payload) ? row.payload as RootRow : {};
+  const payload = row.payload && typeof row.payload === 'object' && !Array.isArray(row.payload) ? row.payload as RootRow : row.attributes && typeof row.attributes === 'object' && !Array.isArray(row.attributes) ? row.attributes as RootRow : {};
   return {
     id: text(row.node_key ?? row.node_id ?? row.id),
     label: text(row.label ?? row.title, 'SIN ETIQUETA'),
     type: text(row.ontology_type ?? row.node_type ?? row.evidence_kind, 'evidence'),
-    epistemicClass: text(row.epistemic_class, 'observed'),
-    confidence: numberValue(row.confidence ?? row.trust_score),
+    epistemicClass: text(row.epistemic_class ?? payload.epistemicClass, 'observed'),
+    confidence: numberValue(row.confidence ?? row.trust_score ?? payload.confidence),
     source: table,
     observedAt: dateValue(row.updated_at ?? row.observed_at ?? row.created_at),
-    evidenceIds: strings(row.evidence_ids).concat(text(row.evidence_hash, '') ? [text(row.evidence_hash)] : []),
+    evidenceIds: strings(row.evidence_ids ?? payload.evidenceIds).concat(text(row.evidence_hash ?? payload.evidenceHash, '') ? [text(row.evidence_hash ?? payload.evidenceHash)] : []),
     lineage: strings(row.lineage),
     payload,
   };
