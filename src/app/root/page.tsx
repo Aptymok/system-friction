@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import { RootSovereignConsole } from '@/components/root/sovereign/RootSovereignConsole';
 import { requireFounderPage } from '@/lib/root/server';
 import { readRootSovereignState } from '@/lib/root/sovereign/rootSovereignAdapter';
