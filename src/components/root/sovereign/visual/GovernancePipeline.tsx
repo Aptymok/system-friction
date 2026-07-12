@@ -1,0 +1,6 @@
+import type { RootRow } from '@/lib/root/sovereign/rootSovereignState';
+
+const STATES = ['draft', 'proposed', 'accepted', 'prepared', 'executed', 'blocked'];
+export function GovernancePipeline({ proposals }: { proposals: RootRow[] }) {
+  return <div className="rs-pipeline" aria-label="Proposal pipeline">{STATES.map((state) => { const count = proposals.filter((proposal) => String(proposal.status ?? 'draft').toLowerCase() === state).length; return <div key={state}><span>{state.toUpperCase()}</span><strong>{count}</strong></div>; })}</div>;
+}

@@ -219,6 +219,25 @@ export async function ingestAmvEvidence(input: { source: string; text: string; c
     context: { source: input.source, caseId: input.caseId ?? null },
   });
   saveAmvMemory(response.memoryDelta);
+  const trustScore = response.inference.sourceTrust === 'verified' ? 1 : response.inference.sourceTrust === 'declared' ? 0.7 : response.inference.sourceTrust === 'inferred' ? 0.45 : 0.2;
+  const service = createServiceSupabaseClient();
+  const persisted = await service.from('sfi_amv_memory').insert({
+    session_id: response.memoryDelta.sessionId,
+    module: response.memoryDelta.module,
+    input_hash: response.memoryDelta.evidenceHash,
+    input_summary: response.memoryDelta.message,
+    inference: response.inference,
+    decision: { requiredAction: response.inference.requiredAction, nextObservation: response.nextObservation },
+    output_summary: response.response,
+    evaluation: { epistemicClass: 'declared', verified: false },
+    memory_delta: response.memoryDelta,
+    uncertainty: response.inference.uncertainty,
+    source_trust: trustScore,
+    requires_human_validation: response.requiresHumanValidation,
+  }).select('id,created_at').single();
+  if (persisted.error) {
+    return { ok: false as const, status: 'degraded' as const, error: 'sfi_amv_memory_insert_failed', warnings: [persisted.error.message], response };
+  }
   try {
     await appendAmvLearning({
       case_id: input.caseId ?? null,
@@ -230,5 +249,6 @@ export async function ingestAmvEvidence(input: { source: string; text: string; c
   } catch {
     // AMV local memory remains valid even if logbook persistence is unavailable.
   }
-  return readAmvOperationalMemory({ query: input.text, limit: 12 });
+  const memory = await readAmvOperationalMemory({ query: input.text, limit: 12 });
+  return { ...memory, ingest: { persisted: true, id: persisted.data.id, created_at: persisted.data.created_at, epistemicClass: 'declared', verified: false } };
 }

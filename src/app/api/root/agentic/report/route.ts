@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { runReportAgent, type ReportType } from '@/lib/agents/sfiAgents';
-import { requireRootActor } from '@/lib/root/server';
+import { auditRootAction, requireRootActor } from '@/lib/root/server';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -33,5 +33,7 @@ export async function POST(request: Request) {
     subject: typeof body.subject === 'string' ? body.subject : undefined,
     ifnorm: body.ifnorm && typeof body.ifnorm === 'object' ? body.ifnorm as never : null,
   });
-  return NextResponse.json(result);
+  const audit = await auditRootAction({ actorId: gate.ctx.user.id, action: 'agentic.report', target: type, payload: { subject: body.subject ?? null, ok: result.ok }, request });
+  if (!audit.ok) return NextResponse.json(audit, { status: 500 });
+  return NextResponse.json({ ...result, audit });
 }

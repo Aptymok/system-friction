@@ -1,0 +1,4 @@
+.rs-scatter{display:block;width:100%;height:220px;background:#06090a}
+.rs-scatter line{stroke:var(--line);stroke-width:1}
+.rs-scatter circle{fill:var(--magenta);stroke:var(--cyan);stroke-width:1}
+.rs-scatter circle:focus{stroke:#fff;stroke-width:2;outline:none}

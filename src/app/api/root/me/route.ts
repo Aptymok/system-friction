@@ -1,23 +1,12 @@
 import { NextResponse } from 'next/server';
 import { auditRootAction, requireRootActor } from '@/lib/root/server';
-import { getServerUserContext } from '@/lib/server/productionBackend';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: Request) {
-  const ctx = await getServerUserContext();
-  if (!ctx.user) return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
-
-  if (ctx.isRoot) {
-    const audit = await auditRootAction({
-      actorId: ctx.user.id,
-      action: 'me.read',
-      target: 'root_identity',
-      payload: { role: ctx.profile?.role ?? null },
-      request: req,
-    });
-    if (!audit.ok) return NextResponse.json(audit, { status: 500 });
-  }
+  const gate = await requireRootActor('me.read');
+  if (!gate.ok) return NextResponse.json(gate.body, { status: gate.status });
+  const ctx = gate.ctx;
 
   return NextResponse.json({
     ok: true,

@@ -1,7 +1,6 @@
-import type { Metadata } from 'next';
-import { RootGovernanceConsole } from '@/components/root/gold/RootGovernanceConsole';
-import { readRootGovernanceState } from '@/lib/root/gold/rootGovernanceAdapter';
-import { requireFounderPage } from '@/lib/system/access/server';
+import { RootSovereignConsole } from '@/components/root/sovereign/RootSovereignConsole';
+import { requireFounderPage } from '@/lib/root/server';
+import { readRootSovereignState } from '@/lib/root/sovereign/rootSovereignAdapter';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,6 +14,6 @@ export const metadata: Metadata = {
 
 export default async function RootPage() {
   await requireFounderPage('/root');
-  const state = await readRootGovernanceState();
-  return <RootGovernanceConsole state={state} />;
+  const state = await readRootSovereignState();
+  return <RootSovereignConsole initialState={state} />;
 }

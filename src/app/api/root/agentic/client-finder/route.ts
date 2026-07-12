@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { runClientFinderAgent } from '@/lib/agents/sfiAgents';
-import { requireRootActor } from '@/lib/root/server';
+import { auditRootAction, requireRootActor } from '@/lib/root/server';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -18,5 +18,7 @@ export async function POST(request: Request) {
     source: typeof body.source === 'string' ? body.source : undefined,
     notes: typeof body.notes === 'string' ? body.notes : undefined,
   });
-  return NextResponse.json(result);
+  const audit = await auditRootAction({ actorId: gate.ctx.user.id, action: 'agentic.client_finder', target: 'client_finder', payload: { ok: result.ok }, request });
+  if (!audit.ok) return NextResponse.json(audit, { status: 500 });
+  return NextResponse.json({ ...result, audit });
 }

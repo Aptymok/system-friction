@@ -75,53 +75,39 @@ export async function POST(req: Request) {
   const graphNode = await service
   .from('graph_nodes')
   .upsert({
-    node_key: evidenceNodeId,
     node_id: evidenceNodeId,
     label: title,
-    node_type: 'INF',
     ontology_type: 'evidence',
-    profile: 'sfi',
-    q_n: 0.5,
-    d_n: 0,
-    co_n: 1,
-    u_n: 0,
-    origin: 'root_console',
-    epistemic_class: 'observed',
-    confidence: 0.9,
-    payload: { evidenceHash, evidenceType, rootEvidenceId: evidenceInsert.data.id, targetNodeId },
     lineage: [String(event.data.event_id ?? event.data.id)],
     attributes: { evidenceHash, evidenceType, rootEvidenceId: evidenceInsert.data.id, targetNodeId },
     updated_at: new Date().toISOString(),
-  }, { onConflict: 'node_key' })
+  }, { onConflict: 'node_id' })
   .select('*')
   .single();
 
   let graphEdge = null;
   if (targetNodeId && !graphNode.error) {
-  const edgeId = `${evidenceNodeId}->${targetNodeId}`;
-  const edge = await service
-    .from('graph_edges')
-    .upsert({
-      edge_id: edgeId,
-      source_node_key: evidenceNodeId,
-      target_node_key: targetNodeId,
-      source_node_id: evidenceNodeId,
-      target_node_id: targetNodeId,
-      relation_type: 'structural_inferred',
-      relation: 'supports',
-      w_ij: 0.72,
-      weight: 0.72,
-      confidence: 0.9,
-      evidence_ids: [String(event.data.id)],
-      payload: { evidenceHash, verified: true },
-      lineage: [String(event.data.event_id ?? event.data.id)],
-      attributes: { evidenceHash, verified: true },
-      updated_at: new Date().toISOString(),
-    }, { onConflict: 'source_node_key,target_node_key,relation_type' })
-    .select('*')
-    .maybeSingle();
-
-  graphEdge = edge.error ? { error: edge.error.message } : edge.data;
+    const target = await service.from('graph_nodes').select('node_id').eq('node_id', targetNodeId).maybeSingle();
+    if (target.error || !target.data) {
+      graphEdge = { error: target.error?.message ?? 'target_node_missing' };
+    } else {
+      const edgeId = `${evidenceNodeId}->${targetNodeId}:supports`;
+      const edge = await service
+        .from('graph_edges')
+        .upsert({
+          edge_id: edgeId,
+          source_node_id: evidenceNodeId,
+          target_node_id: targetNodeId,
+          relation: 'supports',
+          weight: 0.72,
+          lineage: [String(event.data.event_id ?? event.data.id)],
+          attributes: { evidenceHash, verified: true, epistemicClass: 'observed', confidence: 0.9 },
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'edge_id' })
+        .select('*')
+        .maybeSingle();
+      graphEdge = edge.error ? { error: edge.error.message } : edge.data;
+    }
 }
 
   const proposal = proposalType
