@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { AmvPhaseStatusPanel } from '@/components/amv/AmvPhaseStatusPanel';
 import MiniMophField from '@/components/field/MiniMophField';
 
 export const dynamic = 'force-dynamic';
@@ -32,6 +33,8 @@ export default function FieldPage() {
             </nav>
           </div>
         </header>
+
+        <AmvPhaseStatusPanel endpoint="/api/observatory/instrument-status" compact title="FIELD · INSTRUMENT MATURITY" />
 
         <section className="grid gap-3 md:grid-cols-4">
           {stages.map(([label, value]) => (
