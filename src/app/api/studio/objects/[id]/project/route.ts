@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { readExternalEvidenceVector } from '@/lib/amv/externalEvidence';
 import { buildAmvPredictionGate, AmvEpistemicGateError } from '@/lib/amv/epistemicGate';
 import { AccessDeniedError, requireObjectOwner } from '@/lib/system/access/server';
 import {
@@ -49,6 +50,7 @@ export async function POST(request: Request, ctx: RouteContext) {
     const service = createServiceSupabaseClient();
     const objectResult = await service.from('studio_objects').select('id,object_type,metadata').eq('id', objectId).maybeSingle();
     if (objectResult.error || !objectResult.data) throw new Error(objectResult.error?.message ?? 'STUDIO_OBJECT_NOT_FOUND');
+    const externalEvidence = await readExternalEvidenceVector({ objectId, objectClass: objectResult.data.object_type });
 
     const epistemicGate = buildAmvPredictionGate({
       objectType: objectResult.data.object_type,
@@ -59,6 +61,9 @@ export async function POST(request: Request, ctx: RouteContext) {
       worldConfidence: projection.world.confidence,
       evidenceIds: projection.evidenceIds,
       missingDimensions: projection.fit.missingDimensions,
+      externalEvidenceCount: externalEvidence.observations.length,
+      externalEvidenceCoverage: externalEvidence.coverage,
+      missingExternalKeys: externalEvidence.missingKeys,
     });
 
     let predictiveRun = null;
@@ -80,6 +85,7 @@ export async function POST(request: Request, ctx: RouteContext) {
       ok: true,
       status: projection.status,
       projection,
+      externalEvidence,
       epistemicGate,
       predictiveRun,
       epistemicLabel: predictiveRun ? 'PROVISIONAL_NO_HISTORICAL_CALIBRATION' : epistemicGate.epistemicLabel,
