@@ -6,6 +6,8 @@ import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
+const ATLAS_EVIDENCE_SOURCES = ['studio_object_context_synthesis_v1', 'studio_field_projection_v2'];
+
 type StudioObjectRow = {
   id: string;
   title: string | null;
@@ -65,21 +67,42 @@ export async function GET(request: Request) {
 
   const service = createServiceSupabaseClient();
   const theme = new URL(request.url).searchParams.get('theme')?.trim().toLowerCase() || null;
-  const runsResult = await service
-    .from('sfi_predictive_runs')
-    .select('id,subject_id,status,prediction,lower_bound,upper_bound,confidence,calibration_status,model_version,due_at,input_snapshot,created_at,updated_at')
-    .eq('scope', 'studio')
-    .eq('subject_type', 'studio_object')
-    .order('created_at', { ascending: false })
-    .limit(240);
+  const [runsResult, atlasEvidenceResult] = await Promise.all([
+    service
+      .from('sfi_predictive_runs')
+      .select('id,subject_id,status,prediction,lower_bound,upper_bound,confidence,calibration_status,model_version,due_at,input_snapshot,created_at,updated_at')
+      .eq('scope', 'studio')
+      .eq('subject_type', 'studio_object')
+      .order('created_at', { ascending: false })
+      .limit(240),
+    service
+      .from('studio_evidence_traces')
+      .select('id,object_id,source,created_at')
+      .in('source', ATLAS_EVIDENCE_SOURCES)
+      .order('created_at', { ascending: false })
+      .limit(240),
+  ]);
 
-  if (runsResult.error) {
-    return NextResponse.json({ ok: false, error: 'atlas_predictive_runs_query_failed', details: runsResult.error.message }, { status: 400 });
+  if (runsResult.error && atlasEvidenceResult.error) {
+    return NextResponse.json({
+      ok: false,
+      error: 'atlas_sources_query_failed',
+      details: `${runsResult.error.message} | ${atlasEvidenceResult.error.message}`,
+    }, { status: 400 });
   }
 
   const runs = (runsResult.data ?? []) as PredictiveRunRow[];
-  const objectIds = [...new Set(runs.map((run) => run.subject_id).filter(Boolean))];
-  if (!objectIds.length) return NextResponse.json({ ok: true, cases: [], allThemes: [], warnings: [] });
+  const atlasEvidence = (atlasEvidenceResult.data ?? []) as EvidenceTraceRow[];
+  const objectIds = [...new Set([
+    ...runs.map((run) => run.subject_id),
+    ...atlasEvidence.map((item) => item.object_id),
+  ].filter(Boolean))];
+  const sourceWarnings = [
+    runsResult.error ? `sfi_predictive_runs:${runsResult.error.message}` : null,
+    atlasEvidenceResult.error ? `studio_evidence_traces:${atlasEvidenceResult.error.message}` : null,
+  ].filter((item): item is string => Boolean(item));
+
+  if (!objectIds.length) return NextResponse.json({ ok: true, cases: [], allThemes: [], warnings: sourceWarnings });
 
   const [objectsResult, evidenceResult] = await Promise.all([
     service.from('studio_objects').select('id,title,object_type,metadata,created_at,updated_at').in('id', objectIds),
@@ -87,12 +110,13 @@ export async function GET(request: Request) {
   ]);
 
   const warnings = [
+    ...sourceWarnings,
     objectsResult.error ? `studio_objects:${objectsResult.error.message}` : null,
     evidenceResult.error ? `studio_evidence_traces:${evidenceResult.error.message}` : null,
   ].filter((item): item is string => Boolean(item));
 
   const objects = (objectsResult.data ?? []) as StudioObjectRow[];
-  const evidence = (evidenceResult.data ?? []) as EvidenceTraceRow[];
+  const evidence = (evidenceResult.data ?? atlasEvidence) as EvidenceTraceRow[];
   const objectById = new Map(objects.map((item) => [item.id, item]));
   const evidenceByObject = new Map<string, EvidenceTraceRow[]>();
   for (const item of evidence) evidenceByObject.set(item.object_id, [...(evidenceByObject.get(item.object_id) ?? []), item]);
@@ -119,14 +143,18 @@ export async function GET(request: Request) {
       calibrationStatus: run.calibration_status,
       dueAt: run.due_at,
     }));
-    const latest = trajectory.at(-1) ?? null;
+    const latest = trajectory.length ? trajectory[trajectory.length - 1] : null;
+    const firstEvidenceAt = objectEvidence
+      .map((item) => item.created_at)
+      .filter((value): value is string => Boolean(value))
+      .sort()[0] ?? null;
     return {
       caseId: `studio:${objectId}`,
       caseCode: `STUDIO-${objectId.slice(0, 8).toUpperCase()}`,
       objectId,
       objectTitle: object?.title ?? 'SIN TÍTULO',
       objectClass: object?.object_type ?? null,
-      openedAt: trajectory[0]?.generatedAt ?? object?.created_at ?? null,
+      openedAt: trajectory[0]?.generatedAt ?? firstEvidenceAt ?? object?.created_at ?? null,
       closedAt: null,
       themes,
       evidenceCount: objectEvidence.length,
