@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 
 import { readExternalEvidenceVector } from '@/lib/amv/externalEvidence';
 import { AmvEpistemicGateError, buildAmvPredictionGate } from '@/lib/amv/epistemicGate';
+import { upsertStudioEvaluationCase } from '@/lib/amv/referenceBank';
 import { requireRootActor, auditRootAction } from '@/lib/root/server';
 import { synthesizeStudioObject } from '@/lib/studio/production/objectContextSynthesis';
 import { projectStudioObjectField } from '@/lib/studio/production/objectFieldProjection';
@@ -81,6 +82,29 @@ export async function POST(request: Request) {
       if (update.error) throw new Error(`studio_object_metadata_update_failed: ${update.error.message}`);
     }
 
+    const referenceCase = await upsertStudioEvaluationCase({
+      objectId,
+      objectTitle: synthesis.objectTitle,
+      objectClass: objectResult.data.object_type ?? synthesis.modality,
+      themes,
+      generatedAt: projection.generatedAt,
+      gate: epistemicGate,
+      externalEvidence,
+      mihmVariables: synthesis.mihm.variables.map((item) => ({
+        key: item.key,
+        value: item.value,
+        evidenceIds: item.evidenceIds,
+      })),
+      synthesisEvidenceId: synthesis.persistence.evidenceTraceId,
+      projectionEvidenceId: projection.persistence.evidenceTraceId,
+      prediction: prediction ? {
+        id: prediction.id,
+        modelKey: prediction.model.key,
+        modelVersion: prediction.model.version,
+      } : null,
+      operatorId: rootGate.ctx.user.id,
+    });
+
     const selectedRoute = projection.strategy.routes.find((route) => route.id === projection.strategy.selectedRouteId) ?? null;
     const audit = await auditRootAction({
       actorId: rootGate.ctx.user.id,
@@ -88,6 +112,8 @@ export async function POST(request: Request) {
       target: objectId,
       payload: {
         objectId,
+        referenceCaseId: referenceCase.id,
+        caseCode: referenceCase.case_code,
         objectClass: epistemicGate.objectClass,
         synthesisStatus: synthesis.status,
         mihmStatus: synthesis.mihm.status,
@@ -108,6 +134,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       ok: true,
       objectId,
+      referenceCase,
       objectClass: epistemicGate.objectClass,
       epistemicGate,
       epistemicLabel: prediction ? 'PROVISIONAL_NO_HISTORICAL_CALIBRATION' : epistemicGate.epistemicLabel,
@@ -165,6 +192,8 @@ export async function POST(request: Request) {
       } : null,
       warnings: predictionWarning ? [predictionWarning] : [],
       atlas: {
+        caseId: referenceCase.id,
+        caseCode: referenceCase.case_code,
         objectId,
         themes,
         runId: prediction?.id ?? null,
