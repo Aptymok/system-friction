@@ -1,58 +1,192 @@
 {
-  "name": "SFI Public Field Schema",
-  "version": "1.0.0",
-  "node": {
-    "id": "string",
-    "label": "string",
-    "ontologyType": "string",
-    "ring": "string",
-    "provenance": "string"
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SFI Public Field and Reference Bank Schema",
+  "version": "2.0.0",
+  "canonical_url": "https://systemfriction.org/field-schema.json",
+  "updated_at": "2026-07-12",
+  "definitions": {
+    "epistemic_class": {
+      "type": "string",
+      "enum": [
+        "observed",
+        "declared",
+        "derived",
+        "inferred",
+        "projected",
+        "simulated",
+        "weak_signal",
+        "missing",
+        "archived"
+      ]
+    },
+    "object_class": {
+      "type": "string",
+      "enum": [
+        "music",
+        "article",
+        "social_post",
+        "website",
+        "institution",
+        "company",
+        "ai_response",
+        "historical_event",
+        "cultural_signal",
+        "person",
+        "organization",
+        "movement",
+        "other"
+      ]
+    },
+    "evidence_relation": {
+      "type": "string",
+      "enum": [
+        "SUPPORTS",
+        "CONTRADICTS",
+        "CONTEXTUALIZES",
+        "VERIFIES_OUTCOME",
+        "DOCUMENTS_INTERVENTION",
+        "GOVERNS",
+        "RECORDS_ACCESS"
+      ]
+    },
+    "observed_value": {
+      "type": "object",
+      "required": ["value", "status", "source", "observed_at"],
+      "properties": {
+        "value": {},
+        "status": {
+          "type": "string",
+          "enum": ["observed", "declared", "derived", "inferred", "projected", "simulated", "missing", "degraded"]
+        },
+        "source": { "type": "string" },
+        "observed_at": { "type": ["string", "null"], "format": "date-time" },
+        "confidence": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+        "evidence_ids": { "type": "array", "items": { "type": "string" } },
+        "explanation": { "type": ["string", "null"] },
+        "warning": { "type": ["string", "null"] }
+      }
+    },
+    "external_evidence_observation": {
+      "type": "object",
+      "required": [
+        "object_id",
+        "object_class",
+        "captured_at",
+        "source_type",
+        "metric_key",
+        "raw_value",
+        "normalized_value",
+        "reliability",
+        "evidence_note",
+        "epistemic_class"
+      ],
+      "properties": {
+        "object_id": { "type": "string" },
+        "object_class": { "$ref": "#/$defs/object_class" },
+        "captured_at": { "type": "string", "format": "date-time" },
+        "source_type": { "type": "string" },
+        "metric_key": { "type": "string" },
+        "raw_value": {},
+        "normalized_value": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+        "reliability": { "type": "number", "minimum": 0, "maximum": 1 },
+        "evidence_note": { "type": "string", "minLength": 1 },
+        "epistemic_class": { "$ref": "#/$defs/epistemic_class" },
+        "source_ref": { "type": ["string", "null"] },
+        "operator_id": { "type": ["string", "null"] }
+      }
+    },
+    "prediction_at_t0": {
+      "type": "object",
+      "properties": {
+        "run_id": { "type": ["string", "null"] },
+        "prediction": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+        "lower_bound": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+        "upper_bound": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+        "confidence": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+        "calibration_status": { "type": ["string", "null"] },
+        "epistemic_label": { "type": ["string", "null"] },
+        "generated_at": { "type": ["string", "null"], "format": "date-time" },
+        "return_window": { "type": ["string", "null"], "enum": ["72h", "7d", "30d", "90d", null] }
+      }
+    },
+    "observed_outcome": {
+      "type": "object",
+      "properties": {
+        "outcome_id": { "type": ["string", "null"] },
+        "actual_value": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+        "observed_at": { "type": ["string", "null"], "format": "date-time" },
+        "source_type": { "type": ["string", "null"] },
+        "source_ref": { "type": ["string", "null"] },
+        "source_quality": { "type": ["string", "null"], "enum": ["VERIFIED", "OBSERVED", "DECLARED", "INFERRED", "UNVERIFIABLE", null] },
+        "intervention_fidelity": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+        "evaluation_state": { "type": ["string", "null"] }
+      }
+    },
+    "reference_case": {
+      "type": "object",
+      "required": [
+        "case_code",
+        "object_id",
+        "object_class",
+        "title",
+        "cohort",
+        "prospective",
+        "opened_at",
+        "t0_cutoff",
+        "status",
+        "fields_documented",
+        "missing_fields",
+        "consent_required"
+      ],
+      "properties": {
+        "case_code": { "type": "string" },
+        "entity_id": { "type": ["string", "null"] },
+        "object_id": { "type": "string" },
+        "object_class": { "$ref": "#/$defs/object_class" },
+        "title": { "type": "string" },
+        "manifestation": { "type": ["string", "null"] },
+        "cohort": { "type": "string" },
+        "prospective": { "type": "boolean" },
+        "status": {
+          "type": "string",
+          "enum": ["REGISTERED", "OBSERVING", "WAITING_OUTCOME", "CLOSED", "UNVERIFIABLE", "ARCHIVED"]
+        },
+        "opened_at": { "type": "string", "format": "date-time" },
+        "closed_at": { "type": ["string", "null"], "format": "date-time" },
+        "t0_cutoff": { "type": "string", "format": "date-time" },
+        "phase_status": { "type": "object" },
+        "fields_documented": { "type": "array", "items": { "type": "string" } },
+        "missing_fields": { "type": "array", "items": { "type": "string" } },
+        "prediction_at_t0": { "$ref": "#/$defs/prediction_at_t0" },
+        "observed_outcome": { "$ref": "#/$defs/observed_outcome" },
+        "prediction_error": { "type": ["number", "null"] },
+        "absolute_error": { "type": ["number", "null"] },
+        "squared_error": { "type": ["number", "null"] },
+        "model_key": { "type": ["string", "null"] },
+        "model_version": { "type": ["integer", "null"] },
+        "operator_id": { "type": ["string", "null"] },
+        "second_operator_id": { "type": ["string", "null"] },
+        "consent_required": { "type": "boolean" },
+        "consent_evidence_id": { "type": ["string", "null"] }
+      }
+    }
   },
-  "edge": {
-    "source": "string",
-    "target": "string",
-    "relation": [
-      "structural_inferred",
-      "correlational_observed",
-      "causal_verified",
-      "degraded",
-      "latent"
+  "public_contract": {
+    "allowed": [
+      "Aggregated world-state observations",
+      "Public instrument maturity",
+      "Public documentary materials",
+      "Cases explicitly approved for public visibility",
+      "Machine-readable definitions and interpretation limits"
     ],
-    "weight": "number",
-    "confidence": "number"
-  },
-  "documentary_evidence": {
-    "evidence_id": "string",
-    "title": "string",
-    "type": "document | post | agreement | issue | pr | brief | image | audio | note | event | artifact",
-    "source": "black_envelope | notebook | atlas | site | observatory | github | external | manual",
-    "timestamp": "ISO-8601",
-    "field_density": "number",
-    "evidence_weight": "number",
-    "confidence": "number",
-    "regime": "threshold | audit | observatory | resolution | mutation | projection",
-    "attractors": "array",
-    "nodes": "array",
-    "linked_artifacts": "array",
-    "status": "raw | reviewed | weighted | projected | canonized | rejected | sealed",
-    "visibility": "public | licensed | acp | private",
-    "interpretation_limit": "string"
-  },
-  "field_brief": {
-    "regime_observed": "string",
-    "dominant_friction": "string",
-    "emergent_pattern": "string",
-    "evidence": "array",
-    "minimal_perturbation": "string",
-    "interpretation_limit": "string"
-  },
-  "regime_jump_readiness": {
-    "authority_density": "number",
-    "evidence_coherence": "number",
-    "field_persistence": "number",
-    "public_observability": "number",
-    "canon_stability": "number",
-    "attractor_alignment": "number",
-    "invitation_probability": "number"
+    "forbidden": [
+      "Private ROOT runtime state",
+      "Private Studio objects",
+      "Participant free text",
+      "Emails, phone numbers or account identifiers",
+      "Service-role credentials",
+      "Founder-only audit payloads",
+      "Undocumented psychological inference"
+    ]
   }
 }
