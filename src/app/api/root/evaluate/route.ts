@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 
+import { readExternalEvidenceVector } from '@/lib/amv/externalEvidence';
 import { AmvEpistemicGateError, buildAmvPredictionGate } from '@/lib/amv/epistemicGate';
 import { requireRootActor, auditRootAction } from '@/lib/root/server';
 import { synthesizeStudioObject } from '@/lib/studio/production/objectContextSynthesis';
@@ -39,6 +40,10 @@ export async function POST(request: Request) {
 
     const synthesis = await synthesizeStudioObject(objectId, { persist: true });
     const projection = await projectStudioObjectField(objectId, { persist: true });
+    const externalEvidence = await readExternalEvidenceVector({
+      objectId,
+      objectClass: objectResult.data.object_type,
+    });
     const epistemicGate = buildAmvPredictionGate({
       objectType: objectResult.data.object_type,
       metadata: objectResult.data.metadata,
@@ -48,6 +53,9 @@ export async function POST(request: Request) {
       worldConfidence: projection.world.confidence,
       evidenceIds: projection.evidenceIds,
       missingDimensions: projection.fit.missingDimensions,
+      externalEvidenceCount: externalEvidence.observations.length,
+      externalEvidenceCoverage: externalEvidence.coverage,
+      missingExternalKeys: externalEvidence.missingKeys,
     });
 
     let prediction: Awaited<ReturnType<typeof predictStudioFieldResponse>> | null = null;
@@ -85,6 +93,8 @@ export async function POST(request: Request) {
         mihmStatus: synthesis.mihm.status,
         projectionStatus: projection.status,
         fitScore: projection.fit.score,
+        externalEvidenceStatus: externalEvidence.status,
+        externalEvidenceCoverage: externalEvidence.coverage,
         epistemicGate,
         predictionRunId: prediction?.id ?? null,
         predictionStatus: prediction?.status ?? epistemicGate.state,
@@ -101,6 +111,7 @@ export async function POST(request: Request) {
       objectClass: epistemicGate.objectClass,
       epistemicGate,
       epistemicLabel: prediction ? 'PROVISIONAL_NO_HISTORICAL_CALIBRATION' : epistemicGate.epistemicLabel,
+      externalEvidence,
       evaluation: {
         generatedAt: projection.generatedAt,
         synthesisStatus: synthesis.status,
