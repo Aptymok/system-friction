@@ -268,7 +268,7 @@ async function readWorldContext(): Promise<WorldContext> {
   const rawWs = worldspect.data ? record(worldspect.data) : null;
   const wsi = nullableNumber(rawWs?.wsi);
   const nti = nullableNumber(rawWs?.nti);
-  const ws = rawWs ? {
+  const ws: Row | null = rawWs ? {
     ...rawWs,
     regime: deriveWorldspectRegime(wsi, nti),
     wsi,
