@@ -16,9 +16,11 @@ function text(value: unknown, maximum = 6000) {
   return typeof value === 'string' ? value.trim().slice(0, maximum) : '';
 }
 
-function number01(value: unknown, fallback = 0.5) {
-  const parsed = typeof value === 'number' ? value : Number(value);
-  return Number.isFinite(parsed) ? Math.max(0, Math.min(1, parsed)) : fallback;
+function requiredNumber01(value: unknown, field: string) {
+  if (value === null || typeof value === 'undefined' || value === '') throw new Error(`${field}_REQUIRED`);
+  const parsed = typeof value === 'number' ? value : typeof value === 'string' && value.trim() ? Number(value) : Number.NaN;
+  if (!Number.isFinite(parsed) || parsed < 0 || parsed > 1) throw new Error(`${field}_INVALID`);
+  return parsed;
 }
 
 export async function POST(request: Request, context: RouteContext) {
@@ -31,9 +33,9 @@ export async function POST(request: Request, context: RouteContext) {
       evidenceNote: text(body.evidenceNote),
       evidenceSource: text(body.evidenceSource, 180) || 'participant_return',
       evidenceUri: text(body.evidenceUri, 1000) || null,
-      reliability: number01(body.reliability, 0.5),
-      actualOutcome: number01(body.actualOutcome, 0),
-      interventionFidelity: number01(body.interventionFidelity, 0.5),
+      reliability: requiredNumber01(body.reliability, 'FIELD_RETURN_RELIABILITY'),
+      actualOutcome: requiredNumber01(body.actualOutcome, 'FIELD_RETURN_ACTUAL_OUTCOME'),
+      interventionFidelity: requiredNumber01(body.interventionFidelity, 'FIELD_RETURN_INTERVENTION_FIDELITY'),
       observedAt: text(body.observedAt, 80) || null,
     });
     return NextResponse.json({ ok: true, result }, { status: 201 });
@@ -42,7 +44,11 @@ export async function POST(request: Request, context: RouteContext) {
       return NextResponse.json({ ok: false, error: error.code, details: error.message }, { status: error.status });
     }
     const details = error instanceof Error ? error.message : String(error);
-    const status = details.includes('_REQUIRED') ? 400 : details.includes('NOT_FOUND') ? 404 : 500;
+    const status = details.includes('_REQUIRED') || details.includes('_INVALID') || details.includes('_NOT_OPEN') || details.includes('_NOT_READY')
+      ? 400
+      : details.includes('NOT_FOUND')
+        ? 404
+        : 500;
     return NextResponse.json({ ok: false, error: 'FIELD_RETURN_FAILED', details }, { status });
   }
 }
