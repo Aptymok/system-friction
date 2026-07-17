@@ -2,8 +2,10 @@ import { buildDerivedMihmRuntime } from '@/lib/evaluator/derivedMihmRuntime';
 import type { MihmInstrumentState } from '@/lib/mihm/instrumentContract';
 import { HOMEOSTATIC_SYMBOL_LABEL } from '@/lib/mihm/instrumentContract';
 
-export async function scoreFrictionToInstrumentState(): Promise<MihmInstrumentState> {
-  const runtime = await buildDerivedMihmRuntime();
+export async function scoreFrictionToInstrumentState(
+  precomputedRuntime?: Awaited<ReturnType<typeof buildDerivedMihmRuntime>>,
+): Promise<MihmInstrumentState> {
+  const runtime = precomputedRuntime ?? (await buildDerivedMihmRuntime());
   const hasReading = runtime.sourceState === 'derived';
   const symbol = 'PHI_SYSTEMIC';
 
