@@ -4,6 +4,7 @@ import { readRootAmv } from './readers/readRootAmv';
 import { readRootEvidenceGraph } from './readers/readRootEvidenceGraph';
 import { readRootExecution } from './readers/readRootExecution';
 import { readRootGovernanceQueue } from './readers/readRootGovernanceQueue';
+import { readRootMihmMatrix } from './readers/readRootMihmMatrix';
 import { readRootPredictions } from './readers/readRootPredictions';
 import { readRootSystemState } from './readers/readRootSystemState';
 import { dateValue, numberValue, row, text } from './readers/readerSupport';
@@ -33,7 +34,7 @@ function warnings(sources: Array<RootSource<unknown>>) {
 }
 
 export async function readRootSovereignState(): Promise<RootSovereignState> {
-  const [system, governance, agents, predictions, amv, evidence, execution] = await Promise.all([
+  const [system, governance, agents, predictions, amv, evidence, execution, mihmMatrix] = await Promise.all([
     readRootSystemState(),
     readRootGovernanceQueue(),
     readRootAgents(),
@@ -41,9 +42,9 @@ export async function readRootSovereignState(): Promise<RootSovereignState> {
     readRootAmv(),
     readRootEvidenceGraph(),
     readRootExecution(),
+    readRootMihmMatrix(),
   ]);
   const governanceRuntime = row(system.data.governance);
-  const world = row(system.data.worldVector);
   const openMutations = governance.error
     ? null
     : governance.data.mutations.filter((entry) => !['closed', 'executed'].includes(text(entry.status).toLowerCase())).length;
@@ -62,12 +63,20 @@ export async function readRootSovereignState(): Promise<RootSovereignState> {
         : null;
   const matrix: RootSystemItem[] = [
     item({ id: 'governance', label: 'Governance', state: text(governanceRuntime.status, '') || null, source: 'governanceRuntime', observedAt: dateValue(governanceRuntime.acpLastSeenAt), openItems: openProposals === null || openMutations === null ? null : openProposals + openMutations, warning: text(governanceRuntime.warning, '') || governance.error, explanation: 'Estado ACP observado por el runtime de gobernanza.' }),
-    item({ id: 'world-vector', label: 'World Vector', state: text(world.status, '') || null, source: 'world_vector_observations', observedAt: dateValue(world.observed_at), confidence: numberValue(world.confidence), openItems: null, warning: system.error, explanation: 'Última observación persistida de World Vector.' }),
+    // El item 'world-vector' (source: world_vector_observations) se retiró de esta matriz
+    // a propósito — NO se eliminó la tabla ni el pipeline. world_vector_observations sigue
+    // viva: es el motor detrás de la serie World Signals en Medium (WS-01..07) y de los
+    // drafts de LinkedIn. Lo que se retiró es su rol como fila de ESTADO aquí, porque era
+    // una narrativa de ciclo diario derivada indirectamente de WorldSpect. Las filas Φ𝓌/Φₛ/
+    // Φ𝒻/Φₚ + proveedores LLM (mihmMatrix, abajo) ya cubren esa función leyendo directo de
+    // worldspect_snapshots — 20 fuentes reales implementadas, contra la vista narrada de un
+    // solo renglón que mostraba esta fila antes. Ver SFI-DT-MIHM-CANON-04.
     item({ id: 'neural-graph', label: 'Neural Graph', state: evidence.data.nodes.length ? 'observed' : null, source: evidence.source, observedAt: evidence.observedAt, openItems: evidence.error ? null : evidence.data.nodes.length, warning: evidence.error, explanation: 'Nodos y relaciones persistidos; el layout se deriva en cliente.' }),
     item({ id: 'amv', label: 'AMV', state: amv.data.memories.length ? 'observed' : null, source: amv.source, observedAt: amv.observedAt, openItems: amv.error ? null : amv.data.memories.length, warning: amv.error, explanation: 'Memoria AMV persistida. Ingesta no equivale a verificación.' }),
     item({ id: 'predictive', label: 'Predictive Engine', state: predictiveState, source: 'sfi_predictive_*', observedAt: predictions.observedAt, openItems: openPredictions, warning: predictions.error, explanation: 'Motor predictivo persistido, separado del registro manual legacy.' }),
     item({ id: 'evidence', label: 'Evidence', state: evidence.data.entries.length || evidence.data.ledger.length ? 'observed' : null, source: evidence.source, observedAt: evidence.observedAt, openItems: evidence.error ? null : evidence.data.entries.length + evidence.data.ledger.length, warning: evidence.error, explanation: 'Evidencia persistida en ledger ROOT/SFI.' }),
     item({ id: 'cycle', label: 'ROOT Audited Activity', state: execution.data.recentActions.length ? 'observed' : null, source: execution.source, observedAt: execution.observedAt, openItems: null, warning: execution.error, explanation: 'Actividad ROOT auditada. No afirma que un ciclo esté ejecutándose.' }),
+    ...mihmMatrix,
   ];
   return {
     generatedAt: new Date().toISOString(),
