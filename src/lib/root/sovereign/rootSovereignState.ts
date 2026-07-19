@@ -1,3 +1,5 @@
+import type { TelemetryData } from './readers/readRootTelemetry';
+
 export type RootDataStatus = 'observed' | 'derived' | 'inferred' | 'gated' | 'missing' | 'degraded';
 
 export type RootObservedValue<T> = {
@@ -96,6 +98,7 @@ export type RootSovereignState = {
   amv: RootSource<{ memories: RootRow[]; attractors: RootRow[]; ejectors: RootRow[] }>;
   evidence: RootSource<{ nodes: RootEvidenceNode[]; edges: RootEvidenceEdge[]; entries: RootRow[]; ledger: RootRow[] }>;
   execution: RootSource<{ capabilities: RootExecutionCapability[]; recentActions: RootRow[] }>;
+  telemetry: RootSource<TelemetryData>;
   warnings: string[];
 };
 

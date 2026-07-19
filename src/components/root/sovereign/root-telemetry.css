@@ -1,0 +1,28 @@
+.rt-instrument-strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:6px}
+.rt-instrument{border:1px solid var(--line);background:var(--panel2);padding:10px;display:grid;gap:4px}
+.rt-instrument span{font-size:7px;letter-spacing:.14em;color:var(--copper)}
+.rt-instrument strong{font-size:18px;color:var(--cyan)}
+.rt-instrument em{font-size:9px;font-style:normal;color:var(--muted)}
+.rt-instrument small{font-size:7px;color:var(--red)}
+.rt-instrument[data-status=missing] strong,.rt-instrument[data-status=degraded] strong{color:var(--gray)}
+.rt-instrument[data-status=degraded] strong{color:var(--red)}
+.rt-phase-wrap{border:1px solid var(--line);background:#06090a}
+.rt-phase-wrap svg{width:100%;height:420px;display:block}
+.rt-axis{stroke:var(--line);stroke-width:1}
+.rt-axis-label{fill:var(--muted);font-size:8px;letter-spacing:.1em}
+.rt-point{cursor:pointer;outline:none}
+.rt-point circle{fill:#111a1d;stroke:var(--cyan);stroke-width:1.2;transition:stroke .2s}
+.rt-point[data-direction=EXPANSION] circle,.rt-point[data-direction=INSTITUTIONALIZATION] circle,.rt-point[data-direction=CONVERGENCE] circle{stroke:var(--green)}
+.rt-point[data-direction=DEGRADATION] circle,.rt-point[data-direction=FRAGMENTATION] circle{stroke:var(--red)}
+.rt-point[data-direction=ABSTRACTION] circle,.rt-point[data-direction=OPERATIONALIZATION] circle{stroke:var(--magenta)}
+.rt-point:hover circle,.rt-point:focus circle{stroke-width:2.2}
+.rt-point text{fill:#aab5b7;font-size:7px;text-anchor:middle;pointer-events:none}
+.rt-spark-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:6px}
+.rt-spark-card{border:1px solid var(--line);background:var(--panel2);padding:10px;display:grid;gap:5px;text-align:left;color:var(--text)}
+.rt-spark-card:hover,.rt-spark-card:focus-visible{outline:1px solid var(--cyan);outline-offset:-1px}
+.rt-spark-card span{font-size:7px;letter-spacing:.12em;color:var(--copper)}
+.rt-spark-card strong{font-size:16px;color:var(--cyan)}
+.rt-spark-card em{font-size:7px;font-style:normal;color:var(--muted)}
+.rt-sparkline{width:100%;height:24px;display:block}
+.rt-sparkline polyline{fill:none;stroke:var(--cyan);stroke-width:1.4;vector-effect:non-scaling-stroke}
+@media(max-width:860px){.rt-phase-wrap svg{height:340px}}

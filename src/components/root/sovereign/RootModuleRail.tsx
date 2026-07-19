@@ -8,6 +8,7 @@ const MODULES: Array<{ id: RootViewId; label: string; key: string }> = [
   { id: 'amv', label: 'AMV', key: '05' },
   { id: 'evidence', label: 'EVIDENCE / ATLAS', key: '06' },
   { id: 'execution', label: 'EXECUTION', key: '07' },
+  { id: 'telemetry', label: 'TELEMETRY', key: '08' },
 ];
 
 export function RootModuleRail({ active, onChange }: { active: RootViewId; onChange: (view: RootViewId) => void }) {

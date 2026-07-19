@@ -7,6 +7,7 @@ import { readRootGovernanceQueue } from './readers/readRootGovernanceQueue';
 import { readRootMihmMatrix } from './readers/readRootMihmMatrix';
 import { readRootPredictions } from './readers/readRootPredictions';
 import { readRootSystemState } from './readers/readRootSystemState';
+import { readRootTelemetry } from './readers/readRootTelemetry';
 import { dateValue, numberValue, row, text } from './readers/readerSupport';
 import { observedValue, type RootSovereignState, type RootSource, type RootSystemItem } from './rootSovereignState';
 
@@ -34,7 +35,7 @@ function warnings(sources: Array<RootSource<unknown>>) {
 }
 
 export async function readRootSovereignState(): Promise<RootSovereignState> {
-  const [system, governance, agents, predictions, amv, evidence, execution, mihmMatrix] = await Promise.all([
+  const [system, governance, agents, predictions, amv, evidence, execution, mihmMatrix, telemetry] = await Promise.all([
     readRootSystemState(),
     readRootGovernanceQueue(),
     readRootAgents(),
@@ -43,6 +44,7 @@ export async function readRootSovereignState(): Promise<RootSovereignState> {
     readRootEvidenceGraph(),
     readRootExecution(),
     readRootMihmMatrix(),
+    readRootTelemetry(),
   ]);
   const governanceRuntime = row(system.data.governance);
   const openMutations = governance.error
@@ -87,6 +89,7 @@ export async function readRootSovereignState(): Promise<RootSovereignState> {
     amv,
     evidence,
     execution,
+    telemetry,
     warnings: [...new Set(warnings([system, governance, agents, predictions, amv, evidence, execution]))],
   };
 }

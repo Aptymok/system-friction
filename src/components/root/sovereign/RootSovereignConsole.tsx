@@ -13,12 +13,14 @@ import { RootExecutionView } from './views/RootExecutionView';
 import { RootGovernanceView } from './views/RootGovernanceView';
 import { RootOverviewView } from './views/RootOverviewView';
 import { RootPredictionsView } from './views/RootPredictionsView';
+import { RootTelemetryView } from './views/RootTelemetryView';
 import type { RootActionRequest, RootSelection, RootSessionEvent, RootViewId } from './sovereignTypes';
 import './root-sovereign.css';
 import './root-action-strip.css';
 import './root-prediction.css';
+import './root-telemetry.css';
 
-const VIEWS = new Set<RootViewId>(['overview', 'governance', 'agents', 'predictions', 'amv', 'evidence', 'execution']);
+const VIEWS = new Set<RootViewId>(['overview', 'governance', 'agents', 'predictions', 'amv', 'evidence', 'execution', 'telemetry']);
 
 function viewFromUrl(): RootViewId {
   if (typeof window === 'undefined') return 'overview';
@@ -171,7 +173,8 @@ export function RootSovereignConsole({ initialState }: { initialState: RootSover
               : view === 'predictions' ? <RootPredictionsView {...props} />
                 : view === 'amv' ? <RootAmvView {...props} />
                   : view === 'evidence' ? <RootEvidenceAtlasView {...props} />
-                    : <RootExecutionView {...props} />}
+                    : view === 'execution' ? <RootExecutionView {...props} />
+                      : <RootTelemetryView state={state} onSelect={setSelection} />}
       </section>
       <RootInspector selection={selection} />
       <RootActionStrip events={events} stale={stale} warning={refreshWarning} />
