@@ -76,6 +76,11 @@ export async function proxy(request: NextRequest) {
     response.headers.set('Cache-Control', 'no-store, must-revalidate')
   }
 
+  // System agents authenticate at the API boundary with SFI_AGENT_SECRET.
+  // They must not enter browser Supabase session middleware.
+  const isWorldVectorAgentRoute = pathname.startsWith('/api/world-vector')
+  if (isWorldVectorAgentRoute) return response
+
   const requiresSession = pathname.startsWith('/root') || pathname.startsWith('/field') || pathname.startsWith('/studio')
   if (!requiresSession) return response
 
