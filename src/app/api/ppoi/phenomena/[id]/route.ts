@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 
 import {
   getPhenomenonState,
+  listLinkedEvidence,
   recalibratePhenomenon,
 } from '@/lib/ppoi/ppoiService';
 
@@ -95,10 +96,20 @@ export async function GET(
       );
 
 
+    // Aditivo: no falla la respuesta si esta parte falla, solo la omite.
+    let linkedEvidence: Awaited<ReturnType<typeof listLinkedEvidence>> = [];
+    try {
+      linkedEvidence = await listLinkedEvidence(user.id, params.id);
+    } catch {
+      linkedEvidence = [];
+    }
+
+
     return NextResponse.json(
       {
         ok: true,
         ...result,
+        linkedEvidence,
       },
       {
         status: 200,
