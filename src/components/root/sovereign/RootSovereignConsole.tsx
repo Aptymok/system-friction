@@ -13,12 +13,15 @@ import { RootExecutionView } from './views/RootExecutionView';
 import { RootGovernanceView } from './views/RootGovernanceView';
 import { RootOverviewView } from './views/RootOverviewView';
 import { RootPredictionsView } from './views/RootPredictionsView';
-import { RootTelemetryView } from './views/RootTelemetryView';
+import { RootPhenomenologicalObservatory } from './views/RootPhenomenologicalObservatory';
 import type { RootActionRequest, RootSelection, RootSessionEvent, RootViewId } from './sovereignTypes';
 import './root-sovereign.css';
 import './root-action-strip.css';
 import './root-prediction.css';
 import './root-telemetry.css';
+import './root-phenomenological-observatory.css';
+import PpoiPhenomenonWizard from '@/components/root/PpoiPhenomenonWizard';
+
 
 const VIEWS = new Set<RootViewId>(['overview', 'governance', 'agents', 'predictions', 'amv', 'evidence', 'execution', 'telemetry']);
 
@@ -49,6 +52,10 @@ export function RootSovereignConsole({ initialState }: { initialState: RootSover
   const [confirmed, setConfirmed] = useState(false);
   const [running, setRunning] = useState(false);
   const [events, setEvents] = useState<RootSessionEvent[]>([]);
+  const [showPpoiWizard, setShowPpoiWizard] = useState(false);
+  const [initialPpoiName, setInitialPpoiName] = useState('');
+  const [ppoiCandidates, setPpoiCandidates] = useState<any[]>([]);
+  const [showPpoiCandidates, setShowPpoiCandidates] = useState(false);
   const controller = useRef<AbortController | null>(null);
   const refreshSequence = useRef(0);
 
@@ -111,6 +118,52 @@ export function RootSovereignConsole({ initialState }: { initialState: RootSover
     };
   }, [refresh]);
 
+async function openPpoiCase(name:string) {
+
+  const response =
+    await fetch('/api/ppoi/phenomena', {
+      method:'POST',
+      credentials:'include',
+      headers:{
+        'Content-Type':'application/json'
+      },
+      body:JSON.stringify({
+        name,
+        resolveOnly:true
+      })
+    });
+
+
+  const data =
+    await response.json();
+
+
+  if(data.action === 'OPEN_EXISTING') {
+
+    window.location.href =
+      `/root/phenomena/${data.phenomenon.id}`;
+
+    return;
+  }
+
+
+  if(data.action === 'SELECT_EXISTING') {
+
+    setPpoiCandidates(
+      data.candidates ?? []
+    );
+
+    setShowPpoiCandidates(true);
+
+    return;
+  }
+
+
+  setInitialPpoiName(name);
+  setShowPpoiWizard(true);
+
+}
+
   function changeView(next: RootViewId) {
     const url = new URL(window.location.href);
     url.searchParams.set('view', next);
@@ -162,6 +215,16 @@ export function RootSovereignConsole({ initialState }: { initialState: RootSover
     },
   };
 
+  if (view === 'telemetry') {
+    return (
+      <RootPhenomenologicalObservatory
+        state={state}
+        onExit={() => changeView('overview')}
+        onRefresh={() => void refresh()}
+      />
+    );
+  }
+
   return (
     <main className="rs-console">
       <RootTopBar state={state} refreshing={refreshing} onRefresh={() => void refresh()} />
@@ -173,11 +236,95 @@ export function RootSovereignConsole({ initialState }: { initialState: RootSover
               : view === 'predictions' ? <RootPredictionsView {...props} />
                 : view === 'amv' ? <RootAmvView {...props} />
                   : view === 'evidence' ? <RootEvidenceAtlasView {...props} />
-                    : view === 'execution' ? <RootExecutionView {...props} />
-                      : <RootTelemetryView state={state} onSelect={setSelection} />}
+                    : <RootExecutionView {...props} />}
       </section>
       <RootInspector selection={selection} />
       <RootActionStrip events={events} stale={stale} warning={refreshWarning} />
+      {
+showPpoiWizard && (
+
+<PpoiPhenomenonWizard
+
+initialName={initialPpoiName}
+
+onCreated={(phenomenon)=>{
+
+setShowPpoiWizard(false);
+
+window.location.href =
+`/root/phenomena/${phenomenon.id}`;
+
+}}
+
+onCancel={()=>{
+
+setShowPpoiWizard(false);
+
+}}
+
+/>
+
+)
+}
+{
+showPpoiCandidates && (
+
+<div className="rs-dialog-backdrop">
+
+<section className="rs-dialog">
+
+<h2>
+EXPEDIENTES SIMILARES
+</h2>
+
+
+{
+ppoiCandidates.map(
+(candidate:any)=>(
+
+<button
+key={candidate.id}
+type="button"
+onClick={()=>{
+
+window.location.href =
+`/root/phenomena/${candidate.id}`;
+
+}}
+>
+
+{candidate.fp_code}
+-
+{candidate.name}
+
+</button>
+
+)
+)
+}
+
+
+<button
+type="button"
+onClick={()=>{
+
+setShowPpoiCandidates(false);
+
+setShowPpoiWizard(true);
+
+}}
+>
+CREAR NUEVO EXPEDIENTE
+</button>
+
+
+</section>
+
+</div>
+
+)
+}
+
       {pending ? (
         <div className="rs-dialog-backdrop" role="presentation">
           <section className="rs-dialog" role="dialog" aria-modal="true" aria-labelledby="rs-dialog-title">

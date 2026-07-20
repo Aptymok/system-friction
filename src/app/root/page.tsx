@@ -15,6 +15,10 @@ export const metadata: Metadata = {
 
 export default async function RootPage() {
   await requireFounderPage('/root');
+
   const state = await readRootSovereignState();
-  return <RootSovereignConsole initialState={state} />;
+
+  return (
+    <RootSovereignConsole initialState={state} />
+  );
 }

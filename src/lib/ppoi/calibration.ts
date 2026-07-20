@@ -28,194 +28,534 @@ export type PpoiCalibrationResult = {
   notes: string[];
 };
 
-const DAY_MS = 24 * 60 * 60 * 1000;
-const WEIGHTS = { PT: 0.2, IE: 0.2, RC: 0.2, PM: 0.15, CG: 0.1, ES: 0.1, IO: 0.05 } as const;
-const IO_KEYWORDS = ['theory', 'repository', 'protocol', 'experiment', 'community', 'language', 'model', 'algorithm'];
-const STOPWORDS = new Set(['de', 'la', 'el', 'que', 'and', 'the', 'para', 'with', 'from', 'this', 'that', 'una', 'uno']);
+const DAY_MS =
+  24 * 60 * 60 * 1000;
 
-function clamp(value: number, min: number, max: number) {
-  return Number.isFinite(value) ? Math.min(max, Math.max(min, value)) : min;
-}
+const WEIGHTS = {
+  PT: 0.2,
+  IE: 0.2,
+  RC: 0.2,
+  PM: 0.15,
+  CG: 0.1,
+  ES: 0.1,
+  IO: 0.05,
+} as const;
 
-function daysBetween(a: number, b: number) {
-  return Math.abs(a - b) / DAY_MS;
-}
+const IO_KEYWORDS = [
+  'theory',
+  'repository',
+  'protocol',
+  'experiment',
+  'community',
+  'language',
+  'model',
+  'algorithm',
+  'api',
+  'system',
+  'framework',
+];
 
-function normalizeToken(value: string) {
-  return value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-}
+const STOPWORDS =
+  new Set([
+    'de',
+    'la',
+    'el',
+    'que',
+    'and',
+    'the',
+    'para',
+    'with',
+    'from',
+    'this',
+    'that',
+    'una',
+    'uno',
+    'los',
+    'las',
+  ]);
 
-function tokenize(text: string | null): Set<string> {
-  if (!text) return new Set();
-  return new Set(
-    normalizeToken(text)
-      .split(/[^a-z0-9]+/)
-      .filter((token) => token.length > 3 && !STOPWORDS.has(token)),
+function clamp(
+  value: number,
+  min: number,
+  max: number,
+) {
+  if (!Number.isFinite(value)) {
+    return min;
+  }
+
+  return Math.min(
+    max,
+    Math.max(
+      min,
+      value,
+    ),
   );
 }
 
-function jaccard(a: Set<string>, b: Set<string>) {
-  if (a.size === 0 || b.size === 0) return null;
-  let intersection = 0;
-  for (const token of a) if (b.has(token)) intersection += 1;
-  const union = a.size + b.size - intersection;
-  return union === 0 ? null : intersection / union;
+function daysBetween(
+  a: number,
+  b: number,
+) {
+  return Math.abs(a - b) / DAY_MS;
 }
 
-function calculatePT(sorted: PpoiEvidenceInput[], notes: string[]): number {
-  if (sorted.length === 0) return 0;
+function normalizeToken(
+  value: string,
+) {
+  return value
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(
+      /[\u0300-\u036f]/g,
+      '',
+    );
+}
+
+function tokenize(
+  text: string | null,
+) {
+  if (!text) {
+    return new Set<string>();
+  }
+
+  return new Set(
+    normalizeToken(text)
+      .split(
+        /[^a-z0-9]+/,
+      )
+      .filter(
+        (token) =>
+          token.length > 3 &&
+          !STOPWORDS.has(token),
+      ),
+  );
+}
+
+function jaccard(
+  a: Set<string>,
+  b: Set<string>,
+) {
+  if (!a.size || !b.size) {
+    return null;
+  }
+
+  let intersection = 0;
+
+  for (const item of a) {
+    if (b.has(item)) {
+      intersection += 1;
+    }
+  }
+
+  const union =
+    a.size +
+    b.size -
+    intersection;
+
+  return union
+    ? intersection / union
+    : null;
+}
+
+function calculatePT(
+  sorted: PpoiEvidenceInput[],
+  notes: string[],
+) {
+  if (!sorted.length) {
+    return 0;
+  }
+
   if (sorted.length === 1) {
-    notes.push('PT=1: only one evidence item is registered.');
+    notes.push(
+      'PT=1: single evidence point.',
+    );
+
     return 1;
   }
 
-  const first = new Date(sorted[0].observedAt).getTime();
-  const last = new Date(sorted[sorted.length - 1].observedAt).getTime();
-  const spanDays = daysBetween(first, last);
-  const recencyDays = daysBetween(Date.now(), last);
+  const first =
+    new Date(
+      sorted[0].observedAt,
+    ).getTime();
 
-  if (recencyDays > 365) {
-    notes.push(`PT=1: no new evidence for ${Math.round(recencyDays)} days.`);
+  const last =
+    new Date(
+      sorted[
+        sorted.length - 1
+      ].observedAt,
+    ).getTime();
+
+  const spanDays =
+    daysBetween(
+      first,
+      last,
+    );
+
+  const ageDays =
+    daysBetween(
+      Date.now(),
+      last,
+    );
+
+  if (ageDays > 365) {
+    notes.push(
+      `PT=1: inactive ${Math.round(ageDays)} days.`,
+    );
+
     return 1;
   }
+
   if (spanDays < 30) {
-    notes.push(`PT=2: evidence is concentrated in ${Math.round(spanDays)} days.`);
+    notes.push(
+      `PT=2: concentrated ${Math.round(spanDays)} days.`,
+    );
+
     return 2;
   }
+
   if (spanDays < 180) {
-    notes.push(`PT=3: evidence spans ${Math.round(spanDays)} days.`);
     return 3;
   }
+
   if (spanDays < 730) {
-    notes.push(`PT=4: evidence spans ${Math.round(spanDays)} days.`);
     return 4;
   }
-  notes.push(`PT=5: evidence spans ${(spanDays / 365).toFixed(1)} years.`);
+
   return 5;
 }
 
-function calculatePM(evidence: PpoiEvidenceInput[], notes: string[]): number {
-  const domains = new Set(evidence.map((item) => normalizeToken(item.domain.trim())).filter(Boolean));
-  const value = clamp(domains.size, 0, 5);
-  notes.push(`PM=${value}: ${domains.size} distinct domain(s).`);
-  return value;
+function calculatePM(
+  evidence: PpoiEvidenceInput[],
+) {
+  return clamp(
+    new Set(
+      evidence.map(
+        (item) =>
+          normalizeToken(
+            item.domain,
+          ),
+      ),
+    ).size,
+    0,
+    5,
+  );
 }
 
-function calculateIE(evidence: PpoiEvidenceInput[], notes: string[]): number {
-  const sources = new Set(evidence.map((item) => normalizeToken(item.source.trim())).filter(Boolean));
-  const value = clamp(sources.size, 0, 5);
-  notes.push(`IE=${value}: ${sources.size} distinct source(s).`);
-  return value;
+function calculateIE(
+  evidence: PpoiEvidenceInput[],
+) {
+  return clamp(
+    new Set(
+      evidence.map(
+        (item) =>
+          normalizeToken(
+            item.source,
+          ),
+      ),
+    ).size,
+    0,
+    5,
+  );
 }
 
-function calculateRC(sorted: PpoiEvidenceInput[], notes: string[]): number {
-  if (sorted.length < 2) return 0;
-  const seenDomains = new Set<string>();
+function calculateRC(
+  sorted: PpoiEvidenceInput[],
+) {
+  if (sorted.length < 2) {
+    return 0;
+  }
+
+  const domains =
+    new Set<string>();
+
   let returns = 0;
 
-  for (let index = 0; index < sorted.length; index += 1) {
-    const domain = normalizeToken(sorted[index].domain.trim());
-    if (index > 0) {
-      const gapDays = daysBetween(
-        new Date(sorted[index].observedAt).getTime(),
-        new Date(sorted[index - 1].observedAt).getTime(),
+  sorted.forEach(
+    (item, index) => {
+      const domain =
+        normalizeToken(
+          item.domain,
+        );
+
+      if (index > 0) {
+        const previous =
+          sorted[index - 1];
+
+        const gap =
+          daysBetween(
+            new Date(
+              item.observedAt,
+            ).getTime(),
+            new Date(
+              previous.observedAt,
+            ).getTime(),
+          );
+
+        if (
+          gap > 60 &&
+          domains.has(domain)
+        ) {
+          returns += 1;
+        }
+      }
+
+      domains.add(domain);
+    },
+  );
+
+  return clamp(
+    returns,
+    0,
+    5,
+  );
+}
+
+function calculateCG(
+  evidence: PpoiEvidenceInput[],
+) {
+  return clamp(
+    evidence.filter(
+      (item) =>
+        item.generatesArtifact,
+    ).length,
+    0,
+    5,
+  );
+}
+
+function calculateES(
+  sorted: PpoiEvidenceInput[],
+) {
+  const tokens =
+    sorted
+      .map(
+        (item) =>
+          tokenize(
+            item.contentText ??
+              item.artifactNote,
+          ),
+      )
+      .filter(
+        (set) =>
+          set.size > 0,
       );
-      if (gapDays > 60 && seenDomains.has(domain)) returns += 1;
+
+  if (tokens.length < 2) {
+    return 2.5;
+  }
+
+  const scores:number[] = [];
+
+  for (
+    let i = 1;
+    i < tokens.length;
+    i++
+  ) {
+    const score =
+      jaccard(
+        tokens[i - 1],
+        tokens[i],
+      );
+
+    if (score !== null) {
+      scores.push(score);
     }
-    seenDomains.add(domain);
   }
 
-  const value = clamp(returns, 0, 5);
-  notes.push(`RC=${value}: ${returns} return event(s) detected.`);
-  return value;
-}
-
-function calculateCG(evidence: PpoiEvidenceInput[], notes: string[]): number {
-  const count = evidence.filter((item) => item.generatesArtifact).length;
-  const value = clamp(count, 0, 5);
-  notes.push(`CG=${value}: ${count} artifact-generating evidence item(s).`);
-  return value;
-}
-
-function calculateES(sorted: PpoiEvidenceInput[], notes: string[]): number {
-  const withText = sorted
-    .map((item) => tokenize(item.contentText ?? item.artifactNote))
-    .filter((tokens) => tokens.size > 0);
-
-  if (withText.length < 2) {
-    notes.push('ES=2.5: not enough text evidence for lexical stability.');
+  if (!scores.length) {
     return 2.5;
   }
 
-  const similarities: number[] = [];
-  for (let index = 1; index < withText.length; index += 1) {
-    const score = jaccard(withText[index - 1], withText[index]);
-    if (score !== null) similarities.push(score);
-  }
+  const avg =
+    scores.reduce(
+      (a,b)=>a+b,
+      0,
+    ) /
+    scores.length;
 
-  if (similarities.length === 0) {
-    notes.push('ES=2.5: lexical overlap could not be calculated.');
-    return 2.5;
-  }
-
-  const average = similarities.reduce((sum, value) => sum + value, 0) / similarities.length;
-  const value = clamp(Math.round(average * 50) / 10, 0, 5);
-  notes.push(`ES=${value}: average lexical overlap ${(average * 100).toFixed(0)}%.`);
-  return value;
+  return clamp(
+    avg * 5,
+    0,
+    5,
+  );
 }
 
-function calculateLT(sorted: PpoiEvidenceInput[], notes: string[]): number {
-  if (sorted.length < 2) return 0;
-  const gaps: number[] = [];
-  for (let index = 1; index < sorted.length; index += 1) {
-    gaps.push(daysBetween(new Date(sorted[index].observedAt).getTime(), new Date(sorted[index - 1].observedAt).getTime()));
+function calculateLT(
+  sorted: PpoiEvidenceInput[],
+) {
+  if (sorted.length < 2) {
+    return 0;
   }
-  const averageGap = gaps.reduce((sum, value) => sum + value, 0) / gaps.length;
-  const value = averageGap < 7 ? 0 : averageGap < 30 ? 1 : averageGap < 90 ? 2 : averageGap < 180 ? 3 : averageGap < 365 ? 4 : 5;
-  notes.push(`LT=${value}: average evidence gap ${Math.round(averageGap)} days. LT is contextual and not part of the composite.`);
-  return value;
+
+  const gaps:number[]=[];
+
+  for(
+    let i=1;
+    i<sorted.length;
+    i++
+  ){
+    gaps.push(
+      daysBetween(
+        new Date(
+          sorted[i].observedAt,
+        ).getTime(),
+        new Date(
+          sorted[i-1].observedAt,
+        ).getTime(),
+      ),
+    );
+  }
+
+  const average =
+    gaps.reduce(
+      (a,b)=>a+b,
+      0,
+    ) /
+    gaps.length;
+
+  return average < 7
+    ? 0
+    : average < 30
+      ? 1
+      : average < 90
+        ? 2
+        : average < 180
+          ? 3
+          : average < 365
+            ? 4
+            : 5;
 }
 
-function calculateIO(evidence: PpoiEvidenceInput[], notes: string[]): number {
-  const matched = new Set<string>();
-  for (const item of evidence) {
-    if (!item.generatesArtifact) continue;
-    const tokens = tokenize(item.artifactNote ?? item.contentText);
-    for (const keyword of IO_KEYWORDS) if (tokens.has(keyword)) matched.add(keyword);
+function calculateIO(
+  evidence: PpoiEvidenceInput[],
+) {
+  const matches =
+    new Set<string>();
+
+  for(
+    const item of evidence
+  ){
+    if(!item.generatesArtifact){
+      continue;
+    }
+
+    const tokens =
+      tokenize(
+        item.artifactNote ??
+        item.contentText,
+      );
+
+    IO_KEYWORDS.forEach(
+      (keyword)=>{
+        if(tokens.has(keyword)){
+          matches.add(keyword);
+        }
+      },
+    );
   }
-  const value = clamp(matched.size, 0, 5);
-  notes.push(`IO=${value}: structural keywords matched: ${[...matched].join(', ') || 'none'}.`);
-  return value;
+
+  return clamp(
+    matches.size,
+    0,
+    5,
+  );
 }
 
-export function calculatePpoiIndices(evidence: PpoiEvidenceInput[]): PpoiCalibrationResult {
-  const notes: string[] = [];
-  const sorted = [...evidence].sort((left, right) => new Date(left.observedAt).getTime() - new Date(right.observedAt).getTime());
+export function calculatePpoiIndices(
+  evidence: PpoiEvidenceInput[],
+): PpoiCalibrationResult {
 
-  const indices: PpoiIndices = {
-    PT: calculatePT(sorted, notes),
-    PM: calculatePM(sorted, notes),
-    IE: calculateIE(sorted, notes),
-    RC: calculateRC(sorted, notes),
-    CG: calculateCG(sorted, notes),
-    ES: calculateES(sorted, notes),
-    LT: calculateLT(sorted, notes),
-    IO: calculateIO(sorted, notes),
+  const notes:string[]=[];
+
+  const sorted =
+    [...evidence].sort(
+      (a,b)=>
+        new Date(
+          a.observedAt,
+        ).getTime() -
+        new Date(
+          b.observedAt,
+        ).getTime(),
+    );
+
+  const indices:PpoiIndices={
+    PT:
+      calculatePT(
+        sorted,
+        notes,
+      ),
+
+    PM:
+      calculatePM(
+        sorted,
+      ),
+
+    IE:
+      calculateIE(
+        sorted,
+      ),
+
+    RC:
+      calculateRC(
+        sorted,
+      ),
+
+    CG:
+      calculateCG(
+        sorted,
+      ),
+
+    ES:
+      calculateES(
+        sorted,
+      ),
+
+    LT:
+      calculateLT(
+        sorted,
+      ),
+
+    IO:
+      calculateIO(
+        sorted,
+      ),
   };
 
-  const composite = Number((
-    indices.PT * WEIGHTS.PT +
-    indices.IE * WEIGHTS.IE +
-    indices.RC * WEIGHTS.RC +
-    indices.PM * WEIGHTS.PM +
-    indices.CG * WEIGHTS.CG +
-    indices.ES * WEIGHTS.ES +
-    indices.IO * WEIGHTS.IO
-  ).toFixed(3));
+  const composite =
+    Number(
+      (
+        indices.PT * WEIGHTS.PT +
+        indices.IE * WEIGHTS.IE +
+        indices.RC * WEIGHTS.RC +
+        indices.PM * WEIGHTS.PM +
+        indices.CG * WEIGHTS.CG +
+        indices.ES * WEIGHTS.ES +
+        indices.IO * WEIGHTS.IO
+      ).toFixed(3),
+    );
 
-  const spanDays = sorted.length >= 2
-    ? daysBetween(new Date(sorted[0].observedAt).getTime(), new Date(sorted[sorted.length - 1].observedAt).getTime())
-    : 0;
+  const spanDays =
+    sorted.length > 1
+      ? Math.round(
+          daysBetween(
+            new Date(
+              sorted[0].observedAt,
+            ).getTime(),
+            new Date(
+              sorted[
+                sorted.length-1
+              ].observedAt,
+            ).getTime(),
+          ),
+        )
+      : 0;
 
-  return { indices, composite, evidenceCount: sorted.length, spanDays: Math.round(spanDays), notes };
+  return {
+    indices,
+    composite,
+    evidenceCount:
+      sorted.length,
+    spanDays,
+    notes,
+  };
 }

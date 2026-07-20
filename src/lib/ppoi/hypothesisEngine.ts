@@ -13,69 +13,206 @@ function clamp01(value: number) {
   return Math.min(1, Math.max(0, value));
 }
 
-function n(value: number) {
+function normalize(value: number) {
   return clamp01(value / 5);
 }
 
-export function inferPpoiTrajectory(indices: PpoiIndices, composite: number): {
+function weightedAverage(values: number[]) {
+  if (!values.length) return 0;
+
+  return (
+    values.reduce(
+      (sum, value) => sum + value,
+      0,
+    ) / values.length
+  );
+}
+
+export function inferPpoiTrajectory(
+  indices: PpoiIndices,
+  composite: number,
+): {
   direction: MihmTrajectoryDirection;
   rationale: string;
   rivalDirection: MihmTrajectoryDirection;
   rivalRationale: string;
   scores: DirectionScore[];
 } {
-  const { PT, PM, IE, RC, CG, ES, IO } = indices;
+  const {
+    PT,
+    PM,
+    IE,
+    RC,
+    CG,
+    ES,
+    IO,
+    LT,
+  } = indices;
+
+
   const candidates: DirectionScore[] = [
+
     {
       direction: 'EXPANSION',
-      score: (n(PM) + n(IE)) / 2,
-      rationale: `PM=${PM} and IE=${IE}: the phenomenon appears across domains and sources.`,
+
+      score:
+        weightedAverage([
+          normalize(PM),
+          normalize(IE),
+          normalize(RC),
+        ]),
+
+      rationale:
+        `PM=${PM}, IE=${IE}, RC=${RC}: `
+        + 'the phenomenon expands across domains, sources and returns.',
     },
+
+
     {
       direction: 'DEEPENING',
-      score: (n(PT) + (1 - n(PM))) / 2,
-      rationale: `PT=${PT} with PM=${PM}: persistence is concentrated rather than dispersed.`,
+
+      score:
+        weightedAverage([
+          normalize(PT),
+          normalize(ES),
+          1 - normalize(PM),
+        ]),
+
+      rationale:
+        `PT=${PT}, ES=${ES}, PM=${PM}: `
+        + 'persistence concentrates into a stable internal structure.',
     },
+
+
     {
       direction: 'FRAGMENTATION',
-      score: ((1 - n(ES)) + n(PM)) / 2,
-      rationale: `ES=${ES} with PM=${PM}: cross-domain presence lacks stable lexical overlap.`,
+
+      score:
+        weightedAverage([
+          1 - normalize(ES),
+          normalize(PM),
+          normalize(LT),
+        ]),
+
+      rationale:
+        `ES=${ES}, PM=${PM}, LT=${LT}: `
+        + 'the phenomenon disperses without semantic stabilization.',
     },
+
+
     {
       direction: 'CONVERGENCE',
-      score: (n(ES) + n(RC)) / 2,
-      rationale: `ES=${ES} and RC=${RC}: recurring evidence keeps a recognizable form.`,
+
+      score:
+        weightedAverage([
+          normalize(ES),
+          normalize(RC),
+          normalize(PT),
+        ]),
+
+      rationale:
+        `ES=${ES}, RC=${RC}, PT=${PT}: `
+        + 'recurrence and similarity indicate convergence.',
     },
+
+
     {
       direction: 'INSTITUTIONALIZATION',
-      score: (n(IO) + n(CG) + n(ES)) / 3,
-      rationale: `IO=${IO}, CG=${CG}, ES=${ES}: artifacts and stable language point toward structure.`,
+
+      score:
+        weightedAverage([
+          normalize(IO),
+          normalize(CG),
+          normalize(ES),
+        ]),
+
+      rationale:
+        `IO=${IO}, CG=${CG}, ES=${ES}: `
+        + 'artifacts and stable representations indicate institutional structure.',
     },
+
+
     {
       direction: 'DEGRADATION',
-      score: ((1 - n(PT)) + (1 - clamp01(composite / 5))) / 2,
-      rationale: `PT=${PT} and composite=${composite.toFixed(2)}: active structural presence is weak.`,
+
+      score:
+        weightedAverage([
+          1 - normalize(PT),
+          1 - clamp01(composite / 5),
+          1 - normalize(RC),
+        ]),
+
+      rationale:
+        `PT=${PT}, composite=${composite.toFixed(3)}, RC=${RC}: `
+        + 'structural persistence is weakening.',
     },
+
+
     {
       direction: 'ABSTRACTION',
-      score: (n(CG) + (1 - n(IO)) + n(ES)) / 3,
-      rationale: `CG=${CG}, IO=${IO}, ES=${ES}: conceptual artifacts appear before organizational structure.`,
+
+      score:
+        weightedAverage([
+          normalize(CG),
+          1 - normalize(IO),
+          normalize(ES),
+        ]),
+
+      rationale:
+        `CG=${CG}, IO=${IO}, ES=${ES}: `
+        + 'conceptual artifacts exist before operational consolidation.',
     },
+
+
     {
       direction: 'OPERATIONALIZATION',
-      score: (n(CG) + n(IO) + (1 - n(ES))) / 3,
-      rationale: `CG=${CG}, IO=${IO}, ES=${ES}: artifacts move toward tools while language still adapts.`,
+
+      score:
+        weightedAverage([
+          normalize(CG),
+          normalize(IO),
+          1 - normalize(ES),
+        ]),
+
+      rationale:
+        `CG=${CG}, IO=${IO}, ES=${ES}: `
+        + 'artifacts are moving toward operational systems.',
     },
+
   ];
 
-  const sorted = [...candidates].sort((left, right) => right.score - left.score);
-  const [primary, rival] = sorted;
+
+  const sorted =
+    [...candidates]
+      .sort(
+        (a, b) =>
+          b.score - a.score,
+      );
+
+
+  const primary =
+    sorted[0];
+
+  const rival =
+    sorted[1];
+
 
   return {
-    direction: primary.direction,
-    rationale: primary.rationale,
-    rivalDirection: rival.direction,
-    rivalRationale: rival.rationale,
-    scores: sorted,
+
+    direction:
+      primary.direction,
+
+    rationale:
+      primary.rationale,
+
+    rivalDirection:
+      rival.direction,
+
+    rivalRationale:
+      rival.rationale,
+
+    scores:
+      sorted,
+
   };
 }

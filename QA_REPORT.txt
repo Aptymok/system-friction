@@ -1,0 +1,131 @@
+================================================================================
+              SYSTEM FRICTION — QA AUDIT REPORT
+================================================================================
+Fecha: 2026-07-19T09:56:51.718Z
+Archivos escaneados: 1194
+Líneas totales: 127566
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. PIPELINES ENCONTRADAS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ 12 archivos contienen lógica de pipeline.
+🔹 Nombres detectados: GovernancePipeline, runPipeline, StudioPipelineRail, persistSfiPipelineExecution, runLowInjectionPipeline, runStudioCulturalPipeline, runScoreFrictionPipeline
+
+📄 Archivos con pipelines:
+  - app\api\scorefriction\execution\run\route.ts ((sin nombre)) → ✅ con catch
+  - app\api\sfi\run\route.ts ((sin nombre)) → ✅ con catch
+  - app\api\studio\implement\route.ts ((sin nombre)) → ⚠️ sin catch (riesgo)
+  - app\api\studio\pipeline\route.ts ((sin nombre)) → ✅ con catch
+  - app\api\studio\simulate\route.ts ((sin nombre)) → ⚠️ sin catch (riesgo)
+  - components\root\sovereign\visual\GovernancePipeline.tsx (GovernancePipeline) → ⚠️ sin catch (riesgo)
+  - components\studio\StudioCulturalInterventionLab.tsx (runPipeline) → ✅ con catch
+  - components\studio\StudioPipelineRail.tsx (StudioPipelineRail) → ⚠️ sin catch (riesgo)
+  - lib\sfi\persistence\sfiExecutionPersistence.ts (persistSfiPipelineExecution) → ✅ con catch
+  - lib\sfi\runtime\lowInjectionRuntime.ts (runLowInjectionPipeline) → ⚠️ sin catch (riesgo)
+  - lib\studio\cultural-lab\pipeline.ts (runStudioCulturalPipeline) → ✅ con catch
+  - scorefriction\components\ScoreFrictionOperationalObservatory.tsx (runScoreFrictionPipeline) → ✅ con catch
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2. CÓDIGO INCOMPLETO / PENDIENTE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⚠️  7 archivos tienen tareas pendientes o stubs:
+
+  📁 agents\GlobalLearningAgent.ts
+    L70: if (!supabase) return {};
+    L75: if (!ihgStats || ihgStats.length === 0) return {};
+
+  📁 app\api\scorefriction\python\analyze\route.ts
+    L25: if (typeof value !== 'string' || !value.trim()) return {};
+    L30: return {};
+
+  📁 lib\memory\embeddings.ts
+    L13: // TODO(vNEXT): replace null embedding with provider-generated vector once the embedding provider is selected.
+
+  📁 lib\operational\twinState.ts
+    L27: return {};
+    L30: return {};
+
+  📁 lib\scorefriction\access.ts
+    L20: // TODO: Wire this helper to the existing Supabase profile role once ScoreFriction
+
+  📁 lib\telemetry\connectors\registry.ts
+    L7: // TODO(vNEXT): implement only via official APIs/OAuth/webhooks. No scraping.
+
+  📁 lib\worldspect\adapters\publicAdapters.ts
+    L85: if (!text.trim()) return {};
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+3. DUPLICIDAD / CONTRADICCIONES POTENCIALES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📁 Archivos con el mismo nombre en distintas carpetas:
+  - longitudinal.ts → agents, lib
+  - maker-mihm.ts → agents, experimental
+  - page.tsx → app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app
+  - layout.tsx → app, app, app, app, app
+  - route.ts → app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app, app
+  - manifest.ts → app, lib
+  - StudioProductionConsole.tsx → components, components
+  - media-mihm.ts → experimental, experimental
+  - project-manager.ts → experimental, experimental
+  - interventionAgent.ts → lib, lib
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+4. ENDPOINTS DE API (routes.ts)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⚠️  No se encontraron rutas API.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+5. PIPELINES CRÍTICAS SIN "catch"
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⚠️  5 pipelines carecen de bloque catch:
+  - app\api\studio\implement\route.ts
+  - app\api\studio\simulate\route.ts
+  - components\root\sovereign\visual\GovernancePipeline.tsx
+  - components\studio\StudioPipelineRail.tsx
+  - lib\sfi\runtime\lowInjectionRuntime.ts
+
+👉 Recomendación: agregar try/catch para evitar fallos silenciosos.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+6. SUGERENCIAS DE LIMPIEZA
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🗑️  Archivos muy pequeños (<10 líneas) que podrían ser eliminados o fusionados:
+  - agents\stochastic-engine.ts (9 líneas)
+  - app\(auth)\forgot\page.tsx (8 líneas)
+  - app\(auth)\reset\page.tsx (8 líneas)
+  - app\(auth)\signup\page.tsx (8 líneas)
+  - app\(terminal)\layout.tsx (4 líneas)
+  - app\api\actions\route.ts (4 líneas)
+  - app\api\actions\[id]\verify\route.ts (4 líneas)
+  - app\api\amv\python-bridge\route.ts (9 líneas)
+  - app\api\amv\respond\route.ts (4 líneas)
+  - app\api\audit\route.ts (4 líneas)
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+7. RESUMEN EJECUTIVO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ Archivos totales: 1194
+✅ Líneas totales: 127566
+⚠️  Pendientes (TODO/FIXME): 7 archivos
+⚠️  Pipelines sin catch: 5
+🔁 Duplicados de exportaciones: 0
+🗑️  Archivos candidatos a limpieza: 97
+
+👉 Recomendación general:
+  1. Completar los TODOs en los archivos listados en la sección 2.
+  2. Unificar motores duplicados (sección 3).
+  3. Agregar try/catch a las pipelines sin manejo de errores (sección 5).
+  4. Revisar archivos muy pequeños o sin exports (sección 6) para eliminar o fusionar.
+  5. Verificar que las rutas API (sección 4) estén todas implementadas y documentadas.
+
+================================================================================
+FIN DEL INFORME
+================================================================================
