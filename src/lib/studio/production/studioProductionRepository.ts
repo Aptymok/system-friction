@@ -178,3 +178,23 @@ export async function listStudioDeliverables(): Promise<StudioRepositoryResult<R
     return errorResult(error, 'studio_deliverables_unavailable');
   }
 }
+
+/**
+ * Historial longitudinal de análisis de audio de un objeto (una fila por
+ * cada vez que se analizó/re-analizó — ediciones sucesivas). Aditivo: no
+ * modifica ninguna función existente ni la tabla studio_audio_features.
+ */
+export async function listStudioAudioFeaturesHistory(objectId: string): Promise<StudioRepositoryResult<Row[]>> {
+  try {
+    const supabase = createServiceSupabaseClient();
+    const { data, error } = await supabase
+      .from('studio_audio_features')
+      .select('id, object_id, rms, peak, clipping_risk, dynamic_range, lufs, spectral_centroid, created_at')
+      .eq('object_id', objectId)
+      .order('created_at', { ascending: true });
+    if (error) throw error;
+    return { ok: true, data: Array.isArray(data) ? (data as Row[]) : [] };
+  } catch (error) {
+    return errorResult(error, 'studio_audio_features_history_unavailable');
+  }
+}

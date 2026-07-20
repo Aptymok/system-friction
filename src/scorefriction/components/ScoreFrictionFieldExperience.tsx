@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { Activity, Beaker, BookOpen, Brain, FileText, Gauge, Layers3, Radio, Sparkles } from 'lucide-react';
-import SfiLabClient from '@/components/scorefriction/SfiLabClient';
+import SfiLabClient from '@/components/root/scorefriction/SfiLabClient';
 
 type Row = Record<string, unknown>;
 

@@ -1,7 +1,14 @@
 import '@/app/globals.css';
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { AuthProvider } from '@/components/auth/AuthProvider';
 import { GoogleAnalytics } from '@/components/analytics/GoogleAnalytics';
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
+  themeColor: '#0A0905',
+};
 
 const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://systemfriction.org';
 const SITE_NAME = 'System Friction Institute';
