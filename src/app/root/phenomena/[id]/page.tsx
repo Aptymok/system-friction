@@ -1,5 +1,6 @@
 import {
   getPhenomenonState,
+  listLinkedEvidence,
 } from '@/lib/ppoi/ppoiService';
 
 import {
@@ -37,10 +38,14 @@ export default async function PhenomenonPage({
       id,
     );
 
+  const linkedEvidence =
+    await listLinkedEvidence(user.id, id).catch(() => []);
+
 
   return (
     <PhenomenonConsole
       state={state}
+      linkedEvidence={linkedEvidence}
     />
   );
 

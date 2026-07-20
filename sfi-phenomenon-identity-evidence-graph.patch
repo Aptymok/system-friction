@@ -1,0 +1,1692 @@
+diff --git a/src/app/api/ppoi/phenomena/[id]/route.ts b/src/app/api/ppoi/phenomena/[id]/route.ts
+index c4cc17e..675adee 100644
+--- a/src/app/api/ppoi/phenomena/[id]/route.ts
++++ b/src/app/api/ppoi/phenomena/[id]/route.ts
+@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
+ 
+ import {
+   getPhenomenonState,
++  listLinkedEvidence,
+   recalibratePhenomenon,
+ } from '@/lib/ppoi/ppoiService';
+ 
+@@ -95,10 +96,20 @@ export async function GET(
+       );
+ 
+ 
++    // Aditivo: no falla la respuesta si esta parte falla, solo la omite.
++    let linkedEvidence: Awaited<ReturnType<typeof listLinkedEvidence>> = [];
++    try {
++      linkedEvidence = await listLinkedEvidence(user.id, params.id);
++    } catch {
++      linkedEvidence = [];
++    }
++
++
+     return NextResponse.json(
+       {
+         ok: true,
+         ...result,
++        linkedEvidence,
+       },
+       {
+         status: 200,
+diff --git a/src/app/api/ppoi/phenomena/route.ts b/src/app/api/ppoi/phenomena/route.ts
+index f5c8a5b..e964eea 100644
+--- a/src/app/api/ppoi/phenomena/route.ts
++++ b/src/app/api/ppoi/phenomena/route.ts
+@@ -11,8 +11,8 @@ import {
+ } from '@/lib/system/access/server';
+ 
+ import {
+-  resolvePhenomenonIdentity,
+-} from '@/lib/ppoi/phenomenonResolver';
++  resolvePhenomenonIdentityGlobal,
++} from '@/lib/phenomena/identity/phenomenonIdentityResolver';
+ 
+ 
+ export const dynamic = 'force-dynamic';
+@@ -203,7 +203,7 @@ export async function POST(
+     if(!forceCreate){
+ 
+       const resolution =
+-        await resolvePhenomenonIdentity(
++        await resolvePhenomenonIdentityGlobal(
+           user.id,
+           name,
+         );
+diff --git a/src/app/root/phenomena/[id]/page.tsx b/src/app/root/phenomena/[id]/page.tsx
+index b7e3e8f..b803433 100644
+--- a/src/app/root/phenomena/[id]/page.tsx
++++ b/src/app/root/phenomena/[id]/page.tsx
+@@ -1,5 +1,6 @@
+ import {
+   getPhenomenonState,
++  listLinkedEvidence,
+ } from '@/lib/ppoi/ppoiService';
+ 
+ import {
+@@ -37,10 +38,14 @@ export default async function PhenomenonPage({
+       id,
+     );
+ 
++  const linkedEvidence =
++    await listLinkedEvidence(user.id, id).catch(() => []);
++
+ 
+   return (
+     <PhenomenonConsole
+       state={state}
++      linkedEvidence={linkedEvidence}
+     />
+   );
+ 
+diff --git a/src/components/root/PhenomenonConsole.tsx b/src/components/root/PhenomenonConsole.tsx
+index b6cfe25..edc26b2 100644
+--- a/src/components/root/PhenomenonConsole.tsx
++++ b/src/components/root/PhenomenonConsole.tsx
+@@ -1,393 +1,209 @@
+ 'use client';
+ 
+-import {
+-  useCallback,
+-  useState,
+-} from 'react';
++import { useCallback, useState } from 'react';
+ 
+-import type {
+-  PhenomenonState,
+-} from '@/lib/ppoi/ppoiTypes';
++import type { PhenomenonState } from '@/lib/ppoi/ppoiTypes';
+ 
++import {
++  construirTimeline,
++  explicarComposite,
++  explicarDireccion,
++  explicarEstado,
++  explicarIndices,
++  sugerirProximaObservacion,
++} from '@/lib/ppoi/plainLanguage';
++
++import './phenomenon-console.css';
++
++type LinkedEvidenceItem = {
++  linkId: string;
++  relationType: string;
++  note: string | null;
++  linkedAt: string;
++  evidence: Record<string, unknown> | null;
++};
+ 
+ type Props = {
+   state: PhenomenonState;
++  linkedEvidence?: LinkedEvidenceItem[];
+ };
+ 
++export default function PhenomenonConsole({ state: initialState, linkedEvidence: initialLinked = [] }: Props) {
++  const [state, setState] = useState<PhenomenonState>(initialState);
++  const [linkedEvidence, setLinkedEvidence] = useState<LinkedEvidenceItem[]>(initialLinked);
++  const [loading, setLoading] = useState(false);
++  const [error, setError] = useState<string | null>(null);
+ 
++  const phenomenon = state.phenomenon;
+ 
+-export default function PhenomenonConsole({
+-  state: initialState,
+-}: Props) {
+-
+-
+-  const [
+-    state,
+-    setState,
+-  ] = useState<PhenomenonState>(
+-    initialState,
+-  );
+-
+-
+-  const [
+-    loading,
+-    setLoading,
+-  ] = useState(false);
+-
+-
+-  const [
+-    error,
+-    setError,
+-  ] = useState<string | null>(
+-    null,
+-  );
+-
+-
+-
+-  const phenomenon =
+-    state.phenomenon;
+-
+-
+-
+-  const refresh =
+-    useCallback(
+-      async () => {
+-
+-        setLoading(true);
+-        setError(null);
+-
+-
+-        try {
+-
+-          const response =
+-            await fetch(
+-              `/api/ppoi/phenomena/${phenomenon.id}`,
+-              {
+-                cache:'no-store',
+-                credentials:'include',
+-              },
+-            );
+-
+-
+-
+-          const data =
+-            await response.json();
+-
+-
+-
+-          if (
+-            !response.ok ||
+-            !data.ok
+-          ) {
+-
+-            throw new Error(
+-              data.error ??
+-              'PHENOMENON_REFRESH_FAILED',
+-            );
+-
+-          }
+-
+-
+-
+-          setState({
+-            phenomenon:
+-              data.phenomenon,
+-
+-            evidence:
+-              data.evidence ?? [],
+-
+-            currentHypothesis:
+-              data.currentHypothesis ?? null,
+-          });
+-
+-
+-
+-        } catch(error) {
+-
+-
+-          setError(
+-            error instanceof Error
+-              ? error.message
+-              : 'UNKNOWN_ERROR',
+-          );
+-
+-
+-        } finally {
+-
+-          setLoading(false);
+-
+-        }
+-
+-
+-      },
+-      [
+-        phenomenon.id,
+-      ],
+-    );
+-
+-
+-
+-
++  const refresh = useCallback(async () => {
++    setLoading(true);
++    setError(null);
++    try {
++      const response = await fetch(`/api/ppoi/phenomena/${phenomenon.id}`, {
++        cache: 'no-store',
++        credentials: 'include',
++      });
++      const data = await response.json();
++      if (!response.ok || !data.ok) {
++        throw new Error(data.error ?? 'PHENOMENON_REFRESH_FAILED');
++      }
++      setState({
++        phenomenon: data.phenomenon,
++        evidence: data.evidence ?? [],
++        currentHypothesis: data.currentHypothesis ?? null,
++      });
++      setLinkedEvidence(data.linkedEvidence ?? []);
++    } catch (err) {
++      setError(err instanceof Error ? err.message : 'UNKNOWN_ERROR');
++    } finally {
++      setLoading(false);
++    }
++  }, [phenomenon.id]);
+ 
+   async function recalibrate() {
+-
+     setLoading(true);
+     setError(null);
+-
+-
+     try {
+-
+-
+-      const response =
+-        await fetch(
+-          `/api/ppoi/phenomena/${phenomenon.id}`,
+-          {
+-            method:'POST',
+-
+-            credentials:'include',
+-          },
+-        );
+-
+-
+-
+-      const data =
+-        await response.json();
+-
+-
+-
+-      if(
+-        !response.ok ||
+-        !data.ok
+-      ){
+-
+-        throw new Error(
+-          data.error ??
+-          'RECALIBRATION_FAILED',
+-        );
+-
++      const response = await fetch(`/api/ppoi/phenomena/${phenomenon.id}`, {
++        method: 'POST',
++        credentials: 'include',
++      });
++      const data = await response.json();
++      if (!response.ok || !data.ok) {
++        throw new Error(data.error ?? 'RECALIBRATION_FAILED');
+       }
+-
+-
+-
+       await refresh();
+-
+-
+-
+-    } catch(error){
+-
+-
+-      setError(
+-        error instanceof Error
+-          ? error.message
+-          : 'UNKNOWN_ERROR',
+-      );
+-
+-
++    } catch (err) {
++      setError(err instanceof Error ? err.message : 'UNKNOWN_ERROR');
+     } finally {
+-
+-
+       setLoading(false);
+-
+-
+     }
+-
+   }
+ 
+-
+-
+-
++  const indicesExplicados = explicarIndices(phenomenon.current_indices ?? {});
++  const composite = explicarComposite(phenomenon.current_composite);
++  const timeline = construirTimeline(state.evidence);
++  const hypothesis = state.currentHypothesis as Record<string, unknown> | null;
++  const proximaObservacion = sugerirProximaObservacion(
++    phenomenon.current_indices ?? {},
++    state.evidence.length,
++  );
+ 
+   return (
+-
+-    <main className="rs-console">
+-
+-
+-      <header>
+-
+-        <span>
+-          PPOI PHENOMENOLOGICAL CASE
+-        </span>
+-
+-
+-        <h1>
+-          {phenomenon.name}
+-        </h1>
+-
+-
+-        <p>
+-          STATUS:{' '}
+-          {phenomenon.status}
+-        </p>
+-
+-
++    <main className="pc-root">
++      <header className="pc-header">
++        <span>OBSERVADOR DE FENÓMENO</span>
++        <h1>{phenomenon.name}</h1>
++        <p>{explicarEstado(phenomenon.status)}</p>
+       </header>
+ 
+-
+-
+-
+-
+-      <section>
+-
+-        <h2>
+-          CURRENT INDICES
+-        </h2>
+-
+-
+-        <pre>
+-          {
+-            JSON.stringify(
+-              phenomenon.current_indices,
+-              null,
+-              2,
+-            )
+-          }
+-        </pre>
+-
+-
+-
+-        <strong>
+-          COMPOSITE:{' '}
+-          {
+-            phenomenon.current_composite
+-              ?? 'N/A'
+-          }
+-        </strong>
+-
+-
+-      </section>
+-
+-
+-
+-
+-
+-      <section>
+-
+-        <h2>
+-          CURRENT HYPOTHESIS
+-        </h2>
+-
+-
+-        {
+-          state.currentHypothesis ? (
+-
+-            <pre>
+-              {
+-                JSON.stringify(
+-                  state.currentHypothesis,
+-                  null,
+-                  2,
+-                )
+-              }
+-            </pre>
+-
++      <div className="pc-grid">
++        {/* IDENTIDAD */}
++        <section className="pc-card">
++          <h2>Identidad</h2>
++          <dl className="pc-dl">
++            <div><dt>Nombre</dt><dd>{phenomenon.name}</dd></div>
++            <div><dt>Código</dt><dd>{phenomenon.fp_code ?? '—'}</dd></div>
++            <div><dt>Estado</dt><dd>{explicarEstado(phenomenon.status)}</dd></div>
++            <div><dt>Abierto desde</dt><dd>{phenomenon.opened_at ? new Date(phenomenon.opened_at).toLocaleDateString('es-MX') : '—'}</dd></div>
++            <div><dt>Última evidencia</dt><dd>{phenomenon.last_evidence_at ? new Date(phenomenon.last_evidence_at).toLocaleDateString('es-MX') : 'Sin evidencia todavía'}</dd></div>
++          </dl>
++        </section>
++
++        {/* CALIBRACIÓN */}
++        <section className="pc-card">
++          <h2>Calibración</h2>
++          <p className="pc-composite">{composite}</p>
++          <div className="pc-indices">
++            {indicesExplicados.length ? indicesExplicados.map((item) => (
++              <div key={item.clave} className="pc-index-row">
++                <div className="pc-index-head">
++                  <strong>{item.nombre}</strong>
++                  <span>{item.valor}/{item.maximo}</span>
++                </div>
++                <div className="pc-index-bar">
++                  <i style={{ width: `${(item.valor / item.maximo) * 100}%` }} />
++                </div>
++                <p>{item.significado}</p>
++              </div>
++            )) : (
++              <p className="pc-empty">Todavía no hay índices calculados. Corre una recalibración con evidencia cargada.</p>
++            )}
++          </div>
++        </section>
++
++        {/* HIPÓTESIS ACTUAL */}
++        <section className="pc-card">
++          <h2>Hipótesis actual</h2>
++          {hypothesis ? (
++            <div className="pc-hypothesis">
++              <p className="pc-direction">{explicarDireccion(String(hypothesis.direction ?? ''))}</p>
++              <p className="pc-rationale">{String(hypothesis.rationale ?? 'Sin racional registrado.')}</p>
++              <div className="pc-rival">
++                <span>ALTERNATIVA CONSIDERADA (RIVAL)</span>
++                <p>{explicarDireccion(String(hypothesis.rival_direction ?? ''))}</p>
++                <p>{String(hypothesis.rival_rationale ?? 'Sin racional rival registrado.')}</p>
++              </div>
++            </div>
+           ) : (
+-
+-            <p>
+-              NO CURRENT HYPOTHESIS
+-            </p>
+-
+-          )
+-        }
+-
+-
+-      </section>
+-
+-
+-
+-
+-
+-      <section>
+-
+-        <h2>
+-          EVIDENCE STREAM
+-        </h2>
+-
+-
+-
+-        <button
+-          type="button"
+-          onClick={recalibrate}
+-          disabled={loading}
+-        >
+-
+-          {
+-            loading
+-              ? 'CALIBRATING...'
+-              : 'RUN RECALIBRATION'
+-          }
+-
+-
+-        </button>
+-
+-
+-
+-
+-
+-        {
+-          state.evidence.map(
+-            (
+-              item,
+-            ) => (
+-
+-              <article
+-                key={item.id}
+-              >
+-
+-                <strong>
+-                  {item.evidence_type}
+-                </strong>
+-
+-
+-                <p>
+-                  SOURCE:
+-                  {' '}
+-                  {item.source}
+-                </p>
+-
+-
+-                <p>
+-                  DOMAIN:
+-                  {' '}
+-                  {item.domain}
+-                </p>
+-
+-
+-                <small>
+-                  {item.observed_at}
+-                </small>
+-
+-
+-              </article>
+-
+-            ),
+-          )
+-        }
+-
+-
+-      </section>
+-
+-
+-
+-
+-
+-      {
+-        error && (
+-
+-          <section>
+-
+-            ERROR:
+-            {' '}
+-            {error}
+-
+-          </section>
+-
+-        )
+-      }
+-
+-
+-
++            <p className="pc-empty">Todavía no hay hipótesis generada. Se genera automáticamente al recalibrar con evidencia suficiente.</p>
++          )}
++        </section>
++
++        {/* PRÓXIMA OBSERVACIÓN REQUERIDA */}
++        <section className="pc-card">
++          <h2>Próxima observación requerida</h2>
++          <p className="pc-suggestion">{proximaObservacion}</p>
++          <button type="button" className="pc-recalibrate" onClick={recalibrate} disabled={loading}>
++            {loading ? 'RECALIBRANDO…' : 'EJECUTAR RECALIBRACIÓN'}
++          </button>
++          {error ? <span className="pc-error">{error}</span> : null}
++        </section>
++
++        {/* EVIDENCIA / TIMELINE */}
++        <section className="pc-card pc-wide">
++          <h2>Evidencia — línea de tiempo ({timeline.length})</h2>
++          {timeline.length ? (
++            <ul className="pc-timeline">
++              {timeline.map((entry, index) => (
++                <li key={`${entry.fecha}-${index}`}>
++                  <time>{new Date(entry.fecha).toLocaleString('es-MX')}</time>
++                  <div>
++                    <strong>{entry.titulo}</strong>
++                    <p>{entry.detalle}</p>
++                  </div>
++                </li>
++              ))}
++            </ul>
++          ) : (
++            <p className="pc-empty">Aún no se ha cargado evidencia para este fenómeno.</p>
++          )}
++        </section>
++
++        {/* EVIDENCIA COMPARTIDA CON OTROS FENÓMENOS */}
++        <section className="pc-card pc-wide">
++          <h2>Evidencia compartida con otros fenómenos ({linkedEvidence.length})</h2>
++          {linkedEvidence.length ? (
++            <ul className="pc-timeline">
++              {linkedEvidence.map((link) => (
++                <li key={link.linkId}>
++                  <time>{new Date(link.linkedAt).toLocaleDateString('es-MX')}</time>
++                  <div>
++                    <strong>{link.evidence ? `${link.evidence.evidence_type} · ${link.evidence.domain}` : 'Evidencia no disponible'}</strong>
++                    <p>
++                      Vínculo: {link.relationType === 'SHARED_ORIGIN' ? 'mismo origen' : link.relationType === 'CROSS_DOMAIN' ? 'cross-dominio' : 'relacionado'}
++                      {link.note ? ` — ${link.note}` : ''}
++                    </p>
++                  </div>
++                </li>
++              ))}
++            </ul>
++          ) : (
++            <p className="pc-empty">Esta evidencia todavía no se ha vinculado a otros fenómenos. Una misma evidencia (ej. una publicación) puede servir de contexto para varios fenómenos sin duplicar el archivo.</p>
++          )}
++        </section>
++      </div>
+     </main>
+-
+   );
+-
+-}
+\ No newline at end of file
++}
+diff --git a/src/components/root/phenomenon-console.css b/src/components/root/phenomenon-console.css
+index fda94c4..0e53bf3 100644
+--- a/src/components/root/phenomenon-console.css
++++ b/src/components/root/phenomenon-console.css
+@@ -1,92 +1,55 @@
+-.rs-phenomenon-console {
+-
+-  display:flex;
+-
+-  flex-direction:column;
+-
+-  gap:24px;
+-
+-}
+-
+-
+-.rs-panel {
+-
+-  border:
+-
+-  1px solid rgba(255,255,255,.12);
+-
+-  padding:20px;
+-
+-  background:
+-
+-  rgba(0,0,0,.35);
+-
+-}
+-
+-
+-.rs-panel h2 {
+-
+-  font-size:12px;
+-
+-  letter-spacing:.2em;
+-
+-  opacity:.7;
+-
+-}
+-
+-
+-
+-.rs-metric-grid {
+-
+-  display:grid;
+-
+-  grid-template-columns:
+-  repeat(4,1fr);
+-
+-  gap:12px;
+-
++.pc-root{
++  min-height:100vh;background:#050708;color:#d6dcda;
++  font-family:'IBM Plex Mono',ui-monospace,monospace;
++  padding:22px;box-sizing:border-box;
+ }
+-
+-
+-
+-.rs-metric {
+-
+-  padding:16px;
+-
+-  border:
+-
+-  1px solid rgba(255,255,255,.1);
+-
++.pc-header{border-left:2px solid #c8a951;padding-left:14px;margin-bottom:18px;}
++.pc-header span{display:block;color:#c8a951;font-size:9px;letter-spacing:.18em;text-transform:uppercase;}
++.pc-header h1{font-family:'Cormorant Garamond',serif;font-weight:600;font-size:26px;color:#f5eedc;margin:6px 0 4px;}
++.pc-header p{color:#8f8878;font-size:11px;margin:0;}
++
++.pc-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;}
++.pc-wide{grid-column:1/-1;}
++@media(max-width:860px){.pc-grid{grid-template-columns:1fr;}}
++
++.pc-card{border:1px solid #263035;background:#090d0f;padding:14px;min-width:0;}
++.pc-card h2{font-size:10px;letter-spacing:.14em;color:#c8a951;text-transform:uppercase;margin:0 0 10px;}
++
++.pc-dl{display:grid;gap:1px;margin:0;}
++.pc-dl div{display:grid;grid-template-columns:120px 1fr;border-bottom:1px solid #1a2024;padding:7px 0;font-size:10px;}
++.pc-dl dt{color:#78858a;}
++.pc-dl dd{margin:0;color:#d6dcda;}
++
++.pc-composite{font-size:12px;color:#9fb1b6;line-height:1.5;border-left:1px solid #263035;padding-left:10px;margin:0 0 12px;}
++
++.pc-indices{display:grid;gap:12px;}
++.pc-index-row{display:grid;gap:4px;}
++.pc-index-head{display:flex;justify-content:space-between;font-size:9px;letter-spacing:.06em;color:#d6dcda;}
++.pc-index-head span{color:#54c7d2;}
++.pc-index-bar{height:4px;background:#161b1d;border:1px solid #263035;}
++.pc-index-bar i{display:block;height:100%;background:#c8a951;}
++.pc-index-row p{margin:0;font-size:9px;line-height:1.5;color:#78858a;}
++
++.pc-hypothesis{display:grid;gap:8px;}
++.pc-direction{font-size:11px;color:#e5c18e;margin:0;}
++.pc-rationale{font-size:10px;line-height:1.55;color:#9fb1b6;margin:0;border-left:1px solid #263035;padding-left:10px;}
++.pc-rival{border-top:1px solid #1a2024;padding-top:8px;display:grid;gap:4px;}
++.pc-rival>span{font-size:8px;letter-spacing:.12em;color:#667075;}
++.pc-rival p{margin:0;font-size:9px;line-height:1.5;color:#78858a;}
++
++.pc-suggestion{font-size:11px;line-height:1.6;color:#d6dcda;margin:0 0 12px;border-left:2px solid #c8a951;padding-left:10px;}
++.pc-recalibrate{border:1px solid #c8a95166;background:transparent;color:#c8a951;font-size:9px;letter-spacing:.1em;padding:8px 12px;cursor:pointer;text-transform:uppercase;}
++.pc-recalibrate:disabled{opacity:.45;cursor:not-allowed;}
++.pc-error{display:block;margin-top:8px;color:#e06c67;font-size:9px;}
++
++.pc-timeline{list-style:none;margin:0;padding:0;display:grid;gap:1px;max-height:420px;overflow-y:auto;}
++.pc-timeline li{display:grid;grid-template-columns:170px 1fr;gap:12px;padding:9px 0;border-bottom:1px solid #1a2024;}
++.pc-timeline time{color:#78858a;font-size:9px;}
++.pc-timeline strong{display:block;font-size:10px;color:#d6dcda;margin-bottom:3px;}
++.pc-timeline p{margin:0;font-size:9px;color:#78858a;line-height:1.5;}
++
++.pc-empty{color:#5d574a;font-size:10px;line-height:1.6;margin:0;}
++
++@media(max-width:640px){
++  .pc-timeline li{grid-template-columns:1fr;gap:4px;}
+ }
+-
+-
+-
+-.rs-evidence-item {
+-
+-  padding:12px;
+-
+-  border-bottom:
+-
+-  1px solid rgba(255,255,255,.08);
+-
+-}
+-
+-
+-
+-.rs-dialog textarea {
+-
+-  width:100%;
+-
+-  min-height:160px;
+-
+-  background:#050505;
+-
+-  color:white;
+-
+-  border:
+-
+-  1px solid rgba(255,255,255,.2);
+-
+-  padding:12px;
+-
+-}
+\ No newline at end of file
+diff --git a/src/components/root/sovereign/root-phenomenological-observatory.css b/src/components/root/sovereign/root-phenomenological-observatory.css
+index ed7ef8a..bfe6550 100644
+--- a/src/components/root/sovereign/root-phenomenological-observatory.css
++++ b/src/components/root/sovereign/root-phenomenological-observatory.css
+@@ -39,6 +39,27 @@
+   position:absolute;inset:0;display:grid;place-items:center;text-align:center;z-index:15;
+   color:#5d574a;font-size:10px;letter-spacing:.08em;max-width:340px;margin:0 auto;pointer-events:none;
+ }
++.po-resolve{
++  position:absolute;bottom:18px;left:290px;z-index:21;
++  border:1px solid rgba(200,169,81,.4);background:#0b0b09;
++  padding:10px 12px;display:grid;gap:8px;width:280px;max-width:calc(100vw - 320px);
++}
++.po-resolve>span{font-size:8px;letter-spacing:.16em;color:#c8a951;text-transform:uppercase;}
++.po-resolve-list{display:grid;gap:4px;max-height:220px;overflow-y:auto;}
++.po-resolve-item{
++  display:grid;gap:2px;text-align:left;border:1px solid #1a170f;background:#050504;
++  color:#eee4cb;padding:6px 8px;cursor:pointer;font-family:inherit;
++}
++.po-resolve-item:hover{border-color:#c9aa54;}
++.po-resolve-item:disabled{opacity:.4;cursor:not-allowed;}
++.po-resolve-item strong{font-size:10px;font-weight:400;color:#f5eedc;}
++.po-resolve-item span{font-size:8px;letter-spacing:.08em;color:#8f8878;}
++.po-resolve-actions{display:flex;gap:6px;}
++.po-resolve-actions button{
++  flex:1;border:1px solid #c8a95166;background:transparent;color:#c8a951;
++  font-size:8px;letter-spacing:.08em;padding:6px;cursor:pointer;text-transform:uppercase;
++}
++@media(max-width:640px){.po-resolve{left:14px;bottom:110px;width:calc(100vw - 28px);max-width:none;}}
+ .po-panel{
+   position:absolute;top:0;right:0;bottom:0;z-index:25;
+   width:340px;max-width:88vw;background:rgba(6,6,5,.97);
+diff --git a/src/components/root/sovereign/views/RootPhenomenologicalObservatory.tsx b/src/components/root/sovereign/views/RootPhenomenologicalObservatory.tsx
+index 5eb2230..d4aedb0 100644
+--- a/src/components/root/sovereign/views/RootPhenomenologicalObservatory.tsx
++++ b/src/components/root/sovereign/views/RootPhenomenologicalObservatory.tsx
+@@ -50,6 +50,7 @@ export function RootPhenomenologicalObservatory({
+   const [newCaseName, setNewCaseName] = useState('');
+   const [busy, setBusy] = useState(false);
+   const [error, setError] = useState<string | null>(null);
++  const [candidates, setCandidates] = useState<Array<Record<string, unknown>> | null>(null);
+ 
+   const [evSource, setEvSource] = useState('');
+   const [evDomain, setEvDomain] = useState('');
+@@ -204,7 +205,7 @@ export function RootPhenomenologicalObservatory({
+     setSelectedId(hit ? hit.id : null);
+   }
+ 
+-  async function openCase() {
++  async function openCase(forceCreate = false) {
+     if (!newCaseName.trim()) return;
+     setBusy(true);
+     setError(null);
+@@ -212,13 +213,33 @@ export function RootPhenomenologicalObservatory({
+       const response = await fetch('/api/ppoi/phenomena', {
+         method: 'POST',
+         headers: { 'Content-Type': 'application/json' },
+-        body: JSON.stringify({ name: newCaseName.trim() }),
++        body: JSON.stringify({ name: newCaseName.trim(), forceCreate }),
+       });
+       const body = await response.json();
+       if (!body.ok) {
+         setError(body.details || body.error);
+         return;
+       }
++
++      // La resolución de identidad ya viene calculada por el backend
++      // (resolvePhenomenonIdentity). El observatorio debe reflejarla,
++      // no tratarla siempre como creación.
++      if (body.action === 'SELECT_EXISTING') {
++        setCandidates(body.candidates ?? []);
++        return;
++      }
++
++      if (body.action === 'OPEN_EXISTING') {
++        const existing = body.phenomenon as Record<string, unknown>;
++        setCandidates(null);
++        setNewCaseName('');
++        onRefresh();
++        if (existing?.id) setSelectedId(String(existing.id));
++        return;
++      }
++
++      // action === 'CREATED'
++      setCandidates(null);
+       setNewCaseName('');
+       onRefresh();
+     } finally {
+@@ -226,6 +247,17 @@ export function RootPhenomenologicalObservatory({
+     }
+   }
+ 
++  function selectCandidate(candidateId: string) {
++    setCandidates(null);
++    setNewCaseName('');
++    onRefresh();
++    setSelectedId(candidateId);
++  }
++
++  function cancelResolution() {
++    setCandidates(null);
++  }
++
+   async function addEvidence() {
+     if (!selectedId || !evSource.trim() || !evDomain.trim() || !evText.trim()) return;
+     setBusy(true);
+@@ -284,10 +316,34 @@ export function RootPhenomenologicalObservatory({
+       <div className="po-open-case">
+         <span>ABRIR CASO</span>
+         <input value={newCaseName} onChange={(event) => setNewCaseName(event.target.value)} placeholder="Nombre del fenómeno" />
+-        <button type="button" onClick={openCase} disabled={busy}>{busy ? '...' : 'ABRIR'}</button>
++        <button type="button" onClick={() => openCase(false)} disabled={busy}>{busy ? '...' : 'ABRIR'}</button>
+         {error ? <span style={{ color: '#e06c67' }}>{error}</span> : null}
+       </div>
+ 
++      {candidates && candidates.length > 0 ? (
++        <div className="po-resolve">
++          <span>¿QUERÍAS DECIR?</span>
++          <div className="po-resolve-list">
++            {candidates.map((candidate) => {
++              const id = String(candidate.id ?? '');
++              const name = String(candidate.name ?? candidate.label ?? 'sin nombre');
++              const similarity = Number(candidate.similarity ?? 0);
++              const origin = String(candidate.originModule ?? candidate.module ?? 'ppoi').toUpperCase();
++              return (
++                <button type="button" key={id || name} className="po-resolve-item" onClick={() => selectCandidate(id)} disabled={!id}>
++                  <strong>{name}</strong>
++                  <span>{origin} · similitud {(similarity * 100).toFixed(0)}%</span>
++                </button>
++              );
++            })}
++          </div>
++          <div className="po-resolve-actions">
++            <button type="button" onClick={() => openCase(true)} disabled={busy}>CREAR NUEVO DE TODAS FORMAS</button>
++            <button type="button" onClick={cancelResolution}>CANCELAR</button>
++          </div>
++        </div>
++      ) : null}
++
+       {selected ? (
+         <div className="po-panel">
+           <button type="button" className="po-panel-close" onClick={() => setSelectedId(null)}>CERRAR ×</button>
+diff --git a/src/lib/phenomena/identity/adapters/fieldAdapter.ts b/src/lib/phenomena/identity/adapters/fieldAdapter.ts
+new file mode 100644
+index 0000000..fc2ef84
+--- /dev/null
++++ b/src/lib/phenomena/identity/adapters/fieldAdapter.ts
+@@ -0,0 +1,48 @@
++import 'server-only';
++
++import { createServiceSupabaseClient } from '@/runtime/supabase/server';
++
++import {
++  identitySimilarity,
++  IDENTITY_SIMILARITY_FLOOR,
++  rowLabel,
++  type IdentityCandidate,
++} from '../phenomenonIdentityTypes';
++
++const LABEL_KEYS = ['label', 'name', 'title'];
++
++export async function findFieldIdentityCandidates(
++  ownerId: string,
++  query: string,
++): Promise<IdentityCandidate[]> {
++  try {
++    const client = createServiceSupabaseClient();
++
++    const { data, error } = await client
++      .from('field_cases')
++      .select('id, label, name, title, status, updated_at')
++      .eq('owner_id', ownerId)
++      .is('deleted_at', null)
++      .order('updated_at', { ascending: false })
++      .limit(200);
++
++    if (error) throw new Error(error.message);
++
++    return (data ?? [])
++      .map((row) => {
++        const record = row as Record<string, unknown>;
++        const label = rowLabel(record, LABEL_KEYS, 'Field case');
++        return {
++          id: String(record.id ?? ''),
++          label,
++          originModule: 'field' as const,
++          similarity: identitySimilarity(query, label),
++          livesAt: `Field · ciclo ${record.status ? String(record.status) : 'ACTIVO'}`,
++          meta: record,
++        };
++      })
++      .filter((candidate) => candidate.id && candidate.similarity >= IDENTITY_SIMILARITY_FLOOR);
++  } catch {
++    return [];
++  }
++}
+diff --git a/src/lib/phenomena/identity/adapters/ppoiAdapter.ts b/src/lib/phenomena/identity/adapters/ppoiAdapter.ts
+new file mode 100644
+index 0000000..57e7a00
+--- /dev/null
++++ b/src/lib/phenomena/identity/adapters/ppoiAdapter.ts
+@@ -0,0 +1,38 @@
++import 'server-only';
++
++import {
++  resolvePhenomenonIdentity,
++} from '@/lib/ppoi/phenomenonResolver';
++
++import type { IdentityCandidate } from '../phenomenonIdentityTypes';
++
++/**
++ * No reimplementa la resolución PPOI — la reutiliza. `phenomenonResolver.ts`
++ * sigue siendo la única fuente de verdad para MATCH/AMBIGUOUS/NEW dentro de
++ * PPOI (R18: No Duplicación de Gobernanza).
++ */
++export async function findPpoiIdentityCandidates(
++  ownerId: string,
++  query: string,
++): Promise<{
++  status: 'MATCH' | 'AMBIGUOUS' | 'NEW';
++  phenomenon: Record<string, unknown> | null;
++  candidates: IdentityCandidate[];
++}> {
++  const resolution = await resolvePhenomenonIdentity(ownerId, query);
++
++  const candidates: IdentityCandidate[] = (resolution.candidates ?? []).map((row) => ({
++    id: String((row as Record<string, unknown>).id ?? ''),
++    label: String((row as Record<string, unknown>).name ?? 'PPOI phenomenon'),
++    originModule: 'ppoi',
++    similarity: Number((row as Record<string, unknown>).similarity ?? 0),
++    livesAt: 'PPOI · Expediente de observación',
++    meta: row as Record<string, unknown>,
++  }));
++
++  return {
++    status: resolution.status as 'MATCH' | 'AMBIGUOUS' | 'NEW',
++    phenomenon: (resolution as { phenomenon?: Record<string, unknown> }).phenomenon ?? null,
++    candidates,
++  };
++}
+diff --git a/src/lib/phenomena/identity/adapters/registryAdapter.ts b/src/lib/phenomena/identity/adapters/registryAdapter.ts
+new file mode 100644
+index 0000000..a2b62f1
+--- /dev/null
++++ b/src/lib/phenomena/identity/adapters/registryAdapter.ts
+@@ -0,0 +1,38 @@
++import 'server-only';
++
++import { listPhenomena } from '@/lib/phenomena/phenomenon-engine';
++
++import {
++  identitySimilarity,
++  IDENTITY_SIMILARITY_FLOOR,
++  type IdentityCandidate,
++} from '../phenomenonIdentityTypes';
++
++/**
++ * `sfi_phenomena` es el registro de fenómenos ya promovidos (persistencia +
++ * densidad + confianza validadas), no un universo paralelo de casos activos.
++ * Este adapter solo lee — la promoción sigue ocurriendo exclusivamente vía
++ * `promotePhenomenonCandidate` desde el ciclo PPOI, nunca desde aquí.
++ */
++export async function findRegistryIdentityCandidates(
++  query: string,
++): Promise<IdentityCandidate[]> {
++  const result = await listPhenomena();
++
++  if (!result.ok) return [];
++
++  return (result.data ?? [])
++    .map((row) => {
++      const record = row as Record<string, unknown>;
++      const label = String(record.label ?? 'sfi_phenomena entry');
++      return {
++        id: String(record.phenomenon_key ?? record.id ?? ''),
++        label,
++        originModule: 'registry' as const,
++        similarity: identitySimilarity(query, label),
++        livesAt: `Registro global · régimen ${String(record.regime ?? 'desconocido')}`,
++        meta: record,
++      };
++    })
++    .filter((candidate) => candidate.id && candidate.similarity >= IDENTITY_SIMILARITY_FLOOR);
++}
+diff --git a/src/lib/phenomena/identity/adapters/studioAdapter.ts b/src/lib/phenomena/identity/adapters/studioAdapter.ts
+new file mode 100644
+index 0000000..ab65117
+--- /dev/null
++++ b/src/lib/phenomena/identity/adapters/studioAdapter.ts
+@@ -0,0 +1,47 @@
++import 'server-only';
++
++import { createServiceSupabaseClient } from '@/runtime/supabase/server';
++
++import {
++  identitySimilarity,
++  IDENTITY_SIMILARITY_FLOOR,
++  rowLabel,
++  type IdentityCandidate,
++} from '../phenomenonIdentityTypes';
++
++const LABEL_KEYS = ['label', 'title', 'name', 'filename'];
++
++export async function findStudioIdentityCandidates(
++  query: string,
++): Promise<IdentityCandidate[]> {
++  try {
++    const client = createServiceSupabaseClient();
++
++    const { data, error } = await client
++      .from('studio_objects')
++      .select('id, label, title, name, filename, modality, updated_at')
++      .order('updated_at', { ascending: false })
++      .limit(200);
++
++    if (error) throw new Error(error.message);
++
++    return (data ?? [])
++      .map((row) => {
++        const record = row as Record<string, unknown>;
++        const label = rowLabel(record, LABEL_KEYS, 'Studio object');
++        return {
++          id: String(record.id ?? ''),
++          label,
++          originModule: 'studio' as const,
++          similarity: identitySimilarity(query, label),
++          livesAt: `Studio · objeto ${record.modality ? String(record.modality) : ''}`.trim(),
++          meta: record,
++        };
++      })
++      .filter((candidate) => candidate.id && candidate.similarity >= IDENTITY_SIMILARITY_FLOOR);
++  } catch {
++    // Studio no disponible o tabla no encontrada: no bloquea la resolución
++    // global, simplemente no aporta candidatos de este dominio.
++    return [];
++  }
++}
+diff --git a/src/lib/phenomena/identity/phenomenonIdentityResolver.ts b/src/lib/phenomena/identity/phenomenonIdentityResolver.ts
+new file mode 100644
+index 0000000..f3ed080
+--- /dev/null
++++ b/src/lib/phenomena/identity/phenomenonIdentityResolver.ts
+@@ -0,0 +1,50 @@
++import 'server-only';
++
++import { findPpoiIdentityCandidates } from './adapters/ppoiAdapter';
++import { findStudioIdentityCandidates } from './adapters/studioAdapter';
++import { findFieldIdentityCandidates } from './adapters/fieldAdapter';
++import { findRegistryIdentityCandidates } from './adapters/registryAdapter';
++
++import type { IdentityCandidate } from './phenomenonIdentityTypes';
++
++export type PhenomenonIdentityResolution = {
++  // Estado de la decisión operativa dentro de PPOI — es el único que
++  // determina si ROOT abre un caso existente o crea uno nuevo. Los
++  // candidatos de otros dominios son contexto, no gobernanza.
++  status: 'MATCH' | 'AMBIGUOUS' | 'NEW';
++  phenomenon: Record<string, unknown> | null;
++  candidates: IdentityCandidate[];
++};
++
++/**
++ * ROOT → Phenomenon Identity Resolver → { PPOI, Studio, Field, Registry }
++ *
++ * Este es el único punto de entrada que ROOT debe consultar para responder
++ * "¿este fenómeno ya existe, y dónde vive?". No decide nada por sí mismo:
++ * PPOI conserva la autoridad de gobernanza sobre casos (abrir/crear);
++ * los demás dominios solo aportan visibilidad de identidades relacionadas.
++ */
++export async function resolvePhenomenonIdentityGlobal(
++  ownerId: string,
++  query: string,
++): Promise<PhenomenonIdentityResolution> {
++  const [ppoi, studioCandidates, fieldCandidates, registryCandidates] = await Promise.all([
++    findPpoiIdentityCandidates(ownerId, query),
++    findStudioIdentityCandidates(query),
++    findFieldIdentityCandidates(ownerId, query),
++    findRegistryIdentityCandidates(query),
++  ]);
++
++  const merged = [
++    ...ppoi.candidates,
++    ...studioCandidates,
++    ...fieldCandidates,
++    ...registryCandidates,
++  ].sort((a, b) => b.similarity - a.similarity);
++
++  return {
++    status: ppoi.status,
++    phenomenon: ppoi.phenomenon,
++    candidates: merged,
++  };
++}
+diff --git a/src/lib/phenomena/identity/phenomenonIdentityTypes.ts b/src/lib/phenomena/identity/phenomenonIdentityTypes.ts
+new file mode 100644
+index 0000000..4dd7d0c
+--- /dev/null
++++ b/src/lib/phenomena/identity/phenomenonIdentityTypes.ts
+@@ -0,0 +1,61 @@
++/**
++ * Capa de Identidad Fenomenológica — tipos y utilidades compartidas.
++ *
++ * Esta capa NO reemplaza a `src/lib/ppoi/phenomenonResolver.ts`, que sigue
++ * siendo la autoridad para decidir si ROOT abre un caso PPOI existente o
++ * crea uno nuevo (MATCH / AMBIGUOUS / NEW). Esta capa agrega, alrededor de
++ * esa decisión, visibilidad cross-dominio: qué otras entidades con nombre
++ * parecido existen en Studio, Field o en el registro global (sfi_phenomena),
++ * para que el operador vea de dónde vienen y decida — nunca para fusionar
++ * automáticamente dominios ni para promover nada por su cuenta.
++ */
++
++export type PhenomenonOriginModule =
++  | 'ppoi'
++  | 'studio'
++  | 'field'
++  | 'registry';
++
++export type IdentityCandidate = {
++  id: string;
++  label: string;
++  originModule: PhenomenonOriginModule;
++  similarity: number;
++  livesAt: string;
++  meta?: Record<string, unknown>;
++};
++
++export function normalizeIdentityQuery(value: string) {
++  return value
++    .toLowerCase()
++    .normalize('NFD')
++    .replace(/[\u0300-\u036f]/g, '')
++    .replace(/[^a-z0-9]+/g, '')
++    .trim();
++}
++
++export function identitySimilarity(a: string, b: string) {
++  const x = normalizeIdentityQuery(a);
++  const y = normalizeIdentityQuery(b);
++
++  if (!x || !y) return 0;
++  if (x === y) return 1;
++  if (x.includes(y) || y.includes(x)) return 0.85;
++
++  let matches = 0;
++  const length = Math.min(x.length, y.length);
++  for (let i = 0; i < length; i++) {
++    if (x[i] === y[i]) matches++;
++  }
++  return matches / Math.max(x.length, y.length);
++}
++
++export const IDENTITY_SIMILARITY_FLOOR = 0.45;
++
++export function rowLabel(row: Record<string, unknown>, keys: string[], fallback = 'sin nombre') {
++  for (const key of keys) {
++    const value = row[key];
++    if (typeof value === 'string' && value.trim()) return value.trim();
++  }
++  return fallback;
++}
+diff --git a/src/lib/ppoi/plainLanguage.ts b/src/lib/ppoi/plainLanguage.ts
+new file mode 100644
+index 0000000..ac6a184
+--- /dev/null
++++ b/src/lib/ppoi/plainLanguage.ts
+@@ -0,0 +1,212 @@
++import type { PhenomenonState, PpoiIndices } from './ppoiTypes';
++
++/**
++ * Esta capa NO calcula nada nuevo. Traduce a español entendible lo que
++ * `calibration.ts` y `hypothesisEngine.ts` ya calcularon y guardaron.
++ * Ningún texto aquí afirma algo que no esté respaldado por un valor
++ * almacenado (R19: No Verdad Sin Regla de Verificación).
++ */
++
++export type IndiceExplicado = {
++  clave: string;
++  nombre: string;
++  valor: number;
++  maximo: number;
++  significado: string;
++};
++
++const INDEX_META: Record<
++  string,
++  { nombre: string; maximo: number; significado: (v: number) => string }
++> = {
++  PT: {
++    nombre: 'Persistencia temporal',
++    maximo: 5,
++    significado: (v) =>
++      v <= 1
++        ? 'La evidencia aparece en un solo momento o el fenómeno lleva mucho tiempo sin actividad.'
++        : v <= 2
++          ? 'La evidencia está concentrada en un periodo corto.'
++          : v <= 3
++            ? 'El fenómeno se sostiene en un rango de meses.'
++            : 'El fenómeno lleva sosteniéndose por un periodo largo (más de medio año).',
++  },
++  PM: {
++    nombre: 'Pluralidad de dominios',
++    maximo: 5,
++    significado: (v) =>
++      v <= 1
++        ? 'La evidencia proviene de un solo dominio (por ejemplo, solo música o solo redes).'
++        : 'La evidencia aparece en varios dominios distintos, lo que da más solidez al fenómeno.',
++  },
++  IE: {
++    nombre: 'Independencia de fuentes',
++    maximo: 5,
++    significado: (v) =>
++      v <= 1
++        ? 'Toda la evidencia viene de una sola fuente — conviene buscar una segunda fuente independiente.'
++        : 'La evidencia viene de varias fuentes distintas entre sí.',
++  },
++  RC: {
++    nombre: 'Recurrencia (retorno tras pausa)',
++    maximo: 5,
++    significado: (v) =>
++      v === 0
++        ? 'Aún no hay señales de que el fenómeno regrese después de una pausa.'
++        : 'El fenómeno ha reaparecido después de al menos una pausa, lo cual indica que no fue un evento único.',
++  },
++  CG: {
++    nombre: 'Capacidad generativa',
++    maximo: 5,
++    significado: (v) =>
++      v === 0
++        ? 'La evidencia cargada hasta ahora no generó artefactos nuevos (obras, publicaciones, objetos).'
++        : 'Parte de la evidencia generó artefactos nuevos, no solo menciones.',
++  },
++  ES: {
++    nombre: 'Estabilidad semántica',
++    maximo: 5,
++    significado: (v) =>
++      v <= 2
++        ? 'El contenido cambia bastante de una evidencia a otra — el fenómeno todavía no tiene un discurso estable.'
++        : 'El contenido se mantiene consistente entre evidencias sucesivas.',
++  },
++  LT: {
++    nombre: 'Ritmo temporal',
++    maximo: 5,
++    significado: (v) =>
++      v <= 1
++        ? 'Las evidencias llegan muy seguido (ritmo alto).'
++        : v <= 3
++          ? 'Las evidencias llegan con un ritmo moderado.'
++          : 'Las evidencias llegan muy espaciadas en el tiempo.',
++  },
++  IO: {
++    nombre: 'Orientación técnica/institucional',
++    maximo: 5,
++    significado: (v) =>
++      v === 0
++        ? 'El contenido no usa todavía vocabulario técnico o institucional (protocolo, sistema, repositorio, etc.).'
++        : 'Parte del contenido usa vocabulario técnico o institucional, lo que sugiere una dirección más formal.',
++  },
++};
++
++export function explicarIndices(indices: PpoiIndices): IndiceExplicado[] {
++  return Object.entries(indices)
++    .filter(([, valor]) => typeof valor === 'number')
++    .map(([clave, valor]) => {
++      const meta = INDEX_META[clave];
++      const numero = Number(valor);
++      return {
++        clave,
++        nombre: meta?.nombre ?? clave,
++        valor: numero,
++        maximo: meta?.maximo ?? 5,
++        significado: meta ? meta.significado(numero) : 'Índice sin descripción registrada.',
++      };
++    });
++}
++
++export function explicarComposite(composite: number | null): string {
++  if (composite === null) {
++    return 'Todavía no hay suficiente evidencia para calcular un puntaje general.';
++  }
++  if (composite < 1.5) {
++    return 'El fenómeno está en una etapa muy inicial — señal débil, apenas detectada.';
++  }
++  if (composite < 2.5) {
++    return 'El fenómeno se está formando, pero aún no muestra consistencia sostenida.';
++  }
++  if (composite < 3.5) {
++    return 'El fenómeno tiene una base sólida y comienza a repetirse en el tiempo.';
++  }
++  if (composite < 4.5) {
++    return 'El fenómeno está consolidado: aparece en varios dominios y se sostiene en el tiempo.';
++  }
++  return 'El fenómeno está fuertemente consolidado y con evidencia robusta.';
++}
++
++const DIRECTION_ES: Record<string, string> = {
++  EXPANSION: 'Expandiéndose — está llegando a más dominios o audiencias.',
++  DEEPENING: 'Profundizando — se está volviendo más denso en su dominio actual, sin expandirse aún.',
++  FRAGMENTATION: 'Fragmentándose — la evidencia empieza a dispersarse sin un centro claro.',
++  CONVERGENCE: 'Convergiendo — distintas líneas de evidencia están apuntando a un mismo punto.',
++  INSTITUTIONALIZATION: 'Institucionalizándose — está adquiriendo estructura formal (protocolos, sistemas, repositorios).',
++  DEGRADATION: 'En degradación — la señal se está debilitando; conviene atención pronto.',
++  ABSTRACTION: 'Abstrayéndose — está pasando de casos concretos a un patrón más general.',
++  OPERATIONALIZATION: 'Operacionalizándose — está pasando de idea a ejecución concreta.',
++};
++
++export function explicarDireccion(direction?: string | null): string {
++  if (!direction) return 'Sin dirección calculada todavía.';
++  return DIRECTION_ES[direction] ?? `Dirección registrada: ${direction}.`;
++}
++
++export function explicarEstado(status: string): string {
++  const map: Record<string, string> = {
++    OPEN: 'Caso abierto — en observación activa.',
++    ACTIVE: 'Caso abierto — en observación activa.',
++    CLOSED: 'Caso cerrado.',
++    CALIBRATING: 'En proceso de recalibración.',
++    DORMANT: 'Sin actividad reciente.',
++  };
++  return map[status?.toUpperCase()] ?? status;
++}
++
++/**
++ * Sugerencia de próxima observación: heurística determinística basada
++ * SOLO en los índices ya calculados (el más bajo). No inventa hallazgos
++ * ni predice contenido — solo indica qué tipo de evidencia falta.
++ */
++export function sugerirProximaObservacion(
++  indices: PpoiIndices,
++  evidenceCount: number,
++): string {
++  if (evidenceCount === 0) {
++    return 'Aún no hay evidencia registrada. La primera observación debería cargar al menos una fuente con fecha verificable.';
++  }
++
++  const explicadas = explicarIndices(indices);
++  if (!explicadas.length) {
++    return 'Todavía no se han calculado índices — ejecuta una recalibración con la evidencia actual.';
++  }
++
++  const masBajo = explicadas.reduce((min, item) =>
++    item.valor < min.valor ? item : min
++  );
++
++  const sugerenciaPorIndice: Record<string, string> = {
++    PT: 'Buscar evidencia más reciente o confirmar que el fenómeno sigue vivo con una observación nueva.',
++    PM: 'Buscar evidencia en un dominio distinto al que ya tienes (ej. si toda tu evidencia es de audio, busca en texto o en redes).',
++    IE: 'Buscar una fuente independiente de las que ya tienes, para no depender de un solo emisor.',
++    RC: 'Esperar y confirmar si el fenómeno regresa después de esta pausa — no se puede forzar.',
++    CG: 'Buscar si esta evidencia generó algo nuevo (una obra, un post, un commit) y no solo una mención.',
++    ES: 'Revisar si el discurso alrededor del fenómeno se está volviendo más consistente o sigue disperso.',
++    LT: 'Sin acción requerida — este índice depende del ritmo natural del fenómeno.',
++    IO: 'Buscar si el fenómeno ya está generando vocabulario técnico o institucional propio.',
++  };
++
++  return `Índice más débil: ${masBajo.nombre} (${masBajo.valor}/${masBajo.maximo}). ${
++    sugerenciaPorIndice[masBajo.clave] ?? 'Cargar evidencia adicional para fortalecer este índice.'
++  }`;
++}
++
++export type TimelineEntry = {
++  fecha: string;
++  titulo: string;
++  detalle: string;
++};
++
++export function construirTimeline(
++  evidence: PhenomenonState['evidence'],
++): TimelineEntry[] {
++  return [...evidence]
++    .sort((a, b) => new Date(b.observed_at).getTime() - new Date(a.observed_at).getTime())
++    .map((item) => ({
++      fecha: item.observed_at,
++      titulo: `${item.evidence_type} · ${item.domain}`,
++      detalle: item.content_text
++        ? String(item.content_text).slice(0, 160)
++        : `Fuente: ${item.source}`,
++    }));
++}
+diff --git a/src/lib/ppoi/ppoiService.ts b/src/lib/ppoi/ppoiService.ts
+index 7e35fa2..473c91e 100644
+--- a/src/lib/ppoi/ppoiService.ts
++++ b/src/lib/ppoi/ppoiService.ts
+@@ -917,4 +917,147 @@ async function promotePpoiPhenomenon(
+       ownerId,
+     };
+   }
+-}
+\ No newline at end of file
++}
++// ---------------------------------------------------------------------------
++// Evidence Graph (aditivo) — ver migración 20260720120000_ppoi_evidence_links.sql
++//
++// Estas funciones NO alteran el ciclo de calibración existente. Los vínculos
++// que crean son de contexto/lectura: una evidencia sigue perteneciendo a un
++// único fenómeno vía ppoi_evidence.phenomenon_id (sin cambios), pero además
++// puede quedar relacionada con otros fenómenos a través de ppoi_evidence_links.
++// ---------------------------------------------------------------------------
++
++const TABLE_EVIDENCE_LINKS = 'ppoi_evidence_links';
++
++export type EvidenceLinkInput = {
++  evidenceId: string;
++  phenomenonId: string;
++  relationType?: 'RELATED' | 'SHARED_ORIGIN' | 'CROSS_DOMAIN';
++  note?: string | null;
++};
++
++/**
++ * Vincula una evidencia ya existente (dueña de otro fenómeno, o del mismo)
++ * a un fenómeno adicional. No mueve la evidencia ni cambia su dueño primario.
++ */
++export async function linkEvidenceToPhenomenon(
++  ownerId: string,
++  input: EvidenceLinkInput,
++) {
++  const client = createServiceSupabaseClient();
++
++  // Verificación de pertenencia: la evidencia y el fenómeno destino deben
++  // ser del mismo owner, igual que el resto de PPOI.
++  const [{ data: evidenceRow, error: evidenceError }, phenomenon] = await Promise.all([
++    client
++      .from(TABLE_EVIDENCE)
++      .select('id, owner_id')
++      .eq('id', input.evidenceId)
++      .eq('owner_id', ownerId)
++      .maybeSingle(),
++    loadOwnedPhenomenon(client, ownerId, input.phenomenonId),
++  ]);
++
++  if (evidenceError) {
++    throw new Error(`PPOI_EVIDENCE_READ_FAILED: ${evidenceError.message}`);
++  }
++  if (!evidenceRow) {
++    throw new Error('PPOI_EVIDENCE_NOT_FOUND');
++  }
++  if (!phenomenon) {
++    throw new Error('PPOI_PHENOMENON_NOT_FOUND');
++  }
++
++  const { data, error } = await client
++    .from(TABLE_EVIDENCE_LINKS)
++    .upsert(
++      {
++        evidence_id: input.evidenceId,
++        phenomenon_id: input.phenomenonId,
++        owner_id: ownerId,
++        relation_type: input.relationType ?? 'RELATED',
++        note: input.note ?? null,
++      },
++      { onConflict: 'evidence_id,phenomenon_id' },
++    )
++    .select('*')
++    .single();
++
++  if (error) {
++    throw new Error(`PPOI_EVIDENCE_LINK_FAILED: ${error.message}`);
++  }
++
++  return record(data);
++}
++
++export async function unlinkEvidenceFromPhenomenon(
++  ownerId: string,
++  evidenceId: string,
++  phenomenonId: string,
++) {
++  const client = createServiceSupabaseClient();
++
++  const { error } = await client
++    .from(TABLE_EVIDENCE_LINKS)
++    .delete()
++    .eq('owner_id', ownerId)
++    .eq('evidence_id', evidenceId)
++    .eq('phenomenon_id', phenomenonId);
++
++  if (error) {
++    throw new Error(`PPOI_EVIDENCE_UNLINK_FAILED: ${error.message}`);
++  }
++
++  return { ok: true };
++}
++
++/**
++ * Evidencia vinculada a este fenómeno DESDE OTROS fenómenos (no la que ya
++ * aparece en getPhenomenonState, que es la evidencia propia). Sirve para
++ * mostrar en el panel: "esta evidencia también aplica aquí, viene de X".
++ */
++export async function listLinkedEvidence(
++  ownerId: string,
++  phenomenonId: string,
++) {
++  const client = createServiceSupabaseClient();
++
++  const { data: links, error: linksError } = await client
++    .from(TABLE_EVIDENCE_LINKS)
++    .select('id, evidence_id, relation_type, note, created_at')
++    .eq('owner_id', ownerId)
++    .eq('phenomenon_id', phenomenonId)
++    .order('created_at', { ascending: false });
++
++  if (linksError) {
++    throw new Error(`PPOI_EVIDENCE_LINKS_READ_FAILED: ${linksError.message}`);
++  }
++
++  const evidenceIds = (links ?? []).map((row) => String((row as Row).evidence_id));
++  if (!evidenceIds.length) return [];
++
++  const { data: evidenceRows, error: evidenceError } = await client
++    .from(TABLE_EVIDENCE)
++    .select('id, evidence_type, source, domain, content_text, content_url, observed_at, phenomenon_id')
++    .in('id', evidenceIds);
++
++  if (evidenceError) {
++    throw new Error(`PPOI_EVIDENCE_READ_FAILED: ${evidenceError.message}`);
++  }
++
++  const evidenceById = new Map(
++    (evidenceRows ?? []).map((row) => [String((row as Row).id), row as Row]),
++  );
++
++  return (links ?? []).map((link) => {
++    const linkRow = link as Row;
++    const evidence = evidenceById.get(String(linkRow.evidence_id));
++    return {
++      linkId: String(linkRow.id),
++      relationType: String(linkRow.relation_type),
++      note: linkRow.note ? String(linkRow.note) : null,
++      linkedAt: String(linkRow.created_at),
++      evidence: evidence ? record(evidence) : null,
++    };
++  });
++}
+diff --git a/supabase/migrations/20260720120000_ppoi_evidence_links.sql b/supabase/migrations/20260720120000_ppoi_evidence_links.sql
+new file mode 100644
+index 0000000..d570556
+--- /dev/null
++++ b/supabase/migrations/20260720120000_ppoi_evidence_links.sql
+@@ -0,0 +1,42 @@
++-- Phenomenon Identity Layer — Evidence Graph (aditivo, no destructivo)
++--
++-- Esta migración NO modifica ppoi_evidence, ppoi_phenomena ni ppoi_hypotheses.
++-- El vínculo original evidence -> phenomenon_id (obligatorio, 1:1) sigue
++-- siendo el "dueño primario" de la evidencia, exactamente como hoy.
++--
++-- Lo único que agrega es una tabla puente para vínculos ADICIONALES:
++-- una evidencia puede, además de su fenómeno dueño, quedar relacionada
++-- con otros fenómenos (ej. un Medium de REM618 sirve como evidencia
++-- tanto del fenómeno musical como del cultural). Estos vínculos son
++-- puramente de lectura/contexto: NO participan en el cálculo de
++-- calibration.ts (PT/PM/IE/RC/CG/ES/LT/IO), que sigue leyendo
++-- exclusivamente por phenomenon_id como hasta ahora. Si más adelante
++-- se decide que la calibración también debe considerar evidencia
++-- vinculada, es una decisión aparte y explícita, no un efecto lateral
++-- de esta migración.
++
++create table if not exists public.ppoi_evidence_links (
++  id uuid primary key default gen_random_uuid(),
++  evidence_id uuid not null references public.ppoi_evidence(id) on delete cascade,
++  phenomenon_id uuid not null references public.ppoi_phenomena(id) on delete cascade,
++  owner_id uuid not null references auth.users(id) on delete cascade,
++  relation_type text not null default 'RELATED' check (relation_type in ('RELATED', 'SHARED_ORIGIN', 'CROSS_DOMAIN')),
++  note text,
++  created_at timestamptz not null default now(),
++  unique (evidence_id, phenomenon_id)
++);
++
++create index if not exists ppoi_evidence_links_evidence_idx on public.ppoi_evidence_links(evidence_id);
++create index if not exists ppoi_evidence_links_phenomenon_idx on public.ppoi_evidence_links(phenomenon_id, created_at desc);
++create index if not exists ppoi_evidence_links_owner_idx on public.ppoi_evidence_links(owner_id, created_at desc);
++
++alter table public.ppoi_evidence_links enable row level security;
++
++drop policy if exists ppoi_evidence_links_owner_select on public.ppoi_evidence_links;
++create policy ppoi_evidence_links_owner_select on public.ppoi_evidence_links for select to authenticated using (owner_id = auth.uid());
++
++drop policy if exists ppoi_evidence_links_owner_insert on public.ppoi_evidence_links;
++create policy ppoi_evidence_links_owner_insert on public.ppoi_evidence_links for insert to authenticated with check (owner_id = auth.uid());
++
++drop policy if exists ppoi_evidence_links_owner_delete on public.ppoi_evidence_links;
++create policy ppoi_evidence_links_owner_delete on public.ppoi_evidence_links for delete to authenticated using (owner_id = auth.uid());
