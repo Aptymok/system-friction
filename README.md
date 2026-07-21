@@ -1,8 +1,3 @@
-Entiendo el enfoque. No lo convertiría en un README técnico convencional. Por la naturaleza de SFI, el README funciona más como **documento de entrada institucional / manifiesto operativo del sistema**: describe qué es, qué observa, cuáles son sus límites, cómo se organiza y qué principios gobiernan su ejecución.
-
-Propongo esta versión con un tono más cercano a tus Mediums: descriptivo, longitudinal, observacional y con lenguaje de arquitectura de sistemas.
-
-```md
 # System Friction · Terminal Operacional
 
 ## Instrumento de observación, trazabilidad y navegación dentro de sistemas complejos
@@ -384,7 +379,4 @@ No busca controlar sistemas complejos.
 
 Busca aumentar la resolución con la que pueden ser observados.
 
-```
-
-Esta versión cambia el README de “lista de endpoints” a **documento de identidad operacional**. Mantiene todos los detalles técnicos, pero los coloca dentro del marco conceptual de SFI.
 ```
