@@ -154,10 +154,28 @@ export async function POST(
       );
 
 
+    // Aditivo: no falla la respuesta si esta parte falla, solo la omite.
+    let linkedEvidence: Awaited<ReturnType<typeof listLinkedEvidence>> = [];
+    try {
+      linkedEvidence = await listLinkedEvidence(user.id, params.id);
+    } catch {
+      linkedEvidence = [];
+    }
+
+    let hypothesisView: Awaited<ReturnType<typeof getPhenomenonHypothesisView>> | null = null;
+    try {
+      hypothesisView = await getPhenomenonHypothesisView(user.id, params.id);
+    } catch {
+      hypothesisView = null;
+    }
+
+
     return NextResponse.json(
       {
         ok: true,
         ...result,
+        linkedEvidence,
+        hypothesisView,
       },
       {
         status: 200,

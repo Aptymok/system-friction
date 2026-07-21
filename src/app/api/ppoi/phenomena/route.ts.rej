@@ -1,0 +1,21 @@
+diff a/src/app/api/ppoi/phenomena/route.ts b/src/app/api/ppoi/phenomena/route.ts	(rejected hunks)
+@@ -11,8 +11,8 @@ import {
+ } from '@/lib/system/access/server';
+ 
+ import {
+-  resolvePhenomenonIdentity,
+-} from '@/lib/ppoi/phenomenonResolver';
++  resolvePhenomenonIdentityGlobal,
++} from '@/lib/phenomena/identity/phenomenonIdentityResolver';
+ 
+ 
+ export const dynamic = 'force-dynamic';
+@@ -203,7 +203,7 @@ export async function POST(
+     if(!forceCreate){
+ 
+       const resolution =
+-        await resolvePhenomenonIdentity(
++        await resolvePhenomenonIdentityGlobal(
+           user.id,
+           name,
+         );

@@ -1,0 +1,31 @@
+diff a/src/app/root/phenomena/[id]/page.tsx b/src/app/root/phenomena/[id]/page.tsx	(rejected hunks)
+@@ -1,7 +1,10 @@
+ import {
+   getPhenomenonState,
++  listLinkedEvidence,
+ } from '@/lib/ppoi/ppoiService';
+ 
++import { getPhenomenonHypothesisView } from '@/lib/phenomena/identity/phenomenonHypothesisView';
++
+ import {
+   requireAuthenticatedUser,
+ } from '@/lib/system/access/server';
+@@ -37,10 +40,18 @@ export default async function PhenomenonPage({
+       id,
+     );
+ 
++  const linkedEvidence =
++    await listLinkedEvidence(user.id, id).catch(() => []);
++
++  const hypothesisView =
++    await getPhenomenonHypothesisView(user.id, id).catch(() => null);
++
+ 
+   return (
+     <PhenomenonConsole
+       state={state}
++      linkedEvidence={linkedEvidence}
++      hypothesisView={hypothesisView}
+     />
+   );
+ 
