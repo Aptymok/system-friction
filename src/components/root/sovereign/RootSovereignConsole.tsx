@@ -217,11 +217,9 @@ async function openPpoiCase(name:string) {
 
   if (view === 'telemetry') {
     return (
-      <RootPhenomenologicalObservatory
-        state={state}
-        onExit={() => changeView('overview')}
-        onRefresh={() => void refresh()}
-      />
+<RootPhenomenologicalObservatory
+  onRefresh={() => void refresh()}
+/>
     );
   }
 

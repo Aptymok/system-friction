@@ -23,14 +23,35 @@ type LinkedEvidenceItem = {
   evidence: Record<string, unknown> | null;
 };
 
+type ObservedHypothesisItem = {
+  fuente: 'PPOI' | 'STUDIO' | 'CULTURAL';
+  disponible: boolean;
+  razonNoDisponible?: string;
+  items: Array<{
+    id: string;
+    resumen: string;
+    detalle: string | null;
+    severidadOAccion: string | null;
+    creadaEn: string | null;
+  }>;
+};
+
+type HypothesisView = {
+  phenomenonId: string;
+  relatedStudioObjectId: string | null;
+  observadores: ObservedHypothesisItem[];
+} | null;
+
 type Props = {
   state: PhenomenonState;
   linkedEvidence?: LinkedEvidenceItem[];
+  hypothesisView?: HypothesisView;
 };
 
-export default function PhenomenonConsole({ state: initialState, linkedEvidence: initialLinked = [] }: Props) {
+export default function PhenomenonConsole({ state: initialState, linkedEvidence: initialLinked = [], hypothesisView: initialHypothesisView = null }: Props) {
   const [state, setState] = useState<PhenomenonState>(initialState);
   const [linkedEvidence, setLinkedEvidence] = useState<LinkedEvidenceItem[]>(initialLinked);
+  const [hypothesisView, setHypothesisView] = useState<HypothesisView>(initialHypothesisView);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -54,6 +75,7 @@ export default function PhenomenonConsole({ state: initialState, linkedEvidence:
         currentHypothesis: data.currentHypothesis ?? null,
       });
       setLinkedEvidence(data.linkedEvidence ?? []);
+      setHypothesisView(data.hypothesisView ?? null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'UNKNOWN_ERROR');
     } finally {
@@ -201,6 +223,38 @@ export default function PhenomenonConsole({ state: initialState, linkedEvidence:
             </ul>
           ) : (
             <p className="pc-empty">Esta evidencia todavía no se ha vinculado a otros fenómenos. Una misma evidencia (ej. una publicación) puede servir de contexto para varios fenómenos sin duplicar el archivo.</p>
+          )}
+        </section>
+
+        {/* HIPÓTESIS POR OBSERVADOR */}
+        <section className="pc-card pc-wide">
+          <h2>¿Qué dice cada observador sobre este fenómeno?</h2>
+          {hypothesisView ? (
+            <div className="pc-observers">
+              {hypothesisView.observadores.map((obs) => (
+                <div key={obs.fuente} className="pc-observer">
+                  <div className="pc-observer-head">
+                    <strong>{obs.fuente === 'PPOI' ? 'PPOI · ciclo de observación' : obs.fuente === 'STUDIO' ? 'Studio · técnico' : 'Cultural-lab · emergente'}</strong>
+                    <span className={obs.disponible ? 'pc-tag-ok' : 'pc-tag-empty'}>{obs.disponible ? `${obs.items.length} hipótesis` : 'sin datos'}</span>
+                  </div>
+                  {obs.disponible ? (
+                    <ul className="pc-observer-list">
+                      {obs.items.map((item) => (
+                        <li key={item.id}>
+                          <strong>{item.resumen}</strong>
+                          {item.detalle ? <p>{item.detalle}</p> : null}
+                          {item.severidadOAccion ? <span>{item.severidadOAccion}</span> : null}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="pc-empty">{obs.razonNoDisponible}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="pc-empty">No se pudo construir la vista consolidada de observadores.</p>
           )}
         </section>
       </div>

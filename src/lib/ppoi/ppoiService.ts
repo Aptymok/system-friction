@@ -13,55 +13,36 @@ import type {
   PpoiIndices,
 } from '@/lib/ppoi/ppoiTypes';
 
-
 type PhenomenonRow = {
   id: string;
   name: string;
   status: string;
-
   current_indices: PpoiIndices;
-
-  current_composite:
-    | number
-    | null;
-
+  current_composite: number | null;
   opened_at?: string;
   last_evidence_at?: string;
-
-  [key:string]: unknown;
+  [key: string]: unknown;
 };
-
 
 type EvidenceRow = {
   id: string;
   evidence_type: string;
   source: string;
   domain: string;
-
   observed_at: string;
-
   content_text?: string | null;
   content_url?: string | null;
-
-  [key:string]: unknown;
+  [key: string]: unknown;
 };
 
 const TABLE_PHENOMENA = 'ppoi_phenomena';
 const TABLE_EVIDENCE = 'ppoi_evidence';
 const TABLE_HYPOTHESES = 'ppoi_hypotheses';
+const TABLE_EVIDENCE_LINKS = 'ppoi_evidence_links';
+
 const EVIDENCE_TYPES = [
-  'text',
-  'audio',
-  'video',
-  'image',
-  'software',
-  'dataset',
-  'interview',
-  'field',
-  'model',
-  'paper',
-  'conversation',
-  'institutional_record',
+  'text', 'audio', 'video', 'image', 'software', 'dataset',
+  'interview', 'field', 'model', 'paper', 'conversation', 'institutional_record',
 ];
 
 function record(value: unknown): Row {
@@ -72,23 +53,15 @@ function record(value: unknown): Row {
 
 function requireText(value: unknown, field: string, maxLength = 400) {
   const trimmed = typeof value === 'string' ? value.trim() : '';
-
-  if (!trimmed) {
-    throw new Error(`${field}_REQUIRED`);
-  }
-
+  if (!trimmed) throw new Error(`${field}_REQUIRED`);
   return trimmed.slice(0, maxLength);
 }
 
 function normalizeEvidenceType(value: unknown) {
   const normalized = requireText(value, 'EVIDENCE_TYPE', 60).toLowerCase();
-
   if (!EVIDENCE_TYPES.includes(normalized)) {
-    throw new Error(
-      `EVIDENCE_TYPE_INVALID:${EVIDENCE_TYPES.join(',')}`,
-    );
+    throw new Error(`EVIDENCE_TYPE_INVALID:${EVIDENCE_TYPES.join(',')}`);
   }
-
   return normalized;
 }
 
@@ -104,18 +77,12 @@ async function loadOwnedPhenomenon(
     .eq('owner_id', ownerId)
     .maybeSingle();
 
-  if (error) {
-    throw new Error(
-      `PPOI_PHENOMENON_READ_FAILED: ${error.message}`,
-    );
-  }
-
-  if (!data) {
-    throw new Error('PPOI_PHENOMENON_NOT_FOUND');
-  }
-
+  if (error) throw new Error(`PPOI_PHENOMENON_READ_FAILED: ${error.message}`);
+  if (!data) throw new Error('PPOI_PHENOMENON_NOT_FOUND');
   return record(data);
 }
+
+// --- Funciones principales (con el patrón { ok, data } que el parche espera) ---
 
 export type OpenPhenomenonInput = {
   name: string;
@@ -127,98 +94,83 @@ export async function openPhenomenon(
   ownerId: string,
   input: OpenPhenomenonInput,
 ) {
-  const client = createServiceSupabaseClient();
+  try {
+    const client = createServiceSupabaseClient();
+    const name = requireText(input.name, 'PHENOMENON_NAME', 200);
 
-  const name = requireText(
-    input.name,
-    'PHENOMENON_NAME',
-    200,
-  );
-
-  const { data, error } = await client
-    .from(TABLE_PHENOMENA)
-    .insert({
-      owner_id: ownerId,
-      name,
-      status: 'ACTIVE',
-      is_calibration_case: Boolean(
-        input.isCalibrationCase,
-      ),
-      related_studio_object_id:
-        input.relatedStudioObjectId || null,
-    })
-    .select('*')
-    .single();
-
-  if (error) {
-    throw new Error(
-      `PPOI_PHENOMENON_CREATE_FAILED: ${error.message}`,
-    );
-  }
-
-  return record(data);
-}
-
-export async function canCreatePhenomenon(
-  ownerId:string,
-  name:string,
-) {
-
-  const client =
-    createServiceSupabaseClient();
-
-
-  const existing =
-    await client
+    const { data, error } = await client
       .from(TABLE_PHENOMENA)
-      .select(
-        'id,name,fp_code,status,opened_at'
-      )
-      .eq(
-        'owner_id',
-        ownerId
-      )
-      .ilike(
-        'name',
-        `%${name}%`
-      )
-      .limit(10);
+      .insert({
+        owner_id: ownerId,
+        name,
+        status: 'ACTIVE',
+        is_calibration_case: Boolean(input.isCalibrationCase),
+        related_studio_object_id: input.relatedStudioObjectId || null,
+      })
+      .select('*')
+      .single();
 
-
-
-  if(existing.error){
-
-    throw new Error(
-      `PPOI_EXISTENCE_CHECK_FAILED: ${existing.error.message}`
-    );
-
+    if (error) throw new Error(`PPOI_PHENOMENON_CREATE_FAILED: ${error.message}`);
+    return { ok: true, data: record(data) };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : 'UNKNOWN_ERROR', status: 500 };
   }
-
-
-  return existing.data ?? [];
-
 }
 
-export async function listPhenomena(ownerId: string) {
+// Alias para compatibilidad con el parche
+export const createPhenomenon = openPhenomenon;
+
+export async function canCreatePhenomenon(ownerId: string, name: string) {
   const client = createServiceSupabaseClient();
-
-  const { data, error } = await client
+  const existing = await client
     .from(TABLE_PHENOMENA)
-    .select('*')
+    .select('id,name,fp_code,status,opened_at')
     .eq('owner_id', ownerId)
-    .order('opened_at', {
-      ascending: false,
-    });
+    .ilike('name', `%${name}%`)
+    .limit(10);
 
-  if (error) {
-    throw new Error(
-      `PPOI_PHENOMENA_LIST_FAILED: ${error.message}`,
-    );
+  if (existing.error) throw new Error(`PPOI_EXISTENCE_CHECK_FAILED: ${existing.error.message}`);
+  return existing.data ?? [];
+}
+
+export async function listPhenomena(
+  ownerId: string,
+): Promise<{ ok: boolean; data: Row[]; error?: string; status?: number }> {
+  try {
+    const client = createServiceSupabaseClient();
+
+    const { data, error } = await client
+      .from(TABLE_PHENOMENA)
+      .select('*')
+      .eq('owner_id', ownerId)
+      .order('opened_at', { ascending: false });
+
+    if (error) {
+      throw new Error(`PPOI_PHENOMENA_LIST_FAILED: ${error.message}`);
+    }
+
+    return {
+      ok: true,
+      data: Array.isArray(data) ? data.map(record) : [],
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      data: [],
+      error: error instanceof Error ? error.message : 'UNKNOWN_ERROR',
+      status: 500,
+    };
+  }
+}
+
+export async function listPhenomenonIds(ownerId: string) {
+  const result = await listPhenomena(ownerId);
+
+  if (!result.ok) {
+    return [];
   }
 
-  return Array.isArray(data)
-    ? data.map(record)
-    : [];
+  return result.data.map((p) => String(p.id));
 }
 
 export type AddEvidenceInput = {
@@ -238,74 +190,29 @@ export async function addEvidenceAndRecalibrate(
   input: AddEvidenceInput,
 ) {
   const client = createServiceSupabaseClient();
+  const phenomenon = await loadOwnedPhenomenon(client, ownerId, phenomenonId);
+  if (phenomenon.status !== 'ACTIVE') throw new Error('PPOI_PHENOMENON_NOT_ACTIVE');
 
-  const phenomenon = await loadOwnedPhenomenon(
-    client,
-    ownerId,
-    phenomenonId,
-  );
+  const evidenceType = normalizeEvidenceType(input.evidenceType);
+  const source = requireText(input.source, 'EVIDENCE_SOURCE', 200);
+  const domain = requireText(input.domain, 'EVIDENCE_DOMAIN', 100).toLowerCase();
+  const contentUrl = typeof input.contentUrl === 'string' ? input.contentUrl.trim().slice(0, 2000) || null : null;
+  const contentText = typeof input.contentText === 'string' ? input.contentText.trim().slice(0, 8000) || null : null;
+  if (!contentUrl && !contentText) throw new Error('EVIDENCE_CONTENT_REQUIRED');
 
-  if (phenomenon.status !== 'ACTIVE') {
-    throw new Error(
-      'PPOI_PHENOMENON_NOT_ACTIVE',
-    );
-  }
-
-  const evidenceType = normalizeEvidenceType(
-    input.evidenceType,
-  );
-
-  const source = requireText(
-    input.source,
-    'EVIDENCE_SOURCE',
-    200,
-  );
-
-  const domain = requireText(
-    input.domain,
-    'EVIDENCE_DOMAIN',
-    100,
-  ).toLowerCase();
-
-  const contentUrl =
-    typeof input.contentUrl === 'string'
-      ? input.contentUrl.trim().slice(0, 2000) || null
-      : null;
-
-  const contentText =
-    typeof input.contentText === 'string'
-      ? input.contentText.trim().slice(0, 8000) || null
-      : null;
-
-  if (!contentUrl && !contentText) {
-    throw new Error(
-      'EVIDENCE_CONTENT_REQUIRED',
-    );
-  }
-
-  const observedAt = input.observedAt
-    ? new Date(input.observedAt)
-    : new Date();
-
-  if (Number.isNaN(observedAt.getTime())) {
-    throw new Error(
-      'OBSERVED_AT_INVALID',
-    );
-  }
+  const observedAt = input.observedAt ? new Date(input.observedAt) : new Date();
+  if (isNaN(observedAt.getTime())) throw new Error('OBSERVED_AT_INVALID');
 
   const evidenceHash = createHash('sha256')
-    .update(
-      JSON.stringify({
-        phenomenonId,
-        evidenceType,
-        source,
-        domain,
-        contentUrl,
-        contentText,
-        observedAt:
-          observedAt.toISOString(),
-      }),
-    )
+    .update(JSON.stringify({
+      phenomenonId,
+      evidenceType,
+      source,
+      domain,
+      contentUrl,
+      contentText,
+      observedAt: observedAt.toISOString(),
+    }))
     .digest('hex');
 
   const existing = await client
@@ -315,11 +222,7 @@ export async function addEvidenceAndRecalibrate(
     .eq('evidence_hash', evidenceHash)
     .maybeSingle();
 
-  if (existing.error) {
-    throw new Error(
-      `PPOI_EVIDENCE_LOOKUP_FAILED: ${existing.error.message}`,
-    );
-  }
+  if (existing.error) throw new Error(`PPOI_EVIDENCE_LOOKUP_FAILED: ${existing.error.message}`);
 
   if (!existing.data) {
     const insertEvidence = await client
@@ -333,601 +236,145 @@ export async function addEvidenceAndRecalibrate(
         domain,
         content_url: contentUrl,
         content_text: contentText,
-        generates_artifact: Boolean(
-          input.generatesArtifact,
-        ),
-        artifact_note:
-          typeof input.artifactNote === 'string'
-            ? input.artifactNote
-                .trim()
-                .slice(0, 2000) || null
-            : null,
-        observed_at:
-          observedAt.toISOString(),
+        generates_artifact: Boolean(input.generatesArtifact),
+        artifact_note: typeof input.artifactNote === 'string' ? input.artifactNote.trim().slice(0, 2000) || null : null,
+        observed_at: observedAt.toISOString(),
       })
       .select('*')
       .single();
 
-    if (insertEvidence.error) {
-      throw new Error(
-        `PPOI_EVIDENCE_INSERT_FAILED: ${insertEvidence.error.message}`,
-      );
-    }
+    if (insertEvidence.error) throw new Error(`PPOI_EVIDENCE_INSERT_FAILED: ${insertEvidence.error.message}`);
   }
 
-  return runRecalibration(
-    client,
-    ownerId,
-    phenomenonId,
-  );
+  return runRecalibration(client, ownerId, phenomenonId);
 }
 
-export async function recalibratePhenomenon(
-  ownerId: string,
-  phenomenonId: string,
-) {
+export async function recalibratePhenomenon(ownerId: string, phenomenonId: string) {
   const client = createServiceSupabaseClient();
-
-  await loadOwnedPhenomenon(
-    client,
-    ownerId,
-    phenomenonId,
-  );
-
-  return runRecalibration(
-    client,
-    ownerId,
-    phenomenonId,
-  );
+  await loadOwnedPhenomenon(client, ownerId, phenomenonId);
+  return runRecalibration(client, ownerId, phenomenonId);
 }
 
-async function runRecalibration(
-  client: ServiceClient,
-  ownerId: string,
-  phenomenonId: string,
-) {
-  const {
-    data: evidenceRows,
-    error,
-  } = await client
+async function runRecalibration(client: ServiceClient, ownerId: string, phenomenonId: string) {
+  const { data: evidenceRows, error } = await client
     .from(TABLE_EVIDENCE)
-    .select(
-      'domain, source, generates_artifact, artifact_note, content_text, observed_at',
-    )
+    .select('domain, source, generates_artifact, artifact_note, content_text, observed_at')
     .eq('phenomenon_id', phenomenonId)
     .eq('owner_id', ownerId)
-    .order('observed_at', {
-      ascending: true,
-    });
+    .order('observed_at', { ascending: true });
 
-  if (error) {
-    throw new Error(
-      `PPOI_EVIDENCE_READ_FAILED: ${error.message}`,
-    );
-  }
+  if (error) throw new Error(`PPOI_EVIDENCE_READ_FAILED: ${error.message}`);
 
-  const evidenceInputs: PpoiEvidenceInput[] =
-    Array.isArray(evidenceRows)
-      ? evidenceRows.map((row) => ({
-          domain: String(row.domain ?? ''),
-          source: String(row.source ?? ''),
-          generatesArtifact: Boolean(
-            row.generates_artifact,
-          ),
-          artifactNote:
-            typeof row.artifact_note === 'string'
-              ? row.artifact_note
-              : null,
-          contentText:
-            typeof row.content_text === 'string'
-              ? row.content_text
-              : null,
-          observedAt: String(
-            row.observed_at,
-          ),
-        }))
-      : [];
+  const evidenceInputs: PpoiEvidenceInput[] = Array.isArray(evidenceRows)
+    ? evidenceRows.map((row) => ({
+        domain: String(row.domain ?? ''),
+        source: String(row.source ?? ''),
+        generatesArtifact: Boolean(row.generates_artifact),
+        artifactNote: typeof row.artifact_note === 'string' ? row.artifact_note : null,
+        contentText: typeof row.content_text === 'string' ? row.content_text : null,
+        observedAt: String(row.observed_at),
+      }))
+    : [];
 
-  const result =
-    calculatePpoiIndices(
-      evidenceInputs,
-    );
+  const result = calculatePpoiIndices(evidenceInputs);
+  const trajectory = inferPpoiTrajectory(result.indices, result.composite);
 
-  const trajectory =
-    inferPpoiTrajectory(
-      result.indices,
-      result.composite,
-    );
-
-  const {
-    error: updatePhenomenonError,
-  } = await client
+  await client
     .from(TABLE_PHENOMENA)
     .update({
-      current_indices:
-        result.indices,
-
-      current_composite:
-        result.composite,
-
-      indices_calculated_at:
-        new Date().toISOString(),
-
-      last_evidence_at:
-        evidenceInputs.length > 0
-          ? evidenceInputs[
-              evidenceInputs.length - 1
-            ].observedAt
-          : null,
-
-      current_direction:
-        trajectory.direction,
-
-      current_rival_direction:
-        trajectory.rivalDirection,
-
-      updated_at:
-        new Date().toISOString(),
+      current_indices: result.indices,
+      current_composite: result.composite,
+      indices_calculated_at: new Date().toISOString(),
+      last_evidence_at: evidenceInputs.length > 0 ? evidenceInputs[evidenceInputs.length - 1].observedAt : null,
+      current_direction: trajectory.direction,
+      current_rival_direction: trajectory.rivalDirection,
+      updated_at: new Date().toISOString(),
     })
     .eq('id', phenomenonId)
     .eq('owner_id', ownerId);
 
-  if (updatePhenomenonError) {
-    throw new Error(
-      `PPOI_PHENOMENON_UPDATE_FAILED: ${updatePhenomenonError.message}`,
-    );
-  }
-
-  const {
-    error: deactivateHypothesisError,
-  } = await client
+  await client
     .from(TABLE_HYPOTHESES)
-    .update({
-      is_current: false,
-    })
+    .update({ is_current: false })
     .eq('phenomenon_id', phenomenonId)
     .eq('owner_id', ownerId)
     .eq('is_current', true);
 
-  if (deactivateHypothesisError) {
-    throw new Error(
-      `PPOI_HYPOTHESIS_DEACTIVATE_FAILED: ${deactivateHypothesisError.message}`,
-    );
-  }
-
-  const {
-    data: hypothesis,
-    error: hypothesisError,
-  } = await client
+  const { data: hypothesis, error: hypothesisError } = await client
     .from(TABLE_HYPOTHESES)
     .insert({
-      phenomenon_id:
-        phenomenonId,
-
-      owner_id:
-        ownerId,
-
-      direction:
-        trajectory.direction,
-
-      rationale:
-        trajectory.rationale,
-
-      rival_direction:
-        trajectory.rivalDirection,
-
-      rival_rationale:
-        trajectory.rivalRationale,
-
-      trajectory_scores:
-        trajectory.scores,
-
-      index_snapshot:
-        result.indices,
-
-      composite_snapshot:
-        result.composite,
-
-      is_current:
-        true,
+      phenomenon_id: phenomenonId,
+      owner_id: ownerId,
+      direction: trajectory.direction,
+      rationale: trajectory.rationale,
+      rival_direction: trajectory.rivalDirection,
+      rival_rationale: trajectory.rivalRationale,
+      trajectory_scores: trajectory.scores,
+      index_snapshot: result.indices,
+      composite_snapshot: result.composite,
+      is_current: true,
     })
     .select('*')
     .single();
 
-  if (hypothesisError) {
-    throw new Error(
-      `PPOI_HYPOTHESIS_INSERT_FAILED: ${hypothesisError.message}`,
-    );
-  }
+  if (hypothesisError) throw new Error(`PPOI_HYPOTHESIS_INSERT_FAILED: ${hypothesisError.message}`);
 
   return {
-    indices:
-      result.indices,
-
-    composite:
-      result.composite,
-
-    evidenceCount:
-      result.evidenceCount,
-
-    spanDays:
-      result.spanDays,
-
-    calibrationNotes:
-      result.notes,
-
+    indices: result.indices,
+    composite: result.composite,
+    evidenceCount: result.evidenceCount,
+    spanDays: result.spanDays,
+    calibrationNotes: result.notes,
     trajectory,
-
-    hypothesis:
-      record(hypothesis),
+    hypothesis: record(hypothesis),
   };
 }
 
-export async function getPhenomenonState(
-  ownerId: string,
-  phenomenonId: string,
-): Promise<PhenomenonState> {
-
-  const client =
-    createServiceSupabaseClient();
-
-
-  const phenomenonRaw =
-    await loadOwnedPhenomenon(
-      client,
-      ownerId,
-      phenomenonId,
-    );
-
+export async function getPhenomenonState(ownerId: string, phenomenonId: string): Promise<PhenomenonState> {
+  const client = createServiceSupabaseClient();
+  const phenomenonRaw = await loadOwnedPhenomenon(client, ownerId, phenomenonId);
 
   const phenomenon: PhenomenonRow = {
-
-    id:
-      String(
-        phenomenonRaw.id,
-      ),
-
-
-    name:
-      String(
-        phenomenonRaw.name ?? '',
-      ),
-
-
-    status:
-      String(
-        phenomenonRaw.status ?? '',
-      ),
-
-
-    current_indices:
-      (
-        phenomenonRaw.current_indices &&
-        typeof phenomenonRaw.current_indices === 'object'
-      )
-        ? phenomenonRaw.current_indices as PpoiIndices
-        : {},
-
-
-    current_composite:
-      typeof phenomenonRaw.current_composite === 'number'
-        ? phenomenonRaw.current_composite
-        : null,
-
-
-    opened_at:
-      typeof phenomenonRaw.opened_at === 'string'
-        ? phenomenonRaw.opened_at
-        : undefined,
-
-
-    last_evidence_at:
-      typeof phenomenonRaw.last_evidence_at === 'string'
-        ? phenomenonRaw.last_evidence_at
-        : undefined,
-
-    fp_code:
-      typeof phenomenonRaw.fp_code === 'string'
-        ? phenomenonRaw.fp_code
-        : null,
-
-
-    indices_calculated_at:
-      typeof phenomenonRaw.indices_calculated_at === 'string'
-        ? phenomenonRaw.indices_calculated_at
-        : null,
-
-
+    id: String(phenomenonRaw.id),
+    name: String(phenomenonRaw.name ?? ''),
+    status: String(phenomenonRaw.status ?? ''),
+    current_indices: (phenomenonRaw.current_indices && typeof phenomenonRaw.current_indices === 'object')
+      ? phenomenonRaw.current_indices as PpoiIndices
+      : {},
+    current_composite: typeof phenomenonRaw.current_composite === 'number' ? phenomenonRaw.current_composite : null,
+    opened_at: typeof phenomenonRaw.opened_at === 'string' ? phenomenonRaw.opened_at : undefined,
+    last_evidence_at: typeof phenomenonRaw.last_evidence_at === 'string' ? phenomenonRaw.last_evidence_at : undefined,
+    fp_code: typeof phenomenonRaw.fp_code === 'string' ? phenomenonRaw.fp_code : null,
+    indices_calculated_at: typeof phenomenonRaw.indices_calculated_at === 'string' ? phenomenonRaw.indices_calculated_at : null,
   };
 
-
-
-  const [
-    {
-      data:evidence,
-      error:evidenceError,
-    },
-
-    {
-      data:hypothesis,
-      error:hypothesisError,
-    },
-
-  ] = await Promise.all([
-
-
-    client
-      .from(TABLE_EVIDENCE)
-      .select('*')
-      .eq(
-        'phenomenon_id',
-        phenomenonId,
-      )
-      .eq(
-        'owner_id',
-        ownerId,
-      )
-      .order(
-        'observed_at',
-        {
-          ascending:false,
-        },
-      ),
-
-
-
-    client
-      .from(TABLE_HYPOTHESES)
-      .select('*')
-      .eq(
-        'phenomenon_id',
-        phenomenonId,
-      )
-      .eq(
-        'owner_id',
-        ownerId,
-      )
-      .eq(
-        'is_current',
-        true,
-      )
-      .maybeSingle(),
-
+  const [{ data: evidence, error: evidenceError }, { data: hypothesis, error: hypothesisError }] = await Promise.all([
+    client.from(TABLE_EVIDENCE).select('*').eq('phenomenon_id', phenomenonId).eq('owner_id', ownerId).order('observed_at', { ascending: false }),
+    client.from(TABLE_HYPOTHESES).select('*').eq('phenomenon_id', phenomenonId).eq('owner_id', ownerId).eq('is_current', true).maybeSingle(),
   ]);
 
-
-
-  if(evidenceError){
-
-    throw new Error(
-      `PPOI_EVIDENCE_READ_FAILED: ${evidenceError.message}`,
-    );
-
-  }
-
-
-
-  if(hypothesisError){
-
-    throw new Error(
-      `PPOI_HYPOTHESIS_READ_FAILED: ${hypothesisError.message}`,
-    );
-
-  }
-
-
+  if (evidenceError) throw new Error(`PPOI_EVIDENCE_READ_FAILED: ${evidenceError.message}`);
+  if (hypothesisError) throw new Error(`PPOI_HYPOTHESIS_READ_FAILED: ${hypothesisError.message}`);
 
   return {
-
     phenomenon,
-
-
-    evidence:
-      Array.isArray(evidence)
-
-        ? evidence.map(
-            item => {
-
-              const row =
-                item as EvidenceRow;
-
-              return {
-
-                id:
-                  String(row.id),
-
-                evidence_type:
-                  String(
-                    row.evidence_type ?? '',
-                  ),
-
-                source:
-                  String(
-                    row.source ?? '',
-                  ),
-
-                domain:
-                  String(
-                    row.domain ?? '',
-                  ),
-
-                observed_at:
-                  String(
-                    row.observed_at ?? '',
-                  ),
-
-                content_text:
-                  typeof row.content_text === 'string'
-                    ? row.content_text
-                    : null,
-
-                content_url:
-                  typeof row.content_url === 'string'
-                    ? row.content_url
-                    : null,
-
-              };
-
-            },
-          )
-
-        : [],
-
-
-
-    currentHypothesis:
-      hypothesis
-        ? record(hypothesis)
-        : null,
-
-  };
-
-}
-
-export type PpoiPhenomenonPromotionInput = {
-  module?: string;
-  label?: string;
-  attractorKeys?: string[];
-  ejectorKeys?: string[];
-};
-
-function buildPhenomenonCandidateFromPpoi(
-  phenomenon: Row,
-  evidenceCount: number,
-  indices: Record<string, number>,
-  composite: number,
-): {
-  module: string;
-  label: string;
-  evidenceIds: string[];
-  attractorKeys: string[];
-  ejectorKeys: string[];
-  firstSeen: string;
-  lastSeen: string;
-  density: number;
-  trust: number;
-  persistence: number;
-  velocity: number;
-} {
-  const firstSeen =
-    typeof phenomenon.opened_at === 'string'
-      ? phenomenon.opened_at
-      : new Date().toISOString();
-
-  const lastSeen =
-    typeof phenomenon.last_evidence_at === 'string'
-      ? phenomenon.last_evidence_at
-      : firstSeen;
-
-  return {
-    module: 'ppoi',
-
-    label:
-      typeof phenomenon.name === 'string'
-        ? phenomenon.name
-        : 'ppoi phenomenon',
-
-    evidenceIds:
-      Array.from(
-        {
-          length: evidenceCount,
-        },
-        (_, index) =>
-          `ppoi-evidence-${index + 1}`,
-      ),
-
-    attractorKeys: [
-      `composite:${composite.toFixed(2)}`,
-      `direction:${String(
-        phenomenon.current_direction ?? 'UNKNOWN',
-      )}`,
-    ],
-
-    ejectorKeys:
-      composite < 1
-        ? ['low-structural-density']
-        : [],
-
-    firstSeen,
-
-    lastSeen,
-
-    density:
-      Math.min(
-        1,
-        evidenceCount / 10,
-      ),
-
-    trust:
-      Math.min(
-        1,
-        (Number(indices.IE ?? 0) +
-          Number(indices.ES ?? 0)) /
-          10,
-      ),
-
-    persistence:
-      Math.min(
-        1,
-        Number(indices.PT ?? 0) / 5,
-      ),
-
-    velocity:
-      Math.min(
-        1,
-        Number(indices.RC ?? 0) / 5,
-      ),
+    evidence: Array.isArray(evidence) ? evidence.map((item) => {
+      const row = item as EvidenceRow;
+      return {
+        id: String(row.id),
+        evidence_type: String(row.evidence_type ?? ''),
+        source: String(row.source ?? ''),
+        domain: String(row.domain ?? ''),
+        observed_at: String(row.observed_at ?? ''),
+        content_text: typeof row.content_text === 'string' ? row.content_text : null,
+        content_url: typeof row.content_url === 'string' ? row.content_url : null,
+      };
+    }) : [],
+    currentHypothesis: hypothesis ? record(hypothesis) : null,
   };
 }
 
-async function promotePpoiPhenomenon(
-  ownerId: string,
-  phenomenon: Row,
-  result: {
-    indices: Record<string, number>;
-    composite: number;
-    evidenceCount: number;
-  },
-) {
-  try {
-    const {
-      promotePhenomenonCandidate,
-    } = await import(
-      '@/lib/phenomena/phenomenon-engine'
-    );
-
-    const candidate =
-      buildPhenomenonCandidateFromPpoi(
-        phenomenon,
-        result.evidenceCount,
-        result.indices,
-        result.composite,
-      );
-
-    return await promotePhenomenonCandidate(
-      candidate,
-    );
-  } catch (error) {
-    return {
-      ok: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : 'PPOI_PROMOTION_FAILED',
-      ownerId,
-    };
-  }
-}
-// ---------------------------------------------------------------------------
-// Evidence Graph (aditivo) — ver migración 20260720120000_ppoi_evidence_links.sql
-//
-// Estas funciones NO alteran el ciclo de calibración existente. Los vínculos
-// que crean son de contexto/lectura: una evidencia sigue perteneciendo a un
-// único fenómeno vía ppoi_evidence.phenomenon_id (sin cambios), pero además
-// puede quedar relacionada con otros fenómenos a través de ppoi_evidence_links.
-// ---------------------------------------------------------------------------
-
-const TABLE_EVIDENCE_LINKS = 'ppoi_evidence_links';
+// --- Evidence Graph (aditivo) ---
 
 export type EvidenceLinkInput = {
   evidenceId: string;
@@ -936,37 +383,20 @@ export type EvidenceLinkInput = {
   note?: string | null;
 };
 
-/**
- * Vincula una evidencia ya existente (dueña de otro fenómeno, o del mismo)
- * a un fenómeno adicional. No mueve la evidencia ni cambia su dueño primario.
- */
 export async function linkEvidenceToPhenomenon(
   ownerId: string,
   input: EvidenceLinkInput,
 ) {
   const client = createServiceSupabaseClient();
 
-  // Verificación de pertenencia: la evidencia y el fenómeno destino deben
-  // ser del mismo owner, igual que el resto de PPOI.
   const [{ data: evidenceRow, error: evidenceError }, phenomenon] = await Promise.all([
-    client
-      .from(TABLE_EVIDENCE)
-      .select('id, owner_id')
-      .eq('id', input.evidenceId)
-      .eq('owner_id', ownerId)
-      .maybeSingle(),
+    client.from(TABLE_EVIDENCE).select('id, owner_id').eq('id', input.evidenceId).eq('owner_id', ownerId).maybeSingle(),
     loadOwnedPhenomenon(client, ownerId, input.phenomenonId),
   ]);
 
-  if (evidenceError) {
-    throw new Error(`PPOI_EVIDENCE_READ_FAILED: ${evidenceError.message}`);
-  }
-  if (!evidenceRow) {
-    throw new Error('PPOI_EVIDENCE_NOT_FOUND');
-  }
-  if (!phenomenon) {
-    throw new Error('PPOI_PHENOMENON_NOT_FOUND');
-  }
+  if (evidenceError) throw new Error(`PPOI_EVIDENCE_READ_FAILED: ${evidenceError.message}`);
+  if (!evidenceRow) throw new Error('PPOI_EVIDENCE_NOT_FOUND');
+  if (!phenomenon) throw new Error('PPOI_PHENOMENON_NOT_FOUND');
 
   const { data, error } = await client
     .from(TABLE_EVIDENCE_LINKS)
@@ -983,10 +413,7 @@ export async function linkEvidenceToPhenomenon(
     .select('*')
     .single();
 
-  if (error) {
-    throw new Error(`PPOI_EVIDENCE_LINK_FAILED: ${error.message}`);
-  }
-
+  if (error) throw new Error(`PPOI_EVIDENCE_LINK_FAILED: ${error.message}`);
   return record(data);
 }
 
@@ -996,7 +423,6 @@ export async function unlinkEvidenceFromPhenomenon(
   phenomenonId: string,
 ) {
   const client = createServiceSupabaseClient();
-
   const { error } = await client
     .from(TABLE_EVIDENCE_LINKS)
     .delete()
@@ -1004,18 +430,10 @@ export async function unlinkEvidenceFromPhenomenon(
     .eq('evidence_id', evidenceId)
     .eq('phenomenon_id', phenomenonId);
 
-  if (error) {
-    throw new Error(`PPOI_EVIDENCE_UNLINK_FAILED: ${error.message}`);
-  }
-
+  if (error) throw new Error(`PPOI_EVIDENCE_UNLINK_FAILED: ${error.message}`);
   return { ok: true };
 }
 
-/**
- * Evidencia vinculada a este fenómeno DESDE OTROS fenómenos (no la que ya
- * aparece en getPhenomenonState, que es la evidencia propia). Sirve para
- * mostrar en el panel: "esta evidencia también aplica aquí, viene de X".
- */
 export async function listLinkedEvidence(
   ownerId: string,
   phenomenonId: string,
@@ -1029,9 +447,7 @@ export async function listLinkedEvidence(
     .eq('phenomenon_id', phenomenonId)
     .order('created_at', { ascending: false });
 
-  if (linksError) {
-    throw new Error(`PPOI_EVIDENCE_LINKS_READ_FAILED: ${linksError.message}`);
-  }
+  if (linksError) throw new Error(`PPOI_EVIDENCE_LINKS_READ_FAILED: ${linksError.message}`);
 
   const evidenceIds = (links ?? []).map((row) => String((row as Row).evidence_id));
   if (!evidenceIds.length) return [];
@@ -1041,13 +457,9 @@ export async function listLinkedEvidence(
     .select('id, evidence_type, source, domain, content_text, content_url, observed_at, phenomenon_id')
     .in('id', evidenceIds);
 
-  if (evidenceError) {
-    throw new Error(`PPOI_EVIDENCE_READ_FAILED: ${evidenceError.message}`);
-  }
+  if (evidenceError) throw new Error(`PPOI_EVIDENCE_READ_FAILED: ${evidenceError.message}`);
 
-  const evidenceById = new Map(
-    (evidenceRows ?? []).map((row) => [String((row as Row).id), row as Row]),
-  );
+  const evidenceById = new Map((evidenceRows ?? []).map((row) => [String((row as Row).id), row as Row]));
 
   return (links ?? []).map((link) => {
     const linkRow = link as Row;
@@ -1060,4 +472,58 @@ export async function listLinkedEvidence(
       evidence: evidence ? record(evidence) : null,
     };
   });
+}
+
+// --- Promoción (existente) ---
+
+export type PpoiPhenomenonPromotionInput = {
+  module?: string;
+  label?: string;
+  attractorKeys?: string[];
+  ejectorKeys?: string[];
+};
+
+function buildPhenomenonCandidateFromPpoi(
+  phenomenon: Row,
+  evidenceCount: number,
+  indices: Record<string, number>,
+  composite: number,
+) {
+  const firstSeen = typeof phenomenon.opened_at === 'string' ? phenomenon.opened_at : new Date().toISOString();
+  const lastSeen = typeof phenomenon.last_evidence_at === 'string' ? phenomenon.last_evidence_at : firstSeen;
+
+  return {
+    module: 'ppoi',
+    label: typeof phenomenon.name === 'string' ? phenomenon.name : 'ppoi phenomenon',
+    evidenceIds: Array.from({ length: evidenceCount }, (_, i) => `ppoi-evidence-${i + 1}`),
+    attractorKeys: [
+      `composite:${composite.toFixed(2)}`,
+      `direction:${String(phenomenon.current_direction ?? 'UNKNOWN')}`,
+    ],
+    ejectorKeys: composite < 1 ? ['low-structural-density'] : [],
+    firstSeen,
+    lastSeen,
+    density: Math.min(1, evidenceCount / 10),
+    trust: Math.min(1, (Number(indices.IE ?? 0) + Number(indices.ES ?? 0)) / 10),
+    persistence: Math.min(1, Number(indices.PT ?? 0) / 5),
+    velocity: Math.min(1, Number(indices.RC ?? 0) / 5),
+  };
+}
+
+async function promotePpoiPhenomenon(
+  ownerId: string,
+  phenomenon: Row,
+  result: { indices: Record<string, number>; composite: number; evidenceCount: number },
+) {
+  try {
+    const { promotePhenomenonCandidate } = await import('@/lib/phenomena/phenomenon-engine');
+    const candidate = buildPhenomenonCandidateFromPpoi(phenomenon, result.evidenceCount, result.indices, result.composite);
+    return await promotePhenomenonCandidate(candidate);
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : 'PPOI_PROMOTION_FAILED',
+      ownerId,
+    };
+  }
 }
