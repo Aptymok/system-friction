@@ -9,6 +9,8 @@ import {
   type PermeabilityMetricPoint,
 } from '@/lib/studio/production/permeabilityEngine';
 
+import { recordObservationEvent } from '@/lib/root/telemetry/agentRegistry';
+
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
@@ -34,6 +36,14 @@ export async function GET(_request: Request, ctx: RouteContext) {
   }));
 
   const report = evaluatePermeability(points);
+
+  recordObservationEvent({
+    agentKey: 'studio_permeability_agent',
+    signal: `Objeto ${objectId}: ${report.tendencia} (${report.edicionesAnalizadas} ediciones)`,
+    confidence: null,
+    linked: [{ type: 'studio_object', id: objectId }],
+    action: report.tendencia === 'perdiendo_permeabilidad' ? 'flagged_degradation' : 'none',
+  }).catch(() => undefined);
 
   return NextResponse.json({ ok: true, objectId, report }, { status: 200 });
 }

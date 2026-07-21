@@ -2,6 +2,7 @@ import 'server-only';
 
 import { runMophAgent } from '@/lib/agents/sfiAgents';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
+import { recordObservationEvent } from '@/lib/root/telemetry/agentRegistry';
 
 /**
  * Studio no tenía forma de declarar un objetivo/atractor — Field sí
@@ -104,6 +105,14 @@ export async function declareStudioAttractor(
   if (error) {
     throw new Error(`STUDIO_ATTRACTOR_PERSIST_FAILED:${error.message}`);
   }
+
+  recordObservationEvent({
+    agentKey: 'studio_attractor_agent',
+    signal: `Atractor declarado para objeto ${input.objectId}: ${input.objective.trim()}`,
+    confidence: moph.confidence,
+    linked: [{ type: 'studio_object', id: input.objectId }],
+    action: 'attractor_declared',
+  }).catch(() => undefined);
 
   return toDeclaration(input.objectId, input.objective.trim(), createdAt, moph);
 }

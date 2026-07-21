@@ -1,0 +1,327 @@
+import 'server-only';
+
+import { createServiceSupabaseClient } from '@/runtime/supabase/server';
+
+/**
+ * ROOT Runtime Telemetry Layer.
+ *
+ * No reemplaza `buildAgenticRootState` (sfiAgents.ts) — ese sigue siendo
+ * el cálculo en caliente de proveedores/predicciones/grafo. Esto es la
+ * pieza que faltaba: quién es cada agente formalmente, qué observó y
+ * cuándo, para poder responder "¿qué cambió desde la última observación?"
+ * en vez de recalcular todo desde cero cada vez.
+ */
+
+export type RootAgentType =
+  | 'IDENTITY'
+  | 'HYPOTHESIS'
+  | 'GOVERNANCE'
+  | 'PREDICTION'
+  | 'STUDIO_TECHNICAL'
+  | 'CULTURAL'
+  | 'WORLD_VECTOR'
+  | 'COGNITIVE';
+
+export type RootAgentStatus = 'ACTIVE' | 'WAITING' | 'SUPERVISED' | 'MISSING_DATA' | 'DISABLED';
+export type RootAgentPermission = 'READ_ONLY' | 'PROPOSE_ONLY' | 'SUPERVISED_EXECUTE';
+
+/**
+ * Catálogo de agentes REALES que ya existen en el código — no se inventó
+ * ninguno. Cada uno corresponde a un módulo que ya construimos o auditamos
+ * en esta sesión. Sirve como semilla para `root_agents`; correr
+ * `ensureAgentRegistrySeeded()` los crea si no existen, sin sobrescribir
+ * su `status`/`last_run_at` si ya fueron actualizados por uso real.
+ */
+export const KNOWN_AGENTS: Array<{
+  agentKey: string;
+  name: string;
+  agentType: RootAgentType;
+  capability: string;
+  permissions: RootAgentPermission;
+  initialStatus: RootAgentStatus;
+  notes: string;
+}> = [
+  {
+    agentKey: 'phenomenon_identity_resolver',
+    name: 'Phenomenon Identity Resolver',
+    agentType: 'IDENTITY',
+    capability: 'Resuelve si un fenómeno buscado ya existe en PPOI/Studio/Field/Registry, con candidatos por similitud.',
+    permissions: 'READ_ONLY',
+    initialStatus: 'ACTIVE',
+    notes: 'Wireado en /api/ppoi/phenomena (POST).',
+  },
+  {
+    agentKey: 'phenomenon_hypothesis_view',
+    name: 'Phenomenon Hypothesis View',
+    agentType: 'HYPOTHESIS',
+    capability: 'Consolida en lectura las hipótesis PPOI + Studio + Cultural-lab sobre un fenómeno.',
+    permissions: 'READ_ONLY',
+    initialStatus: 'ACTIVE',
+    notes: 'Wireado en /api/ppoi/phenomena/[id] (GET). Observador CULTURAL siempre MISSING_DATA hasta Fase B.',
+  },
+  {
+    agentKey: 'studio_attractor_agent',
+    name: 'Studio Attractor Agent (MOP-H)',
+    agentType: 'STUDIO_TECHNICAL',
+    capability: 'Declara atractor/objetivo de un objeto de Studio vía MOP-H, devuelve perturbación mínima y próxima acción.',
+    permissions: 'PROPOSE_ONLY',
+    initialStatus: 'ACTIVE',
+    notes: 'Wireado en /api/studio/objects/[id]/attractor.',
+  },
+  {
+    agentKey: 'studio_permeability_agent',
+    name: 'Studio Permeability Agent',
+    agentType: 'STUDIO_TECHNICAL',
+    capability: 'Detecta degradación/permeabilidad longitudinal entre ediciones de un objeto de Studio.',
+    permissions: 'READ_ONLY',
+    initialStatus: 'ACTIVE',
+    notes: 'Wireado en /api/studio/objects/[id]/permeability.',
+  },
+  {
+    agentKey: 'studio_field_projection_agent',
+    name: 'Studio Field Projection Agent',
+    agentType: 'STUDIO_TECHNICAL',
+    capability: 'Proyecta un objeto de Studio contra el World Vector — divergencia + ruta correctiva.',
+    permissions: 'PROPOSE_ONLY',
+    initialStatus: 'ACTIVE',
+    notes: 'Ya existía antes de esta sesión: /api/studio/objects/[id]/project.',
+  },
+  {
+    agentKey: 'cultural_lab_pipeline',
+    name: 'Cultural Lab Pipeline (8 agentes)',
+    agentType: 'CULTURAL',
+    capability: 'worldSpectrum → MIHM → emergencia → proyección → intervención → simulación → implementación → narrativa.',
+    permissions: 'PROPOSE_ONLY',
+    initialStatus: 'MISSING_DATA',
+    notes: 'No persiste resultados en base de datos. interventionAgent usa plantillas, no datos reales. Pendiente Fase B.',
+  },
+  {
+    agentKey: 'prediction_registry_agent',
+    name: 'Prediction Registry Agent',
+    agentType: 'PREDICTION',
+    capability: 'Salud y listado del registro de predicciones.',
+    permissions: 'READ_ONLY',
+    initialStatus: 'ACTIVE',
+    notes: 'Ya existía: getPredictionRegistryHealth/listPredictionEntries.',
+  },
+  {
+    agentKey: 'world_vector_agent',
+    name: 'World Vector Agent',
+    agentType: 'WORLD_VECTOR',
+    capability: 'Estado del vector cultural mundial.',
+    permissions: 'READ_ONLY',
+    initialStatus: 'ACTIVE',
+    notes: 'Ya existía: runWorldVectorAgent.',
+  },
+  {
+    agentKey: 'governance_agent',
+    name: 'Governance Agent',
+    agentType: 'GOVERNANCE',
+    capability: 'Cola de aprobación de acciones (mutations, self-reconstruction).',
+    permissions: 'SUPERVISED_EXECUTE',
+    initialStatus: 'SUPERVISED',
+    notes: 'Ya existía: /api/root/governance, /api/root/mutations/[id]/close, self-reconstruction/*. Autonomía intencionalmente apagada.',
+  },
+  {
+    agentKey: 'cognitive_twin_agent',
+    name: 'Cognitive Twin Agent',
+    agentType: 'COGNITIVE',
+    capability: 'Modelo cognitivo del fundador para operaciones de ROOT.',
+    permissions: 'READ_ONLY',
+    initialStatus: 'ACTIVE',
+    notes: 'Ya existía: runCognitiveTwinAgent.',
+  },
+];
+
+export async function ensureAgentRegistrySeeded() {
+  const client = createServiceSupabaseClient();
+
+  for (const agent of KNOWN_AGENTS) {
+    const { data: existing } = await client
+      .from('root_agents')
+      .select('id')
+      .eq('agent_key', agent.agentKey)
+      .maybeSingle();
+
+    if (existing) continue;
+
+    await client.from('root_agents').insert({
+      agent_key: agent.agentKey,
+      name: agent.name,
+      agent_type: agent.agentType,
+      capability: agent.capability,
+      status: agent.initialStatus,
+      permissions: agent.permissions,
+      notes: agent.notes,
+    });
+  }
+}
+
+export type RecordObservationInput = {
+  agentKey: string;
+  signal: string;
+  confidence?: number | null;
+  phenomenonId?: string | null;
+  linked?: Array<{ type: string; id: string }>;
+  action?: string;
+};
+
+/**
+ * Registra un evento de observación Y actualiza el estado del agente
+ * (last_run_at/last_observation_at/last_confidence/status=ACTIVE). Si el
+ * agente no está en el registro todavía, no falla — lo omite (el
+ * registro se siembra con ensureAgentRegistrySeeded, no aquí).
+ */
+export async function recordObservationEvent(input: RecordObservationInput) {
+  const client = createServiceSupabaseClient();
+  const now = new Date().toISOString();
+
+  const { error: eventError } = await client.from('root_observation_events').insert({
+    agent_key: input.agentKey,
+    observed_at: now,
+    phenomenon_id: input.phenomenonId ?? null,
+    signal: input.signal,
+    confidence: input.confidence ?? null,
+    linked: input.linked ?? [],
+    action: input.action ?? 'none',
+  });
+
+  if (eventError) {
+    // La telemetría nunca debe tumbar el flujo principal que la generó.
+    return { ok: false as const, error: eventError.message };
+  }
+
+  await client
+    .from('root_agents')
+    .update({
+      last_run_at: now,
+      last_observation_at: now,
+      last_confidence: input.confidence ?? null,
+      status: 'ACTIVE',
+      updated_at: now,
+    })
+    .eq('agent_key', input.agentKey);
+
+  return { ok: true as const };
+}
+
+export type RootTelemetryCore = {
+  generatedAt: string;
+  agents: Array<{
+    agentKey: string;
+    name: string;
+    agentType: RootAgentType;
+    status: RootAgentStatus;
+    permissions: RootAgentPermission;
+    capability: string;
+    lastRunAt: string | null;
+    lastObservationAt: string | null;
+    lastConfidence: number | null;
+    notes: string | null;
+  }>;
+  recentEvents: Array<{
+    id: string;
+    agentKey: string;
+    observedAt: string;
+    phenomenonId: string | null;
+    signal: string;
+    confidence: number | null;
+    linked: unknown;
+    action: string;
+  }>;
+  dynamics: {
+    agentesActivos: number;
+    agentesTotal: number;
+    eventosUltimas24h: number;
+    eventosDia_anterior: number;
+    aceleracionEvidencia: 'creciendo' | 'estable' | 'desacelerando' | 'sin_datos';
+    confianzaPromedio24h: number | null;
+  };
+  health: {
+    estado: 'operacional' | 'degradado';
+    razon: string;
+  };
+};
+
+export async function getRootTelemetryCore(): Promise<RootTelemetryCore> {
+  await ensureAgentRegistrySeeded();
+
+  const client = createServiceSupabaseClient();
+
+  const [{ data: agents }, { data: recentEvents }] = await Promise.all([
+    client.from('root_agents').select('*').order('name', { ascending: true }),
+    client
+      .from('root_observation_events')
+      .select('id, agent_key, observed_at, phenomenon_id, signal, confidence, linked, action')
+      .order('observed_at', { ascending: false })
+      .limit(50),
+  ]);
+
+  const now = Date.now();
+  const last24h = (recentEvents ?? []).filter(
+    (e) => now - new Date(e.observed_at as string).getTime() <= 24 * 60 * 60 * 1000,
+  );
+  const previous24h = (recentEvents ?? []).filter((e) => {
+    const age = now - new Date(e.observed_at as string).getTime();
+    return age > 24 * 60 * 60 * 1000 && age <= 48 * 60 * 60 * 1000;
+  });
+
+  let aceleracion: RootTelemetryCore['dynamics']['aceleracionEvidencia'] = 'sin_datos';
+  if (last24h.length || previous24h.length) {
+    if (last24h.length > previous24h.length) aceleracion = 'creciendo';
+    else if (last24h.length < previous24h.length) aceleracion = 'desacelerando';
+    else aceleracion = 'estable';
+  }
+
+  const confidences = last24h
+    .map((e) => e.confidence as number | null)
+    .filter((c): c is number => typeof c === 'number');
+  const confianzaPromedio24h = confidences.length
+    ? Number((confidences.reduce((a, b) => a + b, 0) / confidences.length).toFixed(2))
+    : null;
+
+  const agentesTotal = agents?.length ?? 0;
+  const agentesActivos = (agents ?? []).filter((a) => a.status === 'ACTIVE').length;
+  const missingData = (agents ?? []).filter((a) => a.status === 'MISSING_DATA').length;
+
+  return {
+    generatedAt: new Date().toISOString(),
+    agents: (agents ?? []).map((a) => ({
+      agentKey: a.agent_key,
+      name: a.name,
+      agentType: a.agent_type,
+      status: a.status,
+      permissions: a.permissions,
+      capability: a.capability,
+      lastRunAt: a.last_run_at,
+      lastObservationAt: a.last_observation_at,
+      lastConfidence: a.last_confidence,
+      notes: a.notes,
+    })),
+    recentEvents: (recentEvents ?? []).map((e) => ({
+      id: e.id as string,
+      agentKey: e.agent_key as string,
+      observedAt: e.observed_at as string,
+      phenomenonId: e.phenomenon_id as string | null,
+      signal: e.signal as string,
+      confidence: e.confidence as number | null,
+      linked: e.linked,
+      action: e.action as string,
+    })),
+    dynamics: {
+      agentesActivos,
+      agentesTotal,
+      eventosUltimas24h: last24h.length,
+      eventosDia_anterior: previous24h.length,
+      aceleracionEvidencia: aceleracion,
+      confianzaPromedio24h,
+    },
+    health: {
+      estado: missingData > 0 ? 'degradado' : 'operacional',
+      razon:
+        missingData > 0
+          ? `${missingData} agente(s) sin datos reales todavía (ver notes).`
+          : 'Todos los agentes registrados tienen datos o están correctamente marcados como supervisados.',
+    },
+  };
+}

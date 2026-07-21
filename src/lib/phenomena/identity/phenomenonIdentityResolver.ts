@@ -4,6 +4,7 @@ import { findPpoiIdentityCandidates } from './adapters/ppoiAdapter';
 import { findStudioIdentityCandidates } from './adapters/studioAdapter';
 import { findFieldIdentityCandidates } from './adapters/fieldAdapter';
 import { findRegistryIdentityCandidates } from './adapters/registryAdapter';
+import { recordObservationEvent } from '@/lib/root/telemetry/agentRegistry';
 
 import type { IdentityCandidate } from './phenomenonIdentityTypes';
 
@@ -41,6 +42,17 @@ export async function resolvePhenomenonIdentityGlobal(
     ...fieldCandidates,
     ...registryCandidates,
   ].sort((a, b) => b.similarity - a.similarity);
+
+  const topSimilarity = merged[0]?.similarity ?? (ppoi.status === 'MATCH' ? 1 : 0);
+
+  recordObservationEvent({
+    agentKey: 'phenomenon_identity_resolver',
+    signal: `Búsqueda "${query}" → ${ppoi.status} (${merged.length} candidatos cross-dominio)`,
+    confidence: topSimilarity,
+    phenomenonId: ppoi.phenomenon ? String((ppoi.phenomenon as Record<string, unknown>).id ?? '') || null : null,
+    linked: merged.slice(0, 5).map((c) => ({ type: c.originModule, id: c.id })),
+    action: ppoi.status === 'MATCH' ? 'open_existing' : ppoi.status === 'AMBIGUOUS' ? 'presented_candidates' : 'none',
+  }).catch(() => undefined);
 
   return {
     status: ppoi.status,
