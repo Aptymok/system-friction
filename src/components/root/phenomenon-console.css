@@ -2,7 +2,7 @@
   min-height:100vh;background:#050708;color:#d6dcda;
   font-family:'IBM Plex Mono',ui-monospace,monospace;
   padding:22px;box-sizing:border-box;
-
+}
 .pc-header{border-left:2px solid #c8a951;padding-left:14px;margin-bottom:18px;}
 .pc-header span{display:block;color:#c8a951;font-size:9px;letter-spacing:.18em;text-transform:uppercase;}
 .pc-header h1{font-family:'Cormorant Garamond',serif;font-weight:600;font-size:26px;color:#f5eedc;margin:6px 0 4px;}
@@ -52,4 +52,4 @@
 
 @media(max-width:640px){
   .pc-timeline li{grid-template-columns:1fr;gap:4px;}
-  
+}
