@@ -9,6 +9,7 @@ import {
 import { predictStudioFieldResponse } from '@/lib/predictive-engine/adapters/studio';
 import { getLatestPredictiveRun } from '@/lib/predictive-engine/service';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
+import { recordObservationEvent } from '@/lib/root/telemetry/agentRegistry';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -81,6 +82,17 @@ export async function POST(request: Request, ctx: RouteContext) {
       if (error instanceof AmvEpistemicGateError) warnings.push(`${error.code}:${error.gate.blockers.join(',')}`);
       else warnings.push(`PREDICTIVE_ENGINE_UNAVAILABLE:${error instanceof Error ? error.message : String(error)}`);
     }
+    recordObservationEvent({
+      agentKey: 'studio_field_projection_agent',
+      signal: `Objeto ${objectId} proyectado: régimen ${projection.world.regime}, banda ${projection.fit.band}`,
+      confidence: projection.fit.confidence,
+      linked: [{ type: 'studio_object', id: objectId }],
+      evidenceUsed: projection.evidenceIds.slice(0, 8).map((eid) => ({ type: 'evidence', id: eid })),
+      patternDetected: projection.world.regime,
+      proposedAction: warnings.length ? null : projection.fit.explanation,
+      awaitingAuthorization: projection.fit.band === 'COUNTER_SIGNAL',
+    }).catch(() => undefined);
+
     return NextResponse.json({
       ok: true,
       status: projection.status,
