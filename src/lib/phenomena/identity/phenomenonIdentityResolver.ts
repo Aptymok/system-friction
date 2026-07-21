@@ -51,7 +51,10 @@ export async function resolvePhenomenonIdentityGlobal(
     confidence: topSimilarity,
     phenomenonId: ppoi.phenomenon ? String((ppoi.phenomenon as Record<string, unknown>).id ?? '') || null : null,
     linked: merged.slice(0, 5).map((c) => ({ type: c.originModule, id: c.id })),
-    action: ppoi.status === 'MATCH' ? 'open_existing' : ppoi.status === 'AMBIGUOUS' ? 'presented_candidates' : 'none',
+    evidenceUsed: merged.slice(0, 5).map((c) => ({ type: c.originModule, id: c.id, note: `similitud ${c.similarity.toFixed(2)}` })),
+    patternDetected: ppoi.status === 'AMBIGUOUS' ? 'nombre_similar_multiples_dominios' : ppoi.status === 'MATCH' ? 'coincidencia_exacta' : 'sin_coincidencia',
+    proposedAction: ppoi.status === 'MATCH' ? 'open_existing' : ppoi.status === 'AMBIGUOUS' ? 'presented_candidates' : null,
+    awaitingAuthorization: false, // es solo lectura/presentación, el humano decide en la UI directamente
   }).catch(() => undefined);
 
   return {

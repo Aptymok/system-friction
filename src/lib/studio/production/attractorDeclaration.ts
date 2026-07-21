@@ -111,7 +111,13 @@ export async function declareStudioAttractor(
     signal: `Atractor declarado para objeto ${input.objectId}: ${input.objective.trim()}`,
     confidence: moph.confidence,
     linked: [{ type: 'studio_object', id: input.objectId }],
-    action: 'attractor_declared',
+    evidenceUsed: [
+      { type: 'stuck_system', id: input.objectId, note: input.stuckSystem.trim() },
+      ...(input.evidence ? [{ type: 'evidence_note', id: input.objectId, note: input.evidence.trim() }] : []),
+    ],
+    patternDetected: moph.friction_reading,
+    proposedAction: moph.minimal_perturbation,
+    awaitingAuthorization: moph.risk !== 'low',
   }).catch(() => undefined);
 
   return toDeclaration(input.objectId, input.objective.trim(), createdAt, moph);

@@ -42,7 +42,10 @@ export async function GET(_request: Request, ctx: RouteContext) {
     signal: `Objeto ${objectId}: ${report.tendencia} (${report.edicionesAnalizadas} ediciones)`,
     confidence: null,
     linked: [{ type: 'studio_object', id: objectId }],
-    action: report.tendencia === 'perdiendo_permeabilidad' ? 'flagged_degradation' : 'none',
+    evidenceUsed: points.slice(-2).map((p) => ({ type: 'audio_features', id: objectId, note: p.createdAt })),
+    patternDetected: report.tendencia,
+    proposedAction: report.causas.find((c) => c.direccion === 'empeoró')?.queHacer ?? null,
+    awaitingAuthorization: false, // es un observador, no propone ejecutar nada por sí mismo
   }).catch(() => undefined);
 
   return NextResponse.json({ ok: true, objectId, report }, { status: 200 });
