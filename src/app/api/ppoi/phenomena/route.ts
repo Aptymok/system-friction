@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
 
 import {
+  createPhenomenon,
   listPhenomena,
-  openPhenomenon,
+  listPhenomenonIds,
 } from '@/lib/ppoi/ppoiService';
 
 import {
-  AccessDeniedError,
   requireAuthenticatedUser,
 } from '@/lib/system/access/server';
 
@@ -16,281 +16,104 @@ import {
 
 
 export const dynamic = 'force-dynamic';
-export const runtime = 'nodejs';
 
 
-
-function record(
-  value: unknown,
-): Record<string, unknown> {
-
-  return value &&
-    typeof value === 'object' &&
-    !Array.isArray(value)
-
-    ? value as Record<string, unknown>
-
-    : {};
-
-}
-
-
-
-function failure(
-  error: unknown,
-) {
-
-  if (
-    error instanceof AccessDeniedError
-  ) {
-
-    return NextResponse.json(
-      {
-        ok:false,
-        error:error.code,
-        details:error.message,
-      },
-      {
-        status:error.status,
-      },
-    );
-
-  }
-
-
-  const details =
-    error instanceof Error
-      ? error.message
-      : String(error);
-
-
-
-  const status =
-    details.includes('_REQUIRED') ||
-    details.includes('_INVALID')
-
-      ? 400
-
-      : details.includes('NOT_FOUND')
-
-        ? 404
-
-        : 500;
-
-
-
-  return NextResponse.json(
-    {
-      ok:false,
-      error:'PPOI_PHENOMENON_FAILED',
-      details,
-    },
-    {
-      status,
-    },
-  );
-
-}
-
-
-
-
-
-export async function GET(){
-
+/**
+ * GET /api/ppoi/phenomena
+ *
+ * Lista todos los fenómenos del usuario autenticado.
+ */
+export async function GET() {
   try {
+    const user = await requireAuthenticatedUser();
 
-    const {
-      user,
-    } =
-      await requireAuthenticatedUser();
+    const result = await listPhenomena(user.id);
 
-
-
-    const phenomena =
-      await listPhenomena(
-        user.id,
+    if (!result.ok) {
+      return NextResponse.json(
+        { ok: false, error: result.error },
+        { status: result.status },
       );
-
-
-
-    return NextResponse.json(
-      {
-        ok:true,
-        phenomena,
-      },
-      {
-        status:200,
-      },
-    );
-
-
-  } catch(error){
-
-    return failure(error);
-
-  }
-
-}
-
-
-
-
-
-
-export async function POST(
-  request:Request,
-){
-
-  try {
-
-    const {
-      user,
-    } =
-      await requireAuthenticatedUser();
-
-
-
-    const body =
-      record(
-        await request
-          .json()
-          .catch(
-            ()=>null,
-          ),
-      );
-
-
-
-    const name =
-      typeof body.name === 'string'
-        ? body.name.trim()
-        : '';
-
-
-
-    if(!name){
-
-      throw new Error(
-        'PHENOMENON_NAME_REQUIRED',
-      );
-
     }
 
+    return NextResponse.json(
+      { ok: true, phenomena: result.data },
+      { status: 200 },
+    );
+  } catch (error) {
+    return NextResponse.json(
+      { ok: false, error: error instanceof Error ? error.message : 'UNKNOWN_ERROR' },
+      { status: 500 },
+    );
+  }
+}
 
 
-    const forceCreate =
-      Boolean(
-        body.forceCreate,
+/**
+ * POST /api/ppoi/phenomena
+ *
+ * Abre un nuevo caso fenomenológico. Si ya existe un fenómeno con el mismo nombre,
+ * devuelve el existente (o lista de candidatos si hay ambigüedad).
+ */
+export async function POST(request: Request) {
+  try {
+    const user = await requireAuthenticatedUser();
+    const body = await request.json().catch(() => ({}));
+
+    const name = typeof body.name === 'string' ? body.name.trim() : '';
+    const forceCreate = Boolean(body.forceCreate);
+
+    if (!name) {
+      return NextResponse.json(
+        { ok: false, error: 'PHENOMENON_NAME_REQUIRED' },
+        { status: 400 },
       );
-
-
-
-    const isCalibrationCase =
-      Boolean(
-        body.isCalibrationCase,
-      );
-
-
-
-    const relatedStudioObjectId =
-      typeof body.relatedStudioObjectId === 'string'
-        ? body.relatedStudioObjectId
-        : null;
-
-
-
-    if(!forceCreate){
-
-      const resolution =
-        await resolvePhenomenonIdentityGlobal(
-          user.id,
-          name,
-        );
-
-
-
-      if(
-        resolution.status === 'MATCH'
-      ){
-
-        return NextResponse.json(
-          {
-            ok:true,
-            action:'OPEN_EXISTING',
-            phenomenon:
-              resolution.phenomenon,
-          },
-          {
-            status:200,
-          },
-        );
-
-      }
-
-
-
-      if(
-        resolution.status === 'AMBIGUOUS'
-      ){
-
-        return NextResponse.json(
-          {
-            ok:true,
-            action:'SELECT_EXISTING',
-            candidates:
-              resolution.candidates,
-          },
-          {
-            status:200,
-          },
-        );
-
-      }
-
     }
 
-
-
-
-
-    const phenomenon =
-      await openPhenomenon(
-        user.id,
-        {
-          name,
-
-          isCalibrationCase,
-
-          relatedStudioObjectId,
-
-        },
-      );
-
-
-
-
-
-    return NextResponse.json(
-      {
-        ok:true,
-
-        action:'CREATED',
-
-        phenomenon,
-
-      },
-      {
-        status:201,
-      },
+    // 1. Resolver identidad (global)
+    const resolution = await resolvePhenomenonIdentityGlobal(
+      user.id,
+      name,
     );
 
+    // 2. Si ya hay un match exacto y no se fuerza creación, abrir existente
+    if (resolution.status === 'MATCH' && !forceCreate) {
+      return NextResponse.json({
+        ok: true,
+        action: 'OPEN_EXISTING',
+        phenomenon: resolution.phenomenon,
+      }, { status: 200 });
+    }
 
+    // 3. Si hay ambigüedad y no se fuerza, pedir selección
+    if (resolution.status === 'AMBIGUOUS' && !forceCreate) {
+      return NextResponse.json({
+        ok: true,
+        action: 'SELECT_EXISTING',
+        candidates: resolution.candidates,
+      }, { status: 200 });
+    }
 
-  } catch(error){
+    // 4. Crear nuevo fenómeno (forceCreate o NEW)
+    const created = await createPhenomenon(user.id, name);
 
-    return failure(error);
+    if (!created.ok) {
+      return NextResponse.json(
+        { ok: false, error: created.error },
+        { status: created.status ?? 500 },
+      );
+    }
 
+    return NextResponse.json({
+      ok: true,
+      action: 'CREATED',
+      phenomenon: created.data,
+    }, { status: 201 });
+
+  } catch (error) {
+    return NextResponse.json(
+      { ok: false, error: error instanceof Error ? error.message : 'UNKNOWN_ERROR' },
+      { status: 500 },
+    );
   }
-
 }
