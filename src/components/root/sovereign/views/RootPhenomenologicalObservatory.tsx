@@ -17,9 +17,7 @@ type Props = {
   onRefresh?: () => void;
 };
 
-export function RootPhenomenologicalObservatory({
-  onRefresh,
-}: Props) {
+export function RootPhenomenologicalObservatory({ onRefresh }: Props) {
   const [phenomena, setPhenomena] = useState<PhenomenonHit[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selected, setSelected] = useState<PhenomenonHit | null>(null);
@@ -52,7 +50,7 @@ export function RootPhenomenologicalObservatory({
 
   useEffect(() => {
     if (selectedId) {
-      const found = phenomena.find(p => p.id === selectedId);
+      const found = phenomena.find((p) => p.id === selectedId);
       setSelected(found ?? null);
     } else {
       setSelected(null);
@@ -79,9 +77,6 @@ export function RootPhenomenologicalObservatory({
         return;
       }
 
-      // La resolución de identidad ya viene calculada por el backend
-      // (resolvePhenomenonIdentity). El observatorio debe reflejarla,
-      // no tratarla siempre como creación.
       if (body.action === 'SELECT_EXISTING') {
         setCandidates(body.candidates ?? []);
         return;
@@ -92,11 +87,11 @@ export function RootPhenomenologicalObservatory({
         setCandidates(null);
         setNewCaseName('');
         onRefresh?.();
+        fetchPhenomena();
         if (existing?.id) setSelectedId(String(existing.id));
         return;
       }
 
-      // action === 'CREATED'
       setCandidates(null);
       setNewCaseName('');
       onRefresh?.();
@@ -110,6 +105,7 @@ export function RootPhenomenologicalObservatory({
     setCandidates(null);
     setNewCaseName('');
     onRefresh?.();
+    fetchPhenomena();
     setSelectedId(candidateId);
   }
 
@@ -171,8 +167,14 @@ export function RootPhenomenologicalObservatory({
 
       <div className="po-open-case">
         <span>ABRIR CASO</span>
-        <input value={newCaseName} onChange={(event) => setNewCaseName(event.target.value)} placeholder="Nombre del fenómeno" />
-        <button type="button" onClick={() => openCase(false)} disabled={busy}>{busy ? '...' : 'ABRIR'}</button>
+        <input
+          value={newCaseName}
+          onChange={(e) => setNewCaseName(e.target.value)}
+          placeholder="Nombre del fenómeno"
+        />
+        <button type="button" onClick={() => openCase(false)} disabled={busy}>
+          {busy ? '...' : 'ABRIR'}
+        </button>
         {error ? <span style={{ color: '#e06c67' }}>{error}</span> : null}
       </div>
 
@@ -186,7 +188,13 @@ export function RootPhenomenologicalObservatory({
               const similarity = Number(candidate.similarity ?? 0);
               const origin = String(candidate.originModule ?? candidate.module ?? 'ppoi').toUpperCase();
               return (
-                <button type="button" key={id || name} className="po-resolve-item" onClick={() => selectCandidate(id)} disabled={!id}>
+                <button
+                  type="button"
+                  key={id || name}
+                  className="po-resolve-item"
+                  onClick={() => selectCandidate(id)}
+                  disabled={!id}
+                >
                   <strong>{name}</strong>
                   <span>{origin} · similitud {(similarity * 100).toFixed(0)}%</span>
                 </button>
@@ -194,7 +202,9 @@ export function RootPhenomenologicalObservatory({
             })}
           </div>
           <div className="po-resolve-actions">
-            <button type="button" onClick={() => openCase(true)} disabled={busy}>CREAR NUEVO DE TODAS FORMAS</button>
+            <button type="button" onClick={() => openCase(true)} disabled={busy}>
+              CREAR NUEVO DE TODAS FORMAS
+            </button>
             <button type="button" onClick={cancelResolution}>CANCELAR</button>
           </div>
         </div>
@@ -202,10 +212,17 @@ export function RootPhenomenologicalObservatory({
 
       {selected ? (
         <div className="po-panel">
-          <button type="button" className="po-panel-close" onClick={() => setSelectedId(null)}>CERRAR ×</button>
+          <button type="button" className="po-panel-close" onClick={() => setSelectedId(null)}>
+            CERRAR ×
+          </button>
           <h2>{selected.name}</h2>
           <p>Estado: {selected.status}</p>
-          <p>Última evidencia: {selected.last_evidence_at ? new Date(selected.last_evidence_at).toLocaleString() : '—'}</p>
+          <p>
+            Última evidencia:{' '}
+            {selected.last_evidence_at
+              ? new Date(selected.last_evidence_at).toLocaleString()
+              : '—'}
+          </p>
           <hr />
           <div className="po-evidence-form">
             <h3>Añadir evidencia</h3>

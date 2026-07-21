@@ -82,7 +82,7 @@ async function loadOwnedPhenomenon(
   return record(data);
 }
 
-// --- Funciones principales (existentes) ---
+// --- Funciones principales (con el patrón { ok, data } que el parche espera) ---
 
 export type OpenPhenomenonInput = {
   name: string;
@@ -94,26 +94,30 @@ export async function openPhenomenon(
   ownerId: string,
   input: OpenPhenomenonInput,
 ) {
-  const client = createServiceSupabaseClient();
-  const name = requireText(input.name, 'PHENOMENON_NAME', 200);
+  try {
+    const client = createServiceSupabaseClient();
+    const name = requireText(input.name, 'PHENOMENON_NAME', 200);
 
-  const { data, error } = await client
-    .from(TABLE_PHENOMENA)
-    .insert({
-      owner_id: ownerId,
-      name,
-      status: 'ACTIVE',
-      is_calibration_case: Boolean(input.isCalibrationCase),
-      related_studio_object_id: input.relatedStudioObjectId || null,
-    })
-    .select('*')
-    .single();
+    const { data, error } = await client
+      .from(TABLE_PHENOMENA)
+      .insert({
+        owner_id: ownerId,
+        name,
+        status: 'ACTIVE',
+        is_calibration_case: Boolean(input.isCalibrationCase),
+        related_studio_object_id: input.relatedStudioObjectId || null,
+      })
+      .select('*')
+      .single();
 
-  if (error) throw new Error(`PPOI_PHENOMENON_CREATE_FAILED: ${error.message}`);
-  return record(data);
+    if (error) throw new Error(`PPOI_PHENOMENON_CREATE_FAILED: ${error.message}`);
+    return { ok: true, data: record(data) };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : 'UNKNOWN_ERROR', status: 500 };
+  }
 }
 
-// Alias para compatibilidad con importaciones que usan "createPhenomenon"
+// Alias para compatibilidad con el parche
 export const createPhenomenon = openPhenomenon;
 
 export async function canCreatePhenomenon(ownerId: string, name: string) {
@@ -129,21 +133,44 @@ export async function canCreatePhenomenon(ownerId: string, name: string) {
   return existing.data ?? [];
 }
 
-export async function listPhenomena(ownerId: string) {
-  const client = createServiceSupabaseClient();
-  const { data, error } = await client
-    .from(TABLE_PHENOMENA)
-    .select('*')
-    .eq('owner_id', ownerId)
-    .order('opened_at', { ascending: false });
+export async function listPhenomena(
+  ownerId: string,
+): Promise<{ ok: boolean; data: Row[]; error?: string; status?: number }> {
+  try {
+    const client = createServiceSupabaseClient();
 
-  if (error) throw new Error(`PPOI_PHENOMENA_LIST_FAILED: ${error.message}`);
-  return Array.isArray(data) ? data.map(record) : [];
+    const { data, error } = await client
+      .from(TABLE_PHENOMENA)
+      .select('*')
+      .eq('owner_id', ownerId)
+      .order('opened_at', { ascending: false });
+
+    if (error) {
+      throw new Error(`PPOI_PHENOMENA_LIST_FAILED: ${error.message}`);
+    }
+
+    return {
+      ok: true,
+      data: Array.isArray(data) ? data.map(record) : [],
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      data: [],
+      error: error instanceof Error ? error.message : 'UNKNOWN_ERROR',
+      status: 500,
+    };
+  }
 }
 
 export async function listPhenomenonIds(ownerId: string) {
-  const phenomena = await listPhenomena(ownerId);
-  return phenomena.map((p) => String(p.id));
+  const result = await listPhenomena(ownerId);
+
+  if (!result.ok) {
+    return [];
+  }
+
+  return result.data.map((p) => String(p.id));
 }
 
 export type AddEvidenceInput = {

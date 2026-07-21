@@ -14,28 +14,18 @@ import {
   resolvePhenomenonIdentityGlobal,
 } from '@/lib/phenomena/identity/phenomenonIdentityResolver';
 
-
 export const dynamic = 'force-dynamic';
 
-
-/**
- * GET /api/ppoi/phenomena
- *
- * Lista todos los fenómenos del usuario autenticado.
- */
 export async function GET() {
   try {
-    const user = await requireAuthenticatedUser();
-
+    const { user } = await requireAuthenticatedUser();
     const result = await listPhenomena(user.id);
-
     if (!result.ok) {
       return NextResponse.json(
         { ok: false, error: result.error },
         { status: result.status },
       );
     }
-
     return NextResponse.json(
       { ok: true, phenomena: result.data },
       { status: 200 },
@@ -48,18 +38,10 @@ export async function GET() {
   }
 }
 
-
-/**
- * POST /api/ppoi/phenomena
- *
- * Abre un nuevo caso fenomenológico. Si ya existe un fenómeno con el mismo nombre,
- * devuelve el existente (o lista de candidatos si hay ambigüedad).
- */
 export async function POST(request: Request) {
   try {
-    const user = await requireAuthenticatedUser();
+    const { user } = await requireAuthenticatedUser();
     const body = await request.json().catch(() => ({}));
-
     const name = typeof body.name === 'string' ? body.name.trim() : '';
     const forceCreate = Boolean(body.forceCreate);
 
@@ -70,13 +52,8 @@ export async function POST(request: Request) {
       );
     }
 
-    // 1. Resolver identidad (global)
-    const resolution = await resolvePhenomenonIdentityGlobal(
-      user.id,
-      name,
-    );
+    const resolution = await resolvePhenomenonIdentityGlobal(user.id, name);
 
-    // 2. Si ya hay un match exacto y no se fuerza creación, abrir existente
     if (resolution.status === 'MATCH' && !forceCreate) {
       return NextResponse.json({
         ok: true,
@@ -85,7 +62,6 @@ export async function POST(request: Request) {
       }, { status: 200 });
     }
 
-    // 3. Si hay ambigüedad y no se fuerza, pedir selección
     if (resolution.status === 'AMBIGUOUS' && !forceCreate) {
       return NextResponse.json({
         ok: true,
@@ -94,9 +70,7 @@ export async function POST(request: Request) {
       }, { status: 200 });
     }
 
-    // 4. Crear nuevo fenómeno (forceCreate o NEW)
-    const created = await createPhenomenon(user.id, name);
-
+    const created = await createPhenomenon(user.id, { name });
     if (!created.ok) {
       return NextResponse.json(
         { ok: false, error: created.error },

@@ -3,50 +3,31 @@ import {
   listLinkedEvidence,
 } from '@/lib/ppoi/ppoiService';
 
+import { getPhenomenonHypothesisView } from '@/lib/phenomena/identity/phenomenonHypothesisView';
+
 import {
   requireAuthenticatedUser,
 } from '@/lib/system/access/server';
 
 import PhenomenonConsole from '@/components/root/PhenomenonConsole';
 
-
-export const dynamic = 'force-dynamic';
-
-
 export default async function PhenomenonPage({
   params,
 }: {
-  params: Promise<{
-    id: string;
-  }>;
+  params: Promise<{ id: string }> | { id: string };
 }) {
+  const { user } = await requireAuthenticatedUser();
+  const { id } = await params;
 
-  const {
-    id,
-  } = await params;
-
-
-  const {
-    user,
-  } =
-    await requireAuthenticatedUser();
-
-
-  const state =
-    await getPhenomenonState(
-      user.id,
-      id,
-    );
-
-  const linkedEvidence =
-    await listLinkedEvidence(user.id, id).catch(() => []);
-
+  const state = await getPhenomenonState(user.id, id);
+  const linkedEvidence = await listLinkedEvidence(user.id, id).catch(() => []);
+  const hypothesisView = await getPhenomenonHypothesisView(user.id, id).catch(() => null);
 
   return (
     <PhenomenonConsole
       state={state}
       linkedEvidence={linkedEvidence}
+      hypothesisView={hypothesisView}
     />
   );
-
 }

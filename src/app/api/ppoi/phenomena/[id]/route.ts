@@ -6,169 +6,41 @@ import {
   recalibratePhenomenon,
 } from '@/lib/ppoi/ppoiService';
 
+import { getPhenomenonHypothesisView } from '@/lib/phenomena/identity/phenomenonHypothesisView';
+
 import {
   AccessDeniedError,
   requireAuthenticatedUser,
 } from '@/lib/system/access/server';
 
-
 export const dynamic = 'force-dynamic';
-export const runtime = 'nodejs';
 
+type RouteContext = { params: Promise<{ id: string }> | { id: string } };
 
-type RouteContext = {
-  params:
-    | Promise<{ id: string }>
-    | { id: string };
-};
-
-
-function failure(error: unknown) {
-
-  if (error instanceof AccessDeniedError) {
-    return NextResponse.json(
-      {
-        ok: false,
-        error: error.code,
-        details: error.message,
-      },
-      {
-        status: error.status,
-      },
-    );
-  }
-
-
-  const details =
-    error instanceof Error
-      ? error.message
-      : String(error);
-
-
-  const status =
-    details.includes('NOT_FOUND')
-      ? 404
-      :
-      details.includes('_REQUIRED') ||
-      details.includes('_INVALID') ||
-      details.includes('_NOT_ACTIVE')
-        ? 400
-        : 500;
-
-
-  return NextResponse.json(
-    {
-      ok: false,
-      error: 'PPOI_PHENOMENON_FAILED',
-      details,
-    },
-    {
-      status,
-    },
-  );
+async function getParams(ctx: RouteContext) {
+  const params = await ctx.params;
+  return typeof params === 'object' && params !== null ? params : { id: '' };
 }
 
-
-
-export async function GET(
-  request: Request,
-  ctx: RouteContext,
-) {
-
+export async function GET(request: Request, ctx: RouteContext) {
   try {
+    const { user } = await requireAuthenticatedUser();
+    const { id } = await getParams(ctx);
+    const result = await getPhenomenonState(user.id, id);
 
-    const params =
-      await Promise.resolve(
-        ctx.params,
-      );
-
-
-    const {
-      user,
-    } =
-      await requireAuthenticatedUser();
-
-
-    const result =
-      await getPhenomenonState(
-        user.id,
-        params.id,
-      );
-
-
-    // Aditivo: no falla la respuesta si esta parte falla, solo la omite.
     let linkedEvidence: Awaited<ReturnType<typeof listLinkedEvidence>> = [];
     try {
-      linkedEvidence = await listLinkedEvidence(user.id, params.id);
-    } catch {
-      linkedEvidence = [];
-    }
-
-
-    return NextResponse.json(
-      {
-        ok: true,
-        ...result,
-        linkedEvidence,
-      },
-      {
-        status: 200,
-      },
-    );
-
-
-  } catch (error) {
-
-    return failure(error);
-
-  }
-
-}
-
-
-
-
-export async function POST(
-  request: Request,
-  ctx: RouteContext,
-) {
-
-  try {
-
-    const params =
-      await Promise.resolve(
-        ctx.params,
-      );
-
-
-    const {
-      user,
-    } =
-      await requireAuthenticatedUser();
-
-
-    const result =
-      await recalibratePhenomenon(
-        user.id,
-        params.id,
-      );
-
-
-    // Aditivo: no falla la respuesta si esta parte falla, solo la omite.
-    let linkedEvidence: Awaited<ReturnType<typeof listLinkedEvidence>> = [];
-    try {
-      linkedEvidence = await listLinkedEvidence(user.id, params.id);
+      linkedEvidence = await listLinkedEvidence(user.id, id);
     } catch {
       linkedEvidence = [];
     }
 
     let hypothesisView: Awaited<ReturnType<typeof getPhenomenonHypothesisView>> | null = null;
     try {
-      hypothesisView = await getPhenomenonHypothesisView(user.id, params.id);
+      hypothesisView = await getPhenomenonHypothesisView(user.id, id);
     } catch {
       hypothesisView = null;
     }
-
 
     return NextResponse.json(
       {
@@ -177,16 +49,38 @@ export async function POST(
         linkedEvidence,
         hypothesisView,
       },
-      {
-        status: 200,
-      },
+      { status: 200 },
     );
-
-
   } catch (error) {
-
-    return failure(error);
-
+    if (error instanceof AccessDeniedError) {
+      return NextResponse.json(
+        { ok: false, error: error.code, details: error.message },
+        { status: error.status },
+      );
+    }
+    return NextResponse.json(
+      { ok: false, error: error instanceof Error ? error.message : 'UNKNOWN_ERROR' },
+      { status: 500 },
+    );
   }
+}
 
+export async function POST(request: Request, ctx: RouteContext) {
+  try {
+    const { user } = await requireAuthenticatedUser();
+    const { id } = await getParams(ctx);
+    const result = await recalibratePhenomenon(user.id, id);
+    return NextResponse.json({ ok: true, ...result }, { status: 200 });
+  } catch (error) {
+    if (error instanceof AccessDeniedError) {
+      return NextResponse.json(
+        { ok: false, error: error.code, details: error.message },
+        { status: error.status },
+      );
+    }
+    return NextResponse.json(
+      { ok: false, error: error instanceof Error ? error.message : 'UNKNOWN_ERROR' },
+      { status: 500 },
+    );
+  }
 }
