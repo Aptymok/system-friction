@@ -1,10 +1,41 @@
+import type { SFIEvent } from '../../../packages/events/src/schema';
+
 export type AgentAction =
   | "ANALYZE"
   | "PUBLISH"
   | "SCHEDULE"
   | "OBSERVE"
   | "STORE_MEMORY"
-  | "REQUEST_APPROVAL";
+  | "REQUEST_APPROVAL"
+  | "PLAN_TASK"
+  | "RECONSTRUCT_CONTEXT"
+  | "SIMULATE_FIELD"
+  | "CALIBRATE_REALITY"
+  | "EVALUATE_GOVERNANCE"
+  | "MANAGE_PROJECT";
+
+export type SfiAgentDomain = "temporal" | "evidence" | "simulation" | "governance";
+
+export type SfiAgentAuthorityLevel = "observer" | "analyst" | "advisor" | "executor";
+
+export interface SFI_AgentContract {
+  id: string;
+  purpose: string;
+  domain: SfiAgentDomain;
+  listensTo: Array<SFIEvent | string>;
+  emits: Array<SFIEvent | string>;
+  readsMemory: string[];
+  writesMemory: string[];
+  confidenceModel: {
+    method: string;
+    calibration: string;
+  };
+  authorityLevel: SfiAgentAuthorityLevel;
+  simulationAllowed: boolean;
+  humanApprovalRequired: boolean;
+}
+
+export type SfiAgentContract = SFI_AgentContract;
 
 export interface AgentContext {
   state: any;

@@ -1,0 +1,97 @@
+.rs-cognitive-runtime .rs-stat-strip {
+  border: 1px solid var(--line);
+}
+
+.rs-cognitive-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.rs-cognitive-grid article,
+.rs-task-graph,
+.rs-cognitive-policy {
+  border: 1px solid var(--line);
+  background: var(--panel2);
+  min-width: 0;
+}
+
+.rs-cognitive-grid article > header {
+  border-bottom: 1px solid var(--line);
+  padding: 8px 10px;
+  color: var(--copper);
+  font-size: 8px;
+  letter-spacing: .12em;
+}
+
+.rs-cognitive-policy {
+  padding: 12px;
+  display: grid;
+  gap: 8px;
+  font-size: 8px;
+  line-height: 1.55;
+}
+
+.rs-cognitive-policy strong {
+  color: var(--cyan);
+  font-size: 10px;
+  letter-spacing: .08em;
+}
+
+.rs-cognitive-policy span {
+  color: #9fb1b6;
+}
+
+.rs-task-graph {
+  display: grid;
+  grid-template-columns: minmax(220px, .7fr) minmax(0, 1fr);
+  gap: 6px;
+  padding: 6px;
+}
+
+.rs-task-flow {
+  display: grid;
+  gap: 6px;
+  align-content: start;
+}
+
+.rs-task-flow button {
+  border: 1px solid var(--line);
+  background: #080c0e;
+  color: var(--text);
+  text-align: left;
+  padding: 10px;
+  display: grid;
+  gap: 5px;
+  min-height: 76px;
+}
+
+.rs-task-flow button:hover,
+.rs-task-flow button:focus-visible {
+  background: #11191c;
+  outline: 1px solid var(--cyan);
+  outline-offset: -1px;
+}
+
+.rs-task-flow span {
+  color: var(--magenta);
+  font-size: 7px;
+  text-transform: uppercase;
+}
+
+.rs-task-flow strong {
+  font-size: 9px;
+}
+
+.rs-task-flow em {
+  font-size: 7px;
+  color: var(--muted);
+  font-style: normal;
+}
+
+@media (max-width: 1280px) {
+  .rs-cognitive-grid,
+  .rs-task-graph {
+    grid-template-columns: 1fr;
+  }
+}

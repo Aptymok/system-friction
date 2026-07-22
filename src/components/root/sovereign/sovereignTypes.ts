@@ -1,4 +1,4 @@
-export type RootViewId = 'overview' | 'governance' | 'agents' | 'predictions' | 'amv' | 'evidence' | 'execution' | 'telemetry';
+export type RootViewId = 'overview' | 'cognitive-runtime' | 'governance' | 'agents' | 'predictions' | 'amv' | 'evidence' | 'execution' | 'telemetry';
 
 export type RootSelection = {
   kind: string;

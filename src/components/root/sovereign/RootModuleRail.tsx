@@ -2,13 +2,14 @@ import type { RootViewId } from './sovereignTypes';
 
 const MODULES: Array<{ id: RootViewId; label: string; key: string }> = [
   { id: 'overview', label: 'OVERVIEW', key: '01' },
-  { id: 'governance', label: 'GOVERNANCE', key: '02' },
-  { id: 'agents', label: 'AGENTS', key: '03' },
-  { id: 'predictions', label: 'PREDICTIONS', key: '04' },
-  { id: 'amv', label: 'AMV', key: '05' },
-  { id: 'evidence', label: 'EVIDENCE / ATLAS', key: '06' },
-  { id: 'execution', label: 'EXECUTION', key: '07' },
-  { id: 'telemetry', label: 'TELEMETRY', key: '08' },
+  { id: 'cognitive-runtime', label: 'COGNITIVE RUNTIME', key: '02' },
+  { id: 'governance', label: 'GOVERNANCE', key: '03' },
+  { id: 'agents', label: 'AGENTS', key: '04' },
+  { id: 'predictions', label: 'PREDICTIONS', key: '05' },
+  { id: 'amv', label: 'AMV', key: '06' },
+  { id: 'evidence', label: 'EVIDENCE / ATLAS', key: '07' },
+  { id: 'execution', label: 'EXECUTION', key: '08' },
+  { id: 'telemetry', label: 'TELEMETRY', key: '09' },
 ];
 
 export function RootModuleRail({ active, onChange }: { active: RootViewId; onChange: (view: RootViewId) => void }) {

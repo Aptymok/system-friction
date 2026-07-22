@@ -8,6 +8,7 @@ import { RootModuleRail } from './RootModuleRail';
 import { RootTopBar } from './RootTopBar';
 import { RootAgentsView } from './views/RootAgentsView';
 import { RootAmvView } from './views/RootAmvView';
+import { RootCognitiveRuntimeView } from './views/RootCognitiveRuntimeView';
 import { RootEvidenceAtlasView } from './views/RootEvidenceAtlasView';
 import { RootExecutionView } from './views/RootExecutionView';
 import { RootGovernanceView } from './views/RootGovernanceView';
@@ -20,10 +21,11 @@ import './root-action-strip.css';
 import './root-prediction.css';
 import './root-telemetry.css';
 import './root-phenomenological-observatory.css';
+import './root-cognitive-runtime.css';
 import PpoiPhenomenonWizard from '@/components/root/PpoiPhenomenonWizard';
 
 
-const VIEWS = new Set<RootViewId>(['overview', 'governance', 'agents', 'predictions', 'amv', 'evidence', 'execution', 'telemetry']);
+const VIEWS = new Set<RootViewId>(['overview', 'cognitive-runtime', 'governance', 'agents', 'predictions', 'amv', 'evidence', 'execution', 'telemetry']);
 
 function viewFromUrl(): RootViewId {
   if (typeof window === 'undefined') return 'overview';
@@ -229,12 +231,13 @@ async function openPpoiCase(name:string) {
       <RootModuleRail active={view} onChange={changeView} />
       <section className="rs-instrument" aria-live="polite">
         {view === 'overview' ? <RootOverviewView state={state} onSelect={setSelection} />
-          : view === 'governance' ? <RootGovernanceView {...props} />
-            : view === 'agents' ? <RootAgentsView {...props} />
-              : view === 'predictions' ? <RootPredictionsView {...props} />
-                : view === 'amv' ? <RootAmvView {...props} />
-                  : view === 'evidence' ? <RootEvidenceAtlasView {...props} />
-                    : <RootExecutionView {...props} />}
+          : view === 'cognitive-runtime' ? <RootCognitiveRuntimeView state={state} onSelect={setSelection} />
+            : view === 'governance' ? <RootGovernanceView {...props} />
+              : view === 'agents' ? <RootAgentsView {...props} />
+                : view === 'predictions' ? <RootPredictionsView {...props} />
+                  : view === 'amv' ? <RootAmvView {...props} />
+                    : view === 'evidence' ? <RootEvidenceAtlasView {...props} />
+                      : <RootExecutionView {...props} />}
       </section>
       <RootInspector selection={selection} />
       <RootActionStrip events={events} stale={stale} warning={refreshWarning} />
