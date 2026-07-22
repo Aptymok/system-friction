@@ -5,7 +5,7 @@ const evidenceTables = ['epistemic_events', 'root_evidence_entries', 'sfi_eviden
 const memoryTables = ['sfi_amv_memory', 'sfi_graph_nodes', 'graph_nodes'];
 const predictionTables = ['sfi_predictive_runs', 'sfi_predictive_learning_events'];
 const governanceTables = ['action_proposals', 'logbook_mutations', 'root_audit_events'];
-export const SFI_FIELD_TABLES = ['field_cases', 'field_events', 'field_participant_windows'];
+export const SFI_FIELD_TABLES = ['field_cases', 'field_moph_runs', 'field_participant_windows'];
 
 export const SFI_COGNITIVE_AGENT_REGISTRY: SfiRegisteredCognitiveAgent[] = [
   {
@@ -35,13 +35,13 @@ export const SFI_COGNITIVE_AGENT_REGISTRY: SfiRegisteredCognitiveAgent[] = [
     layer: 'reconstruct',
     listensTo: ['SFI_TASK_CREATED', 'phenomenon.registered', 'prediction.created'],
     emits: ['SFI_TEMPORAL_COORDINATE_RESOLVED'],
-    readsMemory: ['epistemic_events', 'sfi_predictive_runs', 'field_events'],
+    readsMemory: ['epistemic_events', 'sfi_predictive_runs', 'field_returns'],
     writesMemory: ['epistemic_events'],
     confidenceModel: { method: 'timestamp_coverage', calibration: 'prediction outcome windows' },
     authorityLevel: 'analyst',
     simulationAllowed: false,
     humanApprovalRequired: false,
-    sourceTables: ['epistemic_events', 'sfi_predictive_runs', 'field_events'],
+    sourceTables: ['epistemic_events', 'sfi_predictive_runs', 'field_returns'],
     route: null,
     operationalMode: false,
     missingCapability: false,
@@ -356,3 +356,4 @@ export const SFI_LAYER_QUESTIONS: Record<SfiRegisteredCognitiveAgent['layer'], s
 export const SFI_RUNTIME_SOURCE_TABLES = [
   ...new Set(SFI_COGNITIVE_AGENT_REGISTRY.flatMap((agent) => agent.sourceTables).concat(SFI_FIELD_TABLES)),
 ].sort();
+
