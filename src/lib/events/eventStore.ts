@@ -13,38 +13,83 @@ const schemaVersion = '2026-05-27.epistemic-events.v1';
 const genesisHash = 'GENESIS';
 
 function sha256(value: unknown) {
-  return createHash('sha256').update(JSON.stringify(canonicalizeEventPayload(value))).digest('hex');
+  return createHash('sha256')
+    .update(JSON.stringify(canonicalizeEventPayload(value)))
+    .digest('hex');
 }
 
 function clamp01(value: number) {
   return Math.max(0, Math.min(1, Number.isFinite(value) ? value : 0));
 }
 
-function normalizeEvent(input: Partial<SFIEvent> & { logbookId?: string; schemaVersion?: string }): Omit<EpistemicEventRecord, 'hashPrev' | 'hashSelf' | 'createdAt'> {
-  const occurredAt = typeof input.occurredAt === 'string' && input.occurredAt.length > 0
-    ? new Date(input.occurredAt).toISOString()
-    : new Date().toISOString();
-  const epistemicClass: EpistemicClass = isEpistemicClass(input.epistemicClass) ? input.epistemicClass as EpistemicClass : 'missing';
+function normalizeEvent(
+  input: Partial<SFIEvent> & { logbookId?: string; schemaVersion?: string }
+): Omit<EpistemicEventRecord, 'hashPrev' | 'hashSelf' | 'createdAt'> {
+  const occurredAt =
+    typeof input.occurredAt === 'string' && input.occurredAt.length > 0
+      ? new Date(input.occurredAt).toISOString()
+      : new Date().toISOString();
+
+  const epistemicClass: EpistemicClass = isEpistemicClass(input.epistemicClass)
+    ? (input.epistemicClass as EpistemicClass)
+    : 'missing';
+
   const payload = input.payload ?? {};
-  const checksum = typeof input.checksum === 'string' && input.checksum.length > 0 ? input.checksum : sha256(payload);
+
+  const checksum =
+    typeof input.checksum === 'string' && input.checksum.length > 0
+      ? input.checksum
+      : sha256(payload);
 
   return {
-    eventId: typeof input.eventId === 'string' && input.eventId.length > 0 ? input.eventId : randomUUID(),
-    eventName: typeof input.eventName === 'string' && input.eventName.length > 0 ? input.eventName : 'epistemic.event',
+    eventId:
+      typeof input.eventId === 'string' && input.eventId.length > 0
+        ? input.eventId
+        : randomUUID(),
+
+    eventName:
+      typeof input.eventName === 'string' && input.eventName.length > 0
+        ? input.eventName
+        : 'epistemic.event',
+
     epistemicClass,
     confidence: clamp01(Number(input.confidence ?? 0)),
     payload,
     occurredAt,
-    source: input.source ?? { sourceId: 'unknown', sourceType: 'unknown' },
+    source: input.source ?? {
+      sourceId: 'unknown',
+      sourceType: 'unknown',
+    },
+
     checksum,
-    lineage: Array.isArray(input.lineage) ? input.lineage.filter((item): item is string => typeof item === 'string') : [],
-    uncertainty: typeof input.uncertainty === 'string' ? input.uncertainty : undefined,
-    logbookId: typeof input.logbookId === 'string' && input.logbookId.length > 0 ? input.logbookId : 'default',
-    schemaVersion: typeof input.schemaVersion === 'string' && input.schemaVersion.length > 0 ? input.schemaVersion : schemaVersion,
+
+    lineage: Array.isArray(input.lineage)
+      ? input.lineage.filter(
+          (item): item is string => typeof item === 'string'
+        )
+      : [],
+
+    uncertainty:
+      typeof input.uncertainty === 'string'
+        ? input.uncertainty
+        : undefined,
+
+    logbookId:
+      typeof input.logbookId === 'string' && input.logbookId.length > 0
+        ? input.logbookId
+        : 'default',
+
+    schemaVersion:
+      typeof input.schemaVersion === 'string' &&
+      input.schemaVersion.length > 0
+        ? input.schemaVersion
+        : schemaVersion,
   };
 }
 
-function toHashMaterial(event: Omit<EpistemicEventRecord, 'hashSelf' | 'createdAt'>) {
+function toHashMaterial(
+  event: Omit<EpistemicEventRecord, 'hashSelf' | 'createdAt'>
+) {
   return {
     eventId: event.eventId,
     eventName: event.eventName,
@@ -62,16 +107,23 @@ function toHashMaterial(event: Omit<EpistemicEventRecord, 'hashSelf' | 'createdA
   };
 }
 
-export function hashEpistemicEvent(event: Omit<EpistemicEventRecord, 'hashSelf' | 'createdAt'>) {
+export function hashEpistemicEvent(
+  event: Omit<EpistemicEventRecord, 'hashSelf' | 'createdAt'>
+) {
   return sha256(toHashMaterial(event));
 }
 
-export async function appendEpistemicEvent(input: Partial<SFIEvent> & { logbookId?: string; schemaVersion?: string }) {
+export async function appendEpistemicEvent(
+  input: Partial<SFIEvent> & { logbookId?: string; schemaVersion?: string }
+) {
   const service = createServiceSupabaseClient();
   const event = normalizeEvent(input);
 
   if (!validateEpistemicEventShape(event)) {
-    return { ok: false as const, error: 'invalid_epistemic_event' };
+    return {
+      ok: false as const,
+      error: 'invalid_epistemic_event',
+    };
   }
 
   const { data: latest } = await service
@@ -82,8 +134,15 @@ export async function appendEpistemicEvent(input: Partial<SFIEvent> & { logbookI
     .limit(1)
     .maybeSingle();
 
-  const hashPrev = typeof latest?.hash_self === 'string' ? latest.hash_self : null;
-  const hashSelf = hashEpistemicEvent({ ...event, hashPrev });
+  const hashPrev =
+    typeof latest?.hash_self === 'string'
+      ? latest.hash_self
+      : null;
+
+  const hashSelf = hashEpistemicEvent({
+    ...event,
+    hashPrev,
+  });
 
   const { data, error } = await service
     .from('epistemic_events')
@@ -106,23 +165,25 @@ export async function appendEpistemicEvent(input: Partial<SFIEvent> & { logbookI
     .select('*')
     .single();
 
-  if (error) return { ok: false as const, error: 'epistemic_event_append_failed', details: error.message };
-  return { ok: true as const, data };
-}
-
-export async function streamEpistemicEvents(logbookId = 'default', limit = 100) {
-  let service;
-
-  try {
-    service = createServiceSupabaseClient();
-  } catch (error) {
+  if (error) {
     return {
-      ok: true as const,
-      data: [],
-      warnings: ['epistemic_event_store_not_ready'],
-      details: error instanceof Error ? error.message : String(error),
+      ok: false as const,
+      error: 'epistemic_event_append_failed',
+      details: error.message,
     };
   }
+
+  return {
+    ok: true as const,
+    data,
+  };
+}
+
+export async function streamEpistemicEvents(
+  logbookId = 'default',
+  limit = 100
+) {
+  const service = createServiceSupabaseClient();
 
   const { data, error } = await service
     .from('epistemic_events')
@@ -140,30 +201,14 @@ export async function streamEpistemicEvents(logbookId = 'default', limit = 100) 
     };
   }
 
-  return { ok: true as const, data: data ?? [] };
+  return {
+    ok: true as const,
+    data: data ?? [],
+  };
 }
 
-/**
- * Cross-logbook activity read (ADR-007). streamEpistemicEvents is scoped to one
- * logbookId because its hash chain (hashPrev/hashSelf) is verified per logbook --
- * mixing logbooks there would make chain verification meaningless. This function
- * does not verify a chain; it answers "what happened recently, across any cycle",
- * for dashboards that no longer have one well-known logbookId to look at now that
- * each cognitive cycle gets its own UUID instead of a shared 'default'.
- */
 export async function streamRecentEpistemicEvents(limit = 100) {
-  let service;
-
-  try {
-    service = createServiceSupabaseClient();
-  } catch (error) {
-    return {
-      ok: true as const,
-      data: [],
-      warnings: ['epistemic_event_store_not_ready'],
-      details: error instanceof Error ? error.message : String(error),
-    };
-  }
+  const service = createServiceSupabaseClient();
 
   const { data, error } = await service
     .from('epistemic_events')
@@ -180,19 +225,26 @@ export async function streamRecentEpistemicEvents(limit = 100) {
     };
   }
 
-  return { ok: true as const, data: data ?? [] };
+  return {
+    ok: true as const,
+    data: data ?? [],
+  };
 }
 
-export async function verifyEpistemicEventChain(logbookId = 'default', limit = 100) {
+export async function verifyEpistemicEventChain(
+  logbookId = 'default',
+  limit = 100
+) {
   const streamed = await streamEpistemicEvents(logbookId, limit);
+
   if (!streamed.ok) return streamed;
 
-  const failures: Array<{ eventId: string; reason: string }> = [];
+  const failures: Array<{
+    eventId: string;
+    reason: string;
+  }> = [];
 
-  let previous: string | null =
-    streamed.data.length > 0
-      ? streamed.data[0].hash_prev ?? null
-      : null;
+  let previous: string | null = null;
 
   for (const row of streamed.data) {
     if ((row.hash_prev ?? null) !== previous) {
@@ -212,11 +264,17 @@ export async function verifyEpistemicEventChain(logbookId = 'default', limit = 1
       confidence: Number(row.confidence ?? 0),
       payload: row.payload,
       checksum: String(row.checksum),
-      lineage: Array.isArray(row.lineage) ? row.lineage : [],
-      uncertainty: typeof row.uncertainty === 'string'
-        ? row.uncertainty
-        : undefined,
-      occurredAt: new Date(String(row.occurred_at)).toISOString(),
+      lineage: Array.isArray(row.lineage)
+        ? row.lineage
+        : [],
+      uncertainty:
+        typeof row.uncertainty === 'string'
+          ? row.uncertainty
+          : undefined,
+      occurredAt: new Date(
+        String(row.occurred_at)
+      ).toISOString(),
+
       hashPrev: row.hash_prev ?? null,
     });
 
@@ -240,4 +298,3 @@ export async function verifyEpistemicEventChain(logbookId = 'default', limit = 1
     },
   } as const;
 }
-
