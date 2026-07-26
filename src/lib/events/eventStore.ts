@@ -143,6 +143,46 @@ export async function streamEpistemicEvents(logbookId = 'default', limit = 100) 
   return { ok: true as const, data: data ?? [] };
 }
 
+/**
+ * Cross-logbook activity read (ADR-007). streamEpistemicEvents is scoped to one
+ * logbookId because its hash chain (hashPrev/hashSelf) is verified per logbook --
+ * mixing logbooks there would make chain verification meaningless. This function
+ * does not verify a chain; it answers "what happened recently, across any cycle",
+ * for dashboards that no longer have one well-known logbookId to look at now that
+ * each cognitive cycle gets its own UUID instead of a shared 'default'.
+ */
+export async function streamRecentEpistemicEvents(limit = 100) {
+  let service;
+
+  try {
+    service = createServiceSupabaseClient();
+  } catch (error) {
+    return {
+      ok: true as const,
+      data: [],
+      warnings: ['epistemic_event_store_not_ready'],
+      details: error instanceof Error ? error.message : String(error),
+    };
+  }
+
+  const { data, error } = await service
+    .from('epistemic_events')
+    .select('*')
+    .order('sequence', { ascending: false })
+    .limit(Math.max(1, Math.min(500, limit)));
+
+  if (error) {
+    return {
+      ok: true as const,
+      data: [],
+      warnings: ['epistemic_event_stream_not_ready'],
+      details: error.message,
+    };
+  }
+
+  return { ok: true as const, data: data ?? [] };
+}
+
 export async function verifyEpistemicEventChain(logbookId = 'default', limit = 100) {
   const streamed = await streamEpistemicEvents(logbookId, limit);
   if (!streamed.ok) return streamed;
@@ -189,3 +229,4 @@ export async function verifyEpistemicEventChain(logbookId = 'default', limit = 1
     },
   } as const;
 }
+

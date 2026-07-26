@@ -66,24 +66,50 @@ export const SFI_COGNITIVE_AGENT_REGISTRY: SfiRegisteredCognitiveAgent[] = [
     missingCapability: false,
   },
   {
-    id: 'historical_scout',
-    name: 'HistoricalScoutAgent',
-    purpose: 'Declare historical sources needed for reconstruction from INEGI, DOF, papers, news, archives, and datasets.',
-    domain: 'evidence',
-    layer: 'reconstruct',
-    listensTo: ['SFI_TASK_CREATED', 'SFI_EVIDENCE_REQUIREMENT_DECLARED'],
-    emits: ['SFI_HISTORICAL_SOURCE_SET_DECLARED'],
-    readsMemory: ['root_evidence_entries', 'sfi_reference_cases', 'epistemic_events'],
-    writesMemory: ['epistemic_events'],
-    confidenceModel: { method: 'source_manifest_completeness', calibration: 'reference case outcomes' },
-    authorityLevel: 'observer',
-    simulationAllowed: false,
-    humanApprovalRequired: false,
-    sourceTables: ['root_evidence_entries', 'sfi_reference_cases', 'epistemic_events'],
-    route: null,
-    operationalMode: false,
-    missingCapability: true,
-  },
+  id: 'historical_scout',
+  name: 'Historical Scout',
+  layer: 'reconstruct',
+  domain: 'evidence',
+
+  purpose:
+    'Reconstruct historical context from available evidence before simulation or decision.',
+
+  authorityLevel: 'observer',
+
+  route:
+    'historical.reconstruction.completed',
+
+  sourceTables: [
+    'sfi_phenomena',
+    'sfi_phenomenon_evidence'
+  ],
+
+  listensTo: [
+    'SFI_TASK_CREATED'
+  ],
+
+  emits: [
+    'historical.reconstruction.completed'
+  ],
+
+  readsMemory: [
+    'sfi_phenomena',
+    'sfi_phenomenon_evidence'
+  ],
+
+  writesMemory: [
+    'epistemic_events'
+  ],
+
+  confidenceModel: {
+  method: 'evidence_weighted',
+  calibration: 'historical_source_validation'
+},
+simulationAllowed:false,
+humanApprovalRequired:false,
+missingCapability:false,
+operationalMode:false,
+},
   {
     id: 'phenotype_resolver',
     name: 'PhenotypeResolverAgent',

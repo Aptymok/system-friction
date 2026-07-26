@@ -1,7 +1,65 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# SFI -- extrae probeTable()/TableProbe de runtime.ts a su propio modulo, tableProbe.ts.
+# Runtime deja de instanciar el cliente de Supabase directamente para inspeccion de
+# esquema; solo queda ese conocimiento en tableProbe.ts y en eventStore.ts (memoria).
+# Correr desde la raiz del repo (system-friction/).
+
+if [ ! -f "package.json" ] || ! grep -q "system-friction-terminal" package.json; then
+  echo "Error: corre este script desde la raiz del repo (system-friction/)." >&2
+  exit 1
+fi
+
+mkdir -p src/lib/sfi/cognitive-runtime
+
+echo "-> Escribiendo src/lib/sfi/cognitive-runtime/tableProbe.ts (nuevo)"
+cat > src/lib/sfi/cognitive-runtime/tableProbe.ts <<'SFI_EOF_TABLEPROBE_9f2a1'
+import 'server-only';
+
+import { createServiceSupabaseClient } from '@/runtime/supabase/server';
+
+export type TableProbe = {
+  table: string;
+  ok: boolean;
+  count: number | null;
+  observedAt: string | null;
+  warning: string | null;
+};
+
+export async function probeTable(table: string): Promise<TableProbe> {
+  try {
+    const service = createServiceSupabaseClient();
+    const { data, error } = await service.from(table).select('*').limit(1);
+    if (error) throw error;
+    const row = Array.isArray(data) ? data[0] as Record<string, unknown> | undefined : undefined;
+    const observedAt = typeof row?.updated_at === 'string'
+      ? row.updated_at
+      : typeof row?.observed_at === 'string'
+        ? row.observed_at
+        : typeof row?.created_at === 'string'
+          ? row.created_at
+          : null;
+    return { table, ok: true, count: Array.isArray(data) ? data.length : 0, observedAt, warning: null };
+  } catch (error) {
+    return {
+      table,
+      ok: false,
+      count: null,
+      observedAt: null,
+      warning: error instanceof Error ? error.message : 'table_probe_failed',
+    };
+  }
+}
+
+SFI_EOF_TABLEPROBE_9f2a1
+
+echo "-> Sobrescribiendo src/lib/sfi/cognitive-runtime/runtime.ts (probeTable extraido)"
+cat > src/lib/sfi/cognitive-runtime/runtime.ts <<'SFI_EOF_RUNTIME_9f2a1'
 import 'server-only';
 
 import { createHash, randomUUID } from 'crypto';
-import { appendEpistemicEvent, streamRecentEpistemicEvents } from '@/lib/events/eventStore';
+import { appendEpistemicEvent, streamEpistemicEvents } from '@/lib/events/eventStore';
 import { probeTable, type TableProbe } from './tableProbe';
 import {
   SFI_COGNITIVE_AGENT_REGISTRY,
@@ -122,8 +180,6 @@ export async function publishCognitiveTaskGraph(question: string) {
   const taskGraph = planCognitiveTaskGraph(question);
   if (taskGraph.status === 'blocked') return { ok: false as const, taskGraph, error: taskGraph.blockedReason };
 
-  const logbookId = `cycle:${randomUUID()}`;
-
   const result = await appendEpistemicEvent({
     eventId: randomUUID(),
     eventName: taskGraph.eventName,
@@ -136,7 +192,7 @@ export async function publishCognitiveTaskGraph(question: string) {
       contractVersion: schemaVersion,
     },
     lineage: ['root.console', 'sfi.cognitive-runtime'],
-    logbookId,
+    logbookId: 'default',
     schemaVersion,
   });
 
@@ -149,13 +205,13 @@ export async function publishCognitiveTaskGraph(question: string) {
     };
   }
 
-  return { ok: true as const, taskGraph: { ...taskGraph, status: 'persisted' as const }, logbookId, event: result.data };
+  return { ok: true as const, taskGraph: { ...taskGraph, status: 'persisted' as const }, event: result.data };
 }
 
 export async function readSfiCognitiveRuntime(): Promise<SfiCognitiveRuntimeSnapshot> {
   const [tableProbes, events] = await Promise.all([
     Promise.all(SFI_RUNTIME_SOURCE_TABLES.map(probeTable)),
-    streamRecentEpistemicEvents(40),
+    streamEpistemicEvents('default', 40),
   ]);
   const probes = new Map(tableProbes.map((probe) => [probe.table, probe]));
 
@@ -262,3 +318,19 @@ export async function readSfiCognitiveRuntime(): Promise<SfiCognitiveRuntimeSnap
   };
 }
 
+SFI_EOF_RUNTIME_9f2a1
+
+if [ -d "node_modules" ]; then
+  echo "-> Verificando boundaries"
+  npm run check:boundaries
+  echo "-> Verificando tipos"
+  npm run typecheck
+else
+  echo "Aviso: no hay node_modules/ -- corre check:boundaries y typecheck manualmente."
+fi
+
+echo ""
+echo "Listo. runtime.ts ya no importa createServiceSupabaseClient directamente."
+echo "Para commitear:"
+echo "  git add src/lib/sfi/cognitive-runtime/tableProbe.ts src/lib/sfi/cognitive-runtime/runtime.ts"
+echo "  git commit -m \"refactor(cognitive-runtime): extract probeTable into its own module\""
