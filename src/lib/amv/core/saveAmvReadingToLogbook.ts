@@ -1,6 +1,5 @@
 import { routeAmvReadingToLogbook } from './logbookRoutingPolicy';
 import type { AmvEvidenceTrust } from './evidenceTypes';
-import type { AMVReading } from './amvReading';
 
 export function createAmvReading(input: {
   scope: string;

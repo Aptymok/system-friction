@@ -42,6 +42,7 @@ export function adaptAmvMemoryToEvidence(
 ): AmvEvidenceRecord {
 
   return {
+
     id: delta.id,
 
     trust: trustFromInference(delta),
@@ -64,17 +65,24 @@ export function adaptAmvMemoryToEvidence(
 
     payloadHash: delta.evidenceHash,
 
+
+    /*
+      El adaptador transforma evidencia.
+      No posee autoridad para decidir riesgo,
+      cierre de ciclo o promoción institucional.
+
+      Las decisiones pertenecen a agentes
+      especializados y capas superiores.
+    */
+
     changesRoute:
       delta.inference.requiredAction === 'propose_observation'
       ||
       delta.inference.requiredAction === 'ask_human',
 
-    changesRisk:
-      delta.inference.impact >= 0.7,
+    changesRisk: false,
 
-    closesLoop:
-      delta.inference.requiredAction === 'answer'
-      &&
-      delta.inference.uncertainty < 0.65,
+    closesLoop: false,
+
   };
 }

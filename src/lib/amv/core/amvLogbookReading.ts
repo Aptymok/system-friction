@@ -1,4 +1,4 @@
-export type AMVReading = {
+export type AmvLogbookReading = {
   scope: string;
 
   trust:
