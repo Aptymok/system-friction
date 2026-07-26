@@ -187,13 +187,19 @@ export async function verifyEpistemicEventChain(logbookId = 'default', limit = 1
   const streamed = await streamEpistemicEvents(logbookId, limit);
   if (!streamed.ok) return streamed;
 
-  let previous: string | null = null;
   const failures: Array<{ eventId: string; reason: string }> = [];
 
+  let previous: string | null =
+    streamed.data.length > 0
+      ? streamed.data[0].hash_prev ?? null
+      : null;
+
   for (const row of streamed.data) {
-    const expectedPrev = previous;
-    if ((row.hash_prev ?? null) !== expectedPrev) {
-      failures.push({ eventId: String(row.event_id), reason: 'hash_prev_mismatch' });
+    if ((row.hash_prev ?? null) !== previous) {
+      failures.push({
+        eventId: String(row.event_id),
+        reason: 'hash_prev_mismatch',
+      });
     }
 
     const recalculated = hashEpistemicEvent({
@@ -207,13 +213,18 @@ export async function verifyEpistemicEventChain(logbookId = 'default', limit = 1
       payload: row.payload,
       checksum: String(row.checksum),
       lineage: Array.isArray(row.lineage) ? row.lineage : [],
-      uncertainty: typeof row.uncertainty === 'string' ? row.uncertainty : undefined,
+      uncertainty: typeof row.uncertainty === 'string'
+        ? row.uncertainty
+        : undefined,
       occurredAt: new Date(String(row.occurred_at)).toISOString(),
       hashPrev: row.hash_prev ?? null,
     });
 
     if (recalculated !== row.hash_self) {
-      failures.push({ eventId: String(row.event_id), reason: 'hash_self_mismatch' });
+      failures.push({
+        eventId: String(row.event_id),
+        reason: 'hash_self_mismatch',
+      });
     }
 
     previous = String(row.hash_self ?? genesisHash);
