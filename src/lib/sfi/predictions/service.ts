@@ -2,6 +2,9 @@ import 'server-only';
 import { randomUUID } from 'crypto';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { InstitutionalMemoryWriter } from '@/lib/memory/institutionalMemoryWriter';
+import { calculatePhiSfi, calculateFS, resolveRegime } from '@/core/formulas/canonicalFormulas';
+import { InMemoryEventRepository } from '@/core/repositories';
+import { CanonicalEventBuilder, CanonicalEventValidator, InMemoryEventBus } from '@/core/runtime';
 import { runEvidenceStateAgent, runReturnWindowAgent } from './agents';
 import {
   SFI_PREDICTION_EVIDENCE_STATES,
@@ -27,6 +30,19 @@ type PredictionClassification = {
 };
 
 const TABLE = 'sfi_prediction_entries';
+const canonicalEventBus = new InMemoryEventBus();
+const canonicalEventBuilder = new CanonicalEventBuilder();
+const canonicalEventValidator = new CanonicalEventValidator();
+const canonicalEventRepository = new InMemoryEventRepository();
+
+function buildCanonicalPredictionTrace(input: { predictionId: string; hypothesisId: string; createdBy?: string | null }) {
+  return {
+    logbookId: `prediction-${input.predictionId}`,
+    correlationId: input.predictionId,
+    initiatedBy: input.createdBy ?? `AGENT_${input.hypothesisId}`,
+    createdAt: new Date().toISOString(),
+  };
+}
 
 function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
@@ -70,6 +86,16 @@ function serviceClient() {
       blocked: ['supabase_service_unavailable'],
     };
   }
+}
+
+export function normalizePredictionCreatedByForStorage(value: string | null | undefined) {
+  if (typeof value !== 'string') return null;
+
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+
+  const validUuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  return validUuidRegex.test(trimmed) ? trimmed : null;
 }
 
 function evidenceState(value: unknown): SfiPredictionEvidenceState | null {
@@ -269,6 +295,10 @@ export async function createPredictionEntry(input: CreateSfiPredictionInput): Pr
 
   const registeredAt = new Date().toISOString();
   const predictionId = randomUUID();
+  const trace = buildCanonicalPredictionTrace({ predictionId, hypothesisId: input.hypothesis_id, createdBy: input.created_by });
+  const phiSfi = calculatePhiSfi(0.55, 0.7, 0.25, 0.05);
+  const fS = calculateFS(phiSfi);
+  const regime = resolveRegime(phiSfi);
 
   const classification = classifyPredictionEvidence({
     prediction_registered_at: registeredAt,
@@ -299,12 +329,35 @@ export async function createPredictionEntry(input: CreateSfiPredictionInput): Pr
       perturbation_applied_at: input.perturbation_applied_at ?? null,
       is_predictive_evidence: classification.is_predictive_evidence,
       evidence_state: classification.evidence_state,
-      created_by: input.created_by ?? null,
+      created_by: normalizePredictionCreatedByForStorage(input.created_by) ?? null,
     })
     .select('*')
     .single();
 
   if (error) return { ok: false, error: 'prediction_insert_failed', status: 400, details: error.message };
+
+  const canonicalEvent = canonicalEventBuilder.build('PREDICTION_CREATED', {
+    predictionId,
+    hypothesisId: input.hypothesis_id,
+    phiSfi,
+    fS,
+    regime,
+    trace,
+  }, trace.logbookId, 1);
+
+  if (canonicalEventValidator.validate(canonicalEvent)) {
+    canonicalEventBus.publish('PREDICTION_CREATED', canonicalEvent);
+    void canonicalEventRepository.save({
+      id: `EVENT_${predictionId}`,
+      version: '1.0',
+      type: 'PREDICTION_CREATED',
+      logbookId: trace.logbookId,
+      source: 'RUNTIME',
+      payload: canonicalEvent,
+      timestamp: registeredAt,
+      sequence: 1,
+    });
+  }
 
   // ADR-017: Registrar admisión en memoria institucional
   try {

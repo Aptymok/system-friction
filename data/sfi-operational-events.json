@@ -24367,5 +24367,68 @@
     "source": "debug_tls_final",
     "risk": "low",
     "status": "observed"
+  },
+  {
+    "id": "evt-1785595225755-xspjvh",
+    "created_at": "2026-08-01T14:40:25.755Z",
+    "organ": "scorefriction",
+    "kind": "scorefriction_intake",
+    "title": "ScoreFriction intake: Inflaci�n M�xico 2026",
+    "summary": "Prueba de flujo ICO",
+    "source": "/api/scorefriction/intake",
+    "risk": "low",
+    "status": "observed",
+    "payload": {
+      "case_id": "SFI-inflaci_n_m_xico_2026",
+      "observation_id": "9670ed57-46c4-4cf3-a9f5-812f8ae2698c",
+      "vector_id": "413c121a-34bf-4563-9332-161f5260d370",
+      "object": "Inflaci�n M�xico 2026",
+      "domain": "institutional",
+      "signal": "subida persistente de precios",
+      "evidence_hash": "04f7cc0b298015a798fa2960d27560eeba2f67928ba30db9704760f32b45f66e"
+    },
+    "next_action": "Enviar observación a MIHM/Evaluator y generar borrador Publisher desde evidencia real."
+  },
+  {
+    "id": "evt-1785595265898-gb5xf3",
+    "created_at": "2026-08-01T14:41:05.898Z",
+    "organ": "scorefriction",
+    "kind": "scorefriction_intake",
+    "title": "ScoreFriction intake: Inflaci�n M�xico 2026",
+    "summary": "Prueba de flujo ICO",
+    "source": "/api/scorefriction/intake",
+    "risk": "low",
+    "status": "observed",
+    "payload": {
+      "case_id": "SFI-inflaci_n_m_xico_2026",
+      "observation_id": "98cd988a-cba6-4f30-a932-06301edd483f",
+      "vector_id": "45719a81-c1c7-405f-84ec-f23b973c5204",
+      "object": "Inflaci�n M�xico 2026",
+      "domain": "institutional",
+      "signal": "subida persistente de precios",
+      "evidence_hash": "0a9c6fff50ca276d183836ffa48ae4d0b57e8d3f587d2a950fbcd9557de33f2b"
+    },
+    "next_action": "Enviar observación a MIHM/Evaluator y generar borrador Publisher desde evidencia real."
+  },
+  {
+    "id": "evt-1785595422063-tupgae",
+    "created_at": "2026-08-01T14:43:42.063Z",
+    "organ": "scorefriction",
+    "kind": "scorefriction_intake",
+    "title": "ScoreFriction intake: Fenómeno institucional",
+    "summary": "Observación operativa para Fenómeno institucional",
+    "source": "/api/scorefriction/intake",
+    "risk": "low",
+    "status": "observed",
+    "payload": {
+      "case_id": "SFI-feno_meno_institucional",
+      "observation_id": "f32a948c-65f2-4d54-b0f6-72fa2edb7a98",
+      "vector_id": "1c02117e-9379-47c3-8131-822161e01caf",
+      "object": "Fenómeno institucional",
+      "domain": "institutional",
+      "signal": "Fenómeno institucional",
+      "evidence_hash": "3ca3e9298755feca84f596b45ebe974f1992ca45d2a1f388da1fee2b313bc15c"
+    },
+    "next_action": "Enviar observación a MIHM/Evaluator y generar borrador Publisher desde evidencia real."
   }
 ]

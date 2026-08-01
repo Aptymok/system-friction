@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import WorldVectorRuntimePanel from '@/components/world-vector/WorldVectorRuntimePanel';
+import { calculateW10 } from '@/core/formulas/canonicalFormulas';
 
 export const dynamic = 'force-static';
 
@@ -13,6 +14,8 @@ const boundary = [
 ];
 
 export default function WorldVectorPage() {
+  const w10 = calculateW10([0.7, 0.8, 0.9], 0.85, 1.1);
+
   return (
     <main className="min-h-screen bg-[#060605] px-6 py-10 text-[#d8d2c2]">
       <div className="mx-auto max-w-6xl space-y-8">
@@ -37,6 +40,11 @@ export default function WorldVectorPage() {
         </header>
 
         <section className="grid gap-3 md:grid-cols-3">
+          <div className="border border-[#2f2a1e] bg-[#0b0b09] p-4">
+            <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#c8a951]">Métrica canónica</p>
+            <p className="mt-2 text-2xl font-semibold text-[#f5eedc]">W_10</p>
+            <p className="mt-1 text-sm text-[#9f9788]">Valor agregado: {w10.toFixed(3)}</p>
+          </div>
           {boundary.map((item) => (
             <div key={item} className="border border-[#2f2a1e] bg-[#0b0b09] p-4 font-mono text-[10px] uppercase tracking-[0.14em] text-[#d8d2c2]">
               {item}

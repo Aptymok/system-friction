@@ -1,12 +1,18 @@
 // src/runtime/supabase/server.ts
-import 'server-only';
-import { cookies } from 'next/headers';
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
 import { normalizeSupabaseUrl } from '@/runtime/supabase/url';
 
 export async function createServerSupabaseClient() {
-  const cookieStore = await cookies();
+  let headersModule: typeof import('next/headers') | undefined;
+
+  try {
+    headersModule = await import('next/headers');
+  } catch {
+    throw new Error('next/headers is unavailable outside a Next.js runtime');
+  }
+
+  const cookieStore = await headersModule.cookies();
 
   return createServerClient(
     normalizeSupabaseUrl(process.env.NEXT_PUBLIC_SUPABASE_URL!),
