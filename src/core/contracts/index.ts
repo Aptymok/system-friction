@@ -1,21 +1,23 @@
 export type SfiEntityType =
-  | 'OBSERVATION'
-  | 'EVIDENCE'
-  | 'EVENT'
-  | 'AGENT'
-  | 'AGENT_EXECUTION'
-  | 'CAPABILITY'
-  | 'PHENOMENON'
-  | 'PREDICTION'
-  | 'FORMULA'
-  | 'MEMORY'
-  | 'STATE'
-  | 'ERROR'
-  | 'OPERATION'
-  | 'REQUEST'
-  | 'GOVERNANCE_DECISION';
+  | "OBSERVATION"
+  | "EVIDENCE"
+  | "EVENT"
+  | "AGENT"
+  | "AGENT_EXECUTION"
+  | "CAPABILITY"
+  | "PHENOMENON"
+  | "PREDICTION"
+  | "FORMULA"
+  | "MEMORY"
+  | "STATE"
+  | "ERROR"
+  | "OPERATION"
+  | "REQUEST"
+  | "GOVERNANCE_DECISION";
+
 
 export type SfiEntityId = string;
+
 
 export interface SfiEntityVersion {
   entityId: SfiEntityId;
@@ -26,6 +28,7 @@ export interface SfiEntityVersion {
   changeReason: string;
 }
 
+
 export interface SfiTraceContext {
   logbookId: string;
   correlationId: string;
@@ -33,41 +36,52 @@ export interface SfiTraceContext {
   createdAt: string;
 }
 
-export type SfiEventSource = 'AMV' | 'RUNTIME' | 'AGENT' | 'GOVERNANCE' | 'VERIFICATION' | 'SYSTEM';
+
+export type SfiEventSource =
+  | "AMV"
+  | "RUNTIME"
+  | "AGENT"
+  | "GOVERNANCE"
+  | "VERIFICATION"
+  | "SYSTEM";
+
 
 export interface SfiEvent {
-  id: SfiEntityId;
+  id: string;
   version: string;
   type: string;
   logbookId: string;
   source: SfiEventSource;
-  agentId?: SfiEntityId;
+  agentId?: string;
   payload: unknown;
   timestamp: string;
   sequence: number;
 }
 
+
 export type SfiPermission =
-  | 'OBSERVATION_READ'
-  | 'EVIDENCE_CREATE'
-  | 'MEMORY_PROPOSE'
-  | 'MODEL_EXECUTE'
-  | 'GOVERNANCE_APPROVAL'
-  | 'SYSTEM_ADMIN';
+  | "OBSERVATION_READ"
+  | "EVIDENCE_CREATE"
+  | "MEMORY_PROPOSE"
+  | "MODEL_EXECUTE"
+  | "GOVERNANCE_APPROVAL"
+  | "SYSTEM_ADMIN";
+
 
 export interface Capability {
-  id: SfiEntityId;
+  id: string;
   version: string;
   name: string;
-  inputSchema: SfiEntityId;
-  outputSchema: SfiEntityId;
+  inputSchema: string;
+  outputSchema: string;
   executor: string;
   permissions: SfiPermission[];
 }
 
+
 export interface Observation {
-  id: SfiEntityId;
-  phenomenonId: SfiEntityId;
+  id: string;
+  phenomenonId: string;
   source: string;
   signal: unknown;
   observedAt: string;
@@ -76,148 +90,301 @@ export interface Observation {
   createdAt: string;
 }
 
+
 export interface Evidence {
-  id: SfiEntityId;
-  observationIds: SfiEntityId[];
-  evaluatorId: SfiEntityId;
+  id: string;
+  observationIds: string[];
+  evaluatorId: string;
   confidence: number;
   assessment: string;
   trace: SfiTraceContext;
   createdAt: string;
 }
 
-export interface MemoryWriteDefinition {
-  entityType: string;
-  operation: 'CREATE' | 'UPDATE' | 'ARCHIVE';
-}
 
-export interface AgentDefinition {
-  id: SfiEntityId;
-  name: string;
-  type: string;
-  capabilities: SfiEntityId[];
-  readsMemory: string[];
-  writesMemory: MemoryWriteDefinition[];
-  emits: string[];
-  humanApprovalRequired: boolean;
-  confidenceModel: string;
-  status: LifecycleState;
-}
+/*
+  Runtime Kernel
+*/
 
-export interface AgentExecution {
-  id: SfiEntityId;
-  agentId: SfiEntityId;
-  capabilityId: SfiEntityId;
-  trace: SfiTraceContext;
-  startedAt: string;
-  completedAt?: string;
-  status: RuntimeState;
-  result?: AgentResult;
-}
 
-export interface AgentResult {
-  trace: SfiTraceContext;
-  agentId: SfiEntityId;
-  status: 'SUCCESS' | 'PARTIAL' | 'FAILED';
-  output: unknown;
-  observations: SfiEntityId[];
-  evidence: SfiEntityId[];
-  events: SfiEntityId[];
-  memoryWrites: MemoryWriteDefinition[];
+export interface KernelEvidence {
+  id: string;
+  source: string;
   confidence: number;
-  executionTime: number;
+  payload: unknown;
 }
 
-export interface InstitutionalMemory {
-  id: SfiEntityId;
-  evidenceIds: SfiEntityId[];
-  phenomenonId: SfiEntityId;
-  knowledge: string;
+
+export interface KernelHypothesis {
+  id?: string;
+  statement: string;
   confidence: number;
-  trace: SfiTraceContext;
-  createdAt: string;
 }
 
-export interface SfiOperation {
-  id: SfiEntityId;
-  trace: SfiTraceContext;
-  capabilityId: SfiEntityId;
-  actorId: SfiEntityId;
-  input: unknown;
-  startedAt: string;
-  completedAt?: string;
-  status: 'REQUESTED' | 'RUNNING' | 'COMPLETED' | 'FAILED';
+
+export interface KernelSimulation {
+  id?: string;
+  type?: string;
+  simulator?: string;
+  confidence?: number;
+  payload?: unknown;
+  output?: unknown;
 }
+
+
+export interface KernelRisk {
+  id?: string;
+  description: string;
+  severity: number;
+  confidence?: number;
+  payload?: unknown;
+}
+
+
+export interface KernelOpportunity {
+  id?: string;
+  description: string;
+  value?: number;
+  score?: number;
+}
+
+
+export interface KernelPrediction {
+  id?: string;
+  statement: string;
+  description?: string;
+  confidence: number;
+}
+
+
+export interface KernelContradiction {
+  id?: string;
+  description: string;
+  severity?: number;
+  payload?: unknown;
+  confidence?: number;
+}
+
+
 
 export interface KernelContext {
+
   trace: SfiTraceContext;
-  capabilityId: SfiEntityId;
-  actor: { id: SfiEntityId; type: string };
-  stateSnapshot: StateSnapshot;
-  permissions: SfiPermission[];
+
   input: unknown;
+
+  taskId?: string;
+
+  capabilityId?: string;
+
+  currentEvent?: string;
+
+  stateSnapshot?: unknown;
+
+  permissions?: SfiPermission[];
+
+  evidence: KernelEvidence[];
+
+  hypotheses: KernelHypothesis[];
+
+  contradictions: KernelContradiction[];
+
+  simulations: KernelSimulation[];
+
+  risks: KernelRisk[];
+
+  opportunities: KernelOpportunity[];
+
+  predictions: KernelPrediction[];
+
+  metadata: Record<string, unknown>;
+
+  actor?: {
+    id?: string;
+    role?: string;
+    type?: string;
+  };
+
 }
 
-export interface GovernanceDecision {
-  id: SfiEntityId;
-  targetId: SfiEntityId;
-  decision: 'APPROVED' | 'REJECTED' | 'OVERRIDDEN';
-  authority: string;
-  reason: string;
-  trace: SfiTraceContext;
-  timestamp: string;
+
+
+
+/*
+ Agent Runtime
+*/
+
+
+export interface MemoryWriteDefinition {
+
+  entityType: string;
+
+  operation:
+    | "CREATE"
+    | "UPDATE"
+    | "ARCHIVE";
+
 }
 
-export interface VariableDefinition {
+
+
+export type LifecycleState =
+  | "CREATED"
+  | "VALIDATING"
+  | "ACTIVE"
+  | "ARCHIVED"
+  | "RETIRED";
+
+
+export type RuntimeState =
+  | "READY"
+  | "RUNNING"
+  | "FAILED"
+  | "BLOCKED"
+  | "DISABLED";
+
+
+
+export interface AgentDefinition {
+
+  id: string;
+
   name: string;
+
   type: string;
-  description?: string;
+
+  capabilities: string[];
+
+  readsMemory: string[];
+
+  writesMemory: MemoryWriteDefinition[];
+
+  emits: string[];
+
+  humanApprovalRequired: boolean;
+
+  confidenceModel: string;
+
+  status: LifecycleState;
+
 }
 
-export interface FormulaDefinition {
-  id: SfiEntityId;
-  version: string;
-  owner: 'SFI' | 'MIHM' | 'MOPH';
-  inputs: VariableDefinition[];
-  output: VariableDefinition;
-  implementation: string;
+
+
+export interface AgentResult {
+
+  trace: SfiTraceContext;
+
+  agentId: string;
+
+  status:
+    | "SUCCESS"
+    | "PARTIAL"
+    | "FAILED";
+
+  output: unknown;
+
+  observations: string[];
+
+  evidence: string[];
+
+  events: string[];
+
+  memoryWrites: MemoryWriteDefinition[];
+
+  confidence: number;
+
+  executionTime: number;
+
 }
+
+
+
+export interface AgentExecution {
+
+  id: string;
+
+  agentId: string;
+
+  capabilityId: string;
+
+  trace: SfiTraceContext;
+
+  startedAt: string;
+
+  completedAt?: string;
+
+  status: RuntimeState;
+
+  result?: AgentResult;
+
+}
+
+
+
+export interface InstitutionalMemory {
+
+  id: string;
+
+  evidenceIds: string[];
+
+  phenomenonId: string;
+
+  knowledge: string;
+
+  confidence: number;
+
+  trace: SfiTraceContext;
+
+  createdAt: string;
+
+}
+
+
+
+export type PredictionStatus =
+  | "PENDING"
+  | "ACTIVE"
+  | "VERIFIED"
+  | "ARCHIVED";
+
 
 export interface Repository<T> {
+
   save(entity: T): Promise<void>;
-  findById(id: SfiEntityId): Promise<T | null>;
+
+  findById(id: string): Promise<T | null>;
+
 }
 
-export interface ObservationRepository extends Repository<Observation> {
-  findByPhenomenon(phenomenonId: SfiEntityId): Promise<Observation[]>;
+
+export interface PredictionRepository
+extends Repository<unknown> {
+
+  findByStatus(
+    status: PredictionStatus
+  ): Promise<unknown[]>;
+
 }
 
-export interface EvidenceRepository extends Repository<Evidence> {
-  findByObservationIds(observationIds: SfiEntityId[]): Promise<Evidence[]>;
-}
 
-export interface PredictionRepository extends Repository<unknown> {
-  findByStatus(status: PredictionStatus): Promise<unknown[]>;
-}
 
-export interface MemoryRepository extends Repository<InstitutionalMemory> {
-  findByPhenomenon(phenomenonId: SfiEntityId): Promise<InstitutionalMemory[]>;
-}
+export type SfiState =
+  | "CREATED"
+  | "VALIDATING"
+  | "ACTIVE"
+  | "ARCHIVED"
+  | "RETIRED";
 
-export interface EventRepository extends Repository<SfiEvent> {
-  findByLogbookId(logbookId: string): Promise<SfiEvent[]>;
-  findSequenceRange(start: number, end: number): Promise<SfiEvent[]>;
-}
-
-export type LifecycleState = 'CREATED' | 'VALIDATING' | 'ACTIVE' | 'ARCHIVED' | 'RETIRED';
-export type RuntimeState = 'READY' | 'RUNNING' | 'FAILED' | 'BLOCKED' | 'DISABLED';
-export type PredictionStatus = 'PENDING' | 'ACTIVE' | 'VERIFIED' | 'ARCHIVED';
 
 export interface StateSnapshot {
-  state: SfiState;
-  generatedAt: string;
-  sourceMemoryVersion: number;
-  hash: string;
-}
 
-export type SfiState = 'CREATED' | 'VALIDATING' | 'ACTIVE' | 'ARCHIVED' | 'RETIRED';
+  state: SfiState;
+
+  generatedAt: string;
+
+  sourceMemoryVersion: number;
+
+  hash: string;
+
+}

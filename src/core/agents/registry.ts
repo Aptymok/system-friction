@@ -1,19 +1,49 @@
-import type { AgentDefinition, KernelContext, AgentResult } from '@/core/contracts';
+// ============================================================================
+// ADICIÓN a src/core/agents/registry.ts
+// Pegar el bloque de clases ANTES de `export const canonicalAgents = [...]`
+// y reemplazar el array `canonicalAgents` final por el que está al fondo de
+// este archivo (agrega los 10 agentes migrados a los 7 ya existentes = 17).
+//
+// Fuente de la definición de cada agente: src/lib/sfi/cognitive-runtime/registry.ts
+// (registro no reconciliado). No se inventó capacidad, ruta de memoria ni
+// dominio: se tomó literal del registro viejo y se adaptó al contrato
+// AgentDefinition / KernelContext / AgentResult de src/core/contracts.
+//
+// QUEDA FUERA: `passive_field_observation`. En el registro viejo no tiene
+// readsMemory/writesMemory/confidenceModel — es un marcador de principio de
+// capa ("Observe does not modify"), no un agente ejecutable. Migrarlo como
+// clase con execute() sería inventar un contrato que el repo nunca declaró.
+// Debe resolverse en Fase 0 (auditoría) como decisión explícita: o se define
+// su contrato real, o se re-clasifica como principio de runtime, no como
+// agente #18.
+// ============================================================================
+import {
+  EvidenceHunterAgent,
+  TemporalResolverAgent,
+  TrajectoryAgent,
+  RealityCalibrationAgent,
+  RiskAgent,
+  OpportunityAgent,
+  MetaOrchestratorAgent,
+} from './agents';
 
-export abstract class SfiAgent {
-  abstract definition: AgentDefinition;
-  abstract execute(context: KernelContext): Promise<AgentResult>;
-}
+import { SfiAgent } from './base';
 
-export class EvidenceHunterAgent extends SfiAgent {
+import type {
+  AgentDefinition,
+  KernelContext,
+  AgentResult,
+} from '@/core/contracts';
+
+export class HistoricalScoutAgent extends SfiAgent {
   definition: AgentDefinition = {
-    id: 'AGENT_EVIDENCE_HUNTER',
-    name: 'Evidence Hunter',
+    id: 'AGENT_HISTORICAL_SCOUT',
+    name: 'Historical Scout',
     type: 'EVIDENCE',
-    capabilities: ['CAPABILITY_EVIDENCE_HUNTER'],
-    readsMemory: ['evidence', 'observations'],
+    capabilities: ['CAPABILITY_HISTORICAL_SCOUT'],
+    readsMemory: ['sfi_phenomena', 'sfi_phenomenon_evidence'],
     writesMemory: [{ entityType: 'EVIDENCE', operation: 'CREATE' }],
-    emits: ['EVIDENCE_HUNTER_READY'],
+    emits: ['historical.reconstruction.completed'],
     humanApprovalRequired: false,
     confidenceModel: 'source_presence_and_lineage',
     status: 'ACTIVE',
@@ -24,28 +54,28 @@ export class EvidenceHunterAgent extends SfiAgent {
       trace: context.trace,
       agentId: this.definition.id,
       status: 'SUCCESS',
-      output: { message: 'evidence-hunter-ready', input: context.input },
+      output: { message: 'historical-scout-ready', input: context.input },
       observations: [],
       evidence: [],
       events: [],
       memoryWrites: this.definition.writesMemory,
-      confidence: 0.75,
+      confidence: 0.6,
       executionTime: 0,
     };
   }
 }
 
-export class TemporalResolverAgent extends SfiAgent {
+export class PhenotypeResolverAgent extends SfiAgent {
   definition: AgentDefinition = {
-    id: 'AGENT_TEMPORAL_RESOLVER',
-    name: 'Temporal Resolver',
-    type: 'TEMPORAL',
-    capabilities: ['CAPABILITY_TEMPORAL_RESOLVER'],
-    readsMemory: ['predictions', 'events'],
-    writesMemory: [{ entityType: 'STATE', operation: 'UPDATE' }],
-    emits: ['TEMPORAL_RESOLVER_READY'],
+    id: 'AGENT_PHENOTYPE_RESOLVER',
+    name: 'Phenotype Resolver',
+    type: 'EVIDENCE',
+    capabilities: ['CAPABILITY_PHENOTYPE_RESOLVER'],
+    readsMemory: ['sfi_phenomena', 'sfi_reference_cases', 'sfi_graph_nodes', 'graph_nodes'],
+    writesMemory: [{ entityType: 'EPISTEMIC_EVENT', operation: 'CREATE' }],
+    emits: ['SFI_PHENOTYPE_RESOLVED'],
     humanApprovalRequired: false,
-    confidenceModel: 'timestamp_coverage',
+    confidenceModel: 'configuration_overlap',
     status: 'ACTIVE',
   };
 
@@ -54,28 +84,28 @@ export class TemporalResolverAgent extends SfiAgent {
       trace: context.trace,
       agentId: this.definition.id,
       status: 'SUCCESS',
-      output: { message: 'temporal-resolver-ready' },
+      output: { message: 'phenotype-resolver-ready', input: context.input },
       observations: [],
       evidence: [],
       events: [],
       memoryWrites: this.definition.writesMemory,
-      confidence: 0.7,
+      confidence: 0.6,
       executionTime: 0,
     };
   }
 }
 
-export class TrajectoryAgent extends SfiAgent {
+export class ContextBuilderAgent extends SfiAgent {
   definition: AgentDefinition = {
-    id: 'AGENT_TRAJECTORY',
-    name: 'Trajectory Agent',
-    type: 'TRAJECTORY',
-    capabilities: ['CAPABILITY_TRAJECTORY'],
-    readsMemory: ['predictions', 'events'],
-    writesMemory: [{ entityType: 'PREDICTION', operation: 'UPDATE' }],
-    emits: ['TRAJECTORY_ASSESSED'],
+    id: 'AGENT_CONTEXT_BUILDER',
+    name: 'Context Builder',
+    type: 'EVIDENCE',
+    capabilities: ['CAPABILITY_CONTEXT_BUILDER'],
+    readsMemory: ['epistemic_events', 'sfi_graph_nodes', 'field_cases'],
+    writesMemory: [{ entityType: 'EPISTEMIC_EVENT', operation: 'CREATE' }],
+    emits: ['SFI_CONTEXT_COORDINATE_BUILT'],
     humanApprovalRequired: false,
-    confidenceModel: 'time_series_and_residual_coverage',
+    confidenceModel: 'field_slot_completeness',
     status: 'ACTIVE',
   };
 
@@ -84,28 +114,28 @@ export class TrajectoryAgent extends SfiAgent {
       trace: context.trace,
       agentId: this.definition.id,
       status: 'SUCCESS',
-      output: { message: 'trajectory-ready' },
+      output: { message: 'context-builder-ready', input: context.input },
       observations: [],
       evidence: [],
       events: [],
       memoryWrites: this.definition.writesMemory,
-      confidence: 0.68,
+      confidence: 0.6,
       executionTime: 0,
     };
   }
 }
 
-export class RealityCalibrationAgent extends SfiAgent {
+export class SocialFieldSimulatorAgent extends SfiAgent {
   definition: AgentDefinition = {
-    id: 'AGENT_REALITY_CALIBRATION',
-    name: 'Reality Calibration',
-    type: 'CALIBRATION',
-    capabilities: ['CAPABILITY_REALITY_CALIBRATION'],
-    readsMemory: ['predictions', 'events'],
-    writesMemory: [{ entityType: 'PREDICTION', operation: 'UPDATE' }],
-    emits: ['REALITY_CALIBRATED'],
+    id: 'AGENT_SOCIAL_FIELD_SIMULATOR',
+    name: 'Social Field Simulator',
+    type: 'SIMULATION',
+    capabilities: ['CAPABILITY_SOCIAL_FIELD_SIMULATOR'],
+    readsMemory: ['epistemic_events', 'sfi_graph_nodes', 'field_cases'],
+    writesMemory: [{ entityType: 'EPISTEMIC_EVENT', operation: 'CREATE' }],
+    emits: ['SFI_SOCIAL_FIELD_SIMULATED'],
     humanApprovalRequired: false,
-    confidenceModel: 'absolute_error',
+    confidenceModel: 'bounded_variable_coverage',
     status: 'ACTIVE',
   };
 
@@ -114,28 +144,28 @@ export class RealityCalibrationAgent extends SfiAgent {
       trace: context.trace,
       agentId: this.definition.id,
       status: 'SUCCESS',
-      output: { message: 'reality-calibration-ready' },
+      output: { message: 'social-field-simulator-ready', input: context.input },
       observations: [],
       evidence: [],
       events: [],
       memoryWrites: this.definition.writesMemory,
-      confidence: 0.72,
+      confidence: 0.55,
       executionTime: 0,
     };
   }
 }
 
-export class RiskAgent extends SfiAgent {
+export class EconomicFieldSimulatorAgent extends SfiAgent {
   definition: AgentDefinition = {
-    id: 'AGENT_RISK',
-    name: 'Risk Agent',
-    type: 'RISK',
-    capabilities: ['CAPABILITY_RISK'],
-    readsMemory: ['evidence', 'governance'],
-    writesMemory: [{ entityType: 'EVENT', operation: 'CREATE' }],
-    emits: ['RISK_DECLARED'],
+    id: 'AGENT_ECONOMIC_FIELD_SIMULATOR',
+    name: 'Economic Field Simulator',
+    type: 'SIMULATION',
+    capabilities: ['CAPABILITY_ECONOMIC_FIELD_SIMULATOR'],
+    readsMemory: ['epistemic_events', 'root_evidence_entries', 'field_cases'],
+    writesMemory: [{ entityType: 'EPISTEMIC_EVENT', operation: 'CREATE' }],
+    emits: ['SFI_ECONOMIC_FIELD_SIMULATED'],
     humanApprovalRequired: false,
-    confidenceModel: 'blocker_count_and_severity',
+    confidenceModel: 'bounded_variable_coverage',
     status: 'ACTIVE',
   };
 
@@ -144,28 +174,28 @@ export class RiskAgent extends SfiAgent {
       trace: context.trace,
       agentId: this.definition.id,
       status: 'SUCCESS',
-      output: { message: 'risk-ready' },
+      output: { message: 'economic-field-simulator-ready', input: context.input },
       observations: [],
       evidence: [],
       events: [],
       memoryWrites: this.definition.writesMemory,
-      confidence: 0.66,
+      confidence: 0.55,
       executionTime: 0,
     };
   }
 }
 
-export class OpportunityAgent extends SfiAgent {
+export class PolicySimulatorAgent extends SfiAgent {
   definition: AgentDefinition = {
-    id: 'AGENT_OPPORTUNITY',
-    name: 'Opportunity Discovery',
-    type: 'OPPORTUNITY',
-    capabilities: ['CAPABILITY_OPPORTUNITY'],
-    readsMemory: ['evidence', 'governance'],
-    writesMemory: [{ entityType: 'EVENT', operation: 'CREATE' }],
-    emits: ['OPPORTUNITY_DECLARED'],
+    id: 'AGENT_POLICY_SIMULATOR',
+    name: 'Policy Simulator',
+    type: 'SIMULATION',
+    capabilities: ['CAPABILITY_POLICY_SIMULATOR'],
+    readsMemory: ['action_proposals', 'root_audit_events', 'epistemic_events'],
+    writesMemory: [{ entityType: 'EPISTEMIC_EVENT', operation: 'CREATE' }],
+    emits: ['SFI_POLICY_FIELD_SIMULATED'],
     humanApprovalRequired: false,
-    confidenceModel: 'evidence_supported_windowing',
+    confidenceModel: 'governance_constraint_coverage',
     status: 'ACTIVE',
   };
 
@@ -174,28 +204,28 @@ export class OpportunityAgent extends SfiAgent {
       trace: context.trace,
       agentId: this.definition.id,
       status: 'SUCCESS',
-      output: { message: 'opportunity-ready' },
+      output: { message: 'policy-simulator-ready', input: context.input },
       observations: [],
       evidence: [],
       events: [],
       memoryWrites: this.definition.writesMemory,
-      confidence: 0.64,
+      confidence: 0.55,
       executionTime: 0,
     };
   }
 }
 
-export class MetaOrchestratorAgent extends SfiAgent {
+export class CulturalSimulatorAgent extends SfiAgent {
   definition: AgentDefinition = {
-    id: 'AGENT_META_ORCHESTRATOR',
-    name: 'Meta Orchestrator',
-    type: 'ORCHESTRATOR',
-    capabilities: ['CAPABILITY_ORCHESTRATOR'],
-    readsMemory: ['events', 'governance', 'predictions'],
-    writesMemory: [{ entityType: 'STATE', operation: 'UPDATE' }],
-    emits: ['ORCHESTRATION_READY'],
+    id: 'AGENT_CULTURAL_SIMULATOR',
+    name: 'Cultural Simulator',
+    type: 'SIMULATION',
+    capabilities: ['CAPABILITY_CULTURAL_SIMULATOR'],
+    readsMemory: ['world_vector_observations', 'worldspect_snapshots', 'sfi_amv_memory'],
+    writesMemory: [{ entityType: 'EPISTEMIC_EVENT', operation: 'CREATE' }],
+    emits: ['SFI_CULTURAL_FIELD_SIMULATED'],
     humanApprovalRequired: false,
-    confidenceModel: 'contract_coverage',
+    confidenceModel: 'world_vector_alignment',
     status: 'ACTIVE',
   };
 
@@ -204,16 +234,110 @@ export class MetaOrchestratorAgent extends SfiAgent {
       trace: context.trace,
       agentId: this.definition.id,
       status: 'SUCCESS',
-      output: { message: 'orchestrator-ready' },
+      output: { message: 'cultural-simulator-ready', input: context.input },
       observations: [],
       evidence: [],
       events: [],
       memoryWrites: this.definition.writesMemory,
-      confidence: 0.7,
+      confidence: 0.55,
       executionTime: 0,
     };
   }
 }
+
+export class PsychologicalSimulatorAgent extends SfiAgent {
+  definition: AgentDefinition = {
+    id: 'AGENT_PSYCHOLOGICAL_SIMULATOR',
+    name: 'Psychological Simulator',
+    type: 'SIMULATION',
+    capabilities: ['CAPABILITY_PSYCHOLOGICAL_SIMULATOR'],
+    readsMemory: ['sfi_moph_sessions', 'sfi_amv_memory', 'epistemic_events'],
+    writesMemory: [{ entityType: 'EPISTEMIC_EVENT', operation: 'CREATE' }],
+    emits: ['SFI_PSYCHOLOGICAL_FIELD_SIMULATED'],
+    humanApprovalRequired: false,
+    confidenceModel: 'declared_object_and_trace_coverage',
+    status: 'ACTIVE',
+  };
+
+  async execute(context: KernelContext): Promise<AgentResult> {
+    return {
+      trace: context.trace,
+      agentId: this.definition.id,
+      status: 'SUCCESS',
+      output: { message: 'psychological-simulator-ready', input: context.input },
+      observations: [],
+      evidence: [],
+      events: [],
+      memoryWrites: this.definition.writesMemory,
+      confidence: 0.5,
+      executionTime: 0,
+    };
+  }
+}
+
+export class MultiStakeholderBootstrapAgent extends SfiAgent {
+  definition: AgentDefinition = {
+    id: 'AGENT_MULTI_STAKEHOLDER_BOOTSTRAP',
+    name: 'Multi Stakeholder Bootstrap',
+    type: 'GOVERNANCE',
+    capabilities: ['CAPABILITY_MULTI_STAKEHOLDER_BOOTSTRAP'],
+    readsMemory: ['action_proposals', 'field_cases', 'sfi_moph_sessions', 'epistemic_events'],
+    writesMemory: [{ entityType: 'EPISTEMIC_EVENT', operation: 'CREATE' }],
+    emits: ['SFI_MULTI_STAKEHOLDER_SIMULATED'],
+    humanApprovalRequired: true,
+    confidenceModel: 'stakeholder_divergence_delta',
+    status: 'ACTIVE',
+  };
+
+  async execute(context: KernelContext): Promise<AgentResult> {
+    return {
+      trace: context.trace,
+      agentId: this.definition.id,
+      status: 'SUCCESS',
+      output: { message: 'multi-stakeholder-bootstrap-ready', input: context.input },
+      observations: [],
+      evidence: [],
+      events: [],
+      memoryWrites: this.definition.writesMemory,
+      confidence: 0.5,
+      executionTime: 0,
+    };
+  }
+}
+
+export class ProjectExecutionManagerAgent extends SfiAgent {
+  definition: AgentDefinition = {
+    id: 'AGENT_PROJECT_EXECUTION_MANAGER',
+    name: 'Project Execution Manager',
+    type: 'GOVERNANCE',
+    capabilities: ['CAPABILITY_PROJECT_EXECUTION_MANAGER'],
+    readsMemory: ['action_proposals', 'logbook_mutations', 'root_audit_events', 'epistemic_events'],
+    writesMemory: [{ entityType: 'EPISTEMIC_EVENT', operation: 'CREATE' }],
+    emits: ['SFI_PROJECT_EXECUTION_STATE_DECLARED'],
+    humanApprovalRequired: true,
+    confidenceModel: 'dependency_and_blocker_coverage',
+    status: 'ACTIVE',
+  };
+
+  async execute(context: KernelContext): Promise<AgentResult> {
+    return {
+      trace: context.trace,
+      agentId: this.definition.id,
+      status: 'SUCCESS',
+      output: { message: 'project-execution-manager-ready', input: context.input },
+      observations: [],
+      evidence: [],
+      events: [],
+      memoryWrites: this.definition.writesMemory,
+      confidence: 0.5,
+      executionTime: 0,
+    };
+  }
+}
+
+// ----------------------------------------------------------------------------
+// Reemplazar el `export const canonicalAgents = [...]` existente por este:
+// ----------------------------------------------------------------------------
 
 export const canonicalAgents = [
   new EvidenceHunterAgent(),
@@ -223,4 +347,16 @@ export const canonicalAgents = [
   new RiskAgent(),
   new OpportunityAgent(),
   new MetaOrchestratorAgent(),
+  new HistoricalScoutAgent(),
+  new PhenotypeResolverAgent(),
+  new ContextBuilderAgent(),
+  new SocialFieldSimulatorAgent(),
+  new EconomicFieldSimulatorAgent(),
+  new PolicySimulatorAgent(),
+  new CulturalSimulatorAgent(),
+  new PsychologicalSimulatorAgent(),
+  new MultiStakeholderBootstrapAgent(),
+  new ProjectExecutionManagerAgent(),
 ];
+// 17 agentes reconciliados bajo el contrato canónico.
+// passive_field_observation queda pendiente de decisión explícita (ver nota arriba).
