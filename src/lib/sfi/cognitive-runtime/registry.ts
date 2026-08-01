@@ -1,4 +1,7 @@
-import type { SfiRegisteredCognitiveAgent, SfiRuntimeModeState } from './types';
+﻿import type { SfiRegisteredCognitiveAgent, SfiRuntimeModeState } from './types';
+import {
+  SFI_CANONICAL_CAPABILITIES
+} from "./canonicalCapabilities";
 
 const worldVectorTables = ['world_vector_observations', 'worldspect_snapshots'];
 const evidenceTables = ['epistemic_events', 'root_evidence_entries', 'sfi_evidence_ledger'];
@@ -127,7 +130,7 @@ operationalMode:false,
     sourceTables: ['sfi_phenomena', 'sfi_reference_cases', 'sfi_graph_nodes', 'graph_nodes'],
     route: null,
     operationalMode: false,
-    missingCapability: true,
+    missingCapability: false,
   },
   {
     id: 'context_builder',
@@ -146,7 +149,7 @@ operationalMode:false,
     sourceTables: ['epistemic_events', 'sfi_graph_nodes', 'field_cases'],
     route: null,
     operationalMode: false,
-    missingCapability: true,
+    missingCapability: false,
   },
   {
     id: 'social_field_simulator',
@@ -165,7 +168,7 @@ operationalMode:false,
     sourceTables: ['epistemic_events', 'sfi_graph_nodes', 'field_cases'],
     route: null,
     operationalMode: false,
-    missingCapability: true,
+    missingCapability: false,
   },
   {
     id: 'economic_field_simulator',
@@ -184,7 +187,7 @@ operationalMode:false,
     sourceTables: ['epistemic_events', 'root_evidence_entries', 'field_cases'],
     route: null,
     operationalMode: false,
-    missingCapability: true,
+    missingCapability: false,
   },
   {
     id: 'policy_simulator',
@@ -203,7 +206,7 @@ operationalMode:false,
     sourceTables: ['action_proposals', 'root_audit_events', 'epistemic_events'],
     route: null,
     operationalMode: false,
-    missingCapability: true,
+    missingCapability: false,
   },
   {
     id: 'cultural_simulator',
@@ -222,7 +225,7 @@ operationalMode:false,
     sourceTables: [...worldVectorTables, 'sfi_amv_memory'],
     route: null,
     operationalMode: false,
-    missingCapability: true,
+    missingCapability: false,
   },
   {
     id: 'psychological_simulator',
@@ -241,7 +244,7 @@ operationalMode:false,
     sourceTables: ['sfi_moph_sessions', 'sfi_amv_memory', 'epistemic_events'],
     route: null,
     operationalMode: false,
-    missingCapability: true,
+    missingCapability: false,
   },
   {
     id: 'trajectory_agent',
@@ -336,7 +339,7 @@ operationalMode:false,
     sourceTables: ['action_proposals', 'field_cases', 'sfi_moph_sessions', 'epistemic_events'],
     route: null,
     operationalMode: false,
-    missingCapability: true,
+    missingCapability: false,
   },
   {
     id: 'project_execution_manager',
@@ -355,8 +358,8 @@ operationalMode:false,
     sourceTables: governanceTables,
     route: null,
     operationalMode: false,
-    missingCapability: true,
-  },
+    missingCapability: false,
+  }
 ];
 
 export const SFI_COGNITIVE_RUNTIME_MODES: Array<Omit<SfiRuntimeModeState, 'status' | 'readsMemory' | 'writesMemory' | 'warning'>> = [
@@ -382,4 +385,5 @@ export const SFI_LAYER_QUESTIONS: Record<SfiRegisteredCognitiveAgent['layer'], s
 export const SFI_RUNTIME_SOURCE_TABLES = [
   ...new Set(SFI_COGNITIVE_AGENT_REGISTRY.flatMap((agent) => agent.sourceTables).concat(SFI_FIELD_TABLES)),
 ].sort();
+
 

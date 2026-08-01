@@ -42,7 +42,6 @@ export function adaptAmvMemoryToEvidence(
 ): AmvEvidenceRecord {
 
   return {
-
     id: delta.id,
 
     trust: trustFromInference(delta),
@@ -65,24 +64,19 @@ export function adaptAmvMemoryToEvidence(
 
     payloadHash: delta.evidenceHash,
 
-
-    /*
-      El adaptador transforma evidencia.
-      No posee autoridad para decidir riesgo,
-      cierre de ciclo o promoción institucional.
-
-      Las decisiones pertenecen a agentes
-      especializados y capas superiores.
-    */
-
     changesRoute:
       delta.inference.requiredAction === 'propose_observation'
       ||
       delta.inference.requiredAction === 'ask_human',
 
+    // changesRisk and closesLoop are decisions, not transformations -- this
+    // adapter has no authority to make them (Principio de Singularidad
+    // Funcional, ADR-000/002). The 0.7 impact cutoff and 0.65 uncertainty
+    // cutoff that used to live here were invented on the spot, never reviewed.
+    // Neutral default until risk_agent (registry.ts, currently GATED) exists
+    // and can own this policy explicitly.
     changesRisk: false,
 
     closesLoop: false,
-
   };
 }
