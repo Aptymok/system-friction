@@ -8,7 +8,10 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
-type RouteContext = { params: Promise<{ id: string }> | { id: string } };
+type RouteContext = {
+  params: Promise<{ id: string }>;
+};
+
 type Row = Record<string, unknown>;
 
 function record(value: unknown): Row {
@@ -29,11 +32,14 @@ function returnWindow(value: unknown): PredictiveReturnWindow {
 }
 
 async function runIdFrom(ctx: RouteContext) {
-  const params = await Promise.resolve(ctx.params);
-  return decodeURIComponent(params.id);
+  const { id } = await ctx.params;
+  return decodeURIComponent(id);
 }
 
-export async function POST(request: Request, ctx: RouteContext) {
+export async function POST(
+  request: Request,
+  ctx: RouteContext
+) {
   try {
     const access = await requireAuthenticatedUser();
     const runId = await runIdFrom(ctx);

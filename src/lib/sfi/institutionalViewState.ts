@@ -124,12 +124,12 @@ export async function readInstitutionalViewState(input?: { entityId?: string; en
         title: stableText(summary.phenomenon ?? row.evidence_kind, 'Evidencia institucional'),
         summary: `Evidencia ${stableText(row.evidence_kind, 'sin tipo')} · confianza ${numberValue(row.trust_score, 0).toFixed(2)}`,
         identity: stableText(row.id, 'evidence'),
-        createdAt: formatTimestamp(row.observed_at ?? row.created_at),
+        createdAt: formatTimestamp(row.observed_at),
       };
     }) : []),
     ...(Array.isArray(predictionRows) ? predictionRows.map((row) => ({
       kind: 'prediction' as const,
-      title: stableText(row.fenotipo_estimado ?? row.case_label ?? row.hypothesis_id, 'Predicción institucional'),
+      title: stableText(row.fenotipo_estimado ?? row.hypothesis_id, 'Predicción institucional'),
       summary: `Probabilidad ${numberValue(row.probabilidad_estimativa, 0).toFixed(2)} · ${stableText(row.hypothesis_id, 'sin hipótesis')}`,
       identity: stableText(row.id, 'prediction'),
       createdAt: formatTimestamp(row.created_at),
