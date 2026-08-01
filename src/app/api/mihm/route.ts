@@ -1,3 +1,9 @@
-import { createKernelRoute } from "@/runtime/api/createKernelRoute";
+import 'server-only';
 
-export const POST = createKernelRoute("mihm_execute");
+export async function GET() {
+  return Response.json({
+    ok: true,
+    module: 'mihm',
+    status: 'available'
+  });
+}

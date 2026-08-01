@@ -286,7 +286,7 @@ DI AUMENTA CUANDO:
   +0.20 → animación continua sin propósito estructural
 
 UMBRALES:
-  DI &lt; 0.4 → ESTADO ÓPTIMO
+  DI < 0.4 → ESTADO ÓPTIMO
   DI 0.4 - 0.7 → ATENCIÓN REQUERIDA
   DI > 0.7 → CRÍTICO (requiere intervención)
   </pre>
@@ -308,7 +308,7 @@ PI AUMENTA CUANDO:
 UMBRALES:
   PI > 0.6 → PRESENCIA ACTIVA
   PI 0.3 - 0.6 → PRESENCIA ATENUADA
-  PI &lt; 0.3 → PRESENCIA AUSENTE
+  PI < 0.3 → PRESENCIA AUSENTE
   </pre>
 </div>
 
@@ -320,14 +320,14 @@ RI (0.0 - 1.0)
 
 RI ÓPTIMO CUANDO:
   - Tiempo de respuesta entre 1.4 segundos y 3.0 segundos
-  - Frecuencia de animaciones &lt; 0.2 Hz (un ciclo cada 5+ segundos)
+  - Frecuencia de animaciones < 0.2 Hz (un ciclo cada 5+ segundos)
   - Inputs NO encadenados (pausa entre acciones del usuario)
   - Transiciones duran entre 300ms y 800ms
 
 VALORES DE REFERENCIA:
   RI 0.4 - 0.7 → ÓPTIMO PERCEPTUAL
   RI > 0.7 → ACELERADO (fricción probable)
-  RI &lt; 0.4 → LENTIFICADO (posible aburrimiento)
+  RI < 0.4 → LENTIFICADO (posible aburrimiento)
   </pre>
 </div>
 
@@ -361,7 +361,7 @@ VALORES DE REFERENCIA:
     <li><strong>Hiperestimulación</strong> — más de 3 estímulos nuevos en menos de 2 segundos.</li>
     <li><strong>Ruido visual</strong> — elementos decorativos sin función estructural.</li>
     <li><strong>Presión emocional</strong> — urgencia artificial detectada.</li>
-    <li><strong>Aceleración compulsiva</strong> — tiempo de respuesta &lt; 800ms repetido 3+ veces.</li>
+    <li><strong>Aceleración compulsiva</strong> — tiempo de respuesta < 800ms repetido 3+ veces.</li>
   </ul>
   <p><strong>Regla:</strong> Cualquier instancia de fricción destructiva debe activar un <strong>bloqueo de ejecución inmediato</strong> (ver Sección 10).</p>
 </div>
@@ -380,7 +380,7 @@ VALORES DE REFERENCIA:
 <h3>MODO UMBRAL</h3>
 <div class="metric-box">
   <pre>
-TRIGGER: DI &lt; 0.3 O entrada_inicial O silencio_prolongado
+TRIGGER: DI < 0.3 O entrada_inicial O silencio_prolongado
 DURACIÓN MÍNIMA: 8 segundos
 
 CONDUCTA:
@@ -626,7 +626,7 @@ CONDICIONES DE BLOQUEO:
 1. DI > PI sostenido por más de 15 segundos
 2. Fricción destructiva detectada 2 veces en menos de 60 segundos
 3. Usuario exhibe signos de aceleración compulsiva 
-   (tiempo de respuesta &lt; 800ms repetido 3+ veces consecutivas)
+   (tiempo de respuesta < 800ms repetido 3+ veces consecutivas)
 4. Conflicto no resoluble entre prioridades de peso igual o superior a 50
 
 ACCIÓN DE BLOQUEO:
@@ -641,7 +641,7 @@ ACCIÓN DE BLOQUEO:
 DESBLOQUEO:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-- Automático cuando DI &lt; 0.4 durante 8 segundos sostenidos
+- Automático cuando DI < 0.4 durante 8 segundos sostenidos
 - O usuario escribe explícitamente "continuar" o "desbloquear"
   </pre>
 </div>

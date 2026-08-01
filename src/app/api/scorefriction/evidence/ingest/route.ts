@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { createEvidenceEnvelope } from '@/lib/sfi/evidence'
 import { createServiceSupabaseClient } from '@/runtime/supabase/server'
+import { randomUUID } from 'crypto';
+import { InstitutionalMemoryWriter } from '@/lib/memory/institutionalMemoryWriter';
 
 export const dynamic = 'force-dynamic'
 
@@ -26,6 +28,8 @@ export async function POST(request: Request) {
 
   try {
     const service = createServiceSupabaseClient()
+
+    // 1. Insertar en el ledger de evidencia
     const { data, error } = await service.from('sfi_evidence_ledger').insert({
       case_id: caseId,
       module: 'scorefriction',
@@ -42,8 +46,36 @@ export async function POST(request: Request) {
       public_weight: envelope.publicWeight,
       observed_at: envelope.observedAt,
     }).select('id').single()
+
     if (error) throw new Error(error.message)
-    return NextResponse.json({ ok: true, status: 'ACTIVE', evidence: { ...envelope, id: data?.id, caseId } })
+
+    const evidenceId = data?.id
+
+    // 2. Registrar admisión en memoria institucional (ADR-017)
+    if (evidenceId) {
+      const writer = new InstitutionalMemoryWriter()
+      await writer.write({
+        entityType: 'EVIDENCE',
+        entityId: evidenceId,
+        source: {
+          component: 'EvidenceService',
+        },
+        provenance: {
+          originTable: 'sfi_evidence_ledger',
+          originId: evidenceId,
+        },
+        authorization: {
+          rule: 'EVIDENCE_ADMISSION',
+        },
+      })
+    }
+
+    return NextResponse.json({
+      ok: true,
+      status: 'ACTIVE',
+      evidence: { ...envelope, id: evidenceId, caseId }
+    })
+
   } catch (error) {
     return NextResponse.json({
       ok: false,

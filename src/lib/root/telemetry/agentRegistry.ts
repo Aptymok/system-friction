@@ -1,6 +1,7 @@
 import 'server-only';
-
+import { randomUUID } from 'crypto';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
+import { InstitutionalMemoryWriter } from '@/lib/memory/institutionalMemoryWriter';
 
 /**
  * ROOT Runtime Telemetry Layer.
@@ -189,10 +190,6 @@ export async function ensureAgentRegistrySeeded() {
       .maybeSingle();
 
     if (existing) {
-      // Reclasificación: si ya existía de una siembra anterior sin
-      // entity_kind correcto (todo 'service' por default), corregirlo
-      // no borra su historial de status/last_run — solo actualiza la
-      // clasificación y metadata descriptiva.
       if (!existing.entity_kind || existing.entity_kind === 'service') {
         await client
           .from('root_agents')
@@ -209,17 +206,17 @@ export async function ensureAgentRegistrySeeded() {
       continue;
     }
 
-    await client.from('root_agents').insert({
-      agent_key: agent.agentKey,
-      name: agent.name,
-      agent_type: agent.agentType,
-      entity_kind: agent.entityKind,
-      capability: agent.capability,
-      status: agent.initialStatus,
-      lifecycle_state: agent.initialLifecycle,
-      permissions: agent.permissions,
-      notes: agent.notes,
-    });
+await client.from('root_agents').insert({
+  agent_key: agent.agentKey,
+  name: agent.name,
+  agent_type: agent.agentType,
+  entity_kind: agent.entityKind,
+  capability: agent.capability,
+  status: agent.initialStatus,
+  lifecycle_state: agent.initialLifecycle,
+  permissions: agent.permissions,
+  notes: agent.notes,
+});
   }
 }
 
@@ -230,11 +227,9 @@ export type RecordObservationInput = {
   phenomenonId?: string | null;
   linked?: Array<{ type: string; id: string }>;
   action?: string;
-  /** Observation Trace mínimo: */
   evidenceUsed?: Array<{ type: string; id: string; note?: string }>;
   patternDetected?: string | null;
   proposedAction?: string | null;
-  /** true si proposedAction requiere aprobación humana antes de ejecutarse. */
   awaitingAuthorization?: boolean;
 };
 
@@ -247,8 +242,11 @@ export type RecordObservationInput = {
 export async function recordObservationEvent(input: RecordObservationInput) {
   const client = createServiceSupabaseClient();
   const now = new Date().toISOString();
+  const observationId = randomUUID();
 
+  // 1. Insertar la observación con ID explícito
   const { error: eventError } = await client.from('root_observation_events').insert({
+    id: observationId,
     agent_key: input.agentKey,
     observed_at: now,
     phenomenon_id: input.phenomenonId ?? null,
@@ -271,6 +269,36 @@ export async function recordObservationEvent(input: RecordObservationInput) {
     return { ok: false as const, error: eventError.message };
   }
 
+  // 2. Registrar la admisión en memoria institucional (ADR-017)
+  const writer = new InstitutionalMemoryWriter();
+  const writeResult = await writer.write({
+    entityType: 'OBSERVATION',
+    entityId: observationId,
+    source: {
+      component: 'ObservationService',
+      agentId: input.agentKey,
+    },
+    provenance: {
+      originTable: 'root_observation_events',
+      originId: observationId,
+    },
+    authorization: {
+      rule: 'OBSERVATION_CAPTURE',
+    },
+  });
+
+  if (!writeResult.success) {
+    await client.from('root_telemetry_incidents').insert({
+      kind: 'memory_writer_failure',
+      agent_key: input.agentKey,
+      detail: `Fallo al admitir observación ${observationId}: ${writeResult.error}`,
+    }).then(undefined, () => undefined);
+    // Retornamos error pero la observación ya fue insertada.
+    // Una tarea de reconciliación podría reparar el estado.
+    return { ok: false as const, error: writeResult.error || 'Memory admission failed' };
+  }
+
+  // 3. Actualizar el estado del agente
   await client
     .from('root_agents')
     .update({
@@ -295,7 +323,7 @@ export type TelemetryIntegrity = {
   resumen: string;
 };
 
-const SYNC_GAP_MINUTES_THRESHOLD = 24 * 60; // sin ningún evento en 24h → posible brecha
+const SYNC_GAP_MINUTES_THRESHOLD = 24 * 60;
 
 export async function getTelemetryIntegrity(): Promise<TelemetryIntegrity> {
   const client = createServiceSupabaseClient();

@@ -1,5 +1,7 @@
 import 'server-only';
+import { randomUUID } from 'crypto';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
+import { InstitutionalMemoryWriter } from '@/lib/memory/institutionalMemoryWriter';
 import { runEvidenceStateAgent, runReturnWindowAgent } from './agents';
 import {
   SFI_PREDICTION_EVIDENCE_STATES,
@@ -266,6 +268,8 @@ export async function createPredictionEntry(input: CreateSfiPredictionInput): Pr
   if (!client.ok) return { ok: false, error: client.error, status: 503, blocked: client.blocked };
 
   const registeredAt = new Date().toISOString();
+  const predictionId = randomUUID();
+
   const classification = classifyPredictionEvidence({
     prediction_registered_at: registeredAt,
     perturbation_applied_at: input.perturbation_applied_at ?? null,
@@ -276,6 +280,7 @@ export async function createPredictionEntry(input: CreateSfiPredictionInput): Pr
   const { data, error } = await client.client
     .from(TABLE)
     .insert({
+      id: predictionId,
       case_id: input.case_id,
       hypothesis_id: input.hypothesis_id,
       case_label: input.case_label ?? null,
@@ -300,6 +305,31 @@ export async function createPredictionEntry(input: CreateSfiPredictionInput): Pr
     .single();
 
   if (error) return { ok: false, error: 'prediction_insert_failed', status: 400, details: error.message };
+
+  // ADR-017: Registrar admisión en memoria institucional
+  try {
+    const writer = new InstitutionalMemoryWriter();
+    await writer.write({
+      entityType: 'PREDICTION',
+      entityId: predictionId,
+      source: {
+        component: 'PredictionService',
+        agentId: input.created_by ?? undefined,
+      },
+      provenance: {
+        originTable: TABLE,
+        originId: predictionId,
+      },
+      authorization: {
+        rule: 'PREDICTION_CREATION',
+      },
+    });
+  } catch (_) {
+    // La predicción ya está insertada. Si el writer falla, registramos advertencia
+    // pero no bloqueamos la respuesta.
+    console.warn(`[ADR-017] Memory admission failed for prediction ${predictionId}`);
+  }
+
   return { ok: true, data: predictionEntryFromRow(data) };
 }
 

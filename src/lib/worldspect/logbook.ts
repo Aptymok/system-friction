@@ -6,6 +6,8 @@ import type {
   WorldSpectSource,
   WorldSpectSourceHealth,
 } from '../../../packages/api-contracts/src';
+import { randomUUID } from 'crypto';
+import { InstitutionalMemoryWriter } from '@/lib/memory/institutionalMemoryWriter';
 
 const worldspectLogbookId = 'BR';
 

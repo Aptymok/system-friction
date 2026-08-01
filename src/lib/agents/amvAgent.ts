@@ -2,9 +2,9 @@ import 'server-only';
 import { createAmvResponse } from '@/lib/amv/amv-core';
 import { listAmvMemory, saveAmvMemory } from '@/lib/amv/amv-memory';
 import { appendAmvLearning, readAmvThoughts } from '@/lib/amv/learning';
-import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { createEmbedding } from '@/lib/ai/providerRouter';
 import { compactText, createTrace, text, textScore, tokenize, unique, type AgentTrace } from './utils';
+import { writeInstitutionalMemory } from '@/lib/memory/institutionalMemoryWriter';
 
 export type AmvOperationalItem = {
   id: string;
@@ -57,16 +57,31 @@ function itemFromRow(row: Record<string, unknown>, index: number): AmvOperationa
 
 async function readDbMemory(limit: number) {
   try {
-    const service = createServiceSupabaseClient();
+
+    const service = await import('@/runtime/supabase/server')
+      .then((mod) => mod.createServiceSupabaseClient());
+
     const { data, error } = await service
       .from('sfi_amv_memory')
       .select('*')
       .order('created_at', { ascending: false })
       .limit(limit);
+
     if (error) throw error;
-    return { rows: (Array.isArray(data) ? data : []) as Record<string, unknown>[], warning: null as string | null };
+
+    return {
+      rows: (Array.isArray(data) ? data : []) as Record<string, unknown>[],
+      warning: null as string | null
+    };
+
   } catch (error) {
-    return { rows: [], warning: `sfi_amv_memory_read_failed:${error instanceof Error ? error.message : 'unknown'}` };
+
+    return {
+      rows: [],
+      warning:
+        `sfi_amv_memory_read_failed:${error instanceof Error ? error.message : 'unknown'}`
+    };
+
   }
 }
 
@@ -219,25 +234,50 @@ export async function ingestAmvEvidence(input: { source: string; text: string; c
     context: { source: input.source, caseId: input.caseId ?? null },
   });
   saveAmvMemory(response.memoryDelta);
-  const trustScore = response.inference.sourceTrust === 'verified' ? 1 : response.inference.sourceTrust === 'declared' ? 0.7 : response.inference.sourceTrust === 'inferred' ? 0.45 : 0.2;
-  const service = createServiceSupabaseClient();
-  const persisted = await service.from('sfi_amv_memory').insert({
-    session_id: response.memoryDelta.sessionId,
-    module: response.memoryDelta.module,
-    input_hash: response.memoryDelta.evidenceHash,
-    input_summary: response.memoryDelta.message,
-    inference: response.inference,
-    decision: { requiredAction: response.inference.requiredAction, nextObservation: response.nextObservation },
-    output_summary: response.response,
-    evaluation: { epistemicClass: 'declared', verified: false },
-    memory_delta: response.memoryDelta,
-    uncertainty: response.inference.uncertainty,
-    source_trust: trustScore,
-    requires_human_validation: response.requiresHumanValidation,
-  }).select('id,created_at').single();
-  if (persisted.error) {
-    return { ok: false as const, status: 'degraded' as const, error: 'sfi_amv_memory_insert_failed', warnings: [persisted.error.message], response };
+const trustScore =
+  response.inference.sourceTrust === 'verified'
+    ? 1
+    : response.inference.sourceTrust === 'declared'
+      ? 0.7
+      : response.inference.sourceTrust === 'inferred'
+        ? 0.45
+        : 0.2;
+
+
+const persisted = await writeInstitutionalMemory({
+
+  source:'amvAgent',
+
+  eventType:
+    'AMV_MEMORY_CREATED',
+
+  confidence:
+    trustScore,
+
+  payload:{
+    source:
+      input.source,
+
+    caseId:
+      input.caseId ?? null,
+
+    response,
+
+    memoryDelta:
+      response.memoryDelta
   }
+
+});
+
+if (!persisted.ok) {
+  return {
+    ok: false as const,
+    status: 'degraded' as const,
+    error: 'institutional_memory_write_failed',
+    warnings: [persisted.error ?? 'unknown'],
+    response
+  };
+}
   try {
     await appendAmvLearning({
       case_id: input.caseId ?? null,
@@ -250,5 +290,14 @@ export async function ingestAmvEvidence(input: { source: string; text: string; c
     // AMV local memory remains valid even if logbook persistence is unavailable.
   }
   const memory = await readAmvOperationalMemory({ query: input.text, limit: 12 });
-  return { ...memory, ingest: { persisted: true, id: persisted.data.id, created_at: persisted.data.created_at, epistemicClass: 'declared', verified: false } };
+return {
+  ...memory,
+  ingest: {
+    persisted: true,
+id: persisted.memory?.id ?? null,
+created_at: persisted.memory?.created_at ?? null,
+    epistemicClass: 'declared',
+    verified: false,
+  },
+};
 }
