@@ -8,7 +8,7 @@ export {
 
 export {
   HistoricalScoutAgent
-} from "./historicalScout";
+} from "./historicalscout";
 
 export {
   PhenotypeResolverAgent

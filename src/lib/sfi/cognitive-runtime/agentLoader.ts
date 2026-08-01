@@ -8,7 +8,7 @@ import {
 
 import {
   HistoricalScoutAgent
-} from "./agents/historicalScout";
+} from "./agents/historicalscout";
 
 import {
   FieldObserverAgent
