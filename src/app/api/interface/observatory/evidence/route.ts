@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { randomUUID } from 'node:crypto';
 import { AccessDeniedError, requireAuthenticatedUser } from '@/lib/system/access/server';
 import { deriveEvidenceAssessment, type AttractorDescriptor } from '@/lib/user-interface/attractor';
+import { createLearningGraphNode } from '@/lib/user-interface/graphLearning';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 
 export const dynamic = 'force-dynamic';
@@ -111,7 +112,7 @@ export async function POST(request: Request) {
     }).select('id').single();
     if (mihmError) return NextResponse.json({ ok: false, error: mihmError.message }, { status: 500 });
 
-    const { error: assessmentError } = await service.from('sfi_user_evidence_assessments').insert({
+    const { data: assessmentRow, error: assessmentError } = await service.from('sfi_user_evidence_assessments').insert({
       owner_id: user.id,
       case_id: caseId,
       attractor_id: attractor.id,
@@ -127,8 +128,8 @@ export async function POST(request: Request) {
         candidateUpdate: assessment.status === 'ACCEPTED',
         disclosure: 'internal_only',
       },
-    });
-    if (assessmentError) return NextResponse.json({ ok: false, error: assessmentError.message }, { status: 500 });
+    }).select('id').single();
+    if (assessmentError || !assessmentRow) return NextResponse.json({ ok: false, error: assessmentError?.message ?? 'assessment_insert_failed' }, { status: 500 });
 
     const { data: centralNode } = await service
       .from('sfi_user_graph_nodes')
@@ -177,10 +178,24 @@ export async function POST(request: Request) {
       });
     }
 
+    const learningNodeId = assessment.status === 'ACCEPTED' && evidenceNode?.id
+      ? await createLearningGraphNode({
+          ownerId: user.id,
+          caseId,
+          attractorId: attractor.id,
+          evidenceNodeId: evidenceNode.id,
+          sourceId: assessmentRow.id,
+          summary: assessment.reason,
+          nextAction: assessment.nextAction,
+          confidence: assessment.confidence,
+        })
+      : null;
+
     return NextResponse.json({
       ok: true,
       evidenceId: evidence.id,
       nodeId: evidenceNode?.id ?? null,
+      learningNodeId,
       mihmReadingId: mihm?.id ?? null,
       assessment,
     });
