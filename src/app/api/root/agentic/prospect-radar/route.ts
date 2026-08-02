@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 
-import { runAutonomousProspectRadar, type ProspectRadarInput } from '@/lib/agents/autonomousProspectRadar';
+import { type ProspectRadarInput } from '@/lib/agents/autonomousProspectRadar';
+import { runNoKeyProspectRadar } from '@/lib/agents/noKeyProspectRadar';
 import { asRecord, auditRootAction, requireRootActor, stringValue } from '@/lib/root/server';
 
 export const dynamic = 'force-dynamic';
@@ -19,11 +20,16 @@ export async function GET() {
   return NextResponse.json({
     ok: true,
     capability: 'autonomous_prospect_radar',
+    mode: 'no_key_public_research',
     searchProviders: {
-      openaiWebSearch: Boolean(process.env.OPENAI_API_KEY),
-      braveSearch: Boolean(process.env.BRAVE_SEARCH_API_KEY ?? process.env.BRAVE_API_KEY),
+      bingNewsRss: true,
+      googleNewsRss: true,
+      gdelt: false,
+      openaiWebSearch: false,
+      braveSearch: false,
+      ollamaLocalSynthesis: Boolean(process.env.OLLAMA_BASE_URL ?? process.env.OLLAMA_URL ?? process.env.OLLAMA_HOST),
     },
-    requirements: ['OPENAI_API_KEY or BRAVE_SEARCH_API_KEY', 'ROOT authentication', 'prospect radar migration for persistence'],
+    requirements: ['ROOT authentication', 'prospect radar migration for persistence'],
   });
 }
 
@@ -50,7 +56,7 @@ export async function POST(request: Request) {
   };
 
   try {
-    const report = await runAutonomousProspectRadar(input, gate.ctx.user.id);
+    const report = await runNoKeyProspectRadar(input, gate.ctx.user.id);
     const audit = await auditRootAction({
       actorId: gate.ctx.user.id,
       action: 'agentic.prospect_radar.execute',
