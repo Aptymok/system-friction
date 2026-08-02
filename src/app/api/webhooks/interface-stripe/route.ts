@@ -5,7 +5,10 @@ import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
-function objectId(value: string | { id: string } | null | undefined) {
+type StripeObjectReference = string | { id: string } | null | undefined;
+type SubscriptionWithPeriod = Stripe.Subscription & { current_period_end?: number };
+
+function objectId(value: StripeObjectReference) {
   if (!value) return null;
   return typeof value === 'string' ? value : value.id;
 }
@@ -60,7 +63,7 @@ export async function POST(request: Request) {
   }
 
   if (event.type === 'customer.subscription.updated' || event.type === 'customer.subscription.deleted') {
-    const subscription = event.data.object as Stripe.Subscription;
+    const subscription = event.data.object as SubscriptionWithPeriod;
     const userId = subscription.metadata?.user_id;
     const periodEnd = Number(subscription.current_period_end || 0);
     const patch = {
