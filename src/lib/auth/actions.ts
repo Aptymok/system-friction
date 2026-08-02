@@ -13,27 +13,28 @@ function safeInternalRedirect(value: string) {
   if (!value) return '/field'
   if (!value.startsWith('/')) return '/field'
   if (value.startsWith('//')) return '/field'
-  if (value.startsWith('/login')) return '/field'
+  if (value.startsWith('/login') || value.startsWith('/signup') || value.startsWith('/verify')) return '/field'
   return value
 }
 
 export async function registerAction(formData: FormData) {
   const input = { email: formValue(formData, 'email'), password: formValue(formData, 'password') }
+  const next = safeInternalRedirect(formValue(formData, 'next'))
   const parsed = authSchema.safeParse(input)
-  if (!parsed.success) redirect('/signup?error=entrada_invalida')
+  if (!parsed.success) redirect(`/signup?error=entrada_invalida&next=${encodeURIComponent(next)}`)
   const limit = checkRateLimit(rateLimitKey('register', input.email), 5, 60_000)
-  if (!limit.allowed) redirect('/signup?error=rate_limit')
+  if (!limit.allowed) redirect(`/signup?error=rate_limit&next=${encodeURIComponent(next)}`)
 
   const supabase = await createServerSupabaseClient()
-  if (!supabase) redirect('/signup?error=supabase_no_configurado')
+  if (!supabase) redirect(`/signup?error=supabase_no_configurado&next=${encodeURIComponent(next)}`)
   const origin = process.env.NEXT_PUBLIC_APP_URL || 'https://systemfriction.org'
   const { error } = await supabase.auth.signUp({
     email: parsed.data.email,
     password: parsed.data.password,
-    options: { emailRedirectTo: `${origin}/verify` }
+    options: { emailRedirectTo: `${origin}/verify?next=${encodeURIComponent(next)}` }
   })
-  if (error) redirect(`/signup?error=${encodeURIComponent(error.message)}`)
-  redirect('/verify?state=pending')
+  if (error) redirect(`/signup?error=${encodeURIComponent(error.message)}&next=${encodeURIComponent(next)}`)
+  redirect(`/verify?state=pending&next=${encodeURIComponent(next)}`)
 }
 
 export async function loginAction(formData: FormData) {
