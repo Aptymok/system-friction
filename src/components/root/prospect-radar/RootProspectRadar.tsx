@@ -87,7 +87,15 @@ type Report = {
 };
 
 type Health = {
-  searchProviders?: { openaiWebSearch?: boolean; braveSearch?: boolean };
+  mode?: string;
+  searchProviders?: {
+    bingNewsRss?: boolean;
+    googleNewsRss?: boolean;
+    gdelt?: boolean;
+    openaiWebSearch?: boolean;
+    braveSearch?: boolean;
+    ollamaLocalSynthesis?: boolean;
+  };
   requirements?: string[];
 };
 
@@ -154,7 +162,13 @@ export function RootProspectRadar() {
     window.setTimeout(() => setCopied(null), 1800);
   }
 
-  const providerReady = Boolean(health?.searchProviders?.openaiWebSearch || health?.searchProviders?.braveSearch);
+  const rssReady = health
+    ? Boolean(health.searchProviders?.bingNewsRss || health.searchProviders?.googleNewsRss)
+    : true;
+  const healthChecked = health !== null;
+  const synthesisLabel = health?.searchProviders?.ollamaLocalSynthesis
+    ? 'OLLAMA LOCAL READY'
+    : 'DETERMINISTIC FALLBACK';
 
   return (
     <main className="pr-shell">
@@ -165,22 +179,25 @@ export function RootProspectRadar() {
           <p>Internet → evidence → friction hypothesis → threshold window → SFI fit → verified recipient → final dossier.</p>
         </div>
         <div className="pr-topbar-actions">
-          <span className={providerReady ? 'ready' : 'blocked'}>{providerReady ? 'WEB SEARCH READY' : 'WEB SEARCH BLOCKED'}</span>
+          <span className={rssReady ? 'ready' : 'blocked'}>
+            {!healthChecked ? 'CHECKING PUBLIC RSS' : rssReady ? 'PUBLIC RSS READY' : 'PUBLIC RSS UNAVAILABLE'}
+          </span>
           <a href="/root/commercial">CLIENT PROPOSALS</a>
           <a href="/root">ROOT</a>
         </div>
       </header>
 
       <section className="pr-provider-strip">
-        <article><span>OPENAI WEB SEARCH</span><strong>{health?.searchProviders?.openaiWebSearch ? 'AVAILABLE' : 'MISSING KEY'}</strong></article>
-        <article><span>BRAVE SEARCH</span><strong>{health?.searchProviders?.braveSearch ? 'AVAILABLE' : 'MISSING KEY'}</strong></article>
+        <article><span>BING NEWS RSS</span><strong>{health?.searchProviders?.bingNewsRss === false ? 'UNAVAILABLE' : 'NO KEY REQUIRED'}</strong></article>
+        <article><span>GOOGLE NEWS RSS</span><strong>{health?.searchProviders?.googleNewsRss === false ? 'UNAVAILABLE' : 'NO KEY REQUIRED'}</strong></article>
+        <article><span>SYNTHESIS</span><strong>{synthesisLabel}</strong></article>
         <article><span>EXECUTION</span><strong>HUMAN APPROVAL ONLY</strong></article>
       </section>
 
-      {!providerReady ? (
+      {healthChecked && !rssReady ? (
         <aside className="pr-blocker">
-          <strong>PUBLIC SEARCH PROVIDER REQUIRED</strong>
-          <p>Add <code>OPENAI_API_KEY</code> or <code>BRAVE_SEARCH_API_KEY</code> to the server environment. This surface does not generate simulated prospects without public search.</p>
+          <strong>PUBLIC RSS TEMPORARILY UNAVAILABLE</strong>
+          <p>No paid key is required. Verify outbound access to Bing News RSS and Google News RSS, then retry. The radar can still use its deterministic evidence mode when sources are returned.</p>
         </aside>
       ) : null}
 
@@ -218,9 +235,9 @@ export function RootProspectRadar() {
               <input name="allowProvisionalOffers" type="checkbox" />
               Allow internal provisional offers. Canonical-only is safer.
             </label>
-            <button type="submit" disabled={running || !providerReady}>{running ? 'RESEARCHING PUBLIC WEB…' : 'RUN AUTONOMOUS RADAR'}</button>
+            <button type="submit" disabled={running || !rssReady}>{running ? 'RESEARCHING PUBLIC RSS…' : 'RUN AUTONOMOUS RADAR'}</button>
           </form>
-          <p className="pr-note">No outreach is executed. The system persists a research run and produces a draft for founder review.</p>
+          <p className="pr-note">No outreach is executed. Public retrieval uses no-key RSS sources; Ollama is optional for local synthesis. The system persists a research run and produces a draft for founder review.</p>
         </article>
 
         <article className="pr-panel pr-execution">
