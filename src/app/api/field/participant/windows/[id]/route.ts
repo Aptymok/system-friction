@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { closeParticipantWindow, getParticipantWindowState } from '@/lib/field/participantCapture';
 import { AccessDeniedError, requireAuthenticatedUser } from '@/lib/system/access/server';
+import { ensurePerturbationGraphNode } from '@/lib/user-interface/graphLearning';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -52,6 +53,19 @@ export async function PATCH(request: Request, ctx: RouteContext) {
       whatWasNotMine: text(body.whatWasNotMine),
       neededToday: text(body.neededToday),
     });
+
+    const perturbation = result.attractor?.perturbation;
+    if (result.attractor && perturbation?.interventionId && perturbation.instruction) {
+      await ensurePerturbationGraphNode({
+        ownerId: user.id,
+        caseId: result.attractor.caseId,
+        attractorId: result.attractor.attractorId,
+        interventionId: perturbation.interventionId,
+        instruction: perturbation.instruction,
+        confidence: result.attractor.descriptor.confidence,
+      });
+    }
+
     return NextResponse.json({
       ok: true,
       window: result.window,
