@@ -20,7 +20,7 @@ function failure(error: unknown) {
     return NextResponse.json({ ok: false, error: error.code, details: error.message }, { status: error.status });
   }
   const details = error instanceof Error ? error.message : String(error);
-  const status = details.includes('_REQUIRED') || details.includes('_INVALID') || details.includes('_NOT_ACTIVE')
+  const status = details.includes('_REQUIRED') || details.includes('_INVALID') || details.includes('_NOT_ACTIVE') || details.includes('_NOT_COMPLETE')
     ? 400
     : details.includes('NOT_FOUND')
       ? 404
@@ -52,7 +52,12 @@ export async function PATCH(request: Request, ctx: RouteContext) {
       whatWasNotMine: text(body.whatWasNotMine),
       neededToday: text(body.neededToday),
     });
-    return NextResponse.json({ ok: true, window: result });
+    return NextResponse.json({
+      ok: true,
+      window: result.window,
+      attractor: result.attractor,
+      nextPath: result.attractor ? '/interface/observatory' : '/interface',
+    });
   } catch (error) {
     return failure(error);
   }
