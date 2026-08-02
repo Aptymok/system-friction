@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { runWorldCalibrationCycle, runWorldObservationCycle } from '@/lib/world-observatory/worldCycle';
+import { runWorldHypothesisCycle } from '@/lib/world-observatory/hypothesisCycle';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -17,8 +18,9 @@ function authorized(request: NextRequest) {
 export async function POST(request: NextRequest) {
   if (!authorized(request)) return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 });
   const observation = await runWorldObservationCycle();
+  const hypothesis = await runWorldHypothesisCycle();
   const calibration = await runWorldCalibrationCycle();
-  return NextResponse.json({ ok: observation.ok && calibration.ok, observation, calibration });
+  return NextResponse.json({ ok: observation.ok && hypothesis.ok && calibration.ok, observation, hypothesis, calibration });
 }
 
 export async function GET(request: NextRequest) {
