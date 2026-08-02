@@ -7,7 +7,7 @@ type InternalModule = {
 };
 
 type ExternalModule = {
-  id: 'commercial';
+  id: 'prospect-radar' | 'commercial';
   label: string;
   key: string;
   href: string;
@@ -22,8 +22,9 @@ const MODULES: Array<InternalModule | ExternalModule> = [
   { id: 'amv', label: 'AMV', key: '06' },
   { id: 'evidence', label: 'EVIDENCE / ATLAS', key: '07' },
   { id: 'execution', label: 'EXECUTION', key: '08' },
-  { id: 'commercial', label: 'CLIENT PROPOSALS', key: '09', href: '/root/commercial' },
-  { id: 'telemetry', label: 'TELEMETRY', key: '10' },
+  { id: 'prospect-radar', label: 'PROSPECT RADAR', key: '09', href: '/root/prospect-radar' },
+  { id: 'commercial', label: 'CLIENT PROPOSALS', key: '10', href: '/root/commercial' },
+  { id: 'telemetry', label: 'TELEMETRY', key: '11' },
 ];
 
 export function RootModuleRail({ active, onChange }: { active: RootViewId; onChange: (view: RootViewId) => void }) {
