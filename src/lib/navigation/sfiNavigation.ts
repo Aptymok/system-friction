@@ -18,6 +18,7 @@ export const SFI_NAVIGATION: SfiNavItem[] = [
   { id: 'home', title: 'System Friction Institute', href: '/', description: 'Public landing and invitation to enter.', area: 'home', status: 'active', public: true, priority: 1 },
   { id: 'login', title: 'Login', href: '/login', description: 'Sign in.', area: 'auth', status: 'active', public: true, priority: 2 },
   { id: 'signup', title: 'Signup', href: '/signup', description: 'Create account.', area: 'auth', status: 'active', public: true, priority: 3 },
+  { id: 'interface', title: 'User Interface', href: '/interface', description: 'Normal-user entry, Mini MOP-H, phenotype profile and governed access progression.', area: 'product', status: 'active', public: true, priority: 4 },
   { id: 'field', title: 'Field', href: '/field', description: 'Authenticated user operational field.', area: 'product', status: 'protected', protected: true, priority: 10 },
   { id: 'root', title: 'ROOT', href: '/root', description: 'Private founder/root console.', area: 'root', status: 'protected', protected: true, priority: 11 },
   { id: 'studio', title: 'Studio', href: '/studio', description: 'Private Edwing / REM618 producer field.', area: 'studio', status: 'protected', protected: true, priority: 12 },
