@@ -4,7 +4,6 @@ type InternalModule = {
   id: RootViewId;
   label: string;
   key: string;
-  href?: never;
 };
 
 type ExternalModule = {
