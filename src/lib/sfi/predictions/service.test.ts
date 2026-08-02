@@ -1,14 +1,14 @@
-import { describe, expect, it } from 'vitest';
+import test from 'node:test';
+import assert from 'node:assert/strict';
+
 import { normalizePredictionCreatedByForStorage } from './service';
 
-describe('normalizePredictionCreatedByForStorage', () => {
-  it('accepts a canonical UUID', () => {
-    const uuid = '123e4567-e89b-42d3-a456-426614174000';
-    expect(normalizePredictionCreatedByForStorage(uuid)).toBe(uuid);
-  });
+test('normalizePredictionCreatedByForStorage accepts a canonical UUID', () => {
+  const uuid = '123e4567-e89b-42d3-a456-426614174000';
+  assert.equal(normalizePredictionCreatedByForStorage(uuid), uuid);
+});
 
-  it('rejects non-UUID strings without throwing', () => {
-    expect(normalizePredictionCreatedByForStorage('copilot-runtime')).toBeNull();
-    expect(normalizePredictionCreatedByForStorage('')).toBeNull();
-  });
+test('normalizePredictionCreatedByForStorage rejects non-UUID strings without throwing', () => {
+  assert.equal(normalizePredictionCreatedByForStorage('copilot-runtime'), null);
+  assert.equal(normalizePredictionCreatedByForStorage(''), null);
 });

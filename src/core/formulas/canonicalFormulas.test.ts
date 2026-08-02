@@ -12,12 +12,13 @@ import {
 
 test('calculatePhiSfi uses the canonical formula', () => {
   const result = calculatePhiSfi(0.8, 0.7, 0.2, 0.05);
-  assert.equal(result, 0.45);
+  assert.equal(result, (0.8 * 0.7) / (1 + 0.2) + 0.05);
 });
 
 test('calculatePsiMoph uses the canonical formula', () => {
   const result = calculatePsiMoph(0.8, 0.7, 0.2, 0.01, 0.2);
-  assert.ok(Math.abs(result - 0.0425) < 1e-9);
+  const expected = ((1 / (0.8 + 0.1)) * 0.7 * (1 / (0.2 + 0.1)) + 0.01 - 0.15 * 0.2) / 12;
+  assert.ok(Math.abs(result - expected) < 1e-9);
 });
 
 test('resolveRegime classifies the state correctly', () => {

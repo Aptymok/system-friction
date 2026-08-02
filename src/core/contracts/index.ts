@@ -6,9 +6,12 @@ export type SfiEntityType =
   | "AGENT_EXECUTION"
   | "CAPABILITY"
   | "PHENOMENON"
+  | "HYPOTHESIS"
   | "PREDICTION"
   | "FORMULA"
   | "MEMORY"
+  | "ORGANIZATION"
+  | "REPORT"
   | "STATE"
   | "ERROR"
   | "OPERATION"
@@ -154,6 +157,15 @@ export interface KernelPrediction {
   statement: string;
   description?: string;
   confidence: number;
+  verification?: {
+    id: string;
+    status: string;
+    observedValue?: unknown;
+    verifiedAt?: string;
+    evidenceIds: string[];
+    error?: string | null;
+    learningEventIds: string[];
+  };
 }
 
 
@@ -286,7 +298,7 @@ export interface AgentResult {
 
   observations: string[];
 
-  evidence: string[];
+  evidence: KernelEvidence[];
 
   events: string[];
 
@@ -387,4 +399,143 @@ export interface StateSnapshot {
 
   hash: string;
 
+}
+
+
+/*
+  Entity Graph
+*/
+
+
+export type EntityRelationType =
+  | "OBSERVES"
+  | "SUPPORTS"
+  | "DERIVED_FROM"
+  | "VERIFIED_BY"
+  | "GENERATED_BY"
+  | "IMPACTS"
+  | "EXECUTES"
+  | "EXECUTED_BY"
+  | "PRODUCES"
+  | "APPROVES"
+  | "REJECTS"
+  | "UPDATES"
+  | "INFLUENCES"
+  | "PROJECTS"
+  | "CONTAINS";
+
+
+export interface SfiEntity {
+  entityId: SfiEntityId;
+  type: SfiEntityType;
+  label: string;
+  trace?: SfiTraceContext;
+  logbookId?: string;
+  sourceTable?: string;
+  sourceId?: string;
+  payload?: Record<string, unknown>;
+  createdAt?: string;
+  updatedAt?: string;
+  confidence?: number;
+  publicable?: boolean;
+}
+
+
+export interface EntityRelationship {
+  sourceId: SfiEntityId;
+  targetId: SfiEntityId;
+  relationType: EntityRelationType;
+  weight: number;
+  confidence: number;
+  evidenceIds: string[];
+  trace?: SfiTraceContext;
+  derivationRule: string;
+  sourceTable: string;
+}
+
+
+export interface EntityGraphLimitation {
+  code: string;
+  scope: string;
+  source?: string;
+  severity: "INFO" | "WARNING" | "ERROR";
+  message: string;
+  recoverable: boolean;
+  requirement?: string;
+}
+
+
+export interface TrajectoryPoint {
+  timestamp: string;
+  sourceEntityId: SfiEntityId;
+  sourceType: string;
+  position: number;
+  confidence: number;
+  payload?: Record<string, unknown>;
+}
+
+
+export interface Trajectory {
+  entityId: SfiEntityId;
+  trajectoryKind?: "system_state_trajectory" | "institutional_record_timeline";
+  timeline: TrajectoryPoint[];
+  currentPosition: TrajectoryPoint | null;
+  projected: TrajectoryPoint[];
+  velocity: number;
+  velocityUnit: string;
+  acceleration: number;
+  accelerationUnit: string;
+  deviation: number;
+  deviationDefinition: string;
+  projectionMethod: string;
+  confidence: number;
+  evidenceIds: string[];
+  status: "OPERATIONAL" | "PARTIAL";
+  limitations: EntityGraphLimitation[];
+}
+
+
+export interface GovernanceDecision {
+  id: string;
+  targetId: SfiEntityId;
+  decision: "APPROVED" | "REJECTED" | "OVERRIDDEN" | "PENDING" | "UNKNOWN";
+  authority: string;
+  reason: string;
+  trace?: SfiTraceContext;
+  timestamp: string;
+}
+
+
+export interface GovernanceState {
+  entityId: SfiEntityId;
+  decisions: GovernanceDecision[];
+  status: "APPROVED" | "REJECTED" | "PENDING" | "UNKNOWN";
+  limitations: EntityGraphLimitation[];
+}
+
+
+export interface EntityContextProvenance {
+  sourceTable: string;
+  sourceId: string;
+  entityId: SfiEntityId;
+  matchedBy: string;
+  confidence: number;
+  payloadKeys: string[];
+}
+
+
+export interface EntityContext {
+  entity: SfiEntity;
+  observations: Observation[];
+  evidence: Evidence[];
+  predictions: KernelPrediction[];
+  decisions: GovernanceDecision[];
+  memory: InstitutionalMemory[];
+  agents: AgentDefinition[];
+  events: SfiEvent[];
+  trajectory: Trajectory;
+  governance: GovernanceState;
+  relationships: EntityRelationship[];
+  provenance: EntityContextProvenance[];
+  limitations: EntityGraphLimitation[];
 }

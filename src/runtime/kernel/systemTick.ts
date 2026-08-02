@@ -6,6 +6,8 @@ import { simulatePlan } from '../layers/Simulator';
 import { evaluatePlan } from '../layers/Gate';
 import { executePlan } from '../layers/Executor';
 import { recordAction, recordObservation } from '../layers/Observer';
+import { emitEpistemicEvent } from '@/core/memory/epistemicEventWriter';
+import { processEpistemicEvent } from '@/core/memory/institutionalEventPipeline';
 
 export async function systemTick(metrics: any, executor: any) {
   const supabase = await createServerSupabaseClient();
@@ -63,6 +65,28 @@ export async function systemTick(metrics: any, executor: any) {
       simulation_score: approved.simulation.successProbability
     }
   });
+
+  // NOTA DE MIGRACIÓN (ADR-018): systemTick no está conectado a ninguna ruta
+  // real hoy (ver MIGRATION_DEPENDENCY_GRAPH.md — cero importadores). Este
+  // adapter existe SOLO durante la migración: legacy writer → adapter →
+  // epistemic_event. El insert directo a `decision_gate_logs` de arriba debe
+  // eliminarse cuando se decida si esta cadena se reconecta o se retira.
+  const epistemicEvent = await emitEpistemicEvent({
+    eventName: 'runtime.decision_gate.recorded',
+    logbookId: 'RUNTIME',
+    epistemicClass: 'observed',
+    schemaVersion: 'adapter.systemTick.v1',
+    sourceId: 'RUNTIME_KERNEL',
+    sourceType: 'runtime',
+    actorId: metrics.userId ?? null,
+    nodeId: metrics.nodeId ?? null,
+    confidence: gate.approved ? 0.8 : 0.3,
+    payload: { userId: metrics.userId, nodeId: metrics.nodeId, planId: plan.label, gate },
+  }).catch(() => null);
+
+  if (epistemicEvent?.ok) {
+    await processEpistemicEvent(epistemicEvent.event).catch(() => null);
+  }
 
   // 6. Ejecutar el plan (literal, sin reinterpretación)
   const executionResult = await executePlan(plan, { metrics, intent });

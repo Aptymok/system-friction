@@ -32,6 +32,17 @@ function codecName(formatCode: number, bitsPerSample: number) {
   return `wav_format_${formatCode}`;
 }
 
+function extensibleFormatCode(bytes: Buffer, fmt: Chunk) {
+  if (fmt.size < 40) return null;
+  const cbSize = bytes.readUInt16LE(fmt.dataOffset + 16);
+  if (cbSize < 22) return null;
+  const subFormat = bytes.subarray(fmt.dataOffset + 24, fmt.dataOffset + 40).toString('hex').toLowerCase();
+  const suffix = '00001000800000aa00389b71';
+  if (subFormat === `01000000${suffix}`) return 1;
+  if (subFormat === `03000000${suffix}`) return 3;
+  return null;
+}
+
 export function probeStudioAudio(bytes: Buffer): StudioAudioProbe {
   if (bytes.byteLength < 44 || readAscii(bytes, 0, 4) !== 'RIFF' || readAscii(bytes, 8, 4) !== 'WAVE') {
     throw new StudioAudioError('INVALID_AUDIO_CONTAINER', 'Studio audio engine currently accepts RIFF/WAVE containers only.', 415, {
@@ -54,11 +65,13 @@ export function probeStudioAudio(bytes: Buffer): StudioAudioProbe {
   const byteRate = bytes.readUInt32LE(fmt.dataOffset + 8);
   const blockAlign = bytes.readUInt16LE(fmt.dataOffset + 12);
   const bitsPerSample = bytes.readUInt16LE(fmt.dataOffset + 14);
-  const codec = codecName(formatCode, bitsPerSample);
+  const effectiveFormatCode = formatCode === 65534 ? extensibleFormatCode(bytes, fmt) : formatCode;
+  const codec = codecName(effectiveFormatCode ?? formatCode, bitsPerSample);
 
-  if (![1, 3].includes(formatCode) || ![8, 16, 24, 32, 64].includes(bitsPerSample)) {
+  if (effectiveFormatCode === null || ![1, 3].includes(effectiveFormatCode) || ![8, 16, 24, 32, 64].includes(bitsPerSample)) {
     throw new StudioAudioError('UNSUPPORTED_CODEC', 'WAV codec is not supported by the Node Studio audio decoder.', 415, {
       formatCode,
+      effectiveFormatCode,
       bitsPerSample,
       codec,
     });

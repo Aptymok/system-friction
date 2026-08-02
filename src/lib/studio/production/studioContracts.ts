@@ -3,8 +3,16 @@ export type MetricStatus =
   | 'RUNNING'
   | 'OBSERVED'
   | 'DERIVED'
+  | 'CALIBRATED'
+  | 'PARTIAL'
   | 'DEGRADED'
   | 'MISSING'
+  | 'NOT_APPLICABLE'
+  | 'REQUIRES_DECLARATION'
+  | 'REQUIRES_FIELD_EVIDENCE'
+  | 'CAPABILITY_MISSING'
+  | 'INSUFFICIENT_SIGNAL'
+  | 'CALIBRATION_REQUIRED'
   | 'FAILED'
   | 'COMPLETE'
   | 'EXPERIMENTAL';
@@ -111,6 +119,31 @@ export function missingMetric(key: string, label: string, explanation: string, r
     formulaVersion: null,
     warnings: requirements,
     explanation,
+  };
+}
+
+export function classifiedAbsentMetric(input: {
+  key: string;
+  label: string;
+  status: Extract<MetricStatus, 'NOT_APPLICABLE' | 'REQUIRES_DECLARATION' | 'REQUIRES_FIELD_EVIDENCE' | 'CAPABILITY_MISSING' | 'INSUFFICIENT_SIGNAL' | 'CALIBRATION_REQUIRED'>;
+  explanation: string;
+  requirements: string[];
+  source?: string | null;
+  formulaVersion?: string | null;
+}): MetricValue {
+  return {
+    key: input.key,
+    label: input.label,
+    value: null,
+    unit: null,
+    status: input.status,
+    source: input.source ?? null,
+    evidenceIds: [],
+    confidence: 0,
+    observedAt: null,
+    formulaVersion: input.formulaVersion ?? null,
+    warnings: input.requirements,
+    explanation: input.explanation,
   };
 }
 

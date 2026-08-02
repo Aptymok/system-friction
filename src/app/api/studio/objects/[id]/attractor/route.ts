@@ -10,7 +10,7 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
-type RouteContext = { params: Promise<{ id: string }> | { id: string } };
+type RouteContext = { params: Promise<{ id: string }> };
 
 function objectIdFrom(ctx: RouteContext) {
   return Promise.resolve(ctx.params).then((params) => decodeURIComponent(params.id));

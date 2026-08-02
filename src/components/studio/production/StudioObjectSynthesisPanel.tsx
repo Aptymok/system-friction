@@ -386,7 +386,7 @@ export function StudioObjectSynthesisPanel({ objectId }: { objectId: string | nu
               <p>{synthesis.mihm.summary}</p>
               <p>IHG final: {synthesis.mihm.ihg === null ? 'NO EMITIDO; NO IMPIDE USAR EL VECTOR PARCIAL' : numberOrUnknown(synthesis.mihm.ihg)}</p>
               {synthesis.mihm.variables.map((variable) => (
-                <p key={variable.key}><strong>{variable.key} · {variable.label}</strong>: {variable.value === null ? 'MISSING' : numberOrUnknown(variable.value)} — {variable.explanation}</p>
+                <p key={variable.key}><strong>{variable.key} · {variable.label}</strong>: {variable.value === null ? variable.status : numberOrUnknown(variable.value)} — {variable.explanation}</p>
               ))}
             </details>
           ) : null}

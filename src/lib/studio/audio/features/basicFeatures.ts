@@ -6,6 +6,7 @@ import {
   type StudioAudioFeature,
   type StudioDecodedAudio,
 } from '../audioTypes';
+import type { MetricStatus } from '@/lib/studio/production/studioProductionTypes';
 
 export function amplitudeToDbfs(value: number) {
   const magnitude = Math.max(0, Math.abs(value));
@@ -60,6 +61,27 @@ export function feature(
 
 export function missingFeature(key: string, label: string, explanation: string, warnings: string[]) {
   return feature(key, label, null, null, explanation, 0, warnings);
+}
+
+export function absentFeature(
+  key: string,
+  label: string,
+  status: Exclude<MetricStatus, 'PENDING' | 'RUNNING' | 'OBSERVED' | 'DERIVED' | 'CALIBRATED' | 'DEGRADED' | 'MISSING' | 'FAILED' | 'COMPLETE' | 'EXPERIMENTAL'>,
+  explanation: string,
+  warnings: string[],
+): StudioAudioFeature {
+  return {
+    key,
+    label,
+    value: null,
+    unit: null,
+    status,
+    source: STUDIO_AUDIO_ENGINE_NAME,
+    confidence: 0,
+    formulaVersion: STUDIO_AUDIO_ENGINE_VERSION,
+    explanation,
+    warnings,
+  };
 }
 
 export function extractBasicFeatures(decoded: StudioDecodedAudio): StudioAudioFeature[] {

@@ -29,6 +29,5 @@ export function extractTransientFeatures(decoded: StudioDecodedAudio, segments: 
   return [
     feature('transient_density', 'Transient Density', density, 'events/s', 'Transient count per second from positive short-window energy deltas.', 0.62),
     feature('percussive_load', 'Percussive Load', indexes.length ? percussiveLoad : 0, null, 'Mean peak amplitude of detected transient windows.', 0.58),
-    missingFeature('harmonic_stability', 'Harmonic Stability', 'Harmonic stability requires a pitch or harmonic tracker that is not present in this engine.', ['HARMONIC_TRACKER_REQUIRED']),
   ];
 }

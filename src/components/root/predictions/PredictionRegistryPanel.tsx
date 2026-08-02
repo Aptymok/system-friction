@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { EntityLink } from '@/components/entity/EntityLink';
 import type { SfiPredictionEntry, SfiPredictionHealth } from '@/lib/sfi/predictions/types';
 
 type ListState =
@@ -114,24 +115,20 @@ export default function PredictionRegistryPanel() {
           {state.status === 'loading' ? <div className="text-sm text-[#8f8878]">Loading private registry state.</div> : null}
           {state.entries.length === 0 && state.status !== 'loading' ? <div className="text-sm text-[#8f8878]">No prediction entries available to this ROOT session.</div> : null}
           {state.entries.map((entry) => (
-            <Link
-              key={entry.hypothesis_id}
-              href={`/root/predictions/${encodeURIComponent(entry.hypothesis_id)}`}
-              className="grid gap-3 border border-[#2f2a1e] bg-[#060605] p-4 text-sm text-[#d8d2c2] md:grid-cols-[1fr_180px_140px]"
-            >
-              <div>
+            <article key={entry.hypothesis_id} className="grid gap-3 border border-[#2f2a1e] bg-[#060605] p-4 text-sm text-[#d8d2c2] md:grid-cols-[1fr_180px_170px]">
+              <Link href={`/root/predictions/${encodeURIComponent(entry.hypothesis_id)}`} className="block">
                 <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-[#c8a951]">{entry.hypothesis_id}</div>
                 <div className="mt-1 text-[#f5eedc]">{entry.case_label || entry.case_id}</div>
                 <div className="mt-2 text-xs leading-5 text-[#8f8878]">{entry.prediccion_explicita}</div>
-              </div>
+              </Link>
               <div className="font-mono text-[11px] uppercase tracking-[0.12em] text-[#8f8878]">
                 phenotype={entry.fenotipo_estimado}
               </div>
-              <div className="font-mono text-[11px] uppercase tracking-[0.12em] text-[#8f8878]">
-                {entry.is_predictive_evidence ? 'predictive' : 'retrospective'}<br />
-                {entry.evidence_state}
+              <div className="space-y-2 font-mono text-[11px] uppercase tracking-[0.12em] text-[#8f8878]">
+                <div>{entry.is_predictive_evidence ? 'predictive' : 'retrospective'}<br />{entry.evidence_state}</div>
+                <EntityLink entityId={entry.id} entityType="PREDICTION" compact className="inline-flex gap-2 text-[#c8a951] underline decoration-[#c8a95166] underline-offset-4" />
               </div>
-            </Link>
+            </article>
           ))}
         </div>
       </section>

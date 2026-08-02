@@ -55,6 +55,30 @@ function energyForColumn(segments: EnergySegment[]) {
   }));
 }
 
+function metricEvidenceForFeatures(result: StudioAudioAnalysisResult, object: StudioAudioObjectRow, observedAt: string) {
+  const evidenceEngines = new Set(['studio_audio_loudness_engine', 'studio_audio_rhythm_engine', 'studio_audio_harmony_engine']);
+  return result.features
+    .filter((feature) => evidenceEngines.has(feature.source))
+    .map((feature) => {
+      const payload = feature.payload ?? {};
+      return {
+        metricId: feature.key,
+        objectId: result.objectId,
+        sourceAudio: object.source_uri,
+        measuredValue: feature.value,
+        unit: feature.unit,
+        method: payload.method ?? null,
+        standard: payload.standard ?? null,
+        engineVersion: payload.implementationVersion ?? result.engineVersion,
+        confidence: feature.confidence,
+        timestamp: observedAt,
+        trace: result.jobId,
+        logbookId: (payload.provenance as Row | undefined)?.logbookId ?? null,
+        limitations: feature.warnings,
+      };
+    });
+}
+
 async function deletePriorAudioAnalysisRows(
   supabase: SupabaseClient,
   objectId: string,
@@ -271,6 +295,7 @@ export async function persistStudioAudioAnalysis(
       uri: object.source_uri,
       status: result.status,
       warnings: result.warnings,
+      metricEvidence: metricEvidenceForFeatures(result, object, observedAt),
       featureCount: result.features.length,
       waveformPeaks: result.waveform.length,
       energySegments: result.energySegments.length,

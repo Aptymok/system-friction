@@ -79,6 +79,35 @@ const RULES: Record<string, PolicyRule> = {
     shouldWrite: false,
     reason: 'raw_metric_observations_stay_in_ledger_only_not_promoted_to_memory_individually',
   }),
+  'sfi.pipeline.execution.requested': () => ({
+    shouldWrite: false,
+    reason: 'runtime_requests_are_audit_events_not_institutional_memory',
+  }),
+  'sfi.pipeline.agent.executed': () => ({
+    shouldWrite: false,
+    reason: 'agent_execution_details_stay_in_epistemic_ledger_unless_final_runtime_policy_promotes_them',
+  }),
+  'sfi.pipeline.agent.failed': (event) => ({
+    shouldWrite: true,
+    entityType: 'SFI_AGENT_EXECUTION_ERROR',
+    memoryType: 'sfi.pipeline.agent.failed',
+    confidence: event.confidence,
+    reason: 'agent_failure_is_institutional_runtime_knowledge',
+  }),
+  'sfi.pipeline.execution.completed': (event) => ({
+    shouldWrite: true,
+    entityType: 'SFI_PIPELINE_EXECUTION',
+    memoryType: 'sfi.pipeline.execution.completed',
+    confidence: event.confidence,
+    reason: 'completed_canonical_runtime_execution_is_institutional_memory',
+  }),
+  'sfi.pipeline.execution.failed': (event) => ({
+    shouldWrite: true,
+    entityType: 'SFI_PIPELINE_EXECUTION_ERROR',
+    memoryType: 'sfi.pipeline.execution.failed',
+    confidence: event.confidence,
+    reason: 'failed_canonical_runtime_execution_is_institutional_runtime_knowledge',
+  }),
 };
 
 export const staticCodePolicySource: MemoryPolicySource = {

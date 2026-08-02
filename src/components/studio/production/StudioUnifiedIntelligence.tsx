@@ -487,7 +487,7 @@ export function StudioUnifiedIntelligence({ objectId, view }: { objectId: string
               {(synthesis?.mihm.variables ?? []).map((variable) => (
                 <div key={variable.key} className={`sfi-intel__property is-${variable.status.toLowerCase()}`}>
                   <span>{variable.key}</span>
-                  <strong>{variable.value === null ? 'MISSING' : variable.value.toFixed(4)}</strong>
+                  <strong>{variable.value === null ? variable.status : variable.value.toFixed(4)}</strong>
                   <p>{variable.label}</p>
                   <small>{variable.explanation}</small>
                 </div>

@@ -2,6 +2,8 @@ import { executeAudit } from './auditor'
 import { CognitiveTwin } from './cognitive-twin'
 import { useNodeStore } from '@/observatory/store/nodeStore'
 import { createServerSupabaseClient } from '@/runtime/supabase/server'
+import { appendEvent } from '@/lib/db/events'
+import { storeMemoryVector } from '@/lib/memory/embeddings'
 import type { Audit, Metrics, MemoryFact, OperationalAction } from '@/lib/types'
 
 export type LongitudinalAction = OperationalAction
@@ -25,18 +27,54 @@ export interface LongitudinalEngineResult {
 }
 
 export const LongitudinalEngine = {
-  evaluate({ currentNarrative, currentMetrics, audits, actions, memoryFacts }: LongitudinalEngineInput): LongitudinalEngineResult {
-    const lastPattern = audits?.[0]?.pattern || memoryFacts?.[0]?.fact_type || 'estado neutro'
-    const severity = Math.min(1, Math.max(0, currentMetrics.divergence + (audits?.[0]?.loop_score ?? 0) * 0.15))
-    const risk = severity >= 0.8 ? 'hard_stop' : severity >= 0.55 ? 'high' : severity >= 0.3 ? 'medium' : 'low'
+  evaluate({
+    currentNarrative,
+    currentMetrics,
+    audits,
+    actions,
+    memoryFacts,
+  }: LongitudinalEngineInput): LongitudinalEngineResult {
+    const lastPattern =
+      audits?.[0]?.pattern ||
+      memoryFacts?.[0]?.fact_type ||
+      'estado neutro'
 
-    let nextQuestion = '¿Qué acción mínima concreta puedes ejecutar en los próximos 30 minutos?'
-    if (currentNarrative.includes('no puedo') || String(lastPattern).includes('contradiccion')) {
-      nextQuestion = '¿Qué evidencia externa valida la decisión más importante de este ciclo?'
+    const severity = Math.min(
+      1,
+      Math.max(
+        0,
+        currentMetrics.divergence +
+          (audits?.[0]?.loop_score ?? 0) * 0.15,
+      ),
+    )
+
+    const risk =
+      severity >= 0.8
+        ? 'hard_stop'
+        : severity >= 0.55
+          ? 'high'
+          : severity >= 0.3
+            ? 'medium'
+            : 'low'
+
+    let nextQuestion =
+      '¿Qué acción mínima concreta puedes ejecutar en los próximos 30 minutos?'
+
+    if (
+      currentNarrative.includes('no puedo') ||
+      String(lastPattern).includes('contradiccion')
+    ) {
+      nextQuestion =
+        '¿Qué evidencia externa valida la decisión más importante de este ciclo?'
     }
 
-    const minimumAction = actions?.[0]?.description || 'Definir un criterio observable para el siguiente ciclo.'
-    const verificationCriterion = actions?.[0]?.verification_criterion || 'Debe existir un resultado observable antes de la próxima iteración.'
+    const minimumAction =
+      actions?.[0]?.description ||
+      'Definir un criterio observable para el siguiente ciclo.'
+
+    const verificationCriterion =
+      actions?.[0]?.verification_criterion ||
+      'Debe existir un resultado observable antes de la próxima iteración.'
 
     return {
       nextQuestion,
@@ -57,14 +95,25 @@ export interface LongitudinalOutput {
 }
 
 export class LongitudinalAgent {
-  static async process(userId: string, input: string): Promise<LongitudinalOutput> {
+  static async process(
+    userId: string,
+    input: string,
+  ): Promise<LongitudinalOutput> {
     const supabase = await createServerSupabaseClient()
     const addLog = useNodeStore.getState().addLog
 
     try {
-      addLog(`Iniciando auditoría longitudinal para nodo: ${userId}`, 'info')
+      addLog(
+        `Iniciando auditoría longitudinal para nodo: ${userId}`,
+        'info',
+      )
+
       const cognitiveSeed = await CognitiveTwin.extractSeed(input)
-      const auditResult = await executeAudit({ source: 'web', narrative: input })
+
+      const auditResult = await executeAudit({
+        source: 'web',
+        narrative: input,
+      })
 
       const { data: node, error: nodeError } = await supabase
         .from('nodes')
@@ -76,25 +125,63 @@ export class LongitudinalAgent {
         throw new Error(`Nodo no encontrado para usuario ${userId}`)
       }
 
-      const { error: insertError } = await supabase.from('audits').insert({
-        node_id: node.id,
-        source: 'web',
-        narrative: input,
-        ihg: auditResult.ihg,
-        nti: auditResult.nti,
-        ldi: auditResult.ldi,
-        verdict: auditResult.verdict,
-        diagnosis: auditResult.diagnosis,
-        loop_score: auditResult.loop_score,
-        divergence: auditResult.divergence,
-        pattern: auditResult.pattern,
-        hard_stop: auditResult.hard_stop,
-        proposed_action: auditResult.proposed_action,
-      })
+      const { error: insertError } = await supabase
+        .from('audits')
+        .insert({
+          node_id: node.id,
+          source: 'web',
+          narrative: input,
+          ihg: auditResult.ihg,
+          nti: auditResult.nti,
+          ldi: auditResult.ldi,
+          verdict: auditResult.verdict,
+          diagnosis: auditResult.diagnosis,
+          loop_score: auditResult.loop_score,
+          divergence: auditResult.divergence,
+          pattern: auditResult.pattern,
+          hard_stop: auditResult.hard_stop,
+          proposed_action: auditResult.proposed_action,
+        })
 
       if (insertError) throw insertError
 
-      addLog(`Auditoría completada. IHG: ${auditResult.ihg.toFixed(3)}`, 'success')
+      await appendEvent({
+        user_id: userId,
+        node_id: node.id,
+        event_type: 'audit.created',
+        payload: {
+          ihg: auditResult.ihg,
+          nti: auditResult.nti,
+          ldi: auditResult.ldi,
+          pattern: auditResult.pattern,
+          divergence: auditResult.divergence,
+        },
+        source: 'longitudinal-agent',
+      })
+
+      await storeMemoryVector({
+        node_id: node.id,
+        source_table: 'audits',
+        source_id: String(node.id),
+        content: JSON.stringify({
+          narrative: input,
+          diagnosis: auditResult.diagnosis,
+          pattern: auditResult.pattern,
+          proposed_action: auditResult.proposed_action,
+        }),
+        metadata: {
+          type: 'longitudinal_audit',
+          cognitiveSeed,
+          ihg: auditResult.ihg,
+          nti: auditResult.nti,
+          ldi: auditResult.ldi,
+        },
+      })
+
+      addLog(
+        `Auditoría completada. IHG: ${auditResult.ihg.toFixed(3)}`,
+        'success',
+      )
 
       return {
         status: 'completed',
@@ -108,25 +195,42 @@ export class LongitudinalAgent {
           hard_stop: auditResult.hard_stop,
         },
         recommendations: [auditResult.proposed_action],
-        entropyScore: auditResult.ihg < 0 ? Math.abs(auditResult.ihg) : 0,
+        entropyScore:
+          auditResult.ihg < 0 ? Math.abs(auditResult.ihg) : 0,
       }
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Error desconocido en auditoría'
-      addLog(`Fallo en proceso longitudinal: ${message}`, 'error')
+      const message =
+        error instanceof Error
+          ? error.message
+          : 'Error desconocido en auditoría'
+
+      addLog(
+        `Fallo en proceso longitudinal: ${message}`,
+        'error',
+      )
+
       return {
         status: 'failed',
         metrics: {},
-        recommendations: ['Reintentar sincronización de nodo'],
-        entropyScore: 1.0,
+        recommendations: [
+          'Reintentar sincronización de nodo',
+        ],
+        entropyScore: 1,
       }
     }
   }
+    static async analyze(data: unknown) {
+    const size = Array.isArray(data)
+      ? data.length
+      : 0
 
-  static async analyze(data: unknown) {
-    const size = Array.isArray(data) ? data.length : 0
     const friction = size * 0.15
+
     return {
-      complexity: friction > 0.8 ? 'high' : 'stable',
+      complexity:
+        friction > 0.8
+          ? 'high'
+          : 'stable',
       timestamp: new Date().toISOString(),
     }
   }

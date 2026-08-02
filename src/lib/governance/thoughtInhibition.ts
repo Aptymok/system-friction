@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { readGovernanceRuntime } from './governanceRuntime';
+import { processEpistemicEvent } from '@/core/memory/institutionalEventPipeline';
 
 const SCHEMA_VERSION = '2026-05-27.sfi-governance-d3';
 
@@ -112,6 +113,21 @@ export async function evaluateThoughtInhibition(input: ThoughtInhibitionInput) {
     reason,
     payload,
   });
+
+  // ADR-018: pasa por el pipeline (MemoryPolicyValidator → IMW), no llama a
+  // InstitutionalMemoryWriter directo.
+  await processEpistemicEvent({
+    id: event.id,
+    event_id: eventId,
+    event_name: 'governance.thought.inhibited',
+    logbook_id: 'BR',
+    epistemic_class: 'observed',
+    confidence: 1,
+    payload,
+    occurred_at: occurredAt,
+    created_at: occurredAt,
+    hash_self: hashSelf,
+  }).catch(() => null);
 
   return { ok: true as const, inhibited: true, reason, eventId: event.id, governance };
 }

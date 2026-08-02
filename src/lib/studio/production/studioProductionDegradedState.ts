@@ -142,6 +142,7 @@ export function buildStudioProductionDegradedState(reason: string): StudioProduc
       source: 'SOURCE_UNAVAILABLE',
     },
     hypotheses: null,
+    suggestions: [],
     interventions: [],
     archive: {
       events: [],

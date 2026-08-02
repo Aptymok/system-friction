@@ -133,7 +133,12 @@ export async function analyzeStudioAudioObject(objectId: string, options: Studio
     }
 
     const decoded = decodeStudioAudio(analysisBytes, maxDurationSeconds(options));
-    const extraction = extractStudioAudioFeatures(decoded);
+    const extraction = extractStudioAudioFeatures(decoded, {
+      trace: jobId,
+      objectId,
+      correlationId: jobId,
+      logbookId: typeof stored.object.metadata?.logbookId === 'string' ? stored.object.metadata.logbookId : null,
+    });
     const waveform = buildWaveformPeaks(decoded);
     const silence = buildRegionsFromMarkers(detectSilenceRegions(extraction.energySegments));
     const onsets = buildRegionsFromMarkers(detectOnsets(extraction.energySegments));
@@ -141,7 +146,12 @@ export async function analyzeStudioAudioObject(objectId: string, options: Studio
     const timeRegions = [...silence, ...onsets, ...sections];
     const warnings = [...transcodeWarnings, ...extraction.features.flatMap((feature) => feature.warnings)]
       .filter((warning, index, all) => all.indexOf(warning) === index);
-    const hasMissingRequired = extraction.features.some((feature) => feature.status === 'MISSING');
+    const hasMissingRequired = extraction.features.some((feature) => (
+      feature.status === 'MISSING' ||
+      feature.status === 'CAPABILITY_MISSING' ||
+      feature.status === 'CALIBRATION_REQUIRED' ||
+      feature.status === 'INSUFFICIENT_SIGNAL'
+    ));
     const probe = probeOnly(decoded);
     const result: StudioAudioAnalysisResult = {
       objectId,

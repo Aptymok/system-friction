@@ -1,4 +1,5 @@
 import { AmvPhaseStatusPanel } from '@/components/amv/AmvPhaseStatusPanel';
+import { RootCapabilityMatrix } from '@/components/root/capabilities/RootCapabilityMatrix';
 import type { RootSovereignState } from '@/lib/root/sovereign/rootSovereignState';
 import { GovernancePipeline } from '../visual/GovernancePipeline';
 import { SystemMatrix } from '../visual/SystemMatrix';
@@ -13,6 +14,7 @@ export function RootOverviewView({ state, onSelect }: { state: RootSovereignStat
     <section className="rs-view">
       <div className="rs-view-title"><span>OVERVIEW</span><h1>SYSTEM MATRIX</h1><p>Qué está operativo, degradado o requiere intervención.</p></div>
       <AmvPhaseStatusPanel endpoint="/api/root/instrument/status" />
+      <RootCapabilityMatrix />
       <SystemMatrix items={state.system.data.matrix} onSelect={onSelect} />
       <div className="rs-overview-grid">
         <article><header>PROPOSAL PIPELINE</header><GovernancePipeline proposals={state.governance.data.proposals} unavailable={governanceUnavailable} /></article>

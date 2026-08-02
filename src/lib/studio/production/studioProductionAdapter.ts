@@ -16,6 +16,8 @@ import type {
   StudioProductionSession,
   StudioProductionState,
   StudioReadinessState,
+  StudioSuggestion,
+  StudioSuggestionStatus,
   ViewContract,
 } from './studioProductionTypes';
 import { clampConfidence, derivedMetric, missingMetric, observedMetric, phase } from './studioContracts';
@@ -55,6 +57,7 @@ function asString(value: unknown, fallback = '') {
 }
 
 function asNumber(value: unknown): number | null {
+  if (value === null || value === undefined || value === '') return null;
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
 }
@@ -90,7 +93,7 @@ function inferObjectType(value: unknown): StudioObjectType {
   return 'unknown';
 }
 
-async function queryLatestSessionAndObject(ownerId?: string | null, includeLegacy = false): Promise<StudioStoredState> {
+async function queryLatestSessionAndObject(ownerId?: string | null, includeLegacy = false, requestedObjectId?: string | null): Promise<StudioStoredState> {
   const degraded: string[] = [];
   try {
     const supabase = createServiceSupabaseClient();
@@ -104,12 +107,39 @@ async function queryLatestSessionAndObject(ownerId?: string | null, includeLegac
         : sessionQuery.eq('owner_id', ownerId);
     }
 
-    const { data: session, error: sessionError } = await sessionQuery
-      .order('updated_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    const explicitObjectId = asString(requestedObjectId);
+    let session: Row | null = null;
+    let object: Row | null = null;
 
-    if (sessionError) throw sessionError;
+    if (explicitObjectId) {
+      let objectQuery = supabase
+        .from('studio_objects')
+        .select('*')
+        .eq('id', explicitObjectId);
+      if (ownerId && !includeLegacy) objectQuery = objectQuery.eq('owner_id', ownerId);
+      const explicitObject = await objectQuery.maybeSingle();
+      if (explicitObject.error) throw explicitObject.error;
+      object = explicitObject.data ? asRecord(explicitObject.data) : null;
+      if (object?.session_id) {
+        const explicitSession = await supabase
+          .from('studio_sessions')
+          .select('*')
+          .eq('id', asString(object.session_id))
+          .maybeSingle();
+        if (explicitSession.error) throw explicitSession.error;
+        session = explicitSession.data ? asRecord(explicitSession.data) : null;
+      }
+    }
+
+    if (!session) {
+      const { data: latestSession, error: sessionError } = await sessionQuery
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (sessionError) throw sessionError;
+      session = latestSession ? asRecord(latestSession) : null;
+    }
+
     if (!session) return {
       session: null,
       object: null,
@@ -130,15 +160,17 @@ async function queryLatestSessionAndObject(ownerId?: string | null, includeLegac
       degraded,
     };
 
-    const { data: object, error: objectError } = await supabase
-      .from('studio_objects')
-      .select('*')
-      .eq('session_id', asString((session as Row).id))
-      .order('updated_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (objectError) throw objectError;
+    if (!object) {
+      const { data: latestObject, error: objectError } = await supabase
+        .from('studio_objects')
+        .select('*')
+        .eq('session_id', asString((session as Row).id))
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (objectError) throw objectError;
+      object = latestObject ? asRecord(latestObject) : null;
+    }
 
     const objectId = asString((object as Row | null)?.id);
     if (!objectId) return {
@@ -315,7 +347,12 @@ function objectFrom(row: Row | null, session: StudioProductionSession): StudioPr
 }
 
 function metricsFromFeatureRows(rows: Row[]): StudioFeatureMetric[] {
-  return rows.map((row) => {
+  const latestByKey = new Map<string, Row>();
+  for (const row of rows) {
+    const key = asString(row.feature_key, asString(row.id, 'feature')) ?? 'feature';
+    if (!latestByKey.has(key)) latestByKey.set(key, row);
+  }
+  return [...latestByKey.values()].map((row) => {
     const numeric = asNumber(row.numeric_value);
     const text = asString(row.text_value) || null;
     const value = numeric ?? text;
@@ -331,6 +368,8 @@ function metricsFromFeatureRows(rows: Row[]): StudioFeatureMetric[] {
       confidence: clampConfidence(row.confidence ?? (value === null ? 0 : 1)),
       explanation: asString(asRecord(row.payload).explanation, 'Persisted Studio object feature row.'),
       evidenceIds: [asString(row.id, key) ?? key],
+      warnings: asArray(payload.warnings).map(String),
+      payload,
     };
   });
 }
@@ -377,6 +416,42 @@ function energyValues(value: unknown): number[] {
 function metricNumber(metrics: StudioFeatureMetric[], key: string): number | null {
   const value = metrics.find((item) => item.id === key)?.value ?? null;
   return typeof value === 'number' ? value : null;
+}
+
+function suggestionStatus(value: unknown): StudioSuggestionStatus {
+  const status = asString(value).toUpperCase();
+  if (['PROPOSED', 'ACCEPTED', 'IN_TEST', 'EVIDENCE_PENDING', 'VERIFIED', 'REJECTED', 'INCONCLUSIVE'].includes(status)) {
+    return status as StudioSuggestionStatus;
+  }
+  return 'PROPOSED';
+}
+
+function suggestionsFromRows(rows: Row[]): StudioSuggestion[] {
+  return rows.map((row) => {
+    const payload = asRecord(row.payload);
+    const mihm = asRecord(payload.mihm);
+    const variables = asRows(mihm.variables)
+      .map((item) => asString(item.key))
+      .filter((item): item is string => Boolean(item));
+    const fit = asRecord(payload.fit);
+    const route = asRecord(payload.route);
+    const evidence = asArray(row.sources).map(String);
+    const expectedSignal = asString(payload.expectedSignal) || asString(route.expectedSignal) || asString(row.recommended_change);
+    return {
+      id: asString(row.id, 'suggestion') ?? 'suggestion',
+      hypothesisId: asString(row.id, 'suggestion') ?? 'suggestion',
+      suggestion: asString(row.recommended_change) || asString(route.goal) || (asString(row.statement, 'Capture additional evidence before acting.') ?? 'Capture additional evidence before acting.'),
+      agentId: asString(payload.synthesisSource) || asString(payload.projectionSource) || (asString(row.origin, 'studio_hypothesis_engine') ?? 'studio_hypothesis_engine'),
+      justification: asString(row.statement, expectedSignal ?? 'Persisted Studio hypothesis row.') ?? 'Persisted Studio hypothesis row.',
+      variablesAffected: variables.length ? variables.slice(0, 8) : [asString(fit.band, 'field_fit') ?? 'field_fit'],
+      confidence: clampConfidence(payload.confidence ?? fit.confidence ?? (evidence.length ? 0.62 : 0.35)),
+      testWindow: asString(payload.verificationWindow) || asString(payload.opportunityWindow) || null,
+      evidenceRequired: evidence.length ? evidence : ['return evidence linked to objectId'],
+      status: suggestionStatus(payload.suggestionStatus ?? payload.status),
+      source: asString(row.origin, 'studio_hypotheses') ?? 'studio_hypotheses',
+      createdAt: asString(row.created_at),
+    };
+  });
 }
 
 function statusFromUpload(row: Row | null): MetricStatus {
@@ -514,17 +589,20 @@ function metricValuesFromState(input: {
       : missingMetric('cultural_resonance', 'Cultural Resonance', 'Cultural Vector evidence is unavailable.', ['world_vector', 'worldspect_snapshots']),
   ];
 
-  metrics.forEach((metric) => values.push(observedMetric({
+  metrics.forEach((metric) => values.push({
     key: metric.id,
     label: metric.label,
     value: metric.value,
     unit: metric.unit,
+    status: metric.status,
     source: metric.source ?? 'studio_object_features',
     evidenceIds: metric.evidenceIds,
     confidence: metric.confidence,
     observedAt: asString(stored.features.find((row) => asString(row.feature_key) === metric.id)?.created_at),
+    formulaVersion: null,
+    warnings: metric.warnings ?? [],
     explanation: metric.explanation,
-  })));
+  }));
 
   return values;
 }
@@ -702,13 +780,13 @@ function buildNextAction(activeObject: StudioProductionObject, metrics: StudioFe
   };
 }
 
-export async function readStudioProductionState(options: { ownerId?: string | null; includeLegacy?: boolean } = {}): Promise<StudioProductionState> {
+export async function readStudioProductionState(options: { ownerId?: string | null; includeLegacy?: boolean; objectId?: string | null } = {}): Promise<StudioProductionState> {
   const generatedAt = new Date().toISOString();
   try {
     const [gold, lens, stored] = await Promise.all([
       readStudioGoldState(),
       buildStudioCulturalLens().catch(() => null),
-      queryLatestSessionAndObject(options.ownerId, options.includeLegacy ?? false),
+      queryLatestSessionAndObject(options.ownerId, options.includeLegacy ?? false, options.objectId ?? null),
     ]);
 
     const session = sessionFrom(stored.session, generatedAt);
@@ -744,6 +822,7 @@ export async function readStudioProductionState(options: { ownerId?: string | nu
     const scoreValues = [gold.mihmModel.individual, gold.mihmModel.group, gold.mihmModel.institutional, gold.mihmModel.systemic, gold.mihmModel.civilizational].filter((value) => Number.isFinite(value));
     const mihmScore = scoreValues.length ? scoreValues.reduce((sum, value) => sum + value, 0) / scoreValues.length : null;
     const evidence = evidenceFromRows(stored, activeObjectWithStatus);
+    const suggestions = suggestionsFromRows(stored.hypotheses);
     const metricValues = metricValuesFromState({ activeObject: activeObjectWithStatus, metrics, evidence, lens, mihmScore, gold, stored });
     const graphNodes: StudioProductionState['objectFeatures']['graph']['nodes'] = [
       activeObjectWithStatus.id ? { id: activeObjectWithStatus.id, label: activeObjectWithStatus.title, layer: 'object', value: null } : null,
@@ -912,6 +991,7 @@ export async function readStudioProductionState(options: { ownerId?: string | nu
         source: 'studioGold.mihmModel',
       },
       hypotheses,
+      suggestions,
       interventions: stored.interventions.map((row) => ({
         id: asString(row.id, 'intervention') ?? 'intervention',
         title: asString(row.title, 'Intervention') ?? 'Intervention',

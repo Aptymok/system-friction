@@ -2,6 +2,8 @@
 import { createServerClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
 import { normalizeSupabaseUrl } from '@/runtime/supabase/url';
+import { emitEpistemicEvent } from '@/core/memory/epistemicEventWriter';
+import { processEpistemicEvent } from '@/core/memory/institutionalEventPipeline';
 
 export type Intent = {
   id: string;
@@ -57,6 +59,26 @@ export async function createIntent(
     .select('id')
     .single();
   if (error) throw new Error(`Failed to create intent: ${error.message}`);
+
+  // NOTA DE MIGRACIÓN (ADR-018): adapter temporal legacy → epistemic_event
+  // → pipeline. Ver nota completa en systemTick.ts.
+  const epistemicEvent = await emitEpistemicEvent({
+    eventName: 'runtime.intent.created',
+    logbookId: 'RUNTIME',
+    epistemicClass: 'declared',
+    schemaVersion: 'adapter.intentLayer.v1',
+    sourceId: 'RUNTIME_INTENT_LAYER',
+    sourceType: 'runtime',
+    actorId: userId,
+    nodeId,
+    confidence: 1,
+    payload: { userId, nodeId, objective, successCriteria, intentId: data.id },
+  }).catch(() => null);
+
+  if (epistemicEvent?.ok) {
+    await processEpistemicEvent(epistemicEvent.event).catch(() => null);
+  }
+
   return data.id;
 }
 
@@ -96,4 +118,21 @@ export async function updateIntent(
     })
     .eq('id', intentId);
   if (error) throw error;
+
+  // NOTA DE MIGRACIÓN (ADR-018): ver systemTick.ts.
+  const epistemicEvent = await emitEpistemicEvent({
+    eventName: 'runtime.intent.updated',
+    logbookId: 'RUNTIME',
+    epistemicClass: 'declared',
+    schemaVersion: 'adapter.intentLayer.v1',
+    sourceId: 'RUNTIME_INTENT_LAYER',
+    sourceType: 'runtime',
+    actorId: userId,
+    confidence: 1,
+    payload: { intentId, oldObjective: current.objective, newObjective, reason, userId },
+  }).catch(() => null);
+
+  if (epistemicEvent?.ok) {
+    await processEpistemicEvent(epistemicEvent.event).catch(() => null);
+  }
 }

@@ -50,6 +50,8 @@ export type StudioFeatureMetric = {
   confidence: number;
   explanation: string;
   evidenceIds: string[];
+  warnings?: string[];
+  payload?: Record<string, unknown>;
 };
 
 export type StudioFeaturePoint = {
@@ -148,6 +150,30 @@ export type StudioIntervention = {
   source: string;
 };
 
+export type StudioSuggestionStatus =
+  | 'PROPOSED'
+  | 'ACCEPTED'
+  | 'IN_TEST'
+  | 'EVIDENCE_PENDING'
+  | 'VERIFIED'
+  | 'REJECTED'
+  | 'INCONCLUSIVE';
+
+export type StudioSuggestion = {
+  id: string;
+  hypothesisId: string;
+  suggestion: string;
+  agentId: string;
+  justification: string;
+  variablesAffected: string[];
+  confidence: number;
+  testWindow: string | null;
+  evidenceRequired: string[];
+  status: StudioSuggestionStatus;
+  source: string;
+  createdAt: string | null;
+};
+
 export type StudioArchiveState = {
   events: Array<{ id: string; time: string; label: string; source: string }>;
   evidenceTraceCount: number | null;
@@ -191,6 +217,7 @@ export type StudioProductionState = {
     source: string;
   };
   hypotheses: StudioHypothesisReport | null;
+  suggestions: StudioSuggestion[];
   interventions: StudioIntervention[];
   archive: StudioArchiveState;
   exports: StudioExportState;

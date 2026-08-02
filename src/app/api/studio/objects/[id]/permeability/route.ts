@@ -14,7 +14,7 @@ import { recordObservationEvent } from '@/lib/root/telemetry/agentRegistry';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-type RouteContext = { params: Promise<{ id: string }> | { id: string } };
+type RouteContext = { params: Promise<{ id: string }> };
 
 export async function GET(_request: Request, ctx: RouteContext) {
   const params = await Promise.resolve(ctx.params);

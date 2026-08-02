@@ -430,7 +430,7 @@ export class MetaOrchestratorAgent extends SfiAgent {
 
       status:
 
-        "SUCCESS",
+        readiness > 0 ? "SUCCESS" : "PARTIAL",
 
 
       output: {
@@ -449,7 +449,7 @@ export class MetaOrchestratorAgent extends SfiAgent {
 
       evidence: [
 
-        evidence.id
+        evidence
 
       ],
 

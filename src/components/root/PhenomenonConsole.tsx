@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from 'react';
 
+import { EntityLink } from '@/components/entity/EntityLink';
 import type { PhenomenonState } from '@/lib/ppoi/ppoiTypes';
 
 import {
@@ -126,6 +127,7 @@ export default function PhenomenonConsole({ state: initialState, linkedEvidence:
           <h2>Identidad</h2>
           <dl className="pc-dl">
             <div><dt>Nombre</dt><dd>{phenomenon.name}</dd></div>
+            <div><dt>Entidad</dt><dd><EntityLink entityId={phenomenon.id} entityType="PHENOMENON" compact showType className="pc-entity-link" /></dd></div>
             <div><dt>Código</dt><dd>{phenomenon.fp_code ?? '—'}</dd></div>
             <div><dt>Estado</dt><dd>{explicarEstado(phenomenon.status)}</dd></div>
             <div><dt>Abierto desde</dt><dd>{phenomenon.opened_at ? new Date(phenomenon.opened_at).toLocaleDateString('es-MX') : '—'}</dd></div>
@@ -213,6 +215,9 @@ export default function PhenomenonConsole({ state: initialState, linkedEvidence:
                   <time>{new Date(link.linkedAt).toLocaleDateString('es-MX')}</time>
                   <div>
                     <strong>{link.evidence ? `${link.evidence.evidence_type} · ${link.evidence.domain}` : 'Evidencia no disponible'}</strong>
+                    {typeof link.evidence?.id === 'string' ? (
+                      <p><EntityLink entityId={link.evidence.id} entityType="EVIDENCE" compact showType className="pc-entity-link" /></p>
+                    ) : null}
                     <p>
                       Vínculo: {link.relationType === 'SHARED_ORIGIN' ? 'mismo origen' : link.relationType === 'CROSS_DOMAIN' ? 'cross-dominio' : 'relacionado'}
                       {link.note ? ` — ${link.note}` : ''}

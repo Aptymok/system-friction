@@ -14,7 +14,15 @@ type MihmVariable = {
   key: MihmVariableKey;
   label: string;
   value: number | null;
-  status: 'DERIVED' | 'MISSING';
+  status:
+    | 'DERIVED'
+    | 'NOT_APPLICABLE'
+    | 'REQUIRES_DECLARATION'
+    | 'REQUIRES_FIELD_EVIDENCE'
+    | 'CAPABILITY_MISSING'
+    | 'INSUFFICIENT_SIGNAL'
+    | 'CALIBRATION_REQUIRED'
+    | 'FAILED';
   explanation: string;
   evidenceIds: string[];
   warnings: string[];
@@ -183,12 +191,14 @@ function variable(
   explanation: string,
   evidenceIds: string[],
   warnings: string[] = [],
+  absentStatus: Exclude<MihmVariable['status'], 'DERIVED'> = 'CAPABILITY_MISSING',
 ): MihmVariable {
+  const normalizedValue = rounded(value);
   return {
     key,
     label,
-    value: rounded(value),
-    status: value === null ? 'MISSING' : 'DERIVED',
+    value: normalizedValue,
+    status: normalizedValue === null ? absentStatus : 'DERIVED',
     explanation,
     evidenceIds,
     warnings,
@@ -260,6 +270,23 @@ function buildAudioMihm(features: Map<string, Row>, audioRow: Row | null, timeRo
     variable('R_sem', 'Recurrencia semántica', semanticRecurrence === null ? null : clamp01(semanticRecurrence), 'Solo disponible cuando existe evidencia textual o semántica persistida.', featureEvidence(features, 'symbolic_recurrence')),
     variable('C_sem', 'Coherencia semántica', semanticDensity === null ? null : clamp01(semanticDensity), 'Solo disponible cuando existe evidencia textual o semántica persistida.', featureEvidence(features, 'semantic_density')),
   ];
+
+  for (const item of variables) {
+    if (item.value !== null) continue;
+    if (item.key === 'D_cog') {
+      item.status = 'CAPABILITY_MISSING';
+      item.warnings = [...new Set([...item.warnings, 'CAPABILITY_MISSING'])];
+    } else if (item.key === 'E_r') {
+      item.status = 'REQUIRES_FIELD_EVIDENCE';
+    } else if (item.key === 'V_i') {
+      item.status = 'REQUIRES_DECLARATION';
+    } else if (item.key === 'I_mc') {
+      item.status = channelCount !== null && channelCount <= 1 ? 'NOT_APPLICABLE' : 'INSUFFICIENT_SIGNAL';
+    } else if (item.key === 'R_sem' || item.key === 'C_sem') {
+      item.status = 'NOT_APPLICABLE';
+      item.warnings = [...new Set([...item.warnings, 'NO_TEXTUAL_OR_SEMANTIC_EVIDENCE'])];
+    }
+  }
 
   const weights: Record<MihmVariableKey, number> = {
     F_s: 0.100, G_f: 0.100, C_s: 0.100, R_sem: 0.100, C_sem: 0.100, Phi: 0.100,
@@ -337,6 +364,21 @@ function buildNonAudioMihm(modality: string, features: Map<string, Row>) {
     ]),
     variable('C_sem', 'Coherencia semántica', semanticDensity === null ? null : clamp01(semanticDensity), 'Densidad/coherencia semántica persistida; no equivale por sí sola a verdad o claridad.', featureEvidence(features, 'semantic_density')),
   ];
+  for (const item of variables) {
+    if (item.value !== null) continue;
+    if (item.key === 'D_i' || item.key === 'D_cog') {
+      item.status = 'CAPABILITY_MISSING';
+      item.warnings = [...new Set([...item.warnings, 'CAPABILITY_MISSING'])];
+    } else if (item.key === 'E_r') {
+      item.status = 'REQUIRES_FIELD_EVIDENCE';
+    } else if (item.key === 'V_i') {
+      item.status = 'REQUIRES_DECLARATION';
+    } else if (item.key === 'G_f' || item.key === 'Phi') {
+      item.status = 'INSUFFICIENT_SIGNAL';
+    } else if (item.key === 'I_mc') {
+      item.status = 'NOT_APPLICABLE';
+    }
+  }
   const measured = variables.filter((item) => item.value !== null);
   return {
     status: measured.length >= 4 ? 'PARTIAL' as const : 'BLOCKED' as const,

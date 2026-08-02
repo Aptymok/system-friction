@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { FormEvent, useEffect, useState } from 'react';
+import { EntityLink } from '@/components/entity/EntityLink';
 import type {
   SfiPredictionEntry,
   SfiPredictionEvidenceAgentResult,
@@ -156,6 +157,8 @@ export default function PredictionDetailPanel({ hypothesisId }: { hypothesisId: 
         <h2 className="mt-2 text-2xl font-semibold text-[#f5eedc]">{entry.case_label || entry.case_id}</h2>
         <p className="mt-4 text-sm leading-6 text-[#d8d2c2]">{entry.prediccion_explicita}</p>
         <div className="mt-5 grid gap-3 font-mono text-[11px] uppercase tracking-[0.12em] text-[#8f8878] md:grid-cols-2">
+          <div>entity=<EntityLink entityId={entry.id} entityType="PREDICTION" compact className="ml-1 inline-flex gap-2 text-[#c8a951] underline decoration-[#c8a95166] underline-offset-4" /></div>
+          <div>hypothesis_id={entry.hypothesis_id}</div>
           <div>phenotype={entry.fenotipo_estimado}</div>
           <div>probability={entry.probabilidad_estimativa}</div>
           <div>registered_at={entry.prediction_registered_at}</div>

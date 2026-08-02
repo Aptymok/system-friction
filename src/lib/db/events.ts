@@ -1,3 +1,5 @@
+// src/lib/db/events.ts
+
 import { createServiceSupabaseClient } from '@/runtime/supabase/server'
 
 export type SFIEventType =
@@ -16,22 +18,49 @@ export type SFIEventType =
   | 'publication.scheduled'
   | 'publication.published'
   | 'publication.failed'
+  | 'memory.vector_created'
+  | 'memory.vector_failed'
+  | 'external.signal_ingested'
+  | 'social.metric_captured'
+
+export interface SFIEventPayload {
+  [key: string]: unknown
+}
 
 export async function appendEvent(input: {
   user_id?: string | null
   node_id?: string | null
   event_type: SFIEventType
-  payload?: Record<string, unknown>
+  payload?: SFIEventPayload
   source?: string
 }) {
   const supabase = createServiceSupabaseClient()
-  if (!supabase) return
 
-  await supabase.from('interaction_events').insert({
-    user_id: input.user_id || null,
-    node_id: input.node_id || null,
-    event_type: input.event_type,
-    payload: input.payload || {},
-    source: input.source || 'web'
-  })
+  if (!supabase) {
+    return {
+      ok: false,
+      reason: 'supabase_unavailable',
+    }
+  }
+
+  const { error } = await supabase
+    .from('interaction_events')
+    .insert({
+      user_id: input.user_id ?? null,
+      node_id: input.node_id ?? null,
+      event_type: input.event_type,
+      payload: input.payload ?? {},
+      source: input.source ?? 'system',
+    })
+
+  if (error) {
+    return {
+      ok: false,
+      reason: error.message,
+    }
+  }
+
+  return {
+    ok: true,
+  }
 }

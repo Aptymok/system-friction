@@ -87,8 +87,11 @@ if (decoded.channels !== 2) throw new Error('channel_count_mismatch');
 if (!extraction.features.some((feature) => feature.key === 'rms_dbfs' && typeof feature.value === 'number')) {
   throw new Error('rms_feature_missing');
 }
-if (!extraction.features.some((feature) => feature.key === 'lufs_integrated' && feature.status === 'MISSING')) {
-  throw new Error('lufs_missing_contract_missing');
+if (!extraction.features.some((feature) => feature.key === 'lufs_integrated' && typeof feature.value === 'number' && feature.status !== 'CAPABILITY_MISSING')) {
+  throw new Error('lufs_runtime_feature_missing');
+}
+if (extraction.features.some((feature) => ['lufs_integrated', 'true_peak_dbtp', 'loudness_range_lu', 'short_term_lufs_summary'].includes(feature.key) && feature.status === 'CAPABILITY_MISSING')) {
+  throw new Error('mastering_capability_still_missing');
 }
 if (!waveform.length) throw new Error('waveform_missing');
 extraction.features.forEach(assertFiniteFeature);
@@ -98,6 +101,8 @@ console.log(JSON.stringify({
   sampleRate: decoded.sampleRate,
   channels: decoded.channels,
   featureCount: extraction.features.length,
+  capabilityMissing: extraction.features.filter((feature) => feature.status === 'CAPABILITY_MISSING').length,
+  insufficientSignal: extraction.features.filter((feature) => feature.status === 'INSUFFICIENT_SIGNAL').length,
   waveformPeaks: waveform.length,
   silenceRegions: silence.length,
 }));

@@ -1,6 +1,6 @@
 import { mixdownToMono } from '../audioDecode';
 import type { StudioAudioFeature, StudioDecodedAudio } from '../audioTypes';
-import { amplitudeToDbfs, feature, peak, rms } from './basicFeatures';
+import { amplitudeToDbfs, feature, rms } from './basicFeatures';
 
 function percentile(values: number[], p: number) {
   if (!values.length) return 0;
@@ -18,16 +18,37 @@ function windowRmsValues(samples: Float32Array, sampleRate: number) {
   return values;
 }
 
+function globalSamplePeak(decoded: StudioDecodedAudio) {
+  let value = 0;
+  for (const channel of decoded.channelData) {
+    for (const sample of channel) value = Math.max(value, Math.abs(sample));
+  }
+  return value;
+}
+
+function globalClippingSamples(decoded: StudioDecodedAudio) {
+  let count = 0;
+  let samples = 0;
+  for (const channel of decoded.channelData) {
+    samples += channel.length;
+    for (const sample of channel) {
+      if (Math.abs(sample) >= 0.999) count += 1;
+    }
+  }
+  return { count, ratio: samples ? count / samples : 0 };
+}
+
 export function extractDynamicFeatures(decoded: StudioDecodedAudio): StudioAudioFeature[] {
   const mono = mixdownToMono(decoded);
   const rmsValue = rms(mono);
-  const peakValue = peak(mono);
+  const peakValue = globalSamplePeak(decoded);
   const windows = windowRmsValues(mono, decoded.sampleRate);
   const quiet = percentile(windows, 0.1);
   const loud = percentile(windows, 0.95);
   const dynamicRangeDb = amplitudeToDbfs(loud) - amplitudeToDbfs(quiet);
-  const clippingSamples = Array.from(mono).filter((sample) => Math.abs(sample) >= 0.999).length;
-  const clippingRisk = mono.length ? clippingSamples / mono.length : 0;
+  const clipping = globalClippingSamples(decoded);
+  const clippingSamples = clipping.count;
+  const clippingRisk = clipping.ratio;
   const crestFactorDb = amplitudeToDbfs(peakValue) - amplitudeToDbfs(rmsValue);
   const headroomDb = Math.abs(amplitudeToDbfs(peakValue));
 

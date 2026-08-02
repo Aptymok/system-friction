@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
+import { processEpistemicEvent } from '@/core/memory/institutionalEventPipeline';
 
 export type GovernanceStatus = 'active' | 'blind' | 'degraded';
 
@@ -155,6 +156,24 @@ export async function recordBlindModePolicyBlock(actorId: string | null, action:
       reason: 'blind_mode_active',
       payload,
     });
+
+    // ADR-018: el evento ya quedó en epistemic_events (ledger inmutable, sin
+    // tocar arriba). Aquí NO se llama a InstitutionalMemoryWriter directo —
+    // se pasa por el pipeline, que aplica MemoryPolicyValidator primero.
+    // Se construye el objeto localmente (los campos ya se conocen) en vez
+    // de repetir una consulta contra epistemic_events.
+    await processEpistemicEvent({
+      id: event.id,
+      event_id: eventId,
+      event_name: 'governance.blind_mode.blocked',
+      logbook_id: 'BR',
+      epistemic_class: 'observed',
+      confidence: 1,
+      payload,
+      occurred_at: occurredAt,
+      created_at: occurredAt,
+      hash_self: hashSelf,
+    }).catch(() => null);
   }
 }
 
@@ -242,6 +261,21 @@ export async function recordAcpSeen(actorId: string | null, actorEmail: string |
       causal_factor: previous.blindMode ? 'ACP_RETURNED' : 'ACP_SEEN',
       payload: { previous, next: nextState },
     });
+
+    // ADR-018: pasa por el pipeline (MemoryPolicyValidator → IMW), no llama
+    // a InstitutionalMemoryWriter directo.
+    await processEpistemicEvent({
+      id: event.id,
+      event_id: eventId,
+      event_name: eventName,
+      logbook_id: 'BR',
+      epistemic_class: 'observed',
+      confidence: 1,
+      payload,
+      occurred_at: occurredAt,
+      created_at: occurredAt,
+      hash_self: hashSelf,
+    }).catch(() => null);
   }
 
   return { ok: true as const, data: nextState };

@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { EntityLink } from '@/components/entity/EntityLink';
 import type { RootSovereignState } from '@/lib/root/sovereign/rootSovereignState';
 import type { SfiTaskGraph } from '@/lib/sfi/cognitive-runtime/types';
 import type { RootSelection } from '../sovereignTypes';
@@ -93,25 +94,27 @@ export function RootCognitiveRuntimeView({ state, onSelect }: {
           <div className="rs-task-graph">
             <div className="rs-task-flow">
               {plan.nodes.map((node) => (
-                <button
-                  key={node.id}
-                  type="button"
-                  onClick={() => onSelect({
-                    kind: 'cognitive task node',
-                    id: node.id,
-                    title: node.label,
-                    source: 'SFI_TASK_CREATED',
-                    observedAt: new Date().toISOString(),
-                    confidence: null,
-                    evidenceIds: node.requiresEvidence,
-                    warning: node.humanApprovalRequired ? 'HUMAN_APPROVAL_REQUIRED' : null,
-                    data: node,
-                  })}
-                >
-                  <span>{node.authorityLevel}</span>
-                  <strong>{node.label}</strong>
-                  <em>{node.requiresEvidence.slice(0, 3).join(' / ') || 'NO MEMORY'}</em>
-                </button>
+                <div key={node.id}>
+                  <button
+                    type="button"
+                    onClick={() => onSelect({
+                      kind: 'cognitive task node',
+                      id: node.id,
+                      title: node.label,
+                      source: 'SFI_TASK_CREATED',
+                      observedAt: new Date().toISOString(),
+                      confidence: null,
+                      evidenceIds: node.requiresEvidence,
+                      warning: node.humanApprovalRequired ? 'HUMAN_APPROVAL_REQUIRED' : null,
+                      data: node,
+                    })}
+                  >
+                    <span>{node.authorityLevel}</span>
+                    <strong>{node.label}</strong>
+                    <em>{node.requiresEvidence.slice(0, 3).join(' / ') || 'NO MEMORY'}</em>
+                  </button>
+                  <EntityLink entityId={node.agentId} entityType="AGENT" compact className="rs-inline-action" />
+                </div>
               ))}
             </div>
             <pre className="rs-result">{JSON.stringify(plan, null, 2)}</pre>
@@ -156,25 +159,27 @@ export function RootCognitiveRuntimeView({ state, onSelect }: {
             </div>
             <div className="rs-card-list">
               {layer.contracts.length ? layer.contracts.map((agent) => (
-                <button
-                  type="button"
-                  key={agent.id}
-                  onClick={() => onSelect({
-                    kind: 'cognitive agent',
-                    id: agent.id,
-                    title: agent.name,
-                    source: agent.evidence.sourceTables.join(' + ') || 'contract only',
-                    observedAt: runtime.generatedAt,
-                    confidence: null,
-                    evidenceIds: [...agent.readsMemory, ...agent.writesMemory].map((item) => item.memory),
-                    warning: agent.evidence.warnings.join(' | ') || (agent.status === 'gated' ? 'CAPABILITY_GATED' : null),
-                    data: agent,
-                  })}
-                >
-                  <span className={`rs-status status-${statusClass(agent.status)}`}>{agent.status}</span>
-                  <strong>{agent.name}</strong>
-                  <em>{agent.authorityLevel} / {agent.domain} / emits {agent.emits.join(', ')}</em>
-                </button>
+                <div key={agent.id}>
+                  <button
+                    type="button"
+                    onClick={() => onSelect({
+                      kind: 'cognitive agent',
+                      id: agent.id,
+                      title: agent.name,
+                      source: agent.evidence.sourceTables.join(' + ') || 'contract only',
+                      observedAt: runtime.generatedAt,
+                      confidence: null,
+                      evidenceIds: [...agent.readsMemory, ...agent.writesMemory].map((item) => item.memory),
+                      warning: agent.evidence.warnings.join(' | ') || (agent.status === 'gated' ? 'CAPABILITY_GATED' : null),
+                      data: agent,
+                    })}
+                  >
+                    <span className={`rs-status status-${statusClass(agent.status)}`}>{agent.status}</span>
+                    <strong>{agent.name}</strong>
+                    <em>{agent.authorityLevel} / {agent.domain} / emits {agent.emits.join(', ')}</em>
+                  </button>
+                  <EntityLink entityId={agent.id} entityType="AGENT" compact className="rs-inline-action" />
+                </div>
               )) : <div className="rs-empty compact"><b>NO CONTRACTS</b></div>}
             </div>
           </article>
@@ -185,25 +190,27 @@ export function RootCognitiveRuntimeView({ state, onSelect }: {
         <header>EVENT GRAPH</header>
         <div className="rs-card-list horizontal">
           {runtime.eventGraph.recentEvents.length ? runtime.eventGraph.recentEvents.map((event) => (
-            <button
-              type="button"
-              key={event.eventId}
-              onClick={() => onSelect({
-                kind: 'event graph',
-                id: event.eventId,
-                title: event.eventName,
-                source: runtime.eventGraph.source,
-                observedAt: event.occurredAt,
-                confidence: event.confidence,
-                evidenceIds: [],
-                warning: null,
-                data: event,
-              })}
-            >
-              <span>{event.epistemicClass}</span>
-              <strong>{event.eventName}</strong>
-              <em>{event.occurredAt ?? 'NO DATE'} / {event.sourceId ?? 'NO SOURCE'}</em>
-            </button>
+            <div key={event.eventId}>
+              <button
+                type="button"
+                onClick={() => onSelect({
+                  kind: 'event graph',
+                  id: event.eventId,
+                  title: event.eventName,
+                  source: runtime.eventGraph.source,
+                  observedAt: event.occurredAt,
+                  confidence: event.confidence,
+                  evidenceIds: [],
+                  warning: null,
+                  data: event,
+                })}
+              >
+                <span>{event.epistemicClass}</span>
+                <strong>{event.eventName}</strong>
+                <em>{event.occurredAt ?? 'NO DATE'} / {event.sourceId ?? 'NO SOURCE'}</em>
+              </button>
+              <EntityLink entityId={event.eventId} entityType="EVENT" compact className="rs-inline-action" />
+            </div>
           )) : <div className="rs-empty"><b>EVENT GRAPH EMPTY</b><p>No readable epistemic events were returned by the existing store.</p></div>}
         </div>
       </article>
