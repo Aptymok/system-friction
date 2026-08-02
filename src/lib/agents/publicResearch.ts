@@ -2,7 +2,11 @@ import 'server-only';
 
 import { runLlmTask } from '@/lib/ai/providerRouter';
 
-export type PublicResearchProvider = 'openai_web_search' | 'brave_search' | 'unavailable';
+export type PublicResearchProvider =
+  | 'gdelt_doc'
+  | 'openai_web_search'
+  | 'brave_search'
+  | 'unavailable';
 
 export type PublicResearchSource = {
   id: string;
@@ -25,8 +29,17 @@ export type PublicResearchResult = {
   warnings: string[];
 };
 
+type RawSearchResult = {
+  url: string;
+  title?: string;
+  snippet?: string;
+  publishedAt?: string | null;
+};
+
 function asRecord(value: unknown): Record<string, unknown> {
-  return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {};
 }
 
 function text(value: unknown, fallback = '') {
@@ -48,7 +61,7 @@ function host(url: string) {
 function classifySource(url: string, title: string): PublicResearchSource['sourceType'] {
   const hostname = host(url).toLowerCase();
   const value = `${hostname} ${title}`.toLowerCase();
-  if (/\.gob\.mx$|\.gov\.|\.gov$|regulator|commission|secretar|ministerio|authority/.test(value)) return 'regulator';
+  if (/\.gob\.mx$|\.gov\.|\.gov$|regulator|commission|secretar|ministerio|authority|profeco|condusef|sec\.gov/.test(value)) return 'regulator';
   if (/linkedin\.com|crunchbase\.com/.test(hostname)) return 'professional';
   if (/news|noticias|reuters|bloomberg|forbes|expansion|eleconomista|elfinanciero|elceo|elpais|milenio|cnn|bbc/.test(value)) return 'news';
   if (/newsroom|news-room|investor|about|press|blog/.test(value)) return 'official';
@@ -65,16 +78,14 @@ function reliabilityFor(type: PublicResearchSource['sourceType'], url: string) {
 }
 
 function sourceId(url: string, index: number) {
-  const slug = host(url).replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '').slice(0, 32);
+  const slug = host(url)
+    .replace(/[^a-z0-9]+/gi, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 32);
   return `WEB-${String(index + 1).padStart(2, '0')}-${slug || 'source'}`;
 }
 
-function normalizeSource(input: {
-  url: string;
-  title?: string;
-  snippet?: string;
-  publishedAt?: string | null;
-}, index: number): PublicResearchSource | null {
+function normalizeSource(input: RawSearchResult, index: number): PublicResearchSource | null {
   const url = text(input.url);
   if (!/^https?:\/\//i.test(url)) return null;
   const title = text(input.title, host(url));
@@ -84,12 +95,23 @@ function normalizeSource(input: {
     url,
     title,
     publisher: host(url) || null,
-    snippet: text(input.snippet).slice(0, 1600),
+    snippet: text(input.snippet, title).slice(0, 1600),
     publishedAt: text(input.publishedAt) || null,
     retrievedAt: new Date().toISOString(),
     sourceType,
     reliability: reliabilityFor(sourceType, url),
   };
+}
+
+function dedupeSources(results: RawSearchResult[], limit = 40) {
+  const byUrl = new Map<string, RawSearchResult>();
+  for (const result of results) {
+    if (/^https?:\/\//i.test(result.url) && !byUrl.has(result.url)) byUrl.set(result.url, result);
+  }
+  return [...byUrl.values()]
+    .slice(0, limit)
+    .map((source, index) => normalizeSource(source, index))
+    .filter((source): source is PublicResearchSource => Boolean(source));
 }
 
 function parseOpenAiText(response: Record<string, unknown>) {
@@ -111,7 +133,7 @@ function parseOpenAiText(response: Record<string, unknown>) {
 
 function parseOpenAiSources(response: Record<string, unknown>) {
   const output = Array.isArray(response.output) ? response.output as unknown[] : [];
-  const candidates: Array<{ url: string; title?: string; snippet?: string }> = [];
+  const candidates: RawSearchResult[] = [];
 
   for (const itemValue of output) {
     const item = asRecord(itemValue);
@@ -120,31 +142,257 @@ function parseOpenAiSources(response: Record<string, unknown>) {
       const sources = Array.isArray(action.sources) ? action.sources as unknown[] : [];
       for (const sourceValue of sources) {
         const source = asRecord(sourceValue);
-        candidates.push({ url: text(source.url), title: text(source.title), snippet: text(source.snippet) });
+        candidates.push({
+          url: text(source.url),
+          title: text(source.title),
+          snippet: text(source.snippet),
+        });
       }
     }
 
     const content = Array.isArray(item.content) ? item.content as unknown[] : [];
     for (const contentValue of content) {
       const contentItem = asRecord(contentValue);
-      const annotations = Array.isArray(contentItem.annotations) ? contentItem.annotations as unknown[] : [];
+      const annotations = Array.isArray(contentItem.annotations)
+        ? contentItem.annotations as unknown[]
+        : [];
       for (const annotationValue of annotations) {
         const annotation = asRecord(annotationValue);
         const citation = asRecord(annotation.url_citation);
         const url = text(citation.url) || text(annotation.url);
-        if (url) candidates.push({ url, title: text(citation.title) || text(annotation.title) });
+        if (url) {
+          candidates.push({
+            url,
+            title: text(citation.title) || text(annotation.title),
+          });
+        }
       }
     }
   }
 
-  const deduped = new Map<string, { url: string; title?: string; snippet?: string }>();
-  for (const candidate of candidates) {
-    if (/^https?:\/\//i.test(candidate.url) && !deduped.has(candidate.url)) deduped.set(candidate.url, candidate);
+  return dedupeSources(candidates);
+}
+
+function modelCompanyFromPrompt(prompt: string) {
+  const investigate = prompt.match(/Deeply investigate\s+([^\.\n]+)\./i)?.[1]?.trim();
+  return investigate || null;
+}
+
+function fallbackResearchJson(prompt: string, sources: PublicResearchSource[]) {
+  const company = modelCompanyFromPrompt(prompt);
+  const evidenceUrls = sources.slice(0, 10).map((source) => source.url);
+  const sourceClaims = sources.slice(0, 6).map((source) => ({
+    cause: `${source.publisher ?? 'Fuente pública'} publicó: ${source.title}`,
+    epistemic_status: 'source_claim',
+    evidence_urls: [source.url],
+  }));
+  const today = new Date();
+  const end = new Date(today);
+  end.setUTCDate(end.getUTCDate() + 45);
+  const confidence = Math.min(0.48, 0.16 + sources.length * 0.025);
+  const subject = company ?? 'empresa por verificar';
+
+  return JSON.stringify({
+    candidates: company
+      ? [{
+        company,
+        sector: 'unknown',
+        reason: `Existen ${sources.length} fuentes públicas recuperadas para revisión humana.`,
+        confidence,
+        source_urls: evidenceUrls,
+      }]
+      : [],
+    company: {
+      name: company ?? 'NO_VERIFIED_COMPANY',
+      sector: 'unknown',
+      region: 'Mexico',
+      website: null,
+    },
+    observed_pain: {
+      statement: sources.length
+        ? `Las fuentes públicas recuperadas contienen señales que requieren clasificación estructural antes de afirmar un dolor organizacional específico en ${subject}.`
+        : 'No se recuperaron fuentes públicas suficientes.',
+      affected_groups: [],
+      observed_since: sources.find((source) => source.publishedAt)?.publishedAt ?? null,
+      severity: 'unknown',
+      evidence_urls: evidenceUrls,
+      counter_evidence: ['Síntesis determinista: falta interpretación local o humana de las fuentes.'],
+    },
+    causal_chain: sourceClaims,
+    critical_window: {
+      start_date: today.toISOString().slice(0, 10),
+      end_date: end.toISOString().slice(0, 10),
+      threshold: 'Ventana provisional para verificar la persistencia de las señales antes de proponer intervención.',
+      triggers: [],
+      counter_signals: ['No se ejecutó síntesis LLM; no afirmar colapso ni causalidad.'],
+      confidence,
+      collapse_assessment: 'not_assessable',
+    },
+    sfi_fit: {
+      eligible: sources.length >= 3,
+      offer_id: 'SFI-DR01',
+      problem_sfi_addresses: 'Normalizar evidencia pública, separar hechos de afirmaciones e identificar una fricción verificable.',
+      why_sfi: 'SFI puede convertir señales dispersas en una hipótesis trazable y una intervención mínima gobernada.',
+      alternatives: ['Investigación humana adicional', 'Consultoría operativa convencional'],
+      confidence,
+    },
+    contact: {
+      name: null,
+      role: 'Responsable de operaciones, experiencia, riesgo o transformación',
+      why_this_role: 'Debe validar la señal y poseer autoridad para autorizar un diagnóstico delimitado.',
+      channel_type: 'not_verified',
+      channel: null,
+      source_url: null,
+    },
+    proposal: {
+      title: `Lectura pública preliminar SFI para ${subject}`,
+      executive_summary: 'Revisión preliminar basada en fuentes públicas. Requiere validación antes de contacto.',
+      objectives: ['Validar la señal', 'Normalizar evidencia', 'Definir una hipótesis verificable'],
+      scope: ['Revisión pública', 'Mapa de fricción', 'Propuesta de perturbación mínima'],
+      deliverables: ['Dossier de evidencia', 'Lectura SFI-DR01 preliminar', 'Ventana de verificación'],
+      timeline_days: 28,
+      assumptions: ['Acceso posterior a evidencia directa si la organización acepta conversar'],
+      exclusions: ['Diagnóstico legal', 'Auditoría financiera', 'Afirmación determinista de colapso'],
+    },
+    email: {
+      subject: `Solicitud de conversación diagnóstica sobre señales públicas en ${subject}`,
+      body: `Hola. SFI identificó señales públicas relacionadas con ${subject}. Antes de formular cualquier conclusión, proponemos una conversación breve para validar si esas señales corresponden a una fricción operativa real. No se ha realizado contacto automático ni se afirma información privada.`,
+    },
+    overall_confidence: confidence,
+    limitations: [
+      'Síntesis determinista sin modelo de lenguaje.',
+      'Los titulares y fragmentos son afirmaciones de fuentes, no hechos institucionalmente verificados por SFI.',
+      'El destinatario directo no fue verificado.',
+    ],
+  });
+}
+
+async function synthesizeFromSources(input: {
+  prompt: string;
+  sources: PublicResearchSource[];
+  providerLabel: string;
+}) {
+  const context = input.sources.map((source) => ({
+    id: source.id,
+    title: source.title,
+    url: source.url,
+    publishedAt: source.publishedAt,
+    sourceType: source.sourceType,
+    reliability: source.reliability,
+    snippet: source.snippet,
+  }));
+
+  const llm = await runLlmTask({
+    task: 'deep_report',
+    system: 'You are the SFI Public Research Synthesizer. Use only supplied sources. Distinguish observed facts, source claims, inference and projection. Return the exact JSON requested by the prompt. Never invent contacts, dates, email addresses or sources.',
+    prompt: `${input.prompt}\n\nRETRIEVAL_PROVIDER=${input.providerLabel}\nRETRIEVED_SOURCES=${JSON.stringify(context)}`,
+    fallbackResult: fallbackResearchJson(input.prompt, input.sources),
+    maxTokens: 2800,
+  });
+
+  return {
+    answer: llm.result || fallbackResearchJson(input.prompt, input.sources),
+    warnings: llm.ok
+      ? llm.warnings
+      : unique([...llm.warnings, 'LOCAL_OR_HOSTED_LLM_UNAVAILABLE: deterministic evidence-bound synthesis used']),
+  };
+}
+
+function gdeltQueryText(query: string) {
+  return query
+    .replace(/site:([^\s]+)/gi, 'domain:$1')
+    .replace(/\s+últimos\s+\d+\s+d[ií]as/gi, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 420);
+}
+
+async function gdeltQuery(query: string, lookbackDays: number): Promise<RawSearchResult[]> {
+  const url = new URL('https://api.gdeltproject.org/api/v2/doc/doc');
+  url.searchParams.set('query', gdeltQueryText(query));
+  url.searchParams.set('mode', 'ArtList');
+  url.searchParams.set('format', 'json');
+  url.searchParams.set('maxrecords', '18');
+  url.searchParams.set('sort', 'HybridRel');
+  url.searchParams.set('timespan', `${Math.max(1, Math.min(365, Math.round(lookbackDays)))}d`);
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 30_000);
+  try {
+    const response = await fetch(url, {
+      headers: {
+        Accept: 'application/json',
+        'User-Agent': 'SystemFrictionInstitute/1.0 public-research',
+      },
+      signal: controller.signal,
+      cache: 'no-store',
+    });
+    const json = await response.json().catch(() => null);
+    if (!response.ok || !json || typeof json !== 'object') {
+      throw new Error(`gdelt_doc_http_${response.status}`);
+    }
+    const articles = Array.isArray(asRecord(json).articles)
+      ? asRecord(json).articles as unknown[]
+      : [];
+    return articles.map((articleValue) => {
+      const article = asRecord(articleValue);
+      const title = text(article.title);
+      const domain = text(article.domain);
+      return {
+        url: text(article.url),
+        title,
+        snippet: [title, domain ? `Fuente indexada por GDELT: ${domain}` : ''].filter(Boolean).join('\n'),
+        publishedAt: text(article.seendate) || null,
+      };
+    }).filter((article) => article.url);
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function gdeltWebResearch(input: {
+  prompt: string;
+  queries: string[];
+  lookbackDays: number;
+}): Promise<PublicResearchResult> {
+  const settled = await Promise.allSettled(
+    input.queries.slice(0, 6).map((query) => gdeltQuery(query, input.lookbackDays)),
+  );
+  const raw = settled.flatMap((result) => result.status === 'fulfilled' ? result.value : []);
+  const requestWarnings = settled.flatMap((result, index) => result.status === 'rejected'
+    ? [`gdelt_query_${index + 1}_failed:${result.reason instanceof Error ? result.reason.message : 'unknown'}`]
+    : []);
+  const sources = dedupeSources(raw, 42);
+
+  if (!sources.length) {
+    return {
+      ok: false,
+      provider: 'gdelt_doc',
+      answer: '',
+      sources: [],
+      queries: input.queries,
+      warnings: unique([...requestWarnings, 'gdelt_doc_no_results']),
+    };
   }
 
-  return [...deduped.values()]
-    .map((candidate, index) => normalizeSource(candidate, index))
-    .filter((source): source is PublicResearchSource => Boolean(source));
+  const synthesis = await synthesizeFromSources({
+    prompt: input.prompt,
+    sources,
+    providerLabel: 'GDELT DOC 2.0 no-key public retrieval',
+  });
+
+  return {
+    ok: true,
+    provider: 'gdelt_doc',
+    answer: synthesis.answer,
+    sources,
+    queries: input.queries,
+    warnings: unique([
+      ...requestWarnings,
+      ...synthesis.warnings,
+      'GDELT_INDEXED_SOURCE: verify original publisher content before external use',
+    ]),
+  };
 }
 
 async function openAiWebResearch(input: {
@@ -235,7 +483,9 @@ async function braveQuery(query: string, country: string, searchLang: string) {
     const results = Array.isArray(web.results) ? web.results as unknown[] : [];
     return results.map((resultValue) => {
       const result = asRecord(resultValue);
-      const extras = Array.isArray(result.extra_snippets) ? result.extra_snippets.map((item) => text(item)).filter(Boolean) : [];
+      const extras = Array.isArray(result.extra_snippets)
+        ? result.extra_snippets.map((item) => text(item)).filter(Boolean)
+        : [];
       return {
         url: text(result.url),
         title: text(result.title),
@@ -257,43 +507,36 @@ async function braveWebResearch(input: {
   const apiKey = process.env.BRAVE_SEARCH_API_KEY ?? process.env.BRAVE_API_KEY;
   if (!apiKey) return null;
 
-  const settled = await Promise.allSettled(input.queries.slice(0, 6).map((query) => braveQuery(query, input.country, input.searchLang)));
+  const settled = await Promise.allSettled(
+    input.queries.slice(0, 6).map((query) => braveQuery(query, input.country, input.searchLang)),
+  );
   const raw = settled.flatMap((result) => result.status === 'fulfilled' ? result.value : []);
-  const deduped = new Map<string, typeof raw[number]>();
-  for (const item of raw) if (item.url && !deduped.has(item.url)) deduped.set(item.url, item);
-  const sources = [...deduped.values()]
-    .slice(0, 36)
-    .map((source, index) => normalizeSource(source, index))
-    .filter((source): source is PublicResearchSource => Boolean(source));
+  const sources = dedupeSources(raw, 36);
 
   if (!sources.length) {
-    return { ok: false, provider: 'brave_search', answer: '', sources: [], queries: input.queries, warnings: ['brave_search_no_results'] };
+    return {
+      ok: false,
+      provider: 'brave_search',
+      answer: '',
+      sources: [],
+      queries: input.queries,
+      warnings: ['brave_search_no_results'],
+    };
   }
 
-  const context = sources.map((source) => ({
-    id: source.id,
-    title: source.title,
-    url: source.url,
-    publishedAt: source.publishedAt,
-    sourceType: source.sourceType,
-    reliability: source.reliability,
-    snippet: source.snippet,
-  }));
-  const llm = await runLlmTask({
-    task: 'deep_report',
-    system: 'You are the SFI Public Research Synthesizer. Use only supplied sources. Distinguish observed facts, source claims, inference and projection. Return the exact JSON requested by the prompt. Never invent contacts, dates, email addresses or sources.',
-    prompt: `${input.prompt}\n\nRETRIEVED_SOURCES=${JSON.stringify(context)}`,
-    fallbackResult: JSON.stringify({ error: 'llm_synthesis_unavailable', source_ids: sources.map((source) => source.id) }),
-    maxTokens: 2800,
+  const synthesis = await synthesizeFromSources({
+    prompt: input.prompt,
+    sources,
+    providerLabel: 'Brave Search optional provider',
   });
 
   return {
-    ok: llm.ok && Boolean(llm.result),
+    ok: true,
     provider: 'brave_search',
-    answer: llm.result,
+    answer: synthesis.answer,
     sources,
     queries: input.queries,
-    warnings: llm.warnings,
+    warnings: synthesis.warnings,
   };
 }
 
@@ -304,25 +547,51 @@ export async function runPublicResearch(input: {
   city?: string;
   searchLang?: string;
   timezone?: string;
+  lookbackDays?: number;
 }): Promise<PublicResearchResult> {
   const country = (input.country ?? 'MX').toUpperCase().slice(0, 2);
   const searchLang = input.searchLang ?? 'es';
   const timezone = input.timezone ?? 'America/Mexico_City';
+  const lookbackDays = Math.max(1, Math.min(365, Math.round(input.lookbackDays ?? 120)));
   const warnings: string[] = [];
 
+  // Zero-key public retrieval is the default. Paid/keyed providers are only optional fallbacks.
   try {
-    const openai = await openAiWebResearch({ prompt: input.prompt, country, city: input.city, timezone });
-    if (openai?.ok) return { ...openai, queries: input.queries };
-    if (openai) warnings.push(...openai.warnings);
+    const gdelt = await gdeltWebResearch({
+      prompt: input.prompt,
+      queries: input.queries,
+      lookbackDays,
+    });
+    if (gdelt.ok) return gdelt;
+    warnings.push(...gdelt.warnings);
   } catch (error) {
-    warnings.push(`openai_web_search_failed:${error instanceof Error ? error.message : 'unknown'}`);
+    warnings.push(`gdelt_doc_failed:${error instanceof Error ? error.message : 'unknown'}`);
   }
 
   try {
-    const brave = await braveWebResearch({ prompt: input.prompt, queries: input.queries, country, searchLang });
-    if (brave) return { ...brave, warnings: unique([...warnings, ...brave.warnings]) };
+    const openai = await openAiWebResearch({
+      prompt: input.prompt,
+      country,
+      city: input.city,
+      timezone,
+    });
+    if (openai?.ok) return { ...openai, queries: input.queries, warnings: unique([...warnings, ...openai.warnings]) };
+    if (openai) warnings.push(...openai.warnings);
   } catch (error) {
-    warnings.push(`brave_search_failed:${error instanceof Error ? error.message : 'unknown'}`);
+    warnings.push(`openai_web_search_optional_failed:${error instanceof Error ? error.message : 'unknown'}`);
+  }
+
+  try {
+    const brave = await braveWebResearch({
+      prompt: input.prompt,
+      queries: input.queries,
+      country,
+      searchLang,
+    });
+    if (brave?.ok) return { ...brave, warnings: unique([...warnings, ...brave.warnings]) };
+    if (brave) warnings.push(...brave.warnings);
+  } catch (error) {
+    warnings.push(`brave_search_optional_failed:${error instanceof Error ? error.message : 'unknown'}`);
   }
 
   return {
@@ -331,6 +600,9 @@ export async function runPublicResearch(input: {
     answer: '',
     sources: [],
     queries: input.queries,
-    warnings: unique([...warnings, 'PUBLIC_SEARCH_PROVIDER_NOT_CONFIGURED: set OPENAI_API_KEY or BRAVE_SEARCH_API_KEY']),
+    warnings: unique([
+      ...warnings,
+      'PUBLIC_RESEARCH_UNAVAILABLE: no-key GDELT retrieval and optional providers failed',
+    ]),
   };
 }
