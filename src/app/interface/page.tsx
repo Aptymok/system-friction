@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { redirect } from 'next/navigation';
 import UserInterfaceExperience from '@/components/interface/UserInterfaceExperience';
 import type { PhenotypeProfile } from '@/lib/user-interface/phenotype';
 import { createServerSupabaseClient } from '@/runtime/supabase/server';
@@ -6,13 +7,13 @@ import { createServerSupabaseClient } from '@/runtime/supabase/server';
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: 'SFI User Interface · MOP-H and longitudinal field observation',
-  description: 'Create a private MOP-H case, generate a phenotype profile and unlock governed longitudinal field observation.',
+  title: 'SFI User Interface · MOP-H and attractor calibration',
+  description: 'Create a private MOP-H case, calibrate its attractor for 72 hours and enter a longitudinal observatory.',
   alternates: { canonical: '/interface' },
 };
 
 type PageProps = {
-  searchParams?: Promise<{ payment?: string }>;
+  searchParams?: Promise<{ payment?: string; new?: string }>;
 };
 
 function isActiveEntitlement(status: string | null, validUntil: string | null) {
@@ -40,6 +41,8 @@ export default async function InterfacePage({ searchParams }: PageProps) {
 
   if (user) {
     const [
+      activeWindowQuery,
+      declaredAttractorQuery,
       entitlementQuery,
       caseCountQuery,
       latestCaseQuery,
@@ -49,6 +52,8 @@ export default async function InterfacePage({ searchParams }: PageProps) {
       latestInterventionQuery,
       nextReturnQuery,
     ] = await Promise.all([
+      supabase.from('field_participant_windows').select('id').eq('owner_id', user.id).eq('status', 'ACTIVE').order('started_at', { ascending: false }).limit(1).maybeSingle(),
+      supabase.from('sfi_user_attractors').select('id').eq('owner_id', user.id).eq('status', 'DECLARED').order('declared_at', { ascending: false }).limit(1).maybeSingle(),
       supabase.from('sfi_user_entitlements').select('tier,status,valid_until').eq('user_id', user.id).maybeSingle(),
       supabase.from('field_cases').select('id', { count: 'exact', head: true }).eq('owner_id', user.id).is('deleted_at', null),
       supabase.from('field_cases').select('id').eq('owner_id', user.id).is('deleted_at', null).order('created_at', { ascending: false }).limit(1).maybeSingle(),
@@ -58,6 +63,9 @@ export default async function InterfacePage({ searchParams }: PageProps) {
       supabase.from('field_interventions').select('started_at,created_at').eq('owner_id', user.id).order('created_at', { ascending: false }).limit(1).maybeSingle(),
       supabase.from('field_returns').select('expected_at').eq('owner_id', user.id).is('returned_at', null).order('expected_at', { ascending: true }).limit(1).maybeSingle(),
     ]);
+
+    if (activeWindowQuery.data) redirect('/field/participant');
+    if (declaredAttractorQuery.data && params?.new !== '1') redirect('/interface/observatory');
 
     const entitlementRow = entitlementQuery.data;
     entitlement = {
@@ -76,13 +84,6 @@ export default async function InterfacePage({ searchParams }: PageProps) {
         } as PhenotypeProfile)
       : null;
 
-    const mophOutput = latestMophQuery.data?.output && typeof latestMophQuery.data.output === 'object'
-      ? latestMophQuery.data.output as Record<string, unknown>
-      : null;
-    const outputPhenotype = mophOutput?.phenotype && typeof mophOutput.phenotype === 'object'
-      ? mophOutput.phenotype as PhenotypeProfile
-      : null;
-
     snapshot = {
       caseCount: caseCountQuery.count ?? 0,
       latestCaseId: latestMophQuery.data?.case_id ?? latestCaseQuery.data?.id ?? null,
@@ -90,7 +91,7 @@ export default async function InterfacePage({ searchParams }: PageProps) {
       latestMihmAt: latestMihmQuery.data?.created_at ?? null,
       latestInterventionAt: latestInterventionQuery.data?.started_at ?? latestInterventionQuery.data?.created_at ?? null,
       nextReturnAt: nextReturnQuery.data?.expected_at ?? null,
-      latestPhenotype: storedPhenotype ?? outputPhenotype,
+      latestPhenotype: storedPhenotype,
     };
   }
 
