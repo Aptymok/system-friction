@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { closeParticipantWindow, getParticipantWindowState } from '@/lib/field/participantCapture';
 import { AccessDeniedError, requireAuthenticatedUser } from '@/lib/system/access/server';
+import { ensurePerturbationGraphNode } from '@/lib/user-interface/graphLearning';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -20,7 +21,7 @@ function failure(error: unknown) {
     return NextResponse.json({ ok: false, error: error.code, details: error.message }, { status: error.status });
   }
   const details = error instanceof Error ? error.message : String(error);
-  const status = details.includes('_REQUIRED') || details.includes('_INVALID') || details.includes('_NOT_ACTIVE')
+  const status = details.includes('_REQUIRED') || details.includes('_INVALID') || details.includes('_NOT_ACTIVE') || details.includes('_NOT_COMPLETE')
     ? 400
     : details.includes('NOT_FOUND')
       ? 404
@@ -52,7 +53,25 @@ export async function PATCH(request: Request, ctx: RouteContext) {
       whatWasNotMine: text(body.whatWasNotMine),
       neededToday: text(body.neededToday),
     });
-    return NextResponse.json({ ok: true, window: result });
+
+    const perturbation = result.attractor?.perturbation;
+    if (result.attractor && perturbation?.interventionId && perturbation.instruction) {
+      await ensurePerturbationGraphNode({
+        ownerId: user.id,
+        caseId: result.attractor.caseId,
+        attractorId: result.attractor.attractorId,
+        interventionId: perturbation.interventionId,
+        instruction: perturbation.instruction,
+        confidence: result.attractor.descriptor.confidence,
+      });
+    }
+
+    return NextResponse.json({
+      ok: true,
+      window: result.window,
+      attractor: result.attractor,
+      nextPath: result.attractor ? '/interface/observatory' : '/interface',
+    });
   } catch (error) {
     return failure(error);
   }

@@ -1,6 +1,18 @@
 import Link from 'next/link'
 
-export default function VerifyPage() {
+type VerifyPageProps = {
+  searchParams?: Promise<{ next?: string }>
+}
+
+function safeNextPath(value?: string) {
+  if (!value || !value.startsWith('/') || value.startsWith('//')) return '/field'
+  return value
+}
+
+export default async function VerifyPage({ searchParams }: VerifyPageProps) {
+  const params = await searchParams
+  const next = safeNextPath(params?.next)
+
   return (
     <section className="terminal-panel mx-auto max-w-md p-8 text-center">
       <p className="font-mono text-[10px] uppercase tracking-[0.35em] text-gold">Verificacion email</p>
@@ -8,7 +20,7 @@ export default function VerifyPage() {
       <p className="mt-4 font-serif text-base italic leading-relaxed text-zinc-500">
         Revisa el correo. La sesion queda activa cuando el enlace confirma identidad.
       </p>
-      <Link href="/login" className="mt-7 inline-block bg-gold px-5 py-3 font-mono text-[10px] font-bold uppercase tracking-[0.24em] text-void">
+      <Link href={`/login?next=${encodeURIComponent(next)}`} className="mt-7 inline-block bg-gold px-5 py-3 font-mono text-[10px] font-bold uppercase tracking-[0.24em] text-void">
         Volver a login
       </Link>
     </section>

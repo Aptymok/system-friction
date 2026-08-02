@@ -1,5 +1,6 @@
 import 'server-only';
 
+import { finalizeAttractorFromWindow } from '@/lib/user-interface/attractor';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 
 export type ParticipantWindowStatus = 'ACTIVE' | 'CLOSED';
@@ -7,10 +8,20 @@ export type ParticipantWindowStatus = 'ACTIVE' | 'CLOSED';
 export type CreateParticipantWindowInput = {
   watchedThoughts: string[];
   caseId?: string | null;
+  attractorId?: string | null;
+  calibrationKind?: string | null;
 };
 
 export type AddParticipantMarkInput = {
   dayNumber: number;
+  triggerText: string;
+  activity: string;
+  locationContext: string;
+  socialContext?: string | null;
+  thoughtAfter: string;
+  feelingAfter: string;
+  actionAfter?: string | null;
+  intensity: number;
   note?: string | null;
   observedAt?: string | null;
 };
@@ -35,10 +46,10 @@ function record(value: unknown): Row {
   return value && typeof value === 'object' && !Array.isArray(value) ? (value as Row) : {};
 }
 
-function requireText(value: string | undefined | null, field: string) {
+function requireText(value: string | undefined | null, field: string, max = 4000) {
   const trimmed = typeof value === 'string' ? value.trim() : '';
   if (!trimmed) throw new Error(`${field}_REQUIRED`);
-  return trimmed.slice(0, 4000);
+  return trimmed.slice(0, max);
 }
 
 async function loadOwnedWindow(client: ServiceClient, ownerId: string, windowId: string) {
@@ -63,6 +74,17 @@ export async function createParticipantWindow(ownerId: string, input: CreatePart
     : [];
   if (watchedThoughts.length === 0) throw new Error('WATCHED_THOUGHTS_REQUIRED');
 
+  const { data: activeWindow, error: activeError } = await client
+    .from(TABLE_WINDOWS)
+    .select('*')
+    .eq('owner_id', ownerId)
+    .eq('status', 'ACTIVE')
+    .order('started_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (activeError) throw new Error(`PARTICIPANT_WINDOW_READ_FAILED: ${activeError.message}`);
+  if (activeWindow) return record(activeWindow);
+
   const startedAt = new Date();
   const expectedCloseAt = new Date(startedAt.getTime() + WINDOW_HOURS * 60 * 60 * 1000);
 
@@ -71,6 +93,8 @@ export async function createParticipantWindow(ownerId: string, input: CreatePart
     .insert({
       owner_id: ownerId,
       case_id: input.caseId || null,
+      attractor_id: input.attractorId || null,
+      calibration_kind: input.calibrationKind || 'INITIAL_ATTRACTOR',
       watched_thoughts: watchedThoughts,
       status: 'ACTIVE',
       started_at: startedAt.toISOString(),
@@ -131,6 +155,14 @@ export async function addParticipantMark(ownerId: string, windowId: string, inpu
 
   const momentAt = input.observedAt ? new Date(input.observedAt) : new Date();
   if (Number.isNaN(momentAt.getTime())) throw new Error('OBSERVED_AT_INVALID');
+  const intensity = Math.round(Number(input.intensity));
+  if (intensity < 1 || intensity > 5) throw new Error('INTENSITY_INVALID');
+
+  const triggerText = requireText(input.triggerText, 'TRIGGER_TEXT', 1200);
+  const activity = requireText(input.activity, 'ACTIVITY', 800);
+  const locationContext = requireText(input.locationContext, 'LOCATION_CONTEXT', 500);
+  const thoughtAfter = requireText(input.thoughtAfter, 'THOUGHT_AFTER', 1200);
+  const feelingAfter = requireText(input.feelingAfter, 'FEELING_AFTER', 800);
 
   const { data, error } = await client
     .from(TABLE_MARKS)
@@ -139,7 +171,16 @@ export async function addParticipantMark(ownerId: string, windowId: string, inpu
       owner_id: ownerId,
       day_number: dayNumber,
       moment_at: momentAt.toISOString(),
+      trigger_text: triggerText,
+      activity,
+      location_context: locationContext,
+      social_context: typeof input.socialContext === 'string' ? input.socialContext.trim().slice(0, 500) || null : null,
+      thought_after: thoughtAfter,
+      feeling_after: feelingAfter,
+      action_after: typeof input.actionAfter === 'string' ? input.actionAfter.trim().slice(0, 1000) || null : null,
+      intensity,
       note: typeof input.note === 'string' ? input.note.trim().slice(0, 2000) || null : null,
+      payload: { captureVersion: 'SFI-CALIBRATION-MARK-V1' },
     })
     .select('*')
     .single();
@@ -165,6 +206,14 @@ export async function closeParticipantWindow(
   const windowRow = await loadOwnedWindow(client, ownerId, windowId);
   if (windowRow.status !== 'ACTIVE') throw new Error('PARTICIPANT_WINDOW_NOT_ACTIVE');
 
+  const expectedCloseAt = typeof windowRow.expected_close_at === 'string'
+    ? new Date(windowRow.expected_close_at).getTime()
+    : Number.NaN;
+  const allowEarly = process.env.SFI_ALLOW_EARLY_CALIBRATION_CLOSE === 'true';
+  if (!allowEarly && (!Number.isFinite(expectedCloseAt) || Date.now() < expectedCloseAt)) {
+    throw new Error('CALIBRATION_WINDOW_NOT_COMPLETE');
+  }
+
   const payload = {
     status: 'CLOSED' as const,
     closed_at: new Date().toISOString(),
@@ -185,5 +234,10 @@ export async function closeParticipantWindow(
     .select('*')
     .single();
   if (error) throw new Error(`PARTICIPANT_WINDOW_CLOSE_FAILED: ${error.message}`);
-  return record(data);
+
+  const attractor = windowRow.attractor_id
+    ? await finalizeAttractorFromWindow(ownerId, windowId)
+    : null;
+
+  return { window: record(data), attractor };
 }

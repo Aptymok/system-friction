@@ -5,16 +5,19 @@ export function AuthTerminal({
   action,
   mode,
   error,
-  state
+  state,
+  nextPath
 }: {
   title: string
   action: (formData: FormData) => Promise<void>
   mode: 'login' | 'register' | 'forgot' | 'reset'
   error?: string
   state?: string
+  nextPath?: string
 }) {
   const needsPassword = mode !== 'forgot'
   const showEmail = mode !== 'reset'
+  const nextQuery = nextPath ? `?next=${encodeURIComponent(nextPath)}` : ''
 
   return (
     <section className="terminal-panel relative mx-auto max-w-md overflow-hidden p-6 md:p-8">
@@ -27,6 +30,7 @@ export function AuthTerminal({
         </p>
 
         <form action={action} className="mt-7 space-y-4">
+          {nextPath ? <input type="hidden" name="next" value={nextPath} /> : null}
           {showEmail && <Input name="email" type="email" label="Correo" />}
           {needsPassword && <Input name="password" type="password" label={mode === 'reset' ? 'Nueva clave' : 'Clave'} />}
           <button className="w-full bg-gold px-5 py-3 font-mono text-[10px] font-bold uppercase tracking-[0.24em] text-void transition hover:bg-paper">
@@ -38,8 +42,8 @@ export function AuthTerminal({
         {state && <p className="mt-4 border-l border-gold bg-gold/10 p-3 font-mono text-[10px] uppercase tracking-[0.14em] text-gold">{state}</p>}
 
         <div className="mt-6 flex flex-wrap gap-4 font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-600">
-          {mode !== 'login' && <Link href="/login">Login</Link>}
-          {mode !== 'register' && <Link href="/signup">Registro</Link>}
+          {mode !== 'login' && <Link href={`/login${nextQuery}`}>Login</Link>}
+          {mode !== 'register' && <Link href={`/signup${nextQuery}`}>Registro</Link>}
           {mode !== 'forgot' && <Link href="/forgot">Reset</Link>}
         </div>
       </div>

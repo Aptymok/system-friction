@@ -43,6 +43,8 @@ export async function POST(request: Request) {
     const result = await createParticipantWindow(user.id, {
       watchedThoughts: stringArray(body.watchedThoughts),
       caseId: typeof body.caseId === 'string' ? body.caseId : null,
+      attractorId: typeof body.attractorId === 'string' ? body.attractorId : null,
+      calibrationKind: typeof body.calibrationKind === 'string' ? body.calibrationKind : null,
     });
     return NextResponse.json({ ok: true, window: result }, { status: 201 });
   } catch (error) {

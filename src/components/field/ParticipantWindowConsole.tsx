@@ -2,9 +2,12 @@
 
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
+import { ArrowRight, Check, Clock3, MapPin, Orbit, Plus, UserRound } from 'lucide-react';
 
 type ParticipantWindow = {
   id: string;
+  case_id: string | null;
+  attractor_id: string | null;
   status: 'ACTIVE' | 'CLOSED';
   watched_thoughts: string[];
   started_at: string;
@@ -17,6 +20,14 @@ type ParticipantMark = {
   id: string;
   day_number: number;
   moment_at: string;
+  trigger_text: string | null;
+  activity: string | null;
+  location_context: string | null;
+  social_context: string | null;
+  thought_after: string | null;
+  feeling_after: string | null;
+  action_after: string | null;
+  intensity: number | null;
   note: string | null;
 };
 
@@ -25,6 +36,18 @@ type WindowState = {
   marks: ParticipantMark[];
   canClose: boolean;
   hoursRemaining: number | null;
+};
+
+type MarkForm = {
+  triggerText: string;
+  activity: string;
+  locationContext: string;
+  socialContext: string;
+  thoughtAfter: string;
+  feelingAfter: string;
+  actionAfter: string;
+  intensity: number;
+  note: string;
 };
 
 type ReflectionForm = {
@@ -36,6 +59,18 @@ type ReflectionForm = {
   neededToday: string;
 };
 
+const EMPTY_MARK: MarkForm = {
+  triggerText: '',
+  activity: '',
+  locationContext: '',
+  socialContext: '',
+  thoughtAfter: '',
+  feelingAfter: '',
+  actionAfter: '',
+  intensity: 3,
+  note: '',
+};
+
 const EMPTY_REFLECTION: ReflectionForm = {
   whatChanged: '',
   whatNoticed: '',
@@ -45,27 +80,23 @@ const EMPTY_REFLECTION: ReflectionForm = {
   neededToday: '',
 };
 
-const inputClass =
-  'border border-[#312b1d] bg-[#050504] px-4 py-3 text-sm text-[#eee4cb] outline-none placeholder:text-[#5d574a] focus:border-[#c9aa54]';
+const inputClass = 'w-full border border-[#312b1d] bg-[#050504] px-4 py-3 text-sm text-[#eee4cb] outline-none placeholder:text-[#5d574a] focus:border-[#c9aa54]';
 const labelClass = 'font-mono text-[9px] uppercase tracking-[0.18em] text-[#a49572]';
-const buttonClass =
-  'border border-[#c8a95166] px-4 py-2 font-mono text-[10px] uppercase tracking-[0.16em] text-[#c8a951] disabled:cursor-not-allowed disabled:opacity-40';
+const buttonClass = 'inline-flex items-center justify-center gap-2 border border-[#c8a95166] px-4 py-3 font-mono text-[10px] uppercase tracking-[0.16em] text-[#c8a951] disabled:cursor-not-allowed disabled:opacity-35';
 
 function dayFromStart(startedAt: string) {
-  const elapsedHours = (Date.now() - new Date(startedAt).getTime()) / (60 * 60 * 1000);
+  const elapsedHours = (Date.now() - new Date(startedAt).getTime()) / 3_600_000;
   if (elapsedHours < 24) return 1;
   if (elapsedHours < 48) return 2;
   return 3;
 }
 
-function ReflectionField({
-  label,
-  value,
-  onChange,
-}: {
+function TextArea({ label, value, onChange, placeholder, rows = 2 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
+  placeholder?: string;
+  rows?: number;
 }) {
   return (
     <label className="grid gap-2">
@@ -73,7 +104,8 @@ function ReflectionField({
       <textarea
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        rows={2}
+        placeholder={placeholder}
+        rows={rows}
         className={`${inputClass} resize-y`}
       />
     </label>
@@ -85,107 +117,81 @@ export function ParticipantWindowConsole({ authenticated }: { authenticated: boo
   const [windows, setWindows] = useState<ParticipantWindow[]>([]);
   const [activeState, setActiveState] = useState<WindowState | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [thoughts, setThoughts] = useState(['', '', '']);
-  const [note, setNote] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [mark, setMark] = useState<MarkForm>(EMPTY_MARK);
   const [reflection, setReflection] = useState<ReflectionForm>(EMPTY_REFLECTION);
-
-  useEffect(() => {
-    if (!authenticated) return;
-    let cancelled = false;
-    (async () => {
-      setLoading(true);
-      try {
-        const response = await fetch('/api/field/participant/windows');
-        const body = await response.json();
-        if (cancelled) return;
-        if (body.ok) {
-          setWindows(body.windows);
-          const active = body.windows.find((item: ParticipantWindow) => item.status === 'ACTIVE');
-          if (active) {
-            const stateResponse = await fetch(`/api/field/participant/windows/${active.id}`);
-            const stateBody = await stateResponse.json();
-            if (!cancelled && stateBody.ok) setActiveState(stateBody);
-          }
-        } else {
-          setError(body.details || body.error);
-        }
-      } catch {
-        if (!cancelled) setError('NETWORK_ERROR');
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [authenticated]);
 
   async function refreshActive(windowId: string) {
     const response = await fetch(`/api/field/participant/windows/${windowId}`);
     const body = await response.json();
-    if (body.ok) setActiveState(body);
+    if (!response.ok || !body.ok) throw new Error(body.details || body.error || 'WINDOW_READ_FAILED');
+    setActiveState(body as WindowState);
   }
 
-  async function startWindow() {
-    const watchedThoughts = thoughts.map((item) => item.trim()).filter(Boolean);
-    if (watchedThoughts.length === 0) {
-      setError('WATCHED_THOUGHTS_REQUIRED');
-      return;
-    }
-    setSubmitting(true);
-    setError(null);
-    try {
-      const response = await fetch('/api/field/participant/windows', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ watchedThoughts }),
-      });
-      const body = await response.json();
-      if (!body.ok) {
-        setError(body.details || body.error);
-        return;
+  useEffect(() => {
+    if (!authenticated) return;
+    let cancelled = false;
+    void (async () => {
+      setLoading(true);
+      try {
+        const response = await fetch('/api/field/participant/windows');
+        const body = await response.json();
+        if (!response.ok || !body.ok) throw new Error(body.details || body.error || 'WINDOW_LIST_FAILED');
+        if (cancelled) return;
+        const items = body.windows as ParticipantWindow[];
+        setWindows(items);
+        const active = items.find((item) => item.status === 'ACTIVE');
+        if (active) await refreshActive(active.id);
+      } catch (nextError) {
+        if (!cancelled) setError(nextError instanceof Error ? nextError.message : 'NETWORK_ERROR');
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-      setThoughts(['', '', '']);
-      setWindows((current) => [body.window, ...current]);
-      await refreshActive(body.window.id);
-    } finally {
-      setSubmitting(false);
-    }
-  }
+    })();
+    return () => { cancelled = true; };
+  }, [authenticated]);
+
+  const remaining = useMemo(() => {
+    if (!activeState || activeState.hoursRemaining === null) return null;
+    const totalMinutes = Math.max(0, Math.ceil(activeState.hoursRemaining * 60));
+    return {
+      hours: Math.floor(totalMinutes / 60),
+      minutes: totalMinutes % 60,
+      progress: Math.max(0, Math.min(100, ((72 - activeState.hoursRemaining) / 72) * 100)),
+    };
+  }, [activeState]);
+
+  const markComplete = mark.triggerText.trim()
+    && mark.activity.trim()
+    && mark.locationContext.trim()
+    && mark.thoughtAfter.trim()
+    && mark.feelingAfter.trim();
 
   async function addMark() {
-    if (!activeState) return;
+    if (!activeState || !markComplete) return;
     setSubmitting(true);
     setError(null);
     try {
       const response = await fetch(`/api/field/participant/windows/${activeState.window.id}/marks`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          dayNumber: dayFromStart(activeState.window.started_at),
-          note: note.trim() || null,
-        }),
+        body: JSON.stringify({ ...mark, dayNumber: dayFromStart(activeState.window.started_at) }),
       });
       const body = await response.json();
-      if (!body.ok) {
-        setError(body.details || body.error);
-        return;
-      }
-      setNote('');
+      if (!response.ok || !body.ok) throw new Error(body.details || body.error || 'MARK_CREATE_FAILED');
+      setMark(EMPTY_MARK);
       await refreshActive(activeState.window.id);
+    } catch (nextError) {
+      setError(nextError instanceof Error ? nextError.message : 'MARK_CREATE_FAILED');
     } finally {
       setSubmitting(false);
     }
   }
 
+  const reflectionComplete = Object.values(reflection).every((value) => value.trim().length > 0);
+
   async function closeWindow() {
-    if (!activeState) return;
-    const reflectionValues = Object.values(reflection) as string[];
-    if (reflectionValues.some((value) => !value.trim())) {
-      setError('REFLECTION_INCOMPLETE');
-      return;
-    }
+    if (!activeState || !activeState.canClose || !reflectionComplete) return;
     setSubmitting(true);
     setError(null);
     try {
@@ -195,202 +201,148 @@ export function ParticipantWindowConsole({ authenticated }: { authenticated: boo
         body: JSON.stringify(reflection),
       });
       const body = await response.json();
-      if (!body.ok) {
-        setError(body.details || body.error);
-        return;
-      }
-      setWindows((current) => current.map((item) => (item.id === body.window.id ? body.window : item)));
-      setActiveState(null);
-      setReflection(EMPTY_REFLECTION);
+      if (!response.ok || !body.ok) throw new Error(body.details || body.error || 'WINDOW_CLOSE_FAILED');
+      window.location.assign(body.nextPath || '/interface/observatory');
+    } catch (nextError) {
+      setError(nextError instanceof Error ? nextError.message : 'WINDOW_CLOSE_FAILED');
     } finally {
       setSubmitting(false);
     }
   }
 
-  const hoursRemainingLabel = useMemo(() => {
-    if (activeState?.hoursRemaining === null || activeState?.hoursRemaining === undefined) return null;
-    return `${Math.floor(activeState.hoursRemaining)}h remaining in window`;
-  }, [activeState]);
-
   return (
-    <main className="min-h-screen bg-[#060605] px-6 py-10 text-[#d8d2c2]">
-      <div className="mx-auto max-w-3xl space-y-8">
-        <header className="border border-[#2f2a1e] bg-[#0b0b09] p-6">
-          <p className="font-mono text-[10px] uppercase tracking-[0.28em] text-[#c8a951]">Participant Field</p>
-          <h1 className="mt-4 text-4xl font-semibold leading-tight text-[#f5eedc]">
-            72-hour marks without technical interpretation.
-          </h1>
-          <p className="mt-3 text-sm leading-6 text-[#9f9788]">
-            Record repeated thoughts, events or marks during the 72-hour window. Reflect on what changed, what was
-            noticed, what was avoided and what was yours. No phenotype interpretation, diagnosis or operator
-            inference happens by default. Technical interpretation remains operator/ROOT governed.
-          </p>
-          <Link
-            href="/library/SFI-WB-002_Participant_Workbook.html"
-            className="mt-5 inline-block border border-[#c8a95166] px-4 py-2 font-mono text-[10px] uppercase tracking-[0.16em] text-[#c8a951]"
-          >
-            Open WB-002 (paper version)
-          </Link>
+    <main className="min-h-screen bg-[#050504] px-5 py-8 text-[#d8d2c2] md:px-10">
+      <div className="mx-auto max-w-6xl space-y-6">
+        <header className="border border-[#302b20] bg-[#0a0a08] p-6 md:p-8">
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+            <div className="max-w-3xl">
+              <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-[#c8a951]">SFI / calibración inicial</p>
+              <h1 className="mt-4 text-3xl font-semibold leading-tight text-[#f5eedc] md:text-5xl">Observa durante 72 horas. No corrijas todavía.</h1>
+              <p className="mt-4 text-sm leading-7 text-[#9f9788]">
+                Cada vez que aparezca el pensamiento, impulso o tensión central, registra una marca. La marca no interpreta: fija el contexto necesario para declarar después la dirección real del atractor.
+              </p>
+            </div>
+            <Link href="/interface" className={buttonClass}>Volver a interfaz</Link>
+          </div>
         </header>
 
-        {!authenticated && (
-          <section className="border border-[#2f2a1e] bg-[#0b0b09] p-5 text-sm leading-6 text-[#9f9788]">
-            <p>Digital capture requires an account so marks stay private and yours.</p>
-            <Link href="/login?next=%2Ffield%2Fparticipant" className={`mt-4 inline-block ${buttonClass}`}>
-              Login to start a window
-            </Link>
+        {!authenticated ? (
+          <section className="border border-[#302b20] bg-[#0a0a08] p-6 text-sm leading-7 text-[#9f9788]">
+            Esta ventana es privada y requiere cuenta.
+            <Link href="/login?next=%2Ffield%2Fparticipant" className={`mt-4 ${buttonClass}`}>Iniciar sesión <ArrowRight className="h-4 w-4" /></Link>
           </section>
-        )}
+        ) : null}
 
-        {authenticated && loading && (
-          <section className="border border-[#2f2a1e] bg-[#0b0b09] p-5 text-sm text-[#9f9788]">Loading…</section>
-        )}
+        {authenticated && loading ? <section className="border border-[#302b20] bg-[#0a0a08] p-6 text-sm text-[#9f9788]">Cargando calibración…</section> : null}
 
-        {authenticated && !loading && error && (
-          <section className="border border-[#5a2a1e] bg-[#0b0b09] p-4 font-mono text-[10px] uppercase tracking-[0.16em] text-[#d98a6a]">
-            {error}
-          </section>
-        )}
+        {error ? <section className="border border-[#6b352a] bg-[#160d0a] p-4 font-mono text-[10px] uppercase tracking-[0.14em] text-[#d89685]">{error}</section> : null}
 
-        {authenticated && !loading && !activeState && (
-          <section className="border border-[#2f2a1e] bg-[#0b0b09] p-5">
-            <p className={labelClass}>Start a 72-hour window</p>
-            <p className="mt-3 text-sm leading-6 text-[#9f9788]">
-              Name up to three repeated thoughts you want to mark when they appear. Do not try to force a decision.
-            </p>
-            <div className="mt-4 grid gap-3">
-              {thoughts.map((value, index) => (
-                <input
-                  key={index}
-                  value={value}
-                  onChange={(event) =>
-                    setThoughts((current) =>
-                      current.map((item, itemIndex) => (itemIndex === index ? event.target.value : item)),
-                    )
-                  }
-                  placeholder={`Thought ${index + 1}`}
-                  className={inputClass}
-                />
-              ))}
+        {authenticated && !loading && !activeState ? (
+          <section className="border border-[#302b20] bg-[#0a0a08] p-8 text-center">
+            <Orbit className="mx-auto h-8 w-8 text-[#c8a951]" />
+            <h2 className="mt-4 text-2xl text-[#f5eedc]">No hay una calibración activa.</h2>
+            <p className="mx-auto mt-3 max-w-xl text-sm leading-7 text-[#918979]">La primera ventana se abre automáticamente al concluir el Mini MOP-H.</p>
+            <div className="mt-6 flex justify-center gap-3">
+              <Link href="/interface" className={buttonClass}>Abrir Mini MOP-H</Link>
+              {windows.some((item) => item.status === 'CLOSED') ? <Link href="/interface/observatory" className={buttonClass}>Mi observatorio</Link> : null}
             </div>
-            <button type="button" onClick={startWindow} disabled={submitting} className={`mt-5 ${buttonClass}`}>
-              {submitting ? 'Starting…' : 'Start window'}
-            </button>
           </section>
-        )}
+        ) : null}
 
-        {authenticated && !loading && activeState && activeState.window.status === 'ACTIVE' && (
-          <section className="space-y-5 border border-[#2f2a1e] bg-[#0b0b09] p-5">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <p className={labelClass}>Active window</p>
-                <p className="mt-2 text-2xl font-semibold text-[#f5eedc]">{activeState.window.mark_count} marks</p>
+        {activeState ? (
+          <>
+            <section className="border border-[#302b20] bg-[#0a0a08] p-5 md:p-7">
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div>
+                  <div className={labelClass}>Ventana activa</div>
+                  <div className="mt-2 text-3xl text-[#f5eedc]">{activeState.window.mark_count} marcas</div>
+                </div>
+                <div className="flex items-center gap-2 border border-[#493d22] bg-[#100e08] px-4 py-3 font-mono text-[10px] uppercase tracking-[0.16em] text-[#c8a951]">
+                  <Clock3 className="h-4 w-4" />
+                  {remaining ? `${remaining.hours}h ${remaining.minutes}m restantes` : 'Tiempo no disponible'}
+                </div>
               </div>
-              {hoursRemainingLabel && (
-                <span className="border border-[#2f2a1e] px-3 py-1 font-mono text-[10px] uppercase tracking-[0.14em] text-[#8f8878]">
-                  {hoursRemainingLabel}
-                </span>
-              )}
-            </div>
-
-            <ul className="grid gap-2 font-mono text-[11px] uppercase tracking-[0.1em] text-[#c8a951]">
-              {activeState.window.watched_thoughts.map((thought, index) => (
-                <li key={index} className="border border-[#2f2a1e] px-3 py-2">
-                  {thought}
-                </li>
-              ))}
-            </ul>
-
-            <div className="grid gap-3">
-              <label className={labelClass}>Optional note (what happened)</label>
-              <textarea
-                value={note}
-                onChange={(event) => setNote(event.target.value)}
-                rows={2}
-                className={`${inputClass} resize-y`}
-                placeholder="Optional. Keep it low-friction."
-              />
-              <button type="button" onClick={addMark} disabled={submitting} className={buttonClass}>
-                {submitting ? 'Marking…' : `Mark now — day ${dayFromStart(activeState.window.started_at)}`}
-              </button>
-            </div>
-
-            {activeState.marks.length > 0 && (
-              <div className="border-t border-[#2f2a1e] pt-4">
-                <p className={labelClass}>Marks so far</p>
-                <ul className="mt-3 space-y-2 text-sm leading-6 text-[#9f9788]">
-                  {activeState.marks
-                    .slice()
-                    .reverse()
-                    .map((mark) => (
-                      <li key={mark.id} className="border border-[#241f16] px-3 py-2">
-                        <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-[#8f8878]">
-                          Day {mark.day_number} · {new Date(mark.moment_at).toLocaleString()}
-                        </span>
-                        {mark.note && <p className="mt-1">{mark.note}</p>}
-                      </li>
-                    ))}
-                </ul>
+              <div className="mt-5 h-1 overflow-hidden bg-[#211d14]">
+                <div className="h-full bg-[#c8a951] transition-all" style={{ width: `${remaining?.progress ?? 0}%` }} />
               </div>
-            )}
-
-            <div className="border-t border-[#2f2a1e] pt-5">
-              <p className={labelClass}>
-                Close of 72 hours{activeState.canClose ? '' : ' (early close — window has not elapsed yet)'}
-              </p>
-              <div className="mt-3 grid gap-3">
-                <ReflectionField
-                  label="What changed?"
-                  value={reflection.whatChanged}
-                  onChange={(value) => setReflection((current) => ({ ...current, whatChanged: value }))}
-                />
-                <ReflectionField
-                  label="What did I notice?"
-                  value={reflection.whatNoticed}
-                  onChange={(value) => setReflection((current) => ({ ...current, whatNoticed: value }))}
-                />
-                <ReflectionField
-                  label="What did I not want to see?"
-                  value={reflection.whatAvoided}
-                  onChange={(value) => setReflection((current) => ({ ...current, whatAvoided: value }))}
-                />
-                <ReflectionField
-                  label="What was mine?"
-                  value={reflection.whatWasMine}
-                  onChange={(value) => setReflection((current) => ({ ...current, whatWasMine: value }))}
-                />
-                <ReflectionField
-                  label="What was not mine?"
-                  value={reflection.whatWasNotMine}
-                  onChange={(value) => setReflection((current) => ({ ...current, whatWasNotMine: value }))}
-                />
-                <ReflectionField
-                  label="What do I need today?"
-                  value={reflection.neededToday}
-                  onChange={(value) => setReflection((current) => ({ ...current, neededToday: value }))}
-                />
-              </div>
-              <button type="button" onClick={closeWindow} disabled={submitting} className={`mt-4 ${buttonClass}`}>
-                {submitting ? 'Closing…' : 'Close window'}
-              </button>
-            </div>
-          </section>
-        )}
-
-        {authenticated && !loading && !activeState && windows.some((item) => item.status === 'CLOSED') && (
-          <section className="border border-[#2f2a1e] bg-[#0b0b09] p-5">
-            <p className={labelClass}>Previous windows</p>
-            <ul className="mt-3 space-y-2 text-sm leading-6 text-[#9f9788]">
-              {windows
-                .filter((item) => item.status === 'CLOSED')
-                .map((item) => (
-                  <li key={item.id} className="border border-[#241f16] px-3 py-2">
-                    {new Date(item.started_at).toLocaleDateString()} — {item.mark_count} marks
-                  </li>
+              <div className="mt-5 grid gap-2 md:grid-cols-3">
+                {activeState.window.watched_thoughts.map((prompt) => (
+                  <div key={prompt} className="border border-[#282319] bg-[#070706] p-3 text-xs leading-5 text-[#9f9788]">{prompt}</div>
                 ))}
-            </ul>
-          </section>
-        )}
+              </div>
+            </section>
+
+            <section className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+              <div className="border border-[#302b20] bg-[#0a0a08] p-5 md:p-7">
+                <div className="flex items-center gap-3">
+                  <Plus className="h-5 w-5 text-[#c8a951]" />
+                  <div>
+                    <div className={labelClass}>Nueva marca</div>
+                    <h2 className="mt-2 text-2xl text-[#f5eedc]">¿Qué ocurrió alrededor del pensamiento?</h2>
+                  </div>
+                </div>
+                <div className="mt-6 grid gap-5 md:grid-cols-2">
+                  <TextArea label="Qué apareció" value={mark.triggerText} onChange={(value) => setMark((current) => ({ ...current, triggerText: value }))} placeholder="Pensamiento, impulso, recuerdo, evento o tensión." rows={3} />
+                  <TextArea label="Qué estabas haciendo" value={mark.activity} onChange={(value) => setMark((current) => ({ ...current, activity: value }))} placeholder="Actividad concreta en ese momento." rows={3} />
+                  <TextArea label="Dónde estabas" value={mark.locationContext} onChange={(value) => setMark((current) => ({ ...current, locationContext: value }))} placeholder="Lugar o entorno." />
+                  <TextArea label="Con quién / solo" value={mark.socialContext} onChange={(value) => setMark((current) => ({ ...current, socialContext: value }))} placeholder="Contexto social opcional." />
+                  <TextArea label="Qué pensaste después" value={mark.thoughtAfter} onChange={(value) => setMark((current) => ({ ...current, thoughtAfter: value }))} />
+                  <TextArea label="Qué sentiste después" value={mark.feelingAfter} onChange={(value) => setMark((current) => ({ ...current, feelingAfter: value }))} />
+                  <TextArea label="Qué hiciste después" value={mark.actionAfter} onChange={(value) => setMark((current) => ({ ...current, actionAfter: value }))} placeholder="Opcional, pero útil." />
+                  <TextArea label="Nota adicional" value={mark.note} onChange={(value) => setMark((current) => ({ ...current, note: value }))} placeholder="Dato que no encaje en los campos anteriores." />
+                </div>
+                <label className="mt-5 grid gap-2">
+                  <span className={labelClass}>Intensidad: {mark.intensity}/5</span>
+                  <input type="range" min={1} max={5} value={mark.intensity} onChange={(event) => setMark((current) => ({ ...current, intensity: Number(event.target.value) }))} />
+                </label>
+                <button type="button" onClick={() => void addMark()} disabled={submitting || !markComplete} className={`mt-6 bg-[#c8a951] text-[#050504] ${buttonClass}`}>
+                  {submitting ? 'Registrando…' : `Registrar marca · día ${dayFromStart(activeState.window.started_at)}`}
+                </button>
+              </div>
+
+              <aside className="border border-[#302b20] bg-[#0a0a08] p-5">
+                <div className={labelClass}>Marcas registradas</div>
+                <div className="mt-4 space-y-3">
+                  {activeState.marks.length ? activeState.marks.slice().reverse().map((item) => (
+                    <article key={item.id} className="border border-[#282319] bg-[#070706] p-3">
+                      <div className="flex items-center justify-between font-mono text-[9px] uppercase tracking-[0.12em] text-[#716a5e]">
+                        <span>Día {item.day_number}</span><span>{item.intensity ?? 0}/5</span>
+                      </div>
+                      <p className="mt-2 text-sm leading-6 text-[#d5cdbd]">{item.trigger_text || item.note}</p>
+                      <div className="mt-3 space-y-1 text-[11px] text-[#81796b]">
+                        <div className="flex gap-2"><MapPin className="mt-0.5 h-3 w-3" />{item.location_context}</div>
+                        {item.social_context ? <div className="flex gap-2"><UserRound className="mt-0.5 h-3 w-3" />{item.social_context}</div> : null}
+                      </div>
+                    </article>
+                  )) : <p className="text-sm leading-6 text-[#81796b]">Aún no existen marcas. Registra sólo cuando el patrón aparezca.</p>}
+                </div>
+              </aside>
+            </section>
+
+            <section className={`border p-5 md:p-7 ${activeState.canClose ? 'border-[#5e6d42] bg-[#0b1208]' : 'border-[#302b20] bg-[#0a0a08]'}`}>
+              <div className="flex items-center gap-3">
+                {activeState.canClose ? <Check className="h-5 w-5 text-[#9cb57d]" /> : <Clock3 className="h-5 w-5 text-[#766b50]" />}
+                <div>
+                  <div className={labelClass}>Cierre de calibración</div>
+                  <h2 className="mt-2 text-2xl text-[#f5eedc]">{activeState.canClose ? 'La ventana terminó. Declara qué observaste.' : 'El retorno se habilita al cumplir 72 horas.'}</h2>
+                </div>
+              </div>
+              {activeState.canClose ? (
+                <div className="mt-6 grid gap-4 md:grid-cols-2">
+                  <TextArea label="Qué piensas ahora" value={reflection.whatChanged} onChange={(value) => setReflection((current) => ({ ...current, whatChanged: value }))} />
+                  <TextArea label="Qué sentiste durante estos días" value={reflection.whatNoticed} onChange={(value) => setReflection((current) => ({ ...current, whatNoticed: value }))} />
+                  <TextArea label="Qué evitaste ver o hacer" value={reflection.whatAvoided} onChange={(value) => setReflection((current) => ({ ...current, whatAvoided: value }))} />
+                  <TextArea label="Qué parte fue tuya" value={reflection.whatWasMine} onChange={(value) => setReflection((current) => ({ ...current, whatWasMine: value }))} />
+                  <TextArea label="Qué parte no fue tuya" value={reflection.whatWasNotMine} onChange={(value) => setReflection((current) => ({ ...current, whatWasNotMine: value }))} />
+                  <TextArea label="Qué necesitas ahora" value={reflection.neededToday} onChange={(value) => setReflection((current) => ({ ...current, neededToday: value }))} />
+                </div>
+              ) : null}
+              <button type="button" onClick={() => void closeWindow()} disabled={submitting || !activeState.canClose || !reflectionComplete} className={`mt-6 ${buttonClass}`}>
+                Declarar atractor y abrir observatorio <ArrowRight className="h-4 w-4" />
+              </button>
+            </section>
+          </>
+        ) : null}
       </div>
     </main>
   );
