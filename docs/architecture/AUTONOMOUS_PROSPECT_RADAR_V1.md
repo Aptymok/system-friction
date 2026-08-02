@@ -8,7 +8,7 @@ Convert current public signals into a governed, evidence-backed commercial hypot
 
 ```text
 SFI capability catalog
-  -> public web search
+  -> no-key public RSS retrieval
   -> candidate discovery/ranking
   -> company pain investigation
   -> evidence + counterevidence
@@ -24,27 +24,42 @@ SFI capability catalog
 
 - ROOT page: `/root/prospect-radar`
 - API: `GET|POST /api/root/agentic/prospect-radar`
+- UI component: `src/components/root/prospect-radar/RootProspectRadar.tsx`
+- Retrieval/synthesis runtime: `src/lib/agents/noKeyProspectRadar.ts`
 - Persistence:
   - `prospect_research_runs`
   - `prospect_research_sources`
   - `prospect_opportunity_reports`
 
-## Search providers
+## Retrieval providers
 
-At least one server-side key is required:
+The operational route does not require a paid search key.
+
+Default public retrieval:
+
+- Bing News RSS.
+- Google News RSS.
+- Maximum three sequential queries per execution.
+- Fifteen-minute in-process cache.
+
+The route does not call GDELT, OpenAI Web Search or Brave Search.
+
+## Synthesis
+
+Ollama is optional and local:
 
 ```env
-OPENAI_API_KEY=...
-OPENAI_WEB_SEARCH_MODEL=gpt-5-mini
+OLLAMA_BASE_URL=http://127.0.0.1:11434
+OLLAMA_MODEL=qwen3.6:latest
 ```
 
-or:
+When Ollama is available, public RSS sources are passed to the local model for structured synthesis. When Ollama is not available, the runtime returns a conservative deterministic report using the retrieved sources. It does not block because a paid provider or API key is missing.
 
-```env
-BRAVE_SEARCH_API_KEY=...
-```
+Important deployment distinction:
 
-OpenAI Web Search is attempted first. Brave Search is the fallback. When neither provider is configured, the radar returns `PUBLIC_SEARCH_PROVIDER_NOT_CONFIGURED` and does not fall back to seed companies or fabricated evidence.
+- Local Next.js can reach Ollama on the same computer.
+- Vercel cannot reach `127.0.0.1` on the operator's computer.
+- On Vercel, deterministic synthesis remains available unless an externally reachable Ollama-compatible endpoint is configured.
 
 ## Input
 
@@ -60,6 +75,8 @@ OpenAI Web Search is attempted first. Brave Search is the fallback. When neither
 ## Evidence contract
 
 The agent should use at least three public sources when available, including official/regulatory and independent evidence where possible. Every source retains URL, publisher, retrieval time, optional publication date, source type and reliability.
+
+RSS titles, descriptions and linked articles are source claims. They are not automatically verified institutional facts. Original publisher pages must be reviewed before external contact.
 
 Claims are separated into:
 
