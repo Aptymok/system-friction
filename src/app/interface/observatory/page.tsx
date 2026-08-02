@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import UserAttractorObservatory from '@/components/interface/UserAttractorObservatory';
+import UserAttractorFieldExperience from '@/components/interface/UserAttractorFieldExperience';
 import { readPublicObservatoryState } from '@/lib/observatory/public/readPublicObservatoryState';
 import { createServerSupabaseClient } from '@/runtime/supabase/server';
 
@@ -69,6 +68,7 @@ export default async function UserObservatoryPage() {
   ]);
 
   if (!caseQuery.data) redirect('/interface');
+
   const entitlementRow = entitlementQuery.data;
   const entitlement = {
     active: isEntitlementActive(entitlementRow?.status ?? null, entitlementRow?.valid_until ?? null),
@@ -97,57 +97,47 @@ export default async function UserObservatoryPage() {
   }));
 
   return (
-    <>
-      <UserAttractorObservatory
-        userEmail={user.email ?? null}
-        entitlement={entitlement}
-        caseData={{
-          id: caseQuery.data.id,
-          title: caseQuery.data.title,
-          status: caseQuery.data.status,
-          createdAt: caseQuery.data.created_at,
-        }}
-        attractor={{
-          id: attractor.id,
-          code: attractor.code,
-          label: attractor.label,
-          summary: attractor.summary,
-          objective: attractor.objective,
-          direction: attractor.direction,
-          confidence: Number(attractor.confidence ?? 0),
-          perturbation: {
-            title: typeof perturbation.title === 'string' ? perturbation.title : undefined,
-            instruction: typeof perturbation.instruction === 'string' ? perturbation.instruction : undefined,
-            verificationWindow: typeof perturbation.verificationWindow === 'string' ? perturbation.verificationWindow : undefined,
-            reversible: perturbation.reversible === true,
-            interventionId: typeof perturbation.interventionId === 'string' ? perturbation.interventionId : null,
-          },
-        }}
-        graph={{ nodes, edges }}
-        evidence={(assessmentsQuery.data ?? []).map((item) => ({
-          id: item.id,
-          status: item.status,
-          reason: item.reason,
-          next_action: item.next_action,
-          confidence: Number(item.confidence ?? 0),
-          created_at: item.created_at,
-        }))}
-        world={{
-          regime: worldState?.wsv.regime ?? 'MISSING',
-          friction: worldState?.wsv.globalIndex ?? null,
-          tension: worldState?.wsv.tension ?? null,
-          confidence: worldState?.dailyReading.confidence ?? null,
-        }}
-        nextReturnAt={nextReturnQuery.data?.expected_at ?? null}
-      />
-      {!entitlement.active ? (
-        <Link
-          href="/api/interface/checkout"
-          className="fixed bottom-5 right-5 z-[100] border border-[#d5b45b] bg-[#d5b45b] px-5 py-4 font-mono text-[10px] uppercase tracking-[0.16em] text-[#050504] shadow-[0_18px_70px_rgba(0,0,0,0.6)]"
-        >
-          Desbloquear perturbación y evidencia
-        </Link>
-      ) : null}
-    </>
+    <UserAttractorFieldExperience
+      userEmail={user.email ?? null}
+      entitlement={entitlement}
+      caseData={{
+        id: caseQuery.data.id,
+        title: caseQuery.data.title,
+        status: caseQuery.data.status,
+        createdAt: caseQuery.data.created_at,
+      }}
+      attractor={{
+        id: attractor.id,
+        code: attractor.code,
+        label: attractor.label,
+        summary: attractor.summary,
+        objective: attractor.objective,
+        direction: attractor.direction,
+        confidence: Number(attractor.confidence ?? 0),
+        perturbation: {
+          title: typeof perturbation.title === 'string' ? perturbation.title : undefined,
+          instruction: typeof perturbation.instruction === 'string' ? perturbation.instruction : undefined,
+          verificationWindow: typeof perturbation.verificationWindow === 'string' ? perturbation.verificationWindow : undefined,
+          reversible: perturbation.reversible === true,
+          interventionId: typeof perturbation.interventionId === 'string' ? perturbation.interventionId : null,
+        },
+      }}
+      graph={{ nodes, edges }}
+      evidence={(assessmentsQuery.data ?? []).map((item) => ({
+        id: item.id,
+        status: item.status,
+        reason: item.reason,
+        next_action: item.next_action,
+        confidence: Number(item.confidence ?? 0),
+        created_at: item.created_at,
+      }))}
+      world={{
+        regime: worldState?.wsv.regime ?? 'MISSING',
+        friction: worldState?.wsv.globalIndex ?? null,
+        tension: worldState?.wsv.tension ?? null,
+        confidence: worldState?.dailyReading.confidence ?? null,
+      }}
+      nextReturnAt={nextReturnQuery.data?.expected_at ?? null}
+    />
   );
 }
