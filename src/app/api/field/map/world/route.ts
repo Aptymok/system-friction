@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/runtime/supabase/server';
+import { bootstrapWorldObservatory } from './bootstrap';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
 
 function isMissingWorldSchema(message: string) {
   const normalized = message.toLowerCase();
@@ -20,7 +22,7 @@ export async function GET() {
   if (!auth.user) return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 });
 
   const since = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
-  const observationsQuery = await supabase
+  let observationsQuery = await supabase
     .from('world_source_observations')
     .select('*')
     .gte('observed_at', since)
@@ -40,21 +42,28 @@ export async function GET() {
         sourceFamilies: [],
         setupRequired: {
           migration: 'supabase/migrations/20260802214000_world_observatory_learning.sql',
-          reason: 'The WORLD observatory schema has not been applied to Supabase yet.',
+          reason: 'Supabase/PostgREST still reports the WORLD schema as unavailable.',
         },
         limits: [
-          'The WORLD schema is pending; the observatory remains readable instead of failing.',
+          'The WORLD schema is pending in the active Supabase schema cache.',
           'No fallback observations, provider scores or simulated nodes are generated.',
-          'Apply the WORLD observatory migration before starting ingestion and calibration.',
+          "If the migration was just applied, run: NOTIFY pgrst, 'reload schema';",
         ],
       });
     }
 
-    return NextResponse.json({
-      ok: false,
-      error: 'world_observations_query_failed',
-      details: observationsQuery.error.message,
-    }, { status: 503 });
+    return NextResponse.json({ ok: false, error: 'world_observations_query_failed', details: observationsQuery.error.message }, { status: 503 });
+  }
+
+  let bootstrap: Awaited<ReturnType<typeof bootstrapWorldObservatory>> | null = null;
+  if ((observationsQuery.data ?? []).length === 0) {
+    bootstrap = await bootstrapWorldObservatory();
+    observationsQuery = await supabase
+      .from('world_source_observations')
+      .select('*')
+      .gte('observed_at', since)
+      .order('observed_at', { ascending: false })
+      .limit(500);
   }
 
   const [{ data: readings, error: readingsError }, { data: hypotheses, error: hypothesesError }, { data: outcomes, error: outcomesError }, { data: learning, error: learningError }] = await Promise.all([
@@ -64,7 +73,7 @@ export async function GET() {
     supabase.from('world_learning_events').select('*').order('created_at', { ascending: false }).limit(100),
   ]);
 
-  const secondaryError = readingsError ?? hypothesesError ?? outcomesError ?? learningError;
+  const secondaryError = observationsQuery.error ?? readingsError ?? hypothesesError ?? outcomesError ?? learningError;
   if (secondaryError) {
     if (isMissingWorldSchema(secondaryError.message)) {
       return NextResponse.json({
@@ -76,9 +85,10 @@ export async function GET() {
         outcomes: [],
         learning: [],
         sourceFamilies: [],
+        bootstrap,
         setupRequired: {
           migration: 'supabase/migrations/20260802214000_world_observatory_learning.sql',
-          reason: 'The WORLD observatory schema is only partially available.',
+          reason: 'The WORLD observatory schema is only partially available to PostgREST.',
         },
         limits: [
           'The WORLD schema is partial; no incomplete analytical state is presented as valid.',
@@ -87,11 +97,7 @@ export async function GET() {
       });
     }
 
-    return NextResponse.json({
-      ok: false,
-      error: 'world_observatory_query_failed',
-      details: secondaryError.message,
-    }, { status: 503 });
+    return NextResponse.json({ ok: false, error: 'world_observatory_query_failed', details: secondaryError.message, bootstrap }, { status: 503 });
   }
 
   const readingByObservation = new Map((readings ?? []).map((item) => [item.observation_id, item]));
@@ -120,6 +126,7 @@ export async function GET() {
     outcomes: outcomes ?? [],
     learning: learning ?? [],
     sourceFamilies: [...new Set(nodes.map((node) => node.sourceFamily))],
+    bootstrap,
     limits: [
       'External source scores are not imported.',
       'Every node is a real observation with publisher and time.',
