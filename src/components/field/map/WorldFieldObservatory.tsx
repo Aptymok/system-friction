@@ -115,7 +115,7 @@ export function WorldFieldObservatory() {
       </header>
 
       <section className="relative min-h-[72vh] overflow-hidden border-b border-[#26343b] bg-[#020609]">
-        <div className="absolute inset-0 bg-[url('/field/sfi-field-world-skin.webp')] bg-cover bg-center opacity-90" />
+        <div className="absolute inset-0 bg-[url('/field/sfi_map.png')] bg-cover bg-center opacity-90" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(195,154,77,.08),transparent_32%),linear-gradient(rgba(88,123,135,.07)_1px,transparent_1px),linear-gradient(90deg,rgba(88,123,135,.07)_1px,transparent_1px)] bg-[size:auto,5%_10%,5%_10%]" />
         <svg className="pointer-events-none absolute inset-0 z-[4] h-full w-full" viewBox="0 0 100 100" preserveAspectRatio="none">
           {located.slice(0, 120).map((node, index) => {
