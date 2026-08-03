@@ -7,8 +7,8 @@ import { createServerSupabaseClient } from '@/runtime/supabase/server';
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: 'SFI User Interface · MOP-H and attractor calibration',
-  description: 'Create a private MOP-H case, calibrate its attractor for 72 hours and enter a longitudinal observatory.',
+  title: 'SFI FIELD · Trayectoria guiada y observación privada',
+  description: 'Define un objetivo observable, organiza evidencia y construye una trayectoria mediante microejecuciones reversibles y retornos medidos.',
   alternates: { canonical: '/interface' },
 };
 
