@@ -3,6 +3,7 @@
 import type { RootSovereignState } from '@/lib/root/sovereign/rootSovereignState';
 import type { RootSelection, RootViewId } from '../sovereignTypes';
 import { RootCartographyView } from './RootCartographyView';
+import './root-cartography-overlay.css';
 
 export function RootOverviewView({
   state,
