@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { WorldFieldShell } from '@/components/field/map/WorldFieldShell';
+import { redirect } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,6 +9,8 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-export default function FieldMapPage() {
-  return <WorldFieldShell />;
+const WORLD_FIELD_RUNTIME = '/field/world-observatory/index.html?v=20260802.1919';
+
+export default function FieldMapPage(): never {
+  redirect(WORLD_FIELD_RUNTIME);
 }
