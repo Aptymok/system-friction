@@ -2,35 +2,9 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { RootSovereignState } from '@/lib/root/sovereign/rootSovereignState';
-import { RootActionStrip } from './RootActionStrip';
-import { RootInspector } from './RootInspector';
-import { RootMigratedWorkspace } from './RootMigratedWorkspace';
-import { RootAgentsView } from './views/RootAgentsView';
-import { RootAmvView } from './views/RootAmvView';
-import { RootCognitiveRuntimeView } from './views/RootCognitiveRuntimeView';
-import { RootEvidenceAtlasView } from './views/RootEvidenceAtlasView';
-import { RootExecutionView } from './views/RootExecutionView';
-import { RootGovernanceView } from './views/RootGovernanceView';
-import { RootOverviewView } from './views/RootOverviewView';
-import { RootPredictionsView } from './views/RootPredictionsView';
-import { RootPhenomenologicalObservatory } from './views/RootPhenomenologicalObservatory';
-import type { RootActionRequest, RootSelection, RootSessionEvent, RootViewId } from './sovereignTypes';
+import type { RootActionRequest, RootSelection, RootSessionEvent } from './sovereignTypes';
+import { RootGovernanceObservatory } from './RootGovernanceObservatory';
 import './root-sovereign.css';
-import './root-action-strip.css';
-import './root-prediction.css';
-import './root-telemetry.css';
-import './root-phenomenological-observatory.css';
-import './root-cognitive-runtime.css';
-import PpoiPhenomenonWizard from '@/components/root/PpoiPhenomenonWizard';
-
-const VIEWS = new Set<RootViewId>(['overview', 'cognitive-runtime', 'governance', 'agents', 'predictions', 'amv', 'evidence', 'execution', 'telemetry']);
-type EmbeddedView = Exclude<RootViewId, 'overview'>;
-
-function viewFromUrl(): RootViewId {
-  if (typeof window === 'undefined') return 'overview';
-  const value = new URLSearchParams(window.location.search).get('view') as RootViewId | null;
-  return value && VIEWS.has(value) ? value : 'overview';
-}
 
 function auditId(body: Record<string, unknown>) {
   const audit = body.audit && typeof body.audit === 'object' ? body.audit as Record<string, unknown> : null;
@@ -44,32 +18,15 @@ function abortReason(signal: AbortSignal) {
 
 export function RootSovereignConsole({ initialState }: { initialState: RootSovereignState }) {
   const [state, setState] = useState(initialState);
-  const [view, setView] = useState<RootViewId>('overview');
-  const [embeddedView, setEmbeddedView] = useState<EmbeddedView | null>(null);
   const [selection, setSelection] = useState<RootSelection | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [refreshWarning, setRefreshWarning] = useState<string | null>(null);
-  const [stale, setStale] = useState(false);
   const [pending, setPending] = useState<RootActionRequest | null>(null);
   const [confirmed, setConfirmed] = useState(false);
   const [running, setRunning] = useState(false);
   const [events, setEvents] = useState<RootSessionEvent[]>([]);
-  const [showPpoiWizard, setShowPpoiWizard] = useState(false);
-  const [initialPpoiName, setInitialPpoiName] = useState('');
-  const [ppoiCandidates, setPpoiCandidates] = useState<any[]>([]);
-  const [showPpoiCandidates, setShowPpoiCandidates] = useState(false);
   const controller = useRef<AbortController | null>(null);
   const refreshSequence = useRef(0);
-
-  useEffect(() => {
-    setView(viewFromUrl());
-    const onPop = () => {
-      setView(viewFromUrl());
-      setEmbeddedView(null);
-    };
-    window.addEventListener('popstate', onPop);
-    return () => window.removeEventListener('popstate', onPop);
-  }, []);
 
   const refresh = useCallback(async () => {
     if (document.hidden) return;
@@ -91,13 +48,11 @@ export function RootSovereignConsole({ initialState }: { initialState: RootSover
       if (sequence !== refreshSequence.current) return;
       setState(body.state);
       setRefreshWarning(null);
-      setStale(false);
     } catch (error) {
       if (sequence !== refreshSequence.current) return;
       const reason = abortReason(next.signal);
       if (reason === 'superseded' || reason === 'unmount') return;
-      setRefreshWarning(reason === 'timeout' ? 'ROOT_CONSOLE_REFRESH_TIMEOUT' : error instanceof Error ? error.message : 'refresh_failed');
-      setStale(true);
+      setRefreshWarning(reason === 'timeout' ? 'No fue posible actualizar a tiempo.' : error instanceof Error ? error.message : 'No fue posible actualizar ROOT.');
     } finally {
       window.clearTimeout(timeout);
       if (controller.current === next) {
@@ -123,15 +78,6 @@ export function RootSovereignConsole({ initialState }: { initialState: RootSover
     };
   }, [refresh]);
 
-  function changeView(next: RootViewId) {
-    const url = new URL(window.location.href);
-    url.searchParams.set('view', next);
-    window.history.pushState({}, '', url);
-    setView(next);
-    setEmbeddedView(null);
-    setSelection(null);
-  }
-
   async function execute() {
     if (!pending || !confirmed || running) return;
     const action = pending;
@@ -145,6 +91,7 @@ export function RootSovereignConsole({ initialState }: { initialState: RootSover
       auditId: null,
     };
     setEvents((current) => [started, ...current].slice(0, 30));
+
     try {
       const response = await fetch(action.endpoint, {
         method: action.method,
@@ -154,113 +101,61 @@ export function RootSovereignConsole({ initialState }: { initialState: RootSover
       });
       const body = await response.json().catch(() => null) as Record<string, unknown> | null;
       if (!response.ok || !body || body.ok !== true) throw new Error(String(body?.error ?? `HTTP ${response.status}`));
-      const detail = JSON.stringify(body).slice(0, 420);
+      const detail = typeof body.body === 'string'
+        ? body.body.slice(0, 420)
+        : typeof body.user_friendly_explanation === 'string'
+          ? body.user_friendly_explanation.slice(0, 420)
+          : 'La operación terminó correctamente.';
       setEvents((current) => current.map((event) => event.id === started.id ? { ...event, status: 'done', detail, auditId: auditId(body) } : event));
       setPending(null);
       setConfirmed(false);
       await refresh();
     } catch (error) {
-      setEvents((current) => current.map((event) => event.id === started.id ? { ...event, status: 'blocked', detail: error instanceof Error ? error.message : 'action_failed' } : event));
+      setEvents((current) => current.map((event) => event.id === started.id ? { ...event, status: 'blocked', detail: error instanceof Error ? error.message : 'La operación no pudo completarse.', auditId: null } : event));
     } finally {
       setRunning(false);
     }
   }
 
-  const props = {
-    state,
-    onSelect: setSelection,
-    onAction: (action: RootActionRequest) => {
-      setPending(action);
-      setConfirmed(false);
-    },
-  };
-
-  function renderTool(target: EmbeddedView) {
-    if (target === 'cognitive-runtime') return <RootCognitiveRuntimeView state={state} onSelect={setSelection} />;
-    if (target === 'governance') return <RootGovernanceView {...props} />;
-    if (target === 'agents') return <RootAgentsView {...props} />;
-    if (target === 'predictions') return <RootPredictionsView {...props} />;
-    if (target === 'amv') return <RootAmvView {...props} />;
-    if (target === 'evidence') return <RootEvidenceAtlasView {...props} />;
-    if (target === 'telemetry') return <RootPhenomenologicalObservatory onRefresh={() => void refresh()} />;
-    return <RootExecutionView {...props} />;
-  }
-
-  const activeView = view === 'overview'
-    ? (
-      <RootOverviewView
-        state={state}
-        onSelect={setSelection}
-        embeddedView={embeddedView}
-        embeddedPanel={embeddedView ? renderTool(embeddedView) : null}
-        onOpenPanel={setEmbeddedView}
-        onClosePanel={() => setEmbeddedView(null)}
-      />
-    )
-    : renderTool(view as EmbeddedView);
-
   return (
-    <main className="rs-console is-migrated">
-      <RootMigratedWorkspace
-        view={view}
+    <main className="rs-console is-governance-observatory">
+      <RootGovernanceObservatory
         state={state}
         refreshing={refreshing}
         warning={refreshWarning}
-        onChange={changeView}
         onRefresh={() => void refresh()}
-      >
-        {activeView}
-      </RootMigratedWorkspace>
+        onSelect={setSelection}
+        onAction={(action) => {
+          setPending(action);
+          setConfirmed(false);
+        }}
+      />
 
-      <RootInspector selection={selection} />
-      <RootActionStrip events={events} stale={stale} warning={refreshWarning} />
-
-      {showPpoiWizard ? (
-        <PpoiPhenomenonWizard
-          initialName={initialPpoiName}
-          onCreated={(phenomenon) => {
-            setShowPpoiWizard(false);
-            window.location.href = `/root/phenomena/${phenomenon.id}`;
-          }}
-          onCancel={() => setShowPpoiWizard(false)}
-        />
+      {selection ? (
+        <div className="rs-selection-announcement" aria-live="polite">
+          Punto seleccionado: {selection.title}
+        </div>
       ) : null}
 
-      {showPpoiCandidates ? (
-        <div className="rs-dialog-backdrop">
-          <section className="rs-dialog">
-            <h2>EXPEDIENTES SIMILARES</h2>
-            {ppoiCandidates.map((candidate: any) => (
-              <button
-                key={candidate.id}
-                type="button"
-                onClick={() => { window.location.href = `/root/phenomena/${candidate.id}`; }}
-              >
-                {candidate.fp_code} - {candidate.name}
-              </button>
-            ))}
-            <button
-              type="button"
-              onClick={() => {
-                setShowPpoiCandidates(false);
-                setShowPpoiWizard(true);
-              }}
-            >
-              CREAR NUEVO EXPEDIENTE
-            </button>
-          </section>
+      {events.length ? (
+        <div className="rs-root-events" aria-live="polite">
+          {events.slice(0, 3).map((event) => (
+            <div key={event.id} data-status={event.status}>
+              <strong>{event.label}</strong>
+              <span>{event.detail}</span>
+            </div>
+          ))}
         </div>
       ) : null}
 
       {pending ? (
         <div className="rs-dialog-backdrop" role="presentation">
           <section className="rs-dialog" role="dialog" aria-modal="true" aria-labelledby="rs-dialog-title">
-            <span>CONFIRMACIÓN DE ACCIÓN</span>
+            <span>REVISAR ANTES DE EJECUTAR</span>
             <h2 id="rs-dialog-title">{pending.label}</h2>
             <dl>
-              <div><dt>QUÉ CAMBIARÁ</dt><dd>{pending.effect}</dd></div>
+              <div><dt>QUÉ HARÁ</dt><dd>{pending.effect}</dd></div>
               <div><dt>SOBRE QUÉ</dt><dd>{pending.target}</dd></div>
-              <div><dt>REGISTRO TÉCNICO</dt><dd>{pending.method} {pending.endpoint}</dd></div>
             </dl>
             <label className="rs-confirm">
               <input type="checkbox" checked={confirmed} onChange={(event) => setConfirmed(event.target.checked)} />
