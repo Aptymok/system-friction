@@ -4,8 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { RootSovereignState } from '@/lib/root/sovereign/rootSovereignState';
 import { RootActionStrip } from './RootActionStrip';
 import { RootInspector } from './RootInspector';
-import { RootModuleRail } from './RootModuleRail';
-import { RootTopBar } from './RootTopBar';
+import { RootMigratedWorkspace } from './RootMigratedWorkspace';
 import { RootAgentsView } from './views/RootAgentsView';
 import { RootAmvView } from './views/RootAmvView';
 import { RootCognitiveRuntimeView } from './views/RootCognitiveRuntimeView';
@@ -24,8 +23,8 @@ import './root-phenomenological-observatory.css';
 import './root-cognitive-runtime.css';
 import PpoiPhenomenonWizard from '@/components/root/PpoiPhenomenonWizard';
 
-
 const VIEWS = new Set<RootViewId>(['overview', 'cognitive-runtime', 'governance', 'agents', 'predictions', 'amv', 'evidence', 'execution', 'telemetry']);
+type EmbeddedView = Exclude<RootViewId, 'overview'>;
 
 function viewFromUrl(): RootViewId {
   if (typeof window === 'undefined') return 'overview';
@@ -46,6 +45,7 @@ function abortReason(signal: AbortSignal) {
 export function RootSovereignConsole({ initialState }: { initialState: RootSovereignState }) {
   const [state, setState] = useState(initialState);
   const [view, setView] = useState<RootViewId>('overview');
+  const [embeddedView, setEmbeddedView] = useState<EmbeddedView | null>(null);
   const [selection, setSelection] = useState<RootSelection | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [refreshWarning, setRefreshWarning] = useState<string | null>(null);
@@ -63,7 +63,10 @@ export function RootSovereignConsole({ initialState }: { initialState: RootSover
 
   useEffect(() => {
     setView(viewFromUrl());
-    const onPop = () => setView(viewFromUrl());
+    const onPop = () => {
+      setView(viewFromUrl());
+      setEmbeddedView(null);
+    };
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
   }, []);
@@ -120,57 +123,12 @@ export function RootSovereignConsole({ initialState }: { initialState: RootSover
     };
   }, [refresh]);
 
-async function openPpoiCase(name:string) {
-
-  const response =
-    await fetch('/api/ppoi/phenomena', {
-      method:'POST',
-      credentials:'include',
-      headers:{
-        'Content-Type':'application/json'
-      },
-      body:JSON.stringify({
-        name,
-        resolveOnly:true
-      })
-    });
-
-
-  const data =
-    await response.json();
-
-
-  if(data.action === 'OPEN_EXISTING') {
-
-    window.location.href =
-      `/root/phenomena/${data.phenomenon.id}`;
-
-    return;
-  }
-
-
-  if(data.action === 'SELECT_EXISTING') {
-
-    setPpoiCandidates(
-      data.candidates ?? []
-    );
-
-    setShowPpoiCandidates(true);
-
-    return;
-  }
-
-
-  setInitialPpoiName(name);
-  setShowPpoiWizard(true);
-
-}
-
   function changeView(next: RootViewId) {
     const url = new URL(window.location.href);
     url.searchParams.set('view', next);
     window.history.pushState({}, '', url);
     setView(next);
+    setEmbeddedView(null);
     setSelection(null);
   }
 
@@ -217,132 +175,100 @@ async function openPpoiCase(name:string) {
     },
   };
 
-  if (view === 'telemetry') {
-    return (
-<RootPhenomenologicalObservatory
-  onRefresh={() => void refresh()}
-/>
-    );
+  function renderTool(target: EmbeddedView) {
+    if (target === 'cognitive-runtime') return <RootCognitiveRuntimeView state={state} onSelect={setSelection} />;
+    if (target === 'governance') return <RootGovernanceView {...props} />;
+    if (target === 'agents') return <RootAgentsView {...props} />;
+    if (target === 'predictions') return <RootPredictionsView {...props} />;
+    if (target === 'amv') return <RootAmvView {...props} />;
+    if (target === 'evidence') return <RootEvidenceAtlasView {...props} />;
+    if (target === 'telemetry') return <RootPhenomenologicalObservatory onRefresh={() => void refresh()} />;
+    return <RootExecutionView {...props} />;
   }
 
+  const activeView = view === 'overview'
+    ? (
+      <RootOverviewView
+        state={state}
+        onSelect={setSelection}
+        embeddedView={embeddedView}
+        embeddedPanel={embeddedView ? renderTool(embeddedView) : null}
+        onOpenPanel={setEmbeddedView}
+        onClosePanel={() => setEmbeddedView(null)}
+      />
+    )
+    : renderTool(view as EmbeddedView);
+
   return (
-    <main className="rs-console">
-      <RootTopBar state={state} refreshing={refreshing} onRefresh={() => void refresh()} />
-      <RootModuleRail active={view} onChange={changeView} />
-      <section className="rs-instrument" aria-live="polite">
-        {view === 'overview' ? <RootOverviewView state={state} onSelect={setSelection} />
-          : view === 'cognitive-runtime' ? <RootCognitiveRuntimeView state={state} onSelect={setSelection} />
-            : view === 'governance' ? <RootGovernanceView {...props} />
-              : view === 'agents' ? <RootAgentsView {...props} />
-                : view === 'predictions' ? <RootPredictionsView {...props} />
-                  : view === 'amv' ? <RootAmvView {...props} />
-                    : view === 'evidence' ? <RootEvidenceAtlasView {...props} />
-                      : <RootExecutionView {...props} />}
-      </section>
+    <main className="rs-console is-migrated">
+      <RootMigratedWorkspace
+        view={view}
+        state={state}
+        refreshing={refreshing}
+        warning={refreshWarning}
+        onChange={changeView}
+        onRefresh={() => void refresh()}
+      >
+        {activeView}
+      </RootMigratedWorkspace>
+
       <RootInspector selection={selection} />
       <RootActionStrip events={events} stale={stale} warning={refreshWarning} />
-      {
-showPpoiWizard && (
 
-<PpoiPhenomenonWizard
+      {showPpoiWizard ? (
+        <PpoiPhenomenonWizard
+          initialName={initialPpoiName}
+          onCreated={(phenomenon) => {
+            setShowPpoiWizard(false);
+            window.location.href = `/root/phenomena/${phenomenon.id}`;
+          }}
+          onCancel={() => setShowPpoiWizard(false)}
+        />
+      ) : null}
 
-initialName={initialPpoiName}
-
-onCreated={(phenomenon)=>{
-
-setShowPpoiWizard(false);
-
-window.location.href =
-`/root/phenomena/${phenomenon.id}`;
-
-}}
-
-onCancel={()=>{
-
-setShowPpoiWizard(false);
-
-}}
-
-/>
-
-)
-}
-{
-showPpoiCandidates && (
-
-<div className="rs-dialog-backdrop">
-
-<section className="rs-dialog">
-
-<h2>
-EXPEDIENTES SIMILARES
-</h2>
-
-
-{
-ppoiCandidates.map(
-(candidate:any)=>(
-
-<button
-key={candidate.id}
-type="button"
-onClick={()=>{
-
-window.location.href =
-`/root/phenomena/${candidate.id}`;
-
-}}
->
-
-{candidate.fp_code}
--
-{candidate.name}
-
-</button>
-
-)
-)
-}
-
-
-<button
-type="button"
-onClick={()=>{
-
-setShowPpoiCandidates(false);
-
-setShowPpoiWizard(true);
-
-}}
->
-CREAR NUEVO EXPEDIENTE
-</button>
-
-
-</section>
-
-</div>
-
-)
-}
+      {showPpoiCandidates ? (
+        <div className="rs-dialog-backdrop">
+          <section className="rs-dialog">
+            <h2>EXPEDIENTES SIMILARES</h2>
+            {ppoiCandidates.map((candidate: any) => (
+              <button
+                key={candidate.id}
+                type="button"
+                onClick={() => { window.location.href = `/root/phenomena/${candidate.id}`; }}
+              >
+                {candidate.fp_code} - {candidate.name}
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={() => {
+                setShowPpoiCandidates(false);
+                setShowPpoiWizard(true);
+              }}
+            >
+              CREAR NUEVO EXPEDIENTE
+            </button>
+          </section>
+        </div>
+      ) : null}
 
       {pending ? (
         <div className="rs-dialog-backdrop" role="presentation">
           <section className="rs-dialog" role="dialog" aria-modal="true" aria-labelledby="rs-dialog-title">
-            <span>MUTATION CONFIRMATION</span>
+            <span>CONFIRMACIÓN DE ACCIÓN</span>
             <h2 id="rs-dialog-title">{pending.label}</h2>
             <dl>
-              <div><dt>EFFECT</dt><dd>{pending.effect}</dd></div>
-              <div><dt>TARGET</dt><dd>{pending.target}</dd></div>
-              <div><dt>ROUTE</dt><dd>{pending.method} {pending.endpoint}</dd></div>
+              <div><dt>QUÉ CAMBIARÁ</dt><dd>{pending.effect}</dd></div>
+              <div><dt>SOBRE QUÉ</dt><dd>{pending.target}</dd></div>
+              <div><dt>REGISTRO TÉCNICO</dt><dd>{pending.method} {pending.endpoint}</dd></div>
             </dl>
             <label className="rs-confirm">
               <input type="checkbox" checked={confirmed} onChange={(event) => setConfirmed(event.target.checked)} />
-              Confirmo explícitamente esta mutación y su objetivo.
+              Confirmo esta acción y comprendo su objetivo.
             </label>
             <div className="rs-dialog-actions">
-              <button type="button" onClick={() => { setPending(null); setConfirmed(false); }} disabled={running}>CANCEL</button>
-              <button type="button" onClick={() => void execute()} disabled={!confirmed || running}>{running ? 'EXECUTING' : 'CONFIRM AND EXECUTE'}</button>
+              <button type="button" onClick={() => { setPending(null); setConfirmed(false); }} disabled={running}>CANCELAR</button>
+              <button type="button" onClick={() => void execute()} disabled={!confirmed || running}>{running ? 'EJECUTANDO' : 'CONFIRMAR Y EJECUTAR'}</button>
             </div>
           </section>
         </div>

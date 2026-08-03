@@ -1,11 +1,12 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import type { RootSovereignState, RootEvidenceNode, RootEvidenceEdge, RootRow } from '@/lib/root/sovereign/rootSovereignState';
 import type { RootSelection, RootViewId } from '../sovereignTypes';
 import './root-cartography.css';
 
 type ModuleId = 'topology' | 'neural' | 'attractors' | 'predictions' | 'timeline';
+type EmbeddedView = Exclude<RootViewId, 'overview'>;
 
 type Point = {
   id: string;
@@ -21,12 +22,23 @@ type Point = {
 };
 
 const MODULES: Array<{ id: ModuleId; label: string; description: string }> = [
-  { id: 'topology', label: 'TOPOLOGY', description: 'Variables cruzadas, densidad y fricción.' },
-  { id: 'neural', label: 'NEURAL GRAPH', description: 'Evidencia y relaciones explícitas.' },
-  { id: 'attractors', label: 'ATTRACTOR FIELD', description: 'Atractores y ejectores persistidos.' },
-  { id: 'predictions', label: 'PROJECTIVE', description: 'Runs, outcomes y aprendizaje.' },
-  { id: 'timeline', label: 'TIMELINE', description: 'Eventos persistidos y bifurcaciones.' },
+  { id: 'topology', label: 'TOPOLOGÍA', description: 'Estado de las partes del sistema y carga pendiente.' },
+  { id: 'neural', label: 'RED DE EVIDENCIA', description: 'Registros y relaciones explícitas entre ellos.' },
+  { id: 'attractors', label: 'CAMPO DE ATRACTORES', description: 'Direcciones persistentes y fuerzas de desvío registradas.' },
+  { id: 'predictions', label: 'PROYECCIONES', description: 'Predicciones, resultados posteriores y aprendizaje.' },
+  { id: 'timeline', label: 'HISTORIA', description: 'Cambios registrados, acciones y posibles puntos de bifurcación.' },
 ];
+
+const PANEL_TITLES: Record<EmbeddedView, string> = {
+  'cognitive-runtime': 'Procesos cognitivos y gemelos',
+  governance: 'Decisiones, permisos y revisión humana',
+  agents: 'Agentes disponibles y ejecución',
+  predictions: 'Proyecciones y resultados',
+  amv: 'Atractores, desvíos y memoria del campo',
+  evidence: 'Evidencia por proposición y casos',
+  execution: 'Simular, comparar y ejecutar acciones',
+  telemetry: 'Historia de cambios y observaciones',
+};
 
 function hash(value: string) {
   let output = 2166136261;
@@ -55,7 +67,7 @@ function rowTime(row: RootRow) {
 }
 
 function compact(value: number) {
-  return new Intl.NumberFormat('en-US', { notation: value >= 1000 ? 'compact' : 'standard', maximumFractionDigits: 1 }).format(value);
+  return new Intl.NumberFormat('es-MX', { notation: value >= 1000 ? 'compact' : 'standard', maximumFractionDigits: 1 }).format(value);
 }
 
 function latestRows(state: RootSovereignState) {
@@ -125,7 +137,7 @@ function predictionPoints(state: RootSovereignState): Point[] {
       x: 7 + ((horizon % 365) / 365) * 86,
       y: 88 - Math.max(0, Math.min(1, score > 1 ? score / 100 : score)) * 72,
       label: text(row.title ?? row.name ?? row.prediction_key ?? row.event_type, id),
-      kind: index < state.predictions.data.runs.length ? 'run' : index < state.predictions.data.runs.length + state.predictions.data.outcomes.length ? 'outcome' : 'learning',
+      kind: index < state.predictions.data.runs.length ? 'prediction' : index < state.predictions.data.runs.length + state.predictions.data.outcomes.length ? 'result' : 'learning',
       confidence: numeric(row.confidence),
       observedAt: rowTime(row) || state.predictions.observedAt,
       source: state.predictions.source,
@@ -141,11 +153,11 @@ function timelinePoints(state: RootSovereignState): Point[] {
     id: rowId(row, `event-${index}`),
     x: rows.length <= 1 ? 50 : 5 + (index / (rows.length - 1)) * 90,
     y: 50 + Math.sin(index * 1.7) * 18,
-    label: text(row.label ?? row.event_type ?? row.action ?? row.type ?? row.status, `EVENT ${index + 1}`),
+    label: text(row.label ?? row.event_type ?? row.action ?? row.type ?? row.status, `CAMBIO ${index + 1}`),
     kind: text(row.event_type ?? row.type ?? row.status, 'event'),
     confidence: numeric(row.confidence),
     observedAt: rowTime(row),
-    source: 'governance + execution + prediction persistence',
+    source: 'registros de decisiones, ejecución y aprendizaje',
     evidenceIds: Array.isArray(row.evidence_ids) ? row.evidence_ids.map(String) : [],
     payload: row,
   }));
@@ -153,12 +165,16 @@ function timelinePoints(state: RootSovereignState): Point[] {
 
 function topologyPoints(state: RootSovereignState): Point[] {
   return state.system.data.matrix.map((item, index) => {
-    const angle = (index / Math.max(1, state.system.data.matrix.length)) * Math.PI * 2 - Math.PI / 2;
-    const openness = item.openItems.value ?? 0;
+    const total = Math.max(1, state.system.data.matrix.length);
+    const lane = index % 3;
+    const x = 8 + (index / Math.max(1, total - 1)) * 84;
+    const load = Math.min(28, item.openItems.value ?? 0);
+    const confidence = item.state.confidence ?? 0.5;
+    const y = 70 - load * 1.25 - confidence * 18 + lane * 9;
     return {
       id: item.id,
-      x: 50 + Math.cos(angle) * (25 + Math.min(18, openness)),
-      y: 50 + Math.sin(angle) * (22 + Math.min(16, openness)),
+      x,
+      y: Math.max(10, Math.min(88, y)),
       label: item.label,
       kind: item.state.value ?? item.state.status,
       confidence: item.state.confidence,
@@ -207,10 +223,25 @@ function graphEdges(module: ModuleId, points: Point[], evidenceEdges: RootEviden
   }));
 }
 
-export function RootCartographyView({ state, onSelect, onNavigate }: {
+function orderedPath(points: Point[], offset = 0) {
+  const ordered = [...points].sort((a, b) => a.x - b.x);
+  return ordered.map((point) => `${point.x},${Math.max(3, Math.min(97, point.y + offset))}`).join(' ');
+}
+
+export function RootCartographyView({
+  state,
+  onSelect,
+  embeddedView,
+  embeddedPanel,
+  onOpenPanel,
+  onClosePanel,
+}: {
   state: RootSovereignState;
   onSelect: (selection: RootSelection) => void;
-  onNavigate: (view: RootViewId) => void;
+  embeddedView: EmbeddedView | null;
+  embeddedPanel: ReactNode;
+  onOpenPanel: (view: EmbeddedView) => void;
+  onClosePanel: () => void;
 }) {
   const [module, setModule] = useState<ModuleId>('topology');
   const [selected, setSelected] = useState<string | null>(null);
@@ -221,11 +252,20 @@ export function RootCartographyView({ state, onSelect, onNavigate }: {
   const observedSystems = state.system.data.matrix.filter((item) => item.state.value !== null).length;
   const activeAgents = state.agents.data.agents.filter((agent) => ['available', 'operational', 'active', 'ready'].includes(String(agent.state.value ?? agent.availability).toLowerCase())).length;
   const report = useMemo(() => ({
-    generatedAt: state.generatedAt,
-    activeModule: module,
-    sources: { system: state.system.source, evidence: state.evidence.source, amv: state.amv.source, predictions: state.predictions.source, execution: state.execution.source },
-    counts: { systems: state.system.data.matrix.length, observedSystems, evidenceNodes: state.evidence.data.nodes.length, evidenceEdges: state.evidence.data.edges.length, attractors: state.amv.data.attractors.length, ejectors: state.amv.data.ejectors.length, predictionRuns: state.predictions.data.runs.length, outcomes: state.predictions.data.outcomes.length, agents: state.agents.data.agents.length, activeAgents },
-    warnings: state.warnings,
+    fecha: state.generatedAt,
+    vista: MODULES.find((item) => item.id === module)?.label,
+    resumen: {
+      partesDelSistema: state.system.data.matrix.length,
+      partesObservadas: observedSystems,
+      registrosDeEvidencia: state.evidence.data.nodes.length,
+      relacionesDeEvidencia: state.evidence.data.edges.length,
+      atractores: state.amv.data.attractors.length,
+      fuerzasDeDesvio: state.amv.data.ejectors.length,
+      predicciones: state.predictions.data.runs.length,
+      resultadosObservados: state.predictions.data.outcomes.length,
+      agentesDisponibles: activeAgents,
+    },
+    advertencias: state.warnings,
   }), [activeAgents, module, observedSystems, state]);
 
   async function copyReport() {
@@ -239,7 +279,7 @@ export function RootCartographyView({ state, onSelect, onNavigate }: {
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement('a');
     anchor.href = url;
-    anchor.download = `sfi-root-cartography-${state.generatedAt.replace(/[:.]/g, '-')}.json`;
+    anchor.download = `reporte-root-${state.generatedAt.replace(/[:.]/g, '-')}.json`;
     anchor.click();
     URL.revokeObjectURL(url);
   }
@@ -250,52 +290,118 @@ export function RootCartographyView({ state, onSelect, onNavigate }: {
   }
 
   const selectedPoint = selected ? pointById.get(selected) ?? null : null;
+  const openLoad = state.system.data.matrix.reduce((sum, item) => sum + (item.openItems.value ?? 0), 0);
+  const evidenceDensity = state.evidence.data.nodes.length ? state.evidence.data.edges.length / state.evidence.data.nodes.length : null;
 
   return (
-    <section className="rc-root" aria-label="ROOT cartography of the unexplored">
+    <section className="rc-root" aria-label="Mapa operativo de ROOT">
       <header className="rc-head">
-        <div><span>ROOT · FOUNDER OPERATING ENVIRONMENT</span><h1>CARTOGRAPHY OF THE UNEXPLORED</h1><p>Un solo espacio para observar, reconstruir, proyectar y actuar sobre trazas persistidas.</p></div>
+        <div><span>ROOT · ENTORNO DE OPERACIÓN</span><h1>CARTOGRAFÍA DE LO AÚN NO EXPLORADO</h1><p>Observa relaciones, abre herramientas y actúa sin abandonar este espacio.</p></div>
         <div className="rc-head-metrics">
-          <span><b>{observedSystems}/{state.system.data.matrix.length}</b>SYSTEMS</span>
-          <span><b>{compact(state.evidence.data.nodes.length)}</b>EVIDENCE NODES</span>
-          <span><b>{state.amv.data.attractors.length}</b>ATTRACTORS</span>
-          <span><b>{activeAgents}/{state.agents.data.agents.length}</b>AGENTS READY</span>
+          <span><b>{observedSystems}/{state.system.data.matrix.length}</b>PARTES OBSERVADAS</span>
+          <span><b>{compact(state.evidence.data.nodes.length)}</b>REGISTROS</span>
+          <span><b>{state.amv.data.attractors.length}</b>ATRACTORES</span>
+          <span><b>{activeAgents}/{state.agents.data.agents.length}</b>AGENTES LISTOS</span>
         </div>
       </header>
+
       <div className="rc-main">
         <article className="rc-stage">
           <div className="rc-stage-head">
             <div><span>{MODULES.find((item) => item.id === module)?.label}</span><strong>{MODULES.find((item) => item.id === module)?.description}</strong></div>
             <div className="rc-stage-actions">
-              <button type="button" onClick={() => onNavigate('agents')}>EXECUTE AGENTS</button>
-              <button type="button" onClick={() => onNavigate('evidence')}>UPLOAD EVIDENCE BY PROPOSITION</button>
-              <button type="button" onClick={() => onNavigate('execution')}>OPEN SIMULATOR</button>
-              <button type="button" onClick={() => onNavigate('predictions')}>PROJECTIVE ENGINE</button>
-              <button type="button" onClick={() => void copyReport()}>{copied ? 'COPIED' : 'COPY REPORT'}</button>
-              <button type="button" onClick={downloadReport}>DOWNLOAD</button>
+              <button type="button" onClick={() => onOpenPanel('agents')}>EJECUTAR AGENTES</button>
+              <button type="button" onClick={() => onOpenPanel('evidence')}>AGREGAR EVIDENCIA</button>
+              <button type="button" onClick={() => onOpenPanel('execution')}>ABRIR SIMULADOR</button>
+              <button type="button" onClick={() => onOpenPanel('predictions')}>VER PROYECCIONES</button>
+              <button type="button" onClick={() => void copyReport()}>{copied ? 'REPORTE COPIADO' : 'COPIAR REPORTE'}</button>
+              <button type="button" onClick={downloadReport}>DESCARGAR REPORTE</button>
             </div>
           </div>
+
           <div className={`rc-graph is-${module}`}>
-            <svg viewBox="0 0 100 100" role="img" aria-label={`${module} graph from persistent ROOT state`}>
-              <defs><radialGradient id="rcGlow"><stop offset="0" stopColor="currentColor" stopOpacity=".85" /><stop offset="1" stopColor="currentColor" stopOpacity="0" /></radialGradient><linearGradient id="rcField" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stopColor="#54d7d0" stopOpacity=".24" /><stop offset=".45" stopColor="#d33c8f" stopOpacity=".5" /><stop offset="1" stopColor="#ef9e3f" stopOpacity=".26" /></linearGradient></defs>
-              <path className="rc-field-line" d="M0 75 C12 57 18 83 30 62 S48 69 58 43 S76 72 100 35" /><path className="rc-field-line dim" d="M0 84 C18 67 24 78 36 70 S55 82 67 54 S85 59 100 50" />
-              {edges.map((edge, index) => { const from = pointById.get(edge.from); const to = pointById.get(edge.to); if (!from || !to) return null; return <line key={`${edge.from}-${edge.to}-${index}`} x1={from.x} y1={from.y} x2={to.x} y2={to.y} className="rc-edge" style={{ opacity: .12 + Math.min(.6, Number(edge.weight) * .5) }} />; })}
-              {points.map((point) => <g key={point.id} className={`rc-node ${selected === point.id ? 'is-selected' : ''}`} onClick={() => choose(point)} tabIndex={0} role="button" onKeyDown={(event) => { if (event.key === 'Enter') choose(point); }}><circle cx={point.x} cy={point.y} r={selected === point.id ? 4.5 : 2.4} className="rc-node-glow" /><circle cx={point.x} cy={point.y} r={selected === point.id ? 1.25 : .72} className="rc-node-core" />{(selected === point.id || points.length < 24) ? <text x={point.x + 1.8} y={point.y - 1.5}>{point.label.slice(0, 28)}</text> : null}</g>)}
+            <svg viewBox="0 0 100 100" role="img" aria-label={`Gráfico de ${MODULES.find((item) => item.id === module)?.label}`}>
+              <defs>
+                <radialGradient id="rcGlow"><stop offset="0" stopColor="currentColor" stopOpacity=".85" /><stop offset="1" stopColor="currentColor" stopOpacity="0" /></radialGradient>
+                <linearGradient id="rcField" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stopColor="#54d7d0" stopOpacity=".28" /><stop offset=".45" stopColor="#d33c8f" stopOpacity=".62" /><stop offset="1" stopColor="#ef9e3f" stopOpacity=".32" /></linearGradient>
+              </defs>
+
+              {points.length > 1 ? (
+                <>
+                  <polyline className="rc-field-line" points={orderedPath(points)} />
+                  <polyline className="rc-field-line dim" points={orderedPath(points, 6)} />
+                  <polyline className="rc-field-line faint" points={orderedPath(points, 12)} />
+                </>
+              ) : null}
+
+              {points.map((point) => (
+                <line key={`stem-${point.id}`} x1={point.x} y1={92} x2={point.x} y2={point.y} className="rc-stem" style={{ opacity: .08 + (point.confidence ?? .35) * .3 }} />
+              ))}
+
+              {edges.map((edge, index) => {
+                const from = pointById.get(edge.from);
+                const to = pointById.get(edge.to);
+                if (!from || !to) return null;
+                return <line key={`${edge.from}-${edge.to}-${index}`} x1={from.x} y1={from.y} x2={to.x} y2={to.y} className="rc-edge" style={{ opacity: .12 + Math.min(.6, Number(edge.weight) * .5) }} />;
+              })}
+
+              {module === 'attractors' ? points.map((point) => (
+                <g key={`field-${point.id}`} className={point.kind === 'attractor' ? 'rc-attractor-contour' : 'rc-ejector-contour'}>
+                  <circle cx={point.x} cy={point.y} r={4 + (point.confidence ?? .4) * 7} />
+                  <circle cx={point.x} cy={point.y} r={7 + (point.confidence ?? .4) * 9} />
+                </g>
+              )) : null}
+
+              {points.map((point) => (
+                <g key={point.id} className={`rc-node ${selected === point.id ? 'is-selected' : ''}`} onClick={() => choose(point)} tabIndex={0} role="button" onKeyDown={(event) => { if (event.key === 'Enter') choose(point); }}>
+                  <circle cx={point.x} cy={point.y} r={selected === point.id ? 4.5 : 2.4} className="rc-node-glow" />
+                  <circle cx={point.x} cy={point.y} r={selected === point.id ? 1.25 : .72} className="rc-node-core" />
+                  {(selected === point.id || points.length < 24) ? <text x={point.x + 1.8} y={point.y - 1.5}>{point.label.slice(0, 28)}</text> : null}
+                </g>
+              ))}
             </svg>
-            {!points.length ? <div className="rc-empty">NO PERSISTED DATA FOR THIS LAYER</div> : null}
-            <div className="rc-graph-contract">CLICK A POINT TO INSPECT · NO SYNTHETIC NODES · SOURCE: {module === 'neural' ? state.evidence.source : module === 'attractors' ? state.amv.source : module === 'predictions' ? state.predictions.source : module === 'timeline' ? 'governance + execution + prediction stores' : state.system.source}</div>
+
+            {!points.length ? <div className="rc-empty">AÚN NO HAY INFORMACIÓN REGISTRADA PARA ESTA CAPA</div> : null}
+            <div className="rc-graph-contract">La posición muestra la organización visual de esta capa. Haz clic en un punto para conocer su fuente, fecha y evidencia.</div>
           </div>
+
           <div className="rc-module-strip">
-            {MODULES.map((item) => <button key={item.id} type="button" className={module === item.id ? 'active' : ''} onClick={() => { setModule(item.id); setSelected(null); }}><span>{item.label}</span><strong>{item.id === 'neural' ? state.evidence.data.nodes.length : item.id === 'attractors' ? state.amv.data.attractors.length + state.amv.data.ejectors.length : item.id === 'predictions' ? state.predictions.data.runs.length : item.id === 'timeline' ? latestRows(state).length : state.system.data.matrix.length}</strong><small>{item.description}</small></button>)}
+            {MODULES.map((item) => (
+              <button key={item.id} type="button" className={module === item.id ? 'active' : ''} onClick={() => { setModule(item.id); setSelected(null); }}>
+                <span>{item.label}</span>
+                <strong>{item.id === 'neural' ? state.evidence.data.nodes.length : item.id === 'attractors' ? state.amv.data.attractors.length + state.amv.data.ejectors.length : item.id === 'predictions' ? state.predictions.data.runs.length : item.id === 'timeline' ? latestRows(state).length : state.system.data.matrix.length}</strong>
+                <small>{item.description}</small>
+              </button>
+            ))}
           </div>
         </article>
+
         <aside className="rc-side">
-          <article><header>VISCOSITY / CROSS VARIABLES</header><dl><div><dt>OPEN SYSTEM LOAD</dt><dd>{state.system.data.matrix.reduce((sum, item) => sum + (item.openItems.value ?? 0), 0)}</dd></div><div><dt>EVIDENCE DENSITY</dt><dd>{state.evidence.data.nodes.length ? (state.evidence.data.edges.length / state.evidence.data.nodes.length).toFixed(3) : '—'}</dd></div><div><dt>AMV FIELD</dt><dd>{state.amv.data.attractors.length}/{state.amv.data.ejectors.length}</dd></div><div><dt>PREDICTIVE RETURNS</dt><dd>{state.predictions.data.outcomes.length}</dd></div></dl></article>
-          <article><header>SELECTED POINT</header>{selectedPoint ? <div className="rc-selected"><span>{selectedPoint.kind}</span><strong>{selectedPoint.label}</strong><p>{selectedPoint.source}</p><small>{selectedPoint.observedAt || 'NO OBSERVED TIME'}</small>{module === 'timeline' ? <button type="button" onClick={() => onNavigate('execution')}>RECREATE CONDITIONS / REVIEW BIFURCATION</button> : null}</div> : <div className="rc-empty compact">SELECT A NODE</div>}</article>
-          <article><header>ROOT OPERATIONS</header><div className="rc-ops"><button type="button" onClick={() => onNavigate('cognitive-runtime')}>COGNITIVE TWINS / RUNTIME</button><button type="button" onClick={() => onNavigate('amv')}>ATTRACTORS + EJECTORS</button><button type="button" onClick={() => onNavigate('governance')}>GOVERNANCE</button><button type="button" onClick={() => onNavigate('telemetry')}>PHENOMENOLOGICAL OBSERVATORY</button></div></article>
-          <article><header>DATA INTEGRITY</header><ul className="rc-warnings">{state.warnings.slice(0, 6).map((warning) => <li key={warning}>{warning}</li>)}{!state.warnings.length ? <li>NO ACTIVE ROOT WARNINGS</li> : null}</ul></article>
+          <article><header>CARGA Y RELACIONES</header><dl><div><dt>ASUNTOS ABIERTOS</dt><dd>{openLoad}</dd></div><div><dt>RELACIONES POR REGISTRO</dt><dd>{evidenceDensity === null ? 'SIN DATO' : evidenceDensity.toFixed(3)}</dd></div><div><dt>ATRACTORES / DESVÍOS</dt><dd>{state.amv.data.attractors.length}/{state.amv.data.ejectors.length}</dd></div><div><dt>RESULTADOS OBSERVADOS</dt><dd>{state.predictions.data.outcomes.length}</dd></div></dl></article>
+          <article><header>PUNTO SELECCIONADO</header>{selectedPoint ? <div className="rc-selected"><span>{selectedPoint.kind}</span><strong>{selectedPoint.label}</strong><p>{selectedPoint.source}</p><small>{selectedPoint.observedAt || 'SIN FECHA REGISTRADA'}</small>{module === 'timeline' ? <button type="button" onClick={() => onOpenPanel('execution')}>RECREAR CONDICIONES Y REVISAR DESVÍOS</button> : null}</div> : <div className="rc-empty compact">SELECCIONA UN PUNTO DEL GRÁFICO</div>}</article>
+          <article><header>HERRAMIENTAS ROOT</header><div className="rc-ops"><button type="button" onClick={() => onOpenPanel('cognitive-runtime')}>PROCESOS COGNITIVOS Y GEMELOS</button><button type="button" onClick={() => onOpenPanel('amv')}>ATRACTORES Y FUERZAS DE DESVÍO</button><button type="button" onClick={() => onOpenPanel('governance')}>DECISIONES Y PERMISOS</button><button type="button" onClick={() => onOpenPanel('telemetry')}>HISTORIA DE CAMBIOS</button></div></article>
+          <article><header>INTEGRIDAD DE LA INFORMACIÓN</header><ul className="rc-warnings">{state.warnings.slice(0, 6).map((warning) => <li key={warning}>{warning}</li>)}{!state.warnings.length ? <li>NO HAY ADVERTENCIAS ACTIVAS</li> : null}</ul></article>
         </aside>
       </div>
+
+      <section className="rc-dashboard-grid" aria-label="Módulos operativos de ROOT">
+        <button type="button" onClick={() => onSelect({ kind: 'estado mundial', id: 'world-vector', title: 'Estado mundial observado', source: state.system.source, observedAt: state.system.observedAt, confidence: null, evidenceIds: [], warning: state.system.error, data: state.system.data.worldVector })}><span>ESTADO MUNDIAL</span><b>{state.system.data.worldVector ? 'DISPONIBLE' : 'SIN LECTURA'}</b><small>Contexto mundial registrado para ROOT.</small></button>
+        <button type="button" onClick={() => setModule('neural')}><span>RED DE EVIDENCIA</span><b>{state.evidence.data.nodes.length} puntos · {state.evidence.data.edges.length} relaciones</b><small>Abre la red y explora conexiones documentadas.</small></button>
+        <button type="button" onClick={() => onOpenPanel('execution')}><span>SIMULADOR</span><b>{state.execution.data.capabilities.length} capacidades</b><small>Compara escenarios y ejecuta acciones confirmadas.</small></button>
+        <button type="button" onClick={() => onOpenPanel('predictions')}><span>PROYECCIONES</span><b>{state.predictions.data.runs.length} predicciones</b><small>Revisa horizontes, resultados y aprendizaje.</small></button>
+        <button type="button" onClick={() => setModule('timeline')}><span>HISTORIA</span><b>{latestRows(state).length} cambios recientes</b><small>Localiza eventos y posibles bifurcaciones.</small></button>
+        <button type="button" onClick={() => onOpenPanel('evidence')}><span>EVIDENCIA</span><b>{state.evidence.data.nodes.length} registros</b><small>Agrega evidencia asociada a una proposición concreta.</small></button>
+        <button type="button" onClick={() => onOpenPanel('predictions')}><span>REGISTRO DE PREDICCIONES</span><b>{state.predictions.data.outcomes.length} resultados</b><small>Compara lo esperado con lo que ocurrió.</small></button>
+        <button type="button" onClick={() => onOpenPanel('governance')}><span>REVISIÓN HUMANA</span><b>{state.governance.data.proposals.length} propuestas</b><small>Autoriza, rechaza o revisa cambios.</small></button>
+        <button type="button" onClick={() => onOpenPanel('agents')}><span>ESTADO OPERATIVO</span><b>{activeAgents}/{state.agents.data.agents.length} agentes listos</b><small>Consulta disponibilidad y bloqueos.</small></button>
+      </section>
+
+      {embeddedView && embeddedPanel ? (
+        <section className="rc-workbench-overlay" role="dialog" aria-modal="true" aria-label={PANEL_TITLES[embeddedView]}>
+          <header><div><span>HERRAMIENTA ABIERTA DENTRO DE ROOT</span><strong>{PANEL_TITLES[embeddedView]}</strong></div><button type="button" onClick={onClosePanel}>CERRAR Y VOLVER AL MAPA</button></header>
+          <div className="rc-workbench-body">{embeddedPanel}</div>
+        </section>
+      ) : null}
     </section>
   );
 }
