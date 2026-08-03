@@ -24,6 +24,7 @@ import './root-cognitive-runtime.css';
 import PpoiPhenomenonWizard from '@/components/root/PpoiPhenomenonWizard';
 
 const VIEWS = new Set<RootViewId>(['overview', 'cognitive-runtime', 'governance', 'agents', 'predictions', 'amv', 'evidence', 'execution', 'telemetry']);
+type EmbeddedView = Exclude<RootViewId, 'overview'>;
 
 function viewFromUrl(): RootViewId {
   if (typeof window === 'undefined') return 'overview';
@@ -44,6 +45,7 @@ function abortReason(signal: AbortSignal) {
 export function RootSovereignConsole({ initialState }: { initialState: RootSovereignState }) {
   const [state, setState] = useState(initialState);
   const [view, setView] = useState<RootViewId>('overview');
+  const [embeddedView, setEmbeddedView] = useState<EmbeddedView | null>(null);
   const [selection, setSelection] = useState<RootSelection | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [refreshWarning, setRefreshWarning] = useState<string | null>(null);
@@ -61,7 +63,10 @@ export function RootSovereignConsole({ initialState }: { initialState: RootSover
 
   useEffect(() => {
     setView(viewFromUrl());
-    const onPop = () => setView(viewFromUrl());
+    const onPop = () => {
+      setView(viewFromUrl());
+      setEmbeddedView(null);
+    };
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
   }, []);
@@ -123,6 +128,7 @@ export function RootSovereignConsole({ initialState }: { initialState: RootSover
     url.searchParams.set('view', next);
     window.history.pushState({}, '', url);
     setView(next);
+    setEmbeddedView(null);
     setSelection(null);
   }
 
@@ -169,15 +175,29 @@ export function RootSovereignConsole({ initialState }: { initialState: RootSover
     },
   };
 
-  const activeView = view === 'overview' ? <RootOverviewView state={state} onSelect={setSelection} />
-    : view === 'cognitive-runtime' ? <RootCognitiveRuntimeView state={state} onSelect={setSelection} />
-      : view === 'governance' ? <RootGovernanceView {...props} />
-        : view === 'agents' ? <RootAgentsView {...props} />
-          : view === 'predictions' ? <RootPredictionsView {...props} />
-            : view === 'amv' ? <RootAmvView {...props} />
-              : view === 'evidence' ? <RootEvidenceAtlasView {...props} />
-                : view === 'telemetry' ? <RootPhenomenologicalObservatory onRefresh={() => void refresh()} />
-                  : <RootExecutionView {...props} />;
+  function renderTool(target: EmbeddedView) {
+    if (target === 'cognitive-runtime') return <RootCognitiveRuntimeView state={state} onSelect={setSelection} />;
+    if (target === 'governance') return <RootGovernanceView {...props} />;
+    if (target === 'agents') return <RootAgentsView {...props} />;
+    if (target === 'predictions') return <RootPredictionsView {...props} />;
+    if (target === 'amv') return <RootAmvView {...props} />;
+    if (target === 'evidence') return <RootEvidenceAtlasView {...props} />;
+    if (target === 'telemetry') return <RootPhenomenologicalObservatory onRefresh={() => void refresh()} />;
+    return <RootExecutionView {...props} />;
+  }
+
+  const activeView = view === 'overview'
+    ? (
+      <RootOverviewView
+        state={state}
+        onSelect={setSelection}
+        embeddedView={embeddedView}
+        embeddedPanel={embeddedView ? renderTool(embeddedView) : null}
+        onOpenPanel={setEmbeddedView}
+        onClosePanel={() => setEmbeddedView(null)}
+      />
+    )
+    : renderTool(view as EmbeddedView);
 
   return (
     <main className="rs-console is-migrated">
@@ -235,20 +255,20 @@ export function RootSovereignConsole({ initialState }: { initialState: RootSover
       {pending ? (
         <div className="rs-dialog-backdrop" role="presentation">
           <section className="rs-dialog" role="dialog" aria-modal="true" aria-labelledby="rs-dialog-title">
-            <span>MUTATION CONFIRMATION</span>
+            <span>CONFIRMACIÓN DE ACCIÓN</span>
             <h2 id="rs-dialog-title">{pending.label}</h2>
             <dl>
-              <div><dt>EFFECT</dt><dd>{pending.effect}</dd></div>
-              <div><dt>TARGET</dt><dd>{pending.target}</dd></div>
-              <div><dt>ROUTE</dt><dd>{pending.method} {pending.endpoint}</dd></div>
+              <div><dt>QUÉ CAMBIARÁ</dt><dd>{pending.effect}</dd></div>
+              <div><dt>SOBRE QUÉ</dt><dd>{pending.target}</dd></div>
+              <div><dt>REGISTRO TÉCNICO</dt><dd>{pending.method} {pending.endpoint}</dd></div>
             </dl>
             <label className="rs-confirm">
               <input type="checkbox" checked={confirmed} onChange={(event) => setConfirmed(event.target.checked)} />
-              Confirmo explícitamente esta mutación y su objetivo.
+              Confirmo esta acción y comprendo su objetivo.
             </label>
             <div className="rs-dialog-actions">
-              <button type="button" onClick={() => { setPending(null); setConfirmed(false); }} disabled={running}>CANCEL</button>
-              <button type="button" onClick={() => void execute()} disabled={!confirmed || running}>{running ? 'EXECUTING' : 'CONFIRM AND EXECUTE'}</button>
+              <button type="button" onClick={() => { setPending(null); setConfirmed(false); }} disabled={running}>CANCELAR</button>
+              <button type="button" onClick={() => void execute()} disabled={!confirmed || running}>{running ? 'EJECUTANDO' : 'CONFIRMAR Y EJECUTAR'}</button>
             </div>
           </section>
         </div>
