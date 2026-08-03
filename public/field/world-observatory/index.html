@@ -1,1 +1,64 @@
-PLACEHOLDER
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>SFI · WORLD Observatory</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <style>
+    *{box-sizing:border-box}html,body{width:100%;height:100%;margin:0;overflow:hidden;background:#000;color:#b8d0e0;font-family:'Share Tech Mono',monospace}button{font:inherit}
+    #globe,#map{position:fixed;inset:0}#map{display:none}#map.active{display:block}canvas{display:block}
+    .crt{position:fixed;inset:0;pointer-events:none;z-index:20;background:repeating-linear-gradient(0deg,rgba(255,255,255,.012) 0 1px,transparent 2px 4px)}
+    .ui{position:fixed;inset:0;z-index:10;padding:14px 20px;display:flex;flex-direction:column;pointer-events:none}.ui>*{pointer-events:auto}
+    .bar,.panel{border:1px solid rgba(100,200,255,.10);background:rgba(2,5,9,.48);backdrop-filter:blur(9px)}
+    .bar{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 14px}.brand{display:flex;align-items:center;gap:12px}.logo{width:34px;height:34px;border:1px solid #d8a94e;border-radius:50%;display:grid;place-items:center;color:#d8a94e;font-size:10px}.title{letter-spacing:.22em;color:#d8e8f5;font-size:12px}.sub{font-size:8px;color:#5a7a8a;margin-top:4px}
+    .controls{display:flex;align-items:center;gap:6px;flex-wrap:wrap}.btn{border:1px solid rgba(100,200,255,.18);background:transparent;color:#6f8b98;padding:5px 10px;cursor:pointer}.btn.active,.btn:hover{color:#d8a94e;border-color:#d8a94e;background:rgba(216,169,78,.08)}.status{color:#79ff9b;border:1px solid rgba(121,255,155,.25);padding:5px 10px;cursor:pointer}
+    .bottom{margin-top:auto;display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}.panel{padding:12px}.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.metric small{display:block;color:#5a7a8a}.metric strong{font-size:18px;color:#d8a94e}.contract{font-size:9px;line-height:1.5;color:#77909c}.footer{position:fixed;left:20px;bottom:7px;color:#58707d;font-size:8px;z-index:12}
+    .drawer{position:fixed;right:-430px;top:70px;width:400px;max-height:78vh;overflow:auto;z-index:30;padding:18px;background:rgba(2,5,9,.96);border:1px solid rgba(216,169,78,.3);transition:right .3s}.drawer.active{right:20px}.drawer h2{color:#d8a94e;font-size:15px}.row{display:flex;justify-content:space-between;gap:14px;border-bottom:1px solid rgba(100,200,255,.07);padding:7px 0;font-size:9px}.row span:last-child{color:#d8e8f5;text-align:right}.close{float:right;border:0;background:none;color:#d8a94e;cursor:pointer}
+    @media(max-width:800px){.bar{align-items:flex-start;flex-direction:column}.bottom{grid-template-columns:1fr}.drawer{width:92%;right:-100%}.drawer.active{right:4%}.metrics{grid-template-columns:repeat(2,1fr)}}
+  </style>
+</head>
+<body>
+  <div id="globe"></div><div id="map"></div><div class="crt"></div>
+  <div class="ui">
+    <header class="bar">
+      <div class="brand"><div class="logo">SFI</div><div><div class="title">WORLD / FIELD OBSERVATORY</div><div id="sub" class="sub">CARGANDO ESTADO PERSISTENTE</div></div></div>
+      <div class="controls">
+        <button id="sphereBtn" class="btn active">ESFERA</button><button id="mapBtn" class="btn">MAPA</button>
+        <button class="btn filter active" data-family="all">TODOS</button><button class="btn filter" data-family="natural_event">NATURAL</button><button class="btn filter" data-family="aviation">AVIACIÓN</button>
+        <button id="reobserve" class="status">REOBSERVAR</button>
+      </div>
+    </header>
+    <section class="bottom">
+      <div class="panel metrics"><div class="metric"><small>F_s</small><strong id="fs">—</strong></div><div class="metric"><small>D_i</small><strong id="di">—</strong></div><div class="metric"><small>G_f</small><strong id="gf">—</strong></div><div class="metric"><small>Φ</small><strong id="phi">—</strong></div></div>
+      <div class="panel"><div class="metric"><small>OBSERVACIONES</small><strong id="obs">0</strong></div><div class="metric"><small>HIPÓTESIS ABIERTAS</small><strong id="hyp">0</strong></div></div>
+      <div class="panel contract">Datos reales persistidos en Supabase. Sin nodos simulados, sin puntuaciones externas y sin inferir coordenadas ausentes. Selecciona un nodo para abrir evidencia y lectura SFI.</div>
+    </section>
+  </div>
+  <div id="drawer" class="drawer"><button id="close" class="close">✕</button><h2 id="nodeTitle">OBSERVACIÓN</h2><div id="rows"></div></div>
+  <div id="footer" class="footer">SFI · OBSERVACIÓN LONGITUDINAL</div>
+  <script type="importmap">{"imports":{"three":"https://esm.sh/three@0.185.1","globe.gl":"https://esm.sh/globe.gl@2.28.6"}}</script>
+  <script type="module">
+    import Globe from 'globe.gl';
+    const API='/api/field/map/world'; const RUN='/api/field/map/world/reobserve'; const SKIN='/field/sfi_map.png';
+    const S={all:[],nodes:[],hypotheses:[],outcomes:[],learning:[],family:'all',view:'sphere',image:null};
+    const $=id=>document.getElementById(id); const n=v=>Number.isFinite(Number(v))?Number(v):0; const f=v=>n(v).toFixed(3); const esc=v=>String(v??'—').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const normalized=x=>{const r=x.reading||{};return {...x,lat:n(x.lat),lng:n(x.lng),fs:n(r.systemic_friction),di:n(r.interaction_density),gf:n(r.friction_gradient),phi:n(r.systemic_coherence),systems:Array.isArray(x.affectedSystems)?x.affectedSystems:[],r}};
+    const arcs=nodes=>{const out=[];for(let i=0;i<nodes.length;i++)for(let j=i+1;j<nodes.length;j++){const a=nodes[i],b=nodes[j],shared=a.systems.filter(s=>b.systems.includes(s));if(!shared.length)continue;if(Math.abs(a.lat-b.lat)+Math.abs(a.lng-b.lng)>150&&shared.length<2)continue;out.push({startLat:a.lat,startLng:a.lng,endLat:b.lat,endLng:b.lng,w:(a.fs+b.fs)/2});if(out.length>=180)return out;}return out};
+    const globe=Globe()($('globe')).globeImageUrl(SKIN).bumpImageUrl(SKIN).backgroundColor('#000').atmosphereColor('#6f9090').atmosphereAltitude(.25).pointLat('lat').pointLng('lng').pointColor(d=>d.fs>=.72?'#ff675f':d.fs>=.48?'#d8a94e':'#79ff9b').pointAltitude(d=>.02+d.fs*.13).pointRadius(d=>.12+d.di*.18).pointLabel(d=>`<div style="font:10px Share Tech Mono;background:#020509;padding:8px;border:1px solid #d8a94e;max-width:300px"><b>${esc(d.publisher)}</b><br>${esc(d.title)}<br>F_s ${f(d.fs)} · Φ ${f(d.phi)}</div>`).arcColor(()=>['#d8a94e','rgba(216,169,78,0)']).arcAltitude(d=>.08+d.w*.18).arcStroke(d=>.15+d.w*.4).arcDashLength(.4).arcDashGap(1).arcDashAnimateTime(2500);
+    globe.controls().autoRotate=true;globe.controls().autoRotateSpeed=.32;globe.pointOfView({lat:18,lng:-20,altitude:1.65});
+    const mapCanvas=document.createElement('canvas');$('map').appendChild(mapCanvas);const ctx=mapCanvas.getContext('2d');const image=new Image();image.src=SKIN;image.onload=()=>S.image=image;
+    function visible(){return S.family==='all'?S.all:S.all.filter(x=>x.sourceFamily===S.family)}
+    function apply(){S.nodes=visible();const a=arcs(S.nodes);globe.pointsData(S.nodes).arcsData(a);const avg=k=>S.nodes.length?S.nodes.reduce((q,x)=>q+n(x[k]),0)/S.nodes.length:0;$('fs').textContent=f(avg('fs'));$('di').textContent=f(avg('di'));$('gf').textContent=f(avg('gf'));$('phi').textContent=f(avg('phi'));$('obs').textContent=S.all.length;$('hyp').textContent=S.hypotheses.filter(x=>['OPEN','AWAITING_OUTCOME'].includes(String(x.status))).length}
+    function drawMap(){if(S.view!=='map')return;const box=$('map').getBoundingClientRect(),d=devicePixelRatio||1;mapCanvas.width=box.width*d;mapCanvas.height=box.height*d;mapCanvas.style.width=box.width+'px';mapCanvas.style.height=box.height+'px';ctx.setTransform(d,0,0,d,0,0);ctx.fillStyle='#000';ctx.fillRect(0,0,box.width,box.height);if(S.image)ctx.drawImage(S.image,0,0,box.width,box.height);for(const x of S.nodes){const px=(x.lng+180)/360*box.width,py=(90-x.lat)/180*box.height;ctx.beginPath();ctx.arc(px,py,3+x.di*5,0,Math.PI*2);ctx.fillStyle=x.fs>=.72?'#ff675f':x.fs>=.48?'#d8a94e':'#79ff9b';ctx.shadowColor=ctx.fillStyle;ctx.shadowBlur=10;ctx.fill();ctx.shadowBlur=0}requestAnimationFrame(drawMap)}
+    function openNode(x){const r=x.r||{};$('nodeTitle').textContent=x.title||'OBSERVACIÓN';const rows=[['FUENTE',x.publisher],['FAMILIA',x.sourceFamily],['FECHA',x.observedAt],['COORDENADAS',`${x.lat.toFixed(4)}, ${x.lng.toFixed(4)}`],['F_s',f(x.fs)],['D_i',f(x.di)],['G_f',f(x.gf)],['Φ',f(x.phi)],['SISTEMAS',x.systems.join(' · ')],['TENSIÓN',(r.tension?.between||[]).join(' ↔ ')],['TRAYECTORIA',r.trajectory?.direction],['SEÑAL ESPERADA',r.trajectory?.expectedSignal],['PERTURBACIÓN MÍNIMA',r.minimum_viable_perturbation?.action]];$('rows').innerHTML=rows.map(([a,b])=>`<div class="row"><span>${esc(a)}</span><span>${esc(b)}</span></div>`).join('');$('drawer').classList.add('active')}
+    globe.onPointClick(x=>{globe.pointOfView({lat:x.lat,lng:x.lng,altitude:.65},900);openNode(x)});$('close').onclick=()=>$('drawer').classList.remove('active');
+    function view(v){S.view=v;$('globe').style.display=v==='sphere'?'block':'none';$('map').classList.toggle('active',v==='map');$('sphereBtn').classList.toggle('active',v==='sphere');$('mapBtn').classList.toggle('active',v==='map');if(v==='map')drawMap()}$('sphereBtn').onclick=()=>view('sphere');$('mapBtn').onclick=()=>view('map');
+    document.querySelectorAll('.filter').forEach(b=>b.onclick=()=>{document.querySelectorAll('.filter').forEach(x=>x.classList.remove('active'));b.classList.add('active');S.family=b.dataset.family;apply()});
+    async function load(){const response=await fetch(API,{credentials:'include',cache:'no-store'}),body=await response.json();if(!response.ok||!body.ok)throw new Error(body.details||body.error||`HTTP ${response.status}`);S.all=(body.nodes||[]).map(normalized).filter(x=>Number.isFinite(x.lat)&&Number.isFinite(x.lng));S.hypotheses=body.hypotheses||[];S.outcomes=body.outcomes||[];S.learning=body.learning||[];$('sub').textContent=`${body.sourceState} · ${S.all.length} OBS · ${S.hypotheses.length} HYP`;$('footer').textContent=`SFI · ${body.generatedAt} · OUT ${S.outcomes.length} · LEARN ${S.learning.length}`;apply();$('reobserve').textContent='OPERATIVO'}
+    $('reobserve').onclick=async()=>{try{$('reobserve').textContent='REOBSERVANDO';const r=await fetch(RUN,{credentials:'include',cache:'no-store'}),b=await r.json();if(!r.ok||!b.ok)throw new Error(b.details||b.error);await load()}catch(e){$('reobserve').textContent='ERROR';$('sub').textContent=e.message}};
+    load().catch(e=>{$('reobserve').textContent='ERROR';$('sub').textContent=e.message});
+  </script>
+</body>
+</html>
