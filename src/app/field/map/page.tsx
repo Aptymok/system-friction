@@ -1,14 +1,22 @@
 import type { Metadata } from 'next';
-import { WorldFieldObservatory } from '@/components/field/map/WorldFieldObservatory';
 
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   title: 'WORLD Field Observatory · System Friction Institute',
-  description: 'Authenticated WORLD observatory for real observations, systemic-friction readings, hypotheses, automatic calibration and learning.',
+  description: 'Authenticated planetary observatory for real persisted observations, SFI readings, hypotheses, calibration and learning.',
   robots: { index: false, follow: false },
 };
 
 export default function FieldMapPage() {
-  return <WorldFieldObservatory />;
+  return (
+    <main className="relative h-screen w-full overflow-hidden bg-black">
+      <iframe
+        src="/field/world-observatory/index.html"
+        title="SFI WORLD Field Observatory"
+        className="absolute inset-0 h-full w-full border-0"
+        allow="fullscreen"
+      />
+    </main>
+  );
 }
