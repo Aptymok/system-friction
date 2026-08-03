@@ -4,8 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { RootSovereignState } from '@/lib/root/sovereign/rootSovereignState';
 import { RootActionStrip } from './RootActionStrip';
 import { RootInspector } from './RootInspector';
-import { RootModuleRail } from './RootModuleRail';
-import { RootTopBar } from './RootTopBar';
+import { RootMigratedWorkspace } from './RootMigratedWorkspace';
 import { RootAgentsView } from './views/RootAgentsView';
 import { RootAmvView } from './views/RootAmvView';
 import { RootCognitiveRuntimeView } from './views/RootCognitiveRuntimeView';
@@ -23,7 +22,6 @@ import './root-telemetry.css';
 import './root-phenomenological-observatory.css';
 import './root-cognitive-runtime.css';
 import PpoiPhenomenonWizard from '@/components/root/PpoiPhenomenonWizard';
-
 
 const VIEWS = new Set<RootViewId>(['overview', 'cognitive-runtime', 'governance', 'agents', 'predictions', 'amv', 'evidence', 'execution', 'telemetry']);
 
@@ -120,52 +118,6 @@ export function RootSovereignConsole({ initialState }: { initialState: RootSover
     };
   }, [refresh]);
 
-async function openPpoiCase(name:string) {
-
-  const response =
-    await fetch('/api/ppoi/phenomena', {
-      method:'POST',
-      credentials:'include',
-      headers:{
-        'Content-Type':'application/json'
-      },
-      body:JSON.stringify({
-        name,
-        resolveOnly:true
-      })
-    });
-
-
-  const data =
-    await response.json();
-
-
-  if(data.action === 'OPEN_EXISTING') {
-
-    window.location.href =
-      `/root/phenomena/${data.phenomenon.id}`;
-
-    return;
-  }
-
-
-  if(data.action === 'SELECT_EXISTING') {
-
-    setPpoiCandidates(
-      data.candidates ?? []
-    );
-
-    setShowPpoiCandidates(true);
-
-    return;
-  }
-
-
-  setInitialPpoiName(name);
-  setShowPpoiWizard(true);
-
-}
-
   function changeView(next: RootViewId) {
     const url = new URL(window.location.href);
     url.searchParams.set('view', next);
@@ -217,114 +169,68 @@ async function openPpoiCase(name:string) {
     },
   };
 
-  if (view === 'telemetry') {
-    return (
-<RootPhenomenologicalObservatory
-  onRefresh={() => void refresh()}
-/>
-    );
-  }
+  const activeView = view === 'overview' ? <RootOverviewView state={state} onSelect={setSelection} />
+    : view === 'cognitive-runtime' ? <RootCognitiveRuntimeView state={state} onSelect={setSelection} />
+      : view === 'governance' ? <RootGovernanceView {...props} />
+        : view === 'agents' ? <RootAgentsView {...props} />
+          : view === 'predictions' ? <RootPredictionsView {...props} />
+            : view === 'amv' ? <RootAmvView {...props} />
+              : view === 'evidence' ? <RootEvidenceAtlasView {...props} />
+                : view === 'telemetry' ? <RootPhenomenologicalObservatory onRefresh={() => void refresh()} />
+                  : <RootExecutionView {...props} />;
 
   return (
-    <main className="rs-console">
-      <RootTopBar state={state} refreshing={refreshing} onRefresh={() => void refresh()} />
-      <RootModuleRail active={view} onChange={changeView} />
-      <section className="rs-instrument" aria-live="polite">
-        {view === 'overview' ? <RootOverviewView state={state} onSelect={setSelection} />
-          : view === 'cognitive-runtime' ? <RootCognitiveRuntimeView state={state} onSelect={setSelection} />
-            : view === 'governance' ? <RootGovernanceView {...props} />
-              : view === 'agents' ? <RootAgentsView {...props} />
-                : view === 'predictions' ? <RootPredictionsView {...props} />
-                  : view === 'amv' ? <RootAmvView {...props} />
-                    : view === 'evidence' ? <RootEvidenceAtlasView {...props} />
-                      : <RootExecutionView {...props} />}
-      </section>
+    <main className="rs-console is-migrated">
+      <RootMigratedWorkspace
+        view={view}
+        state={state}
+        refreshing={refreshing}
+        warning={refreshWarning}
+        onChange={changeView}
+        onRefresh={() => void refresh()}
+      >
+        {activeView}
+      </RootMigratedWorkspace>
+
       <RootInspector selection={selection} />
       <RootActionStrip events={events} stale={stale} warning={refreshWarning} />
-      {
-showPpoiWizard && (
 
-<PpoiPhenomenonWizard
+      {showPpoiWizard ? (
+        <PpoiPhenomenonWizard
+          initialName={initialPpoiName}
+          onCreated={(phenomenon) => {
+            setShowPpoiWizard(false);
+            window.location.href = `/root/phenomena/${phenomenon.id}`;
+          }}
+          onCancel={() => setShowPpoiWizard(false)}
+        />
+      ) : null}
 
-initialName={initialPpoiName}
-
-onCreated={(phenomenon)=>{
-
-setShowPpoiWizard(false);
-
-window.location.href =
-`/root/phenomena/${phenomenon.id}`;
-
-}}
-
-onCancel={()=>{
-
-setShowPpoiWizard(false);
-
-}}
-
-/>
-
-)
-}
-{
-showPpoiCandidates && (
-
-<div className="rs-dialog-backdrop">
-
-<section className="rs-dialog">
-
-<h2>
-EXPEDIENTES SIMILARES
-</h2>
-
-
-{
-ppoiCandidates.map(
-(candidate:any)=>(
-
-<button
-key={candidate.id}
-type="button"
-onClick={()=>{
-
-window.location.href =
-`/root/phenomena/${candidate.id}`;
-
-}}
->
-
-{candidate.fp_code}
--
-{candidate.name}
-
-</button>
-
-)
-)
-}
-
-
-<button
-type="button"
-onClick={()=>{
-
-setShowPpoiCandidates(false);
-
-setShowPpoiWizard(true);
-
-}}
->
-CREAR NUEVO EXPEDIENTE
-</button>
-
-
-</section>
-
-</div>
-
-)
-}
+      {showPpoiCandidates ? (
+        <div className="rs-dialog-backdrop">
+          <section className="rs-dialog">
+            <h2>EXPEDIENTES SIMILARES</h2>
+            {ppoiCandidates.map((candidate: any) => (
+              <button
+                key={candidate.id}
+                type="button"
+                onClick={() => { window.location.href = `/root/phenomena/${candidate.id}`; }}
+              >
+                {candidate.fp_code} - {candidate.name}
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={() => {
+                setShowPpoiCandidates(false);
+                setShowPpoiWizard(true);
+              }}
+            >
+              CREAR NUEVO EXPEDIENTE
+            </button>
+          </section>
+        </div>
+      ) : null}
 
       {pending ? (
         <div className="rs-dialog-backdrop" role="presentation">
