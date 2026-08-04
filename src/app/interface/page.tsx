@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import UserInterfaceExperience from '@/components/interface/UserInterfaceExperience';
+import { SfiSurfaceGuide } from '@/components/sfi/SfiSurfaceGuide';
 import type { PhenotypeProfile } from '@/lib/user-interface/phenotype';
 import { createServerSupabaseClient } from '@/runtime/supabase/server';
 
@@ -96,12 +97,20 @@ export default async function InterfacePage({ searchParams }: PageProps) {
   }
 
   return (
-    <UserInterfaceExperience
-      authenticated={Boolean(user)}
-      userEmail={user?.email ?? null}
-      entitlement={entitlement}
-      snapshot={snapshot}
-      paymentStatus={params?.payment}
-    />
+    <>
+      <SfiSurfaceGuide
+        current="field"
+        eyebrow="SFI · trayectoria privada"
+        title="Deja que una situación aparezca antes de decidir qué significa."
+        description="FIELD conserva observaciones, evidencia y cambios a lo largo del tiempo. Su función no es etiquetarte ni producir una respuesta inmediata: organiza una trayectoria para reconocer persistencias y proponer, sólo cuando exista base suficiente, una microejecución reversible."
+      />
+      <UserInterfaceExperience
+        authenticated={Boolean(user)}
+        userEmail={user?.email ?? null}
+        entitlement={entitlement}
+        snapshot={snapshot}
+        paymentStatus={params?.payment}
+      />
+    </>
   );
 }
