@@ -1,131 +1,155 @@
 import 'server-only';
-import type { RootAgent, RootDataStatus, RootRow } from '../rootSovereignState';
-import { dateValue, selectRows, source, text } from './readerSupport';
 
-type AgentInput = {
+import { SFI_COGNITIVE_AGENT_REGISTRY } from '@/lib/sfi/cognitive-runtime/registry';
+import type { RootAgent, RootDataStatus } from '../rootSovereignState';
+import { source } from './readerSupport';
+
+type AgenticCapability = {
   id: string;
-  role: string;
-  sourceName: string;
-  row: RootRow | null;
-  error: string | null;
-  observedAt: string | null;
-  stateValue: string | null;
-  lastResult: string | null;
+  name: string;
+  purpose: string;
+  layer: string;
+  route: string;
+  providerAware?: boolean;
+  approvalRequired?: boolean;
 };
 
-function agent(input: AgentInput): RootAgent {
-  const status: RootDataStatus = input.error ? 'degraded' : input.row ? 'observed' : 'missing';
-  const stateValue = input.error ? 'degraded' : input.stateValue ?? (input.row ? 'observed' : 'empty');
+const AGENTIC_CAPABILITIES: AgenticCapability[] = [
+  {
+    id: 'world_vector_agent',
+    name: 'World Vector Agent',
+    purpose: 'Integra observación mundial, oportunidades y estado operativo para producir una lectura trazable.',
+    layer: 'observe',
+    route: '/api/root/agentic/world-vector',
+  },
+  {
+    id: 'moph_agent',
+    name: 'MOP-H Agent',
+    purpose: 'Interpreta una fricción observada y propone una perturbación mínima reversible sustentada por evidencia.',
+    layer: 'reconstruct',
+    route: '/api/interface/observatory/interpret',
+    providerAware: true,
+  },
+  {
+    id: 'neural_graph_agent',
+    name: 'Neural Graph Agent',
+    purpose: 'Recupera relaciones y evidencia del grafo persistido sin crear conexiones de respaldo.',
+    layer: 'relate',
+    route: '/api/root/agentic/neural-graph',
+  },
+  {
+    id: 'amv_agent',
+    name: 'AMV Agent',
+    purpose: 'Recupera memoria operativa, recurrencias y asociaciones institucionales persistidas.',
+    layer: 'remember',
+    route: '/api/root/agentic/amv',
+  },
+  {
+    id: 'prediction_agent',
+    name: 'Prediction Agent',
+    purpose: 'Formula predicciones y probabilidades con base explícita de evidencia e incertidumbre.',
+    layer: 'project',
+    route: '/api/root/agentic/prediction',
+  },
+  {
+    id: 'client_finder_agent',
+    name: 'Client Finder Agent',
+    purpose: 'Detecta oportunidades comerciales, ejecuta IFNORM y prepara una propuesta para revisión humana.',
+    layer: 'decide',
+    route: '/api/root/agentic/client-finder',
+    providerAware: true,
+    approvalRequired: true,
+  },
+  {
+    id: 'report_agent',
+    name: 'Report Agent',
+    purpose: 'Genera lecturas institucionales, calibraciones, borradores y reportes sustentados por evidencia.',
+    layer: 'report',
+    route: '/api/root/agentic/report',
+    providerAware: true,
+    approvalRequired: true,
+  },
+];
+
+function registryAgent(entry: (typeof SFI_COGNITIVE_AGENT_REGISTRY)[number]): RootAgent {
+  const missingCapability = entry.missingCapability === true;
+  const gated = entry.humanApprovalRequired === true;
+  const status: RootDataStatus = missingCapability ? 'missing' : gated ? 'gated' : 'observed';
+  const availability = missingCapability
+    ? 'capability_missing'
+    : entry.operationalMode
+      ? 'operational'
+      : gated
+        ? 'registered_gated'
+        : 'registered';
+
   return {
-    id: input.id,
-    role: input.role,
+    id: entry.id,
+    role: `${entry.name} · ${entry.layer} · ${entry.purpose}`,
     state: {
-      value: stateValue,
+      value: availability,
       status,
-      source: input.sourceName,
-      observedAt: input.observedAt,
+      source: 'SFI_COGNITIVE_AGENT_REGISTRY',
+      observedAt: null,
       confidence: null,
       evidenceIds: [],
-      explanation: 'Estado derivado de la última fila persistida del subsistema; no es un health score.',
-      warning: input.error,
+      explanation: missingCapability
+        ? 'El agente está registrado, pero declara una capacidad faltante y no debe presentarse como operativo.'
+        : entry.operationalMode
+          ? 'El agente está registrado y declarado en modo operativo por el runtime cognitivo.'
+          : 'El agente existe en el registro canónico. Su ausencia de ejecución reciente no significa que no exista.',
+      warning: missingCapability ? 'Capacidad declarada como faltante.' : gated ? 'Requiere aprobación humana para acciones gobernadas.' : null,
     },
     provider: null,
     model: null,
-    lastRun: input.observedAt,
-    lastResult: input.lastResult,
-    availability: input.error ? 'degraded' : input.row ? 'available' : 'empty',
-    error: input.error,
+    lastRun: null,
+    lastResult: null,
+    availability,
+    error: missingCapability ? 'missing_capability' : null,
+  };
+}
+
+function capabilityAgent(entry: AgenticCapability): RootAgent {
+  return {
+    id: entry.id,
+    role: `${entry.name} · ${entry.layer} · ${entry.purpose}`,
+    state: {
+      value: entry.approvalRequired ? 'available_gated' : 'available',
+      status: entry.approvalRequired ? 'gated' : 'observed',
+      source: 'src/lib/agents + authenticated API route',
+      observedAt: null,
+      confidence: null,
+      evidenceIds: [],
+      explanation: 'Capacidad agentic implementada en código y expuesta mediante una ruta autenticada. La ejecución y el proveedor se observan por traza, no se inventan en este inventario.',
+      warning: entry.approvalRequired ? 'La salida puede requerir revisión humana antes de publicación, contacto o mutación.' : null,
+    },
+    provider: entry.providerAware ? 'resolved_at_runtime' : null,
+    model: entry.providerAware ? 'resolved_at_runtime' : null,
+    lastRun: null,
+    lastResult: null,
+    availability: entry.approvalRequired ? 'available_gated' : 'available',
+    error: null,
   };
 }
 
 export async function readRootAgents() {
-  const [world, sfiGraph, canonicalGraph, amv, prediction] = await Promise.all([
-    selectRows({
-      table: 'world_vector_observations',
-      select: 'id,status,confidence,dominant_signal,warnings,observed_at,created_at',
-      order: 'observed_at',
-      limit: 1,
-    }),
-    selectRows({
-      table: 'sfi_graph_nodes',
-      select: 'id,node_key,status,updated_at,created_at',
-      order: 'updated_at',
-      limit: 1,
-    }),
-    selectRows({
-      table: 'graph_nodes',
-      select: 'id,node_key,node_type,epistemic_class,updated_at,created_at',
-      order: 'updated_at',
-      limit: 1,
-    }),
-    selectRows({
-      table: 'sfi_amv_memory',
-      select: 'id,module,evaluation,requires_human_validation,created_at',
-      order: 'created_at',
-      limit: 1,
-    }),
-    selectRows({
-      table: 'sfi_predictive_runs',
-      select: 'id,status,calibration_status,subject_type,subject_id,updated_at,created_at',
-      order: 'updated_at',
-      limit: 1,
-    }),
-  ]);
+  const byId = new Map<string, RootAgent>();
 
-  const worldRow = world.rows[0] ?? null;
-  const graphRow = sfiGraph.rows[0] ?? canonicalGraph.rows[0] ?? null;
-  const graphError = [sfiGraph.error, canonicalGraph.error].filter(Boolean).join(' | ') || null;
-  const amvRow = amv.rows[0] ?? null;
-  const predictionRow = prediction.rows[0] ?? null;
+  for (const entry of SFI_COGNITIVE_AGENT_REGISTRY) {
+    byId.set(entry.id, registryAgent(entry));
+  }
 
-  const agents: RootAgent[] = [
-    agent({
-      id: 'WORLD-VECTOR',
-      role: 'World Vector observation',
-      sourceName: 'world_vector_observations',
-      row: worldRow,
-      error: world.error,
-      observedAt: dateValue(worldRow?.observed_at ?? worldRow?.created_at),
-      stateValue: text(worldRow?.status, '') || null,
-      lastResult: text(worldRow?.dominant_signal, '') || null,
-    }),
-    agent({
-      id: 'NEURAL-GRAPH',
-      role: 'Persistent evidence graph',
-      sourceName: 'sfi_graph_nodes + graph_nodes',
-      row: graphRow,
-      error: graphError,
-      observedAt: dateValue(graphRow?.updated_at ?? graphRow?.created_at),
-      stateValue: text(graphRow?.status ?? graphRow?.epistemic_class, '') || null,
-      lastResult: graphRow ? text(graphRow.node_key ?? graphRow.id, 'node persisted') : null,
-    }),
-    agent({
-      id: 'AMV',
-      role: 'Operational memory',
-      sourceName: 'sfi_amv_memory',
-      row: amvRow,
-      error: amv.error,
-      observedAt: dateValue(amvRow?.created_at),
-      stateValue: amvRow ? 'persisted' : null,
-      lastResult: amvRow ? text(amvRow.module, 'memory persisted') : null,
-    }),
-    agent({
-      id: 'PREDICTION',
-      role: 'Predictive learning engine',
-      sourceName: 'sfi_predictive_runs',
-      row: predictionRow,
-      error: prediction.error,
-      observedAt: dateValue(predictionRow?.updated_at ?? predictionRow?.created_at),
-      stateValue: text(predictionRow?.status, '') || null,
-      lastResult: predictionRow ? [predictionRow.subject_type, predictionRow.subject_id].filter(Boolean).map(String).join(' · ') || null : null,
-    }),
-  ];
+  for (const entry of AGENTIC_CAPABILITIES) {
+    if (!byId.has(entry.id)) byId.set(entry.id, capabilityAgent(entry));
+  }
+
+  const agents = [...byId.values()].sort((a, b) => a.role.localeCompare(b.role, 'es'));
 
   return source(
     { agents },
-    'persisted subsystem status',
-    [world.error, graphError, amv.error, prediction.error],
-    agents.map((item) => item.lastRun).find(Boolean) ?? null,
+    'canonical cognitive registry + implemented agentic capabilities',
+    [],
+    null,
     false,
   );
 }
