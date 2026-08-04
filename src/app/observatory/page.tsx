@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { AmvPhaseStatusPanel } from '@/components/amv/AmvPhaseStatusPanel';
 import { PublicWorldVectorObservatory } from '@/components/observatory/public/PublicWorldVectorObservatory';
+import { SfiSurfaceGuide } from '@/components/sfi/SfiSurfaceGuide';
 import { readPublicObservatoryState } from '@/lib/observatory/public/readPublicObservatoryState';
 
 const PUBLIC_OBSERVATORY_DESCRIPTION =
@@ -25,25 +27,19 @@ export const metadata: Metadata = {
 export default async function ObservatoryPage() {
   const state = await readPublicObservatoryState();
   return (
-    <>
-      <div className="border-b border-[#d8a94e]/20 bg-[#060605] px-4 py-3 font-mono text-[10px] tracking-[0.16em] text-[#78909c]">
-        <div className="mx-auto flex max-w-[1600px] flex-wrap items-center justify-between gap-3">
-          <div>
-            <strong className="text-[#d8a94e]">PUBLIC OBSERVATORY · WORLD STATE</strong>
-            <span className="ml-3">SÍNTESIS AGREGADA, LONGITUDINAL Y PUBLICABLE</span>
-          </div>
-          <a
-            href="/field/map"
-            className="border border-[#d8a94e]/35 px-3 py-2 text-[#d8a94e] transition hover:bg-[#d8a94e]/10"
-          >
-            OPEN WORLD FIELD · MAPA LOCALIZADO →
-          </a>
-        </div>
-      </div>
+    <main className="min-h-screen bg-[#060605]">
+      <SfiSurfaceGuide
+        current="observatory"
+        eyebrow="SFI · síntesis pública"
+        title="Una lectura agregada del estado mundial."
+        description="El Observatorio Público presenta únicamente información agregada, longitudinal y publicable. No muestra casos privados, no permite intervenir y no sustituye la exploración localizada del Campo Mundial."
+      >
+        <Link href="/field/map">ABRIR CAMPO MUNDIAL</Link>
+      </SfiSurfaceGuide>
       <div className="bg-[#060605] px-4 pt-4">
-        <AmvPhaseStatusPanel endpoint="/api/observatory/instrument-status" compact title="OBSERVATORY · INSTRUMENT MATURITY" />
+        <AmvPhaseStatusPanel endpoint="/api/observatory/instrument-status" compact title="MADUREZ DEL INSTRUMENTO" />
       </div>
       <PublicWorldVectorObservatory state={state} />
-    </>
+    </main>
   );
 }
