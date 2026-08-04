@@ -1,4 +1,6 @@
+import Link from 'next/link';
 import { StudioProductionConsole } from '@/components/studio/production/StudioProductionConsole';
+import { SfiSurfaceGuide } from '@/components/sfi/SfiSurfaceGuide';
 import { readStudioProductionState } from '@/lib/studio/production/studioProductionAdapter';
 import { requireAuthenticatedUser, requireFounder } from '@/lib/system/access/server';
 
@@ -16,5 +18,18 @@ export default async function StudioPage({ searchParams }: { searchParams?: Prom
     includeLegacy = false;
   }
   const state = await readStudioProductionState({ ownerId: user.id, includeLegacy, objectId });
-  return <StudioProductionConsole state={state} />;
+
+  return (
+    <main className="min-h-screen bg-[#050504]">
+      <SfiSurfaceGuide
+        current="studio"
+        eyebrow="SFI · análisis y transformación"
+        title="Trabaja sobre un objeto sin perder su origen ni su retorno."
+        description="STUDIO recibe un objeto o señal ya observado, muestra qué información lo sostiene y permite analizar, modelar o probar una transformación. Una salida de STUDIO sólo adquiere valor cuando puede regresar a FIELD como condición observable, intervención reversible o resultado verificable."
+      >
+        <Link href="/interface/observatory">VOLVER A MI TRAYECTORIA</Link>
+      </SfiSurfaceGuide>
+      <StudioProductionConsole state={state} />
+    </main>
+  );
 }
