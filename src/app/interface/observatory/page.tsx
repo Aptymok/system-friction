@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import UserAttractorFieldExperience from '@/components/interface/UserAttractorFieldExperience';
+import { FieldStudioTransfer } from '@/components/interface/FieldStudioTransfer';
 import { SfiSurfaceGuide } from '@/components/sfi/SfiSurfaceGuide';
 import { readPublicObservatoryState } from '@/lib/observatory/public/readPublicObservatoryState';
 import { createServerSupabaseClient } from '@/runtime/supabase/server';
@@ -51,15 +51,7 @@ export default async function UserObservatoryPage() {
     .maybeSingle();
   if (!attractor) redirect('/interface');
 
-  const [
-    caseQuery,
-    entitlementQuery,
-    nodesQuery,
-    edgesQuery,
-    assessmentsQuery,
-    nextReturnQuery,
-    worldState,
-  ] = await Promise.all([
+  const [caseQuery, entitlementQuery, nodesQuery, edgesQuery, assessmentsQuery, nextReturnQuery, worldState] = await Promise.all([
     supabase.from('field_cases').select('id,title,status,created_at').eq('id', attractor.case_id).eq('owner_id', user.id).single(),
     supabase.from('sfi_user_entitlements').select('tier,status,valid_until').eq('user_id', user.id).maybeSingle(),
     supabase.from('sfi_user_graph_nodes').select('id,node_type,label,summary,weight,is_central,metadata,observed_at').eq('owner_id', user.id).eq('case_id', attractor.case_id).order('observed_at', { ascending: true }).limit(120),
@@ -105,18 +97,19 @@ export default async function UserObservatoryPage() {
         eyebrow="SFI · observación longitudinal privada"
         title="Tu trayectoria se construye con evidencia, retornos y cambios observados."
         description="Este observatorio personal muestra únicamente relaciones persistidas. Una señal aislada no se convierte en diagnóstico. Las interpretaciones y microejecuciones aparecen como propuestas revisables y nunca se ejecutan por sí solas."
-      >
-        <Link href="/studio">TRABAJAR UN OBJETO EN STUDIO</Link>
-      </SfiSurfaceGuide>
+      />
+      <div className="bg-[#050504] px-5 pt-6 md:px-10">
+        <div className="mx-auto max-w-[1500px]">
+          <FieldStudioTransfer
+            caseId={caseQuery.data.id}
+            nodes={nodes.map((node) => ({ id: node.id, label: node.label, nodeType: node.node_type, observedAt: node.observed_at }))}
+          />
+        </div>
+      </div>
       <UserAttractorFieldExperience
         userEmail={user.email ?? null}
         entitlement={entitlement}
-        caseData={{
-          id: caseQuery.data.id,
-          title: caseQuery.data.title,
-          status: caseQuery.data.status,
-          createdAt: caseQuery.data.created_at,
-        }}
+        caseData={{ id: caseQuery.data.id, title: caseQuery.data.title, status: caseQuery.data.status, createdAt: caseQuery.data.created_at }}
         attractor={{
           id: attractor.id,
           code: attractor.code,
