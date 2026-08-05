@@ -2,11 +2,12 @@ import 'server-only';
 
 import { redirect } from 'next/navigation';
 import { createServerSupabaseClient, createServiceSupabaseClient } from '@/runtime/supabase/server';
+import { findInstitutionalMember } from './institutionalMembers';
 
 export class AccessDeniedError extends Error {
   constructor(
     public readonly status: 401 | 403 | 404,
-    public readonly code: 'AUTH_REQUIRED' | 'FOUNDER_REQUIRED' | 'FIELD_USER_REQUIRED' | 'OWNER_REQUIRED' | 'NOT_FOUND',
+    public readonly code: 'AUTH_REQUIRED' | 'FOUNDER_REQUIRED' | 'FIELD_USER_REQUIRED' | 'SFI_MEMBER_REQUIRED' | 'OWNER_REQUIRED' | 'NOT_FOUND',
     message: string,
   ) {
     super(message);
@@ -40,19 +41,75 @@ export async function requireAuthenticatedUser() {
   return { supabase, user: data.user };
 }
 
-export async function requireFieldUser() {
-  const context = await requireAuthenticatedUser();
-  const { data: profile } = await context.supabase
+async function readOrProvisionInstitutionalProfile(user: { id: string; email?: string | null }) {
+  const member = findInstitutionalMember(user.email);
+  const service = createServiceSupabaseClient();
+  const existing = await service
     .from('profiles')
-    .select('role')
-    .eq('user_id', context.user.id)
+    .select('user_id,alias,email,role,module_access,subscription_tier')
+    .eq('user_id', user.id)
     .maybeSingle();
 
-  if (!profile) {
+  if (existing.error) throw existing.error;
+  if (existing.data) return { profile: existing.data, member };
+  if (!member) return { profile: null, member: null };
+
+  const inserted = await service
+    .from('profiles')
+    .insert({
+      user_id: user.id,
+      alias: member.displayName,
+      email: member.email,
+      role: member.role,
+      subscription_tier: 'enterprise',
+      module_access: {
+        observatory: member.modules.observatory,
+        planner: member.modules.field,
+        simulator: member.modules.studio,
+        executor: false,
+        social: member.modules.worldField,
+        field: member.modules.field,
+        studio: member.modules.studio,
+        world_field: member.modules.worldField,
+        root: false,
+      },
+      last_seen_at: new Date().toISOString(),
+    })
+    .select('user_id,alias,email,role,module_access,subscription_tier')
+    .single();
+
+  if (inserted.error || !inserted.data) throw inserted.error ?? new Error('SFI member profile could not be created.');
+  return { profile: inserted.data, member };
+}
+
+export async function requireSfiMember() {
+  const context = await requireAuthenticatedUser();
+  const resolved = await readOrProvisionInstitutionalProfile(context.user);
+  const allowedRoles = new Set(['operator', 'controller', 'root', 'system']);
+  if (!resolved.profile || (!allowedRoles.has(String(resolved.profile.role)) && !resolved.member)) {
+    throw new AccessDeniedError(403, 'SFI_MEMBER_REQUIRED', 'An active SFI institutional membership is required.');
+  }
+  return { ...context, profile: resolved.profile, member: resolved.member };
+}
+
+export async function requireSfiMemberPage(nextPath = '/member') {
+  try {
+    return await requireSfiMember();
+  } catch (error) {
+    if (error instanceof AccessDeniedError && error.status === 401) {
+      redirect(`/login?next=${encodeURIComponent(nextPath)}`);
+    }
+    redirect('/unauthorized');
+  }
+}
+
+export async function requireFieldUser() {
+  const context = await requireAuthenticatedUser();
+  const resolved = await readOrProvisionInstitutionalProfile(context.user);
+  if (!resolved.profile) {
     throw new AccessDeniedError(403, 'FIELD_USER_REQUIRED', 'A FIELD profile is required.');
   }
-
-  return { ...context, profile };
+  return { ...context, profile: resolved.profile };
 }
 
 export async function requireFounder() {
