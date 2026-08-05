@@ -14,8 +14,8 @@ export type SfiInstitutionalMember = {
 
 const MEMBERS: SfiInstitutionalMember[] = [
   {
-    email: 'edwing.tzolkin@gmail.com',
-    displayName: 'Edwing',
+    email: 'edwin.tzolkin@gmail.com',
+    displayName: 'Edwin',
     role: 'operator',
     workspace: '/member',
     modules: {
