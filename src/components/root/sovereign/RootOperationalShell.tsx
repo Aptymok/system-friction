@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { RootRow, RootSovereignState } from '@/lib/root/sovereign/rootSovereignState';
 import type { RootActionRequest, RootSelection } from './sovereignTypes';
 import { RootRevenueWorkspace } from './RootRevenueWorkspace';
-import './root-operational-shell.css';
+import './root-faithful-observatory.css';
 
 type ModuleId='attention'|'cases'|'attractors'|'interested'|'studio'|'field'|'map'|'interface'|'observatory'|'library'|'agents'|'governance'|'execution'|'history';
 type Instrument='phi'|'field'|'twin'|'world'|'tension'|'semantic'|'projection'|'entropy'|'chronology';
