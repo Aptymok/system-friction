@@ -17,7 +17,7 @@ export type RootActionRequest = {
   label: string;
   effect: string;
   target: string;
-  endpoint: string;
+  endpoint: string | null;
   method: 'POST';
   body?: Record<string, unknown>;
 };
