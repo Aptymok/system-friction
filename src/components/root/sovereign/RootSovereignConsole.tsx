@@ -93,6 +93,7 @@ export function RootSovereignConsole({ initialState }: { initialState: RootSover
     setEvents((current) => [started, ...current].slice(0, 30));
 
     try {
+      if (!action.endpoint) throw new Error('Esta capacidad está registrada, pero todavía no tiene un endpoint ejecutable.');
       const response = await fetch(action.endpoint, {
         method: action.method,
         credentials: 'include',
