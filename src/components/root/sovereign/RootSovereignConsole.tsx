@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { RootSovereignState } from '@/lib/root/sovereign/rootSovereignState';
 import type { RootActionRequest, RootSelection, RootSessionEvent } from './sovereignTypes';
-import { RootGovernanceObservatory } from './RootGovernanceObservatory';
+import { RootOperationalShell } from './RootOperationalShell';
 import './root-sovereign.css';
 
 function auditId(body: Record<string, unknown>) {
@@ -119,7 +119,7 @@ export function RootSovereignConsole({ initialState }: { initialState: RootSover
 
   return (
     <main className="rs-console is-governance-observatory">
-      <RootGovernanceObservatory
+      <RootOperationalShell
         state={state}
         refreshing={refreshing}
         warning={refreshWarning}
