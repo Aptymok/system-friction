@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { RootSovereignState } from '@/lib/root/sovereign/rootSovereignState';
 import type { RootActionRequest, RootSelection, RootSessionEvent } from './sovereignTypes';
+import { RootAttentionDirector } from './RootAttentionDirector';
 import { RootGovernanceObservatory } from './RootGovernanceObservatory';
 import './root-sovereign.css';
 
@@ -119,6 +120,8 @@ export function RootSovereignConsole({ initialState }: { initialState: RootSover
 
   return (
     <main className="rs-console is-governance-observatory">
+      <RootAttentionDirector state={state} />
+
       <RootGovernanceObservatory
         state={state}
         refreshing={refreshing}
