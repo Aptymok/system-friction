@@ -2,6 +2,7 @@ import '@/app/globals.css';
 import type { Metadata, Viewport } from 'next';
 import { AuthProvider } from '@/components/auth/AuthProvider';
 import { GoogleAnalytics } from '@/components/analytics/GoogleAnalytics';
+import { SfiGlobalNavigation } from '@/components/navigation/SfiGlobalNavigation';
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -46,6 +47,7 @@ export default function RootLayout({
     <html lang="es">
       <body>
         <AuthProvider>
+          <SfiGlobalNavigation />
           {children}
         </AuthProvider>
         <GoogleAnalytics />
