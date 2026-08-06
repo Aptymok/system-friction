@@ -26,9 +26,12 @@ export function calculateFS(phiSfi: number): number {
   return clamp01(1 - clamp01(phiSfi));
 }
 
-export function calculatePsiMoph(ihg: number, nti: number, ldi: number, epsilon: number, go: number): number {
+export function calculatePhiH(ihg: number, nti: number, ldi: number, epsilon: number, go: number): number {
   return clamp01(((1 / (clamp01(ihg) + 0.1)) * clamp01(nti) * (1 / (clamp01(ldi) + 0.1)) + clamp01(epsilon) - 0.15 * clamp01(go)) / 12);
 }
+
+/** @deprecated Use calculatePhiH. */
+export const calculatePsiMoph = calculatePhiH;
 
 export function calculateCField(ihg: number, ldi: number, nti: number): number {
   return clamp01(clamp01(ihg) * (1 - clamp01(ldi)) * (1 - 0.35 * clamp01(nti)));
