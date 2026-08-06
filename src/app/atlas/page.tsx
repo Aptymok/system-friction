@@ -2,6 +2,10 @@ import { readInstitutionalViewState } from '@/lib/sfi/institutionalViewState';
 
 export const dynamic = 'force-dynamic';
 
+function metric(value: number | null) {
+  return value === null ? '—' : value.toFixed(3);
+}
+
 export default async function AtlasPage() {
   const state = await readInstitutionalViewState({ entityId: 'atlas', entityType: 'ORGANIZATION', label: 'Atlas institucional' });
 
@@ -10,8 +14,8 @@ export default async function AtlasPage() {
       <h1>Atlas</h1>
       <p>Vista de mapa de campo y contexto institucional alimentada por el estado operativo y el grafo canónico.</p>
       <ul>
-        <li><strong>C_FIELD:</strong> {state.metrics.cField.toFixed(3)}</li>
-        <li><strong>PSI_MOPH:</strong> {state.metrics.psiMoph.toFixed(3)}</li>
+        <li><strong>C_FIELD:</strong> {metric(state.metrics.cField)}</li>
+        <li><strong>MOP-H:</strong> lectura por sesión; no se agrega al estado institucional</li>
         <li><strong>Grafo:</strong> {state.metrics.graphNodeCount} nodos · {state.metrics.graphEdgeCount} relaciones</li>
         <li><strong>Fricción:</strong> {state.friction.topFriction.toFixed(3)} · {state.friction.summary}</li>
       </ul>
