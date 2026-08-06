@@ -6,25 +6,21 @@ import { buildDerivedMihmRuntime } from '@/lib/evaluator/derivedMihmRuntime';
 import { scoreFrictionToInstrumentState } from '@/lib/mihm/adapters/scoreFrictionInstrumentAdapter';
 import { worldVectorToInstrumentState } from '@/lib/mihm/adapters/worldVectorInstrumentAdapter';
 import type { MihmInstrumentState } from '@/lib/mihm/instrumentContract';
+import { clamp01, evaluateSfi } from '@/lib/sfi/math';
 import type { RootDataStatus, RootObservedValue, RootSystemItem } from '../rootSovereignState';
 import { errorMessage } from './readerSupport';
 
-/**
- * Este archivo existe para responder una sola pregunta, en un solo lugar:
- * "¿cómo está el instrumento, ahora mismo, sin tener que recordar dónde
- * mirar?" Llena `matrix` en readRootSystemState.ts, que hasta hoy estaba
- * hardcodeado vacío (`matrix: []`). No crea una vista nueva — se muestra en
- * el OVERVIEW que ya existe, vía el componente SystemMatrix que ya existía
- * pero no tenía nada que mostrar.
- *
- * Deliberadamente NO incluye al agente Cognitive Twin aquí (sería una
- * llamada a LLM en cada carga de /root, con el costo y la latencia que eso
- * implica). Esta matriz es lectura de datos ya persistidos, no inferencia
- * nueva en cada visita.
- */
-
 function emptyOpenItems(source: string): RootObservedValue<number> {
-  return { value: null, status: 'missing', source, observedAt: null, confidence: null, evidenceIds: [], explanation: '', warning: null };
+  return {
+    value: null,
+    status: 'missing',
+    source,
+    observedAt: null,
+    confidence: null,
+    evidenceIds: [],
+    explanation: '',
+    warning: null,
+  };
 }
 
 function textValue(input: {
@@ -48,9 +44,18 @@ function textValue(input: {
   };
 }
 
-function instrumentStateToSystemItem(id: string, label: string, explanation: string, state: MihmInstrumentState): RootSystemItem {
+function instrumentStateToSystemItem(
+  id: string,
+  label: string,
+  explanation: string,
+  state: MihmInstrumentState,
+): RootSystemItem {
   const hasReading = state.homeostaticState !== null;
-  const status: RootDataStatus = !hasReading ? 'missing' : state.warnings.length > 0 ? 'degraded' : 'observed';
+  const status: RootDataStatus = !hasReading
+    ? 'missing'
+    : state.warnings.length > 0
+      ? 'degraded'
+      : 'observed';
   const value = hasReading
     ? `${state.homeostaticState!.symbol} = ${state.homeostaticState!.value?.toFixed(3) ?? '—'}`
     : null;
@@ -71,10 +76,198 @@ function instrumentStateToSystemItem(id: string, label: string, explanation: str
   };
 }
 
+function bounded(value: unknown): number | null {
+  const parsed = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(parsed) ? clamp01(parsed) : null;
+}
+
+function sourceMeta(value: unknown): {
+  status: RootDataStatus;
+  confidence: number;
+  warning: string | null;
+} {
+  const status = String(value ?? 'thin').toLowerCase();
+  if (status === 'observed') {
+    return { status: 'observed', confidence: 1, warning: null };
+  }
+  if (status === 'failed') {
+    return { status: 'degraded', confidence: 0.2, warning: 'indicator_snapshot_failed' };
+  }
+  if (status === 'degraded') {
+    return { status: 'degraded', confidence: 0.5, warning: 'indicator_snapshot_degraded' };
+  }
+  return { status: 'derived', confidence: 0.7, warning: 'indicator_snapshot_thin' };
+}
+
+function institutionalRow(input: {
+  id: string;
+  label: string;
+  value: number | string | null;
+  status: RootDataStatus;
+  observedAt: string | null;
+  confidence: number | null;
+  explanation: string;
+  warning?: string | null;
+}): RootSystemItem {
+  return {
+    id: input.id,
+    label: input.label,
+    state: textValue({
+      value: typeof input.value === 'number' ? input.value.toFixed(6) : input.value,
+      status: input.status,
+      source: 'sfi_indicator_snapshots',
+      observedAt: input.observedAt,
+      confidence: input.confidence,
+      explanation: input.explanation,
+      warning: input.warning ?? null,
+    }),
+    openItems: emptyOpenItems('sfi_indicator_snapshots'),
+  };
+}
+
+function unavailableInstitutionalRows(
+  status: RootDataStatus,
+  warning: string | null,
+): RootSystemItem[] {
+  const explanation = 'No existe un snapshot institucional completo. Ejecuta el ciclo ROOT de observación para generarlo.';
+  return [
+    ['ihg', 'IHG · INSTITUCIONAL'],
+    ['nti', 'NTI · INSTITUCIONAL'],
+    ['ldi', 'LDI · INSTITUCIONAL'],
+    ['xi', 'ξ · RESIDUAL'],
+    ['phi_sf', 'Φ_SF · INSTITUCIONAL'],
+    ['friction_index', 'F_s · FRICCIÓN SISTÉMICA'],
+    ['wsv', 'WSV · WORLD STATE VECTOR'],
+    ['regime', 'RÉGIMEN · INSTITUCIONAL'],
+  ].map(([id, label]) => institutionalRow({
+    id,
+    label,
+    value: null,
+    status,
+    observedAt: null,
+    confidence: null,
+    explanation,
+    warning,
+  }));
+}
+
+async function readInstitutionalRows(): Promise<RootSystemItem[]> {
+  try {
+    const client = createServiceSupabaseClient();
+    const { data, error } = await client
+      .from('sfi_indicator_snapshots')
+      .select('captured_at,ihg,nti,ldi,wsv,source_status')
+      .order('captured_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) throw new Error(errorMessage(error));
+    if (!data) return unavailableInstitutionalRows('missing', 'indicator_snapshot_missing');
+
+    const ihg = bounded(data.ihg);
+    const nti = bounded(data.nti);
+    const ldi = bounded(data.ldi);
+    const wsv = bounded(data.wsv);
+    const observedAt = typeof data.captured_at === 'string' ? data.captured_at : null;
+
+    if (ihg === null || nti === null || ldi === null) {
+      return unavailableInstitutionalRows('degraded', 'indicator_snapshot_incomplete');
+    }
+
+    const xi = 0.03;
+    const metrics = evaluateSfi({ ihg, nti, ldi, xi });
+    const meta = sourceMeta(data.source_status);
+    const baseWarning = meta.warning;
+    const derivedWarning = [baseWarning, 'xi_default_0.03'].filter(Boolean).join(' | ');
+
+    return [
+      institutionalRow({
+        id: 'ihg',
+        label: 'IHG · INSTITUCIONAL',
+        value: metrics.ihg,
+        status: meta.status,
+        observedAt,
+        confidence: meta.confidence,
+        explanation: 'Integridad/cohesión institucional derivada del snapshot operativo persistido.',
+        warning: baseWarning,
+      }),
+      institutionalRow({
+        id: 'nti',
+        label: 'NTI · INSTITUCIONAL',
+        value: metrics.nti,
+        status: meta.status,
+        observedAt,
+        confidence: meta.confidence,
+        explanation: 'Intensidad y trazabilidad institucional persistidas en el snapshot operativo.',
+        warning: baseWarning,
+      }),
+      institutionalRow({
+        id: 'ldi',
+        label: 'LDI · INSTITUCIONAL',
+        value: metrics.ldi,
+        status: meta.status,
+        observedAt,
+        confidence: meta.confidence,
+        explanation: 'Disipación longitudinal institucional persistida en el snapshot operativo.',
+        warning: baseWarning,
+      }),
+      institutionalRow({
+        id: 'xi',
+        label: 'ξ · RESIDUAL',
+        value: metrics.xi,
+        status: 'derived',
+        observedAt,
+        confidence: Math.min(meta.confidence, 0.7),
+        explanation: 'Residual canónico por defecto. Debe sustituirse cuando exista ξ calibrado.',
+        warning: derivedWarning,
+      }),
+      institutionalRow({
+        id: 'phi_sf',
+        label: 'Φ_SF · INSTITUCIONAL',
+        value: metrics.phi,
+        status: meta.status === 'degraded' ? 'degraded' : 'derived',
+        observedAt,
+        confidence: Math.min(meta.confidence, 0.7),
+        explanation: 'Φ_SF = clamp01((IHG × NTI) / (1 + LDI) + ξ), versión Math Core vigente.',
+        warning: derivedWarning,
+      }),
+      institutionalRow({
+        id: 'friction_index',
+        label: 'F_s · FRICCIÓN SISTÉMICA',
+        value: metrics.fs,
+        status: meta.status === 'degraded' ? 'degraded' : 'derived',
+        observedAt,
+        confidence: Math.min(meta.confidence, 0.7),
+        explanation: 'F_s = 1 − Φ_SF bajo el Math Core canónico.',
+        warning: derivedWarning,
+      }),
+      institutionalRow({
+        id: 'wsv',
+        label: 'WSV · WORLD STATE VECTOR',
+        value: wsv,
+        status: wsv === null ? 'missing' : meta.status,
+        observedAt,
+        confidence: wsv === null ? null : meta.confidence,
+        explanation: 'Estado mundial agregado asociado al mismo snapshot institucional.',
+        warning: wsv === null ? 'wsv_missing_in_snapshot' : baseWarning,
+      }),
+      institutionalRow({
+        id: 'regime',
+        label: 'RÉGIMEN · INSTITUCIONAL',
+        value: metrics.regime,
+        status: meta.status === 'degraded' ? 'degraded' : 'derived',
+        observedAt,
+        confidence: Math.min(meta.confidence, 0.7),
+        explanation: 'Clasificación HOMEOSTATICO / CRITICO / ENTROPICO calculada con el Math Core.',
+        warning: derivedWarning,
+      }),
+    ];
+  } catch (error) {
+    return unavailableInstitutionalRows('degraded', errorMessage(error));
+  }
+}
+
 async function readPersonalRow(): Promise<RootSystemItem> {
-  // Φₚ (MOP-H) es una lectura por sesión, no un estado global — no hay
-  // "última sesión" única con sentido para todo el sistema. Se declara
-  // así explícitamente en vez de fabricar un promedio sin base.
   return {
     id: 'mihm-phi-p',
     label: 'Φₚ · MOP-H',
@@ -102,6 +295,7 @@ async function readPhenomenologicalRow(): Promise<RootSystemItem> {
         .maybeSingle(),
       client.from('ppoi_phenomena').select('id', { count: 'exact', head: true }).eq('status', 'ACTIVE'),
     ]);
+
     if (latestError) throw new Error(errorMessage(latestError));
     if (countError) throw new Error(errorMessage(countError));
 
@@ -114,7 +308,9 @@ async function readPhenomenologicalRow(): Promise<RootSystemItem> {
         value: hasReading ? `Φ𝒻 = ${Number(latest!.current_composite).toFixed(3)} (${latest!.fp_code})` : null,
         status: hasReading ? 'observed' : 'missing',
         source: 'ppoi_phenomena',
-        observedAt: hasReading && typeof latest!.indices_calculated_at === 'string' ? latest!.indices_calculated_at : null,
+        observedAt: hasReading && typeof latest!.indices_calculated_at === 'string'
+          ? latest!.indices_calculated_at
+          : null,
         explanation: 'Expediente PPOI con recalibración más reciente entre todos los abiertos.',
       }),
       openItems: {
@@ -132,7 +328,13 @@ async function readPhenomenologicalRow(): Promise<RootSystemItem> {
     return {
       id: 'mihm-phi-f',
       label: 'Φ𝒻 · PPOI',
-      state: textValue({ value: null, status: 'degraded', source: 'ppoi_phenomena', observedAt: null, warning: errorMessage(error) }),
+      state: textValue({
+        value: null,
+        status: 'degraded',
+        source: 'ppoi_phenomena',
+        observedAt: null,
+        warning: errorMessage(error),
+      }),
       openItems: emptyOpenItems('ppoi_phenomena'),
     };
   }
@@ -160,27 +362,60 @@ function readProvidersRow(): RootSystemItem {
 }
 
 export async function readRootMihmMatrix(): Promise<RootSystemItem[]> {
-  const [personal, systemic, world, phenomenological] = await Promise.all([
+  const [institutional, personal, systemic, world, phenomenological] = await Promise.all([
+    readInstitutionalRows(),
     readPersonalRow(),
     buildDerivedMihmRuntime()
-      .then((runtime: Awaited<ReturnType<typeof buildDerivedMihmRuntime>>) => scoreFrictionToInstrumentState(runtime))
-      .then((state: MihmInstrumentState) => instrumentStateToSystemItem('mihm-phi-s', 'Φₛ · ScoreFriction', 'Derivado de scorefriction_vectors, agregado más reciente.', state))
+      .then((runtime: Awaited<ReturnType<typeof buildDerivedMihmRuntime>>) =>
+        scoreFrictionToInstrumentState(runtime))
+      .then((state: MihmInstrumentState) =>
+        instrumentStateToSystemItem(
+          'mihm-phi-s',
+          'Φₛ · ScoreFriction',
+          'Derivado de scorefriction_vectors, agregado más reciente.',
+          state,
+        ))
       .catch((error: unknown) => ({
         id: 'mihm-phi-s',
         label: 'Φₛ · ScoreFriction',
-        state: textValue({ value: null, status: 'degraded' as RootDataStatus, source: 'scorefriction_vectors', observedAt: null, warning: errorMessage(error) }),
+        state: textValue({
+          value: null,
+          status: 'degraded' as RootDataStatus,
+          source: 'scorefriction_vectors',
+          observedAt: null,
+          warning: errorMessage(error),
+        }),
         openItems: emptyOpenItems('scorefriction_vectors'),
       })),
     worldVectorToInstrumentState()
-      .then((state: MihmInstrumentState) => instrumentStateToSystemItem('mihm-phi-w', 'Φ𝓌 · World Vector', 'wsi agregado de 10 dominios, worldspect_snapshots más reciente.', state))
+      .then((state: MihmInstrumentState) =>
+        instrumentStateToSystemItem(
+          'mihm-phi-w',
+          'Φ𝓌 · World Vector',
+          'WSI agregado de 10 dominios, worldspect_snapshots más reciente.',
+          state,
+        ))
       .catch((error: unknown) => ({
         id: 'mihm-phi-w',
         label: 'Φ𝓌 · World Vector',
-        state: textValue({ value: null, status: 'degraded' as RootDataStatus, source: 'worldspect_snapshots', observedAt: null, warning: errorMessage(error) }),
+        state: textValue({
+          value: null,
+          status: 'degraded' as RootDataStatus,
+          source: 'worldspect_snapshots',
+          observedAt: null,
+          warning: errorMessage(error),
+        }),
         openItems: emptyOpenItems('worldspect_snapshots'),
       })),
     readPhenomenologicalRow(),
   ]);
 
-  return [personal, systemic, world, phenomenological, readProvidersRow()];
+  return [
+    ...institutional,
+    personal,
+    systemic,
+    world,
+    phenomenological,
+    readProvidersRow(),
+  ];
 }
