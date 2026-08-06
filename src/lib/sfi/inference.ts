@@ -29,6 +29,10 @@ export type OperationalReading = {
     NTI_obs: number;
     LDI_hours: number;
     xi_noise: number;
+    continuity_estimate: number;
+    epistemic_status: 'INFERRED';
+    formula_version: '2026-08-06.narrative-continuity.v1';
+    /** @deprecated Compatibility alias. This heuristic is not canonical Phi. */
     PHI_SF: number;
     regime: 'HOMEOSTATIC' | 'TRANSITION' | 'CRITICAL';
     runway_days: number | null;
@@ -77,8 +81,8 @@ export function inferOperationalReading(input: {
   const riskScore = clamp(0.18 + delayTerms * 0.12 + contradictionTerms * 0.1 + (1 - stabilityScore) * 0.35 + (1 - traceabilityScore) * 0.16, 0.08, 0.95);
   const ldiNorm = clamp(latencyHours / 72, 0, 3);
   const xi = rounded(clamp(0.035 + contradictionTerms * 0.012 + (socialMode ? 0.012 : 0), 0.02, 0.22));
-  const phi = rounded((stabilityScore * traceabilityScore) / (1 + ldiNorm) + xi);
-  const regime = phi > 0.58 && stabilityScore > 0.55 && latencyHours < 36 ? 'HOMEOSTATIC' : phi < 0.28 || latencyHours > 96 ? 'CRITICAL' : 'TRANSITION';
+  const continuityEstimate = rounded((stabilityScore * traceabilityScore) / (1 + ldiNorm) + xi);
+  const regime = continuityEstimate > 0.58 && stabilityScore > 0.55 && latencyHours < 36 ? 'HOMEOSTATIC' : continuityEstimate < 0.28 || latencyHours > 96 ? 'CRITICAL' : 'TRANSITION';
 
   const phenomenon = socialMode
     ? 'Friccion perceptual en pieza de distribucion: la promesa narrativa no termina de convertirse en accion verificable.'
@@ -164,7 +168,10 @@ export function inferOperationalReading(input: {
       NTI_obs: rounded(traceabilityScore),
       LDI_hours: latencyHours,
       xi_noise: xi,
-      PHI_SF: phi,
+      continuity_estimate: continuityEstimate,
+      epistemic_status: 'INFERRED',
+      formula_version: '2026-08-06.narrative-continuity.v1',
+      PHI_SF: continuityEstimate,
       regime,
       runway_days: regime === 'CRITICAL' ? Math.max(7, Math.round(45 - riskScore * 22)) : null,
     },
