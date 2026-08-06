@@ -6,6 +6,7 @@ import {
   getMihmPhiDefinition,
   normalizePpoiComposite,
   resolveCanonicalPhiSymbol,
+  resolveLegacyPhiSf,
   validateMihmPhiRegistry,
 } from './phiContract';
 
@@ -23,12 +24,16 @@ test('institutional Phi is reserved to SFI institutional method', () => {
   assert.equal(definition.semanticRole, 'INSTITUTIONAL_HOMEOSTASIS');
 });
 
-test('legacy symbols resolve without remaining canonical', () => {
+test('unambiguous legacy symbols resolve without remaining canonical', () => {
   assert.equal(resolveCanonicalPhiSymbol('PHI_PERSONAL'), 'PHI_H');
   assert.equal(resolveCanonicalPhiSymbol('PHI_SYSTEMIC'), 'PHI_S');
   assert.equal(resolveCanonicalPhiSymbol('PHI_PHENOMENOLOGICAL'), 'PHI_F');
   assert.equal(resolveCanonicalPhiSymbol('PHI_WORLD'), 'PHI_W');
-  assert.equal(resolveCanonicalPhiSymbol('PHI_SF'), 'PHI_SFI');
+});
+
+test('legacy PHI_SF requires object context', () => {
+  assert.equal(resolveLegacyPhiSf('ASSET_OR_BOUNDED_SYSTEM'), 'PHI_S');
+  assert.equal(resolveLegacyPhiSf('SFI_INSTITUTION'), 'PHI_SFI');
 });
 
 test('PPOI composite is normalized from 0-5 to Phi F 0-1', () => {
