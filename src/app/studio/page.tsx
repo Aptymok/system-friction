@@ -3,6 +3,7 @@ import { StudioProductionConsole } from '@/components/studio/production/StudioPr
 import { StudioDirectIngestion } from '@/components/studio/workspace/StudioDirectIngestion';
 import { SfiSurfaceGuide } from '@/components/sfi/SfiSurfaceGuide';
 import { readStudioProductionState } from '@/lib/studio/production/studioProductionAdapter';
+import { scopeStudioStateForMember } from '@/lib/studio/production/scopeStudioStateForMember';
 import { requireAuthenticatedUser, requireFounder } from '@/lib/system/access/server';
 
 export const dynamic = 'force-dynamic';
@@ -11,14 +12,20 @@ export default async function StudioPage({ searchParams }: { searchParams?: Prom
   const { user } = await requireAuthenticatedUser();
   const params = searchParams ? await Promise.resolve(searchParams) : {};
   const objectId = typeof params.objectId === 'string' && params.objectId.trim() ? params.objectId.trim() : null;
-  let includeLegacy = false;
+  let isFounder = false;
   try {
     await requireFounder();
-    includeLegacy = true;
+    isFounder = true;
   } catch {
-    includeLegacy = false;
+    isFounder = false;
   }
-  const state = await readStudioProductionState({ ownerId: user.id, includeLegacy, objectId });
+
+  const rawState = await readStudioProductionState({
+    ownerId: user.id,
+    includeLegacy: isFounder,
+    objectId,
+  });
+  const state = isFounder ? rawState : scopeStudioStateForMember(rawState);
   const cameFromField = state.activeObject.sourceUri?.startsWith('field://') === true;
 
   return (
