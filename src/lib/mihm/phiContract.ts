@@ -11,8 +11,13 @@ export type LegacyMihmPhiSymbol =
   | 'PHI_PERSONAL'
   | 'PHI_SYSTEMIC'
   | 'PHI_PHENOMENOLOGICAL'
-  | 'PHI_WORLD'
-  | 'PHI_SF';
+  | 'PHI_WORLD';
+
+export type AmbiguousLegacyPhiSymbol = 'PHI_SF';
+
+export type LegacyPhiSfContext =
+  | 'ASSET_OR_BOUNDED_SYSTEM'
+  | 'SFI_INSTITUTION';
 
 export type MihmPhiSemanticRole =
   | 'HUMAN_SESSION_STATE'
@@ -110,8 +115,11 @@ const LEGACY_SYMBOL_MAP: Record<LegacyMihmPhiSymbol, MihmPhiSymbol> = {
   PHI_SYSTEMIC: 'PHI_S',
   PHI_PHENOMENOLOGICAL: 'PHI_F',
   PHI_WORLD: 'PHI_W',
-  PHI_SF: 'PHI_SFI',
 };
+
+export function resolveLegacyPhiSf(context: LegacyPhiSfContext): MihmPhiSymbol {
+  return context === 'SFI_INSTITUTION' ? 'PHI_SFI' : 'PHI_S';
+}
 
 export function resolveCanonicalPhiSymbol(symbol: MihmPhiSymbol | LegacyMihmPhiSymbol): MihmPhiSymbol {
   return symbol in MIHM_PHI_REGISTRY
@@ -121,6 +129,10 @@ export function resolveCanonicalPhiSymbol(symbol: MihmPhiSymbol | LegacyMihmPhiS
 
 export function getMihmPhiDefinition(symbol: MihmPhiSymbol | LegacyMihmPhiSymbol): MihmPhiDefinition {
   return MIHM_PHI_REGISTRY[resolveCanonicalPhiSymbol(symbol)];
+}
+
+export function getLegacyPhiSfDefinition(context: LegacyPhiSfContext): MihmPhiDefinition {
+  return MIHM_PHI_REGISTRY[resolveLegacyPhiSf(context)];
 }
 
 export function normalizePpoiComposite(composite: number): number {
