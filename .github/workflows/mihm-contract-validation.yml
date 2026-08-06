@@ -13,6 +13,7 @@ on:
       - 'src/app/ledger/**'
       - 'src/app/atlas/**'
       - 'docs/MIHM_PHI_CANON.md'
+      - 'docs/canon/**'
       - '.github/workflows/mihm-contract-validation.yml'
   workflow_dispatch:
 
@@ -39,5 +40,5 @@ jobs:
       - name: TypeScript
         run: npm run typecheck
 
-      - name: MIHM formula and contract tests
-        run: node --import tsx --test src/core/formulas/canonicalFormulas.test.ts src/lib/mihm/phiContract.test.ts
+      - name: MIHM formula, Phi and variable registry tests
+        run: node --import tsx --test src/core/formulas/canonicalFormulas.test.ts src/lib/mihm/phiContract.test.ts src/lib/mihm/canonicalVariableRegistry.test.ts
