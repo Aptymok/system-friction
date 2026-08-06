@@ -1,0 +1,43 @@
+name: MIHM Contract Validation
+
+on:
+  pull_request:
+    paths:
+      - 'src/lib/mihm/**'
+      - 'src/lib/sfi/**'
+      - 'src/core/formulas/**'
+      - 'src/lib/evaluator/derivedMihmRuntime.ts'
+      - 'src/lib/root/sovereign/readers/readRootMihmMatrix.ts'
+      - 'src/app/mihm/**'
+      - 'src/app/sfi/**'
+      - 'src/app/ledger/**'
+      - 'src/app/atlas/**'
+      - 'docs/MIHM_PHI_CANON.md'
+      - '.github/workflows/mihm-contract-validation.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: TypeScript
+        run: npm run typecheck
+
+      - name: MIHM formula and contract tests
+        run: node --import tsx --test src/core/formulas/canonicalFormulas.test.ts src/lib/mihm/phiContract.test.ts
