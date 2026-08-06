@@ -245,7 +245,7 @@ export async function readRootMihmMatrix(): Promise<RootSystemItem[]> {
         'Objeto o sistema delimitado derivado de scorefriction_vectors.',
         state,
       ))
-      .catch((error: unknown) => ({
+      .catch((error: unknown): RootSystemItem => ({
         id: 'mihm-phi-s',
         label: 'Φ_S · ScoreFriction',
         state: textValue({ value: null, status: 'degraded', source: 'scorefriction_vectors', observedAt: null, warning: errorMessage(error) }),
@@ -258,7 +258,7 @@ export async function readRootMihmMatrix(): Promise<RootSystemItem[]> {
         'Contexto mundial; en esta versión Φ_W es el alias tipado de WSI.',
         state,
       ))
-      .catch((error: unknown) => ({
+      .catch((error: unknown): RootSystemItem => ({
         id: 'mihm-phi-w',
         label: 'Φ_W · World Vector',
         state: textValue({ value: null, status: 'degraded', source: 'worldspect_snapshots', observedAt: null, warning: errorMessage(error) }),
