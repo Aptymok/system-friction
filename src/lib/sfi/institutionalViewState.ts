@@ -5,7 +5,6 @@ import { buildEntityContext } from './entityContext';
 import { buildInstitutionalEntityGraph } from './entityGraph';
 import { buildFrictionField } from './frictionFieldEngine';
 import { buildInstitutionalTomography } from './tomography';
-import { readOperationalConsoleState } from './operationalConsole';
 import { readInstitutionalPhiState, type InstitutionalPhiStatus } from '@/lib/mihm/institutionalPhiState';
 
 export type InstitutionalViewState = {
@@ -83,8 +82,7 @@ export async function readInstitutionalViewState(input?: { entityId?: string; en
   const entityId = input?.entityId?.trim() || 'institutional_observatory';
   const entityLabel = input?.label?.trim() || entityId;
 
-  const [operationalState, institutionalPhi, friction, attractor, tomography, graph, entityGraph] = await Promise.all([
-    readOperationalConsoleState(),
+  const [institutionalPhi, friction, attractor, tomography, graph] = await Promise.all([
     readInstitutionalPhiState(),
     buildFrictionField(),
     buildAttractorScorecard(),
@@ -94,15 +92,9 @@ export async function readInstitutionalViewState(input?: { entityId?: string; en
       entityType: input?.entityType || 'PHENOMENON',
       label: entityLabel,
     }),
-    buildInstitutionalEntityGraph({
-      entityId,
-      entityType: input?.entityType || 'PHENOMENON',
-      label: entityLabel,
-    }),
   ]);
 
-  void operationalState;
-  const entityContext = buildEntityContext(entityGraph, entityId);
+  const entityContext = await buildEntityContext(graph, entityId);
   const metrics = institutionalPhi.metrics;
   const cField = metrics ? calculateCField(metrics.ihg, metrics.ldi, metrics.nti) : null;
 
