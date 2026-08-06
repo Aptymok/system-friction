@@ -55,17 +55,20 @@ WorldSpect produces WSI and NTI from declared external sources and domains. In t
 
 If ξ is unavailable, `ξ = 0.03` may be used only with `THIN` status and an explicit warning. If IHG, NTI or LDI are unavailable, Φ_SFI is `MISSING`; plausible defaults are prohibited.
 
-## Legacy names
+## Legacy names and storage fields
 
-The following names remain aliases for migration and historical reproducibility only:
+The following names remain unambiguous aliases for migration and historical reproducibility only:
 
 - `PHI_PERSONAL` → `PHI_H`
 - `PHI_SYSTEMIC` → `PHI_S`
 - `PHI_PHENOMENOLOGICAL` → `PHI_F`
 - `PHI_WORLD` → `PHI_W`
-- `PHI_SF` → `PHI_SFI`
 
-They are not accepted as new canonical identifiers.
+`PHI_SF` is not an unambiguous alias. Historical asset and measurement records use it for a bounded object, where it migrates to `PHI_S`. Historical institutional records use it for System Friction Institute, where it migrates to `PHI_SFI`. Migration requires the object and instrument context; a blind global rename is prohibited.
+
+The reduced kernel metric formerly called `phi` is not a member of the canonical Phi family. It is constituted as `REDUCED_KERNEL_CONTINUITY`; the `phi` property remains only as a temporary compatibility alias and must carry `canonicalPhi: false`.
+
+Legacy identifiers are not accepted for new canonical records.
 
 ## Prohibitions
 
@@ -76,6 +79,8 @@ They are not accepted as new canonical identifiers.
 5. Do not generate institutional values from constants when evidence is absent.
 6. Do not let a model, interface or adapter change a formula silently.
 7. Do not promote a legacy reading without formula version and provenance.
+8. Do not migrate `PHI_SF` without object and instrument context.
+9. Do not present a heuristic continuity estimate as canonical Phi.
 
 ## Presentation contract
 
