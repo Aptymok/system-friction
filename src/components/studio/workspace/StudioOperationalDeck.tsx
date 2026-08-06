@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState, type CSSProperties, type FormEvent, type ReactNode } from 'react';
-import { FileUp, FlaskConical, GitBranch, RefreshCw, ShieldCheck, UploadCloud } from 'lucide-react';
+import { FileUp, FlaskConical, GitBranch, RefreshCw, ShieldCheck } from 'lucide-react';
 import type { StudioProductionState, StudioSuggestion } from '@/lib/studio/production/studioProductionTypes';
 import { formatMetricValue, metricByKey, statusClass } from './workspaceModel';
 
@@ -74,54 +74,9 @@ function ObjectControls({ state }: { state: StudioProductionState }) {
     };
   }, [state.activeObject.id]);
 
-  async function upload(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const form = event.currentTarget;
-    const data = new FormData(form);
-    const file = data.get('file');
-    const url = data.get('url');
-    let uploaded: Record<string, unknown>;
-    if (file instanceof File && file.size) {
-      uploaded = await checkedJson(await fetch('/api/studio/objects/upload', { method: 'POST', body: data }));
-    } else if (typeof url === 'string' && url.trim()) {
-      uploaded = await checkedJson(await fetch('/api/studio/objects/upload', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(Object.fromEntries(data.entries())),
-      }));
-    } else {
-      throw new Error('FILE_OR_URL_REQUIRED');
-    }
-    const objectId = (uploaded.data as { id?: string } | undefined)?.id ?? uploaded.objectId;
-    if (typeof objectId !== 'string') throw new Error('OBJECT_ID_MISSING_AFTER_UPLOAD');
-    if (file instanceof File && file.size) await checkedJson(await fetch(`/api/studio/objects/${encodeURIComponent(objectId)}/analyze`, { method: 'POST' }));
-    if (typeof window !== 'undefined') window.location.assign(`/studio?objectId=${encodeURIComponent(objectId)}`);
-    form.reset();
-  }
-
   const canAnalyze = Boolean(state.activeObject.id);
   return (
     <section className="studio-opbar" aria-label="Studio object operations">
-      <form className="studio-opbar__upload" onSubmit={(event) => void run('UPLOAD_OBJECT_ANALYZE', () => upload(event))}>
-        <strong>+ CARGAR OBJETO</strong>
-        <input name="file" type="file" aria-label="Archivo de objeto" accept="audio/*,image/*,video/*,text/*,.pdf,.doc,.docx,application/pdf" />
-        <input name="url" aria-label="URL de objeto" placeholder="URL si aplica" />
-        <input name="title" aria-label="Nombre del objeto" placeholder="Nombre" />
-        <select name="objectType" aria-label="Tipo de objeto" defaultValue="music">
-          <option value="music">Audio</option>
-          <option value="image">Imagen</option>
-          <option value="video">Video</option>
-          <option value="text">Texto / Documento</option>
-          <option value="community">Comunidad</option>
-          <option value="unknown">Desconocido</option>
-        </select>
-        <input name="sourceAuthor" aria-label="Autor u origen" placeholder="Autor/origen" />
-        <input name="objectDate" aria-label="Fecha del objeto" type="date" />
-        <input name="context" aria-label="Contexto" placeholder="Contexto" />
-        <input name="notes" aria-label="Notas" placeholder="Notas" />
-        <label className="studio-opbar__consent"><input name="authorityConsent" value="true" type="checkbox" required /> Autoridad/consentimiento</label>
-        <button type="submit" disabled={pending !== null}><UploadCloud size={14} aria-hidden /> CARGAR Y ANALIZAR</button>
-      </form>
       <div className="studio-opbar__object-picker">
         <label>
           OBJETO ACTIVO
