@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { RootSovereignState } from '@/lib/root/sovereign/rootSovereignState';
 import type { RootActionRequest, RootSelection, RootSessionEvent } from './sovereignTypes';
 import { RootOperationalShell } from './RootOperationalShell';
+import { RootMethodologyWorkbench } from './RootMethodologyWorkbench';
 import './root-sovereign.css';
 
 function auditId(body: Record<string, unknown>) {
@@ -78,6 +79,11 @@ export function RootSovereignConsole({ initialState }: { initialState: RootSover
     };
   }, [refresh]);
 
+  function requestAction(action: RootActionRequest) {
+    setPending(action);
+    setConfirmed(false);
+  }
+
   async function execute() {
     if (!pending || !confirmed || running) return;
     const action = pending;
@@ -102,11 +108,14 @@ export function RootSovereignConsole({ initialState }: { initialState: RootSover
       });
       const body = await response.json().catch(() => null) as Record<string, unknown> | null;
       if (!response.ok || !body || body.ok !== true) throw new Error(String(body?.error ?? `HTTP ${response.status}`));
+      const data = body.data && typeof body.data === 'object' ? body.data as Record<string, unknown> : null;
       const detail = typeof body.body === 'string'
         ? body.body.slice(0, 420)
         : typeof body.user_friendly_explanation === 'string'
           ? body.user_friendly_explanation.slice(0, 420)
-          : 'La operación terminó correctamente.';
+          : typeof data?.disposition === 'string'
+            ? `PPOI ${data.disposition === 'CREATED' ? 'creado' : 'enlazado'} correctamente.`
+            : 'La operación terminó correctamente.';
       setEvents((current) => current.map((event) => event.id === started.id ? { ...event, status: 'done', detail, auditId: auditId(body) } : event));
       setPending(null);
       setConfirmed(false);
@@ -126,11 +135,10 @@ export function RootSovereignConsole({ initialState }: { initialState: RootSover
         warning={refreshWarning}
         onRefresh={() => void refresh()}
         onSelect={setSelection}
-        onAction={(action) => {
-          setPending(action);
-          setConfirmed(false);
-        }}
+        onAction={requestAction}
       />
+
+      <RootMethodologyWorkbench state={state} onAction={requestAction} />
 
       {selection ? (
         <div className="rs-selection-announcement" aria-live="polite">
