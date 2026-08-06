@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { StudioProductionConsole } from '@/components/studio/production/StudioProductionConsole';
+import { StudioDirectIngestion } from '@/components/studio/workspace/StudioDirectIngestion';
 import { SfiSurfaceGuide } from '@/components/sfi/SfiSurfaceGuide';
 import { readStudioProductionState } from '@/lib/studio/production/studioProductionAdapter';
 import { requireAuthenticatedUser, requireFounder } from '@/lib/system/access/server';
@@ -32,6 +33,8 @@ export default async function StudioPage({ searchParams }: { searchParams?: Prom
       >
         <Link href="/interface/observatory">VOLVER A MI TRAYECTORIA</Link>
       </SfiSurfaceGuide>
+
+      <StudioDirectIngestion />
 
       {cameFromField ? (
         <section className="border-b border-[#302a1f] bg-[#080807] px-5 py-5 text-[#d8d1c0] md:px-10">
