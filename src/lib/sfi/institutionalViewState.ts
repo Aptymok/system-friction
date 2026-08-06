@@ -1,19 +1,22 @@
-import { calculateCField, calculateFS, calculatePhiSfi, calculatePsiMoph, resolveRegime } from '@/core/formulas/canonicalFormulas';
+import { calculateCField } from '@/core/formulas/canonicalFormulas';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { buildAttractorScorecard } from './attractorManagement';
 import { buildEntityContext } from './entityContext';
 import { buildInstitutionalEntityGraph } from './entityGraph';
 import { buildFrictionField } from './frictionFieldEngine';
 import { buildInstitutionalTomography } from './tomography';
-import { readOperationalConsoleState, type SfiRecord } from './operationalConsole';
+import { readOperationalConsoleState } from './operationalConsole';
+import { readInstitutionalPhiState, type InstitutionalPhiStatus } from '@/lib/mihm/institutionalPhiState';
 
 export type InstitutionalViewState = {
   metrics: {
-    phiSfi: number;
-    fS: number;
-    regime: 'HOMEOSTATIC' | 'TRANSITION' | 'CRITICAL';
-    cField: number;
-    psiMoph: number;
+    phiSfi: number | null;
+    fS: number | null;
+    regime: 'HOMEOSTATICO' | 'CRITICO' | 'ENTROPICO' | null;
+    cField: number | null;
+    psiMoph: null;
+    status: InstitutionalPhiStatus;
+    warnings: string[];
     graphNodeCount: number;
     graphEdgeCount: number;
     evidenceCount: number;
@@ -80,8 +83,9 @@ export async function readInstitutionalViewState(input?: { entityId?: string; en
   const entityId = input?.entityId?.trim() || 'institutional_observatory';
   const entityLabel = input?.label?.trim() || entityId;
 
-  const [operationalState, friction, attractor, tomography, graph, entityContext] = await Promise.all([
+  const [operationalState, institutionalPhi, friction, attractor, tomography, graph, entityGraph] = await Promise.all([
     readOperationalConsoleState(),
+    readInstitutionalPhiState(),
     buildFrictionField(),
     buildAttractorScorecard(),
     buildInstitutionalTomography(),
@@ -90,24 +94,17 @@ export async function readInstitutionalViewState(input?: { entityId?: string; en
       entityType: input?.entityType || 'PHENOMENON',
       label: entityLabel,
     }),
-    buildEntityContext(
-      await buildInstitutionalEntityGraph({ entityId, entityType: input?.entityType || 'PHENOMENON', label: entityLabel }),
+    buildInstitutionalEntityGraph({
       entityId,
-    ),
+      entityType: input?.entityType || 'PHENOMENON',
+      label: entityLabel,
+    }),
   ]);
 
-  const cycle = asRecord((operationalState.operationalCycle?.data ?? null) as SfiRecord | null);
-  const stability = asRecord((operationalState.stability?.data ?? null) as SfiRecord | null);
-  const ihg = numberValue(cycle.ihg ?? cycle.institutional_health ?? cycle.health_score ?? stability.ihg, 0.72);
-  const nti = numberValue(cycle.nti ?? cycle.tension ?? stability.nti, 0.68);
-  const ldi = numberValue(cycle.ldi ?? cycle.latency ?? stability.ldi, 0.18);
-  const xi = numberValue(cycle.xi ?? cycle.inertia ?? stability.xi, 0.05);
-
-  const phiSfi = calculatePhiSfi(ihg, nti, ldi, xi);
-  const fS = calculateFS(phiSfi);
-  const regime = resolveRegime(phiSfi);
-  const cField = calculateCField(ihg, ldi, nti);
-  const psiMoph = calculatePsiMoph(ihg, nti, ldi, 0.02, 0.1);
+  void operationalState;
+  const entityContext = buildEntityContext(entityGraph, entityId);
+  const metrics = institutionalPhi.metrics;
+  const cField = metrics ? calculateCField(metrics.ihg, metrics.ldi, metrics.nti) : null;
 
   const service = createServiceSupabaseClient();
   const [{ data: evidenceRows }, { data: predictionRows }, { data: memoryRows }] = await Promise.all([
@@ -145,11 +142,13 @@ export async function readInstitutionalViewState(input?: { entityId?: string; en
 
   return {
     metrics: {
-      phiSfi,
-      fS,
-      regime,
+      phiSfi: metrics?.phi ?? null,
+      fS: metrics?.fs ?? null,
+      regime: metrics?.regime ?? null,
       cField,
-      psiMoph,
+      psiMoph: null,
+      status: institutionalPhi.status,
+      warnings: institutionalPhi.warnings,
       graphNodeCount: graph.nodes.length,
       graphEdgeCount: graph.edges.length,
       evidenceCount: Array.isArray(evidenceRows) ? evidenceRows.length : 0,
