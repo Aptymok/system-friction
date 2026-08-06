@@ -2,6 +2,8 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useAuthState } from '@/components/auth/AuthProvider';
+import { SfiSessionIdentity } from './SfiSessionIdentity';
 import './sfi-global-navigation.css';
 
 const GLOBAL_DESTINATIONS = [
@@ -11,15 +13,37 @@ const GLOBAL_DESTINATIONS = [
   { href: '/library', label: 'LIBRARY', match: ['/library'] },
 ] as const;
 
+const PRIVATE_SURFACES = ['/member', '/interface', '/field', '/studio'] as const;
+const AUTH_SURFACES = ['/login', '/signup', '/forgot', '/reset', '/verify'] as const;
+
+function matchesPrefix(pathname: string, prefix: string) {
+  return pathname === prefix || pathname.startsWith(`${prefix}/`);
+}
+
 function isActive(pathname: string, prefixes: readonly string[]) {
-  return prefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
+  return prefixes.some((prefix) => matchesPrefix(pathname, prefix));
 }
 
 export function SfiGlobalNavigation() {
   const pathname = usePathname();
-  const hidden = pathname === '/' || pathname.startsWith('/root') || pathname.startsWith('/login');
+  const { status } = useAuthState();
+  const isRoot = matchesPrefix(pathname, '/root');
+  const isPrivateSurface = PRIVATE_SURFACES.some((prefix) => matchesPrefix(pathname, prefix));
+  const isAuthSurface = AUTH_SURFACES.some((prefix) => matchesPrefix(pathname, prefix));
 
-  if (hidden) return null;
+  if (isRoot) {
+    return (
+      <div className="sgn-root-anchor">
+        <div className="sgn-root-bar">
+          <span>SFI · SESIÓN PRIVADA</span>
+          <span className="sgn-root-state">IDENTIDAD PERSISTENTE</span>
+          <SfiSessionIdentity variant="root" />
+        </div>
+      </div>
+    );
+  }
+
+  if (pathname === '/' || isAuthSurface) return null;
 
   return (
     <div className="sgn-anchor">
@@ -43,6 +67,7 @@ export function SfiGlobalNavigation() {
           })}
         </div>
         <span className="sgn-layer">{pathname.split('/').filter(Boolean).slice(0, 2).join(' / ') || 'SFI'}</span>
+        {isPrivateSurface && status === 'authenticated' ? <SfiSessionIdentity /> : null}
       </nav>
     </div>
   );
