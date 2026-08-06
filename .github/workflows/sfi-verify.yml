@@ -27,6 +27,9 @@ jobs:
       - name: Check domain boundaries
         run: npm run check:boundaries
 
+      - name: Verify MIHM method selection
+        run: npx tsx scripts/qa-sfi-method-selection.ts
+
       - name: Typecheck
         id: typecheck
         shell: bash
