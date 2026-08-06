@@ -1,5 +1,5 @@
 import { CanonicalPipelineRunner } from '@/core/runtime/pipeline';
-import { calculatePhiSfi, calculateFS, resolveRegime } from '@/core/formulas/canonicalFormulas';
+import { readInstitutionalPhiState } from '@/lib/mihm/institutionalPhiState';
 
 export async function runOperationalPipeline(input: { capabilityId: string; actorId: string; payload?: unknown }) {
   const runner = new CanonicalPipelineRunner();
@@ -8,18 +8,18 @@ export async function runOperationalPipeline(input: { capabilityId: string; acto
     actorId: input.actorId,
     payload: input.payload ?? {},
   });
-
-  const phiSfi = calculatePhiSfi(0.7, 0.73, 0.2, 0.05);
-  const fS = calculateFS(phiSfi);
-  const regime = resolveRegime(phiSfi);
+  const institutionalState = await readInstitutionalPhiState();
 
   return {
     ok: true,
     pipeline: result,
     canonicalState: {
-      phiSfi,
-      fS,
-      regime,
+      phiSfi: institutionalState.metrics?.phi ?? null,
+      fS: institutionalState.metrics?.fs ?? null,
+      regime: institutionalState.metrics?.regime ?? null,
+      status: institutionalState.status,
+      observedAt: institutionalState.observedAt,
+      warnings: institutionalState.warnings,
     },
   };
 }
