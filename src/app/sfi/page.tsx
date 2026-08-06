@@ -1,9 +1,13 @@
-import { calculatePhiSfi, calculateFS, resolveRegime } from '@/core/formulas/canonicalFormulas';
+import { readInstitutionalPhiState } from '@/lib/mihm/institutionalPhiState';
 
-export default function SfiOperationalPage() {
-  const phiSfi = calculatePhiSfi(0.68, 0.74, 0.22, 0.05);
-  const fS = calculateFS(phiSfi);
-  const regime = resolveRegime(phiSfi);
+export const dynamic = 'force-dynamic';
+
+function formatMetric(value: number | null | undefined) {
+  return typeof value === 'number' ? value.toFixed(3) : '—';
+}
+
+export default async function SfiOperationalPage() {
+  const state = await readInstitutionalPhiState();
 
   return (
     <main style={{ padding: 24, fontFamily: 'sans-serif', maxWidth: 1200, margin: '0 auto' }}>
@@ -28,12 +32,15 @@ export default function SfiOperationalPage() {
         </section>
       </div>
       <div style={{ marginTop: 24, border: '1px solid #ddd', padding: 16 }}>
-        <h2>Canonical State</h2>
+        <h2>Canonical Institutional State</h2>
         <ul>
-          <li><strong>PHI_SFI:</strong> {phiSfi.toFixed(3)}</li>
-          <li><strong>F_S:</strong> {fS.toFixed(3)}</li>
-          <li><strong>Régimen:</strong> {regime}</li>
+          <li><strong>Φ_SFI:</strong> {formatMetric(state.metrics?.phi)}</li>
+          <li><strong>F_S:</strong> {formatMetric(state.metrics?.fs)}</li>
+          <li><strong>Régimen:</strong> {state.metrics?.regime ?? '—'}</li>
+          <li><strong>Estado probatorio:</strong> {state.status}</li>
+          <li><strong>Observado:</strong> {state.observedAt ?? 'sin snapshot institucional'}</li>
         </ul>
+        {state.warnings.length > 0 ? <p>Advertencias: {state.warnings.join(' · ')}</p> : null}
       </div>
     </main>
   );
