@@ -5,6 +5,7 @@ import type { RootSovereignState } from '@/lib/root/sovereign/rootSovereignState
 import type { RootActionRequest, RootSelection, RootSessionEvent } from './sovereignTypes';
 import { RootOperationalShell } from './RootOperationalShell';
 import { RootMethodologyWorkbench } from './RootMethodologyWorkbench';
+import { RootTopologyWorkspace } from './RootTopologyWorkspace';
 import './root-sovereign.css';
 
 function auditId(body: Record<string, unknown>) {
@@ -20,6 +21,7 @@ function abortReason(signal: AbortSignal) {
 export function RootSovereignConsole({ initialState }: { initialState: RootSovereignState }) {
   const [state, setState] = useState(initialState);
   const [selection, setSelection] = useState<RootSelection | null>(null);
+  const [viewMode, setViewMode] = useState<'topology' | 'legacy'>('topology');
   const [refreshing, setRefreshing] = useState(false);
   const [refreshWarning, setRefreshWarning] = useState<string | null>(null);
   const [pending, setPending] = useState<RootActionRequest | null>(null);
@@ -128,15 +130,30 @@ export function RootSovereignConsole({ initialState }: { initialState: RootSover
   }
 
   return (
-    <main className="rs-console is-governance-observatory">
-      <RootOperationalShell
-        state={state}
-        refreshing={refreshing}
-        warning={refreshWarning}
-        onRefresh={() => void refresh()}
-        onSelect={setSelection}
-        onAction={requestAction}
-      />
+    <div className={`rs-console-host ${viewMode === 'legacy' ? 'is-legacy' : 'is-topology'}`}>
+      {viewMode === 'topology' ? (
+        <RootTopologyWorkspace
+          state={state}
+          refreshing={refreshing}
+          warning={refreshWarning}
+          onRefresh={() => void refresh()}
+          onSelect={setSelection}
+          onAction={requestAction}
+          onLegacy={() => setViewMode('legacy')}
+        />
+      ) : (
+        <>
+          <button type="button" className="rs-return-to-topologies" onClick={() => setViewMode('topology')}>VOLVER A TOPOLOGÍAS I–III</button>
+          <RootOperationalShell
+            state={state}
+            refreshing={refreshing}
+            warning={refreshWarning}
+            onRefresh={() => void refresh()}
+            onSelect={setSelection}
+            onAction={requestAction}
+          />
+        </>
+      )}
 
       <RootMethodologyWorkbench state={state} onAction={requestAction} />
 
@@ -177,6 +194,6 @@ export function RootSovereignConsole({ initialState }: { initialState: RootSover
           </section>
         </div>
       ) : null}
-    </main>
+    </div>
   );
 }
