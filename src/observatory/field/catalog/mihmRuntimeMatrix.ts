@@ -1,5 +1,7 @@
 import { asRecord, asStringArray, clamp01, numberValue, stringValue, type MihmRuntimeMatrix } from './fieldMatrixBuilder';
 
+const CANONICAL_SYMBOLS = new Set(['PHI_H', 'PHI_S', 'PHI_F', 'PHI_W', 'PHI_SFI']);
+
 function latest(rows?: unknown[]) {
   return Array.isArray(rows) && rows.length > 0 ? asRecord(rows[0]) : null;
 }
@@ -8,6 +10,16 @@ function pickNumber(source: Record<string, unknown>, keys: string[]) {
   for (const key of keys) {
     const value = numberValue(source[key]);
     if (typeof value === 'number') return value;
+  }
+  return null;
+}
+
+function pickPhiSymbol(...sources: Record<string, unknown>[]) {
+  for (const source of sources) {
+    const value = stringValue(source.phi_symbol, source.phiSymbol, source.homeostatic_symbol);
+    if (value && CANONICAL_SYMBOLS.has(value)) {
+      return value as NonNullable<MihmRuntimeMatrix['phiSymbol']>;
+    }
   }
   return null;
 }
@@ -36,12 +48,19 @@ export function buildMihmRuntimeMatrix(input: {
     const ihg = pickNumber(observed, ['ihg', 'IHG']) ?? pickNumber(vector, ['ihg', 'IHG']);
     const nti = pickNumber(observed, ['nti', 'NTI', 'nti_obs']) ?? pickNumber(vector, ['nti', 'NTI', 'NTI_obs']);
     const ldi = pickNumber(observed, ['ldi', 'LDI', 'ldi_hours']) ?? pickNumber(vector, ['ldi', 'LDI', 'LDI_hours']);
-    const phi = pickNumber(observed, ['phi', 'PHI_SF']) ?? pickNumber(vector, ['phi', 'PHI_SF']);
+    const phi = pickNumber(observed, ['phi', 'PHI_S', 'PHI_SF']) ?? pickNumber(vector, ['phi', 'PHI_S', 'PHI_SF']);
+    const explicitSymbol = pickPhiSymbol(observed, payload, vector);
+    const legacyAssetPhi = phi !== null && explicitSymbol === null;
+    if (legacyAssetPhi) warnings.push('legacy_phi_sf_interpreted_as_phi_s_for_field_object');
+
     return {
       ihg,
       nti,
       ldi,
       phi,
+      phiSymbol: explicitSymbol ?? (legacyAssetPhi ? 'PHI_S' : null),
+      phiCanonical: explicitSymbol !== null || legacyAssetPhi,
+      formulaVersion: stringValue(observed.formula_version, payload.formula_version, vector.formula_version),
       regime: stringValue(observed.regime, payload.regime, regimeFrom(ihg, nti, ldi)) ?? regimeFrom(ihg, nti, ldi),
       sourceState: 'observed',
       contributingNodes: asStringArray(visible.contributingNodes || visible.nodes),
@@ -59,16 +78,21 @@ export function buildMihmRuntimeMatrix(input: {
   const ihg = pickNumber(kernelMihm, ['IHG', 'ihg']) ?? pickNumber(worldspect, ['ihg', 'wsi']) ?? avg(graphNodes.map((node) => clamp01(node.co_n ?? asRecord(node.attributes).co_n ?? 0)).filter(Number.isFinite));
   const nti = pickNumber(kernelMihm, ['NTI', 'NTI_obs', 'nti']) ?? pickNumber(worldspect, ['nti']) ?? avg(graphNodes.map((node) => clamp01(node.d_n ?? asRecord(node.attributes).d_n ?? 0)).filter(Number.isFinite));
   const ldi = pickNumber(kernelMihm, ['LDI', 'LDI_hours', 'ldi']) ?? avg(graphNodes.map((node) => clamp01(node.u_n ?? asRecord(node.attributes).u_n ?? 0)).filter(Number.isFinite));
-  const phi = pickNumber(kernelMihm, ['PHI_SF', 'phi']) ?? (typeof ihg === 'number' && typeof nti === 'number' ? clamp01((ihg * (1 - nti))) : null);
+  const explicitSymbol = pickPhiSymbol(kernelMihm);
+  const explicitPhi = explicitSymbol ? pickNumber(kernelMihm, ['phi', explicitSymbol]) : null;
 
-  const hasDerived = ihg !== null || nti !== null || ldi !== null || phi !== null;
+  if (explicitPhi === null) warnings.push('phi_not_computed_without_typed_instrument');
+  const hasDerived = ihg !== null || nti !== null || ldi !== null;
   if (!hasDerived) warnings.push('mihm_runtime_fallback_missing_field_sources');
 
   return {
     ihg,
     nti,
     ldi,
-    phi,
+    phi: explicitPhi,
+    phiSymbol: explicitSymbol,
+    phiCanonical: explicitPhi !== null && explicitSymbol !== null,
+    formulaVersion: stringValue(kernelMihm.formula_version, kernelMihm.formulaVersion),
     regime: regimeFrom(ihg, nti, ldi),
     sourceState: hasDerived ? 'derived' : 'missing',
     contributingNodes: graphNodes.slice(0, 12).map((node) => stringValue(node.nodeId, node.node_key, node.label)).filter((item): item is string => Boolean(item)),
