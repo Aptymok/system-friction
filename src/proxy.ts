@@ -2,8 +2,11 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { normalizeSupabaseUrl } from '@/runtime/supabase/url'
+import { findInstitutionalMember } from '@/lib/system/access/institutionalMembers'
 
 const AUTH_COOKIE_NAMES = ['sb-access-token', 'sb-refresh-token', 'supabase-auth-token']
+
+type ModuleAccess = Record<string, unknown> | null | undefined
 
 function isRefreshTokenMissing(error: unknown) {
   const message = error instanceof Error ? error.message : String(error || '')
@@ -39,8 +42,21 @@ function isRootRouteUser(userId?: string | null, role?: string | null, email?: s
   )
 }
 
-function isStudioRouteUser(userId?: string | null, role?: string | null, email?: string | null) {
+function hasEnabledModule(moduleAccess: ModuleAccess, ...keys: string[]) {
+  if (!moduleAccess || typeof moduleAccess !== 'object') return false
+  return keys.some((key) => moduleAccess[key] === true)
+}
+
+function isStudioRouteUser(
+  userId?: string | null,
+  role?: string | null,
+  email?: string | null,
+  moduleAccess?: ModuleAccess,
+) {
   if (isRootRouteUser(userId, role, email)) return true
+  if (hasEnabledModule(moduleAccess, 'studio', 'simulator')) return true
+  if (findInstitutionalMember(email)?.modules.studio === true) return true
+
   const allowed = (process.env.STUDIO_AUTHORIZED_EMAILS || '')
     .split(',')
     .map((item) => item.trim().toLowerCase())
@@ -131,7 +147,7 @@ export async function proxy(request: NextRequest) {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('role')
+    .select('role,module_access')
     .eq('user_id', user.id)
     .maybeSingle()
 
@@ -139,7 +155,10 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL('/unauthorized', request.url))
   }
 
-  if (pathname.startsWith('/studio') && !isStudioRouteUser(user.id, profile?.role, user.email)) {
+  if (
+    pathname.startsWith('/studio') &&
+    !isStudioRouteUser(user.id, profile?.role, user.email, profile?.module_access as ModuleAccess)
+  ) {
     return NextResponse.redirect(new URL('/unauthorized', request.url))
   }
 
