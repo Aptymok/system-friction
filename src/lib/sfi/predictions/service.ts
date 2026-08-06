@@ -2,7 +2,7 @@ import 'server-only';
 import { randomUUID } from 'crypto';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { InstitutionalMemoryWriter } from '@/lib/memory/institutionalMemoryWriter';
-import { calculatePhiSfi, calculateFS, resolveRegime } from '@/core/formulas/canonicalFormulas';
+import { readInstitutionalPhiState } from '@/lib/mihm/institutionalPhiState';
 import { InMemoryEventRepository } from '@/core/repositories';
 import { CanonicalEventBuilder, CanonicalEventValidator, InMemoryEventBus } from '@/core/runtime';
 import { runEvidenceStateAgent, runReturnWindowAgent } from './agents';
@@ -296,9 +296,16 @@ export async function createPredictionEntry(input: CreateSfiPredictionInput): Pr
   const registeredAt = new Date().toISOString();
   const predictionId = randomUUID();
   const trace = buildCanonicalPredictionTrace({ predictionId, hypothesisId: input.hypothesis_id, createdBy: input.created_by });
-  const phiSfi = calculatePhiSfi(0.55, 0.7, 0.25, 0.05);
-  const fS = calculateFS(phiSfi);
-  const regime = resolveRegime(phiSfi);
+  const institutionalState = await readInstitutionalPhiState();
+  const institutionalContext = {
+    phiSfi: institutionalState.metrics?.phi ?? null,
+    fS: institutionalState.metrics?.fs ?? null,
+    regime: institutionalState.metrics?.regime ?? 'UNRESOLVED',
+    status: institutionalState.status,
+    observedAt: institutionalState.observedAt,
+    formulaVersion: institutionalState.formulaVersion,
+    warnings: institutionalState.warnings,
+  };
 
   const classification = classifyPredictionEvidence({
     prediction_registered_at: registeredAt,
@@ -339,9 +346,10 @@ export async function createPredictionEntry(input: CreateSfiPredictionInput): Pr
   const canonicalEvent = canonicalEventBuilder.build('PREDICTION_CREATED', {
     predictionId,
     hypothesisId: input.hypothesis_id,
-    phiSfi,
-    fS,
-    regime,
+    phiSfi: institutionalContext.phiSfi,
+    fS: institutionalContext.fS,
+    regime: institutionalContext.regime,
+    institutionalState: institutionalContext,
     trace,
   }, trace.logbookId, 1);
 
@@ -359,7 +367,6 @@ export async function createPredictionEntry(input: CreateSfiPredictionInput): Pr
     });
   }
 
-  // ADR-017: Registrar admisión en memoria institucional
   try {
     const writer = new InstitutionalMemoryWriter();
     await writer.write({
@@ -378,8 +385,6 @@ export async function createPredictionEntry(input: CreateSfiPredictionInput): Pr
       },
     });
   } catch (_) {
-    // La predicción ya está insertada. Si el writer falla, registramos advertencia
-    // pero no bloqueamos la respuesta.
     console.warn(`[ADR-017] Memory admission failed for prediction ${predictionId}`);
   }
 

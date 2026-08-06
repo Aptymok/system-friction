@@ -14,6 +14,13 @@ export type SfiEngineResult = {
   ok: boolean;
   source: 'python' | 'typescript-fallback';
   metrics: SfiMetrics;
+  metric: {
+    symbol: 'PHI_S';
+    objectId: string;
+    dimension: 'bounded_system_or_object';
+    epistemicStatus: 'DERIVED' | 'INFERRED' | 'SIMULATED';
+    formulaVersion: string;
+  };
   montecarlo?: unknown;
   warnings: string[];
 };
@@ -71,12 +78,24 @@ export function seededMonteCarlo(input: {
       nti = clamp01(nti + (rand() - 0.5) * 0.05);
       ldi = clamp01(ldi + (rand() - 0.5) * 0.04);
       xi = clamp01(xi + (rand() - 0.5) * 0.01);
-      const phi = clamp01((ihg * nti) / (1 + ldi) + xi);
-      path.push({ day: d, ihg, nti, ldi, xi, phi, fs: clamp01(1 - phi) });
+      const metrics = evaluateSfi({ ihg, nti, ldi, xi });
+      path.push({ day: d, ihg, nti, ldi, xi, phiS: metrics.phi, fs: metrics.fs });
     }
     paths.push(path);
   }
-  return { engine: 'TYPESCRIPT_MONTECARLO' as const, runs, horizon, paths };
+  return {
+    engine: 'TYPESCRIPT_MONTECARLO' as const,
+    metricSymbol: 'PHI_S' as const,
+    epistemicStatus: 'SIMULATED' as const,
+    runs,
+    horizon,
+    paths,
+  };
+}
+
+function finiteMetric(value: unknown): number | null {
+  const parsed = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
 }
 
 export async function evaluateWithSfiEngine(input: SfiEngineInput): Promise<SfiEngineResult> {
@@ -91,18 +110,30 @@ export async function evaluateWithSfiEngine(input: SfiEngineInput): Promise<SfiE
 
       if (response.ok) {
         const json = await response.json();
-        return {
-          ok: true,
-          source: 'python',
-          metrics: evaluateSfi({
-            ihg: Number(json.ihg ?? 0.5),
-            nti: Number(json.nti ?? 0.5),
-            ldi: Number(json.ldi ?? 0.5),
-            xi: Number(json.xi ?? 0.03),
-          }),
-          montecarlo: json.montecarlo,
-          warnings: Array.isArray(json.warnings) ? json.warnings : [],
-        };
+        const ihg = finiteMetric(json.ihg);
+        const nti = finiteMetric(json.nti);
+        const ldi = finiteMetric(json.ldi);
+        const xi = finiteMetric(json.xi);
+        if (ihg !== null && nti !== null && ldi !== null && xi !== null) {
+          return {
+            ok: true,
+            source: 'python',
+            metrics: evaluateSfi({ ihg, nti, ldi, xi }),
+            metric: {
+              symbol: 'PHI_S',
+              objectId: input.object_id,
+              dimension: 'bounded_system_or_object',
+              epistemicStatus: input.evidence.length > 0 ? 'DERIVED' : 'SIMULATED',
+              formulaVersion: '2026-08-06.phi-s.v2',
+            },
+            montecarlo: json.montecarlo,
+            warnings: [
+              ...(Array.isArray(json.warnings) ? json.warnings : []),
+              ...(input.evidence.length > 0 ? [] : ['phi_s_without_observed_evidence']),
+            ],
+          };
+        }
+        return fallback(input, 'python_engine_metrics_incomplete');
       }
     } catch (error) {
       return fallback(input, `python_engine_not_ready:${error instanceof Error ? error.message : 'unknown'}`);
@@ -127,7 +158,14 @@ function fallback(input: SfiEngineInput, warning: string): SfiEngineResult {
     ok: true,
     source: 'typescript-fallback',
     metrics,
+    metric: {
+      symbol: 'PHI_S',
+      objectId: input.object_id,
+      dimension: 'bounded_system_or_object',
+      epistemicStatus: evidenceCount > 0 ? 'INFERRED' : 'SIMULATED',
+      formulaVersion: '2026-08-06.phi-s.v2',
+    },
     montecarlo: seededMonteCarlo({ seed: input.object_id, ihg: metrics.ihg, nti: metrics.nti, ldi: metrics.ldi, xi: metrics.xi }),
-    warnings: [warning],
+    warnings: [warning, evidenceCount > 0 ? 'typescript_phi_s_inferred' : 'typescript_phi_s_simulated_without_evidence'],
   };
 }

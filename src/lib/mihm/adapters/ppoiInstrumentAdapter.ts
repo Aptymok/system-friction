@@ -1,6 +1,7 @@
 import { getPhenomenonState } from '@/lib/ppoi/ppoiService';
 import type { MihmInstrumentState, MihmTrajectoryDirection } from '@/lib/mihm/instrumentContract';
 import { HOMEOSTATIC_SYMBOL_LABEL } from '@/lib/mihm/instrumentContract';
+import { getMihmPhiDefinition, normalizePpoiComposite } from '@/lib/mihm/phiContract';
 
 const KNOWN_DIRECTIONS = new Set<MihmTrajectoryDirection>([
   'DEEPENING',
@@ -29,23 +30,30 @@ export async function ppoiToInstrumentState(ownerId: string, phenomenonId: strin
   const indices = record(phenomenon.current_indices);
   const composite = typeof phenomenon.current_composite === 'number' ? phenomenon.current_composite : null;
   const hypothesis = state.currentHypothesis ? record(state.currentHypothesis) : null;
-  const symbol = 'PHI_PHENOMENOLOGICAL';
+  const definition = getMihmPhiDefinition('PHI_F');
 
   return {
     instrument: 'PPOI',
     instrumentType: 'PHENOMENOLOGICAL',
     objectId: typeof phenomenon.fp_code === 'string' ? phenomenon.fp_code : String(phenomenon.id ?? phenomenonId),
-    variables: Object.entries(indices).map(([key, value]) => ({
-      key,
-      value: typeof value === 'number' ? value : null,
-      scale: '0-5',
-    })),
+    variables: [
+      ...Object.entries(indices).map(([key, value]) => ({
+        key,
+        value: typeof value === 'number' ? value : null,
+        scale: '0-5',
+      })),
+      { key: 'PPOI_COMPOSITE', value: composite, scale: '0-5' },
+    ],
     homeostaticState: composite !== null
       ? {
-          symbol,
-          label: HOMEOSTATIC_SYMBOL_LABEL[symbol],
-          value: composite,
-          formulaRef: 'src/lib/ppoi/calibration.ts#calculatePpoiIndices',
+          symbol: definition.symbol,
+          label: HOMEOSTATIC_SYMBOL_LABEL[definition.symbol],
+          value: normalizePpoiComposite(composite),
+          scale: definition.scale,
+          semanticRole: definition.semanticRole,
+          formulaRef: definition.formulaAuthority,
+          formulaVersion: definition.formulaVersion,
+          epistemicStatus: 'DERIVED',
         }
       : null,
     confidence: null,

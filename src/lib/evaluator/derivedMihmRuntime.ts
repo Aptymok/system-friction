@@ -1,5 +1,6 @@
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import type { MihmRuntimeMatrix } from '@/observatory/field/catalog/fieldMatrixBuilder';
+import { evaluateSfi } from '@/lib/sfi/math';
 
 function clamp01(value: number): number {
   return Math.max(0, Math.min(1, Number.isFinite(value) ? value : 0));
@@ -27,7 +28,14 @@ async function readLatestScoreFrictionVectors(limit = 12) {
   }
 }
 
-function deriveOne(row: Record<string, unknown>) {
+type ScoreFrictionInputs = {
+  ihg: number;
+  nti: number;
+  ldi: number;
+  xi: number;
+};
+
+function deriveInputs(row: Record<string, unknown>): ScoreFrictionInputs {
   const memetic = row.memetic_vector as Record<string, unknown> | null | undefined;
   const semantic = row.semantic_vector as Record<string, unknown> | null | undefined;
   const platform = row.platform_vector as Record<string, unknown> | null | undefined;
@@ -41,11 +49,20 @@ function deriveOne(row: Record<string, unknown>) {
 
   const ihg = clamp01((institutional * 0.55) + (persistence * 0.30) + (hasSemantic * 0.15));
   const nti = clamp01((affective * 0.45) + ((1 - persistence) * 0.25) + (hasPlatform * 0.10));
-  const ldi = clamp01((persistence * 0.40) + (institutional * 0.35) + (affective * 0.15));
-  const fs = clamp01((1 - ihg) * 0.45 + nti * 0.35 + (1 - ldi) * 0.20);
-  const phi = clamp01((ihg * 0.40) + (ldi * 0.35) + ((1 - fs) * 0.25));
+  const ldi = clamp01(
+    ((1 - persistence) * 0.45)
+    + ((1 - institutional) * 0.35)
+    + (affective * 0.10)
+    + ((1 - hasSemantic) * 0.10),
+  );
+  const xi = clamp01(
+    0.03
+    + (Math.abs(persistence - institutional) * 0.04)
+    + ((1 - hasPlatform) * 0.02)
+    + ((1 - hasSemantic) * 0.02),
+  );
 
-  return { ihg, nti, ldi, fs, phi };
+  return { ihg, nti, ldi, xi };
 }
 
 function avg(values: number[]) {
@@ -53,17 +70,12 @@ function avg(values: number[]) {
   return clamp01(values.reduce((sum, value) => sum + value, 0) / values.length);
 }
 
-function regimeFrom(ihg: number, nti: number, fs: number): string {
-  if (fs > 0.66 || nti > 0.66) return 'critical';
-  if (ihg > 0.58 && fs < 0.45) return 'homeostatic';
-  if (ihg > 0.45) return 'active';
-  return 'transition';
-}
-
 export async function buildDerivedMihmRuntime(): Promise<MihmRuntimeMatrix & {
   fs: number;
+  xi: number;
   sourceOrigin: string;
   derivationConfidence: number;
+  formulaVersion: string;
 }> {
   const rows = await readLatestScoreFrictionVectors();
 
@@ -72,6 +84,7 @@ export async function buildDerivedMihmRuntime(): Promise<MihmRuntimeMatrix & {
       ihg: 0,
       nti: 0,
       ldi: 0,
+      xi: 0,
       fs: 0,
       phi: 0,
       regime: 'missing',
@@ -81,16 +94,16 @@ export async function buildDerivedMihmRuntime(): Promise<MihmRuntimeMatrix & {
       warnings: ['scorefriction_vectors_missing_p11_derived'],
       sourceOrigin: 'scorefriction_vectors',
       derivationConfidence: 0,
+      formulaVersion: '2026-08-06.phi-s.v2',
     };
   }
 
-  const derived = rows.map(deriveOne);
-
-  const ihg = avg(derived.map((item) => item.ihg));
-  const nti = avg(derived.map((item) => item.nti));
-  const ldi = avg(derived.map((item) => item.ldi));
-  const fs = avg(derived.map((item) => item.fs));
-  const phi = avg(derived.map((item) => item.phi));
+  const inputs = rows.map(deriveInputs);
+  const ihg = avg(inputs.map((item) => item.ihg));
+  const nti = avg(inputs.map((item) => item.nti));
+  const ldi = avg(inputs.map((item) => item.ldi));
+  const xi = avg(inputs.map((item) => item.xi));
+  const metrics = evaluateSfi({ ihg, nti, ldi, xi });
 
   const contributingEvidence = rows
     .map((row) => typeof row.observation_id === 'string' ? row.observation_id : null)
@@ -98,17 +111,19 @@ export async function buildDerivedMihmRuntime(): Promise<MihmRuntimeMatrix & {
     .slice(0, 12);
 
   return {
-    ihg,
-    nti,
-    ldi,
-    fs,
-    phi,
-    regime: regimeFrom(ihg, nti, fs),
+    ihg: metrics.ihg,
+    nti: metrics.nti,
+    ldi: metrics.ldi,
+    xi: metrics.xi,
+    fs: metrics.fs,
+    phi: metrics.phi,
+    regime: metrics.regime.toLowerCase(),
     sourceState: 'derived',
     contributingNodes: ['scorefriction_observations', 'scorefriction_vectors'],
     contributingEvidence,
-    warnings: [],
+    warnings: ['scorefriction_phi_migrated_to_sfi_math_core'],
     sourceOrigin: 'scorefriction_vectors',
     derivationConfidence: clamp01(contributingEvidence.length / Math.max(rows.length, 1)),
+    formulaVersion: '2026-08-06.phi-s.v2',
   };
 }

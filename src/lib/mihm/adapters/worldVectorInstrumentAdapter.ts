@@ -1,10 +1,11 @@
 import { getLatestWorldSpectSnapshot } from '@/lib/worldspect/snapshotStore';
 import type { MihmInstrumentState } from '@/lib/mihm/instrumentContract';
 import { HOMEOSTATIC_SYMBOL_LABEL } from '@/lib/mihm/instrumentContract';
+import { getMihmPhiDefinition } from '@/lib/mihm/phiContract';
 
 export async function worldVectorToInstrumentState(): Promise<MihmInstrumentState> {
   const snapshot = await getLatestWorldSpectSnapshot();
-  const symbol = 'PHI_WORLD';
+  const definition = getMihmPhiDefinition('PHI_W');
 
   if (!snapshot) {
     return {
@@ -30,15 +31,22 @@ export async function worldVectorToInstrumentState(): Promise<MihmInstrumentStat
       { key: 'NTI', value: snapshot.nti, scale: '0-1' },
     ],
     homeostaticState: {
-      symbol,
-      label: HOMEOSTATIC_SYMBOL_LABEL[symbol],
+      symbol: definition.symbol,
+      label: HOMEOSTATIC_SYMBOL_LABEL[definition.symbol],
       value: snapshot.wsi,
-      formulaRef: 'src/lib/worldspect/vector-aggregator.ts#aggregateWorldSpect',
+      scale: definition.scale,
+      semanticRole: definition.semanticRole,
+      formulaRef: definition.formulaAuthority,
+      formulaVersion: definition.formulaVersion,
+      epistemicStatus: snapshot.degraded_sources.length > 0 ? 'DEGRADED' : 'OBSERVED',
     },
     confidence: snapshot.confidence,
     trajectory: null,
     prediction: null,
     observedAt: snapshot.observed_at,
-    warnings: snapshot.degraded_sources.map((source) => `degraded_source:${source}`),
+    warnings: [
+      'phi_w_is_typed_wsi_alias',
+      ...snapshot.degraded_sources.map((source) => `degraded_source:${source}`),
+    ],
   };
 }

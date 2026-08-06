@@ -1,6 +1,7 @@
 import { normalizeMophMetrics } from '@/lib/moph/moph-math';
 import type { MihmInstrumentState } from '@/lib/mihm/instrumentContract';
 import { HOMEOSTATIC_SYMBOL_LABEL } from '@/lib/mihm/instrumentContract';
+import { getMihmPhiDefinition } from '@/lib/mihm/phiContract';
 
 export type MophSessionInput = {
   sessionId: string;
@@ -14,7 +15,7 @@ export type MophSessionInput = {
 
 export function mophToInstrumentState(input: MophSessionInput): MihmInstrumentState {
   const metrics = normalizeMophMetrics(input);
-  const symbol = 'PHI_PERSONAL';
+  const definition = getMihmPhiDefinition('PHI_H');
 
   return {
     instrument: 'MOP-H',
@@ -28,10 +29,14 @@ export function mophToInstrumentState(input: MophSessionInput): MihmInstrumentSt
       { key: 'EPSILON', value: metrics.epsilon, scale: '0-1' },
     ],
     homeostaticState: {
-      symbol,
-      label: HOMEOSTATIC_SYMBOL_LABEL[symbol],
+      symbol: definition.symbol,
+      label: HOMEOSTATIC_SYMBOL_LABEL[definition.symbol],
       value: metrics.phi,
-      formulaRef: 'src/lib/moph/moph-math.ts#calculateMophPhi',
+      scale: definition.scale,
+      semanticRole: definition.semanticRole,
+      formulaRef: definition.formulaAuthority,
+      formulaVersion: definition.formulaVersion,
+      epistemicStatus: 'DERIVED',
     },
     confidence: null,
     trajectory: null,

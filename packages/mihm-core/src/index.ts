@@ -1,4 +1,4 @@
-export type MihmMetricKey = 'ihg' | 'nti' | 'ldi' | 'phi';
+export type MihmMetricKey = 'ihg' | 'nti' | 'ldi' | 'continuity';
 
 export type MihmRegime = 'stable' | 'watch' | 'critical' | 'unknown';
 
@@ -10,6 +10,8 @@ export type MihmVector = {
   ihg: number;
   nti: number;
   ldi: number;
+  continuity?: number;
+  /** @deprecated Compatibility alias. This is not a canonical MIHM Phi. */
   phi?: number;
 };
 
@@ -33,6 +35,11 @@ export type MihmComputationResult = {
   vector: MihmVector;
   confidence: number;
   warnings: string[];
+  metricContract: {
+    id: 'REDUCED_KERNEL_CONTINUITY';
+    canonicalPhi: false;
+    legacyAlias: 'phi';
+  };
 };
 
 export type ReducedMihmCampoInput = {
@@ -70,16 +77,20 @@ export function clamp01(value: number) {
   return Math.min(1, Math.max(0, value));
 }
 
+function continuityValue(vector: MihmVector): number {
+  return clamp01(vector.continuity ?? vector.phi ?? vector.ihg * (1 - vector.ldi) * (1 - vector.nti * 0.5));
+}
+
 export function qualifyNode(node: SFINode, delta = 0): SFINode {
   const ihg = clamp01(node.vector.ihg);
   const nti = clamp01(node.vector.nti);
   const ldi = clamp01(node.vector.ldi);
-  const phi = clamp01(node.vector.phi ?? ihg * (1 - ldi) * (1 - nti * 0.5));
-  const qualification = clamp01((ihg * 0.45) + ((1 - nti) * 0.2) + ((1 - ldi) * 0.25) + (phi * 0.1) + delta);
+  const continuity = continuityValue({ ...node.vector, ihg, nti, ldi });
+  const qualification = clamp01((ihg * 0.45) + ((1 - nti) * 0.2) + ((1 - ldi) * 0.25) + (continuity * 0.1) + delta);
 
   return {
     ...node,
-    vector: { ihg, nti, ldi, phi },
+    vector: { ihg, nti, ldi, continuity, phi: continuity },
     qualified: qualification >= 0.5,
     qualification,
   };
@@ -104,7 +115,8 @@ export function operationalCapacity(
 ) {
   const qualified = qualifyNode(node);
   const flowBalance = clamp01((Math.max(0, weightIn) + Math.max(0, weightOut)) / 2);
-  const integrity = clamp01((qualified.vector.ihg * 0.4) + ((1 - qualified.vector.nti) * 0.2) + ((1 - qualified.vector.ldi) * 0.2) + ((qualified.vector.phi ?? 0) * 0.2));
+  const continuity = continuityValue(qualified.vector);
+  const integrity = clamp01((qualified.vector.ihg * 0.4) + ((1 - qualified.vector.nti) * 0.2) + ((1 - qualified.vector.ldi) * 0.2) + (continuity * 0.2));
   return clamp01(integrity * (1 - clamp01(degradation)) * (0.5 + flowBalance * 0.5));
 }
 
@@ -117,16 +129,16 @@ export function capacityLevel(co: number): CapacityLevel {
 }
 
 export function deriveRegime(
-  phi: number,
+  continuity: number,
   degradation: number,
   operationalCapacityValue: number,
 ): MihmRegime {
-  const p = clamp01(phi);
+  const c = clamp01(continuity);
   const d = clamp01(degradation);
   const co = clamp01(operationalCapacityValue);
 
-  if (p < 0.25 || d >= 0.75 || co < 0.25) return 'critical';
-  if (p < 0.5 || d >= 0.45 || co < 0.5) return 'watch';
+  if (c < 0.25 || d >= 0.75 || co < 0.25) return 'critical';
+  if (c < 0.5 || d >= 0.45 || co < 0.5) return 'watch';
   return 'stable';
 }
 
@@ -154,31 +166,38 @@ export function computeReducedMihm(input: ReducedMihmInput): ReducedMihmResult {
   const ihg = clamp01((input.campo.confidence * 0.45) + (avgWeight * 0.25) + (graphDensity * 0.2) + (avgValue * 0.1));
   const nti = clamp01((avgNti * 0.55) + (sourcePenalty * 0.25) + (simulatedRatio * 0.2));
   const ldi = clamp01((sourcePenalty * 0.45) + (graphPenalty * 0.25) + ((1 - input.campo.confidence) * 0.2) + (simulatedRatio * 0.1));
-  const phi = clamp01(ihg * (1 - ldi) * (1 - (nti * 0.35)));
+  const continuity = clamp01(ihg * (1 - ldi) * (1 - (nti * 0.35)));
   const qualified = qualifyNode({
     id: 'sfi.kernel',
     type: 'field',
-    vector: { ihg, nti, ldi, phi },
+    vector: { ihg, nti, ldi, continuity },
     weight: avgWeight,
   });
   const degradation = degradeNode(qualified, 0.35, 1, ldi * 0.25);
   const operationalCapacityValue = operationalCapacity(qualified, degradation, avgWeight, graphDensity);
   const warnings = [
+    'legacy_phi_alias_only',
     ...(input.campo.sourceState === 'observed' ? [] : [`campo_${input.campo.sourceState}`]),
     ...(input.graph.sourceState === 'observed' && graphEdgeCount > 0 ? [] : ['graph_not_observed']),
     ...(simulatedRatio > 0 ? ['simulated_sources_present'] : []),
   ];
 
   return {
-    regime: deriveRegime(phi, degradation, operationalCapacityValue),
+    regime: deriveRegime(continuity, degradation, operationalCapacityValue),
     vector: {
       ihg: Number(ihg.toFixed(4)),
       nti: Number(nti.toFixed(4)),
       ldi: Number(ldi.toFixed(4)),
-      phi: Number(phi.toFixed(4)),
+      continuity: Number(continuity.toFixed(4)),
+      phi: Number(continuity.toFixed(4)),
     },
     confidence: Number(clamp01(input.campo.confidence * (1 - (sourcePenalty * 0.3)) * (1 - (graphPenalty * 0.2))).toFixed(4)),
     warnings,
+    metricContract: {
+      id: 'REDUCED_KERNEL_CONTINUITY',
+      canonicalPhi: false,
+      legacyAlias: 'phi',
+    },
     sourceIds: campoNodes.map((node) => node.type),
     degradation: Number(degradation.toFixed(4)),
     operationalCapacity: Number(operationalCapacityValue.toFixed(4)),

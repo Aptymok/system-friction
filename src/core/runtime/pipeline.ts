@@ -1,14 +1,10 @@
 import { randomUUID } from 'crypto';
 
-import {
-  calculateFS,
-  calculatePhiSfi,
-  resolveRegime,
-} from '@/core/formulas/canonicalFormulas';
 import { canonicalAgents } from '@/core/agents';
 import { InMemoryEventBus } from '@/core/runtime';
 import { emitEpistemicEvent } from '@/core/memory/epistemicEventWriter';
 import { processEpistemicEvent } from '@/core/memory/institutionalEventPipeline';
+import { readInstitutionalPhiState } from '@/lib/mihm/institutionalPhiState';
 
 import type {
   AgentResult,
@@ -297,9 +293,10 @@ export class CanonicalPipelineRunner {
       createdAt: new Date().toISOString(),
     };
 
-    const phiSfi = calculatePhiSfi(0.62, 0.71, 0.24, 0.05);
-    const fS = calculateFS(phiSfi);
-    const regime = resolveRegime(phiSfi);
+    const institutionalState = await readInstitutionalPhiState();
+    const phiSfi = institutionalState.metrics?.phi ?? null;
+    const fS = institutionalState.metrics?.fs ?? null;
+    const regime = institutionalState.metrics?.regime ?? 'UNRESOLVED';
     const initialEvidence = evidenceFromPayload(input.payload);
     const initialHypotheses = hypothesesFromPayload(input.payload);
     const initialPredictions = predictionsFromPayload(input.payload);
@@ -324,8 +321,15 @@ export class CanonicalPipelineRunner {
       metadata: {
         pipeline: 'CanonicalPipelineRunner',
         executionId,
-        phiSfi,
-        fS,
+        institutionalState: {
+          phiSfi,
+          fS,
+          regime,
+          status: institutionalState.status,
+          observedAt: institutionalState.observedAt,
+          formulaVersion: institutionalState.formulaVersion,
+          warnings: institutionalState.warnings,
+        },
         createdAt: trace.createdAt,
       },
     };
@@ -350,6 +354,7 @@ export class CanonicalPipelineRunner {
         capabilityId: input.capabilityId,
         actor: context.actor,
         initialState,
+        institutionalState: context.metadata.institutionalState,
       },
       provenance: { runtime: 'CanonicalPipelineRunner', phase: 'request' },
       authorization: {
@@ -468,6 +473,7 @@ export class CanonicalPipelineRunner {
         capabilityId: input.capabilityId,
         status,
         regime,
+        institutionalState: context.metadata.institutionalState,
         initialState,
         finalState,
         agentResults,

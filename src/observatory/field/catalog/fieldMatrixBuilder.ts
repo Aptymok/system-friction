@@ -53,6 +53,9 @@ export type MihmRuntimeMatrix = {
   nti: number | null;
   ldi: number | null;
   phi: number | null;
+  phiSymbol?: 'PHI_H' | 'PHI_S' | 'PHI_F' | 'PHI_W' | 'PHI_SFI' | null;
+  phiCanonical?: boolean;
+  formulaVersion?: string | null;
   regime: string;
   sourceState: 'observed' | 'derived' | 'fallback' | 'missing';
   contributingNodes: string[];

@@ -1,3 +1,5 @@
+import { calculateFS, calculatePhiSfi } from '@/core/formulas/canonicalFormulas';
+
 export type SfiRegime = 'HOMEOSTATICO' | 'CRITICO' | 'ENTROPICO';
 
 export type SfiInput = {
@@ -28,15 +30,11 @@ export function normalizePositive(value: number, max = 1): number {
 }
 
 export function calculatePhi(input: SfiInput): number {
-  const ihg = clamp01(input.ihg);
-  const nti = clamp01(input.nti);
-  const ldi = clamp01(input.ldi);
-  const xi = clamp01(input.xi ?? 0.03);
-  return clamp01((ihg * nti) / (1 + ldi) + xi);
+  return calculatePhiSfi(input.ihg, input.nti, input.ldi, input.xi ?? 0.03);
 }
 
 export function calculateFs(input: SfiInput): number {
-  return clamp01(1 - calculatePhi(input));
+  return calculateFS(calculatePhi(input));
 }
 
 export function evaluateSfiRegime(input: SfiInput): SfiRegime {
@@ -56,7 +54,7 @@ export function evaluateSfi(input: SfiInput): SfiMetrics {
   const ldi = clamp01(input.ldi);
   const xi = clamp01(input.xi ?? 0.03);
   const phi = calculatePhi({ ihg, nti, ldi, xi });
-  const fs = clamp01(1 - phi);
+  const fs = calculateFS(phi);
   const regime = evaluateSfiRegime({ ihg, nti, ldi, xi });
   return { ihg, nti, ldi, xi, phi, fs, regime };
 }
