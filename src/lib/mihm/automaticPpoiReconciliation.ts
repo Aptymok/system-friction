@@ -12,6 +12,7 @@ type Row = RootRow;
 type AutomaticPpoiDisposition =
   | 'LINKED_EXISTING'
   | 'REGISTERED_AUTOMATICALLY'
+  | 'PENDING_AUTOMATIC'
   | 'BLOCKED'
   | 'NOT_REQUIRED';
 
@@ -25,16 +26,8 @@ export type AutomaticPpoiCaseState = {
   blocker: string | null;
 };
 
-function text(value: unknown) {
-  return typeof value === 'string' && value.trim() ? value.trim() : null;
-}
-
-function rows(value: unknown): Row[] {
-  return Array.isArray(value)
-    ? value.filter((item): item is Row => Boolean(item) && typeof item === 'object' && !Array.isArray(item))
-    : [];
-}
-
+function text(value: unknown) { return typeof value === 'string' && value.trim() ? value.trim() : null; }
+function rows(value: unknown): Row[] { return Array.isArray(value) ? value.filter((item): item is Row => Boolean(item) && typeof item === 'object' && !Array.isArray(item)) : []; }
 function uniqueRows(input: Row[]) {
   const seen = new Set<string>();
   return input.filter((row, index) => {
@@ -44,11 +37,7 @@ function uniqueRows(input: Row[]) {
     return true;
   });
 }
-
-function token(value: string) {
-  return value.toUpperCase().replace(/[^A-Z0-9_-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 64) || 'CASE';
-}
-
+function token(value: string) { return value.toUpperCase().replace(/[^A-Z0-9_-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 64) || 'CASE'; }
 function objectClassFor(methodology: RootCaseMethodology) {
   switch (methodology.input.subject) {
     case 'PERSON': return 'person';
@@ -62,27 +51,17 @@ function objectClassFor(methodology: RootCaseMethodology) {
     default: return 'other';
   }
 }
-
 function consentEvidenceId(row: Row) {
   const direct = text(row.consent_evidence_id ?? row.consentEvidenceId);
   if (direct) return direct;
-  const consent = row.consent && typeof row.consent === 'object' && !Array.isArray(row.consent)
-    ? row.consent as Record<string, unknown>
-    : {};
+  const consent = row.consent && typeof row.consent === 'object' && !Array.isArray(row.consent) ? row.consent as Record<string, unknown> : {};
   return text(consent.evidence_id ?? consent.evidenceId);
 }
-
-function openedAt(row: Row) {
-  return text(row.created_at ?? row.observed_at ?? row.updated_at) ?? new Date().toISOString();
-}
+function openedAt(row: Row) { return text(row.created_at ?? row.observed_at ?? row.updated_at) ?? new Date().toISOString(); }
 
 async function sourceCases() {
   const commercial = await readCommercialWorkspace();
-  const sourceRows = uniqueRows([
-    ...rows(commercial.sourceProposals),
-    ...rows(commercial.opportunities),
-    ...rows(commercial.proposals),
-  ]);
+  const sourceRows = uniqueRows([...rows(commercial.sourceProposals), ...rows(commercial.opportunities), ...rows(commercial.proposals)]);
   return { rows: sourceRows, warnings: commercial.warnings };
 }
 
@@ -91,9 +70,7 @@ export async function readAutomaticPpoiStates(): Promise<{ cases: AutomaticPpoiC
   const source = await sourceCases();
   const methodologies = source.rows.map((row, index) => ({ row, methodology: resolveRootCaseMethodology(row, index) }));
   const caseCodes = methodologies.map(({ methodology }) => `PPOI-${token(methodology.caseId)}`);
-  const existing = caseCodes.length
-    ? await db.from('sfi_reference_cases').select('id,case_code,object_id,status,metadata').in('case_code', caseCodes)
-    : { data: [], error: null };
+  const existing = caseCodes.length ? await db.from('sfi_reference_cases').select('id,case_code,object_id,status,metadata').in('case_code', caseCodes) : { data: [], error: null };
   const existingRows = rows(existing.data);
   const byCode = new Map(existingRows.map((row) => [String(row.case_code), row]));
 
@@ -101,43 +78,20 @@ export async function readAutomaticPpoiStates(): Promise<{ cases: AutomaticPpoiC
     const primary = methodology.resolution.primary?.methodId ?? null;
     const code = `PPOI-${token(methodology.caseId)}`;
     const linked = byCode.get(code) ?? null;
-    if (primary !== 'PPOI') {
-      return { caseId: methodology.caseId, title: methodology.title, methodology, disposition: 'NOT_REQUIRED', referenceCaseId: null, referenceCaseCode: null, blocker: null };
-    }
+    if (primary !== 'PPOI') return { caseId: methodology.caseId, title: methodology.title, methodology, disposition: 'NOT_REQUIRED', referenceCaseId: null, referenceCaseCode: null, blocker: null };
     if (methodology.resolution.status !== 'READY') {
-      return {
-        caseId: methodology.caseId,
-        title: methodology.title,
-        methodology,
-        disposition: 'BLOCKED',
-        referenceCaseId: linked ? String(linked.id ?? '') || null : null,
-        referenceCaseCode: linked ? code : null,
-        blocker: methodology.resolution.blockers.map((item) => item.message).join(' · ') || 'La selección metodológica no está lista.',
-      };
+      return { caseId: methodology.caseId, title: methodology.title, methodology, disposition: 'BLOCKED', referenceCaseId: linked ? String(linked.id ?? '') || null : null, referenceCaseCode: linked ? code : null, blocker: methodology.resolution.blockers.map((item) => item.message).join(' · ') || 'La selección metodológica no está lista.' };
     }
     const objectClass = normalizeAmvObjectClass(objectClassFor(methodology));
     const consentRequired = ['person', 'organization', 'movement'].includes(objectClass);
     if (consentRequired && !consentEvidenceId(row)) {
-      return {
-        caseId: methodology.caseId,
-        title: methodology.title,
-        methodology,
-        disposition: 'BLOCKED',
-        referenceCaseId: linked ? String(linked.id ?? '') || null : null,
-        referenceCaseCode: linked ? code : null,
-        blocker: 'PPOI requiere evidencia de consentimiento para esta clase de objeto.',
-      };
+      return { caseId: methodology.caseId, title: methodology.title, methodology, disposition: 'BLOCKED', referenceCaseId: linked ? String(linked.id ?? '') || null : null, referenceCaseCode: linked ? code : null, blocker: 'PPOI requiere evidencia de consentimiento para esta clase de objeto.' };
     }
-    if (linked) {
-      return { caseId: methodology.caseId, title: methodology.title, methodology, disposition: 'LINKED_EXISTING', referenceCaseId: String(linked.id ?? '') || null, referenceCaseCode: code, blocker: null };
-    }
-    return { caseId: methodology.caseId, title: methodology.title, methodology, disposition: 'REGISTERED_AUTOMATICALLY', referenceCaseId: null, referenceCaseCode: code, blocker: null };
+    if (linked) return { caseId: methodology.caseId, title: methodology.title, methodology, disposition: 'LINKED_EXISTING', referenceCaseId: String(linked.id ?? '') || null, referenceCaseCode: code, blocker: null };
+    return { caseId: methodology.caseId, title: methodology.title, methodology, disposition: 'PENDING_AUTOMATIC', referenceCaseId: null, referenceCaseCode: code, blocker: null };
   });
 
-  return {
-    cases,
-    warnings: [...source.warnings, ...(existing.error ? [`sfi_reference_cases:${existing.error.message}`] : [])],
-  };
+  return { cases, warnings: [...source.warnings, ...(existing.error ? [`sfi_reference_cases:${existing.error.message}`] : [])] };
 }
 
 export async function reconcileAutomaticPpoi(): Promise<{ ok: boolean; cases: AutomaticPpoiCaseState[]; created: number; linked: number; blocked: number; warnings: string[] }> {
@@ -164,15 +118,7 @@ export async function reconcileAutomaticPpoi(): Promise<{ ok: boolean; cases: Au
 
     if (methodology.resolution.status !== 'READY') {
       blocked += 1;
-      results.push({
-        caseId: methodology.caseId,
-        title: methodology.title,
-        methodology,
-        disposition: 'BLOCKED',
-        referenceCaseId: existing.data ? String(existing.data.id ?? '') || null : null,
-        referenceCaseCode: existing.data ? code : null,
-        blocker: methodology.resolution.blockers.map((item) => item.message).join(' · ') || 'La selección metodológica no está lista.',
-      });
+      results.push({ caseId: methodology.caseId, title: methodology.title, methodology, disposition: 'BLOCKED', referenceCaseId: existing.data ? String(existing.data.id ?? '') || null : null, referenceCaseCode: existing.data ? code : null, blocker: methodology.resolution.blockers.map((item) => item.message).join(' · ') || 'La selección metodológica no está lista.' });
       continue;
     }
 
