@@ -3,9 +3,10 @@ import 'server-only';
 import { readObservedSfiCognitiveRuntime } from './observedRuntime';
 import { SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY } from './convergedRegistry';
 import { SFI_AGENT_EXECUTION_MAP } from './agentExecutionMap';
+import { institutionalAssignmentsFor } from './institutionalAssignments';
 
 export type SfiAgentPassport = {
-  passportVersion: 'SFI-AGENT-PASSPORT-1.0';
+  passportVersion: 'SFI-AGENT-PASSPORT-1.1';
   id: string;
   name: string;
   namespace: 'cognitive_runtime';
@@ -28,6 +29,7 @@ export type SfiAgentPassport = {
   missingTables: string[];
   latestExecutionAt: string | null;
   evidenceEventIds: string[];
+  institutionalDuties: string[];
   warnings: string[];
 };
 
@@ -41,7 +43,7 @@ export async function readAgentPassports() {
     const agentEvents = executionEvents.filter((event) => event.sourceId === contract.id);
     const latestExecutionAt = agentEvents.map((event) => event.occurredAt).filter((value): value is string => Boolean(value)).sort().at(-1) ?? null;
     return {
-      passportVersion: 'SFI-AGENT-PASSPORT-1.0',
+      passportVersion: 'SFI-AGENT-PASSPORT-1.1',
       id: contract.id,
       name: contract.name,
       namespace: 'cognitive_runtime',
@@ -64,6 +66,7 @@ export async function readAgentPassports() {
       missingTables: observed?.evidence.missingTables ?? contract.sourceTables,
       latestExecutionAt,
       evidenceEventIds: agentEvents.map((event) => event.eventId).filter(Boolean),
+      institutionalDuties: institutionalAssignmentsFor(contract.id),
       warnings: observed?.evidence.warnings ?? ['Runtime observation unavailable.'],
     };
   });
@@ -74,6 +77,7 @@ export async function readAgentPassports() {
     counts: {
       total: passports.length,
       executorBound: passports.filter((item) => item.executorBound).length,
+      assigned: passports.filter((item) => item.institutionalDuties.length > 0).length,
       operational: passports.filter((item) => item.lifecycle === 'OPERATIONAL').length,
       gated: passports.filter((item) => item.lifecycle === 'GATED').length,
       degraded: passports.filter((item) => item.lifecycle === 'DEGRADED').length,

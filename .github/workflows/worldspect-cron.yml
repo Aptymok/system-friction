@@ -1,4 +1,4 @@
-name: SFI World Observation Four Daily Measurements
+name: SFI World + Institutional Observation Cycle
 
 on:
   schedule:
@@ -45,7 +45,6 @@ jobs:
         run: |
           test -n "$VERCEL_APP_URL" || (echo "Missing VERCEL_APP_URL secret" && exit 1)
           test -n "$WORLDSPECT_INGEST_SECRET" || (echo "Missing WORLDSPECT_INGEST_SECRET" && exit 1)
-
           curl --fail-with-body -X POST "$VERCEL_APP_URL/api/cron/worldspect" \
             -H "Authorization: Bearer $WORLDSPECT_INGEST_SECRET" \
             -H "X-SFI-Ingest-Mode: $WORLDSPECT_INGEST_MODE" \
@@ -57,6 +56,14 @@ jobs:
           WORLDSPECT_INGEST_SECRET: ${{ secrets.WORLDSPECT_INGEST_SECRET }}
         run: |
           curl --fail-with-body -X POST "$VERCEL_APP_URL/api/cron/world-observatory" \
+            -H "Authorization: Bearer $WORLDSPECT_INGEST_SECRET"
+
+      - name: Execute SFI Institutional Cognitive Cycle
+        env:
+          VERCEL_APP_URL: ${{ secrets.VERCEL_APP_URL }}
+          WORLDSPECT_INGEST_SECRET: ${{ secrets.WORLDSPECT_INGEST_SECRET }}
+        run: |
+          curl --fail-with-body -X POST "$VERCEL_APP_URL/api/cron/sfi-institutional-cycle" \
             -H "Authorization: Bearer $WORLDSPECT_INGEST_SECRET"
 
       - name: Run World Vector Pulse QA
