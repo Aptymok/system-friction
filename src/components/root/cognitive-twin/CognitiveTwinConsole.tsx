@@ -1,4 +1,5 @@
 import { HumanReadableRecord } from '@/components/shared/HumanReadableRecord';
+import { FounderDecisionCandidateForm } from './FounderDecisionCandidateForm';
 import type { CognitiveTwinState } from '@/lib/cognitive-twin/readState';
 
 function yesNo(value: boolean) {
@@ -41,7 +42,7 @@ export function CognitiveTwinConsole({ state }: { state: CognitiveTwinState }) {
         </section>
       ) : null}
 
-      <section style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1.1fr) minmax(320px,.9fr)', gap: 12, marginTop: 12 }}>
+      <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(320px,1fr))', gap: 12, marginTop: 12 }}>
         <article style={card}>
           <h2 style={heading}>QUÉ ESTÁ REALMENTE IMPLEMENTADO</h2>
           <dl style={{ display: 'grid', gap: 8, margin: 0 }}>
@@ -57,8 +58,14 @@ export function CognitiveTwinConsole({ state }: { state: CognitiveTwinState }) {
         <article style={card}>
           <h2 style={heading}>QUÉ REQUIERE DEL FUNDADOR</h2>
           <p style={paragraph}>Nada adicional para continuar programando el núcleo.</p>
-          <p style={paragraph}>Para entrenar el criterio institucional sí se necesitan decisiones reales: situaciones donde corregiste una inferencia, rechazaste una conclusión, exigiste evidencia o reservaste una decisión. Esas correcciones entrarán como candidatos y no serán canónicas hasta que las apruebes.</p>
-          <p style={paragraph}>No se necesita que escribas “cómo piensas” desde cero. Conviene extraer reglas de decisiones reales y después someterlas a tu aprobación.</p>
+          <p style={paragraph}>Para constituir tu criterio institucional sí se necesitan decisiones reales: momentos donde corregiste una inferencia, rechazaste una conclusión, exigiste evidencia o reservaste una decisión. No tienes que escribir un manual de tu personalidad.</p>
+          <p style={paragraph}>Cada registro entra como candidato. No se convierte automáticamente en regla canónica.</p>
+        </article>
+
+        <article style={card}>
+          <h2 style={heading}>REGISTRAR UNA CORRECCIÓN REAL</h2>
+          <p style={paragraph}>Usa este formulario cuando una ejecución, análisis o respuesta te obligue a corregir el criterio. Describe el caso y la regla que debería sobrevivir a ese caso particular.</p>
+          {state.implementation.databaseReady ? <FounderDecisionCandidateForm /> : <p style={{ color: '#d0a58e', fontSize: 11, lineHeight: 1.65 }}>La persistencia del Cognitive Twin todavía no está disponible en esta base de datos. El formulario se habilitará después de aplicar su migración.</p>}
         </article>
       </section>
 
