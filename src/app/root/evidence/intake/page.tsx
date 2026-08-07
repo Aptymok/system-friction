@@ -1,4 +1,4 @@
-import { requireFounderPage } from '@/lib/auth/serverPageGuards';
+import { requireFounderPage } from '@/lib/root/server';
 import { SimpleEvidenceIntake } from '@/components/root/evidence/SimpleEvidenceIntake';
 
 export const dynamic = 'force-dynamic';
