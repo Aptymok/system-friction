@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import type { RootRow } from '@/lib/root/sovereign/rootSovereignState';
 import type { RootSelection } from './sovereignTypes';
 import { describeRootSelection } from '@/lib/root/sovereign/selectionNarrative';
 
@@ -11,12 +12,16 @@ function displayTime(value: string | null | undefined) {
   return new Intl.DateTimeFormat('es-MX', { dateStyle: 'medium', timeStyle: 'short' }).format(parsed);
 }
 
+function rootRow(value: unknown): RootRow {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as RootRow : {};
+}
+
 export function RootSemanticInspector({ value, onClose }: { value: RootSelection | null; onClose: () => void }) {
   if (!value) return null;
   const narrative = describeRootSelection({
     kind: value.kind,
     technicalTitle: value.title,
-    data: value.data,
+    data: rootRow(value.data),
     evidenceCount: value.evidenceIds.length,
   });
 
@@ -26,32 +31,17 @@ export function RootSemanticInspector({ value, onClose }: { value: RootSelection
         <div><span>{value.kind}</span><h2>{narrative.title}</h2></div>
         <button type="button" onClick={onClose}>×</button>
       </header>
-
-      <section className="rsi-primary">
-        <strong>{narrative.statement}</strong>
-        <p>{narrative.meaning}</p>
-      </section>
-
-      <section className="rsi-next">
-        <span>QUÉ SIGUE</span>
-        <p>{narrative.nextState}</p>
-      </section>
-
+      <section className="rsi-primary"><strong>{narrative.statement}</strong><p>{narrative.meaning}</p></section>
+      <section className="rsi-next"><span>QUÉ SIGUE</span><p>{narrative.nextState}</p></section>
       <dl>
         <div><dt>FUENTE</dt><dd>{value.source}</dd></div>
         <div><dt>FECHA</dt><dd>{displayTime(value.observedAt)}</dd></div>
         <div><dt>PROCEDENCIA</dt><dd>{narrative.evidenceLabel}</dd></div>
         {narrative.facts.map((fact) => <div key={`${fact.label}-${fact.value}`}><dt>{fact.label}</dt><dd>{fact.value}</dd></div>)}
       </dl>
-
       {value.warning ? <p className="rsi-warning">{value.warning}</p> : null}
-
-      <details>
-        <summary>DATOS TÉCNICOS</summary>
-        <pre>{JSON.stringify({ id: value.id, technicalTitle: value.title, evidenceIds: value.evidenceIds, payload: value.data }, null, 2)}</pre>
-      </details>
+      <details><summary>DATOS TÉCNICOS</summary><pre>{JSON.stringify({ id: value.id, technicalTitle: value.title, evidenceIds: value.evidenceIds, payload: value.data }, null, 2)}</pre></details>
       <Link href="/root/evidence/intake">ADJUNTAR / VINCULAR EVIDENCIA</Link>
-
       <style jsx global>{`
         .rtf-inspector{display:none!important}.rtf-layout{grid-template-columns:minmax(0,1fr)!important}.rtf-stage{border-right:0!important}
         .rs-console-host.has-semantic-selection .rtf-stage{padding-right:370px}
