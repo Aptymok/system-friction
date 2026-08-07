@@ -1,4 +1,5 @@
 import 'server-only';
+import type { RootRow } from '../rootSovereignState';
 import { humanEventLabel } from '../selectionNarrative';
 import { dateValue, selectRows, source } from './readerSupport';
 
@@ -21,31 +22,20 @@ export async function readRootGovernanceQueue() {
     selectRows({ table: 'epistemic_events', select: 'id,event_id,event_name,logbook_id,epistemic_class,confidence,source,actor_id,node_id,payload,lineage,occurred_at,created_at', order: 'occurred_at', limit: 40 }),
   ]);
 
-  const proposalRows = proposals.rows.map((entry) => {
+  const proposalRows: RootRow[] = proposals.rows.map((entry): RootRow => {
     const rawTitle = typeof entry.title === 'string' ? entry.title : null;
     const rawType = typeof entry.proposal_type === 'string' ? entry.proposal_type : null;
-    return {
-      ...entry,
-      technical_title: rawTitle,
-      title: readableTechnicalLabel(rawTitle) ?? readableTechnicalLabel(rawType) ?? rawTitle,
-    };
+    return { ...entry, technical_title: rawTitle, title: readableTechnicalLabel(rawTitle) ?? readableTechnicalLabel(rawType) ?? rawTitle };
   });
 
-  const eventRows = events.rows.map((entry) => {
+  const eventRows: RootRow[] = events.rows.map((entry): RootRow => {
     const eventName = typeof entry.event_name === 'string' ? entry.event_name : null;
-    return {
-      ...entry,
-      title: eventName ? humanEventLabel(eventName) : null,
-      technical_event_name: eventName,
-    };
+    return { ...entry, title: eventName ? humanEventLabel(eventName) : null, technical_event_name: eventName };
   });
 
-  const auditRows = audits.rows.map((entry) => {
+  const auditRows: RootRow[] = audits.rows.map((entry): RootRow => {
     const action = typeof entry.action === 'string' ? entry.action : null;
-    return {
-      ...entry,
-      display_action: readableTechnicalLabel(action) ?? action,
-    };
+    return { ...entry, display_action: readableTechnicalLabel(action) ?? action };
   });
 
   const observedAt = dateValue(proposalRows[0]?.updated_at ?? proposalRows[0]?.created_at ?? auditRows[0]?.created_at ?? eventRows[0]?.occurred_at);

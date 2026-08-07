@@ -4,6 +4,7 @@ import { requireGovernedActor } from '@/lib/operational/common';
 import { buildSfiWorldInterfaceState } from '@/lib/sfi/worldInterfaceState';
 import { persistIndicatorSnapshot } from '@/lib/sfi/indicatorSnapshot';
 import { buildWorldVectorOperationalState } from '@/lib/world-vector/operationalState';
+import { runInstitutionalCycle } from '@/lib/institution/institutionalCycle';
 import {
   runAlertAgent,
   runDailyObservationAgent,
@@ -44,11 +45,7 @@ export async function runRootObservationJob(job: RootObservationJob) {
   const gate = await requireGovernedActor('root.operational.observe');
   if (!gate.ok) return { ok: false as const, status: gate.status, body: gate.body };
   if (!gate.ctx.isRoot) {
-    return {
-      ok: false as const,
-      status: 403,
-      body: { ok: false, error: 'root_required' },
-    };
+    return { ok: false as const, status: 403, body: { ok: false, error: 'root_required' } };
   }
 
   const result: Record<string, unknown> = {
@@ -61,6 +58,7 @@ export async function runRootObservationJob(job: RootObservationJob) {
   if (job === 'daily' || job === 'all') {
     result.daily = await runDailyObservationAgent({ persist: true });
     result.indicators = await persistInstitutionalIndicatorSnapshot();
+    result.institutional_cycle = await runInstitutionalCycle('root_manual_observation');
   }
 
   if (job === 'reports' || job === 'all') {

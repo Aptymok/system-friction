@@ -18,7 +18,10 @@ export const SFI_INSTITUTIONAL_AGENT_ASSIGNMENTS: Record<string, string[]> = {
   risk_agent: ['Declare bounded risks before a proposal is promoted toward execution.'],
   opportunity_agent: ['Identify evidence-backed windows for minimum reversible perturbation or commercial/research action.'],
   multi_stakeholder_bootstrap: ['Evaluate stakeholder constraints before recommending a governed reorganization path.'],
-  project_execution_manager: ['Prepare reversible execution state and explicit human gates; it does not bypass reserved authority.'],
+  project_execution_manager: [
+    'Prepare reversible execution state and explicit human gates; it does not bypass reserved authority.',
+    'Reconcile READY canonical MIHM selections with PPOI reference cases automatically: link an existing case or register the container; escalate only genuine consent, authority or evidence blockers.',
+  ],
   reality_calibration: ['Compare predictions, interventions and declared directions with observed return; feed calibrated learning back into institutional memory.'],
 };
 

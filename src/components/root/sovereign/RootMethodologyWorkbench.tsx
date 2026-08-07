@@ -1,120 +1,101 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import type { RootRow, RootSovereignState } from '@/lib/root/sovereign/rootSovereignState';
-import { resolveRootCaseMethodology } from '@/lib/mihm/rootCaseMethodology';
-import type { RootActionRequest } from './sovereignTypes';
+import type { RootSovereignState } from '@/lib/root/sovereign/rootSovereignState';
 import './root-methodology-workbench.css';
 
-type CommercialPayload = { opportunities?: RootRow[]; proposals?: RootRow[] };
+type MethodologyState = {
+  caseId: string;
+  title: string;
+  disposition: 'LINKED_EXISTING' | 'REGISTERED_AUTOMATICALLY' | 'PENDING_AUTOMATIC' | 'BLOCKED' | 'NOT_REQUIRED';
+  referenceCaseId: string | null;
+  referenceCaseCode: string | null;
+  blocker: string | null;
+  methodology: {
+    input: { subject: string; temporalScope: string; evidenceCount?: number; evidenceModalities: string[] };
+    resolution: {
+      status: string;
+      primary: { methodId: string; reasonCodes: string[] } | null;
+      supporting: Array<{ methodId: string }>;
+      blockers: Array<{ code: string; message: string }>;
+      rationale: string[];
+    };
+  };
+};
 
-function uniqueRows(rows: RootRow[]) {
-  const seen = new Set<string>();
-  return rows.filter((row, index) => {
-    const id = String(row.id ?? row.case_id ?? row.opportunity_id ?? row.proposal_id ?? `row-${index}`);
-    if (seen.has(id)) return false;
-    seen.add(id);
-    return true;
-  });
+type MethodologyPayload = { cases: MethodologyState[]; warnings: string[] };
+
+function dispositionLabel(value: MethodologyState['disposition']) {
+  if (value === 'LINKED_EXISTING') return 'PPOI ENLAZADO';
+  if (value === 'REGISTERED_AUTOMATICALLY') return 'PPOI REGISTRADO';
+  if (value === 'PENDING_AUTOMATIC') return 'PENDIENTE DE CICLO';
+  if (value === 'BLOCKED') return 'BLOQUEADO';
+  return 'PPOI NO REQUERIDO';
 }
 
-export function RootMethodologyWorkbench({ state, onAction }: {
-  state: RootSovereignState;
-  onAction: (action: RootActionRequest) => void;
-}) {
+export function RootMethodologyWorkbench({ state }: { state: RootSovereignState }) {
   const [open, setOpen] = useState(false);
-  const [commercial, setCommercial] = useState<CommercialPayload>({});
+  const [payload, setPayload] = useState<MethodologyPayload>({ cases: [], warnings: [] });
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
-    fetch('/api/root/commercial', { cache: 'no-store', credentials: 'include' })
+    fetch('/api/root/methodology', { cache: 'no-store', credentials: 'include' })
       .then(async (response) => {
         const body = await response.json().catch(() => null);
         if (!response.ok || !body?.ok) throw new Error(body?.error ?? `HTTP ${response.status}`);
-        if (active) setCommercial(body.data ?? {});
+        if (active) { setPayload(body.data ?? { cases: [], warnings: [] }); setError(null); }
       })
-      .catch((cause) => {
-        if (active) setError(cause instanceof Error ? cause.message : 'commercial_cases_unavailable');
-      });
+      .catch((cause) => { if (active) setError(cause instanceof Error ? cause.message : 'methodology_state_unavailable'); });
     return () => { active = false; };
   }, [state.generatedAt]);
 
-  const cases = useMemo(() => uniqueRows([
-    ...state.governance.data.proposals,
-    ...(commercial.opportunities ?? []),
-    ...(commercial.proposals ?? []),
-  ]).map((row, index) => ({ row, methodology: resolveRootCaseMethodology(row, index) })), [commercial, state.governance.data.proposals]);
-
-  const blocked = cases.filter((entry) => entry.methodology.resolution.status !== 'READY').length;
-  const ppoi = cases.filter((entry) => entry.methodology.resolution.primary?.methodId === 'PPOI').length;
+  const summary = useMemo(() => ({
+    total: payload.cases.length,
+    ppoi: payload.cases.filter((entry) => ['LINKED_EXISTING', 'REGISTERED_AUTOMATICALLY'].includes(entry.disposition)).length,
+    pending: payload.cases.filter((entry) => entry.disposition === 'PENDING_AUTOMATIC').length,
+    blocked: payload.cases.filter((entry) => entry.disposition === 'BLOCKED').length,
+  }), [payload.cases]);
 
   return (
     <>
       <button className="rmw-trigger" type="button" onClick={() => setOpen(true)}>
-        <span>MIHM</span>
-        <strong>{cases.length}</strong>
-        <small>{blocked ? `${blocked} bloqueados` : `${ppoi} PPOI`}</small>
+        <span>MIHM</span><strong>{summary.total}</strong><small>{summary.blocked ? `${summary.blocked} bloqueados` : summary.pending ? `${summary.pending} pendientes de ciclo` : `${summary.ppoi} PPOI persistidos`}</small>
       </button>
 
       {open ? (
-        <div className="rmw-backdrop" role="presentation" onMouseDown={(event) => {
-          if (event.target === event.currentTarget) setOpen(false);
-        }}>
+        <div className="rmw-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setOpen(false); }}>
           <section className="rmw-window" role="dialog" aria-modal="true" aria-labelledby="rmw-title">
-            <header>
-              <div>
-                <span>SYSTEM FRICTION INSTITUTE · OPERACIONAL</span>
-                <h2 id="rmw-title">Selección metodológica de casos</h2>
-              </div>
-              <button type="button" onClick={() => setOpen(false)}>CERRAR</button>
-            </header>
-
+            <header><div><span>SYSTEM FRICTION INSTITUTE · OPERACIONAL</span><h2 id="rmw-title">Resolución metodológica automática</h2></div><button type="button" onClick={() => setOpen(false)}>CERRAR</button></header>
             <div className="rmw-summary">
-              <div><strong>{cases.length}</strong><span>casos observables</span></div>
-              <div><strong>{ppoi}</strong><span>requieren PPOI</span></div>
-              <div><strong>{blocked}</strong><span>con bloqueos</span></div>
+              <div><strong>{summary.total}</strong><span>registros evaluados</span></div>
+              <div><strong>{summary.ppoi}</strong><span>PPOI persistidos</span></div>
+              <div><strong>{summary.blocked}</strong><span>bloqueos reales</span></div>
             </div>
-
-            {error ? <p className="rmw-error">Fuente comercial degradada: {error}</p> : null}
+            {summary.pending ? <p className="rmw-error">{summary.pending} selección(es) PPOI están listas para reconciliarse en el siguiente ciclo institucional; todavía no se presentan como persistidas.</p> : null}
+            {error ? <p className="rmw-error">Estado metodológico no disponible: {error}</p> : null}
+            {payload.warnings.length ? <p className="rmw-error">{payload.warnings.slice(0, 4).join(' · ')}</p> : null}
 
             <div className="rmw-list">
-              {cases.length ? cases.map(({ row, methodology }) => {
-                const resolution = methodology.resolution;
+              {payload.cases.length ? payload.cases.map((entry) => {
+                const resolution = entry.methodology.resolution;
                 const primary = resolution.primary?.methodId ?? 'NO DETERMINADO';
                 return (
-                  <article key={methodology.caseId} data-status={resolution.status.toLowerCase()}>
-                    <div className="rmw-case-head">
-                      <div>
-                        <span>{methodology.caseId}</span>
-                        <h3>{methodology.title}</h3>
-                      </div>
-                      <b>{resolution.status}</b>
-                    </div>
+                  <article key={entry.caseId} data-status={entry.disposition === 'BLOCKED' ? 'blocked' : 'ready'}>
+                    <div className="rmw-case-head"><div><span>{entry.caseId}</span><h3>{entry.title}</h3></div><b>{dispositionLabel(entry.disposition)}</b></div>
                     <dl>
                       <div><dt>Método primario</dt><dd>{primary}</dd></div>
+                      <div><dt>Razón contractual</dt><dd>{resolution.primary?.reasonCodes.join(', ') || 'Sin resolución suficiente'}</dd></div>
+                      <div><dt>Evidencia declarada</dt><dd>{entry.methodology.input.evidenceCount ?? 0}</dd></div>
                       <div><dt>Instrumentos de apoyo</dt><dd>{resolution.supporting.map((item) => item.methodId).join(', ') || 'Ninguno'}</dd></div>
-                      <div><dt>Confianza de selección</dt><dd>{Math.round(resolution.confidence * 100)}%</dd></div>
-                      <div><dt>Próxima acción</dt><dd>{methodology.nextAction}</dd></div>
+                      <div><dt>Estado PPOI</dt><dd>{entry.referenceCaseCode ?? dispositionLabel(entry.disposition)}</dd></div>
                     </dl>
-                    <p>{resolution.rationale[0]}</p>
-                    {resolution.blockers.length ? (
-                      <ul>{resolution.blockers.map((blocker) => <li key={blocker.code}>{blocker.message}</li>)}</ul>
-                    ) : null}
-                    {primary === 'PPOI' && resolution.status === 'READY' ? (
-                      <button type="button" onClick={() => onAction({
-                        id: `ensure-ppoi-${methodology.caseId}-${Date.now()}`,
-                        label: `Crear o enlazar PPOI · ${methodology.title}`,
-                        effect: 'Busca un fenómeno PPOI equivalente y lo enlaza; si no existe, crea uno trazable y registra auditoría ROOT.',
-                        target: methodology.caseId,
-                        endpoint: '/api/root/methodology',
-                        method: 'POST',
-                        body: { intent: 'ensure_ppoi', case: row },
-                      })}>CREAR O ENLAZAR PPOI</button>
-                    ) : null}
+                    <p>{entry.blocker ?? resolution.rationale[0] ?? 'Sin explicación persistida.'}</p>
+                    {resolution.blockers.length ? <ul>{resolution.blockers.map((blocker) => <li key={blocker.code}>{blocker.message}</li>)}</ul> : null}
+                    <p className="rmw-auto-note">El ciclo institucional resuelve la creación o enlace PPOI. ROOT sólo expone persistencia, espera de ciclo o bloqueo; no delega una decisión rutinaria al fundador.</p>
                   </article>
                 );
-              }) : <p className="rmw-empty">No existen casos o propuestas persistidas para resolver.</p>}
+              }) : <p className="rmw-empty">No existen registros persistidos para resolver metodológicamente en este corte.</p>}
             </div>
           </section>
         </div>
