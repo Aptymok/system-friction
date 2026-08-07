@@ -8,6 +8,15 @@ import {
   SFI_LAYER_QUESTIONS,
 } from './registry';
 
+function contractEventName(value: unknown) {
+  if (typeof value === 'string') return value;
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    const eventName = (value as Record<string, unknown>).eventName;
+    return typeof eventName === 'string' ? eventName : 'UNNAMED_EVENT_CONTRACT';
+  }
+  return 'UNNAMED_EVENT_CONTRACT';
+}
+
 export async function executeSfiRuntime(context: KernelContext) {
   const result = await executeCognitiveCycle(context);
   await recordCognitiveCycleEvent({
@@ -43,8 +52,8 @@ export function readSfiCognitiveRuntime(): SfiCognitiveRuntimeSnapshot {
     status: agent.missingCapability ? 'missing' as const : 'gated' as const,
     purpose: agent.purpose,
     route: agent.route,
-    listensTo: agent.listensTo,
-    emits: agent.emits,
+    listensTo: agent.listensTo.map(contractEventName),
+    emits: agent.emits.map(contractEventName),
     readsMemory: agent.readsMemory.map((item) => memory(item, 'read')),
     writesMemory: agent.writesMemory.map((item) => memory(item, 'write')),
     confidenceModel: agent.confidenceModel,
