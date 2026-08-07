@@ -2,6 +2,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import { NextResponse } from 'next/server';
 import { appendOperationalEvent, buildMutationLogbookRow, createActionProposal, sha256, stringValue } from '@/lib/operational/common';
 import { auditRootAction, asRecord, requireRootActor } from '@/lib/root/server';
+import { ingestRootEvidenceIntoCognitiveTwin } from '@/lib/cognitive-twin/evidenceIngestion';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -117,23 +118,21 @@ export async function POST(req: Request) {
   };
   const evidenceHash = sha256(payload);
 
-  const existing = await service
-    .from('root_evidence_entries')
-    .select('*')
-    .eq('evidence_hash', evidenceHash)
-    .maybeSingle();
-
+  const existing = await service.from('root_evidence_entries').select('*').eq('evidence_hash', evidenceHash).maybeSingle();
   if (existing.error) return NextResponse.json({ ok: false, error: 'root_evidence_lookup_failed', details: existing.error.message }, { status: 400 });
   if (existing.data) {
-    const audit = await auditRootAction({
-      actorId: gate.ctx.user.id,
-      action: 'evidence.duplicate_seen',
-      target: 'root_evidence_entries',
-      payload: { evidenceHash, evidenceId: existing.data.id },
-      request: req,
-    });
+    const [audit, cognitiveTwin] = await Promise.all([
+      auditRootAction({
+        actorId: gate.ctx.user.id,
+        action: 'evidence.duplicate_seen',
+        target: 'root_evidence_entries',
+        payload: { evidenceHash, evidenceId: existing.data.id },
+        request: req,
+      }),
+      ingestRootEvidenceIntoCognitiveTwin(existing.data),
+    ]);
     if (!audit.ok) return NextResponse.json(audit, { status: 500 });
-    return NextResponse.json({ ok: true, duplicate: true, data: existing.data });
+    return NextResponse.json({ ok: true, duplicate: true, data: existing.data, cognitiveTwin });
   }
 
   let storagePath: string | null = null;
@@ -170,38 +169,30 @@ export async function POST(req: Request) {
     return NextResponse.json(event, { status: 400 });
   }
 
-  const evidenceInsert = await service
-    .from('root_evidence_entries')
-    .insert({
-      evidence_hash: evidenceHash,
-      actor_id: gate.ctx.user.id,
-      title,
-      content,
-      evidence_type: evidenceType,
-      target_node_id: targetNodeId,
-      payload,
-      epistemic_event_id: event.data.id,
-    })
-    .select('*')
-    .single();
+  const evidenceInsert = await service.from('root_evidence_entries').insert({
+    evidence_hash: evidenceHash,
+    actor_id: gate.ctx.user.id,
+    title,
+    content,
+    evidence_type: evidenceType,
+    target_node_id: targetNodeId,
+    payload,
+    epistemic_event_id: event.data.id,
+  }).select('*').single();
   if (evidenceInsert.error) {
     if (storagePath) await service.storage.from(ROOT_EVIDENCE_BUCKET).remove([storagePath]);
     return NextResponse.json({ ok: false, error: 'root_evidence_insert_failed', details: evidenceInsert.error.message }, { status: 400 });
   }
 
   const evidenceNodeId = `root_evidence:${evidenceHash.slice(0, 24)}`;
-  const graphNode = await service
-    .from('graph_nodes')
-    .upsert({
-      node_id: evidenceNodeId,
-      label: title,
-      ontology_type: 'evidence',
-      lineage: [String(event.data.event_id ?? event.data.id)],
-      attributes: { evidenceHash, evidenceType, rootEvidenceId: evidenceInsert.data.id, targetNodeId, attachment },
-      updated_at: new Date().toISOString(),
-    }, { onConflict: 'node_id' })
-    .select('*')
-    .single();
+  const graphNode = await service.from('graph_nodes').upsert({
+    node_id: evidenceNodeId,
+    label: title,
+    ontology_type: 'evidence',
+    lineage: [String(event.data.event_id ?? event.data.id)],
+    attributes: { evidenceHash, evidenceType, rootEvidenceId: evidenceInsert.data.id, targetNodeId, attachment },
+    updated_at: new Date().toISOString(),
+  }, { onConflict: 'node_id' }).select('*').single();
 
   let graphEdge = null;
   if (targetNodeId && !graphNode.error) {
@@ -210,20 +201,16 @@ export async function POST(req: Request) {
       graphEdge = { error: target.error?.message ?? 'target_node_missing' };
     } else {
       const edgeId = `${evidenceNodeId}->${targetNodeId}:supports`;
-      const edge = await service
-        .from('graph_edges')
-        .upsert({
-          edge_id: edgeId,
-          source_node_id: evidenceNodeId,
-          target_node_id: targetNodeId,
-          relation: 'supports',
-          weight: 0.72,
-          lineage: [String(event.data.event_id ?? event.data.id)],
-          attributes: { evidenceHash, verified: false, epistemicClass: 'observed', confidence: 0.9, attachment },
-          updated_at: new Date().toISOString(),
-        }, { onConflict: 'edge_id' })
-        .select('*')
-        .maybeSingle();
+      const edge = await service.from('graph_edges').upsert({
+        edge_id: edgeId,
+        source_node_id: evidenceNodeId,
+        target_node_id: targetNodeId,
+        relation: 'supports',
+        weight: 0.72,
+        lineage: [String(event.data.event_id ?? event.data.id)],
+        attributes: { evidenceHash, verified: false, epistemicClass: 'observed', confidence: 0.9, attachment },
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'edge_id' }).select('*').maybeSingle();
       graphEdge = edge.error ? { error: edge.error.message } : edge.data;
     }
   }
@@ -244,32 +231,31 @@ export async function POST(req: Request) {
     })
     : null;
 
-  const mutation = await service
-    .from('logbook_mutations')
-    .insert(buildMutationLogbookRow({
-      proposalId: proposal?.ok ? proposal.data.id : evidenceInsert.data.id,
-      eventId: event.data.id,
-      actorId: gate.ctx.user.id,
-      mutationType: 'root_evidence',
-      status: proposal?.ok ? 'proposed' : 'queued',
-      target: 'root_evidence_entries',
-      currentState: null,
-      proposedState: payload,
-      coherenceDelta: 0,
-      payload: { ...payload, evidenceHash, rootEvidenceId: evidenceInsert.data.id, proposalId: proposal?.ok ? proposal.data.id : null },
-    }))
-    .select('*')
-    .single();
+  const mutation = await service.from('logbook_mutations').insert(buildMutationLogbookRow({
+    proposalId: proposal?.ok ? proposal.data.id : evidenceInsert.data.id,
+    eventId: event.data.id,
+    actorId: gate.ctx.user.id,
+    mutationType: 'root_evidence',
+    status: proposal?.ok ? 'proposed' : 'queued',
+    target: 'root_evidence_entries',
+    currentState: null,
+    proposedState: payload,
+    coherenceDelta: 0,
+    payload: { ...payload, evidenceHash, rootEvidenceId: evidenceInsert.data.id, proposalId: proposal?.ok ? proposal.data.id : null },
+  })).select('*').single();
 
   if (mutation.error) return NextResponse.json({ ok: false, error: 'logbook_evidence_insert_failed', details: mutation.error.message }, { status: 400 });
 
-  const audit = await auditRootAction({
-    actorId: gate.ctx.user.id,
-    action: 'evidence.write',
-    target: 'root_evidence_entries',
-    payload: { evidenceHash, evidenceId: evidenceInsert.data.id, eventId: event.data.id, proposalId: proposal?.ok ? proposal.data.id : null, attachment },
-    request: req,
-  });
+  const [audit, cognitiveTwin] = await Promise.all([
+    auditRootAction({
+      actorId: gate.ctx.user.id,
+      action: 'evidence.write',
+      target: 'root_evidence_entries',
+      payload: { evidenceHash, evidenceId: evidenceInsert.data.id, eventId: event.data.id, proposalId: proposal?.ok ? proposal.data.id : null, attachment },
+      request: req,
+    }),
+    ingestRootEvidenceIntoCognitiveTwin(evidenceInsert.data),
+  ]);
   if (!audit.ok) return NextResponse.json(audit, { status: 500 });
 
   return NextResponse.json({
@@ -282,6 +268,7 @@ export async function POST(req: Request) {
       graphEdge,
       mutation: mutation.data,
       proposal,
+      cognitiveTwin,
       audit,
     },
   }, { status: 201 });
