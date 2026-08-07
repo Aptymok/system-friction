@@ -3,7 +3,26 @@ import { z } from 'zod';
 const IsoDate = z.string().datetime();
 const Id = z.string().min(1);
 const EvidenceRefs = z.array(z.string().min(1)).default([]);
-const EpistemicClass = z.enum(['observed', 'declared', 'derived', 'inferred', 'simulated', 'fixture', 'missing']);
+
+/**
+ * Executable form of docs/canon/02_EPISTEMIC_CLASSES.md.
+ * Storage/runtime values are normalized lowercase; UI may render the canonical uppercase labels.
+ */
+export const EpistemicClass = z.enum([
+  'observed',
+  'declared',
+  'imported',
+  'extracted',
+  'derived',
+  'inferred',
+  'simulated',
+  'proposed',
+  'missing',
+  'degraded',
+  'conflicted',
+  'rejected',
+  'canonical',
+]);
 
 export const ObservationContract = z.object({ observationId: Id, subjectId: Id, sourceId: Id, observedAt: IsoDate, epistemicClass: EpistemicClass, confidence: z.number().min(0).max(1), payload: z.unknown(), evidenceRefs: EvidenceRefs });
 export const EvidenceContract = z.object({ evidenceId: Id, source: Id, capturedAt: IsoDate, hash: z.string().min(16), epistemicClass: EpistemicClass, confidence: z.number().min(0).max(1), lineage: EvidenceRefs, payload: z.unknown() });
@@ -19,7 +38,16 @@ export const StateContract = z.object({ stateId: Id, subjectId: Id, observedAt: 
 export const ErrorContract = z.object({ errorId: Id, code: Id, occurredAt: IsoDate, severity: z.enum(['P0', 'P1', 'P2', 'P3']), component: Id, message: Id, recoverable: z.boolean(), evidenceRefs: EvidenceRefs });
 export const OperationContract = z.object({ operationId: Id, capabilityId: Id, actorId: Id, requestedAt: IsoDate, state: z.enum(['REQUESTED', 'AUTHORIZED', 'EXECUTING', 'COMPLETED', 'FAILED', 'BLOCKED', 'ROLLED_BACK']), reversible: z.boolean(), evidenceRefs: EvidenceRefs });
 export const RequestContract = z.object({ requestId: Id, requesterId: Id, requestedAt: IsoDate, intent: Id, authorityRequired: z.enum(['A0', 'A1', 'A2', 'A3']), input: z.unknown(), evidenceRefs: EvidenceRefs });
-export const GovernanceDecisionContract = z.object({ decisionId: Id, authority: Id, decidedAt: IsoDate, action: Id, outcome: z.enum(['APPROVED', 'REJECTED', 'DEFERRED', 'SUPERSEDED']), rationale: Id, evidenceRefs: z.array(z.string().min(1)).min(1), auditRef: Id });
+export const GovernanceDecisionContract = z.object({
+  decisionId: Id,
+  authority: Id,
+  decidedAt: IsoDate,
+  action: Id,
+  outcome: z.enum(['ACCEPTED', 'REJECTED', 'NEEDS_EVIDENCE', 'FROZEN', 'SUPERSEDED']),
+  rationale: Id,
+  evidenceRefs: z.array(z.string().min(1)).min(1),
+  auditRef: Id,
+});
 
 export const SFI_INSTITUTIONAL_CONTRACTS = {
   Observation: ObservationContract, Evidence: EvidenceContract, Event: EventContract, Agent: AgentContract,
