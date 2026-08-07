@@ -1,10 +1,10 @@
 import 'server-only';
 
-import { readSfiCognitiveRuntime } from '@/lib/sfi/cognitive-runtime/runtime';
+import { readObservedSfiCognitiveRuntime } from '@/lib/sfi/cognitive-runtime/observedRuntime';
 import { source } from './readerSupport';
 
 export async function readRootCognitiveRuntime() {
-  const runtime = readSfiCognitiveRuntime();
+  const runtime = await readObservedSfiCognitiveRuntime();
 
   const errors = [
     ...runtime.eventGraph.warnings,
@@ -13,7 +13,7 @@ export async function readRootCognitiveRuntime() {
 
   return source(
     runtime,
-    'sfi_cognitive_runtime + existing persistence surfaces',
+    'cognitive agent registry + epistemic_events + probed persistence surfaces',
     errors.length ? [errors.slice(0, 12).join(' | ')] : [],
     runtime.generatedAt,
     runtime.status === 'missing',
