@@ -2,11 +2,9 @@ import type { SfiCognitiveRuntimeSnapshot, SfiMemoryAccess } from './types';
 import type { KernelContext } from './kernelContext';
 import { executeCognitiveCycle } from './cognitiveCycle';
 import { recordCognitiveCycleEvent } from './runtimeEventBridge';
-import {
-  SFI_COGNITIVE_AGENT_REGISTRY,
-  SFI_COGNITIVE_RUNTIME_MODES,
-  SFI_LAYER_QUESTIONS,
-} from './registry';
+import { SFI_COGNITIVE_RUNTIME_MODES, SFI_LAYER_QUESTIONS } from './registry';
+import { SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY } from './convergedRegistry';
+import { SFI_AGENT_EXECUTION_MAP } from './agentExecutionMap';
 
 function contractEventName(value: unknown) {
   if (typeof value === 'string') return value;
@@ -29,12 +27,7 @@ export async function executeSfiRuntime(context: KernelContext) {
   return result;
 }
 
-/**
- * Declarative fallback only.
- * This function never claims that a registered capability is operational.
- * ROOT and governed APIs must use readObservedSfiCognitiveRuntime(), which
- * reconciles the registry against persisted events and persistence probes.
- */
+/** Declarative fallback only. Presence of a contract never constitutes execution. */
 export function readSfiCognitiveRuntime(): SfiCognitiveRuntimeSnapshot {
   const memory = (name: string, mode: 'read' | 'write'): SfiMemoryAccess => ({
     memory: name,
@@ -43,13 +36,13 @@ export function readSfiCognitiveRuntime(): SfiCognitiveRuntimeSnapshot {
     warning: 'Estado declarativo: esta lectura no verifica disponibilidad ni ejecución.',
   });
 
-  const agents = SFI_COGNITIVE_AGENT_REGISTRY.map((agent) => ({
+  const agents = SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY.map((agent) => ({
     id: agent.id,
     name: agent.name,
     layer: agent.layer,
     domain: agent.domain,
     authorityLevel: agent.authorityLevel,
-    status: agent.missingCapability ? 'missing' as const : 'gated' as const,
+    status: agent.missingCapability || !SFI_AGENT_EXECUTION_MAP[agent.id] ? 'missing' as const : 'gated' as const,
     purpose: agent.purpose,
     route: agent.route,
     listensTo: agent.listensTo.map(contractEventName),
@@ -63,7 +56,7 @@ export function readSfiCognitiveRuntime(): SfiCognitiveRuntimeSnapshot {
       sourceTables: agent.sourceTables,
       observedTables: [],
       missingTables: [],
-      warnings: ['Contrato registrado; ejecución no verificada por esta función.'],
+      warnings: ['Contrato y executor registrados; ejecución no verificada por esta función.'],
     },
   }));
 
@@ -77,13 +70,13 @@ export function readSfiCognitiveRuntime(): SfiCognitiveRuntimeSnapshot {
 
   return {
     generatedAt: new Date().toISOString(),
-    schemaVersion: '2026-08-07.declarative-runtime.v1',
+    schemaVersion: '2026-08-07.declarative-runtime.v2',
     status: 'gated',
-    summary: `${agents.length} agentes registrados. Esta vista no contiene evidencia suficiente para declarar ejecución.`,
+    summary: `${agents.length} agentes cognitivos registrados y ${Object.keys(SFI_AGENT_EXECUTION_MAP).length} executors enlazados. La ejecución sólo se declara desde evidencia persistida.`,
     contract: {
       registeredAgents: agents.length,
       operationalModes: 0,
-      executorAgents: 0,
+      executorAgents: Object.keys(SFI_AGENT_EXECUTION_MAP).length,
       humanApprovalAgents: agents.filter((agent) => agent.humanApprovalRequired).length,
     },
     eventGraph: {
