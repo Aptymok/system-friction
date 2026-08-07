@@ -1,94 +1,40 @@
-﻿import type { KernelContext, KernelEvidence } from "../kernelContext";
+import type { KernelContext } from '../kernelContext';
 
-
-export interface FieldObservation {
-
-  source: string;
-
-  category: string;
-
-  description: string;
-
-  confidence: number;
-
+export interface FieldObservationSummary {
+  evidenceCount: number;
+  sources: string[];
+  meanConfidence: number;
+  hasEvidence: boolean;
 }
 
+/**
+ * Observation is read-only with respect to the evidence collection.
+ * The previous implementation copied every evidence item back into context.evidence,
+ * causing recursive evidence amplification across cycles. The observer now records a
+ * bounded summary in metadata only; persisted execution remains the runtime event.
+ */
+export function FieldObserverAgent(context: KernelContext): KernelContext {
+  const evidence = context.evidence ?? [];
+  const sources = [...new Set(evidence.map((item) => item.source).filter(Boolean))];
+  const meanConfidence = evidence.length
+    ? evidence.reduce((sum, item) => sum + Math.max(0, Math.min(1, Number(item.confidence) || 0)), 0) / evidence.length
+    : 0;
 
-export function FieldObserverAgent(
-  context: KernelContext
-): KernelContext {
-
-  const observations: FieldObservation[] = [];
-
-  const existingEvidence = context.evidence ?? [];
-
-
-  for (const evidence of existingEvidence) {
-
-    observations.push({
-
-      source: evidence.source,
-
-      category: "observed_evidence",
-
-      description:
-        typeof evidence.payload === "string"
-          ? evidence.payload
-          : JSON.stringify(evidence.payload),
-
-      confidence: evidence.confidence
-
-    });
-
-  }
-
-
-  const generatedEvidence: KernelEvidence[] =
-    observations.map((observation) => ({
-
-      id: crypto.randomUUID(),
-
-      source: "FieldObserverAgent",
-
-      confidence: observation.confidence,
-
-      payload: observation
-
-    }));
-
-
-  context.evidence.push(
-    ...generatedEvidence
-  );
-
-
-  context.metadata = {
-
-    ...context.metadata,
-
-    fieldObserver: {
-
-      observations: observations.length,
-
-      executedAt: new Date().toISOString(),
-
-      confidence:
-
-        observations.length > 0
-
-          ? observations.reduce(
-              (sum, item) =>
-                sum + item.confidence,
-              0
-            ) / observations.length
-
-          : 0
-
-    }
-
+  const summary: FieldObservationSummary = {
+    evidenceCount: evidence.length,
+    sources,
+    meanConfidence,
+    hasEvidence: evidence.length > 0,
   };
 
+  context.metadata = {
+    ...context.metadata,
+    fieldObserver: {
+      ...summary,
+      executedAt: new Date().toISOString(),
+      epistemicRule: 'READ_ONLY_OBSERVATION_DOES_NOT_CREATE_NEW_EVIDENCE',
+    },
+  };
 
   return context;
-
 }
