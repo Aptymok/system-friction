@@ -9,6 +9,8 @@ export function RootTopBar({ state, refreshing, onRefresh }: { state: RootSovere
       <div className="rs-identity"><span>SFI</span><strong>ROOT</strong><em>SOVEREIGN CONSOLE</em></div>
       <div className="rs-system-state"><span>SYSTEM STATE</span><strong data-status={governance?.state.status}>{governance?.state.value ?? 'SIN DATO'}</strong><small>ACP · {governance?.state.observedAt ?? 'NO MEDIDO'}</small></div>
       <div className="rs-topbar-actions">
+        <Link href="/root/evidence/intake" style={linkStyle}>EVIDENCE</Link>
+        <Link href="/root/agents/passports" style={linkStyle}>AGENT PASSPORTS</Link>
         <Link href="/root/cognitive-twin" style={linkStyle}>COGNITIVE TWIN</Link>
         <Link href="/root/continuity" style={linkStyle}>CONTINUITY</Link>
         <time>{new Date(state.generatedAt).toISOString().replace('T', ' ').slice(0, 19)} UTC</time>
