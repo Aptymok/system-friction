@@ -1,5 +1,5 @@
 -- SFI institutional attractor trajectory
--- The founder declaration below is a declared institutional direction, not an observed claim of attainment.
+-- Canon: the founder declaration below is a DECLARED institutional direction, never observed evidence of attainment.
 
 create table if not exists public.sfi_attractor_evidence_links (
   id uuid primary key default gen_random_uuid(),
@@ -74,8 +74,8 @@ insert into public.sfi_graph_nodes (
   'institution',
   'institution',
   0,
-  'Institutional subject whose declared direction is evaluated against observed evidence; declaration is not evidence of attainment.',
-  jsonb_build_object('epistemicClass','declared','authority','founder'),
+  'Institutional subject whose DECLARED direction is evaluated against observed evidence; declaration is not evidence of attainment.',
+  jsonb_build_object('epistemicClass','DECLARED','authority','FOUNDER'),
   0, 0, 0, 0, 0, 'active', '{}'::jsonb,
   jsonb_build_object('symbol','SFI','role','institutional_subject'),
   now()
@@ -96,16 +96,17 @@ insert into public.sfi_attractors (
   'SFI-INSTITUTION',
   'declared_institutional',
   0,
-  1,
   0,
-  1,
+  0,
+  0,
   0,
   0,
   0,
   'declared',
   jsonb_build_object(
-    'epistemicClass','declared',
-    'authoritySource','founder',
+    'epistemicClass','DECLARED',
+    'authoritySource','FOUNDER',
+    'declarationRecorded',true,
     'declaredAt','2026-08-07T13:30:00Z',
     'desiredState','Que System Friction Institute alcance autoridad y reconocimiento internacional sobre la observación y reorganización de ecosistemas digitales, biológicos y ontológicos, sosteniendo investigación y actividad comercial persistentes mediante instrumentos de perturbación mínima y gobernanza.',
     'mechanism','Observar antes de inferir; contrastar evidencia; detectar trayectorias y atractores; proponer perturbaciones mínimas reversibles; gobernar acciones de mayor autoridad; registrar retornos y aprender sin imponer una solución única.',
@@ -119,6 +120,7 @@ insert into public.sfi_attractors (
       'minimal_perturbation_governance',
       'institutional_continuity'
     ),
+    'confidenceSemantics','Top-level confidence/trust remain zero at declaration because the attractor outcome has not been evidenced. Founder authority establishes the direction, not its attainment.',
     'claimBoundary','El reconocimiento, adopción, ventas y alcance internacional sólo se consideran observados cuando existe evidencia externa o transaccional persistida. La declaración del fundador constituye dirección, no logro.'
   ),
   now(), now(), now()
