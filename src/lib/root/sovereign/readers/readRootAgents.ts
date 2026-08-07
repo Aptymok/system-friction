@@ -1,7 +1,7 @@
 import 'server-only';
 
 import { readObservedSfiCognitiveRuntime } from '@/lib/sfi/cognitive-runtime/observedRuntime';
-import type { RootAgent } from '../rootSovereignState';
+import type { RootAgent, RootDataStatus } from '../rootSovereignState';
 import { source } from './readerSupport';
 
 type AgenticCapability = {
@@ -24,6 +24,13 @@ const AGENTIC_CAPABILITIES: AgenticCapability[] = [
   { id: 'report_agent', name: 'Report Agent', purpose: 'Genera lecturas institucionales, calibraciones, borradores y reportes sustentados por evidencia.', layer: 'reportar', route: '/api/root/agentic/report', providerAware: true, approvalRequired: true },
 ];
 
+function rootStatus(status: string): RootDataStatus {
+  if (status === 'operational') return 'observed';
+  if (status === 'degraded') return 'degraded';
+  if (status === 'missing') return 'missing';
+  return 'gated';
+}
+
 export async function readRootAgents() {
   const runtime = await readObservedSfiCognitiveRuntime();
   const latestExecutions = new Map<string, { at: string | null; id: string }>();
@@ -40,7 +47,7 @@ export async function readRootAgents() {
       role: entry.name,
       state: {
         value: entry.status === 'operational' ? 'ejecución observada' : entry.status === 'gated' ? 'registrado · sin ejecución reciente' : entry.status,
-        status: entry.status,
+        status: rootStatus(entry.status),
         source: 'Cognitive Runtime observado + epistemic_events',
         observedAt: latest?.at ?? runtime.generatedAt,
         confidence: null,
