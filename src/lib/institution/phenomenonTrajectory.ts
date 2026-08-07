@@ -2,6 +2,7 @@ import 'server-only';
 
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { linkCaseEvidence, registerReferenceCase, type CaseEvidenceRelation } from '@/lib/amv/referenceBank';
+import { normalizeAmvObjectClass } from '@/lib/amv/epistemicGate';
 import { SFI_INSTITUTIONAL_ATTRACTOR_KEY } from './institutionalAttractor';
 
 type Row = Record<string, unknown>;
@@ -56,20 +57,32 @@ function sameSnapshot(previous: Row | null, current: Row) {
     .every((key) => String(previous[key] ?? '') === String(current[key] ?? ''));
 }
 
+function phenomenonObjectClass(phenomenon: Row) {
+  const vector = record(phenomenon.vector);
+  return normalizeAmvObjectClass(vector.objectClass ?? vector.object_class ?? phenomenon.module ?? 'other');
+}
+
+function consentEvidence(phenomenon: Row) {
+  const vector = record(phenomenon.vector);
+  const consent = record(vector.consent ?? vector.amvConsent);
+  return text(consent.evidenceId ?? consent.evidence_id);
+}
+
 export async function refreshPhenomenonTrajectoriesAndPpoi() {
   const db = createServiceSupabaseClient();
   const phenomenaResult = await db.from('sfi_phenomena').select('*').order('last_seen', { ascending: false }).limit(500);
   if (phenomenaResult.error) return { ok: false as const, error: 'phenomena_read_failed', details: phenomenaResult.error.message };
 
   const phenomena = rows(phenomenaResult.data);
-  if (!phenomena.length) return { ok: true as const, phenomena: 0, snapshots: 0, ppoiCases: 0, warnings: ['no_persisted_phenomena'] };
+  if (!phenomena.length) return { ok: true as const, phenomena: 0, snapshots: 0, ppoiCaseUpserts: 0, ppoiBlockedByConsent: 0, warnings: ['no_persisted_phenomena'] };
 
   const keys = phenomena.map((item) => text(item.phenomenon_key)).filter((item): item is string => Boolean(item));
   const evidenceResult = await db.from('sfi_phenomenon_evidence').select('*').in('phenomenon_key', keys).order('created_at', { ascending: true });
   const evidenceLinks = rows(evidenceResult.data);
 
   let snapshots = 0;
-  let ppoiCases = 0;
+  let ppoiCaseUpserts = 0;
+  let ppoiBlockedByConsent = 0;
   const warnings: string[] = evidenceResult.error ? [evidenceResult.error.message] : [];
 
   for (const phenomenon of phenomena) {
@@ -107,11 +120,20 @@ export async function refreshPhenomenonTrajectoriesAndPpoi() {
     const evidenceCount = Number(snapshotRow.evidence_count ?? 0);
     if (evidenceCount <= 0) continue;
 
+    const objectClass = phenomenonObjectClass(phenomenon);
+    const consentRequired = ['person', 'organization', 'movement'].includes(objectClass);
+    const consentEvidenceId = consentEvidence(phenomenon);
+    if (consentRequired && !consentEvidenceId) {
+      ppoiBlockedByConsent += 1;
+      warnings.push(`${phenomenonKey}:ppoi:CONSENT_EVIDENCE_REQUIRED`);
+      continue;
+    }
+
     try {
       const reference = await registerReferenceCase({
         caseCode: `PPOI-${caseToken(phenomenonKey)}`,
         objectId: phenomenonKey,
-        objectClass: 'cultural_signal',
+        objectClass,
         title: text(phenomenon.label) ?? phenomenonKey,
         manifestation: 'sfi_persisted_phenomenon',
         cohort: 'ppoi_phenomenon',
@@ -121,8 +143,8 @@ export async function refreshPhenomenonTrajectoriesAndPpoi() {
         t0Cutoff: text(phenomenon.first_seen) ?? observedAt,
         phaseStatus: {
           phase0: 'READY',
-          phase1: evidenceCount > 0 ? 'OBSERVED' : 'MISSING',
-          phase2: relation.relation === 'unresolved' ? 'ATTRACTOR_RELATION_UNRESOLVED' : 'ATTRACTOR_RELATION_OBSERVED_AS_DERIVED',
+          phase1: 'OBSERVED_EVIDENCE_PRESENT',
+          phase2: relation.relation === 'unresolved' ? 'ATTRACTOR_RELATION_UNRESOLVED' : 'ATTRACTOR_RELATION_DERIVED',
           phase3: 'PPOI_TRAJECTORY',
           phase4: 'NOT_EXECUTED',
           phase5: 'WAITING_RETURN_OR_OUTCOME',
@@ -131,18 +153,21 @@ export async function refreshPhenomenonTrajectoriesAndPpoi() {
         fieldsDocumented: ['phenomenon.regime', 'phenomenon.density', 'phenomenon.persistence', 'phenomenon.velocity', 'phenomenon.trust', 'phenomenon.evidence_count'],
         missingFields: relation.relation === 'unresolved' ? ['attractor_relation'] : [],
         operatorId: null,
-        consentRequired: false,
+        consentRequired,
+        consentEvidenceId,
         metadata: {
           automatic: true,
           source: 'sfi_phenomena',
           phenomenonKey,
+          objectClass,
           attractorKey: relation.attractorKey,
           attractorRelation: relation.relation,
           attractorRelationReason: relation.reason,
-          ppoiRule: 'A persisted evidence-bearing phenomenon becomes a longitudinal PPOI reference case automatically. Automatic registration is not an outcome or validation.',
+          epistemicClass: 'DERIVED',
+          ppoiRule: 'An evidence-bearing persisted phenomenon may be registered as a longitudinal PPOI reference case. Registration is DERIVED workflow state, not outcome, validation or causal attribution.',
         },
       });
-      ppoiCases += 1;
+      ppoiCaseUpserts += 1;
       const caseId = String(reference.id ?? '');
       if (caseId) {
         for (const link of phenomenonEvidence) {
@@ -153,7 +178,7 @@ export async function refreshPhenomenonTrajectoriesAndPpoi() {
             evidenceSource: 'sfi_evidence_ledger',
             evidenceId,
             relationType: caseRelation(String(link.relation_type ?? 'contextualizes')),
-            note: 'Automatic link from canonical sfi_phenomenon_evidence.',
+            note: 'Automatic provenance link from canonical sfi_phenomenon_evidence.',
             createdBy: null,
           }).catch((error) => warnings.push(`${phenomenonKey}:case_evidence:${error instanceof Error ? error.message : String(error)}`));
         }
@@ -163,5 +188,12 @@ export async function refreshPhenomenonTrajectoriesAndPpoi() {
     }
   }
 
-  return { ok: warnings.length === 0, phenomena: phenomena.length, snapshots, ppoiCases, warnings };
+  return {
+    ok: warnings.every((warning) => warning.endsWith('CONSENT_EVIDENCE_REQUIRED') || warning === 'no_persisted_phenomena'),
+    phenomena: phenomena.length,
+    snapshots,
+    ppoiCaseUpserts,
+    ppoiBlockedByConsent,
+    warnings,
+  };
 }
