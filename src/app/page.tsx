@@ -4,7 +4,8 @@ import { buildSfiWorldInterfaceState as buildHome } from '@/lib/sfi/worldInterfa
 import { resolvePublicRuntimeState } from '@/lib/sfi/publicRuntimeSnapshot';
 import { buildPublicInstitutionalAttractorState } from '@/lib/institution/publicAttractor';
 
-export const revalidate = 300;
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export const metadata: Metadata = {
   title: 'System Friction Institute · Observe before intervention',
