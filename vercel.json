@@ -2,7 +2,15 @@
   "crons": [
     {
       "path": "/api/cron/continuity-heartbeat",
-      "schedule": "15 * * * *"
+      "schedule": "15 7 * * *"
+    },
+    {
+      "path": "/api/cron/worldspect",
+      "schedule": "20 7 * * *"
+    },
+    {
+      "path": "/api/cron/world-observatory",
+      "schedule": "25 7 * * *"
     },
     {
       "path": "/api/cron/sfi-indicators",

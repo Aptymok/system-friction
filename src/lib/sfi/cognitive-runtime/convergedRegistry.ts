@@ -1,0 +1,90 @@
+import type { SfiRegisteredCognitiveAgent } from './types';
+import { SFI_COGNITIVE_AGENT_REGISTRY, SFI_FIELD_TABLES } from './registry';
+
+const supplementalAgents: SfiRegisteredCognitiveAgent[] = [
+  {
+    id: 'field_observer',
+    name: 'FieldObserverAgent',
+    purpose: 'Read the evidence already present in the current field context and summarize what is actually observed without inventing new observations.',
+    domain: 'evidence',
+    layer: 'observe',
+    listensTo: ['SFI_TASK_CREATED', 'root.evidence.recorded', 'world_vector.observed'],
+    emits: ['SFI_FIELD_STATE_OBSERVED'],
+    readsMemory: ['epistemic_events', 'root_evidence_entries', 'sfi_evidence_ledger'],
+    writesMemory: ['epistemic_events'],
+    confidenceModel: { method: 'observed_evidence_coverage', calibration: 'evidence ledger verification' },
+    authorityLevel: 'observer',
+    simulationAllowed: false,
+    humanApprovalRequired: false,
+    sourceTables: ['epistemic_events', 'root_evidence_entries', 'sfi_evidence_ledger'],
+    route: null,
+    operationalMode: false,
+    missingCapability: false,
+  },
+  {
+    id: 'friction_field_simulator',
+    name: 'FrictionFieldSimulatorAgent',
+    purpose: 'Estimate bounded information, coordination, resource and temporal friction from the evidence already present in the task context.',
+    domain: 'simulation',
+    layer: 'simulate',
+    listensTo: ['SFI_CONTEXT_COORDINATE_BUILT', 'SFI_FIELD_STATE_OBSERVED'],
+    emits: ['SFI_FRICTION_FIELD_SIMULATED'],
+    readsMemory: ['epistemic_events', 'sfi_graph_nodes', 'field_cases'],
+    writesMemory: ['epistemic_events'],
+    confidenceModel: { method: 'bounded_signal_coverage', calibration: 'observed return comparison' },
+    authorityLevel: 'analyst',
+    simulationAllowed: true,
+    humanApprovalRequired: false,
+    sourceTables: ['epistemic_events', 'sfi_graph_nodes', 'field_cases'],
+    route: null,
+    operationalMode: false,
+    missingCapability: false,
+  },
+  {
+    id: 'cross_impact',
+    name: 'CrossImpactAgent',
+    purpose: 'Measure coupling among evidence and simulated variables before projecting a trajectory or intervention.',
+    domain: 'simulation',
+    layer: 'understand',
+    listensTo: ['SFI_CONTEXT_COORDINATE_BUILT', 'SFI_FIELD_SIMULATION_COMPLETED'],
+    emits: ['SFI_CROSS_IMPACT_ANALYZED'],
+    readsMemory: ['epistemic_events', 'sfi_graph_nodes', 'graph_nodes'],
+    writesMemory: ['epistemic_events'],
+    confidenceModel: { method: 'interaction_density', calibration: 'closed cases and observed outcomes' },
+    authorityLevel: 'analyst',
+    simulationAllowed: true,
+    humanApprovalRequired: false,
+    sourceTables: ['epistemic_events', 'sfi_graph_nodes', 'graph_nodes'],
+    route: null,
+    operationalMode: false,
+    missingCapability: false,
+  },
+  {
+    id: 'entropy_redistribution',
+    name: 'EntropyRedistributionAgent',
+    purpose: 'Locate unresolved uncertainty and contradiction across evidence, hypotheses and working memory without converting entropy into an observed fact.',
+    domain: 'simulation',
+    layer: 'understand',
+    listensTo: ['SFI_CROSS_IMPACT_ANALYZED', 'SFI_FRICTION_FIELD_SIMULATED'],
+    emits: ['SFI_ENTROPY_REDISTRIBUTION_ANALYZED'],
+    readsMemory: ['epistemic_events', 'sfi_graph_nodes', 'sfi_amv_memory'],
+    writesMemory: ['epistemic_events'],
+    confidenceModel: { method: 'unresolved_state_ratio', calibration: 'post-return contradiction closure' },
+    authorityLevel: 'analyst',
+    simulationAllowed: true,
+    humanApprovalRequired: false,
+    sourceTables: ['epistemic_events', 'sfi_graph_nodes', 'sfi_amv_memory'],
+    route: null,
+    operationalMode: false,
+    missingCapability: false,
+  },
+];
+
+const byId = new Map<string, SfiRegisteredCognitiveAgent>();
+for (const agent of [...SFI_COGNITIVE_AGENT_REGISTRY, ...supplementalAgents]) byId.set(agent.id, agent);
+
+export const SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY = [...byId.values()];
+
+export const SFI_CONVERGED_RUNTIME_SOURCE_TABLES = [
+  ...new Set(SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY.flatMap((agent) => agent.sourceTables).concat(SFI_FIELD_TABLES)),
+].sort();

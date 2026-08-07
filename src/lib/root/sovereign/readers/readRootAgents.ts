@@ -1,6 +1,6 @@
 import 'server-only';
 
-import { SFI_COGNITIVE_AGENT_REGISTRY } from '@/lib/sfi/cognitive-runtime/registry';
+import { readObservedSfiCognitiveRuntime } from '@/lib/sfi/cognitive-runtime/observedRuntime';
 import type { RootAgent, RootDataStatus } from '../rootSovereignState';
 import { source } from './readerSupport';
 
@@ -24,81 +24,76 @@ const AGENTIC_CAPABILITIES: AgenticCapability[] = [
   { id: 'report_agent', name: 'Report Agent', purpose: 'Genera lecturas institucionales, calibraciones, borradores y reportes sustentados por evidencia.', layer: 'reportar', route: '/api/root/agentic/report', providerAware: true, approvalRequired: true },
 ];
 
-function registryAgent(entry: (typeof SFI_COGNITIVE_AGENT_REGISTRY)[number]): RootAgent {
-  const missingCapability = entry.missingCapability === true;
-  const gated = entry.humanApprovalRequired === true;
-  const status: RootDataStatus = missingCapability ? 'missing' : gated ? 'gated' : 'observed';
-  const availability = missingCapability
-    ? 'capacidad faltante'
-    : entry.operationalMode
-      ? 'operativo'
-      : gated
-        ? 'registrado · requiere autorización'
-        : 'registrado';
-
-  return {
-    id: entry.id,
-    role: entry.name,
-    state: {
-      value: availability,
-      status,
-      source: 'Registro cognitivo canónico de SFI',
-      observedAt: null,
-      confidence: null,
-      evidenceIds: [],
-      explanation: missingCapability
-        ? `Capa ${entry.layer}. El agente está registrado, pero declara una capacidad faltante.`
-        : entry.operationalMode
-          ? `Capa ${entry.layer}. El runtime lo declara en modo operativo.`
-          : `Capa ${entry.layer}. El agente existe en el registro canónico; no tener una ejecución reciente no significa que no exista.`,
-      warning: missingCapability ? 'Capacidad declarada como faltante.' : gated ? 'Requiere autorización humana para acciones gobernadas.' : null,
-    },
-    provider: null,
-    model: null,
-    lastRun: null,
-    lastResult: entry.purpose,
-    availability,
-    error: missingCapability ? 'Capacidad faltante' : null,
-  };
-}
-
-function capabilityAgent(entry: AgenticCapability): RootAgent {
-  const availability = entry.approvalRequired ? 'disponible · requiere autorización' : 'disponible';
-  return {
-    id: entry.id,
-    role: entry.name,
-    state: {
-      value: availability,
-      status: entry.approvalRequired ? 'gated' : 'observed',
-      source: 'Capacidad agentic implementada y ruta autenticada',
-      observedAt: null,
-      confidence: null,
-      evidenceIds: [],
-      explanation: `Capa ${entry.layer}. La capacidad está implementada. La última ejecución y el proveedor sólo deben mostrarse cuando exista una traza real.`,
-      warning: entry.approvalRequired ? 'La salida requiere revisión antes de publicación, contacto o mutación.' : null,
-    },
-    provider: entry.providerAware ? 'Se resuelve durante la ejecución' : null,
-    model: entry.providerAware ? 'Se resuelve durante la ejecución' : null,
-    lastRun: null,
-    lastResult: entry.purpose,
-    availability,
-    error: null,
-  };
+function rootStatus(status: string): RootDataStatus {
+  if (status === 'operational') return 'observed';
+  if (status === 'degraded') return 'degraded';
+  if (status === 'missing') return 'missing';
+  return 'gated';
 }
 
 export async function readRootAgents() {
-  const byId = new Map<string, RootAgent>();
+  const runtime = await readObservedSfiCognitiveRuntime();
+  const latestExecutions = new Map<string, { at: string | null; id: string }>();
+  for (const event of runtime.eventGraph.recentEvents) {
+    if (event.eventName !== 'SFI_AGENT_EXECUTED' || !event.sourceId || latestExecutions.has(event.sourceId)) continue;
+    latestExecutions.set(event.sourceId, { at: event.occurredAt, id: event.eventId });
+  }
 
-  for (const entry of SFI_COGNITIVE_AGENT_REGISTRY) byId.set(entry.id, registryAgent(entry));
-  for (const entry of AGENTIC_CAPABILITIES) if (!byId.has(entry.id)) byId.set(entry.id, capabilityAgent(entry));
+  const agents: RootAgent[] = runtime.agents.map((entry) => {
+    const latest = latestExecutions.get(entry.id);
+    const warning = entry.evidence.warnings.length ? entry.evidence.warnings.join(' | ') : null;
+    return {
+      id: entry.id,
+      role: entry.name,
+      state: {
+        value: entry.status === 'operational' ? 'ejecución observada' : entry.status === 'gated' ? 'registrado · sin ejecución reciente' : entry.status,
+        status: rootStatus(entry.status),
+        source: 'Cognitive Runtime observado + epistemic_events',
+        observedAt: latest?.at ?? runtime.generatedAt,
+        confidence: null,
+        evidenceIds: latest?.id ? [latest.id] : [],
+        explanation: entry.purpose,
+        warning,
+      },
+      provider: null,
+      model: null,
+      lastRun: latest?.at ?? null,
+      lastResult: entry.purpose,
+      availability: entry.status,
+      error: warning,
+    };
+  });
 
-  const agents = [...byId.values()].sort((a, b) => a.role.localeCompare(b.role, 'es'));
+  for (const entry of AGENTIC_CAPABILITIES) {
+    if (agents.some((item) => item.id === entry.id)) continue;
+    agents.push({
+      id: entry.id,
+      role: entry.name,
+      state: {
+        value: entry.approvalRequired ? 'ruta registrada · requiere autorización' : 'ruta registrada · ejecución no medida aquí',
+        status: 'gated',
+        source: 'Registro de capacidades agentic; no constituye prueba de ejecución',
+        observedAt: null,
+        confidence: null,
+        evidenceIds: [],
+        explanation: `Capa ${entry.layer}. ${entry.purpose}`,
+        warning: entry.approvalRequired ? 'Requiere revisión antes de publicación, contacto o mutación.' : 'La ruta existe, pero esta vista no posee una traza reciente atribuible.',
+      },
+      provider: entry.providerAware ? 'se resuelve durante la ejecución' : null,
+      model: entry.providerAware ? 'se resuelve durante la ejecución' : null,
+      lastRun: null,
+      lastResult: entry.purpose,
+      availability: 'gated',
+      error: null,
+    });
+  }
 
+  agents.sort((a, b) => a.role.localeCompare(b.role, 'es'));
   return source(
     { agents },
-    'Registro cognitivo canónico + capacidades agentic implementadas',
-    [],
-    null,
-    false,
+    'Cognitive Runtime observado + capacidades agentic registradas',
+    runtime.eventGraph.warnings,
+    runtime.generatedAt,
+    runtime.status === 'missing',
   );
 }

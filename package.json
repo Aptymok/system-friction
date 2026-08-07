@@ -23,6 +23,7 @@
     "qa:sfi-convergence": "node scripts/qa-sfi-convergence.mjs",
     "qa:sfi-execution": "node scripts/qa-sfi-execution.js",
     "qa:sfi-core-runtime": "tsx scripts/qa-sfi-core-runtime.ts",
+    "qa:sfi-institutional-contracts": "node --import tsx --test src/lib/contracts/institutionalContracts.test.ts",
     "qa:sfi-entity-graph": "tsx scripts/qa-sfi-entity-graph.ts",
     "qa:sfi-entity-view": "tsx scripts/qa-sfi-entity-view.ts",
     "qa:sfi-entity-navigation": "tsx scripts/qa-sfi-entity-navigation.ts",
@@ -41,6 +42,7 @@
     "repair:mojibake": "node scripts/repair-mojibake.mjs",
     "db:export": "node scripts/db/export-supabase.mjs",
     "db:inventory": "node scripts/db/inventory-supabase.mjs",
+    "db:cleanup:plan": "node scripts/db/prepare-institutional-cleanup.mjs",
     "db:reset:sfi": "node scripts/db/reset-sfi-operational-tables.mjs",
     "db:seed:sfi": "node scripts/db/seed-sfi-canonical-history.mjs",
     "db:verify:sfi": "node scripts/db/verify-sfi-database.mjs"

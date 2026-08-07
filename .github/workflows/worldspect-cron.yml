@@ -1,4 +1,4 @@
-name: WorldSpect Four Daily Measurements
+name: SFI World Observation Four Daily Measurements
 
 on:
   schedule:
@@ -31,30 +31,37 @@ jobs:
           fi
           echo "WORLDSPECT_INGEST_MODE=$MODE" >> "$GITHUB_ENV"
           echo "WORLDSPECT_MEASUREMENT_SLOT=$SLOT" >> "$GITHUB_ENV"
-          echo "WorldSpect slot=$SLOT mode=$MODE"
+          echo "World measurement slot=$SLOT mode=$MODE"
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      - name: Execute Canonical Adapter Measurement
+      - name: Execute Canonical WorldSpect Measurement
         env:
           VERCEL_APP_URL: ${{ secrets.VERCEL_APP_URL }}
           WORLDSPECT_INGEST_SECRET: ${{ secrets.WORLDSPECT_INGEST_SECRET }}
         run: |
           test -n "$VERCEL_APP_URL" || (echo "Missing VERCEL_APP_URL secret" && exit 1)
-          test -n "$WORLDSPECT_INGEST_SECRET" || (echo "Missing WORLDSPECT_INGEST_SECRET secret" && exit 1)
+          test -n "$WORLDSPECT_INGEST_SECRET" || (echo "Missing WORLDSPECT_INGEST_SECRET" && exit 1)
 
           curl --fail-with-body -X POST "$VERCEL_APP_URL/api/cron/worldspect" \
             -H "Authorization: Bearer $WORLDSPECT_INGEST_SECRET" \
             -H "X-SFI-Ingest-Mode: $WORLDSPECT_INGEST_MODE" \
             -H "X-SFI-Measurement-Slot: $WORLDSPECT_MEASUREMENT_SLOT"
 
+      - name: Execute World Observatory Observation Hypothesis Calibration Cycle
+        env:
+          VERCEL_APP_URL: ${{ secrets.VERCEL_APP_URL }}
+          WORLDSPECT_INGEST_SECRET: ${{ secrets.WORLDSPECT_INGEST_SECRET }}
+        run: |
+          curl --fail-with-body -X POST "$VERCEL_APP_URL/api/cron/world-observatory" \
+            -H "Authorization: Bearer $WORLDSPECT_INGEST_SECRET"
+
       - name: Run World Vector Pulse QA
         env:
           VERCEL_APP_URL: ${{ secrets.VERCEL_APP_URL }}
           WORLDSPECT_INGEST_SECRET: ${{ secrets.WORLDSPECT_INGEST_SECRET }}
         run: |
-          test -n "$VERCEL_APP_URL" || (echo "Missing VERCEL_APP_URL secret" && exit 1)
           node scripts/qa-world-vector-pulse.mjs
