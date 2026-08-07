@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { EntityLink } from '@/components/entity/EntityLink';
+import { HumanReadableRecord } from '@/components/shared/HumanReadableRecord';
 import type { RootSovereignState } from '@/lib/root/sovereign/rootSovereignState';
 import type { SfiTaskGraph } from '@/lib/sfi/cognitive-runtime/types';
 import type { RootSelection } from '../sovereignTypes';
@@ -11,6 +12,13 @@ type PlanResponse = {
   taskGraph?: SfiTaskGraph;
   error?: string;
   details?: string | null;
+};
+
+const STATUS_LABEL: Record<string, string> = {
+  operational: 'OPERATIVO OBSERVADO',
+  gated: 'DISPONIBLE, SIN EJECUCIÓN RECIENTE',
+  degraded: 'DEGRADADO',
+  missing: 'SIN SOPORTE SUFICIENTE',
 };
 
 function statusClass(status: string) {
@@ -28,7 +36,7 @@ export function RootCognitiveRuntimeView({ state, onSelect }: {
   onSelect: (selection: RootSelection) => void;
 }) {
   const runtime = state.cognitiveRuntime.data;
-  const [question, setQuestion] = useState('Por que REM618 perdio trayectoria despues de junio?');
+  const [question, setQuestion] = useState('');
   const [planning, setPlanning] = useState(false);
   const [plan, setPlan] = useState<SfiTaskGraph | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -52,7 +60,7 @@ export function RootCognitiveRuntimeView({ state, onSelect }: {
       if (!response.ok || !body?.ok || !body.taskGraph) throw new Error(body?.details ?? body?.error ?? `HTTP ${response.status}`);
       setPlan(body.taskGraph);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'task_graph_failed');
+      setError(cause instanceof Error ? cause.message : 'No fue posible crear el plan cognitivo.');
     } finally {
       setPlanning(false);
     }
@@ -61,19 +69,20 @@ export function RootCognitiveRuntimeView({ state, onSelect }: {
   return (
     <section className="rs-view rs-cognitive-runtime">
       <div className="rs-view-title">
-        <span>COGNITIVE RUNTIME</span>
-        <h1>SFI EVENT GRAPH CONTROL</h1>
-        <p>Contratos, memoria, autoridad y simulacion declarados antes de activar cualquier agente.</p>
+        <span>RUNTIME COGNITIVO</span>
+        <h1>CONTROL DEL GRAFO DE EJECUCIÓN</h1>
+        <p>{runtime.summary}</p>
       </div>
 
       <div className="rs-stat-strip">
-        <span><b>{runtime.contract.registeredAgents}</b>REGISTERED AGENTS</span>
-        <span><b>{runtime.contract.humanApprovalAgents}</b>HUMAN APPROVAL</span>
-        <span><b>{runtime.eventGraph.recentEvents.length}</b>RECENT EVENTS</span>
+        <span><b>{runtime.contract.registeredAgents}</b>AGENTES REGISTRADOS</span>
+        <span><b>{runtime.contract.executorAgents}</b>EJECUCIÓN OBSERVADA</span>
+        <span><b>{runtime.contract.humanApprovalAgents}</b>REQUIEREN AUTORIDAD HUMANA</span>
+        <span><b>{runtime.eventGraph.recentEvents.length}</b>EVENTOS RECIENTES</span>
       </div>
 
       <article>
-        <header>ORCHESTRATION POLICY</header>
+        <header>REGLAS DE ORQUESTACIÓN</header>
         <div className="rs-cognitive-policy">
           <strong>{runtime.orchestrationPolicy.principle}</strong>
           <span>{runtime.orchestrationPolicy.executionRule}</span>
@@ -84,14 +93,18 @@ export function RootCognitiveRuntimeView({ state, onSelect }: {
       </article>
 
       <article>
-        <header>META ORCHESTRATION</header>
+        <header>PLANIFICAR UNA PREGUNTA</header>
         <form className="rs-form" onSubmit={(event) => { event.preventDefault(); void createTask(); }}>
-          <label>QUESTION<input value={question} onChange={(event) => setQuestion(event.target.value)} required /></label>
-          <button type="submit" disabled={planning || !question.trim()}>{planning ? 'PLANNING' : 'CREATE TASK GRAPH'}</button>
+          <label>PREGUNTA<input value={question} onChange={(event) => setQuestion(event.target.value)} placeholder="Escribe la pregunta que SFI debe descomponer en tareas verificables" required /></label>
+          <button type="submit" disabled={planning || !question.trim()}>{planning ? 'PLANIFICANDO' : 'CREAR GRAFO DE TAREAS'}</button>
         </form>
         {error ? <div className="rs-source-warning">{error}</div> : null}
         {plan ? (
           <div className="rs-task-graph">
+            <div className="rs-section-head">
+              <span>PLAN CREADO Y REGISTRADO</span>
+              <strong>{plan.nodes.length} tarea(s) · {plan.edges.length} dependencia(s) · {plan.minimumEvidence.length} requisito(s) de evidencia</strong>
+            </div>
             <div className="rs-task-flow">
               {plan.nodes.map((node) => (
                 <div key={node.id}>
@@ -105,25 +118,25 @@ export function RootCognitiveRuntimeView({ state, onSelect }: {
                       observedAt: new Date().toISOString(),
                       confidence: null,
                       evidenceIds: node.requiresEvidence,
-                      warning: node.humanApprovalRequired ? 'HUMAN_APPROVAL_REQUIRED' : null,
+                      warning: node.humanApprovalRequired ? 'REQUIERE_APROBACION_HUMANA' : null,
                       data: node,
                     })}
                   >
                     <span>{node.authorityLevel}</span>
                     <strong>{node.label}</strong>
-                    <em>{node.requiresEvidence.slice(0, 3).join(' / ') || 'NO MEMORY'}</em>
+                    <em>{node.humanApprovalRequired ? 'Requiere aprobación humana' : 'Puede continuar bajo su contrato'} · {node.requiresEvidence.length ? `${node.requiresEvidence.length} fuentes requeridas` : 'Sin fuentes adicionales declaradas'}</em>
                   </button>
                   <EntityLink entityId={node.agentId} entityType="AGENT" compact className="rs-inline-action" />
                 </div>
               ))}
             </div>
-            <pre className="rs-result">{JSON.stringify(plan, null, 2)}</pre>
+            <HumanReadableRecord value={plan} title="Qué significa este plan" />
           </div>
         ) : null}
       </article>
 
       <article>
-        <header>PASSIVE FIELD OBSERVATION</header>
+        <header>OBSERVACIÓN PASIVA DEL CAMPO</header>
         <div className="rs-card-list horizontal">
           {runtime.modes.map((mode) => (
             <button
@@ -141,7 +154,7 @@ export function RootCognitiveRuntimeView({ state, onSelect }: {
                 data: mode,
               })}
             >
-              <span>{mode.status}</span>
+              <span>{STATUS_LABEL[mode.status] ?? mode.status}</span>
               <strong>{mode.name}</strong>
               <em>{mode.principle}</em>
             </button>
@@ -154,7 +167,7 @@ export function RootCognitiveRuntimeView({ state, onSelect }: {
           <article key={layer.id}>
             <header>{layer.id.toUpperCase()}</header>
             <div className="rs-section-head">
-              <span>QUESTION</span>
+              <span>PREGUNTA DE ESTA CAPA</span>
               <strong>{layer.question}</strong>
             </div>
             <div className="rs-card-list">
@@ -166,28 +179,28 @@ export function RootCognitiveRuntimeView({ state, onSelect }: {
                       kind: 'cognitive agent',
                       id: agent.id,
                       title: agent.name,
-                      source: agent.evidence.sourceTables.join(' + ') || 'contract only',
+                      source: agent.evidence.sourceTables.join(' + ') || 'Sólo contrato; sin fuente persistente declarada',
                       observedAt: runtime.generatedAt,
                       confidence: null,
                       evidenceIds: [...agent.readsMemory, ...agent.writesMemory].map((item) => item.memory),
-                      warning: agent.evidence.warnings.join(' | ') || (agent.status === 'gated' ? 'CAPABILITY_GATED' : null),
+                      warning: agent.evidence.warnings.join(' | ') || (agent.status === 'gated' ? 'CAPACIDAD_SIN_EJECUCION_RECIENTE' : null),
                       data: agent,
                     })}
                   >
-                    <span className={`rs-status status-${statusClass(agent.status)}`}>{agent.status}</span>
+                    <span className={`rs-status status-${statusClass(agent.status)}`}>{STATUS_LABEL[agent.status] ?? agent.status}</span>
                     <strong>{agent.name}</strong>
-                    <em>{agent.authorityLevel} / {agent.domain} / emits {agent.emits.join(', ')}</em>
+                    <em>{agent.purpose}</em>
                   </button>
                   <EntityLink entityId={agent.id} entityType="AGENT" compact className="rs-inline-action" />
                 </div>
-              )) : <div className="rs-empty compact"><b>NO CONTRACTS</b></div>}
+              )) : <div className="rs-empty compact"><b>SIN AGENTES REGISTRADOS EN ESTA CAPA</b></div>}
             </div>
           </article>
         ))}
       </div>
 
       <article>
-        <header>EVENT GRAPH</header>
+        <header>EVENTOS OBSERVADOS</header>
         <div className="rs-card-list horizontal">
           {runtime.eventGraph.recentEvents.length ? runtime.eventGraph.recentEvents.map((event) => (
             <div key={event.eventId}>
@@ -207,11 +220,11 @@ export function RootCognitiveRuntimeView({ state, onSelect }: {
               >
                 <span>{event.epistemicClass}</span>
                 <strong>{event.eventName}</strong>
-                <em>{event.occurredAt ?? 'NO DATE'} / {event.sourceId ?? 'NO SOURCE'}</em>
+                <em>{event.occurredAt ?? 'Sin fecha'} · {event.sourceId ?? 'Sin agente/fuente atribuida'}</em>
               </button>
               <EntityLink entityId={event.eventId} entityType="EVENT" compact className="rs-inline-action" />
             </div>
-          )) : <div className="rs-empty"><b>EVENT GRAPH EMPTY</b><p>No readable epistemic events were returned by the existing store.</p></div>}
+          )) : <div className="rs-empty"><b>SIN EVENTOS OBSERVADOS</b><p>No se mostrará actividad inventada. El panel permanecerá vacío hasta que existan eventos persistidos.</p></div>}
         </div>
       </article>
     </section>
