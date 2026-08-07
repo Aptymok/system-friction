@@ -6,6 +6,11 @@ import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
+function compactTimestamp(date = new Date()) {
+  const pad = (value: number) => String(value).padStart(2, '0');
+  return `${date.getUTCFullYear()}${pad(date.getUTCMonth() + 1)}${pad(date.getUTCDate())}${pad(date.getUTCHours())}${pad(date.getUTCMinutes())}${pad(date.getUTCSeconds())}`;
+}
+
 export async function GET() {
   const gate = await requireRootActor('root.cognitive-twin.read');
   if (!gate.ok) return NextResponse.json(gate.body, { status: gate.status });
@@ -33,7 +38,7 @@ export async function POST(request: Request) {
     : [];
 
   const db = createServiceSupabaseClient();
-  const decisionId = `APT-DECISION-${new Date().toISOString().replace(/[-:.TZ]/g, '').slice(0, 14)}-${crypto.randomUUID().slice(0, 6).toUpperCase()}`;
+  const decisionId = `APT-DECISION-${compactTimestamp()}-${crypto.randomUUID().slice(0, 6).toUpperCase()}`;
   const result = await db.from('sfi_cognitive_twin_decisions').insert({
     decision_id: decisionId,
     situation,
