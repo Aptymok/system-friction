@@ -1,6 +1,7 @@
 import 'server-only';
 
 import { readInstitutionalAttractor, SFI_ATTRACTOR_DIMENSIONS } from './institutionalAttractor';
+import { ensureInstitutionalAttractorDeclaration } from './ensureInstitutionalAttractor';
 
 type Row = Record<string, unknown>;
 function record(value: unknown): Row { return value && typeof value === 'object' && !Array.isArray(value) ? value as Row : {}; }
@@ -46,8 +47,9 @@ function missingState(warnings: string[]): PublicInstitutionalAttractorState {
 
 export async function buildPublicInstitutionalAttractorState(): Promise<PublicInstitutionalAttractorState> {
   try {
+    const ensured = await ensureInstitutionalAttractorDeclaration();
     const state = await readInstitutionalAttractor();
-    if (!state.attractor) return missingState(state.warnings);
+    if (!state.attractor) return missingState([...state.warnings, ...(ensured.error ? [ensured.error] : [])]);
 
     const vector = record(state.attractor.vector);
     const trajectory = record(state.latestTrajectory);
@@ -61,12 +63,12 @@ export async function buildPublicInstitutionalAttractorState(): Promise<PublicIn
       claimBoundary: text(vector.claimBoundary),
       evidenceCoverage,
       supportedDimensions: strings(trajectory.supported_dimensions),
-      missingDimensions: strings(trajectory.missing_dimensions),
+      missingDimensions: strings(trajectory.missing_dimensions).length ? strings(trajectory.missing_dimensions) : evidenceCoverage === null ? [...SFI_ATTRACTOR_DIMENSIONS] : [],
       contradictedDimensions: strings(trajectory.contradicted_dimensions),
       latestObservedAt: text(trajectory.observed_at),
       activePhenomena: state.phenomenonTrajectory.length,
       dimensions: strings(vector.dimensions).length ? strings(vector.dimensions) : [...SFI_ATTRACTOR_DIMENSIONS],
-      warnings: state.warnings,
+      warnings: [...state.warnings, ...(ensured.error ? [ensured.error] : [])],
     };
   } catch (error) {
     return missingState([
