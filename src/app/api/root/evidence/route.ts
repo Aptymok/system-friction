@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { NextResponse } from 'next/server';
-import { appendOperationalEvent, buildMutationLogbookRow, createActionProposal, sha256, stringValue } from '@/lib/operational/common';
+import { buildMutationLogbookRow, createActionProposal, sha256, stringValue } from '@/lib/operational/common';
+import { appendEpistemicEvent } from '@/lib/events/eventStore';
 import { auditRootAction, asRecord, requireRootActor } from '@/lib/root/server';
 import { ingestRootEvidenceIntoCognitiveTwin } from '@/lib/cognitive-twin/evidenceIngestion';
 
@@ -10,12 +11,14 @@ export const maxDuration = 300;
 
 const ROOT_EVIDENCE_BUCKET = 'root-evidence';
 const MAX_ATTACHMENT_BYTES = 80 * 1024 * 1024;
+const RELATIONS = new Set(['supports', 'contradicts', 'contextualizes', 'records']);
 
 type ParsedEvidence = {
   title: string | null;
   content: string | null;
   evidenceType: string | null;
   targetNodeId: string | null;
+  relationType: 'supports' | 'contradicts' | 'contextualizes' | 'records';
   proposalType: string | null;
   objective: string | null;
   source: string | null;
@@ -27,7 +30,10 @@ function formText(form: FormData, key: string) {
   const value = form.get(key);
   return typeof value === 'string' && value.trim() ? value.trim() : null;
 }
-
+function relation(value: unknown): ParsedEvidence['relationType'] {
+  const normalized = typeof value === 'string' ? value.trim().toLowerCase() : '';
+  return RELATIONS.has(normalized) ? normalized as ParsedEvidence['relationType'] : 'contextualizes';
+}
 function safeFileName(value: string) {
   return value.normalize('NFKD').replace(/[^a-zA-Z0-9._-]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '').slice(0, 180) || 'evidence.bin';
 }
@@ -44,6 +50,7 @@ async function parseEvidenceRequest(request: Request): Promise<ParsedEvidence> {
       content: formText(form, 'content') ?? formText(form, 'text') ?? formText(form, 'entry'),
       evidenceType: formText(form, 'evidenceType'),
       targetNodeId: formText(form, 'targetNodeId'),
+      relationType: relation(formText(form, 'relationType')),
       proposalType: formText(form, 'proposalType'),
       objective: formText(form, 'objective'),
       source: formText(form, 'source'),
@@ -62,6 +69,7 @@ async function parseEvidenceRequest(request: Request): Promise<ParsedEvidence> {
     content: stringValue(body.content) ?? stringValue(body.text) ?? stringValue(body.entry),
     evidenceType: stringValue(body.evidenceType),
     targetNodeId: stringValue(body.targetNodeId),
+    relationType: relation(body.relationType),
     proposalType: stringValue(body.proposalType),
     objective: stringValue(body.objective),
     source: stringValue(body.source),
@@ -104,6 +112,7 @@ export async function POST(req: Request) {
     content,
     evidenceType,
     targetNodeId,
+    relationType: input.relationType,
     source: input.source ?? 'root_console',
     metadata: { ...input.metadata, ...(attachment ? { attachment } : {}) },
   };
@@ -137,7 +146,21 @@ export async function POST(req: Request) {
     payload.metadata = { ...payload.metadata, attachment };
   }
 
-  const event = await appendOperationalEvent({ eventName: 'root.evidence.recorded', actorId: gate.ctx.user.id, confidence: 0.9, payload: { ...payload, evidenceHash }, lineage: [] });
+  const event = await appendEpistemicEvent({
+    eventName: 'root.evidence.recorded',
+    epistemicClass: 'observed',
+    confidence: 1,
+    payload: {
+      ...payload,
+      evidenceHash,
+      observedObject: 'evidence_record_existence_and_provenance',
+      claimBoundary: 'OBSERVED applies to capture/provenance. Claims inside the submitted content are not automatically verified.',
+    },
+    occurredAt: new Date().toISOString(),
+    source: { sourceId: gate.ctx.user.id, sourceType: 'root_evidence_capture' },
+    logbookId: 'BR',
+    lineage: [],
+  });
   if (!event.ok) {
     if (storagePath) await service.storage.from(ROOT_EVIDENCE_BUCKET).remove([storagePath]);
     return NextResponse.json(event, { status: 400 });
@@ -164,7 +187,7 @@ export async function POST(req: Request) {
     label: title,
     ontology_type: 'evidence',
     lineage: [String(event.data.event_id ?? event.data.id)],
-    attributes: { evidenceHash, evidenceType, rootEvidenceId: evidenceInsert.data.id, targetNodeId, attachment },
+    attributes: { evidenceHash, evidenceType, rootEvidenceId: evidenceInsert.data.id, targetNodeId, attachment, epistemicClass: 'OBSERVED', observedObject: 'evidence_record' },
     updated_at: new Date().toISOString(),
   }, { onConflict: 'node_id' }).select('*').single();
 
@@ -174,13 +197,20 @@ export async function POST(req: Request) {
     if (target.error || !target.data) graphEdge = { error: target.error?.message ?? 'target_node_missing' };
     else {
       const edge = await service.from('graph_edges').upsert({
-        edge_id: `${evidenceNodeId}->${targetNodeId}:supports`,
+        edge_id: `${evidenceNodeId}->${targetNodeId}:${input.relationType}`,
         source_node_id: evidenceNodeId,
         target_node_id: targetNodeId,
-        relation: 'supports',
-        weight: 0.72,
+        relation: input.relationType,
+        weight: 0,
         lineage: [String(event.data.event_id ?? event.data.id)],
-        attributes: { evidenceHash, verified: false, epistemicClass: 'observed', confidence: 0.9, attachment },
+        attributes: {
+          evidenceHash,
+          verified: false,
+          epistemicClass: 'DECLARED',
+          relationDeclaredBy: gate.ctx.user.id,
+          relationStrength: 'UNMEASURED',
+          attachment,
+        },
         updated_at: new Date().toISOString(),
       }, { onConflict: 'edge_id' }).select('*').maybeSingle();
       graphEdge = edge.error ? { error: edge.error.message } : edge.data;
@@ -216,7 +246,7 @@ export async function POST(req: Request) {
   if (mutation.error) return NextResponse.json({ ok: false, error: 'logbook_evidence_insert_failed', details: mutation.error.message }, { status: 400 });
 
   const [audit, cognitiveTwin] = await Promise.all([
-    auditRootAction({ actorId: gate.ctx.user.id, action: 'evidence.write', target: 'root_evidence_entries', payload: { evidenceHash, evidenceId: evidenceInsert.data.id, eventId: event.data.id, proposalId: proposal?.ok ? proposal.data.id : null, attachment }, request: req }),
+    auditRootAction({ actorId: gate.ctx.user.id, action: 'evidence.write', target: 'root_evidence_entries', payload: { evidenceHash, evidenceId: evidenceInsert.data.id, eventId: event.data.id, proposalId: proposal?.ok ? proposal.data.id : null, attachment, relationType: input.relationType }, request: req }),
     ingestRootEvidenceIntoCognitiveTwin(evidenceInsert.data),
   ]);
   if (!audit.ok) return NextResponse.json(audit, { status: 500 });
