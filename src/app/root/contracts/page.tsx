@@ -1,4 +1,4 @@
-import { requireFounderPage } from '@/lib/auth/serverPageGuards';
+import { requireFounderPage } from '@/lib/root/server';
 import { InstitutionalContractsConsole } from '@/components/root/contracts/InstitutionalContractsConsole';
 
 export const dynamic = 'force-dynamic';
