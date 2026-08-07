@@ -1,4 +1,4 @@
-import { requireFounderPage } from '@/lib/auth/serverPageGuards';
+import { requireFounderPage } from '@/lib/root/server';
 import { readAgentPassports } from '@/lib/sfi/cognitive-runtime/agentPassports';
 import { AgentPassportsConsole } from '@/components/root/agents/AgentPassportsConsole';
 
