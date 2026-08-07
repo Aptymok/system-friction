@@ -29,18 +29,14 @@ export type RootInstitutionalInterpretation = {
   divergences: RootInstitutionalDivergence[];
 };
 
+type RootStateInput = Omit<RootSovereignState, 'interpretation'>;
 type SourceLike = { source: string; observedAt: string | null; error: string | null };
 
 function latest(values: Array<string | null>) {
-  const valid = values
-    .filter((value): value is string => Boolean(value))
-    .map((value) => ({ value, time: new Date(value).valueOf() }))
-    .filter((entry) => Number.isFinite(entry.time))
-    .sort((a, b) => b.time - a.time);
+  const valid = values.filter((value): value is string => Boolean(value)).map((value) => ({ value, time: new Date(value).valueOf() })).filter((entry) => Number.isFinite(entry.time)).sort((a, b) => b.time - a.time);
   return valid[0]?.value ?? null;
 }
-
-function matrixValue(state: RootSovereignState, ids: string[]) {
+function matrixValue(state: RootStateInput, ids: string[]) {
   for (const id of ids) {
     const entry = state.system.data.matrix.find((item) => item.id === id);
     const raw = entry?.state.value;
@@ -49,8 +45,7 @@ function matrixValue(state: RootSovereignState, ids: string[]) {
   }
   return null;
 }
-
-function traceability(state: RootSovereignState) {
+function traceability(state: RootStateInput) {
   const nodes = state.evidence.data.nodes;
   const edges = state.evidence.data.edges;
   const tracedNodes = nodes.filter((node) => node.evidenceIds.length > 0 || node.lineage.length > 0).length;
@@ -60,8 +55,7 @@ function traceability(state: RootSovereignState) {
   const status: RootDataStatus = total === 0 ? 'missing' : traced === total ? 'observed' : traced > 0 ? 'degraded' : 'missing';
   return { nodes: nodes.length, edges: edges.length, tracedNodes, tracedEdges, total, traced, status };
 }
-
-function capabilityState(state: RootSovereignState) {
+function capabilityState(state: RootStateInput) {
   const rows = state.execution.data.capabilities;
   const available = rows.filter((entry) => entry.state === 'available').length;
   const partial = rows.filter((entry) => entry.state === 'partial').length;
@@ -70,7 +64,7 @@ function capabilityState(state: RootSovereignState) {
   return { total: rows.length, available, partial, gated, status };
 }
 
-export function interpretRootInstitution(state: RootSovereignState): RootInstitutionalInterpretation {
+export function interpretRootInstitution(state: RootStateInput): RootInstitutionalInterpretation {
   const sources: SourceLike[] = [state.system, state.governance, state.agents, state.predictions, state.amv, state.evidence, state.execution, state.telemetry, state.cognitiveRuntime];
   const healthySources = sources.filter((source) => !source.error);
   const failedSources = sources.filter((source) => Boolean(source.error));
@@ -87,94 +81,14 @@ export function interpretRootInstitution(state: RootSovereignState): RootInstitu
   const governanceRows = state.governance.data.audits.length + state.governance.data.events.length + state.governance.data.mutations.length;
 
   const facts: RootInstitutionalFact[] = [
-    {
-      id: 'institutional-position',
-      label: 'Posición institucional',
-      value: phi === null ? 'No determinada' : `ΦSFI ${phi.toFixed(3)}`,
-      status: phi === null ? 'missing' : 'derived',
-      source: 'Math Core / sfi_indicator_snapshots',
-      observedAt: state.system.observedAt,
-      evidenceIds: [],
-      explanation: phi === null ? 'No existe una lectura ΦSFI suficiente en este corte.' : 'Lectura derivada disponible; no sustituye sus variables constitutivas.',
-      warning: null,
-    },
-    {
-      id: 'source-health',
-      label: 'Fuentes de ROOT',
-      value: `${healthySources.length}/${sources.length} sin error`,
-      status: failedSources.length === 0 ? 'observed' : healthySources.length ? 'degraded' : 'missing',
-      source: 'rootSovereignAdapter readers',
-      observedAt: latest(sources.map((source) => source.observedAt)),
-      evidenceIds: [],
-      explanation: failedSources.length ? `${failedSources.length} lector(es) reportan error o degradación.` : 'Todos los lectores consultados respondieron sin error.',
-      warning: failedSources.map((source) => `${source.source}: ${source.error}`).join(' | ') || null,
-    },
-    {
-      id: 'cognitive-execution',
-      label: 'Runtime cognitivo',
-      value: `${runtimeOperational}/${runtime.agents.length} con ejecución observada`,
-      status: runtime.status === 'operational' ? 'observed' : runtime.status === 'degraded' ? 'degraded' : runtime.status === 'gated' ? 'gated' : 'missing',
-      source: state.cognitiveRuntime.source,
-      observedAt: state.cognitiveRuntime.observedAt,
-      evidenceIds: runtime.eventGraph.recentEvents.filter((event) => event.eventName === 'SFI_AGENT_EXECUTED').map((event) => event.eventId).filter(Boolean),
-      explanation: `${runtimeGated} gated · ${runtimeDegraded} degradados · ${runtimeMissing} missing. Registro y executor no constituyen ejecución.`,
-      warning: state.cognitiveRuntime.error,
-    },
-    {
-      id: 'traceability',
-      label: 'Trazabilidad del grafo',
-      value: trace.total === 0 ? 'Sin grafo persistido' : `${trace.traced}/${trace.total} elementos con evidencia o linaje`,
-      status: trace.status,
-      source: state.evidence.source,
-      observedAt: state.evidence.observedAt,
-      evidenceIds: state.evidence.data.nodes.flatMap((node) => node.evidenceIds).concat(state.evidence.data.edges.flatMap((edge) => edge.evidenceIds)),
-      explanation: `${trace.tracedNodes}/${trace.nodes} nodos trazados · ${trace.tracedEdges}/${trace.edges} relaciones trazadas.`,
-      warning: state.evidence.error,
-    },
-    {
-      id: 'execution-capability',
-      label: 'Capacidad ejecutable',
-      value: `${capability.available}/${capability.total} disponibles`,
-      status: capability.status,
-      source: state.execution.source,
-      observedAt: state.execution.observedAt,
-      evidenceIds: [],
-      explanation: `${capability.partial} parciales · ${capability.gated} gated. Una ruta registrada no equivale a ejecución.`,
-      warning: state.execution.error,
-    },
-    {
-      id: 'governance-audit',
-      label: 'Gobernanza y auditoría',
-      value: `${governanceRows} registros persistidos`,
-      status: state.governance.error ? 'degraded' : governanceRows > 0 ? 'observed' : 'missing',
-      source: state.governance.source,
-      observedAt: state.governance.observedAt,
-      evidenceIds: [],
-      explanation: `${state.governance.data.audits.length} auditorías · ${state.governance.data.events.length} eventos · ${state.governance.data.mutations.length} mutaciones.`,
-      warning: state.governance.error,
-    },
-    {
-      id: 'evidence-presence',
-      label: 'Evidencia persistida',
-      value: String(evidenceCount),
-      status: state.evidence.error ? 'degraded' : evidenceCount > 0 ? 'observed' : 'missing',
-      source: state.evidence.source,
-      observedAt: state.evidence.observedAt,
-      evidenceIds: state.evidence.data.nodes.flatMap((node) => node.evidenceIds),
-      explanation: `${state.evidence.data.entries.length} entradas ROOT · ${state.evidence.data.ledger.length} registros de ledger. Cantidad no equivale a fuerza probatoria.`,
-      warning: state.evidence.error,
-    },
-    {
-      id: 'institutional-attractor',
-      label: 'Atractor institucional',
-      value: attractorCount ? `${attractorCount} persistido(s)` : 'No visible en este lector',
-      status: state.amv.error ? 'degraded' : attractorCount > 0 ? 'observed' : 'missing',
-      source: state.amv.source,
-      observedAt: state.amv.observedAt,
-      evidenceIds: [],
-      explanation: attractorCount ? 'ROOT dispone de atractor persistido para contraste.' : 'ROOT no debe inferir convergencia sin un atractor expuesto por el lector correspondiente.',
-      warning: state.amv.error,
-    },
+    { id: 'institutional-position', label: 'Posición institucional', value: phi === null ? 'No determinada' : `ΦSFI ${phi.toFixed(3)}`, status: phi === null ? 'missing' : 'derived', source: 'Math Core / sfi_indicator_snapshots', observedAt: state.system.observedAt, evidenceIds: [], explanation: phi === null ? 'No existe una lectura ΦSFI suficiente en este corte.' : 'Lectura derivada disponible; no sustituye sus variables constitutivas.', warning: null },
+    { id: 'source-health', label: 'Fuentes de ROOT', value: `${healthySources.length}/${sources.length} sin error`, status: failedSources.length === 0 ? 'observed' : healthySources.length ? 'degraded' : 'missing', source: 'rootSovereignAdapter readers', observedAt: latest(sources.map((source) => source.observedAt)), evidenceIds: [], explanation: failedSources.length ? `${failedSources.length} lector(es) reportan error o degradación.` : 'Todos los lectores consultados respondieron sin error.', warning: failedSources.map((source) => `${source.source}: ${source.error}`).join(' | ') || null },
+    { id: 'cognitive-execution', label: 'Runtime cognitivo', value: `${runtimeOperational}/${runtime.agents.length} con ejecución observada`, status: runtime.status === 'operational' ? 'observed' : runtime.status === 'degraded' ? 'degraded' : runtime.status === 'gated' ? 'gated' : 'missing', source: state.cognitiveRuntime.source, observedAt: state.cognitiveRuntime.observedAt, evidenceIds: runtime.eventGraph.recentEvents.filter((event) => event.eventName === 'SFI_AGENT_EXECUTED').map((event) => event.eventId).filter(Boolean), explanation: `${runtimeGated} gated · ${runtimeDegraded} degradados · ${runtimeMissing} missing. Registro y executor no constituyen ejecución.`, warning: state.cognitiveRuntime.error },
+    { id: 'traceability', label: 'Trazabilidad del grafo', value: trace.total === 0 ? 'Sin grafo persistido' : `${trace.traced}/${trace.total} elementos con evidencia o linaje`, status: trace.status, source: state.evidence.source, observedAt: state.evidence.observedAt, evidenceIds: state.evidence.data.nodes.flatMap((node) => node.evidenceIds).concat(state.evidence.data.edges.flatMap((edge) => edge.evidenceIds)), explanation: `${trace.tracedNodes}/${trace.nodes} nodos trazados · ${trace.tracedEdges}/${trace.edges} relaciones trazadas.`, warning: state.evidence.error },
+    { id: 'execution-capability', label: 'Capacidad ejecutable', value: `${capability.available}/${capability.total} disponibles`, status: capability.status, source: state.execution.source, observedAt: state.execution.observedAt, evidenceIds: [], explanation: `${capability.partial} parciales · ${capability.gated} gated. Una ruta registrada no equivale a ejecución.`, warning: state.execution.error },
+    { id: 'governance-audit', label: 'Gobernanza y auditoría', value: `${governanceRows} registros persistidos`, status: state.governance.error ? 'degraded' : governanceRows > 0 ? 'observed' : 'missing', source: state.governance.source, observedAt: state.governance.observedAt, evidenceIds: [], explanation: `${state.governance.data.audits.length} auditorías · ${state.governance.data.events.length} eventos · ${state.governance.data.mutations.length} mutaciones.`, warning: state.governance.error },
+    { id: 'evidence-presence', label: 'Evidencia persistida', value: String(evidenceCount), status: state.evidence.error ? 'degraded' : evidenceCount > 0 ? 'observed' : 'missing', source: state.evidence.source, observedAt: state.evidence.observedAt, evidenceIds: state.evidence.data.nodes.flatMap((node) => node.evidenceIds), explanation: `${state.evidence.data.entries.length} entradas ROOT · ${state.evidence.data.ledger.length} registros de ledger. Cantidad no equivale a fuerza probatoria.`, warning: state.evidence.error },
+    { id: 'institutional-attractor', label: 'Atractor institucional', value: attractorCount ? `${attractorCount} persistido(s)` : 'No visible en este lector', status: state.amv.error ? 'degraded' : attractorCount > 0 ? 'observed' : 'missing', source: state.amv.source, observedAt: state.amv.observedAt, evidenceIds: [], explanation: attractorCount ? 'ROOT dispone de atractor persistido para contraste.' : 'ROOT no debe inferir convergencia sin un atractor expuesto por el lector correspondiente.', warning: state.amv.error },
   ];
 
   const divergences: RootInstitutionalDivergence[] = [];
@@ -199,12 +113,5 @@ export function interpretRootInstitution(state: RootSovereignState): RootInstitu
     phi === null ? 'La posición ΦSFI permanece no determinada.' : `La posición institucional derivada disponible es ΦSFI ${phi.toFixed(3)}.`,
   ];
 
-  return {
-    schemaVersion: '2026-08-07.root-institutional-interpretation.v1',
-    generatedAt: state.generatedAt,
-    headline,
-    narrative,
-    facts,
-    divergences,
-  };
+  return { schemaVersion: '2026-08-07.root-institutional-interpretation.v1', generatedAt: state.generatedAt, headline, narrative, facts, divergences };
 }
