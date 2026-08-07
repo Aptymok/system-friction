@@ -70,6 +70,13 @@ async function readCycleEvidence(limit = 80): Promise<{ evidence: KernelEvidence
   };
 }
 
+function cognitiveTwinSyncWarnings(result: Awaited<ReturnType<typeof syncRecentInstitutionalEvidenceToCognitiveTwin>>) {
+  if (result.ok) return [];
+  if ('error' in result && typeof result.error === 'string') return [result.error];
+  if ('failures' in result && Array.isArray(result.failures)) return result.failures;
+  return ['cognitive_twin_evidence_sync_degraded'];
+}
+
 export async function runInstitutionalCycle(trigger = 'scheduled') {
   const db = createServiceSupabaseClient();
   const startedAt = new Date().toISOString();
@@ -194,7 +201,7 @@ export async function runInstitutionalCycle(trigger = 'scheduled') {
     warnings: [
       ...cycleEvidence.warnings,
       ...attractorState.warnings,
-      ...(memorySync.ok ? [] : [memorySync.error]),
+      ...cognitiveTwinSyncWarnings(memorySync),
       ...('warnings' in phenomenonRefresh && Array.isArray(phenomenonRefresh.warnings) ? phenomenonRefresh.warnings : []),
       ...(runInsert.error ? [`cognitive_twin_run:${runInsert.error.message}`] : []),
     ],
