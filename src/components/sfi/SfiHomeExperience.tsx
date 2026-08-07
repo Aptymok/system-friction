@@ -58,9 +58,9 @@ export function SfiHomeExperience({ state, attractor }: { state: SfiWorldInterfa
             </div>
 
             <footer className="threshold-actions">
-              <button type="button" onClick={() => { setThresholdOpen(false); trackEvent('public_field_observe', { source_surface: 'institutional_threshold' }); }}>OBSERVAR EL CAMPO ACTUAL</button>
-              <Link href="/repository" onClick={() => trackEvent('method_open', { source_surface: 'institutional_threshold' })}>LEER MÉTODO</Link>
-              <Link className="primary" href="/login" onClick={() => trackEvent('login_intent', { source_surface: 'institutional_threshold' })}>INICIAR SESIÓN →</Link>
+              <button type="button" onClick={() => { setThresholdOpen(false); trackEvent('navigation_click', { source_surface: 'institutional_threshold', destination: 'public_field', action: 'observe' }); }}>OBSERVAR EL CAMPO ACTUAL</button>
+              <Link href="/repository" onClick={() => trackEvent('navigation_click', { source_surface: 'institutional_threshold', destination: 'repository', action: 'read_method' })}>LEER MÉTODO</Link>
+              <Link className="primary" href="/login" onClick={() => trackEvent('navigation_click', { source_surface: 'institutional_threshold', destination: 'login', action: 'authenticate' })}>INICIAR SESIÓN →</Link>
             </footer>
           </div>
         </section>
