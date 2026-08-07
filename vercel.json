@@ -13,6 +13,10 @@
       "schedule": "25 7 * * *"
     },
     {
+      "path": "/api/cron/sfi-institutional-cycle",
+      "schedule": "35 7 * * *"
+    },
+    {
       "path": "/api/cron/sfi-indicators",
       "schedule": "0 8 * * *"
     },
