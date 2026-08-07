@@ -1,4 +1,4 @@
-export const COGNITIVE_TWIN_CONTRACT_VERSION = '1.0.0' as const;
+export const COGNITIVE_TWIN_CONTRACT_VERSION = '1.1.0' as const;
 
 export type CognitiveTwinAction =
   | 'observe'
@@ -30,6 +30,9 @@ export const SFI_COGNITIVE_TWIN_CONTRACT = {
     'Simulation is not observation.',
     'No system validates itself.',
     'Public representation cannot exceed evidenced state.',
+    'Presentation does not constitute institutional state.',
+    'Frontend display heuristics cannot promote, infer or manufacture institutional state.',
+    'A missing source remains missing; fallback values cannot be represented as observed evidence.',
     'Institutional memory lives outside any individual model.',
     'Canonical contradictions stop promotion and require governance.',
   ],
