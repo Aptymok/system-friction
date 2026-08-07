@@ -41,7 +41,7 @@ function directionSelection(phenomenon: TelemetryPhenomenon): RootSelection {
     observedAt: phenomenon.history.length ? phenomenon.history[phenomenon.history.length - 1].at : null,
     confidence: null,
     evidenceIds: [],
-    warning: null,
+    warning: phenomenon.attractorPull === null || phenomenon.ejectorPull === null ? 'Posición atractor/eyector no determinada por la evidencia disponible.' : null,
     data: phenomenon,
   };
 }
@@ -50,13 +50,15 @@ export function RootTelemetryView({ state, onSelect }: { state: RootSovereignSta
   const telemetry = state.telemetry;
   const instruments = telemetry.data.instruments;
   const phenomena = telemetry.data.phenomena;
+  const positioned = phenomena.filter((phenomenon): phenomenon is TelemetryPhenomenon & { attractorPull: number; ejectorPull: number } => phenomenon.attractorPull !== null && phenomenon.ejectorPull !== null);
+  const unpositioned = phenomena.filter((phenomenon) => phenomenon.attractorPull === null || phenomenon.ejectorPull === null);
 
   return (
     <div className="rs-view">
       <header className="rs-view-title">
         <span>TELEMETRÍA</span>
         <h1>PLANO DE FASE · ATRACTOR / EYECTOR</h1>
-        <p>Posición real, no decorativa — derivada de los 8 scores de dirección que ya sostienen cada hipótesis PPOI.</p>
+        <p>Sólo se posicionan expedientes cuyos scores de atracción y eyección están efectivamente determinados.</p>
       </header>
 
       {telemetry.error ? <div className="rs-source-warning">{telemetry.error}</div> : null}
@@ -72,10 +74,10 @@ export function RootTelemetryView({ state, onSelect }: { state: RootSovereignSta
         ))}
       </div>
 
-      {phenomena.length === 0 ? (
+      {positioned.length === 0 ? (
         <div className="rs-empty">
-          <b>SIN LECTURA</b>
-          <p>Ningún expediente PPOI tiene evidencia calibrada todavía. El plano no genera puntos sintéticos.</p>
+          <b>POSICIÓN NO DETERMINADA</b>
+          <p>Ningún expediente PPOI dispone de ambos componentes necesarios para entrar al plano de fase.</p>
         </div>
       ) : (
         <div className="rt-phase-wrap">
@@ -84,10 +86,10 @@ export function RootTelemetryView({ state, onSelect }: { state: RootSovereignSta
             <line x1={MARGIN} y1={MARGIN} x2={MARGIN} y2={PLOT_H - MARGIN} className="rt-axis" />
             <text x={PLOT_W - MARGIN} y={PLOT_H - MARGIN + 16} className="rt-axis-label" textAnchor="end">ATRACCIÓN →</text>
             <text x={MARGIN - 8} y={MARGIN - 8} className="rt-axis-label" textAnchor="start">↑ EYECCIÓN</text>
-            {phenomena.map((phenomenon) => {
+            {positioned.map((phenomenon) => {
               const x = plotX(phenomenon.attractorPull);
               const y = plotY(phenomenon.ejectorPull);
-              const radius = 5 + Math.min(10, Math.abs(phenomenon.composite ?? 0) * 2);
+              const radius = 6;
               return (
                 <g
                   key={phenomenon.id}
@@ -110,12 +112,19 @@ export function RootTelemetryView({ state, onSelect }: { state: RootSovereignSta
         </div>
       )}
 
+      {unpositioned.length ? (
+        <section className="rs-empty">
+          <b>{unpositioned.length} EXPEDIENTE(S) SIN POSICIÓN</b>
+          <p>{unpositioned.map((phenomenon) => phenomenon.fpCode).join(' · ')}</p>
+        </section>
+      ) : null}
+
       {phenomena.length > 0 ? (
         <>
           <header className="rs-view-title secondary">
             <span>HISTORIAL</span>
             <h2>SPARKLINES · Φ𝒻 POR EXPEDIENTE</h2>
-            <p>Cada punto es una recalibración real registrada en ppoi_hypotheses — no interpolación.</p>
+            <p>Cada punto es una recalibración registrada en ppoi_hypotheses; no se interpolan observaciones ausentes.</p>
           </header>
           <div className="rt-spark-grid">
             {phenomena.map((phenomenon) => {
@@ -129,7 +138,7 @@ export function RootTelemetryView({ state, onSelect }: { state: RootSovereignSta
                       <polyline points={spark.points} />
                     </svg>
                   ) : (
-                    <em>Una sola lectura — sin historial todavía.</em>
+                    <em>Una sola lectura; sin historial longitudinal todavía.</em>
                   )}
                   <em>{phenomenon.direction ?? '—'} · rival {phenomenon.rivalDirection ?? '—'}</em>
                 </button>
