@@ -7,6 +7,7 @@ import { RootOperationalShell } from './RootOperationalShell';
 import { RootMethodologyWorkbench } from './RootMethodologyWorkbench';
 import { RootTopologyField } from './RootTopologyField';
 import { RootInstitutionalSelfPerception } from './RootInstitutionalSelfPerception';
+import { RootSemanticInspector } from './RootSemanticInspector';
 import './root-sovereign.css';
 
 function auditId(body: Record<string, unknown>) {
@@ -131,7 +132,7 @@ export function RootSovereignConsole({ initialState }: { initialState: RootSover
   }
 
   return (
-    <div className={`rs-console-host ${viewMode === 'legacy' ? 'is-legacy' : 'is-topology'}`}>
+    <div className={`rs-console-host ${viewMode === 'legacy' ? 'is-legacy' : 'is-topology'} ${selection ? 'has-semantic-selection' : ''}`}>
       {viewMode === 'topology' ? (
         <>
           <RootInstitutionalSelfPerception state={state} />
@@ -159,13 +160,8 @@ export function RootSovereignConsole({ initialState }: { initialState: RootSover
         </>
       )}
 
+      <RootSemanticInspector value={selection} onClose={() => setSelection(null)} />
       <RootMethodologyWorkbench state={state} onAction={requestAction} />
-
-      {selection ? (
-        <div className="rs-selection-announcement" aria-live="polite">
-          Punto seleccionado: {selection.title}
-        </div>
-      ) : null}
 
       {events.length ? (
         <div className="rs-root-events" aria-live="polite">
