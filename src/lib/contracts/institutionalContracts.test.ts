@@ -14,11 +14,12 @@ test('the institutional contract registry contains exactly the 15 approved contr
   assert.equal(new Set(SFI_INSTITUTIONAL_CONTRACT_MANIFEST.map((item) => item.name)).size, 15);
 });
 
-test('every institutional contract is an executable zod schema with a runtime anchor', () => {
+test('every institutional contract is executable and anchored in an active runtime path', () => {
   for (const item of SFI_INSTITUTIONAL_CONTRACT_MANIFEST) {
     const schema = SFI_INSTITUTIONAL_CONTRACTS[item.name];
     assert.equal(typeof schema.safeParse, 'function', `${item.name} lacks executable validation`);
     assert.ok(item.runtimeAnchor.trim().length > 0, `${item.name} lacks runtime anchor`);
+    assert.equal(item.adoption, 'ACTIVE', `${item.name} is not actively anchored`);
   }
 });
 
