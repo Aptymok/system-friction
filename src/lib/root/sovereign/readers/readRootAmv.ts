@@ -7,5 +7,20 @@ export async function readRootAmv() {
     selectRows({ table: 'sfi_attractors', select: 'id,attractor_key,label,module,owner_node_key,attractor_type,confidence,persistence,trust,weight,evidence_count,status,vector,first_seen,last_seen,created_at,updated_at', order: 'updated_at', limit: 40 }),
     selectRows({ table: 'sfi_ejectors', select: 'id,ejector_key,label,module,owner_node_key,contradiction,unresolved_debt,decay,external_pressure,weight,evidence_count,status,vector,first_seen,last_seen,created_at,updated_at', order: 'updated_at', limit: 40 }),
   ]);
-  return source({ memories: memory.rows, attractors: attractors.rows, ejectors: ejectors.rows }, 'sfi_amv_memory + convergence graph', [memory.error, attractors.error, ejectors.error], dateValue(memory.rows[0]?.created_at ?? attractors.rows[0]?.updated_at), !memory.rows.length);
+
+  const observedAt = dateValue(
+    attractors.rows[0]?.updated_at
+      ?? memory.rows[0]?.created_at
+      ?? ejectors.rows[0]?.updated_at
+      ?? null,
+  );
+  const nothingPersisted = memory.rows.length === 0 && attractors.rows.length === 0 && ejectors.rows.length === 0;
+
+  return source(
+    { memories: memory.rows, attractors: attractors.rows, ejectors: ejectors.rows },
+    'sfi_amv_memory + sfi_attractors + sfi_ejectors',
+    [memory.error, attractors.error, ejectors.error],
+    observedAt,
+    nothingPersisted,
+  );
 }

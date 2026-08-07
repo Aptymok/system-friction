@@ -5,7 +5,7 @@ import type { RootSovereignState } from '@/lib/root/sovereign/rootSovereignState
 import type { RootActionRequest, RootSelection, RootSessionEvent } from './sovereignTypes';
 import { RootOperationalShell } from './RootOperationalShell';
 import { RootMethodologyWorkbench } from './RootMethodologyWorkbench';
-import { RootTopologyWorkspace } from './RootTopologyWorkspace';
+import { RootTopologyField } from './RootTopologyField';
 import { RootInstitutionalSelfPerception } from './RootInstitutionalSelfPerception';
 import './root-sovereign.css';
 
@@ -135,7 +135,7 @@ export function RootSovereignConsole({ initialState }: { initialState: RootSover
       {viewMode === 'topology' ? (
         <>
           <RootInstitutionalSelfPerception state={state} />
-          <RootTopologyWorkspace
+          <RootTopologyField
             state={state}
             refreshing={refreshing}
             warning={refreshWarning}

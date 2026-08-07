@@ -1,5 +1,6 @@
 import type { TelemetryData } from './readers/readRootTelemetry';
 import type { SfiCognitiveRuntimeSnapshot } from '@/lib/sfi/cognitive-runtime/types';
+import type { RootInstitutionalInterpretation } from './institutionalInterpretation';
 
 export type RootDataStatus = 'observed' | 'derived' | 'inferred' | 'gated' | 'missing' | 'degraded';
 
@@ -101,6 +102,7 @@ export type RootSovereignState = {
   execution: RootSource<{ capabilities: RootExecutionCapability[]; recentActions: RootRow[] }>;
   telemetry: RootSource<TelemetryData>;
   cognitiveRuntime: RootSource<SfiCognitiveRuntimeSnapshot>;
+  interpretation: RootInstitutionalInterpretation;
   warnings: string[];
 };
 

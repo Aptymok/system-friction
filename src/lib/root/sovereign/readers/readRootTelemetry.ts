@@ -9,22 +9,6 @@ import type { MihmInstrumentState } from '@/lib/mihm/instrumentContract';
 import type { RootDataStatus, RootSource } from '../rootSovereignState';
 import { errorMessage } from './readerSupport';
 
-/**
- * Telemetría no es un panel más. Es la respuesta directa a "quiero ver la
- * trayectoria del sistema en su espacio de fase, no un número que sube".
- *
- * El plano atractor/eyector NO es decorativo: cada punto se posiciona con
- * los 8 scores de afinidad direccional que `hypothesisEngine.ts` YA calcula
- * para cada expediente PPOI. Eje X = fuerza de atracción hacia estructura
- * (EXPANSION + INSTITUTIONALIZATION + CONVERGENCE). Eje Y = fuerza de
- * eyección hacia disolución (DEGRADATION + FRAGMENTATION). Son los mismos
- * números que ya sostienen la hipótesis principal y la rival — aquí se
- * visualizan en vez de solo leerse como texto.
- *
- * Los sparklines usan `ppoi_hypotheses.composite_snapshot` histórico real
- * — cada recalibración queda registrada, así que el historial no se simula.
- */
-
 export type TelemetryInstrument = {
   id: string;
   symbol: string;
@@ -39,8 +23,8 @@ export type TelemetryPhenomenon = {
   fpCode: string;
   name: string;
   composite: number | null;
-  attractorPull: number;
-  ejectorPull: number;
+  attractorPull: number | null;
+  ejectorPull: number | null;
   direction: string | null;
   rivalDirection: string | null;
   history: Array<{ at: string; composite: number }>;
@@ -63,9 +47,9 @@ function instrumentReading(id: string, label: string, state: MihmInstrumentState
   };
 }
 
-function pull(scores: Array<{ direction: string; score: number }>, directions: string[]) {
+function pull(scores: Array<{ direction: string; score: number }>, directions: string[]): number | null {
   const matched = scores.filter((entry) => directions.includes(entry.direction));
-  if (matched.length === 0) return 0;
+  if (matched.length === 0) return null;
   return Number((matched.reduce((sum, entry) => sum + entry.score, 0) / matched.length).toFixed(3));
 }
 
@@ -116,8 +100,8 @@ async function readPhenomena(): Promise<TelemetryPhenomenon[]> {
       .filter((entry: HypothesisRow) => typeof entry.composite_snapshot === 'number')
       .map((entry: HypothesisRow) => ({ at: String(entry.generated_at), composite: Number(entry.composite_snapshot) }));
 
-    let attractorPull = 0;
-    let ejectorPull = 0;
+    let attractorPull: number | null = null;
+    let ejectorPull: number | null = null;
     if (current && current.index_snapshot) {
       const indices = current.index_snapshot as PpoiIndices;
       const trajectory = inferPpoiTrajectory(indices, Number(row.current_composite));
@@ -156,7 +140,7 @@ export async function readRootTelemetry(): Promise<RootSource<TelemetryData>> {
     return {
       data: { instruments, phenomena },
       source: 'scorefriction + worldspect + ppoi_phenomena + ppoi_hypotheses',
-      dataClass: phenomena.length > 0 ? 'observed' : 'missing',
+      dataClass: phenomena.length > 0 || instruments.some((item) => item.value !== null) ? 'observed' : 'missing',
       observedAt,
       error: null,
     };
