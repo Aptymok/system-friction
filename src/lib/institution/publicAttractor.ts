@@ -18,37 +18,59 @@ export type PublicInstitutionalAttractorState = {
   evidenceCoverage: number | null;
   supportedDimensions: string[];
   missingDimensions: string[];
+  contradictedDimensions: string[];
   latestObservedAt: string | null;
   activePhenomena: number;
   dimensions: string[];
   warnings: string[];
 };
 
-export async function buildPublicInstitutionalAttractorState(): Promise<PublicInstitutionalAttractorState> {
-  const state = await readInstitutionalAttractor();
-  if (!state.attractor) {
-    return {
-      status: 'MISSING', label: null, desiredState: null, mechanism: null, normativePosition: null, claimBoundary: null,
-      evidenceCoverage: null, supportedDimensions: [], missingDimensions: [...SFI_ATTRACTOR_DIMENSIONS], latestObservedAt: null,
-      activePhenomena: 0, dimensions: [...SFI_ATTRACTOR_DIMENSIONS], warnings: state.warnings,
-    };
-  }
-  const vector = record(state.attractor.vector);
-  const trajectory = record(state.latestTrajectory);
-  const evidenceCoverage = numeric(trajectory.evidence_coverage);
+function missingState(warnings: string[]): PublicInstitutionalAttractorState {
   return {
-    status: evidenceCoverage === null ? 'DECLARED_AWAITING_EVIDENCE' : 'DECLARED_AND_MEASURED',
-    label: text(state.attractor.label),
-    desiredState: text(vector.desiredState),
-    mechanism: text(vector.mechanism),
-    normativePosition: text(vector.normativePosition),
-    claimBoundary: text(vector.claimBoundary),
-    evidenceCoverage,
-    supportedDimensions: strings(trajectory.supported_dimensions),
-    missingDimensions: strings(trajectory.missing_dimensions),
-    latestObservedAt: text(trajectory.observed_at),
-    activePhenomena: state.phenomenonTrajectory.length,
-    dimensions: strings(vector.dimensions).length ? strings(vector.dimensions) : [...SFI_ATTRACTOR_DIMENSIONS],
-    warnings: state.warnings,
+    status: 'MISSING',
+    label: null,
+    desiredState: null,
+    mechanism: null,
+    normativePosition: null,
+    claimBoundary: null,
+    evidenceCoverage: null,
+    supportedDimensions: [],
+    missingDimensions: [...SFI_ATTRACTOR_DIMENSIONS],
+    contradictedDimensions: [],
+    latestObservedAt: null,
+    activePhenomena: 0,
+    dimensions: [...SFI_ATTRACTOR_DIMENSIONS],
+    warnings,
   };
+}
+
+export async function buildPublicInstitutionalAttractorState(): Promise<PublicInstitutionalAttractorState> {
+  try {
+    const state = await readInstitutionalAttractor();
+    if (!state.attractor) return missingState(state.warnings);
+
+    const vector = record(state.attractor.vector);
+    const trajectory = record(state.latestTrajectory);
+    const evidenceCoverage = numeric(trajectory.evidence_coverage);
+    return {
+      status: evidenceCoverage === null ? 'DECLARED_AWAITING_EVIDENCE' : 'DECLARED_AND_MEASURED',
+      label: text(state.attractor.label),
+      desiredState: text(vector.desiredState),
+      mechanism: text(vector.mechanism),
+      normativePosition: text(vector.normativePosition),
+      claimBoundary: text(vector.claimBoundary),
+      evidenceCoverage,
+      supportedDimensions: strings(trajectory.supported_dimensions),
+      missingDimensions: strings(trajectory.missing_dimensions),
+      contradictedDimensions: strings(trajectory.contradicted_dimensions),
+      latestObservedAt: text(trajectory.observed_at),
+      activePhenomena: state.phenomenonTrajectory.length,
+      dimensions: strings(vector.dimensions).length ? strings(vector.dimensions) : [...SFI_ATTRACTOR_DIMENSIONS],
+      warnings: state.warnings,
+    };
+  } catch (error) {
+    return missingState([
+      error instanceof Error ? `institutional_attractor_runtime_unavailable:${error.message}` : 'institutional_attractor_runtime_unavailable',
+    ]);
+  }
 }
