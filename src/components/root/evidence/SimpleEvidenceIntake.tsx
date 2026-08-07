@@ -15,6 +15,13 @@ const EVIDENCE_TYPES = [
   ['continuity_evidence', 'Continuidad institucional'],
 ] as const;
 
+const RELATIONS = [
+  ['contextualizes', 'Contextualiza — existe relación de contexto; no afirma soporte causal'],
+  ['supports', 'Soporta — la evidencia respalda explícitamente el nodo'],
+  ['contradicts', 'Contradice — la evidencia desafía explícitamente el nodo'],
+  ['records', 'Registra — documenta existencia/estado sin evaluarlo'],
+] as const;
+
 export function SimpleEvidenceIntake() {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
@@ -23,6 +30,7 @@ export function SimpleEvidenceIntake() {
   const [domain, setDomain] = useState('');
   const [caseId, setCaseId] = useState('');
   const [targetNodeId, setTargetNodeId] = useState('');
+  const [relationType, setRelationType] = useState('contextualizes');
   const [file, setFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
@@ -40,7 +48,10 @@ export function SimpleEvidenceIntake() {
       form.set('source', source);
       if (domain) form.set('domain', domain);
       if (caseId.trim()) form.set('caseId', caseId.trim());
-      if (targetNodeId.trim()) form.set('targetNodeId', targetNodeId.trim());
+      if (targetNodeId.trim()) {
+        form.set('targetNodeId', targetNodeId.trim());
+        form.set('relationType', relationType);
+      }
       if (file) form.set('file', file);
       const response = await fetch('/api/root/evidence', { method: 'POST', credentials: 'include', body: form });
       const body = await response.json().catch(() => null);
@@ -49,7 +60,7 @@ export function SimpleEvidenceIntake() {
       setMessage(body.duplicate
         ? 'La evidencia ya existía; no se duplicó y se reconcilió con Cognitive Twin.'
         : 'Evidencia guardada, trazada, enviada a memoria del Cognitive Twin y disponible para el siguiente ciclo institucional.');
-      if (!body.duplicate) { setTitle(''); setContent(''); setCaseId(''); setTargetNodeId(''); setFile(null); }
+      if (!body.duplicate) { setTitle(''); setContent(''); setCaseId(''); setTargetNodeId(''); setRelationType('contextualizes'); setFile(null); }
     } catch (error) {
       setMessage(error instanceof Error ? error.message : String(error));
     } finally { setBusy(false); }
@@ -72,8 +83,9 @@ export function SimpleEvidenceIntake() {
           <label style={label}>DOMINIO<select style={input} value={domain} onChange={(e) => setDomain(e.target.value)}><option value="">No aplica / no determinado</option><option value="digital">Digital</option><option value="biological">Biológico</option><option value="ontological">Ontológico</option></select></label>
           <label style={label}>CASO / CONTEXTO<input style={input} value={caseId} onChange={(e) => setCaseId(e.target.value)} placeholder="opcional" /></label>
           <label style={label}>NODO A VINCULAR<input style={input} value={targetNodeId} onChange={(e) => setTargetNodeId(e.target.value)} placeholder="opcional: node_id existente" /></label>
+          {targetNodeId.trim() ? <label style={label}>RELACIÓN DECLARADA<select style={input} value={relationType} onChange={(e) => setRelationType(e.target.value)}>{RELATIONS.map(([value, name]) => <option key={value} value={value}>{name}</option>)}</select></label> : null}
         </div>
-        <p style={muted}>Las categorías específicas permiten contrastar el atractor institucional sin inferir adopción, ventas o reconocimiento desde actividad interna. Si no indicas nodo, la evidencia permanece válida y trazada, pero sin una relación explícita todavía.</p>
+        <p style={muted}>Vincular no significa “soportar”. Por defecto la relación es CONTEXTUALIZA; sólo selecciona SOPORTA o CONTRADICE cuando esa relación sea explícita en la evidencia. La fuerza de la relación permanece sin medir hasta evaluación posterior.</p>
         <button style={button} type="submit" disabled={busy || (!content.trim() && !file)}>{busy ? 'GUARDANDO…' : 'GUARDAR EVIDENCIA'}</button>
         {message ? <output style={{ color: '#d8c488', fontSize: 12 }}>{message}</output> : null}
       </form>
