@@ -19,6 +19,15 @@ import type {
 const freshnessHours = Math.max(1, Number(process.env.SFI_AGENT_EXECUTION_FRESHNESS_HOURS ?? 24));
 const freshnessMs = freshnessHours * 60 * 60 * 1000;
 
+function contractEventName(value: unknown) {
+  if (typeof value === 'string') return value;
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    const eventName = (value as Record<string, unknown>).eventName;
+    return typeof eventName === 'string' ? eventName : 'UNNAMED_EVENT_CONTRACT';
+  }
+  return 'UNNAMED_EVENT_CONTRACT';
+}
+
 function sourceId(row: Record<string, unknown>) {
   const source = row.source;
   if (!source || typeof source !== 'object' || Array.isArray(source)) return null;
@@ -104,8 +113,8 @@ export async function readObservedSfiCognitiveRuntime(): Promise<SfiCognitiveRun
       status,
       purpose: agent.purpose,
       route: agent.route,
-      listensTo: agent.listensTo,
-      emits: agent.emits,
+      listensTo: agent.listensTo.map(contractEventName),
+      emits: agent.emits.map(contractEventName),
       readsMemory: agent.readsMemory.map((memory) => memoryAccess(memory, 'read', tableState)),
       writesMemory: agent.writesMemory.map((memory) => memoryAccess(memory, 'write', tableState)),
       confidenceModel: agent.confidenceModel,
