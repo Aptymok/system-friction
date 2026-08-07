@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, type FormEvent } from 'react';
 
 export function FounderDecisionCandidateForm() {
   const [situation, setSituation] = useState('');
@@ -11,7 +11,7 @@ export function FounderDecisionCandidateForm() {
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
 
-  async function submit(event: React.FormEvent<HTMLFormElement>) {
+  async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setBusy(true);
     setMessage('');
