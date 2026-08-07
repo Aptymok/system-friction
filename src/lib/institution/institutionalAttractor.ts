@@ -20,23 +20,23 @@ type Row = Record<string, unknown>;
 type DimensionState = {
   dimension: SfiAttractorDimension;
   observedCount: number;
-  status: 'OBSERVED_SUPPORT' | 'MISSING_EVIDENCE';
+  contradictionCount: number;
+  status: 'OBSERVED_SUPPORT' | 'CONFLICTED' | 'CONTRADICTED' | 'MISSING_EVIDENCE';
+  attainment: 'UNRESOLVED_NO_CANONICAL_THRESHOLD';
   evidenceRefs: string[];
+  contradictionRefs: string[];
   explanation: string;
 };
 
 function rows(value: unknown): Row[] {
   return Array.isArray(value) ? value.filter((item): item is Row => Boolean(item) && typeof item === 'object' && !Array.isArray(item)) : [];
 }
-
 function record(value: unknown): Row {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Row : {};
 }
-
 function text(value: unknown) {
   return typeof value === 'string' && value.trim() ? value.trim() : null;
 }
-
 function unique(values: Array<string | null | undefined>) {
   return [...new Set(values.filter((value): value is string => Boolean(value)))];
 }
@@ -86,6 +86,33 @@ function explicitDomains(evidence: Row[]) {
   return [...domains];
 }
 
+function dimensionState(input: {
+  dimension: SfiAttractorDimension;
+  supportCount: number;
+  supportRefs: string[];
+  contradictionRefs: string[];
+  explanation: string;
+}): DimensionState {
+  const contradictionCount = input.contradictionRefs.length;
+  const status: DimensionState['status'] = input.supportCount > 0 && contradictionCount > 0
+    ? 'CONFLICTED'
+    : contradictionCount > 0
+      ? 'CONTRADICTED'
+      : input.supportCount > 0
+        ? 'OBSERVED_SUPPORT'
+        : 'MISSING_EVIDENCE';
+  return {
+    dimension: input.dimension,
+    observedCount: input.supportCount,
+    contradictionCount,
+    status,
+    attainment: 'UNRESOLVED_NO_CANONICAL_THRESHOLD',
+    evidenceRefs: unique(input.supportRefs),
+    contradictionRefs: unique(input.contradictionRefs),
+    explanation: `${input.explanation} El soporte observado no equivale a declarar alcanzada la dimensión; SFI no tiene un umbral canónico de cumplimiento para este atractor.`,
+  };
+}
+
 export async function readInstitutionalAttractor() {
   const db = createServiceSupabaseClient();
   const [attractor, latest, phenomena] = await Promise.all([
@@ -103,8 +130,15 @@ export async function readInstitutionalAttractor() {
 
 export async function refreshInstitutionalAttractorTrajectory() {
   const db = createServiceSupabaseClient();
-  const rootEvidence = await recentRootEvidence();
+  const [rootEvidence, explicitLinks] = await Promise.all([
+    recentRootEvidence(),
+    db.from('sfi_attractor_evidence_links')
+      .select('evidence_source,evidence_id,dimension,relation_type,strength,epistemic_class,observed_at')
+      .eq('attractor_key', SFI_INSTITUTIONAL_ATTRACTOR_KEY)
+      .order('created_at', { ascending: true }),
+  ]);
   const evidence = rootEvidence.rows;
+  const links = rows(explicitLinks.data);
 
   const [closedCases, acceptedProposals, wonOpportunities, completedContinuity] = await Promise.all([
     countRows('sfi_reference_cases', [{ column: 'status', values: ['CLOSED'] }]),
@@ -115,63 +149,69 @@ export async function refreshInstitutionalAttractorTrajectory() {
 
   const domains = explicitDomains(evidence);
   const explicit = Object.fromEntries(SFI_ATTRACTOR_DIMENSIONS.map((dimension) => [dimension, explicitEvidenceForDimension(evidence, dimension)])) as Record<SfiAttractorDimension, Row[]>;
+  const supportLinks = (dimension: SfiAttractorDimension) => links.filter((item) => item.dimension === dimension && item.relation_type === 'supports');
+  const contradictionLinks = (dimension: SfiAttractorDimension) => links.filter((item) => item.dimension === dimension && item.relation_type === 'contradicts');
+  const linkRefs = (items: Row[]) => unique(items.map((item) => text(item.evidence_id)));
+  const explicitRefs = (dimension: SfiAttractorDimension) => unique(explicit[dimension].map((item) => text(item.id)));
 
   const states: DimensionState[] = [
-    {
+    dimensionState({
       dimension: 'research_persistence',
-      observedCount: closedCases.count + explicit.research_persistence.length,
-      status: closedCases.count + explicit.research_persistence.length > 0 ? 'OBSERVED_SUPPORT' : 'MISSING_EVIDENCE',
-      evidenceRefs: unique(explicit.research_persistence.map((item) => text(item.id))),
-      explanation: 'Se sostiene únicamente con casos cerrados del Reference Bank o evidencia explícita de producción/validación de investigación.',
-    },
-    {
+      supportCount: closedCases.count + explicit.research_persistence.length + supportLinks('research_persistence').length,
+      supportRefs: [...explicitRefs('research_persistence'), ...linkRefs(supportLinks('research_persistence'))],
+      contradictionRefs: linkRefs(contradictionLinks('research_persistence')),
+      explanation: `Hay ${closedCases.count} casos cerrados y ${explicit.research_persistence.length + supportLinks('research_persistence').length} registros explícitos vinculados a investigación. Esto demuestra actividad/soporte; la persistencia requiere trayectoria longitudinal, no una ocurrencia aislada.`,
+    }),
+    dimensionState({
       dimension: 'instrument_adoption',
-      observedCount: explicit.instrument_adoption.length,
-      status: explicit.instrument_adoption.length > 0 ? 'OBSERVED_SUPPORT' : 'MISSING_EVIDENCE',
-      evidenceRefs: unique(explicit.instrument_adoption.map((item) => text(item.id))),
-      explanation: 'Uso interno de Studio o Field no se cuenta como adopción externa. Requiere evidencia explícita de uso por terceros.',
-    },
-    {
+      supportCount: explicit.instrument_adoption.length + supportLinks('instrument_adoption').length,
+      supportRefs: [...explicitRefs('instrument_adoption'), ...linkRefs(supportLinks('instrument_adoption'))],
+      contradictionRefs: linkRefs(contradictionLinks('instrument_adoption')),
+      explanation: 'Uso interno de Studio o FIELD no cuenta como adopción externa. Sólo se considera soporte la evidencia explícita de uso por terceros.',
+    }),
+    dimensionState({
       dimension: 'commercial_persistence',
-      observedCount: acceptedProposals.count + wonOpportunities.count + explicit.commercial_persistence.length,
-      status: acceptedProposals.count + wonOpportunities.count + explicit.commercial_persistence.length > 0 ? 'OBSERVED_SUPPORT' : 'MISSING_EVIDENCE',
-      evidenceRefs: unique(explicit.commercial_persistence.map((item) => text(item.id))),
-      explanation: 'Sólo propuestas aceptadas/convertidas, oportunidades ganadas o evidencia transaccional explícita cuentan como soporte comercial.',
-    },
-    {
+      supportCount: acceptedProposals.count + wonOpportunities.count + explicit.commercial_persistence.length + supportLinks('commercial_persistence').length,
+      supportRefs: [...explicitRefs('commercial_persistence'), ...linkRefs(supportLinks('commercial_persistence'))],
+      contradictionRefs: linkRefs(contradictionLinks('commercial_persistence')),
+      explanation: `Se observan ${acceptedProposals.count} propuestas aceptadas/convertidas y ${wonOpportunities.count} oportunidades ganadas, además de evidencia transaccional explícita. Una transacción demuestra actividad comercial; persistencia exige repetición longitudinal.`,
+    }),
+    dimensionState({
       dimension: 'external_recognition',
-      observedCount: explicit.external_recognition.length,
-      status: explicit.external_recognition.length > 0 ? 'OBSERVED_SUPPORT' : 'MISSING_EVIDENCE',
-      evidenceRefs: unique(explicit.external_recognition.map((item) => text(item.id))),
-      explanation: 'El reconocimiento no se infiere desde publicaciones propias. Requiere citas, referencias o reconocimiento de terceros.',
-    },
-    {
+      supportCount: explicit.external_recognition.length + supportLinks('external_recognition').length,
+      supportRefs: [...explicitRefs('external_recognition'), ...linkRefs(supportLinks('external_recognition'))],
+      contradictionRefs: linkRefs(contradictionLinks('external_recognition')),
+      explanation: 'El reconocimiento no se infiere desde publicaciones propias. Requiere citas, referencias o reconocimiento de terceros con procedencia.',
+    }),
+    dimensionState({
       dimension: 'domain_breadth',
-      observedCount: domains.length,
-      status: domains.length >= 2 ? 'OBSERVED_SUPPORT' : 'MISSING_EVIDENCE',
-      evidenceRefs: unique(explicit.domain_breadth.map((item) => text(item.id))),
-      explanation: `Dominios explícitamente documentados: ${domains.length ? domains.join(', ') : 'ninguno'}. La amplitud no se infiere por lenguaje institucional.`,
-    },
-    {
+      supportCount: domains.length + supportLinks('domain_breadth').length,
+      supportRefs: [...explicitRefs('domain_breadth'), ...linkRefs(supportLinks('domain_breadth'))],
+      contradictionRefs: linkRefs(contradictionLinks('domain_breadth')),
+      explanation: `Dominios explícitamente documentados: ${domains.length ? domains.join(', ') : 'ninguno'}. La dirección declara digital, biológico y ontológico; observar uno o dos dominios sólo aporta soporte parcial, no cumplimiento.`,
+    }),
+    dimensionState({
       dimension: 'minimal_perturbation_governance',
-      observedCount: explicit.minimal_perturbation_governance.length,
-      status: explicit.minimal_perturbation_governance.length > 0 ? 'OBSERVED_SUPPORT' : 'MISSING_EVIDENCE',
-      evidenceRefs: unique(explicit.minimal_perturbation_governance.map((item) => text(item.id))),
-      explanation: 'Requiere retorno observado de una perturbación mínima o evidencia explícita de aplicación de gobernanza.',
-    },
-    {
+      supportCount: explicit.minimal_perturbation_governance.length + supportLinks('minimal_perturbation_governance').length,
+      supportRefs: [...explicitRefs('minimal_perturbation_governance'), ...linkRefs(supportLinks('minimal_perturbation_governance'))],
+      contradictionRefs: linkRefs(contradictionLinks('minimal_perturbation_governance')),
+      explanation: 'Requiere retorno observado de una perturbación mínima o evidencia explícita de aplicación de gobernanza; una propuesta no ejecutada no cuenta.',
+    }),
+    dimensionState({
       dimension: 'institutional_continuity',
-      observedCount: completedContinuity.count + explicit.institutional_continuity.length,
-      status: completedContinuity.count + explicit.institutional_continuity.length > 0 ? 'OBSERVED_SUPPORT' : 'MISSING_EVIDENCE',
-      evidenceRefs: unique(explicit.institutional_continuity.map((item) => text(item.id))),
-      explanation: 'Se sostiene con ciclos de continuidad completados o evidencia de continuidad institucional explícita.',
-    },
+      supportCount: completedContinuity.count + explicit.institutional_continuity.length + supportLinks('institutional_continuity').length,
+      supportRefs: [...explicitRefs('institutional_continuity'), ...linkRefs(supportLinks('institutional_continuity'))],
+      contradictionRefs: linkRefs(contradictionLinks('institutional_continuity')),
+      explanation: `Se observan ${completedContinuity.count} ciclos de continuidad completados más evidencia explícita. El experimento de autonomía deberá aportar trayectoria suficiente antes de elevar una afirmación de continuidad persistente.`,
+    }),
   ];
 
   const supported = states.filter((item) => item.status === 'OBSERVED_SUPPORT').map((item) => item.dimension);
+  const contradicted = states.filter((item) => item.status === 'CONTRADICTED' || item.status === 'CONFLICTED').map((item) => item.dimension);
   const missing = states.filter((item) => item.status === 'MISSING_EVIDENCE').map((item) => item.dimension);
-  const evidenceRefs = unique(states.flatMap((item) => item.evidenceRefs));
-  const coverage = Number((supported.length / SFI_ATTRACTOR_DIMENSIONS.length).toFixed(4));
+  const evidenceRefs = unique(states.flatMap((item) => [...item.evidenceRefs, ...item.contradictionRefs]));
+  const evidencedDimensions = states.filter((item) => item.status !== 'MISSING_EVIDENCE').length;
+  const coverage = Number((evidencedDimensions / SFI_ATTRACTOR_DIMENSIONS.length).toFixed(4));
   const observedAt = new Date().toISOString();
 
   const snapshot = await db.from('sfi_attractor_trajectory_snapshots').insert({
@@ -180,21 +220,24 @@ export async function refreshInstitutionalAttractorTrajectory() {
     evidence_coverage: coverage,
     supported_dimensions: supported,
     missing_dimensions: missing,
-    contradicted_dimensions: [],
+    contradicted_dimensions: contradicted,
     dimension_state: Object.fromEntries(states.map((item) => [item.dimension, item])),
     evidence_refs: evidenceRefs,
-    source_state: 'derived_from_persisted_evidence',
+    source_state: 'DERIVED_FROM_PERSISTED_EVIDENCE',
   }).select('*').single();
 
   if (!snapshot.error) {
+    const current = await db.from('sfi_attractors').select('vector').eq('attractor_key', SFI_INSTITUTIONAL_ATTRACTOR_KEY).maybeSingle();
     await db.from('sfi_attractors').update({
       evidence_count: evidenceRefs.length,
       last_seen: observedAt,
       updated_at: observedAt,
       vector: {
-        ...(record((await db.from('sfi_attractors').select('vector').eq('attractor_key', SFI_INSTITUTIONAL_ATTRACTOR_KEY).maybeSingle()).data?.vector)),
+        ...record(current.data?.vector),
         latestEvidenceCoverage: coverage,
+        evidenceCoverageMeaning: 'Share of attractor dimensions for which persisted evidence or contradiction exists. It is not attainment or alignment percentage.',
         supportedDimensions: supported,
+        contradictedDimensions: contradicted,
         missingDimensions: missing,
         latestTrajectoryAt: observedAt,
       },
@@ -202,14 +245,15 @@ export async function refreshInstitutionalAttractorTrajectory() {
   }
 
   return {
-    ok: !snapshot.error,
+    ok: !snapshot.error && !rootEvidence.error && !explicitLinks.error,
     attractorKey: SFI_INSTITUTIONAL_ATTRACTOR_KEY,
     observedAt,
     evidenceCoverage: coverage,
     dimensions: states,
     supportedDimensions: supported,
+    contradictedDimensions: contradicted,
     missingDimensions: missing,
     snapshot: snapshot.data ?? null,
-    warnings: [rootEvidence.error, closedCases.error, acceptedProposals.error, wonOpportunities.error, completedContinuity.error, snapshot.error?.message].filter((value): value is string => Boolean(value)),
+    warnings: [rootEvidence.error, explicitLinks.error?.message, closedCases.error, acceptedProposals.error, wonOpportunities.error, completedContinuity.error, snapshot.error?.message].filter((value): value is string => Boolean(value)),
   };
 }
