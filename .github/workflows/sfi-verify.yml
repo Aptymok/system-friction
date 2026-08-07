@@ -30,6 +30,9 @@ jobs:
       - name: Verify MIHM method selection
         run: npx tsx scripts/qa-sfi-method-selection.ts
 
+      - name: Verify Cognitive Twin authority contract
+        run: node --import tsx --test src/lib/cognitive-twin/contract.test.ts
+
       - name: Typecheck
         id: typecheck
         shell: bash

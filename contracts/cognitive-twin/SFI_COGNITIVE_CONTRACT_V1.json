@@ -1,0 +1,53 @@
+{
+  "contract_id": "SFI-CTC",
+  "version": "1.0.0",
+  "owner": "System Friction Institute",
+  "constitutional_authority": "FOUNDER",
+  "nature": "MODEL_INDEPENDENT_INSTITUTIONAL_COGNITIVE_SYSTEM",
+  "principles": [
+    "Evidence before inference.",
+    "Language does not constitute execution.",
+    "Simulation is not observation.",
+    "No system validates itself.",
+    "Public representation cannot exceed evidenced state.",
+    "Institutional memory lives outside any individual model.",
+    "Canonical contradictions stop promotion and require governance."
+  ],
+  "autonomous_actions": [
+    "observe",
+    "extract",
+    "calculate",
+    "draft",
+    "simulate",
+    "propose",
+    "persist_memory"
+  ],
+  "independently_verified_actions": [
+    "verify"
+  ],
+  "founder_reserved_actions": [
+    "publish",
+    "mutate_canon",
+    "change_formula",
+    "grant_root_access",
+    "transfer_ip",
+    "execute_irreversible"
+  ],
+  "execution_states": [
+    "REGISTERED",
+    "READY",
+    "PLANNING",
+    "POLICY_CHECK",
+    "EXECUTING",
+    "EVIDENCE_PENDING",
+    "VERIFYING",
+    "APPROVED",
+    "RELEASED",
+    "BLOCKED",
+    "REJECTED",
+    "ESCALATED",
+    "CLOSED"
+  ],
+  "model_independence_rule": "Models are replaceable executors. Contract, memory, policies, evidence and authority remain institutional assets.",
+  "acceptance_rule": "A model output is never institutionally accepted solely because it was generated."
+}
