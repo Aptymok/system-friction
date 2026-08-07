@@ -1,11 +1,17 @@
 export type EpistemicClass =
   | 'observed'
   | 'declared'
+  | 'imported'
+  | 'extracted'
   | 'derived'
   | 'inferred'
   | 'simulated'
-  | 'fixture'
-  | 'missing';
+  | 'proposed'
+  | 'missing'
+  | 'degraded'
+  | 'conflicted'
+  | 'rejected'
+  | 'canonical';
 
 export type SFIEvent<TPayload = unknown> = {
   eventId: string;
@@ -32,14 +38,20 @@ export type EpistemicEventRecord<TPayload = unknown> = SFIEvent<TPayload> & {
   createdAt: string;
 };
 
-const epistemicClasses: EpistemicClass[] = [
+export const epistemicClasses: EpistemicClass[] = [
   'observed',
   'declared',
+  'imported',
+  'extracted',
   'derived',
   'inferred',
   'simulated',
-  'fixture',
+  'proposed',
   'missing',
+  'degraded',
+  'conflicted',
+  'rejected',
+  'canonical',
 ];
 
 function isRecord(value: unknown): value is Record<string, unknown> {
