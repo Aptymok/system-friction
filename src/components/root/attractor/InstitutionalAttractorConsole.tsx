@@ -20,6 +20,7 @@ export function InstitutionalAttractorConsole({ state }: { state: State }) {
   const dimensions = record(trajectory.dimension_state);
   const coverage = num(trajectory.evidence_coverage);
   const supported = strings(trajectory.supported_dimensions);
+  const contradicted = strings(trajectory.contradicted_dimensions);
   const missing = strings(trajectory.missing_dimensions);
 
   return (
@@ -27,7 +28,7 @@ export function InstitutionalAttractorConsole({ state }: { state: State }) {
       <header style={{ borderBottom: '1px solid #6c5a2d', paddingBottom: 18 }}>
         <span style={eyebrow}>SFI · ROOT · INSTITUTIONAL ATTRACTOR</span>
         <h1 style={{ margin: '7px 0' }}>{String(state.attractor?.label ?? 'ATTRACTOR NOT AVAILABLE')}</h1>
-        <p style={muted}>La dirección puede ser constituida por autoridad fundadora. Su cumplimiento no. Esta consola contrasta esa dirección contra evidencia persistida y fenómenos longitudinales.</p>
+        <p style={muted}>La dirección puede ser constituida por autoridad fundadora. Su cumplimiento no. Esta consola contrasta esa dirección contra evidencia persistida, contradicciones y fenómenos longitudinales.</p>
       </header>
 
       <section style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1.25fr) minmax(300px,.75fr)', gap: 12, marginTop: 16 }}>
@@ -41,7 +42,8 @@ export function InstitutionalAttractorConsole({ state }: { state: State }) {
         <article style={card}>
           <small style={eyebrow}>EVIDENCE CONTRAST</small>
           <strong style={{ display: 'block', fontSize: 34, margin: '13px 0 5px', color: '#d8bd72' }}>{coverage === null ? '—' : `${Math.round(coverage * 100)}%`}</strong>
-          <p style={muted}>{coverage === null ? 'Todavía no existe snapshot de trayectoria.' : `${supported.length} dimensiones con soporte observado · ${missing.length} aún sin evidencia suficiente.`}</p>
+          <p style={muted}>{coverage === null ? 'Todavía no existe snapshot de trayectoria.' : `${supported.length} dimensiones con soporte · ${contradicted.length} contradichas/conflictuadas · ${missing.length} sin evidencia.`}</p>
+          <p style={{ ...muted, color: '#c29f68' }}>La cobertura mide dimensiones para las que existe evidencia o contradicción. No es porcentaje de cumplimiento ni distancia normalizada al atractor.</p>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 15 }}>
             <Link href="/root/evidence/intake" style={link}>ADD EVIDENCE</Link>
             <Link href="/root/agents/passports" style={link}>AGENT PASSPORTS</Link>
@@ -54,7 +56,13 @@ export function InstitutionalAttractorConsole({ state }: { state: State }) {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(260px,1fr))', gap: 9 }}>
           {Object.entries(dimensions).length ? Object.entries(dimensions).map(([key, value]) => {
             const item = record(value);
-            return <article key={key} style={card}><small style={eyebrow}>{String(item.status ?? 'UNKNOWN')}</small><strong style={{ display: 'block', margin: '8px 0', color: '#d6c49a' }}>{key}</strong><p style={muted}>{String(item.explanation ?? '')}</p><small style={muted}>observedCount {String(item.observedCount ?? 0)}</small></article>;
+            const contradictionRefs = strings(item.contradictionRefs);
+            return <article key={key} style={card}>
+              <small style={eyebrow}>{String(item.status ?? 'UNKNOWN')}</small>
+              <strong style={{ display: 'block', margin: '8px 0', color: '#d6c49a' }}>{key}</strong>
+              <p style={muted}>{String(item.explanation ?? '')}</p>
+              <small style={muted}>support observations {String(item.observedCount ?? 0)} · contradictions {String(item.contradictionCount ?? contradictionRefs.length)} · attainment {String(item.attainment ?? 'UNRESOLVED')}</small>
+            </article>;
           }) : <article style={card}><strong>NO TRAJECTORY SNAPSHOT</strong><p style={muted}>El ciclo institucional debe ejecutar después de aplicar la migración.</p></article>}
         </div>
       </section>
