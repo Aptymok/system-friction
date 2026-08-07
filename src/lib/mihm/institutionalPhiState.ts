@@ -27,14 +27,6 @@ function bounded(value: unknown): number | null {
   return Number.isFinite(parsed) ? Math.max(0, Math.min(1, parsed)) : null;
 }
 
-function confidenceForSourceStatus(value: unknown): number {
-  const status = String(value ?? 'thin').toLowerCase();
-  if (status === 'observed') return 0.7;
-  if (status === 'thin') return 0.55;
-  if (status === 'degraded') return 0.35;
-  return 0.15;
-}
-
 function missingState(warning: string): InstitutionalPhiState {
   const definition = getMihmPhiDefinition('PHI_SFI');
   return {
@@ -61,12 +53,15 @@ export async function readInstitutionalPhiState(): Promise<InstitutionalPhiState
     const { data, error } = await service
       .from('sfi_indicator_snapshots')
       .select('captured_at,ihg,nti,ldi,wsv,source_status,warnings')
+      .not('ihg', 'is', null)
+      .not('nti', 'is', null)
+      .not('ldi', 'is', null)
       .order('captured_at', { ascending: false })
       .limit(1)
       .maybeSingle();
 
     if (error) return missingState(`indicator_snapshot_read_failed:${error.message}`);
-    if (!data) return missingState('indicator_snapshot_missing');
+    if (!data) return missingState('complete_indicator_snapshot_missing');
 
     const ihg = bounded(data.ihg);
     const nti = bounded(data.nti);
@@ -81,7 +76,7 @@ export async function readInstitutionalPhiState(): Promise<InstitutionalPhiState
         status: 'DEGRADED',
         observedAt,
         sourceStatus,
-        confidence: 0.2,
+        confidence: null,
         wsv,
       };
     }
@@ -102,7 +97,7 @@ export async function readInstitutionalPhiState(): Promise<InstitutionalPhiState
       observedAt,
       source: 'sfi_indicator_snapshots',
       sourceStatus,
-      confidence: confidenceForSourceStatus(sourceStatus),
+      confidence: null,
       metrics,
       wsv,
       formulaVersion: definition.formulaVersion,

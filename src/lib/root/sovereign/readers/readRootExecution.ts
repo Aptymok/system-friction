@@ -13,12 +13,12 @@ const capabilities: RootExecutionCapability[] = [
   { id: 'amv-ingest', label: 'Ingest AMV', state: 'available', endpoint: '/api/root/agentic/amv', method: 'POST', description: 'Persists declared memory; it does not verify truth.' },
   { id: 'graph', label: 'Query neural graph', state: 'available', endpoint: '/api/root/agentic/neural-graph', method: 'POST', description: 'Queries persisted graph and evidence.' },
   { id: 'report', label: 'Generate report', state: 'available', endpoint: '/api/root/agentic/report', method: 'POST', description: 'Generates or persists a report; never implies publication.' },
-  { id: 'prediction', label: 'Approve valid ScoreFriction draft', state: 'partial', endpoint: '/api/root/predictions/approve', method: 'POST', description: 'Requires a valid draft plus a human probability from 0 to 1.' },
+  { id: 'prediction', label: 'Approve valid ScoreFriction draft', state: 'available', endpoint: '/api/root/predictions/approve', method: 'POST', description: 'Implemented capability. A valid draft and explicit human probability remain required by contract; availability does not remove that authority/input requirement.' },
   { id: 'acp', label: 'Confirm ACP presence', state: 'available', endpoint: '/api/governance/acp-seen', method: 'POST', description: 'Records founder presence and its audit event.' },
-  { id: 'simulation', label: 'Social simulation', state: 'gated', endpoint: null, method: null, description: 'NO PERSISTED SIMULATION RUN CONTRACT' },
+  { id: 'simulation', label: 'Run evidence-bound social simulation', state: 'available', endpoint: '/api/root/simulation', method: 'POST', description: 'Runs the social simulator only against persisted evidence IDs. Output remains SIMULATED and is never appended to observed evidence.' },
 ];
 
 export async function readRootExecution() {
   const actions = await selectRows({ table: 'root_audit_events', select: 'id,actor_id,action,target,payload,created_at', order: 'created_at', limit: 30 });
-  return source({ capabilities, recentActions: actions.rows }, 'ROOT route contracts + root_audit_events', [actions.error], dateValue(actions.rows[0]?.created_at), false);
+  return source({ capabilities, recentActions: actions.rows }, 'ROOT implemented route contracts + root_audit_events', [actions.error], dateValue(actions.rows[0]?.created_at), false);
 }
