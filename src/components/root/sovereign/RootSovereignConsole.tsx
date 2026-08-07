@@ -6,6 +6,7 @@ import type { RootActionRequest, RootSelection, RootSessionEvent } from './sover
 import { RootOperationalShell } from './RootOperationalShell';
 import { RootMethodologyWorkbench } from './RootMethodologyWorkbench';
 import { RootTopologyWorkspace } from './RootTopologyWorkspace';
+import { RootInstitutionalSelfPerception } from './RootInstitutionalSelfPerception';
 import './root-sovereign.css';
 
 function auditId(body: Record<string, unknown>) {
@@ -132,15 +133,18 @@ export function RootSovereignConsole({ initialState }: { initialState: RootSover
   return (
     <div className={`rs-console-host ${viewMode === 'legacy' ? 'is-legacy' : 'is-topology'}`}>
       {viewMode === 'topology' ? (
-        <RootTopologyWorkspace
-          state={state}
-          refreshing={refreshing}
-          warning={refreshWarning}
-          onRefresh={() => void refresh()}
-          onSelect={setSelection}
-          onAction={requestAction}
-          onLegacy={() => setViewMode('legacy')}
-        />
+        <>
+          <RootInstitutionalSelfPerception state={state} />
+          <RootTopologyWorkspace
+            state={state}
+            refreshing={refreshing}
+            warning={refreshWarning}
+            onRefresh={() => void refresh()}
+            onSelect={setSelection}
+            onAction={requestAction}
+            onLegacy={() => setViewMode('legacy')}
+          />
+        </>
       ) : (
         <>
           <button type="button" className="rs-return-to-topologies" onClick={() => setViewMode('topology')}>VOLVER A TOPOLOGÍAS I–III</button>
