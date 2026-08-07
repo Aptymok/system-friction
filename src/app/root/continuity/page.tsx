@@ -14,7 +14,11 @@ export default async function RootContinuityPage() {
   await requireFounderPage('/root/continuity');
   let dashboard;
   try {
-    dashboard = await readContinuityDashboard();
+    const observed = await readContinuityDashboard();
+    dashboard = {
+      ...observed,
+      errors: observed.errors.filter((item): item is string => typeof item === 'string'),
+    };
   } catch (error) {
     dashboard = {
       state: { mode: 'UNAVAILABLE' }, runs: [], checks: [], incidents: [], decisions: [], reports: [],
