@@ -6,21 +6,41 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 function secret() {
-  return process.env.SFI_CRON_SECRET || process.env.CRON_SECRET || '';
+  return process.env.SFI_CRON_SECRET
+    || process.env.WORLDSPECT_INGEST_SECRET
+    || process.env.CRON_SECRET
+    || '';
 }
 
 function authorized(request: NextRequest) {
   const configured = secret();
   if (!configured && process.env.NODE_ENV !== 'production') return true;
+  if (!configured) return false;
   return request.headers.get('authorization') === `Bearer ${configured}`;
 }
 
 export async function POST(request: NextRequest) {
   if (!authorized(request)) return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 });
+
+  const startedAt = new Date().toISOString();
   const observation = await runWorldObservationCycle();
   const hypothesis = await runWorldHypothesisCycle();
   const calibration = await runWorldCalibrationCycle();
-  return NextResponse.json({ ok: observation.ok && hypothesis.ok && calibration.ok, observation, hypothesis, calibration });
+  const ok = observation.ok && hypothesis.ok && calibration.ok;
+
+  return NextResponse.json({
+    ok,
+    startedAt,
+    completedAt: new Date().toISOString(),
+    observation,
+    hypothesis,
+    calibration,
+    freshness: {
+      observed: observation.observed,
+      persisted: observation.persisted,
+      collectorFailures: observation.failures.length,
+    },
+  });
 }
 
 export async function GET(request: NextRequest) {
