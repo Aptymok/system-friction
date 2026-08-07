@@ -1,5 +1,12 @@
 import 'server-only';
+import { humanEventLabel } from '../selectionNarrative';
 import { dateValue, selectRows, source } from './readerSupport';
+
+function readableTechnicalLabel(value: unknown) {
+  if (typeof value !== 'string' || !value.trim()) return null;
+  const trimmed = value.trim();
+  return trimmed.includes('.') || trimmed.includes('_') ? humanEventLabel(trimmed) : trimmed;
+}
 
 export async function readRootGovernanceQueue() {
   const [proposals, mutations, audits, events] = await Promise.all([
@@ -13,6 +20,40 @@ export async function readRootGovernanceQueue() {
     selectRows({ table: 'root_audit_events', select: 'id,actor_id,action,target,payload,created_at', order: 'created_at', limit: 40 }),
     selectRows({ table: 'epistemic_events', select: 'id,event_id,event_name,logbook_id,epistemic_class,confidence,source,actor_id,node_id,payload,lineage,occurred_at,created_at', order: 'occurred_at', limit: 40 }),
   ]);
-  const observedAt = dateValue(proposals.rows[0]?.updated_at ?? proposals.rows[0]?.created_at ?? audits.rows[0]?.created_at ?? events.rows[0]?.occurred_at);
-  return source({ proposals: proposals.rows, mutations: mutations.rows, audits: audits.rows, events: events.rows }, 'governance persistence', [proposals.error, mutations.error, audits.error, events.error], observedAt, !proposals.rows.length && !mutations.rows.length && !events.rows.length);
+
+  const proposalRows = proposals.rows.map((entry) => {
+    const rawTitle = typeof entry.title === 'string' ? entry.title : null;
+    const rawType = typeof entry.proposal_type === 'string' ? entry.proposal_type : null;
+    return {
+      ...entry,
+      technical_title: rawTitle,
+      title: readableTechnicalLabel(rawTitle) ?? readableTechnicalLabel(rawType) ?? rawTitle,
+    };
+  });
+
+  const eventRows = events.rows.map((entry) => {
+    const eventName = typeof entry.event_name === 'string' ? entry.event_name : null;
+    return {
+      ...entry,
+      title: eventName ? humanEventLabel(eventName) : null,
+      technical_event_name: eventName,
+    };
+  });
+
+  const auditRows = audits.rows.map((entry) => {
+    const action = typeof entry.action === 'string' ? entry.action : null;
+    return {
+      ...entry,
+      display_action: readableTechnicalLabel(action) ?? action,
+    };
+  });
+
+  const observedAt = dateValue(proposalRows[0]?.updated_at ?? proposalRows[0]?.created_at ?? auditRows[0]?.created_at ?? eventRows[0]?.occurred_at);
+  return source(
+    { proposals: proposalRows, mutations: mutations.rows, audits: auditRows, events: eventRows },
+    'governance persistence',
+    [proposals.error, mutations.error, audits.error, events.error],
+    observedAt,
+    !proposalRows.length && !mutations.rows.length && !eventRows.length,
+  );
 }
