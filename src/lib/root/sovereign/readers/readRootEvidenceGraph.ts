@@ -1,4 +1,5 @@
 import 'server-only';
+import { reconcilePersistedEvidenceGraph } from '@/lib/evidence/reconcileEvidenceGraph';
 import type { RootEvidenceEdge, RootEvidenceNode, RootRow } from '../rootSovereignState';
 import { dateValue, numberValue, selectRows, source, text } from './readerSupport';
 
@@ -23,6 +24,7 @@ function nodeFrom(row: RootRow, table: string): RootEvidenceNode {
 }
 
 function edgeFrom(row: RootRow, table: string): RootEvidenceEdge {
+  const attributes = row.attributes && typeof row.attributes === 'object' && !Array.isArray(row.attributes) ? row.attributes as RootRow : {};
   return {
     id: text(row.edge_id ?? row.id),
     from: text(row.source_node_key ?? row.source_node_id ?? row.from_key),
@@ -30,12 +32,13 @@ function edgeFrom(row: RootRow, table: string): RootEvidenceEdge {
     relation: text(row.relation_type ?? row.relation ?? row.edge_type, 'related'),
     weight: numberValue(row.weight ?? row.w_ij),
     confidence: numberValue(row.confidence),
-    evidenceIds: strings(row.evidence_ids),
+    evidenceIds: strings(row.evidence_ids).concat(strings(row.lineage)).concat(text(attributes.evidenceHash, '') ? [text(attributes.evidenceHash)] : []),
     source: table,
   };
 }
 
 export async function readRootEvidenceGraph() {
+  const reconciliation = await reconcilePersistedEvidenceGraph();
   const [rootEntries, ledger, graphNodes, graphEdges, sfiNodes, sfiEdges] = await Promise.all([
     selectRows({ table: 'root_evidence_entries', select: 'id,evidence_hash,actor_id,title,content,evidence_type,target_node_id,payload,epistemic_event_id,created_at', order: 'created_at', limit: 80 }),
     selectRows({ table: 'sfi_evidence_ledger', select: 'id,case_id,module,evidence_kind,source_name,source_url,private_ref,public_summary,evidence_hash,anonymized,trust_level,trust_score,ldi,public_weight,observed_at,created_at', order: 'observed_at', limit: 80 }),
@@ -46,5 +49,11 @@ export async function readRootEvidenceGraph() {
   ]);
   const nodes = [...graphNodes.rows.map((item) => nodeFrom(item, 'graph_nodes')), ...sfiNodes.rows.map((item) => nodeFrom(item, 'sfi_graph_nodes'))].filter((item) => item.id);
   const edges = [...graphEdges.rows.map((item) => edgeFrom(item, 'graph_edges')), ...sfiEdges.rows.map((item) => edgeFrom(item, 'sfi_graph_edges'))].filter((item) => item.id && item.from && item.to);
-  return source({ nodes, edges, entries: rootEntries.rows, ledger: ledger.rows }, 'persisted evidence graphs', [rootEntries.error, ledger.error, graphNodes.error, graphEdges.error, sfiNodes.error, sfiEdges.error], nodes.map((item) => item.observedAt).find(Boolean) ?? null, !nodes.length && !rootEntries.rows.length);
+  return source(
+    { nodes, edges, entries: rootEntries.rows, ledger: ledger.rows },
+    'persisted evidence graphs',
+    [rootEntries.error, ledger.error, graphNodes.error, graphEdges.error, sfiNodes.error, sfiEdges.error, ...reconciliation.warnings],
+    nodes.map((item) => item.observedAt).find(Boolean) ?? null,
+    !nodes.length && !rootEntries.rows.length,
+  );
 }
