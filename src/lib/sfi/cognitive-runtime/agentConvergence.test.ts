@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY } from './convergedRegistry';
 import { SFI_AGENT_EXECUTION_MAP } from './agentExecutionMap';
+import { institutionalAssignmentsFor } from './institutionalAssignments';
 
 const registryIds = SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY.map((agent) => agent.id).sort();
 const executorIds = Object.keys(SFI_AGENT_EXECUTION_MAP).sort();
@@ -23,5 +24,11 @@ test('all agent contracts declare authority, memory and events', () => {
     assert.ok(agent.emits.length > 0, `${agent.id}: emits empty`);
     assert.ok(agent.readsMemory.length > 0, `${agent.id}: readsMemory empty`);
     assert.ok(agent.writesMemory.length > 0, `${agent.id}: writesMemory empty`);
+  }
+});
+
+test('every cognitive agent has at least one explicit institutional duty in its passport', () => {
+  for (const id of registryIds) {
+    assert.ok(institutionalAssignmentsFor(id).length > 0, `${id}: institutional duty missing`);
   }
 });
