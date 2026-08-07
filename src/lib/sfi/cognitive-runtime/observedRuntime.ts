@@ -2,12 +2,9 @@ import 'server-only';
 
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { streamRecentEpistemicEvents } from '@/lib/events/eventStore';
-import {
-  SFI_COGNITIVE_AGENT_REGISTRY,
-  SFI_COGNITIVE_RUNTIME_MODES,
-  SFI_LAYER_QUESTIONS,
-  SFI_RUNTIME_SOURCE_TABLES,
-} from './registry';
+import { SFI_COGNITIVE_RUNTIME_MODES, SFI_LAYER_QUESTIONS } from './registry';
+import { SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY, SFI_CONVERGED_RUNTIME_SOURCE_TABLES } from './convergedRegistry';
+import { SFI_AGENT_EXECUTION_MAP } from './agentExecutionMap';
 import type {
   SfiCognitiveAgentState,
   SfiCognitiveRuntimeLayer,
@@ -49,7 +46,7 @@ function isFresh(value: string | null) {
 
 async function probeTables() {
   const db = createServiceSupabaseClient();
-  const entries = await Promise.all(SFI_RUNTIME_SOURCE_TABLES.map(async (table) => {
+  const entries = await Promise.all(SFI_CONVERGED_RUNTIME_SOURCE_TABLES.map(async (table) => {
     const result = await db.from(table).select('*', { count: 'exact', head: true });
     return [table, {
       available: !result.error,
@@ -78,27 +75,29 @@ function aggregateStatus(statuses: SfiCognitiveRuntimeStatus[]): SfiCognitiveRun
 export async function readObservedSfiCognitiveRuntime(): Promise<SfiCognitiveRuntimeSnapshot> {
   const [tableState, eventStream] = await Promise.all([
     probeTables(),
-    streamRecentEpistemicEvents(300),
+    streamRecentEpistemicEvents(500),
   ]);
 
   const eventRows = (eventStream.data ?? []) as Array<Record<string, unknown>>;
   const executionEvents = eventRows.filter((row) => String(row.event_name ?? '') === 'SFI_AGENT_EXECUTED');
 
-  const agents: SfiCognitiveAgentState[] = SFI_COGNITIVE_AGENT_REGISTRY.map((agent) => {
+  const agents: SfiCognitiveAgentState[] = SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY.map((agent) => {
     const sourceStates = agent.sourceTables.map((table) => [table, tableState.get(table)] as const);
     const observedTables = sourceStates.filter(([, state]) => state?.available).map(([table]) => table);
     const missingTables = sourceStates.filter(([, state]) => !state?.available).map(([table]) => table);
     const latestExecution = executionEvents.find((row) => sourceId(row) === agent.id) ?? null;
     const lastExecutedAt = latestExecution ? occurredAt(latestExecution) : null;
+    const executorBound = typeof SFI_AGENT_EXECUTION_MAP[agent.id] === 'function';
 
     let status: SfiCognitiveRuntimeStatus;
-    if (agent.missingCapability) status = 'missing';
+    if (agent.missingCapability || !executorBound) status = 'missing';
     else if (lastExecutedAt && isFresh(lastExecutedAt)) status = missingTables.length ? 'degraded' : 'operational';
     else if (!observedTables.length && agent.sourceTables.length) status = 'missing';
     else if (missingTables.length) status = 'degraded';
     else status = 'gated';
 
     const warnings = [
+      ...(!executorBound ? ['No existe executor enlazado para este contrato.'] : []),
       ...missingTables.map((table) => `${table}: fuente no disponible`),
       ...(lastExecutedAt && !isFresh(lastExecutedAt) ? [`Última ejecución observada fuera de la ventana de ${freshnessHours} h: ${lastExecutedAt}`] : []),
       ...(!lastExecutedAt ? ['No existe una ejecución SFI_AGENT_EXECUTED reciente atribuible a este agente.'] : []),
@@ -153,7 +152,7 @@ export async function readObservedSfiCognitiveRuntime(): Promise<SfiCognitiveRun
     };
   });
 
-  const recentEvents = eventRows.slice(0, 60).map((row) => ({
+  const recentEvents = eventRows.slice(0, 100).map((row) => ({
     eventId: String(row.event_id ?? row.id ?? ''),
     eventName: String(row.event_name ?? 'epistemic.event'),
     epistemicClass: String(row.epistemic_class ?? 'missing'),
@@ -165,21 +164,22 @@ export async function readObservedSfiCognitiveRuntime(): Promise<SfiCognitiveRun
   const operationalAgents = agents.filter((agent) => agent.status === 'operational').length;
   const degradedAgents = agents.filter((agent) => agent.status === 'degraded').length;
   const missingAgents = agents.filter((agent) => agent.status === 'missing').length;
+  const gatedAgents = agents.filter((agent) => agent.status === 'gated').length;
   const runtimeStatus: SfiCognitiveRuntimeStatus = operationalAgents
     ? (degradedAgents || missingAgents ? 'degraded' : 'operational')
-    : agents.some((agent) => agent.status === 'gated') ? 'gated' : 'missing';
+    : gatedAgents ? 'gated' : 'missing';
 
   const eventWarnings = 'warnings' in eventStream && Array.isArray(eventStream.warnings) ? eventStream.warnings : [];
 
   return {
     generatedAt: new Date().toISOString(),
-    schemaVersion: '2026-08-07.observed-runtime.v1',
+    schemaVersion: '2026-08-07.observed-runtime.v2',
     status: runtimeStatus,
-    summary: `${operationalAgents} de ${agents.length} agentes tienen ejecución observada dentro de las últimas ${freshnessHours} horas; ${degradedAgents} degradados; ${missingAgents} sin soporte suficiente.`,
+    summary: `${operationalAgents}/${agents.length} agentes con ejecución observada en ${freshnessHours} h; ${gatedAgents} listos sin ejecución reciente; ${degradedAgents} degradados; ${missingAgents} sin soporte suficiente.`,
     contract: {
       registeredAgents: agents.length,
       operationalModes: modes.filter((mode) => mode.status === 'operational').length,
-      executorAgents: operationalAgents,
+      executorAgents: Object.keys(SFI_AGENT_EXECUTION_MAP).filter((id) => agents.some((agent) => agent.id === id)).length,
       humanApprovalAgents: agents.filter((agent) => agent.humanApprovalRequired).length,
     },
     eventGraph: {
@@ -194,7 +194,7 @@ export async function readObservedSfiCognitiveRuntime(): Promise<SfiCognitiveRun
     orchestrationPolicy: {
       principle: 'La ejecución cognitiva se declara por evidencia observable, no por presencia del contrato.',
       taskCreatedEvent: 'SFI_TASK_CREATED',
-      executionRule: 'Una capacidad sin ejecución atribuible permanece GATED o DEGRADED; acciones gobernadas requieren la autoridad correspondiente.',
+      executionRule: 'Un agente registrado y enlazado al executor permanece GATED hasta que exista una ejecución atribuible; acciones externas siguen bajo autoridad gobernada.',
       memoryRule: 'La memoria institucional debe persistir fuera del modelo y conservar procedencia.',
       simulationRule: 'Una simulación no modifica el estado observado ni se publica como observación.',
       calibrationRule: 'Las proyecciones deben regresar a evidencia observada antes de promover aprendizaje.',
