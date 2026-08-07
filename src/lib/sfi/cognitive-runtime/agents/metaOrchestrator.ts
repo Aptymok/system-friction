@@ -1,377 +1,90 @@
-﻿import type {
-  KernelContext,
-  KernelEvidence
-} from "../kernelContext";
-
-import {
-  buildTaskGraph
-} from "../taskGraphBuilder";
-
+import type { KernelContext, KernelEvidence } from '../kernelContext';
+import { buildTaskGraph } from '../taskGraphBuilder';
 
 export interface CognitiveTaskPlan {
-
   taskId: string;
-
   requiredAgents: string[];
-
   executionOrder: string[];
-
   missingInputs: string[];
-
   readiness: number;
-
 }
 
-
 /**
- * Canonical Cognitive Runtime Agent IDs
- *
- * Cada nodo corresponde a un executor real.
- * No existen agrupaciones abstractas.
+ * Complete in-process cognitive topology. These executors only mutate KernelContext
+ * and persist runtime events; they do not publish, contact, spend, grant access or
+ * perform irreversible external actions. Governed external action remains outside
+ * this cycle and subject to the Cognitive Twin / ACP authority gate.
  */
-const AGENT_IDS = {
+const COGNITIVE_ORDER = [
+  'field_observer',
+  'evidence_hunter',
+  'temporal_resolver',
+  'historical_scout',
+  'phenotype_resolver',
+  'context_builder',
+  'cross_impact',
+  'friction_field_simulator',
+  'social_field_simulator',
+  'economic_field_simulator',
+  'cultural_simulator',
+  'psychological_simulator',
+  'policy_simulator',
+  'entropy_redistribution',
+  'trajectory_agent',
+  'risk_agent',
+  'opportunity_agent',
+  'multi_stakeholder_bootstrap',
+  'project_execution_manager',
+  'reality_calibration',
+] as const;
 
-  evidence_hunter:
-    "evidence_hunter",
-
-  phenotype_resolver:
-    "phenotype_resolver",
-
-  context_builder:
-    "context_builder",
-
-  cross_impact:
-    "cross_impact",
-
-  risk_agent:
-    "risk_agent",
-
-  social_field_simulator:
-    "social_field_simulator",
-
-  economic_field_simulator:
-    "economic_field_simulator",
-
-  cultural_simulator:
-    "cultural_simulator",
-
-  psychological_simulator:
-    "psychological_simulator",
-
-  policy_simulator:
-    "policy_simulator",
-
-  reality_calibration:
-    "reality_calibration"
-
-} as const;
-
-
-
-export function MetaOrchestratorAgent(
-  context: KernelContext
-): KernelContext {
-
-
-  const requiredAgents: string[] = [];
-
+export function MetaOrchestratorAgent(context: KernelContext): KernelContext {
   const missingInputs: string[] = [];
+  if (!context.evidence.length) missingInputs.push('evidence');
+  if (!context.hypotheses.length) missingInputs.push('hypothesis_or_observation_question');
 
-
-
-  const hasEvidence =
-    context.evidence.length > 0;
-
-
-  const hasHypothesis =
-    context.hypotheses.length > 0;
-
-
-
-  /*
-    Evidence acquisition
-  */
-
-  if (!hasEvidence) {
-
-    requiredAgents.push(
-      AGENT_IDS.evidence_hunter
-    );
-
-
-    missingInputs.push(
-      "evidence"
-    );
-
-  }
-
-
-
-  /*
-    Phenomenon resolution
-  */
-
-  if (!hasHypothesis) {
-
-    requiredAgents.push(
-      AGENT_IDS.phenotype_resolver
-    );
-
-  }
-
-
-
-  /*
-    Context construction
-  */
-
-  requiredAgents.push(
-    AGENT_IDS.context_builder
-  );
-
-
-
-  /*
-    System coupling analysis
-  */
-
-  requiredAgents.push(
-    AGENT_IDS.cross_impact
-  );
-
-
-
-  /*
-    Risk evaluation
-  */
-
-  requiredAgents.push(
-    AGENT_IDS.risk_agent
-  );
-
-
-
-  /*
-    Simulation layer
-  */
-
-  if (
-    context.simulations.length === 0
-  ) {
-
-    requiredAgents.push(
-
-      AGENT_IDS.social_field_simulator,
-
-      AGENT_IDS.economic_field_simulator,
-
-      AGENT_IDS.cultural_simulator,
-
-      AGENT_IDS.psychological_simulator,
-
-      AGENT_IDS.policy_simulator
-
-    );
-
-  }
-
-
-
-  /*
-    Reality validation
-  */
-
-  requiredAgents.push(
-    AGENT_IDS.reality_calibration
-  );
-
-
-
-  const executionOrder = [
-
-    "meta_orchestrator",
-
-    ...requiredAgents
-
-  ];
-
-
-
+  const executionOrder = ['meta_orchestrator', ...COGNITIVE_ORDER];
   const plan: CognitiveTaskPlan = {
-
-
-    taskId:
-
-      context.taskId ??
-      crypto.randomUUID(),
-
-
-
-    requiredAgents,
-
-
-
+    taskId: context.taskId ?? crypto.randomUUID(),
+    requiredAgents: [...COGNITIVE_ORDER],
     executionOrder,
-
-
-
     missingInputs,
-
-
-
-    readiness:
-
-      0
-
-
+    readiness: 0,
   };
 
-
-
-  const evidence: KernelEvidence = {
-
-
-    id:
-
-      crypto.randomUUID(),
-
-
-
-    source:
-
-      "MetaOrchestratorAgent",
-
-
-
-    confidence:
-
-      0,
-
-
-
-    payload:
-
-      plan
-
-
-  };
-
-
-
-  /*
-    Persist orchestrator observation
-  */
-
-  context.evidence.push(
-    evidence
-  );
-
-
-
-  /*
-    Calculate readiness
-  */
-
-  const availableSignals =
-
-    context.evidence.length +
-
-    context.hypotheses.length +
-
-    context.simulations.length;
-
-
-
-  const readiness =
-
-    Math.min(
-
-      availableSignals / 10,
-
-      1
-
-    );
-
-
-
+  const availableSignals = context.evidence.length + context.hypotheses.length + context.simulations.length + context.predictions.length;
+  const readiness = Math.min(availableSignals / 10, 1);
   plan.readiness = readiness;
 
-
-  evidence.confidence = readiness;
-
-
-
-  /*
-    Build executable cognitive graph
-  */
-
-  const taskGraph =
-    buildTaskGraph(
-      plan
-    );
-
-
-
-  context.metadata = {
-
-
-    ...context.metadata,
-
-
-
-    cognitivePlan:
-
-      plan,
-
-
-
-    taskGraph,
-
-
-
-    metaOrchestrator: {
-
-
-      executed:
-
-        true,
-
-
-
+  const evidence: KernelEvidence = {
+    id: crypto.randomUUID(),
+    source: 'MetaOrchestratorAgent',
+    confidence: readiness,
+    payload: {
+      kind: 'cognitive_plan',
+      taskId: plan.taskId,
+      missingInputs,
+      plannedAgents: executionOrder,
       readiness,
+    },
+  };
+  context.evidence.push(evidence);
 
-
-
-      plannedAgents:
-
-        executionOrder.length,
-
-
-
-      taskGraphNodes:
-
-        taskGraph.nodes.length,
-
-
-
-      taskGraphEdges:
-
-        taskGraph.edges.length,
-
-
-
-      executedAt:
-
-        new Date().toISOString()
-
-
-    }
-
-
+  const taskGraph = buildTaskGraph(plan);
+  context.metadata = {
+    ...context.metadata,
+    cognitivePlan: plan,
+    taskGraph,
+    metaOrchestrator: {
+      executed: true,
+      readiness,
+      plannedAgents: executionOrder.length,
+      taskGraphNodes: taskGraph.nodes.length,
+      taskGraphEdges: taskGraph.edges.length,
+      externalExecutionAllowed: false,
+      executedAt: new Date().toISOString(),
+    },
   };
 
-
-
   return context;
-
 }
