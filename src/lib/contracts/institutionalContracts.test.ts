@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { epistemicClasses } from '../../../packages/events/src/schema';
 import { EpistemicClass, GovernanceDecisionContract, SFI_INSTITUTIONAL_CONTRACTS, SFI_INSTITUTIONAL_CONTRACT_MANIFEST } from './institutionalContracts';
 
 const EXPECTED = [
@@ -36,8 +37,9 @@ test('contracts fail closed on empty payloads', () => {
   }
 });
 
-test('executable epistemic vocabulary exactly matches canon 02', () => {
+test('executable epistemic vocabulary and event storage exactly match canon 02', () => {
   assert.deepEqual([...EpistemicClass.options].sort(), CANONICAL_EPISTEMIC_CLASSES);
+  assert.deepEqual([...epistemicClasses].sort(), CANONICAL_EPISTEMIC_CLASSES);
   assert.equal(EpistemicClass.safeParse('fixture').success, false, 'fixture must not be an institutional epistemic class');
 });
 
