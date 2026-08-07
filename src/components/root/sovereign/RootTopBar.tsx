@@ -10,6 +10,7 @@ export function RootTopBar({ state, refreshing, onRefresh }: { state: RootSovere
       <div className="rs-system-state"><span>SYSTEM STATE</span><strong data-status={governance?.state.status}>{governance?.state.value ?? 'SIN DATO'}</strong><small>ACP · {governance?.state.observedAt ?? 'NO MEDIDO'}</small></div>
       <div className="rs-topbar-actions">
         <Link href="/root/evidence/intake" style={linkStyle}>EVIDENCE</Link>
+        <Link href="/root/contracts" style={linkStyle}>CONTRACTS</Link>
         <Link href="/root/agents/passports" style={linkStyle}>AGENT PASSPORTS</Link>
         <Link href="/root/cognitive-twin" style={linkStyle}>COGNITIVE TWIN</Link>
         <Link href="/root/continuity" style={linkStyle}>CONTINUITY</Link>
