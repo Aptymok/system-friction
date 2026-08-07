@@ -5,6 +5,7 @@ import { executeSfiRuntime } from '@/lib/sfi/cognitive-runtime/runtime';
 import type { KernelContext, KernelEvidence } from '@/lib/sfi/cognitive-runtime/kernelContext';
 import { createCognitiveTwinEnvelope } from '@/lib/cognitive-twin/contract';
 import { syncRecentInstitutionalEvidenceToCognitiveTwin } from '@/lib/cognitive-twin/evidenceIngestion';
+import { reconcileAutomaticPpoi } from '@/lib/mihm/automaticPpoiReconciliation';
 import { readInstitutionalAttractor, refreshInstitutionalAttractorTrajectory, SFI_INSTITUTIONAL_ATTRACTOR_KEY } from './institutionalAttractor';
 import { refreshPhenomenonTrajectoriesAndPpoi } from './phenomenonTrajectory';
 
@@ -110,11 +111,11 @@ export async function runInstitutionalCycle(trigger = 'scheduled') {
   const cycleId = crypto.randomUUID();
   const logbookId = `institutional-cycle:${taskId}`;
 
-  const [memorySync, phenomenonRefresh] = await Promise.all([
+  const [memorySync, phenomenonRefresh, automaticPpoi] = await Promise.all([
     syncRecentInstitutionalEvidenceToCognitiveTwin(250),
     refreshPhenomenonTrajectoriesAndPpoi(),
+    reconcileAutomaticPpoi(),
   ]);
-  // Attractor contrast follows phenomenon/PPOI refresh so the trajectory never races the evidence-bearing phenomenon state.
   const attractorRefresh = await refreshInstitutionalAttractorTrajectory();
 
   const [cycleEvidence, attractorState] = await Promise.all([
@@ -144,6 +145,11 @@ export async function runInstitutionalCycle(trigger = 'scheduled') {
       trigger,
       attractorKey: SFI_INSTITUTIONAL_ATTRACTOR_KEY,
       attractorEpistemicClass: 'DECLARED',
+      automaticPpoi: {
+        created: automaticPpoi.created,
+        linked: automaticPpoi.linked,
+        blocked: automaticPpoi.blocked,
+      },
       evidenceCountAtStart: cycleEvidence.evidence.length,
       rule: 'This cycle may observe, extract, derive, simulate and propose. It cannot publish, claim attainment, spend, grant access, change canon or execute irreversible external action.',
     },
@@ -153,7 +159,8 @@ export async function runInstitutionalCycle(trigger = 'scheduled') {
   const completedAt = new Date().toISOString();
   const memoryWarnings = cognitiveTwinSyncWarnings(memorySync);
   const phenomenonWarnings = 'warnings' in phenomenonRefresh && Array.isArray(phenomenonRefresh.warnings) ? phenomenonRefresh.warnings : [];
-  const criticalSubstepsOk = memorySync.ok && phenomenonRefresh.ok && attractorRefresh.ok && cycleEvidence.warnings.length === 0;
+  const ppoiWarnings = automaticPpoi.warnings;
+  const criticalSubstepsOk = memorySync.ok && phenomenonRefresh.ok && automaticPpoi.ok && attractorRefresh.ok && cycleEvidence.warnings.length === 0;
 
   const envelope = createCognitiveTwinEnvelope({
     taskId,
@@ -174,7 +181,15 @@ export async function runInstitutionalCycle(trigger = 'scheduled') {
         contradictedDimensions: attractorRefresh.contradictedDimensions,
         missingDimensions: attractorRefresh.missingDimensions,
       },
-      ppoi: phenomenonRefresh,
+      ppoi: {
+        phenomenonTrajectory: phenomenonRefresh,
+        methodologyReconciliation: {
+          created: automaticPpoi.created,
+          linked: automaticPpoi.linked,
+          blocked: automaticPpoi.blocked,
+          cases: automaticPpoi.cases.length,
+        },
+      },
     },
     claims: [{
       statement: 'An institutional cognitive cycle execution was recorded against persisted evidence and a DECLARED attractor.',
@@ -185,17 +200,23 @@ export async function runInstitutionalCycle(trigger = 'scheduled') {
     limitations: [
       'Attractor direction is founder-declared; attainment is evidence-dependent.',
       'Agent execution does not constitute external execution or independent validation.',
+      'Automatic PPOI registration is workflow state only; it does not constitute evidence, approval, intervention or outcome.',
       'Evidence coverage measures whether a dimension is evidenced or contradicted; it is not an attainment percentage.',
       ...cycleEvidence.warnings,
       ...memoryWarnings,
       ...phenomenonWarnings,
+      ...ppoiWarnings,
     ],
     contradictions: [
       ...result.context.contradictions.map((item) => item.id),
       ...attractorRefresh.contradictedDimensions.map((dimension) => `attractor:${dimension}`),
     ],
     missingEvidence: attractorRefresh.missingDimensions,
-    actionsExecuted: result.executedAgents.map((agent) => `cognitive:${agent}`),
+    actionsExecuted: [
+      ...result.executedAgents.map((agent) => `cognitive:${agent}`),
+      `ppoi:auto_created:${automaticPpoi.created}`,
+      `ppoi:auto_linked:${automaticPpoi.linked}`,
+    ],
     testsRun: [],
     recommendedTransition: criticalSubstepsOk ? 'VERIFYING' : 'ESCALATED',
   });
@@ -207,7 +228,7 @@ export async function runInstitutionalCycle(trigger = 'scheduled') {
     model: null,
     role: 'institutional_cycle',
     status: 'CLOSED',
-    objective: 'Contrast persisted institutional evidence and phenomena against the declared SFI attractor, then execute the governed cognitive topology.',
+    objective: 'Contrast persisted institutional evidence and phenomena against the declared SFI attractor, reconcile eligible PPOI containers automatically, then execute the governed cognitive topology.',
     input_snapshot: {
       trigger,
       cycleId,
@@ -227,6 +248,7 @@ export async function runInstitutionalCycle(trigger = 'scheduled') {
     ...attractorState.warnings,
     ...memoryWarnings,
     ...phenomenonWarnings,
+    ...ppoiWarnings,
     ...attractorRefresh.warnings,
     ...(runInsert.error ? [`cognitive_twin_run:${runInsert.error.message}`] : []),
   ];
@@ -245,6 +267,7 @@ export async function runInstitutionalCycle(trigger = 'scheduled') {
     cognitiveTwinMemory: memorySync,
     attractor: attractorRefresh,
     phenomenaPpoi: phenomenonRefresh,
+    automaticPpoi,
     run: runInsert.data ?? null,
     warnings: [...new Set(warnings)],
   };
