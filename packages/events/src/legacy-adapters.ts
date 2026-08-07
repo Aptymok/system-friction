@@ -6,71 +6,33 @@ type LegacyRecord = Record<string, unknown>;
 function isRecord(value: unknown): value is LegacyRecord {
   return Boolean(value && typeof value === 'object' && !Array.isArray(value));
 }
-
 function stringValue(value: unknown): string | undefined {
   return typeof value === 'string' && value.length > 0 ? value : undefined;
 }
-
 function payloadOf(row: LegacyRecord): LegacyRecord {
   return isRecord(row.payload) ? row.payload : {};
 }
-
-function confidenceOf(value: unknown, fallback: number): number {
-  return typeof value === 'number' && Number.isFinite(value)
-    ? Math.min(1, Math.max(0, value))
-    : fallback;
+function confidenceOf(value: unknown): number {
+  return typeof value === 'number' && Number.isFinite(value) ? Math.min(1, Math.max(0, value)) : 0;
 }
 
+const canonicalClasses = new Set<EpistemicClass>([
+  'observed', 'declared', 'imported', 'extracted', 'derived', 'inferred', 'simulated',
+  'proposed', 'missing', 'degraded', 'conflicted', 'rejected', 'canonical',
+]);
+
 function epistemicClassOf(value: unknown): EpistemicClass {
-  const candidate = stringValue(value);
-  if (
-    candidate === 'observed'
-    || candidate === 'declared'
-    || candidate === 'derived'
-    || candidate === 'inferred'
-    || candidate === 'simulated'
-    || candidate === 'fixture'
-    || candidate === 'missing'
-  ) {
-    return candidate;
-  }
-  return 'declared';
+  const candidate = stringValue(value)?.toLowerCase();
+  if (candidate === 'fixture') return 'missing';
+  if (candidate && canonicalClasses.has(candidate as EpistemicClass)) return candidate as EpistemicClass;
+  return 'missing';
 }
 
 function evidenceLevelOf(value: unknown): EvidenceLevel {
   const candidate = stringValue(value);
-  if (
-    candidate === 'direct'
-    || candidate === 'behavioral'
-    || candidate === 'statistical'
-    || candidate === 'semantic'
-    || candidate === 'speculative'
-    || candidate === 'none'
-  ) {
-    return candidate;
-  }
+  if (candidate === 'direct' || candidate === 'behavioral' || candidate === 'statistical' || candidate === 'semantic' || candidate === 'speculative' || candidate === 'none') return candidate;
   return 'none';
 }
-
-function fallbackConfidence(epistemicClass: EpistemicClass): number {
-  switch (epistemicClass) {
-    case 'observed':
-      return 0.8;
-    case 'declared':
-      return 0.7;
-    case 'derived':
-      return 0.65;
-    case 'inferred':
-      return 0.5;
-    case 'simulated':
-      return 0.3;
-    case 'fixture':
-      return 0.2;
-    case 'missing':
-      return 0.1;
-  }
-}
-
 function lineageOf(value: unknown): string[] | undefined {
   if (!Array.isArray(value)) return undefined;
   const lineage = value.filter((item): item is string => typeof item === 'string' && item.length > 0);
@@ -87,40 +49,40 @@ export function validateLegacyEventRow(row: unknown): boolean {
 }
 
 export function mapCognitiveEventStreamRowToSFIEvent(row: unknown): SFIEvent<unknown> {
-  if (!validateLegacyEventRow(row) || !isRecord(row)) {
-    throw new Error('invalid_legacy_cognitive_event_stream_row');
-  }
+  if (!validateLegacyEventRow(row) || !isRecord(row)) throw new Error('invalid_legacy_cognitive_event_stream_row');
 
   const payload = payloadOf(row);
-  const epistemicClass = epistemicClassOf(payload.sourceState ?? payload.epistemicClass ?? row.stream_type);
-  const confidence = confidenceOf(payload.confidence, fallbackConfidence(epistemicClass));
+  const rawState = stringValue(payload.sourceState ?? payload.epistemicClass ?? row.stream_type)?.toLowerCase();
+  const epistemicClass = epistemicClassOf(rawState);
+  const confidence = confidenceOf(payload.confidence);
 
   return {
     eventId: String(row.id),
     eventName: String(row.event_name),
     epistemicClass,
     confidence,
-    payload: row.payload ?? {},
+    payload: {
+      ...(isRecord(row.payload) ? row.payload : {}),
+      ...(rawState === 'fixture' ? { legacyEpistemicTranslation: 'fixture->missing', legacyFixtureRejected: true } : {}),
+    },
     occurredAt: String(row.created_at),
     source: {
       sourceId: stringValue(row.emitted_by) ?? stringValue(payload.sourceId) ?? 'legacy:cognitive_event_stream',
-      sourceType: stringValue(row.stream_type) ?? 'legacy',
+      sourceType: rawState === 'fixture' ? 'legacy_fixture_rejected' : stringValue(row.stream_type) ?? 'legacy',
     },
     checksum: stringValue(payload.checksum) ?? stringValue(payload.hash),
     lineage: lineageOf(payload.lineage ?? payload.inference_chain),
-    uncertainty: stringValue(payload.uncertainty),
+    uncertainty: stringValue(payload.uncertainty) ?? (rawState === 'fixture' ? 'Legacy fixture is not admissible institutional evidence.' : undefined),
   };
 }
 
 export function mapSfiLogbookRowToLogRecord(row: unknown): LogRecord {
-  if (!validateLegacyEventRow(row) || !isRecord(row)) {
-    throw new Error('invalid_legacy_sfi_logbook_row');
-  }
+  if (!validateLegacyEventRow(row) || !isRecord(row)) throw new Error('invalid_legacy_sfi_logbook_row');
 
   const payload = payloadOf(row);
   const sourceState: SourceState = epistemicClassOf(payload.sourceState ?? payload.epistemicClass);
   const evidenceLevel = evidenceLevelOf(payload.evidenceLevel);
-  const confidence = confidenceOf(payload.confidence, fallbackConfidence(sourceState));
+  const confidence = confidenceOf(payload.confidence);
   const createdAt = String(row.created_at);
 
   return {
