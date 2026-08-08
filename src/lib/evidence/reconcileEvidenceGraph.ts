@@ -22,13 +22,19 @@ export async function reconcilePersistedEvidenceGraph() {
     const nodeId = `root_evidence:${hash.slice(0, 24)}`;
     const existing = await db.from('graph_nodes').select('id').eq('node_id', nodeId).maybeSingle();
     const eventId = text(item.epistemic_event_id); const payload = record(item.payload);
+    const nodePayload = { evidenceHash: hash, evidenceType: text(item.evidence_type) ?? 'root_evidence', rootEvidenceId: id, targetNodeId: text(item.target_node_id), epistemicClass: 'OBSERVED', observedObject: 'evidence_record_existence_and_provenance', sourcePayloadMetadata: record(payload.metadata) };
     const upsert = await db.from('graph_nodes').upsert({
       node_id: nodeId,
       node_key: nodeId,
       label: text(item.title) ?? `Evidence ${id.slice(0, 8)}`,
+      node_type: 'INF',
       ontology_type: 'evidence',
+      origin: 'root_evidence',
+      epistemic_class: 'observed',
+      confidence: 1,
+      payload: nodePayload,
       lineage: eventId ? [eventId] : [],
-      attributes: { evidenceHash: hash, evidenceType: text(item.evidence_type) ?? 'root_evidence', rootEvidenceId: id, targetNodeId: text(item.target_node_id), epistemicClass: 'OBSERVED', observedObject: 'evidence_record_existence_and_provenance', sourcePayloadMetadata: record(payload.metadata) },
+      attributes: nodePayload,
       updated_at: new Date().toISOString(),
     }, { onConflict: 'node_id' });
     if (upsert.error) { warnings.push(`root_evidence_graph:${id}:${upsert.error.message}`); continue; }
@@ -38,19 +44,25 @@ export async function reconcilePersistedEvidenceGraph() {
     const target = await db.from('graph_nodes').select('node_id,node_key').or(`node_id.eq.${targetNodeId},node_key.eq.${targetNodeId}`).maybeSingle();
     if (!target.data || target.error) continue;
     const resolvedTarget = text(target.data.node_id ?? target.data.node_key); if (!resolvedTarget) continue;
-    const relationType = text(payload.relationType) ?? 'contextualizes';
-    const edgeId = `${nodeId}->${resolvedTarget}:${relationType}`;
+    const relation = text(payload.relationType) ?? 'contextualizes';
+    const edgeId = `${nodeId}->${resolvedTarget}:${relation}`;
     const existingEdge = await db.from('graph_edges').select('id').eq('edge_id', edgeId).maybeSingle();
+    const edgePayload = { evidenceHash: hash, verified: false, epistemicClass: 'DECLARED', relationStrength: 'UNMEASURED', declaredRelation: relation, reconstructedFromPersistedEvidence: true };
     const edge = await db.from('graph_edges').upsert({
       edge_id: edgeId,
       source_node_id: nodeId,
       target_node_id: resolvedTarget,
       source_node_key: nodeId,
       target_node_key: resolvedTarget,
-      relation: relationType,
+      relation,
+      relation_type: 'structural_inferred',
       weight: 0,
+      w_ij: 0,
+      confidence: 0,
       lineage: eventId ? [eventId] : [],
-      attributes: { evidenceHash: hash, verified: false, epistemicClass: 'DECLARED', relationStrength: 'UNMEASURED', reconstructedFromPersistedEvidence: true },
+      evidence_ids: eventId ? [eventId] : [],
+      payload: edgePayload,
+      attributes: edgePayload,
       updated_at: new Date().toISOString(),
     }, { onConflict: 'edge_id' });
     if (edge.error) warnings.push(`root_evidence_edge:${id}:${edge.error.message}`); else if (!existingEdge.data) edgesCreated += 1;
@@ -60,13 +72,19 @@ export async function reconcilePersistedEvidenceGraph() {
     const id = text(item.id); if (!id) continue;
     const hash = text(item.evidence_hash); const nodeId = `ledger_evidence:${hash ? hash.slice(0, 24) : id}`;
     const existing = await db.from('graph_nodes').select('id').eq('node_id', nodeId).maybeSingle();
+    const nodePayload = { evidenceHash: hash, ledgerEvidenceId: id, caseId: text(item.case_id), module: text(item.module), evidenceKind: text(item.evidence_kind), epistemicClass: 'IMPORTED', observedObject: 'ledger_record_existence_and_provenance' };
     const upsert = await db.from('graph_nodes').upsert({
       node_id: nodeId,
       node_key: nodeId,
       label: text(item.source_name) ?? text(item.evidence_kind) ?? `Ledger evidence ${id.slice(0, 8)}`,
+      node_type: 'INF',
       ontology_type: 'evidence',
+      origin: 'evidence_ledger',
+      epistemic_class: 'imported',
+      confidence: 1,
+      payload: nodePayload,
       lineage: [],
-      attributes: { evidenceHash: hash, ledgerEvidenceId: id, caseId: text(item.case_id), module: text(item.module), evidenceKind: text(item.evidence_kind), epistemicClass: 'IMPORTED', observedObject: 'ledger_record_existence_and_provenance' },
+      attributes: nodePayload,
       updated_at: new Date().toISOString(),
     }, { onConflict: 'node_id' });
     if (upsert.error) warnings.push(`ledger_evidence_graph:${id}:${upsert.error.message}`); else if (existing.data) nodesUpdated += 1; else nodesCreated += 1;
