@@ -13,11 +13,35 @@ export function stringValue(value: unknown) {
   return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;
 }
 
+export async function requireRootViewer(action: string) {
+  const ctx = await getServerUserContext();
+  if (!ctx.user) return { ok: false as const, status: 401, body: { ok: false, error: 'Unauthorized' } };
+  if (!ctx.canObserveRoot) return { ok: false as const, status: 403, body: { ok: false, error: 'root_observer_access_required' } };
+  return { ok: true as const, ctx, action };
+}
+
+export async function requireRootContributor(action: string) {
+  const ctx = await getServerUserContext();
+  if (!ctx.user) return { ok: false as const, status: 401, body: { ok: false, error: 'Unauthorized' } };
+  const role = typeof ctx.profile?.role === 'string' ? ctx.profile.role : null;
+  if (!ctx.isRoot && role !== 'observer') {
+    return { ok: false as const, status: 403, body: { ok: false, error: 'root_evidence_contributor_required' } };
+  }
+  return { ok: true as const, ctx, action };
+}
+
 export async function requireRootActor(action: string) {
   const ctx = await getServerUserContext();
   if (!ctx.user) return { ok: false as const, status: 401, body: { ok: false, error: 'Unauthorized' } };
   if (!ctx.isRoot) return { ok: false as const, status: 403, body: { ok: false, error: 'root_required' } };
   return { ok: true as const, ctx, action };
+}
+
+export async function requireRootObserverPage(pathname: string) {
+  const ctx = await getServerUserContext();
+  if (!ctx.user) redirect(`/login?next=${encodeURIComponent(pathname)}`);
+  if (!ctx.canObserveRoot) redirect('/unauthorized');
+  return ctx;
 }
 
 export async function requireFounderPage(pathname: string) {
@@ -57,12 +81,6 @@ export async function auditRootAction(input: {
   request?: Request;
 }) {
   if (isReadOnlyAction(input.action)) {
-    // No se escribe root_audit_event ni epistemic_event por una lectura.
-    // DT-TRUTH-001 / R19 en espíritu: una lectura no es evidencia nueva, es
-    // solo consultar lo que ya existe. Se devuelve ok:true con skipped:true
-    // para que quien llama pueda seguir su flujo normal sin tratarlo como
-    // fallo, pero quede visible en logs de desarrollo que se omitió a
-    // propósito, no por error silencioso.
     return { ok: true as const, skipped: true as const, reason: 'read_only_action_not_audited' as const };
   }
 
@@ -107,7 +125,6 @@ export async function auditRootAction(input: {
 
   return { ok: true as const, skipped: false as const, audit: auditInsert.data, epistemicEvent: event.data };
 }
-
 
 export async function readTableHealth(table: string, limit = 5) {
   const service = createServiceSupabaseClient();
