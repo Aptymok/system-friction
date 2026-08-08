@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { RootRow, RootSovereignState } from '@/lib/root/sovereign/rootSovereignState';
 import type { RootActionRequest, RootSelection } from './sovereignTypes';
 import './root-observatory.css';
@@ -16,7 +16,7 @@ type PanelProps = {
   status?: string;
   source?: string;
   width?: 's' | 'm' | 'l' | 'xl';
-  children: React.ReactNode;
+  children: ReactNode;
   onOpen?: () => void;
 };
 
@@ -72,7 +72,7 @@ function EvidenceGraph({ state, onSelect }: { state: RootSovereignState; onSelec
   const coords = useMemo(() => new Map(nodes.map((n, index) => {
     const a = (index / Math.max(1, nodes.length)) * Math.PI * 2;
     const ring = 28 + (index % 3) * 7;
-    return [n.id, { x: 50 + Math.cos(a) * ring, y: 50 + Math.sin(a) * ring }];
+    return [n.id, { x: 50 + Math.cos(a) * ring, y: 50 + Math.sin(a) * ring }] as const;
   })), [nodes]);
   return <svg className="graph-svg" viewBox={`0 0 ${size} ${size}`} role="img" aria-label="Grafo persistido de evidencia">
     {edges.map((edge) => { const a = coords.get(edge.from); const b = coords.get(edge.to); return a && b ? <line key={edge.id} x1={a.x} y1={a.y} x2={b.x} y2={b.y} /> : null; })}
