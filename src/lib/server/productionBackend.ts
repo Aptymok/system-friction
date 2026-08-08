@@ -41,6 +41,35 @@ export function isRootUser(
   );
 }
 
+function record(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {};
+}
+
+function isConfiguredRootEmail(email?: string | null) {
+  const rootEmail = process.env.SYSTEM_ROOT_EMAIL;
+  return Boolean(
+    rootEmail &&
+      email &&
+      email.toLowerCase() === rootEmail.toLowerCase()
+  );
+}
+
+function hasSovereignRootAuthority(
+  profile: Record<string, unknown> | null,
+  email?: string | null,
+) {
+  if (isConfiguredRootEmail(email)) return true;
+  if (!profile) return false;
+
+  const role = typeof profile.role === 'string' ? profile.role : null;
+  if (!isRootRole(role)) return false;
+
+  const moduleAccess = record(profile.module_access);
+  return moduleAccess.full_access === true;
+}
+
 export function canObserveRoot(
   role?: string | null,
   email?: string | null
@@ -82,13 +111,9 @@ export async function getServerUserContext() {
     .maybeSingle();
 
   if (!profile) {
-    const rootEmail = process.env.SYSTEM_ROOT_EMAIL;
-
-    const role =
-      rootEmail &&
-      user.email?.toLowerCase() === rootEmail.toLowerCase()
-        ? 'root'
-        : 'observer';
+    const role = isConfiguredRootEmail(user.email)
+      ? 'root'
+      : 'observer';
 
     const alias =
       user.email?.split('@')[0] || 'observador';
@@ -105,6 +130,7 @@ export async function getServerUserContext() {
           user.email ||
           `${user.id}@systemfriction.local`,
         role,
+        module_access: role === 'root' ? ROOT_ENTITLEMENTS : {},
       })
       .select('*')
       .single();
@@ -119,10 +145,10 @@ export async function getServerUserContext() {
     profile = createdProfile;
   }
 
-  const isRoot = isRootUser(
-    profile?.role,
-    user.email
-  );
+  const profileRecord = profile ? record(profile) : null;
+  const role = typeof profile?.role === 'string' ? profile.role : null;
+  const isRoot = hasSovereignRootAuthority(profileRecord, user.email);
+  const legacyRootWithoutAuthority = isRootRole(role) && !isRoot;
 
   return {
     supabase,
@@ -130,7 +156,10 @@ export async function getServerUserContext() {
     user,
     profile,
     isRoot,
-    canObserveRoot: canObserveRoot(profile?.role, user.email),
+    canObserveRoot:
+      isRoot ||
+      isInstitutionalObserverRole(role) ||
+      legacyRootWithoutAuthority,
   };
 }
 
