@@ -3,11 +3,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { RootSovereignState } from '@/lib/root/sovereign/rootSovereignState';
 import type { RootActionRequest, RootSelection, RootSessionEvent } from './sovereignTypes';
-import { RootOperationalShell } from './RootOperationalShell';
 import { RootMethodologyWorkbench } from './RootMethodologyWorkbench';
-import { RootTopologyField } from './RootTopologyField';
-import { RootInstitutionalSelfPerception } from './RootInstitutionalSelfPerception';
 import { RootSemanticInspector } from './RootSemanticInspector';
+import { RootObservatoryWorkspace } from './RootObservatoryWorkspace';
 import './root-sovereign.css';
 
 function auditId(body: Record<string, unknown>) {
@@ -19,18 +17,13 @@ function abortReason(signal: AbortSignal) { return typeof signal.reason === 'str
 
 type RootAccessMode = 'sovereign' | 'observer';
 
-export function RootSovereignConsole({
-  initialState,
-  accessMode = 'sovereign',
-  actorLabel = 'ROOT',
-}: {
+export function RootSovereignConsole({ initialState, accessMode = 'sovereign', actorLabel = 'ROOT' }: {
   initialState: RootSovereignState;
   accessMode?: RootAccessMode;
   actorLabel?: string;
 }) {
   const [state, setState] = useState(initialState);
   const [selection, setSelection] = useState<RootSelection | null>(null);
-  const [viewMode, setViewMode] = useState<'topology' | 'legacy'>('topology');
   const [refreshing, setRefreshing] = useState(false);
   const [refreshWarning, setRefreshWarning] = useState<string | null>(null);
   const [pending, setPending] = useState<RootActionRequest | null>(null);
@@ -76,14 +69,7 @@ export function RootSovereignConsole({
 
   function requestAction(action: RootActionRequest) {
     if (readOnly) {
-      const blocked: RootSessionEvent = {
-        id: `observer-block-${Date.now()}`,
-        at: new Date().toISOString(),
-        label: action.label,
-        status: 'blocked',
-        detail: 'Modo OBSERVER: puede observar ROOT y aportar evidencia, pero no ejecutar acciones soberanas.',
-        auditId: null,
-      };
+      const blocked: RootSessionEvent = { id: `observer-block-${Date.now()}`, at: new Date().toISOString(), label: action.label, status: 'blocked', detail: 'OBSERVER puede leer ROOT y aportar evidencia, pero no ejecutar acciones soberanas.', auditId: null };
       setEvents((current) => [blocked, ...current].slice(0, 30));
       return;
     }
@@ -98,7 +84,7 @@ export function RootSovereignConsole({
     const started: RootSessionEvent = { id: `${action.id}-${Date.now()}`, at: new Date().toISOString(), label: action.label, status: 'running', detail: action.effect, auditId: null };
     setEvents((current) => [started, ...current].slice(0, 30));
     try {
-      if (!action.endpoint) throw new Error('Esta capacidad está registrada, pero todavía no tiene un endpoint ejecutable.');
+      if (!action.endpoint) throw new Error('La capacidad no expone endpoint ejecutable en este corte.');
       const response = await fetch(action.endpoint, { method: action.method, credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: action.body ? JSON.stringify(action.body) : undefined });
       const body = await response.json().catch(() => null) as Record<string, unknown> | null;
       if (!response.ok || !body || body.ok !== true) throw new Error(String(body?.error ?? `HTTP ${response.status}`));
@@ -110,29 +96,11 @@ export function RootSovereignConsole({
     } finally { setRunning(false); }
   }
 
-  return (
-    <div className={`rs-console-host ${viewMode === 'legacy' ? 'is-legacy' : 'is-topology'} ${selection ? 'has-semantic-selection' : ''}`}>
-      {readOnly ? (
-        <div className="rs-observer-banner" role="status">
-          <strong>OBSERVER · {actorLabel}</strong>
-          <span>Observación institucional de 30 días · lectura ROOT habilitada · gobernanza y ejecución reservadas al founder.</span>
-          <a href="/root/evidence/intake">REGISTRAR EVIDENCIA</a>
-        </div>
-      ) : null}
-
-      {viewMode === 'topology' ? (
-        <><RootInstitutionalSelfPerception state={state} /><RootTopologyField state={state} refreshing={refreshing} warning={refreshWarning} onRefresh={() => void refresh()} onSelect={setSelection} onAction={requestAction} onLegacy={() => setViewMode('legacy')} /></>
-      ) : (
-        <><button type="button" className="rs-return-to-topologies" onClick={() => setViewMode('topology')}>VOLVER A TOPOLOGÍAS I–III</button><RootOperationalShell state={state} refreshing={refreshing} warning={refreshWarning} onRefresh={() => void refresh()} onSelect={setSelection} onAction={requestAction} /></>
-      )}
-      <RootSemanticInspector value={selection} onClose={() => setSelection(null)} />
-      {!readOnly ? <RootMethodologyWorkbench state={state} /> : null}
-
-      {events.length ? <div className="rs-root-events" aria-live="polite">{events.slice(0, 3).map((event) => <div key={event.id} data-status={event.status}><strong>{event.label}</strong><span>{event.detail}</span></div>)}</div> : null}
-
-      {!readOnly && pending ? (
-        <div className="rs-dialog-backdrop" role="presentation"><section className="rs-dialog" role="dialog" aria-modal="true" aria-labelledby="rs-dialog-title"><span>REVISAR ANTES DE EJECUTAR</span><h2 id="rs-dialog-title">{pending.label}</h2><dl><div><dt>QUÉ HARÁ</dt><dd>{pending.effect}</dd></div><div><dt>SOBRE QUÉ</dt><dd>{pending.target}</dd></div></dl><label className="rs-confirm"><input type="checkbox" checked={confirmed} onChange={(event) => setConfirmed(event.target.checked)} />Confirmo esta acción y comprendo su objetivo.</label><div className="rs-dialog-actions"><button type="button" onClick={() => { setPending(null); setConfirmed(false); }} disabled={running}>CANCELAR</button><button type="button" onClick={() => void execute()} disabled={!confirmed || running}>{running ? 'EJECUTANDO' : 'CONFIRMAR Y EJECUTAR'}</button></div></section></div>
-      ) : null}
-    </div>
-  );
+  return <div className={`rs-console-host ${selection ? 'has-semantic-selection' : ''}`}>
+    <RootObservatoryWorkspace state={state} accessMode={accessMode} actorLabel={actorLabel} refreshing={refreshing} warning={refreshWarning} onRefresh={() => void refresh()} onSelect={setSelection} onAction={requestAction} />
+    <RootSemanticInspector value={selection} onClose={() => setSelection(null)} />
+    {!readOnly ? <RootMethodologyWorkbench state={state} /> : null}
+    {events.length ? <div className="rs-root-events" aria-live="polite">{events.slice(0, 3).map((event) => <div key={event.id} data-status={event.status}><strong>{event.label}</strong><span>{event.detail}</span></div>)}</div> : null}
+    {!readOnly && pending ? <div className="rs-dialog-backdrop" role="presentation"><section className="rs-dialog" role="dialog" aria-modal="true" aria-labelledby="rs-dialog-title"><span>REVISAR ANTES DE EJECUTAR</span><h2 id="rs-dialog-title">{pending.label}</h2><dl><div><dt>QUÉ HARÁ</dt><dd>{pending.effect}</dd></div><div><dt>SOBRE QUÉ</dt><dd>{pending.target}</dd></div></dl><label className="rs-confirm"><input type="checkbox" checked={confirmed} onChange={(event) => setConfirmed(event.target.checked)} />Confirmo esta acción y comprendo su objetivo.</label><div className="rs-dialog-actions"><button type="button" onClick={() => { setPending(null); setConfirmed(false); }} disabled={running}>CANCELAR</button><button type="button" onClick={() => void execute()} disabled={!confirmed || running}>{running ? 'EJECUTANDO' : 'CONFIRMAR Y EJECUTAR'}</button></div></section></div> : null}
+  </div>;
 }
