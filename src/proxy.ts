@@ -47,6 +47,17 @@ function hasEnabledModule(moduleAccess: ModuleAccess, ...keys: string[]) {
   return keys.some((key) => moduleAccess[key] === true)
 }
 
+function canEnterRootRoute(
+  userId?: string | null,
+  role?: string | null,
+  email?: string | null,
+  moduleAccess?: ModuleAccess,
+) {
+  if (isRootRouteUser(userId, role, email)) return true
+  if (role === 'observer') return true
+  return hasEnabledModule(moduleAccess, 'root', 'root_observe')
+}
+
 function isStudioRouteUser(
   userId?: string | null,
   role?: string | null,
@@ -151,7 +162,10 @@ export async function proxy(request: NextRequest) {
     .eq('user_id', user.id)
     .maybeSingle()
 
-  if (pathname.startsWith('/root') && !isRootRouteUser(user.id, profile?.role, user.email)) {
+  if (
+    pathname.startsWith('/root') &&
+    !canEnterRootRoute(user.id, profile?.role, user.email, profile?.module_access as ModuleAccess)
+  ) {
     return NextResponse.redirect(new URL('/unauthorized', request.url))
   }
 
