@@ -2,7 +2,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import { NextResponse } from 'next/server';
 import { buildMutationLogbookRow, createActionProposal, sha256, stringValue } from '@/lib/operational/common';
 import { appendEpistemicEvent } from '@/lib/events/eventStore';
-import { auditRootAction, asRecord, requireRootActor } from '@/lib/root/server';
+import { auditRootAction, asRecord, requireRootContributor } from '@/lib/root/server';
 import { ingestRootEvidenceIntoCognitiveTwin } from '@/lib/cognitive-twin/evidenceIngestion';
 
 export const dynamic = 'force-dynamic';
@@ -79,7 +79,7 @@ async function parseEvidenceRequest(request: Request): Promise<ParsedEvidence> {
 }
 
 export async function POST(req: Request) {
-  const gate = await requireRootActor('evidence.write');
+  const gate = await requireRootContributor('evidence.write');
   if (!gate.ok) return NextResponse.json(gate.body, { status: gate.status });
 
   const input = await parseEvidenceRequest(req);
@@ -91,7 +91,8 @@ export async function POST(req: Request) {
   const title = input.title ?? input.file?.name ?? 'root.evidence';
   const evidenceType = input.evidenceType ?? 'root_evidence';
   const targetNodeId = input.targetNodeId;
-  const proposalType = input.proposalType;
+  const proposalType = gate.ctx.isRoot ? input.proposalType : null;
+  const actorRole = typeof gate.ctx.profile?.role === 'string' ? gate.ctx.profile.role : 'unknown';
   const service = gate.ctx.service;
 
   let attachment: Record<string, unknown> | null = null;
@@ -113,8 +114,13 @@ export async function POST(req: Request) {
     evidenceType,
     targetNodeId,
     relationType: input.relationType,
-    source: input.source ?? 'root_console',
-    metadata: { ...input.metadata, ...(attachment ? { attachment } : {}) },
+    source: input.source ?? (gate.ctx.isRoot ? 'root_console' : 'institutional_observer'),
+    metadata: {
+      ...input.metadata,
+      actorRole,
+      observerContribution: !gate.ctx.isRoot,
+      ...(attachment ? { attachment } : {}),
+    },
   };
   const evidenceHash = sha256(payload);
 
@@ -122,7 +128,7 @@ export async function POST(req: Request) {
   if (existing.error) return NextResponse.json({ ok: false, error: 'root_evidence_lookup_failed', details: existing.error.message }, { status: 400 });
   if (existing.data) {
     const [audit, cognitiveTwin] = await Promise.all([
-      auditRootAction({ actorId: gate.ctx.user.id, action: 'evidence.duplicate_seen', target: 'root_evidence_entries', payload: { evidenceHash, evidenceId: existing.data.id }, request: req }),
+      auditRootAction({ actorId: gate.ctx.user.id, action: 'evidence.duplicate_seen', target: 'root_evidence_entries', payload: { evidenceHash, evidenceId: existing.data.id, actorRole }, request: req }),
       ingestRootEvidenceIntoCognitiveTwin(existing.data),
     ]);
     if (!audit.ok) return NextResponse.json(audit, { status: 500 });
@@ -157,7 +163,7 @@ export async function POST(req: Request) {
       claimBoundary: 'OBSERVED applies to capture/provenance. Claims inside the submitted content are not automatically verified.',
     },
     occurredAt: new Date().toISOString(),
-    source: { sourceId: gate.ctx.user.id, sourceType: 'root_evidence_capture' },
+    source: { sourceId: gate.ctx.user.id, sourceType: gate.ctx.isRoot ? 'root_evidence_capture' : 'institutional_observer_evidence_capture' },
     logbookId: 'BR',
     lineage: [],
   });
@@ -187,7 +193,7 @@ export async function POST(req: Request) {
     label: title,
     ontology_type: 'evidence',
     lineage: [String(event.data.event_id ?? event.data.id)],
-    attributes: { evidenceHash, evidenceType, rootEvidenceId: evidenceInsert.data.id, targetNodeId, attachment, epistemicClass: 'OBSERVED', observedObject: 'evidence_record' },
+    attributes: { evidenceHash, evidenceType, rootEvidenceId: evidenceInsert.data.id, targetNodeId, attachment, epistemicClass: 'OBSERVED', observedObject: 'evidence_record', actorRole },
     updated_at: new Date().toISOString(),
   }, { onConflict: 'node_id' }).select('*').single();
 
@@ -246,7 +252,7 @@ export async function POST(req: Request) {
   if (mutation.error) return NextResponse.json({ ok: false, error: 'logbook_evidence_insert_failed', details: mutation.error.message }, { status: 400 });
 
   const [audit, cognitiveTwin] = await Promise.all([
-    auditRootAction({ actorId: gate.ctx.user.id, action: 'evidence.write', target: 'root_evidence_entries', payload: { evidenceHash, evidenceId: evidenceInsert.data.id, eventId: event.data.id, proposalId: proposal?.ok ? proposal.data.id : null, attachment, relationType: input.relationType }, request: req }),
+    auditRootAction({ actorId: gate.ctx.user.id, action: 'evidence.write', target: 'root_evidence_entries', payload: { evidenceHash, evidenceId: evidenceInsert.data.id, eventId: event.data.id, proposalId: proposal?.ok ? proposal.data.id : null, attachment, relationType: input.relationType, actorRole }, request: req }),
     ingestRootEvidenceIntoCognitiveTwin(evidenceInsert.data),
   ]);
   if (!audit.ok) return NextResponse.json(audit, { status: 500 });
@@ -263,6 +269,7 @@ export async function POST(req: Request) {
       proposal,
       cognitiveTwin,
       audit,
+      accessMode: gate.ctx.isRoot ? 'sovereign' : 'observer',
     },
   }, { status: 201 });
 }

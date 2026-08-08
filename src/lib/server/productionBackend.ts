@@ -21,6 +21,10 @@ export function isRootRole(role?: string | null) {
   return role === 'root' || role === 'system';
 }
 
+export function isInstitutionalObserverRole(role?: string | null) {
+  return role === 'observer';
+}
+
 export function isRootUser(
   role?: string | null,
   email?: string | null
@@ -35,6 +39,42 @@ export function isRootUser(
         email.toLowerCase() === rootEmail.toLowerCase()
     )
   );
+}
+
+function record(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {};
+}
+
+function isConfiguredRootEmail(email?: string | null) {
+  const rootEmail = process.env.SYSTEM_ROOT_EMAIL;
+  return Boolean(
+    rootEmail &&
+      email &&
+      email.toLowerCase() === rootEmail.toLowerCase()
+  );
+}
+
+function hasSovereignRootAuthority(
+  profile: Record<string, unknown> | null,
+  email?: string | null,
+) {
+  if (isConfiguredRootEmail(email)) return true;
+  if (!profile) return false;
+
+  const role = typeof profile.role === 'string' ? profile.role : null;
+  if (!isRootRole(role)) return false;
+
+  const moduleAccess = record(profile.module_access);
+  return moduleAccess.full_access === true;
+}
+
+export function canObserveRoot(
+  role?: string | null,
+  email?: string | null
+) {
+  return isRootUser(role, email) || isInstitutionalObserverRole(role);
 }
 
 export async function getServerUserContext() {
@@ -60,6 +100,7 @@ export async function getServerUserContext() {
       user: null,
       profile: null,
       isRoot: false,
+      canObserveRoot: false,
     };
   }
 
@@ -70,13 +111,9 @@ export async function getServerUserContext() {
     .maybeSingle();
 
   if (!profile) {
-    const rootEmail = process.env.SYSTEM_ROOT_EMAIL;
-
-    const role =
-      rootEmail &&
-      user.email?.toLowerCase() === rootEmail.toLowerCase()
-        ? 'root'
-        : 'observer';
+    const role = isConfiguredRootEmail(user.email)
+      ? 'root'
+      : 'observer';
 
     const alias =
       user.email?.split('@')[0] || 'observador';
@@ -93,6 +130,7 @@ export async function getServerUserContext() {
           user.email ||
           `${user.id}@systemfriction.local`,
         role,
+        module_access: role === 'root' ? ROOT_ENTITLEMENTS : {},
       })
       .select('*')
       .single();
@@ -107,15 +145,21 @@ export async function getServerUserContext() {
     profile = createdProfile;
   }
 
+  const profileRecord = profile ? record(profile) : null;
+  const role = typeof profile?.role === 'string' ? profile.role : null;
+  const isRoot = hasSovereignRootAuthority(profileRecord, user.email);
+  const legacyRootWithoutAuthority = isRootRole(role) && !isRoot;
+
   return {
     supabase,
     service,
     user,
     profile,
-    isRoot: isRootUser(
-      profile?.role,
-      user.email
-    ),
+    isRoot,
+    canObserveRoot:
+      isRoot ||
+      isInstitutionalObserverRole(role) ||
+      legacyRootWithoutAuthority,
   };
 }
 
@@ -154,30 +198,18 @@ export async function ensureOwnedNode(
     })
     .limit(1);
 
-  let node = nodes?.[0] || null;
-
-  if (!node && !nodeId) {
-    const { data } = await ctx.service
-      .from('nodes')
-      .insert({
-        user_id: ctx.user.id,
-        source: 'web',
-        current_ihg: 0.52,
-        current_nti: 0.48,
-        current_ldi: 1.12,
-      })
-      .select('*')
-      .single();
-
-    node = data;
-  }
+  const node = nodes?.[0] || null;
 
   if (!node) {
     return {
       ...ctx,
       node: null,
       error: NextResponse.json(
-        { error: 'node_not_found' },
+        {
+          error: 'node_not_found',
+          epistemicStatus: 'MISSING',
+          message: 'No persisted node exists for this actor. SFI will not synthesize IHG, NTI or LDI values.',
+        },
         { status: 404 }
       ),
     };
@@ -204,6 +236,11 @@ export async function ensureOwnedNode(
   };
 }
 
+function finiteMetric(value: unknown): number | null {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return null;
+  return value;
+}
+
 export function denseFragment(
   metrics: {
     ihg?: number;
@@ -213,14 +250,16 @@ export function denseFragment(
   },
   hint?: string
 ) {
-  const ihg = Number(metrics.ihg ?? 0.5);
-  const nti = Number(metrics.nti ?? 0.5);
-  const ldi = Number(metrics.ldi ?? 0.5);
+  const ihg = finiteMetric(metrics.ihg);
+  const nti = finiteMetric(metrics.nti);
+  const ldi = finiteMetric(metrics.ldi);
+  const explicitPhi = finiteMetric(metrics.phi);
 
-  const phi = Number(
-    metrics.phi ??
-      (ihg * nti) / (1 + ldi)
-  );
+  if (ihg === null || nti === null || ldi === null) {
+    return `MISSING · lectura insuficiente para interpretar IHG/NTI/LDI.${hint ? ` Vector declarado: ${hint}.` : ''}`;
+  }
+
+  const phi = explicitPhi ?? (ihg * nti) / (1 + ldi);
 
   const ldiMark =
     ldi > 1

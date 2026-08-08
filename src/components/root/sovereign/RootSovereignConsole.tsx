@@ -17,7 +17,17 @@ function auditId(body: Record<string, unknown>) {
 }
 function abortReason(signal: AbortSignal) { return typeof signal.reason === 'string' ? signal.reason : null; }
 
-export function RootSovereignConsole({ initialState }: { initialState: RootSovereignState }) {
+type RootAccessMode = 'sovereign' | 'observer';
+
+export function RootSovereignConsole({
+  initialState,
+  accessMode = 'sovereign',
+  actorLabel = 'ROOT',
+}: {
+  initialState: RootSovereignState;
+  accessMode?: RootAccessMode;
+  actorLabel?: string;
+}) {
   const [state, setState] = useState(initialState);
   const [selection, setSelection] = useState<RootSelection | null>(null);
   const [viewMode, setViewMode] = useState<'topology' | 'legacy'>('topology');
@@ -29,6 +39,7 @@ export function RootSovereignConsole({ initialState }: { initialState: RootSover
   const [events, setEvents] = useState<RootSessionEvent[]>([]);
   const controller = useRef<AbortController | null>(null);
   const refreshSequence = useRef(0);
+  const readOnly = accessMode === 'observer';
 
   const refresh = useCallback(async () => {
     if (document.hidden) return;
@@ -63,10 +74,25 @@ export function RootSovereignConsole({ initialState }: { initialState: RootSover
     return () => { window.clearInterval(interval); document.removeEventListener('visibilitychange', visible); refreshSequence.current += 1; controller.current?.abort('unmount'); };
   }, [refresh]);
 
-  function requestAction(action: RootActionRequest) { setPending(action); setConfirmed(false); }
+  function requestAction(action: RootActionRequest) {
+    if (readOnly) {
+      const blocked: RootSessionEvent = {
+        id: `observer-block-${Date.now()}`,
+        at: new Date().toISOString(),
+        label: action.label,
+        status: 'blocked',
+        detail: 'Modo OBSERVER: puede observar ROOT y aportar evidencia, pero no ejecutar acciones soberanas.',
+        auditId: null,
+      };
+      setEvents((current) => [blocked, ...current].slice(0, 30));
+      return;
+    }
+    setPending(action);
+    setConfirmed(false);
+  }
 
   async function execute() {
-    if (!pending || !confirmed || running) return;
+    if (readOnly || !pending || !confirmed || running) return;
     const action = pending;
     setRunning(true);
     const started: RootSessionEvent = { id: `${action.id}-${Date.now()}`, at: new Date().toISOString(), label: action.label, status: 'running', detail: action.effect, auditId: null };
@@ -86,17 +112,25 @@ export function RootSovereignConsole({ initialState }: { initialState: RootSover
 
   return (
     <div className={`rs-console-host ${viewMode === 'legacy' ? 'is-legacy' : 'is-topology'} ${selection ? 'has-semantic-selection' : ''}`}>
+      {readOnly ? (
+        <div className="rs-observer-banner" role="status">
+          <strong>OBSERVER · {actorLabel}</strong>
+          <span>Observación institucional de 30 días · lectura ROOT habilitada · gobernanza y ejecución reservadas al founder.</span>
+          <a href="/root/evidence/intake">REGISTRAR EVIDENCIA</a>
+        </div>
+      ) : null}
+
       {viewMode === 'topology' ? (
         <><RootInstitutionalSelfPerception state={state} /><RootTopologyField state={state} refreshing={refreshing} warning={refreshWarning} onRefresh={() => void refresh()} onSelect={setSelection} onAction={requestAction} onLegacy={() => setViewMode('legacy')} /></>
       ) : (
         <><button type="button" className="rs-return-to-topologies" onClick={() => setViewMode('topology')}>VOLVER A TOPOLOGÍAS I–III</button><RootOperationalShell state={state} refreshing={refreshing} warning={refreshWarning} onRefresh={() => void refresh()} onSelect={setSelection} onAction={requestAction} /></>
       )}
       <RootSemanticInspector value={selection} onClose={() => setSelection(null)} />
-      <RootMethodologyWorkbench state={state} />
+      {!readOnly ? <RootMethodologyWorkbench state={state} /> : null}
 
       {events.length ? <div className="rs-root-events" aria-live="polite">{events.slice(0, 3).map((event) => <div key={event.id} data-status={event.status}><strong>{event.label}</strong><span>{event.detail}</span></div>)}</div> : null}
 
-      {pending ? (
+      {!readOnly && pending ? (
         <div className="rs-dialog-backdrop" role="presentation"><section className="rs-dialog" role="dialog" aria-modal="true" aria-labelledby="rs-dialog-title"><span>REVISAR ANTES DE EJECUTAR</span><h2 id="rs-dialog-title">{pending.label}</h2><dl><div><dt>QUÉ HARÁ</dt><dd>{pending.effect}</dd></div><div><dt>SOBRE QUÉ</dt><dd>{pending.target}</dd></div></dl><label className="rs-confirm"><input type="checkbox" checked={confirmed} onChange={(event) => setConfirmed(event.target.checked)} />Confirmo esta acción y comprendo su objetivo.</label><div className="rs-dialog-actions"><button type="button" onClick={() => { setPending(null); setConfirmed(false); }} disabled={running}>CANCELAR</button><button type="button" onClick={() => void execute()} disabled={!confirmed || running}>{running ? 'EJECUTANDO' : 'CONFIRMAR Y EJECUTAR'}</button></div></section></div>
       ) : null}
     </div>
