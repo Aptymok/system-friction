@@ -5,6 +5,7 @@ export type StudioModality =
   | 'text'
   | 'community'
   | 'time_coordinate'
+  | 'session_package'
   | 'unknown';
 
 export type StudioDatabaseObjectType =
@@ -91,6 +92,7 @@ export class StudioMultimodalError extends Error {
       | 'DOCUMENT_PARSE_FAILED'
       | 'IMAGE_ANALYSIS_FAILED'
       | 'VIDEO_ANALYSIS_FAILED'
+      | 'PACKAGE_PARSE_FAILED'
       | 'PERSISTENCE_FAILED'
       | 'ANALYSIS_FAILED',
     message: string,
