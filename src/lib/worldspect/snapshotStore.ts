@@ -55,187 +55,97 @@ export type WorldSpectSnapshotRow = {
 function canonicalize(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(canonicalize);
   if (!value || typeof value !== 'object') return value;
-
-  return Object.keys(value as Record<string, unknown>)
-    .sort()
-    .reduce<Record<string, unknown>>((acc, key) => {
-      acc[key] = canonicalize((value as Record<string, unknown>)[key]);
-      return acc;
-    }, {});
+  return Object.keys(value as Record<string, unknown>).sort().reduce<Record<string, unknown>>((acc, key) => {
+    acc[key] = canonicalize((value as Record<string, unknown>)[key]);
+    return acc;
+  }, {});
 }
-
 function hashSnapshot(input: WorldSpectSnapshotInput) {
-  return createHash('sha256')
-    .update(JSON.stringify(canonicalize({
-      sourceState: input.sourceState,
-      evidenceLevel: input.evidenceLevel,
-      confidence: input.confidence,
-      wsi: input.wsi,
-      nti: input.nti,
-      ts: input.ts,
-      sources: input.sources,
-      degraded_sources: input.degraded_sources,
-      sourceHealth: input.sourceHealth,
-      rawPayload: input.rawPayload,
-      adapterStatus: input.adapterStatus,
-      adapterError: input.adapterError ?? null,
-      ingestMode: input.ingestMode,
-    })))
-    .digest('hex');
+  return createHash('sha256').update(JSON.stringify(canonicalize({
+    sourceState: input.sourceState,
+    evidenceLevel: input.evidenceLevel,
+    confidence: input.confidence,
+    wsi: input.wsi,
+    nti: input.nti,
+    ts: input.ts,
+    sources: input.sources,
+    degraded_sources: input.degraded_sources,
+    sourceHealth: input.sourceHealth,
+    rawPayload: input.rawPayload,
+    adapterStatus: input.adapterStatus,
+    adapterError: input.adapterError ?? null,
+    ingestMode: input.ingestMode,
+  }))).digest('hex');
 }
-
-function clamp01(value: number) {
-  return Math.max(0, Math.min(1, Number.isFinite(value) ? value : 0));
-}
-
+function clamp01(value: number) { return Math.max(0, Math.min(1, Number.isFinite(value) ? value : 0)); }
 function numberOrNull(value: unknown) {
   if (value === null || typeof value === 'undefined') return null;
   const parsed = typeof value === 'number' ? value : Number(value);
   return Number.isFinite(parsed) ? parsed : null;
 }
-
-function isWorldSpectSourceState(value: unknown): value is PersistedWorldSpectSourceState {
-  return value === 'observed' || value === 'degraded';
-}
-
-function isWorldSpectIngestMode(value: unknown): value is WorldSpectIngestMode {
-  return value === 'daily_cron' || value === 'manual' || value === 'diagnostic' || value === 'fallback_runtime';
-}
-
+function isWorldSpectSourceState(value: unknown): value is PersistedWorldSpectSourceState { return value === 'observed' || value === 'degraded'; }
+function isWorldSpectIngestMode(value: unknown): value is WorldSpectIngestMode { return value === 'daily_cron' || value === 'manual' || value === 'diagnostic' || value === 'fallback_runtime'; }
 function normalizeWorldSpectSnapshotRow(data: Record<string, any>): WorldSpectSnapshotRow {
   const sourceState = isWorldSpectSourceState(data.source_state) ? data.source_state : 'degraded';
   const ingestMode = isWorldSpectIngestMode(data.ingest_mode) ? data.ingest_mode : 'manual';
   const observedAt = String(data.observed_at);
   const sources = Array.isArray(data.sources) ? data.sources as WorldSpectSource[] : [];
-  const degradedSources = Array.isArray(data.degraded_sources)
-    ? data.degraded_sources.filter((source: unknown): source is string => typeof source === 'string')
-    : [];
-
+  const degradedSources = Array.isArray(data.degraded_sources) ? data.degraded_sources.filter((source: unknown): source is string => typeof source === 'string') : [];
   return {
-    id: String(data.id),
-    observed_at: observedAt,
-    created_at: String(data.created_at),
-    source_state: sourceState,
-    evidence_level: 'direct',
-    confidence: clamp01(Number(data.confidence ?? 0)),
-    wsi: numberOrNull(data.wsi),
-    nti: numberOrNull(data.nti),
-    degraded_sources: degradedSources,
-    sources,
-    source_health: Array.isArray(data.source_health) && data.source_health.length > 0
-      ? data.source_health as WorldSpectSourceHealth[]
-      : deriveWorldSpectSourceHealth(sources, degradedSources, observedAt),
+    id: String(data.id), observed_at: observedAt, created_at: String(data.created_at), source_state: sourceState, evidence_level: 'direct',
+    confidence: clamp01(Number(data.confidence ?? 0)), wsi: numberOrNull(data.wsi), nti: numberOrNull(data.nti), degraded_sources: degradedSources, sources,
+    source_health: Array.isArray(data.source_health) && data.source_health.length > 0 ? data.source_health as WorldSpectSourceHealth[] : deriveWorldSpectSourceHealth(sources, degradedSources, observedAt),
     raw_payload: data.raw_payload as WorldSpectCanonicalPayload,
     field_state_signal: data.field_state_signal && typeof data.field_state_signal === 'object' ? data.field_state_signal as WorldSpectFieldStateSignal : null,
-    adapter_status: String(data.adapter_status ?? 'unknown'),
-    adapter_error: typeof data.adapter_error === 'string' ? data.adapter_error : null,
-    ingest_mode: ingestMode,
-    snapshot_hash: String(data.snapshot_hash ?? ''),
+    adapter_status: String(data.adapter_status ?? 'unknown'), adapter_error: typeof data.adapter_error === 'string' ? data.adapter_error : null,
+    ingest_mode: ingestMode, snapshot_hash: String(data.snapshot_hash ?? ''),
   } satisfies WorldSpectSnapshotRow;
 }
 
 export async function getLatestWorldSpectSnapshot() {
   const service = createServiceSupabaseClient();
-
-  const { data, error } = await executeAbortableQuery(service
-    .from('worldspect_snapshots')
-    .select('*')
-    .order('observed_at', { ascending: false })
-    .limit(1)
-    .maybeSingle());
-
+  const { data, error } = await executeAbortableQuery(service.from('worldspect_snapshots').select('*').order('observed_at', { ascending: false }).limit(1).maybeSingle());
   if (error || !data) return null;
-
   return normalizeWorldSpectSnapshotRow(data);
 }
 
-export async function getRecentWorldSpectSnapshots(input?: {
-  days?: number;
-  ingestMode?: RecentWorldSpectIngestMode;
-  limit?: number;
-}) {
+export async function getWorldSpectSnapshotAtOrBefore(observedAt: string) {
+  const service = createServiceSupabaseClient();
+  const parsed = new Date(observedAt);
+  if (!Number.isFinite(parsed.valueOf())) return null;
+  const { data, error } = await executeAbortableQuery(service
+    .from('worldspect_snapshots')
+    .select('*')
+    .lte('observed_at', parsed.toISOString())
+    .order('observed_at', { ascending: false })
+    .limit(1)
+    .maybeSingle());
+  if (error || !data) return null;
+  return normalizeWorldSpectSnapshotRow(data);
+}
+
+export async function getRecentWorldSpectSnapshots(input?: { days?: number; ingestMode?: RecentWorldSpectIngestMode; limit?: number }) {
   const service = createServiceSupabaseClient();
   const days = Number.isFinite(input?.days) ? Math.max(1, Number(input?.days)) : 90;
   const ingestMode = input?.ingestMode ?? 'all';
   const limit = Number.isFinite(input?.limit) ? Math.max(1, Number(input?.limit)) : 120;
   const observedSince = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
-
-  let query = service
-    .from('worldspect_snapshots')
-    .select('*')
-    .gte('observed_at', observedSince);
-
-  if (ingestMode !== 'all' && isWorldSpectIngestMode(ingestMode)) {
-    query = query.eq('ingest_mode', ingestMode);
-  }
-
-  const { data, error } = await executeAbortableQuery(query
-    .order('observed_at', { ascending: true })
-    .limit(limit));
-
+  let query = service.from('worldspect_snapshots').select('*').gte('observed_at', observedSince);
+  if (ingestMode !== 'all' && isWorldSpectIngestMode(ingestMode)) query = query.eq('ingest_mode', ingestMode);
+  const { data, error } = await executeAbortableQuery(query.order('observed_at', { ascending: true }).limit(limit));
   if (error || !Array.isArray(data)) return [];
-
   return data.map((row) => normalizeWorldSpectSnapshotRow(row));
 }
 
 export async function upsertWorldSpectSnapshot(input: WorldSpectSnapshotInput) {
   const service = createServiceSupabaseClient();
   const observedAt = new Date(input.ts || Date.now()).toISOString();
-
-  const row = {
-    observed_at: observedAt,
-    source_state: input.sourceState,
-    evidence_level: input.evidenceLevel,
-    confidence: clamp01(input.confidence),
-    wsi: input.wsi,
-    nti: input.nti,
-    degraded_sources: input.degraded_sources,
-    sources: input.sources,
-    source_health: input.sourceHealth,
-    raw_payload: input.rawPayload,
-    field_state_signal: input.fieldStateSignal,
-    adapter_status: input.adapterStatus,
-    adapter_error: input.adapterError ?? null,
-    ingest_mode: input.ingestMode,
-    snapshot_hash: hashSnapshot(input),
-  };
-
-  const { data, error } = await executeAbortableQuery(service
-    .from('worldspect_snapshots')
-    .upsert(row, {
-      onConflict: 'unique_date,ingest_mode',
-    })
-    .select('*')
-    .single(), 5000);
-
-  if (error) {
-    return { ok: false as const, error: 'worldspect_snapshot_persist_failed', details: error.message };
-  }
-
+  const row = { observed_at: observedAt, source_state: input.sourceState, evidence_level: input.evidenceLevel, confidence: clamp01(input.confidence), wsi: input.wsi, nti: input.nti, degraded_sources: input.degraded_sources, sources: input.sources, source_health: input.sourceHealth, raw_payload: input.rawPayload, field_state_signal: input.fieldStateSignal, adapter_status: input.adapterStatus, adapter_error: input.adapterError ?? null, ingest_mode: input.ingestMode, snapshot_hash: hashSnapshot(input) };
+  const { data, error } = await executeAbortableQuery(service.from('worldspect_snapshots').upsert(row, { onConflict: 'unique_date,ingest_mode' }).select('*').single(), 5000);
+  if (error) return { ok: false as const, error: 'worldspect_snapshot_persist_failed', details: error.message };
   return { ok: true as const, data };
 }
 
 export function snapshotRowToApiData(row: WorldSpectSnapshotRow) {
-  return {
-    sourceState: row.source_state,
-    evidenceLevel: row.evidence_level,
-    confidence: row.confidence,
-    wsi: row.wsi,
-    nti: row.nti,
-    ts: row.observed_at,
-    sources: row.sources,
-    degraded_sources: row.degraded_sources,
-    sourceHealth: row.source_health,
-    fieldStateSignal: row.field_state_signal,
-    snapshot: {
-      id: row.id,
-      observedAt: row.observed_at,
-      createdAt: row.created_at,
-      ingestMode: row.ingest_mode,
-      adapterStatus: row.adapter_status,
-      adapterError: row.adapter_error,
-      snapshotHash: row.snapshot_hash,
-      persisted: true,
-    },
-  } satisfies WorldSpectResponse;
+  return { sourceState: row.source_state, evidenceLevel: row.evidence_level, confidence: row.confidence, wsi: row.wsi, nti: row.nti, ts: row.observed_at, sources: row.sources, degraded_sources: row.degraded_sources, sourceHealth: row.source_health, fieldStateSignal: row.field_state_signal, snapshot: { id: row.id, observedAt: row.observed_at, createdAt: row.created_at, ingestMode: row.ingest_mode, adapterStatus: row.adapter_status, adapterError: row.adapter_error, snapshotHash: row.snapshot_hash, persisted: true } } satisfies WorldSpectResponse;
 }
