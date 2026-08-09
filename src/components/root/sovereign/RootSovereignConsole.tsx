@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { RootSovereignState } from '@/lib/root/sovereign/rootSovereignState';
 import type { RootActionRequest, RootSelection, RootSessionEvent } from './sovereignTypes';
@@ -24,8 +23,6 @@ function usesRichSemanticContext(selection: RootSelection | null) {
 }
 
 type RootAccessMode = 'sovereign' | 'observer';
-
-const navLink = { position: 'fixed', zIndex: 84, right: 18, border: '1px solid rgba(200,169,81,.24)', background: '#080807', color: '#bba563', padding: '7px 9px', font: '8px ui-monospace,SFMono-Regular,Menlo,monospace', textDecoration: 'none', letterSpacing: '.06em' } as const;
 
 export function RootSovereignConsole({ initialState, accessMode = 'sovereign', actorLabel = 'ROOT' }: {
   initialState: RootSovereignState;
@@ -109,13 +106,9 @@ export function RootSovereignConsole({ initialState, accessMode = 'sovereign', a
 
   return <div className={`rs-console-host ${selection ? 'has-semantic-selection' : ''}`}>
     <RootObservatoryWorkspace state={state} accessMode={accessMode} actorLabel={actorLabel} refreshing={refreshing} warning={refreshWarning} onRefresh={() => void refresh(false)} onSelect={setSelection} onAction={requestAction} />
-    <Link className="rs-report-inbox-link" href="/root/reports">REPORTES DE AGENTES</Link>
-    <Link href="/root/longitudinal" style={{ ...navLink, bottom: 92 }}>LONGITUDINAL MEMORY</Link>
-    <Link href="/root/predictions" style={{ ...navLink, bottom: 124 }}>PREDICTION CASES</Link>
-    {!readOnly ? <Link href="/root/decisions" style={{ ...navLink, bottom: 156 }}>DECISION QUEUE</Link> : null}
     {selection && richSemantic ? <RootSemanticContextModal selection={selection} onClose={() => setSelection(null)} /> : <RootSemanticInspector value={selection} onClose={() => setSelection(null)} />}
-    {!readOnly ? <RootMethodologyWorkbench state={state} /> : null}
-    {!readOnly ? <FriccionautaConsole /> : null}
+    {!readOnly ? <RootMethodologyWorkbench state={state} launcher={false} /> : null}
+    {!readOnly ? <FriccionautaConsole launcher={false} /> : null}
     {events.length ? <div className="rs-root-events" aria-live="polite">{events.slice(0, 3).map((event) => <div key={event.id} data-status={event.status}><strong>{event.label}</strong><span>{event.detail}</span></div>)}</div> : null}
     {!readOnly && pending ? <div className="rs-dialog-backdrop" role="presentation"><section className="rs-dialog" role="dialog" aria-modal="true" aria-labelledby="rs-dialog-title"><span>REVISAR ANTES DE EJECUTAR</span><h2 id="rs-dialog-title">{pending.label}</h2><dl><div><dt>QUÉ HARÁ</dt><dd>{pending.effect}</dd></div><div><dt>SOBRE QUÉ</dt><dd>{pending.target}</dd></div></dl><label className="rs-confirm"><input type="checkbox" checked={confirmed} onChange={(event) => setConfirmed(event.target.checked)} />Confirmo esta acción y comprendo su objetivo.</label><div className="rs-dialog-actions"><button type="button" onClick={() => { setPending(null); setConfirmed(false); }} disabled={running}>CANCELAR</button><button type="button" onClick={() => void execute()} disabled={!confirmed || running}>{running ? 'EJECUTANDO' : 'CONFIRMAR Y EJECUTAR'}</button></div></section></div> : null}
   </div>;
