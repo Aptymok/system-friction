@@ -18,9 +18,11 @@ export async function POST(request: Request, ctx: RouteContext) {
     const { descriptor } = await resolveStudioObjectDescriptor(objectId);
     const segment = descriptor.modality === 'community' || descriptor.modality === 'time_coordinate'
       ? 'structured'
-      : descriptor.modality;
+      : descriptor.modality === 'session_package'
+        ? 'package'
+        : descriptor.modality;
 
-    if (!['audio', 'text', 'image', 'video', 'structured'].includes(segment)) {
+    if (!['audio', 'text', 'image', 'video', 'structured', 'package'].includes(segment)) {
       throw new StudioMultimodalError(
         'UNSUPPORTED_FILE_TYPE',
         'Studio cannot route an unknown object modality to an analyzer.',

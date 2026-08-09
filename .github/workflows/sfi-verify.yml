@@ -39,6 +39,27 @@ jobs:
       - name: Verify cognitive agent convergence
         run: node --import tsx --test src/lib/sfi/cognitive-runtime/agentConvergence.test.ts
 
+      - name: Verify Studio Field surface
+        run: npm run qa:sfi-studio-workspace
+
+      - name: Verify Studio cognitive runtime
+        run: npm run qa:sfi-studio-cognitive
+
+      - name: Verify Studio capability inventory
+        run: npm run qa:sfi-studio-capability-inventory
+
+      - name: Verify Studio audio smoke path
+        run: npm run qa:studio-audio
+
+      - name: Verify Studio loudness
+        run: npm run qa:sfi-studio-loudness
+
+      - name: Verify Studio rhythm
+        run: npm run qa:sfi-studio-rhythm
+
+      - name: Verify Studio harmony
+        run: npm run qa:sfi-studio-harmony
+
       - name: Typecheck
         id: typecheck
         shell: bash
