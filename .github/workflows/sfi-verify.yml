@@ -39,6 +39,9 @@ jobs:
       - name: Verify cognitive agent convergence
         run: node --import tsx --test src/lib/sfi/cognitive-runtime/agentConvergence.test.ts
 
+      - name: Verify Field and Observatory temporal surfaces
+        run: npx tsx scripts/qa-sfi-temporal-surfaces.ts
+
       - name: Verify Studio Field surface
         run: npm run qa:sfi-studio-workspace
 
