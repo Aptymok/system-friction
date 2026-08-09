@@ -6,7 +6,11 @@ export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 type Row = Record<string, unknown>;
-function num(value: unknown) { const parsed = typeof value === 'number' ? value : Number(value); return Number.isFinite(parsed) ? parsed : null; }
+function num(value: unknown) {
+  if (value === null || value === undefined || value === '') return null;
+  const parsed = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
 function text(value: unknown, fallback = '') { return typeof value === 'string' && value.trim() ? value.trim() : fallback; }
 function dateKey(value: unknown) { const raw = text(value); const date = new Date(raw); return Number.isFinite(date.valueOf()) ? date.toISOString().slice(0, 10) : null; }
 function endOfDay(date: string) { const value = new Date(`${date}T00:00:00.000Z`); value.setUTCDate(value.getUTCDate() + 1); return value.toISOString(); }
