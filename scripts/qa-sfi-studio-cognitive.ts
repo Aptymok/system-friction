@@ -20,6 +20,8 @@ const llmBridge = read('src/lib/sfi/cognitive-runtime/agentLlmBridge.ts');
 const twinContext = read('src/lib/cognitive-twin/studioContext.ts');
 const packageAnalyzer = read('src/lib/studio/multimodal/sessionPackageAnalyzer.ts');
 const packageRoute = read('src/app/api/studio/objects/[id]/analyze/package/route.ts');
+const reconstructionRoute = read('src/app/api/studio/session/reconstruct/route.ts');
+const reconstructionUi = read('src/components/studio/workspace/StudioSessionReconstruction.tsx');
 const fieldState = read('src/lib/studio/field/studioFieldState.ts');
 
 const requiredAgents = [
@@ -66,6 +68,21 @@ assert.ok(fieldState.includes('DERIVED_DISPLAY_ONLY'), 'world_visual_derivation_
 assert.ok(fieldState.includes('studio_sessions'), 'field_must_use_existing_session_source');
 assert.ok(fieldState.includes('studio_archive_events'), 'timelap_persisted_event_source_missing');
 
+for (const token of [
+  "eq('owner_id', ownerId)",
+  "eq('owner_id', user.id)",
+  'analyzeStudioSessionRelations',
+  'executeSfiRuntime',
+  'readStudioTwinContext',
+  'studio_session_reconstruction_v1',
+  'SESSION_RECONSTRUCTION_COMPLETED',
+  'PRIVATE_OWNER_SCOPE_REQUIRED',
+]) assert.ok(reconstructionRoute.includes(token), `session_reconstruction_contract_missing:${token}`);
+assert.ok(/Evidence before inference/i.test(reconstructionRoute), 'session_reconstruction_epistemic_rule_missing');
+assert.ok(/does not prove routing|does not prove routing/i.test(reconstructionRoute), 'session_reconstruction_routing_boundary_missing');
+assert.ok(reconstructionUi.includes('OWNER PRIVATE'), 'session_reconstruction_privacy_ui_missing');
+assert.ok(reconstructionUi.includes('/api/studio/session/reconstruct'), 'session_reconstruction_ui_not_wired');
+
 const migrationFiles = walk('supabase/migrations').filter((file) => file.endsWith('.sql'));
 const migrationText = migrationFiles.map((file) => readFileSync(file, 'utf8')).join('\n');
 assert.ok(!/create\s+table\s+(?:if\s+not\s+exists\s+)?(?:public\.)?studio_object_relations\b/i.test(migrationText), 'duplicate_studio_relation_table_present');
@@ -87,6 +104,8 @@ console.log(JSON.stringify({
   sfiMethodsPersisted: ['FAD', 'MIHM', 'MOP-H', 'DIOL-SF'],
   zipRangeAnalysis: true,
   zipHeavySourcePurged: true,
+  sessionReconstructionOwnerScoped: true,
+  sessionReconstructionUsesExistingRuntime: true,
   duplicateRelationTable: false,
   removedDashboardComponents: 3,
 }, null, 2));
