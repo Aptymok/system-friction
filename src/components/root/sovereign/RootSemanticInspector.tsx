@@ -33,7 +33,7 @@ function strings(value: unknown): string[] {
 
 function contextualAction(kind: string) {
   const normalized = kind.toLowerCase();
-  if (normalized.includes('attractor')) return { href: '/root/attractor', label: 'ABRIR CAMPO DEL ATRACTOR' };
+  if (normalized.includes('attractor')) return { href: '/root#mod-08', label: 'VOLVER AL CAMPO DEL ATRACTOR' };
   if (
     normalized.includes('hypothesis') ||
     normalized.includes('prediction') ||
