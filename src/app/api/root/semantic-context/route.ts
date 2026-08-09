@@ -11,6 +11,9 @@ type Row = Record<string, unknown>;
 function text(value: unknown, fallback = '') { return typeof value === 'string' && value.trim() ? value.trim() : fallback; }
 function rec(value: unknown): Row { return value && typeof value === 'object' && !Array.isArray(value) ? value as Row : {}; }
 function strings(value: unknown) { return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string' && Boolean(item.trim())) : []; }
+function uniqueRows(items: any[], key: string) {
+  return Array.from(new Map(items.filter(Boolean).map((item) => [text(item?.[key], JSON.stringify(item)), item])).values());
+}
 
 async function worldContext(at: string | null) {
   const [historical, current] = await Promise.all([
@@ -57,12 +60,17 @@ async function predictionContext(service: any, id: string) {
 
   const prediction = run.data ? text(run.data.prediction) : text(legacy?.prediccion_explicita);
   const rawConfidence = run.data?.confidence ?? legacy?.probabilidad_estimativa;
-  const confidence = typeof rawConfidence === 'number' ? (rawConfidence > 1 ? rawConfidence / 100 : rawConfidence) : Number(rawConfidence || 0);
+  const parsedConfidence = rawConfidence === null || rawConfidence === undefined || rawConfidence === '' ? null : Number(rawConfidence);
+  const confidence = typeof rawConfidence === 'number'
+    ? (rawConfidence > 1 ? rawConfidence / 100 : rawConfidence)
+    : parsedConfidence !== null && Number.isFinite(parsedConfidence)
+      ? (parsedConfidence > 1 ? parsedConfidence / 100 : parsedConfidence)
+      : null;
   const origin = rec(attractors.data?.[0]?.vector).origin ?? (legacy ? 'LEGACY_REGISTRY' : 'UNKNOWN');
   return {
     kind: 'prediction_case',
     prediction,
-    confidence: Number.isFinite(confidence) ? confidence : null,
+    confidence,
     status: text(run.data?.status ?? legacy?.estado_observacion ?? legacy?.evidence_state, 'MISSING'),
     createdAt: at,
     dueAt: run.data?.due_at ?? null,
@@ -120,10 +128,19 @@ async function evidenceContext(service: any, id: string) {
   ].filter((value): value is string => Boolean(value))));
   const nodes = nodeCandidates.length ? await service.from('graph_nodes').select('*').in('node_id', nodeCandidates) : { data: [] };
   const nodeIds = (nodes.data ?? []).map((node: any) => node.node_id).filter(Boolean);
-  const edgeFilter = nodeIds.flatMap((nodeId: string) => [`source_node_id.eq.${nodeId}`, `target_node_id.eq.${nodeId}`]).join(',');
-  const edges = nodeIds.length ? await service.from('graph_edges').select('*').or(edgeFilter) : { data: [] };
-  const relatedIds = Array.from(new Set((edges.data ?? []).flatMap((edge: any) => [edge.source_node_id, edge.target_node_id]).filter((nodeId: string) => nodeId && !nodeIds.includes(nodeId))));
+  const directEdgeFilter = nodeIds.flatMap((nodeId: string) => [`source_node_id.eq.${nodeId}`, `target_node_id.eq.${nodeId}`]).join(',');
+  const directEdges = nodeIds.length ? await service.from('graph_edges').select('*').or(directEdgeFilter) : { data: [] };
+  const firstHopIds = Array.from(new Set((directEdges.data ?? []).flatMap((edge: any) => [edge.source_node_id, edge.target_node_id]).filter((nodeId: string) => nodeId && !nodeIds.includes(nodeId))));
+
+  // Traverse one additional hop so the root/ledger mirror does not hide its contextual
+  // case/module/source relationships. Two hops is deliberate: enough to expose declared
+  // provenance context without turning the inspector into an unbounded graph crawl.
+  const secondEdgeFilter = firstHopIds.flatMap((nodeId: string) => [`source_node_id.eq.${nodeId}`, `target_node_id.eq.${nodeId}`]).join(',');
+  const secondEdges = firstHopIds.length ? await service.from('graph_edges').select('*').or(secondEdgeFilter) : { data: [] };
+  const allEdges = uniqueRows([...(directEdges.data ?? []), ...(secondEdges.data ?? [])], 'edge_id');
+  const relatedIds = Array.from(new Set(allEdges.flatMap((edge: any) => [edge.source_node_id, edge.target_node_id]).filter((nodeId: string) => nodeId && !nodeIds.includes(nodeId))));
   const relatedNodes = relatedIds.length ? await service.from('graph_nodes').select('*').in('node_id', relatedIds) : { data: [] };
+
   const attractors = await service.from('sfi_attractors').select('*').order('updated_at', { ascending: false }).limit(250);
   const linkedAttractors = (attractors.data ?? []).filter((attractor: any) => {
     const vector = rec(attractor.vector);
@@ -135,7 +152,7 @@ async function evidenceContext(service: any, id: string) {
     missing: false,
     record: row,
     graphNodes: nodes.data ?? [],
-    graphEdges: edges.data ?? [],
+    graphEdges: allEdges,
     relatedNodes: relatedNodes.data ?? [],
     attractors: linkedAttractors,
   };
@@ -156,7 +173,7 @@ async function attractorContext(service: any, id: string) {
       service.from('root_evidence_entries').select('*').in('id', refs),
       service.from('sfi_evidence_ledger').select('*').in('id', refs),
     ]);
-    evidence = [...(rootByHash.data ?? []), ...(ledgerByHash.data ?? []), ...(rootById.data ?? []), ...(ledgerById.data ?? [])];
+    evidence = uniqueRows([...(rootByHash.data ?? []), ...(ledgerByHash.data ?? []), ...(rootById.data ?? []), ...(ledgerById.data ?? [])], 'id');
   }
   const predictionRunId = text(vector.predictionRunId);
   const prediction = predictionRunId ? await service.from('sfi_predictive_runs').select('*').eq('id', predictionRunId).maybeSingle() : { data: null };
