@@ -28,6 +28,9 @@ function record(value: unknown): Row {
 }
 
 function number01(value: unknown, fallback = 1) {
+  if (value === null || typeof value === 'undefined' || value === '') {
+    return fallback;
+  }
   const parsed = typeof value === 'number' ? value : Number(value);
   if (!Number.isFinite(parsed)) return fallback;
   return Math.max(0, Math.min(1, parsed));
@@ -74,7 +77,7 @@ export async function reconcilePersistedEvidenceGraph() {
         .range(offset, offset + PAGE_SIZE - 1);
 
       if (page.error) {
-        return { data: collected, error: page.error.message };
+        return { data: [], error: page.error.message };
       }
 
       const pageRows = rows(page.data);
