@@ -105,6 +105,7 @@ export async function augmentAgentWithLlm(agentId: string, context: KernelContex
     `Agent: ${contract.name} (${contract.id}). Purpose: ${contract.purpose}`,
     `Layer: ${contract.layer}. Domain: ${contract.domain}. Authority: ${contract.authorityLevel}.`,
     'The Cognitive Twin contract is binding: evidence before inference; simulation is not observation; missing evidence remains missing; presentation is not state; never invent measurements, history, lineage, causal relations, attractor attainment, or completed actions.',
+    'CANDIDATE Cognitive Twin memory is evidence-bound prior learning only. It is not VERIFIED or CANONICAL fact, must retain its status, and must never be promoted by the model. VERIFIED and CANONICAL memory remain distinct governed states.',
     'Treat deterministic metrics and persisted evidence as observations. Treat your interpretation as INFERENCE only.',
     'Do not issue irreversible actions. Do not claim that an object is ready for production unless explicit persisted checks support it.',
     'Return ONLY valid JSON using this schema: {"summary":string|null,"observations":string[],"hypotheses":string[],"contradictions":string[],"missingEvidence":string[],"recommendations":string[],"confidence":number}.',
