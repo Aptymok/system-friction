@@ -1,4 +1,5 @@
 import { StudioProductionConsole } from '@/components/studio/production/StudioProductionConsole';
+import { StudioSessionReconstruction } from '@/components/studio/workspace/StudioSessionReconstruction';
 import { readStudioFieldState } from '@/lib/studio/field/studioFieldState';
 import { readStudioProductionState } from '@/lib/studio/production/studioProductionAdapter';
 import { scopeStudioStateForMember } from '@/lib/studio/production/scopeStudioStateForMember';
@@ -24,6 +25,11 @@ export default async function StudioPage({ searchParams }: { searchParams?: Prom
 
   return (
     <main className="min-h-screen bg-[#050504]">
+      <StudioSessionReconstruction
+        sessionId={fieldState.session?.id ?? null}
+        activeObjectId={state.activeObject.id ?? null}
+        objectCount={fieldState.objects.length}
+      />
       <StudioProductionConsole
         state={state}
         fieldState={fieldState}
