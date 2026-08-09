@@ -175,7 +175,6 @@ export function WorldFieldObservatory() {
   const hypotheses = data?.hypotheses ?? [];
   const outcomes = data?.outcomes ?? [];
   const learning = data?.learning ?? [];
-  const outcomeByHypothesis = useMemo(() => new Map(outcomes.map((item) => [item.hypothesis_id, item])), [outcomes]);
   const hypothesisByObservation = useMemo(() => {
     const map = new Map<string, WorldHypothesis[]>();
     hypotheses.forEach((item) => {
@@ -211,6 +210,7 @@ export function WorldFieldObservatory() {
   const visibleHypotheses = useMemo(() => hypotheses.filter((item) => millis(item.cutoff_at) <= cursorMs), [hypotheses, cursorMs]);
   const visibleOutcomes = useMemo(() => outcomes.filter((item) => millis(item.evaluated_at) <= cursorMs), [outcomes, cursorMs]);
   const visibleLearning = useMemo(() => learning.filter((item) => millis(item.created_at) <= cursorMs), [learning, cursorMs]);
+  const outcomeByHypothesis = useMemo(() => new Map(visibleOutcomes.map((item) => [item.hypothesis_id, item])), [visibleOutcomes]);
   const selected = visibleNodes.find((node) => node.id === selectedId) ?? visibleNodes.at(-1) ?? null;
   const reading = selected?.reading ?? null;
 
