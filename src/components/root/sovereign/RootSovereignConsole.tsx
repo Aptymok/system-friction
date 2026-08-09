@@ -111,7 +111,8 @@ export function RootSovereignConsole({ initialState, accessMode = 'sovereign', a
     <RootObservatoryWorkspace state={state} accessMode={accessMode} actorLabel={actorLabel} refreshing={refreshing} warning={refreshWarning} onRefresh={() => void refresh(false)} onSelect={setSelection} onAction={requestAction} />
     <Link className="rs-report-inbox-link" href="/root/reports">REPORTES DE AGENTES</Link>
     <Link href="/root/longitudinal" style={{ ...navLink, bottom: 92 }}>LONGITUDINAL MEMORY</Link>
-    {!readOnly ? <Link href="/root/decisions" style={{ ...navLink, bottom: 124 }}>DECISION QUEUE</Link> : null}
+    <Link href="/root/predictions" style={{ ...navLink, bottom: 124 }}>PREDICTION CASES</Link>
+    {!readOnly ? <Link href="/root/decisions" style={{ ...navLink, bottom: 156 }}>DECISION QUEUE</Link> : null}
     {selection && richSemantic ? <RootSemanticContextModal selection={selection} onClose={() => setSelection(null)} /> : <RootSemanticInspector value={selection} onClose={() => setSelection(null)} />}
     {!readOnly ? <RootMethodologyWorkbench state={state} /> : null}
     {!readOnly ? <FriccionautaConsole /> : null}
