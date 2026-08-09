@@ -3,8 +3,9 @@ import 'server-only';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { COGNITIVE_TWIN_CONTRACT_VERSION, evaluateCognitiveTwinAuthority } from './contract';
 
-const MEMORY_STATUSES = ['VERIFIED', 'CANONICAL'] as const;
-const MAX_MEMORY_ROWS = 48;
+const MEMORY_STATUSES = ['CANDIDATE', 'VERIFIED', 'CANONICAL'] as const;
+const STUDIO_LEARNING_VERSION = 'studio-learning-v1';
+const MAX_MEMORY_ROWS = 64;
 const MAX_DECISION_ROWS = 32;
 
 type Row = Record<string, unknown>;
@@ -173,8 +174,7 @@ export async function persistStudioLearningCandidate(input: {
   }
 
   const db = createServiceSupabaseClient();
-  const version = new Date().toISOString();
-  const result = await db.from('sfi_cognitive_twin_memory').insert({
+  const result = await db.from('sfi_cognitive_twin_memory').upsert({
     memory_key: input.memoryKey,
     memory_type: input.memoryType,
     status: 'CANDIDATE',
@@ -182,10 +182,11 @@ export async function persistStudioLearningCandidate(input: {
     evidence_refs: evidenceRefs,
     source_kind: 'STUDIO_OBSERVED_RETURN',
     source_ref: input.sourceRef,
-    version,
+    version: STUDIO_LEARNING_VERSION,
     created_by: input.createdBy,
-  }).select('id').single();
+    updated_at: new Date().toISOString(),
+  }, { onConflict: 'memory_key,version' }).select('id').single();
 
   if (result.error) return { ok: false as const, blocked: false, reason: result.error.message };
-  return { ok: true as const, blocked: false, id: String(result.data.id), status: 'CANDIDATE' as const };
+  return { ok: true as const, blocked: false, id: String(result.data.id), status: 'CANDIDATE' as const, version: STUDIO_LEARNING_VERSION };
 }
