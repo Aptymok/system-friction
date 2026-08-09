@@ -1,5 +1,6 @@
 import 'server-only';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
+import { DEFAULT_SUPABASE_READ_TIMEOUT_MS, executeAbortableQuery } from '@/lib/supabase/abortableQuery';
 import type { RootDataStatus, RootRow, RootSource } from '../rootSovereignState';
 
 export function row(value: unknown): RootRow {
@@ -32,7 +33,7 @@ export function errorMessage(error: unknown): string {
   return 'unknown_source_error';
 }
 
-export async function bounded<T>(label: string, task: () => Promise<T>, timeoutMs = 5500): Promise<{ data: T | null; error: string | null }> {
+export async function bounded<T>(label: string, task: () => Promise<T>, timeoutMs = 3200): Promise<{ data: T | null; error: string | null }> {
   let timeout: ReturnType<typeof setTimeout> | null = null;
   try {
     const data = await Promise.race([
@@ -47,16 +48,19 @@ export async function bounded<T>(label: string, task: () => Promise<T>, timeoutM
   }
 }
 
-export async function selectRows(input: { table: string; select: string; limit?: number; order?: string }): Promise<{ rows: RootRow[]; error: string | null }> {
-  const result = await bounded(input.table, async () => {
+export async function selectRows(input: { table: string; select: string; limit?: number; order?: string; timeoutMs?: number }): Promise<{ rows: RootRow[]; error: string | null }> {
+  try {
     const service = createServiceSupabaseClient();
     let query = service.from(input.table).select(input.select).limit(input.limit ?? 30);
     if (input.order) query = query.order(input.order, { ascending: false });
-    const { data, error } = await query;
-    if (error) throw new Error(errorMessage(error));
-    return (data ?? []) as unknown as RootRow[];
-  });
-  return { rows: result.data ?? [], error: result.error };
+    const { data, error } = await executeAbortableQuery(query, input.timeoutMs ?? DEFAULT_SUPABASE_READ_TIMEOUT_MS);
+    if (error) throw error;
+    return { rows: (data ?? []) as unknown as RootRow[], error: null };
+  } catch (error) {
+    const message = errorMessage(error);
+    const timedOut = /abort|timeout/i.test(message);
+    return { rows: [], error: `${input.table}:${timedOut ? `${input.table}_timeout` : message}` };
+  }
 }
 
 export function source<T>(data: T, label: string, errors: Array<string | null>, observedAt: string | null, empty = false): RootSource<T> {

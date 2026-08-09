@@ -3,14 +3,18 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { RootEvidenceEdge, RootEvidenceNode, RootRow, RootSovereignState } from '@/lib/root/sovereign/rootSovereignState';
 import type { RootActionRequest, RootSelection } from './sovereignTypes';
+import { PredictionOutcomeTree } from './visual/PredictionOutcomeTree';
+import { DynamicAttractorField } from './visual/DynamicAttractorField';
 import './root-observatory.css';
+import './root-operational-enhancements.css';
 
 type TopologyId = 'I' | 'II' | 'III';
 type AccessMode = 'sovereign' | 'observer';
 type StatusContext = 'CLASE' | 'SALUD' | 'ESTADO' | 'MODO';
 type SurfaceSpec = { title: string; href: string };
-type ModuleTool = { label: string; kind: 'surface' | 'event'; target: string };
+type ModuleTool = { label: string; kind: 'surface' | 'event' | 'api'; target: string };
 type ModuleSpec = { id: string; label: string; tools: ModuleTool[] };
+type SurfaceLauncher = ModuleTool & { code: string; title: string; sovereignOnly?: boolean };
 type PanelProps = {
   id: string;
   module: string;
@@ -23,6 +27,8 @@ type PanelProps = {
   onOpen?: () => void;
 };
 type LiveRow = { name: string; sub?: string; status?: string; statusContext?: StatusContext; onClick?: () => void };
+
+type ToolStatus = { text: string; tone: 'ok' | 'bad' | 'idle' } | null;
 
 const TOPOLOGIES: Record<TopologyId, { title: string; question: string }> = {
   I: { title: 'SISTEMA', question: '¿Qué existe y qué responde?' },
@@ -42,15 +48,24 @@ const MODULES: ModuleSpec[] = [
     { label: 'OBSERVATORY', kind: 'surface', target: '/interface/observatory' },
     { label: 'LIBRARY', kind: 'surface', target: '/library' },
   ] },
-  { id: '03', label: 'Identidad / Autoridad', tools: [] },
-  { id: '04', label: 'Evidencia / Grafo', tools: [{ label: 'EVIDENCE INTAKE', kind: 'surface', target: '/root/evidence/intake' }] },
+  { id: '03', label: 'Identidad / Autoridad', tools: [
+    { label: 'CONTRATOS', kind: 'surface', target: '/root/contracts' },
+    { label: 'AGENT PASSPORTS', kind: 'surface', target: '/root/agents/passports' },
+  ] },
+  { id: '04', label: 'SFI / Evidencia / Grafo', tools: [
+    { label: 'CHAT CON SFI', kind: 'event', target: 'sfi:open-friccionauta' },
+    { label: 'RECONCILIAR GRAFO', kind: 'api', target: '/api/root/evidence/reconcile' },
+  ] },
   { id: '05', label: 'Cognitive Runtime', tools: [
-    { label: 'FRICCIONAUTA', kind: 'event', target: 'sfi:open-friccionauta' },
+    { label: 'CHAT CON SFI', kind: 'event', target: 'sfi:open-friccionauta' },
     { label: 'REPORTES DE AGENTES', kind: 'surface', target: '/root/reports' },
   ] },
-  { id: '06', label: 'Cognitive Twin', tools: [{ label: 'FRICCIONAUTA / TWIN', kind: 'event', target: 'sfi:open-friccionauta' }] },
+  { id: '06', label: 'Cognitive Twin', tools: [
+    { label: 'CHAT CON SFI', kind: 'event', target: 'sfi:open-friccionauta' },
+    { label: 'COGNITIVE TWIN', kind: 'surface', target: '/root/cognitive-twin' },
+  ] },
   { id: '07', label: 'Proyección / Predicción', tools: [{ label: 'PREDICTION CASES', kind: 'surface', target: '/root/predictions' }] },
-  { id: '08', label: 'Atractores / PPOI', tools: [] },
+  { id: '08', label: 'Atractores / PPOI', tools: [{ label: 'ATTRACTOR WORKBENCH', kind: 'surface', target: '/root/attractor' }] },
   { id: '09', label: 'Memoria / Trayectoria', tools: [
     { label: 'LONGITUDINAL MEMORY', kind: 'surface', target: '/root/longitudinal' },
     { label: 'REPORTES DE AGENTES', kind: 'surface', target: '/root/reports' },
@@ -58,7 +73,23 @@ const MODULES: ModuleSpec[] = [
   { id: '10', label: 'Gobernanza / Operación', tools: [
     { label: 'MEJORAR SISTEMA · DECISION QUEUE', kind: 'surface', target: '/root/decisions' },
     { label: 'RESOLUCIÓN METODOLÓGICA', kind: 'event', target: 'sfi:open-methodology' },
+    { label: 'CONTINUIDAD', kind: 'surface', target: '/root/continuity' },
   ] },
+];
+
+const ROOT_SURFACES: SurfaceLauncher[] = [
+  { code: 'SF', title: 'Chat SFI', label: 'CHAT CON SFI', kind: 'event', target: 'sfi:open-friccionauta' },
+  { code: 'IN', title: 'Institutionalization', label: 'INSTITUCIONALIZACIÓN', kind: 'surface', target: '/root/institutionalization' },
+  { code: 'RP', title: 'Reportes de agentes', label: 'REPORTES DE AGENTES', kind: 'surface', target: '/root/reports' },
+  { code: 'FD', title: 'Field', label: 'FIELD', kind: 'surface', target: '/field' },
+  { code: 'FM', title: 'Field Map', label: 'FIELD MAP', kind: 'surface', target: '/field/map' },
+  { code: 'ST', title: 'Studio', label: 'STUDIO', kind: 'surface', target: '/studio' },
+  { code: 'OB', title: 'Observatory', label: 'OBSERVATORY', kind: 'surface', target: '/interface/observatory' },
+  { code: 'LB', title: 'Library', label: 'LIBRARY', kind: 'surface', target: '/library' },
+  { code: 'CN', title: 'Contracts', label: 'CONTRATOS', kind: 'surface', target: '/root/contracts' },
+  { code: 'AP', title: 'Agent Passports', label: 'AGENT PASSPORTS', kind: 'surface', target: '/root/agents/passports' },
+  { code: 'TW', title: 'Cognitive Twin', label: 'COGNITIVE TWIN', kind: 'surface', target: '/root/cognitive-twin' },
+  { code: 'CO', title: 'Continuity', label: 'CONTINUIDAD', kind: 'surface', target: '/root/continuity' },
 ];
 
 const DIVERGENCE_FACT: Record<string, string> = {
@@ -96,9 +127,9 @@ function millis(value: string | null | undefined) {
 }
 function tone(value: string | null | undefined) {
   const status = (value ?? '').toLowerCase();
-  if (['observed', 'imported', 'operational', 'available', 'accepted', 'verified', 'active', 'canonical'].includes(status)) return 'ok';
-  if (['derived', 'thin', 'declared', 'proposed', 'waiting_evidence', 'inferred', 'extracted'].includes(status)) return 'warn';
-  if (['degraded', 'conflicted', 'blocked', 'error', 'blocking', 'rejected'].includes(status)) return 'bad';
+  if (['observed', 'imported', 'operational', 'available', 'accepted', 'verified', 'active', 'canonical', 'win'].includes(status)) return 'ok';
+  if (['derived', 'thin', 'declared', 'proposed', 'waiting_evidence', 'inferred', 'extracted', 'inconclusive', 'pending'].includes(status)) return 'warn';
+  if (['degraded', 'conflicted', 'blocked', 'error', 'blocking', 'rejected', 'loss'].includes(status)) return 'bad';
   return 'idle';
 }
 function statusLabel(status: string, context: StatusContext = 'ESTADO') {
@@ -132,10 +163,13 @@ function sel(input: {
 }
 function compactWarning(value: string) {
   if (value.length <= 520) return value;
-  const constraints = [...value.matchAll(/violates check constraint "([^"]+)"/g)].map((match) => match[1]);
-  const counts = constraints.reduce<Record<string, number>>((acc, item) => ({ ...acc, [item]: (acc[item] ?? 0) + 1 }), {});
-  const summary = Object.entries(counts).map(([name, count]) => `${name} ×${count}`).join(' · ');
-  return `${value.slice(0, 360)}…${summary ? ` · ${summary}` : ''}`;
+  const timeouts = [...value.matchAll(/\b([a-z0-9_]+_timeout)\b/gi)].map((match) => match[1]);
+  const constraints = [...value.matchAll(/(?:violates|unique constraint) "([^"]+)"/g)].map((match) => match[1]);
+  const missingColumns = [...value.matchAll(/column ([a-z0-9_.]+) does not exist/gi)].map((match) => match[1]);
+  const timeoutSummary = [...new Set(timeouts)].slice(0, 8).join(', ');
+  const constraintSummary = [...new Set(constraints)].join(', ');
+  const columnSummary = [...new Set(missingColumns)].join(', ');
+  return `${value.slice(0, 280)}…${timeoutSummary ? ` · TIMEOUTS: ${timeoutSummary}` : ''}${columnSummary ? ` · COLUMNAS: ${columnSummary}` : ''}${constraintSummary ? ` · CONSTRAINTS: ${constraintSummary}` : ''}`;
 }
 
 function Panel({ id, module, label, status, statusContext = 'ESTADO', source, width = 'm', children, onOpen }: PanelProps) {
@@ -244,7 +278,7 @@ function EvidenceGraph({ state, onSelect }: { state: RootSovereignState; onSelec
         const highlight = edge.from === anchor || edge.to === anchor;
         return <g key={edge.id} className={highlight ? 'edge-focus' : ''}>
           <line x1={from.x} y1={from.y} x2={to.x} y2={to.y} markerEnd="url(#root-evidence-arrow)" />
-          {highlight ? <text className="edge-label" x={(from.x + to.x) / 2} y={(from.y + to.y) / 2 - 1}>{edge.relation.slice(0, 22)}</text> : null}
+          {highlight ? <text className="edge-label" x={(from.x + to.x) / 2} y={(from.y + to.y) / 2 - 1}>{edge.relation.slice(0, 34)}</text> : null}
         </g>;
       })}
       {displayNodes.map((node) => {
@@ -271,36 +305,6 @@ function EvidenceGraph({ state, onSelect }: { state: RootSovereignState; onSelec
   </div>;
 }
 
-function AttractorField({ state, onSelect }: { state: RootSovereignState; onSelect: (selection: RootSelection) => void }) {
-  const attractors = state.amv.data.attractors;
-  const [activeId, setActiveId] = useState(() => attractors[0] ? rid(attractors[0], 'attractor') : '');
-  useEffect(() => {
-    if (!attractors.length) { setActiveId(''); return; }
-    if (!attractors.some((item) => rid(item, 'attractor') === activeId)) setActiveId(rid(attractors[0], 'attractor'));
-  }, [attractors, activeId]);
-  const attractor = attractors.find((item) => rid(item, 'attractor') === activeId) ?? attractors[0] ?? null;
-  const vector = rec(attractor?.vector);
-  const dimensions = strings(vector.dimensions);
-  const supported = new Set(strings(vector.supportedDimensions));
-  const contradicted = new Set(strings(vector.contradictedDimensions));
-  const missing = new Set(strings(vector.missingDimensions));
-  return <div className="attractor-field" onClick={(event) => {
-    event.stopPropagation();
-    if (attractor) onSelect(sel({ kind: 'attractor', id: rid(attractor, 'attractor'), title: text(attractor.label ?? attractor.attractor_key, 'Atractor'), source: state.amv.source, observedAt: rowDate(attractor), data: attractor }));
-  }}>
-    <div className="living-grid" />
-    {attractors.length > 1 ? <div className="attractor-selector" onClick={(event) => event.stopPropagation()}><span>{attractors.length} ATRACTORES</span><select value={rid(attractor ?? {}, '')} onChange={(event) => setActiveId(event.target.value)}>{attractors.map((item) => <option key={rid(item, 'attractor')} value={rid(item, 'attractor')}>{text(item.label ?? item.attractor_key)}</option>)}</select></div> : null}
-    <div className="attractor-core"><span>{attractor ? text(attractor.label ?? attractor.attractor_key) : 'SIN ATRACTOR DECLARADO'}</span><small>{attractor ? `${text(attractor.status, 'DECLARED')} · ${when(rowDate(attractor))}` : 'MISSING'}</small></div>
-    {dimensions.map((dimension, index) => {
-      const angle = index / Math.max(1, dimensions.length) * Math.PI * 2;
-      const x = 50 + Math.cos(angle) * 32;
-      const y = 50 + Math.sin(angle) * 32;
-      const status = contradicted.has(dimension) ? 'bad' : supported.has(dimension) ? 'ok' : missing.has(dimension) ? 'idle' : 'warn';
-      return <span className="orbit-node" data-tone={status} key={dimension} style={{ left: `${x}%`, top: `${y}%` }} title={dimension}>{index + 1}</span>;
-    })}
-  </div>;
-}
-
 export function RootObservatoryWorkspace({ state, accessMode, actorLabel, refreshing, warning, onRefresh, onSelect, onAction }: {
   state: RootSovereignState;
   accessMode: AccessMode;
@@ -315,6 +319,7 @@ export function RootObservatoryWorkspace({ state, accessMode, actorLabel, refres
   const [clock, setClock] = useState(() => new Date());
   const [activeModule, setActiveModule] = useState<string | null>(null);
   const [surface, setSurface] = useState<SurfaceSpec | null>(null);
+  const [toolStatus, setToolStatus] = useState<ToolStatus>(null);
   useEffect(() => { const id = window.setInterval(() => setClock(new Date()), 1000); return () => window.clearInterval(id); }, []);
 
   const phiFact = state.interpretation.facts.find((fact) => fact.id === 'institutional-position');
@@ -339,6 +344,13 @@ export function RootObservatoryWorkspace({ state, accessMode, actorLabel, refres
     ...state.governance.data.audits.map((row) => ({ kind: 'audit', row })),
   ].sort((a, b) => new Date(rowDate(b.row) ?? 0).valueOf() - new Date(rowDate(a.row) ?? 0).valueOf()).slice(0, 40);
 
+  const governanceOpen = state.governance.data.proposals.filter((row) => !['executed', 'blocked', 'rejected', 'closed'].includes(text(row.status, '').toLowerCase())).length
+    + state.governance.data.mutations.filter((row) => !['executed', 'closed', 'rejected'].includes(text(row.status, '').toLowerCase())).length;
+  const predictionOpen = state.predictions.data.runs.filter((row) => ['OPEN', 'WAITING_EVIDENCE', 'DUE', 'PROPOSED'].includes(text(row.status, '').toUpperCase())).length
+    + state.predictions.data.legacyEntries.filter((row) => !['verified', 'closed', 'falsified'].includes(text(row.estado_observacion, '').toLowerCase())).length;
+  const latestEvidenceAt = [...state.evidence.data.entries, ...state.evidence.data.ledger].map(rowDate).filter((value): value is string => Boolean(value)).sort((a, b) => millis(b) - millis(a))[0] ?? null;
+  const activeAttractors = state.amv.data.attractors.filter((row) => !['archived', 'retired', 'closed'].includes(text(row.status, '').toLowerCase())).length;
+
   const byFamily = new Map<string, typeof capabilities>();
   for (const capability of capabilities) {
     const family = capability.id === 'daily' || capability.id === 'audit' ? 'OBSERVAR'
@@ -356,29 +368,47 @@ export function RootObservatoryWorkspace({ state, accessMode, actorLabel, refres
   const relatedFact = (divergenceId: string) => state.interpretation.facts.find((fact) => fact.id === DIVERGENCE_FACT[divergenceId]) ?? null;
   const institutionalEvidence = Array.from(new Set(state.interpretation.facts.flatMap((fact) => fact.evidenceIds)));
   const moduleSpec = MODULES.find((module) => module.id === activeModule) ?? null;
-  const openTool = (tool: ModuleTool) => {
-    if (tool.kind === 'event') window.dispatchEvent(new Event(tool.target));
-    else setSurface({ title: tool.label, href: tool.target });
+
+  const openTool = async (tool: ModuleTool) => {
+    setToolStatus(null);
+    if (tool.kind === 'event') { window.dispatchEvent(new Event(tool.target)); return; }
+    if (tool.kind === 'surface') { setSurface({ title: tool.label, href: tool.target }); return; }
+    if (accessMode !== 'sovereign') { setToolStatus({ text: 'Esta acción de mantenimiento requiere ROOT soberano.', tone: 'bad' }); return; }
+    setToolStatus({ text: `${tool.label} · ejecutando`, tone: 'idle' });
+    try {
+      const response = await fetch(tool.target, { method: 'POST', credentials: 'include' });
+      const body = await response.json().catch(() => null) as Record<string, unknown> | null;
+      if (!response.ok || !body?.ok) throw new Error(text(body?.error, `HTTP ${response.status}`));
+      const reconciliation = rec(body.reconciliation);
+      setToolStatus({ text: `${tool.label} · ${text(reconciliation.nodesCreated, '0')} nodos nuevos · ${text(reconciliation.nodesUpdated, '0')} actualizados · ${text(reconciliation.edgesCreated, '0')} edges nuevos · ${Array.isArray(reconciliation.warnings) ? reconciliation.warnings.length : 0} warnings`, tone: Array.isArray(reconciliation.warnings) && reconciliation.warnings.length ? 'idle' : 'ok' });
+      onRefresh();
+    } catch (error) {
+      setToolStatus({ text: error instanceof Error ? error.message : 'No fue posible ejecutar la acción.', tone: 'bad' });
+    }
   };
 
   return <div className="root-observatory">
     <header className="root-hdr">
-      <strong>SFI · ROOT</strong><span>01 · ESTADO INSTITUCIONAL</span><b>ΦSFI <em>{phi}</em></b>
-      <span>AGENTES <i>{executed}/{agents.length || '—'}</i></span><span>CAPACIDADES <i>{available}/{capabilities.length || '—'}</i></span><span>EVIDENCIA <i>{evidenceCount}</i></span>
-      <span>GRAFO <i data-tone={tone(graphStatus)}>{graphStatus}</i></span><span>ATRACTOR <i>{attractor ? text(attractor.status, 'DECLARED').toUpperCase() : 'MISSING'}</i></span><span>DIVERGENCIAS <i>{divergenceCount}</i></span>
+      <strong>SFI · ROOT</strong><b>ΦSFI <em>{phi}</em></b>
+      <span className="hdr-health" data-tone={sourceOk === sources.length ? 'ok' : 'bad'}>FUENTES <i>{sourceOk}/{sources.length}</i></span>
+      <span>GRAFO <i data-tone={tone(graphStatus)}>{state.evidence.data.nodes.length}N/{state.evidence.data.edges.length}E · {graphStatus}</i></span>
+      <span>COLA <i>{governanceOpen}</i></span><span>PRED <i>{predictionOpen} abiertas · {state.predictions.data.outcomes.length} outcomes</i></span>
+      <span>AGENTES <i>{executed}/{agents.length || '—'}</i></span><span>ATR <i>{activeAttractors}</i></span>
+      <span className="hdr-evidence-time">ÚLTIMA EVIDENCIA <i>{when(latestEvidenceAt)}</i></span>
       <div className="root-hdr-right"><button type="button" onClick={onRefresh}>{refreshing ? 'ACTUALIZANDO' : 'ACTUALIZAR'}</button><span>{actorLabel} · {accessMode === 'sovereign' ? 'SOVEREIGN' : 'OBSERVER'}</span><time>{clock.toLocaleTimeString('es-MX')}</time></div>
     </header>
 
     <aside className="root-side">
       <small>TOPOLOGÍA</small>{(['all', 'I', 'II', 'III'] as const).map((topology) => <button key={topology} className={filter === topology ? 'active' : ''} onClick={() => setFilter(topology)}>{topology === 'all' ? 'Ø' : topology}</button>)}
       <small>MÓDULOS</small>{MODULES.map((module) => <button key={module.id} className={activeModule === module.id ? 'active' : ''} onClick={() => { jump(`mod-${module.id}`); setActiveModule((current) => current === module.id ? null : module.id); }}>{module.id}<span>{module.label}{module.tools.length ? ` · ${module.tools.length} herramientas` : ''}</span></button>)}
+      <small>SUPERFICIES</small>{ROOT_SURFACES.map((tool) => <button key={tool.code} type="button" className={`surface-code ${tool.code === 'SF' ? 'chat' : ''}`} title={tool.title} onClick={() => void openTool(tool)}>{tool.code}<span>{tool.title}</span></button>)}
     </aside>
 
     {moduleSpec ? <div className="root-module-menu">
       <header><div><b>{moduleSpec.id}</b><span>{moduleSpec.label}</span></div><button type="button" onClick={() => setActiveModule(null)}>×</button></header>
       <button type="button" onClick={() => { jump(`mod-${moduleSpec.id}`); setActiveModule(null); }}>VER PANEL EN ROOT</button>
-      {moduleSpec.tools.map((tool) => <button type="button" key={`${tool.kind}:${tool.target}`} onClick={() => openTool(tool)}>{tool.label}<small>{tool.kind === 'surface' ? 'FRAME INTERNO' : 'RUNTIME INTERNO'}</small></button>)}
-      {!moduleSpec.tools.length ? <p>Este módulo no tiene una superficie separada. Su operación ocurre directamente en el panel.</p> : null}
+      {moduleSpec.tools.map((tool) => <button type="button" key={`${tool.kind}:${tool.target}`} onClick={() => void openTool(tool)}>{tool.label}<small>{tool.kind === 'surface' ? 'FRAME INTERNO' : tool.kind === 'event' ? 'RUNTIME INTERNO' : 'ACCIÓN ACOTADA'}</small></button>)}
+      {toolStatus ? <p className="tool-status" data-tone={toolStatus.tone}>{toolStatus.text}</p> : null}
     </div> : null}
 
     <main className="root-observatory-main">
@@ -402,7 +432,7 @@ export function RootObservatoryWorkspace({ state, accessMode, actorLabel, refres
 
           <Panel id="mod-institution" module="01a · INSTITUCIONALIZACIÓN" label="Founder dependency / transferencia" status="declared" statusContext="CLASE" source="FEP-01 + Cognitive Twin memory" width="l"><div className="intake-live"><p>Observa dónde SFI todavía depende del fundador, separa criterio transferible de autoridad reservada y exige reproducción antes de declarar capacidad institucional.</p><button type="button" onClick={() => setSurface({ title: 'INSTITUCIONALIZACIÓN', href: '/root/institutionalization' })}>ABRIR INSTITUTIONALIZATION →</button><button type="button" onClick={() => setSurface({ title: 'REPORTES DE AGENTES', href: '/root/reports' })}>LEER REPORTES DE AGENTES →</button></div></Panel>
 
-          <Panel id="mod-04-intake" module="04a · EVIDENCIA" label="Evidence Intake" status="observed" statusContext="ESTADO" source="root_evidence_entries" width="l"><div className="intake-live"><p>Captura evidencia con procedencia explícita. El contenido no se autopromueve a CANONICAL.</p><button type="button" onClick={() => setSurface({ title: 'EVIDENCE INTAKE', href: '/root/evidence/intake' })}>REGISTRAR / VINCULAR EVIDENCIA →</button></div></Panel>
+          <Panel id="mod-04-chat" module="04a · SFI" label="Chat / mantenimiento contextual" status="available" statusContext="ESTADO" source="Friccionauta + Cognitive Twin" width="l"><div className="chat-root-panel"><p>El chat con SFI permanece disponible. La evidencia se agrega desde el nodo/hipótesis/atractor seleccionado; el intake global deja de ocupar este espacio.</p><button type="button" onClick={() => window.dispatchEvent(new Event('sfi:open-friccionauta'))}>ABRIR CHAT CON SFI →</button>{accessMode === 'sovereign' ? <button type="button" onClick={() => void openTool({ label: 'RECONCILIAR GRAFO', kind: 'api', target: '/api/root/evidence/reconcile' })}>RECONCILIAR GRAFO PERSISTIDO →</button> : null}<small>Leer ROOT no ejecuta reconciliación. La reconciliación es explícita, auditable e idempotente.</small></div></Panel>
 
           <Panel id="mod-10" module="10 · GOBERNANZA" label="Capacidades ejecutables" status={state.execution.error ? 'degraded' : state.execution.dataClass} statusContext="SALUD" source={state.execution.source} width="l"><div className="cap-groups">{[...byFamily.entries()].map(([family, items]) => <div key={family}><b>{family}</b>{items.map((capability) => <button key={capability.id} type="button" data-tone={tone(capability.state)} onClick={(event) => { event.stopPropagation(); onAction({ id: capability.id, label: capability.label, effect: capability.description, target: capability.endpoint ?? capability.id, endpoint: capability.endpoint, method: 'POST' }); }}>{capability.label}<i>{statusLabel(capability.state, 'ESTADO')}</i></button>)}</div>)}</div></Panel>
         </div>
@@ -413,9 +443,9 @@ export function RootObservatoryWorkspace({ state, accessMode, actorLabel, refres
         <div className="panel-strip">
           <Panel id="mod-04" module="04 · EVIDENCIA" label="Grafo relacional / longitudinal" status={graphStatus} statusContext="SALUD" source={state.evidence.source} width="xl"><EvidenceGraph state={state} onSelect={onSelect} /></Panel>
           <Panel id="mod-05" module="05 · RUNTIME" label={`${agents.length} agentes`} status={state.cognitiveRuntime.data.status} statusContext="SALUD" source={state.cognitiveRuntime.source} width="l"><Rows rows={agents.map((agent) => ({ name: agent.name, sub: `${agent.layer} · ${agent.domain}`, status: agent.status, statusContext: 'ESTADO', onClick: () => onSelect(sel({ kind: 'agent', id: agent.id, title: agent.name, source: state.cognitiveRuntime.source, observedAt: state.cognitiveRuntime.observedAt, evidenceIds: agentEvidenceIds(agent.id), data: agent })) }))} /></Panel>
-          <Panel id="mod-06" module="06 · COGNITIVE TWIN" label="Hipótesis persistidas / contradicciones" status={state.predictions.error ? 'degraded' : hypotheses.length ? 'observed' : 'missing'} statusContext="ESTADO" source={state.predictions.source}><Rows rows={hypotheses.slice(0, 20).map((row, index) => ({ name: text(row.title ?? row.hypothesis ?? row.status, `Hipótesis ${index + 1}`), sub: text(row.learning_state ?? row.status, ''), status: text(row.epistemic_class ?? row.status, 'inferred'), statusContext: 'CLASE', onClick: () => onSelect(sel({ kind: 'hypothesis', id: rid(row, `hyp-${index}`), title: text(row.title ?? row.hypothesis, `Hipótesis ${index + 1}`), source: state.predictions.source, observedAt: rowDate(row), evidenceIds: strings(row.evidence_refs), data: row })) }))} /></Panel>
-          <Panel id="mod-07" module="07 · PROYECCIÓN" label="Predicción / outcome" status={state.predictions.error ? 'degraded' : state.predictions.dataClass} statusContext="SALUD" source={state.predictions.source}><div className="metric-cluster"><b>{state.predictions.data.runs.length + state.predictions.data.legacyEntries.length}<small>PREDICCIONES</small></b><b>{state.predictions.data.outcomes.length}<small>OUTCOMES</small></b><b>{state.predictions.data.learningEvents.length}<small>LEARNING</small></b></div></Panel>
-          <Panel id="mod-08" module="08 · ATRACTORES" label="Campo institucional · seleccionable" status={attractor ? text(attractor.status, 'declared') : 'missing'} statusContext="CLASE" source={state.amv.source} width="xl"><AttractorField state={state} onSelect={onSelect} /></Panel>
+          <Panel id="mod-06" module="06 · COGNITIVE TWIN" label="Hipótesis persistidas / contradicciones" status={state.predictions.error ? 'degraded' : hypotheses.length ? 'observed' : 'missing'} statusContext="ESTADO" source={state.predictions.source}><Rows rows={hypotheses.slice(0, 20).map((row, index) => ({ name: text(row.title ?? row.hypothesis ?? row.interpretation ?? row.prediccion_explicita ?? row.status, `Hipótesis ${index + 1}`), sub: text(row.learning_state ?? row.status, ''), status: text(row.epistemic_class ?? row.status, 'inferred'), statusContext: 'CLASE', onClick: () => onSelect(sel({ kind: 'hypothesis', id: rid(row, `hyp-${index}`), title: text(row.title ?? row.hypothesis ?? row.interpretation ?? row.prediccion_explicita, `Hipótesis ${index + 1}`), source: state.predictions.source, observedAt: rowDate(row), evidenceIds: strings(row.evidence_refs), data: row })) }))} /></Panel>
+          <Panel id="mod-07" module="07 · PROYECCIÓN" label="Prediction Outcome · ramas longitudinales" status={state.predictions.error ? 'degraded' : state.predictions.dataClass} statusContext="SALUD" source={state.predictions.source} width="xl"><PredictionOutcomeTree state={state} onSelect={onSelect} /></Panel>
+          <Panel id="mod-08" module="08 · ATRACTORES" label="Campo dinámico / longitudinal" status={attractor ? text(attractor.status, 'declared') : 'missing'} statusContext="CLASE" source={state.amv.source} width="xl"><DynamicAttractorField state={state} onSelect={onSelect} /></Panel>
         </div>
       </section>
 

@@ -1,13 +1,11 @@
 import 'server-only';
-import { ensureInstitutionalAttractorDeclaration } from '@/lib/institution/ensureInstitutionalAttractor';
 import { dateValue, selectRows, source } from './readerSupport';
 
 export async function readRootAmv() {
-  const ensured = await ensureInstitutionalAttractorDeclaration();
   const [memory, attractors, ejectors] = await Promise.all([
-    selectRows({ table: 'sfi_amv_memory', select: 'id,session_id,module,input_hash,input_summary,inference,decision,output_summary,evaluation,memory_delta,uncertainty,source_trust,requires_human_validation,created_at', order: 'created_at', limit: 80 }),
-    selectRows({ table: 'sfi_attractors', select: 'id,attractor_key,label,module,owner_node_key,attractor_type,confidence,persistence,trust,weight,evidence_count,status,vector,first_seen,last_seen,created_at,updated_at', order: 'updated_at', limit: 40 }),
-    selectRows({ table: 'sfi_ejectors', select: 'id,ejector_key,label,module,owner_node_key,contradiction,unresolved_debt,decay,external_pressure,weight,evidence_count,status,vector,first_seen,last_seen,created_at,updated_at', order: 'updated_at', limit: 40 }),
+    selectRows({ table: 'sfi_amv_memory', select: 'id,session_id,module,input_hash,input_summary,inference,decision,output_summary,evaluation,memory_delta,uncertainty,source_trust,requires_human_validation,created_at', order: 'created_at', limit: 60 }),
+    selectRows({ table: 'sfi_attractors', select: 'id,attractor_key,label,module,owner_node_key,attractor_type,confidence,persistence,trust,weight,evidence_count,status,vector,first_seen,last_seen,created_at,updated_at', order: 'updated_at', limit: 60 }),
+    selectRows({ table: 'sfi_ejectors', select: 'id,ejector_key,label,module,owner_node_key,contradiction,unresolved_debt,decay,external_pressure,weight,evidence_count,status,vector,first_seen,last_seen,created_at,updated_at', order: 'updated_at', limit: 60 }),
   ]);
 
   const observedAt = dateValue(
@@ -21,7 +19,7 @@ export async function readRootAmv() {
   return source(
     { memories: memory.rows, attractors: attractors.rows, ejectors: ejectors.rows },
     'sfi_amv_memory + sfi_attractors + sfi_ejectors',
-    [memory.error, attractors.error, ejectors.error, ensured.error],
+    [memory.error, attractors.error, ejectors.error],
     observedAt,
     nothingPersisted,
   );
