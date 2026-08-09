@@ -224,6 +224,7 @@ export async function readStudioFieldState(input: { ownerId: string; sessionId?:
     };
   }
 
+  const activeSession = session ?? {};
   const objectsResult = await db.from('studio_objects').select('*').eq('session_id', sessionId).eq('owner_id', input.ownerId).order('created_at', { ascending: true }).limit(120);
   const objects = (objectsResult.data ?? []).map((item) => record(item));
   const objectIds = objects.map((item) => text(item.id)).filter((value): value is string => Boolean(value));
@@ -253,16 +254,16 @@ export async function readStudioFieldState(input: { ownerId: string; sessionId?:
   const cognitiveResult = record(cognitivePayload.result);
   const ejector = Object.keys(record(cognitiveResult.ejector)).length ? record(cognitiveResult.ejector) : null;
   const visual = world ? worldVisualState(world.observation.domain_values, world.observation.confidence) : worldVisualState([], 0);
-  const timeline = timelineFromRows({ session, field, objects, jobs, evidence, hypotheses, interventions, archive });
+  const timeline = timelineFromRows({ session: activeSession, field, objects, jobs, evidence, hypotheses, interventions, archive });
 
   return {
     generatedAt: new Date().toISOString(),
     session: {
       id: sessionId,
-      title: text(session.title) ?? 'Studio Field',
-      status: text(session.status) ?? 'active',
-      createdAt: text(session.created_at),
-      updatedAt: text(session.updated_at),
+      title: text(activeSession.title) ?? 'Studio Field',
+      status: text(activeSession.status) ?? 'active',
+      createdAt: text(activeSession.created_at),
+      updatedAt: text(activeSession.updated_at),
     },
     field,
     objects: objects.map((row) => {
