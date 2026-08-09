@@ -14,6 +14,12 @@ function strings(value: unknown) { return Array.isArray(value) ? value.filter((i
 function uniqueRows(items: any[], key: string) {
   return Array.from(new Map(items.filter(Boolean).map((item) => [text(item?.[key], JSON.stringify(item)), item])).values());
 }
+function connectedNodeIds(edges: any[], excluded: string[]) {
+  return Array.from(new Set<string>(edges.flatMap((edge) => [text(edge?.source_node_id), text(edge?.target_node_id)]).filter((nodeId): nodeId is string => Boolean(nodeId) && !excluded.includes(nodeId))));
+}
+function edgeFilterFor(nodeIds: string[]) {
+  return nodeIds.flatMap((nodeId) => [`source_node_id.eq.${nodeId}`, `target_node_id.eq.${nodeId}`]).join(',');
+}
 
 async function worldContext(at: string | null) {
   const [historical, current] = await Promise.all([
@@ -121,24 +127,21 @@ async function evidenceContext(service: any, id: string) {
   const summary = rec(row.public_summary);
   const evidenceKey = text(metadata.evidenceKey ?? summary.evidenceKey);
   const caseId = text(metadata.caseId ?? row.case_id);
-  const nodeCandidates = Array.from(new Set([
-    resolved.node?.node_id,
-    hash ? `root_evidence:${hash.slice(0, 24)}` : null,
-    hash ? `ledger_evidence:${hash.slice(0, 24)}` : null,
+  const nodeCandidates = Array.from(new Set<string>([
+    text(resolved.node?.node_id),
+    hash ? `root_evidence:${hash.slice(0, 24)}` : '',
+    hash ? `ledger_evidence:${hash.slice(0, 24)}` : '',
   ].filter((value): value is string => Boolean(value))));
   const nodes = nodeCandidates.length ? await service.from('graph_nodes').select('*').in('node_id', nodeCandidates) : { data: [] };
-  const nodeIds = (nodes.data ?? []).map((node: any) => node.node_id).filter(Boolean);
-  const directEdgeFilter = nodeIds.flatMap((nodeId: string) => [`source_node_id.eq.${nodeId}`, `target_node_id.eq.${nodeId}`]).join(',');
-  const directEdges = nodeIds.length ? await service.from('graph_edges').select('*').or(directEdgeFilter) : { data: [] };
-  const firstHopIds = Array.from(new Set((directEdges.data ?? []).flatMap((edge: any) => [edge.source_node_id, edge.target_node_id]).filter((nodeId: string) => nodeId && !nodeIds.includes(nodeId))));
+  const nodeIds = (nodes.data ?? []).map((node: any) => text(node?.node_id)).filter((nodeId: string): nodeId is string => Boolean(nodeId));
+  const directEdges = nodeIds.length ? await service.from('graph_edges').select('*').or(edgeFilterFor(nodeIds)) : { data: [] };
+  const firstHopIds = connectedNodeIds(directEdges.data ?? [], nodeIds);
 
-  // Traverse one additional hop so the root/ledger mirror does not hide its contextual
-  // case/module/source relationships. Two hops is deliberate: enough to expose declared
-  // provenance context without turning the inspector into an unbounded graph crawl.
-  const secondEdgeFilter = firstHopIds.flatMap((nodeId: string) => [`source_node_id.eq.${nodeId}`, `target_node_id.eq.${nodeId}`]).join(',');
-  const secondEdges = firstHopIds.length ? await service.from('graph_edges').select('*').or(secondEdgeFilter) : { data: [] };
+  // Two hops are intentional: enough to get beyond the root/ledger mirror and expose
+  // case/module/source relations, without performing an unbounded graph crawl.
+  const secondEdges = firstHopIds.length ? await service.from('graph_edges').select('*').or(edgeFilterFor(firstHopIds)) : { data: [] };
   const allEdges = uniqueRows([...(directEdges.data ?? []), ...(secondEdges.data ?? [])], 'edge_id');
-  const relatedIds = Array.from(new Set(allEdges.flatMap((edge: any) => [edge.source_node_id, edge.target_node_id]).filter((nodeId: string) => nodeId && !nodeIds.includes(nodeId))));
+  const relatedIds = connectedNodeIds(allEdges, nodeIds);
   const relatedNodes = relatedIds.length ? await service.from('graph_nodes').select('*').in('node_id', relatedIds) : { data: [] };
 
   const attractors = await service.from('sfi_attractors').select('*').order('updated_at', { ascending: false }).limit(250);
