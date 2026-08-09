@@ -48,9 +48,13 @@ for (const token of [
 ]) assert.ok(`${runtime}\n${twinContext}`.includes(token), `studio_cognitive_contract_missing:${token}`);
 
 assert.ok(llmBridge.includes("epistemicClass: 'INFERENCE'"), 'llm_inference_classification_missing');
-assert.ok(llmBridge.includes('Evidence before inference'), 'llm_twin_grounding_missing');
+assert.ok(/evidence before inference/i.test(llmBridge), 'llm_twin_grounding_missing');
+assert.ok(/CANDIDATE Cognitive Twin memory/i.test(llmBridge), 'candidate_memory_epistemic_boundary_missing');
 assert.ok(llmBridge.includes('LLM_PROVIDER_UNAVAILABLE'), 'llm_fail_closed_missing');
 assert.ok(!/Math\.random\(\).*confidence|fake|demo data/i.test(`${runtime}\n${llmBridge}`), 'synthetic_cognitive_output_pattern_present');
+assert.ok(twinContext.includes("upsert({"), 'studio_learning_must_upsert_not_duplicate');
+assert.ok(twinContext.includes("onConflict: 'memory_key,version'"), 'studio_learning_conflict_key_missing');
+assert.ok(twinContext.includes('stableStudioLearningKey'), 'studio_learning_stable_key_missing');
 
 assert.ok(packageAnalyzer.includes('Range:'), 'zip_range_read_missing');
 assert.ok(packageAnalyzer.includes('sourceFileSha256: null'), 'zip_full_hash_must_not_be_claimed');
@@ -77,8 +81,9 @@ console.log(JSON.stringify({
   existingAgentExecutorsVerified: requiredAgents.length,
   cognitiveTwinBound: true,
   llmInferenceFailClosed: true,
+  candidateMemoryNonCanonical: true,
   independentVerificationRequired: true,
-  learningPersistsAsCandidate: true,
+  learningPersistsAsStableCandidateUpsert: true,
   sfiMethodsPersisted: ['FAD', 'MIHM', 'MOP-H', 'DIOL-SF'],
   zipRangeAnalysis: true,
   zipHeavySourcePurged: true,
