@@ -71,7 +71,8 @@ async function readOrProvisionInstitutionalProfile(user: { id: string; email?: s
         field: member.modules.field,
         studio: member.modules.studio,
         world_field: member.modules.worldField,
-        root: false,
+        root: member.modules.root,
+        root_observe: member.modules.root,
       },
       last_seen_at: new Date().toISOString(),
     })
@@ -85,7 +86,7 @@ async function readOrProvisionInstitutionalProfile(user: { id: string; email?: s
 export async function requireSfiMember() {
   const context = await requireAuthenticatedUser();
   const resolved = await readOrProvisionInstitutionalProfile(context.user);
-  const allowedRoles = new Set(['operator', 'controller', 'root', 'system']);
+  const allowedRoles = new Set(['operator', 'controller', 'observer', 'root', 'system']);
   if (!resolved.profile || (!allowedRoles.has(String(resolved.profile.role)) && !resolved.member)) {
     throw new AccessDeniedError(403, 'SFI_MEMBER_REQUIRED', 'An active SFI institutional membership is required.');
   }
