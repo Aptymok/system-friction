@@ -62,8 +62,10 @@ export type RootEvidenceEdge = {
   from: string;
   to: string;
   relation: string;
+  relationClass: string;
   weight: number | null;
   confidence: number | null;
+  observedAt: string | null;
   evidenceIds: string[];
   source: string;
 };
