@@ -11,6 +11,22 @@ export type ObservatoryLongitudinalPoint = {
   ingestMode: string;
 };
 
+export type ObservatoryTemporalFrame = {
+  observedAt: string;
+  wsi: number | null;
+  nti: number | null;
+  confidence: number | null;
+  sourceState: string;
+  ingestMode: string;
+  vectors: Array<{
+    id: string;
+    label: string;
+    value: number | null;
+    sourceCount: number;
+    trust: number | null;
+  }>;
+};
+
 export type ObservatoryGoldState = {
   generatedAt: string;
   systemState: ObservatoryGoldSystemState;
@@ -44,6 +60,8 @@ export type ObservatoryGoldState = {
       confidence: number | null;
     };
   };
+
+  temporalFrames?: ObservatoryTemporalFrame[];
 
   explanation: {
     title: string;
