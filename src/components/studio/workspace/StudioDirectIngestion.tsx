@@ -19,7 +19,15 @@ async function json(response: Response) {
   return body;
 }
 
-export function StudioDirectIngestion({ sessionId = null, compact = false }: { sessionId?: string | null; compact?: boolean }) {
+export function StudioDirectIngestion({
+  sessionId = null,
+  fieldNodeId = null,
+  compact = false,
+}: {
+  sessionId?: string | null;
+  fieldNodeId?: string | null;
+  compact?: boolean;
+}) {
   const [stage, setStage] = useState<'IDLE' | 'PREPARING' | 'UPLOADING' | 'VERIFYING' | 'ANALYZING' | 'FAILED'>('IDLE');
   const [detail, setDetail] = useState<string>('El archivo se usa como evidencia. Los ZIP de sesión se reducen a un manifiesto persistente y el archivo pesado se descarta después de extraerlo.');
 
@@ -87,6 +95,15 @@ export function StudioDirectIngestion({ sessionId = null, compact = false }: { s
         body: JSON.stringify({ force: false }),
       }));
 
+      if (sessionId && fieldNodeId) {
+        await json(await fetch('/api/studio/field', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ action: 'attach_object', sessionId, objectId: prepared.objectId, nodeId: fieldNodeId }),
+        }));
+      }
+
       const status = String(analysis.status ?? 'COMPLETE');
       setDetail(`Análisis ${status}. Abriendo el objeto persistido.`);
       window.location.assign(`/studio?objectId=${encodeURIComponent(prepared.objectId)}`);
@@ -101,7 +118,7 @@ export function StudioDirectIngestion({ sessionId = null, compact = false }: { s
       <div className="studio-ingestion__head">
         <div>
           <span>INGESTA</span>
-          <strong>{sessionId ? 'Cargar evidencia al nodo' : 'Crear primer objeto'}</strong>
+          <strong>{sessionId ? (fieldNodeId ? 'Cargar evidencia al nodo' : 'Cargar evidencia al campo') : 'Crear primer objeto'}</strong>
         </div>
         <small>{stage}</small>
       </div>
