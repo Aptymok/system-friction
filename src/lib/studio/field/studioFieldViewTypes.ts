@@ -63,7 +63,7 @@ export type StudioFieldViewState = {
   world: null | {
     observed_at: string | null;
     sector: string;
-    day_of_week: number;
+    day_of_week: string;
     source_snapshot_id: string | null;
     domain_values: Array<{ domain: string; value: number | null; confidence: number | null; source_count: number }>;
     dominant_sources: Array<{ key: string; label: string; domain: string; value: number | null; confidence: number | null }>;
