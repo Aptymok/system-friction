@@ -22,6 +22,10 @@ const packageAnalyzer = read('src/lib/studio/multimodal/sessionPackageAnalyzer.t
 const packageRoute = read('src/app/api/studio/objects/[id]/analyze/package/route.ts');
 const reconstructionRoute = read('src/app/api/studio/session/reconstruct/route.ts');
 const reconstructionUi = read('src/components/studio/workspace/StudioSessionReconstruction.tsx');
+const masterLoop = read('src/lib/studio/cognitive/studioMasterAnalysisLoop.ts');
+const masterRoute = read('src/app/api/studio/objects/[id]/master-analysis/route.ts');
+const masterUi = read('src/components/studio/production/StudioMasterAnalysisControl.tsx');
+const productionConsole = read('src/components/studio/production/StudioProductionConsole.tsx');
 const fieldState = read('src/lib/studio/field/studioFieldState.ts');
 
 const requiredAgents = [
@@ -83,6 +87,23 @@ assert.ok(/does not prove routing|does not prove routing/i.test(reconstructionRo
 assert.ok(reconstructionUi.includes('OWNER PRIVATE'), 'session_reconstruction_privacy_ui_missing');
 assert.ok(reconstructionUi.includes('/api/studio/session/reconstruct'), 'session_reconstruction_ui_not_wired');
 
+for (const token of [
+  'STUDIO_MASTER_ANALYSIS_MIN_PASSES = 2',
+  'STUDIO_MASTER_ANALYSIS_MAX_PASSES = 3',
+  "action: 'analyze'",
+  'STRUCTURAL_STATE_STABLE',
+  'MAX_PASSES_REACHED',
+  'studio_master_analysis_loop_v1',
+  'MASTER_ANALYSIS_LOOP_COMPLETED',
+]) assert.ok(masterLoop.includes(token), `master_analysis_loop_contract_missing:${token}`);
+assert.ok(!/while\s*\(|setInterval\s*\(|setTimeout\s*\(|sleep\s*\(/.test(masterLoop), 'master_analysis_must_not_wait_or_loop_unbounded');
+assert.ok(masterLoop.includes('pass <= STUDIO_MASTER_ANALYSIS_MAX_PASSES'), 'master_analysis_explicit_pass_bound_missing');
+assert.ok(masterRoute.includes('requireObjectOwner'), 'master_analysis_owner_gate_missing');
+assert.ok(masterRoute.includes('runStudioMasterAnalysisLoop'), 'master_analysis_route_not_wired');
+assert.ok(masterUi.includes('/master-analysis'), 'master_analysis_ui_not_wired');
+assert.ok(masterUi.includes('máximo 3'), 'master_analysis_ui_finite_contract_missing');
+assert.ok(productionConsole.includes('StudioMasterAnalysisControl'), 'master_analysis_control_not_rendered');
+
 const migrationFiles = walk('supabase/migrations').filter((file) => file.endsWith('.sql'));
 const migrationText = migrationFiles.map((file) => readFileSync(file, 'utf8')).join('\n');
 assert.ok(!/create\s+table\s+(?:if\s+not\s+exists\s+)?(?:public\.)?studio_object_relations\b/i.test(migrationText), 'duplicate_studio_relation_table_present');
@@ -106,6 +127,9 @@ console.log(JSON.stringify({
   zipHeavySourcePurged: true,
   sessionReconstructionOwnerScoped: true,
   sessionReconstructionUsesExistingRuntime: true,
+  masterAnalysisFinite: true,
+  masterAnalysisPassBudget: [2, 3],
+  masterAnalysisOwnerScoped: true,
   duplicateRelationTable: false,
   removedDashboardComponents: 3,
 }, null, 2));
