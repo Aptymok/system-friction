@@ -12,6 +12,8 @@ export const maxDuration = 300;
 const ROOT_EVIDENCE_BUCKET = 'root-evidence';
 const MAX_ATTACHMENT_BYTES = 80 * 1024 * 1024;
 const RELATIONS = new Set(['supports', 'contradicts', 'contextualizes', 'records']);
+const LEGACY_NODE_STORAGE_TYPE = 'INF';
+const LEGACY_EDGE_STORAGE_TYPE = 'structural_inferred';
 
 type ParsedEvidence = {
   title: string | null;
@@ -188,37 +190,69 @@ export async function POST(req: Request) {
   }
 
   const evidenceNodeId = `root_evidence:${evidenceHash.slice(0, 24)}`;
+  const nodeAttributes = {
+    evidenceHash,
+    evidenceType,
+    rootEvidenceId: evidenceInsert.data.id,
+    targetNodeId,
+    attachment,
+    epistemicClass: 'OBSERVED',
+    observedObject: 'evidence_record',
+    sourceObservedAt: new Date().toISOString(),
+    actorRole,
+    storageNodeType: LEGACY_NODE_STORAGE_TYPE,
+  };
   const graphNode = await service.from('graph_nodes').upsert({
     node_id: evidenceNodeId,
+    node_key: evidenceNodeId,
     label: title,
+    node_type: LEGACY_NODE_STORAGE_TYPE,
     ontology_type: 'evidence',
+    origin: 'root_evidence',
+    epistemic_class: 'observed',
+    confidence: 1,
     lineage: [String(event.data.event_id ?? event.data.id)],
-    attributes: { evidenceHash, evidenceType, rootEvidenceId: evidenceInsert.data.id, targetNodeId, attachment, epistemicClass: 'OBSERVED', observedObject: 'evidence_record', actorRole },
+    payload: nodeAttributes,
+    attributes: nodeAttributes,
     updated_at: new Date().toISOString(),
   }, { onConflict: 'node_id' }).select('*').single();
 
   let graphEdge = null;
   if (targetNodeId && !graphNode.error) {
-    const target = await service.from('graph_nodes').select('node_id').eq('node_id', targetNodeId).maybeSingle();
-    if (target.error || !target.data) graphEdge = { error: target.error?.message ?? 'target_node_missing' };
+    const target = await service.from('graph_nodes').select('node_id,node_key').or(`node_id.eq.${targetNodeId},node_key.eq.${targetNodeId}`).maybeSingle();
+    const resolvedTarget = target.data ? String(target.data.node_key ?? target.data.node_id ?? '') : '';
+    if (target.error || !resolvedTarget) graphEdge = { error: target.error?.message ?? 'target_node_missing' };
     else {
+      const edgeAttributes = {
+        evidenceHash,
+        verified: false,
+        epistemicClass: 'DECLARED',
+        relationDeclaredBy: gate.ctx.user.id,
+        relationStrength: 'UNMEASURED',
+        declaredRelation: input.relationType,
+        declaredRelations: [input.relationType],
+        semanticRelationType: 'structural_declared',
+        semanticRelationTypes: ['structural_declared'],
+        storageRelationType: LEGACY_EDGE_STORAGE_TYPE,
+        observedAt: new Date().toISOString(),
+        attachment,
+      };
       const edge = await service.from('graph_edges').upsert({
-        edge_id: `${evidenceNodeId}->${targetNodeId}:${input.relationType}`,
+        edge_id: `${evidenceNodeId}->${resolvedTarget}:${LEGACY_EDGE_STORAGE_TYPE}`,
         source_node_id: evidenceNodeId,
-        target_node_id: targetNodeId,
+        target_node_id: resolvedTarget,
+        source_node_key: evidenceNodeId,
+        target_node_key: resolvedTarget,
         relation: input.relationType,
+        relation_type: LEGACY_EDGE_STORAGE_TYPE,
         weight: 0,
+        w_ij: 0,
+        confidence: 1,
         lineage: [String(event.data.event_id ?? event.data.id)],
-        attributes: {
-          evidenceHash,
-          verified: false,
-          epistemicClass: 'DECLARED',
-          relationDeclaredBy: gate.ctx.user.id,
-          relationStrength: 'UNMEASURED',
-          attachment,
-        },
+        payload: edgeAttributes,
+        attributes: edgeAttributes,
         updated_at: new Date().toISOString(),
-      }, { onConflict: 'edge_id' }).select('*').maybeSingle();
+      }, { onConflict: 'source_node_key,target_node_key,relation_type' }).select('*').maybeSingle();
       graphEdge = edge.error ? { error: edge.error.message } : edge.data;
     }
   }
