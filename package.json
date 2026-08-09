@@ -35,6 +35,7 @@
     "qa:sfi-studio-rhythm": "tsx scripts/qa-sfi-studio-rhythm.ts",
     "qa:sfi-studio-harmony": "tsx scripts/qa-sfi-studio-harmony.ts",
     "qa:sfi-studio-workspace": "tsx scripts/qa-sfi-studio-workspace.ts",
+    "qa:sfi-studio-cognitive": "tsx scripts/qa-sfi-studio-cognitive.ts",
     "qa:sfi-root-capability-matrix": "tsx scripts/qa-sfi-root-capability-matrix.ts",
     "typecheck": "tsc --noEmit --pretty false --incremental false",
     "phase:verify": "npm run check:boundaries && npm run typecheck",
