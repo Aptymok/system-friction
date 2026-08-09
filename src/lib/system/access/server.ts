@@ -15,6 +15,12 @@ export class AccessDeniedError extends Error {
   }
 }
 
+function record(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {};
+}
+
 function founderIds() {
   return new Set(
     (process.env.SFI_FOUNDER_USER_IDS || '')
@@ -30,6 +36,30 @@ function founderEmails() {
       .map((value) => value?.trim().toLowerCase())
       .filter((value): value is string => Boolean(value)),
   );
+}
+
+function institutionalModuleAccess(
+  member: NonNullable<ReturnType<typeof findInstitutionalMember>>,
+  current?: unknown,
+) {
+  return {
+    ...record(current),
+    observatory: member.modules.observatory,
+    planner: member.modules.field,
+    simulator: member.modules.studio,
+    social: member.modules.worldField,
+    field: member.modules.field,
+    studio: member.modules.studio,
+    world_field: member.modules.worldField,
+    root: member.modules.root,
+    root_observe: member.modules.root,
+    full_access: false,
+    executor: false,
+    root_execution: false,
+    governance_write: false,
+    sovereign_actions: false,
+    canonical_promotion: false,
+  };
 }
 
 export async function requireAuthenticatedUser() {
@@ -51,6 +81,28 @@ async function readOrProvisionInstitutionalProfile(user: { id: string; email?: s
     .maybeSingle();
 
   if (existing.error) throw existing.error;
+
+  if (existing.data && member) {
+    const reconciled = await service
+      .from('profiles')
+      .update({
+        email: member.email,
+        role: member.role,
+        subscription_tier: 'enterprise',
+        module_access: institutionalModuleAccess(member, existing.data.module_access),
+        last_seen_at: new Date().toISOString(),
+      })
+      .eq('user_id', user.id)
+      .select('user_id,alias,email,role,module_access,subscription_tier')
+      .single();
+
+    if (reconciled.error || !reconciled.data) {
+      throw reconciled.error ?? new Error('SFI member profile could not be reconciled.');
+    }
+
+    return { profile: reconciled.data, member };
+  }
+
   if (existing.data) return { profile: existing.data, member };
   if (!member) return { profile: null, member: null };
 
@@ -62,18 +114,7 @@ async function readOrProvisionInstitutionalProfile(user: { id: string; email?: s
       email: member.email,
       role: member.role,
       subscription_tier: 'enterprise',
-      module_access: {
-        observatory: member.modules.observatory,
-        planner: member.modules.field,
-        simulator: member.modules.studio,
-        executor: false,
-        social: member.modules.worldField,
-        field: member.modules.field,
-        studio: member.modules.studio,
-        world_field: member.modules.worldField,
-        root: member.modules.root,
-        root_observe: member.modules.root,
-      },
+      module_access: institutionalModuleAccess(member),
       last_seen_at: new Date().toISOString(),
     })
     .select('user_id,alias,email,role,module_access,subscription_tier')
@@ -117,16 +158,22 @@ export async function requireFounder() {
   const context = await requireAuthenticatedUser();
   const { data: profile } = await context.supabase
     .from('profiles')
-    .select('role')
+    .select('role,module_access')
     .eq('user_id', context.user.id)
     .maybeSingle();
 
   const email = context.user.email?.toLowerCase() || null;
+  const institutionalMember = findInstitutionalMember(email);
+  const moduleAccess = record(profile?.module_access);
+  const hasExplicitSovereignProfile =
+    !institutionalMember &&
+    (profile?.role === 'root' || profile?.role === 'system') &&
+    moduleAccess.full_access === true;
+
   const allowed =
     founderIds().has(context.user.id) ||
     Boolean(email && founderEmails().has(email)) ||
-    profile?.role === 'root' ||
-    profile?.role === 'system';
+    hasExplicitSovereignProfile;
 
   if (!allowed) {
     throw new AccessDeniedError(403, 'FOUNDER_REQUIRED', 'Founder authorization is required.');
