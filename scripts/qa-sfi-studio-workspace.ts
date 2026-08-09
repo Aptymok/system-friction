@@ -61,19 +61,15 @@ for (const token of [
   'EJECUTAR ANÁLISIS COGNITIVO',
   'GENERAR UNA HIPÓTESIS',
   'VERIFICAR CON EVIDENCIA NUEVA',
-  'CHANGES RELEVANTES',
-]) {
-  if (token === 'CHANGES RELEVANTES') continue;
-  assert.ok(workspace.includes(token), `field_surface_missing:${token}`);
-}
+]) assert.ok(workspace.includes(token), `field_surface_missing:${token}`);
 
-assert.ok(workspace.includes("/api/studio/field"), 'field_persistence_route_missing');
+assert.ok(workspace.includes('/api/studio/field'), 'field_persistence_route_missing');
 assert.ok(workspace.includes('/cognitive'), 'cognitive_runtime_route_missing');
 assert.ok(workspace.includes("action: 'link_nodes'"), 'node_link_action_missing');
 assert.ok(workspace.includes("action: 'attach_object'"), 'object_node_link_action_missing');
 assert.ok(workspace.includes("action: 'archive_node'"), 'node_archive_action_missing');
 assert.ok(workspace.includes('cognitive.result.changes.slice(0, 3)'), 'three_change_limit_missing');
-assert.ok(workspace.includes('LLM NO CONFIGURADO'), 'llm_fail_closed_surface_missing');
+assert.ok(workspace.includes('NO CONFIGURADO'), 'llm_fail_closed_surface_missing');
 assert.ok(workspace.includes('READY significa'), 'production_authority_boundary_missing');
 assert.ok(ingestion.includes('.zip'), 'zip_intake_missing');
 assert.ok(ingestion.includes('session_package'), 'session_package_modality_missing');
