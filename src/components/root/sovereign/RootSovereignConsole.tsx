@@ -75,6 +75,18 @@ export function RootSovereignConsole({ initialState, accessMode = 'sovereign', a
     return () => { window.clearInterval(interval); document.removeEventListener('visibilitychange', visible); refreshSequence.current += 1; controller.current?.abort('unmount'); };
   }, [refresh]);
 
+  useEffect(() => {
+    const keepRootInPlace = (event: MouseEvent) => {
+      if (!(event.target instanceof Element)) return;
+      const anchor = event.target.closest<HTMLAnchorElement>('a[target="_blank"]');
+      if (!anchor?.href) return;
+      event.preventDefault();
+      window.location.assign(anchor.href);
+    };
+    document.addEventListener('click', keepRootInPlace, true);
+    return () => document.removeEventListener('click', keepRootInPlace, true);
+  }, []);
+
   function requestAction(action: RootActionRequest) {
     if (readOnly) {
       const blocked: RootSessionEvent = { id: `observer-block-${Date.now()}`, at: new Date().toISOString(), label: action.label, status: 'blocked', detail: 'OBSERVER puede leer ROOT y aportar evidencia, pero no ejecutar acciones soberanas.', auditId: null };
