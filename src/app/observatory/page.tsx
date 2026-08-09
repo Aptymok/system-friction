@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { AmvPhaseStatusPanel } from '@/components/amv/AmvPhaseStatusPanel';
+import { PublicObservatoryTimelineNavigator } from '@/components/observatory/public/PublicObservatoryTimelineNavigator';
 import { PublicWorldVectorObservatory } from '@/components/observatory/public/PublicWorldVectorObservatory';
 import { SfiSurfaceGuide } from '@/components/sfi/SfiSurfaceGuide';
 import { readPublicObservatoryState } from '@/lib/observatory/public/readPublicObservatoryState';
@@ -39,6 +40,7 @@ export default async function ObservatoryPage() {
       <div className="bg-[#060605] px-4 pt-4">
         <AmvPhaseStatusPanel endpoint="/api/observatory/instrument-status" compact title="MADUREZ DEL INSTRUMENTO" />
       </div>
+      <PublicObservatoryTimelineNavigator />
       <PublicWorldVectorObservatory state={state} />
     </main>
   );
