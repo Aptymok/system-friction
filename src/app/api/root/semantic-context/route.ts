@@ -82,38 +82,85 @@ async function predictionContext(service: any, id: string) {
   };
 }
 
-async function evidenceContext(service: any, id: string) {
+async function resolveEvidence(service: any, id: string) {
+  if (id.startsWith('root_evidence:') || id.startsWith('ledger_evidence:')) {
+    const node = await service.from('graph_nodes').select('*').eq('node_id', id).maybeSingle();
+    const payload = rec(node.data?.payload ?? node.data?.attributes);
+    const rootEvidenceId = text(payload.rootEvidenceId);
+    const ledgerEvidenceId = text(payload.ledgerEvidenceId);
+    if (rootEvidenceId) {
+      const row = await service.from('root_evidence_entries').select('*').eq('id', rootEvidenceId).maybeSingle();
+      return { row: row.data ?? null, node: node.data ?? null };
+    }
+    if (ledgerEvidenceId) {
+      const row = await service.from('sfi_evidence_ledger').select('*').eq('id', ledgerEvidenceId).maybeSingle();
+      return { row: row.data ?? null, node: node.data ?? null };
+    }
+  }
   const root = await service.from('root_evidence_entries').select('*').eq('id', id).maybeSingle();
-  const ledger = root.data ? { data: null } : await service.from('sfi_evidence_ledger').select('*').eq('id', id).maybeSingle();
-  const row = root.data ?? ledger.data;
+  if (root.data) return { row: root.data, node: null };
+  const ledger = await service.from('sfi_evidence_ledger').select('*').eq('id', id).maybeSingle();
+  return { row: ledger.data ?? null, node: null };
+}
+
+async function evidenceContext(service: any, id: string) {
+  const resolved = await resolveEvidence(service, id);
+  const row = resolved.row;
   if (!row) return { kind: 'evidence_context', missing: true };
   const hash = text(row.evidence_hash);
-  const nodeCandidates = hash ? [`root_evidence:${hash.slice(0,24)}`, `ledger_evidence:${hash.slice(0,24)}`] : [];
+  const rowPayload = rec(row.payload);
+  const metadata = rec(rowPayload.metadata);
+  const summary = rec(row.public_summary);
+  const evidenceKey = text(metadata.evidenceKey ?? summary.evidenceKey);
+  const caseId = text(metadata.caseId ?? row.case_id);
+  const nodeCandidates = Array.from(new Set([
+    resolved.node?.node_id,
+    hash ? `root_evidence:${hash.slice(0, 24)}` : null,
+    hash ? `ledger_evidence:${hash.slice(0, 24)}` : null,
+  ].filter((value): value is string => Boolean(value))));
   const nodes = nodeCandidates.length ? await service.from('graph_nodes').select('*').in('node_id', nodeCandidates) : { data: [] };
   const nodeIds = (nodes.data ?? []).map((node: any) => node.node_id).filter(Boolean);
-  const edges = nodeIds.length ? await service.from('graph_edges').select('*').or(nodeIds.map((nodeId: string) => `source_node_id.eq.${nodeId},target_node_id.eq.${nodeId}`).join(',')) : { data: [] };
+  const edgeFilter = nodeIds.flatMap((nodeId: string) => [`source_node_id.eq.${nodeId}`, `target_node_id.eq.${nodeId}`]).join(',');
+  const edges = nodeIds.length ? await service.from('graph_edges').select('*').or(edgeFilter) : { data: [] };
   const relatedIds = Array.from(new Set((edges.data ?? []).flatMap((edge: any) => [edge.source_node_id, edge.target_node_id]).filter((nodeId: string) => nodeId && !nodeIds.includes(nodeId))));
   const relatedNodes = relatedIds.length ? await service.from('graph_nodes').select('*').in('node_id', relatedIds) : { data: [] };
-  const attractors = await service.from('sfi_attractors').select('*').order('updated_at', { ascending: false }).limit(100);
+  const attractors = await service.from('sfi_attractors').select('*').order('updated_at', { ascending: false }).limit(250);
   const linkedAttractors = (attractors.data ?? []).filter((attractor: any) => {
     const vector = rec(attractor.vector);
-    return strings(vector.evidenceRefs).some((ref) => ref === id || ref === hash) || text(vector.caseId) === text(rec(row.payload).metadata && rec(rec(row.payload).metadata).caseId);
+    const refs = strings(vector.evidenceRefs);
+    return refs.some((ref) => [id, hash, evidenceKey].filter(Boolean).includes(ref)) || (caseId && text(vector.caseId) === caseId);
   });
-  return { kind: 'evidence_context', missing: false, record: row, graphNodes: nodes.data ?? [], graphEdges: edges.data ?? [], relatedNodes: relatedNodes.data ?? [], attractors: linkedAttractors };
+  return {
+    kind: 'evidence_context',
+    missing: false,
+    record: row,
+    graphNodes: nodes.data ?? [],
+    graphEdges: edges.data ?? [],
+    relatedNodes: relatedNodes.data ?? [],
+    attractors: linkedAttractors,
+  };
 }
 
 async function attractorContext(service: any, id: string) {
   let attractor = await service.from('sfi_attractors').select('*').eq('id', id).maybeSingle();
-  if (!attractor.data) attractor = await service.from('sfi_attractors').select('*').eq('attractor_key', id).maybeSingle();
+  if (!attractor.data) attractor = await service.from('sfi_attractors').select('*').eq('attractor_key', id.replace(/^attractor:/, '')).maybeSingle();
   const row = attractor.data;
   if (!row) return { kind: 'attractor_context', missing: true };
   const vector = rec(row.vector);
   const refs = strings(vector.evidenceRefs);
-  const evidence = refs.length ? await service.from('root_evidence_entries').select('*').in('evidence_hash', refs) : { data: [] };
-  const ledger = refs.length ? await service.from('sfi_evidence_ledger').select('*').in('evidence_hash', refs) : { data: [] };
+  let evidence: any[] = [];
+  if (refs.length) {
+    const [rootByHash, ledgerByHash, rootById, ledgerById] = await Promise.all([
+      service.from('root_evidence_entries').select('*').in('evidence_hash', refs),
+      service.from('sfi_evidence_ledger').select('*').in('evidence_hash', refs),
+      service.from('root_evidence_entries').select('*').in('id', refs),
+      service.from('sfi_evidence_ledger').select('*').in('id', refs),
+    ]);
+    evidence = [...(rootByHash.data ?? []), ...(ledgerByHash.data ?? []), ...(rootById.data ?? []), ...(ledgerById.data ?? [])];
+  }
   const predictionRunId = text(vector.predictionRunId);
   const prediction = predictionRunId ? await service.from('sfi_predictive_runs').select('*').eq('id', predictionRunId).maybeSingle() : { data: null };
-  return { kind: 'attractor_context', missing: false, attractor: row, vector, evidence: [...(evidence.data ?? []), ...(ledger.data ?? [])], prediction: prediction.data ?? null };
+  return { kind: 'attractor_context', missing: false, attractor: row, vector, evidence, prediction: prediction.data ?? null };
 }
 
 export async function GET(request: Request) {
