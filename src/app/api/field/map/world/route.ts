@@ -9,7 +9,14 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
-function isMissingWorldSchema(error: { code?: string | null; message?: string | null }) {
+const WORLD_HORIZON_DAYS = 30;
+const PAGE_SIZE = 500;
+
+type DbError = { code?: string | null; message?: string | null };
+type Row = Record<string, unknown>;
+type ServiceDb = ReturnType<typeof createServiceSupabaseClient>;
+
+function isMissingWorldSchema(error: DbError) {
   const code = String(error.code ?? '').toUpperCase();
   const message = String(error.message ?? '').toLowerCase();
   return code === 'PGRST205'
@@ -18,11 +25,12 @@ function isMissingWorldSchema(error: { code?: string | null; message?: string | 
     || message.includes('relation "public.world_');
 }
 
-function pendingSchemaResponse(error: { code?: string | null; message?: string | null }) {
+function pendingSchemaResponse(error: DbError) {
   return NextResponse.json({
     ok: true,
     generatedAt: new Date().toISOString(),
     sourceState: 'WORLD_SCHEMA_PENDING',
+    horizonDays: WORLD_HORIZON_DAYS,
     nodes: [],
     hypotheses: [],
     outcomes: [],
@@ -40,6 +48,28 @@ function pendingSchemaResponse(error: { code?: string | null; message?: string |
   });
 }
 
+async function readPagedRows(db: ServiceDb, table: string, timeColumn: string, since: string, ascending = false) {
+  const rows: Row[] = [];
+  let from = 0;
+
+  for (;;) {
+    const result = await db
+      .from(table)
+      .select('*')
+      .gte(timeColumn, since)
+      .order(timeColumn, { ascending })
+      .range(from, from + PAGE_SIZE - 1);
+
+    if (result.error) return { data: rows, error: result.error };
+    const page = Array.isArray(result.data) ? result.data as Row[] : [];
+    rows.push(...page);
+    if (page.length < PAGE_SIZE) break;
+    from += PAGE_SIZE;
+  }
+
+  return { data: rows, error: null };
+}
+
 export async function GET() {
   const authClient = await createServerSupabaseClient();
   const { data: auth, error: authError } = await authClient.auth.getUser();
@@ -50,19 +80,12 @@ export async function GET() {
   // Authentication is enforced with the user's session. All WORLD reads then use
   // the server-only service client so RLS/grant drift cannot hide persisted data.
   const db = createServiceSupabaseClient();
-  const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+  const since = new Date(Date.now() - WORLD_HORIZON_DAYS * 24 * 60 * 60 * 1000).toISOString();
 
-  let observationsQuery = await db
-    .from('world_source_observations')
-    .select('*')
-    .gte('observed_at', since)
-    .order('observed_at', { ascending: false })
-    .limit(500);
+  let observationsQuery = await readPagedRows(db, 'world_source_observations', 'observed_at', since, false);
 
   if (observationsQuery.error) {
-    if (isMissingWorldSchema(observationsQuery.error)) {
-      return pendingSchemaResponse(observationsQuery.error);
-    }
+    if (isMissingWorldSchema(observationsQuery.error)) return pendingSchemaResponse(observationsQuery.error);
     return NextResponse.json({
       ok: false,
       error: 'world_observations_query_failed',
@@ -72,21 +95,16 @@ export async function GET() {
   }
 
   let bootstrap: Awaited<ReturnType<typeof bootstrapWorldObservatory>> | null = null;
-  if ((observationsQuery.data ?? []).length === 0) {
+  if (observationsQuery.data.length === 0) {
     bootstrap = await bootstrapWorldObservatory();
-    observationsQuery = await db
-      .from('world_source_observations')
-      .select('*')
-      .gte('observed_at', since)
-      .order('observed_at', { ascending: false })
-      .limit(500);
+    observationsQuery = await readPagedRows(db, 'world_source_observations', 'observed_at', since, false);
   }
 
   const [readingsQuery, hypothesesQuery, outcomesQuery, learningQuery] = await Promise.all([
-    db.from('world_friction_readings').select('*').order('created_at', { ascending: false }).limit(500),
-    db.from('world_hypotheses').select('*').order('created_at', { ascending: false }).limit(100),
-    db.from('world_hypothesis_outcomes').select('*').order('evaluated_at', { ascending: false }).limit(100),
-    db.from('world_learning_events').select('*').order('created_at', { ascending: false }).limit(100),
+    readPagedRows(db, 'world_friction_readings', 'created_at', since, false),
+    readPagedRows(db, 'world_hypotheses', 'cutoff_at', since, true),
+    readPagedRows(db, 'world_hypothesis_outcomes', 'evaluated_at', since, true),
+    readPagedRows(db, 'world_learning_events', 'created_at', since, true),
   ]);
 
   const secondaryError = observationsQuery.error
@@ -106,34 +124,45 @@ export async function GET() {
     }, { status: 503 });
   }
 
-  const readings = readingsQuery.data ?? [];
-  const hypotheses = hypothesesQuery.data ?? [];
-  const outcomes = outcomesQuery.data ?? [];
-  const learning = learningQuery.data ?? [];
-  const readingByObservation = new Map(readings.map((item) => [item.observation_id, item]));
+  const readings = readingsQuery.data;
+  const hypotheses = hypothesesQuery.data;
+  const outcomes = outcomesQuery.data;
+  const learning = learningQuery.data;
+  const readingByObservation = new Map(readings.map((item) => [String(item.observation_id), item]));
 
-  const nodes = (observationsQuery.data ?? []).map((item) => ({
-    id: item.id,
+  const nodes = observationsQuery.data.map((item) => ({
+    id: String(item.id),
     kind: 'observed' as const,
-    sourceFamily: item.source_family,
-    publisher: item.publisher,
-    title: item.title,
-    summary: item.summary,
-    observedAt: item.observed_at,
-    lat: item.latitude === null ? null : Number(item.latitude),
-    lng: item.longitude === null ? null : Number(item.longitude),
+    sourceFamily: String(item.source_family ?? 'unknown'),
+    publisher: String(item.publisher ?? 'unknown'),
+    title: String(item.title ?? 'Untitled observation'),
+    summary: typeof item.summary === 'string' ? item.summary : null,
+    observedAt: String(item.observed_at ?? item.created_at ?? ''),
+    lat: item.latitude === null || typeof item.latitude === 'undefined' ? null : Number(item.latitude),
+    lng: item.longitude === null || typeof item.longitude === 'undefined' ? null : Number(item.longitude),
     affectedSystems: Array.isArray(item.affected_systems) ? item.affected_systems : [],
     actors: Array.isArray(item.actors) ? item.actors : [],
     confidence: Number(item.confidence ?? 0),
-    reading: readingByObservation.get(item.id) ?? null,
+    reading: readingByObservation.get(String(item.id)) ?? null,
   }));
 
   const locatedCount = nodes.filter((node) => Number.isFinite(node.lat) && Number.isFinite(node.lng)).length;
+  const timestamps = [
+    ...nodes.map((node) => node.observedAt),
+    ...hypotheses.map((row) => String(row.cutoff_at ?? '')),
+    ...outcomes.map((row) => String(row.evaluated_at ?? '')),
+    ...learning.map((row) => String(row.created_at ?? '')),
+  ].filter(Boolean).sort();
 
   return NextResponse.json({
     ok: true,
     generatedAt: new Date().toISOString(),
     sourceState: nodes.length ? 'OBSERVED_WORLD' : 'NO_WORLD_OBSERVATIONS',
+    horizonDays: WORLD_HORIZON_DAYS,
+    temporalBounds: {
+      firstAt: timestamps[0] ?? null,
+      lastAt: timestamps.at(-1) ?? null,
+    },
     nodes,
     hypotheses,
     outcomes,
@@ -148,12 +177,16 @@ export async function GET() {
       hypotheses: hypotheses.length,
       outcomes: outcomes.length,
       learning: learning.length,
+      paginated: true,
+      pageSize: PAGE_SIZE,
+      horizonDays: WORLD_HORIZON_DAYS,
     },
     limits: [
       'External source scores are not imported.',
       'Every node is a real observation with publisher and time.',
       'Missing or failed sources remain missing; no simulated values are generated.',
       'SFI readings use the canonical Φ and F_s implementation.',
+      'Map geometry is geographic presentation. Temporal filtering changes which persisted observations are visible; it does not create graph relations.',
     ],
   });
 }
