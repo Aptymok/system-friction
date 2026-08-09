@@ -42,6 +42,9 @@ jobs:
       - name: Verify Studio Field surface
         run: npm run qa:sfi-studio-workspace
 
+      - name: Verify Studio cognitive runtime
+        run: npm run qa:sfi-studio-cognitive
+
       - name: Verify Studio capability inventory
         run: npm run qa:sfi-studio-capability-inventory
 
