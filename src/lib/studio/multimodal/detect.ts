@@ -5,12 +5,14 @@ const AUDIO_EXTENSIONS = new Set(['wav', 'wave', 'mp3', 'm4a', 'aac', 'flac', 'o
 const VIDEO_EXTENSIONS = new Set(['mp4', 'mov', 'webm', 'mkv', 'm4v']);
 const IMAGE_EXTENSIONS = new Set(['png', 'jpg', 'jpeg', 'webp', 'gif', 'tif', 'tiff']);
 const TEXT_EXTENSIONS = new Set(['txt', 'md', 'markdown', 'json', 'csv', 'tsv', 'rtf', 'pdf', 'docx']);
+const SESSION_PACKAGE_EXTENSIONS = new Set(['zip']);
 
 export const STUDIO_ACCEPTED_EXTENSIONS = [
   ...AUDIO_EXTENSIONS,
   ...VIDEO_EXTENSIONS,
   ...IMAGE_EXTENSIONS,
   ...TEXT_EXTENSIONS,
+  ...SESSION_PACKAGE_EXTENSIONS,
 ].sort();
 
 function extensionOf(fileName: string) {
@@ -26,6 +28,7 @@ export function sanitizeStudioFileName(fileName: string) {
 
 function modalityFromEvidence(mimeType: string | null, extension: string): StudioModality {
   const mime = (mimeType || '').toLowerCase();
+  if (SESSION_PACKAGE_EXTENSIONS.has(extension) || mime === 'application/zip' || mime === 'application/x-zip-compressed') return 'session_package';
   if (mime.startsWith('audio/') || AUDIO_EXTENSIONS.has(extension)) return 'audio';
   if (mime.startsWith('video/') || VIDEO_EXTENSIONS.has(extension)) return 'video';
   if (mime.startsWith('image/') || IMAGE_EXTENSIONS.has(extension)) return 'image';
@@ -49,6 +52,7 @@ function requestedModality(value: unknown): StudioModality | null {
   if (normalized === 'text' || normalized === 'document') return 'text';
   if (normalized === 'community') return 'community';
   if (normalized === 'time_coordinate' || normalized === 'time-coordinate') return 'time_coordinate';
+  if (['session_package', 'session-package', 'package', 'logic', 'logicx', 'zip'].includes(normalized)) return 'session_package';
   return null;
 }
 
@@ -59,6 +63,9 @@ export function objectTypeFromModality(modality: StudioModality): StudioDatabase
   if (modality === 'text') return 'text';
   if (modality === 'community') return 'community';
   if (modality === 'time_coordinate') return 'time_coordinate';
+  // A DAW/session package is evidence about a production object, not a new public object class.
+  // It remains `unknown` in the existing DB enum and its actual modality is preserved in metadata.
+  if (modality === 'session_package') return 'unknown';
   return 'unknown';
 }
 
@@ -68,12 +75,13 @@ function envMegabytes(name: string, fallback: number) {
 }
 
 export function studioUploadLimitBytes(modality: StudioModality) {
-  const fallback = modality === 'video' ? 500 : modality === 'audio' ? 250 : modality === 'image' ? 60 : 80;
+  const fallback = modality === 'session_package' ? 500 : modality === 'video' ? 500 : modality === 'audio' ? 250 : modality === 'image' ? 60 : 80;
   return Math.floor(envMegabytes(`STUDIO_${modality.toUpperCase()}_UPLOAD_MAX_MB`, fallback) * 1024 * 1024);
 }
 
 export function studioAnalysisLimitBytes(modality: StudioModality) {
-  const fallback = modality === 'video' ? 180 : modality === 'audio' ? 150 : modality === 'image' ? 40 : 50;
+  // session_package is analyzed through HTTP range reads; the full archive is not loaded into function memory.
+  const fallback = modality === 'session_package' ? 500 : modality === 'video' ? 180 : modality === 'audio' ? 150 : modality === 'image' ? 40 : 50;
   return Math.floor(envMegabytes(`STUDIO_${modality.toUpperCase()}_ANALYSIS_MAX_MB`, fallback) * 1024 * 1024);
 }
 
@@ -110,6 +118,10 @@ export function buildStudioUploadDescriptor(input: {
     throw new StudioMultimodalError('UNSUPPORTED_FILE_TYPE', `${modality} intake requires JSON, CSV, TSV, TXT or Markdown evidence.`, 415, {
       extension,
     });
+  }
+
+  if (modality === 'session_package' && extension !== 'zip') {
+    throw new StudioMultimodalError('UNSUPPORTED_FILE_TYPE', 'Session-package intake currently requires a ZIP archive. Logic .logicx packages should be zipped before upload.', 415, { extension });
   }
 
   const limit = studioUploadLimitBytes(modality);
