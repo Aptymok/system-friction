@@ -92,7 +92,16 @@ export function interpretRootInstitution(state: RootStateInput): RootInstitution
   ];
 
   const divergences: RootInstitutionalDivergence[] = [];
-  if (failedSources.length) divergences.push({ id: 'reader-errors', status: healthySources.length ? 'degraded' : 'blocking', title: 'Lectores con error', observation: `${failedSources.length}/${sources.length} fuentes no respondieron limpiamente.`, source: 'rootSovereignAdapter readers' });
+  if (failedSources.length) {
+    const failures = failedSources.map((source) => `${source.source}: ${source.error}`).join(' | ');
+    divergences.push({
+      id: 'reader-errors',
+      status: healthySources.length ? 'degraded' : 'blocking',
+      title: 'Lectores con error',
+      observation: `${failedSources.length}/${sources.length} fuentes no respondieron limpiamente. ${failures}`,
+      source: 'rootSovereignAdapter readers',
+    });
+  }
   if (runtime.status !== 'operational') divergences.push({ id: 'cognitive-continuity', status: runtime.status === 'missing' ? 'blocking' : 'degraded', title: 'Continuidad cognitiva no demostrada', observation: `${runtimeOperational}/${runtime.agents.length} agentes tienen ejecución observada en la ventana del propio runtime.`, source: state.cognitiveRuntime.source });
   if (trace.status !== 'observed') divergences.push({ id: 'graph-traceability', status: trace.total === 0 ? 'blocking' : 'degraded', title: 'Trazabilidad incompleta', observation: trace.total === 0 ? 'No existe grafo persistido en este lector.' : `${trace.total - trace.traced}/${trace.total} elementos carecen de evidencia o linaje.`, source: state.evidence.source });
   if (capability.status !== 'observed') divergences.push({ id: 'capability-gap', status: capability.available === 0 ? 'blocking' : 'degraded', title: 'Capacidad declarada mayor que capacidad disponible', observation: `${capability.available}/${capability.total} capacidades están disponibles; ${capability.partial} parciales; ${capability.gated} gated.`, source: state.execution.source });
