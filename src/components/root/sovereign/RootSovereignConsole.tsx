@@ -25,6 +25,8 @@ function usesRichSemanticContext(selection: RootSelection | null) {
 
 type RootAccessMode = 'sovereign' | 'observer';
 
+const navLink = { position: 'fixed', zIndex: 84, right: 18, border: '1px solid rgba(200,169,81,.24)', background: '#080807', color: '#bba563', padding: '7px 9px', font: '8px ui-monospace,SFMono-Regular,Menlo,monospace', textDecoration: 'none', letterSpacing: '.06em' } as const;
+
 export function RootSovereignConsole({ initialState, accessMode = 'sovereign', actorLabel = 'ROOT' }: {
   initialState: RootSovereignState;
   accessMode?: RootAccessMode;
@@ -108,6 +110,8 @@ export function RootSovereignConsole({ initialState, accessMode = 'sovereign', a
   return <div className={`rs-console-host ${selection ? 'has-semantic-selection' : ''}`}>
     <RootObservatoryWorkspace state={state} accessMode={accessMode} actorLabel={actorLabel} refreshing={refreshing} warning={refreshWarning} onRefresh={() => void refresh(false)} onSelect={setSelection} onAction={requestAction} />
     <Link className="rs-report-inbox-link" href="/root/reports">REPORTES DE AGENTES</Link>
+    <Link href="/root/longitudinal" style={{ ...navLink, bottom: 92 }}>LONGITUDINAL MEMORY</Link>
+    {!readOnly ? <Link href="/root/decisions" style={{ ...navLink, bottom: 124 }}>DECISION QUEUE</Link> : null}
     {selection && richSemantic ? <RootSemanticContextModal selection={selection} onClose={() => setSelection(null)} /> : <RootSemanticInspector value={selection} onClose={() => setSelection(null)} />}
     {!readOnly ? <RootMethodologyWorkbench state={state} /> : null}
     {!readOnly ? <FriccionautaConsole /> : null}
