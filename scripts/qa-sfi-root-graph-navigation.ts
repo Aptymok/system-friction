@@ -19,7 +19,7 @@ check('semantic graph meaning survives storage compatibility', reconcile.include
 check('evidence reader prefers semantic relation', reader.includes('row.relation ?? attributes.declaredRelation ?? row.relation_type'));
 check('evidence graph exposes temporal edge metadata', reader.includes('observedAt: dateValue(attributes.observedAt') && reader.includes('sourceObservedAt'));
 check('static index-circle evidence layout was removed', !workspace.includes('index / Math.max(1, nodes.length) * Math.PI * 2') && !workspace.includes('.slice(0, 28)'));
-check('graph uses persisted connectivity for expansion', workspace.includes('graphDegrees') && workspace.includes('graphLevels') && workspace.includes('adjacency') && workspace.includes('1 SALTO'));
+check('graph uses persisted connectivity for expansion', workspace.includes('graphDegrees') && workspace.includes('graphLevels') && workspace.includes('adjacency') && workspace.includes('setDepth(value)') && workspace.includes('maxDepth'));
 check('graph supports longitudinal movement', workspace.includes('Mover el grafo de evidencia longitudinalmente') && workspace.includes('cutoffMs') && workspace.includes('timeEdges'));
 check('graph exposes real relation labels and directed edges', workspace.includes('root-evidence-arrow') && workspace.includes('edge.relation.slice'));
 check('attractor is selectable', workspace.includes('attractor-selector') && workspace.includes('<select value='));
