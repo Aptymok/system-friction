@@ -1,0 +1,32 @@
+import { NextResponse } from 'next/server';
+import { reconcilePersistedEvidenceGraph } from '@/lib/evidence/reconcileEvidenceGraph';
+import { auditRootAction, requireRootContributor } from '@/lib/root/server';
+
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+export const maxDuration = 300;
+
+export async function POST(request: Request) {
+  const gate = await requireRootContributor('evidence.write');
+  if (!gate.ok) return NextResponse.json(gate.body, { status: gate.status });
+
+  const result = await reconcilePersistedEvidenceGraph();
+  const audit = await auditRootAction({
+    actorId: gate.ctx.user.id,
+    action: 'evidence.graph.reconcile',
+    target: 'graph_nodes+graph_edges',
+    payload: {
+      rootEvidenceRows: result.rootEvidenceRows,
+      ledgerRows: result.ledgerRows,
+      evidenceDescriptors: result.evidenceDescriptors,
+      nodesCreated: result.nodesCreated,
+      nodesUpdated: result.nodesUpdated,
+      edgesCreated: result.edgesCreated,
+      warningCount: result.warnings.length,
+    },
+    request,
+  });
+
+  if (!audit.ok) return NextResponse.json(audit, { status: 500 });
+  return NextResponse.json({ ok: true, reconciliation: result, audit });
+}
