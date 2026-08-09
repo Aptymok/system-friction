@@ -11,7 +11,9 @@ export default async function InstitutionalizationPage() {
   const actorLabel = ctx.profile?.alias || ctx.user?.email || 'ROOT';
 
   return <>
-    <FounderVacationConsole actorLabel={actorLabel} accessMode={accessMode} />
+    <div style={{ paddingTop: 52 }}>
+      <FounderVacationConsole actorLabel={actorLabel} accessMode={accessMode} />
+    </div>
     <InstitutionalizationConsole
       canGovern={ctx.isRoot}
       actorLabel={actorLabel}
