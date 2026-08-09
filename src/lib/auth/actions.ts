@@ -2,7 +2,7 @@
 
 import { redirect } from 'next/navigation'
 import { checkRateLimit, rateLimitKey } from '@/lib/auth/rateLimit'
-import { createServerSupabaseClient } from '@/runtime/supabase/server'
+import { createServerSupabaseClient, createServiceSupabaseClient } from '@/runtime/supabase/server'
 import { authSchema } from '@/lib/validation/schemas'
 
 function formValue(formData: FormData, key: string) {
@@ -15,6 +15,24 @@ function safeInternalRedirect(value: string) {
   if (value.startsWith('//')) return '/field'
   if (value.startsWith('/login') || value.startsWith('/signup') || value.startsWith('/verify')) return '/field'
   return value
+}
+
+function record(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {}
+}
+
+async function resolvePostLoginPath(userId: string, requestedNext: string) {
+  if (requestedNext !== '/field') return requestedNext
+  const service = createServiceSupabaseClient()
+  const { data: profile } = await service
+    .from('profiles')
+    .select('role,module_access')
+    .eq('user_id', userId)
+    .maybeSingle()
+  const role = typeof profile?.role === 'string' ? profile.role : null
+  const access = record(profile?.module_access)
+  if (role === 'observer' && (access.root === true || access.root_observe === true)) return '/root'
+  return requestedNext
 }
 
 export async function registerAction(formData: FormData) {
@@ -47,10 +65,10 @@ export async function loginAction(formData: FormData) {
 
   const supabase = await createServerSupabaseClient()
   if (!supabase) redirect(`/login?error=supabase_no_configurado&next=${encodeURIComponent(next)}`)
-  const { error } = await supabase.auth.signInWithPassword(parsed.data)
-  if (error) redirect(`/login?error=${encodeURIComponent(error.message)}&next=${encodeURIComponent(next)}`)
+  const { data, error } = await supabase.auth.signInWithPassword(parsed.data)
+  if (error || !data.user) redirect(`/login?error=${encodeURIComponent(error?.message ?? 'auth_user_missing')}&next=${encodeURIComponent(next)}`)
 
-  redirect(next)
+  redirect(await resolvePostLoginPath(data.user.id, next))
 }
 
 export async function forgotPasswordAction(formData: FormData) {

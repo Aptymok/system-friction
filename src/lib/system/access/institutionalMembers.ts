@@ -1,14 +1,14 @@
 export type SfiInstitutionalMember = {
   email: string;
   displayName: string;
-  role: 'operator' | 'controller';
-  workspace: '/member';
+  role: 'operator' | 'controller' | 'observer';
+  workspace: '/member' | '/root';
   modules: {
     field: boolean;
     studio: boolean;
     observatory: boolean;
     worldField: boolean;
-    root: false;
+    root: boolean;
   };
 };
 
@@ -16,14 +16,14 @@ const MEMBERS: SfiInstitutionalMember[] = [
   {
     email: 'edwin.tzolkin@gmail.com',
     displayName: 'Edwin',
-    role: 'operator',
-    workspace: '/member',
+    role: 'observer',
+    workspace: '/root',
     modules: {
       field: true,
       studio: true,
       observatory: true,
       worldField: true,
-      root: false,
+      root: true,
     },
   },
 ];
