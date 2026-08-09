@@ -1,5 +1,6 @@
 import { HumanReadableRecord } from '@/components/shared/HumanReadableRecord';
 import { FounderDecisionCandidateForm } from './FounderDecisionCandidateForm';
+import { CognitiveTwinDeliberationPanel } from './CognitiveTwinDeliberationPanel';
 import type { CognitiveTwinState } from '@/lib/cognitive-twin/readState';
 
 function yesNo(value: boolean) {
@@ -41,6 +42,8 @@ export function CognitiveTwinConsole({ state }: { state: CognitiveTwinState }) {
           {state.errors.map((error) => <p key={error} style={{ color: '#d0a58e', fontSize: 11 }}>{error}</p>)}
         </section>
       ) : null}
+
+      <CognitiveTwinDeliberationPanel />
 
       <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(320px,1fr))', gap: 12, marginTop: 12 }}>
         <article style={card}>
