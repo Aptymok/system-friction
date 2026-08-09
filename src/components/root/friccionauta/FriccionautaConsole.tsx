@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 type Row = Record<string, unknown>;
 type ChatMessage = {
@@ -31,7 +31,7 @@ function strings(value: unknown): string[] {
   return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
 }
 
-export function FriccionautaConsole() {
+export function FriccionautaConsole({ launcher = true }: { launcher?: boolean }) {
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -41,6 +41,12 @@ export function FriccionautaConsole() {
   const [findingFor, setFindingFor] = useState<string | null>(null);
   const [findingDraft, setFindingDraft] = useState('');
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    const openFromRoot = () => setOpen(true);
+    window.addEventListener('sfi:open-friccionauta', openFromRoot);
+    return () => window.removeEventListener('sfi:open-friccionauta', openFromRoot);
+  }, []);
 
   const lastAssistant = useMemo(() => [...messages].reverse().find((message) => message.role === 'assistant') ?? null, [messages]);
 
@@ -149,10 +155,10 @@ export function FriccionautaConsole() {
   }
 
   return <>
-    <button className="fr-launch" type="button" onClick={() => setOpen(true)} aria-label="Platicar con el Friccionauta">
+    {launcher ? <button className="fr-launch" type="button" onClick={() => setOpen(true)} aria-label="Platicar con el Friccionauta">
       <span className="fr-mini-avatar" aria-hidden="true"><i /><b /></span>
       <span>PLATICAR CON EL FRICCIONAUTA</span>
-    </button>
+    </button> : null}
 
     {open ? <div className="fr-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setOpen(false); }}>
       <section className="fr-panel" role="dialog" aria-modal="true" aria-labelledby="fr-title">
