@@ -22,6 +22,10 @@ function strings(value: unknown): string[] {
   return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0) : [];
 }
 
+function stableStudioLearningKey(value: string) {
+  return value.replace(/:\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/, '');
+}
+
 export type StudioTwinContext = {
   contractVersion: string;
   memory: Array<{
@@ -174,8 +178,9 @@ export async function persistStudioLearningCandidate(input: {
   }
 
   const db = createServiceSupabaseClient();
+  const memoryKey = stableStudioLearningKey(input.memoryKey);
   const result = await db.from('sfi_cognitive_twin_memory').upsert({
-    memory_key: input.memoryKey,
+    memory_key: memoryKey,
     memory_type: input.memoryType,
     status: 'CANDIDATE',
     content: input.content,
@@ -188,5 +193,5 @@ export async function persistStudioLearningCandidate(input: {
   }, { onConflict: 'memory_key,version' }).select('id').single();
 
   if (result.error) return { ok: false as const, blocked: false, reason: result.error.message };
-  return { ok: true as const, blocked: false, id: String(result.data.id), status: 'CANDIDATE' as const, version: STUDIO_LEARNING_VERSION };
+  return { ok: true as const, blocked: false, id: String(result.data.id), status: 'CANDIDATE' as const, version: STUDIO_LEARNING_VERSION, memoryKey };
 }
