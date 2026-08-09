@@ -19,7 +19,7 @@ function text(value: unknown, fallback = '—') {
 }
 
 export function CognitiveTwinDeliberationPanel() {
-  const [question, setQuestion] = useState(QUICK_QUESTIONS[0]);
+  const [question, setQuestion] = useState<string>(QUICK_QUESTIONS[0]);
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<Row | null>(null);
   const [error, setError] = useState<string | null>(null);
