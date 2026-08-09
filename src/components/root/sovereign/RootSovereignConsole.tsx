@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { RootSovereignState } from '@/lib/root/sovereign/rootSovereignState';
 import type { RootActionRequest, RootSelection, RootSessionEvent } from './sovereignTypes';
@@ -7,6 +8,7 @@ import { RootMethodologyWorkbench } from './RootMethodologyWorkbench';
 import { RootSemanticInspector } from './RootSemanticInspector';
 import { RootObservatoryWorkspace } from './RootObservatoryWorkspace';
 import './root-sovereign.css';
+import './root-observatory-scale.css';
 
 function auditId(body: Record<string, unknown>) {
   const audit = body.audit && typeof body.audit === 'object' ? body.audit as Record<string, unknown> : null;
@@ -98,6 +100,7 @@ export function RootSovereignConsole({ initialState, accessMode = 'sovereign', a
 
   return <div className={`rs-console-host ${selection ? 'has-semantic-selection' : ''}`}>
     <RootObservatoryWorkspace state={state} accessMode={accessMode} actorLabel={actorLabel} refreshing={refreshing} warning={refreshWarning} onRefresh={() => void refresh()} onSelect={setSelection} onAction={requestAction} />
+    <Link className="rs-report-inbox-link" href="/root/reports">REPORTES DE AGENTES</Link>
     <RootSemanticInspector value={selection} onClose={() => setSelection(null)} />
     {!readOnly ? <RootMethodologyWorkbench state={state} /> : null}
     {events.length ? <div className="rs-root-events" aria-live="polite">{events.slice(0, 3).map((event) => <div key={event.id} data-status={event.status}><strong>{event.label}</strong><span>{event.detail}</span></div>)}</div> : null}
