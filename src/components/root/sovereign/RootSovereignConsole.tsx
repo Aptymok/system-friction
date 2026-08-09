@@ -36,13 +36,13 @@ export function RootSovereignConsole({ initialState, accessMode = 'sovereign', a
   const refreshSequence = useRef(0);
   const readOnly = accessMode === 'observer';
 
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (silent = false) => {
     if (document.hidden) return;
     const sequence = ++refreshSequence.current;
     controller.current?.abort('superseded');
     const next = new AbortController();
     controller.current = next;
-    const timeout = window.setTimeout(() => next.abort('timeout'), 8000);
+    const timeout = window.setTimeout(() => next.abort('timeout'), 20000);
     setRefreshing(true);
     try {
       const response = await fetch('/api/root/console', { cache: 'no-store', credentials: 'include', signal: next.signal });
@@ -55,7 +55,9 @@ export function RootSovereignConsole({ initialState, accessMode = 'sovereign', a
       if (sequence !== refreshSequence.current) return;
       const reason = abortReason(next.signal);
       if (reason === 'superseded' || reason === 'unmount') return;
-      setRefreshWarning(reason === 'timeout' ? 'No fue posible actualizar a tiempo.' : error instanceof Error ? error.message : 'No fue posible actualizar ROOT.');
+      if (!silent) {
+        setRefreshWarning(reason === 'timeout' ? 'La actualización manual excedió 20 s. ROOT conserva el último estado válido.' : error instanceof Error ? error.message : 'No fue posible actualizar ROOT.');
+      }
     } finally {
       window.clearTimeout(timeout);
       if (controller.current === next) { controller.current = null; setRefreshing(false); }
@@ -63,8 +65,8 @@ export function RootSovereignConsole({ initialState, accessMode = 'sovereign', a
   }, []);
 
   useEffect(() => {
-    const interval = window.setInterval(() => { if (!document.hidden) void refresh(); }, 30000);
-    const visible = () => { if (!document.hidden) void refresh(); };
+    const interval = window.setInterval(() => { if (!document.hidden) void refresh(true); }, 60000);
+    const visible = () => { if (!document.hidden) void refresh(true); };
     document.addEventListener('visibilitychange', visible);
     return () => { window.clearInterval(interval); document.removeEventListener('visibilitychange', visible); refreshSequence.current += 1; controller.current?.abort('unmount'); };
   }, [refresh]);
@@ -92,14 +94,14 @@ export function RootSovereignConsole({ initialState, accessMode = 'sovereign', a
       if (!response.ok || !body || body.ok !== true) throw new Error(String(body?.error ?? `HTTP ${response.status}`));
       const detail = typeof body.body === 'string' ? body.body.slice(0, 420) : typeof body.user_friendly_explanation === 'string' ? body.user_friendly_explanation.slice(0, 420) : 'La operación terminó correctamente.';
       setEvents((current) => current.map((event) => event.id === started.id ? { ...event, status: 'done', detail, auditId: auditId(body) } : event));
-      setPending(null); setConfirmed(false); await refresh();
+      setPending(null); setConfirmed(false); await refresh(false);
     } catch (error) {
       setEvents((current) => current.map((event) => event.id === started.id ? { ...event, status: 'blocked', detail: error instanceof Error ? error.message : 'La operación no pudo completarse.', auditId: null } : event));
     } finally { setRunning(false); }
   }
 
   return <div className={`rs-console-host ${selection ? 'has-semantic-selection' : ''}`}>
-    <RootObservatoryWorkspace state={state} accessMode={accessMode} actorLabel={actorLabel} refreshing={refreshing} warning={refreshWarning} onRefresh={() => void refresh()} onSelect={setSelection} onAction={requestAction} />
+    <RootObservatoryWorkspace state={state} accessMode={accessMode} actorLabel={actorLabel} refreshing={refreshing} warning={refreshWarning} onRefresh={() => void refresh(false)} onSelect={setSelection} onAction={requestAction} />
     <Link className="rs-report-inbox-link" href="/root/reports">REPORTES DE AGENTES</Link>
     <RootSemanticInspector value={selection} onClose={() => setSelection(null)} />
     {!readOnly ? <RootMethodologyWorkbench state={state} /> : null}

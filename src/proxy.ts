@@ -47,17 +47,6 @@ function hasEnabledModule(moduleAccess: ModuleAccess, ...keys: string[]) {
   return keys.some((key) => moduleAccess[key] === true)
 }
 
-function canEnterRootRoute(
-  userId?: string | null,
-  role?: string | null,
-  email?: string | null,
-  moduleAccess?: ModuleAccess,
-) {
-  if (isRootRouteUser(userId, role, email)) return true
-  if (role === 'observer') return true
-  return hasEnabledModule(moduleAccess, 'root', 'root_observe')
-}
-
 function isStudioRouteUser(
   userId?: string | null,
   role?: string | null,
@@ -156,24 +145,23 @@ export async function proxy(request: NextRequest) {
 
   if (!user) return redirectToLoginWithNext(request)
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role,module_access')
-    .eq('user_id', user.id)
-    .maybeSingle()
+  // ROOT authorization intentionally happens only in the server-side ROOT gates
+  // (requireRootObserverPage / requireRootViewer / requireRootActor), which use the
+  // authoritative service-backed profile. The proxy only verifies that a browser
+  // session exists. This prevents an RLS-filtered profile lookup here from denying
+  // a valid institutional observer before the authoritative gate runs.
+  if (pathname.startsWith('/root')) return response
 
-  if (
-    pathname.startsWith('/root') &&
-    !canEnterRootRoute(user.id, profile?.role, user.email, profile?.module_access as ModuleAccess)
-  ) {
-    return NextResponse.redirect(new URL('/unauthorized', request.url))
-  }
+  if (pathname.startsWith('/studio')) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role,module_access')
+      .eq('user_id', user.id)
+      .maybeSingle()
 
-  if (
-    pathname.startsWith('/studio') &&
-    !isStudioRouteUser(user.id, profile?.role, user.email, profile?.module_access as ModuleAccess)
-  ) {
-    return NextResponse.redirect(new URL('/unauthorized', request.url))
+    if (!isStudioRouteUser(user.id, profile?.role, user.email, profile?.module_access as ModuleAccess)) {
+      return NextResponse.redirect(new URL('/unauthorized', request.url))
+    }
   }
 
   return response
