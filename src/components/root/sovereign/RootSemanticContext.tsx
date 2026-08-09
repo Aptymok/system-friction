@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from 'react';
 import type { RootSelection } from './sovereignTypes';
 
 type Row = Record<string, unknown>;
-
 type DomainValue = { domain: string; value: number; confidence?: number | null; source_count?: number };
 
 function rec(value: unknown): Row {
@@ -20,6 +19,7 @@ function text(value: unknown, fallback = 'MISSING') {
   return typeof value === 'string' && value.trim() ? value.trim() : fallback;
 }
 function number(value: unknown): number | null {
+  if (value === null || value === undefined || value === '') return null;
   const parsed = typeof value === 'number' ? value : Number(value);
   return Number.isFinite(parsed) ? parsed : null;
 }
@@ -76,27 +76,30 @@ function WorldVectorComparison({ value }: { value: Row }) {
   const historicalDomains = domains(historicalObservation.domain_values);
   const currentDomains = domains(currentObservation.domain_values);
   const tensions = historicalDomains.slice().sort((a, b) => b.value - a.value).slice(0, 5);
+  const hasHistorical = Object.keys(historicalSnapshot).length > 0;
 
   return <section className="rsc-block">
     <div className="rsc-title">RETROLONGITUDINAL WORLD VECTOR</div>
-    <div className="rsc-world-meta">
-      <div><span>MOMENTO</span><strong>{when(historicalSnapshot.observed_at)}</strong></div>
-      <div><span>WSI</span><strong>{number(historicalSnapshot.wsi)?.toFixed(3) ?? 'MISSING'}</strong></div>
-      <div><span>NTI</span><strong>{number(historicalSnapshot.nti)?.toFixed(3) ?? 'MISSING'}</strong></div>
-      <div><span>CONFIANZA DEL SNAPSHOT</span><strong>{pct(historicalSnapshot.confidence)}</strong></div>
-      <div><span>ACTUAL WSI</span><strong>{number(currentSnapshot.wsi)?.toFixed(3) ?? 'MISSING'}</strong></div>
-      <div><span>ACTUAL NTI</span><strong>{number(currentSnapshot.nti)?.toFixed(3) ?? 'MISSING'}</strong></div>
-    </div>
-    <p className="rsc-meaning">{text(historicalObservation.interpretation, 'No existe interpretación World Vector reconstruible para esa fecha.')}</p>
-    <RadarChart historical={historicalDomains} current={currentDomains} />
-    <div className="rsc-tensions">
-      <span>TENSIONES / DOMINIOS DOMINANTES EN ESE CORTE</span>
-      {tensions.length ? tensions.map((item) => {
-        const current = currentDomains.find((candidate) => candidate.domain === item.domain)?.value ?? null;
-        const delta = current === null ? null : current - item.value;
-        return <div key={item.domain}><b>{item.domain}</b><strong>{item.value.toFixed(3)}</strong><small>{delta === null ? 'actual MISSING' : `${delta >= 0 ? '+' : ''}${delta.toFixed(3)} vs actual`}</small></div>;
-      }) : <p className="rsc-empty">MISSING · no se recuperaron dominios para ese snapshot.</p>}
-    </div>
+    {!hasHistorical ? <p className="rsc-empty">MISSING · no existe snapshot WorldSpect anterior o igual a la fecha de esta hipótesis. ROOT no reconstruirá ese momento con el estado actual.</p> : <>
+      <div className="rsc-world-meta">
+        <div><span>MOMENTO</span><strong>{when(historicalSnapshot.observed_at)}</strong></div>
+        <div><span>WSI</span><strong>{number(historicalSnapshot.wsi)?.toFixed(3) ?? 'MISSING'}</strong></div>
+        <div><span>NTI</span><strong>{number(historicalSnapshot.nti)?.toFixed(3) ?? 'MISSING'}</strong></div>
+        <div><span>CONFIANZA DEL SNAPSHOT</span><strong>{pct(historicalSnapshot.confidence)}</strong></div>
+        <div><span>ACTUAL WSI</span><strong>{number(currentSnapshot.wsi)?.toFixed(3) ?? 'MISSING'}</strong></div>
+        <div><span>ACTUAL NTI</span><strong>{number(currentSnapshot.nti)?.toFixed(3) ?? 'MISSING'}</strong></div>
+      </div>
+      <p className="rsc-meaning">{text(historicalObservation.interpretation, 'No existe interpretación World Vector reconstruible para esa fecha.')}</p>
+      <RadarChart historical={historicalDomains} current={currentDomains} />
+      <div className="rsc-tensions">
+        <span>TENSIONES / DOMINIOS DOMINANTES EN ESE CORTE</span>
+        {tensions.length ? tensions.map((item) => {
+          const current = currentDomains.find((candidate) => candidate.domain === item.domain)?.value ?? null;
+          const delta = current === null ? null : current - item.value;
+          return <div key={item.domain}><b>{item.domain}</b><strong>{item.value.toFixed(3)}</strong><small>{delta === null ? 'actual MISSING' : `${delta >= 0 ? '+' : ''}${delta.toFixed(3)} vs actual`}</small></div>;
+        }) : <p className="rsc-empty">MISSING · no se recuperaron dominios para ese snapshot.</p>}
+      </div>
+    </>}
   </section>;
 }
 
@@ -119,6 +122,7 @@ function PredictionCase({ context }: { context: Row }) {
         <div><span>RETORNO ESPERADO</span><strong>{when(context.dueAt)}</strong></div>
         <div><span>OUTCOMES</span><strong>{outcomes.length}</strong></div>
       </div>
+      {text(context.verificationRule, '') ? <div className="rsc-boundary"><span>REGLA DE VERIFICACIÓN</span><p>{text(context.verificationRule)}</p></div> : null}
       {text(context.interpretation, '') ? <p className="rsc-meaning">{text(context.interpretation)}</p> : null}
       <div className="rsc-phase"><span>HIPÓTESIS</span><i>→</i><span>{requests.length} EVIDENCE REQUESTS</span><i>→</i><span>{outcomes.length || verifications.length} OUTCOMES / VERIFICATIONS</span><i>→</i><span>{learning.length} LEARNING EVENTS</span></div>
     </section>
@@ -158,6 +162,7 @@ function EvidenceContext({ context }: { context: Row }) {
   const edges = rows(context.graphEdges);
   const relatedNodes = rows(context.relatedNodes);
   const attractors = rows(context.attractors);
+  const sourceUrl = text(metadata.sourceUrl ?? record.source_url, '');
   return <div className="rsc-context">
     <section className="rsc-block evidence">
       <div className="rsc-title">QUÉ COMUNICA ESTA EVIDENCIA A SFI</div>
@@ -172,7 +177,7 @@ function EvidenceContext({ context }: { context: Row }) {
         <div><span>REF PRIVADA</span><strong>{text(metadata.privateRef ?? record.private_ref)}</strong></div>
       </div>
       <div className="rsc-boundary"><span>LÍMITE EPISTÉMICO</span><p>{text(metadata.claimBoundary ?? summary.claimBoundary, 'La existencia del registro no valida automáticamente las afirmaciones internas del artefacto.')}</p></div>
-      {text(record.source_url, '') ? <a className="rsc-source-link" href={text(record.source_url)} target="_blank" rel="noreferrer">ABRIR SUPERFICIE / FUENTE ↗</a> : null}
+      {sourceUrl ? <a className="rsc-source-link" href={sourceUrl} target="_blank" rel="noreferrer">ABRIR SUPERFICIE / FUENTE ↗</a> : null}
     </section>
 
     <section className="rsc-block"><div className="rsc-title">RELACIONES PERSISTIDAS · {edges.length}</div>{edges.length ? edges.map((edge, index) => { const other = relatedNodes.find((node) => [edge.source_node_id, edge.target_node_id].includes(node.node_id)); return <article className="rsc-row-card" key={text(edge.id, String(index))}><div><span>{text(edge.relation)}</span><small>{text(edge.relation_type)}</small></div><h4>{text(other?.label, text(edge.target_node_id ?? edge.source_node_id))}</h4><p>Esta relación existe en el grafo; su fuerza/confianza debe leerse por separado de la existencia de los dos objetos.</p></article>; }) : <p className="rsc-empty">Esta pieza está registrada pero AISLADA: no tiene relación persistida con otro artefacto, publicación, caso, hipótesis o atractor. Eso es el hueco relevante; no “cargar evidencia” por defecto.</p>}</section>
