@@ -1,13 +1,13 @@
 import { NextResponse } from 'next/server';
 import { reconcilePersistedEvidenceGraph } from '@/lib/evidence/reconcileEvidenceGraph';
-import { auditRootAction, requireRootContributor } from '@/lib/root/server';
+import { auditRootAction, requireRootActor } from '@/lib/root/server';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 export const maxDuration = 300;
 
 export async function POST(request: Request) {
-  const gate = await requireRootContributor('evidence.write');
+  const gate = await requireRootActor('evidence.graph.reconcile');
   if (!gate.ok) return NextResponse.json(gate.body, { status: gate.status });
 
   const result = await reconcilePersistedEvidenceGraph();
