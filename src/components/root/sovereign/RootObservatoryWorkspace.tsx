@@ -72,6 +72,10 @@ function tone(value: string | null | undefined) {
 function statusLabel(status: string, context: StatusContext = 'ESTADO') {
   return `${context} · ${status.toUpperCase()}`;
 }
+function systemStatusContext(id: string): StatusContext {
+  if (id.startsWith('mihm-') && id !== 'mihm-llm-providers') return 'CLASE';
+  return 'SALUD';
+}
 function sel(input: {
   kind: string;
   id: string;
@@ -245,7 +249,7 @@ export function RootObservatoryWorkspace({ state, accessMode, actorLabel, refres
           </Panel>
 
           <Panel id="mod-02" module="02 · SISTEMA" label="Salud de superficies" status={state.system.error ? 'degraded' : state.system.dataClass} statusContext="SALUD" source={state.system.source}>
-            <Rows rows={state.system.data.matrix.map((item) => ({ name: item.label, sub: item.openItems.value === null ? undefined : `${item.openItems.value} abiertos`, status: item.state.status, statusContext: 'SALUD', onClick: () => onSelect(sel({ kind: 'system-item', id: item.id, title: item.label, source: item.state.source, observedAt: item.state.observedAt, evidenceIds: item.state.evidenceIds, warning: item.state.warning, data: item })) }))} />
+            <Rows rows={state.system.data.matrix.map((item) => ({ name: item.label, sub: item.openItems.value === null ? undefined : `${item.openItems.value} abiertos`, status: item.state.status, statusContext: systemStatusContext(item.id), onClick: () => onSelect(sel({ kind: 'system-item', id: item.id, title: item.label, source: item.state.source, observedAt: item.state.observedAt, evidenceIds: item.state.evidenceIds, warning: item.state.warning, data: item })) }))} />
           </Panel>
 
           <Panel id="mod-03" module="03 · IDENTIDAD" label="Sesión / autoridad" status="observed" statusContext="ESTADO" source="server user context"><Rows rows={[{ name: actorLabel, sub: accessMode === 'sovereign' ? 'ROOT · SOVEREIGN' : 'ROOT · OBSERVER', status: 'observed', statusContext: 'ESTADO' }]} /></Panel>
