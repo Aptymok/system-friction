@@ -35,6 +35,7 @@ function pendingSchemaResponse(error: DbError) {
     hypotheses: [],
     outcomes: [],
     learning: [],
+    cognitiveRuns: [],
     sourceFamilies: [],
     diagnostic: {
       code: error.code ?? null,
@@ -60,6 +61,28 @@ async function readPagedRows(db: ServiceDb, table: string, timeColumn: string, s
       .order(timeColumn, { ascending })
       .range(from, from + PAGE_SIZE - 1);
 
+    if (result.error) return { data: rows, error: result.error };
+    const page = Array.isArray(result.data) ? result.data as Row[] : [];
+    rows.push(...page);
+    if (page.length < PAGE_SIZE) break;
+    from += PAGE_SIZE;
+  }
+
+  return { data: rows, error: null };
+}
+
+async function readOwnerCognitiveRuns(db: ServiceDb, since: string, ownerId: string) {
+  const rows: Row[] = [];
+  let from = 0;
+
+  for (;;) {
+    const result = await db.from('sfi_cognitive_twin_runs')
+      .select('id,task_id,role,status,provider,model,objective,input_snapshot,output_envelope,evidence_refs,limitations,started_at,finished_at,created_at')
+      .eq('role', 'world_field_frame_analysis')
+      .contains('input_snapshot', { requestedBy: ownerId })
+      .gte('created_at', since)
+      .order('created_at', { ascending: true })
+      .range(from, from + PAGE_SIZE - 1);
     if (result.error) return { data: rows, error: result.error };
     const page = Array.isArray(result.data) ? result.data as Row[] : [];
     rows.push(...page);
@@ -100,11 +123,12 @@ export async function GET() {
     observationsQuery = await readPagedRows(db, 'world_source_observations', 'observed_at', since, false);
   }
 
-  const [readingsQuery, hypothesesQuery, outcomesQuery, learningQuery] = await Promise.all([
+  const [readingsQuery, hypothesesQuery, outcomesQuery, learningQuery, cognitiveRunsQuery] = await Promise.all([
     readPagedRows(db, 'world_friction_readings', 'created_at', since, false),
     readPagedRows(db, 'world_hypotheses', 'cutoff_at', since, true),
     readPagedRows(db, 'world_hypothesis_outcomes', 'evaluated_at', since, true),
     readPagedRows(db, 'world_learning_events', 'created_at', since, true),
+    readOwnerCognitiveRuns(db, since, auth.user.id),
   ]);
 
   const secondaryError = observationsQuery.error
@@ -128,6 +152,7 @@ export async function GET() {
   const hypotheses = hypothesesQuery.data;
   const outcomes = outcomesQuery.data;
   const learning = learningQuery.data;
+  const cognitiveRuns = cognitiveRunsQuery.data;
   const readingByObservation = new Map(readings.map((item) => [String(item.observation_id), item]));
 
   const nodes = observationsQuery.data.map((item) => ({
@@ -152,6 +177,7 @@ export async function GET() {
     ...hypotheses.map((row) => String(row.cutoff_at ?? '')),
     ...outcomes.map((row) => String(row.evaluated_at ?? '')),
     ...learning.map((row) => String(row.created_at ?? '')),
+    ...cognitiveRuns.map((row) => String(row.finished_at ?? row.created_at ?? '')),
   ].filter(Boolean).sort();
 
   return NextResponse.json({
@@ -167,6 +193,7 @@ export async function GET() {
     hypotheses,
     outcomes,
     learning,
+    cognitiveRuns,
     sourceFamilies: [...new Set(nodes.map((node) => node.sourceFamily))],
     bootstrap,
     diagnostic: {
@@ -177,6 +204,8 @@ export async function GET() {
       hypotheses: hypotheses.length,
       outcomes: outcomes.length,
       learning: learning.length,
+      cognitiveRuns: cognitiveRuns.length,
+      cognitiveRunReadWarning: cognitiveRunsQuery.error?.message ?? null,
       paginated: true,
       pageSize: PAGE_SIZE,
       horizonDays: WORLD_HORIZON_DAYS,
@@ -187,6 +216,7 @@ export async function GET() {
       'Missing or failed sources remain missing; no simulated values are generated.',
       'SFI readings use the canonical Φ and F_s implementation.',
       'Map geometry is geographic presentation. Temporal filtering changes which persisted observations are visible; it does not create graph relations.',
+      'Cognitive frame runs are owner-scoped interpretations. They are not WORLD observations and are never shared across member accounts by this route.',
     ],
   });
 }
