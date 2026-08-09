@@ -45,10 +45,13 @@ export async function POST(request: Request) {
 
   const startedAt = new Date().toISOString();
   const subject = typeof body.subject === 'string' && body.subject.trim() ? body.subject.trim() : undefined;
+  const ifnorm = body.ifnorm && typeof body.ifnorm === 'object' && !Array.isArray(body.ifnorm)
+    ? body.ifnorm as Record<string, unknown>
+    : null;
   const result = await runReportAgent({
     type,
     subject,
-    ifnorm: body.ifnorm && typeof body.ifnorm === 'object' ? body.ifnorm as never : null,
+    ifnorm: ifnorm as never,
   });
   const finishedAt = new Date().toISOString();
 
@@ -65,6 +68,7 @@ export async function POST(request: Request) {
       input_snapshot: {
         reportType: type,
         subject: subject ?? null,
+        ifnorm,
         requestedBy: gate.ctx.user.id,
       },
       output_envelope: result,
@@ -89,7 +93,12 @@ export async function POST(request: Request) {
     actorId: gate.ctx.user.id,
     action: 'agentic.report',
     target: type,
-    payload: { subject: subject ?? null, ok: result.ok, reportRunId: persisted.data.id },
+    payload: {
+      subject: subject ?? null,
+      ifnormEntity: typeof ifnorm?.entity_name === 'string' ? ifnorm.entity_name : null,
+      ok: result.ok,
+      reportRunId: persisted.data.id,
+    },
     request,
   });
   if (!audit.ok) return NextResponse.json(audit, { status: 500 });
