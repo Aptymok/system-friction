@@ -3,6 +3,7 @@ import {
   createServerSupabaseClient,
   createServiceSupabaseClient,
 } from '@/runtime/supabase/server';
+import { findInstitutionalMember } from '@/lib/system/access/institutionalMembers';
 
 export const PRODUCTION_APP_URL =
   process.env.NEXT_PUBLIC_APP_URL || 'https://systemfriction.org';
@@ -56,6 +57,11 @@ function isConfiguredRootEmail(email?: string | null) {
   );
 }
 
+function isRegisteredInstitutionalRootObserver(email?: string | null) {
+  const member = findInstitutionalMember(email);
+  return Boolean(member && member.role === 'observer' && member.modules.root === true);
+}
+
 function hasSovereignRootAuthority(
   profile: Record<string, unknown> | null,
   email?: string | null,
@@ -74,7 +80,11 @@ export function canObserveRoot(
   role?: string | null,
   email?: string | null
 ) {
-  return isRootUser(role, email) || isInstitutionalObserverRole(role);
+  return (
+    isRootUser(role, email) ||
+    isInstitutionalObserverRole(role) ||
+    isRegisteredInstitutionalRootObserver(email)
+  );
 }
 
 export async function getServerUserContext() {
@@ -110,13 +120,33 @@ export async function getServerUserContext() {
     .eq('user_id', user.id)
     .maybeSingle();
 
-  if (!profile) {
+  const institutionalMember = findInstitutionalMember(user.email);
+
+  // Only explicitly recognized institutional identities may be provisioned here.
+  // Unknown authenticated users must never become ROOT observers by fallback.
+  if (!profile && (isConfiguredRootEmail(user.email) || institutionalMember)) {
     const role = isConfiguredRootEmail(user.email)
       ? 'root'
-      : 'observer';
+      : institutionalMember?.role ?? 'observer';
 
-    const alias =
-      user.email?.split('@')[0] || 'observador';
+    const alias = institutionalMember?.displayName ?? user.email?.split('@')[0] ?? 'observador';
+    const moduleAccess = role === 'root'
+      ? ROOT_ENTITLEMENTS
+      : institutionalMember
+        ? {
+            field: institutionalMember.modules.field,
+            studio: institutionalMember.modules.studio,
+            observatory: institutionalMember.modules.observatory,
+            world_field: institutionalMember.modules.worldField,
+            root: institutionalMember.modules.root,
+            root_observe: institutionalMember.modules.root,
+            executor: false,
+            root_execution: false,
+            governance_write: false,
+            sovereign_actions: false,
+            canonical_promotion: false,
+          }
+        : {};
 
     const {
       data: createdProfile,
@@ -126,20 +156,15 @@ export async function getServerUserContext() {
       .insert({
         user_id: user.id,
         alias,
-        email:
-          user.email ||
-          `${user.id}@systemfriction.local`,
+        email: user.email || `${user.id}@systemfriction.local`,
         role,
-        module_access: role === 'root' ? ROOT_ENTITLEMENTS : {},
+        module_access: moduleAccess,
       })
       .select('*')
       .single();
 
     if (profileError) {
-      console.error(
-        'PROFILE CREATION ERROR',
-        profileError
-      );
+      console.error('PROFILE CREATION ERROR', profileError);
     }
 
     profile = createdProfile;
@@ -149,6 +174,7 @@ export async function getServerUserContext() {
   const role = typeof profile?.role === 'string' ? profile.role : null;
   const isRoot = hasSovereignRootAuthority(profileRecord, user.email);
   const legacyRootWithoutAuthority = isRootRole(role) && !isRoot;
+  const registeredObserver = isRegisteredInstitutionalRootObserver(user.email);
 
   return {
     supabase,
@@ -159,7 +185,8 @@ export async function getServerUserContext() {
     canObserveRoot:
       isRoot ||
       isInstitutionalObserverRole(role) ||
-      legacyRootWithoutAuthority,
+      legacyRootWithoutAuthority ||
+      registeredObserver,
   };
 }
 
