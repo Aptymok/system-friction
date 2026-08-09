@@ -18,6 +18,7 @@ check('legacy graph edge storage remains compatible', reconcile.includes("LEGACY
 check('semantic graph meaning survives storage compatibility', reconcile.includes('semanticRelationType: input.relationType') && reconcile.includes('declaredRelation: input.relation'));
 check('evidence reader prefers semantic relation', reader.includes('row.relation ?? attributes.declaredRelation ?? row.relation_type'));
 check('evidence graph exposes temporal edge metadata', reader.includes('observedAt: dateValue(attributes.observedAt') && reader.includes('sourceObservedAt'));
+check('RootEvidenceEdge adapter satisfies semantic and temporal contract', reader.includes('relationClass: text(attributes.semanticRelationType') && reader.includes('observedAt: dateValue(attributes.observedAt'));
 check('static index-circle evidence layout was removed', !workspace.includes('index / Math.max(1, nodes.length) * Math.PI * 2') && !workspace.includes('.slice(0, 28)'));
 check('graph uses persisted connectivity for expansion', workspace.includes('graphDegrees') && workspace.includes('graphLevels') && workspace.includes('adjacency') && workspace.includes('setDepth(value)') && workspace.includes('maxDepth'));
 check('graph supports longitudinal movement', workspace.includes('Mover el grafo de evidencia longitudinalmente') && workspace.includes('cutoffMs') && workspace.includes('timeEdges'));
