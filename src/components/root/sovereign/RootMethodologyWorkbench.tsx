@@ -33,10 +33,16 @@ function dispositionLabel(value: MethodologyState['disposition']) {
   return 'PPOI NO REQUERIDO';
 }
 
-export function RootMethodologyWorkbench({ state }: { state: RootSovereignState }) {
+export function RootMethodologyWorkbench({ state, launcher = true }: { state: RootSovereignState; launcher?: boolean }) {
   const [open, setOpen] = useState(false);
   const [payload, setPayload] = useState<MethodologyPayload>({ cases: [], warnings: [] });
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const openFromRoot = () => setOpen(true);
+    window.addEventListener('sfi:open-methodology', openFromRoot);
+    return () => window.removeEventListener('sfi:open-methodology', openFromRoot);
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -59,9 +65,9 @@ export function RootMethodologyWorkbench({ state }: { state: RootSovereignState 
 
   return (
     <>
-      <button className="rmw-trigger" type="button" onClick={() => setOpen(true)}>
+      {launcher ? <button className="rmw-trigger" type="button" onClick={() => setOpen(true)}>
         <span>MIHM</span><strong>{summary.total}</strong><small>{summary.blocked ? `${summary.blocked} bloqueados` : summary.pending ? `${summary.pending} pendientes de ciclo` : `${summary.ppoi} PPOI persistidos`}</small>
-      </button>
+      </button> : null}
 
       {open ? (
         <div className="rmw-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setOpen(false); }}>

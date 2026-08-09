@@ -42,6 +42,9 @@ jobs:
       - name: Verify Field and Observatory temporal surfaces
         run: npx tsx scripts/qa-sfi-temporal-surfaces.ts
 
+      - name: Verify ROOT graph and navigation convergence
+        run: npx tsx scripts/qa-sfi-root-graph-navigation.ts
+
       - name: Verify Studio Field surface
         run: npm run qa:sfi-studio-workspace
 

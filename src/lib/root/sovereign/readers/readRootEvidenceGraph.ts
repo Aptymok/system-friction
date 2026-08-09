@@ -6,9 +6,12 @@ import { dateValue, numberValue, selectRows, source, text } from './readerSuppor
 function strings(value: unknown): string[] {
   return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
 }
+function record(value: unknown): RootRow {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as RootRow : {};
+}
 
 function nodeFrom(row: RootRow, table: string): RootEvidenceNode {
-  const payload = row.payload && typeof row.payload === 'object' && !Array.isArray(row.payload) ? row.payload as RootRow : row.attributes && typeof row.attributes === 'object' && !Array.isArray(row.attributes) ? row.attributes as RootRow : {};
+  const payload = record(row.payload ?? row.attributes);
   return {
     id: text(row.node_key ?? row.node_id ?? row.id),
     label: text(row.label ?? row.title, 'SIN ETIQUETA'),
@@ -16,7 +19,7 @@ function nodeFrom(row: RootRow, table: string): RootEvidenceNode {
     epistemicClass: text(row.epistemic_class ?? payload.epistemicClass, 'observed'),
     confidence: numberValue(row.confidence ?? row.trust_score ?? payload.confidence),
     source: table,
-    observedAt: dateValue(row.updated_at ?? row.observed_at ?? row.created_at),
+    observedAt: dateValue(payload.sourceObservedAt ?? row.observed_at ?? row.created_at ?? row.updated_at),
     evidenceIds: strings(row.evidence_ids ?? payload.evidenceIds).concat(text(row.evidence_hash ?? payload.evidenceHash, '') ? [text(row.evidence_hash ?? payload.evidenceHash)] : []),
     lineage: strings(row.lineage),
     payload,
@@ -24,14 +27,16 @@ function nodeFrom(row: RootRow, table: string): RootEvidenceNode {
 }
 
 function edgeFrom(row: RootRow, table: string): RootEvidenceEdge {
-  const attributes = row.attributes && typeof row.attributes === 'object' && !Array.isArray(row.attributes) ? row.attributes as RootRow : {};
+  const attributes = record(row.attributes ?? row.payload);
   return {
     id: text(row.edge_id ?? row.id),
     from: text(row.source_node_key ?? row.source_node_id ?? row.from_key),
     to: text(row.target_node_key ?? row.target_node_id ?? row.to_key),
-    relation: text(row.relation_type ?? row.relation ?? row.edge_type, 'related'),
+    relation: text(row.relation ?? attributes.declaredRelation ?? row.relation_type ?? row.edge_type, 'related'),
+    relationClass: text(attributes.semanticRelationType ?? row.relation_type ?? row.edge_type, 'related'),
     weight: numberValue(row.weight ?? row.w_ij),
     confidence: numberValue(row.confidence),
+    observedAt: dateValue(attributes.observedAt ?? row.created_at ?? row.updated_at),
     evidenceIds: strings(row.evidence_ids).concat(strings(row.lineage)).concat(text(attributes.evidenceHash, '') ? [text(attributes.evidenceHash)] : []),
     source: table,
   };
@@ -42,10 +47,10 @@ export async function readRootEvidenceGraph() {
   const [rootEntries, ledger, graphNodes, graphEdges, sfiNodes, sfiEdges] = await Promise.all([
     selectRows({ table: 'root_evidence_entries', select: 'id,evidence_hash,actor_id,title,content,evidence_type,target_node_id,payload,epistemic_event_id,created_at', order: 'created_at', limit: 80 }),
     selectRows({ table: 'sfi_evidence_ledger', select: 'id,case_id,module,evidence_kind,source_name,source_url,private_ref,public_summary,evidence_hash,anonymized,trust_level,trust_score,ldi,public_weight,observed_at,created_at', order: 'observed_at', limit: 80 }),
-    selectRows({ table: 'graph_nodes', select: 'id,node_id,label,ontology_type,lineage,attributes,created_at,updated_at', order: 'updated_at', limit: 120 }),
-    selectRows({ table: 'graph_edges', select: 'id,edge_id,source_node_id,target_node_id,relation,weight,lineage,attributes,created_at,updated_at', order: 'updated_at', limit: 180 }),
-    selectRows({ table: 'sfi_graph_nodes', select: 'id,node_key,label,module,node_type,layer,parent_key,description,metrics,evidence_count,private_evidence_count,density,weight,degradation,status,position,visual,created_at,updated_at', order: 'updated_at', limit: 120 }),
-    selectRows({ table: 'sfi_graph_edges', select: 'id,from_key,to_key,edge_type,weight,evidence_count,degradation,metadata,created_at,updated_at', order: 'updated_at', limit: 180 }),
+    selectRows({ table: 'graph_nodes', select: 'id,node_id,node_key,label,node_type,ontology_type,origin,epistemic_class,confidence,lineage,evidence_ids,payload,attributes,created_at,updated_at', order: 'created_at', limit: 240 }),
+    selectRows({ table: 'graph_edges', select: 'id,edge_id,source_node_id,target_node_id,source_node_key,target_node_key,relation,relation_type,weight,w_ij,confidence,lineage,evidence_ids,payload,attributes,created_at,updated_at', order: 'created_at', limit: 480 }),
+    selectRows({ table: 'sfi_graph_nodes', select: 'id,node_key,label,module,node_type,layer,parent_key,description,metrics,evidence_count,private_evidence_count,density,weight,degradation,status,position,visual,created_at,updated_at', order: 'created_at', limit: 240 }),
+    selectRows({ table: 'sfi_graph_edges', select: 'id,from_key,to_key,edge_type,weight,evidence_count,degradation,metadata,created_at,updated_at', order: 'created_at', limit: 480 }),
   ]);
   const nodes = [...graphNodes.rows.map((item) => nodeFrom(item, 'graph_nodes')), ...sfiNodes.rows.map((item) => nodeFrom(item, 'sfi_graph_nodes'))].filter((item) => item.id);
   const edges = [...graphEdges.rows.map((item) => edgeFrom(item, 'graph_edges')), ...sfiEdges.rows.map((item) => edgeFrom(item, 'sfi_graph_edges'))].filter((item) => item.id && item.from && item.to);
@@ -53,7 +58,7 @@ export async function readRootEvidenceGraph() {
     { nodes, edges, entries: rootEntries.rows, ledger: ledger.rows },
     'persisted evidence graphs',
     [rootEntries.error, ledger.error, graphNodes.error, graphEdges.error, sfiNodes.error, sfiEdges.error, ...reconciliation.warnings],
-    nodes.map((item) => item.observedAt).find(Boolean) ?? null,
+    nodes.map((item) => item.observedAt).filter(Boolean).sort().at(-1) ?? null,
     !nodes.length && !rootEntries.rows.length,
   );
 }
