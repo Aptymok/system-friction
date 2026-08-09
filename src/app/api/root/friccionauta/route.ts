@@ -12,6 +12,7 @@ export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 type Row = Record<string, unknown>;
+type RootActorGate = Extract<Awaited<ReturnType<typeof requireRootActor>>, { ok: true }>;
 
 function text(value: unknown, fallback = '') {
   return typeof value === 'string' && value.trim() ? value.trim() : fallback;
@@ -30,7 +31,7 @@ function recentConversation(value: unknown) {
   return rows(value).slice(-8).map((item) => ({ role: text(item.role, 'user'), content: text(item.content).slice(0, 2200) }));
 }
 
-async function ask(request: Request, gate: Awaited<ReturnType<typeof requireRootActor>>, body: Row) {
+async function ask(request: Request, gate: RootActorGate, body: Row) {
   const question = text(body.question);
   if (!question) return NextResponse.json({ ok: false, error: 'question_required' }, { status: 400 });
   const startedAt = new Date().toISOString();
@@ -166,7 +167,7 @@ async function ask(request: Request, gate: Awaited<ReturnType<typeof requireRoot
   return NextResponse.json({ ok: true, answer: llm.result, provider: llm.provider, model: llm.model, evidenceRefs, warnings: envelope.limitations, run: persisted.data, envelope, audit });
 }
 
-async function saveFinding(request: Request, gate: Awaited<ReturnType<typeof requireRootActor>>, body: Row) {
+async function saveFinding(request: Request, gate: RootActorGate, body: Row) {
   const finding = text(body.finding);
   const question = text(body.question);
   const sourceRunId = text(body.sourceRunId);
@@ -200,5 +201,6 @@ export async function POST(request: Request) {
   const gate = await requireRootActor('friccionauta');
   if (!gate.ok) return NextResponse.json(gate.body, { status: gate.status });
   const body = await request.json().catch(() => ({})) as Row;
-  return text(body.action, 'ask') === 'save_finding' ? saveFinding(request, gate, body) : ask(request, gate, body);
+  const rootGate: RootActorGate = gate;
+  return text(body.action, 'ask') === 'save_finding' ? saveFinding(request, rootGate, body) : ask(request, rootGate, body);
 }
