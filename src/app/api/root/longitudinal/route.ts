@@ -15,7 +15,7 @@ function institutionalPoint(row: Row) {
   const ihg = num(row.ihg), nti = num(row.nti), ldi = num(row.ldi);
   const metrics = ihg === null || nti === null || ldi === null ? null : evaluateSfi({ ihg, nti, ldi, xi: 0.03 });
   return {
-    id: text(row.id, text(row.captured_at)),
+    id: text(row.captured_at),
     at: row.captured_at ?? null,
     date: dateKey(row.captured_at),
     ihg, nti, ldi,
@@ -51,7 +51,7 @@ export async function GET(request: Request) {
   const selectedDate = text(url.searchParams.get('date')) || null;
 
   const [institutional, world] = await Promise.all([
-    gate.ctx.service.from('sfi_indicator_snapshots').select('id,captured_at,ihg,nti,ldi,wsv,source_status,warnings').order('captured_at', { ascending: true }).limit(240),
+    gate.ctx.service.from('sfi_indicator_snapshots').select('captured_at,ihg,nti,ldi,wsv,source_status,warnings').order('captured_at', { ascending: true }).limit(240),
     gate.ctx.service.from('worldspect_snapshots').select('id,observed_at,wsi,nti,confidence,source_state,adapter_status,degraded_sources,field_state_signal,ingest_mode').order('observed_at', { ascending: true }).limit(240),
   ]);
 
