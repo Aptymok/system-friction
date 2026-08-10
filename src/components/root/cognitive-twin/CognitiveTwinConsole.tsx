@@ -1,6 +1,7 @@
 import { HumanReadableRecord } from '@/components/shared/HumanReadableRecord';
 import { FounderDecisionCandidateForm } from './FounderDecisionCandidateForm';
 import { CognitiveTwinDeliberationPanel } from './CognitiveTwinDeliberationPanel';
+import { NationalFieldPanel } from './NationalFieldPanel';
 import type { CognitiveTwinState } from '@/lib/cognitive-twin/readState';
 
 function yesNo(value: boolean) {
@@ -10,9 +11,11 @@ function yesNo(value: boolean) {
 function implementationLabel(state: CognitiveTwinState) {
   if (!state.implementation.contractImplemented) return 'SIN CONTRATO EJECUTABLE';
   if (!state.implementation.databaseReady) return 'IMPLEMENTADO · PERSISTENCIA PENDIENTE';
+  if (!state.implementation.providerConfigured) return 'NÚCLEO IMPLEMENTADO · PROVEEDOR NO CONFIGURADO';
+  if (!state.implementation.providerExecutionObserved) return 'NÚCLEO IMPLEMENTADO · EJECUCIÓN LLM NO VERIFICADA';
   if (!state.implementation.approvedDecisionCorpusReady) return 'NÚCLEO ACTIVO · CORPUS DEL FUNDADOR PENDIENTE';
-  if (!state.implementation.modelEvaluationRegistryReady) return 'NÚCLEO ACTIVO · MODELOS SIN EVALUAR';
-  if (!state.implementation.institutionalAutonomyProven) return 'OPERABLE · AUTONOMÍA NO DEMOSTRADA';
+  if (!state.implementation.modelEvaluationRegistryReady) return 'NÚCLEO ACTIVO · MODELOS SIN APROBACIÓN EVALUADA';
+  if (!state.implementation.institutionalAutonomyProven) return 'EJECUCIÓN OBSERVADA · AUTONOMÍA NO DEMOSTRADA';
   return 'AUTONOMÍA DEMOSTRADA';
 }
 
@@ -27,10 +30,10 @@ export function CognitiveTwinConsole({ state }: { state: CognitiveTwinState }) {
       </header>
 
       <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 12, marginTop: 18 }}>
-        <article style={card}><small style={eyebrow}>ESTADO</small><strong style={big}>{implementationLabel(state)}</strong><span style={muted}>No se declara autonomía hasta que existan pruebas.</span></article>
+        <article style={card}><small style={eyebrow}>ESTADO</small><strong style={big}>{implementationLabel(state)}</strong><span style={muted}>Configuración no equivale a ejecución; ejecución no equivale a autonomía.</span></article>
         <article style={card}><small style={eyebrow}>MEMORIA INSTITUCIONAL</small><strong style={big}>{state.counts.memory ?? 'N/D'}</strong><span style={muted}>registros persistidos</span></article>
         <article style={card}><small style={eyebrow}>DECISIONES DEL FUNDADOR</small><strong style={big}>{state.counts.approvedDecisions}</strong><span style={muted}>reglas aprobadas en el corpus</span></article>
-        <article style={card}><small style={eyebrow}>MODELOS REGISTRADOS</small><strong style={big}>{state.counts.models}</strong><span style={muted}>ninguno se aprueba por estar configurado</span></article>
+        <article style={card}><small style={eyebrow}>MODELOS</small><strong style={big}>{state.counts.approvedModels}/{state.counts.models}</strong><span style={muted}>aprobados / registrados</span></article>
         <article style={card}><small style={eyebrow}>EVALUACIONES</small><strong style={big}>{state.counts.evaluations ?? 'N/D'}</strong><span style={muted}>pruebas persistidas</span></article>
         <article style={card}><small style={eyebrow}>EJECUCIONES</small><strong style={big}>{state.counts.runs ?? 'N/D'}</strong><span style={muted}>runs institucionales registrados</span></article>
       </section>
@@ -44,6 +47,7 @@ export function CognitiveTwinConsole({ state }: { state: CognitiveTwinState }) {
       ) : null}
 
       <CognitiveTwinDeliberationPanel />
+      <NationalFieldPanel />
 
       <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(320px,1fr))', gap: 12, marginTop: 12 }}>
         <article style={card}>
@@ -51,9 +55,11 @@ export function CognitiveTwinConsole({ state }: { state: CognitiveTwinState }) {
           <dl style={{ display: 'grid', gap: 8, margin: 0 }}>
             <Row label="Contrato ejecutable" value={yesNo(state.implementation.contractImplemented)} />
             <Row label="Persistencia del Twin" value={yesNo(state.implementation.databaseReady)} />
-            <Row label="Router de modelos disponible" value={yesNo(state.implementation.providerRouterReady)} />
+            <Row label="Proveedor configurado" value={yesNo(state.implementation.providerConfigured)} />
+            <Row label="Ejecución LLM observada" value={yesNo(state.implementation.providerExecutionObserved)} />
+            <Row label="Router verificado operativamente" value={yesNo(state.implementation.providerRouterReady)} />
             <Row label="Corpus aprobado del fundador" value={yesNo(state.implementation.approvedDecisionCorpusReady)} />
-            <Row label="Modelos evaluados y registrados" value={yesNo(state.implementation.modelEvaluationRegistryReady)} />
+            <Row label="Modelo aprobado mediante evaluación" value={yesNo(state.implementation.modelEvaluationRegistryReady)} />
             <Row label="Autonomía institucional demostrada" value={yesNo(state.implementation.institutionalAutonomyProven)} />
           </dl>
         </article>
@@ -61,7 +67,7 @@ export function CognitiveTwinConsole({ state }: { state: CognitiveTwinState }) {
         <article style={card}>
           <h2 style={heading}>QUÉ REQUIERE DEL FUNDADOR</h2>
           <p style={paragraph}>Nada adicional para continuar programando el núcleo.</p>
-          <p style={paragraph}>Para constituir tu criterio institucional sí se necesitan decisiones reales: momentos donde corregiste una inferencia, rechazaste una conclusión, exigiste evidencia o reservaste una decisión. No tienes que escribir un manual de tu personalidad.</p>
+          <p style={paragraph}>Para constituir criterio institucional sí se necesitan decisiones reales: momentos donde corregiste una inferencia, rechazaste una conclusión, exigiste evidencia o reservaste una decisión. El campo nacional permite además acumular casos externos sin depender de que el fundador falle.</p>
           <p style={paragraph}>Cada registro entra como candidato. No se convierte automáticamente en regla canónica.</p>
         </article>
 
@@ -74,7 +80,7 @@ export function CognitiveTwinConsole({ state }: { state: CognitiveTwinState }) {
 
       <section style={{ ...card, marginTop: 12 }}>
         <h2 style={heading}>MODELOS DISPONIBLES EN ESTE DESPLIEGUE</h2>
-        <p style={muted}>Configurado no significa aprobado. La autorización depende de evaluaciones persistidas.</p>
+        <p style={muted}>Configurado no significa ejecutado ni aprobado. La autorización depende de ejecución observable y evaluaciones persistidas.</p>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(230px,1fr))', gap: 8, marginTop: 12 }}>
           {state.providers.map((provider) => (
             <div key={provider.id} style={{ border: '1px solid #29251b', padding: 12, display: 'grid', gap: 5 }}>
@@ -86,6 +92,7 @@ export function CognitiveTwinConsole({ state }: { state: CognitiveTwinState }) {
           ))}
         </div>
         {!configured.length ? <p style={{ color: '#d0a58e' }}>No hay ningún proveedor LLM configurado en este runtime. El contrato y la memoria pueden existir, pero no habrá ejecución cognitiva por modelo.</p> : null}
+        {configured.length && !state.implementation.providerExecutionObserved ? <p style={{ color: '#d0a58e' }}>Hay proveedor configurado, pero todavía no existe una ejecución reciente no degradada que permita declararlo operativo.</p> : null}
       </section>
 
       <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(300px,1fr))', gap: 12, marginTop: 12 }}>
