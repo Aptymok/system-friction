@@ -72,8 +72,9 @@ async function runSfiAgentBridge(year, problems) {
     source: 'SFI_CL_WORLD_FRAME',
     confidence: 0.8,
     payload: {
-      year, country: p.geography.iso3, indicator: p.indicator, history: p.history,
-      currentValue: p.currentValue, epistemicClass: 'IMPORTED_HISTORICAL_REPLAY',
+      year, country: shadow ? p.geography.alias : p.geography.iso3,
+      indicator: shadow ? { code: `I-${sha256(p.indicator.code).slice(0, 8)}`, domain: p.indicator.domain } : p.indicator,
+      history: p.history, currentValue: p.currentValue, epistemicClass: 'IMPORTED_HISTORICAL_REPLAY',
     },
   }));
   const context = {
