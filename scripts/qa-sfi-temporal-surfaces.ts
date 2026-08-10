@@ -97,7 +97,7 @@ for (const token of [
   "epistemicClass: 'IMPORTED'",
   "role: 'national_field_scenario_analysis'",
   "status: llm.ok ? 'PROPOSED' : 'REJECTED'",
-  "llm.ok ? 'READY' :",
+  "const runStatus = !llm.ok ? 'BLOCKED'",
 ]) assert.ok(nationalScenario.includes(token), `national_scenario_runtime_missing:${token}`);
 assert.ok(nationalScenarioRoute.includes("requireRootActor('national_field.analyze')"), 'national_scenario_analysis_must_be_root_governed');
 
