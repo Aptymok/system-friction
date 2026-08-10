@@ -23,7 +23,7 @@ function makeCatalog(index, row, year, rnd) {
   const candidates = same.filter((x) => x.indicator.code !== row.indicator.code);
   const picked = sampleDeterministic(candidates, 6, `${row.country.iso3}:${row.indicator.code}:${year}:${rnd()}`);
   return picked.map((x) => ({
-    evidenceId: `E:${x.country.iso3}:${x.indicator.code}:${year}`,
+    evidenceId: `E-${sha256(`${x.country.iso3}|${x.indicator.code}|${year}`).slice(0, 16)}`,
     label: x.indicator.label,
     domain: x.indicator.domain,
     value: x.value,
@@ -51,7 +51,7 @@ export function forgeProblems({ records, index, year, count = 5000, seed = 'SFI_
     if (base.length % methodEvery === 0) type = 'SFI_AUXILIARY';
     const method = type === 'SFI_AUXILIARY' ? SFI_METHODS[Math.floor(rnd() * SFI_METHODS.length)] : null;
     const evidenceCatalog = makeCatalog(index, row, year, rnd);
-    const problemId = `P:${year}:${String(base.length + 1).padStart(5, '0')}:${row.country.iso3}:${row.indicator.code}`;
+    const problemId = `P:${year}:${String(base.length + 1).padStart(5, '0')}:${sha256(`${row.country.iso3}|${row.indicator.code}`).slice(0, 10)}`;
     base.push({
       problemId, year, targetYear: year + 1, type,
       geography: { iso3: row.country.iso3, alias: `G-${sha256(row.country.iso3).slice(0, 6)}`, name: row.country.name },
