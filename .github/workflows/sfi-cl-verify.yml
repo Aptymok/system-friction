@@ -1,0 +1,31 @@
+name: SFI Cognitive Lab Verify
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/cognitive-olympics/**'
+      - '.github/workflows/sfi-cl-verify.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/cognitive-olympics/**'
+      - '.github/workflows/sfi-cl-verify.yml'
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm install --no-audit --no-fund
+      - name: Syntax check lab modules
+        shell: bash
+        run: |
+          for f in scripts/cognitive-olympics/*.mjs scripts/cognitive-olympics/lib/*.mjs; do node --check "$f"; done
+      - name: Cognitive Olympics smoke tests
+        run: node --test scripts/cognitive-olympics/smoke.test.mjs
+      - name: Typecheck SFI agent bridge
+        run: npx tsc --noEmit --pretty false --incremental false
