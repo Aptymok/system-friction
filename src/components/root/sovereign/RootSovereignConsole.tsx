@@ -8,6 +8,7 @@ import { RootSemanticInspector } from './RootSemanticInspector';
 import { RootSemanticContextModal } from './RootSemanticContextModal';
 import { RootObservatoryWorkspace } from './RootObservatoryWorkspace';
 import { FriccionautaConsole } from '@/components/root/friccionauta/FriccionautaConsole';
+import { CognitiveLabConsole } from '@/components/root/cognitive-lab/CognitiveLabConsole';
 import './root-sovereign.css';
 import './root-observatory-scale.css';
 import './root-semantic-context.css';
@@ -121,6 +122,7 @@ export function RootSovereignConsole({ initialState, accessMode = 'sovereign', a
     {selection && richSemantic ? <RootSemanticContextModal selection={selection} onClose={() => setSelection(null)} /> : <RootSemanticInspector value={selection} onClose={() => setSelection(null)} />}
     {!readOnly ? <RootMethodologyWorkbench state={state} launcher={false} /> : null}
     {!readOnly ? <FriccionautaConsole launcher={false} /> : null}
+    {!readOnly ? <CognitiveLabConsole /> : null}
     {events.length ? <div className="rs-root-events" aria-live="polite">{events.slice(0, 3).map((event) => <div key={event.id} data-status={event.status}><strong>{event.label}</strong><span>{event.detail}</span></div>)}</div> : null}
     {!readOnly && pending ? <div className="rs-dialog-backdrop" role="presentation"><section className="rs-dialog" role="dialog" aria-modal="true" aria-labelledby="rs-dialog-title"><span>REVISAR ANTES DE EJECUTAR</span><h2 id="rs-dialog-title">{pending.label}</h2><dl><div><dt>QUÉ HARÁ</dt><dd>{pending.effect}</dd></div><div><dt>SOBRE QUÉ</dt><dd>{pending.target}</dd></div></dl><label className="rs-confirm"><input type="checkbox" checked={confirmed} onChange={(event) => setConfirmed(event.target.checked)} />Confirmo esta acción y comprendo su objetivo.</label><div className="rs-dialog-actions"><button type="button" onClick={() => { setPending(null); setConfirmed(false); }} disabled={running}>CANCELAR</button><button type="button" onClick={() => void execute()} disabled={!confirmed || running}>{running ? 'EJECUTANDO' : 'CONFIRMAR Y EJECUTAR'}</button></div></section></div> : null}
   </div>;
