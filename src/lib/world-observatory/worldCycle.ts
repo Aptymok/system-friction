@@ -203,7 +203,15 @@ export async function runWorldCalibrationCycle() {
   for (const hypothesis of hypotheses ?? []) {
     const expected = Array.isArray(hypothesis.expected_signals) ? hypothesis.expected_signals as string[] : [];
     const contradictions = Array.isArray(hypothesis.contradiction_signals) ? hypothesis.contradiction_signals as string[] : [];
-    const { data: later } = await db.from('world_source_observations').select('id,title,summary,affected_systems,observed_at').gt('observed_at', hypothesis.cutoff_at).lte('observed_at', now).limit(500);
+    // Outcome evidence is bounded by SFI acquisition time, not the phenomenon/reference date.
+    // This prevents backfilled historical statistics from masquerading as evidence that SFI
+    // possessed prospectively when the hypothesis was created.
+    const { data: later } = await db.from('world_source_observations')
+      .select('id,title,summary,affected_systems,observed_at,released_at,fetched_at')
+      .gt('fetched_at', hypothesis.cutoff_at)
+      .lte('fetched_at', now)
+      .order('fetched_at', { ascending: true })
+      .limit(500);
     const corpus = JSON.stringify(later ?? []).toLowerCase();
     const expectedHits = expected.filter((signal) => corpus.includes(signal.toLowerCase()));
     const contradictionHits = contradictions.filter((signal) => corpus.includes(signal.toLowerCase()));

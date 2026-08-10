@@ -39,12 +39,13 @@ export async function POST(request: Request) {
   const warnings = [decisions.error?.message, memory.error?.message].filter((item): item is string => Boolean(item));
   const approvedDecisions = decisions.data ?? [];
   const institutionalMemory = memory.data ?? [];
+  const evidencePresent = approvedDecisions.length > 0 || institutionalMemory.length > 0;
   const fallback = [
     'Cognitive Twin deliberation unavailable through an LLM provider.',
     `Question: ${question}`,
     `Approved founder decisions available: ${approvedDecisions.length}.`,
     `Institutional memory records available: ${institutionalMemory.length}.`,
-    'No conclusion is promoted. Review the underlying corpus manually.',
+    'No cognitive execution is declared. Review the underlying corpus manually.',
   ].join('\n');
 
   const llm = await runLlmTask({
@@ -71,7 +72,7 @@ export async function POST(request: Request) {
   const authority = evaluateCognitiveTwinAuthority({
     action: 'propose',
     founderAbsent: false,
-    evidencePresent: approvedDecisions.length > 0 || institutionalMemory.length > 0,
+    evidencePresent,
   });
   const finishedAt = new Date().toISOString();
   const taskId = `cognitive-twin:deliberate:${Date.now()}`;
@@ -81,7 +82,7 @@ export async function POST(request: Request) {
   ])).slice(0, 80);
 
   const envelope = createCognitiveTwinEnvelope({
-    status: 'PROPOSED',
+    status: llm.ok ? 'PROPOSED' : 'REJECTED',
     taskId,
     modelId: `${llm.provider}:${llm.model}`,
     result: {
@@ -94,14 +95,20 @@ export async function POST(request: Request) {
       },
       provider: llm.provider,
       model: llm.model,
+      providerExecutionSucceeded: llm.ok,
       latencyMs: llm.latency_ms,
     },
     limitations: [...warnings, ...llm.warnings],
-    missingEvidence: approvedDecisions.length || institutionalMemory.length ? [] : ['approved_founder_decisions_or_institutional_memory'],
-    actionsExecuted: ['read_approved_decisions', 'read_institutional_memory', 'llm_deliberation'],
-    recommendedTransition: 'VERIFYING',
+    missingEvidence: evidencePresent ? [] : ['approved_founder_decisions_or_institutional_memory'],
+    actionsExecuted: [
+      'read_approved_decisions',
+      'read_institutional_memory',
+      llm.ok ? 'llm_deliberation' : 'llm_deliberation_failed',
+    ],
+    recommendedTransition: !llm.ok ? 'BLOCKED' : evidencePresent ? 'VERIFYING' : 'EVIDENCE_PENDING',
   });
 
+  const runStatus = !llm.ok ? 'BLOCKED' : evidencePresent ? 'READY' : 'EVIDENCE_PENDING';
   const persisted = await gate.ctx.service
     .from('sfi_cognitive_twin_runs')
     .insert({
@@ -110,13 +117,14 @@ export async function POST(request: Request) {
       provider: llm.provider,
       model: llm.model,
       role: 'cognitive_twin_deliberation',
-      status: 'READY',
+      status: runStatus,
       objective: question,
       input_snapshot: {
         question,
         approvedDecisionCount: approvedDecisions.length,
         memoryCount: institutionalMemory.length,
         requestedBy: gate.ctx.user.id,
+        providerExecutionSucceeded: llm.ok,
       },
       output_envelope: envelope,
       evidence_refs: evidenceRefs,
@@ -137,8 +145,10 @@ export async function POST(request: Request) {
     target: taskId,
     payload: {
       runId: persisted.data.id,
+      runStatus,
       provider: llm.provider,
       model: llm.model,
+      providerExecutionSucceeded: llm.ok,
       authorityDecision: authority.decision,
       evidenceRefs: evidenceRefs.length,
     },
@@ -146,5 +156,11 @@ export async function POST(request: Request) {
   });
   if (!audit.ok) return NextResponse.json(audit, { status: 500 });
 
-  return NextResponse.json({ ok: true, run: persisted.data, envelope, audit });
+  return NextResponse.json({
+    ok: llm.ok,
+    cognitiveExecution: llm.ok ? 'EXECUTED' : 'DEGRADED',
+    run: persisted.data,
+    envelope,
+    audit,
+  }, { status: llm.ok ? 200 : 503 });
 }
