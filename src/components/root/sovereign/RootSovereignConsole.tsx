@@ -24,6 +24,8 @@ function usesRichSemanticContext(selection: RootSelection | null) {
 
 type RootAccessMode = 'sovereign' | 'observer';
 
+const ROOT_BACKGROUND_REFRESH_MS = 60 * 60 * 1000;
+
 export function RootSovereignConsole({ initialState, accessMode = 'sovereign', actorLabel = 'ROOT' }: {
   initialState: RootSovereignState;
   accessMode?: RootAccessMode;
@@ -69,7 +71,9 @@ export function RootSovereignConsole({ initialState, accessMode = 'sovereign', a
   }, []);
 
   useEffect(() => {
-    const interval = window.setInterval(() => { if (!document.hidden) void refresh(true); }, 60000);
+    // ROOT is server-rendered on entry. After that, refresh only once per hour,
+    // plus an explicit refresh whenever the user returns to the page/tab.
+    const interval = window.setInterval(() => { if (!document.hidden) void refresh(true); }, ROOT_BACKGROUND_REFRESH_MS);
     const visible = () => { if (!document.hidden) void refresh(true); };
     document.addEventListener('visibilitychange', visible);
     return () => { window.clearInterval(interval); document.removeEventListener('visibilitychange', visible); refreshSequence.current += 1; controller.current?.abort('unmount'); };
