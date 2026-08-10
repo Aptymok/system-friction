@@ -12,7 +12,17 @@ function text(value: unknown, fallback = '') { return typeof value === 'string' 
 function rec(value: unknown): Row { return value && typeof value === 'object' && !Array.isArray(value) ? value as Row : {}; }
 function strings(value: unknown) { return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string' && Boolean(item.trim())) : []; }
 function uniqueRows(items: any[], key: string) {
-  return Array.from(new Map(items.filter(Boolean).map((item) => [text(item?.[key], JSON.stringify(item)), item])).values());
+  const unique = new Map<string, any>();
+  let anonymous = 0;
+  for (const item of items.filter(Boolean)) {
+    const stableKey = text(item?.[key]);
+    // Never stringify an arbitrary persisted payload just to obtain a map key.
+    // Legacy rows can contain unusually large or malformed nested structures;
+    // they must not be able to crash the whole semantic context route.
+    const resolvedKey = stableKey || `anonymous:${anonymous++}`;
+    if (!unique.has(resolvedKey)) unique.set(resolvedKey, item);
+  }
+  return [...unique.values()];
 }
 function connectedNodeIds(edges: any[], excluded: string[]) {
   return Array.from(new Set<string>(edges.flatMap((edge) => [text(edge?.source_node_id), text(edge?.target_node_id)]).filter((nodeId): nodeId is string => Boolean(nodeId) && !excluded.includes(nodeId))));
@@ -74,25 +84,12 @@ async function predictionContext(service: any, id: string) {
       : null;
   const origin = rec(attractors.data?.[0]?.vector).origin ?? (legacy ? 'LEGACY_REGISTRY' : 'UNKNOWN');
   return {
-    kind: 'prediction_case',
-    prediction,
-    confidence,
+    kind: 'prediction_case', prediction, confidence,
     status: text(run.data?.status ?? legacy?.estado_observacion ?? legacy?.evidence_state, 'MISSING'),
-    createdAt: at,
-    dueAt: run.data?.due_at ?? null,
-    interpretation: run.data?.interpretation ?? null,
+    createdAt: at, dueAt: run.data?.due_at ?? null, interpretation: run.data?.interpretation ?? null,
     verificationRule: run.data?.verification_rule ?? verification.data?.[0]?.verification_rule ?? null,
-    evidenceRefs: strings(run.data?.evidence_refs),
-    missingEvidence: strings(run.data?.missing_evidence),
-    origin,
-    run: run.data ?? null,
-    legacy,
-    outcomes: outcomes.data ?? [],
-    evidenceRequests: requests.data ?? [],
-    learningEvents: learning.data ?? [],
-    verifications: verification.data ?? [],
-    attractors: attractors.data ?? [],
-    world,
+    evidenceRefs: strings(run.data?.evidence_refs), missingEvidence: strings(run.data?.missing_evidence), origin,
+    run: run.data ?? null, legacy, outcomes: outcomes.data ?? [], evidenceRequests: requests.data ?? [], learningEvents: learning.data ?? [], verifications: verification.data ?? [], attractors: attractors.data ?? [], world,
   };
 }
 
@@ -128,37 +125,22 @@ async function evidenceContext(service: any, id: string) {
   const evidenceKey = text(metadata.evidenceKey ?? summary.evidenceKey);
   const caseId = text(metadata.caseId ?? row.case_id);
   const nodeCandidates = Array.from(new Set<string>([
-    text(resolved.node?.node_id),
-    hash ? `root_evidence:${hash.slice(0, 24)}` : '',
-    hash ? `ledger_evidence:${hash.slice(0, 24)}` : '',
+    text(resolved.node?.node_id), hash ? `root_evidence:${hash.slice(0, 24)}` : '', hash ? `ledger_evidence:${hash.slice(0, 24)}` : '',
   ].filter((value): value is string => Boolean(value))));
   const nodes = nodeCandidates.length ? await service.from('graph_nodes').select('*').in('node_id', nodeCandidates) : { data: [] };
   const nodeIds = (nodes.data ?? []).map((node: any) => text(node?.node_id)).filter((nodeId: string): nodeId is string => Boolean(nodeId));
   const directEdges = nodeIds.length ? await service.from('graph_edges').select('*').or(edgeFilterFor(nodeIds)) : { data: [] };
   const firstHopIds = connectedNodeIds(directEdges.data ?? [], nodeIds);
-
-  // Two hops are intentional: enough to get beyond the root/ledger mirror and expose
-  // case/module/source relations, without performing an unbounded graph crawl.
   const secondEdges = firstHopIds.length ? await service.from('graph_edges').select('*').or(edgeFilterFor(firstHopIds)) : { data: [] };
   const allEdges = uniqueRows([...(directEdges.data ?? []), ...(secondEdges.data ?? [])], 'edge_id');
   const relatedIds = connectedNodeIds(allEdges, nodeIds);
   const relatedNodes = relatedIds.length ? await service.from('graph_nodes').select('*').in('node_id', relatedIds) : { data: [] };
-
   const attractors = await service.from('sfi_attractors').select('*').order('updated_at', { ascending: false }).limit(250);
   const linkedAttractors = (attractors.data ?? []).filter((attractor: any) => {
-    const vector = rec(attractor.vector);
-    const refs = strings(vector.evidenceRefs);
+    const vector = rec(attractor.vector); const refs = strings(vector.evidenceRefs);
     return refs.some((ref) => [id, hash, evidenceKey].filter(Boolean).includes(ref)) || (caseId && text(vector.caseId) === caseId);
   });
-  return {
-    kind: 'evidence_context',
-    missing: false,
-    record: row,
-    graphNodes: nodes.data ?? [],
-    graphEdges: allEdges,
-    relatedNodes: relatedNodes.data ?? [],
-    attractors: linkedAttractors,
-  };
+  return { kind: 'evidence_context', missing: false, record: row, graphNodes: nodes.data ?? [], graphEdges: allEdges, relatedNodes: relatedNodes.data ?? [], attractors: linkedAttractors };
 }
 
 async function attractorContext(service: any, id: string) {
@@ -166,15 +148,10 @@ async function attractorContext(service: any, id: string) {
   if (!attractor.data) attractor = await service.from('sfi_attractors').select('*').eq('attractor_key', id.replace(/^attractor:/, '')).maybeSingle();
   const row = attractor.data;
   if (!row) return { kind: 'attractor_context', missing: true };
-  const vector = rec(row.vector);
-  const refs = strings(vector.evidenceRefs);
-  let evidence: any[] = [];
+  const vector = rec(row.vector); const refs = strings(vector.evidenceRefs); let evidence: any[] = [];
   if (refs.length) {
     const [rootByHash, ledgerByHash, rootById, ledgerById] = await Promise.all([
-      service.from('root_evidence_entries').select('*').in('evidence_hash', refs),
-      service.from('sfi_evidence_ledger').select('*').in('evidence_hash', refs),
-      service.from('root_evidence_entries').select('*').in('id', refs),
-      service.from('sfi_evidence_ledger').select('*').in('id', refs),
+      service.from('root_evidence_entries').select('*').in('evidence_hash', refs), service.from('sfi_evidence_ledger').select('*').in('evidence_hash', refs), service.from('root_evidence_entries').select('*').in('id', refs), service.from('sfi_evidence_ledger').select('*').in('id', refs),
     ]);
     evidence = uniqueRows([...(rootByHash.data ?? []), ...(ledgerByHash.data ?? []), ...(rootById.data ?? []), ...(ledgerById.data ?? [])], 'id');
   }
@@ -186,17 +163,18 @@ async function attractorContext(service: any, id: string) {
 export async function GET(request: Request) {
   const gate = await requireRootViewer('root.semantic_context.read');
   if (!gate.ok) return NextResponse.json(gate.body, { status: gate.status });
-  const url = new URL(request.url);
-  const kind = text(url.searchParams.get('kind'));
-  const id = text(url.searchParams.get('id'));
+  const url = new URL(request.url); const kind = text(url.searchParams.get('kind')); const id = text(url.searchParams.get('id'));
   if (!kind || !id) return NextResponse.json({ ok: false, error: 'kind_and_id_required' }, { status: 400 });
   const normalized = kind.toLowerCase();
-  const context = normalized.includes('hypothesis') || normalized.includes('prediction') || normalized === 'outcome'
-    ? await predictionContext(gate.ctx.service, id)
-    : normalized.includes('evidence') || normalized.includes('ledger')
-      ? await evidenceContext(gate.ctx.service, id)
-      : normalized.includes('attractor')
-        ? await attractorContext(gate.ctx.service, id)
-        : null;
-  return NextResponse.json({ ok: true, context }, { headers: { 'Cache-Control': 'no-store' } });
+  try {
+    const context = normalized.includes('hypothesis') || normalized.includes('prediction') || normalized === 'outcome'
+      ? await predictionContext(gate.ctx.service, id)
+      : normalized.includes('evidence') || normalized.includes('ledger')
+        ? await evidenceContext(gate.ctx.service, id)
+        : normalized.includes('attractor') ? await attractorContext(gate.ctx.service, id) : null;
+    return NextResponse.json({ ok: true, context }, { headers: { 'Cache-Control': 'no-store' } });
+  } catch (cause) {
+    const detail = cause instanceof Error ? cause.message : 'malformed_or_unresolvable_record';
+    return NextResponse.json({ ok: false, error: 'semantic_context_record_quarantined', details: detail }, { status: 422, headers: { 'Cache-Control': 'no-store' } });
+  }
 }
