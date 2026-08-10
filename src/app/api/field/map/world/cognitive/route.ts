@@ -50,6 +50,15 @@ function confidence(value: unknown) {
   return Math.max(0, Math.min(1, finite(value, 0)));
 }
 
+function knownByCutoff(row: Row, cutoffMs: number) {
+  const fetchedAt = Date.parse(text(row.fetched_at));
+  if (!Number.isFinite(fetchedAt) || fetchedAt > cutoffMs) return false;
+  const released = text(row.released_at);
+  if (!released) return true;
+  const releasedAt = Date.parse(released);
+  return !Number.isFinite(releasedAt) || releasedAt <= cutoffMs;
+}
+
 export async function POST(request: Request) {
   const authClient = await createServerSupabaseClient();
   const { data: auth, error: authError } = await authClient.auth.getUser();
@@ -67,9 +76,10 @@ export async function POST(request: Request) {
 
   const [observationsResult, hypothesesResult, canonicalMemoryResult, approvedRulesResult] = await Promise.all([
     db.from('world_source_observations')
-      .select('id,source_id,source_family,publisher,title,summary,observed_at,latitude,longitude,affected_systems,actors,confidence')
+      .select('id,source_id,source_family,publisher,title,summary,observed_at,released_at,fetched_at,latitude,longitude,affected_systems,actors,confidence')
       .gte('observed_at', windowStart)
       .lte('observed_at', cutoffAt)
+      .lte('fetched_at', cutoffAt)
       .order('observed_at', { ascending: true })
       .limit(500),
     db.from('world_hypotheses')
@@ -96,7 +106,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: 'WORLD_FRAME_READ_FAILED', details: primaryError.message }, { status: 503 });
   }
 
-  const observations = (observationsResult.data ?? []).map(record);
+  const observations = (observationsResult.data ?? []).map(record).filter((row) => knownByCutoff(row, cutoffMs));
   const hypotheses = (hypothesesResult.data ?? []).map(record);
   const observationIds = observations.map((row) => text(row.id)).filter(Boolean);
   const readingsResult = observationIds.length
@@ -123,11 +133,14 @@ export async function POST(request: Request) {
         title: text(row.title),
         summary: text(row.summary),
         observedAt: text(row.observed_at),
+        releasedAt: text(row.released_at),
+        fetchedAt: text(row.fetched_at),
+        knowledgeAt: text(row.fetched_at),
         affectedSystems: Array.isArray(row.affected_systems) ? row.affected_systems : [],
         actors: Array.isArray(row.actors) ? row.actors : [],
         geography: row.latitude === null || row.longitude === null ? null : { lat: Number(row.latitude), lng: Number(row.longitude) },
         reading,
-        epistemicClass: 'OBSERVED_WITH_DERIVED_SFI_READING',
+        epistemicClass: reading ? 'OBSERVED_WITH_DERIVED_SFI_READING' : 'IMPORTED_OBSERVATION',
       },
     };
   }).filter((item) => item.id);
@@ -155,6 +168,7 @@ export async function POST(request: Request) {
       windowStart,
       windowHours,
       requestedBy: auth.user.id,
+      temporalKnowledgeRule: 'An observation is admissible only if SFI fetched it by the cutoff and, when a release timestamp exists, the source had released it by the cutoff.',
       rule: 'The temporal frame is persisted evidence. Agent output is derived/inferred context. The LLM synthesis is PROPOSED and cannot rewrite observations, hypotheses, outcomes, memory or canon.',
     },
   };
@@ -214,7 +228,7 @@ export async function POST(request: Request) {
   const evidenceRefs = evidence.map((item) => item.id);
   const envelope = createCognitiveTwinEnvelope({
     taskId,
-    status: 'PROPOSED',
+    status: llm.ok ? 'PROPOSED' : 'REJECTED',
     modelId: `${llm.provider}:${llm.model}`,
     result: {
       frame: { cutoffAt, windowStart, windowHours },
@@ -224,6 +238,7 @@ export async function POST(request: Request) {
       hypothesisCount: hypotheses.length,
       provider: llm.provider,
       model: llm.model,
+      providerExecutionSucceeded: llm.ok,
       latencyMs: llm.latency_ms,
       cognitiveTwinCorpus: {
         canonicalMemoryRecords: canonicalMemory.length,
@@ -241,18 +256,19 @@ export async function POST(request: Request) {
     actionsExecuted: [
       ...cycle.executedAgents.map((agent) => `cognitive:${agent}`),
       'read_canonical_cognitive_twin_corpus',
-      'llm_frame_synthesis',
+      llm.ok ? 'llm_frame_synthesis' : 'llm_frame_synthesis_failed',
     ],
-    recommendedTransition: evidence.length ? 'VERIFYING' : 'EVIDENCE_PENDING',
+    recommendedTransition: !llm.ok ? 'BLOCKED' : evidence.length ? 'VERIFYING' : 'EVIDENCE_PENDING',
   });
 
+  const runStatus = !llm.ok ? 'BLOCKED' : evidence.length ? 'READY' : 'EVIDENCE_PENDING';
   const persisted = await db.from('sfi_cognitive_twin_runs').insert({
     task_id: taskId,
     contract_version: envelope.contractVersion,
     provider: llm.provider,
     model: llm.model,
     role: 'world_field_frame_analysis',
-    status: 'READY',
+    status: runStatus,
     objective: `Interpret the persisted World Field frame ending ${cutoffAt} without mutating evidence or world state.`,
     input_snapshot: {
       requestedBy: auth.user.id,
@@ -262,6 +278,7 @@ export async function POST(request: Request) {
       observationCount: evidence.length,
       hypothesisCount: hypotheses.length,
       requestedAgents: FRAME_AGENT_SET,
+      temporalKnowledgeRule: 'fetched_at <= cutoff and released_at <= cutoff when known',
     },
     output_envelope: envelope,
     evidence_refs: evidenceRefs,
@@ -278,10 +295,11 @@ export async function POST(request: Request) {
     ok: true,
     frame: { cutoffAt, windowStart, windowHours },
     synthesis: llm.result,
-    epistemicClass: 'PROPOSED',
+    epistemicClass: llm.ok ? 'PROPOSED' : 'MISSING',
+    cognitiveExecution: llm.ok ? 'EXECUTED' : 'DEGRADED',
     agents: cycle.executedAgents,
-    llm: { provider: llm.provider, model: llm.model, latencyMs: llm.latency_ms, warnings: llm.warnings },
-    twin: { runId: persisted.data.id, role: persisted.data.role, corpusWarnings },
+    llm: { ok: llm.ok, provider: llm.provider, model: llm.model, latencyMs: llm.latency_ms, warnings: llm.warnings },
+    twin: { runId: persisted.data.id, role: persisted.data.role, status: persisted.data.status, corpusWarnings },
     evidenceRefs,
     limitations: envelope.limitations,
   });
