@@ -7,6 +7,10 @@ module.exports = {
     './src/hooks/**/*.{js,ts,jsx,tsx,mdx}',
     './src/lib/**/*.{js,ts,jsx,tsx,mdx}'
   ],
+  // Tailwind's extractor can interpret regex character classes found in source
+  // as arbitrary-property utilities. `[-:.TZ]` is source syntax, not a CSS
+  // class, and generates invalid PostCSS (`-: .TZ`). Keep it out explicitly.
+  blocklist: ['[-:.TZ]'],
   theme: {
     extend: {
       colors: {
