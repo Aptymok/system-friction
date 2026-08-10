@@ -50,7 +50,7 @@ const DEFAULTS = {
   openai: process.env.OPENAI_MODEL ?? 'gpt-4o-mini',
   anthropic: process.env.ANTHROPIC_MODEL ?? process.env.CLAUDE_MODEL ?? 'claude-3-5-sonnet-latest',
   gemini: process.env.GEMINI_MODEL ?? process.env.GOOGLE_MODEL ?? 'gemini-1.5-flash',
-  groq: process.env.GROQ_MODEL ?? 'llama-3.1-8b-instant',
+  groq: process.env.GROQ_MODEL ?? 'openai/gpt-oss-20b',
   ollama: process.env.OLLAMA_MODEL ?? 'llama3.1',
   huggingface: process.env.HUGGINGFACE_TEXT_MODEL ?? process.env.HF_TEXT_MODEL ?? 'mistralai/Mistral-7B-Instruct-v0.3',
   openaiEmbedding: process.env.OPENAI_EMBEDDING_MODEL ?? 'text-embedding-3-small',
@@ -96,7 +96,7 @@ function providerConfigs(): ProviderConfig[] {
       available: Boolean(groqKey),
       apiKey: groqKey,
       model: DEFAULTS.groq,
-      role: 'fast classification and drafts',
+      role: 'fast inference, reasoning, classification and drafts',
       configuredBy: ['GROQ_API_KEY', 'GROQ_MODEL'],
     },
     {
@@ -224,6 +224,7 @@ async function callProvider(config: ProviderConfig, input: {
   }
 
   if (config.id === 'groq') {
+    const isGptOss = config.model.startsWith('openai/gpt-oss-');
     const json = await fetchJson('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -237,7 +238,11 @@ async function callProvider(config: ProviderConfig, input: {
           { role: 'user', content: input.prompt },
         ],
         temperature: 0.2,
-        max_tokens: input.maxTokens,
+        max_completion_tokens: input.maxTokens,
+        ...(isGptOss ? {
+          include_reasoning: false,
+          reasoning_effort: input.task === 'fast_classification' ? 'low' : 'medium',
+        } : {}),
       }),
     }, 12_000);
     const record = json as Record<string, unknown>;
@@ -266,21 +271,27 @@ async function callProvider(config: ProviderConfig, input: {
   }
 
   if (config.id === 'huggingface') {
-    const json = await fetchJson(`https://api-inference.huggingface.co/models/${config.model}`, {
+    const json = await fetchJson('https://router.huggingface.co/v1/chat/completions', {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${config.apiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        inputs: `${input.system}\n\n${input.prompt}`,
-        parameters: { max_new_tokens: input.maxTokens, temperature: 0.2, return_full_text: false },
+        model: config.model,
+        messages: [
+          { role: 'system', content: input.system },
+          { role: 'user', content: input.prompt },
+        ],
+        temperature: 0.2,
+        max_tokens: input.maxTokens,
+        stream: false,
       }),
     }, 20_000);
-    const generated = Array.isArray(json)
-      ? (json[0] as Record<string, unknown> | undefined)?.generated_text
-      : (json as Record<string, unknown>).generated_text;
-    return { result: typeof generated === 'string' ? generated : '', usage: null };
+    const record = json as Record<string, unknown>;
+    const choices = Array.isArray(record.choices) ? record.choices as Array<Record<string, unknown>> : [];
+    const message = choices[0]?.message as Record<string, unknown> | undefined;
+    return { result: typeof message?.content === 'string' ? message.content : '', usage: record.usage as Record<string, unknown> | null ?? null };
   }
 
   return { result: '', usage: null };
