@@ -19,6 +19,14 @@ function text(value: unknown, fallback = '—') {
   return typeof value === 'string' && value.trim() ? value.trim() : fallback;
 }
 
+function display(value: unknown, fallback = '—') {
+  if (typeof value === 'string' && value.trim()) return value.trim();
+  if (typeof value === 'number' && Number.isFinite(value)) return String(value);
+  if (typeof value === 'boolean') return value ? 'true' : 'false';
+  if (Array.isArray(value) && value.length) return value.map(String).join(' · ');
+  return fallback;
+}
+
 function scenariosFrom(value: unknown): Scenario[] {
   return Array.isArray(value) ? value.flatMap((item) => {
     const row = record(item);
@@ -70,7 +78,7 @@ export function NationalFieldPanel() {
       const body = await response.json().catch(() => null) as Row | null;
       if (!response.ok || !body) throw new Error(text(body?.error, `HTTP ${response.status}`));
       setResult(body);
-      if (body.ok !== true) setError(text(record(body.nationalField).warnings, 'La adquisición terminó degradada.'));
+      if (body.ok !== true) setError(display(record(body.nationalField).warnings, 'La adquisición terminó degradada.'));
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'No fue posible adquirir el campo nacional.');
     } finally { setRunning(null); }
@@ -92,7 +100,7 @@ export function NationalFieldPanel() {
       const body = await response.json().catch(() => null) as Row | null;
       if (!response.ok || !body) throw new Error(text(body?.error, `HTTP ${response.status}`));
       setResult(body);
-      if (body.ok !== true) setError(text(body.error, 'El escenario no produjo una ejecución válida.'));
+      if (body.ok !== true) setError(display(body.error, 'El escenario no produjo una ejecución válida.'));
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'No fue posible ejecutar el escenario nacional.');
     } finally { setRunning(null); }
@@ -131,8 +139,8 @@ export function NationalFieldPanel() {
 
     {error ? <div className="ct-national-error">{error}</div> : null}
     {result ? <article className="ct-national-result">
-      {fieldResult.collected !== undefined ? <div><b>ADQUISICIÓN</b><span>{text(fieldResult.collected, '0')} registros recibidos · {text(fieldResult.persisted, '0')} persistidos</span><span>{text(fieldResult.epistemicClass, 'IMPORTED')} · sin MIHM/fricción automática · sin promoción de hipótesis</span></div> : null}
-      {scenarioResult.id ? <div><b>{text(scenarioResult.id)} · {text(scenarioResult.label)}</b><span>{text(result.observationCount, '0')} observaciones admisibles · {text(result.cognitiveExecution)}</span><span>{text(record(result.run).status)} · {text(record(result.llm).provider)}/{text(record(result.llm).model)}</span><pre>{text(payload.synthesis, 'MISSING · no existe síntesis cognitiva válida.')}</pre></div> : null}
+      {fieldResult.collected !== undefined ? <div><b>ADQUISICIÓN</b><span>{display(fieldResult.collected, '0')} registros recibidos · {display(fieldResult.persisted, '0')} persistidos</span><span>{display(fieldResult.epistemicClass, 'IMPORTED')} · sin MIHM/fricción automática · sin promoción de hipótesis</span></div> : null}
+      {scenarioResult.id ? <div><b>{display(scenarioResult.id)} · {display(scenarioResult.label)}</b><span>{display(result.observationCount, '0')} observaciones admisibles · {display(result.cognitiveExecution)}</span><span>{display(record(result.run).status)} · {display(record(result.llm).provider)}/{display(record(result.llm).model)}</span><pre>{display(payload.synthesis, 'MISSING · no existe síntesis cognitiva válida.')}</pre></div> : null}
     </article> : null}
 
     <style jsx>{`
