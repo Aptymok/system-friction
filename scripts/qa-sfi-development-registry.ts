@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { SFI_DEVELOPMENT_REGISTRY, summarizeSfiDevelopmentRegistry } from '../src/lib/institutional/developmentRegistry';
+import { SFI_RESOLVED_DEVELOPMENT_REGISTRY, summarizeResolvedDevelopment } from '../src/lib/institutional/resolvedDevelopmentRegistry';
 
 const ids = new Set<string>();
 for (const item of SFI_DEVELOPMENT_REGISTRY) {
@@ -47,4 +48,22 @@ assert.ok((summary.byClass.PRODUCT ?? 0) > 0);
 assert.ok((summary.byClass.LAB_ONLY ?? 0) > 0);
 assert.ok((summary.byClass.ABSORBED ?? 0) > 0);
 
-console.log(JSON.stringify({ ok: true, ...summary }, null, 2));
+// Runtime-resolved development is allowed to advance only when a real executable
+// implementation exists. Research/validation state remains independent.
+assert.equal(SFI_RESOLVED_DEVELOPMENT_REGISTRY.length,SFI_DEVELOPMENT_REGISTRY.length,'resolved_registry_changed_inventory_cardinality');
+const resolvedInference=SFI_RESOLVED_DEVELOPMENT_REGISTRY.find(item=>item.id==='inference-trace');
+assert.equal(resolvedInference?.classification,'INFRASTRUCTURE');
+assert.equal(resolvedInference?.state,'READY');
+assert.match(resolvedInference?.implementation??'',/rivals, unknowns, discriminating observations/i);
+const resolvedTrajectory=SFI_RESOLVED_DEVELOPMENT_REGISTRY.find(item=>item.id==='digital-product-trajectory');
+assert.equal(resolvedTrajectory?.classification,'PRODUCT');
+assert.equal(resolvedTrajectory?.state,'READY');
+assert.match(resolvedTrajectory?.implementation??'',/central SFI operating cycle/i);
+assert.ok(!resolvedTrajectory?.absorbedInto?.length,'digital_product_trajectory_must_remain_distinct_not_absorbed');
+
+const resolvedSummary=summarizeResolvedDevelopment();
+assert.deepEqual(resolvedSummary.coreBlocking,[],'core_platform_still_has_unresolved_build_work');
+assert.equal(resolvedSummary.coreImplemented,resolvedSummary.coreTotal,'core_platform_not_fully_implemented');
+assert.deepEqual(new Set(resolvedSummary.implementationOverrides),new Set(['inference-trace','digital-product-trajectory']));
+
+console.log(JSON.stringify({ ok: true, editorial:summary, executable:resolvedSummary }, null, 2));
