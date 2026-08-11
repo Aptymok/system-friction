@@ -40,6 +40,7 @@ export function RootCognitiveRuntimeView({ state, onSelect }: {
   const [planning, setPlanning] = useState(false);
   const [plan, setPlan] = useState<SfiTaskGraph | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const recentlyExecutedAgents = runtime.agents.filter((agent) => agent.status === 'operational').length;
 
   const grouped = useMemo(() => runtime.layers.map((layer) => ({
     ...layer,
@@ -76,7 +77,8 @@ export function RootCognitiveRuntimeView({ state, onSelect }: {
 
       <div className="rs-stat-strip">
         <span><b>{runtime.contract.registeredAgents}</b>AGENTES REGISTRADOS</span>
-        <span><b>{runtime.contract.executorAgents}</b>EJECUCIÓN OBSERVADA</span>
+        <span><b>{runtime.contract.executorAgents}</b>EXECUTORES ENLAZADOS</span>
+        <span><b>{recentlyExecutedAgents}</b>EJECUTADOS RECIENTEMENTE</span>
         <span><b>{runtime.contract.humanApprovalAgents}</b>REQUIEREN AUTORIDAD HUMANA</span>
         <span><b>{runtime.eventGraph.recentEvents.length}</b>EVENTOS RECIENTES</span>
       </div>
