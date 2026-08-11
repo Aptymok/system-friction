@@ -20,8 +20,8 @@ const PROTOCOL_DEPENDENCIES: Record<MethodLabProtocolId, string[]> = {
   chronos_olympics: [],
   cognitive_relational_lab: ['sfi_cognitive_lab_sessions', 'sfi_cognitive_lab_events', 'sfi_cognitive_lab_analyses'],
   ct_reentry: ['sfi_cognitive_twin_memory', 'sfi_cognitive_twin_decisions', 'sfi_cognitive_twin_model_registry', 'sfi_cognitive_twin_evaluations', 'sfi_cognitive_twin_runs'],
-  sociotechnical_simulation: ['epistemic_events', 'field_cases', 'sfi_graph_nodes'],
-  economic_simulation: ['epistemic_events', 'root_evidence_entries', 'field_cases', 'world_source_observations'],
+  sociotechnical_simulation: ['root_evidence_entries', 'epistemic_events', 'field_cases', 'sfi_graph_nodes'],
+  economic_simulation: ['root_evidence_entries', 'epistemic_events', 'field_cases', 'world_source_observations'],
 };
 
 function text(value: unknown, fallback = '') {
@@ -64,6 +64,7 @@ export async function readMethodLabState() {
       ...(Array.isArray(latest?.limitations) ? latest.limitations.map(String) : []),
       ...missingDependencies.map((item) => `${item.table}:${item.error ?? 'unavailable'}`),
       ...(!implemented && definition.id === 'ct_reentry' ? ['Cognitive Twin core exists, but ancestral reentry functions have not yet been reintegrated; protocol remains REGISTERED.'] : []),
+      ...(definition.id === 'cognitive_relational_lab' ? ['CRL protocol-specific migration remains experimental; applying it to production requires an attributable ROOT/ACP governance decision because older implementation policy prohibited new tables.'] : []),
       ...(tableWarning ? [`sfi_lab_analyses:${tableWarning}`] : []),
     ];
     let status: MethodLabProtocolStatus;
