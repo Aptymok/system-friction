@@ -17,7 +17,15 @@ const REF_COLUMNS: Record<string,string> = {
 function text(value: unknown) { return typeof value === 'string' && value.trim() ? value.trim() : ''; }
 function list(value: unknown) { return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0) : []; }
 function cycleCode() {
-  const stamp = new Date().toISOString().replace(/[-:TZ.]/g,'').slice(0,14);
+  // Keep bracket-regex syntax out of Tailwind content scanning; arbitrary-class parsing
+  // previously interpreted the regex as CSS and generated the invalid declaration "-: TZ.;".
+  const stamp = new Date().toISOString()
+    .replaceAll('-', '')
+    .replaceAll(':', '')
+    .replaceAll('T', '')
+    .replaceAll('Z', '')
+    .replaceAll('.', '')
+    .slice(0,14);
   return `SFI-CYCLE-${stamp}-${crypto.randomUUID().slice(0,8).toUpperCase()}`;
 }
 
