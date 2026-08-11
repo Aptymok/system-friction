@@ -6,6 +6,7 @@ import { executeRegisteredAgent } from '@/lib/sfi/cognitive-runtime/agentExecuti
 import type { KernelContext, KernelEvidence } from '@/lib/sfi/cognitive-runtime/kernelContext';
 import { METHOD_LAB_CONTRACT_VERSION, assertMethodLabRunEnvelope, type MethodLabProtocolId, type MethodLabRunEnvelope } from './contracts';
 import { methodLabProtocol } from './registry';
+import { specializedModel } from './specializedModels';
 
 const SIMULATION_PROTOCOL_AGENTS: Partial<Record<MethodLabProtocolId, string[]>> = {
   sociotechnical_simulation: [
@@ -20,6 +21,11 @@ const SIMULATION_PROTOCOL_AGENTS: Partial<Record<MethodLabProtocolId, string[]>>
     'cross_impact',
   ],
 };
+
+const SPECIALIZED_MODEL_BY_PROTOCOL = {
+  sociotechnical_simulation: 'SOCIOTECHNICAL_STATE_MODEL',
+  economic_simulation: 'OBSERVABLE_ECONOMIC_STATE_MODEL',
+} as const;
 
 type Row = Record<string, unknown>;
 
@@ -81,6 +87,12 @@ export async function runMethodLabSimulation(input: {
   const agentIds = SIMULATION_PROTOCOL_AGENTS[input.protocolId] ?? [];
   if (!agentIds.length) throw new Error('METHOD_LAB_PROTOCOL_HAS_NO_EXECUTION_PLAN');
 
+  const modelId = SPECIALIZED_MODEL_BY_PROTOCOL[input.protocolId];
+  const modelContract = specializedModel(modelId);
+  if (!modelContract || modelContract.parentProtocol !== input.protocolId) {
+    throw new Error('METHOD_LAB_SPECIALIZED_MODEL_CONTRACT_MISMATCH');
+  }
+
   const evidence = await loadPersistedEvidence(input.evidenceIds);
   const initialEvidenceIds = evidence.map((item) => item.id);
   const startedAt = new Date().toISOString();
@@ -100,6 +112,14 @@ export async function runMethodLabSimulation(input: {
     metadata: {
       methodLab: true,
       protocolId: input.protocolId,
+      specializedModel: {
+        id: modelContract.id,
+        stateVariables: modelContract.stateVariables,
+        observables: modelContract.observables,
+        perturbations: modelContract.perturbations,
+        returnContract: modelContract.returnContract,
+        forbiddenClaims: modelContract.forbiddenClaims,
+      },
       requestedBy: input.actorId,
       parameters: input.parameters ?? {},
       epistemicRule: 'LAB simulation may read persisted evidence but may not append simulated output to observed evidence or canonical state.',
@@ -119,7 +139,7 @@ export async function runMethodLabSimulation(input: {
   }
 
   const finishedAt = new Date().toISOString();
-  const resultHash = hash({ protocolId: input.protocolId, evidenceRefs: initialEvidenceIds, parameters: input.parameters ?? {}, simulations: context.simulations, metadata: context.metadata });
+  const resultHash = hash({ protocolId: input.protocolId, specializedModelId: modelContract.id, evidenceRefs: initialEvidenceIds, parameters: input.parameters ?? {}, simulations: context.simulations, metadata: context.metadata });
   const envelope: MethodLabRunEnvelope = assertMethodLabRunEnvelope({
     contractVersion: METHOD_LAB_CONTRACT_VERSION,
     labRunId,
@@ -132,7 +152,7 @@ export async function runMethodLabSimulation(input: {
     seed: null,
     codeCommit: process.env.VERCEL_GIT_COMMIT_SHA ?? process.env.GITHUB_SHA ?? null,
     provider: 'deterministic:sfi-cognitive-runtime',
-    model: null,
+    model: modelContract.id,
     startedAt,
     finishedAt,
     resultHash,
@@ -150,12 +170,13 @@ export async function runMethodLabSimulation(input: {
     mode: input.protocolId,
     source: `root_evidence_entries:${initialEvidenceIds.join(',')}`,
     data_mode: 'SIMULATED',
-    systems: agentIds,
-    variables: context.simulations.map((item) => item.simulator),
+    systems: [modelContract.id, ...agentIds],
+    variables: Array.from(new Set([...modelContract.stateVariables, ...modelContract.observables])),
     limitations: envelope.limitations,
     recommendations: ['Observe the declared return window and compare predicted/simulated signals against later persisted evidence before promotion.'],
     raw_analysis: {
       ...envelope,
+      specializedModel: modelContract,
       agentResults,
       simulations: context.simulations,
       metadata: context.metadata,
@@ -166,6 +187,7 @@ export async function runMethodLabSimulation(input: {
   return {
     ok: true,
     protocol: definition,
+    specializedModel: modelContract,
     labAnalysisId: String(persisted.data.id),
     run: envelope,
     agentResults,
