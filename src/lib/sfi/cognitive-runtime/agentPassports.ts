@@ -51,7 +51,7 @@ async function observeAgentic(contract: SfiAgenticCapabilityContract): Promise<A
   if (!contract.executionEvidence) return { lifecycle: 'GATED', at: null, id: null, warning: 'Contrato disponible; todavía no existe un ledger específico reconciliado para demostrar ejecución.' };
   try {
     const db = createServiceSupabaseClient();
-    let query = db.from(contract.executionEvidence.table).select(`id,${contract.executionEvidence.timeColumn}`).order(contract.executionEvidence.timeColumn, { ascending: false }).limit(1);
+    let query = db.from(contract.executionEvidence.table).select('*').order(contract.executionEvidence.timeColumn, { ascending: false }).limit(1);
     if (contract.executionEvidence.filter) query = query.eq(contract.executionEvidence.filter.column, contract.executionEvidence.filter.value);
     const result = await query.maybeSingle();
     if (result.error) return { lifecycle: 'DEGRADED', at: null, id: null, warning: `${contract.executionEvidence.table}: ${result.error.message}` };
