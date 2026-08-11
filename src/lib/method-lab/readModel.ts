@@ -67,3 +67,5 @@ export async function readMethodLabState() {
     warnings: tableWarning ? [`sfi_lab_analyses:${tableWarning}`] : [],
   };
 }
+
+export type MethodLabState = Awaited<ReturnType<typeof readMethodLabState>>;
