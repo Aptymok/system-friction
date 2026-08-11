@@ -1,10 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import type { AwaitedReturn } from '@/lib/types/utilityTypes';
-import { readMethodLabState } from '@/lib/method-lab/readModel';
-
-type State = AwaitedReturn<typeof readMethodLabState>;
+import type { MethodLabState } from '@/lib/method-lab/readModel';
 
 const STATUS: Record<string, string> = {
   OPERATIONAL: 'EJECUCIÓN OBSERVADA',
@@ -14,7 +11,7 @@ const STATUS: Record<string, string> = {
   DEGRADED: 'DEGRADADO',
 };
 
-export function MethodLabConsole({ state: initial }: { state: State }) {
+export function MethodLabConsole({ state: initial }: { state: MethodLabState }) {
   const [state, setState] = useState(initial);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -22,7 +19,7 @@ export function MethodLabConsole({ state: initial }: { state: State }) {
     setRefreshing(true);
     try {
       const response = await fetch('/api/root/method-lab', { credentials: 'include', cache: 'no-store' });
-      const body = await response.json().catch(() => null) as { ok?: boolean; lab?: State } | null;
+      const body = await response.json().catch(() => null) as { ok?: boolean; lab?: MethodLabState } | null;
       if (response.ok && body?.ok && body.lab) setState(body.lab);
     } finally {
       setRefreshing(false);
