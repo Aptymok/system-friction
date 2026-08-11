@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createDailyContinuityReport } from '@/lib/continuity/runtime';
 import { runScheduledAgentReportCycle } from '@/lib/reports/scheduledAgentReports';
+import { runCognitiveTwinDevelopmentalHeartbeat } from '@/lib/cognitive-twin/reentry/runtime';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -18,19 +19,27 @@ export async function GET(request: NextRequest) {
   }
   try {
     const report = await createDailyContinuityReport();
-    const scheduledReports = await runScheduledAgentReportCycle().catch((error) => ({
-      ok: false,
-      generated: 0,
-      skipped: 0,
-      failed: 1,
-      results: [],
-      error: error instanceof Error ? error.message : String(error),
-    }));
+    const [scheduledReports, cognitiveTwinHeartbeat] = await Promise.all([
+      runScheduledAgentReportCycle().catch((error) => ({
+        ok: false,
+        generated: 0,
+        skipped: 0,
+        failed: 1,
+        results: [],
+        error: error instanceof Error ? error.message : String(error),
+      })),
+      runCognitiveTwinDevelopmentalHeartbeat().catch((error) => ({
+        ok: false,
+        skipped: false,
+        error: error instanceof Error ? error.message : String(error),
+      })),
+    ]);
     return NextResponse.json({
       ok: true,
       report,
       scheduledReports,
-      schedulingRule: 'Uses the existing continuity-report cron. No additional Vercel cron invocation is introduced.',
+      cognitiveTwinHeartbeat,
+      schedulingRule: 'Uses the existing continuity-report cron. Scheduled reports and the CT-A01 developmental heartbeat introduce no additional Vercel cron invocation.',
     });
   } catch (error) {
     return NextResponse.json({ ok: false, error: 'continuity_report_failed', details: error instanceof Error ? error.message : String(error) }, { status: 500 });
