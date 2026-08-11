@@ -8,7 +8,18 @@ import { getServerUserContext } from '@/lib/server/productionBackend';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { getLatestWorldSpectSnapshot, snapshotRowToApiData } from '@/lib/worldspect/snapshotStore';
 
-export type ProposalStatus = 'queued' | 'proposed' | 'accepted' | 'design_approved' | 'rejected' | 'draft';
+export type ProposalStatus =
+  | 'draft'
+  | 'proposed'
+  | 'waiting_evidence'
+  | 'design_approved'
+  | 'queued'
+  | 'accepted'
+  | 'rejected'
+  | 'conflicted'
+  | 'frozen'
+  | 'superseded'
+  | 'approved'; // legacy read compatibility only; new writes must not produce this state.
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -148,7 +159,7 @@ export async function createActionProposal(input: {
   specHash?: string | null;
   contentHash?: string | null;
   promptHash?: string | null;
-  status?: ProposalStatus | 'queued';
+  status?: ProposalStatus;
   eventId?: string | null;
   payload: Record<string, unknown>;
 }) {
@@ -238,14 +249,13 @@ export async function updateActionProposalStatus(input: {
   payloadPatch?: Record<string, unknown>;
 }) {
   const service = createServiceSupabaseClient();
-  let selectQuery = service
+  const { data: existing, error: selectError } = await service
     .from('action_proposals')
     .select('*')
     .eq('id', input.proposalId)
     .in('status', input.expectedStatuses)
-    .limit(1);
-
-  const { data: existing, error: selectError } = await selectQuery.maybeSingle();
+    .limit(1)
+    .maybeSingle();
   if (selectError) return { ok: false as const, error: 'action_proposal_lookup_failed', details: selectError.message };
   if (!existing) return { ok: false as const, error: 'action_proposal_not_found_or_forbidden' };
 
@@ -258,7 +268,6 @@ export async function updateActionProposalStatus(input: {
   }
 
   const now = new Date().toISOString();
-
   const update: Record<string, unknown> = {
     status: input.status,
     outcome: {
@@ -271,9 +280,7 @@ export async function updateActionProposalStatus(input: {
     },
   };
 
-  if (input.status === 'design_approved') {
-    update.approved_at = now;
-  }
+  if (input.status === 'design_approved') update.approved_at = now;
 
   const { data, error } = await service
     .from('action_proposals')

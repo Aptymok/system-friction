@@ -18,19 +18,11 @@ function auditId(body: Record<string, unknown>) {
   return typeof row?.id === 'string' ? row.id : null;
 }
 function abortReason(signal: AbortSignal) { return typeof signal.reason === 'string' ? signal.reason : null; }
-function usesRichSemanticContext(selection: RootSelection | null) {
-  return Boolean(selection && /hypothesis|prediction|outcome|evidence|ledger|attractor/i.test(selection.kind));
-}
-
+function usesRichSemanticContext(selection: RootSelection | null) { return Boolean(selection && /hypothesis|prediction|outcome|evidence|ledger|attractor/i.test(selection.kind)); }
 type RootAccessMode = 'sovereign' | 'observer';
-
 const ROOT_BACKGROUND_REFRESH_MS = 60 * 60 * 1000;
 
-export function RootSovereignConsole({ initialState, accessMode = 'sovereign', actorLabel = 'ROOT' }: {
-  initialState: RootSovereignState;
-  accessMode?: RootAccessMode;
-  actorLabel?: string;
-}) {
+export function RootSovereignConsole({ initialState, accessMode = 'sovereign', actorLabel = 'ROOT' }: { initialState: RootSovereignState; accessMode?: RootAccessMode; actorLabel?: string; }) {
   const [state, setState] = useState(initialState);
   const [selection, setSelection] = useState<RootSelection | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -57,8 +49,7 @@ export function RootSovereignConsole({ initialState, accessMode = 'sovereign', a
       const body = await response.json().catch(() => null);
       if (!response.ok || !body?.ok || !body.state) throw new Error(body?.error ?? `HTTP ${response.status}`);
       if (sequence !== refreshSequence.current) return;
-      setState(body.state);
-      setRefreshWarning(null);
+      setState(body.state); setRefreshWarning(null);
     } catch (error) {
       if (sequence !== refreshSequence.current) return;
       const reason = abortReason(next.signal);
@@ -82,8 +73,7 @@ export function RootSovereignConsole({ initialState, accessMode = 'sovereign', a
       if (!(event.target instanceof Element)) return;
       const anchor = event.target.closest<HTMLAnchorElement>('a[target="_blank"]');
       if (!anchor?.href) return;
-      event.preventDefault();
-      window.location.assign(anchor.href);
+      event.preventDefault(); window.location.assign(anchor.href);
     };
     document.addEventListener('click', keepRootInPlace, true);
     return () => document.removeEventListener('click', keepRootInPlace, true);
@@ -92,17 +82,14 @@ export function RootSovereignConsole({ initialState, accessMode = 'sovereign', a
   function requestAction(action: RootActionRequest) {
     if (readOnly) {
       const blocked: RootSessionEvent = { id: `observer-block-${Date.now()}`, at: new Date().toISOString(), label: action.label, status: 'blocked', detail: 'OBSERVER puede leer ROOT y aportar evidencia, pero no ejecutar acciones soberanas.', auditId: null };
-      setEvents((current) => [blocked, ...current].slice(0, 30));
-      return;
+      setEvents((current) => [blocked, ...current].slice(0, 30)); return;
     }
-    setPending(action);
-    setConfirmed(false);
+    setPending(action); setConfirmed(false);
   }
 
   async function execute() {
     if (readOnly || !pending || !confirmed || running) return;
-    const action = pending;
-    setRunning(true);
+    const action = pending; setRunning(true);
     const started: RootSessionEvent = { id: `${action.id}-${Date.now()}`, at: new Date().toISOString(), label: action.label, status: 'running', detail: action.effect, auditId: null };
     setEvents((current) => [started, ...current].slice(0, 30));
     try {
@@ -118,11 +105,16 @@ export function RootSovereignConsole({ initialState, accessMode = 'sovereign', a
     } finally { setRunning(false); }
   }
 
+  const launcherStyle = { border: '1px solid rgba(191,160,78,.38)', background: '#080807', color: '#c6ad69', padding: '8px 10px', textDecoration: 'none', font: '9px ui-monospace,SFMono-Regular,Menlo,monospace', letterSpacing: '.08em' } as const;
+
   return <div className={`rs-console-host ${selection ? 'has-semantic-selection' : ''}`}>
     <RootObservatoryWorkspace state={state} accessMode={accessMode} actorLabel={actorLabel} refreshing={refreshing} warning={refreshWarning} onRefresh={() => void refresh(false)} onSelect={setSelection} onAction={requestAction} />
-    <div style={{ position: 'fixed', right: 18, bottom: readOnly ? 18 : 62, zIndex: 35, display: 'flex', gap: 8 }}>
-      <a href="/root/cognitive-twin/lineage" title="Abrir CT-A01 Lineage" style={{ border: '1px solid rgba(191,160,78,.38)', background: '#080807', color: '#c6ad69', padding: '8px 10px', textDecoration: 'none', font: '9px ui-monospace,SFMono-Regular,Menlo,monospace', letterSpacing: '.08em' }}>CT-A01</a>
-      <a href="/root/method-lab" title="Abrir Method Lab" style={{ border: '1px solid rgba(191,160,78,.38)', background: '#080807', color: '#c6ad69', padding: '8px 10px', textDecoration: 'none', font: '9px ui-monospace,SFMono-Regular,Menlo,monospace', letterSpacing: '.08em' }}>METHOD LAB</a>
+    <div style={{ position: 'fixed', right: 18, bottom: readOnly ? 18 : 62, zIndex: 35, display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end', maxWidth: '80vw' }}>
+      <a href="/root/development" title="Abrir Development Registry" style={launcherStyle}>DEVELOPMENT</a>
+      <a href="/root/readiness" title="Abrir Institutional Readiness" style={launcherStyle}>READINESS</a>
+      <a href="/root/governance" title="Abrir Governance Control" style={launcherStyle}>GOVERNANCE</a>
+      <a href="/root/cognitive-twin/lineage" title="Abrir CT-A01 Lineage" style={launcherStyle}>CT-A01</a>
+      <a href="/root/method-lab" title="Abrir Method Lab" style={launcherStyle}>METHOD LAB</a>
     </div>
     {selection && richSemantic ? <RootSemanticContextModal selection={selection} onClose={() => setSelection(null)} /> : <RootSemanticInspector value={selection} onClose={() => setSelection(null)} />}
     {!readOnly ? <RootMethodologyWorkbench state={state} launcher={false} /> : null}

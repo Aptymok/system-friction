@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { decideActionProposal, normalizeProposalState } from '@/lib/governance/proposalLifecycle';
 import { auditRootAction, requireRootActor } from '@/lib/root/server';
 
 export const dynamic = 'force-dynamic';
@@ -19,7 +20,10 @@ async function readQueue(service: any) {
     const approval = rec(rec(row.output_envelope).approval_queue);
     return ['queued_for_approval','waiting_evidence'].includes(text(approval.status).toLowerCase());
   });
-  const proposalRows = (proposals.data ?? []).filter((row: Row) => !['executed','rejected','blocked'].includes(text(row.status).toLowerCase()) && row.approval_required !== false);
+  const proposalRows = (proposals.data ?? []).filter((row: Row) => {
+    const state = normalizeProposalState(row.status);
+    return ['proposed', 'waiting_evidence', 'conflicted'].includes(state) && row.approval_required !== false;
+  });
   const decisionRows = (decisions.data ?? []).filter((row: Row) => ['CANDIDATE','WAITING_EVIDENCE'].includes(text(row.status).toUpperCase()));
   const fdreRows = (fdre.data ?? []).filter((row: Row) => {
     const lifecycle = text(rec(row.content).lifecycleStatus, 'CAPTURED');
@@ -52,8 +56,16 @@ export async function POST(request: Request) {
 
   let write: any = null;
   if (kind === 'proposal') {
-    const status = decision === 'accept' ? 'approved' : decision === 'deny' ? 'rejected' : 'waiting_evidence';
-    write = await gate.ctx.service.from('action_proposals').update({ status, approved_at: decision === 'accept' ? new Date().toISOString() : null, outcome: { founderDecision: decision, founderNote: note, decidedAt: new Date().toISOString(), decidedBy: gate.ctx.user.id }, updated_at: new Date().toISOString() }).eq('id', id).select('*').single();
+    const current = await gate.ctx.service.from('action_proposals').select('*').eq('id', id).single();
+    if (current.error || !current.data) return NextResponse.json({ ok: false, error: current.error?.message ?? 'proposal_not_found' }, { status: 404 });
+    write = await decideActionProposal({
+      proposalId: id,
+      actorId: gate.ctx.user.id,
+      decision: decision as 'accept' | 'deny' | 'request_evidence',
+      note,
+      currentRow: current.data as Row,
+    });
+    if (!write.ok) return NextResponse.json(write, { status: 409 });
   } else if (kind === 'founder_rule') {
     const status = decision === 'accept' ? 'APPROVED' : decision === 'deny' ? 'REJECTED' : 'WAITING_EVIDENCE';
     write = await gate.ctx.service.from('sfi_cognitive_twin_decisions').update({ status, approved_by: decision === 'accept' ? gate.ctx.user.id : null, approved_at: decision === 'accept' ? new Date().toISOString() : null, updated_at: new Date().toISOString() }).eq('id', id).select('*').single();
@@ -73,5 +85,5 @@ export async function POST(request: Request) {
   if (write.error) return NextResponse.json({ ok: false, error: 'decision_write_failed', details: write.error.message }, { status: 500 });
   const audit = await auditRootAction({ actorId: gate.ctx.user.id, action: `founder_decision_queue.${decision}`, target: `${kind}:${id}`, payload: { kind, id, decision, note }, request });
   if (!audit.ok) return NextResponse.json(audit, { status: 500 });
-  return NextResponse.json({ ok: true, decision: write.data, audit });
+  return NextResponse.json({ ok: true, decision: write.data ?? write, audit });
 }
