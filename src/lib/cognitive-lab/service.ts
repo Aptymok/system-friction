@@ -2,6 +2,7 @@ import 'server-only';
 
 import { runLlmTask } from '@/lib/ai/providerRouter';
 import { createCognitiveTwinEnvelope, evaluateCognitiveTwinAuthority } from '@/lib/cognitive-twin/contract';
+import { persistCognitiveTwinExperience } from '@/lib/cognitive-twin/experienceBridge';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 
 type Row = Record<string, unknown>;
@@ -414,44 +415,32 @@ export async function runCognitiveLabFounderContrast(createdBy: string, sessionI
       `cognitive-lab-analysis:${String(founderAnalysis.data.id)}`,
       `cognitive-lab-analysis:${String(divergence.data.id)}`,
     ];
-    const authority = evaluateCognitiveTwinAuthority({
-      action: 'persist_memory',
-      founderAbsent: false,
-      evidencePresent: memoryEvidenceRefs.length > 0,
+    const memory = await persistCognitiveTwinExperience({
+      memoryKey: `cognitive_lab:${sessionId}:relational_contrast`,
+      memoryType: 'STATE',
+      sourceKind: 'COGNITIVE_LAB_CONTRAST',
+      sourceRef: String(divergence.data.id),
+      version: 'cognitive-lab-v1',
+      createdBy,
+      evidenceRefs: memoryEvidenceRefs,
+      content: {
+        epistemicStatus: 'CANDIDATE',
+        learningClass: 'RELATIONAL_COUPLING_CONTRAST',
+        labSessionId: sessionId,
+        sessionKey: session.session_key,
+        condition: session.condition,
+        blindAnalysisId: blindResult.data.id,
+        founderAnalysisId: founderAnalysis.data.id,
+        divergenceAnalysisId: divergence.data.id,
+        divergence: llm.result,
+        provenanceRule: 'FOUNDER_AUTHORIZATION_IS_NOT_FOUNDER_ORIGIN',
+        promotionRule: 'Requires later replication or explicit verification before VERIFIED/CANONICAL.',
+      },
     });
 
-    if (authority.decision === 'ALLOW') {
-      const memory = await db.from('sfi_cognitive_twin_memory').upsert({
-        memory_key: `cognitive_lab:${sessionId}:relational_contrast`,
-        memory_type: 'STATE',
-        status: 'CANDIDATE',
-        content: {
-          epistemicStatus: 'CANDIDATE',
-          learningClass: 'RELATIONAL_COUPLING_CONTRAST',
-          labSessionId: sessionId,
-          sessionKey: session.session_key,
-          condition: session.condition,
-          blindAnalysisId: blindResult.data.id,
-          founderAnalysisId: founderAnalysis.data.id,
-          divergenceAnalysisId: divergence.data.id,
-          divergence: llm.result,
-          provenanceRule: 'FOUNDER_AUTHORIZATION_IS_NOT_FOUNDER_ORIGIN',
-          promotionRule: 'Requires later replication or explicit verification before VERIFIED/CANONICAL.',
-        },
-        evidence_refs: memoryEvidenceRefs,
-        source_kind: 'COGNITIVE_LAB_CONTRAST',
-        source_ref: String(divergence.data.id),
-        version: 'cognitive-lab-v1',
-        created_by: createdBy,
-        updated_at: new Date().toISOString(),
-      }, { onConflict: 'memory_key,version' }).select('id,status,memory_key,version').single();
-
-      learning = memory.error
-        ? { persisted: false, reason: memory.error.message }
-        : { persisted: true, ...record(memory.data) };
-    } else {
-      learning = { persisted: false, reason: authority.reason };
-    }
+    learning = memory.ok
+      ? { persisted: true, ...record(memory.memory) }
+      : { persisted: false, reason: memory.reason, blocked: memory.blocked };
   }
 
   await db.from('sfi_cognitive_lab_sessions').update({
