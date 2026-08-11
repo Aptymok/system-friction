@@ -1,21 +1,58 @@
 import Link from 'next/link';
 import { requireRootActor } from '@/lib/root/server';
-import { SFI_DEVELOPMENT_REGISTRY, summarizeSfiDevelopmentRegistry } from '@/lib/institutional/developmentRegistry';
+import { SFI_DEVELOPMENT_REGISTRY } from '@/lib/institutional/developmentRegistry';
 
 export const dynamic = 'force-dynamic';
 
 export default async function RootDevelopmentPage() {
   const gate = await requireRootActor('development.registry.read');
-  if (!gate.ok) return <main style={{padding:24,background:'#050504',color:'#c8c0ad',minHeight:'100vh'}}>ROOT REQUIRED</main>;
-  const summary = summarizeSfiDevelopmentRegistry();
-  const ordered = [...SFI_DEVELOPMENT_REGISTRY].sort((a,b)=>b.maturityEstimate-a.maturityEstimate || a.name.localeCompare(b.name,'es'));
-  return <main style={{minHeight:'100vh',background:'#050504',color:'#c8c0ad',padding:26,fontFamily:'ui-monospace,SFMono-Regular,Menlo,monospace'}}>
-    <header style={{display:'flex',justifyContent:'space-between',gap:20,borderBottom:'1px solid rgba(200,169,81,.15)',paddingBottom:18}}>
-      <div><span style={{fontSize:8,color:'#8f7a4b'}}>SFI · ROOT · DEVELOPMENT CONTROL</span><h1 style={{font:'400 30px Georgia,serif',color:'#e2cf9b',margin:'6px 0'}}>METHODS / PRODUCTS / PROGRAMS REGISTRY</h1><p style={{font:'13px/1.6 Georgia,serif',color:'#837b6d',maxWidth:960}}>Registro maestro de desarrollo. El porcentaje es una estimación de madurez para planificación; no es probabilidad de verdad, validación científica ni autorización de producto.</p></div>
-      <nav style={{display:'flex',gap:10,alignItems:'flex-start'}}><Link href="/root/readiness" style={{color:'#c6ad69'}}>READINESS</Link><Link href="/root/governance" style={{color:'#c6ad69'}}>GOVERNANCE</Link><Link href="/root" style={{color:'#c6ad69'}}>ROOT</Link></nav>
+  if (!gate.ok) return <main style={{padding:24}}>ROOT REQUIRED</main>;
+
+  const platform = SFI_DEVELOPMENT_REGISTRY.filter(item=>['PRODUCT','INFRASTRUCTURE'].includes(item.classification));
+  const research = SFI_DEVELOPMENT_REGISTRY.filter(item=>['PROGRAM','LAB_ONLY'].includes(item.classification));
+  const history = SFI_DEVELOPMENT_REGISTRY.filter(item=>['ABSORBED','ARCHIVED'].includes(item.classification));
+  const activeDevelopment = platform.filter(item=>['IN_DEVELOPMENT','GATED'].includes(item.state));
+  const platformImplemented = platform.length-activeDevelopment.length;
+
+  return <main style={page}>
+    <header style={header}>
+      <div><span style={eyebrow}>SFI · ROOT · DEVELOPMENT CONTROL</span><h1 style={h1}>DESARROLLO ≠ VALIDACIÓN</h1><p style={lead}>Esta vista ya no usa porcentajes editoriales como si fueran avance de software. Separa lo que falta construir de lo que necesita evidencia científica y de lo que ya fue absorbido o archivado.</p></div>
+      <nav style={{display:'flex',gap:14,flexWrap:'wrap'}}><Link href="/root" style={link}>OPERAR</Link><Link href="/root/readiness" style={link}>READINESS</Link><Link href="/root/overview" style={link}>VISTA TÉCNICA</Link></nav>
     </header>
-    <section style={{display:'grid',gridTemplateColumns:'repeat(4,minmax(0,1fr))',gap:8,marginTop:16}}><Card label="TOTAL" value={String(summary.total)} /><Card label="PRODUCTS" value={String(summary.byClass.PRODUCT)} /><Card label="LAB ONLY" value={String(summary.byClass.LAB_ONLY)} /><Card label="ABSORBED / ARCHIVED" value={String((summary.byClass.ABSORBED??0)+(summary.byClass.ARCHIVED??0))} /></section>
-    <section style={{marginTop:16,display:'grid',gap:8}}>{ordered.map(item=><article key={item.id} style={{border:'1px solid rgba(200,169,81,.1)',background:'#080807',padding:14,display:'grid',gridTemplateColumns:'minmax(230px,.8fr) minmax(320px,1.4fr) 100px',gap:16}}><div><span style={{fontSize:7,color:'#806d42'}}>{item.classification} · {item.state}</span><h2 style={{font:'400 17px Georgia,serif',color:'#cfbb89',margin:'6px 0'}}>{item.name}</h2><strong style={{color:'#bda35c',fontSize:9}}>{item.product}</strong></div><div><p style={{margin:'0 0 7px',color:'#948a78',font:'11px/1.5 Georgia,serif'}}>{item.purpose}</p><div style={{fontSize:8,color:'#71695d'}}>IMPLEMENTATION · {item.implementation}</div><div style={{marginTop:7,fontSize:8,color:'#aa8d50'}}>NEXT GATE · {item.nextGate}</div>{item.absorbedInto?.length?<div style={{marginTop:7,fontSize:8,color:'#6f675b'}}>ABSORBED INTO · {item.absorbedInto.join(' · ')}</div>:null}</div><div style={{textAlign:'right'}}><span style={{fontSize:7,color:'#625b4c'}}>MATURITY EST.</span><strong style={{display:'block',fontSize:24,color:'#d0b76f',marginTop:4}}>{item.maturityEstimate}%</strong></div></article>)}</section>
+
+    <section style={summaryGrid}>
+      <Card label="PLATAFORMA" value={`${platformImplemented}/${platform.length}`} note="sin trabajo de construcción explícito" />
+      <Card label="DESARROLLO ACTIVO" value={String(activeDevelopment.length)} note="sí bloquea cierre de plataforma" />
+      <Card label="INVESTIGACIÓN" value={String(research.length)} note="no bloquea cierre de software" />
+      <Card label="GENEALOGÍA" value={String(history.length)} note="absorbido / archivado; fuera del denominador" />
+    </section>
+
+    <Section title="A · LO QUE SÍ FALTA CONSTRUIR" description="Sólo productos o infraestructura cuyo propio registro todavía declara desarrollo o compuerta pendiente.">
+      {activeDevelopment.length?activeDevelopment.map(item=><Item key={item.id} item={item} mode="build"/>):<Empty text="No hay desarrollo núcleo pendiente en el registro."/>}
+    </Section>
+
+    <Section title="B · PLATAFORMA IMPLEMENTADA" description="Puede seguir necesitando casos, calibración o validación; eso no significa que falte código de plataforma.">
+      {platform.filter(item=>!activeDevelopment.includes(item)).map(item=><Item key={item.id} item={item} mode="implemented"/>)}
+    </Section>
+
+    <Section title="C · INVESTIGACIÓN / LABORATORIO" description="Aquí puede existir software completo mientras la hipótesis siga experimental. No entra en el porcentaje de cierre de plataforma.">
+      {research.map(item=><Item key={item.id} item={item} mode="research"/>)}
+    </Section>
+
+    <Section title="D · ABSORBIDO / ARCHIVADO" description="No se desarrolla hasta 100%. Su cierre correcto consiste en conservar genealogía y evitar que vuelva a operar como sistema paralelo.">
+      {history.map(item=><Item key={item.id} item={item} mode="history"/>)}
+    </Section>
   </main>;
 }
-function Card({label,value}:{label:string;value:string}){return <article style={{border:'1px solid rgba(200,169,81,.1)',background:'#080807',padding:13}}><span style={{fontSize:7,color:'#645b47'}}>{label}</span><strong style={{display:'block',fontSize:22,color:'#d0b76f',marginTop:5}}>{value}</strong></article>}
+
+function Section({title,description,children}:{title:string;description:string;children:React.ReactNode}){return <section style={{marginTop:34}}><header style={{borderBottom:'1px solid #d7d1c4',paddingBottom:12}}><h2 style={{font:'400 24px Georgia,serif',margin:'0 0 6px'}}>{title}</h2><p style={{margin:0,color:'#777166',font:'13px/1.5 Georgia,serif'}}>{description}</p></header><div style={{display:'grid',gap:8,marginTop:10}}>{children}</div></section>}
+function Item({item,mode}:{item:any;mode:'build'|'implemented'|'research'|'history'}){const tone=mode==='build'?'#8b4f3f':mode==='implemented'?'#4e7057':mode==='research'?'#8c6e2c':'#777166';return <article style={{display:'grid',gridTemplateColumns:'minmax(220px,.8fr) minmax(320px,1.5fr)',gap:24,border:'1px solid #d7d1c4',background:'#fbfaf6',padding:16}}><div><span style={{fontSize:9,letterSpacing:'.1em',color:tone}}>{item.classification} · {item.state}</span><h3 style={{font:'400 18px Georgia,serif',margin:'7px 0 4px'}}>{item.name}</h3><b style={{fontSize:10,color:'#8a712f'}}>{item.product}</b></div><div><p style={{margin:'0 0 8px',font:'13px/1.5 Georgia,serif',color:'#5e5a52'}}>{item.purpose}</p><div style={{fontSize:10,lineHeight:1.5,color:'#777166'}}><b>IMPLEMENTADO · </b>{item.implementation}</div><div style={{fontSize:10,lineHeight:1.5,color:mode==='build'?'#8b4f3f':'#8a712f',marginTop:6}}><b>SIGUIENTE UMBRAL · </b>{item.nextGate}</div>{item.absorbedInto?.length?<div style={{fontSize:10,color:'#777166',marginTop:6}}>ABSORBIDO EN · {item.absorbedInto.join(' · ')}</div>:null}</div></article>}
+function Card({label,value,note}:{label:string;value:string;note:string}){return <article style={{border:'1px solid #d7d1c4',background:'#fbfaf6',padding:16}}><span style={{fontSize:9,letterSpacing:'.12em',color:'#8a712f'}}>{label}</span><strong style={{display:'block',font:'400 34px Georgia,serif',margin:'6px 0'}}>{value}</strong><small style={{color:'#777166'}}>{note}</small></article>}
+function Empty({text}:{text:string}){return <div style={{border:'1px dashed #c8c1b3',padding:20,color:'#777166'}}>{text}</div>}
+const page={minHeight:'100vh',background:'#f2f0e9',color:'#24231f',padding:28,fontFamily:'Inter,ui-sans-serif,system-ui,sans-serif'} as const;
+const header={display:'flex',justifyContent:'space-between',gap:30,borderBottom:'1px solid #cfc8ba',paddingBottom:20} as const;
+const eyebrow={fontSize:9,color:'#8a712f',letterSpacing:'.15em'} as const;
+const h1={font:'400 38px Georgia,serif',margin:'7px 0'} as const;
+const lead={font:'15px/1.55 Georgia,serif',color:'#777166',maxWidth:900,margin:0} as const;
+const summaryGrid={display:'grid',gridTemplateColumns:'repeat(4,minmax(0,1fr))',gap:8,marginTop:18} as const;
+const link={color:'#725c27',fontSize:10,letterSpacing:'.08em'} as const;
