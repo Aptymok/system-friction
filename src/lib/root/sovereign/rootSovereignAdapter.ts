@@ -29,7 +29,7 @@ function item(input: {
     id: input.id,
     label: input.label,
     state: observedValue({ value: input.state, source: input.source, observedAt: input.observedAt, confidence: input.confidence, explanation: input.explanation, warning: input.warning, status: input.warning ? 'degraded' : input.state ? 'observed' : 'missing' }),
-    openItems: observedValue({ value: input.openItems, source: input.source, observedAt: input.observedAt, explanation: 'Conteo directo de filas abiertas; no es un porcentaje.', warning: input.warning, status: input.warning ? 'degraded' : input.openItems === null ? 'missing' : 'observed' }),
+    openItems: observedValue({ value: input.openItems, source: input.source, observedAt: input.observedAt, explanation: 'Conteo directo de registros para esta superficie; no es un porcentaje.', warning: input.warning, status: input.warning ? 'degraded' : input.openItems === null ? 'missing' : 'observed' }),
   };
 }
 
@@ -42,6 +42,10 @@ function latestDate(rows: RootRow[]) {
     .map((entry) => dateValue(entry.updated_at ?? entry.executed_at ?? entry.finished_at ?? entry.created_at))
     .filter((value): value is string => Boolean(value))
     .sort((a, b) => Date.parse(b) - Date.parse(a))[0] ?? null;
+}
+
+function numericCount(value: unknown) {
+  return typeof value === 'number' && Number.isFinite(value) ? value : 0;
 }
 
 export async function readRootSovereignState(): Promise<RootSovereignState> {
@@ -64,8 +68,10 @@ export async function readRootSovereignState(): Promise<RootSovereignState> {
   const cognitiveRuns = cognitiveTwinRaw.recentRuns as unknown as RootRow[];
   const cognitiveEvaluations = cognitiveTwinRaw.recentEvaluations as unknown as RootRow[];
   const cognitiveTwinError = cognitiveTwinRaw.errors.length ? cognitiveTwinRaw.errors.join(' | ') : null;
-  const cognitiveTwinCount = [cognitiveTwinRaw.counts.memory, cognitiveTwinRaw.counts.decisions, cognitiveTwinRaw.counts.runs]
-    .reduce((sum, value) => sum + (typeof value === 'number' ? value : 0), 0);
+  const cognitiveTwinCount = numericCount(cognitiveTwinRaw.counts.memory)
+    + numericCount(cognitiveTwinRaw.counts.decisions)
+    + numericCount(cognitiveTwinRaw.counts.runs)
+    + numericCount(cognitiveTwinRaw.counts.evaluations);
   const cognitiveTwin: RootSource<RootCognitiveTwinData> = {
     data: {
       implementation: cognitiveTwinRaw.implementation as unknown as RootRow,
