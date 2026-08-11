@@ -28,33 +28,42 @@ export async function POST(request:Request){
   if(!refs.length)return NextResponse.json({ok:false,error:'trajectory_event_requires_evidence_ref'},{status:400});
 
   const sourceUri=text(body.sourceUri)||null;
-  const declaredHash=text(body.contentHash)||null;
-  const contentHash=declaredHash||createHash('sha256').update(JSON.stringify({objectRef,sourceUri,relation,observedAt:text(body.observedAt),evidenceRefs:refs})).digest('hex');
+  const contentHash=text(body.contentHash)||null;
   const parentEventId=text(body.parentEventId)||null;
+  const observedAt=validIso(text(body.observedAt));
+  const platform=text(body.platform)||null;
+  const markerRef=text(body.markerRef)||null;
+  const semanticState=body.semanticState&&typeof body.semanticState==='object'&&!Array.isArray(body.semanticState)?body.semanticState:{};
   if(parentEventId){
     const parent=await gate.ctx.service.from('sfi_artifact_trajectory_events').select('id').eq('id',parentEventId).eq('owner_id',gate.ctx.user.id).maybeSingle();
     if(parent.error||!parent.data)return NextResponse.json({ok:false,error:'trajectory_parent_not_found',details:parent.error?.message},{status:404});
   }
 
-  const inserted=await gate.ctx.service.from('sfi_artifact_trajectory_events').insert({
+  const eventEnvelope={operatingCycleId,objectRef,parentEventId,platform,sourceUri,observedAt,relation,contentHash,markerRef,evidenceRefs:refs,semanticState};
+  const eventRecordHash=createHash('sha256').update(JSON.stringify(eventEnvelope)).digest('hex');
+  const inserted=await gate.ctx.service.from('sfi_artifact_trajectory_events').upsert({
     operating_cycle_id:operatingCycleId,
     owner_id:gate.ctx.user.id,
     object_ref:objectRef,
     parent_event_id:parentEventId,
-    platform:text(body.platform)||null,
+    platform,
     source_uri:sourceUri,
-    observed_at:validIso(text(body.observedAt)),
+    observed_at:observedAt,
     relation,
     content_hash:contentHash,
-    marker_ref:text(body.markerRef)||null,
+    event_record_hash:eventRecordHash,
+    marker_ref:markerRef,
     evidence_refs:refs,
-    semantic_state:body.semanticState&&typeof body.semanticState==='object'&&!Array.isArray(body.semanticState)?body.semanticState:{},
-    payload:{claimBoundary:'This event records a bounded artifact state/relation linked to evidence. It does not prove propagation, semantic drift, identity persistence or causality by itself.'},
-  }).select('*').single();
+    semantic_state:semanticState,
+    payload:{
+      artifactHashStatus:contentHash?'DECLARED_UPSTREAM_HASH':'MISSING',
+      claimBoundary:'This event records a bounded artifact state/relation linked to evidence. event_record_hash identifies this record envelope; content_hash remains NULL unless a real artifact/content hash was supplied. This record does not prove propagation, semantic drift, identity persistence or causality by itself.',
+    },
+  },{onConflict:'event_record_hash'}).select('*').single();
   if(inserted.error||!inserted.data)return NextResponse.json({ok:false,error:'trajectory_event_persist_failed',details:inserted.error?.message},{status:503});
 
   const trajectoryRefs=Array.from(new Set([...list(cycle.data.trajectory_refs),String(inserted.data.id)]));
   await gate.ctx.service.from('sfi_operating_cycles').update({trajectory_refs:trajectoryRefs,updated_at:new Date().toISOString()}).eq('id',operatingCycleId).eq('owner_id',gate.ctx.user.id);
-  const audit=await auditRootAction({actorId:gate.ctx.user.id,action:'operating_cycle.trajectory_event',target:String(inserted.data.id),payload:{operatingCycleId,objectRef,relation,evidenceRefs:refs,contentHash},request});
+  const audit=await auditRootAction({actorId:gate.ctx.user.id,action:'operating_cycle.trajectory_event',target:String(inserted.data.id),payload:{operatingCycleId,objectRef,relation,evidenceRefs:refs,contentHash,eventRecordHash},request});
   return NextResponse.json({ok:true,event:inserted.data,audit},{status:201});
 }
