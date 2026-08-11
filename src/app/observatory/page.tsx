@@ -4,7 +4,7 @@ import { AmvPhaseStatusPanel } from '@/components/amv/AmvPhaseStatusPanel';
 import { PublicObservatoryTimelineNavigator } from '@/components/observatory/public/PublicObservatoryTimelineNavigator';
 import { PublicWorldVectorObservatory } from '@/components/observatory/public/PublicWorldVectorObservatory';
 import { SfiSurfaceGuide } from '@/components/sfi/SfiSurfaceGuide';
-import { readPublicObservatoryState } from '@/lib/observatory/public/readPublicObservatoryState';
+import { readGovernedPublicObservatoryState } from '@/lib/observatory/public/readGovernedPublicObservatoryState';
 
 const PUBLIC_OBSERVATORY_DESCRIPTION =
   'Public 90-day World State synthesis: World Vector, longitudinal WorldSpect observation, dominant tensions and the Daily Reading by System Friction Institute.';
@@ -26,7 +26,7 @@ export const metadata: Metadata = {
 };
 
 export default async function ObservatoryPage() {
-  const state = await readPublicObservatoryState();
+  const state = await readGovernedPublicObservatoryState();
   return (
     <main className="min-h-screen bg-[#060605]">
       <SfiSurfaceGuide
