@@ -1,0 +1,43 @@
+name: SFI Final Closure Verify
+
+on:
+  pull_request:
+    paths:
+      - 'src/lib/institutional/finalClosure.ts'
+      - 'src/lib/cognitive-lab/persistencePolicy.ts'
+      - 'src/lib/cognitive-twin/reentry/ancestralCapabilities.ts'
+      - 'src/lib/method-lab/specializedModels.ts'
+      - 'src/lib/method-lab/apexPilot.ts'
+      - 'src/lib/studio/fieldHandoff.ts'
+      - 'src/lib/field/returnContrastContract.ts'
+      - 'src/lib/observatory/publicationGate.ts'
+      - 'scripts/qa-sfi-final-closure.ts'
+      - '.github/workflows/sfi-final-closure.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'src/lib/institutional/finalClosure.ts'
+      - 'src/lib/cognitive-lab/persistencePolicy.ts'
+      - 'src/lib/cognitive-twin/reentry/ancestralCapabilities.ts'
+      - 'src/lib/method-lab/specializedModels.ts'
+      - 'src/lib/method-lab/apexPilot.ts'
+      - 'src/lib/studio/fieldHandoff.ts'
+      - 'src/lib/field/returnContrastContract.ts'
+      - 'src/lib/observatory/publicationGate.ts'
+      - 'scripts/qa-sfi-final-closure.ts'
+      - '.github/workflows/sfi-final-closure.yml'
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm install --no-audit --no-fund
+      - name: Verify final closure and Apex pilot
+        run: npx tsx scripts/qa-sfi-final-closure.ts
+      - name: Typecheck
+        run: npx tsc --noEmit --pretty false --incremental false
