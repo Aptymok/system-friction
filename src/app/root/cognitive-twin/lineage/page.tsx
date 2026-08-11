@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import { requireFounderPage } from '@/lib/root/server';
 import { readCognitiveTwinLineageHealth } from '@/lib/cognitive-twin/reentry/runtime';
+import { readCognitiveTwinExperimentState } from '@/lib/cognitive-twin/reentry/experimentState';
+import { CognitiveTwinExperimentControls } from '@/components/root/cognitive-twin/CognitiveTwinExperimentControls';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,11 +20,15 @@ function cell(label: string, value: string | number | null) {
 
 export default async function CognitiveTwinLineagePage() {
   await requireFounderPage('/root/cognitive-twin/lineage');
-  const state = await readCognitiveTwinLineageHealth();
+  const [state, experiments] = await Promise.all([
+    readCognitiveTwinLineageHealth(),
+    readCognitiveTwinExperimentState(),
+  ]);
   return <main style={{ minHeight: '100vh', background: '#070706', color: '#d8d0ba', padding: '28px clamp(18px,4vw,64px)', fontFamily: 'ui-monospace,SFMono-Regular,Menlo,monospace' }}>
-    <nav style={{ display: 'flex', gap: 16, marginBottom: 28, fontSize: 11 }}>
+    <nav style={{ display: 'flex', gap: 16, marginBottom: 28, fontSize: 11, flexWrap: 'wrap' }}>
       <a href="/root" style={{ color: '#bda563' }}>ROOT</a>
       <a href="/root/cognitive-twin" style={{ color: '#bda563' }}>COGNITIVE TWIN</a>
+      <a href="/root/cognitive-twin/journal" style={{ color: '#bda563' }}>JOURNAL</a>
       <a href="/root/method-lab" style={{ color: '#bda563' }}>METHOD LAB</a>
     </nav>
     <div style={{ fontSize: 10, letterSpacing: '.18em', color: '#8d7b4d' }}>LONGITUDINAL EXPERIMENTAL SUBJECT</div>
@@ -42,12 +48,27 @@ export default async function CognitiveTwinLineagePage() {
       {cell('LAST DISPOSITION', state.lastDisposition)}
       {cell('PROSPECTIVE VALIDATION', state.prospectiveValidation)}
       {cell('INDIVIDUATION DEMONSTRATED', state.individuationDemonstrated ? 'TRUE' : 'FALSE')}
+      {cell('SNAPSHOTS', experiments.snapshots.length)}
+      {cell('REGISTERED FORKS', experiments.forks.length)}
     </section>
 
     <section style={{ marginTop: 30, borderTop: '1px solid rgba(191,160,78,.2)', paddingTop: 22 }}>
       <div style={{ fontSize: 10, letterSpacing: '.12em', color: '#8d7b4d' }}>HEAD HASH</div>
       <code style={{ display: 'block', marginTop: 8, fontSize: 12, color: '#c9bea0', overflowWrap: 'anywhere' }}>{state.headHash ?? 'NO DEVELOPMENTAL HEAD YET'}</code>
     </section>
+
+    <CognitiveTwinExperimentControls snapshots={experiments.snapshots} />
+
+    {experiments.forks.length ? <section style={{ marginTop: 28 }}>
+      <div style={{ fontSize: 10, letterSpacing: '.12em', color: '#8d7b4d' }}>REGISTERED FORKS</div>
+      <div style={{ marginTop: 10, display: 'grid', gap: 8 }}>
+        {experiments.forks.slice(0, 20).map((fork) => <div key={fork.taskId ?? fork.forkHash ?? fork.childSubjectId ?? Math.random()} style={{ border: '1px solid rgba(191,160,78,.2)', padding: 12 }}>
+          <strong style={{ color: '#d6c58f' }}>{fork.childSubjectId ?? 'UNKNOWN CHILD'}</strong>
+          <div style={{ marginTop: 5, fontSize: 10, color: '#8f8878' }}>{fork.executionState ?? 'UNKNOWN'} · parent {fork.parentSnapshotHash ?? '—'}</div>
+        </div>)}
+      </div>
+      <p style={{ color: '#756f62', fontSize: 10 }}>{experiments.boundary}</p>
+    </section> : null}
 
     <section style={{ marginTop: 30 }}>
       <div style={{ fontSize: 10, letterSpacing: '.12em', color: '#8d7b4d' }}>LIMITATIONS</div>
