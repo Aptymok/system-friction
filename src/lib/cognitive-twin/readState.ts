@@ -3,6 +3,7 @@ import 'server-only';
 import { getLlmProviderStatus } from '@/lib/ai/providerRouter';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { SFI_COGNITIVE_TWIN_CONTRACT } from './contract';
+import { readCognitiveTwinSfiIntegration } from './institutionalIntegration';
 
 const TABLES = [
   'sfi_cognitive_twin_memory',
@@ -32,15 +33,18 @@ function providerExecutionSucceeded(value: unknown) {
 
 export async function readCognitiveTwinState() {
   const db = createServiceSupabaseClient();
-  const tableResults = await Promise.all(TABLES.map(async (table) => {
-    const result = await db.from(table).select('*', { count: 'exact', head: true });
-    return {
-      table,
-      available: !result.error,
-      count: result.error ? null : result.count ?? 0,
-      error: result.error?.message ?? null,
-    };
-  }));
+  const [tableResults, integration] = await Promise.all([
+    Promise.all(TABLES.map(async (table) => {
+      const result = await db.from(table).select('*', { count: 'exact', head: true });
+      return {
+        table,
+        available: !result.error,
+        count: result.error ? null : result.count ?? 0,
+        error: result.error?.message ?? null,
+      };
+    })),
+    readCognitiveTwinSfiIntegration(),
+  ]);
 
   const tableMap = new Map(tableResults.map((item) => [item.table, item]));
   const databaseReady = tableResults.every((item) => item.available);
@@ -72,6 +76,7 @@ export async function readCognitiveTwinState() {
   return {
     generatedAt: new Date().toISOString(),
     contract: SFI_COGNITIVE_TWIN_CONTRACT,
+    integration,
     implementation: {
       contractImplemented: true,
       databaseReady,
@@ -80,6 +85,8 @@ export async function readCognitiveTwinState() {
       providerRouterReady,
       approvedDecisionCorpusReady: approvedDecisionCount > 0,
       modelEvaluationRegistryReady: approvedModelCount > 0,
+      sfiOrgansConnected: integration.summary.fullyConnected,
+      sfiOrgansExercised: integration.summary.fullyExercised,
       institutionalAutonomyProven: false,
     },
     providers,
@@ -99,6 +106,7 @@ export async function readCognitiveTwinState() {
     recentEvaluations: recentEvaluations?.data ?? [],
     errors: [
       ...tableResults.filter((item) => item.error).map((item) => `${item.table}: ${item.error}`),
+      ...integration.organs.filter((item)=>item.error).map((item)=>`${item.organ}: ${item.error}`),
       ...(recentMemory?.error ? [`memory: ${recentMemory.error.message}`] : []),
       ...(recentDecisions?.error ? [`decisions: ${recentDecisions.error.message}`] : []),
       ...(recentRuns?.error ? [`runs: ${recentRuns.error.message}`] : []),
