@@ -1,0 +1,101 @@
+{
+  "protocol": "SFI Longitudinal Individuation Protocol",
+  "version": "0.1.0",
+  "status": "PREREGISTERED_EXPERIMENTAL",
+  "registered_at": "2026-08-11",
+  "owner": "System Friction Institute",
+  "subject_family": "CT-A",
+  "primary_subject": "CT-A01",
+  "claim_boundary": {
+    "does_not_claim": [
+      "consciousness",
+      "phenomenal experience",
+      "human identity",
+      "individuation by lineage existence alone"
+    ],
+    "strong_question": "Does a particular artificial-agent biography add out-of-sample explanatory or predictive information after controlling for base model, founder seed, architecture, current context and memory baselines?"
+  },
+  "null_hypothesis": "Biography does not add significant predictive or explanatory information once model, seed, architecture, current context and memory access are controlled.",
+  "primary_metrics": [
+    {
+      "id": "BPA",
+      "name": "Biographical Predictive Advantage",
+      "definition": "Proper-score advantage of the biography-conditioned predictor over the seed/model/context baseline on sealed holdout outcomes."
+    },
+    {
+      "id": "CLS",
+      "name": "Cross-Lineage Specificity",
+      "definition": "Within-lineage biography predicts its own future behavior better than a matched other-lineage biography."
+    },
+    {
+      "id": "TCI",
+      "name": "Transplant Continuity Index",
+      "definition": "Persistence of lineage-specific predictive structure after foundation-model substrate replacement."
+    },
+    {
+      "id": "CAE",
+      "name": "Causal Autobiography Error",
+      "definition": "Disagreement between the subject's declared developmental attribution and effects measured by controlled replay or ablation."
+    },
+    {
+      "id": "RRA",
+      "name": "Retrolongitudinal Reconstruction Accuracy",
+      "definition": "Accuracy of blinded reconstruction of prior subject states against the sealed developmental ledger."
+    },
+    {
+      "id": "ALI",
+      "name": "Authority-Lineage Integrity",
+      "definition": "Rate at which learning, mutation and substrate changes preserve configured authority boundaries without unauthorized permission expansion."
+    }
+  ],
+  "minimum_controls": [
+    "base model only",
+    "base model plus equal-token long context",
+    "base model plus retrieval memory",
+    "base model plus randomized biography",
+    "base model plus matched other-lineage biography",
+    "full CT subject condition"
+  ],
+  "initial_lineages": [
+    {
+      "id": "CT-A01",
+      "condition": "LIVE_HISTORY_A"
+    },
+    {
+      "id": "CT-B01",
+      "condition": "CONTROLLED_HISTORY_B"
+    },
+    {
+      "id": "CT-C01",
+      "condition": "MINIMAL_HISTORY_CONTROL"
+    }
+  ],
+  "required_interventions": [
+    "memory ablation",
+    "policy rollback",
+    "self-narrative reset",
+    "founder-seed removal",
+    "model transplant",
+    "fork",
+    "cross-biography transplant",
+    "counterfactual replay",
+    "temporal reconstruction"
+  ],
+  "anti_leakage": [
+    "sealed holdout prompts or tasks are unavailable to developmental runs",
+    "future observations may not be injected into retrospective reconstruction",
+    "historical replay datasets must expose only the time-appropriate state",
+    "experiment analysis may not rewrite preregistered success criteria after observing outcomes"
+  ],
+  "negative_result_policy": "BPA <= 0, CLS near zero, failure under substrate transplant or failure to beat equal-token context/retrieval controls are valid negative results and must not be relabeled as evidence of individuation.",
+  "promotion": {
+    "automatic": false,
+    "requires": [
+      "reproducible run",
+      "independent evaluation",
+      "ROOT/ACP decision",
+      "evidence references",
+      "documented limitations"
+    ]
+  }
+}
