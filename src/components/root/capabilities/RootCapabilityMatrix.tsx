@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { studioRootCapabilityReadModel } from '@/lib/studio/capabilities/studioCapabilityInventory';
+import { resolvedStudioRootCapabilityReadModel } from '@/lib/studio/capabilities/resolvedStudioCapabilities';
 import { RootCapabilityInspector } from './RootCapabilityInspector';
 import { RootCapabilityStatus } from './RootCapabilityStatus';
 import './root-capability-matrix.css';
@@ -27,7 +27,7 @@ const visibleCapabilities = new Set([
 ]);
 
 export function RootCapabilityMatrix() {
-  const capabilities = useMemo(() => studioRootCapabilityReadModel().filter((item) => visibleCapabilities.has(item.capability)), []);
+  const capabilities = useMemo(() => resolvedStudioRootCapabilityReadModel().filter((item) => visibleCapabilities.has(item.capability)), []);
   const [selectedId, setSelectedId] = useState(capabilities[0]?.capability ?? null);
   const selected = capabilities.find((item) => item.capability === selectedId) ?? null;
   const calibrationQueue = capabilities.filter((item) => item.status === 'CALIBRATION_REQUIRED' || item.lastCalibration === 'required');
