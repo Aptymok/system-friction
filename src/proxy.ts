@@ -6,6 +6,23 @@ import { findInstitutionalMember } from '@/lib/system/access/institutionalMember
 
 const AUTH_COOKIE_NAMES = ['sb-access-token', 'sb-refresh-token', 'supabase-auth-token']
 
+const ROOT_INTERNAL_FRAME_PREFIXES = [
+  '/root/institutionalization',
+  '/root/reports',
+  '/root/contracts',
+  '/root/agents/passports',
+  '/root/cognitive-twin',
+  '/root/predictions',
+  '/root/attractor',
+  '/root/longitudinal',
+  '/root/decisions',
+  '/root/continuity',
+  '/field',
+  '/studio',
+  '/interface/observatory',
+  '/library',
+] as const
+
 type ModuleAccess = Record<string, unknown> | null | undefined
 
 function isRefreshTokenMissing(error: unknown) {
@@ -76,11 +93,17 @@ function isLocalStudioBypass(request: NextRequest) {
   return host === 'localhost' || host === '127.0.0.1' || host === '0.0.0.0'
 }
 
+function permitsRootInternalFrame(pathname: string) {
+  return ROOT_INTERNAL_FRAME_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`))
+}
+
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next()
   const { pathname } = request.nextUrl
 
-  response.headers.set('X-Frame-Options', 'DENY')
+  // SFI remains non-frameable by default. Only explicit owned surfaces used by
+  // ROOT's internal observation window may be embedded, and only by the same origin.
+  response.headers.set('X-Frame-Options', permitsRootInternalFrame(pathname) ? 'SAMEORIGIN' : 'DENY')
   response.headers.set('X-Content-Type-Options', 'nosniff')
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
 
