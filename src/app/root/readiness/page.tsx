@@ -1,0 +1,18 @@
+import Link from 'next/link';
+import { readInstitutionalReadiness } from '@/lib/root/closure/readInstitutionalReadiness';
+import { requireRootViewer } from '@/lib/root/server';
+
+export const dynamic='force-dynamic';
+
+export default async function RootReadinessPage(){
+  const gate=await requireRootViewer('root.readiness.page');
+  if(!gate.ok)return <main style={{padding:24,background:'#050504',color:'#c8c0ad',minHeight:'100vh'}}>ROOT VIEWER REQUIRED</main>;
+  const model=await readInstitutionalReadiness();
+  return <main style={{minHeight:'100vh',background:'#050504',color:'#c8c0ad',padding:26,fontFamily:'ui-monospace,SFMono-Regular,Menlo,monospace'}}>
+    <header style={{display:'flex',justifyContent:'space-between',gap:20,borderBottom:'1px solid rgba(200,169,81,.15)',paddingBottom:18}}><div><span style={{fontSize:8,color:'#8f7a4b'}}>SFI · TOTAL DEVELOPMENT CLOSURE</span><h1 style={{font:'400 30px Georgia,serif',color:'#e2cf9b',margin:'6px 0'}}>INSTITUTIONAL READINESS</h1><p style={{font:'13px/1.6 Georgia,serif',color:'#837b6d',maxWidth:980}}>No cuenta módulos: exige que cada órgano institucional tenga implementación, observabilidad y dependencia explícita. READY significa listo pero aún sin corrida real; DEGRADED/GATED impide declarar cierre operativo.</p></div><nav style={{display:'flex',gap:10,alignItems:'flex-start'}}><Link href="/root/governance" style={{color:'#c6ad69'}}>GOVERNANCE</Link><Link href="/root" style={{color:'#c6ad69'}}>ROOT</Link></nav></header>
+    <section style={{display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',gap:8,marginTop:16}}><Card label="STRUCTURAL COMPLETE" value={model.structuralComplete?'YES':'NO'} /><Card label="RUNTIME OPERATIONAL" value={model.runtimeOperational?'YES':'NO'} /><Card label="SCIENTIFIC COMPLETE" value="NO · BY DESIGN" /></section>
+    <section style={{display:'grid',gap:8,marginTop:14}}>{model.modules.map(module=><article key={module.id} style={{border:'1px solid rgba(200,169,81,.1)',background:'#080807',padding:14}}><header style={{display:'flex',justifyContent:'space-between',gap:20}}><div><span style={{fontSize:7,color:'#6d624b'}}>{module.id.toUpperCase()}</span><h2 style={{font:'400 18px Georgia,serif',color:'#cfbb89',margin:'4px 0'}}>{module.label}</h2></div><b style={{color:module.state==='DEGRADED'?'#c18c70':module.state==='GATED'?'#bd9b62':'#8eae82'}}>{module.state}</b></header><p style={{font:'11px/1.5 Georgia,serif',color:'#81796c'}}>implemented={String(module.implemented)} · observed={String(module.observed)}</p><details><summary style={{color:'#a78d50',fontSize:8,cursor:'pointer'}}>EVIDENCE / BLOCKERS</summary><pre style={{whiteSpace:'pre-wrap',fontSize:8,color:'#6f685d'}}>{JSON.stringify({evidence:module.evidence,blockers:module.blockers,nextAction:module.nextAction},null,2)}</pre></details></article>)}</section>
+    <section style={{marginTop:14,border:'1px solid rgba(200,169,81,.1)',padding:14}}><h2 style={{font:'400 16px Georgia,serif',color:'#cfbb89'}}>CLOSURE BOUNDARY</h2><p style={{font:'12px/1.6 Georgia,serif',color:'#827a6d'}}>{model.definition.scientificBoundary}</p>{model.blockers.length?<><b style={{color:'#c18c70'}}>BLOCKERS {model.blockers.length}</b><pre style={{whiteSpace:'pre-wrap',fontSize:8,color:'#7b6f61'}}>{model.blockers.join('\n')}</pre></>:<b style={{color:'#8eae82'}}>NO CORE RUNTIME BLOCKERS</b>}</section>
+  </main>;
+}
+function Card({label,value}:{label:string;value:string}){return <article style={{border:'1px solid rgba(200,169,81,.1)',background:'#080807',padding:14}}><span style={{fontSize:7,color:'#6d624b'}}>{label}</span><strong style={{display:'block',fontSize:20,color:'#d0b76f',marginTop:6}}>{value}</strong></article>}
