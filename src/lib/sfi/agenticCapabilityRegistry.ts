@@ -13,6 +13,7 @@ export type SfiAgenticCapabilityContract = {
     table: string;
     timeColumn: string;
     filter?: { column: string; value: string };
+    status?: { column: string; operationalValues: string[]; degradedValues: string[] };
   } | null;
 };
 
@@ -106,7 +107,12 @@ export const SFI_AGENTIC_CAPABILITIES: SfiAgenticCapabilityContract[] = [
     reads: ['World Vector / WorldSpect state', 'canonical evidence graph', 'AMV operational memory', 'optional IFNORM context'],
     writes: ['sfi_cognitive_twin_runs(role=report_agent)', 'root_audit_events'],
     executes: ['runReportAgent', 'buildWorldVectorOperationalState', 'runNeuralGraphAgent', 'readAmvOperationalMemory', 'runLlmTask'],
-    executionEvidence: { table: 'sfi_cognitive_twin_runs', timeColumn: 'created_at', filter: { column: 'role', value: 'report_agent' } },
+    executionEvidence: {
+      table: 'sfi_cognitive_twin_runs',
+      timeColumn: 'created_at',
+      filter: { column: 'role', value: 'report_agent' },
+      status: { column: 'status', operationalValues: ['ready'], degradedValues: ['blocked', 'failed'] },
+    },
   },
   {
     id: 'prospect_radar_agent',
@@ -119,6 +125,10 @@ export const SFI_AGENTIC_CAPABILITIES: SfiAgenticCapabilityContract[] = [
     reads: ['Bing News RSS', 'Google News RSS', 'SFI service catalog', 'optional Ollama synthesis'],
     writes: ['prospect_research_runs', 'prospect_research_sources', 'prospect_opportunity_reports', 'root_audit_events'],
     executes: ['runNoKeyProspectRadar', 'runNoKeyNewsFeeds', 'matchSfiOffer', 'optional Ollama synthesis'],
-    executionEvidence: { table: 'prospect_research_runs', timeColumn: 'created_at' },
+    executionEvidence: {
+      table: 'prospect_research_runs',
+      timeColumn: 'created_at',
+      status: { column: 'status', operationalValues: ['completed'], degradedValues: ['failed', 'blocked', 'error'] },
+    },
   },
 ];
