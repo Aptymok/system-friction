@@ -1,4 +1,5 @@
 import 'server-only';
+import { readCognitiveTwinState } from '@/lib/cognitive-twin/readState';
 import { readRootAgents } from './readers/readRootAgents';
 import { readRootAmv } from './readers/readRootAmv';
 import { readRootCognitiveRuntime } from './readers/readRootCognitiveRuntime';
@@ -11,7 +12,7 @@ import { readRootSystemState } from './readers/readRootSystemState';
 import { readRootTelemetry } from './readers/readRootTelemetry';
 import { dateValue, row, text } from './readers/readerSupport';
 import { interpretRootInstitution } from './institutionalInterpretation';
-import { observedValue, type RootSovereignState, type RootSource, type RootSystemItem } from './rootSovereignState';
+import { observedValue, type RootCognitiveTwinData, type RootRow, type RootSovereignState, type RootSource, type RootSystemItem } from './rootSovereignState';
 
 function item(input: {
   id: string;
@@ -31,12 +32,54 @@ function item(input: {
     openItems: observedValue({ value: input.openItems, source: input.source, observedAt: input.observedAt, explanation: 'Conteo directo de filas abiertas; no es un porcentaje.', warning: input.warning, status: input.warning ? 'degraded' : input.openItems === null ? 'missing' : 'observed' }),
   };
 }
-function warnings(sources: Array<RootSource<unknown>>) { return sources.flatMap((entry) => entry.error ? entry.error.split(' | ') : []); }
+
+function warnings(sources: Array<RootSource<unknown>>) {
+  return sources.flatMap((entry) => entry.error ? entry.error.split(' | ') : []);
+}
+
+function latestDate(rows: RootRow[]) {
+  return rows
+    .map((entry) => dateValue(entry.updated_at ?? entry.executed_at ?? entry.finished_at ?? entry.created_at))
+    .filter((value): value is string => Boolean(value))
+    .sort((a, b) => Date.parse(b) - Date.parse(a))[0] ?? null;
+}
 
 export async function readRootSovereignState(): Promise<RootSovereignState> {
-  const [system, governance, agents, predictions, amv, evidence, execution, mihmMatrix, telemetry, cognitiveRuntime] = await Promise.all([
-    readRootSystemState(), readRootGovernanceQueue(), readRootAgents(), readRootPredictions(), readRootAmv(), readRootEvidenceGraph(), readRootExecution(), readRootMihmMatrix(), readRootTelemetry(), readRootCognitiveRuntime(),
+  const [system, governance, agents, predictions, amv, evidence, execution, mihmMatrix, telemetry, cognitiveRuntime, cognitiveTwinRaw] = await Promise.all([
+    readRootSystemState(),
+    readRootGovernanceQueue(),
+    readRootAgents(),
+    readRootPredictions(),
+    readRootAmv(),
+    readRootEvidenceGraph(),
+    readRootExecution(),
+    readRootMihmMatrix(),
+    readRootTelemetry(),
+    readRootCognitiveRuntime(),
+    readCognitiveTwinState(),
   ]);
+
+  const cognitiveMemory = cognitiveTwinRaw.recentMemory as unknown as RootRow[];
+  const cognitiveDecisions = cognitiveTwinRaw.recentDecisions as unknown as RootRow[];
+  const cognitiveRuns = cognitiveTwinRaw.recentRuns as unknown as RootRow[];
+  const cognitiveEvaluations = cognitiveTwinRaw.recentEvaluations as unknown as RootRow[];
+  const cognitiveTwinError = cognitiveTwinRaw.errors.length ? cognitiveTwinRaw.errors.join(' | ') : null;
+  const cognitiveTwinCount = [cognitiveTwinRaw.counts.memory, cognitiveTwinRaw.counts.decisions, cognitiveTwinRaw.counts.runs]
+    .reduce((sum, value) => sum + (typeof value === 'number' ? value : 0), 0);
+  const cognitiveTwin: RootSource<RootCognitiveTwinData> = {
+    data: {
+      implementation: cognitiveTwinRaw.implementation as unknown as RootRow,
+      counts: cognitiveTwinRaw.counts as unknown as RootRow,
+      memory: cognitiveMemory,
+      decisions: cognitiveDecisions,
+      runs: cognitiveRuns,
+      evaluations: cognitiveEvaluations,
+    },
+    source: 'sfi_cognitive_twin_*',
+    dataClass: cognitiveTwinError ? 'degraded' : cognitiveTwinCount > 0 ? 'observed' : 'missing',
+    observedAt: latestDate([...cognitiveMemory, ...cognitiveDecisions, ...cognitiveRuns, ...cognitiveEvaluations]),
+    error: cognitiveTwinError,
+  };
 
   const governanceRuntime = row(system.data.governance);
   const openMutations = governance.error ? null : governance.data.mutations.filter((entry) => !['closed', 'executed'].includes(text(entry.status).toLowerCase())).length;
@@ -46,11 +89,12 @@ export async function readRootSovereignState(): Promise<RootSovereignState> {
 
   const matrix: RootSystemItem[] = [
     item({ id: 'governance', label: 'Governance', state: text(governanceRuntime.status, '') || null, source: 'governanceRuntime', observedAt: dateValue(governanceRuntime.acpLastSeenAt), openItems: openProposals === null || openMutations === null ? null : openProposals + openMutations, warning: text(governanceRuntime.warning, '') || governance.error, explanation: 'Estado ACP observado por el runtime de gobernanza.' }),
-    item({ id: 'neural-graph', label: 'Neural Graph', state: evidence.data.nodes.length ? 'observed' : null, source: evidence.source, observedAt: evidence.observedAt, openItems: evidence.error ? null : evidence.data.nodes.length, warning: evidence.error, explanation: 'Nodos y relaciones persistidos. La representación visual no constituye evidencia adicional.' }),
+    item({ id: 'neural-graph', label: 'Neural Graph', state: evidence.data.nodes.length && evidence.data.edges.length ? 'observed' : null, source: evidence.source, observedAt: evidence.observedAt, openItems: evidence.error ? null : evidence.data.nodes.length, warning: evidence.error || (evidence.data.nodes.length > 1 && !evidence.data.edges.length ? 'graph_nodes_without_relations' : null), explanation: 'Proyección relacional reconstruible sobre objetos canónicos de evidencia. Nodos sin relaciones no constituyen un grafo funcional.' }),
     item({ id: 'amv', label: 'AMV', state: amv.data.memories.length || amv.data.attractors.length || amv.data.ejectors.length ? 'observed' : null, source: amv.source, observedAt: amv.observedAt, openItems: amv.error ? null : amv.data.memories.length + amv.data.attractors.length + amv.data.ejectors.length, warning: amv.error, explanation: 'Memoria AMV, atractores y eyectores persistidos. Ingesta no equivale a verificación.' }),
-    item({ id: 'predictive', label: 'Predictive Engine', state: predictiveState, source: 'sfi_predictive_*', observedAt: predictions.observedAt, openItems: openPredictions, warning: predictions.error, explanation: 'Motor predictivo persistido, separado del registro manual legacy.' }),
+    item({ id: 'predictive', label: 'Predictive Engine', state: predictiveState, source: 'sfi_predictive_*', observedAt: predictions.observedAt, openItems: openPredictions, warning: predictions.error, explanation: 'Motor predictivo persistido, separado del registro manual legacy y filtrado de placeholders no predictivos.' }),
     item({ id: 'cognitive-runtime', label: 'Cognitive Runtime', state: cognitiveRuntime.data.status, source: cognitiveRuntime.source, observedAt: cognitiveRuntime.observedAt, openItems: cognitiveRuntime.data.contract.registeredAgents, warning: cognitiveRuntime.error, explanation: 'Registro, executor, ejecución observada y autoridad permanecen separados.' }),
-    item({ id: 'evidence', label: 'Evidence', state: evidence.data.entries.length || evidence.data.ledger.length ? 'observed' : null, source: evidence.source, observedAt: evidence.observedAt, openItems: evidence.error ? null : evidence.data.entries.length + evidence.data.ledger.length, warning: evidence.error, explanation: 'Evidencia persistida en ledger ROOT/SFI.' }),
+    item({ id: 'cognitive-twin', label: 'Cognitive Twin', state: cognitiveTwin.dataClass === 'observed' ? 'observed' : null, source: cognitiveTwin.source, observedAt: cognitiveTwin.observedAt, openItems: cognitiveTwin.error ? null : cognitiveTwinCount, warning: cognitiveTwin.error, explanation: 'Memoria, decisiones, evaluaciones y ejecuciones del Cognitive Twin. No se sustituyen con hipótesis del Predictive Engine.' }),
+    item({ id: 'evidence', label: 'Evidence', state: evidence.data.objects.length ? 'observed' : null, source: evidence.source, observedAt: evidence.observedAt, openItems: evidence.error ? null : evidence.data.objects.length, warning: evidence.error, explanation: 'Conteo de objetos canónicos de evidencia. Duplicar su persistencia en ROOT y ledger no duplica evidencia.' }),
     item({ id: 'cycle', label: 'ROOT Audited Activity', state: execution.data.recentActions.length ? 'observed' : null, source: execution.source, observedAt: execution.observedAt, openItems: null, warning: execution.error, explanation: 'Actividad ROOT auditada. No afirma por sí misma que un ciclo esté ejecutándose.' }),
     ...mihmMatrix,
   ];
@@ -67,7 +111,8 @@ export async function readRootSovereignState(): Promise<RootSovereignState> {
     execution,
     telemetry,
     cognitiveRuntime,
-    warnings: [...new Set(warnings([system, governance, agents, predictions, amv, evidence, execution, cognitiveRuntime]))],
+    cognitiveTwin,
+    warnings: [...new Set(warnings([system, governance, agents, predictions, amv, evidence, execution, cognitiveRuntime, cognitiveTwin]))],
   };
   const interpretation = interpretRootInstitution(base);
   return { ...base, interpretation };
