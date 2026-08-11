@@ -63,8 +63,12 @@ assert.match(crl,/HYBRID_GOVERNED_MIGRATION/);
 assert.match(crl,/migrationGovernanceApproved:false/);
 assert.match(crl,/liveSchemaVerified:false/);
 
-for(const moduleId of ['governance','world','field','studio','method_lab','cognitive_twin','agents','reports','evidence']) assert.ok(readiness.includes(`id:'${moduleId}'`),`readiness_missing_module:${moduleId}`);
-assert.match(readiness,/const evidenceTables=\['root_evidence_entries','epistemic_events','graph_nodes','graph_edges'\]/);
+for(const moduleId of ['governance','world','field','studio','method_lab','cognitive_twin','agents','reports','evidence','graph']) assert.ok(readiness.includes(`id:'${moduleId}'`),`readiness_missing_module:${moduleId}`);
+assert.match(readiness,/const evidenceTables = \['root_evidence_entries','epistemic_events','sfi_evidence_ledger'\]/);
+assert.match(readiness,/const graphTables = \['graph_nodes','graph_edges'\]/);
+assert.match(readiness,/const graphBlockers = \[/);
+assert.match(readiness,/id:'graph', label:'Knowledge Graph'/);
+assert.match(readiness,/Observatory is a world-observation organ\. Graph is a separate projection organ/);
 assert.match(readiness,/scientificComplete:false/);
 assert.match(readiness,/externalGateBoundary/);
 assert.match(governancePage,/GOVERNANCE CONTROL/);
@@ -93,7 +97,7 @@ console.log(JSON.stringify({ok:true,invariants:[
   'canonical promotion requires accepted realization + observed return + complete receipt contract',
   'CRL persistence is an explicit ROOT/ACP decision object and no migration is silently applied',
   'ROOT exposes governance health and total institutional readiness',
-  'readiness separates internal blockers from external scientific/proof gates',
+  'readiness separates Evidence Ledger from Knowledge Graph projection and separates internal blockers from external scientific/proof gates',
   'CT mutation state is observed rather than hardcoded at the ROOT API/UI boundary',
   'CT checkpoint is exportable but explicitly pending independent external anchoring',
   'no new Vercel cron introduced',
