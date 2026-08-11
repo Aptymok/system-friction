@@ -20,8 +20,10 @@ const panel = read('src/components/root/cognitive-twin/CognitiveTwinIntegrationP
 for (const organ of ['ROOT_EVIDENCE','OBSERVATORY','STUDIO','METHOD_LAB','FIELD','GOVERNANCE','COGNITIVE_TWIN']) {
   assert.ok(integration.includes(`organ:'${organ}'`), `missing organ integration: ${organ}`);
 }
-assert.ok(integration.includes("epistemicClass: dataMode === 'SIMULATED' ? 'SIMULATED'"), 'Method Lab epistemic preservation missing');
-assert.ok(integration.includes("epistemicClass: 'OBSERVED_RETURN'"), 'Field historical return ingestion missing');
+assert.ok(integration.includes("dataMode === 'SIMULATED' ? 'SIMULATED'"), 'Method Lab epistemic preservation missing');
+assert.ok(integration.includes("epistemicClass:'OBSERVED_RETURN'"), 'Field historical return ingestion missing');
+assert.ok(integration.includes("import { persistCognitiveTwinExperience } from './experienceBridge'"), 'historical integration bypasses canonical experience bridge');
+assert.equal(integration.includes("from('sfi_cognitive_twin_memory').upsert"), false, 'institutional integration must not create a second memory persistence path');
 assert.ok(experience.includes("status: 'CANDIDATE'"), 'experience bridge must persist candidates only');
 assert.ok(experience.includes('never expands authority automatically'), 'experience authority boundary missing');
 
@@ -51,6 +53,7 @@ console.log(JSON.stringify({
   ok:true,
   contract:'SFI-CT-INSTITUTIONAL-INTEGRATION-1.0',
   organs:7,
+  canonicalExperienceBridge:true,
   liveBridges:['ROOT_EVIDENCE','STUDIO','METHOD_LAB','FIELD'],
   synchronizedContext:['OBSERVATORY'],
   authority:['GOVERNANCE'],
