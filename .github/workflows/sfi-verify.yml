@@ -45,6 +45,9 @@ jobs:
       - name: Verify ROOT graph and navigation convergence
         run: npx tsx scripts/qa-sfi-root-graph-navigation.ts
 
+      - name: Verify ROOT reports and runtime truth
+        run: npx tsx scripts/qa-sfi-root-reports-runtime.ts
+
       - name: Verify canonical evidence identity
         run: node --import tsx --test src/lib/evidence/canonicalEvidence.test.ts
 
