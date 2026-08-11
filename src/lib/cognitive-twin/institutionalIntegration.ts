@@ -2,6 +2,7 @@ import 'server-only';
 
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { syncRecentInstitutionalEvidenceToCognitiveTwin } from './evidenceIngestion';
+import { persistCognitiveTwinExperience } from './experienceBridge';
 
 type Row = Record<string, unknown>;
 
@@ -31,31 +32,6 @@ function number(value: unknown) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-async function upsertCandidate(input: {
-  key: string;
-  type: 'EVIDENCE' | 'STATE' | 'METHOD' | 'ERROR' | 'EXCEPTION';
-  sourceKind: string;
-  sourceRef: string;
-  content: Row;
-  evidenceRefs?: string[];
-  version?: string;
-}) {
-  const db = createServiceSupabaseClient();
-  const result = await db.from('sfi_cognitive_twin_memory').upsert({
-    memory_key: input.key,
-    memory_type: input.type,
-    status: 'CANDIDATE',
-    content: input.content,
-    evidence_refs: [...new Set(input.evidenceRefs ?? [])],
-    source_kind: input.sourceKind,
-    source_ref: input.sourceRef,
-    version: input.version ?? 'sfi-integration-v1',
-    created_by: null,
-    updated_at: new Date().toISOString(),
-  }, { onConflict: 'memory_key,version' }).select('id').single();
-  if (result.error) throw new Error(result.error.message);
-}
-
 async function syncFieldReturns(limit = 100): Promise<SyncResult> {
   const db = createServiceSupabaseClient();
   const result = await db.from('field_outcomes')
@@ -70,28 +46,27 @@ async function syncFieldReturns(limit = 100): Promise<SyncResult> {
   for (const row of rows) {
     const id = text(row.id);
     if (!id) { failed += 1; continue; }
-    try {
-      await upsertCandidate({
-        key: `SFI:FIELD:RETURN:${id}`,
-        type: 'STATE',
-        sourceKind: 'field_outcomes',
-        sourceRef: id,
-        evidenceRefs: strings(row.evidence_ids),
-        content: {
-          epistemicClass: 'OBSERVED_RETURN',
-          caseId: text(row.case_id),
-          interventionId: text(row.intervention_id),
-          expected: row.expected ?? null,
-          actual: row.actual ?? null,
-          delta: number(row.delta),
-          verified: row.verified === true,
-          learned: text(row.learned),
-          recordedAt: text(row.recorded_at),
-          rule: 'Field return is institutional experience. It may update Twin context as CANDIDATE memory but cannot mutate canon or establish general causality by itself.',
-        },
-      });
-      synced += 1;
-    } catch { failed += 1; }
+    const persisted = await persistCognitiveTwinExperience({
+      memoryKey:`SFI:FIELD:RETURN:${id}`,
+      memoryType:'STATE',
+      sourceKind:'field_outcomes',
+      sourceRef:id,
+      evidenceRefs:strings(row.evidence_ids),
+      content:{
+        epistemicClass:'OBSERVED_RETURN',
+        caseId:text(row.case_id),
+        interventionId:text(row.intervention_id),
+        expected:row.expected ?? null,
+        actual:row.actual ?? null,
+        delta:number(row.delta),
+        verified:row.verified === true,
+        learned:text(row.learned),
+        recordedAt:text(row.recorded_at),
+        rule:'Field return is institutional experience. It may update Twin context as CANDIDATE memory but cannot mutate canon or establish general causality by itself.',
+      },
+    });
+    if (persisted.ok) synced += 1;
+    else failed += 1;
   }
   return { source:'field', ok:failed===0, observed:rows.length, synced, failed, warning:failed ? `${failed}_field_returns_failed` : null };
 }
@@ -109,28 +84,27 @@ async function syncMethodLabRuns(limit = 100): Promise<SyncResult> {
     if (!id) { failed += 1; continue; }
     const raw = record(row.raw_analysis);
     const dataMode = text(row.data_mode) ?? 'UNKNOWN';
-    try {
-      await upsertCandidate({
-        key: `SFI:METHOD_LAB:RUN:${id}`,
-        type: 'METHOD',
-        sourceKind: 'sfi_lab_analyses',
-        sourceRef: id,
-        evidenceRefs: strings(raw.evidenceRefs ?? raw.evidence_refs),
-        content: {
-          epistemicClass: dataMode === 'SIMULATED' ? 'SIMULATED' : 'OBSERVED_RECORD',
-          mode: text(row.mode),
-          source: text(row.source),
-          dataMode,
-          systems: row.systems ?? [],
-          variables: row.variables ?? [],
-          limitations: row.limitations ?? [],
-          recommendations: row.recommendations ?? [],
-          resultHash: text(raw.resultHash),
-          rule: 'Method Lab runs enter Twin memory with their original epistemic class. SIMULATED remains SIMULATED and cannot become observed evidence through ingestion.',
-        },
-      });
-      synced += 1;
-    } catch { failed += 1; }
+    const persisted = await persistCognitiveTwinExperience({
+      memoryKey:`SFI:METHOD_LAB:RUN:${id}`,
+      memoryType:'METHOD',
+      sourceKind:'sfi_lab_analyses',
+      sourceRef:id,
+      evidenceRefs:strings(raw.evidenceRefs ?? raw.evidence_refs),
+      content:{
+        epistemicClass:dataMode === 'SIMULATED' ? 'SIMULATED' : 'OBSERVED_RECORD',
+        mode:text(row.mode),
+        source:text(row.source),
+        dataMode,
+        systems:row.systems ?? [],
+        variables:row.variables ?? [],
+        limitations:row.limitations ?? [],
+        recommendations:row.recommendations ?? [],
+        resultHash:text(raw.resultHash),
+        rule:'Method Lab runs enter Twin memory with their original epistemic class. SIMULATED remains SIMULATED and cannot become observed evidence through ingestion.',
+      },
+    });
+    if (persisted.ok) synced += 1;
+    else failed += 1;
   }
   return { source:'method_lab', ok:failed===0, observed:rows.length, synced, failed, warning:failed ? `${failed}_method_lab_runs_failed` : null };
 }
@@ -151,27 +125,26 @@ async function syncObservatoryState(limit = 60): Promise<SyncResult> {
     if (!id) { failed += 1; continue; }
     const sources = Array.isArray(row.sources) ? row.sources.map(record) : [];
     const simulatedSources = sources.filter((source) => source.simulated === true).length;
-    try {
-      await upsertCandidate({
-        key: `SFI:OBSERVATORY:WORLDSPECT:${id}`,
-        type: 'STATE',
-        sourceKind: 'worldspect_snapshots',
-        sourceRef: id,
-        content: {
-          epistemicClass: simulatedSources === sources.length && sources.length ? 'SIMULATED' : 'DERIVED_FROM_OBSERVATIONS',
-          observedAt: text(row.observed_at) ?? text(row.created_at),
-          sourceState: text(row.source_state),
-          confidence: number(row.confidence),
-          wsi: number(row.wsi),
-          nti: number(row.nti),
-          ingestMode: text(row.ingest_mode),
-          sourceCount: sources.length,
-          simulatedSourceCount: simulatedSources,
-          rule: 'Observatory state is longitudinal context for the Twin. Derived indices remain derived; simulated inputs remain explicitly marked.',
-        },
-      });
-      synced += 1;
-    } catch { failed += 1; }
+    const persisted = await persistCognitiveTwinExperience({
+      memoryKey:`SFI:OBSERVATORY:WORLDSPECT:${id}`,
+      memoryType:'STATE',
+      sourceKind:'worldspect_snapshots',
+      sourceRef:id,
+      content:{
+        epistemicClass:simulatedSources === sources.length && sources.length ? 'SIMULATED' : 'DERIVED_FROM_OBSERVATIONS',
+        observedAt:text(row.observed_at) ?? text(row.created_at),
+        sourceState:text(row.source_state),
+        confidence:number(row.confidence),
+        wsi:number(row.wsi),
+        nti:number(row.nti),
+        ingestMode:text(row.ingest_mode),
+        sourceCount:sources.length,
+        simulatedSourceCount:simulatedSources,
+        rule:'Observatory state is longitudinal context for the Twin. Derived indices remain derived; simulated inputs remain explicitly marked.',
+      },
+    });
+    if (persisted.ok) synced += 1;
+    else failed += 1;
   }
   return { source:'observatory', ok:failed===0, observed:rows.length, synced, failed, warning:failed ? `${failed}_observatory_snapshots_failed` : null };
 }
@@ -182,12 +155,12 @@ async function probe(input: { organ:string; table:string; description:string; fi
   if (input.filter) query = input.filter(query);
   const result = await query;
   return {
-    organ: input.organ,
-    table: input.table,
-    connected: !result.error,
-    observedRecords: result.error ? null : result.count ?? 0,
-    description: input.description,
-    error: result.error?.message ?? null,
+    organ:input.organ,
+    table:input.table,
+    connected:!result.error,
+    observedRecords:result.error ? null : result.count ?? 0,
+    description:input.description,
+    error:result.error?.message ?? null,
   };
 }
 
