@@ -3,7 +3,7 @@ import 'server-only';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { evaluateCognitiveTwinAuthority } from './contract';
 
-export type CognitiveTwinExperienceType = 'EVIDENCE' | 'STATE' | 'METHOD' | 'ERROR' | 'EXCEPTION';
+export type CognitiveTwinExperienceType = 'EVIDENCE' | 'STATE' | 'DECISION' | 'METHOD' | 'ERROR' | 'EXCEPTION';
 
 export async function persistCognitiveTwinExperience(input: {
   memoryKey: string;
@@ -33,7 +33,7 @@ export async function persistCognitiveTwinExperience(input: {
     content: {
       ...input.content,
       cognitiveTwinExperienceContract:'SFI-CT-EXPERIENCE-1.0',
-      promotionRule:'Institutional experience enters as CANDIDATE. Promotion requires evidence/evaluation and never expands authority automatically.',
+      promotionRule:'Institutional experience enters as CANDIDATE. A DECISION-typed memory is decision-like experience only; approved authority lives in sfi_cognitive_twin_decisions. Promotion requires evidence/evaluation and never expands authority automatically.',
     },
     evidence_refs: evidenceRefs,
     source_kind: input.sourceKind,
