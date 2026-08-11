@@ -2,78 +2,71 @@ import 'server-only';
 
 import { createHash } from 'node:crypto';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
-import { isEpistemicClass, type EpistemicClass } from '../../../packages/events/src/schema';
+import { canonicalizeEvidenceRows, type CanonicalEvidenceObject, type EvidenceRow } from './canonicalEvidence';
 
 type Row = Record<string, unknown>;
-type FetchResult = { data: Row[]; error: string | null };
-type EvidenceDescriptor = {
-  id: string;
-  hash: string | null;
-  nodeId: string;
-  label: string;
-  caseId: string | null;
-  module: string | null;
-  evidenceKey: string | null;
-  sourceUrl: string | null;
-  observedAt: string | null;
-};
+type FetchResult = { data: EvidenceRow[]; error: string | null };
 
 const PAGE_SIZE = 500;
 const LEGACY_NODE_STORAGE_TYPE = 'INF';
 const LEGACY_EDGE_STORAGE_TYPE = 'structural_inferred';
 const EDGE_CONFLICT = 'source_node_key,target_node_key,relation_type';
+const PROJECTION_VERSION = 'canonical-evidence-v2';
+const MANAGED_NODE_ORIGINS = [
+  'root_evidence',
+  'evidence_ledger',
+  'evidence_provenance',
+  'sfi_attractors',
+  'evidence_canonical',
+  'evidence_context',
+  'evidence_context_attractor',
+];
 
 function rows(value: unknown): Row[] {
   return Array.isArray(value) ? value.filter((item): item is Row => Boolean(item) && typeof item === 'object' && !Array.isArray(item)) : [];
 }
+
 function text(value: unknown) {
   return typeof value === 'string' && value.trim() ? value.trim() : null;
 }
+
 function record(value: unknown): Row {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Row : {};
 }
+
 function strings(value: unknown): string[] {
   return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string' && Boolean(item.trim())) : [];
 }
+
 function uniqueStrings(...groups: Array<Array<string | null | undefined>>) {
   return [...new Set(groups.flat().filter((item): item is string => Boolean(item && item.trim())))];
 }
+
 function number01(value: unknown, fallback = 1) {
   if (value === null || typeof value === 'undefined' || value === '') return fallback;
   const parsed = typeof value === 'number' ? value : Number(value);
   if (!Number.isFinite(parsed)) return fallback;
   return Math.max(0, Math.min(1, parsed));
 }
-function normalizeEpistemicClass(value: unknown, fallback: EpistemicClass): EpistemicClass {
-  const raw = text(value)?.toLowerCase();
-  if (!raw) return fallback;
-  if (isEpistemicClass(raw)) return raw as EpistemicClass;
-  if (raw === 'imported_provenance' || raw === 'persisted_reference' || raw === 'provenance_observed') return 'imported';
-  return fallback;
+
+function shortHash(value: string) {
+  return createHash('sha256').update(value).digest('hex').slice(0, 24);
 }
-function sourceEpistemicClass(value: unknown) { return text(value) ?? null; }
-function shortHash(value: string) { return createHash('sha256').update(value).digest('hex').slice(0, 24); }
-function urlLabel(value: string) {
-  try {
-    const url = new URL(value);
-    return `${url.hostname}${url.pathname === '/' ? '' : url.pathname}`.slice(0, 140);
-  } catch {
-    return value.slice(0, 140);
-  }
-}
+
 function laterDate(a: string | null, b: string | null) {
   const left = a ? Date.parse(a) : Number.NaN;
   const right = b ? Date.parse(b) : Number.NaN;
   if (Number.isFinite(left) && Number.isFinite(right)) return left >= right ? a : b;
   return Number.isFinite(left) ? a : Number.isFinite(right) ? b : null;
 }
+
 function compactWarnings(input: string[]) {
   const unique = [...new Set(input.filter(Boolean))];
   const buckets = new Map<string, { count: number; sample: string }>();
   for (const warning of unique) {
     const constraint = warning.match(/(?:violates|unique constraint) "([^"]+)"/)?.[1];
     const family = warning.startsWith('evidence_edge:') ? 'graph_edges'
-      : warning.startsWith('source_surface:') || warning.startsWith('attractor_node:') || warning.includes('_evidence_graph:') ? 'graph_nodes'
+      : warning.startsWith('evidence_node:') || warning.startsWith('context_node:') || warning.startsWith('attractor_node:') ? 'graph_nodes'
         : warning.split(':', 1)[0] || 'graph';
     const key = constraint ? `${family}:${constraint}` : warning;
     const current = buckets.get(key);
@@ -82,15 +75,21 @@ function compactWarnings(input: string[]) {
   return [...buckets.entries()].map(([key, value]) => value.count > 1 ? `${key} · ${value.count} reconciliaciones rechazadas` : value.sample);
 }
 
+function chunks<T>(items: T[], size = 180) {
+  const result: T[][] = [];
+  for (let index = 0; index < items.length; index += size) result.push(items.slice(index, index + size));
+  return result;
+}
+
 export async function reconcilePersistedEvidenceGraph() {
   const db = createServiceSupabaseClient();
 
   async function fetchAllRows(table: 'root_evidence_entries' | 'sfi_evidence_ledger', select: string): Promise<FetchResult> {
-    const collected: Row[] = [];
+    const collected: EvidenceRow[] = [];
     for (let offset = 0; ; offset += PAGE_SIZE) {
       const page = await db.from(table).select(select).order('created_at', { ascending: true }).order('id', { ascending: true }).range(offset, offset + PAGE_SIZE - 1);
       if (page.error) return { data: [], error: page.error.message };
-      const pageRows = rows(page.data);
+      const pageRows = rows(page.data) as EvidenceRow[];
       collected.push(...pageRows);
       if (pageRows.length < PAGE_SIZE) return { data: collected, error: null };
     }
@@ -102,17 +101,50 @@ export async function reconcilePersistedEvidenceGraph() {
   ]);
 
   const warnings = [rootEvidence.error, ledger.error].filter((value): value is string => Boolean(value));
+  const canonicalObjects = canonicalizeEvidenceRows(rootEvidence.data, ledger.data);
   let nodesCreated = 0;
   let nodesUpdated = 0;
   let edgesCreated = 0;
-  const descriptors: EvidenceDescriptor[] = [];
+  let nodesRemoved = 0;
+  let edgesRemoved = 0;
+  const writtenNodes = new Set<string>();
+
+  async function pruneManagedProjection() {
+    const managed = await db.from('graph_nodes').select('node_id').in('origin', MANAGED_NODE_ORIGINS).limit(5000);
+    if (managed.error) {
+      warnings.push(`projection_prune_nodes:${managed.error.message}`);
+      return;
+    }
+    const nodeIds = rows(managed.data).map((row) => text(row.node_id)).filter((value): value is string => Boolean(value));
+    for (const batch of chunks(nodeIds)) {
+      const outgoing = await db.from('graph_edges').delete().in('source_node_id', batch).select('id');
+      if (outgoing.error) warnings.push(`projection_prune_edges_source:${outgoing.error.message}`);
+      else edgesRemoved += rows(outgoing.data).length;
+
+      const incoming = await db.from('graph_edges').delete().in('target_node_id', batch).select('id');
+      if (incoming.error) warnings.push(`projection_prune_edges_target:${incoming.error.message}`);
+      else edgesRemoved += rows(incoming.data).length;
+
+      const removed = await db.from('graph_nodes').delete().in('node_id', batch).select('id');
+      if (removed.error) warnings.push(`projection_prune_nodes_delete:${removed.error.message}`);
+      else nodesRemoved += rows(removed.data).length;
+    }
+  }
+
+  await pruneManagedProjection();
 
   async function upsertNode(nodeId: string, value: Row, warningPrefix: string) {
-    const existing = await db.from('graph_nodes').select('id').eq('node_id', nodeId).maybeSingle();
+    const alreadyWritten = writtenNodes.has(nodeId);
+    const existing = alreadyWritten ? { data: { id: nodeId }, error: null } : await db.from('graph_nodes').select('id').eq('node_id', nodeId).maybeSingle();
     if (existing.error) warnings.push(`${warningPrefix}:lookup:${existing.error.message}`);
     const write = await db.from('graph_nodes').upsert(value, { onConflict: 'node_id' });
-    if (write.error) { warnings.push(`${warningPrefix}:${write.error.message}`); return false; }
-    if (existing.data) nodesUpdated += 1; else nodesCreated += 1;
+    if (write.error) {
+      warnings.push(`${warningPrefix}:${write.error.message}`);
+      return false;
+    }
+    writtenNodes.add(nodeId);
+    if (existing.data) nodesUpdated += 1;
+    else nodesCreated += 1;
     return true;
   }
 
@@ -154,6 +186,8 @@ export async function reconcilePersistedEvidenceGraph() {
     const attributes = {
       ...prior,
       ...(input.attributes ?? {}),
+      managedBy: 'canonical_evidence_reconciler',
+      projectionVersion: PROJECTION_VERSION,
       epistemicClass: 'DECLARED',
       relationStrength: weight > 0 ? 'WEIGHTED' : 'UNMEASURED',
       declaredRelation: input.relation,
@@ -185,106 +219,133 @@ export async function reconcilePersistedEvidenceGraph() {
     else if (!existing.data) edgesCreated += 1;
   }
 
-  for (const item of rootEvidence.data) {
-    const id = text(item.id);
-    const hash = text(item.evidence_hash);
-    if (!id || !hash) continue;
-    const nodeId = `root_evidence:${hash.slice(0, 24)}`;
-    const eventId = text(item.epistemic_event_id);
-    const payload = record(item.payload);
-    const metadata = record(payload.metadata);
-    const declaredEpistemicClass = metadata.epistemicClass ?? payload.epistemicClass;
-    const epistemicClass = normalizeEpistemicClass(declaredEpistemicClass, 'observed');
-    const observedAt = text(metadata.sourceObservedAt ?? item.created_at);
-    const nodePayload = {
-      evidenceHash: hash,
-      evidenceType: text(item.evidence_type) ?? 'root_evidence',
-      rootEvidenceId: id,
-      targetNodeId: text(item.target_node_id),
+  async function ensureContextNode(kind: 'module' | 'case', value: string, observedAt: string | null) {
+    const nodeId = `context:${kind}:${shortHash(value.toLowerCase())}`;
+    const payload = {
+      managedBy: 'canonical_evidence_reconciler',
+      projectionVersion: PROJECTION_VERSION,
+      contextKind: kind,
+      contextValue: value,
       sourceObservedAt: observedAt,
-      epistemicClass: epistemicClass.toUpperCase(),
-      sourceEpistemicClass: sourceEpistemicClass(declaredEpistemicClass),
-      observedObject: epistemicClass === 'imported' ? 'imported_evidence_record_existence_and_provenance' : 'evidence_record_existence_and_provenance',
+      observedObject: `${kind}_classification_context`,
       storageNodeType: LEGACY_NODE_STORAGE_TYPE,
-      sourcePayloadMetadata: metadata,
+      claimBoundary: `This node groups canonical evidence by declared ${kind}; it does not assert causal relation.`,
     };
     const ok = await upsertNode(nodeId, {
-      node_id: nodeId, node_key: nodeId, label: text(item.title) ?? `Evidence ${id.slice(0, 8)}`,
-      node_type: LEGACY_NODE_STORAGE_TYPE, ontology_type: 'evidence', origin: 'root_evidence', epistemic_class: epistemicClass,
-      confidence: 1, payload: nodePayload, lineage: eventId ? [eventId] : [], attributes: nodePayload, updated_at: new Date().toISOString(),
-    }, `root_evidence_graph:${id}`);
-    if (!ok) continue;
-
-    descriptors.push({ id, hash, nodeId, label: text(item.title) ?? `Evidence ${id.slice(0, 8)}`, caseId: text(metadata.caseId), module: text(metadata.module), evidenceKey: text(metadata.evidenceKey), sourceUrl: text(metadata.sourceUrl ?? payload.sourceUrl), observedAt });
-    const targetNodeId = text(item.target_node_id);
-    if (targetNodeId) {
-      const target = await db.from('graph_nodes').select('node_id,node_key').or(`node_id.eq.${targetNodeId},node_key.eq.${targetNodeId}`).maybeSingle();
-      const resolvedTarget = target.data && !target.error ? text(target.data.node_id ?? target.data.node_key) : null;
-      if (resolvedTarget) await upsertEdge({ from: nodeId, to: resolvedTarget, relation: text(payload.relationType) ?? 'contextualizes', relationType: 'structural_declared', confidence: 1, observedAt, evidenceIds: eventId ? [eventId] : [], attributes: { evidenceHash: hash, verified: false, explicitTargetNode: true } });
-    }
+      node_id: nodeId,
+      node_key: nodeId,
+      label: kind === 'module' ? value.toUpperCase() : value,
+      node_type: LEGACY_NODE_STORAGE_TYPE,
+      ontology_type: kind,
+      origin: 'evidence_context',
+      epistemic_class: 'declared',
+      confidence: 1,
+      payload,
+      attributes: payload,
+      lineage: [],
+      updated_at: new Date().toISOString(),
+    }, `context_node:${kind}:${value}`);
+    return ok ? nodeId : null;
   }
 
-  for (const item of ledger.data) {
-    const id = text(item.id);
-    if (!id) continue;
-    const hash = text(item.evidence_hash);
-    const nodeId = `ledger_evidence:${hash ? hash.slice(0, 24) : id}`;
-    const publicSummary = record(item.public_summary);
-    const declaredEpistemicClass = publicSummary.epistemicClass ?? item.trust_level;
-    const epistemicClass = normalizeEpistemicClass(declaredEpistemicClass, 'imported');
-    const confidence = number01(item.trust_score, 1);
-    const observedAt = text(item.observed_at ?? item.created_at);
+  const byReference = new Map<string, CanonicalEvidenceObject>();
+
+  for (const object of canonicalObjects) {
     const nodePayload = {
-      evidenceHash: hash, ledgerEvidenceId: id, caseId: text(item.case_id), module: text(item.module), evidenceKind: text(item.evidence_kind),
-      sourceUrl: text(item.source_url), privateRef: text(item.private_ref), sourceObservedAt: observedAt,
-      epistemicClass: epistemicClass.toUpperCase(), sourceEpistemicClass: sourceEpistemicClass(declaredEpistemicClass),
-      observedObject: epistemicClass === 'imported' ? 'imported_ledger_record_existence_and_provenance' : 'ledger_record_existence_and_provenance',
+      managedBy: 'canonical_evidence_reconciler',
+      projectionVersion: PROJECTION_VERSION,
+      canonicalEvidenceObject: true,
+      evidenceHash: object.evidenceHash,
+      evidenceKind: object.evidenceKind,
+      evidenceType: object.evidenceType,
+      evidenceKey: object.evidenceKey,
+      caseId: object.caseId,
+      module: object.module,
+      sourceUrls: object.sourceUrls,
+      privateRefs: object.privateRefs,
+      rootEvidenceIds: object.rootEvidenceIds,
+      ledgerEvidenceIds: object.ledgerEvidenceIds,
+      provenance: object.provenance,
+      sourceObservedAt: object.observedAt,
+      epistemicClass: object.epistemicClass.toUpperCase(),
+      sourcePayloadMetadata: object.metadata,
+      observedObject: 'canonical_evidence_object_existence_and_provenance',
       storageNodeType: LEGACY_NODE_STORAGE_TYPE,
+      claimBoundary: 'One graph node represents one evidence object. Multiple persistence records are provenance, not additional evidence objects.',
     };
-    const label = text(publicSummary.title) ?? text(item.source_name) ?? text(item.evidence_kind) ?? `Ledger evidence ${id.slice(0, 8)}`;
-    const ok = await upsertNode(nodeId, {
-      node_id: nodeId, node_key: nodeId, label, node_type: LEGACY_NODE_STORAGE_TYPE, ontology_type: 'evidence', origin: 'evidence_ledger',
-      epistemic_class: epistemicClass, confidence, payload: nodePayload, lineage: [], attributes: nodePayload, updated_at: new Date().toISOString(),
-    }, `ledger_evidence_graph:${id}`);
+
+    const ok = await upsertNode(object.nodeId, {
+      node_id: object.nodeId,
+      node_key: object.nodeId,
+      label: object.label,
+      node_type: LEGACY_NODE_STORAGE_TYPE,
+      ontology_type: 'evidence',
+      origin: 'evidence_canonical',
+      epistemic_class: object.epistemicClass,
+      confidence: object.confidence,
+      payload: nodePayload,
+      lineage: object.epistemicEventIds,
+      attributes: nodePayload,
+      updated_at: new Date().toISOString(),
+    }, `evidence_node:${object.nodeId}`);
     if (!ok) continue;
-    descriptors.push({ id, hash, nodeId, label, caseId: text(item.case_id), module: text(item.module), evidenceKey: text(publicSummary.evidenceKey), sourceUrl: text(item.source_url), observedAt });
-  }
 
-  const byHash = new Map<string, EvidenceDescriptor[]>();
-  descriptors.forEach((item) => { if (item.hash) byHash.set(item.hash, [...(byHash.get(item.hash) ?? []), item]); });
-  for (const [hash, items] of byHash.entries()) {
-    if (items.length < 2) continue;
-    const [first, ...rest] = items;
-    for (const other of rest) await upsertEdge({ from: first.nodeId, to: other.nodeId, relation: 'same_evidence_object', relationType: 'identity_reference', confidence: 1, observedAt: laterDate(first.observedAt, other.observedAt), attributes: { evidenceHash: hash } });
-  }
+    const refs = uniqueStrings(
+      [object.nodeId, object.evidenceHash, object.evidenceKey],
+      object.rootEvidenceIds,
+      object.ledgerEvidenceIds,
+    );
+    refs.forEach((ref) => byReference.set(ref, object));
 
-  async function linkShared(field: 'caseId' | 'module', relation: string) {
-    const groups = new Map<string, EvidenceDescriptor[]>();
-    descriptors.forEach((item) => {
-      const value = item[field];
-      if (value) groups.set(value, [...(groups.get(value) ?? []), item]);
-    });
-    for (const [value, items] of groups.entries()) {
-      const unique = Array.from(new Map(items.map((item) => [item.hash ?? item.id, item])).values());
-      if (unique.length < 2) continue;
-      for (let index = 1; index < unique.length; index += 1) {
-        await upsertEdge({ from: unique[0].nodeId, to: unique[index].nodeId, relation, relationType: 'contextual_declared', confidence: 1, observedAt: laterDate(unique[0].observedAt, unique[index].observedAt), attributes: { sharedField: field, sharedValue: value, doesNotImplyValidation: true } });
-      }
+    if (object.module) {
+      const moduleNodeId = await ensureContextNode('module', object.module, object.observedAt);
+      if (moduleNodeId) await upsertEdge({
+        from: object.nodeId,
+        to: moduleNodeId,
+        relation: 'classified_in_module',
+        relationType: 'taxonomy_declared',
+        confidence: 1,
+        observedAt: object.observedAt,
+        evidenceIds: object.evidenceHash ? [object.evidenceHash] : [],
+        attributes: { module: object.module, doesNotImplyValidation: true },
+      });
+    }
+
+    if (object.caseId) {
+      const caseNodeId = await ensureContextNode('case', object.caseId, object.observedAt);
+      if (caseNodeId) await upsertEdge({
+        from: object.nodeId,
+        to: caseNodeId,
+        relation: 'belongs_to_case',
+        relationType: 'case_membership_declared',
+        confidence: 1,
+        observedAt: object.observedAt,
+        evidenceIds: object.evidenceHash ? [object.evidenceHash] : [],
+        attributes: { caseId: object.caseId, doesNotImplyValidation: true },
+      });
     }
   }
-  await linkShared('caseId', 'same_case_context');
-  await linkShared('module', 'same_module_context');
 
-  for (const descriptor of descriptors) {
-    if (!descriptor.sourceUrl) continue;
-    const sourceNodeId = `source_surface:${shortHash(descriptor.sourceUrl)}`;
-    const surfacePayload = { url: descriptor.sourceUrl, sourceObservedAt: descriptor.observedAt, observedObject: 'declared_source_surface_reference', storageNodeType: LEGACY_NODE_STORAGE_TYPE, claimBoundary: 'The URL is persisted as provenance. Its current availability/content is not asserted by this graph node.' };
-    const ok = await upsertNode(sourceNodeId, {
-      node_id: sourceNodeId, node_key: sourceNodeId, label: urlLabel(descriptor.sourceUrl), node_type: LEGACY_NODE_STORAGE_TYPE,
-      ontology_type: 'source_surface', origin: 'evidence_provenance', epistemic_class: 'imported', confidence: 1,
-      payload: surfacePayload, attributes: surfacePayload, lineage: [], updated_at: new Date().toISOString(),
-    }, `source_surface:${descriptor.sourceUrl}`);
-    if (ok) await upsertEdge({ from: descriptor.nodeId, to: sourceNodeId, relation: 'declares_source_surface', relationType: 'provenance_declared', confidence: 1, observedAt: descriptor.observedAt, attributes: { sourceUrl: descriptor.sourceUrl } });
+  for (const object of canonicalObjects) {
+    for (const targetNodeId of object.targetNodeIds) {
+      const canonicalTarget = byReference.get(targetNodeId)?.nodeId;
+      let resolvedTarget = canonicalTarget ?? null;
+      if (!resolvedTarget) {
+        const target = await db.from('graph_nodes').select('node_id,node_key').or(`node_id.eq.${targetNodeId},node_key.eq.${targetNodeId}`).maybeSingle();
+        resolvedTarget = target.data && !target.error ? text(target.data.node_id ?? target.data.node_key) : null;
+      }
+      if (!resolvedTarget || resolvedTarget === object.nodeId) continue;
+      await upsertEdge({
+        from: object.nodeId,
+        to: resolvedTarget,
+        relation: 'contextualizes',
+        relationType: 'structural_declared',
+        confidence: 1,
+        observedAt: object.observedAt,
+        evidenceIds: object.epistemicEventIds,
+        attributes: { evidenceHash: object.evidenceHash, explicitTargetNode: true },
+      });
+    }
   }
 
   const attractorRead = await db.from('sfi_attractors').select('id,attractor_key,label,module,owner_node_key,attractor_type,confidence,persistence,trust,weight,evidence_count,status,vector,first_seen,last_seen,created_at,updated_at').order('updated_at', { ascending: false }).limit(250);
@@ -295,25 +356,57 @@ export async function reconcilePersistedEvidenceGraph() {
     const attractorNodeId = `attractor:${attractorKey}`;
     const vector = record(attractor.vector);
     const observedAt = text(attractor.first_seen ?? attractor.created_at);
-    const attractorPayload = { ...attractor, sourceObservedAt: observedAt, observedObject: 'declared_attractor', storageNodeType: LEGACY_NODE_STORAGE_TYPE, claimBoundary: 'An attractor records a declared direction. It does not prove convergence or outcome.' };
+    const attractorPayload = {
+      ...attractor,
+      managedBy: 'canonical_evidence_reconciler',
+      projectionVersion: PROJECTION_VERSION,
+      sourceObservedAt: observedAt,
+      observedObject: 'declared_attractor',
+      storageNodeType: LEGACY_NODE_STORAGE_TYPE,
+      claimBoundary: 'An attractor records a declared direction. It does not prove convergence or outcome.',
+    };
     const ok = await upsertNode(attractorNodeId, {
-      node_id: attractorNodeId, node_key: attractorNodeId, label: text(attractor.label) ?? attractorKey, node_type: LEGACY_NODE_STORAGE_TYPE,
-      ontology_type: 'attractor', origin: 'sfi_attractors', epistemic_class: 'declared', confidence: number01(attractor.confidence, 0),
-      payload: attractorPayload, attributes: attractorPayload, lineage: [], updated_at: new Date().toISOString(),
+      node_id: attractorNodeId,
+      node_key: attractorNodeId,
+      label: text(attractor.label) ?? attractorKey,
+      node_type: LEGACY_NODE_STORAGE_TYPE,
+      ontology_type: 'attractor',
+      origin: 'evidence_context_attractor',
+      epistemic_class: 'declared',
+      confidence: number01(attractor.confidence, 0),
+      payload: attractorPayload,
+      attributes: attractorPayload,
+      lineage: [],
+      updated_at: new Date().toISOString(),
     }, `attractor_node:${attractorKey}`);
     if (!ok) continue;
+
     for (const ref of strings(vector.evidenceRefs)) {
-      const evidence = descriptors.find((item) => item.id === ref || item.hash === ref || item.evidenceKey === ref);
+      const evidence = byReference.get(ref);
       if (!evidence) continue;
-      await upsertEdge({ from: evidence.nodeId, to: attractorNodeId, relation: 'supports_attractor', relationType: 'evidence_declared', confidence: number01(attractor.trust ?? attractor.confidence, 0), observedAt: laterDate(evidence.observedAt, observedAt), weight: number01(attractor.weight, 0), evidenceIds: evidence.hash ? [evidence.hash] : [], attributes: { attractorKey, explicitEvidenceReference: ref } });
+      await upsertEdge({
+        from: evidence.nodeId,
+        to: attractorNodeId,
+        relation: 'supports_attractor',
+        relationType: 'evidence_declared',
+        confidence: number01(attractor.trust ?? attractor.confidence, 0),
+        observedAt: laterDate(evidence.observedAt, observedAt),
+        weight: number01(attractor.weight, 0),
+        evidenceIds: evidence.evidenceHash ? [evidence.evidenceHash] : [],
+        attributes: { attractorKey, explicitEvidenceReference: ref },
+      });
     }
   }
 
   return {
     ok: warnings.length === 0,
+    projectionVersion: PROJECTION_VERSION,
     rootEvidenceRows: rootEvidence.data.length,
     ledgerRows: ledger.data.length,
-    evidenceDescriptors: descriptors.length,
+    canonicalEvidenceObjects: canonicalObjects.length,
+    evidenceDescriptors: canonicalObjects.length,
+    nodesRemoved,
+    edgesRemoved,
     nodesCreated,
     nodesUpdated,
     edgesCreated,
