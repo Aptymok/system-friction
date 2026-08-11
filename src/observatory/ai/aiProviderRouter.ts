@@ -1,3 +1,4 @@
+import { runLlmTask, type LlmTask } from '@/lib/ai/providerRouter';
 import type { AiProvider, AiProviderConfig, AiProviderRequest, AiProviderResponse } from './aiProviderTypes';
 
 const providerEnv: Record<Exclude<AiProvider, 'local_stub'>, string> = {
@@ -40,6 +41,12 @@ function systemInstruction(request: AiProviderRequest) {
       : `Tarea: ${request.task}.`,
     context ? `Contexto visible:\n${context}` : '',
   ].filter(Boolean).join('\n\n');
+}
+
+function centralTask(request: AiProviderRequest): LlmTask {
+  if (request.task === 'audit' || request.task === 'simulate') return 'deep_report';
+  if (request.task === 'route') return 'fast_classification';
+  return 'draft';
 }
 
 async function parseJsonResponse(response: Response) {
@@ -105,19 +112,15 @@ async function callAnthropic(request: AiProviderRequest, apiKey: string) {
   };
 }
 
-async function callGroqCompatible(request: AiProviderRequest, apiKey: string, provider: 'groq' | 'deepseek') {
-  const endpoint = provider === 'groq' ? 'https://api.groq.com/openai/v1/chat/completions' : 'https://api.deepseek.com/chat/completions';
-  const model = provider === 'groq'
-    ? process.env.GROQ_MODEL || 'llama-3.1-8b-instant'
-    : process.env.DEEPSEEK_MODEL || 'deepseek-chat';
-  const response = await fetch(endpoint, {
+async function callDeepseek(request: AiProviderRequest, apiKey: string) {
+  const response = await fetch('https://api.deepseek.com/chat/completions', {
     method: 'POST',
     headers: {
       authorization: `Bearer ${apiKey}`,
       'content-type': 'application/json',
     },
     body: JSON.stringify({
-      model,
+      model: process.env.DEEPSEEK_MODEL || 'deepseek-chat',
       messages: [
         { role: 'system', content: systemInstruction(request) },
         { role: 'user', content: request.input },
@@ -167,12 +170,34 @@ export async function runAiTask(request: AiProviderRequest): Promise<AiProviderR
     };
   }
 
+  if (provider === 'groq') {
+    const central = await runLlmTask({
+      task: centralTask(request),
+      preferredProvider: 'groq',
+      system: systemInstruction(request),
+      prompt: request.input,
+      fallbackResult: 'Motor Groq degradado.',
+      maxTokens: request.task === 'route' ? 320 : 1100,
+    });
+    return {
+      ok: central.ok,
+      provider: central.ok ? 'groq' : 'groq',
+      task: request.task,
+      output: central.result,
+      text: central.result,
+      external: true,
+      usage: central.usage ?? undefined,
+      reason: central.ok ? undefined : 'provider_request_failed',
+      error: central.ok ? undefined : central.warnings.join(' | '),
+    };
+  }
+
   try {
     const result = provider === 'openai'
       ? await callOpenAi(request, apiKey)
       : provider === 'anthropic'
         ? await callAnthropic(request, apiKey)
-        : await callGroqCompatible(request, apiKey, provider);
+        : await callDeepseek(request, apiKey);
     const output = result.text.trim();
     if (!output) throw new Error('empty_provider_response');
     return {
