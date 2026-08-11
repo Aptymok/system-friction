@@ -49,3 +49,6 @@ sfi_delete_or_migrate_candidates.txt
 docs/db/SFI_DB_VERIFY_*.json
 docs/db/SFI_LIVE_PROOF_*.json
 _sfi_local_junk_*/
+
+# SFI Cognitive Olympics local datasets, runs and sealed lab state
+.sfi-cl/
