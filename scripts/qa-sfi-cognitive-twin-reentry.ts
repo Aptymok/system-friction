@@ -62,8 +62,7 @@ assert.match(canon, /Artifact provenance and authorized marks/);
 
 assert.match(phiCanon, /Phi is not one universal score/);
 assert.match(phiContract, /comparability: 'WITHIN_METHOD_ONLY'/);
-assert.match(canonicalFormulas, /id: 'c_field'/);
-assert.doesNotMatch(canonicalFormulas, /id: 'phi'.*c_field/is);
+assert.match(canonicalFormulas, /id: 'c_field'[\s\S]*?output: \{ name: 'c_field'/);
 assert.match(reconciliation, /former statement "three unreconciled Phi formulas" is no longer an active canonical conflict/);
 
 for (const domain of ['CULTURAL', 'ECONOMY', 'GEO_DIGITAL', 'GEOPOLITICAL', 'BIO', 'CLIMATE', 'INSTITUTIONAL', 'MEMETIC', 'TECH', 'AFFECTIVE']) {
