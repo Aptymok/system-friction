@@ -48,6 +48,9 @@ jobs:
       - name: Verify ROOT reports and runtime truth
         run: npx tsx scripts/qa-sfi-root-reports-runtime.ts
 
+      - name: Verify Method Lab convergence
+        run: npx tsx scripts/qa-sfi-method-lab-convergence.ts
+
       - name: Verify canonical evidence identity
         run: node --import tsx --test src/lib/evidence/canonicalEvidence.test.ts
 

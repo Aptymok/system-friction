@@ -7,10 +7,14 @@ export const runtime = 'nodejs';
 export const maxDuration = 60;
 
 export async function POST(request: Request) {
-  const gate = await requireRootActor('root.simulation.run');
+  const gate = await requireRootActor('root.method-lab.simulate');
   if (!gate.ok) return NextResponse.json(gate.body, { status: gate.status });
 
   const body = await request.json().catch(() => ({})) as Record<string, unknown>;
+  const protocolId = body.protocolId === 'sociotechnical_simulation' || body.protocolId === 'economic_simulation'
+    ? body.protocolId
+    : null;
+  if (!protocolId) return NextResponse.json({ ok: false, error: 'supported_protocol_required' }, { status: 400 });
   const evidenceIds = Array.isArray(body.evidenceIds)
     ? body.evidenceIds.filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
     : [];
@@ -20,34 +24,26 @@ export async function POST(request: Request) {
     : {};
 
   try {
-    const result = await runMethodLabSimulation({
-      protocolId: 'sociotechnical_simulation',
-      evidenceIds,
-      actorId: gate.ctx.user.id,
-      parameters,
-    });
+    const result = await runMethodLabSimulation({ protocolId, evidenceIds, actorId: gate.ctx.user.id, parameters });
     const audit = await auditRootAction({
       actorId: gate.ctx.user.id,
-      action: 'simulation.run',
-      target: 'sociotechnical_simulation',
+      action: 'method_lab.simulation.executed',
+      target: protocolId,
       payload: {
-        compatibilityRoute: '/api/root/simulation',
-        methodLabAnalysisId: result.labAnalysisId,
+        labAnalysisId: result.labAnalysisId,
         labRunId: result.run.labRunId,
-        evidenceIds,
         resultHash: result.run.resultHash,
+        evidenceIds,
+        epistemicClass: result.run.epistemicClass,
+        validationLevel: result.run.validationLevel,
       },
       request,
     });
     if (!audit.ok) return NextResponse.json(audit, { status: 500 });
-
-    return NextResponse.json({
-      ...result,
-      audit,
-      compatibility: 'Legacy ROOT simulation route now executes the shared Method Lab sociotechnical protocol.',
-    });
+    return NextResponse.json({ ...result, audit });
   } catch (error) {
     const details = error instanceof Error ? error.message : String(error);
-    return NextResponse.json({ ok: false, error: 'sociotechnical_method_lab_run_failed', details }, { status: details.includes('EVIDENCE') ? 400 : 503 });
+    const status = details.includes('EVIDENCE') ? 400 : details.includes('CONTAMINATED') ? 500 : 503;
+    return NextResponse.json({ ok: false, error: 'method_lab_simulation_failed', details }, { status });
   }
 }
