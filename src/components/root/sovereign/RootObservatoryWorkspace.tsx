@@ -111,10 +111,10 @@ function strings(value: unknown) {
   return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
 }
 function rowDate(row: RootRow) {
-  return text(row.observed_at ?? row.occurred_at ?? row.executed_at ?? row.updated_at ?? row.created_at ?? row.timestamp, '') || null;
+  return text(row.observed_at ?? row.occurred_at ?? row.executed_at ?? row.finished_at ?? row.updated_at ?? row.created_at ?? row.timestamp, '') || null;
 }
 function rid(row: RootRow, fallback: string) {
-  return text(row.id ?? row.event_id ?? row.run_id ?? row.node_key ?? row.node_id ?? row.attractor_key ?? row.hypothesis_id, fallback);
+  return text(row.id ?? row.event_id ?? row.run_id ?? row.task_id ?? row.decision_id ?? row.memory_key ?? row.node_key ?? row.node_id ?? row.attractor_key ?? row.hypothesis_id, fallback);
 }
 function when(value: string | null | undefined) {
   if (!value) return 'SIN FECHA';
@@ -127,8 +127,8 @@ function millis(value: string | null | undefined) {
 }
 function tone(value: string | null | undefined) {
   const status = (value ?? '').toLowerCase();
-  if (['observed', 'imported', 'operational', 'available', 'accepted', 'verified', 'active', 'canonical', 'win'].includes(status)) return 'ok';
-  if (['derived', 'thin', 'declared', 'proposed', 'waiting_evidence', 'inferred', 'extracted', 'inconclusive', 'pending'].includes(status)) return 'warn';
+  if (['observed', 'imported', 'operational', 'available', 'accepted', 'verified', 'active', 'canonical', 'approved', 'released', 'closed', 'win'].includes(status)) return 'ok';
+  if (['derived', 'thin', 'declared', 'candidate', 'registered', 'ready', 'planning', 'policy_check', 'executing', 'evidence_pending', 'verifying', 'proposed', 'waiting_evidence', 'inferred', 'extracted', 'inconclusive', 'pending'].includes(status)) return 'warn';
   if (['degraded', 'conflicted', 'blocked', 'error', 'blocking', 'rejected', 'loss'].includes(status)) return 'bad';
   return 'idle';
 }
@@ -265,7 +265,7 @@ function EvidenceGraph({ state, onSelect }: { state: RootSovereignState; onSelec
 
   return <div className="evidence-graph-live" onClick={(event) => event.stopPropagation()}>
     <div className="graph-controls">
-      <span>{displayNodes.length}/{timeNodes.length} N · {displayEdges.length}/{timeEdges.length} E</span>
+      <span>{state.evidence.data.objects.length} OBJ · {displayNodes.length}/{timeNodes.length} N · {displayEdges.length}/{timeEdges.length} E</span>
       <div>{([1, 2, 3, 'all'] as const).map((value) => <button type="button" key={String(value)} className={depth === value ? 'active' : ''} onClick={() => setDepth(value)}>{value === 'all' ? 'TODO' : `${value} SALTO${value > 1 ? 'S' : ''}`}</button>)}</div>
       <button type="button" onClick={() => setFocusId(null)}>AUTOFOCO</button>
     </div>
@@ -328,16 +328,21 @@ export function RootObservatoryWorkspace({ state, accessMode, actorLabel, refres
   const executed = agents.filter((agent) => agent.status === 'operational').length;
   const capabilities = state.execution.data.capabilities;
   const available = capabilities.filter((capability) => capability.state === 'available').length;
-  const evidenceCount = state.evidence.data.entries.length + state.evidence.data.ledger.length;
-  const graphStatus = state.evidence.error ? 'DEGRADED' : state.evidence.data.nodes.length ? 'OBSERVED' : 'MISSING';
+  const evidenceCount = state.evidence.data.objects.length;
+  const graphStatus = state.evidence.error ? 'DEGRADED' : state.evidence.data.nodes.length ? (state.evidence.data.nodes.length > 1 && !state.evidence.data.edges.length ? 'DEGRADED' : 'OBSERVED') : 'MISSING';
   const attractor = state.amv.data.attractors[0] ?? null;
   const divergenceCount = state.interpretation.divergences.length;
-  const sources = [state.system, state.governance, state.agents, state.predictions, state.amv, state.evidence, state.execution, state.telemetry, state.cognitiveRuntime];
+  const sources = [state.system, state.governance, state.agents, state.predictions, state.amv, state.evidence, state.execution, state.telemetry, state.cognitiveRuntime, state.cognitiveTwin];
   const sourceOk = sources.filter((source) => !source.error).length;
   const hypotheses = [...state.predictions.data.runs, ...state.predictions.data.legacyEntries];
   const recentEvents = state.cognitiveRuntime.data.eventGraph.recentEvents.slice(0, 30);
+  const cognitiveTwinRows = [
+    ...state.cognitiveTwin.data.memory.map((row) => ({ kind: 'memory', row })),
+    ...state.cognitiveTwin.data.decisions.map((row) => ({ kind: 'decision', row })),
+    ...state.cognitiveTwin.data.runs.map((row) => ({ kind: 'run', row })),
+  ].sort((a, b) => millis(rowDate(b.row)) - millis(rowDate(a.row)));
   const trajectory = [
-    ...state.evidence.data.entries.map((row) => ({ kind: 'evidence', row })),
+    ...state.evidence.data.objects.map((row) => ({ kind: 'evidence', row })),
     ...hypotheses.map((row) => ({ kind: 'prediction', row })),
     ...state.predictions.data.outcomes.map((row) => ({ kind: 'outcome', row })),
     ...state.predictions.data.learningEvents.map((row) => ({ kind: 'learning', row })),
@@ -348,7 +353,7 @@ export function RootObservatoryWorkspace({ state, accessMode, actorLabel, refres
     + state.governance.data.mutations.filter((row) => !['executed', 'closed', 'rejected'].includes(text(row.status, '').toLowerCase())).length;
   const predictionOpen = state.predictions.data.runs.filter((row) => ['OPEN', 'WAITING_EVIDENCE', 'DUE', 'PROPOSED'].includes(text(row.status, '').toUpperCase())).length
     + state.predictions.data.legacyEntries.filter((row) => !['verified', 'closed', 'falsified'].includes(text(row.estado_observacion, '').toLowerCase())).length;
-  const latestEvidenceAt = [...state.evidence.data.entries, ...state.evidence.data.ledger].map(rowDate).filter((value): value is string => Boolean(value)).sort((a, b) => millis(b) - millis(a))[0] ?? null;
+  const latestEvidenceAt = state.evidence.data.objects.map(rowDate).filter((value): value is string => Boolean(value)).sort((a, b) => millis(b) - millis(a))[0] ?? null;
   const activeAttractors = state.amv.data.attractors.filter((row) => !['archived', 'retired', 'closed'].includes(text(row.status, '').toLowerCase())).length;
 
   const byFamily = new Map<string, typeof capabilities>();
@@ -380,7 +385,7 @@ export function RootObservatoryWorkspace({ state, accessMode, actorLabel, refres
       const body = await response.json().catch(() => null) as Record<string, unknown> | null;
       if (!response.ok || !body?.ok) throw new Error(text(body?.error, `HTTP ${response.status}`));
       const reconciliation = rec(body.reconciliation);
-      setToolStatus({ text: `${tool.label} · ${text(reconciliation.nodesCreated, '0')} nodos nuevos · ${text(reconciliation.nodesUpdated, '0')} actualizados · ${text(reconciliation.edgesCreated, '0')} edges nuevos · ${Array.isArray(reconciliation.warnings) ? reconciliation.warnings.length : 0} warnings`, tone: Array.isArray(reconciliation.warnings) && reconciliation.warnings.length ? 'idle' : 'ok' });
+      setToolStatus({ text: `${tool.label} · ${text(reconciliation.canonicalEvidenceObjects, '0')} objetos · ${text(reconciliation.nodesCreated, '0')} nodos · ${text(reconciliation.edgesCreated, '0')} relaciones · ${text(reconciliation.nodesRemoved, '0')} nodos previos retirados · ${Array.isArray(reconciliation.warnings) ? reconciliation.warnings.length : 0} warnings`, tone: Array.isArray(reconciliation.warnings) && reconciliation.warnings.length ? 'idle' : 'ok' });
       onRefresh();
     } catch (error) {
       setToolStatus({ text: error instanceof Error ? error.message : 'No fue posible ejecutar la acción.', tone: 'bad' });
@@ -391,7 +396,7 @@ export function RootObservatoryWorkspace({ state, accessMode, actorLabel, refres
     <header className="root-hdr">
       <strong>SFI · ROOT</strong><b>ΦSFI <em>{phi}</em></b>
       <span className="hdr-health" data-tone={sourceOk === sources.length ? 'ok' : 'bad'}>FUENTES <i>{sourceOk}/{sources.length}</i></span>
-      <span>GRAFO <i data-tone={tone(graphStatus)}>{state.evidence.data.nodes.length}N/{state.evidence.data.edges.length}E · {graphStatus}</i></span>
+      <span>EVIDENCIA <i>{evidenceCount} OBJ</i></span><span>GRAFO <i data-tone={tone(graphStatus)}>{state.evidence.data.nodes.length}N/{state.evidence.data.edges.length}E · {graphStatus}</i></span>
       <span>COLA <i>{governanceOpen}</i></span><span>PRED <i>{predictionOpen} abiertas · {state.predictions.data.outcomes.length} outcomes</i></span>
       <span>AGENTES <i>{executed}/{agents.length || '—'}</i></span><span>ATR <i>{activeAttractors}</i></span>
       <span className="hdr-evidence-time">ÚLTIMA EVIDENCIA <i>{when(latestEvidenceAt)}</i></span>
@@ -432,7 +437,7 @@ export function RootObservatoryWorkspace({ state, accessMode, actorLabel, refres
 
           <Panel id="mod-institution" module="01a · INSTITUCIONALIZACIÓN" label="Founder dependency / transferencia" status="declared" statusContext="CLASE" source="FEP-01 + Cognitive Twin memory" width="l"><div className="intake-live"><p>Observa dónde SFI todavía depende del fundador, separa criterio transferible de autoridad reservada y exige reproducción antes de declarar capacidad institucional.</p><button type="button" onClick={() => setSurface({ title: 'INSTITUCIONALIZACIÓN', href: '/root/institutionalization' })}>ABRIR INSTITUTIONALIZATION →</button><button type="button" onClick={() => setSurface({ title: 'REPORTES DE AGENTES', href: '/root/reports' })}>LEER REPORTES DE AGENTES →</button></div></Panel>
 
-          <Panel id="mod-04-chat" module="04a · SFI" label="Chat / mantenimiento contextual" status="available" statusContext="ESTADO" source="Friccionauta + Cognitive Twin" width="l"><div className="chat-root-panel"><p>El chat con SFI permanece disponible. La evidencia se agrega desde el nodo/hipótesis/atractor seleccionado; el intake global deja de ocupar este espacio.</p><button type="button" onClick={() => window.dispatchEvent(new Event('sfi:open-friccionauta'))}>ABRIR CHAT CON SFI →</button>{accessMode === 'sovereign' ? <button type="button" onClick={() => void openTool({ label: 'RECONCILIAR GRAFO', kind: 'api', target: '/api/root/evidence/reconcile' })}>RECONCILIAR GRAFO PERSISTIDO →</button> : null}<small>Leer ROOT no ejecuta reconciliación. La reconciliación es explícita, auditable e idempotente.</small></div></Panel>
+          <Panel id="mod-04-chat" module="04a · SFI" label="Chat / mantenimiento contextual" status="available" statusContext="ESTADO" source="Friccionauta + Cognitive Twin" width="l"><div className="chat-root-panel"><p>El chat con SFI permanece disponible. La evidencia se agrega desde el nodo/hipótesis/atractor seleccionado; el intake global deja de ocupar este espacio.</p><button type="button" onClick={() => window.dispatchEvent(new Event('sfi:open-friccionauta'))}>ABRIR CHAT CON SFI →</button>{accessMode === 'sovereign' ? <button type="button" onClick={() => void openTool({ label: 'RECONCILIAR GRAFO', kind: 'api', target: '/api/root/evidence/reconcile' })}>RECONCILIAR GRAFO PERSISTIDO →</button> : null}<small>Leer ROOT no ejecuta reconciliación. La reconciliación reconstruye una proyección canónica; no duplica una evidencia por cada tabla que la persiste.</small></div></Panel>
 
           <Panel id="mod-10" module="10 · GOBERNANZA" label="Capacidades ejecutables" status={state.execution.error ? 'degraded' : state.execution.dataClass} statusContext="SALUD" source={state.execution.source} width="l"><div className="cap-groups">{[...byFamily.entries()].map(([family, items]) => <div key={family}><b>{family}</b>{items.map((capability) => <button key={capability.id} type="button" data-tone={tone(capability.state)} onClick={(event) => { event.stopPropagation(); onAction({ id: capability.id, label: capability.label, effect: capability.description, target: capability.endpoint ?? capability.id, endpoint: capability.endpoint, method: 'POST' }); }}>{capability.label}<i>{statusLabel(capability.state, 'ESTADO')}</i></button>)}</div>)}</div></Panel>
         </div>
@@ -441,9 +446,13 @@ export function RootObservatoryWorkspace({ state, accessMode, actorLabel, refres
       <section className={`topology-row ${focus('II') ? '' : 'dim'}`}>
         <header><b>II</b><strong>{TOPOLOGIES.II.title}</strong><em>{TOPOLOGIES.II.question}</em></header>
         <div className="panel-strip">
-          <Panel id="mod-04" module="04 · EVIDENCIA" label="Grafo relacional / longitudinal" status={graphStatus} statusContext="SALUD" source={state.evidence.source} width="xl"><EvidenceGraph state={state} onSelect={onSelect} /></Panel>
+          <Panel id="mod-04" module="04 · EVIDENCIA" label="Grafo canónico relacional / longitudinal" status={graphStatus} statusContext="SALUD" source={state.evidence.source} width="xl"><EvidenceGraph state={state} onSelect={onSelect} /></Panel>
           <Panel id="mod-05" module="05 · RUNTIME" label={`${agents.length} agentes`} status={state.cognitiveRuntime.data.status} statusContext="SALUD" source={state.cognitiveRuntime.source} width="l"><Rows rows={agents.map((agent) => ({ name: agent.name, sub: `${agent.layer} · ${agent.domain}`, status: agent.status, statusContext: 'ESTADO', onClick: () => onSelect(sel({ kind: 'agent', id: agent.id, title: agent.name, source: state.cognitiveRuntime.source, observedAt: state.cognitiveRuntime.observedAt, evidenceIds: agentEvidenceIds(agent.id), data: agent })) }))} /></Panel>
-          <Panel id="mod-06" module="06 · COGNITIVE TWIN" label="Hipótesis persistidas / contradicciones" status={state.predictions.error ? 'degraded' : hypotheses.length ? 'observed' : 'missing'} statusContext="ESTADO" source={state.predictions.source}><Rows rows={hypotheses.slice(0, 20).map((row, index) => ({ name: text(row.title ?? row.hypothesis ?? row.interpretation ?? row.prediccion_explicita ?? row.status, `Hipótesis ${index + 1}`), sub: text(row.learning_state ?? row.status, ''), status: text(row.epistemic_class ?? row.status, 'inferred'), statusContext: 'CLASE', onClick: () => onSelect(sel({ kind: 'hypothesis', id: rid(row, `hyp-${index}`), title: text(row.title ?? row.hypothesis ?? row.interpretation ?? row.prediccion_explicita, `Hipótesis ${index + 1}`), source: state.predictions.source, observedAt: rowDate(row), evidenceIds: strings(row.evidence_refs), data: row })) }))} /></Panel>
+          <Panel id="mod-06" module="06 · COGNITIVE TWIN" label="Memoria / decisiones / ejecuciones" status={state.cognitiveTwin.error ? 'degraded' : state.cognitiveTwin.dataClass} statusContext="ESTADO" source={state.cognitiveTwin.source}><Rows rows={cognitiveTwinRows.slice(0, 20).map((item, index) => {
+            const content = rec(item.row.content);
+            const title = text(content.title ?? content.statement ?? content.summary ?? item.row.general_rule ?? item.row.situation ?? item.row.objective ?? item.row.memory_key ?? item.row.decision_id ?? item.row.task_id, `${item.kind} ${index + 1}`);
+            return { name: title, sub: `${item.kind.toUpperCase()} · ${when(rowDate(item.row))}`, status: text(item.row.status, item.kind === 'memory' ? 'candidate' : 'observed'), statusContext: item.kind === 'run' ? 'ESTADO' as const : 'CLASE' as const, onClick: () => onSelect(sel({ kind: `cognitive-twin-${item.kind}`, id: rid(item.row, `ct-${item.kind}-${index}`), title, source: state.cognitiveTwin.source, observedAt: rowDate(item.row), evidenceIds: strings(item.row.evidence_refs), data: item.row })) };
+          })} /></Panel>
           <Panel id="mod-07" module="07 · PROYECCIÓN" label="Prediction Outcome · ramas longitudinales" status={state.predictions.error ? 'degraded' : state.predictions.dataClass} statusContext="SALUD" source={state.predictions.source} width="xl"><PredictionOutcomeTree state={state} onSelect={onSelect} /></Panel>
           <Panel id="mod-08" module="08 · ATRACTORES" label="Campo dinámico / longitudinal" status={attractor ? text(attractor.status, 'declared') : 'missing'} statusContext="CLASE" source={state.amv.source} width="xl"><DynamicAttractorField state={state} onSelect={onSelect} /></Panel>
         </div>
@@ -452,8 +461,8 @@ export function RootObservatoryWorkspace({ state, accessMode, actorLabel, refres
       <section className={`topology-row ${focus('III') ? '' : 'dim'}`}>
         <header><b>III</b><strong>{TOPOLOGIES.III.title}</strong><em>{TOPOLOGIES.III.question}</em></header>
         <div className="panel-strip">
-          <Panel id="mod-09" module="09 · TRAYECTORIA" label="Evidencia → aprendizaje" status={trajectory.length ? 'derived' : 'missing'} statusContext="MODO" source="evidence + prediction + outcome + learning + audit" width="xl"><div className="trajectory-live">{trajectory.map((item, index) => <button key={`${item.kind}-${rid(item.row, String(index))}`} type="button" onClick={(event) => { event.stopPropagation(); onSelect(sel({ kind: item.kind, id: rid(item.row, `${item.kind}-${index}`), title: text(item.row.title ?? item.row.event_name ?? item.row.action ?? item.row.status, item.kind), source: item.kind, observedAt: rowDate(item.row), evidenceIds: strings(item.row.evidence_refs), data: item.row })); }}><time>{when(rowDate(item.row))}</time><i>{item.kind}</i><span>{text(item.row.title ?? item.row.event_name ?? item.row.action ?? item.row.status ?? item.row.learning_state, item.kind)}</span></button>)}</div></Panel>
-          <Panel id="mod-09-memory" module="09 · MEMORIA" label="AMV / MIHM" status={state.amv.error ? 'degraded' : state.amv.dataClass} statusContext="SALUD" source={state.amv.source}><div className="metric-cluster"><b>{state.amv.data.memories.length}<small>AMV MEMORY</small></b><b>{state.predictions.data.learningEvents.length}<small>LEARNING EVENTS</small></b><b>{state.governance.data.audits.length}<small>AUDITED ACTIONS</small></b></div></Panel>
+          <Panel id="mod-09" module="09 · TRAYECTORIA" label="Evidencia → aprendizaje" status={trajectory.length ? 'derived' : 'missing'} statusContext="MODO" source="canonical evidence + prediction + outcome + learning + audit" width="xl"><div className="trajectory-live">{trajectory.map((item, index) => <button key={`${item.kind}-${rid(item.row, String(index))}`} type="button" onClick={(event) => { event.stopPropagation(); onSelect(sel({ kind: item.kind, id: rid(item.row, `${item.kind}-${index}`), title: text(item.row.title ?? item.row.event_name ?? item.row.action ?? item.row.status, item.kind), source: item.kind, observedAt: rowDate(item.row), evidenceIds: strings(item.row.evidence_refs), data: item.row })); }}><time>{when(rowDate(item.row))}</time><i>{item.kind}</i><span>{text(item.row.title ?? item.row.event_name ?? item.row.action ?? item.row.status ?? item.row.learning_state, item.kind)}</span></button>)}</div></Panel>
+          <Panel id="mod-09-memory" module="09 · MEMORIA" label="AMV / Cognitive Twin / MIHM" status={state.amv.error || state.cognitiveTwin.error ? 'degraded' : 'observed'} statusContext="SALUD" source="AMV + Cognitive Twin"><div className="metric-cluster"><b>{state.amv.data.memories.length}<small>AMV MEMORY</small></b><b>{text(state.cognitiveTwin.data.counts.memory, '0')}<small>COGNITIVE TWIN</small></b><b>{state.predictions.data.learningEvents.length}<small>LEARNING EVENTS</small></b><b>{state.governance.data.audits.length}<small>AUDITED ACTIONS</small></b></div></Panel>
           <Panel id="mod-10-log" module="10 · GOBERNANZA" label="Bitácora / eventos cognitivos" status={state.governance.error ? 'degraded' : state.governance.dataClass} statusContext="SALUD" source={state.governance.source} width="l"><Rows rows={[
             ...recentEvents.map((event) => ({ name: event.eventName, sub: `${when(event.occurredAt)} · ${event.sourceId ?? 'runtime'}`, status: event.epistemicClass, statusContext: 'CLASE' as const, onClick: () => onSelect(sel({ kind: 'cognitive-event', id: event.eventId, title: event.eventName, source: event.sourceId ?? state.cognitiveRuntime.source, observedAt: event.occurredAt, data: event })) })),
             ...state.governance.data.audits.slice(0, 10).map((row, index) => ({ name: text(row.action, `audit ${index + 1}`), sub: when(rowDate(row)), status: 'observed', statusContext: 'ESTADO' as const, onClick: () => onSelect(sel({ kind: 'audit', id: rid(row, `audit-${index}`), title: text(row.action, 'Audit'), source: state.governance.source, observedAt: rowDate(row), data: row })) })),
