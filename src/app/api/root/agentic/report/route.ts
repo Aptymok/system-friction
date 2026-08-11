@@ -48,32 +48,28 @@ export async function POST(request: Request) {
   const ifnorm = body.ifnorm && typeof body.ifnorm === 'object' && !Array.isArray(body.ifnorm)
     ? body.ifnorm as Record<string, unknown>
     : null;
-  const result = await runReportAgent({
-    type,
-    subject,
-    ifnorm: ifnorm as never,
-  });
+  const result = await runReportAgent({ type, subject, ifnorm: ifnorm as never });
   const finishedAt = new Date().toISOString();
+  const providerDegraded = result.provider.startsWith('degraded:');
+  const persistedStatus = result.ok && !providerDegraded ? 'READY' : 'BLOCKED';
+  const limitations = providerDegraded
+    ? [...new Set([...(result.warnings ?? []), 'LLM provider degraded/manual fallback: report persisted for inspection but not declared READY.'])]
+    : result.warnings ?? [];
 
   const persisted = await gate.ctx.service
     .from('sfi_cognitive_twin_runs')
     .insert({
       task_id: `report:${type}:${Date.now()}`,
-      contract_version: 'report-agent-v1',
+      contract_version: 'report-agent-v1.1-truthful-provider-state',
       provider: result.provider || null,
       model: null,
       role: 'report_agent',
-      status: result.ok ? 'READY' : 'BLOCKED',
+      status: persistedStatus,
       objective: subject ? `${type} · ${subject}` : type,
-      input_snapshot: {
-        reportType: type,
-        subject: subject ?? null,
-        ifnorm,
-        requestedBy: gate.ctx.user.id,
-      },
+      input_snapshot: { reportType: type, subject: subject ?? null, ifnorm, requestedBy: gate.ctx.user.id },
       output_envelope: result,
       evidence_refs: result.evidence ?? [],
-      limitations: result.warnings ?? [],
+      limitations,
       started_at: startedAt,
       finished_at: finishedAt,
     })
@@ -81,12 +77,7 @@ export async function POST(request: Request) {
     .single();
 
   if (persisted.error) {
-    return NextResponse.json({
-      ok: false,
-      error: 'agent_report_persistence_failed',
-      details: persisted.error.message,
-      report: result,
-    }, { status: 500 });
+    return NextResponse.json({ ok: false, error: 'agent_report_persistence_failed', details: persisted.error.message, report: result }, { status: 500 });
   }
 
   const audit = await auditRootAction({
@@ -96,11 +87,13 @@ export async function POST(request: Request) {
     payload: {
       subject: subject ?? null,
       ifnormEntity: typeof ifnorm?.entity_name === 'string' ? ifnorm.entity_name : null,
-      ok: result.ok,
+      agentResultOk: result.ok,
+      persistedStatus,
+      provider: result.provider,
       reportRunId: persisted.data.id,
     },
     request,
   });
   if (!audit.ok) return NextResponse.json(audit, { status: 500 });
-  return NextResponse.json({ ...result, reportRun: persisted.data, audit });
+  return NextResponse.json({ ...result, reportRun: persisted.data, audit, persistedStatus });
 }
