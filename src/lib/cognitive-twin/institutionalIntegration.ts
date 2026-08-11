@@ -32,6 +32,16 @@ function number(value: unknown) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+function methodLabEpistemicClass(dataMode: string) {
+  switch (dataMode.toLowerCase()) {
+    case 'simulated': return 'SIMULATED';
+    case 'real_input': return 'DERIVED_FROM_OBSERVED_INPUT';
+    case 'provider_enriched': return 'DERIVED_FROM_PROVIDER_ENRICHED_INPUT';
+    case 'no_input': return 'MISSING_INPUT';
+    default: return 'UNCLASSIFIED_NON_OBSERVED';
+  }
+}
+
 async function syncFieldReturns(limit = 100): Promise<SyncResult> {
   const db = createServiceSupabaseClient();
   const result = await db.from('field_outcomes')
@@ -73,7 +83,10 @@ async function syncFieldReturns(limit = 100): Promise<SyncResult> {
 
 async function syncMethodLabRuns(limit = 100): Promise<SyncResult> {
   const db = createServiceSupabaseClient();
-  const result = await db.from('sfi_lab_analyses').select('*').limit(limit);
+  const result = await db.from('sfi_lab_analyses')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(limit);
   if (result.error) return { source:'method_lab', ok:false, observed:0, synced:0, failed:0, warning:result.error.message };
 
   const rows = (result.data ?? []) as Row[];
@@ -91,7 +104,7 @@ async function syncMethodLabRuns(limit = 100): Promise<SyncResult> {
       sourceRef:id,
       evidenceRefs:strings(raw.evidenceRefs ?? raw.evidence_refs),
       content:{
-        epistemicClass:dataMode === 'SIMULATED' ? 'SIMULATED' : 'OBSERVED_RECORD',
+        epistemicClass:methodLabEpistemicClass(dataMode),
         mode:text(row.mode),
         source:text(row.source),
         dataMode,
@@ -100,7 +113,7 @@ async function syncMethodLabRuns(limit = 100): Promise<SyncResult> {
         limitations:row.limitations ?? [],
         recommendations:row.recommendations ?? [],
         resultHash:text(raw.resultHash),
-        rule:'Method Lab runs enter Twin memory with their original epistemic class. SIMULATED remains SIMULATED and cannot become observed evidence through ingestion.',
+        rule:'Method Lab runs enter Twin memory with their original epistemic boundary. Simulation remains SIMULATED; real_input/provider_enriched remain derived; no_input/unknown modes remain explicitly non-observed.',
       },
     });
     if (persisted.ok) synced += 1;
@@ -169,7 +182,7 @@ export async function readCognitiveTwinSfiIntegration() {
     probe({ organ:'ROOT_EVIDENCE', table:'root_evidence_entries', description:'Institutional evidence enters Twin memory as candidate evidence.' }),
     probe({ organ:'OBSERVATORY', table:'worldspect_snapshots', description:'Longitudinal world state enters Twin context without promoting derived/simulated state.' }),
     probe({ organ:'STUDIO', table:'sfi_cognitive_twin_runs', description:'Studio consumes Twin memory/decisions and registers cognitive executions.', filter:(query)=>query.ilike('role','studio%') }),
-    probe({ organ:'METHOD_LAB', table:'sfi_lab_analyses', description:'Experimental runs enter Twin memory retaining SIMULATED/observed boundaries.' }),
+    probe({ organ:'METHOD_LAB', table:'sfi_lab_analyses', description:'Experimental runs enter Twin memory retaining their original epistemic boundaries.' }),
     probe({ organ:'FIELD', table:'field_outcomes', description:'Observed returns become candidate institutional experience.' }),
     probe({ organ:'GOVERNANCE', table:'sfi_cognitive_twin_decisions', description:'Approved founder/ROOT decisions constrain Twin deliberation and authority.', filter:(query)=>query.eq('status','APPROVED') }),
     probe({ organ:'COGNITIVE_TWIN', table:'sfi_cognitive_twin_memory', description:'Persistent model-independent institutional memory.' }),
