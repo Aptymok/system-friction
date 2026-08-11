@@ -63,14 +63,18 @@ assert.match(crl,/HYBRID_GOVERNED_MIGRATION/);
 assert.match(crl,/migrationGovernanceApproved:false/);
 assert.match(crl,/liveSchemaVerified:false/);
 
-for(const moduleId of ['governance','world','field','studio','method_lab','cognitive_twin','agents','reports','evidence']) assert.ok(readiness.includes(`id:'${moduleId}'`),`readiness_missing_module:${moduleId}`);
-assert.match(readiness,/const evidenceTables=\['root_evidence_entries','epistemic_events','graph_nodes','graph_edges'\]/);
+for(const moduleId of ['governance','world','field','studio','method_lab','cognitive_twin','agents','reports','evidence','graph']) assert.ok(readiness.includes(`id:'${moduleId}'`),`readiness_missing_module:${moduleId}`);
+assert.match(readiness,/const evidenceTables = \['root_evidence_entries','epistemic_events','sfi_evidence_ledger'\]/);
+assert.match(readiness,/const graphTables = \['graph_nodes','graph_edges'\]/);
+assert.match(readiness,/count: 'planned'/);
+assert.match(readiness,/EMPTY_READY/);
 assert.match(readiness,/scientificComplete:false/);
 assert.match(readiness,/externalGateBoundary/);
 assert.match(governancePage,/GOVERNANCE CONTROL/);
 assert.match(governancePage,/READINESS/);
-assert.match(readinessPage,/INSTITUTIONAL READINESS/);
-assert.match(readinessPage,/SCIENTIFIC COMPLETE/);
+assert.match(readinessPage,/¿Puede operar SFI\?/);
+assert.match(readinessPage,/Límite del 100% de desarrollo/);
+assert.match(readinessPage,/LISTO · VACÍO/);
 assert.match(rootConsole,/\/root\/governance/);
 
 assert.match(mutationState,/CT-A01-MUT-%/);
@@ -93,6 +97,9 @@ console.log(JSON.stringify({ok:true,invariants:[
   'canonical promotion requires accepted realization + observed return + complete receipt contract',
   'CRL persistence is an explicit ROOT/ACP decision object and no migration is silently applied',
   'ROOT exposes governance health and total institutional readiness',
+  'readiness separates Evidence Ledger from Knowledge Graph',
+  'readiness uses planned health counts rather than expensive exact dashboard counts',
+  'empty post-reset organs may be READY without being falsely marked broken',
   'readiness separates internal blockers from external scientific/proof gates',
   'CT mutation state is observed rather than hardcoded at the ROOT API/UI boundary',
   'CT checkpoint is exportable but explicitly pending independent external anchoring',

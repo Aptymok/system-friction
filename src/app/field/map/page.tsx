@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { WorldFieldObservatory } from '@/components/field/map/WorldFieldObservatory';
+import styles from './field-map-layout.module.css';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,5 +10,5 @@ export const metadata: Metadata = {
 };
 
 export default function FieldMapPage() {
-  return <WorldFieldObservatory />;
+  return <div className={styles.safeFieldMap}><WorldFieldObservatory /></div>;
 }

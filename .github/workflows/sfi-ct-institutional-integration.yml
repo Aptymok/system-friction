@@ -1,0 +1,59 @@
+name: SFI CT Institutional Integration
+
+on:
+  pull_request:
+    paths:
+      - 'src/lib/cognitive-twin/**'
+      - 'src/lib/field/governedReturn.ts'
+      - 'src/lib/method-lab/simulationRun.ts'
+      - 'src/app/api/root/cognitive-twin/deliberate/route.ts'
+      - 'src/app/api/root/institutional-cycle/route.ts'
+      - 'src/app/api/cron/sfi-institutional-cycle/route.ts'
+      - 'src/app/api/cron/continuity-report/route.ts'
+      - 'src/app/root/cognitive-twin/page.tsx'
+      - 'src/components/root/cognitive-twin/CognitiveTwinIntegrationPanel.tsx'
+      - 'scripts/qa-sfi-ct-institutional-integration.ts'
+      - '.github/workflows/sfi-ct-institutional-integration.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'src/lib/cognitive-twin/**'
+      - 'src/lib/field/governedReturn.ts'
+      - 'src/lib/method-lab/simulationRun.ts'
+      - 'src/app/api/root/cognitive-twin/deliberate/route.ts'
+      - 'src/app/api/root/institutional-cycle/route.ts'
+      - 'src/app/api/cron/sfi-institutional-cycle/route.ts'
+      - 'src/app/api/cron/continuity-report/route.ts'
+      - 'src/app/root/cognitive-twin/page.tsx'
+      - 'src/components/root/cognitive-twin/CognitiveTwinIntegrationPanel.tsx'
+      - 'scripts/qa-sfi-ct-institutional-integration.ts'
+      - '.github/workflows/sfi-ct-institutional-integration.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm install --no-audit --no-fund
+      - name: Verify Cognitive Twin institutional integration
+        run: npx tsx scripts/qa-sfi-ct-institutional-integration.ts
+      - name: Typecheck
+        run: npx tsc --noEmit --pretty false --incremental false
+      - name: Build
+        shell: bash
+        run: |
+          set +e
+          npm run build 2>&1 | tee /tmp/sfi-next-build.log
+          status=${PIPESTATUS[0]}
+          if [ "$status" -ne 0 ]; then
+            diagnostic=$(tail -n 35 /tmp/sfi-next-build.log | tr '\n' ' ' | sed 's/%/%25/g; s/\r/%0D/g; s/\n/%0A/g' | cut -c1-6000)
+            echo "::error file=.github/workflows/sfi-ct-institutional-integration.yml,line=58::Next build failed: ${diagnostic}"
+            exit "$status"
+          fi

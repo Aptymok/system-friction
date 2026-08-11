@@ -18,6 +18,7 @@ const executionMap = read('src/lib/sfi/cognitive-runtime/agentExecutionMap.ts');
 const runtime = read('src/lib/studio/cognitive/studioCognitiveRuntime.ts');
 const llmBridge = read('src/lib/sfi/cognitive-runtime/agentLlmBridge.ts');
 const twinContext = read('src/lib/cognitive-twin/studioContext.ts');
+const experienceBridge = read('src/lib/cognitive-twin/experienceBridge.ts');
 const packageAnalyzer = read('src/lib/studio/multimodal/sessionPackageAnalyzer.ts');
 const packageRoute = read('src/app/api/studio/objects/[id]/analyze/package/route.ts');
 const reconstructionRoute = read('src/app/api/studio/session/reconstruct/route.ts');
@@ -51,16 +52,21 @@ for (const token of [
   'MIHM',
   'MOP-H',
   'DIOL-SF',
-]) assert.ok(`${runtime}\n${twinContext}`.includes(token), `studio_cognitive_contract_missing:${token}`);
+]) assert.ok(`${runtime}\n${twinContext}\n${experienceBridge}`.includes(token), `studio_cognitive_contract_missing:${token}`);
 
 assert.ok(llmBridge.includes("epistemicClass: 'INFERENCE'"), 'llm_inference_classification_missing');
 assert.ok(/evidence before inference/i.test(llmBridge), 'llm_twin_grounding_missing');
 assert.ok(/CANDIDATE Cognitive Twin memory/i.test(llmBridge), 'candidate_memory_epistemic_boundary_missing');
 assert.ok(llmBridge.includes('LLM_PROVIDER_UNAVAILABLE'), 'llm_fail_closed_missing');
-assert.ok(!/Math\.random\(\).*confidence|fake|demo data/i.test(`${runtime}\n${llmBridge}`), 'synthetic_cognitive_output_pattern_present');
-assert.ok(twinContext.includes("upsert({"), 'studio_learning_must_upsert_not_duplicate');
-assert.ok(twinContext.includes("onConflict: 'memory_key,version'"), 'studio_learning_conflict_key_missing');
+assert.ok(!/Math\.random\(\).*confidence|fake|demo data/i.test(`${runtime}\n${llmBridge}\n${experienceBridge}`), 'synthetic_cognitive_output_pattern_present');
+
+// Studio now persists through the single institutional Cognitive Twin experience bridge.
+assert.ok(twinContext.includes('persistCognitiveTwinExperience'), 'studio_learning_not_routed_through_experience_bridge');
+assert.ok(experienceBridge.includes(".upsert({"), 'cognitive_twin_experience_upsert_missing');
+assert.ok(experienceBridge.includes("onConflict:'memory_key,version'"), 'cognitive_twin_experience_conflict_key_missing');
 assert.ok(twinContext.includes('stableStudioLearningKey'), 'studio_learning_stable_key_missing');
+assert.ok(experienceBridge.includes("status: 'CANDIDATE'"), 'experience_bridge_candidate_boundary_missing');
+assert.ok(/approved authority lives in sfi_cognitive_twin_decisions/i.test(experienceBridge), 'memory_authority_separation_missing');
 
 assert.ok(packageAnalyzer.includes('Range:'), 'zip_range_read_missing');
 assert.ok(packageAnalyzer.includes('sourceFileSha256: null'), 'zip_full_hash_must_not_be_claimed');
@@ -121,7 +127,7 @@ console.log(JSON.stringify({
   llmInferenceFailClosed: true,
   candidateMemoryNonCanonical: true,
   independentVerificationRequired: true,
-  learningPersistsAsStableCandidateUpsert: true,
+  learningPersistsThroughCanonicalExperienceBridge: true,
   sfiMethodsPersisted: ['FAD', 'MIHM', 'MOP-H', 'DIOL-SF'],
   zipRangeAnalysis: true,
   zipHeavySourcePurged: true,

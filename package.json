@@ -37,6 +37,8 @@
     "qa:sfi-studio-workspace": "tsx scripts/qa-sfi-studio-workspace.ts",
     "qa:sfi-studio-cognitive": "tsx scripts/qa-sfi-studio-cognitive.ts",
     "qa:sfi-root-capability-matrix": "tsx scripts/qa-sfi-root-capability-matrix.ts",
+    "qa:sfi-operating-field": "tsx scripts/qa-sfi-operating-field-closure.ts",
+    "qa:sfi-operational-reset": "tsx scripts/qa-sfi-operational-reset.ts",
     "typecheck": "tsc --noEmit --pretty false --incremental false",
     "phase:verify": "npm run check:boundaries && npm run typecheck",
     "qa:sfi-pipeline": "node scripts/qa-sfi-minimal-pipeline.mjs",
@@ -44,6 +46,7 @@
     "db:export": "node scripts/db/export-supabase.mjs",
     "db:inventory": "node scripts/db/inventory-supabase.mjs",
     "db:cleanup:plan": "node scripts/db/prepare-institutional-cleanup.mjs",
+    "db:proof:export": "node scripts/db/export-sfi-full-cycle-proof.mjs",
     "db:reset:sfi": "node scripts/db/reset-sfi-operational-tables.mjs",
     "db:seed:sfi": "node scripts/db/seed-sfi-canonical-history.mjs",
     "db:verify:sfi": "node scripts/db/verify-sfi-database.mjs"
