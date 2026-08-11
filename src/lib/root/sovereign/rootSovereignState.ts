@@ -79,6 +79,15 @@ export type RootExecutionCapability = {
   description: string;
 };
 
+export type RootCognitiveTwinData = {
+  implementation: RootRow;
+  counts: RootRow;
+  memory: RootRow[];
+  decisions: RootRow[];
+  runs: RootRow[];
+  evaluations: RootRow[];
+};
+
 export type RootSovereignState = {
   generatedAt: string;
   system: RootSource<{
@@ -98,12 +107,14 @@ export type RootSovereignState = {
     learningEvents: RootRow[];
     legacyEntries: RootRow[];
     legacyVerifications: RootRow[];
+    legacyDiscarded: number;
   }>;
   amv: RootSource<{ memories: RootRow[]; attractors: RootRow[]; ejectors: RootRow[] }>;
-  evidence: RootSource<{ nodes: RootEvidenceNode[]; edges: RootEvidenceEdge[]; entries: RootRow[]; ledger: RootRow[] }>;
+  evidence: RootSource<{ nodes: RootEvidenceNode[]; edges: RootEvidenceEdge[]; objects: RootRow[]; entries: RootRow[]; ledger: RootRow[] }>;
   execution: RootSource<{ capabilities: RootExecutionCapability[]; recentActions: RootRow[] }>;
   telemetry: RootSource<TelemetryData>;
   cognitiveRuntime: RootSource<SfiCognitiveRuntimeSnapshot>;
+  cognitiveTwin: RootSource<RootCognitiveTwinData>;
   interpretation: RootInstitutionalInterpretation;
   warnings: string[];
 };
