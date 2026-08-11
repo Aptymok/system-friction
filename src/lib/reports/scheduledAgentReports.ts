@@ -70,6 +70,9 @@ function taskId(key: ScheduledReportKey, dateKey: string, weekKey: string) {
 function scheduleCadence(key: ScheduledReportKey) {
   return key.includes('weekly') ? 'weekly' as const : 'daily' as const;
 }
+function producerRole(key: ScheduledReportKey) {
+  return key === 'world_daily' || key === 'world_weekly' ? 'report_agent' : 'report_scheduler';
+}
 
 async function persistScheduledReport(input: {
   key: ScheduledReportKey;
@@ -83,7 +86,7 @@ async function persistScheduledReport(input: {
   const id = taskId(input.key, input.dateKey, input.weekKey);
   const existing = await db.from('sfi_cognitive_twin_runs')
     .select('id,status,created_at')
-    .eq('role', 'report_agent')
+    .in('role', ['report_agent', 'report_scheduler'])
     .eq('task_id', id)
     .maybeSingle();
   if (existing.error) throw new Error(`scheduled_report_lookup_failed:${existing.error.message}`);
@@ -95,7 +98,7 @@ async function persistScheduledReport(input: {
     contract_version: 'report-agent-scheduled-v1',
     provider: input.output.provider || null,
     model: null,
-    role: 'report_agent',
+    role: producerRole(input.key),
     status: input.output.ok && !input.output.provider.startsWith('degraded:') && !input.output.provider.startsWith('blocked:') ? 'READY' : 'BLOCKED',
     objective: input.title,
     input_snapshot: {
@@ -107,6 +110,7 @@ async function persistScheduledReport(input: {
         period: input.key.includes('weekly') ? input.weekKey : input.dateKey,
         timezone: 'America/Mexico_City',
         generatedBy: 'continuity-report-cron',
+        producerRole: producerRole(input.key),
       },
       ...input.extraInput,
     },
@@ -289,7 +293,7 @@ async function ensure(input: {
   const id = taskId(input.key, input.dateKey, input.weekKey);
   try {
     const db = createServiceSupabaseClient();
-    const existing = await db.from('sfi_cognitive_twin_runs').select('id').eq('role', 'report_agent').eq('task_id', id).maybeSingle();
+    const existing = await db.from('sfi_cognitive_twin_runs').select('id').in('role', ['report_agent', 'report_scheduler']).eq('task_id', id).maybeSingle();
     if (existing.error) throw new Error(existing.error.message);
     if (existing.data?.id) return { key: input.key, taskId: id, state: 'SKIPPED_EXISTING', reportId: String(existing.data.id), error: null };
     const output = await input.generate();
