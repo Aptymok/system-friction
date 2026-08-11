@@ -27,14 +27,13 @@ type ModuleReadiness = {
 };
 
 const PROBE_TIMEOUT_MS = 5000;
+const EMPTY_GRAPH_REASONS = new Set(['graph_store_empty_repair_required','graph_edges_empty_repair_required']);
 
 async function probe(table: string): Promise<TableProbe> {
   const db = createServiceSupabaseClient();
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(new Error('readiness_probe_timeout')), PROBE_TIMEOUT_MS);
   try {
-    // Readiness only needs availability + planning-scale cardinality. Exact counts on
-    // large append-only tables were turning ROOT health into a database benchmark.
     const result = await db.from(table)
       .select('*', { count: 'planned', head: true })
       .abortSignal(controller.signal);
@@ -86,12 +85,14 @@ export async function readInstitutionalReadiness() {
     ...studioMatrix.summary.technicallySolvableBlocked.map(id=>`capability:${id}`),
   ];
   const evidenceBlockers = evidenceProbes.filter(item=>!item.available).map(item=>`${item.table}:${item.error??'unavailable'}`);
+  const graphStorageHealthy = graphProbes.every(item=>item.available);
+  const graphProjectionBlocker = graph.degradedReason && !(graphStorageHealthy && EMPTY_GRAPH_REASONS.has(graph.degradedReason))
+    ? `projection:${graph.degradedReason}`
+    : null;
   const graphBlockers = [
     ...graphProbes.filter(item=>!item.available).map(item=>`${item.table}:${item.error??'unavailable'}`),
-    ...(graph.degradedReason ? [`projection:${graph.degradedReason}`] : []),
+    ...(graphProjectionBlocker ? [graphProjectionBlocker] : []),
   ];
-  // Observatory is a world-observation organ. Graph is a separate projection organ;
-  // an empty/degraded graph must not falsely report that WorldSpect itself is broken.
   const worldBlockers = [
     ...(worldspect ? [] : ['worldspect_snapshot_missing']),
     ...(kernel ? [] : ['kernel_cycle_missing']),
