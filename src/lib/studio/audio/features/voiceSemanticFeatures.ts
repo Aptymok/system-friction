@@ -38,12 +38,14 @@ async function transcribeWithGroq(bytes:Buffer,extension:string):Promise<{ok:tru
   const key=process.env.GROQ_API_KEY?.trim();if(!key)return {ok:false,reason:'GROQ_API_KEY_MISSING'};
   const maxBytes=100*1024*1024;if(bytes.byteLength>maxBytes)return {ok:false,reason:'GROQ_TRANSCRIPTION_FILE_OVER_100MB'};
   const form=new FormData();
-  form.set('file',new Blob([bytes],{type:mimeFromExtension(extension)}),`studio-audio.${extension||'wav'}`);
+  const blobBytes = new Uint8Array(bytes.byteLength);
+  blobBytes.set(bytes);
+  form.set('file',new Blob([blobBytes],{type:mimeFromExtension(extension)}),`studio-audio.${extension||'wav'}`);
   form.set('model',process.env.GROQ_TRANSCRIPTION_MODEL?.trim()||'whisper-large-v3-turbo');
   form.set('response_format','verbose_json');
   form.append('timestamp_granularities[]','segment');
   form.set('temperature','0');
-  const response=await fetch('https://api.groq.com/openai/v1/audio/transcriptions',{method:'POST',headers:{Authorization:`Bearer ${key}`},body:form,cache:'no-store',signal:AbortSignal.timeout(120_000)}).catch(error=>null);
+  const response=await fetch('https://api.groq.com/openai/v1/audio/transcriptions',{method:'POST',headers:{Authorization:`Bearer ${key}`},body:form,cache:'no-store',signal:AbortSignal.timeout(120_000)}).catch(()=>null);
   if(!response)return {ok:false,reason:'GROQ_TRANSCRIPTION_NETWORK_FAILED'};
   if(!response.ok){const body=await response.text().catch(()=>String(response.status));return {ok:false,reason:`GROQ_TRANSCRIPTION_${response.status}:${body.slice(0,300)}`};}
   const data=await response.json().catch(()=>null) as GroqTranscript|null;if(!data?.text?.trim())return {ok:false,reason:'GROQ_TRANSCRIPTION_EMPTY'};
