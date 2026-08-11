@@ -24,27 +24,25 @@ type AgentInsight = {
   generatedAt: string;
 };
 
+const MAX_PROMPT_CHARS = 22_000;
+
 function record(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
 }
-
 function strings(value: unknown, max = 8): string[] {
   return Array.isArray(value)
     ? value.map((item) => typeof item === 'string' ? item.trim() : '').filter(Boolean).slice(0, max)
     : [];
 }
-
 function number(value: unknown): number | null {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? Math.max(0, Math.min(1, parsed > 1 ? parsed / 100 : parsed)) : null;
 }
-
 function stripFence(value: string) {
   const trimmed = value.trim();
   if (!trimmed.startsWith('```')) return trimmed;
   return trimmed.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
 }
-
 function parseInsight(value: string): Omit<AgentInsight, 'status' | 'agentId' | 'provider' | 'model' | 'warnings' | 'raw' | 'generatedAt' | 'epistemicClass'> | null {
   try {
     const parsed = record(JSON.parse(stripFence(value)));
@@ -62,24 +60,37 @@ function parseInsight(value: string): Omit<AgentInsight, 'status' | 'agentId' | 
   }
 }
 
+function compactUnknown(value: unknown, depth = 0): unknown {
+  if (value === null || typeof value === 'number' || typeof value === 'boolean') return value;
+  if (typeof value === 'string') return value.length > 600 ? `${value.slice(0, 600)}…[truncated]` : value;
+  if (depth >= 4) return '[depth_limit]';
+  if (Array.isArray(value)) return value.slice(0, 8).map((item) => compactUnknown(item, depth + 1));
+  if (typeof value === 'object') {
+    return Object.fromEntries(Object.entries(value as Record<string, unknown>).slice(0, 12).map(([key,item]) => [key,compactUnknown(item,depth+1)]));
+  }
+  return String(value).slice(0, 200);
+}
 function compactEvidence(context: KernelContext) {
-  return context.evidence.slice(-30).map((item) => ({
+  return context.evidence.slice(-12).map((item) => ({
     id: item.id,
     source: item.source,
     confidence: item.confidence,
-    payload: item.payload,
+    payload: compactUnknown(item.payload),
   }));
 }
-
 function compactTwin(twin: StudioTwinContext) {
   return {
     contractVersion: twin.contractVersion,
-    memory: twin.memory.slice(0, 24),
-    approvedDecisions: twin.decisions.slice(0, 20),
-    warnings: twin.warnings,
+    memory: twin.memory.slice(0, 12).map((item) => compactUnknown(item)),
+    approvedDecisions: twin.decisions.slice(0, 8).map((item) => compactUnknown(item)),
+    warnings: twin.warnings.slice(0, 8),
   };
 }
-
+function boundedPrompt(value: unknown) {
+  const serialized = JSON.stringify(value);
+  if (serialized.length <= MAX_PROMPT_CHARS) return serialized;
+  return `${serialized.slice(0, MAX_PROMPT_CHARS)}\n[CONTEXT_TRUNCATED_BY_SFI_AT_${MAX_PROMPT_CHARS}_CHARS]`;
+}
 function providerPreference(value: unknown): LlmProviderId | undefined {
   const allowed: LlmProviderId[] = ['openai', 'anthropic', 'gemini', 'groq', 'ollama', 'huggingface'];
   return typeof value === 'string' && allowed.includes(value as LlmProviderId) ? value as LlmProviderId : undefined;
@@ -112,21 +123,26 @@ export async function augmentAgentWithLlm(agentId: string, context: KernelContex
     'Keep every list short and specific. If the evidence cannot support a claim, put the need in missingEvidence instead.',
   ].join('\n');
 
-  const prompt = JSON.stringify({
+  const promptPayload = {
     task: context.metadata?.studioAction ?? 'analyze',
     currentEvent: context.currentEvent,
     phenomenonId: context.phenomenonId ?? null,
-    studio,
+    studio: compactUnknown(studio),
     observedEvidence: compactEvidence(context),
-    deterministicHypotheses: context.hypotheses.slice(-12),
-    deterministicContradictions: context.contradictions.slice(-12),
-    simulations: context.simulations.slice(-12),
-    predictions: context.predictions.slice(-12),
-    risks: context.risks.slice(-12),
-    opportunities: context.opportunities.slice(-12),
+    deterministicHypotheses: context.hypotheses.slice(-8).map(item=>compactUnknown(item)),
+    deterministicContradictions: context.contradictions.slice(-8).map(item=>compactUnknown(item)),
+    simulations: context.simulations.slice(-6).map(item=>compactUnknown(item)),
+    predictions: context.predictions.slice(-6).map(item=>compactUnknown(item)),
+    risks: context.risks.slice(-6).map(item=>compactUnknown(item)),
+    opportunities: context.opportunities.slice(-6).map(item=>compactUnknown(item)),
     cognitiveTwin: compactTwin(twin),
-    previousAgentInsights: Object.fromEntries(Object.entries(existingInsights).slice(-8)),
-  });
+    previousAgentInsights: Object.fromEntries(Object.entries(existingInsights).slice(-4).map(([key,value])=>[key,compactUnknown(value)])),
+    contextBoundary: {
+      maxPromptCharacters: MAX_PROMPT_CHARS,
+      selectionRule: 'latest bounded evidence + bounded Twin memory + current deterministic state; omitted material remains available in persistent stores and is not treated as absent evidence',
+    },
+  };
+  const prompt = boundedPrompt(promptPayload);
 
   const result = await runLlmTask({
     task: 'graph_interpretation',
@@ -181,6 +197,8 @@ export async function augmentAgentWithLlm(agentId: string, context: KernelContex
       lastModel: insight.model,
       lastAgentId: agentId,
       lastStatus: insight.status,
+      promptCharacters: prompt.length,
+      promptBounded: prompt.length >= MAX_PROMPT_CHARS,
       updatedAt: generatedAt,
     },
   };
