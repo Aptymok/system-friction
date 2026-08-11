@@ -8,6 +8,7 @@ import {
   type ReturnFieldCycleInput,
 } from './operationalCycle';
 import { finalizeReturnContrast, canMarkLongitudinalCaseComplete } from './returnContrastContract';
+import { verifyStudioFieldHandoff, type StudioFieldHandoff } from '@/lib/studio/fieldHandoff';
 
 type Row = Record<string, unknown>;
 function record(value: unknown): Row {
@@ -18,9 +19,14 @@ function text(value: unknown) { return typeof value === 'string' ? value.trim() 
 export type GovernedFieldCreateInput = CreateFieldCycleInput & {
   rivalHypothesis?: string;
   stoppingCondition?: string;
+  studioHandoff?: StudioFieldHandoff | null;
 };
 
 export async function createGovernedFieldCycle(ownerId: string, input: GovernedFieldCreateInput) {
+  if (input.studioHandoff && !verifyStudioFieldHandoff(input.studioHandoff)) {
+    throw new Error('FIELD_STUDIO_HANDOFF_INVALID');
+  }
+
   const result = await createFieldCycle(ownerId, input);
   const db = createServiceSupabaseClient();
   const fieldCase = record(result.case);
@@ -41,6 +47,9 @@ export async function createGovernedFieldCycle(ownerId: string, input: GovernedF
     contrastContract: 'SFI-RETURN-CONTRAST-1.0',
     contrastFrozenAt: frozenAt,
     longitudinalComplete: false,
+    studioFieldHandoff: input.studioHandoff ?? null,
+    studioHandoffId: input.studioHandoff?.handoffId ?? null,
+    studioHandoffHash: input.studioHandoff?.immutableHash ?? null,
   };
   const update = await db.from('field_cases').update({ metadata: governedMetadata }).eq('id', caseId).eq('owner_id', ownerId).select('*').single();
   if (update.error || !update.data) throw new Error(`FIELD_GOVERNED_CASE_FREEZE_FAILED:${update.error?.message ?? 'unknown'}`);
@@ -51,6 +60,7 @@ export async function createGovernedFieldCycle(ownerId: string, input: GovernedF
     frozenRivalHypothesis,
     frozenStoppingCondition,
     contrastFrozenAt: frozenAt,
+    studioHandoff: input.studioHandoff ?? null,
   };
 }
 
@@ -65,6 +75,11 @@ export async function submitGovernedFieldReturn(ownerId: string, caseId: string,
   if (!predictionSeal) throw new Error('FIELD_RETURN_PREDICTION_SEAL_REQUIRED');
   if (!rivalInterpretation) throw new Error('FIELD_RETURN_RIVAL_NOT_FROZEN_AT_T0');
   if (!stoppingCondition) throw new Error('FIELD_RETURN_STOPPING_CONDITION_NOT_FROZEN_AT_T0');
+
+  const handoffValue = metadata.studioFieldHandoff;
+  if (handoffValue && !verifyStudioFieldHandoff(handoffValue as StudioFieldHandoff)) {
+    throw new Error('FIELD_STUDIO_HANDOFF_INTEGRITY_FAILED_AT_RETURN');
+  }
 
   const result = await submitFieldReturn(ownerId, caseId, input);
   const evidence = record(result.evidence);
@@ -86,7 +101,13 @@ export async function submitGovernedFieldReturn(ownerId: string, caseId: string,
   }
 
   const persisted = await db.from('field_returns').update({
-    payload: { ...record(returnRow.data.payload), returnContrast: contrast, longitudinalComplete: true },
+    payload: {
+      ...record(returnRow.data.payload),
+      returnContrast: contrast,
+      longitudinalComplete: true,
+      studioHandoffId: text(metadata.studioHandoffId) || null,
+      studioHandoffHash: text(metadata.studioHandoffHash) || null,
+    },
   }).eq('id', returnRow.data.id).eq('owner_id', ownerId);
   if (persisted.error) {
     await db.from('field_cases').update({ status: 'CLOSED_RETURN_CONTRAST_INCOMPLETE', updated_at: new Date().toISOString() }).eq('id', caseId).eq('owner_id', ownerId);
@@ -101,5 +122,11 @@ export async function submitGovernedFieldReturn(ownerId: string, caseId: string,
     throw new Error(`FIELD_CASE_CONTRAST_PERSIST_FAILED:${casePersist.error.message}`);
   }
 
-  return { ...result, returnContrast: contrast, longitudinalComplete: true as const };
+  return {
+    ...result,
+    returnContrast: contrast,
+    longitudinalComplete: true as const,
+    studioHandoffId: text(metadata.studioHandoffId) || null,
+    studioHandoffHash: text(metadata.studioHandoffHash) || null,
+  };
 }
