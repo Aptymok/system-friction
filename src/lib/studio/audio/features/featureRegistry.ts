@@ -1,4 +1,5 @@
 import type { EnergySegment, StudioAudioFeature, StudioDecodedAudio } from '../audioTypes';
+import { extractAdvancedSpectralFeatures } from './advancedSpectralFeatures';
 import { extractBasicFeatures } from './basicFeatures';
 import { extractDynamicFeatures } from './dynamicFeatures';
 import { extractMasteringFeatures } from './masteringFeatures';
@@ -6,6 +7,7 @@ import { extractHarmonyFeatures } from './harmonyFeatures';
 import { extractRhythmFeatures } from './rhythmFeatures';
 import { extractSpectralFeatures } from './spectralFeatures';
 import { extractStereoFeatures } from './stereoFeatures';
+import { extractStructuralFeatures } from './structuralFeatures';
 import { extractTonalFeatures } from './tonalFeatures';
 import { extractTransientFeatures } from './transientFeatures';
 import type { LoudnessAnalysisOptions } from '../loudness';
@@ -34,6 +36,8 @@ export function extractStudioAudioFeatures(
     ...extractBasicFeatures(decoded),
     ...extractDynamicFeatures(decoded),
     ...spectral.features,
+    ...extractAdvancedSpectralFeatures(decoded),
+    ...extractStructuralFeatures(spectral.energySegments),
     ...extractStereoFeatures(decoded),
     ...extractTonalFeatures(spectral.summary),
     ...extractTransientFeatures(decoded, spectral.energySegments),
