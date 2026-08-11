@@ -14,7 +14,9 @@ for (const protocol of ['chronos_olympics', 'cognitive_relational_lab', 'ct_reen
 }
 
 const readModel = read('src/lib/method-lab/readModel.ts');
-assert.match(readModel, /ct_reentry: \(\) => false/, 'CT reentry must remain REGISTERED until ancestral capabilities are actually reintroduced.');
+assert.match(readModel, /ct_reentry: \(\) => Boolean\(COGNITIVE_TWIN_REENTRY\.subjectId/, 'CT reentry implementation gate must bind to the reintroduced longitudinal runtime.');
+assert.match(readModel, /GATED means no Method Lab evaluation row has yet validated it/, 'Implemented CT reentry must remain explicitly distinct from validated operation.');
+assert.match(readModel, /it does not mean individuation is demonstrated/, 'Method Lab must not promote reentry implementation into an individuation claim.');
 assert.match(readModel, /CRL protocol-specific migration remains experimental/, 'CRL persistence governance conflict must remain visible.');
 assert.match(readModel, /missingDependencies/, 'Protocol dependency health must be observable.');
 
@@ -31,6 +33,7 @@ assert.match(crlContrast, /METHOD_LAB_CONTRACT_VERSION/, 'CRL summary must carry
 
 const root = read('src/components/root/sovereign/RootSovereignConsole.tsx');
 assert.match(root, /\/root\/method-lab/, 'ROOT must expose Method Lab.');
+assert.match(root, /\/root\/cognitive-twin\/lineage/, 'ROOT must expose CT-A01 lineage state.');
 assert.doesNotMatch(root, /CognitiveLabConsole/, 'CRL must not keep a parallel ROOT launcher outside Method Lab.');
 
 const runner = read('src/lib/method-lab/simulationRun.ts');
@@ -66,7 +69,7 @@ console.log(JSON.stringify({
   invariants: [
     'one shared Method Lab contract',
     'CHRONOS and CRL are protocols, not parallel labs',
-    'CT reentry remains registered until implemented',
+    'CT reentry implementation is distinct from Method Lab validation and individuation claims',
     'sociotechnical/economic runs use isolated executors',
     'simulators cannot append SIMULATED output to observed evidence',
     'no additional Vercel cron',
