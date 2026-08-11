@@ -22,6 +22,7 @@ import {
   type TimeRegion,
 } from './audioTypes';
 import { extractStudioAudioFeatures } from './features/featureRegistry';
+import { extractVoiceSemanticFeatures } from './features/voiceSemanticFeatures';
 import { detectOnsets } from './segmentation/onsetDetection';
 import { detectSections } from './segmentation/sectionDetection';
 import { detectSilenceRegions } from './segmentation/silenceDetection';
@@ -74,6 +75,15 @@ function extensionFromStored(stored: Awaited<ReturnType<typeof loadStudioAudioBy
 
 function isWaveBytes(bytes: Buffer) {
   return bytes.byteLength >= 12 && bytes.toString('ascii', 0, 4) === 'RIFF' && bytes.toString('ascii', 8, 12) === 'WAVE';
+}
+
+function operatorTextFromMetadata(metadata: Record<string, unknown> | null) {
+  const source = record(metadata);
+  for (const key of ['lyrics','transcript','declaredLyrics','declaredTranscript','text']) {
+    const value = source[key];
+    if (typeof value === 'string' && value.trim().length >= 3) return value.trim();
+  }
+  return null;
 }
 
 export async function analyzeStudioAudioObject(objectId: string, options: StudioAudioAnalysisOptions = {}) {
@@ -139,18 +149,26 @@ export async function analyzeStudioAudioObject(objectId: string, options: Studio
       correlationId: jobId,
       logbookId: typeof stored.object.metadata?.logbookId === 'string' ? stored.object.metadata.logbookId : null,
     });
+    const voiceFeatures = await extractVoiceSemanticFeatures({
+      decoded,
+      sourceBytes: stored.bytes,
+      sourceExtension: extension,
+      operatorText: operatorTextFromMetadata(stored.object.metadata),
+    });
+    const allFeatures = [...extraction.features, ...voiceFeatures];
     const waveform = buildWaveformPeaks(decoded);
     const silence = buildRegionsFromMarkers(detectSilenceRegions(extraction.energySegments));
     const onsets = buildRegionsFromMarkers(detectOnsets(extraction.energySegments));
     const sections = buildRegionsFromMarkers(detectSections(extraction.energySegments));
     const timeRegions = [...silence, ...onsets, ...sections];
-    const warnings = [...transcodeWarnings, ...extraction.features.flatMap((feature) => feature.warnings)]
+    const warnings = [...transcodeWarnings, ...allFeatures.flatMap((feature) => feature.warnings)]
       .filter((warning, index, all) => all.indexOf(warning) === index);
-    const hasMissingRequired = extraction.features.some((feature) => (
+    const hasMissingRequired = allFeatures.some((feature) => (
       feature.status === 'MISSING' ||
       feature.status === 'CAPABILITY_MISSING' ||
       feature.status === 'CALIBRATION_REQUIRED' ||
-      feature.status === 'INSUFFICIENT_SIGNAL'
+      feature.status === 'INSUFFICIENT_SIGNAL' ||
+      feature.status === 'FAILED'
     ));
     const probe = probeOnly(decoded);
     const result: StudioAudioAnalysisResult = {
@@ -161,7 +179,7 @@ export async function analyzeStudioAudioObject(objectId: string, options: Studio
       engineVersion: STUDIO_AUDIO_ENGINE_VERSION,
       checksumSha256: stored.checksumSha256,
       probe,
-      features: extraction.features,
+      features: allFeatures,
       waveform,
       energySegments: extraction.energySegments,
       timeRegions,
