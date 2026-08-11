@@ -5,6 +5,7 @@ import './root-operating-field.css';
 
 type Cycle = Record<string, any>;
 type Surface = { key:string; label:string; href:string } | null;
+type Proof = { complete:boolean; steps:Array<{id:string;label:string;status:'PASS'|'BLOCKED';ref:string|null;detail:string}>; boundary:string } | null;
 const STEPS = [
   ['OPEN','INICIO'],['EVIDENCE','EVIDENCIA'],['METHOD_SELECTED','MIHM'],['STUDIO','STUDIO'],['METHOD_LAB','LAB'],['FIELD','FIELD'],['WAITING_RETURN','RETORNO'],['RETURNED','CONTRASTE'],['TWIN_SYNCED','TWIN'],['GOVERNANCE','ROOT'],['CLOSED','CIERRE'],
 ] as const;
@@ -31,6 +32,7 @@ export function RootOperatingField({ actorLabel }:{actorLabel:string}){
   const [busy,setBusy]=useState('');
   const [message,setMessage]=useState('');
   const [surface,setSurface]=useState<Surface>(null);
+  const [proof,setProof]=useState<Proof>(null);
   const [title,setTitle]=useState('');
   const [question,setQuestion]=useState('');
   const [subject,setSubject]=useState('CASE');
@@ -51,7 +53,7 @@ export function RootOperatingField({ actorLabel }:{actorLabel:string}){
 
   async function startCycle(){
     if(!title.trim()||!question.trim())return;
-    setBusy('start');setMessage('');
+    setBusy('start');setMessage('');setProof(null);
     try{
       const response=await fetch('/api/root/operate/cycles',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({title,question,subject,temporalScope:temporal,evidenceModalities:['TEXT'],worldContextRequested:true,requiresTrajectory:temporal==='LONGITUDINAL',requiresRivalHypothesis:true,requiresInterventionTracking:true})});
       const body=await response.json().catch(()=>null);if(!response.ok||!body?.ok)throw new Error(body?.details??body?.error??`HTTP ${response.status}`);
@@ -97,6 +99,18 @@ export function RootOperatingField({ actorLabel }:{actorLabel:string}){
     }catch(error){setMessage(error instanceof Error?error.message:String(error));}finally{setBusy('');}
   }
 
+  async function runFullProof(){
+    if(!active)return;setBusy('proof');setMessage('');setProof(null);
+    try{
+      const response=await fetch('/api/root/operate/verify',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({operatingCycleId:active.id})});
+      const body=await response.json().catch(()=>null);
+      if(body?.proof)setProof(body.proof);
+      if(!body?.proof&&(!response.ok||!body?.ok))throw new Error(body?.details??body?.error??`HTTP ${response.status}`);
+      setMessage(body?.proof?.complete?'PRUEBA TOTAL: PASS. El ciclo completo quedó trazado.':'PRUEBA TOTAL: BLOQUEADA. La pantalla muestra exactamente dónde falló; no se rellenó nada artificialmente.');
+      await reload(active.id);
+    }catch(error){setMessage(error instanceof Error?error.message:String(error));}finally{setBusy('');}
+  }
+
   const currentStep=useMemo(()=>statusIndex(String(active?.status??'OPEN')),[active?.status]);
   const evidenceRefs=arrays(active?.evidence_refs);
 
@@ -115,7 +129,7 @@ export function RootOperatingField({ actorLabel }:{actorLabel:string}){
       <section className="cycle-identity">
         <div><span>CICLO ACTIVO</span><h2>{active.title}</h2><p>{active.question}</p></div>
         <dl><div><dt>ESTADO</dt><dd>{active.status}</dd></div><div><dt>MÉTODO</dt><dd>{methodName(active)}</dd></div><div><dt>TRAZAS</dt><dd>{refCount(active)}</dd></div><div><dt>ID</dt><dd>{active.cycle_code}</dd></div></dl>
-        <button className="quiet" onClick={()=>setActive(null)}>NUEVO CICLO</button>
+        <button className="quiet" onClick={()=>{setActive(null);setProof(null)}}>NUEVO CICLO</button>
       </section>
 
       <section className="system-map">
@@ -133,13 +147,13 @@ export function RootOperatingField({ actorLabel }:{actorLabel:string}){
         <form id="operate-evidence" className="operate-card evidence-card" onSubmit={addEvidence}><span>01 · ENTRADA</span><h3>Agregar evidencia</h3><p>Texto o archivo. SFI conserva hash, procedencia y relación con este ciclo. El archivo puede ser documento, datos, imagen, audio o video; almacenar no significa interpretar.</p><input value={evidenceTitle} onChange={e=>setEvidenceTitle(e.target.value)} placeholder="Título de la evidencia"/><textarea value={evidenceText} onChange={e=>setEvidenceText(e.target.value)} placeholder="Describe sólo lo observado o declarado."/><input type="file" onChange={e=>setFile(e.target.files?.[0]??null)}/><button disabled={busy==='evidence'||(!evidenceText.trim()&&!file)}>{busy==='evidence'?'GUARDANDO…':'GUARDAR Y TRAZAR'}</button></form>
         <article className="operate-card"><span>02 · MÉTODO</span><h3>{methodName(active)}</h3><p>{active.method_resolution?.rationale?.[0]??'SFI resolverá el instrumento cuando exista clasificación suficiente.'}</p><div className="chips">{arrays(active.method_resolution?.supporting).map((item:any)=><i key={item.methodId}>{item.methodId}</i>)}</div><details><summary>Por qué se eligió</summary><ul>{arrays(active.method_resolution?.rationale).map((line:string)=><li key={line}>{line}</li>)}</ul></details></article>
         <article className="operate-card"><span>03 · PRUEBA</span><h3>Laboratorio</h3><p>Ejecuta una simulación real del runtime sobre evidencia persistida. La salida permanece marcada como simulación.</p><select value={protocol} onChange={e=>setProtocol(e.target.value as any)}><option value="sociotechnical_simulation">Sociotécnica</option><option value="economic_simulation">Económica</option></select><button onClick={()=>void runLab()} disabled={busy==='lab'||!evidenceRefs.length}>{busy==='lab'?'EJECUTANDO…':'EJECUTAR SOBRE EVIDENCIA'}</button></article>
-        <article className="operate-card"><span>04 · INTEGRACIÓN</span><h3>Ciclo institucional</h3><p>Sincroniza el estado de SFI con el Twin, ejecuta la topología cognitiva y vuelve a sincronizar. Si falta trazabilidad ya no puede aparecer como cerrado.</p><button onClick={()=>void runInstitutional()} disabled={busy==='cycle'}>{busy==='cycle'?'EJECUTANDO…':'EJECUTAR CICLO SFI'}</button></article>
+        <article className="operate-card"><span>04 · INTEGRACIÓN</span><h3>Ciclo institucional</h3><p>Sincroniza el estado de SFI con el Twin, ejecuta la topología cognitiva y vuelve a sincronizar. Si falta trazabilidad ya no puede aparecer como cerrado.</p><button onClick={()=>void runInstitutional()} disabled={busy==='cycle'}>{busy==='cycle'?'EJECUTANDO…':'EJECUTAR CICLO SFI'}</button><button className="proof-button" onClick={()=>void runFullProof()} disabled={busy==='proof'}>{busy==='proof'?'VERIFICANDO TODO…':'PRUEBA TOTAL REAL'}</button></article>
       </section>
 
-      <section className="trace-panel"><div><span>BITÁCORA DEL CICLO</span><h3>Qué existe de verdad</h3></div><div className="trace-grid"><Trace label="Evidencia" values={evidenceRefs}/><Trace label="Studio" values={arrays(active.studio_object_refs)}/><Trace label="Laboratorio" values={arrays(active.method_lab_refs)}/><Trace label="Field" values={active.field_case_ref?[active.field_case_ref]:[]}/><Trace label="Retornos" values={arrays(active.return_refs)}/><Trace label="Twin" values={arrays(active.cognitive_twin_refs)}/><Trace label="Gobernanza" values={arrays(active.governance_refs)}/></div></section>
+      <section className="trace-panel"><div className="trace-heading"><div><span>BITÁCORA DEL CICLO</span><h3>Qué existe de verdad</h3></div><button onClick={()=>void runFullProof()} disabled={busy==='proof'}>{busy==='proof'?'EJECUTANDO…':'VERIFICAR CICLO COMPLETO'}</button></div><div className="trace-grid"><Trace label="Evidencia" values={evidenceRefs}/><Trace label="Studio" values={arrays(active.studio_object_refs)}/><Trace label="Laboratorio" values={arrays(active.method_lab_refs)}/><Trace label="Field" values={active.field_case_ref?[active.field_case_ref]:[]}/><Trace label="Retornos" values={arrays(active.return_refs)}/><Trace label="Twin" values={arrays(active.cognitive_twin_refs)}/><Trace label="Gobernanza" values={arrays(active.governance_refs)}/></div>{proof?<div className="proof-results" data-complete={proof.complete}><header><b>{proof.complete?'PRUEBA COMPLETA · PASS':'PRUEBA COMPLETA · BLOQUEADA'}</b><small>Sin mocks · sin outcomes inventados · sin saltar ventanas Field</small></header><div>{proof.steps.map(step=><article key={step.id} data-status={step.status}><strong>{step.status}</strong><b>{step.label}</b><p>{step.detail}</p></article>)}</div><p>{proof.boundary}</p></div>:null}</section>
     </>}
 
-    {cycles.length?<section className="recent-cycles"><header><span>HISTORIAL</span><h3>Ciclos recientes</h3></header>{cycles.slice(0,8).map(cycle=><button key={cycle.id} onClick={()=>setActive(cycle)} data-active={active?.id===cycle.id}><b>{cycle.title}</b><span>{cycle.status} · {cycle.cycle_code}</span></button>)}</section>:null}
+    {cycles.length?<section className="recent-cycles"><header><span>HISTORIAL</span><h3>Ciclos recientes</h3></header>{cycles.slice(0,8).map(cycle=><button key={cycle.id} onClick={()=>{setActive(cycle);setProof(cycle.metadata?.fullCycleProof??null)}} data-active={active?.id===cycle.id}><b>{cycle.title}</b><span>{cycle.status} · {cycle.cycle_code}</span></button>)}</section>:null}
     {message?<div className="operate-message">{message}</div>:null}
 
     {surface?<div className="surface-layer"><header><div><span>DENTRO DEL MISMO CAMPO</span><b>{surface.label}</b></div><button onClick={()=>setSurface(null)}>CERRAR</button></header><iframe src={surface.href} title={surface.label}/></div>:null}
