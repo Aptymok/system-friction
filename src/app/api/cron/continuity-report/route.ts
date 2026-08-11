@@ -3,6 +3,7 @@ import { createDailyContinuityReport } from '@/lib/continuity/runtime';
 import { runScheduledAgentReportCycle } from '@/lib/reports/scheduledAgentReports';
 import { runCognitiveTwinDevelopmentalHeartbeat } from '@/lib/cognitive-twin/reentry/runtime';
 import { considerCognitiveTwinMutationProposal } from '@/lib/cognitive-twin/reentry/experiments';
+import { syncSfiInstitutionalStateToCognitiveTwin } from '@/lib/cognitive-twin/institutionalIntegration';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -20,6 +21,14 @@ export async function GET(request: NextRequest) {
   }
   try {
     const report = await createDailyContinuityReport();
+    const cognitiveTwinInstitutionalSync = await syncSfiInstitutionalStateToCognitiveTwin().catch((error) => ({
+      ok:false,
+      synced:0,
+      failed:1,
+      sources:[],
+      integration:null,
+      error:error instanceof Error ? error.message : String(error),
+    }));
     const [scheduledReports, cognitiveTwinHeartbeat, cognitiveTwinMutation] = await Promise.all([
       runScheduledAgentReportCycle().catch((error) => ({
         ok: false,
@@ -43,10 +52,11 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       ok: true,
       report,
+      cognitiveTwinInstitutionalSync,
       scheduledReports,
       cognitiveTwinHeartbeat,
       cognitiveTwinMutation,
-      schedulingRule: 'Uses the existing continuity-report cron. Reports, CT-A01 heartbeat and governed mutation consideration introduce no additional Vercel cron invocation.',
+      schedulingRule: 'Uses the existing continuity-report cron. SFI organ sync occurs before the CT-A01 heartbeat; no additional Vercel cron invocation is introduced.',
     });
   } catch (error) {
     return NextResponse.json({ ok: false, error: 'continuity_report_failed', details: error instanceof Error ? error.message : String(error) }, { status: 500 });
