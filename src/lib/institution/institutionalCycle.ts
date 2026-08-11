@@ -161,10 +161,11 @@ export async function runInstitutionalCycle(trigger = 'scheduled') {
   const phenomenonWarnings = 'warnings' in phenomenonRefresh && Array.isArray(phenomenonRefresh.warnings) ? phenomenonRefresh.warnings : [];
   const ppoiWarnings = automaticPpoi.warnings;
   const criticalSubstepsOk = memorySync.ok && phenomenonRefresh.ok && automaticPpoi.ok && attractorRefresh.ok && cycleEvidence.warnings.length === 0;
+  const runStatus = !result.completed ? 'ESCALATED' : criticalSubstepsOk ? 'CLOSED' : 'EVIDENCE_PENDING';
 
   const envelope = createCognitiveTwinEnvelope({
     taskId,
-    status: result.completed ? 'EXECUTED' : 'ESCALATED',
+    status: runStatus === 'CLOSED' ? 'EXECUTED' : 'ESCALATED',
     modelId: null,
     result: {
       executedAgents: result.executedAgents,
@@ -174,6 +175,7 @@ export async function runInstitutionalCycle(trigger = 'scheduled') {
       predictions: result.context.predictions.length,
       risks: result.context.risks.length,
       opportunities: result.context.opportunities.length,
+      closureState: runStatus,
       attractor: {
         key: SFI_INSTITUTIONAL_ATTRACTOR_KEY,
         evidenceCoverage: attractorRefresh.evidenceCoverage,
@@ -192,7 +194,9 @@ export async function runInstitutionalCycle(trigger = 'scheduled') {
       },
     },
     claims: [{
-      statement: 'An institutional cognitive cycle execution was recorded against persisted evidence and a DECLARED attractor.',
+      statement: runStatus === 'CLOSED'
+        ? 'A complete institutional cognitive cycle was recorded against persisted evidence and a DECLARED attractor with required internal substeps intact.'
+        : 'An institutional cognitive-cycle attempt was recorded, but it is not represented as closed because required evidence or internal substeps remain incomplete.',
       epistemicClass: 'OBSERVED',
       evidenceRefs: cycleEvidence.refs,
     }],
@@ -211,14 +215,14 @@ export async function runInstitutionalCycle(trigger = 'scheduled') {
       ...result.context.contradictions.map((item) => item.id),
       ...attractorRefresh.contradictedDimensions.map((dimension) => `attractor:${dimension}`),
     ],
-    missingEvidence: attractorRefresh.missingDimensions,
+    missingEvidence: [...new Set([...attractorRefresh.missingDimensions, ...cycleEvidence.warnings])],
     actionsExecuted: [
       ...result.executedAgents.map((agent) => `cognitive:${agent}`),
       `ppoi:auto_created:${automaticPpoi.created}`,
       `ppoi:auto_linked:${automaticPpoi.linked}`,
     ],
     testsRun: [],
-    recommendedTransition: criticalSubstepsOk ? 'VERIFYING' : 'ESCALATED',
+    recommendedTransition: runStatus === 'CLOSED' ? 'VERIFYING' : 'EVIDENCE_PENDING',
   });
 
   const runInsert = await db.from('sfi_cognitive_twin_runs').insert({
@@ -227,7 +231,7 @@ export async function runInstitutionalCycle(trigger = 'scheduled') {
     provider: null,
     model: null,
     role: 'institutional_cycle',
-    status: 'CLOSED',
+    status: runStatus,
     objective: 'Contrast persisted institutional evidence and phenomena against the declared SFI attractor, reconcile eligible PPOI containers automatically, then execute the governed cognitive topology.',
     input_snapshot: {
       trigger,
@@ -253,9 +257,11 @@ export async function runInstitutionalCycle(trigger = 'scheduled') {
     ...(runInsert.error ? [`cognitive_twin_run:${runInsert.error.message}`] : []),
   ];
 
+  const closed = runStatus === 'CLOSED' && !runInsert.error;
   return {
-    ok: result.completed && criticalSubstepsOk && !runInsert.error,
-    status: result.completed && criticalSubstepsOk && !runInsert.error ? 'COMPLETED' : 'DEGRADED',
+    ok: closed,
+    status: closed ? 'COMPLETED' : 'DEGRADED',
+    closureState: runStatus,
     trigger,
     startedAt,
     completedAt,
