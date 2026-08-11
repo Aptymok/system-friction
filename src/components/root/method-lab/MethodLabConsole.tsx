@@ -1,0 +1,70 @@
+'use client';
+
+import { useState } from 'react';
+import type { AwaitedReturn } from '@/lib/types/utilityTypes';
+import { readMethodLabState } from '@/lib/method-lab/readModel';
+
+type State = AwaitedReturn<typeof readMethodLabState>;
+
+const STATUS: Record<string, string> = {
+  OPERATIONAL: 'EJECUCIÓN OBSERVADA',
+  GATED: 'IMPLEMENTACIÓN DISPONIBLE · SIN RUN OBSERVADO',
+  AVAILABLE: 'DISPONIBLE',
+  REGISTERED: 'PROTOCOLO REGISTRADO · AÚN NO INTEGRADO',
+  DEGRADED: 'DEGRADADO',
+};
+
+export function MethodLabConsole({ state: initial }: { state: State }) {
+  const [state, setState] = useState(initial);
+  const [refreshing, setRefreshing] = useState(false);
+
+  async function refresh() {
+    setRefreshing(true);
+    try {
+      const response = await fetch('/api/root/method-lab', { credentials: 'include', cache: 'no-store' });
+      const body = await response.json().catch(() => null) as { ok?: boolean; lab?: State } | null;
+      if (response.ok && body?.ok && body.lab) setState(body.lab);
+    } finally {
+      setRefreshing(false);
+    }
+  }
+
+  return <main className="ml-root">
+    <header>
+      <div><span>SFI · ROOT · METHOD LAB</span><h1>Un laboratorio. Múltiples protocolos.</h1><p>Olympics/CHRONOS, Cognitive Relational Lab, reentrada del Cognitive Twin y simulaciones sociotécnicas/económicas usan el mismo contrato experimental. Registrar un protocolo no constituye ejecución; simulación no constituye observación; ningún protocolo se autopromueve.</p></div>
+      <button type="button" onClick={() => void refresh()} disabled={refreshing}>{refreshing ? 'ACTUALIZANDO' : 'ACTUALIZAR ESTADO'}</button>
+    </header>
+
+    <section className="ml-policy">
+      <div><small>CONTRATO</small><strong>{state.contractVersion}</strong></div>
+      <div><small>PERSISTENCIA COMPARTIDA</small><strong>{state.sharedPersistence}</strong></div>
+      <div><small>SALUD</small><strong>{state.status}</strong></div>
+      <div className="wide"><small>REGLA EPISTÉMICA</small><p>{state.epistemicRule}</p></div>
+      <div className="wide"><small>GOBERNANZA</small><p>{state.promotionRule}</p></div>
+    </section>
+
+    {state.warnings.length ? <section className="ml-warning">{state.warnings.map((warning) => <p key={warning}>{warning}</p>)}</section> : null}
+
+    <section className="ml-grid">
+      {state.protocols.map((protocol) => <article key={protocol.id} data-status={protocol.status}>
+        <div className="ml-card-head"><span>{protocol.id}</span><strong>{STATUS[protocol.status] ?? protocol.status}</strong></div>
+        <h2>{protocol.name}</h2><p>{protocol.purpose}</p>
+        <dl>
+          <div><dt>VERSIÓN</dt><dd>{protocol.version}</dd></div>
+          <div><dt>IMPLEMENTACIÓN</dt><dd>{protocol.implementationPath}</dd></div>
+          <div><dt>SUPERFICIE</dt><dd>{protocol.executionSurface ?? 'SIN SUPERFICIE'}</dd></div>
+          <div><dt>CLASE</dt><dd>{protocol.epistemicClass}</dd></div>
+          <div><dt>VALIDACIÓN MÁXIMA DISEÑADA</dt><dd>{protocol.maximumValidationLevel}</dd></div>
+          <div><dt>RUNS OBSERVADOS</dt><dd>{protocol.runCount}</dd></div>
+          <div><dt>ÚLTIMO RUN</dt><dd>{protocol.lastRunAt ?? 'NO OBSERVADO'}</dd></div>
+          <div><dt>ÚLTIMO NIVEL</dt><dd>{protocol.lastValidationLevel ?? 'NO OBSERVADO'}</dd></div>
+        </dl>
+        <div className="ml-store"><b>PERSISTE EN</b>{protocol.persistence.map((item) => <span key={item}>{item}</span>)}</div>
+        {protocol.warnings.length ? <div className="ml-card-warning">{protocol.warnings.join(' · ')}</div> : null}
+      </article>)}
+    </section>
+    <style jsx>{`
+      .ml-root{min-height:100vh;background:#060605;color:#c8c2b3;padding:28px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;box-sizing:border-box}.ml-root header{display:flex;justify-content:space-between;gap:28px;border-bottom:1px solid rgba(197,164,75,.18);padding-bottom:20px}.ml-root header>div{max-width:1000px}.ml-root header span,.ml-policy small,.ml-card-head span,dt{font-size:8px;letter-spacing:.15em;color:#88744a}.ml-root h1{font:400 34px Georgia,serif;color:#e0d0aa;margin:7px 0}.ml-root header p{font:14px/1.6 Georgia,serif;color:#81786a;margin:0}.ml-root button{height:max-content;border:1px solid #4a3f25;background:#0a0907;color:#c3a85d;padding:9px 11px;font:9px ui-monospace,monospace}.ml-policy{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:18px 0}.ml-policy>div{border:1px solid #252117;background:#0a0907;padding:12px}.ml-policy strong{display:block;color:#c8b16d;font-size:11px;margin-top:6px}.ml-policy .wide{grid-column:span 3}.ml-policy p{margin:6px 0 0;color:#8e8677;font-size:10px;line-height:1.5}.ml-warning{border-left:2px solid #9b5f46;background:#100b08;padding:8px 12px;color:#bb8067;font-size:9px}.ml-warning p{margin:4px 0}.ml-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:10px}.ml-grid article{border:1px solid #29251b;background:#0b0a08;padding:16px}.ml-grid article[data-status=OPERATIONAL]{border-color:rgba(101,159,109,.36)}.ml-grid article[data-status=DEGRADED]{border-color:rgba(180,91,74,.4)}.ml-card-head{display:flex;justify-content:space-between;gap:10px}.ml-card-head strong{font-size:8px;color:#a68d50}.ml-grid h2{font:400 19px Georgia,serif;color:#d9c89e;margin:9px 0}.ml-grid article>p{font:12px/1.55 Georgia,serif;color:#8d8578}.ml-grid dl{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:15px 0}.ml-grid dl div{border-top:1px solid #211e17;padding-top:6px}.ml-grid dd{margin:5px 0 0;font-size:9px;color:#aaa18f;overflow-wrap:anywhere}.ml-store{border-top:1px solid #29251b;padding-top:9px;display:grid;gap:4px}.ml-store b{font-size:8px;color:#806d45}.ml-store span{font-size:8px;color:#777064}.ml-card-warning{margin-top:10px;color:#b0775f;font-size:8px;line-height:1.5}@media(max-width:700px){.ml-root{padding:18px}.ml-root header{display:grid}.ml-policy{grid-template-columns:1fr}.ml-policy .wide{grid-column:auto}.ml-grid{grid-template-columns:1fr}}
+    `}</style>
+  </main>;
+}
