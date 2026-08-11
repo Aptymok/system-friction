@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { listFieldCycles, type FieldVerificationWindow } from '@/lib/field/operationalCycle';
 import { createGovernedFieldCycle } from '@/lib/field/governedReturn';
+import type { StudioFieldHandoff } from '@/lib/studio/fieldHandoff';
 import { AccessDeniedError, requireAuthenticatedUser } from '@/lib/system/access/server';
 
 export const dynamic = 'force-dynamic';
@@ -26,12 +27,16 @@ function windowValue(value: unknown): FieldVerificationWindow {
   return value === '7d' || value === '30d' ? value : '72h';
 }
 
+function studioHandoff(value: unknown): StudioFieldHandoff | null {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as StudioFieldHandoff : null;
+}
+
 function failure(error: unknown) {
   if (error instanceof AccessDeniedError) {
     return NextResponse.json({ ok: false, error: error.code, details: error.message }, { status: error.status });
   }
   const details = error instanceof Error ? error.message : String(error);
-  const status = details.includes('_REQUIRED') || details.includes('_INVALID') || details.includes('_NOT_OPEN') || details.includes('_NOT_READY')
+  const status = details.includes('_REQUIRED') || details.includes('_INVALID') || details.includes('_NOT_OPEN') || details.includes('_NOT_READY') || details.includes('HANDOFF')
     ? 400
     : details.includes('NOT_FOUND')
       ? 404
@@ -87,6 +92,7 @@ export async function POST(request: Request) {
       consent: body.consent === true,
       rivalHypothesis: text(body.rivalHypothesis) || undefined,
       stoppingCondition: text(body.stoppingCondition) || undefined,
+      studioHandoff: studioHandoff(body.studioHandoff),
     });
     return NextResponse.json({ ok: true, result }, { status: 201 });
   } catch (error) {
