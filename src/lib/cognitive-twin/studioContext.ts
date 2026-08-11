@@ -1,7 +1,8 @@
 import 'server-only';
 
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
-import { COGNITIVE_TWIN_CONTRACT_VERSION, evaluateCognitiveTwinAuthority } from './contract';
+import { COGNITIVE_TWIN_CONTRACT_VERSION } from './contract';
+import { persistCognitiveTwinExperience } from './experienceBridge';
 
 const MEMORY_STATUSES = ['CANDIDATE', 'VERIFIED', 'CANONICAL'] as const;
 const STUDIO_LEARNING_VERSION = 'studio-learning-v1';
@@ -167,31 +168,27 @@ export async function persistStudioLearningCandidate(input: {
   sourceRef: string;
   createdBy: string;
 }) {
-  const evidenceRefs = [...new Set(input.evidenceRefs.filter(Boolean))];
-  const authority = evaluateCognitiveTwinAuthority({
-    action: 'persist_memory',
-    founderAbsent: false,
-    evidencePresent: evidenceRefs.length > 0,
-  });
-  if (authority.decision !== 'ALLOW') {
-    return { ok: false as const, blocked: true, reason: authority.reason };
-  }
-
-  const db = createServiceSupabaseClient();
   const memoryKey = stableStudioLearningKey(input.memoryKey);
-  const result = await db.from('sfi_cognitive_twin_memory').upsert({
-    memory_key: memoryKey,
-    memory_type: input.memoryType,
-    status: 'CANDIDATE',
+  const persisted = await persistCognitiveTwinExperience({
+    memoryKey,
+    memoryType: input.memoryType,
     content: input.content,
-    evidence_refs: evidenceRefs,
-    source_kind: 'STUDIO_OBSERVED_RETURN',
-    source_ref: input.sourceRef,
+    evidenceRefs: input.evidenceRefs,
+    sourceKind: 'STUDIO_OBSERVED_RETURN',
+    sourceRef: input.sourceRef,
+    createdBy: input.createdBy,
     version: STUDIO_LEARNING_VERSION,
-    created_by: input.createdBy,
-    updated_at: new Date().toISOString(),
-  }, { onConflict: 'memory_key,version' }).select('id').single();
+  });
 
-  if (result.error) return { ok: false as const, blocked: false, reason: result.error.message };
-  return { ok: true as const, blocked: false, id: String(result.data.id), status: 'CANDIDATE' as const, version: STUDIO_LEARNING_VERSION, memoryKey };
+  if (!persisted.ok) {
+    return { ok: false as const, blocked: persisted.blocked, reason: persisted.reason };
+  }
+  return {
+    ok: true as const,
+    blocked: false,
+    id: String(persisted.memory.id),
+    status: 'CANDIDATE' as const,
+    version: STUDIO_LEARNING_VERSION,
+    memoryKey,
+  };
 }
