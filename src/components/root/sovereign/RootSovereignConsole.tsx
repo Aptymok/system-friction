@@ -71,8 +71,6 @@ export function RootSovereignConsole({ initialState, accessMode = 'sovereign', a
   }, []);
 
   useEffect(() => {
-    // ROOT is server-rendered on entry. After that, refresh only once per hour,
-    // plus an explicit refresh whenever the user returns to the page/tab.
     const interval = window.setInterval(() => { if (!document.hidden) void refresh(true); }, ROOT_BACKGROUND_REFRESH_MS);
     const visible = () => { if (!document.hidden) void refresh(true); };
     document.addEventListener('visibilitychange', visible);
@@ -122,6 +120,7 @@ export function RootSovereignConsole({ initialState, accessMode = 'sovereign', a
 
   return <div className={`rs-console-host ${selection ? 'has-semantic-selection' : ''}`}>
     <RootObservatoryWorkspace state={state} accessMode={accessMode} actorLabel={actorLabel} refreshing={refreshing} warning={refreshWarning} onRefresh={() => void refresh(false)} onSelect={setSelection} onAction={requestAction} />
+    <a href="/root/method-lab" title="Abrir Method Lab" style={{ position: 'fixed', right: 18, bottom: readOnly ? 18 : 62, zIndex: 35, border: '1px solid rgba(191,160,78,.38)', background: '#080807', color: '#c6ad69', padding: '8px 10px', textDecoration: 'none', font: '9px ui-monospace,SFMono-Regular,Menlo,monospace', letterSpacing: '.08em' }}>METHOD LAB</a>
     {selection && richSemantic ? <RootSemanticContextModal selection={selection} onClose={() => setSelection(null)} /> : <RootSemanticInspector value={selection} onClose={() => setSelection(null)} />}
     {!readOnly ? <RootMethodologyWorkbench state={state} launcher={false} /> : null}
     {!readOnly ? <FriccionautaConsole launcher={false} /> : null}
