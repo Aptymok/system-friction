@@ -48,6 +48,9 @@ jobs:
       - name: Verify ROOT reports and runtime truth
         run: npx tsx scripts/qa-sfi-root-reports-runtime.ts
 
+      - name: Verify ROOT ACP total convergence
+        run: npx tsx scripts/qa-sfi-root-acp-total-convergence.ts
+
       - name: Verify Method Lab convergence
         run: npx tsx scripts/qa-sfi-method-lab-convergence.ts
 
