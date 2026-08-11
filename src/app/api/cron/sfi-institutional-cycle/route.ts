@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { runInstitutionalCycle } from '@/lib/institution/institutionalCycle';
+import { runIntegratedInstitutionalCycle } from '@/lib/cognitive-twin/integratedInstitutionalCycle';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -18,7 +18,7 @@ function authorized(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   if (!authorized(request)) return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 });
-  const result = await runInstitutionalCycle('scheduled');
+  const result = await runIntegratedInstitutionalCycle('scheduled');
   return NextResponse.json(result, { status: result.ok ? 200 : 207 });
 }
 
