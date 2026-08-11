@@ -51,6 +51,9 @@ jobs:
       - name: Verify ROOT ACP total convergence
         run: npx tsx scripts/qa-sfi-root-acp-total-convergence.ts
 
+      - name: Verify SFI development registry
+        run: npx tsx scripts/qa-sfi-development-registry.ts
+
       - name: Verify Method Lab convergence
         run: npx tsx scripts/qa-sfi-method-lab-convergence.ts
 
