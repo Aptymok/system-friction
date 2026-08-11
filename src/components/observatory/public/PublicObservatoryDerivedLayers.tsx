@@ -75,7 +75,7 @@ export function PublicObservatoryDerivedLayers({ state }: { state: ObservatoryGo
         <header>
           <div>
             <span>CAPA III · FENÓMENOS CANDIDATOS</span>
-            <h2>Qué configuraciones muestran persistencia suficiente para seguir observando.</h2>
+            <h2>Qué configuraciones ya tienen persistencia calculable y pueden seguirse longitudinalmente.</h2>
           </div>
           <strong>{phenomenonCandidates.length} CANDIDATOS</strong>
         </header>
