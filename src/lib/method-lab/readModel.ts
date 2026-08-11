@@ -8,7 +8,7 @@ import { METHOD_LAB_PROTOCOLS } from './registry';
 type Row = Record<string, unknown>;
 
 const IMPLEMENTATION_GATES: Record<MethodLabProtocolId, () => boolean> = {
-  chronos_olympics: () => false,
+  chronos_olympics: () => true,
   cognitive_relational_lab: () => false,
   ct_reentry: () => true,
   sociotechnical_simulation: () => typeof SFI_AGENT_EXECUTION_MAP.social_field_simulator === 'function' && typeof SFI_AGENT_EXECUTION_MAP.friction_field_simulator === 'function',
