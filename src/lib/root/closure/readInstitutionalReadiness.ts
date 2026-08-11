@@ -9,7 +9,7 @@ import { readCognitiveTwinMutationState } from '@/lib/cognitive-twin/reentry/mut
 import { getLatestWorldSpectSnapshot } from '@/lib/worldspect/snapshotStore';
 import { readCanonicalGraphState } from '@/lib/graph/canonicalGraph';
 import { getLatestKernelCycle } from '@/lib/kernel/kernelCycleStore';
-import { studioCapabilityMatrix } from '@/lib/studio/capabilities/studioCapabilityInventory';
+import { resolvedStudioCapabilityMatrix } from '@/lib/studio/capabilities/resolvedStudioCapabilities';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 
 export type InstitutionalReadinessState = 'OPERATIONAL' | 'READY' | 'GATED' | 'DEGRADED';
@@ -78,7 +78,7 @@ export async function readInstitutionalReadiness() {
     Promise.all(graphTables.map(probe)),
   ]);
 
-  const studioMatrix = studioCapabilityMatrix();
+  const studioMatrix = resolvedStudioCapabilityMatrix();
   const fieldBlockers = fieldProbes.filter(item=>!item.available).map(item=>`${item.table}:${item.error??'unavailable'}`);
   const studioBlockers = [
     ...studioProbes.filter(item=>!item.available).map(item=>`${item.table}:${item.error??'unavailable'}`),
