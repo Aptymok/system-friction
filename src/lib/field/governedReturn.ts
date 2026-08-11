@@ -9,12 +9,14 @@ import {
 } from './operationalCycle';
 import { finalizeReturnContrast, canMarkLongitudinalCaseComplete } from './returnContrastContract';
 import { verifyStudioFieldHandoff, type StudioFieldHandoff } from '@/lib/studio/fieldHandoff';
+import { persistCognitiveTwinExperience } from '@/lib/cognitive-twin/experienceBridge';
 
 type Row = Record<string, unknown>;
 function record(value: unknown): Row {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Row : {};
 }
 function text(value: unknown) { return typeof value === 'string' ? value.trim() : ''; }
+function strings(value: unknown) { return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0) : []; }
 
 export type GovernedFieldCreateInput = CreateFieldCycleInput & {
   rivalHypothesis?: string;
@@ -122,11 +124,38 @@ export async function submitGovernedFieldReturn(ownerId: string, caseId: string,
     throw new Error(`FIELD_CASE_CONTRAST_PERSIST_FAILED:${casePersist.error.message}`);
   }
 
+  const outcome = record(result.outcome);
+  const outcomeId = text(outcome.id) || `${caseId}:${text(returnRow.data.id)}`;
+  const twinExperience = await persistCognitiveTwinExperience({
+    memoryKey:`SFI:FIELD:RETURN:${outcomeId}`,
+    memoryType:'STATE',
+    sourceKind:'field_outcomes',
+    sourceRef:outcomeId,
+    createdBy:ownerId,
+    evidenceRefs:[...strings(outcome.evidence_ids), ...(evidenceId ? [`field_case_evidence:${evidenceId}`] : [])],
+    content:{
+      epistemicClass:'OBSERVED_RETURN',
+      caseId,
+      fieldOutcomeId:text(outcome.id) || null,
+      expected:result.expectedValue,
+      observed:result.actualValue,
+      delta:result.delta,
+      accepted:result.accepted,
+      verified:result.verified,
+      explanation:result.explanation,
+      returnContrast:contrast,
+      studioHandoffId:text(metadata.studioHandoffId) || null,
+      studioHandoffHash:text(metadata.studioHandoffHash) || null,
+      rule:'This is a completed Field return available to the Cognitive Twin as candidate institutional experience. One return does not establish general causality or mutate canon.',
+    },
+  });
+
   return {
     ...result,
     returnContrast: contrast,
     longitudinalComplete: true as const,
     studioHandoffId: text(metadata.studioHandoffId) || null,
     studioHandoffHash: text(metadata.studioHandoffHash) || null,
+    cognitiveTwinExperience:twinExperience,
   };
 }
