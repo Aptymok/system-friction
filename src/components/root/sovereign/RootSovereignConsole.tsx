@@ -109,7 +109,9 @@ export function RootSovereignConsole({ initialState, accessMode = 'sovereign', a
 
   return <div className={`rs-console-host ${selection ? 'has-semantic-selection' : ''}`}>
     <RootObservatoryWorkspace state={state} accessMode={accessMode} actorLabel={actorLabel} refreshing={refreshing} warning={refreshWarning} onRefresh={() => void refresh(false)} onSelect={setSelection} onAction={requestAction} />
-    <div style={{ position: 'fixed', right: 18, bottom: readOnly ? 18 : 62, zIndex: 35, display: 'flex', gap: 8 }}>
+    <div style={{ position: 'fixed', right: 18, bottom: readOnly ? 18 : 62, zIndex: 35, display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end', maxWidth: '80vw' }}>
+      <a href="/root/development" title="Abrir Development Registry" style={launcherStyle}>DEVELOPMENT</a>
+      <a href="/root/readiness" title="Abrir Institutional Readiness" style={launcherStyle}>READINESS</a>
       <a href="/root/governance" title="Abrir Governance Control" style={launcherStyle}>GOVERNANCE</a>
       <a href="/root/cognitive-twin/lineage" title="Abrir CT-A01 Lineage" style={launcherStyle}>CT-A01</a>
       <a href="/root/method-lab" title="Abrir Method Lab" style={launcherStyle}>METHOD LAB</a>
