@@ -5,6 +5,7 @@ import { readAgentPassports } from '@/lib/sfi/cognitive-runtime/agentPassports';
 import { readRootReportHealth } from '@/lib/reports/rootReportInbox';
 import { readMethodLabState } from '@/lib/method-lab/readModel';
 import { readCognitiveTwinLineageHealth } from '@/lib/cognitive-twin/reentry/runtime';
+import { readCognitiveTwinMutationState } from '@/lib/cognitive-twin/reentry/mutationState';
 import { getLatestWorldSpectSnapshot } from '@/lib/worldspect/snapshotStore';
 import { readCanonicalGraphState } from '@/lib/graph/canonicalGraph';
 import { getLatestKernelCycle } from '@/lib/kernel/kernelCycleStore';
@@ -26,8 +27,8 @@ export async function readInstitutionalReadiness() {
   const fieldTables=['field_cases','field_case_evidence','field_moph_runs','field_mihm_readings','field_hypotheses','field_interventions','field_returns','field_outcomes'];
   const studioTables=['studio_sessions','studio_objects','studio_uploads'];
   const evidenceTables=['root_evidence_entries','epistemic_events','graph_nodes','graph_edges'];
-  const [governance,agents,reports,lab,twin,worldspect,graph,kernel,fieldProbes,studioProbes,evidenceProbes] = await Promise.all([
-    readGovernanceHealth(), readAgentPassports(), readRootReportHealth(), readMethodLabState(), readCognitiveTwinLineageHealth(), getLatestWorldSpectSnapshot(), readCanonicalGraphState('sfi'), getLatestKernelCycle(), Promise.all(fieldTables.map(probe)), Promise.all(studioTables.map(probe)), Promise.all(evidenceTables.map(probe)),
+  const [governance,agents,reports,lab,twin,mutations,worldspect,graph,kernel,fieldProbes,studioProbes,evidenceProbes] = await Promise.all([
+    readGovernanceHealth(), readAgentPassports(), readRootReportHealth(), readMethodLabState(), readCognitiveTwinLineageHealth(), readCognitiveTwinMutationState(), getLatestWorldSpectSnapshot(), readCanonicalGraphState('sfi'), getLatestKernelCycle(), Promise.all(fieldTables.map(probe)), Promise.all(studioTables.map(probe)), Promise.all(evidenceTables.map(probe)),
   ]);
   const studioMatrix=studioCapabilityMatrix();
   const fieldBlockers=fieldProbes.filter(item=>!item.available).map(item=>`${item.table}:${item.error??'unavailable'}`);
@@ -35,7 +36,7 @@ export async function readInstitutionalReadiness() {
   const evidenceBlockers=evidenceProbes.filter(item=>!item.available).map(item=>`${item.table}:${item.error??'unavailable'}`);
   const worldBlockers=[...(worldspect?[]:['worldspect_snapshot_missing']),...(graph.degradedReason?[`graph:${graph.degradedReason}`]:[]),...(kernel?[]:['kernel_cycle_missing'])];
   const reportBlockers=[...reports.warnings,...reports.lanes.filter(lane=>['NEVER_GENERATED','MISSING_CURRENT_PERIOD','CURRENT_BLOCKED'].includes(lane.state)).map(lane=>`${lane.key}:${lane.state}`)];
-  const twinBlockers=[...(twin.genesisPresent?[]:['ct_genesis_missing']),...(twin.chainIntegrity==='PASS'?[]:[`lineage:${twin.chainIntegrity}`])];
+  const twinBlockers=[...(twin.genesisPresent?[]:['ct_genesis_missing']),...(twin.chainIntegrity==='PASS'?[]:[`lineage:${twin.chainIntegrity}`]),...(mutations.available?[]:[mutations.warning??'ct_mutation_state_unavailable'])];
   const twinExternalGates=twin.limitations.filter(item=>/external timestamp|third-party|independent external/i.test(item));
   const agentBlockers=agents.passports.filter(item=>['DEGRADED','MISSING'].includes(item.lifecycle)).map(item=>`${item.id}:${item.lifecycle}`);
   const labBlockers=lab.protocols.filter(item=>item.status==='DEGRADED').flatMap(item=>item.missingDependencies.map(dep=>`${item.id}:${dep}`));
@@ -46,7 +47,7 @@ export async function readInstitutionalReadiness() {
     {id:'field',label:'Field',state:stateFrom(true,fieldBlockers,fieldProbes.some(item=>(item.count??0)>0)),implemented:true,observed:fieldProbes.some(item=>(item.count??0)>0),evidence:fieldProbes.map(item=>`${item.table}:${item.available?item.count:'unavailable'}`),blockers:fieldBlockers,nextAction:fieldBlockers.length?'Reconcile missing Field schema dependency.':fieldProbes.every(item=>(item.count??0)===0)?'Run one governed end-to-end Field case and return.':null},
     {id:'studio',label:'Studio',state:stateFrom(true,studioBlockers,studioProbes.some(item=>(item.count??0)>0)),implemented:true,observed:studioProbes.some(item=>(item.count??0)>0),evidence:[`capabilities:${studioMatrix.summary.total}`,...studioProbes.map(item=>`${item.table}:${item.available?item.count:'unavailable'}`)],blockers:studioBlockers,nextAction:studioBlockers.length?'Implement remaining technically solvable Studio capability.':null},
     {id:'method_lab',label:'Method Lab',state:lab.status==='DEGRADED'?'DEGRADED':lab.status==='OPERATIONAL'?'OPERATIONAL':'READY',implemented:true,observed:lab.protocols.some(item=>item.runCount>0),evidence:lab.protocols.map(item=>`${item.id}:${item.status}:${item.runCount}`),blockers:labBlockers,nextAction:lab.protocols.some(item=>item.status==='GATED')?'Run the next preregistered/gated protocol under Method Lab.':null},
-    {id:'cognitive_twin',label:'Cognitive Twin / CT-A01',state:stateFrom(true,twinBlockers,twin.eventCount>0),implemented:true,observed:twin.eventCount>0,evidence:[`genesis:${twin.genesisPresent}`,`lineage:${twin.chainIntegrity}`,`epochs:${twin.eventCount}`,`material:${twin.materialEventCount}`,`mutation_proposals:${twin.unresolvedMutationProposals}`],blockers:twinBlockers,externalGates:twinExternalGates,nextAction:twinExternalGates.length?'Anchor exported lineage checkpoints with an independent external timestamp authority.':null},
+    {id:'cognitive_twin',label:'Cognitive Twin / CT-A01',state:stateFrom(true,twinBlockers,twin.eventCount>0),implemented:true,observed:twin.eventCount>0,evidence:[`genesis:${twin.genesisPresent}`,`lineage:${twin.chainIntegrity}`,`epochs:${twin.eventCount}`,`material:${twin.materialEventCount}`,`mutation_proposals:${mutations.unresolved}`],blockers:twinBlockers,externalGates:twinExternalGates,nextAction:twinExternalGates.length?'Anchor exported lineage checkpoints with an independent external timestamp authority.':null},
     {id:'agents',label:'Agent Runtime',state:stateFrom(true,agentBlockers,agents.counts.operational>0),implemented:true,observed:agents.counts.operational>0,evidence:[`total:${agents.counts.total}`,`operational:${agents.counts.operational}`,`gated:${agents.counts.gated}`,`degraded:${agents.counts.degraded}`,`missing:${agents.counts.missing}`],blockers:agentBlockers,nextAction:agentBlockers.length?'Resolve shared missing dependencies before adding agents.':null},
     {id:'reports',label:'Institutional Reports',state:stateFrom(true,reportBlockers,reports.totalReports>0),implemented:true,observed:reports.totalReports>0,evidence:[`reports:${reports.totalReports}`,...reports.lanes.map(lane=>`${lane.key}:${lane.state}`)],blockers:reportBlockers,nextAction:reportBlockers.length?'Allow scheduled lanes to generate/repair blocked current-period reports.':null},
     {id:'evidence',label:'Evidence / Graph',state:stateFrom(true,evidenceBlockers,evidenceProbes.some(item=>(item.count??0)>0)),implemented:true,observed:evidenceProbes.some(item=>(item.count??0)>0),evidence:evidenceProbes.map(item=>`${item.table}:${item.available?item.count:'unavailable'}`),blockers:evidenceBlockers,nextAction:evidenceBlockers.length?'Repair canonical evidence/graph persistence dependency.':null},
