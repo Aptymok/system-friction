@@ -11,7 +11,7 @@ type DependencyState = { table: string; available: boolean; error: string | null
 const IMPLEMENTATION_GATES: Record<MethodLabProtocolId, () => boolean> = {
   chronos_olympics: () => true,
   cognitive_relational_lab: () => true,
-  ct_reentry: () => true,
+  ct_reentry: () => false,
   sociotechnical_simulation: () => typeof SFI_AGENT_EXECUTION_MAP.social_field_simulator === 'function' && typeof SFI_AGENT_EXECUTION_MAP.friction_field_simulator === 'function',
   economic_simulation: () => typeof SFI_AGENT_EXECUTION_MAP.economic_field_simulator === 'function',
 };
@@ -59,14 +59,16 @@ export async function readMethodLabState() {
     const raw = row(latest?.raw_analysis);
     const dependencies = PROTOCOL_DEPENDENCIES[definition.id].map((table) => dependencyState.get(table) ?? { table, available: false, error: 'dependency_not_probed' });
     const missingDependencies = dependencies.filter((item) => !item.available);
+    const implemented = IMPLEMENTATION_GATES[definition.id]();
     const warnings = [
       ...(Array.isArray(latest?.limitations) ? latest.limitations.map(String) : []),
       ...missingDependencies.map((item) => `${item.table}:${item.error ?? 'unavailable'}`),
+      ...(!implemented && definition.id === 'ct_reentry' ? ['Cognitive Twin core exists, but ancestral reentry functions have not yet been reintegrated; protocol remains REGISTERED.'] : []),
       ...(tableWarning ? [`sfi_lab_analyses:${tableWarning}`] : []),
     ];
     let status: MethodLabProtocolStatus;
     if (tableWarning) status = 'DEGRADED';
-    else if (!IMPLEMENTATION_GATES[definition.id]()) status = 'REGISTERED';
+    else if (!implemented) status = 'REGISTERED';
     else if (missingDependencies.length) status = 'DEGRADED';
     else if (latest) status = 'OPERATIONAL';
     else status = 'GATED';
