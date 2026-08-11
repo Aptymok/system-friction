@@ -1,6 +1,7 @@
 import 'server-only';
 
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
+import { persistCognitiveTwinExperience } from './experienceBridge';
 
 type Row = Record<string, unknown>;
 
@@ -13,7 +14,6 @@ function record(value: unknown): Row {
 }
 
 export async function ingestRootEvidenceIntoCognitiveTwin(evidence: Row) {
-  const db = createServiceSupabaseClient();
   const id = text(evidence.id);
   if (!id) return { ok: false as const, error: 'root_evidence_id_missing' };
 
@@ -23,30 +23,28 @@ export async function ingestRootEvidenceIntoCognitiveTwin(evidence: Row) {
   const evidenceRefs = [id, eventId].filter((value): value is string => Boolean(value));
   const memoryKey = `ROOT-EVIDENCE:${evidenceHash}`;
 
-  const result = await db.from('sfi_cognitive_twin_memory').upsert({
-    memory_key: memoryKey,
-    memory_type: 'EVIDENCE',
-    status: 'CANDIDATE',
-    content: {
-      epistemicClass: 'OBSERVED',
-      observedObject: 'evidence_record_existence_and_provenance',
-      title: text(evidence.title),
-      content: text(evidence.content),
-      evidenceType: text(evidence.evidence_type),
-      targetNodeId: text(evidence.target_node_id),
+  const persisted = await persistCognitiveTwinExperience({
+    memoryKey,
+    memoryType:'EVIDENCE',
+    sourceKind:'root_evidence_entries',
+    sourceRef:id,
+    evidenceRefs,
+    createdBy:text(evidence.actor_id),
+    version:'1.0.0',
+    content:{
+      epistemicClass:'OBSERVED',
+      observedObject:'evidence_record_existence_and_provenance',
+      title:text(evidence.title),
+      content:text(evidence.content),
+      evidenceType:text(evidence.evidence_type),
+      targetNodeId:text(evidence.target_node_id),
       payload,
-      rule: 'The existence and provenance of this evidence record are OBSERVED. Claims inside its content retain their own epistemic class and require independent evaluation before promotion.',
+      rule:'The existence and provenance of this evidence record are OBSERVED. Claims inside its content retain their own epistemic class and require independent evaluation before promotion.',
     },
-    evidence_refs: evidenceRefs,
-    source_kind: 'root_evidence_entries',
-    source_ref: id,
-    version: '1.0.0',
-    created_by: text(evidence.actor_id),
-    updated_at: new Date().toISOString(),
-  }, { onConflict: 'memory_key,version' }).select('id,memory_key,status,evidence_refs,updated_at').single();
+  });
 
-  if (result.error) return { ok: false as const, error: 'cognitive_twin_evidence_sync_failed', details: result.error.message };
-  return { ok: true as const, memory: result.data };
+  if (!persisted.ok) return { ok:false as const, error:'cognitive_twin_evidence_sync_failed', details:persisted.reason };
+  return { ok:true as const, memory:persisted.memory };
 }
 
 export async function syncRecentInstitutionalEvidenceToCognitiveTwin(limit = 200) {
