@@ -8,7 +8,7 @@ export type RootReportCadence = 'daily' | 'weekly' | 'event' | 'manual' | 'unkno
 
 export type RootReportInboxItem = {
   id: string;
-  source: 'report_agent' | 'prospect_radar' | 'continuity';
+  source: 'report_agent' | 'scheduled_system' | 'prospect_radar' | 'continuity';
   sourceTable: string;
   category: RootReportCategory;
   cadence: RootReportCadence;
@@ -133,7 +133,7 @@ function normalizeAgentRun(input: Row): RootReportInboxItem {
   const objective = text(input.objective, 'Reporte');
   return {
     id: text(input.id, `report:${text(input.task_id, crypto.randomUUID())}`),
-    source: 'report_agent',
+    source: text(input.role) === 'report_scheduler' ? 'scheduled_system' : 'report_agent',
     sourceTable: 'sfi_cognitive_twin_runs',
     category: categoryFrom(type, scheduleKey, objective),
     cadence: cadenceFrom(scheduleKey, schedule.cadence),
@@ -220,8 +220,8 @@ export async function readRootReportInbox(limit = 240): Promise<RootReportInbox>
   const db = createServiceSupabaseClient();
   const [agentRuns, prospectReports, prospectSources, prospectRuns, continuityReports] = await Promise.all([
     db.from('sfi_cognitive_twin_runs')
-      .select('id,task_id,status,objective,input_snapshot,output_envelope,evidence_refs,limitations,provider,model,started_at,finished_at,created_at')
-      .eq('role', 'report_agent')
+      .select('id,task_id,role,status,objective,input_snapshot,output_envelope,evidence_refs,limitations,provider,model,started_at,finished_at,created_at')
+      .in('role', ['report_agent', 'report_scheduler'])
       .order('created_at', { ascending: false })
       .limit(limit),
     db.from('prospect_opportunity_reports')
@@ -303,7 +303,7 @@ export async function readRootReportHealth(existingInbox?: RootReportInbox): Pro
     };
   });
 
-  const providers = getLlmProviderStatus().map((item) => ({ id: item.id, available: item.available, model: item.model || null }));
+  const providers = getLlmProviderStatus().map((item) => ({ id: item.id, available: item.available, model: 'model' in item ? text((item as Row).model) || null : null }));
   return {
     generatedAt: new Date().toISOString(),
     inboxReadable: !inbox.warnings.some((warning) => warning.startsWith('sfi_cognitive_twin_runs:')),
