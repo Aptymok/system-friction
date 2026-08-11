@@ -7,6 +7,9 @@ function read(path: string) {
 
 const integration = read('src/lib/cognitive-twin/institutionalIntegration.ts');
 const experience = read('src/lib/cognitive-twin/experienceBridge.ts');
+const evidenceIngestion = read('src/lib/cognitive-twin/evidenceIngestion.ts');
+const studioContext = read('src/lib/cognitive-twin/studioContext.ts');
+const crl = read('src/lib/cognitive-lab/service.ts');
 const field = read('src/lib/field/governedReturn.ts');
 const methodLab = read('src/lib/method-lab/simulationRun.ts');
 const deliberate = read('src/app/api/root/cognitive-twin/deliberate/route.ts');
@@ -26,6 +29,15 @@ assert.ok(integration.includes("import { persistCognitiveTwinExperience } from '
 assert.equal(integration.includes("from('sfi_cognitive_twin_memory').upsert"), false, 'institutional integration must not create a second memory persistence path');
 assert.ok(experience.includes("status: 'CANDIDATE'"), 'experience bridge must persist candidates only');
 assert.ok(experience.includes('never expands authority automatically'), 'experience authority boundary missing');
+
+for (const [name, source] of [
+  ['ROOT Evidence', evidenceIngestion],
+  ['Studio', studioContext],
+  ['CRL', crl],
+] as const) {
+  assert.ok(source.includes('persistCognitiveTwinExperience'), `${name} must use the canonical experience bridge`);
+  assert.equal(source.includes("from('sfi_cognitive_twin_memory').upsert"), false, `${name} must not directly upsert Twin memory`);
+}
 
 assert.ok(field.includes('persistCognitiveTwinExperience'), 'Field live return is not wired to Twin experience');
 assert.ok(field.includes("epistemicClass:'OBSERVED_RETURN'"), 'Field return epistemic class missing');
@@ -54,7 +66,7 @@ console.log(JSON.stringify({
   contract:'SFI-CT-INSTITUTIONAL-INTEGRATION-1.0',
   organs:7,
   canonicalExperienceBridge:true,
-  liveBridges:['ROOT_EVIDENCE','STUDIO','METHOD_LAB','FIELD'],
+  canonicalIngress:['ROOT_EVIDENCE','STUDIO','CRL','METHOD_LAB','FIELD','OBSERVATORY_SYNC'],
   synchronizedContext:['OBSERVATORY'],
   authority:['GOVERNANCE'],
   longitudinalSubject:'CT-A01',
