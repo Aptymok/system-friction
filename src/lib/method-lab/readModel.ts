@@ -1,5 +1,6 @@
 import 'server-only';
 
+import { getLlmProviderStatus } from '@/lib/ai/providerRouter';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { SFI_AGENT_EXECUTION_MAP } from '@/lib/sfi/cognitive-runtime/agentExecutionMap';
 import { COGNITIVE_TWIN_REENTRY } from '@/lib/cognitive-twin/reentry/runtime';
@@ -65,7 +66,7 @@ export async function readMethodLabState() {
       ...(Array.isArray(latest?.limitations) ? latest.limitations.map(String) : []),
       ...missingDependencies.map((item) => `${item.table}:${item.error ?? 'unavailable'}`),
       ...(definition.id === 'ct_reentry' ? ['CT reentry is implemented as governed longitudinal provenance. GATED means no Method Lab evaluation row has yet validated it; it does not mean individuation is demonstrated.'] : []),
-      ...(definition.id === 'cognitive_relational_lab' ? ['CRL protocol-specific migration remains experimental; applying it to production requires an attributable ROOT/ACP governance decision because older implementation policy prohibited new tables.'] : []),
+      ...(definition.id === 'cognitive_relational_lab' ? ['CRL protocol-specific migration remains experimental; persisted session state is not canonical memory or proof of individuation.'] : []),
       ...(tableWarning ? [`sfi_lab_analyses:${tableWarning}`] : []),
     ];
     let status: MethodLabProtocolStatus;
@@ -88,6 +89,8 @@ export async function readMethodLabState() {
     };
   });
 
+  const llmProviders = getLlmProviderStatus();
+
   return {
     generatedAt: new Date().toISOString(),
     contractVersion: METHOD_LAB_CONTRACT_VERSION,
@@ -99,6 +102,7 @@ export async function readMethodLabState() {
     sharedPersistence: 'sfi_lab_analyses',
     epistemicRule: 'Every laboratory output remains SIMULATED until a later observed return supports a stronger validation state.',
     promotionRule: 'No protocol can mutate canonical state or promote its own result; ROOT/ACP evaluates promotion requests.',
+    llmProviders,
     protocols,
     warnings: [
       ...(tableWarning ? [`sfi_lab_analyses:${tableWarning}`] : []),

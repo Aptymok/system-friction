@@ -28,6 +28,7 @@ export function SfiGlobalNavigation() {
   const pathname = usePathname();
   const { status } = useAuthState();
   const isRoot = matchesPrefix(pathname, '/root');
+  const isObservatory = matchesPrefix(pathname, '/observatory');
   const isPrivateSurface = PRIVATE_SURFACES.some((prefix) => matchesPrefix(pathname, prefix));
   const isAuthSurface = AUTH_SURFACES.some((prefix) => matchesPrefix(pathname, prefix));
 
@@ -43,7 +44,8 @@ export function SfiGlobalNavigation() {
     );
   }
 
-  if (pathname === '/' || isAuthSurface) return null;
+  // Observatory owns its complete public instrument header. Do not stack a second global bar over it.
+  if (pathname === '/' || isAuthSurface || isObservatory) return null;
 
   return (
     <div className="sgn-anchor">
