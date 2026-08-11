@@ -41,8 +41,6 @@ async function ask(request: Request, gate: RootActorGate, body: Row) {
   if (!question) return NextResponse.json({ ok: false, error: 'question_required' }, { status: 400 });
   const startedAt = new Date().toISOString();
 
-  // A conversational surface must not collapse because one observational reader is degraded.
-  // Each source is independently optional; the LLM still receives the context that is actually available.
   const [rootResult, twinResult, worldResult, graphResult, amvResult] = await Promise.allSettled([
     readRootSovereignState(),
     readCognitiveTwinState(),
@@ -126,25 +124,48 @@ async function ask(request: Request, gate: RootActorGate, body: Row) {
     'No hubo proveedor LLM disponible para sintetizar una respuesta. La conversación permanece registrada como intento degradado.',
   ].join('\n');
 
-  const llm = await runLlmTask({
+  const system = [
+    'You are FRICCIONAUTA, the read-only conversational interface of System Friction Institute ROOT.',
+    'You operate through the Cognitive Twin contract. You are not the Cognitive Twin itself and you do not own institutional memory.',
+    'Answer questions about SFI using the supplied current institutional state and targeted retrieval.',
+    'Some readers may be explicitly unavailable. Missing readers are not a reason to refuse the whole conversation; name the missing context and continue with what is available.',
+    'You may interpret, compare, diagnose gaps and propose next observations. You may NOT execute endpoints, approve, publish, mutate canon, alter formulas, grant access, contact anyone or represent a proposal as executed.',
+    'Evidence before inference. Distinguish OBSERVED, IMPORTED, DERIVED, INFERRED, PROPOSED and MISSING.',
+    'When asked what something means, explain the operational consequence rather than restating database fields.',
+    'When dates matter, reconstruct the temporal context from the supplied records and say when the context is incomplete.',
+    'If the user asks about something not present in SFI context, say that it is not currently observable from ROOT rather than inventing it.',
+    'Be concise but sufficiently diagnostic. Prefer: answer, evidence/context, contradiction or uncertainty, next useful observation.',
+  ].join(' ');
+
+  const firstAttempt = await runLlmTask({
     task: 'context_long',
     preferredProvider: 'groq',
-    system: [
-      'You are FRICCIONAUTA, the read-only conversational interface of System Friction Institute ROOT.',
-      'You operate through the Cognitive Twin contract. You are not the Cognitive Twin itself and you do not own institutional memory.',
-      'Answer questions about SFI using the supplied current institutional state and targeted retrieval.',
-      'Some readers may be explicitly unavailable. Missing readers are not a reason to refuse the whole conversation; name the missing context and continue with what is available.',
-      'You may interpret, compare, diagnose gaps and propose next observations. You may NOT execute endpoints, approve, publish, mutate canon, alter formulas, grant access, contact anyone or represent a proposal as executed.',
-      'Evidence before inference. Distinguish OBSERVED, IMPORTED, DERIVED, INFERRED, PROPOSED and MISSING.',
-      'When asked what something means, explain the operational consequence rather than restating database fields.',
-      'When dates matter, reconstruct the temporal context from the supplied records and say when the context is incomplete.',
-      'If the user asks about something not present in SFI context, say that it is not currently observable from ROOT rather than inventing it.',
-      'Be concise but sufficiently diagnostic. Prefer: answer, evidence/context, contradiction or uncertainty, next useful observation.',
-    ].join(' '),
+    system,
     prompt: `QUESTION\n${question}\n\nSFI_CONTEXT\n${compact(context, 52000)}`,
     fallbackResult: fallback,
     maxTokens: 1500,
   });
+
+  let llm = firstAttempt;
+  if (!firstAttempt.ok) {
+    const retry = await runLlmTask({
+      task: 'context_long',
+      preferredProvider: 'groq',
+      system,
+      prompt: `QUESTION\n${question}\n\nSFI_CONTEXT_COMPACT_RETRY\n${compact(context, 18000)}`,
+      fallbackResult: fallback,
+      maxTokens: 900,
+    });
+    llm = {
+      ...retry,
+      warnings: [
+        ...firstAttempt.warnings,
+        retry.ok ? 'friccionauta_compact_retry_succeeded' : 'friccionauta_compact_retry_failed',
+        ...retry.warnings,
+      ],
+      latency_ms: firstAttempt.latency_ms + retry.latency_ms,
+    };
+  }
 
   const authority = evaluateCognitiveTwinAuthority({ action: 'propose', founderAbsent: false, evidencePresent: evidenceRefs.length > 0 });
   const taskId = `friccionauta:${Date.now()}`;
@@ -232,6 +253,7 @@ async function ask(request: Request, gate: RootActorGate, body: Row) {
     model: llm.model,
     evidenceRefs,
     warnings: envelope.limitations,
+    providerWarnings: llm.warnings,
     retrievalWarnings,
     run: persisted.data,
     envelope,
