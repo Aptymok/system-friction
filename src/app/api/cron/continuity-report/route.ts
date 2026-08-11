@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createDailyContinuityReport } from '@/lib/continuity/runtime';
+import { runScheduledAgentReportCycle } from '@/lib/reports/scheduledAgentReports';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+export const maxDuration = 120;
 
 function bearer(request: NextRequest) {
   const match = (request.headers.get('authorization') ?? '').match(/^Bearer\s+(.+)$/i);
@@ -16,7 +18,20 @@ export async function GET(request: NextRequest) {
   }
   try {
     const report = await createDailyContinuityReport();
-    return NextResponse.json({ ok: true, report });
+    const scheduledReports = await runScheduledAgentReportCycle().catch((error) => ({
+      ok: false,
+      generated: 0,
+      skipped: 0,
+      failed: 1,
+      results: [],
+      error: error instanceof Error ? error.message : String(error),
+    }));
+    return NextResponse.json({
+      ok: true,
+      report,
+      scheduledReports,
+      schedulingRule: 'Uses the existing continuity-report cron. No additional Vercel cron invocation is introduced.',
+    });
   } catch (error) {
     return NextResponse.json({ ok: false, error: 'continuity_report_failed', details: error instanceof Error ? error.message : String(error) }, { status: 500 });
   }
