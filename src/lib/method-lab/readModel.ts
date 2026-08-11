@@ -2,6 +2,7 @@ import 'server-only';
 
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { SFI_AGENT_EXECUTION_MAP } from '@/lib/sfi/cognitive-runtime/agentExecutionMap';
+import { COGNITIVE_TWIN_REENTRY } from '@/lib/cognitive-twin/reentry/runtime';
 import { METHOD_LAB_CONTRACT_VERSION, type MethodLabProtocolId, type MethodLabProtocolStatus } from './contracts';
 import { METHOD_LAB_PROTOCOLS } from './registry';
 
@@ -11,7 +12,7 @@ type DependencyState = { table: string; available: boolean; error: string | null
 const IMPLEMENTATION_GATES: Record<MethodLabProtocolId, () => boolean> = {
   chronos_olympics: () => true,
   cognitive_relational_lab: () => true,
-  ct_reentry: () => false,
+  ct_reentry: () => Boolean(COGNITIVE_TWIN_REENTRY.subjectId && COGNITIVE_TWIN_REENTRY.lineageId),
   sociotechnical_simulation: () => typeof SFI_AGENT_EXECUTION_MAP.social_field_simulator === 'function' && typeof SFI_AGENT_EXECUTION_MAP.friction_field_simulator === 'function',
   economic_simulation: () => typeof SFI_AGENT_EXECUTION_MAP.economic_field_simulator === 'function',
 };
@@ -63,7 +64,7 @@ export async function readMethodLabState() {
     const warnings = [
       ...(Array.isArray(latest?.limitations) ? latest.limitations.map(String) : []),
       ...missingDependencies.map((item) => `${item.table}:${item.error ?? 'unavailable'}`),
-      ...(!implemented && definition.id === 'ct_reentry' ? ['Cognitive Twin core exists, but ancestral reentry functions have not yet been reintegrated; protocol remains REGISTERED.'] : []),
+      ...(definition.id === 'ct_reentry' ? ['CT reentry is implemented as governed longitudinal provenance. GATED means no Method Lab evaluation row has yet validated it; it does not mean individuation is demonstrated.'] : []),
       ...(definition.id === 'cognitive_relational_lab' ? ['CRL protocol-specific migration remains experimental; applying it to production requires an attributable ROOT/ACP governance decision because older implementation policy prohibited new tables.'] : []),
       ...(tableWarning ? [`sfi_lab_analyses:${tableWarning}`] : []),
     ];
