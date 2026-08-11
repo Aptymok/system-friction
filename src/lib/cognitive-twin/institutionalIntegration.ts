@@ -171,7 +171,7 @@ export async function readCognitiveTwinSfiIntegration() {
     probe({ organ:'STUDIO', table:'sfi_cognitive_twin_runs', description:'Studio consumes Twin memory/decisions and registers cognitive executions.', filter:(query)=>query.ilike('role','studio%') }),
     probe({ organ:'METHOD_LAB', table:'sfi_lab_analyses', description:'Experimental runs enter Twin memory retaining SIMULATED/observed boundaries.' }),
     probe({ organ:'FIELD', table:'field_outcomes', description:'Observed returns become candidate institutional experience.' }),
-    probe({ organ:'GOVERNANCE', table:'sfi_cognitive_twin_decisions', description:'Approved founder/ROOT decisions constrain Twin deliberation and authority.' }),
+    probe({ organ:'GOVERNANCE', table:'sfi_cognitive_twin_decisions', description:'Approved founder/ROOT decisions constrain Twin deliberation and authority.', filter:(query)=>query.eq('status','APPROVED') }),
     probe({ organ:'COGNITIVE_TWIN', table:'sfi_cognitive_twin_memory', description:'Persistent model-independent institutional memory.' }),
   ]);
   const connected = organs.filter((item)=>item.connected).length;
@@ -181,7 +181,7 @@ export async function readCognitiveTwinSfiIntegration() {
     generatedAt:new Date().toISOString(),
     organs,
     summary:{ total:organs.length, connected, exercised, fullyConnected:connected===organs.length, fullyExercised:exercised===organs.length },
-    truthBoundary:'CONNECTED means the runtime can read the organ persistence surface. EXERCISED means at least one record exists. Neither means scientific validation, causal proof, or autonomous authority.',
+    truthBoundary:'CONNECTED means the runtime can read the organ persistence surface. EXERCISED means at least one qualifying record exists. Neither means scientific validation, causal proof, or autonomous authority.',
   };
 }
 
