@@ -1,5 +1,5 @@
 {
-  "ignoreCommand": "if [ \"$VERCEL_GIT_COMMIT_REF\" = \"agent/root-runtime-reports-convergence\" ]; then exit 0; else exit 1; fi",
+  "ignoreCommand": "case \"$VERCEL_GIT_COMMIT_REF\" in agent/root-runtime-reports-convergence|agent/method-lab-convergence) exit 0 ;; *) exit 1 ;; esac",
   "crons": [
     {
       "path": "/api/cron/continuity-heartbeat",
