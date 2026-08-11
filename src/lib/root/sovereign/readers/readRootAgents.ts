@@ -19,6 +19,15 @@ function iso(value: unknown): string | null {
   return Number.isFinite(parsed.getTime()) ? parsed.toISOString() : value;
 }
 
+function executionLifecycle(contract: SfiAgenticCapabilityContract, record: Record<string, unknown>) {
+  const rule = contract.executionEvidence?.status;
+  if (!rule) return { status: 'operational' as const, warning: null as string | null };
+  const observed = typeof record[rule.column] === 'string' ? String(record[rule.column]).trim().toLowerCase() : '';
+  if (rule.operationalValues.map((value) => value.toLowerCase()).includes(observed)) return { status: 'operational' as const, warning: null };
+  if (rule.degradedValues.map((value) => value.toLowerCase()).includes(observed)) return { status: 'degraded' as const, warning: `Última ejecución persistida con estado ${observed || 'unknown'}.` };
+  return { status: 'gated' as const, warning: `Estado de ejecución no reconocido como operativo: ${observed || 'missing'}.` };
+}
+
 async function readAgenticExecution(contract: SfiAgenticCapabilityContract) {
   if (!contract.executionEvidence) return { status: 'gated' as const, at: null as string | null, id: null as string | null, warning: 'Ruta/contrato registrados; esta capacidad no tiene aún un ledger de ejecución específico reconciliado.' };
   try {
@@ -29,7 +38,8 @@ async function readAgenticExecution(contract: SfiAgenticCapabilityContract) {
     if (result.error) return { status: 'degraded' as const, at: null, id: null, warning: `${contract.executionEvidence.table}: ${result.error.message}` };
     if (!result.data) return { status: 'gated' as const, at: null, id: null, warning: 'Contrato disponible; no existe ejecución persistida atribuible todavía.' };
     const record = result.data as Record<string, unknown>;
-    return { status: 'operational' as const, at: iso(record[contract.executionEvidence.timeColumn]), id: typeof record.id === 'string' ? record.id : null, warning: null };
+    const lifecycle = executionLifecycle(contract, record);
+    return { status: lifecycle.status, at: iso(record[contract.executionEvidence.timeColumn]), id: typeof record.id === 'string' ? record.id : null, warning: lifecycle.warning };
   } catch (error) {
     return { status: 'degraded' as const, at: null, id: null, warning: error instanceof Error ? error.message : 'agentic_execution_read_failed' };
   }
@@ -80,7 +90,7 @@ export async function readRootAgents() {
       id: entry.id,
       role: entry.name,
       state: {
-        value: observed.status === 'operational' ? 'ejecución persistida observada' : observed.status === 'degraded' ? 'dependencia de ejecución degradada' : 'contrato disponible · sin ejecución atribuible',
+        value: observed.status === 'operational' ? 'ejecución persistida observada' : observed.status === 'degraded' ? 'ejecución persistida degradada' : 'contrato disponible · sin ejecución atribuible',
         status: rootStatus(observed.status),
         source: observed.id ? `${entry.executionEvidence?.table ?? 'execution ledger'}:${observed.id}` : 'Registro agentic + contrato de ejecución',
         observedAt: observed.at,
