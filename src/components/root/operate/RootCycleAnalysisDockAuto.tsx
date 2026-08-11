@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { RootCycleAnalysisDock } from './RootCycleAnalysisDock';
+import './root-cycle-analysis-dock.css';
 
 type Cycle=Record<string,any>;
 
