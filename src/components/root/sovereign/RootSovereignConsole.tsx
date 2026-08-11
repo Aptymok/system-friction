@@ -120,7 +120,10 @@ export function RootSovereignConsole({ initialState, accessMode = 'sovereign', a
 
   return <div className={`rs-console-host ${selection ? 'has-semantic-selection' : ''}`}>
     <RootObservatoryWorkspace state={state} accessMode={accessMode} actorLabel={actorLabel} refreshing={refreshing} warning={refreshWarning} onRefresh={() => void refresh(false)} onSelect={setSelection} onAction={requestAction} />
-    <a href="/root/method-lab" title="Abrir Method Lab" style={{ position: 'fixed', right: 18, bottom: readOnly ? 18 : 62, zIndex: 35, border: '1px solid rgba(191,160,78,.38)', background: '#080807', color: '#c6ad69', padding: '8px 10px', textDecoration: 'none', font: '9px ui-monospace,SFMono-Regular,Menlo,monospace', letterSpacing: '.08em' }}>METHOD LAB</a>
+    <div style={{ position: 'fixed', right: 18, bottom: readOnly ? 18 : 62, zIndex: 35, display: 'flex', gap: 8 }}>
+      <a href="/root/cognitive-twin/lineage" title="Abrir CT-A01 Lineage" style={{ border: '1px solid rgba(191,160,78,.38)', background: '#080807', color: '#c6ad69', padding: '8px 10px', textDecoration: 'none', font: '9px ui-monospace,SFMono-Regular,Menlo,monospace', letterSpacing: '.08em' }}>CT-A01</a>
+      <a href="/root/method-lab" title="Abrir Method Lab" style={{ border: '1px solid rgba(191,160,78,.38)', background: '#080807', color: '#c6ad69', padding: '8px 10px', textDecoration: 'none', font: '9px ui-monospace,SFMono-Regular,Menlo,monospace', letterSpacing: '.08em' }}>METHOD LAB</a>
+    </div>
     {selection && richSemantic ? <RootSemanticContextModal selection={selection} onClose={() => setSelection(null)} /> : <RootSemanticInspector value={selection} onClose={() => setSelection(null)} />}
     {!readOnly ? <RootMethodologyWorkbench state={state} launcher={false} /> : null}
     {!readOnly ? <FriccionautaConsole launcher={false} /> : null}
