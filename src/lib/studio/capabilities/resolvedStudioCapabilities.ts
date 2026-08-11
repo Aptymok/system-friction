@@ -1,6 +1,10 @@
-import { studioCapabilityMatrix, studioRootCapabilityReadModel, type StudioCapabilityEntry } from './studioCapabilityInventory';
+import {
+  studioCapabilityMatrix,
+  studioRootCapabilityReadModel,
+  type StudioCapabilityInventoryEntry,
+} from './studioCapabilityInventory';
 
-const IMPLEMENTED_CAPABILITY_OVERRIDES: Record<string, { implementedBy:string[]; calibration:StudioCapabilityEntry['calibration']; confidence:number }> = {
+const IMPLEMENTED_CAPABILITY_OVERRIDES: Record<string, { implementedBy:string[]; calibration:StudioCapabilityInventoryEntry['calibration']; confidence:number }> = {
   'audio.spectrum.advanced': {
     implementedBy:['src/lib/studio/audio/features/advancedSpectralFeatures.ts'],
     calibration:'required',
@@ -18,7 +22,7 @@ const IMPLEMENTED_CAPABILITY_OVERRIDES: Record<string, { implementedBy:string[];
   },
 };
 
-export function resolvedStudioCapabilityEntries():StudioCapabilityEntry[]{
+export function resolvedStudioCapabilityEntries():StudioCapabilityInventoryEntry[]{
   return studioCapabilityMatrix().entries.map(entry=>{
     const override=IMPLEMENTED_CAPABILITY_OVERRIDES[entry.id];
     if(!override)return entry;
