@@ -11,7 +11,15 @@ on:
       - 'src/lib/studio/fieldHandoff.ts'
       - 'src/lib/field/returnContrastContract.ts'
       - 'src/lib/observatory/publicationGate.ts'
+      - 'src/lib/field/governedReturn.ts'
+      - 'src/lib/observatory/public/readGovernedPublicObservatoryState.ts'
+      - 'src/app/api/studio/implement/route.ts'
+      - 'src/app/api/field/cases/route.ts'
+      - 'src/app/api/field/cases/[id]/return/route.ts'
+      - 'src/app/observatory/page.tsx'
+      - 'src/components/root/method-lab/MethodLabConsole.tsx'
       - 'scripts/qa-sfi-final-closure.ts'
+      - 'scripts/qa-sfi-final-runtime-wiring.ts'
       - '.github/workflows/sfi-final-closure.yml'
   push:
     branches: [main]
@@ -24,7 +32,15 @@ on:
       - 'src/lib/studio/fieldHandoff.ts'
       - 'src/lib/field/returnContrastContract.ts'
       - 'src/lib/observatory/publicationGate.ts'
+      - 'src/lib/field/governedReturn.ts'
+      - 'src/lib/observatory/public/readGovernedPublicObservatoryState.ts'
+      - 'src/app/api/studio/implement/route.ts'
+      - 'src/app/api/field/cases/route.ts'
+      - 'src/app/api/field/cases/[id]/return/route.ts'
+      - 'src/app/observatory/page.tsx'
+      - 'src/components/root/method-lab/MethodLabConsole.tsx'
       - 'scripts/qa-sfi-final-closure.ts'
+      - 'scripts/qa-sfi-final-runtime-wiring.ts'
       - '.github/workflows/sfi-final-closure.yml'
 
 jobs:
@@ -39,5 +55,9 @@ jobs:
       - run: npm install --no-audit --no-fund
       - name: Verify final closure and Apex pilot
         run: npx tsx scripts/qa-sfi-final-closure.ts
+      - name: Verify runtime wiring
+        run: npx tsx scripts/qa-sfi-final-runtime-wiring.ts
       - name: Typecheck
         run: npx tsc --noEmit --pretty false --incremental false
+      - name: Build
+        run: npm run build

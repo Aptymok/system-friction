@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { submitFieldReturn } from '@/lib/field/operationalCycle';
+import { submitGovernedFieldReturn } from '@/lib/field/governedReturn';
 import { AccessDeniedError, requireAuthenticatedUser } from '@/lib/system/access/server';
 
 export const dynamic = 'force-dynamic';
@@ -29,7 +29,7 @@ export async function POST(request: Request, context: RouteContext) {
     const { id } = await Promise.resolve(context.params);
     const caseId = decodeURIComponent(id);
     const body = record(await request.json().catch(() => null));
-    const result = await submitFieldReturn(user.id, caseId, {
+    const result = await submitGovernedFieldReturn(user.id, caseId, {
       evidenceNote: text(body.evidenceNote),
       evidenceSource: text(body.evidenceSource, 180) || 'participant_return',
       evidenceUri: text(body.evidenceUri, 1000) || null,
