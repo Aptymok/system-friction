@@ -54,6 +54,9 @@ jobs:
       - name: Verify SFI development registry
         run: npx tsx scripts/qa-sfi-development-registry.ts
 
+      - name: Verify integrated SFI operating field
+        run: npx tsx scripts/qa-sfi-operating-field-closure.ts
+
       - name: Verify SFI total proof circuit
         run: npx tsx scripts/qa-sfi-total-proof.ts
 
