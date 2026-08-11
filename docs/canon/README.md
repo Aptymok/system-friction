@@ -1,7 +1,7 @@
 # SFI Canonical Corpus
 
 **Status:** CANONICAL  
-**Version:** 2026-08-06.corpus.v1  
+**Version:** 2026-08-11.corpus.v2  
 **Authority:** System Friction Institute / ACP
 
 This directory is the ordered constitutional corpus for the runtime. The documents must be read in sequence. A later document may specialize an earlier one but may not silently contradict it.
@@ -21,10 +21,13 @@ This directory is the ordered constitutional corpus for the runtime. The documen
 13. `13_COGNITIVE_TWIN_AND_AGENT_AUTHORITY.md`
 14. `14_GOVERNANCE_AND_PROMOTION.md`
 15. `15_COMPATIBILITY_DEPRECATION_MIGRATION.md`
+16. `16_LONGITUDINAL_SYSTEM_FRICTION_PROGRAM.md`
 
 ## Enforcement rule
 
 A variable, metric, state, event or method is canonical only when it is declared in this corpus and represented by an executable contract or registry. Unknown identifiers must not be guessed, redirected by spelling similarity or persisted as canonical values.
+
+The Longitudinal System Friction Program is an institutional integration boundary. Scientific constructs and metrics named there remain experimental until separately preregistered, implemented and validated; inclusion in the corpus does not convert a hypothesis into an observed result.
 
 ## Conflict rule
 

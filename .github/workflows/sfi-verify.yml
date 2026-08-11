@@ -51,6 +51,9 @@ jobs:
       - name: Verify Method Lab convergence
         run: npx tsx scripts/qa-sfi-method-lab-convergence.ts
 
+      - name: Verify Cognitive Twin reentry and longitudinal integration
+        run: npx tsx scripts/qa-sfi-cognitive-twin-reentry.ts
+
       - name: Verify canonical evidence identity
         run: node --import tsx --test src/lib/evidence/canonicalEvidence.test.ts
 

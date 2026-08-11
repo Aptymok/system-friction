@@ -1,4 +1,4 @@
-export const COGNITIVE_TWIN_CONTRACT_VERSION = '1.1.0' as const;
+export const COGNITIVE_TWIN_CONTRACT_VERSION = '1.2.0' as const;
 
 export type CognitiveTwinAction =
   | 'observe'
@@ -8,6 +8,8 @@ export type CognitiveTwinAction =
   | 'simulate'
   | 'propose'
   | 'persist_memory'
+  | 'propose_subject_mutation'
+  | 'apply_subject_mutation'
   | 'verify'
   | 'publish'
   | 'mutate_canon'
@@ -35,10 +37,15 @@ export const SFI_COGNITIVE_TWIN_CONTRACT = {
     'A missing source remains missing; fallback values cannot be represented as observed evidence.',
     'Institutional memory lives outside any individual model.',
     'Canonical contradictions stop promotion and require governance.',
+    'Model, longitudinal subject and institution are distinct objects and must not be represented as interchangeable.',
+    'Computational first-person self-report is permitted only for auditable operations explicitly represented in institutional state; it is not evidence of phenomenal consciousness or human subjective experience.',
+    'WITHHOLD means do not interrupt the founder now; it never authorizes hiding state from ROOT.',
+    'Learning does not imply authority expansion. Subject mutation cannot add institutional permissions, canonical authority or irreversible external power.',
+    'A longitudinal lineage or hash chain demonstrates provenance continuity, not individuation by itself.',
   ],
-  autonomousActions: ['observe', 'extract', 'calculate', 'draft', 'simulate', 'propose', 'persist_memory'] as CognitiveTwinAction[],
+  autonomousActions: ['observe', 'extract', 'calculate', 'draft', 'simulate', 'propose', 'persist_memory', 'propose_subject_mutation'] as CognitiveTwinAction[],
   independentlyVerifiedActions: ['verify'] as CognitiveTwinAction[],
-  founderReservedActions: ['publish', 'mutate_canon', 'change_formula', 'grant_root_access', 'transfer_ip', 'execute_irreversible'] as CognitiveTwinAction[],
+  founderReservedActions: ['apply_subject_mutation', 'publish', 'mutate_canon', 'change_formula', 'grant_root_access', 'transfer_ip', 'execute_irreversible'] as CognitiveTwinAction[],
 } as const;
 
 export function evaluateCognitiveTwinAuthority(input: {
@@ -61,7 +68,11 @@ export function evaluateCognitiveTwinAuthority(input: {
   }
 
   if (input.action === 'persist_memory' && !input.evidencePresent) {
-    return { decision: 'DENY', reason: 'La memoria institucional no puede registrar como hecho una afirmación sin procedencia o evidencia.' };
+    return { decision: 'DENY', reason: 'La memoria institucional no puede registrar como hecho una afirmación sin procedencia o evidencia. Los registros computacionales deben persistirse como eventos auditables, no como hechos externos inventados.' };
+  }
+
+  if (input.action === 'propose_subject_mutation') {
+    return { decision: 'ALLOW', reason: 'El sujeto puede proponer una mutación reversible para evaluación, pero no aplicarla ni adquirir autoridad por sí mismo.' };
   }
 
   if (input.action === 'verify') {
