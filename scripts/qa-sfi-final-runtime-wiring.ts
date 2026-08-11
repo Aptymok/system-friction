@@ -23,6 +23,7 @@ assert.equal(observatoryPublicationDisposition({
   epistemicClass: 'SIMULATED', authority: 'PUBLIC', sourceRefs: ['simulation'],
 }).disposition, 'BLOCK');
 
+// Apex remains a registered pilot under the shared sociotechnical protocol, not a hardcoded UI state.
 assert.equal(APEX_SOCIOTECHNICAL_PILOT.notASeparateLab, true);
 assert.equal(APEX_SOCIOTECHNICAL_PILOT.parentProtocolId, 'sociotechnical_simulation');
 assert.equal(APEX_SOCIOTECHNICAL_PILOT.authorityBoundary.automaticExternalExecution, false);
@@ -47,14 +48,17 @@ assert.match(files.governedReturn, /frozenStoppingCondition/);
 assert.match(files.fieldReturn, /submitGovernedFieldReturn/);
 assert.match(files.observatoryPage, /readGovernedPublicObservatoryState/);
 assert.match(files.governedObservatory, /observatoryPublicationDisposition/);
-assert.match(files.methodLabConsole, /APEX_SOCIOTECHNICAL_PILOT/);
-assert.match(files.methodLabConsole, /APEX PILOT ADSCRITO/);
+assert.match(files.methodLabConsole, /\/api\/root\/method-lab\/simulate/);
+assert.match(files.methodLabConsole, /evidenceIds/);
+assert.match(files.methodLabConsole, /sociotechnical_simulation/);
+assert.match(files.methodLabConsole, /CONFIGURACIÓN ≠ EJECUCIÓN OBSERVADA/);
 
 console.log(JSON.stringify({
   ok: true,
-  contract: 'SFI-FINAL-CLOSURE-RUNTIME-WIRING-1.0',
+  contract: 'SFI-FINAL-CLOSURE-RUNTIME-WIRING-1.1',
   studioFieldIdentity: 'VERIFIED',
   returnContrast: 'T0_FROZEN_AND_REQUIRED',
   observatoryPublicationGate: 'WIRED',
-  apexPilotVisibility: 'WIRED_TO_METHOD_LAB',
+  apexPilotRegistry: 'PRESERVED_WITHOUT_HARDCODED_UI_STATE',
+  methodLabBench: 'EVIDENCE_BOUND',
 }, null, 2));
