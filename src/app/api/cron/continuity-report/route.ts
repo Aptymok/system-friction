@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createDailyContinuityReport } from '@/lib/continuity/runtime';
 import { runScheduledAgentReportCycle } from '@/lib/reports/scheduledAgentReports';
 import { runCognitiveTwinDevelopmentalHeartbeat } from '@/lib/cognitive-twin/reentry/runtime';
+import { considerCognitiveTwinMutationProposal } from '@/lib/cognitive-twin/reentry/experiments';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -19,7 +20,7 @@ export async function GET(request: NextRequest) {
   }
   try {
     const report = await createDailyContinuityReport();
-    const [scheduledReports, cognitiveTwinHeartbeat] = await Promise.all([
+    const [scheduledReports, cognitiveTwinHeartbeat, cognitiveTwinMutation] = await Promise.all([
       runScheduledAgentReportCycle().catch((error) => ({
         ok: false,
         generated: 0,
@@ -33,13 +34,19 @@ export async function GET(request: NextRequest) {
         skipped: false,
         error: error instanceof Error ? error.message : String(error),
       })),
+      considerCognitiveTwinMutationProposal().catch((error) => ({
+        considered: false,
+        proposed: false,
+        error: error instanceof Error ? error.message : String(error),
+      })),
     ]);
     return NextResponse.json({
       ok: true,
       report,
       scheduledReports,
       cognitiveTwinHeartbeat,
-      schedulingRule: 'Uses the existing continuity-report cron. Scheduled reports and the CT-A01 developmental heartbeat introduce no additional Vercel cron invocation.',
+      cognitiveTwinMutation,
+      schedulingRule: 'Uses the existing continuity-report cron. Reports, CT-A01 heartbeat and governed mutation consideration introduce no additional Vercel cron invocation.',
     });
   } catch (error) {
     return NextResponse.json({ ok: false, error: 'continuity_report_failed', details: error instanceof Error ? error.message : String(error) }, { status: 500 });
