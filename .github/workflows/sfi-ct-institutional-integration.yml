@@ -29,6 +29,9 @@ on:
       - 'scripts/qa-sfi-ct-institutional-integration.ts'
       - '.github/workflows/sfi-ct-institutional-integration.yml'
 
+permissions:
+  contents: read
+
 jobs:
   verify:
     runs-on: ubuntu-latest
