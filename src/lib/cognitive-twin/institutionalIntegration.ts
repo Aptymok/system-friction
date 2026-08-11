@@ -192,13 +192,18 @@ export async function syncSfiInstitutionalStateToCognitiveTwin() {
     syncMethodLabRuns(),
     syncObservatoryState(),
   ]);
+  const rootWarning = !root.ok && 'error' in root && typeof root.error === 'string'
+    ? root.error
+    : !root.ok
+      ? 'root_evidence_sync_degraded'
+      : null;
   const rootResult: SyncResult = {
     source:'root_evidence',
     ok:root.ok,
     observed:'synced' in root ? root.synced + root.failed : 0,
     synced:'synced' in root ? root.synced : 0,
     failed:'failed' in root ? root.failed : 0,
-    warning:root.ok ? null : ('error' in root ? root.error : 'root_evidence_sync_degraded'),
+    warning:rootWarning,
   };
   const integration = await readCognitiveTwinSfiIntegration();
   const sources = [rootResult, observatory, methodLab, field];
