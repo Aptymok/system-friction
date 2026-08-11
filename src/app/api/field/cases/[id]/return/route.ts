@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { submitFieldReturn } from '@/lib/field/operationalCycle';
+import { submitGovernedFieldReturn } from '@/lib/field/governedReturn';
 import { AccessDeniedError, requireAuthenticatedUser } from '@/lib/system/access/server';
 
 export const dynamic = 'force-dynamic';
@@ -16,6 +16,12 @@ function text(value: unknown, maximum = 6000) {
   return typeof value === 'string' ? value.trim().slice(0, maximum) : '';
 }
 
+function requiredText(value: unknown, field: string, maximum = 6000) {
+  const parsed = text(value, maximum);
+  if (!parsed) throw new Error(`${field}_REQUIRED`);
+  return parsed;
+}
+
 function requiredNumber01(value: unknown, field: string) {
   if (value === null || typeof value === 'undefined' || value === '') throw new Error(`${field}_REQUIRED`);
   const parsed = typeof value === 'number' ? value : typeof value === 'string' && value.trim() ? Number(value) : Number.NaN;
@@ -29,7 +35,7 @@ export async function POST(request: Request, context: RouteContext) {
     const { id } = await Promise.resolve(context.params);
     const caseId = decodeURIComponent(id);
     const body = record(await request.json().catch(() => null));
-    const result = await submitFieldReturn(user.id, caseId, {
+    const result = await submitGovernedFieldReturn(user.id, caseId, {
       evidenceNote: text(body.evidenceNote),
       evidenceSource: text(body.evidenceSource, 180) || 'participant_return',
       evidenceUri: text(body.evidenceUri, 1000) || null,
@@ -37,6 +43,8 @@ export async function POST(request: Request, context: RouteContext) {
       actualOutcome: requiredNumber01(body.actualOutcome, 'FIELD_RETURN_ACTUAL_OUTCOME'),
       interventionFidelity: requiredNumber01(body.interventionFidelity, 'FIELD_RETURN_INTERVENTION_FIDELITY'),
       observedAt: text(body.observedAt, 80) || null,
+      rivalInterpretation: requiredText(body.rivalInterpretation, 'FIELD_RETURN_RIVAL_INTERPRETATION'),
+      stoppingCondition: requiredText(body.stoppingCondition, 'FIELD_RETURN_STOPPING_CONDITION'),
     });
     return NextResponse.json({ ok: true, result }, { status: 201 });
   } catch (error) {
