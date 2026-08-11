@@ -11,14 +11,20 @@ const SUBJECTS = new Set<MihmObservationSubject>(['PERSON','SESSION','OBJECT','S
 const TEMPORAL = new Set<MihmTemporalScope>(['POINT_IN_TIME','SESSION','BOUNDED_WINDOW','LONGITUDINAL','CURRENT_WORLD_STATE','UNKNOWN']);
 const MODALITIES = new Set<MihmEvidenceModality>(['TEXT','AUDIO','VIDEO','IMAGE','SOFTWARE','DATASET','INTERVIEW','FIELD','MODEL','PAPER','CONVERSATION','INSTITUTIONAL_RECORD','TELEMETRY','UNKNOWN']);
 const REF_COLUMNS: Record<string,string> = {
-  evidence:'evidence_refs', studio:'studio_object_refs', method_lab:'method_lab_refs', return:'return_refs', twin:'cognitive_twin_refs', governance:'governance_refs', event:'event_refs',
+  evidence:'evidence_refs',
+  studio:'studio_object_refs',
+  method_lab:'method_lab_refs',
+  inference:'inference_refs',
+  trajectory:'trajectory_refs',
+  return:'return_refs',
+  twin:'cognitive_twin_refs',
+  governance:'governance_refs',
+  event:'event_refs',
 };
 
 function text(value: unknown) { return typeof value === 'string' && value.trim() ? value.trim() : ''; }
 function list(value: unknown) { return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0) : []; }
 function cycleCode() {
-  // Keep bracket-regex syntax out of Tailwind content scanning; arbitrary-class parsing
-  // previously interpreted the regex as CSS and generated the invalid declaration "-: TZ.;".
   const stamp = new Date().toISOString()
     .replaceAll('-', '')
     .replaceAll(':', '')
