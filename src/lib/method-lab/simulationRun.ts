@@ -7,6 +7,7 @@ import type { KernelContext, KernelEvidence } from '@/lib/sfi/cognitive-runtime/
 import { METHOD_LAB_CONTRACT_VERSION, assertMethodLabRunEnvelope, type MethodLabProtocolId, type MethodLabRunEnvelope } from './contracts';
 import { methodLabProtocol } from './registry';
 import { specializedModel } from './specializedModels';
+import { persistCognitiveTwinExperience } from '@/lib/cognitive-twin/experienceBridge';
 
 const SIMULATION_PROTOCOL_AGENTS: Partial<Record<MethodLabProtocolId, string[]>> = {
   sociotechnical_simulation: [
@@ -184,6 +185,25 @@ export async function runMethodLabSimulation(input: {
   }).select('id').single();
   if (persisted.error || !persisted.data?.id) throw new Error(`METHOD_LAB_RUN_PERSIST_FAILED:${persisted.error?.message ?? 'unknown'}`);
 
+  const cognitiveTwinExperience = await persistCognitiveTwinExperience({
+    memoryKey:`SFI:METHOD_LAB:RUN:${persisted.data.id}`,
+    memoryType:'METHOD',
+    sourceKind:'sfi_lab_analyses',
+    sourceRef:String(persisted.data.id),
+    createdBy:input.actorId,
+    evidenceRefs:initialEvidenceIds,
+    content:{
+      epistemicClass:'SIMULATED',
+      protocolId:input.protocolId,
+      specializedModel:modelContract.id,
+      resultHash,
+      validationLevel:'SIMULATION',
+      simulationCount:context.simulations.length,
+      limitations:envelope.limitations,
+      rule:'Method Lab simulation is available to the Cognitive Twin for comparison and planning but remains SIMULATED until contrasted with observed returns.',
+    },
+  });
+
   return {
     ok: true,
     protocol: definition,
@@ -192,6 +212,7 @@ export async function runMethodLabSimulation(input: {
     run: envelope,
     agentResults,
     simulations: context.simulations,
+    cognitiveTwinExperience,
     claimBoundary: 'This run is SIMULATED. It is not observed evidence, canonical validation, approval or external execution.',
   };
 }
