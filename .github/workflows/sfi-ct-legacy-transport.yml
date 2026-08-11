@@ -1,0 +1,36 @@
+name: SFI CT Legacy Transport
+
+on:
+  pull_request:
+    paths:
+      - 'src/lib/cognitive-twin/**'
+      - 'src/app/api/root/cognitive-twin/**'
+      - 'src/app/root/cognitive-twin/**'
+      - 'scripts/qa-sfi-cognitive-twin-legacy-transport.ts'
+      - '.github/workflows/sfi-ct-legacy-transport.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'src/lib/cognitive-twin/**'
+      - 'src/app/api/root/cognitive-twin/**'
+      - 'src/app/root/cognitive-twin/**'
+      - 'scripts/qa-sfi-cognitive-twin-legacy-transport.ts'
+      - '.github/workflows/sfi-ct-legacy-transport.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm install --no-audit --no-fund
+      - name: Verify retained Cognitive Twin architecture transport
+        run: npx tsx scripts/qa-sfi-cognitive-twin-legacy-transport.ts
+      - name: Typecheck
+        run: npm run typecheck
