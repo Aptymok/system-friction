@@ -45,13 +45,14 @@ export async function readCognitiveTwinState() {
   const tableMap = new Map(tableResults.map((item) => [item.table, item]));
   const databaseReady = tableResults.every((item) => item.available);
 
-  const [recentDecisions, recentRuns, recentEvaluations] = databaseReady
+  const [recentMemory, recentDecisions, recentRuns, recentEvaluations] = databaseReady
     ? await Promise.all([
+        db.from('sfi_cognitive_twin_memory').select('*').order('updated_at', { ascending: false }).limit(24),
         db.from('sfi_cognitive_twin_decisions').select('*').order('created_at', { ascending: false }).limit(12),
         db.from('sfi_cognitive_twin_runs').select('*').order('created_at', { ascending: false }).limit(24),
         db.from('sfi_cognitive_twin_evaluations').select('*').order('executed_at', { ascending: false }).limit(20),
       ])
-    : [null, null, null];
+    : [null, null, null, null];
 
   const providers = getLlmProviderStatus();
   const configuredProviders = providers.filter((item) => item.available);
@@ -92,11 +93,13 @@ export async function readCognitiveTwinState() {
       evaluations: tableMap.get('sfi_cognitive_twin_evaluations')?.count ?? null,
       runs: tableMap.get('sfi_cognitive_twin_runs')?.count ?? null,
     },
+    recentMemory: recentMemory?.data ?? [],
     recentDecisions: recentDecisions?.data ?? [],
     recentRuns: recentRuns?.data ?? [],
     recentEvaluations: recentEvaluations?.data ?? [],
     errors: [
       ...tableResults.filter((item) => item.error).map((item) => `${item.table}: ${item.error}`),
+      ...(recentMemory?.error ? [`memory: ${recentMemory.error.message}`] : []),
       ...(recentDecisions?.error ? [`decisions: ${recentDecisions.error.message}`] : []),
       ...(recentRuns?.error ? [`runs: ${recentRuns.error.message}`] : []),
       ...(recentEvaluations?.error ? [`evaluations: ${recentEvaluations.error.message}`] : []),

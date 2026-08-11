@@ -16,9 +16,12 @@ export async function POST(request: Request) {
     action: 'evidence.graph.reconcile',
     target: 'graph_nodes+graph_edges',
     payload: {
+      projectionVersion: result.projectionVersion,
       rootEvidenceRows: result.rootEvidenceRows,
       ledgerRows: result.ledgerRows,
-      evidenceDescriptors: result.evidenceDescriptors,
+      canonicalEvidenceObjects: result.canonicalEvidenceObjects,
+      nodesRemoved: result.nodesRemoved,
+      edgesRemoved: result.edgesRemoved,
       nodesCreated: result.nodesCreated,
       nodesUpdated: result.nodesUpdated,
       edgesCreated: result.edgesCreated,

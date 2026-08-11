@@ -1,10 +1,12 @@
 import 'server-only';
+import { canonicalEvidenceRow, canonicalizeEvidenceRows } from '@/lib/evidence/canonicalEvidence';
 import type { RootEvidenceEdge, RootEvidenceNode, RootRow } from '../rootSovereignState';
 import { dateValue, numberValue, selectRows, source, text } from './readerSupport';
 
 function strings(value: unknown): string[] {
   return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string' && Boolean(item.trim())) : [];
 }
+
 function record(value: unknown): RootRow {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as RootRow : {};
 }
@@ -45,9 +47,6 @@ function edgeFrom(row: RootRow, table: string): RootEvidenceEdge {
 
 function dedupeNodes(primary: RootEvidenceNode[], secondary: RootEvidenceNode[]) {
   const nodes = new Map<string, RootEvidenceNode>();
-  // graph_nodes is the canonical evidence relation index. sfi_graph_nodes is a
-  // secondary institutional topology source. A duplicate must never overwrite
-  // the primary record simply because it was read later.
   for (const node of [...primary, ...secondary]) {
     if (!node.id.trim() || !node.label.trim() || nodes.has(node.id)) continue;
     nodes.set(node.id, node);
@@ -59,8 +58,6 @@ function dedupeEdges(primary: RootEvidenceEdge[], secondary: RootEvidenceEdge[],
   const edges = new Map<string, RootEvidenceEdge>();
   for (const edge of [...primary, ...secondary]) {
     if (!edge.id.trim() || !edge.from.trim() || !edge.to.trim()) continue;
-    // Orphan relations are not evidence graph edges. Keep them in persistence
-    // for forensic cleanup, but never let them enter the active ROOT topology.
     if (!nodeIds.has(edge.from) || !nodeIds.has(edge.to) || edges.has(edge.id)) continue;
     edges.set(edge.id, edge);
   }
@@ -69,14 +66,15 @@ function dedupeEdges(primary: RootEvidenceEdge[], secondary: RootEvidenceEdge[],
 
 export async function readRootEvidenceGraph() {
   const [rootEntries, ledger, graphNodes, graphEdges, sfiNodes, sfiEdges] = await Promise.all([
-    selectRows({ table: 'root_evidence_entries', select: 'id,evidence_hash,actor_id,title,content,evidence_type,target_node_id,payload,epistemic_event_id,created_at', order: 'created_at', limit: 60 }),
-    selectRows({ table: 'sfi_evidence_ledger', select: 'id,case_id,module,evidence_kind,source_name,source_url,private_ref,public_summary,evidence_hash,anonymized,trust_level,trust_score,ldi,public_weight,observed_at,created_at', order: 'observed_at', limit: 60 }),
-    selectRows({ table: 'graph_nodes', select: 'id,node_id,node_key,label,node_type,ontology_type,origin,epistemic_class,confidence,lineage,payload,attributes,created_at,updated_at', order: 'created_at', limit: 220 }),
-    selectRows({ table: 'graph_edges', select: 'id,edge_id,source_node_id,target_node_id,source_node_key,target_node_key,relation,relation_type,weight,w_ij,confidence,lineage,payload,attributes,created_at,updated_at', order: 'created_at', limit: 420 }),
+    selectRows({ table: 'root_evidence_entries', select: 'id,evidence_hash,actor_id,title,content,evidence_type,target_node_id,payload,epistemic_event_id,created_at', order: 'created_at', limit: 500 }),
+    selectRows({ table: 'sfi_evidence_ledger', select: 'id,case_id,module,evidence_kind,source_name,source_url,private_ref,public_summary,evidence_hash,anonymized,trust_level,trust_score,ldi,public_weight,observed_at,created_at', order: 'observed_at', limit: 500 }),
+    selectRows({ table: 'graph_nodes', select: 'id,node_id,node_key,label,node_type,ontology_type,origin,epistemic_class,confidence,lineage,payload,attributes,created_at,updated_at', order: 'created_at', limit: 320 }),
+    selectRows({ table: 'graph_edges', select: 'id,edge_id,source_node_id,target_node_id,source_node_key,target_node_key,relation,relation_type,weight,w_ij,confidence,lineage,payload,attributes,created_at,updated_at', order: 'created_at', limit: 640 }),
     selectRows({ table: 'sfi_graph_nodes', select: 'id,node_key,label,module,node_type,layer,parent_key,description,metrics,evidence_count,private_evidence_count,density,weight,degradation,status,position,visual,created_at,updated_at', order: 'created_at', limit: 220 }),
     selectRows({ table: 'sfi_graph_edges', select: 'id,from_key,to_key,edge_type,weight,evidence_count,degradation,metadata,created_at,updated_at', order: 'created_at', limit: 420 }),
   ]);
 
+  const objects = canonicalizeEvidenceRows(rootEntries.rows, ledger.rows).map((item) => canonicalEvidenceRow(item) as RootRow);
   const primaryNodes = graphNodes.rows.map((item) => nodeFrom(item, 'graph_nodes'));
   const secondaryNodes = sfiNodes.rows.map((item) => nodeFrom(item, 'sfi_graph_nodes'));
   const nodes = dedupeNodes(primaryNodes, secondaryNodes);
@@ -84,12 +82,15 @@ export async function readRootEvidenceGraph() {
   const primaryEdges = graphEdges.rows.map((item) => edgeFrom(item, 'graph_edges'));
   const secondaryEdges = sfiEdges.rows.map((item) => edgeFrom(item, 'sfi_graph_edges'));
   const edges = dedupeEdges(primaryEdges, secondaryEdges, nodeIds);
+  const observedAt = objects.map((item) => dateValue(item.observed_at)).filter((value): value is string => Boolean(value)).sort().at(-1)
+    ?? nodes.map((item) => item.observedAt).filter((value): value is string => Boolean(value)).sort().at(-1)
+    ?? null;
 
   return source(
-    { nodes, edges, entries: rootEntries.rows, ledger: ledger.rows },
-    'persisted evidence graphs',
+    { nodes, edges, objects, entries: rootEntries.rows, ledger: ledger.rows },
+    'canonical evidence objects + persisted evidence graph',
     [rootEntries.error, ledger.error, graphNodes.error, graphEdges.error, sfiNodes.error, sfiEdges.error],
-    nodes.map((item) => item.observedAt).filter(Boolean).sort().at(-1) ?? null,
-    !nodes.length && !rootEntries.rows.length,
+    observedAt,
+    !objects.length && !nodes.length,
   );
 }

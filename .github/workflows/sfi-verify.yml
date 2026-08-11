@@ -45,6 +45,12 @@ jobs:
       - name: Verify ROOT graph and navigation convergence
         run: npx tsx scripts/qa-sfi-root-graph-navigation.ts
 
+      - name: Verify canonical evidence identity
+        run: node --import tsx --test src/lib/evidence/canonicalEvidence.test.ts
+
+      - name: Verify canonical evidence QA
+        run: npx tsx scripts/qa-sfi-canonical-evidence.ts
+
       - name: Verify Studio Field surface
         run: npm run qa:sfi-studio-workspace
 
