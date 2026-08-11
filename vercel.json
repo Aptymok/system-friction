@@ -1,12 +1,33 @@
 {
-  "ignoreCommand": "if [ \"$VERCEL_GIT_COMMIT_REF\" = \"agent/sfi-cognitive-olympics-2026\" ]; then exit 0; else exit 1; fi",
+  "ignoreCommand": "case \"$VERCEL_GIT_COMMIT_REF\" in agent/root-runtime-reports-convergence|agent/method-lab-convergence) exit 0 ;; *) exit 1 ;; esac",
   "crons": [
-    { "path": "/api/cron/continuity-heartbeat", "schedule": "15 7 * * *" },
-    { "path": "/api/cron/worldspect", "schedule": "20 7 * * *" },
-    { "path": "/api/cron/world-observatory", "schedule": "25 7 * * *" },
-    { "path": "/api/cron/sfi-institutional-cycle", "schedule": "35 7 * * *" },
-    { "path": "/api/cron/sfi-indicators", "schedule": "0 8 * * *" },
-    { "path": "/api/cron/predictive-engine", "schedule": "30 8 * * *" },
-    { "path": "/api/cron/continuity-report", "schedule": "45 8 * * *" }
+    {
+      "path": "/api/cron/continuity-heartbeat",
+      "schedule": "15 7 * * *"
+    },
+    {
+      "path": "/api/cron/worldspect",
+      "schedule": "20 7 * * *"
+    },
+    {
+      "path": "/api/cron/world-observatory",
+      "schedule": "25 7 * * *"
+    },
+    {
+      "path": "/api/cron/sfi-institutional-cycle",
+      "schedule": "35 7 * * *"
+    },
+    {
+      "path": "/api/cron/sfi-indicators",
+      "schedule": "0 8 * * *"
+    },
+    {
+      "path": "/api/cron/predictive-engine",
+      "schedule": "30 8 * * *"
+    },
+    {
+      "path": "/api/cron/continuity-report",
+      "schedule": "45 8 * * *"
+    }
   ]
 }
