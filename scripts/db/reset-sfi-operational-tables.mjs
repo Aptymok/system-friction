@@ -1,19 +1,20 @@
 import { writeFile, mkdir, readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
-import { createAdminClient, deleteAllRowsByKnownColumns, nowStamp } from './sfi-db-client.mjs';
-import { DELETE_ORDER } from './sfi-db-tables.mjs';
+import { createAdminClient, deleteAllRowsByKnownColumns, countTable, nowStamp } from './sfi-db-client.mjs';
+import { OPERATIONAL_RESET_LAYERS, OPERATIONAL_DELETE_ORDER, PROTECTED_TABLES } from './sfi-operational-reset-inventory.mjs';
 
 const confirm = process.env.SFI_DB_RESET_CONFIRM;
-const legacyOverride = process.env.SFI_ALLOW_LEGACY_WHOLE_TABLE_RESET;
-if (confirm !== 'RESET_SFI_OPERATIONAL' || legacyOverride !== 'YES_I_HAVE_REVIEWED_THE_PURGE_PLAN') {
+const resetMode = process.env.SFI_DB_RESET_MODE;
+if (confirm !== 'RESET_SFI_OPERATIONAL' || resetMode !== 'CLEAN_RUNTIME_AFTER_VERIFIED_PROOF') {
   console.error(JSON.stringify({
     ok: false,
     blocked: true,
-    reason: 'Legacy whole-table reset is dangerous and disabled by default. Use db:cleanup:plan first; prefer a row-level purge plan. This command may remove provenance and historical measurements.',
+    reason: 'Operational clean-start reset is intentionally disabled by default. It is allowed only after an export, cleanup plan and successful full-cycle proof have been reviewed.',
     required: [
       'SFI_DB_RESET_CONFIRM=RESET_SFI_OPERATIONAL',
-      'SFI_ALLOW_LEGACY_WHOLE_TABLE_RESET=YES_I_HAVE_REVIEWED_THE_PURGE_PLAN',
+      'SFI_DB_RESET_MODE=CLEAN_RUNTIME_AFTER_VERIFIED_PROOF',
     ],
+    preserves: PROTECTED_TABLES,
   }, null, 2));
   process.exit(1);
 }
@@ -32,17 +33,60 @@ if (!cleanupPlans.length) {
   process.exit(1);
 }
 
+let proofReports = [];
+try { proofReports = (await readdir(path.join('docs', 'db'))).filter((name) => name.startsWith('SFI_FULL_CYCLE_PROOF_') && name.endsWith('.json')); } catch {}
+if (!proofReports.length && process.env.SFI_DB_RESET_VERIFIED_PROOF !== 'YES') {
+  console.error(JSON.stringify({
+    ok:false,
+    blocked:true,
+    reason:'No exported full-cycle proof receipt was found. Export the production PASS receipt first, or set SFI_DB_RESET_VERIFIED_PROOF=YES only after independently reviewing that persisted receipt.',
+  },null,2));
+  process.exit(1);
+}
+
 const supabase = createAdminClient();
 const stamp = nowStamp();
 await mkdir(path.join('docs', 'db'), { recursive: true });
 
-const result = { ok: true, reset_at: new Date().toISOString(), latest_export: latest, cleanup_plan: cleanupPlans.sort().at(-1), tables: [] };
-for (const table of DELETE_ORDER) {
-  const deleted = await deleteAllRowsByKnownColumns(supabase, table);
-  if (!deleted.ok) result.ok = false;
-  result.tables.push({ table, ...deleted });
+const result = {
+  ok: true,
+  reset_at: new Date().toISOString(),
+  mode:'CLEAN_RUNTIME_AFTER_VERIFIED_PROOF',
+  latest_export: latest,
+  cleanup_plan: cleanupPlans.sort().at(-1),
+  proof_receipt: proofReports.sort().at(-1) ?? 'externally-reviewed-production-proof',
+  protected_tables:PROTECTED_TABLES,
+  expected_operational_tables:OPERATIONAL_DELETE_ORDER.length,
+  layers:[],
+  tables:[],
+};
+
+for (const layer of OPERATIONAL_RESET_LAYERS) {
+  const layerResult={id:layer.id,reason:layer.reason,tables:[]};
+  for (const table of layer.tables) {
+    const before=await countTable(supabase,table);
+    if (!before.exists) {
+      const skipped={table,ok:true,state:'SKIPPED_NOT_PRESENT',before:null,deleted:false,error:before.error,error_classification:before.error_classification};
+      layerResult.tables.push(skipped);result.tables.push(skipped);continue;
+    }
+    const deleted=await deleteAllRowsByKnownColumns(supabase,table);
+    const after=deleted.ok?await countTable(supabase,table):{count:null,error:null};
+    const clean=deleted.ok&&(after.count??0)===0;
+    if(!clean)result.ok=false;
+    const row={table,ok:clean,state:clean?'CLEARED':'FAILED',before:before.count,after:after.count,deleted:deleted.ok,method:deleted.method??null,errors:deleted.errors??[],after_error:after.error??null};
+    layerResult.tables.push(row);result.tables.push(row);
+  }
+  result.layers.push(layerResult);
 }
 
-await writeFile(path.join('docs', 'db', `SFI_RESET_REPORT_${stamp}.json`), JSON.stringify(result, null, 2), 'utf8');
-console.log(JSON.stringify(result, null, 2));
+const protectedChecks=[];
+for(const table of PROTECTED_TABLES){
+  const check=await countTable(supabase,table);
+  protectedChecks.push({table,exists:check.exists,count:check.count,error:check.error});
+}
+result.protected_checks=protectedChecks;
+
+const reportPath=path.join('docs','db',`SFI_RESET_REPORT_${stamp}.json`);
+await writeFile(reportPath, JSON.stringify(result, null, 2), 'utf8');
+console.log(JSON.stringify({...result,report:reportPath}, null, 2));
 if (!result.ok) process.exitCode = 1;
