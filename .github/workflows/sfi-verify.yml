@@ -57,6 +57,9 @@ jobs:
       - name: Verify integrated SFI operating field
         run: npx tsx scripts/qa-sfi-operating-field-closure.ts
 
+      - name: Verify clean-start reset safety
+        run: npx tsx scripts/qa-sfi-operational-reset.ts
+
       - name: Verify SFI total proof circuit
         run: npx tsx scripts/qa-sfi-total-proof.ts
 
