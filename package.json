@@ -39,6 +39,7 @@
     "qa:sfi-root-capability-matrix": "tsx scripts/qa-sfi-root-capability-matrix.ts",
     "qa:sfi-operating-field": "tsx scripts/qa-sfi-operating-field-closure.ts",
     "qa:sfi-operational-reset": "tsx scripts/qa-sfi-operational-reset.ts",
+    "qa:sfi-historical-reconstruction": "tsx scripts/qa-sfi-historical-reconstruction.ts",
     "typecheck": "tsc --noEmit --pretty false --incremental false",
     "phase:verify": "npm run check:boundaries && npm run typecheck",
     "qa:sfi-pipeline": "node scripts/qa-sfi-minimal-pipeline.mjs",
@@ -49,6 +50,7 @@
     "db:proof:export": "node scripts/db/export-sfi-full-cycle-proof.mjs",
     "db:reset:sfi": "node scripts/db/reset-sfi-operational-tables.mjs",
     "db:seed:sfi": "node scripts/db/seed-sfi-canonical-history.mjs",
+    "db:reconstruct:sfi": "tsx scripts/reconstruct-sfi-derived-history.ts",
     "db:verify:sfi": "node scripts/db/verify-sfi-database.mjs"
   },
   "dependencies": {
