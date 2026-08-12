@@ -26,8 +26,8 @@ jobs:
         run: node scripts/apply-canonical-absorption.mjs
       - name: Remove one-time migration machinery
         run: |
-          git rm scripts/apply-canonical-absorption.mjs
-          git rm .github/workflows/apply-canonical-absorption.yml
+          git rm -f scripts/apply-canonical-absorption.mjs
+          git rm -f .github/workflows/apply-canonical-absorption.yml
       - name: Commit and push absorbed architecture
         run: |
           git config user.name "SFI Architecture"
