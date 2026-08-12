@@ -1,0 +1,45 @@
+name: SFI DB Audit Run
+
+on:
+  push:
+    branches:
+      - agent/db-audit-run
+
+jobs:
+  db-audit:
+    runs-on: ubuntu-latest
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      SFI_DB_VERIFY_TIMEOUT_MS: '12000'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm install --no-audit --no-fund
+      - name: Verify canonical database objects
+        id: verify
+        continue-on-error: true
+        run: node scripts/db/verify-sfi-database.mjs | tee /tmp/verify.log
+      - name: Inventory Supabase tables
+        id: inventory
+        continue-on-error: true
+        run: node scripts/db/inventory-supabase.mjs | tee /tmp/inventory.log
+      - name: Upload DB audit artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: sfi-db-audit
+          path: |
+            docs/db/SFI_DB_VERIFY_*.json
+            docs/db/SFI_SUPABASE_INVENTORY_*.json
+            docs/db/SFI_SUPABASE_INVENTORY.md
+            /tmp/verify.log
+            /tmp/inventory.log
+          if-no-files-found: warn
+          retention-days: 3
+      - name: Fail if either audit failed
+        if: steps.verify.outcome == 'failure' || steps.inventory.outcome == 'failure'
+        run: exit 1
