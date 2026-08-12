@@ -4,9 +4,9 @@ import { buildScoreFrictionOperationalReading } from '@/lib/scorefriction/python
 import {
   runMonteCarlo,
   runPythonScoreFrictionAnalysis,
-  scoreFrictionPythonBridgeConfig,
-  type PythonBridgeFile,
-} from '@/lib/scorefriction/python/pythonBridge';
+  scoreFrictionPythonClientConfig,
+  type PythonClientFile,
+} from '@/infrastructure/python/scorefrictionClient';
 import { isScoreFrictionEvidenceType } from '@/lib/scorefriction/evidence-contract';
 
 export const dynamic = 'force-dynamic';
@@ -31,7 +31,7 @@ function parseMetadata(value: FormDataEntryValue | null) {
   }
 }
 
-function fileFrom(value: FormDataEntryValue | null): PythonBridgeFile | null {
+function fileFrom(value: FormDataEntryValue | null): PythonClientFile | null {
   return value instanceof File ? value : null;
 }
 
@@ -154,10 +154,10 @@ function responseFrom(payload: Record<string, unknown>, input: { caseId: string;
       mihm_cultural_vector: vectors.mihmCultural,
     },
     technical: {
-      timeoutMs: scoreFrictionPythonBridgeConfig.timeoutMs,
-      maxFileSizeBytes: scoreFrictionPythonBridgeConfig.maxFileSizeBytes,
-      allowedAudioExtensions: scoreFrictionPythonBridgeConfig.audioExtensions,
-      allowedTextExtensions: scoreFrictionPythonBridgeConfig.textExtensions,
+      timeoutMs: scoreFrictionPythonClientConfig.timeoutMs,
+      maxFileSizeBytes: scoreFrictionPythonClientConfig.maxFileSizeBytes,
+      allowedAudioExtensions: scoreFrictionPythonClientConfig.audioExtensions,
+      allowedTextExtensions: scoreFrictionPythonClientConfig.textExtensions,
     },
   };
 }

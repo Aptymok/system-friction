@@ -1,7 +1,7 @@
 import type { SfiCognitiveRuntimeSnapshot, SfiMemoryAccess } from './types';
 import type { KernelContext } from './kernelContext';
 import { executeCognitiveCycle } from './cognitiveCycle';
-import { recordCognitiveCycleEvent } from './runtimeEventBridge';
+import { recordCognitiveCycleEvent } from '@/infrastructure/events/cognitiveRuntimeEventRepository';
 import { SFI_COGNITIVE_RUNTIME_MODES, SFI_LAYER_QUESTIONS } from './registry';
 import { SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY } from './convergedRegistry';
 import { SFI_AGENT_EXECUTION_MAP } from './agentExecutionMap';

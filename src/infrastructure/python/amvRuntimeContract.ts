@@ -1,19 +1,19 @@
-export type AmvPythonBridgeState =
+export type AmvPythonRuntimeState =
   | 'available_not_invoked'
   | 'degraded'
   | 'timeout'
   | 'contract_error'
   | 'sandbox_only'
 
-export type AmvPythonBridgeContract = {
+export type AmvPythonRuntimeContract = {
   ok: true
-  state: AmvPythonBridgeState
+  state: AmvPythonRuntimeState
   importsServicesPython: false
   executesPythonByDefault: false
   reason: string
 }
 
-export function getPythonBridgeContract(state: AmvPythonBridgeState = 'available_not_invoked'): AmvPythonBridgeContract {
+export function getPythonRuntimeContract(state: AmvPythonRuntimeState = 'available_not_invoked'): AmvPythonRuntimeContract {
   return {
     ok: true,
     state,

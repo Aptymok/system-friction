@@ -3,7 +3,7 @@ import { createAmvResponse, type AmvInput } from '@/lib/amv/amv-core'
 import { listAmvMemoryReferences, saveAmvMemory } from '@/lib/amv/amv-memory'
 
 import { adaptAmvMemoryToEvidence } from '@/lib/sfi/cognitive-runtime/amvEvidenceAdapter'
-import { publishAmvEvidenceIntoRuntime } from '@/lib/sfi/cognitive-runtime/amvRuntimeBridge'
+import { publishAmvEvidenceIntoRuntime } from '@/lib/amv/core/runtimePublisher'
 
 
 export const dynamic = 'force-dynamic'

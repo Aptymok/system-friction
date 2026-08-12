@@ -5,11 +5,11 @@ import { buildAmvGraph } from '@/lib/amv/core/amvGraphBuilder';
 import {
   wrapEvidenceReading,
   wrapGraphReading,
-} from './amvReading';
+} from '@/lib/sfi/cognitive-runtime/amvReading';
 
 import {
   relayPhenomenonReading,
-} from './PhenomenonRelay';
+} from '@/lib/sfi/cognitive-runtime/PhenomenonRelay';
 
 import {
   appendEpistemicEvent,
@@ -17,7 +17,7 @@ import {
 
 
 const RUNTIME_SCHEMA =
-  '2026-07-26.sfi-amv-runtime-bridge.v1';
+  '2026-07-26.sfi-amv-runtime-publisher.v1';
 
 
 export async function publishAmvEvidenceIntoRuntime(

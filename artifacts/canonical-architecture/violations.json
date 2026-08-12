@@ -1,11 +1,10 @@
 {
   "summary": {
-    "checkedFiles": 1627,
-    "violations": 19,
+    "checkedFiles": 1626,
+    "violations": 4,
     "byRule": {
       "P04_SINGLE_MEMORY_WRITE_PATH": 3,
-      "P16_NO_ABSORBED_ROUTE_REFERENCES": 5,
-      "P16_NO_ACTIVE_LEGACY_BRIDGE_QUARANTINE": 11
+      "P16_NO_ACTIVE_LEGACY_BRIDGE_QUARANTINE": 1
     }
   },
   "violations": [
@@ -20,31 +19,6 @@
       "detail": "direct institutional/Twin memory mutation outside canonical writer"
     },
     {
-      "rule": "P16_NO_ABSORBED_ROUTE_REFERENCES",
-      "file": "src/app/pipeline/page.tsx",
-      "detail": "/root/operate"
-    },
-    {
-      "rule": "P16_NO_ABSORBED_ROUTE_REFERENCES",
-      "file": "src/app/root/commercial/page.tsx",
-      "detail": "/root/prospect-radar"
-    },
-    {
-      "rule": "P16_NO_ABSORBED_ROUTE_REFERENCES",
-      "file": "src/app/root/readiness/page.tsx",
-      "detail": "/root/development"
-    },
-    {
-      "rule": "P16_NO_ABSORBED_ROUTE_REFERENCES",
-      "file": "src/app/root/readiness/page.tsx",
-      "detail": "/root/continuity"
-    },
-    {
-      "rule": "P16_NO_ABSORBED_ROUTE_REFERENCES",
-      "file": "src/app/root/readiness/page.tsx",
-      "detail": "/root/contracts"
-    },
-    {
       "rule": "P16_NO_ACTIVE_LEGACY_BRIDGE_QUARANTINE",
       "file": "src/core/cognitive-twin/experienceBridge.ts",
       "detail": "active source path contains legacy/bridge/quarantine"
@@ -53,56 +27,6 @@
       "rule": "P04_SINGLE_MEMORY_WRITE_PATH",
       "file": "src/core/cognitive-twin/experienceBridge.ts",
       "detail": "direct institutional/Twin memory mutation outside canonical writer"
-    },
-    {
-      "rule": "P16_NO_ACTIVE_LEGACY_BRIDGE_QUARANTINE",
-      "file": "src/core/cognitive-twin/legacyCapabilityBridge.ts",
-      "detail": "active source path contains legacy/bridge/quarantine"
-    },
-    {
-      "rule": "P16_NO_ACTIVE_LEGACY_BRIDGE_QUARANTINE",
-      "file": "src/lib/amv/core/mihmBridge.ts",
-      "detail": "active source path contains legacy/bridge/quarantine"
-    },
-    {
-      "rule": "P16_NO_ACTIVE_LEGACY_BRIDGE_QUARANTINE",
-      "file": "src/lib/amv/core/pythonBridgeAdapter.ts",
-      "detail": "active source path contains legacy/bridge/quarantine"
-    },
-    {
-      "rule": "P16_NO_ACTIVE_LEGACY_BRIDGE_QUARANTINE",
-      "file": "src/lib/amv/core/pythonBridgeContract.ts",
-      "detail": "active source path contains legacy/bridge/quarantine"
-    },
-    {
-      "rule": "P16_NO_ACTIVE_LEGACY_BRIDGE_QUARANTINE",
-      "file": "src/lib/amv/core/worldspectBridge.ts",
-      "detail": "active source path contains legacy/bridge/quarantine"
-    },
-    {
-      "rule": "P16_NO_ACTIVE_LEGACY_BRIDGE_QUARANTINE",
-      "file": "src/lib/ppoi/phenomenonBridge.ts",
-      "detail": "active source path contains legacy/bridge/quarantine"
-    },
-    {
-      "rule": "P16_NO_ACTIVE_LEGACY_BRIDGE_QUARANTINE",
-      "file": "src/lib/scorefriction/python/pythonBridge.ts",
-      "detail": "active source path contains legacy/bridge/quarantine"
-    },
-    {
-      "rule": "P16_NO_ACTIVE_LEGACY_BRIDGE_QUARANTINE",
-      "file": "src/lib/sfi/cognitive-runtime/agentLlmBridge.ts",
-      "detail": "active source path contains legacy/bridge/quarantine"
-    },
-    {
-      "rule": "P16_NO_ACTIVE_LEGACY_BRIDGE_QUARANTINE",
-      "file": "src/lib/sfi/cognitive-runtime/amvRuntimeBridge.ts",
-      "detail": "active source path contains legacy/bridge/quarantine"
-    },
-    {
-      "rule": "P16_NO_ACTIVE_LEGACY_BRIDGE_QUARANTINE",
-      "file": "src/lib/sfi/cognitive-runtime/runtimeEventBridge.ts",
-      "detail": "active source path contains legacy/bridge/quarantine"
     }
   ]
 }

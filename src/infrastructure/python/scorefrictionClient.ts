@@ -15,21 +15,21 @@ const SCRIPT_NAMES = {
 } as const;
 
 
-export const scoreFrictionPythonBridgeConfig = {
+export const scoreFrictionPythonClientConfig = {
   timeoutMs: PYTHON_TIMEOUT_MS,
   maxFileSizeBytes: MAX_FILE_SIZE_BYTES,
   audioExtensions: Array.from(AUDIO_EXTENSIONS),
   textExtensions: Array.from(TEXT_EXTENSIONS),
 } as const;
 
-export type PythonBridgeFile = {
+export type PythonClientFile = {
   name: string;
   type?: string;
   size: number;
   arrayBuffer(): Promise<ArrayBuffer>;
 };
 
-export type PythonBridgeResult<T = unknown> = {
+export type PythonClientResult<T = unknown> = {
   ok: true;
   data: T;
   stderr?: string;
@@ -41,8 +41,8 @@ export type PythonBridgeResult<T = unknown> = {
 };
 
 export type PythonScoreFrictionAnalysisInput = {
-  audioFile?: PythonBridgeFile | null;
-  textFile?: PythonBridgeFile | null;
+  audioFile?: PythonClientFile | null;
+  textFile?: PythonClientFile | null;
   text?: string | null;
   metadata?: Record<string, unknown> | null;
   nti?: number | null;
@@ -100,7 +100,7 @@ function assertKnownScript(script: keyof typeof SCRIPT_NAMES) {
   return fullPath;
 }
 
-async function createTempFile(file: PythonBridgeFile, allowed: Set<string>, prefix: string): Promise<TempFile> {
+async function createTempFile(file: PythonClientFile, allowed: Set<string>, prefix: string): Promise<TempFile> {
   if (file.size > MAX_FILE_SIZE_BYTES) throw new Error('scorefriction_python_file_too_large');
   const ext = path.extname(file.name).toLowerCase();
   if (!allowed.has(ext)) throw new Error(`scorefriction_python_extension_not_allowed_${ext.replace('.', '') || 'none'}`);
@@ -128,7 +128,7 @@ async function writeTempText(text: string): Promise<TempFile> {
   };
 }
 
-async function runPythonJson<T>(script: keyof typeof SCRIPT_NAMES, args: string[], timeoutMs = PYTHON_TIMEOUT_MS): Promise<PythonBridgeResult<T>> {
+async function runPythonJson<T>(script: keyof typeof SCRIPT_NAMES, args: string[], timeoutMs = PYTHON_TIMEOUT_MS): Promise<PythonClientResult<T>> {
   const fullScriptPath = assertKnownScript(script);
   void fullScriptPath;
   void args;
@@ -136,12 +136,12 @@ async function runPythonJson<T>(script: keyof typeof SCRIPT_NAMES, args: string[
 
   return {
     ok: false,
-    error: 'python_bridge_disabled_in_next_bundle',
+    error: 'python_client_disabled_in_next_bundle',
     technical: 'Python execution is disabled inside Next route bundles to avoid broad Turbopack tracing. Use an external worker or explicit service boundary.',
   };
 }
 
-async function runPythonText(script: keyof typeof SCRIPT_NAMES, args: string[], timeoutMs = PYTHON_TIMEOUT_MS): Promise<PythonBridgeResult<string>> {
+async function runPythonText(script: keyof typeof SCRIPT_NAMES, args: string[], timeoutMs = PYTHON_TIMEOUT_MS): Promise<PythonClientResult<string>> {
   const fullScriptPath = assertKnownScript(script);
   void fullScriptPath;
   void args;
@@ -149,7 +149,7 @@ async function runPythonText(script: keyof typeof SCRIPT_NAMES, args: string[], 
 
   return {
     ok: false,
-    error: 'python_bridge_disabled_in_next_bundle',
+    error: 'python_client_disabled_in_next_bundle',
     technical: 'Python execution is disabled inside Next route bundles to avoid broad Turbopack tracing. Use an external worker or explicit service boundary.',
   };
 }
@@ -203,7 +203,7 @@ export async function runMonteCarlo(_input: Record<string, unknown> = {}) {
   return { ok: true as const, data: parseMonteCarlo(result.data), stderr: result.stderr };
 }
 
-export async function runPythonScoreFrictionAnalysis(input: PythonScoreFrictionAnalysisInput): Promise<PythonBridgeResult<Record<string, unknown>>> {
+export async function runPythonScoreFrictionAnalysis(input: PythonScoreFrictionAnalysisInput): Promise<PythonClientResult<Record<string, unknown>>> {
   const tempFiles: TempFile[] = [];
   try {
     const cleanText = input.text?.trim() || null;
@@ -225,7 +225,7 @@ export async function runPythonScoreFrictionAnalysis(input: PythonScoreFrictionA
           metadata: input.metadata ?? {},
           caseId: input.caseId ?? null,
           evidenceType: input.evidenceType ?? null,
-          runtime: 'python_bridge',
+          runtime: 'python_client',
         },
       };
     }
@@ -240,7 +240,7 @@ export async function runPythonScoreFrictionAnalysis(input: PythonScoreFrictionA
           metadata: input.metadata ?? {},
           caseId: input.caseId ?? null,
           evidenceType: input.evidenceType ?? null,
-          runtime: 'python_bridge_text',
+          runtime: 'python_client_text',
         },
         stderr: result.stderr,
       };

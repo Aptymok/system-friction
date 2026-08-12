@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { publishAmvGraphIntoRuntime } from '@/lib/sfi/cognitive-runtime/amvRuntimeBridge'
+import { publishAmvGraphIntoRuntime } from '@/lib/amv/core/runtimePublisher'
 
 export const dynamic = 'force-dynamic'
 

@@ -1,9 +1,9 @@
-import type { AmvEvidenceTrust } from './evidenceTypes'
-import type { AmvFocusVariable } from './focusVariableTypes'
-import type { AmvObservableObjectType } from './observableObjectTypes'
-import type { AmvObservationMode } from './observationModes'
+import type { AmvEvidenceTrust } from '@/lib/amv/core/evidenceTypes'
+import type { AmvFocusVariable } from '@/lib/amv/core/focusVariableTypes'
+import type { AmvObservableObjectType } from '@/lib/amv/core/observableObjectTypes'
+import type { AmvObservationMode } from '@/lib/amv/core/observationModes'
 
-export type PythonBridgeStatus =
+export type PythonRuntimeStatus =
   | 'not_configured'
   | 'available_not_invoked'
   | 'contract_ready'
@@ -79,7 +79,7 @@ export type CognitiveGraphPayload = {
 export type DegradedPythonResult = {
   contractVersion: 'amv-python-cognitive-twin/v1'
   requestId: string
-  status: PythonBridgeStatus
+  status: PythonRuntimeStatus
   reason: string
   safeFallback: 'do_not_invoke_python' | 'return_missing' | 'return_audit_only'
   warnings: string[]
@@ -89,7 +89,7 @@ export type CognitiveTwinResponse = {
   contractVersion: 'amv-python-cognitive-twin/v1'
   requestId: string
   correlationId: string
-  status: PythonBridgeStatus
+  status: PythonRuntimeStatus
   epistemicEvent?: EpistemicEventPayload
   cognitiveGraph?: CognitiveGraphPayload
   degraded?: DegradedPythonResult

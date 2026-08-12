@@ -1,11 +1,11 @@
 ﻿import {
   createSFIEvent,
   emitSFIEvent
-} from "./eventBus";
+} from "@/lib/sfi/cognitive-runtime/eventBus";
 
 import {
   persistSFIEvent
-} from "./eventPersistence";
+} from "@/lib/sfi/cognitive-runtime/eventPersistence";
 
 
 export async function recordAgentExecutionEvent(

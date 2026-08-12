@@ -46,7 +46,7 @@ assert.match(archaeologyPanel, /JOURNAL/);
 assert.match(archaeologyPanel, /CognitiveTwinExperimentControls/);
 assert.match(archaeologyPanel, /INDIVIDUATION DEMONSTRATED/);
 assert.match(archaeologyPanel, /TRANSPORTE LEGACY/);
-assert.match(twinPage, /readLegacyCognitiveTwinState/);
+assert.match(twinPage, /readCognitiveTwinAncestralState/);
 assert.match(twinPage, /readCognitiveTwinLineageHealth/);
 assert.match(twinPage, /readCognitiveTwinJournal/);
 assert.match(experiments, /SFI-CT-SNAPSHOT-1\.0/);

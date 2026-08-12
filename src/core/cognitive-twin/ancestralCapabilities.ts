@@ -6,7 +6,7 @@ import { readCognitiveTwinLineageHealth } from './reentry/runtime';
 import { readCognitiveTwinMutationState } from './reentry/mutationState';
 import { persistCognitiveTwinExperience } from './experienceBridge';
 
-export const COGNITIVE_TWIN_LEGACY_BRIDGE_VERSION='SFI-CT-LEGACY-BRIDGE-1.0';
+export const COGNITIVE_TWIN_ANCESTRAL_CAPABILITIES_VERSION='SFI-CT-ANCESTRAL-CAPABILITIES-1.0';
 
 export const COGNITIVE_TWIN_POLICY={
   contract:'SFI-CTC',
@@ -27,7 +27,7 @@ export const COGNITIVE_TWIN_POLICY={
   ] as const,
 };
 
-export type CognitiveTwinLegacyCapabilityId=
+export type CognitiveTwinAncestralCapabilityId=
   |'episodic_memory_engine'
   |'timeline_builder'
   |'meta_observer'
@@ -39,17 +39,17 @@ export type CognitiveTwinLegacyCapabilityId=
   |'governed_mutation'
   |'external_observation_field';
 
-export type CognitiveTwinLegacyCapabilityStatus='MIGRATED'|'ABSORBED'|'REPLACED_EQUIVALENT'|'MISSING';
+export type CognitiveTwinAncestralCapabilityStatus='MIGRATED'|'ABSORBED'|'REPLACED_EQUIVALENT'|'MISSING';
 
-export const COGNITIVE_TWIN_LEGACY_CAPABILITY_MANIFEST:Array<{
-  id:CognitiveTwinLegacyCapabilityId;
-  status:CognitiveTwinLegacyCapabilityStatus;
+export const COGNITIVE_TWIN_ANCESTRAL_CAPABILITY_MANIFEST:Array<{
+  id:CognitiveTwinAncestralCapabilityId;
+  status:CognitiveTwinAncestralCapabilityStatus;
   currentImplementation:string[];
   boundary:string;
 }>=[
   {
     id:'episodic_memory_engine',status:'MIGRATED',
-    currentImplementation:['sfi_cognitive_twin_memory','persistCognitiveTwinExperience()','readLegacyCognitiveTwinState().timeline'],
+    currentImplementation:['sfi_cognitive_twin_memory','persistCognitiveTwinExperience()','readCognitiveTwinAncestralState().timeline'],
     boundary:'Episodes are evidence-bound institutional records. They are not hidden chain-of-thought, subjective memory or automatic canon.',
   },
   {
@@ -211,7 +211,7 @@ export async function recordCognitiveTwinFeedback(input:{
   });
 }
 
-export async function readLegacyCognitiveTwinState(limit=120){
+export async function readCognitiveTwinAncestralState(limit=120){
   const [timeline,operatingMode,metaObservation,lineage,mutations]=await Promise.all([
     buildCognitiveTwinTimeline(limit),
     deriveOperatingModeDistribution(),
@@ -219,11 +219,11 @@ export async function readLegacyCognitiveTwinState(limit=120){
     readCognitiveTwinLineageHealth(),
     readCognitiveTwinMutationState(),
   ]);
-  const missing=COGNITIVE_TWIN_LEGACY_CAPABILITY_MANIFEST.filter(item=>item.status==='MISSING').map(item=>item.id);
+  const missing=COGNITIVE_TWIN_ANCESTRAL_CAPABILITY_MANIFEST.filter(item=>item.status==='MISSING').map(item=>item.id);
   return {
-    bridgeVersion:COGNITIVE_TWIN_LEGACY_BRIDGE_VERSION,
+    capabilityVersion:COGNITIVE_TWIN_ANCESTRAL_CAPABILITIES_VERSION,
     policy:COGNITIVE_TWIN_POLICY,
-    capabilities:COGNITIVE_TWIN_LEGACY_CAPABILITY_MANIFEST,
+    capabilities:COGNITIVE_TWIN_ANCESTRAL_CAPABILITY_MANIFEST,
     missingCapabilities:missing,
     timeline,
     operatingMode,
@@ -231,6 +231,6 @@ export async function readLegacyCognitiveTwinState(limit=120){
     lineage,
     mutations,
     softwareComplete:missing.length===0,
-    boundary:'Software-complete legacy transport means every retained legacy function has a present institutional implementation or explicit governed absorption/equivalent. It does not demonstrate individuation, autonomy or scientific validity.',
+    boundary:'Software-complete ancestral capability integration means every retained ancestral function has a present institutional implementation or explicit governed absorption/equivalent. It does not demonstrate individuation, autonomy or scientific validity.',
   };
 }

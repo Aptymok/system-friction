@@ -3,7 +3,7 @@ import { CognitiveTwinConsole } from '@/components/root/cognitive-twin/Cognitive
 import { CognitiveTwinIntegrationPanel } from '@/components/root/cognitive-twin/CognitiveTwinIntegrationPanel';
 import { CognitiveTwinArchaeologyPanel } from '@/components/root/cognitive-twin/CognitiveTwinArchaeologyPanel';
 import { readCognitiveTwinState } from '@/core/cognitive-twin/readState';
-import { readLegacyCognitiveTwinState } from '@/core/cognitive-twin/legacyCapabilityBridge';
+import { readCognitiveTwinAncestralState } from '@/core/cognitive-twin/ancestralCapabilities';
 import { readCognitiveTwinLineageHealth } from '@/core/cognitive-twin/reentry/runtime';
 import { readCognitiveTwinExperimentState } from '@/core/cognitive-twin/reentry/experimentState';
 import { readCognitiveTwinMutationState } from '@/core/cognitive-twin/reentry/mutationState';
@@ -19,7 +19,7 @@ export const metadata: Metadata = {
 
 export default async function CognitiveTwinPage() {
   const ctx=await requireRootObserverPage('/root/cognitive-twin');
-  const legacy=await readLegacyCognitiveTwinState();
+  const legacy=await readCognitiveTwinAncestralState();
 
   if(!ctx.isRoot) return <CognitiveTwinArchaeologyPanel legacy={legacy}/>;
 

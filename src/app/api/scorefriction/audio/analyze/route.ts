@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { buildScoreFrictionEvaluationContract } from '@/lib/scorefriction/evaluationContract';
 import { createScoreFrictionPrototype, evaluateScoreFrictionCase, evaluateScoreFrictionObservation, recordScoreFrictionAudioObservation } from '@/lib/scorefriction/store';
 import { buildScoreFrictionAudioFallbackVector } from '@/lib/scorefriction/evidence-vector-mapper';
-import { runPythonScoreFrictionAnalysis } from '@/lib/scorefriction/python/pythonBridge';
+import { runPythonScoreFrictionAnalysis } from '@/infrastructure/python/scorefrictionClient';
 import { buildScoreFrictionOperationalReading } from '@/lib/scorefriction/python/pythonMihmToOperational';
 
 export const dynamic = 'force-dynamic';

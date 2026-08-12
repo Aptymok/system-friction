@@ -62,7 +62,7 @@ function buildEvidenceIds(
   );
 }
 
-export type PpoiPhenomenonBridgeInput = {
+export type PpoiPhenomenonProjectionInput = {
   phenomenon: unknown;
 
   indices: PpoiIndices;
@@ -77,7 +77,7 @@ export type PpoiPhenomenonBridgeInput = {
 };
 
 export function buildPpoiPhenomenonCandidate(
-  input: PpoiPhenomenonBridgeInput,
+  input: PpoiPhenomenonProjectionInput,
 ): PhenomenonCandidateInput {
   const phenomenon =
     record(
@@ -178,8 +178,8 @@ export function buildPpoiPhenomenonCandidate(
   return candidate;
 }
 
-export async function bridgePpoiToPhenomenon(
-  input: PpoiPhenomenonBridgeInput,
+export async function projectionPpoiToPhenomenon(
+  input: PpoiPhenomenonProjectionInput,
 ) {
   const candidate =
     buildPpoiPhenomenonCandidate(
@@ -192,7 +192,7 @@ export async function bridgePpoiToPhenomenon(
 }
 
 export function buildPhenomenonProjection(
-  input: PpoiPhenomenonBridgeInput,
+  input: PpoiPhenomenonProjectionInput,
 ) {
   const phenomenon =
     record(

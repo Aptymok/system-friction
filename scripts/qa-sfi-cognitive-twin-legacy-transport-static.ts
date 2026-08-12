@@ -15,7 +15,7 @@ for(const id of requiredIds){
   assert.ok(bridge.includes(`id:'${id}'`),`legacy_capability_manifest_missing:${id}`);
 }
 assert.doesNotMatch(bridge,/status:'MISSING'/,'retained_legacy_capability_marked_missing');
-for(const fn of ['buildCognitiveTwinTimeline','deriveOperatingModeDistribution','buildCognitiveTwinMetaObservation','buildCognitiveTwinCausalTrace','recordCognitiveTwinFeedback','readLegacyCognitiveTwinState']){
+for(const fn of ['buildCognitiveTwinTimeline','deriveOperatingModeDistribution','buildCognitiveTwinMetaObservation','buildCognitiveTwinCausalTrace','recordCognitiveTwinFeedback','readCognitiveTwinAncestralState']){
   assert.ok(bridge.includes(`function ${fn}`),`legacy_bridge_missing_function:${fn}`);
 }
 for(const invariant of ['EVIDENCE_BEFORE_INFERENCE','SIMULATION_IS_NOT_OBSERVATION','MEMORY_IS_NOT_AUTHORITY','LEARNING_DOES_NOT_EXPAND_AUTHORITY','MISSING_REMAINS_MISSING','LINEAGE_IS_PROVENANCE_NOT_INDIVIDUATION'])assert.ok(bridge.includes(invariant),`legacy_bridge_missing_invariant:${invariant}`);
