@@ -25,8 +25,17 @@ jobs:
           cache: npm
       - name: Apply final memory-path cleanup
         run: node scripts/apply-canonical-cleanup-c.mjs
-      - name: Install dependencies
-        run: npm ci
+      - name: Install dependencies with transient-network retry
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in 1 2 3; do
+            if npm ci; then exit 0; fi
+            echo "npm ci attempt ${attempt} failed; retrying transient dependency download"
+            rm -rf node_modules
+            sleep $((attempt * 4))
+          done
+          exit 1
       - name: Typecheck
         run: npm run typecheck
       - name: Build
