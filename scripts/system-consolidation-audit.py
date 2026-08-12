@@ -10,6 +10,7 @@ EXTENSIONS = {'.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs', '.sql', '.md', '.jso
 DB_IDENTIFIER = re.compile(r'^[A-Za-z_][A-Za-z0-9_]*$')
 SURFACE_CONFIG = ROOT / 'config' / 'sfi-surfaces.json'
 LEGACY_SCHEMA_CONFIG = ROOT / 'config' / 'sfi-legacy-live-schema.json'
+RETIRED_SCHEMA_CONFIG = ROOT / 'config' / 'sfi-retired-schema.json'
 
 
 def load_json(path: Path, fallback: dict) -> dict:
@@ -27,6 +28,8 @@ CANONICAL_PAGES = {
 ABSORBED_ROUTES = SURFACES.get('absorbedRoutes', {}) if isinstance(SURFACES.get('absorbedRoutes'), dict) else {}
 LEGACY_SCHEMA = load_json(LEGACY_SCHEMA_CONFIG, {'objects': []})
 LEGACY_LIVE_OBJECTS = {item for item in LEGACY_SCHEMA.get('objects', []) if isinstance(item, str)}
+RETIRED_SCHEMA = load_json(RETIRED_SCHEMA_CONFIG, {'objects': []})
+RETIRED_SCHEMA_OBJECTS = {item for item in RETIRED_SCHEMA.get('objects', []) if isinstance(item, str)}
 
 
 def read_textfiles() -> list[tuple[Path, str]]:
@@ -144,7 +147,7 @@ def main() -> None:
         matrix.append({**item, 'destination': destination, 'reason': reason, 'note': note})
 
     tables: list[dict] = []
-    for table in sorted(set(table_refs) | created_tables | set(schema_refs) | LEGACY_LIVE_OBJECTS):
+    for table in sorted((set(table_refs) | created_tables | set(schema_refs) | LEGACY_LIVE_OBJECTS) - RETIRED_SCHEMA_OBJECTS):
         references = sorted(table_refs.get(table, set()))
         schema_references = sorted(schema_refs.get(table, set()))
         has_migration = table in created_tables
@@ -188,6 +191,7 @@ def main() -> None:
         'tables_review_delete_or_absorb': sum(1 for item in tables if item['destination'] == 'REVIEW_DELETE_OR_ABSORB'),
         'tables_kept_by_schema_dependency': sum(1 for item in tables if item['reason'] == 'SCHEMA_DEPENDENCY'),
         'legacy_live_schema_contracts': sum(1 for item in tables if item['legacy_live_schema_contract']),
+        'retired_schema_objects': len(RETIRED_SCHEMA_OBJECTS),
     }
     (output / 'summary.json').write_text(json.dumps(counts, indent=2))
     (output / 'routes.json').write_text(json.dumps(matrix, indent=2))
