@@ -1,6 +1,6 @@
 # SFI · CLEAN GENESIS RUNBOOK
 
-**Contract:** SFI-CLEAN-GENESIS-1.0  
+**Contract:** SFI-CLEAN-GENESIS-1.1  
 **World-day origin:** 2026-06-02 UTC = Day 1  
 **Reconstructed history end:** 2026-08-11 UTC = Day 71  
 **Prospective clean genesis:** 2026-08-12 UTC = Day 72
@@ -59,6 +59,18 @@ After the provenance seed:
 3. sync preserved WorldSpect snapshots into Twin context while retaining their observed/derived/simulated boundary;
 4. do not recreate Field, Method Lab or governance history unless a real persisted source supports it.
 
+## Prospective continuation
+
+The existing `continuity-report` cron ensures the current UTC world-day **before** running the daily continuity report and Cognitive Twin heartbeat.
+
+- Day 72 is the clean prospective genesis.
+- Day 73, Day 74 and every later UTC date are inserted automatically if they do not yet exist.
+- A newly created day starts as `LIVE_EMPTY`.
+- Creating the date records calendar continuity only. It does not assert that evidence, an observation, an intervention or any institutional event occurred that day.
+- No additional Vercel cron is introduced.
+
+This means the historical spine ends once, at Day 71. From Day 72 onward, SFI advances prospectively instead of periodically reconstructing its recent past.
+
 ## Execution order
 
 ```bash
@@ -85,6 +97,7 @@ A successful clean genesis means:
 - legitimate World-source history remains addressable;
 - selected historical SFI artifacts have provenance records;
 - derivable graph/Twin context has been reconstructed using current code;
-- Day 72 is the first prospective day of the clean runtime.
+- Day 72 is the first prospective day of the clean runtime;
+- later world-days advance automatically on the existing continuity schedule.
 
 It does **not** mean that historical claims were scientifically validated, that old simulations became observations, that past software merges prove production execution, or that future SFI results are predetermined.
