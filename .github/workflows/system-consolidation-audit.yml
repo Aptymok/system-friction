@@ -1,11 +1,12 @@
 name: SFI System Consolidation Audit
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - agent/system-consolidation-audit
 
-# Consolidation branch only: no production mutations.
+# Consolidation branch only: no production mutations and no Vercel deployment.
 jobs:
   audit-and-compile:
     runs-on: ubuntu-latest
