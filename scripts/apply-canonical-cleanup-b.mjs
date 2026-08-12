@@ -73,7 +73,14 @@ move('src/lib/amv/core/pythonBridgeContract.ts','src/infrastructure/python/amvCo
   .replaceAll("from './observableObjectTypes'","from '@/lib/amv/core/observableObjectTypes'")
   .replaceAll("from './observationModes'","from '@/lib/amv/core/observationModes'")
   .replaceAll('Bridge','Runtime').replaceAll('bridge','runtime'));
-move('src/lib/scorefriction/python/pythonBridge.ts','src/infrastructure/python/scorefrictionClient.ts',s=>s.replaceAll('PythonBridge','PythonClient').replaceAll('python_bridge','python_client').replaceAll('Bridge','Client').replaceAll('bridge','client'));
+move('src/lib/scorefriction/python/pythonBridge.ts','src/infrastructure/python/scorefrictionClient.ts',s=>s
+  .replaceAll('PythonBridgeFile','PythonClientFile')
+  .replaceAll('PythonBridgeResult','PythonClientResult')
+  .replaceAll('scoreFrictionPythonBridgeConfig','scoreFrictionPythonClientConfig')
+  .replaceAll('python_bridge','python_client'));
+replaceEverywhere('PythonBridgeFile','PythonClientFile');
+replaceEverywhere('PythonBridgeResult','PythonClientResult');
+replaceEverywhere('scoreFrictionPythonBridgeConfig','scoreFrictionPythonClientConfig');
 move('src/lib/ppoi/phenomenonBridge.ts','src/lib/ppoi/phenomenonProjection.ts',s=>s.replaceAll('Bridge','Projection').replaceAll('bridge','projection'));
 move('src/lib/sfi/cognitive-runtime/agentLlmBridge.ts','src/infrastructure/ai/agentLlmClient.ts',s=>s
   .replaceAll("from './convergedRegistry'","from '@/lib/sfi/cognitive-runtime/convergedRegistry'")
@@ -85,6 +92,10 @@ move('src/lib/sfi/cognitive-runtime/runtimeEventBridge.ts','src/infrastructure/e
   .replaceAll("from './eventBus'","from '@/lib/sfi/cognitive-runtime/eventBus'")
   .replaceAll("from './eventPersistence'","from '@/lib/sfi/cognitive-runtime/eventPersistence'")
   .replaceAll('Bridge','Repository').replaceAll('bridge','repository'));
+replaceEverywhere("'./runtimeEventBridge'","'@/infrastructure/events/cognitiveRuntimeEventRepository'");
+replaceEverywhere('"./runtimeEventBridge"','"@/infrastructure/events/cognitiveRuntimeEventRepository"');
+replaceEverywhere("'./agentLlmBridge'","'@/infrastructure/ai/agentLlmClient'");
+replaceEverywhere('"./agentLlmBridge"','"@/infrastructure/ai/agentLlmClient"');
 move('src/lib/sfi/cognitive-runtime/amvRuntimeBridge.ts','src/lib/amv/core/runtimePublisher.ts',s=>s
   .replaceAll("from './amvReading'","from '@/lib/sfi/cognitive-runtime/amvReading'")
   .replaceAll("from './PhenomenonRelay'","from '@/lib/sfi/cognitive-runtime/PhenomenonRelay'")
