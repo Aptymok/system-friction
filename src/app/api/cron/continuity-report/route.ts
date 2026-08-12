@@ -4,6 +4,7 @@ import { runScheduledAgentReportCycle } from '@/lib/reports/scheduledAgentReport
 import { runCognitiveTwinDevelopmentalHeartbeat } from '@/lib/cognitive-twin/reentry/runtime';
 import { considerCognitiveTwinMutationProposal } from '@/lib/cognitive-twin/reentry/experiments';
 import { syncSfiInstitutionalStateToCognitiveTwin } from '@/lib/cognitive-twin/institutionalIntegration';
+import { ensureCurrentSfiWorldDay } from '@/lib/time/sfiWorldDay';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -20,6 +21,11 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ ok: false, error: 'unauthorized_continuity_report' }, { status: 401 });
   }
   try {
+    const worldDay = await ensureCurrentSfiWorldDay().catch((error) => ({
+      ok:false,
+      skipped:false,
+      error:error instanceof Error ? error.message : String(error),
+    }));
     const report = await createDailyContinuityReport();
     const cognitiveTwinInstitutionalSync = await syncSfiInstitutionalStateToCognitiveTwin().catch((error) => ({
       ok:false,
@@ -51,12 +57,13 @@ export async function GET(request: NextRequest) {
     ]);
     return NextResponse.json({
       ok: true,
+      worldDay,
       report,
       cognitiveTwinInstitutionalSync,
       scheduledReports,
       cognitiveTwinHeartbeat,
       cognitiveTwinMutation,
-      schedulingRule: 'Uses the existing continuity-report cron. SFI organ sync occurs before the CT-A01 heartbeat; no additional Vercel cron invocation is introduced.',
+      schedulingRule: 'Uses the existing continuity-report cron. The UTC SFI world-day coordinate is ensured first, then SFI organ sync occurs before the CT-A01 heartbeat; no additional Vercel cron invocation is introduced.',
     });
   } catch (error) {
     return NextResponse.json({ ok: false, error: 'continuity_report_failed', details: error instanceof Error ? error.message : String(error) }, { status: 500 });
