@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import assert from 'node:assert/strict';
-import { OPERATIONAL_DELETE_ORDER, PROTECTED_TABLES } from './db/sfi-operational-reset-inventory.mjs';
+import { HISTORICAL_PRESERVE_TABLES, OPERATIONAL_DELETE_ORDER, PROTECTED_TABLES } from './db/sfi-operational-reset-inventory.mjs';
 
 const root=process.cwd();
 const read=(relative:string)=>fs.readFileSync(path.join(root,relative),'utf8');
@@ -25,6 +25,10 @@ const requiredRuntimeTables=[
 for(const table of requiredRuntimeTables)assert.ok(OPERATIONAL_DELETE_ORDER.includes(table),`reset_inventory_missing_core_runtime_table:${table}`);
 for(const table of PROTECTED_TABLES)assert.ok(!OPERATIONAL_DELETE_ORDER.includes(table),`protected_table_in_reset:${table}`);
 for(const table of ['profiles','system_accounts','system_roles','system_permissions','system_access_grants','system_entitlements'])assert.ok(PROTECTED_TABLES.includes(table),`missing_protected_identity_table:${table}`);
+for(const table of ['sfi_world_day_ledger','world_source_observations','world_friction_readings','worldspect_snapshots','sfi_indicator_snapshots']){
+  assert.ok(HISTORICAL_PRESERVE_TABLES.includes(table),`missing_longitudinal_preserve_table:${table}`);
+  assert.ok(PROTECTED_TABLES.includes(table),`longitudinal_history_not_protected:${table}`);
+}
 
 assert.match(reset,/CLEAN_RUNTIME_AFTER_VERIFIED_PROOF/);
 assert.match(reset,/LATEST_EXPORT\.txt/);
@@ -35,7 +39,7 @@ assert.match(reset,/protected_checks/);
 assert.match(reset,/countTable/);
 assert.doesNotMatch(reset,/DELETE_ORDER from '.\/sfi-db-tables\.mjs'/);
 
-// Clean empty state must not be interpreted as a broken system after the purge.
+// Clean empty operational state must not be interpreted as a broken system after the purge.
 assert.match(readiness,/EMPTY_READY:no_field_cycles_yet/);
 assert.match(readiness,/EMPTY_READY:no_studio_objects_yet/);
 assert.match(readiness,/EMPTY_READY:no_evidence_yet/);
@@ -51,11 +55,13 @@ console.log(JSON.stringify({
   ok:true,
   purgeTableCount:OPERATIONAL_DELETE_ORDER.length,
   protectedTableCount:PROTECTED_TABLES.length,
+  historicalPreserveTableCount:HISTORICAL_PRESERVE_TABLES.length,
   invariants:[
     'full-cycle proof/export precedes reset',
     'runtime history is cleared child-first',
     'identity/access/authority are protected',
+    'longitudinal world history and SFI world-day coordinates are protected',
     'optional/missing tables are skipped instead of making the reset unsafe',
-    'empty post-reset organs report READY rather than DEGRADED',
+    'empty post-reset operational organs report READY rather than DEGRADED',
   ],
 },null,2));
