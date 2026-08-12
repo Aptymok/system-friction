@@ -9,6 +9,9 @@ import {
   SFI_RECONSTRUCTED_HISTORY_END,
   SFI_WORLD_DAY_ORIGIN,
 } from './sfi-historical-reconstruction-manifest.mjs';
+import { SFI_SOFTWARE_HISTORY } from './sfi-software-history-manifest.mjs';
+
+const SFI_RECONSTRUCTION_EVIDENCE=[...SFI_HISTORICAL_EVIDENCE,...SFI_SOFTWARE_HISTORY];
 
 if (process.env.SFI_HISTORY_SEED_CONFIRM !== 'RECONSTRUCT_SFI_HISTORY') {
   console.error(JSON.stringify({
@@ -36,7 +39,7 @@ function dayRows(){
   const start=utcDate(SFI_WORLD_DAY_ORIGIN);
   const end=utcDate(SFI_RECONSTRUCTED_HISTORY_END);
   const evidenceByDate=new Map();
-  for(const evidence of SFI_HISTORICAL_EVIDENCE){
+  for(const evidence of SFI_RECONSTRUCTION_EVIDENCE){
     const date=dateOnly(evidence.observedAt);
     if(date<SFI_WORLD_DAY_ORIGIN||date>SFI_RECONSTRUCTED_HISTORY_END)continue;
     const current=evidenceByDate.get(date)??[];current.push(evidence.key);evidenceByDate.set(date,current);
@@ -124,24 +127,27 @@ async function upsertEvidence(evidence){
 
 const report={
   ok:true,
-  contract:'SFI-HISTORICAL-RECONSTRUCTION-SEED-1.0',
+  contract:'SFI-HISTORICAL-RECONSTRUCTION-SEED-1.1',
   seed:SFI_HISTORICAL_RECONSTRUCTION_SEED,
   seededAt:new Date().toISOString(),
   worldDayOrigin:SFI_WORLD_DAY_ORIGIN,
   reconstructedThrough:SFI_RECONSTRUCTED_HISTORY_END,
   cleanGenesisDate:SFI_CLEAN_GENESIS_DATE,
+  historicalArtifactCount:SFI_HISTORICAL_EVIDENCE.length,
+  softwareMilestoneCount:SFI_SOFTWARE_HISTORY.length,
   rules:[
     'No epistemic_events are synthesized or backdated.',
     'No Field return, Method Lab result, governance approval or external action is fabricated.',
     'Every calendar day in the reconstructed range exists as a time coordinate, but an empty day does not assert inactivity.',
     'Historical objects are imported as provenance; their internal claims retain their own burden of proof.',
+    'Merged software milestones prove repository integration only; they do not prove production execution or scientific validity.',
   ],
   worldDays:[],evidence:[],errors:[],
 };
 
 try{report.worldDays=await upsertWorldDays();}catch(error){report.ok=false;report.errors.push(error instanceof Error?error.message:String(error));}
 if(report.ok){
-  for(const evidence of SFI_HISTORICAL_EVIDENCE){
+  for(const evidence of SFI_RECONSTRUCTION_EVIDENCE){
     try{report.evidence.push(await upsertEvidence(evidence));}
     catch(error){report.ok=false;report.errors.push(error instanceof Error?error.message:String(error));}
   }
