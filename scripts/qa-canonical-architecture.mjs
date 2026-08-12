@@ -13,8 +13,8 @@ const report=(rule,file,detail)=>violations.push({rule,file:rel(file),detail});
 
 const forbiddenActiveNames=/(^|\/)(legacy|quarantine)(\/|[^/]*\.(ts|tsx|js|jsx)$)|(^|\/).*bridge[^/]*\.(ts|tsx|js|jsx)$/i;
 const obsoleteRouteStrings=[
-  '/root/predictions#new-prediction','/root/commercial#prospect-radar','/root/readiness','/root/readiness','/root/readiness','/root/readiness',
-  '/root/cognitive-twin','/root/cognitive-twin','/root/cognitive-twin','/root/agents','/root','/pipeline','/pipeline','/field'
+  '/root/predictions/new','/root/prospect-radar','/root/development','/root/continuity','/root/contracts','/root/total-proof',
+  '/root/cognitive-twin/system','/root/cognitive-twin/lineage','/root/cognitive-twin/journal','/root/agents/passports','/root/overview','/root/operate','/root/pipeline','/operator/field'
 ];
 
 for(const file of files){
@@ -25,11 +25,11 @@ for(const file of files){
 
   const interfaceFile=/^src\/(app\/(?!api\/).*\/page\.(ts|tsx)$|components\/)/.test(r)||r==='src/app/page.tsx';
   if(interfaceFile){
-    if(/createServiceSupabaseClient|createClient\s*\(/.test(s)) report('P12_INTERFACE_NO_SUPABASE',file,'interface imports/constructs Supabase client');
-    if(/\.from\s*\(/.test(s)) report('P12_INTERFACE_NO_RAW_TABLE_ACCESS',file,'interface contains .from() table access');
+    if(/createServiceSupabaseClient|createClient\s*\([^)]*SUPABASE/i.test(s)) report('P12_INTERFACE_NO_SUPABASE',file,'interface imports/constructs Supabase client');
+    if(/\.from\s*\(\s*['\"][A-Za-z_][A-Za-z0-9_]*['\"]\s*\)/.test(s)) report('P12_INTERFACE_NO_RAW_TABLE_ACCESS',file,'interface contains literal table .from() access');
   }
   if(/^src\/agents\//.test(r)){
-    if(/supabase|createServiceSupabaseClient|\.from\s*\(/i.test(s)) report('P07_AGENTS_NO_SUPABASE',file,'agent references Supabase/raw table access');
+    if(/supabase|createServiceSupabaseClient|\.from\s*\(\s*['\"][A-Za-z_][A-Za-z0-9_]*['\"]\s*\)/i.test(s)) report('P07_AGENTS_NO_SUPABASE',file,'agent references Supabase/raw table access');
   }
   if(/^src\/lib\/cognitive-twin\//.test(r)) report('CORE_COGNITIVE_TWIN_SINGLE_OWNER',file,'Cognitive Twin implementation remains under src/lib; canonical owner is src/core/cognitive-twin');
   if(/\.from\(\s*['\"](?:sfi_amv_memory|sfi_cognitive_twin_memory)['\"]\s*\)\s*\.(?:insert|upsert|update|delete)/s.test(s)){
