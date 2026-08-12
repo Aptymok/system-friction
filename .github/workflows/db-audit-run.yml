@@ -34,6 +34,28 @@ jobs:
         run: |
           set -o pipefail
           node scripts/db/inventory-supabase.mjs 2>&1 | tee /tmp/inventory.log
+      - name: Probe post-20260811205500 schema
+        id: postprobe
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          node --input-type=module <<'NODE' 2>&1 | tee /tmp/postprobe.log
+          import { createClient } from '@supabase/supabase-js';
+          const url = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
+          const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+          const db = createClient(new URL(url).origin, key, { auth:{persistSession:false} });
+          const objects = ['sfi_operating_cycles','sfi_inference_traces','sfi_artifact_trajectory_events'];
+          const result = [];
+          for (const name of objects) {
+            const { count, error } = await db.from(name).select('*',{count:'exact',head:true});
+            result.push({name, exists:!error, count: error ? null : (count ?? 0), error:error?.message ?? null, code:error?.code ?? null});
+          }
+          const { data: cycleCols, error: cycleError } = await db.from('sfi_operating_cycles').select('id,inference_refs,trajectory_refs').limit(1);
+          result.push({name:'sfi_operating_cycles.columns(inference_refs,trajectory_refs)', exists:!cycleError, sample:cycleCols?.length ?? 0, error:cycleError?.message ?? null, code:cycleError?.code ?? null});
+          console.log(JSON.stringify({ok:result.every(x=>x.exists), result},null,2));
+          if (result.some(x=>!x.exists)) process.exitCode = 1;
+          NODE
       - name: Upload DB audit artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -44,8 +66,9 @@ jobs:
             docs/db/SFI_SUPABASE_INVENTORY.md
             /tmp/verify.log
             /tmp/inventory.log
+            /tmp/postprobe.log
           if-no-files-found: warn
           retention-days: 3
-      - name: Fail if either audit failed
-        if: steps.verify.outcome == 'failure' || steps.inventory.outcome == 'failure'
+      - name: Fail if audit failed
+        if: steps.verify.outcome == 'failure' || steps.inventory.outcome == 'failure' || steps.postprobe.outcome == 'failure'
         run: exit 1
