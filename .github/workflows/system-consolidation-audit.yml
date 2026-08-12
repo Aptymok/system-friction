@@ -1,0 +1,70 @@
+name: SFI System Consolidation Audit
+
+on:
+  push:
+    branches:
+      - agent/system-consolidation-audit
+
+# Consolidation branch only: no production mutations.
+jobs:
+  audit-and-compile:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Build dependency and consolidation matrix
+        run: python scripts/system-consolidation-audit.py
+      - name: Install dependencies
+        run: npm ci
+      - name: Cross-check detected data objects against live Supabase
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        shell: bash
+        run: |
+          if [ -z "${SUPABASE_URL:-}" ] || [ -z "${SUPABASE_SERVICE_ROLE_KEY:-}" ]; then
+            echo 'Supabase secrets unavailable; static audit remains valid.'
+            exit 0
+          fi
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import { createClient } from '@supabase/supabase-js';
+          const tables=JSON.parse(fs.readFileSync('artifacts/system-consolidation/tables.json','utf8'));
+          const client=createClient(process.env.SUPABASE_URL,process.env.SUPABASE_SERVICE_ROLE_KEY,{auth:{persistSession:false,autoRefreshToken:false}});
+          const results=[];
+          for (const item of tables) {
+            const { count, error }=await client.from(item.table).select('*',{count:'exact',head:true});
+            const message=error?.message??null;
+            const missing=Boolean(error && /could not find|does not exist|schema cache/i.test(message??''));
+            results.push({...item,live_status:error?(missing?'MISSING':'ERROR'):'EXISTS',row_count:error?null:(count??0),live_error:message});
+          }
+          fs.writeFileSync('artifacts/system-consolidation/live-db.json',JSON.stringify(results,null,2));
+          const summary={exists:results.filter(x=>x.live_status==='EXISTS').length,missing:results.filter(x=>x.live_status==='MISSING').length,errors:results.filter(x=>x.live_status==='ERROR').length,nonempty:results.filter(x=>x.live_status==='EXISTS'&&(x.row_count??0)>0).length};
+          fs.writeFileSync('artifacts/system-consolidation/live-db-summary.json',JSON.stringify(summary,null,2));
+          console.log(JSON.stringify(summary,null,2));
+          console.log('\nCODE REFERENCES MISSING IN LIVE DB');
+          for(const x of results.filter(x=>x.reference_count>0&&x.live_status==='MISSING')) console.log(x.table,x.reference_count);
+          console.log('\nLIVE OBJECTS WITH NO DIRECT CODE CONSUMER');
+          for(const x of results.filter(x=>x.live_status==='EXISTS'&&x.reference_count===0)) console.log(x.table,x.row_count,'schema refs',x.schema_reference_count??0);
+          NODE
+      - name: Verify Founder Edition Cognitive Twin contract
+        run: npx tsx scripts/qa-cognitive-twin-founder-canon.ts
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sfi-system-consolidation-audit
+          path: artifacts/system-consolidation
+          retention-days: 7
+      - name: Typecheck consolidated branch
+        run: npm run typecheck
+      - name: Build consolidated branch
+        run: npm run build

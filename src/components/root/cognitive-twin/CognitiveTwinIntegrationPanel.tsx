@@ -34,9 +34,8 @@ export function CognitiveTwinIntegrationPanel({ integration }: { integration: Co
         </div>
 
         <nav style={{ display:'flex', flexWrap:'wrap', gap:8, marginTop:12 }}>
-          <Link href="/root/cognitive-twin/lineage" style={{ border:'1px solid #41371f', padding:'7px 9px', color:'#c9ad62', textDecoration:'none', fontSize:9 }}>CT-A01 · LINEAGE</Link>
-          <Link href="/root/cognitive-twin/journal" style={{ border:'1px solid #41371f', padding:'7px 9px', color:'#c9ad62', textDecoration:'none', fontSize:9 }}>CT-A01 · JOURNAL</Link>
-          <Link href="/root/method-lab" style={{ border:'1px solid #41371f', padding:'7px 9px', color:'#c9ad62', textDecoration:'none', fontSize:9 }}>METHOD LAB</Link>
+          <span style={{ border:'1px solid #41371f', padding:'7px 9px', color:'#c9ad62', fontSize:9 }}>CT-A01 · LINEAGE + JOURNAL · INTEGRADOS EN ESTA SUPERFICIE</span>
+          <Link href="/method-lab" style={{ border:'1px solid #41371f', padding:'7px 9px', color:'#c9ad62', textDecoration:'none', fontSize:9 }}>METHOD LAB</Link>
           <Link href="/root/readiness" style={{ border:'1px solid #41371f', padding:'7px 9px', color:'#c9ad62', textDecoration:'none', fontSize:9 }}>INSTITUTIONAL READINESS</Link>
         </nav>
 

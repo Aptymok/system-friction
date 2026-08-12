@@ -24,7 +24,7 @@ const STEPS = [
 
 const SURFACES = [
   {key:'studio',label:'Studio · opcional',href:'/studio'},
-  {key:'lab',label:'Method Lab',href:'/root/method-lab'},
+  {key:'lab',label:'Method Lab',href:'/method-lab'},
   {key:'field',label:'Field',href:'/field'},
   {key:'twin',label:'Cognitive Twin',href:'/root/cognitive-twin'},
   {key:'readiness',label:'Readiness',href:'/root/readiness'},
@@ -131,7 +131,7 @@ export function RootOperatingField({ actorLabel }:{actorLabel:string}){
   return <main className="sfi-operate">
     <header className="operate-header">
       <div><span>SYSTEM FRICTION INSTITUTE · PIPELINE INSTITUCIONAL</span><h1>Un ciclo. Todo SFI.</h1><p>Objeto → evidencia → método → laboratorio → Field → retorno → contraste → memoria → gobierno. Studio queda disponible como análisis especializado, no como dependencia del núcleo.</p></div>
-      <aside><b>{actorLabel}</b><small>ROOT · SOBERANO</small><a href="/root/overview">Vista técnica</a><a href="/root/method-lab">Laboratorio</a></aside>
+      <aside><b>{actorLabel}</b><small>ROOT · SOBERANO</small><a href="/root">ROOT</a><a href="/root/method-lab">Laboratorio</a></aside>
     </header>
 
     <section className="cycle-rail" aria-label="Trayectoria del ciclo">

@@ -101,7 +101,6 @@ Respect:
 
 /world-vector
 
-/operator/field
 
 /field/participant
 
