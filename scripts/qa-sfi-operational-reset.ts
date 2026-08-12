@@ -25,9 +25,12 @@ const requiredRuntimeTables=[
 for(const table of requiredRuntimeTables)assert.ok(OPERATIONAL_DELETE_ORDER.includes(table),`reset_inventory_missing_core_runtime_table:${table}`);
 for(const table of PROTECTED_TABLES)assert.ok(!OPERATIONAL_DELETE_ORDER.includes(table),`protected_table_in_reset:${table}`);
 for(const table of ['profiles','system_accounts','system_roles','system_permissions','system_access_grants','system_entitlements'])assert.ok(PROTECTED_TABLES.includes(table),`missing_protected_identity_table:${table}`);
-for(const table of ['sfi_world_day_ledger','world_source_observations','world_friction_readings','worldspect_snapshots','sfi_indicator_snapshots']){
+for(const table of ['sfi_world_day_ledger','world_source_observations','worldspect_snapshots']){
   assert.ok(HISTORICAL_PRESERVE_TABLES.includes(table),`missing_longitudinal_preserve_table:${table}`);
   assert.ok(PROTECTED_TABLES.includes(table),`longitudinal_history_not_protected:${table}`);
+}
+for(const table of ['world_friction_readings','world_hypotheses','world_hypothesis_outcomes','world_learning_events','sfi_indicator_snapshots']){
+  assert.ok(OPERATIONAL_DELETE_ORDER.includes(table),`derived_world_state_not_reset:${table}`);
 }
 
 assert.match(reset,/CLEAN_RUNTIME_AFTER_VERIFIED_PROOF/);
@@ -60,7 +63,8 @@ console.log(JSON.stringify({
     'full-cycle proof/export precedes reset',
     'runtime history is cleared child-first',
     'identity/access/authority are protected',
-    'longitudinal world history and SFI world-day coordinates are protected',
+    'only source/provenance world history plus SFI world-day coordinates survive the reset',
+    'derived world interpretations are reset and may be reconstructed from preserved source history',
     'optional/missing tables are skipped instead of making the reset unsafe',
     'empty post-reset operational organs report READY rather than DEGRADED',
   ],
