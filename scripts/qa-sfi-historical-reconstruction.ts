@@ -8,6 +8,7 @@ import {
   SFI_RECONSTRUCTED_HISTORY_END,
   SFI_WORLD_DAY_ORIGIN,
 } from './db/sfi-historical-reconstruction-manifest.mjs';
+import { SFI_SOFTWARE_HISTORY } from './db/sfi-software-history-manifest.mjs';
 import {
   HISTORICAL_PRESERVE_TABLES,
   OPERATIONAL_DELETE_ORDER,
@@ -32,11 +33,19 @@ assert.equal(dayCount,71,'historical_world_day_span_must_be_71');
 assert.equal(cleanGenesisDay,72,'clean_genesis_must_be_world_day_72');
 
 assert.equal(SFI_HISTORICAL_EVIDENCE.length,50,'historical_manifest_must_contain_49_backfill_objects_plus_CFI001');
-assert.equal(new Set(SFI_HISTORICAL_EVIDENCE.map((item)=>item.key)).size,SFI_HISTORICAL_EVIDENCE.length,'historical_keys_must_be_unique');
+assert.equal(SFI_SOFTWARE_HISTORY.length,12,'software_history_must_contain_selected_merged_convergence_milestones');
+const reconstructionEvidence=[...SFI_HISTORICAL_EVIDENCE,...SFI_SOFTWARE_HISTORY];
+assert.equal(new Set(reconstructionEvidence.map((item)=>item.key)).size,reconstructionEvidence.length,'reconstruction_keys_must_be_unique');
 for(const item of SFI_HISTORICAL_EVIDENCE){
   assert.equal(item.epistemicClass,'IMPORTED_PROVENANCE',`historical_item_not_provenance:${item.key}`);
   assert.ok(Number.isFinite(Date.parse(item.observedAt)),`historical_item_invalid_date:${item.key}`);
   assert.ok(item.claimBoundary.includes('burden of proof'),`historical_item_missing_claim_boundary:${item.key}`);
+}
+for(const item of SFI_SOFTWARE_HISTORY){
+  assert.equal(item.epistemicClass,'IMPORTED_PROVENANCE',`software_item_not_provenance:${item.key}`);
+  assert.equal(item.kind,'software_milestone');
+  assert.ok(item.sourceUrl?.includes('github.com/Aptymok/system-friction/pull/'),`software_item_missing_pr_source:${item.key}`);
+  assert.ok(item.claimBoundary.includes('does not by itself prove production execution'),`software_item_missing_runtime_boundary:${item.key}`);
 }
 const cfi=SFI_HISTORICAL_EVIDENCE.find((item)=>item.key==='sfi-cfi-001');
 assert.ok(cfi,'cfi001_missing');
@@ -64,6 +73,7 @@ for(const table of derivedWorld){
 assert.match(seed,/SFI_HISTORY_SEED_CONFIRM/);
 assert.match(seed,/RECONSTRUCT_SFI_HISTORY/);
 assert.match(seed,/SFI-HISTORICAL-RECONSTRUCTION-V1/);
+assert.match(seed,/SFI_SOFTWARE_HISTORY/);
 assert.match(seed,/TIME_COORDINATE_ONLY/);
 assert.match(seed,/PROSPECTIVE_GENESIS/);
 assert.match(seed,/LIVE_EMPTY/);
@@ -86,10 +96,12 @@ assert.match(migration,/absence of reconstructed evidence is not itself evidence
 
 console.log(JSON.stringify({
   ok:true,
-  contract:'SFI-HISTORICAL-RECONSTRUCTION-QA-1.1',
+  contract:'SFI-HISTORICAL-RECONSTRUCTION-QA-1.2',
   reconstructedWorldDays:dayCount,
   cleanGenesisDay,
-  historicalEvidenceObjects:SFI_HISTORICAL_EVIDENCE.length,
+  historicalArtifactObjects:SFI_HISTORICAL_EVIDENCE.length,
+  softwareMilestones:SFI_SOFTWARE_HISTORY.length,
+  totalSeededProvenanceObjects:reconstructionEvidence.length,
   catalogDatedObjects:catalogDated.length,
   protectedHistoricalTables:requiredHistory.length,
   recomputedWorldTables:derivedWorld.length,
@@ -97,7 +109,8 @@ console.log(JSON.stringify({
     'only provenance-rich world history survives operational reset',
     'every SFI world-day has a coordinate from Day 1 through clean genesis',
     'empty historical dates do not fabricate inactivity or events',
-    'historical objects enter as imported provenance only',
+    'historical artifacts and software merges enter as imported provenance only',
+    'merged code does not become proof of runtime/scientific validity',
     'stale world interpretations are deleted and may be recomputed from surviving source history',
     'derived graph and Twin context are recomputed rather than copied as truth',
     'clean prospective genesis is World Day 72 / 2026-08-12 UTC',
