@@ -1,0 +1,48 @@
+name: Apply Canonical Cleanup C
+
+on:
+  push:
+    branches:
+      - agent/system-consolidation-audit
+    paths:
+      - scripts/apply-canonical-cleanup-c.mjs
+      - .github/workflows/apply-canonical-cleanup-c.yml
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/system-consolidation-audit
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Apply final memory-path cleanup
+        run: node scripts/apply-canonical-cleanup-c.mjs
+      - name: Install dependencies
+        run: npm ci
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Build
+        run: npm run build
+      - name: Require canonical architecture gate zero
+        run: node scripts/qa-canonical-architecture.mjs
+      - name: Verify Founder Cognitive Twin canon
+        run: npx tsx scripts/qa-cognitive-twin-founder-canon.ts
+      - name: Remove one-time cleanup machinery
+        run: |
+          git rm -f scripts/apply-canonical-cleanup-c.mjs
+          git rm -f .github/workflows/apply-canonical-cleanup-c.yml
+      - name: Commit and push final cleanup
+        run: |
+          git config user.name "SFI Architecture"
+          git config user.email "115195341+Aptymok@users.noreply.github.com"
+          git add -A
+          git commit -m "Enforce single Cognitive Twin memory path"
+          git push origin HEAD:agent/system-consolidation-audit
