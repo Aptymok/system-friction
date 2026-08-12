@@ -1,4 +1,5 @@
 name: Apply Canonical Cleanup C
+# One-shot final canonical memory cleanup. No deployment side effects.
 
 on:
   push:
