@@ -1,5 +1,5 @@
 name: Apply Canonical Cleanup C
-# One-shot final canonical memory cleanup. No deployment side effects.
+# One-shot final canonical memory cleanup. No deployment side effects. Final Studio-compatible run.
 
 on:
   push:
