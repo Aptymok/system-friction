@@ -8,7 +8,7 @@ export function TotalProofControl() {
   async function record(){
     setBusy(true); setMessage(null);
     try {
-      const response=await fetch('/api/root/total-proof',{method:'POST',credentials:'include'});
+      const response=await fetch('/api/root/readiness',{method:'POST',credentials:'include'});
       const body=await response.json().catch(()=>null);
       if(!response.ok||!body?.ok) throw new Error(body?.details??body?.error??`HTTP ${response.status}`);
       const p=body.proof;

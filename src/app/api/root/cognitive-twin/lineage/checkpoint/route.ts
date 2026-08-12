@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createLineageCheckpoint, readLatestLineageCheckpoint } from '@/lib/cognitive-twin/reentry/checkpoint';
+import { createLineageCheckpoint, readLatestLineageCheckpoint } from '@/core/cognitive-twin/reentry/checkpoint';
 import { auditRootAction, requireRootActor, requireRootViewer } from '@/lib/root/server';
 
 export const dynamic='force-dynamic';

@@ -3,8 +3,8 @@ import fs from 'node:fs';
 
 const proof = fs.readFileSync('src/lib/root/closure/totalProof.ts','utf8');
 const readiness = fs.readFileSync('src/lib/root/closure/readInstitutionalReadiness.ts','utf8');
-const page = fs.readFileSync('src/app/root/total-proof/page.tsx','utf8');
-const route = fs.readFileSync('src/app/api/root/total-proof/route.ts','utf8');
+const page = fs.readFileSync('src/app/root/readiness/page.tsx','utf8');
+const route = fs.readFileSync('src/app/api/root/readiness/route.ts','utf8');
 
 for (const stage of ['STRUCTURAL','AUTHORITY','OBSERVATION','INTERVENTION','RETURN','LAB','LEARNING','REPORTING']) {
   assert.match(proof, new RegExp(`id:'${stage}'`), `missing_total_proof_stage:${stage}`);

@@ -1,8 +1,8 @@
 import 'server-only';
 
 import { runLlmTask, type LlmProviderId } from '@/lib/ai/providerRouter';
-import type { StudioTwinContext } from '@/lib/cognitive-twin/studioContext';
-import { readStudioTwinContext } from '@/lib/cognitive-twin/studioContext';
+import type { StudioTwinContext } from '@/core/cognitive-twin/studioContext';
+import { readStudioTwinContext } from '@/core/cognitive-twin/studioContext';
 import { SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY } from './convergedRegistry';
 import type { KernelContext } from './kernelContext';
 

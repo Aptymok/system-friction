@@ -9,7 +9,7 @@ import {
 } from './operationalCycle';
 import { finalizeReturnContrast, canMarkLongitudinalCaseComplete } from './returnContrastContract';
 import { verifyStudioFieldHandoff, type StudioFieldHandoff } from '@/lib/studio/fieldHandoff';
-import { persistCognitiveTwinExperience } from '@/lib/cognitive-twin/experienceBridge';
+import { persistCognitiveTwinExperience } from '@/core/cognitive-twin/experienceBridge';
 
 type Row = Record<string, unknown>;
 function record(value: unknown): Row {

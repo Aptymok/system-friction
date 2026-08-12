@@ -46,7 +46,7 @@ export function InstitutionalAttractorConsole({ state }: { state: State }) {
           <p style={{ ...muted, color: '#c29f68' }}>La cobertura mide dimensiones para las que existe evidencia o contradicción. No es porcentaje de cumplimiento ni distancia normalizada al atractor.</p>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 15 }}>
             <Link href="/root/evidence/intake" style={link}>ADD EVIDENCE</Link>
-            <Link href="/root/agents/passports" style={link}>AGENT PASSPORTS</Link>
+            <Link href="/root/agents" style={link}>AGENT PASSPORTS</Link>
           </div>
         </article>
       </section>

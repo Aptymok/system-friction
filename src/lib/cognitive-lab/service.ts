@@ -1,8 +1,8 @@
 import 'server-only';
 
 import { runLlmTask } from '@/lib/ai/providerRouter';
-import { createCognitiveTwinEnvelope, evaluateCognitiveTwinAuthority } from '@/lib/cognitive-twin/contract';
-import { persistCognitiveTwinExperience } from '@/lib/cognitive-twin/experienceBridge';
+import { createCognitiveTwinEnvelope, evaluateCognitiveTwinAuthority } from '@/core/cognitive-twin/contract';
+import { persistCognitiveTwinExperience } from '@/core/cognitive-twin/experienceBridge';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 
 type Row = Record<string, unknown>;

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { createEvidenceEnvelope } from '@/lib/sfi/evidence'
 import { createServiceSupabaseClient } from '@/runtime/supabase/server'
 import { randomUUID } from 'crypto';
-import { InstitutionalMemoryWriter } from '@/lib/memory/institutionalMemoryWriter';
+import { InstitutionalMemoryWriter } from '@/core/memory/InstitutionalMemoryWriter';
 
 export const dynamic = 'force-dynamic'
 

@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { executeAbortableQuery } from '@/lib/supabase/abortableQuery';
-import { writeInstitutionalMemory } from '@/lib/memory/institutionalMemoryWriter';
+import { writeInstitutionalMemory } from '@/core/memory/InstitutionalMemoryWriter';
 
 export type SfiOperationalEventRisk =
   | 'low'

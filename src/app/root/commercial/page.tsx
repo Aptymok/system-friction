@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { RootCommercialWorkspace } from '@/components/root/commercial/RootCommercialWorkspace';
-import { RootProspectRadar } from '@/components/root/prospect-radar/RootProspectRadar';
+import { RootProspectRadar } from '@/components/root/commercial#prospect-radar/RootProspectRadar';
 import { requireFounderPage } from '@/lib/root/server';
 
 export const dynamic = 'force-dynamic';

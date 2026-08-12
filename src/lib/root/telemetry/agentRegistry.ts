@@ -1,7 +1,7 @@
 import 'server-only';
 import { randomUUID } from 'crypto';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
-import { InstitutionalMemoryWriter } from '@/lib/memory/institutionalMemoryWriter';
+import { InstitutionalMemoryWriter } from '@/core/memory/InstitutionalMemoryWriter';
 
 /**
  * ROOT Runtime Telemetry Layer.

@@ -11,7 +11,7 @@ export function CognitiveTwinExperimentControls({ snapshots }: { snapshots: Snap
   async function createSnapshot() {
     setBusy('snapshot'); setMessage(null);
     try {
-      const response = await fetch('/api/root/cognitive-twin/lineage/snapshot', { method: 'POST', credentials: 'include' });
+      const response = await fetch('/api/root/cognitive-twin/snapshot', { method: 'POST', credentials: 'include' });
       const body = await response.json().catch(() => null);
       if (!response.ok || !body?.ok) throw new Error(body?.details ?? body?.error ?? `HTTP ${response.status}`);
       setMessage(`Snapshot ${body.result.snapshotHash} ${body.result.created ? 'created' : 'already existed'}. Reload to display it.`);
@@ -22,7 +22,7 @@ export function CognitiveTwinExperimentControls({ snapshots }: { snapshots: Snap
   async function createCheckpoint() {
     setBusy('checkpoint'); setMessage(null);
     try {
-      const response = await fetch('/api/root/cognitive-twin/lineage/checkpoint', { method: 'POST', credentials: 'include' });
+      const response = await fetch('/api/root/cognitive-twin/checkpoint', { method: 'POST', credentials: 'include' });
       const body = await response.json().catch(() => null);
       if (!response.ok || !body?.ok) throw new Error(body?.details ?? body?.error ?? `HTTP ${response.status}`);
       setMessage(`Checkpoint ${body.checkpointHash} prepared. External timestamp authority remains PENDING until a third-party receipt is attached.`);
@@ -33,7 +33,7 @@ export function CognitiveTwinExperimentControls({ snapshots }: { snapshots: Snap
   async function registerFork(snapshotHash: string) {
     setBusy(snapshotHash); setMessage(null);
     try {
-      const response = await fetch('/api/root/cognitive-twin/lineage/fork', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ snapshotHash }) });
+      const response = await fetch('/api/root/cognitive-twin/fork', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ snapshotHash }) });
       const body = await response.json().catch(() => null);
       if (!response.ok || !body?.ok) throw new Error(body?.details ?? body?.error ?? `HTTP ${response.status}`);
       setMessage(`Fork ${body.result.forkManifest.childSubjectId} registered as NOT RUNNING. Reload to display it.`);

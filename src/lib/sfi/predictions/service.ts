@@ -1,7 +1,7 @@
 import 'server-only';
 import { randomUUID } from 'crypto';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
-import { InstitutionalMemoryWriter } from '@/lib/memory/institutionalMemoryWriter';
+import { InstitutionalMemoryWriter } from '@/core/memory/InstitutionalMemoryWriter';
 import { readInstitutionalPhiState } from '@/lib/mihm/institutionalPhiState';
 import { InMemoryEventRepository } from '@/core/repositories';
 import { CanonicalEventBuilder, CanonicalEventValidator, InMemoryEventBus } from '@/core/runtime';

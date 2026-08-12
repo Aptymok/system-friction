@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { runNationalFieldScenario } from '@/lib/cognitive-twin/nationalFieldScenario';
+import { runNationalFieldScenario } from '@/core/cognitive-twin/nationalFieldScenario';
 import { auditRootAction, requireRootActor } from '@/lib/root/server';
 
 export const dynamic = 'force-dynamic';

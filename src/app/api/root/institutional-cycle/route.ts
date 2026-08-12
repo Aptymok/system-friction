@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { runIntegratedInstitutionalCycle } from '@/lib/cognitive-twin/integratedInstitutionalCycle';
+import { runIntegratedInstitutionalCycle } from '@/core/cognitive-twin/integratedInstitutionalCycle';
 import { auditRootAction, requireRootActor } from '@/lib/root/server';
 
 export const dynamic = 'force-dynamic';

@@ -22,9 +22,9 @@ const governancePage=read('src/app/root/governance/page.tsx');
 const readinessPage=read('src/app/root/readiness/page.tsx');
 const rootConsole=read('src/components/root/sovereign/RootSovereignConsole.tsx');
 const mutationState=read('src/lib/cognitive-twin/reentry/mutationState.ts');
-const lineageHealthRoute=read('src/app/api/root/cognitive-twin/lineage/health/route.ts');
+const lineageHealthRoute=read('src/app/api/root/cognitive-twin/health/route.ts');
 const checkpoint=read('src/lib/cognitive-twin/reentry/checkpoint.ts');
-const checkpointRoute=read('src/app/api/root/cognitive-twin/lineage/checkpoint/route.ts');
+const checkpointRoute=read('src/app/api/root/cognitive-twin/checkpoint/route.ts');
 const experimentControls=read('src/components/root/cognitive-twin/CognitiveTwinExperimentControls.tsx');
 const vercel=JSON.parse(read('vercel.json')) as {crons?:unknown[]};
 

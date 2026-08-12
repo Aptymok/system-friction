@@ -3,7 +3,7 @@ import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { createScoreFrictionIntake } from '@/lib/scorefriction/intake';
 import { createPredictionEntry } from '@/lib/sfi/predictions/service';
 import { createVerificationRule, closeVerification } from '@/lib/sfi/predictions/verificationService';
-import { writeInstitutionalMemory } from '@/lib/memory/institutionalMemoryWriter';
+import { writeInstitutionalMemory } from '@/core/memory/InstitutionalMemoryWriter';
 import { buildEntityContext } from '@/lib/sfi/entityContext';
 import { buildFrictionField } from '@/lib/sfi/frictionFieldEngine';
 import { buildAttractorScorecard } from '@/lib/sfi/attractorManagement';

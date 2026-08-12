@@ -4,7 +4,7 @@ import { listAmvMemory, saveAmvMemory } from '@/lib/amv/amv-memory';
 import { appendAmvLearning, readAmvThoughts } from '@/lib/amv/learning';
 import { createEmbedding } from '@/lib/ai/providerRouter';
 import { compactText, createTrace, text, textScore, tokenize, unique, type AgentTrace } from './utils';
-import { writeInstitutionalMemory } from '@/lib/memory/institutionalMemoryWriter';
+import { writeInstitutionalMemory } from '@/core/memory/InstitutionalMemoryWriter';
 
 export type AmvOperationalItem = {
   id: string;

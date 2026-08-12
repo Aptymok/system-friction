@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { runLlmTask } from '@/lib/ai/providerRouter';
-import { createCognitiveTwinEnvelope, evaluateCognitiveTwinAuthority } from '@/lib/cognitive-twin/contract';
-import { readCognitiveTwinState } from '@/lib/cognitive-twin/readState';
+import { createCognitiveTwinEnvelope, evaluateCognitiveTwinAuthority } from '@/core/cognitive-twin/contract';
+import { readCognitiveTwinState } from '@/core/cognitive-twin/readState';
 import { runNeuralGraphAgent } from '@/lib/agents/neuralGraphAgent';
 import { readAmvOperationalMemory } from '@/lib/agents/amvAgent';
 import { buildWorldVectorOperationalState } from '@/lib/world-vector/operationalState';

@@ -57,7 +57,7 @@ export function RootOperatingField({ actorLabel }:{actorLabel:string}){
   const [protocol,setProtocol]=useState<'sociotechnical_simulation'|'economic_simulation'>('sociotechnical_simulation');
 
   async function reload(selectId?:string){
-    const response=await fetch('/api/root/operate/cycles',{cache:'no-store',credentials:'include'});
+    const response=await fetch('/api/pipeline/cycles',{cache:'no-store',credentials:'include'});
     const body=await response.json().catch(()=>null);
     if(!response.ok||!body?.ok){setMessage(body?.details??body?.error??'No fue posible leer los ciclos.');return;}
     const next=body.cycles??[];setCycles(next);
@@ -69,7 +69,7 @@ export function RootOperatingField({ actorLabel }:{actorLabel:string}){
     if(!title.trim()||!question.trim())return;
     setBusy('start');setMessage('');setProof(null);
     try{
-      const response=await fetch('/api/root/operate/cycles',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({title,question,subject,temporalScope:temporal,evidenceModalities:['TEXT'],worldContextRequested:true,requiresTrajectory:temporal==='LONGITUDINAL',requiresRivalHypothesis:true,requiresInterventionTracking:true})});
+      const response=await fetch('/api/pipeline/cycles',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({title,question,subject,temporalScope:temporal,evidenceModalities:['TEXT'],worldContextRequested:true,requiresTrajectory:temporal==='LONGITUDINAL',requiresRivalHypothesis:true,requiresInterventionTracking:true})});
       const body=await response.json().catch(()=>null);if(!response.ok||!body?.ok)throw new Error(body?.details??body?.error??`HTTP ${response.status}`);
       setTitle('');setQuestion('');setActive(body.cycle);setMessage(`Ciclo ${body.cycle.cycle_code} iniciado. SFI seleccionó ${body.method?.primary?.methodId??'sin método'} como instrumento primario.`);await reload(body.cycle.id);
     }catch(error){setMessage(error instanceof Error?error.message:String(error));}finally{setBusy('');}
@@ -77,7 +77,7 @@ export function RootOperatingField({ actorLabel }:{actorLabel:string}){
 
   async function patchCycle(input:Record<string,unknown>){
     if(!active)return null;
-    const response=await fetch('/api/root/operate/cycles',{method:'PATCH',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:active.id,...input})});
+    const response=await fetch('/api/pipeline/cycles',{method:'PATCH',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:active.id,...input})});
     const body=await response.json().catch(()=>null);if(!response.ok||!body?.ok)throw new Error(body?.details??body?.error??`HTTP ${response.status}`);
     setActive(body.cycle);return body.cycle;
   }
@@ -116,7 +116,7 @@ export function RootOperatingField({ actorLabel }:{actorLabel:string}){
   async function runFullProof(){
     if(!active)return;setBusy('proof');setMessage('');setProof(null);
     try{
-      const response=await fetch('/api/root/operate/verify',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({operatingCycleId:active.id})});
+      const response=await fetch('/api/pipeline/verify',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({operatingCycleId:active.id})});
       const body=await response.json().catch(()=>null);
       if(body?.proof)setProof(body.proof);
       if(!body?.proof&&(!response.ok||!body?.ok))throw new Error(body?.details??body?.error??`HTTP ${response.status}`);

@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import type { CognitiveTwinState } from '@/lib/cognitive-twin/readState';
+import type { CognitiveTwinState } from '@/core/cognitive-twin/readState';
 
 export function CognitiveTwinIntegrationPanel({ integration }: { integration: CognitiveTwinState['integration'] }) {
   const topology = [

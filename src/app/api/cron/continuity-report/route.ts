@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createDailyContinuityReport } from '@/lib/continuity/runtime';
 import { runScheduledAgentReportCycle } from '@/lib/reports/scheduledAgentReports';
-import { runCognitiveTwinDevelopmentalHeartbeat } from '@/lib/cognitive-twin/reentry/runtime';
-import { considerCognitiveTwinMutationProposal } from '@/lib/cognitive-twin/reentry/experiments';
-import { syncSfiInstitutionalStateToCognitiveTwin } from '@/lib/cognitive-twin/institutionalIntegration';
+import { runCognitiveTwinDevelopmentalHeartbeat } from '@/core/cognitive-twin/reentry/runtime';
+import { considerCognitiveTwinMutationProposal } from '@/core/cognitive-twin/reentry/experiments';
+import { syncSfiInstitutionalStateToCognitiveTwin } from '@/core/cognitive-twin/institutionalIntegration';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

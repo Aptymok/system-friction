@@ -7,17 +7,17 @@ const read=(relative:string)=>fs.readFileSync(path.join(root,relative),'utf8');
 
 const cycleMigration=read('supabase/migrations/20260811205500_sfi_operating_cycles.sql');
 const analysisMigration=read('supabase/migrations/20260811214500_sfi_inference_and_artifact_trajectory.sql');
-const cycleApi=read('src/app/api/root/operate/cycles/route.ts');
+const cycleApi=read('src/app/api/pipeline/cycles/route.ts');
 const evidenceApi=read('src/app/api/root/evidence/route.ts');
-const inferenceApi=read('src/app/api/root/operate/inference/route.ts');
-const trajectoryApi=read('src/app/api/root/operate/trajectory/route.ts');
+const inferenceApi=read('src/app/api/pipeline/inference/route.ts');
+const trajectoryApi=read('src/app/api/pipeline/trajectory/route.ts');
 const proof=read('src/lib/root/closure/fullCycleVerification.ts');
-const proofRoute=read('src/app/api/root/operate/verify/route.ts');
-const field=read('src/components/root/operate/RootOperatingField.tsx');
-const dock=read('src/components/root/operate/RootCycleAnalysisDock.tsx');
-const autoDock=read('src/components/root/operate/RootCycleAnalysisDockAuto.tsx');
+const proofRoute=read('src/app/api/pipeline/verify/route.ts');
+const field=read('src/components/pipeline/RootOperatingField.tsx');
+const dock=read('src/components/pipeline/RootCycleAnalysisDock.tsx');
+const autoDock=read('src/components/pipeline/RootCycleAnalysisDockAuto.tsx');
 const rootPage=read('src/app/root/page.tsx');
-const explicitPage=read('src/app/root/operate/page.tsx');
+const explicitPage=read('src/app/pipeline/page.tsx');
 const readiness=read('src/lib/root/closure/readInstitutionalReadiness.ts');
 
 for(const table of ['sfi_operating_cycles','sfi_inference_traces','sfi_artifact_trajectory_events']){

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requireRootViewer } from '@/lib/root/server';
-import { readCognitiveTwinJournal } from '@/lib/cognitive-twin/reentry/journal';
+import { readCognitiveTwinJournal } from '@/core/cognitive-twin/reentry/journal';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';

@@ -3,8 +3,8 @@ import 'server-only';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { runMethodLabSimulation } from '@/lib/method-lab/simulationRun';
 import { runStudioMasterAnalysisLoop } from '@/lib/studio/cognitive/studioMasterAnalysisLoop';
-import { runIntegratedInstitutionalCycle } from '@/lib/cognitive-twin/integratedInstitutionalCycle';
-import { persistCognitiveTwinExperience } from '@/lib/cognitive-twin/experienceBridge';
+import { runIntegratedInstitutionalCycle } from '@/core/cognitive-twin/integratedInstitutionalCycle';
+import { persistCognitiveTwinExperience } from '@/core/cognitive-twin/experienceBridge';
 import { readInstitutionalReadiness } from './readInstitutionalReadiness';
 
 type Row = Record<string, unknown>;

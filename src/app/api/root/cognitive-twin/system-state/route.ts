@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requireRootActor } from '@/lib/root/server';
-import { readLegacyCognitiveTwinState } from '@/lib/cognitive-twin/legacyCapabilityBridge';
+import { readLegacyCognitiveTwinState } from '@/core/cognitive-twin/legacyCapabilityBridge';
 
 export const dynamic='force-dynamic';
 export const runtime='nodejs';

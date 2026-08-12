@@ -32,12 +32,12 @@ for(const file of [
   'src/lib/cognitive-twin/reentry/runtime.ts',
   'src/lib/cognitive-twin/reentry/mutationState.ts',
   'src/lib/root/closure/readInstitutionalReadiness.ts',
-  'src/app/api/root/cognitive-twin/system-state/route.ts',
-  'src/app/root/cognitive-twin/system/page.tsx',
-  'src/app/root/cognitive-twin/system/system.module.css',
+  'src/app/api/root/cognitive-twin-state/route.ts',
+  'src/app/root/cognitive-twin/page.tsx',
+  'src/app/root/cognitive-twin/system.module.css',
 ])assert.ok(exists(file),`legacy_transport_support_file_missing:${file}`);
 
-const systemPage=read('src/app/root/cognitive-twin/system/page.tsx');
+const systemPage=read('src/app/root/cognitive-twin/page.tsx');
 for(const phrase of ['Memoria longitudinal de SFI','ARQUITECTURA RECUPERADA','METAOBSERVADOR','TIMELINE INSTITUCIONAL','no es un LLM'])assert.ok(systemPage.includes(phrase),`visual_twin_system_missing:${phrase}`);
 
 console.log(JSON.stringify({

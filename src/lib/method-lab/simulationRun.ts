@@ -7,7 +7,7 @@ import type { KernelContext, KernelEvidence } from '@/lib/sfi/cognitive-runtime/
 import { METHOD_LAB_CONTRACT_VERSION, assertMethodLabRunEnvelope, type MethodLabProtocolId, type MethodLabRunEnvelope } from './contracts';
 import { methodLabProtocol } from './registry';
 import { specializedModel } from './specializedModels';
-import { persistCognitiveTwinExperience } from '@/lib/cognitive-twin/experienceBridge';
+import { persistCognitiveTwinExperience } from '@/core/cognitive-twin/experienceBridge';
 
 const SIMULATION_PROTOCOL_AGENTS: Partial<Record<MethodLabProtocolId, string[]>> = {
   sociotechnical_simulation: [

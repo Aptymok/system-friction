@@ -174,7 +174,7 @@ Está en conservar el estado previo, observar la trayectoria y comparar la difer
 
 ---
 
-## `/root/predictions/new`
+## `/root/predictions#new-prediction`
 
 ### Captura de Hipótesis Pre-Perturbación
 

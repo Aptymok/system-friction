@@ -13,8 +13,8 @@ const report=(rule,file,detail)=>violations.push({rule,file:rel(file),detail});
 
 const forbiddenActiveNames=/(^|\/)(legacy|quarantine)(\/|[^/]*\.(ts|tsx|js|jsx)$)|(^|\/).*bridge[^/]*\.(ts|tsx|js|jsx)$/i;
 const obsoleteRouteStrings=[
-  '/root/predictions/new','/root/prospect-radar','/root/development','/root/continuity','/root/contracts','/root/total-proof',
-  '/root/cognitive-twin/system','/root/cognitive-twin/lineage','/root/cognitive-twin/journal','/root/agents/passports','/root/overview','/root/operate','/root/pipeline','/operator/field'
+  '/root/predictions#new-prediction','/root/commercial#prospect-radar','/root/readiness','/root/readiness','/root/readiness','/root/readiness',
+  '/root/cognitive-twin','/root/cognitive-twin','/root/cognitive-twin','/root/agents','/root','/pipeline','/pipeline','/field'
 ];
 
 for(const file of files){

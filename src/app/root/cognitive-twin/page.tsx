@@ -2,12 +2,12 @@ import type { Metadata } from 'next';
 import { CognitiveTwinConsole } from '@/components/root/cognitive-twin/CognitiveTwinConsole';
 import { CognitiveTwinIntegrationPanel } from '@/components/root/cognitive-twin/CognitiveTwinIntegrationPanel';
 import { CognitiveTwinArchaeologyPanel } from '@/components/root/cognitive-twin/CognitiveTwinArchaeologyPanel';
-import { readCognitiveTwinState } from '@/lib/cognitive-twin/readState';
-import { readLegacyCognitiveTwinState } from '@/lib/cognitive-twin/legacyCapabilityBridge';
-import { readCognitiveTwinLineageHealth } from '@/lib/cognitive-twin/reentry/runtime';
-import { readCognitiveTwinExperimentState } from '@/lib/cognitive-twin/reentry/experimentState';
-import { readCognitiveTwinMutationState } from '@/lib/cognitive-twin/reentry/mutationState';
-import { readCognitiveTwinJournal } from '@/lib/cognitive-twin/reentry/journal';
+import { readCognitiveTwinState } from '@/core/cognitive-twin/readState';
+import { readLegacyCognitiveTwinState } from '@/core/cognitive-twin/legacyCapabilityBridge';
+import { readCognitiveTwinLineageHealth } from '@/core/cognitive-twin/reentry/runtime';
+import { readCognitiveTwinExperimentState } from '@/core/cognitive-twin/reentry/experimentState';
+import { readCognitiveTwinMutationState } from '@/core/cognitive-twin/reentry/mutationState';
+import { readCognitiveTwinJournal } from '@/core/cognitive-twin/reentry/journal';
 import { requireRootObserverPage } from '@/lib/root/server';
 
 export const dynamic = 'force-dynamic';

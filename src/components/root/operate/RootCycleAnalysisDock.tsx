@@ -89,7 +89,7 @@ export function RootCycleAnalysisDock({ cycle, onChanged }: Props) {
     setSuggesting(true);
     setSuggestionError('');
     try {
-      const response = await fetch('/api/root/operate/inference/suggest', {
+      const response = await fetch('/api/pipeline/inference/suggest', {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
@@ -120,7 +120,7 @@ export function RootCycleAnalysisDock({ cycle, onChanged }: Props) {
     if (!canInfer) return;
     setBusy(true); setMessage('');
     try {
-      const response = await fetch('/api/root/operate/inference', {
+      const response = await fetch('/api/pipeline/inference', {
         method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           operatingCycleId: cycle.id,
@@ -148,7 +148,7 @@ export function RootCycleAnalysisDock({ cycle, onChanged }: Props) {
     if (!canTrajectory) return;
     setBusy(true); setMessage('');
     try {
-      const response = await fetch('/api/root/operate/trajectory', {
+      const response = await fetch('/api/pipeline/trajectory', {
         method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           operatingCycleId: cycle.id,

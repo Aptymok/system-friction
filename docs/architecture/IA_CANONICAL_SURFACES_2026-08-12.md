@@ -23,7 +23,7 @@ Studio is optional specialist analysis, not a dependency of the institutional co
 ### `/field` — Observed intervention and return
 Purpose: run governed MOP-H / Field cases against reality, preserve evidence, intervention identity, return window, observed return and contrast.
 
-`/operator/field` is not a separate product or role surface. Its useful capture constraints are absorbed into Field; the static scaffold is deleted.
+`/field` is not a separate product or role surface. Its useful capture constraints are absorbed into Field; the static scaffold is deleted.
 
 ### `/method-lab` — Controlled experimentation
 Purpose: execute simulations, CRL, CHRONOS, Cognitive Twin reentry and bounded sociotechnical/economic tests without converting simulation into observation.
@@ -55,12 +55,12 @@ Durable documentary corpus and publication surface. It is not an execution engin
 
 | Existing object | Decision | Reason |
 |---|---|---|
-| `/root/pipeline` | DELETE after `/pipeline` promotion | duplicate wrapper |
-| `/root/operate` | DELETE after `/pipeline` promotion | duplicate wrapper |
-| `/root/overview` | DELETE after ROOT absorbs sovereign console | redundant technical entry |
+| `/pipeline` | DELETE after `/pipeline` promotion | duplicate wrapper |
+| `/pipeline` | DELETE after `/pipeline` promotion | duplicate wrapper |
+| `/root` | DELETE after ROOT absorbs sovereign console | redundant technical entry |
 | `/root/method-lab` | DELETE after `/method-lab` promotion | location duplication |
 | `/root/method-lab/crl` | DELETE | redirect-only alias; CRL is embedded in Method Lab |
-| `/operator/field` | DELETE | static Phase-01 scaffold; no persistence/execution |
+| `/field` | DELETE | static Phase-01 scaffold; no persistence/execution |
 | `AcpAttractorFieldView` | DELETE | unconsumed parallel attractor visualization |
 | `AcpFieldRegimeView` | DELETE | unconsumed parallel regime visualization |
 | `RootLogbookConsole` | DELETE | static explanatory component, not a logbook |

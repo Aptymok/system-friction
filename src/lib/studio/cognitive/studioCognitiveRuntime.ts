@@ -2,8 +2,8 @@ import 'server-only';
 
 import { randomUUID } from 'node:crypto';
 import { runLlmTask, type LlmProviderId } from '@/lib/ai/providerRouter';
-import { createCognitiveTwinEnvelope } from '@/lib/cognitive-twin/contract';
-import { persistStudioLearningCandidate, readStudioTwinContext, registerStudioTwinRun } from '@/lib/cognitive-twin/studioContext';
+import { createCognitiveTwinEnvelope } from '@/core/cognitive-twin/contract';
+import { persistStudioLearningCandidate, readStudioTwinContext, registerStudioTwinRun } from '@/core/cognitive-twin/studioContext';
 import type { KernelContext, KernelEvidence } from '@/lib/sfi/cognitive-runtime/kernelContext';
 import { executeSfiRuntime } from '@/lib/sfi/cognitive-runtime/runtime';
 import { analyzeStudioSessionRelations } from '@/lib/studio/audio/sessionRelationalAnalysis';

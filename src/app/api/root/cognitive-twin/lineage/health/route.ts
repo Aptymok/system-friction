@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireRootViewer } from '@/lib/root/server';
-import { readCognitiveTwinLineageHealth } from '@/lib/cognitive-twin/reentry/runtime';
-import { readCognitiveTwinMutationState } from '@/lib/cognitive-twin/reentry/mutationState';
+import { readCognitiveTwinLineageHealth } from '@/core/cognitive-twin/reentry/runtime';
+import { readCognitiveTwinMutationState } from '@/core/cognitive-twin/reentry/mutationState';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';

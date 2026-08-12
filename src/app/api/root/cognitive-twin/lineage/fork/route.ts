@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auditRootAction, requireRootActor } from '@/lib/root/server';
-import { registerCognitiveTwinFork } from '@/lib/cognitive-twin/reentry/experiments';
+import { registerCognitiveTwinFork } from '@/core/cognitive-twin/reentry/experiments';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
