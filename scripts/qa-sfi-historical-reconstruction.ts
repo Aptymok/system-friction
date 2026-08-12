@@ -20,6 +20,8 @@ const read=(file:string)=>fs.readFileSync(path.join(root,file),'utf8');
 const seed=read('scripts/db/seed-sfi-canonical-history.mjs');
 const reconstruct=read('scripts/reconstruct-sfi-derived-history.ts');
 const migration=read('supabase/migrations/20260812015000_create_sfi_world_day_ledger.sql');
+const liveWorldDay=read('src/lib/time/sfiWorldDay.ts');
+const continuityCron=read('src/app/api/cron/continuity-report/route.ts');
 
 assert.equal(SFI_WORLD_DAY_ORIGIN,'2026-06-02');
 assert.equal(SFI_RECONSTRUCTED_HISTORY_END,'2026-08-11');
@@ -94,9 +96,23 @@ assert.match(migration,/LIVE_EMPTY/);
 assert.match(migration,/service_role/);
 assert.match(migration,/absence of reconstructed evidence is not itself evidence of inactivity/);
 
+// Day 73+ must advance through the existing continuity cron without manufacturing activity.
+assert.match(liveWorldDay,/export const SFI_WORLD_DAY_ORIGIN = '2026-06-02'/);
+assert.match(liveWorldDay,/export const SFI_CLEAN_GENESIS_DATE = '2026-08-12'/);
+assert.match(liveWorldDay,/toISOString\(\)\.slice\(0,10\)/,'world_day_must_use_utc_date');
+assert.match(liveWorldDay,/export async function ensureCurrentSfiWorldDay/);
+assert.match(liveWorldDay,/reconstruction_status:'LIVE_EMPTY'/);
+assert.match(liveWorldDay,/Calendar continuity only\. Creating a world-day does not assert that an observation, event or institutional action occurred/);
+assert.match(continuityCron,/ensureCurrentSfiWorldDay/);
+assert.ok(
+  continuityCron.indexOf('await ensureCurrentSfiWorldDay()') < continuityCron.indexOf('await createDailyContinuityReport()'),
+  'world_day_must_be_ensured_before_daily_continuity_report',
+);
+assert.match(continuityCron,/no additional Vercel cron invocation is introduced/);
+
 console.log(JSON.stringify({
   ok:true,
-  contract:'SFI-HISTORICAL-RECONSTRUCTION-QA-1.2',
+  contract:'SFI-HISTORICAL-RECONSTRUCTION-QA-1.3',
   reconstructedWorldDays:dayCount,
   cleanGenesisDay,
   historicalArtifactObjects:SFI_HISTORICAL_EVIDENCE.length,
@@ -114,5 +130,6 @@ console.log(JSON.stringify({
     'stale world interpretations are deleted and may be recomputed from surviving source history',
     'derived graph and Twin context are recomputed rather than copied as truth',
     'clean prospective genesis is World Day 72 / 2026-08-12 UTC',
+    'World Day 73+ advances automatically on the existing continuity cron without asserting activity',
   ],
 },null,2));
