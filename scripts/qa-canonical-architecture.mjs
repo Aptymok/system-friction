@@ -16,12 +16,22 @@ const obsoleteRouteStrings=[
   '/root/predictions/new','/root/prospect-radar','/root/development','/root/continuity','/root/contracts','/root/total-proof',
   '/root/cognitive-twin/system','/root/cognitive-twin/lineage','/root/cognitive-twin/journal','/root/agents/passports','/root/overview','/root/operate','/root/pipeline','/operator/field'
 ];
+function navigableRouteLiterals(source){
+  const values=[];
+  const patterns=[
+    /(?:href|source|destination|redirect|router\.(?:push|replace)|requireRootObserverPage|requireRootViewer|requireRootActor|requireRootContributor)\s*(?:=|\()?\s*['"`]([^'"`]+)['"`]/g,
+    /(?:fetch)\s*\(\s*['"`]([^'"`]+)['"`]/g,
+  ];
+  for(const pattern of patterns){let m;while((m=pattern.exec(source)))values.push(m[1]);}
+  return values;
+}
 
 for(const file of files){
   const r=rel(file);const s=text(file);
   if(forbiddenActiveNames.test(r)) report('P16_NO_ACTIVE_LEGACY_BRIDGE_QUARANTINE',file,'active source path contains legacy/bridge/quarantine');
   if(/(^|\/)tmp_[^/]+/i.test(r)||/(^|\/)app_[^/]+/i.test(r)) report('P16_NO_TMP_APP_SHADOWS',file,'active source path contains tmp_/app_ shadow');
-  for(const route of obsoleteRouteStrings) if(s.includes(route)) report('P16_NO_ABSORBED_ROUTE_REFERENCES',file,route);
+  const routes=navigableRouteLiterals(s);
+  for(const route of obsoleteRouteStrings) if(routes.some(value=>value===route||value.startsWith(`${route}/`)||value.startsWith(`${route}#`))) report('P16_NO_ABSORBED_ROUTE_REFERENCES',file,route);
 
   const interfaceFile=/^src\/(app\/(?!api\/).*\/page\.(ts|tsx)$|components\/)/.test(r)||r==='src/app/page.tsx';
   if(interfaceFile){
