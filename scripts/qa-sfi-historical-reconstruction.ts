@@ -44,17 +44,21 @@ assert.equal(cfi?.observedAt,'2026-05-09T00:00:00Z');
 const catalogDated=SFI_HISTORICAL_EVIDENCE.filter((item)=>item.dateBasis==='CATALOG_DATE');
 assert.ok(catalogDated.length>0,'catalog_date_boundary_missing');
 
-const requiredHistory=[
-  'sfi_world_day_ledger','world_source_observations','world_friction_readings','world_hypotheses',
-  'world_hypothesis_outcomes','world_learning_events','worldspect_snapshots','sfi_indicator_snapshots',
-];
+// Preserve source/provenance, not stale derived world interpretation.
+const requiredHistory=['sfi_world_day_ledger','world_source_observations','worldspect_snapshots'];
 for(const table of requiredHistory){
   assert.ok(HISTORICAL_PRESERVE_TABLES.includes(table),`historical_table_not_preserved:${table}`);
   assert.ok(PROTECTED_TABLES.includes(table),`historical_table_not_protected:${table}`);
   assert.ok(!OPERATIONAL_DELETE_ORDER.includes(table),`historical_table_still_purgeable:${table}`);
 }
-for(const derived of ['world_vector_cycles','world_vector_alerts','world_observatory_learning','world_observatory_events','kernel_cycles','root_observation_events']){
-  assert.ok(OPERATIONAL_DELETE_ORDER.includes(derived),`derived_world_runtime_should_be_recomputable:${derived}`);
+const derivedWorld=[
+  'world_friction_readings','world_hypotheses','world_hypothesis_outcomes','world_learning_events',
+  'world_vector_cycles','world_vector_observations','world_vector_reports','world_vector_alerts',
+  'world_observatory_learning','world_observatory_events','kernel_cycles','root_observation_events','sfi_indicator_snapshots',
+];
+for(const table of derivedWorld){
+  assert.ok(OPERATIONAL_DELETE_ORDER.includes(table),`derived_world_runtime_should_be_recomputed:${table}`);
+  assert.ok(!HISTORICAL_PRESERVE_TABLES.includes(table),`derived_world_runtime_must_not_survive_by_default:${table}`);
 }
 
 assert.match(seed,/SFI_HISTORY_SEED_CONFIRM/);
@@ -82,17 +86,19 @@ assert.match(migration,/absence of reconstructed evidence is not itself evidence
 
 console.log(JSON.stringify({
   ok:true,
-  contract:'SFI-HISTORICAL-RECONSTRUCTION-QA-1.0',
+  contract:'SFI-HISTORICAL-RECONSTRUCTION-QA-1.1',
   reconstructedWorldDays:dayCount,
   cleanGenesisDay,
   historicalEvidenceObjects:SFI_HISTORICAL_EVIDENCE.length,
   catalogDatedObjects:catalogDated.length,
   protectedHistoricalTables:requiredHistory.length,
+  recomputedWorldTables:derivedWorld.length,
   invariants:[
-    'world history survives operational reset',
+    'only provenance-rich world history survives operational reset',
     'every SFI world-day has a coordinate from Day 1 through clean genesis',
     'empty historical dates do not fabricate inactivity or events',
     'historical objects enter as imported provenance only',
+    'stale world interpretations are deleted and may be recomputed from surviving source history',
     'derived graph and Twin context are recomputed rather than copied as truth',
     'clean prospective genesis is World Day 72 / 2026-08-12 UTC',
   ],
