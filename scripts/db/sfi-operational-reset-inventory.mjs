@@ -1,15 +1,9 @@
 export const HISTORICAL_PRESERVE_TABLES = [
-  // Longitudinal source/history survives the operational clean start.
-  // These rows are not runtime residue: they are the temporal material from which
-  // Observatory trajectories and later reconstructions can be recomputed.
+  // Preserve the temporal spine and provenance-rich world observations only.
+  // Derived world hypotheses/readings/learning are rebuilt from these sources after reset.
   'sfi_world_day_ledger',
   'world_source_observations',
-  'world_friction_readings',
-  'world_hypotheses',
-  'world_hypothesis_outcomes',
-  'world_learning_events',
   'worldspect_snapshots',
-  'sfi_indicator_snapshots',
 ];
 
 export const PROTECTED_TABLES = [
@@ -85,10 +79,12 @@ export const OPERATIONAL_RESET_LAYERS = [
   },
   {
     id:'world-derived-runtime',
-    reason:'Clears recomputable/parallel world runtime while preserving source observations, WorldSpect snapshots, indicator checkpoints and the persistent world-day ledger.',
+    reason:'Clears recomputable/parallel world runtime while preserving source observations, provenance-rich WorldSpect snapshots and the persistent world-day ledger.',
     tables:[
-      'world_vector_cycles','world_vector_alerts','world_observatory_learning','world_observatory_events',
-      'external_evidence_vector','kernel_cycles','root_observation_events',
+      'world_friction_readings','world_hypotheses','world_hypothesis_outcomes','world_learning_events',
+      'world_vector_cycles','world_vector_observations','world_vector_reports','world_vector_alerts',
+      'world_observatory_learning','world_observatory_events','external_evidence_vector',
+      'kernel_cycles','root_observation_events','sfi_indicator_snapshots',
     ],
   },
   {
