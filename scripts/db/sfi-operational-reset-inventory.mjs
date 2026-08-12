@@ -1,3 +1,17 @@
+export const HISTORICAL_PRESERVE_TABLES = [
+  // Longitudinal source/history survives the operational clean start.
+  // These rows are not runtime residue: they are the temporal material from which
+  // Observatory trajectories and later reconstructions can be recomputed.
+  'sfi_world_day_ledger',
+  'world_source_observations',
+  'world_friction_readings',
+  'world_hypotheses',
+  'world_hypothesis_outcomes',
+  'world_learning_events',
+  'worldspect_snapshots',
+  'sfi_indicator_snapshots',
+];
+
 export const PROTECTED_TABLES = [
   // Identity / access / billing / authority survive an operational clean start.
   'profiles',
@@ -13,6 +27,7 @@ export const PROTECTED_TABLES = [
   'system_api_clients',
   // Schema migrations and canonical code/corpus are repository/Supabase metadata and are never reset here.
   'schema_migrations',
+  ...HISTORICAL_PRESERVE_TABLES,
 ];
 
 export const OPERATIONAL_RESET_LAYERS = [
@@ -69,11 +84,11 @@ export const OPERATIONAL_RESET_LAYERS = [
     ],
   },
   {
-    id:'world-observation-runtime',
-    reason:'Clears acquired world snapshots/cycles/alerts while source contracts and Observatory code remain.',
+    id:'world-derived-runtime',
+    reason:'Clears recomputable/parallel world runtime while preserving source observations, WorldSpect snapshots, indicator checkpoints and the persistent world-day ledger.',
     tables:[
-      'worldspect_snapshots','world_vector_cycles','world_vector_alerts','world_observatory_learning','world_observatory_events',
-      'external_evidence_vector','kernel_cycles','root_observation_events','sfi_indicator_snapshots',
+      'world_vector_cycles','world_vector_alerts','world_observatory_learning','world_observatory_events',
+      'external_evidence_vector','kernel_cycles','root_observation_events',
     ],
   },
   {
@@ -88,7 +103,7 @@ export const OPERATIONAL_RESET_LAYERS = [
   },
   {
     id:'graph-evidence-runtime',
-    reason:'Graph is a projection of evidence and is cleared before the underlying evidence ledgers.',
+    reason:'Graph is a projection of evidence and is cleared before the reconstructed historical evidence ledger is re-seeded.',
     tables:['graph_edges','graph_nodes','root_neural_edges','root_neural_nodes','root_evidence_entries','sfi_evidence_ledger','epistemic_events'],
   },
   {
