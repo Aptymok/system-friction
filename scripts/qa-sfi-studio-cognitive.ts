@@ -61,7 +61,7 @@ assert.ok(llmBridge.includes('LLM_PROVIDER_UNAVAILABLE'), 'llm_fail_closed_missi
 assert.ok(!/Math\.random\(\).*confidence|fake|demo data/i.test(`${runtime}\n${llmBridge}\n${experienceBridge}`), 'synthetic_cognitive_output_pattern_present');
 
 // Studio now persists through the single institutional Cognitive Twin experience bridge.
-assert.ok(twinContext.includes('persistCognitiveTwinExperience'), 'studio_learning_not_routed_through_experience_bridge');
+assert.ok(twinContext.includes('recordCognitiveTwinExperience'), 'studio_learning_not_routed_through_experience_bridge');
 assert.ok(experienceBridge.includes(".upsert({"), 'cognitive_twin_experience_upsert_missing');
 assert.ok(experienceBridge.includes("onConflict:'memory_key,version'"), 'cognitive_twin_experience_conflict_key_missing');
 assert.ok(twinContext.includes('stableStudioLearningKey'), 'studio_learning_stable_key_missing');

@@ -1,7 +1,7 @@
 import 'server-only';
 
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
-import { persistCognitiveTwinExperience } from './experienceBridge';
+import { recordCognitiveTwinExperience } from './experience';
 
 type Row = Record<string, unknown>;
 
@@ -23,7 +23,7 @@ export async function ingestRootEvidenceIntoCognitiveTwin(evidence: Row) {
   const evidenceRefs = [id, eventId].filter((value): value is string => Boolean(value));
   const memoryKey = `ROOT-EVIDENCE:${evidenceHash}`;
 
-  const persisted = await persistCognitiveTwinExperience({
+  const persisted = await recordCognitiveTwinExperience({
     memoryKey,
     memoryType:'EVIDENCE',
     sourceKind:'root_evidence_entries',

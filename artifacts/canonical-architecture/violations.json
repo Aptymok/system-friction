@@ -1,32 +1,8 @@
 {
   "summary": {
     "checkedFiles": 1626,
-    "violations": 4,
-    "byRule": {
-      "P04_SINGLE_MEMORY_WRITE_PATH": 3,
-      "P16_NO_ACTIVE_LEGACY_BRIDGE_QUARANTINE": 1
-    }
+    "violations": 0,
+    "byRule": {}
   },
-  "violations": [
-    {
-      "rule": "P04_SINGLE_MEMORY_WRITE_PATH",
-      "file": "src/app/api/root/friccionauta/route.ts",
-      "detail": "direct institutional/Twin memory mutation outside canonical writer"
-    },
-    {
-      "rule": "P04_SINGLE_MEMORY_WRITE_PATH",
-      "file": "src/app/api/root/institutionalization/route.ts",
-      "detail": "direct institutional/Twin memory mutation outside canonical writer"
-    },
-    {
-      "rule": "P16_NO_ACTIVE_LEGACY_BRIDGE_QUARANTINE",
-      "file": "src/core/cognitive-twin/experienceBridge.ts",
-      "detail": "active source path contains legacy/bridge/quarantine"
-    },
-    {
-      "rule": "P04_SINGLE_MEMORY_WRITE_PATH",
-      "file": "src/core/cognitive-twin/experienceBridge.ts",
-      "detail": "direct institutional/Twin memory mutation outside canonical writer"
-    }
-  ]
+  "violations": []
 }

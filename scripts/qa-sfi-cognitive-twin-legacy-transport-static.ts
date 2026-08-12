@@ -23,7 +23,7 @@ for(const action of ['apply_subject_mutation','publish','mutate_canon','change_f
 assert.match(bridge,/epistemicClass:'OBSERVED_RETURN'/);
 assert.match(bridge,/CognitiveTwinLineageHealth/);
 assert.match(bridge,/readInstitutionalReadiness/);
-assert.match(bridge,/persistCognitiveTwinExperience/);
+assert.match(bridge,/recordCognitiveTwinExperience/);
 assert.match(bridge,/Software-complete legacy transport/);
 
 for(const file of [

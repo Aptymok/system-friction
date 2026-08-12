@@ -9,7 +9,7 @@ import {
 } from './operationalCycle';
 import { finalizeReturnContrast, canMarkLongitudinalCaseComplete } from './returnContrastContract';
 import { verifyStudioFieldHandoff, type StudioFieldHandoff } from '@/lib/studio/fieldHandoff';
-import { persistCognitiveTwinExperience } from '@/core/cognitive-twin/experienceBridge';
+import { recordCognitiveTwinExperience } from '@/core/cognitive-twin/experience';
 
 type Row = Record<string, unknown>;
 function record(value: unknown): Row {
@@ -126,7 +126,7 @@ export async function submitGovernedFieldReturn(ownerId: string, caseId: string,
 
   const outcome = record(result.outcome);
   const outcomeId = text(outcome.id) || `${caseId}:${text(returnRow.data.id)}`;
-  const twinExperience = await persistCognitiveTwinExperience({
+  const twinExperience = await recordCognitiveTwinExperience({
     memoryKey:`SFI:FIELD:RETURN:${outcomeId}`,
     memoryType:'STATE',
     sourceKind:'field_outcomes',

@@ -7,7 +7,7 @@ import type { KernelContext, KernelEvidence } from '@/lib/sfi/cognitive-runtime/
 import { METHOD_LAB_CONTRACT_VERSION, assertMethodLabRunEnvelope, type MethodLabProtocolId, type MethodLabRunEnvelope } from './contracts';
 import { methodLabProtocol } from './registry';
 import { specializedModel } from './specializedModels';
-import { persistCognitiveTwinExperience } from '@/core/cognitive-twin/experienceBridge';
+import { recordCognitiveTwinExperience } from '@/core/cognitive-twin/experience';
 
 const SIMULATION_PROTOCOL_AGENTS: Partial<Record<MethodLabProtocolId, string[]>> = {
   sociotechnical_simulation: [
@@ -185,7 +185,7 @@ export async function runMethodLabSimulation(input: {
   }).select('id').single();
   if (persisted.error || !persisted.data?.id) throw new Error(`METHOD_LAB_RUN_PERSIST_FAILED:${persisted.error?.message ?? 'unknown'}`);
 
-  const cognitiveTwinExperience = await persistCognitiveTwinExperience({
+  const cognitiveTwinExperience = await recordCognitiveTwinExperience({
     memoryKey:`SFI:METHOD_LAB:RUN:${persisted.data.id}`,
     memoryType:'METHOD',
     sourceKind:'sfi_lab_analyses',

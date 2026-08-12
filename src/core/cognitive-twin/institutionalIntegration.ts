@@ -2,7 +2,7 @@ import 'server-only';
 
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { syncRecentInstitutionalEvidenceToCognitiveTwin } from './evidenceIngestion';
-import { persistCognitiveTwinExperience } from './experienceBridge';
+import { recordCognitiveTwinExperience } from './experience';
 
 type Row = Record<string, unknown>;
 
@@ -56,7 +56,7 @@ async function syncFieldReturns(limit = 100): Promise<SyncResult> {
   for (const row of rows) {
     const id = text(row.id);
     if (!id) { failed += 1; continue; }
-    const persisted = await persistCognitiveTwinExperience({
+    const persisted = await recordCognitiveTwinExperience({
       memoryKey:`SFI:FIELD:RETURN:${id}`,
       memoryType:'STATE',
       sourceKind:'field_outcomes',
@@ -97,7 +97,7 @@ async function syncMethodLabRuns(limit = 100): Promise<SyncResult> {
     if (!id) { failed += 1; continue; }
     const raw = record(row.raw_analysis);
     const dataMode = text(row.data_mode) ?? 'UNKNOWN';
-    const persisted = await persistCognitiveTwinExperience({
+    const persisted = await recordCognitiveTwinExperience({
       memoryKey:`SFI:METHOD_LAB:RUN:${id}`,
       memoryType:'METHOD',
       sourceKind:'sfi_lab_analyses',
@@ -138,7 +138,7 @@ async function syncObservatoryState(limit = 60): Promise<SyncResult> {
     if (!id) { failed += 1; continue; }
     const sources = Array.isArray(row.sources) ? row.sources.map(record) : [];
     const simulatedSources = sources.filter((source) => source.simulated === true).length;
-    const persisted = await persistCognitiveTwinExperience({
+    const persisted = await recordCognitiveTwinExperience({
       memoryKey:`SFI:OBSERVATORY:WORLDSPECT:${id}`,
       memoryType:'STATE',
       sourceKind:'worldspect_snapshots',

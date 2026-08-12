@@ -4,7 +4,7 @@ import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { readInstitutionalReadiness } from '@/lib/root/closure/readInstitutionalReadiness';
 import { readCognitiveTwinLineageHealth } from './reentry/runtime';
 import { readCognitiveTwinMutationState } from './reentry/mutationState';
-import { persistCognitiveTwinExperience } from './experienceBridge';
+import { recordCognitiveTwinExperience } from './experience';
 
 export const COGNITIVE_TWIN_ANCESTRAL_CAPABILITIES_VERSION='SFI-CT-ANCESTRAL-CAPABILITIES-1.0';
 
@@ -49,7 +49,7 @@ export const COGNITIVE_TWIN_ANCESTRAL_CAPABILITY_MANIFEST:Array<{
 }>=[
   {
     id:'episodic_memory_engine',status:'MIGRATED',
-    currentImplementation:['sfi_cognitive_twin_memory','persistCognitiveTwinExperience()','readCognitiveTwinAncestralState().timeline'],
+    currentImplementation:['sfi_cognitive_twin_memory','recordCognitiveTwinExperience()','readCognitiveTwinAncestralState().timeline'],
     boundary:'Episodes are evidence-bound institutional records. They are not hidden chain-of-thought, subjective memory or automatic canon.',
   },
   {
@@ -69,7 +69,7 @@ export const COGNITIVE_TWIN_ANCESTRAL_CAPABILITY_MANIFEST:Array<{
   },
   {
     id:'observer_feedback_loop',status:'MIGRATED',
-    currentImplementation:['Field observed return → persistCognitiveTwinExperience()','sfi_operating_cycles','recordCognitiveTwinFeedback()'],
+    currentImplementation:['Field observed return → recordCognitiveTwinExperience()','sfi_operating_cycles','recordCognitiveTwinFeedback()'],
     boundary:'A return is remembered only with real persisted references; a simulation cannot be promoted to observed return.',
   },
   {
@@ -190,7 +190,7 @@ export async function recordCognitiveTwinFeedback(input:{
   contrast:unknown;
 }){
   if(!input.operatingCycleId||!input.fieldCaseId||!input.fieldOutcomeId||!input.returnId)throw new Error('COGNITIVE_TWIN_FEEDBACK_REQUIRES_REAL_PERSISTED_REFS');
-  return persistCognitiveTwinExperience({
+  return recordCognitiveTwinExperience({
     memoryKey:`FIELD_RETURN:${input.fieldCaseId}:${input.fieldOutcomeId}`,
     memoryType:'STATE',
     sourceKind:'field_outcomes',

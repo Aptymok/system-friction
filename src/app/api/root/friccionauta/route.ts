@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { runLlmTask } from '@/lib/ai/providerRouter';
 import { createCognitiveTwinEnvelope, evaluateCognitiveTwinAuthority } from '@/core/cognitive-twin/contract';
 import { readCognitiveTwinState } from '@/core/cognitive-twin/readState';
+import { recordCognitiveTwinExperience } from '@/core/cognitive-twin/experience';
 import { runNeuralGraphAgent } from '@/lib/agents/neuralGraphAgent';
 import { readAmvOperationalMemory } from '@/lib/agents/amvAgent';
 import { buildWorldVectorOperationalState } from '@/lib/world-vector/operationalState';
@@ -246,27 +247,27 @@ async function saveFinding(request: Request, gate: RootActorGate, body: Row) {
   const evidenceRefs = strings(body.evidenceRefs);
   if (!finding) return NextResponse.json({ ok: false, error: 'finding_required' }, { status: 400 });
   const memoryKey = `FRICCIONAUTA:FINDING:${new Date().toISOString()}:${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
-  const write = await gate.ctx.service.from('sfi_cognitive_twin_memory').insert({
-    memory_key: memoryKey,
-    memory_type: 'EVIDENCE',
-    status: 'CANDIDATE',
-    content: {
+  const recorded = await recordCognitiveTwinExperience({
+    memoryKey,
+    memoryType:'EVIDENCE',
+    sourceKind:'friccionauta_root',
+    sourceRef:sourceRunId || memoryKey,
+    evidenceRefs,
+    createdBy:gate.ctx.user.id,
+    operation:'CAPTURE',
+    content:{
       finding,
-      question: question || null,
-      sourceRunId: sourceRunId || null,
-      epistemicClass: 'INFERRED',
-      observedObject: 'founder_selected_friccionauta_finding',
-      claimBoundary: 'The founder selected this finding for institutional memory. Selection does not make the finding verified or canonical.',
-      selectedAt: new Date().toISOString(),
+      question:question || null,
+      sourceRunId:sourceRunId || null,
+      epistemicClass:'INFERRED',
+      observedObject:'founder_selected_friccionauta_finding',
+      claimBoundary:'Founder selection records relevance; it does not make the finding verified or canonical.',
+      selectedAt:new Date().toISOString(),
     },
-    evidence_refs: evidenceRefs,
-    source_kind: 'friccionauta_root',
-    source_ref: sourceRunId || null,
-    created_by: gate.ctx.user.id,
-  }).select('*').single();
-  if (write.error) return NextResponse.json({ ok: false, error: 'friccionauta_finding_persistence_failed', details: write.error.message }, { status: 500 });
-  const audit = await auditRootAction({ actorId: gate.ctx.user.id, action: 'friccionauta.finding.save', target: memoryKey, payload: { sourceRunId: sourceRunId || null, evidenceRefs }, request });
-  return NextResponse.json({ ok: audit.ok, memory: write.data, audit });
+  });
+  if (!recorded.ok) return NextResponse.json({ ok:false, error:'friccionauta_finding_record_failed', details:recorded.reason }, { status:500 });
+  const audit = await auditRootAction({ actorId:gate.ctx.user.id, action:'friccionauta.finding.save', target:memoryKey, payload:{ sourceRunId:sourceRunId || null, evidenceRefs, epistemicEventId:recorded.event.id }, request });
+  return NextResponse.json({ ok:audit.ok, event:recorded.event, promotion:recorded.promotion, audit });
 }
 
 export async function POST(request: Request) {

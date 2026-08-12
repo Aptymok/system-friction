@@ -34,7 +34,7 @@ assert.equal(integration.includes("dataMode === 'SIMULATED' ? 'SIMULATED' : 'OBS
 assert.ok(integration.includes(".order('created_at', { ascending: false })"), 'Method Lab sync must ingest newest rows first');
 
 assert.ok(integration.includes("epistemicClass:'OBSERVED_RETURN'"), 'Field historical return ingestion missing');
-assert.ok(integration.includes("import { persistCognitiveTwinExperience } from './experienceBridge'"), 'historical integration bypasses canonical experience bridge');
+assert.ok(integration.includes("import { recordCognitiveTwinExperience } from './experience'"), 'historical integration bypasses canonical experience bridge');
 assert.equal(integration.includes("from('sfi_cognitive_twin_memory').upsert"), false, 'institutional integration must not create a second memory persistence path');
 assert.ok(experience.includes("status: 'CANDIDATE'"), 'experience bridge must persist candidates only');
 assert.ok(experience.includes('never expands authority automatically'), 'experience authority boundary missing');
@@ -44,14 +44,14 @@ for (const [name, source] of [
   ['Studio', studioContext],
   ['CRL', crl],
 ] as const) {
-  assert.ok(source.includes('persistCognitiveTwinExperience'), `${name} must use the canonical experience bridge`);
+  assert.ok(source.includes('recordCognitiveTwinExperience'), `${name} must use the canonical experience bridge`);
   assert.equal(source.includes("from('sfi_cognitive_twin_memory').upsert"), false, `${name} must not directly upsert Twin memory`);
 }
 
-assert.ok(field.includes('persistCognitiveTwinExperience'), 'Field live return is not wired to Twin experience');
+assert.ok(field.includes('recordCognitiveTwinExperience'), 'Field live return is not wired to Twin experience');
 assert.ok(field.includes("epistemicClass:'OBSERVED_RETURN'"), 'Field return epistemic class missing');
 assert.ok(field.includes('returnContrast:contrast'), 'Field contrast must travel into Twin experience');
-assert.ok(methodLab.includes('persistCognitiveTwinExperience'), 'Method Lab live run is not wired to Twin experience');
+assert.ok(methodLab.includes('recordCognitiveTwinExperience'), 'Method Lab live run is not wired to Twin experience');
 assert.ok(methodLab.includes("epistemicClass:'SIMULATED'"), 'Method Lab simulation must remain SIMULATED in Twin');
 
 assert.ok(deliberate.includes('syncSfiInstitutionalStateToCognitiveTwin'), 'Twin deliberation must refresh SFI state');

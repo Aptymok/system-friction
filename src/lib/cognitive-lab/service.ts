@@ -2,7 +2,7 @@ import 'server-only';
 
 import { runLlmTask } from '@/lib/ai/providerRouter';
 import { createCognitiveTwinEnvelope, evaluateCognitiveTwinAuthority } from '@/core/cognitive-twin/contract';
-import { persistCognitiveTwinExperience } from '@/core/cognitive-twin/experienceBridge';
+import { recordCognitiveTwinExperience } from '@/core/cognitive-twin/experience';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 
 type Row = Record<string, unknown>;
@@ -415,7 +415,7 @@ export async function runCognitiveLabFounderContrast(createdBy: string, sessionI
       `cognitive-lab-analysis:${String(founderAnalysis.data.id)}`,
       `cognitive-lab-analysis:${String(divergence.data.id)}`,
     ];
-    const memory = await persistCognitiveTwinExperience({
+    const memory = await recordCognitiveTwinExperience({
       memoryKey: `cognitive_lab:${sessionId}:relational_contrast`,
       memoryType: 'STATE',
       sourceKind: 'COGNITIVE_LAB_CONTRAST',
