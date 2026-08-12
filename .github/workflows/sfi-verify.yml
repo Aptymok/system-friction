@@ -60,6 +60,9 @@ jobs:
       - name: Verify clean-start reset safety
         run: npx tsx scripts/qa-sfi-operational-reset.ts
 
+      - name: Verify historical reconstruction contract
+        run: npm run qa:sfi-historical-reconstruction
+
       - name: Verify SFI total proof circuit
         run: npx tsx scripts/qa-sfi-total-proof.ts
 
