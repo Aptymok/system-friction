@@ -7,7 +7,7 @@ const abs=p=>path.join(ROOT,p);
 const exists=p=>fs.existsSync(abs(p));
 const read=p=>fs.readFileSync(abs(p),'utf8');
 const write=(p,c)=>{fs.mkdirSync(path.dirname(abs(p)),{recursive:true});fs.writeFileSync(abs(p),c)};
-const rm=p=>{if(exists(p))execFileSync('git',['rm','-r','--',p],{stdio:'inherit'})};
+const rm=p=>{if(exists(p))execFileSync('git',['rm','-r','-f','--',p],{stdio:'inherit'})};
 const all=[];
 function walk(dir){if(!exists(dir))return;for(const e of fs.readdirSync(abs(dir),{withFileTypes:true})){const p=path.join(dir,e.name).replaceAll('\\','/');if(e.isDirectory())walk(p);else if(/\.(ts|tsx|js|jsx|mjs|cjs)$/.test(e.name))all.push(p)}}
 walk('src');walk('scripts');
@@ -15,9 +15,7 @@ function refreshAll(){all.length=0;walk('src');walk('scripts')}
 function replaceEverywhere(a,b){refreshAll();for(const p of all){if(!exists(p))continue;let s=read(p);if(s.includes(a)){s=s.replaceAll(a,b);write(p,s)}}}
 function move(oldPath,newPath,transform=(s)=>s){if(!exists(oldPath))return;write(newPath,transform(read(oldPath)));replaceEverywhere(oldPath.replace(/^src\//,'@/').replace(/\.ts$/,''),newPath.replace(/^src\//,'@/').replace(/\.ts$/,''));rm(oldPath)}
 
-// Retained archaeological capabilities are part of the canonical Twin itself.
 move('src/core/cognitive-twin/legacyCapabilityBridge.ts','src/core/cognitive-twin/ancestralCapabilities.ts',s=>s
-  .replaceAll("from './experienceBridge'","from './experienceBridge'")
   .replaceAll('COGNITIVE_TWIN_LEGACY_BRIDGE_VERSION','COGNITIVE_TWIN_ANCESTRAL_CAPABILITIES_VERSION')
   .replaceAll('SFI-CT-LEGACY-BRIDGE-1.0','SFI-CT-ANCESTRAL-CAPABILITIES-1.0')
   .replaceAll('COGNITIVE_TWIN_LEGACY_CAPABILITY_MANIFEST','COGNITIVE_TWIN_ANCESTRAL_CAPABILITY_MANIFEST')
@@ -35,7 +33,6 @@ replaceEverywhere('CognitiveTwinLegacyCapabilityId','CognitiveTwinAncestralCapab
 replaceEverywhere('CognitiveTwinLegacyCapabilityStatus','CognitiveTwinAncestralCapabilityStatus');
 replaceEverywhere('readLegacyCognitiveTwinState','readCognitiveTwinAncestralState');
 
-// Replace the old legacy-transport QA with a canonical archaeological-capability QA.
 if(exists('scripts/qa-sfi-cognitive-twin-legacy-transport.ts')){
   let qa=read('scripts/qa-sfi-cognitive-twin-legacy-transport.ts')
     .replaceAll('legacyCapabilityBridge','ancestralCapabilities')
@@ -60,20 +57,15 @@ if(exists('scripts/qa-sfi-cognitive-twin-legacy-transport.ts')){
   rm('scripts/qa-sfi-cognitive-twin-legacy-transport.ts');
 }
 
-// Contract-only AMV availability markers collapse into one explicit context contract.
 const mihm=exists('src/lib/amv/core/mihmBridge.ts')?read('src/lib/amv/core/mihmBridge.ts'):'';
 const ws=exists('src/lib/amv/core/worldspectBridge.ts')?read('src/lib/amv/core/worldspectBridge.ts'):'';
 if(mihm||ws){
-  write('src/lib/amv/core/contextAvailability.ts',`${mihm}\n\n${ws}`
-    .replaceAll('Bridge','Context')
-    .replaceAll('bridge','context')
-    .replaceAll('BRIDGE','CONTEXT'));
+  write('src/lib/amv/core/contextAvailability.ts',`${mihm}\n\n${ws}`.replaceAll('Bridge','Context').replaceAll('bridge','context').replaceAll('BRIDGE','CONTEXT'));
   replaceEverywhere('@/lib/amv/core/mihmBridge','@/lib/amv/core/contextAvailability');
   replaceEverywhere('@/lib/amv/core/worldspectBridge','@/lib/amv/core/contextAvailability');
   rm('src/lib/amv/core/mihmBridge.ts');rm('src/lib/amv/core/worldspectBridge.ts');
 }
 
-// Python is infrastructure, not an AMV/ScoreFriction core bridge.
 move('src/lib/amv/core/pythonBridgeAdapter.ts','src/infrastructure/python/amvRuntimeContract.ts',s=>s.replaceAll('Bridge','Runtime').replaceAll('bridge','runtime'));
 move('src/lib/amv/core/pythonBridgeContract.ts','src/infrastructure/python/amvCognitiveContract.ts',s=>s
   .replaceAll("from './evidenceTypes'","from '@/lib/amv/core/evidenceTypes'")
@@ -82,25 +74,17 @@ move('src/lib/amv/core/pythonBridgeContract.ts','src/infrastructure/python/amvCo
   .replaceAll("from './observationModes'","from '@/lib/amv/core/observationModes'")
   .replaceAll('Bridge','Runtime').replaceAll('bridge','runtime'));
 move('src/lib/scorefriction/python/pythonBridge.ts','src/infrastructure/python/scorefrictionClient.ts',s=>s.replaceAll('PythonBridge','PythonClient').replaceAll('python_bridge','python_client').replaceAll('Bridge','Client').replaceAll('bridge','client'));
-
-// PPOI owns the transformation.
 move('src/lib/ppoi/phenomenonBridge.ts','src/lib/ppoi/phenomenonProjection.ts',s=>s.replaceAll('Bridge','Projection').replaceAll('bridge','projection'));
-
-// Provider invocation belongs to AI infrastructure. Fix dependencies that were relative to cognitive-runtime.
 move('src/lib/sfi/cognitive-runtime/agentLlmBridge.ts','src/infrastructure/ai/agentLlmClient.ts',s=>s
   .replaceAll("from './convergedRegistry'","from '@/lib/sfi/cognitive-runtime/convergedRegistry'")
   .replaceAll("from './kernelContext'","from '@/lib/sfi/cognitive-runtime/kernelContext'")
   .replaceAll('Bridge','Client').replaceAll('bridge','client'));
-
-// Runtime event persistence belongs to event infrastructure. Fix original relative imports.
 move('src/lib/sfi/cognitive-runtime/runtimeEventBridge.ts','src/infrastructure/events/cognitiveRuntimeEventRepository.ts',s=>s
   .replaceAll('from "./eventBus"','from "@/lib/sfi/cognitive-runtime/eventBus"')
   .replaceAll('from "./eventPersistence"','from "@/lib/sfi/cognitive-runtime/eventPersistence"')
   .replaceAll("from './eventBus'","from '@/lib/sfi/cognitive-runtime/eventBus'")
   .replaceAll("from './eventPersistence'","from '@/lib/sfi/cognitive-runtime/eventPersistence'")
   .replaceAll('Bridge','Repository').replaceAll('bridge','repository'));
-
-// AMV publication belongs to AMV core.
 move('src/lib/sfi/cognitive-runtime/amvRuntimeBridge.ts','src/lib/amv/core/runtimePublisher.ts',s=>s
   .replaceAll("from './amvReading'","from '@/lib/sfi/cognitive-runtime/amvReading'")
   .replaceAll("from './PhenomenonRelay'","from '@/lib/sfi/cognitive-runtime/PhenomenonRelay'")
