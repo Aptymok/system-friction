@@ -1,0 +1,51 @@
+name: SFI Retired Schema Audit Patch
+
+on:
+  push:
+    branches:
+      - agent/system-consolidation-audit
+    paths:
+      - .github/workflows/retired-schema-one-shot.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch-and-remove:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Teach consolidation audit about explicit schema retirement
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('scripts/system-consolidation-audit.py')
+          s=p.read_text()
+          old="LEGACY_SCHEMA_CONFIG = ROOT / 'config' / 'sfi-legacy-live-schema.json'"
+          new=old+"\nRETIRED_SCHEMA_CONFIG = ROOT / 'config' / 'sfi-retired-schema.json'"
+          assert old in s and 'RETIRED_SCHEMA_CONFIG' not in s
+          s=s.replace(old,new,1)
+          old="LEGACY_LIVE_OBJECTS = {item for item in LEGACY_SCHEMA.get('objects', []) if isinstance(item, str)}"
+          new=old+"\nRETIRED_SCHEMA = load_json(RETIRED_SCHEMA_CONFIG, {'objects': []})\nRETIRED_SCHEMA_OBJECTS = {item for item in RETIRED_SCHEMA.get('objects', []) if isinstance(item, str)}"
+          assert old in s
+          s=s.replace(old,new,1)
+          old="for table in sorted(set(table_refs) | created_tables | set(schema_refs) | LEGACY_LIVE_OBJECTS):"
+          new="for table in sorted((set(table_refs) | created_tables | set(schema_refs) | LEGACY_LIVE_OBJECTS) - RETIRED_SCHEMA_OBJECTS):"
+          assert old in s
+          s=s.replace(old,new,1)
+          old="'legacy_live_schema_contracts': sum(1 for item in tables if item['legacy_live_schema_contract']),"
+          new=old+"\n        'retired_schema_objects': len(RETIRED_SCHEMA_OBJECTS),"
+          assert old in s
+          s=s.replace(old,new,1)
+          p.write_text(s)
+          PY
+      - name: Commit patch and remove one-shot workflow
+        shell: bash
+        run: |
+          git config user.name "sfi-architecture-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git rm .github/workflows/retired-schema-one-shot.yml
+          git add scripts/system-consolidation-audit.py config/sfi-retired-schema.json supabase/migrations/20260812214500_retire_unconsumed_schema.sql
+          git commit -m "Teach audit about retired schema objects"
+          git push origin HEAD:agent/system-consolidation-audit

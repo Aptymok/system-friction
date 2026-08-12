@@ -1,0 +1,16 @@
+{
+  "version": "2026-08-12",
+  "reason": "Objects retired after live read-only verification: no active code consumer, no tracked schema dependency. Derived views contain no source-of-truth history; listed tables were empty at retirement audit.",
+  "migration": "20260812214500_retire_unconsumed_schema.sql",
+  "objects": [
+    "graph_history",
+    "institutional_memory_audit_log",
+    "mihm_state_registry",
+    "sfi_ejectors",
+    "sfi_graph_edges",
+    "sfi_reports",
+    "vw_sfi_attractor_alignment_queue",
+    "vw_sfi_perturbation_history",
+    "vw_sfi_reality_console_state"
+  ]
+}
