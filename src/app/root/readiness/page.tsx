@@ -1,7 +1,7 @@
 import Link from 'next/link';
-import { RootDevelopmentResolvedView } from '@/components/root/readiness/RootDevelopmentResolvedView';
-import { ContinuityConsole } from '@/components/root/readiness/ContinuityConsole';
-import { InstitutionalContractsConsole } from '@/components/root/readiness/InstitutionalContractsConsole';
+import { RootDevelopmentResolvedView } from '@/components/root/development/RootDevelopmentResolvedView';
+import { ContinuityConsole } from '@/components/root/continuity/ContinuityConsole';
+import { InstitutionalContractsConsole } from '@/components/root/contracts/InstitutionalContractsConsole';
 import { TotalProofControl } from '@/components/root/closure/TotalProofControl';
 import { readContinuityDashboard } from '@/lib/continuity/runtime';
 import { readInstitutionalReadiness } from '@/lib/root/closure/readInstitutionalReadiness';

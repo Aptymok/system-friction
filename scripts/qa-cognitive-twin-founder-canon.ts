@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {
   FOUNDER_COGNITIVE_CANON,
   assessCognitiveExperienceAgainstFounderCanon,
-} from '../src/lib/cognitive-twin/founderCognitiveCanon';
+} from '../src/core/cognitive-twin/founderCognitiveCanon';
 
 assert.equal(FOUNDER_COGNITIVE_CANON.patterns.length,47,'founder_patterns_count_drift');
 assert.equal(FOUNDER_COGNITIVE_CANON.rules.length,10,'founder_rules_count_drift');

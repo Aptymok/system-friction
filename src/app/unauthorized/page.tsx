@@ -21,7 +21,7 @@ export default async function UnauthorizedPage() {
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-3">
           <Link href="/member" className="border border-gold/50 px-4 py-2 text-gold">Ir a mi espacio</Link>
-          <Link href="/interface" className="border border-paper/20 px-4 py-2 text-paper/75">Ir a FIELD</Link>
+          <Link href="/field" className="border border-paper/20 px-4 py-2 text-paper/75">Ir a FIELD</Link>
           <Link href="/" className="border border-paper/20 px-4 py-2 text-paper/75">Inicio</Link>
         </div>
       </div>

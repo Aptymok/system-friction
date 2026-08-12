@@ -5,7 +5,7 @@ import {
   COGNITIVE_TWIN_LEGACY_CAPABILITY_MANIFEST,
   COGNITIVE_TWIN_POLICY,
   COGNITIVE_TWIN_LEGACY_BRIDGE_VERSION,
-} from '../src/lib/cognitive-twin/legacyCapabilityBridge';
+} from '../src/core/cognitive-twin/legacyCapabilityBridge';
 
 const root=process.cwd();
 const read=(file:string)=>fs.readFileSync(path.join(root,file),'utf8');

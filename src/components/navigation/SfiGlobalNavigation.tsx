@@ -7,13 +7,13 @@ import { SfiSessionIdentity } from './SfiSessionIdentity';
 import './sfi-global-navigation.css';
 
 const GLOBAL_DESTINATIONS = [
-  { href: '/interface', label: 'FIELD', match: ['/interface', '/field'] },
+  { href: '/field', label: 'FIELD', match: ['/field', '/field'] },
   { href: '/studio', label: 'STUDIO', match: ['/studio'] },
   { href: '/observatory', label: 'OBSERVATORY', match: ['/observatory'] },
   { href: '/library', label: 'LIBRARY', match: ['/library'] },
 ] as const;
 
-const PRIVATE_SURFACES = ['/member', '/interface', '/field', '/studio'] as const;
+const PRIVATE_SURFACES = ['/member', '/field', '/field', '/studio'] as const;
 const AUTH_SURFACES = ['/login', '/signup', '/forgot', '/reset', '/verify'] as const;
 
 function matchesPrefix(pathname: string, prefix: string) {
@@ -50,7 +50,7 @@ export function SfiGlobalNavigation() {
   return (
     <div className="sgn-anchor">
       <nav className="sgn-bar" aria-label="Navegación global de System Friction Institute">
-        <Link className="sgn-mark" href="/interface" aria-label="System Friction Institute">
+        <Link className="sgn-mark" href="/field" aria-label="System Friction Institute">
           <span>SFI</span>
         </Link>
         <div className="sgn-destinations">

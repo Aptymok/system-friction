@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
-import { RootOperatingField } from '@/components/pipeline/RootOperatingField';
-import { RootCycleAnalysisDockAuto } from '@/components/pipeline/RootCycleAnalysisDockAuto';
+import { RootOperatingField } from '@/components/root/operate/RootOperatingField';
+import { RootCycleAnalysisDockAuto } from '@/components/root/operate/RootCycleAnalysisDockAuto';
 import { requireRootObserverPage } from '@/lib/root/server';
 
 export const dynamic = 'force-dynamic';

@@ -1,10 +1,9 @@
 import { buildAMVQuestion, finalizeAMV } from '@/agents/amv'
 import { CognitiveTwin } from '@/agents/cognitive-twin'
-import { LongitudinalEngine } from '@/agents/longitudinal'
+import { LongitudinalEngine } from '@/core/analysis/longitudinalEngine'
 import { MOPH_QUESTIONS } from '@/agents/moph'
 import { MetricsEngine } from '@/agents/metrics'
 import { executeAudit } from '@/agents/auditor'
-import { evaluatePatterns } from '@/agents/patternengine'
 import { WorldSpectrum } from '@/agents/world-spectrum'
 import { runMonteCarlo } from '@/agents/stochastic-engine'
 import { AMV_DEFAULT_POLICY } from '../../core/amvDecisionPolicy'
@@ -109,12 +108,11 @@ export function rootTwinProposalTranslator(selectedContext: unknown) {
 
 const ROOT_AGENTS: AmvAgentDescriptor[] = [
   { id: 'amv', label: 'AMV scoped adapter', source: 'src/agents/amv.ts', status: 'adapter', trust: 'derived' },
-  { id: 'longitudinal', label: 'Longitudinal Engine', source: 'src/agents/longitudinal.ts', status: 'adapter', trust: 'derived' },
+  { id: 'longitudinal', label: 'Longitudinal Engine', source: 'src/core/analysis/longitudinalEngine.ts', status: 'available', trust: 'derived' },
   { id: 'cognitive-twin', label: 'Cognitive Twin', source: 'src/agents/cognitive-twin.ts', status: 'adapter', trust: 'derived' },
   { id: 'moph', label: 'MOP-H baseline', source: 'src/agents/moph.ts', status: 'available', trust: 'derived' },
   { id: 'metrics', label: 'Metrics Engine', source: 'src/agents/metrics.ts', status: 'available', trust: 'derived' },
   { id: 'auditor', label: 'Auditor', source: 'src/agents/auditor.ts', status: 'available', trust: 'derived' },
-  { id: 'patternengine', label: 'Pattern Engine', source: 'src/agents/patternengine.ts', status: 'deferred', trust: 'degraded' },
   { id: 'world-spectrum', label: 'World Spectrum', source: 'src/agents/world-spectrum.ts', status: 'deferred', trust: 'degraded' },
   { id: 'stochastic-engine', label: 'Stochastic Engine', source: 'src/agents/stochastic-engine.ts', status: 'deferred', trust: 'degraded' },
 ]
@@ -188,7 +186,7 @@ export async function buildRootScopeContext(request: AmvRuntimeRequest): Promise
         amvFinal,
         mophQuestionCount: MOPH_QUESTIONS.length,
         deferredAdapters: {
-          evaluatePatterns: typeof evaluatePatterns,
+          patterns: 'MISSING_NO_CANONICAL_PATTERN_SOURCE',
           worldSpectrum: typeof WorldSpectrum.calculateRealityFrame,
           stochastic: typeof runMonteCarlo,
         },

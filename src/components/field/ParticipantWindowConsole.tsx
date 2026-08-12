@@ -154,7 +154,7 @@ export function ParticipantWindowConsole({ authenticated }: { authenticated: boo
       const response = await fetch(`/api/field/participant/windows/${activeState.window.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(reflection) });
       const body = await response.json();
       if (!response.ok || !body.ok) throw new Error(body.details || body.error || 'WINDOW_CLOSE_FAILED');
-      window.location.assign(body.nextPath || '/interface/observatory');
+      window.location.assign(body.nextPath || '/field');
     } catch (nextError) {
       setError(readableError(nextError instanceof Error ? nextError.message : 'WINDOW_CLOSE_FAILED'));
     } finally {
@@ -174,7 +174,7 @@ export function ParticipantWindowConsole({ authenticated }: { authenticated: boo
       {authenticated && loading ? <section className="border border-[#302b20] bg-[#0a0a08] p-6 text-[#9f9788]">Recuperando tu ventana de observación…</section> : null}
       {error ? <section className="border border-[#6b352a] bg-[#160d0a] p-4 text-sm text-[#d89685]">{error}</section> : null}
 
-      {authenticated && !loading && !activeState ? <section className="border border-[#302b20] bg-[#0a0a08] p-8 text-center"><Orbit className="mx-auto h-8 w-8 text-[#c8a951]" /><h2 className="mt-4 text-2xl text-[#f5eedc]">No hay una observación activa.</h2><p className="mx-auto mt-3 max-w-xl text-sm leading-7 text-[#918979]">Inicia una trayectoria o abre tu observatorio si ya existe un recorrido.</p><div className="mt-6 flex justify-center gap-3"><Link href="/interface" className={buttonClass}>Iniciar trayectoria</Link>{windows.some((item) => item.status === 'CLOSED') ? <Link href="/interface/observatory" className={buttonClass}>Mi observatorio</Link> : null}</div></section> : null}
+      {authenticated && !loading && !activeState ? <section className="border border-[#302b20] bg-[#0a0a08] p-8 text-center"><Orbit className="mx-auto h-8 w-8 text-[#c8a951]" /><h2 className="mt-4 text-2xl text-[#f5eedc]">No hay una observación activa.</h2><p className="mx-auto mt-3 max-w-xl text-sm leading-7 text-[#918979]">Inicia una trayectoria o abre tu observatorio si ya existe un recorrido.</p><div className="mt-6 flex justify-center gap-3"><Link href="/field" className={buttonClass}>Iniciar trayectoria</Link>{windows.some((item) => item.status === 'CLOSED') ? <Link href="/field" className={buttonClass}>Mi observatorio</Link> : null}</div></section> : null}
 
       {activeState ? <>
         <section className="border border-[#302b20] bg-[#0a0a08] p-5 md:p-7">

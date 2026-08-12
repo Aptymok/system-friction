@@ -1,6 +1,6 @@
 'use client';
 
-import { SfiObservatoryHero } from '@/components/observatory/quarantine/SfiObservatoryHero';
+import { SfiObservatoryHero } from '@/components/observatory/SfiObservatoryHero';
 import { SfiTopographicNightMap } from '@/components/sfi/SfiTopographicNightMap';
 import type { SfiWorldInterfaceState } from '@/lib/sfi/worldInterfaceState';
 import type { LonLat, MapPoint } from '@/lib/sfi/observatory/solarTerminator';

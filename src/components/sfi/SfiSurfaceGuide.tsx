@@ -11,7 +11,7 @@ type Surface = {
 };
 
 const SURFACES: Surface[] = [
-  { id: 'field', label: 'MI CAMPO', href: '/interface' },
+  { id: 'field', label: 'MI CAMPO', href: '/field' },
   { id: 'studio', label: 'STUDIO', href: '/studio' },
   { id: 'world-field', label: 'CAMPO MUNDIAL', href: '/field/map' },
   { id: 'observatory', label: 'SÍNTESIS PÚBLICA', href: '/observatory' },

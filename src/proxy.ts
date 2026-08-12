@@ -19,7 +19,7 @@ const ROOT_INTERNAL_FRAME_PREFIXES = [
   '/root/readiness',
   '/field',
   '/studio',
-  '/interface/observatory',
+  '/field',
   '/library',
 ] as const
 

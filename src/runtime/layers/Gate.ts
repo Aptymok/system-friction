@@ -1,7 +1,6 @@
 // src/runtime/layers/Gate.ts
 import { Plan } from './Planner';
 import { SimulationResult } from './Simulator';
-import { GlobalLearningAgent } from '@/agents/GlobalLearningAgent';
 
 const BASE_THRESHOLD = 0.95;
 const SENSITIVITY = 0.3;        // Cuánto influye ERW (0..1)
@@ -13,7 +12,7 @@ export type GateDecision = {
   source: 'human' | 'auto_high_confidence' | 'auto_rejected';
   justification: string;
   dynamicThreshold: number;
-  erwUsed: number;
+  calibrationSignal: number | null;
 };
 
 export async function evaluatePlan(
@@ -22,23 +21,20 @@ export async function evaluatePlan(
   nodeId: string,
   userId: string
 ): Promise<GateDecision> {
-  // Obtener el último ERW (puede ser específico del nodo o global)
-  const erw = await GlobalLearningAgent.getLatestERW(nodeId);
-  
-  // Calcular umbral dinámico
-  let dynamicThreshold = BASE_THRESHOLD - (erw * SENSITIVITY);
-  dynamicThreshold = Math.min(MAX_THRESHOLD, Math.max(MIN_THRESHOLD, dynamicThreshold));
+  // No calibrated external-reality signal is currently canonical. Missing stays missing.
+  const calibrationSignal: number | null = null;
+  const dynamicThreshold = Math.min(MAX_THRESHOLD, Math.max(MIN_THRESHOLD, BASE_THRESHOLD));
   
   const confidence = simulation.successProbability;
   
-  // Auto-aprobación si confianza >= umbral dinámico
+  // Auto-aprobación si confianza >= umbral gobernado
   if (confidence >= dynamicThreshold) {
     return {
       approved: true,
       source: 'auto_high_confidence',
-      justification: `Confianza ${confidence.toFixed(2)} ≥ umbral dinámico ${dynamicThreshold.toFixed(3)} (ERW=${erw.toFixed(3)})`,
+      justification: `Confianza ${confidence.toFixed(2)} ≥ umbral gobernado ${dynamicThreshold.toFixed(3)} (sin señal de calibración canónica)`,
       dynamicThreshold,
-      erwUsed: erw,
+      calibrationSignal,
     };
   }
   
@@ -49,7 +45,7 @@ export async function evaluatePlan(
       source: 'auto_rejected',
       justification: `Confianza muy baja (${confidence.toFixed(2)}). Se requiere replanificación.`,
       dynamicThreshold,
-      erwUsed: erw,
+      calibrationSignal,
     };
   }
   
@@ -60,6 +56,6 @@ export async function evaluatePlan(
     source: 'auto_rejected',
     justification: `Revisión humana requerida (confianza ${confidence.toFixed(2)} < umbral ${dynamicThreshold.toFixed(3)}).`,
     dynamicThreshold,
-    erwUsed: erw,
+    calibrationSignal,
   };
 }

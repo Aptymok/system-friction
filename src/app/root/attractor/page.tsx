@@ -7,15 +7,13 @@ export const metadata = { robots: { index: false, follow: false, nocache: true }
 
 export default async function RootInstitutionalAttractorPage() {
   const ctx = await requireRootObserverPage('/root/attractor');
-  const [state, experiment] = await Promise.all([
-    readInstitutionalAttractor(),
-    ctx.service.from('sfi_institutional_experiments').select('*').eq('experiment_key', 'SFI-INSTITUTIONAL-30D-001').maybeSingle(),
-  ]);
+  const fullState = await readInstitutionalAttractor();
+  const { experiment, ...state } = fullState;
 
   return (
     <AttractorFieldConsole
-      state={{ ...state, warnings: [...state.warnings, ...(experiment.error ? [experiment.error.message] : [])] }}
-      experiment={experiment.data ?? null}
+      state={state}
+      experiment={experiment}
       canEdit={ctx.isRoot}
     />
   );

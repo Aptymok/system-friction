@@ -134,9 +134,20 @@ export async function requireSfiMember() {
   return { ...context, profile: resolved.profile, member: resolved.member };
 }
 
+async function readMemberWorkspaceCounts(supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>, userId: string) {
+  const [cases, objects, returns] = await Promise.all([
+    supabase.from('field_cases').select('id', { count: 'exact', head: true }).eq('owner_id', userId).is('deleted_at', null),
+    supabase.from('studio_objects').select('id', { count: 'exact', head: true }).eq('owner_id', userId),
+    supabase.from('field_returns').select('id', { count: 'exact', head: true }).eq('owner_id', userId).is('returned_at', null),
+  ]);
+  return { caseCount: cases.count ?? 0, objectCount: objects.count ?? 0, pendingReturnCount: returns.count ?? 0, warnings: [cases.error?.message, objects.error?.message, returns.error?.message].filter((v): v is string => Boolean(v)) };
+}
+
 export async function requireSfiMemberPage(nextPath = '/member') {
   try {
-    return await requireSfiMember();
+    const context = await requireSfiMember();
+    const workspace = await readMemberWorkspaceCounts(context.supabase, context.user.id);
+    return { ...context, workspace };
   } catch (error) {
     if (error instanceof AccessDeniedError && error.status === 401) {
       redirect(`/login?next=${encodeURIComponent(nextPath)}`);
