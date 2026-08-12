@@ -18,59 +18,35 @@ export async function recordCognitiveTwinExperience(input: {
   version?: string;
   operation?: 'CAPTURE' | 'REVIEW' | 'REPLAY' | 'OBSERVE';
 }) {
-  const evidenceRefs = [...new Set((input.evidenceRefs ?? []).filter(Boolean))];
-  const authority = evaluateCognitiveTwinAuthority({
-    action: 'persist_memory',
-    founderAbsent: false,
-    evidencePresent: evidenceRefs.length > 0 || Boolean(input.sourceRef),
-  });
-  if (authority.decision !== 'ALLOW') return { ok:false as const, blocked:true, reason:authority.reason };
+  const evidenceRefs=[...new Set((input.evidenceRefs??[]).filter(Boolean))];
+  const authority=evaluateCognitiveTwinAuthority({action:'persist_memory',founderAbsent:false,evidencePresent:evidenceRefs.length>0||Boolean(input.sourceRef)});
+  if(authority.decision!=='ALLOW') return {ok:false as const,blocked:true,reason:authority.reason};
 
-  const canonAssessment = assessCognitiveExperienceAgainstFounderCanon({
-    memoryType: input.memoryType,
-    content: input.content,
-    evidenceRefs,
-    sourceRef: input.sourceRef,
-  });
-  if (canonAssessment.blocking) {
-    return {
-      ok:false as const,
-      blocked:true,
-      reason:`FOUNDER_COGNITIVE_CANON_BLOCK:${[...canonAssessment.constraintRefs,...canonAssessment.warnings].join(',')}`,
-      canonAssessment,
-    };
-  }
+  const canonAssessment=assessCognitiveExperienceAgainstFounderCanon({memoryType:input.memoryType,content:input.content,evidenceRefs,sourceRef:input.sourceRef});
+  if(canonAssessment.blocking) return {ok:false as const,blocked:true,reason:`FOUNDER_COGNITIVE_CANON_BLOCK:${[...canonAssessment.constraintRefs,...canonAssessment.warnings].join(',')}`,canonAssessment};
 
-  const emitted = await emitEpistemicEvent({
-    eventName: 'cognitive_twin.experience.recorded',
-    logbookId: `cognitive-twin:${input.memoryKey}`,
-    epistemicClass: 'declared',
-    schemaVersion: input.version ?? 'sfi-ct-experience-v2',
-    sourceId: input.sourceRef || input.memoryKey,
-    sourceType: input.sourceKind,
-    actorId: input.createdBy ?? undefined,
-    confidence: typeof input.content.confidence === 'number' ? input.content.confidence : 0.5,
-    payload: {
-      memoryKey: input.memoryKey,
-      memoryType: input.memoryType,
-      operation: input.operation ?? 'OBSERVE',
-      content: {
-        ...input.content,
-        cognitiveTwinExperienceContract:'SFI-CT-EXPERIENCE-2.0',
-        founderCognitiveCanonVersion:FOUNDER_COGNITIVE_CANON_VERSION,
-        cognitiveConstraintRefs:canonAssessment.constraintRefs,
-        counterPatternRefs:canonAssessment.counterPatternRefs,
-        canonWarnings:canonAssessment.warnings,
-      },
-      evidenceRefs,
-      sourceKind: input.sourceKind,
-      sourceRef: input.sourceRef,
+  const emitted=await emitEpistemicEvent({
+    eventName:'cognitive_twin.experience.recorded',
+    logbookId:`cognitive-twin:${input.memoryKey}`,
+    epistemicClass:'declared',
+    schemaVersion:input.version??'sfi-ct-experience-v2',
+    sourceId:input.sourceRef||input.memoryKey,
+    sourceType:input.sourceKind,
+    actorId:input.createdBy??null,
+    confidence:typeof input.content.confidence==='number'?input.content.confidence:0.5,
+    payload:{
+      memoryKey:input.memoryKey,memoryType:input.memoryType,operation:input.operation??'OBSERVE',
+      content:{...input.content,cognitiveTwinExperienceContract:'SFI-CT-EXPERIENCE-2.0',founderCognitiveCanonVersion:FOUNDER_COGNITIVE_CANON_VERSION,cognitiveConstraintRefs:canonAssessment.constraintRefs,counterPatternRefs:canonAssessment.counterPatternRefs,canonWarnings:canonAssessment.warnings},
+      evidenceRefs,sourceKind:input.sourceKind,sourceRef:input.sourceRef,
       promotionBoundary:'Experience is appended to the epistemic ledger first. Memory promotion is policy-governed and never expands Cognitive Twin authority.',
     },
-    lineage: evidenceRefs,
+    lineage:evidenceRefs,
   });
-  if (!emitted.ok) return { ok:false as const, blocked:false, reason:emitted.error, canonAssessment };
+  if(!emitted.ok) return {ok:false as const,blocked:false,reason:emitted.error,canonAssessment};
 
-  const promotion = await processEpistemicEvent(emitted.event);
-  return { ok:true as const, blocked:false, event:emitted.event, promotion, canonAssessment };
+  const promotion=await processEpistemicEvent(emitted.event);
+  const memory='memoryResult' in promotion && promotion.memoryResult && 'memory' in promotion.memoryResult
+    ? promotion.memoryResult.memory
+    : {id:emitted.event.id,created_at:emitted.event.created_at};
+  return {ok:true as const,blocked:false,event:emitted.event,promotion,memory,canonAssessment};
 }
