@@ -23,6 +23,7 @@ for(const trackedFile of trackedFiles){
   const name=segments.at(-1) ?? trackedFile;
   if(segments.some(segment=>segment.toLowerCase()==='quarantine')) report('P16_NO_TRACKED_QUARANTINE',absolute,'tracked path contains quarantine segment');
   if(/\.legacy(?:\.|$)/i.test(name)) report('P16_NO_TRACKED_LEGACY_FOSSILS',absolute,'tracked filename contains .legacy fossil marker');
+  if(trackedFile.startsWith('src/lib/supabase/migrations/')) report('P16_NO_SHADOW_SUPABASE_MIGRATIONS',absolute,'canonical migration owner is supabase/migrations; src/lib/supabase/migrations is a forbidden shadow chain');
   // Only flag copy markers that are characteristic of accidental filesystem duplicates.
   // Hyphenated names such as foundation-copy.ts can be intentional domain language.
   if(/(?:\s+copy(?:\s*(?:\(\d+\)|\d+))?|\s*\(copy(?:\s*\d+)?\))(?=\.[^./]+$)/i.test(name)) report('P16_NO_ACCIDENTAL_COPY_FILES',absolute,'tracked filename looks like an accidental copy');
