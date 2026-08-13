@@ -2,6 +2,7 @@ import { writeFile, mkdir, readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
 import { createAdminClient, deleteAllRowsByKnownColumns, countTable, nowStamp } from './sfi-db-client.mjs';
 import { OPERATIONAL_RESET_LAYERS, OPERATIONAL_DELETE_ORDER, PROTECTED_TABLES } from './sfi-operational-reset-inventory.mjs';
+import { verifyDbEvidenceReceipt } from './verify-db-evidence-snapshot.mjs';
 
 const confirm = process.env.SFI_DB_RESET_CONFIRM;
 const resetMode = process.env.SFI_DB_RESET_MODE;
@@ -15,6 +16,31 @@ if (confirm !== 'RESET_SFI_OPERATIONAL' || resetMode !== 'CLEAN_RUNTIME_AFTER_VE
       'SFI_DB_RESET_MODE=CLEAN_RUNTIME_AFTER_VERIFIED_PROOF',
     ],
     preserves: PROTECTED_TABLES,
+  }, null, 2));
+  process.exit(1);
+}
+
+const snapshotReceiptPath = process.env.SFI_DB_SNAPSHOT_RECEIPT;
+if (!snapshotReceiptPath) {
+  console.error(JSON.stringify({
+    ok: false,
+    blocked: true,
+    reason: 'No database evidence snapshot receipt supplied. Generate a full PostgreSQL ZIP snapshot with npm run db:snapshot:evidence and pass its receipt path as SFI_DB_SNAPSHOT_RECEIPT.',
+  }, null, 2));
+  process.exit(1);
+}
+
+let snapshotReceipt;
+try {
+  snapshotReceipt = await verifyDbEvidenceReceipt(snapshotReceiptPath, {
+    maxAgeMinutes: Number(process.env.SFI_DB_SNAPSHOT_MAX_AGE_MINUTES || 60),
+  });
+} catch (error) {
+  console.error(JSON.stringify({
+    ok: false,
+    blocked: true,
+    reason: 'Database evidence snapshot verification failed.',
+    error: error instanceof Error ? error.message : String(error),
   }, null, 2));
   process.exit(1);
 }
@@ -55,6 +81,14 @@ const result = {
   latest_export: latest,
   cleanup_plan: cleanupPlans.sort().at(-1),
   proof_receipt: proofReports.sort().at(-1) ?? 'externally-reviewed-production-proof',
+  db_snapshot: {
+    receipt: snapshotReceipt.receipt,
+    sha256: snapshotReceipt.zip_sha256,
+    created_at: snapshotReceipt.created_at,
+    git_commit: snapshotReceipt.git_commit,
+    database_host: snapshotReceipt.database_host,
+    database_name: snapshotReceipt.database_name,
+  },
   protected_tables:PROTECTED_TABLES,
   expected_operational_tables:OPERATIONAL_DELETE_ORDER.length,
   layers:[],
