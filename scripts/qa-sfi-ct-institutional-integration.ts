@@ -36,8 +36,9 @@ assert.ok(integration.includes(".order('created_at', { ascending: false })"), 'M
 assert.ok(integration.includes("epistemicClass:'OBSERVED_RETURN'"), 'Field historical return ingestion missing');
 assert.ok(integration.includes("import { recordCognitiveTwinExperience } from './experience'"), 'historical integration bypasses canonical experience bridge');
 assert.equal(integration.includes("from('sfi_cognitive_twin_memory').upsert"), false, 'institutional integration must not create a second memory persistence path');
-assert.ok(experience.includes("status: 'CANDIDATE'"), 'experience bridge must persist candidates only');
-assert.ok(experience.includes('never expands authority automatically'), 'experience authority boundary missing');
+assert.ok(experience.includes("eventName:'cognitive_twin.experience.recorded'"), 'experience bridge must append experience to the epistemic ledger');
+assert.ok(experience.includes('Memory promotion is policy-governed and never expands Cognitive Twin authority'), 'experience authority boundary missing');
+assert.ok(experience.includes('processEpistemicEvent(emitted.event)'), 'experience memory promotion must pass through the institutional policy pipeline');
 
 for (const [name, source] of [
   ['ROOT Evidence', evidenceIngestion],
