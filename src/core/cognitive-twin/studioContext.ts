@@ -2,6 +2,7 @@ import 'server-only';
 
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { COGNITIVE_TWIN_CONTRACT_VERSION } from './contract';
+import { readCanonicalCognitiveTwinMemory } from './canonicalMemoryView';
 import { recordCognitiveTwinExperience } from './experience';
 
 const MEMORY_STATUSES = ['CANDIDATE', 'VERIFIED', 'CANONICAL'] as const;
@@ -52,7 +53,8 @@ export async function readStudioTwinContext(): Promise<StudioTwinContext> {
   const db = createServiceSupabaseClient();
   const warnings: string[] = [];
 
-  const [memoryResult, decisionsResult] = await Promise.all([
+  const [canonicalMemory, legacyMemoryResult, decisionsResult] = await Promise.all([
+    readCanonicalCognitiveTwinMemory(MAX_MEMORY_ROWS),
     db.from('sfi_cognitive_twin_memory')
       .select('memory_key,memory_type,status,content,evidence_refs,version,updated_at')
       .in('status', [...MEMORY_STATUSES])
@@ -65,22 +67,39 @@ export async function readStudioTwinContext(): Promise<StudioTwinContext> {
       .limit(MAX_DECISION_ROWS),
   ]);
 
-  if (memoryResult.error) warnings.push(`twin_memory_unavailable:${memoryResult.error.message}`);
+  if (canonicalMemory.error) warnings.push(`twin_canonical_memory_unavailable:${canonicalMemory.error}`);
+  if (legacyMemoryResult.error) warnings.push(`twin_legacy_memory_unavailable:${legacyMemoryResult.error.message}`);
   if (decisionsResult.error) warnings.push(`twin_decisions_unavailable:${decisionsResult.error.message}`);
+
+  const memoryByKey = new Map<string, StudioTwinContext['memory'][number]>();
+  for (const item of canonicalMemory.rows) {
+    memoryByKey.set(item.memory_key, {
+      key: item.memory_key,
+      type: item.memory_type,
+      status: item.status,
+      content: item.content,
+      evidenceRefs: item.evidence_refs,
+      version: item.version,
+    });
+  }
+  for (const item of legacyMemoryResult.data ?? []) {
+    const row = record(item);
+    const key = text(row.memory_key);
+    if (!key || memoryByKey.has(key)) continue;
+    memoryByKey.set(key, {
+      key,
+      type: text(row.memory_type) ?? 'UNKNOWN',
+      status: text(row.status) ?? 'UNKNOWN',
+      content: row.content ?? null,
+      evidenceRefs: strings(row.evidence_refs),
+      version: text(row.version) ?? 'legacy',
+    });
+    if (memoryByKey.size >= MAX_MEMORY_ROWS) break;
+  }
 
   return {
     contractVersion: COGNITIVE_TWIN_CONTRACT_VERSION,
-    memory: (memoryResult.data ?? []).map((item) => {
-      const row = record(item);
-      return {
-        key: text(row.memory_key) ?? 'unknown',
-        type: text(row.memory_type) ?? 'UNKNOWN',
-        status: text(row.status) ?? 'UNKNOWN',
-        content: row.content ?? null,
-        evidenceRefs: strings(row.evidence_refs),
-        version: text(row.version) ?? 'unknown',
-      };
-    }),
+    memory: [...memoryByKey.values()].slice(0, MAX_MEMORY_ROWS),
     decisions: (decisionsResult.data ?? []).map((item) => {
       const row = record(item);
       return {
