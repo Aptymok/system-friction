@@ -16,7 +16,7 @@ function walk(relative: string): string[] {
 
 const executionMap = read('src/lib/sfi/cognitive-runtime/agentExecutionMap.ts');
 const runtime = read('src/lib/studio/cognitive/studioCognitiveRuntime.ts');
-const llmBridge = read('src/lib/sfi/cognitive-runtime/agentLlmBridge.ts');
+const llmRouter = read('src/lib/ai/providerRouter.ts');
 const twinContext = read('src/core/cognitive-twin/studioContext.ts');
 const experienceBridge = read('src/core/cognitive-twin/experience.ts');
 const packageAnalyzer = read('src/lib/studio/multimodal/sessionPackageAnalyzer.ts');
@@ -54,11 +54,15 @@ for (const token of [
   'DIOL-SF',
 ]) assert.ok(`${runtime}\n${twinContext}\n${experienceBridge}`.includes(token), `studio_cognitive_contract_missing:${token}`);
 
-assert.ok(llmBridge.includes("epistemicClass: 'INFERENCE'"), 'llm_inference_classification_missing');
-assert.ok(/evidence before inference/i.test(llmBridge), 'llm_twin_grounding_missing');
-assert.ok(/CANDIDATE Cognitive Twin memory/i.test(llmBridge), 'candidate_memory_epistemic_boundary_missing');
-assert.ok(llmBridge.includes('LLM_PROVIDER_UNAVAILABLE'), 'llm_fail_closed_missing');
-assert.ok(!/Math\.random\(\).*confidence|fake|demo data/i.test(`${runtime}\n${llmBridge}\n${experienceBridge}`), 'synthetic_cognitive_output_pattern_present');
+// LLM routing is consolidated in the shared provider router. Studio owns the epistemic
+// boundary and the Cognitive Twin owns candidate-memory promotion; no parallel bridge is required.
+assert.ok(llmRouter.includes("provider: 'degraded'"), 'llm_degraded_provider_missing');
+assert.ok(llmRouter.includes("['no_llm_provider_available']"), 'llm_no_provider_warning_missing');
+assert.ok(llmRouter.includes('for (const providerId of order)'), 'llm_provider_fallback_chain_missing');
+assert.ok(/Evidence before inference/i.test(runtime), 'llm_twin_grounding_missing');
+assert.ok(runtime.includes('LLM_PROVIDER_UNAVAILABLE'), 'llm_fail_closed_missing');
+assert.ok(twinContext.includes("status: 'CANDIDATE' as const"), 'candidate_memory_epistemic_boundary_missing');
+assert.ok(!/Math\.random\(\).*confidence|fake|demo data/i.test(`${runtime}\n${llmRouter}\n${experienceBridge}`), 'synthetic_cognitive_output_pattern_present');
 
 // Studio persists through the single institutional Cognitive Twin experience bridge.
 assert.ok(twinContext.includes('recordCognitiveTwinExperience'), 'studio_learning_not_routed_through_experience_bridge');
