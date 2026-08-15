@@ -5,10 +5,10 @@ function read(path: string) {
   return fs.readFileSync(path, 'utf8');
 }
 
-const integration = read('src/lib/cognitive-twin/institutionalIntegration.ts');
-const experience = read('src/lib/cognitive-twin/experienceBridge.ts');
-const evidenceIngestion = read('src/lib/cognitive-twin/evidenceIngestion.ts');
-const studioContext = read('src/lib/cognitive-twin/studioContext.ts');
+const integration = read('src/core/cognitive-twin/institutionalIntegration.ts');
+const experience = read('src/core/cognitive-twin/experience.ts');
+const evidenceIngestion = read('src/core/cognitive-twin/evidenceIngestion.ts');
+const studioContext = read('src/core/cognitive-twin/studioContext.ts');
 const crl = read('src/lib/cognitive-lab/service.ts');
 const field = read('src/lib/field/governedReturn.ts');
 const methodLab = read('src/lib/method-lab/simulationRun.ts');
@@ -16,7 +16,7 @@ const deliberate = read('src/app/api/root/cognitive-twin/deliberate/route.ts');
 const continuity = read('src/app/api/cron/continuity-report/route.ts');
 const scheduledCycle = read('src/app/api/cron/sfi-institutional-cycle/route.ts');
 const manualCycle = read('src/app/api/root/institutional-cycle/route.ts');
-const state = read('src/lib/cognitive-twin/readState.ts');
+const state = read('src/core/cognitive-twin/readState.ts');
 const page = read('src/app/root/cognitive-twin/page.tsx');
 const panel = read('src/components/root/cognitive-twin/CognitiveTwinIntegrationPanel.tsx');
 const workflow = read('.github/workflows/sfi-ct-institutional-integration.yml');
