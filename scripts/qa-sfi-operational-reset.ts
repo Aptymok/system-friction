@@ -7,7 +7,7 @@ const root=process.cwd();
 const read=(relative:string)=>fs.readFileSync(path.join(root,relative),'utf8');
 const reset=read('scripts/db/reset-sfi-operational-tables.mjs');
 const readiness=read('src/lib/root/closure/readInstitutionalReadiness.ts');
-const cycle=read('src/lib/cognitive-twin/integratedInstitutionalCycle.ts');
+const cycle=read('src/core/cognitive-twin/integratedInstitutionalCycle.ts');
 const field=read('src/lib/field/operationalCycle.ts');
 const studio=read('src/lib/studio/audio/analyzeStudioAudioObject.ts');
 const lab=read('src/lib/method-lab/simulationRun.ts');
