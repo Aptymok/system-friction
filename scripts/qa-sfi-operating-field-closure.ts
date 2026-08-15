@@ -13,9 +13,9 @@ const inferenceApi=read('src/app/api/pipeline/inference/route.ts');
 const trajectoryApi=read('src/app/api/pipeline/trajectory/route.ts');
 const proof=read('src/lib/root/closure/fullCycleVerification.ts');
 const proofRoute=read('src/app/api/pipeline/verify/route.ts');
-const field=read('src/components/pipeline/RootOperatingField.tsx');
-const dock=read('src/components/pipeline/RootCycleAnalysisDock.tsx');
-const autoDock=read('src/components/pipeline/RootCycleAnalysisDockAuto.tsx');
+const field=read('src/components/root/operate/RootOperatingField.tsx');
+const dock=read('src/components/root/operate/RootCycleAnalysisDock.tsx');
+const autoDock=read('src/components/root/operate/RootCycleAnalysisDockAuto.tsx');
 const rootPage=read('src/app/root/page.tsx');
 const explicitPage=read('src/app/pipeline/page.tsx');
 const readiness=read('src/lib/root/closure/readInstitutionalReadiness.ts');
@@ -30,6 +30,7 @@ assert.match(cycleMigration,/workflow state, never evidence or scientific valida
 assert.match(analysisMigration,/inference trace is not observed evidence/i);
 assert.match(analysisMigration,/does not prove causality, semantic drift or propagation/i);
 
+assert.match(cycleApi,/requireRootActor\('root\.operate\.read'\)/);
 assert.match(cycleApi,/resolveMihmMethod/);
 assert.match(cycleApi,/requiresRivalHypothesis/);
 assert.match(cycleApi,/requiresInterventionTracking/);
@@ -40,12 +41,14 @@ assert.match(evidenceApi,/event\.data\.event_id \?\? event\.data\.id/);
 assert.match(evidenceApi,/epistemic_event_id: eventId/);
 assert.match(evidenceApi,/root_evidence_epistemic_event_id_missing/);
 
+assert.match(inferenceApi,/requireRootActor\('root\.operate\.inference\.write'\)/);
 assert.match(inferenceApi,/epistemic_class:'INFERRED'/);
 assert.match(inferenceApi,/rival_hypotheses:rivals/);
 assert.match(inferenceApi,/discriminating_observations:discriminators/);
 assert.match(inferenceApi,/CONTRAST_READY/);
 assert.doesNotMatch(inferenceApi,/epistemic_class:'OBSERVED'/);
 
+assert.match(trajectoryApi,/requireRootActor\('root\.operate\.trajectory\.write'\)/);
 assert.match(trajectoryApi,/trajectory_event_requires_evidence_ref/);
 assert.match(trajectoryApi,/evidence_refs:refs/);
 assert.match(trajectoryApi,/parent_event_id:parentEventId/);
@@ -56,6 +59,7 @@ for(const marker of ['REAL_PERSISTED_EVIDENCE_REPLAY','No mocks, synthetic outco
 }
 assert.match(proof,/status:'BLOCKED'/);
 assert.match(proof,/status:complete\?'CLOSED':'BLOCKED'/);
+assert.match(proofRoute,/requireRootActor\('root\.operate\.full_cycle_verify'\)/);
 assert.match(proofRoute,/status:result\.ok\?200:409/);
 
 for(const phrase of ['Un ciclo. Todo SFI.','AGREGAR EVIDENCIA','PRUEBA TOTAL REAL','COGNITIVE TWIN','METHOD LAB','FIELD']){
@@ -64,9 +68,16 @@ for(const phrase of ['Un ciclo. Todo SFI.','AGREGAR EVIDENCIA','PRUEBA TOTAL REA
 for(const phrase of ['HIPÓTESIS / RIVALES','TRAYECTORIA DEL OBJETO','QUÉ OBSERVACIÓN LAS SEPARARÍA','Una trayectoria sin evidencia no se registra']){
   assert.ok(dock.includes(phrase),`analysis_dock_missing:${phrase}`);
 }
-assert.match(autoDock,/\/api\/root\/operate\/cycles/);
-assert.match(rootPage,/RootCycleAnalysisDockAuto/);
+assert.match(field,/\/api\/pipeline\/cycles/);
+assert.match(field,/\/api\/pipeline\/verify/);
+assert.match(dock,/\/api\/pipeline\/inference/);
+assert.match(dock,/\/api\/pipeline\/trajectory/);
+assert.match(autoDock,/\/api\/pipeline\/cycles/);
+assert.doesNotMatch(field,/\/api\/root\/operate\/cycles/);
+assert.doesNotMatch(autoDock,/\/api\/root\/operate\/cycles/);
+assert.match(explicitPage,/RootOperatingField/);
 assert.match(explicitPage,/RootCycleAnalysisDockAuto/);
+assert.doesNotMatch(rootPage,/RootCycleAnalysisDockAuto/);
 
 assert.match(readiness,/EMPTY_READY/);
 assert.match(readiness,/resolvedStudioCapabilityMatrix/);
@@ -78,12 +89,13 @@ console.log(JSON.stringify({
   ok:true,
   invariants:[
     'one persistent cross-organ operating cycle exists',
+    'pipeline transport remains ROOT-authorized and audited',
     'evidence event identity is recoverable by canonical event_id',
     'MIHM method selection is automatic from bounded object context',
     'inference remains INFERRED and requires rivals/discriminating observations for contrast readiness',
     'artifact trajectory requires evidence and does not manufacture propagation claims',
     'full-cycle proof replays only real persisted material and blocks instead of mocking missing organs',
-    'ROOT exposes the operating field and cycle analysis as one user-facing workflow',
+    'the explicit pipeline surface owns the operating field and cycle analysis workflow',
     'clean empty runtime may be READY while scientific validation remains separate',
   ],
 },null,2));
