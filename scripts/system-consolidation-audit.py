@@ -34,8 +34,9 @@ RETIRED_SCHEMA_OBJECTS = {item for item in RETIRED_SCHEMA.get('objects', []) if 
 
 def read_textfiles() -> list[tuple[Path, str]]:
     files: list[tuple[Path, str]] = []
+    ignored_roots = {'.git', 'node_modules', '.next', 'artifacts', '_sfi_cleanroom'}
     for path in ROOT.rglob('*'):
-        if not path.is_file() or '.git' in path.parts or 'node_modules' in path.parts:
+        if not path.is_file() or any(part in ignored_roots for part in path.parts):
             continue
         if path.suffix.lower() not in EXTENSIONS:
             continue
@@ -115,6 +116,15 @@ def main() -> None:
             if table and DB_IDENTIFIER.fullmatch(table):
                 table_refs.setdefault(table, set()).add(source)
 
+        # Canonical ROOT readers and several server helpers route DB access through
+        # wrappers such as selectRows({ table: 'sfi_ejectors', ... }). Treat literal
+        # table properties as consumers; a false-positive KEEP is safer than a
+        # false-negative DROP in a destructive consolidation audit.
+        for match in re.finditer(r"\btable\s*:\s*['\"]([A-Za-z_][A-Za-z0-9_]*)['\"]", text):
+            table = match.group(1)
+            if DB_IDENTIFIER.fullmatch(table):
+                table_refs.setdefault(table, set()).add(source)
+
         if source.startswith('supabase/migrations/') and path.suffix == '.sql':
             for statement in re.split(r';', text):
                 cleaned = re.sub(r'--.*?(?:\n|$)', ' ', statement)
@@ -147,12 +157,21 @@ def main() -> None:
         matrix.append({**item, 'destination': destination, 'reason': reason, 'note': note})
 
     tables: list[dict] = []
-    for table in sorted((set(table_refs) | created_tables | set(schema_refs) | LEGACY_LIVE_OBJECTS) - RETIRED_SCHEMA_OBJECTS):
+    table_universe = set(table_refs) | created_tables | set(schema_refs) | LEGACY_LIVE_OBJECTS | RETIRED_SCHEMA_OBJECTS
+    for table in sorted(table_universe):
         references = sorted(table_refs.get(table, set()))
         schema_references = sorted(schema_refs.get(table, set()))
         has_migration = table in created_tables
         legacy_contract = table in LEGACY_LIVE_OBJECTS
-        if references and has_migration:
+        retired_contract = table in RETIRED_SCHEMA_OBJECTS
+
+        if retired_contract and references:
+            destination, reason = 'RECONCILE', 'RETIRED_SCHEMA_STILL_CONSUMED'
+        elif retired_contract and schema_references:
+            destination, reason = 'RECONCILE', 'RETIRED_SCHEMA_STILL_DEPENDED_ON'
+        elif retired_contract:
+            destination, reason = 'RETIRED_CANDIDATE', 'RATIFIED_RETIREMENT_CANDIDATE'
+        elif references and has_migration:
             destination, reason = 'KEEP', 'CODE_AND_MIGRATION'
         elif references and legacy_contract:
             destination, reason = 'KEEP', 'CODE_AND_LIVE_SCHEMA_CONTRACT'
@@ -174,12 +193,15 @@ def main() -> None:
             'schema_references': schema_references,
             'has_migration': has_migration,
             'legacy_live_schema_contract': legacy_contract,
+            'retired_schema_contract': retired_contract,
             'destination': destination,
             'reason': reason,
         })
 
     output = Path('artifacts/system-consolidation')
     output.mkdir(parents=True, exist_ok=True)
+    retired_consumed = [item for item in tables if item['reason'] == 'RETIRED_SCHEMA_STILL_CONSUMED']
+    retired_depended = [item for item in tables if item['reason'] == 'RETIRED_SCHEMA_STILL_DEPENDED_ON']
     counts = {
         'pages': len(pages),
         'apis': len(apis),
@@ -192,6 +214,8 @@ def main() -> None:
         'tables_kept_by_schema_dependency': sum(1 for item in tables if item['reason'] == 'SCHEMA_DEPENDENCY'),
         'legacy_live_schema_contracts': sum(1 for item in tables if item['legacy_live_schema_contract']),
         'retired_schema_objects': len(RETIRED_SCHEMA_OBJECTS),
+        'retired_schema_consumed': len(retired_consumed),
+        'retired_schema_depended_on': len(retired_depended),
     }
     (output / 'summary.json').write_text(json.dumps(counts, indent=2))
     (output / 'routes.json').write_text(json.dumps(matrix, indent=2))
@@ -205,7 +229,7 @@ def main() -> None:
             writer.writerow({key: item.get(key, '') for key in fields})
 
     with (output / 'tables.csv').open('w', newline='') as handle:
-        fields = ['table', 'reference_count', 'schema_reference_count', 'has_migration', 'legacy_live_schema_contract', 'destination', 'reason']
+        fields = ['table', 'reference_count', 'schema_reference_count', 'has_migration', 'legacy_live_schema_contract', 'retired_schema_contract', 'destination', 'reason']
         writer = csv.DictWriter(handle, fieldnames=fields)
         writer.writeheader()
         for item in tables:
@@ -222,12 +246,18 @@ def main() -> None:
             print(item['route'], item['file'], item['lines'])
     print('\nTABLES CODE WITHOUT TRACKED CREATE OR LIVE CONTRACT')
     for item in tables:
-        if item['destination'] == 'RECONCILE':
+        if item['reason'] == 'CODE_WITHOUT_TRACKED_CREATE':
             print(item['table'], item['reference_count'])
     print('\nTABLES CREATED BUT NO CODE OR SCHEMA CONSUMER')
     for item in tables:
         if item['destination'] == 'REVIEW_DELETE_OR_ABSORB':
             print(item['table'])
+    print('\nRETIRED SCHEMA WITH ACTIVE CONSUMERS OR DEPENDENCIES')
+    for item in retired_consumed + retired_depended:
+        print(item['table'], item['reason'], item['references'], item['schema_references'])
+
+    if retired_consumed or retired_depended:
+        raise SystemExit('Retired schema registry is unsafe: active consumers or schema dependencies remain.')
 
 
 if __name__ == '__main__':
