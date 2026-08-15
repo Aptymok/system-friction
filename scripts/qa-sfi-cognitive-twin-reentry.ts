@@ -5,12 +5,12 @@ import assert from 'node:assert/strict';
 const root = process.cwd();
 const read = (file: string) => fs.readFileSync(path.join(root, file), 'utf8');
 
-const contract = read('src/lib/cognitive-twin/contract.ts');
-const runtime = read('src/lib/cognitive-twin/reentry/runtime.ts');
-const types = read('src/lib/cognitive-twin/reentry/types.ts');
-const journal = read('src/lib/cognitive-twin/reentry/journal.ts');
-const experiments = read('src/lib/cognitive-twin/reentry/experiments.ts');
-const experimentState = read('src/lib/cognitive-twin/reentry/experimentState.ts');
+const contract = read('src/core/cognitive-twin/contract.ts');
+const runtime = read('src/core/cognitive-twin/reentry/runtime.ts');
+const types = read('src/core/cognitive-twin/reentry/types.ts');
+const journal = read('src/core/cognitive-twin/reentry/journal.ts');
+const experiments = read('src/core/cognitive-twin/reentry/experiments.ts');
+const experimentState = read('src/core/cognitive-twin/reentry/experimentState.ts');
 const cron = read('src/app/api/cron/continuity-report/route.ts');
 const methodLab = read('src/lib/method-lab/readModel.ts');
 const twinPage = read('src/app/root/cognitive-twin/page.tsx');
