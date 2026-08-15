@@ -17,8 +17,8 @@ function walk(relative: string): string[] {
 const executionMap = read('src/lib/sfi/cognitive-runtime/agentExecutionMap.ts');
 const runtime = read('src/lib/studio/cognitive/studioCognitiveRuntime.ts');
 const llmBridge = read('src/lib/sfi/cognitive-runtime/agentLlmBridge.ts');
-const twinContext = read('src/lib/cognitive-twin/studioContext.ts');
-const experienceBridge = read('src/lib/cognitive-twin/experienceBridge.ts');
+const twinContext = read('src/core/cognitive-twin/studioContext.ts');
+const experienceBridge = read('src/core/cognitive-twin/experience.ts');
 const packageAnalyzer = read('src/lib/studio/multimodal/sessionPackageAnalyzer.ts');
 const packageRoute = read('src/app/api/studio/objects/[id]/analyze/package/route.ts');
 const reconstructionRoute = read('src/app/api/studio/session/reconstruct/route.ts');
@@ -60,13 +60,13 @@ assert.ok(/CANDIDATE Cognitive Twin memory/i.test(llmBridge), 'candidate_memory_
 assert.ok(llmBridge.includes('LLM_PROVIDER_UNAVAILABLE'), 'llm_fail_closed_missing');
 assert.ok(!/Math\.random\(\).*confidence|fake|demo data/i.test(`${runtime}\n${llmBridge}\n${experienceBridge}`), 'synthetic_cognitive_output_pattern_present');
 
-// Studio now persists through the single institutional Cognitive Twin experience bridge.
+// Studio persists through the single institutional Cognitive Twin experience bridge.
 assert.ok(twinContext.includes('recordCognitiveTwinExperience'), 'studio_learning_not_routed_through_experience_bridge');
-assert.ok(experienceBridge.includes(".upsert({"), 'cognitive_twin_experience_upsert_missing');
-assert.ok(experienceBridge.includes("onConflict:'memory_key,version'"), 'cognitive_twin_experience_conflict_key_missing');
+assert.ok(experienceBridge.includes("eventName:'cognitive_twin.experience.recorded'"), 'cognitive_twin_experience_ledger_append_missing');
+assert.ok(experienceBridge.includes('processEpistemicEvent(emitted.event)'), 'cognitive_twin_experience_policy_promotion_missing');
+assert.ok(experienceBridge.includes('Memory promotion is policy-governed and never expands Cognitive Twin authority'), 'memory_authority_separation_missing');
 assert.ok(twinContext.includes('stableStudioLearningKey'), 'studio_learning_stable_key_missing');
-assert.ok(experienceBridge.includes("status: 'CANDIDATE'"), 'experience_bridge_candidate_boundary_missing');
-assert.ok(/approved authority lives in sfi_cognitive_twin_decisions/i.test(experienceBridge), 'memory_authority_separation_missing');
+assert.equal(experienceBridge.includes("from('sfi_cognitive_twin_memory').upsert"), false, 'experience_bridge_must_not_directly_upsert_memory');
 
 assert.ok(packageAnalyzer.includes('Range:'), 'zip_range_read_missing');
 assert.ok(packageAnalyzer.includes('sourceFileSha256: null'), 'zip_full_hash_must_not_be_claimed');
