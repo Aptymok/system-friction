@@ -27,7 +27,7 @@ const AuthContext = createContext<AuthState>({
 })
 
 const AUTH_ROUTES = new Set(['/login', '/signup', '/forgot', '/reset', '/verify'])
-const PRIVATE_ROUTE_PREFIXES = ['/root', '/studio', '/field', '/member', '/field'] as const
+const PRIVATE_ROUTE_PREFIXES = ['/root', '/studio', '/field', '/member', '/interface'] as const
 
 type ServerIdentity = {
   role?: string | null
@@ -106,11 +106,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       }
 
+      // /api/root/me intentionally rejects non-root accounts. Preserve the authenticated
+      // member role through the user's own RLS-scoped profile instead of collapsing every
+      // non-root identity to observer.
+      const { data, error } = await client
+        .from('profiles')
+        .select('role,alias,email')
+        .eq('user_id', session.user.id)
+        .maybeSingle()
+
+      if (error && process.env.NODE_ENV !== 'production') {
+        console.warn('Profile identity not ready; using authenticated session fallback.', {
+          code: error.code,
+          message: error.message,
+        })
+      }
+
       return {
         userId: session.user.id,
-        email: session.user.email || null,
-        alias: fallbackAlias(session),
-        role: fallbackRole(),
+        email: data?.email || session.user.email || null,
+        alias: data?.alias || fallbackAlias(session),
+        role: data?.role || fallbackRole(error?.code),
       }
     }
 
