@@ -7,7 +7,6 @@
     "institutional_memory_audit_log",
     "mihm_state_registry",
     "sfi_reports",
-    "vw_sfi_attractor_alignment_queue",
     "vw_sfi_perturbation_history",
     "vw_sfi_reality_console_state"
   ]

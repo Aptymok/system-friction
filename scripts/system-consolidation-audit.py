@@ -125,6 +125,14 @@ def main() -> None:
             if DB_IDENTIFIER.fullmatch(table):
                 table_refs.setdefault(table, set()).add(source)
 
+        # Operational read helpers also accept literal view/table names positionally.
+        # Detect these wrappers explicitly so a live read model cannot be classified
+        # as unconsumed merely because the underlying .from() call is centralized.
+        for match in re.finditer(r"\b(?:readSingleFromView|readListFromView)\(\s*['\"]([A-Za-z_][A-Za-z0-9_]*)['\"]", text):
+            table = match.group(1)
+            if DB_IDENTIFIER.fullmatch(table):
+                table_refs.setdefault(table, set()).add(source)
+
         if source.startswith('supabase/migrations/') and path.suffix == '.sql':
             for statement in re.split(r';', text):
                 cleaned = re.sub(r'--.*?(?:\n|$)', ' ', statement)

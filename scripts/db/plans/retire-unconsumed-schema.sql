@@ -8,7 +8,6 @@
 begin;
 
 -- Derived read models superseded by canonical owners.
-drop view if exists public.vw_sfi_attractor_alignment_queue;
 drop view if exists public.vw_sfi_perturbation_history;
 drop view if exists public.vw_sfi_reality_console_state;
 
@@ -20,5 +19,6 @@ drop table if exists public.sfi_reports;
 
 -- RETAINED: sfi_ejectors is consumed by readRootAmv().
 -- RETAINED: sfi_graph_edges is consumed by readRootEvidenceGraph().
+-- RETAINED: vw_sfi_attractor_alignment_queue is consumed by readOperationalConsoleState().
 
 commit;

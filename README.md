@@ -249,11 +249,11 @@ Validación de identidad temporal del enlace generado.
 
 ---
 
-## `/api/whatsapp/webhook`
+## Transportes externos retirados
 
-Punto de entrada para flujo MOP-H mediante WhatsApp.
+El antiguo endpoint `/api/whatsapp/webhook` no forma parte del runtime canónico actual. Dependía de una capa `createKernelRoute` retirada durante la consolidación y no existe un contrato de proveedor, autenticación o verificación de firma activo que permita restaurarlo de forma segura.
 
-Conecta captura conversacional con procesos estructurados de evaluación.
+Cualquier futura integración de WhatsApp deberá entrar como adaptador explícito y gobernado hacia una superficie vigente —por ejemplo MOP-H/Field— con validación de proveedor, identidad y trazabilidad propias. La ausencia del webhook no se representa como una capacidad operativa existente.
 
 ---
 

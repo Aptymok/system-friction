@@ -10,6 +10,7 @@ const analysisMigration=read('supabase/migrations/20260811214500_sfi_inference_a
 const cycleApi=read('src/app/api/pipeline/cycles/route.ts');
 const evidenceApi=read('src/app/api/root/evidence/route.ts');
 const inferenceApi=read('src/app/api/pipeline/inference/route.ts');
+const suggestionApi=read('src/app/api/pipeline/inference/suggest/route.ts');
 const trajectoryApi=read('src/app/api/pipeline/trajectory/route.ts');
 const proof=read('src/lib/root/closure/fullCycleVerification.ts');
 const proofRoute=read('src/app/api/pipeline/verify/route.ts');
@@ -48,6 +49,13 @@ assert.match(inferenceApi,/discriminating_observations:discriminators/);
 assert.match(inferenceApi,/CONTRAST_READY/);
 assert.doesNotMatch(inferenceApi,/epistemic_class:'OBSERVED'/);
 
+assert.match(suggestionApi,/requireRootActor\('root\.operate\.inference\.suggest'\)/);
+assert.match(suggestionApi,/parseEvidenceLookupRefs/);
+assert.match(suggestionApi,/\.in\('id', lookup\.rootIds\)/);
+assert.match(suggestionApi,/\.in\('id', lookup\.ledgerIds\)/);
+assert.doesNotMatch(suggestionApi,/\.limit\(500\)/);
+assert.match(suggestionApi,/epistemicClass: 'INFERRED'/);
+
 assert.match(trajectoryApi,/requireRootActor\('root\.operate\.trajectory\.write'\)/);
 assert.match(trajectoryApi,/trajectory_event_requires_evidence_ref/);
 assert.match(trajectoryApi,/evidence_refs:refs/);
@@ -70,6 +78,8 @@ for(const phrase of ['HIPÓTESIS / RIVALES','TRAYECTORIA DEL OBJETO','QUÉ OBSER
 }
 assert.match(field,/\/api\/pipeline\/cycles/);
 assert.match(field,/\/api\/pipeline\/verify/);
+assert.match(field,/href="\/method-lab"/);
+assert.doesNotMatch(field,/href="\/root\/method-lab"/);
 assert.match(dock,/\/api\/pipeline\/inference/);
 assert.match(dock,/\/api\/pipeline\/trajectory/);
 assert.match(autoDock,/\/api\/pipeline\/cycles/);
@@ -93,6 +103,7 @@ console.log(JSON.stringify({
     'evidence event identity is recoverable by canonical event_id',
     'MIHM method selection is automatic from bounded object context',
     'inference remains INFERRED and requires rivals/discriminating observations for contrast readiness',
+    'inference suggestion resolves persisted evidence by cycle references instead of a recency window',
     'artifact trajectory requires evidence and does not manufacture propagation claims',
     'full-cycle proof replays only real persisted material and blocks instead of mocking missing organs',
     'the explicit pipeline surface owns the operating field and cycle analysis workflow',
