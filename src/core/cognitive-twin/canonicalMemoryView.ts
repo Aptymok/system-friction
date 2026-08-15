@@ -3,7 +3,8 @@ import 'server-only';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 
 const CANONICAL_MEMORY_MODULE = 'institutionalEventPipeline';
-const MAX_SCAN_ROWS = 512;
+const PAGE_SIZE = 128;
+const CONSUMABLE_MEMORY_STATUSES = new Set(['CANDIDATE', 'VERIFIED', 'CANONICAL']);
 
 type Row = Record<string, unknown>;
 
@@ -22,10 +23,13 @@ function strings(value: unknown): string[] {
 }
 
 function memoryStatus(content: Row) {
+  const lifecycle = text(content.lifecycleStatus);
+  if (lifecycle === 'REJECTED' || lifecycle === 'OBSOLETE' || lifecycle === 'FOUNDER_RESERVED') return lifecycle;
+  if (lifecycle === 'INSTITUTIONALIZED') return 'CANONICAL';
+  if (lifecycle === 'REPRODUCIBLE') return 'VERIFIED';
+
   const declared = text(content.memoryStatus) ?? text(content.status);
-  if (declared && ['CANDIDATE', 'VERIFIED', 'CANONICAL'].includes(declared)) return declared;
-  if (text(content.lifecycleStatus) === 'INSTITUTIONALIZED') return 'CANONICAL';
-  if (text(content.lifecycleStatus) === 'REPRODUCIBLE') return 'VERIFIED';
+  if (declared && ['CANDIDATE', 'VERIFIED', 'CANONICAL', 'REJECTED', 'OBSOLETE', 'FOUNDER_RESERVED'].includes(declared)) return declared;
   return 'CANDIDATE';
 }
 
@@ -72,32 +76,51 @@ function fromAmvRow(value: unknown): CanonicalCognitiveTwinMemory | null {
 export async function readCanonicalCognitiveTwinMemory(limit = 64) {
   const db = createServiceSupabaseClient();
   const requested = Math.max(1, Math.min(limit, 256));
-  const scanLimit = Math.min(MAX_SCAN_ROWS, Math.max(requested * 4, 128));
+  const latestByKey = new Map<string, CanonicalCognitiveTwinMemory>();
+  const seenKeys = new Set<string>();
+  let offset = 0;
+  let rowsError: string | null = null;
 
-  const [rowsResult, countResult] = await Promise.all([
-    db.from('sfi_amv_memory')
+  while (latestByKey.size < requested) {
+    const page = await db.from('sfi_amv_memory')
       .select('id,module,input_summary,memory_delta,source_trust,requires_human_validation,created_at')
       .eq('module', CANONICAL_MEMORY_MODULE)
       .not('memory_delta->raw->>memoryKey', 'is', null)
       .order('created_at', { ascending: false })
-      .limit(scanLimit),
-    db.from('sfi_amv_memory')
-      .select('id', { count: 'exact', head: true })
-      .eq('module', CANONICAL_MEMORY_MODULE)
-      .not('memory_delta->raw->>memoryKey', 'is', null),
-  ]);
+      .range(offset, offset + PAGE_SIZE - 1);
 
-  const latestByKey = new Map<string, CanonicalCognitiveTwinMemory>();
-  for (const item of rowsResult.data ?? []) {
-    const memory = fromAmvRow(item);
-    if (!memory || latestByKey.has(memory.memory_key)) continue;
-    latestByKey.set(memory.memory_key, memory);
-    if (latestByKey.size >= requested) break;
+    if (page.error) {
+      rowsError = page.error.message;
+      break;
+    }
+
+    const rows = page.data ?? [];
+    for (const item of rows) {
+      const memory = fromAmvRow(item);
+      if (!memory || seenKeys.has(memory.memory_key)) continue;
+
+      // The newest event for a key determines whether the key is consumable.
+      // A terminal review must suppress older canonical/candidate versions rather
+      // than allowing an older row to reappear later in pagination.
+      seenKeys.add(memory.memory_key);
+      if (!CONSUMABLE_MEMORY_STATUSES.has(memory.status)) continue;
+
+      latestByKey.set(memory.memory_key, memory);
+      if (latestByKey.size >= requested) break;
+    }
+
+    if (rows.length < PAGE_SIZE) break;
+    offset += PAGE_SIZE;
   }
+
+  const countResult = await db.from('sfi_amv_memory')
+    .select('id', { count: 'exact', head: true })
+    .eq('module', CANONICAL_MEMORY_MODULE)
+    .not('memory_delta->raw->>memoryKey', 'is', null);
 
   return {
     rows: [...latestByKey.values()],
     eventCount: countResult.error ? null : countResult.count ?? 0,
-    error: rowsResult.error?.message ?? countResult.error?.message ?? null,
+    error: rowsError ?? countResult.error?.message ?? null,
   };
 }

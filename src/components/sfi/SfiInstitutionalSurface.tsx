@@ -17,7 +17,7 @@ export function SfiInstitutionalSurface({ state, attractor }: { state: SfiWorldI
   const organs = [
     { key: '01', label: 'OBSERVATORY', href: '/observatory', detail: 'Contexto externo, fuentes, latencia y cambio longitudinal.' },
     { key: '02', label: 'FIELD', href: '/field', detail: 'Casos reales, ventanas de retorno y perturbación mínima verificable.' },
-    { key: '03', label: 'METHOD LAB', href: '/method-lab', detail: 'Protocolos, contraste, simulación y falsación gobernada.' },
+    { key: '03', label: 'MIHM', href: '/mihm', detail: 'Marco multinodal público para describir fricción, homeostasis y relaciones entre nodos.' },
     { key: '04', label: 'ATLAS', href: '/atlas', detail: 'Trayectorias, artefactos y memoria institucional observable.' },
     { key: '05', label: 'REPOSITORY', href: '/repository', detail: 'Métodos, contratos, canon y material reproducible.' },
     { key: '06', label: 'LIBRARY', href: '/library', detail: 'Corpus público, instrumentos y publicaciones.' },

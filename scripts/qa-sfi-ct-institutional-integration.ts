@@ -9,6 +9,7 @@ const integration = read('src/core/cognitive-twin/institutionalIntegration.ts');
 const experience = read('src/core/cognitive-twin/experience.ts');
 const evidenceIngestion = read('src/core/cognitive-twin/evidenceIngestion.ts');
 const studioContext = read('src/core/cognitive-twin/studioContext.ts');
+const canonicalMemory = read('src/core/cognitive-twin/canonicalMemoryView.ts');
 const crl = read('src/lib/cognitive-lab/service.ts');
 const field = read('src/lib/field/governedReturn.ts');
 const methodLab = read('src/lib/method-lab/simulationRun.ts');
@@ -39,6 +40,13 @@ assert.equal(integration.includes("from('sfi_cognitive_twin_memory').upsert"), f
 assert.ok(experience.includes("eventName:'cognitive_twin.experience.recorded'"), 'experience bridge must append experience to the epistemic ledger');
 assert.ok(experience.includes('Memory promotion is policy-governed and never expands Cognitive Twin authority'), 'experience authority boundary missing');
 assert.ok(experience.includes('processEpistemicEvent(emitted.event)'), 'experience memory promotion must pass through the institutional policy pipeline');
+
+assert.ok(canonicalMemory.includes("lifecycle === 'REJECTED'"), 'canonical memory must preserve REJECTED lifecycle');
+assert.ok(canonicalMemory.includes("lifecycle === 'OBSOLETE'"), 'canonical memory must preserve OBSOLETE lifecycle');
+assert.ok(canonicalMemory.includes('CONSUMABLE_MEMORY_STATUSES'), 'canonical memory must explicitly define consumable lifecycle states');
+assert.ok(canonicalMemory.includes('seenKeys.add(memory.memory_key)'), 'canonical memory must suppress older versions after a terminal latest review');
+assert.ok(canonicalMemory.includes('.range(offset, offset + PAGE_SIZE - 1)'), 'canonical memory must page before distinct-key deduplication');
+assert.equal(canonicalMemory.includes('.limit(scanLimit)'), false, 'canonical memory must not truncate before distinct-key deduplication');
 
 for (const [name, source] of [
   ['ROOT Evidence', evidenceIngestion],
@@ -78,6 +86,8 @@ console.log(JSON.stringify({
   contract:'SFI-CT-INSTITUTIONAL-INTEGRATION-1.0',
   organs:7,
   canonicalExperienceBridge:true,
+  canonicalMemoryTerminalFiltering:true,
+  canonicalMemoryDistinctKeyPaging:true,
   canonicalIngress:['ROOT_EVIDENCE','STUDIO','CRL','METHOD_LAB','FIELD','OBSERVATORY_SYNC'],
   methodLabEpistemicBoundary:true,
   newestFirstSync:true,

@@ -43,7 +43,7 @@ export function ContinuityConsole({ initial }: { initial: Dashboard }) {
   const [message, setMessage] = useState('');
 
   async function refresh() {
-    const response = await fetch('/api/root/readiness', { cache: 'no-store' });
+    const response = await fetch('/api/root/continuity', { cache: 'no-store', credentials: 'include' });
     const payload = await response.json();
     if (payload.ok) setData(payload);
   }
@@ -57,8 +57,9 @@ export function ContinuityConsole({ initial }: { initial: Dashboard }) {
     setBusy(true);
     setMessage('');
     try {
-      const response = await fetch('/api/root/readiness', {
+      const response = await fetch('/api/root/continuity', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify(body),
       });

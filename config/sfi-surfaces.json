@@ -1,5 +1,5 @@
 {
-  "version": "2026-08-12",
+  "version": "2026-08-15",
   "public": [
     {
       "path": "/",
@@ -51,13 +51,6 @@
       "changeFrequency": "monthly"
     },
     {
-      "path": "/method-lab",
-      "label": "Method Lab",
-      "index": true,
-      "priority": 0.8,
-      "changeFrequency": "weekly"
-    },
-    {
       "path": "/atlas",
       "label": "Atlas",
       "index": true,
@@ -99,6 +92,7 @@
     "/root/institutionalization",
     "/root/reports",
     "/root/decisions",
-    "/root/evidence/intake"
+    "/root/evidence/intake",
+    "/method-lab"
   ]
 }
