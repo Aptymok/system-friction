@@ -1,13 +1,11 @@
 {
-  "version": "2026-08-12",
-  "reason": "Objects retired after live read-only verification: no active code consumer, no tracked schema dependency. Derived views contain no source-of-truth history; listed tables were empty at retirement audit.",
-  "migration": "20260812214500_retire_unconsumed_schema.sql",
+  "version": "2026-08-15",
+  "reason": "Objects eligible for controlled retirement after live read-only verification and current code-reference reconciliation. Any object with an active code consumer is excluded from this registry.",
+  "migration": null,
   "objects": [
     "graph_history",
     "institutional_memory_audit_log",
     "mihm_state_registry",
-    "sfi_ejectors",
-    "sfi_graph_edges",
     "sfi_reports",
     "vw_sfi_attractor_alignment_queue",
     "vw_sfi_perturbation_history",
