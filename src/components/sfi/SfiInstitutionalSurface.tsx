@@ -3,8 +3,6 @@ import type { SfiWorldInterfaceState } from '@/lib/sfi/worldInterfaceState';
 import type { PublicInstitutionalAttractorState } from '@/lib/institution/publicAttractor';
 import './sfi-institutional-surface.css';
 
-const PUBLICATION_PDF = '/publications/instrumentalizacion-mente-fragmentada-founder-edition.pdf';
-
 function label(value: string | null | undefined, fallback = 'NO MEDIDO') {
   return typeof value === 'string' && value.trim() ? value.trim() : fallback;
 }
@@ -89,17 +87,16 @@ export function SfiInstitutionalSurface({ state, attractor }: { state: SfiWorldI
       </section>
 
       <section className="is-book">
-        <div className="is-book-cover"><img src="/publications/founder-edition-cover.webp" alt="Portada de Instrumentalización de una mente fragmentada — The Founder Edition" /></div>
+        <div className="is-book-cover" aria-label="Founder Edition publication mark">
+          <div><span>SFI · 2026</span><strong>INSTRUMENTALIZACIÓN DE UNA MENTE FRAGMENTADA</strong><small>THE FOUNDER EDITION</small></div>
+        </div>
         <div className="is-book-copy">
           <span>FOUNDER EDITION · PUBLICATION / 2026</span>
           <h2>Instrumentalización de una mente fragmentada</h2>
           <h3>Del conocimiento tácito a una arquitectura observable.</h3>
           <p>La edición acompaña la superficie institucional como registro de origen: cómo operaciones cognitivas, memoria, extracción de conocimiento tácito y formalización metodológica fueron convertidas en una arquitectura que puede observarse, discutirse y ponerse a prueba.</p>
-          <div className="is-book-meta"><span>281 PAGES</span><span>FOUNDER EDITION</span><span>SYSTEM FRICTION INSTITUTE</span></div>
-          <div className="is-actions">
-            <Link href="/founder-edition">VIEW EDITION</Link>
-            <a href={PUBLICATION_PDF} target="_blank" rel="noreferrer">OPEN PDF ↗</a>
-          </div>
+          <div className="is-book-meta"><span>FOUNDER EDITION</span><span>ARCHIVAL PDF</span><span>SYSTEM FRICTION INSTITUTE</span></div>
+          <div className="is-actions"><Link href="/founder-edition">VIEW EDITION STATUS</Link></div>
         </div>
       </section>
 
