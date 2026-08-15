@@ -35,7 +35,14 @@
     "structured_observations",
     "systemic_patterns",
     "telemetry_sources",
+    "vw_scorefriction_real",
     "vw_sfi_closed_loop_state",
+    "vw_sfi_evidence_map",
+    "vw_sfi_execution_recovery_queue",
+    "vw_sfi_operational_cycle",
+    "vw_sfi_pipeline_loss",
+    "vw_sfi_stability",
+    "vw_worldspect_real",
     "world_spectrum_snapshots"
   ]
 }

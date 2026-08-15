@@ -210,6 +210,8 @@ def main() -> None:
     output.mkdir(parents=True, exist_ok=True)
     retired_consumed = [item for item in tables if item['reason'] == 'RETIRED_SCHEMA_STILL_CONSUMED']
     retired_depended = [item for item in tables if item['reason'] == 'RETIRED_SCHEMA_STILL_DEPENDED_ON']
+    reconcile_tables = [item for item in tables if item['destination'] == 'RECONCILE']
+    review_delete_tables = [item for item in tables if item['destination'] == 'REVIEW_DELETE_OR_ABSORB']
     counts = {
         'pages': len(pages),
         'apis': len(apis),
@@ -217,8 +219,8 @@ def main() -> None:
         'page_delete_or_absorb_candidates': sum(1 for item in matrix if item['kind'] == 'PAGE' and 'CANDIDATE' in item['destination']),
         'api_delete_candidates': sum(1 for item in matrix if item['kind'] == 'API' and item['destination'] == 'DELETE_CANDIDATE'),
         'api_review': sum(1 for item in matrix if item['kind'] == 'API' and item['destination'] == 'REVIEW'),
-        'tables_reconcile': sum(1 for item in tables if item['destination'] == 'RECONCILE'),
-        'tables_review_delete_or_absorb': sum(1 for item in tables if item['destination'] == 'REVIEW_DELETE_OR_ABSORB'),
+        'tables_reconcile': len(reconcile_tables),
+        'tables_review_delete_or_absorb': len(review_delete_tables),
         'tables_kept_by_schema_dependency': sum(1 for item in tables if item['reason'] == 'SCHEMA_DEPENDENCY'),
         'legacy_live_schema_contracts': sum(1 for item in tables if item['legacy_live_schema_contract']),
         'retired_schema_objects': len(RETIRED_SCHEMA_OBJECTS),
@@ -264,8 +266,15 @@ def main() -> None:
     for item in retired_consumed + retired_depended:
         print(item['table'], item['reason'], item['references'], item['schema_references'])
 
+    blockers: list[str] = []
     if retired_consumed or retired_depended:
-        raise SystemExit('Retired schema registry is unsafe: active consumers or schema dependencies remain.')
+        blockers.append('retired schema has active consumers or dependencies')
+    if reconcile_tables:
+        blockers.append('data objects require reconciliation')
+    if review_delete_tables:
+        blockers.append('migration-backed objects remain unclassified for keep/retire')
+    if blockers:
+        raise SystemExit('Consolidation data-object audit is not closed: ' + '; '.join(blockers))
 
 
 if __name__ == '__main__':
