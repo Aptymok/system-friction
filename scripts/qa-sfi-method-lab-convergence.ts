@@ -32,8 +32,8 @@ assert.match(crlContrast, /data_mode: 'SIMULATED'/, 'CRL contrast must remain SI
 assert.match(crlContrast, /METHOD_LAB_CONTRACT_VERSION/, 'CRL summary must carry the shared Method Lab contract.');
 
 const root = read('src/components/root/sovereign/RootSovereignConsole.tsx');
-assert.match(root, /\/root\/method-lab/, 'ROOT must expose Method Lab.');
-assert.match(root, /\/root\/cognitive-twin\/lineage/, 'ROOT must expose CT-A01 lineage state.');
+assert.match(root, /href="\/method-lab"/, 'ROOT must expose the canonical Method Lab surface.');
+assert.match(root, /href="\/root\/cognitive-twin"/, 'ROOT must expose the canonical CT-A01 lineage surface.');
 assert.doesNotMatch(root, /CognitiveLabConsole/, 'CRL must not keep a parallel ROOT launcher outside Method Lab.');
 
 const runner = read('src/lib/method-lab/simulationRun.ts');
