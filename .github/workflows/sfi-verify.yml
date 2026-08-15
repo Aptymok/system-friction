@@ -31,7 +31,7 @@ jobs:
         run: npx tsx scripts/qa-sfi-method-selection.ts
 
       - name: Verify Cognitive Twin authority contract
-        run: node --import tsx --test src/lib/cognitive-twin/contract.test.ts
+        run: node --import tsx --test src/core/cognitive-twin/contract.test.ts
 
       - name: Verify 15 institutional contracts
         run: npm run qa:sfi-institutional-contracts
