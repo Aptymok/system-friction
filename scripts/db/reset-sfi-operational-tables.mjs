@@ -4,6 +4,77 @@ import { createAdminClient, deleteAllRowsByKnownColumns, countTable, nowStamp } 
 import { OPERATIONAL_RESET_LAYERS, OPERATIONAL_DELETE_ORDER, PROTECTED_TABLES } from './sfi-operational-reset-inventory.mjs';
 import { verifyDbEvidenceReceipt } from './verify-db-evidence-snapshot.mjs';
 
+function normalizeHost(value) {
+  return String(value ?? '').trim().toLowerCase().replace(/\.$/, '');
+}
+
+function supabaseProjectRefFromApiUrl(rawUrl) {
+  try {
+    const host = normalizeHost(new URL(rawUrl).hostname);
+    const match = host.match(/^([a-z0-9-]+)\.supabase\.co$/i);
+    return match?.[1]?.toLowerCase() ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function supabaseProjectRefFromDatabaseHost(hostname) {
+  const host = normalizeHost(hostname);
+  const match = host.match(/^db\.([a-z0-9-]+)\.supabase\.co$/i);
+  return match?.[1]?.toLowerCase() ?? null;
+}
+
+function supabaseProjectRefFromDatabaseUrl(rawUrl) {
+  try {
+    const url = new URL(rawUrl);
+    const hostRef = supabaseProjectRefFromDatabaseHost(url.hostname);
+    if (hostRef) return hostRef;
+    const username = decodeURIComponent(url.username || '');
+    const match = username.match(/(?:^|\.)([a-z0-9-]+)$/i);
+    return username.includes('.') ? match?.[1]?.toLowerCase() ?? null : null;
+  } catch {
+    return null;
+  }
+}
+
+function assertSnapshotTargetsResetDatabase(snapshotReceipt) {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
+  if (!supabaseUrl) throw new Error('Cannot bind snapshot receipt: missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_URL');
+
+  const targetProjectRef = supabaseProjectRefFromApiUrl(supabaseUrl);
+  if (!targetProjectRef) throw new Error('Cannot bind snapshot receipt: configured Supabase URL does not expose a canonical project ref');
+
+  const receiptHost = normalizeHost(snapshotReceipt.database_host);
+  const receiptDatabase = String(snapshotReceipt.database_name ?? '').trim();
+  if (!receiptHost || !receiptDatabase) throw new Error('Snapshot receipt is missing database_host or database_name');
+
+  const receiptProjectRef = supabaseProjectRefFromDatabaseHost(receiptHost);
+  if (receiptProjectRef) {
+    if (receiptProjectRef !== targetProjectRef) {
+      throw new Error(`Snapshot target mismatch: receipt project ${receiptProjectRef} does not match reset project ${targetProjectRef}`);
+    }
+    return;
+  }
+
+  // Supabase pooler hosts are shared across projects, so their hostname alone cannot
+  // identify the project. In that case require the same direct connection identity
+  // used for evidentiary backup and bind its project-qualified username to the REST target.
+  const directUrl = process.env.DATABASE_URL || process.env.DIRECT_URL || process.env.CONNECTION_STRING;
+  if (!directUrl) {
+    throw new Error('Snapshot target cannot be proven from a shared database host; DATABASE_URL, DIRECT_URL or CONNECTION_STRING is required');
+  }
+  const direct = new URL(directUrl);
+  const directHost = normalizeHost(direct.hostname);
+  const directDatabase = decodeURIComponent(direct.pathname.replace(/^\//, ''));
+  const directProjectRef = supabaseProjectRefFromDatabaseUrl(directUrl);
+  if (directHost !== receiptHost || directDatabase !== receiptDatabase) {
+    throw new Error('Snapshot target mismatch: receipt host/database does not match the configured direct database target');
+  }
+  if (!directProjectRef || directProjectRef !== targetProjectRef) {
+    throw new Error('Snapshot target mismatch: direct database project does not match the configured Supabase project');
+  }
+}
+
 const confirm = process.env.SFI_DB_RESET_CONFIRM;
 const resetMode = process.env.SFI_DB_RESET_MODE;
 if (confirm !== 'RESET_SFI_OPERATIONAL' || resetMode !== 'CLEAN_RUNTIME_AFTER_VERIFIED_PROOF') {
@@ -35,6 +106,7 @@ try {
   snapshotReceipt = await verifyDbEvidenceReceipt(snapshotReceiptPath, {
     maxAgeMinutes: Number(process.env.SFI_DB_SNAPSHOT_MAX_AGE_MINUTES || 60),
   });
+  assertSnapshotTargetsResetDatabase(snapshotReceipt);
 } catch (error) {
   console.error(JSON.stringify({
     ok: false,
@@ -88,6 +160,7 @@ const result = {
     git_commit: snapshotReceipt.git_commit,
     database_host: snapshotReceipt.database_host,
     database_name: snapshotReceipt.database_name,
+    target_binding_verified: true,
   },
   protected_tables:PROTECTED_TABLES,
   expected_operational_tables:OPERATIONAL_DELETE_ORDER.length,
