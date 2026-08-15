@@ -45,8 +45,20 @@ export async function recordCognitiveTwinExperience(input: {
   if(!emitted.ok) return {ok:false as const,blocked:false,reason:emitted.error,canonAssessment};
 
   const promotion=await processEpistemicEvent(emitted.event);
-  const memory='memoryResult' in promotion && promotion.memoryResult && 'memory' in promotion.memoryResult
-    ? promotion.memoryResult.memory
-    : {id:emitted.event.id,created_at:emitted.event.created_at};
+  const memoryResult='memoryResult' in promotion ? promotion.memoryResult : null;
+  if(memoryResult && !memoryResult.ok){
+    return {
+      ok:false as const,
+      blocked:false,
+      reason:`MEMORY_PROMOTION_FAILED:${memoryResult.error??'unknown_error'}`,
+      event:emitted.event,
+      promotion,
+      canonAssessment,
+    };
+  }
+
+  const memory=promotion.promoted && memoryResult && 'memory' in memoryResult
+    ? memoryResult.memory
+    : undefined;
   return {ok:true as const,blocked:false,event:emitted.event,promotion,memory,canonAssessment};
 }
