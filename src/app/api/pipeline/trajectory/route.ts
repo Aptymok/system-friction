@@ -8,7 +8,7 @@ type Row=Record<string,unknown>;
 const RELATIONS=new Set(['ORIGIN','OBSERVED_STATE','COPY','REMIX','MUTATION','PUBLICATION','RECOVERY','RETURN']);
 function text(value:unknown){return typeof value==='string'&&value.trim()?value.trim():''}
 function list(value:unknown){return Array.isArray(value)?value.map(item=>text(item)).filter(Boolean).slice(0,24):[]}
-function validIso(value:string){const date=new Date(value);return Number.isFinite(date.getTime())?date.toISOString():new Date().toISOString()}
+function parseObservedAt(value:string){if(!value)return{ok:true as const,value:new Date().toISOString()};const date=new Date(value);return Number.isFinite(date.getTime())?{ok:true as const,value:date.toISOString()}:{ok:false as const,value:null}}
 
 export async function POST(request:Request){
   const gate=await requireRootActor('root.operate.trajectory.write');
@@ -16,11 +16,13 @@ export async function POST(request:Request){
   const body=await request.json().catch(()=>({})) as Row;
   const operatingCycleId=text(body.operatingCycleId); const objectRef=text(body.objectRef); const relationRaw=text(body.relation).toUpperCase(); const relation=RELATIONS.has(relationRaw)?relationRaw:'OBSERVED_STATE'; const evidenceRefs=list(body.evidenceRefs);
   if(!operatingCycleId||objectRef.length<2)return NextResponse.json({ok:false,error:'cycle_and_object_ref_required'},{status:400});
+  const observedAtResult=parseObservedAt(text(body.observedAt));
+  if(!observedAtResult.ok)return NextResponse.json({ok:false,error:'invalid_observed_at',details:'observedAt must be a valid ISO-compatible timestamp when supplied'},{status:400});
   const cycle=await gate.ctx.service.from('sfi_operating_cycles').select('id,evidence_refs,trajectory_refs').eq('id',operatingCycleId).eq('owner_id',gate.ctx.user.id).maybeSingle();
   if(cycle.error||!cycle.data)return NextResponse.json({ok:false,error:'operating_cycle_not_found',details:cycle.error?.message},{status:404});
   const refs=evidenceRefs.length?evidenceRefs:list(cycle.data.evidence_refs);
   if(!refs.length)return NextResponse.json({ok:false,error:'trajectory_event_requires_evidence_ref'},{status:400});
-  const sourceUri=text(body.sourceUri)||null; const contentHash=text(body.contentHash)||null; const parentEventId=text(body.parentEventId)||null; const observedAt=validIso(text(body.observedAt)); const platform=text(body.platform)||null; const markerRef=text(body.markerRef)||null; const semanticState=body.semanticState&&typeof body.semanticState==='object'&&!Array.isArray(body.semanticState)?body.semanticState:{};
+  const sourceUri=text(body.sourceUri)||null; const contentHash=text(body.contentHash)||null; const parentEventId=text(body.parentEventId)||null; const observedAt=observedAtResult.value; const platform=text(body.platform)||null; const markerRef=text(body.markerRef)||null; const semanticState=body.semanticState&&typeof body.semanticState==='object'&&!Array.isArray(body.semanticState)?body.semanticState:{};
   if(parentEventId){const parent=await gate.ctx.service.from('sfi_artifact_trajectory_events').select('id').eq('id',parentEventId).eq('owner_id',gate.ctx.user.id).maybeSingle(); if(parent.error||!parent.data)return NextResponse.json({ok:false,error:'trajectory_parent_not_found',details:parent.error?.message},{status:404});}
   const eventEnvelope={operatingCycleId,objectRef,parentEventId,platform,sourceUri,observedAt,relation,contentHash,markerRef,evidenceRefs:refs,semanticState};
   const eventRecordHash=createHash('sha256').update(JSON.stringify(eventEnvelope)).digest('hex');
