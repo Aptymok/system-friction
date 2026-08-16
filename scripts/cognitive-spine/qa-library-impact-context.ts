@@ -9,9 +9,18 @@ const publicPage = read('src/app/library/page.tsx');
 const inspector = read('src/lib/sfi/library/cognitiveSpineImpactContext.ts');
 const route = read('src/app/api/root/library/cognitive-spine/route.ts');
 
-// Public Library remains static and private-state free.
+// Public Library remains static and private-state free. Literal explanatory
+// text may mention Supabase; the gate detects actual private-state imports or
+// materializer/client usage rather than prose.
 assert.ok(publicPage.includes("export const dynamic = 'force-static'"), 'library_public_surface_not_static');
-assert.equal(/Supabase|cognitiveSpine|CognitiveSpine|materializeInstitutional/i.test(publicPage), false, 'library_public_surface_reads_private_cognitive_state');
+for (const forbiddenPrivateRead of [
+  "@/runtime/supabase",
+  'createServiceSupabaseClient',
+  'materializeInstitutionalCognitiveSpineProfile',
+  'cognitiveSpineImpactContext',
+]) {
+  assert.equal(publicPage.includes(forbiddenPrivateRead), false, `library_public_surface_reads_private_state:${forbiddenPrivateRead}`);
+}
 
 assert.ok(inspector.includes('LIBRARY_IMPACT_CONTEXT_PROFILE'), 'library_projection_profile_missing');
 assert.ok(inspector.includes('consume: false'), 'library_ordinary_read_must_not_consume_ct');
