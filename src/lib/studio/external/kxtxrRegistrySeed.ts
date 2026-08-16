@@ -71,7 +71,7 @@ export const KXTXR_EXTERNAL_SEED: readonly KxtxrExternalSeed[] = [
     metadata: { project: 'KXTXR', evidenceRole: 'EXTERNAL_ROUTING_SURFACE' },
   },
   {
-    key: 'kxtxr-youtube-jtepor aqwgy'.replace(' ', '-'),
+    key: 'kxtxr-youtube-jtepor-aqwgy',
     scopeType: 'PROJECT',
     scopeKey: 'KXTXR',
     platform: 'youtube',
