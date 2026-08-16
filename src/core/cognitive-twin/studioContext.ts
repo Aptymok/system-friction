@@ -1,28 +1,21 @@
 import 'server-only';
 
+import { AsyncLocalStorage } from 'node:async_hooks';
+import type { CognitiveContextConsumptionTrace } from '@/core/cognitive-spine/contracts/consumptionTrace';
+import type { CognitiveSpineSnapshot } from '@/core/cognitive-spine/contracts/snapshot';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
+import { materializeStudioCognitiveSpineContext } from '@/lib/studio/cognitive/studioCognitiveSpineContext';
 import { COGNITIVE_TWIN_CONTRACT_VERSION } from './contract';
-import { readCanonicalCognitiveTwinMemory } from './canonicalMemoryView';
 import { recordCognitiveTwinExperience } from './experience';
 
-const MEMORY_STATUSES = ['CANDIDATE', 'VERIFIED', 'CANONICAL'] as const;
 const STUDIO_LEARNING_VERSION = 'studio-learning-v1';
-const MAX_MEMORY_ROWS = 64;
-const MAX_DECISION_ROWS = 32;
 
-type Row = Record<string, unknown>;
+type StudioCognitiveSpineRunContext = {
+  snapshot: CognitiveSpineSnapshot;
+  consumptionTrace: CognitiveContextConsumptionTrace;
+};
 
-function record(value: unknown): Row {
-  return value && typeof value === 'object' && !Array.isArray(value) ? value as Row : {};
-}
-
-function text(value: unknown): string | null {
-  return typeof value === 'string' && value.trim() ? value.trim() : null;
-}
-
-function strings(value: unknown): string[] {
-  return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0) : [];
-}
+const studioCognitiveSpineRunContext = new AsyncLocalStorage<StudioCognitiveSpineRunContext>();
 
 function stableStudioLearningKey(value: string) {
   return value.replace(/:\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/, '');
@@ -47,71 +40,53 @@ export type StudioTwinContext = {
     evidenceRefs: string[];
   }>;
   warnings: string[];
+  cognitiveSpine?: {
+    snapshotId: string;
+    snapshotHash: string;
+    sourceCutoff: string;
+    projectionProfile: string | null;
+    profileVersion: string | null;
+    consumed: boolean;
+  };
 };
 
+/**
+ * Compatibility read boundary for existing Studio cognitive paths.
+ *
+ * This function no longer reads live Cognitive Twin memory/decision tables.
+ * It materializes one sealed `STUDIO_OBJECT_CONTEXT_V1` Cognitive Spine
+ * snapshot and returns only the bounded memory/decision values referenced by
+ * that snapshot.
+ *
+ * The exact sealed artifact and its consumption trace are also stored in a
+ * request-local AsyncLocalStorage context. `registerStudioTwinRun()` consumes
+ * that same context later in the async execution chain, so persistence records
+ * the exact snapshot that was actually used instead of materializing a second
+ * "latest" state at write time. Concurrent requests do not share this state.
+ */
 export async function readStudioTwinContext(): Promise<StudioTwinContext> {
-  const db = createServiceSupabaseClient();
-  const warnings: string[] = [];
+  const now = new Date().toISOString();
+  const materialized = await materializeStudioCognitiveSpineContext({
+    executionId: `studio-context-${crypto.randomUUID()}`,
+    sourceCutoff: now,
+    createdAt: now,
+  });
 
-  const [canonicalMemory, legacyMemoryResult, decisionsResult] = await Promise.all([
-    readCanonicalCognitiveTwinMemory(MAX_MEMORY_ROWS),
-    db.from('sfi_cognitive_twin_memory')
-      .select('memory_key,memory_type,status,content,evidence_refs,version,updated_at')
-      .in('status', [...MEMORY_STATUSES])
-      .order('updated_at', { ascending: false })
-      .limit(MAX_MEMORY_ROWS),
-    db.from('sfi_cognitive_twin_decisions')
-      .select('decision_id,situation,correct_state,general_rule,required_evidence,evidence_refs,approved_at')
-      .eq('status', 'APPROVED')
-      .order('approved_at', { ascending: false })
-      .limit(MAX_DECISION_ROWS),
-  ]);
-
-  if (canonicalMemory.error) warnings.push(`twin_canonical_memory_unavailable:${canonicalMemory.error}`);
-  if (legacyMemoryResult.error) warnings.push(`twin_legacy_memory_unavailable:${legacyMemoryResult.error.message}`);
-  if (decisionsResult.error) warnings.push(`twin_decisions_unavailable:${decisionsResult.error.message}`);
-
-  const memoryByKey = new Map<string, StudioTwinContext['memory'][number]>();
-  for (const item of canonicalMemory.rows) {
-    memoryByKey.set(item.memory_key, {
-      key: item.memory_key,
-      type: item.memory_type,
-      status: item.status,
-      content: item.content,
-      evidenceRefs: item.evidence_refs,
-      version: item.version,
-    });
-  }
-  for (const item of legacyMemoryResult.data ?? []) {
-    const row = record(item);
-    const key = text(row.memory_key);
-    if (!key || memoryByKey.has(key)) continue;
-    memoryByKey.set(key, {
-      key,
-      type: text(row.memory_type) ?? 'UNKNOWN',
-      status: text(row.status) ?? 'UNKNOWN',
-      content: row.content ?? null,
-      evidenceRefs: strings(row.evidence_refs),
-      version: text(row.version) ?? 'legacy',
-    });
-    if (memoryByKey.size >= MAX_MEMORY_ROWS) break;
-  }
+  studioCognitiveSpineRunContext.enterWith({
+    snapshot: materialized.snapshot,
+    consumptionTrace: materialized.trace,
+  });
 
   return {
-    contractVersion: COGNITIVE_TWIN_CONTRACT_VERSION,
-    memory: [...memoryByKey.values()].slice(0, MAX_MEMORY_ROWS),
-    decisions: (decisionsResult.data ?? []).map((item) => {
-      const row = record(item);
-      return {
-        id: text(row.decision_id) ?? 'unknown',
-        situation: text(row.situation) ?? '',
-        correctState: text(row.correct_state),
-        generalRule: text(row.general_rule) ?? '',
-        requiredEvidence: strings(row.required_evidence),
-        evidenceRefs: strings(row.evidence_refs),
-      };
-    }),
-    warnings,
+    ...materialized.twinContext,
+    cognitiveSpine: {
+      snapshotId: materialized.snapshot.snapshotId,
+      snapshotHash: materialized.snapshot.snapshotHash,
+      sourceCutoff: materialized.snapshot.semanticPayload.sourceCutoff,
+      projectionProfile: materialized.trace.projectionProfile,
+      profileVersion: materialized.trace.profileVersion,
+      consumed: materialized.trace.ctSnapshotConsumed,
+    },
   };
 }
 
@@ -130,6 +105,17 @@ export async function registerStudioTwinRun(input: {
   finishedAt?: string | null;
 }) {
   const db = createServiceSupabaseClient();
+  const sealedSpine = studioCognitiveSpineRunContext.getStore();
+  const persistedInputSnapshot = sealedSpine
+    ? {
+        ...input.inputSnapshot,
+        cognitiveSpine: {
+          snapshot: sealedSpine.snapshot,
+          consumptionTrace: sealedSpine.consumptionTrace,
+        },
+      }
+    : input.inputSnapshot;
+
   const result = await db.from('sfi_cognitive_twin_runs').insert({
     task_id: input.taskId,
     contract_version: COGNITIVE_TWIN_CONTRACT_VERSION,
@@ -138,7 +124,7 @@ export async function registerStudioTwinRun(input: {
     role: input.role,
     status: input.status,
     objective: input.objective,
-    input_snapshot: input.inputSnapshot,
+    input_snapshot: persistedInputSnapshot,
     output_envelope: input.outputEnvelope ?? null,
     evidence_refs: [...new Set(input.evidenceRefs)],
     limitations: [...new Set(input.limitations ?? [])],
@@ -176,7 +162,14 @@ export async function registerStudioTwinRun(input: {
     }
   }
 
-  return { ok: true as const, error: null, id: String(result.data.id) };
+  return {
+    ok: true as const,
+    error: null,
+    id: String(result.data.id),
+    cognitiveSpinePersisted: Boolean(sealedSpine),
+    cognitiveSpineSnapshotId: sealedSpine?.snapshot.snapshotId ?? null,
+    cognitiveSpineSnapshotHash: sealedSpine?.snapshot.snapshotHash ?? null,
+  };
 }
 
 export async function persistStudioLearningCandidate(input: {
