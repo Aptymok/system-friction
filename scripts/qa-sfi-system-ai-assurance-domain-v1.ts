@@ -8,6 +8,9 @@ const intake=read('src/app/api/cases/[caseId]/system-ai/intake/route.ts');
 const assessments=read('src/app/api/cases/[caseId]/internal/system-ai/assessments/route.ts');
 const readModel=read('src/lib/sfi/case-platform/systemAiReadModel.ts');
 const integrity=read('src/lib/sfi/case-platform/integrity.ts');
+const enterpriseRepository=read('src/lib/sfi/case-platform/enterpriseRepository.ts');
+const enterpriseIntake=read('src/app/api/cases/[caseId]/enterprise/intake/route.ts');
+const tenderRoute=read('src/app/api/cases/[caseId]/internal/tender-assessments/route.ts');
 
 assert(migration.includes('alter table public.sfi_case_relations'));
 assert(!migration.includes('create table'));
@@ -24,6 +27,13 @@ assert(assessments.includes("['AI_GOVERNANCE_ASSURANCE','CUSTOM_RESEARCH']"));
 assert(readModel.includes('visualLayout:null'));
 assert(readModel.includes('ranking:null'));
 assert(integrity.includes('SFI_SYSTEM_AI_ENTITY_REFERENCE_NOT_FOUND'));
+assert(integrity.includes('SFI_CASE_SERVICE_PROFILE_FORBIDDEN'));
+assert(enterpriseRepository.includes(".in('relation_type', [...SFI_ENTERPRISE_RELATION_TYPES])"),'enterprise read model must not absorb system/AI relations');
+assert(enterpriseRepository.includes('assertCaseServiceProfileAllowed'),'enterprise relation repository must be profile-routed');
+assert(enterpriseIntake.includes("['SERVICE_OBSERVABILITY','ENTERPRISE_MEMORY','CUSTOM_RESEARCH']"),'ticket intake must route to service observability');
+assert(enterpriseIntake.includes("['CONTRACT_WARRANTY_ASSURANCE','ENTERPRISE_MEMORY','CUSTOM_RESEARCH']"),'warranty intake must route to warranty assurance');
+assert(enterpriseIntake.includes("['TENDER_ASSURANCE','ENTERPRISE_MEMORY','CUSTOM_RESEARCH']"),'tender requirement intake must route to tender assurance');
+assert(tenderRoute.includes("['TENDER_ASSURANCE','CUSTOM_RESEARCH']"),'tender assessments must be tender-routed');
 
 const aiSystem=systemAiEntityRef('AI_SYSTEM','ai-1'); const model=systemAiEntityRef('AI_MODEL','m-1');
 const execution=normalizeAiExecutionTrace({executionId:'x-1',aiSystemRef:aiSystem,modelRef:model,startedAt:'2026-08-16T12:00:00Z',status:'DONE',inputHash:'abc123',outputHash:'def456'});
@@ -38,4 +48,4 @@ const governance=buildAiGovernanceTraceAssessment({assessmentId:'g-1',stagePrese
 const badRelation=validateSystemAiRelationDraft({relationKey:'bad',relationType:'AI_SYSTEM_USES_MODEL',epistemicRole:'RECORD',from:systemAiEntityRef('COMPONENT','c'),to:model}); assert(badRelation.includes('SYSTEM_AI_RELATION_FROM_TYPE_MISMATCH:AI_SYSTEM'));
 const inferred=validateSystemAiRelationDraft({relationKey:'infer',relationType:'COMPONENT_DEPENDS_ON_COMPONENT',epistemicRole:'INFERENCE',from:systemAiEntityRef('COMPONENT','a'),to:systemAiEntityRef('COMPONENT','b')}); assert(inferred.includes('SYSTEM_AI_INFERRED_RELATION_REQUIRES_EVIDENCE'));
 
-console.log(JSON.stringify({ok:true,contract:'SFI-SYSTEM-AI-ASSURANCE-DOMAIN-1.0',profiles:['SYSTEM_OBSERVATORY','AI_IMPLEMENTATION_DIAGNOSTIC','AI_ADOPTION_INTEGRATION','AI_GOVERNANCE_ASSURANCE'],sharedRelationStore:true,visualLayoutDefined:false,aiOutputDecisionAuthority:false,automaticRootCause:false,projectionObservedReturn:false,traceCompletenessCompliance:false},null,2));
+console.log(JSON.stringify({ok:true,contract:'SFI-SYSTEM-AI-ASSURANCE-DOMAIN-1.0',profiles:['SYSTEM_OBSERVATORY','AI_IMPLEMENTATION_DIAGNOSTIC','AI_ADOPTION_INTEGRATION','AI_GOVERNANCE_ASSURANCE'],sharedRelationStore:true,serviceProfileRouting:true,visualLayoutDefined:false,aiOutputDecisionAuthority:false,automaticRootCause:false,projectionObservedReturn:false,traceCompletenessCompliance:false},null,2));
