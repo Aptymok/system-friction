@@ -1,6 +1,5 @@
 import 'server-only';
 
-import { randomUUID } from 'node:crypto';
 import {
   assertSfiCaseActionTransition,
   type SfiCaseActionDecision,
@@ -147,10 +146,10 @@ export async function recordApprovedCaseIntervention(input: {
     kind: 'INTERVENTION',
     epistemicRole: 'RECORD',
     canonicalRef: interventionRef,
-    recordRefs: [proposal.recommendationRef],
     payload: {
       contract: 'SFI-CASE-ACTION-1.0',
       proposalId: input.proposalId,
+      recommendationRef: proposal.recommendationRef,
       approved: true,
       action: proposal.action,
       executionDetails: input.executionDetails ?? {},
@@ -161,7 +160,7 @@ export async function recordApprovedCaseIntervention(input: {
   const service = createServiceSupabaseClient();
   const updated = await service.from('sfi_case_action_proposals').update({ status: 'EXECUTED', intervention_ref: intervention.canonicalRef }).eq('id', input.proposalId).eq('status', 'APPROVED').select('*').maybeSingle();
   if (updated.error || !updated.data) throw new Error(`SFI_CASE_INTERVENTION_STATE_WRITE_FAILED:${updated.error?.message ?? 'status_changed'}`);
-  await audit(input.caseId, authority.tenantId, input.userId, 'CASE_INTERVENTION_RECORDED', { proposalId: input.proposalId, interventionRef: intervention.canonicalRef, platformPerformedExternalAction: false });
+  await audit(input.caseId, authority.tenantId, input.userId, 'CASE_INTERVENTION_RECORDED', { proposalId: input.proposalId, recommendationRef: proposal.recommendationRef, interventionRef: intervention.canonicalRef, platformPerformedExternalAction: false });
   return { proposal: proposalFromRow(updated.data as Row), intervention };
 }
 
