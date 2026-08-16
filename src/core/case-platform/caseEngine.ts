@@ -27,6 +27,10 @@ function requireText(value: string, field: string) {
   if (!value.trim()) throw new Error(`SFI_CASE_INVALID:${field}`);
 }
 
+function includesString(values: readonly string[], value: string) {
+  return values.includes(value);
+}
+
 export function createSfiCaseV1(input: CreateSfiCaseV1Input): SfiCaseV1 {
   requireText(input.id, 'id');
   requireText(input.tenantId, 'tenantId');
@@ -37,7 +41,7 @@ export function createSfiCaseV1(input: CreateSfiCaseV1Input): SfiCaseV1 {
 
   const profile = getSfiServiceProfile(input.serviceProfileId);
   if (!profile) throw new Error(`SFI_CASE_UNKNOWN_SERVICE_PROFILE:${input.serviceProfileId}`);
-  if (!profile.acceptedSubjects.includes(input.subject)) {
+  if (!includesString(profile.acceptedSubjects, input.subject)) {
     throw new Error(`SFI_CASE_SUBJECT_NOT_ACCEPTED:${input.serviceProfileId}:${input.subject}`);
   }
 
@@ -98,7 +102,7 @@ export function validateSfiCaseV1(caseRecord: SfiCaseV1): string[] {
   if (!caseRecord.id.trim()) violations.push('CASE_ID_REQUIRED');
   if (!caseRecord.tenantId.trim()) violations.push('TENANT_ID_REQUIRED');
   if (!profile) violations.push('SERVICE_PROFILE_UNKNOWN');
-  if (profile && !profile.acceptedSubjects.includes(caseRecord.subject)) violations.push('SUBJECT_NOT_ACCEPTED_BY_PROFILE');
+  if (profile && !includesString(profile.acceptedSubjects, caseRecord.subject)) violations.push('SUBJECT_NOT_ACCEPTED_BY_PROFILE');
   if (!caseRecord.systemBoundaryRef.id.trim()) violations.push('SYSTEM_BOUNDARY_REQUIRED');
   if (!caseRecord.temporalWindow.cutoff.trim()) violations.push('TEMPORAL_CUTOFF_REQUIRED');
   if (caseRecord.lineage.sourceCutoff !== caseRecord.temporalWindow.cutoff) violations.push('CASE_SOURCE_CUTOFF_DRIFT');
