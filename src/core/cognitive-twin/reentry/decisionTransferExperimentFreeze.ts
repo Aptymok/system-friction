@@ -9,6 +9,7 @@ type Row = Record<string, unknown>;
 
 export const SFI_DT_PROTOCOL_VERSION = 'SFI-DT-1.0' as const;
 export const SFI_DT_INSTRUMENT_BASE_COMMIT = '3b7ce699e2654ed1fb551498cfeaad37731f6f88' as const;
+export const SFI_DT_INSTRUMENT_SOURCE_HASH = '0000000000000000000000000000000000000000000000000000000000000000' as const;
 export const SFI_DT_CONFIRMATORY_MODEL = {
   provider: 'groq',
   expectedModel: 'openai/gpt-oss-20b',
@@ -29,6 +30,22 @@ function text(value: unknown): string | null {
 
 function sha256(value: string) {
   return createHash('sha256').update(value).digest('hex');
+}
+
+function runtimeCommitSha() {
+  const value = process.env.VERCEL_GIT_COMMIT_SHA ?? process.env.GITHUB_SHA ?? null;
+  if (!value || !/^[0-9a-f]{40}$/i.test(value)) throw new Error('DT_INSTRUMENT_RUNTIME_COMMIT_UNAVAILABLE');
+  return value.toLowerCase();
+}
+
+export function assertDecisionTransferInstrumentRevision() {
+  if (!/^[0-9a-f]{64}$/i.test(SFI_DT_INSTRUMENT_SOURCE_HASH) || /^0{64}$/.test(SFI_DT_INSTRUMENT_SOURCE_HASH)) {
+    throw new Error('DT_INSTRUMENT_SOURCE_HASH_NOT_FROZEN');
+  }
+  return {
+    instrumentSourceHash: SFI_DT_INSTRUMENT_SOURCE_HASH,
+    runtimeCommit: runtimeCommitSha(),
+  };
 }
 
 export function applyDecisionTransferExperimentFreeze(value: unknown) {
@@ -54,6 +71,7 @@ export function applyDecisionTransferExperimentFreeze(value: unknown) {
 }
 
 export function assertDecisionTransferModelPreflight() {
+  const instrumentRevision = assertDecisionTransferInstrumentRevision();
   const provider = getLlmProviderStatus().find((item) => item.id === SFI_DT_CONFIRMATORY_MODEL.provider);
   if (!provider?.available) {
     throw new Error(`DT_MODEL_PROVIDER_UNAVAILABLE:${SFI_DT_CONFIRMATORY_MODEL.provider}`);
@@ -71,6 +89,7 @@ export function assertDecisionTransferModelPreflight() {
     systemPromptHash: SFI_DT_BLIND_SYSTEM_PROMPT_SHA256,
     promptTemplateHash: SFI_DT_BLIND_PROMPT_TEMPLATE_SHA256,
     instrumentBaseCommit: SFI_DT_INSTRUMENT_BASE_COMMIT,
+    ...instrumentRevision,
   };
 }
 
@@ -86,6 +105,7 @@ export async function bindDecisionTransferModelContract(input: {
     throw new Error(`DT_MODEL_ACTUAL_MODEL_MISMATCH:${SFI_DT_CONFIRMATORY_MODEL.expectedModel}->${input.actualModel}`);
   }
 
+  const instrumentRevision = assertDecisionTransferInstrumentRevision();
   const db = createServiceSupabaseClient();
   const read = await db.from('sfi_cognitive_twin_runs')
     .select('id,role,status,input_snapshot')
@@ -97,7 +117,6 @@ export async function bindDecisionTransferModelContract(input: {
   }
 
   const snapshot = record(read.data.input_snapshot);
-  const runtimeCommit = process.env.VERCEL_GIT_COMMIT_SHA ?? process.env.GITHUB_SHA ?? null;
   const contractBase = {
     protocolVersion: SFI_DT_PROTOCOL_VERSION,
     provider: SFI_DT_CONFIRMATORY_MODEL.provider,
@@ -108,7 +127,8 @@ export async function bindDecisionTransferModelContract(input: {
     systemPromptHash: SFI_DT_BLIND_SYSTEM_PROMPT_SHA256,
     promptTemplateHash: SFI_DT_BLIND_PROMPT_TEMPLATE_SHA256,
     instrumentBaseCommit: SFI_DT_INSTRUMENT_BASE_COMMIT,
-    runtimeCommit,
+    instrumentSourceHash: instrumentRevision.instrumentSourceHash,
+    runtimeCommit: instrumentRevision.runtimeCommit,
   };
   const modelContract = {
     ...contractBase,
