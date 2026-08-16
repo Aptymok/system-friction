@@ -22,13 +22,22 @@ for (const forbidden of [
   assert.equal(studioTwinContext.includes(forbidden), false, `studio_live_twin_read_reintroduced:${forbidden}`);
 }
 
-assert.ok(studioSpineAdapter.includes("STUDIO_OBJECT_CONTEXT_PROFILE"), 'studio_projection_profile_missing');
-assert.ok(studioSpineAdapter.includes("profileId: STUDIO_OBJECT_CONTEXT_PROFILE.profileId"), 'studio_profile_not_materialized');
+assert.ok(studioSpineAdapter.includes('STUDIO_OBJECT_CONTEXT_PROFILE'), 'studio_projection_profile_missing');
+assert.ok(studioSpineAdapter.includes('profileId: STUDIO_OBJECT_CONTEXT_PROFILE.profileId'), 'studio_profile_not_materialized');
 assert.ok(studioSpineAdapter.includes('buildBoundedTwinContextFromCognitiveSpine'), 'studio_bounded_context_adapter_missing');
 assert.ok(studioSpineAdapter.includes('consume: true'), 'studio_consumption_not_explicit');
 
-// Existing cognitive paths may keep the compatibility function during the
-// migration, but it must now resolve through the sealed boundary above.
+// Exact run provenance is transported request-locally so the persisted run
+// cannot silently rematerialize a newer CT state at write time.
+assert.ok(studioTwinContext.includes('AsyncLocalStorage<StudioCognitiveSpineRunContext>'), 'studio_request_local_spine_context_missing');
+assert.ok(studioTwinContext.includes('studioCognitiveSpineRunContext.enterWith'), 'studio_consumed_snapshot_not_bound_to_async_run');
+assert.ok(studioTwinContext.includes('studioCognitiveSpineRunContext.getStore()'), 'studio_run_persistence_not_reading_bound_snapshot');
+assert.ok(studioTwinContext.includes('snapshot: sealedSpine.snapshot'), 'studio_run_exact_snapshot_not_persisted');
+assert.ok(studioTwinContext.includes('consumptionTrace: sealedSpine.consumptionTrace'), 'studio_run_exact_consumption_trace_not_persisted');
+assert.ok(studioTwinContext.includes('cognitiveSpinePersisted: Boolean(sealedSpine)'), 'studio_run_spine_persistence_status_missing');
+
+// Existing cognitive paths keep the compatibility call in this migration,
+// but that call is now sealed and request-local as proven above.
 assert.ok(studioRuntime.includes('readStudioTwinContext'), 'studio_runtime_context_boundary_missing');
 assert.ok(reconstructionRoute.includes('readStudioTwinContext'), 'studio_reconstruction_context_boundary_missing');
 
@@ -38,6 +47,8 @@ console.log(JSON.stringify({
   liveTwinTableRead: false,
   sealedSnapshotIdentityExposed: true,
   boundedMemoryDecisionContext: true,
+  exactSnapshotPersistedWithRun: true,
+  concurrentRunIsolation: 'AsyncLocalStorage',
   runtimeCompatibilityPath: true,
   reconstructionCompatibilityPath: true,
 }, null, 2));
