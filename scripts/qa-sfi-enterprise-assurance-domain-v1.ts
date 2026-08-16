@@ -55,9 +55,10 @@ const ticket = normalizeServiceTicketRecord({
   sourceRefs: [{ id: 'source:tickets' }],
 });
 const ticketRelations = ticket.relations.map((item) => item.relationType);
+console.log('ENTERPRISE_TICKET_RELATIONS', JSON.stringify(ticket));
 assert.equal(ticket.object.payload.problemIdentityClaimed, false);
-assert(ticketRelations.includes('TICKET_AFFECTS_ASSET'), `ticket relations missing asset edge: ${JSON.stringify(ticket.relations)}`);
-assert(ticketRelations.includes('TICKET_SUBJECT_TO_SLA'), `ticket relations missing SLA edge: ${JSON.stringify(ticket.relations)}`);
+if (!ticketRelations.includes('TICKET_AFFECTS_ASSET')) throw new Error(`ENTERPRISE_QA_TICKET_ASSET_EDGE_MISSING:${JSON.stringify(ticket.relations)}`);
+if (!ticketRelations.includes('TICKET_SUBJECT_TO_SLA')) throw new Error(`ENTERPRISE_QA_TICKET_SLA_EDGE_MISSING:${JSON.stringify(ticket.relations)}`);
 
 const warranty = normalizeWarrantyEventRecord({
   eventId: 'W-1',
