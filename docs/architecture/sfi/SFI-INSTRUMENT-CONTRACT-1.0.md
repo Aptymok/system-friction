@@ -1,7 +1,7 @@
 # SFI Instrument Contract 1.0
 
 **Contract:** `SFI-INSTRUMENT-CONTRACT-1.0`  
-**Status:** FROZEN CANDIDATE
+**Status:** FROZEN
 
 Methods, AI models, LLMs, simulation, forecasting, graphs, multiagent execution, Cognitive Twins, Organizational Twins, assurance engines and human review are instruments within governed SFI operations.
 

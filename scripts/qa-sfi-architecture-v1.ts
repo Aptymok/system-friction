@@ -17,7 +17,10 @@ import {
   createCaseAdmissionCandidate,
   type SfiCaseInstitutionAdmissionV1,
 } from '../src/core/case-platform/admissionGate';
-import { SFI_ARCHITECTURE_V1_STATUS } from '../src/core/case-platform/architectureStatus';
+import {
+  SFI_ARCHITECTURE_V1_STATUS,
+  SFI_CORE_V1_STATUS,
+} from '../src/core/case-platform/architectureStatus';
 import { SFI_SERVICE_PROFILES } from '../src/core/case-platform/serviceProfiles';
 import { COGNITIVE_SPINE_SURFACE_INTEGRATIONS } from '../src/core/cognitive-spine/surfaceIntegrationRegistry';
 
@@ -32,10 +35,19 @@ const expectedConstitution = [
   'SFI-COMMERCIAL-BOUNDARY-CONTRACT-1.0',
 ] as const;
 assert.deepEqual(SFI_ARCHITECTURE_V1_STATUS.constitutionalContracts, expectedConstitution, 'constitutional_contract_set_changed');
-assert.equal(SFI_ARCHITECTURE_V1_STATUS.technicalStatus, 'PASS_CANDIDATE', 'architecture_status_must_remain_candidate_until_gate');
+assert.equal(SFI_ARCHITECTURE_V1_STATUS.technicalStatus, 'PASS', 'architecture_status_not_pass');
 assert.equal(SFI_ARCHITECTURE_V1_STATUS.empiricalValidation, 'OPEN_ACCUMULATING', 'architecture_must_not_claim_empirical_validation');
 assert.equal(SFI_ARCHITECTURE_V1_STATUS.scientificValidityImplied, false, 'architecture_claims_scientific_validity');
 assert.equal(SFI_ARCHITECTURE_V1_STATUS.truthAuthorityGranted, false, 'architecture_grants_truth_authority');
+assert.equal(SFI_CORE_V1_STATUS.technicalStatus, 'PASS', 'sfi_core_v1_not_pass');
+assert.equal(SFI_CORE_V1_STATUS.architecture, 'PASS', 'sfi_core_architecture_not_pass');
+assert.equal(SFI_CORE_V1_STATUS.epistemicContract, 'FROZEN', 'epistemic_contract_not_frozen');
+assert.equal(SFI_CORE_V1_STATUS.systemContract, 'FROZEN', 'system_contract_not_frozen');
+assert.equal(SFI_CORE_V1_STATUS.temporalContract, 'FROZEN', 'temporal_contract_not_frozen');
+assert.equal(SFI_CORE_V1_STATUS.instrumentContract, 'FROZEN', 'instrument_contract_not_frozen');
+assert.equal(SFI_CORE_V1_STATUS.commercialBoundaryContract, 'FROZEN', 'commercial_boundary_not_frozen');
+assert.equal(SFI_CORE_V1_STATUS.operationalExercise, 'OPEN', 'software_closure_must_not_claim_operational_exercise');
+assert.equal(SFI_CORE_V1_STATUS.empiricalValidation, 'OPEN_ACCUMULATING', 'core_must_not_claim_empirical_validation');
 
 assert.equal(SFI_EPISTEMIC_INVARIANTS.recordEqualsEvidence, false, 'record_collapsed_into_evidence');
 assert.equal(SFI_EPISTEMIC_INVARIANTS.governanceEqualsTruth, false, 'governance_collapsed_into_truth');
@@ -130,6 +142,8 @@ const coreFiles = [
   'src/core/contracts/report.ts',
   'src/core/contracts/sfi.ts',
   'src/core/case-platform/serviceProfiles.ts',
+  'src/core/case-platform/caseEngine.ts',
+  'src/core/case-platform/reportAssembler.ts',
   'src/core/case-platform/admissionGate.ts',
   'src/core/case-platform/architectureStatus.ts',
 ];
@@ -150,13 +164,14 @@ assert.ok(legacyFieldContracts.includes('export type FieldCase'), 'existing_fiel
 assert.ok(legacyFieldContracts.includes('export type ReturnRecord'), 'existing_return_contract_removed_instead_of_promoted');
 
 const requiredDocs = [
-  ['docs/architecture/sfi/SFI-ARCHITECTURE-1.0.md', 'SFI-ARCHITECTURE-1.0'],
-  ['docs/architecture/sfi/SFI-EPISTEMIC-CONTRACT-1.0.md', 'SFI-EPISTEMIC-CONTRACT-1.0'],
-  ['docs/architecture/sfi/SFI-SYSTEM-CONTRACT-1.0.md', 'SFI-SYSTEM-CONTRACT-1.0'],
-  ['docs/architecture/sfi/SFI-TEMPORAL-CONTRACT-1.0.md', 'SFI-TEMPORAL-CONTRACT-1.0'],
-  ['docs/architecture/sfi/SFI-INSTRUMENT-CONTRACT-1.0.md', 'SFI-INSTRUMENT-CONTRACT-1.0'],
-  ['docs/architecture/sfi/SFI-COMMERCIAL-BOUNDARY-CONTRACT-1.0.md', 'SFI-COMMERCIAL-BOUNDARY-CONTRACT-1.0'],
-  ['docs/architecture/sfi/SFI-CASE-REPORT-CONTRACTS-1.0.md', 'SFI-CASE-1.0'],
+  ['docs/architecture/sfi/SFI-ARCHITECTURE-1.0.md', '**Status:** FROZEN'],
+  ['docs/architecture/sfi/SFI-EPISTEMIC-CONTRACT-1.0.md', '**Status:** FROZEN'],
+  ['docs/architecture/sfi/SFI-SYSTEM-CONTRACT-1.0.md', '**Status:** FROZEN'],
+  ['docs/architecture/sfi/SFI-TEMPORAL-CONTRACT-1.0.md', '**Status:** FROZEN'],
+  ['docs/architecture/sfi/SFI-INSTRUMENT-CONTRACT-1.0.md', '**Status:** FROZEN'],
+  ['docs/architecture/sfi/SFI-COMMERCIAL-BOUNDARY-CONTRACT-1.0.md', '**Status:** FROZEN'],
+  ['docs/architecture/sfi/SFI-CASE-REPORT-CONTRACTS-1.0.md', '**Status:** VALIDATED'],
+  ['docs/architecture/sfi/SFI-CORE-1.0-CLOSURE.md', 'SFI_CORE_V1 = PASS'],
   ['docs/architecture/sfi/MIHM-DIMENSIONAL-TRANSFER-MODEL-0.md', 'EXPERIMENTAL'],
 ] as const;
 for (const [file, marker] of requiredDocs) {
@@ -165,7 +180,8 @@ for (const [file, marker] of requiredDocs) {
 
 console.log(JSON.stringify({
   ok: true,
-  claimIfGreen: 'SFI_ARCHITECTURE_V1 = PASS',
+  claim: 'SFI_ARCHITECTURE_V1 = PASS',
+  coreClaim: 'SFI_CORE_V1 = PASS',
   constitutionalContracts: expectedConstitution.length,
   serviceProfiles: profileIds.length,
   caseContract: 'SFI-CASE-1.0',
@@ -177,5 +193,6 @@ console.log(JSON.stringify({
   cognitiveSpineRequiredMiddleware: false,
   platformNeutralCore: true,
   dimensionalTransfer: 'EXPERIMENTAL',
+  operationalExercise: 'OPEN',
   empiricalValidation: 'OPEN_ACCUMULATING',
 }, null, 2));

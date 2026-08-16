@@ -1,7 +1,7 @@
 # SFI System Contract 1.0
 
 **Contract:** `SFI-SYSTEM-CONTRACT-1.0`  
-**Status:** FROZEN CANDIDATE
+**Status:** FROZEN
 
 MIHM is the general systemic formalism. A bounded system may be represented through:
 

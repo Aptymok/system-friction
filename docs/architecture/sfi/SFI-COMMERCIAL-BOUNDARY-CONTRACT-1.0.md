@@ -1,7 +1,7 @@
 # SFI Commercial Boundary Contract 1.0
 
 **Contract:** `SFI-COMMERCIAL-BOUNDARY-CONTRACT-1.0`  
-**Status:** FROZEN CANDIDATE
+**Status:** FROZEN
 
 The commercial layer consumes governed institute capabilities through tenant-scoped cases.
 

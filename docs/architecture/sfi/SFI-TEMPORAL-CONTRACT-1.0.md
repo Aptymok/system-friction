@@ -1,7 +1,7 @@
 # SFI Temporal Contract 1.0
 
 **Contract:** `SFI-TEMPORAL-CONTRACT-1.0`  
-**Status:** FROZEN CANDIDATE
+**Status:** FROZEN
 
 Supported temporal modes are `CROSS_SECTIONAL`, `LONGITUDINAL`, `RETROLONGITUDINAL`, `COUNTERFACTUAL` and `PROJECTIVE`.
 

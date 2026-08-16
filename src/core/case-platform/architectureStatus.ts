@@ -12,10 +12,11 @@ import {
 import { SFI_SERVICE_PROFILES } from './serviceProfiles';
 
 export const SFI_ARCHITECTURE_CONTRACT = 'SFI-ARCHITECTURE-1.0' as const;
+export const SFI_CORE_CONTRACT = 'SFI-CORE-1.0' as const;
 
 export const SFI_ARCHITECTURE_V1_STATUS = {
   contract: SFI_ARCHITECTURE_CONTRACT,
-  technicalStatus: 'PASS_CANDIDATE',
+  technicalStatus: 'PASS',
   constitutionalContracts: [
     SFI_EPISTEMIC_CONTRACT,
     SFI_SYSTEM_CONTRACT,
@@ -41,4 +42,31 @@ export const SFI_ARCHITECTURE_V1_STATUS = {
   phenomenalConsciousnessClaim: false,
   statement:
     'SFI Architecture V1 is the shared constitutional frame for observation, system modelling, temporal reconstruction, instruments, governed intervention, institutional continuity and tenant-scoped commercial cases.',
+} as const;
+
+export const SFI_CORE_V1_STATUS = {
+  contract: SFI_CORE_CONTRACT,
+  technicalStatus: 'PASS',
+  architecture: 'PASS',
+  epistemicContract: 'FROZEN',
+  systemContract: 'FROZEN',
+  temporalContract: 'FROZEN',
+  instrumentContract: 'FROZEN',
+  commercialBoundaryContract: 'FROZEN',
+  caseContract: 'VALIDATED',
+  caseEngine: 'VALIDATED',
+  reportContract: 'VALIDATED',
+  reportAssembler: 'VALIDATED',
+  serviceProfileRegistry: 'VALIDATED',
+  cognitiveSpine: 'INTEGRATED',
+  rootGovernance: 'PRESERVED',
+  platformIndependence: 'PRESERVED',
+  tenantToRoot: 'PROHIBITED',
+  caseToInstitutionalMemory: 'GATED',
+  aiOutputToEvidence: 'PROHIBITED_BY_INHERITANCE',
+  reportToAction: 'GOVERNANCE_GATED',
+  operationalExercise: 'OPEN',
+  empiricalValidation: 'OPEN_ACCUMULATING',
+  statement:
+    'SFI Core V1 is technically constituted. Operational exercise and empirical validation remain separate open programs and cannot be inferred from software closure.',
 } as const;

@@ -1,7 +1,7 @@
 # System Friction Institute Architecture 1.0
 
 **Contract:** `SFI-ARCHITECTURE-1.0`  
-**Status:** FROZEN CANDIDATE — becomes technical PASS only when repository gates are green.
+**Status:** FROZEN
 
 System Friction Institute (SFI) is not a collection of modules, an AI company, or a family of unrelated SaaS products. It is one institutional architecture for observing, modelling, intervening and learning from complex systems. Commercial delivery configures that capacity as tenant-scoped cases, service profiles and governed reports.
 

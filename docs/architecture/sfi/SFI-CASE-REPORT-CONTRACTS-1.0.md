@@ -1,13 +1,17 @@
 # SFI Case and Report Contracts 1.0
 
 **Contracts:** `SFI-CASE-1.0`, `SFI-REPORT-1.0`, `SFI-SERVICE-PROFILE-1.0`, `SFI-CASE-TO-INSTITUTION-GATE-1.0`  
-**Status:** VALIDATION CANDIDATE
+**Status:** VALIDATED
 
 ## Case
 
 A case coordinates canonical references for tenant, subject, scope, system boundary, temporal window, sources, records, evidence, system models, observations, friction, perturbations, trajectories, attractors, epistemic assessments, hypotheses, instrument runs, analyses, recommendations, interventions, returns and reports.
 
 `CASE ≠ SOURCE STORE ≠ EVIDENCE STORE ≠ INSTITUTIONAL MEMORY`.
+
+## Shared Case Engine
+
+All registered service profiles use the same platform-neutral semantic constructor and validator. Profile-specific subjects, inputs, analyses and validation requirements configure the case; they do not create independent product cores.
 
 ## Report
 

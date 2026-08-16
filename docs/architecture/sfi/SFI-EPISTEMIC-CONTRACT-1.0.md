@@ -1,7 +1,7 @@
 # SFI Epistemic Contract 1.0
 
 **Contract:** `SFI-EPISTEMIC-CONTRACT-1.0`  
-**Status:** FROZEN CANDIDATE
+**Status:** FROZEN
 
 The following classes are non-equivalent:
 
