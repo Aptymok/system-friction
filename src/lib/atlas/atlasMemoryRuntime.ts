@@ -1,3 +1,4 @@
+import { materializeAtlasCognitiveSpineTemporalContext } from '@/lib/atlas/cognitiveSpineTemporalContext';
 import { buildPublisherDraftRuntime } from '@/lib/publisher/publisherRuntime';
 
 export type AtlasMemoryRuntimeResult = { [key: string]: any };
@@ -11,7 +12,16 @@ function asString(value: unknown, fallback = 'n/a'): string {
 }
 
 export async function buildAtlasMemoryRuntime(): Promise<AtlasMemoryRuntimeResult> {
-  const publisher = await buildPublisherDraftRuntime();
+  const atlasStartedAt = new Date().toISOString();
+  const atlasExecutionId = `atlas-memory:${crypto.randomUUID()}`;
+  const [publisher, cognitiveSpine] = await Promise.all([
+    buildPublisherDraftRuntime(),
+    materializeAtlasCognitiveSpineTemporalContext({
+      executionId: atlasExecutionId,
+      sourceCutoff: atlasStartedAt,
+      createdAt: atlasStartedAt,
+    }),
+  ]);
 
   const draft = asRecord(publisher);
   const material = asRecord(draft.material);
@@ -39,6 +49,14 @@ export async function buildAtlasMemoryRuntime(): Promise<AtlasMemoryRuntimeResul
       asString(contrast.vector_id, ''),
     ].filter(Boolean),
     approval_required: Boolean(material.approval_required ?? draft.approval_required),
+    cognitive_spine: cognitiveSpine,
+    atlas_cognitive_boundary: {
+      context_is_read_only: true,
+      context_changes_publisher_material: false,
+      relationship_upgrades_epistemic_class: false,
+      association_implies_causality: false,
+      canonical_write_performed: false,
+    },
     publisher,
   };
 }
