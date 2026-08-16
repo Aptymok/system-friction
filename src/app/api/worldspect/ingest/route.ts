@@ -35,6 +35,7 @@ function manualCulturalObservation(body: Record<string, unknown>): SourceObserva
 }
 
 export async function POST(request: Request) {
+  const observationStartedAt = new Date().toISOString()
   const body = record(await request.json().catch(() => ({})))
   const observations = manualCulturalObservation(body)
   const includePublicAdapters = body.includePublicAdapters !== false
@@ -48,12 +49,16 @@ export async function POST(request: Request) {
       sourceHealth: result.sourceHealth,
       persistence: result.persistence,
       degraded_sources: result.degraded_sources,
+      cognitiveSpineContrast: result.cognitiveSpineContrast,
+      cognitiveSpineContrastWarning: result.cognitiveSpineContrastWarning,
     })
   }
 
   const result = await persistWorldSpectObservations(observations, 'manual', {
     manual_ingest: true,
     includePublicAdapters,
+  }, {
+    priorCognitiveStateCutoff: observationStartedAt,
   })
 
   return NextResponse.json({
@@ -63,5 +68,7 @@ export async function POST(request: Request) {
     sourceHealth: result.sourceHealth,
     persistence: result.persistence,
     degraded_sources: result.degraded_sources,
+    cognitiveSpineContrast: result.cognitiveSpineContrast,
+    cognitiveSpineContrastWarning: result.cognitiveSpineContrastWarning,
   })
 }

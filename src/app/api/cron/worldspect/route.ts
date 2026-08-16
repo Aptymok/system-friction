@@ -85,7 +85,12 @@ export async function GET(request: NextRequest) {
     degraded_sources: result.degraded_sources,
     writesPerformed: result.persistence.ok,
     persistence: result.persistence,
-    warnings: auth.warnings,
+    cognitiveSpineContrast: result.cognitiveSpineContrast,
+    cognitiveSpineContrastWarning: result.cognitiveSpineContrastWarning,
+    warnings: [
+      ...auth.warnings,
+      ...(result.cognitiveSpineContrastWarning ? [result.cognitiveSpineContrastWarning] : []),
+    ],
   })
 }
 
