@@ -118,6 +118,7 @@ export type DecisionTransferEvaluationEvidenceReceipt = {
 
 const ROOT_EVIDENCE_PREFIX = 'root_evidence_entries:';
 const VALIDATION_CLASSES = new Set<EvidenceClass>(['OBSERVED', 'VERIFIED_CONTRAST']);
+const HISTORY_PAGE_SIZE = 500;
 
 function record(value: unknown): Row {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Row : {};
@@ -306,6 +307,39 @@ async function loadGrounding(refSets: string[][]) {
   };
 }
 
+async function loadConfirmatoryEvaluationHistory(operationKey: string) {
+  const db = createServiceSupabaseClient();
+  const rows: Row[] = [];
+  let recordsSeen = 0;
+  let from = 0;
+
+  while (true) {
+    const read = await db.from('sfi_cognitive_twin_runs')
+      .select('id,input_snapshot,output_envelope,evidence_refs,created_at')
+      .eq('role', 'DECISION_TRANSFER_EVALUATOR')
+      .eq('status', 'CLOSED')
+      .order('created_at', { ascending: false })
+      .range(from, from + HISTORY_PAGE_SIZE - 1);
+    if (read.error) throw new Error(`DT_EVIDENCE_HISTORY_READ_FAILED:${read.error.message}`);
+
+    const page = (read.data ?? []) as Row[];
+    recordsSeen += page.length;
+    for (const row of page) {
+      const snapshot = record(row.input_snapshot);
+      if (text(snapshot.experimentalMode) !== 'CONFIRMATORY_FROZEN') continue;
+      if (text(snapshot.operationKey) !== operationKey) continue;
+      const lineage = record(snapshot.evaluationEvidence);
+      if (text(lineage.protocol) !== 'SFI-DT-EVIDENCE-MATERIALIZATION-1.0') continue;
+      rows.push(row);
+    }
+
+    if (page.length < HISTORY_PAGE_SIZE) break;
+    from += HISTORY_PAGE_SIZE;
+  }
+
+  return { rows, recordsSeen };
+}
+
 function demoteIfUngrounded<T extends { epistemicClass: EvidenceClass; evidenceRefs: string[] }>(
   candidate: T,
   grounding: Grounding,
@@ -470,21 +504,16 @@ export async function materializeDecisionTransferEvaluationEvidence(input: {
     }
   }
 
-  const historyRead = await db.from('sfi_cognitive_twin_runs')
-    .select('id,input_snapshot,output_envelope,evidence_refs,created_at')
-    .eq('role', 'DECISION_TRANSFER_EVALUATOR')
-    .eq('status', 'CLOSED')
-    .order('created_at', { ascending: false })
-    .limit(500);
-  if (historyRead.error) throw new Error(`DT_EVIDENCE_HISTORY_READ_FAILED:${historyRead.error.message}`);
-  const historyRows = (historyRead.data ?? []) as Row[];
-
+  const history = await loadConfirmatoryEvaluationHistory(input.operationKey);
+  const historyRows = history.rows;
   const occurrenceCandidates: CandidateOccurrence[] = [];
   const probeCandidates: CandidateProbe[] = [];
 
   for (const row of historyRows) {
     const sourceRecordId = `sfi_cognitive_twin_runs:${String(row.id)}`;
     const snapshot = record(row.input_snapshot);
+    if (text(snapshot.experimentalMode) !== 'CONFIRMATORY_FROZEN') continue;
+    if (text(snapshot.operationKey) !== input.operationKey) continue;
 
     for (const rawTrace of Array.isArray(snapshot.expected) ? snapshot.expected : []) {
       const trace = normalizeTrace(rawTrace);
@@ -582,7 +611,7 @@ export async function materializeDecisionTransferEvaluationEvidence(input: {
     modelContractHash,
     materializedAt,
 
-    recordsSeen: historyRows.length + grounding.evidenceRows.length + grounding.eventRows.length + 1,
+    recordsSeen: history.recordsSeen + grounding.evidenceRows.length + grounding.eventRows.length + 1,
     uniqueEvidenceObjects: evidenceIds.length,
     uniqueEvents: eventIds.length,
     independentObservationGroups: deduped.independentObservationGroups,
@@ -648,6 +677,7 @@ export async function materializeDecisionTransferEvaluationEvidence(input: {
       'SIMULATED, DERIVED and INFERRED material remains diagnostic and cannot increase validating counters.',
       'A simulated counterfactual is never counted as an empirical boundary probe.',
       'Confirmatory materialization requires a valid SFI-DT-1.0 model contract bound to the blind run before reveal.',
+      'Historical evaluator evidence is accepted only from CONFIRMATORY_FROZEN runs for the same operation and is paged through the complete closed-run history.',
     ],
     started_at: materializedAt,
     finished_at: materializedAt,
