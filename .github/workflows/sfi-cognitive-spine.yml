@@ -8,6 +8,8 @@ on:
       - 'src/infrastructure/ai/agentLlmClient.ts'
       - 'src/lib/institution/cognitiveSpine*.ts'
       - 'src/lib/institution/institutionalCycle.ts'
+      - 'src/lib/lab/decisionTransferCognitiveSpineBoundary.ts'
+      - 'src/app/api/root/method-lab/decision-transfer/blind/route.ts'
       - 'src/lib/field/cognitiveSpineProposalLink.ts'
       - 'src/lib/field/interventionExecution.ts'
       - 'src/lib/field/governedReturn.ts'
@@ -25,6 +27,8 @@ on:
       - 'src/infrastructure/ai/agentLlmClient.ts'
       - 'src/lib/institution/cognitiveSpine*.ts'
       - 'src/lib/institution/institutionalCycle.ts'
+      - 'src/lib/lab/decisionTransferCognitiveSpineBoundary.ts'
+      - 'src/app/api/root/method-lab/decision-transfer/blind/route.ts'
       - 'src/lib/field/cognitiveSpineProposalLink.ts'
       - 'src/lib/field/interventionExecution.ts'
       - 'src/lib/field/governedReturn.ts'
@@ -64,3 +68,5 @@ jobs:
         run: node --import tsx --test src/core/cognitive-spine/cprt/sourcePlaneMapping.test.ts
       - name: Platform-neutral profile materialization
         run: node --import tsx --test src/core/cognitive-spine/cprt/profileMaterialization.test.ts
+      - name: Decision Transfer isolation from operational SFI-CT
+        run: node --import tsx scripts/cognitive-spine/qa-decision-transfer-isolation.ts
