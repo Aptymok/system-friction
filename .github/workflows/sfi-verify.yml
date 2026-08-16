@@ -123,6 +123,9 @@ jobs:
       - name: Verify SFI Case Platform V1 shared engine
         run: npx tsx scripts/qa-sfi-case-platform-v1.ts
 
+      - name: Verify SFI Case Platform Operational V1
+        run: npx tsx scripts/qa-sfi-case-platform-operational-v1.ts
+
       - name: Typecheck
         id: typecheck
         shell: bash
