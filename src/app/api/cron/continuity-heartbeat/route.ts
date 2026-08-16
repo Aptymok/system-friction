@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { runContinuityHeartbeat } from '@/lib/continuity/runtime';
+import { runStudioAutonomyContinuation } from '@/lib/continuity/studioAutonomy';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -19,7 +20,27 @@ export async function GET(request: NextRequest) {
   if (!authorize(request)) return NextResponse.json({ ok: false, error: 'unauthorized_continuity_cron' }, { status: 401 });
   try {
     const result = await runContinuityHeartbeat('vercel_cron');
-    return NextResponse.json({ ok: result.status !== 'FAILED', ...result });
+    let studioAutonomy: Awaited<ReturnType<typeof runStudioAutonomyContinuation>> | { status: 'DEGRADED'; reason: string; targets: number; outcomes: [] };
+    try {
+      studioAutonomy = await runStudioAutonomyContinuation({
+        mode: result.mode,
+        continuityRunId: result.runId,
+        observations: result.results.map((item) => ({
+          capabilityId: item.capability.id,
+          status: item.status,
+          latencyMs: item.latencyMs,
+          errorCode: item.errorCode ?? null,
+        })),
+      });
+    } catch (error) {
+      studioAutonomy = {
+        status: 'DEGRADED',
+        reason: error instanceof Error ? error.message : String(error),
+        targets: 0,
+        outcomes: [],
+      };
+    }
+    return NextResponse.json({ ok: result.status !== 'FAILED', ...result, studioAutonomy });
   } catch (error) {
     return NextResponse.json({ ok: false, error: 'continuity_heartbeat_failed', details: error instanceof Error ? error.message : String(error) }, { status: 500 });
   }
