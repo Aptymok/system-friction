@@ -12,6 +12,7 @@ on:
       - 'src/lib/studio/cognitive/**'
       - 'src/app/api/studio/session/reconstruct/route.ts'
       - 'src/lib/field/cognitiveSpineProposalLink.ts'
+      - 'src/lib/field/fieldCognitiveSpineBoundary.ts'
       - 'src/lib/field/interventionExecution.ts'
       - 'src/lib/field/governedReturn.ts'
       - 'src/app/api/root/cognitive-spine/**'
@@ -32,6 +33,7 @@ on:
       - 'src/lib/studio/cognitive/**'
       - 'src/app/api/studio/session/reconstruct/route.ts'
       - 'src/lib/field/cognitiveSpineProposalLink.ts'
+      - 'src/lib/field/fieldCognitiveSpineBoundary.ts'
       - 'src/lib/field/interventionExecution.ts'
       - 'src/lib/field/governedReturn.ts'
       - 'src/app/api/root/cognitive-spine/**'
@@ -72,3 +74,5 @@ jobs:
         run: node --import tsx --test src/core/cognitive-spine/cprt/profileMaterialization.test.ts
       - name: Studio sealed Cognitive Spine context boundary
         run: node --import tsx scripts/cognitive-spine/qa-studio-sealed-context.ts
+      - name: Field blinded Cognitive Spine T0 boundary
+        run: node --import tsx scripts/cognitive-spine/qa-field-blinded-t0.ts
