@@ -46,7 +46,7 @@ export function PublicObservatoryTimelineNavigator() {
 
   return (
     <section className="rn-panel rn-panel--full observatory-history" id="time-movement">
-      <div className="observatory-history__head"><div><span>HISTORICAL FRAME / PERSISTED WORLDSPECT</span><h2>Move through observed snapshots.</h2><p>The cursor does not interpolate missing days. Each position resolves one persisted WorldSpect frame and only the public domains calculable at that observed state.</p></div><button type="button" onClick={() => void load()} disabled={loading}>{loading ? 'READING…' : 'REFRESH SERIES'}</button></div>
+      <div className="observatory-history__head"><div><span>HISTORICAL FRAME / PERSISTED WORLDSPECT</span><h2>Move through observed snapshots.</h2><p>Cada posición corresponde a un snapshot WorldSpect almacenado. El cursor no interpola días faltantes; resuelve únicamente el frame persistido y los dominios públicos calculables en ese estado observado.</p></div><button type="button" onClick={() => void load()} disabled={loading}>{loading ? 'READING…' : 'REFRESH SERIES'}</button></div>
       {error ? <div className="observatory-history__error">{error}</div> : null}
       {frame ? <>
         <div className="observatory-history__metrics"><div><span>FRAME</span><strong>{date(frame.observedAt)}</strong><small>{frame.sourceState.toUpperCase()}</small></div><div><span>WSV</span><strong>{value(frame.wsi)}</strong><small>aggregate world state</small></div><div><span>NTI</span><strong>{value(frame.nti)}</strong><small>snapshot tension</small></div><div><span>CONFIDENCE</span><strong>{value(frame.confidence)}</strong><small>{frame.ingestMode.toUpperCase()}</small></div></div>
