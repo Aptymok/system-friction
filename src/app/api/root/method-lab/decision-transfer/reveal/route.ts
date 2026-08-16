@@ -1,11 +1,13 @@
 import { NextResponse } from 'next/server';
 import { ZodError } from 'zod';
 import { auditRootAction, requireRootActor } from '@/lib/root/server';
-import {
-  executeBlindDecisionReveal,
-  parseBlindDecisionRevealInput,
-} from '@/core/cognitive-twin/reentry/blindDecisionReconstruction';
+import { executeBlindDecisionReveal } from '@/core/cognitive-twin/reentry/blindDecisionReconstruction';
 import { verifyBlindDecisionContextIntegrity } from '@/core/cognitive-twin/reentry/blindDecisionIntegrity';
+import {
+  materializeDecisionTransferEvaluationEvidence,
+  parseDecisionTransferConfirmatoryRevealInput,
+  verifyFrozenDecisionTransferEvaluationEvidence,
+} from '@/core/cognitive-twin/reentry/decisionTransferEvaluationEvidence';
 import {
   parseTargetObservationEvidenceIds,
   verifyRevealedTargetAfterContextCutoff,
@@ -28,17 +30,40 @@ export async function POST(request: Request) {
   try {
     const raw = await request.json();
     const targetObservationEvidenceIds = parseTargetObservationEvidenceIds(raw);
-    const input = parseBlindDecisionRevealInput(withoutTimingExtension(raw));
+    const input = parseDecisionTransferConfirmatoryRevealInput(withoutTimingExtension(raw));
     const contextIntegrity = await verifyBlindDecisionContextIntegrity(input.blindRunId);
     const targetTiming = await verifyRevealedTargetAfterContextCutoff({
       blindRunId: input.blindRunId,
       target: input.target,
       targetObservationEvidenceIds,
     });
-    const result = await executeBlindDecisionReveal(input, gate.ctx.user.id);
-    const verifiedTargetEvidenceIds = targetTiming.required
-      ? targetTiming.evidence.map((item) => item.evidenceId)
-      : [];
+    if (!targetTiming.required || !targetTiming.verified) {
+      throw new Error('DT_EVIDENCE_CONFIRMATORY_TARGET_TIMING_REQUIRED');
+    }
+
+    const materialized = await materializeDecisionTransferEvaluationEvidence({
+      blindRunId: input.blindRunId,
+      target: input.target,
+      operationKey: input.operationKey,
+      targetTimingProofHash: targetTiming.proofHash,
+    });
+    const frozen = await verifyFrozenDecisionTransferEvaluationEvidence({
+      materializationRunId: materialized.materializationRunId,
+      expectedReceiptHash: materialized.receipt.receiptHash,
+    });
+
+    const inputForScoring = {
+      ...input,
+      occurrences: frozen.receipt.occurrences,
+      counterfactualProbes: [
+        ...frozen.receipt.empiricalBoundaryProbes,
+        ...frozen.receipt.diagnosticCounterfactuals,
+      ],
+      boundaryProbeCount: frozen.receipt.qualifyingBoundaryProbeCount,
+    };
+    const result = await executeBlindDecisionReveal(inputForScoring, gate.ctx.user.id);
+
+    const verifiedTargetEvidenceIds = targetTiming.evidence.map((item) => item.evidenceId);
     const audit = await auditRootAction({
       actorId: gate.ctx.user.id,
       action: 'method_lab.decision_transfer.blind_target_revealed',
@@ -58,25 +83,50 @@ export async function POST(request: Request) {
         targetTimingRequired: targetTiming.required,
         targetTimingVerified: targetTiming.verified,
         targetTimingStatus: targetTiming.status,
-        targetTimingProofHash: targetTiming.required ? targetTiming.proofHash : null,
-        contextCutoffAt: targetTiming.required ? targetTiming.cutoffAt : null,
-        earliestObservedTargetAt: targetTiming.required ? targetTiming.earliestObservedTargetAt : null,
+        targetTimingProofHash: targetTiming.proofHash,
+        contextCutoffAt: targetTiming.cutoffAt,
+        earliestObservedTargetAt: targetTiming.earliestObservedTargetAt,
         verifiedTargetObservationEvidenceIds: verifiedTargetEvidenceIds,
+        evaluationEvidenceProtocol: frozen.receipt.protocol,
+        evaluationEvidenceMaterializationRunId: frozen.materializationRunId,
+        evaluationEvidenceReceiptHash: frozen.receipt.receiptHash,
+        evaluationEvidencePoolHash: frozen.receipt.evidencePoolHash,
+        evaluationEvidenceValidationStatus: frozen.receipt.validationStatus,
+        boundaryValidationStatus: frozen.receipt.boundaryValidationStatus,
+        qualifyingOccurrenceCount: frozen.receipt.qualifyingOccurrenceCount,
+        qualifyingBoundaryProbeCount: frozen.receipt.qualifyingBoundaryProbeCount,
+        manualValidatingOccurrences: 0,
+        manualValidatingProbes: 0,
+        manualBoundaryCount: 0,
       },
       request,
     });
     if (!audit.ok) return NextResponse.json({ ok: false, error: 'blind_reveal_audit_failed', result, audit }, { status: 500 });
-    return NextResponse.json({ ...result, contextIntegrity, targetTiming, audit }, { headers: { 'Cache-Control': 'no-store' } });
+    return NextResponse.json({
+      ...result,
+      contextIntegrity,
+      targetTiming,
+      evaluationEvidence: {
+        materializationRunId: frozen.materializationRunId,
+        receipt: frozen.receipt,
+        reused: materialized.reused,
+      },
+      audit,
+    }, { headers: { 'Cache-Control': 'no-store' } });
   } catch (error) {
     const invalidInput = error instanceof ZodError;
     const details = invalidInput
       ? error.issues.map((issue) => `${issue.path.join('.') || 'root'}:${issue.message}`).join('; ')
       : error instanceof Error ? error.message : String(error);
-    const timingInfrastructureFailure = details.includes('DT_TARGET_TIMING_EVIDENCE_READ_FAILED')
-      || details.includes('DT_TARGET_TIMING_EVENT_READ_FAILED');
+    const infrastructureFailure = details.includes('DT_TARGET_TIMING_EVIDENCE_READ_FAILED')
+      || details.includes('DT_TARGET_TIMING_EVENT_READ_FAILED')
+      || details.includes('DT_EVIDENCE_ROOT_READ_FAILED')
+      || details.includes('DT_EVIDENCE_EVENT_READ_FAILED')
+      || details.includes('DT_EVIDENCE_HISTORY_READ_FAILED')
+      || details.includes('DT_EVIDENCE_RECEIPT_PERSIST_FAILED');
     const status = invalidInput ? 400
-      : timingInfrastructureFailure ? 503
-        : details.startsWith('DT_TARGET_TIMING_') ? 409
+      : infrastructureFailure ? 503
+        : details.startsWith('DT_TARGET_TIMING_') || details.startsWith('DT_EVIDENCE_') ? 409
           : details.includes('COMMITMENT_MISMATCH') || details.includes('TRACE_ID_MISMATCH') || details.includes('DOMAIN_MISMATCH') || details.includes('INTEGRITY_MISMATCH') ? 409
             : details.includes('NOT_FOUND') ? 404
               : details.includes('NOT_REVEALABLE') || details.includes('LOCK_FAILED') || details.includes('CONTRACT_MISMATCH') || details.includes('ROLE_MISMATCH') ? 409

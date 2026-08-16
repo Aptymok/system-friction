@@ -11,6 +11,11 @@ import {
   parseMaterializedBlindDecisionRequest,
 } from '@/core/cognitive-twin/reentry/decisionTransferContext';
 import { verifyDecisionTransferContextReceiptBound } from '@/core/cognitive-twin/reentry/decisionTransferContextIntegrity';
+import {
+  applyDecisionTransferExperimentFreeze,
+  assertDecisionTransferModelPreflight,
+  bindDecisionTransferModelContract,
+} from '@/core/cognitive-twin/reentry/decisionTransferExperimentFreeze';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -27,12 +32,22 @@ export async function POST(request: Request) {
 
   try {
     const raw = await request.json();
-    const materialized = isCanonicalMaterializationRequest(raw)
-      ? await materializeDecisionTransferContext(parseMaterializedBlindDecisionRequest(raw))
+    const canonical = isCanonicalMaterializationRequest(raw);
+    const frozenRaw = canonical ? applyDecisionTransferExperimentFreeze(raw) : raw;
+    const modelPreflight = canonical ? assertDecisionTransferModelPreflight() : null;
+    const materialized = canonical
+      ? await materializeDecisionTransferContext(parseMaterializedBlindDecisionRequest(frozenRaw))
       : null;
-    const input = materialized?.blindInput ?? parseBlindDecisionRunInput(raw);
+    const input = materialized?.blindInput ?? parseBlindDecisionRunInput(frozenRaw);
     const result = await executeBlindDecisionReconstruction(input);
+
+    let modelContract = null;
     if (materialized) {
+      modelContract = await bindDecisionTransferModelContract({
+        blindRunId: result.runId,
+        actualProvider: result.provider,
+        actualModel: result.model,
+      });
       await bindDecisionTransferContextReceipt(result.runId, materialized.receipt);
       await verifyDecisionTransferContextReceiptBound(result.runId, materialized.receipt.receiptHash);
     }
@@ -57,6 +72,13 @@ export async function POST(request: Request) {
         contextMaterializationReceiptHash: materialized?.receipt.receiptHash ?? null,
         contextMaterializationVerified: Boolean(materialized),
         cutoffAt: materialized?.receipt.cutoffAt ?? null,
+        confirmatoryMode: Boolean(materialized),
+        protocolVersion: modelContract?.protocolVersion ?? null,
+        expectedModel: modelContract?.expectedModel ?? null,
+        actualModel: result.model,
+        promptTemplateHash: modelContract?.promptTemplateHash ?? null,
+        systemPromptHash: modelContract?.systemPromptHash ?? null,
+        modelContractHash: modelContract?.contractHash ?? null,
       },
       request,
     });
@@ -64,6 +86,9 @@ export async function POST(request: Request) {
     return NextResponse.json({
       ...result,
       contextMaterialization: materialized?.receipt ?? null,
+      modelPreflight,
+      modelContract,
+      experimentalMode: materialized ? 'CONFIRMATORY_FROZEN' : 'NON_CONFIRMATORY_DIAGNOSTIC',
       audit,
     }, { headers: { 'Cache-Control': 'no-store' } });
   } catch (error) {
@@ -73,12 +98,14 @@ export async function POST(request: Request) {
       : error instanceof Error ? error.message : String(error);
     const contextInfrastructureFailure = details.includes('_READ_FAILED')
       || details.startsWith('DT_CONTEXT_BIND_')
-      || details.startsWith('DT_CONTEXT_OPERATING_MODE_READ_FAILED');
+      || details.startsWith('DT_CONTEXT_OPERATING_MODE_READ_FAILED')
+      || details.startsWith('DT_MODEL_BIND_');
     const status = contextInfrastructureFailure ? 503
       : invalidInput || details.startsWith('BLIND_CONTEXT_') || details.startsWith('DT_CONTEXT_') ? 400
-        : details.startsWith('BLIND_PROVIDER_') || details.startsWith('BLIND_LLM_') ? 503
-          : details.startsWith('BLIND_PREDICTION_') ? 502
-            : 503;
+        : details.startsWith('DT_MODEL_') ? 409
+          : details.startsWith('BLIND_PROVIDER_') || details.startsWith('BLIND_LLM_') ? 503
+            : details.startsWith('BLIND_PREDICTION_') ? 502
+              : 503;
     return NextResponse.json({
       ok: false,
       error: invalidInput ? 'blind_decision_input_invalid' : 'blind_decision_reconstruction_failed',

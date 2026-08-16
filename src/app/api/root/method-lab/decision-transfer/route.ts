@@ -34,11 +34,19 @@ export async function POST(request: Request) {
         evidenceRefs: result.evidenceRefs,
         epistemicClass: 'DERIVED',
         promotionAllowed: false,
+        experimentalMode: 'NON_CONFIRMATORY_DIAGNOSTIC',
+        scientificQualificationAllowed: false,
       },
       request,
     });
     if (!audit.ok) return NextResponse.json(audit, { status: 500 });
-    return NextResponse.json({ ...result, audit }, { headers: { 'Cache-Control': 'no-store' } });
+    return NextResponse.json({
+      ...result,
+      experimentalMode: 'NON_CONFIRMATORY_DIAGNOSTIC',
+      scientificQualificationAllowed: false,
+      boundary: 'Manual occurrences, probes, boundary counts or thresholds submitted to this legacy evaluator are diagnostic only and cannot constitute SFI-DT-1.0 confirmatory evidence.',
+      audit,
+    }, { headers: { 'Cache-Control': 'no-store' } });
   } catch (error) {
     const invalidInput = error instanceof ZodError;
     const details = invalidInput
