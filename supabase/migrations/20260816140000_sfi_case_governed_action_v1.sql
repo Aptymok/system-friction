@@ -41,32 +41,19 @@ create or replace function public.sfi_case_action_touch_updated_at() returns tri
 drop trigger if exists sfi_case_action_proposals_touch on public.sfi_case_action_proposals;
 create trigger sfi_case_action_proposals_touch before update on public.sfi_case_action_proposals for each row execute function public.sfi_case_action_touch_updated_at();
 
-create or replace function public.sfi_tenant_can_approve(target_tenant uuid)
-returns boolean language sql stable security definer set search_path = public, auth as $$
-  select exists (
-    select 1 from public.sfi_tenant_members m
-    where m.tenant_id = target_tenant and m.user_id = auth.uid() and m.status = 'ACTIVE' and m.role in ('OWNER','ADMIN')
-  );
-$$;
-revoke all on function public.sfi_tenant_can_approve(uuid) from public;
-grant execute on function public.sfi_tenant_can_approve(uuid) to authenticated;
-
 alter table public.sfi_case_action_proposals enable row level security;
 alter table public.sfi_case_action_decisions enable row level security;
 
 drop policy if exists sfi_case_action_proposals_tenant_read on public.sfi_case_action_proposals;
 create policy sfi_case_action_proposals_tenant_read on public.sfi_case_action_proposals for select to authenticated using (public.sfi_tenant_can_read(tenant_id));
 drop policy if exists sfi_case_action_proposals_tenant_insert on public.sfi_case_action_proposals;
-create policy sfi_case_action_proposals_tenant_insert on public.sfi_case_action_proposals for insert to authenticated with check (public.sfi_tenant_can_write(tenant_id) and proposed_by = auth.uid());
 drop policy if exists sfi_case_action_proposals_tenant_update on public.sfi_case_action_proposals;
--- Proposal state transitions are server-governed; authenticated clients receive no direct UPDATE policy.
+-- Proposal creation and state transitions are server-governed; authenticated clients receive no direct INSERT/UPDATE policy.
 
 drop policy if exists sfi_case_action_decisions_tenant_read on public.sfi_case_action_decisions;
 create policy sfi_case_action_decisions_tenant_read on public.sfi_case_action_decisions for select to authenticated using (public.sfi_tenant_can_read(tenant_id));
 drop policy if exists sfi_case_action_decisions_tenant_insert on public.sfi_case_action_decisions;
-create policy sfi_case_action_decisions_tenant_insert on public.sfi_case_action_decisions for insert to authenticated with check (
-  public.sfi_tenant_can_approve(tenant_id) and decided_by = auth.uid() and authority_role in ('OWNER','ADMIN')
-);
+-- Decision rows are server-generated after repository-level OWNER/ADMIN verification.
 
 -- Harden pre-existing Case Platform tables against direct Supabase writes that would bypass Next/API semantic gates.
 drop policy if exists sfi_case_objects_tenant_insert on public.sfi_case_objects;
