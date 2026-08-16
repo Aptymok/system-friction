@@ -1,11 +1,19 @@
 'use client';
 
 import Link from 'next/link';
+import { useEffect } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useAuthState } from '@/components/auth/AuthProvider';
 import './sfi-experience-membrane.css';
 
 const CONTEXT_KEYS = ['scene','focus','scope','mode','window','objectId','caseId'] as const;
+const FOCUS_ALIASES: Record<string,string> = {
+  'world-state': 'state',
+  topology: 'state',
+  'public-reading': 'reading',
+  longitudinal: 'trajectories',
+  provenance: 'method',
+};
 
 function internalContext(pathname: string, searchParams: URLSearchParams) {
   const params = new URLSearchParams();
@@ -33,11 +41,32 @@ function roleHome(role: string | null) {
 export function SfiExperienceMembrane() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const query = searchParams.toString();
   const { status, userRole } = useAuthState();
+  const incomingOrigin = searchParams.get('origin');
+  const scene = searchParams.get('scene');
+  const focus = searchParams.get('focus') || searchParams.get('objectId') || searchParams.get('scope');
+
+  useEffect(() => {
+    if (!incomingOrigin && !scene && !focus) return;
+    const requested = focus ? (FOCUS_ALIASES[focus] ?? focus) : null;
+    const sceneTarget = scene ? (FOCUS_ALIASES[scene] ?? scene) : null;
+    const timer = window.setTimeout(() => {
+      const target = (requested ? document.getElementById(requested) : null)
+        ?? (sceneTarget ? document.getElementById(sceneTarget) : null);
+      if (!target) return;
+      target.setAttribute('data-sfi-arrival', 'true');
+      const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      target.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
+      window.setTimeout(() => target.removeAttribute('data-sfi-arrival'), 2600);
+    }, 180);
+    return () => window.clearTimeout(timer);
+  }, [focus, incomingOrigin, pathname, query, scene]);
+
   const authSurface = ['/login','/signup','/forgot','/reset','/verify'].some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
   if (authSurface) return null;
 
-  const context = internalContext(pathname, new URLSearchParams(searchParams.toString()));
+  const context = internalContext(pathname, new URLSearchParams(query));
   const observeHref = destination('/observatory', context, { source: 'membrane' });
   const engageHref = destination('/field', context, { intent: 'engage', source: 'membrane' });
   const roleDestination = roleHome(userRole);
@@ -46,9 +75,6 @@ export function SfiExperienceMembrane() {
     ? accessTarget
     : `/login?next=${encodeURIComponent(accessTarget)}`;
   const accessLabel = status === 'authenticated' ? roleDestination.label : 'ACCESS';
-  const incomingOrigin = searchParams.get('origin');
-  const scene = searchParams.get('scene');
-  const focus = searchParams.get('focus') || searchParams.get('objectId') || searchParams.get('scope');
 
   return (
     <aside className="sfi-membrane" data-private={pathname.startsWith('/root') || pathname.startsWith('/studio') || pathname.startsWith('/member')}>
