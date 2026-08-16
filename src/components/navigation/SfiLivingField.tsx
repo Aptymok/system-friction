@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react';
 import { usePathname } from 'next/navigation';
 import './sfi-living-field.css';
+import './sfi-surface-convergence.css';
 
 type Particle = {
   x: number;
@@ -14,19 +15,31 @@ type Particle = {
   group: number;
 };
 
+type AnchorPoint = {
+  x: number;
+  y: number;
+  rx: number;
+  ry: number;
+};
+
 type FieldMode = 'signal'|'observation'|'system'|'friction'|'mihm'|'evidence'|'studio'|'memory'|'lab'|'trajectory'|'governance'|'field'|'research'|'root'|'final'|'case'|'access';
 
 function routeMode(pathname: string): FieldMode {
   if (pathname.startsWith('/root')) return 'root';
+  if (pathname.startsWith('/pipeline')) return 'system';
   if (pathname.startsWith('/studio')) return 'studio';
   if (pathname.startsWith('/observatory')) return 'observation';
   if (pathname.startsWith('/field')) return 'field';
   if (pathname.startsWith('/method-lab')) return 'lab';
   if (pathname.startsWith('/cases')) return 'case';
+  if (pathname.startsWith('/member')) return 'case';
   if (pathname.startsWith('/atlas') || pathname.startsWith('/ledger')) return 'memory';
+  if (pathname.startsWith('/library') || pathname.startsWith('/repository') || pathname.startsWith('/research') || pathname.startsWith('/publications') || pathname.startsWith('/founder-edition')) return 'research';
+  if (pathname.startsWith('/entity') || pathname.startsWith('/world-vector')) return 'system';
   if (pathname.startsWith('/mihm')) return 'mihm';
   if (pathname.startsWith('/friction')) return 'friction';
-  if (pathname.startsWith('/login') || pathname.startsWith('/signup')) return 'access';
+  if (pathname.startsWith('/contact')) return 'field';
+  if (pathname.startsWith('/login') || pathname.startsWith('/signup') || pathname.startsWith('/forgot') || pathname.startsWith('/reset') || pathname.startsWith('/verify')) return 'access';
   return 'signal';
 }
 
@@ -158,6 +171,13 @@ function target(mode: FieldMode, index: number, count: number, width: number, he
   return [width * (0.09 + 0.82 * (((index * 37) % count) / count)), height * (0.1 + 0.8 * (((index * 59) % count) / count))] as const;
 }
 
+function colorForMode(mode: FieldMode) {
+  if (mode === 'observation' || mode === 'evidence') return [105, 165, 164] as const;
+  if (mode === 'studio' || mode === 'lab' || mode === 'trajectory' || mode === 'memory') return [138, 127, 167] as const;
+  if (mode === 'friction') return [169, 76, 59] as const;
+  return [200, 167, 100] as const;
+}
+
 export function SfiLivingField() {
   const pathname = usePathname();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -171,8 +191,10 @@ export function SfiLivingField() {
     const surface: HTMLCanvasElement = currentCanvas;
     const paint: CanvasRenderingContext2D = currentContext;
 
+    document.body.dataset.sfiSurfaceMode = route;
+
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const count = reduceMotion ? 34 : pathname === '/' ? 128 : 78;
+    const count = reduceMotion ? 38 : pathname === '/' ? 128 : 96;
     let width = window.innerWidth;
     let height = window.innerHeight;
     let dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -181,6 +203,8 @@ export function SfiLivingField() {
     let frame = 0;
     let active = true;
     let activeMode: FieldMode = route;
+    let anchors: AnchorPoint[] = [];
+    let drawTick = 0;
 
     const particles: Particle[] = Array.from({ length: count }, (_, index) => ({
       x: width * (((index * 43) % count) / count),
@@ -192,6 +216,31 @@ export function SfiLivingField() {
       group: index % 8,
     }));
 
+    function collectAnchors() {
+      if (pathname === '/' || pathname === '/root') {
+        anchors = [];
+        return;
+      }
+      const candidates = Array.from(document.querySelectorAll<HTMLElement>('[data-sfi-field-anchor], main section[id], main > section, main article'));
+      const next: AnchorPoint[] = [];
+      const seen = new Set<string>();
+      for (const element of candidates) {
+        const rect = element.getBoundingClientRect();
+        if (rect.width < 90 || rect.height < 46 || rect.bottom < -80 || rect.top > height + 80) continue;
+        const key = `${Math.round(rect.left / 24)}:${Math.round(rect.top / 24)}:${Math.round(rect.width / 24)}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        next.push({
+          x: Math.max(32, Math.min(width - 32, rect.left + rect.width * 0.5)),
+          y: Math.max(32, Math.min(height - 32, rect.top + rect.height * 0.5)),
+          rx: Math.max(24, Math.min(rect.width * 0.28, 150)),
+          ry: Math.max(18, Math.min(rect.height * 0.24, 110)),
+        });
+        if (next.length >= 12) break;
+      }
+      anchors = next;
+    }
+
     function resize() {
       width = window.innerWidth;
       height = window.innerHeight;
@@ -201,6 +250,7 @@ export function SfiLivingField() {
       surface.style.width = `${width}px`;
       surface.style.height = `${height}px`;
       paint.setTransform(dpr, 0, 0, dpr, 0, 0);
+      collectAnchors();
     }
 
     function pointer(event: PointerEvent) {
@@ -215,6 +265,7 @@ export function SfiLivingField() {
       if (!visible) return;
       activeMode = sceneMode((visible.target as HTMLElement).id);
       surface.parentElement?.setAttribute('data-mode', activeMode);
+      document.body.dataset.sfiSurfaceMode = activeMode;
     }, { threshold: [0.22,0.42,0.62] }) : null;
     if (sceneObserver) document.querySelectorAll<HTMLElement>('.is-scene').forEach((scene) => sceneObserver.observe(scene));
 
@@ -222,11 +273,34 @@ export function SfiLivingField() {
       if (!active) return;
       paint.clearRect(0, 0, width, height);
       const seconds = time * 0.001;
+      drawTick += 1;
+      if (drawTick % 42 === 0) collectAnchors();
+      const modeColor = colorForMode(activeMode);
+
+      if (anchors.length > 1) {
+        paint.lineWidth = 0.7;
+        for (let index = 0; index < anchors.length - 1; index += 1) {
+          const a = anchors[index];
+          const b = anchors[index + 1];
+          paint.strokeStyle = `rgba(${modeColor[0]},${modeColor[1]},${modeColor[2]},.11)`;
+          paint.setLineDash([3, 8]);
+          paint.beginPath();
+          paint.moveTo(a.x, a.y);
+          paint.quadraticCurveTo((a.x + b.x) * 0.5, Math.min(a.y, b.y) - 28, b.x, b.y);
+          paint.stroke();
+        }
+        paint.setLineDash([]);
+      }
 
       particles.forEach((particle, index) => {
-        const [baseX, baseY] = target(activeMode, index, count, width, height);
-        const settle = activeMode === 'final' ? 0.012 : 0.006;
-        const drift = activeMode === 'final' ? 1.2 : 4;
+        const fallback = target(activeMode, index, count, width, height);
+        const anchor = anchors.length ? anchors[index % anchors.length] : null;
+        const localAngle = index * 2.3999632297 + particle.group * 0.17;
+        const localRadius = 0.22 + ((index * 13) % 19) / 25;
+        const baseX = anchor ? anchor.x + Math.cos(localAngle) * anchor.rx * localRadius : fallback[0];
+        const baseY = anchor ? anchor.y + Math.sin(localAngle) * anchor.ry * localRadius : fallback[1];
+        const settle = activeMode === 'final' ? 0.012 : anchors.length ? 0.0085 : 0.006;
+        const drift = activeMode === 'final' ? 1.2 : anchors.length ? 2.2 : 4;
         let tx = baseX + Math.sin(seconds * 0.34 + particle.phase) * drift;
         let ty = baseY + Math.cos(seconds * 0.29 + particle.phase) * drift;
         const dx = particle.x - pointerX;
@@ -245,15 +319,15 @@ export function SfiLivingField() {
         particle.y += particle.vy;
       });
 
-      const linkLimit = activeMode === 'evidence' ? 72 : activeMode === 'governance' ? 96 : activeMode === 'final' ? 48 : 112;
+      const linkLimit = activeMode === 'evidence' ? 76 : activeMode === 'governance' ? 102 : activeMode === 'final' ? 48 : anchors.length ? 92 : 116;
       for (let index = 0; index < particles.length; index += 1) {
         const a = particles[index];
         for (let offset = 1; offset < 9 && index + offset < particles.length; offset += 1) {
           const b = particles[index + offset];
           const distance = Math.hypot(a.x - b.x, a.y - b.y);
           if (distance > linkLimit) continue;
-          const alpha = (1 - distance / linkLimit) * (activeMode === 'final' ? 0.15 : 0.11);
-          paint.strokeStyle = `rgba(200,167,100,${alpha})`;
+          const alpha = (1 - distance / linkLimit) * (activeMode === 'final' ? 0.15 : anchors.length ? 0.16 : 0.11);
+          paint.strokeStyle = `rgba(${modeColor[0]},${modeColor[1]},${modeColor[2]},${alpha})`;
           paint.lineWidth = 0.55;
           paint.beginPath();
           paint.moveTo(a.x, a.y);
@@ -264,9 +338,14 @@ export function SfiLivingField() {
 
       particles.forEach((particle, index) => {
         const hot = index % 17 === 0;
-        paint.fillStyle = hot ? 'rgba(240,211,151,.62)' : activeMode === 'final' ? 'rgba(232,226,213,.32)' : 'rgba(232,226,213,.20)';
+        const normalAlpha = anchors.length ? 0.34 : 0.20;
+        paint.fillStyle = hot
+          ? 'rgba(240,211,151,.72)'
+          : activeMode === 'final'
+            ? 'rgba(232,226,213,.32)'
+            : `rgba(${modeColor[0]},${modeColor[1]},${modeColor[2]},${normalAlpha})`;
         paint.beginPath();
-        paint.arc(particle.x, particle.y, hot ? 1.45 : particle.size, 0, Math.PI * 2);
+        paint.arc(particle.x, particle.y, hot ? 1.55 : particle.size, 0, Math.PI * 2);
         paint.fill();
       });
 
@@ -275,6 +354,7 @@ export function SfiLivingField() {
 
     resize();
     window.addEventListener('resize', resize);
+    window.addEventListener('scroll', collectAnchors, { passive: true });
     window.addEventListener('pointermove', pointer, { passive: true });
     frame = window.requestAnimationFrame(draw);
 
@@ -283,7 +363,9 @@ export function SfiLivingField() {
       sceneObserver?.disconnect();
       window.cancelAnimationFrame(frame);
       window.removeEventListener('resize', resize);
+      window.removeEventListener('scroll', collectAnchors);
       window.removeEventListener('pointermove', pointer);
+      if (document.body.dataset.sfiSurfaceMode === activeMode || document.body.dataset.sfiSurfaceMode === route) delete document.body.dataset.sfiSurfaceMode;
     };
   }, [pathname, route]);
 
