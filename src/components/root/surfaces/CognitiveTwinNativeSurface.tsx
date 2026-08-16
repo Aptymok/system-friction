@@ -2,6 +2,9 @@
 
 import { useMemo, useState } from 'react';
 import type { CognitiveTwinState } from '@/core/cognitive-twin/readState';
+import { CognitiveTwinDeliberationPanel } from '@/components/root/cognitive-twin/CognitiveTwinDeliberationPanel';
+import { FounderDecisionCandidateForm } from '@/components/root/cognitive-twin/FounderDecisionCandidateForm';
+import { NationalFieldPanel } from '@/components/root/cognitive-twin/NationalFieldPanel';
 import { RootNativeFrame } from './RootNativeFrame';
 
 type Row = Record<string, unknown>;
@@ -75,6 +78,12 @@ export function CognitiveTwinNativeSurface({
       </div>
 
       <div className="rn-timeline">{state.recentRuns.slice(0,10).map((item,index) => { const r=row(item); return <article key={text(r.id,`run-${index}`)}><span>{text(r.role,'RUN')}</span><strong>{text(r.objective ?? r.task_id,'COGNITIVE RUN')}</strong><small>{createdAt(r)}</small></article>; })}</div>
+
+      <div className="rn-grid">
+        <details className="rn-panel rn-panel--full"><summary className="rn-eyebrow">DELIBERATION / GOVERNED EXECUTION</summary><div style={{marginTop:16}}><CognitiveTwinDeliberationPanel/></div></details>
+        <details className="rn-panel rn-panel--full"><summary className="rn-eyebrow">NATIONAL FIELD / EXTERNAL OBSERVATION</summary><div style={{marginTop:16}}><NationalFieldPanel/></div></details>
+        <details className="rn-panel rn-panel--full"><summary className="rn-eyebrow">FOUNDER DECISION / CANDIDATE RULE</summary><div style={{marginTop:16}}>{state.implementation.databaseReady ? <FounderDecisionCandidateForm/> : <p>COGNITIVE TWIN PERSISTENCE UNAVAILABLE · CANDIDATE FORM BLOCKED</p>}</div></details>
+      </div>
     </RootNativeFrame>
   );
 }
