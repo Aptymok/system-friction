@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import type { CSSProperties } from 'react';
 import type { SfiWorldInterfaceState } from '@/lib/sfi/worldInterfaceState';
 import type { PublicInstitutionalAttractorState } from '@/lib/institution/publicAttractor';
 import { SfiExperienceLink } from '@/components/navigation/SfiExperienceLink';
@@ -130,13 +131,15 @@ export function SfiInstitutionalSurface({ state, attractor }: { state: SfiWorldI
 
       <section className="is-scene is-root-scene" id="root" data-index="14">
         <div><span className="is-kicker">14 / ROOT</span><h2>Everything reconnects. Nothing collapses.</h2><p>ROOT governs institutional admission, epistemic debt, canonical state and the Cognitive Spine. It is not a commercial super-dashboard and is never exposed as public authority.</p></div>
-        <div className="is-root-topology"><i/><i/><i/><strong>ROOT</strong>{['EVIDENCE','STUDIO','COGNITIVE TWIN','FIELD','METHOD LAB','OBSERVATORY','RETURNS','POLICY'].map((item,index) => <span key={item} style={{ ['--i' as string]: index } as React.CSSProperties}>{item}</span>)}</div>
+        <div className="is-root-topology"><i/><i/><i/><strong>ROOT</strong>{['EVIDENCE','STUDIO','COGNITIVE TWIN','FIELD','METHOD LAB','OBSERVATORY','RETURNS','POLICY'].map((item,index) => <span key={item} style={{ ['--i' as string]: index } as CSSProperties}>{item}</span>)}</div>
         <SceneLink href={ctx('/root','root','institutional-governance','governed')} label="ENTER ROOT" access="root" />
       </section>
 
       <section className="is-scene is-final" id="institute" data-index="15">
         <span className="is-kicker">15 / INSTITUTIONAL ATTRACTOR</span>
-        <div className="is-final-mark"><span>S</span><span>F</span><span>I</span></div>
+        <div className="is-final-mark" aria-label="SFI institutional mark inferred from the living field">
+          <div className="is-final-mark-metric"><span>INSTITUTIONAL ATTRACTOR</span><strong>FIELD CONVERGENCE</strong><small>SFI IS RESOLVED BY DENSITY / VOID, NOT A STATIC GLYPH</small></div>
+        </div>
         <h2>Observe what the system is actually doing.</h2>
         <div className="is-final-exits">
           <SceneLink href={ctx('/observatory','institute','world-state','observe')} label="OBSERVE · OBSERVATORY" />
