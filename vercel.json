@@ -3,7 +3,7 @@
   "crons": [
     {
       "path": "/api/cron/continuity-heartbeat",
-      "schedule": "15 * * * *"
+      "schedule": "15 7 * * *"
     },
     {
       "path": "/api/cron/worldspect",
