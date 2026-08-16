@@ -19,7 +19,7 @@ const scheduledCycle = read('src/app/api/cron/sfi-institutional-cycle/route.ts')
 const manualCycle = read('src/app/api/root/institutional-cycle/route.ts');
 const state = read('src/core/cognitive-twin/readState.ts');
 const page = read('src/app/root/cognitive-twin/page.tsx');
-const panel = read('src/components/root/cognitive-twin/CognitiveTwinIntegrationPanel.tsx');
+const nativeSurface = read('src/components/root/surfaces/CognitiveTwinNativeSurface.tsx');
 const workflow = read('.github/workflows/sfi-ct-institutional-integration.yml');
 
 for (const organ of ['ROOT_EVIDENCE','OBSERVATORY','STUDIO','METHOD_LAB','FIELD','GOVERNANCE','COGNITIVE_TWIN']) {
@@ -76,8 +76,10 @@ assert.ok(manualCycle.includes('runIntegratedInstitutionalCycle'), 'manual insti
 assert.ok(state.includes('readCognitiveTwinSfiIntegration'), 'ROOT Twin state does not expose organ integration');
 assert.ok(state.includes('sfiOrgansConnected'), 'ROOT Twin state lacks connected truth field');
 assert.ok(state.includes('sfiOrgansExercised'), 'ROOT Twin state lacks exercised truth field');
-assert.ok(page.includes('CognitiveTwinIntegrationPanel'), 'ROOT Twin page does not show integration panel');
-assert.ok(panel.includes('CONNECTED') && panel.includes('EXERCISED'), 'integration panel lacks truth labels');
+assert.ok(page.includes('CognitiveTwinNativeSurface'), 'ROOT Twin page does not show native Cognitive Twin surface');
+assert.ok(nativeSurface.includes('state.integration.summary.connected'), 'native Cognitive Twin surface lacks CONNECTED truth');
+assert.ok(nativeSurface.includes('state.integration.summary.exercised'), 'native Cognitive Twin surface lacks EXERCISED truth');
+assert.ok(nativeSurface.includes('SFI INTEGRATION'), 'native Cognitive Twin surface lacks integration organ readout');
 
 assert.ok(workflow.includes('permissions:\n  contents: read'), 'CT integration workflow must explicitly minimize GITHUB_TOKEN permissions');
 
@@ -91,6 +93,7 @@ console.log(JSON.stringify({
   canonicalIngress:['ROOT_EVIDENCE','STUDIO','CRL','METHOD_LAB','FIELD','OBSERVATORY_SYNC'],
   methodLabEpistemicBoundary:true,
   newestFirstSync:true,
+  nativeCognitiveTwinSurface:true,
   authority:['GOVERNANCE'],
   longitudinalSubject:'CT-A01',
 }, null, 2));
