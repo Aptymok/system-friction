@@ -3,12 +3,14 @@ import type { Metadata, Viewport } from 'next';
 import { AuthProvider } from '@/components/auth/AuthProvider';
 import { GoogleAnalytics } from '@/components/analytics/GoogleAnalytics';
 import { SfiGlobalNavigation } from '@/components/navigation/SfiGlobalNavigation';
+import { SfiLivingField } from '@/components/navigation/SfiLivingField';
+import { SfiExperienceMembrane } from '@/components/navigation/SfiExperienceMembrane';
 
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   maximumScale: 5,
-  themeColor: '#0A0905',
+  themeColor: '#070806',
 };
 
 const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://systemfriction.org';
@@ -46,7 +48,9 @@ export default function RootLayout({
   return (
     <html lang="es">
       <body>
+        <SfiLivingField />
         <AuthProvider>
+          <SfiExperienceMembrane />
           <SfiGlobalNavigation />
           {children}
         </AuthProvider>
