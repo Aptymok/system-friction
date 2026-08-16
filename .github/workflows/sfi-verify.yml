@@ -13,68 +13,98 @@ jobs:
   verify:
     name: Verify SFI boundaries and build
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
+
       - name: Install dependencies
         run: npm install --no-audit --no-fund
+
       - name: Verify SFI Verify parallel topology
         run: npx tsx scripts/qa-sfi-verify-parallelism.ts
+
       - name: Check domain boundaries
         run: npm run check:boundaries
+
       - name: Verify MIHM method selection
         run: npx tsx scripts/qa-sfi-method-selection.ts
+
       - name: Verify Cognitive Twin authority contract
         run: node --import tsx --test src/core/cognitive-twin/contract.test.ts
+
       - name: Verify 15 institutional contracts
         run: npm run qa:sfi-institutional-contracts
+
       - name: Verify cognitive agent convergence
         run: node --import tsx --test src/lib/sfi/cognitive-runtime/agentConvergence.test.ts
+
       - name: Verify Field and Observatory temporal surfaces
         run: npx tsx scripts/qa-sfi-temporal-surfaces.ts
+
       - name: Verify ROOT graph and navigation convergence
         run: npx tsx scripts/qa-sfi-root-graph-navigation.ts
+
       - name: Verify ROOT reports and runtime truth
         run: npx tsx scripts/qa-sfi-root-reports-runtime.ts
+
       - name: Verify ROOT ACP total convergence
         run: npx tsx scripts/qa-sfi-root-acp-total-convergence.ts
+
       - name: Verify SFI development registry
         run: npx tsx scripts/qa-sfi-development-registry.ts
+
       - name: Verify integrated SFI operating field
         run: npx tsx scripts/qa-sfi-operating-field-closure.ts
+
       - name: Verify clean-start reset safety
         run: npx tsx scripts/qa-sfi-operational-reset.ts
+
       - name: Verify SFI total proof circuit
         run: npx tsx scripts/qa-sfi-total-proof.ts
+
       - name: Verify Method Lab convergence
         run: npx tsx scripts/qa-sfi-method-lab-convergence.ts
+
       - name: Verify Cognitive Twin reentry and longitudinal integration
         run: npx tsx scripts/qa-sfi-cognitive-twin-reentry.ts
+
       - name: Verify Cognitive Twin decision transfer observatory
         run: npm run qa:sfi-ct-decision-transfer
+
       - name: Verify Decision Transfer operational wiring
         run: npx tsx scripts/qa-sfi-decision-transfer-operational.ts
+
       - name: Verify blind decision reconstruction protocol
         run: npx tsx scripts/qa-sfi-decision-transfer-blind.ts
+
       - name: Verify canonical Decision Transfer context materialization
         run: npx tsx scripts/qa-sfi-decision-transfer-context.ts
+
       - name: Verify post-cutoff Decision Transfer target timing
         run: npx tsx scripts/qa-sfi-decision-transfer-target-timing.ts
+
       - name: Verify final debt closure and EXP-001 freeze
         run: npx tsx scripts/qa-sfi-final-debt-closure.ts
+
       - name: Verify canonical evidence identity
         run: node --import tsx --test src/lib/evidence/canonicalEvidence.test.ts
+
       - name: Verify canonical evidence QA
         run: npx tsx scripts/qa-sfi-canonical-evidence.ts
+
       - name: Verify Studio Field surface
         run: npm run qa:sfi-studio-workspace
+
       - name: Verify Studio cognitive runtime
         run: npm run qa:sfi-studio-cognitive
+
       - name: Verify Studio capability inventory
         shell: bash
         run: |
@@ -86,16 +116,22 @@ jobs:
             echo "::error file=scripts/qa-sfi-studio-capability-inventory.ts,line=1::Studio capability QA failed: ${diagnostic}"
             exit "$status"
           fi
+
       - name: Verify SFI Architecture V1 constitutional boundary
         run: npx tsx scripts/qa-sfi-architecture-v1.ts
+
       - name: Verify SFI Case Platform V1 shared engine
         run: npx tsx scripts/qa-sfi-case-platform-v1.ts
+
       - name: Verify SFI Case Platform Operational V1
         run: npx tsx scripts/qa-sfi-case-platform-operational-v1.ts
+
       - name: Verify SFI Enterprise Assurance Domain V1
         run: npx tsx scripts/qa-sfi-enterprise-assurance-domain-v1.ts
+
       - name: Verify SFI Case Integrity and Governed Action V1
         run: npx tsx scripts/qa-sfi-case-integrity-action-v1.ts
+
       - name: Typecheck
         id: typecheck
         shell: bash
@@ -105,6 +141,7 @@ jobs:
           status=${PIPESTATUS[0]}
           echo "status=${status}" >> "$GITHUB_OUTPUT"
           exit "$status"
+
       - name: Upload typecheck diagnostics
         if: failure() && steps.typecheck.outcome == 'failure'
         uses: actions/upload-artifact@v4
@@ -113,27 +150,35 @@ jobs:
           path: typecheck.log
           if-no-files-found: error
           retention-days: 7
+
       - name: Build
         run: npm run build
 
   audio:
     name: Verify Studio audio gates
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
+
       - name: Install dependencies
         run: npm install --no-audit --no-fund
+
       - name: Verify Studio audio smoke path
         run: npm run qa:studio-audio
+
       - name: Verify Studio loudness
         run: npm run qa:sfi-studio-loudness
+
       - name: Verify Studio rhythm
         run: npm run qa:sfi-studio-rhythm
+
       - name: Verify Studio harmony
         run: npm run qa:sfi-studio-harmony
