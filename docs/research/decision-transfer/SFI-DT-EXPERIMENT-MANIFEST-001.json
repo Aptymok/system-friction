@@ -1,0 +1,85 @@
+{
+  "schema_version": "SFI-DT-EXPERIMENT-MANIFEST-001",
+  "protocol_version": "SFI-DT-1.0",
+  "experiment_id": "EXP-001",
+  "status": "EXPERIMENTALLY_FROZEN",
+  "registration_status": "AWAITING_NATURALISTIC_TARGET",
+  "instrument_code_commit": "702d69e115bd8d8f0de04bca399088059fe02459",
+  "instrument_base_commit": "3b7ce699e2654ed1fb551498cfeaad37731f6f88",
+  "claim_boundary": "N_subject=1",
+  "primary_endpoint": "validated_structural_fidelity",
+  "primary_contrast": "CT_FULL-B5_RULE_STRUCTURE",
+  "secondary_contrasts": [
+    "B1_RAW_HISTORY-B0_BASE",
+    "B2_MEMORY-B1_RAW_HISTORY",
+    "B3_CDT-B2_MEMORY",
+    "B4_PATTERNS-B3_CDT",
+    "B5_RULE_STRUCTURE-B4_PATTERNS",
+    "CT_FULL-B5_RULE_STRUCTURE"
+  ],
+  "structural_weights": {
+    "disposition": 0.45,
+    "operations": 0.25,
+    "relevant_variables": 0.15,
+    "rejected_conditions": 0.05,
+    "decision_change_cues": 0.1
+  },
+  "arms": {
+    "B0_BASE": "current case + admissible current evidence",
+    "B1_RAW_HISTORY": "B0 + temporally admissible raw history",
+    "B2_MEMORY": "B1 + verified/canonical memory",
+    "B3_CDT": "B2 + prior admissible CDT",
+    "B4_PATTERNS": "B3 + recurrent patterns",
+    "B5_RULE_STRUCTURE": "B4 + approved rule/constraint/exception structure",
+    "CT_FULL": "B5 + governed operating state/context machinery"
+  },
+  "model_contract": {
+    "provider": "groq",
+    "expected_model": "openai/gpt-oss-20b",
+    "prompt_hash": "1bfaf23ecdf14ce105c3daa75c48c23a396a34ae092eb72cfeca962cb285d887",
+    "system_prompt_hash": "99b9f89a95238a9a0195fdbc1ec68d40860128fce2ebde9cd69436012b44154d",
+    "max_tokens": 1000,
+    "temperature": 0.2,
+    "strict_provider": true
+  },
+  "target_registration": {
+    "target_trace_id": null,
+    "target_commitment_sha256": null,
+    "cutoff_at": null,
+    "registered_at": null,
+    "state": "PENDING_PRE_TARGET_REGISTRATION"
+  },
+  "validation_classes": [
+    "OBSERVED",
+    "VERIFIED_CONTRAST"
+  ],
+  "diagnostic_only_classes": [
+    "SIMULATED",
+    "DERIVED",
+    "INFERRED"
+  ],
+  "manual_confirmatory_inputs": {
+    "occurrences": false,
+    "counterfactual_probes": false,
+    "boundary_probe_count": false,
+    "thresholds": false
+  },
+  "exclusions": [
+    "post-cutoff historical context",
+    "unverified/noncanonical memory in memory arms",
+    "unapproved rules",
+    "simulated/derived/inferred validating counts",
+    "manual reveal evidence counts",
+    "model/provider fallback",
+    "post-result arm, metric, weight, threshold or contrast changes"
+  ],
+  "stopping_rule": {
+    "naturalistic_targets": 1,
+    "predeclared_arms": 7,
+    "valid_prediction_per_arm": 1,
+    "result_driven_reruns": false,
+    "technical_rerun": "allowed only when failure occurred before a valid prediction/reveal pair and the failure is logged",
+    "close_when": "all seven arms are terminally evaluated or explicitly BLOCKED/INVALID under a predeclared failure code"
+  },
+  "freeze_boundary": "SFI-DT-1.0 only; other SFI systems remain evolvable"
+}
