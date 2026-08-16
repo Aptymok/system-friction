@@ -1,0 +1,10 @@
+.studio-secondary-instruments{position:fixed;right:14px;bottom:158px;z-index:120}
+.studio-secondary-instruments__launcher{display:grid;gap:4px;min-width:166px;padding:10px 13px;border:1px solid rgba(215,173,69,.28);background:rgba(5,6,6,.9);backdrop-filter:blur(14px);color:#d8c27e;text-align:left;box-shadow:0 20px 55px rgba(0,0,0,.32)}
+.studio-secondary-instruments__launcher span{font:6px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.14em;color:#776a48}.studio-secondary-instruments__launcher strong{font:7px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.09em;font-weight:500}
+.studio-secondary-instruments__backdrop{position:fixed;inset:0;z-index:121;display:flex;justify-content:flex-end;align-items:stretch;background:rgba(2,3,3,.58);backdrop-filter:blur(8px)}
+.studio-secondary-instruments__panel{width:min(690px,92vw);height:100vh;display:grid;grid-template-rows:66px 1fr 34px;border-left:1px solid rgba(232,226,213,.14);background:#060706;color:#e7decd;box-shadow:-38px 0 120px rgba(0,0,0,.5)}
+.studio-secondary-instruments__panel>header{display:flex;justify-content:space-between;align-items:center;padding:0 18px;border-bottom:1px solid rgba(232,226,213,.12)}
+.studio-secondary-instruments__panel>header div{display:grid;gap:5px}.studio-secondary-instruments__panel>header span{font:6px/1 ui-monospace,monospace;letter-spacing:.14em;color:#c8a764}.studio-secondary-instruments__panel>header strong{font:400 18px/1 Georgia,serif}.studio-secondary-instruments__panel>header button{border:0;background:transparent;color:#8b8478;font-size:26px}
+.studio-secondary-instruments__scroll{overflow:auto;padding:18px}.studio-secondary-instruments__scroll>section{max-width:none!important;margin:0 0 14px!important}
+.studio-secondary-instruments__panel>footer{display:flex;align-items:center;padding:0 16px;border-top:1px solid rgba(232,226,213,.1);font:6px/1 ui-monospace,monospace;letter-spacing:.12em;color:#69635b}
+@media(max-width:900px){.studio-secondary-instruments{bottom:174px}.studio-secondary-instruments__launcher{min-width:138px}.studio-secondary-instruments__panel{width:100vw}}
