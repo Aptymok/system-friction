@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { runLlmTask, type LlmProviderId } from '@/lib/ai/providerRouter';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { canonicalJson, decisionTraceCommitmentMaterial } from './decisionCommitment';
-import { executeDecisionTransferEvaluation } from './decisionTransferRun';
+import { executeDecisionTransferEvaluation, type DecisionTransferRunInput } from './decisionTransferRun';
 
 const dispositionSchema = z.enum(['PROPOSE', 'REQUEST_EVIDENCE', 'ESCALATE', 'WITHHOLD', 'ARCHIVE_ONLY']);
 const epistemicClassSchema = z.enum(['OBSERVED', 'VERIFIED_CONTRAST', 'DERIVED', 'INFERRED', 'SIMULATED']);
@@ -348,7 +348,11 @@ export async function executeBlindDecisionReconstruction(input: BlindDecisionRun
   };
 }
 
-export async function executeBlindDecisionReveal(input: BlindDecisionRevealInput, actorId: string) {
+export async function executeBlindDecisionReveal(
+  input: BlindDecisionRevealInput,
+  actorId: string,
+  evaluationEvidence?: DecisionTransferRunInput['evaluationEvidence'],
+) {
   const db = createServiceSupabaseClient();
   const read = await db.from('sfi_cognitive_twin_runs')
     .select('id,task_id,contract_version,provider,model,role,status,input_snapshot,output_envelope,evidence_refs,started_at')
@@ -390,6 +394,7 @@ export async function executeBlindDecisionReveal(input: BlindDecisionRevealInput
       counterfactualProbes: input.counterfactualProbes,
       boundaryProbeCount: input.boundaryProbeCount,
       thresholds: input.thresholds,
+      evaluationEvidence,
     }, actorId);
 
     const revealedAt = new Date().toISOString();
@@ -406,6 +411,7 @@ export async function executeBlindDecisionReveal(input: BlindDecisionRevealInput
           evaluationId: evaluation.evaluationId,
           evaluationRunId: evaluation.runId,
           outcome: evaluation.outcome,
+          evaluationEvidence: evaluation.evaluationEvidence,
         },
       },
     }).eq('id', input.blindRunId).eq('status', 'VERIFYING');
