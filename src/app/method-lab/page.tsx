@@ -4,6 +4,7 @@ import { MethodLabConsole } from '@/components/root/method-lab/MethodLabConsole'
 import { DecisionTransferObservatory } from '@/components/root/method-lab/DecisionTransferObservatory';
 import { BlindDecisionExperiment } from '@/components/root/method-lab/BlindDecisionExperiment';
 import { CognitiveLabConsole } from '@/components/root/cognitive-lab/CognitiveLabConsole';
+import { MethodLabCinematicFrame } from '@/components/method-lab/MethodLabCinematicFrame';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { robots: { index: false, follow: false, nocache: true } };
@@ -12,7 +13,7 @@ export default async function MethodLabPage() {
   await requireRootObserverPage('/method-lab');
   const state = await readMethodLabState();
   return (
-    <>
+    <MethodLabCinematicFrame identity="ROOT OBSERVER">
       <MethodLabConsole state={state} />
       <DecisionTransferObservatory initial={state.decisionTransfer} />
       <BlindDecisionExperiment />
@@ -37,6 +38,6 @@ export default async function MethodLabPage() {
         .crl-contrast details,.crl-result{border-color:#2d4354!important;background:#081119!important}.crl-contrast summary,.crl-result summary{color:#c8aa6d!important}.crl-contrast pre,.crl-result pre{color:#c5d0d6!important}
         .crl-error{border-color:rgba(196,111,91,.38)!important;background:#1a1010!important;color:#d7a08f!important}
       `}</style>
-    </>
+    </MethodLabCinematicFrame>
   );
 }
