@@ -1,7 +1,7 @@
 # SFI-DT-PROTOCOL-1.0
 
 Status: **EXPERIMENTALLY FROZEN**  
-Instrument code commit: `3febe181cfe80bb3edc15f122dbf639f9808d8b6`  
+Instrument code commit: `09886720d5b13372bd4b21617e5cd11556067bcf`  
 Instrument base commit: `3b7ce699e2654ed1fb551498cfeaad37731f6f88`
 
 ## Observable object
@@ -18,15 +18,19 @@ The confirmatory order is fixed:
 4. Materialize the arm-specific pre-target context.
 5. Persist and verify the context receipt.
 6. Run the blind reconstruction under the frozen model contract.
-7. Verify the target commitment at reveal.
-8. Prove that target evidence resolves to an `OBSERVED` event with `occurred_at > cutoffAt`.
-9. Materialize evaluation evidence from canonical stores.
-10. Deduplicate records into evidence objects, events, and independent observation groups.
-11. Persist and verify `SFI-DT-EVIDENCE-MATERIALIZATION-1.0`.
-12. Score only from that frozen receipt.
-13. Persist evaluation and ROOT audit hashes.
+7. Bind and hash the model contract on the blind run.
+8. Verify the target commitment at reveal.
+9. Prove that target evidence resolves to an `OBSERVED` event with `occurred_at > cutoffAt`.
+10. Re-verify the frozen model contract at reveal.
+11. Materialize evaluation evidence from canonical stores.
+12. Deduplicate records into evidence objects, events, and independent observation groups.
+13. Persist and verify `SFI-DT-EVIDENCE-MATERIALIZATION-1.0`.
+14. Score only from that frozen receipt.
+15. Persist the evidence receipt lineage with the evaluation and ROOT audit.
 
 The scorer may not receive validating occurrences, counterfactual probes, boundary counts, or thresholds supplied manually during confirmatory reveal.
+
+Historical Decision Transfer evaluations may enter a new confirmatory evidence pool only when they are explicitly persisted as `CONFIRMATORY_FROZEN`, carry frozen evidence lineage, and match the current `operationKey`. Historical evaluator reads are paginated until exhausted; an arbitrary row limit is not an experimental cutoff.
 
 ## Primary endpoint
 
@@ -65,7 +69,7 @@ The seven arms are frozen in `SFI-DT-BASELINE-MATRIX-1.0.md`. Arm definitions, s
 
 Only `OBSERVED` and `VERIFIED_CONTRAST` may increase validating counters, and only when their evidence lineage resolves to canonical root evidence linked to an observed epistemic event. `SIMULATED`, `DERIVED`, and `INFERRED` remain diagnostic.
 
-A simulated counterfactual is not an empirical boundary probe. When no qualifying empirical boundary probe exists, boundary validation is `BLOCKED`; absence is never encoded as an observed score of `0.0`.
+A simulated counterfactual is not an empirical boundary probe. When no qualifying empirical boundary probe exists, boundary validation is `BLOCKED`; the confirmatory counterfactual metric is missing (`null`), not an observed score of `0.0`.
 
 ## Model contract
 
@@ -79,7 +83,7 @@ Confirmatory SFI-DT-1.0 uses:
 - system prompt SHA-256: `99b9f89a95238a9a0195fdbc1ec68d40860128fce2ebde9cd69436012b44154d`
 - prompt-template SHA-256: `1bfaf23ecdf14ce105c3daa75c48c23a396a34ae092eb72cfeca962cb285d887`
 
-The run aborts if the configured or returned model differs from `expected_model`.
+The run aborts if the configured or returned model differs from `expected_model`. The stored model contract is canonically hashed; confirmatory reveal fails closed if that contract is absent, altered, or inconsistent with the frozen provider/model/prompt/configuration.
 
 ## Stopping rule
 
