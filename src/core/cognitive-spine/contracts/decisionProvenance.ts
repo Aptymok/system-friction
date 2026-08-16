@@ -1,3 +1,5 @@
+import type { CognitiveSpineTransition } from './transition';
+
 export const COGNITIVE_SPINE_DECISION_PROVENANCE_VERSION = 'SFI-CT-DECISION-PROVENANCE-1.0' as const;
 
 export type CognitiveSpineDecisionProvenance = {
@@ -15,6 +17,15 @@ export type CognitiveSpineDecisionProvenance = {
     profileVersion: string | null;
     sourceCutoff: string;
   };
+
+  /**
+   * Explicit Δ from the immediately preceding institutional snapshot into the
+   * state consumed by this execution. It closes the previous state's T12 when
+   * a later run materializes this entry transition.
+   */
+  entryTransitionRef: string | null;
+  entryTransitionHash: string | null;
+  entryTransition: CognitiveSpineTransition | null;
 
   stateRefs: {
     observations: string[];
@@ -39,6 +50,7 @@ export type CognitiveSpineDecisionProvenance = {
   rootActionRef: string | null;
   interventionRef: string | null;
   returnRef: string | null;
+  /** Post-execution transition into a later state; expected to be discovered in a later run. */
   transitionRef: string | null;
 
   provenanceGaps: string[];
