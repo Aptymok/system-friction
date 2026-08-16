@@ -5,7 +5,8 @@ import { readGovernedPublicObservatoryState } from '@/lib/observatory/public/rea
 const PUBLIC_OBSERVATORY_DESCRIPTION =
   'Public 90-day World State synthesis: World Vector, longitudinal trajectories, derived phenomenon candidates and governed public readings by System Friction Institute.';
 
-export const revalidate = 300;
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export const metadata: Metadata = {
   title: 'Public Observatory · WORLD STATE · System Friction Institute',
@@ -20,6 +21,5 @@ export const metadata: Metadata = {
 
 export default async function ObservatoryPage() {
   const state = await readGovernedPublicObservatoryState();
-  // Temporal ownership moved into PublicObservatoryUnified: <PublicObservatoryTimelineNavigator />.
   return <PublicObservatoryUnified state={state} />;
 }
