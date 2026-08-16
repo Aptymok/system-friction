@@ -8,6 +8,7 @@
 System Friction Institute (SFI) uses one coherent cinematic visual grammar across its human state surfaces without collapsing their authority, purpose, data boundary, or epistemic role.
 
 ```text
+PUBLIC INSTITUTIONAL ENTRY
 PUBLIC OBSERVATION
 MEMBER / CASE PLATFORM
 FIELD
@@ -30,12 +31,27 @@ READ SURFACE ≠ CANONICAL WRITE
 
 Ordinary editorial/legal/static pages such as contact, privacy, manifest documents, publication text, or policy prose do not become faux systems dashboards merely for visual uniformity. They retain their appropriate editorial interaction model while sharing the same institutional typography/palette where useful.
 
+## Single public institutional entry
+
+`ONE PUBLIC INSTITUTIONAL ENTRY` is a repository-level UX constraint.
+
+```text
+/      = canonical public institutional entry
+/sfi   = compatibility alias → /
+```
+
+The repository must not expose two independent full-screen experiences that both present themselves as the primary System Friction Institute site. Operational views remain organs of the institute and are routed explicitly as Observatory, Field, Studio, ROOT, Atlas, Ledger, MIHM, Friction, Method Lab, or other bounded surfaces.
+
+A cinematic grammar may be shared across those organs. Shared visual grammar does not make them additional SFI homepages.
+
 ## Implemented operational surface inventory
 
 The current human state surfaces are classified as follows:
 
 | Surface | Scope | Primary data/read boundary | Authority |
 |---|---|---|---|
+| `/` | Public | canonical institutional entry / public attractor | navigation + read only |
+| `/sfi` | Compatibility alias | redirects to `/`; no independent surface | none |
 | `/observatory` | Public | governed publishable observatory state + provenance | read only |
 | `/e/[artifactId]` | Public | public + verified artifact identity / manifestations | read only |
 | `/member` | Private member | membership + real workspace counts/access | navigation only |
@@ -49,7 +65,6 @@ The current human state surfaces are classified as follows:
 | `/friction` | Institutional | current friction-field read | read only |
 | `/world-vector` | Context | current World Vector snapshot/status | read only |
 | `/moph` | Session boundary | no synthetic institutional value; session/object scoped | fail closed outside session |
-| `/sfi` | Institutional | integrated institutional operating read | read only |
 | `/pipeline` | ROOT-observer scope | institutional operating field + cycle analysis | governed boundary |
 | `/method-lab` | ROOT-observer scope | real experiment registry/runtime; outputs SIMULATED | laboratory only |
 | `/root` | Private sovereign | ROOT sovereign state + Cognitive Spine status | institutional governance |
@@ -242,3 +257,5 @@ VISUAL COMPLETENESS = DATA     FORBIDDEN
 ## Result
 
 The previously designed cinematic views are not disposable mockups. Their visual language is the canonical human-surface grammar. Each implementation must bind that grammar to the real read model of the surface, or explicitly display the absence/blocking state. Specialized consoles may preserve distinct interaction mechanics where their authority demands it, but they remain recognizably part of the same SFI system.
+
+The public institutional identity has one canonical entry at `/`. Every other route is an organ, instrument, bounded workspace, archive, or compatibility alias—not a second SFI website.
