@@ -1,30 +1,14 @@
 export const PROTECTED_TABLES = [
-  // Identity / access / billing / authority survive an operational clean start.
-  'profiles',
-  'system_accounts',
-  'system_roles',
-  'system_actor_roles',
-  'system_resources',
-  'system_permissions',
-  'system_access_grants',
-  'system_entitlements',
-  'system_subscriptions',
-  'system_payment_events',
-  'system_api_clients',
-  // Commercial tenant identity/membership is access/authority, not disposable case runtime.
-  'sfi_tenants',
-  'sfi_tenant_members',
-  // Longitudinal external observation is institutional evidence, not disposable runtime.
-  // It survives genesis so a clean SFI can still reconstruct the world it actually observed.
+  'profiles','system_accounts','system_roles','system_actor_roles','system_resources','system_permissions','system_access_grants','system_entitlements','system_subscriptions','system_payment_events','system_api_clients',
+  'sfi_tenants','sfi_tenant_members',
   'worldspect_snapshots',
-  // Schema migrations and canonical code/corpus are repository/Supabase metadata and are never reset here.
   'schema_migrations',
 ];
 
 export const OPERATIONAL_RESET_LAYERS = [
   { id:'operating-cycle-analysis', reason:'Derived cycle layers must be deleted before the cycle identity they reference.', tables:['sfi_artifact_trajectory_events','sfi_inference_traces'] },
-  { id:'case-platform-derived', reason:'Tenant-scoped commercial runtime is cleared child-first while tenant identity and membership survive as access/authority.', tables:['sfi_case_reports','sfi_case_audit_events','sfi_case_relations','sfi_case_objects'] },
-  { id:'case-platform-parent', reason:'Canonical commercial case runtime is removed only after its report, audit, relation and object children.', tables:['sfi_cases'] },
+  { id:'case-platform-derived', reason:'Tenant-scoped commercial runtime is cleared child-first while tenant identity and membership survive as access/authority.', tables:['sfi_case_action_decisions','sfi_case_action_proposals','sfi_case_reports','sfi_case_audit_events','sfi_case_relations','sfi_case_objects'] },
+  { id:'case-platform-parent', reason:'Canonical commercial case runtime is removed only after its action, report, audit, relation and object children.', tables:['sfi_cases'] },
   { id:'field-return', reason:'Field child records before cases; removes observed test/runtime history only after proof export.', tables:['field_outcomes','field_returns','field_interventions','field_hypotheses','field_mihm_readings','field_moph_runs','field_case_evidence'] },
   { id:'field-participant', reason:'Participant operational capture is longitudinal runtime, not identity/authority.', tables:['field_participant_actions','field_participant_sessions','field_participant_intakes','field_participant_consents','field_participant_profiles'] },
   { id:'field-cases', reason:'Parent Field cases after all child records.', tables:['field_cases'] },
@@ -41,9 +25,6 @@ export const OPERATIONAL_RESET_LAYERS = [
 ];
 
 export const OPERATIONAL_DELETE_ORDER = OPERATIONAL_RESET_LAYERS.flatMap(layer=>layer.tables);
-
 const duplicates=OPERATIONAL_DELETE_ORDER.filter((table,index,all)=>all.indexOf(table)!==index);
 if(duplicates.length) throw new Error(`Duplicate operational reset table(s): ${[...new Set(duplicates)].join(', ')}`);
-for(const table of PROTECTED_TABLES){
-  if(OPERATIONAL_DELETE_ORDER.includes(table)) throw new Error(`Protected table present in purge inventory: ${table}`);
-}
+for(const table of PROTECTED_TABLES){ if(OPERATIONAL_DELETE_ORDER.includes(table)) throw new Error(`Protected table present in purge inventory: ${table}`); }
