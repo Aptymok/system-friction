@@ -17,6 +17,7 @@ import {
 const read=(path:string)=>fs.readFileSync(path,'utf8');
 const migration=read('supabase/migrations/20260816145000_sfi_system_ai_assurance_domain_v1.sql');
 const atomicMigration=read('supabase/migrations/20260816145500_sfi_system_ai_atomic_intake_v1.sql');
+const guardMigration=read('supabase/migrations/20260816145600_sfi_system_ai_intake_guards_v1.sql');
 const intake=read('src/app/api/cases/[caseId]/system-ai/intake/route.ts');
 const assessments=read('src/app/api/cases/[caseId]/internal/system-ai/assessments/route.ts');
 const readModel=read('src/lib/sfi/case-platform/systemAiReadModel.ts');
@@ -51,6 +52,14 @@ assert(atomicMigration.includes('grant execute on function public.sfi_record_sys
 assert(atomicMigration.includes('revoke all on function public.sfi_record_system_ai_intake_package_v1(uuid,uuid,jsonb,jsonb) from authenticated'));
 assert(atomicMigration.includes('grant execute on function public.sfi_record_system_ai_relation_v1(uuid,uuid,jsonb) to service_role'));
 assert(atomicMigration.includes('revoke all on function public.sfi_record_system_ai_relation_v1(uuid,uuid,jsonb) from authenticated'));
+
+assert(guardMigration.includes('sfi_record_system_ai_intake_package_core_v1'),'guard migration must hide the raw package implementation behind a wrapper');
+assert(guardMigration.includes('SFI_SYSTEM_AI_DUPLICATE_RELATION_KEY_IN_PACKAGE'),'duplicate relation keys must fail before persistence');
+assert(guardMigration.includes('SFI_AI_EXECUTION_COMPLETION_REQUIRED'),'assurance intake must reject in-progress execution records');
+assert(guardMigration.includes('SFI_AI_EXECUTION_FINISHED_BEFORE_STARTED'),'database intake must protect execution chronology');
+assert(guardMigration.includes('revoke all on function public.sfi_record_system_ai_intake_package_core_v1(uuid,uuid,jsonb,jsonb) from service_role'),'service clients must not bypass package guards');
+assert(/finishedAt:z\.string\(\)\.trim\(\)\.min\(1\)\.max\(80\)/.test(intake),'AI execution assurance intake must require finishedAt');
+assert(!/finishedAt:z\.string\(\)\.trim\(\)\.max\(80\)\.nullable\(\)\.optional\(\)/.test(intake),'AI execution intake must not accept an in-progress trace');
 
 assert(systemAiRepository.includes('persistOperationalSystemAiIntakePackage'));
 assert(systemAiRepository.includes("service.rpc('sfi_record_system_ai_intake_package_v1'"));
@@ -153,6 +162,8 @@ console.log(JSON.stringify({
   serviceProfileRouting:true,
   directAuthenticatedRelationWrites:'RECORD_ONLY',
   atomicIntake:true,
+  duplicateRelationKeysRejected:true,
+  completedExecutionTraceRequired:true,
   atomicStandaloneRelations:true,
   exactRevisionRelationIdentity:true,
   auditedRelationWrites:true,
