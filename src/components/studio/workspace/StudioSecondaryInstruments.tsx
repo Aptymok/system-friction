@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import type { StudioFieldViewState } from '@/lib/studio/field/studioFieldViewTypes';
+import { StudioTopologyControl } from './StudioTopologyControl';
 import './studio-secondary-instruments.css';
 
 type ReconstructionResult = {
@@ -29,20 +31,21 @@ type MasterResult = {
 };
 
 export function StudioSecondaryInstruments({
-  sessionId,
+  fieldState,
   activeObjectId,
   objectCount,
   objectTitle,
   objectType,
   analysisStatus,
 }: {
-  sessionId: string | null;
+  fieldState: StudioFieldViewState;
   activeObjectId: string | null;
   objectCount: number;
   objectTitle: string;
   objectType: string;
   analysisStatus: string;
 }) {
+  const sessionId = fieldState.session?.id ?? null;
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState<'reconstruct'|'master'|null>(null);
   const [reconstruction, setReconstruction] = useState<ReconstructionResult | null>(null);
@@ -82,13 +85,15 @@ export function StudioSecondaryInstruments({
   return (
     <div className="studio-secondary-instruments" data-open={open}>
       <button type="button" className="studio-secondary-instruments__launcher" onClick={() => setOpen((value) => !value)} aria-expanded={open}>
-        <span>INSTRUMENTS</span><strong>{open ? 'CLOSE' : 'RECONSTRUCT / MASTER'}</strong>
+        <span>INSTRUMENTS</span><strong>{open ? 'CLOSE' : 'STRUCTURE / RECONSTRUCT / MASTER'}</strong>
       </button>
       {open ? (
         <div className="studio-secondary-instruments__backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setOpen(false); }}>
           <aside className="studio-secondary-instruments__panel" aria-label="Studio secondary analysis instruments">
-            <header><div><span>STUDIO / SECONDARY INSTRUMENTS</span><strong>Bounded reconstruction + finite master analysis</strong></div><button type="button" onClick={() => setOpen(false)}>×</button></header>
+            <header><div><span>STUDIO / SECONDARY INSTRUMENTS</span><strong>Topology + bounded reconstruction + finite master analysis</strong></div><button type="button" onClick={() => setOpen(false)}>×</button></header>
             <div className="studio-secondary-instruments__scroll">
+              <StudioTopologyControl fieldState={fieldState} activeObjectId={activeObjectId}/>
+
               <section className="studio-secondary-instruments__instrument">
                 <span>RELATIONAL RECONSTRUCTION</span>
                 <h2>Reconstruct the selected field</h2>
@@ -106,7 +111,7 @@ export function StudioSecondaryInstruments({
               </section>
               {error ? <div className="studio-secondary-instruments__error">{error}</div> : null}
             </div>
-            <footer>SECONDARY INSTRUMENT ≠ STUDIO ENTRY · FINITE EXECUTION · OWNER-SCOPED</footer>
+            <footer>SECONDARY INSTRUMENT ≠ STUDIO ENTRY · OWNER-SCOPED · PERSISTED FIELD MUTATIONS ONLY</footer>
           </aside>
         </div>
       ) : null}
