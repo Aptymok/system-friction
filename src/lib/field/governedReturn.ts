@@ -7,6 +7,7 @@ import {
   type CreateFieldCycleInput,
   type ReturnFieldCycleInput,
 } from './operationalCycle';
+import { materializeFieldBlindedCognitiveSpineT0 } from './fieldCognitiveSpineBoundary';
 import { FIELD_INTERVENTION_EXECUTION_CONTRACT } from './interventionExecution';
 import { finalizeReturnContrast, canMarkLongitudinalCaseComplete } from './returnContrastContract';
 import { verifyStudioFieldHandoff, type StudioFieldHandoff } from '@/lib/studio/fieldHandoff';
@@ -30,11 +31,27 @@ export async function createGovernedFieldCycle(ownerId: string, input: GovernedF
     throw new Error('FIELD_STUDIO_HANDOFF_INVALID');
   }
 
+  // Baseline capture, MOPH, hypothesis and provisional intervention are created
+  // before Cognitive Spine T0 is observed. This preserves a genuinely blinded
+  // initial Field observation rather than conditioning it on prior CT state.
   const result = await createFieldCycle(ownerId, input);
   const db = createServiceSupabaseClient();
   const fieldCase = record(result.case);
   const caseId = text(fieldCase.id);
   if (!caseId) throw new Error('FIELD_GOVERNED_CASE_ID_MISSING');
+
+  const baselineCutoff = text(fieldCase.created_at) || new Date().toISOString();
+  let cognitiveSpineT0: Awaited<ReturnType<typeof materializeFieldBlindedCognitiveSpineT0>> | null = null;
+  let cognitiveSpineT0Warning: string | null = null;
+  try {
+    cognitiveSpineT0 = await materializeFieldBlindedCognitiveSpineT0({
+      executionId: `field:${caseId}:t0`,
+      sourceCutoff: baselineCutoff,
+      recordedAt: new Date().toISOString(),
+    });
+  } catch (error) {
+    cognitiveSpineT0Warning = `FIELD_COGNITIVE_SPINE_T0_UNAVAILABLE:${error instanceof Error ? error.message : String(error)}`;
+  }
 
   const frozenRivalHypothesis = input.rivalHypothesis?.trim()
     || 'Null-compatible rival: any observed change may be explained by baseline drift, external field/context, measurement error, or intervention fidelity rather than the intervention itself.';
@@ -51,6 +68,15 @@ export async function createGovernedFieldCycle(ownerId: string, input: GovernedF
     contrastFrozenAt: frozenAt,
     interventionExecutionContract: FIELD_INTERVENTION_EXECUTION_CONTRACT,
     interventionExecutionAcknowledgement: null,
+    cognitiveSpineT0: cognitiveSpineT0 ?? {
+      contractVersion: 'SFI-FIELD-COGNITIVE-SPINE-T0-1.0',
+      profile: 'FIELD_BLINDED_OBSERVATION_V1',
+      operationalSfiCtAvailable: false,
+      operationalSfiCtConsumed: false,
+      sourceCutoff: baselineCutoff,
+      warning: cognitiveSpineT0Warning,
+      rule: 'Field baseline remains valid even when operational Cognitive Spine availability cannot be reconstructed, because T0 does not consume CT context.',
+    },
     longitudinalComplete: false,
     studioFieldHandoff: input.studioHandoff ?? null,
     studioHandoffId: input.studioHandoff?.handoffId ?? null,
@@ -62,10 +88,16 @@ export async function createGovernedFieldCycle(ownerId: string, input: GovernedF
   return {
     ...result,
     case: update.data,
+    warnings: [
+      ...(Array.isArray(result.warnings) ? result.warnings : []),
+      ...(cognitiveSpineT0Warning ? [cognitiveSpineT0Warning] : []),
+    ],
     frozenRivalHypothesis,
     frozenStoppingCondition,
     contrastFrozenAt: frozenAt,
     interventionExecutionContract: FIELD_INTERVENTION_EXECUTION_CONTRACT,
+    cognitiveSpineT0,
+    cognitiveSpineT0Warning,
     studioHandoff: input.studioHandoff ?? null,
   };
 }
@@ -164,6 +196,7 @@ export async function submitGovernedFieldReturn(ownerId: string, caseId: string,
       longitudinalComplete: true,
       interventionExecutionAcknowledgement: execution.acknowledgement,
       legacyExecutionProvenanceGap: execution.legacy,
+      cognitiveSpineT0: metadata.cognitiveSpineT0 ?? null,
       studioHandoffId: text(metadata.studioHandoffId) || null,
       studioHandoffHash: text(metadata.studioHandoffHash) || null,
     },
@@ -213,6 +246,7 @@ export async function submitGovernedFieldReturn(ownerId: string, caseId: string,
       explanation:result.explanation,
       interventionExecutionAcknowledgement: execution.acknowledgement,
       legacyExecutionProvenanceGap: execution.legacy,
+      cognitiveSpineT0: metadata.cognitiveSpineT0 ?? null,
       returnContrast:contrast,
       studioHandoffId:text(metadata.studioHandoffId) || null,
       studioHandoffHash:text(metadata.studioHandoffHash) || null,
@@ -227,6 +261,7 @@ export async function submitGovernedFieldReturn(ownerId: string, caseId: string,
     interventionExecutionAcknowledgement: execution.acknowledgement,
     legacyExecutionProvenanceGap: execution.legacy,
     executionWarnings: execution.warnings,
+    cognitiveSpineT0: metadata.cognitiveSpineT0 ?? null,
     studioHandoffId: text(metadata.studioHandoffId) || null,
     studioHandoffHash: text(metadata.studioHandoffHash) || null,
     cognitiveTwinExperience:twinExperience,
