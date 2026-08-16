@@ -32,8 +32,8 @@ export const METHOD_LAB_PROTOCOLS: MethodLabProtocolDefinition[] = [
   {
     id: 'ct_reentry',
     name: 'Cognitive Twin Reentry',
-    purpose: 'Evaluate reintroduced Cognitive Twin functions and governed mutations against founder holdout, engine swaps and prospective returns.',
-    version: '2026-08-11.ct-reentry.v1',
+    purpose: 'Evaluate reintroduced Cognitive Twin functions, decision-structure transfer, counterfactual boundaries and governed mutations against founder holdout, engine swaps and prospective returns.',
+    version: '2026-08-15.ct-reentry.v1.1',
     implementationPath: 'src/lib/cognitive-twin',
     executionSurface: '/root/method-lab',
     persistence: ['sfi_cognitive_twin_runs', 'sfi_cognitive_twin_evaluations', 'sfi_lab_analyses'],
