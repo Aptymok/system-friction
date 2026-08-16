@@ -28,6 +28,21 @@ for (const table of [
 }
 
 assert(materializer.includes("contextSource: z.literal('CANONICAL_MATERIALIZED')"), 'canonical_context_contract_missing');
+assert(materializer.includes('function layersForArm'), 'arm_layer_selector_missing');
+assert(materializer.includes("rawHistory: arm !== 'B0_BASE'"), 'b0_must_not_query_raw_history');
+assert(materializer.includes("memory: ['B2_MEMORY', 'B3_CDT', 'B4_PATTERNS', 'B5_RULE_STRUCTURE', 'CT_FULL'].includes(arm)"), 'memory_arm_boundary_missing');
+assert(materializer.includes("decisionTraces: ['B3_CDT', 'B4_PATTERNS', 'B5_RULE_STRUCTURE', 'CT_FULL'].includes(arm)"), 'cdt_arm_boundary_missing');
+assert(materializer.includes("patterns: ['B4_PATTERNS', 'B5_RULE_STRUCTURE', 'CT_FULL'].includes(arm)"), 'pattern_arm_boundary_missing');
+assert(materializer.includes("rules: ['B5_RULE_STRUCTURE', 'CT_FULL'].includes(arm)"), 'rule_arm_boundary_missing');
+assert(materializer.includes("operatingMode: arm === 'CT_FULL'"), 'operating_mode_arm_boundary_missing');
+assert(materializer.includes('layers.rawHistory ? loadRawHistory'), 'raw_history_query_must_be_arm_conditional');
+assert(materializer.includes('layers.memory ? loadVerifiedMemory'), 'memory_query_must_be_arm_conditional');
+assert(materializer.includes('layers.decisionTraces || layers.patterns ? loadDecisionTransferHistory'), 'decision_history_query_must_be_arm_conditional');
+assert(materializer.includes('layers.rules ? loadApprovedRules'), 'rules_query_must_be_arm_conditional');
+assert(materializer.includes('layers.operatingMode ? loadOperatingMode'), 'operating_mode_query_must_be_arm_conditional');
+assert(materializer.includes('selectedLayers: layers'), 'receipt_must_record_selected_layers');
+assert(materializer.includes('lower-information arms do not depend on higher-information stores'), 'arm_dependency_boundary_must_be_declared');
+
 assert(materializer.includes(".lte('occurred_at', cutoffIso)"), 'raw_history_temporal_cutoff_missing');
 assert(materializer.includes(".lte('created_at', cutoffIso)"), 'created_at_temporal_cutoff_missing');
 assert(materializer.includes(".lte('approved_at', cutoffIso)"), 'approved_rule_temporal_cutoff_missing');
@@ -68,6 +83,7 @@ console.log(JSON.stringify({
   gate: 'SFI_DECISION_TRANSFER_CANONICAL_CONTEXT',
   protocol: 'SFI-DT-CONTEXT-MATERIALIZATION-1.0',
   temporalCutoff: 'QUERY_LEVEL',
+  treatmentDependencies: 'ARM_SELECTIVE',
   memory: 'VERIFIED_OR_CANONICAL_ONLY',
   decisionTraces: 'OBSERVED_OR_VERIFIED_CONTRAST_ONLY',
   rules: 'APPROVED_ONLY',
