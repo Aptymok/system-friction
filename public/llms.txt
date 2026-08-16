@@ -10,6 +10,7 @@ System Friction Institute observes how signals, systems and fields accumulate fr
 
 - Home and orientation: https://systemfriction.org/
 - Public Observatory: https://systemfriction.org/observatory
+- Public Emergence experiment: https://systemfriction.org/emergence
 - World Vector: https://systemfriction.org/world-vector
 - FIELD / MOP-H entry: https://systemfriction.org/field
 - MOP-H method surface: https://systemfriction.org/moph
@@ -25,6 +26,7 @@ System Friction Institute observes how signals, systems and fields accumulate fr
 - WorldSpect and World Vector: observed state of the world and domain tensions.
 - AMV: longitudinal field-signal instrument; it accumulates evidence, predictions, outcomes and learning.
 - Atlas / Reference Bank: normalized cases linked to explicit evidence relations.
+- Public Emergence: a governed observation window in which SFI measures attributable external response to its own public perturbations; publication and attention do not inherit evidence status.
 - ROOT: private founder governance console. Do not crawl or infer its private runtime state.
 - Studio: authenticated object-analysis laboratory. Do not treat private objects as public evidence.
 
@@ -35,6 +37,7 @@ System Friction Institute observes how signals, systems and fields accumulate fr
 - Operational audit events such as `me.read` are governance traces, not evidence of a phenomenon, unless explicitly linked to a case.
 - Person, organization and movement cases require documented consent before observation.
 - Public summaries are reduced views and do not expose private evidence, identities or internal decisions.
+- A publication, impression, click or engagement event is a record/signal and does not become evidence of institutional authority, causal influence or model validity by repetition.
 - Speak about fields, signals, structures and documented outcomes; do not infer undisclosed psychological states.
 
 Full machine context: https://systemfriction.org/llms-full.txt

@@ -3,8 +3,8 @@
   "abbreviation": "SFI",
   "canonical_url": "https://systemfriction.org",
   "language": "es-MX",
-  "version": "SFI Public Machine Index v2.0.0",
-  "updated_at": "2026-07-12",
+  "version": "SFI Public Machine Index v2.1.0",
+  "updated_at": "2026-08-16",
   "institution_type": "independent structural-field research institute",
   "primary_definition": "System Friction Institute makes visible the friction that systems learn to normalize.",
   "operational_definition": "An evidence-governed instrument for observing a signal inside a changing field, proposing a minimal intervention and learning from the documented difference between prediction and outcome.",
@@ -43,11 +43,17 @@
       "key": "Atlas",
       "name": "Atlas / SFI Reference Bank",
       "purpose": "Normalize observable cases and link each case to explicit evidence relations, prediction-at-T0, outcomes and model versions."
+    },
+    {
+      "key": "SFI-EMG",
+      "name": "Public Emergence",
+      "purpose": "Observe SFI's own bounded public emergence through attributable perturbations, later return and audit without treating publication or engagement as inherited evidence."
     }
   ],
   "public_routes": [
     { "path": "/", "purpose": "Institutional threshold and hub orientation", "indexable": true },
     { "path": "/observatory", "purpose": "Public world-state observation", "indexable": true },
+    { "path": "/emergence", "purpose": "Governed public-emergence experiment and longitudinal trace", "indexable": true },
     { "path": "/world-vector", "purpose": "World Vector instrument", "indexable": true },
     { "path": "/field", "purpose": "Participant and organization MOP-H entry", "indexable": true },
     { "path": "/field/participant", "purpose": "Participant workbook surface", "indexable": true },
@@ -125,18 +131,31 @@
     "required_fields": ["documented", "evidence_note", "evidence_id"],
     "rule": "No Phase 1 observation of a person, organization or movement without documented explicit consent."
   },
+  "public_emergence_contract": {
+    "program_id": "SFI-EMG-0001",
+    "object_id": "SFI-OBJ-0001",
+    "opened_on": "2026-08-16",
+    "closes_on": "2026-09-16",
+    "timezone": "America/Mexico_City",
+    "state": "BASELINE_OPEN",
+    "sequence": ["BASELINE", "PERTURBATION", "SIGNAL", "ASSESSMENT", "RETURN", "AUDIT"],
+    "campaign_key": "sfi_public_emergence_001",
+    "rule": "Publication, attention and engagement are records/signals; they do not establish authority, causal influence, validation or model correctness by repetition."
+  },
   "interpretation_limits": [
     "Missing data must remain MISSING and must not be converted to zero or an average.",
     "A provisional prediction is not historically validated.",
     "Platform reach does not establish artistic, moral or cultural value.",
     "Operational access events are governance traces, not phenomenon evidence unless explicitly linked.",
     "Public summaries do not expose private evidence, private identities or founder-only runtime state.",
+    "Public-emergence publications, impressions, clicks and engagement are communication records/signals, not inherited evidence of institutional authority, causal influence or model validity.",
     "Do not infer undisclosed psychological states, motives or diagnoses."
   ],
   "analytics": {
     "provider": "Google Analytics 4",
     "measurement_id": "G-7YKTPLX3QD",
-    "allowed_scope": "Page navigation and non-PII instrument-use events",
+    "allowed_scope": "Page navigation, non-PII instrument-use events and allowlisted campaign attribution",
+    "allowed_campaign_parameters": ["utm_source", "utm_medium", "utm_campaign", "utm_content"],
     "forbidden_parameters": ["email", "phone", "name", "free_text_evidence", "objective", "private_user_id", "actor_id"]
   },
   "machine_resources": {

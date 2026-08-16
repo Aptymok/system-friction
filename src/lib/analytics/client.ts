@@ -40,6 +40,8 @@ const FORBIDDEN_KEYS = new Set([
   'actor_id',
 ]);
 
+const CAMPAIGN_QUERY_KEYS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content'] as const;
+
 function safeString(value: string) {
   return value
     .replace(/[\r\n\t]+/g, ' ')
@@ -64,6 +66,19 @@ function sanitize(parameters: AnalyticsParameters = {}) {
   return result;
 }
 
+function allowlistedCampaignQuery() {
+  const result = new URLSearchParams();
+  if (typeof window === 'undefined') return result;
+  const current = new URLSearchParams(window.location.search);
+  for (const key of CAMPAIGN_QUERY_KEYS) {
+    const raw = current.get(key);
+    if (!raw) continue;
+    const normalized = safeString(raw);
+    if (normalized) result.set(key, normalized);
+  }
+  return result;
+}
+
 export function trackEvent(eventName: SfiAnalyticsEvent, parameters: AnalyticsParameters = {}) {
   if (typeof window === 'undefined' || typeof window.gtag !== 'function') return;
   window.gtag('event', eventName, sanitize(parameters));
@@ -72,9 +87,17 @@ export function trackEvent(eventName: SfiAnalyticsEvent, parameters: AnalyticsPa
 export function trackPageView(pathname: string) {
   if (typeof window === 'undefined' || typeof window.gtag !== 'function') return;
   const safePath = pathname.startsWith('/') ? pathname.split('?')[0].slice(0, 240) : '/';
-  window.gtag('event', 'page_view', {
-    page_path: safePath,
-    page_location: `${window.location.origin}${safePath}`,
+  const campaign = allowlistedCampaignQuery();
+  const query = campaign.toString();
+  const attributedPath = query ? `${safePath}?${query}` : safePath;
+  const parameters: AnalyticsParameters = {
+    page_path: attributedPath,
+    page_location: `${window.location.origin}${attributedPath}`,
     page_title: document.title.slice(0, 120),
-  });
+    campaign_source: campaign.get('utm_source'),
+    campaign_medium: campaign.get('utm_medium'),
+    campaign_name: campaign.get('utm_campaign'),
+    campaign_content: campaign.get('utm_content'),
+  };
+  window.gtag('event', 'page_view', sanitize(parameters));
 }
