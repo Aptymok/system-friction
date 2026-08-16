@@ -17,7 +17,7 @@ const requiredRuntimeTables=[
   'root_evidence_entries','epistemic_events','sfi_evidence_ledger','graph_nodes','graph_edges',
   'sfi_cognitive_twin_memory','sfi_cognitive_twin_decisions','sfi_cognitive_twin_evaluations','sfi_cognitive_twin_runs',
   'sfi_operating_cycles','sfi_inference_traces','sfi_artifact_trajectory_events','sfi_lab_analyses',
-  'sfi_cases','sfi_case_objects','sfi_case_reports','sfi_case_audit_events',
+  'sfi_cases','sfi_case_objects','sfi_case_relations','sfi_case_reports','sfi_case_audit_events',
   'field_cases','field_case_evidence','field_moph_runs','field_mihm_readings','field_hypotheses','field_interventions','field_returns','field_outcomes',
   'studio_sessions','studio_objects','studio_uploads','studio_analysis_jobs','studio_audio_features','action_proposals','logbook_mutations',
 ];
@@ -49,7 +49,7 @@ console.log(JSON.stringify({ok:true,purgeTableCount:OPERATIONAL_DELETE_ORDER.len
   'full-cycle proof/export precedes reset',
   'runtime history is cleared child-first',
   'identity/access/authority including tenant membership are protected',
-  'Case Platform runtime is cleared while tenant identity survives',
+  'Case Platform objects, relations, reports and cases are cleared while tenant identity survives',
   'WorldSpect longitudinal observation corpus survives genesis',
   'optional/missing tables are skipped instead of making the reset unsafe',
   'empty post-reset organs report READY rather than DEGRADED',
