@@ -8,9 +8,8 @@ import {
   normalizeSystemFailureEvent,
   type SfiSystemAiIntakePackage,
 } from '@/core/case-platform';
-import { recordOperationalCaseObject } from '@/lib/sfi/case-platform/repository';
-import { recordOperationalSystemAiRelation } from '@/lib/sfi/case-platform/systemAiRepository';
-import { assertCaseReferenceIntegrity, assertCaseServiceProfileAllowed } from '@/lib/sfi/case-platform/integrity';
+import { persistOperationalSystemAiIntakePackage } from '@/lib/sfi/case-platform/systemAiRepository';
+import { assertCaseServiceProfileAllowed } from '@/lib/sfi/case-platform/integrity';
 import { sfiCaseApiFailure } from '@/lib/sfi/case-platform/http';
 
 export const dynamic = 'force-dynamic';
@@ -18,7 +17,6 @@ export const runtime = 'nodejs';
 
 const refSchema=z.object({id:z.string().trim().min(1).max(500),version:z.string().trim().max(120).nullable().optional(),hash:z.string().trim().max(256).nullable().optional()}).strict();
 const entityTypeSchema=z.enum(['SYSTEM','COMPONENT','PROCESS','WORKFLOW','ACTOR','INTERFACE','DATA_SOURCE','DATASET','AI_SYSTEM','AI_MODEL','MODEL_ENDPOINT','PROMPT_TEMPLATE','RETRIEVAL_LAYER','TOOL','AI_EXECUTION','DECISION_POINT','HUMAN_GATE','CONTROL','FAILURE_EVENT','USE_CASE','INTEGRATION_POINT','OUTCOME']);
-const entityRefSchema=refSchema.extend({entityType:entityTypeSchema}).strict();
 const aiSystemRefSchema=refSchema.extend({entityType:z.literal('AI_SYSTEM')}).strict();
 const aiModelRefSchema=refSchema.extend({entityType:z.literal('AI_MODEL')}).strict();
 const promptRefSchema=refSchema.extend({entityType:z.literal('PROMPT_TEMPLATE')}).strict();
@@ -38,23 +36,25 @@ const intakeSchema=z.discriminatedUnion('type',[entitySchema,executionSchema,fai
 const SYSTEM_AI_PROFILES=['SYSTEM_OBSERVATORY','AI_IMPLEMENTATION_DIAGNOSTIC','AI_ADOPTION_INTEGRATION','AI_GOVERNANCE_ASSURANCE','CUSTOM_RESEARCH'] as const;
 type RouteContext={params:Promise<{caseId:string}>};
 
-async function persistPackage(caseId:string,userId:string,packet:SfiSystemAiIntakePackage){
-  await assertCaseReferenceIntegrity({caseId,userId,sourceRefs:packet.object.sourceRefs,recordRefs:packet.object.recordRefs,evidenceRefs:packet.object.evidenceRefs});
-  const object=await recordOperationalCaseObject({caseId,userId,...packet.object});
-  const relations=[];
-  for(const relation of packet.relations) relations.push(await recordOperationalSystemAiRelation({caseId,userId,relation}));
-  return{object,relations};
-}
-
 export async function POST(request:Request,context:RouteContext){
   try{
-    const{user}=await requireAuthenticatedUser(); const{caseId}=await context.params; await assertCaseServiceProfileAllowed(caseId,user.id,[...SYSTEM_AI_PROFILES]); const body=intakeSchema.parse(await request.json());
+    const{user}=await requireAuthenticatedUser();
+    const{caseId}=await context.params;
+    await assertCaseServiceProfileAllowed(caseId,user.id,[...SYSTEM_AI_PROFILES]);
+    const body=intakeSchema.parse(await request.json());
     let packet:SfiSystemAiIntakePackage;
     if(body.type==='ENTITY') packet=normalizeSystemAiEntityRecord(body);
     else if(body.type==='AI_EXECUTION') packet=normalizeAiExecutionTrace(body);
     else if(body.type==='FAILURE_EVENT') packet=normalizeSystemFailureEvent(body);
     else packet=normalizeAiDecisionTrace(body);
-    const result=await persistPackage(caseId,user.id,packet);
-    return NextResponse.json({ok:true,contract:packet.contract,...result,boundary:'System/AI intake persists observed records and declared relations only. Raw prompts/inputs are not required; AI output does not become a decision, failure does not establish root cause, and no institutional truth is written.'},{status:201});
-  }catch(error){return sfiCaseApiFailure(error);}
+    const result=await persistOperationalSystemAiIntakePackage({caseId,userId:user.id,packet});
+    return NextResponse.json({
+      ok:true,
+      contract:packet.contract,
+      ...result,
+      boundary:'System/AI intake validates the full packet first and persists object + relations in one database transaction. Raw prompts/inputs are not required; AI output does not become a decision, failure does not establish root cause, and no institutional truth is written.',
+    },{status:201});
+  }catch(error){
+    return sfiCaseApiFailure(error);
+  }
 }
