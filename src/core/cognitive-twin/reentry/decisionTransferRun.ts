@@ -82,20 +82,14 @@ export const decisionTransferRunInputSchema = z.object({
     minimumStructuralFidelity: thresholdSchema.optional(),
     minimumCounterfactualTargetAccuracy: thresholdSchema.optional(),
   }).strict().optional(),
-  experimentalMode: z.enum(['CONFIRMATORY_FROZEN', 'NON_CONFIRMATORY_DIAGNOSTIC']).default('NON_CONFIRMATORY_DIAGNOSTIC'),
+  experimentalMode: z.enum(['CONFIRMATORY_FROZEN', 'NON_CONFIRMATORY_DIAGNOSTIC']).optional(),
   evaluationEvidence: evaluationEvidenceSchema.optional(),
-}).strict().superRefine((value, ctx) => {
-  if (value.experimentalMode === 'CONFIRMATORY_FROZEN' && !value.evaluationEvidence) {
-    ctx.addIssue({ code: 'custom', path: ['evaluationEvidence'], message: 'confirmatory evaluation requires frozen evidence lineage' });
-  }
-  if (value.experimentalMode === 'NON_CONFIRMATORY_DIAGNOSTIC' && value.evaluationEvidence) {
-    ctx.addIssue({ code: 'custom', path: ['evaluationEvidence'], message: 'diagnostic evaluation cannot claim frozen evidence lineage' });
-  }
-});
+}).strict();
 
 export type DecisionTransferRunInput = z.infer<typeof decisionTransferRunInputSchema>;
 
 type EvaluationOutcome = 'PASS' | 'FAIL' | 'BLOCKED';
+type EvaluationMode = 'CONFIRMATORY_FROZEN' | 'NON_CONFIRMATORY_DIAGNOSTIC';
 
 function hash(value: unknown) {
   return createHash('sha256').update(JSON.stringify(value)).digest('hex');
@@ -124,10 +118,12 @@ export function parseDecisionTransferRunInput(value: unknown): DecisionTransferR
 }
 
 export async function executeDecisionTransferEvaluation(input: DecisionTransferRunInput, actorId: string) {
-  if (input.experimentalMode === 'CONFIRMATORY_FROZEN' && !input.evaluationEvidence) {
+  const experimentalMode: EvaluationMode = input.experimentalMode
+    ?? (input.evaluationEvidence ? 'CONFIRMATORY_FROZEN' : 'NON_CONFIRMATORY_DIAGNOSTIC');
+  if (experimentalMode === 'CONFIRMATORY_FROZEN' && !input.evaluationEvidence) {
     throw new Error('DECISION_TRANSFER_CONFIRMATORY_EVIDENCE_LINEAGE_REQUIRED');
   }
-  if (input.experimentalMode === 'NON_CONFIRMATORY_DIAGNOSTIC' && input.evaluationEvidence) {
+  if (experimentalMode === 'NON_CONFIRMATORY_DIAGNOSTIC' && input.evaluationEvidence) {
     throw new Error('DECISION_TRANSFER_DIAGNOSTIC_EVIDENCE_LINEAGE_FORBIDDEN');
   }
 
@@ -163,7 +159,7 @@ export async function executeDecisionTransferEvaluation(input: DecisionTransferR
   const taskId = `DT-${randomUUID()}`;
   const startedAt = new Date().toISOString();
   const finishedAt = startedAt;
-  const inputHash = hash(input);
+  const inputHash = hash({ ...input, experimentalMode });
   const db = createServiceSupabaseClient();
 
   const runInsert = await db.from('sfi_cognitive_twin_runs').insert({
@@ -176,6 +172,7 @@ export async function executeDecisionTransferEvaluation(input: DecisionTransferR
     objective: `Evaluate withheld decision reconstruction and decision-boundary transfer for ${input.operationKey}.`,
     input_snapshot: {
       ...input,
+      experimentalMode,
       inputHash,
       holdoutPolicy: 'TARGET_DECISION_MUST_BE_EXCLUDED_FROM_RECONSTRUCTION_CONTEXT_UNTIL_REVEAL',
       evaluationStage: 'POST_REVEAL_SCORING',
@@ -185,7 +182,7 @@ export async function executeDecisionTransferEvaluation(input: DecisionTransferR
       outcome,
       evaluation,
       inputHash,
-      experimentalMode: input.experimentalMode,
+      experimentalMode,
       evaluationEvidence: input.evaluationEvidence ?? null,
     },
     evidence_refs: evidenceRefs,
@@ -209,7 +206,7 @@ export async function executeDecisionTransferEvaluation(input: DecisionTransferR
       taskId,
       runId,
       inputHash,
-      experimentalMode: input.experimentalMode,
+      experimentalMode,
       evaluation,
       evaluationEvidence: input.evaluationEvidence ?? null,
     },
@@ -251,7 +248,7 @@ export async function executeDecisionTransferEvaluation(input: DecisionTransferR
       outcome,
       inputHash,
       epistemicClass: 'DERIVED',
-      experimentalMode: input.experimentalMode,
+      experimentalMode,
       evaluation,
       evaluationEvidence: input.evaluationEvidence ?? null,
       promotionAllowed: false,
@@ -273,7 +270,7 @@ export async function executeDecisionTransferEvaluation(input: DecisionTransferR
     provider: input.provider,
     model: input.model,
     outcome,
-    experimentalMode: input.experimentalMode,
+    experimentalMode,
     evaluation,
     evaluationEvidence: input.evaluationEvidence ?? null,
     evidenceRefs,
