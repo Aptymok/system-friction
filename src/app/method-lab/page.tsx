@@ -2,6 +2,7 @@ import { requireRootObserverPage } from '@/lib/root/server';
 import { readMethodLabState } from '@/lib/method-lab/readModel';
 import { MethodLabConsole } from '@/components/root/method-lab/MethodLabConsole';
 import { DecisionTransferObservatory } from '@/components/root/method-lab/DecisionTransferObservatory';
+import { BlindDecisionExperiment } from '@/components/root/method-lab/BlindDecisionExperiment';
 import { CognitiveLabConsole } from '@/components/root/cognitive-lab/CognitiveLabConsole';
 
 export const dynamic = 'force-dynamic';
@@ -14,6 +15,7 @@ export default async function MethodLabPage() {
     <>
       <MethodLabConsole state={state} />
       <DecisionTransferObservatory initial={state.decisionTransfer} />
+      <BlindDecisionExperiment />
       <CognitiveLabConsole />
       <style>{`
         .crl-launch{border-color:#425a6d!important;background:#0d1923!important;color:#ddc58d!important;box-shadow:0 12px 35px rgba(0,0,0,.38)!important}
