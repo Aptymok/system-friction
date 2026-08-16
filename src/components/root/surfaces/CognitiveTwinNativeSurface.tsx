@@ -2,7 +2,9 @@
 
 import { useMemo, useState } from 'react';
 import type { CognitiveTwinState } from '@/core/cognitive-twin/readState';
+import type { CognitiveTwinExperimentState } from '@/core/cognitive-twin/reentry/experimentState';
 import { CognitiveTwinDeliberationPanel } from '@/components/root/cognitive-twin/CognitiveTwinDeliberationPanel';
+import { CognitiveTwinExperimentControls } from '@/components/root/cognitive-twin/CognitiveTwinExperimentControls';
 import { FounderDecisionCandidateForm } from '@/components/root/cognitive-twin/FounderDecisionCandidateForm';
 import { NationalFieldPanel } from '@/components/root/cognitive-twin/NationalFieldPanel';
 import { RootNativeFrame } from './RootNativeFrame';
@@ -28,7 +30,7 @@ export function CognitiveTwinNativeSurface({
 }: {
   state: CognitiveTwinState;
   lineage: { subjectId: string; lineageId: string; genesisPresent: boolean; chainIntegrity: string; eventCount: number; materialEventCount: number; lastEpochAt: string | null; headHash: string | null; lastDisposition: string | null; unresolvedMutationProposals: number };
-  experiments: unknown;
+  experiments: CognitiveTwinExperimentState;
   mutations: unknown;
   journal: unknown;
 }) {
@@ -44,7 +46,7 @@ export function CognitiveTwinNativeSurface({
   const providerNames = state.providers.filter((item) => item.available).map((item) => item.id).join(' / ') || 'NO_PROVIDER';
   const recent = focus === 'MEMORY' ? state.recentMemory : focus === 'DECISIONS' ? state.recentDecisions : focus === 'RUNS' ? state.recentRuns : focus === 'EVALUATIONS' ? state.recentEvaluations : [];
   const journalCount = countLike(journal);
-  const experimentCount = countLike(experiments);
+  const experimentCount = experiments.snapshots.length + experiments.forks.length;
   const mutationCount = countLike(mutations);
 
   return (
@@ -71,7 +73,7 @@ export function CognitiveTwinNativeSurface({
 
       <div className="rn-grid">
         <section className="rn-panel rn-panel--wide"><span>FOCUS / {focus}</span><h2>{focus === 'LINEAGE' ? 'Lineage health' : `Recent ${focus.toLowerCase()}`}</h2>{focus === 'LINEAGE' ? <dl><div><dt>GENESIS</dt><dd>{lineage.genesisPresent ? 'PRESENT' : 'MISSING'}</dd></div><div><dt>CHAIN INTEGRITY</dt><dd>{lineage.chainIntegrity}</dd></div><div><dt>MATERIAL EVENTS</dt><dd>{lineage.materialEventCount}</dd></div><div><dt>HEAD HASH</dt><dd>{lineage.headHash ? `${lineage.headHash.slice(0,16)}…` : 'NO_VALUE'}</dd></div><div><dt>LAST EPOCH</dt><dd>{lineage.lastEpochAt ?? 'NO_VALUE'}</dd></div></dl> : <div className="rn-list">{(recent as unknown[]).slice(0,8).map((item,index) => { const r=row(item); return <article key={text(r.id,`${focus}-${index}`)}><strong>{text(r.memory_key ?? r.task_id ?? r.test_key ?? r.operation_key ?? r.status,`${focus} ${index+1}`)}</strong><small>{text(r.status ?? r.outcome ?? r.canonical_store,'OBSERVED')} · {createdAt(r)}</small></article>; })}{!recent.length ? <p>NO RECENT RECORDS</p> : null}</div>}</section>
-        <section className="rn-panel"><span>EXPERIMENTAL STATE</span><h2>{experimentCount}</h2><p>Experiment records remain experimental and cannot promote themselves into canonical memory or identity.</p></section>
+        <section className="rn-panel"><span>EXPERIMENTAL STATE</span><h2>{experimentCount}</h2><p>{experiments.snapshots.length} snapshots · {experiments.forks.length} registered forks. {experiments.boundary}</p></section>
         <section className="rn-panel"><span>JOURNAL</span><h2>{journalCount}</h2><p>Journal entries are auditable computational records. They are not phenomenal reports.</p></section>
         <section className="rn-panel"><span>SFI INTEGRATION</span><h2>{state.integration.summary.connected}/{state.integration.summary.total}</h2><p>{state.integration.summary.fullyConnected ? 'All declared SFI organs are connected.' : `${state.integration.summary.exercised} organs have qualifying observed records.`}</p></section>
         <section className="rn-panel"><span>AUTONOMY CLAIM</span><h2>{state.implementation.institutionalAutonomyProven ? 'PROVEN' : 'NOT DEMONSTRATED'}</h2><p>Architecture, continuity and observed execution do not by themselves demonstrate individuation or subjective autonomy.</p></section>
@@ -81,6 +83,7 @@ export function CognitiveTwinNativeSurface({
 
       <div className="rn-grid">
         <details className="rn-panel rn-panel--full"><summary className="rn-eyebrow">DELIBERATION / GOVERNED EXECUTION</summary><div style={{marginTop:16}}><CognitiveTwinDeliberationPanel/></div></details>
+        <details className="rn-panel rn-panel--full"><summary className="rn-eyebrow">LINEAGE EXPERIMENTS / SNAPSHOT · CHECKPOINT · FORK</summary><div style={{marginTop:16}}><CognitiveTwinExperimentControls snapshots={experiments.snapshots}/></div></details>
         <details className="rn-panel rn-panel--full"><summary className="rn-eyebrow">NATIONAL FIELD / EXTERNAL OBSERVATION</summary><div style={{marginTop:16}}><NationalFieldPanel/></div></details>
         <details className="rn-panel rn-panel--full"><summary className="rn-eyebrow">FOUNDER DECISION / CANDIDATE RULE</summary><div style={{marginTop:16}}>{state.implementation.databaseReady ? <FounderDecisionCandidateForm/> : <p>COGNITIVE TWIN PERSISTENCE UNAVAILABLE · CANDIDATE FORM BLOCKED</p>}</div></details>
       </div>
