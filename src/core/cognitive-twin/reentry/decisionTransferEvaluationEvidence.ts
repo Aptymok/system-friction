@@ -198,7 +198,7 @@ function normalizeProbe(value: unknown, sourceRecordId: string): CandidateProbe 
     baselineDisposition: baselineDisposition as CounterfactualProbe['baselineDisposition'],
     expectedDispositionAfterPerturbation: expectedDisposition as CounterfactualProbe['expectedDispositionAfterPerturbation'],
     predictedDispositionAfterPerturbation: predictedDisposition as CounterfactualProbe['predictedDispositionAfterPerturbation'],
-    epistemicClass: epistemicClass === 'INFERRED' ? 'DERIVED' : epistemicClass,
+    epistemicClass,
     evidenceRefs: unique(strings(item.evidenceRefs)),
     sourceRecordId,
   };
