@@ -24,17 +24,21 @@ export default async function StudioPage({ searchParams }: { searchParams?: Prom
   const fieldState = await readStudioFieldState({ ownerId: user.id, sessionId: state.session.id });
 
   return (
-    <main className="min-h-screen bg-[#050504]">
-      <StudioSessionReconstruction
-        sessionId={fieldState.session?.id ?? null}
-        activeObjectId={state.activeObject.id ?? null}
-        objectCount={fieldState.objects.length}
-      />
-      <StudioProductionConsole
-        state={state}
-        fieldState={fieldState}
-        identity={user.email ?? user.id}
-      />
+    <main className="min-h-screen bg-transparent">
+      <div data-sfi-field-anchor="session">
+        <StudioSessionReconstruction
+          sessionId={fieldState.session?.id ?? null}
+          activeObjectId={state.activeObject.id ?? null}
+          objectCount={fieldState.objects.length}
+        />
+      </div>
+      <div data-sfi-field-anchor="workspace">
+        <StudioProductionConsole
+          state={state}
+          fieldState={fieldState}
+          identity={user.email ?? user.id}
+        />
+      </div>
     </main>
   );
 }
