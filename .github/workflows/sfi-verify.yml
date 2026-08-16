@@ -117,6 +117,9 @@ jobs:
       - name: Verify SFI Architecture V1 constitutional boundary
         run: npx tsx scripts/qa-sfi-architecture-v1.ts
 
+      - name: Verify SFI Case Platform V1 shared engine
+        run: npx tsx scripts/qa-sfi-case-platform-v1.ts
+
       - name: Typecheck
         id: typecheck
         shell: bash
