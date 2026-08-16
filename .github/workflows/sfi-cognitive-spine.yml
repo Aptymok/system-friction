@@ -58,3 +58,5 @@ jobs:
         run: node --import tsx --test src/core/cognitive-spine/cprt/cprtB.runtime.test.ts
       - name: CPRT-B full path provenance fixtures
         run: node --import tsx --test src/core/cognitive-spine/cprt/cprtB.full.test.ts
+      - name: Frozen projection profile registry
+        run: node --import tsx --test src/core/cognitive-spine/cprt/projectionProfiles.test.ts
