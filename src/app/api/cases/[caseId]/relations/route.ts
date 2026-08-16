@@ -19,7 +19,6 @@ const relationSchema = z.object({
   to: entityRefSchema,
   sourceRefs: z.array(canonicalRefSchema).max(500).optional(),
   recordRefs: z.array(canonicalRefSchema).max(500).optional(),
-  evidenceRefs: z.array(canonicalRefSchema).max(500).optional(),
   payload: z.record(z.string(), z.unknown()).optional(),
   observedAt: z.string().trim().max(80).nullable().optional(),
 }).strict();
@@ -42,9 +41,9 @@ export async function POST(request: Request, context: RouteContext) {
     const { user } = await requireAuthenticatedUser();
     const { caseId } = await context.params;
     const body = relationSchema.parse(await request.json());
-    const relation: SfiEnterpriseRelationDraft = { ...body, epistemicRole: 'RECORD' } as SfiEnterpriseRelationDraft;
+    const relation: SfiEnterpriseRelationDraft = { ...body, evidenceRefs: [], epistemicRole: 'RECORD' } as SfiEnterpriseRelationDraft;
     const saved = await recordOperationalEnterpriseRelation({ caseId, userId: user.id, relation });
-    return NextResponse.json({ ok: true, relation: saved, epistemicBoundary: 'Client-declared relations remain RECORD; this endpoint cannot create inferred relations.' }, { status: 201 });
+    return NextResponse.json({ ok: true, relation: saved, epistemicBoundary: 'Client-declared relations remain RECORD and cannot attach evidence claims or create inferred relations.' }, { status: 201 });
   } catch (error) {
     return sfiCaseApiFailure(error);
   }
