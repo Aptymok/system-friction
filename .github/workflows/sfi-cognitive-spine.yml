@@ -15,6 +15,8 @@ on:
       - 'src/app/api/root/cognitive-twin/deliberate/route.ts'
       - 'src/lib/lab/decisionTransferCognitiveSpineBoundary.ts'
       - 'src/app/api/root/method-lab/decision-transfer/blind/route.ts'
+      - 'src/lib/method-lab/**'
+      - 'src/app/api/root/method-lab/simulate/route.ts'
       - 'src/lib/field/cognitiveSpineProposalLink.ts'
       - 'src/lib/field/fieldCognitiveSpineBoundary.ts'
       - 'src/lib/field/interventionExecution.ts'
@@ -40,6 +42,8 @@ on:
       - 'src/app/api/root/cognitive-twin/deliberate/route.ts'
       - 'src/lib/lab/decisionTransferCognitiveSpineBoundary.ts'
       - 'src/app/api/root/method-lab/decision-transfer/blind/route.ts'
+      - 'src/lib/method-lab/**'
+      - 'src/app/api/root/method-lab/simulate/route.ts'
       - 'src/lib/field/cognitiveSpineProposalLink.ts'
       - 'src/lib/field/fieldCognitiveSpineBoundary.ts'
       - 'src/lib/field/interventionExecution.ts'
@@ -80,6 +84,8 @@ jobs:
         run: node --import tsx --test src/core/cognitive-spine/cprt/sourcePlaneMapping.test.ts
       - name: Platform-neutral profile materialization
         run: node --import tsx --test src/core/cognitive-spine/cprt/profileMaterialization.test.ts
+      - name: Exact projection ref allowlists
+        run: node --import tsx --test src/core/cognitive-spine/cprt/profileAllowlist.test.ts
       - name: Studio sealed Cognitive Spine context boundary
         run: node --import tsx scripts/cognitive-spine/qa-studio-sealed-context.ts
       - name: Field blinded Cognitive Spine T0 boundary
@@ -88,3 +94,5 @@ jobs:
         run: node --import tsx scripts/cognitive-spine/qa-root-sealed-context.ts
       - name: Decision Transfer isolation from operational SFI-CT
         run: node --import tsx scripts/cognitive-spine/qa-decision-transfer-isolation.ts
+      - name: Method Lab protocol-allowlisted Cognitive Spine context
+        run: node --import tsx scripts/cognitive-spine/qa-method-lab-context.ts
