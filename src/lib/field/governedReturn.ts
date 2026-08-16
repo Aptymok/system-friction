@@ -7,6 +7,7 @@ import {
   type CreateFieldCycleInput,
   type ReturnFieldCycleInput,
 } from './operationalCycle';
+import { FIELD_INTERVENTION_EXECUTION_CONTRACT } from './interventionExecution';
 import { finalizeReturnContrast, canMarkLongitudinalCaseComplete } from './returnContrastContract';
 import { verifyStudioFieldHandoff, type StudioFieldHandoff } from '@/lib/studio/fieldHandoff';
 import { recordCognitiveTwinExperience } from '@/core/cognitive-twin/experience';
@@ -48,6 +49,8 @@ export async function createGovernedFieldCycle(ownerId: string, input: GovernedF
     frozenStoppingCondition,
     contrastContract: 'SFI-RETURN-CONTRAST-1.0',
     contrastFrozenAt: frozenAt,
+    interventionExecutionContract: FIELD_INTERVENTION_EXECUTION_CONTRACT,
+    interventionExecutionAcknowledgement: null,
     longitudinalComplete: false,
     studioFieldHandoff: input.studioHandoff ?? null,
     studioHandoffId: input.studioHandoff?.handoffId ?? null,
@@ -62,7 +65,57 @@ export async function createGovernedFieldCycle(ownerId: string, input: GovernedF
     frozenRivalHypothesis,
     frozenStoppingCondition,
     contrastFrozenAt: frozenAt,
+    interventionExecutionContract: FIELD_INTERVENTION_EXECUTION_CONTRACT,
     studioHandoff: input.studioHandoff ?? null,
+  };
+}
+
+async function requireExecutionAcknowledgement(db: ReturnType<typeof createServiceSupabaseClient>, ownerId: string, caseId: string, metadata: Row) {
+  if (text(metadata.interventionExecutionContract) !== FIELD_INTERVENTION_EXECUTION_CONTRACT) {
+    return {
+      legacy: true as const,
+      acknowledgement: null,
+      warnings: ['legacy_field_cycle_without_execution_ack_contract'],
+    };
+  }
+
+  const acknowledgement = record(metadata.interventionExecutionAcknowledgement);
+  const interventionId = text(acknowledgement.interventionId);
+  const evidenceId = text(acknowledgement.evidenceId);
+  const acknowledgementHash = text(acknowledgement.acknowledgementHash);
+  if (!interventionId || !evidenceId || !acknowledgementHash) {
+    throw new Error('FIELD_INTERVENTION_EXECUTION_ACK_REQUIRED');
+  }
+
+  const intervention = await db.from('field_interventions')
+    .select('id,status,completed_at,evidence_ids')
+    .eq('id', interventionId)
+    .eq('case_id', caseId)
+    .eq('owner_id', ownerId)
+    .maybeSingle();
+  if (intervention.error || !intervention.data) throw new Error('FIELD_INTERVENTION_EXECUTION_ACK_TARGET_MISSING');
+  if (text(intervention.data.status) !== 'EXECUTION_RECORDED') throw new Error('FIELD_INTERVENTION_EXECUTION_ACK_NOT_FINALIZED');
+  if (!strings(intervention.data.evidence_ids).includes(evidenceId)) throw new Error('FIELD_INTERVENTION_EXECUTION_ACK_EVIDENCE_NOT_LINKED');
+
+  const evidence = await db.from('field_case_evidence')
+    .select('id,evidence_type,payload,observed_at')
+    .eq('id', evidenceId)
+    .eq('case_id', caseId)
+    .eq('owner_id', ownerId)
+    .maybeSingle();
+  if (evidence.error || !evidence.data) throw new Error('FIELD_INTERVENTION_EXECUTION_ACK_EVIDENCE_MISSING');
+  if (text(evidence.data.evidence_type) !== 'intervention_execution_acknowledgement') {
+    throw new Error('FIELD_INTERVENTION_EXECUTION_ACK_EVIDENCE_INVALID');
+  }
+  const payload = record(evidence.data.payload);
+  if (text(payload.acknowledgementHash) !== acknowledgementHash) {
+    throw new Error('FIELD_INTERVENTION_EXECUTION_ACK_HASH_MISMATCH');
+  }
+
+  return {
+    legacy: false as const,
+    acknowledgement,
+    warnings: [] as string[],
   };
 }
 
@@ -77,6 +130,8 @@ export async function submitGovernedFieldReturn(ownerId: string, caseId: string,
   if (!predictionSeal) throw new Error('FIELD_RETURN_PREDICTION_SEAL_REQUIRED');
   if (!rivalInterpretation) throw new Error('FIELD_RETURN_RIVAL_NOT_FROZEN_AT_T0');
   if (!stoppingCondition) throw new Error('FIELD_RETURN_STOPPING_CONDITION_NOT_FROZEN_AT_T0');
+
+  const execution = await requireExecutionAcknowledgement(db, ownerId, caseId, metadata);
 
   const handoffValue = metadata.studioFieldHandoff;
   if (handoffValue && !verifyStudioFieldHandoff(handoffValue as StudioFieldHandoff)) {
@@ -107,6 +162,8 @@ export async function submitGovernedFieldReturn(ownerId: string, caseId: string,
       ...record(returnRow.data.payload),
       returnContrast: contrast,
       longitudinalComplete: true,
+      interventionExecutionAcknowledgement: execution.acknowledgement,
+      legacyExecutionProvenanceGap: execution.legacy,
       studioHandoffId: text(metadata.studioHandoffId) || null,
       studioHandoffHash: text(metadata.studioHandoffHash) || null,
     },
@@ -117,7 +174,12 @@ export async function submitGovernedFieldReturn(ownerId: string, caseId: string,
   }
 
   const casePersist = await db.from('field_cases').update({
-    metadata: { ...metadata, returnContrast: contrast, longitudinalComplete: true },
+    metadata: {
+      ...metadata,
+      returnContrast: contrast,
+      longitudinalComplete: true,
+      legacyExecutionProvenanceGap: execution.legacy,
+    },
   }).eq('id', caseId).eq('owner_id', ownerId);
   if (casePersist.error) {
     await db.from('field_cases').update({ status: 'CLOSED_RETURN_CONTRAST_INCOMPLETE', updated_at: new Date().toISOString() }).eq('id', caseId).eq('owner_id', ownerId);
@@ -132,7 +194,13 @@ export async function submitGovernedFieldReturn(ownerId: string, caseId: string,
     sourceKind:'field_outcomes',
     sourceRef:outcomeId,
     createdBy:ownerId,
-    evidenceRefs:[...strings(outcome.evidence_ids), ...(evidenceId ? [`field_case_evidence:${evidenceId}`] : [])],
+    evidenceRefs:[
+      ...strings(outcome.evidence_ids),
+      ...(evidenceId ? [`field_case_evidence:${evidenceId}`] : []),
+      ...(!execution.legacy && text(execution.acknowledgement?.evidenceId)
+        ? [`field_case_evidence:${text(execution.acknowledgement?.evidenceId)}`]
+        : []),
+    ],
     content:{
       epistemicClass:'OBSERVED_RETURN',
       caseId,
@@ -143,10 +211,12 @@ export async function submitGovernedFieldReturn(ownerId: string, caseId: string,
       accepted:result.accepted,
       verified:result.verified,
       explanation:result.explanation,
+      interventionExecutionAcknowledgement: execution.acknowledgement,
+      legacyExecutionProvenanceGap: execution.legacy,
       returnContrast:contrast,
       studioHandoffId:text(metadata.studioHandoffId) || null,
       studioHandoffHash:text(metadata.studioHandoffHash) || null,
-      rule:'This is a completed Field return available to the Cognitive Twin as candidate institutional experience. One return does not establish general causality or mutate canon.',
+      rule:'This is a completed Field return available to the Cognitive Twin as candidate institutional experience. The execution acknowledgement remains DECLARED unless separately observed; one return does not establish general causality or mutate canon.',
     },
   });
 
@@ -154,6 +224,9 @@ export async function submitGovernedFieldReturn(ownerId: string, caseId: string,
     ...result,
     returnContrast: contrast,
     longitudinalComplete: true as const,
+    interventionExecutionAcknowledgement: execution.acknowledgement,
+    legacyExecutionProvenanceGap: execution.legacy,
+    executionWarnings: execution.warnings,
     studioHandoffId: text(metadata.studioHandoffId) || null,
     studioHandoffHash: text(metadata.studioHandoffHash) || null,
     cognitiveTwinExperience:twinExperience,

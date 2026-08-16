@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { listFieldCycles, type FieldVerificationWindow } from '@/lib/field/operationalCycle';
 import { createGovernedFieldCycle } from '@/lib/field/governedReturn';
+import { createGovernedFieldCycleFromCognitiveSpineProposal } from '@/lib/field/cognitiveSpineProposalLink';
 import type { StudioFieldHandoff } from '@/lib/studio/fieldHandoff';
 import { AccessDeniedError, requireAuthenticatedUser } from '@/lib/system/access/server';
 
@@ -36,11 +37,13 @@ function failure(error: unknown) {
     return NextResponse.json({ ok: false, error: error.code, details: error.message }, { status: error.status });
   }
   const details = error instanceof Error ? error.message : String(error);
-  const status = details.includes('_REQUIRED') || details.includes('_INVALID') || details.includes('_NOT_OPEN') || details.includes('_NOT_READY') || details.includes('HANDOFF')
-    ? 400
-    : details.includes('NOT_FOUND')
-      ? 404
-      : 500;
+  const status = details.includes('_ACTOR_MISMATCH')
+    ? 403
+    : details.includes('_REQUIRED') || details.includes('_INVALID') || details.includes('_NOT_OPEN') || details.includes('_NOT_READY') || details.includes('HANDOFF') || details.includes('_NOT_LINKABLE')
+      ? 400
+      : details.includes('NOT_FOUND')
+        ? 404
+        : 500;
   return NextResponse.json({ ok: false, error: 'FIELD_CYCLE_FAILED', details }, { status });
 }
 
@@ -58,6 +61,9 @@ function withReturnAvailability(value: unknown) {
       persisted_status: persistedStatus,
       status: persistedStatus === 'WAITING_RETURN' && !returnAvailable ? 'SEALED_WINDOW_ACTIVE' : persistedStatus,
       return_available: returnAvailable,
+      intervention_execution_required: text(metadata.interventionExecutionContract, 120) === 'SFI-FIELD-EXECUTION-ACK-1.0'
+        && !record(metadata.interventionExecutionAcknowledgement).evidenceId,
+      cognitive_spine_proposal_id: text(record(metadata.cognitiveSpineProposalLink).proposalId, 120) || null,
     };
   });
 }
@@ -76,7 +82,7 @@ export async function POST(request: Request) {
   try {
     const { user } = await requireAuthenticatedUser();
     const body = record(await request.json().catch(() => null));
-    const result = await createGovernedFieldCycle(user.id, {
+    const cycleInput = {
       title: text(body.title, 180),
       domain: text(body.domain, 80) || 'other',
       stuckSystem: text(body.stuckSystem),
@@ -93,7 +99,15 @@ export async function POST(request: Request) {
       rivalHypothesis: text(body.rivalHypothesis) || undefined,
       stoppingCondition: text(body.stoppingCondition) || undefined,
       studioHandoff: studioHandoff(body.studioHandoff),
-    });
+    };
+    const sourceActionProposalId = text(body.sourceActionProposalId, 120);
+    const result = sourceActionProposalId
+      ? await createGovernedFieldCycleFromCognitiveSpineProposal({
+          ownerId: user.id,
+          proposalId: sourceActionProposalId,
+          cycle: cycleInput,
+        })
+      : await createGovernedFieldCycle(user.id, cycleInput);
     return NextResponse.json({ ok: true, result }, { status: 201 });
   } catch (error) {
     return failure(error);

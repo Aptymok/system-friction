@@ -7,6 +7,7 @@ import {
 import type { KernelContext } from '@/lib/sfi/cognitive-runtime/kernelContext';
 import { executeSfiRuntime } from '@/lib/sfi/cognitive-runtime/runtime';
 import { materializeInstitutionalRuntimeCognitiveSpine } from './cognitiveSpineRuntimeMaterializer';
+import { buildTransitionFromPreviousInstitutionalSnapshot } from './cognitiveSpineTransitionStore';
 
 export async function executeInstitutionalRuntimeWithCognitiveSpine(input: {
   context: KernelContext;
@@ -20,6 +21,12 @@ export async function executeInstitutionalRuntimeWithCognitiveSpine(input: {
     executionId: input.context.cycleId,
     createdAt: input.createdAt,
     consume,
+  });
+
+  const entryTransitionState = await buildTransitionFromPreviousInstitutionalSnapshot({
+    currentSnapshot: materialized.snapshot,
+    sourceCutoff: input.sourceCutoff,
+    createdAt: input.createdAt,
   });
 
   input.context.metadata = {
@@ -60,6 +67,9 @@ export async function executeInstitutionalRuntimeWithCognitiveSpine(input: {
       profileVersion: spine.ctSnapshotConsumed ? spine.profileVersion : null,
       sourceCutoff: spine.sourceCutoff,
     },
+    entryTransitionRef: entryTransitionState.transition?.transitionId ?? null,
+    entryTransitionHash: entryTransitionState.transition?.transitionHash ?? null,
+    entryTransition: entryTransitionState.transition ?? null,
     stateRefs: {
       observations: [...spine.eventRefs],
       evidence: [...spine.evidenceRefs],
@@ -89,6 +99,8 @@ export async function executeInstitutionalRuntimeWithCognitiveSpine(input: {
     runtime,
     cognitiveSpine: {
       ...materialized,
+      warnings: [...new Set([...materialized.warnings, ...entryTransitionState.warnings])],
+      entryTransition: entryTransitionState,
       decisionProvenance,
     },
   };
