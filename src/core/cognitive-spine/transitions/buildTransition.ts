@@ -66,7 +66,7 @@ function sourceDelta(
   const changedRefs = sortedUnique(beforeRefs.filter((ref) => {
     const left = before.get(ref);
     const right = after.get(ref);
-    return Boolean(left && right && left.sourceHash !== right.sourceHash);
+    return Boolean(left && right && canonicalSerialize(left) !== canonicalSerialize(right));
   }));
   return {
     changed: membership.addedRefs.length > 0 || membership.removedRefs.length > 0 || changedRefs.length > 0,
@@ -76,37 +76,20 @@ function sourceDelta(
   };
 }
 
-function epistemicSignature(entry: ManifestEntry) {
-  return {
-    epistemicAssessmentRef: entry.epistemicAssessmentRef,
-    epistemicClass: entry.epistemicClass,
-    ancestryRoots: entry.ancestryRoots,
-    invalidated: entry.invalidated,
-    debtType: entry.debtType,
-  };
-}
-
 function epistemicDelta(
-  before: Map<string, ManifestEntry>,
-  after: Map<string, ManifestEntry>,
-  critical: string[],
+  from: CognitiveSpineSnapshot,
+  to: CognitiveSpineSnapshot,
 ): CognitiveSpineDeltaSummary {
-  const sharedRefs = [...before.keys()].filter((ref) => after.has(ref));
-  const changedRefs = sortedUnique(sharedRefs.filter((ref) => {
-    const left = before.get(ref);
-    const right = after.get(ref);
-    return Boolean(left && right && canonicalSerialize(epistemicSignature(left)) !== canonicalSerialize(epistemicSignature(right)));
-  }));
-  const membership = setDelta([...before.keys()], [...after.keys()]);
-  const assessmentRelevantAdded = membership.addedRefs.filter((ref) => Boolean(after.get(ref)?.epistemicAssessmentRef));
-  const assessmentRelevantRemoved = membership.removedRefs.filter((ref) => Boolean(before.get(ref)?.epistemicAssessmentRef));
-
+  const before = from.semanticPayload.epistemicStateRefs;
+  const after = to.semanticPayload.epistemicStateRefs;
+  const membership = setDelta(before, after);
+  const beforeSet = new Set(before);
+  const afterSet = new Set(after);
   return {
-    changed: changedRefs.length > 0 || assessmentRelevantAdded.length > 0 || assessmentRelevantRemoved.length > 0,
-    addedRefs: sortedUnique(assessmentRelevantAdded),
-    removedRefs: sortedUnique(assessmentRelevantRemoved),
-    changedRefs,
-    unchangedCriticalRefs: unchangedCritical(critical, before, after),
+    changed: membership.addedRefs.length > 0 || membership.removedRefs.length > 0,
+    ...membership,
+    changedRefs: [],
+    unchangedCriticalRefs: sortedUnique(before.filter((ref) => afterSet.has(ref) && beforeSet.has(ref))),
   };
 }
 
@@ -156,7 +139,7 @@ export function buildSemanticTransitionPayload(
   const beforeManifest = toMap(from.semanticPayload.sourceManifest);
   const afterManifest = toMap(to.semanticPayload.sourceManifest);
   const source = sourceDelta(beforeManifest, afterManifest, critical);
-  const epistemic = epistemicDelta(beforeManifest, afterManifest, critical);
+  const epistemic = epistemicDelta(from, to);
   const cognitiveMembership = refOnlyDelta(cognitiveRefs(from), cognitiveRefs(to), critical);
   const governance = refOnlyDelta(governanceRefs(from), governanceRefs(to), critical);
   const cognitiveChanged = from.snapshotHash !== to.snapshotHash;
@@ -174,7 +157,8 @@ export function buildSemanticTransitionPayload(
       changed: cognitiveChanged,
       changedRefs: sortedUnique([
         ...source.changedRefs,
-        ...epistemic.changedRefs,
+        ...epistemic.addedRefs,
+        ...epistemic.removedRefs,
       ]),
     },
     governanceDelta: governance,
