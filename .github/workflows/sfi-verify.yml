@@ -75,6 +75,9 @@ jobs:
       - name: Verify Decision Transfer operational wiring
         run: npx tsx scripts/qa-sfi-decision-transfer-operational.ts
 
+      - name: Verify blind decision reconstruction protocol
+        run: npx tsx scripts/qa-sfi-decision-transfer-blind.ts
+
       - name: Verify canonical evidence identity
         run: node --import tsx --test src/lib/evidence/canonicalEvidence.test.ts
 
