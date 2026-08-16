@@ -36,8 +36,6 @@ for (const [surface, [profileId, posture]] of Object.entries(expected)) {
   assert.equal(entry.truthAuthority, false, `surface_granted_truth_authority:${surface}`);
 }
 
-// Frozen constitutional package must remain present before a technical
-// integration claim can pass.
 for (const document of [
   'ADR-SFI-CT-SPINE-001.md',
   'SFI-CT-INVARIANTS-1.0.md',
@@ -50,8 +48,6 @@ for (const document of [
   assert.ok(existsSync(path.join(root, 'docs/architecture/cognitive-spine', document)), `cognitive_spine_freeze_document_missing:${document}`);
 }
 
-// The semantic core must remain platform-neutral. Mentions in comments are
-// permitted; actual imports/requires and Vercel runtime variables are not.
 function walkFiles(directory: string): string[] {
   return readdirSync(directory).flatMap((name) => {
     const absolute = path.join(directory, name);
@@ -68,10 +64,7 @@ for (const absolute of walkFiles(coreDirectory).filter((file) => /\.(ts|tsx|js|m
   assert.equal(/process\.env\.VERCEL(?:_|\b)/.test(content), false, `core_vercel_runtime_dependency:${relative}`);
 }
 
-// Verify the actual boundary implementations exist. The detailed tests for
-// each boundary execute earlier in the same accumulated workflow; this final
-// gate ensures the cross-surface registry still corresponds to real code.
-const runtime = read('src/lib/institution/cognitiveSpineRuntimeContext.ts');
+const runtime = read('src/lib/institution/cognitiveSpineRuntimeMaterializer.ts');
 const studio = read('src/core/cognitive-twin/studioContext.ts');
 const rootDeliberation = read('src/app/api/root/cognitive-twin/deliberate/route.ts');
 const field = read('src/lib/field/fieldCognitiveSpineBoundary.ts');
@@ -81,7 +74,8 @@ const worldspect = read('src/lib/worldspect/cognitiveSpineContrast.ts');
 const atlas = read('src/lib/atlas/cognitiveSpineTemporalContext.ts');
 const library = read('src/lib/sfi/library/cognitiveSpineImpactContext.ts');
 
-assert.ok(runtime.includes('RUNTIME_GENERAL_CONTEXT'), 'runtime_spine_boundary_missing');
+assert.ok(runtime.includes('RUNTIME_GENERAL_CONTEXT_PROFILE'), 'runtime_spine_boundary_missing');
+assert.ok(runtime.includes('they are not appended to KernelEvidence'), 'runtime_evidence_boundary_missing');
 assert.ok(studio.includes('materializeStudioCognitiveSpineContext'), 'studio_spine_boundary_missing');
 assert.ok(rootDeliberation.includes('materializeRootCognitiveSpineContext'), 'root_spine_boundary_missing');
 assert.ok(field.includes('FIELD_BLINDED_OBSERVATION_PROFILE'), 'field_blinded_boundary_missing');
@@ -91,8 +85,6 @@ assert.ok(worldspect.includes("epistemicClass: 'DERIVED'"), 'worldspect_post_obs
 assert.ok(atlas.includes('internalRefsExposed: false'), 'atlas_sanitized_boundary_missing');
 assert.ok(library.includes("status: 'UNDEMONSTRATED'"), 'library_nonclaiming_boundary_missing');
 
-// The accumulated workflow must execute every surface-specific boundary gate
-// before this final transversal assertion.
 const workflow = read('.github/workflows/sfi-cognitive-spine.yml');
 for (const gateName of [
   'Studio sealed Cognitive Spine context boundary',
