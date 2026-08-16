@@ -1,6 +1,7 @@
 ﻿import type { WorldSpectSource } from '../../../packages/api-contracts/src'
 import type { SourceObservation } from './source-adapter-contract'
 import { deriveWorldSpectSourceHealth } from './contract'
+import { recordWorldSpectPostObservationCognitiveSpineContrast } from './cognitiveSpineContrast'
 import { upsertWorldSpectSnapshot } from './snapshotStore'
 import { aggregateWorldSpect } from './vector-aggregator'
 import { getWorldSpectPublicAdapters } from './adapters/publicAdapters'
@@ -40,6 +41,7 @@ export async function persistWorldSpectObservations(
   observations: SourceObservation[],
   ingestMode: WorldSpectIngestMode = 'manual',
   rawPayload: Record<string, unknown> = {},
+  options: { priorCognitiveStateCutoff?: string } = {},
 ) {
   const snapshot = aggregateWorldSpect(observations)
   const ts = new Date().toISOString()
@@ -62,6 +64,8 @@ export async function persistWorldSpectObservations(
   const confidence = clamp01(activeSources.reduce((sum, obs) => sum + obs.trust, 0) / totalSources)
   const adapterError = degraded_sources.length > 0 ? `degraded_sources:${degraded_sources.join(',')}` : null
 
+  // Canonical WorldSpect observation is persisted before any Cognitive Spine
+  // context is materialized. This preserves observation independence.
   const persistence = await upsertWorldSpectSnapshot({
     sourceState,
     evidenceLevel: 'direct',
@@ -97,6 +101,35 @@ export async function persistWorldSpectObservations(
     ingestMode,
   })
 
+  let cognitiveSpineContrast: Awaited<ReturnType<typeof recordWorldSpectPostObservationCognitiveSpineContrast>> | null = null
+  let cognitiveSpineContrastWarning: string | null = null
+  if (persistence.ok && persistence.data?.id) {
+    const observationTimes = observations
+      .map((observation) => new Date(observation.observedAt).valueOf())
+      .filter((value) => Number.isFinite(value))
+      .sort((a, b) => a - b)
+    const derivedPriorCutoff = observationTimes.length
+      ? new Date(observationTimes[0]).toISOString()
+      : ts
+    const priorStateCutoff = options.priorCognitiveStateCutoff ?? derivedPriorCutoff
+
+    try {
+      cognitiveSpineContrast = await recordWorldSpectPostObservationCognitiveSpineContrast({
+        worldspectSnapshotId: String(persistence.data.id),
+        worldspectSnapshotHash: String(persistence.data.snapshot_hash ?? ''),
+        observedAt: String(persistence.data.observed_at ?? ts),
+        priorStateCutoff,
+        sourceState,
+        confidence,
+        wsi: snapshot.wsi,
+        nti: snapshot.nti,
+        degradedSources: degraded_sources,
+      })
+    } catch (error) {
+      cognitiveSpineContrastWarning = `worldspect_post_observation_ct_contrast_unavailable:${error instanceof Error ? error.message : String(error)}`
+    }
+  }
+
   return {
     ok: persistence.ok,
     status: snapshot.status,
@@ -106,6 +139,8 @@ export async function persistWorldSpectObservations(
     degraded_sources,
     sourceHealth,
     persistence,
+    cognitiveSpineContrast,
+    cognitiveSpineContrastWarning,
   }
 }
 
@@ -138,6 +173,7 @@ function failedObservation(adapter: { sourceId: string } | undefined, index: num
 }
 
 export async function runWorldSpectAdapters(ingestMode: WorldSpectIngestMode = 'manual') {
+  const observationStartedAt = new Date().toISOString()
   const adapters = getWorldSpectPublicAdapters()
   const gdeltAdapters = adapters.filter((adapter) => adapter.sourceId.includes('_gdelt_'))
   const otherAdapters = adapters.filter((adapter) => !adapter.sourceId.includes('_gdelt_'))
@@ -163,13 +199,7 @@ export async function runWorldSpectAdapters(ingestMode: WorldSpectIngestMode = '
     adapter_count: adapters.length,
     adapter_ids: adapters.map((adapter) => adapter.sourceId),
     gdelt_mode: 'sequential_backoff',
+  }, {
+    priorCognitiveStateCutoff: observationStartedAt,
   })
 }
-
-
-
-
-
-
-
-
