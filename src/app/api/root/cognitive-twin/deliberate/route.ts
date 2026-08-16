@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { runLlmTask } from '@/lib/ai/providerRouter';
 import { createCognitiveTwinEnvelope, evaluateCognitiveTwinAuthority } from '@/core/cognitive-twin/contract';
 import { syncSfiInstitutionalStateToCognitiveTwin } from '@/core/cognitive-twin/institutionalIntegration';
+import { materializeRootCognitiveSpineContext } from '@/lib/root/cognitiveSpineRootContext';
 import { auditRootAction, requireRootActor } from '@/lib/root/server';
 
 export const dynamic = 'force-dynamic';
@@ -22,38 +23,39 @@ export async function POST(request: Request) {
   if (!question) return NextResponse.json({ ok: false, error: 'question_required' }, { status: 400 });
 
   const startedAt = new Date().toISOString();
+  const taskId = `cognitive-twin:deliberate:${Date.now()}:${crypto.randomUUID()}`;
+
+  // Preserve the existing institutional intake step, then seal a single
+  // governance-context snapshot. No cognitive output from this deliberation
+  // exists yet, so the cutoff cannot contain the answer it is about to create.
   const institutionalSync = await syncSfiInstitutionalStateToCognitiveTwin();
-  const [decisions, memory] = await Promise.all([
-    gate.ctx.service
-      .from('sfi_cognitive_twin_decisions')
-      .select('id,decision_id,situation,rejected_condition,correct_state,general_rule,required_evidence,evidence_refs,status,approved_by,approved_at,created_at')
-      .eq('status', 'APPROVED')
-      .order('approved_at', { ascending: false })
-      .limit(50),
-    gate.ctx.service
-      .from('sfi_cognitive_twin_memory')
-      .select('id,memory_key,memory_type,status,content,evidence_refs,source_kind,source_ref,created_at,updated_at')
-      .in('status', ['VERIFIED', 'CANDIDATE'])
-      .order('updated_at', { ascending: false })
-      .limit(120),
-  ]);
+  const snapshotCutoff = new Date().toISOString();
+  const cognitiveSpine = await materializeRootCognitiveSpineContext({
+    executionId: taskId,
+    sourceCutoff: snapshotCutoff,
+    createdAt: snapshotCutoff,
+  });
+
+  const approvedDecisions = cognitiveSpine.twinContext.decisions;
+  const institutionalMemory = cognitiveSpine.twinContext.memory;
+  const snapshotState = cognitiveSpine.snapshot.semanticPayload;
+  const evidencePresent = snapshotState.derivedState.sourceCount > 0;
 
   const warnings = [
-    decisions.error?.message,
-    memory.error?.message,
-    ...institutionalSync.sources.filter((item)=>item.warning).map((item)=>`${item.source}:${item.warning}`),
+    ...cognitiveSpine.warnings,
+    ...institutionalSync.sources.filter((item) => item.warning).map((item) => `${item.source}:${item.warning}`),
   ].filter((item): item is string => Boolean(item));
-  const approvedDecisions = decisions.data ?? [];
-  const institutionalMemory = memory.data ?? [];
-  const evidencePresent = approvedDecisions.length > 0 || institutionalMemory.length > 0;
+
   const fallback = [
     'Cognitive Twin deliberation unavailable through an LLM provider.',
     `Question: ${question}`,
-    `Approved founder decisions available: ${approvedDecisions.length}.`,
-    `Institutional memory records available: ${institutionalMemory.length}.`,
+    `Sealed Cognitive Spine snapshot: ${cognitiveSpine.snapshot.snapshotId}.`,
+    `Snapshot sources available: ${snapshotState.derivedState.sourceCount}.`,
+    `Approved institutional decisions visible: ${approvedDecisions.length}.`,
+    `Institutional memory records visible: ${institutionalMemory.length}.`,
     `SFI organs connected: ${institutionalSync.integration.summary.connected}/${institutionalSync.integration.summary.total}.`,
     `SFI organs exercised: ${institutionalSync.integration.summary.exercised}/${institutionalSync.integration.summary.total}.`,
-    'No cognitive execution is declared. Review the underlying corpus manually.',
+    'No cognitive execution is declared. Review the sealed source refs manually.',
   ].join('\n');
 
   const llm = await runLlmTask({
@@ -61,20 +63,38 @@ export async function POST(request: Request) {
     system: [
       'You are the replaceable model execution layer of the System Friction Institute Cognitive Twin.',
       'Institutional memory, evidence, authority and the persistent subject exist outside you.',
-      'Use only the supplied institutional corpus and SFI organ integration state.',
+      'Use only the supplied sealed Cognitive Spine context and SFI organ integration state.',
+      'The Cognitive Spine snapshot is a projection of institutionally admissible state, not a source of truth.',
+      'ROOT has governance authority over actions; ROOT and the model do not have authority to upgrade epistemic class, independence or truth.',
       'Treat ROOT Evidence, Observatory, Studio, Method Lab, Field and Governance as distinct organs with distinct epistemic classes.',
       'A Field observed return is experience, not automatically general causal proof.',
-      'A Method Lab SIMULATED record remains SIMULATED.',
-      'Separate OBSERVED, DERIVED, INFERRED, PROPOSED, SIMULATED and MISSING.',
+      'A Method Lab hypothesis remains a hypothesis; a SIMULATED record remains SIMULATED.',
+      'Separate OBSERVED, DECLARED, DERIVED, INFERRED, PROPOSED, SIMULATED and MISSING.',
       'Do not claim that a proposal is approved, verified, canonical, executed or published unless supplied evidence says so.',
-      'When the corpus is insufficient, say exactly what organ/source is missing or unexercised.',
-      'Return a concise answer with: institutional reading, organ/evidence basis, contradictions, missing evidence, one proposed next action, and what remains founder-reserved.',
+      'When the corpus is insufficient, say exactly what source, organ or verification is missing.',
+      'Return a concise answer with: institutional reading, organ/evidence basis, contradictions, missing evidence, one proposed next action, and what remains ROOT-reserved.',
     ].join(' '),
     prompt: JSON.stringify({
       question,
+      cognitiveSpine: {
+        snapshotId: cognitiveSpine.snapshot.snapshotId,
+        snapshotHash: cognitiveSpine.snapshot.snapshotHash,
+        sourceCutoff: snapshotState.sourceCutoff,
+        projectionProfile: cognitiveSpine.trace.projectionProfile,
+        profileVersion: cognitiveSpine.trace.profileVersion,
+        consumed: cognitiveSpine.trace.ctSnapshotConsumed,
+        derivedState: snapshotState.derivedState,
+        evidenceRefs: snapshotState.evidenceRefs,
+        hypothesisRefs: snapshotState.hypothesisRefs,
+        contradictionRefs: snapshotState.contradictionRefs,
+        freezeRefs: snapshotState.freezeRefs,
+        questionRefs: snapshotState.questionRefs,
+        epistemicStateRefs: snapshotState.epistemicStateRefs,
+        sourcePlane: cognitiveSpine.sourcePlane,
+      },
       sfiIntegration: institutionalSync.integration,
       syncSummary: institutionalSync.sources,
-      approvedFounderDecisions: approvedDecisions,
+      approvedInstitutionalDecisions: approvedDecisions,
       institutionalMemory,
       warnings,
     }),
@@ -88,11 +108,11 @@ export async function POST(request: Request) {
     evidencePresent,
   });
   const finishedAt = new Date().toISOString();
-  const taskId = `cognitive-twin:deliberate:${Date.now()}`;
   const evidenceRefs = Array.from(new Set([
-    ...approvedDecisions.flatMap((row) => Array.isArray(row.evidence_refs) ? row.evidence_refs.filter((item): item is string => typeof item === 'string') : []),
-    ...institutionalMemory.flatMap((row) => Array.isArray(row.evidence_refs) ? row.evidence_refs.filter((item): item is string => typeof item === 'string') : []),
-  ])).slice(0, 120);
+    ...snapshotState.evidenceRefs,
+    ...approvedDecisions.flatMap((row) => row.evidenceRefs),
+    ...institutionalMemory.flatMap((row) => row.evidenceRefs),
+  ])).slice(0, 160);
 
   const envelope = createCognitiveTwinEnvelope({
     status: llm.ok ? 'PROPOSED' : 'REJECTED',
@@ -102,6 +122,19 @@ export async function POST(request: Request) {
       question,
       answer: llm.result,
       authority,
+      cognitiveSpine: {
+        snapshotId: cognitiveSpine.snapshot.snapshotId,
+        snapshotHash: cognitiveSpine.snapshot.snapshotHash,
+        sourceCutoff: snapshotState.sourceCutoff,
+        projectionProfile: cognitiveSpine.trace.projectionProfile,
+        profileVersion: cognitiveSpine.trace.profileVersion,
+        consumed: cognitiveSpine.trace.ctSnapshotConsumed,
+        sourceCount: snapshotState.derivedState.sourceCount,
+        evidenceCount: snapshotState.evidenceRefs.length,
+        hypothesisCount: snapshotState.hypothesisRefs.length,
+        contradictionCount: snapshotState.contradictionRefs.length,
+        verificationDebt: snapshotState.verificationDebt.absolute,
+      },
       corpus: {
         approvedDecisions: approvedDecisions.length,
         memoryRecords: institutionalMemory.length,
@@ -114,16 +147,21 @@ export async function POST(request: Request) {
       providerExecutionSucceeded: llm.ok,
       latencyMs: llm.latency_ms,
     },
-    limitations: [...warnings, ...llm.warnings, institutionalSync.integration.truthBoundary],
+    limitations: [
+      ...warnings,
+      ...llm.warnings,
+      institutionalSync.integration.truthBoundary,
+      'ROOT governance authority does not upgrade evidence, independence, epistemic class or truth.',
+      'The consumed Cognitive Spine state is sealed at the declared cutoff and is not refreshed during this deliberation.',
+    ],
     missingEvidence: [
-      ...(!evidencePresent ? ['approved_founder_decisions_or_institutional_memory'] : []),
-      ...institutionalSync.integration.organs.filter((item)=>!item.connected).map((item)=>`organ_disconnected:${item.organ}`),
-      ...institutionalSync.integration.organs.filter((item)=>item.connected && (item.observedRecords ?? 0) === 0).map((item)=>`organ_unexercised:${item.organ}`),
+      ...(!evidencePresent ? ['sealed_institutional_cognitive_state_empty'] : []),
+      ...institutionalSync.integration.organs.filter((item) => !item.connected).map((item) => `organ_disconnected:${item.organ}`),
+      ...institutionalSync.integration.organs.filter((item) => item.connected && (item.observedRecords ?? 0) === 0).map((item) => `organ_unexercised:${item.organ}`),
     ],
     actionsExecuted: [
       'sync_sfi_institutional_state',
-      'read_approved_decisions',
-      'read_institutional_memory',
+      `consume_cognitive_spine:${cognitiveSpine.snapshot.snapshotId}`,
       llm.ok ? 'llm_deliberation' : 'llm_deliberation_failed',
     ],
     recommendedTransition: !llm.ok ? 'BLOCKED' : evidencePresent ? 'VERIFYING' : 'EVIDENCE_PENDING',
@@ -142,8 +180,10 @@ export async function POST(request: Request) {
       objective: question,
       input_snapshot: {
         question,
-        approvedDecisionCount: approvedDecisions.length,
-        memoryCount: institutionalMemory.length,
+        cognitiveSpine: {
+          snapshot: cognitiveSpine.snapshot,
+          consumptionTrace: cognitiveSpine.trace,
+        },
         sfiIntegration: institutionalSync.integration.summary,
         requestedBy: gate.ctx.user.id,
         providerExecutionSucceeded: llm.ok,
@@ -173,6 +213,10 @@ export async function POST(request: Request) {
       providerExecutionSucceeded: llm.ok,
       authorityDecision: authority.decision,
       evidenceRefs: evidenceRefs.length,
+      cognitiveSpineSnapshotId: cognitiveSpine.snapshot.snapshotId,
+      cognitiveSpineSnapshotHash: cognitiveSpine.snapshot.snapshotHash,
+      cognitiveSpineProfile: cognitiveSpine.trace.projectionProfile,
+      cognitiveSpineConsumed: cognitiveSpine.trace.ctSnapshotConsumed,
       sfiOrgansConnected: institutionalSync.integration.summary.connected,
       sfiOrgansExercised: institutionalSync.integration.summary.exercised,
     },
@@ -184,6 +228,14 @@ export async function POST(request: Request) {
     ok: llm.ok,
     cognitiveExecution: llm.ok ? 'EXECUTED' : 'DEGRADED',
     institutionalSync,
+    cognitiveSpine: {
+      snapshotId: cognitiveSpine.snapshot.snapshotId,
+      snapshotHash: cognitiveSpine.snapshot.snapshotHash,
+      sourceCutoff: snapshotState.sourceCutoff,
+      projectionProfile: cognitiveSpine.trace.projectionProfile,
+      profileVersion: cognitiveSpine.trace.profileVersion,
+      consumed: cognitiveSpine.trace.ctSnapshotConsumed,
+    },
     run: persisted.data,
     envelope,
     audit,

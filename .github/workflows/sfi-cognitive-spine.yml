@@ -11,6 +11,8 @@ on:
       - 'src/lib/institution/institutionalCycle.ts'
       - 'src/lib/studio/cognitive/**'
       - 'src/app/api/studio/session/reconstruct/route.ts'
+      - 'src/lib/root/cognitiveSpineRootContext.ts'
+      - 'src/app/api/root/cognitive-twin/deliberate/route.ts'
       - 'src/lib/field/cognitiveSpineProposalLink.ts'
       - 'src/lib/field/fieldCognitiveSpineBoundary.ts'
       - 'src/lib/field/interventionExecution.ts'
@@ -32,6 +34,8 @@ on:
       - 'src/lib/institution/institutionalCycle.ts'
       - 'src/lib/studio/cognitive/**'
       - 'src/app/api/studio/session/reconstruct/route.ts'
+      - 'src/lib/root/cognitiveSpineRootContext.ts'
+      - 'src/app/api/root/cognitive-twin/deliberate/route.ts'
       - 'src/lib/field/cognitiveSpineProposalLink.ts'
       - 'src/lib/field/fieldCognitiveSpineBoundary.ts'
       - 'src/lib/field/interventionExecution.ts'
@@ -76,3 +80,5 @@ jobs:
         run: node --import tsx scripts/cognitive-spine/qa-studio-sealed-context.ts
       - name: Field blinded Cognitive Spine T0 boundary
         run: node --import tsx scripts/cognitive-spine/qa-field-blinded-t0.ts
+      - name: ROOT sealed Cognitive Spine governance boundary
+        run: node --import tsx scripts/cognitive-spine/qa-root-sealed-context.ts
