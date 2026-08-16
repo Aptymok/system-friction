@@ -1,0 +1,36 @@
+name: SFI Cognitive Spine
+
+on:
+  pull_request:
+    paths:
+      - 'src/core/cognitive-spine/**'
+      - 'scripts/cognitive-spine/**'
+      - 'docs/architecture/cognitive-spine/**'
+      - '.github/workflows/sfi-cognitive-spine.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/core/cognitive-spine/**'
+      - 'scripts/cognitive-spine/**'
+      - 'docs/architecture/cognitive-spine/**'
+      - '.github/workflows/sfi-cognitive-spine.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  cprt-a:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Typecheck
+        run: npm run typecheck
+      - name: CPRT-A deterministic state reconstruction
+        run: node --import tsx --test src/core/cognitive-spine/cprt/cprtA.test.ts
