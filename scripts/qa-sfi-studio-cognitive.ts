@@ -26,7 +26,8 @@ const reconstructionUi = read('src/components/studio/workspace/StudioSessionReco
 const masterLoop = read('src/lib/studio/cognitive/studioMasterAnalysisLoop.ts');
 const masterRoute = read('src/app/api/studio/objects/[id]/master-analysis/route.ts');
 const masterUi = read('src/components/studio/production/StudioMasterAnalysisControl.tsx');
-const productionConsole = read('src/components/studio/production/StudioProductionConsole.tsx');
+const studioPage = read('src/app/studio/page.tsx');
+const studioWorkspace = read('src/components/studio/workspace/StudioWorkspace.tsx');
 const fieldState = read('src/lib/studio/field/studioFieldState.ts');
 
 const requiredAgents = [
@@ -54,8 +55,6 @@ for (const token of [
   'DIOL-SF',
 ]) assert.ok(`${runtime}\n${twinContext}\n${experienceBridge}`.includes(token), `studio_cognitive_contract_missing:${token}`);
 
-// LLM routing is consolidated in the shared provider router. Studio owns the epistemic
-// boundary and the Cognitive Twin owns candidate-memory promotion; no parallel bridge is required.
 assert.ok(llmRouter.includes("provider: 'degraded'"), 'llm_degraded_provider_missing');
 assert.ok(llmRouter.includes("['no_llm_provider_available']"), 'llm_no_provider_warning_missing');
 assert.ok(llmRouter.includes('for (const providerId of order)'), 'llm_provider_fallback_chain_missing');
@@ -64,7 +63,6 @@ assert.ok(runtime.includes('LLM_PROVIDER_UNAVAILABLE'), 'llm_fail_closed_missing
 assert.ok(twinContext.includes("status: 'CANDIDATE' as const"), 'candidate_memory_epistemic_boundary_missing');
 assert.ok(!/Math\.random\(\).*confidence|fake|demo data/i.test(`${runtime}\n${llmRouter}\n${experienceBridge}`), 'synthetic_cognitive_output_pattern_present');
 
-// Studio persists through the single institutional Cognitive Twin experience bridge.
 assert.ok(twinContext.includes('recordCognitiveTwinExperience'), 'studio_learning_not_routed_through_experience_bridge');
 assert.ok(experienceBridge.includes("eventName:'cognitive_twin.experience.recorded'"), 'cognitive_twin_experience_ledger_append_missing');
 assert.ok(experienceBridge.includes('processEpistemicEvent(emitted.event)'), 'cognitive_twin_experience_policy_promotion_missing');
@@ -112,7 +110,19 @@ assert.ok(masterRoute.includes('requireObjectOwner'), 'master_analysis_owner_gat
 assert.ok(masterRoute.includes('runStudioMasterAnalysisLoop'), 'master_analysis_route_not_wired');
 assert.ok(masterUi.includes('/master-analysis'), 'master_analysis_ui_not_wired');
 assert.ok(masterUi.includes('máximo 3'), 'master_analysis_ui_finite_contract_missing');
-assert.ok(productionConsole.includes('StudioMasterAnalysisControl'), 'master_analysis_control_not_rendered');
+
+// Canonical Studio surface is now the native multiscale field. Legacy reconstruction/master-loop
+// controls remain callable instruments but must not own the /studio entry surface.
+assert.ok(studioPage.includes('StudioWorkspace'), 'studio_native_workspace_missing');
+assert.equal(studioPage.includes('StudioSessionReconstruction'), false, 'session_reconstruction_must_not_own_studio_entry');
+assert.equal(studioPage.includes('StudioProductionConsole'), false, 'legacy_production_console_must_not_own_studio_entry');
+for (const token of ['ATTRACTOR', 'PROJECT', 'NODE', 'OBJECT', 'MANIFESTATION', "'IDENTITY'", 'MOPS EVIDENCE', 'METHOD LAB', 'TIME / RETURN / CONTINUITY']) {
+  assert.ok(studioWorkspace.includes(token), `studio_native_surface_contract_missing:${token}`);
+}
+assert.ok(studioWorkspace.includes('StudioDirectIngestion'), 'studio_native_ingestion_missing');
+assert.ok(studioWorkspace.includes('/api/studio/objects/${encodeURIComponent(activeObjectId)}/cognitive'), 'studio_native_cognitive_runtime_missing');
+assert.ok(studioWorkspace.includes('PUBLIC CERTIFICATE'), 'studio_certificate_surface_missing');
+assert.ok(studioWorkspace.includes('NOT ISSUED'), 'studio_certificate_fail_closed_state_missing');
 
 const migrationFiles = walk('supabase/migrations').filter((file) => file.endsWith('.sql'));
 const migrationText = migrationFiles.map((file) => readFileSync(file, 'utf8')).join('\n');
@@ -137,9 +147,13 @@ console.log(JSON.stringify({
   zipHeavySourcePurged: true,
   sessionReconstructionOwnerScoped: true,
   sessionReconstructionUsesExistingRuntime: true,
+  sessionReconstructionSecondaryInstrument: true,
   masterAnalysisFinite: true,
   masterAnalysisPassBudget: [2, 3],
   masterAnalysisOwnerScoped: true,
+  masterAnalysisSecondaryInstrument: true,
+  nativeStudioSurface: true,
+  mopsCertificateSurfaceFailClosed: true,
   duplicateRelationTable: false,
   removedDashboardComponents: 3,
 }, null, 2));

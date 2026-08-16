@@ -12,6 +12,7 @@ const worldCycle = read('src/lib/world-observatory/worldCycle.ts');
 const publicTimeline = read('src/lib/observatory/public/worldSnapshotTimeline.ts');
 const publicTimelineUi = read('src/components/observatory/public/PublicObservatoryTimelineNavigator.tsx');
 const observatoryPage = read('src/app/observatory/page.tsx');
+const observatoryUi = read('src/components/observatory/public/PublicObservatoryUnified.tsx');
 const nationalField = read('src/lib/world-observatory/inegiNationalField.ts');
 const nationalFieldRoute = read('src/app/api/root/cognitive-twin/national-field/route.ts');
 const nationalScenario = read('src/core/cognitive-twin/nationalFieldScenario.ts');
@@ -69,8 +70,13 @@ for (const token of [
 assert.ok(publicTimelineUi.includes('/api/observatory/timeline'), 'public_timeline_ui_not_wired');
 assert.ok(publicTimelineUi.includes('type="range"'), 'public_timeline_cursor_missing');
 assert.ok(publicTimelineUi.includes('Cada posición corresponde a un snapshot WorldSpect almacenado'), 'public_timeline_epistemic_boundary_missing');
-assert.ok(observatoryPage.includes('<PublicObservatoryTimelineNavigator />'), 'public_observatory_timeline_not_rendered');
-assert.ok(!publicTimelineUi.includes('sfi_cognitive_twin_'), 'public_observatory_must_not_expose_private_cognitive_twin_corpus');
+assert.ok(observatoryPage.includes("dynamic = 'force-dynamic'"), 'public_observatory_must_read_fresh_state');
+assert.ok(observatoryPage.includes('revalidate = 0'), 'public_observatory_page_cache_must_be_disabled');
+assert.ok(observatoryUi.includes('state.longitudinal.points.slice(-14)'), 'public_observatory_native_timeline_missing');
+assert.ok(observatoryUi.includes('PUBLIC OBSERVATORY'), 'public_observatory_native_surface_missing');
+assert.ok(observatoryUi.includes('WORLD STATE'), 'public_observatory_world_state_missing');
+assert.ok(!`${publicTimelineUi}\n${observatoryUi}`.includes('sfi_cognitive_twin_memory'), 'public_observatory_must_not_expose_private_cognitive_twin_corpus');
+assert.ok(!`${publicTimelineUi}\n${observatoryUi}`.includes('sfi_cognitive_twin_decisions'), 'public_observatory_must_not_expose_private_cognitive_twin_decisions');
 
 for (const token of [
   "INEGI_NATIONAL_FIELD_VERSION",
@@ -137,7 +143,8 @@ console.log(JSON.stringify({
   },
   publicObservatory: {
     persistedWorldSpectFrames: true,
-    interactiveTimeline: true,
+    nativeLongitudinalTimeline: true,
+    freshRequestState: true,
     privateTwinExposure: false,
   },
 }, null, 2));

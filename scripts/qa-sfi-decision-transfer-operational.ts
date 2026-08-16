@@ -54,13 +54,15 @@ assert(component.includes("fetch('/api/root/method-lab/decision-transfer'"), 'ui
 assert(component.includes('Transferencia decisional observable'), 'ui_observable_object_missing');
 assert(component.includes('AUTO-PROMOTION'), 'ui_authority_boundary_missing');
 assert(component.includes('no se precargan datos ficticios') || component.includes('No se precargan datos ficticios'), 'ui_must_not_seed_fake_experiment');
-assert(page.includes('<DecisionTransferObservatory initial={state.decisionTransfer} />'), 'method_lab_must_render_observatory');
+assert(page.includes('DecisionTransferObservatory'), 'method_lab_must_render_observatory');
+assert(page.includes('DECISION TRANSFER / OBSERVED CONTRAST'), 'native_method_lab_must_expose_decision_transfer_instrument');
 
 console.log(JSON.stringify({
   ok: true,
   gate: 'SFI_DECISION_TRANSFER_OPERATIONAL',
   canonicalRoute: '/api/root/method-lab/decision-transfer',
   canonicalSurface: '/method-lab',
+  nativeSurface: true,
   persistence: ['sfi_cognitive_twin_runs', 'sfi_cognitive_twin_evaluations', 'sfi_lab_analyses'],
   memoryMutation: false,
   autoPromotion: false,

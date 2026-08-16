@@ -1,11 +1,12 @@
-import { StudioProductionConsole } from '@/components/studio/production/StudioProductionConsole';
-import { StudioSessionReconstruction } from '@/components/studio/workspace/StudioSessionReconstruction';
+import { StudioSecondaryInstruments } from '@/components/studio/workspace/StudioSecondaryInstruments';
+import { StudioWorkspace } from '@/components/studio/workspace/StudioWorkspace';
 import { readStudioFieldState } from '@/lib/studio/field/studioFieldState';
 import { readStudioProductionState } from '@/lib/studio/production/studioProductionAdapter';
 import { scopeStudioStateForMember } from '@/lib/studio/production/scopeStudioStateForMember';
 import { requireAuthenticatedUser, requireFounder } from '@/lib/system/access/server';
 
 export const dynamic = 'force-dynamic';
+export const metadata = { robots: { index: false, follow: false, nocache: true } };
 
 export default async function StudioPage({ searchParams }: { searchParams?: Promise<{ objectId?: string | string[] }> }) {
   const { user } = await requireAuthenticatedUser();
@@ -25,20 +26,19 @@ export default async function StudioPage({ searchParams }: { searchParams?: Prom
 
   return (
     <main className="min-h-screen bg-transparent">
-      <div data-sfi-field-anchor="session">
-        <StudioSessionReconstruction
-          sessionId={fieldState.session?.id ?? null}
-          activeObjectId={state.activeObject.id ?? null}
-          objectCount={fieldState.objects.length}
-        />
-      </div>
-      <div data-sfi-field-anchor="workspace">
-        <StudioProductionConsole
-          state={state}
-          fieldState={fieldState}
-          identity={user.email ?? user.id}
-        />
-      </div>
+      <StudioWorkspace
+        state={state}
+        fieldState={fieldState}
+        identity={user.email ?? user.id}
+      />
+      <StudioSecondaryInstruments
+        fieldState={fieldState}
+        activeObjectId={state.activeObject.id ?? null}
+        objectCount={fieldState.objects.length}
+        objectTitle={state.activeObject.title}
+        objectType={state.activeObject.type}
+        analysisStatus={state.activeObject.analysisStatus}
+      />
     </main>
   );
 }
