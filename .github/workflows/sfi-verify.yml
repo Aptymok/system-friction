@@ -132,6 +132,9 @@ jobs:
       - name: Verify SFI Case Integrity and Governed Action V1
         run: npx tsx scripts/qa-sfi-case-integrity-action-v1.ts
 
+      - name: Verify SFI System and AI Assurance Domain V1
+        run: npx tsx scripts/qa-sfi-system-ai-assurance-domain-v1.ts
+
       - name: Typecheck
         id: typecheck
         shell: bash

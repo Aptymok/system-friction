@@ -1,0 +1,39 @@
+-- SFI System & AI Assurance Domain V1
+-- Extends the shared tenant-scoped Case relation graph. No parallel System/AI database is created.
+
+alter table public.sfi_case_relations
+  drop constraint if exists sfi_case_relations_relation_type_check;
+
+alter table public.sfi_case_relations
+  add constraint sfi_case_relations_relation_type_check
+  check (relation_type in (
+    -- Enterprise Assurance
+    'TENDER_HAS_REQUIREMENT','BIDDER_PARTICIPATES_IN_TENDER','BID_SUBMISSION_FOR_TENDER','BID_SUBMISSION_BY_BIDDER',
+    'BIDDER_MAPS_TO_SUPPLIER','TENDER_AWARDS_SUPPLIER','CONTRACT_ARISES_FROM_TENDER','CONTRACT_BINDS_SUPPLIER',
+    'CONTRACT_DEFINES_OBLIGATION','CONTRACT_COVERS_ASSET','CONTRACT_COVERS_SERVICE','ASSET_PROVIDED_BY_SUPPLIER',
+    'SERVICE_PROVIDED_BY_SUPPLIER','TICKET_AFFECTS_ASSET','TICKET_AFFECTS_SERVICE','TICKET_SUBJECT_TO_SLA',
+    'TICKET_ASSIGNED_TO_SUPPLIER','SLA_DERIVED_FROM_CONTRACT','WARRANTY_DEFINED_BY_CONTRACT','WARRANTY_COVERS_ASSET',
+    'WARRANTY_EVENT_AFFECTS_ASSET','WARRANTY_EVENT_UNDER_WARRANTY','WARRANTY_EVENT_ASSIGNED_TO_SUPPLIER',
+    'TICKET_TRIGGERS_WARRANTY_EVENT','RETURN_RESOLVES_WARRANTY_EVENT','RETURN_CLOSES_TICKET',
+    'SUPPLIER_PERFORMANCE_AGGREGATES_RETURN','SUPPLIER_PERFORMANCE_INFORMS_TENDER',
+    -- System & AI Assurance
+    'SYSTEM_HAS_COMPONENT','SYSTEM_HAS_PROCESS','SYSTEM_HAS_WORKFLOW','COMPONENT_DEPENDS_ON_COMPONENT','PROCESS_USES_COMPONENT',
+    'WORKFLOW_CONTAINS_PROCESS','ACTOR_PARTICIPATES_IN_PROCESS','INTERFACE_CONNECTS_COMPONENT','DATA_SOURCE_FEEDS_COMPONENT',
+    'AI_SYSTEM_USES_MODEL','AI_SYSTEM_USES_DATA_SOURCE','AI_SYSTEM_USES_RETRIEVAL','AI_SYSTEM_USES_TOOL','AI_SYSTEM_EMBEDDED_IN_PROCESS',
+    'AI_EXECUTION_RUNS_ON_AI_SYSTEM','AI_EXECUTION_USES_MODEL','AI_EXECUTION_USES_PROMPT_TEMPLATE','AI_EXECUTION_USES_DATA_SOURCE',
+    'AI_EXECUTION_USES_TOOL','AI_EXECUTION_PRODUCES_DECISION_INPUT','DECISION_POINT_GATED_BY_HUMAN','ACTOR_AUTHORIZES_DECISION',
+    'CONTROL_GOVERNS_AI_SYSTEM','FAILURE_EVENT_OCCURS_AT_COMPONENT','FAILURE_EVENT_AFFECTS_PROCESS',
+    'FAILURE_EVENT_ASSOCIATED_WITH_AI_EXECUTION','USE_CASE_TARGETS_PROCESS','INTEGRATION_POINT_CONNECTS_COMPONENT',
+    'OUTCOME_OBSERVED_FOR_PROCESS'
+  ));
+
+-- There is no direct authenticated insert path for the shared relation graph.
+-- Even RECORD relations must pass through an authenticated API/repository boundary so endpoint
+-- ontology, tenant/domain identity, exact canonical revision, lineage and auditing are validated.
+-- Service-role repositories/RPCs remain the only relation mutation path.
+drop policy if exists sfi_case_relations_tenant_insert on public.sfi_case_relations;
+
+-- RLS remains enabled from the Enterprise Assurance graph migration. With no INSERT policy for
+-- `authenticated`, direct Supabase inserts fail closed. Server-side service-role mutations are
+-- separately validated and audited before/inside their transactional write boundary.
+-- No relation write gains institutional truth or ROOT authority by persistence alone.

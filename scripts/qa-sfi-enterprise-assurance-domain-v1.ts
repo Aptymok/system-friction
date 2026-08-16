@@ -25,14 +25,14 @@ assert(!migration.includes('sfi_evidence_ledger'));
 assert(!migration.includes('institutional_memory'));
 assert(!migration.includes('root_'));
 assert(OPERATIONAL_DELETE_ORDER.includes('sfi_case_relations'), 'enterprise relation runtime must be in terminal reset inventory');
-assert(clientRelations.includes("epistemicRole: 'RECORD'"), 'client relation writes must remain RECORD');
+assert(/epistemicRole\s*:\s*['"]RECORD['"]/.test(clientRelations), 'client relation writes must remain RECORD');
 assert(clientRelations.includes('cannot create inferred relations'));
 assert(internalObjects.includes('requireSfiMember'));
 assert(!internalObjects.includes("'GOVERNANCE_DECISION'"), 'internal generic object API must not bypass governance');
 assert(!internalObjects.includes("'INTERVENTION'"), 'internal generic object API must not bypass action gate');
 assert(tenderRoute.includes('requireSfiMember'));
-assert(tenderRoute.includes('winnerSelectionAuthority: false'));
-assert(intakeRoute.includes('does not infer cause'));
+assert(/winnerSelectionAuthority\s*:\s*false/.test(tenderRoute), 'tender route must explicitly deny winner selection authority');
+assert(/does not infer cause/i.test(intakeRoute), 'enterprise intake must explicitly deny automatic causal inference');
 
 const tender = enterpriseEntityRef('TENDER', 'T-001');
 const requirement = normalizeTenderRequirementRecord({
@@ -54,9 +54,10 @@ const ticket = normalizeServiceTicketRecord({
   slaRef: enterpriseEntityRef('SLA', 'SLA-1'),
   sourceRefs: [{ id: 'source:tickets' }],
 });
+const ticketRelations = ticket.relations.map((item) => item.relationType);
 assert.equal(ticket.object.payload.problemIdentityClaimed, false);
-assert(ticket.relations.some((item) => item.relationType === 'TICKET_AFFECTS_ASSET'));
-assert(ticket.relations.some((item) => item.relationType === 'TICKET_SUBJECT_TO_SLA'));
+assert(ticketRelations.includes('TICKET_AFFECTS_ASSET'), `ticket relations missing asset edge: ${JSON.stringify(ticket.relations)}`);
+assert(ticketRelations.includes('TICKET_SUBJECT_TO_SLA'), `ticket relations missing SLA edge: ${JSON.stringify(ticket.relations)}`);
 
 const warranty = normalizeWarrantyEventRecord({
   eventId: 'W-1',
