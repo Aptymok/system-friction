@@ -4,7 +4,7 @@
   "experiment_id": "EXP-001",
   "status": "EXPERIMENTALLY_FROZEN",
   "registration_status": "AWAITING_NATURALISTIC_TARGET",
-  "instrument_code_commit": "3febe181cfe80bb3edc15f122dbf639f9808d8b6",
+  "instrument_code_commit": "09886720d5b13372bd4b21617e5cd11556067bcf",
   "instrument_base_commit": "3b7ce699e2654ed1fb551498cfeaad37731f6f88",
   "claim_boundary": "N_subject=1",
   "primary_endpoint": "validated_structural_fidelity",
@@ -40,7 +40,15 @@
     "system_prompt_hash": "99b9f89a95238a9a0195fdbc1ec68d40860128fce2ebde9cd69436012b44154d",
     "max_tokens": 1000,
     "temperature": 0.2,
-    "strict_provider": true
+    "strict_provider": true,
+    "reverify_at_reveal": true
+  },
+  "evaluation_evidence_contract": {
+    "protocol": "SFI-DT-EVIDENCE-MATERIALIZATION-1.0",
+    "historical_provenance": "CONFIRMATORY_FROZEN_SAME_OPERATION_ONLY",
+    "history_pagination": "UNTIL_EXHAUSTED",
+    "missing_empirical_boundary_metric": null,
+    "model_contract_hash_required": true
   },
   "target_registration": {
     "target_trace_id": null,
@@ -70,6 +78,8 @@
     "unapproved rules",
     "simulated/derived/inferred validating counts",
     "manual reveal evidence counts",
+    "diagnostic evaluator history",
+    "cross-operation historical evaluator evidence",
     "model/provider fallback",
     "post-result arm, metric, weight, threshold or contrast changes"
   ],
