@@ -20,6 +20,8 @@ on:
       - 'src/lib/worldspect/**'
       - 'src/app/api/worldspect/**'
       - 'src/app/api/cron/worldspect/route.ts'
+      - 'src/lib/atlas/**'
+      - 'src/app/api/atlas/**'
       - 'src/lib/field/cognitiveSpineProposalLink.ts'
       - 'src/lib/field/fieldCognitiveSpineBoundary.ts'
       - 'src/lib/field/interventionExecution.ts'
@@ -50,6 +52,8 @@ on:
       - 'src/lib/worldspect/**'
       - 'src/app/api/worldspect/**'
       - 'src/app/api/cron/worldspect/route.ts'
+      - 'src/lib/atlas/**'
+      - 'src/app/api/atlas/**'
       - 'src/lib/field/cognitiveSpineProposalLink.ts'
       - 'src/lib/field/fieldCognitiveSpineBoundary.ts'
       - 'src/lib/field/interventionExecution.ts'
@@ -104,3 +108,5 @@ jobs:
         run: node --import tsx scripts/cognitive-spine/qa-method-lab-context.ts
       - name: WorldSpect post-observation Cognitive Spine contrast
         run: node --import tsx scripts/cognitive-spine/qa-worldspect-post-observation.ts
+      - name: Atlas read-only Cognitive Spine temporal context
+        run: node --import tsx scripts/cognitive-spine/qa-atlas-temporal-context.ts
