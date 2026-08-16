@@ -1,9 +1,12 @@
-import { InstitutionalCinematicView } from '@/components/sfi/cinematic/InstitutionalCinematicView';
-import { readInstitutionalViewState } from '@/lib/sfi/institutionalViewState';
+import { redirect } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
 
-export default async function SfiOperationalPage() {
-  const state = await readInstitutionalViewState({ entityId: 'sfi', entityType: 'ORGANIZATION', label: 'System Friction Institute' });
-  return <InstitutionalCinematicView state={state} focus="SFI" brand="SYSTEM FRICTION INSTITUTE" subtitle="INSTITUTIONAL OPERATING FIELD" />;
+/**
+ * `/` is the single public institutional entry for System Friction Institute.
+ * `/sfi` remains only as a compatibility alias so the repository never exposes
+ * two competing SFI home surfaces.
+ */
+export default function SfiAliasPage() {
+  redirect('/');
 }
