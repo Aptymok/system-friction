@@ -111,7 +111,7 @@ export async function readMethodLabState() {
     const warnings = [
       ...(Array.isArray(latest?.limitations) ? latest.limitations.map(String) : []),
       ...missingDependencies.map((item) => `${item.table}:${item.error ?? 'unavailable'}`),
-      ...(definition.id === 'ct_reentry' ? ['CT reentry is implemented as governed longitudinal provenance. GATED means no Method Lab evaluation row has yet validated it; Decision Transfer PASS remains a DERIVED measurement and does not imply individuation, subjective experience or automatic rule promotion.'] : []),
+      ...(definition.id === 'ct_reentry' ? ['CT reentry is implemented as governed longitudinal provenance. GATED means no Method Lab evaluation row has yet validated it; it does not mean individuation is demonstrated. Decision Transfer PASS remains a DERIVED measurement and does not imply subjective experience or automatic rule promotion.'] : []),
       ...(definition.id === 'cognitive_relational_lab' ? ['CRL protocol-specific migration remains experimental; persisted session state is not canonical memory or proof of individuation.'] : []),
       ...(tableWarning ? [`sfi_lab_analyses:${tableWarning}`] : []),
     ];
