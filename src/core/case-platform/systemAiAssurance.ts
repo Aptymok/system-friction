@@ -96,6 +96,10 @@ function uniqueCanonicalRefs(refs: SfiCanonicalRef[]) {
   });
 }
 
+function domainPayload(payload: Record<string, unknown>) {
+  return { contract: SFI_SYSTEM_AI_ASSURANCE_DOMAIN_CONTRACT, ...payload };
+}
+
 export function systemAiEntityRef(entityType:SfiSystemAiEntityType,id:string):SfiSystemAiEntityRef {
   return { entityType, id:`system-ai:${entityType}:${requireText(id,'entityId')}`, version:'1.0', hash:null };
 }
@@ -125,7 +129,7 @@ export function normalizeSystemAiEntityRecord(input:{entityType:SfiSystemAiEntit
     contract:SFI_SYSTEM_AI_ASSURANCE_DOMAIN_CONTRACT,
     object:{
       kind:'RECORD',epistemicRole:'RECORD',canonicalRef:ref,sourceRefs:input.sourceRefs??[],
-      payload:{entityType:input.entityType,label:input.label?.trim()||null,attributes:input.attributes??{}},
+      payload:domainPayload({entityType:input.entityType,label:input.label?.trim()||null,attributes:input.attributes??{}}),
       observedAt:dateOrNull(input.observedAt,'observedAt'),
     },
     relations:[],
@@ -138,6 +142,8 @@ export function normalizeAiExecutionTrace(input:{executionId:string;aiSystemRef:
   const executionRef=systemAiEntityRef('AI_EXECUTION',input.executionId);
   const startedAt=dateOrNull(input.startedAt,'startedAt');
   if(!startedAt) throw new Error('SFI_SYSTEM_AI_INVALID:startedAt');
+  const finishedAt=dateOrNull(input.finishedAt,'finishedAt');
+  if(finishedAt && Date.parse(finishedAt) < Date.parse(startedAt)) throw new Error('SFI_AI_EXECUTION_FINISHED_BEFORE_STARTED');
   const relations:SfiSystemAiRelationDraft[]=[
     relation({relationKey:`${executionRef.id}:system`,relationType:'AI_EXECUTION_RUNS_ON_AI_SYSTEM',from:executionRef,to:input.aiSystemRef,sourceRefs:input.sourceRefs,observedAt:startedAt}),
     relation({relationKey:`${executionRef.id}:model`,relationType:'AI_EXECUTION_USES_MODEL',from:executionRef,to:input.modelRef,sourceRefs:input.sourceRefs,observedAt:startedAt}),
@@ -158,11 +164,11 @@ export function normalizeAiExecutionTrace(input:{executionId:string;aiSystemRef:
     contract:SFI_SYSTEM_AI_ASSURANCE_DOMAIN_CONTRACT,
     object:{
       kind:'RECORD',epistemicRole:'RECORD',canonicalRef:executionRef,sourceRefs:input.sourceRefs??[],
-      payload:{
-        entityType:'AI_EXECUTION',startedAt,finishedAt:dateOrNull(input.finishedAt,'finishedAt'),status:requireText(input.status,'status'),
+      payload:domainPayload({
+        entityType:'AI_EXECUTION',startedAt,finishedAt,status:requireText(input.status,'status'),
         inputHash:input.inputHash?.trim()||null,contextHash:input.contextHash?.trim()||null,outputHash:input.outputHash?.trim()||null,
         rawPromptPersisted:false,rawInputPersisted:false,decisionAuthorityClaimed:false,
-      },
+      }),
       observedAt:startedAt,
     },
     relations,
@@ -188,7 +194,7 @@ export function normalizeSystemFailureEvent(input:{failureId:string;occurredAt:s
   }
   return {
     contract:SFI_SYSTEM_AI_ASSURANCE_DOMAIN_CONTRACT,
-    object:{kind:'RECORD',epistemicRole:'RECORD',canonicalRef:failureRef,sourceRefs:input.sourceRefs??[],payload:{entityType:'FAILURE_EVENT',occurredAt,failureType:requireText(input.failureType,'failureType'),description:input.description?.trim()||null,causeClaimed:false},observedAt:occurredAt},
+    object:{kind:'RECORD',epistemicRole:'RECORD',canonicalRef:failureRef,sourceRefs:input.sourceRefs??[],payload:domainPayload({entityType:'FAILURE_EVENT',occurredAt,failureType:requireText(input.failureType,'failureType'),description:input.description?.trim()||null,causeClaimed:false}),observedAt:occurredAt},
     relations,
   };
 }
@@ -212,7 +218,7 @@ export function normalizeAiDecisionTrace(input:{decisionId:string;decidedAt:stri
   }
   return {
     contract:SFI_SYSTEM_AI_ASSURANCE_DOMAIN_CONTRACT,
-    object:{kind:'RECORD',epistemicRole:'RECORD',canonicalRef:decisionRef,sourceRefs:input.sourceRefs??[],payload:{entityType:'DECISION_POINT',decidedAt,disposition:requireText(input.disposition,'status'),aiOutputEqualsDecision:false,humanAuthorityObserved:Boolean(input.humanGateRef&&input.authorityActorRef)},observedAt:decidedAt},
+    object:{kind:'RECORD',epistemicRole:'RECORD',canonicalRef:decisionRef,sourceRefs:input.sourceRefs??[],payload:domainPayload({entityType:'DECISION_POINT',decidedAt,disposition:requireText(input.disposition,'disposition'),aiOutputEqualsDecision:false,humanAuthorityObserved:Boolean(input.humanGateRef&&input.authorityActorRef)}),observedAt:decidedAt},
     relations,
   };
 }
@@ -227,7 +233,7 @@ export function buildSystemFrictionAssessment(input:{assessmentId:string;locatio
   return {
     kind:'FRICTION',epistemicRole:'INFERENCE',canonicalRef:{id:`system-friction:${requireText(input.assessmentId,'assessmentId')}`,version:'1.0',hash:null},
     recordRefs:input.recordRefs??[],evidenceRefs:input.evidenceRefs,
-    payload:{contract:SFI_SYSTEM_AI_ASSURANCE_DOMAIN_CONTRACT,assessmentType:'SYSTEM_FRICTION',locationRef:input.locationRef,affectedRefs:input.affectedRefs??[],frictionType:requireText(input.frictionType,'frictionType'),confidence,magnitudeProxy:magnitude,causalMechanismEstablished:false,truthAuthority:false},
+    payload:domainPayload({assessmentType:'SYSTEM_FRICTION',locationRef:input.locationRef,affectedRefs:input.affectedRefs??[],frictionType:requireText(input.frictionType,'frictionType'),confidence,magnitudeProxy:magnitude,causalMechanismEstablished:false,truthAuthority:false}),
   };
 }
 
@@ -237,7 +243,7 @@ export function buildAiImplementationFailureAssessment(input:{assessmentId:strin
   return {
     kind:'EPISTEMIC_ASSESSMENT',epistemicRole:'EPISTEMIC_ASSESSMENT',canonicalRef:{id:`ai-failure-assessment:${requireText(input.assessmentId,'assessmentId')}`,version:'1.0',hash:null},
     recordRefs:input.recordRefs??[],evidenceRefs:input.evidenceRefs,
-    payload:{contract:SFI_SYSTEM_AI_ASSURANCE_DOMAIN_CONTRACT,assessmentType:'AI_IMPLEMENTATION_FAILURE',failureRef:input.failureRef,layer:input.layer,determinability:input.determinability,confidence:ratioOrNull(input.confidence,'confidence'),competingHypotheses:input.competingHypotheses??[],rootCauseEstablished:false,modelBlameByDefault:false},
+    payload:domainPayload({assessmentType:'AI_IMPLEMENTATION_FAILURE',failureRef:input.failureRef,layer:input.layer,determinability:input.determinability,confidence:ratioOrNull(input.confidence,'confidence'),competingHypotheses:input.competingHypotheses??[],rootCauseEstablished:false,modelBlameByDefault:false}),
   };
 }
 
@@ -247,7 +253,7 @@ export function buildAiAdoptionOpportunityAssessment(input:{assessmentId:string;
   return {
     kind:'ANALYSIS',epistemicRole:'PROJECTION',canonicalRef:{id:`ai-opportunity:${requireText(input.assessmentId,'assessmentId')}`,version:'1.0',hash:null},
     recordRefs:input.recordRefs??[],evidenceRefs:input.evidenceRefs,
-    payload:{contract:SFI_SYSTEM_AI_ASSURANCE_DOMAIN_CONTRACT,assessmentType:'AI_ADOPTION_OPPORTUNITY',processRef:input.processRef,useCaseRef:input.useCaseRef,projectedValue:ratioOrNull(input.projectedValue,'projectedValue'),feasibility:ratioOrNull(input.feasibility,'feasibility'),integrationRisk:ratioOrNull(input.integrationRisk,'integrationRisk'),requiredControls:input.requiredControls??[],observedReturn:false,recommendationAuthority:false},
+    payload:domainPayload({assessmentType:'AI_ADOPTION_OPPORTUNITY',processRef:input.processRef,useCaseRef:input.useCaseRef,projectedValue:ratioOrNull(input.projectedValue,'projectedValue'),feasibility:ratioOrNull(input.feasibility,'feasibility'),integrationRisk:ratioOrNull(input.integrationRisk,'integrationRisk'),requiredControls:input.requiredControls??[],observedReturn:false,recommendationAuthority:false}),
   };
 }
 
@@ -272,8 +278,7 @@ export function buildAiGovernanceTraceAssessment(input:{assessmentId:string;stag
     canonicalRef:{id:`ai-governance:${requireText(input.assessmentId,'assessmentId')}`,version:'1.0',hash:null},
     recordRefs,
     evidenceRefs:input.evidenceRefs,
-    payload:{
-      contract:SFI_SYSTEM_AI_ASSURANCE_DOMAIN_CONTRACT,
+    payload:domainPayload({
       assessmentType:'AI_GOVERNANCE_TRACE',
       stageRecordRefs:normalizedStageRecordRefs,
       stagePresence,
@@ -283,7 +288,7 @@ export function buildAiGovernanceTraceAssessment(input:{assessmentId:string;stag
       confidence:ratioOrNull(input.confidence,'confidence'),
       complianceClaimed:false,
       authorityClaimed:false,
-    },
+    }),
   };
 }
 
