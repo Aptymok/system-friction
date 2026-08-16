@@ -2,22 +2,32 @@ import { createHash } from 'node:crypto';
 
 type PlainObject = Record<string, unknown>;
 
+const ISO_TIMESTAMP_WITH_ZONE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?(?:Z|[+-]\d{2}:\d{2})$/;
+
 function isPlainObject(value: object): value is PlainObject {
   const prototype = Object.getPrototypeOf(value);
   return prototype === Object.prototype || prototype === null;
 }
 
+function jsonScalar(value: string | number): string {
+  const encoded = JSON.stringify(value);
+  if (encoded === undefined) {
+    throw new Error('COGNITIVE_SPINE_JSON_SCALAR_ENCODING_FAILED');
+  }
+  return encoded;
+}
+
 function encode(value: unknown, path: string): string {
   if (value === null) return 'null';
 
-  if (typeof value === 'string') return JSON.stringify(value);
+  if (typeof value === 'string') return jsonScalar(value);
   if (typeof value === 'boolean') return value ? 'true' : 'false';
 
   if (typeof value === 'number') {
     if (!Number.isFinite(value)) {
       throw new Error(`COGNITIVE_SPINE_NON_FINITE_NUMBER:${path}`);
     }
-    return JSON.stringify(Object.is(value, -0) ? 0 : value);
+    return jsonScalar(Object.is(value, -0) ? 0 : value);
   }
 
   if (Array.isArray(value)) {
@@ -35,7 +45,7 @@ function encode(value: unknown, path: string): string {
       if (typeof child === 'undefined') {
         throw new Error(`COGNITIVE_SPINE_UNDEFINED_VALUE:${path}.${key}`);
       }
-      return `${JSON.stringify(key)}:${encode(child, `${path}.${key}`)}`;
+      return `${jsonScalar(key)}:${encode(child, `${path}.${key}`)}`;
     }).join(',')}}`;
   }
 
@@ -59,7 +69,14 @@ export function canonicalSha256(value: unknown): string {
   return createHash('sha256').update(canonicalSerialize(value), 'utf8').digest('hex');
 }
 
+/**
+ * Only offset-aware ISO timestamps are admissible. This prevents host timezone
+ * or locale from changing the semantic cutoff during reconstruction.
+ */
 export function normalizeTimestamp(value: string): string {
+  if (!ISO_TIMESTAMP_WITH_ZONE.test(value)) {
+    throw new Error(`COGNITIVE_SPINE_TIMESTAMP_REQUIRES_EXPLICIT_ZONE:${value}`);
+  }
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) {
     throw new Error(`COGNITIVE_SPINE_INVALID_TIMESTAMP:${value}`);
