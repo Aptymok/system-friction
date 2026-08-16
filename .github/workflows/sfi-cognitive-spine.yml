@@ -6,8 +6,13 @@ on:
       - 'src/core/cognitive-spine/**'
       - 'src/core/agents/metaOrchestrator.ts'
       - 'src/infrastructure/ai/agentLlmClient.ts'
-      - 'src/lib/institution/cognitiveSpineRuntime*.ts'
+      - 'src/lib/institution/cognitiveSpine*.ts'
       - 'src/lib/institution/institutionalCycle.ts'
+      - 'src/lib/field/cognitiveSpineProposalLink.ts'
+      - 'src/lib/field/interventionExecution.ts'
+      - 'src/lib/field/governedReturn.ts'
+      - 'src/app/api/root/cognitive-spine/**'
+      - 'src/app/api/field/cases/**'
       - 'scripts/cognitive-spine/**'
       - 'docs/architecture/cognitive-spine/**'
       - '.github/workflows/sfi-cognitive-spine.yml'
@@ -18,8 +23,13 @@ on:
       - 'src/core/cognitive-spine/**'
       - 'src/core/agents/metaOrchestrator.ts'
       - 'src/infrastructure/ai/agentLlmClient.ts'
-      - 'src/lib/institution/cognitiveSpineRuntime*.ts'
+      - 'src/lib/institution/cognitiveSpine*.ts'
       - 'src/lib/institution/institutionalCycle.ts'
+      - 'src/lib/field/cognitiveSpineProposalLink.ts'
+      - 'src/lib/field/interventionExecution.ts'
+      - 'src/lib/field/governedReturn.ts'
+      - 'src/app/api/root/cognitive-spine/**'
+      - 'src/app/api/field/cases/**'
       - 'scripts/cognitive-spine/**'
       - 'docs/architecture/cognitive-spine/**'
       - '.github/workflows/sfi-cognitive-spine.yml'
@@ -46,3 +56,5 @@ jobs:
         run: node --import tsx --test src/core/cognitive-spine/cprt/preRuntime.test.ts
       - name: CPRT-B Runtime scope reconstruction and CT ablation
         run: node --import tsx --test src/core/cognitive-spine/cprt/cprtB.runtime.test.ts
+      - name: CPRT-B full path provenance fixtures
+        run: node --import tsx --test src/core/cognitive-spine/cprt/cprtB.full.test.ts
