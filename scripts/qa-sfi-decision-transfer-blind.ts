@@ -10,17 +10,19 @@ function assert(condition: unknown, message: string): asserts condition {
 
 const runtimePath = 'src/core/cognitive-twin/reentry/blindDecisionReconstruction.ts';
 const commitmentPath = 'src/core/cognitive-twin/reentry/decisionCommitment.ts';
+const integrityPath = 'src/core/cognitive-twin/reentry/blindDecisionIntegrity.ts';
 const blindRoutePath = 'src/app/api/root/method-lab/decision-transfer/blind/route.ts';
 const revealRoutePath = 'src/app/api/root/method-lab/decision-transfer/reveal/route.ts';
 const componentPath = 'src/components/root/method-lab/BlindDecisionExperiment.tsx';
 const pagePath = 'src/app/method-lab/page.tsx';
 
-for (const file of [runtimePath, commitmentPath, blindRoutePath, revealRoutePath, componentPath, pagePath]) {
+for (const file of [runtimePath, commitmentPath, integrityPath, blindRoutePath, revealRoutePath, componentPath, pagePath]) {
   assert(fs.existsSync(path.join(process.cwd(), file)), `missing:${file}`);
 }
 
 const runtime = read(runtimePath);
 const commitment = read(commitmentPath);
+const integrity = read(integrityPath);
 const blindRoute = read(blindRoutePath);
 const revealRoute = read(revealRoutePath);
 const component = read(componentPath);
@@ -30,6 +32,8 @@ assert(blindRoute.includes("requireRootActor('root.method-lab.decision-transfer.
 assert(revealRoute.includes("requireRootActor('root.method-lab.decision-transfer.reveal')"), 'reveal_route_root_gate_missing');
 assert(blindRoute.includes('auditRootAction'), 'blind_route_audit_missing');
 assert(revealRoute.includes('auditRootAction'), 'reveal_route_audit_missing');
+assert(revealRoute.includes('verifyBlindDecisionContextIntegrity(input.blindRunId)'), 'frozen_context_integrity_gate_missing');
+assert(revealRoute.indexOf('verifyBlindDecisionContextIntegrity(input.blindRunId)') < revealRoute.indexOf('executeBlindDecisionReveal(input'), 'context_integrity_must_precede_reveal');
 
 const blindSchema = runtime.slice(runtime.indexOf('export const blindDecisionRunInputSchema'), runtime.indexOf('const predictionSchema'));
 assert(blindSchema.includes('targetCommitmentSha256'), 'blind_input_commitment_missing');
@@ -47,6 +51,12 @@ assert(runtime.includes('predictionHash'), 'prediction_integrity_hash_missing');
 assert(runtime.includes('selectedContextHash'), 'context_integrity_hash_missing');
 assert(runtime.includes('contextPoolHash'), 'context_pool_hash_missing');
 
+assert(integrity.includes("contract_version !== 'SFI-CT-BLIND-DECISION-1.0'"), 'blind_contract_integrity_missing');
+assert(integrity.includes("role !== 'DECISION_TRANSFER_BLIND_RECONSTRUCTOR'"), 'blind_role_integrity_missing');
+assert(integrity.includes("status !== 'EVIDENCE_PENDING'"), 'blind_status_integrity_missing');
+assert(integrity.includes("throw new Error('BLIND_CONTEXT_INTEGRITY_MISMATCH')"), 'selected_context_hash_verification_missing');
+assert(integrity.includes('sha256(canonicalJson(snapshot.selectedContext))'), 'selected_context_rehash_missing');
+
 const commitmentCheckIndex = runtime.indexOf("if (revealedCommitment !== commitment) throw new Error('BLIND_REVEAL_COMMITMENT_MISMATCH')");
 const evaluationIndex = runtime.indexOf('executeDecisionTransferEvaluation({');
 assert(commitmentCheckIndex >= 0, 'commitment_verification_missing');
@@ -60,6 +70,7 @@ assert(commitment.includes('Object.keys(record)') && commitment.includes('.sort(
 
 for (const forbidden of ["from('sfi_amv_memory')", "from('sfi_cognitive_twin_memory')", 'recordCognitiveTwinExperience']) {
   assert(!runtime.includes(forbidden), `blind_runtime_must_not_mutate_memory:${forbidden}`);
+  assert(!integrity.includes(forbidden), `blind_integrity_must_not_mutate_memory:${forbidden}`);
 }
 
 assert(component.includes("crypto.subtle.digest('SHA-256'"), 'target_commitment_must_be_created_client_side');
@@ -74,6 +85,7 @@ console.log(JSON.stringify({
   commitment: 'SFI-DT-TARGET-COMMITMENT-1.0',
   predictionStatusBeforeReveal: 'EVIDENCE_PENDING',
   blindTargetTransmission: false,
+  frozenContextReverifiedBeforeReveal: true,
   memoryMutation: false,
   autoPromotion: false,
   routes: [
