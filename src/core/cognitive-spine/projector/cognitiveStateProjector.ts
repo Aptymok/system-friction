@@ -64,6 +64,9 @@ function normalizeRecord(record: CognitiveSpineSourceRecord): CognitiveSpineSour
   const ref = requireNonEmpty(record.ref, 'REF');
   const sourceHash = requireNonEmpty(record.sourceHash, 'SOURCE_HASH');
   const recordedAt = normalizeTimestamp(record.recordedAt);
+  const sourceVersion = record.sourceVersion === undefined
+    ? undefined
+    : requireNonEmpty(record.sourceVersion, 'SOURCE_VERSION');
   const epistemicAssessmentRef = record.epistemicAssessmentRef === undefined
     ? undefined
     : requireNonEmpty(record.epistemicAssessmentRef, 'ASSESSMENT_REF');
@@ -77,6 +80,7 @@ function normalizeRecord(record: CognitiveSpineSourceRecord): CognitiveSpineSour
     kind: record.kind,
     recordedAt,
     sourceHash,
+    sourceVersion,
     epistemicAssessmentRef,
     epistemicClass: record.epistemicClass,
     ancestryRoots: sortedUnique(record.ancestryRoots ?? []),
@@ -86,17 +90,13 @@ function normalizeRecord(record: CognitiveSpineSourceRecord): CognitiveSpineSour
   };
 }
 
-/**
- * Canonical comparison payload for duplicate source refs. Optional fields are
- * represented explicitly as null so the strict semantic serializer never has
- * to silently discard undefined values.
- */
 function deduplicationSignature(record: CognitiveSpineSourceRecord) {
   return {
     ref: record.ref,
     kind: record.kind,
     recordedAt: record.recordedAt,
     sourceHash: record.sourceHash,
+    sourceVersion: record.sourceVersion ?? null,
     epistemicAssessmentRef: record.epistemicAssessmentRef ?? null,
     epistemicClass: record.epistemicClass ?? null,
     ancestryRoots: record.ancestryRoots ?? [],
@@ -157,6 +157,9 @@ export function projectCognitiveState(input: CognitiveStateProjectionInput): Cog
   const projectorVersion = requireNonEmpty(input.projectorVersion, 'PROJECTOR_VERSION');
   const policyVersion = requireNonEmpty(input.policyVersion, 'POLICY_VERSION');
   const projectionProfile = requireNonEmpty(input.projectionProfile, 'PROJECTION_PROFILE');
+  const operatingModeRef = input.operatingModeRef
+    ? requireNonEmpty(input.operatingModeRef, 'OPERATING_MODE_REF')
+    : null;
 
   const records = deduplicateRecords(input.records)
     .filter((record) => record.recordedAt <= sourceCutoff)
@@ -185,27 +188,33 @@ export function projectCognitiveState(input: CognitiveStateProjectionInput): Cog
   }
 
   const lineageRoots = sortedUnique(records.flatMap((record) => record.ancestryRoots ?? []));
-  const epistemicAssessmentRefs = sortedUnique(records
+  const epistemicStateRefs = sortedUnique(records
     .map((record) => record.epistemicAssessmentRef)
     .filter((value): value is string => Boolean(value)));
 
   const sourceManifest = records.map((record) => ({
     ref: record.ref,
-    kind: record.kind,
+    sourceKind: record.kind,
+    sourceVersion: record.sourceVersion ?? null,
     sourceHash: record.sourceHash,
-    epistemicAssessmentRef: record.epistemicAssessmentRef ?? null,
-    epistemicClass: record.epistemicClass ?? null,
-    ancestryRoots: sortedUnique(record.ancestryRoots ?? []),
-    invalidated: Boolean(record.invalidated),
-    debtType: record.debtType ?? null,
   }));
+  const sourceHashes = sourceManifest.map((entry) => ({ ref: entry.ref, hash: entry.sourceHash }));
+  const derivedState = {
+    sourceCount: records.length,
+    assessedSourceCount: records.filter((record) => Boolean(record.epistemicAssessmentRef)).length,
+    invalidatedSourceCount: records.filter((record) => Boolean(record.invalidated)).length,
+    independentLineageRootCount: lineageRoots.length,
+    contradictionCount: refBuckets.contradictionRefs.length,
+    questionCount: refBuckets.questionRefs.length,
+    debt,
+  };
 
   return {
-    schemaVersion: COGNITIVE_SPINE_SNAPSHOT_SCHEMA_VERSION,
     sourceCutoff,
     projectorVersion,
     policyVersion,
     projectionProfile,
+    schemaVersion: COGNITIVE_SPINE_SNAPSHOT_SCHEMA_VERSION,
     eventRefs: sortedUnique(refBuckets.eventRefs),
     evidenceRefs: sortedUnique(refBuckets.evidenceRefs),
     hypothesisRefs: sortedUnique(refBuckets.hypothesisRefs),
@@ -215,18 +224,20 @@ export function projectCognitiveState(input: CognitiveStateProjectionInput): Cog
     freezeRefs: sortedUnique(refBuckets.freezeRefs),
     questionRefs: sortedUnique(refBuckets.questionRefs),
     personCtRefs: sortedUnique(refBuckets.personCtRefs),
-    epistemicAssessmentRefs,
-    sourceManifest,
-    derivedState: {
-      sourceCount: records.length,
-      assessedSourceCount: records.filter((record) => Boolean(record.epistemicAssessmentRef)).length,
-      invalidatedSourceCount: records.filter((record) => Boolean(record.invalidated)).length,
-      independentLineageRootCount: lineageRoots.length,
-      contradictionCount: refBuckets.contradictionRefs.length,
-      questionCount: refBuckets.questionRefs.length,
-      debt,
+    operatingMode: { modeRef: operatingModeRef },
+    temporalState: {
+      sourceCutoff,
+      visibleRecordCount: records.length,
     },
-    lineageRoots,
+    verificationDebt: {
+      absolute: debt.VERIFICATION,
+      byType: { ...debt },
+    },
+    derivedState,
+    sourceManifest,
+    sourceHashes,
+    epistemicStateRefs,
+    lineageRoot: canonicalSha256(lineageRoots),
   };
 }
 
