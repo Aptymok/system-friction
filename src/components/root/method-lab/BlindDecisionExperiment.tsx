@@ -16,6 +16,26 @@ type ContextReceipt = {
   excludedExactTargetMatches?: number;
 };
 
+type RegistrationReceipt = {
+  protocol?: string;
+  experimentId?: string;
+  targetTraceId?: string;
+  targetDomain?: string;
+  targetCommitmentSha256?: string;
+  cutoffAt?: string;
+  instrumentSourceHash?: string;
+  registrationHash?: string;
+};
+
+type RegistrationResult = {
+  ok?: boolean;
+  registrationRunId?: string;
+  receipt?: RegistrationReceipt;
+  reused?: boolean;
+  details?: string;
+  error?: string;
+};
+
 type ModelContract = {
   protocolVersion?: string;
   provider?: string;
@@ -23,6 +43,8 @@ type ModelContract = {
   actualModel?: string;
   promptTemplateHash?: string;
   systemPromptHash?: string;
+  instrumentSourceHash?: string;
+  runtimeCommit?: string;
   contractHash?: string;
 };
 
@@ -39,6 +61,7 @@ type BlindRunResult = {
   selectedContextHash?: string;
   predictionHash?: string;
   prediction?: Record<string, unknown>;
+  experimentRegistration?: { registrationRunId?: string; receipt?: RegistrationReceipt } | null;
   contextMaterialization?: ContextReceipt | null;
   modelContract?: ModelContract | null;
   experimentalMode?: string;
@@ -75,7 +98,7 @@ type RevealResult = {
     runId?: string;
     evaluation?: {
       holdout?: { validatedDecisionAccuracy?: number; validatedMeanStructuralFidelity?: number };
-      counterfactual?: { validatedTargetDispositionAccuracy?: number };
+      counterfactual?: { validatedTargetDispositionAccuracy?: number | null };
       promotion?: { maturity?: string };
     };
   };
@@ -123,7 +146,7 @@ function pct(value: unknown) {
 }
 
 export function BlindDecisionExperiment() {
-  const [experimentId, setExperimentId] = useState('');
+  const [experimentId, setExperimentId] = useState('EXP-001');
   const [arm, setArm] = useState<Arm>('B0_BASE');
   const [diagnosticProvider, setDiagnosticProvider] = useState('');
   const [contextMode, setContextMode] = useState<ContextMode>('CANONICAL_MATERIALIZED');
@@ -136,10 +159,11 @@ export function BlindDecisionExperiment() {
   const [contextJson, setContextJson] = useState('');
   const [salt, setSalt] = useState('');
   const [commitment, setCommitment] = useState('');
+  const [registration, setRegistration] = useState<RegistrationResult | null>(null);
   const [blind, setBlind] = useState<BlindRunResult | null>(null);
   const [operationKey, setOperationKey] = useState('');
   const [reveal, setReveal] = useState<RevealResult | null>(null);
-  const [busy, setBusy] = useState<'commit' | 'blind' | 'reveal' | null>(null);
+  const [busy, setBusy] = useState<'commit' | 'register' | 'blind' | 'reveal' | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const target = useMemo(() => {
@@ -149,12 +173,18 @@ export function BlindDecisionExperiment() {
 
   const canonicalContextReady = Boolean(cutoffAt.trim() && caseSituation.trim() && splitTokens(caseEvidenceRefs).length);
   const blindContextReady = contextMode === 'CANONICAL_MATERIALIZED' ? canonicalContextReady : Boolean(contextJson.trim());
+  const canonicalRegistrationReady = Boolean(target && commitment && cutoffAt.trim() && experimentId.trim() === 'EXP-001');
+
+  function invalidateRegistration() {
+    setRegistration(null);
+    setBlind(null);
+    setReveal(null);
+  }
 
   async function commitTarget() {
     setBusy('commit');
     setError(null);
-    setBlind(null);
-    setReveal(null);
+    invalidateRegistration();
     try {
       if (!target) throw new Error('La traza objetivo no es JSON válido.');
       const nextSalt = randomSalt();
@@ -163,6 +193,38 @@ export function BlindDecisionExperiment() {
       setCommitment(nextCommitment);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'TARGET_COMMITMENT_FAILED');
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function registerExperiment() {
+    setBusy('register');
+    setError(null);
+    setBlind(null);
+    setReveal(null);
+    try {
+      if (!target || !commitment || !cutoffAt.trim()) throw new Error('Target commitment y cutoff son requeridos.');
+      if (experimentId.trim() !== 'EXP-001') throw new Error('SFI-DT-1.0 está congelado para EXP-001.');
+      const cutoff = new Date(cutoffAt);
+      if (!Number.isFinite(cutoff.getTime())) throw new Error('CUTOFF inválido.');
+      const response = await fetch('/api/root/method-lab/decision-transfer/register', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          experimentId: 'EXP-001',
+          targetTraceId: target.traceId,
+          targetDomain: target.domain,
+          targetCommitmentSha256: commitment,
+          cutoffAt: cutoff.toISOString(),
+        }),
+      });
+      const body = await response.json().catch(() => null) as RegistrationResult | null;
+      if (!response.ok || !body?.ok) throw new Error(body?.details ?? body?.error ?? `HTTP ${response.status}`);
+      setRegistration(body);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'DT_REGISTRATION_FAILED');
     } finally {
       setBusy(null);
     }
@@ -178,6 +240,7 @@ export function BlindDecisionExperiment() {
 
       let payload: Record<string, unknown>;
       if (contextMode === 'CANONICAL_MATERIALIZED') {
+        if (!registration?.receipt?.registrationHash) throw new Error('Primero registre EXP-001 con REGISTER EXP-001.');
         if (!canonicalContextReady) throw new Error('CUTOFF, situación y EVIDENCE IDS persistidos son requeridos.');
         const cutoff = new Date(cutoffAt);
         if (!Number.isFinite(cutoff.getTime())) throw new Error('CUTOFF inválido.');
@@ -268,18 +331,21 @@ export function BlindDecisionExperiment() {
         <div>
           <span>SFI-DT-1.0 · SEALED HOLDOUT</span>
           <h2 id="bde-title">Reconstrucción ciega antes del reveal.</h2>
-          <p>El target se compromete localmente. En modo confirmatorio, contexto, modelo y evidencia de evaluación quedan materializados y hasheados antes de que el scorer pueda ejecutarse.</p>
+          <p>El target se compromete localmente. EXP-001 se preregistra de forma inmutable antes del primer brazo. En modo confirmatorio, registro, contexto, modelo y evidencia de evaluación quedan materializados y hasheados antes del scorer.</p>
         </div>
-        <b>{blind ? 'EVIDENCE_PENDING' : 'UNSEALED'}</b>
+        <b>{blind ? 'EVIDENCE_PENDING' : registration?.receipt ? 'REGISTERED' : 'UNREGISTERED'}</b>
       </header>
 
       <div className="bde-grid">
         <article>
-          <h3>01 · TARGET COMMITMENT</h3>
-          <label>EXPERIMENT ID<input value={experimentId} onChange={(event) => setExperimentId(event.target.value)} placeholder="DT-EXP-001" /></label>
-          <label>OBSERVED TARGET TRACE · LOCAL ONLY<textarea value={targetJson} onChange={(event) => { setTargetJson(event.target.value); setCommitment(''); setSalt(''); setBlind(null); setReveal(null); }} placeholder="Pegue la DecisionTrace OBSERVED. No se enviará durante la reconstrucción ciega." /></label>
+          <h3>01 · TARGET COMMITMENT + REGISTRATION</h3>
+          <label>EXPERIMENT ID<input value={experimentId} onChange={(event) => { setExperimentId(event.target.value); invalidateRegistration(); }} placeholder="EXP-001" /></label>
+          <label>OBSERVED TARGET TRACE · LOCAL ONLY<textarea value={targetJson} onChange={(event) => { setTargetJson(event.target.value); setCommitment(''); setSalt(''); invalidateRegistration(); }} placeholder="Pegue la DecisionTrace OBSERVED. No se enviará durante la reconstrucción ciega." /></label>
           <button type="button" disabled={busy !== null || !targetJson.trim()} onClick={() => void commitTarget()}>{busy === 'commit' ? 'SELLANDO…' : 'COMMIT TARGET LOCALLY'}</button>
           {commitment ? <div className="bde-seal"><small>SHA-256</small><code>{commitment}</code><small>SALT LOCAL · reservado hasta reveal</small></div> : null}
+          <label>CUTOFF · BEFORE TARGET<input type="datetime-local" value={cutoffAt} onChange={(event) => { setCutoffAt(event.target.value); invalidateRegistration(); }} /></label>
+          <button type="button" disabled={busy !== null || !canonicalRegistrationReady} onClick={() => void registerExperiment()}>{busy === 'register' ? 'REGISTRANDO…' : 'REGISTER EXP-001'}</button>
+          {registration?.receipt ? <div className="bde-result"><strong>EXP-001 · FROZEN</strong><small>registration run {registration.registrationRunId}</small><small>registration {registration.receipt.registrationHash}</small><small>instrument {registration.receipt.instrumentSourceHash}</small><small>cutoff {registration.receipt.cutoffAt}</small></div> : null}
         </article>
 
         <article>
@@ -291,25 +357,25 @@ export function BlindDecisionExperiment() {
 
           {contextMode === 'CANONICAL_MATERIALIZED' ? <div className="bde-context">
             <div className="bde-contract"><small>MODEL CONTRACT</small><strong>{CONFIRMATORY_PROVIDER} · {CONFIRMATORY_MODEL}</strong><small>temperature 0.2 · max_tokens 1000 · strict provider</small></div>
-            <label>CUTOFF · BEFORE TARGET<input type="datetime-local" value={cutoffAt} onChange={(event) => setCutoffAt(event.target.value)} /></label>
             <label>CURRENT CASE · SITUATION<textarea value={caseSituation} onChange={(event) => setCaseSituation(event.target.value)} placeholder="Situación conocida antes de la decisión objetivo." /></label>
             <label>PRIOR STATE · OPTIONAL<textarea value={casePriorState} onChange={(event) => setCasePriorState(event.target.value)} placeholder="Estado inmediatamente anterior, sin resultado ni decisión objetivo." /></label>
             <label>PERSISTED ROOT EVIDENCE IDS<textarea value={caseEvidenceRefs} onChange={(event) => setCaseEvidenceRefs(event.target.value)} placeholder="UUID-1, UUID-2…" /></label>
             <label>CONSTRAINTS · ONE PER LINE<textarea value={caseConstraints} onChange={(event) => setCaseConstraints(event.target.value)} placeholder={'Restricción observable 1\nRestricción observable 2'} /></label>
-            <p>El servidor recupera B1–B5/CT desde historia anterior al cutoff. No se acepta historial manual ni cambio silencioso de modelo en este modo.</p>
+            <p>El servidor exige el registro EXP-001, recupera B1–B5/CT desde historia anterior al cutoff y permite una sola predicción confirmatoria por brazo.</p>
           </div> : <div className="bde-context">
             <div className="bde-warning"><strong>NON-CONFIRMATORY / DIAGNOSTIC</strong><span>Este modo puede ejercitar el instrumento, pero no puede producir evidencia SFI-DT-1.0 QUALIFIED.</span></div>
             <label>DIAGNOSTIC PROVIDER<select value={diagnosticProvider} onChange={(event) => setDiagnosticProvider(event.target.value)}><option value="">ROUTER</option><option value="openai">OPENAI</option><option value="anthropic">ANTHROPIC</option><option value="gemini">GEMINI</option><option value="groq">GROQ</option><option value="ollama">OLLAMA</option><option value="huggingface">HUGGING FACE</option></select></label>
             <label>CONTEXT POOL · JSON<textarea value={contextJson} onChange={(event) => setContextJson(event.target.value)} placeholder={'{"currentCase":{"situation":"...","evidence":[],"constraints":[]},"rawHistory":[],"memory":[],"decisionTraces":[],"patterns":[],"rules":[]}'}/></label>
           </div>}
 
-          <button type="button" disabled={busy !== null || !commitment || !blindContextReady} onClick={() => void runBlind()}>{busy === 'blind' ? 'RECONSTRUYENDO…' : 'RUN BLIND RECONSTRUCTION'}</button>
+          <button type="button" disabled={busy !== null || !commitment || !blindContextReady || (contextMode === 'CANONICAL_MATERIALIZED' && !registration?.receipt?.registrationHash)} onClick={() => void runBlind()}>{busy === 'blind' ? 'RECONSTRUYENDO…' : 'RUN BLIND RECONSTRUCTION'}</button>
           {blind?.ok ? <div className="bde-result">
             <strong>{blind.arm} · {blind.provider}/{blind.model}</strong>
             <small>{blind.experimentalMode}</small>
             <small>run {blind.runId}</small><small>context {blind.selectedContextHash}</small><small>prediction {blind.predictionHash}</small>
+            {blind.experimentRegistration ? <small>registration {blind.experimentRegistration.receipt?.registrationHash}</small> : null}
             {blind.contextMaterialization ? <><small>context receipt {blind.contextMaterialization.receiptHash}</small><small>cutoff {blind.contextMaterialization.cutoffAt}</small><small>sources {JSON.stringify(blind.contextMaterialization.sourceCounts)}</small></> : <small>manual context · NON-CONFIRMATORY</small>}
-            {blind.modelContract ? <><small>model contract {blind.modelContract.contractHash}</small><small>prompt {blind.modelContract.promptTemplateHash}</small><small>system {blind.modelContract.systemPromptHash}</small></> : null}
+            {blind.modelContract ? <><small>model contract {blind.modelContract.contractHash}</small><small>instrument {blind.modelContract.instrumentSourceHash}</small><small>runtime {blind.modelContract.runtimeCommit}</small><small>prompt {blind.modelContract.promptTemplateHash}</small><small>system {blind.modelContract.systemPromptHash}</small></> : null}
             <pre>{JSON.stringify(blind.prediction, null, 2)}</pre>
           </div> : null}
         </article>
@@ -337,7 +403,7 @@ export function BlindDecisionExperiment() {
         </article>
       </div>
 
-      <div className="bde-boundary"><strong>INTEGRITY BOUNDARY</strong><span>El commitment fija el target; el context receipt fija el contexto y cutoff; el target timing proof demuestra observación posterior al cutoff; el evaluation evidence receipt deduplica registros y congela la evidencia antes del scoring. SIMULATED, DERIVED e INFERRED pueden diagnosticar el instrumento, pero no aumentar contadores validantes.</span></div>
+      <div className="bde-boundary"><strong>INTEGRITY BOUNDARY</strong><span>EXP-001 fija target/commitment/cutoff/arms e instrumento. El commitment fija el target; el context receipt fija el contexto; el target timing proof demuestra observación posterior al cutoff; el evaluation evidence receipt deduplica registros y congela evidencia canónica antes del scoring. SIMULATED, DERIVED e INFERRED pueden diagnosticar el instrumento, pero no aumentar contadores validantes.</span></div>
       {error ? <div className="bde-error">{error}</div> : null}
 
       <style jsx>{`
