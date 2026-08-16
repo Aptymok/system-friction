@@ -11,6 +11,7 @@ import {
   type SfiCinematicStat,
   type SfiCinematicTimelineItem,
 } from '@/components/sfi/cinematic/SfiCinematicSurface';
+import { CaseProfileField } from './CaseProfileField';
 import './case-cinematic.css';
 
 export type SfiCaseCinematicModel = {
@@ -98,7 +99,7 @@ export function SfiCaseCinematicWorkspace({ model }: { model: SfiCaseCinematicMo
         <button type="button" onClick={() => router.refresh()}>REFRESH</button>
         <a href="/studio" className="sfi-cine-link">STUDIO</a>
       </>}
-      fieldOverlay={notice ? <div className="sfi-case-notice"><span>ACTIVE CONTEXT</span><p>{notice}</p><button type="button" onClick={() => setNotice(null)}>CLOSE</button></div> : null}
+      fieldOverlay={<div className="sfi-case-field-layer"><CaseProfileField model={model}/>{notice ? <div className="sfi-case-notice"><span>ACTIVE CONTEXT</span><p>{notice}</p><button type="button" onClick={() => setNotice(null)}>CLOSE</button></div> : null}</div>}
       footer={<><span>{model.authorityNote}</span><span>COMMERCIAL RESULT ≠ INSTITUTIONAL TRUTH</span></>}
     />
   );
