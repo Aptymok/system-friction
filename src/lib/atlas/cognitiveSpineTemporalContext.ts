@@ -9,6 +9,10 @@ export const ATLAS_COGNITIVE_SPINE_CONTEXT_CONTRACT = 'SFI-ATLAS-CT-TEMPORAL-CON
  * Atlas is a read-side temporal/relational consumer. It may inspect a sealed
  * institutional Cognitive Spine state, but it may not mutate canonical state,
  * upgrade epistemic class, or infer causality from relationship/sequence.
+ *
+ * The current Atlas memory API is not a ROOT-private surface, so this adapter
+ * deliberately exposes only semantic identity and aggregate temporal state.
+ * Canonical source refs, memory refs and decision refs remain internal.
  */
 export async function materializeAtlasCognitiveSpineTemporalContext(input: {
   executionId: string;
@@ -36,18 +40,20 @@ export async function materializeAtlasCognitiveSpineTemporalContext(input: {
     consumptionTrace: materialized.trace,
     temporalState: state.temporalState,
     lineageRoot: state.lineageRoot,
-    sourceManifest: state.sourceManifest,
-    eventRefs: state.eventRefs,
-    evidenceRefs: state.evidenceRefs,
-    hypothesisRefs: state.hypothesisRefs,
-    memoryRefs: state.memoryRefs,
-    decisionRefs: state.decisionRefs,
-    contradictionRefs: state.contradictionRefs,
-    freezeRefs: state.freezeRefs,
-    questionRefs: state.questionRefs,
     verificationDebt: state.verificationDebt,
-    derivedState: state.derivedState,
+    sourceCounts: {
+      total: state.derivedState.sourceCount,
+      events: state.eventRefs.length,
+      evidence: state.evidenceRefs.length,
+      hypotheses: state.hypothesisRefs.length,
+      memory: state.memoryRefs.length,
+      decisions: state.decisionRefs.length,
+      contradictions: state.contradictionRefs.length,
+      freezes: state.freezeRefs.length,
+      questions: state.questionRefs.length,
+    },
     warnings: materialized.warnings,
-    rule: 'Atlas reads temporal state and lineage. Relationship does not upgrade epistemic class, and temporal association is not causality. Atlas does not write canonical Cognitive Spine state by reading it.',
+    internalRefsExposed: false as const,
+    rule: 'Atlas reads aggregate temporal state and lineage identity. Relationship does not upgrade epistemic class, temporal association is not causality, and internal institutional refs are not exposed by this non-ROOT surface.',
   };
 }
