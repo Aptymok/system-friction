@@ -24,6 +24,8 @@ on:
       - 'src/app/world-vector/**'
       - 'src/app/moph/**'
       - 'src/app/library/**'
+      - 'src/app/member/**'
+      - 'src/app/pipeline/**'
       - 'src/app/method-lab/**'
       - 'src/app/root/**'
       - 'src/app/e/**'
