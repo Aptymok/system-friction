@@ -23,8 +23,8 @@ export const PROTECTED_TABLES = [
 
 export const OPERATIONAL_RESET_LAYERS = [
   { id:'operating-cycle-analysis', reason:'Derived cycle layers must be deleted before the cycle identity they reference.', tables:['sfi_artifact_trajectory_events','sfi_inference_traces'] },
-  { id:'case-platform-derived', reason:'Tenant-scoped commercial runtime is cleared child-first while tenant identity and membership survive as access/authority.', tables:['sfi_case_reports','sfi_case_audit_events','sfi_case_objects'] },
-  { id:'case-platform-parent', reason:'Canonical commercial case runtime is removed only after its report, audit and object children.', tables:['sfi_cases'] },
+  { id:'case-platform-derived', reason:'Tenant-scoped commercial runtime is cleared child-first while tenant identity and membership survive as access/authority.', tables:['sfi_case_reports','sfi_case_audit_events','sfi_case_relations','sfi_case_objects'] },
+  { id:'case-platform-parent', reason:'Canonical commercial case runtime is removed only after its report, audit, relation and object children.', tables:['sfi_cases'] },
   { id:'field-return', reason:'Field child records before cases; removes observed test/runtime history only after proof export.', tables:['field_outcomes','field_returns','field_interventions','field_hypotheses','field_mihm_readings','field_moph_runs','field_case_evidence'] },
   { id:'field-participant', reason:'Participant operational capture is longitudinal runtime, not identity/authority.', tables:['field_participant_actions','field_participant_sessions','field_participant_intakes','field_participant_consents','field_participant_profiles'] },
   { id:'field-cases', reason:'Parent Field cases after all child records.', tables:['field_cases'] },
