@@ -47,7 +47,7 @@ export async function readRootCognitiveSpineStatus() {
         memory: state.memoryRefs.length,
         decisions: state.decisionRefs.length,
         verificationDebt: state.verificationDebt.absolute,
-        normalizedVerificationDebt: state.verificationDebt.normalized,
+        verificationDebtByType: state.verificationDebt.byType,
         temporalState: state.temporalState,
         lineageRoot: state.lineageRoot,
       },
