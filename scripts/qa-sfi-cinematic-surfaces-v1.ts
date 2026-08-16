@@ -7,6 +7,7 @@ function exists(file: string) { return fs.existsSync(path.join(root, file)); }
 function must(condition: unknown, message: string): asserts condition { if (!condition) throw new Error(`SFI_CINEMATIC_QA:${message}`); }
 
 const required = [
+  'src/app/page.tsx',
   'src/components/sfi/cinematic/SfiCinematicSurface.tsx',
   'src/components/sfi/cinematic/InstitutionalCinematicView.tsx',
   'src/components/sfi/cinematic/sfi-cinematic.css',
@@ -48,6 +49,12 @@ const institutional = read('src/components/sfi/cinematic/InstitutionalCinematicV
 must(institutional.includes("focus: InstitutionalCinematicFocus"), 'INSTITUTIONAL_CINEMATIC_FOCUS_MISSING');
 must(institutional.includes("value: 'NO_VALUE'"), 'INSTITUTIONAL_MISSING_VALUE_NOT_EXPLICIT');
 must(institutional.includes('GOVERNANCE ≠ TRUTH'), 'INSTITUTIONAL_TRUTH_BOUNDARY_MISSING');
+
+const publicHome = read('src/app/page.tsx');
+must(publicHome.includes("canonical: '/'"), 'PUBLIC_ROOT_CANONICAL_METADATA_MISSING');
+const sfiAlias = read('src/app/sfi/page.tsx');
+must(sfiAlias.includes("redirect('/')"), 'SFI_ALIAS_DOES_NOT_RESOLVE_TO_PUBLIC_ROOT');
+must(!sfiAlias.includes('InstitutionalCinematicView'), 'SECOND_SFI_HOME_SURFACE_PRESENT');
 
 const shell = read('src/components/studio/production/StudioProductionShell.tsx');
 must(shell.includes('StudioCinematicWorkspace'), 'STUDIO_NOT_ROUTED_TO_CINEMATIC_WORKSPACE');
@@ -110,7 +117,6 @@ for (const [file, focus] of [
   ['src/app/ledger/page.tsx','LEDGER'],
   ['src/app/mihm/page.tsx','MIHM'],
   ['src/app/friction/page.tsx','FRICTION'],
-  ['src/app/sfi/page.tsx','SFI'],
 ] as const) {
   const body = read(file);
   must(body.includes('InstitutionalCinematicView'), `INSTITUTIONAL_PAGE_NOT_CINEMATIC:${file}`);
@@ -181,15 +187,17 @@ const uxAdr = read('docs/architecture/sfi/ADR-SFI-UX-SURFACES-002.md');
 must(uxAdr.includes('**Status:** ACCEPTED / IMPLEMENTED'), 'CINEMATIC_SURFACE_ADR_NOT_ACCEPTED');
 must(uxAdr.includes('The previously designed cinematic views are not disposable mockups.'), 'DESIGNED_VIEWS_NOT_DECLARED_CANONICAL');
 must(uxAdr.includes('VISUAL COMPLETENESS = DATA     FORBIDDEN'), 'VISUAL_COMPLETENESS_DATA_BOUNDARY_MISSING');
+must(uxAdr.includes('ONE PUBLIC INSTITUTIONAL ENTRY'), 'SINGLE_PUBLIC_ENTRY_CONTRACT_MISSING');
 
 console.log(JSON.stringify({
   ok: true,
   gate: 'SFI_CINEMATIC_HUMAN_SURFACES_V1',
   surfaces: [
-    'STUDIO','CASE_PLATFORM','FIELD','PUBLIC_OBSERVATORY','ATLAS','ENTITY','LEDGER','MIHM','FRICTION','SFI',
+    'PUBLIC_ROOT','STUDIO','CASE_PLATFORM','FIELD','PUBLIC_OBSERVATORY','ATLAS','ENTITY','LEDGER','MIHM','FRICTION',
     'WORLD_VECTOR','MOP_H','LIBRARY','MEMBER','PIPELINE','METHOD_LAB','ROOT','PUBLIC_MOPS',
   ],
   canonicalDesignedViews: true,
+  singlePublicInstitutionalEntry: true,
   noInventedMissingValues: true,
   noDemoMetricsInCanonicalStateViews: true,
   commercialTruthAuthority: false,
