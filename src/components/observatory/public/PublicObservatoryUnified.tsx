@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import type { ObservatoryGoldState } from '@/lib/observatory/gold/observatoryGoldState';
 import { RootNativeFrame } from '@/components/root/surfaces/RootNativeFrame';
+import { PublicObservatoryTimelineNavigator } from './PublicObservatoryTimelineNavigator';
 
 function dec(value: number | null, digits = 3) { return value === null ? 'NO_VALUE' : value.toFixed(digits); }
 function dateTime(value: string | null) {
@@ -59,6 +60,8 @@ export function PublicObservatoryUnified({ state }: { state: ObservatoryGoldStat
       </div>
 
       <div className="rn-timeline">{state.longitudinal.points.slice(-14).map((point,index) => <article key={`${point.observedAt}-${index}`}><span>{point.sourceState.toUpperCase()}</span><strong>WSV {dec(point.wsi)} · NTI {dec(point.nti)}</strong><small>{dateTime(point.observedAt)} · conf {dec(point.confidence)}</small></article>)}</div>
+
+      <div className="rn-grid"><PublicObservatoryTimelineNavigator/></div>
 
       <div className="rn-grid">
         <section className="rn-panel rn-panel--wide"><span>DAILY READING</span><h2>{state.dailyReading.title}</h2><p>{state.dailyReading.summary}</p><div className="rn-list" style={{marginTop:14}}>{state.dailyReading.evidence.map((item) => <article key={item} data-state="OBSERVED"><strong>{item}</strong></article>)}{!state.dailyReading.evidence.length ? <article data-state="GATED"><strong>NO PUBLICABLE EVIDENCE IN THIS CUT</strong></article> : null}</div></section>
