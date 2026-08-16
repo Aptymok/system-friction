@@ -1,11 +1,21 @@
 import 'server-only';
 
+import { AsyncLocalStorage } from 'node:async_hooks';
+import type { CognitiveContextConsumptionTrace } from '@/core/cognitive-spine/contracts/consumptionTrace';
+import type { CognitiveSpineSnapshot } from '@/core/cognitive-spine/contracts/snapshot';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { materializeStudioCognitiveSpineContext } from '@/lib/studio/cognitive/studioCognitiveSpineContext';
 import { COGNITIVE_TWIN_CONTRACT_VERSION } from './contract';
 import { recordCognitiveTwinExperience } from './experience';
 
 const STUDIO_LEARNING_VERSION = 'studio-learning-v1';
+
+type StudioCognitiveSpineRunContext = {
+  snapshot: CognitiveSpineSnapshot;
+  consumptionTrace: CognitiveContextConsumptionTrace;
+};
+
+const studioCognitiveSpineRunContext = new AsyncLocalStorage<StudioCognitiveSpineRunContext>();
 
 function stableStudioLearningKey(value: string) {
   return value.replace(/:\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/, '');
@@ -46,8 +56,13 @@ export type StudioTwinContext = {
  * This function no longer reads live Cognitive Twin memory/decision tables.
  * It materializes one sealed `STUDIO_OBJECT_CONTEXT_V1` Cognitive Spine
  * snapshot and returns only the bounded memory/decision values referenced by
- * that snapshot. Callers can continue using the historical StudioTwinContext
- * shape while the exact snapshot identity remains available for provenance.
+ * that snapshot.
+ *
+ * The exact sealed artifact and its consumption trace are also stored in a
+ * request-local AsyncLocalStorage context. `registerStudioTwinRun()` consumes
+ * that same context later in the async execution chain, so persistence records
+ * the exact snapshot that was actually used instead of materializing a second
+ * "latest" state at write time. Concurrent requests do not share this state.
  */
 export async function readStudioTwinContext(): Promise<StudioTwinContext> {
   const now = new Date().toISOString();
@@ -55,6 +70,11 @@ export async function readStudioTwinContext(): Promise<StudioTwinContext> {
     executionId: `studio-context-${crypto.randomUUID()}`,
     sourceCutoff: now,
     createdAt: now,
+  });
+
+  studioCognitiveSpineRunContext.enterWith({
+    snapshot: materialized.snapshot,
+    consumptionTrace: materialized.trace,
   });
 
   return {
@@ -85,6 +105,17 @@ export async function registerStudioTwinRun(input: {
   finishedAt?: string | null;
 }) {
   const db = createServiceSupabaseClient();
+  const sealedSpine = studioCognitiveSpineRunContext.getStore();
+  const persistedInputSnapshot = sealedSpine
+    ? {
+        ...input.inputSnapshot,
+        cognitiveSpine: {
+          snapshot: sealedSpine.snapshot,
+          consumptionTrace: sealedSpine.consumptionTrace,
+        },
+      }
+    : input.inputSnapshot;
+
   const result = await db.from('sfi_cognitive_twin_runs').insert({
     task_id: input.taskId,
     contract_version: COGNITIVE_TWIN_CONTRACT_VERSION,
@@ -93,7 +124,7 @@ export async function registerStudioTwinRun(input: {
     role: input.role,
     status: input.status,
     objective: input.objective,
-    input_snapshot: input.inputSnapshot,
+    input_snapshot: persistedInputSnapshot,
     output_envelope: input.outputEnvelope ?? null,
     evidence_refs: [...new Set(input.evidenceRefs)],
     limitations: [...new Set(input.limitations ?? [])],
@@ -131,7 +162,14 @@ export async function registerStudioTwinRun(input: {
     }
   }
 
-  return { ok: true as const, error: null, id: String(result.data.id) };
+  return {
+    ok: true as const,
+    error: null,
+    id: String(result.data.id),
+    cognitiveSpinePersisted: Boolean(sealedSpine),
+    cognitiveSpineSnapshotId: sealedSpine?.snapshot.snapshotId ?? null,
+    cognitiveSpineSnapshotHash: sealedSpine?.snapshot.snapshotHash ?? null,
+  };
 }
 
 export async function persistStudioLearningCandidate(input: {
