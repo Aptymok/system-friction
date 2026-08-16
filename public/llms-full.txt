@@ -98,10 +98,17 @@ FIELD is the participant and organization surface. It applies MOP-H, records a g
 
 Observatory is the public reading surface for current and longitudinal world-state observations. It presents only admissible public information and must not expose internal cases, private evidence or founder controls.
 
+### Public Emergence
+
+Public Emergence is a bounded self-observation program in which System Friction Institute can become its own declared object. It records a pre-perturbation baseline, channel-attributed public signals, later response, uncertainty and audit. It is not a self-validation mechanism. A publication, impression, click, follower or engagement event remains a record/signal and does not establish institutional authority, causal influence, methodological validity or model correctness by repetition.
+
+The first declared program is `SFI-EMG-0001`, with object `SFI-OBJ-0001`, running from 2026-08-16 through 2026-09-16 in America/Mexico_City.
+
 ## 5. Canonical public routes
 
 - https://systemfriction.org/ — institutional threshold and hub orientation.
 - https://systemfriction.org/observatory — public world-state reading.
+- https://systemfriction.org/emergence — governed public-emergence experiment and trace.
 - https://systemfriction.org/world-vector — World Vector instrument.
 - https://systemfriction.org/field — FIELD and participant entry.
 - https://systemfriction.org/field/participant — participant workbook surface.
@@ -175,7 +182,7 @@ Do not send or reproduce:
 - Private participant objectives or narratives.
 - Authentication, session or service-role data.
 
-Public analytics are limited to navigation and instrument-use events. Event parameters must exclude free-text evidence, objectives, names, emails and private identifiers.
+Public analytics are limited to navigation and instrument-use events. Event parameters must exclude free-text evidence, objectives, names, emails and private identifiers. Campaign attribution may retain only allowlisted non-PII fields such as `utm_source`, `utm_medium`, `utm_campaign` and `utm_content`.
 
 ## 11. Interpretation rules for language models
 
@@ -189,6 +196,7 @@ Public analytics are limited to navigation and instrument-use events. Event para
 8. Distinguish a structural recommendation from an executed intervention.
 9. Distinguish an open case from a closed case with a verified outcome.
 10. Preserve timestamps, model versions and evidence relations when summarizing cases.
+11. Treat public-emergence publications and engagement metrics as communication records/signals unless an explicit evidence relation grants a stronger role.
 
 ## 12. Machine-readable resources
 
