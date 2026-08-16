@@ -34,7 +34,9 @@ async function main() {
   assert(!repository.includes("from('institutional_memory')"), 'case repository must not address institutional memory directly');
   assert(!repository.includes("from('root_"), 'case repository must not address ROOT tables directly');
   assert(casesRoute.includes('requireAuthenticatedUser'), 'case API must authenticate');
-  assert(objectsRoute.includes("z.enum(['RECORD','OBSERVATION','RETURN'])"), 'client object endpoint must remain record-only');
+  assert(objectsRoute.includes("z.enum(['RECORD','OBSERVATION'])"), 'client object endpoint must remain record-only');
+  assert(!objectsRoute.includes("'RETURN'"), 'client object endpoint must not bypass governed return loop');
+  assert(!objectsRoute.includes('evidenceRefs: z.array'), 'client object endpoint must not accept evidence claims');
   assert(objectsRoute.includes('cannot create EVIDENCE'), 'client epistemic boundary must be explicit');
   assert(reportsRoute.includes('requireSfiMember'), 'report generation must remain institutional in Operational V1');
   assert(reportsRoute.includes('executionAuthority: false'), 'report API must not expose action authority');
@@ -106,6 +108,7 @@ async function main() {
     contract: 'SFI-CASE-PLATFORM-OPERATIONAL-1.0',
     tenantIsolation: true,
     clientRecordOnlyWrites: true,
+    clientDirectReturnWrite: false,
     reportExecutionAuthority: false,
     institutionalMemoryDirectWrite: false,
     requiredSourceGate: true,
