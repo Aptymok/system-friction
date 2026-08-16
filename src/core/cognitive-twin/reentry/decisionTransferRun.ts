@@ -58,6 +58,15 @@ const probeSchema = z.object({
 }).strict();
 
 const thresholdSchema = z.number().finite().min(0).max(1);
+const hashSchema = z.string().regex(/^[0-9a-f]{64}$/i);
+const evaluationEvidenceSchema = z.object({
+  protocol: z.literal('SFI-DT-EVIDENCE-MATERIALIZATION-1.0'),
+  materializationRunId: z.string().uuid(),
+  receiptHash: hashSchema,
+  evidencePoolHash: hashSchema,
+  validationStatus: z.enum(['QUALIFIED', 'BLOCKED']),
+  boundaryValidationStatus: z.enum(['QUALIFIED', 'BLOCKED']),
+}).strict();
 
 export const decisionTransferRunInputSchema = z.object({
   provider: z.string().trim().min(1).max(120),
@@ -73,6 +82,7 @@ export const decisionTransferRunInputSchema = z.object({
     minimumStructuralFidelity: thresholdSchema.optional(),
     minimumCounterfactualTargetAccuracy: thresholdSchema.optional(),
   }).strict().optional(),
+  evaluationEvidence: evaluationEvidenceSchema.optional(),
 }).strict();
 
 export type DecisionTransferRunInput = z.infer<typeof decisionTransferRunInputSchema>;
@@ -113,13 +123,23 @@ export async function executeDecisionTransferEvaluation(input: DecisionTransferR
     occurrences: input.occurrences,
     boundaryProbeCount: input.boundaryProbeCount,
   });
-  const evaluation = buildDecisionTransferEvaluation({
+  const rawEvaluation = buildDecisionTransferEvaluation({
     holdout,
     counterfactual,
     promotion,
     thresholds: input.thresholds,
   });
-  const outcome = classifyOutcome(evaluation);
+  const boundaryBlocked = input.evaluationEvidence?.boundaryValidationStatus === 'BLOCKED';
+  const evaluation = boundaryBlocked
+    ? {
+        ...rawEvaluation,
+        counterfactual: {
+          ...rawEvaluation.counterfactual,
+          validatedTargetDispositionAccuracy: null,
+        },
+      }
+    : rawEvaluation;
+  const outcome: EvaluationOutcome = boundaryBlocked ? 'BLOCKED' : classifyOutcome(rawEvaluation);
   const evidenceRefs = unique([
     ...input.expected.flatMap((item) => item.evidenceRefs),
     ...input.occurrences.flatMap((item) => item.evidenceRefs),
@@ -133,7 +153,7 @@ export async function executeDecisionTransferEvaluation(input: DecisionTransferR
 
   const runInsert = await db.from('sfi_cognitive_twin_runs').insert({
     task_id: taskId,
-    contract_version: evaluation.schemaVersion,
+    contract_version: rawEvaluation.schemaVersion,
     provider: input.provider,
     model: input.model,
     role: 'DECISION_TRANSFER_EVALUATOR',
@@ -150,9 +170,10 @@ export async function executeDecisionTransferEvaluation(input: DecisionTransferR
       outcome,
       evaluation,
       inputHash,
+      evaluationEvidence: input.evaluationEvidence ?? null,
     },
     evidence_refs: evidenceRefs,
-    limitations: evaluation.limitations,
+    limitations: rawEvaluation.limitations,
     started_at: startedAt,
     finished_at: finishedAt,
   }).select('id').single();
@@ -165,7 +186,7 @@ export async function executeDecisionTransferEvaluation(input: DecisionTransferR
     provider: input.provider,
     model: input.model,
     test_key: `decision_transfer:${input.operationKey}`,
-    test_version: evaluation.schemaVersion,
+    test_version: rawEvaluation.schemaVersion,
     outcome,
     observed_result: {
       operationKey: input.operationKey,
@@ -173,6 +194,7 @@ export async function executeDecisionTransferEvaluation(input: DecisionTransferR
       runId,
       inputHash,
       evaluation,
+      evaluationEvidence: input.evaluationEvidence ?? null,
     },
     evidence_refs: evidenceRefs,
     executor: actorId,
@@ -196,13 +218,13 @@ export async function executeDecisionTransferEvaluation(input: DecisionTransferR
       'counterfactual_target_accuracy',
       input.operationKey,
     ]),
-    limitations: evaluation.limitations,
+    limitations: rawEvaluation.limitations,
     recommendations: outcome === 'BLOCKED'
       ? ['Collect OBSERVED or VERIFIED_CONTRAST holdout traces, qualifying operation support and at least one observed/verified decision-boundary switch before validation.']
       : ['Compare this evaluation against declared baseline arms before making any transfer claim or governed promotion request.'],
     raw_analysis: {
       protocol: 'decision_transfer',
-      schemaVersion: evaluation.schemaVersion,
+      schemaVersion: rawEvaluation.schemaVersion,
       operationKey: input.operationKey,
       taskId,
       runId,
@@ -213,6 +235,7 @@ export async function executeDecisionTransferEvaluation(input: DecisionTransferR
       inputHash,
       epistemicClass: 'DERIVED',
       evaluation,
+      evaluationEvidence: input.evaluationEvidence ?? null,
       promotionAllowed: false,
     },
   }).select('id').single();
@@ -233,6 +256,7 @@ export async function executeDecisionTransferEvaluation(input: DecisionTransferR
     model: input.model,
     outcome,
     evaluation,
+    evaluationEvidence: input.evaluationEvidence ?? null,
     evidenceRefs,
     claimBoundary: 'This result is a governed DERIVED evaluation. SIMULATED/DERIVED inputs may remain diagnostic but cannot satisfy validation gates, promote a rule, mutate canonical memory or expand authority.',
   };
