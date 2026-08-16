@@ -13,6 +13,8 @@ on:
       - 'src/app/api/studio/session/reconstruct/route.ts'
       - 'src/lib/root/cognitiveSpineRootContext.ts'
       - 'src/app/api/root/cognitive-twin/deliberate/route.ts'
+      - 'src/lib/lab/decisionTransferCognitiveSpineBoundary.ts'
+      - 'src/app/api/root/method-lab/decision-transfer/blind/route.ts'
       - 'src/lib/field/cognitiveSpineProposalLink.ts'
       - 'src/lib/field/fieldCognitiveSpineBoundary.ts'
       - 'src/lib/field/interventionExecution.ts'
@@ -36,6 +38,8 @@ on:
       - 'src/app/api/studio/session/reconstruct/route.ts'
       - 'src/lib/root/cognitiveSpineRootContext.ts'
       - 'src/app/api/root/cognitive-twin/deliberate/route.ts'
+      - 'src/lib/lab/decisionTransferCognitiveSpineBoundary.ts'
+      - 'src/app/api/root/method-lab/decision-transfer/blind/route.ts'
       - 'src/lib/field/cognitiveSpineProposalLink.ts'
       - 'src/lib/field/fieldCognitiveSpineBoundary.ts'
       - 'src/lib/field/interventionExecution.ts'
@@ -82,3 +86,5 @@ jobs:
         run: node --import tsx scripts/cognitive-spine/qa-field-blinded-t0.ts
       - name: ROOT sealed Cognitive Spine governance boundary
         run: node --import tsx scripts/cognitive-spine/qa-root-sealed-context.ts
+      - name: Decision Transfer isolation from operational SFI-CT
+        run: node --import tsx scripts/cognitive-spine/qa-decision-transfer-isolation.ts

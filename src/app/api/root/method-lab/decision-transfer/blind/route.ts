@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { ZodError } from 'zod';
 import { auditRootAction, requireRootActor } from '@/lib/root/server';
+import { materializeDecisionTransferOperationalSpineBoundary } from '@/lib/lab/decisionTransferCognitiveSpineBoundary';
 import {
   executeBlindDecisionReconstruction,
   parseBlindDecisionRunInput,
@@ -26,15 +27,32 @@ export async function POST(request: Request) {
   if (!gate.ok) return NextResponse.json(gate.body, { status: gate.status });
 
   try {
+    const runStartedAt = new Date().toISOString();
     const raw = await request.json();
     const materialized = isCanonicalMaterializationRequest(raw)
       ? await materializeDecisionTransferContext(parseMaterializedBlindDecisionRequest(raw))
       : null;
     const input = materialized?.blindInput ?? parseBlindDecisionRunInput(raw);
+
+    // The experimental execution happens before observing the operational
+    // institutional Cognitive Spine boundary. This guarantees the live SFI-CT
+    // cannot influence model input, provider selection, or experiment success.
     const result = await executeBlindDecisionReconstruction(input);
     if (materialized) {
       await bindDecisionTransferContextReceipt(result.runId, materialized.receipt);
       await verifyDecisionTransferContextReceiptBound(result.runId, materialized.receipt.receiptHash);
+    }
+
+    let operationalCognitiveSpine: Awaited<ReturnType<typeof materializeDecisionTransferOperationalSpineBoundary>> | null = null;
+    let operationalCognitiveSpineWarning: string | null = null;
+    try {
+      operationalCognitiveSpine = await materializeDecisionTransferOperationalSpineBoundary({
+        executionId: result.runId,
+        runStartCutoff: runStartedAt,
+        recordedAt: new Date().toISOString(),
+      });
+    } catch (error) {
+      operationalCognitiveSpineWarning = `operational_sfi_ct_boundary_unavailable:${error instanceof Error ? error.message : String(error)}`;
     }
 
     const audit = await auditRootAction({
@@ -57,6 +75,21 @@ export async function POST(request: Request) {
         contextMaterializationReceiptHash: materialized?.receipt.receiptHash ?? null,
         contextMaterializationVerified: Boolean(materialized),
         cutoffAt: materialized?.receipt.cutoffAt ?? null,
+        operationalCognitiveSpine: operationalCognitiveSpine ? {
+          available: operationalCognitiveSpine.operationalSfiCtAvailable,
+          consumed: operationalCognitiveSpine.operationalSfiCtConsumed,
+          profile: operationalCognitiveSpine.profile,
+          profileVersion: operationalCognitiveSpine.profileVersion,
+          sourceCutoff: operationalCognitiveSpine.sourceCutoff,
+          snapshotId: operationalCognitiveSpine.snapshotId,
+          snapshotHash: operationalCognitiveSpine.snapshotHash,
+          visibleRecordCount: operationalCognitiveSpine.visibleRecordCount,
+        } : {
+          available: false,
+          consumed: false,
+          profile: 'LAB_BLINDED_V1',
+          warning: operationalCognitiveSpineWarning,
+        },
       },
       request,
     });
@@ -64,6 +97,14 @@ export async function POST(request: Request) {
     return NextResponse.json({
       ...result,
       contextMaterialization: materialized?.receipt ?? null,
+      operationalCognitiveSpineBoundary: operationalCognitiveSpine ?? {
+        contractVersion: 'SFI-DT-OPERATIONAL-SPINE-BOUNDARY-1.0',
+        operationalSfiCtAvailable: false,
+        operationalSfiCtConsumed: false,
+        profile: 'LAB_BLINDED_V1',
+        warning: operationalCognitiveSpineWarning,
+        rule: 'Decision Transfer execution is not blocked by operational SFI-CT availability because operational SFI-CT is not an experimental input.',
+      },
       audit,
     }, { headers: { 'Cache-Control': 'no-store' } });
   } catch (error) {
