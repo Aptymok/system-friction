@@ -1,28 +1,11 @@
 import 'server-only';
 
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
+import { materializeStudioCognitiveSpineContext } from '@/lib/studio/cognitive/studioCognitiveSpineContext';
 import { COGNITIVE_TWIN_CONTRACT_VERSION } from './contract';
-import { readCanonicalCognitiveTwinMemory } from './canonicalMemoryView';
 import { recordCognitiveTwinExperience } from './experience';
 
-const MEMORY_STATUSES = ['CANDIDATE', 'VERIFIED', 'CANONICAL'] as const;
 const STUDIO_LEARNING_VERSION = 'studio-learning-v1';
-const MAX_MEMORY_ROWS = 64;
-const MAX_DECISION_ROWS = 32;
-
-type Row = Record<string, unknown>;
-
-function record(value: unknown): Row {
-  return value && typeof value === 'object' && !Array.isArray(value) ? value as Row : {};
-}
-
-function text(value: unknown): string | null {
-  return typeof value === 'string' && value.trim() ? value.trim() : null;
-}
-
-function strings(value: unknown): string[] {
-  return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0) : [];
-}
 
 function stableStudioLearningKey(value: string) {
   return value.replace(/:\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/, '');
@@ -47,71 +30,43 @@ export type StudioTwinContext = {
     evidenceRefs: string[];
   }>;
   warnings: string[];
+  cognitiveSpine?: {
+    snapshotId: string;
+    snapshotHash: string;
+    sourceCutoff: string;
+    projectionProfile: string | null;
+    profileVersion: string | null;
+    consumed: boolean;
+  };
 };
 
+/**
+ * Compatibility read boundary for existing Studio cognitive paths.
+ *
+ * This function no longer reads live Cognitive Twin memory/decision tables.
+ * It materializes one sealed `STUDIO_OBJECT_CONTEXT_V1` Cognitive Spine
+ * snapshot and returns only the bounded memory/decision values referenced by
+ * that snapshot. Callers can continue using the historical StudioTwinContext
+ * shape while the exact snapshot identity remains available for provenance.
+ */
 export async function readStudioTwinContext(): Promise<StudioTwinContext> {
-  const db = createServiceSupabaseClient();
-  const warnings: string[] = [];
-
-  const [canonicalMemory, legacyMemoryResult, decisionsResult] = await Promise.all([
-    readCanonicalCognitiveTwinMemory(MAX_MEMORY_ROWS),
-    db.from('sfi_cognitive_twin_memory')
-      .select('memory_key,memory_type,status,content,evidence_refs,version,updated_at')
-      .in('status', [...MEMORY_STATUSES])
-      .order('updated_at', { ascending: false })
-      .limit(MAX_MEMORY_ROWS),
-    db.from('sfi_cognitive_twin_decisions')
-      .select('decision_id,situation,correct_state,general_rule,required_evidence,evidence_refs,approved_at')
-      .eq('status', 'APPROVED')
-      .order('approved_at', { ascending: false })
-      .limit(MAX_DECISION_ROWS),
-  ]);
-
-  if (canonicalMemory.error) warnings.push(`twin_canonical_memory_unavailable:${canonicalMemory.error}`);
-  if (legacyMemoryResult.error) warnings.push(`twin_legacy_memory_unavailable:${legacyMemoryResult.error.message}`);
-  if (decisionsResult.error) warnings.push(`twin_decisions_unavailable:${decisionsResult.error.message}`);
-
-  const memoryByKey = new Map<string, StudioTwinContext['memory'][number]>();
-  for (const item of canonicalMemory.rows) {
-    memoryByKey.set(item.memory_key, {
-      key: item.memory_key,
-      type: item.memory_type,
-      status: item.status,
-      content: item.content,
-      evidenceRefs: item.evidence_refs,
-      version: item.version,
-    });
-  }
-  for (const item of legacyMemoryResult.data ?? []) {
-    const row = record(item);
-    const key = text(row.memory_key);
-    if (!key || memoryByKey.has(key)) continue;
-    memoryByKey.set(key, {
-      key,
-      type: text(row.memory_type) ?? 'UNKNOWN',
-      status: text(row.status) ?? 'UNKNOWN',
-      content: row.content ?? null,
-      evidenceRefs: strings(row.evidence_refs),
-      version: text(row.version) ?? 'legacy',
-    });
-    if (memoryByKey.size >= MAX_MEMORY_ROWS) break;
-  }
+  const now = new Date().toISOString();
+  const materialized = await materializeStudioCognitiveSpineContext({
+    executionId: `studio-context-${crypto.randomUUID()}`,
+    sourceCutoff: now,
+    createdAt: now,
+  });
 
   return {
-    contractVersion: COGNITIVE_TWIN_CONTRACT_VERSION,
-    memory: [...memoryByKey.values()].slice(0, MAX_MEMORY_ROWS),
-    decisions: (decisionsResult.data ?? []).map((item) => {
-      const row = record(item);
-      return {
-        id: text(row.decision_id) ?? 'unknown',
-        situation: text(row.situation) ?? '',
-        correctState: text(row.correct_state),
-        generalRule: text(row.general_rule) ?? '',
-        requiredEvidence: strings(row.required_evidence),
-        evidenceRefs: strings(row.evidence_refs),
-      };
-    }),
-    warnings,
+    ...materialized.twinContext,
+    cognitiveSpine: {
+      snapshotId: materialized.snapshot.snapshotId,
+      snapshotHash: materialized.snapshot.snapshotHash,
+      sourceCutoff: materialized.snapshot.semanticPayload.sourceCutoff,
+      projectionProfile: materialized.trace.projectionProfile,
+      profileVersion: materialized.trace.profileVersion,
+      consumed: materialized.trace.ctSnapshotConsumed,
+    },
   };
 }
 
