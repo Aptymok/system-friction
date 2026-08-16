@@ -8,3 +8,4 @@ export * from './sourceIntake';
 export * from './instrumentGate';
 export * from './enterpriseAssurance';
 export * from './caseAction';
+export * from './systemAiAssurance';

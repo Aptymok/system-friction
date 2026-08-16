@@ -1,152 +1,23 @@
 import 'server-only';
 
-import type { SfiCanonicalRef, SfiReportClaimV1 } from '@/core/contracts/sfi';
-import type { SfiEnterpriseEntityRef } from '@/core/case-platform';
+import type { SfiCanonicalRef, SfiReportClaimV1, SfiServiceProfileId } from '@/core/contracts/sfi';
+import type { SfiEnterpriseEntityRef, SfiSystemAiEntityRef } from '@/core/case-platform';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 
-type Row = Record<string, unknown>;
-type TenantRole = 'OWNER' | 'ADMIN' | 'OPERATOR' | 'VIEWER' | 'AUDITOR';
+type Row=Record<string,unknown>; type TenantRole='OWNER'|'ADMIN'|'OPERATOR'|'VIEWER'|'AUDITOR'; type TypedEntityRef=SfiCanonicalRef&{entityType:string};
+function text(v:unknown){return typeof v==='string'?v.trim():'';} function object(v:unknown):Record<string,unknown>{return v&&typeof v==='object'&&!Array.isArray(v)?v as Record<string,unknown>:{};} function refId(v:unknown){return text(object(v).id);} function refHash(v:unknown){return text(object(v).hash)||null;}
+async function accessContext(caseId:string,userId:string,mode:'READ'|'WRITE'='READ'){const service=createServiceSupabaseClient(); const caseResult=await service.from('sfi_cases').select('id,owner_id,tenant_id,status,service_profile_id').eq('id',caseId).is('deleted_at',null).maybeSingle(); if(caseResult.error) throw new Error(`SFI_CASE_INTEGRITY_CASE_READ_FAILED:${caseResult.error.message}`); if(!caseResult.data) throw new Error('SFI_CASE_NOT_FOUND'); const membership=await service.from('sfi_tenant_members').select('role,status').eq('tenant_id',caseResult.data.tenant_id).eq('user_id',userId).maybeSingle(); if(membership.error) throw new Error(`SFI_CASE_INTEGRITY_MEMBERSHIP_READ_FAILED:${membership.error.message}`); if(!membership.data||membership.data.status!=='ACTIVE') throw new Error('SFI_TENANT_FORBIDDEN'); const role=String(membership.data.role) as TenantRole; if(mode==='WRITE'&&!['OWNER','ADMIN','OPERATOR'].includes(role)) throw new Error('SFI_TENANT_WRITE_FORBIDDEN'); return{tenantId:String(caseResult.data.tenant_id),ownerId:String(caseResult.data.owner_id),status:String(caseResult.data.status),serviceProfileId:String(caseResult.data.service_profile_id) as SfiServiceProfileId,role};}
+async function caseObjects(caseId:string){const service=createServiceSupabaseClient();const result=await service.from('sfi_case_objects').select('object_kind,epistemic_role,canonical_ref,payload').eq('case_id',caseId);if(result.error)throw new Error(`SFI_CASE_INTEGRITY_OBJECT_READ_FAILED:${result.error.message}`);return(result.data??[])as Row[];}
+function matchingRow(rows:Row[],ref:SfiCanonicalRef,predicate:(row:Row)=>boolean){return rows.find(row=>{if(refId(row.canonical_ref)!==ref.id)return false;const expectedHash=ref.hash?.trim()||null;if(expectedHash&&refHash(row.canonical_ref)!==expectedHash)return false;return predicate(row);});}
+function assertRefs(rows:Row[],refs:SfiCanonicalRef[],label:string,predicate:(row:Row)=>boolean){for(const ref of refs){if(!matchingRow(rows,ref,predicate))throw new Error(`SFI_CASE_REFERENCE_NOT_FOUND:${label}:${ref.id}`);}}
 
-function text(value: unknown) {
-  return typeof value === 'string' ? value.trim() : '';
-}
+export async function assertCaseReferenceIntegrity(input:{caseId:string;userId:string;sourceRefs?:SfiCanonicalRef[];recordRefs?:SfiCanonicalRef[];evidenceRefs?:SfiCanonicalRef[];assessmentRefs?:SfiCanonicalRef[];recommendationRefs?:SfiCanonicalRef[];interventionRefs?:SfiCanonicalRef[]}){await accessContext(input.caseId,input.userId,'READ');const rows=await caseObjects(input.caseId);assertRefs(rows,input.sourceRefs??[],'SOURCE',row=>text(row.object_kind)==='SOURCE'&&text(row.epistemic_role)==='SOURCE');assertRefs(rows,input.recordRefs??[],'RECORD',row=>text(row.epistemic_role)==='RECORD');assertRefs(rows,input.evidenceRefs??[],'EVIDENCE',row=>text(row.object_kind)==='EVIDENCE'&&text(row.epistemic_role)==='EVIDENCE');assertRefs(rows,input.assessmentRefs??[],'EPISTEMIC_ASSESSMENT',row=>text(row.object_kind)==='EPISTEMIC_ASSESSMENT'&&text(row.epistemic_role)==='EPISTEMIC_ASSESSMENT');assertRefs(rows,input.recommendationRefs??[],'RECOMMENDATION',row=>text(row.object_kind)==='RECOMMENDATION');assertRefs(rows,input.interventionRefs??[],'INTERVENTION',row=>text(row.object_kind)==='INTERVENTION'&&text(row.epistemic_role)==='RECORD');return true;}
 
-function object(value: unknown): Record<string, unknown> {
-  return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
-}
+async function assertTenantTypedEntityRefs(input:{caseId:string;userId:string;entityRefs:TypedEntityRef[];errorCode:string}){const context=await accessContext(input.caseId,input.userId,'READ');if(!input.entityRefs.length)return true;const service=createServiceSupabaseClient();const result=await service.from('sfi_case_objects').select('canonical_ref,payload').eq('tenant_id',context.tenantId);if(result.error)throw new Error(`${input.errorCode}_READ_FAILED:${result.error.message}`);const rows=(result.data??[])as Row[];for(const ref of input.entityRefs){const found=rows.some(row=>{if(refId(row.canonical_ref)!==ref.id)return false;const expectedHash=ref.hash?.trim()||null;if(expectedHash&&refHash(row.canonical_ref)!==expectedHash)return false;return text(object(row.payload).entityType)===ref.entityType;});if(!found)throw new Error(`${input.errorCode}:${ref.entityType}:${ref.id}`);}return true;}
+export async function assertTenantEnterpriseEntityRefs(input:{caseId:string;userId:string;entityRefs:SfiEnterpriseEntityRef[]}){return assertTenantTypedEntityRefs({...input,errorCode:'SFI_ENTERPRISE_ENTITY_REFERENCE_NOT_FOUND'});}
+export async function assertTenantSystemAiEntityRefs(input:{caseId:string;userId:string;entityRefs:SfiSystemAiEntityRef[]}){return assertTenantTypedEntityRefs({...input,errorCode:'SFI_SYSTEM_AI_ENTITY_REFERENCE_NOT_FOUND'});}
+export async function assertCaseServiceProfileAllowed(caseId:string,userId:string,allowed:readonly SfiServiceProfileId[]){const context=await accessContext(caseId,userId,'READ');if(!(allowed as readonly string[]).includes(context.serviceProfileId))throw new Error(`SFI_CASE_SERVICE_PROFILE_FORBIDDEN:${context.serviceProfileId}`);return context.serviceProfileId;}
 
-function refId(value: unknown) {
-  return text(object(value).id);
-}
-
-function refHash(value: unknown) {
-  return text(object(value).hash) || null;
-}
-
-async function accessContext(caseId: string, userId: string, mode: 'READ' | 'WRITE' = 'READ') {
-  const service = createServiceSupabaseClient();
-  const caseResult = await service.from('sfi_cases').select('id,owner_id,tenant_id,status').eq('id', caseId).is('deleted_at', null).maybeSingle();
-  if (caseResult.error) throw new Error(`SFI_CASE_INTEGRITY_CASE_READ_FAILED:${caseResult.error.message}`);
-  if (!caseResult.data) throw new Error('SFI_CASE_NOT_FOUND');
-  const membership = await service.from('sfi_tenant_members').select('role,status').eq('tenant_id', caseResult.data.tenant_id).eq('user_id', userId).maybeSingle();
-  if (membership.error) throw new Error(`SFI_CASE_INTEGRITY_MEMBERSHIP_READ_FAILED:${membership.error.message}`);
-  if (!membership.data || membership.data.status !== 'ACTIVE') throw new Error('SFI_TENANT_FORBIDDEN');
-  const role = String(membership.data.role) as TenantRole;
-  if (mode === 'WRITE' && !['OWNER','ADMIN','OPERATOR'].includes(role)) throw new Error('SFI_TENANT_WRITE_FORBIDDEN');
-  return { tenantId: String(caseResult.data.tenant_id), ownerId: String(caseResult.data.owner_id), status: String(caseResult.data.status), role };
-}
-
-async function caseObjects(caseId: string) {
-  const service = createServiceSupabaseClient();
-  const result = await service.from('sfi_case_objects').select('object_kind,epistemic_role,canonical_ref,payload').eq('case_id', caseId);
-  if (result.error) throw new Error(`SFI_CASE_INTEGRITY_OBJECT_READ_FAILED:${result.error.message}`);
-  return (result.data ?? []) as Row[];
-}
-
-function matchingRow(rows: Row[], ref: SfiCanonicalRef, predicate: (row: Row) => boolean) {
-  return rows.find((row) => {
-    if (refId(row.canonical_ref) !== ref.id) return false;
-    const expectedHash = ref.hash?.trim() || null;
-    if (expectedHash && refHash(row.canonical_ref) !== expectedHash) return false;
-    return predicate(row);
-  });
-}
-
-function assertRefs(rows: Row[], refs: SfiCanonicalRef[], label: string, predicate: (row: Row) => boolean) {
-  for (const ref of refs) {
-    if (!matchingRow(rows, ref, predicate)) throw new Error(`SFI_CASE_REFERENCE_NOT_FOUND:${label}:${ref.id}`);
-  }
-}
-
-export async function assertCaseReferenceIntegrity(input: {
-  caseId: string;
-  userId: string;
-  sourceRefs?: SfiCanonicalRef[];
-  recordRefs?: SfiCanonicalRef[];
-  evidenceRefs?: SfiCanonicalRef[];
-  assessmentRefs?: SfiCanonicalRef[];
-  recommendationRefs?: SfiCanonicalRef[];
-  interventionRefs?: SfiCanonicalRef[];
-}) {
-  await accessContext(input.caseId, input.userId, 'READ');
-  const rows = await caseObjects(input.caseId);
-  assertRefs(rows, input.sourceRefs ?? [], 'SOURCE', (row) => text(row.object_kind) === 'SOURCE' && text(row.epistemic_role) === 'SOURCE');
-  assertRefs(rows, input.recordRefs ?? [], 'RECORD', (row) => text(row.epistemic_role) === 'RECORD');
-  assertRefs(rows, input.evidenceRefs ?? [], 'EVIDENCE', (row) => text(row.object_kind) === 'EVIDENCE' && text(row.epistemic_role) === 'EVIDENCE');
-  assertRefs(rows, input.assessmentRefs ?? [], 'EPISTEMIC_ASSESSMENT', (row) => text(row.object_kind) === 'EPISTEMIC_ASSESSMENT' && text(row.epistemic_role) === 'EPISTEMIC_ASSESSMENT');
-  assertRefs(rows, input.recommendationRefs ?? [], 'RECOMMENDATION', (row) => text(row.object_kind) === 'RECOMMENDATION');
-  assertRefs(rows, input.interventionRefs ?? [], 'INTERVENTION', (row) => text(row.object_kind) === 'INTERVENTION' && text(row.epistemic_role) === 'RECORD');
-  return true;
-}
-
-export async function assertTenantEnterpriseEntityRefs(input: {
-  caseId: string;
-  userId: string;
-  entityRefs: SfiEnterpriseEntityRef[];
-}) {
-  const context = await accessContext(input.caseId, input.userId, 'READ');
-  if (!input.entityRefs.length) return true;
-  const service = createServiceSupabaseClient();
-  const result = await service.from('sfi_case_objects').select('canonical_ref,payload').eq('tenant_id', context.tenantId);
-  if (result.error) throw new Error(`SFI_ENTERPRISE_ENTITY_REFERENCE_READ_FAILED:${result.error.message}`);
-  const rows = (result.data ?? []) as Row[];
-  for (const ref of input.entityRefs) {
-    const found = rows.some((row) => {
-      if (refId(row.canonical_ref) !== ref.id) return false;
-      const expectedHash = ref.hash?.trim() || null;
-      if (expectedHash && refHash(row.canonical_ref) !== expectedHash) return false;
-      return text(object(row.payload).entityType) === ref.entityType;
-    });
-    if (!found) throw new Error(`SFI_ENTERPRISE_ENTITY_REFERENCE_NOT_FOUND:${ref.entityType}:${ref.id}`);
-  }
-  return true;
-}
-
-export async function assertTenderAssessmentPrerequisites(input: {
-  caseId: string;
-  userId: string;
-  requirementRef: SfiEnterpriseEntityRef;
-  bidderRef: SfiEnterpriseEntityRef;
-  sourceRefs: SfiCanonicalRef[];
-  recordRefs?: SfiCanonicalRef[];
-  evidenceRefs?: SfiCanonicalRef[];
-}) {
-  if (input.requirementRef.entityType !== 'REQUIREMENT') throw new Error('SFI_TENDER_REQUIREMENT_REF_TYPE_INVALID');
-  if (input.bidderRef.entityType !== 'BIDDER') throw new Error('SFI_TENDER_BIDDER_REF_TYPE_INVALID');
-  await assertCaseReferenceIntegrity({
-    caseId: input.caseId,
-    userId: input.userId,
-    sourceRefs: input.sourceRefs,
-    recordRefs: input.recordRefs,
-    evidenceRefs: input.evidenceRefs,
-  });
-  await assertTenantEnterpriseEntityRefs({ caseId: input.caseId, userId: input.userId, entityRefs: [input.requirementRef, input.bidderRef] });
-  const rows = await caseObjects(input.caseId);
-  const requirement = rows.find((row) => refId(row.canonical_ref) === input.requirementRef.id && text(object(row.payload).entityType) === 'REQUIREMENT');
-  if (!requirement) throw new Error('SFI_TENDER_REQUIREMENT_NOT_IN_CASE');
-  if (object(requirement.payload).frozenBeforeEvaluation !== true) throw new Error('SFI_TENDER_REQUIREMENT_NOT_FROZEN');
-  return true;
-}
-
-export async function assertReportClaimsIntegrity(input: {
-  caseId: string;
-  userId: string;
-  claims: SfiReportClaimV1[];
-}) {
-  for (const claim of input.claims) {
-    await assertCaseReferenceIntegrity({
-      caseId: input.caseId,
-      userId: input.userId,
-      assessmentRefs: [claim.assessmentRef],
-      evidenceRefs: claim.evidenceRefs,
-      recordRefs: claim.recordRefs,
-      sourceRefs: claim.sourceRefs,
-    });
-  }
-  return true;
-}
-
-export async function readCaseAuthorityRole(caseId: string, userId: string) {
-  const context = await accessContext(caseId, userId, 'READ');
-  return { tenantId: context.tenantId, ownerId: context.ownerId, role: context.role, status: context.status };
-}
+export async function assertTenderAssessmentPrerequisites(input:{caseId:string;userId:string;requirementRef:SfiEnterpriseEntityRef;bidderRef:SfiEnterpriseEntityRef;sourceRefs:SfiCanonicalRef[];recordRefs?:SfiCanonicalRef[];evidenceRefs?:SfiCanonicalRef[]}){if(input.requirementRef.entityType!=='REQUIREMENT')throw new Error('SFI_TENDER_REQUIREMENT_REF_TYPE_INVALID');if(input.bidderRef.entityType!=='BIDDER')throw new Error('SFI_TENDER_BIDDER_REF_TYPE_INVALID');await assertCaseReferenceIntegrity({caseId:input.caseId,userId:input.userId,sourceRefs:input.sourceRefs,recordRefs:input.recordRefs,evidenceRefs:input.evidenceRefs});await assertTenantEnterpriseEntityRefs({caseId:input.caseId,userId:input.userId,entityRefs:[input.requirementRef,input.bidderRef]});const rows=await caseObjects(input.caseId);const requirement=rows.find(row=>refId(row.canonical_ref)===input.requirementRef.id&&text(object(row.payload).entityType)==='REQUIREMENT');if(!requirement)throw new Error('SFI_TENDER_REQUIREMENT_NOT_IN_CASE');if(object(requirement.payload).frozenBeforeEvaluation!==true)throw new Error('SFI_TENDER_REQUIREMENT_NOT_FROZEN');return true;}
+export async function assertReportClaimsIntegrity(input:{caseId:string;userId:string;claims:SfiReportClaimV1[]}){for(const claim of input.claims){await assertCaseReferenceIntegrity({caseId:input.caseId,userId:input.userId,assessmentRefs:[claim.assessmentRef],evidenceRefs:claim.evidenceRefs,recordRefs:claim.recordRefs,sourceRefs:claim.sourceRefs});}return true;}
+export async function readCaseAuthorityRole(caseId:string,userId:string){const context=await accessContext(caseId,userId,'READ');return{tenantId:context.tenantId,ownerId:context.ownerId,role:context.role,status:context.status,serviceProfileId:context.serviceProfileId};}
