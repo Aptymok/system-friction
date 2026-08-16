@@ -27,16 +27,13 @@ alter table public.sfi_case_relations
     'OUTCOME_OBSERVED_FOR_PROCESS'
   ));
 
--- Direct authenticated graph mutation is deliberately RECORD-only.
--- Inference and epistemic-assessment relations must pass through the governed server path,
--- which validates evidence/reference integrity, service-profile routing and audit lineage.
+-- There is no direct authenticated insert path for the shared relation graph.
+-- Even RECORD relations must pass through an authenticated API/repository boundary so endpoint
+-- ontology, tenant/domain identity, exact canonical revision, lineage and auditing are validated.
+-- Service-role repositories/RPCs remain the only relation mutation path.
 drop policy if exists sfi_case_relations_tenant_insert on public.sfi_case_relations;
-create policy sfi_case_relations_tenant_insert on public.sfi_case_relations
-for insert to authenticated
-with check (
-  public.sfi_tenant_can_write(tenant_id)
-  and epistemic_role = 'RECORD'
-);
 
--- Service-role server functions may persist inferred/assessed relations after their own validation.
--- No direct client relation write gains institutional truth or ROOT authority.
+-- RLS remains enabled from the Enterprise Assurance graph migration. With no INSERT policy for
+-- `authenticated`, direct Supabase inserts fail closed. Server-side service-role mutations are
+-- separately validated and audited before/inside their transactional write boundary.
+-- No relation write gains institutional truth or ROOT authority by persistence alone.
