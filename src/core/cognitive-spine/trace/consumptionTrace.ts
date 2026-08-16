@@ -24,6 +24,8 @@ export function buildCognitiveContextConsumptionTrace(
   const consumedId = normalizedOptional(input.consumedSnapshotId, 'CONSUMED_SNAPSHOT_ID');
   const consumedHash = normalizedOptional(input.consumedSnapshotHash, 'CONSUMED_SNAPSHOT_HASH');
   const projectionProfile = normalizedOptional(input.projectionProfile, 'PROJECTION_PROFILE');
+  const profileVersion = normalizedOptional(input.profileVersion, 'PROFILE_VERSION');
+  const consumptionReason = normalizedOptional(input.consumptionReason, 'CONSUMPTION_REASON');
   const blindedObservation = Boolean(input.blindedObservation);
 
   if (Boolean(availableId) !== Boolean(availableHash)) {
@@ -35,8 +37,8 @@ export function buildCognitiveContextConsumptionTrace(
   }
 
   if (input.ctSnapshotConsumed) {
-    if (!consumedId || !consumedHash || !projectionProfile) {
-      throw new Error('COGNITIVE_SPINE_CONSUMPTION_REQUIRES_SNAPSHOT_HASH_AND_PROFILE');
+    if (!consumedId || !consumedHash || !projectionProfile || !profileVersion || !consumptionReason) {
+      throw new Error('COGNITIVE_SPINE_CONSUMPTION_REQUIRES_SNAPSHOT_HASH_PROFILE_VERSION_AND_REASON');
     }
     if (!availableId || !availableHash) {
       throw new Error('COGNITIVE_SPINE_CONSUMED_SNAPSHOT_MUST_HAVE_BEEN_AVAILABLE');
@@ -44,7 +46,7 @@ export function buildCognitiveContextConsumptionTrace(
     if (consumedId !== availableId || consumedHash !== availableHash) {
       throw new Error('COGNITIVE_SPINE_CONSUMED_SNAPSHOT_MUST_MATCH_AVAILABLE_SNAPSHOT');
     }
-  } else if (consumedId || consumedHash || projectionProfile) {
+  } else if (consumedId || consumedHash || projectionProfile || profileVersion || consumptionReason) {
     throw new Error('COGNITIVE_SPINE_NON_CONSUMPTION_MUST_NOT_DECLARE_CONSUMED_CONTEXT');
   }
 
@@ -57,6 +59,8 @@ export function buildCognitiveContextConsumptionTrace(
     consumedSnapshotId: consumedId,
     consumedSnapshotHash: consumedHash,
     projectionProfile,
+    profileVersion,
+    consumptionReason,
     blindedObservation,
     recordedAt: normalizeTimestamp(input.recordedAt),
   };
