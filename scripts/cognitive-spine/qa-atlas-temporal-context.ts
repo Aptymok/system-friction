@@ -14,6 +14,18 @@ assert.ok(adapter.includes('read-only Atlas temporal and lineage inspection'), '
 assert.ok(adapter.includes('Relationship does not upgrade epistemic class'), 'atlas_epistemic_boundary_missing');
 assert.ok(adapter.includes('temporal association is not causality'), 'atlas_noncausal_boundary_missing');
 assert.equal(adapter.includes(".from('"), false, 'atlas_temporal_adapter_must_not_write_or_read_ad_hoc_stores');
+assert.ok(adapter.includes('internalRefsExposed: false'), 'atlas_internal_ref_exposure_boundary_missing');
+for (const forbiddenOutput of [
+  'sourceManifest: state.sourceManifest',
+  'eventRefs: state.eventRefs',
+  'evidenceRefs: state.evidenceRefs',
+  'hypothesisRefs: state.hypothesisRefs',
+  'memoryRefs: state.memoryRefs',
+  'decisionRefs: state.decisionRefs',
+]) {
+  assert.equal(adapter.includes(forbiddenOutput), false, `atlas_internal_ref_exposed:${forbiddenOutput}`);
+}
+assert.ok(adapter.includes('sourceCounts:'), 'atlas_safe_aggregate_counts_missing');
 
 const cutoffPosition = runtime.indexOf('const atlasStartedAt = new Date().toISOString()');
 const publisherPosition = runtime.indexOf('buildPublisherDraftRuntime()');
@@ -35,6 +47,7 @@ console.log(JSON.stringify({
   readOnly: true,
   atlasRequiresCtToOperate: false,
   contextChangesPublisherMaterial: false,
+  internalInstitutionalRefsExposed: false,
   canonicalWritePerformed: false,
   relationshipUpgradesEpistemicClass: false,
   associationImpliesCausality: false,
