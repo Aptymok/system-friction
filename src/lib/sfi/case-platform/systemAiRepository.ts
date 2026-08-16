@@ -37,6 +37,43 @@ function uniqueRefs(input:SfiCanonicalRef[]){const seen=new Set<string>();return
 function entityKey(ref:SfiSystemAiEntityRef){return `${ref.entityType}|${ref.id}|${ref.version??''}|${ref.hash??''}`;}
 function uniqueEntityRefs(input:SfiSystemAiEntityRef[]){const seen=new Set<string>();return input.filter(ref=>{const key=entityKey(ref);if(seen.has(key))return false;seen.add(key);return true;});}
 
+async function materializeSystemAiEntityRefs(input:{tenantId:string;refs:SfiSystemAiEntityRef[]}){
+  if(!input.refs.length)return new Map<string,SfiSystemAiEntityRef>();
+  const ids=[...new Set(input.refs.map(ref=>ref.id))];
+  const service=createServiceSupabaseClient();
+  const result=await service.from('sfi_case_objects').select('canonical_ref,payload').eq('tenant_id',input.tenantId).in('canonical_ref->>id',ids);
+  if(result.error)throw new Error(`SFI_SYSTEM_AI_ENTITY_MATERIALIZATION_FAILED:${result.error.message}`);
+  const rows=(result.data??[]) as Row[];
+  const resolved=new Map<string,SfiSystemAiEntityRef>();
+  for(const ref of input.refs){
+    const candidates=rows.filter(row=>{
+      const stored=canonicalRef(row.canonical_ref);
+      const payload=obj(row.payload);
+      if(stored.id!==ref.id)return false;
+      if(text(payload.entityType)!==ref.entityType)return false;
+      if(text(payload.contract)!==SFI_SYSTEM_AI_ASSURANCE_DOMAIN_CONTRACT)return false;
+      if(ref.version&&stored.version!==ref.version)return false;
+      if(ref.hash&&stored.hash!==ref.hash)return false;
+      return true;
+    });
+    const identities=[...new Map(candidates.map(row=>{const stored=canonicalRef(row.canonical_ref);return[refKey(stored),stored];})).values()];
+    if(identities.length!==1)throw new Error(identities.length?'SFI_SYSTEM_AI_ENTITY_REFERENCE_AMBIGUOUS':'SFI_SYSTEM_AI_ENTITY_REFERENCE_NOT_FOUND');
+    const stored=identities[0];
+    resolved.set(entityKey(ref),{...stored,entityType:ref.entityType});
+  }
+  return resolved;
+}
+
+function exactRelationEndpoint(ref:SfiSystemAiEntityRef,objectRef:SfiCanonicalRef,objectEntityType:string,resolved:Map<string,SfiSystemAiEntityRef>){
+  if(ref.id===objectRef.id){
+    if(ref.entityType!==objectEntityType)throw new Error('SFI_SYSTEM_AI_PACKAGE_OBJECT_ENDPOINT_TYPE_MISMATCH');
+    return{...objectRef,entityType:ref.entityType};
+  }
+  const exact=resolved.get(entityKey(ref));
+  if(!exact)throw new Error(`SFI_SYSTEM_AI_ENTITY_REFERENCE_NOT_FOUND:${ref.entityType}:${ref.id}`);
+  return exact;
+}
+
 export async function persistOperationalSystemAiIntakePackage(input:{caseId:string;userId:string;packet:SfiSystemAiIntakePackage}){
   if(input.packet.contract!==SFI_SYSTEM_AI_ASSURANCE_DOMAIN_CONTRACT) throw new Error('SFI_SYSTEM_AI_PACKET_CONTRACT_INVALID');
   await assertCaseServiceProfileAllowed(input.caseId,input.userId,[...SYSTEM_AI_PROFILES]);
@@ -46,6 +83,7 @@ export async function persistOperationalSystemAiIntakePackage(input:{caseId:stri
 
   const entityType=typeof input.packet.object.payload.entityType==='string'?input.packet.object.payload.entityType.trim():'';
   if(!entityType) throw new Error('SFI_SYSTEM_AI_PACKET_OBJECT_ENTITY_TYPE_REQUIRED');
+  if(input.packet.object.payload.contract!==SFI_SYSTEM_AI_ASSURANCE_DOMAIN_CONTRACT)throw new Error('SFI_SYSTEM_AI_PACKET_OBJECT_DOMAIN_INVALID');
   const baseObject=input.packet.object;
   const canonical={
     ...baseObject.canonicalRef,
@@ -67,24 +105,28 @@ export async function persistOperationalSystemAiIntakePackage(input:{caseId:stri
     const violations=validateSystemAiRelationDraft(relation);
     if(violations.length) throw new Error(`SFI_SYSTEM_AI_RELATION_INVALID:${violations.join(',')}`);
     if(relation.from.id!==canonical.id&&relation.to.id!==canonical.id) throw new Error(`SFI_SYSTEM_AI_PACKAGE_RELATION_NOT_BOUND_TO_OBJECT:${relation.relationKey}`);
-    if(relation.from.id===canonical.id&&relation.from.entityType!==entityType) throw new Error('SFI_SYSTEM_AI_PACKAGE_OBJECT_ENDPOINT_TYPE_MISMATCH');
-    if(relation.to.id===canonical.id&&relation.to.entityType!==entityType) throw new Error('SFI_SYSTEM_AI_PACKAGE_OBJECT_ENDPOINT_TYPE_MISMATCH');
   }
-
-  const allSourceRefs=uniqueRefs([...(object.sourceRefs??[]),...input.packet.relations.flatMap(relation=>relation.sourceRefs??[])]);
-  const allRecordRefs=uniqueRefs([...(object.recordRefs??[]),...input.packet.relations.flatMap(relation=>relation.recordRefs??[])]);
-  const allEvidenceRefs=uniqueRefs([...(object.evidenceRefs??[]),...input.packet.relations.flatMap(relation=>relation.evidenceRefs??[])]);
-  await assertCaseReferenceIntegrity({caseId:input.caseId,userId:input.userId,sourceRefs:allSourceRefs,recordRefs:allRecordRefs,evidenceRefs:allEvidenceRefs});
 
   const externalEndpoints=uniqueEntityRefs(input.packet.relations.flatMap(relation=>[relation.from,relation.to]).filter(ref=>ref.id!==canonical.id));
   await assertTenantSystemAiEntityRefs({caseId:input.caseId,userId:input.userId,entityRefs:externalEndpoints});
+  const exactEndpoints=await materializeSystemAiEntityRefs({tenantId:authority.tenantId,refs:externalEndpoints});
+  const relations=input.packet.relations.map(relation=>({
+    ...relation,
+    from:exactRelationEndpoint(relation.from,canonical,entityType,exactEndpoints),
+    to:exactRelationEndpoint(relation.to,canonical,entityType,exactEndpoints),
+  }));
+
+  const allSourceRefs=uniqueRefs([...(object.sourceRefs??[]),...relations.flatMap(relation=>relation.sourceRefs??[])]);
+  const allRecordRefs=uniqueRefs([...(object.recordRefs??[]),...relations.flatMap(relation=>relation.recordRefs??[])]);
+  const allEvidenceRefs=uniqueRefs([...(object.evidenceRefs??[]),...relations.flatMap(relation=>relation.evidenceRefs??[])]);
+  await assertCaseReferenceIntegrity({caseId:input.caseId,userId:input.userId,sourceRefs:allSourceRefs,recordRefs:allRecordRefs,evidenceRefs:allEvidenceRefs});
 
   const service=createServiceSupabaseClient();
   const result=await service.rpc('sfi_record_system_ai_intake_package_v1',{
     p_case_id:input.caseId,
     p_actor_id:input.userId,
     p_object:object,
-    p_relations:input.packet.relations,
+    p_relations:relations,
   });
   if(result.error) throw new Error(`SFI_SYSTEM_AI_ATOMIC_INTAKE_FAILED:${result.error.message}`);
   const payload=obj(result.data);
@@ -108,17 +150,23 @@ export async function recordOperationalSystemAiRelation(input:{caseId:string;use
   if(violations.length) throw new Error(`SFI_SYSTEM_AI_RELATION_INVALID:${violations.join(',')}`);
   await assertCaseReferenceIntegrity({caseId:input.caseId,userId:input.userId,sourceRefs:input.relation.sourceRefs,recordRefs:input.relation.recordRefs,evidenceRefs:input.relation.evidenceRefs});
   await assertTenantSystemAiEntityRefs({caseId:input.caseId,userId:input.userId,entityRefs:[input.relation.from,input.relation.to]});
+  const exactEndpoints=await materializeSystemAiEntityRefs({tenantId:authority.tenantId,refs:uniqueEntityRefs([input.relation.from,input.relation.to])});
+  const relation={
+    ...input.relation,
+    from:exactEndpoints.get(entityKey(input.relation.from))??input.relation.from,
+    to:exactEndpoints.get(entityKey(input.relation.to))??input.relation.to,
+  };
   const service=createServiceSupabaseClient();
-  const existing=await service.from('sfi_case_relations').select('*').eq('case_id',input.caseId).eq('relation_key',input.relation.relationKey).maybeSingle();
-  if(existing.error) throw new Error(`SFI_SYSTEM_AI_RELATION_IDENTITY_READ_FAILED:${existing.error.message}`);
-  if(existing.data){
-    const row=fromRow(existing.data as Row);
-    if(row.relationType===input.relation.relationType&&row.from.id===input.relation.from.id&&row.to.id===input.relation.to.id&&row.epistemicRole===input.relation.epistemicRole)return row;
-    throw new Error('SFI_SYSTEM_AI_RELATION_KEY_CONFLICT');
-  }
-  const inserted=await service.from('sfi_case_relations').insert({relation_key:input.relation.relationKey,case_id:input.caseId,owner_id:authority.ownerId,tenant_id:authority.tenantId,relation_type:input.relation.relationType,epistemic_role:input.relation.epistemicRole,from_ref:input.relation.from,to_ref:input.relation.to,source_refs:input.relation.sourceRefs??[],record_refs:input.relation.recordRefs??[],evidence_refs:input.relation.evidenceRefs??[],payload:input.relation.payload??{},observed_at:input.relation.observedAt??null}).select('*').single();
-  if(inserted.error||!inserted.data) throw new Error(`SFI_SYSTEM_AI_RELATION_WRITE_FAILED:${inserted.error?.message??'unknown'}`);
-  return fromRow(inserted.data as Row);
+  const result=await service.rpc('sfi_record_system_ai_relation_v1',{
+    p_case_id:input.caseId,
+    p_actor_id:input.userId,
+    p_relation:relation,
+  });
+  if(result.error)throw new Error(`SFI_SYSTEM_AI_RELATION_WRITE_FAILED:${result.error.message}`);
+  const payload=obj(result.data);
+  const row=obj(payload.relation);
+  if(!text(row.id))throw new Error('SFI_SYSTEM_AI_RELATION_WRITE_RESULT_INVALID');
+  return fromRow(row);
 }
 
 export async function listOperationalSystemAiRelations(caseId:string,userId:string){
