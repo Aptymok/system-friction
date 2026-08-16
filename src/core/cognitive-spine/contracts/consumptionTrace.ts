@@ -9,6 +9,8 @@ export type CognitiveContextConsumptionTrace = {
   consumedSnapshotId: string | null;
   consumedSnapshotHash: string | null;
   projectionProfile: string | null;
+  profileVersion: string | null;
+  consumptionReason: string | null;
   blindedObservation: boolean;
   recordedAt: string;
 };
@@ -21,6 +23,8 @@ export type CognitiveContextConsumptionInput = {
   consumedSnapshotId?: string | null;
   consumedSnapshotHash?: string | null;
   projectionProfile?: string | null;
+  profileVersion?: string | null;
+  consumptionReason?: string | null;
   blindedObservation?: boolean;
   recordedAt: string;
 };
