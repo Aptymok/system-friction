@@ -10,6 +10,7 @@ import {
   materializeDecisionTransferContext,
   parseMaterializedBlindDecisionRequest,
 } from '@/core/cognitive-twin/reentry/decisionTransferContext';
+import { verifyDecisionTransferContextReceiptBound } from '@/core/cognitive-twin/reentry/decisionTransferContextIntegrity';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -31,7 +32,10 @@ export async function POST(request: Request) {
       : null;
     const input = materialized?.blindInput ?? parseBlindDecisionRunInput(raw);
     const result = await executeBlindDecisionReconstruction(input);
-    if (materialized) await bindDecisionTransferContextReceipt(result.runId, materialized.receipt);
+    if (materialized) {
+      await bindDecisionTransferContextReceipt(result.runId, materialized.receipt);
+      await verifyDecisionTransferContextReceiptBound(result.runId, materialized.receipt.receiptHash);
+    }
 
     const audit = await auditRootAction({
       actorId: gate.ctx.user.id,
@@ -51,6 +55,7 @@ export async function POST(request: Request) {
         targetRevealed: false,
         contextSource: materialized ? 'CANONICAL_MATERIALIZED' : 'MANUAL_CONTEXT_POOL',
         contextMaterializationReceiptHash: materialized?.receipt.receiptHash ?? null,
+        contextMaterializationVerified: Boolean(materialized),
         cutoffAt: materialized?.receipt.cutoffAt ?? null,
       },
       request,
