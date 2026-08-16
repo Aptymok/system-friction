@@ -8,6 +8,7 @@ import {
   decisionTransferArmSchema,
   parseBlindDecisionRunInput,
   type BlindDecisionRunInput,
+  type DecisionTransferArm,
 } from './blindDecisionReconstruction';
 
 const providerSchema = z.enum(['openai', 'anthropic', 'gemini', 'groq', 'ollama', 'huggingface']);
@@ -41,6 +42,37 @@ export const materializedBlindDecisionRequestSchema = z.object({
 
 export type MaterializedBlindDecisionRequest = z.infer<typeof materializedBlindDecisionRequestSchema>;
 type Row = Record<string, unknown>;
+type NormalizedTrace = {
+  traceId: string;
+  domain: string;
+  disposition: string;
+  operations: string[];
+  relevantVariables: string[];
+  rejectedConditions: string[];
+  whatWouldChangeDecision: string[];
+  evidenceRefs: string[];
+  epistemicClass: string;
+};
+
+type LayerSelection = {
+  rawHistory: boolean;
+  memory: boolean;
+  decisionTraces: boolean;
+  patterns: boolean;
+  rules: boolean;
+  operatingMode: boolean;
+};
+
+function layersForArm(arm: DecisionTransferArm): LayerSelection {
+  return {
+    rawHistory: arm !== 'B0_BASE',
+    memory: ['B2_MEMORY', 'B3_CDT', 'B4_PATTERNS', 'B5_RULE_STRUCTURE', 'CT_FULL'].includes(arm),
+    decisionTraces: ['B3_CDT', 'B4_PATTERNS', 'B5_RULE_STRUCTURE', 'CT_FULL'].includes(arm),
+    patterns: ['B4_PATTERNS', 'B5_RULE_STRUCTURE', 'CT_FULL'].includes(arm),
+    rules: ['B5_RULE_STRUCTURE', 'CT_FULL'].includes(arm),
+    operatingMode: arm === 'CT_FULL',
+  };
+}
 
 function record(value: unknown): Row {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Row : {};
@@ -74,7 +106,7 @@ function safeEpistemicClass(value: unknown) {
   if (normalized === 'VERIFIED_CONTRAST') return 'VERIFIED_CONTRAST' as const;
   return 'DERIVED' as const;
 }
-function normalizeTrace(value: unknown) {
+function normalizeTrace(value: unknown): NormalizedTrace | null {
   const item = record(value);
   const traceId = text(item.traceId);
   const domain = text(item.domain);
@@ -215,7 +247,7 @@ async function loadDecisionTransferHistory(targetTraceId: string, cutoffIso: str
     .order('created_at', { ascending: false })
     .limit(120);
   if (result.error) throw new Error(`DT_CONTEXT_DECISION_HISTORY_READ_FAILED:${result.error.message}`);
-  const traces = new Map<string, ReturnType<typeof normalizeTrace> extends infer T ? Exclude<T, null> : never>();
+  const traces = new Map<string, NormalizedTrace>();
   const patterns = new Map<string, { key: string; maturity: string; operations: string[]; domains: string[]; evidenceRefs: string[] }>();
   let excluded = 0;
   for (const run of (result.data ?? []) as Row[]) {
@@ -307,57 +339,66 @@ export function parseMaterializedBlindDecisionRequest(value: unknown): Materiali
 
 export async function materializeDecisionTransferContext(input: MaterializedBlindDecisionRequest) {
   const cutoffIso = new Date(input.cutoffAt).toISOString();
+  const layers = layersForArm(input.arm);
+  const emptyRows = { rows: [] as never[], excluded: 0 };
+  const emptyDecisionHistory = { traces: [] as NormalizedTrace[], patterns: [] as Array<{ key: string; maturity: string; operations: string[]; domains: string[]; evidenceRefs: string[] }>, excluded: 0 };
+  const emptyOperatingMode = { total: 0, byRole: {} as Record<string, number>, byStatus: {} as Record<string, number>, cutoffAt: cutoffIso, sourceState: 'NOT_SELECTED' };
+
   const [currentCase, rawHistory, memory, decisionHistory, rules, operatingMode] = await Promise.all([
     loadCurrentCase(input, cutoffIso),
-    loadRawHistory(input.targetTraceId, cutoffIso),
-    loadVerifiedMemory(input.targetTraceId, cutoffIso),
-    loadDecisionTransferHistory(input.targetTraceId, cutoffIso),
-    loadApprovedRules(input.targetTraceId, cutoffIso),
-    loadOperatingMode(cutoffIso),
+    layers.rawHistory ? loadRawHistory(input.targetTraceId, cutoffIso) : Promise.resolve(emptyRows),
+    layers.memory ? loadVerifiedMemory(input.targetTraceId, cutoffIso) : Promise.resolve(emptyRows),
+    layers.decisionTraces || layers.patterns ? loadDecisionTransferHistory(input.targetTraceId, cutoffIso) : Promise.resolve(emptyDecisionHistory),
+    layers.rules ? loadApprovedRules(input.targetTraceId, cutoffIso) : Promise.resolve(emptyRows),
+    layers.operatingMode ? loadOperatingMode(cutoffIso) : Promise.resolve(emptyOperatingMode),
   ]);
+
   const contextPool = {
     currentCase,
     rawHistory: rawHistory.rows,
     memory: memory.rows,
-    decisionTraces: decisionHistory.traces,
-    patterns: decisionHistory.patterns,
+    decisionTraces: layers.decisionTraces ? decisionHistory.traces : [],
+    patterns: layers.patterns ? decisionHistory.patterns : [],
     rules: rules.rows,
-    operatingMode,
+    ...(layers.operatingMode ? { operatingMode } : {}),
   };
   if (containsTarget(contextPool, input.targetTraceId)) throw new Error('DT_CONTEXT_TARGET_ID_LEAK_AFTER_MATERIALIZATION');
   const contextPoolHash = sha256(canonicalJson(contextPool));
+  const sourceTables = [
+    'root_evidence_entries',
+    'epistemic_events',
+    ...(layers.rawHistory ? ['sfi_cognitive_lab_events'] : []),
+    ...(layers.memory ? ['sfi_amv_memory'] : []),
+    ...(layers.decisionTraces || layers.patterns || layers.operatingMode ? ['sfi_cognitive_twin_runs'] : []),
+    ...(layers.rules ? ['sfi_cognitive_twin_decisions'] : []),
+  ];
   const receiptBase = {
     protocol: 'SFI-DT-CONTEXT-MATERIALIZATION-1.0' as const,
     source: 'CANONICAL_MATERIALIZED' as const,
     cutoffAt: cutoffIso,
     targetTraceId: input.targetTraceId,
     arm: input.arm,
+    selectedLayers: layers,
     contextPoolHash,
     sourceCounts: {
       currentEvidence: currentCase.evidence.length,
       rawHistory: rawHistory.rows.length,
       verifiedMemory: memory.rows.length,
-      decisionTraces: decisionHistory.traces.length,
-      patterns: decisionHistory.patterns.length,
+      decisionTraces: layers.decisionTraces ? decisionHistory.traces.length : 0,
+      patterns: layers.patterns ? decisionHistory.patterns.length : 0,
       approvedRules: rules.rows.length,
-      operatingModeRuns: operatingMode.total,
+      operatingModeRuns: layers.operatingMode ? operatingMode.total : 0,
     },
     excludedExactTargetMatches: rawHistory.excluded + memory.excluded + decisionHistory.excluded + rules.excluded,
-    sourceTables: [
-      'root_evidence_entries',
-      'epistemic_events',
-      'sfi_cognitive_lab_events',
-      'sfi_amv_memory',
-      'sfi_cognitive_twin_runs',
-      'sfi_cognitive_twin_decisions',
-    ],
+    sourceTables,
     boundaries: [
       'Every persisted historical query is bounded at or before cutoffAt.',
+      'Only context layers selected by the treatment arm are queried; lower-information arms do not depend on higher-information stores.',
       'Canonical memory uses the newest state per memory key as of cutoffAt and only VERIFIED/CANONICAL states are exposed.',
       'Decision traces are recovered only from prior Decision Transfer evaluator inputs and only OBSERVED/VERIFIED_CONTRAST traces are exposed.',
       'Patterns come only from prior persisted promotion reports with maturity RECURRENT or stronger; they are not promoted by materialization.',
       'Rules come only from APPROVED Cognitive Twin decisions whose approved_at is at or before cutoffAt.',
-      'Exact target trace identifiers are excluded from every historical source. Semantic contamination still requires audit of the frozen context.',
+      'Exact target trace identifiers are excluded from every queried historical source. Semantic contamination still requires audit of the frozen context.',
       'cutoffAt is a ROOT-declared pre-decision boundary; this materializer does not by itself prove the revealed target occurred after the cutoff.',
     ],
   };
