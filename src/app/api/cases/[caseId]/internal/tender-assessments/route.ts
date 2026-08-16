@@ -9,11 +9,12 @@ export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 const refSchema = z.object({ id: z.string().trim().min(1).max(500), version: z.string().trim().max(120).nullable().optional(), hash: z.string().trim().max(256).nullable().optional() }).strict();
-const entityRefSchema = refSchema.extend({ entityType: z.enum(['REQUIREMENT','BIDDER']) }).strict();
+const requirementRefSchema = refSchema.extend({ entityType: z.literal('REQUIREMENT') }).strict();
+const bidderRefSchema = refSchema.extend({ entityType: z.literal('BIDDER') }).strict();
 const schema = z.object({
   assessmentId: z.string().trim().min(1).max(240),
-  requirementRef: entityRefSchema,
-  bidderRef: entityRefSchema,
+  requirementRef: requirementRefSchema,
+  bidderRef: bidderRefSchema,
   result: z.enum(['PASS','FAIL','UNDETERMINED']),
   sourceRefs: z.array(refSchema).min(1).max(500),
   recordRefs: z.array(refSchema).max(500).optional(),
