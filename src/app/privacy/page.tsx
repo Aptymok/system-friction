@@ -19,7 +19,7 @@ export default function PrivacyPage() {
         <div className="mt-10 space-y-9 leading-7 text-[#9f9788]">
           <section>
             <h2 className="text-xl text-[#f5eedc]">1. Responsable y alcance</h2>
-            <p className="mt-3">Esta política aplica a systemfriction.org y a sus superficies públicas, autenticadas y privadas: Observatory, World Vector, FIELD, MOP-H, Studio, Atlas/Reference Bank y ROOT.</p>
+            <p className="mt-3">Esta política aplica a systemfriction.org y a sus superficies públicas, autenticadas y privadas: Observatory, Public Emergence, World Vector, FIELD, MOP-H, Studio, Atlas/Reference Bank y ROOT.</p>
           </section>
 
           <section>
@@ -31,6 +31,7 @@ export default function PrivacyPage() {
               <li>Atlas/Reference Bank: casos, cohortes, T0, predicciones, outcomes, errores y relaciones explícitas de evidencia.</li>
               <li>ROOT: auditorías, aprobaciones, mutaciones, errores, acciones y trazas de gobernanza.</li>
               <li>Analítica pública: ruta visitada y eventos de navegación o uso del instrumento sin texto libre ni identidad privada.</li>
+              <li>Atribución de campaña: origen, medio, campaña y contenido declarados mediante los parámetros UTM permitidos, sin incorporar identidad personal ni texto libre.</li>
             </ul>
           </section>
 
@@ -38,6 +39,7 @@ export default function PrivacyPage() {
             <h2 className="text-xl text-[#f5eedc]">3. Evidencia y clases epistémicas</h2>
             <p className="mt-3">La evidencia puede ser observada, declarada, derivada, inferida, proyectada, simulada, señal débil, faltante o archivada. Un dato faltante permanece MISSING. No se convierte silenciosamente en cero, promedio o certeza.</p>
             <p className="mt-3">Eventos de acceso como <code className="text-[#c8a951]">me.read</code> son trazas de gobernanza. No prueban por sí mismos una hipótesis cultural, organizacional, musical o social.</p>
+            <p className="mt-3">Una publicación, impresión, visita, clic o interacción de campaña es un registro o señal de distribución. No constituye por sí misma evidencia de autoridad institucional, causalidad, validación metodológica ni corrección de un modelo.</p>
           </section>
 
           <section>
@@ -47,9 +49,10 @@ export default function PrivacyPage() {
 
           <section id="cookies">
             <h2 className="text-xl text-[#f5eedc]">5. Google Analytics 4</h2>
-            <p className="mt-3">El sitio utiliza el flujo GA4 <code className="text-[#c8a951]">G-7YKTPLX3QD</code> para medir vistas de página, navegación interna y eventos operativos no sensibles. Las señales publicitarias y de personalización se encuentran desactivadas desde la etiqueta del sitio.</p>
+            <p className="mt-3">El sitio utiliza el flujo GA4 <code className="text-[#c8a951]">G-7YKTPLX3QD</code> para medir vistas de página, navegación interna, eventos operativos no sensibles y atribución agregada de campañas. Las señales publicitarias y de personalización se encuentran desactivadas desde la etiqueta del sitio.</p>
             <p className="mt-3">No deben enviarse a Google Analytics: nombres, correos, teléfonos, textos de evidencia, objetivos declarados, contenido de Studio, identificadores de usuario, actor IDs, payloads de auditoría ni parámetros que permitan identificar a una persona.</p>
-            <p className="mt-3">Los parámetros permitidos se limitan a categorías como ruta, hub, etapa del flujo, tipo de instrumento y estado agregado. La medición mejorada de Google puede registrar interacciones públicas como vistas, desplazamiento, enlaces y video según la configuración del flujo.</p>
+            <p className="mt-3">Para atribución de campañas, el sitio conserva únicamente los parámetros permitidos <code className="text-[#c8a951]">utm_source</code>, <code className="text-[#c8a951]">utm_medium</code>, <code className="text-[#c8a951]">utm_campaign</code> y <code className="text-[#c8a951]">utm_content</code>. Otros parámetros de consulta no se incorporan a la vista de página analítica por esta lógica.</p>
+            <p className="mt-3">Los demás parámetros permitidos se limitan a categorías como ruta, hub, etapa del flujo, tipo de instrumento y estado agregado. La medición mejorada de Google puede registrar interacciones públicas como vistas, desplazamiento, enlaces y video según la configuración del flujo.</p>
           </section>
 
           <section>
@@ -66,12 +69,13 @@ export default function PrivacyPage() {
               <li>Comparar predicciones con resultados reales.</li>
               <li>Detectar fallos, abuso, degradación y problemas de seguridad.</li>
               <li>Mejorar navegación y comprensión de las superficies públicas.</li>
+              <li>Comparar, de forma agregada y no identificable, qué perturbaciones públicas conducen a superficies operativas de SFI.</li>
             </ul>
           </section>
 
           <section>
             <h2 className="text-xl text-[#f5eedc]">8. Publicación y acceso</h2>
-            <p className="mt-3">La evidencia privada no se publica automáticamente. Observatory solo debe presentar observaciones públicas admisibles. FIELD pertenece a la cuenta participante. Studio conserva objetos privados. ROOT es una consola restringida de gobernanza.</p>
+            <p className="mt-3">La evidencia privada no se publica automáticamente. Observatory solo debe presentar observaciones públicas admisibles. Public Emergence publica únicamente el protocolo y lecturas públicas admisibles del experimento. FIELD pertenece a la cuenta participante. Studio conserva objetos privados. ROOT es una consola restringida de gobernanza.</p>
           </section>
 
           <section>
@@ -86,7 +90,7 @@ export default function PrivacyPage() {
 
           <section>
             <h2 className="text-xl text-[#f5eedc]">11. Actualización</h2>
-            <p className="mt-3">Última actualización: 12 de julio de 2026. Los cambios sustantivos se reflejan en esta página y en los contratos públicos de máquina.</p>
+            <p className="mt-3">Última actualización: 16 de agosto de 2026. Los cambios sustantivos se reflejan en esta página y en los contratos públicos de máquina.</p>
           </section>
         </div>
       </article>
