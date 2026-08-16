@@ -1,0 +1,41 @@
+import fs from 'node:fs';
+import assert from 'node:assert/strict';
+import { buildAiAdoptionOpportunityAssessment,buildAiGovernanceTraceAssessment,buildAiImplementationFailureAssessment,buildSystemFrictionAssessment,normalizeAiDecisionTrace,normalizeAiExecutionTrace,normalizeSystemFailureEvent,systemAiEntityRef,validateSystemAiRelationDraft } from '../src/core/case-platform';
+
+const read=(path:string)=>fs.readFileSync(path,'utf8');
+const migration=read('supabase/migrations/20260816145000_sfi_system_ai_assurance_domain_v1.sql');
+const intake=read('src/app/api/cases/[caseId]/system-ai/intake/route.ts');
+const assessments=read('src/app/api/cases/[caseId]/internal/system-ai/assessments/route.ts');
+const readModel=read('src/lib/sfi/case-platform/systemAiReadModel.ts');
+const integrity=read('src/lib/sfi/case-platform/integrity.ts');
+
+assert(migration.includes('alter table public.sfi_case_relations'));
+assert(!migration.includes('create table'));
+assert(migration.includes('TENDER_HAS_REQUIREMENT'),'enterprise relation contract must survive extension');
+assert(migration.includes('AI_EXECUTION_USES_MODEL'));
+assert(migration.includes('FAILURE_EVENT_ASSOCIATED_WITH_AI_EXECUTION'));
+assert(!migration.includes('sfi_evidence_ledger'));
+assert(!migration.includes('institutional_memory'));
+assert(!migration.includes('root_'));
+assert(intake.includes('assertCaseServiceProfileAllowed'));
+assert(assessments.includes("['AI_IMPLEMENTATION_DIAGNOSTIC','CUSTOM_RESEARCH']"));
+assert(assessments.includes("['AI_ADOPTION_INTEGRATION','CUSTOM_RESEARCH']"));
+assert(assessments.includes("['AI_GOVERNANCE_ASSURANCE','CUSTOM_RESEARCH']"));
+assert(readModel.includes('visualLayout:null'));
+assert(readModel.includes('ranking:null'));
+assert(integrity.includes('SFI_SYSTEM_AI_ENTITY_REFERENCE_NOT_FOUND'));
+
+const aiSystem=systemAiEntityRef('AI_SYSTEM','ai-1'); const model=systemAiEntityRef('AI_MODEL','m-1');
+const execution=normalizeAiExecutionTrace({executionId:'x-1',aiSystemRef:aiSystem,modelRef:model,startedAt:'2026-08-16T12:00:00Z',status:'DONE',inputHash:'abc123',outputHash:'def456'});
+assert.equal(execution.object.payload.rawPromptPersisted,false); assert.equal(execution.object.payload.rawInputPersisted,false); assert.equal(execution.object.payload.decisionAuthorityClaimed,false); assert(execution.relations.some(r=>r.relationType==='AI_EXECUTION_USES_MODEL'));
+const failure=normalizeSystemFailureEvent({failureId:'f-1',occurredAt:'2026-08-16T12:01:00Z',failureType:'TIMEOUT',aiExecutionRef:systemAiEntityRef('AI_EXECUTION','x-1')}); assert.equal(failure.object.payload.causeClaimed,false);
+const decision=normalizeAiDecisionTrace({decisionId:'d-1',decidedAt:'2026-08-16T12:02:00Z',disposition:'ESCALATE',aiExecutionRef:systemAiEntityRef('AI_EXECUTION','x-1')}); assert.equal(decision.object.payload.aiOutputEqualsDecision,false);
+assert.throws(()=>buildSystemFrictionAssessment({assessmentId:'fr-0',locationRef:systemAiEntityRef('COMPONENT','c-1'),frictionType:'LATENCY',evidenceRefs:[]}),/REQUIRES_EVIDENCE/);
+const friction=buildSystemFrictionAssessment({assessmentId:'fr-1',locationRef:systemAiEntityRef('COMPONENT','c-1'),frictionType:'LATENCY',evidenceRefs:[{id:'e:1'}],confidence:.7}); assert.equal(friction.payload.causalMechanismEstablished,false);
+const aiFailure=buildAiImplementationFailureAssessment({assessmentId:'af-1',failureRef:systemAiEntityRef('FAILURE_EVENT','f-1'),layer:'INTEGRATION',evidenceRefs:[{id:'e:2'}],determinability:'PARTIALLY_DETERMINED'}); assert.equal(aiFailure.payload.rootCauseEstablished,false); assert.equal(aiFailure.payload.modelBlameByDefault,false);
+const opportunity=buildAiAdoptionOpportunityAssessment({assessmentId:'op-1',processRef:systemAiEntityRef('PROCESS','p-1'),useCaseRef:systemAiEntityRef('USE_CASE','u-1'),evidenceRefs:[{id:'e:3'}],projectedValue:.8,feasibility:.6,integrationRisk:.4}); assert.equal(opportunity.epistemicRole,'PROJECTION'); assert.equal(opportunity.payload.observedReturn,false);
+const governance=buildAiGovernanceTraceAssessment({assessmentId:'g-1',stagePresence:{MODEL:true,PROMPT:true,INPUT:true,CONTEXT:true,OUTPUT:true,DECISION:true,HUMAN_AUTHORITY:true},recordRefs:[],evidenceRefs:[{id:'e:4'}]}); assert.deepEqual(governance.payload.missingStages,['ACTION','RETURN']); assert.equal(governance.payload.complianceClaimed,false);
+const badRelation=validateSystemAiRelationDraft({relationKey:'bad',relationType:'AI_SYSTEM_USES_MODEL',epistemicRole:'RECORD',from:systemAiEntityRef('COMPONENT','c'),to:model}); assert(badRelation.includes('SYSTEM_AI_RELATION_FROM_TYPE_MISMATCH:AI_SYSTEM'));
+const inferred=validateSystemAiRelationDraft({relationKey:'infer',relationType:'COMPONENT_DEPENDS_ON_COMPONENT',epistemicRole:'INFERENCE',from:systemAiEntityRef('COMPONENT','a'),to:systemAiEntityRef('COMPONENT','b')}); assert(inferred.includes('SYSTEM_AI_INFERRED_RELATION_REQUIRES_EVIDENCE'));
+
+console.log(JSON.stringify({ok:true,contract:'SFI-SYSTEM-AI-ASSURANCE-DOMAIN-1.0',profiles:['SYSTEM_OBSERVATORY','AI_IMPLEMENTATION_DIAGNOSTIC','AI_ADOPTION_INTEGRATION','AI_GOVERNANCE_ASSURANCE'],sharedRelationStore:true,visualLayoutDefined:false,aiOutputDecisionAuthority:false,automaticRootCause:false,projectionObservedReturn:false,traceCompletenessCompliance:false},null,2));
