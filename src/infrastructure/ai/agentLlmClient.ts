@@ -1,6 +1,7 @@
 import 'server-only';
 
 import { runLlmTask, type LlmProviderId } from '@/lib/ai/providerRouter';
+import { COGNITIVE_TWIN_CONTRACT_VERSION } from '@/core/cognitive-twin/contract';
 import type { StudioTwinContext } from '@/core/cognitive-twin/studioContext';
 import { readStudioTwinContext } from '@/core/cognitive-twin/studioContext';
 import { SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY } from '@/lib/sfi/cognitive-runtime/convergedRegistry';
@@ -96,6 +97,35 @@ function providerPreference(value: unknown): LlmProviderId | undefined {
   return typeof value === 'string' && allowed.includes(value as LlmProviderId) ? value as LlmProviderId : undefined;
 }
 
+async function resolveTwinContextForExecution(context: KernelContext): Promise<StudioTwinContext> {
+  const spine = record(context.metadata?.cognitiveSpine);
+  const explicitConsumption = typeof spine.ctSnapshotConsumed === 'boolean';
+  const twinFromContext = context.metadata?.cognitiveTwinContext;
+  const injectedTwin = twinFromContext && typeof twinFromContext === 'object' && !Array.isArray(twinFromContext)
+    ? twinFromContext as StudioTwinContext
+    : null;
+
+  if (explicitConsumption) {
+    if (spine.ctSnapshotConsumed === false) {
+      return {
+        contractVersion: COGNITIVE_TWIN_CONTRACT_VERSION,
+        memory: [],
+        decisions: [],
+        warnings: ['cognitive_spine_snapshot_available_but_not_consumed'],
+      };
+    }
+    if (!injectedTwin) {
+      throw new Error('COGNITIVE_SPINE_SEALED_TWIN_CONTEXT_REQUIRED');
+    }
+    return injectedTwin;
+  }
+
+  // Backward-compatible path for executions not yet wired to the Cognitive
+  // Spine. Once a run declares availability/consumption explicitly, live Twin
+  // reads are prohibited for the duration of that run.
+  return injectedTwin ?? await readStudioTwinContext();
+}
+
 export async function augmentAgentWithLlm(agentId: string, context: KernelContext): Promise<KernelContext> {
   if (context.metadata?.llmAugmentation !== true) return context;
   if (agentId === 'meta_orchestrator') return context;
@@ -103,10 +133,7 @@ export async function augmentAgentWithLlm(agentId: string, context: KernelContex
   const contract = SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY.find((item) => item.id === agentId);
   if (!contract) return context;
 
-  const twinFromContext = context.metadata?.cognitiveTwinContext;
-  const twin = twinFromContext && typeof twinFromContext === 'object'
-    ? twinFromContext as StudioTwinContext
-    : await readStudioTwinContext();
+  const twin = await resolveTwinContextForExecution(context);
   const requestedProvider = providerPreference(context.metadata?.preferredLlmProvider) ?? 'groq';
   const studio = record(context.metadata?.studio);
   const existingInsights = record(context.metadata?.agentInsights);
@@ -117,6 +144,7 @@ export async function augmentAgentWithLlm(agentId: string, context: KernelContex
     `Layer: ${contract.layer}. Domain: ${contract.domain}. Authority: ${contract.authorityLevel}.`,
     'The Cognitive Twin contract is binding: evidence before inference; simulation is not observation; missing evidence remains missing; presentation is not state; never invent measurements, history, lineage, causal relations, attractor attainment, or completed actions.',
     'CANDIDATE Cognitive Twin memory is evidence-bound prior learning only. It is not VERIFIED or CANONICAL fact, must retain its status, and must never be promoted by the model. VERIFIED and CANONICAL memory remain distinct governed states.',
+    'Cognitive Spine memory and approved decisions are contextual state, not independent observed evidence. Repetition and derivation do not create evidence or independence.',
     'Treat deterministic metrics and persisted evidence as observations. Treat your interpretation as INFERENCE only.',
     'Do not issue irreversible actions. Do not claim that an object is ready for production unless explicit persisted checks support it.',
     'Return ONLY valid JSON using this schema: {"summary":string|null,"observations":string[],"hypotheses":string[],"contradictions":string[],"missingEvidence":string[],"recommendations":string[],"confidence":number}.',
@@ -135,11 +163,12 @@ export async function augmentAgentWithLlm(agentId: string, context: KernelContex
     predictions: context.predictions.slice(-6).map(item=>compactUnknown(item)),
     risks: context.risks.slice(-6).map(item=>compactUnknown(item)),
     opportunities: context.opportunities.slice(-6).map(item=>compactUnknown(item)),
+    cognitiveSpine: compactUnknown(context.metadata?.cognitiveSpine),
     cognitiveTwin: compactTwin(twin),
     previousAgentInsights: Object.fromEntries(Object.entries(existingInsights).slice(-4).map(([key,value])=>[key,compactUnknown(value)])),
     contextBoundary: {
       maxPromptCharacters: MAX_PROMPT_CHARS,
-      selectionRule: 'latest bounded evidence + bounded Twin memory + current deterministic state; omitted material remains available in persistent stores and is not treated as absent evidence',
+      selectionRule: 'one sealed Cognitive Spine cut when explicitly integrated; bounded memory remains context, never independent evidence; agents must not enrich the same run from live Twin state',
     },
   };
   const prompt = boundedPrompt(promptPayload);
