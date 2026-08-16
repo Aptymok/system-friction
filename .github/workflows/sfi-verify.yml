@@ -72,6 +72,9 @@ jobs:
       - name: Verify Cognitive Twin decision transfer observatory
         run: npm run qa:sfi-ct-decision-transfer
 
+      - name: Verify Decision Transfer operational wiring
+        run: npx tsx scripts/qa-sfi-decision-transfer-operational.ts
+
       - name: Verify canonical evidence identity
         run: node --import tsx --test src/lib/evidence/canonicalEvidence.test.ts
 
