@@ -12,6 +12,10 @@ import {
 } from '@/core/cognitive-twin/reentry/decisionTransferContext';
 import { verifyDecisionTransferContextReceiptBound } from '@/core/cognitive-twin/reentry/decisionTransferContextIntegrity';
 import {
+  bindDecisionTransferExperimentRegistration,
+  requireDecisionTransferExperimentRegistration,
+} from '@/core/cognitive-twin/reentry/decisionTransferExperimentRegistration';
+import {
   applyDecisionTransferExperimentFreeze,
   assertDecisionTransferModelPreflight,
   bindDecisionTransferModelContract,
@@ -33,6 +37,17 @@ export async function POST(request: Request) {
   try {
     const raw = await request.json();
     const canonical = isCanonicalMaterializationRequest(raw);
+    const canonicalRequest = canonical ? parseMaterializedBlindDecisionRequest(raw) : null;
+    const registration = canonicalRequest
+      ? await requireDecisionTransferExperimentRegistration({
+          experimentId: canonicalRequest.experimentId,
+          targetTraceId: canonicalRequest.targetTraceId,
+          targetDomain: canonicalRequest.targetDomain,
+          targetCommitmentSha256: canonicalRequest.targetCommitmentSha256,
+          cutoffAt: canonicalRequest.cutoffAt,
+          arm: canonicalRequest.arm,
+        })
+      : null;
     const frozenRaw = canonical ? applyDecisionTransferExperimentFreeze(raw) : raw;
     const modelPreflight = canonical ? assertDecisionTransferModelPreflight() : null;
     const materialized = canonical
@@ -41,8 +56,14 @@ export async function POST(request: Request) {
     const input = materialized?.blindInput ?? parseBlindDecisionRunInput(frozenRaw);
     const result = await executeBlindDecisionReconstruction(input);
 
+    let registrationBinding = null;
     let modelContract = null;
-    if (materialized) {
+    if (materialized && registration) {
+      registrationBinding = await bindDecisionTransferExperimentRegistration({
+        blindRunId: result.runId,
+        registrationRunId: registration.registrationRunId,
+        receipt: registration.receipt,
+      });
       modelContract = await bindDecisionTransferModelContract({
         blindRunId: result.runId,
         actualProvider: result.provider,
@@ -69,15 +90,19 @@ export async function POST(request: Request) {
         epistemicClass: 'INFERRED',
         targetRevealed: false,
         contextSource: materialized ? 'CANONICAL_MATERIALIZED' : 'MANUAL_CONTEXT_POOL',
+        experimentRegistrationHash: registrationBinding?.registrationHash ?? null,
+        experimentRegistrationRunId: registrationBinding?.registrationRunId ?? null,
         contextMaterializationReceiptHash: materialized?.receipt.receiptHash ?? null,
         contextMaterializationVerified: Boolean(materialized),
         cutoffAt: materialized?.receipt.cutoffAt ?? null,
-        confirmatoryMode: Boolean(materialized),
+        confirmatoryMode: Boolean(materialized && registration),
         protocolVersion: modelContract?.protocolVersion ?? null,
         expectedModel: modelContract?.expectedModel ?? null,
         actualModel: result.model,
         promptTemplateHash: modelContract?.promptTemplateHash ?? null,
         systemPromptHash: modelContract?.systemPromptHash ?? null,
+        instrumentSourceHash: modelContract?.instrumentSourceHash ?? null,
+        runtimeCommit: modelContract?.runtimeCommit ?? null,
         modelContractHash: modelContract?.contractHash ?? null,
       },
       request,
@@ -85,10 +110,14 @@ export async function POST(request: Request) {
     if (!audit.ok) return NextResponse.json({ ok: false, error: 'blind_reconstruction_audit_failed', runId: result.runId, audit }, { status: 500 });
     return NextResponse.json({
       ...result,
+      experimentRegistration: registration ? {
+        registrationRunId: registration.registrationRunId,
+        receipt: registration.receipt,
+      } : null,
       contextMaterialization: materialized?.receipt ?? null,
       modelPreflight,
       modelContract,
-      experimentalMode: materialized ? 'CONFIRMATORY_FROZEN' : 'NON_CONFIRMATORY_DIAGNOSTIC',
+      experimentalMode: materialized && registration ? 'CONFIRMATORY_FROZEN' : 'NON_CONFIRMATORY_DIAGNOSTIC',
       audit,
     }, { headers: { 'Cache-Control': 'no-store' } });
   } catch (error) {
@@ -99,10 +128,11 @@ export async function POST(request: Request) {
     const contextInfrastructureFailure = details.includes('_READ_FAILED')
       || details.startsWith('DT_CONTEXT_BIND_')
       || details.startsWith('DT_CONTEXT_OPERATING_MODE_READ_FAILED')
-      || details.startsWith('DT_MODEL_BIND_');
+      || details.startsWith('DT_MODEL_BIND_')
+      || details.startsWith('DT_REGISTRATION_BIND_');
     const status = contextInfrastructureFailure ? 503
       : invalidInput || details.startsWith('BLIND_CONTEXT_') || details.startsWith('DT_CONTEXT_') ? 400
-        : details.startsWith('DT_MODEL_') ? 409
+        : details.startsWith('DT_MODEL_') || details.startsWith('DT_INSTRUMENT_') || details.startsWith('DT_REGISTRATION_') ? 409
           : details.startsWith('BLIND_PROVIDER_') || details.startsWith('BLIND_LLM_') ? 503
             : details.startsWith('BLIND_PREDICTION_') ? 502
               : 503;
