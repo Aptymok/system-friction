@@ -1,12 +1,14 @@
 import fs from 'node:fs';
 import assert from 'node:assert/strict';
 import {
+  SFI_SYSTEM_AI_ASSURANCE_DOMAIN_CONTRACT,
   buildAiAdoptionOpportunityAssessment,
   buildAiGovernanceTraceAssessment,
   buildAiImplementationFailureAssessment,
   buildSystemFrictionAssessment,
   normalizeAiDecisionTrace,
   normalizeAiExecutionTrace,
+  normalizeSystemAiEntityRecord,
   normalizeSystemFailureEvent,
   systemAiEntityRef,
   validateSystemAiRelationDraft,
@@ -29,19 +31,33 @@ assert(!migration.includes('create table'));
 assert(migration.includes('TENDER_HAS_REQUIREMENT'),'enterprise relation contract must survive extension');
 assert(migration.includes('AI_EXECUTION_USES_MODEL'));
 assert(migration.includes('FAILURE_EVENT_ASSOCIATED_WITH_AI_EXECUTION'));
+assert(migration.includes("epistemic_role = 'RECORD'"),'authenticated direct relation inserts must be RECORD-only at the database boundary');
+assert(migration.includes('drop policy if exists sfi_case_relations_tenant_insert'));
 assert(!migration.includes('sfi_evidence_ledger'));
 assert(!migration.includes('institutional_memory'));
 assert(!migration.includes('root_'));
 
 assert(atomicMigration.includes('sfi_record_system_ai_intake_package_v1'));
+assert(atomicMigration.includes('sfi_record_system_ai_relation_v1'));
 assert(atomicMigration.includes('security definer'));
 assert(atomicMigration.includes('Validate every relation and every endpoint before the first write.'));
 assert(atomicMigration.includes("'SYSTEM_AI_INTAKE_PACKAGE_RECORDED'"));
+assert(atomicMigration.includes("'SYSTEM_AI_RELATION_RECORDED'"));
+assert(atomicMigration.includes('v_existing_relation.from_ref is distinct from v_from'),'packet retry must compare full from ref');
+assert(atomicMigration.includes('v_existing_relation.to_ref is distinct from v_to'),'packet retry must compare full to ref');
+assert(atomicMigration.includes('v_existing.from_ref is distinct from v_from'),'standalone retry must compare full from ref');
+assert(atomicMigration.includes("o.payload->>'contract' = 'SFI-SYSTEM-AI-ASSURANCE-DOMAIN-1.0'"),'relation endpoints must resolve inside the System/AI domain');
 assert(atomicMigration.includes('grant execute on function public.sfi_record_system_ai_intake_package_v1(uuid,uuid,jsonb,jsonb) to service_role'));
 assert(atomicMigration.includes('revoke all on function public.sfi_record_system_ai_intake_package_v1(uuid,uuid,jsonb,jsonb) from authenticated'));
+assert(atomicMigration.includes('grant execute on function public.sfi_record_system_ai_relation_v1(uuid,uuid,jsonb) to service_role'));
+assert(atomicMigration.includes('revoke all on function public.sfi_record_system_ai_relation_v1(uuid,uuid,jsonb) from authenticated'));
+
 assert(systemAiRepository.includes('persistOperationalSystemAiIntakePackage'));
 assert(systemAiRepository.includes("service.rpc('sfi_record_system_ai_intake_package_v1'"));
+assert(systemAiRepository.includes("service.rpc('sfi_record_system_ai_relation_v1'"),'standalone relations must persist through the transactional audited RPC');
+assert(systemAiRepository.includes('materializeSystemAiEntityRefs'),'relation endpoints must be materialized to exact canonical revisions');
 assert(systemAiRepository.includes('SFI_SYSTEM_AI_PACKAGE_RELATION_NOT_BOUND_TO_OBJECT'));
+assert(!systemAiRepository.includes(".from('sfi_case_relations').insert"),'standalone System/AI relation writes must not bypass transactional auditing');
 assert(intake.includes('persistOperationalSystemAiIntakePackage'));
 assert(!intake.includes('recordOperationalCaseObject'));
 assert(!intake.includes('recordOperationalSystemAiRelation'));
@@ -58,8 +74,12 @@ assert(readModel.includes('ranking:null'));
 assert(readModel.includes('SFI_SYSTEM_AI_ASSURANCE_DOMAIN_CONTRACT'));
 assert(readModel.includes('SYSTEM_AI_ASSESSMENT_TYPES'));
 assert(readModel.includes('isSystemAiAssessmentPayload'));
+assert(readModel.includes('isSystemAiEntityPayload'),'generic CUSTOM_RESEARCH objects must not enter System/AI nodes by entityType alone');
+assert(readModel.includes("object.kind==='RECOMMENDATION'&&isSystemAiDomainPayload(object.payload)"),'action proposals must be scoped by a System/AI recommendation object');
+assert(readModel.includes('const actions=allActions.filter'),'unrelated case action proposals must not leak into System/AI action state');
 assert(integrity.includes('SFI_SYSTEM_AI_ENTITY_REFERENCE_NOT_FOUND'));
 assert(integrity.includes('SFI_CASE_SERVICE_PROFILE_FORBIDDEN'));
+assert(integrity.includes('domainContract:SFI_SYSTEM_AI_ASSURANCE_DOMAIN_CONTRACT'),'System/AI entity references must require domain identity');
 assert(enterpriseRepository.includes(".in('relation_type', [...SFI_ENTERPRISE_RELATION_TYPES])"),'enterprise read model must not absorb system/AI relations');
 assert(enterpriseRepository.includes('assertCaseServiceProfileAllowed'),'enterprise relation repository must be profile-routed');
 assert(enterpriseIntake.includes("['SERVICE_OBSERVABILITY','ENTERPRISE_MEMORY','CUSTOM_RESEARCH']"),'ticket intake must route to service observability');
@@ -69,17 +89,24 @@ assert(tenderRoute.includes("['TENDER_ASSURANCE','CUSTOM_RESEARCH']"),'tender as
 
 const aiSystem=systemAiEntityRef('AI_SYSTEM','ai-1');
 const model=systemAiEntityRef('AI_MODEL','m-1');
-const execution=normalizeAiExecutionTrace({executionId:'x-1',aiSystemRef:aiSystem,modelRef:model,startedAt:'2026-08-16T12:00:00Z',status:'DONE',inputHash:'abc123',outputHash:'def456'});
+const entity=normalizeSystemAiEntityRecord({entityType:'AI_SYSTEM',entityId:'ai-1',label:'AI 1'});
+assert.equal(entity.object.payload.contract,SFI_SYSTEM_AI_ASSURANCE_DOMAIN_CONTRACT);
+const execution=normalizeAiExecutionTrace({executionId:'x-1',aiSystemRef:aiSystem,modelRef:model,startedAt:'2026-08-16T12:00:00Z',finishedAt:'2026-08-16T12:00:05Z',status:'DONE',inputHash:'abc123',outputHash:'def456'});
+assert.equal(execution.object.payload.contract,SFI_SYSTEM_AI_ASSURANCE_DOMAIN_CONTRACT);
 assert.equal(execution.object.payload.rawPromptPersisted,false);
 assert.equal(execution.object.payload.rawInputPersisted,false);
 assert.equal(execution.object.payload.decisionAuthorityClaimed,false);
 assert(execution.relations.some(r=>r.relationType==='AI_EXECUTION_USES_MODEL'));
+assert.throws(()=>normalizeAiExecutionTrace({executionId:'x-impossible',aiSystemRef:aiSystem,modelRef:model,startedAt:'2026-08-16T12:00:05Z',finishedAt:'2026-08-16T12:00:04Z',status:'DONE'}),/FINISHED_BEFORE_STARTED/);
 const failure=normalizeSystemFailureEvent({failureId:'f-1',occurredAt:'2026-08-16T12:01:00Z',failureType:'TIMEOUT',aiExecutionRef:systemAiEntityRef('AI_EXECUTION','x-1')});
+assert.equal(failure.object.payload.contract,SFI_SYSTEM_AI_ASSURANCE_DOMAIN_CONTRACT);
 assert.equal(failure.object.payload.causeClaimed,false);
 const decision=normalizeAiDecisionTrace({decisionId:'d-1',decidedAt:'2026-08-16T12:02:00Z',disposition:'ESCALATE',aiExecutionRef:systemAiEntityRef('AI_EXECUTION','x-1')});
+assert.equal(decision.object.payload.contract,SFI_SYSTEM_AI_ASSURANCE_DOMAIN_CONTRACT);
 assert.equal(decision.object.payload.aiOutputEqualsDecision,false);
 assert.throws(()=>buildSystemFrictionAssessment({assessmentId:'fr-0',locationRef:systemAiEntityRef('COMPONENT','c-1'),frictionType:'LATENCY',evidenceRefs:[]}),/REQUIRES_EVIDENCE/);
 const friction=buildSystemFrictionAssessment({assessmentId:'fr-1',locationRef:systemAiEntityRef('COMPONENT','c-1'),frictionType:'LATENCY',evidenceRefs:[{id:'e:1'}],confidence:.7});
+assert.equal(friction.payload.contract,SFI_SYSTEM_AI_ASSURANCE_DOMAIN_CONTRACT);
 assert.equal(friction.payload.causalMechanismEstablished,false);
 const aiFailure=buildAiImplementationFailureAssessment({assessmentId:'af-1',failureRef:systemAiEntityRef('FAILURE_EVENT','f-1'),layer:'INTEGRATION',evidenceRefs:[{id:'e:2'}],determinability:'PARTIALLY_DETERMINED'});
 assert.equal(aiFailure.payload.rootCauseEstablished,false);
@@ -118,4 +145,24 @@ assert(badRelation.includes('SYSTEM_AI_RELATION_FROM_TYPE_MISMATCH:AI_SYSTEM'));
 const inferred=validateSystemAiRelationDraft({relationKey:'infer',relationType:'COMPONENT_DEPENDS_ON_COMPONENT',epistemicRole:'INFERENCE',from:systemAiEntityRef('COMPONENT','a'),to:systemAiEntityRef('COMPONENT','b')});
 assert(inferred.includes('SYSTEM_AI_INFERRED_RELATION_REQUIRES_EVIDENCE'));
 
-console.log(JSON.stringify({ok:true,contract:'SFI-SYSTEM-AI-ASSURANCE-DOMAIN-1.0',profiles:['SYSTEM_OBSERVATORY','AI_IMPLEMENTATION_DIAGNOSTIC','AI_ADOPTION_INTEGRATION','AI_GOVERNANCE_ASSURANCE'],sharedRelationStore:true,serviceProfileRouting:true,atomicIntake:true,stagePresenceDerivedFromValidatedRecords:true,visualLayoutDefined:false,aiOutputDecisionAuthority:false,automaticRootCause:false,projectionObservedReturn:false,traceCompletenessCompliance:false},null,2));
+console.log(JSON.stringify({
+  ok:true,
+  contract:SFI_SYSTEM_AI_ASSURANCE_DOMAIN_CONTRACT,
+  profiles:['SYSTEM_OBSERVATORY','AI_IMPLEMENTATION_DIAGNOSTIC','AI_ADOPTION_INTEGRATION','AI_GOVERNANCE_ASSURANCE'],
+  sharedRelationStore:true,
+  serviceProfileRouting:true,
+  directAuthenticatedRelationWrites:'RECORD_ONLY',
+  atomicIntake:true,
+  atomicStandaloneRelations:true,
+  exactRevisionRelationIdentity:true,
+  auditedRelationWrites:true,
+  domainScopedNodes:true,
+  domainScopedActions:true,
+  executionChronologyValidated:true,
+  stagePresenceDerivedFromValidatedRecords:true,
+  visualLayoutDefined:false,
+  aiOutputDecisionAuthority:false,
+  automaticRootCause:false,
+  projectionObservedReturn:false,
+  traceCompletenessCompliance:false,
+},null,2));
