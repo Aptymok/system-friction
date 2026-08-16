@@ -1,18 +1,18 @@
 import type { StudioProductionState } from '@/lib/studio/production/studioProductionTypes';
-import { formatMetricValue, metricByKey } from './workspaceModel';
 
 export function StudioTrajectoryField({ state }: { state: StudioProductionState }) {
-  const points = state.archive.events.length + state.audioFeatures.energySegments.length;
-  const kind = points > 1 ? 'institutional_record_timeline' : 'partial_record_timeline';
-  const tempo = metricByKey(state, 'tempo_global_bpm');
+  const institutionalPoints = state.archive.events.length;
+  const objectSegments = state.audioFeatures.energySegments.length;
+  const kind = institutionalPoints > 1 ? 'institutional_record_timeline' : institutionalPoints === 1 ? 'single_institutional_record' : 'unresolved_trajectory';
   return (
     <section className="studio-trajectory-field" aria-label="Trajectory field">
       <header><span>TRAJECTORY KIND</span><strong>{kind.toUpperCase()}</strong></header>
       <dl>
-        <div><dt>Timeline points</dt><dd>{points}</dd></div>
+        <div><dt>Institutional timeline points</dt><dd>{institutionalPoints}</dd></div>
+        <div><dt>Object-local segments</dt><dd>{objectSegments}</dd></div>
         <div><dt>Projected</dt><dd>NO_FORECAST</dd></div>
-        <div><dt>Velocity</dt><dd>{formatMetricValue(tempo)}</dd></div>
-        <div><dt>Method</dt><dd>Read-only institutional and audio timeline; no cultural forecast.</dd></div>
+        <div><dt>Systemic velocity</dt><dd>NO_VALUE</dd></div>
+        <div><dt>Method</dt><dd>Trajectory requires persisted temporal states or a declared model; object tempo is not systemic velocity.</dd></div>
       </dl>
     </section>
   );
