@@ -86,6 +86,26 @@ function normalizeRecord(record: CognitiveSpineSourceRecord): CognitiveSpineSour
   };
 }
 
+/**
+ * Canonical comparison payload for duplicate source refs. Optional fields are
+ * represented explicitly as null so the strict semantic serializer never has
+ * to silently discard undefined values.
+ */
+function deduplicationSignature(record: CognitiveSpineSourceRecord) {
+  return {
+    ref: record.ref,
+    kind: record.kind,
+    recordedAt: record.recordedAt,
+    sourceHash: record.sourceHash,
+    epistemicAssessmentRef: record.epistemicAssessmentRef ?? null,
+    epistemicClass: record.epistemicClass ?? null,
+    ancestryRoots: record.ancestryRoots ?? [],
+    visibilityProfiles: record.visibilityProfiles ?? [],
+    invalidated: Boolean(record.invalidated),
+    debtType: record.debtType ?? null,
+  };
+}
+
 function deduplicateRecords(records: CognitiveSpineSourceRecord[]): CognitiveSpineSourceRecord[] {
   const byRef = new Map<string, CognitiveSpineSourceRecord>();
 
@@ -97,7 +117,7 @@ function deduplicateRecords(records: CognitiveSpineSourceRecord[]): CognitiveSpi
       continue;
     }
 
-    if (canonicalSerialize(previous) !== canonicalSerialize(record)) {
+    if (canonicalSerialize(deduplicationSignature(previous)) !== canonicalSerialize(deduplicationSignature(record))) {
       throw new Error(`COGNITIVE_SPINE_CONFLICTING_SOURCE_REF:${record.ref}`);
     }
   }
