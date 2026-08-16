@@ -1,4 +1,5 @@
 import { RoleGate } from '@/components/auth/RoleGate';
+import { CognitiveSpineStatusBar } from '@/components/root/cognitive-spine/CognitiveSpineStatusBar';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -8,6 +9,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <RoleGate allowedRoles={['root']}>
+      <CognitiveSpineStatusBar />
       {children}
     </RoleGate>
   );
