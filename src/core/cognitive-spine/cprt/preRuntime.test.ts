@@ -64,6 +64,27 @@ test('CT AVAILABLE is distinct from CT CONSUMED', () => {
   assert.equal(trace.ctSnapshotAvailable, 'CT-v145');
   assert.equal(trace.ctSnapshotConsumed, false);
   assert.equal(trace.consumedSnapshotId, null);
+  assert.equal(trace.profileVersion, null);
+});
+
+test('consumed CT context records profile version and reason', () => {
+  const trace = buildCognitiveContextConsumptionTrace({
+    executionId: 'RUN-002',
+    ctSnapshotAvailable: 'CT-v145',
+    ctSnapshotHashAvailable: 'a'.repeat(64),
+    ctSnapshotConsumed: true,
+    consumedSnapshotId: 'CT-v145',
+    consumedSnapshotHash: 'a'.repeat(64),
+    projectionProfile: 'RUNTIME_GENERAL_CONTEXT_V1',
+    profileVersion: '1.0',
+    consumptionReason: 'bounded institutional runtime context',
+    recordedAt: '2026-08-16T07:32:30.000Z',
+  });
+
+  assert.equal(trace.ctSnapshotConsumed, true);
+  assert.equal(trace.projectionProfile, 'RUNTIME_GENERAL_CONTEXT_V1');
+  assert.equal(trace.profileVersion, '1.0');
+  assert.equal(trace.consumptionReason, 'bounded institutional runtime context');
 });
 
 test('blinded observation cannot consume CT context', () => {
@@ -75,6 +96,8 @@ test('blinded observation cannot consume CT context', () => {
     consumedSnapshotId: 'CT-v145',
     consumedSnapshotHash: 'a'.repeat(64),
     projectionProfile: 'FIELD_CASE_CONTEXT_V2',
+    profileVersion: '2.0',
+    consumptionReason: 'invalid blinded consumption attempt',
     blindedObservation: true,
     recordedAt: '2026-08-16T07:33:00.000Z',
   }), /COGNITIVE_SPINE_BLINDED_OBSERVATION_CANNOT_CONSUME_CT/);
