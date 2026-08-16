@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { runLlmTask } from '@/lib/ai/providerRouter';
-import { createCognitiveTwinEnvelope, evaluateCognitiveTwinAuthority } from '@/lib/cognitive-twin/contract';
-import { syncSfiInstitutionalStateToCognitiveTwin } from '@/lib/cognitive-twin/institutionalIntegration';
+import { createCognitiveTwinEnvelope, evaluateCognitiveTwinAuthority } from '@/core/cognitive-twin/contract';
+import { syncSfiInstitutionalStateToCognitiveTwin } from '@/core/cognitive-twin/institutionalIntegration';
 import { auditRootAction, requireRootActor } from '@/lib/root/server';
 
 export const dynamic = 'force-dynamic';

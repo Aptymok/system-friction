@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requireRootActor, auditRootAction } from '@/lib/root/server';
-import { readCognitiveTwinState } from '@/lib/cognitive-twin/readState';
+import { readCognitiveTwinState } from '@/core/cognitive-twin/readState';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 
 export const dynamic = 'force-dynamic';

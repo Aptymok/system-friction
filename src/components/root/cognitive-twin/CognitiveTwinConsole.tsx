@@ -2,7 +2,7 @@ import { HumanReadableRecord } from '@/components/shared/HumanReadableRecord';
 import { FounderDecisionCandidateForm } from './FounderDecisionCandidateForm';
 import { CognitiveTwinDeliberationPanel } from './CognitiveTwinDeliberationPanel';
 import { NationalFieldPanel } from './NationalFieldPanel';
-import type { CognitiveTwinState } from '@/lib/cognitive-twin/readState';
+import type { CognitiveTwinState } from '@/core/cognitive-twin/readState';
 
 function yesNo(value: boolean) {
   return value ? 'Sí' : 'No';

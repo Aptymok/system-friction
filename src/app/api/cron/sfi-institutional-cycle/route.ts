@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { runIntegratedInstitutionalCycle } from '@/lib/cognitive-twin/integratedInstitutionalCycle';
+import { runIntegratedInstitutionalCycle } from '@/core/cognitive-twin/integratedInstitutionalCycle';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

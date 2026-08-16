@@ -45,12 +45,12 @@ const MODULES: ModuleSpec[] = [
     { label: 'FIELD', kind: 'surface', target: '/field' },
     { label: 'FIELD MAP', kind: 'surface', target: '/field/map' },
     { label: 'STUDIO', kind: 'surface', target: '/studio' },
-    { label: 'OBSERVATORY', kind: 'surface', target: '/interface/observatory' },
+    { label: 'OBSERVATORY', kind: 'surface', target: '/field' },
     { label: 'LIBRARY', kind: 'surface', target: '/library' },
   ] },
   { id: '03', label: 'Identidad / Autoridad', tools: [
-    { label: 'CONTRATOS', kind: 'surface', target: '/root/contracts' },
-    { label: 'AGENT PASSPORTS', kind: 'surface', target: '/root/agents/passports' },
+    { label: 'CONTRATOS', kind: 'surface', target: '/root/readiness' },
+    { label: 'AGENT PASSPORTS', kind: 'surface', target: '/root/agents' },
   ] },
   { id: '04', label: 'SFI / Evidencia / Grafo', tools: [
     { label: 'CHAT CON SFI', kind: 'event', target: 'sfi:open-friccionauta' },
@@ -73,7 +73,7 @@ const MODULES: ModuleSpec[] = [
   { id: '10', label: 'Gobernanza / Operación', tools: [
     { label: 'MEJORAR SISTEMA · DECISION QUEUE', kind: 'surface', target: '/root/decisions' },
     { label: 'RESOLUCIÓN METODOLÓGICA', kind: 'event', target: 'sfi:open-methodology' },
-    { label: 'CONTINUIDAD', kind: 'surface', target: '/root/continuity' },
+    { label: 'CONTINUIDAD', kind: 'surface', target: '/root/readiness' },
   ] },
 ];
 
@@ -84,12 +84,12 @@ const ROOT_SURFACES: SurfaceLauncher[] = [
   { code: 'FD', title: 'Field', label: 'FIELD', kind: 'surface', target: '/field' },
   { code: 'FM', title: 'Field Map', label: 'FIELD MAP', kind: 'surface', target: '/field/map' },
   { code: 'ST', title: 'Studio', label: 'STUDIO', kind: 'surface', target: '/studio' },
-  { code: 'OB', title: 'Observatory', label: 'OBSERVATORY', kind: 'surface', target: '/interface/observatory' },
+  { code: 'OB', title: 'Observatory', label: 'OBSERVATORY', kind: 'surface', target: '/field' },
   { code: 'LB', title: 'Library', label: 'LIBRARY', kind: 'surface', target: '/library' },
-  { code: 'CN', title: 'Contracts', label: 'CONTRATOS', kind: 'surface', target: '/root/contracts' },
-  { code: 'AP', title: 'Agent Passports', label: 'AGENT PASSPORTS', kind: 'surface', target: '/root/agents/passports' },
+  { code: 'CN', title: 'Contracts', label: 'CONTRATOS', kind: 'surface', target: '/root/readiness' },
+  { code: 'AP', title: 'Agent Passports', label: 'AGENT PASSPORTS', kind: 'surface', target: '/root/agents' },
   { code: 'TW', title: 'Cognitive Twin', label: 'COGNITIVE TWIN', kind: 'surface', target: '/root/cognitive-twin' },
-  { code: 'CO', title: 'Continuity', label: 'CONTINUIDAD', kind: 'surface', target: '/root/continuity' },
+  { code: 'CO', title: 'Continuity', label: 'CONTINUIDAD', kind: 'surface', target: '/root/readiness' },
 ];
 
 const DIVERGENCE_FACT: Record<string, string> = {

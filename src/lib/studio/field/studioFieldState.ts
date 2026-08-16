@@ -1,7 +1,7 @@
 import 'server-only';
 
 import { getLlmProviderStatus } from '@/lib/ai/providerRouter';
-import { readStudioTwinContext } from '@/lib/cognitive-twin/studioContext';
+import { readStudioTwinContext } from '@/core/cognitive-twin/studioContext';
 import { readAgentPassports } from '@/lib/sfi/cognitive-runtime/agentPassports';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { getWorldVectorToday } from '@/lib/world-vector/readModel';

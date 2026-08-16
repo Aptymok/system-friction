@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { FINAL_CLOSURE_GATES, ARCHITECTURE_FREEZE } from '../src/lib/institutional/finalClosure';
-import { CT_ANCESTRAL_CAPABILITIES } from '../src/lib/cognitive-twin/reentry/ancestralCapabilities';
+import { CT_ANCESTRAL_CAPABILITIES } from '../src/core/cognitive-twin/reentry/ancestralCapabilities';
 import { SPECIALIZED_MODELS } from '../src/lib/method-lab/specializedModels';
 import { createStudioFieldHandoff, verifyStudioFieldHandoff } from '../src/lib/studio/fieldHandoff';
 import { finalizeReturnContrast, canMarkLongitudinalCaseComplete } from '../src/lib/field/returnContrastContract';

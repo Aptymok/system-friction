@@ -1,168 +1,78 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import type { RootSovereignState, RootRow } from '@/lib/root/sovereign/rootSovereignState';
 import type { RootActionRequest, RootSelection } from './sovereignTypes';
-import { RootRevenueWorkspace } from './RootRevenueWorkspace';
-import './root-governance-observatory.css';
+import { LogbookSelectorPanel } from '@/components/root/logbook/LogbookSelectorPanel';
 
-type RootMode = 'observatory' | 'governance' | 'revenue';
-type Lens = 'signals' | 'evidence' | 'hypotheses' | 'memory' | 'attractors' | 'agents' | 'history';
+type Panel = 'agents' | 'governance' | 'twin' | 'logbook';
 
-type ObservableItem = {
+type Item = {
   id: string;
   title: string;
-  kind: string;
+  subtitle: string;
   summary: string;
+  status: string;
   source: string;
   observedAt: string | null;
-  confidence: number | null;
-  evidenceIds: string[];
-  payload: unknown;
+  raw: unknown;
 };
 
-const LENSES: Array<{ id: Lens; label: string; description: string }> = [
-  { id: 'signals', label: 'Señales', description: 'Cambios, tensiones y eventos que requieren atención.' },
-  { id: 'evidence', label: 'Evidencia', description: 'Registros que sostienen o contradicen una lectura.' },
-  { id: 'hypotheses', label: 'Hipótesis y predicciones', description: 'Lecturas abiertas, resultados observados y aprendizaje.' },
-  { id: 'memory', label: 'Memoria', description: 'Patrones, recurrencias y asociaciones recuperadas.' },
-  { id: 'attractors', label: 'Atractores y desvíos', description: 'Direcciones persistentes y fuerzas que alejan la trayectoria.' },
-  { id: 'agents', label: 'Agentes', description: 'Capacidades de observación, análisis y propuesta disponibles.' },
-  { id: 'history', label: 'Historia', description: 'Secuencia de decisiones, acciones, resultados y cambios.' },
+const PANELS: Array<{ id: Panel; label: string; question: string }> = [
+  { id: 'agents', label: 'AGENTES', question: '¿Quién puede hacer qué y qué ejecución real lo demuestra?' },
+  { id: 'governance', label: 'GOBERNANZA', question: '¿Qué requiere autoridad humana ahora?' },
+  { id: 'twin', label: 'DECISIONES DEL TWIN', question: '¿Qué recuerda, propone o deja pendiente el Twin?' },
+  { id: 'logbook', label: 'BITÁCORA', question: '¿Qué pasó, en qué orden y desde qué fuente?' },
 ];
 
-function text(value: unknown, fallback = 'Sin descripción') {
+const PRIMARY_SURFACES = [
+  ['/pipeline', 'PIPELINE'],
+  ['/field', 'FIELD'],
+  ['/method-lab', 'METHOD LAB'],
+  ['/observatory', 'OBSERVATORY'],
+] as const;
+
+function text(value: unknown, fallback = 'MISSING') {
   return typeof value === 'string' && value.trim() ? value.trim() : fallback;
 }
-
-function number(value: unknown): number | null {
-  const parsed = typeof value === 'number' ? value : Number(value);
-  return Number.isFinite(parsed) ? parsed : null;
-}
-
-function time(row: RootRow): string | null {
+function rowDate(row: RootRow): string | null {
   const value = row.observed_at ?? row.created_at ?? row.updated_at ?? row.executed_at ?? row.timestamp;
   return typeof value === 'string' && value ? value : null;
 }
-
-function id(row: RootRow, fallback: string) {
-  return text(row.id ?? row.event_id ?? row.run_id ?? row.prediction_id ?? row.created_at, fallback);
+function when(value: string | null) {
+  if (!value) return 'SIN FECHA';
+  const parsed = new Date(value);
+  return Number.isFinite(parsed.valueOf()) ? new Intl.DateTimeFormat('es-MX', { dateStyle: 'medium', timeStyle: 'short' }).format(parsed) : value;
 }
-
-function title(row: RootRow, fallback: string) {
-  return text(row.title ?? row.label ?? row.name ?? row.event_type ?? row.action ?? row.type ?? row.status, fallback);
-}
-
-function summary(row: RootRow) {
-  return text(
-    row.summary ?? row.public_summary ?? row.description ?? row.explanation ?? row.statement ?? row.result ?? row.status,
-    'Este registro existe, pero todavía no contiene una explicación legible.',
-  );
-}
-
-function rowItem(row: RootRow, index: number, source: string, kind: string): ObservableItem {
+function selected(item: Item): RootSelection {
   return {
-    id: id(row, `${kind}-${index}`),
-    title: title(row, `Registro ${index + 1}`),
-    kind,
-    summary: summary(row),
-    source,
-    observedAt: time(row),
-    confidence: number(row.confidence ?? row.trust_score ?? row.score),
-    evidenceIds: Array.isArray(row.evidence_ids) ? row.evidence_ids.map(String) : [],
-    payload: row,
-  };
-}
-
-function itemsForLens(lens: Lens, state: RootSovereignState): ObservableItem[] {
-  if (lens === 'evidence') {
-    return state.evidence.data.nodes.slice(0, 140).map((node) => ({
-      id: node.id,
-      title: node.label,
-      kind: node.type,
-      summary: text(node.payload.public_summary ?? node.payload.summary ?? node.payload.description, 'Evidencia registrada sin resumen público.'),
-      source: node.source,
-      observedAt: node.observedAt,
-      confidence: node.confidence,
-      evidenceIds: node.evidenceIds,
-      payload: node,
-    }));
-  }
-  if (lens === 'hypotheses') {
-    return [
-      ...state.predictions.data.runs.map((row, index) => rowItem(row, index, state.predictions.source, 'predicción')),
-      ...state.predictions.data.outcomes.map((row, index) => rowItem(row, index, state.predictions.source, 'resultado observado')),
-      ...state.predictions.data.learningEvents.map((row, index) => rowItem(row, index, state.predictions.source, 'aprendizaje')),
-    ].slice(0, 140);
-  }
-  if (lens === 'memory') return state.amv.data.memories.slice(0, 140).map((row, index) => rowItem(row, index, state.amv.source, 'memoria'));
-  if (lens === 'attractors') {
-    return [
-      ...state.amv.data.attractors.map((row, index) => rowItem(row, index, state.amv.source, 'atractor')),
-      ...state.amv.data.ejectors.map((row, index) => rowItem(row, index, state.amv.source, 'fuerza de desvío')),
-    ].slice(0, 140);
-  }
-  if (lens === 'agents') {
-    return state.agents.data.agents.map((agent) => ({
-      id: agent.id,
-      title: agent.role || agent.id,
-      kind: text(agent.state.value ?? agent.availability, 'estado no determinado'),
-      summary: agent.error ? `No puede operar completamente: ${agent.error}` : text(agent.lastResult, 'Agente registrado. Selecciónalo para revisar su estado y posibles usos.'),
-      source: state.agents.source,
-      observedAt: agent.lastRun,
-      confidence: agent.state.confidence,
-      evidenceIds: agent.state.evidenceIds,
-      payload: agent,
-    }));
-  }
-  if (lens === 'history') {
-    return [
-      ...state.governance.data.events.map((row, index) => rowItem(row, index, state.governance.source, 'decisión')),
-      ...state.governance.data.audits.map((row, index) => rowItem(row, index, state.governance.source, 'auditoría')),
-      ...state.execution.data.recentActions.map((row, index) => rowItem(row, index, state.execution.source, 'acción')),
-      ...state.predictions.data.outcomes.map((row, index) => rowItem(row, index, state.predictions.source, 'resultado')),
-    ].sort((a, b) => String(b.observedAt ?? '').localeCompare(String(a.observedAt ?? ''))).slice(0, 140);
-  }
-  return state.system.data.matrix.map((item) => ({
-    id: item.id,
-    title: item.label,
-    kind: text(item.state.value ?? item.state.status, 'estado no determinado'),
-    summary: item.state.explanation,
-    source: item.state.source,
-    observedAt: item.state.observedAt,
-    confidence: item.state.confidence,
-    evidenceIds: item.state.evidenceIds,
-    payload: item,
-  }));
-}
-
-function selection(item: ObservableItem): RootSelection {
-  return {
-    kind: item.kind,
+    kind: item.subtitle,
     id: item.id,
     title: item.title,
     source: item.source,
     observedAt: item.observedAt,
-    confidence: item.confidence,
-    evidenceIds: item.evidenceIds,
+    confidence: null,
+    evidenceIds: [],
     warning: null,
-    data: item.payload,
+    data: item.raw,
   };
 }
-
-function hash(value: string) {
-  let result = 2166136261;
-  for (let index = 0; index < value.length; index += 1) {
-    result ^= value.charCodeAt(index);
-    result = Math.imul(result, 16777619);
-  }
-  return result >>> 0;
+function itemFromRow(row: RootRow, index: number, source: string, fallbackKind: string): Item {
+  return {
+    id: text(row.id ?? row.event_id ?? row.decision_id ?? row.run_id ?? row.memory_key, `${fallbackKind}-${index}`),
+    title: text(row.title ?? row.label ?? row.name ?? row.decision_id ?? row.event_type ?? row.action, `Registro ${index + 1}`),
+    subtitle: text(row.type ?? row.kind ?? row.status, fallbackKind),
+    summary: text(row.summary ?? row.description ?? row.explanation ?? row.statement ?? row.result ?? row.status, 'Registro persistido sin resumen legible.'),
+    status: text(row.status ?? row.state ?? row.lifecycle_status, 'OBSERVED'),
+    source,
+    observedAt: rowDate(row),
+    raw: row,
+  };
 }
-
-function shortDate(value: string | null) {
-  if (!value) return 'Fecha no disponible';
-  const parsed = new Date(value);
-  return Number.isNaN(parsed.valueOf()) ? value : new Intl.DateTimeFormat('es-MX', { dateStyle: 'medium', timeStyle: 'short' }).format(parsed);
+function ms(value: string | null) {
+  const parsed = value ? Date.parse(value) : Number.NaN;
+  return Number.isFinite(parsed) ? parsed : 0;
 }
 
 export function RootGovernanceObservatory({
@@ -180,129 +90,113 @@ export function RootGovernanceObservatory({
   onSelect: (selection: RootSelection) => void;
   onAction: (action: RootActionRequest) => void;
 }) {
-  const [mode, setMode] = useState<RootMode>('observatory');
-  const [lens, setLens] = useState<Lens>('signals');
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const items = useMemo(() => itemsForLens(lens, state), [lens, state]);
-  const selected = items.find((item) => item.id === selectedId) ?? null;
+  const [panel, setPanel] = useState<Panel>('governance');
+  const [lastSeen, setLastSeen] = useState<string | null>(null);
 
-  const governanceCounts = {
-    proposals: state.governance.data.proposals.length,
-    pendingEvidence: state.predictions.data.evidenceRequests.length,
-    warnings: state.warnings.length,
-    capabilities: state.execution.data.capabilities.filter((capability) => capability.state === 'available').length,
-  };
+  useEffect(() => {
+    const key = 'sfi.root.last-seen.v1';
+    const previous = window.localStorage.getItem(key);
+    setLastSeen(previous);
+    window.localStorage.setItem(key, state.generatedAt);
+  }, [state.generatedAt]);
 
-  function choose(item: ObservableItem) {
-    setSelectedId(item.id);
-    onSelect(selection(item));
-  }
+  const agents = useMemo<Item[]>(() => state.agents.data.agents.map((agent, index) => ({
+    id: agent.id || `agent-${index}`,
+    title: agent.role || agent.id || `Agente ${index + 1}`,
+    subtitle: text(agent.state?.value ?? agent.availability, 'REGISTERED'),
+    summary: agent.error
+      ? `Dependencia degradada: ${agent.error}`
+      : text(agent.lastResult, 'Agente registrado; la ausencia de ejecución persistida no se interpreta como actividad.'),
+    status: text(agent.state?.value ?? agent.availability, 'REGISTERED'),
+    source: state.agents.source,
+    observedAt: agent.lastRun ?? null,
+    raw: agent,
+  })), [state.agents]);
 
-  function analyzeSelected() {
-    if (!selected) return;
-    onAction({
-      id: `root-observe-${Date.now()}`,
-      label: 'Analizar la selección con los agentes disponibles',
-      effect: 'Consulta el grafo de evidencia y devuelve relaciones útiles sin modificar la evidencia original.',
-      target: selected.title,
-      endpoint: '/api/root/agentic/neural-graph',
-      method: 'POST',
-      body: { query: `${selected.title}\n${selected.summary}`, filters: [lens, selected.kind], generateInterpretation: true },
-    });
-  }
+  const governance = useMemo<Item[]>(() => [
+    ...state.governance.data.proposals.map((row, index) => itemFromRow(row, index, state.governance.source, 'proposal')),
+    ...state.governance.data.mutations.map((row, index) => itemFromRow(row, index, state.governance.source, 'mutation')),
+  ].sort((a, b) => ms(b.observedAt) - ms(a.observedAt)), [state.governance]);
 
-  function generateReport() {
-    if (!selected) return;
-    const type = lens === 'attractors' || lens === 'memory' ? 'amv_recurrence' : lens === 'evidence' ? 'neural_graph_evidence' : lens === 'hypotheses' ? 'calibration' : 'world_vector_internal';
-    onAction({
-      id: `root-report-${Date.now()}`,
-      label: 'Generar una lectura de esta selección',
-      effect: 'Genera un reporte interno sustentado por la información disponible. No publica ni envía nada.',
-      target: selected.title,
-      endpoint: '/api/root/agentic/report',
-      method: 'POST',
-      body: { type, subject: `${selected.title}\n${selected.summary}` },
-    });
-  }
+  const twin = useMemo<Item[]>(() => [
+    ...state.cognitiveTwin.data.decisions.map((row, index) => itemFromRow(row, index, state.cognitiveTwin.source, 'decision')),
+    ...state.cognitiveTwin.data.memory.map((row, index) => itemFromRow(row, index, state.cognitiveTwin.source, 'memory')),
+    ...state.cognitiveTwin.data.runs.map((row, index) => itemFromRow(row, index, state.cognitiveTwin.source, 'run')),
+  ].sort((a, b) => ms(b.observedAt) - ms(a.observedAt)), [state.cognitiveTwin]);
+
+  const changes = useMemo(() => {
+    if (!lastSeen) return [] as Item[];
+    const cutoff = Date.parse(lastSeen);
+    if (!Number.isFinite(cutoff)) return [] as Item[];
+    return [...governance, ...twin, ...agents].filter((item) => ms(item.observedAt) > cutoff).sort((a, b) => ms(b.observedAt) - ms(a.observedAt));
+  }, [lastSeen, governance, twin, agents]);
+
+  const openGovernance = governance.filter((item) => !['executed', 'closed', 'rejected', 'denied', 'resolved'].includes(item.status.toLowerCase()));
+  const active = PANELS.find((item) => item.id === panel)!;
 
   function runObservationCycle() {
     onAction({
-      id: `root-worldspect-${Date.now()}`,
-      label: 'Actualizar observación y aprendizaje',
-      effect: 'Ejecuta observación, reportes y auditoría usando WorldSpect y las fuentes persistidas.',
-      target: 'WorldSpect + evidencia institucional',
+      id: `root-observe-${Date.now()}`,
+      label: 'Actualizar observación institucional',
+      effect: 'Ejecuta el ciclo de observación y aprendizaje disponible sin autorizar acciones irreversibles.',
+      target: 'SFI institutional observation',
       endpoint: '/api/root/operational/trigger-observation?job=all',
       method: 'POST',
     });
   }
 
-  const heading = mode === 'observatory' ? 'Observatorio de gobernanza' : mode === 'governance' ? 'Centro de decisiones' : 'Conversión económica';
-  const description = mode === 'observatory'
-    ? 'Explora lo que está cambiando, selecciona una señal y desencadena análisis, evidencia, proyección o reporte desde el mismo campo.'
-    : mode === 'governance'
-      ? 'Revisa propuestas, permisos, riesgos y cierres que requieren una decisión humana.'
-      : 'Convierte señales verificables en empresas, dolores, contactos, propuestas y resultados sin abandonar ROOT.';
+  const list = panel === 'agents' ? agents : panel === 'governance' ? openGovernance : panel === 'twin' ? twin : [];
 
-  return (
-    <main className="rgo-root">
-      <header className="rgo-header">
-        <div><span>SYSTEM FRICTION INSTITUTE · ROOT</span><h1>{heading}</h1><p>{description}</p></div>
-        <div className="rgo-mode-switch" role="tablist" aria-label="Modo ROOT">
-          <button type="button" className={mode === 'observatory' ? 'active' : ''} onClick={() => setMode('observatory')}>OBSERVATORIO</button>
-          <button type="button" className={mode === 'governance' ? 'active' : ''} onClick={() => setMode('governance')}>GOBERNANZA</button>
-          <button type="button" className={mode === 'revenue' ? 'active' : ''} onClick={() => setMode('revenue')}>CONVERSIÓN</button>
-          <button type="button" onClick={onRefresh} disabled={refreshing}>{refreshing ? 'ACTUALIZANDO' : 'ACTUALIZAR'}</button>
-        </div>
-      </header>
+  return <main className="root-canonical">
+    <header className="root-canonical__header">
+      <div>
+        <span>SYSTEM FRICTION INSTITUTE · ROOT</span>
+        <h1>Revisar. Decidir. Registrar.</h1>
+        <p>ROOT no es un tablero de curiosidad. Presenta únicamente aquello que requiere lectura institucional, autoridad humana o trazabilidad.</p>
+      </div>
+      <div className="root-canonical__actions">
+        <button type="button" onClick={onRefresh} disabled={refreshing}>{refreshing ? 'ACTUALIZANDO…' : 'ACTUALIZAR'}</button>
+        <button type="button" onClick={runObservationCycle}>OBSERVAR SISTEMA</button>
+      </div>
+    </header>
 
-      {warning ? <div className="rgo-warning">No fue posible actualizar toda la información. Se mantiene visible el último estado confirmado.</div> : null}
+    <nav className="root-canonical__surfaces" aria-label="Superficies operativas de SFI">
+      {PRIMARY_SURFACES.map(([href, label]) => <Link key={href} href={href}>{label}</Link>)}
+      <span />
+      <Link href="/studio">STUDIO</Link>
+      <Link href="/library">LIBRARY</Link>
+    </nav>
 
-      {mode === 'revenue' ? <RootRevenueWorkspace /> : null}
+    {warning ? <div className="root-canonical__warning"><b>LECTURA PARCIAL</b><span>{warning}</span></div> : null}
 
-      {mode === 'governance' ? (
-        <section className="rgo-governance" aria-label="Centro de decisiones ROOT">
-          <article><span>PROPUESTAS</span><strong>{governanceCounts.proposals}</strong><p>Propuestas registradas que pueden requerir revisión, autorización o cierre.</p></article>
-          <article><span>EVIDENCIA PENDIENTE</span><strong>{governanceCounts.pendingEvidence}</strong><p>Solicitudes que todavía necesitan evidencia suficiente.</p></article>
-          <article><span>RIESGOS Y ADVERTENCIAS</span><strong>{governanceCounts.warnings}</strong><p>Condiciones degradadas o límites que impiden una acción segura.</p></article>
-          <article><span>CAPACIDADES DISPONIBLES</span><strong>{governanceCounts.capabilities}</strong><p>Operaciones que ROOT puede ejecutar ahora.</p></article>
-          <div className="rgo-decision-stream">
-            <header><div><span>DECISIONES ABIERTAS</span><h2>Qué necesita realmente tu atención</h2></div><button type="button" onClick={runObservationCycle}>ACTUALIZAR OBSERVACIÓN Y APRENDIZAJE</button></header>
-            {state.governance.data.proposals.length ? state.governance.data.proposals.slice(0, 12).map((row, index) => {
-              const item = rowItem(row, index, state.governance.source, 'propuesta');
-              return <button type="button" key={item.id} onClick={() => choose(item)}><span>{item.kind}</span><strong>{item.title}</strong><p>{item.summary}</p><small>{shortDate(item.observedAt)}</small></button>;
-            }) : <div className="rgo-empty"><strong>No hay propuestas abiertas.</strong><p>ROOT puede seguir observando y aprendiendo sin pedirte una validación recurrente.</p></div>}
-          </div>
-        </section>
-      ) : null}
+    <section className="root-canonical__since">
+      <div><span>DESDE TU ÚLTIMA APERTURA EN ESTE NAVEGADOR</span><strong>{lastSeen ? changes.length : '—'}</strong></div>
+      <p>{lastSeen ? (changes.length ? `${changes.length} registros posteriores a ${when(lastSeen)}.` : `No aparecen registros posteriores a ${when(lastSeen)} en las fuentes cargadas.`) : 'Se estableció el punto de referencia para la próxima apertura.'}</p>
+      {changes.length ? <div>{changes.slice(0, 5).map((item) => <button key={`${item.subtitle}:${item.id}`} onClick={() => onSelect(selected(item))}><b>{item.title}</b><small>{item.subtitle} · {when(item.observedAt)}</small></button>)}</div> : null}
+    </section>
 
-      {mode === 'observatory' ? (
-        <section className="rgo-observatory" aria-label="Observatorio exploratorio ROOT">
-          <nav className="rgo-lenses" aria-label="Capas del observatorio">
-            {LENSES.map((item) => <button type="button" key={item.id} className={lens === item.id ? 'active' : ''} onClick={() => { setLens(item.id); setSelectedId(null); }}><strong>{item.label}</strong><span>{item.description}</span></button>)}
-          </nav>
-          <div className="rgo-field-layout">
-            <article className="rgo-field">
-              <header><div><span>{LENSES.find((item) => item.id === lens)?.label}</span><h2>{LENSES.find((item) => item.id === lens)?.description}</h2></div><div><b>{items.length}</b><small>elementos observables</small></div></header>
-              <svg viewBox="0 0 100 62" role="img" aria-label={`Campo exploratorio de ${lens}`}>
-                <defs><radialGradient id="rgoHalo"><stop offset="0" stopColor="currentColor" stopOpacity=".75" /><stop offset="1" stopColor="currentColor" stopOpacity="0" /></radialGradient></defs>
-                {items.slice(0, 90).map((item) => {
-                  const seed = hash(item.id);
-                  const x = 7 + ((seed % 8600) / 100);
-                  const y = 7 + (((seed >>> 9) % 4800) / 100);
-                  const confidence = item.confidence === null ? .45 : Math.max(.12, Math.min(1, item.confidence));
-                  return <g key={item.id} className={`rgo-point ${selectedId === item.id ? 'selected' : ''}`} role="button" tabIndex={0} onClick={() => choose(item)} onKeyDown={(event) => { if (event.key === 'Enter') choose(item); }}><circle cx={x} cy={y} r={2.2 + confidence * 2.8} className="rgo-halo" /><circle cx={x} cy={y} r={.45 + confidence * .55} className="rgo-core" />{(selectedId === item.id || items.length < 18) ? <text x={x + 1.5} y={y - 1.2}>{item.title.slice(0, 30)}</text> : null}</g>;
-                })}
-              </svg>
-              {!items.length ? <div className="rgo-empty field"><strong>No hay datos confirmados para esta capa.</strong><p>ROOT no mostrará puntos artificiales para llenar el espacio.</p></div> : null}
-            </article>
-            <aside className="rgo-focus">
-              <span>PUNTO DE ENFOQUE</span>
-              {selected ? <><h2>{selected.title}</h2><p>{selected.summary}</p><dl><div><dt>Qué es</dt><dd>{selected.kind}</dd></div><div><dt>Cuándo se observó</dt><dd>{shortDate(selected.observedAt)}</dd></div><div><dt>Solidez</dt><dd>{selected.confidence === null ? 'Todavía no se ha medido' : `${Math.round(selected.confidence * 100)}%`}</dd></div><div><dt>Evidencia relacionada</dt><dd>{selected.evidenceIds.length || 'Aún no vinculada'}</dd></div></dl><div className="rgo-actions"><button type="button" onClick={analyzeSelected}>ANALIZAR RELACIONES</button><button type="button" onClick={generateReport}>GENERAR LECTURA</button></div></> : <div className="rgo-empty"><strong>Selecciona un punto.</strong><p>ROOT mostrará qué significa, qué lo sostiene y qué acciones se pueden desencadenar.</p></div>}
-            </aside>
-          </div>
-          <footer className="rgo-pipeline"><span>FLUJO ACTIVO</span><b>SELECCIONAR O CARGAR EVIDENCIA</b><i>→</i><b>OBSERVAR RELACIONES</b><i>→</i><b>EJECUTAR AGENTES</b><i>→</i><b>GENERAR LECTURA</b><i>→</i><b>PERSISTIR O CERRAR</b></footer>
-        </section>
-      ) : null}
-    </main>
-  );
+    <nav className="root-canonical__tabs">
+      {PANELS.map((item) => <button type="button" key={item.id} data-active={panel === item.id} onClick={() => setPanel(item.id)}><b>{item.label}</b><span>{item.question}</span></button>)}
+    </nav>
+
+    <section className="root-canonical__workspace">
+      <header><div><span>{active.label}</span><h2>{active.question}</h2></div><strong>{panel === 'logbook' ? 'LIVE' : list.length}</strong></header>
+
+      {panel === 'logbook' ? <LogbookSelectorPanel /> : null}
+
+      {panel !== 'logbook' ? <div className="root-canonical__list">
+        {list.length ? list.slice(0, 80).map((item) => <button type="button" key={`${item.subtitle}:${item.id}`} onClick={() => onSelect(selected(item))}>
+          <div><span>{item.subtitle}</span><b>{item.title}</b><p>{item.summary}</p></div>
+          <aside><strong>{item.status}</strong><small>{when(item.observedAt)}</small></aside>
+        </button>) : <div className="root-canonical__empty"><b>NADA QUE RESOLVER EN ESTE CORTE</b><p>La ausencia de registros no se sustituye con elementos simulados.</p></div>}
+      </div> : null}
+
+      {panel === 'governance' ? <footer className="root-canonical__footer"><Link href="/root/decisions">ABRIR COLA DE DECISIONES DETALLADA</Link><span>Se absorberá en este panel cuando sus acciones específicas queden migradas.</span></footer> : null}
+      {panel === 'twin' ? <footer className="root-canonical__footer"><Link href="/root/cognitive-twin">ABRIR DETALLE DEL TWIN</Link><span>Memoria no equivale a autoridad.</span></footer> : null}
+    </section>
+
+    <style jsx>{`
+      .root-canonical{min-height:100vh;background:#f3f0e8;color:#171b1e;padding:28px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}.root-canonical__header{display:flex;justify-content:space-between;gap:28px;padding-bottom:22px;border-bottom:1px solid #bca86d}.root-canonical__header span,.root-canonical__since span,.root-canonical__workspace>header span{font-size:9px;letter-spacing:.16em;color:#8b7336}.root-canonical__header h1{font:400 36px/1.05 Georgia,serif;margin:7px 0;color:#17232d}.root-canonical__header p{max-width:820px;margin:0;color:#58636a;font:14px/1.65 Georgia,serif}.root-canonical__actions{display:flex;gap:8px;align-items:flex-start}.root-canonical button,.root-canonical a{font-family:inherit}.root-canonical__actions button{border:1px solid #758795;background:#e9edf0;color:#223744;padding:9px 11px;font-size:9px}.root-canonical__actions button:last-child{border-color:#a68b48;background:#c5aa66;color:#15212a}.root-canonical__surfaces{display:flex;gap:7px;align-items:center;padding:12px 0;border-bottom:1px solid #d7d0bf}.root-canonical__surfaces a{color:#334b5c;text-decoration:none;border:1px solid #bac5cc;background:#edf1f3;padding:7px 9px;font-size:8px}.root-canonical__surfaces span{flex:1}.root-canonical__surfaces a:nth-last-child(-n+2){background:transparent;border-color:#d1c8b1;color:#786b4a}.root-canonical__warning{margin-top:12px;border-left:3px solid #9b6b45;background:#eee4d6;padding:10px 12px;display:grid;gap:4px}.root-canonical__warning b{font-size:8px;color:#6f472e}.root-canonical__warning span{font:12px/1.5 Georgia,serif;color:#664f40}.root-canonical__since{display:grid;grid-template-columns:220px 1fr;gap:18px;padding:18px 0;border-bottom:1px solid #d7d0bf}.root-canonical__since>div:first-child{display:grid;gap:6px}.root-canonical__since strong{font:400 28px Georgia,serif;color:#263c49}.root-canonical__since p{margin:0;color:#667177;font:12px/1.55 Georgia,serif}.root-canonical__since>div:last-child{grid-column:2;display:flex;gap:6px;flex-wrap:wrap}.root-canonical__since button{border:1px solid #d1c8b1;background:#faf8f3;text-align:left;padding:7px 9px;display:grid;gap:2px}.root-canonical__since button b{font-size:8px}.root-canonical__since button small{font-size:7px;color:#7a7468}.root-canonical__tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:18px 0}.root-canonical__tabs button{text-align:left;border:1px solid #bec8ce;background:#e7ecef;padding:13px;color:#4b5c66;display:grid;gap:7px}.root-canonical__tabs button[data-active=true]{background:#17303f;color:#f3f5f4;border-color:#17303f;box-shadow:inset 0 -3px #c3a35d}.root-canonical__tabs b{font-size:9px;letter-spacing:.1em}.root-canonical__tabs span{font:11px/1.45 Georgia,serif;opacity:.82}.root-canonical__workspace{border:1px solid #b9c3c8;background:#fbfaf6;min-height:520px}.root-canonical__workspace>header{display:flex;justify-content:space-between;gap:20px;padding:18px;border-bottom:1px solid #d6d9d8;background:#e9eef0}.root-canonical__workspace h2{font:400 22px Georgia,serif;margin:5px 0 0;color:#243b49}.root-canonical__workspace>header>strong{font:400 28px Georgia,serif;color:#aa8d49}.root-canonical__list{display:grid}.root-canonical__list>button{display:grid;grid-template-columns:1fr 180px;gap:18px;text-align:left;border:0;border-bottom:1px solid #e3dfd5;background:transparent;padding:14px 18px;color:#263238}.root-canonical__list>button:hover{background:#f1f4f4}.root-canonical__list span{font-size:7px;color:#987b3d;letter-spacing:.1em}.root-canonical__list b{display:block;margin-top:4px;font:600 13px Georgia,serif;color:#263d49}.root-canonical__list p{margin:4px 0 0;color:#68747a;font:11px/1.5 Georgia,serif}.root-canonical__list aside{text-align:right;display:grid;align-content:start;gap:5px}.root-canonical__list aside strong{font-size:8px;color:#556c78}.root-canonical__list aside small{font-size:7px;color:#89877f}.root-canonical__empty{padding:50px 18px;color:#777d7e;text-align:center}.root-canonical__empty b{font-size:9px;color:#53666f}.root-canonical__empty p{font:12px Georgia,serif}.root-canonical__footer{display:flex;justify-content:space-between;gap:12px;padding:12px 18px;background:#f0eee7;border-top:1px solid #d9d3c3}.root-canonical__footer a{font-size:8px;color:#725a28}.root-canonical__footer span{font:10px Georgia,serif;color:#7c776c}@media(max-width:900px){.root-canonical{padding:16px}.root-canonical__header{display:grid}.root-canonical__tabs{grid-template-columns:1fr 1fr}.root-canonical__since{grid-template-columns:1fr}.root-canonical__since>div:last-child{grid-column:1}.root-canonical__list>button{grid-template-columns:1fr}.root-canonical__list aside{text-align:left}.root-canonical__surfaces{overflow:auto}.root-canonical__actions{flex-wrap:wrap}}
+    `}</style>
+  </main>;
 }

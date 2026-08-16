@@ -3,7 +3,7 @@ import 'server-only';
 import { getLlmProviderStatus } from '@/lib/ai/providerRouter';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { SFI_AGENT_EXECUTION_MAP } from '@/lib/sfi/cognitive-runtime/agentExecutionMap';
-import { COGNITIVE_TWIN_REENTRY } from '@/lib/cognitive-twin/reentry/runtime';
+import { COGNITIVE_TWIN_REENTRY } from '@/core/cognitive-twin/reentry/runtime';
 import { METHOD_LAB_CONTRACT_VERSION, type MethodLabProtocolId, type MethodLabProtocolStatus } from './contracts';
 import { METHOD_LAB_PROTOCOLS } from './registry';
 

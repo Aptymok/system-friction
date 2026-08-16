@@ -106,7 +106,7 @@ export default function PredictionRegistryPanel() {
             <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[#c8a951]">ROOT Registry</div>
             <h2 className="mt-2 text-2xl font-semibold text-[#f5eedc]">Prediction entries</h2>
           </div>
-          <Link href="/root/predictions/new" className="border border-[#c8a95166] px-4 py-2 text-center font-mono text-[10px] uppercase tracking-[0.16em] text-[#c8a951]">
+          <Link href="/root/predictions#new-prediction" className="border border-[#c8a95166] px-4 py-2 text-center font-mono text-[10px] uppercase tracking-[0.16em] text-[#c8a951]">
             New prediction
           </Link>
         </div>

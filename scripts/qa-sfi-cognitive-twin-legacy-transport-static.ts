@@ -15,7 +15,7 @@ for(const id of requiredIds){
   assert.ok(bridge.includes(`id:'${id}'`),`legacy_capability_manifest_missing:${id}`);
 }
 assert.doesNotMatch(bridge,/status:'MISSING'/,'retained_legacy_capability_marked_missing');
-for(const fn of ['buildCognitiveTwinTimeline','deriveOperatingModeDistribution','buildCognitiveTwinMetaObservation','buildCognitiveTwinCausalTrace','recordCognitiveTwinFeedback','readLegacyCognitiveTwinState']){
+for(const fn of ['buildCognitiveTwinTimeline','deriveOperatingModeDistribution','buildCognitiveTwinMetaObservation','buildCognitiveTwinCausalTrace','recordCognitiveTwinFeedback','readCognitiveTwinAncestralState']){
   assert.ok(bridge.includes(`function ${fn}`),`legacy_bridge_missing_function:${fn}`);
 }
 for(const invariant of ['EVIDENCE_BEFORE_INFERENCE','SIMULATION_IS_NOT_OBSERVATION','MEMORY_IS_NOT_AUTHORITY','LEARNING_DOES_NOT_EXPAND_AUTHORITY','MISSING_REMAINS_MISSING','LINEAGE_IS_PROVENANCE_NOT_INDIVIDUATION'])assert.ok(bridge.includes(invariant),`legacy_bridge_missing_invariant:${invariant}`);
@@ -23,7 +23,7 @@ for(const action of ['apply_subject_mutation','publish','mutate_canon','change_f
 assert.match(bridge,/epistemicClass:'OBSERVED_RETURN'/);
 assert.match(bridge,/CognitiveTwinLineageHealth/);
 assert.match(bridge,/readInstitutionalReadiness/);
-assert.match(bridge,/persistCognitiveTwinExperience/);
+assert.match(bridge,/recordCognitiveTwinExperience/);
 assert.match(bridge,/Software-complete legacy transport/);
 
 for(const file of [
@@ -32,12 +32,12 @@ for(const file of [
   'src/lib/cognitive-twin/reentry/runtime.ts',
   'src/lib/cognitive-twin/reentry/mutationState.ts',
   'src/lib/root/closure/readInstitutionalReadiness.ts',
-  'src/app/api/root/cognitive-twin/system-state/route.ts',
-  'src/app/root/cognitive-twin/system/page.tsx',
-  'src/app/root/cognitive-twin/system/system.module.css',
+  'src/app/api/root/cognitive-twin-state/route.ts',
+  'src/app/root/cognitive-twin/page.tsx',
+  'src/app/root/cognitive-twin/system.module.css',
 ])assert.ok(exists(file),`legacy_transport_support_file_missing:${file}`);
 
-const systemPage=read('src/app/root/cognitive-twin/system/page.tsx');
+const systemPage=read('src/app/root/cognitive-twin/page.tsx');
 for(const phrase of ['Memoria longitudinal de SFI','ARQUITECTURA RECUPERADA','METAOBSERVADOR','TIMELINE INSTITUCIONAL','no es un LLM'])assert.ok(systemPage.includes(phrase),`visual_twin_system_missing:${phrase}`);
 
 console.log(JSON.stringify({

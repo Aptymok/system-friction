@@ -9,17 +9,17 @@ const AUTH_COOKIE_NAMES = ['sb-access-token', 'sb-refresh-token', 'supabase-auth
 const ROOT_INTERNAL_FRAME_PREFIXES = [
   '/root/institutionalization',
   '/root/reports',
-  '/root/contracts',
-  '/root/agents/passports',
+  '/root/readiness',
+  '/root/agents',
   '/root/cognitive-twin',
   '/root/predictions',
   '/root/attractor',
   '/root/longitudinal',
   '/root/decisions',
-  '/root/continuity',
+  '/root/readiness',
   '/field',
   '/studio',
-  '/interface/observatory',
+  '/field',
   '/library',
 ] as const
 

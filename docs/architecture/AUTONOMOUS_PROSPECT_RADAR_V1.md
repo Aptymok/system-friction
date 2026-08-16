@@ -22,9 +22,9 @@ SFI capability catalog
 
 ## Surface
 
-- ROOT page: `/root/prospect-radar`
+- ROOT page: `/root/commercial#prospect-radar`
 - API: `GET|POST /api/root/agentic/prospect-radar`
-- UI component: `src/components/root/prospect-radar/RootProspectRadar.tsx`
+- UI component: `src/components/root/commercial#prospect-radar/RootProspectRadar.tsx`
 - Retrieval/synthesis runtime: `src/lib/agents/noKeyProspectRadar.ts`
 - Persistence:
   - `prospect_research_runs`

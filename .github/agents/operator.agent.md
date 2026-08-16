@@ -61,7 +61,6 @@ Work with:
 
 /field
 
-/operator/field
 
 ROOT Console
 

@@ -1,5 +1,5 @@
 import 'server-only';
-import { readCognitiveTwinState } from '@/lib/cognitive-twin/readState';
+import { readCognitiveTwinState } from '@/core/cognitive-twin/readState';
 import { readRootAgents } from './readers/readRootAgents';
 import { readRootAmv } from './readers/readRootAmv';
 import { readRootCognitiveRuntime } from './readers/readRootCognitiveRuntime';

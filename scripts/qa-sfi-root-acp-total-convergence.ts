@@ -21,10 +21,12 @@ const readiness=read('src/lib/root/closure/readInstitutionalReadiness.ts');
 const governancePage=read('src/app/root/governance/page.tsx');
 const readinessPage=read('src/app/root/readiness/page.tsx');
 const rootConsole=read('src/components/root/sovereign/RootSovereignConsole.tsx');
-const mutationState=read('src/lib/cognitive-twin/reentry/mutationState.ts');
-const lineageHealthRoute=read('src/app/api/root/cognitive-twin/lineage/health/route.ts');
-const checkpoint=read('src/lib/cognitive-twin/reentry/checkpoint.ts');
-const checkpointRoute=read('src/app/api/root/cognitive-twin/lineage/checkpoint/route.ts');
+const mutationState=read('src/core/cognitive-twin/reentry/mutationState.ts');
+const twinPage=read('src/app/root/cognitive-twin/page.tsx');
+const checkpoint=read('src/core/cognitive-twin/reentry/checkpoint.ts');
+const checkpointRoute=read('src/app/api/root/cognitive-twin/checkpoint/route.ts');
+const snapshotRoute=read('src/app/api/root/cognitive-twin/snapshot/route.ts');
+const forkRoute=read('src/app/api/root/cognitive-twin/fork/route.ts');
 const experimentControls=read('src/components/root/cognitive-twin/CognitiveTwinExperimentControls.tsx');
 const vercel=JSON.parse(read('vercel.json')) as {crons?:unknown[]};
 
@@ -79,12 +81,18 @@ assert.match(rootConsole,/\/root\/governance/);
 
 assert.match(mutationState,/CT-A01-MUT-%/);
 assert.match(mutationState,/CANDIDATE/);
-assert.match(lineageHealthRoute,/readCognitiveTwinMutationState/);
+assert.match(twinPage,/readCognitiveTwinMutationState/);
 assert.match(checkpoint,/SFI-CT-LINEAGE-CHECKPOINT-1\.0/);
 assert.match(checkpoint,/PENDING_EXTERNAL_ANCHOR/);
 assert.match(checkpoint,/previousCheckpointHash/);
-assert.match(checkpointRoute,/Internal checkpoint package only/);
+assert.match(checkpointRoute,/createLineageCheckpoint/);
+assert.match(checkpointRoute,/requireRootActor\('root\.cognitive-twin\.checkpoint\.create'\)/);
+assert.match(snapshotRoute,/createCognitiveTwinSnapshot/);
+assert.match(forkRoute,/registerCognitiveTwinFork/);
 assert.match(experimentControls,/CREATE LINEAGE CHECKPOINT/);
+assert.match(experimentControls,/\/api\/root\/cognitive-twin\/snapshot/);
+assert.match(experimentControls,/\/api\/root\/cognitive-twin\/checkpoint/);
+assert.match(experimentControls,/\/api\/root\/cognitive-twin\/fork/);
 
 const cronCount=Array.isArray(vercel.crons)?vercel.crons.length:0;
 assert.equal(cronCount,7,`Expected unchanged 7 Vercel crons, found ${cronCount}`);
@@ -101,7 +109,8 @@ console.log(JSON.stringify({ok:true,invariants:[
   'readiness uses planned health counts rather than expensive exact dashboard counts',
   'empty post-reset organs may be READY without being falsely marked broken',
   'readiness separates internal blockers from external scientific/proof gates',
-  'CT mutation state is observed rather than hardcoded at the ROOT API/UI boundary',
+  'CT mutation state is observed directly at the ROOT server-rendered UI boundary',
+  'CT snapshot/checkpoint/fork controls have governed canonical API endpoints',
   'CT checkpoint is exportable but explicitly pending independent external anchoring',
   'no new Vercel cron introduced',
 ]},null,2));

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { runLlmTask } from '@/lib/ai/providerRouter';
-import { createCognitiveTwinEnvelope } from '@/lib/cognitive-twin/contract';
+import { createCognitiveTwinEnvelope } from '@/core/cognitive-twin/contract';
 import type { KernelContext, KernelEvidence } from '@/lib/sfi/cognitive-runtime/kernelContext';
 import { executeSfiRuntime } from '@/lib/sfi/cognitive-runtime/runtime';
 import { createServerSupabaseClient, createServiceSupabaseClient } from '@/runtime/supabase/server';

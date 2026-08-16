@@ -1,29 +1,34 @@
+import surfaces from '../../../config/sfi-surfaces.json';
+
 export async function GET() {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://systemfriction.org';
   const today = new Date().toISOString().split('T')[0];
+  const publicResources = surfaces.public
+    .filter((entry) => entry.index)
+    .map((entry) => `${baseUrl}${entry.path === '/' ? '' : entry.path}`)
+    .join('\n');
   const content = `
 # SYSTEM FRICTION INSTITUTE
 
-Public institutional surface for observing systemic friction through evidence, minimal perturbation and operational decisions.
+Institutional observation system for evidence, trajectories, attractors, minimum perturbations and verified returns.
 
-## PUBLIC RESOURCES
+## CANONICAL PUBLIC RESOURCES
 
-${baseUrl}
-${baseUrl}/repository
-${baseUrl}/field
-${baseUrl}/contact
-${baseUrl}/privacy
-${baseUrl}/login
-${baseUrl}/signup
+${publicResources}
 ${baseUrl}/field-schema.json
+
+## FEATURED PUBLICATION
+
+${baseUrl}/founder-edition
+${baseUrl}/publications/instrumentalizacion-mente-fragmentada-founder-edition.pdf
 
 ## PRIVATE ROUTES
 
-/root and /studio require authorization and must not be treated as public evidence. /field is public intake; account memory and User Twin remain private.
+/root and /studio require authorization and must not be treated as public evidence. Account memory, Cognitive Twin runtime and constitutive governance controls remain private.
 
-## AI POLICY
+## EPISTEMIC BOUNDARY
 
-No psychiatric, legal, medical or financial authority claimed. Private runtime state is not public validation.
+Observed, derived, experimental and canonical states are not interchangeable. Runtime capability is not external validation. Models and publications do not substitute for the evidence contract of the method being evaluated.
 
 ## LAST UPDATE
 

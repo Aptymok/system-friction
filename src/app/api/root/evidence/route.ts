@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 import { buildMutationLogbookRow, createActionProposal, sha256, stringValue } from '@/lib/operational/common';
 import { appendEpistemicEvent } from '@/lib/events/eventStore';
 import { auditRootAction, asRecord, requireRootContributor } from '@/lib/root/server';
-import { ingestRootEvidenceIntoCognitiveTwin } from '@/lib/cognitive-twin/evidenceIngestion';
+import { ingestRootEvidenceIntoCognitiveTwin } from '@/core/cognitive-twin/evidenceIngestion';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';

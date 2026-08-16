@@ -12,7 +12,7 @@ export function RootCycleAnalysisDockAuto(){
   const [error,setError]=useState('');
 
   async function reload(preferredId?:string){
-    const response=await fetch('/api/root/operate/cycles',{cache:'no-store',credentials:'include'});
+    const response=await fetch('/api/pipeline/cycles',{cache:'no-store',credentials:'include'});
     const body=await response.json().catch(()=>null);
     if(!response.ok||!body?.ok){setError(body?.details??body?.error??'No fue posible leer los ciclos.');return;}
     const next=Array.isArray(body.cycles)?body.cycles:[];

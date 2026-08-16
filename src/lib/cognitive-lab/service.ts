@@ -1,8 +1,10 @@
 import 'server-only';
 
+import { randomUUID } from 'node:crypto';
 import { runLlmTask } from '@/lib/ai/providerRouter';
-import { createCognitiveTwinEnvelope, evaluateCognitiveTwinAuthority } from '@/lib/cognitive-twin/contract';
-import { persistCognitiveTwinExperience } from '@/lib/cognitive-twin/experienceBridge';
+import { createCognitiveTwinEnvelope, evaluateCognitiveTwinAuthority } from '@/core/cognitive-twin/contract';
+import { readCanonicalCognitiveTwinMemory } from '@/core/cognitive-twin/canonicalMemoryView';
+import { recordCognitiveTwinExperience } from '@/core/cognitive-twin/experience';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 
 type Row = Record<string, unknown>;
@@ -63,7 +65,7 @@ function jsonArray(value: unknown): unknown[] {
 
 function sessionKey() {
   const stamp = new Date().toISOString().replace(/[-:.TZ]/g, '').slice(0, 14);
-  const suffix = Math.random().toString(36).slice(2, 8).toUpperCase();
+  const suffix = randomUUID().replaceAll('-', '').slice(0, 6).toUpperCase();
   return `CRL-${stamp}-${suffix}`;
 }
 
@@ -198,7 +200,9 @@ export async function runCognitiveLabBlindTwin(createdBy: string, sessionId: str
   if (events.length === 0) throw new Error('COGNITIVE_LAB_BLIND_REQUIRES_EVENTS');
 
   // Blind analysis deliberately excludes CANDIDATE memory to reduce circular learning.
-  const [memoryResult, decisionsResult] = await Promise.all([
+  // Institutional memory is canonical; the former CT table remains read-only historical fallback.
+  const [canonicalMemoryResult, legacyMemoryResult, decisionsResult] = await Promise.all([
+    readCanonicalCognitiveTwinMemory(80),
     db.from('sfi_cognitive_twin_memory')
       .select('memory_key,memory_type,status,content,evidence_refs,source_kind,source_ref,version,updated_at')
       .in('status', ['VERIFIED', 'CANONICAL'])
@@ -211,9 +215,24 @@ export async function runCognitiveLabBlindTwin(createdBy: string, sessionId: str
       .limit(50),
   ]);
 
-  const warnings = [memoryResult.error?.message, decisionsResult.error?.message]
-    .filter((item): item is string => Boolean(item));
-  const memory = memoryResult.data ?? [];
+  const warnings = [
+    canonicalMemoryResult.error,
+    legacyMemoryResult.error?.message,
+    decisionsResult.error?.message,
+  ].filter((item): item is string => Boolean(item));
+  const memoryByKey = new Map<string, Row>();
+  for (const item of canonicalMemoryResult.rows) {
+    if (!['VERIFIED', 'CANONICAL'].includes(item.status)) continue;
+    memoryByKey.set(item.memory_key, item as unknown as Row);
+  }
+  for (const item of legacyMemoryResult.data ?? []) {
+    const row = record(item);
+    const key = text(row.memory_key, 500);
+    if (!key || memoryByKey.has(key)) continue;
+    memoryByKey.set(key, { ...row, canonical_store: 'legacy_read_only' });
+    if (memoryByKey.size >= 80) break;
+  }
+  const memory = [...memoryByKey.values()].slice(0, 80);
   const decisions = decisionsResult.data ?? [];
   const evidenceRefs = eventEvidenceRefs(events);
   const startedAt = new Date().toISOString();
@@ -415,7 +434,7 @@ export async function runCognitiveLabFounderContrast(createdBy: string, sessionI
       `cognitive-lab-analysis:${String(founderAnalysis.data.id)}`,
       `cognitive-lab-analysis:${String(divergence.data.id)}`,
     ];
-    const memory = await persistCognitiveTwinExperience({
+    const memory = await recordCognitiveTwinExperience({
       memoryKey: `cognitive_lab:${sessionId}:relational_contrast`,
       memoryType: 'STATE',
       sourceKind: 'COGNITIVE_LAB_CONTRAST',

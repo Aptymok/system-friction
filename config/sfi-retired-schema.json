@@ -1,0 +1,13 @@
+{
+  "version": "2026-08-15",
+  "reason": "Objects eligible for controlled retirement after live read-only verification and current code-reference reconciliation. Any object with an active code consumer is excluded from this registry.",
+  "migration": null,
+  "objects": [
+    "graph_history",
+    "institutional_memory_audit_log",
+    "mihm_state_registry",
+    "sfi_reports",
+    "vw_sfi_perturbation_history",
+    "vw_sfi_reality_console_state"
+  ]
+}

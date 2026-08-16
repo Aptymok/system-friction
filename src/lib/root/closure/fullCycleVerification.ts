@@ -3,8 +3,8 @@ import 'server-only';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { runMethodLabSimulation } from '@/lib/method-lab/simulationRun';
 import { runStudioMasterAnalysisLoop } from '@/lib/studio/cognitive/studioMasterAnalysisLoop';
-import { runIntegratedInstitutionalCycle } from '@/lib/cognitive-twin/integratedInstitutionalCycle';
-import { persistCognitiveTwinExperience } from '@/lib/cognitive-twin/experienceBridge';
+import { runIntegratedInstitutionalCycle } from '@/core/cognitive-twin/integratedInstitutionalCycle';
+import { recordCognitiveTwinExperience } from '@/core/cognitive-twin/experience';
 import { readInstitutionalReadiness } from './readInstitutionalReadiness';
 
 type Row = Record<string, unknown>;
@@ -78,7 +78,7 @@ export async function runFullCycleVerification(input:{ ownerId:string; operating
 
   // 5. Preserve the verification replay as candidate memory, not as new observed reality.
   const proofKey=`SFI:FULL_CYCLE_VERIFICATION:${input.operatingCycleId}:${startedAt}`;
-  const twin=await persistCognitiveTwinExperience({
+  const twin=await recordCognitiveTwinExperience({
     memoryKey:proofKey,memoryType:'STATE',sourceKind:'sfi_operating_cycles',sourceRef:input.operatingCycleId,createdBy:input.ownerId,
     evidenceRefs:evidence?[text(evidence.id)]:[],
     content:{epistemicClass:'VERIFICATION_REPLAY',startedAt,studioObjectId:studioRef,fieldCaseId:text(fieldCase?.id)||null,fieldOutcomeId:text(fieldOutcome?.id)||null,methodLabId:text(labResult?.labAnalysisId)||null,rule:'This record proves only that existing real persisted material was replayed through executable SFI organs. It is not a new observation, intervention outcome, scientific validation or canonical promotion.'},

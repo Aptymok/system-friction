@@ -5,10 +5,11 @@ function read(path: string) {
   return fs.readFileSync(path, 'utf8');
 }
 
-const integration = read('src/lib/cognitive-twin/institutionalIntegration.ts');
-const experience = read('src/lib/cognitive-twin/experienceBridge.ts');
-const evidenceIngestion = read('src/lib/cognitive-twin/evidenceIngestion.ts');
-const studioContext = read('src/lib/cognitive-twin/studioContext.ts');
+const integration = read('src/core/cognitive-twin/institutionalIntegration.ts');
+const experience = read('src/core/cognitive-twin/experience.ts');
+const evidenceIngestion = read('src/core/cognitive-twin/evidenceIngestion.ts');
+const studioContext = read('src/core/cognitive-twin/studioContext.ts');
+const canonicalMemory = read('src/core/cognitive-twin/canonicalMemoryView.ts');
 const crl = read('src/lib/cognitive-lab/service.ts');
 const field = read('src/lib/field/governedReturn.ts');
 const methodLab = read('src/lib/method-lab/simulationRun.ts');
@@ -16,7 +17,7 @@ const deliberate = read('src/app/api/root/cognitive-twin/deliberate/route.ts');
 const continuity = read('src/app/api/cron/continuity-report/route.ts');
 const scheduledCycle = read('src/app/api/cron/sfi-institutional-cycle/route.ts');
 const manualCycle = read('src/app/api/root/institutional-cycle/route.ts');
-const state = read('src/lib/cognitive-twin/readState.ts');
+const state = read('src/core/cognitive-twin/readState.ts');
 const page = read('src/app/root/cognitive-twin/page.tsx');
 const panel = read('src/components/root/cognitive-twin/CognitiveTwinIntegrationPanel.tsx');
 const workflow = read('.github/workflows/sfi-ct-institutional-integration.yml');
@@ -34,24 +35,32 @@ assert.equal(integration.includes("dataMode === 'SIMULATED' ? 'SIMULATED' : 'OBS
 assert.ok(integration.includes(".order('created_at', { ascending: false })"), 'Method Lab sync must ingest newest rows first');
 
 assert.ok(integration.includes("epistemicClass:'OBSERVED_RETURN'"), 'Field historical return ingestion missing');
-assert.ok(integration.includes("import { persistCognitiveTwinExperience } from './experienceBridge'"), 'historical integration bypasses canonical experience bridge');
+assert.ok(integration.includes("import { recordCognitiveTwinExperience } from './experience'"), 'historical integration bypasses canonical experience bridge');
 assert.equal(integration.includes("from('sfi_cognitive_twin_memory').upsert"), false, 'institutional integration must not create a second memory persistence path');
-assert.ok(experience.includes("status: 'CANDIDATE'"), 'experience bridge must persist candidates only');
-assert.ok(experience.includes('never expands authority automatically'), 'experience authority boundary missing');
+assert.ok(experience.includes("eventName:'cognitive_twin.experience.recorded'"), 'experience bridge must append experience to the epistemic ledger');
+assert.ok(experience.includes('Memory promotion is policy-governed and never expands Cognitive Twin authority'), 'experience authority boundary missing');
+assert.ok(experience.includes('processEpistemicEvent(emitted.event)'), 'experience memory promotion must pass through the institutional policy pipeline');
+
+assert.ok(canonicalMemory.includes("lifecycle === 'REJECTED'"), 'canonical memory must preserve REJECTED lifecycle');
+assert.ok(canonicalMemory.includes("lifecycle === 'OBSOLETE'"), 'canonical memory must preserve OBSOLETE lifecycle');
+assert.ok(canonicalMemory.includes('CONSUMABLE_MEMORY_STATUSES'), 'canonical memory must explicitly define consumable lifecycle states');
+assert.ok(canonicalMemory.includes('seenKeys.add(memory.memory_key)'), 'canonical memory must suppress older versions after a terminal latest review');
+assert.ok(canonicalMemory.includes('.range(offset, offset + PAGE_SIZE - 1)'), 'canonical memory must page before distinct-key deduplication');
+assert.equal(canonicalMemory.includes('.limit(scanLimit)'), false, 'canonical memory must not truncate before distinct-key deduplication');
 
 for (const [name, source] of [
   ['ROOT Evidence', evidenceIngestion],
   ['Studio', studioContext],
   ['CRL', crl],
 ] as const) {
-  assert.ok(source.includes('persistCognitiveTwinExperience'), `${name} must use the canonical experience bridge`);
+  assert.ok(source.includes('recordCognitiveTwinExperience'), `${name} must use the canonical experience bridge`);
   assert.equal(source.includes("from('sfi_cognitive_twin_memory').upsert"), false, `${name} must not directly upsert Twin memory`);
 }
 
-assert.ok(field.includes('persistCognitiveTwinExperience'), 'Field live return is not wired to Twin experience');
+assert.ok(field.includes('recordCognitiveTwinExperience'), 'Field live return is not wired to Twin experience');
 assert.ok(field.includes("epistemicClass:'OBSERVED_RETURN'"), 'Field return epistemic class missing');
 assert.ok(field.includes('returnContrast:contrast'), 'Field contrast must travel into Twin experience');
-assert.ok(methodLab.includes('persistCognitiveTwinExperience'), 'Method Lab live run is not wired to Twin experience');
+assert.ok(methodLab.includes('recordCognitiveTwinExperience'), 'Method Lab live run is not wired to Twin experience');
 assert.ok(methodLab.includes("epistemicClass:'SIMULATED'"), 'Method Lab simulation must remain SIMULATED in Twin');
 
 assert.ok(deliberate.includes('syncSfiInstitutionalStateToCognitiveTwin'), 'Twin deliberation must refresh SFI state');
@@ -77,6 +86,8 @@ console.log(JSON.stringify({
   contract:'SFI-CT-INSTITUTIONAL-INTEGRATION-1.0',
   organs:7,
   canonicalExperienceBridge:true,
+  canonicalMemoryTerminalFiltering:true,
+  canonicalMemoryDistinctKeyPaging:true,
   canonicalIngress:['ROOT_EVIDENCE','STUDIO','CRL','METHOD_LAB','FIELD','OBSERVATORY_SYNC'],
   methodLabEpistemicBoundary:true,
   newestFirstSync:true,

@@ -1,7 +1,7 @@
 import 'server-only';
 
 import { runLlmTask } from '@/lib/ai/providerRouter';
-import { createCognitiveTwinEnvelope, evaluateCognitiveTwinAuthority } from '@/lib/cognitive-twin/contract';
+import { createCognitiveTwinEnvelope, evaluateCognitiveTwinAuthority } from '@/core/cognitive-twin/contract';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { appendCognitiveLabEvent, getCognitiveLabSession } from './service';
 

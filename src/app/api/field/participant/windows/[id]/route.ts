@@ -70,7 +70,7 @@ export async function PATCH(request: Request, ctx: RouteContext) {
       ok: true,
       window: result.window,
       attractor: result.attractor,
-      nextPath: result.attractor ? '/interface/observatory' : '/interface',
+      nextPath: result.attractor ? '/field' : '/field',
     });
   } catch (error) {
     return failure(error);

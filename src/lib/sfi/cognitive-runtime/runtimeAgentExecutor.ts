@@ -1,7 +1,7 @@
 import type { KernelContext } from './kernelContext';
 import { executeRegisteredAgent } from './agentExecutionMap';
-import { recordAgentExecutionEvent } from './runtimeEventBridge';
-import { augmentAgentWithLlm } from './agentLlmBridge';
+import { recordAgentExecutionEvent } from '@/infrastructure/events/cognitiveRuntimeEventRepository';
+import { augmentAgentWithLlm } from '@/infrastructure/ai/agentLlmClient';
 
 export interface AgentExecutionResult {
   agentId: string;

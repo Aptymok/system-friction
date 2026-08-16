@@ -6,7 +6,7 @@ function read(path: string) { return readFileSync(path, 'utf8'); }
 const proxy = read('src/proxy.ts');
 assert.match(proxy, /X-Frame-Options', permitsRootInternalFrame\(pathname\) \? 'SAMEORIGIN' : 'DENY'/, 'ROOT-owned framed surfaces must be SAMEORIGIN while all other paths remain DENY');
 assert.match(proxy, /\/root\/reports/, 'Report surface must be explicitly allowed as an internal ROOT frame');
-assert.match(proxy, /\/root\/agents\/passports/, 'Agent passports must be explicitly allowed as an internal ROOT frame');
+assert.match(proxy, /\/root\/agents/, 'Agent surfaces, including passports, must be covered by the internal ROOT frame prefix');
 
 const reportsUi = read('src/components/root/reports/RootReportsConsole.tsx');
 assert.match(reportsUi, /BUSCAR EN REPORTES YA GENERADOS/, 'Report Center must expose search over existing reports');

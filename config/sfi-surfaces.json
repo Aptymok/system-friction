@@ -1,0 +1,98 @@
+{
+  "version": "2026-08-15",
+  "public": [
+    {
+      "path": "/",
+      "label": "Institute",
+      "index": true,
+      "priority": 1,
+      "changeFrequency": "daily"
+    },
+    {
+      "path": "/observatory",
+      "label": "Observatory",
+      "index": true,
+      "priority": 0.95,
+      "changeFrequency": "daily"
+    },
+    {
+      "path": "/field",
+      "label": "Field",
+      "index": true,
+      "priority": 0.9,
+      "changeFrequency": "weekly"
+    },
+    {
+      "path": "/repository",
+      "label": "Repository",
+      "index": true,
+      "priority": 0.9,
+      "changeFrequency": "weekly"
+    },
+    {
+      "path": "/library",
+      "label": "Library",
+      "index": true,
+      "priority": 0.85,
+      "changeFrequency": "weekly"
+    },
+    {
+      "path": "/founder-edition",
+      "label": "Founder Edition",
+      "index": true,
+      "priority": 0.85,
+      "changeFrequency": "monthly"
+    },
+    {
+      "path": "/mihm",
+      "label": "MIHM",
+      "index": true,
+      "priority": 0.8,
+      "changeFrequency": "monthly"
+    },
+    {
+      "path": "/atlas",
+      "label": "Atlas",
+      "index": true,
+      "priority": 0.75,
+      "changeFrequency": "weekly"
+    },
+    {
+      "path": "/ledger",
+      "label": "Ledger",
+      "index": true,
+      "priority": 0.7,
+      "changeFrequency": "weekly"
+    },
+    {
+      "path": "/contact",
+      "label": "Contact",
+      "index": true,
+      "priority": 0.6,
+      "changeFrequency": "monthly"
+    },
+    {
+      "path": "/privacy",
+      "label": "Privacy",
+      "index": true,
+      "priority": 0.4,
+      "changeFrequency": "yearly"
+    }
+  ],
+  "rootOrgans": [
+    "/root",
+    "/root/readiness",
+    "/root/governance",
+    "/root/agents",
+    "/root/predictions",
+    "/root/attractor",
+    "/root/longitudinal",
+    "/root/commercial",
+    "/root/cognitive-twin",
+    "/root/institutionalization",
+    "/root/reports",
+    "/root/decisions",
+    "/root/evidence/intake",
+    "/method-lab"
+  ]
+}

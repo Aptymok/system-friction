@@ -16,7 +16,7 @@
 import type { EpistemicEventRow } from './epistemicEventWriter';
 import type { MemoryPolicySource } from './policy/contract';
 import { evaluateMemoryPolicy } from './memoryPolicyValidator';
-import { writeInstitutionalMemory } from '@/lib/memory/institutionalMemoryWriter';
+import { writeInstitutionalMemory } from '@/core/memory/InstitutionalMemoryWriter';
 
 export async function processEpistemicEvent(
   event: EpistemicEventRow,

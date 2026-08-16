@@ -74,7 +74,7 @@ export function MethodLabConsole({ state: initial }: { state: MethodLabState }) 
           <p>Prueba métodos y modelos sin confundir simulación con realidad. Todo resultado conserva procedencia, nivel de validación y límites; ninguna ejecución se autopromueve.</p>
         </div>
         <nav>
-          <a href="/root/pipeline">PIPELINE SFI</a>
+          <a href="/pipeline">PIPELINE SFI</a>
           <a href="/root/readiness">READINESS</a>
           <button type="button" onClick={() => void refresh()} disabled={refreshing}>{refreshing ? 'ACTUALIZANDO' : 'ACTUALIZAR'}</button>
         </nav>

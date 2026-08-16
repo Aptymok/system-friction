@@ -115,16 +115,18 @@ function dimensionState(input: {
 
 export async function readInstitutionalAttractor() {
   const db = createServiceSupabaseClient();
-  const [attractor, latest, phenomena] = await Promise.all([
+  const [attractor, latest, phenomena, experiment] = await Promise.all([
     db.from('sfi_attractors').select('*').eq('attractor_key', SFI_INSTITUTIONAL_ATTRACTOR_KEY).maybeSingle(),
     db.from('sfi_attractor_trajectory_snapshots').select('*').eq('attractor_key', SFI_INSTITUTIONAL_ATTRACTOR_KEY).order('observed_at', { ascending: false }).limit(1).maybeSingle(),
     db.from('sfi_phenomenon_trajectory_snapshots').select('*').eq('attractor_key', SFI_INSTITUTIONAL_ATTRACTOR_KEY).order('observed_at', { ascending: false }).limit(40),
+    db.from('sfi_institutional_experiments').select('*').eq('experiment_key', 'SFI-INSTITUTIONAL-30D-001').maybeSingle(),
   ]);
   return {
     attractor: attractor.data ?? null,
     latestTrajectory: latest.data ?? null,
     phenomenonTrajectory: phenomena.data ?? [],
-    warnings: [attractor.error?.message, latest.error?.message, phenomena.error?.message].filter((value): value is string => Boolean(value)),
+    experiment: experiment.data ?? null,
+    warnings: [attractor.error?.message, latest.error?.message, phenomena.error?.message, experiment.error?.message].filter((value): value is string => Boolean(value)),
   };
 }
 

@@ -1,4 +1,4 @@
-import { LongitudinalEngine, type LongitudinalAction } from './longitudinal'
+import { LongitudinalEngine, type LongitudinalAction } from '@/core/analysis/longitudinalEngine'
 import type { Audit, Metrics, MemoryFact } from '@/lib/types'
 
 export interface AMVContext {

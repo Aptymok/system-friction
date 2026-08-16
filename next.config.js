@@ -13,34 +13,15 @@ const mediaRuntimeFiles = [ffmpegPath, ffprobePath].filter(Boolean);
 
 const nextConfig = {
   poweredByHeader: false,
-  experimental: {
-    proxyClientMaxBodySize: '50mb',
-  },
-  serverExternalPackages: [
-    'ffmpeg-static',
-    'ffprobe-static',
-    'sharp',
-    'mammoth',
-    'pdf-parse',
-    'music-metadata',
-  ],
+  experimental: { proxyClientMaxBodySize: '50mb' },
+  serverExternalPackages: ['ffmpeg-static','ffprobe-static','sharp','mammoth','pdf-parse','music-metadata'],
   outputFileTracingIncludes: {
     '/api/studio/objects/*/analyze/audio': mediaRuntimeFiles,
     '/api/studio/objects/\\[id\\]/analyze/audio': mediaRuntimeFiles,
     '/api/studio/objects/*/analyze/video': mediaRuntimeFiles,
     '/api/studio/objects/\\[id\\]/analyze/video': mediaRuntimeFiles,
   },
-  outputFileTracingExcludes: {
-    '*': [
-      'services/python/**',
-      'services/python/**/*.py',
-      'services/python/**/*.pyc',
-      'services/python/__pycache__/**',
-    ],
-  },
-  async rewrites() {
-    return [{ source: '/', destination: '/' }];
-  },
+  outputFileTracingExcludes: { '*': ['services/python/**','services/python/**/*.py','services/python/**/*.pyc','services/python/__pycache__/**'] },
 };
 
 module.exports = nextConfig;

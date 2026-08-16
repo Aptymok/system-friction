@@ -24,7 +24,7 @@ const STEPS = [
 
 const SURFACES = [
   {key:'studio',label:'Studio · opcional',href:'/studio'},
-  {key:'lab',label:'Method Lab',href:'/root/method-lab'},
+  {key:'lab',label:'Method Lab',href:'/method-lab'},
   {key:'field',label:'Field',href:'/field'},
   {key:'twin',label:'Cognitive Twin',href:'/root/cognitive-twin'},
   {key:'readiness',label:'Readiness',href:'/root/readiness'},
@@ -57,7 +57,7 @@ export function RootOperatingField({ actorLabel }:{actorLabel:string}){
   const [protocol,setProtocol]=useState<'sociotechnical_simulation'|'economic_simulation'>('sociotechnical_simulation');
 
   async function reload(selectId?:string){
-    const response=await fetch('/api/root/operate/cycles',{cache:'no-store',credentials:'include'});
+    const response=await fetch('/api/pipeline/cycles',{cache:'no-store',credentials:'include'});
     const body=await response.json().catch(()=>null);
     if(!response.ok||!body?.ok){setMessage(body?.details??body?.error??'No fue posible leer los ciclos.');return;}
     const next=body.cycles??[];setCycles(next);
@@ -69,7 +69,7 @@ export function RootOperatingField({ actorLabel }:{actorLabel:string}){
     if(!title.trim()||!question.trim())return;
     setBusy('start');setMessage('');setProof(null);
     try{
-      const response=await fetch('/api/root/operate/cycles',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({title,question,subject,temporalScope:temporal,evidenceModalities:['TEXT'],worldContextRequested:true,requiresTrajectory:temporal==='LONGITUDINAL',requiresRivalHypothesis:true,requiresInterventionTracking:true})});
+      const response=await fetch('/api/pipeline/cycles',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({title,question,subject,temporalScope:temporal,evidenceModalities:['TEXT'],worldContextRequested:true,requiresTrajectory:temporal==='LONGITUDINAL',requiresRivalHypothesis:true,requiresInterventionTracking:true})});
       const body=await response.json().catch(()=>null);if(!response.ok||!body?.ok)throw new Error(body?.details??body?.error??`HTTP ${response.status}`);
       setTitle('');setQuestion('');setActive(body.cycle);setMessage(`Ciclo ${body.cycle.cycle_code} iniciado. SFI seleccionó ${body.method?.primary?.methodId??'sin método'} como instrumento primario.`);await reload(body.cycle.id);
     }catch(error){setMessage(error instanceof Error?error.message:String(error));}finally{setBusy('');}
@@ -77,7 +77,7 @@ export function RootOperatingField({ actorLabel }:{actorLabel:string}){
 
   async function patchCycle(input:Record<string,unknown>){
     if(!active)return null;
-    const response=await fetch('/api/root/operate/cycles',{method:'PATCH',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:active.id,...input})});
+    const response=await fetch('/api/pipeline/cycles',{method:'PATCH',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:active.id,...input})});
     const body=await response.json().catch(()=>null);if(!response.ok||!body?.ok)throw new Error(body?.details??body?.error??`HTTP ${response.status}`);
     setActive(body.cycle);return body.cycle;
   }
@@ -116,7 +116,7 @@ export function RootOperatingField({ actorLabel }:{actorLabel:string}){
   async function runFullProof(){
     if(!active)return;setBusy('proof');setMessage('');setProof(null);
     try{
-      const response=await fetch('/api/root/operate/verify',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({operatingCycleId:active.id})});
+      const response=await fetch('/api/pipeline/verify',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({operatingCycleId:active.id})});
       const body=await response.json().catch(()=>null);
       if(body?.proof)setProof(body.proof);
       if(!body?.proof&&(!response.ok||!body?.ok))throw new Error(body?.details??body?.error??`HTTP ${response.status}`);
@@ -131,7 +131,7 @@ export function RootOperatingField({ actorLabel }:{actorLabel:string}){
   return <main className="sfi-operate">
     <header className="operate-header">
       <div><span>SYSTEM FRICTION INSTITUTE · PIPELINE INSTITUCIONAL</span><h1>Un ciclo. Todo SFI.</h1><p>Objeto → evidencia → método → laboratorio → Field → retorno → contraste → memoria → gobierno. Studio queda disponible como análisis especializado, no como dependencia del núcleo.</p></div>
-      <aside><b>{actorLabel}</b><small>ROOT · SOBERANO</small><a href="/root/overview">Vista técnica</a><a href="/root/method-lab">Laboratorio</a></aside>
+      <aside><b>{actorLabel}</b><small>ROOT · SOBERANO</small><a href="/root">ROOT</a><a href="/method-lab">Laboratorio</a></aside>
     </header>
 
     <section className="cycle-rail" aria-label="Trayectoria del ciclo">

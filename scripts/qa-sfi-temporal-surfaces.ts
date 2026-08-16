@@ -14,10 +14,10 @@ const publicTimelineUi = read('src/components/observatory/public/PublicObservato
 const observatoryPage = read('src/app/observatory/page.tsx');
 const nationalField = read('src/lib/world-observatory/inegiNationalField.ts');
 const nationalFieldRoute = read('src/app/api/root/cognitive-twin/national-field/route.ts');
-const nationalScenario = read('src/lib/cognitive-twin/nationalFieldScenario.ts');
+const nationalScenario = read('src/core/cognitive-twin/nationalFieldScenario.ts');
 const nationalScenarioRoute = read('src/app/api/root/cognitive-twin/national-field/analyze/route.ts');
 const directTwin = read('src/app/api/root/cognitive-twin/deliberate/route.ts');
-const twinState = read('src/lib/cognitive-twin/readState.ts');
+const twinState = read('src/core/cognitive-twin/readState.ts');
 const twinUi = read('src/components/root/cognitive-twin/CognitiveTwinConsole.tsx');
 
 assert.ok(worldApi.includes('readPagedRows'), 'world_history_must_paginate');
