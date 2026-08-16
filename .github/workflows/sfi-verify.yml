@@ -126,6 +126,9 @@ jobs:
       - name: Verify SFI Case Platform Operational V1
         run: npx tsx scripts/qa-sfi-case-platform-operational-v1.ts
 
+      - name: Verify SFI Enterprise Assurance Domain V1
+        run: npx tsx scripts/qa-sfi-enterprise-assurance-domain-v1.ts
+
       - name: Typecheck
         id: typecheck
         shell: bash
