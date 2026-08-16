@@ -36,6 +36,9 @@ export async function POST(request: Request) {
       targetObservationEvidenceIds,
     });
     const result = await executeBlindDecisionReveal(input, gate.ctx.user.id);
+    const verifiedTargetEvidenceIds = targetTiming.required
+      ? targetTiming.evidence.map((item) => item.evidenceId)
+      : [];
     const audit = await auditRootAction({
       actorId: gate.ctx.user.id,
       action: 'method_lab.decision_transfer.blind_target_revealed',
@@ -56,9 +59,9 @@ export async function POST(request: Request) {
         targetTimingVerified: targetTiming.verified,
         targetTimingStatus: targetTiming.status,
         targetTimingProofHash: targetTiming.required ? targetTiming.proofHash : null,
-        targetObservedAfter: targetTiming.required ? targetTiming.cutoffAt : null,
+        contextCutoffAt: targetTiming.required ? targetTiming.cutoffAt : null,
         earliestObservedTargetAt: targetTiming.required ? targetTiming.earliestObservedTargetAt : null,
-        targetObservationEvidenceIds,
+        verifiedTargetObservationEvidenceIds: verifiedTargetEvidenceIds,
       },
       request,
     });
