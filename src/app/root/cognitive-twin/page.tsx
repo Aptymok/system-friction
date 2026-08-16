@@ -25,5 +25,5 @@ export default async function CognitiveTwinPage() {
     readCognitiveTwinJournal(),
   ]);
 
-  return <CognitiveTwinNativeSurface state={state} lineage={lineage} experiments={experiments} mutations={mutations} journal={journal}/>;
+  return <CognitiveTwinNativeSurface state={state} lineage={lineage} experiments={experiments} mutations={mutations.proposals} journal={journal.entries}/>;
 }
