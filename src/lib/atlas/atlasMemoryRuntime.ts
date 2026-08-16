@@ -1,3 +1,4 @@
+import { materializeAtlasCognitiveSpineTemporalContext } from '@/lib/atlas/cognitiveSpineTemporalContext';
 import { buildPublisherDraftRuntime } from '@/lib/publisher/publisherRuntime';
 
 export type AtlasMemoryRuntimeResult = { [key: string]: any };
@@ -11,7 +12,22 @@ function asString(value: unknown, fallback = 'n/a'): string {
 }
 
 export async function buildAtlasMemoryRuntime(): Promise<AtlasMemoryRuntimeResult> {
-  const publisher = await buildPublisherDraftRuntime();
+  const atlasStartedAt = new Date().toISOString();
+  const atlasExecutionId = `atlas-memory:${crypto.randomUUID()}`;
+  const [publisher, cognitiveSpineResult] = await Promise.all([
+    buildPublisherDraftRuntime(),
+    materializeAtlasCognitiveSpineTemporalContext({
+      executionId: atlasExecutionId,
+      sourceCutoff: atlasStartedAt,
+      createdAt: atlasStartedAt,
+    })
+      .then((context) => ({ ok: true as const, context, warning: null }))
+      .catch((error) => ({
+        ok: false as const,
+        context: null,
+        warning: `atlas_cognitive_spine_unavailable:${error instanceof Error ? error.message : String(error)}`,
+      })),
+  ]);
 
   const draft = asRecord(publisher);
   const material = asRecord(draft.material);
@@ -19,6 +35,15 @@ export async function buildAtlasMemoryRuntime(): Promise<AtlasMemoryRuntimeResul
   const contrast = asRecord(proposal.contrast);
 
   const entry_id = `atlas-${Date.now()}`;
+  const cognitiveSpine = cognitiveSpineResult.ok
+    ? cognitiveSpineResult.context
+    : {
+        contractVersion: 'SFI-ATLAS-CT-TEMPORAL-CONTEXT-1.0',
+        available: false,
+        consumed: false,
+        warning: cognitiveSpineResult.warning,
+        rule: 'Atlas remains operational when Cognitive Spine temporal context is unavailable. Missing context is preserved as a provenance gap, not reconstructed narratively.',
+      };
 
   return {
     ok: true,
@@ -39,6 +64,15 @@ export async function buildAtlasMemoryRuntime(): Promise<AtlasMemoryRuntimeResul
       asString(contrast.vector_id, ''),
     ].filter(Boolean),
     approval_required: Boolean(material.approval_required ?? draft.approval_required),
+    cognitive_spine: cognitiveSpine,
+    atlas_cognitive_boundary: {
+      context_is_read_only: true,
+      context_changes_publisher_material: false,
+      atlas_requires_ct_to_operate: false,
+      relationship_upgrades_epistemic_class: false,
+      association_implies_causality: false,
+      canonical_write_performed: false,
+    },
     publisher,
   };
 }
