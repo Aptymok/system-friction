@@ -6,3 +6,4 @@ export * from './architectureStatus';
 export * from './operational';
 export * from './sourceIntake';
 export * from './instrumentGate';
+export * from './enterpriseAssurance';
