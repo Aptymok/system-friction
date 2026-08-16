@@ -32,7 +32,7 @@ export default async function StudioPage({ searchParams }: { searchParams?: Prom
         identity={user.email ?? user.id}
       />
       <StudioSecondaryInstruments
-        sessionId={fieldState.session?.id ?? null}
+        fieldState={fieldState}
         activeObjectId={state.activeObject.id ?? null}
         objectCount={fieldState.objects.length}
         objectTitle={state.activeObject.title}
