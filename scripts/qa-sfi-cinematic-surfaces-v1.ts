@@ -12,8 +12,15 @@ const required = [
   'src/components/studio/workspace/StudioCinematicWorkspace.tsx',
   'src/components/cases/SfiCaseCinematicWorkspace.tsx',
   'src/components/cases/CaseProfileField.tsx',
+  'src/app/studio/page.tsx',
   'src/app/cases/page.tsx',
   'src/app/cases/[caseId]/page.tsx',
+  'src/app/field/page.tsx',
+  'src/app/observatory/page.tsx',
+  'src/app/atlas/page.tsx',
+  'src/app/library/page.tsx',
+  'src/app/method-lab/page.tsx',
+  'src/app/root/page.tsx',
   'src/core/observation/observationScope.ts',
   'src/core/artifacts/sfiArtifactIdentity.ts',
   'src/app/e/[artifactId]/page.tsx',
@@ -51,10 +58,47 @@ must(seed.includes('PENDING_OBJECT_MATCH'), 'KXTXR_YOUTUBE_OBJECT_RELATION_NOT_F
 
 const casePage = read('src/app/cases/[caseId]/page.tsx');
 must(casePage.includes('requireAuthenticatedUser'), 'CASE_WORKSPACE_NOT_AUTHENTICATED');
+const caseIndex = read('src/app/cases/page.tsx');
+must(caseIndex.includes('listOperationalCases'), 'CASE_INDEX_NOT_BOUND_TO_OPERATIONAL_CASES');
 
 const caseField = read('src/components/cases/CaseProfileField.tsx');
 for (const profile of ['AI_IMPLEMENTATION_DIAGNOSTIC','AI_GOVERNANCE_ASSURANCE','TENDER_ASSURANCE','CONTRACT_WARRANTY_ASSURANCE','SERVICE_OBSERVABILITY','ENTERPRISE_MEMORY','SYSTEM_OBSERVATORY','AI_ADOPTION_INTEGRATION']) must(caseField.includes(profile), `SERVICE_FIELD_MISSING:${profile}`);
 must(caseField.includes('NO WINNER AUTHORITY'), 'TENDER_HUMAN_AUTHORITY_BOUNDARY_MISSING');
+
+const atlas = read('src/app/atlas/page.tsx');
+must(atlas.includes('readInstitutionalViewState'), 'ATLAS_NOT_BOUND_TO_INSTITUTIONAL_READ_MODEL');
+must(atlas.includes('SfiCinematicSurface'), 'ATLAS_NOT_IN_CINEMATIC_GRAMMAR');
+must(atlas.includes("value: 'NO_VALUE'"), 'ATLAS_MOPH_MISSING_VALUE_NOT_EXPLICIT');
+must(atlas.includes('GRAPH PRESENCE ≠ CAUSALITY'), 'ATLAS_CAUSALITY_BOUNDARY_MISSING');
+
+const library = read('src/app/library/page.tsx');
+must(library.includes('getSfiLibraryManifest'), 'LIBRARY_NOT_BOUND_TO_MANIFEST');
+must(library.includes('getSfiLibraryDocuments'), 'LIBRARY_NOT_BOUND_TO_DOCUMENT_INDEX');
+must(library.includes('DOCUMENT ≠ EXECUTION AUTHORITY'), 'LIBRARY_AUTHORITY_BOUNDARY_MISSING');
+
+const field = read('src/app/field/page.tsx');
+must(field.includes('readPublicObservatoryState'), 'FIELD_WORLD_CONTEXT_NOT_REAL');
+must(field.includes('FieldOperationalConsole'), 'FIELD_OPERATIONAL_CONSOLE_MISSING');
+const fieldConsole = read('src/components/field/FieldOperationalConsole.tsx');
+must(fieldConsole.includes("fetch('/api/field/cases'"), 'FIELD_CASES_NOT_PERSISTED');
+must(fieldConsole.includes('Sin lectura MIHM persistida.'), 'FIELD_MISSING_MIHM_NOT_FAIL_CLOSED');
+
+const observatory = read('src/app/observatory/page.tsx');
+must(observatory.includes('readGovernedPublicObservatoryState'), 'PUBLIC_OBSERVATORY_NOT_GOVERNED');
+const observatorySurface = read('src/components/observatory/public/PublicObservatoryUnified.tsx');
+must(observatorySurface.includes('SIN EVIDENCIA PUBLICABLE EN ESTE CORTE.'), 'PUBLIC_OBSERVATORY_MISSING_EVIDENCE_NOT_EXPLICIT');
+must(observatorySurface.includes('PROVENANCE'), 'PUBLIC_OBSERVATORY_PROVENANCE_MISSING');
+
+const methodLab = read('src/app/method-lab/page.tsx');
+must(methodLab.includes('MethodLabCinematicFrame'), 'METHOD_LAB_NOT_IN_CINEMATIC_FRAME');
+must(methodLab.includes('readMethodLabState'), 'METHOD_LAB_NOT_BOUND_TO_REAL_STATE');
+
+const rootPage = read('src/app/root/page.tsx');
+must(rootPage.includes('readRootSovereignState'), 'ROOT_NOT_BOUND_TO_SOVEREIGN_STATE');
+must(rootPage.includes('RootSovereignConsole'), 'ROOT_SOVEREIGN_CONSOLE_MISSING');
+const rootLayout = read('src/app/root/layout.tsx');
+must(rootLayout.includes('CognitiveSpineStatusBar'), 'ROOT_COGNITIVE_SPINE_STATUS_NOT_PERSISTENT');
+must(rootLayout.includes("allowedRoles={['root']}"), 'ROOT_PRIVATE_BOUNDARY_MISSING');
 
 const surface = read('src/components/sfi/cinematic/SfiCinematicSurface.tsx');
 must(!/left sidebar|pipeline persistente|sin mocks/i.test(surface), 'META_OBSERVATION_COPY_PRESENT');
@@ -64,4 +108,12 @@ const labCanon = read('docs/canon/09_METHOD_LAB_AND_SIMULATION.md');
 must(labCanon.includes('Simulation output is always `SIMULATED`'), 'METHOD_LAB_SIMULATION_BOUNDARY_CHANGED');
 must(labCanon.includes('may not mutate canonical state directly'), 'METHOD_LAB_CANONICAL_MUTATION_BOUNDARY_CHANGED');
 
-console.log('SFI cinematic surfaces QA PASS');
+console.log(JSON.stringify({
+  ok: true,
+  gate: 'SFI_CINEMATIC_HUMAN_SURFACES_V1',
+  surfaces: ['STUDIO','CASE_PLATFORM','FIELD','PUBLIC_OBSERVATORY','ATLAS','LIBRARY','METHOD_LAB','ROOT','PUBLIC_MOPS'],
+  noInventedMissingValues: true,
+  commercialTruthAuthority: false,
+  simulationEqualsObservation: false,
+  publicCertificateFailClosed: true,
+}, null, 2));
