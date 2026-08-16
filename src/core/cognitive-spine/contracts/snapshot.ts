@@ -39,6 +39,7 @@ export type CognitiveSpineSourceRecord = {
   kind: CognitiveSpineRefKind;
   recordedAt: string;
   sourceHash: string;
+  sourceVersion?: string;
   epistemicAssessmentRef?: string;
   epistemicClass?: AssessedEpistemicClass;
   ancestryRoots?: string[];
@@ -57,12 +58,38 @@ export type CognitiveSpineDerivedState = {
   debt: Record<CognitiveDebtType, number>;
 };
 
+export type CognitiveSpineOperatingMode = {
+  modeRef: string | null;
+};
+
+export type CognitiveSpineTemporalState = {
+  sourceCutoff: string;
+  visibleRecordCount: number;
+};
+
+export type CognitiveSpineVerificationDebt = {
+  absolute: number;
+  byType: Record<CognitiveDebtType, number>;
+};
+
+export type CognitiveSpineSourceManifestEntry = {
+  ref: string;
+  sourceKind: CognitiveSpineRefKind;
+  sourceVersion: string | null;
+  sourceHash: string;
+};
+
+export type CognitiveSpineSourceHashEntry = {
+  ref: string;
+  hash: string;
+};
+
 export type CognitiveSpineSemanticPayload = {
-  schemaVersion: typeof COGNITIVE_SPINE_SNAPSHOT_SCHEMA_VERSION;
   sourceCutoff: string;
   projectorVersion: string;
   policyVersion: string;
   projectionProfile: string;
+  schemaVersion: typeof COGNITIVE_SPINE_SNAPSHOT_SCHEMA_VERSION;
 
   eventRefs: string[];
   evidenceRefs: string[];
@@ -74,19 +101,15 @@ export type CognitiveSpineSemanticPayload = {
   questionRefs: string[];
   personCtRefs: string[];
 
-  epistemicAssessmentRefs: string[];
-  sourceManifest: Array<{
-    ref: string;
-    kind: CognitiveSpineRefKind;
-    sourceHash: string;
-    epistemicAssessmentRef: string | null;
-    epistemicClass: AssessedEpistemicClass | null;
-    ancestryRoots: string[];
-    invalidated: boolean;
-    debtType: CognitiveDebtType | null;
-  }>;
+  operatingMode: CognitiveSpineOperatingMode;
+  temporalState: CognitiveSpineTemporalState;
+  verificationDebt: CognitiveSpineVerificationDebt;
   derivedState: CognitiveSpineDerivedState;
-  lineageRoots: string[];
+
+  sourceManifest: CognitiveSpineSourceManifestEntry[];
+  sourceHashes: CognitiveSpineSourceHashEntry[];
+  epistemicStateRefs: string[];
+  lineageRoot: string;
 };
 
 /**
@@ -109,6 +132,7 @@ export type CognitiveStateProjectionInput = {
   projectorVersion: string;
   policyVersion: string;
   projectionProfile: string;
+  operatingModeRef?: string | null;
   records: CognitiveSpineSourceRecord[];
 };
 
