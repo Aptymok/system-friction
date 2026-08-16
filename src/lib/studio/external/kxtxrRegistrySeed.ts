@@ -1,6 +1,12 @@
 import type { SfiArtifactManifestationV1, SfiArtifactScopeType } from '@/core/artifacts/sfiArtifactIdentity';
 
 export const KXTXR_ATTRACTOR_STATEMENT = 'NUEVO VECTOR CULTURAL QUE DEFINE NUEVAS GENERACIONES DE INTERACCIÓN ENTRE FRECUENCIAS DE DIFERENTES DIMENSIONES' as const;
+export const KXTXR_GRAPHIC_ATLAS = {
+  project: 'KXTXR',
+  collection: 'GRAPHIC_ATLAS',
+  objectPolicy: 'EACH_IMAGE_IS_FIRST_CLASS_OBJECT',
+  relationPolicy: 'IMAGE_OBJECTS_MAY_HAVE_MULTIPLE_EXTERNAL_MANIFESTATIONS',
+} as const;
 
 export type KxtxrExternalSeed = {
   key: string;
@@ -65,7 +71,7 @@ export const KXTXR_EXTERNAL_SEED: readonly KxtxrExternalSeed[] = [
     metadata: { project: 'KXTXR', evidenceRole: 'EXTERNAL_ROUTING_SURFACE' },
   },
   {
-    key: 'kxtxr-youtube-jtepor aqwgy',
+    key: 'kxtxr-youtube-jtepor aqwgy'.replace(' ', '-'),
     scopeType: 'PROJECT',
     scopeKey: 'KXTXR',
     platform: 'youtube',
@@ -73,15 +79,5 @@ export const KXTXR_EXTERNAL_SEED: readonly KxtxrExternalSeed[] = [
     relationType: 'PUBLISHED_AS',
     objectResolution: 'PENDING_OBJECT_MATCH',
     metadata: { project: 'KXTXR', platformObjectId: 'JTepOraQwGY', objectRelation: 'PENDING_RESOLUTION' },
-  },
-  {
-    key: 'kxtxr-graphic-atlas',
-    scopeType: 'PROJECT',
-    scopeKey: 'KXTXR',
-    platform: 'sfi-atlas',
-    externalUrl: 'https://kxtxr.vercel.app/',
-    relationType: 'ATLAS_COLLECTION',
-    objectResolution: 'PROJECT',
-    metadata: { project: 'KXTXR', collection: 'GRAPHIC_ATLAS', objectPolicy: 'EACH_IMAGE_IS_FIRST_CLASS_OBJECT' },
   },
 ] as const;
