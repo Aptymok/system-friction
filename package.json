@@ -23,6 +23,7 @@
     "qa:sfi-execution": "node scripts/qa-sfi-execution.js",
     "qa:sfi-core-runtime": "tsx scripts/qa-sfi-core-runtime.ts",
     "qa:sfi-institutional-contracts": "node --import tsx --test src/lib/contracts/institutionalContracts.test.ts",
+    "qa:sfi-ct-decision-transfer": "node --import tsx --test src/core/cognitive-twin/reentry/decisionTransfer.test.ts",
     "qa:sfi-entity-graph": "tsx scripts/qa-sfi-entity-graph.ts",
     "qa:sfi-entity-view": "tsx scripts/qa-sfi-entity-view.ts",
     "qa:sfi-entity-navigation": "tsx scripts/qa-sfi-entity-navigation.ts",
