@@ -28,12 +28,15 @@ const required = [
   'src/app/world-vector/page.tsx',
   'src/app/moph/page.tsx',
   'src/app/library/page.tsx',
+  'src/app/member/page.tsx',
+  'src/app/pipeline/page.tsx',
   'src/app/method-lab/page.tsx',
   'src/app/root/page.tsx',
   'src/core/observation/observationScope.ts',
   'src/core/artifacts/sfiArtifactIdentity.ts',
   'src/app/e/[artifactId]/page.tsx',
   'src/lib/studio/external/kxtxrRegistrySeed.ts',
+  'docs/architecture/sfi/ADR-SFI-UX-SURFACES-002.md',
 ];
 for (const file of required) must(exists(file), `MISSING:${file}`);
 
@@ -101,6 +104,7 @@ const entitySurface = read('src/components/entity/EntityCinematicWorkspace.tsx')
 must(entitySurface.includes('RELATION ≠ CAUSALITY'), 'ENTITY_CAUSALITY_BOUNDARY_MISSING');
 must(entitySurface.includes("value: 'NO_VALUE'"), 'ENTITY_MISSING_MIHM_FRICTION_NOT_EXPLICIT');
 must(entitySurface.includes('EntityCinematicFailure'), 'ENTITY_FAIL_CLOSED_VIEW_MISSING');
+must(entitySurface.includes('CONTEXT_UNAVAILABLE'), 'ENTITY_SUCCESS_WITHOUT_CONTEXT_NOT_FAIL_CLOSED');
 
 for (const [file, focus] of [
   ['src/app/ledger/page.tsx','LEDGER'],
@@ -134,6 +138,17 @@ must(library.includes('getSfiLibraryManifest'), 'LIBRARY_NOT_BOUND_TO_MANIFEST')
 must(library.includes('getSfiLibraryDocuments'), 'LIBRARY_NOT_BOUND_TO_DOCUMENT_INDEX');
 must(library.includes('DOCUMENT ≠ EXECUTION AUTHORITY'), 'LIBRARY_AUTHORITY_BOUNDARY_MISSING');
 
+const member = read('src/app/member/page.tsx');
+must(member.includes('requireSfiMemberPage'), 'MEMBER_NOT_BOUND_TO_MEMBERSHIP_READ_MODEL');
+must(member.includes('workspace.caseCount') && member.includes('workspace.objectCount') && member.includes('workspace.pendingReturnCount'), 'MEMBER_REAL_WORKSPACE_COUNTS_MISSING');
+must(member.includes('VISIBILITY ≠ AUTHORITY'), 'MEMBER_AUTHORITY_BOUNDARY_MISSING');
+
+const pipeline = read('src/app/pipeline/page.tsx');
+must(pipeline.includes('requireRootObserverPage'), 'PIPELINE_ROOT_OBSERVER_BOUNDARY_MISSING');
+must(pipeline.includes('RootOperatingField'), 'PIPELINE_REAL_OPERATING_FIELD_MISSING');
+must(pipeline.includes('RootCycleAnalysisDockAuto'), 'PIPELINE_REAL_CYCLE_ANALYSIS_MISSING');
+must(pipeline.includes('ANALYSIS ≠ APPROVAL'), 'PIPELINE_APPROVAL_BOUNDARY_MISSING');
+
 const field = read('src/app/field/page.tsx');
 must(field.includes('readPublicObservatoryState'), 'FIELD_WORLD_CONTEXT_NOT_REAL');
 must(field.includes('FieldOperationalConsole'), 'FIELD_OPERATIONAL_CONSOLE_MISSING');
@@ -162,13 +177,19 @@ const labCanon = read('docs/canon/09_METHOD_LAB_AND_SIMULATION.md');
 must(labCanon.includes('Simulation output is always `SIMULATED`'), 'METHOD_LAB_SIMULATION_BOUNDARY_CHANGED');
 must(labCanon.includes('may not mutate canonical state directly'), 'METHOD_LAB_CANONICAL_MUTATION_BOUNDARY_CHANGED');
 
+const uxAdr = read('docs/architecture/sfi/ADR-SFI-UX-SURFACES-002.md');
+must(uxAdr.includes('**Status:** ACCEPTED / IMPLEMENTED'), 'CINEMATIC_SURFACE_ADR_NOT_ACCEPTED');
+must(uxAdr.includes('The previously designed cinematic views are not disposable mockups.'), 'DESIGNED_VIEWS_NOT_DECLARED_CANONICAL');
+must(uxAdr.includes('VISUAL COMPLETENESS = DATA     FORBIDDEN'), 'VISUAL_COMPLETENESS_DATA_BOUNDARY_MISSING');
+
 console.log(JSON.stringify({
   ok: true,
   gate: 'SFI_CINEMATIC_HUMAN_SURFACES_V1',
   surfaces: [
     'STUDIO','CASE_PLATFORM','FIELD','PUBLIC_OBSERVATORY','ATLAS','ENTITY','LEDGER','MIHM','FRICTION','SFI',
-    'WORLD_VECTOR','MOP_H','LIBRARY','METHOD_LAB','ROOT','PUBLIC_MOPS',
+    'WORLD_VECTOR','MOP_H','LIBRARY','MEMBER','PIPELINE','METHOD_LAB','ROOT','PUBLIC_MOPS',
   ],
+  canonicalDesignedViews: true,
   noInventedMissingValues: true,
   noDemoMetricsInCanonicalStateViews: true,
   commercialTruthAuthority: false,
