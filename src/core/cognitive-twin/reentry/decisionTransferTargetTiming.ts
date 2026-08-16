@@ -9,6 +9,7 @@ import type { DecisionTrace } from './decisionTransfer';
 type Row = Record<string, unknown>;
 
 const targetObservationEvidenceIdsSchema = z.array(z.string().uuid()).max(120).default([]);
+const ROOT_EVIDENCE_PREFIX = 'root_evidence_entries:';
 
 function record(value: unknown): Row {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Row : {};
@@ -20,7 +21,15 @@ function sha256(value: string) {
   return createHash('sha256').update(value).digest('hex');
 }
 function targetRefMatchesEvidenceId(ref: string, id: string) {
-  return ref === id || ref === `root_evidence_entries:${id}`;
+  return ref === id || ref === `${ROOT_EVIDENCE_PREFIX}${id}`;
+}
+function canonicalRootEvidenceIds(target: DecisionTrace) {
+  return target.evidenceRefs.flatMap((ref) => {
+    if (!ref.startsWith(ROOT_EVIDENCE_PREFIX)) return [];
+    const id = ref.slice(ROOT_EVIDENCE_PREFIX.length);
+    const parsed = z.string().uuid().safeParse(id);
+    return parsed.success ? [parsed.data] : [];
+  });
 }
 
 export function parseTargetObservationEvidenceIds(value: unknown) {
@@ -55,6 +64,7 @@ export async function verifyRevealedTargetAfterContextCutoff(input: {
       verified: false as const,
       cutoffAt: null,
       evidence: [],
+      rejectedCandidates: [],
     };
   }
 
@@ -75,12 +85,15 @@ export async function verifyRevealedTargetAfterContextCutoff(input: {
   const cutoffMs = cutoffAt ? new Date(cutoffAt).getTime() : Number.NaN;
   if (!cutoffAt || !Number.isFinite(cutoffMs)) throw new Error('DT_TARGET_TIMING_CUTOFF_INVALID');
 
-  const evidenceIds = [...new Set(input.targetObservationEvidenceIds)];
-  if (!evidenceIds.length) throw new Error('DT_TARGET_TIMING_OBSERVED_EVIDENCE_REQUIRED');
-  for (const id of evidenceIds) {
+  const explicitIds = [...new Set(input.targetObservationEvidenceIds)];
+  for (const id of explicitIds) {
     if (!input.target.evidenceRefs.some((ref) => targetRefMatchesEvidenceId(ref, id))) {
       throw new Error(`DT_TARGET_TIMING_EVIDENCE_NOT_BOUND_TO_TARGET:${id}`);
     }
+  }
+  const evidenceIds = explicitIds.length ? explicitIds : [...new Set(canonicalRootEvidenceIds(input.target))];
+  if (!evidenceIds.length) {
+    throw new Error('DT_TARGET_TIMING_OBSERVED_EVIDENCE_REQUIRED:bind at least one root_evidence_entries:<uuid> ref to the revealed target');
   }
 
   const evidenceRead = await db.from('root_evidence_entries')
@@ -90,38 +103,68 @@ export async function verifyRevealedTargetAfterContextCutoff(input: {
   const evidenceRows = (evidenceRead.data ?? []) as Row[];
   const evidenceById = new Map(evidenceRows.map((item) => [String(item.id), item]));
   const missingEvidenceIds = evidenceIds.filter((id) => !evidenceById.has(id));
-  if (missingEvidenceIds.length) throw new Error(`DT_TARGET_TIMING_EVIDENCE_NOT_FOUND:${missingEvidenceIds.join(',')}`);
+  if (explicitIds.length && missingEvidenceIds.length) {
+    throw new Error(`DT_TARGET_TIMING_EVIDENCE_NOT_FOUND:${missingEvidenceIds.join(',')}`);
+  }
 
-  const eventIds = evidenceIds.map((id) => text(evidenceById.get(id)?.epistemic_event_id));
-  if (eventIds.some((id) => !id)) throw new Error('DT_TARGET_TIMING_EPISTEMIC_EVENT_REQUIRED');
-  const concreteEventIds = eventIds.filter((id): id is string => Boolean(id));
+  const eventIds = evidenceIds
+    .map((id) => text(evidenceById.get(id)?.epistemic_event_id))
+    .filter((id): id is string => Boolean(id));
+  if (!eventIds.length) throw new Error('DT_TARGET_TIMING_EPISTEMIC_EVENT_REQUIRED');
   const eventRead = await db.from('epistemic_events')
     .select('event_id,epistemic_class,occurred_at,checksum,hash_self')
-    .in('event_id', concreteEventIds);
+    .in('event_id', eventIds);
   if (eventRead.error) throw new Error(`DT_TARGET_TIMING_EVENT_READ_FAILED:${eventRead.error.message}`);
   const eventById = new Map(((eventRead.data ?? []) as Row[]).map((item) => [String(item.event_id), item]));
 
-  const proof = evidenceIds.map((id) => {
-    const evidence = evidenceById.get(id)!;
-    const eventId = text(evidence.epistemic_event_id)!;
+  const proof: Array<{ evidenceId: string; eventId: string; epistemicClass: 'OBSERVED'; occurredAt: string; checksum: string | null; hashSelf: string | null }> = [];
+  const rejectedCandidates: Array<{ evidenceId: string; reason: string }> = [];
+  for (const id of evidenceIds) {
+    const evidence = evidenceById.get(id);
+    if (!evidence) {
+      rejectedCandidates.push({ evidenceId: id, reason: 'ROOT_EVIDENCE_NOT_FOUND' });
+      continue;
+    }
+    const eventId = text(evidence.epistemic_event_id);
+    if (!eventId) {
+      rejectedCandidates.push({ evidenceId: id, reason: 'EPISTEMIC_EVENT_MISSING' });
+      continue;
+    }
     const event = eventById.get(eventId);
-    if (!event) throw new Error(`DT_TARGET_TIMING_EVENT_NOT_FOUND:${eventId}`);
+    if (!event) {
+      rejectedCandidates.push({ evidenceId: id, reason: 'EPISTEMIC_EVENT_NOT_FOUND' });
+      continue;
+    }
     if (text(event.epistemic_class) !== 'observed') {
-      throw new Error(`DT_TARGET_TIMING_EVENT_NOT_OBSERVED:${eventId}:${text(event.epistemic_class) ?? 'missing'}`);
+      rejectedCandidates.push({ evidenceId: id, reason: `NOT_OBSERVED:${text(event.epistemic_class) ?? 'missing'}` });
+      continue;
     }
     const occurredAt = text(event.occurred_at);
     const occurredMs = occurredAt ? new Date(occurredAt).getTime() : Number.NaN;
-    if (!occurredAt || !Number.isFinite(occurredMs)) throw new Error(`DT_TARGET_TIMING_EVENT_TIME_INVALID:${eventId}`);
-    if (occurredMs <= cutoffMs) throw new Error(`DT_TARGET_TIMING_EVENT_NOT_AFTER_CUTOFF:${eventId}:${occurredAt}`);
-    return {
+    if (!occurredAt || !Number.isFinite(occurredMs)) {
+      rejectedCandidates.push({ evidenceId: id, reason: 'EVENT_TIME_INVALID' });
+      continue;
+    }
+    if (occurredMs <= cutoffMs) {
+      rejectedCandidates.push({ evidenceId: id, reason: `NOT_AFTER_CUTOFF:${occurredAt}` });
+      continue;
+    }
+    proof.push({
       evidenceId: id,
       eventId,
-      epistemicClass: 'OBSERVED' as const,
+      epistemicClass: 'OBSERVED',
       occurredAt,
       checksum: text(event.checksum),
       hashSelf: text(event.hash_self),
-    };
-  });
+    });
+  }
+
+  if (explicitIds.length && proof.length !== explicitIds.length) {
+    throw new Error(`DT_TARGET_TIMING_EXPLICIT_EVIDENCE_NOT_VERIFIED:${rejectedCandidates.map((item) => `${item.evidenceId}=${item.reason}`).join(',')}`);
+  }
+  if (!proof.length) {
+    throw new Error(`DT_TARGET_TIMING_NO_POST_CUTOFF_OBSERVED_EVIDENCE:${rejectedCandidates.map((item) => `${item.evidenceId}=${item.reason}`).join(',')}`);
+  }
 
   proof.sort((a, b) => a.occurredAt.localeCompare(b.occurredAt));
   const proofBase = {
@@ -132,7 +175,9 @@ export async function verifyRevealedTargetAfterContextCutoff(input: {
     cutoffAt,
     earliestObservedTargetAt: proof[0].occurredAt,
     evidence: proof,
-    boundary: 'Every designated target-observation evidence record is bound to the revealed target, classed OBSERVED, and occurred strictly after the frozen context cutoff.',
+    rejectedCandidates,
+    evidenceSelection: explicitIds.length ? 'EXPLICIT_TARGET_OBSERVATION_IDS' as const : 'AUTO_FROM_CANONICAL_TARGET_REFS' as const,
+    boundary: 'At least one root evidence reference bound to the revealed target resolves to an OBSERVED epistemic event that occurred strictly after the frozen context cutoff. Explicitly designated target-observation IDs must all satisfy the boundary.',
   };
 
   return {
