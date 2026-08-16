@@ -24,8 +24,7 @@ const DEBT_TYPES: CognitiveDebtType[] = [
   'STALE_KNOWLEDGE',
 ];
 
-const REF_FIELD_BY_KIND: Record<CognitiveSpineRefKind, keyof Pick<
-  CognitiveSpineSemanticPayload,
+type RefBucketKey =
   | 'eventRefs'
   | 'evidenceRefs'
   | 'hypothesisRefs'
@@ -34,8 +33,9 @@ const REF_FIELD_BY_KIND: Record<CognitiveSpineRefKind, keyof Pick<
   | 'contradictionRefs'
   | 'freezeRefs'
   | 'questionRefs'
-  | 'personCtRefs'
->> = {
+  | 'personCtRefs';
+
+const REF_FIELD_BY_KIND: Record<CognitiveSpineRefKind, RefBucketKey> = {
   EVENT: 'eventRefs',
   EVIDENCE: 'evidenceRefs',
   HYPOTHESIS: 'hypothesisRefs',
@@ -52,6 +52,12 @@ function requireNonEmpty(value: string, label: string): string {
     throw new Error(`COGNITIVE_SPINE_INVALID_${label}:${JSON.stringify(value)}`);
   }
   return value;
+}
+
+function lexicalCompare(left: string, right: string): number {
+  if (left < right) return -1;
+  if (left > right) return 1;
+  return 0;
 }
 
 function normalizeRecord(record: CognitiveSpineSourceRecord): CognitiveSpineSourceRecord {
@@ -97,8 +103,8 @@ function deduplicateRecords(records: CognitiveSpineSourceRecord[]): CognitiveSpi
   }
 
   return [...byRef.values()].sort((left, right) => {
-    const kindOrder = left.kind.localeCompare(right.kind);
-    return kindOrder !== 0 ? kindOrder : left.ref.localeCompare(right.ref);
+    const kindOrder = lexicalCompare(left.kind, right.kind);
+    return kindOrder !== 0 ? kindOrder : lexicalCompare(left.ref, right.ref);
   });
 }
 
@@ -136,19 +142,7 @@ export function projectCognitiveState(input: CognitiveStateProjectionInput): Cog
     .filter((record) => record.recordedAt <= sourceCutoff)
     .filter((record) => visibleUnderProfile(record, projectionProfile));
 
-  const refs: Record<keyof typeof REF_FIELD_BY_KIND extends never ? never : string, string[]> = {};
-  const refBuckets: Record<
-    | 'eventRefs'
-    | 'evidenceRefs'
-    | 'hypothesisRefs'
-    | 'memoryRefs'
-    | 'decisionRefs'
-    | 'contradictionRefs'
-    | 'freezeRefs'
-    | 'questionRefs'
-    | 'personCtRefs',
-    string[]
-  > = {
+  const refBuckets: Record<RefBucketKey, string[]> = {
     eventRefs: [],
     evidenceRefs: [],
     hypothesisRefs: [],
@@ -165,7 +159,6 @@ export function projectCognitiveState(input: CognitiveStateProjectionInput): Cog
     refBuckets[REF_FIELD_BY_KIND[record.kind]].push(record.ref);
     if (record.debtType) debt[record.debtType] += 1;
   }
-  void refs;
 
   for (const debtType of DEBT_TYPES) {
     debt[debtType] = Math.max(0, debt[debtType]);
