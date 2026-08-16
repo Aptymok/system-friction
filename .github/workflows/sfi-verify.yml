@@ -90,6 +90,9 @@ jobs:
       - name: Verify post-cutoff Decision Transfer target timing
         run: npx tsx scripts/qa-sfi-decision-transfer-target-timing.ts
 
+      - name: Verify final debt closure and EXP-001 freeze
+        run: npx tsx scripts/qa-sfi-final-debt-closure.ts
+
       - name: Verify canonical evidence identity
         run: node --import tsx --test src/lib/evidence/canonicalEvidence.test.ts
 
