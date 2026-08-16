@@ -114,6 +114,9 @@ jobs:
             exit "$status"
           fi
 
+      - name: Verify SFI Architecture V1 constitutional boundary
+        run: npx tsx scripts/qa-sfi-architecture-v1.ts
+
       - name: Typecheck
         id: typecheck
         shell: bash
