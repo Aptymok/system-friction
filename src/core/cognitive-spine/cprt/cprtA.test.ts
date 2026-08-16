@@ -12,13 +12,17 @@ import {
   cprtAProjectionInputB,
 } from './fixture';
 
+const CPRT_A_EXPECTED_HASH = 'da6ca1abf93679b429c5f44d5d0e524a0fbd3ec02ee081e48dca9fd09d1c9b22';
+
 test('CPRT-A: semantically identical inputs produce the same snapshot hash', () => {
   const leftPayload = projectCognitiveState(cprtAProjectionInputA());
   const rightPayload = projectCognitiveState(cprtAProjectionInputB());
+  const leftHash = semanticSnapshotHash(leftPayload);
+  const rightHash = semanticSnapshotHash(rightPayload);
 
   assert.deepEqual(leftPayload, rightPayload);
-  assert.equal(semanticSnapshotHash(leftPayload), semanticSnapshotHash(rightPayload));
-  assert.match(semanticSnapshotHash(leftPayload), /^[a-f0-9]{64}$/);
+  assert.equal(leftHash, rightHash);
+  assert.equal(leftHash, CPRT_A_EXPECTED_HASH);
 });
 
 test('CPRT-A: artifact identity does not alter semantic identity', () => {
@@ -37,6 +41,7 @@ test('CPRT-A: artifact identity does not alter semantic identity', () => {
 
   assert.notEqual(left.snapshotId, right.snapshotId);
   assert.equal(left.snapshotHash, right.snapshotHash);
+  assert.equal(left.snapshotHash, CPRT_A_EXPECTED_HASH);
   assert.deepEqual(left.semanticPayload, right.semanticPayload);
 });
 
