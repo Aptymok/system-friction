@@ -17,7 +17,11 @@ export async function POST(request: Request) {
   try {
     const raw = await request.json();
     const input = parseDecisionTransferRunInput(raw);
-    const result = await executeDecisionTransferEvaluation(input, gate.ctx.user.id);
+    const { evaluationEvidence: _ignoredEvidenceLineage, ...diagnosticInput } = input;
+    const result = await executeDecisionTransferEvaluation({
+      ...diagnosticInput,
+      experimentalMode: 'NON_CONFIRMATORY_DIAGNOSTIC',
+    }, gate.ctx.user.id);
     const audit = await auditRootAction({
       actorId: gate.ctx.user.id,
       action: 'method_lab.decision_transfer.evaluated',
