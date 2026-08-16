@@ -17,6 +17,9 @@ on:
       - 'src/app/api/root/method-lab/decision-transfer/blind/route.ts'
       - 'src/lib/method-lab/**'
       - 'src/app/api/root/method-lab/simulate/route.ts'
+      - 'src/lib/worldspect/**'
+      - 'src/app/api/worldspect/**'
+      - 'src/app/api/cron/worldspect/route.ts'
       - 'src/lib/field/cognitiveSpineProposalLink.ts'
       - 'src/lib/field/fieldCognitiveSpineBoundary.ts'
       - 'src/lib/field/interventionExecution.ts'
@@ -44,6 +47,9 @@ on:
       - 'src/app/api/root/method-lab/decision-transfer/blind/route.ts'
       - 'src/lib/method-lab/**'
       - 'src/app/api/root/method-lab/simulate/route.ts'
+      - 'src/lib/worldspect/**'
+      - 'src/app/api/worldspect/**'
+      - 'src/app/api/cron/worldspect/route.ts'
       - 'src/lib/field/cognitiveSpineProposalLink.ts'
       - 'src/lib/field/fieldCognitiveSpineBoundary.ts'
       - 'src/lib/field/interventionExecution.ts'
@@ -96,3 +102,5 @@ jobs:
         run: node --import tsx scripts/cognitive-spine/qa-decision-transfer-isolation.ts
       - name: Method Lab protocol-allowlisted Cognitive Spine context
         run: node --import tsx scripts/cognitive-spine/qa-method-lab-context.ts
+      - name: WorldSpect post-observation Cognitive Spine contrast
+        run: node --import tsx scripts/cognitive-spine/qa-worldspect-post-observation.ts
