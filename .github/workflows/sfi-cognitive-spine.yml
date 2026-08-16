@@ -20,7 +20,7 @@ permissions:
   contents: read
 
 jobs:
-  cprt-a:
+  pre-runtime:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -34,3 +34,5 @@ jobs:
         run: npm run typecheck
       - name: CPRT-A deterministic state reconstruction
         run: node --import tsx --test src/core/cognitive-spine/cprt/cprtA.test.ts
+      - name: Pre-runtime boundaries and transition semantics
+        run: node --import tsx --test src/core/cognitive-spine/cprt/preRuntime.test.ts
