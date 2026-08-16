@@ -3,6 +3,8 @@ import { readFileSync } from 'node:fs';
 
 const workflow = readFileSync('.github/workflows/sfi-verify.yml', 'utf8');
 
+assert.match(workflow, /\npermissions:\n\s+contents: read\n/, 'SFI Verify must explicitly limit GITHUB_TOKEN to contents: read.');
+
 const verifyStart = workflow.indexOf('\n  verify:\n');
 const audioStart = workflow.indexOf('\n  audio:\n');
 assert.ok(verifyStart >= 0, 'SFI Verify core job is missing.');
@@ -37,6 +39,7 @@ console.log(JSON.stringify({
   coreAndAudioParallel: true,
   audioGateCount: 4,
   pathSkipping: false,
+  tokenPermissions: 'contents:read',
   typecheckRetained: true,
   buildRetained: true,
 }, null, 2));
