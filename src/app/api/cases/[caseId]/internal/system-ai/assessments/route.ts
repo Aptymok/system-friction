@@ -12,7 +12,7 @@ import {
   type SfiSystemAiCaseObjectInput,
 } from '@/core/case-platform';
 import { recordOperationalCaseObject } from '@/lib/sfi/case-platform/repository';
-import { assertCaseReferenceIntegrity,assertCaseServiceProfileAllowed,assertTenantSystemAiEntityRefs } from '@/lib/sfi/case-platform/integrity';
+import { assertCaseReferenceIntegrity,assertCaseServiceProfileAllowed,resolveTenantSystemAiEntityRefs } from '@/lib/sfi/case-platform/integrity';
 import { sfiCaseApiFailure } from '@/lib/sfi/case-platform/http';
 
 export const dynamic='force-dynamic';
@@ -41,18 +41,46 @@ export async function POST(request:Request,context:RouteContext){
     if(body.type==='FRICTION'){
       await assertCaseServiceProfileAllowed(caseId,user.id,['SYSTEM_OBSERVATORY','AI_IMPLEMENTATION_DIAGNOSTIC','AI_ADOPTION_INTEGRATION','AI_GOVERNANCE_ASSURANCE','CUSTOM_RESEARCH']);
       await assertCaseReferenceIntegrity({caseId,userId:user.id,recordRefs:body.recordRefs,evidenceRefs:body.evidenceRefs});
-      await assertTenantSystemAiEntityRefs({caseId,userId:user.id,entityRefs:[body.locationRef,...(body.affectedRefs??[])]});
-      object=buildSystemFrictionAssessment(body);
+      const resolved=await resolveTenantSystemAiEntityRefs({caseId,userId:user.id,entityRefs:[body.locationRef,...(body.affectedRefs??[])]});
+      object=buildSystemFrictionAssessment({
+        assessmentId:body.assessmentId,
+        locationRef:resolved[0],
+        affectedRefs:resolved.slice(1),
+        frictionType:body.frictionType,
+        evidenceRefs:body.evidenceRefs,
+        recordRefs:body.recordRefs,
+        confidence:body.confidence,
+        magnitudeProxy:body.magnitudeProxy,
+      });
     }else if(body.type==='AI_FAILURE'){
       await assertCaseServiceProfileAllowed(caseId,user.id,['AI_IMPLEMENTATION_DIAGNOSTIC','CUSTOM_RESEARCH']);
       await assertCaseReferenceIntegrity({caseId,userId:user.id,recordRefs:body.recordRefs,evidenceRefs:body.evidenceRefs});
-      await assertTenantSystemAiEntityRefs({caseId,userId:user.id,entityRefs:[body.failureRef]});
-      object=buildAiImplementationFailureAssessment(body);
+      const [failureRef]=await resolveTenantSystemAiEntityRefs({caseId,userId:user.id,entityRefs:[body.failureRef]});
+      object=buildAiImplementationFailureAssessment({
+        assessmentId:body.assessmentId,
+        failureRef,
+        layer:body.layer,
+        evidenceRefs:body.evidenceRefs,
+        recordRefs:body.recordRefs,
+        determinability:body.determinability,
+        confidence:body.confidence,
+        competingHypotheses:body.competingHypotheses,
+      });
     }else if(body.type==='AI_OPPORTUNITY'){
       await assertCaseServiceProfileAllowed(caseId,user.id,['AI_ADOPTION_INTEGRATION','CUSTOM_RESEARCH']);
       await assertCaseReferenceIntegrity({caseId,userId:user.id,recordRefs:body.recordRefs,evidenceRefs:body.evidenceRefs});
-      await assertTenantSystemAiEntityRefs({caseId,userId:user.id,entityRefs:[body.processRef,body.useCaseRef]});
-      object=buildAiAdoptionOpportunityAssessment(body);
+      const [processRef,useCaseRef]=await resolveTenantSystemAiEntityRefs({caseId,userId:user.id,entityRefs:[body.processRef,body.useCaseRef]});
+      object=buildAiAdoptionOpportunityAssessment({
+        assessmentId:body.assessmentId,
+        processRef,
+        useCaseRef,
+        evidenceRefs:body.evidenceRefs,
+        recordRefs:body.recordRefs,
+        projectedValue:body.projectedValue,
+        feasibility:body.feasibility,
+        integrationRisk:body.integrationRisk,
+        requiredControls:body.requiredControls,
+      });
     }else{
       await assertCaseServiceProfileAllowed(caseId,user.id,['AI_GOVERNANCE_ASSURANCE','CUSTOM_RESEARCH']);
       const recordRefs=SFI_AI_GOVERNANCE_STAGES.flatMap((stage)=>body.stageRecordRefs[stage]??[]);
