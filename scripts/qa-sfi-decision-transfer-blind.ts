@@ -77,7 +77,8 @@ assert(component.includes("crypto.subtle.digest('SHA-256'"), 'target_commitment_
 assert(component.includes("fetch('/api/root/method-lab/decision-transfer/blind'"), 'blind_ui_endpoint_missing');
 assert(component.includes("fetch('/api/root/method-lab/decision-transfer/reveal'"), 'reveal_ui_endpoint_missing');
 assert(component.includes('No se enviará durante la reconstrucción ciega'), 'ui_target_nontransmission_boundary_missing');
-assert(page.includes('<BlindDecisionExperiment />'), 'method_lab_blind_surface_missing');
+assert(page.includes('BlindDecisionExperiment'), 'method_lab_blind_surface_missing');
+assert(page.includes('BLIND DECISION EXPERIMENT'), 'native_method_lab_blind_instrument_label_missing');
 
 console.log(JSON.stringify({
   ok: true,
@@ -86,6 +87,7 @@ console.log(JSON.stringify({
   predictionStatusBeforeReveal: 'EVIDENCE_PENDING',
   blindTargetTransmission: false,
   frozenContextReverifiedBeforeReveal: true,
+  nativeSurface: true,
   memoryMutation: false,
   autoPromotion: false,
   routes: [
