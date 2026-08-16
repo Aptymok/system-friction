@@ -1,0 +1,39 @@
+name: SFI Cinematic Surface Verify
+
+on:
+  pull_request:
+    paths:
+      - 'src/components/sfi/cinematic/**'
+      - 'src/components/studio/**'
+      - 'src/components/cases/**'
+      - 'src/app/cases/**'
+      - 'src/app/e/**'
+      - 'src/app/api/studio/external/**'
+      - 'src/core/artifacts/**'
+      - 'src/core/observation/**'
+      - 'src/lib/sfi/artifacts/**'
+      - 'src/lib/sfi/case-platform/**'
+      - 'src/lib/studio/external/**'
+      - 'supabase/migrations/2026081617*.sql'
+      - 'scripts/qa-sfi-cinematic-surfaces-v1.ts'
+      - '.github/workflows/sfi-cinematic-verify.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm install --no-audit --no-fund
+      - name: Verify cinematic epistemic boundaries
+        run: npx tsx scripts/qa-sfi-cinematic-surfaces-v1.ts
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Build
+        run: npm run build
