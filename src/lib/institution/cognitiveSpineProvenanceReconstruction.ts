@@ -1,5 +1,3 @@
-import 'server-only';
-
 import type { CognitiveSpineSnapshot } from '@/core/cognitive-spine/contracts/snapshot';
 import type { CognitiveSpineTransition } from '@/core/cognitive-spine/contracts/transition';
 import {
