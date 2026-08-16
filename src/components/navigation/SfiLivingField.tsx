@@ -80,10 +80,12 @@ export function SfiLivingField() {
   const mode = routeMode(pathname);
 
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const context = canvas.getContext('2d');
-    if (!context) return;
+    const currentCanvas = canvasRef.current;
+    if (!currentCanvas) return;
+    const currentContext = currentCanvas.getContext('2d');
+    if (!currentContext) return;
+    const surface: HTMLCanvasElement = currentCanvas;
+    const paint: CanvasRenderingContext2D = currentContext;
 
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const count = reduceMotion ? 34 : 78;
@@ -109,11 +111,11 @@ export function SfiLivingField() {
       width = window.innerWidth;
       height = window.innerHeight;
       dpr = Math.min(window.devicePixelRatio || 1, 2);
-      canvas.width = Math.round(width * dpr);
-      canvas.height = Math.round(height * dpr);
-      canvas.style.width = `${width}px`;
-      canvas.style.height = `${height}px`;
-      context.setTransform(dpr, 0, 0, dpr, 0, 0);
+      surface.width = Math.round(width * dpr);
+      surface.height = Math.round(height * dpr);
+      surface.style.width = `${width}px`;
+      surface.style.height = `${height}px`;
+      paint.setTransform(dpr, 0, 0, dpr, 0, 0);
     }
 
     function pointer(event: PointerEvent) {
@@ -125,7 +127,7 @@ export function SfiLivingField() {
 
     function draw(time: number) {
       if (!active) return;
-      context.clearRect(0, 0, width, height);
+      paint.clearRect(0, 0, width, height);
       const seconds = time * 0.001;
 
       particles.forEach((particle, index) => {
@@ -155,21 +157,21 @@ export function SfiLivingField() {
           const distance = Math.hypot(a.x - b.x, a.y - b.y);
           if (distance > 112) continue;
           const alpha = (1 - distance / 112) * 0.11;
-          context.strokeStyle = `rgba(200,167,100,${alpha})`;
-          context.lineWidth = 0.55;
-          context.beginPath();
-          context.moveTo(a.x, a.y);
-          context.lineTo(b.x, b.y);
-          context.stroke();
+          paint.strokeStyle = `rgba(200,167,100,${alpha})`;
+          paint.lineWidth = 0.55;
+          paint.beginPath();
+          paint.moveTo(a.x, a.y);
+          paint.lineTo(b.x, b.y);
+          paint.stroke();
         }
       }
 
       particles.forEach((particle, index) => {
         const hot = index % 17 === 0;
-        context.fillStyle = hot ? 'rgba(240,211,151,.55)' : 'rgba(232,226,213,.20)';
-        context.beginPath();
-        context.arc(particle.x, particle.y, hot ? 1.45 : particle.size, 0, Math.PI * 2);
-        context.fill();
+        paint.fillStyle = hot ? 'rgba(240,211,151,.55)' : 'rgba(232,226,213,.20)';
+        paint.beginPath();
+        paint.arc(particle.x, particle.y, hot ? 1.45 : particle.size, 0, Math.PI * 2);
+        paint.fill();
       });
 
       frame = window.requestAnimationFrame(draw);
