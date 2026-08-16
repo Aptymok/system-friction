@@ -1,16 +1,13 @@
 import 'server-only';
 
 import { webcrypto } from 'node:crypto';
+import {
+  GITHUB_OIDC_ISSUER,
+  type GitHubActionsOidcClaims,
+  validateGitHubActionsOidcClaims,
+} from './githubActionsOidcPolicy';
 
-const ISSUER = 'https://token.actions.githubusercontent.com';
-const JWKS_URL = 'https://token.actions.githubusercontent.com/.well-known/jwks';
-const AUDIENCE = 'sfi-continuity';
-const REPOSITORY = 'Aptymok/system-friction';
-const REPOSITORY_ID = '1163662905';
-const REF = 'refs/heads/main';
-const WORKFLOW_REF = 'Aptymok/system-friction/.github/workflows/sfi-continuity-hourly.yml@refs/heads/main';
-const CLOCK_SKEW_SECONDS = 30;
-const MAX_TOKEN_AGE_SECONDS = 15 * 60;
+const JWKS_URL = `${GITHUB_OIDC_ISSUER}/.well-known/jwks`;
 const JWKS_CACHE_MS = 6 * 60 * 60 * 1000;
 
 type JwtHeader = {
@@ -19,21 +16,7 @@ type JwtHeader = {
   typ?: string;
 };
 
-export type GitHubActionsOidcClaims = {
-  iss?: string;
-  aud?: string | string[];
-  exp?: number;
-  nbf?: number;
-  iat?: number;
-  repository?: string;
-  repository_id?: string;
-  ref?: string;
-  workflow_ref?: string;
-  event_name?: string;
-};
-
 type Jwk = JsonWebKey & { kid?: string; alg?: string; use?: string };
-
 type Jwks = { keys?: Jwk[] };
 
 let jwksCache: { expiresAt: number; keys: Jwk[] } | null = null;
@@ -44,35 +27,6 @@ function decodeJson<T>(segment: string): T | null {
   } catch {
     return null;
   }
-}
-
-function audienceIncludes(aud: GitHubActionsOidcClaims['aud'], expected: string) {
-  return typeof aud === 'string' ? aud === expected : Array.isArray(aud) && aud.includes(expected);
-}
-
-export function validateGitHubActionsOidcClaims(
-  claims: GitHubActionsOidcClaims,
-  nowSeconds = Math.floor(Date.now() / 1000),
-) {
-  if (claims.iss !== ISSUER) return { ok: false as const, reason: 'OIDC_ISSUER_MISMATCH' };
-  if (!audienceIncludes(claims.aud, AUDIENCE)) return { ok: false as const, reason: 'OIDC_AUDIENCE_MISMATCH' };
-  if (claims.repository !== REPOSITORY) return { ok: false as const, reason: 'OIDC_REPOSITORY_MISMATCH' };
-  if (String(claims.repository_id ?? '') !== REPOSITORY_ID) return { ok: false as const, reason: 'OIDC_REPOSITORY_ID_MISMATCH' };
-  if (claims.ref !== REF) return { ok: false as const, reason: 'OIDC_REF_MISMATCH' };
-  if (claims.workflow_ref !== WORKFLOW_REF) return { ok: false as const, reason: 'OIDC_WORKFLOW_REF_MISMATCH' };
-  if (!['schedule', 'workflow_dispatch'].includes(String(claims.event_name ?? ''))) {
-    return { ok: false as const, reason: 'OIDC_EVENT_NOT_ALLOWED' };
-  }
-  if (typeof claims.exp !== 'number' || claims.exp < nowSeconds - CLOCK_SKEW_SECONDS) {
-    return { ok: false as const, reason: 'OIDC_TOKEN_EXPIRED' };
-  }
-  if (typeof claims.nbf === 'number' && claims.nbf > nowSeconds + CLOCK_SKEW_SECONDS) {
-    return { ok: false as const, reason: 'OIDC_TOKEN_NOT_YET_VALID' };
-  }
-  if (typeof claims.iat !== 'number' || claims.iat < nowSeconds - MAX_TOKEN_AGE_SECONDS || claims.iat > nowSeconds + CLOCK_SKEW_SECONDS) {
-    return { ok: false as const, reason: 'OIDC_TOKEN_AGE_INVALID' };
-  }
-  return { ok: true as const, reason: 'GITHUB_ACTIONS_OIDC' };
 }
 
 async function readJwks(): Promise<Jwk[]> {
