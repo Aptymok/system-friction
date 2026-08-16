@@ -10,13 +10,22 @@ const SYSTEM_AI_ASSESSMENT_TYPES = new Set([
   'AI_ADOPTION_OPPORTUNITY',
   'AI_GOVERNANCE_TRACE',
 ]);
+const SYSTEM_AI_ENTITY_TYPE_SET=new Set<string>(SFI_SYSTEM_AI_ENTITY_TYPES);
 
 function payloadEntityType(payload:Record<string,unknown>){
   return typeof payload.entityType==='string'?payload.entityType:'';
 }
 
+function isSystemAiDomainPayload(payload:Record<string,unknown>){
+  return payload.contract===SFI_SYSTEM_AI_ASSURANCE_DOMAIN_CONTRACT;
+}
+
+function isSystemAiEntityPayload(payload:Record<string,unknown>){
+  return isSystemAiDomainPayload(payload)&&SYSTEM_AI_ENTITY_TYPE_SET.has(payloadEntityType(payload));
+}
+
 function isSystemAiAssessmentPayload(payload:Record<string,unknown>){
-  return payload.contract===SFI_SYSTEM_AI_ASSURANCE_DOMAIN_CONTRACT
+  return isSystemAiDomainPayload(payload)
     && typeof payload.assessmentType==='string'
     && SYSTEM_AI_ASSESSMENT_TYPES.has(payload.assessmentType);
 }
@@ -24,10 +33,9 @@ function isSystemAiAssessmentPayload(payload:Record<string,unknown>){
 export async function buildSystemAiObservatoryReadModel(caseId:string,userId:string){
   const envelope=await readOperationalCase(caseId,userId);
   const relations=await listOperationalSystemAiRelations(caseId,userId);
-  const actions=await listCaseActionProposals(caseId,userId);
-  const allowed=new Set<string>(SFI_SYSTEM_AI_ENTITY_TYPES);
+  const allActions=await listCaseActionProposals(caseId,userId);
   const nodes=envelope.objects
-    .filter(object=>allowed.has(payloadEntityType(object.payload)))
+    .filter(object=>isSystemAiEntityPayload(object.payload))
     .map(object=>({
       ref:object.canonicalRef,
       entityType:payloadEntityType(object.payload),
@@ -36,8 +44,12 @@ export async function buildSystemAiObservatoryReadModel(caseId:string,userId:str
     }));
   const frictions=envelope.objects.filter(object=>object.kind==='FRICTION'&&isSystemAiAssessmentPayload(object.payload)&&object.payload.assessmentType==='SYSTEM_FRICTION');
   const assessments=envelope.objects.filter(object=>(object.kind==='EPISTEMIC_ASSESSMENT'||object.kind==='ANALYSIS')&&isSystemAiAssessmentPayload(object.payload));
-  const failures=envelope.objects.filter(object=>payloadEntityType(object.payload)==='FAILURE_EVENT');
-  const executions=envelope.objects.filter(object=>payloadEntityType(object.payload)==='AI_EXECUTION');
+  const failures=envelope.objects.filter(object=>isSystemAiEntityPayload(object.payload)&&payloadEntityType(object.payload)==='FAILURE_EVENT');
+  const executions=envelope.objects.filter(object=>isSystemAiEntityPayload(object.payload)&&payloadEntityType(object.payload)==='AI_EXECUTION');
+  const systemAiRecommendationIds=new Set(envelope.objects
+    .filter(object=>object.kind==='RECOMMENDATION'&&isSystemAiDomainPayload(object.payload))
+    .map(object=>object.canonicalRef.id));
+  const actions=allActions.filter(action=>systemAiRecommendationIds.has(action.recommendationRef.id));
   const entityCounts=Object.fromEntries(SFI_SYSTEM_AI_ENTITY_TYPES.map(type=>[type,nodes.filter(node=>node.entityType===type).length]));
   const relationCounts=Object.fromEntries(Array.from(new Set(relations.map(r=>r.relationType))).sort().map(type=>[type,relations.filter(r=>r.relationType===type).length]));
   return {
