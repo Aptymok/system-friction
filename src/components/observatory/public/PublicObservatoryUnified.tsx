@@ -63,8 +63,8 @@ export function PublicObservatoryUnified({ state }: { state: ObservatoryGoldStat
         </div>
       </section>
 
-      <div data-sfi-field-anchor="derived-layers"><PublicObservatoryDerivedLayers state={state} /></div>
-      <div data-sfi-field-anchor="timeline"><PublicObservatoryTimelineNavigator /></div>
+      <PublicObservatoryDerivedLayers state={state} />
+      <PublicObservatoryTimelineNavigator />
 
       <section id="reading" className="pou-reading" data-sfi-field-anchor="reading">
         <div>
