@@ -62,3 +62,5 @@ jobs:
         run: node --import tsx --test src/core/cognitive-spine/cprt/projectionProfiles.test.ts
       - name: Append-only institutional source-plane mappings
         run: node --import tsx --test src/core/cognitive-spine/cprt/sourcePlaneMapping.test.ts
+      - name: Platform-neutral profile materialization
+        run: node --import tsx --test src/core/cognitive-spine/cprt/profileMaterialization.test.ts
