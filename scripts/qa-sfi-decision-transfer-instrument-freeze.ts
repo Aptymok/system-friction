@@ -110,6 +110,15 @@ for (const marker of [
 assert(materializer.includes('assertFrozenModelContract(blindSnapshot, blindRead.data.provider, blindRead.data.model)'), 'materializer_must_verify_frozen_model_contract');
 assert(materializer.includes('receipt.modelContractHash !== modelContractHash'), 'reused_receipt_must_match_model_contract');
 
+assert(materializer.includes('const HISTORY_PAGE_SIZE = 500'), 'history_page_size_missing');
+assert(materializer.includes('async function loadConfirmatoryEvaluationHistory(operationKey: string)'), 'confirmatory_history_loader_missing');
+assert(materializer.includes('.range(from, from + HISTORY_PAGE_SIZE - 1)'), 'history_must_be_paginated');
+assert(materializer.includes("text(snapshot.experimentalMode) !== 'CONFIRMATORY_FROZEN'"), 'diagnostic_history_must_be_excluded');
+assert(materializer.includes('text(snapshot.operationKey) !== operationKey'), 'history_must_be_scoped_to_operation');
+assert(materializer.includes("text(lineage.protocol) !== 'SFI-DT-EVIDENCE-MATERIALIZATION-1.0'"), 'history_must_require_frozen_evidence_lineage');
+assert(materializer.includes('from += HISTORY_PAGE_SIZE'), 'history_pagination_advance_missing');
+assert(materializer.includes('const history = await loadConfirmatoryEvaluationHistory(input.operationKey)'), 'materializer_must_use_scoped_paginated_history');
+
 const revealSchemaStart = materializer.indexOf('export const decisionTransferConfirmatoryRevealInputSchema');
 const revealSchemaEnd = materializer.indexOf('export type DecisionTransferConfirmatoryRevealInput');
 const revealSchema = materializer.slice(revealSchemaStart, revealSchemaEnd);
@@ -143,18 +152,22 @@ assert(blindRuntime.includes('evaluationEvidence,'), 'blind_reveal_must_forward_
 assert(blindRuntime.includes('evaluationEvidence: evaluation.evaluationEvidence'), 'blind_reveal_must_persist_lineage_on_reveal_envelope');
 
 assert(evaluator.includes("protocol: z.literal('SFI-DT-EVIDENCE-MATERIALIZATION-1.0')"), 'evaluator_lineage_schema_missing');
+assert(evaluator.includes("experimentalMode: z.enum(['CONFIRMATORY_FROZEN', 'NON_CONFIRMATORY_DIAGNOSTIC']).optional()"), 'evaluator_mode_schema_missing');
+assert(evaluator.includes("input.evaluationEvidence ? 'CONFIRMATORY_FROZEN' : 'NON_CONFIRMATORY_DIAGNOSTIC'"), 'evaluator_internal_mode_derivation_missing');
 assert(evaluator.includes('evaluationEvidence: evaluationEvidenceSchema.optional()'), 'evaluator_lineage_input_missing');
 assert(evaluator.includes("boundaryValidationStatus === 'BLOCKED'"), 'blocked_boundary_detection_missing');
 assert(evaluator.includes('validatedTargetDispositionAccuracy: null'), 'blocked_boundary_metric_must_be_missing_not_zero');
 assert(evaluator.includes("const outcome: EvaluationOutcome = boundaryBlocked ? 'BLOCKED'"), 'blocked_boundary_outcome_missing');
+assert(evaluator.includes('experimentalMode,'), 'evaluator_mode_must_be_persisted');
 assert(evaluator.includes('evaluationEvidence: input.evaluationEvidence ?? null'), 'evaluation_receipt_lineage_must_be_persisted');
 
+assert(diagnosticRoute.includes('const { evaluationEvidence: _ignoredEvidenceLineage, ...diagnosticInput } = input'), 'legacy_route_must_strip_claimed_lineage');
+assert(diagnosticRoute.includes("experimentalMode: 'NON_CONFIRMATORY_DIAGNOSTIC'"), 'legacy_route_must_force_diagnostic_mode');
+assert(diagnosticRoute.includes('scientificQualificationAllowed: false'), 'legacy_evaluator_scientific_qualification_must_be_disabled');
 assert(!component.includes('revealExtrasJson'), 'manual_reveal_extras_state_must_be_removed');
 assert(!component.includes('REVEAL EXTRAS'), 'manual_reveal_extras_ui_must_be_removed');
 assert(component.includes('No se aceptan occurrences, probes, boundary counts ni thresholds manuales'), 'confirmatory_ui_boundary_missing');
 assert(component.includes('NON-CONFIRMATORY · LEGACY'), 'manual_context_must_be_marked_nonconfirmatory');
-assert(diagnosticRoute.includes("experimentalMode: 'NON_CONFIRMATORY_DIAGNOSTIC'"), 'legacy_evaluator_nonconfirmatory_marker_missing');
-assert(diagnosticRoute.includes('scientificQualificationAllowed: false'), 'legacy_evaluator_scientific_qualification_must_be_disabled');
 
 assert(freeze.includes("provider: 'groq'"), 'confirmatory_provider_not_frozen');
 assert(freeze.includes("expectedModel: 'openai/gpt-oss-20b'"), 'expected_model_not_frozen');
@@ -206,6 +219,8 @@ console.log(JSON.stringify({
   manualBoundaryCount: 0,
   eventDeduplication: true,
   independenceGrouping: true,
+  historyPagination: 'COMPLETE',
+  historicalProvenance: 'CONFIRMATORY_FROZEN_SAME_OPERATION_ONLY',
   boundaryAbsence: 'BLOCKED_NULL_METRIC',
   evaluationLineage: 'PERSISTED_AT_SCORING',
   modelContract: 'FROZEN_FAIL_CLOSED_REVERIFIED_AT_REVEAL',
