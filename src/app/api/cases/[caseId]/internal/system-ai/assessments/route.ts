@@ -31,7 +31,12 @@ export async function POST(request:Request,context:RouteContext){
     }else if(body.type==='AI_OPPORTUNITY'){
       await assertCaseServiceProfileAllowed(caseId,user.id,['AI_ADOPTION_INTEGRATION','CUSTOM_RESEARCH']); await assertCaseReferenceIntegrity({caseId,userId:user.id,recordRefs:body.recordRefs,evidenceRefs:body.evidenceRefs}); await assertTenantSystemAiEntityRefs({caseId,userId:user.id,entityRefs:[body.processRef,body.useCaseRef]}); object=buildAiAdoptionOpportunityAssessment(body);
     }else{
-      await assertCaseServiceProfileAllowed(caseId,user.id,['AI_GOVERNANCE_ASSURANCE','CUSTOM_RESEARCH']); await assertCaseReferenceIntegrity({caseId,userId:user.id,recordRefs:body.recordRefs,evidenceRefs:body.evidenceRefs}); object=buildAiGovernanceTraceAssessment(body);
+      await assertCaseServiceProfileAllowed(caseId,user.id,['AI_GOVERNANCE_ASSURANCE','CUSTOM_RESEARCH']);
+      const assertedStageCount=SFI_AI_GOVERNANCE_STAGES.filter(stage=>body.stagePresence[stage]===true).length;
+      const uniqueRecordIds=new Set(body.recordRefs.map(ref=>ref.id));
+      if(uniqueRecordIds.size<assertedStageCount) throw new Error('SFI_AI_GOVERNANCE_ASSERTED_STAGES_REQUIRE_DISTINCT_RECORD_REFS');
+      await assertCaseReferenceIntegrity({caseId,userId:user.id,recordRefs:body.recordRefs,evidenceRefs:body.evidenceRefs});
+      object=buildAiGovernanceTraceAssessment(body);
     }
     const saved=await recordOperationalCaseObject({caseId,userId:user.id,...object}); return NextResponse.json({ok:true,assessment:saved,truthAuthority:false,executionAuthority:false},{status:201});
   }catch(error){return sfiCaseApiFailure(error);}
