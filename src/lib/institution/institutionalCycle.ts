@@ -1,13 +1,13 @@
 import 'server-only';
 
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
-import { executeSfiRuntime } from '@/lib/sfi/cognitive-runtime/runtime';
 import type { KernelContext, KernelEvidence } from '@/lib/sfi/cognitive-runtime/kernelContext';
 import { createCognitiveTwinEnvelope } from '@/core/cognitive-twin/contract';
 import { syncRecentInstitutionalEvidenceToCognitiveTwin } from '@/core/cognitive-twin/evidenceIngestion';
 import { reconcileAutomaticPpoi } from '@/lib/mihm/automaticPpoiReconciliation';
 import { readInstitutionalAttractor, refreshInstitutionalAttractorTrajectory, SFI_INSTITUTIONAL_ATTRACTOR_KEY } from './institutionalAttractor';
 import { refreshPhenomenonTrajectoriesAndPpoi } from './phenomenonTrajectory';
+import { executeInstitutionalRuntimeWithCognitiveSpine } from './cognitiveSpineRuntimeExecution';
 
 type Row = Record<string, unknown>;
 
@@ -155,12 +155,28 @@ export async function runInstitutionalCycle(trigger = 'scheduled') {
     },
   };
 
-  const result = await executeSfiRuntime(context);
+  // The source cutoff is the cycle start, intentionally before current-cycle
+  // sync writes. This prevents a cycle from feeding its own newly materialized
+  // memory back into the state it claims to have started with.
+  const runtimeExecution = await executeInstitutionalRuntimeWithCognitiveSpine({
+    context,
+    sourceCutoff: startedAt,
+    createdAt: startedAt,
+    consume: true,
+  });
+  const result = runtimeExecution.runtime;
+  const cognitiveSpine = runtimeExecution.cognitiveSpine;
   const completedAt = new Date().toISOString();
   const memoryWarnings = cognitiveTwinSyncWarnings(memorySync);
   const phenomenonWarnings = 'warnings' in phenomenonRefresh && Array.isArray(phenomenonRefresh.warnings) ? phenomenonRefresh.warnings : [];
   const ppoiWarnings = automaticPpoi.warnings;
-  const criticalSubstepsOk = memorySync.ok && phenomenonRefresh.ok && automaticPpoi.ok && attractorRefresh.ok && cycleEvidence.warnings.length === 0;
+  const spineWarnings = cognitiveSpine.warnings;
+  const criticalSubstepsOk = memorySync.ok
+    && phenomenonRefresh.ok
+    && automaticPpoi.ok
+    && attractorRefresh.ok
+    && cycleEvidence.warnings.length === 0
+    && spineWarnings.length === 0;
   const runStatus = !result.completed ? 'ESCALATED' : criticalSubstepsOk ? 'CLOSED' : 'EVIDENCE_PENDING';
 
   const envelope = createCognitiveTwinEnvelope({
@@ -176,6 +192,19 @@ export async function runInstitutionalCycle(trigger = 'scheduled') {
       risks: result.context.risks.length,
       opportunities: result.context.opportunities.length,
       closureState: runStatus,
+      cognitiveSpine: {
+        snapshotId: cognitiveSpine.snapshot.snapshotId,
+        snapshotHash: cognitiveSpine.snapshot.snapshotHash,
+        sourceCutoff: cognitiveSpine.snapshot.semanticPayload.sourceCutoff,
+        projectionProfile: cognitiveSpine.trace.projectionProfile,
+        profileVersion: cognitiveSpine.trace.profileVersion,
+        consumed: cognitiveSpine.trace.ctSnapshotConsumed,
+        sourceCount: cognitiveSpine.snapshot.semanticPayload.derivedState.sourceCount,
+        memoryRefs: cognitiveSpine.snapshot.semanticPayload.memoryRefs.length,
+        decisionRefs: cognitiveSpine.snapshot.semanticPayload.decisionRefs.length,
+        verificationDebt: cognitiveSpine.snapshot.semanticPayload.verificationDebt.absolute,
+        provenanceGaps: cognitiveSpine.decisionProvenance.provenanceGaps,
+      },
       attractor: {
         key: SFI_INSTITUTIONAL_ATTRACTOR_KEY,
         evidenceCoverage: attractorRefresh.evidenceCoverage,
@@ -204,20 +233,25 @@ export async function runInstitutionalCycle(trigger = 'scheduled') {
     limitations: [
       'Attractor direction is founder-declared; attainment is evidence-dependent.',
       'Agent execution does not constitute external execution or independent validation.',
+      'Cognitive Spine memory and approved decisions are contextual state and are not promoted into observed evidence by consumption.',
+      'The consumed Cognitive Spine snapshot is sealed at the cycle-start cutoff; agents may not enrich the same run from live Twin state.',
       'Automatic PPOI registration is workflow state only; it does not constitute evidence, approval, intervention or outcome.',
       'Evidence coverage measures whether a dimension is evidenced or contradicted; it is not an attainment percentage.',
       ...cycleEvidence.warnings,
       ...memoryWarnings,
       ...phenomenonWarnings,
       ...ppoiWarnings,
+      ...spineWarnings,
+      ...cognitiveSpine.decisionProvenance.provenanceGaps.map((gap) => `cprt_b_gap:${gap}`),
     ],
     contradictions: [
       ...result.context.contradictions.map((item) => item.id),
       ...attractorRefresh.contradictedDimensions.map((dimension) => `attractor:${dimension}`),
     ],
-    missingEvidence: [...new Set([...attractorRefresh.missingDimensions, ...cycleEvidence.warnings])],
+    missingEvidence: [...new Set([...attractorRefresh.missingDimensions, ...cycleEvidence.warnings, ...spineWarnings])],
     actionsExecuted: [
       ...result.executedAgents.map((agent) => `cognitive:${agent}`),
+      `cognitive_spine:consumed:${cognitiveSpine.snapshot.snapshotId}`,
       `ppoi:auto_created:${automaticPpoi.created}`,
       `ppoi:auto_linked:${automaticPpoi.linked}`,
     ],
@@ -232,13 +266,19 @@ export async function runInstitutionalCycle(trigger = 'scheduled') {
     model: null,
     role: 'institutional_cycle',
     status: runStatus,
-    objective: 'Contrast persisted institutional evidence and phenomena against the declared SFI attractor, reconcile eligible PPOI containers automatically, then execute the governed cognitive topology.',
+    objective: 'Contrast persisted institutional evidence and phenomena against the declared SFI attractor, reconcile eligible PPOI containers automatically, then execute the governed cognitive topology through one sealed Cognitive Spine context.',
     input_snapshot: {
       trigger,
       cycleId,
       logbookId,
       evidenceRefs: cycleEvidence.refs,
       attractorKey: SFI_INSTITUTIONAL_ATTRACTOR_KEY,
+      cognitiveSpine: {
+        snapshot: cognitiveSpine.snapshot,
+        consumptionTrace: cognitiveSpine.trace,
+        decisionProvenance: cognitiveSpine.decisionProvenance,
+        consumedContext: cognitiveSpine.runtimeProjection.cognitiveTwinContext,
+      },
     },
     output_envelope: envelope,
     evidence_refs: cycleEvidence.refs,
@@ -254,6 +294,7 @@ export async function runInstitutionalCycle(trigger = 'scheduled') {
     ...phenomenonWarnings,
     ...ppoiWarnings,
     ...attractorRefresh.warnings,
+    ...spineWarnings,
     ...(runInsert.error ? [`cognitive_twin_run:${runInsert.error.message}`] : []),
   ];
 
@@ -271,6 +312,14 @@ export async function runInstitutionalCycle(trigger = 'scheduled') {
     executedAgents: result.executedAgents,
     agentCount: result.executedAgents.length,
     cognitiveTwinMemory: memorySync,
+    cognitiveSpine: {
+      snapshotId: cognitiveSpine.snapshot.snapshotId,
+      snapshotHash: cognitiveSpine.snapshot.snapshotHash,
+      consumed: cognitiveSpine.trace.ctSnapshotConsumed,
+      projectionProfile: cognitiveSpine.trace.projectionProfile,
+      profileVersion: cognitiveSpine.trace.profileVersion,
+      decisionProvenance: cognitiveSpine.decisionProvenance,
+    },
     attractor: attractorRefresh,
     phenomenaPpoi: phenomenonRefresh,
     automaticPpoi,
