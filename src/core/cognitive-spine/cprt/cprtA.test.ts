@@ -12,7 +12,8 @@ import {
   cprtAProjectionInputB,
 } from './fixture';
 
-const CPRT_A_EXPECTED_HASH = 'da6ca1abf93679b429c5f44d5d0e524a0fbd3ec02ee081e48dca9fd09d1c9b22';
+const CPRT_A_EXPECTED_HASH = '8c10f1f8b70833b2e4584a53684248e213e955bcff46003255eefdfd49be66fb';
+const CPRT_A_EXPECTED_LINEAGE_ROOT = '64586008fa8de2ea17d541d52f48eb2a2d2fff5d0b32bdeb4af1e53f56e83302';
 
 test('CPRT-A: semantically identical inputs produce the same snapshot hash', () => {
   const leftPayload = projectCognitiveState(cprtAProjectionInputA());
@@ -45,17 +46,23 @@ test('CPRT-A: artifact identity does not alter semantic identity', () => {
   assert.deepEqual(left.semanticPayload, right.semanticPayload);
 });
 
-test('CPRT-A: temporal cutoff and visibility profile are applied deterministically', () => {
+test('CPRT-A: frozen semantic payload materializes every contract field', () => {
   const payload = projectCognitiveState(cprtAProjectionInputA());
 
   assert.deepEqual(payload.eventRefs, ['EV-001']);
   assert.deepEqual(payload.evidenceRefs, ['EVID-001']);
   assert.deepEqual(payload.hypothesisRefs, ['H-001']);
   assert.deepEqual(payload.questionRefs, ['Q-001']);
+  assert.deepEqual(payload.epistemicStateRefs, ['EA-001', 'EA-002', 'EA-003']);
   assert.equal(payload.projectionProfile, CPRT_A_PROFILE);
+  assert.equal(payload.temporalState.visibleRecordCount, 4);
+  assert.equal(payload.verificationDebt.absolute, 1);
   assert.equal(payload.derivedState.sourceCount, 4);
   assert.equal(payload.derivedState.debt.VERIFICATION, 1);
   assert.equal(payload.derivedState.independentLineageRootCount, 3);
+  assert.equal(payload.sourceManifest.length, 4);
+  assert.equal(payload.sourceHashes.length, 4);
+  assert.equal(payload.lineageRoot, CPRT_A_EXPECTED_LINEAGE_ROOT);
 });
 
 test('CPRT-A: evidence must arrive with prior epistemic assessment', () => {
@@ -73,12 +80,14 @@ test('CPRT-A: evidence must arrive with prior epistemic assessment', () => {
   );
 });
 
-test('CPRT-A: semantic policy or projector changes alter semantic identity', () => {
+test('CPRT-A: semantic policy, projector or operating-mode ref changes semantic identity', () => {
   const baseline = cprtAProjectionInputA();
   const changedPolicy = { ...cprtAProjectionInputA(), policyVersion: 'E2' };
   const changedProjector = { ...cprtAProjectionInputA(), projectorVersion: 'P2' };
+  const changedOperatingMode = { ...cprtAProjectionInputA(), operatingModeRef: 'MODE-001' };
 
   const baselineHash = semanticSnapshotHash(projectCognitiveState(baseline));
   assert.notEqual(baselineHash, semanticSnapshotHash(projectCognitiveState(changedPolicy)));
   assert.notEqual(baselineHash, semanticSnapshotHash(projectCognitiveState(changedProjector)));
+  assert.notEqual(baselineHash, semanticSnapshotHash(projectCognitiveState(changedOperatingMode)));
 });
