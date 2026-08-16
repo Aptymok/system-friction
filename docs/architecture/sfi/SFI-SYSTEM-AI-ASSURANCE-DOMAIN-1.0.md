@@ -23,10 +23,12 @@ Every System/AI entity payload carries `SFI-SYSTEM-AI-ASSURANCE-DOMAIN-1.0`. The
 
 The shared `sfi_case_relations` table remains the one relation store, but its write boundaries are explicit:
 
-- direct authenticated relation inserts are database-enforced `RECORD` only;
+- direct authenticated Supabase relation inserts are disabled;
+- RECORD relations still pass through the authenticated Case API/repository boundary;
 - inferred or epistemically assessed relations pass through the governed server path;
-- relation endpoints resolve to the exact persisted canonical revision, including version/hash when present;
+- relation endpoints resolve to the exact persisted canonical revision, including supplied version/hash;
 - a reused `relationKey` is idempotent only when the complete semantic relation is identical;
+- duplicate `relationKey` values within one intake package are rejected before persistence;
 - standalone System/AI relation writes and package intake are transactionally audited;
 - a relation may not silently alias a newer revision that happens to reuse the same entity ID.
 
@@ -40,7 +42,9 @@ System/AI intake validates the complete package before mutation and persists the
 
 ## AI implementation diagnostic
 
-AI execution traces preserve identifiers/hashes and declared topology without requiring raw prompts or raw inputs in the Case store. Start and finish timestamps are validated as one interval; `finishedAt < startedAt` is rejected. Failures remain observed records. Localization to DATA/MODEL/PROMPT/RETRIEVAL/TOOL/INTEGRATION/WORKFLOW/HUMAN_HANDOFF/GOVERNANCE is an evidence-backed epistemic assessment.
+AI assurance intake accepts completed execution traces: both `startedAt` and `finishedAt` are required for `AI_EXECUTION`, and `finishedAt < startedAt` is rejected at both the normalization/API boundary and the database guard. This avoids ambiguous in-place completion semantics for an immutable execution identity. Runtime systems may observe in-progress work internally, but the assurance Case records the execution after completion.
+
+Execution traces preserve identifiers/hashes and declared topology without requiring raw prompts or raw inputs in the Case store. Failures remain observed records. Localization to DATA/MODEL/PROMPT/RETRIEVAL/TOOL/INTEGRATION/WORKFLOW/HUMAN_HANDOFF/GOVERNANCE is an evidence-backed epistemic assessment.
 
 `FAILURE EVENT ≠ ROOT CAUSE`.
 
@@ -58,7 +62,7 @@ Any resulting recommendation still passes through the Case action gate before in
 
 The trace model distinguishes MODEL → PROMPT → INPUT → CONTEXT → OUTPUT → DECISION → HUMAN AUTHORITY → ACTION → RETURN.
 
-Stage presence is derived from stage-specific, case-validated record references. A client cannot declare a stage present independently of its backing record. Trace completeness can therefore be measured without claiming legal/regulatory compliance or truth authority.
+Stage presence is derived from stage-specific, case-validated record references. Supplied canonical references are checked by ID and every supplied revision discriminator (`version` and/or `hash`). A client cannot declare a stage present independently of its backing record or point an assessment at a nonexistent revision. Trace completeness can therefore be measured without claiming legal/regulatory compliance or truth authority.
 
 `TRACE COMPLETENESS ≠ COMPLIANCE`.
 
@@ -92,6 +96,8 @@ Screen hierarchy, graph layout, visual encodings and interaction design remain a
 - `FRICTION ≠ ESTABLISHED CAUSALITY`
 - `PROJECTED VALUE ≠ OBSERVED RETURN`
 - `TRACE COMPLETENESS ≠ COMPLIANCE`
+- `RELATION IDENTITY ≠ ENTITY IDENTITY ALONE`
+- `FAILED INTAKE ≠ PARTIAL PERSISTENCE`
 - `COMMERCIAL CASE MEMORY ≠ INSTITUTIONAL MEMORY`
 - `CLIENT GRAPH ≠ INSTITUTIONAL GRAPH`
 - `GOVERNANCE ≠ TRUTH`
