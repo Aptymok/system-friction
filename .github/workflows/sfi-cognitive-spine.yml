@@ -12,6 +12,9 @@ on:
       - 'src/lib/studio/cognitive/**'
       - 'src/app/api/studio/session/reconstruct/route.ts'
       - 'src/lib/root/cognitiveSpineRootContext.ts'
+      - 'src/lib/root/cognitiveSpineStatus.ts'
+      - 'src/components/root/cognitive-spine/**'
+      - 'src/app/root/layout.tsx'
       - 'src/app/api/root/cognitive-twin/deliberate/route.ts'
       - 'src/lib/lab/decisionTransferCognitiveSpineBoundary.ts'
       - 'src/app/api/root/method-lab/decision-transfer/blind/route.ts'
@@ -48,6 +51,9 @@ on:
       - 'src/lib/studio/cognitive/**'
       - 'src/app/api/studio/session/reconstruct/route.ts'
       - 'src/lib/root/cognitiveSpineRootContext.ts'
+      - 'src/lib/root/cognitiveSpineStatus.ts'
+      - 'src/components/root/cognitive-spine/**'
+      - 'src/app/root/layout.tsx'
       - 'src/app/api/root/cognitive-twin/deliberate/route.ts'
       - 'src/lib/lab/decisionTransferCognitiveSpineBoundary.ts'
       - 'src/app/api/root/method-lab/decision-transfer/blind/route.ts'
@@ -122,3 +128,5 @@ jobs:
         run: node --import tsx scripts/cognitive-spine/qa-library-impact-context.ts
       - name: Final transversal Cognitive Spine technical integration
         run: node --import tsx scripts/cognitive-spine/qa-cognitive-spine-integrated.ts
+      - name: ROOT Cognitive Spine status observability boundary
+        run: node --import tsx scripts/cognitive-spine/qa-root-cognitive-spine-observability.ts
