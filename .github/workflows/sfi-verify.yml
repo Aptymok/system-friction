@@ -81,6 +81,9 @@ jobs:
       - name: Verify canonical Decision Transfer context materialization
         run: npx tsx scripts/qa-sfi-decision-transfer-context.ts
 
+      - name: Verify post-cutoff Decision Transfer target timing
+        run: npx tsx scripts/qa-sfi-decision-transfer-target-timing.ts
+
       - name: Verify canonical evidence identity
         run: node --import tsx --test src/lib/evidence/canonicalEvidence.test.ts
 
