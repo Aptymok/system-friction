@@ -17,6 +17,7 @@ import { buildRuntimeCognitiveSpineProjection } from '@/core/cognitive-spine/run
 import { canonicalSha256, normalizeTimestamp, sortedUnique } from '@/core/cognitive-spine/serialization/canonicalSerialize';
 import { buildCognitiveContextConsumptionTrace } from '@/core/cognitive-spine/trace/consumptionTrace';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
+import { readAdditionalInstitutionalCognitiveSpineSources } from './cognitiveSpineAdditionalSources';
 
 const PROJECTOR_VERSION = 'SFI-CT-PROJECTOR-1.0';
 const POLICY_VERSION = 'SFI-CT-INVARIANTS-1.0';
@@ -250,7 +251,7 @@ async function readAssessedEvidenceAtCutoff(sourceCutoff: string): Promise<{
       epistemicAssessmentRef: eventId,
       epistemicClass,
       ancestryRoots: lineage,
-      visibilityProfiles: [RUNTIME_GENERAL_CONTEXT_PROFILE.profileId],
+      visibilityProfiles: ['*'],
       debtType,
     });
   }
@@ -275,7 +276,7 @@ function memorySourceRecord(memory: MaterializedMemory): CognitiveSpineSourceRec
       createdAt: memory.createdAt,
     }),
     sourceVersion: memory.version,
-    visibilityProfiles: [RUNTIME_GENERAL_CONTEXT_PROFILE.profileId],
+    visibilityProfiles: ['*'],
     ...(memory.status === 'CANDIDATE' ? { debtType: 'VERIFICATION' as const } : {}),
   };
 }
@@ -296,7 +297,7 @@ function decisionSourceRecord(decision: MaterializedDecision): CognitiveSpineSou
       approvedAt: decision.approvedAt,
       status: 'APPROVED',
     }),
-    visibilityProfiles: [RUNTIME_GENERAL_CONTEXT_PROFILE.profileId],
+    visibilityProfiles: ['*'],
   };
 }
 
@@ -307,23 +308,32 @@ export async function materializeInstitutionalRuntimeCognitiveSpine(input: {
   consume: boolean;
 }) {
   const sourceCutoff = normalizeTimestamp(input.sourceCutoff);
-  const [evidence, memory, decisions] = await Promise.all([
+  const [evidence, memory, decisions, additionalSources] = await Promise.all([
     readAssessedEvidenceAtCutoff(sourceCutoff),
     readCanonicalMemoryAtCutoff(sourceCutoff),
     readApprovedDecisionsAtCutoff(sourceCutoff),
+    readAdditionalInstitutionalCognitiveSpineSources(sourceCutoff),
+  ]);
+
+  const warnings = sortedUnique([
+    ...evidence.warnings,
+    ...memory.warnings,
+    ...decisions.warnings,
+    ...additionalSources.warnings,
   ]);
 
   const cognitiveTwinContext: StudioTwinContext = {
     contractVersion: COGNITIVE_TWIN_CONTRACT_VERSION,
     memory: memory.rows.map(({ id: _id, createdAt: _createdAt, ...item }) => item),
     decisions: decisions.rows.map(({ approvedAt: _approvedAt, ...item }) => item),
-    warnings: sortedUnique([...evidence.warnings, ...memory.warnings, ...decisions.warnings]),
+    warnings,
   };
 
   const records = [
     ...evidence.records,
     ...memory.rows.map(memorySourceRecord),
     ...decisions.rows.map(decisionSourceRecord),
+    ...additionalSources.records,
   ].filter((item) => runtimeGeneralAllowsKind(item.kind));
 
   const semanticPayload = projectCognitiveState({
@@ -366,6 +376,12 @@ export async function materializeInstitutionalRuntimeCognitiveSpine(input: {
     trace,
     runtimeProjection,
     cognitiveTwinContext,
-    warnings: cognitiveTwinContext.warnings,
+    warnings,
+    sourcePlane: {
+      rootEvidence: evidence.records.length,
+      canonicalMemory: memory.rows.length,
+      approvedTwinDecisions: decisions.rows.length,
+      ...additionalSources.summary,
+    },
   };
 }
