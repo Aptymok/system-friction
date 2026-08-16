@@ -6,7 +6,7 @@ import type { RootActionRequest, RootSelection, RootSessionEvent } from './sover
 import { RootMethodologyWorkbench } from './RootMethodologyWorkbench';
 import { RootSemanticInspector } from './RootSemanticInspector';
 import { RootSemanticContextModal } from './RootSemanticContextModal';
-import { RootGovernanceObservatory } from './RootGovernanceObservatory';
+import { RootEmergentGovernanceObservatory } from './RootEmergentGovernanceObservatory';
 import { FriccionautaConsole } from '@/components/root/friccionauta/FriccionautaConsole';
 import './root-sovereign.css';
 import './root-observatory-scale.css';
@@ -108,7 +108,7 @@ export function RootSovereignConsole({ initialState, accessMode = 'sovereign', a
   const launcherStyle = { border: '1px solid rgba(191,160,78,.38)', background: '#080807', color: '#c6ad69', padding: '8px 10px', textDecoration: 'none', font: '9px ui-monospace,SFMono-Regular,Menlo,monospace', letterSpacing: '.08em' } as const;
 
   return <div className={`rs-console-host ${selection ? 'has-semantic-selection' : ''}`}>
-    <RootGovernanceObservatory state={state} refreshing={refreshing} warning={refreshWarning} onRefresh={() => void refresh(false)} onSelect={setSelection} onAction={requestAction} />
+    <RootEmergentGovernanceObservatory state={state} refreshing={refreshing} warning={refreshWarning} onRefresh={() => void refresh(false)} onSelect={setSelection} onAction={requestAction} />
     <div style={{ position: 'fixed', right: 18, bottom: readOnly ? 18 : 62, zIndex: 35, display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end', maxWidth: '80vw' }}>
       <a href="/root/readiness" title="Abrir Development Registry" style={launcherStyle}>DEVELOPMENT</a>
       <a href="/root/readiness" title="Abrir Institutional Readiness" style={launcherStyle}>READINESS</a>
