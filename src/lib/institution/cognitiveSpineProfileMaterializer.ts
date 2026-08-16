@@ -11,6 +11,8 @@ export type MaterializeInstitutionalCognitiveSpineProfileInput = {
   profileId: CognitiveSpineProjectionProfileId;
   consume: boolean;
   consumptionReason?: string;
+  allowedRefs?: readonly string[];
+  requireAllAllowedRefs?: boolean;
 };
 
 /**
@@ -30,6 +32,8 @@ export async function materializeInstitutionalCognitiveSpineProfile(
     profileId: input.profileId,
     consume: input.consume,
     consumptionReason: input.consumptionReason,
+    allowedRefs: input.allowedRefs,
+    requireAllAllowedRefs: input.requireAllAllowedRefs,
   });
 
   return {
