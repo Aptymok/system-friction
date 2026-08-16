@@ -120,3 +120,5 @@ jobs:
         run: node --import tsx scripts/cognitive-spine/qa-atlas-temporal-context.ts
       - name: Library non-claiming Cognitive Spine impact context
         run: node --import tsx scripts/cognitive-spine/qa-library-impact-context.ts
+      - name: Final transversal Cognitive Spine technical integration
+        run: node --import tsx scripts/cognitive-spine/qa-cognitive-spine-integrated.ts
