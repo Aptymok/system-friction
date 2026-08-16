@@ -1,5 +1,6 @@
 'use client';
 
+import type { CSSProperties } from 'react';
 import type { SfiCaseCinematicModel } from './SfiCaseCinematicWorkspace';
 
 function nodeByType(model: SfiCaseCinematicModel, type: string) {
@@ -60,9 +61,14 @@ function ContractWarrantyField({ model }: { model: SfiCaseCinematicModel }) {
 }
 
 function ServiceDeskField({ model }: { model: SfiCaseCinematicModel }) {
-  const tickets=nodeByType(model,'TICKET'); const assets=nodeByType(model,'ASSET'); const services=nodeByType(model,'SERVICE'); const suppliers=nodeByType(model,'SUPPLIER');
+  const groups = [
+    { label: 'TICKETS', items: nodeByType(model,'TICKET') },
+    { label: 'ASSETS', items: nodeByType(model,'ASSET') },
+    { label: 'SERVICES', items: nodeByType(model,'SERVICE') },
+    { label: 'SUPPLIERS', items: nodeByType(model,'SUPPLIER') },
+  ];
   return <div className="sfi-profile-field sfi-profile-field--service"><header><span>SERVICE FIELD</span><strong>RECURRENCE WITHOUT AUTO-CAUSE</strong></header><div className="sfi-service-clusters">
-    {[['TICKETS',tickets],['ASSETS',assets],['SERVICES',services],['SUPPLIERS',suppliers]].map(([label,items]) => { const list=items as typeof tickets; return <section key={String(label)}><span>{label as string}</span><strong>{list.length}</strong><div>{list.slice(0,7).map((item)=><i key={item.id}>{short(item.label,20)}</i>)}</div></section>; })}
+    {groups.map(({label,items}) => <section key={label}><span>{label}</span><strong>{items.length}</strong><div>{items.slice(0,7).map((item)=><i key={item.id}>{short(item.label,20)}</i>)}</div></section>)}
   </div><div className="sfi-profile-relations">{model.relations.slice(0,18).map((relation)=><div key={relation.id}><span>{short(relation.sourceId,18)}</span><em>{relation.label}</em><span>{short(relation.targetId,18)}</span></div>)}</div></div>;
 }
 
@@ -72,7 +78,7 @@ function EnterpriseContinuityField({ model }: { model: SfiCaseCinematicModel }) 
 }
 
 function SystemTopologyField({ model }: { model: SfiCaseCinematicModel }) {
-  return <div className="sfi-profile-field sfi-profile-field--topology"><header><span>SYSTEM TOPOLOGY</span><strong>{model.nodes.length} NODES · {model.relations.length} RELATIONS</strong></header><div className="sfi-topology-cloud">{model.nodes.slice(0,32).map((node,index)=><div key={node.id} data-tone={node.tone} style={{ '--i': index } as React.CSSProperties}><span>{node.type}</span><strong>{short(node.label,18)}</strong></div>)}</div><div className="sfi-profile-relations">{model.relations.slice(0,24).map((relation)=><div key={relation.id}><span>{short(relation.sourceId,18)}</span><em>{relation.label}</em><span>{short(relation.targetId,18)}</span></div>)}</div></div>;
+  return <div className="sfi-profile-field sfi-profile-field--topology"><header><span>SYSTEM TOPOLOGY</span><strong>{model.nodes.length} NODES · {model.relations.length} RELATIONS</strong></header><div className="sfi-topology-cloud">{model.nodes.slice(0,32).map((node,index)=><div key={node.id} data-tone={node.tone} style={{ '--i': index } as CSSProperties}><span>{node.type}</span><strong>{short(node.label,18)}</strong></div>)}</div><div className="sfi-profile-relations">{model.relations.slice(0,24).map((relation)=><div key={relation.id}><span>{short(relation.sourceId,18)}</span><em>{relation.label}</em><span>{short(relation.targetId,18)}</span></div>)}</div></div>;
 }
 
 export function CaseProfileField({ model }: { model: SfiCaseCinematicModel }) {
