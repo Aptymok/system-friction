@@ -14,7 +14,9 @@ type Particle = {
   group: number;
 };
 
-function routeMode(pathname: string) {
+type FieldMode = 'signal'|'observation'|'system'|'friction'|'mihm'|'evidence'|'studio'|'memory'|'lab'|'trajectory'|'governance'|'field'|'research'|'root'|'final'|'case'|'access';
+
+function routeMode(pathname: string): FieldMode {
   if (pathname.startsWith('/root')) return 'root';
   if (pathname.startsWith('/studio')) return 'studio';
   if (pathname.startsWith('/observatory')) return 'observation';
@@ -28,17 +30,79 @@ function routeMode(pathname: string) {
   return 'signal';
 }
 
-function target(mode: string, index: number, count: number, width: number, height: number) {
+function sceneMode(id: string): FieldMode {
+  if (id === 'observation') return 'observation';
+  if (id === 'system') return 'system';
+  if (id === 'friction') return 'friction';
+  if (id === 'mihm') return 'mihm';
+  if (id === 'evidence') return 'evidence';
+  if (id === 'studio') return 'studio';
+  if (id === 'twin') return 'memory';
+  if (id === 'simulation') return 'lab';
+  if (id === 'trajectories') return 'trajectory';
+  if (id === 'governance') return 'governance';
+  if (id === 'field') return 'field';
+  if (id === 'research') return 'research';
+  if (id === 'root') return 'root';
+  if (id === 'institute') return 'final';
+  return 'signal';
+}
+
+function sfiTarget(index: number, count: number, width: number, height: number) {
+  const sCount = Math.floor(count * 0.36);
+  const fCount = Math.floor(count * 0.34);
+  const group = index < sCount ? 0 : index < sCount + fCount ? 1 : 2;
+  const localIndex = group === 0 ? index : group === 1 ? index - sCount : index - sCount - fCount;
+  const localCount = group === 0 ? sCount : group === 1 ? fCount : count - sCount - fCount;
+  const t = localIndex / Math.max(1, localCount - 1);
+  const centerY = height * 0.5;
+  const scaleY = Math.min(height * 0.28, 245);
+  const thickness = ((localIndex % 5) - 2) * 2.4;
+
+  if (group === 0) {
+    const y = centerY - scaleY + t * scaleY * 2;
+    const x = width * 0.30 + Math.sin(t * Math.PI * 2.15 + Math.PI * 0.15) * Math.min(width * 0.055, 70) + thickness;
+    return [x, y] as const;
+  }
+
+  if (group === 1) {
+    const baseX = width * 0.50;
+    const verticalShare = 0.54;
+    if (t < verticalShare) {
+      const vt = t / verticalShare;
+      return [baseX + thickness, centerY - scaleY + vt * scaleY * 2] as const;
+    }
+    const barT = (t - verticalShare) / (1 - verticalShare);
+    const top = localIndex % 2 === 0;
+    return [baseX + barT * Math.min(width * 0.09, 120), centerY + (top ? -scaleY : -scaleY * 0.05) + thickness] as const;
+  }
+
+  const baseX = width * 0.72;
+  const cap = localIndex % 4;
+  if (cap === 0 || cap === 1) {
+    return [baseX + (t - 0.5) * Math.min(width * 0.065, 86), centerY + (cap === 0 ? -scaleY : scaleY) + thickness] as const;
+  }
+  return [baseX + thickness, centerY - scaleY + t * scaleY * 2] as const;
+}
+
+function target(mode: FieldMode, index: number, count: number, width: number, height: number) {
   const centerX = width * 0.52;
   const centerY = height * 0.5;
   const t = index / Math.max(1, count - 1);
   const angle = index * 2.3999632297;
   const min = Math.min(width, height);
 
+  if (mode === 'final') return sfiTarget(index, count, width, height);
   if (mode === 'root' || mode === 'mihm') {
     const ring = 1 + (index % 4);
     const radius = min * (0.055 + ring * 0.055);
     return [centerX + Math.cos(angle) * radius, centerY + Math.sin(angle) * radius] as const;
+  }
+  if (mode === 'system') {
+    const ring = index % 3;
+    const radius = min * (0.15 + ring * 0.105);
+    const a = t * Math.PI * 6 + ring * 0.47;
+    return [centerX + Math.cos(a) * radius, centerY + Math.sin(a) * radius * 0.72] as const;
   }
   if (mode === 'studio' || mode === 'case') {
     const steps = [[0.17,0.24],[0.35,0.39],[0.52,0.28],[0.69,0.44],[0.45,0.68],[0.76,0.7]];
@@ -53,7 +117,12 @@ function target(mode: string, index: number, count: number, width: number, heigh
     return [width * point[0] + Math.cos(angle) * radius, height * point[1] + Math.sin(angle) * radius] as const;
   }
   if (mode === 'friction') {
-    return [width * (0.1 + t * 0.8), height * (0.5 + Math.sin(t * 12.5) * 0.22)] as const;
+    return [width * (0.1 + t * 0.8), height * (0.5 + Math.sin(t * 12.5) * 0.22) + ((index % 2) ? -17 : 17)] as const;
+  }
+  if (mode === 'evidence') {
+    const columns = 9;
+    const rows = Math.ceil(count / columns);
+    return [width * (0.18 + (index % columns) / (columns - 1) * 0.64), height * (0.16 + Math.floor(index / columns) / Math.max(1, rows - 1) * 0.68)] as const;
   }
   if (mode === 'memory') {
     const radius = min * (0.08 + t * 0.24);
@@ -61,11 +130,26 @@ function target(mode: string, index: number, count: number, width: number, heigh
   }
   if (mode === 'field') {
     const columns = 12;
-    return [width * (0.12 + (index % columns) / (columns - 1) * 0.76), height * (0.18 + Math.floor(index / columns) / 5 * 0.64)] as const;
+    return [width * (0.12 + (index % columns) / (columns - 1) * 0.76), height * (0.18 + Math.floor(index / columns) / Math.max(1, Math.ceil(count / columns) - 1) * 0.64)] as const;
   }
   if (mode === 'lab') {
     const radius = 24 + (index % 28) * 5;
     return [centerX + Math.cos(angle) * radius, centerY + Math.sin(angle) * radius * 0.68] as const;
+  }
+  if (mode === 'trajectory') {
+    const branch = index % 4;
+    const bt = Math.floor(index / 4) / Math.max(1, Math.ceil(count / 4) - 1);
+    return [width * (0.1 + bt * 0.8), height * (0.5 + (branch - 1.5) * 0.13 * Math.pow(bt, 1.2) + Math.sin(bt * 5 + branch) * 0.025)] as const;
+  }
+  if (mode === 'governance') {
+    const band = index % 5;
+    const col = Math.floor(index / 5);
+    return [width * (0.16 + (col / Math.max(1, Math.ceil(count / 5) - 1)) * 0.68), height * (0.2 + band * 0.15)] as const;
+  }
+  if (mode === 'research') {
+    const column = index % 3;
+    const row = Math.floor(index / 3);
+    return [width * (0.24 + column * 0.25) + Math.sin(row) * 14, height * (0.15 + (row % 16) * 0.045)] as const;
   }
   if (mode === 'access') {
     const radius = min * (0.08 + (index % 3) * 0.09);
@@ -77,7 +161,7 @@ function target(mode: string, index: number, count: number, width: number, heigh
 export function SfiLivingField() {
   const pathname = usePathname();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const mode = routeMode(pathname);
+  const route = routeMode(pathname);
 
   useEffect(() => {
     const currentCanvas = canvasRef.current;
@@ -88,7 +172,7 @@ export function SfiLivingField() {
     const paint: CanvasRenderingContext2D = currentContext;
 
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const count = reduceMotion ? 34 : 78;
+    const count = reduceMotion ? 34 : pathname === '/' ? 128 : 78;
     let width = window.innerWidth;
     let height = window.innerHeight;
     let dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -96,6 +180,7 @@ export function SfiLivingField() {
     let pointerY = height / 2;
     let frame = 0;
     let active = true;
+    let activeMode: FieldMode = route;
 
     const particles: Particle[] = Array.from({ length: count }, (_, index) => ({
       x: width * (((index * 43) % count) / count),
@@ -125,38 +210,49 @@ export function SfiLivingField() {
       document.documentElement.style.setProperty('--sfi-my', `${pointerY}px`);
     }
 
+    const sceneObserver = pathname === '/' ? new IntersectionObserver((entries) => {
+      const visible = entries.filter((entry) => entry.isIntersecting).sort((a,b) => b.intersectionRatio - a.intersectionRatio)[0];
+      if (!visible) return;
+      activeMode = sceneMode((visible.target as HTMLElement).id);
+      surface.parentElement?.setAttribute('data-mode', activeMode);
+    }, { threshold: [0.22,0.42,0.62] }) : null;
+    if (sceneObserver) document.querySelectorAll<HTMLElement>('.is-scene').forEach((scene) => sceneObserver.observe(scene));
+
     function draw(time: number) {
       if (!active) return;
       paint.clearRect(0, 0, width, height);
       const seconds = time * 0.001;
 
       particles.forEach((particle, index) => {
-        const [baseX, baseY] = target(mode, index, count, width, height);
-        let tx = baseX + Math.sin(seconds * 0.34 + particle.phase) * 4;
-        let ty = baseY + Math.cos(seconds * 0.29 + particle.phase) * 4;
+        const [baseX, baseY] = target(activeMode, index, count, width, height);
+        const settle = activeMode === 'final' ? 0.012 : 0.006;
+        const drift = activeMode === 'final' ? 1.2 : 4;
+        let tx = baseX + Math.sin(seconds * 0.34 + particle.phase) * drift;
+        let ty = baseY + Math.cos(seconds * 0.29 + particle.phase) * drift;
         const dx = particle.x - pointerX;
         const dy = particle.y - pointerY;
         const distance = Math.hypot(dx, dy) || 1;
-        if (!reduceMotion && distance < 170) {
+        if (!reduceMotion && activeMode !== 'final' && distance < 170) {
           const force = (170 - distance) / 170;
           tx += (dx / distance) * force * 24;
           ty += (dy / distance) * force * 24;
         }
-        particle.vx += (tx - particle.x) * (reduceMotion ? 0.025 : 0.006);
-        particle.vy += (ty - particle.y) * (reduceMotion ? 0.025 : 0.006);
+        particle.vx += (tx - particle.x) * (reduceMotion ? 0.025 : settle);
+        particle.vy += (ty - particle.y) * (reduceMotion ? 0.025 : settle);
         particle.vx *= reduceMotion ? 0.7 : 0.91;
         particle.vy *= reduceMotion ? 0.7 : 0.91;
         particle.x += particle.vx;
         particle.y += particle.vy;
       });
 
+      const linkLimit = activeMode === 'evidence' ? 72 : activeMode === 'governance' ? 96 : activeMode === 'final' ? 48 : 112;
       for (let index = 0; index < particles.length; index += 1) {
         const a = particles[index];
         for (let offset = 1; offset < 9 && index + offset < particles.length; offset += 1) {
           const b = particles[index + offset];
           const distance = Math.hypot(a.x - b.x, a.y - b.y);
-          if (distance > 112) continue;
-          const alpha = (1 - distance / 112) * 0.11;
+          if (distance > linkLimit) continue;
+          const alpha = (1 - distance / linkLimit) * (activeMode === 'final' ? 0.15 : 0.11);
           paint.strokeStyle = `rgba(200,167,100,${alpha})`;
           paint.lineWidth = 0.55;
           paint.beginPath();
@@ -168,7 +264,7 @@ export function SfiLivingField() {
 
       particles.forEach((particle, index) => {
         const hot = index % 17 === 0;
-        paint.fillStyle = hot ? 'rgba(240,211,151,.55)' : 'rgba(232,226,213,.20)';
+        paint.fillStyle = hot ? 'rgba(240,211,151,.62)' : activeMode === 'final' ? 'rgba(232,226,213,.32)' : 'rgba(232,226,213,.20)';
         paint.beginPath();
         paint.arc(particle.x, particle.y, hot ? 1.45 : particle.size, 0, Math.PI * 2);
         paint.fill();
@@ -184,14 +280,15 @@ export function SfiLivingField() {
 
     return () => {
       active = false;
+      sceneObserver?.disconnect();
       window.cancelAnimationFrame(frame);
       window.removeEventListener('resize', resize);
       window.removeEventListener('pointermove', pointer);
     };
-  }, [mode]);
+  }, [pathname, route]);
 
   return (
-    <div className="sfi-living-field" data-mode={mode} aria-hidden="true">
+    <div className="sfi-living-field" data-mode={route} aria-hidden="true">
       <canvas ref={canvasRef} />
       <div className="sfi-living-field__orbit" />
       <div className="sfi-living-field__vignette" />
