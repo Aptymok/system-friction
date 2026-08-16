@@ -13,9 +13,39 @@ function assertRefs(rows:Row[],refs:SfiCanonicalRef[],label:string,predicate:(ro
 
 export async function assertCaseReferenceIntegrity(input:{caseId:string;userId:string;sourceRefs?:SfiCanonicalRef[];recordRefs?:SfiCanonicalRef[];evidenceRefs?:SfiCanonicalRef[];assessmentRefs?:SfiCanonicalRef[];recommendationRefs?:SfiCanonicalRef[];interventionRefs?:SfiCanonicalRef[]}){await accessContext(input.caseId,input.userId,'READ');const rows=await caseObjects(input.caseId);assertRefs(rows,input.sourceRefs??[],'SOURCE',row=>text(row.object_kind)==='SOURCE'&&text(row.epistemic_role)==='SOURCE');assertRefs(rows,input.recordRefs??[],'RECORD',row=>text(row.epistemic_role)==='RECORD');assertRefs(rows,input.evidenceRefs??[],'EVIDENCE',row=>text(row.object_kind)==='EVIDENCE'&&text(row.epistemic_role)==='EVIDENCE');assertRefs(rows,input.assessmentRefs??[],'EPISTEMIC_ASSESSMENT',row=>text(row.object_kind)==='EPISTEMIC_ASSESSMENT'&&text(row.epistemic_role)==='EPISTEMIC_ASSESSMENT');assertRefs(rows,input.recommendationRefs??[],'RECOMMENDATION',row=>text(row.object_kind)==='RECOMMENDATION');assertRefs(rows,input.interventionRefs??[],'INTERVENTION',row=>text(row.object_kind)==='INTERVENTION'&&text(row.epistemic_role)==='RECORD');return true;}
 
-async function assertTenantTypedEntityRefs(input:{caseId:string;userId:string;entityRefs:TypedEntityRef[];errorCode:string;domainContract?:string}){const context=await accessContext(input.caseId,input.userId,'READ');if(!input.entityRefs.length)return true;const service=createServiceSupabaseClient();const result=await service.from('sfi_case_objects').select('canonical_ref,payload').eq('tenant_id',context.tenantId);if(result.error)throw new Error(`${input.errorCode}_READ_FAILED:${result.error.message}`);const rows=(result.data??[])as Row[];for(const ref of input.entityRefs){const found=rows.some(row=>{if(refId(row.canonical_ref)!==ref.id)return false;const expectedVersion=ref.version?.trim()||null;if(expectedVersion&&refVersion(row.canonical_ref)!==expectedVersion)return false;const expectedHash=ref.hash?.trim()||null;if(expectedHash&&refHash(row.canonical_ref)!==expectedHash)return false;const payload=object(row.payload);if(text(payload.entityType)!==ref.entityType)return false;if(input.domainContract&&text(payload.contract)!==input.domainContract)return false;return true;});if(!found)throw new Error(`${input.errorCode}:${ref.entityType}:${ref.id}`);}return true;}
-export async function assertTenantEnterpriseEntityRefs(input:{caseId:string;userId:string;entityRefs:SfiEnterpriseEntityRef[]}){return assertTenantTypedEntityRefs({...input,errorCode:'SFI_ENTERPRISE_ENTITY_REFERENCE_NOT_FOUND'});}
-export async function assertTenantSystemAiEntityRefs(input:{caseId:string;userId:string;entityRefs:SfiSystemAiEntityRef[]}){return assertTenantTypedEntityRefs({...input,errorCode:'SFI_SYSTEM_AI_ENTITY_REFERENCE_NOT_FOUND',domainContract:SFI_SYSTEM_AI_ASSURANCE_DOMAIN_CONTRACT});}
+async function resolveTenantTypedEntityRefs(input:{caseId:string;userId:string;entityRefs:TypedEntityRef[];errorCode:string;domainContract?:string}){
+  const context=await accessContext(input.caseId,input.userId,'READ');
+  if(!input.entityRefs.length)return [] as TypedEntityRef[];
+  const service=createServiceSupabaseClient();
+  const ids=[...new Set(input.entityRefs.map(ref=>ref.id))];
+  const result=await service.from('sfi_case_objects').select('canonical_ref,payload').eq('tenant_id',context.tenantId).in('canonical_ref->>id',ids);
+  if(result.error)throw new Error(`${input.errorCode}_READ_FAILED:${result.error.message}`);
+  const rows=(result.data??[])as Row[];
+  return input.entityRefs.map(ref=>{
+    const candidates=rows.filter(row=>{
+      if(refId(row.canonical_ref)!==ref.id)return false;
+      const expectedVersion=ref.version?.trim()||null;
+      if(expectedVersion&&refVersion(row.canonical_ref)!==expectedVersion)return false;
+      const expectedHash=ref.hash?.trim()||null;
+      if(expectedHash&&refHash(row.canonical_ref)!==expectedHash)return false;
+      const payload=object(row.payload);
+      if(text(payload.entityType)!==ref.entityType)return false;
+      if(input.domainContract&&text(payload.contract)!==input.domainContract)return false;
+      return true;
+    });
+    const identities=[...new Map(candidates.map(row=>{
+      const stored={id:refId(row.canonical_ref),version:refVersion(row.canonical_ref),hash:refHash(row.canonical_ref),entityType:ref.entityType};
+      return[`${stored.id}|${stored.version??''}|${stored.hash??''}`,stored] as const;
+    })).values()];
+    if(!identities.length)throw new Error(`${input.errorCode}:${ref.entityType}:${ref.id}`);
+    if(identities.length>1)throw new Error(`${input.errorCode}_AMBIGUOUS:${ref.entityType}:${ref.id}`);
+    return identities[0];
+  });
+}
+
+export async function assertTenantEnterpriseEntityRefs(input:{caseId:string;userId:string;entityRefs:SfiEnterpriseEntityRef[]}){await resolveTenantTypedEntityRefs({...input,errorCode:'SFI_ENTERPRISE_ENTITY_REFERENCE_NOT_FOUND'});return true;}
+export async function resolveTenantSystemAiEntityRefs(input:{caseId:string;userId:string;entityRefs:SfiSystemAiEntityRef[]}){return await resolveTenantTypedEntityRefs({...input,errorCode:'SFI_SYSTEM_AI_ENTITY_REFERENCE_NOT_FOUND',domainContract:SFI_SYSTEM_AI_ASSURANCE_DOMAIN_CONTRACT}) as SfiSystemAiEntityRef[];}
+export async function assertTenantSystemAiEntityRefs(input:{caseId:string;userId:string;entityRefs:SfiSystemAiEntityRef[]}){await resolveTenantSystemAiEntityRefs(input);return true;}
 export async function assertCaseServiceProfileAllowed(caseId:string,userId:string,allowed:readonly SfiServiceProfileId[]){const context=await accessContext(caseId,userId,'READ');if(!(allowed as readonly string[]).includes(context.serviceProfileId))throw new Error(`SFI_CASE_SERVICE_PROFILE_FORBIDDEN:${context.serviceProfileId}`);return context.serviceProfileId;}
 
 export async function assertTenderAssessmentPrerequisites(input:{caseId:string;userId:string;requirementRef:SfiEnterpriseEntityRef;bidderRef:SfiEnterpriseEntityRef;sourceRefs:SfiCanonicalRef[];recordRefs?:SfiCanonicalRef[];evidenceRefs?:SfiCanonicalRef[]}){if(input.requirementRef.entityType!=='REQUIREMENT')throw new Error('SFI_TENDER_REQUIREMENT_REF_TYPE_INVALID');if(input.bidderRef.entityType!=='BIDDER')throw new Error('SFI_TENDER_BIDDER_REF_TYPE_INVALID');await assertCaseReferenceIntegrity({caseId:input.caseId,userId:input.userId,sourceRefs:input.sourceRefs,recordRefs:input.recordRefs,evidenceRefs:input.evidenceRefs});await assertTenantEnterpriseEntityRefs({caseId:input.caseId,userId:input.userId,entityRefs:[input.requirementRef,input.bidderRef]});const rows=await caseObjects(input.caseId);const requirement=rows.find(row=>refId(row.canonical_ref)===input.requirementRef.id&&(!input.requirementRef.version||refVersion(row.canonical_ref)===input.requirementRef.version)&&(!input.requirementRef.hash||refHash(row.canonical_ref)===input.requirementRef.hash)&&text(object(row.payload).entityType)==='REQUIREMENT');if(!requirement)throw new Error('SFI_TENDER_REQUIREMENT_NOT_IN_CASE');if(object(requirement.payload).frozenBeforeEvaluation!==true)throw new Error('SFI_TENDER_REQUIREMENT_NOT_FROZEN');return true;}
