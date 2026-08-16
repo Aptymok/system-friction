@@ -7,9 +7,13 @@ function assert(condition: unknown, message: string): asserts condition {
 }
 
 const materializerPath = 'src/core/cognitive-twin/reentry/decisionTransferContext.ts';
+const integrityPath = 'src/core/cognitive-twin/reentry/decisionTransferContextIntegrity.ts';
 const routePath = 'src/app/api/root/method-lab/decision-transfer/blind/route.ts';
-assert(fs.existsSync(materializerPath), 'materializer_missing');
+for (const file of [materializerPath, integrityPath, routePath]) {
+  assert(fs.existsSync(path.join(process.cwd(), file)), `missing:${file}`);
+}
 const materializer = read(materializerPath);
+const integrity = read(integrityPath);
 const route = read(routePath);
 
 for (const table of [
@@ -40,15 +44,24 @@ assert(materializer.includes('contextMaterialization: receipt'), 'receipt_must_b
 assert(materializer.includes("role !== 'DECISION_TRANSFER_BLIND_RECONSTRUCTOR'"), 'receipt_bind_role_gate_missing');
 assert(materializer.includes("status !== 'EVIDENCE_PENDING'"), 'receipt_bind_status_gate_missing');
 
+assert(integrity.includes("role !== 'DECISION_TRANSFER_BLIND_RECONSTRUCTOR'"), 'receipt_verify_role_gate_missing');
+assert(integrity.includes("status !== 'EVIDENCE_PENDING'"), 'receipt_verify_status_gate_missing');
+assert(integrity.includes('DT_CONTEXT_BIND_VERIFY_RECEIPT_MISMATCH'), 'receipt_verify_hash_mismatch_guard_missing');
+assert(integrity.includes('snapshot.contextMaterialization'), 'receipt_verify_snapshot_read_missing');
+
 for (const forbidden of ["from('sfi_cognitive_twin_memory')", 'recordCognitiveTwinExperience', ".insert({\n    module: 'institutionalEventPipeline'"]) {
   assert(!materializer.includes(forbidden), `materializer_must_not_mutate_or_use_legacy_memory:${forbidden}`);
+  assert(!integrity.includes(forbidden), `integrity_must_not_mutate_or_use_legacy_memory:${forbidden}`);
 }
 
 assert(route.includes('parseMaterializedBlindDecisionRequest'), 'blind_route_materialized_parser_missing');
 assert(route.includes('materializeDecisionTransferContext'), 'blind_route_materializer_missing');
 assert(route.includes('bindDecisionTransferContextReceipt'), 'blind_route_receipt_binding_missing');
+assert(route.includes('verifyDecisionTransferContextReceiptBound'), 'blind_route_receipt_verification_missing');
+assert(route.indexOf('bindDecisionTransferContextReceipt') < route.lastIndexOf('verifyDecisionTransferContextReceiptBound'), 'receipt_verification_must_follow_binding');
 assert(route.includes("contextSource: materialized ? 'CANONICAL_MATERIALIZED' : 'MANUAL_CONTEXT_POOL'"), 'context_source_audit_missing');
 assert(route.includes('contextMaterializationReceiptHash'), 'receipt_hash_audit_missing');
+assert(route.includes('contextMaterializationVerified: Boolean(materialized)'), 'receipt_verified_audit_missing');
 
 console.log(JSON.stringify({
   ok: true,
@@ -61,4 +74,5 @@ console.log(JSON.stringify({
   legacyMemory: false,
   memoryMutation: false,
   targetExactIdExcluded: true,
+  receiptBindingVerified: true,
 }, null, 2));
