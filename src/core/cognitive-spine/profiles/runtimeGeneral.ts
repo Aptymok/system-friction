@@ -1,6 +1,12 @@
 import type { CognitiveSpineRefKind } from '../contracts/snapshot';
+import {
+  COGNITIVE_SPINE_PROJECTION_PROFILE_CONTRACT_VERSION,
+  type CognitiveProjectionProfile,
+  profileAllowsKind,
+} from '../contracts/projectionProfile';
 
 export const RUNTIME_GENERAL_CONTEXT_PROFILE = {
+  contractVersion: COGNITIVE_SPINE_PROJECTION_PROFILE_CONTRACT_VERSION,
   profileId: 'RUNTIME_GENERAL_CONTEXT_V1',
   version: '1.0',
   surface: 'COGNITIVE_RUNTIME',
@@ -13,8 +19,8 @@ export const RUNTIME_GENERAL_CONTEXT_PROFILE = {
     'CONTRADICTION',
     'FREEZE',
     'QUESTION',
-  ] as CognitiveSpineRefKind[],
-  deniedRefKinds: ['PERSON_CT'] as CognitiveSpineRefKind[],
+  ],
+  deniedRefKinds: ['PERSON_CT'],
   fieldVisibilityRules: {
     personCtInheritance: 'DENIED',
     memoryStatusMustRemainVisible: true,
@@ -24,12 +30,8 @@ export const RUNTIME_GENERAL_CONTEXT_PROFILE = {
   },
   blindedByDefault: false,
   purpose: 'Provide one bounded sealed institutional cognitive-state cut to the Cognitive Runtime without promoting memory or governance records into evidence.',
-} as const;
+} as const satisfies CognitiveProjectionProfile;
 
 export function runtimeGeneralAllowsKind(kind: CognitiveSpineRefKind): boolean {
-  return RUNTIME_GENERAL_CONTEXT_PROFILE.allowedRefKinds.includes(
-    kind as (typeof RUNTIME_GENERAL_CONTEXT_PROFILE.allowedRefKinds)[number],
-  ) && !RUNTIME_GENERAL_CONTEXT_PROFILE.deniedRefKinds.includes(
-    kind as (typeof RUNTIME_GENERAL_CONTEXT_PROFILE.deniedRefKinds)[number],
-  );
+  return profileAllowsKind(RUNTIME_GENERAL_CONTEXT_PROFILE, kind);
 }
