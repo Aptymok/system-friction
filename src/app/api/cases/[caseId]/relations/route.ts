@@ -43,7 +43,7 @@ export async function POST(request: Request, context: RouteContext) {
     const body = relationSchema.parse(await request.json());
     const relation: SfiEnterpriseRelationDraft = { ...body, evidenceRefs: [], epistemicRole: 'RECORD' } as SfiEnterpriseRelationDraft;
     const saved = await recordOperationalEnterpriseRelation({ caseId, userId: user.id, relation });
-    return NextResponse.json({ ok: true, relation: saved, epistemicBoundary: 'Client-declared relations remain RECORD and cannot attach evidence claims or create inferred relations.' }, { status: 201 });
+    return NextResponse.json({ ok: true, relation: saved, epistemicBoundary: 'Client-declared relations remain RECORD; this endpoint cannot create inferred relations or attach evidence claims.' }, { status: 201 });
   } catch (error) {
     return sfiCaseApiFailure(error);
   }
