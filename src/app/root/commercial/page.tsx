@@ -12,8 +12,8 @@ export const metadata: Metadata = {
 
 export default async function RootCommercialPage() {
   await requireFounderPage('/root/commercial');
-  return <>
-    <section id="prospect-radar" aria-label="Prospect Radar"><RootProspectRadar /></section>
-    <section id="client-proposals" aria-label="Client Proposals"><RootCommercialWorkspace /></section>
-  </>;
+  return <main className="min-h-screen bg-transparent">
+    <section id="prospect-radar" data-sfi-field-anchor="prospect-radar" aria-label="Prospect Radar"><RootProspectRadar /></section>
+    <section id="client-proposals" data-sfi-field-anchor="client-proposals" aria-label="Client Proposals"><RootCommercialWorkspace /></section>
+  </main>;
 }
