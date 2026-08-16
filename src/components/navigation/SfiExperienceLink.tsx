@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import type { ReactNode } from 'react';
 import { useAuthState } from '@/components/auth/AuthProvider';
 
 type Access = 'public' | 'authenticated' | 'root';
@@ -12,7 +13,7 @@ export function SfiExperienceLink({
   access = 'public',
 }: {
   href: string;
-  children: React.ReactNode;
+  children: ReactNode;
   className?: string;
   access?: Access;
 }) {
