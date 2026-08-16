@@ -3,6 +3,7 @@ import 'server-only';
 import { createHash } from 'node:crypto';
 import { getLlmProviderStatus } from '@/lib/ai/providerRouter';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
+import { canonicalJson } from './decisionCommitment';
 
 type Row = Record<string, unknown>;
 
@@ -111,7 +112,7 @@ export async function bindDecisionTransferModelContract(input: {
   };
   const modelContract = {
     ...contractBase,
-    contractHash: sha256(JSON.stringify(contractBase)),
+    contractHash: sha256(canonicalJson(contractBase)),
   };
 
   const update = await db.from('sfi_cognitive_twin_runs').update({
