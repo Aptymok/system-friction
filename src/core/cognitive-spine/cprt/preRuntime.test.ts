@@ -80,11 +80,16 @@ test('blinded observation cannot consume CT context', () => {
   }), /COGNITIVE_SPINE_BLINDED_OBSERVATION_CANNOT_CONSUME_CT/);
 });
 
-test('epistemic delta can occur without source delta', () => {
+test('epistemic delta can occur without source delta when assessment identity changes', () => {
   const from = baseSnapshot();
   const nextInput = cprtAProjectionInputA();
   nextInput.records = nextInput.records.map((record) => record.ref === 'H-001'
-    ? { ...record, epistemicClass: 'INVALIDATED' as const, invalidated: true }
+    ? {
+        ...record,
+        epistemicAssessmentRef: 'EA-INVALIDATE-H-001',
+        epistemicClass: 'INVALIDATED' as const,
+        invalidated: true,
+      }
     : record);
   const to = materializeCognitiveSnapshot(nextInput, {
     snapshotId: 'CT-v2',
@@ -101,7 +106,8 @@ test('epistemic delta can occur without source delta', () => {
 
   assert.equal(transition.semanticPayload.sourceDelta.changed, false);
   assert.equal(transition.semanticPayload.epistemicDelta.changed, true);
-  assert.deepEqual(transition.semanticPayload.epistemicDelta.changedRefs, ['H-001']);
+  assert.deepEqual(transition.semanticPayload.epistemicDelta.addedRefs, ['EA-INVALIDATE-H-001']);
+  assert.deepEqual(transition.semanticPayload.epistemicDelta.removedRefs, ['EA-002']);
   assert.equal(transition.semanticPayload.cognitiveStateDelta.changed, true);
   assert.equal(transition.semanticPayload.governanceDelta.changed, false);
 });
