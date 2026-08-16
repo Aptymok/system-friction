@@ -32,8 +32,9 @@ assert(!migration.includes('create table'));
 assert(migration.includes('TENDER_HAS_REQUIREMENT'),'enterprise relation contract must survive extension');
 assert(migration.includes('AI_EXECUTION_USES_MODEL'));
 assert(migration.includes('FAILURE_EVENT_ASSOCIATED_WITH_AI_EXECUTION'));
-assert(migration.includes("epistemic_role = 'RECORD'"),'authenticated direct relation inserts must be RECORD-only at the database boundary');
 assert(migration.includes('drop policy if exists sfi_case_relations_tenant_insert'));
+assert(!migration.includes('create policy sfi_case_relations_tenant_insert'),'authenticated direct relation inserts must be disabled; validated API/RPC paths are authoritative');
+assert(migration.includes('no direct authenticated insert path') || migration.includes('There is no direct authenticated insert path'));
 assert(!migration.includes('sfi_evidence_ledger'));
 assert(!migration.includes('institutional_memory'));
 assert(!migration.includes('root_'));
@@ -89,6 +90,8 @@ assert(readModel.includes('const actions=allActions.filter'),'unrelated case act
 assert(integrity.includes('SFI_SYSTEM_AI_ENTITY_REFERENCE_NOT_FOUND'));
 assert(integrity.includes('SFI_CASE_SERVICE_PROFILE_FORBIDDEN'));
 assert(integrity.includes('domainContract:SFI_SYSTEM_AI_ASSURANCE_DOMAIN_CONTRACT'),'System/AI entity references must require domain identity');
+assert(integrity.includes('expectedVersion'),'canonical reference integrity must validate a supplied version');
+assert(integrity.includes('refVersion(row.canonical_ref)!==expectedVersion'),'case refs with nonexistent revisions must fail closed');
 assert(enterpriseRepository.includes(".in('relation_type', [...SFI_ENTERPRISE_RELATION_TYPES])"),'enterprise read model must not absorb system/AI relations');
 assert(enterpriseRepository.includes('assertCaseServiceProfileAllowed'),'enterprise relation repository must be profile-routed');
 assert(enterpriseIntake.includes("['SERVICE_OBSERVABILITY','ENTERPRISE_MEMORY','CUSTOM_RESEARCH']"),'ticket intake must route to service observability');
@@ -160,12 +163,13 @@ console.log(JSON.stringify({
   profiles:['SYSTEM_OBSERVATORY','AI_IMPLEMENTATION_DIAGNOSTIC','AI_ADOPTION_INTEGRATION','AI_GOVERNANCE_ASSURANCE'],
   sharedRelationStore:true,
   serviceProfileRouting:true,
-  directAuthenticatedRelationWrites:'RECORD_ONLY',
+  directAuthenticatedRelationWrites:'BLOCKED',
   atomicIntake:true,
   duplicateRelationKeysRejected:true,
   completedExecutionTraceRequired:true,
   atomicStandaloneRelations:true,
   exactRevisionRelationIdentity:true,
+  canonicalReferenceVersionsValidated:true,
   auditedRelationWrites:true,
   domainScopedNodes:true,
   domainScopedActions:true,
