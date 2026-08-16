@@ -22,9 +22,18 @@ export async function POST(request: Request) {
   const parameters = body.parameters && typeof body.parameters === 'object' && !Array.isArray(body.parameters)
     ? body.parameters as Record<string, unknown>
     : {};
+  const cognitiveSpineContextRefs = Array.isArray(body.cognitiveSpineContextRefs)
+    ? [...new Set(body.cognitiveSpineContextRefs.filter((value): value is string => typeof value === 'string' && value.trim().length > 0))]
+    : [];
 
   try {
-    const result = await runMethodLabSimulation({ protocolId, evidenceIds, actorId: gate.ctx.user.id, parameters });
+    const result = await runMethodLabSimulation({
+      protocolId,
+      evidenceIds,
+      actorId: gate.ctx.user.id,
+      parameters,
+      cognitiveSpineContextRefs,
+    });
     const audit = await auditRootAction({
       actorId: gate.ctx.user.id,
       action: 'method_lab.simulation.executed',
@@ -36,6 +45,11 @@ export async function POST(request: Request) {
         evidenceIds,
         epistemicClass: result.run.epistemicClass,
         validationLevel: result.run.validationLevel,
+        cognitiveSpineSnapshotId: result.cognitiveSpine.snapshotId,
+        cognitiveSpineSnapshotHash: result.cognitiveSpine.snapshotHash,
+        cognitiveSpineProfile: result.cognitiveSpine.profile,
+        cognitiveSpineConsumed: result.cognitiveSpine.consumed,
+        cognitiveSpineContextRefs: result.cognitiveSpine.requestedContextRefs,
       },
       request,
     });
@@ -43,7 +57,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ ...result, audit });
   } catch (error) {
     const details = error instanceof Error ? error.message : String(error);
-    const status = details.includes('EVIDENCE') ? 400 : details.includes('CONTAMINATED') ? 500 : 503;
+    const status = details.startsWith('COGNITIVE_SPINE_ALLOWED_REF_UNAVAILABLE')
+      ? 400
+      : details.includes('EVIDENCE')
+        ? 400
+        : details.includes('CONTAMINATED')
+          ? 500
+          : 503;
     return NextResponse.json({ ok: false, error: 'method_lab_simulation_failed', details }, { status });
   }
 }

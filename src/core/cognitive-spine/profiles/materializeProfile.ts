@@ -9,7 +9,7 @@ import {
   sealCognitiveSnapshot,
   semanticSnapshotHash,
 } from '../projector/cognitiveStateProjector';
-import { normalizeTimestamp } from '../serialization/canonicalSerialize';
+import { normalizeTimestamp, sortedUnique } from '../serialization/canonicalSerialize';
 import { buildCognitiveContextConsumptionTrace } from '../trace/consumptionTrace';
 
 export const COGNITIVE_SPINE_PROJECTOR_VERSION = 'SFI-CT-PROJECTOR-1.0' as const;
@@ -23,14 +23,30 @@ export type MaterializeCognitiveSpineProfileSnapshotInput = {
   profileId: CognitiveSpineProjectionProfileId;
   consume: boolean;
   consumptionReason?: string;
+  /**
+   * Optional exact source-ref allowlist applied after profile kind visibility.
+   * This is a deterministic selection constraint, not an epistemic judgment.
+   */
+  allowedRefs?: readonly string[];
+  /**
+   * When true, every requested allowed ref must exist and be visible under the
+   * profile at the declared cutoff. Missing refs fail closed rather than being
+   * silently substituted or dropped.
+   */
+  requireAllAllowedRefs?: boolean;
 };
 
 export function selectCognitiveSpineRecordsForProfile(
   records: CognitiveSpineSourceRecord[],
   profileId: CognitiveSpineProjectionProfileId,
+  allowedRefs?: readonly string[],
 ): CognitiveSpineSourceRecord[] {
   const profile = getCognitiveProjectionProfile(profileId);
-  return records.filter((record) => profileAllowsKind(profile, record.kind));
+  const allowlist = allowedRefs ? new Set(sortedUnique([...allowedRefs])) : null;
+  return records.filter((record) =>
+    profileAllowsKind(profile, record.kind)
+    && (!allowlist || allowlist.has(record.ref))
+  );
 }
 
 /**
@@ -47,7 +63,16 @@ export function materializeCognitiveSpineProfileSnapshot(
 
   const sourceCutoff = normalizeTimestamp(input.sourceCutoff);
   const createdAt = normalizeTimestamp(input.createdAt);
-  const records = selectCognitiveSpineRecordsForProfile(input.records, input.profileId);
+  const requestedAllowedRefs = input.allowedRefs ? sortedUnique([...input.allowedRefs]) : null;
+  const records = selectCognitiveSpineRecordsForProfile(input.records, input.profileId, requestedAllowedRefs ?? undefined);
+  const selectedRefs = new Set(records.map((record) => record.ref));
+  const missingAllowedRefs = requestedAllowedRefs
+    ? requestedAllowedRefs.filter((ref) => !selectedRefs.has(ref))
+    : [];
+
+  if (input.requireAllAllowedRefs && missingAllowedRefs.length > 0) {
+    throw new Error(`COGNITIVE_SPINE_ALLOWED_REF_UNAVAILABLE:${missingAllowedRefs.join(',')}`);
+  }
 
   const semanticPayload = projectCognitiveState({
     sourceCutoff,
@@ -87,5 +112,7 @@ export function materializeCognitiveSpineProfileSnapshot(
     snapshot,
     trace,
     visibleRecordCount: records.length,
+    requestedAllowedRefs,
+    missingAllowedRefs,
   };
 }

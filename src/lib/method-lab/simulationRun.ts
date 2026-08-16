@@ -7,6 +7,7 @@ import type { KernelContext, KernelEvidence } from '@/lib/sfi/cognitive-runtime/
 import { METHOD_LAB_CONTRACT_VERSION, assertMethodLabRunEnvelope, type MethodLabProtocolId, type MethodLabRunEnvelope } from './contracts';
 import { methodLabProtocol } from './registry';
 import { specializedModel } from './specializedModels';
+import { materializeMethodLabCognitiveSpineContext } from './cognitiveSpineContext';
 import { recordCognitiveTwinExperience } from '@/core/cognitive-twin/experience';
 
 const SIMULATION_PROTOCOL_AGENTS: Partial<Record<MethodLabProtocolId, string[]>> = {
@@ -82,6 +83,7 @@ export async function runMethodLabSimulation(input: {
   evidenceIds: string[];
   actorId: string;
   parameters?: Record<string, unknown>;
+  cognitiveSpineContextRefs?: string[];
 }) {
   const definition = methodLabProtocol(input.protocolId);
   if (!definition) throw new Error('METHOD_LAB_PROTOCOL_NOT_REGISTERED');
@@ -94,10 +96,29 @@ export async function runMethodLabSimulation(input: {
     throw new Error('METHOD_LAB_SPECIALIZED_MODEL_CONTRACT_MISMATCH');
   }
 
-  const evidence = await loadPersistedEvidence(input.evidenceIds);
-  const initialEvidenceIds = evidence.map((item) => item.id);
   const startedAt = new Date().toISOString();
   const labRunId = crypto.randomUUID();
+  const evidence = await loadPersistedEvidence(input.evidenceIds);
+  const initialEvidenceIds = evidence.map((item) => item.id);
+  const cognitiveSpine = await materializeMethodLabCognitiveSpineContext({
+    labRunId,
+    sourceCutoff: startedAt,
+    createdAt: new Date().toISOString(),
+    contextRefs: input.cognitiveSpineContextRefs,
+  });
+
+  const consumedCognitiveSpineContext = cognitiveSpine.consumed ? {
+    contractVersion: cognitiveSpine.contractVersion,
+    snapshotId: cognitiveSpine.snapshot.snapshotId,
+    snapshotHash: cognitiveSpine.snapshot.snapshotHash,
+    sourceCutoff: cognitiveSpine.snapshot.semanticPayload.sourceCutoff,
+    projectionProfile: cognitiveSpine.profile,
+    profileVersion: cognitiveSpine.profileVersion,
+    visibleRefs: cognitiveSpine.visibleRefs,
+    twinContext: cognitiveSpine.twinContext,
+    rule: 'Cognitive Spine context is protocol-bounded context. It is not appended to Method Lab evidence and cannot upgrade simulation epistemic class.',
+  } : null;
+
   let context: KernelContext = {
     cycleId: labRunId,
     logbookId: `LAB_${input.protocolId}:${labRunId}`,
@@ -123,7 +144,8 @@ export async function runMethodLabSimulation(input: {
       },
       requestedBy: input.actorId,
       parameters: input.parameters ?? {},
-      epistemicRule: 'LAB simulation may read persisted evidence but may not append simulated output to observed evidence or canonical state.',
+      ...(consumedCognitiveSpineContext ? { cognitiveSpineContext: consumedCognitiveSpineContext } : {}),
+      epistemicRule: 'LAB simulation may read persisted evidence and explicitly allowlisted Cognitive Spine context, but contextual state may not be appended to observed evidence or canonical state by inheritance.',
     },
   };
 
@@ -140,7 +162,18 @@ export async function runMethodLabSimulation(input: {
   }
 
   const finishedAt = new Date().toISOString();
-  const resultHash = hash({ protocolId: input.protocolId, specializedModelId: modelContract.id, evidenceRefs: initialEvidenceIds, parameters: input.parameters ?? {}, simulations: context.simulations, metadata: context.metadata });
+  const resultHash = hash({
+    protocolId: input.protocolId,
+    specializedModelId: modelContract.id,
+    evidenceRefs: initialEvidenceIds,
+    parameters: input.parameters ?? {},
+    consumedCognitiveSpine: cognitiveSpine.consumed ? {
+      snapshotHash: cognitiveSpine.snapshot.snapshotHash,
+      visibleRefs: cognitiveSpine.visibleRefs,
+    } : null,
+    simulations: context.simulations,
+    metadata: context.metadata,
+  });
   const envelope: MethodLabRunEnvelope = assertMethodLabRunEnvelope({
     contractVersion: METHOD_LAB_CONTRACT_VERSION,
     labRunId,
@@ -149,9 +182,12 @@ export async function runMethodLabSimulation(input: {
     epistemicClass: 'SIMULATED',
     validationLevel: 'SIMULATION',
     datasetHash: hash(initialEvidenceIds),
-    parametersHash: hash(input.parameters ?? {}),
+    parametersHash: hash({
+      parameters: input.parameters ?? {},
+      cognitiveSpineContextRefs: cognitiveSpine.requestedContextRefs,
+    }),
     seed: null,
-    codeCommit: process.env.VERCEL_GIT_COMMIT_SHA ?? process.env.GITHUB_SHA ?? null,
+    codeCommit: process.env.GITHUB_SHA ?? process.env.VERCEL_GIT_COMMIT_SHA ?? null,
     provider: 'deterministic:sfi-cognitive-runtime',
     model: modelContract.id,
     startedAt,
@@ -161,6 +197,7 @@ export async function runMethodLabSimulation(input: {
     limitations: [
       'Simulation output is not observed evidence.',
       'Current field simulators are bounded deterministic signal estimators; their indices are not independently calibrated causal measurements.',
+      'Cognitive Spine context, when consumed, is protocol-allowlisted context and is not evidence by inheritance.',
       'A later observed return is required before any stronger validation claim.',
     ],
     promotionAllowed: false,
@@ -181,6 +218,19 @@ export async function runMethodLabSimulation(input: {
       agentResults,
       simulations: context.simulations,
       metadata: context.metadata,
+      cognitiveSpine: {
+        contractVersion: cognitiveSpine.contractVersion,
+        requestedContextRefs: cognitiveSpine.requestedContextRefs,
+        consumed: cognitiveSpine.consumed,
+        profile: cognitiveSpine.profile,
+        profileVersion: cognitiveSpine.profileVersion,
+        snapshot: cognitiveSpine.snapshot,
+        consumptionTrace: cognitiveSpine.consumptionTrace,
+        visibleRefs: cognitiveSpine.visibleRefs,
+        sourcePlane: cognitiveSpine.sourcePlane,
+        warnings: cognitiveSpine.warnings,
+        rule: cognitiveSpine.rule,
+      },
     },
   }).select('id').single();
   if (persisted.error || !persisted.data?.id) throw new Error(`METHOD_LAB_RUN_PERSIST_FAILED:${persisted.error?.message ?? 'unknown'}`);
@@ -199,6 +249,9 @@ export async function runMethodLabSimulation(input: {
       resultHash,
       validationLevel:'SIMULATION',
       simulationCount:context.simulations.length,
+      cognitiveSpineSnapshotHash:cognitiveSpine.snapshot.snapshotHash,
+      cognitiveSpineConsumed:cognitiveSpine.consumed,
+      cognitiveSpineContextRefs:cognitiveSpine.requestedContextRefs,
       limitations:envelope.limitations,
       rule:'Method Lab simulation is available to the Cognitive Twin for comparison and planning but remains SIMULATED until contrasted with observed returns.',
     },
@@ -212,7 +265,18 @@ export async function runMethodLabSimulation(input: {
     run: envelope,
     agentResults,
     simulations: context.simulations,
+    cognitiveSpine: {
+      snapshotId: cognitiveSpine.snapshot.snapshotId,
+      snapshotHash: cognitiveSpine.snapshot.snapshotHash,
+      sourceCutoff: cognitiveSpine.snapshot.semanticPayload.sourceCutoff,
+      profile: cognitiveSpine.profile,
+      profileVersion: cognitiveSpine.profileVersion,
+      requestedContextRefs: cognitiveSpine.requestedContextRefs,
+      visibleRefs: cognitiveSpine.visibleRefs,
+      consumed: cognitiveSpine.consumed,
+      consumptionTrace: cognitiveSpine.consumptionTrace,
+    },
     cognitiveTwinExperience,
-    claimBoundary: 'This run is SIMULATED. It is not observed evidence, canonical validation, approval or external execution.',
+    claimBoundary: 'This run is SIMULATED. Cognitive Spine context is bounded by explicit protocol allowlist when consumed; neither context nor simulation output is observed evidence, canonical validation, approval or external execution.',
   };
 }
