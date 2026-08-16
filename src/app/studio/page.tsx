@@ -1,3 +1,4 @@
+import { StudioSecondaryInstruments } from '@/components/studio/workspace/StudioSecondaryInstruments';
 import { StudioWorkspace } from '@/components/studio/workspace/StudioWorkspace';
 import { readStudioFieldState } from '@/lib/studio/field/studioFieldState';
 import { readStudioProductionState } from '@/lib/studio/production/studioProductionAdapter';
@@ -29,6 +30,14 @@ export default async function StudioPage({ searchParams }: { searchParams?: Prom
         state={state}
         fieldState={fieldState}
         identity={user.email ?? user.id}
+      />
+      <StudioSecondaryInstruments
+        sessionId={fieldState.session?.id ?? null}
+        activeObjectId={state.activeObject.id ?? null}
+        objectCount={fieldState.objects.length}
+        objectTitle={state.activeObject.title}
+        objectType={state.activeObject.type}
+        analysisStatus={state.activeObject.analysisStatus}
       />
     </main>
   );
