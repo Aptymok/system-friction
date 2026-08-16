@@ -27,4 +27,6 @@ jobs:
         run: npm install --no-audit --no-fund
 
       - name: Verify DT instrument freeze
-        run: npx tsx scripts/qa-sfi-decision-transfer-instrument-freeze.ts
+        run: |
+          npx tsx scripts/qa-sfi-decision-transfer-instrument-freeze.ts
+          npx tsx scripts/qa-sfi-dt-experiment-freeze-final.ts
