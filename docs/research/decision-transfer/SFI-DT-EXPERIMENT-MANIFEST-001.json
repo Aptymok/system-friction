@@ -4,7 +4,7 @@
   "experiment_id": "EXP-001",
   "status": "EXPERIMENTALLY_FROZEN",
   "registration_status": "AWAITING_NATURALISTIC_TARGET",
-  "instrument_code_commit": "702d69e115bd8d8f0de04bca399088059fe02459",
+  "instrument_code_commit": "3febe181cfe80bb3edc15f122dbf639f9808d8b6",
   "instrument_base_commit": "3b7ce699e2654ed1fb551498cfeaad37731f6f88",
   "claim_boundary": "N_subject=1",
   "primary_endpoint": "validated_structural_fidelity",
