@@ -61,7 +61,15 @@ export async function POST(request: Request) {
       ],
       boundaryProbeCount: frozen.receipt.qualifyingBoundaryProbeCount,
     };
-    const result = await executeBlindDecisionReveal(inputForScoring, gate.ctx.user.id);
+    const evaluationEvidence = {
+      protocol: frozen.receipt.protocol,
+      materializationRunId: frozen.materializationRunId,
+      receiptHash: frozen.receipt.receiptHash,
+      evidencePoolHash: frozen.receipt.evidencePoolHash,
+      validationStatus: frozen.receipt.validationStatus,
+      boundaryValidationStatus: frozen.receipt.boundaryValidationStatus,
+    } as const;
+    const result = await executeBlindDecisionReveal(inputForScoring, gate.ctx.user.id, evaluationEvidence);
 
     const verifiedTargetEvidenceIds = targetTiming.evidence.map((item) => item.evidenceId);
     const audit = await auditRootAction({
@@ -91,6 +99,7 @@ export async function POST(request: Request) {
         evaluationEvidenceMaterializationRunId: frozen.materializationRunId,
         evaluationEvidenceReceiptHash: frozen.receipt.receiptHash,
         evaluationEvidencePoolHash: frozen.receipt.evidencePoolHash,
+        evaluationEvidenceModelContractHash: frozen.receipt.modelContractHash,
         evaluationEvidenceValidationStatus: frozen.receipt.validationStatus,
         boundaryValidationStatus: frozen.receipt.boundaryValidationStatus,
         qualifyingOccurrenceCount: frozen.receipt.qualifyingOccurrenceCount,
