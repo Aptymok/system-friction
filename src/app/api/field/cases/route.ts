@@ -37,11 +37,13 @@ function failure(error: unknown) {
     return NextResponse.json({ ok: false, error: error.code, details: error.message }, { status: error.status });
   }
   const details = error instanceof Error ? error.message : String(error);
-  const status = details.includes('_REQUIRED') || details.includes('_INVALID') || details.includes('_NOT_OPEN') || details.includes('_NOT_READY') || details.includes('HANDOFF') || details.includes('_NOT_LINKABLE')
-    ? 400
-    : details.includes('NOT_FOUND')
-      ? 404
-      : 500;
+  const status = details.includes('_ACTOR_MISMATCH')
+    ? 403
+    : details.includes('_REQUIRED') || details.includes('_INVALID') || details.includes('_NOT_OPEN') || details.includes('_NOT_READY') || details.includes('HANDOFF') || details.includes('_NOT_LINKABLE')
+      ? 400
+      : details.includes('NOT_FOUND')
+        ? 404
+        : 500;
   return NextResponse.json({ ok: false, error: 'FIELD_CYCLE_FAILED', details }, { status });
 }
 
