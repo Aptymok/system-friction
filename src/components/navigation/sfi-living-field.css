@@ -1,0 +1,42 @@
+:root{
+  --sfi-void:#070806;
+  --sfi-void-2:#0b0d0a;
+  --sfi-bone:#e8e2d5;
+  --sfi-bone-dim:#aaa69c;
+  --sfi-gold:#c8a764;
+  --sfi-gold-hi:#f0d397;
+  --sfi-red:#a94c3b;
+  --sfi-cyan:#69a5a4;
+  --sfi-violet:#8a7fa7;
+  --sfi-mx:50vw;
+  --sfi-my:50vh;
+}
+
+html,body{background:var(--sfi-void)}
+body{color:var(--sfi-bone)}
+
+.sfi-living-field{position:fixed;inset:0;z-index:6;pointer-events:none;overflow:hidden;background:transparent;mix-blend-mode:screen}
+.sfi-living-field canvas{position:absolute;inset:0;width:100%;height:100%;opacity:.30}
+.sfi-living-field__orbit{position:absolute;width:min(52vw,820px);height:min(52vw,820px);left:var(--sfi-mx);top:var(--sfi-my);transform:translate(-50%,-50%);border-radius:50%;background:radial-gradient(circle,rgba(240,211,151,.055),rgba(200,167,100,.018) 31%,transparent 69%);filter:blur(11px);opacity:.8;transition:left .16s linear,top .16s linear,background .7s ease}
+.sfi-living-field__vignette{position:absolute;inset:0;background:radial-gradient(circle at center,transparent 36%,rgba(4,5,4,.08) 72%,rgba(4,5,4,.24) 100%);mix-blend-mode:multiply}
+.sfi-living-field__grain{position:absolute;inset:-20%;opacity:.065;background-image:radial-gradient(rgba(255,255,255,.075) .55px,transparent .55px);background-size:3px 3px;mix-blend-mode:soft-light;animation:sfiLivingGrain 1.1s steps(2,end) infinite}
+.sfi-living-field__scan{position:absolute;inset:0;opacity:.022;background:repeating-linear-gradient(to bottom,transparent 0,transparent 3px,rgba(255,255,255,.08) 4px);mix-blend-mode:soft-light}
+
+.sfi-living-field[data-mode='root'] canvas,.sfi-living-field[data-mode='governance'] canvas{opacity:.24}.sfi-living-field[data-mode='root'] .sfi-living-field__orbit{opacity:.62}
+.sfi-living-field[data-mode='studio'] canvas,.sfi-living-field[data-mode='case'] canvas,.sfi-living-field[data-mode='system'] canvas{opacity:.34}
+.sfi-living-field[data-mode='studio'] .sfi-living-field__orbit,.sfi-living-field[data-mode='lab'] .sfi-living-field__orbit,.sfi-living-field[data-mode='trajectory'] .sfi-living-field__orbit{background:radial-gradient(circle,rgba(138,127,167,.065),rgba(105,165,164,.018) 34%,transparent 69%)}
+.sfi-living-field[data-mode='observation'] .sfi-living-field__orbit,.sfi-living-field[data-mode='evidence'] .sfi-living-field__orbit{background:radial-gradient(circle,rgba(105,165,164,.055),rgba(200,167,100,.015) 34%,transparent 69%)}
+.sfi-living-field[data-mode='friction'] .sfi-living-field__orbit{background:radial-gradient(circle,rgba(169,76,59,.05),rgba(200,167,100,.014) 34%,transparent 69%)}
+.sfi-living-field[data-mode='final'] canvas{opacity:.48}.sfi-living-field[data-mode='final'] .sfi-living-field__orbit{left:50vw;top:50vh;width:min(66vw,980px);height:min(66vw,980px);opacity:.95;background:radial-gradient(circle,rgba(240,211,151,.07),rgba(200,167,100,.022) 32%,transparent 68%)}
+
+body>div:not(.sfi-living-field),body>main,body>header,body>section{position:relative;z-index:1}
+
+/* The final mark is completed by the living field. No static S/F/I glyph is drawn underneath it. */
+.is-final-mark .is-final-mark-metric{align-self:flex-end;margin:0 14px 12px auto;display:grid;gap:5px;text-align:right;font-family:"Courier New",ui-monospace,monospace;letter-spacing:.12em;text-transform:uppercase}
+.is-final-mark .is-final-mark-metric span{font:6px/1.2 "Courier New",ui-monospace,monospace!important;letter-spacing:.14em!important;color:#77736a!important;-webkit-text-stroke:0!important;text-shadow:none!important;filter:none!important}
+.is-final-mark .is-final-mark-metric strong{font:400 10px/1.2 "Courier New",ui-monospace,monospace;color:#f0d397;letter-spacing:.2em}.is-final-mark .is-final-mark-metric small{font:5.5px/1.4 "Courier New",ui-monospace,monospace;color:#66645e;letter-spacing:.1em}
+
+@keyframes sfiLivingGrain{0%{transform:translate3d(0,0,0)}25%{transform:translate3d(1.2%,-.8%,0)}50%{transform:translate3d(-.8%,1.1%,0)}75%{transform:translate3d(.6%,.5%,0)}100%{transform:translate3d(0,0,0)}}
+
+@media(max-width:760px){.sfi-living-field canvas{opacity:.22}.sfi-living-field__orbit{width:82vw;height:82vw}.sfi-living-field__grain{opacity:.045}.sfi-living-field[data-mode='final'] canvas{opacity:.38}}
+@media(prefers-reduced-motion:reduce){.sfi-living-field__grain{animation:none}.sfi-living-field__orbit{transition:none}}

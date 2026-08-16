@@ -1,0 +1,23 @@
+.sfi-membrane{position:fixed;left:18px;right:18px;top:14px;z-index:2600;min-height:44px;display:flex;align-items:stretch;justify-content:space-between;gap:18px;pointer-events:none;color:#e8e2d5;font-family:"Courier New",ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.12em;text-transform:uppercase}
+.sfi-membrane__identity,.sfi-membrane nav{pointer-events:auto;border:1px solid rgba(232,226,213,.11);background:linear-gradient(180deg,rgba(7,8,6,.82),rgba(7,8,6,.5));box-shadow:0 12px 42px rgba(0,0,0,.18);backdrop-filter:blur(13px)}
+.sfi-membrane__identity{display:flex;min-width:220px;align-items:stretch}
+.sfi-membrane__identity>a{display:flex;align-items:center;gap:10px;padding:0 14px;text-decoration:none;color:inherit}
+.sfi-membrane__identity>a strong{font:700 11px/1 Arial,Helvetica,sans-serif;letter-spacing:.22em;color:#c8a764}
+.sfi-membrane__identity>a span{font-size:6.5px;color:#77766f;white-space:nowrap}
+.sfi-membrane__context{display:flex;flex-direction:column;justify-content:center;min-width:0;max-width:260px;padding:5px 13px;border-left:1px solid rgba(232,226,213,.08)}
+.sfi-membrane__context span{font-size:5.5px;color:#6e6d67}.sfi-membrane__context strong{margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:7px;font-weight:400;color:#aaa69c}
+.sfi-membrane nav{display:grid;grid-template-columns:repeat(3,minmax(92px,1fr));transition:grid-template-columns .35s ease}
+.sfi-membrane nav[data-count='1']{grid-template-columns:minmax(96px,126px)}
+.sfi-membrane nav[data-count='2']{grid-template-columns:repeat(2,minmax(92px,126px))}
+.sfi-membrane nav[data-count='3']{grid-template-columns:repeat(3,minmax(92px,126px))}
+.sfi-membrane nav a{position:relative;min-width:96px;padding:8px 13px 7px;text-decoration:none;border-left:1px solid rgba(232,226,213,.07);display:flex;flex-direction:column;justify-content:center;gap:4px;color:#aaa69c;transition:background .25s ease,color .25s ease,border-color .25s ease,opacity .25s ease}
+.sfi-membrane nav a:first-child{border-left:0}.sfi-membrane nav a:after{content:"";position:absolute;left:12px;right:12px;bottom:-1px;height:1px;background:#c8a764;transform:scaleX(0);transform-origin:left;transition:transform .3s ease}
+.sfi-membrane nav a:hover{background:rgba(200,167,100,.045);color:#e8e2d5}.sfi-membrane nav a:hover:after{transform:scaleX(1)}
+.sfi-membrane nav span{font-size:7.5px}.sfi-membrane nav small{font-size:5.5px;color:#66675f}
+.sfi-membrane__access span{color:#c8a764}.sfi-membrane[data-private='true']{top:40px}.sfi-membrane[data-private='true'] .sfi-membrane__identity{opacity:.78}.sfi-membrane[data-private='true'] nav{opacity:.86}
+[data-sfi-arrival='true']{animation:sfiArrivalPulse 2.5s cubic-bezier(.2,.75,.2,1);scroll-margin-top:82px}
+@keyframes sfiArrivalPulse{0%{box-shadow:inset 0 0 0 1px rgba(200,167,100,0),0 0 0 rgba(200,167,100,0)}18%{box-shadow:inset 0 0 0 1px rgba(200,167,100,.48),0 0 48px rgba(200,167,100,.10)}100%{box-shadow:inset 0 0 0 1px rgba(200,167,100,0),0 0 0 rgba(200,167,100,0)}}
+
+@media(max-width:900px){.sfi-membrane{left:10px;right:10px;top:9px}.sfi-membrane__identity>a span,.sfi-membrane__context{display:none}.sfi-membrane__identity{min-width:auto}.sfi-membrane nav[data-count='1']{grid-template-columns:minmax(78px,108px)}.sfi-membrane nav[data-count='2']{grid-template-columns:repeat(2,minmax(78px,108px))}.sfi-membrane nav[data-count='3']{grid-template-columns:repeat(3,minmax(78px,108px))}.sfi-membrane nav a{min-width:78px;padding-left:9px;padding-right:9px}.sfi-membrane[data-private='true']{top:36px}}
+@media(max-width:560px){.sfi-membrane{gap:6px}.sfi-membrane__identity>a{padding:0 10px}.sfi-membrane nav a{min-width:60px}.sfi-membrane nav small{display:none}.sfi-membrane nav span{font-size:6.5px}.sfi-membrane nav[data-count='1']{grid-template-columns:minmax(60px,88px)}.sfi-membrane nav[data-count='2']{grid-template-columns:repeat(2,minmax(60px,88px))}.sfi-membrane nav[data-count='3']{grid-template-columns:repeat(3,minmax(60px,88px))}}
+@media(prefers-reduced-motion:reduce){[data-sfi-arrival='true']{animation:none;outline:1px solid rgba(200,167,100,.35)}}
