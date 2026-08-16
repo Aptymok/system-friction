@@ -27,6 +27,16 @@ alter table public.sfi_case_relations
     'OUTCOME_OBSERVED_FOR_PROCESS'
   ));
 
--- Existing RLS from Case Platform remains authoritative:
--- authenticated direct relation inserts are RECORD-only and cannot carry evidence claims.
--- Inferred/assessed relations are server-governed through the internal SFI path.
+-- Direct authenticated graph mutation is deliberately RECORD-only.
+-- Inference and epistemic-assessment relations must pass through the governed server path,
+-- which validates evidence/reference integrity, service-profile routing and audit lineage.
+drop policy if exists sfi_case_relations_tenant_insert on public.sfi_case_relations;
+create policy sfi_case_relations_tenant_insert on public.sfi_case_relations
+for insert to authenticated
+with check (
+  public.sfi_tenant_can_write(tenant_id)
+  and epistemic_role = 'RECORD'
+);
+
+-- Service-role server functions may persist inferred/assessed relations after their own validation.
+-- No direct client relation write gains institutional truth or ROOT authority.
