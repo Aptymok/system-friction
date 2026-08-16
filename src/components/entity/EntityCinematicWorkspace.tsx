@@ -147,29 +147,37 @@ export function EntityCinematicWorkspace({
   );
 }
 
-export function EntityCinematicFailure({ id, result }: { id: string; result: Exclude<EntityViewReadResult, { ok: true }> }) {
-  const correctedType = result.result?.resolvedEntityType ?? null;
+export function EntityCinematicFailure({ id, result }: { id: string; result: EntityViewReadResult }) {
+  const failure = result.ok
+    ? {
+        code: 'CONTEXT_UNAVAILABLE',
+        status: 500,
+        message: 'The entity resolver returned a successful envelope without a materializable context. No narrative reconstruction is produced.',
+        result: result.result,
+      }
+    : result;
+  const correctedType = failure.result?.resolvedEntityType ?? null;
   return (
     <SfiCinematicSurface
       brand="SFI ENTITY"
       subtitle="INTERNAL ENTITY CONTEXT"
       crumbs={[
         { label: 'ENTITY', value: id, tone: 'accent' },
-        { label: 'STATUS', value: result.code },
-        { label: 'HTTP', value: String(result.status) },
+        { label: 'STATUS', value: failure.code },
+        { label: 'HTTP', value: String(failure.status) },
       ]}
       integrity="BLOCKED"
       artifactId={id}
       certificateState="NO CONTEXT"
       mode="FAIL CLOSED"
-      generatedAt={result.result?.generatedAt ?? null}
+      generatedAt={failure.result?.generatedAt ?? null}
       nodes={[]}
       relations={[]}
       fieldLabel="ENTITY CONTEXT UNAVAILABLE"
-      fieldDetail="No narrative reconstruction is produced when identity, authorization or ontology resolution fails."
-      insights={[{ id: 'failure', tone: result.code === 'TYPE_MISMATCH' ? 'CONTRADICTED' : 'MISSING', statement: result.message }]}
+      fieldDetail="No narrative reconstruction is produced when identity, authorization, ontology resolution or context materialization fails."
+      insights={[{ id: 'failure', tone: failure.code === 'TYPE_MISMATCH' ? 'CONTRADICTED' : 'MISSING', statement: failure.message }]}
       timeline={[]}
-      evidenceStats={[{ label: 'SOURCES', value: String(result.result?.sourcesConsulted.length ?? 0), tone: 'GOVERNED' }]}
+      evidenceStats={[{ label: 'SOURCES', value: String(failure.result?.sourcesConsulted.length ?? 0), tone: 'GOVERNED' }]}
       mihmStats={[{ label: 'Φ_SFI', value: 'NO_VALUE', detail: 'Unavailable entity context is not backfilled from institutional state.', tone: 'MISSING' }]}
       frictionStats={[]}
       regimeStats={[{ label: 'ENTITY TYPE', value: correctedType ?? 'UNRESOLVED', tone: correctedType ? 'CONTRADICTED' : 'MISSING' }]}
