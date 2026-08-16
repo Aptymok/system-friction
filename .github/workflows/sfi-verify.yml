@@ -69,6 +69,9 @@ jobs:
       - name: Verify Cognitive Twin reentry and longitudinal integration
         run: npx tsx scripts/qa-sfi-cognitive-twin-reentry.ts
 
+      - name: Verify Cognitive Twin decision transfer observatory
+        run: npm run qa:sfi-ct-decision-transfer
+
       - name: Verify canonical evidence identity
         run: node --import tsx --test src/lib/evidence/canonicalEvidence.test.ts
 
