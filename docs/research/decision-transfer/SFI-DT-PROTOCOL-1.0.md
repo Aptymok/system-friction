@@ -1,7 +1,7 @@
 # SFI-DT-PROTOCOL-1.0
 
 Status: **EXPERIMENTALLY FROZEN**  
-Instrument code commit: `702d69e115bd8d8f0de04bca399088059fe02459`  
+Instrument code commit: `3febe181cfe80bb3edc15f122dbf639f9808d8b6`  
 Instrument base commit: `3b7ce699e2654ed1fb551498cfeaad37731f6f88`
 
 ## Observable object
