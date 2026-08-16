@@ -5,6 +5,7 @@ import {
   executeBlindDecisionReveal,
   parseBlindDecisionRevealInput,
 } from '@/core/cognitive-twin/reentry/blindDecisionReconstruction';
+import { verifyBlindDecisionContextIntegrity } from '@/core/cognitive-twin/reentry/blindDecisionIntegrity';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -17,6 +18,7 @@ export async function POST(request: Request) {
   try {
     const raw = await request.json();
     const input = parseBlindDecisionRevealInput(raw);
+    const contextIntegrity = await verifyBlindDecisionContextIntegrity(input.blindRunId);
     const result = await executeBlindDecisionReveal(input, gate.ctx.user.id);
     const audit = await auditRootAction({
       actorId: gate.ctx.user.id,
@@ -28,24 +30,26 @@ export async function POST(request: Request) {
         arm: result.arm,
         predictionHash: result.predictionHash,
         targetCommitmentSha256: result.targetCommitmentSha256,
+        selectedContextHash: contextIntegrity.selectedContextHash,
         evaluationId: result.evaluation.evaluationId,
         evaluationRunId: result.evaluation.runId,
         outcome: result.evaluation.outcome,
         commitmentVerified: true,
+        contextIntegrityVerified: true,
       },
       request,
     });
     if (!audit.ok) return NextResponse.json({ ok: false, error: 'blind_reveal_audit_failed', result, audit }, { status: 500 });
-    return NextResponse.json({ ...result, audit }, { headers: { 'Cache-Control': 'no-store' } });
+    return NextResponse.json({ ...result, contextIntegrity, audit }, { headers: { 'Cache-Control': 'no-store' } });
   } catch (error) {
     const invalidInput = error instanceof ZodError;
     const details = invalidInput
       ? error.issues.map((issue) => `${issue.path.join('.') || 'root'}:${issue.message}`).join('; ')
       : error instanceof Error ? error.message : String(error);
     const status = invalidInput ? 400
-      : details.includes('COMMITMENT_MISMATCH') || details.includes('TRACE_ID_MISMATCH') || details.includes('DOMAIN_MISMATCH') ? 409
+      : details.includes('COMMITMENT_MISMATCH') || details.includes('TRACE_ID_MISMATCH') || details.includes('DOMAIN_MISMATCH') || details.includes('INTEGRITY_MISMATCH') ? 409
         : details.includes('NOT_FOUND') ? 404
-          : details.includes('NOT_REVEALABLE') || details.includes('LOCK_FAILED') ? 409
+          : details.includes('NOT_REVEALABLE') || details.includes('LOCK_FAILED') || details.includes('CONTRACT_MISMATCH') || details.includes('ROLE_MISMATCH') ? 409
             : 503;
     return NextResponse.json({
       ok: false,
