@@ -11,6 +11,7 @@ import {
   type SfiCinematicStat,
   type SfiCinematicTimelineItem,
 } from '@/components/sfi/cinematic/SfiCinematicSurface';
+import './case-cinematic.css';
 
 export type SfiCaseCinematicModel = {
   caseId: string;
