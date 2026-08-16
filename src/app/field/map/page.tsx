@@ -10,5 +10,5 @@ export const metadata: Metadata = {
 };
 
 export default function FieldMapPage() {
-  return <div className={styles.safeFieldMap}><WorldFieldObservatory /></div>;
+  return <main className="min-h-screen bg-transparent"><div data-sfi-field-anchor="world-map" className={styles.safeFieldMap}><WorldFieldObservatory /></div></main>;
 }

@@ -1,0 +1,152 @@
+/*
+ * SFI surface convergence layer.
+ * This file changes presentation only. It never upgrades data class, confidence,
+ * authority, persistence, evidence or canonical status.
+ */
+
+body[data-sfi-surface-mode]{
+  --sfc-void:#070806;
+  --sfc-void-2:#0b0d0a;
+  --sfc-graphite:#11130f;
+  --sfc-bone:#e8e2d5;
+  --sfc-dim:#aaa69c;
+  --sfc-gold:#c8a764;
+  --sfc-gold-hi:#f0d397;
+  --sfc-line:rgba(232,226,213,.14);
+  --sfc-panel:rgba(10,11,9,.78);
+  background:
+    radial-gradient(circle at var(--sfi-mx,50vw) var(--sfi-my,50vh),rgba(200,167,100,.045),transparent 26rem),
+    #070806!important;
+  color:var(--sfc-bone);
+}
+
+body[data-sfi-surface-mode='observation']{--sfc-accent:#69a5a4;--sfc-accent-rgb:105,165,164}
+body[data-sfi-surface-mode='studio'],body[data-sfi-surface-mode='lab'],body[data-sfi-surface-mode='memory']{--sfc-accent:#8a7fa7;--sfc-accent-rgb:138,127,167}
+body[data-sfi-surface-mode='friction']{--sfc-accent:#a94c3b;--sfc-accent-rgb:169,76,59}
+body[data-sfi-surface-mode='field'],body[data-sfi-surface-mode='system'],body[data-sfi-surface-mode='research'],body[data-sfi-surface-mode='case'],body[data-sfi-surface-mode='root']{--sfc-accent:#c8a764;--sfc-accent-rgb:200,167,100}
+
+body[data-sfi-surface-mode] main{isolation:isolate}
+body[data-sfi-surface-mode] main::selection{background:var(--sfc-gold);color:var(--sfc-void)}
+
+/* Public Observatory: preserve its telemetry and derived layers, replace the old blue SaaS shell. */
+body[data-sfi-surface-mode='observation'] .pou-root{
+  background:linear-gradient(180deg,rgba(7,8,6,.70),rgba(7,8,6,.90))!important;
+  color:var(--sfc-bone)!important;
+}
+body[data-sfi-surface-mode='observation'] .pou-header{
+  background:rgba(7,8,6,.78)!important;
+  border-color:var(--sfc-line)!important;
+  backdrop-filter:blur(18px)!important;
+}
+body[data-sfi-surface-mode='observation'] .pou-root article,
+body[data-sfi-surface-mode='observation'] .pou-root section>dl,
+body[data-sfi-surface-mode='observation'] .pou-reading,
+body[data-sfi-surface-mode='observation'] .pou-method{
+  background:rgba(8,10,8,.70)!important;
+  border-color:var(--sfc-line)!important;
+  box-shadow:none!important;
+}
+body[data-sfi-surface-mode='observation'] .pou-root h1,
+body[data-sfi-surface-mode='observation'] .pou-root h2,
+body[data-sfi-surface-mode='observation'] .pou-root h3{color:#f2ecdf!important}
+body[data-sfi-surface-mode='observation'] .pou-root a,
+body[data-sfi-surface-mode='observation'] .pou-root span,
+body[data-sfi-surface-mode='observation'] .pou-root dt{border-color:rgba(105,165,164,.25);text-shadow:none}
+body[data-sfi-surface-mode='observation'] .pou-root [data-active='true']{border-color:rgba(105,165,164,.42)!important;background:rgba(105,165,164,.045)!important}
+
+/* Method Lab: experiment plane, not a second dashboard theme. */
+body[data-sfi-surface-mode='lab'] .ml-root{background:rgba(7,8,6,.74)!important;color:var(--sfc-bone)!important}
+body[data-sfi-surface-mode='lab'] .ml-header,
+body[data-sfi-surface-mode='lab'] .ml-statusbar,
+body[data-sfi-surface-mode='lab'] .ml-rule-grid article,
+body[data-sfi-surface-mode='lab'] .ml-ai,
+body[data-sfi-surface-mode='lab'] .ml-bench,
+body[data-sfi-surface-mode='lab'] .ml-grid>article{
+  border-color:var(--sfc-line)!important;
+  background:rgba(9,10,8,.76)!important;
+  box-shadow:none!important;
+}
+body[data-sfi-surface-mode='lab'] .ml-header h1,
+body[data-sfi-surface-mode='lab'] .ml-ai h2,
+body[data-sfi-surface-mode='lab'] .ml-bench h2,
+body[data-sfi-surface-mode='lab'] .ml-grid h2{color:#f2ecdf!important}
+body[data-sfi-surface-mode='lab'] .ml-header span,
+body[data-sfi-surface-mode='lab'] .ml-rule-grid span,
+body[data-sfi-surface-mode='lab'] .ml-ai header span,
+body[data-sfi-surface-mode='lab'] .ml-bench-copy>span,
+body[data-sfi-surface-mode='lab'] .ml-card-head span,
+body[data-sfi-surface-mode='lab'] .ml-root dt,
+body[data-sfi-surface-mode='lab'] .ml-dependencies>b{color:var(--sfc-gold)!important}
+body[data-sfi-surface-mode='lab'] .ml-header a,
+body[data-sfi-surface-mode='lab'] .ml-header button,
+body[data-sfi-surface-mode='lab'] .ml-actions span{background:rgba(7,8,6,.66)!important;border-color:rgba(200,167,100,.24)!important;color:#d9c99e!important}
+body[data-sfi-surface-mode='lab'] .ml-bench select,
+body[data-sfi-surface-mode='lab'] .ml-bench textarea{background:#070806!important;border-color:rgba(200,167,100,.22)!important;color:var(--sfc-bone)!important}
+
+/* Studio already has a specialized topology; remove opaque layers so the topology and global field read as one instrument. */
+body[data-sfi-surface-mode='studio'] main{background:transparent!important}
+body[data-sfi-surface-mode='studio'] .studio-workspace,
+body[data-sfi-surface-mode='studio'] .studio-shell,
+body[data-sfi-surface-mode='studio'] .studio-hub,
+body[data-sfi-surface-mode='studio'] .studio-field{
+  background-color:rgba(7,8,6,.72)!important;
+  border-color:var(--sfc-line)!important;
+}
+body[data-sfi-surface-mode='studio'] [class^='studio-'][class*='panel'],
+body[data-sfi-surface-mode='studio'] [class^='studio-'][class*='card']{
+  background:rgba(10,11,9,.78)!important;
+  border-color:var(--sfc-line)!important;
+}
+
+/* FIELD stays action-oriented. We remove the duplicate decorative grid so the shared field carries motion. */
+body[data-sfi-surface-mode='field'] main{background-color:rgba(3,3,2,.76)!important}
+body[data-sfi-surface-mode='field'] main>div[aria-hidden='true']{opacity:.20!important}
+body[data-sfi-surface-mode='field'] main article,
+body[data-sfi-surface-mode='field'] main header{backdrop-filter:blur(16px)}
+
+/* Memory surfaces: Atlas and Ledger should feel accumulated rather than boxed. */
+body[data-sfi-surface-mode='memory'] main{background:transparent!important}
+body[data-sfi-surface-mode='memory'] .sfi-atlas-panel,
+body[data-sfi-surface-mode='memory'] .sfi-atlas-ledger article{
+  background:rgba(9,10,8,.74)!important;
+  border-color:var(--sfc-line)!important;
+}
+
+/* Research/Library is deliberately quieter: stable constellation, less motion, same material system. */
+body[data-sfi-surface-mode='research'] main{background:rgba(7,8,6,.70)!important}
+body[data-sfi-surface-mode='research'] main article,
+body[data-sfi-surface-mode='research'] main header,
+body[data-sfi-surface-mode='research'] main section>div{
+  border-color:var(--sfc-line)!important;
+}
+
+/* Member/case membrane: operational context, not a separate portal aesthetic. */
+body[data-sfi-surface-mode='case'] main{background:rgba(7,8,6,.74)!important}
+body[data-sfi-surface-mode='case'] main header,
+body[data-sfi-surface-mode='case'] main article,
+body[data-sfi-surface-mode='case'] main a{border-color:var(--sfc-line)!important;background-color:rgba(9,10,8,.74)!important}
+
+/* Pipeline and ROOT secondary surfaces inherit sovereign mineral substrate. */
+body[data-sfi-surface-mode='system'] main,
+body[data-sfi-surface-mode='root'] main{background-color:rgba(7,8,6,.74)!important}
+body[data-sfi-surface-mode='root'] iframe{background:#070806!important}
+
+/* Explicit anchors receive a subtle physical edge. This is presentation only. */
+[data-sfi-field-anchor]{position:relative}
+[data-sfi-field-anchor]::after{
+  content:'';
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  border:1px solid rgba(var(--sfc-accent-rgb,200,167,100),.08);
+  opacity:.7;
+  transition:opacity .3s ease,border-color .3s ease;
+}
+[data-sfi-field-anchor]:hover::after{opacity:1;border-color:rgba(var(--sfc-accent-rgb,200,167,100),.22)}
+
+@media(max-width:760px){
+  [data-sfi-field-anchor]::after{display:none}
+  body[data-sfi-surface-mode='lab'] .ml-root{padding:18px!important}
+}
+
+@media(prefers-reduced-motion:reduce){[data-sfi-field-anchor]::after{transition:none}}

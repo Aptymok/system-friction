@@ -10,11 +10,9 @@ export default async function InstitutionalPipelinePage() {
   const ctx = await requireRootObserverPage('/pipeline');
   const role = typeof ctx.profile?.role === 'string' ? ctx.profile.role : null;
   return (
-    <>
-      <RootOperatingField actorLabel={ctx.profile?.alias || ctx.user?.email || role || 'ROOT'} />
-      <div style={{ background: '#f2f0e9', padding: '0 32px 80px' }}>
-        <RootCycleAnalysisDockAuto />
-      </div>
-    </>
+    <main className="min-h-screen bg-transparent">
+      <section data-sfi-field-anchor="operating-field"><RootOperatingField actorLabel={ctx.profile?.alias || ctx.user?.email || role || 'ROOT'} /></section>
+      <section data-sfi-field-anchor="cycle-analysis" className="bg-[#070806bf] px-8 pb-20 backdrop-blur-xl"><RootCycleAnalysisDockAuto /></section>
+    </main>
   );
 }
