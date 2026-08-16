@@ -4,6 +4,12 @@ import { createHash, randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { canonicalJson } from './decisionCommitment';
+import {
+  SFI_DT_BLIND_PROMPT_TEMPLATE_SHA256,
+  SFI_DT_BLIND_SYSTEM_PROMPT_SHA256,
+  SFI_DT_CONFIRMATORY_MODEL,
+  SFI_DT_PROTOCOL_VERSION,
+} from './decisionTransferExperimentFreeze';
 import type {
   CounterfactualProbe,
   DecisionTrace,
@@ -76,6 +82,7 @@ export type DecisionTransferEvaluationEvidenceReceipt = {
   operationKey: string;
   contextReceiptHash: string;
   targetTimingProofHash: string;
+  modelContractHash: string;
   materializedAt: string;
 
   recordsSeen: number;
@@ -132,6 +139,47 @@ function unique(values: string[]) {
 
 function sha256(value: string) {
   return createHash('sha256').update(value).digest('hex');
+}
+
+function assertFrozenModelContract(blindSnapshot: Row, providerValue: unknown, modelValue: unknown) {
+  const contract = record(blindSnapshot.experimentalFreeze);
+  const contractHash = text(contract.contractHash);
+  if (!contractHash) throw new Error('DT_EVIDENCE_MODEL_CONTRACT_MISSING');
+  const { contractHash: _contractHash, ...contractBase } = contract;
+  if (sha256(canonicalJson(contractBase)) !== contractHash) {
+    throw new Error('DT_EVIDENCE_MODEL_CONTRACT_INTEGRITY_MISMATCH');
+  }
+  if (text(contract.protocolVersion) !== SFI_DT_PROTOCOL_VERSION) {
+    throw new Error('DT_EVIDENCE_MODEL_PROTOCOL_MISMATCH');
+  }
+  if (text(contract.provider) !== SFI_DT_CONFIRMATORY_MODEL.provider) {
+    throw new Error('DT_EVIDENCE_MODEL_PROVIDER_MISMATCH');
+  }
+  if (
+    text(contract.expectedModel) !== SFI_DT_CONFIRMATORY_MODEL.expectedModel
+    || text(contract.actualModel) !== SFI_DT_CONFIRMATORY_MODEL.expectedModel
+  ) {
+    throw new Error('DT_EVIDENCE_MODEL_EXPECTED_MODEL_MISMATCH');
+  }
+  if (
+    text(providerValue) !== SFI_DT_CONFIRMATORY_MODEL.provider
+    || text(modelValue) !== SFI_DT_CONFIRMATORY_MODEL.expectedModel
+  ) {
+    throw new Error('DT_EVIDENCE_BLIND_RUN_MODEL_MISMATCH');
+  }
+  if (contract.maxTokens !== SFI_DT_CONFIRMATORY_MODEL.maxTokens) {
+    throw new Error('DT_EVIDENCE_MODEL_MAX_TOKENS_MISMATCH');
+  }
+  if (record(contract.generationConfig).temperature !== SFI_DT_CONFIRMATORY_MODEL.temperature) {
+    throw new Error('DT_EVIDENCE_MODEL_TEMPERATURE_MISMATCH');
+  }
+  if (text(contract.systemPromptHash) !== SFI_DT_BLIND_SYSTEM_PROMPT_SHA256) {
+    throw new Error('DT_EVIDENCE_SYSTEM_PROMPT_HASH_MISMATCH');
+  }
+  if (text(contract.promptTemplateHash) !== SFI_DT_BLIND_PROMPT_TEMPLATE_SHA256) {
+    throw new Error('DT_EVIDENCE_PROMPT_TEMPLATE_HASH_MISMATCH');
+  }
+  return contractHash;
 }
 
 function asEvidenceClass(value: unknown): EvidenceClass {
@@ -386,6 +434,7 @@ export async function materializeDecisionTransferEvaluationEvidence(input: {
   }
 
   const blindSnapshot = record(blindRead.data.input_snapshot);
+  const modelContractHash = assertFrozenModelContract(blindSnapshot, blindRead.data.provider, blindRead.data.model);
   const contextReceipt = record(blindSnapshot.contextMaterialization);
   if (text(contextReceipt.protocol) !== 'SFI-DT-CONTEXT-MATERIALIZATION-1.0' || text(contextReceipt.source) !== 'CANONICAL_MATERIALIZED') {
     throw new Error('DT_EVIDENCE_CANONICAL_CONTEXT_REQUIRED');
@@ -416,6 +465,7 @@ export async function materializeDecisionTransferEvaluationEvidence(input: {
       const receipt = existingReceiptFromRow(row);
       if (!receipt) throw new Error(`DT_EVIDENCE_EXISTING_RECEIPT_INTEGRITY_MISMATCH:${String(row.id)}`);
       if (receipt.contextReceiptHash !== contextReceiptHash) throw new Error('DT_EVIDENCE_EXISTING_CONTEXT_HASH_MISMATCH');
+      if (receipt.modelContractHash !== modelContractHash) throw new Error('DT_EVIDENCE_EXISTING_MODEL_CONTRACT_HASH_MISMATCH');
       return { materializationRunId: String(row.id), receipt, reused: true as const };
     }
   }
@@ -529,6 +579,7 @@ export async function materializeDecisionTransferEvaluationEvidence(input: {
     operationKey: input.operationKey,
     contextReceiptHash,
     targetTimingProofHash: input.targetTimingProofHash,
+    modelContractHash,
     materializedAt,
 
     recordsSeen: historyRows.length + grounding.evidenceRows.length + grounding.eventRows.length + 1,
@@ -581,6 +632,7 @@ export async function materializeDecisionTransferEvaluationEvidence(input: {
       operationKey: input.operationKey,
       contextReceiptHash,
       targetTimingProofHash: input.targetTimingProofHash,
+      modelContractHash,
       evidencePoolHash,
       evaluationOrder: 'MATERIALIZE_FREEZE_VERIFY_SCORE',
     },
@@ -595,6 +647,7 @@ export async function materializeDecisionTransferEvaluationEvidence(input: {
       'Repeated records, repeated DecisionTrace projections and shared observed events are collapsed before validating recurrence.',
       'SIMULATED, DERIVED and INFERRED material remains diagnostic and cannot increase validating counters.',
       'A simulated counterfactual is never counted as an empirical boundary probe.',
+      'Confirmatory materialization requires a valid SFI-DT-1.0 model contract bound to the blind run before reveal.',
     ],
     started_at: materializedAt,
     finished_at: materializedAt,
@@ -628,46 +681,4 @@ export async function verifyFrozenDecisionTransferEvaluationEvidence(input: {
   if (!receipt) throw new Error('DT_EVIDENCE_FROZEN_RECEIPT_INTEGRITY_MISMATCH');
   if (receipt.receiptHash !== input.expectedReceiptHash) throw new Error('DT_EVIDENCE_FROZEN_RECEIPT_HASH_MISMATCH');
   return { receipt, materializationRunId: input.materializationRunId };
-}
-
-export async function bindDecisionTransferEvaluationEvidenceLineage(input: {
-  evaluationRunId: string;
-  evaluationId: string;
-  materializationRunId: string;
-  receipt: DecisionTransferEvaluationEvidenceReceipt;
-}) {
-  const db = createServiceSupabaseClient();
-  const runRead = await db.from('sfi_cognitive_twin_runs')
-    .select('id,role,status,input_snapshot,output_envelope')
-    .eq('id', input.evaluationRunId)
-    .maybeSingle();
-  if (runRead.error || !runRead.data) throw new Error(`DT_EVIDENCE_EVALUATION_RUN_NOT_FOUND:${runRead.error?.message ?? input.evaluationRunId}`);
-  if (runRead.data.role !== 'DECISION_TRANSFER_EVALUATOR' || runRead.data.status !== 'CLOSED') {
-    throw new Error(`DT_EVIDENCE_EVALUATION_RUN_STATE_INVALID:${runRead.data.role}:${runRead.data.status}`);
-  }
-  const lineage = {
-    protocol: input.receipt.protocol,
-    materializationRunId: input.materializationRunId,
-    receiptHash: input.receipt.receiptHash,
-    evidencePoolHash: input.receipt.evidencePoolHash,
-    validationStatus: input.receipt.validationStatus,
-    boundaryValidationStatus: input.receipt.boundaryValidationStatus,
-    order: 'MATERIALIZED_AND_HASHED_BEFORE_SCORING',
-  };
-  const runUpdate = await db.from('sfi_cognitive_twin_runs').update({
-    input_snapshot: { ...record(runRead.data.input_snapshot), evaluationEvidence: lineage },
-    output_envelope: { ...record(runRead.data.output_envelope), evaluationEvidence: lineage },
-  }).eq('id', input.evaluationRunId).eq('status', 'CLOSED');
-  if (runUpdate.error) throw new Error(`DT_EVIDENCE_EVALUATION_RUN_BIND_FAILED:${runUpdate.error.message}`);
-
-  const evaluationRead = await db.from('sfi_cognitive_twin_evaluations')
-    .select('id,observed_result')
-    .eq('id', input.evaluationId)
-    .maybeSingle();
-  if (evaluationRead.error || !evaluationRead.data) throw new Error(`DT_EVIDENCE_EVALUATION_NOT_FOUND:${evaluationRead.error?.message ?? input.evaluationId}`);
-  const evaluationUpdate = await db.from('sfi_cognitive_twin_evaluations').update({
-    observed_result: { ...record(evaluationRead.data.observed_result), evaluationEvidence: lineage },
-  }).eq('id', input.evaluationId);
-  if (evaluationUpdate.error) throw new Error(`DT_EVIDENCE_EVALUATION_BIND_FAILED:${evaluationUpdate.error.message}`);
-  return lineage;
 }
