@@ -27,15 +27,20 @@ function spineProvenanceFromProposal(proposal: Row) {
   const snapshotId = text(cognitiveSpine.snapshotId);
   const snapshotHash = text(cognitiveSpine.snapshotHash);
   const sourceCutoff = text(cognitiveSpine.sourceCutoff);
-  if (!sourceRunId || !snapshotId || !snapshotHash || !sourceCutoff) {
+  const actorId = text(expectedDelta.actorId);
+  if (!sourceRunId || !snapshotId || !snapshotHash || !sourceCutoff || !actorId) {
     throw new Error('FIELD_COGNITIVE_SPINE_PROPOSAL_PROVENANCE_MISSING');
   }
-  return { sourceRunId, snapshotId, snapshotHash, sourceCutoff };
+  return { sourceRunId, snapshotId, snapshotHash, sourceCutoff, actorId };
 }
 
 /**
  * Optional bridge: a Field cycle may be opened from a ROOT-reviewed Cognitive
  * Spine proposal. Field remains independently usable without this bridge.
+ *
+ * In this first implementation the proposal actor must also own the Field
+ * case. Cross-user delegation must use a future explicit invitation contract;
+ * possession of a proposal UUID is never delegation.
  *
  * A design-approved/queued proposal is context, not proof and not automatic
  * execution authority. Participant consent and the Field execution
@@ -58,6 +63,9 @@ export async function createGovernedFieldCycleFromCognitiveSpineProposal(input: 
     throw new Error(`FIELD_COGNITIVE_SPINE_PROPOSAL_NOT_LINKABLE:${state ?? 'missing'}`);
   }
   const spine = spineProvenanceFromProposal(proposal);
+  if (spine.actorId !== input.ownerId) {
+    throw new Error('FIELD_COGNITIVE_SPINE_PROPOSAL_ACTOR_MISMATCH');
+  }
 
   const result = await createGovernedFieldCycle(input.ownerId, input.cycle);
   const fieldCase = record(result.case);
@@ -74,6 +82,7 @@ export async function createGovernedFieldCycleFromCognitiveSpineProposal(input: 
     snapshotId: spine.snapshotId,
     snapshotHash: spine.snapshotHash,
     sourceCutoff: spine.sourceCutoff,
+    proposalActorId: spine.actorId,
     participantConsent: true,
     automaticExecution: false,
   };
@@ -121,7 +130,6 @@ export async function createGovernedFieldCycleFromCognitiveSpineProposal(input: 
       id: input.proposalId,
       status: state,
       title: stringValue(proposal.title),
-      expectedFieldDelta: recordValue(proposal.expected_field_delta),
     },
   };
 }
