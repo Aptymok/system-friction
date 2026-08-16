@@ -5,6 +5,13 @@ import type { ReactNode } from 'react';
 import { EmergentParticleField, type EmergentAnchor } from '@/components/sfi/emergent/EmergentParticleField';
 import './root-native-surfaces.css';
 
+function observedTime(value: string | null) {
+  if (!value) return 'NO_VALUE';
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return value;
+  return `${date.toLocaleString('es-MX', { timeZone: 'UTC', hour12: false })} UTC`;
+}
+
 export function RootNativeFrame({
   organ,
   code,
@@ -36,7 +43,7 @@ export function RootNativeFrame({
       <header className="root-native__header">
         <Link href={returnHref} className="root-native__brand"><span>{namespace}</span><strong>{organ}</strong></Link>
         <div className="root-native__code"><span>{code}</span><b>{state}</b></div>
-        <div className="root-native__time"><span>OBSERVED STATE</span><time>{generatedAt ? new Date(generatedAt).toLocaleString('es-MX') : 'NO_VALUE'}</time></div>
+        <div className="root-native__time"><span>OBSERVED STATE</span><time>{observedTime(generatedAt)}</time></div>
       </header>
       <div className="root-native__body">{children}</div>
       <footer className="root-native__footer"><span>{invariant}</span><Link href={returnHref}>{returnLabel}</Link></footer>
