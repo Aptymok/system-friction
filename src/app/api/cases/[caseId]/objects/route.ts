@@ -14,11 +14,10 @@ const refSchema = z.object({
 }).strict();
 
 const clientWriteSchema = z.object({
-  kind: z.enum(['RECORD','OBSERVATION','RETURN']),
+  kind: z.enum(['RECORD','OBSERVATION']),
   canonicalRef: refSchema,
   sourceRefs: z.array(refSchema).max(500).optional(),
   recordRefs: z.array(refSchema).max(500).optional(),
-  evidenceRefs: z.array(refSchema).max(500).optional(),
   payload: z.record(z.string(), z.unknown()).optional(),
   observedAt: z.string().trim().max(80).nullable().optional(),
 }).strict();
@@ -49,14 +48,14 @@ export async function POST(request: Request, context: RouteContext) {
       canonicalRef: body.canonicalRef,
       sourceRefs: body.sourceRefs,
       recordRefs: body.recordRefs,
-      evidenceRefs: body.evidenceRefs,
+      evidenceRefs: [],
       payload: body.payload,
       observedAt: body.observedAt,
     });
     return NextResponse.json({
       ok: true,
       object,
-      epistemicBoundary: 'Client-submitted records remain RECORD. This endpoint cannot create EVIDENCE, ANALYSIS, GOVERNANCE_DECISION or TRUTH_CLAIM objects.',
+      epistemicBoundary: 'Client-submitted objects remain RECORD. This endpoint cannot create EVIDENCE, ANALYSIS, GOVERNANCE_DECISION, INTERVENTION, RETURN or TRUTH_CLAIM objects and cannot attach evidence claims.',
     }, { status: 201 });
   } catch (error) {
     return sfiCaseApiFailure(error);

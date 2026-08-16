@@ -33,49 +33,61 @@ create table if not exists public.sfi_case_action_decisions (
   created_at timestamptz not null default now()
 );
 
-create index if not exists sfi_case_action_proposals_case_status_idx
-  on public.sfi_case_action_proposals(case_id, status, created_at);
-create index if not exists sfi_case_action_proposals_tenant_status_idx
-  on public.sfi_case_action_proposals(tenant_id, status, created_at);
-create index if not exists sfi_case_action_decisions_case_idx
-  on public.sfi_case_action_decisions(case_id, created_at);
+create index if not exists sfi_case_action_proposals_case_status_idx on public.sfi_case_action_proposals(case_id, status, created_at);
+create index if not exists sfi_case_action_proposals_tenant_status_idx on public.sfi_case_action_proposals(tenant_id, status, created_at);
+create index if not exists sfi_case_action_decisions_case_idx on public.sfi_case_action_decisions(case_id, created_at);
 
-create or replace function public.sfi_case_action_touch_updated_at()
-returns trigger
-language plpgsql
-as $$
-begin
-  new.updated_at = now();
-  return new;
-end;
-$$;
-
+create or replace function public.sfi_case_action_touch_updated_at() returns trigger language plpgsql as $$ begin new.updated_at = now(); return new; end; $$;
 drop trigger if exists sfi_case_action_proposals_touch on public.sfi_case_action_proposals;
-create trigger sfi_case_action_proposals_touch
-before update on public.sfi_case_action_proposals
-for each row execute function public.sfi_case_action_touch_updated_at();
+create trigger sfi_case_action_proposals_touch before update on public.sfi_case_action_proposals for each row execute function public.sfi_case_action_touch_updated_at();
+
+create or replace function public.sfi_tenant_can_approve(target_tenant uuid)
+returns boolean language sql stable security definer set search_path = public, auth as $$
+  select exists (
+    select 1 from public.sfi_tenant_members m
+    where m.tenant_id = target_tenant and m.user_id = auth.uid() and m.status = 'ACTIVE' and m.role in ('OWNER','ADMIN')
+  );
+$$;
+revoke all on function public.sfi_tenant_can_approve(uuid) from public;
+grant execute on function public.sfi_tenant_can_approve(uuid) to authenticated;
 
 alter table public.sfi_case_action_proposals enable row level security;
 alter table public.sfi_case_action_decisions enable row level security;
 
 drop policy if exists sfi_case_action_proposals_tenant_read on public.sfi_case_action_proposals;
-create policy sfi_case_action_proposals_tenant_read on public.sfi_case_action_proposals
-for select to authenticated using (public.sfi_tenant_can_read(tenant_id));
-
+create policy sfi_case_action_proposals_tenant_read on public.sfi_case_action_proposals for select to authenticated using (public.sfi_tenant_can_read(tenant_id));
 drop policy if exists sfi_case_action_proposals_tenant_insert on public.sfi_case_action_proposals;
-create policy sfi_case_action_proposals_tenant_insert on public.sfi_case_action_proposals
-for insert to authenticated with check (public.sfi_tenant_can_write(tenant_id));
-
+create policy sfi_case_action_proposals_tenant_insert on public.sfi_case_action_proposals for insert to authenticated with check (public.sfi_tenant_can_write(tenant_id) and proposed_by = auth.uid());
 drop policy if exists sfi_case_action_proposals_tenant_update on public.sfi_case_action_proposals;
-create policy sfi_case_action_proposals_tenant_update on public.sfi_case_action_proposals
-for update to authenticated using (public.sfi_tenant_can_write(tenant_id)) with check (public.sfi_tenant_can_write(tenant_id));
+-- Proposal state transitions are server-governed; authenticated clients receive no direct UPDATE policy.
 
 drop policy if exists sfi_case_action_decisions_tenant_read on public.sfi_case_action_decisions;
-create policy sfi_case_action_decisions_tenant_read on public.sfi_case_action_decisions
-for select to authenticated using (public.sfi_tenant_can_read(tenant_id));
-
+create policy sfi_case_action_decisions_tenant_read on public.sfi_case_action_decisions for select to authenticated using (public.sfi_tenant_can_read(tenant_id));
 drop policy if exists sfi_case_action_decisions_tenant_insert on public.sfi_case_action_decisions;
-create policy sfi_case_action_decisions_tenant_insert on public.sfi_case_action_decisions
-for insert to authenticated with check (public.sfi_tenant_can_write(tenant_id));
+create policy sfi_case_action_decisions_tenant_insert on public.sfi_case_action_decisions for insert to authenticated with check (
+  public.sfi_tenant_can_approve(tenant_id) and decided_by = auth.uid() and authority_role in ('OWNER','ADMIN')
+);
+
+-- Harden pre-existing Case Platform tables against direct Supabase writes that would bypass Next/API semantic gates.
+drop policy if exists sfi_case_objects_tenant_insert on public.sfi_case_objects;
+create policy sfi_case_objects_tenant_insert on public.sfi_case_objects for insert to authenticated with check (
+  public.sfi_tenant_can_write(tenant_id)
+  and object_kind in ('RECORD','OBSERVATION')
+  and epistemic_role = 'RECORD'
+  and jsonb_array_length(evidence_refs) = 0
+);
+
+drop policy if exists sfi_case_relations_tenant_insert on public.sfi_case_relations;
+create policy sfi_case_relations_tenant_insert on public.sfi_case_relations for insert to authenticated with check (
+  public.sfi_tenant_can_write(tenant_id)
+  and epistemic_role = 'RECORD'
+  and jsonb_array_length(evidence_refs) = 0
+);
+
+drop policy if exists sfi_case_reports_tenant_insert on public.sfi_case_reports;
+-- Report creation is server/institutional only in Operational V1.
+
+drop policy if exists sfi_case_audit_tenant_insert on public.sfi_case_audit_events;
+-- Audit events are server-generated only.
 
 -- No DELETE policies. No ROOT foreign key. No automatic execution trigger.

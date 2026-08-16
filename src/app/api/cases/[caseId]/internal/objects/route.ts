@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { requireSfiMember } from '@/lib/system/access/server';
 import { recordOperationalCaseObject } from '@/lib/sfi/case-platform/repository';
+import { assertCaseReferenceIntegrity } from '@/lib/sfi/case-platform/integrity';
 import { sfiCaseApiFailure } from '@/lib/sfi/case-platform/http';
 import type { SfiCaseObjectKind } from '@/core/case-platform';
 import type { SfiEpistemicClass } from '@/core/contracts/sfi';
@@ -28,6 +29,7 @@ export async function POST(request: Request, context: RouteContext) {
     const { user } = await requireSfiMember();
     const { caseId } = await context.params;
     const body = schema.parse(await request.json());
+    await assertCaseReferenceIntegrity({ caseId, userId: user.id, sourceRefs: body.sourceRefs, recordRefs: body.recordRefs, evidenceRefs: body.evidenceRefs });
     const object = await recordOperationalCaseObject({
       caseId,
       userId: user.id,
@@ -43,7 +45,7 @@ export async function POST(request: Request, context: RouteContext) {
     return NextResponse.json({
       ok: true,
       object,
-      boundary: 'Internal assessment can persist evidence/analysis only under existing lineage checks. It cannot create governance decisions, interventions, truth claims, or institutional-memory writes.',
+      boundary: 'Internal assessment can persist evidence/analysis only after referenced objects resolve with the claimed epistemic role. It cannot create governance decisions, interventions, truth claims, or institutional-memory writes.',
     }, { status: 201 });
   } catch (error) {
     return sfiCaseApiFailure(error);
