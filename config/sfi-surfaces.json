@@ -1,5 +1,5 @@
 {
-  "version": "2026-08-16",
+  "version": "2026-08-17",
   "public": [
     {
       "path": "/",
@@ -95,6 +95,7 @@
     "/root/attractor",
     "/root/longitudinal",
     "/root/commercial",
+    "/root/returns",
     "/root/cognitive-twin",
     "/root/institutionalization",
     "/root/reports",
