@@ -46,6 +46,7 @@ function platformUrlMatches(platform: ReturnPlatform, urlValue: string) {
   if (!urlValue) return false;
   try {
     const url = new URL(urlValue);
+    if (url.protocol !== 'https:') return false;
     const host = url.hostname.toLowerCase().replace(/^www\./, '');
     if (platform === 'instagram') return host === 'instagram.com' || host.endsWith('.instagram.com');
     if (platform === 'tiktok') return host === 'tiktok.com' || host.endsWith('.tiktok.com');
@@ -53,7 +54,7 @@ function platformUrlMatches(platform: ReturnPlatform, urlValue: string) {
     if (platform === 'x') return host === 'x.com' || host.endsWith('.x.com') || host === 'twitter.com' || host.endsWith('.twitter.com');
     if (platform === 'linkedin') return host === 'linkedin.com' || host.endsWith('.linkedin.com');
     if (platform === 'medium') return host === 'medium.com' || host.endsWith('.medium.com');
-    return url.protocol === 'https:';
+    return true;
   } catch {
     return false;
   }
@@ -80,6 +81,63 @@ function canonicalCertificateFields(input: JsonRecord) {
     watermark_token: optionalText(input.watermark_token),
     watermark_verification: typeof input.watermark_verification === 'object' && input.watermark_verification ? input.watermark_verification : {},
     publication_snapshot: typeof input.publication_snapshot === 'object' && input.publication_snapshot ? input.publication_snapshot : {},
+  };
+}
+
+function verificationRecord(value: unknown) {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as JsonRecord : null;
+}
+
+function exactBoolean(value: unknown) {
+  return value === true;
+}
+
+function validatePostPlatformVerification(current: JsonRecord, input: JsonRecord) {
+  const verification = verificationRecord(input.watermarkVerification);
+  if (!verification) return { ok: false as const, error: 'return_post_platform_verification_required' };
+
+  const retainedAssetSha = sha256(verification.retained_asset_sha256);
+  const expectedAssetSha = sha256(current.asset_sha256);
+  if (!retainedAssetSha || retainedAssetSha !== expectedAssetSha) {
+    return { ok: false as const, error: 'return_retained_asset_hash_mismatch' };
+  }
+
+  if (!exactBoolean(verification.external_url_observed)) {
+    return { ok: false as const, error: 'return_external_url_not_observed' };
+  }
+
+  const expectedToken = text(current.watermark_token).toUpperCase();
+  if (expectedToken) {
+    if (!exactBoolean(verification.watermark_detected)) {
+      return { ok: false as const, error: 'return_watermark_not_detected' };
+    }
+    if (text(verification.watermark_token).toUpperCase() !== expectedToken) {
+      return { ok: false as const, error: 'return_watermark_token_mismatch' };
+    }
+
+    const checkedBits = Number(verification.bits_checked);
+    const bitErrors = Number(verification.bit_errors);
+    if (!Number.isInteger(checkedBits) || checkedBits < 32) {
+      return { ok: false as const, error: 'return_watermark_bits_checked_insufficient' };
+    }
+    if (!Number.isInteger(bitErrors) || bitErrors < 0 || bitErrors > Math.max(2, Math.floor(checkedBits * 0.04))) {
+      return { ok: false as const, error: 'return_watermark_error_rate_exceeded' };
+    }
+  }
+
+  const observedUrl = text(current.external_url);
+  if (!observedUrl || !platformUrlMatches(String(current.platform) as ReturnPlatform, observedUrl)) {
+    return { ok: false as const, error: 'return_external_url_invalid_at_verification' };
+  }
+
+  return {
+    ok: true as const,
+    verification: {
+      ...verification,
+      verification_scope: 'POST_PLATFORM_RETAINED_MANIFESTATION',
+      verification_boundary: 'WATERMARK_VERIFICATION_IS_PROVENANCE_QA_NOT_CAUSAL_PROOF',
+      verified_at: new Date().toISOString(),
+    },
   };
 }
 
@@ -136,7 +194,7 @@ export async function createReturnCertificate(input: JsonRecord, actorId: string
     parent_trace_id: optionalText(input.parentTraceId),
     platform,
     state: 'prepared',
-    epistemic_class: text(input.epistemicClass, 'RECORD'),
+    epistemic_class: 'RECORD',
     scheduled_at: optionalText(input.scheduledAt),
     published_at: null,
     observed_at: null,
@@ -206,15 +264,15 @@ export async function verifyReturnCertificate(input: JsonRecord, actorId: string
   if (!current.data) return { ok: false, error: 'return_certificate_not_found' };
   if (current.data.state !== 'published') return { ok: false, error: 'return_certificate_not_published', details: String(current.data.state) };
 
+  const validation = validatePostPlatformVerification(current.data as JsonRecord, input);
+  if (!validation.ok) return { ok: false, error: validation.error };
+
   const now = new Date().toISOString();
-  const verification = typeof input.watermarkVerification === 'object' && input.watermarkVerification
-    ? input.watermarkVerification
-    : current.data.watermark_verification ?? {};
   const fields = canonicalCertificateFields({
     ...current.data,
     state: 'verified',
     observed_at: now,
-    watermark_verification: verification,
+    watermark_verification: validation.verification,
   });
 
   const updated = await service.from('public_return_certificates').update({
