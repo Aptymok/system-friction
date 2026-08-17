@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { normalizeTimestamp } from '../src/core/cognitive-spine/serialization/canonicalSerialize';
 import { selectStudioAutonomyTransition } from '../src/lib/continuity/studioAutonomyPolicy';
 
 const base = {
@@ -44,5 +45,12 @@ assert.equal(selectStudioAutonomyTransition({ ...base, horizonReached: true }).a
 assert.equal(selectStudioAutonomyTransition({ ...base, recentExecutionFailure: true }).action, 'WAIT');
 assert.equal(selectStudioAutonomyTransition({ ...base, mode: 'EMERGENCY_HALT' }).action, 'WAIT');
 assert.equal(selectStudioAutonomyTransition({ ...base, mode: 'DEGRADED_SAFE' }).action, 'WAIT');
+
+assert.equal(normalizeTimestamp('2026-08-17T06:58:26.219332+00:00'), '2026-08-17T06:58:26.219Z');
+assert.equal(normalizeTimestamp('2026-08-17T06:58:26.219Z'), '2026-08-17T06:58:26.219Z');
+assert.throws(
+  () => normalizeTimestamp('2026-08-17T06:58:26.219332'),
+  /COGNITIVE_SPINE_TIMESTAMP_REQUIRES_EXPLICIT_ZONE/,
+);
 
 console.log('FI-001 autonomy policy QA: PASS');

@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 
 type PlainObject = Record<string, unknown>;
 
-const ISO_TIMESTAMP_WITH_ZONE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?(?:Z|[+-]\d{2}:\d{2})$/;
+const ISO_TIMESTAMP_WITH_ZONE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/;
 
 function isPlainObject(value: object): value is PlainObject {
   const prototype = Object.getPrototypeOf(value);
@@ -70,8 +70,10 @@ export function canonicalSha256(value: unknown): string {
 }
 
 /**
- * Only offset-aware ISO timestamps are admissible. This prevents host timezone
- * or locale from changing the semantic cutoff during reconstruction.
+ * Only offset-aware ISO timestamps are admissible. PostgreSQL may emit up to
+ * microsecond precision, which is normalized to the canonical millisecond ISO
+ * form after parsing. This prevents host timezone or locale from changing the
+ * semantic cutoff during reconstruction.
  */
 export function normalizeTimestamp(value: string): string {
   if (!ISO_TIMESTAMP_WITH_ZONE.test(value)) {
