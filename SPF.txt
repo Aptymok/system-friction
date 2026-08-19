@@ -1,0 +1,3 @@
+SPF
+systemfriction.org
+v=spf1 include:_spf.google.com ~all
