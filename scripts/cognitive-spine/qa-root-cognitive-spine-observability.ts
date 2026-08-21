@@ -36,7 +36,7 @@ assert.ok(liveUi.includes('/api/acp/proposals'), 'root_live_scene_proposal_feed_
 assert.ok(liveUi.includes('ACEPTAR') && liveUi.includes('RECHAZAR'), 'root_live_scene_governance_controls_missing');
 assert.ok(liveUi.includes('auth.identity?.alias||auth.status'), 'root_live_scene_identity_observability_missing');
 assert.ok(scenePage.includes('SCENE_KEYS.includes'), 'dynamic_scene_gate_missing');
-assert.ok(scenePage.includes('<SfiConsole scene={scene}'), 'dynamic_scene_runtime_missing');
+assert.ok(scenePage.includes('<SfiConsole') && scenePage.includes('scene={scene as SceneKey}'), 'dynamic_scene_runtime_missing');
 
 console.log(JSON.stringify({
   ok: true,
