@@ -13,8 +13,10 @@ for (const id of ['CRL_PERSISTENCE','CT_ANCESTRAL_REENTRY','SIMULATION_SPECIALIZ
   assert.ok(FINAL_CLOSURE_GATES.some((gate)=>gate.id===id), `missing_closure_gate:${id}`);
 }
 
-assert.equal(CRL_PERSISTENCE_POLICY.design, 'HYBRID_GOVERNED_MIGRATION');
+assert.equal(CRL_PERSISTENCE_POLICY.design, 'CANONICAL_GOVERNED_PERSISTENCE');
 assert.equal(CRL_PERSISTENCE_POLICY.institutionalRunLedger, 'sfi_lab_analyses');
+assert.equal(CRL_PERSISTENCE_POLICY.twinCandidateStore, 'sfi_amv_memory');
+assert.equal(CRL_PERSISTENCE_POLICY.twinCandidateModule, 'institutionalEventPipeline');
 assert.equal(CRL_PERSISTENCE_POLICY.codeDesignResolved, true);
 assert.equal(CRL_PERSISTENCE_POLICY.productionSchemaVerified, false);
 
@@ -58,9 +60,10 @@ assert.ok(APEX_SOCIOTECHNICAL_PILOT.cycle.includes('ATLAS_CASE_RECORD'));
 
 console.log(JSON.stringify({
   ok:true,
-  contract:'SFI-FINAL-CLOSURE-1.0',
+  contract:'SFI-FINAL-CLOSURE-1.1',
   closureGates:FINAL_CLOSURE_GATES.length,
   ancestralCapabilities:CT_ANCESTRAL_CAPABILITIES.length,
   specializedModels:SPECIALIZED_MODELS.map((model)=>model.id),
   apexPilot:APEX_SOCIOTECHNICAL_PILOT.name,
+  cognitiveLabPersistence:CRL_PERSISTENCE_POLICY.design,
 }, null, 2));

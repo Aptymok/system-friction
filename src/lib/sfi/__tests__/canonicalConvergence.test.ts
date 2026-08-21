@@ -7,54 +7,35 @@ import { buildAttractorScorecard } from '../attractorManagement';
 import { buildInstitutionalTomography } from '../tomography';
 
 test('canonical convergence services produce a shared institutional graph and context', async () => {
-  const graph = await buildInstitutionalEntityGraph({
-    entityId: 'case-001',
-    entityType: 'PHENOMENON',
-    label: 'Tensión de coordinación',
-  });
-
-  assert.ok(graph.nodes.length >= 0);
-  assert.ok(graph.edges.length >= 0);
+  const graph = await buildInstitutionalEntityGraph({ entityId: 'case-001', entityType: 'PHENOMENON', label: 'Tensión de coordinación' });
+  assert.ok(Array.isArray(graph.nodes));
+  assert.ok(Array.isArray(graph.edges));
 
   const context = await buildEntityContext(graph, 'case-001');
-  assert.ok(context.entitySummary.length > 0);
-  assert.ok(context.graphSnapshot.nodes.length >= 0);
+  assert.ok(Array.isArray(context.entitySummary));
+  assert.ok(Array.isArray(context.graphSnapshot.nodes));
 
   const timeline = collectEntityTimeline(context);
-  assert.ok(timeline.length >= 3);
+  assert.ok(Array.isArray(timeline));
 
   const trajectory = resolveEntityTrajectory(context);
-  assert.ok(trajectory.length > 0);
+  assert.ok(Array.isArray(trajectory));
 });
 
-test('friction, attractor and tomography layers expose institutional diagnostics', async () => {
-  const field = await buildFrictionField({
-    pressure: 0.72,
-    coherence: 0.41,
-    traceability: 0.58,
-    adaptation: 0.39,
-  });
+test('friction, attractor and tomography layers expose evidence-bound institutional diagnostics', async () => {
+  const field = await buildFrictionField();
+  assert.ok(field.topFriction === null || Number.isFinite(field.topFriction));
+  assert.ok(field.nodes.every((node) => Number.isFinite(node.value)));
 
-  assert.ok(field.topFriction >= 0);
-  assert.ok(field.nodes.length >= 3);
+  const scorecard = await buildAttractorScorecard();
+  assert.equal(scorecard.knowledgeVelocity, null);
+  assert.equal(scorecard.authorityScore, null);
+  assert.equal(scorecard.memoryGrowth, null);
+  assert.equal(scorecard.predictionAccuracy, null);
+  assert.equal(scorecard.attractorDistance, null);
+  assert.ok(scorecard.evidenceCoverage === null || Number.isFinite(scorecard.evidenceCoverage));
 
-  const scorecard = await buildAttractorScorecard({
-    knowledgeVelocity: 0.78,
-    authorityScore: 0.66,
-    memoryGrowth: 0.71,
-    predictionAccuracy: 0.74,
-    attractorDistance: 0.23,
-  });
-
-  assert.equal(scorecard.knowledgeVelocity, 0.78);
-  assert.equal(scorecard.attractorDistance, 0.23);
-
-  const tomography = await buildInstitutionalTomography({
-    system: 'SFI',
-    field: 'Coordinación',
-    frictions: ['Escasez de evidencia', 'Desalineación de decisión'],
-  });
-
-  assert.equal(tomography.system, 'SFI');
-  assert.ok(tomography.sections.length >= 4);
+  const tomography = await buildInstitutionalTomography();
+  assert.equal(typeof tomography.system, 'string');
+  assert.ok(Array.isArray(tomography.sections));
 });

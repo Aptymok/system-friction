@@ -4,11 +4,13 @@ import { buildSfiEvidenceRequirements } from '@/lib/sfi/evidenceRequirements';
 export const dynamic = 'force-dynamic';
 
 const ROUTE = '/api/sfi/evidence-requirements';
-const DEFAULT_CASE_ID = 'SFI-OPS-001';
 
 export async function GET(request: NextRequest) {
   const proposalId = request.nextUrl.searchParams.get('proposal_id');
-  const caseId = request.nextUrl.searchParams.get('case_id') ?? DEFAULT_CASE_ID;
+  const caseId = request.nextUrl.searchParams.get('case_id')?.trim() || null;
+  if (!caseId) {
+    return NextResponse.json({ ok: false, route: ROUTE, error: 'case_id_required' }, { status: 400 });
+  }
 
   try {
     return NextResponse.json({
@@ -37,6 +39,6 @@ export async function GET(request: NextRequest) {
         },
         items: [],
       },
-    });
+    }, { status: 500 });
   }
 }

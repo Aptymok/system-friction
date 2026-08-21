@@ -45,6 +45,9 @@ jobs:
       - name: Verify cognitive agent convergence
         run: node --import tsx --test src/lib/sfi/cognitive-runtime/agentConvergence.test.ts
 
+      - name: Verify AI governance and autonomous runtime
+        run: npx tsx scripts/qa-sfi-ai-governance.ts
+
       - name: Verify Field and Observatory temporal surfaces
         run: npx tsx scripts/qa-sfi-temporal-surfaces.ts
 

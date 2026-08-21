@@ -1,15 +1,16 @@
-﻿import { generateSfiOperationalResponse } from '@/lib/sfi/responseEngine';
-import { asRecord, errorMessage, numericValue, readLatestProposalAlignments, readListFromView, readSingleFromView, textValue, type SfiRecord } from '@/lib/sfi/operationalConsole';
+import { generateSfiOperationalResponse } from '@/lib/sfi/responseEngine';
+import { asRecord, errorMessage, readLatestProposalAlignments, readListFromView, readSingleFromView, textValue, type SfiRecord } from '@/lib/sfi/operationalConsole';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 
 type MissingEvidenceCode =
   | 'missing_candidate_alignment'
-  | 'alignment_score_below_threshold'
-  | 'proposal_objective_too_generic'
+  | 'alignment_not_execution_eligible'
+  | 'missing_proposal_objective'
   | 'missing_expected_field_delta'
+  | 'missing_target_domain'
   | 'missing_verification_window'
   | 'missing_success_marker_mapping'
-  | 'missing_attractor_trace'
+  | 'missing_active_attractor'
   | 'missing_outcome_measure'
   | 'missing_evidence_attachment'
   | 'blocked_by_current_response';
@@ -26,8 +27,6 @@ type EvidenceRequirementItem = {
   title: string;
   status: string | null;
   latest_alignment_status: string | null;
-  alignment_score: number | null;
-  evidence_score: number | null;
   can_prepare_execution: false;
   missing_evidence: MissingEvidenceRequirement[];
   required_next_action:
@@ -42,8 +41,7 @@ type EvidenceRequirementItem = {
 
 type DegradedSource = { source: string; error: string };
 
-const DEFAULT_CASE_ID = 'SFI-OPS-001';
-const GENERIC_TEXT = new Set(['cognitive_twin.proposal.created', 'mutation.proposed', 'not enough trace', 'missing evidence', 'missing execution plan']);
+const EXECUTION_ALIGNMENT_STATUSES = new Set(['execute_now', 'prepare_execution', 'execute_only_if_aligned']);
 
 function rows(input: unknown): SfiRecord[] {
   return Array.isArray(input) ? input.filter((item): item is SfiRecord => Boolean(item) && typeof item === 'object' && !Array.isArray(item)) : [];
@@ -57,66 +55,24 @@ function textBlob(...values: unknown[]) {
   }).join(' ').toLowerCase();
 }
 
-function isEmptyRecord(value: unknown) {
-  const record = asRecord(value);
-  return Object.keys(record).length === 0;
+function stringList(value: unknown) {
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0).map((item) => item.trim())
+    : [];
 }
 
-function isGenericProposal(proposal: SfiRecord) {
-  const values = [
-    textValue(proposal.title).toLowerCase(),
-    textValue(proposal.objective).toLowerCase(),
-    textValue(proposal.description).toLowerCase(),
-  ].filter(Boolean);
-  if (values.length === 0) return true;
-  return values.some((value) => GENERIC_TEXT.has(value) || value.length < 12);
+function requirement(code: MissingEvidenceCode, severity: MissingEvidenceRequirement['severity'], message: string, suggestedFix: string): MissingEvidenceRequirement {
+  return { code, severity, message, suggested_fix: suggestedFix };
 }
 
-function hasVerificationWindow(proposal: SfiRecord, attractor: SfiRecord | null) {
-  const expected = asRecord(proposal.expected_field_delta);
-  return Boolean(
-    textValue(expected.verification_window) ||
-    textValue(expected.verificationWindow) ||
-    textValue(expected.window) ||
-    textValue(proposal.verification_window) ||
-    textValue(proposal.horizon) ||
-    textValue(attractor?.horizon),
-  );
-}
-
-function markerList(attractor: SfiRecord | null) {
-  const markers = attractor?.success_markers;
-  if (Array.isArray(markers)) return markers.map((item) => String(item)).filter(Boolean);
-  if (typeof markers === 'string') return markers.split(/\r?\n|,/).map((item) => item.trim()).filter(Boolean);
-  return [];
-}
-
-function hasAttractorTrace(proposal: SfiRecord, attractor: SfiRecord | null) {
-  if (!attractor) return false;
-  const proposalText = textBlob(proposal.title, proposal.objective, proposal.description, proposal.expected_field_delta);
-  return [attractor.title, attractor.desired_future_state, ...markerList(attractor)]
-    .map((value) => textValue(value).toLowerCase())
-    .filter((value) => value.length >= 5)
-    .some((value) => proposalText.includes(value));
-}
-
-function hasSuccessMarkerMapping(proposal: SfiRecord, attractor: SfiRecord | null) {
-  const proposalText = textBlob(proposal.title, proposal.objective, proposal.description, proposal.expected_field_delta);
-  return markerList(attractor)
-    .map((value) => value.toLowerCase())
-    .filter((value) => value.length >= 5)
-    .some((value) => proposalText.includes(value));
-}
-
-function hasOutcomeMeasure(proposal: SfiRecord) {
-  const expected = asRecord(proposal.expected_field_delta);
-  return Boolean(
-    textValue(expected.outcome_measure) ||
-    textValue(expected.observed_effect) ||
-    textValue(expected.success_condition) ||
-    textValue(expected.metric) ||
-    textBlob(proposal.objective, proposal.description, proposal.expected_field_delta).match(/measure|metric|outcome|effect|verify|verificar|medir|evidencia/),
-  );
+function requiredNextAction(missing: MissingEvidenceRequirement[]): EvidenceRequirementItem['required_next_action'] {
+  const codes = new Set(missing.map((item) => item.code));
+  if (codes.has('missing_candidate_alignment') || codes.has('alignment_not_execution_eligible')) return 'align_proposal';
+  if (codes.has('missing_proposal_objective') || codes.has('missing_expected_field_delta') || codes.has('missing_target_domain')) return 'reformulate_proposal';
+  if (codes.has('missing_verification_window') || codes.has('missing_outcome_measure')) return 'define_verification_window';
+  if (codes.has('missing_success_marker_mapping') || codes.has('missing_active_attractor')) return 'map_to_attractor_success_markers';
+  if (codes.has('missing_evidence_attachment')) return 'attach_evidence';
+  return 'observe';
 }
 
 function evidenceTiedToProposal(proposalId: string, evidenceMap: SfiRecord[]) {
@@ -126,29 +82,12 @@ function evidenceTiedToProposal(proposalId: string, evidenceMap: SfiRecord[]) {
     item.proposal_id,
     item.proposalId,
     item.evidence_ref,
-    item.domain,
-    item.evidence_side,
     item.source_table,
     item.source_label,
     item.summary,
     item.payload,
     item.source_payload,
-    item,
   ).includes(id));
-}
-
-function requirement(code: MissingEvidenceCode, severity: MissingEvidenceRequirement['severity'], message: string, suggested_fix: string): MissingEvidenceRequirement {
-  return { code, severity, message, suggested_fix };
-}
-
-function requiredNextAction(missing: MissingEvidenceRequirement[]): EvidenceRequirementItem['required_next_action'] {
-  const codes = new Set(missing.map((item) => item.code));
-  if (codes.has('missing_candidate_alignment')) return 'align_proposal';
-  if (codes.has('proposal_objective_too_generic') || codes.has('missing_expected_field_delta')) return 'reformulate_proposal';
-  if (codes.has('missing_verification_window') || codes.has('missing_outcome_measure')) return 'define_verification_window';
-  if (codes.has('missing_success_marker_mapping') || codes.has('missing_attractor_trace')) return 'map_to_attractor_success_markers';
-  if (codes.has('alignment_score_below_threshold') || codes.has('missing_evidence_attachment')) return 'attach_evidence';
-  return 'observe';
 }
 
 async function readProposal(proposalId: string, degraded: DegradedSource[]) {
@@ -186,60 +125,66 @@ function buildItem(input: {
   responseBlockingCondition: string | null;
 }): EvidenceRequirementItem {
   const proposalId = textValue(input.proposal.id);
-  const alignmentScore = numericValue(input.alignment?.alignment_score, null);
-  const evidenceScore = numericValue(input.alignment?.evidence_score, null);
+  const expected = asRecord(input.proposal.expected_field_delta);
   const latestStatus = input.alignment ? textValue(input.alignment.recommended_status) || null : null;
   const missing: MissingEvidenceRequirement[] = [];
 
+  if (!input.attractor) {
+    missing.push(requirement('missing_active_attractor', 'critical', 'No active declared attractor is available.', 'Declare an active attractor before evaluating proposal alignment.'));
+  }
   if (!input.alignment) {
-    missing.push(requirement('missing_candidate_alignment', 'critical', 'No latest alignment row exists for this proposal.', 'Run proposal alignment after attaching the missing evidence or reformulating the proposal.'));
+    missing.push(requirement('missing_candidate_alignment', 'critical', 'No explicit alignment assessment exists for this proposal.', 'Record an evidence-backed alignment assessment.'));
+  } else if (!EXECUTION_ALIGNMENT_STATUSES.has(latestStatus ?? '')) {
+    missing.push(requirement('alignment_not_execution_eligible', 'critical', `Latest explicit alignment status is ${latestStatus ?? 'missing'}.`, 'Resolve the alignment assessment before execution preparation.'));
   }
-  if (alignmentScore === null || alignmentScore < 0.45) {
-    missing.push(requirement('alignment_score_below_threshold', 'critical', `Alignment score ${alignmentScore ?? 'missing'} is below the 0.45 preparation threshold.`, 'Attach evidence that explicitly links the proposal to the active attractor and rerun alignment.'));
+  if (!textValue(input.proposal.objective, textValue(input.proposal.description))) {
+    missing.push(requirement('missing_proposal_objective', 'high', 'Proposal objective is absent.', 'Record the concrete objective before execution preparation.'));
   }
-  if (isGenericProposal(input.proposal)) {
-    missing.push(requirement('proposal_objective_too_generic', 'high', 'The proposal title, objective, or description is too generic to verify operational movement.', 'Reformulate the proposal with a concrete objective, affected vector, and expected operational change.'));
+  if (Object.keys(expected).length === 0) {
+    missing.push(requirement('missing_expected_field_delta', 'high', 'Expected field delta is absent.', 'Record expected_field_delta before execution preparation.'));
   }
-  if (isEmptyRecord(input.proposal.expected_field_delta)) {
-    missing.push(requirement('missing_expected_field_delta', 'high', 'The proposal does not define an expected field delta.', 'Add expected_field_delta with objective, affected field, expected effect, verification window, and success measure.'));
+  if (!textValue(expected.target_domain, textValue(expected.domain))) {
+    missing.push(requirement('missing_target_domain', 'high', 'Expected field delta has no explicit target domain.', 'Add target_domain or domain to expected_field_delta.'));
   }
-  if (!hasVerificationWindow(input.proposal, input.attractor)) {
-    missing.push(requirement('missing_verification_window', 'high', 'No verification window, horizon, or measurable check is available.', 'Define a concrete verification window before execution preparation can be considered.'));
+  if (!textValue(expected.verification_window, textValue(expected.verificationWindow, textValue(expected.window)))) {
+    missing.push(requirement('missing_verification_window', 'high', 'Expected field delta has no explicit verification window.', 'Add an explicit verification_window to expected_field_delta.'));
   }
-  if (!hasAttractorTrace(input.proposal, input.attractor)) {
-    missing.push(requirement('missing_attractor_trace', 'high', 'The proposal does not reference the active attractor title, desired future state, or success markers.', 'Tie the proposal text and expected delta to the active attractor.'));
+  if (!textValue(expected.outcome_measure, textValue(expected.metric, textValue(expected.success_condition)))) {
+    missing.push(requirement('missing_outcome_measure', 'high', 'Expected field delta has no explicit outcome measure.', 'Add outcome_measure, metric, or success_condition to expected_field_delta.'));
   }
-  if (!hasSuccessMarkerMapping(input.proposal, input.attractor)) {
-    missing.push(requirement('missing_success_marker_mapping', 'medium', 'No active attractor success marker maps to the proposal.', 'Map at least one attractor success marker to the expected field delta or verification criteria.'));
+
+  const markerRefs = [
+    ...stringList(expected.success_marker_refs),
+    ...stringList(expected.successMarkerRefs),
+    ...stringList(expected.attractor_marker_refs),
+  ];
+  if (input.attractor && markerRefs.length === 0) {
+    missing.push(requirement('missing_success_marker_mapping', 'medium', 'Expected field delta has no explicit attractor success-marker references.', 'Add success_marker_refs to expected_field_delta; SFI does not infer marker mapping from word overlap.'));
   }
-  if (!hasOutcomeMeasure(input.proposal)) {
-    missing.push(requirement('missing_outcome_measure', 'medium', 'No measurable outcome or effect check exists for the proposal.', 'Define the observable outcome, metric, or effect that would prove movement.'));
-  }
-  if (input.evidenceMap.length > 0 && !evidenceTiedToProposal(proposalId, input.evidenceMap)) {
-    missing.push(requirement('missing_evidence_attachment', 'high', 'Evidence exists in the map, but none is directly tied to this proposal id.', 'Attach or reference evidence using this proposal id before requesting execution preparation.'));
+  if (!evidenceTiedToProposal(proposalId, input.evidenceMap)) {
+    missing.push(requirement('missing_evidence_attachment', 'high', 'No persisted evidence record is directly tied to this proposal id.', 'Attach or reference evidence using this proposal id.'));
   }
   if (input.responseTargetId === proposalId && input.responseBlockingCondition) {
-    missing.push(requirement('blocked_by_current_response', 'critical', `Current SFI response blocks this proposal with ${input.responseBlockingCondition}.`, 'Resolve the current response blocking condition before any execution preparation.'));
+    missing.push(requirement('blocked_by_current_response', 'critical', `Current SFI response blocks this proposal with ${input.responseBlockingCondition}.`, 'Resolve the current response blocking condition before preparation.'));
   }
 
   return {
     proposal_id: proposalId,
-    title: textValue(input.proposal.title, textValue(input.proposal.objective, 'not enough trace')),
+    title: textValue(input.proposal.title, textValue(input.proposal.objective, proposalId)),
     status: textValue(input.proposal.status) || null,
     latest_alignment_status: latestStatus,
-    alignment_score: alignmentScore,
-    evidence_score: evidenceScore,
     can_prepare_execution: false,
     missing_evidence: missing,
     required_next_action: requiredNextAction(missing),
     rationale: missing.length
-      ? `Proposal is blocked by ${missing.map((item) => item.code).join(', ')}. Execution preparation remains disabled.`
-      : 'No blocking evidence requirement was detected, but this diagnostic endpoint never approves execution preparation.',
+      ? `Proposal is blocked by ${missing.map((item) => item.code).join(', ')}.`
+      : 'No evidence requirement is missing. This diagnostic still does not authorize execution.',
   };
 }
 
 export async function buildSfiEvidenceRequirements(input: { proposalId?: string | null; caseId?: string | null } = {}) {
-  const caseId = textValue(input.caseId, DEFAULT_CASE_ID);
+  const caseId = textValue(input.caseId);
+  if (!caseId) throw new Error('CASE_ID_REQUIRED');
   const degradedSources: DegradedSource[] = [];
 
   const [response, evidenceMapResult, recoveryQueueResult, activeAttractorResult] = await Promise.all([
@@ -305,4 +250,3 @@ export async function buildSfiEvidenceRequirements(input: { proposalId?: string 
     items,
   };
 }
-

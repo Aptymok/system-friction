@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
-import { asRecord, inferAlignment } from '@/lib/sfi/operationalConsole';
+import { asRecord, buildAlignmentAssessment, readActiveOperationalAttractor } from '@/lib/sfi/operationalConsole';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,15 +18,16 @@ export async function POST(req: Request, ctx: RouteContext) {
   try {
     const body = asRecord(await req.json().catch(() => ({})));
     const supabase = createServiceSupabaseClient();
-    const [{ data: proposal, error: proposalError }, { data: attractor, error: attractorError }] = await Promise.all([
+    const [{ data: proposal, error: proposalError }, attractorResult] = await Promise.all([
       supabase.from('action_proposals').select('*').eq('id', proposalId).maybeSingle(),
-      supabase.from('sfi_declared_attractors').select('*').eq('active', true).order('priority', { ascending: false }).limit(1).maybeSingle(),
+      readActiveOperationalAttractor(),
     ]);
     if (proposalError) throw proposalError;
-    if (attractorError) throw attractorError;
+    if (!attractorResult.ok) throw new Error(attractorResult.error || 'attractor_read_failed');
     if (!proposal) return NextResponse.json({ ok: false, error: 'proposal_not_found' }, { status: 404 });
 
-    const alignment = inferAlignment({ proposal, attractor, body });
+    const attractor = attractorResult.data;
+    const alignment = buildAlignmentAssessment({ proposal, attractor, body });
     const { data, error } = await supabase
       .from('sfi_proposal_alignment')
       .insert({
@@ -37,7 +38,7 @@ export async function POST(req: Request, ctx: RouteContext) {
       .select('*')
       .single();
     if (error) throw error;
-    return NextResponse.json({ ok: true, data });
+    return NextResponse.json({ ok: true, data, attractor_key: attractor?.attractor_key ?? null });
   } catch (error) {
     return NextResponse.json({ ok: false, error: error instanceof Error ? error.message : 'proposal_align_failed' }, { status: 400 });
   }

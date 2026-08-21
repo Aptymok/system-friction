@@ -9,6 +9,18 @@ import { executeSfiRuntime } from '@/lib/sfi/cognitive-runtime/runtime';
 import { materializeInstitutionalRuntimeCognitiveSpine } from './cognitiveSpineRuntimeMaterializer';
 import { buildTransitionFromPreviousInstitutionalSnapshot } from './cognitiveSpineTransitionStore';
 
+const GOVERNED_LLM_AGENTS = [
+  'evidence_hunter',
+  'historical_scout',
+  'phenotype_resolver',
+  'context_builder',
+  'trajectory_agent',
+  'risk_agent',
+  'opportunity_agent',
+  'project_execution_manager',
+  'reality_calibration',
+] as const;
+
 export async function executeInstitutionalRuntimeWithCognitiveSpine(input: {
   context: KernelContext;
   sourceCutoff: string;
@@ -32,10 +44,13 @@ export async function executeInstitutionalRuntimeWithCognitiveSpine(input: {
   input.context.metadata = {
     ...input.context.metadata,
     cognitiveSpine: materialized.runtimeProjection,
-    // Existing LLM augmentation already supports an injected Twin context. By
-    // injecting the frozen materialization here, every agent in this run sees
-    // the same cut and has no reason to query live Twin state mid-run.
     cognitiveTwinContext: materialized.runtimeProjection.cognitiveTwinContext,
+    llmAugmentation: true,
+    llmAugmentationAgents: [...GOVERNED_LLM_AGENTS],
+    autonomousInstitutionalCycle: true,
+    externalExecutionRequested: false,
+    aiGovernancePolicyId: 'SFI-AIMS-2026-08',
+    authorityBoundary: 'SFI may autonomously observe, analyze, simulate, draft, report internally, propose and calibrate. External effects, publication, access grants, spending, canon/formula changes and irreversible actions remain governed.',
   };
 
   const runtime = await executeSfiRuntime(input.context);

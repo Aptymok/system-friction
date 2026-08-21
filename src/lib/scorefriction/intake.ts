@@ -1,6 +1,6 @@
 import { createHash } from 'crypto';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
-import { appendSfiOperationalEventAsync } from '@/lib/sfi/operational/events';
+import { appendEpistemicEvent } from '@/lib/events/eventStore';
 
 export type ScoreFrictionIntakeInput = {
   case_id?: string;
@@ -30,46 +30,61 @@ function sha256(value: string) {
   return createHash('sha256').update(value).digest('hex');
 }
 
-function clamp01(value: unknown, fallback = 0.5) {
-  const n = typeof value === 'number' && Number.isFinite(value) ? value : fallback;
-  return Math.max(0, Math.min(1, n));
+function requireText(value: unknown, code: string) {
+  if (typeof value !== 'string' || !value.trim()) throw new Error(code);
+  return value.trim();
+}
+
+function require01(value: unknown, code: string) {
+  if (typeof value !== 'number' || !Number.isFinite(value) || value < 0 || value > 1) throw new Error(code);
+  return value;
 }
 
 function normalizeInput(input: ScoreFrictionIntakeInput) {
   const now = new Date().toISOString();
-  const object = input.object || 'SFI operational signal';
-  const signal = input.signal || 'operational signal';
-  const domain = input.domain || 'cultural';
+  const object = requireText(input.object, 'SCOREFRICTION_OBJECT_REQUIRED');
+  const signal = requireText(input.signal, 'SCOREFRICTION_SIGNAL_REQUIRED');
+  const domain = requireText(input.domain, 'SCOREFRICTION_DOMAIN_REQUIRED');
+  const caseId = requireText(input.case_id, 'SCOREFRICTION_CASE_ID_REQUIRED');
+  const sourceName = requireText(input.source_name, 'SCOREFRICTION_SOURCE_NAME_REQUIRED');
+  const evidenceType = requireText(input.evidence_type, 'SCOREFRICTION_EVIDENCE_TYPE_REQUIRED');
+  const provenanceNotes = requireText(input.provenance_notes, 'SCOREFRICTION_PROVENANCE_REQUIRED');
+  const reliabilityScore = require01(input.reliability_score, 'SCOREFRICTION_RELIABILITY_REQUIRED');
+  const coverageContribution = require01(input.source_coverage_contribution, 'SCOREFRICTION_COVERAGE_CONTRIBUTION_REQUIRED');
 
   const rawPayload = {
     received_at: now,
     object,
     signal,
     domain,
-    narrative: input.narrative || null,
-    wsv: input.wsv || null,
-    raw_payload: input.raw_payload || null
+    narrative: input.narrative?.trim() || null,
+    wsv: input.wsv ?? null,
+    raw_payload: input.raw_payload ?? null,
   };
 
   const normalizedPayload = {
     object,
     domain,
     signal,
-    narrative: input.narrative || 'Señal registrada sin narrativa extendida.',
-    wsv: input.wsv || {},
-    operational_contract: 'scorefriction.intake.v1'
+    narrative: input.narrative?.trim() || null,
+    wsv: input.wsv ?? null,
+    operational_contract: 'scorefriction.intake.v1',
   };
-
-  const evidenceHash = sha256(JSON.stringify({ rawPayload, normalizedPayload }));
 
   return {
     now,
+    caseId,
+    sourceName,
+    evidenceType,
+    provenanceNotes,
+    reliabilityScore,
+    coverageContribution,
     object,
     signal,
     domain,
     rawPayload,
     normalizedPayload,
-    evidenceHash
+    evidenceHash: sha256(JSON.stringify({ rawPayload, normalizedPayload })),
   };
 }
 
@@ -77,101 +92,67 @@ export async function createScoreFrictionIntake(input: ScoreFrictionIntakeInput)
   const service = createServiceSupabaseClient();
   const normalized = normalizeInput(input);
 
-  const caseId = input.case_id || 'SFI-OP-001';
-  const sourceName = input.source_name || 'manual_upload';
-
   const { data: observation, error: observationError } = await service
     .from('scorefriction_observations')
     .insert({
-      case_id: caseId,
-      source_name: sourceName,
-      source_url: input.source_url || null,
-      territory: input.territory || 'MX',
+      case_id: normalized.caseId,
+      source_name: normalized.sourceName,
+      source_url: input.source_url?.trim() || null,
+      territory: input.territory?.trim() || null,
       raw_payload: normalized.rawPayload,
       normalized_payload: normalized.normalizedPayload,
       evidence_hash: normalized.evidenceHash,
-      evidence_type: input.evidence_type || 'operational_signal',
-      reliability_score: clamp01(input.reliability_score, 0.62),
-      provenance_notes: input.provenance_notes || 'Inserted through /api/scorefriction/intake P07.',
-      source_coverage_contribution: clamp01(input.source_coverage_contribution, 0.08)
+      evidence_type: normalized.evidenceType,
+      reliability_score: normalized.reliabilityScore,
+      provenance_notes: normalized.provenanceNotes,
+      source_coverage_contribution: normalized.coverageContribution,
     })
     .select('*')
     .single();
 
-  if (observationError) {
-    throw new Error(`scorefriction_observations insert failed: ${observationError.message}`);
-  }
-
-  const wsv = input.wsv || {};
+  if (observationError) throw new Error(`scorefriction_observations insert failed: ${observationError.message}`);
 
   const { data: vector, error: vectorError } = await service
     .from('scorefriction_vectors')
     .insert({
       observation_id: observation.id,
-      acoustic_vector: input.vectors?.acoustic_vector || {
-        source: 'not_applicable',
-        reason: 'P07 intake did not receive audio analysis.'
-      },
-      semantic_vector: input.vectors?.semantic_vector || {
-        object: normalized.object,
-        signal: normalized.signal,
-        narrative: normalized.normalizedPayload.narrative,
-        domain: normalized.domain
-      },
-      memetic_vector: input.vectors?.memetic_vector || {
-        persistence: wsv.cultural ?? null,
-        affective_charge: wsv.affective ?? null,
-        institutional_bridge: wsv.institutional ?? null
-      },
-      platform_vector: input.vectors?.platform_vector || {
-        source_name: sourceName,
-        source_url: input.source_url || null,
-        territory: input.territory || 'MX'
-      },
-      mihm_cultural_vector: input.vectors?.mihm_cultural_vector || {
-        ihg: null,
-        nti: null,
-        lti: null,
-        fs: null,
-        phi: null,
-        note: 'Pending MIHM evaluator pass.'
-      }
+      acoustic_vector: input.vectors?.acoustic_vector ?? null,
+      semantic_vector: input.vectors?.semantic_vector ?? null,
+      memetic_vector: input.vectors?.memetic_vector ?? null,
+      platform_vector: input.vectors?.platform_vector ?? null,
+      mihm_cultural_vector: input.vectors?.mihm_cultural_vector ?? null,
     })
     .select('*')
     .single();
 
-  if (vectorError) {
-    throw new Error(`scorefriction_vectors insert failed: ${vectorError.message}`);
-  }
+  if (vectorError) throw new Error(`scorefriction_vectors insert failed: ${vectorError.message}`);
 
-  const operationalEvent = await appendSfiOperationalEventAsync({
-    organ: 'scorefriction',
-    kind: 'scorefriction_intake',
-    title: `ScoreFriction intake: ${normalized.object}`,
-    summary: normalized.normalizedPayload.narrative,
-    source: '/api/scorefriction/intake',
-    risk: 'low',
-    status: 'observed',
+  const event = await appendEpistemicEvent({
+    eventName: 'scorefriction.intake.observed',
+    epistemicClass: 'imported',
+    confidence: normalized.reliabilityScore,
     payload: {
-      case_id: caseId,
+      case_id: normalized.caseId,
       observation_id: observation.id,
       vector_id: vector.id,
       object: normalized.object,
       domain: normalized.domain,
       signal: normalized.signal,
-      evidence_hash: normalized.evidenceHash
+      evidence_hash: normalized.evidenceHash,
+      source_coverage_contribution: normalized.coverageContribution,
     },
-    next_action: 'Enviar observación a MIHM/Evaluator y generar borrador Publisher desde evidencia real.'
+    occurredAt: normalized.now,
+    source: { sourceId: normalized.sourceName, sourceType: normalized.evidenceType },
+    logbookId: 'SFI',
+    lineage: [`scorefriction_observations:${observation.id}`, `scorefriction_vectors:${vector.id}`],
   });
+  if (!event.ok) throw new Error(`scorefriction_epistemic_event_failed:${event.error}`);
 
   return {
     ok: true,
-    patch: 'P07',
     status: 'scorefriction_intake_persisted',
     observation,
     vector,
-    operationalEvent,
-    next_action: 'Consultar /api/scorefriction/state y /api/scorefriction/operational-cycle.'
+    epistemicEvent: event.data,
   };
 }
-

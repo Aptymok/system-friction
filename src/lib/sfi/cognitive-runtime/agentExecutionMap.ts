@@ -51,6 +51,6 @@ export const SFI_AGENT_EXECUTION_MAP: Record<string, CognitiveAgentExecutor> = {
 
 export function executeRegisteredAgent(agentId: string, context: KernelContext): KernelContext {
   const executor = SFI_AGENT_EXECUTION_MAP[agentId];
-  if (!executor) return context;
+  if (!executor) throw new Error(`SFI_AGENT_EXECUTOR_NOT_REGISTERED:${agentId}`);
   return executor(context);
 }

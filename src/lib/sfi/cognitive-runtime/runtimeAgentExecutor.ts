@@ -2,12 +2,20 @@ import type { KernelContext } from './kernelContext';
 import { executeRegisteredAgent } from './agentExecutionMap';
 import { recordAgentExecutionEvent } from '@/infrastructure/events/cognitiveRuntimeEventRepository';
 import { augmentAgentWithLlm } from '@/infrastructure/ai/agentLlmClient';
+import { evaluateAgentAiGovernance, SFI_AI_GOVERNANCE_POLICY } from '@/lib/governance/aiGovernancePolicy';
 
 export interface AgentExecutionResult {
   agentId: string;
   executed: boolean;
   context: KernelContext;
   executedAt: string;
+}
+
+function llmAugmentationEnabled(agentId: string, context: KernelContext) {
+  if (context.metadata?.llmAugmentation !== true) return false;
+  const allowlist = context.metadata?.llmAugmentationAgents;
+  if (!Array.isArray(allowlist)) return true;
+  return allowlist.includes(agentId);
 }
 
 export async function runCognitiveAgent(
@@ -20,17 +28,38 @@ export async function runCognitiveAgent(
   let executed = false;
   let deterministicError: string | null = null;
   let llmError: string | null = null;
+  const governance = evaluateAgentAiGovernance(agentId, context);
 
-  try {
-    updatedContext = executeRegisteredAgent(agentId, context);
-    executed = Boolean(updatedContext);
-  } catch (error) {
-    deterministicError = error instanceof Error ? error.message : String(error);
-    updatedContext = context;
-    executed = false;
+  if (governance.disposition !== 'BLOCK') {
+    try {
+      updatedContext = executeRegisteredAgent(agentId, context);
+      executed = Boolean(updatedContext);
+    } catch (error) {
+      deterministicError = error instanceof Error ? error.message : String(error);
+      updatedContext = context;
+      executed = false;
+    }
+  } else {
+    deterministicError = `AI_GOVERNANCE_BLOCK:${governance.reasons.join(',')}`;
   }
 
-  if (executed && updatedContext.metadata?.llmAugmentation === true) {
+  updatedContext.metadata = {
+    ...updatedContext.metadata,
+    aiGovernance: {
+      policyId: SFI_AI_GOVERNANCE_POLICY.id,
+      managementSystem: SFI_AI_GOVERNANCE_POLICY.managementSystem,
+      riskGuidance: SFI_AI_GOVERNANCE_POLICY.riskGuidance,
+      euTransparencyBaseline: SFI_AI_GOVERNANCE_POLICY.euTransparencyBaseline,
+      lastAgentId: agentId,
+      disposition: governance.disposition,
+      risk: governance.risk,
+      reasons: governance.reasons,
+      evaluatedAt: new Date().toISOString(),
+    },
+  };
+
+  const llmRequested = executed && llmAugmentationEnabled(agentId, updatedContext);
+  if (llmRequested) {
     try {
       updatedContext = await augmentAgentWithLlm(agentId, updatedContext);
     } catch (error) {
@@ -71,8 +100,10 @@ export async function runCognitiveAgent(
       metadataBefore: beforeMetadataKeys,
       metadataAfter: afterMetadataKeys,
       deterministicError,
-      llmAugmentationRequested: updatedContext.metadata?.llmAugmentation === true,
-      llmAugmentationStatus: insight?.status ?? (llmError ? 'FAILED' : 'NOT_REQUESTED_OR_NOT_AVAILABLE'),
+      aiGovernance: governance,
+      aiGovernancePolicyId: SFI_AI_GOVERNANCE_POLICY.id,
+      llmAugmentationRequested: llmRequested,
+      llmAugmentationStatus: insight?.status ?? (llmError ? 'FAILED' : llmRequested ? 'NOT_AVAILABLE' : 'NOT_REQUESTED'),
       llmProvider: insight?.provider ?? null,
       llmModel: insight?.model ?? null,
       llmError,

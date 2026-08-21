@@ -31,9 +31,6 @@ export async function createGovernedFieldCycle(ownerId: string, input: GovernedF
     throw new Error('FIELD_STUDIO_HANDOFF_INVALID');
   }
 
-  // Baseline capture, MOPH, hypothesis and provisional intervention are created
-  // before Cognitive Spine T0 is observed. This preserves a genuinely blinded
-  // initial Field observation rather than conditioning it on prior CT state.
   const result = await createFieldCycle(ownerId, input);
   const db = createServiceSupabaseClient();
   const fieldCase = record(result.case);
@@ -104,11 +101,7 @@ export async function createGovernedFieldCycle(ownerId: string, input: GovernedF
 
 async function requireExecutionAcknowledgement(db: ReturnType<typeof createServiceSupabaseClient>, ownerId: string, caseId: string, metadata: Row) {
   if (text(metadata.interventionExecutionContract) !== FIELD_INTERVENTION_EXECUTION_CONTRACT) {
-    return {
-      legacy: true as const,
-      acknowledgement: null,
-      warnings: ['legacy_field_cycle_without_execution_ack_contract'],
-    };
+    throw new Error('FIELD_INTERVENTION_EXECUTION_CONTRACT_REQUIRED');
   }
 
   const acknowledgement = record(metadata.interventionExecutionAcknowledgement);
@@ -144,11 +137,7 @@ async function requireExecutionAcknowledgement(db: ReturnType<typeof createServi
     throw new Error('FIELD_INTERVENTION_EXECUTION_ACK_HASH_MISMATCH');
   }
 
-  return {
-    legacy: false as const,
-    acknowledgement,
-    warnings: [] as string[],
-  };
+  return acknowledgement;
 }
 
 export async function submitGovernedFieldReturn(ownerId: string, caseId: string, input: ReturnFieldCycleInput) {
@@ -163,7 +152,7 @@ export async function submitGovernedFieldReturn(ownerId: string, caseId: string,
   if (!rivalInterpretation) throw new Error('FIELD_RETURN_RIVAL_NOT_FROZEN_AT_T0');
   if (!stoppingCondition) throw new Error('FIELD_RETURN_STOPPING_CONDITION_NOT_FROZEN_AT_T0');
 
-  const execution = await requireExecutionAcknowledgement(db, ownerId, caseId, metadata);
+  const executionAcknowledgement = await requireExecutionAcknowledgement(db, ownerId, caseId, metadata);
 
   const handoffValue = metadata.studioFieldHandoff;
   if (handoffValue && !verifyStudioFieldHandoff(handoffValue as StudioFieldHandoff)) {
@@ -194,8 +183,7 @@ export async function submitGovernedFieldReturn(ownerId: string, caseId: string,
       ...record(returnRow.data.payload),
       returnContrast: contrast,
       longitudinalComplete: true,
-      interventionExecutionAcknowledgement: execution.acknowledgement,
-      legacyExecutionProvenanceGap: execution.legacy,
+      interventionExecutionAcknowledgement: executionAcknowledgement,
       cognitiveSpineT0: metadata.cognitiveSpineT0 ?? null,
       studioHandoffId: text(metadata.studioHandoffId) || null,
       studioHandoffHash: text(metadata.studioHandoffHash) || null,
@@ -211,7 +199,6 @@ export async function submitGovernedFieldReturn(ownerId: string, caseId: string,
       ...metadata,
       returnContrast: contrast,
       longitudinalComplete: true,
-      legacyExecutionProvenanceGap: execution.legacy,
     },
   }).eq('id', caseId).eq('owner_id', ownerId);
   if (casePersist.error) {
@@ -221,6 +208,7 @@ export async function submitGovernedFieldReturn(ownerId: string, caseId: string,
 
   const outcome = record(result.outcome);
   const outcomeId = text(outcome.id) || `${caseId}:${text(returnRow.data.id)}`;
+  const acknowledgementEvidenceId = text(executionAcknowledgement.evidenceId);
   const twinExperience = await recordCognitiveTwinExperience({
     memoryKey:`SFI:FIELD:RETURN:${outcomeId}`,
     memoryType:'STATE',
@@ -230,9 +218,7 @@ export async function submitGovernedFieldReturn(ownerId: string, caseId: string,
     evidenceRefs:[
       ...strings(outcome.evidence_ids),
       ...(evidenceId ? [`field_case_evidence:${evidenceId}`] : []),
-      ...(!execution.legacy && text(execution.acknowledgement?.evidenceId)
-        ? [`field_case_evidence:${text(execution.acknowledgement?.evidenceId)}`]
-        : []),
+      ...(acknowledgementEvidenceId ? [`field_case_evidence:${acknowledgementEvidenceId}`] : []),
     ],
     content:{
       epistemicClass:'OBSERVED_RETURN',
@@ -244,8 +230,7 @@ export async function submitGovernedFieldReturn(ownerId: string, caseId: string,
       accepted:result.accepted,
       verified:result.verified,
       explanation:result.explanation,
-      interventionExecutionAcknowledgement: execution.acknowledgement,
-      legacyExecutionProvenanceGap: execution.legacy,
+      interventionExecutionAcknowledgement: executionAcknowledgement,
       cognitiveSpineT0: metadata.cognitiveSpineT0 ?? null,
       returnContrast:contrast,
       studioHandoffId:text(metadata.studioHandoffId) || null,
@@ -258,9 +243,7 @@ export async function submitGovernedFieldReturn(ownerId: string, caseId: string,
     ...result,
     returnContrast: contrast,
     longitudinalComplete: true as const,
-    interventionExecutionAcknowledgement: execution.acknowledgement,
-    legacyExecutionProvenanceGap: execution.legacy,
-    executionWarnings: execution.warnings,
+    interventionExecutionAcknowledgement: executionAcknowledgement,
     cognitiveSpineT0: metadata.cognitiveSpineT0 ?? null,
     studioHandoffId: text(metadata.studioHandoffId) || null,
     studioHandoffHash: text(metadata.studioHandoffHash) || null,

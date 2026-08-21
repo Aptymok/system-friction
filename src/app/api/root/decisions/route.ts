@@ -8,13 +8,34 @@ export const runtime = 'nodejs';
 type Row = Record<string, unknown>;
 function text(value: unknown, fallback = '') { return typeof value === 'string' && value.trim() ? value.trim() : fallback; }
 function rec(value: unknown): Row { return value && typeof value === 'object' && !Array.isArray(value) ? value as Row : {}; }
+function strings(value: unknown) { return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : []; }
+
+function canonicalFdreRow(value: unknown) {
+  const row = rec(value);
+  const raw = rec(rec(row.memory_delta).raw);
+  const content = rec(raw.content);
+  return {
+    id: String(row.id ?? ''),
+    memory_key: text(raw.memoryKey),
+    status: text(content.memoryStatus, text(content.status, text(content.lifecycleStatus, 'CANDIDATE'))),
+    content,
+    evidence_refs: strings(raw.evidenceRefs),
+    created_by: raw.createdBy ?? null,
+    created_at: row.created_at ?? null,
+    updated_at: row.created_at ?? null,
+  };
+}
 
 async function readQueue(service: any) {
   const [proposals, decisions, runs, fdre] = await Promise.all([
     service.from('action_proposals').select('*').order('created_at', { ascending: false }).limit(100),
     service.from('sfi_cognitive_twin_decisions').select('*').order('created_at', { ascending: false }).limit(100),
     service.from('sfi_cognitive_twin_runs').select('id,task_id,status,objective,input_snapshot,output_envelope,evidence_refs,limitations,provider,model,role,created_at').eq('role', 'report_agent').order('created_at', { ascending: false }).limit(100),
-    service.from('sfi_cognitive_twin_memory').select('id,memory_key,status,content,evidence_refs,created_by,created_at,updated_at').eq('memory_type', 'DECISION').like('memory_key', 'FDRE:%').order('created_at', { ascending: false }).limit(100),
+    service.from('sfi_amv_memory')
+      .select('id,module,memory_delta,created_at')
+      .eq('module', 'institutionalEventPipeline')
+      .like('memory_delta->raw->>memoryKey', 'FDRE:%')
+      .order('created_at', { ascending: false }).limit(250),
   ]);
   const reportRows = (runs.data ?? []).filter((row: Row) => {
     const approval = rec(rec(row.output_envelope).approval_queue);
@@ -25,7 +46,12 @@ async function readQueue(service: any) {
     return ['proposed', 'waiting_evidence', 'conflicted'].includes(state) && row.approval_required !== false;
   });
   const decisionRows = (decisions.data ?? []).filter((row: Row) => ['CANDIDATE','WAITING_EVIDENCE'].includes(text(row.status).toUpperCase()));
-  const fdreRows = (fdre.data ?? []).filter((row: Row) => {
+  const latestFdre = new Map<string, ReturnType<typeof canonicalFdreRow>>();
+  for (const item of [...(fdre.data ?? [])].reverse()) {
+    const normalized = canonicalFdreRow(item);
+    if (normalized.memory_key) latestFdre.set(normalized.memory_key, normalized);
+  }
+  const fdreRows = [...latestFdre.values()].filter((row) => {
     const lifecycle = text(rec(row.content).lifecycleStatus, 'CAPTURED');
     return !['INSTITUTIONALIZED','FOUNDER_RESERVED','REJECTED','OBSOLETE'].includes(lifecycle);
   });
@@ -58,13 +84,7 @@ export async function POST(request: Request) {
   if (kind === 'proposal') {
     const current = await gate.ctx.service.from('action_proposals').select('*').eq('id', id).single();
     if (current.error || !current.data) return NextResponse.json({ ok: false, error: current.error?.message ?? 'proposal_not_found' }, { status: 404 });
-    write = await decideActionProposal({
-      proposalId: id,
-      actorId: gate.ctx.user.id,
-      decision: decision as 'accept' | 'deny' | 'request_evidence',
-      note,
-      currentRow: current.data as Row,
-    });
+    write = await decideActionProposal({ proposalId: id, actorId: gate.ctx.user.id, decision: decision as 'accept' | 'deny' | 'request_evidence', note, currentRow: current.data as Row });
     if (!write.ok) return NextResponse.json(write, { status: 409 });
   } else if (kind === 'founder_rule') {
     const status = decision === 'accept' ? 'APPROVED' : decision === 'deny' ? 'REJECTED' : 'WAITING_EVIDENCE';

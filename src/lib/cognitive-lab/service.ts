@@ -46,11 +46,6 @@ function text(value: unknown, maximum = 12000): string {
   return typeof value === 'string' ? value.trim().slice(0, maximum) : '';
 }
 
-function textOrNull(value: unknown, maximum = 12000): string | null {
-  const valueText = text(value, maximum);
-  return valueText || null;
-}
-
 function stringArray(value: unknown, maximum = 100): string[] {
   if (!Array.isArray(value)) return [];
   return Array.from(new Set(value
@@ -199,15 +194,8 @@ export async function runCognitiveLabBlindTwin(createdBy: string, sessionId: str
   const events = await readSessionEvents(sessionId);
   if (events.length === 0) throw new Error('COGNITIVE_LAB_BLIND_REQUIRES_EVENTS');
 
-  // Blind analysis deliberately excludes CANDIDATE memory to reduce circular learning.
-  // Institutional memory is canonical; the former CT table remains read-only historical fallback.
-  const [canonicalMemoryResult, legacyMemoryResult, decisionsResult] = await Promise.all([
+  const [canonicalMemoryResult, decisionsResult] = await Promise.all([
     readCanonicalCognitiveTwinMemory(80),
-    db.from('sfi_cognitive_twin_memory')
-      .select('memory_key,memory_type,status,content,evidence_refs,source_kind,source_ref,version,updated_at')
-      .in('status', ['VERIFIED', 'CANONICAL'])
-      .order('updated_at', { ascending: false })
-      .limit(80),
     db.from('sfi_cognitive_twin_decisions')
       .select('decision_id,situation,rejected_condition,correct_state,general_rule,required_evidence,evidence_refs,status,approved_at')
       .eq('status', 'APPROVED')
@@ -217,32 +205,14 @@ export async function runCognitiveLabBlindTwin(createdBy: string, sessionId: str
 
   const warnings = [
     canonicalMemoryResult.error,
-    legacyMemoryResult.error?.message,
     decisionsResult.error?.message,
   ].filter((item): item is string => Boolean(item));
-  const memoryByKey = new Map<string, Row>();
-  for (const item of canonicalMemoryResult.rows) {
-    if (!['VERIFIED', 'CANONICAL'].includes(item.status)) continue;
-    memoryByKey.set(item.memory_key, item as unknown as Row);
-  }
-  for (const item of legacyMemoryResult.data ?? []) {
-    const row = record(item);
-    const key = text(row.memory_key, 500);
-    if (!key || memoryByKey.has(key)) continue;
-    memoryByKey.set(key, { ...row, canonical_store: 'legacy_read_only' });
-    if (memoryByKey.size >= 80) break;
-  }
-  const memory = [...memoryByKey.values()].slice(0, 80);
+  const memory = canonicalMemoryResult.rows
+    .filter((item) => ['VERIFIED', 'CANONICAL'].includes(item.status))
+    .slice(0, 80) as unknown as Row[];
   const decisions = decisionsResult.data ?? [];
   const evidenceRefs = eventEvidenceRefs(events);
   const startedAt = new Date().toISOString();
-
-  const fallback = [
-    'Cognitive Lab blind analysis unavailable through an LLM provider.',
-    `Session: ${String(session.session_key)}`,
-    `Events: ${events.length}.`,
-    'No relational conclusion is promoted.',
-  ].join('\n');
 
   const llm = await runLlmTask({
     task: 'deep_report',
@@ -263,7 +233,7 @@ export async function runCognitiveLabBlindTwin(createdBy: string, sessionId: str
       approvedFounderDecisions: decisions,
       warnings,
     }),
-    fallbackResult: fallback,
+    fallbackResult: '',
     maxTokens: 1800,
   });
 
@@ -275,7 +245,7 @@ export async function runCognitiveLabBlindTwin(createdBy: string, sessionId: str
     status: analysisStatus,
     input_event_ids: events.map((event) => String(event.id)),
     output: {
-      answer: llm.result,
+      answer: llm.ok ? llm.result : null,
       providerExecutionSucceeded: llm.ok,
       corpus: {
         events: events.length,
@@ -304,7 +274,7 @@ export async function runCognitiveLabBlindTwin(createdBy: string, sessionId: str
     result: {
       labSessionId: sessionId,
       labAnalysisId: analysis.data.id,
-      answer: llm.result,
+      answer: llm.ok ? llm.result : null,
       authority,
       providerExecutionSucceeded: llm.ok,
     },
@@ -378,11 +348,6 @@ export async function runCognitiveLabFounderContrast(createdBy: string, sessionI
   }).select('*').single();
   if (founderAnalysis.error) throw new Error(`COGNITIVE_LAB_FOUNDER_READING_PERSIST_FAILED:${founderAnalysis.error.message}`);
 
-  const fallback = [
-    'Cognitive Lab divergence analysis unavailable through an LLM provider.',
-    'Blind and founder readings were persisted but no machine divergence claim is made.',
-  ].join('\n');
-
   const llm = await runLlmTask({
     task: 'deep_report',
     system: [
@@ -399,7 +364,7 @@ export async function runCognitiveLabFounderContrast(createdBy: string, sessionI
       blindReading: blindResult.data,
       founderReading,
     }),
-    fallbackResult: fallback,
+    fallbackResult: '',
     maxTokens: 1800,
   });
 
@@ -409,7 +374,7 @@ export async function runCognitiveLabFounderContrast(createdBy: string, sessionI
     status: llm.ok ? 'CANDIDATE' : 'BLOCKED',
     input_event_ids: events.map((event) => String(event.id)),
     output: {
-      answer: llm.result,
+      answer: llm.ok ? llm.result : null,
       blindAnalysisId: blindResult.data.id,
       founderAnalysisId: founderAnalysis.data.id,
       providerExecutionSucceeded: llm.ok,
