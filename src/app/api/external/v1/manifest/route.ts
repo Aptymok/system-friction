@@ -1,0 +1,3 @@
+import { NextResponse } from 'next/server';
+export const dynamic='force-dynamic';
+export async function GET(){return NextResponse.json({ok:true,name:'SFI External Agent Gateway',version:'1.0',auth:'Bearer token',base:'/api/external/v1',operations:[{id:'observe',method:'POST',path:'/observe',scope:'observe',description:'Read governed SFI state through an allowlisted surface.'},{id:'propose',method:'POST',path:'/propose',scope:'propose',description:'Submit a governed action proposal. It never bypasses ROOT approval.'}],governance:'External agents can observe and propose. Execution remains an explicit governed transition.'});}
