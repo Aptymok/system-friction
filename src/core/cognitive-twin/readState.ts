@@ -13,7 +13,6 @@ const REQUIRED_TABLES = [
   'sfi_cognitive_twin_evaluations',
   'sfi_cognitive_twin_runs',
 ] as const;
-const LEGACY_MEMORY_TABLE = 'sfi_cognitive_twin_memory' as const;
 
 type Row = Record<string, unknown>;
 
@@ -21,10 +20,6 @@ export type CognitiveTwinState = Awaited<ReturnType<typeof readCognitiveTwinStat
 
 function record(value: unknown): Row {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Row : {};
-}
-
-function text(value: unknown) {
-  return typeof value === 'string' && value.trim() ? value.trim() : null;
 }
 
 function providerExecutionSucceeded(value: unknown) {
@@ -39,7 +34,7 @@ function providerExecutionSucceeded(value: unknown) {
 
 export async function readCognitiveTwinState() {
   const db = createServiceSupabaseClient();
-  const [tableResults, legacyMemoryResult, canonicalMemory, integration] = await Promise.all([
+  const [tableResults, canonicalMemory, integration] = await Promise.all([
     Promise.all(REQUIRED_TABLES.map(async (table) => {
       const result = await db.from(table).select('*', { count: 'exact', head: true });
       return {
@@ -49,7 +44,6 @@ export async function readCognitiveTwinState() {
         error: result.error?.message ?? null,
       };
     })),
-    db.from(LEGACY_MEMORY_TABLE).select('*', { count: 'exact' }).order('updated_at', { ascending: false }).limit(24),
     readCanonicalCognitiveTwinMemory(24),
     readCognitiveTwinSfiIntegration(),
   ]);
@@ -64,15 +58,6 @@ export async function readCognitiveTwinState() {
         db.from('sfi_cognitive_twin_evaluations').select('*').order('executed_at', { ascending: false }).limit(20),
       ])
     : [null, null, null];
-
-  const recentMemoryByKey = new Map<string, unknown>();
-  for (const item of canonicalMemory.rows) recentMemoryByKey.set(item.memory_key, item);
-  for (const item of legacyMemoryResult.data ?? []) {
-    const key = text(record(item).memory_key);
-    if (!key || recentMemoryByKey.has(key)) continue;
-    recentMemoryByKey.set(key, { ...record(item), canonical_store: 'legacy_read_only' });
-    if (recentMemoryByKey.size >= 24) break;
-  }
 
   const providers = getLlmProviderStatus();
   const configuredProviders = providers.filter((item) => item.available);
@@ -106,19 +91,9 @@ export async function readCognitiveTwinState() {
       institutionalAutonomyProven: false,
     },
     providers,
-    storage: [
-      ...tableResults,
-      {
-        table: LEGACY_MEMORY_TABLE,
-        available: !legacyMemoryResult.error,
-        count: legacyMemoryResult.error ? null : legacyMemoryResult.count ?? 0,
-        error: legacyMemoryResult.error?.message ?? null,
-        legacyReadOnly: true,
-      },
-    ],
+    storage: tableResults,
     counts: {
       memory: canonicalMemory.eventCount,
-      legacyMemory: legacyMemoryResult.error ? null : legacyMemoryResult.count ?? 0,
       decisions: tableMap.get('sfi_cognitive_twin_decisions')?.count ?? null,
       approvedDecisions: approvedDecisionCount,
       models: registeredModelCount,
@@ -126,14 +101,13 @@ export async function readCognitiveTwinState() {
       evaluations: tableMap.get('sfi_cognitive_twin_evaluations')?.count ?? null,
       runs: tableMap.get('sfi_cognitive_twin_runs')?.count ?? null,
     },
-    recentMemory: [...recentMemoryByKey.values()].slice(0, 24),
+    recentMemory: canonicalMemory.rows.slice(0, 24),
     recentDecisions: recentDecisions?.data ?? [],
     recentRuns: recentRuns?.data ?? [],
     recentEvaluations: recentEvaluations?.data ?? [],
     errors: [
       ...tableResults.filter((item) => item.error).map((item) => `${item.table}: ${item.error}`),
       ...(canonicalMemory.error ? [`canonical memory: ${canonicalMemory.error}`] : []),
-      ...(legacyMemoryResult.error ? [`legacy memory (read-only): ${legacyMemoryResult.error.message}`] : []),
       ...integration.organs.filter((item)=>item.error).map((item)=>`${item.organ}: ${item.error}`),
       ...(recentDecisions?.error ? [`decisions: ${recentDecisions.error.message}`] : []),
       ...(recentRuns?.error ? [`runs: ${recentRuns.error.message}`] : []),
