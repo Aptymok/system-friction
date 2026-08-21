@@ -15,7 +15,7 @@ export default async function FrictionExplorerPage() {
         <ul>
           {state.friction.nodes.map((node) => <li key={node.id}>{node.label}: {node.value.toFixed(2)}</li>)}
         </ul>
-        <p><strong>Top friction:</strong> {state.friction.topFriction.toFixed(3)}</p>
+        <p><strong>Top friction:</strong> {state.friction.topFriction === null ? '—' : state.friction.topFriction.toFixed(3)}</p>
       </section>
     </main>
   );
