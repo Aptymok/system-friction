@@ -67,6 +67,12 @@ async function readExistingLedger(proposalId: string, caseId: string) {
   return (data ?? []).find((row) => textValue(asRecord(row.source_payload).proposal_id) === proposalId) ?? null;
 }
 
+function expectedTargetDomain(proposal: SfiRecord | null) {
+  if (!proposal) return '';
+  const expected = asRecord(proposal.expected_field_delta);
+  return textValue(expected.target_domain, textValue(expected.domain));
+}
+
 function buildPreparedPayload(input: {
   proposalId: string;
   proposal: SfiRecord;
@@ -79,7 +85,8 @@ function buildPreparedPayload(input: {
   const title = textValue(input.proposal.title);
   const objective = textValue(input.proposal.objective, textValue(input.proposal.description));
   const expected = asRecord(input.proposal.expected_field_delta);
-  if (!title || !objective || Object.keys(expected).length === 0) throw new Error('PROPOSAL_EXECUTION_TRACE_INCOMPLETE');
+  const targetDomain = textValue(expected.target_domain, textValue(expected.domain));
+  if (!title || !objective || Object.keys(expected).length === 0 || !targetDomain) throw new Error('PROPOSAL_EXECUTION_TRACE_INCOMPLETE');
 
   return {
     proposal_id: input.proposalId,
@@ -87,6 +94,7 @@ function buildPreparedPayload(input: {
     title,
     objective,
     expected_field_delta: expected,
+    target_domain: targetDomain,
     latest_alignment: {
       id: textValue(input.latestAlignment.id),
       recommended_status: textValue(input.latestAlignment.recommended_status),
@@ -140,17 +148,20 @@ export async function buildPrepareExecutionDiagnostic(input: { proposalId: strin
   const latestStatus = textValue(latestAlignment?.recommended_status);
   const directEvidencePresent = evidenceTiedToProposal(input.proposalId, evidenceMap);
   const responseAllowsPreparation = textValue(response?.decision) === 'prepare_execution' && response?.blocking_condition === null && textValue(response?.target_id) === input.proposalId;
+  const targetDomain = expectedTargetDomain(proposal);
   const proposalTraceComplete = Boolean(
     proposal &&
     textValue(proposal.title) &&
     textValue(proposal.objective, textValue(proposal.description)) &&
-    Object.keys(asRecord(proposal.expected_field_delta)).length,
+    Object.keys(asRecord(proposal.expected_field_delta)).length &&
+    targetDomain,
   );
 
   const gates = {
     case_id_present: true,
     proposal_exists: Boolean(proposal),
     proposal_trace_complete: proposalTraceComplete,
+    target_domain_present: Boolean(targetDomain),
     latest_alignment_status: latestStatus || null,
     alignment_allows_preparation: ['execute_now', 'prepare_execution', 'execute_only_if_aligned'].includes(latestStatus),
     direct_evidence_present: directEvidencePresent,
@@ -161,6 +172,7 @@ export async function buildPrepareExecutionDiagnostic(input: { proposalId: strin
   const canPrepareInternalLedger = Object.values({
     proposal_exists: gates.proposal_exists,
     proposal_trace_complete: gates.proposal_trace_complete,
+    target_domain_present: gates.target_domain_present,
     alignment_allows_preparation: gates.alignment_allows_preparation,
     direct_evidence_present: gates.direct_evidence_present,
     response_allows_preparation: gates.response_allows_preparation,
@@ -243,6 +255,8 @@ export async function prepareInternalExecutionLedger(input: { proposalId: string
   const supabase = createServiceSupabaseClient();
   const preparedPayload = asRecord(diagnostic.prepared_payload);
   const expected = asRecord(preparedPayload.expected_field_delta);
+  const targetDomain = textValue(preparedPayload.target_domain);
+  if (!targetDomain) throw new Error('TARGET_DOMAIN_REQUIRED');
 
   const perturbation = await supabase
     .from('sfi_field_perturbations')
@@ -250,7 +264,7 @@ export async function prepareInternalExecutionLedger(input: { proposalId: string
       case_id: diagnostic.case_id,
       proposal_id: input.proposalId,
       perturbation_type: 'governed_execution_preparation',
-      target_domain: textValue(expected.target_domain, textValue(expected.domain, 'sfi_internal')),
+      target_domain: targetDomain,
       target_audience: textValue(expected.target_audience) || null,
       minimal_action: textValue(preparedPayload.title),
       expected_effect: JSON.stringify(expected),
