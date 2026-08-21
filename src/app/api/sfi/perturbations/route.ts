@@ -12,11 +12,14 @@ export async function POST(req: Request) {
   const intention = textValue(body.intention);
   const desiredFutureState = textValue(body.desired_future_state);
   const evidenceExpected = textValue(body.evidence_expected);
+  const caseId = textValue(body.case_id);
+  const targetVector = textValue(body.target_vector);
+  const timeWindow = textValue(body.time_window);
 
-  if (!title || !intention || !desiredFutureState || !evidenceExpected) {
+  if (!title || !intention || !desiredFutureState || !evidenceExpected || !caseId || !targetVector || !timeWindow) {
     return NextResponse.json({
       ok: false,
-      error: 'title_intention_desired_future_state_and_evidence_expected_required',
+      error: 'title_intention_desired_future_state_evidence_expected_case_id_target_vector_and_time_window_required',
     }, { status: 400 });
   }
 
@@ -24,20 +27,21 @@ export async function POST(req: Request) {
     const payload = {
       title,
       intention,
-      target_vector: textValue(body.target_vector, 'missing target vector'),
-      target_node: textValue(body.target_node, ''),
+      target_vector: targetVector,
+      target_node: textValue(body.target_node) || null,
       desired_future_state: desiredFutureState,
-      time_window: textValue(body.time_window, 'missing verification window'),
+      time_window: timeWindow,
       evidence_expected: evidenceExpected,
-      risk_tolerance: textValue(body.risk_tolerance, 'medium'),
+      risk_tolerance: textValue(body.risk_tolerance) || 'unassessed',
       object_present: Boolean(body.object_present),
-      object_reference: textValue(body.object_reference, ''),
+      object_reference: textValue(body.object_reference) || null,
+      case_id: caseId,
     };
 
     const event = await appendEpistemicEvent({
       eventName: 'sfi.perturbation.declared',
-      epistemicClass: 'observed',
-      confidence: 0.8,
+      epistemicClass: 'declared',
+      confidence: 1,
       payload,
       occurredAt: new Date().toISOString(),
       source: { sourceId: 'sfi-console', sourceType: 'sfi_console' },
@@ -50,10 +54,10 @@ export async function POST(req: Request) {
     const { data: perturbation, error: perturbationError } = await supabase
       .from('sfi_field_perturbations')
       .insert({
-        case_id: textValue(body.case_id, 'SFI-OPS-001'),
-        perturbation_type: 'reality_editing_console',
-        target_domain: payload.target_vector,
-        target_audience: payload.target_node || null,
+        case_id: caseId,
+        perturbation_type: 'declared_intervention_candidate',
+        target_domain: targetVector,
+        target_audience: payload.target_node,
         minimal_action: title,
         expected_effect: desiredFutureState,
         risk_level: payload.risk_tolerance,
@@ -71,13 +75,12 @@ export async function POST(req: Request) {
       proposalType: 'perturbation_execution',
       actorId: 'sfi_console',
       title: `Execute perturbation: ${title}`,
-      objective: `Create governed execution path for ${title}. Evidence required: ${evidenceExpected}. Expected effect: ${desiredFutureState}. Verification window: ${payload.time_window}.`,
+      objective: `Create a governed execution path for ${title}. Evidence required: ${evidenceExpected}. Expected effect: ${desiredFutureState}. Verification window: ${timeWindow}.`,
       status: 'draft',
       eventId: event.data.id,
       payload: {
         perturbation_id: perturbation.id,
         ...payload,
-        data_honesty: payload.object_present ? 'object reference provided' : 'no object analysis without object',
       },
     });
     if (!proposal.ok) return NextResponse.json(proposal, { status: 400 });
