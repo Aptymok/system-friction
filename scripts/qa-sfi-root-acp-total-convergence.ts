@@ -7,6 +7,7 @@ const read=(file:string)=>fs.readFileSync(path.join(root,file),'utf8');
 
 const lifecycle=read('src/lib/governance/proposalLifecycle.ts');
 const common=read('src/lib/operational/common.ts');
+const persistencePolicy=read('src/lib/cognitive-lab/persistencePolicy.ts');
 const rootDecisions=read('src/app/api/root/decisions/route.ts');
 const approve=read('src/app/api/acp/proposals/[id]/approve/route.ts');
 const reject=read('src/app/api/acp/proposals/[id]/reject/route.ts');
@@ -36,7 +37,7 @@ for(const state of ['draft','proposed','waiting_evidence','design_approved','que
 assert.match(lifecycle,/raw === 'approved'\) return 'design_approved'/);
 assert.match(lifecycle,/accept.*design_approved/s);
 assert.match(lifecycle,/request_evidence.*waiting_evidence/s);
-assert.match(common,/approved'; \/\/ legacy read compatibility only/);
+assert.doesNotMatch(common,/\|\s*'approved'/, 'legacy approved must not remain writable through ProposalStatus');
 
 assert.match(rootDecisions,/decideActionProposal/);
 assert.doesNotMatch(rootDecisions,/decision === 'accept' \? 'approved'/);
@@ -66,6 +67,10 @@ assert.match(crl,/SHARED_METHOD_LAB_LEDGER_ONLY/);
 assert.match(crl,/HYBRID_GOVERNED_MIGRATION/);
 assert.match(crl,/migrationGovernanceApproved:false/);
 assert.match(crl,/liveSchemaVerified:false/);
+assert.match(persistencePolicy,/CANONICAL_GOVERNED_PERSISTENCE/);
+assert.match(persistencePolicy,/twinCandidateStore:\s*'sfi_amv_memory'/);
+assert.match(persistencePolicy,/institutionalEventPipeline/);
+assert.match(persistencePolicy,/Candidate learning remains CANDIDATE/);
 
 for(const moduleId of ['governance','world','field','studio','method_lab','cognitive_twin','agents','reports','evidence','graph']) assert.ok(readiness.includes(`id:'${moduleId}'`),`readiness_missing_module:${moduleId}`);
 assert.match(readiness,/const evidenceTables = \['root_evidence_entries','epistemic_events','sfi_evidence_ledger'\]/);
@@ -75,7 +80,6 @@ assert.match(readiness,/EMPTY_READY/);
 assert.match(readiness,/scientificComplete:false/);
 assert.match(readiness,/externalGateBoundary/);
 
-// Native ROOT destinations replace the former administrative entry pages while preserving the same authority/read models.
 for (const token of ['RootNativeFrame', 'readGovernanceHealth', 'GovernanceActions', 'AUTHORITY / STATE MACHINE / AUDIT', 'READINESS ↗']) assert.ok(governancePage.includes(token), `native_governance_surface_missing:${token}`);
 for (const token of ['RootNativeFrame', 'readInstitutionalReadiness', 'TotalProofControl', 'ContinuityConsole', 'InstitutionalContractsConsole', 'Can the institute operate now?']) assert.ok(readinessPage.includes(token), `native_readiness_surface_missing:${token}`);
 assert.match(rootConsole,/\/root\/governance/);
@@ -107,11 +111,11 @@ assert.equal(cronCount,7,`Expected unchanged 7 Vercel crons, found ${cronCount}`
 
 console.log(JSON.stringify({ok:true,invariants:[
   'ROOT and ACP share one canonical action_proposals lifecycle',
-  'legacy approved is read-only compatible and no new ROOT approval writes it',
+  'legacy approved is normalized only at the lifecycle read boundary and is not a writable ProposalStatus',
   'evidence requests are governed and canonicalized to waiting_evidence',
   'CONFLICTED has declare and governed resolve paths',
   'canonical promotion requires accepted realization + observed return + complete receipt contract',
-  'CRL persistence is an explicit ROOT/ACP decision object and no migration is silently applied',
+  'CRL governance alternatives remain reviewable while active persistence has converged to the canonical governed institutional pipeline',
   'ROOT governance and readiness use native emergent entry surfaces without weakening authority',
   'readiness separates Evidence Ledger from Knowledge Graph',
   'readiness uses planned health counts rather than expensive exact dashboard counts',
