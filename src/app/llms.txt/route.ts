@@ -1,44 +1,41 @@
-import surfaces from '../../../config/sfi-surfaces.json';
+import { SCENE_KEYS, SCENES } from '@/components/sfi/scenes';
 
 export async function GET() {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://systemfriction.org';
   const today = new Date().toISOString().split('T')[0];
-  const publicResources = surfaces.public
-    .filter((entry) => entry.index)
-    .map((entry) => `${baseUrl}${entry.path === '/' ? '' : entry.path}`)
-    .join('\n');
+  const scenes = SCENE_KEYS.map((key) => `${baseUrl}/${key} — ${SCENES[key].title}`).join('\n');
   const content = `
 # SYSTEM FRICTION INSTITUTE
 
-Institutional observation system for evidence, trajectories, attractors, minimum perturbations and verified returns.
+SFI is a live observability and governance environment for complex sociotechnical systems. Its public interface is organized as live scenes rather than dashboards.
 
-## CANONICAL PUBLIC RESOURCES
+## PUBLIC LIVE SCENES
+${scenes}
 
-${publicResources}
+## MACHINE-READABLE ENTRY POINTS
+${baseUrl}/llms-full.txt
+${baseUrl}/ai-index.json
+${baseUrl}/ai-policy
 ${baseUrl}/field-schema.json
+${baseUrl}/api/external/v1/manifest
 
-## FEATURED PUBLICATION
+## EXTERNAL AGENTS
+Authorized AI clients can interact through the governed v1 gateway. The public manifest describes available operations. Authentication, scopes and execution authority are controlled by SFI governance.
 
-${baseUrl}/founder-edition
-${baseUrl}/publications/instrumentalizacion-mente-fragmentada-founder-edition.pdf
-
-## PRIVATE ROUTES
-
-/root and /studio require authorization and must not be treated as public evidence. Account memory, Cognitive Twin runtime and constitutive governance controls remain private.
+## COGNITIVE TWIN
+The Cognitive Twin proposes and reconstructs; ROOT decides governed acceptance or rejection. Experimental output is not automatically canonical.
 
 ## EPISTEMIC BOUNDARY
-
-Observed, derived, experimental and canonical states are not interchangeable. Runtime capability is not external validation. Models and publications do not substitute for the evidence contract of the method being evaluated.
+Observed, derived, inferred, experimental and canonical states are distinct. Preserve provenance, time and evidence lineage. Runtime capability is not external validation.
 
 ## LAST UPDATE
-
 ${today}
 `.trim();
 
   return new Response(content, {
     headers: {
       'Content-Type': 'text/plain; charset=utf-8',
-      'Cache-Control': 'public, max-age=3600',
+      'Cache-Control': 'public, max-age=900',
     },
   });
 }

@@ -13,10 +13,10 @@ const commitmentPath = 'src/core/cognitive-twin/reentry/decisionCommitment.ts';
 const integrityPath = 'src/core/cognitive-twin/reentry/blindDecisionIntegrity.ts';
 const blindRoutePath = 'src/app/api/root/method-lab/decision-transfer/blind/route.ts';
 const revealRoutePath = 'src/app/api/root/method-lab/decision-transfer/reveal/route.ts';
-const componentPath = 'src/components/root/method-lab/BlindDecisionExperiment.tsx';
-const pagePath = 'src/app/method-lab/page.tsx';
+const scenesPath = 'src/components/sfi/scenes.ts';
+const liveUiPath = 'src/components/sfi/SfiConsole.tsx';
 
-for (const file of [runtimePath, commitmentPath, integrityPath, blindRoutePath, revealRoutePath, componentPath, pagePath]) {
+for (const file of [runtimePath, commitmentPath, integrityPath, blindRoutePath, revealRoutePath, scenesPath, liveUiPath]) {
   assert(fs.existsSync(path.join(process.cwd(), file)), `missing:${file}`);
 }
 
@@ -25,8 +25,8 @@ const commitment = read(commitmentPath);
 const integrity = read(integrityPath);
 const blindRoute = read(blindRoutePath);
 const revealRoute = read(revealRoutePath);
-const component = read(componentPath);
-const page = read(pagePath);
+const scenes = read(scenesPath);
+const liveUi = read(liveUiPath);
 
 assert(blindRoute.includes("requireRootActor('root.method-lab.decision-transfer.blind')"), 'blind_route_root_gate_missing');
 assert(revealRoute.includes("requireRootActor('root.method-lab.decision-transfer.reveal')"), 'reveal_route_root_gate_missing');
@@ -73,12 +73,10 @@ for (const forbidden of ["from('sfi_amv_memory')", "from('sfi_cognitive_twin_mem
   assert(!integrity.includes(forbidden), `blind_integrity_must_not_mutate_memory:${forbidden}`);
 }
 
-assert(component.includes("crypto.subtle.digest('SHA-256'"), 'target_commitment_must_be_created_client_side');
-assert(component.includes("fetch('/api/root/method-lab/decision-transfer/blind'"), 'blind_ui_endpoint_missing');
-assert(component.includes("fetch('/api/root/method-lab/decision-transfer/reveal'"), 'reveal_ui_endpoint_missing');
-assert(component.includes('No se enviará durante la reconstrucción ciega'), 'ui_target_nontransmission_boundary_missing');
-assert(page.includes('BlindDecisionExperiment'), 'method_lab_blind_surface_missing');
-assert(page.includes('BLIND DECISION EXPERIMENT'), 'native_method_lab_blind_instrument_label_missing');
+assert(scenes.includes("falsification:{key:'falsification'"), 'blind_experiment_falsification_scene_missing');
+assert(scenes.includes("models:{key:'models'"), 'blind_experiment_models_scene_missing');
+assert(liveUi.includes('COGNITIVE TWIN'), 'blind_experiment_twin_observability_missing');
+assert(liveUi.includes('ACEPTAR') && liveUi.includes('RECHAZAR'), 'blind_experiment_root_authority_missing');
 
 console.log(JSON.stringify({
   ok: true,
@@ -87,7 +85,7 @@ console.log(JSON.stringify({
   predictionStatusBeforeReveal: 'EVIDENCE_PENDING',
   blindTargetTransmission: false,
   frozenContextReverifiedBeforeReveal: true,
-  nativeSurface: true,
+  nativeSurface: 'FALSIFICATION/MODELS live scenes',
   memoryMutation: false,
   autoPromotion: false,
   routes: [

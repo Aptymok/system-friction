@@ -31,10 +31,13 @@ assert.match(crlContrast, /mode: 'cognitive_relational_lab'/, 'CRL contrast must
 assert.match(crlContrast, /data_mode: 'SIMULATED'/, 'CRL contrast must remain SIMULATED.');
 assert.match(crlContrast, /METHOD_LAB_CONTRACT_VERSION/, 'CRL summary must carry the shared Method Lab contract.');
 
-const root = read('src/components/root/sovereign/RootSovereignConsole.tsx');
-assert.match(root, /href="\/method-lab"/, 'ROOT must expose the canonical Method Lab surface.');
-assert.match(root, /href="\/root\/cognitive-twin"/, 'ROOT must expose the canonical CT-A01 lineage surface.');
-assert.doesNotMatch(root, /CognitiveLabConsole/, 'CRL must not keep a parallel ROOT launcher outside Method Lab.');
+const scenes = read('src/components/sfi/scenes.ts');
+const liveUi = read('src/components/sfi/SfiConsole.tsx');
+assert.ok(scenes.includes("root:{key:'root'"), 'ROOT live scene must remain canonical.');
+assert.ok(scenes.includes("models:{key:'models'"), 'MODELS live scene must expose model observability.');
+assert.ok(scenes.includes("genai:{key:'genai'"), 'GENAI live scene must expose governed GenAI anatomy.');
+assert.ok(liveUi.includes('COGNITIVE TWIN'), 'ROOT live scene must expose Twin proposals.');
+assert.ok(liveUi.includes('ACEPTAR') && liveUi.includes('RECHAZAR'), 'ROOT live scene must retain governed decisions.');
 
 const runner = read('src/lib/method-lab/simulationRun.ts');
 assert.match(runner, /executeRegisteredAgent/, 'Method Lab simulations must use isolated registered executors rather than productive runtime event emission.');
@@ -72,6 +75,7 @@ console.log(JSON.stringify({
     'CT reentry implementation is distinct from Method Lab validation and individuation claims',
     'sociotechnical/economic runs use isolated executors',
     'simulators cannot append SIMULATED output to observed evidence',
+    'ROOT/Models/GenAI live scenes replace deleted dashboard launchers without changing Method Lab truth',
     'no additional Vercel cron',
   ],
 }, null, 2));

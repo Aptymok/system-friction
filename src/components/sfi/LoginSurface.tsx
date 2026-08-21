@@ -1,0 +1,4 @@
+'use client';
+import { FormEvent, useMemo, useState } from 'react';
+import { createBrowserSupabaseClient } from '@/runtime/supabase/client';
+export function LoginSurface(){const sb=useMemo(()=>createBrowserSupabaseClient(),[]);const [error,setError]=useState('');const submit=async(e:FormEvent<HTMLFormElement>)=>{e.preventDefault();if(!sb)return setError('Supabase no configurado');const f=new FormData(e.currentTarget);const {error}=await sb.auth.signInWithPassword({email:String(f.get('email')||''),password:String(f.get('password')||'')});if(error)setError(error.message);else location.href='/root'};return <main className="login"><form onSubmit={submit}><div className="sigil">SFI.</div><h1>Acceso al instituto</h1><p>Observación, evidencia, decisión y retorno.</p><input name="email" type="email" placeholder="correo" required/><input name="password" type="password" placeholder="contraseña" required/><button>ENTRAR</button>{error&&<small>{error}</small>}</form></main>}

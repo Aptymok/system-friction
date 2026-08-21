@@ -1,34 +1,23 @@
 import type { MetadataRoute } from 'next';
 
-const BASE_URL = 'https://systemfriction.org';
-
-const PRIVATE_PATHS = [
-  '/api/',
-  '/root/',
-  '/studio/',
-  '/operator/',
-  '/admin/',
-  '/settings/',
-  '/memory/',
-  '/telemetry/',
-  '/auth/',
-];
+const BASE = 'https://systemfriction.org';
+const PUBLIC = ['/','/field','/systems','/archive','/falsification','/optionality','/governance','/authority','/agents','/identity','/models','/genai','/llms.txt','/llms-full.txt','/ai-index.json','/ai-policy','/field-schema.json','/api/external/v1/manifest'];
 
 export default function robots(): MetadataRoute.Robots {
   return {
     rules: [
       {
         userAgent: '*',
-        allow: '/',
-        disallow: PRIVATE_PATHS,
+        allow: PUBLIC,
+        disallow: ['/root','/login','/api/'],
       },
       {
-        userAgent: ['GPTBot', 'ClaudeBot', 'PerplexityBot', 'Google-Extended'],
-        allow: ['/', '/llms.txt', '/llms-full.txt', '/ai-index.json', '/field-schema.json'],
-        disallow: PRIVATE_PATHS,
+        userAgent: ['GPTBot','ClaudeBot','PerplexityBot','Google-Extended'],
+        allow: PUBLIC,
+        disallow: ['/root','/login','/api/external/v1/observe','/api/external/v1/propose','/api/external/v1/execute','/api/external/v1/lab','/api/'],
       },
     ],
-    sitemap: `${BASE_URL}/sitemap.xml`,
-    host: BASE_URL,
+    sitemap: `${BASE}/sitemap.xml`,
+    host: BASE,
   };
 }

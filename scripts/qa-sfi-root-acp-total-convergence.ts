@@ -19,18 +19,13 @@ const conflictResolve=read('src/app/api/root/governance/conflicts/resolve/route.
 const promote=read('src/app/api/root/governance/promote/route.ts');
 const crl=read('src/app/api/root/governance/crl/prepare-decision/route.ts');
 const readiness=read('src/lib/root/closure/readInstitutionalReadiness.ts');
-const governancePage=read('src/app/root/governance/page.tsx');
-const readinessPage=read('src/app/root/readiness/page.tsx');
-const rootConsole=read('src/components/root/sovereign/RootSovereignConsole.tsx');
 const mutationState=read('src/core/cognitive-twin/reentry/mutationState.ts');
-const twinPage=read('src/app/root/cognitive-twin/page.tsx');
-const twinNative=read('src/components/root/surfaces/CognitiveTwinNativeSurface.tsx');
 const checkpoint=read('src/core/cognitive-twin/reentry/checkpoint.ts');
 const checkpointRoute=read('src/app/api/root/cognitive-twin/checkpoint/route.ts');
 const snapshotRoute=read('src/app/api/root/cognitive-twin/snapshot/route.ts');
 const forkRoute=read('src/app/api/root/cognitive-twin/fork/route.ts');
-const experimentControls=read('src/components/root/cognitive-twin/CognitiveTwinExperimentControls.tsx');
-const nativeFrame=read('src/components/root/surfaces/RootNativeFrame.tsx');
+const scenes=read('src/components/sfi/scenes.ts');
+const liveUi=read('src/components/sfi/SfiConsole.tsx');
 const vercel=JSON.parse(read('vercel.json')) as {crons?:unknown[]};
 
 for(const state of ['draft','proposed','waiting_evidence','design_approved','queued','accepted','rejected','conflicted','frozen','superseded']) assert.ok(lifecycle.includes(`'${state}'`),`missing_lifecycle_state:${state}`);
@@ -80,16 +75,17 @@ assert.match(readiness,/EMPTY_READY/);
 assert.match(readiness,/scientificComplete:false/);
 assert.match(readiness,/externalGateBoundary/);
 
-for (const token of ['RootNativeFrame', 'readGovernanceHealth', 'GovernanceActions', 'AUTHORITY / STATE MACHINE / AUDIT', 'READINESS ↗']) assert.ok(governancePage.includes(token), `native_governance_surface_missing:${token}`);
-for (const token of ['RootNativeFrame', 'readInstitutionalReadiness', 'TotalProofControl', 'ContinuityConsole', 'InstitutionalContractsConsole', 'Can the institute operate now?']) assert.ok(readinessPage.includes(token), `native_readiness_surface_missing:${token}`);
-assert.match(rootConsole,/\/root\/governance/);
-assert.ok(nativeFrame.includes('EmergentParticleField'), 'root_native_frame_particle_field_missing');
-assert.ok(nativeFrame.includes('READ ≠ EXECUTE ≠ GOVERN ≠ CANONICAL WRITE'), 'root_native_frame_authority_invariant_missing');
+// Governance and ROOT were intentionally moved from native dashboard pages to live scenes.
+assert.ok(scenes.includes("governance:{key:'governance'"), 'governance_live_scene_missing');
+assert.ok(scenes.includes("root:{key:'root'"), 'root_live_scene_missing');
+assert.ok(scenes.includes("agents:{key:'agents'"), 'agents_live_scene_missing');
+assert.ok(liveUi.includes('/api/acp/proposals'), 'canonical_proposal_feed_not_wired_to_live_ui');
+assert.ok(liveUi.includes(`/api/acp/proposals/${'${selected.id}'}/${'${kind}'}`), 'governed_decision_route_not_wired');
+assert.ok(liveUi.includes('ACEPTAR') && liveUi.includes('RECHAZAR'), 'plain_language_root_decisions_missing');
+assert.ok(liveUi.includes('COGNITIVE TWIN'), 'twin_proposal_surface_missing');
 
 assert.match(mutationState,/CT-A01-MUT-%/);
 assert.match(mutationState,/CANDIDATE/);
-assert.match(twinPage,/readCognitiveTwinMutationState/);
-assert.match(twinPage,/CognitiveTwinNativeSurface/);
 assert.match(checkpoint,/SFI-CT-LINEAGE-CHECKPOINT-1\.0/);
 assert.match(checkpoint,/PENDING_EXTERNAL_ANCHOR/);
 assert.match(checkpoint,/previousCheckpointHash/);
@@ -97,14 +93,6 @@ assert.match(checkpointRoute,/createLineageCheckpoint/);
 assert.match(checkpointRoute,/requireRootActor\('root\.cognitive-twin\.checkpoint\.create'\)/);
 assert.match(snapshotRoute,/createCognitiveTwinSnapshot/);
 assert.match(forkRoute,/registerCognitiveTwinFork/);
-assert.match(experimentControls,/CREATE LINEAGE CHECKPOINT/);
-assert.match(experimentControls,/\/api\/root\/cognitive-twin\/snapshot/);
-assert.match(experimentControls,/\/api\/root\/cognitive-twin\/checkpoint/);
-assert.match(experimentControls,/\/api\/root\/cognitive-twin\/fork/);
-assert.match(twinNative,/CognitiveTwinExperimentControls/);
-assert.match(twinNative,/NationalFieldPanel/);
-assert.match(twinNative,/CognitiveTwinDeliberationPanel/);
-assert.match(twinNative,/FounderDecisionCandidateForm/);
 
 const cronCount=Array.isArray(vercel.crons)?vercel.crons.length:0;
 assert.equal(cronCount,7,`Expected unchanged 7 Vercel crons, found ${cronCount}`);
@@ -116,14 +104,13 @@ console.log(JSON.stringify({ok:true,invariants:[
   'CONFLICTED has declare and governed resolve paths',
   'canonical promotion requires accepted realization + observed return + complete receipt contract',
   'CRL governance alternatives remain reviewable while active persistence has converged to the canonical governed institutional pipeline',
-  'ROOT governance and readiness use native emergent entry surfaces without weakening authority',
+  'ROOT governance, agents and Twin proposals are exposed through canonical live scenes',
   'readiness separates Evidence Ledger from Knowledge Graph',
   'readiness uses planned health counts rather than expensive exact dashboard counts',
   'empty post-reset organs may be READY without being falsely marked broken',
   'readiness separates internal blockers from external scientific/proof gates',
-  'CT mutation state is observed directly at the ROOT server-rendered UI boundary',
-  'CT snapshot/checkpoint/fork controls remain reachable inside the native Cognitive Twin surface',
-  'CT national field, deliberation and founder candidate decisions remain reachable',
+  'CT mutation state remains candidate until governed',
+  'CT snapshot/checkpoint/fork routes remain governed and reachable by API',
   'CT checkpoint is exportable but explicitly pending independent external anchoring',
   'no new Vercel cron introduced',
 ]},null,2));

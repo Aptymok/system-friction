@@ -1,106 +1,25 @@
 {
-  "version": "2026-08-17",
+  "version": "2026-08-21",
   "public": [
-    {
-      "path": "/",
-      "label": "Institute",
-      "index": true,
-      "priority": 1,
-      "changeFrequency": "daily"
-    },
-    {
-      "path": "/observatory",
-      "label": "Observatory",
-      "index": true,
-      "priority": 0.95,
-      "changeFrequency": "daily"
-    },
-    {
-      "path": "/emergence",
-      "label": "Public Emergence",
-      "index": true,
-      "priority": 0.94,
-      "changeFrequency": "daily"
-    },
-    {
-      "path": "/field",
-      "label": "Field",
-      "index": true,
-      "priority": 0.9,
-      "changeFrequency": "weekly"
-    },
-    {
-      "path": "/repository",
-      "label": "Repository",
-      "index": true,
-      "priority": 0.9,
-      "changeFrequency": "weekly"
-    },
-    {
-      "path": "/library",
-      "label": "Library",
-      "index": true,
-      "priority": 0.85,
-      "changeFrequency": "weekly"
-    },
-    {
-      "path": "/founder-edition",
-      "label": "Founder Edition",
-      "index": true,
-      "priority": 0.85,
-      "changeFrequency": "monthly"
-    },
-    {
-      "path": "/mihm",
-      "label": "MIHM",
-      "index": true,
-      "priority": 0.8,
-      "changeFrequency": "monthly"
-    },
-    {
-      "path": "/atlas",
-      "label": "Atlas",
-      "index": true,
-      "priority": 0.75,
-      "changeFrequency": "weekly"
-    },
-    {
-      "path": "/ledger",
-      "label": "Ledger",
-      "index": true,
-      "priority": 0.7,
-      "changeFrequency": "weekly"
-    },
-    {
-      "path": "/contact",
-      "label": "Contact",
-      "index": true,
-      "priority": 0.6,
-      "changeFrequency": "monthly"
-    },
-    {
-      "path": "/privacy",
-      "label": "Privacy",
-      "index": true,
-      "priority": 0.4,
-      "changeFrequency": "yearly"
-    }
+    {"path":"/","label":"Institute","index":true,"priority":1,"changeFrequency":"daily"},
+    {"path":"/field","label":"Field","index":true,"priority":0.98,"changeFrequency":"daily"},
+    {"path":"/systems","label":"Systems","index":true,"priority":0.92,"changeFrequency":"daily"},
+    {"path":"/archive","label":"Archive","index":true,"priority":0.92,"changeFrequency":"daily"},
+    {"path":"/falsification","label":"Falsification","index":true,"priority":0.92,"changeFrequency":"daily"},
+    {"path":"/optionality","label":"Optionality","index":true,"priority":0.9,"changeFrequency":"daily"},
+    {"path":"/governance","label":"Governance","index":true,"priority":0.96,"changeFrequency":"daily"},
+    {"path":"/authority","label":"Authority","index":true,"priority":0.9,"changeFrequency":"daily"},
+    {"path":"/agents","label":"Agents","index":true,"priority":0.92,"changeFrequency":"daily"},
+    {"path":"/identity","label":"Identity","index":true,"priority":0.86,"changeFrequency":"daily"},
+    {"path":"/models","label":"Models","index":true,"priority":0.88,"changeFrequency":"daily"},
+    {"path":"/genai","label":"GenAI","index":true,"priority":0.88,"changeFrequency":"daily"}
   ],
   "rootOrgans": [
     "/root",
-    "/root/readiness",
-    "/root/governance",
-    "/root/agents",
-    "/root/predictions",
-    "/root/attractor",
-    "/root/longitudinal",
-    "/root/commercial",
-    "/root/returns",
-    "/root/cognitive-twin",
-    "/root/institutionalization",
-    "/root/reports",
-    "/root/decisions",
-    "/root/evidence/intake",
-    "/method-lab"
+    "/api/external/v1/manifest",
+    "/api/external/v1/observe",
+    "/api/external/v1/propose",
+    "/api/external/v1/execute",
+    "/api/external/v1/lab"
   ]
 }

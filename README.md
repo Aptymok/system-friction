@@ -1,382 +1,117 @@
-# System Friction · Terminal Operacional
+# System Friction Institute
 
-## Instrumento de observación, trazabilidad y navegación dentro de sistemas complejos
+## Live observability, evidence, falsification, governance and governed AI interaction
 
-System Friction Terminal Operacional es una infraestructura experimental construida bajo el paradigma de observación sistémica continua.
+System Friction Institute (SFI) is an experimental institutional observability environment for complex sociotechnical systems. The current frontend is not organized as a conventional dashboard. It is a set of live scenes where the observed object remains central and evidence, provenance, trajectories, authority, temporal state and agent activity are rendered around it.
 
-No funciona como una aplicación convencional orientada únicamente a interacción de usuario. Su propósito es operar como una capa de lectura, registro y organización de fenómenos donde múltiples variables interactúan simultáneamente: comportamiento humano, estructuras institucionales, señales digitales, evidencia documental, patrones emergentes y procesos de transformación.
+Canonical host: `https://systemfriction.org`
 
-La arquitectura parte de un principio fundamental:
+The operating principle is simple: observation, evidence, inference, authorization, execution, return and memory must remain distinguishable and traceable.
 
-> Todo sistema deja rastros de su estado interno mediante sus interacciones, decisiones, tensiones y adaptaciones.
+## Public live scenes
 
-El Terminal Operacional convierte esos rastros en estructuras observables.
+- `/field` — geospatial and multiscale observation field.
+- `/systems` — system boundaries, relations, exchange, state and persistence.
+- `/archive` — source, archive, indexing, provenance and context loss.
+- `/falsification` — hypotheses, instruments, longitudinal series, thresholds and rival explanations.
+- `/optionality` — reserve, memory, redundancy, reversibility and open futures.
+- `/governance` — canonical governance cycle from observation to memory.
+- `/authority` — authority, evidence and recovery as longitudinal variables.
+- `/agents` — agentic authority envelope: identity, scope, tools, time, consequence and return.
+- `/identity` — task, profession, identity, machine capability and context.
+- `/models` — observable generative-model processes.
+- `/genai` — operational anatomy of a governed GenAI application.
+- `/root` — governed operator surface; authorization required.
 
-La aplicación está construida sobre Next.js App Router y toma `systemprompt.html` como contrato operativo inicial: un documento base que define identidad, límites, comportamiento esperado y relación entre componentes.
+The visual runtime is designed so that ambient motion, system motion and operator interaction remain distinct. Movement is not only decorative: live events, persistence, decay, execution and return can alter the scene.
 
-No es únicamente una interfaz.
+## Cognitive Twin
 
-Es una frontera entre observación y acción.
+The Cognitive Twin is a governed reconstruction and proposal system. It can use longitudinal evidence, state snapshots, decision traces and laboratory results to generate proposals in normal operator-readable language.
 
----
+The Twin does not automatically become decision authority. ROOT can accept, reject or request additional evidence. Proposal, authorization, execution and canonical promotion remain separate states.
 
-# Arquitectura Operacional
+## Governed external AI API
 
-El sistema se organiza mediante capas funcionales que representan diferentes estados del ciclo de observación:
+SFI exposes a scoped machine interface so authorized AI clients can interact with the institute without bypassing governance.
 
-```
+Capability discovery:
 
-Captura → Registro → Contextualización → Comparación → Evidencia → Gobernanza
+`GET /api/external/v1/manifest`
 
-```
+Governed operations:
 
-Cada módulo tiene una responsabilidad específica y límites definidos.
+- `POST /api/external/v1/observe`
+- `POST /api/external/v1/propose`
+- `POST /api/external/v1/execute`
+- `POST /api/external/v1/lab`
 
-La separación no es únicamente técnica.
+Credentials are user-managed Bearer tokens with explicit scopes. A client can only perform the capabilities granted to its credential. Laboratory execution can require delegated ROOT authority and confirmation. Experimental outputs do not self-promote into canonical truth.
 
-Es una condición de estabilidad.
+## GitHub ↔ SFI Laboratory Bridge
 
-Un sistema que observa no debe confundirse con un sistema que decide.
+GitHub repositories can operate as auditable laboratory clients of SFI through GitHub Actions. A repository stores only its own `SFI_LAB_BRIDGE_TOKEN` and the canonical `SFI_LAB_BRIDGE_BASE_URL`. SFI validates the token through its deployment-side `SFI_EXTERNAL_API_KEYS_JSON` registry.
 
-Un sistema que aprende no debe confundirse con un sistema que modifica su propia estructura.
+The bridge supports reading laboratory state and reports, persisting governed records and executing supported Method Lab runtimes when the delegated credential permits it. Commands and responses are retained as GitHub Actions artifacts with provenance.
 
-Un sistema que registra evidencia no debe confundirse con uno que genera conclusiones definitivas.
+This creates an auditable control path:
 
----
+`AI / operator → GitHub → GitHub Actions → SFI external gateway → Method Lab / runtime → provenance → artifact`
 
-# Rutas Operacionales
+## Machine-readable discovery
 
-## `/`
+SFI publishes dedicated machine-facing resources so search engines and AI systems can discover the current architecture without inferring it from obsolete pages:
 
-### Landing Operacional
+- `/llms.txt` — compact AI orientation.
+- `/llms-full.txt` — extended machine-readable architecture.
+- `/ai-index.json` — structured public index of scenes, machine interfaces and governance.
+- `/ai-policy` — epistemic, privacy and external-agent policy.
+- `/field-schema.json` — public evidence schema.
+- `/api/external/v1/manifest` — current external-agent capability manifest.
+- `/robots.txt` — crawler policy.
+- `/sitemap.xml` — canonical public discovery map.
 
-Punto inicial de acceso al ecosistema.
+## Epistemic boundary
 
-Presenta la identidad del Terminal y establece la relación entre usuario, instrumento y sistema observado.
+SFI distinguishes at minimum between observed, derived, inferred, experimental and canonical states. These states are not interchangeable.
 
-No funciona como página promocional tradicional.
+Runtime capability is not empirical validation. A model output is not canonical merely because it was computed. A laboratory result remains experimental until a separate governed process changes its epistemic state. Consequential claims should preserve provenance, observation time and evidence lineage.
 
-Es una superficie de orientación: una primera capa donde se define qué tipo de espacio está siendo abierto.
+Private ROOT state, credentials, account memory, protected evidence and non-public laboratory records are not public evidence.
 
----
+## Repository architecture
 
-## `/library`
+The frontend and backend are deliberately separated. Live scenes consume existing APIs through the application runtime rather than redefining backend contracts around visual components.
 
-### Biblioteca Técnica Estática y Salud Pasiva de Paquete
+Important areas include:
 
-La Biblioteca representa la memoria documental estructurada del sistema.
+- `src/app/` — Next.js routes, public scenes and machine-readable surfaces.
+- `src/components/sfi/` — live scene runtime and scene-specific cinematic instrumentation.
+- `src/app/api/` — server-side API and operational contracts.
+- `src/core/` — cognitive and institutional core.
+- `src/agents/` — agent implementations and supporting logic.
+- `src/runtime/` — runtime execution infrastructure.
+- `lab-bridge/` — GitHub ↔ SFI laboratory bridge documentation and command surface.
+- `.github/workflows/sfi-github-lab-bridge.yml` — auditable GitHub Actions bridge.
 
-Su función es preservar:
+Legacy visual dashboards are not maintained as a second frontend. Historical route aliases may redirect into the current live-scene system, but the canonical public architecture is the scene set documented above.
 
-- especificaciones técnicas,
-- documentos fundacionales,
-- esquemas,
-- manifiestos,
-- registros de arquitectura,
-- referencias operativas.
-
-La biblioteca no interpreta.
-
-Conserva.
-
-Su agente asociado valida existencia, integridad y disponibilidad de los elementos publicados dentro del paquete estático.
-
-La función principal es mantener continuidad documental.
-
----
-
-## `/world-vector`
-
-### Observatorio World Vector
-
-World Vector representa una capa de contextualización dinámica.
-
-Su función es observar relaciones entre señales, estados y movimientos dentro de un campo determinado.
-
-No predice por sí mismo.
-
-No determina resultados.
-
-Organiza vectores de información para permitir lectura longitudinal.
-
-El panel funciona bajo una condición fundamental:
-
-**observación antes que intervención.**
-
----
-
-## `/field`
-
-### Frontera Pública de Captura
-
-El Field representa el punto donde un fenómeno puede ingresar al sistema.
-
-Es la superficie de captura inicial.
-
-Aquí pueden registrarse:
-
-- observaciones,
-- eventos,
-- señales,
-- evidencia inicial,
-- información contextual.
-
-El campo no valida automáticamente.
-
-Recibe.
-
-La validación ocurre posteriormente mediante capas especializadas.
-
----
-
-## `/root/agents`
-
-### Frontera ROOT para Agentes Pasivos
-
-ROOT representa la capa de gobernanza.
-
-Los agentes operan dentro de límites definidos:
-
-- observan,
-- clasifican,
-- reportan,
-- estructuran información.
-
-No gobiernan.
-
-No sustituyen criterio humano.
-
-No ejecutan cierres definitivos.
-
-ROOT mantiene la separación entre inteligencia auxiliar y autoridad operacional.
-
----
-
-## `/root/predictions`
-
-### Registro Privado de Predicciones
-
-Espacio destinado al almacenamiento de hipótesis antes de la perturbación del sistema observado.
-
-Una predicción dentro de SFI no representa una afirmación absoluta.
-
-Representa una estructura temporal:
-
-```
-
-Hipótesis → Espera → Retorno → Comparación → Aprendizaje
-
-````
-
-La importancia no está únicamente en acertar.
-
-Está en conservar el estado previo, observar la trayectoria y comparar la diferencia entre expectativa y resultado.
-
----
-
-## `/root/predictions#new-prediction`
-
-### Captura de Hipótesis Pre-Perturbación
-
-Permite registrar una hipótesis antes de que ocurra un cambio observable.
-
-Esto preserva una condición fundamental para cualquier sistema de aprendizaje:
-
-la existencia de una línea base.
-
-Sin estado inicial no existe comparación.
-
-Sin comparación no existe aprendizaje.
-
----
-
-## `/terminal`
-
-### Núcleo Operacional
-
-El Terminal concentra las herramientas de lectura:
-
-- auditoría,
-- AMV,
-- detección de patrones,
-- hard stop,
-- memoria operacional.
-
-Es la superficie donde convergen las diferentes capas del sistema.
-
-No busca producir una narrativa automática.
-
-Busca mantener trazabilidad.
-
----
-
-## `/llms.txt`
-
-### Protocolo Legible para Agentes
-
-Documento de comunicación estructural para sistemas externos.
-
-Define cómo agentes de lenguaje pueden interpretar:
-
-- identidad,
-- límites,
-- capacidades,
-- restricciones operativas.
-
-Representa una interfaz entre arquitectura humana y sistemas artificiales.
-
----
-
-# APIs Operacionales
-
-## `/api/audit`
-
-Motor de auditoría operacional.
-
-Permite revisar estado interno, integridad y condiciones de ejecución.
-
----
-
-## `/api/link/generate`
-
-Generación de enlaces temporales mediante tokens operacionales.
-
----
-
-## `/api/link/verify`
-
-Validación de identidad temporal del enlace generado.
-
----
-
-## Transportes externos retirados
-
-El antiguo endpoint `/api/whatsapp/webhook` no forma parte del runtime canónico actual. Dependía de una capa `createKernelRoute` retirada durante la consolidación y no existe un contrato de proveedor, autenticación o verificación de firma activo que permita restaurarlo de forma segura.
-
-Cualquier futura integración de WhatsApp deberá entrar como adaptador explícito y gobernado hacia una superficie vigente —por ejemplo MOP-H/Field— con validación de proveedor, identidad y trazabilidad propias. La ausencia del webhook no se representa como una capacidad operativa existente.
-
----
-
-# Ejecución Local
+## Local execution
 
 ```bash
 npm install
 npm run dev
-````
+```
 
-Para entornos con infraestructura institucional que intercepta certificados TLS:
+Verification and build:
 
 ```bash
-npm run dev:local-insecure
-npm run build:local-insecure
+npm run typecheck
+npm run build
 ```
 
-Estas instrucciones existen únicamente para pruebas locales.
+Additional institutional QA scripts are defined in `package.json` and GitHub Actions.
 
-No representan una configuración de producción.
+## Fundamental statement
 
----
-
-# Estado de Dependencias
-
-El sistema puede iniciar sin variables externas utilizando memoria local de runtime.
-
-Cuando existe:
-
-```
-GEMINI_API_KEY
-```
-
-el módulo auditor puede incorporar una capa adicional de diagnóstico cualitativo mediante Gemini.
-
-La integración con Supabase permanece preparada mediante migraciones y clientes lazy-loading.
-
-La ausencia de infraestructura externa no bloquea la construcción local.
-
----
-
-# Phase 01 · Límite Operacional
-
-Phase 01 establece una arquitectura de agentes pasivos.
-
-Cada componente tiene una función específica:
-
-```
-Cron respira.
-Field captura.
-Library formaliza.
-World Vector contextualiza.
-Prediction Registry conserva evidencia.
-Atlas acumula memoria longitudinal.
-Agents comparan y proponen.
-ROOT decide.
-```
-
-Esta separación es una condición de diseño.
-
-La inteligencia distribuida requiere límites claros.
-
-Los agentes pueden:
-
-* exponer salud,
-* verificar integridad,
-* identificar bloqueadores,
-* estructurar propuestas,
-* clasificar estados de evidencia.
-
-Los agentes no pueden:
-
-* publicar externamente,
-* cerrar ciclos,
-* modificar estados gobernados por ROOT,
-* reescribir protocolos,
-* redefinir fenotipos,
-* promover entradas al Atlas,
-* exponer evidencia privada.
-
-La autonomía sin frontera produce ruido.
-
-La inteligencia con límites produce trazabilidad.
-
----
-
-# Phase 02 · Prediction Registry Privado
-
-Phase 02 introduce un registro privado de hipótesis longitudinales.
-
-ROOT puede registrar predicciones antes de una perturbación y observar retornos en ventanas:
-
-* 72 horas,
-* 7 días,
-* 30 días,
-* 90 días.
-
-Los agentes participan únicamente como clasificadores:
-
-* estado de evidencia,
-* ventana temporal,
-* comparación estructurada.
-
-La promoción hacia Atlas y cualquier publicación externa permanecen fuera de alcance.
-
----
-
-# Principio Fundamental
-
-System Friction no busca automatizar la realidad.
-
-Busca construir una superficie donde la realidad pueda dejar evidencia suficiente para ser observada.
-
-El sistema no reemplaza interpretación humana.
-
-Reduce pérdida de información.
-
-No elimina incertidumbre.
-
-La vuelve medible.
-
-No busca controlar sistemas complejos.
-
-Busca aumentar la resolución con la que pueden ser observados.
-
-```
+SFI does not attempt to automate reality into a single score or narrative. It builds observable structures around systems that change through time, preserving enough evidence and return paths to inspect how an interpretation or action was produced.

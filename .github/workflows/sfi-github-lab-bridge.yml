@@ -1,0 +1,88 @@
+name: SFI GitHub Lab Bridge
+
+on:
+  push:
+    paths:
+      - 'lab-bridge/commands/*.json'
+  workflow_dispatch:
+    inputs:
+      command_json:
+        description: 'JSON command for /api/external/v1/lab'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  bridge:
+    runs-on: ubuntu-latest
+    env:
+      SFI_BASE_URL: ${{ secrets.SFI_LAB_BRIDGE_BASE_URL }}
+      SFI_LAB_TOKEN: ${{ secrets.SFI_LAB_BRIDGE_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve command
+        id: command
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .lab-bridge-output
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            cat > .lab-bridge-output/command.json <<'JSON'
+          ${{ inputs.command_json }}
+          JSON
+          else
+            BEFORE="${{ github.event.before }}"
+            AFTER="${{ github.sha }}"
+            FILE="$(git diff --name-only "$BEFORE" "$AFTER" -- 'lab-bridge/commands/*.json' | tail -n 1)"
+            if [ -z "$FILE" ]; then
+              FILE="$(git ls-files 'lab-bridge/commands/*.json' | tail -n 1)"
+            fi
+            test -n "$FILE"
+            cp "$FILE" .lab-bridge-output/command.json
+          fi
+          node -e "JSON.parse(require('fs').readFileSync('.lab-bridge-output/command.json','utf8')); console.log('command-json-valid')"
+
+      - name: Execute SFI laboratory command
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE_URL="${SFI_BASE_URL:-https://systemfriction.org}"
+          test -n "$SFI_LAB_TOKEN"
+          STATUS="$(curl --silent --show-error --output .lab-bridge-output/response.json --write-out '%{http_code}' \
+            --request POST "$BASE_URL/api/external/v1/lab" \
+            --header "Authorization: Bearer $SFI_LAB_TOKEN" \
+            --header 'Content-Type: application/json' \
+            --data-binary @.lab-bridge-output/command.json)"
+          echo "HTTP $STATUS"
+          cat .lab-bridge-output/response.json
+          node - <<'NODE'
+          const fs=require('fs');
+          const body=JSON.parse(fs.readFileSync('.lab-bridge-output/response.json','utf8'));
+          if (!body.ok) process.exit(2);
+          NODE
+
+      - name: Record bridge provenance
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');
+          const record={
+            githubRunId: process.env.GITHUB_RUN_ID,
+            githubSha: process.env.GITHUB_SHA,
+            githubActor: process.env.GITHUB_ACTOR,
+            repository: process.env.GITHUB_REPOSITORY,
+            completedAt: new Date().toISOString(),
+            command: JSON.parse(fs.readFileSync('.lab-bridge-output/command.json','utf8')),
+            response: JSON.parse(fs.readFileSync('.lab-bridge-output/response.json','utf8')),
+          };
+          fs.writeFileSync('.lab-bridge-output/provenance.json', JSON.stringify(record,null,2));
+          NODE
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sfi-lab-bridge-${{ github.run_id }}
+          path: .lab-bridge-output/
+          retention-days: 30

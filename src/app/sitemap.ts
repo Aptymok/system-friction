@@ -1,26 +1,24 @@
 import type { MetadataRoute } from 'next';
-import surfaces from '../../config/sfi-surfaces.json';
 
-const BASE_URL = 'https://systemfriction.org';
-
-type Frequency = MetadataRoute.Sitemap[number]['changeFrequency'];
+const BASE = 'https://systemfriction.org';
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const lastModified = new Date();
-  const publicEntries = surfaces.public
-    .filter((entry) => entry.index)
-    .map((entry) => ({
-      url: `${BASE_URL}${entry.path === '/' ? '' : entry.path}`,
-      lastModified,
-      changeFrequency: entry.changeFrequency as Frequency,
-      priority: entry.priority,
-    }));
+  const scenes = [
+    '', 'field', 'systems', 'archive', 'falsification', 'optionality',
+    'governance', 'authority', 'agents', 'identity', 'models', 'genai',
+  ].map((path) => ({
+    url: `${BASE}/${path}`.replace(/\/$/, ''),
+    lastModified: new Date(),
+    changeFrequency: 'daily' as const,
+    priority: path ? 0.9 : 1,
+  }));
 
-  return [
-    ...publicEntries,
-    { url: `${BASE_URL}/llms.txt`, lastModified, changeFrequency: 'weekly' as Frequency, priority: 0.4 },
-    { url: `${BASE_URL}/llms-full.txt`, lastModified, changeFrequency: 'weekly' as Frequency, priority: 0.4 },
-    { url: `${BASE_URL}/ai-index.json`, lastModified, changeFrequency: 'weekly' as Frequency, priority: 0.4 },
-    { url: `${BASE_URL}/field-schema.json`, lastModified, changeFrequency: 'weekly' as Frequency, priority: 0.35 },
-  ];
+  const machine = ['llms.txt','llms-full.txt','ai-index.json','ai-policy','field-schema.json'].map((path) => ({
+    url: `${BASE}/${path}`,
+    lastModified: new Date(),
+    changeFrequency: 'daily' as const,
+    priority: 0.7,
+  }));
+
+  return [...scenes, ...machine];
 }
