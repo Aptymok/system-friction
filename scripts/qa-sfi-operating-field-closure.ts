@@ -14,12 +14,9 @@ const suggestionApi=read('src/app/api/pipeline/inference/suggest/route.ts');
 const trajectoryApi=read('src/app/api/pipeline/trajectory/route.ts');
 const proof=read('src/lib/root/closure/fullCycleVerification.ts');
 const proofRoute=read('src/app/api/pipeline/verify/route.ts');
-const field=read('src/components/root/operate/RootOperatingField.tsx');
-const dock=read('src/components/root/operate/RootCycleAnalysisDock.tsx');
-const autoDock=read('src/components/root/operate/RootCycleAnalysisDockAuto.tsx');
-const rootPage=read('src/app/root/page.tsx');
-const explicitPage=read('src/app/pipeline/page.tsx');
 const readiness=read('src/lib/root/closure/readInstitutionalReadiness.ts');
+const scenes=read('src/components/sfi/scenes.ts');
+const liveUi=read('src/components/sfi/SfiConsole.tsx');
 
 for(const table of ['sfi_operating_cycles','sfi_inference_traces','sfi_artifact_trajectory_events']){
   assert.match(`${cycleMigration}\n${analysisMigration}`,new RegExp(`create table if not exists public\\.${table}\\b`),`missing_operating_table:${table}`);
@@ -70,24 +67,14 @@ assert.match(proof,/status:complete\?'CLOSED':'BLOCKED'/);
 assert.match(proofRoute,/requireRootActor\('root\.operate\.full_cycle_verify'\)/);
 assert.match(proofRoute,/status:result\.ok\?200:409/);
 
-for(const phrase of ['Un ciclo. Todo SFI.','AGREGAR EVIDENCIA','PRUEBA TOTAL REAL','COGNITIVE TWIN','METHOD LAB','FIELD']){
-  assert.ok(field.toUpperCase().includes(phrase.toUpperCase()),`operating_field_missing:${phrase}`);
+// The deleted RootOperatingField dashboard is no longer the visual contract.
+// Its operating APIs remain canonical and are surfaced through the live scene system.
+for(const scene of ['field','systems','falsification','governance','root']){
+  assert.ok(scenes.includes(`${scene}:{key:'${scene}'`),`live_scene_missing:${scene}`);
 }
-for(const phrase of ['HIPÓTESIS / RIVALES','TRAYECTORIA DEL OBJETO','QUÉ OBSERVACIÓN LAS SEPARARÍA','Una trayectoria sin evidencia no se registra']){
-  assert.ok(dock.includes(phrase),`analysis_dock_missing:${phrase}`);
-}
-assert.match(field,/\/api\/pipeline\/cycles/);
-assert.match(field,/\/api\/pipeline\/verify/);
-assert.match(field,/href="\/method-lab"/);
-assert.doesNotMatch(field,/href="\/root\/method-lab"/);
-assert.match(dock,/\/api\/pipeline\/inference/);
-assert.match(dock,/\/api\/pipeline\/trajectory/);
-assert.match(autoDock,/\/api\/pipeline\/cycles/);
-assert.doesNotMatch(field,/\/api\/root\/operate\/cycles/);
-assert.doesNotMatch(autoDock,/\/api\/root\/operate\/cycles/);
-assert.match(explicitPage,/RootOperatingField/);
-assert.match(explicitPage,/RootCycleAnalysisDockAuto/);
-assert.doesNotMatch(rootPage,/RootCycleAnalysisDockAuto/);
+assert.ok(liveUi.includes('FUENTE VIVA') && liveUi.includes('OBJETOS'), 'live_operating_telemetry_missing');
+assert.ok(liveUi.includes('/api/acp/proposals'), 'governed_proposal_feed_missing');
+assert.ok(liveUi.includes('COGNITIVE TWIN'), 'cognitive_twin_live_surface_missing');
 
 assert.match(readiness,/EMPTY_READY/);
 assert.match(readiness,/resolvedStudioCapabilityMatrix/);
@@ -106,7 +93,7 @@ console.log(JSON.stringify({
     'inference suggestion resolves persisted evidence by cycle references instead of a recency window',
     'artifact trajectory requires evidence and does not manufacture propagation claims',
     'full-cycle proof replays only real persisted material and blocks instead of mocking missing organs',
-    'the explicit pipeline surface owns the operating field and cycle analysis workflow',
+    'operating APIs are surfaced through the canonical live scene runtime',
     'clean empty runtime may be READY while scientific validation remains separate',
   ],
 },null,2));
