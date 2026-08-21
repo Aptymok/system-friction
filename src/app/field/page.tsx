@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { InstituteField } from '@/components/field/InstituteField';
+import { InstituteWorkspace } from '@/components/field/InstituteWorkspace';
 import { readPublicObservatoryState } from '@/lib/observatory/public/readPublicObservatoryState';
 import { createServerSupabaseClient } from '@/runtime/supabase/server';
 import { listOperationalCases, listOperationalTenants } from '@/lib/sfi/case-platform/repository';
@@ -29,7 +29,7 @@ export default async function FieldPage() {
     : [[], []];
 
   return (
-    <InstituteField
+    <InstituteWorkspace
       authenticated={Boolean(user)}
       initialTenants={tenants}
       initialCases={cases}
