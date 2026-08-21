@@ -48,7 +48,7 @@ export default async function AtlasPage() {
 
       <section className="grid">
         <article className="panel">
-          <header><span>FRICTION FIELD</span><strong>{state.friction.topFriction.toFixed(3)}</strong></header>
+          <header><span>FRICTION FIELD</span><strong>{metric(state.friction.topFriction)}</strong></header>
           <p>{state.friction.summary}</p>
           <div className="bars">{state.friction.nodes.slice(0, 12).map((item) => <div key={item.id}><span>{item.label}</span><i><b style={{ width: `${Math.min(100, Math.max(2, item.value / frictionMax * 100))}%` }} /></i><strong>{item.value.toFixed(3)}</strong></div>)}</div>
         </article>
