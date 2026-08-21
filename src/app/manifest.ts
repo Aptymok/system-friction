@@ -1,0 +1,2 @@
+import type { MetadataRoute } from 'next';
+export default function manifest():MetadataRoute.Manifest{return{name:'System Friction Institute',short_name:'SFI',description:'Live observatory for systems, evidence, governance and agents.',start_url:'/field',scope:'/',lang:'es-MX',display:'standalone',background_color:'#050504',theme_color:'#050504',categories:['education','productivity','utilities'],shortcuts:[{name:'Field',url:'/field'},{name:'Governance',url:'/governance'},{name:'Archive',url:'/archive'},{name:'Root',url:'/root'}]};}
