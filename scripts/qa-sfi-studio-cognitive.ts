@@ -22,13 +22,12 @@ const experienceBridge = read('src/core/cognitive-twin/experience.ts');
 const packageAnalyzer = read('src/lib/studio/multimodal/sessionPackageAnalyzer.ts');
 const packageRoute = read('src/app/api/studio/objects/[id]/analyze/package/route.ts');
 const reconstructionRoute = read('src/app/api/studio/session/reconstruct/route.ts');
-const reconstructionUi = read('src/components/studio/workspace/StudioSessionReconstruction.tsx');
 const masterLoop = read('src/lib/studio/cognitive/studioMasterAnalysisLoop.ts');
 const masterRoute = read('src/app/api/studio/objects/[id]/master-analysis/route.ts');
-const masterUi = read('src/components/studio/production/StudioMasterAnalysisControl.tsx');
 const studioPage = read('src/app/studio/page.tsx');
-const studioWorkspace = read('src/components/studio/workspace/StudioWorkspace.tsx');
 const fieldState = read('src/lib/studio/field/studioFieldState.ts');
+const scenes = read('src/components/sfi/scenes.ts');
+const liveUi = read('src/components/sfi/SfiConsole.tsx');
 
 const requiredAgents = [
   'meta_orchestrator', 'field_observer', 'evidence_hunter', 'historical_scout', 'phenotype_resolver',
@@ -41,18 +40,9 @@ for (const agent of requiredAgents) assert.ok(executionMap.includes(`${agent}:`)
 assert.equal(requiredAgents.length, 21, 'canonical_agent_count_changed_in_qa');
 
 for (const token of [
-  'executeSfiRuntime',
-  'readStudioTwinContext',
-  'runLlmTask',
-  'preferredLlmProvider',
-  'independentVerifier',
-  'INDEPENDENT_VERIFIER_REQUIRED',
-  'persistStudioLearningCandidate',
-  "status: 'CANDIDATE'",
-  'FAD',
-  'MIHM',
-  'MOP-H',
-  'DIOL-SF',
+  'executeSfiRuntime', 'readStudioTwinContext', 'runLlmTask', 'preferredLlmProvider',
+  'independentVerifier', 'INDEPENDENT_VERIFIER_REQUIRED', 'persistStudioLearningCandidate',
+  "status: 'CANDIDATE'", 'FAD', 'MIHM', 'MOP-H', 'DIOL-SF',
 ]) assert.ok(`${runtime}\n${twinContext}\n${experienceBridge}`.includes(token), `studio_cognitive_contract_missing:${token}`);
 
 assert.ok(llmRouter.includes("provider: 'degraded'"), 'llm_degraded_provider_missing');
@@ -81,58 +71,36 @@ assert.ok(fieldState.includes('studio_sessions'), 'field_must_use_existing_sessi
 assert.ok(fieldState.includes('studio_archive_events'), 'timelap_persisted_event_source_missing');
 
 for (const token of [
-  "eq('owner_id', ownerId)",
-  "eq('owner_id', user.id)",
-  'analyzeStudioSessionRelations',
-  'executeSfiRuntime',
-  'readStudioTwinContext',
-  'studio_session_reconstruction_v1',
-  'SESSION_RECONSTRUCTION_COMPLETED',
-  'PRIVATE_OWNER_SCOPE_REQUIRED',
+  "eq('owner_id', ownerId)", "eq('owner_id', user.id)", 'analyzeStudioSessionRelations',
+  'executeSfiRuntime', 'readStudioTwinContext', 'studio_session_reconstruction_v1',
+  'SESSION_RECONSTRUCTION_COMPLETED', 'PRIVATE_OWNER_SCOPE_REQUIRED',
 ]) assert.ok(reconstructionRoute.includes(token), `session_reconstruction_contract_missing:${token}`);
 assert.ok(/Evidence before inference/i.test(reconstructionRoute), 'session_reconstruction_epistemic_rule_missing');
 assert.ok(/does not prove routing|does not prove routing/i.test(reconstructionRoute), 'session_reconstruction_routing_boundary_missing');
-assert.ok(reconstructionUi.includes('OWNER PRIVATE'), 'session_reconstruction_privacy_ui_missing');
-assert.ok(reconstructionUi.includes('/api/studio/session/reconstruct'), 'session_reconstruction_ui_not_wired');
 
 for (const token of [
-  'STUDIO_MASTER_ANALYSIS_MIN_PASSES = 2',
-  'STUDIO_MASTER_ANALYSIS_MAX_PASSES = 3',
-  "action: 'analyze'",
-  'STRUCTURAL_STATE_STABLE',
-  'MAX_PASSES_REACHED',
-  'studio_master_analysis_loop_v1',
-  'MASTER_ANALYSIS_LOOP_COMPLETED',
+  'STUDIO_MASTER_ANALYSIS_MIN_PASSES = 2', 'STUDIO_MASTER_ANALYSIS_MAX_PASSES = 3',
+  "action: 'analyze'", 'STRUCTURAL_STATE_STABLE', 'MAX_PASSES_REACHED',
+  'studio_master_analysis_loop_v1', 'MASTER_ANALYSIS_LOOP_COMPLETED',
 ]) assert.ok(masterLoop.includes(token), `master_analysis_loop_contract_missing:${token}`);
 assert.ok(!/while\s*\(|setInterval\s*\(|setTimeout\s*\(|sleep\s*\(/.test(masterLoop), 'master_analysis_must_not_wait_or_loop_unbounded');
 assert.ok(masterLoop.includes('pass <= STUDIO_MASTER_ANALYSIS_MAX_PASSES'), 'master_analysis_explicit_pass_bound_missing');
 assert.ok(masterRoute.includes('requireObjectOwner'), 'master_analysis_owner_gate_missing');
 assert.ok(masterRoute.includes('runStudioMasterAnalysisLoop'), 'master_analysis_route_not_wired');
-assert.ok(masterUi.includes('/master-analysis'), 'master_analysis_ui_not_wired');
-assert.ok(masterUi.includes('máximo 3'), 'master_analysis_ui_finite_contract_missing');
 
-// Canonical Studio surface is now the native multiscale field. Legacy reconstruction/master-loop
-// controls remain callable instruments but must not own the /studio entry surface.
-assert.ok(studioPage.includes('StudioWorkspace'), 'studio_native_workspace_missing');
-assert.equal(studioPage.includes('StudioSessionReconstruction'), false, 'session_reconstruction_must_not_own_studio_entry');
-assert.equal(studioPage.includes('StudioProductionConsole'), false, 'legacy_production_console_must_not_own_studio_entry');
-for (const token of ['ATTRACTOR', 'PROJECT', 'NODE', 'OBJECT', 'MANIFESTATION', "'IDENTITY'", 'MOPS EVIDENCE', 'METHOD LAB', 'TIME / RETURN / CONTINUITY']) {
-  assert.ok(studioWorkspace.includes(token), `studio_native_surface_contract_missing:${token}`);
-}
-assert.ok(studioWorkspace.includes('StudioDirectIngestion'), 'studio_native_ingestion_missing');
-assert.ok(studioWorkspace.includes('/api/studio/objects/${encodeURIComponent(activeObjectId)}/cognitive'), 'studio_native_cognitive_runtime_missing');
-assert.ok(studioWorkspace.includes('PUBLIC CERTIFICATE'), 'studio_certificate_surface_missing');
-assert.ok(studioWorkspace.includes('NOT ISSUED'), 'studio_certificate_fail_closed_state_missing');
+// The old Studio workspace/production controls were presentation surfaces and were
+// deleted. The canonical /studio alias now enters MODELS, with GENAI as the related
+// governed architecture surface. Backend Studio runtimes remain unchanged above.
+assert.ok(studioPage.includes("redirect('/models')"), 'studio_entry_must_resolve_to_models');
+assert.ok(scenes.includes("models:{key:'models'"), 'models_scene_missing');
+assert.ok(scenes.includes("genai:{key:'genai'"), 'genai_scene_missing');
+assert.ok(scenes.includes("agents:{key:'agents'"), 'agents_scene_missing');
+assert.ok(liveUi.includes('COGNITIVE TWIN'), 'studio_twin_observability_missing');
+assert.ok(liveUi.includes('FUENTE VIVA') && liveUi.includes('ESTADO'), 'studio_runtime_telemetry_missing');
 
 const migrationFiles = walk('supabase/migrations').filter((file) => file.endsWith('.sql'));
 const migrationText = migrationFiles.map((file) => readFileSync(file, 'utf8')).join('\n');
 assert.ok(!/create\s+table\s+(?:if\s+not\s+exists\s+)?(?:public\.)?studio_object_relations\b/i.test(migrationText), 'duplicate_studio_relation_table_present');
-
-for (const removed of [
-  'src/components/studio/workspace/StudioObjectReport.tsx',
-  'src/components/studio/workspace/StudioCapabilityDrawer.tsx',
-  'src/components/studio/workspace/StudioTraceDrawer.tsx',
-]) assert.ok(!existsSync(path.join(root, removed)), `replaced_studio_component_still_present:${removed}`);
 
 console.log(JSON.stringify({
   ok: true,
@@ -147,13 +115,10 @@ console.log(JSON.stringify({
   zipHeavySourcePurged: true,
   sessionReconstructionOwnerScoped: true,
   sessionReconstructionUsesExistingRuntime: true,
-  sessionReconstructionSecondaryInstrument: true,
   masterAnalysisFinite: true,
   masterAnalysisPassBudget: [2, 3],
   masterAnalysisOwnerScoped: true,
-  masterAnalysisSecondaryInstrument: true,
-  nativeStudioSurface: true,
-  mopsCertificateSurfaceFailClosed: true,
+  canonicalStudioSurface: 'MODELS_LIVE_SCENE',
+  companionGenAiSurface: true,
   duplicateRelationTable: false,
-  removedDashboardComponents: 3,
 }, null, 2));
