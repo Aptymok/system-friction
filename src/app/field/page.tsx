@@ -1,14 +1,15 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
-import { FieldOperationalConsole } from '@/components/field/FieldOperationalConsole';
+import { InstituteWorkspace } from '@/components/field/InstituteWorkspace';
 import { readPublicObservatoryState } from '@/lib/observatory/public/readPublicObservatoryState';
 import { createServerSupabaseClient } from '@/runtime/supabase/server';
+import { listOperationalCases, listOperationalTenants } from '@/lib/sfi/case-platform/repository';
+import { SFI_SERVICE_PROFILES } from '@/core/case-platform/serviceProfiles';
 
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: 'FIELD · MOP-H 72-hour operational cycle',
-  description: 'Declare a stuck system, seal a governed minimal intervention and return with evidence for MIHM, WorldSpect and World Vector contrast.',
+  title: 'FIELD · System Friction Institute',
+  description: 'Enter a personal or tenant-scoped system, connect sources, preserve evidence and execute governed observation before intervention.',
   alternates: { canonical: '/field' },
 };
 
@@ -19,36 +20,37 @@ export default async function FieldPage() {
     readPublicObservatoryState().catch(() => null),
   ]);
 
-  const dominantDomains = worldState
-    ? worldState.vectors
-      .filter((item) => item.active)
-      .sort((left, right) => right.value - left.value)
-      .slice(0, 4)
-      .map((item) => ({ label: item.label, value: item.value }))
-    : [];
+  const user = auth.user ?? null;
+  const [tenants, cases] = user
+    ? await Promise.all([
+        listOperationalTenants(user.id).catch(() => []),
+        listOperationalCases(user.id).catch(() => []),
+      ])
+    : [[], []];
 
   return (
-    <>
-      <Link
-        href="/field/map"
-        className="fixed right-4 top-4 z-[80] border border-[#6f5831] bg-[#070705e8] px-4 py-3 font-mono text-[10px] uppercase tracking-[0.16em] text-[#d7b66e] backdrop-blur-md"
-      >
-        FIELD / MAP
-      </Link>
-      <FieldOperationalConsole
-        authenticated={Boolean(auth.user)}
-        world={{
-          observedAt: worldState?.publicContract.observedAt ?? null,
-          regime: worldState?.wsv.regime ?? 'MISSING',
-          wsv: worldState?.wsv.globalIndex ?? null,
-          tension: worldState?.wsv.tension ?? null,
-          confidence: worldState?.dailyReading.confidence ?? null,
-          dominantDomains,
-          warning: worldState && worldState.publicContract.sourceState !== 'observed'
-            ? `SOURCE ${worldState.publicContract.sourceState.toUpperCase()}`
-            : null,
-        }}
-      />
-    </>
+    <InstituteWorkspace
+      authenticated={Boolean(user)}
+      initialTenants={tenants}
+      initialCases={cases}
+      profiles={SFI_SERVICE_PROFILES.map((profile) => ({
+        id: profile.id,
+        label: profile.label,
+        acceptedSubjects: profile.acceptedSubjects,
+        requiredSources: profile.requiredSources,
+        requiredAnalyses: profile.requiredAnalyses,
+        metricProfile: profile.metricProfile,
+      }))}
+      world={{
+        observedAt: worldState?.publicContract.observedAt ?? null,
+        regime: worldState?.wsv.regime ?? 'MISSING',
+        wsv: worldState?.wsv.globalIndex ?? null,
+        tension: worldState?.wsv.tension ?? null,
+        confidence: worldState?.dailyReading.confidence ?? null,
+        warning: worldState && worldState.publicContract.sourceState !== 'observed'
+          ? `SOURCE ${worldState.publicContract.sourceState.toUpperCase()}`
+          : null,
+      }}
+    />
   );
 }
