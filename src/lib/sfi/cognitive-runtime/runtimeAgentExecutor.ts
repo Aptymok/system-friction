@@ -2,6 +2,7 @@ import type { KernelContext } from './kernelContext';
 import { executeRegisteredAgent } from './agentExecutionMap';
 import { recordAgentExecutionEvent } from '@/infrastructure/events/cognitiveRuntimeEventRepository';
 import { augmentAgentWithLlm } from '@/infrastructure/ai/agentLlmClient';
+import { evaluateAgentAiGovernance, SFI_AI_GOVERNANCE_POLICY } from '@/lib/governance/aiGovernancePolicy';
 
 export interface AgentExecutionResult {
   agentId: string;
@@ -20,15 +21,35 @@ export async function runCognitiveAgent(
   let executed = false;
   let deterministicError: string | null = null;
   let llmError: string | null = null;
+  const governance = evaluateAgentAiGovernance(agentId, context);
 
-  try {
-    updatedContext = executeRegisteredAgent(agentId, context);
-    executed = Boolean(updatedContext);
-  } catch (error) {
-    deterministicError = error instanceof Error ? error.message : String(error);
-    updatedContext = context;
-    executed = false;
+  if (governance.disposition !== 'BLOCK') {
+    try {
+      updatedContext = executeRegisteredAgent(agentId, context);
+      executed = Boolean(updatedContext);
+    } catch (error) {
+      deterministicError = error instanceof Error ? error.message : String(error);
+      updatedContext = context;
+      executed = false;
+    }
+  } else {
+    deterministicError = `AI_GOVERNANCE_BLOCK:${governance.reasons.join(',')}`;
   }
+
+  updatedContext.metadata = {
+    ...updatedContext.metadata,
+    aiGovernance: {
+      policyId: SFI_AI_GOVERNANCE_POLICY.id,
+      managementSystem: SFI_AI_GOVERNANCE_POLICY.managementSystem,
+      riskGuidance: SFI_AI_GOVERNANCE_POLICY.riskGuidance,
+      euTransparencyBaseline: SFI_AI_GOVERNANCE_POLICY.euTransparencyBaseline,
+      lastAgentId: agentId,
+      disposition: governance.disposition,
+      risk: governance.risk,
+      reasons: governance.reasons,
+      evaluatedAt: new Date().toISOString(),
+    },
+  };
 
   if (executed && updatedContext.metadata?.llmAugmentation === true) {
     try {
@@ -71,6 +92,8 @@ export async function runCognitiveAgent(
       metadataBefore: beforeMetadataKeys,
       metadataAfter: afterMetadataKeys,
       deterministicError,
+      aiGovernance: governance,
+      aiGovernancePolicyId: SFI_AI_GOVERNANCE_POLICY.id,
       llmAugmentationRequested: updatedContext.metadata?.llmAugmentation === true,
       llmAugmentationStatus: insight?.status ?? (llmError ? 'FAILED' : 'NOT_REQUESTED_OR_NOT_AVAILABLE'),
       llmProvider: insight?.provider ?? null,
