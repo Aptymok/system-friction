@@ -55,13 +55,7 @@ export async function readSingleFromView(view: string): Promise<SfiReadResult<Sf
     if (error) throw error;
     return { ok: true, data: data ?? null, source: view };
   } catch (error) {
-    return {
-      ok: false,
-      data: null,
-      source: view,
-      degraded: true,
-      error: errorMessage(error, `${view}_read_failed`),
-    };
+    return { ok: false, data: null, source: view, degraded: true, error: errorMessage(error, `${view}_read_failed`) };
   } finally {
     clearTimeout(timeout);
   }
@@ -79,13 +73,7 @@ export async function readListFromView(view: string, limit = 50): Promise<SfiRea
     if (error) throw error;
     return { ok: true, data: data ?? [], source: view };
   } catch (error) {
-    return {
-      ok: false,
-      data: [],
-      source: view,
-      degraded: true,
-      error: errorMessage(error, `${view}_read_failed`),
-    };
+    return { ok: false, data: [], source: view, degraded: true, error: errorMessage(error, `${view}_read_failed`) };
   } finally {
     clearTimeout(timeout);
   }
@@ -94,37 +82,23 @@ export async function readListFromView(view: string, limit = 50): Promise<SfiRea
 export async function readLatestProposalAlignments(proposalIds: string[]): Promise<SfiReadResult<SfiRecord[]>> {
   const ids = [...new Set(proposalIds.map((item) => item.trim()).filter(Boolean))];
   if (ids.length === 0) return { ok: true, data: [], source: 'sfi_proposal_alignment' };
-
   const { controller, timeout } = createReadAbortController();
   try {
     const supabase = createServiceSupabaseClient();
-    const query = supabase
-      .from('sfi_proposal_alignment')
-      .select('*')
-      .in('proposal_id', ids)
-      .order('created_at', { ascending: false })
-      .limit(Math.max(25, ids.length * 5));
+    const query = supabase.from('sfi_proposal_alignment').select('*').in('proposal_id', ids).order('created_at', { ascending: false }).limit(Math.max(25, ids.length * 5));
     const executable = 'abortSignal' in query
       ? (query as typeof query & { abortSignal: (signal: AbortSignal) => typeof query }).abortSignal(controller.signal)
       : query;
     const { data, error } = await executable;
     if (error) throw error;
-
     const byProposal = new Map<string, SfiRecord>();
     for (const row of data ?? []) {
       const proposalId = textValue(row.proposal_id);
       if (proposalId && !byProposal.has(proposalId)) byProposal.set(proposalId, row);
     }
-
     return { ok: true, data: [...byProposal.values()], source: 'sfi_proposal_alignment' };
   } catch (error) {
-    return {
-      ok: false,
-      data: [],
-      source: 'sfi_proposal_alignment',
-      degraded: true,
-      error: errorMessage(error, 'sfi_proposal_alignment_read_failed'),
-    };
+    return { ok: false, data: [], source: 'sfi_proposal_alignment', degraded: true, error: errorMessage(error, 'sfi_proposal_alignment_read_failed') };
   } finally {
     clearTimeout(timeout);
   }
@@ -137,20 +111,69 @@ export async function readLatestProposalAlignment(proposalId: string | null): Pr
   return { ...result, data: result.data[0] ?? null };
 }
 
+function operationalAttractorPriority(row: SfiRecord) {
+  const value = Number(asRecord(row.vector).priority);
+  return Number.isFinite(value) ? value : 0;
+}
+
+export async function readActiveOperationalAttractor(): Promise<SfiReadResult<SfiRecord | null>> {
+  try {
+    const supabase = createServiceSupabaseClient();
+    const result = await supabase.from('sfi_attractors').select('*').in('status', ['declared', 'active']).order('updated_at', { ascending: false }).limit(100);
+    if (result.error) throw result.error;
+    const candidates = (result.data ?? []).filter((row) => asRecord(row.vector).declarationScope === 'operational');
+    candidates.sort((a, b) => operationalAttractorPriority(b) - operationalAttractorPriority(a));
+    return { ok: true, data: candidates[0] ?? null, source: 'sfi_attractors' };
+  } catch (error) {
+    return { ok: false, data: null, source: 'sfi_attractors', degraded: true, error: errorMessage(error, 'sfi_attractors_read_failed') };
+  }
+}
+
+export async function readAlignmentQueue(): Promise<SfiReadResult<SfiRecord[]>> {
+  try {
+    const supabase = createServiceSupabaseClient();
+    const proposals = await supabase
+      .from('action_proposals')
+      .select('id,title,objective,description,expected_field_delta,status,created_at')
+      .in('status', ['draft', 'proposed', 'approved', 'design_approved', 'queued'])
+      .order('created_at', { ascending: false })
+      .limit(50);
+    if (proposals.error) throw proposals.error;
+    const ids = (proposals.data ?? []).map((row) => String(row.id));
+    const alignments = await readLatestProposalAlignments(ids);
+    if (!alignments.ok) throw new Error(alignments.error || 'alignment_read_failed');
+    const byProposal = new Map(alignments.data.map((row) => [textValue(row.proposal_id), row]));
+    const queue = (proposals.data ?? []).filter((proposal) => {
+      const alignment = byProposal.get(String(proposal.id));
+      if (!alignment) return true;
+      return !['execute_now', 'prepare_execution', 'execute_only_if_aligned', 'rejected', 'closed'].includes(textValue(alignment.recommended_status));
+    }).map((proposal) => ({
+      proposal_id: proposal.id,
+      proposal_title: proposal.title ?? null,
+      proposal_objective: proposal.objective ?? proposal.description ?? null,
+      proposal_status: proposal.status,
+      expected_field_delta: proposal.expected_field_delta,
+      latest_alignment: byProposal.get(String(proposal.id)) ?? null,
+    }));
+    return { ok: true, data: queue, source: 'action_proposals+sfi_proposal_alignment' };
+  } catch (error) {
+    return { ok: false, data: [], source: 'action_proposals+sfi_proposal_alignment', degraded: true, error: errorMessage(error, 'sfi_alignment_queue_read_failed') };
+  }
+}
+
 export async function readOperationalConsoleState() {
-  const [operationalCycle, stability, pipelineLoss, recoveryQueue, worldSpect, scoreFriction, evidenceMap, closedLoop, attractor, alignmentQueue] =
-    await Promise.all([
-      readSingleFromView('vw_sfi_operational_cycle'),
-      readSingleFromView('vw_sfi_stability'),
-      readSingleFromView('vw_sfi_pipeline_loss'),
-      readListFromView('vw_sfi_execution_recovery_queue', 25),
-      readSingleFromView('vw_worldspect_real'),
-      readSingleFromView('vw_scorefriction_real'),
-      readListFromView('vw_sfi_evidence_map', 25),
-      readSingleFromView('vw_sfi_closed_loop_state'),
-      readSingleFromView('sfi_declared_attractors'),
-      readListFromView('vw_sfi_attractor_alignment_queue', 25),
-    ]);
+  const [operationalCycle, stability, pipelineLoss, recoveryQueue, worldSpect, scoreFriction, evidenceMap, closedLoop, attractor, alignmentQueue] = await Promise.all([
+    readSingleFromView('vw_sfi_operational_cycle'),
+    readSingleFromView('vw_sfi_stability'),
+    readSingleFromView('vw_sfi_pipeline_loss'),
+    readListFromView('vw_sfi_execution_recovery_queue', 25),
+    readSingleFromView('vw_worldspect_real'),
+    readSingleFromView('vw_scorefriction_real'),
+    readListFromView('vw_sfi_evidence_map', 25),
+    readSingleFromView('vw_sfi_closed_loop_state'),
+    readActiveOperationalAttractor(),
+    readAlignmentQueue(),
+  ]);
 
   return {
     ok: [operationalCycle, stability, pipelineLoss, recoveryQueue, worldSpect, scoreFriction, evidenceMap, closedLoop, attractor, alignmentQueue].every((item) => item.ok),
@@ -167,66 +190,21 @@ export async function readOperationalConsoleState() {
   };
 }
 
-/**
- * Persists an alignment assessment without inventing scores from lexical overlap.
- * If no evidence-backed assessment is supplied, the only valid output is a request
- * for evidence. Numeric scores remain null unless they are explicitly supplied by
- * an assessed source.
- */
-export function buildAlignmentAssessment(input: {
-  proposal: SfiRecord;
-  attractor: SfiRecord | null;
-  body?: SfiRecord;
-}) {
+export function buildAlignmentAssessment(input: { proposal: SfiRecord; attractor: SfiRecord | null; body?: SfiRecord }) {
   const body = input.body ?? {};
   const proposalObjective = textValue(input.proposal.objective, textValue(input.proposal.description));
-
   if (!input.attractor) {
-    return {
-      recommended_status: 'request_attractor',
-      recommendation: 'Declare an active attractor before assessing proposal alignment.',
-      rationale: 'No active attractor exists.',
-      alignment_score: null,
-      evidence_score: null,
-      regime_fit_score: null,
-      execution_value_score: null,
-      recovery_cost_score: null,
-      risk_score: null,
-    };
+    return { recommended_status: 'request_attractor', recommendation: 'Declare an active attractor before assessing proposal alignment.', rationale: 'No active attractor exists.', alignment_score: null, evidence_score: null, regime_fit_score: null, execution_value_score: null, recovery_cost_score: null, risk_score: null };
   }
-
   if (!proposalObjective) {
-    return {
-      recommended_status: 'request_evidence',
-      recommendation: 'Record the proposal objective and supporting evidence before alignment assessment.',
-      rationale: 'Proposal objective is missing.',
-      alignment_score: null,
-      evidence_score: null,
-      regime_fit_score: null,
-      execution_value_score: null,
-      recovery_cost_score: null,
-      risk_score: null,
-    };
+    return { recommended_status: 'request_evidence', recommendation: 'Record the proposal objective and supporting evidence before alignment assessment.', rationale: 'Proposal objective is missing.', alignment_score: null, evidence_score: null, regime_fit_score: null, execution_value_score: null, recovery_cost_score: null, risk_score: null };
   }
-
   const recommendedStatus = textValue(body.recommended_status);
   const recommendation = textValue(body.recommendation);
   const rationale = textValue(body.rationale);
-
   if (!recommendedStatus || !recommendation || !rationale) {
-    return {
-      recommended_status: 'request_evidence',
-      recommendation: 'Attach an evidence-backed alignment assessment before execution can be prepared.',
-      rationale: 'No assessed alignment was supplied. SFI does not infer alignment from word overlap.',
-      alignment_score: null,
-      evidence_score: null,
-      regime_fit_score: null,
-      execution_value_score: null,
-      recovery_cost_score: null,
-      risk_score: null,
-    };
+    return { recommended_status: 'request_evidence', recommendation: 'Attach an evidence-backed alignment assessment before execution can be prepared.', rationale: 'No assessed alignment was supplied. SFI does not infer alignment from word overlap.', alignment_score: null, evidence_score: null, regime_fit_score: null, execution_value_score: null, recovery_cost_score: null, risk_score: null };
   }
-
   return {
     recommended_status: recommendedStatus,
     recommendation,
