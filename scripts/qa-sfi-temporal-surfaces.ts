@@ -66,7 +66,7 @@ for (const token of [
   'spec.liveSource',
   'scene-${scene}',
   'dataNode dn1',
-  'Cognitive Twin',
+  'COGNITIVE TWIN',
 ]) assert.ok(liveUi.includes(token), `live_scene_runtime_missing:${token}`);
 assert.ok(legacyObservatory.includes("redirect('/field')") || legacyObservatory.includes("redirect('/archive')") || legacyObservatory.includes('redirect('), 'legacy_observatory_must_resolve_into_live_scene_system');
 assert.equal(liveUi.includes('sfi_cognitive_twin_memory'), false, 'public_live_scene_must_not_expose_private_cognitive_twin_corpus');
