@@ -1,6 +1,5 @@
 import { createServiceSupabaseClient } from '@/runtime/supabase/server'
 import { executeAbortableQuery } from '@/lib/supabase/abortableQuery'
-import { readSfiOperationalEventsAsync } from '@/lib/sfi/operational/events'
 import { mapMihmCulturalVector } from '@/lib/scorefriction/mihm-cultural-mapper'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { AmvScopeState } from '@/lib/amv/core/amvScopeStateTypes'
@@ -37,30 +36,16 @@ function pushWarning(warnings: string[], warning: string | null | undefined) {
 
 function logSupabaseClientDiagnostics() {
   const serviceRolePresent = Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY)
-
-  console.info(
-    `[scorefrictionStateConnector] Supabase client = ${SUPABASE_CLIENT_FACTORY}; SUPABASE_SERVICE_ROLE_KEY present = ${serviceRolePresent}`,
-  )
-
-  if (!serviceRolePresent) {
-    console.warn(`[scorefrictionStateConnector] ${SERVICE_ROLE_MISSING_WARNING}`)
-  }
-
+  if (!serviceRolePresent) console.warn(`[scorefrictionStateConnector] ${SERVICE_ROLE_MISSING_WARNING}`)
   return { serviceRolePresent }
 }
 
 function trustFromEvent(row: Row): AmvEvidenceTrust {
   const klass = str(row.epistemic_class)
-  if (klass === 'observed') return 'verified'
+  if (klass === 'observed' || klass === 'imported' || klass === 'extracted') return 'verified'
   if (klass === 'declared') return 'declared'
   if (klass === 'derived' || klass === 'inferred') return 'inferred'
-  if (klass === 'simulated' || klass === 'fixture') return 'sandbox'
-  const status = str(row.status).toLowerCase()
-  if (status === 'observed') return 'verified'
-  if (status === 'derived' || status === 'inferred') return 'inferred'
-  if (status === 'simulated' || status === 'sandbox') return 'sandbox'
-  const kind = str(row.kind).toLowerCase()
-  if (kind.includes('manual')) return 'sandbox'
+  if (klass === 'simulated') return 'sandbox'
   return 'unknown'
 }
 
@@ -77,9 +62,7 @@ function isNumber(value: unknown): value is number {
 
 function numberRecord(value: unknown): Record<string, number> {
   const recordValue = record(value)
-  return Object.fromEntries(
-    Object.entries(recordValue).filter(([, entryValue]) => isNumber(entryValue)),
-  ) as Record<string, number>
+  return Object.fromEntries(Object.entries(recordValue).filter(([, entryValue]) => isNumber(entryValue))) as Record<string, number>
 }
 
 function deriveMihmCulturalVector(vectors: Row | null) {
@@ -90,10 +73,7 @@ function deriveMihmCulturalVector(vectors: Row | null) {
   const semantic_vector = numberRecord(vectors.semantic_vector)
   const memetic_vector = numberRecord(vectors.memetic_vector)
   const platform_vector = numberRecord(vectors.platform_vector)
-
-  if (!Object.keys(semantic_vector).length && !Object.keys(memetic_vector).length && !Object.keys(platform_vector).length) {
-    return null
-  }
+  if (!Object.keys(semantic_vector).length && !Object.keys(memetic_vector).length && !Object.keys(platform_vector).length) return null
 
   return mapMihmCulturalVector({
     acoustic_vector: { waveform_presence: 0 },
@@ -103,33 +83,16 @@ function deriveMihmCulturalVector(vectors: Row | null) {
   })
 }
 
-function isScoreFrictionRootEvent(row: Row) {
-  const source = record(row.source)
-  const payload = record(row.payload)
-  return (
-    str(source.sourceId).toUpperCase() === 'SCOREFRICTION'
-    || str(payload.logbookAlias).toUpperCase() === 'SCOREFRICTION'
-    || str(row.event_name).startsWith('scorefriction.')
-  )
-}
-
 function isManualTestObservation(row: Row | undefined) {
   if (!row) return false
-  return (
-    str(row.source_url).startsWith('manual://scorefriction-root-test')
-    || str(row.evidence_hash).startsWith('manual-test-')
-  )
+  return str(row.source_url).startsWith('manual://scorefriction-root-test') || str(row.evidence_hash).startsWith('manual-test-')
 }
 
 function isManualTestEvent(row: Row | null | undefined) {
   if (!row) return false
   const source = record(row.source)
   const payload = record(row.payload)
-  return (
-    str(source.sourceType) === 'manual_supabase_test'
-    || str(payload.sourceType) === 'manual_supabase_test'
-    || str(payload.evidenceHash).startsWith('manual-test-')
-  )
+  return str(source.sourceType) === 'manual_supabase_test' || str(payload.sourceType) === 'manual_supabase_test' || str(payload.evidenceHash).startsWith('manual-test-')
 }
 
 async function queryRows(
@@ -149,7 +112,6 @@ async function queryRows(
 export async function buildScoreFrictionSelectedContext() {
   const warnings: string[] = []
   const diagnostics = logSupabaseClientDiagnostics()
-
   let observations: Row[] = []
   let vectors: Row[] = []
   let prototypes: Row[] = []
@@ -168,20 +130,14 @@ export async function buildScoreFrictionSelectedContext() {
       queryRows(service, 'scorefriction_vectors'),
       queryRows(service, 'scorefriction_prototypes'),
       queryRows(service, 'scorefriction_verifications', '*', 'verified_at'),
-      queryRows(service, 'epistemic_events', '*', 'created_at', 100, { column: 'logbook_id', value: 'ROOT' }),
+      queryRows(service, 'epistemic_events', '*', 'created_at', 100, { column: 'logbook_id', value: 'SCOREFRICTION' }),
     ])
-
-    const sfiEvents = await readSfiOperationalEventsAsync()
-    const memoryEvents = sfiEvents
-      .filter((event) => str(event.organ).toLowerCase() === 'scorefriction' || str(event.kind).toLowerCase().includes('scorefriction'))
-      .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)))
 
     observations = obs.rows
     vectors = vec.rows
     prototypes = proto.rows
     verifications = ver.rows
-    const rootEvents = evt.rows.filter(isScoreFrictionRootEvent)
-    events = memoryEvents.length > 0 ? memoryEvents : rootEvents
+    events = evt.rows.filter((row) => str(row.event_name).startsWith('scorefriction.'))
     ;[obs.warning, vec.warning, proto.warning, ver.warning, evt.warning].forEach((warning) => pushWarning(warnings, warning))
   } catch (error) {
     pushWarning(warnings, error instanceof Error ? error.message : 'scorefriction_state_not_ready')
