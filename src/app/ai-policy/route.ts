@@ -1,31 +1,42 @@
 export async function GET() {
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://systemfriction.org';
   const content = `
-# AI POLICY
+# SYSTEM FRICTION INSTITUTE — AI POLICY
 
-System Friction Institute uses probabilistic cognitive modeling.
+SFI uses probabilistic models, longitudinal evidence, governed agents and laboratory runtimes to observe complex sociotechnical systems.
 
-The system:
-- analyzes longitudinal patterns
-- estimates coherence structures
-- models behavioral friction
-- generates probabilistic observations
+## PRINCIPLES
+- Evidence, inference, experiment and canonical state remain distinct.
+- Provenance and time must remain attached to consequential claims.
+- Cognitive Twin proposals are proposals, not automatic decisions.
+- ROOT retains governed human authority for acceptance or rejection where required.
+- External AI clients receive explicit scopes and do not inherit unrestricted authority.
+- Execution is distinct from proposal and from canonical promotion.
+- Laboratory output remains experimental unless a separate governed process changes its epistemic state.
 
-The system does not:
-- provide medical diagnosis
-- provide psychiatric diagnosis
-- provide legal conclusions
-- determine immutable identity
+## EXTERNAL AI INTERFACE
+Capability discovery: ${baseUrl}/api/external/v1/manifest
 
-All outputs are interpretative approximations.
+Authorized operations may include:
+- observation
+- proposal generation
+- execution of already-authorized work
+- Method Lab state/report access
+- governed laboratory persistence and runtime execution
 
-Human cognition is dynamic and context dependent.
+Credentials are not public and must never be inferred from machine-readable documentation.
 
-Users remain responsible for all decisions and interpretations.
-`.trim()
+## SYSTEM LIMITS
+SFI does not treat model output as medical diagnosis, psychiatric diagnosis, legal conclusion, immutable identity or independent empirical validation. Human and institutional systems are dynamic, context-dependent and partially observed.
+
+## PUBLIC / PRIVATE BOUNDARY
+Public scenes and machine-readable discovery documents can be indexed. Private ROOT state, credentials, account memory, non-public evidence and protected laboratory material are not public evidence.
+`.trim();
 
   return new Response(content, {
     headers: {
-      'Content-Type': 'text/plain'
-    }
-  })
+      'Content-Type': 'text/plain; charset=utf-8',
+      'Cache-Control': 'public, max-age=900',
+    },
+  });
 }
