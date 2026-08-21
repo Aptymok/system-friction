@@ -97,7 +97,7 @@ export function SfiExperienceMembrane() {
   const showEngage = pathname !== '/' || homeIndex >= 11;
 
   return (
-    <aside className="sfi-membrane" data-private={pathname.startsWith('/root') || pathname.startsWith('/studio') || pathname.startsWith('/member')} data-home-scene={pathname === '/' ? homeScene : undefined}>
+    <aside className="sfi-membrane" data-private={pathname.startsWith('/root') || pathname.startsWith('/studio') || pathname.startsWith('/member') || pathname.startsWith('/clients')} data-home-scene={pathname === '/' ? homeScene : undefined}>
       <div className="sfi-membrane__identity">
         <Link href="/" aria-label="System Friction Institute home"><strong>SFI</strong><span>SYSTEM FRICTION INSTITUTE</span></Link>
         {incomingOrigin || scene || focus ? (
