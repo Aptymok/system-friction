@@ -11,6 +11,13 @@ export interface AgentExecutionResult {
   executedAt: string;
 }
 
+function llmAugmentationEnabled(agentId: string, context: KernelContext) {
+  if (context.metadata?.llmAugmentation !== true) return false;
+  const allowlist = context.metadata?.llmAugmentationAgents;
+  if (!Array.isArray(allowlist)) return true;
+  return allowlist.includes(agentId);
+}
+
 export async function runCognitiveAgent(
   agentId: string,
   context: KernelContext,
@@ -51,7 +58,8 @@ export async function runCognitiveAgent(
     },
   };
 
-  if (executed && updatedContext.metadata?.llmAugmentation === true) {
+  const llmRequested = executed && llmAugmentationEnabled(agentId, updatedContext);
+  if (llmRequested) {
     try {
       updatedContext = await augmentAgentWithLlm(agentId, updatedContext);
     } catch (error) {
@@ -94,8 +102,8 @@ export async function runCognitiveAgent(
       deterministicError,
       aiGovernance: governance,
       aiGovernancePolicyId: SFI_AI_GOVERNANCE_POLICY.id,
-      llmAugmentationRequested: updatedContext.metadata?.llmAugmentation === true,
-      llmAugmentationStatus: insight?.status ?? (llmError ? 'FAILED' : 'NOT_REQUESTED_OR_NOT_AVAILABLE'),
+      llmAugmentationRequested: llmRequested,
+      llmAugmentationStatus: insight?.status ?? (llmError ? 'FAILED' : llmRequested ? 'NOT_AVAILABLE' : 'NOT_REQUESTED'),
       llmProvider: insight?.provider ?? null,
       llmModel: insight?.model ?? null,
       llmError,
