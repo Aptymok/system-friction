@@ -134,10 +134,7 @@ export async function readLatestProposalAlignment(proposalId: string | null): Pr
   const id = textValue(proposalId);
   if (!id) return { ok: true, data: null, source: 'sfi_proposal_alignment' };
   const result = await readLatestProposalAlignments([id]);
-  return {
-    ...result,
-    data: result.data[0] ?? null,
-  };
+  return { ...result, data: result.data[0] ?? null };
 }
 
 export async function readOperationalConsoleState() {
@@ -156,18 +153,7 @@ export async function readOperationalConsoleState() {
     ]);
 
   return {
-    ok: [
-      operationalCycle,
-      stability,
-      pipelineLoss,
-      recoveryQueue,
-      worldSpect,
-      scoreFriction,
-      evidenceMap,
-      closedLoop,
-      attractor,
-      alignmentQueue,
-    ].every((item) => item.ok),
+    ok: [operationalCycle, stability, pipelineLoss, recoveryQueue, worldSpect, scoreFriction, evidenceMap, closedLoop, attractor, alignmentQueue].every((item) => item.ok),
     operationalCycle,
     stability,
     pipelineLoss,
@@ -181,30 +167,25 @@ export async function readOperationalConsoleState() {
   };
 }
 
-export function inferAlignment(input: {
+/**
+ * Persists an alignment assessment without inventing scores from lexical overlap.
+ * If no evidence-backed assessment is supplied, the only valid output is a request
+ * for evidence. Numeric scores remain null unless they are explicitly supplied by
+ * an assessed source.
+ */
+export function buildAlignmentAssessment(input: {
   proposal: SfiRecord;
   attractor: SfiRecord | null;
   body?: SfiRecord;
 }) {
-  const proposalText = [
-    input.proposal.title,
-    input.proposal.objective,
-    input.proposal.description,
-    JSON.stringify(input.proposal.expected_field_delta ?? {}),
-  ].filter(Boolean).join(' ').toLowerCase();
-  const attractorText = [
-    input.attractor?.title,
-    input.attractor?.desired_future_state,
-    JSON.stringify(input.attractor?.success_markers ?? []),
-  ].filter(Boolean).join(' ').toLowerCase();
   const body = input.body ?? {};
-  const manualStatus = textValue(body.recommended_status);
+  const proposalObjective = textValue(input.proposal.objective, textValue(input.proposal.description));
 
   if (!input.attractor) {
     return {
       recommended_status: 'request_attractor',
-      recommendation: 'Declare active attractor before recommending execution.',
-      rationale: 'missing active attractor',
+      recommendation: 'Declare an active attractor before assessing proposal alignment.',
+      rationale: 'No active attractor exists.',
       alignment_score: null,
       evidence_score: null,
       regime_fit_score: null,
@@ -214,13 +195,13 @@ export function inferAlignment(input: {
     };
   }
 
-  if (!proposalText.trim()) {
+  if (!proposalObjective) {
     return {
       recommended_status: 'request_evidence',
-      recommendation: 'Request evidence because proposal objective is missing.',
-      rationale: 'not enough trace',
-      alignment_score: 0,
-      evidence_score: 0,
+      recommendation: 'Record the proposal objective and supporting evidence before alignment assessment.',
+      rationale: 'Proposal objective is missing.',
+      alignment_score: null,
+      evidence_score: null,
       regime_fit_score: null,
       execution_value_score: null,
       recovery_cost_score: null,
@@ -228,38 +209,34 @@ export function inferAlignment(input: {
     };
   }
 
-  const attractorTerms = new Set(attractorText.split(/[^a-z0-9_]+/).filter((term) => term.length > 4));
-  const proposalTerms = new Set(proposalText.split(/[^a-z0-9_]+/).filter((term) => term.length > 4));
-  const overlap = [...proposalTerms].filter((term) => attractorTerms.has(term)).length;
-  const alignmentScore = attractorTerms.size === 0 ? 0.35 : Math.min(1, overlap / Math.max(3, attractorTerms.size));
-  const evidenceScore = proposalText.includes('evidence') || proposalText.includes('evidencia') ? 0.75 : 0.35;
-  const riskScore = textValue(input.proposal.risk_level, 'medium') === 'high' ? 0.7 : 0.35;
-  const recommendedStatus =
-    manualStatus ||
-    (alignmentScore >= 0.45 && evidenceScore >= 0.5
-      ? 'execute_now'
-      : alignmentScore >= 0.25
-        ? 'reformulate'
-        : 'request_evidence');
+  const recommendedStatus = textValue(body.recommended_status);
+  const recommendation = textValue(body.recommendation);
+  const rationale = textValue(body.rationale);
+
+  if (!recommendedStatus || !recommendation || !rationale) {
+    return {
+      recommended_status: 'request_evidence',
+      recommendation: 'Attach an evidence-backed alignment assessment before execution can be prepared.',
+      rationale: 'No assessed alignment was supplied. SFI does not infer alignment from word overlap.',
+      alignment_score: null,
+      evidence_score: null,
+      regime_fit_score: null,
+      execution_value_score: null,
+      recovery_cost_score: null,
+      risk_score: null,
+    };
+  }
 
   return {
     recommended_status: recommendedStatus,
-    recommendation:
-      textValue(body.recommendation) ||
-      (recommendedStatus === 'execute_now'
-        ? `Create execution ledger record for proposal ${input.proposal.id}. Required evidence: proposal trace and active attractor markers. Verification window: ${textValue(input.attractor.horizon, 'next review cycle')}.`
-        : recommendedStatus === 'reformulate'
-          ? `Reformulate proposal ${input.proposal.id} so objective, required evidence and expected effect explicitly serve ${input.attractor.title}.`
-          : `Request evidence for proposal ${input.proposal.id} before execution because attractor fit is not sufficiently traced.`),
-    alternative_perturbation: textValue(body.alternative_perturbation, ''),
-    rationale:
-      textValue(body.rationale) ||
-      `alignment=${alignmentScore.toFixed(2)} evidence=${evidenceScore.toFixed(2)} risk=${riskScore.toFixed(2)}`,
-    alignment_score: alignmentScore,
-    evidence_score: evidenceScore,
+    recommendation,
+    alternative_perturbation: textValue(body.alternative_perturbation),
+    rationale,
+    alignment_score: numericValue(body.alignment_score, null),
+    evidence_score: numericValue(body.evidence_score, null),
     regime_fit_score: numericValue(body.regime_fit_score, null),
-    execution_value_score: numericValue(body.execution_value_score, alignmentScore),
-    recovery_cost_score: numericValue(body.recovery_cost_score, riskScore),
-    risk_score: numericValue(body.risk_score, riskScore),
+    execution_value_score: numericValue(body.execution_value_score, null),
+    recovery_cost_score: numericValue(body.recovery_cost_score, null),
+    risk_score: numericValue(body.risk_score, null),
   };
 }
