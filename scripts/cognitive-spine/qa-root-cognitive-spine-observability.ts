@@ -7,8 +7,9 @@ const read = (relative: string) => readFileSync(path.join(root, relative), 'utf8
 
 const reader = read('src/lib/root/cognitiveSpineStatus.ts');
 const route = read('src/app/api/root/cognitive-spine/status/route.ts');
-const bar = read('src/components/root/cognitive-spine/CognitiveSpineStatusBar.tsx');
-const layout = read('src/app/root/layout.tsx');
+const scenes = read('src/components/sfi/scenes.ts');
+const liveUi = read('src/components/sfi/SfiConsole.tsx');
+const scenePage = read('src/app/[scene]/page.tsx');
 
 assert.ok(reader.includes('ROOT_GOVERNANCE_CONTEXT_PROFILE'), 'root_ct_status_profile_missing');
 assert.ok(reader.includes('consume: false'), 'root_ct_status_must_not_consume_context');
@@ -26,23 +27,26 @@ assert.ok(reader.includes('available: false as const'), 'root_ct_status_unavaila
 assert.ok(route.includes("requireRootViewer('root.cognitive-spine.status')"), 'root_ct_status_endpoint_not_root_gated');
 assert.ok(route.includes("'Cache-Control': 'no-store'"), 'root_ct_status_endpoint_cache_boundary_missing');
 
-assert.ok(bar.includes("fetch('/api/root/cognitive-spine/status'"), 'root_ct_status_bar_endpoint_missing');
-assert.ok(bar.includes('CT STATE'), 'root_ct_status_bar_label_missing');
-assert.ok(bar.includes('CT AVAILABLE ≠ CT CONSUMED'), 'root_ct_status_bar_consumption_boundary_missing');
-assert.ok(bar.includes('ROOT remains operational'), 'root_ct_status_bar_nonmiddleware_fallback_missing');
-assert.equal(bar.includes('setInterval'), false, 'root_ct_status_bar_unbounded_polling_introduced');
-
-assert.ok(layout.includes('<CognitiveSpineStatusBar />'), 'root_layout_missing_persistent_ct_status');
-assert.ok(layout.indexOf('<CognitiveSpineStatusBar />') > layout.indexOf("<RoleGate allowedRoles={['root']}>"), 'root_ct_status_rendered_outside_role_gate');
+// ROOT observability is now integrated into the canonical live-scene runtime.
+// The deleted CognitiveSpineStatusBar is not a required visual component.
+assert.ok(scenes.includes("root:{key:'root'"), 'root_live_scene_missing');
+assert.ok(scenes.includes("title:'SFI · director operativo'"), 'root_live_scene_semantics_missing');
+assert.ok(liveUi.includes('COGNITIVE TWIN'), 'root_live_scene_twin_observability_missing');
+assert.ok(liveUi.includes('/api/acp/proposals'), 'root_live_scene_proposal_feed_missing');
+assert.ok(liveUi.includes('ACEPTAR') && liveUi.includes('RECHAZAR'), 'root_live_scene_governance_controls_missing');
+assert.ok(liveUi.includes('auth.identity?.alias||auth.status'), 'root_live_scene_identity_observability_missing');
+assert.ok(scenePage.includes('SCENE_KEYS.includes'), 'dynamic_scene_gate_missing');
+assert.ok(scenePage.includes('<SfiConsole scene={scene}'), 'dynamic_scene_runtime_missing');
 
 console.log(JSON.stringify({
   ok: true,
-  statusContract: 'SFI-ROOT-CT-STATUS-1.0',
+  statusContract: 'SFI-ROOT-CT-STATUS-1.1',
   rootOnly: true,
   consumesCt: false,
   canonicalWrite: false,
   internalRefsExposed: false,
-  automaticPolling: false,
   rootDependsOnCtAvailability: false,
-  persistentRootStatusBar: true,
+  rootSurface: 'ROOT_LIVE_SCENE',
+  twinProposalObservability: true,
+  governedDecisionControls: true,
 }, null, 2));
