@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
-import { asRecord, inferAlignment } from '@/lib/sfi/operationalConsole';
+import { asRecord, buildAlignmentAssessment } from '@/lib/sfi/operationalConsole';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,7 +26,7 @@ export async function POST(req: Request, ctx: RouteContext) {
     if (attractorError) throw attractorError;
     if (!proposal) return NextResponse.json({ ok: false, error: 'proposal_not_found' }, { status: 404 });
 
-    const alignment = inferAlignment({ proposal, attractor, body });
+    const alignment = buildAlignmentAssessment({ proposal, attractor, body });
     const { data, error } = await supabase
       .from('sfi_proposal_alignment')
       .insert({
