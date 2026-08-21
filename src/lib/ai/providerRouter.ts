@@ -104,7 +104,7 @@ function providerConfigs(): ProviderConfig[] {
       available: Boolean(ollamaBase),
       baseUrl: ollamaBase,
       model: DEFAULTS.ollama,
-      role: 'local/private fallback',
+      role: 'local/private provider',
       configuredBy: ['OLLAMA_BASE_URL', 'OLLAMA_URL', 'OLLAMA_HOST', 'OLLAMA_MODEL'],
     },
     {
@@ -343,10 +343,10 @@ export async function runLlmTask(input: {
   return {
     ok: false,
     provider: 'degraded',
-    model: 'manual_fallback',
+    model: 'unavailable',
     task: input.task,
-    result: input.fallbackResult,
-    warnings: warnings.length ? warnings : ['no_llm_provider_available'],
+    result: '',
+    warnings: [...(warnings.length ? warnings : ['no_llm_provider_available']), 'synthetic_fallback_suppressed'],
     usage: null,
     latency_ms: Date.now() - started,
   };
@@ -441,7 +441,7 @@ export async function createEmbedding(input: string): Promise<EmbeddingResult> {
   return {
     ok: false,
     provider: 'degraded',
-    model: 'textual_fallback',
+    model: 'unavailable',
     embedding: null,
     warnings: warnings.length ? warnings : ['no_embedding_provider_available'],
     latency_ms: Date.now() - started,
