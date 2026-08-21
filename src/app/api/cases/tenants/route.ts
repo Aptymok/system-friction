@@ -26,16 +26,27 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const { user } = await requireSfiMember();
     const body = createSchema.parse(await request.json());
+    const actor = body.tenantType === 'INTERNAL'
+      ? await requireSfiMember()
+      : await requireAuthenticatedUser();
     const tenant = await createOperationalTenant({
-      userId: user.id,
+      userId: actor.user.id,
       tenantKey: body.tenantKey,
       name: body.name,
       tenantType: body.tenantType,
-      metadata: body.metadata,
+      metadata: {
+        ...(body.metadata ?? {}),
+        tenantBoundary: 'ISOLATED',
+        rootAccess: false,
+        externalEffectsRequireGovernance: true,
+      },
     });
-    return NextResponse.json({ ok: true, tenant }, { status: 201 });
+    return NextResponse.json({
+      ok: true,
+      tenant,
+      boundary: 'Tenant memory, cases, sources and reports remain tenant-scoped. SFI institutional memory does not inherit client authority.',
+    }, { status: 201 });
   } catch (error) {
     return sfiCaseApiFailure(error);
   }
