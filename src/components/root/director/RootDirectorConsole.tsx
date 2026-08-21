@@ -51,6 +51,7 @@ export function RootDirectorConsole({ state, actorLabel, accessMode }: Props) {
     ...proposals.slice(0, 8).map((row) => ({ kind: 'PROPOSAL', title: text(row, ['title','label','summary','proposal_type'], 'Propuesta institucional'), state: text(row, ['status','state'], 'OPEN'), href: '/root/governance' })),
     ...gatedCapabilities.slice(0, 5).map((item) => ({ kind: 'AUTHORITY', title: item.label, state: 'GATED', href: '/root/governance' })),
   ].slice(0, 10), [proposals, gatedCapabilities]);
+  const divergenceCount = state.interpretation.divergences.length;
 
   return <main className="rd-shell">
     <div className="rd-field" aria-hidden="true"/>
@@ -60,7 +61,7 @@ export function RootDirectorConsole({ state, actorLabel, accessMode }: Props) {
       <div className="rd-eyebrow"><Orbit/> ROOT · DIRECTION LAYER</div>
       <h1>Dirige el instituto.<br/><em>No lo operes a mano.</em></h1>
       <p>SFI observa, analiza, reconstruye, simula, solicita evidencia, propone y calibra dentro de sus límites. ROOT concentra únicamente estado institucional, contradicciones y decisiones que requieren autoridad.</p>
-      <div className="rd-health"><span>ESTADO GENERADO</span><b>{dateLabel(state.generatedAt)}</b><span>{state.interpretation?.overallState ? String(state.interpretation.overallState) : state.system.dataClass.toUpperCase()}</span></div>
+      <div className="rd-health"><span>ESTADO GENERADO</span><b>{dateLabel(state.generatedAt)}</b><span>{divergenceCount ? `${divergenceCount} DIVERGENCIA(S)` : 'SIN DIVERGENCIAS DECLARADAS'}</span></div>
     </section>
 
     <section className="rd-metrics">
@@ -96,7 +97,7 @@ export function RootDirectorConsole({ state, actorLabel, accessMode }: Props) {
     <section className="rd-watch">
       <div className="rd-heading"><span>03</span><div><h2>Contradicciones y señales</h2><p>No se ocultan estados missing, degraded o gated.</p></div></div>
       <div className="rd-watch-grid">
-        {warnings.length ? warnings.slice(0,8).map((warning,index) => <article key={index}><CircleAlert/><span>{warning}</span></article>) : <article className="rd-ok"><CheckCircle2/><span>No hay warnings institucionales en este corte.</span></article>}
+        {warnings.length ? warnings.slice(0,8).map((warning,index) => <article key={index}><CircleAlert/><span>{warning}</span></article>) : state.interpretation.divergences.length ? state.interpretation.divergences.slice(0,8).map((item) => <article key={item.id}><CircleAlert/><span>{item.title}: {item.observation}</span></article>) : <article className="rd-ok"><CheckCircle2/><span>No hay warnings institucionales en este corte.</span></article>}
         {openPredictions.slice(0,4).map((row,index) => <article key={`p-${index}`}><Sparkles/><span>{text(row,['subject_id','scope','model_key'],'Predicción pendiente')} · {text(row,['status'],'OPEN')}</span></article>)}
       </div>
     </section>
