@@ -1,898 +1,165 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useState } from 'react';
 import type { CulturalVectorResponse } from '@/lib/scorefriction/cultural-vector-contract';
-import { CULTURAL_WAVE_CASES } from '@/lib/scorefriction/cultural-wave-cases';
 import './CulturalVectorDashboard.css';
 
 type EvidenceEntry = {
   id: string;
   source_name: string;
-  evidence_type?: string;
-  reliability_score?: number;
-  provenance_notes?: string | null;
-  source_coverage_contribution?: number;
+  evidence_type: string;
+  reliability_score: number | null;
+  provenance_notes: string | null;
+  source_coverage_contribution: number | null;
   evidence_hash: string;
   created_at: string;
-  summary: string;
+  summary: string | null;
 };
 
-type EvidenceResponse = {
-  entries?: EvidenceEntry[];
-  warning?: string;
-};
+type EvidenceResponse = { ok?: boolean; entries?: EvidenceEntry[]; error?: string };
 
-type ProposalResponse = {
-  ok?: boolean;
-  data?: ProposalPayload;
-  id?: string;
-  prototype_name?: string;
-  production_brief?: Record<string, unknown>;
-  prompt_for_ai_music?: string;
-  brief_for_daw?: string;
-  verification_plan?: Record<string, unknown>;
-  error?: string;
-};
-
-type ProposalPayload = {
-  id?: string;
-  prototype_name?: string;
-  production_brief?: Record<string, unknown>;
-  prompt_for_ai_music?: string;
-  brief_for_daw?: string;
-  verification_plan?: Record<string, unknown>;
-};
-
-type TwinProposalResponse = {
-  ok?: boolean;
-  error?: string;
-  data?: {
-    id?: string;
-    status?: string;
-  };
-};
-
-type PythonAnalysisResponse = {
-  ok?: boolean;
-  error?: string;
-  message?: string;
-  analyzer?: string;
-  mode?: string;
-  status?: string;
-  mihm_vector?: Record<string, unknown>;
-  acoustic_vector?: Record<string, unknown>;
-  semantic_vector?: Record<string, unknown>;
-  mihm_cultural_vector?: Record<string, unknown>;
-  ihg_raw?: number | null;
-  ihg_final?: number | null;
-  nti_used?: number | null;
-  duration_sec?: number | null;
-  emission_valid?: boolean;
-  operational_reading?: Record<string, unknown>;
-  warnings?: string[];
-  ingest_payload?: Record<string, unknown>;
-  analysis_message?: string;
-};
-
-type MonteCarloResponse = {
-  ok?: boolean;
-  data?: {
-    best?: Array<Record<string, unknown>>;
-    worst?: Array<Record<string, unknown>>;
-    interpretation?: string;
-  };
-  error?: string;
-};
-
-type WorldSpectrumPythonResponse = {
-  ok?: boolean;
-  data?: {
-    wsi?: number | null;
-    nti?: number | null;
-    ts?: string;
-    degraded_sources?: string[];
-    sources?: Array<Record<string, unknown>>;
-  };
-  error?: string;
-};
-
-const GOLD = '200,169,81';
-const RED = '184,80,80';
-const GREEN = '58,138,90';
-const BLUE = '80,120,184';
-
-function regimeClass(regime?: string) {
-  if (regime === 'Saturado') return 'sf-reg-sat';
-  if (regime === 'Cristalizando') return 'sf-reg-crystal';
-  if (regime === 'Proto-crítico') return 'sf-reg-proto';
-  return 'sf-reg-latente';
+function numberInput(value: string) {
+  const n = Number(value);
+  return value.trim() && Number.isFinite(n) && n >= 0 && n <= 1 ? n : null;
 }
 
-function nowTime() {
-  return new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-}
-
-function shortHash(value?: string) {
-  return value ? `${value.slice(0, 8)}…${value.slice(-4)}` : 'sin hash';
-}
-
-function displayValue(value: unknown) {
-  return typeof value === 'number' && Number.isFinite(value) ? value.toFixed(3) : value === null || value === undefined ? 'sin dato' : String(value);
-}
-
-function formatEvidenceEntry(entry: EvidenceEntry) {
-  return [
-    `${entry.source_name}/${entry.evidence_type ?? 'evidence'}`,
-    `r:${entry.reliability_score?.toFixed(2) ?? '0.50'}`,
-    `cov:${entry.source_coverage_contribution?.toFixed(2) ?? '0.00'}`,
-    shortHash(entry.evidence_hash),
-    entry.summary,
-    entry.provenance_notes || null,
-  ].filter(Boolean).join(' · ');
-}
-
-function fit(canvas: HTMLCanvasElement) {
-  const rect = canvas.getBoundingClientRect();
-  const dpr = window.devicePixelRatio || 1;
-  canvas.width = Math.max(1, Math.floor(rect.width * dpr));
-  canvas.height = Math.max(1, Math.floor(rect.height * dpr));
-  const ctx = canvas.getContext('2d');
-  if (ctx) {
-    ctx.resetTransform();
-    ctx.scale(dpr, dpr);
-  }
-  return { width: rect.width, height: rect.height, ctx };
-}
-
-function lineSeries(seed: number, count: number) {
-  return Array.from({ length: count }, (_, index) => {
-    const phase = (index + 1) * (seed + 0.37);
-    return Math.max(0, Math.min(1, 0.5 + Math.sin(phase * 2.17) * 0.28 + Math.cos(phase * 0.71) * 0.15));
-  });
+function value(value: unknown, digits = 3) {
+  return typeof value === 'number' && Number.isFinite(value) ? value.toFixed(digits) : '—';
 }
 
 export default function CulturalVectorDashboard() {
-  const [caseId, setCaseId] = useState('CW-001');
+  const [caseId, setCaseId] = useState('');
+  const [sourceName, setSourceName] = useState('');
+  const [sourceUrl, setSourceUrl] = useState('');
+  const [territory, setTerritory] = useState('');
+  const [evidenceType, setEvidenceType] = useState('');
+  const [reliability, setReliability] = useState('');
+  const [coverage, setCoverage] = useState('');
+  const [provenance, setProvenance] = useState('');
+  const [narrative, setNarrative] = useState('');
   const [data, setData] = useState<CulturalVectorResponse | null>(null);
   const [evidence, setEvidence] = useState<EvidenceEntry[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [narrative, setNarrative] = useState('');
-  const [observeStatus, setObserveStatus] = useState('ψ —');
-  const [agentQuestion, setAgentQuestion] = useState('');
-  const [agentMessages, setAgentMessages] = useState<Array<{ role: string; text: string }>>([
-    { role: 'Agente', text: 'Selecciona un case study, pega letra o registra evidencia. El sistema devolverá fricción, protoatractor y dirección de producción.' },
-  ]);
-  const [verificationMetrics, setVerificationMetrics] = useState('{"plays":0,"likes":0,"comments":0,"reposts":0,"timestamped_comments":[]}');
-  const [platform, setPlatform] = useState('soundcloud');
+  const [status, setStatus] = useState('Introduce un case_id persistido o registra evidencia nueva.');
   const [busy, setBusy] = useState(false);
-  const [lastPrototypeId, setLastPrototypeId] = useState<string | null>(null);
-  const [audioStatus, setAudioStatus] = useState('melodía: sin archivo');
-  const [intakeType, setIntakeType] = useState('producer_log');
-  const [intakeSource, setIntakeSource] = useState('producer_log');
-  const [intakeReliability, setIntakeReliability] = useState('0.60');
-  const [intakeProvenance, setIntakeProvenance] = useState('');
-  const [intakeStatus, setIntakeStatus] = useState('intake listo');
-  const [pythonAudioFile, setPythonAudioFile] = useState<File | null>(null);
-  const [pythonTextFile, setPythonTextFile] = useState<File | null>(null);
-  const [pythonText, setPythonText] = useState('');
-  const [pythonNti, setPythonNti] = useState('0.5');
-  const [pythonStatus, setPythonStatus] = useState('nucleo Python MIHM listo');
-  const [pythonResult, setPythonResult] = useState<PythonAnalysisResponse | null>(null);
-  const [monteCarlo, setMonteCarlo] = useState<MonteCarloResponse['data'] | null>(null);
-  const [worldPython, setWorldPython] = useState<WorldSpectrumPythonResponse['data'] | null>(null);
 
-  const canvasRoot = useRef<HTMLDivElement | null>(null);
-
-  const loadEvidence = useCallback(async (nextCaseId: string) => {
-    const response = await fetch(`/api/scorefriction/evidence?case_id=${nextCaseId}`, { cache: 'no-store' });
-    const json = await response.json() as EvidenceResponse;
-    setEvidence(json.entries ?? []);
+  const load = useCallback(async (id: string) => {
+    if (!id.trim()) return;
+    setBusy(true);
+    try {
+      const [evaluationResponse, evidenceResponse] = await Promise.all([
+        fetch(`/api/scorefriction/evaluate?case_id=${encodeURIComponent(id.trim())}`, { cache: 'no-store' }),
+        fetch(`/api/scorefriction/evidence?case_id=${encodeURIComponent(id.trim())}`, { cache: 'no-store' }),
+      ]);
+      const evidenceJson = await evidenceResponse.json().catch(() => ({})) as EvidenceResponse;
+      setEvidence(evidenceJson.entries ?? []);
+      if (evaluationResponse.status === 404) {
+        setData(null);
+        setStatus('No existe todavía un vector evaluable para ese case_id. La ausencia se conserva como ausencia.');
+        return;
+      }
+      const evaluationJson = await evaluationResponse.json().catch(() => null) as CulturalVectorResponse | null;
+      if (!evaluationResponse.ok || !evaluationJson) throw new Error('No se pudo leer el estado ScoreFriction.');
+      setData(evaluationJson);
+      setStatus('Estado cargado desde observaciones y vectores persistidos.');
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : 'Error de lectura.');
+    } finally {
+      setBusy(false);
+    }
   }, []);
 
-  const load = useCallback(async (nextCaseId = caseId) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch(`/api/scorefriction/evaluate?case_id=${nextCaseId}`, { cache: 'no-store' });
-      if (!res.ok) throw new Error('No se pudo cargar vector cultural');
-      const json = await res.json() as CulturalVectorResponse;
-      setData(json);
-      await loadEvidence(nextCaseId);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error desconocido');
-    } finally {
-      setLoading(false);
-    }
-  }, [caseId, loadEvidence]);
-
-  useEffect(() => {
-    void load(caseId);
-  }, [caseId, load]);
-
-  const semanticPressure = useMemo(() => {
-    const words = narrative.toLowerCase().split(/\s+/).filter(Boolean);
-    const unique = new Set(words).size;
-    const density = Math.min(1, words.length / 120);
-    const repetition = words.length ? 1 - unique / words.length : 0;
-    const agency = words.filter((word) => /hacer|constru|crear|avanz|decid|produc|activar/.test(word)).length / Math.max(1, words.length * 0.08);
-    return { density, repetition, agency: Math.min(1, agency) };
-  }, [narrative]);
-
-  useEffect(() => {
-    if (!data || !canvasRoot.current) return;
-    const canvases = Array.from(canvasRoot.current.querySelectorAll('canvas'));
-    const vector = data.cultural_vector;
-    const sources = data.sources;
-    const draw = () => {
-      canvases.forEach((canvas) => {
-        const { width, height, ctx } = fit(canvas);
-        if (!ctx) return;
-        ctx.clearRect(0, 0, width, height);
-        const id = canvas.dataset.kind;
-        if (id === 'core') drawCore(ctx, width, height, vector);
-        if (id === 'field') drawField(ctx, width, height, vector);
-        if (id === 'twin') drawTwin(ctx, width, height, vector, evidence.length);
-        if (id === 'platform') drawPlatform(ctx, width, height, sources);
-        if (id === 'wave') drawWave(ctx, width, height, vector, evidence.length);
-        if (id === 'sem') drawSemantic(ctx, width, height, semanticPressure);
-        if (id === 'proj') drawProjection(ctx, width, height, vector);
-        if (id === 'unc') drawUncertainty(ctx, width, height, data.evidence?.observation_count ?? 0, sources);
-        if (id === 'trace') drawTrace(ctx, width, height, caseId);
-      });
-    };
-    draw();
-    const onResize = () => draw();
-    window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
-  }, [data, evidence.length, semanticPressure, caseId]);
-
   async function registerObservation() {
-    if (!narrative.trim()) return;
+    const reliabilityScore = numberInput(reliability);
+    const sourceCoverage = numberInput(coverage);
+    if (!caseId.trim() || !sourceName.trim() || !evidenceType.trim() || !provenance.trim() || !narrative.trim() || reliabilityScore === null || sourceCoverage === null) {
+      setStatus('case_id, source, evidence_type, provenance, texto, reliability y coverage válidos son obligatorios.');
+      return;
+    }
     setBusy(true);
-    setObserveStatus('Guardando...');
     try {
       const response = await fetch('/api/scorefriction/observe/manual', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
-          case_id: caseId,
-          source_name: 'manual_upload',
-          source_url: 'dashboard://narrative-pressure',
-          territory: 'MX',
-          raw_payload: {
-            type: 'lyrics_or_comment',
-            text: narrative,
-            submitted_from: 'cultural-vector-dashboard',
-          },
+          case_id: caseId.trim(),
+          source_name: sourceName.trim(),
+          source_url: sourceUrl.trim() || null,
+          territory: territory.trim() || null,
+          evidence_type: evidenceType.trim(),
+          reliability_score: reliabilityScore,
+          source_coverage_contribution: sourceCoverage,
+          provenance_notes: provenance.trim(),
+          raw_payload: { text: narrative.trim(), submitted_from: 'scorefriction_evidence_workspace' },
         }),
       });
-      if (!response.ok) throw new Error('No se pudo guardar observación');
-      setObserveStatus('Guardado');
+      const json = await response.json().catch(() => null) as { ok?: boolean; error?: string } | null;
+      if (!response.ok || !json?.ok) throw new Error(json?.error ?? 'No se pudo persistir la observación.');
+      setStatus('Observación persistida. Recalculando lectura desde evidencia real.');
       await load(caseId);
-    } catch (err) {
-      setObserveStatus(err instanceof Error ? err.message : 'Error');
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function askAgent() {
-    const question = agentQuestion.trim() || '¿qué debe producir Edwing?';
-    setBusy(true);
-    setAgentMessages((items) => [...items, { role: 'Usuario', text: question }]);
-    try {
-      const twinResponse = await fetch('/api/twin/propose', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          proposal: {
-            objective: question,
-            proposalType: 'scorefriction_twin_interaction',
-            requested_output: 'scorefriction_cultural_response',
-            selected_node: caseId,
-            focus: ['scorefriction', caseId, 'cultural_vector', 'evidence_coverage'],
-            context: {
-              case_id: caseId,
-              vector: data?.cultural_vector ?? null,
-              sources: data?.sources ?? null,
-              interpretation: data?.interpretation ?? null,
-              evidence_count: data?.evidence?.observation_count ?? evidence.length,
-              source_coverage: data?.evidence?.source_coverage ?? 0,
-              latest_evidence: evidence.slice(0, 5),
-            },
-            acp_instruction: 'Responder simple: qué está pasando, qué hacer, dónde guardar o qué botón tocar, y qué no hacer todavía. No ejecutar sistemas externos.',
-          },
-        }),
-      }).catch(() => null);
-      const twinJson = twinResponse ? await twinResponse.json().catch(() => null) as TwinProposalResponse | null : null;
-
-      const response = await fetch('/api/scorefriction/propose', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          case_id: caseId,
-          producer: 'Edwing',
-          platform_targets: ['soundcloud', 'tiktok', 'youtube'],
-          mihm_cultural_vector: data?.cultural_vector ?? {},
-        }),
-      });
-      const json = await response.json() as ProposalResponse;
-      const payload = json.data ?? json;
-      if (!response.ok) throw new Error(json.error ?? 'No se pudo proponer prototipo');
-      setLastPrototypeId(typeof payload.id === 'string' ? payload.id : null);
-      setAgentMessages((items) => [...items, {
-        role: 'Agente',
-        text: [
-          twinResponse?.ok && twinJson?.data?.id ? `Twin: propuesta gobernada ${twinJson.data.id}` : `Twin: ${twinJson?.error ?? 'sin propuesta gobernada; inicia sesión si el Twin lo requiere'}`,
-          `Fricción: ${data?.interpretation.friction ?? 'pendiente'}`,
-          `Protoatractor: ${payload.prototype_name ?? 'prototipo preparado'}`,
-          `Brief de producción: ${JSON.stringify(payload.production_brief ?? {})}`,
-          `Métrica de verificación: ${JSON.stringify(payload.verification_plan ?? {})}`,
-        ].join('\n'),
-      }]);
-      setAgentQuestion('');
-    } catch (err) {
-      setAgentMessages((items) => [...items, { role: 'Agente', text: err instanceof Error ? err.message : 'Error' }]);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function uploadMelody(file: File | null) {
-    if (!file) return;
-    setBusy(true);
-    setAudioStatus(`seleccionado: ${file.name}`);
-    try {
-      setAudioStatus('subiendo melodía...');
-      const form = new FormData();
-      form.set('file', file);
-      form.set('case_id', caseId);
-      form.set('source_name', 'manual_upload');
-      form.set('territory', 'MX');
-      form.set('title', file.name);
-      setAudioStatus('analizando melodía...');
-      const response = await fetch('/api/scorefriction/audio/analyze', { method: 'POST', body: form });
-      const json = await response.json().catch(() => null) as { ok?: boolean; error?: string; evidence_hash?: string; warnings?: string[]; analysis_message?: string; analysis_mode?: string } | null;
-      if (!response.ok || !json?.ok) throw new Error(json?.error ?? 'No se pudo analizar melodía');
-      setAudioStatus(`guardado: ${shortHash(json.evidence_hash)}`);
-      setAgentMessages((items) => [...items, {
-        role: 'Melodía',
-        text: json.analysis_message
-          ? `Melodía guardada como evidencia. ${json.analysis_message}${json.warnings?.length ? ` Warnings: ${json.warnings.join(', ')}` : ''}`
-          : `Melodía guardada como evidencia. ${json.warnings?.length ? `Warnings: ${json.warnings.join(', ')}` : 'Vector acústico registrado.'}`,
-      }]);
-      await load(caseId);
-    } catch (err) {
-      setAudioStatus(err instanceof Error ? err.message : 'error al analizar melodía');
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function ingestEvidenceFile(file: File | null) {
-    if (!file) return;
-    setBusy(true);
-    setIntakeStatus(`seleccionado: ${file.name}`);
-    try {
-      const reliability = Number.parseFloat(intakeReliability);
-      const form = new FormData();
-      form.set('file', file);
-      form.set('case_id', caseId);
-      form.set('source_name', intakeSource || 'producer_log');
-      form.set('territory', 'MX');
-      form.set('evidence_type', intakeType || 'producer_log');
-      form.set('reliability_score', Number.isFinite(reliability) ? String(Math.max(0, Math.min(1, reliability))) : '0.5');
-      form.set('provenance_notes', intakeProvenance || `operator upload: ${file.name}`);
-      setIntakeStatus('guardando evidencia...');
-      const response = await fetch('/api/scorefriction/ingest', { method: 'POST', body: form });
-      const json = await response.json().catch(() => null) as { ok?: boolean; error?: string; accepted?: number; failed?: number } | null;
-      if (!response.ok || !json?.ok) throw new Error(json?.error ?? `fallo intake: ${json?.failed ?? 1}`);
-      setIntakeStatus(`guardado: ${json.accepted ?? 1} entrada(s)`);
-      setAgentMessages((items) => [...items, {
-        role: 'Evidencia',
-        text: `${file.name} entró como ${intakeType}. No se toma como verdad: queda con procedencia, confiabilidad y cobertura.`,
-      }]);
-      await load(caseId);
-    } catch (err) {
-      setIntakeStatus(err instanceof Error ? err.message : 'error de intake');
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function runPythonMihm() {
-    if (!pythonAudioFile && !pythonText.trim() && !pythonTextFile) {
-      setPythonStatus('agrega audio, texto o archivo de letra');
-      return;
-    }
-    setBusy(true);
-    setPythonStatus('ejecutando nucleo Python MIHM...');
-    try {
-      const form = new FormData();
-      form.set('case_id', caseId);
-      form.set('source_name', 'manual_upload');
-      form.set('evidence_type', pythonAudioFile ? 'audio_file_analysis' : 'lyrics');
-      form.set('nti', pythonNti);
-      if (pythonAudioFile) form.set('audio', pythonAudioFile);
-      if (pythonTextFile) form.set('lyrics_file', pythonTextFile);
-      if (pythonText.trim()) form.set('text', pythonText.trim());
-      const response = await fetch('/api/scorefriction/python/analyze', { method: 'POST', body: form });
-      const json = await response.json().catch(() => null) as PythonAnalysisResponse | null;
-      if (!response.ok || !json?.ok) throw new Error(json?.message ?? json?.error ?? 'python_mihm_failed');
-      setPythonResult(json);
-      setPythonStatus(json.analysis_message ?? 'analisis Python completado');
-      setAgentMessages((items) => [...items, {
-        role: 'Python MIHM',
-        text: [
-          `IHG final: ${displayValue(json.ihg_final)} / NTI: ${displayValue(json.nti_used)}`,
-          `Emision valida: ${json.emission_valid ? 'si' : 'no'}`,
-          `Ruta: ${String(json.operational_reading?.productionDirection ?? 'sin ruta')}`,
-          json.warnings?.length ? `Warnings: ${json.warnings.join(', ')}` : null,
-        ].filter(Boolean).join('\n'),
-      }]);
-    } catch (err) {
-      setPythonStatus(err instanceof Error ? err.message : 'error Python MIHM');
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function savePythonEvidence() {
-    if (!pythonResult?.ingest_payload) {
-      setPythonStatus('no hay resultado Python guardable');
-      return;
-    }
-    setBusy(true);
-    setPythonStatus('guardando evidencia ScoreFriction...');
-    try {
-      const response = await fetch('/api/scorefriction/ingest', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(pythonResult.ingest_payload),
-      });
-      const json = await response.json().catch(() => null) as { ok?: boolean; results?: Array<{ evidence_hash?: string; error?: string }> } | null;
-      if (!response.ok || !json?.ok) throw new Error(json?.results?.[0]?.error ?? 'scorefriction_ingest_failed');
-      setPythonStatus(`guardado como evidencia: ${shortHash(json.results?.[0]?.evidence_hash)}`);
-      await load(caseId);
-    } catch (err) {
-      setPythonStatus(err instanceof Error ? err.message : 'no se pudo guardar evidencia');
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function simulateMonteCarlo() {
-    setBusy(true);
-    setPythonStatus('simulando ventanas de coherencia...');
-    try {
-      const response = await fetch('/api/scorefriction/python/analyze?action=montecarlo', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ mihm_vector: pythonResult?.mihm_vector ?? null }),
-      });
-      const json = await response.json().catch(() => null) as MonteCarloResponse | null;
-      if (!response.ok || !json?.ok) throw new Error(json?.error ?? 'montecarlo_failed');
-      setMonteCarlo(json.data ?? null);
-      setPythonStatus('Monte Carlo completado');
-    } catch (err) {
-      setPythonStatus(err instanceof Error ? err.message : 'Monte Carlo no disponible');
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function updateWorldSpectrumPython() {
-    setBusy(true);
-    setPythonStatus('actualizando World Spectrum Python...');
-    try {
-      const response = await fetch('/api/scorefriction/python/analyze?action=worldspectrum', { method: 'POST' });
-      const json = await response.json().catch(() => null) as WorldSpectrumPythonResponse | null;
-      if (!response.ok || !json?.ok) throw new Error(json?.error ?? 'worldspectrum_python_failed');
-      setWorldPython(json.data ?? null);
-      setPythonStatus('World Spectrum actualizado');
-    } catch (err) {
-      setPythonStatus(err instanceof Error ? err.message : 'World Spectrum Python degradado');
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function registerVerification() {
-    setBusy(true);
-    try {
-      const metrics = JSON.parse(verificationMetrics);
-      const response = await fetch('/api/scorefriction/verify', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ case_id: caseId, prototype_id: lastPrototypeId, platform, metrics }),
-      });
-      const json = await response.json();
-      if (!response.ok) throw new Error(json.error ?? 'No se pudo registrar verificación');
-      setAgentMessages((items) => [...items, { role: 'Verificación', text: `Ciclo registrado: ${json.verification_id ?? 'sin id'}` }]);
-      await loadEvidence(caseId);
-    } catch (err) {
-      setAgentMessages((items) => [...items, { role: 'Verificación', text: err instanceof Error ? err.message : 'Error' }]);
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : 'Error de persistencia.');
     } finally {
       setBusy(false);
     }
   }
 
   const vector = data?.cultural_vector;
-
   return (
-    <div className="sf-cvd" ref={canvasRoot}>
-      <header className="sf-cvd-header">
+    <main className="sf-cvd" style={{ minHeight: '100vh', padding: 24 }}>
+      <header className="sf-cvd-header" style={{ position: 'static' }}>
         <div className="sf-cvd-brand">SFI</div>
-        <div className="sf-cvd-sep" />
-        <div className="sf-cvd-stat">SCOREFRICTION <span>CULTURAL WAVE</span></div>
-        <div className="sf-cvd-sep" />
-        <div className="sf-cvd-stat">CVΦ <span>{vector?.cvphi.toFixed(3) ?? '—'}</span></div>
-        <div className="sf-cvd-sep" />
-        <div className={`sf-cvd-regime ${regimeClass(vector?.regime)}`}>{vector?.regime ?? '—'}</div>
-        <div className="sf-cvd-sep" />
-        <div className="sf-cvd-stat">LCP <span>{vector?.LCP.toFixed(2) ?? '—'}</span></div>
-        <div className="sf-cvd-stat">PAC <span>{vector?.PAC.toFixed(2) ?? '—'}</span></div>
-        <div className="sf-cvd-stat">VFE <span>{vector?.VFE.toFixed(2) ?? '—'}</span></div>
-        <div className="sf-cvd-stat">SCR <span>{vector?.SCR.toFixed(2) ?? '—'}</span></div>
-        <div className="sf-cvd-stat">EVD <span>{data?.evidence?.observation_count ?? 0}</span></div>
-        <div className="sf-cvd-stat">COV <span>{data?.evidence?.source_coverage?.toFixed(2) ?? '0.00'}</span></div>
-        <div className="sf-cvd-stat" style={{ marginLeft: 'auto' }}>{loading ? 'cargando' : nowTime()}</div>
+        <div className="sf-cvd-stat">SCOREFRICTION <span>EVIDENCE WORKSPACE</span></div>
+        <div className="sf-cvd-stat">CVΦ <span>{value(vector?.cvphi)}</span></div>
+        <div className="sf-cvd-stat">EVD <span>{data?.evidence?.observation_count ?? evidence.length}</span></div>
+        <div className="sf-cvd-stat">COV <span>{value(data?.evidence?.source_coverage, 2)}</span></div>
       </header>
 
-      <div className="sf-cvd-body">
-        <aside className="sf-cvd-side">
-          <div className="sf-side-topo">CW</div>
-          {['CVΦ', 'SRC', 'TXT', 'P→', 'AI'].map((item) => <button key={item} className="sf-side-node" type="button">{item}</button>)}
-          <div className="sf-side-topo">LAB</div>
-        </aside>
+      <section className="sf-panel" style={{ marginTop: 18, padding: 18 }}>
+        <div className="sf-zone-label">identidad del objeto observado</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(190px,1fr))', gap: 10 }}>
+          <input value={caseId} onChange={(event) => setCaseId(event.target.value)} placeholder="case_id" />
+          <button type="button" disabled={busy || !caseId.trim()} onClick={() => void load(caseId)}>Cargar estado</button>
+        </div>
+      </section>
 
-        <main className="sf-cvd-main">
-          <div className="sf-zone sf-zone-a">
-            <div className="sf-zone-label">vector · campo · fuente</div>
-            <Panel className="sf-p-core" label="CVΦ · VECTOR CULTURAL" topo="CULTURAL">
-              <canvas data-kind="core" />
-              <div className="sf-core-center">
-                <div className="sf-core-val" style={{ color: vector?.regime === 'Saturado' ? 'var(--red)' : vector?.regime === 'Cristalizando' ? 'var(--green)' : 'var(--gold)' }}>{vector?.cvphi.toFixed(3) ?? '0.000'}</div>
-                <div className="sf-core-eq">PAC·LCP·CRM_C / (1+FS_C) + VFE</div>
-                <div className={`sf-core-regime ${regimeClass(vector?.regime)}`}>{vector?.regime ?? '—'}</div>
-              </div>
-              <div className="sf-core-vars">
-                {(['LCP', 'PAC', 'VFE', 'SCR'] as const).map((key) => <div key={key} className="sf-core-var"><div className="sf-core-var-name">{key}</div><div className="sf-core-var-val">{vector?.[key].toFixed(2) ?? '—'}</div></div>)}
-              </div>
-            </Panel>
-            <Panel className="sf-p-field" label="CAMPO CULTURAL" topo="FRICCIÓN"><canvas data-kind="field" /></Panel>
-            <Panel className="sf-p-twin" label="PRODUCER TWIN" topo="EDWING / OPERADOR"><canvas data-kind="twin" /></Panel>
-            <Panel className="sf-p-platform" label="PLATFORM SPECTRUM" topo="FUENTES"><canvas data-kind="platform" /></Panel>
-          </div>
+      <section className="sf-panel" style={{ marginTop: 18, padding: 18 }}>
+        <div className="sf-zone-label">ingesta de evidencia con procedencia explícita</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(190px,1fr))', gap: 10 }}>
+          <input value={sourceName} onChange={(event) => setSourceName(event.target.value)} placeholder="source_name" />
+          <input value={sourceUrl} onChange={(event) => setSourceUrl(event.target.value)} placeholder="source_url (opcional)" />
+          <input value={territory} onChange={(event) => setTerritory(event.target.value)} placeholder="territory (si aplica)" />
+          <input value={evidenceType} onChange={(event) => setEvidenceType(event.target.value)} placeholder="evidence_type" />
+          <input value={reliability} onChange={(event) => setReliability(event.target.value)} placeholder="reliability 0..1" />
+          <input value={coverage} onChange={(event) => setCoverage(event.target.value)} placeholder="coverage 0..1" />
+        </div>
+        <input style={{ width: '100%', marginTop: 10 }} value={provenance} onChange={(event) => setProvenance(event.target.value)} placeholder="provenance_notes" />
+        <textarea style={{ width: '100%', minHeight: 130, marginTop: 10 }} value={narrative} onChange={(event) => setNarrative(event.target.value)} placeholder="contenido observado; no se completará ni interpretará automáticamente" />
+        <button type="button" disabled={busy} onClick={() => void registerObservation()}>Registrar observación</button>
+        <p>{status}</p>
+      </section>
 
-          <div className="sf-zone sf-zone-b">
-            <div className="sf-zone-label">wave · narrativa · proyección</div>
-            <Panel className="sf-p-wave" label="CULTURAL WAVEFORM" topo="LONGITUDINAL">
-              <canvas data-kind="wave" />
-              <select className="sf-case-select" value={caseId} onChange={(event) => setCaseId(event.target.value)}>
-                {CULTURAL_WAVE_CASES.map((item) => <option key={item.case_id} value={item.case_id}>{item.case_id} · {item.name}</option>)}
-              </select>
-            </Panel>
-            <Panel className="sf-p-sem" label="LYRIC / NARRATIVE PRESSURE" topo="SEMÁNTICA">
-              <div className="sf-sem-inner">
-                <canvas className="sf-sem-canvas" data-kind="sem" />
-                <textarea className="sf-sem-textarea" value={narrative} onChange={(event) => setNarrative(event.target.value)} placeholder="Pega letra, caption, comentario, hook o hipótesis cultural." />
-                <div className="sf-sem-actions">
-                  <button className="sf-mini-btn" disabled={busy || !narrative.trim()} onClick={() => void registerObservation()}>Registrar observación</button>
-                  <span>{observeStatus}</span>
-                </div>
-              </div>
-            </Panel>
-            <Panel className="sf-p-proj" label="PROTO-ATTRACTOR PROJECTION" topo="TRAYECTORIAS"><canvas data-kind="proj" /></Panel>
-            <Panel className="sf-p-unc" label="MODEL UNCERTAINTY" topo="COBERTURA"><canvas data-kind="unc" /></Panel>
-          </div>
+      <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 18, marginTop: 18 }}>
+        <article className="sf-panel" style={{ padding: 18 }}>
+          <div className="sf-zone-label">vector cultural observado</div>
+          {vector ? (
+            <dl style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              {Object.entries(vector).map(([key, entry]) => <div key={key}><dt>{key}</dt><dd>{typeof entry === 'number' ? value(entry) : String(entry)}</dd></div>)}
+            </dl>
+          ) : <p>Sin vector completo. No se genera un fallback.</p>}
+        </article>
 
-          <div className="sf-zone sf-zone-c">
-            <div className="sf-zone-label">evidencia · agencia</div>
-            <Panel className="sf-p-trace" label="LONGITUDINAL CULTURAL TRACE" topo="CASE STUDIES"><canvas data-kind="trace" /></Panel>
-            <Panel className="sf-p-log" label="EVIDENCE LEDGER">
-              <div className="sf-log-inner">
-                <div className="sf-log-scroll">
-                  {error ? <LogEntry time={nowTime()} body={error} /> : null}
-                  {data?.evidence?.warning ? <LogEntry time={nowTime()} body={`warning: ${data.evidence.warning}`} /> : null}
-                  {evidence.length === 0 ? <LogEntry time="—" body="sin evidencia registrada; usar observe/manual" /> : evidence.map((entry) => (
-                    <LogEntry key={entry.id} time={entry.created_at.slice(11, 19)} body={formatEvidenceEntry(entry)} />
-                  ))}
-                </div>
-              </div>
-            </Panel>
-            <Panel className="sf-p-agent" label="CULTURAL VECTOR AGENT">
-              <div className="sf-agent-inner">
-                <div className="sf-agent-msgs">
-                  {agentMessages.map((message, index) => <div key={`${message.role}-${index}`} className="sf-agent-msg"><strong>{message.role}:</strong><br />{message.text}</div>)}
-                </div>
-                <div className="sf-agent-footer">
-                  <input className="sf-agent-in" value={agentQuestion} onChange={(event) => setAgentQuestion(event.target.value)} placeholder="Pregunta: ¿qué debe producir Edwing desde este vector?" onKeyDown={(event) => { if (event.key === 'Enter') void askAgent(); }} />
-                  <button className="sf-agent-send" disabled={busy} onClick={() => void askAgent()}>→</button>
-                </div>
-                <div className="sf-intake-box">
-                  <div className="sf-file-label">NUCLEO PYTHON MIHM</div>
-                  <div className="sf-file-row">
-                    <input type="file" accept=".mp3,.wav,.m4a,.aac,.ogg,.flac,audio/*" disabled={busy} onChange={(event) => setPythonAudioFile(event.currentTarget.files?.[0] ?? null)} />
-                    <input type="file" accept=".txt,.md" disabled={busy} onChange={(event) => setPythonTextFile(event.currentTarget.files?.[0] ?? null)} />
-                    <input value={pythonNti} disabled={busy} onChange={(event) => setPythonNti(event.target.value)} placeholder="NTI" />
-                  </div>
-                  <textarea className="sf-python-text" value={pythonText} disabled={busy} onChange={(event) => setPythonText(event.target.value)} placeholder="Pegar letra/texto opcional para R_sem y C_sem." />
-                  <div className="sf-file-row">
-                    <button className="sf-mini-btn" disabled={busy || (!pythonAudioFile && !pythonText.trim() && !pythonTextFile)} onClick={() => void runPythonMihm()}>Analizar con nucleo Python MIHM</button>
-                    <button className="sf-mini-btn" disabled={busy || !pythonResult?.ingest_payload} onClick={() => void savePythonEvidence()}>Guardar como evidencia ScoreFriction</button>
-                  </div>
-                  <div className="sf-file-row">
-                    <button className="sf-mini-btn" disabled={busy} onClick={() => void simulateMonteCarlo()}>Simular ventanas de coherencia</button>
-                    <button className="sf-mini-btn" disabled={busy} onClick={() => void updateWorldSpectrumPython()}>Actualizar World Spectrum</button>
-                    <span className="sf-status">{pythonStatus}</span>
-                  </div>
-                  {pythonResult ? (
-                    <div className="sf-python-result">
-                      <div className="sf-python-grid">
-                        {(['F_s', 'D_i', 'G_f', 'C_s', 'D_cog', 'E_r', 'V_i', 'I_mc', 'Phi', 'R_sem', 'C_sem'] as const).map((key) => (
-                          <span key={key}><b>{key}</b>{displayValue(pythonResult.mihm_vector?.[key] ?? pythonResult.semantic_vector?.[key])}</span>
-                        ))}
-                        <span><b>ihg_raw</b>{displayValue(pythonResult.ihg_raw)}</span>
-                        <span><b>ihg_final</b>{displayValue(pythonResult.ihg_final)}</span>
-                        <span><b>nti_used</b>{displayValue(pythonResult.nti_used)}</span>
-                        <span><b>emission_valid</b>{pythonResult.emission_valid ? 'si' : 'no'}</span>
-                      </div>
-                      <div className="sf-python-op">
-                        <p><b>Friccion cultural</b>{String(pythonResult.operational_reading?.friction ?? 'sin lectura')}</p>
-                        <p><b>Densidad de interaccion</b>{String(pythonResult.operational_reading?.interactionDensity ?? 'sin lectura')}</p>
-                        <p><b>Coherencia sistemica</b>{String(pythonResult.operational_reading?.systemicCoherence ?? 'sin lectura')}</p>
-                        <p><b>Energia relacional</b>{String(pythonResult.operational_reading?.relationalEnergy ?? 'sin lectura')}</p>
-                        <p><b>Vector intencional</b>{String(pythonResult.operational_reading?.intentionalVector ?? 'sin lectura')}</p>
-                        <p><b>Riesgo de invisibilidad</b>{String(pythonResult.operational_reading?.invisibilityRisk ?? 'sin lectura')}</p>
-                        <p><b>Protoatractor</b>{String(pythonResult.operational_reading?.protoattractor ?? 'sin lectura')}</p>
-                        <p><b>Direccion de produccion</b>{String(pythonResult.operational_reading?.productionDirection ?? 'sin lectura')}</p>
-                      </div>
-                    </div>
-                  ) : null}
-                  {monteCarlo ? (
-                    <div className="sf-python-result">
-                      <div className="sf-file-label">MONTE CARLO</div>
-                      <div className="sf-python-columns">
-                        <div><b>Mejores ventanas</b>{monteCarlo.best?.map((row, index) => <p key={`best-${index}`}>{String(row.raw ?? JSON.stringify(row))}</p>)}</div>
-                        <div><b>Peores ventanas</b>{monteCarlo.worst?.map((row, index) => <p key={`worst-${index}`}>{String(row.raw ?? JSON.stringify(row))}</p>)}</div>
-                      </div>
-                      <p>{monteCarlo.interpretation}</p>
-                    </div>
-                  ) : null}
-                  {worldPython ? (
-                    <div className="sf-python-result">
-                      <div className="sf-file-label">WORLD SPECTRUM PYTHON</div>
-                      <p>WSI {displayValue(worldPython.wsi)} · NTI {displayValue(worldPython.nti)} · {worldPython.ts ?? 'sin timestamp'}</p>
-                      <p>Fuentes degradadas: {worldPython.degraded_sources?.length ? worldPython.degraded_sources.join(', ') : 'ninguna reportada'}</p>
-                    </div>
-                  ) : null}
-                </div>
-                <div className="sf-intake-box">
-                  <div className="sf-file-row">
-                    <span className="sf-file-label">CARGA DE MELODÍA</span>
-                    <input type="file" accept="audio/*" disabled={busy} onChange={(event) => void uploadMelody(event.currentTarget.files?.[0] ?? null)} />
-                  </div>
-                  <div className="sf-status">{audioStatus}</div>
-                </div>
-                <div className="sf-intake-box">
-                  <div className="sf-file-label">INTAKE UNIVERSAL DE EVIDENCIA</div>
-                  <div className="sf-file-row">
-                    <select value={intakeType} disabled={busy} onChange={(event) => setIntakeType(event.target.value)}>
-                      <option value="producer_log">producer_log</option>
-                      <option value="lyrics">lyrics</option>
-                      <option value="comments">comments</option>
-                      <option value="audio_metadata">audio_metadata</option>
-                      <option value="platform_snapshot">platform_snapshot</option>
-                      <option value="community_observation">community_observation</option>
-                      <option value="dataset_export">dataset_export</option>
-                    </select>
-                    <input value={intakeSource} disabled={busy} onChange={(event) => setIntakeSource(event.target.value)} placeholder="source_name" />
-                    <input value={intakeReliability} disabled={busy} onChange={(event) => setIntakeReliability(event.target.value)} placeholder="0.60" />
-                  </div>
-                  <input value={intakeProvenance} disabled={busy} onChange={(event) => setIntakeProvenance(event.target.value)} placeholder="provenance_notes" />
-                  <div className="sf-file-row">
-                    <input type="file" accept=".txt,.md,.json,.csv" disabled={busy} onChange={(event) => void ingestEvidenceFile(event.currentTarget.files?.[0] ?? null)} />
-                    <span className="sf-status">{intakeStatus}</span>
-                  </div>
-                </div>
-                <div className="sf-verify-footer">
-                  <input className="sf-verify-in" value={platform} onChange={(event) => setPlatform(event.target.value)} />
-                  <input className="sf-verify-in" value={verificationMetrics} onChange={(event) => setVerificationMetrics(event.target.value)} />
-                  <button className="sf-agent-send" disabled={busy} onClick={() => void registerVerification()}>verify</button>
-                </div>
-              </div>
-            </Panel>
-          </div>
-        </main>
-      </div>
-    </div>
+        <article className="sf-panel" style={{ padding: 18 }}>
+          <div className="sf-zone-label">evidencia persistida</div>
+          {evidence.length ? evidence.map((entry) => (
+            <div key={entry.id} style={{ borderBottom: '1px solid rgba(200,169,81,.12)', padding: '10px 0' }}>
+              <strong>{entry.source_name} · {entry.evidence_type}</strong>
+              <p>{entry.summary ?? 'Sin resumen derivado.'}</p>
+              <small>{entry.created_at} · reliability {entry.reliability_score ?? '—'} · coverage {entry.source_coverage_contribution ?? '—'} · {entry.evidence_hash}</small>
+              {entry.provenance_notes ? <p>{entry.provenance_notes}</p> : null}
+            </div>
+          )) : <p>Sin evidencia persistida para este case_id.</p>}
+        </article>
+      </section>
+    </main>
   );
-}
-
-function Panel({ className, label, topo, children }: { className: string; label: string; topo?: string; children: React.ReactNode }) {
-  return <section className={`sf-panel ${className}`}><div className="sf-panel-label">{label}</div>{topo ? <div className="sf-panel-topo">{topo}</div> : null}{children}</section>;
-}
-
-function LogEntry({ time, body }: { time: string; body: string }) {
-  return <div className="sf-log-entry"><div className="sf-log-t">{time}</div><div className="sf-log-body">{body}</div></div>;
-}
-
-function drawCore(ctx: CanvasRenderingContext2D, width: number, height: number, vector: CulturalVectorResponse['cultural_vector']) {
-  const cx = width / 2;
-  const cy = height / 2;
-  const rgb = vector.regime === 'Saturado' ? RED : vector.regime === 'Cristalizando' ? GREEN : GOLD;
-  for (let i = 5; i > 0; i--) {
-    ctx.beginPath();
-    ctx.arc(cx, cy, width * 0.38 * (i / 5), 0, Math.PI * 2);
-    ctx.strokeStyle = `rgba(${rgb},${0.012 + i * 0.009})`;
-    ctx.stroke();
-  }
-  const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, width * 0.55);
-  grad.addColorStop(0, `rgba(${rgb},${0.035 + vector.cvphi * 0.055})`);
-  grad.addColorStop(1, `rgba(${rgb},0)`);
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, width, height);
-}
-
-function drawField(ctx: CanvasRenderingContext2D, width: number, height: number, vector: CulturalVectorResponse['cultural_vector']) {
-  const rgb = vector.FS_C > 0.65 ? RED : GOLD;
-  for (let i = 0; i < 170; i++) {
-    const x = (Math.sin(i * 12.989 + vector.LCP * 8) * 43758.5453) % 1;
-    const y = (Math.cos(i * 7.123 + vector.PAC * 5) * 23171.17) % 1;
-    const px = Math.abs(x) * width;
-    const py = Math.abs(y) * height;
-    ctx.beginPath();
-    ctx.arc(px, py, 0.9 + vector.ICE_C, 0, Math.PI * 2);
-    ctx.fillStyle = `rgba(${rgb},${0.025 + vector.ICE_C * 0.09})`;
-    ctx.fill();
-  }
-  ctx.beginPath();
-  ctx.arc(width / 2, height / 2, Math.min(width, height) * 0.22 * vector.PAC, 0, Math.PI * 2);
-  ctx.strokeStyle = `rgba(${GREEN},${vector.PAC * 0.18})`;
-  ctx.stroke();
-}
-
-function drawTwin(ctx: CanvasRenderingContext2D, width: number, height: number, vector: CulturalVectorResponse['cultural_vector'], evidenceCount: number) {
-  const vals = [vector.PAC, vector.LCP, vector.FS_C, Math.min(1, (vector.PAC + vector.LCP) / 2 + evidenceCount * 0.03)];
-  const cx = width / 2;
-  const cy = height / 2;
-  const radius = Math.min(width, height) * 0.32;
-  ctx.beginPath();
-  vals.forEach((value, i) => {
-    const a = (i / vals.length) * Math.PI * 2 - Math.PI / 2;
-    const x = cx + Math.cos(a) * radius * value;
-    const y = cy + Math.sin(a) * radius * value;
-    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
-  });
-  ctx.closePath();
-  ctx.fillStyle = `rgba(${GOLD},0.08)`;
-  ctx.fill();
-  ctx.strokeStyle = `rgba(${GOLD},0.32)`;
-  ctx.stroke();
-}
-
-function drawPlatform(ctx: CanvasRenderingContext2D, width: number, height: number, sources: CulturalVectorResponse['sources']) {
-  const vals = [sources.youtube, sources.tiktok, sources.soundcloud, sources.spotify, sources.lyrics];
-  const labels = ['YTB', 'TTK', 'SC', 'SPF', 'LYR'];
-  const cx = width / 2;
-  const cy = height / 2;
-  const radius = Math.min(width, height) * 0.35;
-  ctx.beginPath();
-  vals.forEach((value, i) => {
-    const a = (i / vals.length) * Math.PI * 2 - Math.PI / 2;
-    const x = cx + Math.cos(a) * radius * value;
-    const y = cy + Math.sin(a) * radius * value;
-    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
-  });
-  ctx.closePath();
-  ctx.fillStyle = `rgba(${GOLD},0.07)`;
-  ctx.fill();
-  ctx.strokeStyle = `rgba(${GOLD},0.28)`;
-  ctx.stroke();
-  ctx.font = '9px JetBrains Mono';
-  ctx.textAlign = 'center';
-  vals.forEach((value, i) => {
-    const a = (i / vals.length) * Math.PI * 2 - Math.PI / 2;
-    ctx.fillStyle = `rgba(${GOLD},${0.18 + value * 0.45})`;
-    ctx.fillText(labels[i], cx + Math.cos(a) * (radius + 20), cy + Math.sin(a) * (radius + 20));
-  });
-}
-
-function drawWave(ctx: CanvasRenderingContext2D, width: number, height: number, vector: CulturalVectorResponse['cultural_vector'], evidenceCount: number) {
-  const bands = [vector.FS_C, vector.SCR, vector.VFE, 1 - vector.SCR * 0.5, vector.CRM_C, vector.LCP];
-  const labels = ['SAT', 'REP', 'MEM', 'SEM', 'RIT', 'EMG'];
-  const count = 34;
-  const left = 44;
-  const top = 18;
-  const slot = (width - left - 8) / count;
-  const bandH = (height - top - 25) / bands.length;
-  bands.forEach((seed, band) => {
-    const series = lineSeries(seed + evidenceCount * 0.03, count);
-    ctx.font = '8px JetBrains Mono';
-    ctx.fillStyle = `rgba(${GOLD},0.24)`;
-    ctx.fillText(labels[band], 5, top + band * bandH + bandH * 0.62);
-    series.forEach((value, index) => {
-      const rgb = band < 2 ? RED : band === 5 ? GREEN : GOLD;
-      ctx.fillStyle = `rgba(${rgb},${Math.min(0.62, value * 0.75)})`;
-      ctx.fillRect(left + index * slot, top + band * bandH + 1, slot - 1, bandH - 2);
-    });
-  });
-}
-
-function drawSemantic(ctx: CanvasRenderingContext2D, width: number, height: number, pressure: { density: number; repetition: number; agency: number }) {
-  for (let i = 0; i < Math.floor(pressure.density * 14) + 2; i++) {
-    const y = (height / 16) * (i + 1);
-    ctx.beginPath();
-    for (let x = 0; x <= width; x += 8) {
-      const dy = Math.sin((x / width) * Math.PI * 4 + i) * pressure.density * 9;
-      x === 0 ? ctx.moveTo(x, y + dy) : ctx.lineTo(x, y + dy);
-    }
-    ctx.strokeStyle = `rgba(${GOLD},${pressure.density * 0.055})`;
-    ctx.stroke();
-  }
-  if (pressure.repetition > 0.45) {
-    ctx.fillStyle = `rgba(${RED},${pressure.repetition * 0.045})`;
-    ctx.fillRect(0, 0, width, height);
-  }
-}
-
-function drawProjection(ctx: CanvasRenderingContext2D, width: number, height: number, vector: CulturalVectorResponse['cultural_vector']) {
-  const routes = [
-    { name: 'Disipación', y: height * 0.25, p: 1 - vector.PAC, rgb: RED },
-    { name: 'Nicho estable', y: height * 0.52, p: ((vector.PAC + vector.CRM_C) / 2) * 0.7, rgb: GOLD },
-    { name: 'Cristalización', y: height * 0.78, p: vector.PAC * vector.LCP, rgb: GREEN },
-  ];
-  routes.forEach((route, idx) => {
-    ctx.beginPath();
-    for (let step = 0; step <= 24; step++) {
-      const x = width * 0.22 + (width * 0.72) * (step / 24);
-      const y = height / 2 + (route.y - height / 2) * (step / 24) + Math.sin(step * 0.3 + idx) * (1 - route.p) * 8 * (step / 24);
-      step === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
-    }
-    ctx.strokeStyle = `rgba(${route.rgb},${0.08 + route.p * 0.35})`;
-    ctx.lineWidth = 1 + route.p * 3;
-    ctx.stroke();
-    ctx.font = '8px JetBrains Mono';
-    ctx.textAlign = 'right';
-    ctx.fillStyle = `rgba(${route.rgb},${0.22 + route.p * 0.4})`;
-    ctx.fillText(`${route.name} p=${route.p.toFixed(2)}`, width - 8, route.y);
-  });
-}
-
-function drawUncertainty(ctx: CanvasRenderingContext2D, width: number, height: number, observationCount: number, sources: CulturalVectorResponse['sources']) {
-  const coverage = Object.values(sources).reduce((sum, value) => sum + value, 0) / 5;
-  const confidence = Math.min(1, coverage * 0.6 + observationCount * 0.05);
-  const grid = 13;
-  const cellW = (width - 10) / grid;
-  const cellH = (height - 28) / grid;
-  for (let y = 0; y < grid; y++) {
-    for (let x = 0; x < grid; x++) {
-      const d = Math.hypot(x / grid - 0.5, y / grid - 0.5);
-      const value = Math.max(0, confidence * (1 - d * 0.9));
-      const rgb = value > 0.35 ? GOLD : BLUE;
-      ctx.fillStyle = `rgba(${rgb},${value * 0.22})`;
-      ctx.fillRect(5 + x * cellW, 20 + y * cellH, cellW - 1, cellH - 1);
-    }
-  }
-}
-
-function drawTrace(ctx: CanvasRenderingContext2D, width: number, height: number, activeCaseId: string) {
-  const rowH = (height - 16) / CULTURAL_WAVE_CASES.length;
-  CULTURAL_WAVE_CASES.forEach((item, index) => {
-    const active = item.case_id === activeCaseId;
-    const y = 8 + index * rowH;
-    ctx.fillStyle = `rgba(${active ? GREEN : GOLD},${active ? 0.18 : 0.055})`;
-    ctx.fillRect(48, y, width - 96, rowH - 1);
-    ctx.fillStyle = `rgba(${GOLD},${active ? 0.5 : 0.18})`;
-    ctx.font = '8px JetBrains Mono';
-    ctx.fillText(item.case_id, 6, y + rowH * 0.62);
-    const x = 48 + item.seedVector.LCP * (width - 96);
-    ctx.beginPath();
-    ctx.arc(x, y + rowH / 2, active ? 4 : 2.5, 0, Math.PI * 2);
-    ctx.fillStyle = `rgba(${active ? GREEN : GOLD},${active ? 0.75 : 0.35})`;
-    ctx.fill();
-  });
 }
