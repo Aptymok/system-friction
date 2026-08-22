@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "System Friction Institute External Agent API",
-    "version": "1.2.0",
+    "version": "1.2.1",
     "description": "Governed machine interface for authorized AI clients. Observation, proposal, execution and laboratory operations remain scope-bound and auditable."
   },
   "servers": [
@@ -17,7 +17,16 @@
         "operationId": "getSfiManifest",
         "summary": "Discover current SFI agent capabilities",
         "security": [],
-        "responses": { "200": { "description": "Current governed capability manifest" } }
+        "responses": {
+          "200": {
+            "description": "Current governed capability manifest",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/GenericResponse" }
+              }
+            }
+          }
+        }
       }
     },
     "/api/external/v1/observe": {
@@ -29,11 +38,22 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "type": "object", "additionalProperties": true }
+              "schema": { "$ref": "#/components/schemas/ObserveRequest" }
             }
           }
         },
-        "responses": { "200": { "description": "Governed observation result" } }
+        "responses": {
+          "200": {
+            "description": "Governed observation result",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/GenericResponse" }
+              }
+            }
+          },
+          "400": { "description": "Surface not allowed" },
+          "401": { "description": "Unauthorized" }
+        }
       }
     },
     "/api/external/v1/propose": {
@@ -45,11 +65,23 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "type": "object", "additionalProperties": true }
+              "schema": { "$ref": "#/components/schemas/ProposeRequest" }
             }
           }
         },
-        "responses": { "200": { "description": "Proposal receipt and governance state" } }
+        "responses": {
+          "201": {
+            "description": "Proposal registered for ROOT review",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/GenericResponse" }
+              }
+            }
+          },
+          "400": { "description": "Title and summary required" },
+          "401": { "description": "Unauthorized" },
+          "500": { "description": "Proposal creation failed" }
+        }
       }
     },
     "/api/external/v1/execute": {
@@ -61,11 +93,23 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "type": "object", "additionalProperties": true }
+              "schema": { "$ref": "#/components/schemas/ExecuteRequest" }
             }
           }
         },
-        "responses": { "200": { "description": "Execution result and provenance" } }
+        "responses": {
+          "200": {
+            "description": "Execution result and provenance",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/GenericResponse" }
+              }
+            }
+          },
+          "400": { "description": "Invalid request or explicit confirmation missing" },
+          "401": { "description": "Unauthorized" },
+          "409": { "description": "Queued governed proposal required" }
+        }
       }
     },
     "/api/external/v1/lab": {
@@ -76,24 +120,115 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["operation"],
-                "properties": {
-                  "operation": { "type": "string", "enum": ["state", "report", "persist", "run"] },
-                  "confirm": { "type": "boolean" },
-                  "evidenceIds": { "type": "array", "items": { "type": "string" } }
-                },
-                "additionalProperties": true
-              }
+              "schema": { "$ref": "#/components/schemas/LabRequest" }
             }
           }
         },
-        "responses": { "200": { "description": "Method Lab result with governance/provenance metadata" } }
+        "responses": {
+          "200": {
+            "description": "Method Lab result with governance/provenance metadata",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/GenericResponse" }
+              }
+            }
+          },
+          "400": { "description": "Invalid laboratory operation" },
+          "401": { "description": "Unauthorized" },
+          "403": { "description": "Insufficient scope or authority" }
+        }
       }
     }
   },
   "components": {
+    "schemas": {
+      "ObserveRequest": {
+        "type": "object",
+        "required": ["surface"],
+        "properties": {
+          "surface": {
+            "type": "string",
+            "enum": ["proposals", "evidence"],
+            "description": "Allowlisted SFI state surface to observe."
+          }
+        },
+        "additionalProperties": false
+      },
+      "ProposeRequest": {
+        "type": "object",
+        "required": ["title", "summary"],
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Human-readable proposal title."
+          },
+          "summary": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Plain-language objective and rationale for ROOT review."
+          },
+          "action": {
+            "type": ["object", "string", "null"],
+            "description": "Optional requested internal action or structured action description."
+          }
+        },
+        "additionalProperties": false
+      },
+      "ExecuteRequest": {
+        "type": "object",
+        "required": ["proposal_id", "confirm"],
+        "properties": {
+          "proposal_id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Identifier of a proposal already queued by governed ROOT flow."
+          },
+          "confirm": {
+            "type": "boolean",
+            "const": true,
+            "description": "Explicit confirmation required to record the authorized internal realization."
+          }
+        },
+        "additionalProperties": false
+      },
+      "LabRequest": {
+        "type": "object",
+        "required": ["operation"],
+        "properties": {
+          "operation": {
+            "type": "string",
+            "enum": ["state", "report", "persist", "run"]
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Required as true for governed runtime execution when applicable."
+          },
+          "evidenceIds": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Persisted evidence identifiers used by a supported Method Lab runtime."
+          },
+          "payload": {
+            "type": "object",
+            "properties": {},
+            "additionalProperties": true,
+            "description": "Optional laboratory payload for persist/run operations."
+          }
+        },
+        "additionalProperties": true
+      },
+      "GenericResponse": {
+        "type": "object",
+        "properties": {
+          "ok": { "type": "boolean" },
+          "data": {},
+          "error": { "type": ["string", "null"] },
+          "message": { "type": "string" }
+        },
+        "additionalProperties": true
+      }
+    },
     "securitySchemes": {
       "bearerAuth": {
         "type": "http",
