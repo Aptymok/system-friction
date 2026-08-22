@@ -2,14 +2,14 @@
   "openapi": "3.1.0",
   "info": {
     "title": "System Friction Institute External Agent API",
-    "version": "1.2.1",
+    "version": "1.2.2",
     "description": "Governed machine interface for authorized AI clients. Observation, proposal, execution and laboratory operations remain scope-bound and auditable."
   },
   "servers": [
     { "url": "https://systemfriction.org" }
   ],
   "security": [
-    { "bearerAuth": [] }
+    { "sfiToken": [] }
   ],
   "paths": {
     "/api/external/v1/manifest": {
@@ -17,16 +17,7 @@
         "operationId": "getSfiManifest",
         "summary": "Discover current SFI agent capabilities",
         "security": [],
-        "responses": {
-          "200": {
-            "description": "Current governed capability manifest",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/GenericResponse" }
-              }
-            }
-          }
-        }
+        "responses": { "200": { "description": "Current governed capability manifest", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/GenericResponse" } } } } }
       }
     },
     "/api/external/v1/observe": {
@@ -34,23 +25,9 @@
         "operationId": "observeSfi",
         "summary": "Read an allowlisted governed SFI state surface",
         "x-sfi-scope": "observe",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": { "$ref": "#/components/schemas/ObserveRequest" }
-            }
-          }
-        },
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ObserveRequest" } } } },
         "responses": {
-          "200": {
-            "description": "Governed observation result",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/GenericResponse" }
-              }
-            }
-          },
+          "200": { "description": "Governed observation result", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/GenericResponse" } } } },
           "400": { "description": "Surface not allowed" },
           "401": { "description": "Unauthorized" }
         }
@@ -61,23 +38,9 @@
         "operationId": "proposeSfiAction",
         "summary": "Submit a governed action proposal for ROOT review",
         "x-sfi-scope": "propose",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": { "$ref": "#/components/schemas/ProposeRequest" }
-            }
-          }
-        },
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ProposeRequest" } } } },
         "responses": {
-          "201": {
-            "description": "Proposal registered for ROOT review",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/GenericResponse" }
-              }
-            }
-          },
+          "201": { "description": "Proposal registered for ROOT review", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/GenericResponse" } } } },
           "400": { "description": "Title and summary required" },
           "401": { "description": "Unauthorized" },
           "500": { "description": "Proposal creation failed" }
@@ -89,23 +52,9 @@
         "operationId": "executeAuthorizedSfiAction",
         "summary": "Execute an already-authorized internal SFI action",
         "x-sfi-scope": "execute",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": { "$ref": "#/components/schemas/ExecuteRequest" }
-            }
-          }
-        },
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ExecuteRequest" } } } },
         "responses": {
-          "200": {
-            "description": "Execution result and provenance",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/GenericResponse" }
-              }
-            }
-          },
+          "200": { "description": "Execution result and provenance", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/GenericResponse" } } } },
           "400": { "description": "Invalid request or explicit confirmation missing" },
           "401": { "description": "Unauthorized" },
           "409": { "description": "Queued governed proposal required" }
@@ -116,23 +65,9 @@
       "post": {
         "operationId": "operateSfiLab",
         "summary": "Read, persist or run Method Lab operations according to scope",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": { "$ref": "#/components/schemas/LabRequest" }
-            }
-          }
-        },
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/LabRequest" } } } },
         "responses": {
-          "200": {
-            "description": "Method Lab result with governance/provenance metadata",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/GenericResponse" }
-              }
-            }
-          },
+          "200": { "description": "Method Lab result with governance/provenance metadata", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/GenericResponse" } } } },
           "400": { "description": "Invalid laboratory operation" },
           "401": { "description": "Unauthorized" },
           "403": { "description": "Insufficient scope or authority" }
@@ -146,11 +81,7 @@
         "type": "object",
         "required": ["surface"],
         "properties": {
-          "surface": {
-            "type": "string",
-            "enum": ["proposals", "evidence"],
-            "description": "Allowlisted SFI state surface to observe."
-          }
+          "surface": { "type": "string", "enum": ["proposals", "evidence"], "description": "Allowlisted SFI state surface to observe." }
         },
         "additionalProperties": false
       },
@@ -158,20 +89,9 @@
         "type": "object",
         "required": ["title", "summary"],
         "properties": {
-          "title": {
-            "type": "string",
-            "minLength": 1,
-            "description": "Human-readable proposal title."
-          },
-          "summary": {
-            "type": "string",
-            "minLength": 1,
-            "description": "Plain-language objective and rationale for ROOT review."
-          },
-          "action": {
-            "type": ["object", "string", "null"],
-            "description": "Optional requested internal action or structured action description."
-          }
+          "title": { "type": "string", "minLength": 1, "description": "Human-readable proposal title." },
+          "summary": { "type": "string", "minLength": 1, "description": "Plain-language objective and rationale for ROOT review." },
+          "action": { "type": ["object", "string", "null"], "description": "Optional requested internal action or structured action description." }
         },
         "additionalProperties": false
       },
@@ -179,16 +99,8 @@
         "type": "object",
         "required": ["proposal_id", "confirm"],
         "properties": {
-          "proposal_id": {
-            "type": "string",
-            "minLength": 1,
-            "description": "Identifier of a proposal already queued by governed ROOT flow."
-          },
-          "confirm": {
-            "type": "boolean",
-            "const": true,
-            "description": "Explicit confirmation required to record the authorized internal realization."
-          }
+          "proposal_id": { "type": "string", "minLength": 1, "description": "Identifier of a proposal already queued by governed ROOT flow." },
+          "confirm": { "type": "boolean", "const": true, "description": "Explicit confirmation required to record the authorized internal realization." }
         },
         "additionalProperties": false
       },
@@ -196,25 +108,10 @@
         "type": "object",
         "required": ["operation"],
         "properties": {
-          "operation": {
-            "type": "string",
-            "enum": ["state", "report", "persist", "run"]
-          },
-          "confirm": {
-            "type": "boolean",
-            "description": "Required as true for governed runtime execution when applicable."
-          },
-          "evidenceIds": {
-            "type": "array",
-            "items": { "type": "string" },
-            "description": "Persisted evidence identifiers used by a supported Method Lab runtime."
-          },
-          "payload": {
-            "type": "object",
-            "properties": {},
-            "additionalProperties": true,
-            "description": "Optional laboratory payload for persist/run operations."
-          }
+          "operation": { "type": "string", "enum": ["state", "report", "persist", "run"] },
+          "confirm": { "type": "boolean", "description": "Required as true for governed runtime execution when applicable." },
+          "evidenceIds": { "type": "array", "items": { "type": "string" }, "description": "Persisted evidence identifiers used by a supported Method Lab runtime." },
+          "payload": { "type": "object", "properties": {}, "additionalProperties": true, "description": "Optional laboratory payload for persist/run operations." }
         },
         "additionalProperties": true
       },
@@ -230,22 +127,17 @@
       }
     },
     "securitySchemes": {
-      "bearerAuth": {
-        "type": "http",
-        "scheme": "bearer",
-        "bearerFormat": "SFI scoped credential"
+      "sfiToken": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-SFI-Token",
+        "description": "Scoped SFI credential. Send the raw token value only."
       }
     }
   },
   "x-sfi-governance": {
     "principle": "Observation, inference, proposal, authorization, execution, return and canonical promotion remain distinct states.",
     "rootReserved": ["approval", "canonical promotion", "unguarded external action"],
-    "discovery": [
-      "/llms.txt",
-      "/llms-full.txt",
-      "/ai-index.json",
-      "/field-schema.json",
-      "/api/external/v1/manifest"
-    ]
+    "discovery": ["/llms.txt", "/llms-full.txt", "/ai-index.json", "/field-schema.json", "/api/external/v1/manifest"]
   }
 }
