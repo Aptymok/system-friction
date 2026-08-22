@@ -1,9 +1,13 @@
+import { verifyExternalAccessToken } from './externalSessionToken';
+
 export type ExternalCredential = {
   label?: string;
   scopes?: string[];
   role?: 'agent' | 'root_delegate' | string;
   actorId?: string;
   tenantId?: string;
+  subjectId?: string;
+  authMethod?: 'static_token' | 'oauth';
 };
 
 export type ExternalAuthResult = {
@@ -21,11 +25,34 @@ function readPresentedToken(req: Request) {
   return authorization.replace(/^Bearer\s+/i, '').trim();
 }
 
+function credentialAllowsScope(credential: ExternalCredential, scope: string) {
+  const scopes = credential.scopes ?? [];
+  return scopes.includes(scope) || scopes.includes('*');
+}
+
 export function authorizeExternalRequest(req: Request, scope: string): ExternalAuthResult {
   const token = readPresentedToken(req);
   const raw = process.env.SFI_EXTERNAL_API_KEYS_JSON || '';
   if (!token) {
     return { credential: null, tokenPresent: false, registryConfigured: Boolean(raw.trim()), scopeAllowed: false };
+  }
+
+  // OAuth access tokens are short-lived, user-bound credentials issued by SFI after
+  // an authenticated institutional login. They are verified before static API keys
+  // so a ChatGPT Action can operate as the actual SFI member rather than a shared bot.
+  const session = verifyExternalAccessToken(token);
+  if (session) {
+    const credential: ExternalCredential = {
+      label: session.label,
+      scopes: session.scopes,
+      role: session.role,
+      actorId: session.actorId,
+      tenantId: session.tenantId,
+      subjectId: session.sub,
+      authMethod: 'oauth',
+    };
+    const scopeAllowed = credentialAllowsScope(credential, scope);
+    return { credential: scopeAllowed ? credential : null, tokenPresent: true, registryConfigured: Boolean(raw.trim()), scopeAllowed };
   }
 
   try {
@@ -34,9 +61,9 @@ export function authorizeExternalRequest(req: Request, scope: string): ExternalA
     if (!credential) {
       return { credential: null, tokenPresent: true, registryConfigured: Object.keys(registry).length > 0, scopeAllowed: false };
     }
-    const scopes = credential.scopes ?? [];
-    const scopeAllowed = scopes.includes(scope) || scopes.includes('*');
-    return { credential: scopeAllowed ? credential : null, tokenPresent: true, registryConfigured: true, scopeAllowed };
+    const normalized: ExternalCredential = { ...credential, authMethod: 'static_token' };
+    const scopeAllowed = credentialAllowsScope(normalized, scope);
+    return { credential: scopeAllowed ? normalized : null, tokenPresent: true, registryConfigured: true, scopeAllowed };
   } catch {
     return { credential: null, tokenPresent: true, registryConfigured: false, scopeAllowed: false };
   }

@@ -6,8 +6,8 @@ export async function GET() {
   return NextResponse.json({
     ok: true,
     name: 'SFI External Agent Gateway',
-    version: '1.3.2',
-    auth: 'X-SFI-Token or Bearer token',
+    version: '1.4.0',
+    auth: 'OAuth 2.0 authorization_code (user-bound) or X-SFI-Token/Bearer static token',
     base: '/api/external/v1',
     discovery: {
       openapi: '/openapi.json',
@@ -20,6 +20,19 @@ export async function GET() {
       publicHistory: '/api/public/history',
       historySurface: '/history',
       privacy: '/privacy',
+      oauthAuthorize: '/api/oauth/authorize',
+      oauthToken: '/api/oauth/token',
+    },
+    oauth: {
+      flow: 'authorization_code',
+      authorizationUrl: '/api/oauth/authorize',
+      tokenUrl: '/api/oauth/token',
+      tokenType: 'Bearer',
+      accessTokenTtlSeconds: 3600,
+      authorizationCodeTtlSeconds: 120,
+      pkce: 'S256 supported',
+      identity: 'Authenticated SFI institutional member session; client credentials identify the application, not the human principal.',
+      recommendedScopes: ['observe', 'propose', 'lab:read'],
     },
     operations: [
       { id: 'console', method: 'GET', path: '/console', scope: 'observe', description: 'Read a consolidated governed machine console: Method Lab, reports, Cognitive Twin runs/evaluations, proposals, evidence and agentic capabilities.' },
@@ -40,6 +53,6 @@ export async function GET() {
       commandPath: 'lab-bridge/commands/*.json',
       result: 'GitHub Actions artifact containing command, response and provenance',
     },
-    governance: 'External agents may observe, inspect the consolidated console, propose and realize already-authorized internal actions. Method Lab runtime delegation is explicit and auditable; lab:run requires root_delegate. Approval and canonical promotion remain distinct ROOT decisions.',
+    governance: 'External agents may observe, inspect the consolidated console, propose and realize already-authorized internal actions. OAuth user sessions preserve the authenticated SFI principal. Method Lab runtime delegation is explicit and auditable; lab:run requires root_delegate. Approval and canonical promotion remain distinct ROOT decisions.',
   });
 }

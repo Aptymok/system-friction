@@ -2,8 +2,8 @@
   "openapi": "3.1.0",
   "info": {
     "title": "System Friction Institute External Agent API",
-    "version": "1.3.0",
-    "description": "Governed machine interface for authorized AI clients. Observation, consolidated console inspection, proposal, execution and laboratory operations remain scope-bound and auditable.",
+    "version": "1.4.0",
+    "description": "Governed machine interface for authorized AI clients. Supports user-bound OAuth authorization_code credentials and scoped static credentials. Observation, proposal, execution and laboratory operations remain distinct and auditable.",
     "termsOfService": "https://systemfriction.org/privacy"
   },
   "externalDocs": {
@@ -14,6 +14,7 @@
     { "url": "https://systemfriction.org" }
   ],
   "security": [
+    { "sfiOAuth": [] },
     { "sfiToken": [] }
   ],
   "paths": {
@@ -31,6 +32,10 @@
         "summary": "Read the consolidated governed SFI machine console",
         "description": "Returns Method Lab state, report health and recent reports, Cognitive Twin runs/evaluations, governance proposals, recent evidence, recent lab runs and agentic capability contracts. This operation is read-only.",
         "x-sfi-scope": "observe",
+        "security": [
+          { "sfiOAuth": ["observe"] },
+          { "sfiToken": [] }
+        ],
         "responses": {
           "200": { "description": "Consolidated governed console state", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/GenericResponse" } } } },
           "401": { "description": "Unauthorized" }
@@ -42,6 +47,10 @@
         "operationId": "observeSfi",
         "summary": "Read an allowlisted governed SFI state surface",
         "x-sfi-scope": "observe",
+        "security": [
+          { "sfiOAuth": ["observe"] },
+          { "sfiToken": [] }
+        ],
         "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ObserveRequest" } } } },
         "responses": {
           "200": { "description": "Governed observation result", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/GenericResponse" } } } },
@@ -55,6 +64,10 @@
         "operationId": "proposeSfiAction",
         "summary": "Submit a governed action proposal for ROOT review",
         "x-sfi-scope": "propose",
+        "security": [
+          { "sfiOAuth": ["propose"] },
+          { "sfiToken": [] }
+        ],
         "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ProposeRequest" } } } },
         "responses": {
           "201": { "description": "Proposal registered for ROOT review", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/GenericResponse" } } } },
@@ -69,6 +82,10 @@
         "operationId": "executeAuthorizedSfiAction",
         "summary": "Execute an already-authorized internal SFI action",
         "x-sfi-scope": "execute",
+        "security": [
+          { "sfiOAuth": ["execute"] },
+          { "sfiToken": [] }
+        ],
         "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ExecuteRequest" } } } },
         "responses": {
           "200": { "description": "Execution result and provenance", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/GenericResponse" } } } },
@@ -82,6 +99,11 @@
       "post": {
         "operationId": "operateSfiLab",
         "summary": "Read, persist or run Method Lab operations according to scope",
+        "description": "Required OAuth scope depends on body.operation: state/report=lab:read, persist=lab:write, run=lab:run. lab:run also requires root_delegate.",
+        "security": [
+          { "sfiOAuth": [] },
+          { "sfiToken": [] }
+        ],
         "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/LabRequest" } } } },
         "responses": {
           "200": { "description": "Method Lab result with governance/provenance metadata", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/GenericResponse" } } } },
@@ -158,11 +180,29 @@
       }
     },
     "securitySchemes": {
+      "sfiOAuth": {
+        "type": "oauth2",
+        "description": "User-bound SFI institutional identity. The OAuth client identifies the application; the bearer token identifies the authenticated SFI principal.",
+        "flows": {
+          "authorizationCode": {
+            "authorizationUrl": "https://systemfriction.org/api/oauth/authorize",
+            "tokenUrl": "https://systemfriction.org/api/oauth/token",
+            "scopes": {
+              "observe": "Read governed SFI state and consolidated console.",
+              "propose": "Submit governed proposals for ROOT review.",
+              "execute": "Realize already-authorized internal proposals.",
+              "lab:read": "Read Method Lab state and reports.",
+              "lab:write": "Persist Method Lab observations with provenance.",
+              "lab:run": "Run supported Method Lab runtimes; root_delegate remains separately required."
+            }
+          }
+        }
+      },
       "sfiToken": {
         "type": "apiKey",
         "in": "header",
         "name": "X-SFI-Token",
-        "description": "Scoped SFI credential. Send the raw token value only."
+        "description": "Scoped static SFI credential for server-to-server or legacy integrations. Prefer OAuth for human users."
       }
     }
   },
@@ -171,6 +211,11 @@
     "rootReserved": ["approval", "canonical promotion", "unguarded external action"],
     "privacyPolicy": "https://systemfriction.org/privacy",
     "console": "/api/external/v1/console",
+    "oauth": {
+      "authorizationUrl": "/api/oauth/authorize",
+      "tokenUrl": "/api/oauth/token",
+      "recommendedScopes": ["observe", "propose", "lab:read"]
+    },
     "discovery": ["/llms.txt", "/llms-full.txt", "/ai-index.json", "/field-schema.json", "/privacy", "/api/external/v1/manifest"]
   }
 }
