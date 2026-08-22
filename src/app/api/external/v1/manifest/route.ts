@@ -6,7 +6,7 @@ export async function GET() {
   return NextResponse.json({
     ok: true,
     name: 'SFI External Agent Gateway',
-    version: '1.3.1',
+    version: '1.3.2',
     auth: 'X-SFI-Token or Bearer token',
     base: '/api/external/v1',
     discovery: {
@@ -15,6 +15,8 @@ export async function GET() {
       llmsFull: '/llms-full.txt',
       aiIndex: '/ai-index.json',
       fieldSchema: '/field-schema.json',
+      publicInstitution: '/api/public/institution',
+      institutionSurface: '/institution',
       publicHistory: '/api/public/history',
       historySurface: '/history',
       privacy: '/privacy',
@@ -30,6 +32,7 @@ export async function GET() {
       { id: 'lab-run', method: 'POST', path: '/lab', scope: 'lab:run', body: { operation: 'run', confirm: true }, description: 'Execute a supported Method Lab runtime. Requires root_delegate and persisted evidence IDs.' },
     ],
     publicData: [
+      { id: 'institution-profile', method: 'GET', path: '/api/public/institution', auth: 'none', description: 'Canonical public profile of SFI: definitions, instruments, lifecycle, epistemic invariants, public surfaces and AI-native access.' },
       { id: 'institution-history', method: 'GET', path: '/api/public/history', auth: 'none', epistemicClass: 'OBSERVED', description: 'Verified public SFI milestones from repository and first-party public sources. Undocumented periods remain unasserted.' },
     ],
     githubBridge: {
