@@ -9,7 +9,7 @@ export const runtime = 'nodejs';
 
 const DEFAULT_SCOPES = ['observe', 'propose', 'lab:read'] as const;
 const ROOT_SCOPES = ['observe', 'propose', 'execute', 'lab:read', 'lab:write', 'lab:run'] as const;
-const SUPPORTED_SCOPES = new Set(ROOT_SCOPES);
+const SUPPORTED_SCOPES = new Set<string>(ROOT_SCOPES);
 
 function codeHash(code: string) {
   return createHash('sha256').update(code).digest('hex');
@@ -57,7 +57,7 @@ export async function GET(req: NextRequest) {
     return redirectOAuthError(redirectUri, state, 'invalid_request', 'Only PKCE S256 is supported.');
   }
 
-  const requestedScopes = [...new Set(rawScope.split(/\s+/).filter(Boolean))];
+  const requestedScopes = [...new Set<string>(rawScope.split(/\s+/).filter(Boolean))];
   if (requestedScopes.some((scope) => !SUPPORTED_SCOPES.has(scope))) {
     return redirectOAuthError(redirectUri, state, 'invalid_scope', 'One or more requested SFI scopes are not supported.');
   }
@@ -78,7 +78,7 @@ export async function GET(req: NextRequest) {
 
   const profileRole = String(context.profile.role || 'observer').toLowerCase();
   const rootDelegate = profileRole === 'root' || profileRole === 'system';
-  const allowedScopes = new Set(rootDelegate ? ROOT_SCOPES : DEFAULT_SCOPES);
+  const allowedScopes = new Set<string>(rootDelegate ? ROOT_SCOPES : DEFAULT_SCOPES);
   if (requestedScopes.some((scope) => !allowedScopes.has(scope))) {
     return redirectOAuthError(redirectUri, state, 'invalid_scope', 'The authenticated SFI principal is not allowed to receive one or more requested scopes.');
   }
