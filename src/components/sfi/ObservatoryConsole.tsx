@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { useAuthState } from '@/components/auth/AuthProvider';
+import { SessionControls } from './SessionControls';
 import './ObservatoryConsole.css';
 
 type Proposal={id:string;title?:string;status?:string;risk_level?:string;created_at?:string;proposalType?:string};
@@ -104,6 +105,7 @@ export function ObservatoryConsole(){
         <div className="obsBrand"><strong>SFI</strong><span>FIELD · SYSTEM FRICTION INSTITUTE</span><small>LIVE OBSERVATION SURFACE</small></div>
         <nav>{(['field','tensions','time','evidence','lab','root'] as Lens[]).map(k=><button key={k} className={lens===k?'active':''} onClick={()=>setLens(k)}>{k==='time'?'TIME HISTORY':k.toUpperCase()}</button>)}<Link href="/history">ORIGIN → NOW</Link></nav>
         <div className="obsIdentity"><b>{auth.identity?.alias||'SESSION'}</b><span>{auth.identity?.role||auth.status}</span></div>
+        <SessionControls className="obsSessionControls"/>
       </header>
 
       <aside className="hud hudLeft">
