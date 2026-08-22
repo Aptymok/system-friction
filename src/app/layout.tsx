@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from 'next';
 import Script from 'next/script';
 import type { ReactNode } from 'react';
 import { AuthProvider } from '@/components/auth/AuthProvider';
+import { SfiConsentBanner } from '@/components/analytics/SfiConsentBanner';
 
 const BASE = 'https://systemfriction.org';
 const GA_ID = 'G-P8G69HMYLM';
@@ -43,6 +44,7 @@ export const metadata: Metadata = {
       'application/json': [
         { url: '/ai-index.json', title: 'SFI AI index' },
         { url: '/field-schema.json', title: 'SFI field schema' },
+        { url: '/openapi.json', title: 'SFI external agent OpenAPI' },
         { url: '/api/external/v1/manifest', title: 'SFI external agent manifest' },
       ],
     },
@@ -73,15 +75,25 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="es">
       <body>
-        <Script src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`} strategy="afterInteractive" />
-        <Script id="sfi-ga4" strategy="afterInteractive">
+        <Script id="sfi-consent-default" strategy="beforeInteractive">
           {`window.dataLayer = window.dataLayer || [];
 function gtag(){dataLayer.push(arguments);}
-gtag('js', new Date());
+gtag('consent', 'default', {
+  ad_storage: 'denied',
+  ad_user_data: 'denied',
+  ad_personalization: 'denied',
+  analytics_storage: 'denied',
+  wait_for_update: 500
+});`}
+        </Script>
+        <Script src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`} strategy="afterInteractive" />
+        <Script id="sfi-ga4" strategy="afterInteractive">
+          {`gtag('js', new Date());
 gtag('config', '${GA_ID}');`}
         </Script>
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} />
         <AuthProvider>{children}</AuthProvider>
+        <SfiConsentBanner />
       </body>
     </html>
   );
