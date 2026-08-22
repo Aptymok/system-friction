@@ -1,9 +1,11 @@
 import '@/app/globals.css';
 import type { Metadata, Viewport } from 'next';
+import Script from 'next/script';
 import type { ReactNode } from 'react';
 import { AuthProvider } from '@/components/auth/AuthProvider';
 
 const BASE = 'https://systemfriction.org';
+const GA_ID = 'G-P8G69HMYLM';
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -71,6 +73,13 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="es">
       <body>
+        <Script src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`} strategy="afterInteractive" />
+        <Script id="sfi-ga4" strategy="afterInteractive">
+          {`window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', '${GA_ID}');`}
+        </Script>
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} />
         <AuthProvider>{children}</AuthProvider>
       </body>
