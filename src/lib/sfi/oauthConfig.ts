@@ -11,12 +11,13 @@ export type SfiOAuthConfig = {
 export function readSfiOAuthConfig(): SfiOAuthConfig | null {
   const clientId = (process.env.SFI_OAUTH_CLIENT_ID || '').trim();
   const clientSecret = (process.env.SFI_OAUTH_CLIENT_SECRET || '').trim();
+  const sessionSecret = (process.env.SFI_EXTERNAL_SESSION_SECRET || '').trim();
   const redirectUris = (process.env.SFI_OAUTH_REDIRECT_URIS || '')
     .split(',')
     .map((value) => value.trim())
     .filter(Boolean);
 
-  if (!clientId || !clientSecret || redirectUris.length === 0) return null;
+  if (!clientId || !clientSecret || !sessionSecret || redirectUris.length === 0) return null;
   return { clientId, clientSecret, redirectUris };
 }
 
