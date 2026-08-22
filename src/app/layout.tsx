@@ -70,6 +70,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     url: BASE,
     description: 'Research and observability environment for complex sociotechnical systems, evidence, falsification, governance and governed AI interaction.',
     sameAs: ['https://github.com/Aptymok/system-friction'],
+    privacyPolicy: `${BASE}/privacy`,
   };
 
   return (
@@ -93,6 +94,9 @@ gtag('config', '${GA_ID}');`}
         </Script>
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} />
         <AuthProvider>{children}</AuthProvider>
+        <footer style={{ background: '#080806', borderTop: '1px solid rgba(205,164,93,.12)', padding: '14px 20px', textAlign: 'center', fontFamily: 'Inter, ui-sans-serif, system-ui, sans-serif', fontSize: 11, letterSpacing: '.08em' }}>
+          <a href="/privacy" style={{ color: '#8f7855', textDecoration: 'none' }}>PRIVACY & EXTERNAL AGENT DATA POLICY</a>
+        </footer>
         <SfiConsentBanner />
       </body>
     </html>
