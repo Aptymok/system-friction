@@ -63,39 +63,52 @@ export async function POST(req: NextRequest) {
 
   const db = createServiceSupabaseClient();
   const now = new Date().toISOString();
-  const consumed = await db
+  const found = await db
     .from('sfi_oauth_authorization_codes')
-    .update({ consumed_at: now })
+    .select('id,subject_id,actor_id,label,role,tenant_id,scopes,code_challenge,code_challenge_method')
     .eq('code_hash', codeHash(code))
     .eq('client_id', clientId)
     .eq('redirect_uri', redirectUri)
     .is('consumed_at', null)
     .gt('expires_at', now)
-    .select('subject_id,actor_id,label,role,tenant_id,scopes,code_challenge,code_challenge_method')
     .maybeSingle();
 
-  if (consumed.error || !consumed.data) {
+  if (found.error || !found.data) {
     return oauthError('invalid_grant', 'Authorization code is invalid, expired, or already consumed.');
   }
 
-  if (consumed.data.code_challenge) {
+  if (found.data.code_challenge) {
     if (!codeVerifier) return oauthError('invalid_grant', 'PKCE code_verifier is required.');
     const calculated = createHash('sha256').update(codeVerifier).digest('base64url');
-    if (!safeEqual(calculated, String(consumed.data.code_challenge))) {
+    if (!safeEqual(calculated, String(found.data.code_challenge))) {
       return oauthError('invalid_grant', 'PKCE verification failed.');
     }
   }
 
-  const scopes = Array.isArray(consumed.data.scopes)
-    ? consumed.data.scopes.filter((value): value is string => typeof value === 'string')
+  // Mark the code consumed only after client and optional PKCE verification. The
+  // conditional update keeps the code single-use if two exchanges race.
+  const consumed = await db
+    .from('sfi_oauth_authorization_codes')
+    .update({ consumed_at: now })
+    .eq('id', found.data.id)
+    .is('consumed_at', null)
+    .select('id')
+    .maybeSingle();
+
+  if (consumed.error || !consumed.data) {
+    return oauthError('invalid_grant', 'Authorization code was already consumed.');
+  }
+
+  const scopes = Array.isArray(found.data.scopes)
+    ? found.data.scopes.filter((value): value is string => typeof value === 'string')
     : [];
 
   const accessToken = mintExternalAccessToken({
-    subjectId: String(consumed.data.subject_id),
-    actorId: String(consumed.data.actor_id),
-    label: consumed.data.label ? String(consumed.data.label) : undefined,
-    role: String(consumed.data.role || 'agent'),
-    tenantId: String(consumed.data.tenant_id || 'sfi'),
+    subjectId: String(found.data.subject_id),
+    actorId: String(found.data.actor_id),
+    label: found.data.label ? String(found.data.label) : undefined,
+    role: String(found.data.role || 'agent'),
+    tenantId: String(found.data.tenant_id || 'sfi'),
     scopes,
     ttlSeconds: 3600,
   });
