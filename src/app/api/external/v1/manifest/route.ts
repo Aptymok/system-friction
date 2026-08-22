@@ -9,6 +9,13 @@ export async function GET() {
     version: '1.2',
     auth: 'Bearer token',
     base: '/api/external/v1',
+    discovery: {
+      openapi: '/openapi.json',
+      llms: '/llms.txt',
+      llmsFull: '/llms-full.txt',
+      aiIndex: '/ai-index.json',
+      fieldSchema: '/field-schema.json',
+    },
     operations: [
       { id: 'observe', method: 'POST', path: '/observe', scope: 'observe', description: 'Read governed SFI state through an allowlisted surface.' },
       { id: 'propose', method: 'POST', path: '/propose', scope: 'propose', description: 'Submit a governed action proposal. ROOT approval remains mandatory.' },
