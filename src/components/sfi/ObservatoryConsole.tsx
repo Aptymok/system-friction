@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { useAuthState } from '@/components/auth/AuthProvider';
 import './ObservatoryConsole.css';
@@ -101,7 +102,7 @@ export function ObservatoryConsole(){
 
       <header className="obsTop">
         <div className="obsBrand"><strong>SFI</strong><span>FIELD · SYSTEM FRICTION INSTITUTE</span><small>LIVE OBSERVATION SURFACE</small></div>
-        <nav>{(['field','tensions','time','evidence','lab','root'] as Lens[]).map(k=><button key={k} className={lens===k?'active':''} onClick={()=>setLens(k)}>{k==='time'?'TIME HISTORY':k.toUpperCase()}</button>)}</nav>
+        <nav>{(['field','tensions','time','evidence','lab','root'] as Lens[]).map(k=><button key={k} className={lens===k?'active':''} onClick={()=>setLens(k)}>{k==='time'?'TIME HISTORY':k.toUpperCase()}</button>)}<Link href="/history">ORIGIN → NOW</Link></nav>
         <div className="obsIdentity"><b>{auth.identity?.alias||'SESSION'}</b><span>{auth.identity?.role||auth.status}</span></div>
       </header>
 
