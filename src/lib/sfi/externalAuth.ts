@@ -3,6 +3,7 @@ export type ExternalCredential = {
   scopes?: string[];
   role?: 'agent' | 'root_delegate' | string;
   actorId?: string;
+  tenantId?: string;
 };
 
 export type ExternalAuthResult = {
@@ -43,4 +44,18 @@ export function authorizeExternalRequest(req: Request, scope: string): ExternalA
 
 export function externalActor(credential: ExternalCredential) {
   return credential.actorId?.trim() || `external:${credential.label?.trim() || 'agent'}`;
+}
+
+export function externalAuthError(auth: ExternalAuthResult, scope: string) {
+  return {
+    ok: false,
+    error: 'unauthorized',
+    auth: {
+      tokenPresent: auth.tokenPresent,
+      registryConfigured: auth.registryConfigured,
+      scopeAllowed: auth.scopeAllowed,
+      requestedScope: scope,
+      acceptedHeaders: ['Authorization: Bearer <token>', 'X-SFI-Token: <token>'],
+    },
+  };
 }
