@@ -1,0 +1,116 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "System Friction Institute External Agent API",
+    "version": "1.2.0",
+    "description": "Governed machine interface for authorized AI clients. Observation, proposal, execution and laboratory operations remain scope-bound and auditable."
+  },
+  "servers": [
+    { "url": "https://systemfriction.org" }
+  ],
+  "security": [
+    { "bearerAuth": [] }
+  ],
+  "paths": {
+    "/api/external/v1/manifest": {
+      "get": {
+        "operationId": "getSfiManifest",
+        "summary": "Discover current SFI agent capabilities",
+        "security": [],
+        "responses": { "200": { "description": "Current governed capability manifest" } }
+      }
+    },
+    "/api/external/v1/observe": {
+      "post": {
+        "operationId": "observeSfi",
+        "summary": "Read an allowlisted governed SFI state surface",
+        "x-sfi-scope": "observe",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "type": "object", "additionalProperties": true }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Governed observation result" } }
+      }
+    },
+    "/api/external/v1/propose": {
+      "post": {
+        "operationId": "proposeSfiAction",
+        "summary": "Submit a governed action proposal for ROOT review",
+        "x-sfi-scope": "propose",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "type": "object", "additionalProperties": true }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Proposal receipt and governance state" } }
+      }
+    },
+    "/api/external/v1/execute": {
+      "post": {
+        "operationId": "executeAuthorizedSfiAction",
+        "summary": "Execute an already-authorized internal SFI action",
+        "x-sfi-scope": "execute",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "type": "object", "additionalProperties": true }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Execution result and provenance" } }
+      }
+    },
+    "/api/external/v1/lab": {
+      "post": {
+        "operationId": "operateSfiLab",
+        "summary": "Read, persist or run Method Lab operations according to scope",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["operation"],
+                "properties": {
+                  "operation": { "type": "string", "enum": ["state", "report", "persist", "run"] },
+                  "confirm": { "type": "boolean" },
+                  "evidenceIds": { "type": "array", "items": { "type": "string" } }
+                },
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Method Lab result with governance/provenance metadata" } }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "SFI scoped credential"
+      }
+    }
+  },
+  "x-sfi-governance": {
+    "principle": "Observation, inference, proposal, authorization, execution, return and canonical promotion remain distinct states.",
+    "rootReserved": ["approval", "canonical promotion", "unguarded external action"],
+    "discovery": [
+      "/llms.txt",
+      "/llms-full.txt",
+      "/ai-index.json",
+      "/field-schema.json",
+      "/api/external/v1/manifest"
+    ]
+  }
+}
