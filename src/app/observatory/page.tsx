@@ -1,1 +1,5 @@
-import { redirect } from 'next/navigation'; export default function Page(){redirect('/field');}
+import { ObservatoryConsole } from '@/components/sfi/ObservatoryConsole';
+
+export default function ObservatoryPage(){
+  return <ObservatoryConsole/>;
+}
