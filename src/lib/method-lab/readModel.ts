@@ -86,8 +86,13 @@ function summarizeDecisionTransfer(item: Row) {
 export async function readMethodLabState() {
   const db = createServiceSupabaseClient();
   const [analyses, decisionTransferEvaluations, dependencyState] = await Promise.all([
+    // Use '*' here intentionally. PostgREST can parse a column literally named `mode`
+    // as the PostgreSQL ordered-set aggregate when aggregate parsing is enabled,
+    // yielding: "WITHIN GROUP is required for ordered-set aggregate mode".
+    // Selecting the row projection avoids that parser ambiguity while preserving
+    // the exact persisted Method Lab record used below.
     db.from('sfi_lab_analyses')
-      .select('id,mode,source,data_mode,limitations,raw_analysis,created_at')
+      .select('*')
       .order('created_at', { ascending: false })
       .limit(200),
     db.from('sfi_cognitive_twin_evaluations')
