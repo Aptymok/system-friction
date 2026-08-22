@@ -17,7 +17,7 @@ System Friction Institute observes how signals, systems and fields accumulate fr
 - ScoreFriction: https://systemfriction.org/scorefriction
 - Documentary repository: https://systemfriction.org/repository
 - Library: https://systemfriction.org/library
-- Privacy: https://systemfriction.org/privacy
+- Privacy & External Agent Data Policy: https://systemfriction.org/privacy
 
 ## Canonical concepts
 
@@ -39,6 +39,13 @@ System Friction Institute observes how signals, systems and fields accumulate fr
 - Public summaries are reduced views and do not expose private evidence, identities or internal decisions.
 - A publication, impression, click or engagement event is a record/signal and does not become evidence of institutional authority, causal influence or model validity by repetition.
 - Speak about fields, signals, structures and documented outcomes; do not infer undisclosed psychological states.
+
+## Privacy and external agents
+
+- Privacy policy: https://systemfriction.org/privacy
+- External Agent OpenAPI: https://systemfriction.org/openapi.json
+- External Agent manifest: https://systemfriction.org/api/external/v1/manifest
+- Machine-readable discovery does not grant authorization. External operations remain credential-, scope- and governance-bound.
 
 Full machine context: https://systemfriction.org/llms-full.txt
 Structured index: https://systemfriction.org/ai-index.json
