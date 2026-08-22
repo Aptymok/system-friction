@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { authenticateExternalAgent, externalAuthError } from '@/lib/external/agentAuth';
+import { authorizeExternalRequest, externalActor, externalAuthError } from '@/lib/sfi/externalAuth';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { readMethodLabState } from '@/lib/method-lab/readModel';
 import { readRootReportHealth, readRootReportInbox } from '@/lib/reports/rootReportInbox';
@@ -18,8 +18,10 @@ function rows(value: unknown): Row[] {
 }
 
 export async function GET(req: Request) {
-  const auth = authenticateExternalAgent(req, 'observe');
-  if (!auth.ok) return NextResponse.json(externalAuthError(auth), { status: 401 });
+  const auth = authorizeExternalRequest(req, 'observe');
+  const credential = auth.credential;
+  if (!credential) return NextResponse.json(externalAuthError(auth, 'observe'), { status: 401 });
+  const actorId = externalActor(credential);
 
   const db = createServiceSupabaseClient();
   const [
@@ -85,11 +87,11 @@ export async function GET(req: Request) {
     ok: warnings.length === 0,
     generatedAt: new Date().toISOString(),
     principal: {
-      actorId: auth.actorId,
-      label: auth.credential?.label ?? null,
-      role: auth.credential?.role ?? 'agent',
-      tenantId: auth.credential?.tenantId ?? 'sfi',
-      scopes: auth.credential?.scopes ?? [],
+      actorId,
+      label: credential.label ?? null,
+      role: credential.role ?? 'agent',
+      tenantId: credential.tenantId ?? 'sfi',
+      scopes: credential.scopes ?? [],
     },
     console: {
       purpose: 'Governed machine console for current SFI state. Read-only through this operation; writes remain separate governed operations.',
