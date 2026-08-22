@@ -6,7 +6,7 @@ export async function GET() {
   return NextResponse.json({
     ok: true,
     name: 'SFI External Agent Gateway',
-    version: '1.3',
+    version: '1.3.1',
     auth: 'X-SFI-Token or Bearer token',
     base: '/api/external/v1',
     discovery: {
@@ -15,6 +15,8 @@ export async function GET() {
       llmsFull: '/llms-full.txt',
       aiIndex: '/ai-index.json',
       fieldSchema: '/field-schema.json',
+      publicHistory: '/api/public/history',
+      historySurface: '/history',
       privacy: '/privacy',
     },
     operations: [
@@ -26,6 +28,9 @@ export async function GET() {
       { id: 'lab-report', method: 'POST', path: '/lab', scope: 'lab:read', body: { operation: 'report' }, description: 'Read persisted Method Lab analyses and Cognitive Twin evaluations.' },
       { id: 'lab-persist', method: 'POST', path: '/lab', scope: 'lab:write', body: { operation: 'persist' }, description: 'Persist a laboratory observation into the epistemic event ledger with provenance.' },
       { id: 'lab-run', method: 'POST', path: '/lab', scope: 'lab:run', body: { operation: 'run', confirm: true }, description: 'Execute a supported Method Lab runtime. Requires root_delegate and persisted evidence IDs.' },
+    ],
+    publicData: [
+      { id: 'institution-history', method: 'GET', path: '/api/public/history', auth: 'none', epistemicClass: 'OBSERVED', description: 'Verified public SFI milestones from repository and first-party public sources. Undocumented periods remain unasserted.' },
     ],
     githubBridge: {
       workflow: '.github/workflows/sfi-github-lab-bridge.yml',
