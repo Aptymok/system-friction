@@ -59,7 +59,8 @@ export function SfiConsentBanner() {
       <div style={{ display: 'grid', gap: 9 }}>
         <strong style={{ color: '#d4a968', letterSpacing: '.08em' }}>PRIVACIDAD Y MEDICIÓN</strong>
         <span style={{ fontSize: 13, lineHeight: 1.55 }}>
-          SFI usa Google Analytics para medir el uso del sitio. Puedes permitir o rechazar el almacenamiento analítico y publicitario. La operación institucional de SFI no depende de esta elección.
+          SFI usa Google Analytics para medir el uso del sitio. Puedes permitir o rechazar el almacenamiento analítico y publicitario. La operación institucional de SFI no depende de esta elección.{' '}
+          <a href="/privacy" style={{ color: '#d9b26f', textDecoration: 'underline', textUnderlineOffset: 3 }}>Política de privacidad</a>.
         </span>
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
           <button onClick={() => choose('denied')} style={{ border: '1px solid rgba(210,165,92,.24)', background: 'transparent', color: '#bca985', padding: '9px 12px', cursor: 'pointer' }}>
