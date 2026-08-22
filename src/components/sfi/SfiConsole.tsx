@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useAuthState } from '@/components/auth/AuthProvider';
 import { SCENES, SCENE_KEYS, type SceneKey } from './scenes';
 import { ObservatoryConsole } from './ObservatoryConsole';
+import { SessionControls } from './SessionControls';
 import './SfiConsole.css';
 
 type Proposal={id:string;title?:string;status?:string;risk_level?:string;proposalType?:string;created_at?:string};
@@ -18,7 +19,7 @@ function LegacySceneConsole({scene}:{scene:SceneKey}){
  const liveCount=useMemo(()=>live?.data?.tables?.length??live?.data?.proposals?.length??Object.keys(live?.data||{}).length,[live]);
  const decide=async(kind:'approve'|'reject')=>{if(!selected)return;await fetch(`/api/acp/proposals/${selected.id}/${kind}`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({note:'Decisión ROOT desde SFI Live Interface'})});setSelected(null);const r=await fetch('/api/acp/proposals',{cache:'no-store'});const j=await r.json();if(j?.ok)setProposals(j.data.proposals||[])};
  return <main className="sfi"><div className={`scene cinematic scene-${scene}`} style={{backgroundImage:`linear-gradient(90deg,rgba(5,5,4,.66),rgba(5,5,4,.06) 55%,rgba(5,5,4,.72)),url(${spec.image})`}}><Instrument scene={scene}/><div className="scan"/><div className="orbital"/><div className="pulse p1"/><div className="pulse p2"/><div className="pulse p3"/>
-   <header className="top"><Link href="/field" className="brand">SFI.</Link><button className="menu" onClick={()=>setOpen(v=>!v)}>INDEX</button><span className="liveDot">LIVE</span><span className="clock">{clock}</span><span className="identity">{auth.identity?.alias||auth.status}</span></header>
+   <header className="top"><Link href="/field" className="brand">SFI.</Link><button className="menu" onClick={()=>setOpen(v=>!v)}>INDEX</button><span className="liveDot">LIVE</span><span className="clock">{clock}</span><span className="identity">{auth.identity?.alias||auth.status}</span><SessionControls/></header>
    {open&&<nav className="index">{SCENE_KEYS.map(k=><Link key={k} href={`/${k}`} className={k===scene?'active':''}>{SCENES[k].label}<small>{SCENES[k].title}</small></Link>)}</nav>}
    <section className="caption"><span>{spec.label}</span><h1>{spec.title}</h1><p>{spec.subtitle}</p><div className="chips">{spec.markers.map(x=><b key={x}>{x}</b>)}</div></section>
    <aside className="telemetry"><div><small>FUENTE VIVA</small><strong>{spec.liveSource}</strong></div><div><small>ESTADO</small><strong>{live?.ok===false?'DEGRADED':live?'OBSERVADO':'CONECTANDO'}</strong></div><div><small>OBJETOS</small><strong>{liveCount}</strong></div><div><small>PROPOSICIONES</small><strong>{proposals.length}</strong></div></aside>
