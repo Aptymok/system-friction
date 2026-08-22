@@ -88,10 +88,12 @@ export async function GET(req: Request) {
     generatedAt: new Date().toISOString(),
     principal: {
       actorId,
+      subjectId: credential.subjectId ?? null,
       label: credential.label ?? null,
       role: credential.role ?? 'agent',
       tenantId: credential.tenantId ?? 'sfi',
       scopes: credential.scopes ?? [],
+      authMethod: credential.authMethod ?? 'static_token',
     },
     console: {
       purpose: 'Governed machine console for current SFI state. Read-only through this operation; writes remain separate governed operations.',
