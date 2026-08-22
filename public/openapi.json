@@ -2,8 +2,8 @@
   "openapi": "3.1.0",
   "info": {
     "title": "System Friction Institute External Agent API",
-    "version": "1.2.3",
-    "description": "Governed machine interface for authorized AI clients. Observation, proposal, execution and laboratory operations remain scope-bound and auditable.",
+    "version": "1.3.0",
+    "description": "Governed machine interface for authorized AI clients. Observation, consolidated console inspection, proposal, execution and laboratory operations remain scope-bound and auditable.",
     "termsOfService": "https://systemfriction.org/privacy"
   },
   "externalDocs": {
@@ -23,6 +23,18 @@
         "summary": "Discover current SFI agent capabilities",
         "security": [],
         "responses": { "200": { "description": "Current governed capability manifest", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/GenericResponse" } } } } }
+      }
+    },
+    "/api/external/v1/console": {
+      "get": {
+        "operationId": "readSfiConsole",
+        "summary": "Read the consolidated governed SFI machine console",
+        "description": "Returns Method Lab state, report health and recent reports, Cognitive Twin runs/evaluations, governance proposals, recent evidence, recent lab runs and agentic capability contracts. This operation is read-only.",
+        "x-sfi-scope": "observe",
+        "responses": {
+          "200": { "description": "Consolidated governed console state", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/GenericResponse" } } } },
+          "401": { "description": "Unauthorized" }
+        }
       }
     },
     "/api/external/v1/observe": {
@@ -73,9 +85,11 @@
         "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/LabRequest" } } } },
         "responses": {
           "200": { "description": "Method Lab result with governance/provenance metadata", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/GenericResponse" } } } },
+          "201": { "description": "Persisted Method Lab record" },
           "400": { "description": "Invalid laboratory operation" },
           "401": { "description": "Unauthorized" },
-          "403": { "description": "Insufficient scope or authority" }
+          "403": { "description": "Insufficient scope or authority" },
+          "503": { "description": "Method Lab runtime failure" }
         }
       }
     }
@@ -114,17 +128,29 @@
         "required": ["operation"],
         "properties": {
           "operation": { "type": "string", "enum": ["state", "report", "persist", "run"] },
-          "confirm": { "type": "boolean", "description": "Required as true for governed runtime execution when applicable." },
-          "evidenceIds": { "type": "array", "items": { "type": "string" }, "description": "Persisted evidence identifiers used by a supported Method Lab runtime." },
-          "payload": { "type": "object", "properties": {}, "additionalProperties": true, "description": "Optional laboratory payload for persist/run operations." }
+          "title": { "type": "string", "description": "Required for persist. Human-readable observation title." },
+          "content": { "type": "string", "description": "Required for persist. Observation/evidence content to preserve." },
+          "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+          "source": { "type": "string" },
+          "commandId": { "type": "string", "description": "Caller idempotency/correlation identifier where available." },
+          "refs": { "type": "array", "items": { "type": "string" }, "description": "Lineage references for persist." },
+          "metadata": { "type": "object", "properties": {}, "additionalProperties": true },
+          "protocolId": { "type": "string", "enum": ["sociotechnical_simulation", "economic_simulation"], "description": "Required for run." },
+          "confirm": { "type": "boolean", "description": "Required as true for governed runtime execution." },
+          "evidenceIds": { "type": "array", "items": { "type": "string" }, "description": "Persisted evidence identifiers required by a supported Method Lab runtime." },
+          "parameters": { "type": "object", "properties": {}, "additionalProperties": true },
+          "cognitiveSpineContextRefs": { "type": "array", "items": { "type": "string" } }
         },
-        "additionalProperties": true
+        "additionalProperties": false
       },
       "GenericResponse": {
         "type": "object",
         "properties": {
           "ok": { "type": "boolean" },
+          "generatedAt": { "type": "string" },
           "data": {},
+          "console": {},
+          "warnings": { "type": "array", "items": { "type": "string" } },
           "error": { "type": ["string", "null"] },
           "message": { "type": "string" }
         },
@@ -144,6 +170,7 @@
     "principle": "Observation, inference, proposal, authorization, execution, return and canonical promotion remain distinct states.",
     "rootReserved": ["approval", "canonical promotion", "unguarded external action"],
     "privacyPolicy": "https://systemfriction.org/privacy",
+    "console": "/api/external/v1/console",
     "discovery": ["/llms.txt", "/llms-full.txt", "/ai-index.json", "/field-schema.json", "/privacy", "/api/external/v1/manifest"]
   }
 }
