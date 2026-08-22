@@ -1,0 +1,43 @@
+name: SFI Session Controls
+
+on:
+  pull_request:
+    paths:
+      - 'src/components/sfi/SessionControls.tsx'
+      - 'src/components/sfi/SessionControls.css'
+      - 'src/components/sfi/SfiConsole.tsx'
+      - 'src/components/sfi/ObservatoryConsole.tsx'
+      - 'src/app/logout/route.ts'
+      - 'scripts/qa-sfi-session-controls.ts'
+      - '.github/workflows/sfi-session-controls.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Verify visible session controls
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Verify session contract
+        run: npx tsx scripts/qa-sfi-session-controls.ts
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build
