@@ -40,9 +40,12 @@ function systemNarrative(live:any,proposals:Proposal[],geo:GeoSignal[]){
   const pending=proposals.filter(p=>['proposed','waiting_evidence','needs_evidence'].includes(p.status||'')).length;
   const risky=proposals.filter(p=>['high','critical'].includes((p.risk_level||'').toLowerCase())).length;
   const tables=Array.isArray(live?.data?.tables)?live.data.tables:[];
-  const broken=tables.filter((t:any)=>t?.ok===false).length;
+  const broken=tables.filter((t:any)=>t?.ok===false);
   if(!live)return 'El observatorio todavía está conectando con el estado institucional.';
-  if(live?.ok===false||broken>0)return `El sistema está respondiendo, pero ${broken||'algunas'} fuentes no están completas. Hay ${pending} decisiones o solicitudes de evidencia abiertas y ${geo.length} observaciones con coordenadas verificables.`;
+  if(live?.ok===false||broken.length>0){
+    const names=broken.map((t:any)=>String(t?.table||'tabla desconocida')).join(', ');
+    return `El sistema está respondiendo, pero ${broken.length||'algunas'} tablas críticas presentan advertencias${names?`: ${names}`:''}. Esto describe salud de persistencia, no fuentes externas incompletas. Hay ${pending} decisiones o solicitudes de evidencia abiertas y ${geo.length} observaciones con coordenadas verificables.`;
+  }
   return `El campo está disponible. Hay ${pending} asuntos por resolver, ${risky} señales de riesgo alto y ${geo.length} observaciones georreferenciadas visibles sobre la Tierra.`;
 }
 
@@ -64,6 +67,7 @@ export function ObservatoryConsole(){
 
   const geo=useMemo(()=>collectGeo(live?.data),[live]);
   const tables=Array.isArray(live?.data?.tables)?live.data.tables:[];
+  const degradedTables=tables.filter((t:any)=>t?.ok===false);
   const objects=tables.reduce((sum:number,t:any)=>sum+(Number(t?.count)||0),0)||Object.keys(live?.data||{}).length;
   const pending=proposals.filter(p=>['proposed','waiting_evidence','needs_evidence'].includes(p.status||'')).length;
   const rejected=proposals.filter(p=>p.status==='rejected').length;
@@ -110,7 +114,7 @@ export function ObservatoryConsole(){
       <aside className="hud hudRight">
         <section className="meaning"><small>WHAT DOES THIS MEAN?</small><p>{narrative}</p></section>
         {lens==='tensions'&&<section><small>TENSIONES</small><dl><dt>NECESITAN EVIDENCIA</dt><dd>{visibleProposals.filter(p=>['needs_evidence','waiting_evidence'].includes(p.status||'')).length}</dd><dt>RECHAZADAS</dt><dd>{rejected}</dd><dt>ACEPTADAS</dt><dd>{accepted}</dd></dl></section>}
-        {lens==='evidence'&&<section><small>EVIDENCIA</small><p>{tables.filter((t:any)=>t?.ok).length} fuentes/tablas responden correctamente; {tables.filter((t:any)=>t?.ok===false).length} presentan advertencias.</p></section>}
+        {lens==='evidence'&&<section><small>PERSISTENCIA / EVIDENCIA</small><p>{tables.filter((t:any)=>t?.ok).length} tablas críticas responden correctamente; {degradedTables.length} presentan advertencias.</p>{degradedTables.length>0&&<dl>{degradedTables.map((t:any)=><span key={String(t?.table)}><dt>{String(t?.table||'tabla desconocida')}</dt><dd>{String(t?.warning||'warning sin detalle')}</dd></span>)}</dl>}</section>}
         {lens==='lab'&&<section><small>LAB</small><p>El laboratorio usa el mismo campo: seleccionar evidencia, formular hipótesis y ejecutar sólo bajo autorización.</p></section>}
         {lens==='root'&&<section><small>ROOT</small><p>{pending} asuntos requieren decisión o evidencia. La autoridad permanece separada de la propuesta.</p></section>}
       </aside>
