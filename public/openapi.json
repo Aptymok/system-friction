@@ -2,8 +2,13 @@
   "openapi": "3.1.0",
   "info": {
     "title": "System Friction Institute External Agent API",
-    "version": "1.2.2",
-    "description": "Governed machine interface for authorized AI clients. Observation, proposal, execution and laboratory operations remain scope-bound and auditable."
+    "version": "1.2.3",
+    "description": "Governed machine interface for authorized AI clients. Observation, proposal, execution and laboratory operations remain scope-bound and auditable.",
+    "termsOfService": "https://systemfriction.org/privacy"
+  },
+  "externalDocs": {
+    "description": "SFI Privacy & External Agent Data Policy",
+    "url": "https://systemfriction.org/privacy"
   },
   "servers": [
     { "url": "https://systemfriction.org" }
@@ -138,6 +143,7 @@
   "x-sfi-governance": {
     "principle": "Observation, inference, proposal, authorization, execution, return and canonical promotion remain distinct states.",
     "rootReserved": ["approval", "canonical promotion", "unguarded external action"],
-    "discovery": ["/llms.txt", "/llms-full.txt", "/ai-index.json", "/field-schema.json", "/api/external/v1/manifest"]
+    "privacyPolicy": "https://systemfriction.org/privacy",
+    "discovery": ["/llms.txt", "/llms-full.txt", "/ai-index.json", "/field-schema.json", "/privacy", "/api/external/v1/manifest"]
   }
 }
