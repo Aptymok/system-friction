@@ -6,17 +6,33 @@ on:
     paths:
       - 'src/lib/sfi/universalSignalCycle.ts'
       - 'src/app/api/external/v1/signal/**'
+      - 'src/app/api/external/v1/execution-contract/**'
+      - 'src/app/api/external/v1/result/**'
       - 'src/app/api/external/v1/console/**'
       - 'src/app/api/external/v1/manifest/**'
+      - 'src/app/api/observatory/world/**'
+      - 'src/components/sfi/ObservatoryConsole.tsx'
+      - 'src/components/sfi/ObservatoryWorldLayer.css'
       - 'public/openapi.json'
+      - 'public/llms.txt'
+      - 'public/llms-full.txt'
+      - 'public/ai-index.json'
       - '.github/workflows/sfi-universal-signal.yml'
   pull_request:
     paths:
       - 'src/lib/sfi/universalSignalCycle.ts'
       - 'src/app/api/external/v1/signal/**'
+      - 'src/app/api/external/v1/execution-contract/**'
+      - 'src/app/api/external/v1/result/**'
       - 'src/app/api/external/v1/console/**'
       - 'src/app/api/external/v1/manifest/**'
+      - 'src/app/api/observatory/world/**'
+      - 'src/components/sfi/ObservatoryConsole.tsx'
+      - 'src/components/sfi/ObservatoryWorldLayer.css'
       - 'public/openapi.json'
+      - 'public/llms.txt'
+      - 'public/llms-full.txt'
+      - 'public/ai-index.json'
       - '.github/workflows/sfi-universal-signal.yml'
 
 permissions:
@@ -36,8 +52,10 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
       - name: Validate OpenAPI JSON
-        run: node -e "const fs=require('fs'); const o=JSON.parse(fs.readFileSync('public/openapi.json','utf8')); if(o.info?.version!=='1.5.0'||!o.paths?.['/api/external/v1/signal']) process.exit(1); console.log('openapi 1.5.0 signal contract ok')"
+        run: node -e "const fs=require('fs'); const o=JSON.parse(fs.readFileSync('public/openapi.json','utf8')); const p=o.paths||{}; if(o.info?.version!=='1.6.0'||!p['/api/external/v1/signal']||!p['/api/external/v1/execution-contract']||!p['/api/external/v1/result']) process.exit(1); console.log('openapi 1.6.0 no-store contracts ok')"
       - name: Verify 21 cognitive executors are wired
         run: node --import tsx -e "import { SFI_AGENT_EXECUTION_MAP } from './src/lib/sfi/cognitive-runtime/agentExecutionMap.ts'; const ids=Object.keys(SFI_AGENT_EXECUTION_MAP); console.log(ids.length, ids); if(ids.length!==21) process.exit(1);"
+      - name: Verify raw-object persistence is disabled in preferred flow
+        run: node -e "const fs=require('fs'); const manifest=fs.readFileSync('src/app/api/external/v1/manifest/route.ts','utf8'); const result=fs.readFileSync('src/app/api/external/v1/result/route.ts','utf8'); if(!manifest.includes('rawObjectPersistence: false')||!result.includes('rawObjectPersisted:false')) process.exit(1); console.log('REFERENCE_ONLY contract ok')"
       - name: Build
         run: npm run build
