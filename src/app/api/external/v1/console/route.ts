@@ -4,6 +4,9 @@ import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { readMethodLabState } from '@/lib/method-lab/readModel';
 import { readRootReportHealth, readRootReportInbox } from '@/lib/reports/rootReportInbox';
 import { SFI_AGENTIC_CAPABILITIES } from '@/lib/sfi/agenticCapabilityRegistry';
+import { SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY } from '@/lib/sfi/cognitive-runtime/convergedRegistry';
+import { readUniversalOpenCycles } from '@/lib/sfi/universalSignalCycle';
+import { getLatestWorldSpectSnapshot, snapshotRowToApiData } from '@/lib/worldspect/snapshotStore';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -32,6 +35,8 @@ export async function GET(req: Request) {
     twinRuns,
     twinEvaluations,
     labRuns,
+    openCycles,
+    worldSnapshot,
   ] = await Promise.all([
     readMethodLabState(),
     readRootReportInbox(60),
@@ -55,6 +60,8 @@ export async function GET(req: Request) {
       .select('*')
       .order('created_at', { ascending: false })
       .limit(30),
+    readUniversalOpenCycles(60),
+    getLatestWorldSpectSnapshot(),
   ]);
 
   const reportHealth = await readRootReportHealth(reportInbox);
@@ -66,6 +73,8 @@ export async function GET(req: Request) {
     labRuns.error ? `sfi_lab_analyses:${labRuns.error.message}` : null,
     ...lab.warnings,
     ...reportInbox.warnings,
+    ...openCycles.warnings,
+    worldSnapshot ? null : 'worldspect_snapshots:latest_snapshot_missing',
   ].filter((value): value is string => Boolean(value));
 
   const recentLabRuns = rows(labRuns.data).map((item) => {
@@ -97,6 +106,18 @@ export async function GET(req: Request) {
     },
     console: {
       purpose: 'Governed machine console for current SFI state. Read-only through this operation; writes remain separate governed operations.',
+      world: worldSnapshot ? snapshotRowToApiData(worldSnapshot) : null,
+      openCycles: {
+        universal: openCycles.universal,
+        worldHypotheses: openCycles.worldHypotheses,
+        pendingGovernanceProposals: openCycles.pendingProposals,
+      },
+      universalSignalGateway: {
+        path: '/api/external/v1/signal',
+        contract: 'SFI-UNIVERSAL-SIGNAL-1.0',
+        cycleContract: 'SFI-UNIVERSAL-REASONING-CYCLE-1.0',
+        operations: ['status', 'intake', 'run', 'return', 'close'],
+      },
       lab,
       reports: {
         health: reportHealth,
@@ -105,6 +126,20 @@ export async function GET(req: Request) {
       cognitiveTwin: {
         recentRuns: twinRuns.data ?? [],
         recentEvaluations: twinEvaluations.data ?? [],
+      },
+      cognitiveRuntime: {
+        count: SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY.length,
+        agents: SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY.map((agent) => ({
+          id: agent.id,
+          name: agent.name,
+          purpose: agent.purpose,
+          domain: agent.domain,
+          layer: agent.layer,
+          authorityLevel: agent.authorityLevel,
+          simulationAllowed: agent.simulationAllowed,
+          humanApprovalRequired: agent.humanApprovalRequired,
+          sourceTables: agent.sourceTables,
+        })),
       },
       governance: {
         proposals: proposals.data ?? [],
