@@ -1,0 +1,41 @@
+name: SFI Universal Signal
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/lib/sfi/universalSignalCycle.ts'
+      - 'src/app/api/external/v1/signal/**'
+      - 'src/app/api/external/v1/console/**'
+      - 'src/app/api/external/v1/manifest/**'
+      - 'public/openapi.json'
+      - '.github/workflows/sfi-universal-signal.yml'
+  pull_request:
+    paths:
+      - 'src/lib/sfi/universalSignalCycle.ts'
+      - 'src/app/api/external/v1/signal/**'
+      - 'src/app/api/external/v1/console/**'
+      - 'src/app/api/external/v1/manifest/**'
+      - 'public/openapi.json'
+      - '.github/workflows/sfi-universal-signal.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Validate OpenAPI JSON
+        run: node -e "const fs=require('fs'); const o=JSON.parse(fs.readFileSync('public/openapi.json','utf8')); if(o.info?.version!=='1.5.0'||!o.paths?.['/api/external/v1/signal']) process.exit(1); console.log('openapi 1.5.0 signal contract ok')"
+      - name: Verify 21 cognitive executors are wired
+        run: node --import tsx -e "import { SFI_AGENT_EXECUTION_MAP } from './src/lib/sfi/cognitive-runtime/agentExecutionMap.ts'; const ids=Object.keys(SFI_AGENT_EXECUTION_MAP); console.log(ids.length, ids); if(ids.length!==21) process.exit(1);"
