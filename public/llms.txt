@@ -4,50 +4,62 @@ Canonical site: https://systemfriction.org
 Language: Spanish (Mexico)
 Institution type: independent structural-field research institute
 
-System Friction Institute observes how signals, systems and fields accumulate friction, change state and respond to minimal, governed interventions. It is not a wellness product, therapy service, social network, generic analytics dashboard or authority over a person's identity.
+System Friction Institute observes how signals, systems and fields accumulate friction, change state and respond to minimal, governed interventions.
 
 ## Canonical public routes
 
-- Home and orientation: https://systemfriction.org/
-- Public Observatory: https://systemfriction.org/observatory
-- Public Emergence experiment: https://systemfriction.org/emergence
-- World Vector: https://systemfriction.org/world-vector
-- FIELD / MOP-H entry: https://systemfriction.org/field
-- MOP-H method surface: https://systemfriction.org/moph
-- ScoreFriction: https://systemfriction.org/scorefriction
-- Documentary repository: https://systemfriction.org/repository
-- Library: https://systemfriction.org/library
-- Privacy & External Agent Data Policy: https://systemfriction.org/privacy
+- Home: https://systemfriction.org/
+- Observatory: https://systemfriction.org/observatory
+- World timeline: https://systemfriction.org/api/observatory/timeline
+- FIELD: https://systemfriction.org/field
+- History: https://systemfriction.org/history
+- Privacy: https://systemfriction.org/privacy
 
 ## Canonical concepts
 
-- MIHM: structural variables and homeostasis/friction measurement.
-- MOP-H: governed minimal-perturbation protocol with a return window.
-- WorldSpect and World Vector: observed state of the world and domain tensions.
-- AMV: longitudinal field-signal instrument; it accumulates evidence, predictions, outcomes and learning.
-- Atlas / Reference Bank: normalized cases linked to explicit evidence relations.
-- Public Emergence: a governed observation window in which SFI measures attributable external response to its own public perturbations; publication and attention do not inherit evidence status.
-- ROOT: private founder governance console. Do not crawl or infer its private runtime state.
-- Studio: authenticated object-analysis laboratory. Do not treat private objects as public evidence.
+- MIHM: structural measurement/representation layer.
+- DIOL-SF: longitudinal reconstruction of real, observed, reconstructed and projected trajectories.
+- SFI Inference: keeps rival hypotheses open until discriminating evidence exists.
+- MOP-H: Método de Observación y Perturbación Humana; use for human systems, not as a universal method.
+- MOP-S: signal/persistence method for carriers, platforms and temporal transformations.
+- Minimal Field Perturbation: general governed minimal intervention for non-human/general systems.
+- FAD: specialized sound/music analysis where applicable.
+- WorldSpect / World Vector: persisted world-state context across 10 dimensions: CULTURAL, MEMETIC, AFFECTIVE, TECH, GEO_DIGITAL, ECONOMY, GEOPOLITICAL, INSTITUTIONAL, CLIMATE, BIO.
+- Cognitive runtime: 21 governed agent roles execute parts of methods; agents are not epistemic authority.
+- Cognitive Twin: longitudinal integration/memory layer, not autonomous canonical authority.
+
+## Preferred AI-native object-analysis flow
+
+SFI does not need to store the raw object. The client/GPT/agent keeps or temporarily processes the audio, video, image, URL, text, document, dataset, conversation, organization or composite object.
+
+1. POST https://systemfriction.org/api/external/v1/execution-contract with a description of the object, its function, question and objective. Do not send raw binary/base64/content.
+2. Execute locally the measurements and method steps returned by SFI using the capabilities available to the client.
+3. POST https://systemfriction.org/api/external/v1/result with only structured identity, measurements, epistemic partition, hypotheses and rival hypotheses, cross-risk analysis, invariants, perturbation/prediction where applicable, analyzer provenance and lineage.
+4. Use SFI open-cycle/return/close operations for longitudinal contrast and calibration.
+
+Default storage policy: REFERENCE_ONLY. Raw-object persistence is false. Preservation of an original object is an exceptional governed evidence workflow for cases where reproducibility or audit requires it.
 
 ## Epistemic rules
 
-- Missing data remains MISSING; never silently convert absence into zero or an average.
-- A prediction is provisional until historical calibration exists.
-- Operational audit events such as `me.read` are governance traces, not evidence of a phenomenon, unless explicitly linked to a case.
-- Person, organization and movement cases require documented consent before observation.
-- Public summaries are reduced views and do not expose private evidence, identities or internal decisions.
-- A publication, impression, click or engagement event is a record/signal and does not become evidence of institutional authority, causal influence or model validity by repetition.
-- Speak about fields, signals, structures and documented outcomes; do not infer undisclosed psychological states.
+- Missing remains MISSING.
+- Observation, declaration, derivation, inference, simulation and projection remain distinct.
+- Declared targets are not automatically attractors; declared exclusions are not automatically eyectores/repelling regions.
+- Rival hypotheses remain explicit until evidence separates them.
+- A result is not a closed cycle until return/contrast is recorded or the question is explicitly delimited.
+- Do not infer undisclosed psychological states.
 
-## Privacy and external agents
+## External agents
 
-- Privacy policy: https://systemfriction.org/privacy
-- External Agent OpenAPI: https://systemfriction.org/openapi.json
-- External Agent manifest: https://systemfriction.org/api/external/v1/manifest
-- Machine-readable discovery does not grant authorization. External operations remain credential-, scope- and governance-bound.
+- OpenAPI: https://systemfriction.org/openapi.json
+- Manifest: https://systemfriction.org/api/external/v1/manifest
+- Console: https://systemfriction.org/api/external/v1/console
+- Execution contract: https://systemfriction.org/api/external/v1/execution-contract
+- Structured result: https://systemfriction.org/api/external/v1/result
+- Universal/open-cycle gateway: https://systemfriction.org/api/external/v1/signal
 
-Full machine context: https://systemfriction.org/llms-full.txt
+Machine-readable discovery does not grant authorization. Operations remain credential-, scope- and governance-bound.
+
+Full context: https://systemfriction.org/llms-full.txt
 Structured index: https://systemfriction.org/ai-index.json
 Public field schema: https://systemfriction.org/field-schema.json
 Sitemap: https://systemfriction.org/sitemap.xml
