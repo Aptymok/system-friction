@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto';
 import { NextResponse } from 'next/server';
 import { authorizeExternalRequest, externalActor, externalAuthError } from '@/lib/sfi/externalAuth';
 import { appendEpistemicEvent } from '@/lib/events/eventStore';
@@ -37,7 +38,7 @@ export async function POST(req:Request){
   const tenantId=auth.credential.tenantId??'sfi';
   const objectKey=typeof object.objectKey==='string'?object.objectKey:typeof object.id==='string'?object.id:`object:${sha256(object)}`;
   const objectHash=typeof object.objectHash==='string'?object.objectHash:sha256(object);
-  const cycleId=typeof body.cycleId==='string'&&body.cycleId.trim()?body.cycleId.trim():crypto.randomUUID();
+  const cycleId=typeof body.cycleId==='string'&&body.cycleId.trim()?body.cycleId.trim():randomUUID();
   const event=await appendEpistemicEvent({
     eventName:'SFI_STRUCTURED_ANALYSIS_RESULT_RECEIVED',
     epistemicClass:'derived',
