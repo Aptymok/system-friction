@@ -18,6 +18,29 @@ function llmAugmentationEnabled(agentId: string, context: KernelContext) {
   return allowlist.includes(agentId);
 }
 
+function compactExecutionMetadata(agentId: string, context: KernelContext) {
+  const metadata = context.metadata ?? {};
+  const insights = metadata.agentInsights && typeof metadata.agentInsights === 'object'
+    ? metadata.agentInsights as Record<string, unknown>
+    : {};
+  const selectedInsight = insights[agentId] && typeof insights[agentId] === 'object'
+    ? insights[agentId]
+    : null;
+  const keys = ['objectKey', 'objectHash', 'signalType', 'declaredFunction', 'objective', 'question', 'worldSnapshotId', 'methods', 'openCycleIds'];
+  const refs: Record<string, unknown> = {};
+  for (const key of keys) {
+    if (metadata[key] !== undefined) refs[key] = metadata[key];
+  }
+  return {
+    refs,
+    aiGovernance: metadata.aiGovernance ?? null,
+    llmRuntime: metadata.llmRuntime ?? null,
+    agentInsight: selectedInsight,
+    metadataKeyCount: Object.keys(metadata).length,
+    storagePolicy: 'COMPACT_TRACE',
+  };
+}
+
 export async function runCognitiveAgent(
   agentId: string,
   context: KernelContext,
@@ -107,7 +130,7 @@ export async function runCognitiveAgent(
       llmProvider: insight?.provider ?? null,
       llmModel: insight?.model ?? null,
       llmError,
-      metadata: updatedContext.metadata,
+      metadata: compactExecutionMetadata(agentId, updatedContext),
     },
   );
 
