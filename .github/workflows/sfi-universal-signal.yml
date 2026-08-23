@@ -25,7 +25,7 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -39,3 +39,5 @@ jobs:
         run: node -e "const fs=require('fs'); const o=JSON.parse(fs.readFileSync('public/openapi.json','utf8')); if(o.info?.version!=='1.5.0'||!o.paths?.['/api/external/v1/signal']) process.exit(1); console.log('openapi 1.5.0 signal contract ok')"
       - name: Verify 21 cognitive executors are wired
         run: node --import tsx -e "import { SFI_AGENT_EXECUTION_MAP } from './src/lib/sfi/cognitive-runtime/agentExecutionMap.ts'; const ids=Object.keys(SFI_AGENT_EXECUTION_MAP); console.log(ids.length, ids); if(ids.length!==21) process.exit(1);"
+      - name: Build
+        run: npm run build
