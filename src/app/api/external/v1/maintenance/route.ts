@@ -80,7 +80,6 @@ export async function POST(req: Request) {
   if (!failures.length) {
     await db.from('studio_objects').update({
       status: 'archived',
-      metadata: { rawObjectPersisted: false, rawPurgedAt: new Date().toISOString(), storagePolicy: 'REFERENCE_ONLY' },
       updated_at: new Date().toISOString(),
     }).in('status', ['uploaded', 'analyzing', 'ready', 'blocked', 'failed']);
     await db.from('studio_uploads').update({ status: 'missing' }).neq('status', 'missing');
