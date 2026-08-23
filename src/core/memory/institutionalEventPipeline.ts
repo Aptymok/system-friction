@@ -1,17 +1,11 @@
 // src/core/memory/institutionalEventPipeline.ts
 //
-// Cumple ADR-018 completo:
-//   epistemic_event → MemoryPolicySource (vía MemoryPolicyValidator) → InstitutionalMemoryWriter
+// Canonical flow:
+// epistemic_event → memory policy → compact institutional memory reference.
 //
-// Este es el único punto que debe llamarse después de emitEpistemicEvent().
-// Ningún componente debe llamar a writeInstitutionalMemory() directamente.
-//
-// La fuente de política es inyectable (segundo argumento, opcional). Los
-// call sites actuales (governanceRuntime, thoughtInhibition, adapters de
-// systemTick/IntentLayer/Observer) NO especifican fuente — usan el default
-// (staticCodePolicySource) sin saberlo. El día que exista una fuente de
-// gobernanza versionada, se cambia el default en memoryPolicyValidator.ts
-// o se pasa aquí explícitamente — ningún otro archivo del repo se toca.
+// The epistemic ledger is the canonical carrier of the original event payload.
+// AMV stores only the reference and policy-relevant memory metadata so the same
+// payload is not duplicated thousands of times across persistence layers.
 
 import type { EpistemicEventRow } from './epistemicEventWriter';
 import type { MemoryPolicySource } from './policy/contract';
@@ -25,8 +19,6 @@ export async function processEpistemicEvent(
   const decision = await evaluateMemoryPolicy(event, policySource);
 
   if (!decision.shouldWrite) {
-    // Denegado por política. El evento ya quedó en el ledger
-    // (epistemic_events); simplemente no se promueve a memoria institucional.
     return { promoted: false, reason: decision.reason, policySourceId: decision.policySourceId };
   }
 
@@ -43,7 +35,7 @@ export async function processEpistemicEvent(
       hashSelf: event.hash_self,
       derivedFrom: 'epistemic_events',
       policySourceId: decision.policySourceId,
-      raw: event.payload,
+      storagePolicy: 'REFERENCE_ONLY',
     },
   }).catch((err) => ({ ok: false, success: false, error: String(err) }));
 
