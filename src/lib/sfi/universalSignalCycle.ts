@@ -28,6 +28,16 @@ type HypothesisInput = {
   role?: 'primary' | 'rival';
 };
 
+type OpenUniversalCycle = RecordValue & {
+  eventId: string;
+  occurredAt: string | null;
+  cycleId?: string;
+  objectKey?: string;
+  objectHash?: string;
+  question?: string | null;
+  objective?: string | null;
+};
+
 export type UniversalSignalInput = {
   kind?: SfiSignalKind | string;
   name?: string;
@@ -195,9 +205,13 @@ export async function readUniversalOpenCycles(limit = 80) {
     const cycleId = text(payload.cycleId);
     if (cycleId) closedCycleIds.add(cycleId);
   }
-  const universal = universalRows
+  const universal: OpenUniversalCycle[] = universalRows
     .filter((row) => row.event_name === 'SFI_UNIVERSAL_CYCLE_OPENED')
-    .map((row) => ({ eventId: row.event_id, occurredAt: row.occurred_at, ...record(row.payload) }))
+    .map((row): OpenUniversalCycle => ({
+      ...record(row.payload),
+      eventId: String(row.event_id ?? ''),
+      occurredAt: typeof row.occurred_at === 'string' ? row.occurred_at : null,
+    }))
     .filter((row) => typeof row.cycleId === 'string' && !closedCycleIds.has(row.cycleId))
     .slice(0, limit);
 
@@ -285,7 +299,7 @@ export async function runUniversalCognitiveCycle(input: UniversalCycleInput, act
     },
   });
   context.hypotheses.push(...(Array.isArray(input.hypotheses) ? input.hypotheses : [])
-    .filter((item) => text(item?.statement))
+    .filter((item) => Boolean(text(item?.statement)))
     .map((item) => ({ id: randomUUID(), statement: String(item.statement).trim(), confidence: clamp01(item.confidence, 0.5) })));
   context.metadata = {
     actorId,
@@ -324,6 +338,7 @@ export async function runUniversalCognitiveCycle(input: UniversalCycleInput, act
   });
 
   const result = await executeCognitiveCycle(context);
+  const openedEventId = opened.ok ? String(opened.data.event_id) : null;
   const completedEvent = await appendEpistemicEvent({
     eventName: 'SFI_UNIVERSAL_COGNITIVE_CYCLE_EXECUTED',
     epistemicClass: 'derived',
@@ -347,7 +362,7 @@ export async function runUniversalCognitiveCycle(input: UniversalCycleInput, act
     occurredAt: new Date().toISOString(),
     source: { sourceId: 'sfi_cognitive_runtime', sourceType: 'cognitive_cycle' },
     logbookId,
-    lineage: [signal.objectHash, opened.ok ? String(opened.data.event_id) : ''],
+    lineage: [signal.objectHash, openedEventId].filter((value): value is string => Boolean(value)),
   });
 
   return {
