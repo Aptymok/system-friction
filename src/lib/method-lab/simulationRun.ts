@@ -3,25 +3,17 @@ import 'server-only';
 import { createHash } from 'node:crypto';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { executeRegisteredAgent } from '@/lib/sfi/cognitive-runtime/agentExecutionMap';
-import type { KernelContext, KernelEvidence } from '@/lib/sfi/cognitive-runtime/kernelContext';
+import type { KernelContext } from '@/lib/sfi/cognitive-runtime/kernelContext';
 import { METHOD_LAB_CONTRACT_VERSION, assertMethodLabRunEnvelope, type MethodLabProtocolId, type MethodLabRunEnvelope } from './contracts';
 import { methodLabProtocol } from './registry';
 import { specializedModel } from './specializedModels';
 import { materializeMethodLabCognitiveSpineContext } from './cognitiveSpineContext';
+import { resolveMethodLabEvidence } from './persistedEvidenceResolver';
 import { recordCognitiveTwinExperience } from '@/core/cognitive-twin/experience';
 
 const SIMULATION_PROTOCOL_AGENTS: Partial<Record<MethodLabProtocolId, string[]>> = {
-  sociotechnical_simulation: [
-    'social_field_simulator',
-    'friction_field_simulator',
-    'cross_impact',
-    'entropy_redistribution',
-    'multi_stakeholder_bootstrap',
-  ],
-  economic_simulation: [
-    'economic_field_simulator',
-    'cross_impact',
-  ],
+  sociotechnical_simulation: ['social_field_simulator','friction_field_simulator','cross_impact','entropy_redistribution','multi_stakeholder_bootstrap'],
+  economic_simulation: ['economic_field_simulator','cross_impact'],
 };
 
 const SPECIALIZED_MODEL_BY_PROTOCOL = {
@@ -29,53 +21,8 @@ const SPECIALIZED_MODEL_BY_PROTOCOL = {
   economic_simulation: 'OBSERVABLE_ECONOMIC_STATE_MODEL',
 } as const;
 
-type Row = Record<string, unknown>;
-
-function rows(value: unknown): Row[] {
-  return Array.isArray(value) ? value.filter((item): item is Row => Boolean(item) && typeof item === 'object' && !Array.isArray(item)) : [];
-}
-function text(value: unknown) {
-  return typeof value === 'string' && value.trim() ? value.trim() : null;
-}
-function number01(value: unknown) {
-  const parsed = typeof value === 'number' ? value : Number(value);
-  return Number.isFinite(parsed) ? Math.max(0, Math.min(1, parsed)) : 0;
-}
 function hash(value: unknown) {
   return createHash('sha256').update(JSON.stringify(value)).digest('hex');
-}
-
-async function loadPersistedEvidence(evidenceIds: string[]): Promise<KernelEvidence[]> {
-  const db = createServiceSupabaseClient();
-  const evidenceRows = await db.from('root_evidence_entries')
-    .select('id,title,content,evidence_type,payload,epistemic_event_id,created_at')
-    .in('id', evidenceIds);
-  if (evidenceRows.error) throw new Error(`METHOD_LAB_EVIDENCE_READ_FAILED:${evidenceRows.error.message}`);
-  const persisted = rows(evidenceRows.data);
-  if (!persisted.length) throw new Error('METHOD_LAB_PERSISTED_EVIDENCE_NOT_FOUND');
-
-  const eventIds = persisted.map((item) => text(item.epistemic_event_id)).filter((value): value is string => Boolean(value));
-  const eventRows = eventIds.length
-    ? await db.from('epistemic_events').select('event_id,epistemic_class,confidence,occurred_at').in('event_id', eventIds)
-    : { data: [], error: null };
-  if (eventRows.error) throw new Error(`METHOD_LAB_EPISTEMIC_EVENT_READ_FAILED:${eventRows.error.message}`);
-  const eventMap = new Map(rows(eventRows.data).map((item) => [String(item.event_id), item]));
-
-  return persisted.map((item) => {
-    const event = eventMap.get(String(item.epistemic_event_id ?? ''));
-    return {
-      id: String(item.id),
-      source: `root_evidence_entries:${text(item.evidence_type) ?? 'evidence'}`,
-      confidence: number01(event?.confidence),
-      payload: {
-        title: text(item.title),
-        content: text(item.content),
-        payload: item.payload,
-        epistemicClass: text(event?.epistemic_class)?.toUpperCase() ?? 'MISSING',
-        observedAt: text(event?.occurred_at) ?? text(item.created_at),
-      },
-    };
-  });
 }
 
 export async function runMethodLabSimulation(input: {
@@ -92,14 +39,14 @@ export async function runMethodLabSimulation(input: {
 
   const modelId = SPECIALIZED_MODEL_BY_PROTOCOL[input.protocolId];
   const modelContract = specializedModel(modelId);
-  if (!modelContract || modelContract.parentProtocol !== input.protocolId) {
-    throw new Error('METHOD_LAB_SPECIALIZED_MODEL_CONTRACT_MISMATCH');
-  }
+  if (!modelContract || modelContract.parentProtocol !== input.protocolId) throw new Error('METHOD_LAB_SPECIALIZED_MODEL_CONTRACT_MISMATCH');
 
   const startedAt = new Date().toISOString();
   const labRunId = crypto.randomUUID();
-  const evidence = await loadPersistedEvidence(input.evidenceIds);
+  const evidence = await resolveMethodLabEvidence(input.evidenceIds);
   const initialEvidenceIds = evidence.map((item) => item.id);
+  const evidenceSources = evidence.map((item) => item.source);
+
   const cognitiveSpine = await materializeMethodLabCognitiveSpineContext({
     labRunId,
     sourceCutoff: startedAt,
@@ -144,8 +91,9 @@ export async function runMethodLabSimulation(input: {
       },
       requestedBy: input.actorId,
       parameters: input.parameters ?? {},
+      evidenceSources,
       ...(consumedCognitiveSpineContext ? { cognitiveSpineContext: consumedCognitiveSpineContext } : {}),
-      epistemicRule: 'LAB simulation may read persisted evidence and explicitly allowlisted Cognitive Spine context, but contextual state may not be appended to observed evidence or canonical state by inheritance.',
+      epistemicRule: 'LAB simulation may read persisted evidence from the canonical ROOT evidence table or the SFI evidence ledger. Context may not be promoted to observed evidence by inheritance.',
     },
   };
 
@@ -166,14 +114,13 @@ export async function runMethodLabSimulation(input: {
     protocolId: input.protocolId,
     specializedModelId: modelContract.id,
     evidenceRefs: initialEvidenceIds,
+    evidenceSources,
     parameters: input.parameters ?? {},
-    consumedCognitiveSpine: cognitiveSpine.consumed ? {
-      snapshotHash: cognitiveSpine.snapshot.snapshotHash,
-      visibleRefs: cognitiveSpine.visibleRefs,
-    } : null,
+    consumedCognitiveSpine: cognitiveSpine.consumed ? { snapshotHash: cognitiveSpine.snapshot.snapshotHash, visibleRefs: cognitiveSpine.visibleRefs } : null,
     simulations: context.simulations,
     metadata: context.metadata,
   });
+
   const envelope: MethodLabRunEnvelope = assertMethodLabRunEnvelope({
     contractVersion: METHOD_LAB_CONTRACT_VERSION,
     labRunId,
@@ -181,11 +128,8 @@ export async function runMethodLabSimulation(input: {
     protocolVersion: definition.version,
     epistemicClass: 'SIMULATED',
     validationLevel: 'SIMULATION',
-    datasetHash: hash(initialEvidenceIds),
-    parametersHash: hash({
-      parameters: input.parameters ?? {},
-      cognitiveSpineContextRefs: cognitiveSpine.requestedContextRefs,
-    }),
+    datasetHash: hash({ evidenceIds: initialEvidenceIds, evidenceSources }),
+    parametersHash: hash({ parameters: input.parameters ?? {}, cognitiveSpineContextRefs: cognitiveSpine.requestedContextRefs }),
     seed: null,
     codeCommit: process.env.GITHUB_SHA ?? process.env.VERCEL_GIT_COMMIT_SHA ?? null,
     provider: 'deterministic:sfi-cognitive-runtime',
@@ -206,7 +150,7 @@ export async function runMethodLabSimulation(input: {
   const db = createServiceSupabaseClient();
   const persisted = await db.from('sfi_lab_analyses').insert({
     mode: input.protocolId,
-    source: `root_evidence_entries:${initialEvidenceIds.join(',')}`,
+    source: evidenceSources.join(','),
     data_mode: 'SIMULATED',
     systems: [modelContract.id, ...agentIds],
     variables: Array.from(new Set([...modelContract.stateVariables, ...modelContract.observables])),
@@ -214,6 +158,7 @@ export async function runMethodLabSimulation(input: {
     recommendations: ['Observe the declared return window and compare predicted/simulated signals against later persisted evidence before promotion.'],
     raw_analysis: {
       ...envelope,
+      evidenceSources,
       specializedModel: modelContract,
       agentResults,
       simulations: context.simulations,
@@ -249,6 +194,7 @@ export async function runMethodLabSimulation(input: {
       resultHash,
       validationLevel:'SIMULATION',
       simulationCount:context.simulations.length,
+      evidenceSources,
       cognitiveSpineSnapshotHash:cognitiveSpine.snapshot.snapshotHash,
       cognitiveSpineConsumed:cognitiveSpine.consumed,
       cognitiveSpineContextRefs:cognitiveSpine.requestedContextRefs,
@@ -263,6 +209,7 @@ export async function runMethodLabSimulation(input: {
     specializedModel: modelContract,
     labAnalysisId: String(persisted.data.id),
     run: envelope,
+    evidenceSources,
     agentResults,
     simulations: context.simulations,
     cognitiveSpine: {
@@ -277,6 +224,6 @@ export async function runMethodLabSimulation(input: {
       consumptionTrace: cognitiveSpine.consumptionTrace,
     },
     cognitiveTwinExperience,
-    claimBoundary: 'This run is SIMULATED. Cognitive Spine context is bounded by explicit protocol allowlist when consumed; neither context nor simulation output is observed evidence, canonical validation, approval or external execution.',
+    claimBoundary: 'This run is SIMULATED. Persisted evidence may originate from either canonical evidence store, but neither context nor simulation output is promoted to observed/canonical state by this operation.',
   };
 }
