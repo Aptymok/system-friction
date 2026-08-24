@@ -12,6 +12,7 @@ const rootDecisions=read('src/app/api/root/decisions/route.ts');
 const approve=read('src/app/api/acp/proposals/[id]/approve/route.ts');
 const reject=read('src/app/api/acp/proposals/[id]/reject/route.ts');
 const requestEvidence=read('src/app/api/sfi/proposals/[id]/request-evidence/route.ts');
+const acpSeen=read('src/app/api/governance/acp-seen/route.ts');
 const proposals=read('src/app/api/acp/proposals/route.ts');
 const externalPropose=read('src/app/api/external/v1/propose/route.ts');
 const externalManifest=read('src/app/api/external/v1/manifest/route.ts');
@@ -46,6 +47,8 @@ assert.match(reject,/requireGovernedActor\('acp\.proposals\.reject'\)/, 'proposa
 assert.match(requestEvidence,/requireGovernedActor/);
 assert.match(requestEvidence,/request_evidence/);
 assert.doesNotMatch(requestEvidence,/status:\s*'needs_evidence'/);
+assert.match(acpSeen,/requireRootActor\('governance\.acp\.presence'\)/, 'ACP presence must remain ROOT-only');
+assert.match(acpSeen,/recordAcpSeen/);
 assert.match(proposals,/normalizeProposalState/);
 assert.match(proposals,/raw_status/);
 
@@ -102,11 +105,15 @@ assert.ok(scenes.includes("root:{key:'root'"), 'root_live_scene_missing');
 assert.ok(scenes.includes("agents:{key:'agents'"), 'agents_live_scene_missing');
 assert.ok(liveUi.includes('/api/acp/proposals'), 'canonical_proposal_feed_not_wired_to_live_ui');
 assert.ok(liveUi.includes(`/api/acp/proposals/${'${selected.id}'}/${'${kind}'}`), 'governed_decision_route_not_wired');
-assert.ok(liveUi.includes('ACEPTAR') && liveUi.includes('RECHAZAR'), 'plain_language_root_decisions_missing');
+assert.ok(liveUi.includes('/api/governance/acp-seen'), 'explicit_root_decision_must_refresh_acp_presence');
+assert.ok(liveUi.includes(`/api/sfi/proposals/${'${selected.id}'}/request-evidence`), 'request_evidence_route_not_wired_to_root_ui');
+assert.ok(liveUi.includes('ACEPTAR') && liveUi.includes('RECHAZAR') && liveUi.includes('PEDIR EVIDENCIA'), 'plain_language_root_decisions_missing');
 assert.ok(liveUi.includes('COGNITIVE TWIN'), 'twin_proposal_surface_missing');
 assert.ok(liveUi.includes("proposalRead.status==='degraded'"), 'proposal_read_degraded_state_must_be_rendered');
 assert.ok(liveUi.includes('No se pudo leer la cola de propuestas'), 'proposal_read_failure_must_not_render_as_empty_queue');
 assert.ok(liveUi.includes("proposalRead.status==='ready'?proposals.length:'—'"), 'proposal_count_must_not_claim_zero_before_successful_read');
+assert.ok(liveUi.indexOf('/api/governance/acp-seen') < liveUi.indexOf("const decide=async(kind:'approve'|'reject'|'request_evidence')"), 'ACP presence helper must be defined before governed decision submission');
+assert.ok(liveUi.includes("if(!(await confirmRootPresence()))return"), 'governed UI decision must stop when ROOT presence cannot be confirmed');
 
 assert.match(mutationState,/CT-A01-MUT-%/);
 assert.match(mutationState,/CANDIDATE/);
@@ -124,6 +131,8 @@ assert.equal(cronCount,7,`Expected unchanged 7 Vercel crons, found ${cronCount}`
 console.log(JSON.stringify({ok:true,invariants:[
   'ROOT and ACP share one canonical action_proposals lifecycle',
   'ROOT can read the proposal queue independently of governed-runtime health while proposal mutations remain governed',
+  'explicit ROOT decisions refresh ACP presence before entering governance-gated mutation routes',
+  'ROOT exposes accept, reject and request-evidence without AI self-authorization',
   'proposal read failures are explicit and never rendered as a verified empty queue',
   'external proposal creation and ACP ROOT visibility converge on action_proposals',
   'the external manifest points to the observed sfi-github-lab-bridge workflow',
