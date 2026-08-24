@@ -1,14 +1,11 @@
 import 'server-only';
 
 import type { CognitiveSpineSourceRecord } from '@/core/cognitive-spine/contracts/snapshot';
-import {
-  governanceEventToCognitiveSpineSource,
-  labHypothesisToCognitiveSpineSource,
-} from '@/core/cognitive-spine/sourcePlane/institutionalSourceMapping';
-import { normalizeTimestamp, sortedUnique } from '@/core/cognitive-spine/serialization/canonicalSerialize';
+import { governanceEventToCognitiveSpineSource } from '@/core/cognitive-spine/sourcePlane/institutionalSourceMapping';
+import { canonicalSha256, normalizeTimestamp, sortedUnique } from '@/core/cognitive-spine/serialization/canonicalSerialize';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 
-const MAX_LAB_HYPOTHESES = 96;
+const MAX_STRUCTURED_RESULTS = 96;
 const MAX_GOVERNANCE_EVENTS = 128;
 
 const GOVERNANCE_EVENT_NAMES = [
@@ -31,6 +28,11 @@ function rows(value: unknown): Row[] {
 function text(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null;
 }
+function number01(value: unknown): number {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return 0.5;
+  return Math.max(0, Math.min(1, parsed));
+}
 
 export type AdditionalCognitiveSpineSourceSummary = {
   labHypotheses: number;
@@ -39,17 +41,45 @@ export type AdditionalCognitiveSpineSourceSummary = {
   governanceQuestions: number;
 };
 
+function structuredResultHypotheses(event: Row): CognitiveSpineSourceRecord[] {
+  const eventId = text(event.event_id);
+  const occurredAt = text(event.occurred_at);
+  const hashSelf = text(event.hash_self);
+  if (!eventId || !occurredAt || !hashSelf) return [];
+
+  const payload = record(event.payload);
+  const result = record(payload.result);
+  const hypotheses = rows(result.hypotheses);
+  const lineage = Array.isArray(event.lineage)
+    ? event.lineage.filter((item): item is string => typeof item === 'string')
+    : [];
+
+  return hypotheses
+    .map((hypothesis, index): CognitiveSpineSourceRecord | null => {
+      const statement = text(hypothesis.statement);
+      if (!statement) return null;
+      const role = text(hypothesis.role) ?? 'unspecified';
+      const confidence = number01(hypothesis.confidence);
+      const ref = `epistemic_events:${eventId}:hypothesis:${index}`;
+      return {
+        ref,
+        kind: 'HYPOTHESIS',
+        recordedAt: normalizeTimestamp(occurredAt),
+        sourceHash: canonicalSha256({ eventHash: hashSelf, index, role, statement, confidence }),
+        sourceVersion: text(event.schema_version) ?? 'SFI-STRUCTURED-HYPOTHESIS-1.0',
+        ancestryRoots: sortedUnique([...lineage, `epistemic_events:${eventId}`]),
+        visibilityProfiles: ['*'],
+        debtType: 'VERIFICATION',
+      };
+    })
+    .filter((item): item is CognitiveSpineSourceRecord => Boolean(item));
+}
+
 /**
- * Reads only source families whose historical identity can be reconstructed at
- * the requested cutoff without consulting mutable present-day state.
- *
- * Deliberately excluded here:
- * - action_proposals current rows (mutable lifecycle state)
- * - sfi_predictive_runs current rows (mutable status/calibration state)
- * - graph_nodes / graph_edges (rebuildable projections)
- *
- * Those sources require event/history semantics before they can participate in
- * historical Cognitive Spine snapshots.
+ * Historical Cognitive Spine state is reconstructed from immutable events.
+ * Hypotheses are sourced from structured-result ledger events rather than the
+ * retired mutable sfi_hypotheses table. Rebuildable graph projections and
+ * mutable present-day rows remain excluded from historical snapshots.
  */
 export async function readAdditionalInstitutionalCognitiveSpineSources(sourceCutoff: string): Promise<{
   records: CognitiveSpineSourceRecord[];
@@ -60,12 +90,13 @@ export async function readAdditionalInstitutionalCognitiveSpineSources(sourceCut
   const db = createServiceSupabaseClient();
   const warnings: string[] = [];
 
-  const [hypothesisResult, governanceResult] = await Promise.all([
-    db.from('sfi_hypotheses')
-      .select('id,analysis_id,title,status,confidence,payload,created_at')
-      .lte('created_at', cutoff)
-      .order('created_at', { ascending: false })
-      .limit(MAX_LAB_HYPOTHESES),
+  const [structuredResult, governanceResult] = await Promise.all([
+    db.from('epistemic_events')
+      .select('event_id,event_name,schema_version,payload,lineage,occurred_at,hash_self')
+      .eq('event_name', 'SFI_STRUCTURED_ANALYSIS_RESULT_RECEIVED')
+      .lte('occurred_at', cutoff)
+      .order('occurred_at', { ascending: false })
+      .limit(MAX_STRUCTURED_RESULTS),
     db.from('epistemic_events')
       .select('event_id,event_name,epistemic_class,schema_version,payload,lineage,occurred_at,hash_self')
       .in('event_name', [...GOVERNANCE_EVENT_NAMES])
@@ -74,53 +105,19 @@ export async function readAdditionalInstitutionalCognitiveSpineSources(sourceCut
       .limit(MAX_GOVERNANCE_EVENTS),
   ]);
 
-  if (hypothesisResult.error) {
-    warnings.push(`cognitive_spine_lab_hypotheses_unavailable:${hypothesisResult.error.message}`);
+  if (structuredResult.error) {
+    warnings.push(`cognitive_spine_structured_hypotheses_unavailable:${structuredResult.error.message}`);
   }
   if (governanceResult.error) {
     warnings.push(`cognitive_spine_governance_events_unavailable:${governanceResult.error.message}`);
   }
 
-  const hypothesisRows = rows(hypothesisResult.data);
-  const analysisIds = sortedUnique(hypothesisRows
-    .map((row) => text(row.analysis_id))
-    .filter((value): value is string => Boolean(value)));
-
-  const analysisResult = analysisIds.length
-    ? await db.from('sfi_lab_analyses')
-        .select('id,mode,source,data_mode,created_at')
-        .in('id', analysisIds)
-        .lte('created_at', cutoff)
-    : { data: [], error: null };
-
-  if (analysisResult.error) {
-    warnings.push(`cognitive_spine_lab_analyses_unavailable:${analysisResult.error.message}`);
-  }
-
-  const analysisById = new Map(rows(analysisResult.data)
-    .map((row) => [text(row.id), row] as const)
-    .filter((entry): entry is [string, Row] => Boolean(entry[0])));
-
   const records: CognitiveSpineSourceRecord[] = [];
   let labHypotheses = 0;
-  for (const hypothesis of hypothesisRows) {
-    const analysisId = text(hypothesis.analysis_id);
-    if (!analysisId) {
-      warnings.push(`cognitive_spine_lab_hypothesis_analysis_ref_missing:${text(hypothesis.id) ?? 'unknown'}`);
-      continue;
-    }
-    const analysis = analysisById.get(analysisId);
-    if (!analysis) {
-      warnings.push(`cognitive_spine_lab_hypothesis_analysis_missing:${text(hypothesis.id) ?? 'unknown'}:${analysisId}`);
-      continue;
-    }
-    const mapped = labHypothesisToCognitiveSpineSource({ hypothesis, analysis });
-    if (!mapped) {
-      warnings.push(`cognitive_spine_lab_hypothesis_mapping_failed:${text(hypothesis.id) ?? 'unknown'}`);
-      continue;
-    }
-    records.push(mapped);
-    labHypotheses += 1;
+  for (const event of rows(structuredResult.data)) {
+    const mapped = structuredResultHypotheses(event);
+    records.push(...mapped);
+    labHypotheses += mapped.length;
   }
 
   let governanceDecisions = 0;
