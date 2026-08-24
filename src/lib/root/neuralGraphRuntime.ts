@@ -74,8 +74,8 @@ async function queryRows(table: string, selectFields: string, orderBy?: { column
 
 export async function readRootNeuralGraphRuntime(): Promise<RootNeuralGraphRuntime> {
   const [nodeCount, edgeCount, attractorRows, ejectorRows, scorefrictionObservationCount, scorefrictionVectorCount, worldspectSnapshot] = await Promise.all([
-    queryCount('sfi_graph_nodes'),
-    queryCount('sfi_graph_edges'),
+    queryCount('graph_nodes'),
+    queryCount('graph_edges'),
     queryRows('sfi_attractors', 'attractor_key,label,confidence,persistence,status,updated_at', { column: 'weight', ascending: false }, 5),
     queryRows('sfi_ejectors', 'ejector_key,label,contradiction,decay,status,updated_at', { column: 'weight', ascending: false }, 5),
     queryCount('scorefriction_observations'),
