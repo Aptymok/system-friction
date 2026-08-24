@@ -29,13 +29,13 @@ const supplementalAgents: SfiRegisteredCognitiveAgent[] = [
     layer: 'simulate',
     listensTo: ['SFI_CONTEXT_COORDINATE_BUILT', 'SFI_FIELD_STATE_OBSERVED'],
     emits: ['SFI_FRICTION_FIELD_SIMULATED'],
-    readsMemory: ['epistemic_events', 'sfi_graph_nodes', 'field_cases'],
+    readsMemory: ['epistemic_events', 'graph_nodes', 'field_cases'],
     writesMemory: ['epistemic_events'],
     confidenceModel: { method: 'bounded_signal_coverage', calibration: 'observed return comparison' },
     authorityLevel: 'analyst',
     simulationAllowed: true,
     humanApprovalRequired: false,
-    sourceTables: ['epistemic_events', 'sfi_graph_nodes', 'field_cases'],
+    sourceTables: ['epistemic_events', 'graph_nodes', 'field_cases'],
     route: null,
     operationalMode: false,
     missingCapability: false,
@@ -48,13 +48,13 @@ const supplementalAgents: SfiRegisteredCognitiveAgent[] = [
     layer: 'understand',
     listensTo: ['SFI_CONTEXT_COORDINATE_BUILT', 'SFI_FIELD_SIMULATION_COMPLETED'],
     emits: ['SFI_CROSS_IMPACT_ANALYZED'],
-    readsMemory: ['epistemic_events', 'sfi_graph_nodes', 'graph_nodes'],
+    readsMemory: ['epistemic_events', 'graph_nodes'],
     writesMemory: ['epistemic_events'],
     confidenceModel: { method: 'interaction_density', calibration: 'closed cases and observed outcomes' },
     authorityLevel: 'analyst',
     simulationAllowed: true,
     humanApprovalRequired: false,
-    sourceTables: ['epistemic_events', 'sfi_graph_nodes', 'graph_nodes'],
+    sourceTables: ['epistemic_events', 'graph_nodes'],
     route: null,
     operationalMode: false,
     missingCapability: false,
@@ -67,21 +67,36 @@ const supplementalAgents: SfiRegisteredCognitiveAgent[] = [
     layer: 'understand',
     listensTo: ['SFI_CROSS_IMPACT_ANALYZED', 'SFI_FRICTION_FIELD_SIMULATED'],
     emits: ['SFI_ENTROPY_REDISTRIBUTION_ANALYZED'],
-    readsMemory: ['epistemic_events', 'sfi_graph_nodes', 'sfi_amv_memory'],
+    readsMemory: ['epistemic_events', 'graph_nodes', 'sfi_amv_memory'],
     writesMemory: ['epistemic_events'],
     confidenceModel: { method: 'unresolved_state_ratio', calibration: 'post-return contradiction closure' },
     authorityLevel: 'analyst',
     simulationAllowed: true,
     humanApprovalRequired: false,
-    sourceTables: ['epistemic_events', 'sfi_graph_nodes', 'sfi_amv_memory'],
+    sourceTables: ['epistemic_events', 'graph_nodes', 'sfi_amv_memory'],
     route: null,
     operationalMode: false,
     missingCapability: false,
   },
 ];
 
+function canonicalTableName(value: string) {
+  return value === 'sfi_graph_nodes' ? 'graph_nodes' : value;
+}
+
+function canonicalizeAgent(agent: SfiRegisteredCognitiveAgent): SfiRegisteredCognitiveAgent {
+  return {
+    ...agent,
+    readsMemory: [...new Set(agent.readsMemory.map(canonicalTableName))],
+    sourceTables: [...new Set(agent.sourceTables.map(canonicalTableName))],
+  };
+}
+
 const byId = new Map<string, SfiRegisteredCognitiveAgent>();
-for (const agent of [...SFI_COGNITIVE_AGENT_REGISTRY, ...supplementalAgents]) byId.set(agent.id, agent);
+for (const agent of [...SFI_COGNITIVE_AGENT_REGISTRY, ...supplementalAgents]) {
+  const canonical = canonicalizeAgent(agent);
+  byId.set(canonical.id, canonical);
+}
 
 export const SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY = [...byId.values()];
 
