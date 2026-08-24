@@ -1,0 +1,15 @@
+{
+  "operation": "persist",
+  "commandId": "lab-bridge-fetch-history-retest-20260824",
+  "title": "GitHub Method Lab bridge operational retest",
+  "content": "Operational bridge retest after repairing push command resolution to fetch the commit history required by github.event.before → github.sha. Successful persistence of this record demonstrates GitHub Actions command resolution, delegated authentication, /api/external/v1/lab write handling, and epistemic-event persistence. It does not validate any Method Lab scientific protocol.",
+  "source": "github_lab_bridge",
+  "refs": [
+    "github:pr:271",
+    "workflow:.github/workflows/sfi-github-lab-bridge.yml"
+  ],
+  "metadata": {
+    "epistemicClass": "OBSERVED",
+    "claimBoundary": "Bridge transport/write-path test only; no protocol validation or canonical promotion."
+  }
+}
