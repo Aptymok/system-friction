@@ -25,6 +25,12 @@ function actorSlug(value: string) {
     .slice(0, 48);
 }
 
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {};
+}
+
 function redirectOAuthError(redirectUri: string, state: string | null, error: string, description: string) {
   const url = new URL(redirectUri);
   url.searchParams.set('error', error);
@@ -77,8 +83,17 @@ export async function GET(req: NextRequest) {
   }
 
   const profileRole = String(context.profile.role || 'observer').toLowerCase();
+  const moduleAccess = asRecord(context.profile.module_access);
   const rootDelegate = profileRole === 'root' || profileRole === 'system';
+  const evidenceWriter = moduleAccess.evidence_write === true;
+
+  // OAuth authority follows explicit institutional capabilities instead of
+  // inferring write permission only from the coarse profile role. Evidence
+  // writers may persist structured results/returns, but do not inherit ROOT
+  // execution, Method Lab runtime, sovereign action or canonical promotion.
   const allowedScopes = new Set<string>(rootDelegate ? ROOT_SCOPES : DEFAULT_SCOPES);
+  if (!rootDelegate && evidenceWriter) allowedScopes.add('lab:write');
+
   if (requestedScopes.some((scope) => !allowedScopes.has(scope))) {
     return redirectOAuthError(redirectUri, state, 'invalid_scope', 'The authenticated SFI principal is not allowed to receive one or more requested scopes.');
   }
@@ -97,7 +112,7 @@ export async function GET(req: NextRequest) {
     subject_id: context.user.id,
     actor_id: actorId,
     label,
-    role: rootDelegate ? 'root_delegate' : 'agent',
+    role: rootDelegate ? 'root_delegate' : evidenceWriter ? 'evidence_writer' : 'agent',
     tenant_id: 'sfi',
     scopes: requestedScopes,
     code_challenge: codeChallenge,
