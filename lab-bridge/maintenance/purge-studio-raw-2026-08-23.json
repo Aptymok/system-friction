@@ -1,4 +1,5 @@
 {
   "operation": "purge_studio_raw",
-  "confirm": "PURGE_STUDIO_RAW"
+  "confirm": "PURGE_STUDIO_RAW",
+  "requestedAt": "2026-08-24T00:23:00Z"
 }
