@@ -1,0 +1,58 @@
+name: SFI Maintenance Bridge
+
+on:
+  push:
+    paths:
+      - 'lab-bridge/maintenance/*.json'
+
+permissions:
+  contents: read
+
+jobs:
+  maintenance:
+    runs-on: ubuntu-latest
+    env:
+      SFI_BASE_URL: ${{ secrets.SFI_LAB_BRIDGE_BASE_URL }}
+      SFI_LAB_TOKEN: ${{ secrets.SFI_LAB_BRIDGE_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve maintenance command
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .maintenance-output
+          BEFORE="${{ github.event.before }}"
+          AFTER="${{ github.sha }}"
+          FILE="$(git diff --name-only "$BEFORE" "$AFTER" -- 'lab-bridge/maintenance/*.json' | tail -n 1)"
+          if [ -z "$FILE" ]; then
+            FILE="$(git ls-files 'lab-bridge/maintenance/*.json' | tail -n 1)"
+          fi
+          test -n "$FILE"
+          cp "$FILE" .maintenance-output/command.json
+          node -e "JSON.parse(require('fs').readFileSync('.maintenance-output/command.json','utf8')); console.log('maintenance-json-valid')"
+
+      - name: Execute governed SFI maintenance
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE_URL="${SFI_BASE_URL:-https://systemfriction.org}"
+          test -n "$SFI_LAB_TOKEN"
+          STATUS="$(curl --silent --show-error --output .maintenance-output/response.json --write-out '%{http_code}' \
+            --request POST "$BASE_URL/api/external/v1/maintenance" \
+            --header "Authorization: Bearer $SFI_LAB_TOKEN" \
+            --header 'Content-Type: application/json' \
+            --data-binary @.maintenance-output/command.json)"
+          echo "HTTP $STATUS"
+          cat .maintenance-output/response.json
+          node - <<'NODE'
+          const fs=require('fs');
+          const body=JSON.parse(fs.readFileSync('.maintenance-output/response.json','utf8'));
+          if (!body.ok) process.exit(2);
+          NODE
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sfi-maintenance-${{ github.run_id }}
+          path: .maintenance-output/
+          retention-days: 7
