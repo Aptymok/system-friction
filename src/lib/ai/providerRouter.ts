@@ -46,6 +46,17 @@ type ProviderConfig = LlmProviderStatus & {
   baseUrl?: string;
 };
 
+type ProviderCircuit = {
+  blockedUntil: number;
+  reason: 'rate_limit' | 'auth' | 'quota' | 'billing' | 'transient';
+  failures: number;
+};
+
+const providerCircuits = new Map<LlmProviderId, ProviderCircuit>();
+const HARD_BLOCK_MS = 15 * 60_000;
+const TRANSIENT_BLOCK_MS = 30_000;
+const RATE_LIMIT_BLOCK_MS = 20_000;
+
 const DEFAULTS = {
   openai: process.env.OPENAI_MODEL ?? 'gpt-4o-mini',
   anthropic: process.env.ANTHROPIC_MODEL ?? process.env.CLAUDE_MODEL ?? 'claude-3-5-sonnet-latest',
@@ -118,10 +129,49 @@ function providerConfigs(): ProviderConfig[] {
   ];
 }
 
+function activeCircuit(id: LlmProviderId) {
+  const circuit = providerCircuits.get(id);
+  if (!circuit) return null;
+  if (circuit.blockedUntil <= Date.now()) {
+    providerCircuits.delete(id);
+    return null;
+  }
+  return circuit;
+}
+
+function classifyProviderError(message: string): ProviderCircuit['reason'] {
+  const lower = message.toLowerCase();
+  if (/rate limit|too many requests|\b429\b|tpm|tokens per minute/.test(lower)) return 'rate_limit';
+  if (/insufficient_quota|quota exceeded|current quota/.test(lower)) return 'quota';
+  if (/credit balance|billing|purchase credits/.test(lower)) return 'billing';
+  if (/invalid authentication|invalid credentials|invalid username|invalid password|unauthorized|\b401\b|\b403\b/.test(lower)) return 'auth';
+  return 'transient';
+}
+
+function blockProvider(id: LlmProviderId, message: string) {
+  const reason = classifyProviderError(message);
+  const previous = providerCircuits.get(id);
+  const duration = reason === 'rate_limit'
+    ? RATE_LIMIT_BLOCK_MS
+    : reason === 'transient'
+      ? TRANSIENT_BLOCK_MS
+      : HARD_BLOCK_MS;
+  providerCircuits.set(id, {
+    blockedUntil: Date.now() + duration,
+    reason,
+    failures: (previous?.failures ?? 0) + 1,
+  });
+  return reason;
+}
+
+function clearProviderCircuit(id: LlmProviderId) {
+  providerCircuits.delete(id);
+}
+
 export function getLlmProviderStatus(): LlmProviderStatus[] {
   return providerConfigs().map(({ id, available, model, role, configuredBy }) => ({
     id,
-    available,
+    available: available && !activeCircuit(id),
     model,
     role,
     configuredBy,
@@ -241,7 +291,7 @@ async function callProvider(config: ProviderConfig, input: {
         max_completion_tokens: input.maxTokens,
         ...(isGptOss ? {
           include_reasoning: false,
-          reasoning_effort: input.task === 'fast_classification' ? 'low' : 'medium',
+          reasoning_effort: 'low',
         } : {}),
       }),
     }, 12_000);
@@ -304,6 +354,7 @@ export async function runLlmTask(input: {
   fallbackResult: string;
   preferredProvider?: LlmProviderId;
   maxTokens?: number;
+  maxProviderAttempts?: number;
 }): Promise<LlmRouterResult> {
   const started = Date.now();
   const configs = providerConfigs();
@@ -311,18 +362,28 @@ export async function runLlmTask(input: {
   const order = input.preferredProvider
     ? [input.preferredProvider, ...providerOrder(input.task).filter((id) => id !== input.preferredProvider)]
     : providerOrder(input.task);
+  const maxAttempts = Math.max(1, Math.min(6, input.maxProviderAttempts ?? 3));
+  let attempts = 0;
 
   for (const providerId of order) {
+    if (attempts >= maxAttempts) break;
     const config = configs.find((item) => item.id === providerId && item.available);
     if (!config) continue;
+    const circuit = activeCircuit(providerId);
+    if (circuit) {
+      warnings.push(`${providerId}_circuit_open:${circuit.reason}`);
+      continue;
+    }
+    attempts += 1;
     try {
       const output = await callProvider(config, {
         task: input.task,
         system: input.system ?? 'You are an SFI operational agent. Return concise, evidence-bound analysis. Do not claim external facts unless provided in context.',
         prompt: input.prompt,
-        maxTokens: input.maxTokens ?? 900,
+        maxTokens: input.maxTokens ?? 700,
       });
       if (output.result.trim()) {
+        clearProviderCircuit(config.id);
         return {
           ok: true,
           provider: config.id,
@@ -335,8 +396,11 @@ export async function runLlmTask(input: {
         };
       }
       warnings.push(`${config.id}_empty_result`);
+      blockProvider(config.id, 'empty_result');
     } catch (error) {
-      warnings.push(`${config.id}_failed:${error instanceof Error ? error.message : 'unknown'}`);
+      const message = error instanceof Error ? error.message : 'unknown';
+      const reason = blockProvider(config.id, message);
+      warnings.push(`${config.id}_failed:${reason}`);
     }
   }
 
@@ -367,7 +431,7 @@ export async function createEmbedding(input: string): Promise<EmbeddingResult> {
   const started = Date.now();
   const configs = providerConfigs();
   const warnings: string[] = [];
-  const openai = configs.find((item) => item.id === 'openai' && item.available);
+  const openai = configs.find((item) => item.id === 'openai' && item.available && !activeCircuit('openai'));
   if (openai) {
     try {
       const json = await fetchJson('https://api.openai.com/v1/embeddings', {
@@ -378,6 +442,7 @@ export async function createEmbedding(input: string): Promise<EmbeddingResult> {
         },
         body: JSON.stringify({ model: DEFAULTS.openaiEmbedding, input }),
       }, 12_000);
+      clearProviderCircuit('openai');
       const data = Array.isArray((json as Record<string, unknown>).data) ? (json as Record<string, unknown>).data as Array<Record<string, unknown>> : [];
       return {
         ok: true,
@@ -388,11 +453,13 @@ export async function createEmbedding(input: string): Promise<EmbeddingResult> {
         latency_ms: Date.now() - started,
       };
     } catch (error) {
-      warnings.push(`openai_embedding_failed:${error instanceof Error ? error.message : 'unknown'}`);
+      const message = error instanceof Error ? error.message : 'unknown';
+      blockProvider('openai', message);
+      warnings.push(`openai_embedding_failed:${classifyProviderError(message)}`);
     }
   }
 
-  const hf = configs.find((item) => item.id === 'huggingface' && item.available);
+  const hf = configs.find((item) => item.id === 'huggingface' && item.available && !activeCircuit('huggingface'));
   if (hf) {
     try {
       const json = await fetchJson(`https://api-inference.huggingface.co/models/${DEFAULTS.huggingfaceEmbedding}`, {
@@ -403,6 +470,7 @@ export async function createEmbedding(input: string): Promise<EmbeddingResult> {
         },
         body: JSON.stringify({ inputs: input }),
       }, 15_000);
+      clearProviderCircuit('huggingface');
       return {
         ok: true,
         provider: 'huggingface',
@@ -412,11 +480,13 @@ export async function createEmbedding(input: string): Promise<EmbeddingResult> {
         latency_ms: Date.now() - started,
       };
     } catch (error) {
-      warnings.push(`huggingface_embedding_failed:${error instanceof Error ? error.message : 'unknown'}`);
+      const message = error instanceof Error ? error.message : 'unknown';
+      blockProvider('huggingface', message);
+      warnings.push(`huggingface_embedding_failed:${classifyProviderError(message)}`);
     }
   }
 
-  const ollama = configs.find((item) => item.id === 'ollama' && item.available);
+  const ollama = configs.find((item) => item.id === 'ollama' && item.available && !activeCircuit('ollama'));
   if (ollama) {
     try {
       const base = String(ollama.baseUrl).replace(/\/$/, '');
@@ -425,6 +495,7 @@ export async function createEmbedding(input: string): Promise<EmbeddingResult> {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ model: DEFAULTS.ollamaEmbedding, prompt: input }),
       }, 12_000);
+      clearProviderCircuit('ollama');
       return {
         ok: true,
         provider: 'ollama',
@@ -434,7 +505,9 @@ export async function createEmbedding(input: string): Promise<EmbeddingResult> {
         latency_ms: Date.now() - started,
       };
     } catch (error) {
-      warnings.push(`ollama_embedding_failed:${error instanceof Error ? error.message : 'unknown'}`);
+      const message = error instanceof Error ? error.message : 'unknown';
+      blockProvider('ollama', message);
+      warnings.push(`ollama_embedding_failed:${classifyProviderError(message)}`);
     }
   }
 
