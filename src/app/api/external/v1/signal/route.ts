@@ -7,6 +7,7 @@ import {
   matchOpenCycles,
   normalizeUniversalSignal,
   persistUniversalSignal,
+  readUniversalCycleHistory,
   readUniversalOpenCycles,
   recordUniversalReturn,
   runUniversalCognitiveCycle,
@@ -18,18 +19,18 @@ export const runtime = 'nodejs';
 export const maxDuration = 60;
 
 type SignalOperation = 'status' | 'intake' | 'run' | 'return' | 'close';
-
-function record(value: unknown): Record<string, unknown> {
-  return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
-}
-
-function operationScope(operation: SignalOperation) {
-  return operation === 'status' ? 'observe' : 'lab:write';
-}
+function record(value: unknown): Record<string, unknown> { return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {}; }
+function operationScope(operation: SignalOperation) { return operation === 'status' ? 'observe' : 'lab:write'; }
 
 export async function GET(req: Request) {
   const auth = authorizeExternalRequest(req, 'observe');
   if (!auth.credential) return NextResponse.json(externalAuthError(auth, 'observe'), { status: 401 });
+  const url = new URL(req.url);
+  const cycleId = url.searchParams.get('cycleId')?.trim();
+  if (cycleId) {
+    const history = await readUniversalCycleHistory(cycleId);
+    return NextResponse.json({ ok: history.ok, operation: 'status', actor: externalActor(auth.credential), cycle: history }, { status: history.ok ? 200 : 500 });
+  }
   const openCycles = await readUniversalOpenCycles();
   return NextResponse.json({
     ok: openCycles.warnings.length === 0,
@@ -37,8 +38,8 @@ export async function GET(req: Request) {
     actor: externalActor(auth.credential),
     openCycles,
     contract: {
-      purpose: 'Universal signal gateway + open-cycle gate. Accepts any declared representation, preserves provenance, routes SFI methods, and can execute the existing governed cognitive runtime.',
-      writeScope: 'lab:write (backward-compatible); no external action authority is granted by this route.',
+      purpose: 'Universal signal gateway + open-cycle gate. Use ?cycleId=<id> to reread canonical event history for one cycle.',
+      writeScope: 'lab:write; no external action authority is granted by this route.',
     },
   });
 }
@@ -46,9 +47,7 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const body = await req.json().catch(() => ({})) as Record<string, unknown>;
   const operation = String(body.operation || 'intake') as SignalOperation;
-  if (!['status', 'intake', 'run', 'return', 'close'].includes(operation)) {
-    return NextResponse.json({ ok: false, error: 'unsupported_signal_operation' }, { status: 400 });
-  }
+  if (!['status', 'intake', 'run', 'return', 'close'].includes(operation)) return NextResponse.json({ ok: false, error: 'unsupported_signal_operation' }, { status: 400 });
 
   const requiredScope = operationScope(operation);
   const auth = authorizeExternalRequest(req, requiredScope);
@@ -58,6 +57,11 @@ export async function POST(req: Request) {
   const tenantId = credential.tenantId ?? 'sfi';
 
   if (operation === 'status') {
+    const cycleId = typeof body.cycleId === 'string' ? body.cycleId.trim() : '';
+    if (cycleId) {
+      const history = await readUniversalCycleHistory(cycleId);
+      return NextResponse.json({ ok: history.ok, operation, actor: actorId, cycle: history }, { status: history.ok ? 200 : 500 });
+    }
     const openCycles = await readUniversalOpenCycles();
     return NextResponse.json({ ok: openCycles.warnings.length === 0, operation, actor: actorId, openCycles });
   }
@@ -73,7 +77,8 @@ export async function POST(req: Request) {
       classification: typeof body.classification === 'string' ? body.classification : undefined,
       notes: typeof body.notes === 'string' ? body.notes : undefined,
     }, actorId, tenantId);
-    return NextResponse.json(event.ok ? { ok: true, operation, actor: actorId, event: event.data } : event, { status: event.ok ? 201 : 500 });
+    const history = event.ok ? await readUniversalCycleHistory(cycleId) : null;
+    return NextResponse.json(event.ok ? { ok: true, operation, actor: actorId, eventId: String(event.data.event_id ?? ''), event: event.data, reread: history } : event, { status: event.ok ? 201 : 500 });
   }
 
   if (operation === 'close') {
@@ -86,13 +91,12 @@ export async function POST(req: Request) {
       reason,
       evidenceRefs: Array.isArray(body.evidenceRefs) ? body.evidenceRefs.filter((value): value is string => typeof value === 'string') : [],
     }, actorId, tenantId);
-    return NextResponse.json(event.ok ? { ok: true, operation, actor: actorId, event: event.data } : event, { status: event.ok ? 201 : 500 });
+    const history = event.ok ? await readUniversalCycleHistory(cycleId) : null;
+    return NextResponse.json(event.ok ? { ok: true, operation, actor: actorId, eventId: String(event.data.event_id ?? ''), event: event.data, reread: history } : event, { status: event.ok ? 201 : 500 });
   }
 
   const input = record(body.input) as unknown as UniversalCycleInput;
-  if (!input.signal || typeof input.signal !== 'object' || Array.isArray(input.signal)) {
-    return NextResponse.json({ ok: false, error: 'input.signal_required' }, { status: 400 });
-  }
+  if (!input.signal || typeof input.signal !== 'object' || Array.isArray(input.signal)) return NextResponse.json({ ok: false, error: 'input.signal_required' }, { status: 400 });
 
   const contract = describeUniversalSignalContract(input);
   const openCycles = await readUniversalOpenCycles();
@@ -108,78 +112,46 @@ export async function POST(req: Request) {
       actor: actorId,
       tenantId,
       signal: persisted.signal,
+      eventId: persisted.event.ok ? String(persisted.event.data.event_id ?? '') : null,
       event: persisted.event.ok ? persisted.event.data : persisted.event,
       clarifyingQuestions,
       readyForRun: clarifyingQuestions.length === 0,
       cycleGate,
-      openCycles,
       methodPlan: contract.methodPlan,
       agentPlan: contract.agentPlan,
       next: clarifyingQuestions.length
-        ? 'Ask only the returned clarifying questions that are still unresolved, then call operation=run.'
+        ? 'Ask only unresolved clarifying questions, then call operation=run.'
         : cycleGate.blocking.length && body.continueWithOpenCycles !== true
-          ? 'Review the blocking open cycles. Record return/close them, or explicitly set continueWithOpenCycles=true.'
+          ? 'Review blocking open cycles. Record return/close them, or explicitly set continueWithOpenCycles=true.'
           : 'Call operation=run to execute the governed cognitive cycle.',
     }, { status: persisted.event.ok ? 201 : 500 });
   }
 
-  if (clarifyingQuestions.length) {
-    return NextResponse.json({
-      ok: false,
-      error: 'clarification_required',
-      operation,
-      signal: normalizedSignal,
-      clarifyingQuestions,
-      methodPlan: contract.methodPlan,
-      agentPlan: contract.agentPlan,
-      cycleGate,
-    }, { status: 409 });
-  }
-
-  if (cycleGate.blocking.length && body.continueWithOpenCycles !== true) {
-    return NextResponse.json({
-      ok: false,
-      error: 'open_cycle_review_required',
-      operation,
-      signal: normalizedSignal,
-      cycleGate,
-      instruction: 'Close or record return for the same-object cycle before opening another one, unless the user explicitly chooses to continue in parallel.',
-    }, { status: 409 });
-  }
+  if (clarifyingQuestions.length) return NextResponse.json({ ok: false, error: 'clarification_required', operation, signal: normalizedSignal, clarifyingQuestions, methodPlan: contract.methodPlan, agentPlan: contract.agentPlan, cycleGate }, { status: 409 });
+  if (cycleGate.blocking.length && body.continueWithOpenCycles !== true) return NextResponse.json({ ok: false, error: 'open_cycle_review_required', operation, signal: normalizedSignal, cycleGate, instruction: 'Close or record return for the same-object cycle before opening another one, unless the user explicitly chooses to continue in parallel.' }, { status: 409 });
 
   const persisted = await persistUniversalSignal(input, actorId, tenantId);
   if (!persisted.event.ok) return NextResponse.json(persisted.event, { status: 500 });
 
   try {
     const cycle = await runUniversalCognitiveCycle(input, actorId, tenantId);
+    const history = await readUniversalCycleHistory(cycle.cycleId);
     return NextResponse.json({
       ok: cycle.result.completed,
       operation,
       actor: actorId,
       tenantId,
       signal: cycle.signal,
+      intakeEventId: String(persisted.event.data.event_id ?? ''),
       intakeEvent: persisted.event.data,
-      cycle: {
-        cycleId: cycle.cycleId,
-        taskId: cycle.taskId,
-        logbookId: cycle.logbookId,
-        completed: cycle.result.completed,
-        executedAgents: cycle.result.executedAgents,
-        missingAgents: cycle.result.missingAgents,
-      },
+      cycle: { cycleId: cycle.cycleId, taskId: cycle.taskId, logbookId: cycle.logbookId, completed: cycle.result.completed, executedAgents: cycle.result.executedAgents, missingAgents: cycle.result.missingAgents },
       methods: cycle.methodPlan,
       agents: cycle.agentPlan,
       worldSnapshot: cycle.worldSnapshot,
-      outputs: {
-        hypotheses: cycle.result.context.hypotheses,
-        contradictions: cycle.result.context.contradictions,
-        predictions: cycle.result.context.predictions,
-        risks: cycle.result.context.risks,
-        opportunities: cycle.result.context.opportunities,
-        simulations: cycle.result.context.simulations,
-      },
+      outputs: { hypotheses: cycle.result.context.hypotheses, contradictions: cycle.result.context.contradictions, predictions: cycle.result.context.predictions, risks: cycle.result.context.risks, opportunities: cycle.result.context.opportunities, simulations: cycle.result.context.simulations },
       metadata: cycle.result.context.metadata,
-      next: 'Keep the cycle open until a return is observed. Use operation=return with observed outcome/evidence, then operation=close when the methodological question is sufficiently resolved.',
+      reread: history,
+      next: 'Keep the cycle open until a return is observed. Use operation=return, then close only after reread shows the methodological closure conditions are satisfied.',
       epistemicBoundary: 'The route executes internal observation/reconstruction/simulation roles only. It does not approve proposals, perform external actions, or canonize conclusions.',
     });
   } catch (error) {
