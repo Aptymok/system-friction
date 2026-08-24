@@ -39,6 +39,27 @@ assert.ok(scenes.includes("genai:{key:'genai'"), 'GENAI live scene must expose g
 assert.ok(liveUi.includes('COGNITIVE TWIN'), 'ROOT live scene must expose Twin proposals.');
 assert.ok(liveUi.includes('ACEPTAR') && liveUi.includes('RECHAZAR'), 'ROOT live scene must retain governed decisions.');
 
+// The live scene system remains canonical navigation, but Method Lab is a declared
+// operational instrument and must remain directly reachable by ROOT. A generic scene
+// cannot count as closure if the governed protocol controls are no longer accessible.
+const methodLabPage = read('src/app/method-lab/page.tsx');
+const methodLabHub = read('src/components/sfi/MethodLabNativeHub.tsx');
+assert.match(methodLabPage, /requireRootObserverPage\('\/method-lab'\)/, 'Method Lab native hub must remain ROOT protected.');
+assert.match(methodLabPage, /readMethodLabState/, 'Method Lab native hub must read canonical protocol state.');
+assert.match(methodLabPage, /readMethodLabEvidenceOptions/, 'Method Lab native hub must expose persisted evidence through a server-owned reader.');
+assert.match(methodLabPage, /MethodLabNativeHub/, 'Method Lab declared execution surface must render its native hub.');
+assert.doesNotMatch(methodLabPage, /createServiceSupabaseClient|\.from\(/, 'Method Lab page must not bypass interface persistence boundaries.');
+for (const route of [
+  '/api/root/method-lab/simulate',
+  '/api/root/cognitive-lab/sessions',
+  '/blind',
+  '/contrast',
+  '/events',
+  '/interact',
+]) assert.ok(methodLabHub.includes(route), `method_lab_native_hub_missing_control:${route}`);
+assert.ok(methodLabHub.includes('SIMULATED ≠ OBSERVED'), 'Method Lab native hub must state its epistemic boundary.');
+assert.ok(methodLabHub.includes('FOUNDER_AUTHORIZATION no equivale a FOUNDER_ORIGINATED'), 'CRL provenance boundary must remain visible to ROOT.');
+
 const runner = read('src/lib/method-lab/simulationRun.ts');
 assert.match(runner, /executeRegisteredAgent/, 'Method Lab simulations must use isolated registered executors rather than productive runtime event emission.');
 assert.match(runner, /METHOD_LAB_SIMULATION_CONTAMINATED_EVIDENCE/, 'Method Lab must abort if a simulator mutates observed evidence.');
@@ -75,7 +96,8 @@ console.log(JSON.stringify({
     'CT reentry implementation is distinct from Method Lab validation and individuation claims',
     'sociotechnical/economic runs use isolated executors',
     'simulators cannot append SIMULATED output to observed evidence',
-    'ROOT/Models/GenAI live scenes replace deleted dashboard launchers without changing Method Lab truth',
+    'ROOT/Models/GenAI remain canonical live navigation while the declared Method Lab instrument is operationally reachable',
+    'Method Lab protocol controls use governed APIs and server-owned evidence readers rather than direct interface persistence',
     'no additional Vercel cron',
   ],
 }, null, 2));
