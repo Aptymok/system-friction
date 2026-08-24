@@ -60,6 +60,17 @@ for (const route of [
 assert.ok(methodLabHub.includes('SIMULATED ≠ OBSERVED'), 'Method Lab native hub must state its epistemic boundary.');
 assert.ok(methodLabHub.includes('FOUNDER_AUTHORIZATION no equivale a FOUNDER_ORIGINATED'), 'CRL provenance boundary must remain visible to ROOT.');
 
+const externalLab = read('src/app/api/external/v1/lab/route.ts');
+assert.match(externalLab, /persistEventId\(commandId: string\)/, 'External Method Lab persist must derive a deterministic event id from commandId.');
+assert.match(externalLab, /\.contains\('payload', \{ commandId \}\)/, 'External Method Lab persist must reread prior commandId records before appending.');
+assert.match(externalLab, /idempotent: true/, 'External Method Lab persist must expose idempotent reuse explicitly.');
+assert.match(externalLab, /eventId: commandId \? persistEventId\(commandId\) : undefined/, 'Database UNIQUE(event_id) must back commandId idempotency under races.');
+
+const bridgeWorkflow = read('.github/workflows/sfi-github-lab-bridge.yml');
+assert.match(bridgeWorkflow, /push:\s*\n\s*branches:\s*\n\s*- main\s*\n\s*paths:/, 'GitHub Method Lab write-triggered push must be restricted to main.');
+assert.match(bridgeWorkflow, /pull_request:[\s\S]*\{"operation":"state"\}/, 'Pull-request bridge verification must remain read-only.');
+assert.match(bridgeWorkflow, /https:\/\/www\.systemfriction\.org/, 'Authenticated bridge calls must normalize the known SFI canonical host before sending Authorization.');
+
 const runner = read('src/lib/method-lab/simulationRun.ts');
 assert.match(runner, /executeRegisteredAgent/, 'Method Lab simulations must use isolated registered executors rather than productive runtime event emission.');
 assert.match(runner, /METHOD_LAB_SIMULATION_CONTAMINATED_EVIDENCE/, 'Method Lab must abort if a simulator mutates observed evidence.');
@@ -98,6 +109,8 @@ console.log(JSON.stringify({
     'simulators cannot append SIMULATED output to observed evidence',
     'ROOT/Models/GenAI remain canonical live navigation while the declared Method Lab instrument is operationally reachable',
     'Method Lab protocol controls use governed APIs and server-owned evidence readers rather than direct interface persistence',
+    'GitHub Method Lab branch PRs are read-only; write-triggered pushes execute only on main',
+    'external Method Lab persist is idempotent by commandId and database-unique deterministic event id',
     'no additional Vercel cron',
   ],
 }, null, 2));
