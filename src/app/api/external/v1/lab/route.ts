@@ -1,6 +1,8 @@
+import { createHash } from 'node:crypto';
 import { NextResponse } from 'next/server';
 import { readMethodLabState } from '@/lib/method-lab/readModel';
 import { runMethodLabSimulation } from '@/lib/method-lab/simulationRun';
+import { appendEpistemicEvent } from '@/lib/events/eventStore';
 import { appendOperationalEvent } from '@/lib/operational/common';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { authorizeExternalRequest, externalActor } from '@/lib/sfi/externalAuth';
@@ -15,6 +17,25 @@ function operationScope(operation: LabOperation) {
   if (operation === 'state' || operation === 'report') return 'lab:read';
   if (operation === 'persist') return 'lab:write';
   return 'lab:run';
+}
+
+function normalizedCommandId(value: unknown) {
+  return typeof value === 'string' ? value.trim().slice(0, 240) : '';
+}
+
+function persistEventId(commandId: string) {
+  return `external-method-lab-persist:${createHash('sha256').update(commandId).digest('hex')}`;
+}
+
+async function readExistingPersist(commandId: string) {
+  const db = createServiceSupabaseClient();
+  return db.from('epistemic_events')
+    .select('id,sequence,event_id,event_name,epistemic_class,source,confidence,payload,lineage,occurred_at,created_at,hash_self')
+    .eq('event_name', 'external.method_lab.record.persisted')
+    .contains('payload', { commandId })
+    .order('sequence', { ascending: true })
+    .limit(1)
+    .maybeSingle();
 }
 
 export async function POST(req: Request) {
@@ -58,23 +79,58 @@ export async function POST(req: Request) {
     const title = String(body.title || '').trim();
     const content = String(body.content || '').trim();
     if (!title || !content) return NextResponse.json({ ok: false, error: 'title_and_content_required' }, { status: 400 });
-    const event = await appendOperationalEvent({
+
+    const commandId = normalizedCommandId(body.commandId);
+    if (commandId) {
+      const existing = await readExistingPersist(commandId);
+      if (existing.error) {
+        return NextResponse.json({ ok: false, error: 'method_lab_persist_idempotency_lookup_failed', details: existing.error.message }, { status: 500 });
+      }
+      if (existing.data) {
+        return NextResponse.json({ ok: true, operation, actor: actorId, idempotent: true, event: existing.data }, { status: 200 });
+      }
+    }
+
+    const requestedConfidence = typeof body.confidence === 'number' ? body.confidence : 1;
+    const confidenceIsValid = Number.isFinite(requestedConfidence) && requestedConfidence >= 0 && requestedConfidence <= 1;
+    const confidence = confidenceIsValid ? requestedConfidence : 0;
+    const refs = Array.isArray(body.refs) ? body.refs.filter((value): value is string => typeof value === 'string') : [];
+    const payload = {
+      title,
+      content,
+      source: body.source ?? 'github_lab_bridge',
+      commandId: commandId || null,
+      refs: Array.isArray(body.refs) ? body.refs : [],
+      metadata: body.metadata && typeof body.metadata === 'object' && !Array.isArray(body.metadata) ? body.metadata : {},
+      credentialLabel: cred.label ?? null,
+      delegatedRole: cred.role ?? 'agent',
+      confidenceState: confidenceIsValid ? 'EXPLICIT' : 'UNASSESSED',
+    };
+
+    const event = await appendEpistemicEvent({
+      eventId: commandId ? persistEventId(commandId) : undefined,
       eventName: 'external.method_lab.record.persisted',
-      actorId,
-      confidence: typeof body.confidence === 'number' ? body.confidence : 1,
-      payload: {
-        title,
-        content,
-        source: body.source ?? 'github_lab_bridge',
-        commandId: body.commandId ?? null,
-        refs: Array.isArray(body.refs) ? body.refs : [],
-        metadata: body.metadata && typeof body.metadata === 'object' && !Array.isArray(body.metadata) ? body.metadata : {},
-        credentialLabel: cred.label ?? null,
-        delegatedRole: cred.role ?? 'agent',
-      },
-      lineage: Array.isArray(body.refs) ? body.refs.filter((value): value is string => typeof value === 'string') : [],
+      epistemicClass: 'derived',
+      confidence,
+      payload,
+      occurredAt: new Date().toISOString(),
+      source: { sourceId: 'SYSTEM_FRICTION_INSTITUTE', sourceType: 'operational_runtime' },
+      logbookId: 'BR',
+      lineage: refs,
+      uncertainty: confidenceIsValid ? undefined : 'Confidence not assessed; numeric zero is a schema sentinel, not a measurement.',
     });
-    return NextResponse.json(event.ok ? { ok: true, operation, actor: actorId, event: event.data } : event, { status: event.ok ? 201 : 500 });
+
+    if (!event.ok && commandId) {
+      // `event_id` is UNIQUE. If two requests race with the same commandId,
+      // the deterministic event id lets the database reject the duplicate;
+      // reread the winning event and return an idempotent success.
+      const existing = await readExistingPersist(commandId);
+      if (!existing.error && existing.data) {
+        return NextResponse.json({ ok: true, operation, actor: actorId, idempotent: true, event: existing.data }, { status: 200 });
+      }
+    }
+
+    return NextResponse.json(event.ok ? { ok: true, operation, actor: actorId, idempotent: false, event: event.data } : event, { status: event.ok ? 201 : 500 });
   }
 
   if (cred.role !== 'root_delegate') return NextResponse.json({ ok: false, error: 'root_delegate_required_for_lab_runtime' }, { status: 403 });
