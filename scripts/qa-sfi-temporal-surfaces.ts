@@ -17,7 +17,7 @@ const directTwin = read('src/app/api/root/cognitive-twin/deliberate/route.ts');
 const twinState = read('src/core/cognitive-twin/readState.ts');
 const scenes = read('src/components/sfi/scenes.ts');
 const liveUi = read('src/components/sfi/SfiConsole.tsx');
-const legacyObservatory = read('src/app/observatory/page.tsx');
+const observatoryPage = read('src/app/observatory/page.tsx');
 
 // Backend temporal truth remains intact after the visual replacement.
 assert.ok(worldApi.includes('readPagedRows'), 'world_history_must_paginate');
@@ -54,8 +54,9 @@ for (const token of [
   'Historical frames are reconstructed only from persisted WorldSpect snapshots.',
 ]) assert.ok(publicTimeline.includes(token), `public_timeline_source_contract_missing:${token}`);
 
-// The public temporal UI is now the FIELD live scene, not the deleted
-// WorldFieldObservatory/PublicObservatory dashboard components.
+// FIELD remains the canonical scene-system entry while /observatory is an intentional
+// native public world-observation surface. The latter must render ObservatoryConsole,
+// not be treated as a stale legacy route that is required to redirect away.
 for (const token of [
   "field:{key:'field'",
   "liveSource:'/api/root/state'",
@@ -68,7 +69,8 @@ for (const token of [
   'dataNode dn1',
   'COGNITIVE TWIN',
 ]) assert.ok(liveUi.includes(token), `live_scene_runtime_missing:${token}`);
-assert.ok(legacyObservatory.includes("redirect('/field')") || legacyObservatory.includes("redirect('/archive')") || legacyObservatory.includes('redirect('), 'legacy_observatory_must_resolve_into_live_scene_system');
+assert.ok(observatoryPage.includes('ObservatoryConsole'), 'public_observatory_must_render_native_observatory_console');
+assert.equal(observatoryPage.includes('redirect('), false, 'public_observatory_must_not_be_forced_back_into_legacy_redirect_semantics');
 assert.equal(liveUi.includes('sfi_cognitive_twin_memory'), false, 'public_live_scene_must_not_expose_private_cognitive_twin_corpus');
 assert.equal(liveUi.includes('sfi_cognitive_twin_decisions'), false, 'public_live_scene_must_not_expose_private_cognitive_twin_decisions');
 
@@ -134,7 +136,8 @@ console.log(JSON.stringify({
     automaticHypothesisPromotion: false,
   },
   publicObservatory: {
-    canonicalSurface: 'FIELD_LIVE_SCENE',
+    canonicalSurface: 'NATIVE_OBSERVATORY_CONSOLE',
+    fieldSceneRemainsCanonicalEntry: true,
     persistedWorldSpectFrames: true,
     privateTwinExposure: false,
   },
