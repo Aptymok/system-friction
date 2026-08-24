@@ -15,8 +15,10 @@ const openapi = JSON.parse(text('public/openapi.json')) as Record<string, any>;
 const members = text('src/lib/system/access/institutionalMembers.ts');
 
 assert.match(authorize, /requireSfiMember\(\)/, 'oauth_authorize_must_bind_to_authenticated_sfi_member');
-assert.match(authorize, /DEFAULT_SCOPES = \['observe', 'propose', 'lab:read'\]/, 'non_root_oauth_scopes_must_be_bounded');
-assert.match(authorize, /rootDelegate \? 'root_delegate' : 'agent'/, 'root_delegate_must_not_be_default');
+assert.match(authorize, /DEFAULT_SCOPES = \['observe', 'propose', 'lab:read'\]/, 'default_non_root_oauth_scopes_must_be_bounded');
+assert.match(authorize, /moduleAccess\.evidence_write === true/, 'evidence_write_capability_must_be_explicit');
+assert.match(authorize, /allowedScopes\.add\('lab:write'\)/, 'evidence_writer_may_receive_lab_write');
+assert.match(authorize, /rootDelegate \? 'root_delegate' : evidenceWriter \? 'evidence_writer' : 'agent'/, 'root_delegate_must_not_be_default');
 assert.match(authorize, /codeHash\(code\)/, 'authorization_code_must_be_stored_as_hash');
 assert.match(authorize, /code_challenge/, 'oauth_authorize_must_support_pkce');
 
@@ -57,9 +59,11 @@ assert.match(members, /displayName: 'Edwin'[\s\S]*?role: 'observer'/, 'edwin_mus
 
 console.log(JSON.stringify({
   ok: true,
-  contract: 'SFI-EXTERNAL-OAUTH-1.0',
+  contract: 'SFI-EXTERNAL-OAUTH-1.1',
   flow: 'authorization_code',
   pkce: 'S256',
-  nonRootScopes: ['observe', 'propose', 'lab:read'],
+  defaultNonRootScopes: ['observe', 'propose', 'lab:read'],
+  evidenceWriterAdditionalScopes: ['lab:write'],
+  rootOnlyScopes: ['execute', 'lab:run'],
   staticTokenCompatibility: true,
 }, null, 2));
