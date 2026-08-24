@@ -4,6 +4,10 @@ on:
   push:
     paths:
       - 'lab-bridge/commands/*.json'
+  pull_request:
+    paths:
+      - '.github/workflows/sfi-github-lab-bridge.yml'
+      - 'lab-bridge/commands/*.json'
   workflow_dispatch:
     inputs:
       command_json:
@@ -34,7 +38,12 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p .lab-bridge-output
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            # PR verification is intentionally read-only. It proves that the
+            # configured credential can reach the governed Method Lab endpoint
+            # without creating runs, evidence, proposals or canonical mutation.
+            printf '%s\n' '{"operation":"state"}' > .lab-bridge-output/command.json
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             cat > .lab-bridge-output/command.json <<'JSON'
           ${{ inputs.command_json }}
           JSON
@@ -50,12 +59,21 @@ jobs:
           fi
           node -e "JSON.parse(require('fs').readFileSync('.lab-bridge-output/command.json','utf8')); console.log('command-json-valid')"
 
+      - name: Verify bridge credential is configured
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${SFI_LAB_TOKEN:-}" ]; then
+            echo 'SFI_LAB_BRIDGE_TOKEN is not available to this workflow event.' >&2
+            exit 3
+          fi
+          echo 'bridge-credential-present'
+
       - name: Execute SFI laboratory command
         shell: bash
         run: |
           set -euo pipefail
           BASE_URL="${SFI_BASE_URL:-https://systemfriction.org}"
-          test -n "$SFI_LAB_TOKEN"
           STATUS="$(curl --silent --show-error --output .lab-bridge-output/response.json --write-out '%{http_code}' \
             --request POST "$BASE_URL/api/external/v1/lab" \
             --header "Authorization: Bearer $SFI_LAB_TOKEN" \
@@ -78,6 +96,7 @@ jobs:
             githubRunId: process.env.GITHUB_RUN_ID,
             githubSha: process.env.GITHUB_SHA,
             githubActor: process.env.GITHUB_ACTOR,
+            githubEvent: process.env.GITHUB_EVENT_NAME,
             repository: process.env.GITHUB_REPOSITORY,
             completedAt: new Date().toISOString(),
             command: JSON.parse(fs.readFileSync('.lab-bridge-output/command.json','utf8')),
@@ -87,7 +106,9 @@ jobs:
           NODE
 
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: sfi-lab-bridge-${{ github.run_id }}
           path: .lab-bridge-output/
+          if-no-files-found: ignore
           retention-days: 30
