@@ -24,6 +24,8 @@ function sanitize(value:unknown,depth=0):unknown{
   return String(value);
 }
 
+function text(value:unknown){return typeof value==='string'&&value.trim()?value.trim():null;}
+
 export async function POST(req:Request){
   const auth=authorizeExternalRequest(req,'lab:write');
   if(!auth.credential)return NextResponse.json(externalAuthError(auth,'lab:write'),{status:401});
@@ -36,18 +38,20 @@ export async function POST(req:Request){
 
   const actorId=externalActor(auth.credential);
   const tenantId=auth.credential.tenantId??'sfi';
-  const objectKey=typeof object.objectKey==='string'?object.objectKey:typeof object.id==='string'?object.id:`object:${sha256(object)}`;
-  const objectHash=typeof object.objectHash==='string'?object.objectHash:sha256(object);
+  const objectKey=text(object.objectKey)??text(object.id)??`object:${sha256(object)}`;
+  const suppliedObjectHash=text(object.objectHash)??text(object.contentHash)??text(object.fingerprint);
+  const objectHash=suppliedObjectHash??sha256({objectKey,kind:object.kind??null,name:object.name??null,mimeType:object.mimeType??null,sourceUrl:object.sourceUrl??null,assetRef:object.assetRef??null});
+  const objectHashBasis=suppliedObjectHash?'CLIENT_CONTENT_FINGERPRINT':'REFERENCE_IDENTITY';
   const cycleId=typeof body.cycleId==='string'&&body.cycleId.trim()?body.cycleId.trim():randomUUID();
   const event=await appendEpistemicEvent({
     eventName:'SFI_STRUCTURED_ANALYSIS_RESULT_RECEIVED',
     epistemicClass:'derived',
     confidence:typeof body.confidence==='number'?Math.max(0,Math.min(1,body.confidence)):1,
     payload:{
-      contract:'SFI-STRUCTURED-RESULT-1.0',
+      contract:'SFI-STRUCTURED-RESULT-1.1',
       storagePolicy:'REFERENCE_ONLY',
       rawObjectPersisted:false,
-      actorId,tenantId,cycleId,objectKey,objectHash,
+      actorId,tenantId,cycleId,objectKey,objectHash,objectHashBasis,
       question:typeof body.question==='string'?body.question:null,
       objective:typeof body.objective==='string'?body.objective:null,
       object,
@@ -61,5 +65,17 @@ export async function POST(req:Request){
     lineage:Array.isArray(body.lineage)?body.lineage.filter((v):v is string=>typeof v==='string').slice(0,100):[objectHash],
   });
   if(!event.ok)return NextResponse.json(event,{status:500});
-  return NextResponse.json({ok:true,cycleId,objectKey,objectHash,event:event.data,stored:{rawObject:false,structuredResult:true,storagePolicy:'REFERENCE_ONLY'},next:'Use the persisted result as evidence/context for SFI hypothesis, perturbation, return and calibration cycles.'},{status:201});
+  const eventId=String(event.data.event_id??'');
+  return NextResponse.json({
+    ok:true,
+    cycleId,
+    eventId,
+    canonicalEventId:eventId,
+    objectKey,
+    objectHash,
+    objectHashBasis,
+    event:event.data,
+    stored:{rawObject:false,structuredResult:true,storagePolicy:'REFERENCE_ONLY'},
+    next:'Use this canonical eventId for reread/lineage verification. Keep the cycle open until an observed return is contrasted and closure conditions are satisfied.'
+  },{status:201});
 }
