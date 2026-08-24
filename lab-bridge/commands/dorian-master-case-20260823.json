@@ -1,0 +1,34 @@
+{
+  "operation": "persist",
+  "title": "DORIAN // LLEVAME // MASTER CLOSURE CASE",
+  "content": "Independent client-production case. Artist/project: Dorian. Producer: Edwing. Boundary: do not inherit KXTXR identity, aesthetics, history, release strategy, references or objectives. Objective: conclude a balanced master for delivery to Dorian using minimum justified perturbation. Measured from the user-provided MP3 representation: duration 218.56655 s; codec MP3; 44.1 kHz; stereo; ~320149 bps; integrated loudness -9.4 LUFS; loudness range 8.8 LU; true peak +0.6 dBFS. OBSERVED: the encoded master has true-peak overs above 0 dBTP and retains material macro-dynamic contrast. DERIVED: downstream lossy reconstruction can increase clipping risk. INFERRED: present evidence does not justify rebuilding the master; minimum technical perturbation is to return to the lossless source, adjust only final true-peak limiter/output ceiling toward approximately -1.0 dBTP, render lossless, re-measure, and perform A/B plus translation checks. RIVAL HYPOTHESIS: broader tonal/dynamic remaster may still be required, but current aggregate measurements cannot establish this without Dorian-approved references and translation evidence. INVARIANTS: Dorian identity, mix intent, internal hierarchy, meaningful dynamic contrast. DECLARED EXCLUSIONS: KXTXR inheritance, unjustified aesthetic modification, overprocessing. EXPECTED RETURN: true peak controlled, loudness/macro-dynamics materially stable, no new limiter artifacts, translation stable. STATUS: AWAITING_MINIMAL_PERTURBATION_AND_RETURN.",
+  "confidence": 0.97,
+  "source": "chatgpt_external_case_analysis",
+  "commandId": "DORIAN-LLEVAME-MASTER-20260823-01",
+  "refs": [
+    "DORIAN_SL_LLEVAME_MASTER:chat_attachment:2026-08-23"
+  ],
+  "metadata": {
+    "caseId": "DORIAN_SL_LLEVAME_MASTER",
+    "objectKind": "audio",
+    "declaredFunction": "music_master",
+    "artist": "Dorian",
+    "producer": "Edwing",
+    "projectBoundary": "independent_from_KXTXR",
+    "storagePolicy": "REFERENCE_ONLY",
+    "rawObjectPersisted": false,
+    "measurementTools": ["ffprobe", "ffmpeg ebur128"],
+    "measurements": {
+      "durationSeconds": 218.56655,
+      "codec": "mp3",
+      "sampleRateHz": 44100,
+      "channels": 2,
+      "bitRateBps": 320149,
+      "integratedLufs": -9.4,
+      "loudnessRangeLu": 8.8,
+      "truePeakDbfs": 0.6
+    },
+    "recommendedPerturbation": "lossless_source_true_peak_ceiling_adjustment_then_remeasure",
+    "closureState": "AWAITING_MINIMAL_PERTURBATION_AND_RETURN"
+  }
+}
