@@ -7,6 +7,7 @@ on:
   pull_request:
     paths:
       - '.github/workflows/sfi-github-lab-bridge.yml'
+      - 'lab-bridge/commands/*.json'
   workflow_dispatch:
     inputs:
       command_json:
