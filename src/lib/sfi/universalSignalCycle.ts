@@ -138,6 +138,15 @@ export function buildClarifyingQuestions(input: UniversalCycleInput) {
   return questions;
 }
 
+function requiresWorldContext(input: UniversalCycleInput) {
+  const declaredFunction = text(input.declaredFunction) ?? '';
+  const question = text(input.question) ?? '';
+  const objective = text(input.objective) ?? '';
+  const systemType = text(input.systemType) ?? '';
+  const context = `${declaredFunction} ${question} ${objective} ${systemType}`.toLowerCase();
+  return /world|global|cultur|market|mercad|launch|release|lanz|timing|momento|audience|public|social|memetic|geopolit|econom|climat|trend|tendenc|external field|campo externo/.test(context);
+}
+
 function methodPlan(input: UniversalCycleInput) {
   const signal = normalizeUniversalSignal(input.signal);
   const declaredFunction = (text(input.declaredFunction) ?? '').toLowerCase();
@@ -147,11 +156,11 @@ function methodPlan(input: UniversalCycleInput) {
     'SFI_INFERENCE',
     'DIOL_SF',
     'MIHM_V3',
-    'WSV',
     'MINIMAL_FIELD_PERTURBATION',
     'OBSERVATION_AND_RESULT_CONTRAST',
     'CONFIGURATION_AND_RESPONSE_LIBRARY',
   ]);
+  if (requiresWorldContext(input)) methods.add('WSV');
   if (signal.kind === 'audio' || /song|music|canci|sonor|audio/.test(declaredFunction)) methods.add('FAD');
   if (signal.kind === 'conversation' || systemType === 'human' || /person|human|relaci|conduct|conversation/.test(`${declaredFunction} ${question}`)) methods.add('MOP_H');
   if (/persist|platform|carrier|transmission|señal|signal|publica|repost|distribu/.test(`${declaredFunction} ${question}`)) methods.add('MOP_S');
@@ -159,6 +168,7 @@ function methodPlan(input: UniversalCycleInput) {
   return {
     theoryBoundary: 'SFT is treated as a theory candidate/in-development layer; operational conclusions remain evidence-bound to SFI methods and protocols.',
     methods: [...methods],
+    worldContext: requiresWorldContext(input) ? 'RELEVANT' : 'NOT_REQUIRED',
     terms: {
       attractor: 'Dynamic region inferred from observed system behavior; not automatically an operator preference.',
       ejector: 'Repelling region inferred from dynamics.',
@@ -280,7 +290,8 @@ export async function runUniversalCognitiveCycle(input: UniversalCycleInput, act
   const cycleId = randomUUID();
   const taskId = randomUUID();
   const logbookId = `universal-cycle:${cycleId}`;
-  const worldSnapshot = await getLatestWorldSpectSnapshot();
+  const useWorldContext = requiresWorldContext(input);
+  const worldSnapshot = useWorldContext ? await getLatestWorldSpectSnapshot() : null;
   const context = createKernelContext(cycleId, logbookId, 'SFI_TASK_REQUESTED');
   context.taskId = taskId;
   context.evidence.push({
@@ -317,6 +328,7 @@ export async function runUniversalCognitiveCycle(input: UniversalCycleInput, act
     invariants: Array.isArray(input.invariants) ? input.invariants : [],
     constraints: Array.isArray(input.constraints) ? input.constraints : [],
     worldSpect: worldSnapshot ? snapshotRowToApiData(worldSnapshot) : null,
+    worldContextUsed: useWorldContext,
     requestedAgents: agentPlan(input).requested,
     llmAugmentation: input.llmAugmentation === true,
     epistemicBoundary: 'Observed/declaration/derived/inferred/simulated states remain distinct. Rival hypotheses are not collapsed by narrative coherence.',
@@ -330,6 +342,7 @@ export async function runUniversalCognitiveCycle(input: UniversalCycleInput, act
       cycleId, taskId, objectKey: signal.objectKey, objectHash: signal.objectHash, actorId, tenantId,
       question: text(input.question), objective: text(input.objective), methodPlan: methodPlan(input), agentPlan: agentPlan(input),
       worldSnapshotId: worldSnapshot?.id ?? null,
+      worldContextUsed: useWorldContext,
     },
     occurredAt: new Date().toISOString(),
     source: { sourceId: 'universal_signal_gateway', sourceType: 'cognitive_runtime' },
