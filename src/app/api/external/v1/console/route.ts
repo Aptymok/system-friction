@@ -6,18 +6,29 @@ import { readRootReportHealth, readRootReportInbox } from '@/lib/reports/rootRep
 import { SFI_AGENTIC_CAPABILITIES } from '@/lib/sfi/agenticCapabilityRegistry';
 import { SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY } from '@/lib/sfi/cognitive-runtime/convergedRegistry';
 import { readUniversalOpenCycles } from '@/lib/sfi/universalSignalCycle';
-import { getLatestWorldSpectSnapshot, snapshotRowToApiData } from '@/lib/worldspect/snapshotStore';
+import { getLatestWorldSpectSnapshot } from '@/lib/worldspect/snapshotStore';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 export const maxDuration = 60;
 
 type Row = Record<string, unknown>;
+const rows = (value: unknown): Row[] => Array.isArray(value)
+  ? value.filter((item): item is Row => Boolean(item) && typeof item === 'object' && !Array.isArray(item))
+  : [];
 
-function rows(value: unknown): Row[] {
-  return Array.isArray(value)
-    ? value.filter((item): item is Row => Boolean(item) && typeof item === 'object' && !Array.isArray(item))
-    : [];
+function worldSummary(snapshot: Row | null) {
+  if (!snapshot) return null;
+  return {
+    id: snapshot.id ?? null,
+    observedAt: snapshot.observed_at ?? snapshot.observedAt ?? null,
+    createdAt: snapshot.created_at ?? snapshot.createdAt ?? null,
+    snapshotHash: snapshot.snapshot_hash ?? snapshot.snapshotHash ?? null,
+    sourceState: snapshot.source_state ?? snapshot.sourceState ?? null,
+    confidence: snapshot.confidence ?? null,
+    wsi: snapshot.wsi ?? null,
+    nti: snapshot.nti ?? null,
+  };
 }
 
 export async function GET(req: Request) {
@@ -25,42 +36,17 @@ export async function GET(req: Request) {
   const credential = auth.credential;
   if (!credential) return NextResponse.json(externalAuthError(auth, 'observe'), { status: 401 });
   const actorId = externalActor(credential);
-
   const db = createServiceSupabaseClient();
-  const [
-    lab,
-    reportInbox,
-    proposals,
-    evidence,
-    twinRuns,
-    twinEvaluations,
-    labRuns,
-    openCycles,
-    worldSnapshot,
-  ] = await Promise.all([
+
+  const [lab, reportInbox, proposals, evidence, twinRuns, twinEvaluations, labRuns, openCycles, worldSnapshot] = await Promise.all([
     readMethodLabState(),
-    readRootReportInbox(60),
-    db.from('action_proposals')
-      .select('id,title,status,risk_level,approval_required,created_at,approved_at,executed_at')
-      .order('created_at', { ascending: false })
-      .limit(30),
-    db.from('root_evidence_entries')
-      .select('id,title,evidence_type,epistemic_event_id,created_at')
-      .order('created_at', { ascending: false })
-      .limit(30),
-    db.from('sfi_cognitive_twin_runs')
-      .select('id,task_id,role,status,objective,provider,model,evidence_refs,started_at,finished_at,created_at')
-      .order('created_at', { ascending: false })
-      .limit(30),
-    db.from('sfi_cognitive_twin_evaluations')
-      .select('id,provider,model,test_key,test_version,outcome,evidence_refs,executed_at,executor')
-      .order('executed_at', { ascending: false })
-      .limit(30),
-    db.from('sfi_lab_analyses')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(30),
-    readUniversalOpenCycles(60),
+    readRootReportInbox(12),
+    db.from('action_proposals').select('id,title,status,risk_level,approval_required,created_at,approved_at,executed_at').order('created_at', { ascending: false }).limit(8),
+    db.from('root_evidence_entries').select('id,title,evidence_type,epistemic_event_id,created_at').order('created_at', { ascending: false }).limit(8),
+    db.from('sfi_cognitive_twin_runs').select('id,task_id,role,status,objective,provider,model,started_at,finished_at,created_at').order('created_at', { ascending: false }).limit(5),
+    db.from('sfi_cognitive_twin_evaluations').select('id,provider,model,test_key,outcome,executed_at,executor').order('executed_at', { ascending: false }).limit(5),
+    db.from('sfi_lab_analyses').select('id,mode,data_mode,created_at,raw_analysis').order('created_at', { ascending: false }).limit(5),
+    readUniversalOpenCycles(12),
     getLatestWorldSpectSnapshot(),
   ]);
 
@@ -78,19 +64,20 @@ export async function GET(req: Request) {
   ].filter((value): value is string => Boolean(value));
 
   const recentLabRuns = rows(labRuns.data).map((item) => {
-    const raw = item.raw_analysis && typeof item.raw_analysis === 'object' && !Array.isArray(item.raw_analysis)
-      ? item.raw_analysis as Row
-      : {};
+    const raw = item.raw_analysis && typeof item.raw_analysis === 'object' && !Array.isArray(item.raw_analysis) ? item.raw_analysis as Row : {};
     return {
       id: item.id ?? null,
       protocolId: item.mode ?? null,
       epistemicClass: raw.epistemicClass ?? item.data_mode ?? null,
       validationLevel: raw.validationLevel ?? null,
       resultHash: raw.resultHash ?? raw.inputHash ?? null,
-      evidenceRefs: raw.evidenceRefs ?? [],
+      evidenceRefs: Array.isArray(raw.evidenceRefs) ? raw.evidenceRefs.slice(0, 8) : [],
       createdAt: item.created_at ?? null,
     };
   });
+
+  const proposalRows = rows(proposals.data);
+  const pendingGovernance = proposalRows.filter((item) => !['accepted', 'rejected', 'superseded'].includes(String(item.status ?? '').toLowerCase()));
 
   return NextResponse.json({
     ok: warnings.length === 0,
@@ -105,63 +92,38 @@ export async function GET(req: Request) {
       authMethod: credential.authMethod ?? 'static_token',
     },
     console: {
-      purpose: 'Governed machine console for current SFI state. Read-only through this operation; writes remain separate governed operations.',
-      world: worldSnapshot ? snapshotRowToApiData(worldSnapshot) : null,
+      purpose: 'Compact governed machine console. Detailed state is retrieved through the dedicated external surfaces.',
+      world: worldSummary(worldSnapshot as unknown as Row | null),
       openCycles: {
-        universal: openCycles.universal,
-        worldHypotheses: openCycles.worldHypotheses,
-        pendingGovernanceProposals: openCycles.pendingProposals,
+        universalCount: openCycles.universal.length,
+        universal: openCycles.universal.slice(0, 8),
+        worldHypothesisCount: Array.isArray(openCycles.worldHypotheses) ? openCycles.worldHypotheses.length : 0,
+        pendingGovernanceCount: openCycles.pendingProposals.length,
       },
-      universalSignalGateway: {
-        path: '/api/external/v1/signal',
-        contract: 'SFI-UNIVERSAL-SIGNAL-1.0',
-        cycleContract: 'SFI-UNIVERSAL-REASONING-CYCLE-1.0',
-        operations: ['status', 'intake', 'run', 'return', 'close'],
+      lab: {
+        status: (lab as unknown as Row).status ?? null,
+        generatedAt: (lab as unknown as Row).generatedAt ?? null,
+        protocolCount: Array.isArray((lab as unknown as Row).protocols) ? ((lab as unknown as Row).protocols as unknown[]).length : null,
+        warningCount: lab.warnings.length,
       },
-      lab,
-      reports: {
-        health: reportHealth,
-        recent: reportInbox.items.slice(0, 20),
-      },
-      cognitiveTwin: {
-        recentRuns: twinRuns.data ?? [],
-        recentEvaluations: twinEvaluations.data ?? [],
-      },
+      reports: { health: reportHealth, recent: reportInbox.items.slice(0, 5) },
+      cognitiveTwin: { recentRuns: twinRuns.data ?? [], recentEvaluations: twinEvaluations.data ?? [] },
       cognitiveRuntime: {
         count: SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY.length,
-        agents: SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY.map((agent) => ({
-          id: agent.id,
-          name: agent.name,
-          purpose: agent.purpose,
-          domain: agent.domain,
-          layer: agent.layer,
-          authorityLevel: agent.authorityLevel,
-          simulationAllowed: agent.simulationAllowed,
-          humanApprovalRequired: agent.humanApprovalRequired,
-          sourceTables: agent.sourceTables,
-        })),
+        agents: SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY.map((agent) => ({ id: agent.id, layer: agent.layer, domain: agent.domain, authorityLevel: agent.authorityLevel })),
       },
-      governance: {
-        proposals: proposals.data ?? [],
-        pendingCount: rows(proposals.data).filter((item) => !['accepted', 'rejected', 'superseded'].includes(String(item.status ?? '').toLowerCase())).length,
-      },
-      evidence: {
-        recent: evidence.data ?? [],
-      },
+      governance: { proposals: proposalRows.slice(0, 8), pendingCount: pendingGovernance.length },
+      evidence: { recent: evidence.data ?? [] },
       methodLabRuns: recentLabRuns,
-      agenticCapabilities: SFI_AGENTIC_CAPABILITIES.map((capability) => ({
-        id: capability.id,
-        name: capability.name,
-        purpose: capability.purpose,
-        layer: capability.layer,
-        route: capability.route,
-        approvalRequired: capability.approvalRequired,
-        reads: capability.reads,
-        writes: capability.writes,
-        executes: capability.executes,
-      })),
+      agenticCapabilities: SFI_AGENTIC_CAPABILITIES.map((capability) => ({ id: capability.id, layer: capability.layer, route: capability.route, approvalRequired: capability.approvalRequired })),
+      detailSurfaces: {
+        signal: '/api/external/v1/signal',
+        observe: '/api/external/v1/observe',
+        lab: '/api/external/v1/lab',
+        manifest: '/api/external/v1/manifest',
+      },
     },
     warnings,
-    epistemicBoundary: 'This console reports persisted operational state. SIMULATED, DERIVED, INFERRED and PROJECTED objects do not become OBSERVED or canonical by being returned here.',
+    epistemicBoundary: 'This console reports compact persisted operational state. Use dedicated surfaces for detailed evidence and histories.',
   });
 }
