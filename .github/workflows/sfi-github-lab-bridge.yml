@@ -22,6 +22,11 @@ jobs:
       SFI_LAB_TOKEN: ${{ secrets.SFI_LAB_BRIDGE_TOKEN }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Push command resolution compares github.event.before → github.sha.
+          # A shallow single-commit checkout can make BEFORE unavailable and
+          # terminate the workflow before the governed SFI HTTP call.
+          fetch-depth: 0
 
       - name: Resolve command
         id: command
