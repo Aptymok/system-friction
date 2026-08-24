@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 import { readMethodLabState } from '@/lib/method-lab/readModel';
 import { runMethodLabSimulation } from '@/lib/method-lab/simulationRun';
 import { appendEpistemicEvent } from '@/lib/events/eventStore';
-import { appendOperationalEvent } from '@/lib/operational/common';
+import { appendOperationalEvent, recordValue, sha256 } from '@/lib/operational/common';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { authorizeExternalRequest, externalActor } from '@/lib/sfi/externalAuth';
 
@@ -12,6 +12,14 @@ export const runtime = 'nodejs';
 export const maxDuration = 60;
 
 type LabOperation = 'state' | 'report' | 'persist' | 'run';
+type PersistSemanticInput = {
+  title: string;
+  content: string;
+  source: unknown;
+  refs: string[];
+  metadata: Record<string, unknown>;
+  confidence: number;
+};
 
 function operationScope(operation: LabOperation) {
   if (operation === 'state' || operation === 'report') return 'lab:read';
@@ -27,6 +35,24 @@ function persistEventId(commandId: string) {
   return `external-method-lab-persist:${createHash('sha256').update(commandId).digest('hex')}`;
 }
 
+function persistFingerprint(input: PersistSemanticInput) {
+  return sha256(input);
+}
+
+function existingPersistFingerprint(row: Record<string, unknown>) {
+  const payload = recordValue(row.payload);
+  const stored = typeof payload.commandFingerprint === 'string' ? payload.commandFingerprint : '';
+  if (stored) return stored;
+  return persistFingerprint({
+    title: typeof payload.title === 'string' ? payload.title : '',
+    content: typeof payload.content === 'string' ? payload.content : '',
+    source: payload.source ?? 'github_lab_bridge',
+    refs: Array.isArray(payload.refs) ? payload.refs.filter((value): value is string => typeof value === 'string') : [],
+    metadata: recordValue(payload.metadata),
+    confidence: typeof row.confidence === 'number' ? row.confidence : Number(row.confidence ?? 0),
+  });
+}
+
 async function readExistingPersist(commandId: string) {
   const db = createServiceSupabaseClient();
   return db.from('epistemic_events')
@@ -36,6 +62,25 @@ async function readExistingPersist(commandId: string) {
     .order('sequence', { ascending: true })
     .limit(1)
     .maybeSingle();
+}
+
+function idempotentPersistResponse(input: {
+  operation: LabOperation;
+  actorId: string;
+  commandId: string;
+  incomingFingerprint: string;
+  existing: Record<string, unknown>;
+}) {
+  const existingFingerprint = existingPersistFingerprint(input.existing);
+  if (existingFingerprint !== input.incomingFingerprint) {
+    return NextResponse.json({
+      ok: false,
+      error: 'method_lab_persist_command_id_conflict',
+      commandId: input.commandId,
+      existingEventId: input.existing.event_id ?? null,
+    }, { status: 409 });
+  }
+  return NextResponse.json({ ok: true, operation: input.operation, actor: input.actorId, idempotent: true, event: input.existing }, { status: 200 });
 }
 
 export async function POST(req: Request) {
@@ -81,27 +126,32 @@ export async function POST(req: Request) {
     if (!title || !content) return NextResponse.json({ ok: false, error: 'title_and_content_required' }, { status: 400 });
 
     const commandId = normalizedCommandId(body.commandId);
+    const requestedConfidence = typeof body.confidence === 'number' ? body.confidence : 1;
+    const confidenceIsValid = Number.isFinite(requestedConfidence) && requestedConfidence >= 0 && requestedConfidence <= 1;
+    const confidence = confidenceIsValid ? requestedConfidence : 0;
+    const refs = Array.isArray(body.refs) ? body.refs.filter((value): value is string => typeof value === 'string') : [];
+    const metadata = body.metadata && typeof body.metadata === 'object' && !Array.isArray(body.metadata) ? body.metadata as Record<string, unknown> : {};
+    const source = body.source ?? 'github_lab_bridge';
+    const incomingFingerprint = persistFingerprint({ title, content, source, refs, metadata, confidence });
+
     if (commandId) {
       const existing = await readExistingPersist(commandId);
       if (existing.error) {
         return NextResponse.json({ ok: false, error: 'method_lab_persist_idempotency_lookup_failed', details: existing.error.message }, { status: 500 });
       }
       if (existing.data) {
-        return NextResponse.json({ ok: true, operation, actor: actorId, idempotent: true, event: existing.data }, { status: 200 });
+        return idempotentPersistResponse({ operation, actorId, commandId, incomingFingerprint, existing: existing.data as Record<string, unknown> });
       }
     }
 
-    const requestedConfidence = typeof body.confidence === 'number' ? body.confidence : 1;
-    const confidenceIsValid = Number.isFinite(requestedConfidence) && requestedConfidence >= 0 && requestedConfidence <= 1;
-    const confidence = confidenceIsValid ? requestedConfidence : 0;
-    const refs = Array.isArray(body.refs) ? body.refs.filter((value): value is string => typeof value === 'string') : [];
     const payload = {
       title,
       content,
-      source: body.source ?? 'github_lab_bridge',
+      source,
       commandId: commandId || null,
-      refs: Array.isArray(body.refs) ? body.refs : [],
-      metadata: body.metadata && typeof body.metadata === 'object' && !Array.isArray(body.metadata) ? body.metadata : {},
+      commandFingerprint: incomingFingerprint,
+      refs,
+      metadata,
       credentialLabel: cred.label ?? null,
       delegatedRole: cred.role ?? 'agent',
       confidenceState: confidenceIsValid ? 'EXPLICIT' : 'UNASSESSED',
@@ -123,10 +173,11 @@ export async function POST(req: Request) {
     if (!event.ok && commandId) {
       // `event_id` is UNIQUE. If two requests race with the same commandId,
       // the deterministic event id lets the database reject the duplicate;
-      // reread the winning event and return an idempotent success.
+      // reread the winning event and return idempotent success only when the
+      // semantic command fingerprint is identical.
       const existing = await readExistingPersist(commandId);
       if (!existing.error && existing.data) {
-        return NextResponse.json({ ok: true, operation, actor: actorId, idempotent: true, event: existing.data }, { status: 200 });
+        return idempotentPersistResponse({ operation, actorId, commandId, incomingFingerprint, existing: existing.data as Record<string, unknown> });
       }
     }
 
