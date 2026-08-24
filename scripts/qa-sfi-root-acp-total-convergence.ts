@@ -13,6 +13,9 @@ const approve=read('src/app/api/acp/proposals/[id]/approve/route.ts');
 const reject=read('src/app/api/acp/proposals/[id]/reject/route.ts');
 const requestEvidence=read('src/app/api/sfi/proposals/[id]/request-evidence/route.ts');
 const proposals=read('src/app/api/acp/proposals/route.ts');
+const externalPropose=read('src/app/api/external/v1/propose/route.ts');
+const externalManifest=read('src/app/api/external/v1/manifest/route.ts');
+const githubLabBridge=read('.github/workflows/sfi-github-lab-bridge.yml');
 const governanceHealth=read('src/lib/governance/readGovernanceHealth.ts');
 const conflict=read('src/app/api/root/governance/conflicts/route.ts');
 const conflictResolve=read('src/app/api/root/governance/conflicts/resolve/route.ts');
@@ -38,11 +41,29 @@ assert.match(rootDecisions,/decideActionProposal/);
 assert.doesNotMatch(rootDecisions,/decision === 'accept' \? 'approved'/);
 assert.match(approve,/decideActionProposal/);
 assert.match(reject,/decideActionProposal/);
+assert.match(approve,/requireGovernedActor\('acp\.proposals\.approve'\)/, 'proposal approval must remain governance-gated');
+assert.match(reject,/requireGovernedActor\('acp\.proposals\.reject'\)/, 'proposal rejection must remain governance-gated');
 assert.match(requestEvidence,/requireGovernedActor/);
 assert.match(requestEvidence,/request_evidence/);
 assert.doesNotMatch(requestEvidence,/status:\s*'needs_evidence'/);
 assert.match(proposals,/normalizeProposalState/);
 assert.match(proposals,/raw_status/);
+
+// ROOT decision observability must not deadlock behind the runtime it is expected to govern.
+assert.match(proposals,/requireRootActor\('acp\.proposals\.list'\)/, 'ROOT proposal list must use identity authorization independent of runtime health');
+assert.doesNotMatch(proposals,/requireGovernedActor/, 'ROOT proposal list must remain readable while governed runtime is blind/degraded');
+assert.match(proposals,/state:'DEGRADED'/, 'proposal read failures must be explicit');
+assert.match(proposals,/source:\{table:'action_proposals'\}/, 'proposal response must declare its canonical persistence source');
+
+// External proposals and ROOT visibility converge on the same canonical table; do not invent a second queue.
+assert.match(externalPropose,/createActionProposal/);
+assert.match(common,/from\('action_proposals'\)\.insert/);
+assert.match(common,/from\('action_proposals'\)\.select/);
+assert.match(proposals,/latestActionProposals/);
+
+// Keep the observed GitHub Lab Bridge name aligned with the manifest.
+assert.ok(externalManifest.includes('.github/workflows/sfi-github-lab-bridge.yml'), 'manifest_github_lab_bridge_path_mismatch');
+assert.ok(githubLabBridge.includes('/api/external/v1/lab'), 'github_lab_bridge_must_target_external_method_lab');
 
 assert.match(governanceHealth,/legacyApproved/);
 assert.match(governanceHealth,/counts\.conflicted/);
@@ -83,6 +104,9 @@ assert.ok(liveUi.includes('/api/acp/proposals'), 'canonical_proposal_feed_not_wi
 assert.ok(liveUi.includes(`/api/acp/proposals/${'${selected.id}'}/${'${kind}'}`), 'governed_decision_route_not_wired');
 assert.ok(liveUi.includes('ACEPTAR') && liveUi.includes('RECHAZAR'), 'plain_language_root_decisions_missing');
 assert.ok(liveUi.includes('COGNITIVE TWIN'), 'twin_proposal_surface_missing');
+assert.ok(liveUi.includes("proposalRead.status==='degraded'"), 'proposal_read_degraded_state_must_be_rendered');
+assert.ok(liveUi.includes('No se pudo leer la cola de propuestas'), 'proposal_read_failure_must_not_render_as_empty_queue');
+assert.ok(liveUi.includes("proposalRead.status==='ready'?proposals.length:'—'"), 'proposal_count_must_not_claim_zero_before_successful_read');
 
 assert.match(mutationState,/CT-A01-MUT-%/);
 assert.match(mutationState,/CANDIDATE/);
@@ -99,6 +123,10 @@ assert.equal(cronCount,7,`Expected unchanged 7 Vercel crons, found ${cronCount}`
 
 console.log(JSON.stringify({ok:true,invariants:[
   'ROOT and ACP share one canonical action_proposals lifecycle',
+  'ROOT can read the proposal queue independently of governed-runtime health while proposal mutations remain governed',
+  'proposal read failures are explicit and never rendered as a verified empty queue',
+  'external proposal creation and ACP ROOT visibility converge on action_proposals',
+  'the external manifest points to the observed sfi-github-lab-bridge workflow',
   'legacy approved is normalized only at the lifecycle read boundary and is not a writable ProposalStatus',
   'evidence requests are governed and canonicalized to waiting_evidence',
   'CONFLICTED has declare and governed resolve paths',
