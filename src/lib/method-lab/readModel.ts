@@ -22,7 +22,7 @@ const PROTOCOL_DEPENDENCIES: Record<MethodLabProtocolId, string[]> = {
   chronos_olympics: [],
   cognitive_relational_lab: ['sfi_cognitive_lab_sessions', 'sfi_cognitive_lab_events', 'sfi_cognitive_lab_analyses'],
   ct_reentry: ['sfi_amv_memory', 'sfi_cognitive_twin_decisions', 'sfi_cognitive_twin_model_registry', 'sfi_cognitive_twin_evaluations', 'sfi_cognitive_twin_runs'],
-  sociotechnical_simulation: ['root_evidence_entries', 'epistemic_events', 'field_cases', 'sfi_graph_nodes'],
+  sociotechnical_simulation: ['root_evidence_entries', 'epistemic_events', 'field_cases', 'graph_nodes'],
   economic_simulation: ['root_evidence_entries', 'epistemic_events', 'field_cases', 'world_source_observations'],
 };
 
