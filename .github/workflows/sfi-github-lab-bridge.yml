@@ -73,7 +73,15 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          BASE_URL="${SFI_BASE_URL:-https://systemfriction.org}"
+          BASE_URL="${SFI_BASE_URL:-https://www.systemfriction.org}"
+          BASE_URL="${BASE_URL%/}"
+          # The public apex redirects to the canonical www host. Do not use
+          # curl -L for an authenticated request because Authorization can be
+          # stripped or forwarded across redirect hosts. Normalize only the
+          # institute's known canonical host before sending the bearer token.
+          if [ "$BASE_URL" = "https://systemfriction.org" ]; then
+            BASE_URL="https://www.systemfriction.org"
+          fi
           STATUS="$(curl --silent --show-error --output .lab-bridge-output/response.json --write-out '%{http_code}' \
             --request POST "$BASE_URL/api/external/v1/lab" \
             --header "Authorization: Bearer $SFI_LAB_TOKEN" \
@@ -88,6 +96,7 @@ jobs:
           NODE
 
       - name: Record bridge provenance
+        if: success()
         shell: bash
         run: |
           node - <<'NODE'
@@ -111,4 +120,5 @@ jobs:
           name: sfi-lab-bridge-${{ github.run_id }}
           path: .lab-bridge-output/
           if-no-files-found: ignore
+          include-hidden-files: true
           retention-days: 30
