@@ -1,0 +1,16 @@
+{
+  "operation": "persist",
+  "commandId": "lab-bridge-operational-proof-20260824",
+  "title": "GitHub to Method Lab bridge operational proof",
+  "content": "Observed on GitHub Actions run 32788947966 (SFI GitHub Lab Bridge #15): the configured bridge credential was present, the authenticated POST to the canonical SFI host returned HTTP 200 with ok=true for operation=state, Method Lab reported contract SFI-METHOD-LAB-RUN-1.0 and status OPERATIONAL, and a provenance artifact was uploaded. The prior failure was isolated to an HTTP 307 apex-to-www redirect and corrected by normalizing only the known SFI canonical host before sending Authorization. This record verifies bridge transport/authentication/read-path behavior; it does not constitute scientific validation of any Method Lab protocol.",
+  "source": "github_lab_bridge",
+  "refs": [
+    "github:run:32788947966",
+    "github:pr:273",
+    "commit:9695aadb4764200e050abab9dbdab630548b647d"
+  ],
+  "metadata": {
+    "epistemicClass": "OBSERVED",
+    "claimBoundary": "Operational bridge transport/authentication/read-path evidence; not Method Lab protocol validation."
+  }
+}
