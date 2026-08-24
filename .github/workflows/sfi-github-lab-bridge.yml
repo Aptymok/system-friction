@@ -2,6 +2,8 @@ name: SFI GitHub Lab Bridge
 
 on:
   push:
+    branches:
+      - main
     paths:
       - 'lab-bridge/commands/*.json'
   pull_request:
