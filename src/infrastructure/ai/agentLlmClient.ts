@@ -25,7 +25,14 @@ type AgentInsight = {
   generatedAt: string;
 };
 
-const MAX_PROMPT_CHARS = 22_000;
+const MAX_PROMPT_CHARS = 6_000;
+const MAX_AGENT_OUTPUT_TOKENS = 450;
+const TWIN_RELEVANT_AGENTS = new Set([
+  'historical_scout',
+  'phenotype_resolver',
+  'trajectory_agent',
+  'reality_calibration',
+]);
 
 function record(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
@@ -48,12 +55,12 @@ function parseInsight(value: string): Omit<AgentInsight, 'status' | 'agentId' | 
   try {
     const parsed = record(JSON.parse(stripFence(value)));
     return {
-      summary: typeof parsed.summary === 'string' && parsed.summary.trim() ? parsed.summary.trim().slice(0, 1600) : null,
-      observations: strings(parsed.observations, 8),
-      hypotheses: strings(parsed.hypotheses, 6),
-      contradictions: strings(parsed.contradictions, 6),
-      missingEvidence: strings(parsed.missingEvidence, 6),
-      recommendations: strings(parsed.recommendations, 6),
+      summary: typeof parsed.summary === 'string' && parsed.summary.trim() ? parsed.summary.trim().slice(0, 1200) : null,
+      observations: strings(parsed.observations, 6),
+      hypotheses: strings(parsed.hypotheses, 4),
+      contradictions: strings(parsed.contradictions, 4),
+      missingEvidence: strings(parsed.missingEvidence, 5),
+      recommendations: strings(parsed.recommendations, 5),
       confidence: number(parsed.confidence),
     };
   } catch {
@@ -63,16 +70,16 @@ function parseInsight(value: string): Omit<AgentInsight, 'status' | 'agentId' | 
 
 function compactUnknown(value: unknown, depth = 0): unknown {
   if (value === null || typeof value === 'number' || typeof value === 'boolean') return value;
-  if (typeof value === 'string') return value.length > 600 ? `${value.slice(0, 600)}…[truncated]` : value;
-  if (depth >= 4) return '[depth_limit]';
-  if (Array.isArray(value)) return value.slice(0, 8).map((item) => compactUnknown(item, depth + 1));
+  if (typeof value === 'string') return value.length > 320 ? `${value.slice(0, 320)}…[truncated]` : value;
+  if (depth >= 3) return '[depth_limit]';
+  if (Array.isArray(value)) return value.slice(0, 6).map((item) => compactUnknown(item, depth + 1));
   if (typeof value === 'object') {
-    return Object.fromEntries(Object.entries(value as Record<string, unknown>).slice(0, 12).map(([key,item]) => [key,compactUnknown(item,depth+1)]));
+    return Object.fromEntries(Object.entries(value as Record<string, unknown>).slice(0, 10).map(([key, item]) => [key, compactUnknown(item, depth + 1)]));
   }
-  return String(value).slice(0, 200);
+  return String(value).slice(0, 160);
 }
-function compactEvidence(context: KernelContext) {
-  return context.evidence.slice(-12).map((item) => ({
+function compactEvidence(context: KernelContext, max = 6) {
+  return context.evidence.slice(-max).map((item) => ({
     id: item.id,
     source: item.source,
     confidence: item.confidence,
@@ -82,9 +89,9 @@ function compactEvidence(context: KernelContext) {
 function compactTwin(twin: StudioTwinContext) {
   return {
     contractVersion: twin.contractVersion,
-    memory: twin.memory.slice(0, 12).map((item) => compactUnknown(item)),
-    approvedDecisions: twin.decisions.slice(0, 8).map((item) => compactUnknown(item)),
-    warnings: twin.warnings.slice(0, 8),
+    memory: twin.memory.slice(0, 4).map((item) => compactUnknown(item)),
+    approvedDecisions: twin.decisions.slice(0, 3).map((item) => compactUnknown(item)),
+    warnings: twin.warnings.slice(0, 3),
   };
 }
 function boundedPrompt(value: unknown) {
@@ -114,16 +121,83 @@ async function resolveTwinContextForExecution(context: KernelContext): Promise<S
         warnings: ['cognitive_spine_snapshot_available_but_not_consumed'],
       };
     }
-    if (!injectedTwin) {
-      throw new Error('COGNITIVE_SPINE_SEALED_TWIN_CONTEXT_REQUIRED');
-    }
+    if (!injectedTwin) throw new Error('COGNITIVE_SPINE_SEALED_TWIN_CONTEXT_REQUIRED');
     return injectedTwin;
   }
 
-  // Backward-compatible path for executions not yet wired to the Cognitive
-  // Spine. Once a run declares availability/consumption explicitly, live Twin
-  // reads are prohibited for the duration of that run.
   return injectedTwin ?? await readStudioTwinContext();
+}
+
+function baseProjection(context: KernelContext) {
+  const metadata = record(context.metadata);
+  return {
+    currentEvent: context.currentEvent,
+    phenomenonId: context.phenomenonId ?? null,
+    question: compactUnknown(metadata.question),
+    objective: compactUnknown(metadata.objective),
+    declaredFunction: compactUnknown(metadata.declaredFunction),
+    declaredTarget: compactUnknown(metadata.declaredTarget),
+    declaredExclusions: compactUnknown(metadata.declaredExclusions),
+    invariants: compactUnknown(metadata.invariants),
+    constraints: compactUnknown(metadata.constraints),
+    signal: compactUnknown(metadata.signal),
+  };
+}
+
+function projectContextForAgent(agentId: string, context: KernelContext, twin: StudioTwinContext | null) {
+  const base = baseProjection(context);
+  const evidence = compactEvidence(context);
+  const hypotheses = context.hypotheses.slice(-5).map((item) => compactUnknown(item));
+  const contradictions = context.contradictions.slice(-4).map((item) => compactUnknown(item));
+
+  switch (agentId) {
+    case 'evidence_hunter':
+      return { ...base, observedEvidence: evidence, hypotheses, contradictions };
+    case 'reality_calibration':
+      return {
+        ...base,
+        observedEvidence: evidence,
+        hypotheses,
+        predictions: context.predictions.slice(-5).map((item) => compactUnknown(item)),
+        cognitiveTwin: twin ? compactTwin(twin) : null,
+      };
+    case 'risk_agent':
+      return {
+        ...base,
+        observedEvidence: evidence,
+        hypotheses,
+        contradictions,
+        risksAlreadyDetected: context.risks.slice(-4).map((item) => compactUnknown(item)),
+      };
+    case 'field_observer':
+      return { ...base, observedEvidence: evidence, contradictions };
+    case 'friction_field_simulator':
+      return {
+        ...base,
+        observedEvidence: evidence,
+        hypotheses,
+        risks: context.risks.slice(-4).map((item) => compactUnknown(item)),
+        simulations: context.simulations.slice(-3).map((item) => compactUnknown(item)),
+      };
+    case 'opportunity_agent':
+    case 'cultural_simulator':
+    case 'economic_field_simulator':
+      return {
+        ...base,
+        observedEvidence: evidence,
+        hypotheses,
+        risks: context.risks.slice(-4).map((item) => compactUnknown(item)),
+        worldSpect: compactUnknown(context.metadata?.worldSpect),
+      };
+    default:
+      return {
+        ...base,
+        observedEvidence: evidence,
+        hypotheses,
+        contradictions,
+        ...(twin ? { cognitiveTwin: compactTwin(twin) } : {}),
+      };
+  }
 }
 
 export async function augmentAgentWithLlm(agentId: string, context: KernelContext): Promise<KernelContext> {
@@ -133,45 +207,30 @@ export async function augmentAgentWithLlm(agentId: string, context: KernelContex
   const contract = SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY.find((item) => item.id === agentId);
   if (!contract) return context;
 
-  const twin = await resolveTwinContextForExecution(context);
+  const twin = TWIN_RELEVANT_AGENTS.has(agentId) ? await resolveTwinContextForExecution(context) : null;
   const requestedProvider = providerPreference(context.metadata?.preferredLlmProvider) ?? 'groq';
-  const studio = record(context.metadata?.studio);
   const existingInsights = record(context.metadata?.agentInsights);
 
   const system = [
     'You are an executor inside the System Friction Institute Cognitive Runtime.',
     `Agent: ${contract.name} (${contract.id}). Purpose: ${contract.purpose}`,
     `Layer: ${contract.layer}. Domain: ${contract.domain}. Authority: ${contract.authorityLevel}.`,
-    'The Cognitive Twin contract is binding: evidence before inference; simulation is not observation; missing evidence remains missing; presentation is not state; never invent measurements, history, lineage, causal relations, attractor attainment, or completed actions.',
-    'CANDIDATE Cognitive Twin memory is evidence-bound prior learning only. It is not VERIFIED or CANONICAL fact, must retain its status, and must never be promoted by the model. VERIFIED and CANONICAL memory remain distinct governed states.',
-    'Cognitive Spine memory and approved decisions are contextual state, not independent observed evidence. Repetition and derivation do not create evidence or independence.',
+    'Evidence before inference. Simulation is not observation. Missing evidence remains missing. Never invent measurements, history, lineage, causal relations, attractor attainment, or completed actions.',
     'Treat deterministic metrics and persisted evidence as observations. Treat your interpretation as INFERENCE only.',
-    'Do not issue irreversible actions. Do not claim that an object is ready for production unless explicit persisted checks support it.',
-    'Return ONLY valid JSON using this schema: {"summary":string|null,"observations":string[],"hypotheses":string[],"contradictions":string[],"missingEvidence":string[],"recommendations":string[],"confidence":number}.',
-    'Keep every list short and specific. If the evidence cannot support a claim, put the need in missingEvidence instead.',
+    'Return ONLY valid JSON: {"summary":string|null,"observations":string[],"hypotheses":string[],"contradictions":string[],"missingEvidence":string[],"recommendations":string[],"confidence":number}.',
+    'Keep lists short and specific. Do not restate policy boilerplate in the analysis.',
   ].join('\n');
 
-  const promptPayload = {
+  const projection = projectContextForAgent(agentId, context, twin);
+  const prompt = boundedPrompt({
     task: context.metadata?.studioAction ?? 'analyze',
-    currentEvent: context.currentEvent,
-    phenomenonId: context.phenomenonId ?? null,
-    studio: compactUnknown(studio),
-    observedEvidence: compactEvidence(context),
-    deterministicHypotheses: context.hypotheses.slice(-8).map(item=>compactUnknown(item)),
-    deterministicContradictions: context.contradictions.slice(-8).map(item=>compactUnknown(item)),
-    simulations: context.simulations.slice(-6).map(item=>compactUnknown(item)),
-    predictions: context.predictions.slice(-6).map(item=>compactUnknown(item)),
-    risks: context.risks.slice(-6).map(item=>compactUnknown(item)),
-    opportunities: context.opportunities.slice(-6).map(item=>compactUnknown(item)),
-    cognitiveSpine: compactUnknown(context.metadata?.cognitiveSpine),
-    cognitiveTwin: compactTwin(twin),
-    previousAgentInsights: Object.fromEntries(Object.entries(existingInsights).slice(-4).map(([key,value])=>[key,compactUnknown(value)])),
+    agentProjection: projection,
     contextBoundary: {
       maxPromptCharacters: MAX_PROMPT_CHARS,
-      selectionRule: 'one sealed Cognitive Spine cut when explicitly integrated; bounded memory remains context, never independent evidence; agents must not enrich the same run from live Twin state',
+      projection: `AGENT_SPECIFIC:${agentId}`,
+      rule: 'Only evidence and state required for this role are supplied. Previous agent prose is not recursively injected.',
     },
-  };
-  const prompt = boundedPrompt(promptPayload);
+  });
 
   const result = await runLlmTask({
     task: 'graph_interpretation',
@@ -179,7 +238,7 @@ export async function augmentAgentWithLlm(agentId: string, context: KernelContex
     prompt,
     fallbackResult: '{"status":"LLM_UNAVAILABLE"}',
     preferredProvider: requestedProvider,
-    maxTokens: 900,
+    maxTokens: MAX_AGENT_OUTPUT_TOKENS,
   });
   const parsed = result.ok ? parseInsight(result.result) : null;
   const generatedAt = new Date().toISOString();
@@ -209,25 +268,27 @@ export async function augmentAgentWithLlm(agentId: string, context: KernelContex
         confidence: null,
         epistemicClass: 'INFERENCE',
         warnings: [...result.warnings, ...(result.ok ? ['invalid_json_schema'] : [])],
-        raw: result.ok ? result.result.slice(0, 3000) : null,
+        raw: result.ok ? result.result.slice(0, 1800) : null,
         generatedAt,
       };
 
   context.metadata = {
     ...context.metadata,
-    cognitiveTwinContext: twin,
+    ...(twin ? { cognitiveTwinContext: twin } : {}),
     agentInsights: {
       ...existingInsights,
       [agentId]: insight,
     },
     llmRuntime: {
-      ...(record(context.metadata?.llmRuntime)),
+      ...record(context.metadata?.llmRuntime),
       lastProvider: insight.provider,
       lastModel: insight.model,
       lastAgentId: agentId,
       lastStatus: insight.status,
       promptCharacters: prompt.length,
       promptBounded: prompt.length >= MAX_PROMPT_CHARS,
+      promptProjection: `AGENT_SPECIFIC:${agentId}`,
+      maxOutputTokens: MAX_AGENT_OUTPUT_TOKENS,
       updatedAt: generatedAt,
     },
   };
