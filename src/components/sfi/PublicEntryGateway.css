@@ -1,0 +1,10 @@
+.sfiEntry{position:fixed;z-index:90;left:28px;bottom:28px;width:min(560px,calc(100vw - 56px));padding:22px 22px 18px;border:1px solid rgba(222,204,157,.24);background:linear-gradient(145deg,rgba(5,7,7,.94),rgba(8,10,9,.84));backdrop-filter:blur(18px);box-shadow:0 28px 90px rgba(0,0,0,.42);color:#ece8dd;font-family:var(--font-geist-sans,Arial,sans-serif)}
+.sfiEntry__eyebrow{font-size:10px;letter-spacing:.18em;color:#c8a764;margin-bottom:9px}
+.sfiEntry h1{font-family:Georgia,serif;font-size:clamp(22px,2.2vw,34px);font-weight:400;line-height:1.04;max-width:520px;margin:0 0 11px;color:#f5f0e6}
+.sfiEntry__lead{margin:0;color:#b8b4aa;font-size:12px;line-height:1.55;max-width:520px}
+.sfiEntry__flow{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:16px 0;padding:10px 0;border-top:1px solid rgba(232,226,213,.10);border-bottom:1px solid rgba(232,226,213,.10)}
+.sfiEntry__flow span{font-size:9px;letter-spacing:.13em;color:#d8d2c5}.sfiEntry__flow i{font-style:normal;color:#6f746f;font-size:10px}
+.sfiEntry__paths{display:grid;grid-template-columns:1fr 1fr;gap:16px}.sfiEntry__paths section{min-width:0}.sfiEntry__paths small{display:block;color:#8faeaa;font-size:9px;letter-spacing:.14em;margin-bottom:5px}.sfiEntry__paths p{color:#9e9b92;font-size:10px;line-height:1.45;margin:0 0 8px}
+.sfiEntry__actions{display:flex;gap:6px;flex-wrap:wrap}.sfiEntry__actions a{display:inline-flex;align-items:center;min-height:28px;padding:0 9px;border:1px solid rgba(200,167,100,.26);color:#d8c38d;text-decoration:none;font-size:9px;letter-spacing:.08em;background:rgba(8,9,8,.52)}.sfiEntry__actions a:hover{border-color:#c8a764;background:rgba(200,167,100,.10)}
+.sfiEntry__boundary{display:grid;grid-template-columns:auto 1fr;gap:9px;margin-top:14px;padding-top:10px;border-top:1px solid rgba(232,226,213,.10);font-size:9px;line-height:1.45}.sfiEntry__boundary b{color:#c8a764;letter-spacing:.12em}.sfiEntry__boundary span{color:#8e8b83}
+@media(max-width:760px){.sfiEntry{left:12px;right:12px;bottom:12px;width:auto;max-height:58vh;overflow:auto;padding:16px}.sfiEntry h1{font-size:22px}.sfiEntry__paths{grid-template-columns:1fr}.sfiEntry__flow{display:none}}
