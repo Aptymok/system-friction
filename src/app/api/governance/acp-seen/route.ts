@@ -4,6 +4,20 @@ import { auditRootAction, requireRootActor } from '@/lib/root/server';
 
 export const dynamic = 'force-dynamic';
 
+export async function GET() {
+  return NextResponse.json({
+    ok: false,
+    error: 'method_not_allowed',
+    mutation: false,
+    requiredMethod: 'POST',
+    explanation: 'Visiting this URL in the browser performs GET and does not record ROOT presence.',
+    action: 'Open /root while authenticated as ROOT and use HACERME VISTO · CONFIRMAR PRESENCIA ACP.',
+  }, {
+    status: 405,
+    headers: { Allow: 'POST' },
+  });
+}
+
 export async function POST(request: Request) {
   const gate = await requireRootActor('governance.acp.presence');
   if (!gate.ok) return NextResponse.json(gate.body, { status: gate.status });
