@@ -6,6 +6,8 @@ on:
       - 'src/core/cognitive-twin/reentry/**'
       - 'src/app/api/root/cognitive-twin/**'
       - 'src/app/api/root/method-lab/decision-transfer/**'
+      - 'src/lib/execution/**'
+      - 'src/app/api/cron/continuity-report/**'
       - 'src/components/sfi/SceneFieldOverlay.*'
       - 'src/components/sfi/scenes.ts'
       - 'src/app/[scene]/page.tsx'
@@ -18,7 +20,7 @@ permissions:
 
 jobs:
   verify:
-    name: Verify CT connection and scene lenses
+    name: Verify CT, governed routing and scene lenses
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -31,7 +33,7 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm install --no-audit --no-fund
-      - name: Verify CT and surface contract
+      - name: Verify CT, routing and surface contract
         run: npx tsx scripts/qa-sfi-ct-surface-lenses.ts
       - name: Typecheck
         run: npm run typecheck
