@@ -88,6 +88,7 @@ export function RootOperationalWorkboard({ enabled }: Props) {
   const warnings = Array.isArray(data?.warnings) ? data.warnings : [];
   const caseItems = Array.isArray(caseExecution?.items) ? caseExecution.items : [];
   const runtimeLabel = useMemo(() => short(data?.runtime?.summary, 'Runtime sin lectura'), [data]);
+  const canOperate = data?.authority === 'root';
 
   const focusOptions = useMemo<CognitiveSpineFocus[]>(() => {
     const candidates = [
@@ -125,6 +126,7 @@ export function RootOperationalWorkboard({ enabled }: Props) {
 
     <CognitiveSpineAnatomy
       enabled={enabled}
+      canOperate={canOperate}
       focusOptions={focusOptions}
       twinOpenCount={twinProposals.length + openUniversalCycles.length}
     />
