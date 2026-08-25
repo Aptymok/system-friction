@@ -2,6 +2,7 @@ export type SfiInstitutionalMember = {
   email: string;
   displayName: string;
   role: 'operator' | 'controller' | 'observer';
+  decisionAuthority?: 'controller';
   workspace: '/member' | '/root';
   modules: {
     field: boolean;
@@ -16,7 +17,8 @@ const MEMBERS: SfiInstitutionalMember[] = [
   {
     email: 'edwin.tzolkin@gmail.com',
     displayName: 'Edwin',
-    role: 'controller',
+    role: 'observer',
+    decisionAuthority: 'controller',
     workspace: '/root',
     modules: {
       field: true,
