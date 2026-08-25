@@ -15,6 +15,8 @@ const cron = read('src/app/api/cron/continuity-report/route.ts');
 const rootRunner = read('src/lib/root/rootObservationRunner.ts');
 const externalExecute = read('src/app/api/external/v1/execute/route.ts');
 
+requireText(router, "AI_EXECUTION_ROUTER_PROPOSAL_ID = '87cc094a-e9df-40e8-9a35-92c679c60ef2'", 'authorized-router-proposal');
+requireText(router, "SELF_HEALING_BOOTSTRAP_PROPOSAL_ID = '5e4803b2-0b23-4047-9ba3-38a588c78f82'", 'authorized-self-healing-proposal');
 requireText(router, "'COGNITIVE_INTERNAL'", 'internal-class');
 requireText(router, "'EXTERNAL_ACTION'", 'external-class');
 requireText(router, 'runCognitiveAgent', 'reuse-cognitive-runtime');
