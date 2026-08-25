@@ -1,11 +1,11 @@
 'use client';
 
-import type { SceneKey } from './scenes';
+import { useEffect, useState } from 'react';
+import { SCENES, type SceneKey } from './scenes';
 import './SceneFieldOverlay.css';
 
 type Proposal = { status?: string; risk_level?: string; decisionClass?: 'delegable' | 'root_only'; decisionActorId?: string | null };
 type Row = Record<string, any>;
-
 type Signal = { label: string; value: string; note?: string };
 
 const MISSIONS: Record<SceneKey, string> = {
@@ -128,7 +128,31 @@ function signals(scene: SceneKey, live: Row | null, proposals: Proposal[]): Sign
   ];
 }
 
-export function SceneFieldOverlay({ scene, live, proposals }: { scene: SceneKey; live: Row | null; proposals: Proposal[] }) {
+export function SceneFieldOverlay({ scene }: { scene: SceneKey }) {
+  const [live, setLive] = useState<Row | null>(null);
+  const [proposals, setProposals] = useState<Proposal[]>([]);
+
+  useEffect(() => {
+    if (scene === 'root' || scene === 'field') return;
+    let stopped = false;
+    const pull = async () => {
+      const [liveResult, proposalResult] = await Promise.allSettled([
+        fetch(SCENES[scene].liveSource, { cache: 'no-store' }).then(async (response) => ({ response, json: await response.json().catch(() => null) })),
+        fetch('/api/acp/proposals', { cache: 'no-store' }).then(async (response) => ({ response, json: await response.json().catch(() => null) })),
+      ]);
+      if (stopped) return;
+      if (liveResult.status === 'fulfilled') {
+        setLive(liveResult.value.response.ok ? liveResult.value.json : { ok: false, error: liveResult.value.json?.error ?? `http_${liveResult.value.response.status}` });
+      } else setLive({ ok: false, error: String(liveResult.reason) });
+      if (proposalResult.status === 'fulfilled' && proposalResult.value.response.ok && proposalResult.value.json?.ok) {
+        setProposals(proposalResult.value.json.data?.proposals ?? []);
+      } else setProposals([]);
+    };
+    void pull();
+    const timer = window.setInterval(pull, 15000);
+    return () => { stopped = true; window.clearInterval(timer); };
+  }, [scene]);
+
   if (scene === 'root' || scene === 'field') return null;
   const items = signals(scene, live, proposals).slice(0, 4);
   return <section className={`sceneFieldOverlay overlay-${scene}`} aria-label={`${scene} live field`}>
