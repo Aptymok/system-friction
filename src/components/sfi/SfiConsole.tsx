@@ -9,7 +9,7 @@ import './SfiConsole.css';
 
 type Proposal={id:string;title?:string;status?:string;risk_level?:string;proposalType?:string;created_at?:string};
 const ACTIONABLE_PROPOSAL_STATES=new Set(['proposed','waiting_evidence','needs_evidence']);
-const POST_DECISION_STATES=new Set(['design_approved','queued','accepted']);
+const POST_DECISION_STATES=new Set(['design_approved','queued']);
 function summarize(v:unknown){ if(Array.isArray(v))return `${v.length} elementos`; if(v&&typeof v==='object')return `${Object.keys(v as object).length} campos`; return String(v??'—'); }
 function Instrument({scene}:{scene:SceneKey}){return <><div className="atmosphere"/><div className="vectorField"/><div className="sceneObject" aria-hidden="true"><div className="halo"/><div className="ring"/><div className="ring2"/><div className="ring3"/><div className="core"/></div><div className="dataNode dn1"/><div className="dataNode dn2"/><div className="dataNode dn3"/><div className="dataNode dn4"/><div className="grain"/></>}
 
