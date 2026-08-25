@@ -23,12 +23,26 @@ for (const field of ['reads:', 'writes:', 'executes:', 'executionEvidence:']) {
 
 const scenes = read('src/components/sfi/scenes.ts');
 const liveUi = read('src/components/sfi/SfiConsole.tsx');
+const prepare = read('src/app/api/acp/proposals/[id]/prepare/route.ts');
+const realize = read('src/app/api/acp/proposals/[id]/realize/route.ts');
+const freeze = read('src/app/api/acp/proposals/[id]/freeze/route.ts');
 assert.ok(scenes.includes("root:{key:'root'"), 'ROOT live scene missing');
 assert.ok(scenes.includes("agents:{key:'agents'"), 'AGENTS live scene missing');
 assert.ok(liveUi.includes('FUENTE VIVA') && liveUi.includes('ESTADO'), 'live runtime telemetry missing');
 assert.ok(liveUi.includes('/api/acp/proposals'), 'ROOT governed proposal feed missing');
 assert.ok(liveUi.includes('COGNITIVE TWIN'), 'Twin proposal observability missing');
 assert.ok(liveUi.includes('ACEPTAR') && liveUi.includes('RECHAZAR'), 'ROOT plain-language decision controls missing');
+assert.ok(liveUi.includes('PREPARAR REALIZACIÓN'), 'ROOT must expose design_approved preparation');
+assert.ok(liveUi.includes('REGISTRAR REALIZACIÓN INTERNA'), 'ROOT must expose queued realization');
+assert.ok(liveUi.includes('CANCELAR / CONGELAR'), 'ROOT must expose a real governed stop action');
+assert.ok(liveUi.includes('/api/logbook/visible'), 'ROOT must expose visible logbook access');
+assert.ok(liveUi.includes('/api/root/decisions'), 'ROOT must expose decision/report queue access');
+assert.match(prepare, /eq\('status', 'design_approved'\)/, 'Preparation must start only from design_approved');
+assert.match(prepare, /status: 'queued'/, 'Preparation must transition to queued');
+assert.match(realize, /approval\.explicit === true && approval\.scope === 'internal_record_only'/, 'Realization must require explicit internal approval');
+assert.match(realize, /external_action_allowed: false/, 'Realization must not imply external execution');
+assert.match(freeze, /decision: 'freeze'/, 'Cancellation must use canonical frozen lifecycle transition');
+assert.match(freeze, /requireGovernedActor\('acp\.proposals\.freeze'\)/, 'Freeze endpoint must remain governed');
 
 const vercel = read('vercel.json');
 const parsed = JSON.parse(vercel) as { crons?: Array<{ path?: string }> };
@@ -43,5 +57,9 @@ console.log(JSON.stringify({
     'degraded provider output is not READY',
     'agent passports declare reads/writes/executes/evidence',
     'ROOT and AGENTS are observable through canonical live scenes',
+    'ROOT distinguishes design approval, preparation and governed realization',
+    'ROOT can freeze/cancel without erasing lineage',
+    'ROOT exposes its visible logbook and decision/report queue',
+    'realization remains internal_record_only and does not imply external execution',
   ],
 }, null, 2));
