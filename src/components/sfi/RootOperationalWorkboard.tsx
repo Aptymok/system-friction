@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { CognitiveSpineAnatomy, type CognitiveSpineFocus } from '@/components/root/cognitive-spine/CognitiveSpineAnatomy';
 import './RootOperationalWorkboard.css';
 
 type Row = Record<string, any>;
@@ -24,6 +25,17 @@ function short(value: unknown, fallback = '—') {
 
 function Lane({ title, count, children }: { title: string; count?: number; children: React.ReactNode }) {
   return <section className="workLane"><header><span>{title}</span>{typeof count === 'number' && <b>{count}</b>}</header><div className="workLaneBody">{children}</div></section>;
+}
+
+function focusItem(kind: string, item: Row, fallback: string): CognitiveSpineFocus {
+  const sourceId = short(item.id ?? item.eventId ?? item.cycleId ?? item.sourceRunId, 'unidentified');
+  return {
+    id: `${kind}:${sourceId}`,
+    kind,
+    title: short(item.title ?? item.question ?? item.text ?? item.eventName ?? item.action, fallback),
+    status: short(item.status ?? item.state ?? item.epistemicClass, 'observed'),
+    detail: sourceId,
+  };
 }
 
 export function RootOperationalWorkboard({ enabled }: Props) {
@@ -77,6 +89,20 @@ export function RootOperationalWorkboard({ enabled }: Props) {
   const caseItems = Array.isArray(caseExecution?.items) ? caseExecution.items : [];
   const runtimeLabel = useMemo(() => short(data?.runtime?.summary, 'Runtime sin lectura'), [data]);
 
+  const focusOptions = useMemo<CognitiveSpineFocus[]>(() => {
+    const candidates = [
+      ...decisions.slice(0, 3).map((item: Row) => focusItem('decision', item, 'Governance decision')),
+      ...blockers.slice(0, 3).map((item: Row) => focusItem('blocker', item, 'Observed blocker')),
+      ...executions.slice(0, 3).map((item: Row) => focusItem('execution', item, 'Execution handoff')),
+      ...twinProposals.slice(0, 2).map((item: Row) => focusItem('twin', item, 'Twin proposal')),
+      ...caseItems.slice(0, 2).map((item: Row) => focusItem('case', item, 'Case action')),
+      ...returns.slice(0, 2).map((item: Row) => focusItem('return', item, 'Observed RETURN')),
+    ];
+    const unique = new Map<string, CognitiveSpineFocus>();
+    candidates.forEach((item) => unique.set(item.id, item));
+    return [...unique.values()];
+  }, [decisions, blockers, executions, twinProposals, caseItems, returns]);
+
   if (!enabled) return <aside className="rootWorkboard"><div className="workboardLoading">WORKBOARD · esperando sesión / presencia gobernada</div></aside>;
 
   return <aside className="rootWorkboard" aria-label="ROOT operational workboard">
@@ -96,6 +122,12 @@ export function RootOperationalWorkboard({ enabled }: Props) {
 
     <p className="workboardRuntime">{runtimeLabel}</p>
     {error && <p className="workboardError">DEGRADED · {error}</p>}
+
+    <CognitiveSpineAnatomy
+      enabled={enabled}
+      focusOptions={focusOptions}
+      twinOpenCount={twinProposals.length + openUniversalCycles.length}
+    />
 
     <div className="workboardGrid">
       <Lane title="MIS DECISIONES / DELEGABLES" count={decisions.length}>
