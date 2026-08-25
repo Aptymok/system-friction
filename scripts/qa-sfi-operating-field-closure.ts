@@ -72,7 +72,7 @@ assert.match(proofRoute,/status:result\.ok\?200:409/);
 for(const scene of ['field','systems','falsification','governance','root']){
   assert.ok(scenes.includes(`${scene}:{key:'${scene}'`),`live_scene_missing:${scene}`);
 }
-assert.ok(liveUi.includes('FUENTE VIVA') && liveUi.includes('OBJETOS'), 'live_operating_telemetry_missing');
+assert.ok(liveUi.includes('FUENTE VIVA') && liveUi.includes('AUTORIDAD'), 'live_operating_telemetry_missing');
 assert.ok(liveUi.includes('/api/acp/proposals'), 'governed_proposal_feed_missing');
 assert.ok(liveUi.includes('COGNITIVE TWIN'), 'cognitive_twin_live_surface_missing');
 
@@ -93,7 +93,7 @@ console.log(JSON.stringify({
     'inference suggestion resolves persisted evidence by cycle references instead of a recency window',
     'artifact trajectory requires evidence and does not manufacture propagation claims',
     'full-cycle proof replays only real persisted material and blocks instead of mocking missing organs',
-    'operating APIs are surfaced through the canonical live scene runtime',
+    'operating APIs are surfaced through the canonical live scene runtime with decision authority telemetry',
     'clean empty runtime may be READY while scientific validation remains separate',
   ],
 },null,2));
