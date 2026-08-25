@@ -16,7 +16,7 @@ const MEMBERS: SfiInstitutionalMember[] = [
   {
     email: 'edwin.tzolkin@gmail.com',
     displayName: 'Edwin',
-    role: 'observer',
+    role: 'controller',
     workspace: '/root',
     modules: {
       field: true,
