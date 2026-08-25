@@ -15,6 +15,7 @@ export const GOVERNED_PROPOSAL_STATES = [
 
 export type GovernedProposalState = typeof GOVERNED_PROPOSAL_STATES[number];
 export type RootProposalDecision = 'accept' | 'deny' | 'request_evidence' | 'freeze';
+export type ProposalDecisionAuthority = 'root' | 'controller';
 
 export function normalizeProposalState(value: unknown): GovernedProposalState | 'unknown' {
   const raw = stringValue(value)?.toLowerCase() ?? '';
@@ -26,11 +27,11 @@ export function normalizeProposalState(value: unknown): GovernedProposalState | 
 export function proposalStateMeaning(state: GovernedProposalState | 'unknown') {
   switch (state) {
     case 'draft': return 'Not submitted to governance.';
-    case 'proposed': return 'Awaiting ROOT/ACP review.';
+    case 'proposed': return 'Awaiting authorized governance review.';
     case 'waiting_evidence': return 'Decision withheld until required evidence or verification exists.';
     case 'design_approved': return 'Design approved only; execution is not authorized.';
-    case 'queued': return 'Prepared for an explicitly authorized realization step.';
-    case 'accepted': return 'Authorized internal realization was recorded; this is not canonical promotion by itself.';
+    case 'queued': return 'Authorized for an executor/RETURN cycle; it is not canon.';
+    case 'accepted': return 'A realization/return was recorded; this is not canonical promotion by itself.';
     case 'rejected': return 'Governance rejected the proposal.';
     case 'conflicted': return 'A post-promotion or implementation conflict blocks further promotion until resolved.';
     case 'frozen': return 'Governance intentionally prevents further transition.';
@@ -51,7 +52,9 @@ export function nextStateForRootDecision(current: GovernedProposalState | 'unkno
 export async function decideActionProposal(input: {
   proposalId: string;
   actorId: string;
+  actorLabel?: string | null;
   decision: RootProposalDecision;
+  decisionAuthority?: ProposalDecisionAuthority;
   note?: string | null;
   currentRow: Record<string, unknown>;
 }) {
@@ -64,6 +67,7 @@ export async function decideActionProposal(input: {
     : current === 'unknown' ? [] : [stringValue(input.currentRow.status)?.toLowerCase() ?? current];
   if (!expectedStatuses.length) return { ok: false as const, error: 'unknown_proposal_status' };
 
+  const authority = input.decisionAuthority ?? 'root';
   const event = await appendOperationalEvent({
     eventName: `acp.proposal.${next}`,
     actorId: input.actorId,
@@ -72,9 +76,14 @@ export async function decideActionProposal(input: {
       proposal_id: input.proposalId,
       previous_status: current,
       next_status: next,
-      founder_decision: input.decision,
+      governance_decision: input.decision,
+      decision_actor_id: input.actorId,
+      decision_actor_label: input.actorLabel ?? null,
+      decision_authority: authority,
+      founder_decision: authority === 'root' ? input.decision : null,
       approval_only: next === 'design_approved',
       execution_allowed: false,
+      canonical_promotion_allowed: authority === 'root',
       note: input.note ?? null,
     },
     lineage: [input.proposalId],
@@ -86,6 +95,9 @@ export async function decideActionProposal(input: {
     proposalId: input.proposalId,
     status: next,
     actorId: input.actorId,
+    // This flag only bypasses proposal ownership after the caller has passed
+    // institutional governance authorization. Canonical promotion remains a
+    // separate ROOT-only endpoint.
     isRoot: true,
     proposalType: stringValue(input.currentRow.proposal_type)
       ?? stringValue(recordValue(input.currentRow.expected_field_delta).proposalType)
@@ -95,6 +107,10 @@ export async function decideActionProposal(input: {
     eventId: event.data.id,
     payloadPatch: {
       governanceDecision: input.decision,
+      decisionActorId: input.actorId,
+      decisionActorLabel: input.actorLabel ?? null,
+      decisionAuthority: authority,
+      canonicalPromotionAllowed: authority === 'root',
       previousStatus: current,
       nextStatus: next,
       executionAllowed: false,
