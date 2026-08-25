@@ -37,7 +37,7 @@ export async function GET() {
         'calibration and candidate learning occur separately',
         'ROOT alone may promote canon when the promotion contract is satisfied',
       ],
-      governed_action_rule: 'Queued is authorization/handoff state, not proof of execution. Generic /execute fails closed when no adapter is persisted. A proposal may close only against matching observed RETURN lineage and evidence.',
+      governed_action_rule: 'A ROOT-authorized queued proposal is an authorization/handoff state, not proof of execution. Generic /execute fails closed when no adapter is persisted. A proposal may close only against matching observed RETURN lineage and evidence.',
     },
     epistemic_boundary: 'OBSERVED, DECLARED, DERIVED, INFERRED, PROJECTED, SIMULATED, MISSING and canonical states are not interchangeable; runtime capability is not external validation.',
     public_scenes: Object.fromEntries(SCENE_KEYS.map((key) => [key, {
