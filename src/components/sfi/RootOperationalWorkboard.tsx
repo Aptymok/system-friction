@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import './RootOperationalWorkboard.css';
 
 type Row = Record<string, any>;
 
