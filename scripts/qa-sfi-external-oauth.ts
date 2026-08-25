@@ -16,7 +16,8 @@ const members = text('src/lib/system/access/institutionalMembers.ts');
 const manifest = text('src/app/api/external/v1/manifest/route.ts');
 const execute = text('src/app/api/external/v1/execute/route.ts');
 const proposalReturn = text('src/app/api/external/v1/proposal-return/route.ts');
-const outcome = text('src/app/api/acp/proposals/[id]/outcome/route.ts');
+const outcomeRoute = text('src/app/api/acp/proposals/[id]/outcome/route.ts');
+const outcomeWriter = text('src/lib/governance/proposalOutcome.ts');
 const llms = text('src/app/llms.txt/route.ts');
 const aiIndex = text('src/app/ai-index.json/route.ts');
 
@@ -85,12 +86,13 @@ assert.match(proposalReturn, /proposalStatusChanged: false/, 'recording_return_m
 assert.match(proposalReturn, /executionDispatchedBySfi: false/, 'external_return_route_must_not_claim_it_dispatched_external_work');
 assert.match(proposalReturn, /canonicalPromotionAllowed: false/, 'recording_return_must_not_canonize');
 
-// ROOT outcome closure must verify that the observed RETURN belongs to the same proposal.
-assert.match(outcome, /returnBelongsToProposal/, 'outcome_must_validate_return_lineage');
-assert.match(outcome, /return_event_proposal_mismatch/, 'mismatched_return_must_fail_closed');
-assert.match(outcome, /SFI_PROPOSAL_RETURN_RECORDED/, 'outcome_must_accept_proposal_scoped_return_contract');
-assert.match(outcome, /PENDING_REALITY_CALIBRATION/, 'outcome_must_leave_calibration_pending');
-assert.match(outcome, /CANDIDATE_UNTIL_CALIBRATED/, 'learning_must_remain_candidate_until_calibration');
+// The route delegates closure to the single outcome writer; the writer owns observed RETURN lineage validation.
+assert.match(outcomeRoute, /recordProposalOutcomeFromObservedReturn/, 'outcome_route_must_delegate_to_single_writer');
+assert.match(outcomeWriter, /returnBelongsToProposal/, 'outcome_writer_must_validate_return_lineage');
+assert.match(outcomeWriter, /return_event_proposal_mismatch/, 'mismatched_return_must_fail_closed');
+assert.match(outcomeWriter, /SFI_PROPOSAL_RETURN_RECORDED/, 'outcome_writer_must_accept_proposal_scoped_return_contract');
+assert.match(outcomeWriter, /PENDING_REALITY_CALIBRATION/, 'outcome_writer_must_leave_calibration_pending');
+assert.match(outcomeWriter, /CANDIDATE_UNTIL_CALIBRATED/, 'learning_must_remain_candidate_until_calibrated');
 
 assert.match(manifest, /version: '1\.6\.3'/, 'external_manifest_version_must_reflect_return_lineage_contract');
 assert.match(manifest, /id: 'proposal-return'/, 'manifest_must_publish_proposal_return');
