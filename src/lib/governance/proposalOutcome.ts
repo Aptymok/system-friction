@@ -1,6 +1,6 @@
 import 'server-only';
 
-import { appendOperationalEvent, recordValue, updateActionProposalStatus } from '@/lib/operational/common';
+import { appendOperationalEvent, recordValue, stringValue, updateActionProposalStatus } from '@/lib/operational/common';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 
 type Row = Record<string, unknown>;
@@ -26,6 +26,17 @@ function returnBelongsToProposal(row: Row, proposalId: string) {
       ? payload.proposal_id.trim()
       : '';
   return payloadProposalId === proposalId || strings(row.lineage).includes(proposalId);
+}
+
+function proposalTypeOf(row: Row) {
+  const expected = recordValue(row.expected_field_delta);
+  const proportionality = recordValue(row.proportionality_check);
+  return stringValue(row.proposal_type)
+    ?? stringValue(expected.proposalType)
+    ?? stringValue(expected.proposal_type)
+    ?? stringValue(proportionality.proposalType)
+    ?? stringValue(proportionality.proposal_type)
+    ?? 'unknown';
 }
 
 export async function recordProposalOutcomeFromObservedReturn(input: {
@@ -89,16 +100,12 @@ export async function recordProposalOutcomeFromObservedReturn(input: {
   });
   if (!event.ok) return event;
 
-  const proposalType = typeof proposal.data.proposal_type === 'string' && proposal.data.proposal_type.trim()
-    ? proposal.data.proposal_type
-    : 'unknown';
-
   return updateActionProposalStatus({
     proposalId: input.proposalId,
     status: nextState,
     actorId: input.actorId,
     isRoot: true,
-    proposalType,
+    proposalType: proposalTypeOf(proposal.data as Row),
     expectedStatuses: ['queued'],
     eventId: event.data.id,
     payloadPatch: {
