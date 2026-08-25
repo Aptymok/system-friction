@@ -64,7 +64,7 @@ export async function GET(request: NextRequest) {
       cognitiveTwinHeartbeat,
       cognitiveTwinMutation,
       governedExecution,
-      schedulingRule: 'Uses the existing continuity-report cron. SFI organ sync occurs before CT heartbeat; queued governed work is retried/rerouted here without adding another Vercel cron.',
+      schedulingRule: 'No additional Vercel cron invocation. Uses the existing continuity-report cron; SFI organ sync occurs before CT heartbeat and queued governed work is retried/rerouted here.',
     });
   } catch (error) {
     return NextResponse.json({ ok: false, error: 'continuity_report_failed', details: error instanceof Error ? error.message : String(error) }, { status: 500 });
