@@ -1,0 +1,107 @@
+'use client';
+
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
+import './CognitiveSpinePark.css';
+
+export type SfiParkState = 'LIVE' | 'READY' | 'ATTENTION' | 'GATED' | 'DEGRADED' | 'UNOBSERVED' | 'CLOSED';
+export type SfiParkZone = {
+  id: string;
+  label: string;
+  state: SfiParkState;
+  detail: string;
+  count?: number;
+  live?: boolean;
+  x: number;
+  y: number;
+};
+export type SfiParkStat = { label: string; value: string | number; state?: SfiParkState };
+export type SfiParkFocus = { id: string; kind: string; title: string; status: string; detail?: string | null };
+
+type Props = {
+  enabled: boolean;
+  mode: 'institutional' | 'case';
+  title: string;
+  subtitle: string;
+  openLabel?: string;
+  focus: SfiParkFocus | null;
+  focusOptions?: SfiParkFocus[];
+  onFocusChange?: (id: string) => void;
+  zones: SfiParkZone[];
+  stats: SfiParkStat[];
+  toolbar?: ReactNode;
+  inspector?: (zone: SfiParkZone) => ReactNode;
+  footer?: ReactNode;
+};
+
+function stateClass(state: SfiParkState) {
+  return `state-${state.toLowerCase()}`;
+}
+
+export function CognitiveSpinePark({
+  enabled, mode, title, subtitle, openLabel = 'ENTER OPERATING OBSERVATORY', focus, focusOptions = [], onFocusChange,
+  zones, stats, toolbar, inspector, footer,
+}: Props) {
+  const [open, setOpen] = useState(false);
+  const [zoneId, setZoneId] = useState('core');
+  const selected = useMemo(() => zones.find((zone) => zone.id === zoneId) ?? zones[0] ?? null, [zones, zoneId]);
+
+  useEffect(() => {
+    if (selected || !zones.length) return;
+    setZoneId(zones[0].id);
+  }, [selected, zones]);
+
+  if (!open) {
+    return <button className="sfiParkOpen" disabled={!enabled} onClick={() => setOpen(true)}>
+      <strong>{openLabel}</strong>
+      <span>{mode === 'institutional' ? 'INSTITUTIONAL STATE' : 'YOUR CASE SPACE'} · OBSERVE FIRST</span>
+    </button>;
+  }
+  if (typeof document === 'undefined') return null;
+
+  return createPortal(
+    <section className={`sfiPark sfiPark-${mode}`} aria-label={title}>
+      <header className="sfiParkHeader">
+        <div><small>SYSTEM FRICTION INSTITUTE · OPERATING OBSERVATORY</small><strong>{title}</strong><span>{subtitle}</span></div>
+        <div className="sfiParkStats">{stats.map((stat) => <div key={stat.label} className={stateClass(stat.state ?? 'UNOBSERVED')}><small>{stat.label}</small><b>{stat.value}</b></div>)}</div>
+        <button onClick={() => setOpen(false)}>CLOSE</button>
+      </header>
+
+      <div className="sfiParkFocus">
+        <div><small>OBSERVED OBJECT · NEVER LOST</small><strong>{focus?.title ?? 'NO CASE / OBJECT SELECTED'}</strong><span>{focus ? `${focus.kind} · ${focus.status}${focus.detail ? ` · ${focus.detail}` : ''}` : 'Select or create an object before interpreting activity.'}</span></div>
+        {focusOptions.length > 1 && <div className="sfiParkFocusOptions">{focusOptions.slice(0, 12).map((item) => <button key={item.id} className={focus?.id === item.id ? 'active' : ''} onClick={() => onFocusChange?.(item.id)}>{item.kind}</button>)}</div>}
+      </div>
+
+      <div className="sfiParkBody">
+        <div className="sfiParkMap">
+          <picture className="sfiParkArt" aria-hidden="true">
+            <source media="(max-width: 640px)" srcSet="/cognitive-spine/park-mobile.avif" />
+            <source media="(max-width: 1100px)" srcSet="/cognitive-spine/park-tablet.avif" />
+            <img src="/cognitive-spine/park-desktop.avif" alt="" />
+          </picture>
+          <div className="sfiParkAmbient" aria-hidden="true" />
+          {zones.map((zone) => <button
+            key={zone.id}
+            className={`sfiParkHotspot ${stateClass(zone.state)} ${zone.live ? 'is-live' : ''} ${selected?.id === zone.id ? 'active' : ''}`}
+            style={{ left: `${zone.x}%`, top: `${zone.y}%` }}
+            onClick={() => setZoneId(zone.id)}
+            aria-label={`${zone.label}: ${zone.state}`}
+          >
+            <i />
+            <span><b>{zone.label}</b><small>{zone.state}{typeof zone.count === 'number' ? ` · ${zone.count}` : ''}</small></span>
+          </button>)}
+          <div className="sfiParkTruth"><span>AMBIENT MOTION ≠ ACTIVITY</span><span>LIVE = OBSERVED EVENT ONLY</span></div>
+        </div>
+
+        <aside className="sfiParkInspector">
+          {selected && <section><small>SELECTED ORGAN</small><h2>{selected.label}</h2><p>{selected.detail}</p><dl><div><dt>STATE</dt><dd className={stateClass(selected.state)}>{selected.state}</dd></div>{typeof selected.count === 'number' && <div><dt>OBJECTS</dt><dd>{selected.count}</dd></div>}<div><dt>OBSERVED ACTIVITY</dt><dd>{selected.live ? 'YES' : 'NO / NOT OBSERVED'}</dd></div></dl></section>}
+          {selected && inspector?.(selected)}
+          {toolbar && <section className="sfiParkControls"><small>CONTEXTUAL CONTROLS</small>{toolbar}</section>}
+        </aside>
+      </div>
+
+      <footer className="sfiParkFooter">{footer ?? <>OBSERVE <i>→</i> CONTEXT <i>→</i> DECIDE WHEN REQUIRED <i>→</i> EXECUTE <i>→</i> RETURN <i>→</i> OBSERVE AGAIN</>}</footer>
+    </section>,
+    document.body,
+  );
+}
