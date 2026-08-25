@@ -36,7 +36,7 @@ check('explicit graph maintenance is sovereign and audited', reconcileRoute.incl
 check('ROOT is a canonical live scene', scenes.includes("root:{key:'root'") && scenes.includes("title:'SFI · director operativo'"));
 check('ROOT live scene reads governed proposals', liveUi.includes("fetch('/api/acp/proposals'") && liveUi.includes('proposalList'));
 check('ROOT live scene exposes plain-language governed decisions', liveUi.includes('ACEPTAR') && liveUi.includes('RECHAZAR'));
-check('ROOT live scene exposes live telemetry', liveUi.includes('FUENTE VIVA') && liveUi.includes('ESTADO') && liveUi.includes('OBJETOS') && liveUi.includes('PROPOSICIONES'));
+check('ROOT live scene exposes live telemetry', liveUi.includes('FUENTE VIVA') && liveUi.includes('ESTADO') && liveUi.includes('AUTORIDAD') && liveUi.includes('PROPOSICIONES'));
 check('live scene runtime is gated by canonical scene registry', scenePage.includes('SCENE_KEYS.includes') && scenePage.includes('scene={scene as SceneKey}'));
 check('deleted sovereign workspace is not required for graph truth', !liveUi.includes('RootObservatoryWorkspace') && !scenePage.includes('RootObservatoryWorkspace'));
 
