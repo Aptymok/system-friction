@@ -1,11 +1,10 @@
 import 'server-only';
 
-import { appendOperationalEvent, recordValue, stringValue } from '@/lib/operational/common';
+import { appendOperationalEvent, recordValue } from '@/lib/operational/common';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { executionAdapterById, executionAdapterForAction, type ExecutionAdapterDefinition } from './executionAdapterRegistry';
 
 type Row = Record<string, unknown>;
-
 type RouterState = 'AUTHORIZED' | 'ROUTING' | 'DECOMPOSED' | 'ASSIGNED' | 'EXECUTING' | 'AWAITING_RETURN' | 'RETURN_OBSERVED' | 'CALIBRATING' | 'VALIDATED' | 'FAILED' | 'BLOCKED_EXECUTOR_CAPABILITY' | 'ESCALATED' | 'CLOSED';
 
 const RESERVED_ROUTER_PROPOSAL = '87cc094a-e9df-40e8-9a35-92c679c60ef2';
@@ -68,6 +67,7 @@ function routerSnapshot(input: {
   requiredCapability: string;
   remediationProposalId?: string | null;
   question?: string | null;
+  nextGate?: string | null;
 }) {
   const risk = riskOf(input.proposal);
   return {
@@ -79,10 +79,11 @@ function routerSnapshot(input: {
     reversibility: input.adapter?.reversibility ?? 'unknown',
     authority: risk === 'high' || risk === 'critical' ? 'ROOT_REQUIRED' : 'GOVERNED_DELEGATION_ALLOWED',
     nextActor: input.state === 'BLOCKED_EXECUTOR_CAPABILITY' ? 'self_healing_capability_bootstrap' : 'project_execution_manager',
-    nextGate: input.state === 'BLOCKED_EXECUTOR_CAPABILITY' ? 'remediation_approval' : input.adapter?.runtimeBinding === 'EXTERNAL_PULL' ? 'external_executor_pull' : 'adapter_input_contract',
+    nextGate: input.nextGate ?? (input.state === 'BLOCKED_EXECUTOR_CAPABILITY' ? 'remediation_approval' : input.adapter?.runtimeBinding === 'EXTERNAL_PULL' ? 'external_executor_pull' : 'adapter_input_contract'),
     requiredCapability: input.requiredCapability,
     assignment: input.adapter ? {
       adapter: input.adapter.id,
+      executor: input.adapter.executorRef,
       executorRef: input.adapter.executorRef,
       route: input.adapter.route,
       runtimeBinding: input.adapter.runtimeBinding,
@@ -171,7 +172,7 @@ async function findOrCreateRemediation(parent: Row, domain: string, requiredCapa
   return { ok: true as const, proposal: insert.data, created: true };
 }
 
-export async function routeQueuedProposal(proposal: Row) {
+export async function routeQueuedProposal(proposal: Row, options: { selfHealingAuthorized: boolean }) {
   const { domain, adapter, requiredCapability } = inferDomainAndAdapter(proposal);
   const risk = riskOf(proposal);
   if (risk === 'high' || risk === 'critical') {
@@ -179,6 +180,14 @@ export async function routeQueuedProposal(proposal: Row) {
     return writeRouterState(proposal, snapshot);
   }
   if (!adapter || adapter.runtimeBinding === 'MISSING') {
+    if (!options.selfHealingAuthorized) {
+      const snapshot = routerSnapshot({
+        state: 'BLOCKED_EXECUTOR_CAPABILITY', proposal, domain, adapter, requiredCapability,
+        nextGate: 'self_healing_governance',
+        question: `Se observa capacidad faltante ${requiredCapability}, pero el bootstrap self-healing no tiene autorización vigente. ¿Autorizar esa capacidad antes de remediar?`,
+      });
+      return writeRouterState(proposal, snapshot);
+    }
     const remediation = await findOrCreateRemediation(proposal, domain, requiredCapability);
     const remediationId = remediation.ok ? String(remediation.proposal.id) : null;
     const snapshot = routerSnapshot({
@@ -204,7 +213,7 @@ export async function runGovernedExecutionRouterCycle(limit = 50) {
   const rows = (queued.data ?? []) as Row[];
   const results = [];
   for (const proposal of rows) {
-    const result = await routeQueuedProposal(proposal);
+    const result = await routeQueuedProposal(proposal, { selfHealingAuthorized });
     results.push({ proposalId: String(proposal.id), ...result });
   }
   return {
@@ -215,6 +224,6 @@ export async function runGovernedExecutionRouterCycle(limit = 50) {
     selfHealingProposalId: RESERVED_SELF_HEAL_PROPOSAL,
     routed: results.length,
     results,
-    boundary: 'Routing/assignment and remediation proposal generation are automatic after governance authorization. Material execution remains adapter-specific and completion requires proposal-scoped observed RETURN.',
+    boundary: 'Routing/assignment is automatic only after router authorization. Child remediation is automatic only after self-healing bootstrap authorization. Material execution remains adapter-specific and completion requires proposal-scoped observed RETURN.',
   };
 }
