@@ -11,7 +11,9 @@ function forbid(source: string, needle: string, label: string) {
 const router = read('src/lib/execution/governedExecutionRouter.ts');
 const outcome = read('src/lib/governance/proposalOutcome.ts');
 const approve = read('src/app/api/acp/proposals/[id]/approve/route.ts');
-const cron = read('src/app/api/cron/continuity-report/route.ts');
+const dailyCron = read('src/app/api/cron/continuity-report/route.ts');
+const hourlyCron = read('src/app/api/cron/continuity-heartbeat/route.ts');
+const hourlyWorkflow = read('.github/workflows/sfi-continuity-hourly.yml');
 const rootRunner = read('src/lib/root/rootObservationRunner.ts');
 const externalExecute = read('src/app/api/external/v1/execute/route.ts');
 
@@ -43,7 +45,11 @@ if (approve.indexOf('queueApprovedProposal') > approve.indexOf('dispatchQueuedPr
   throw new Error('SFI_ROUTER_QA_ORDER:dispatch_must_follow_queue_authorization');
 }
 
-requireText(cron, 'runGovernedExecutionRouter({ limit: 10 })', 'continuity-retry-reroute');
+requireText(dailyCron, 'runGovernedExecutionRouter({ limit: 10 })', 'daily-continuity-retry-reroute');
+requireText(hourlyCron, 'runGovernedExecutionRouter({ limit: 10 })', 'hourly-continuity-retry-reroute');
+requireText(hourlyCron, 'verifyGitHubActionsOidcToken', 'hourly-router-auth-remains-oidc-governed');
+requireText(hourlyWorkflow, "cron: '15 * * * *'", 'reuse-existing-hourly-scheduler');
+requireText(hourlyWorkflow, 'workflow_dispatch:', 'existing-hourly-manual-trigger-retained');
 requireText(rootRunner, 'runGovernedExecutionRouter({ limit: 10 })', 'root-full-cycle-router');
 requireText(externalExecute, "error: declaredAdapter ? 'execution_dispatch_not_implemented' : 'execution_adapter_required'", 'external-generic-fail-closed');
 requireText(externalExecute, 'executedAtWritten: false', 'no-fake-execution');

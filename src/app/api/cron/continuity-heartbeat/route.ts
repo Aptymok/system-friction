@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { runContinuityHeartbeat } from '@/lib/continuity/runtime';
 import { runStudioAutonomyContinuation } from '@/lib/continuity/studioAutonomy';
 import { verifyGitHubActionsOidcToken } from '@/lib/continuity/githubActionsOidc';
+import { runGovernedExecutionRouter } from '@/lib/execution/governedExecutionRouter';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -39,9 +40,8 @@ export async function GET(request: NextRequest) {
 
   try {
     const result = await runContinuityHeartbeat(authorization.trigger);
-    let studioAutonomy: Awaited<ReturnType<typeof runStudioAutonomyContinuation>> | { status: 'DEGRADED'; reason: string; targets: number; outcomes: [] };
-    try {
-      studioAutonomy = await runStudioAutonomyContinuation({
+    const [studioAutonomy, governedExecution] = await Promise.all([
+      runStudioAutonomyContinuation({
         mode: result.mode,
         continuityRunId: result.runId,
         observations: result.results.map((item) => ({
@@ -50,16 +50,28 @@ export async function GET(request: NextRequest) {
           latencyMs: item.latencyMs,
           errorCode: item.errorCode ?? null,
         })),
-      });
-    } catch (error) {
-      studioAutonomy = {
-        status: 'DEGRADED',
+      }).catch((error) => ({
+        status: 'DEGRADED' as const,
         reason: error instanceof Error ? error.message : String(error),
         targets: 0,
-        outcomes: [],
-      };
-    }
-    return NextResponse.json({ ok: result.status !== 'FAILED', trigger: authorization.trigger, ...result, studioAutonomy });
+        outcomes: [] as [],
+      })),
+      runGovernedExecutionRouter({ limit: 10 }).catch((error) => ({
+        ok: false as const,
+        processed: 0,
+        results: [],
+        error: error instanceof Error ? error.message : String(error),
+      })),
+    ]);
+
+    return NextResponse.json({
+      ok: result.status !== 'FAILED',
+      trigger: authorization.trigger,
+      ...result,
+      studioAutonomy,
+      governedExecution,
+      executionRule: 'Hourly continuity reuses the existing GitHub Actions OIDC heartbeat to retry/reroute governance-authorized queued work. No new scheduler, authority, external side effect, or canon permission is introduced.',
+    });
   } catch (error) {
     return NextResponse.json({ ok: false, error: 'continuity_heartbeat_failed', details: error instanceof Error ? error.message : String(error) }, { status: 500 });
   }
