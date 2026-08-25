@@ -63,7 +63,10 @@ assert.match(workboardApi, /readRootOperationalWorkboard/, 'workboard API must u
 for (const dependency of ['readRootReportInbox', 'readRootReportHealth', 'readObservedSfiCognitiveRuntime', 'readUniversalOpenCycles']) {
   assert.ok(workboard.includes(dependency), `workboard missing live dependency: ${dependency}`);
 }
-assert.match(workboard, /routingMode: 'OBSERVE_AND_MATCH_ONLY'/, 'workboard remains a read model; dispatch lives in the governed execution router');
+assert.match(workboard, /routingMode: 'GOVERNED_AUTO_AFTER_AUTHORIZATION'/, 'workboard must disclose governed auto-routing after authorization');
+assert.match(workboard, /autoDispatch: true/, 'workboard must disclose authorized automatic dispatch');
+assert.match(workboard, /selfHealing: true/, 'workboard must disclose authorized self-healing/remediation');
+assert.match(workboard, /classifyGovernedProposalWork/, 'workboard readiness must use the same governed classification as the router');
 assert.match(workboard, /MISSING_EXECUTION_ADAPTER/, 'workboard must still expose genuinely missing material adapters');
 assert.match(workboard, /coordinator: 'project_execution_manager'/, 'existing project execution manager must be reused as coordinator rather than inventing a new service');
 assert.match(workboard, /implementationPerformedByWorkboard: false/, 'workboard must never itself become the execution engine');
@@ -76,6 +79,8 @@ for (const foundationId of ['fafd0dc4-0ade-4f5d-ac3c-1efebe4e8abd', '25061b67-9e
 for (const label of ['TRABAJO QUE REQUIERE ATENCIÓN', 'MIS DECISIONES / DELEGABLES', 'EJECUCIONES / ASSIGNMENT', 'PROJECTS / CASE EXECUTION', 'TWIN / CICLOS ABIERTOS', 'BLOQUEOS / WARNINGS', 'REPORTES', 'RIESGO / OPORTUNIDAD', 'RETURN / CALIBRACIÓN', 'CANON QUEUE · ROOT ONLY', 'CAPACIDADES RESERVADAS']) {
   assert.ok(workboardUi.includes(label), `operational home lane missing: ${label}`);
 }
+assert.match(workboardUi, /authorization → auto-route → assignment → bounded execution\/retry → RETURN/, 'ROOT UI must expose the real automated handoff without implying auto-canon');
+assert.match(workboardUi, /external actions fail closed without adapter/, 'ROOT UI must disclose the material external adapter boundary');
 assert.match(workboardUi, /reportLanes/, 'report health must be readable from the home surface rather than hidden in raw JSON');
 assert.match(workboardUi, /\/api\/root\/case-execution/, 'ROOT home must observe the existing Case Action execution lifecycle');
 
@@ -136,8 +141,8 @@ console.log(JSON.stringify({
     'agent passports declare reads/writes/executes/evidence',
     'ROOT operational home aggregates decisions, execution handoffs, blockers, reports, Twin/open cycles, returns, risk/opportunity and canon candidates',
     'existing SFI-CASE-ACTION-1.0 execution/return state is observable to sovereign ROOT without fabricating external execution',
-    'workboard remains a read model while governed execution is owned by the router',
-    'missing material execution adapters remain explicit',
+    'workboard remains a read model while governed auto-routing is owned by the router',
+    'internal routable capability is distinct from missing material external adapter',
     'queued proposal outcome requires a proposal-scoped OBSERVED RETURN plus evidence; calibration and learning remain pending/candidate',
     'ROOT sees every proposal; controller sees only explicitly delegable work',
     'Edwin remains an observer with separate controller decision authority and never becomes ROOT',
