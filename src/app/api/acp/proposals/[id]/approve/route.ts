@@ -65,6 +65,9 @@ export async function POST(req: Request, ctx: RouteContext) {
     proposalId,
     error: error instanceof Error ? error.message : String(error),
   }));
+  const executionState = 'state' in execution && typeof execution.state === 'string'
+    ? execution.state
+    : 'DISPATCH_FAILED';
 
   return NextResponse.json({
     ok: true,
@@ -76,9 +79,9 @@ export async function POST(req: Request, ctx: RouteContext) {
       actorLabel: gate.ctx.user.email ?? null,
     },
     execution,
-    next: execution.state === 'RETURN_RECORDED'
+    next: executionState === 'RETURN_RECORDED'
       ? 'return_recorded_calibration_or_canon_review_when_appropriate'
-      : execution.state === 'BLOCKED_EXECUTOR_CAPABILITY'
+      : executionState === 'BLOCKED_EXECUTOR_CAPABILITY'
         ? 'remediation_request_created_or_reused'
         : 'execution_router_recorded_state',
   });
