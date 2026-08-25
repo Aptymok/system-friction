@@ -15,8 +15,8 @@ SFI is a live observability and governance environment for complex sociotechnica
 3. If you are not authenticated or scoped, remain read-only and use only public surfaces/data.
 4. If authorized, prefer the universal cognitive cycle: /execution-contract → perform requested measurements locally → /result → reread cycle/event → later /signal operation=return when a real-world outcome is observed.
 5. Use /propose for a governed action proposal. A queued proposal is not proof of execution.
-6. /execute is a fail-closed adapter gate: it does not dispatch generic work, write executed_at or mark a proposal accepted. If no governed adapter is persisted, it returns execution_adapter_required.
-7. After a real execution performed through an adapter-specific governed path, POST /proposal-return with the queued proposal UUID, observed_at, outcome and evidence_refs. RETURN does not close or canonize the proposal.
+6. /execute dispatches only a proposal that is already queued and requires execute scope plus explicit confirmation. Internal bounded work uses the canonical governed router; material external work without a real governed adapter fails closed. /execute cannot self-approve, expand scope or promote canon.
+7. When a material operation is performed outside SFI by a real adapter/executor, POST /proposal-return with the queued proposal UUID, observed_at, outcome and evidence_refs. RETURN does not close or canonize the proposal by itself.
 
 ## WHAT SFI ACCEPTS AS AN OBJECT
 URL, web page, text, audio, video, image, document, dataset, JSON, CSV, conversation, email, code, API response, sensor/event data, organization, person, place or composite references. Raw object persistence is not the default; preserve references, hashes, time and provenance.
@@ -32,7 +32,7 @@ ${baseUrl}/field-schema.json
 ${baseUrl}/api/external/v1/manifest
 
 ## EXTERNAL AGENTS
-Authorized AI clients can interact through the governed v1 gateway. Authentication, scopes and execution authority are controlled by SFI governance. External agents may observe, return structured analysis, propose within granted scopes, validate execution readiness and record evidence-linked RETURN; they cannot self-authorize execution, fabricate an adapter, close a proposal without matching RETURN evidence, or promote canon.
+Authorized AI clients can interact through the governed v1 gateway. Authentication, scopes and execution authority are controlled by SFI governance. External agents may observe, return structured analysis, propose within granted scopes, trigger already-authorized queued internal work through the governed dispatcher, and record evidence-linked RETURN for external executions. They cannot self-authorize execution, fabricate an adapter, close a proposal without matching RETURN evidence, expand authorized scope, or promote canon.
 
 ## COGNITIVE TWIN
 The Cognitive Twin proposes and reconstructs; governed reviewers decide bounded proposals and ROOT alone owns canonical promotion. Experimental output is not automatically canonical.
