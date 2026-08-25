@@ -107,7 +107,10 @@ assert.match(llms,/## WHAT TO DO FIRST/,'llms_missing_first_action_sequence');
 assert.match(llms,/execution-contract → perform requested measurements locally → \/result/,'llms_missing_universal_cycle');
 assert.match(aiIndex,/start_here/,'ai_index_missing_start_here');
 assert.match(aiIndex,/authorized_agent_cycle/,'ai_index_missing_authorized_agent_cycle');
-assert.match(aiIndex,/ROOT-authorized queued proposal/,'ai_index_missing_governed_execution_boundary');
+assert.match(aiIndex,/authorized proposal enters queued state/,'ai_index_missing_governed_queue_boundary');
+assert.match(aiIndex,/queued_internal_auto_dispatch: true/,'ai_index_missing_bounded_internal_dispatch');
+assert.match(aiIndex,/external_action_without_adapter: 'fail_closed'/,'ai_index_missing_external_fail_closed_boundary');
+assert.match(aiIndex,/canonical_promotion: 'ROOT_ONLY'/,'ai_index_missing_root_only_canon_boundary');
 
 assert.match(mutationState,/CT-A01-MUT-%/);
 assert.match(mutationState,/CANDIDATE/);
@@ -133,7 +136,7 @@ console.log(JSON.stringify({ok:true,invariants:[
   'ROOT live scene restores ACP presence before proposal reads and exposes an explicit human presence control',
   'GET /api/governance/acp-seen is explanatory only; POST remains the ROOT-governed mutation',
   'canonical public entry explains SFI and routes humans and agents to actionable first steps',
-  'machine discovery exposes an explicit authorized-agent cycle without weakening ROOT authority',
+  'machine discovery exposes governed authorization, bounded internal dispatch, external fail-closed behavior and ROOT-only canon',
   'readiness separates Evidence Ledger from Knowledge Graph',
   'readiness uses planned health counts rather than expensive exact dashboard counts',
   'empty post-reset organs may be READY without being falsely marked broken',
