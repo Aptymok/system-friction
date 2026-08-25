@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 export type CognitiveSpineFocus = {
   id: string;
@@ -120,15 +121,17 @@ export function CognitiveSpineAnatomy({ enabled, focusOptions, twinOpenCount }: 
     </button>;
   }
 
-  return <section className="csOverlay" aria-label="Cognitive Spine operational anatomy">
+  if (typeof document === 'undefined') return null;
+
+  return createPortal(<section className="csOverlay" aria-label="Cognitive Spine operational anatomy">
     <header className="csHead">
       <div><small>SFI · ROOT · OBSERVATIONAL ANATOMY</small><strong>COGNITIVE SPINE</strong></div>
-      <div className="csHeadState"><span>{counts.operational}/{counts.total || 21} AGENTS OBSERVED</span><span>{short(spineStatus?.available ? 'SPINE AVAILABLE' : 'SPINE UNAVAILABLE')}</span></div>
+      <div className="csHeadState"><span>{counts.operational}/{counts.total || 21} AGENTS OBSERVED</span><span>{spineStatus?.available ? 'SPINE AVAILABLE' : 'SPINE UNAVAILABLE'}</span></div>
       <button onClick={() => setOpen(false)}>CLOSE</button>
     </header>
 
     <div className="csFocusStrip">
-      <div><small>OBSERVATION FOCUS</small><strong>{focus?.title ?? 'SFI institutional state'}</strong><span>{focus ? `${focus.kind} · ${focus.status ?? 'state unknown'} · ${focus.id}` : 'No actionable object selected; anatomy remains institutional.'}</span></div>
+      <div><small>OBSERVATION FOCUS</small><strong>{focus?.title ?? 'SFI institutional state'}</strong><span>{focus ? `${focus.kind} · ${focus.status ?? 'state unknown'} · ${focus.detail ?? focus.id}` : 'No actionable object selected; anatomy remains institutional.'}</span></div>
       <div className="csFocusChoices">
         {focusOptions.slice(0, 8).map((item) => <button key={item.id} className={item.id === focus?.id ? 'active' : ''} onClick={() => setFocusId(item.id)}>{item.kind}</button>)}
       </div>
@@ -214,5 +217,5 @@ export function CognitiveSpineAnatomy({ enabled, focusOptions, twinOpenCount }: 
       <span>OBSERVE</span><i>→</i><span>CONTEXT</span><i>→</i><span>AGENTS</span><i>→</i><span>EXECUTE</span><i>→</i><span>RETURN</span><i>→</i><strong>OBSERVE AGAIN</strong>
       <small>Human action appears only at a real authority boundary.</small>
     </footer>
-  </section>;
+  </section>, document.body);
 }
