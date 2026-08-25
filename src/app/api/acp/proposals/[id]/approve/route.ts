@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
 import { decideActionProposal } from '@/lib/governance/proposalLifecycle';
+import { controllerCanDecideProposal } from '@/lib/governance/proposalDecisionAuthority';
+import { resolveProposalReviewerAuthority } from '@/lib/governance/proposalReviewer';
+import { queueApprovedProposal } from '@/lib/governance/proposalQueue';
 import { requireGovernedActor } from '@/lib/operational/common';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 
@@ -11,7 +14,9 @@ async function routeId(ctx: RouteContext) { const params = await Promise.resolve
 export async function POST(req: Request, ctx: RouteContext) {
   const gate = await requireGovernedActor('acp.proposals.approve');
   if (!gate.ok) return NextResponse.json(gate.body, { status: gate.status });
-  if (!gate.ctx.isRoot) return NextResponse.json({ ok: false, error: 'root_required' }, { status: 403 });
+  const authority = resolveProposalReviewerAuthority(gate.ctx);
+  if (!authority) return NextResponse.json({ ok: false, error: 'proposal_reviewer_required' }, { status: 403 });
+
   const proposalId = await routeId(ctx);
   if (!proposalId) return NextResponse.json({ ok: false, error: 'missing_proposal_id' }, { status: 400 });
   const body = await req.json().catch(() => ({})) as Record<string, unknown>;
@@ -19,6 +24,49 @@ export async function POST(req: Request, ctx: RouteContext) {
   const service = createServiceSupabaseClient();
   const current = await service.from('action_proposals').select('*').eq('id', proposalId).single();
   if (current.error || !current.data) return NextResponse.json({ ok: false, error: current.error?.message ?? 'proposal_not_found' }, { status: 404 });
-  const result = await decideActionProposal({ proposalId, actorId: gate.ctx.user.id, decision: 'accept', note, currentRow: current.data });
-  return NextResponse.json(result, { status: result.ok ? 200 : 409 });
+
+  if (authority === 'controller' && !controllerCanDecideProposal(current.data)) {
+    return NextResponse.json({ ok: false, error: 'root_decision_required', decisionClass: 'root_only' }, { status: 403 });
+  }
+
+  const decision = await decideActionProposal({
+    proposalId,
+    actorId: gate.ctx.user.id,
+    actorLabel: gate.ctx.user.email ?? null,
+    decision: 'accept',
+    decisionAuthority: authority,
+    note,
+    currentRow: current.data,
+  });
+  if (!decision.ok) return NextResponse.json(decision, { status: 409 });
+
+  const queued = await queueApprovedProposal({
+    proposalId,
+    actorId: gate.ctx.user.id,
+    actorLabel: gate.ctx.user.email ?? null,
+    decisionAuthority: authority,
+    currentRow: decision.data as Record<string, unknown>,
+    note,
+  });
+  if (!queued.ok) {
+    return NextResponse.json({
+      ok: false,
+      error: 'proposal_approved_but_queue_transition_failed',
+      decisionRecorded: true,
+      decision: decision.data,
+      queueError: queued,
+    }, { status: 409 });
+  }
+
+  return NextResponse.json({
+    ok: true,
+    data: queued.data,
+    decision: {
+      decision: 'accept',
+      authority,
+      actorId: gate.ctx.user.id,
+      actorLabel: gate.ctx.user.email ?? null,
+    },
+    next: 'executor_return_required',
+  });
 }
