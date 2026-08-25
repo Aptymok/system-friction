@@ -22,11 +22,19 @@ for (const field of ['reads:', 'writes:', 'executes:', 'executionEvidence:']) {
 
 const scenes = read('src/components/sfi/scenes.ts');
 const liveUi = read('src/components/sfi/SfiConsole.tsx');
+const members = read('src/lib/system/access/institutionalMembers.ts');
+const reviewer = read('src/lib/governance/proposalReviewer.ts');
+const decisionAuthority = read('src/lib/governance/proposalDecisionAuthority.ts');
+const proposalFeed = read('src/app/api/acp/proposals/route.ts');
 const approve = read('src/app/api/acp/proposals/[id]/approve/route.ts');
+const reject = read('src/app/api/acp/proposals/[id]/reject/route.ts');
+const requestEvidence = read('src/app/api/sfi/proposals/[id]/request-evidence/route.ts');
 const prepare = read('src/app/api/acp/proposals/[id]/prepare/route.ts');
 const queue = read('src/lib/governance/proposalQueue.ts');
 const realize = read('src/app/api/acp/proposals/[id]/realize/route.ts');
 const freeze = read('src/app/api/acp/proposals/[id]/freeze/route.ts');
+const promote = read('src/app/api/root/governance/promote/route.ts');
+
 assert.ok(scenes.includes("root:{key:'root'"), 'ROOT live scene missing');
 assert.ok(scenes.includes("agents:{key:'agents'"), 'AGENTS live scene missing');
 assert.ok(liveUi.includes('FUENTE VIVA') && liveUi.includes('ESTADO'), 'live runtime telemetry missing');
@@ -41,6 +49,24 @@ assert.ok(liveUi.includes('Decidir no es canonizar'), 'UI must separate governan
 assert.ok(liveUi.includes('PROMOCIÓN CANÓNICA BLOQUEADA'), 'delegated controller must see the canonical boundary');
 assert.ok(liveUi.includes('/api/logbook/visible'), 'ROOT must expose visible logbook access');
 assert.ok(liveUi.includes('/api/root/decisions'), 'ROOT must expose decision/report queue access');
+
+assert.match(members, /decisionAuthority\?: 'controller'/, 'institutional membership must model delegated decision authority separately');
+assert.match(members, /email: 'edwin\.tzolkin@gmail\.com'[\s\S]*role: 'observer'[\s\S]*decisionAuthority: 'controller'/, 'Edwin must remain observer while receiving delegated controller authority');
+assert.doesNotMatch(members, /email: 'edwin\.tzolkin@gmail\.com'[\s\S]{0,160}role: 'root'/, 'Edwin must never be promoted to ROOT by membership configuration');
+assert.match(reviewer, /if \(ctx\.isRoot\) return 'root'/, 'ROOT reviewer authority must remain sovereign');
+assert.match(reviewer, /member\?\.decisionAuthority === 'controller'/, 'controller authority must come from explicit institutional delegation');
+assert.match(decisionAuthority, /ROOT_ONLY_TERMS/, 'delegated proposal classification must preserve a ROOT-only class');
+for (const sensitive of ['canon', 'root', 'permission', 'credential', 'security', 'billing', 'ownership']) {
+  assert.ok(decisionAuthority.includes(`'${sensitive}'`), `ROOT-only classification missing sensitive term: ${sensitive}`);
+}
+assert.match(proposalFeed, /authority==='root'\?sourceRows:sourceRows\.filter\(row=>controllerCanDecideProposal\(row\)\)/, 'ROOT must see all proposals while controllers see only delegable proposals');
+for (const route of [approve, reject, requestEvidence]) {
+  assert.match(route, /resolveProposalReviewerAuthority/, 'proposal decision routes must resolve ROOT/controller authority');
+  assert.match(route, /authority === 'controller' && !controllerCanDecideProposal/, 'controller must be blocked on ROOT-only proposals');
+  assert.match(route, /root_decision_required/, 'ROOT-only proposals must fail closed for controller');
+}
+assert.match(promote, /requireRootActor\('governance\.promotion\.accept'\)/, 'canonical promotion must remain ROOT-only');
+assert.doesNotMatch(promote, /resolveProposalReviewerAuthority|controllerCanDecideProposal/, 'canonical promotion must not accept delegated controller authority');
 
 assert.match(approve, /queueApprovedProposal/, 'ACCEPT must queue in the same human decision');
 assert.match(approve, /next: 'executor_return_required'/, 'ACCEPT must hand off to executor/return without another human gate');
@@ -66,7 +92,10 @@ console.log(JSON.stringify({
     'five recurring report lanes reuse existing cron',
     'degraded provider output is not READY',
     'agent passports declare reads/writes/executes/evidence',
-    'ROOT and AGENTS are observable through canonical live scenes',
+    'ROOT sees every proposal; controller sees only explicitly delegable work',
+    'Edwin remains an observer with separate controller decision authority and never becomes ROOT',
+    'sensitive and canonical decisions fail closed to ROOT',
+    'canonical promotion remains a separate requireRootActor boundary',
     'ACCEPT is one human decision and queues work automatically',
     'queued proposals wait for a real executor/RETURN instead of a manual executed_at button',
     'legacy design_approved proposals retain one compatibility queue path',
