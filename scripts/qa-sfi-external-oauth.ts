@@ -16,7 +16,8 @@ const members = text('src/lib/system/access/institutionalMembers.ts');
 const manifest = text('src/app/api/external/v1/manifest/route.ts');
 const execute = text('src/app/api/external/v1/execute/route.ts');
 const proposalReturn = text('src/app/api/external/v1/proposal-return/route.ts');
-const outcome = text('src/app/api/acp/proposals/[id]/outcome/route.ts');
+const outcomeRoute = text('src/app/api/acp/proposals/[id]/outcome/route.ts');
+const outcomeWriter = text('src/lib/governance/proposalOutcome.ts');
 const llms = text('src/app/llms.txt/route.ts');
 const aiIndex = text('src/app/ai-index.json/route.ts');
 
@@ -63,17 +64,18 @@ assert.equal(
 assert.match(members, /email: 'edwin\.tzolkin@gmail\.com'/, 'edwin_must_resolve_through_existing_institutional_identity');
 assert.match(members, /displayName: 'Edwin'[\s\S]*?role: 'observer'/, 'edwin_must_not_inherit_root_delegate_from_oauth');
 
-// Generic execute is now a fail-closed capability gate, not a hidden executed_at mutation.
+// Generic execute now delegates only already-authorized queued work to the canonical governed router.
 assert.match(execute, /authorizeExternalRequest\(req, 'execute'\)/, 'execute_gate_must_keep_execute_scope');
-assert.match(execute, /\.eq\('status', 'queued'\)/, 'execute_gate_must_require_queued_governance_state');
-assert.match(execute, /execution_adapter_required/, 'execute_gate_must_fail_closed_without_adapter');
-assert.match(execute, /execution_dispatch_not_implemented/, 'execute_gate_must_refuse_generic_dispatch_even_when_adapter_is_declared');
-assert.match(execute, /mutated: false/, 'generic_execute_must_report_no_mutation');
-assert.match(execute, /executedAtWritten: false/, 'generic_execute_must_not_write_executed_at');
+assert.match(execute, /body\.confirm !== true/, 'execute_gate_must_require_explicit_confirmation');
+assert.match(execute, /dispatchQueuedProposal\(proposalId\)/, 'execute_gate_must_use_canonical_governed_dispatcher');
+assert.match(execute, /proposalMustAlreadyBeQueued: true/, 'execute_gate_must_preserve_prior_governance');
+assert.match(execute, /scopeExpansionAllowed: false/, 'execute_gate_must_not_expand_scope');
+assert.match(execute, /canonicalPromotionAllowed: false/, 'execute_gate_must_not_promote_canon');
 assert.doesNotMatch(execute, /\.update\(\{\s*status:\s*'accepted'/, 'generic_execute_must_not_mark_proposal_accepted');
 assert.doesNotMatch(execute, /executed_at:\s*now/, 'generic_execute_must_not_write_executed_at_column');
+assert.doesNotMatch(execute, /\.from\('action_proposals'\)\.update/, 'generic_execute_must_not_become_parallel_proposal_writer');
 
-// A real executor may return evidence against a queued UUID without closing or canonizing it.
+// A real external executor may still return evidence against a queued UUID without closing or canonizing it.
 assert.match(proposalReturn, /authorizeExternalRequest\(req, 'execute'\)/, 'proposal_return_must_require_execute_scope');
 assert.match(proposalReturn, /queued_proposal_required_for_return/, 'proposal_return_must_require_queued_proposal');
 assert.match(proposalReturn, /evidence_refs/, 'proposal_return_must_require_evidence_refs');
@@ -81,27 +83,29 @@ assert.match(proposalReturn, /eventName: 'SFI_PROPOSAL_RETURN_RECORDED'/, 'propo
 assert.match(proposalReturn, /epistemicClass: 'observed'/, 'proposal_return_must_preserve_observed_return_class');
 assert.match(proposalReturn, /lineage: \[proposalId, \.\.\.evidenceRefs\]/, 'proposal_return_lineage_must_anchor_proposal_uuid_and_evidence');
 assert.match(proposalReturn, /proposalStatusChanged: false/, 'recording_return_must_not_close_proposal');
-assert.match(proposalReturn, /executionDispatchedBySfi: false/, 'recording_return_must_not_claim_sfi_dispatch');
+assert.match(proposalReturn, /executionDispatchedBySfi: false/, 'external_return_route_must_not_claim_it_dispatched_external_work');
 assert.match(proposalReturn, /canonicalPromotionAllowed: false/, 'recording_return_must_not_canonize');
 
-// ROOT outcome closure must verify that the observed RETURN belongs to the same proposal.
-assert.match(outcome, /returnBelongsToProposal/, 'outcome_must_validate_return_lineage');
-assert.match(outcome, /return_event_proposal_mismatch/, 'mismatched_return_must_fail_closed');
-assert.match(outcome, /SFI_PROPOSAL_RETURN_RECORDED/, 'outcome_must_accept_proposal_scoped_return_contract');
-assert.match(outcome, /PENDING_REALITY_CALIBRATION/, 'outcome_must_leave_calibration_pending');
-assert.match(outcome, /CANDIDATE_UNTIL_CALIBRATED/, 'learning_must_remain_candidate_until_calibration');
+// The route delegates closure to the single outcome writer; the writer owns observed RETURN lineage validation.
+assert.match(outcomeRoute, /recordProposalOutcomeFromObservedReturn/, 'outcome_route_must_delegate_to_single_writer');
+assert.match(outcomeWriter, /returnBelongsToProposal/, 'outcome_writer_must_validate_return_lineage');
+assert.match(outcomeWriter, /return_event_proposal_mismatch/, 'mismatched_return_must_fail_closed');
+assert.match(outcomeWriter, /SFI_PROPOSAL_RETURN_RECORDED/, 'outcome_writer_must_accept_proposal_scoped_return_contract');
+assert.match(outcomeWriter, /PENDING_REALITY_CALIBRATION/, 'outcome_writer_must_leave_calibration_pending');
+assert.match(outcomeWriter, /CANDIDATE_UNTIL_CALIBRATED/, 'learning_must_remain_candidate_until_calibrated');
 
 assert.match(manifest, /version: '1\.6\.3'/, 'external_manifest_version_must_reflect_return_lineage_contract');
 assert.match(manifest, /id: 'proposal-return'/, 'manifest_must_publish_proposal_return');
-assert.match(manifest, /does not dispatch, write executed_at, or mark accepted/, 'manifest_must_describe_truthful_execute_gate');
-assert.match(llms, /execution_adapter_required/, 'llms_must_not_tell_agents_generic_execute_performs_work');
+assert.match(manifest, /dispatches the same governed router used after authorization/, 'manifest_must_describe_governed_execute_dispatch');
+assert.match(llms, /\/execute dispatches only a proposal that is already queued/, 'llms_must_explain_post_authorization_dispatch');
 assert.match(llms, /\/proposal-return/, 'llms_must_publish_proposal_return');
-assert.match(aiIndex, /generic_auto_dispatch: false/, 'ai_index_must_publish_auto_dispatch_off');
+assert.match(aiIndex, /queued_internal_auto_dispatch: true/, 'ai_index_must_publish_bounded_internal_auto_dispatch');
+assert.match(aiIndex, /external_action_without_adapter: 'fail_closed'/, 'ai_index_must_publish_external_fail_closed_boundary');
 assert.match(aiIndex, /return_must_match_proposal_uuid: true/, 'ai_index_must_publish_return_lineage_requirement');
 
 console.log(JSON.stringify({
   ok: true,
-  contract: 'SFI-EXTERNAL-OAUTH-1.2',
+  contract: 'SFI-EXTERNAL-OAUTH-1.3',
   flow: 'authorization_code',
   pkce: 'S256',
   defaultNonRootScopes: ['observe', 'propose', 'lab:read'],
@@ -109,7 +113,8 @@ console.log(JSON.stringify({
   rootOnlyScopes: ['execute', 'lab:run'],
   staticTokenCompatibility: true,
   executionBoundary: {
-    genericAutoDispatch: false,
+    queuedInternalAutoDispatch: true,
+    externalActionWithoutAdapter: 'fail_closed',
     genericExecuteWritesExecutedAt: false,
     proposalScopedObservedReturn: true,
     returnMustMatchProposalUuid: true,
