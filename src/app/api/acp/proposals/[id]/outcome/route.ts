@@ -14,7 +14,7 @@ async function routeId(ctx: RouteContext) {
 
 function strings(value: unknown) {
   return Array.isArray(value)
-    ? value.filter((item): item is string => typeof item === 'string' && item.trim()).map((item) => item.trim())
+    ? value.filter((item): item is string => typeof item === 'string' && Boolean(item.trim())).map((item) => item.trim())
     : [];
 }
 
