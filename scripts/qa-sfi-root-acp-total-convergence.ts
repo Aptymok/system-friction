@@ -13,6 +13,7 @@ const approve=read('src/app/api/acp/proposals/[id]/approve/route.ts');
 const reject=read('src/app/api/acp/proposals/[id]/reject/route.ts');
 const requestEvidence=read('src/app/api/sfi/proposals/[id]/request-evidence/route.ts');
 const proposals=read('src/app/api/acp/proposals/route.ts');
+const acpSeenRoute=read('src/app/api/governance/acp-seen/route.ts');
 const governanceHealth=read('src/lib/governance/readGovernanceHealth.ts');
 const conflict=read('src/app/api/root/governance/conflicts/route.ts');
 const conflictResolve=read('src/app/api/root/governance/conflicts/resolve/route.ts');
@@ -85,6 +86,13 @@ assert.ok(scenes.includes("root:{key:'root'"), 'root_live_scene_missing');
 assert.ok(scenes.includes("agents:{key:'agents'"), 'agents_live_scene_missing');
 assert.ok(liveUi.includes('/api/governance/acp-seen'), 'root_live_scene_must_record_acp_presence_before_governed_reads');
 assert.ok(liveUi.includes('rootPresenceReady'), 'root_proposal_reads_must_wait_for_acp_presence');
+assert.ok(liveUi.includes('HACERME VISTO · CONFIRMAR PRESENCIA ACP'), 'root_must_expose_explicit_acp_presence_control');
+assert.ok(liveUi.includes('confirmRootPresence'), 'root_manual_presence_control_must_call_governed_presence_route');
+assert.match(acpSeenRoute,/export async function GET/,'acp_presence_endpoint_get_must_explain_usage');
+assert.match(acpSeenRoute,/method_not_allowed/,'acp_presence_get_must_not_silently_mutate');
+assert.match(acpSeenRoute,/requiredMethod: 'POST'/,'acp_presence_get_must_name_required_method');
+assert.match(acpSeenRoute,/export async function POST/,'acp_presence_mutation_must_remain_post');
+assert.match(acpSeenRoute,/requireRootActor\('governance\.acp\.presence'\)/,'acp_presence_post_must_remain_root_governed');
 assert.ok(liveUi.includes('/api/acp/proposals'), 'canonical_proposal_feed_not_wired_to_live_ui');
 assert.ok(liveUi.includes(`/api/acp/proposals/${'${selected.id}'}/${'${kind}'}`), 'governed_decision_route_not_wired');
 assert.ok(liveUi.includes('Fuente de propuestas DEGRADED'), 'proposal_source_failure_must_not_collapse_to_empty_success');
@@ -122,7 +130,8 @@ console.log(JSON.stringify({ok:true,invariants:[
   'canonical promotion requires accepted realization + observed return + complete receipt contract',
   'CRL governance alternatives remain reviewable while active persistence has converged to the canonical governed institutional pipeline',
   'ROOT governance, agents and Twin proposals are exposed through canonical live scenes',
-  'ROOT live scene restores ACP presence before proposal reads and surfaces degraded proposal sources explicitly',
+  'ROOT live scene restores ACP presence before proposal reads and exposes an explicit human presence control',
+  'GET /api/governance/acp-seen is explanatory only; POST remains the ROOT-governed mutation',
   'canonical public entry explains SFI and routes humans and agents to actionable first steps',
   'machine discovery exposes an explicit authorized-agent cycle without weakening ROOT authority',
   'readiness separates Evidence Ledger from Knowledge Graph',
