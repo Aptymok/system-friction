@@ -8,7 +8,6 @@ assert.match(proxy, /X-Frame-Options', permitsRootInternalFrame\(pathname\) \? '
 assert.match(proxy, /\/root\/reports/, 'Report surface must remain covered by ROOT internal frame policy');
 assert.match(proxy, /\/root\/agents/, 'Agent surfaces must remain covered by ROOT internal frame policy');
 
-// Report generation remains a backend/runtime contract after the old Report Center UI was removed.
 const scheduled = read('src/lib/reports/scheduledAgentReports.ts');
 for (const lane of ['world_daily', 'world_weekly', 'internal_daily', 'prospect_weekly', 'attractor_daily']) {
   assert.ok(scheduled.includes(`'${lane}'`), `scheduled lane missing: ${lane}`);
@@ -23,28 +22,35 @@ for (const field of ['reads:', 'writes:', 'executes:', 'executionEvidence:']) {
 
 const scenes = read('src/components/sfi/scenes.ts');
 const liveUi = read('src/components/sfi/SfiConsole.tsx');
+const approve = read('src/app/api/acp/proposals/[id]/approve/route.ts');
 const prepare = read('src/app/api/acp/proposals/[id]/prepare/route.ts');
+const queue = read('src/lib/governance/proposalQueue.ts');
 const realize = read('src/app/api/acp/proposals/[id]/realize/route.ts');
 const freeze = read('src/app/api/acp/proposals/[id]/freeze/route.ts');
 assert.ok(scenes.includes("root:{key:'root'"), 'ROOT live scene missing');
 assert.ok(scenes.includes("agents:{key:'agents'"), 'AGENTS live scene missing');
 assert.ok(liveUi.includes('FUENTE VIVA') && liveUi.includes('ESTADO'), 'live runtime telemetry missing');
-assert.ok(liveUi.includes('/api/acp/proposals'), 'ROOT governed proposal feed missing');
-assert.ok(liveUi.includes('COGNITIVE TWIN'), 'Twin proposal observability missing');
-assert.ok(liveUi.includes('ACEPTAR') && liveUi.includes('RECHAZAR'), 'ROOT plain-language decision controls missing');
-assert.ok(liveUi.includes('AUTORIZAR PASO A COLA INTERNA'), 'ROOT must expose design_approved queue authorization without implying execution');
-assert.ok(liveUi.includes('no la manda a GitHub, Vercel ni ejecuta una acción externa'), 'ROOT must explain that preparation is internal only');
-assert.ok(liveUi.includes('REGISTRAR REALIZACIÓN INTERNA'), 'ROOT must expose queued realization');
-assert.ok(liveUi.includes('CANCELAR / CONGELAR'), 'ROOT must expose a real governed stop action');
+assert.ok(liveUi.includes('/api/acp/proposals'), 'governed proposal feed missing');
+assert.ok(liveUi.includes('GOVERNANCE QUEUE'), 'governance queue observability missing');
+assert.ok(liveUi.includes('ACEPTAR · ENVIAR A EJECUCIÓN') && liveUi.includes('RECHAZAR'), 'plain-language decision controls missing');
+assert.ok(liveUi.includes('PEDIR EVIDENCIA'), 'reviewers must be able to defer a decision for evidence');
+assert.ok(liveUi.includes('ESPERANDO EJECUTOR / RETURN'), 'queued proposals must expose executor/return state');
+assert.ok(liveUi.includes('TRAZA RECIENTE · DECISIONES Y CIERRES'), 'ROOT must expose decision trace');
+assert.doesNotMatch(liveUi, /REGISTRAR REALIZACIÓN INTERNA/, 'ROOT UI must not offer a false manual realization button');
+assert.ok(liveUi.includes('Decidir no es canonizar'), 'UI must separate governance decision from canon');
+assert.ok(liveUi.includes('PROMOCIÓN CANÓNICA BLOQUEADA'), 'delegated controller must see the canonical boundary');
 assert.ok(liveUi.includes('/api/logbook/visible'), 'ROOT must expose visible logbook access');
 assert.ok(liveUi.includes('/api/root/decisions'), 'ROOT must expose decision/report queue access');
-assert.match(prepare, /eq\('status', 'design_approved'\)/, 'Preparation must start only from design_approved');
-assert.match(prepare, /status: 'queued'/, 'Preparation must transition to queued');
-assert.match(prepare, /function proposalTypeOf/, 'Preparation must derive the canonical proposal type from the row');
-assert.match(prepare, /proposalType,\n\s*expectedStatuses: \['design_approved'\]/, 'Preparation must preserve the proposal type during transition');
-assert.doesNotMatch(prepare, /proposalType:\s*'twin_proposal'/, 'Preparation must never coerce every approved proposal into twin_proposal');
-assert.match(realize, /approval\.explicit === true && approval\.scope === 'internal_record_only'/, 'Realization must require explicit internal approval');
-assert.match(realize, /external_action_allowed: false/, 'Realization must not imply external execution');
+
+assert.match(approve, /queueApprovedProposal/, 'ACCEPT must queue in the same human decision');
+assert.match(approve, /next: 'executor_return_required'/, 'ACCEPT must hand off to executor/return without another human gate');
+assert.match(prepare, /legacy_design_approved_queue_transition/, 'prepare route must exist only as legacy design_approved compatibility');
+assert.match(queue, /requiresObservedReturn: true/, 'queued work must require observed return');
+assert.match(queue, /canonicalPromotionAllowed: false/, 'queue authorization must never canonize');
+assert.match(queue, /no_canonical_promotion_by_executor/, 'executor guardrail must block canonical promotion');
+assert.match(queue, /return_required_before_claiming_realization/, 'queue must prohibit realization claims without return');
+assert.match(realize, /approval\.explicit === true && approval\.scope === 'internal_record_only'/, 'legacy realization endpoint remains explicit and internal-only');
+assert.match(realize, /external_action_allowed: false/, 'legacy realization must not imply external execution');
 assert.match(freeze, /decision: 'freeze'/, 'Cancellation must use canonical frozen lifecycle transition');
 assert.match(freeze, /requireGovernedActor\('acp\.proposals\.freeze'\)/, 'Freeze endpoint must remain governed');
 
@@ -61,11 +67,11 @@ console.log(JSON.stringify({
     'degraded provider output is not READY',
     'agent passports declare reads/writes/executes/evidence',
     'ROOT and AGENTS are observable through canonical live scenes',
-    'ROOT distinguishes design approval, internal queue authorization and governed realization',
-    'ROOT preparation preserves the real proposal type instead of coercing twin_proposal',
-    'ROOT explains that queue preparation does not execute or dispatch externally',
+    'ACCEPT is one human decision and queues work automatically',
+    'queued proposals wait for a real executor/RETURN instead of a manual executed_at button',
+    'legacy design_approved proposals retain one compatibility queue path',
+    'ROOT exposes decision actor trace and controller/canon separation',
     'ROOT can freeze/cancel without erasing lineage',
-    'ROOT exposes its visible logbook and decision/report queue',
-    'realization remains internal_record_only and does not imply external execution',
+    'legacy realization remains internal_record_only and hidden from the normal UI',
   ],
 }, null, 2));
