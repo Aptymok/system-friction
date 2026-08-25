@@ -6,7 +6,7 @@ export async function GET() {
   return NextResponse.json({
     ok: true,
     name: 'SFI External Agent Gateway',
-    version: '1.6.2',
+    version: '1.6.3',
     auth: 'OAuth 2.0 authorization_code (user-bound) or X-SFI-Token/Bearer static token',
     base: '/api/external/v1',
     discovery: {
@@ -45,7 +45,8 @@ export async function GET() {
       { id: 'signal-close', method: 'POST', path: '/signal', scope: 'lab:write', body: { operation: 'close' }, description: 'Close a methodological cycle and immediately reread the canonical cycle history.' },
       { id: 'observe', method: 'POST', path: '/observe', scope: 'observe', description: 'Read allowlisted proposals/evidence. Evidence responses expose persistence source and runtimeEvidenceId.' },
       { id: 'propose', method: 'POST', path: '/propose', scope: 'propose', description: 'Submit a governed action proposal. ROOT approval remains mandatory.' },
-      { id: 'execute', method: 'POST', path: '/execute', scope: 'execute', description: 'Realize an already queued proposal inside SFI; cannot self-approve.' },
+      { id: 'execute', method: 'POST', path: '/execute', scope: 'execute', description: 'Validate a queued proposal against persisted execution-adapter state. This generic route does not dispatch, write executed_at, or mark accepted; missing/unsupported adapters fail closed.' },
+      { id: 'proposal-return', method: 'POST', path: '/proposal-return', scope: 'execute', body: { proposal_id: 'queued proposal UUID', observed_at: 'ISO timestamp', outcome: 'required', evidence_refs: ['required'] }, description: 'Record an evidence-linked OBSERVED RETURN for one queued proposal. Does not close the proposal, complete calibration, or promote canon.' },
       { id: 'lab-state', method: 'POST', path: '/lab', scope: 'lab:read', body: { operation: 'state' }, description: 'Read current Method Lab state.' },
       { id: 'lab-report', method: 'POST', path: '/lab', scope: 'lab:read', body: { operation: 'report' }, description: 'Read persisted Method Lab analyses and Cognitive Twin evaluations.' },
       { id: 'lab-persist', method: 'POST', path: '/lab', scope: 'lab:write', body: { operation: 'persist' }, description: 'Persist a laboratory observation into the epistemic event ledger with provenance.' },
@@ -55,6 +56,7 @@ export async function GET() {
       contract: 'SFI-UNIVERSAL-SIGNAL-1.1',
       executionContract: 'SFI-EXECUTION-CONTRACT-1.1',
       structuredResultContract: 'SFI-STRUCTURED-RESULT-1.1',
+      proposalReturnContract: 'SFI-PROPOSAL-RETURN-1.0',
       cycleContract: 'SFI-UNIVERSAL-REASONING-CYCLE-1.1',
       acceptedRepresentations: ['url', 'web_page', 'text', 'audio', 'video', 'image', 'document', 'dataset', 'json', 'csv', 'conversation', 'email', 'code', 'api_response', 'sensor', 'event', 'organization', 'person', 'place', 'composite', 'unknown'],
       defaultStoragePolicy: 'REFERENCE_ONLY',
@@ -81,6 +83,6 @@ export async function GET() {
       commandPath: 'lab-bridge/commands/*.json',
       result: 'GitHub Actions artifact containing command, response and provenance',
     },
-    governance: 'Observation, inference, proposal, authorization, execution, return, closure and canonical promotion remain distinct governed states.',
+    governance: 'Observation, inference, proposal, authorization, adapter binding, execution, proposal-scoped return, calibration, closure and canonical promotion remain distinct governed states.',
   });
 }
