@@ -126,7 +126,11 @@ export function CognitiveSpineAnatomy({ enabled, focusOptions, twinOpenCount }: 
   return createPortal(<section className="csOverlay" aria-label="Cognitive Spine operational anatomy">
     <header className="csHead">
       <div><small>SFI · ROOT · OBSERVATIONAL ANATOMY</small><strong>COGNITIVE SPINE</strong></div>
-      <div className="csHeadState"><span>{counts.operational}/{counts.total || 21} AGENTS OBSERVED</span><span>{spineStatus?.available ? 'SPINE AVAILABLE' : 'SPINE UNAVAILABLE'}</span></div>
+      <div className="csHeadState">
+        <span>{runtimeState ? `${counts.operational}/${counts.total} AGENTS OBSERVED` : 'RUNTIME UNOBSERVED'}</span>
+        {runtimeState && <span>{counts.gated} GATED · {counts.degraded} DEGRADED · {counts.missing} MISSING</span>}
+        <span>{spine ? (spineStatus?.available ? 'SPINE AVAILABLE' : 'SPINE UNAVAILABLE') : 'SPINE CONNECTING'}</span>
+      </div>
       <button onClick={() => setOpen(false)}>CLOSE</button>
     </header>
 
