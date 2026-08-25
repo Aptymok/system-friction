@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createDailyContinuityReport } from '@/lib/continuity/runtime';
+import { runGovernedExecutionRouter } from '@/lib/execution/governedExecutionRouter';
 import { runScheduledAgentReportCycle } from '@/lib/reports/scheduledAgentReports';
 import { runCognitiveTwinDevelopmentalHeartbeat } from '@/core/cognitive-twin/reentry/runtime';
 import { considerCognitiveTwinMutationProposal } from '@/core/cognitive-twin/reentry/experiments';
@@ -29,7 +30,7 @@ export async function GET(request: NextRequest) {
       integration:null,
       error:error instanceof Error ? error.message : String(error),
     }));
-    const [scheduledReports, cognitiveTwinHeartbeat, cognitiveTwinMutation] = await Promise.all([
+    const [scheduledReports, cognitiveTwinHeartbeat, cognitiveTwinMutation, governedExecution] = await Promise.all([
       runScheduledAgentReportCycle().catch((error) => ({
         ok: false,
         generated: 0,
@@ -48,6 +49,12 @@ export async function GET(request: NextRequest) {
         proposed: false,
         error: error instanceof Error ? error.message : String(error),
       })),
+      runGovernedExecutionRouter({ limit: 10 }).catch((error) => ({
+        ok: false,
+        processed: 0,
+        results: [],
+        error: error instanceof Error ? error.message : String(error),
+      })),
     ]);
     return NextResponse.json({
       ok: true,
@@ -56,7 +63,8 @@ export async function GET(request: NextRequest) {
       scheduledReports,
       cognitiveTwinHeartbeat,
       cognitiveTwinMutation,
-      schedulingRule: 'Uses the existing continuity-report cron. SFI organ sync occurs before the CT-A01 heartbeat; no additional Vercel cron invocation is introduced.',
+      governedExecution,
+      schedulingRule: 'Uses the existing continuity-report cron. SFI organ sync occurs before CT heartbeat; queued governed work is retried/rerouted here without adding another Vercel cron.',
     });
   } catch (error) {
     return NextResponse.json({ ok: false, error: 'continuity_report_failed', details: error instanceof Error ? error.message : String(error) }, { status: 500 });
