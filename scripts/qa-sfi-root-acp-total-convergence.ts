@@ -26,6 +26,10 @@ const snapshotRoute=read('src/app/api/root/cognitive-twin/snapshot/route.ts');
 const forkRoute=read('src/app/api/root/cognitive-twin/fork/route.ts');
 const scenes=read('src/components/sfi/scenes.ts');
 const liveUi=read('src/components/sfi/SfiConsole.tsx');
+const home=read('src/app/page.tsx');
+const publicEntry=read('src/components/sfi/PublicEntryGateway.tsx');
+const llms=read('src/app/llms.txt/route.ts');
+const aiIndex=read('src/app/ai-index.json/route.ts');
 const vercel=JSON.parse(read('vercel.json')) as {crons?:unknown[]};
 
 for(const state of ['draft','proposed','waiting_evidence','design_approved','queued','accepted','rejected','conflicted','frozen','superseded']) assert.ok(lifecycle.includes(`'${state}'`),`missing_lifecycle_state:${state}`);
@@ -75,14 +79,27 @@ assert.match(readiness,/EMPTY_READY/);
 assert.match(readiness,/scientificComplete:false/);
 assert.match(readiness,/externalGateBoundary/);
 
-// Governance and ROOT were intentionally moved from native dashboard pages to live scenes.
+// Governance and ROOT remain live scenes, but ROOT must restore ACP presence before governed reads.
 assert.ok(scenes.includes("governance:{key:'governance'"), 'governance_live_scene_missing');
 assert.ok(scenes.includes("root:{key:'root'"), 'root_live_scene_missing');
 assert.ok(scenes.includes("agents:{key:'agents'"), 'agents_live_scene_missing');
+assert.ok(liveUi.includes('/api/governance/acp-seen'), 'root_live_scene_must_record_acp_presence_before_governed_reads');
+assert.ok(liveUi.includes('rootPresenceReady'), 'root_proposal_reads_must_wait_for_acp_presence');
 assert.ok(liveUi.includes('/api/acp/proposals'), 'canonical_proposal_feed_not_wired_to_live_ui');
 assert.ok(liveUi.includes(`/api/acp/proposals/${'${selected.id}'}/${'${kind}'}`), 'governed_decision_route_not_wired');
+assert.ok(liveUi.includes('Fuente de propuestas DEGRADED'), 'proposal_source_failure_must_not_collapse_to_empty_success');
 assert.ok(liveUi.includes('ACEPTAR') && liveUi.includes('RECHAZAR'), 'plain_language_root_decisions_missing');
 assert.ok(liveUi.includes('COGNITIVE TWIN'), 'twin_proposal_surface_missing');
+
+// The canonical public entry must tell both humans and agents what SFI is and what to do first.
+assert.match(home,/PublicEntryGateway/,'canonical_home_missing_public_entry_gateway');
+for(const phrase of ['IF YOU ARE A PERSON','IF YOU ARE AN AI / AGENT','OBSERVE','EVIDENCE','HYPOTHESIS','PROPOSE','ROOT','RETURN']) assert.ok(publicEntry.includes(phrase),`public_entry_missing:${phrase}`);
+for(const path of ['/institution','/login','/llms.txt','/ai-index.json','/api/external/v1/manifest']) assert.ok(publicEntry.includes(path),`public_entry_missing_path:${path}`);
+assert.match(llms,/## WHAT TO DO FIRST/,'llms_missing_first_action_sequence');
+assert.match(llms,/execution-contract → perform requested measurements locally → \/result/,'llms_missing_universal_cycle');
+assert.match(aiIndex,/start_here/,'ai_index_missing_start_here');
+assert.match(aiIndex,/authorized_agent_cycle/,'ai_index_missing_authorized_agent_cycle');
+assert.match(aiIndex,/ROOT-authorized queued proposal/,'ai_index_missing_governed_execution_boundary');
 
 assert.match(mutationState,/CT-A01-MUT-%/);
 assert.match(mutationState,/CANDIDATE/);
@@ -105,6 +122,9 @@ console.log(JSON.stringify({ok:true,invariants:[
   'canonical promotion requires accepted realization + observed return + complete receipt contract',
   'CRL governance alternatives remain reviewable while active persistence has converged to the canonical governed institutional pipeline',
   'ROOT governance, agents and Twin proposals are exposed through canonical live scenes',
+  'ROOT live scene restores ACP presence before proposal reads and surfaces degraded proposal sources explicitly',
+  'canonical public entry explains SFI and routes humans and agents to actionable first steps',
+  'machine discovery exposes an explicit authorized-agent cycle without weakening ROOT authority',
   'readiness separates Evidence Ledger from Knowledge Graph',
   'readiness uses planned health counts rather than expensive exact dashboard counts',
   'empty post-reset organs may be READY without being falsely marked broken',

@@ -9,6 +9,26 @@ export async function GET() {
     architecture: 'SFI Live Scene Runtime v2',
     purpose: 'Longitudinal observation, evidence handling, falsification, governance and governed action across complex sociotechnical systems.',
     interface_model: 'Live observable scenes. Data is rendered on or around the observed object instead of being reduced to dashboard cards.',
+    start_here: {
+      human: [
+        `${baseUrl}/`,
+        `${baseUrl}/institution`,
+        `${baseUrl}/field`,
+        `${baseUrl}/login`,
+      ],
+      agent: [
+        `${baseUrl}/llms.txt`,
+        `${baseUrl}/api/external/v1/manifest`,
+      ],
+      authorized_agent_cycle: [
+        'POST /api/external/v1/execution-contract',
+        'perform requested measurements while retaining the object client-side when possible',
+        'POST /api/external/v1/result',
+        'GET /api/external/v1/signal?cycleId=<cycleId>',
+        'POST /api/external/v1/signal { operation: "return" } only after a real-world outcome is observed',
+      ],
+      governed_action_rule: 'Use /propose to request action. /execute is only for an already ROOT-authorized queued proposal and cannot self-approve.',
+    },
     epistemic_boundary: 'Observed, derived, inferred, experimental and canonical states are not interchangeable; runtime capability is not external validation.',
     public_scenes: Object.fromEntries(SCENE_KEYS.map((key) => [key, {
       url: `${baseUrl}/${key}`,
