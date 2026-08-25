@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { dispatchQueuedProposal } from '@/lib/execution/governedExecutionRouter';
 import { decideActionProposal } from '@/lib/governance/proposalLifecycle';
 import { controllerCanDecideProposal } from '@/lib/governance/proposalDecisionAuthority';
 import { resolveProposalReviewerAuthority } from '@/lib/governance/proposalReviewer';
@@ -58,6 +59,16 @@ export async function POST(req: Request, ctx: RouteContext) {
     }, { status: 409 });
   }
 
+  const execution = await dispatchQueuedProposal(proposalId).catch((error) => ({
+    ok: false as const,
+    state: 'DISPATCH_FAILED',
+    proposalId,
+    error: error instanceof Error ? error.message : String(error),
+  }));
+  const executionState = 'state' in execution && typeof execution.state === 'string'
+    ? execution.state
+    : 'DISPATCH_FAILED';
+
   return NextResponse.json({
     ok: true,
     data: queued.data,
@@ -67,6 +78,11 @@ export async function POST(req: Request, ctx: RouteContext) {
       actorId: gate.ctx.user.id,
       actorLabel: gate.ctx.user.email ?? null,
     },
-    next: 'executor_return_required',
+    execution,
+    next: executionState === 'RETURN_RECORDED'
+      ? 'return_recorded_calibration_or_canon_review_when_appropriate'
+      : executionState === 'BLOCKED_EXECUTOR_CAPABILITY'
+        ? 'remediation_request_created_or_reused'
+        : 'execution_router_recorded_state',
   });
 }

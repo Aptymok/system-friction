@@ -54,7 +54,7 @@ assert.ok(state.includes('readCognitiveTwinSfiIntegration'));
 assert.ok(state.includes('sfiOrgansConnected'));
 assert.ok(state.includes('sfiOrgansExercised'));
 assert.ok(liveSurface.includes('COGNITIVE TWIN'));
-assert.ok(liveSurface.includes('El sistema propone'));
+assert.ok(liveSurface.includes('Decidir no es canonizar'));
 assert.ok(liveSurface.includes('/api/acp/proposals'));
 assert.ok(sceneRegistry.includes("root:{key:'root'"));
 assert.ok(workflow.includes('permissions:\n  contents: read'));

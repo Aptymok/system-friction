@@ -6,15 +6,13 @@ import './RootOperationalWorkboard.css';
 
 type Row = Record<string, any>;
 
-type Props = {
-  enabled: boolean;
-};
+type Props = { enabled: boolean };
 
 function stateClass(value: unknown) {
   const state = String(value ?? '').toLowerCase();
   if (/blocked|missing|failed|critical|degraded/.test(state)) return 'isBlocked';
   if (/queued|waiting|proposed|pending|unassigned|current_blocked|approved|executed/.test(state)) return 'isAttention';
-  if (/accepted|current|operational|recorded|ready|return_recorded/.test(state)) return 'isReady';
+  if (/accepted|current|operational|recorded|ready|return_recorded|available|auto_routable/.test(state)) return 'isReady';
   return '';
 }
 
@@ -123,11 +121,7 @@ export function RootOperationalWorkboard({ enabled }: Props) {
     <p className="workboardRuntime">{runtimeLabel}</p>
     {error && <p className="workboardError">DEGRADED · {error}</p>}
 
-    <CognitiveSpineAnatomy
-      enabled={enabled}
-      focusOptions={focusOptions}
-      twinOpenCount={twinProposals.length + openUniversalCycles.length}
-    />
+    <CognitiveSpineAnatomy enabled={enabled} focusOptions={focusOptions} twinOpenCount={twinProposals.length + openUniversalCycles.length} />
 
     <div className="workboardGrid">
       <Lane title="MIS DECISIONES / DELEGABLES" count={decisions.length}>
@@ -143,7 +137,8 @@ export function RootOperationalWorkboard({ enabled }: Props) {
         {executions.slice(0, 6).map((item: Row) => <article key={item.id} className={stateClass(item.execution?.adapterState)}>
           <b>{short(item.title, 'Ejecución')}</b>
           <span>{short(item.status)} · {short(item.execution?.assignmentState)}</span>
-          <small>coordinador: {short(item.execution?.coordinator)} · executor: {short(item.execution?.executor, 'NO ASIGNADO')}</small>
+          <small>clase: {short(item.execution?.executionClass)} · coordinador: {short(item.execution?.coordinator)}</small>
+          <small>adapter: {short(item.execution?.adapterId, 'NO VERIFICADO')} · executor: {short(item.execution?.executor, 'NO ASIGNADO')}</small>
           <small>{short(item.execution?.adapterState)}</small>
         </article>)}
         {!executions.length && <em>No hay propuestas en handoff de ejecución.</em>}
@@ -210,11 +205,12 @@ export function RootOperationalWorkboard({ enabled }: Props) {
 
       <Lane title="CAPACIDADES RESERVADAS" count={reserved.length}>
         {reserved.map((item: Row) => <article key={item.id} className={stateClass(item.status)}>
-          <b>{short(item.name)}</b><span>{short(item.status)}</span><small>{item.executionAuthorized ? 'Gobernanza permite handoff; este workboard NO la ejecuta.' : 'NO autorizada para ejecución desde esta superficie.'}</small>
+          <b>{short(item.name)}</b><span>{short(item.status)}</span>
+          <small>{item.executionAuthorized ? `AUTORIZADA · owner ${short(item.implementationOwner)} · el router puede continuar sin otro gate mecánico.` : 'NO autorizada para ejecución; espera una decisión gobernada.'}</small>
         </article>)}
       </Lane>
     </div>
 
-    <footer className="workboardBoundary">proposal → authorization → routing/readiness → assignment → execution → RETURN → calibration → learning → ROOT canon/close · auto-dispatch OFF · self-healing OFF</footer>
+    <footer className="workboardBoundary">proposal → authorization → auto-route → assignment → bounded execution/retry → RETURN → calibration → learning → ROOT canon/close · external actions fail closed without adapter</footer>
   </aside>;
 }
