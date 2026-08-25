@@ -38,7 +38,7 @@ for (const route of ['/api/root/method-lab/decision-transfer','/api/root/method-
 assert.match(connectionRoute, /requireRootActor\('root\.cognitive-twin\.connection\.read'\)/, 'CT connection read must remain ROOT governed');
 assert.match(evaluateRoute, /executeDecisionTransferEvaluation/, 'CT direct evaluation executor must remain connected');
 assert.match(blindRoute, /executeBlindDecisionReconstruction/, 'CT blind executor must remain connected');
-assert.match(revealRoute, /revealBlindDecisionReconstruction|executeBlindDecision/, 'CT reveal executor must remain connected');
+assert.match(revealRoute, /executeBlindDecisionReveal/, 'CT reveal executor must remain connected');
 
 console.log(JSON.stringify({
   ok: true,
