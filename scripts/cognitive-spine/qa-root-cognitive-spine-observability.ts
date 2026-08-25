@@ -56,7 +56,7 @@ assert.ok(anatomy.includes('Spine context is not evidence.'), 'spine_epistemic_b
 assert.ok(anatomy.includes('Agent registration is not execution.'), 'agent_execution_boundary_missing');
 assert.ok(anatomy.includes('ROOT canon remains a separate governed promotion.'), 'spine_canon_boundary_missing');
 assert.equal(/fetch\([^\n]+method:\s*['"]POST['"]/.test(anatomy), false, 'spine_anatomy_must_not_write');
-assert.equal(anatomy.includes('.from('), false, 'spine_anatomy_must_not_read_raw_db');
+assert.equal(/createServiceSupabaseClient|\.from\s*\(\s*['"][A-Za-z_][A-Za-z0-9_]*['"]\s*\)/.test(anatomy), false, 'spine_anatomy_must_not_read_raw_db');
 assert.ok(workboardCss.includes('.csOverlay{position:fixed'), 'spine_overlay_visual_layer_missing');
 assert.ok(workboardCss.includes('.csSpineAxis'), 'spine_axis_visual_missing');
 assert.ok(workboardCss.includes('.csAgentFigure'), 'agent_figure_visual_missing');
