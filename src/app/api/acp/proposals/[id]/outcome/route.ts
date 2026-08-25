@@ -36,7 +36,18 @@ function normalizedNextState(value: unknown) {
 function isObservedReturnEvent(row: Row) {
   const name = typeof row.event_name === 'string' ? row.event_name.trim() : '';
   const epistemicClass = typeof row.epistemic_class === 'string' ? row.epistemic_class.trim().toLowerCase() : '';
-  return epistemicClass === 'observed' && (name === 'SFI_UNIVERSAL_RETURN_RECORDED' || name.endsWith('_RETURN_RECORDED'));
+  return epistemicClass === 'observed' && (name === 'SFI_PROPOSAL_RETURN_RECORDED' || name === 'SFI_UNIVERSAL_RETURN_RECORDED' || name.endsWith('_RETURN_RECORDED'));
+}
+
+function returnBelongsToProposal(row: Row, proposalId: string) {
+  const payload = asRecord(row.payload);
+  const payloadProposalId = typeof payload.proposalId === 'string'
+    ? payload.proposalId.trim()
+    : typeof payload.proposal_id === 'string'
+      ? payload.proposal_id.trim()
+      : '';
+  const lineage = strings(row.lineage);
+  return payloadProposalId === proposalId || lineage.includes(proposalId);
 }
 
 export async function POST(req: Request, ctx: RouteContext) {
@@ -77,6 +88,15 @@ export async function POST(req: Request, ctx: RouteContext) {
       error: 'observed_return_event_required',
       return_event_id: returnEventId,
       boundary: 'The referenced event must be an OBSERVED *_RETURN_RECORDED event.',
+    }, { status: 409 });
+  }
+  if (!returnBelongsToProposal(returnEvent.data as Row, proposalId)) {
+    return NextResponse.json({
+      ok: false,
+      error: 'return_event_proposal_mismatch',
+      proposal_id: proposalId,
+      return_event_id: returnEventId,
+      boundary: 'A RETURN from another proposal/cycle cannot close this queued proposal.',
     }, { status: 409 });
   }
 
