@@ -10,7 +10,8 @@ Before changing code in this repository:
 6. Do not leave a duplicate runtime implementation after absorption/replacement. Git history is the archive.
 7. Do not claim execution without proposal-scoped observed RETURN/evidence. Do not promote canon automatically.
 8. Minimize human mechanical intervention: governed agents may route/assign/execute/retry within authorized scope; ROOT observes authority boundaries and decides only when a real decision is required.
-9. Before merge run the canonical architecture audit, domain boundaries, relevant capability QA, typecheck and build.
+9. Cognitive Spine already exists under `src/core/cognitive-spine` with institutional adapters/status/QA. Cognitive Twin exists under `src/core/cognitive-twin`. Inspect both and their adapter boundary before adding anything named Twin, Spine, memory, context or cognition; never create a second implementation because of naming or visualization.
+10. Before merge run the canonical architecture audit, domain boundaries, relevant capability QA, typecheck and build.
 
 Required implementation note before coding:
 
