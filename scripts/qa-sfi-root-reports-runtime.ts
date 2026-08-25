@@ -32,7 +32,8 @@ assert.ok(liveUi.includes('FUENTE VIVA') && liveUi.includes('ESTADO'), 'live run
 assert.ok(liveUi.includes('/api/acp/proposals'), 'ROOT governed proposal feed missing');
 assert.ok(liveUi.includes('COGNITIVE TWIN'), 'Twin proposal observability missing');
 assert.ok(liveUi.includes('ACEPTAR') && liveUi.includes('RECHAZAR'), 'ROOT plain-language decision controls missing');
-assert.ok(liveUi.includes('PREPARAR REALIZACIÓN'), 'ROOT must expose design_approved preparation');
+assert.ok(liveUi.includes('AUTORIZAR PASO A COLA INTERNA'), 'ROOT must expose design_approved queue authorization without implying execution');
+assert.ok(liveUi.includes('no la manda a GitHub, Vercel ni ejecuta una acción externa'), 'ROOT must explain that preparation is internal only');
 assert.ok(liveUi.includes('REGISTRAR REALIZACIÓN INTERNA'), 'ROOT must expose queued realization');
 assert.ok(liveUi.includes('CANCELAR / CONGELAR'), 'ROOT must expose a real governed stop action');
 assert.ok(liveUi.includes('/api/logbook/visible'), 'ROOT must expose visible logbook access');
@@ -60,8 +61,9 @@ console.log(JSON.stringify({
     'degraded provider output is not READY',
     'agent passports declare reads/writes/executes/evidence',
     'ROOT and AGENTS are observable through canonical live scenes',
-    'ROOT distinguishes design approval, preparation and governed realization',
+    'ROOT distinguishes design approval, internal queue authorization and governed realization',
     'ROOT preparation preserves the real proposal type instead of coercing twin_proposal',
+    'ROOT explains that queue preparation does not execute or dispatch externally',
     'ROOT can freeze/cancel without erasing lineage',
     'ROOT exposes its visible logbook and decision/report queue',
     'realization remains internal_record_only and does not imply external execution',
