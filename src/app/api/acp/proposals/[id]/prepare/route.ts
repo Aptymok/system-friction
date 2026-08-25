@@ -17,6 +17,21 @@ function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
 }
 
+function text(value: unknown) {
+  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;
+}
+
+function proposalTypeOf(input: Record<string, unknown>) {
+  const expectedFieldDelta = asRecord(input.expected_field_delta);
+  const proportionality = asRecord(input.proportionality_check);
+  return text(input.proposal_type)
+    ?? text(expectedFieldDelta.proposalType)
+    ?? text(expectedFieldDelta.proposal_type)
+    ?? text(proportionality.proposalType)
+    ?? text(proportionality.proposal_type)
+    ?? 'unknown';
+}
+
 function buildExecutionPlan(input: Record<string, unknown>) {
   const expectedFieldDelta = asRecord(input.expected_field_delta);
   const payload = asRecord(expectedFieldDelta.payload);
@@ -28,7 +43,7 @@ function buildExecutionPlan(input: Record<string, unknown>) {
     executionAllowed: false,
     requiresHumanExecution: true,
     sourceProposalId: input.id ?? null,
-    proposalType: expectedFieldDelta.proposalType ?? asRecord(input.proportionality_check).proposalType ?? 'unknown',
+    proposalType: proposalTypeOf(input),
     preparedFromStatus: input.status ?? null,
     seedHash: payload.seed_hash ?? expectedFieldDelta.specHash ?? null,
     evidenceSummary: {
@@ -80,7 +95,9 @@ export async function POST(req: Request, ctx: RouteContext) {
   if (existing.error) return NextResponse.json({ ok: false, error: 'proposal_lookup_failed', details: existing.error }, { status: 400 });
   if (!existing.data) return NextResponse.json({ ok: false, error: 'action_proposal_not_found_or_forbidden' }, { status: 400 });
 
-  const executionPlan = buildExecutionPlan(asRecord(existing.data));
+  const current = asRecord(existing.data);
+  const proposalType = proposalTypeOf(current);
+  const executionPlan = buildExecutionPlan(current);
 
   const event = await appendOperationalEvent({
     eventName: 'acp.proposal.execution_prepared',
@@ -88,6 +105,7 @@ export async function POST(req: Request, ctx: RouteContext) {
     confidence: 0.9,
     payload: {
       proposal_id: proposalId,
+      proposal_type: proposalType,
       status: 'queued',
       preparation_only: true,
       execution_allowed: false,
@@ -103,7 +121,7 @@ export async function POST(req: Request, ctx: RouteContext) {
     status: 'queued',
     actorId: gate.ctx.user.id,
     isRoot: gate.ctx.isRoot,
-    proposalType: 'twin_proposal',
+    proposalType,
     expectedStatuses: ['design_approved'],
     eventId: event.data.id,
     payloadPatch: {
