@@ -4,6 +4,7 @@ import { runScheduledAgentReportCycle } from '@/lib/reports/scheduledAgentReport
 import { runCognitiveTwinDevelopmentalHeartbeat } from '@/core/cognitive-twin/reentry/runtime';
 import { considerCognitiveTwinMutationProposal } from '@/core/cognitive-twin/reentry/experiments';
 import { syncSfiInstitutionalStateToCognitiveTwin } from '@/core/cognitive-twin/institutionalIntegration';
+import { runGovernedExecutionRouterCycle } from '@/lib/execution/governedExecutionRouter';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -29,7 +30,7 @@ export async function GET(request: NextRequest) {
       integration:null,
       error:error instanceof Error ? error.message : String(error),
     }));
-    const [scheduledReports, cognitiveTwinHeartbeat, cognitiveTwinMutation] = await Promise.all([
+    const [scheduledReports, cognitiveTwinHeartbeat, cognitiveTwinMutation, executionRouter] = await Promise.all([
       runScheduledAgentReportCycle().catch((error) => ({
         ok: false,
         generated: 0,
@@ -48,6 +49,13 @@ export async function GET(request: NextRequest) {
         proposed: false,
         error: error instanceof Error ? error.message : String(error),
       })),
+      runGovernedExecutionRouterCycle().catch((error) => ({
+        ok: false,
+        active: true,
+        routed: 0,
+        results: [],
+        error: error instanceof Error ? error.message : String(error),
+      })),
     ]);
     return NextResponse.json({
       ok: true,
@@ -56,7 +64,8 @@ export async function GET(request: NextRequest) {
       scheduledReports,
       cognitiveTwinHeartbeat,
       cognitiveTwinMutation,
-      schedulingRule: 'Uses the existing continuity-report cron. SFI organ sync occurs before the CT-A01 heartbeat; no additional Vercel cron invocation is introduced.',
+      executionRouter,
+      schedulingRule: 'Uses the existing continuity-report cron. SFI organ sync occurs before the CT-A01 heartbeat; authorized execution routing/self-healing diagnostics reuse this same cycle and do not introduce another Vercel cron.',
     });
   } catch (error) {
     return NextResponse.json({ ok: false, error: 'continuity_report_failed', details: error instanceof Error ? error.message : String(error) }, { status: 500 });
