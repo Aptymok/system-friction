@@ -1,0 +1,39 @@
+name: SFI CT Surface Lenses
+
+on:
+  pull_request:
+    paths:
+      - 'src/core/cognitive-twin/reentry/**'
+      - 'src/app/api/root/cognitive-twin/**'
+      - 'src/app/api/root/method-lab/decision-transfer/**'
+      - 'src/components/sfi/SceneFieldOverlay.*'
+      - 'src/components/sfi/scenes.ts'
+      - 'src/app/[scene]/page.tsx'
+      - 'scripts/qa-sfi-ct-surface-lenses.ts'
+      - '.github/workflows/sfi-ct-surface-lenses.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Verify CT connection and scene lenses
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Verify CT and surface contract
+        run: npx tsx scripts/qa-sfi-ct-surface-lenses.ts
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Build
+        run: npm run build
