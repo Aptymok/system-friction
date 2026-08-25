@@ -12,8 +12,8 @@ type Props = {
 function stateClass(value: unknown) {
   const state = String(value ?? '').toLowerCase();
   if (/blocked|missing|failed|critical|degraded/.test(state)) return 'isBlocked';
-  if (/queued|waiting|proposed|unassigned|current_blocked/.test(state)) return 'isAttention';
-  if (/accepted|current|operational|recorded|ready/.test(state)) return 'isReady';
+  if (/queued|waiting|proposed|pending|unassigned|current_blocked|approved|executed/.test(state)) return 'isAttention';
+  if (/accepted|current|operational|recorded|ready|return_recorded/.test(state)) return 'isReady';
   return '';
 }
 
@@ -28,6 +28,7 @@ function Lane({ title, count, children }: { title: string; count?: number; child
 
 export function RootOperationalWorkboard({ enabled }: Props) {
   const [data, setData] = useState<Row | null>(null);
+  const [caseExecution, setCaseExecution] = useState<Row | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -35,15 +36,22 @@ export function RootOperationalWorkboard({ enabled }: Props) {
     let stop = false;
     const pull = async () => {
       try {
-        const response = await fetch('/api/root/workboard', { cache: 'no-store' });
-        const json = await response.json().catch(() => null);
+        const [response, caseResponse] = await Promise.all([
+          fetch('/api/root/workboard', { cache: 'no-store' }),
+          fetch('/api/root/case-execution', { cache: 'no-store' }),
+        ]);
+        const [json, caseJson] = await Promise.all([
+          response.json().catch(() => null),
+          caseResponse.json().catch(() => null),
+        ]);
         if (stop) return;
         if (!response.ok || !json?.ok) {
           setError(`${response.status}: ${json?.error ?? 'workboard_read_failed'}`);
           return;
         }
         setData(json.workboard ?? null);
-        setError(null);
+        setCaseExecution(caseResponse.ok && caseJson?.ok ? caseJson : null);
+        setError(caseResponse.status !== 403 && !caseResponse.ok ? `case execution ${caseResponse.status}: ${caseJson?.error ?? 'read_failed'}` : null);
       } catch (cause) {
         if (!stop) setError(cause instanceof Error ? cause.message : String(cause));
       }
@@ -62,8 +70,11 @@ export function RootOperationalWorkboard({ enabled }: Props) {
   const riskOpportunity = Array.isArray(data?.riskOpportunity) ? data.riskOpportunity : [];
   const returns = Array.isArray(data?.returns) ? data.returns : [];
   const canon = Array.isArray(data?.canonCandidates) ? data.canonCandidates : [];
+  const twinProposals = Array.isArray(data?.twinProposals) ? data.twinProposals : [];
+  const openUniversalCycles = Array.isArray(data?.openCycles?.universal) ? data.openCycles.universal : [];
   const reserved = Array.isArray(data?.governanceGates?.reservedCapabilities) ? data.governanceGates.reservedCapabilities : [];
   const warnings = Array.isArray(data?.warnings) ? data.warnings : [];
+  const caseItems = Array.isArray(caseExecution?.items) ? caseExecution.items : [];
   const runtimeLabel = useMemo(() => short(data?.runtime?.summary, 'Runtime sin lectura'), [data]);
 
   if (!enabled) return <aside className="rootWorkboard"><div className="workboardLoading">WORKBOARD · esperando sesión / presencia gobernada</div></aside>;
@@ -104,6 +115,26 @@ export function RootOperationalWorkboard({ enabled }: Props) {
           <small>{short(item.execution?.adapterState)}</small>
         </article>)}
         {!executions.length && <em>No hay propuestas en handoff de ejecución.</em>}
+      </Lane>
+
+      <Lane title="PROJECTS / CASE EXECUTION" count={caseItems.length}>
+        {caseItems.slice(0, 6).map((item: Row) => <article key={item.id} className={stateClass(item.status)}>
+          <b>{short(item.action, 'Case action')}</b>
+          <span>{short(item.status)} · riesgo {short(item.riskLevel)} · {short(item.reversibility)}</span>
+          <small>case {short(item.caseId)} · intervention {item.interventionRef ? 'sí' : 'no'} · RETURN {item.returnRef ? 'sí' : 'no'}</small>
+          <small>platform external action: FALSE</small>
+        </article>)}
+        {!caseItems.length && <em>{data?.authority === 'root' ? 'Sin case actions observadas.' : 'Projects/Case Execution es visible sólo para ROOT soberano.'}</em>}
+      </Lane>
+
+      <Lane title="TWIN / CICLOS ABIERTOS" count={twinProposals.length + openUniversalCycles.length}>
+        {twinProposals.slice(0, 4).map((item: Row) => <article key={`twin:${item.id}`} className={stateClass(item.status)}>
+          <b>{short(item.title, 'Twin proposal')}</b><span>{short(item.status)} · {short(item.decisionClass)}</span><small>proposal {short(item.id)}</small>
+        </article>)}
+        {openUniversalCycles.slice(0, 4).map((cycle: Row) => <article key={`cycle:${cycle.cycleId ?? cycle.eventId}`} className="isAttention">
+          <b>{short(cycle.question ?? cycle.objectKey, 'Ciclo universal abierto')}</b><span>OPEN · espera RETURN/cierre metodológico</span><small>{short(cycle.cycleId ?? cycle.eventId)}</small>
+        </article>)}
+        {!twinProposals.length && !openUniversalCycles.length && <em>Sin Twin proposals/ciclos abiertos visibles.</em>}
       </Lane>
 
       <Lane title="BLOQUEOS / WARNINGS" count={blockers.length + warnings.length}>
