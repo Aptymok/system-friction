@@ -1,6 +1,7 @@
 import 'server-only';
 
-import { classifyProposalDecision, controllerCanDecideProposal, type ProposalDecisionClass } from '@/lib/governance/proposalDecisionAuthority';
+import { classifyGovernedProposalWork, SFI_GOVERNED_EXECUTION_ADAPTERS } from '@/lib/execution/governedExecutionRouter';
+import { classifyProposalDecision, controllerCanDecideProposal } from '@/lib/governance/proposalDecisionAuthority';
 import { normalizeProposalState } from '@/lib/governance/proposalLifecycle';
 import { readRootReportHealth, readRootReportInbox } from '@/lib/reports/rootReportInbox';
 import { SFI_AGENTIC_CAPABILITIES } from '@/lib/sfi/agenticCapabilityRegistry';
@@ -10,7 +11,7 @@ import { readUniversalOpenCycles } from '@/lib/sfi/universalSignalCycle';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 
 export type WorkboardAuthority = 'root' | 'controller' | null;
-export type ExecutionAdapterState = 'BOUND_UNVERIFIED' | 'MISSING_EXECUTION_ADAPTER' | 'NOT_APPLICABLE';
+export type ExecutionAdapterState = 'AVAILABLE' | 'BOUND_UNVERIFIED' | 'MISSING_EXECUTION_ADAPTER' | 'NOT_APPLICABLE';
 
 type Row = Record<string, unknown>;
 
@@ -75,30 +76,53 @@ function declaredExecutor(row: Row) {
 function executionReadiness(row: Row) {
   const state = normalizeProposalState(row.status);
   if (!['queued', 'design_approved'].includes(state)) {
-    return { state: 'NOT_IN_EXECUTION_QUEUE', coordinator: null, supportingAgents: [], executor: null, adapterState: 'NOT_APPLICABLE' as ExecutionAdapterState, assignmentState: 'NOT_APPLICABLE', dispatchAllowed: false };
+    return {
+      state: 'NOT_IN_EXECUTION_QUEUE', coordinator: null, supportingAgents: [], executor: null,
+      executionClass: null, adapterId: null, adapterState: 'NOT_APPLICABLE' as ExecutionAdapterState,
+      assignmentState: 'NOT_APPLICABLE', dispatchAllowed: false,
+    };
   }
-  const executor = declaredExecutor(row);
+
+  const classification = classifyGovernedProposalWork(row);
+  const adapter = classification.adapterId
+    ? SFI_GOVERNED_EXECUTION_ADAPTERS.find((candidate) => candidate.capabilityId === classification.adapterId) ?? null
+    : null;
+  const declared = declaredExecutor(row);
+  const executor = declared ?? adapter?.executorRef ?? null;
+  const adapterAvailable = Boolean(adapter && adapter.healthStatus === 'AVAILABLE');
+  const materialMissing = classification.executionClass === 'EXTERNAL_ACTION' && !adapterAvailable;
+
   return {
-    state: state === 'design_approved' ? 'LEGACY_AUTHORIZED_NOT_QUEUED' : 'AWAITING_EXECUTOR_RETURN',
+    state: state === 'design_approved'
+      ? 'LEGACY_AUTHORIZED_NOT_QUEUED'
+      : materialMissing
+        ? 'BLOCKED_EXECUTOR_CAPABILITY'
+        : 'AUTHORIZED_AUTO_ROUTABLE',
     coordinator: 'project_execution_manager',
     supportingAgents: executionSupportAgents(row),
     executor,
-    adapterState: executor ? 'BOUND_UNVERIFIED' as ExecutionAdapterState : 'MISSING_EXECUTION_ADAPTER' as ExecutionAdapterState,
-    assignmentState: executor ? 'DECLARED_UNVERIFIED' : 'UNASSIGNED',
-    dispatchAllowed: false,
-    boundary: executor
-      ? 'An executor is declared in persisted proposal state but this workboard does not dispatch it; the binding must be verified by the governed execution path.'
-      : 'No proposal-specific execution adapter is persisted. Cognitive agents may support analysis/readiness but are not treated as mutation executors.',
+    executionClass: classification.executionClass,
+    adapterId: classification.adapterId,
+    adapterState: materialMissing
+      ? 'MISSING_EXECUTION_ADAPTER' as ExecutionAdapterState
+      : adapterAvailable
+        ? 'AVAILABLE' as ExecutionAdapterState
+        : declared
+          ? 'BOUND_UNVERIFIED' as ExecutionAdapterState
+          : 'MISSING_EXECUTION_ADAPTER' as ExecutionAdapterState,
+    assignmentState: materialMissing ? 'REMEDIATION_REQUIRED' : adapterAvailable ? 'AUTO_ROUTABLE' : declared ? 'DECLARED_UNVERIFIED' : 'UNASSIGNED',
+    dispatchAllowed: state === 'queued' && adapterAvailable && !materialMissing,
+    boundary: materialMissing
+      ? 'The authorized scope contains a material external side effect but no verified governed adapter is available. Self-healing may request remediation; execution remains fail-closed.'
+      : adapterAvailable
+        ? `Governed adapter ${adapter?.capabilityId} is available. Queued work may route automatically within the already-authorized scope; RETURN remains mandatory and canon remains ROOT-only.`
+        : 'An executor is declared but not verified by the governed adapter registry; execution remains fail-closed until verified.',
   };
 }
 
 function decisionActor(row: Row) {
   const outcome = rec(row.outcome);
-  return {
-    id: text(outcome.actorId) || null,
-    label: text(outcome.actorLabel) || null,
-    authority: text(outcome.decisionAuthority) || null,
-  };
+  return { id: text(outcome.actorId) || null, label: text(outcome.actorLabel) || null, authority: text(outcome.decisionAuthority) || null };
 }
 
 function outcomeState(row: Row) {
@@ -115,18 +139,10 @@ function outcomeState(row: Row) {
 function proposalItem(row: Row) {
   const state = normalizeProposalState(row.status);
   return {
-    id: text(row.id),
-    title: text(row.title, proposalType(row)),
-    proposalType: proposalType(row),
-    status: state,
-    rawStatus: row.status ?? null,
-    riskLevel: text(row.risk_level, 'unknown'),
-    decisionClass: classifyProposalDecision(row),
-    decisionActor: decisionActor(row),
-    createdAt: createdAt(row),
-    executedAt: text(row.executed_at) || null,
-    execution: executionReadiness(row),
-    outcome: outcomeState(row),
+    id: text(row.id), title: text(row.title, proposalType(row)), proposalType: proposalType(row), status: state,
+    rawStatus: row.status ?? null, riskLevel: text(row.risk_level, 'unknown'), decisionClass: classifyProposalDecision(row),
+    decisionActor: decisionActor(row), createdAt: createdAt(row), executedAt: text(row.executed_at) || null,
+    execution: executionReadiness(row), outcome: outcomeState(row),
   };
 }
 
@@ -140,22 +156,12 @@ function extractRiskOpportunity(runRows: Row[]) {
   const items: Array<{ id: string; kind: 'risk' | 'opportunity'; text: string; epistemicClass: string; sourceRunId: string; createdAt: string | null }> = [];
   for (const run of runRows) {
     const envelope = rec(run.output_envelope);
-    const buckets: Array<['risk' | 'opportunity', unknown]> = [
-      ['risk', envelope.risks],
-      ['opportunity', envelope.opportunities],
-    ];
+    const buckets: Array<['risk' | 'opportunity', unknown]> = [['risk', envelope.risks], ['opportunity', envelope.opportunities]];
     for (const [kind, value] of buckets) {
       rows(value).slice(0, 8).forEach((item, index) => {
         const statement = text(item.statement ?? item.title ?? item.description ?? item.risk ?? item.opportunity);
         if (!statement) return;
-        items.push({
-          id: `${text(run.id, 'run')}:${kind}:${index}`,
-          kind,
-          text: statement,
-          epistemicClass: text(item.epistemicClass ?? item.epistemic_class, 'UNSPECIFIED_RUNTIME_OUTPUT'),
-          sourceRunId: text(run.id),
-          createdAt: createdAt(run),
-        });
+        items.push({ id: `${text(run.id, 'run')}:${kind}:${index}`, kind, text: statement, epistemicClass: text(item.epistemicClass ?? item.epistemic_class, 'UNSPECIFIED_RUNTIME_OUTPUT'), sourceRunId: text(run.id), createdAt: createdAt(run) });
       });
     }
   }
@@ -171,7 +177,8 @@ function reservedCapabilityState(allRows: Row[]) {
       status: row ? state : 'NOT_FOUND',
       executionAuthorized: row ? ['queued', 'accepted'].includes(state) : false,
       implementationPerformedByWorkboard: false,
-      boundary: 'Observed governance gate only. This workboard never activates the reserved capability itself.',
+      implementationOwner: definition.id === RESERVED_CAPABILITY_PROPOSALS[0].id ? 'governed_execution_router_v1' : 'self_healing_bootstrap_v1',
+      boundary: 'The workboard only observes governance/runtime state. Capability execution is owned by the governed router and remains bounded by authorization, RETURN and ROOT-only canon.',
     };
   });
 }
@@ -195,28 +202,19 @@ export async function readRootOperationalWorkboard(input: { authority: Workboard
     readObservedSfiCognitiveRuntime(),
     readUniversalOpenCycles(24),
     db.from('sfi_cognitive_twin_runs').select('id,task_id,role,status,objective,output_envelope,evidence_refs,limitations,created_at,finished_at').order('created_at', { ascending: false }).limit(80),
-    db.from('epistemic_events').select('event_id,event_name,epistemic_class,confidence,payload,occurred_at,lineage,source').in('event_name', ['SFI_UNIVERSAL_RETURN_RECORDED', 'acp.proposal.outcome_recorded']).order('sequence', { ascending: false }).limit(40),
+    db.from('epistemic_events').select('event_id,event_name,epistemic_class,confidence,payload,occurred_at,lineage,source').in('event_name', ['SFI_UNIVERSAL_RETURN_RECORDED', 'SFI_PROPOSAL_RETURN_RECORDED']).order('sequence', { ascending: false }).limit(40),
   ]);
 
   const reportHealth = await readRootReportHealth(reportInbox);
   const proposalWarnings = [recentProposals.error?.message, pinnedProposals.error?.message].filter((value): value is string => Boolean(value));
   const allRowsById = new Map<string, Row>();
-  [...rows(recentProposals.data), ...rows(pinnedProposals.data)].forEach((row) => {
-    const id = text(row.id);
-    if (id) allRowsById.set(id, row);
-  });
+  [...rows(recentProposals.data), ...rows(pinnedProposals.data)].forEach((row) => { const id = text(row.id); if (id) allRowsById.set(id, row); });
   const allRows = [...allRowsById.values()];
   const visibleRows = allowedProposalRows(allRows, input.authority);
 
-  const decisions = visibleRows
-    .filter((row) => ['proposed', 'waiting_evidence', 'conflicted'].includes(normalizeProposalState(row.status)))
-    .map(proposalItem);
-  const executions = visibleRows
-    .filter((row) => ['design_approved', 'queued'].includes(normalizeProposalState(row.status)))
-    .map(proposalItem);
-  const resolved = visibleRows
-    .filter((row) => ['accepted', 'rejected', 'frozen', 'superseded'].includes(normalizeProposalState(row.status)))
-    .map(proposalItem);
+  const decisions = visibleRows.filter((row) => ['proposed', 'waiting_evidence', 'conflicted'].includes(normalizeProposalState(row.status))).map(proposalItem);
+  const executions = visibleRows.filter((row) => ['design_approved', 'queued'].includes(normalizeProposalState(row.status))).map(proposalItem);
+  const resolved = visibleRows.filter((row) => ['accepted', 'rejected', 'frozen', 'superseded'].includes(normalizeProposalState(row.status))).map(proposalItem);
   const canonCandidates = input.authority === 'root'
     ? allRows.filter((row) => {
       const item = outcomeState(row);
@@ -227,9 +225,7 @@ export async function readRootOperationalWorkboard(input: { authority: Workboard
 
   const blockedReports = reportHealth.lanes.filter((lane) => ['CURRENT_BLOCKED', 'MISSING_CURRENT_PERIOD', 'NEVER_GENERATED'].includes(lane.state));
   const executionGaps = executions.filter((item) => item.execution.adapterState === 'MISSING_EXECUTION_ADAPTER');
-  const runtimeWarnings = runtime.agents
-    .filter((agent) => agent.status === 'missing' || agent.status === 'degraded')
-    .flatMap((agent) => agent.evidence.warnings.map((warning) => `${agent.id}:${warning}`));
+  const runtimeWarnings = runtime.agents.filter((agent) => agent.status === 'missing' || agent.status === 'degraded').flatMap((agent) => agent.evidence.warnings.map((warning) => `${agent.id}:${warning}`));
   const warnings = unique([
     ...proposalWarnings,
     recentRuns.error ? `sfi_cognitive_twin_runs:${recentRuns.error.message}` : null,
@@ -247,13 +243,9 @@ export async function readRootOperationalWorkboard(input: { authority: Workboard
 
   const runRows = rows(recentRuns.data);
   const returns = rows(returnEvents.data).map((event) => ({
-    id: text(event.event_id),
-    eventName: text(event.event_name),
-    epistemicClass: text(event.epistemic_class, 'missing'),
-    confidence: typeof event.confidence === 'number' ? event.confidence : null,
-    occurredAt: text(event.occurred_at) || null,
-    payload: rec(event.payload),
-    lineage: arr(event.lineage).filter((value): value is string => typeof value === 'string'),
+    id: text(event.event_id), eventName: text(event.event_name), epistemicClass: text(event.epistemic_class, 'missing'),
+    confidence: typeof event.confidence === 'number' ? event.confidence : null, occurredAt: text(event.occurred_at) || null,
+    payload: rec(event.payload), lineage: arr(event.lineage).filter((value): value is string => typeof value === 'string'),
   }));
 
   return {
@@ -261,25 +253,17 @@ export async function readRootOperationalWorkboard(input: { authority: Workboard
     authority: input.authority,
     contract: {
       flow: ['proposal', 'authorization', 'routing', 'assignment', 'execution', 'return', 'calibration', 'learning', 'canon_or_close'],
-      routingMode: 'OBSERVE_AND_MATCH_ONLY',
-      autoDispatch: false,
-      selfHealing: false,
+      routingMode: 'GOVERNED_AUTO_AFTER_AUTHORIZATION',
+      autoDispatch: true,
+      selfHealing: true,
       canonAuthority: 'ROOT_ONLY',
-      principle: 'The workboard makes handoffs and missing execution adapters visible. It does not treat cognitive support agents as mutation executors and does not activate ungoverned reserved capabilities.',
+      principle: 'Observation/diagnosis may proceed automatically. A queued governed scope may route, execute and retry through verified adapters. Material external actions fail closed without an adapter. RETURN is mandatory and canon remains ROOT-only.',
     },
     summary: {
-      decisions: decisions.length,
-      executions: executions.length,
-      executionAdapterGaps: executionGaps.length,
-      openUniversalCycles: openCycles.universal.length,
-      returns: returns.length,
-      canonCandidates: canonCandidates.length,
-      reports: reportInbox.items.length,
-      blockedReportLanes: blockedReports.length,
-      runtime: runtime.summary,
-      registeredAgents: runtime.contract.registeredAgents,
-      executorAgents: runtime.contract.executorAgents,
-      warnings: warnings.length,
+      decisions: decisions.length, executions: executions.length, executionAdapterGaps: executionGaps.length,
+      openUniversalCycles: openCycles.universal.length, returns: returns.length, canonCandidates: canonCandidates.length,
+      reports: reportInbox.items.length, blockedReportLanes: blockedReports.length, runtime: runtime.summary,
+      registeredAgents: runtime.contract.registeredAgents, executorAgents: runtime.contract.executorAgents, warnings: warnings.length,
     },
     decisions,
     executions,
@@ -288,17 +272,8 @@ export async function readRootOperationalWorkboard(input: { authority: Workboard
     reports: {
       health: reportHealth,
       recent: reportInbox.items.slice(0, 12).map((item) => ({
-        id: item.id,
-        category: item.category,
-        cadence: item.cadence,
-        scheduleKey: item.scheduleKey,
-        title: item.title,
-        body: item.body,
-        status: item.status,
-        createdAt: item.createdAt,
-        evidence: item.evidence,
-        warnings: item.warnings,
-        approvalQueue: item.approvalQueue,
+        id: item.id, category: item.category, cadence: item.cadence, scheduleKey: item.scheduleKey, title: item.title,
+        body: item.body, status: item.status, createdAt: item.createdAt, evidence: item.evidence, warnings: item.warnings, approvalQueue: item.approvalQueue,
       })),
     },
     riskOpportunity: extractRiskOpportunity(runRows),
@@ -313,11 +288,9 @@ export async function readRootOperationalWorkboard(input: { authority: Workboard
       executorAgents: runtime.contract.executorAgents,
       agents: runtime.agents.map((agent) => ({ id: agent.id, name: agent.name, layer: agent.layer, status: agent.status, authorityLevel: agent.authorityLevel })),
       agenticCapabilities: SFI_AGENTIC_CAPABILITIES.map((capability) => ({ id: capability.id, route: capability.route, approvalRequired: capability.approvalRequired, executes: capability.executes })),
+      executionAdapters: SFI_GOVERNED_EXECUTION_ADAPTERS.map((adapter) => ({ capabilityId: adapter.capabilityId, domain: adapter.domain, healthStatus: adapter.healthStatus, executorRef: adapter.executorRef })),
     },
-    governanceGates: {
-      foundation: foundationState(allRows),
-      reservedCapabilities: reservedCapabilityState(allRows),
-    },
+    governanceGates: { foundation: foundationState(allRows), reservedCapabilities: reservedCapabilityState(allRows) },
     warnings,
   };
 }
