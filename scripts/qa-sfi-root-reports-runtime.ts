@@ -39,6 +39,9 @@ assert.ok(liveUi.includes('/api/logbook/visible'), 'ROOT must expose visible log
 assert.ok(liveUi.includes('/api/root/decisions'), 'ROOT must expose decision/report queue access');
 assert.match(prepare, /eq\('status', 'design_approved'\)/, 'Preparation must start only from design_approved');
 assert.match(prepare, /status: 'queued'/, 'Preparation must transition to queued');
+assert.match(prepare, /function proposalTypeOf/, 'Preparation must derive the canonical proposal type from the row');
+assert.match(prepare, /proposalType,\n\s*expectedStatuses: \['design_approved'\]/, 'Preparation must preserve the proposal type during transition');
+assert.doesNotMatch(prepare, /proposalType:\s*'twin_proposal'/, 'Preparation must never coerce every approved proposal into twin_proposal');
 assert.match(realize, /approval\.explicit === true && approval\.scope === 'internal_record_only'/, 'Realization must require explicit internal approval');
 assert.match(realize, /external_action_allowed: false/, 'Realization must not imply external execution');
 assert.match(freeze, /decision: 'freeze'/, 'Cancellation must use canonical frozen lifecycle transition');
@@ -58,6 +61,7 @@ console.log(JSON.stringify({
     'agent passports declare reads/writes/executes/evidence',
     'ROOT and AGENTS are observable through canonical live scenes',
     'ROOT distinguishes design approval, preparation and governed realization',
+    'ROOT preparation preserves the real proposal type instead of coercing twin_proposal',
     'ROOT can freeze/cancel without erasing lineage',
     'ROOT exposes its visible logbook and decision/report queue',
     'realization remains internal_record_only and does not imply external execution',
