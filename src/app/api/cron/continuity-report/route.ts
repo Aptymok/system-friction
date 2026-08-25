@@ -3,6 +3,7 @@ import { createDailyContinuityReport } from '@/lib/continuity/runtime';
 import { runScheduledAgentReportCycle } from '@/lib/reports/scheduledAgentReports';
 import { runCognitiveTwinDevelopmentalHeartbeat } from '@/core/cognitive-twin/reentry/runtime';
 import { considerCognitiveTwinMutationProposal } from '@/core/cognitive-twin/reentry/experiments';
+import { ensureCognitiveTwinReentryGovernanceRequest } from '@/core/cognitive-twin/reentry/governedActivation';
 import { syncSfiInstitutionalStateToCognitiveTwin } from '@/core/cognitive-twin/institutionalIntegration';
 import { runGovernedExecutionRouterCycle } from '@/lib/execution/governedExecutionRouter';
 
@@ -30,7 +31,7 @@ export async function GET(request: NextRequest) {
       integration:null,
       error:error instanceof Error ? error.message : String(error),
     }));
-    const [scheduledReports, cognitiveTwinHeartbeat, cognitiveTwinMutation, executionRouter] = await Promise.all([
+    const [scheduledReports, cognitiveTwinHeartbeat, cognitiveTwinMutation, cognitiveTwinReentryRequest, executionRouter] = await Promise.all([
       runScheduledAgentReportCycle().catch((error) => ({
         ok: false,
         generated: 0,
@@ -49,6 +50,11 @@ export async function GET(request: NextRequest) {
         proposed: false,
         error: error instanceof Error ? error.message : String(error),
       })),
+      ensureCognitiveTwinReentryGovernanceRequest().catch((error) => ({
+        ok: false,
+        proposed: false,
+        error: error instanceof Error ? error.message : String(error),
+      })),
       runGovernedExecutionRouterCycle().catch((error) => ({
         ok: false,
         active: true,
@@ -64,8 +70,9 @@ export async function GET(request: NextRequest) {
       scheduledReports,
       cognitiveTwinHeartbeat,
       cognitiveTwinMutation,
+      cognitiveTwinReentryRequest,
       executionRouter,
-      schedulingRule: 'Uses the existing continuity-report cron. SFI organ sync occurs before the CT-A01 heartbeat; authorized execution routing/self-healing diagnostics reuse this same cycle and do not introduce another Vercel cron.',
+      schedulingRule: 'Uses the existing continuity-report cron. SFI organ sync occurs before CT-A01 observation; governed CT Reentry requests plus authorized execution routing/self-healing reuse this cycle and do not introduce another Vercel cron.',
     });
   } catch (error) {
     return NextResponse.json({ ok: false, error: 'continuity_report_failed', details: error instanceof Error ? error.message : String(error) }, { status: 500 });
