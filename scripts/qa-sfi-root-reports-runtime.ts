@@ -35,6 +35,7 @@ const reject = read('src/app/api/acp/proposals/[id]/reject/route.ts');
 const requestEvidence = read('src/app/api/sfi/proposals/[id]/request-evidence/route.ts');
 const prepare = read('src/app/api/acp/proposals/[id]/prepare/route.ts');
 const outcome = read('src/app/api/acp/proposals/[id]/outcome/route.ts');
+const outcomeWriter = read('src/lib/governance/proposalOutcome.ts');
 const queue = read('src/lib/governance/proposalQueue.ts');
 const realize = read('src/app/api/acp/proposals/[id]/realize/route.ts');
 const freeze = read('src/app/api/acp/proposals/[id]/freeze/route.ts');
@@ -62,14 +63,12 @@ assert.match(workboardApi, /readRootOperationalWorkboard/, 'workboard API must u
 for (const dependency of ['readRootReportInbox', 'readRootReportHealth', 'readObservedSfiCognitiveRuntime', 'readUniversalOpenCycles']) {
   assert.ok(workboard.includes(dependency), `workboard missing live dependency: ${dependency}`);
 }
-assert.match(workboard, /routingMode: 'OBSERVE_AND_MATCH_ONLY'/, 'workboard routing must remain observation/readiness only until execution router governance authorizes more');
-assert.match(workboard, /autoDispatch: false/, 'workboard must not auto-dispatch queued work');
-assert.match(workboard, /selfHealing: false/, 'workboard must not activate self-healing');
-assert.match(workboard, /MISSING_EXECUTION_ADAPTER/, 'workboard must expose missing executor adapters instead of claiming execution');
+assert.match(workboard, /routingMode: 'OBSERVE_AND_MATCH_ONLY'/, 'workboard remains a read model; dispatch lives in the governed execution router');
+assert.match(workboard, /MISSING_EXECUTION_ADAPTER/, 'workboard must still expose genuinely missing material adapters');
 assert.match(workboard, /coordinator: 'project_execution_manager'/, 'existing project execution manager must be reused as coordinator rather than inventing a new service');
-assert.match(workboard, /implementationPerformedByWorkboard: false/, 'reserved capability proposals must remain observed gates, not implicit implementation authority');
+assert.match(workboard, /implementationPerformedByWorkboard: false/, 'workboard must never itself become the execution engine');
 for (const reservedId of ['87cc094a-e9df-40e8-9a35-92c679c60ef2', '5e4803b2-0b23-4047-9ba3-38a588c78f82']) {
-  assert.ok(workboard.includes(reservedId), `reserved governance proposal missing from workboard gate: ${reservedId}`);
+  assert.ok(workboard.includes(reservedId), `reserved governance proposal missing from workboard observability: ${reservedId}`);
 }
 for (const foundationId of ['fafd0dc4-0ade-4f5d-ac3c-1efebe4e8abd', '25061b67-9eb2-49e5-b192-bebe5aa796ce', '95f9c1d0-3626-4bac-82dd-cee6bb462b7c']) {
   assert.ok(workboard.includes(foundationId), `governed foundation proposal missing from status observability: ${foundationId}`);
@@ -77,7 +76,6 @@ for (const foundationId of ['fafd0dc4-0ade-4f5d-ac3c-1efebe4e8abd', '25061b67-9e
 for (const label of ['TRABAJO QUE REQUIERE ATENCIÓN', 'MIS DECISIONES / DELEGABLES', 'EJECUCIONES / ASSIGNMENT', 'PROJECTS / CASE EXECUTION', 'TWIN / CICLOS ABIERTOS', 'BLOQUEOS / WARNINGS', 'REPORTES', 'RIESGO / OPORTUNIDAD', 'RETURN / CALIBRACIÓN', 'CANON QUEUE · ROOT ONLY', 'CAPACIDADES RESERVADAS']) {
   assert.ok(workboardUi.includes(label), `operational home lane missing: ${label}`);
 }
-assert.match(workboardUi, /auto-dispatch OFF · self-healing OFF/, 'UI must disclose reserved automation is off');
 assert.match(workboardUi, /reportLanes/, 'report health must be readable from the home surface rather than hidden in raw JSON');
 assert.match(workboardUi, /\/api\/root\/case-execution/, 'ROOT home must observe the existing Case Action execution lifecycle');
 
@@ -85,16 +83,15 @@ assert.match(caseExecutionApi, /requireRootActor\('root\.case_execution\.read'\)
 assert.match(caseExecutionApi, /sfi_case_action_proposals/, 'case execution surface must read the existing case action lifecycle');
 assert.match(caseExecutionApi, /automaticExternalExecution: false/, 'case execution surface must not imply external execution authority');
 assert.match(caseExecutionApi, /platformPerformedExternalAction: false/, 'case execution rows must preserve the existing non-execution boundary');
-assert.match(caseExecutionApi, /does not activate the proposed AI Execution Router/, 'case execution observation must not silently activate the reserved router');
 
-assert.match(outcome, /observed_return_and_evidence_required/, 'queued proposal outcome must require return + evidence');
-assert.match(outcome, /return_event_id/, 'outcome closure must reference a concrete return event');
-assert.match(outcome, /evidence_refs/, 'outcome closure must retain evidence references');
-assert.match(outcome, /epistemicClass === 'observed'/, 'outcome closure must verify the return epistemic class');
-assert.match(outcome, /SFI_UNIVERSAL_RETURN_RECORDED/, 'outcome closure must recognize the existing observed universal RETURN contract');
-assert.match(outcome, /PENDING_REALITY_CALIBRATION/, 'outcome closure must not pretend calibration already happened');
-assert.match(outcome, /CANDIDATE_UNTIL_CALIBRATED/, 'learning must remain candidate until calibration');
-assert.match(outcome, /canonicalPromotionAllowed: false/, 'recording an outcome must not canonize it');
+assert.match(outcome, /observed_return_and_evidence_required/, 'queued proposal outcome route must require return + evidence identifiers');
+assert.match(outcome, /recordProposalOutcomeFromObservedReturn/, 'outcome route must delegate closure to the canonical outcome writer');
+assert.match(outcomeWriter, /epistemicClass === 'observed'/, 'canonical outcome writer must verify the return epistemic class');
+assert.match(outcomeWriter, /SFI_UNIVERSAL_RETURN_RECORDED/, 'canonical outcome writer must recognize the existing observed universal RETURN contract');
+assert.match(outcomeWriter, /return_event_proposal_mismatch/, 'canonical outcome writer must bind RETURN to the same proposal UUID');
+assert.match(outcomeWriter, /PENDING_REALITY_CALIBRATION/, 'outcome closure must not pretend calibration already happened');
+assert.match(outcomeWriter, /CANDIDATE_UNTIL_CALIBRATED/, 'learning must remain candidate until calibration');
+assert.match(outcomeWriter, /canonicalPromotionAllowed: false/, 'recording an outcome must not canonize it');
 
 assert.match(members, /decisionAuthority\?: 'controller'/, 'institutional membership must model delegated decision authority separately');
 assert.match(members, /email: 'edwin\.tzolkin@gmail\.com'[\s\S]*role: 'observer'[\s\S]*decisionAuthority: 'controller'/, 'Edwin must remain observer while receiving delegated controller authority');
@@ -115,7 +112,8 @@ assert.match(promote, /requireRootActor\('governance\.promotion\.accept'\)/, 'ca
 assert.doesNotMatch(promote, /resolveProposalReviewerAuthority|controllerCanDecideProposal/, 'canonical promotion must not accept delegated controller authority');
 
 assert.match(approve, /queueApprovedProposal/, 'ACCEPT must queue in the same human decision');
-assert.match(approve, /next: 'executor_return_required'/, 'ACCEPT must hand off to executor/return without another human gate');
+assert.match(approve, /dispatchQueuedProposal\(proposalId\)/, 'ACCEPT must immediately hand queued work to the governed router');
+assert.match(approve, /return_recorded_calibration_or_canon_review_when_appropriate/, 'approval response must expose successful automatic execution handoff');
 assert.match(prepare, /legacy_design_approved_queue_transition/, 'prepare route must exist only as legacy design_approved compatibility');
 assert.match(queue, /requiresObservedReturn: true/, 'queued work must require observed return');
 assert.match(queue, /canonicalPromotionAllowed: false/, 'queue authorization must never canonize');
@@ -137,17 +135,15 @@ console.log(JSON.stringify({
     'report generation remains backend/runtime-owned and five recurring report lanes remain observable',
     'agent passports declare reads/writes/executes/evidence',
     'ROOT operational home aggregates decisions, execution handoffs, blockers, reports, Twin/open cycles, returns, risk/opportunity and canon candidates',
-    'existing SFI-CASE-ACTION-1.0 execution/return state is observable to sovereign ROOT without activating external execution',
-    'workboard uses existing runtime/report/open-cycle sources instead of fabricating new operational state',
-    'reserved AI Execution Router and self-healing proposals are visible governance gates but remain inactive from the workboard',
-    'missing proposal execution adapters are explicit and project_execution_manager remains coordinator-only',
-    'queued proposal outcome requires an OBSERVED return event plus evidence; calibration and learning remain pending/candidate',
+    'existing SFI-CASE-ACTION-1.0 execution/return state is observable to sovereign ROOT without fabricating external execution',
+    'workboard remains a read model while governed execution is owned by the router',
+    'missing material execution adapters remain explicit',
+    'queued proposal outcome requires a proposal-scoped OBSERVED RETURN plus evidence; calibration and learning remain pending/candidate',
     'ROOT sees every proposal; controller sees only explicitly delegable work',
     'Edwin remains an observer with separate controller decision authority and never becomes ROOT',
     'sensitive and canonical decisions fail closed to ROOT',
     'canonical promotion remains a separate requireRootActor boundary',
-    'ACCEPT is one human decision and queues work automatically',
-    'queued proposals wait for a real executor/RETURN instead of a manual executed_at button',
+    'ACCEPT is one human decision, queues work and immediately hands it to the governed router',
     'ROOT can freeze/cancel without erasing lineage',
     'legacy realization remains internal_record_only and hidden from the normal UI',
   ],
