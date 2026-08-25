@@ -94,13 +94,15 @@ for(const file of files){
   }
 }
 
+// Dynamic scene names are lenses, so they must not acquire standalone page owners.
+// API namespaces are NOT judged by their label: e.g. /api/governance is a legitimate
+// pre-existing governance capability owned by ROOT. API ownership is instead enforced
+// through the PR preflight, single-writer checks and domain contracts below.
 for(const lens of visualLensNames){
   for(const ext of ['ts','tsx','js','jsx']){
     const explicitPage=repoFile(`src/app/${lens}/page.${ext}`);
     if(fs.existsSync(explicitPage)) report('P17_LENS_NOT_BOUNDED_CONTEXT',explicitPage,`${lens} is a dynamic visual lens; do not create an independent application page owner`);
   }
-  const apiNamespace=repoFile(`src/app/api/${lens}`);
-  if(fs.existsSync(apiNamespace)) report('P17_LENS_NOT_BOUNDED_CONTEXT',apiNamespace,`${lens} is a lens and cannot own an API namespace; project data from its canonical owner instead`);
 }
 
 function eventPayload(){
@@ -131,8 +133,6 @@ const structuralAdded=added.filter(file=>/^src\/(?:app\/api\/|app\/.+\/page\.(?:
 for(const file of added){
   const lensPage=file.match(/^src\/app\/([^/]+)\/page\.(?:ts|tsx|js|jsx)$/)?.[1];
   if(lensPage&&visualLensNames.includes(lensPage)) report('P17_LENS_NOT_BOUNDED_CONTEXT',repoFile(file),`${lensPage} must remain in the shared dynamic scene/lens implementation`);
-  const lensApi=file.match(/^src\/app\/api\/([^/]+)\//)?.[1];
-  if(lensApi&&visualLensNames.includes(lensApi)) report('P17_LENS_NOT_BOUNDED_CONTEXT',repoFile(file),`${lensApi} cannot become an API owner`);
 }
 
 if(structuralAdded.length&&event?.pull_request){
