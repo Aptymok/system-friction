@@ -100,8 +100,11 @@ If a lens needs new durable state, the state must be owned by one of the canonic
 - AMV: internal orchestration/memory capability consumed by ROOT, Method Lab and the pipeline.
 - World Vector / WorldSpect: observational context owned by Observatory and consumed elsewhere with provenance.
 - ScoreFriction: instrument/product capability. It does not justify another ROOT dashboard merely because it has components.
-- Cognitive Twin / Cognitive Spine: one institutional memory, deliberation and developmental organ spanning ROOT, pipeline and Method Lab. `Cognitive Spine` may be used as its visual/operational anatomy; it does not create a second Twin implementation. Model providers are replaceable substrates, not the Twin.
+- Cognitive Twin: the versioned developmental/decision-learning representation (including CT-A01 and its reentry/Decision Transfer contracts). It is not a surface and it does not inherit truth or canon authority.
+- Cognitive Spine: the already-existing institutional reconstruction/projection/integration layer under `src/core/cognitive-spine`. It materializes sealed, profile-bounded snapshots and carries allowed context across Runtime, Studio, ROOT, Field, Method Lab, Decision Transfer, WorldSpect, Atlas and Library. It may expose bounded Twin memory/decision context through explicit adapters, but it does not turn context into evidence, does not grant truth authority and is not a second Twin implementation.
 - Atlas: longitudinal reference function. Private operational views belong inside ROOT; public longitudinal representation belongs in Observatory. No third parallel Atlas implementation.
+
+`Cognitive Spine` is the correct name for the transversal operational anatomy. A visual anatomy may expose CT-A01 as a developmental organ inside that anatomy, but visualization must reuse the existing Spine contracts/status rather than create a parallel `Spine` or `Twin` backend.
 
 ## Agentic operating model
 
@@ -115,7 +118,7 @@ Agents may observe, diagnose, decompose, route, execute bounded capabilities, re
 
 ROOT defines and observes authority. ROOT should not be required to click through intermediate states that carry no new decision.
 
-The Cognitive Twin/Cognitive Spine learns only from lineage-preserving records under its epistemic boundaries. Learning, functional execution, validation and canon remain distinct states.
+Cognitive Spine may transport a sealed institutional context and Cognitive Twin may learn or deliberate only through lineage-preserving records under their declared epistemic boundaries. Context transport, learning, functional execution, validation, truth and canon remain distinct states.
 
 ## Agent development entrypoint
 
