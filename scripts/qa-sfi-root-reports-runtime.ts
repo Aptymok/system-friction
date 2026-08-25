@@ -22,6 +22,9 @@ for (const field of ['reads:', 'writes:', 'executes:', 'executionEvidence:']) {
 
 const scenes = read('src/components/sfi/scenes.ts');
 const liveUi = read('src/components/sfi/SfiConsole.tsx');
+const workboardUi = read('src/components/sfi/RootOperationalWorkboard.tsx');
+const workboardApi = read('src/app/api/root/workboard/route.ts');
+const workboard = read('src/lib/root/operationalWorkboard.ts');
 const members = read('src/lib/system/access/institutionalMembers.ts');
 const reviewer = read('src/lib/governance/proposalReviewer.ts');
 const decisionAuthority = read('src/lib/governance/proposalDecisionAuthority.ts');
@@ -49,6 +52,31 @@ assert.ok(liveUi.includes('Decidir no es canonizar'), 'UI must separate governan
 assert.ok(liveUi.includes('PROMOCIÓN CANÓNICA BLOQUEADA'), 'delegated controller must see the canonical boundary');
 assert.ok(liveUi.includes('/api/logbook/visible'), 'ROOT must expose visible logbook access');
 assert.ok(liveUi.includes('/api/root/decisions'), 'ROOT must expose decision/report queue access');
+assert.match(liveUi, /RootOperationalWorkboard/, 'ROOT live scene must mount the actionable operational home');
+
+assert.match(workboardApi, /requireRootViewer\('root\.workboard\.read'\)/, 'workboard must remain behind ROOT-observer authorization');
+assert.match(workboardApi, /resolveProposalReviewerAuthority/, 'workboard must resolve ROOT/controller authority');
+assert.match(workboardApi, /readRootOperationalWorkboard/, 'workboard API must use the canonical server aggregator');
+for (const dependency of ['readRootReportInbox', 'readRootReportHealth', 'readObservedSfiCognitiveRuntime', 'readUniversalOpenCycles']) {
+  assert.ok(workboard.includes(dependency), `workboard missing live dependency: ${dependency}`);
+}
+assert.match(workboard, /routingMode: 'OBSERVE_AND_MATCH_ONLY'/, 'workboard routing must remain observation/readiness only until execution router governance authorizes more');
+assert.match(workboard, /autoDispatch: false/, 'workboard must not auto-dispatch queued work');
+assert.match(workboard, /selfHealing: false/, 'workboard must not activate self-healing');
+assert.match(workboard, /MISSING_EXECUTION_ADAPTER/, 'workboard must expose missing executor adapters instead of claiming execution');
+assert.match(workboard, /coordinator: 'project_execution_manager'/, 'existing project execution manager must be reused as coordinator rather than inventing a new service');
+assert.match(workboard, /implementationPerformedByWorkboard: false/, 'reserved capability proposals must remain observed gates, not implicit implementation authority');
+for (const reservedId of ['87cc094a-e9df-40e8-9a35-92c679c60ef2', '5e4803b2-0b23-4047-9ba3-38a588c78f82']) {
+  assert.ok(workboard.includes(reservedId), `reserved governance proposal missing from workboard gate: ${reservedId}`);
+}
+for (const foundationId of ['fafd0dc4-0ade-4f5d-ac3c-1efebe4e8abd', '25061b67-9eb2-49e5-b192-bebe5aa796ce', '95f9c1d0-3626-4bac-82dd-cee6bb462b7c']) {
+  assert.ok(workboard.includes(foundationId), `governed foundation proposal missing from status observability: ${foundationId}`);
+}
+for (const label of ['TRABAJO QUE REQUIERE ATENCIÓN', 'MIS DECISIONES / DELEGABLES', 'EJECUCIONES / ASSIGNMENT', 'BLOQUEOS / WARNINGS', 'REPORTES', 'RIESGO / OPORTUNIDAD', 'RETURN / CALIBRACIÓN', 'CANON QUEUE · ROOT ONLY', 'CAPACIDADES RESERVADAS']) {
+  assert.ok(workboardUi.includes(label), `operational home lane missing: ${label}`);
+}
+assert.match(workboardUi, /auto-dispatch OFF · self-healing OFF/, 'UI must disclose reserved automation is off');
+assert.match(workboardUi, /world_daily|reportLanes/, 'report health must be readable from the home surface rather than hidden in raw JSON');
 
 assert.match(members, /decisionAuthority\?: 'controller'/, 'institutional membership must model delegated decision authority separately');
 assert.match(members, /email: 'edwin\.tzolkin@gmail\.com'[\s\S]*role: 'observer'[\s\S]*decisionAuthority: 'controller'/, 'Edwin must remain observer while receiving delegated controller authority');
@@ -92,6 +120,10 @@ console.log(JSON.stringify({
     'five recurring report lanes reuse existing cron',
     'degraded provider output is not READY',
     'agent passports declare reads/writes/executes/evidence',
+    'ROOT operational home aggregates decisions, execution handoffs, blockers, reports, returns, risk/opportunity and canon candidates',
+    'workboard uses existing runtime/report/open-cycle sources instead of fabricating new operational state',
+    'reserved AI Execution Router and self-healing proposals are visible governance gates but remain inactive from the workboard',
+    'missing proposal execution adapters are explicit and project_execution_manager remains coordinator-only',
     'ROOT sees every proposal; controller sees only explicitly delegable work',
     'Edwin remains an observer with separate controller decision authority and never becomes ROOT',
     'sensitive and canonical decisions fail closed to ROOT',
