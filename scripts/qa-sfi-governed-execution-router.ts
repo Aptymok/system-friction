@@ -51,7 +51,15 @@ requireText(hourlyCron, 'verifyGitHubActionsOidcToken', 'hourly-router-auth-rema
 requireText(hourlyWorkflow, "cron: '15 * * * *'", 'reuse-existing-hourly-scheduler');
 requireText(hourlyWorkflow, 'workflow_dispatch:', 'existing-hourly-manual-trigger-retained');
 requireText(rootRunner, 'runGovernedExecutionRouter({ limit: 10 })', 'root-full-cycle-router');
-requireText(externalExecute, "error: declaredAdapter ? 'execution_dispatch_not_implemented' : 'execution_adapter_required'", 'external-generic-fail-closed');
-requireText(externalExecute, 'executedAtWritten: false', 'no-fake-execution');
+
+requireText(externalExecute, "authorizeExternalRequest(req, 'execute')", 'external-execute-scope-gate');
+requireText(externalExecute, 'body.confirm !== true', 'external-execute-explicit-confirmation');
+requireText(externalExecute, 'dispatchQueuedProposal(proposalId)', 'external-execute-canonical-dispatcher');
+requireText(externalExecute, 'proposalMustAlreadyBeQueued: true', 'external-execute-governance-boundary');
+requireText(externalExecute, 'scopeExpansionAllowed: false', 'external-execute-no-scope-expansion');
+requireText(externalExecute, 'canonicalPromotionAllowed: false', 'external-execute-no-auto-canon');
+forbid(externalExecute, ".from('action_proposals').update", 'external-execute-no-direct-proposal-mutation');
+forbid(externalExecute, "status: 'accepted'", 'external-execute-cannot-self-approve');
+forbid(externalExecute, 'executed_at:', 'external-execute-no-fake-executed-at');
 
 console.log('SFI governed execution router QA: PASS');
