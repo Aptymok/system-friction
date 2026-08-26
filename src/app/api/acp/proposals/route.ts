@@ -44,10 +44,13 @@ export async function GET() {
   const authority=resolveProposalReviewerAuthority(gate.ctx);
   if(!authority)return NextResponse.json({ok:false,error:'proposal_reviewer_required'},{status:403});
 
-  const proposals=await latestActionProposals(undefined,50);
+  const proposals=await latestActionProposals(undefined,80);
   if(proposals.error)return NextResponse.json({ok:false,error:'proposal_list_failed',details:proposals.error},{status:500});
 
-  const sourceRows=proposals.data.map(row=>asRecord(row));
+  // Evidence candidates are subordinate to a parent proposal and have their own
+  // ROOT review surface. Keeping them out of the primary ACP queue prevents the
+  // search subworkflow from multiplying top-level governance decisions.
+  const sourceRows=proposals.data.map(row=>asRecord(row)).filter(row=>proposalTypeFrom(row)!=='evidence_candidate').slice(0,50);
   const visibleRows=authority==='root'?sourceRows:sourceRows.filter(row=>controllerCanDecideProposal(row));
   const rows=visibleRows.map(row=>summarizeProposal(row));
   return NextResponse.json({ok:true,data:{viewerAuthority:authority,proposals:rows,counts:{total:rows.length,proposed:rows.filter(row=>row.status==='proposed').length,waitingEvidence:rows.filter(row=>row.status==='waiting_evidence').length,designApproved:rows.filter(row=>row.status==='design_approved').length,queued:rows.filter(row=>row.status==='queued').length,accepted:rows.filter(row=>row.status==='accepted').length,conflicted:rows.filter(row=>row.status==='conflicted').length,frozen:rows.filter(row=>row.status==='frozen').length,rejected:rows.filter(row=>row.status==='rejected').length}}});
