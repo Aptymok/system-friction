@@ -40,6 +40,28 @@ function proposalText(row: Row) {
   return [row.title, row.description, expected.objective, JSON.stringify(payload)].filter(Boolean).join(' ').toLowerCase();
 }
 
+function hasSubstantiveProposalScope(row: Row) {
+  const expected = recordValue(row.expected_field_delta);
+  const payload = recordValue(expected.payload);
+  const scalarScope = [
+    row.description,
+    expected.objective,
+    payload.objective,
+    payload.scope,
+    payload.action,
+    payload.target,
+    payload.description,
+  ].some((value) => Boolean(stringValue(value)));
+  const payloadScope = Object.entries(payload).some(([key, value]) => {
+    if (['actorId', 'proposalType', 'proposal_type'].includes(key)) return false;
+    if (typeof value === 'string') return value.trim().length > 0;
+    if (Array.isArray(value)) return value.length > 0;
+    if (value && typeof value === 'object') return Object.keys(value as Record<string, unknown>).length > 0;
+    return value !== null && value !== undefined;
+  });
+  return scalarScope || payloadScope;
+}
+
 function hoursSince(value: unknown) {
   const parsed = typeof value === 'string' ? Date.parse(value) : Number.NaN;
   return Number.isFinite(parsed) ? Math.max(0, (Date.now() - parsed) / 3_600_000) : null;
@@ -49,7 +71,7 @@ function riskLevelFromAssessment(row: Row, severities: number[]): { level: Propo
   const text = proposalText(row);
   const scope = classifyGovernedProposalWork(row);
   const maxSeverity = severities.length ? Math.max(...severities) : null;
-  const hasSubstantiveInput = Boolean(stringValue(row.title) || stringValue(row.description) || Object.keys(recordValue(row.expected_field_delta)).length);
+  const hasSubstantiveInput = hasSubstantiveProposalScope(row);
   if (!hasSubstantiveInput) return { level: 'unassessable', confidence: null, rationale: 'MISSING_INPUT_FOR_RISK: proposal has no substantive objective/scope to assess.' };
   if (/(credential|oauth|authentication|security|billing|payment|owner transfer|canonical promotion|canon)/i.test(text)) {
     return { level: 'high', confidence: 0.82, rationale: 'Sensitive authority/security/financial/canonical scope detected; ROOT-only risk boundary applied.' };
