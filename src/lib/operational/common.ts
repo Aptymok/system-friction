@@ -20,6 +20,8 @@ export type ProposalStatus =
   | 'frozen'
   | 'superseded';
 
+export type ProposalRiskLevel = 'low' | 'medium' | 'high' | 'critical' | 'unassessable';
+
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export function canonicalize(value: unknown): unknown {
@@ -145,6 +147,49 @@ export async function latestActionProposals(proposalTypes?: string[], limit = 20
 export async function readOperationalContext() {
   const [worldspect, graph, kernel, governance] = await Promise.all([getLatestWorldSpectSnapshot(), readCanonicalGraphState('sfi'), getLatestKernelCycle(), readGovernanceRuntime()]);
   return { worldspect, worldspectData: worldspect ? snapshotRowToApiData(worldspect) : null, graph, kernel, governance };
+}
+
+/**
+ * Authoritative operational writer for proposal risk_level. Risk assessment is a
+ * derived advisory state; it does not authorize execution or canonical promotion.
+ */
+export async function updateActionProposalRisk(input: {
+  proposalId: string;
+  riskLevel: ProposalRiskLevel;
+  actorId: string;
+  confidence: number | null;
+  rationale: string;
+  sourceEventId?: string | null;
+}) {
+  const service = createServiceSupabaseClient();
+  const { data: existing, error: selectError } = await service.from('action_proposals').select('*').eq('id', input.proposalId).maybeSingle();
+  if (selectError) return { ok: false as const, error: 'action_proposal_risk_lookup_failed', details: selectError.message };
+  if (!existing) return { ok: false as const, error: 'action_proposal_not_found' };
+  const existingRecord = recordValue(existing);
+  const proportionality = recordValue(existingRecord.proportionality_check);
+  const assessedAt = new Date().toISOString();
+  const riskAssessment = {
+    state: input.riskLevel === 'unassessable' ? 'MISSING_INPUT_FOR_RISK' : 'ASSESSED',
+    level: input.riskLevel,
+    confidence: input.confidence,
+    rationale: input.rationale,
+    sourceEventId: input.sourceEventId ?? null,
+    actorId: input.actorId,
+    assessedAt,
+    executionAuthorized: false,
+    canonicalPromotionAllowed: false,
+  };
+  const { data, error } = await service.from('action_proposals').update({
+    risk_level: input.riskLevel,
+    proportionality_check: {
+      ...proportionality,
+      riskAssessmentState: riskAssessment.state,
+      riskAssessment,
+    },
+    updated_at: assessedAt,
+  }).eq('id', input.proposalId).select('*').single();
+  if (error) return { ok: false as const, error: 'action_proposal_risk_update_failed', details: error.message };
+  return { ok: true as const, data, riskAssessment };
 }
 
 export async function updateActionProposalStatus(input: {
