@@ -24,7 +24,7 @@ Recommended delegated credential in SFI:
 
 `root_delegate` is required only for `operation: "run"`. It does not grant proposal self-approval or canonical promotion. Runtime commands also require `confirm: true` and persisted evidence IDs.
 
-Supported commands:
+## Core commands
 
 ```json
 {"operation":"state"}
@@ -55,5 +55,83 @@ Supported commands:
   "confirm":true
 }
 ```
+
+## Research objects / audits
+
+Method Lab is the source of truth for active audits, research objects, findings, returns and publication candidates. The Research Hub is not edited on every observation. Hub mutation occurs only after a governed promotion.
+
+ChatGPT, Gemini and Claude use the existing `persist` command with structured metadata:
+
+```json
+{
+  "operation":"persist",
+  "commandId":"research:SFI-AUDIT-0002:v0.1.0",
+  "title":"Research object snapshot",
+  "content":"Bounded update for the current Method Lab object.",
+  "source":"external_agent",
+  "refs":["evidence:uuid-1","evidence:uuid-2"],
+  "metadata":{
+    "kind":"METHOD_LAB_RESEARCH_OBJECT",
+    "researchObject":{
+      "objectId":"SFI-AUDIT-0002",
+      "objectClass":"AUDIT",
+      "title":"Internal bounded title",
+      "publicTitle":"Public-safe title",
+      "objective":"What is being observed and why",
+      "method":"SFI_AUDIT",
+      "state":"FINDINGS_REGISTERED",
+      "epistemicState":"MIXED",
+      "returnState":"PENDING",
+      "publicationState":"PUBLIC_DERIVATIVE_READY",
+      "summary":"Internal summary",
+      "publicSummary":"Public-safe summary",
+      "confidence":0.9,
+      "evidenceRefs":["evidence:uuid-1"],
+      "findings":[],
+      "publicFindings":[],
+      "metrics":{},
+      "publicMetrics":{},
+      "limitations":[],
+      "publicLimitations":[],
+      "lineage":["SOURCE","TRANSFORM","METHOD_LAB"],
+      "version":"0.1.0"
+    }
+  }
+}
+```
+
+Each meaningful version uses a new `commandId`; retries of the same semantic snapshot reuse the same `commandId` and remain idempotent.
+
+To read all current research objects:
+
+```json
+{"operation":"state"}
+```
+
+To generate the current review/publication package for one object:
+
+```json
+{"operation":"report","objectId":"SFI-AUDIT-0001"}
+```
+
+The response contains a deterministic public-safe package (`README.md`, `FINDINGS.md`, `PUBLIC_TRACE.md`, metrics, hashed provenance, threats to validity and manifest) but does **not** mutate GitHub or Zenodo. Public packages are rendered only from `publicTitle`, `publicSummary`, `publicFindings`, `publicMetrics` and `publicLimitations`; internal evidence references never cross the publication boundary.
+
+## Promotion boundary
+
+The expected lifecycle is:
+
+```text
+external object
+  → Method Lab evidence / research object snapshots
+  → findings / intervention / return
+  → PUBLIC_DERIVATIVE_READY
+  → ROOT promotion proposal
+  → ROOT accept/reject
+  → authorized external agent transports exact package to SFI-RESEARCH-HUB
+  → optional release candidate
+  → deliberate Zenodo/DOI release
+```
+
+No model, bridge or agent may self-promote a research object. Raw restricted institutional evidence is never included in the public package.
 
 The bridge is append/audit oriented. GitHub does not receive direct database credentials. SFI remains the persistence authority and every runtime result keeps the Method Lab epistemic boundary (`SIMULATED` until contrasted with observed return).

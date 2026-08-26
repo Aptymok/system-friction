@@ -1,6 +1,8 @@
 import { MethodLabNativeHub } from '@/components/sfi/MethodLabNativeHub';
+import { MethodLabResearchReview } from '@/components/sfi/MethodLabResearchReview';
 import { readMethodLabState } from '@/lib/method-lab/readModel';
 import { readMethodLabEvidenceOptions } from '@/lib/method-lab/readHubEvidence';
+import { readMethodLabResearchState } from '@/lib/method-lab/researchObjects';
 import { getCognitiveLabSession, listCognitiveLabSessions } from '@/lib/cognitive-lab/service';
 import { requireRootObserverPage } from '@/lib/root/server';
 
@@ -17,10 +19,11 @@ function text(value: unknown) {
 export default async function MethodLabPage() {
   await requireRootObserverPage('/method-lab');
 
-  const [state, sessions, evidence] = await Promise.all([
+  const [state, sessions, evidence, research] = await Promise.all([
     readMethodLabState(),
     listCognitiveLabSessions(30),
     readMethodLabEvidenceOptions(80),
+    readMethodLabResearchState(),
   ]);
 
   const sessionViews = await Promise.all((sessions as Row[]).map(async (session) => {
@@ -51,11 +54,14 @@ export default async function MethodLabPage() {
   }));
 
   return (
-    <MethodLabNativeHub
-      initialState={state}
-      initialSessions={sessionViews}
-      evidenceOptions={evidence.options}
-      evidenceWarnings={evidence.warnings}
-    />
+    <>
+      <MethodLabResearchReview research={research} />
+      <MethodLabNativeHub
+        initialState={state}
+        initialSessions={sessionViews}
+        evidenceOptions={evidence.options}
+        evidenceWarnings={evidence.warnings}
+      />
+    </>
   );
 }

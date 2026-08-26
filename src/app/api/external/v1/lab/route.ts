@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { NextResponse } from 'next/server';
 import { readMethodLabState } from '@/lib/method-lab/readModel';
+import { buildMethodLabPublicationPackage, readMethodLabResearchState } from '@/lib/method-lab/researchObjects';
 import { runMethodLabSimulation } from '@/lib/method-lab/simulationRun';
 import { appendEpistemicEvent } from '@/lib/events/eventStore';
 import { appendOperationalEvent, recordValue, sha256 } from '@/lib/operational/common';
@@ -107,17 +108,35 @@ export async function POST(req: Request) {
   const actorId = externalActor(cred);
 
   if (operation === 'state') {
-    const state = await readMethodLabState();
-    return NextResponse.json({ ok: true, operation, actor: actorId, lab: state });
+    const [state, research] = await Promise.all([readMethodLabState(), readMethodLabResearchState()]);
+    return NextResponse.json({ ok: true, operation, actor: actorId, lab: state, research });
   }
 
   if (operation === 'report') {
     const db = createServiceSupabaseClient();
-    const [analyses, evaluations] = await Promise.all([
+    const [analyses, evaluations, research] = await Promise.all([
       db.from('sfi_lab_analyses').select('id,mode,source,data_mode,limitations,recommendations,raw_analysis,created_at').order('created_at', { ascending: false }).limit(100),
       db.from('sfi_cognitive_twin_evaluations').select('id,provider,model,test_key,test_version,outcome,evidence_refs,executed_at,executor,observed_result').order('executed_at', { ascending: false }).limit(100),
+      readMethodLabResearchState(),
     ]);
-    return NextResponse.json({ ok: !analyses.error && !evaluations.error, operation, actor: actorId, data: { analyses: analyses.data ?? [], evaluations: evaluations.data ?? [] }, warnings: [analyses.error?.message, evaluations.error?.message].filter(Boolean) });
+    const objectId = typeof body.objectId === 'string' ? body.objectId.trim() : '';
+    const researchObject = objectId ? research.objects.find((item) => item.objectId === objectId) ?? null : null;
+    const publicationPackage = researchObject ? buildMethodLabPublicationPackage(researchObject) : null;
+    if (objectId && !researchObject) {
+      return NextResponse.json({ ok: false, error: 'research_object_not_found', objectId }, { status: 404 });
+    }
+    const warnings = [analyses.error?.message, evaluations.error?.message, ...research.warnings].filter(Boolean);
+    const reportOk = objectId ? true : !analyses.error && !evaluations.error;
+    return NextResponse.json({
+      ok: reportOk,
+      operation,
+      actor: actorId,
+      data: { analyses: analyses.data ?? [], evaluations: evaluations.data ?? [], research },
+      researchObject,
+      publicationPackage,
+      transportBoundary: 'Method Lab is source of truth. Hub/Zenodo mutation requires governed promotion plus an authorized external transport agent.',
+      warnings,
+    });
   }
 
   if (operation === 'persist') {
@@ -171,10 +190,6 @@ export async function POST(req: Request) {
     });
 
     if (!event.ok && commandId) {
-      // `event_id` is UNIQUE. If two requests race with the same commandId,
-      // the deterministic event id lets the database reject the duplicate;
-      // reread the winning event and return idempotent success only when the
-      // semantic command fingerprint is identical.
       const existing = await readExistingPersist(commandId);
       if (!existing.error && existing.data) {
         return idempotentPersistResponse({ operation, actorId, commandId, incomingFingerprint, existing: existing.data as Record<string, unknown> });
