@@ -122,7 +122,8 @@ export async function POST(request: Request, ctx: RouteContext) {
     },
   });
   if (!updated.ok) {
-    return NextResponse.json({ ok: false, error: updated.error, details: updated.details ?? null, evidence: evidenceJson }, { status: 409 });
+    const details = 'details' in updated ? updated.details : null;
+    return NextResponse.json({ ok: false, error: updated.error, details, evidence: evidenceJson }, { status: 409 });
   }
 
   return NextResponse.json({
