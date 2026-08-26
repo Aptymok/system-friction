@@ -121,7 +121,12 @@ export function RootOperationalWorkboard({ enabled }: Props) {
     <p className="workboardRuntime">{runtimeLabel}</p>
     {error && <p className="workboardError">DEGRADED · {error}</p>}
 
-    <CognitiveSpineAnatomy enabled={enabled} focusOptions={focusOptions} twinOpenCount={twinProposals.length + openUniversalCycles.length} />
+    <CognitiveSpineAnatomy
+      enabled={enabled}
+      canOperate={data?.authority === 'root'}
+      focusOptions={focusOptions}
+      twinOpenCount={twinProposals.length + openUniversalCycles.length}
+    />
 
     <div className="workboardGrid">
       <Lane title="MIS DECISIONES / DELEGABLES" count={decisions.length}>
