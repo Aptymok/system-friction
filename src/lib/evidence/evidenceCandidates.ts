@@ -1,7 +1,7 @@
 import 'server-only';
 
 import { runPublicResearch, type PublicResearchSource } from '@/lib/agents/publicResearch';
-import { createActionProposal, latestActionProposals, recordValue, sha256, stringValue } from '@/lib/operational/common';
+import { createActionProposal, latestActionProposals, sha256, stringValue } from '@/lib/operational/common';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 
 export type EvidenceCandidateSource = {
@@ -124,7 +124,7 @@ export function evidenceCandidateFromRow(rowValue: unknown): EvidenceCandidateVi
     createdAt: stringValue(row.created_at),
     source: {
       url,
-      title: stringValue(source.title) ?? hostname(url) ?? url,
+      title: stringValue(source.title) ?? hostname(url) || url,
       publisher: stringValue(source.publisher),
       snippet: stringValue(source.snippet) ?? '',
       publishedAt: stringValue(source.publishedAt),
@@ -304,40 +304,18 @@ export async function inspectUrlCandidate(input: {
   }
   if (!['http:', 'https:'].includes(parsed.protocol)) return { ok: false as const, error: 'invalid_source_url_protocol' };
 
-  let contentType: string | null = null;
-  let lastModified: string | null = null;
-  let warning: string | null = null;
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 12_000);
-  try {
-    const response = await fetch(parsed, {
-      method: 'HEAD',
-      redirect: 'follow',
-      cache: 'no-store',
-      signal: controller.signal,
-      headers: { 'User-Agent': 'SystemFrictionInstitute/1.0 evidence-candidate' },
-    });
-    contentType = response.headers.get('content-type');
-    lastModified = response.headers.get('last-modified');
-    if (!response.ok) warning = `source_head_http_${response.status}`;
-  } catch (error) {
-    warning = `source_head_failed:${error instanceof Error ? error.message : 'unknown'}`;
-  } finally {
-    clearTimeout(timeout);
-  }
-
   const sourceType = sourceTypeForUrl(parsed.toString());
   const source = normalizeSource({
     url: parsed.toString(),
     title: input.title?.trim() || parsed.hostname,
     publisher: parsed.hostname.replace(/^www\./, ''),
-    snippet: 'URL supplied for governed evidence review. Content claims have not been accepted or verified by SFI.',
+    snippet: 'URL supplied for governed evidence review. SFI has not fetched, preserved, accepted or verified the referenced content at candidate-intake time.',
     publishedAt: null,
     retrievedAt: new Date().toISOString(),
     sourceType,
     reliability: reliabilityFor(sourceType),
-    contentType,
-    lastModified,
+    contentType: null,
+    lastModified: null,
   });
 
   return createEvidenceCandidate({
@@ -345,8 +323,8 @@ export async function inspectUrlCandidate(input: {
     actorId: input.actorId,
     source,
     requestNote: input.requestNote ?? null,
-    acquisitionProvider: input.acquisitionProvider ?? 'manual_url_inspection',
+    acquisitionProvider: input.acquisitionProvider ?? 'manual_url_reference',
     acquisitionOrigin: input.acquisitionOrigin ?? 'manual_url',
-    warnings: warning ? [warning] : [],
+    warnings: ['REFERENCE_ONLY: candidate URL was staged without server-side retrieval; ROOT must inspect the source before acceptance.'],
   });
 }
