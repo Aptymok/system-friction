@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { readEvidenceReadiness, searchEvidenceCandidates } from '@/lib/evidence/evidenceCandidates';
 import { decideActionProposal } from '@/lib/governance/proposalLifecycle';
 import { controllerCanDecideProposal } from '@/lib/governance/proposalDecisionAuthority';
 import { resolveProposalReviewerAuthority } from '@/lib/governance/proposalReviewer';
@@ -6,6 +7,8 @@ import { requireGovernedActor } from '@/lib/operational/common';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 
 export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+export const maxDuration = 300;
 
 type RouteContext = { params: Promise<{ id: string }> | { id: string } };
 async function routeId(ctx: RouteContext) { const params = await Promise.resolve(ctx.params); return typeof params.id === 'string' && params.id.trim() ? params.id.trim() : null; }
@@ -28,7 +31,7 @@ export async function POST(req: Request, ctx: RouteContext) {
     return NextResponse.json({ ok: false, error: 'root_decision_required', decisionClass: 'root_only' }, { status: 403 });
   }
 
-  const result = await decideActionProposal({
+  const decision = await decideActionProposal({
     proposalId,
     actorId: gate.ctx.user.id,
     actorLabel: gate.ctx.user.email ?? null,
@@ -37,5 +40,36 @@ export async function POST(req: Request, ctx: RouteContext) {
     note,
     currentRow: current.data,
   });
-  return NextResponse.json(result, { status: result.ok ? 200 : 409 });
+  if (!decision.ok) return NextResponse.json(decision, { status: 409 });
+
+  // request_evidence creates work. Retrieval can fail softly, but the proposal is
+  // never mistaken for actively computing when no candidate exists.
+  let acquisition: Awaited<ReturnType<typeof searchEvidenceCandidates>>;
+  try {
+    acquisition = await searchEvidenceCandidates({
+      parentProposalId: proposalId,
+      actorId: gate.ctx.user.id,
+      requestNote: note,
+    });
+  } catch (error) {
+    acquisition = {
+      ok: false,
+      error: error instanceof Error ? error.message : String(error),
+      candidates: [],
+      warnings: ['automatic_evidence_acquisition_failed'],
+    };
+  }
+  const readiness = await readEvidenceReadiness(proposalId).catch(() => ({ ok: false, readiness: null, error: 'evidence_readiness_failed' }));
+
+  return NextResponse.json({
+    ok: true,
+    data: decision.data,
+    governanceDecision: 'request_evidence',
+    evidenceJobId: `evidence-acquisition:${proposalId}`,
+    evidenceReadiness: readiness.readiness,
+    nextExpectedEvent: readiness.readiness?.nextExpectedEvent ?? 'EVIDENCE_CANDIDATE_ACQUIRED',
+    owner: readiness.readiness?.owner ?? 'evidence_hunter',
+    rootActionRequired: readiness.readiness?.rootActionRequired ?? false,
+    acquisition,
+  });
 }

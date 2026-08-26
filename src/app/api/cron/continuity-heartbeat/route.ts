@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { runContinuityHeartbeat } from '@/lib/continuity/runtime';
+import { runContinuityHeartbeat, runOperationalTransitionWatchdog } from '@/lib/continuity/runtime';
 import { runStudioAutonomyContinuation } from '@/lib/continuity/studioAutonomy';
 import { verifyGitHubActionsOidcToken } from '@/lib/continuity/githubActionsOidc';
 import { runGovernedExecutionRouter } from '@/lib/execution/governedExecutionRouter';
@@ -40,7 +40,8 @@ export async function GET(request: NextRequest) {
 
   try {
     const result = await runContinuityHeartbeat(authorization.trigger);
-    const [studioAutonomy, governedExecution] = await Promise.all([
+    const emergencyHalt = result.mode === 'EMERGENCY_HALT';
+    const [studioAutonomy, transitionWatchdog, governedExecution] = await Promise.all([
       runStudioAutonomyContinuation({
         mode: result.mode,
         continuityRunId: result.runId,
@@ -56,12 +57,23 @@ export async function GET(request: NextRequest) {
         targets: 0,
         outcomes: [] as [],
       })),
-      runGovernedExecutionRouter({ limit: 10 }).catch((error) => ({
-        ok: false as const,
-        processed: 0,
-        results: [],
-        error: error instanceof Error ? error.message : String(error),
-      })),
+      emergencyHalt
+        ? Promise.resolve({ ok: true as const, halted: true as const, evidenceJobs: [], riskAssessments: [], stale: [] })
+        : runOperationalTransitionWatchdog().catch((error) => ({
+            ok: false as const,
+            error: error instanceof Error ? error.message : String(error),
+            evidenceJobs: [],
+            riskAssessments: [],
+            stale: [],
+          })),
+      emergencyHalt
+        ? Promise.resolve({ ok: true as const, halted: true as const, processed: 0, results: [] })
+        : runGovernedExecutionRouter({ limit: 10 }).catch((error) => ({
+            ok: false as const,
+            processed: 0,
+            results: [],
+            error: error instanceof Error ? error.message : String(error),
+          })),
     ]);
 
     return NextResponse.json({
@@ -69,8 +81,11 @@ export async function GET(request: NextRequest) {
       trigger: authorization.trigger,
       ...result,
       studioAutonomy,
+      transitionWatchdog,
       governedExecution,
-      executionRule: 'Hourly continuity reuses the existing GitHub Actions OIDC heartbeat to retry/reroute governance-authorized queued work. No new scheduler, authority, external side effect, or canon permission is introduced.',
+      executionRule: emergencyHalt
+        ? 'EMERGENCY_HALT suppresses transition writes and governed execution dispatch. Continuity probes may record the halted heartbeat only.'
+        : 'Hourly continuity reuses the existing heartbeat: waiting_evidence can acquire candidates, unknown risk is assessed, and already-authorized queued work is retried/rerouted. Evidence acceptance, governance decisions, material external scope expansion and canon remain human-gated.',
     });
   } catch (error) {
     return NextResponse.json({ ok: false, error: 'continuity_heartbeat_failed', details: error instanceof Error ? error.message : String(error) }, { status: 500 });

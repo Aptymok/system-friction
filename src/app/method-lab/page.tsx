@@ -1,3 +1,4 @@
+import { MethodLabEnvironment } from '@/components/sfi/MethodLabEnvironment';
 import { MethodLabNativeHub } from '@/components/sfi/MethodLabNativeHub';
 import { MethodLabResearchReview } from '@/components/sfi/MethodLabResearchReview';
 import { readMethodLabState } from '@/lib/method-lab/readModel';
@@ -55,13 +56,24 @@ export default async function MethodLabPage() {
 
   return (
     <>
-      <MethodLabResearchReview research={research} />
+      <MethodLabEnvironment
+        status={state.status}
+        contractVersion={state.contractVersion}
+        protocols={state.protocols.map((protocol) => ({ id: protocol.id, status: protocol.status }))}
+        sessions={sessionViews.map((session) => ({ status: session.status }))}
+        evidenceCount={evidence.options.length}
+        evidenceWarningCount={evidence.warnings.length}
+        researchObjectCount={research.objects.length}
+        researchWarningCount={research.warnings.length}
+        decisionTransfer={{ status: state.decisionTransfer.status, totalEvaluations: state.decisionTransfer.totalEvaluations }}
+      />
       <MethodLabNativeHub
         initialState={state}
         initialSessions={sessionViews}
         evidenceOptions={evidence.options}
         evidenceWarnings={evidence.warnings}
       />
+      <MethodLabResearchReview research={research} />
     </>
   );
 }

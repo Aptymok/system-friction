@@ -1,6 +1,6 @@
 import 'server-only';
 
-import { runLlmTask, type LlmProviderId } from '@/lib/ai/providerRouter';
+import { runLlmTask, type LlmProviderId, type LlmRequirements } from '@/lib/ai/providerRouter';
 import { COGNITIVE_TWIN_CONTRACT_VERSION } from '@/core/cognitive-twin/contract';
 import type { StudioTwinContext } from '@/core/cognitive-twin/studioContext';
 import { readStudioTwinContext } from '@/core/cognitive-twin/studioContext';
@@ -102,6 +102,19 @@ function boundedPrompt(value: unknown) {
 function providerPreference(value: unknown): LlmProviderId | undefined {
   const allowed: LlmProviderId[] = ['openai', 'anthropic', 'gemini', 'groq', 'ollama', 'huggingface'];
   return typeof value === 'string' && allowed.includes(value as LlmProviderId) ? value as LlmProviderId : undefined;
+}
+
+function requirementsForAgent(agentId: string): LlmRequirements {
+  if (['risk_agent', 'economic_field_simulator', 'cross_impact', 'trajectory_agent', 'reality_calibration', 'phenotype_resolver'].includes(agentId)) {
+    return { reasoning: true, structuredOutput: true, minContextTokens: 100_000, priority: 'quality' };
+  }
+  if (['evidence_hunter', 'field_observer', 'temporal_resolver', 'project_execution_manager'].includes(agentId)) {
+    return { structuredOutput: true, priority: 'speed' };
+  }
+  if (['historical_scout', 'context_builder'].includes(agentId)) {
+    return { reasoning: true, structuredOutput: true, minContextTokens: 100_000, priority: 'balanced' };
+  }
+  return { reasoning: true, structuredOutput: true, priority: 'balanced' };
 }
 
 async function resolveTwinContextForExecution(context: KernelContext): Promise<StudioTwinContext> {
@@ -208,7 +221,9 @@ export async function augmentAgentWithLlm(agentId: string, context: KernelContex
   if (!contract) return context;
 
   const twin = TWIN_RELEVANT_AGENTS.has(agentId) ? await resolveTwinContextForExecution(context) : null;
-  const requestedProvider = providerPreference(context.metadata?.preferredLlmProvider) ?? 'groq';
+  // Explicit operator override remains possible, but agents are no longer bound to Groq (or any model) by default.
+  const requestedProvider = providerPreference(context.metadata?.preferredLlmProvider);
+  const requirements = requirementsForAgent(agentId);
   const existingInsights = record(context.metadata?.agentInsights);
 
   const system = [
@@ -225,6 +240,7 @@ export async function augmentAgentWithLlm(agentId: string, context: KernelContex
   const prompt = boundedPrompt({
     task: context.metadata?.studioAction ?? 'analyze',
     agentProjection: projection,
+    modelRequirements: requirements,
     contextBoundary: {
       maxPromptCharacters: MAX_PROMPT_CHARS,
       projection: `AGENT_SPECIFIC:${agentId}`,
@@ -238,6 +254,7 @@ export async function augmentAgentWithLlm(agentId: string, context: KernelContex
     prompt,
     fallbackResult: '{"status":"LLM_UNAVAILABLE"}',
     preferredProvider: requestedProvider,
+    requirements,
     maxTokens: MAX_AGENT_OUTPUT_TOKENS,
   });
   const parsed = result.ok ? parseInsight(result.result) : null;
@@ -285,6 +302,8 @@ export async function augmentAgentWithLlm(agentId: string, context: KernelContex
       lastModel: insight.model,
       lastAgentId: agentId,
       lastStatus: insight.status,
+      modelRequirements: requirements,
+      explicitProviderOverride: requestedProvider ?? null,
       promptCharacters: prompt.length,
       promptBounded: prompt.length >= MAX_PROMPT_CHARS,
       promptProjection: `AGENT_SPECIFIC:${agentId}`,

@@ -20,7 +20,21 @@ export type ProposalStatus =
   | 'frozen'
   | 'superseded';
 
+export type ProposalRiskLevel = 'low' | 'medium' | 'high' | 'critical' | 'unassessable';
+
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const PROPOSAL_STATUSES = new Set<ProposalStatus>([
+  'draft',
+  'proposed',
+  'waiting_evidence',
+  'design_approved',
+  'queued',
+  'accepted',
+  'rejected',
+  'conflicted',
+  'frozen',
+  'superseded',
+]);
 
 export function canonicalize(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(canonicalize);
@@ -150,6 +164,8 @@ export async function readOperationalContext() {
 export async function updateActionProposalStatus(input: {
   proposalId: string; status: ProposalStatus; actorId: string; isRoot: boolean; proposalType: string;
   expectedStatuses: ProposalStatus[]; eventId?: string | null; payloadPatch?: Record<string, unknown>;
+  systemActor?: boolean; preserveOutcome?: boolean;
+  riskPatch?: { riskLevel: ProposalRiskLevel; proportionalityCheck: Record<string, unknown>; updatedAt: string };
 }) {
   const service = createServiceSupabaseClient();
   const { data: existing, error: selectError } = await service.from('action_proposals').select('*').eq('id', input.proposalId).in('status', input.expectedStatuses).limit(1).maybeSingle();
@@ -159,17 +175,83 @@ export async function updateActionProposalStatus(input: {
   const existingType = proposalTypeFrom(existingRecord);
   const expectedDelta = recordValue(existingRecord.expected_field_delta);
   if (existingType && existingType !== input.proposalType) return { ok: false as const, error: 'action_proposal_type_mismatch' };
-  if (!input.isRoot && stringValue(expectedDelta.actorId) && expectedDelta.actorId !== input.actorId) return { ok: false as const, error: 'action_proposal_not_found_or_forbidden' };
+  if (!input.isRoot && !input.systemActor && stringValue(expectedDelta.actorId) && expectedDelta.actorId !== input.actorId) return { ok: false as const, error: 'action_proposal_not_found_or_forbidden' };
 
   const now = new Date().toISOString();
-  const update: Record<string, unknown> = {
-    status: input.status,
-    outcome: { ...recordValue(existingRecord.outcome), actorId: input.actorId, proposalType: input.proposalType, eventId: input.eventId ?? null, payloadPatch: input.payloadPatch ?? null, updatedAt: now },
-  };
+  const update: Record<string, unknown> = { status: input.status };
+  if (!input.preserveOutcome) {
+    update.outcome = { ...recordValue(existingRecord.outcome), actorId: input.actorId, proposalType: input.proposalType, eventId: input.eventId ?? null, payloadPatch: input.payloadPatch ?? null, updatedAt: now };
+  }
+  if (input.riskPatch) {
+    update.risk_level = input.riskPatch.riskLevel;
+    update.proportionality_check = input.riskPatch.proportionalityCheck;
+    update.updated_at = input.riskPatch.updatedAt;
+  }
   if (input.status === 'design_approved') update.approved_at = now;
   const { data, error } = await service.from('action_proposals').update(update).eq('id', input.proposalId).select('*').single();
   if (error) return { ok: false as const, error: 'action_proposal_update_failed', details: error.message };
   return { ok: true as const, data };
+}
+
+/**
+ * Proposal risk persists through updateActionProposalStatus, the existing canonical
+ * action_proposals mutation path. Risk is advisory: it never grants execution or canon.
+ */
+export async function updateActionProposalRisk(input: {
+  proposalId: string;
+  riskLevel: ProposalRiskLevel;
+  actorId: string;
+  confidence: number | null;
+  rationale: string;
+  sourceEventId?: string | null;
+}) {
+  const service = createServiceSupabaseClient();
+  const { data: existing, error: selectError } = await service.from('action_proposals').select('*').eq('id', input.proposalId).maybeSingle();
+  if (selectError) return { ok: false as const, error: 'action_proposal_risk_lookup_failed', details: selectError.message };
+  if (!existing) return { ok: false as const, error: 'action_proposal_not_found' };
+  const existingRecord = recordValue(existing);
+  const statusValue = stringValue(existingRecord.status);
+  if (!statusValue || !PROPOSAL_STATUSES.has(statusValue as ProposalStatus)) return { ok: false as const, error: 'action_proposal_status_invalid' };
+  const currentStatus = statusValue as ProposalStatus;
+  const currentType = proposalTypeFrom(existingRecord);
+  if (!currentType) return { ok: false as const, error: 'action_proposal_type_missing' };
+
+  const proportionality = recordValue(existingRecord.proportionality_check);
+  const assessedAt = new Date().toISOString();
+  const riskAssessment = {
+    state: input.riskLevel === 'unassessable' ? 'MISSING_INPUT_FOR_RISK' : 'ASSESSED',
+    level: input.riskLevel,
+    confidence: input.confidence,
+    rationale: input.rationale,
+    sourceEventId: input.sourceEventId ?? null,
+    actorId: input.actorId,
+    assessedAt,
+    executionAuthorized: false,
+    canonicalPromotionAllowed: false,
+  };
+
+  const updated = await updateActionProposalStatus({
+    proposalId: input.proposalId,
+    status: currentStatus,
+    actorId: input.actorId,
+    isRoot: false,
+    systemActor: true,
+    proposalType: currentType,
+    expectedStatuses: [currentStatus],
+    eventId: input.sourceEventId ?? null,
+    preserveOutcome: true,
+    riskPatch: {
+      riskLevel: input.riskLevel,
+      proportionalityCheck: {
+        ...proportionality,
+        riskAssessmentState: riskAssessment.state,
+        riskAssessment,
+      },
+      updatedAt: assessedAt,
+    },
+  });
+  if (!updated.ok) return updated;
+  return { ...updated, riskAssessment };
 }
 
 export async function latestRows(table: string, limit = 10) {

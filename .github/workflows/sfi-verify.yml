@@ -62,6 +62,9 @@ jobs:
       - name: Verify ROOT reports and runtime truth
         run: npx tsx scripts/qa-sfi-root-reports-runtime.ts
 
+      - name: Verify next-event orchestration and watchdog boundaries
+        run: npx tsx scripts/qa-sfi-operational-next.ts
+
       - name: Verify governed execution router and self-healing
         run: npx tsx scripts/qa-sfi-governed-execution-router.ts
 
@@ -109,6 +112,9 @@ jobs:
 
       - name: Verify canonical evidence QA
         run: npx tsx scripts/qa-sfi-canonical-evidence.ts
+
+      - name: Verify governed evidence candidates
+        run: npx tsx scripts/qa-sfi-evidence-candidates.ts
 
       - name: Verify Studio Field surface
         run: npm run qa:sfi-studio-workspace

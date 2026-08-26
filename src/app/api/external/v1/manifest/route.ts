@@ -6,7 +6,7 @@ export async function GET() {
   return NextResponse.json({
     ok: true,
     name: 'SFI External Agent Gateway',
-    version: '1.6.3',
+    version: '1.6.4',
     auth: 'OAuth 2.0 authorization_code (user-bound) or X-SFI-Token/Bearer static token',
     base: '/api/external/v1',
     discovery: {
@@ -45,6 +45,7 @@ export async function GET() {
       { id: 'signal-close', method: 'POST', path: '/signal', scope: 'lab:write', body: { operation: 'close' }, description: 'Close a methodological cycle and immediately reread the canonical cycle history.' },
       { id: 'observe', method: 'POST', path: '/observe', scope: 'observe', description: 'Read allowlisted proposals/evidence. Evidence responses expose persistence source and runtimeEvidenceId.' },
       { id: 'propose', method: 'POST', path: '/propose', scope: 'propose', description: 'Submit a governed action proposal. ROOT approval remains mandatory.' },
+      { id: 'evidence-candidate', method: 'POST', path: '/evidence-candidates', scope: 'propose', body: { proposal_id: 'waiting-evidence proposal UUID', source_url: 'public source URL', title: 'optional', evidence_note: 'optional' }, description: 'Submit a source URL as an evidence candidate linked to a proposal. This never accepts or persists the source as evidence; ROOT must review it first.' },
       { id: 'execute', method: 'POST', path: '/execute', scope: 'execute', description: 'For a proposal that is already authorized and queued, dispatches the same governed router used after authorization. Internal bounded work may execute and persist proposal-scoped RETURN; material external work without a real governed adapter fails closed. This route cannot self-approve, expand scope or promote canon.' },
       { id: 'proposal-return', method: 'POST', path: '/proposal-return', scope: 'execute', body: { proposal_id: 'queued proposal UUID', observed_at: 'ISO timestamp', outcome: 'required', evidence_refs: ['required'] }, description: 'Record an evidence-linked OBSERVED RETURN for one queued proposal. Does not close the proposal, complete calibration, or promote canon.' },
       { id: 'lab-state', method: 'POST', path: '/lab', scope: 'lab:read', body: { operation: 'state' }, description: 'Read current Method Lab state.' },
@@ -71,6 +72,8 @@ export async function GET() {
     evidence: {
       observableSources: ['root_evidence_entries', 'sfi_evidence_ledger'],
       methodLabCompatibleSources: ['root_evidence_entries', 'sfi_evidence_ledger'],
+      candidateFlow: ['request_evidence', 'acquire/search or external/manual URL', 'evidence_candidate', 'ROOT accept/reject', 'canonical evidence writer'],
+      candidateRule: 'Search results and externally supplied URLs remain candidates until ROOT explicitly accepts them. Rejection preserves lineage and never mutates the parent proposal decision.',
       rule: 'An evidence ID returned by the external evidence surface identifies its persistence source and may be supplied as runtimeEvidenceId to Method Lab.',
     },
     publicData: [
@@ -83,6 +86,6 @@ export async function GET() {
       commandPath: 'lab-bridge/commands/*.json',
       result: 'GitHub Actions artifact containing command, response and provenance',
     },
-    governance: 'Observation, inference, proposal, authorization, adapter binding, execution, proposal-scoped return, calibration, closure and canonical promotion remain distinct governed states.',
+    governance: 'Observation, inference, evidence candidacy, evidence acceptance, proposal authorization, adapter binding, execution, proposal-scoped return, calibration, closure and canonical promotion remain distinct governed states.',
   });
 }

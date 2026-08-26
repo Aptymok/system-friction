@@ -83,7 +83,9 @@ export async function decideActionProposal(input: {
       founder_decision: authority === 'root' ? input.decision : null,
       approval_only: next === 'design_approved',
       execution_allowed: false,
-      canonical_promotion_allowed: authority === 'root',
+      // Canon is a distinct ROOT-only decision after RETURN/evaluation. Merely
+      // being ROOT does not grant a proposal a standing promotion permission.
+      canonical_promotion_allowed: false,
       note: input.note ?? null,
     },
     lineage: [input.proposalId],
@@ -110,7 +112,7 @@ export async function decideActionProposal(input: {
       decisionActorId: input.actorId,
       decisionActorLabel: input.actorLabel ?? null,
       decisionAuthority: authority,
-      canonicalPromotionAllowed: authority === 'root',
+      canonicalPromotionAllowed: false,
       previousStatus: current,
       nextStatus: next,
       executionAllowed: false,
