@@ -110,6 +110,9 @@ jobs:
       - name: Verify canonical evidence QA
         run: npx tsx scripts/qa-sfi-canonical-evidence.ts
 
+      - name: Verify governed evidence candidates
+        run: npx tsx scripts/qa-sfi-evidence-candidates.ts
+
       - name: Verify Studio Field surface
         run: npm run qa:sfi-studio-workspace
 
