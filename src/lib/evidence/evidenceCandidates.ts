@@ -124,7 +124,7 @@ export function evidenceCandidateFromRow(rowValue: unknown): EvidenceCandidateVi
     createdAt: stringValue(row.created_at),
     source: {
       url,
-      title: stringValue(source.title) ?? hostname(url) || url,
+      title: (stringValue(source.title) ?? hostname(url)) || url,
       publisher: stringValue(source.publisher),
       snippet: stringValue(source.snippet) ?? '',
       publishedAt: stringValue(source.publishedAt),
