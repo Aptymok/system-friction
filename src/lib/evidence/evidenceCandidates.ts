@@ -31,13 +31,33 @@ export type EvidenceCandidateView = {
   acquisitionOrigin: 'automatic_search' | 'manual_url' | 'external_agent';
 };
 
-function asRecord(value: unknown): Record<string, unknown> {
+export type EvidenceSlot = {
+  key: string;
+  label: string;
+  status: 'MISSING' | 'CANDIDATE' | 'ACCEPTED';
+  candidateIds: string[];
+  acceptedEvidenceIds: string[];
+};
+
+export type EvidenceReadiness = {
+  state: 'MISSING' | 'REVIEW_REQUIRED' | 'SATISFIED';
+  jobId: string;
+  owner: 'evidence_hunter' | 'ROOT';
+  nextExpectedEvent: 'EVIDENCE_CANDIDATE_ACQUIRED' | 'ROOT_EVIDENCE_DECISION' | 'ROOT_ACCEPT_OR_REJECT_PROPOSAL';
+  rootActionRequired: boolean;
+  slots: EvidenceSlot[];
+  counts: { required: number; accepted: number; candidate: number; missing: number; rejectedCandidates: number };
+};
+
+type Row = Record<string, unknown>;
+
+function asRecord(value: unknown): Row {
   return value && typeof value === 'object' && !Array.isArray(value)
-    ? value as Record<string, unknown>
+    ? value as Row
     : {};
 }
 
-function expectedPayload(row: Record<string, unknown>) {
+function expectedPayload(row: Row) {
   return asRecord(asRecord(row.expected_field_delta).payload);
 }
 
@@ -104,7 +124,7 @@ export async function readGovernedProposal(proposalId: string) {
   const result = await service.from('action_proposals').select('*').eq('id', proposalId).maybeSingle();
   if (result.error) return { ok: false as const, error: result.error.message, data: null };
   if (!result.data) return { ok: false as const, error: 'proposal_not_found', data: null };
-  return { ok: true as const, data: result.data as Record<string, unknown> };
+  return { ok: true as const, data: result.data as Row };
 }
 
 export function evidenceCandidateFromRow(rowValue: unknown): EvidenceCandidateView | null {
@@ -159,7 +179,120 @@ export async function readEvidenceCandidate(parentProposalId: string, candidateI
   if (!result.data || !candidate || candidate.parentProposalId !== parentProposalId) {
     return { ok: false as const, error: 'evidence_candidate_not_found', row: null, candidate: null };
   }
-  return { ok: true as const, row: result.data as Record<string, unknown>, candidate };
+  return { ok: true as const, row: result.data as Row, candidate };
+}
+
+function explicitSlotDefinitions(parent: Row) {
+  const expected = asRecord(parent.expected_field_delta);
+  const payload = expectedPayload(parent);
+  const raw = payload.evidenceSlots ?? payload.evidence_slots ?? payload.requiredEvidence ?? payload.required_evidence;
+  if (!Array.isArray(raw)) return [] as Array<{ key: string; label: string; aliases: string[] }>;
+  return raw.flatMap((item, index) => {
+    if (typeof item === 'string' && item.trim()) {
+      const value = item.trim();
+      return [{ key: value.toUpperCase().replace(/[^A-Z0-9]+/g, '_'), label: value, aliases: [value.toLowerCase()] }];
+    }
+    const entry = asRecord(item);
+    const label = stringValue(entry.label) ?? stringValue(entry.title) ?? stringValue(entry.name) ?? stringValue(entry.key);
+    if (!label) return [];
+    const key = stringValue(entry.key)?.toUpperCase().replace(/[^A-Z0-9]+/g, '_') ?? `EVIDENCE_${index + 1}`;
+    const aliases = unique([
+      label.toLowerCase(),
+      ...(Array.isArray(entry.aliases) ? entry.aliases.filter((value): value is string => typeof value === 'string').map((value) => value.toLowerCase()) : []),
+    ]);
+    return [{ key, label, aliases }];
+  });
+}
+
+function inferredSlotDefinitions(parent: Row) {
+  const expected = asRecord(parent.expected_field_delta);
+  const payload = expectedPayload(parent);
+  const blob = [parent.title, parent.description, expected.objective, JSON.stringify(payload)].filter(Boolean).join(' ').toLowerCase();
+  const known = [
+    { key: 'ENOE', label: 'ENOE', aliases: ['enoe', 'encuesta nacional de ocupación', 'encuesta nacional de ocupacion'] },
+    { key: 'DENUE', label: 'DENUE', aliases: ['denue', 'directorio estadístico nacional de unidades económicas', 'directorio estadistico nacional de unidades economicas'] },
+    { key: 'EMEC', label: 'EMEC', aliases: ['emec', 'encuesta mensual sobre empresas comerciales'] },
+    { key: 'INPC', label: 'INPC', aliases: ['inpc', 'índice nacional de precios al consumidor', 'indice nacional de precios al consumidor'] },
+    { key: 'PREREGISTRATION', label: 'Preregistro', aliases: ['preregistro', 'pre-registro', 'preregistration'] },
+  ];
+  const matched = known.filter((slot) => slot.aliases.some((alias) => blob.includes(alias)));
+  if (matched.length) return matched;
+  return [{ key: 'PERSISTED_EVIDENCE', label: 'Evidencia persistida vinculada', aliases: ['evidence', 'evidencia'] }];
+}
+
+function candidateBlob(candidate: EvidenceCandidateView) {
+  return [candidate.title, candidate.source.title, candidate.source.publisher, candidate.source.snippet, candidate.source.url].filter(Boolean).join(' ').toLowerCase();
+}
+
+function evidenceBlob(evidence: Row) {
+  return [evidence.title, evidence.content, evidence.evidence_type, JSON.stringify(evidence.payload)].filter(Boolean).join(' ').toLowerCase();
+}
+
+function matchesSlot(blob: string, slot: { key: string; aliases: string[] }) {
+  if (slot.key === 'PERSISTED_EVIDENCE') return true;
+  return slot.aliases.some((alias) => blob.includes(alias));
+}
+
+async function linkedAcceptedEvidence(parentProposalId: string) {
+  const db = createServiceSupabaseClient();
+  const result = await db.from('root_evidence_entries').select('id,title,content,evidence_type,payload,created_at').order('created_at', { ascending: false }).limit(250);
+  if (result.error) return { rows: [] as Row[], error: result.error.message };
+  const rows = (result.data ?? []).filter((item) => JSON.stringify(item.payload ?? {}).includes(parentProposalId));
+  return { rows: rows as Row[], error: null };
+}
+
+export async function readEvidenceReadiness(parentProposalId: string): Promise<{ ok: boolean; readiness: EvidenceReadiness | null; error?: string }> {
+  const [parent, candidates, acceptedEvidence] = await Promise.all([
+    readGovernedProposal(parentProposalId),
+    listEvidenceCandidates(parentProposalId, 200),
+    linkedAcceptedEvidence(parentProposalId),
+  ]);
+  if (!parent.ok || !parent.data) return { ok: false, readiness: null, error: parent.error };
+  if (!candidates.ok) return { ok: false, readiness: null, error: candidates.error };
+
+  const definitions = explicitSlotDefinitions(parent.data);
+  const slotsDef = definitions.length ? definitions : inferredSlotDefinitions(parent.data);
+  const slots: EvidenceSlot[] = slotsDef.map((definition) => {
+    const candidateMatches = candidates.candidates.filter((candidate) => matchesSlot(candidateBlob(candidate), definition));
+    const acceptedMatches = acceptedEvidence.rows.filter((evidence) => matchesSlot(evidenceBlob(evidence), definition));
+    const acceptedCandidateIds = candidateMatches.filter((candidate) => candidate.status === 'accepted').map((candidate) => candidate.id);
+    const acceptedEvidenceIds = unique([
+      ...acceptedMatches.map((item) => String(item.id ?? '')).filter(Boolean),
+      ...acceptedCandidateIds,
+    ]);
+    const proposed = candidateMatches.filter((candidate) => candidate.status === 'proposed').map((candidate) => candidate.id);
+    return {
+      key: definition.key,
+      label: definition.label,
+      status: acceptedEvidenceIds.length ? 'ACCEPTED' : proposed.length ? 'CANDIDATE' : 'MISSING',
+      candidateIds: unique([...proposed, ...acceptedCandidateIds]),
+      acceptedEvidenceIds,
+    };
+  });
+
+  const accepted = slots.filter((slot) => slot.status === 'ACCEPTED').length;
+  const candidate = slots.filter((slot) => slot.status === 'CANDIDATE').length;
+  const missing = slots.filter((slot) => slot.status === 'MISSING').length;
+  const rejectedCandidates = candidates.candidates.filter((item) => item.status === 'rejected').length;
+  const state: EvidenceReadiness['state'] = accepted === slots.length
+    ? 'SATISFIED'
+    : candidate > 0
+      ? 'REVIEW_REQUIRED'
+      : 'MISSING';
+  const readiness: EvidenceReadiness = {
+    state,
+    jobId: `evidence-acquisition:${parentProposalId}`,
+    owner: state === 'MISSING' ? 'evidence_hunter' : 'ROOT',
+    nextExpectedEvent: state === 'MISSING'
+      ? 'EVIDENCE_CANDIDATE_ACQUIRED'
+      : state === 'REVIEW_REQUIRED'
+        ? 'ROOT_EVIDENCE_DECISION'
+        : 'ROOT_ACCEPT_OR_REJECT_PROPOSAL',
+    rootActionRequired: state !== 'MISSING',
+    slots,
+    counts: { required: slots.length, accepted, candidate, missing, rejectedCandidates },
+  };
+  return { ok: !acceptedEvidence.error, readiness, ...(acceptedEvidence.error ? { error: acceptedEvidence.error } : {}) };
 }
 
 export async function createEvidenceCandidate(input: {
@@ -211,7 +344,7 @@ export async function createEvidenceCandidate(input: {
   return { ok: true as const, duplicate: false, data: evidenceCandidateFromRow(created.data) };
 }
 
-function evidenceSearchQueries(parent: Record<string, unknown>, requestNote: string) {
+function evidenceSearchQueries(parent: Row, requestNote: string) {
   const expected = asRecord(parent.expected_field_delta);
   const title = stringValue(parent.title) ?? '';
   const objective = stringValue(parent.description) ?? stringValue(expected.objective) ?? '';
