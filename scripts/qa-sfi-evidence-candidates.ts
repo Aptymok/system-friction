@@ -34,6 +34,8 @@ for (const state of ['MISSING', 'CANDIDATE', 'ACCEPTED']) assert.ok(workflow.inc
 assert.match(workflow, /state: 'MISSING' \| 'REVIEW_REQUIRED' \| 'SATISFIED'/, 'evidence readiness must distinguish acquisition, review and satisfied gate');
 assert.match(workflow, /jobId: `evidence-acquisition:/, 'evidence acquisition job must be proposal-scoped');
 assert.match(workflow, /rootActionRequired: state !== 'MISSING'/, 'ROOT must not be asked to act while evidence_hunter still owns acquisition');
+assert.match(workflow, /expected_field_delta->payload->>parentProposalId/, 'evidence candidate lookup must scope by parent before applying its limit');
+assert.match(workflow, /return 'other';\n}/, 'unknown URL domains must not be promoted to official evidence-source type');
 
 assert.match(candidateRoute, /action === 'search'/, 'candidate route must support governed search/retry');
 assert.match(candidateRoute, /action === 'add_url'/, 'candidate route must support manual URL staging');
