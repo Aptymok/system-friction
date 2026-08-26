@@ -53,6 +53,7 @@ assert.match(provider,/structuredOutput/);
 assert.match(provider,/web_research/);
 assert.match(provider,/model_invalid/);
 assert.match(provider,/probeLlmProviders/);
+assert.match(provider,/model\.contextTokens === null \|\| model\.contextTokens < requirements\.minContextTokens/,'Unknown context capacity must not satisfy an explicit minimum-context requirement.');
 for(const health of ['UNCONFIGURED','UNTESTED','HEALTHY','DEGRADED','BLOCKED']) assert.ok(provider.includes(`'${health}'`),`Provider health state missing: ${health}`);
 assert.doesNotMatch(provider,/\?\? 'gemini-1\.5-flash'/,'Retired Gemini 1.5 default must not survive.');
 
