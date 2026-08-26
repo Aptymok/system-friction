@@ -29,11 +29,28 @@ type Candidate = {
   };
 };
 
+type EvidenceReadiness = {
+  state: 'MISSING' | 'REVIEW_REQUIRED' | 'SATISFIED';
+  jobId: string;
+  owner: 'evidence_hunter' | 'ROOT';
+  nextExpectedEvent: string;
+  rootActionRequired: boolean;
+  slots: Array<{
+    key: string;
+    label: string;
+    status: 'MISSING' | 'CANDIDATE' | 'ACCEPTED';
+    candidateIds: string[];
+    acceptedEvidenceIds: string[];
+  }>;
+  counts: { required: number; accepted: number; candidate: number; missing: number; rejectedCandidates: number };
+};
+
 type Props = { proposals: ProposalRef[] };
 
 export function RootEvidenceCandidateLane({ proposals }: Props) {
   const [proposalId, setProposalId] = useState('');
   const [candidates, setCandidates] = useState<Candidate[]>([]);
+  const [readiness, setReadiness] = useState<EvidenceReadiness | null>(null);
   const [url, setUrl] = useState('');
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -42,6 +59,7 @@ export function RootEvidenceCandidateLane({ proposals }: Props) {
     if (!proposals.length) {
       setProposalId('');
       setCandidates([]);
+      setReadiness(null);
       return;
     }
     if (!proposals.some((proposal) => proposal.id === proposalId)) setProposalId(proposals[0].id);
@@ -56,9 +74,11 @@ export function RootEvidenceCandidateLane({ proposals }: Props) {
       const json = await response.json().catch(() => null);
       if (!response.ok || !json?.ok) throw new Error(`${response.status}: ${json?.error ?? 'evidence_candidate_read_failed'}`);
       setCandidates(Array.isArray(json.candidates) ? json.candidates : []);
-      setError(null);
+      setReadiness(json.evidenceReadiness ?? null);
+      setError(json.readinessWarning ? `READINESS DEGRADED · ${json.readinessWarning}` : null);
     } catch (cause) {
       setCandidates([]);
+      setReadiness(null);
       setError(cause instanceof Error ? cause.message : String(cause));
     }
   };
@@ -133,13 +153,40 @@ export function RootEvidenceCandidateLane({ proposals }: Props) {
       </button>)}
     </div>
 
+    {readiness && <div className="rootEvidenceControls" aria-label="Evidence readiness">
+      <div>
+        <span>EVIDENCE GATE</span>
+        <b>{readiness.state}</b>
+        <small>{readiness.counts.accepted}/{readiness.counts.required} slots aceptados · owner {readiness.owner}</small>
+      </div>
+      <div>
+        <span>NEXT EXPECTED EVENT</span>
+        <b>{readiness.nextExpectedEvent}</b>
+        <small>ROOT: {readiness.rootActionRequired ? 'ACCIÓN REQUERIDA' : 'ninguna acción ahora'}</small>
+      </div>
+      <div>
+        <span>JOB</span>
+        <b>{readiness.jobId}</b>
+      </div>
+    </div>}
+
+    {readiness?.slots?.length ? <div className="rootEvidenceCandidateList" aria-label="Evidence slots">
+      {readiness.slots.map((slot) => <article key={slot.key} data-status={slot.status === 'ACCEPTED' ? 'accepted' : slot.status === 'CANDIDATE' ? 'proposed' : 'missing'}>
+        <div className="rootEvidenceCandidateHead">
+          <div><small>EVIDENCE SLOT</small><b>{slot.label}</b></div>
+          <strong>{slot.status}</strong>
+        </div>
+        <p>{slot.status === 'ACCEPTED' ? 'Persistida y aceptada por ROOT.' : slot.status === 'CANDIDATE' ? 'Existe fuente candidata; ROOT debe decidir elegibilidad.' : 'Falta candidato elegible; evidence_hunter conserva el siguiente trabajo.'}</p>
+      </article>)}
+    </div> : null}
+
     {selectedProposal && <div className="rootEvidenceControls">
       <button disabled={Boolean(busy)} onClick={() => void acquire('search')}>{busy === 'search' ? 'BUSCANDO…' : 'BUSCAR / REINTENTAR'}</button>
       <label>
         <span>AGREGAR URL COMO CANDIDATO</span>
         <input value={url} onChange={(event) => setUrl(event.target.value)} placeholder="https://www.inegi.org.mx/..." />
       </label>
-      <button disabled={Boolean(busy) || !url.trim()} onClick={() => void acquire('add_url')}>{busy === 'add_url' ? 'INSPECCIONANDO…' : 'AGREGAR URL'}</button>
+      <button disabled={Boolean(busy) || !url.trim()} onClick={() => void acquire('add_url')}>{busy === 'add_url' ? 'REGISTRANDO…' : 'AGREGAR URL'}</button>
     </div>}
 
     {error && <p className="rootEvidenceError">{error}</p>}
@@ -168,7 +215,7 @@ export function RootEvidenceCandidateLane({ proposals }: Props) {
         </div>
         {candidate.status === 'accepted' && <small className="rootEvidenceBoundary">PERSISTIDA POR EL WRITER CANÓNICO · aceptación de elegibilidad ≠ verificación automática de todas las afirmaciones de la fuente.</small>}
       </article>)}
-      {!candidates.length && !error && <em>No hay candidatos todavía. “PEDIR EVIDENCIA” inicia adquisición; también puedes buscar de nuevo o agregar una URL.</em>}
+      {!candidates.length && !error && <em>No hay candidatos todavía. “PEDIR EVIDENCIA” inicia adquisición; el watchdog reintenta y también puedes agregar una URL.</em>}
     </div>
   </section>;
 }
