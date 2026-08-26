@@ -64,7 +64,6 @@ assert.equal(
 assert.match(members, /email: 'edwin\.tzolkin@gmail\.com'/, 'edwin_must_resolve_through_existing_institutional_identity');
 assert.match(members, /displayName: 'Edwin'[\s\S]*?role: 'observer'/, 'edwin_must_not_inherit_root_delegate_from_oauth');
 
-// Generic execute now delegates only already-authorized queued work to the canonical governed router.
 assert.match(execute, /authorizeExternalRequest\(req, 'execute'\)/, 'execute_gate_must_keep_execute_scope');
 assert.match(execute, /body\.confirm !== true/, 'execute_gate_must_require_explicit_confirmation');
 assert.match(execute, /dispatchQueuedProposal\(proposalId\)/, 'execute_gate_must_use_canonical_governed_dispatcher');
@@ -75,7 +74,6 @@ assert.doesNotMatch(execute, /\.update\(\{\s*status:\s*'accepted'/, 'generic_exe
 assert.doesNotMatch(execute, /executed_at:\s*now/, 'generic_execute_must_not_write_executed_at_column');
 assert.doesNotMatch(execute, /\.from\('action_proposals'\)\.update/, 'generic_execute_must_not_become_parallel_proposal_writer');
 
-// A real external executor may still return evidence against a queued UUID without closing or canonizing it.
 assert.match(proposalReturn, /authorizeExternalRequest\(req, 'execute'\)/, 'proposal_return_must_require_execute_scope');
 assert.match(proposalReturn, /queued_proposal_required_for_return/, 'proposal_return_must_require_queued_proposal');
 assert.match(proposalReturn, /evidence_refs/, 'proposal_return_must_require_evidence_refs');
@@ -86,7 +84,6 @@ assert.match(proposalReturn, /proposalStatusChanged: false/, 'recording_return_m
 assert.match(proposalReturn, /executionDispatchedBySfi: false/, 'external_return_route_must_not_claim_it_dispatched_external_work');
 assert.match(proposalReturn, /canonicalPromotionAllowed: false/, 'recording_return_must_not_canonize');
 
-// The route delegates closure to the single outcome writer; the writer owns observed RETURN lineage validation.
 assert.match(outcomeRoute, /recordProposalOutcomeFromObservedReturn/, 'outcome_route_must_delegate_to_single_writer');
 assert.match(outcomeWriter, /returnBelongsToProposal/, 'outcome_writer_must_validate_return_lineage');
 assert.match(outcomeWriter, /return_event_proposal_mismatch/, 'mismatched_return_must_fail_closed');
@@ -94,7 +91,7 @@ assert.match(outcomeWriter, /SFI_PROPOSAL_RETURN_RECORDED/, 'outcome_writer_must
 assert.match(outcomeWriter, /PENDING_REALITY_CALIBRATION/, 'outcome_writer_must_leave_calibration_pending');
 assert.match(outcomeWriter, /CANDIDATE_UNTIL_CALIBRATED/, 'learning_must_remain_candidate_until_calibrated');
 
-assert.match(manifest, /version: '1\.6\.3'/, 'external_manifest_version_must_reflect_return_lineage_contract');
+assert.match(manifest, /version: '1\.6\.4'/, 'external_manifest_version_must_reflect_current governed return/evidence contract');
 assert.match(manifest, /id: 'proposal-return'/, 'manifest_must_publish_proposal_return');
 assert.match(manifest, /dispatches the same governed router used after authorization/, 'manifest_must_describe_governed_execute_dispatch');
 assert.match(llms, /\/execute dispatches only a proposal that is already queued/, 'llms_must_explain_post_authorization_dispatch');
