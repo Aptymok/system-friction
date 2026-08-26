@@ -1,5 +1,6 @@
 import { createHash } from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
+import { runLlmTask } from '@/lib/ai/providerRouter';
 import { ensureOwnedNode } from '@/lib/server/productionBackend';
 
 type FieldContext = {
@@ -16,7 +17,9 @@ type FieldContext = {
 
 type AmvFieldResponseData = {
   responseText: string;
-  responseSource: 'gemini' | 'deterministic_fallback';
+  responseSource: 'llm_router' | 'deterministic_fallback';
+  provider: string | null;
+  model: string | null;
   sourceState: 'observed' | 'degraded';
   confidence: number;
   responseLogged: boolean;
@@ -115,6 +118,8 @@ async function logAmvResponse(input: {
       message: input.message,
       responseText: input.response.responseText,
       responseSource: input.response.responseSource,
+      provider: input.response.provider,
+      model: input.response.model,
       fieldContext: input.fieldContext,
       confidence: input.response.confidence,
       sourceState: input.response.sourceState,
@@ -157,12 +162,14 @@ function deterministicFallback(message: string, context: FieldContext): BaseAmvR
   return {
     responseText: `AMV operativo: ${world}. Lectura actual: regimen ${context.regime}, confianza ${Math.round(context.confidence * 100)}%. Siguiente accion: ${action}. Entrada recibida: "${sanitizeText(message, 120)}".`,
     responseSource: 'deterministic_fallback',
+    provider: null,
+    model: null,
     sourceState: context.worldSpectState === 'observed' ? 'observed' : 'degraded',
     confidence: context.worldSpectState === 'observed' ? 0.62 : 0.42,
   };
 }
 
-function sanitizeGeminiOutput(value: unknown) {
+function sanitizeModelOutput(value: unknown) {
   const text = typeof value === 'string' ? sanitizeText(value, 700) : '';
   if (!text) return '';
   return text
@@ -172,7 +179,7 @@ function sanitizeGeminiOutput(value: unknown) {
     .slice(0, 700);
 }
 
-async function callGemini(message: string, context: FieldContext, apiKey: string): Promise<string> {
+async function callRoutedModel(message: string, context: FieldContext): Promise<BaseAmvResponseData | null> {
   const prompt = [
     'Eres AMV operativo dentro del Observatorio SFI.',
     'Responde breve, clinico y operacional.',
@@ -181,25 +188,26 @@ async function callGemini(message: string, context: FieldContext, apiKey: string
     `Contexto: regimen=${context.regime}; sourceState=${context.sourceState}; evidenceLevel=${context.evidenceLevel}; degradation=${context.degradation}; capacity=${context.capacity}; confidence=${context.confidence}; wsi=${context.wsi ?? 'missing'}; nti=${context.nti ?? 'missing'}; worldSpectState=${context.worldSpectState}.`,
     `Mensaje del operador: ${message}`,
   ].join('\n');
-  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${encodeURIComponent(apiKey)}`, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      generationConfig: { temperature: 0.2, maxOutputTokens: 130 },
-    }),
+  const routed = await runLlmTask({
+    task: 'draft',
+    system: 'You are the bounded AMV response adapter. Use only supplied SFI field context. No external facts or subjective claims.',
+    prompt,
+    fallbackResult: '',
+    requirements: { priority: 'speed' },
+    maxTokens: 160,
+    maxProviderAttempts: 4,
   });
-  if (!response.ok) throw new Error('gemini_request_failed');
-  const payload: unknown = await response.json();
-  if (!isRecord(payload)) throw new Error('gemini_invalid_payload');
-  const candidates = Array.isArray(payload.candidates) ? payload.candidates : [];
-  const first = candidates.find(isRecord);
-  const content = first && isRecord(first.content) ? first.content : null;
-  const parts = content && Array.isArray(content.parts) ? content.parts : [];
-  const text = parts.filter(isRecord).map((part) => typeof part.text === 'string' ? part.text : '').join(' ');
-  const sanitized = sanitizeGeminiOutput(text);
-  if (!sanitized) throw new Error('gemini_empty_response');
-  return sanitized;
+  if (!routed.ok) return null;
+  const responseText = sanitizeModelOutput(routed.result);
+  if (!responseText) return null;
+  return {
+    responseText,
+    responseSource: 'llm_router',
+    provider: routed.provider,
+    model: routed.model,
+    sourceState: context.worldSpectState === 'observed' ? 'observed' : 'degraded',
+    confidence: context.worldSpectState === 'observed' ? 0.78 : 0.58,
+  };
 }
 
 function buildResponse(data: BaseAmvResponseData, logResult: AmvLogResult) {
@@ -219,23 +227,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: 'invalid_amv_field_request' }, { status: 400 });
   }
 
-  const key = process.env.GEMINI_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY;
-  if (key) {
-    try {
-      const responseText = await callGemini(parsed.message, parsed.fieldContext, key);
-      const data: BaseAmvResponseData = {
-        responseText,
-        responseSource: 'gemini',
-        sourceState: parsed.fieldContext.worldSpectState === 'observed' ? 'observed' : 'degraded',
-        confidence: parsed.fieldContext.worldSpectState === 'observed' ? 0.78 : 0.58,
-      };
-      const logResult = await logAmvResponse({ nodeId: parsed.nodeId, message: parsed.message, fieldContext: parsed.fieldContext, response: data });
-      return buildResponse(data, logResult);
-    } catch {
-      const data = deterministicFallback(parsed.message, parsed.fieldContext);
-      const logResult = await logAmvResponse({ nodeId: parsed.nodeId, message: parsed.message, fieldContext: parsed.fieldContext, response: data });
-      return buildResponse(data, logResult);
+  try {
+    const routed = await callRoutedModel(parsed.message, parsed.fieldContext);
+    if (routed) {
+      const logResult = await logAmvResponse({ nodeId: parsed.nodeId, message: parsed.message, fieldContext: parsed.fieldContext, response: routed });
+      return buildResponse(routed, logResult);
     }
+  } catch {
+    // Deterministic fallback is intentionally below the canonical router.
   }
 
   const data = deterministicFallback(parsed.message, parsed.fieldContext);
