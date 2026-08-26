@@ -21,9 +21,9 @@ type Props = {
 };
 
 type ZoneTone = 'ready' | 'attention' | 'gated' | 'degraded' | 'boundary' | 'idle';
-
+type LabZoneId = 'method' | 'observatory' | 'signal' | 'tests' | 'root' | 'simulation' | 'field';
 type LabZone = {
-  id: 'method' | 'observatory' | 'signal' | 'tests' | 'root' | 'simulation' | 'field';
+  id: LabZoneId;
   label: string;
   state: string;
   tone: ZoneTone;
@@ -33,6 +33,7 @@ type LabZone = {
   tablet: [number, number];
   mobile: [number, number];
 };
+type BoardMetric = { label: string; value: string | number; detail?: string };
 
 function toneFromStatus(status: string, fallback: ZoneTone = 'attention'): ZoneTone {
   const normalized = status.toUpperCase();
@@ -65,8 +66,7 @@ export function MethodLabEnvironment({
   researchWarningCount,
   decisionTransfer,
 }: Props) {
-  const [selectedId, setSelectedId] = useState<LabZone['id']>('method');
-
+  const [selectedId, setSelectedId] = useState<LabZoneId>('method');
   const operationalProtocols = protocols.filter((item) => item.status === 'OPERATIONAL').length;
   const simulationProtocols = protocols.filter((item) => ['sociotechnical_simulation', 'economic_simulation'].includes(item.id));
   const simulationOperational = simulationProtocols.filter((item) => item.status === 'OPERATIONAL').length;
@@ -75,71 +75,87 @@ export function MethodLabEnvironment({
 
   const zones: LabZone[] = [
     {
-      id: 'method',
-      label: 'CÁMARA DE MÉTODO',
-      state: `${operationalProtocols}/${protocols.length} OPERATIONAL`,
+      id: 'method', label: 'CÁMARA DE MÉTODO', state: `${operationalProtocols}/${protocols.length} OPERATIONAL`,
       tone: operationalProtocols > 0 ? 'ready' : 'gated',
-      detail: 'Registro de instrumentos. Cada protocolo conserva clase epistémica, dependencias, validación y regla de promoción.',
-      target: '.mlh-protocol-grid',
-      desktop: [19, 31], tablet: [18, 28], mobile: [18, 31],
+      detail: 'Instrumentos, contratos y protocolos disponibles. La selección conserva clase epistémica, dependencias, validación y regla de promoción.',
+      target: '.mlh-protocol-grid', desktop: [20, 7], tablet: [18, 28], mobile: [18, 31],
     },
     {
-      id: 'observatory',
-      label: 'OBSERVATORIO',
-      state: `${researchObjectCount} RESEARCH OBJECTS`,
+      id: 'observatory', label: 'OBSERVATORIO', state: `${researchObjectCount} RESEARCH OBJECTS`,
       tone: reviewWarnings > 0 ? 'attention' : researchObjectCount > 0 ? 'ready' : 'idle',
-      detail: 'Revisión de objetos, auditorías, findings, métricas, lineage y paquetes de publicación. Observar no equivale a promover.',
-      target: '.mlr-shell',
-      desktop: [53, 14], tablet: [53, 14], mobile: [50, 10],
+      detail: 'Objetos de investigación, findings, métricas, lineage y publication packages. Observar no equivale a promover.',
+      target: '.mlr-shell', desktop: [52, 10], tablet: [53, 14], mobile: [50, 10],
     },
     {
-      id: 'signal',
-      label: 'LAB DE SEÑAL',
-      state: evidenceWarningCount > 0 ? `${evidenceWarningCount} READER WARNINGS` : `${evidenceCount} EVIDENCE OPTIONS`,
+      id: 'signal', label: 'LAB DE SEÑAL', state: evidenceWarningCount > 0 ? `${evidenceWarningCount} READER WARNINGS` : `${evidenceCount} EVIDENCE OPTIONS`,
       tone: evidenceWarningCount > 0 ? 'attention' : evidenceCount > 0 ? 'ready' : 'idle',
-      detail: 'Entrada de evidencia persistida al experimento. La selección conserva fuente, caso y claim boundary antes del run.',
-      target: '.mlh-evidence-list',
-      desktop: [79, 22], tablet: [78, 22], mobile: [76, 25],
+      detail: 'Entrada de evidencia persistida. Fuente, caso, claim boundary y provenance permanecen visibles antes del run.',
+      target: '.mlh-evidence-list', desktop: [92, 12], tablet: [78, 22], mobile: [76, 25],
     },
     {
-      id: 'tests',
-      label: 'MESA DE PRUEBAS',
-      state: activeSessions > 0 ? `${activeSessions} ACTIVE CRL` : `${sessions.length} CRL SESSIONS`,
+      id: 'tests', label: 'MESA DE PRUEBAS', state: activeSessions > 0 ? `${activeSessions} ACTIVE CRL` : `${sessions.length} CRL SESSIONS`,
       tone: activeSessions > 0 ? 'ready' : sessions.length > 0 ? 'idle' : 'gated',
       detail: 'CRL opera sesión → eventos → BLIND → lectura del fundador → contraste. La lectura del fundador entra después del BLIND.',
-      target: '.mlh-three-col',
-      desktop: [86, 49], tablet: [84, 49], mobile: [73, 49],
+      target: '.mlh-three-col', desktop: [94, 39], tablet: [84, 49], mobile: [73, 49],
     },
     {
-      id: 'root',
-      label: 'ROOT CONSOLE',
-      state: `DT ${decisionTransfer.status}`,
+      id: 'root', label: 'ROOT CONSOLE', state: `DT ${decisionTransfer.status}`,
       tone: toneFromStatus(decisionTransfer.status),
       detail: 'Autoridad y Decision Transfer. El laboratorio puede producir resultados; canon, publicación y autoridad permanecen gobernados.',
-      target: '.mlh-status-section',
-      desktop: [43, 72], tablet: [21, 80], mobile: [50, 88],
+      target: '.mlh-status-section', desktop: [46, 59], tablet: [21, 80], mobile: [50, 88],
     },
     {
-      id: 'simulation',
-      label: 'SIMULACIÓN',
-      state: `${simulationOperational}/${simulationProtocols.length} RUNNERS OPERATIONAL`,
+      id: 'simulation', label: 'SIMULACIÓN', state: `${simulationOperational}/${simulationProtocols.length} RUNNERS OPERATIONAL`,
       tone: simulationOperational === simulationProtocols.length && simulationProtocols.length > 0 ? 'ready' : simulationOperational > 0 ? 'attention' : 'gated',
-      detail: 'Runner sociotécnico/económico aislado. El output permanece SIMULATED y no puede mutar evidencia observada.',
-      target: '.mlh-two-col',
-      desktop: [65, 78], tablet: [51, 82], mobile: [28, 72],
+      detail: 'Runner sociotécnico/económico aislado. El output permanece SIMULATED y nunca se convierte en observación por persistencia.',
+      target: '.mlh-two-col', desktop: [66, 67], tablet: [51, 82], mobile: [28, 72],
     },
     {
-      id: 'field',
-      label: 'NODO DE CAMPO',
-      state: 'RETURN BOUNDARY',
-      tone: 'boundary',
+      id: 'field', label: 'NODO DE CAMPO', state: 'RETURN BOUNDARY', tone: 'boundary',
       detail: 'El laboratorio no declara mundo observado. Un RETURN de Field es otro estado, con evidencia y contraste propios.',
-      target: '.mlh-status-section',
-      desktop: [88, 76], tablet: [80, 80], mobile: [73, 73],
+      target: '.mlh-status-section', desktop: [93, 71], tablet: [80, 80], mobile: [73, 73],
     },
   ];
 
   const selected = zones.find((zone) => zone.id === selectedId) ?? zones[0];
+
+  const boardMetrics: Record<LabZoneId, BoardMetric[]> = {
+    method: [
+      { label: 'PROTOCOLS', value: protocols.length, detail: `${operationalProtocols} operational` },
+      { label: 'CONTRACT', value: contractVersion },
+      { label: 'LAB STATE', value: status },
+    ],
+    observatory: [
+      { label: 'RESEARCH OBJECTS', value: researchObjectCount },
+      { label: 'REVIEW WARNINGS', value: researchWarningCount },
+      { label: 'BOUNDARY', value: 'OBSERVE ≠ PROMOTE' },
+    ],
+    signal: [
+      { label: 'EVIDENCE OPTIONS', value: evidenceCount },
+      { label: 'READER WARNINGS', value: evidenceWarningCount },
+      { label: 'PERSISTENCE', value: 'CANONICAL WRITER' },
+    ],
+    tests: [
+      { label: 'ACTIVE CRL', value: activeSessions },
+      { label: 'TOTAL SESSIONS', value: sessions.length },
+      { label: 'SEQUENCE', value: 'BLIND → CONTRAST' },
+    ],
+    root: [
+      { label: 'DECISION TRANSFER', value: decisionTransfer.status },
+      { label: 'EVALUATIONS', value: decisionTransfer.totalEvaluations },
+      { label: 'CANON', value: 'ROOT ONLY' },
+    ],
+    simulation: [
+      { label: 'SIM RUNNERS', value: `${simulationOperational}/${simulationProtocols.length}` },
+      { label: 'EPISTEMIC CLASS', value: 'SIMULATED' },
+      { label: 'OBSERVATION', value: 'SEPARATE' },
+    ],
+    field: [
+      { label: 'SURFACE', value: 'FIELD' },
+      { label: 'EXPECTED', value: 'OBSERVED RETURN' },
+      { label: 'BOUNDARY', value: 'REALITY CONTRAST' },
+    ],
+  };
 
   function openZone(zone: LabZone) {
     const node = document.querySelector(zone.target);
@@ -156,12 +172,15 @@ export function MethodLabEnvironment({
       </header>
 
       <div className="mlenv-frame" data-selected={selected.id}>
-        <div className="mlenv-drift">
+        <div className="mlenv-stage">
           <picture className="mlenv-art" aria-hidden="true">
             <source media="(max-width: 640px)" srcSet="/method-lab/lab-mobile.avif" />
             <source media="(max-width: 1100px)" srcSet="/method-lab/lab-tablet.avif" />
             <img src="/method-lab/lab-desktop.avif" alt="" />
           </picture>
+          <video className="mlenv-video" autoPlay muted loop playsInline preload="metadata" aria-hidden="true">
+            <source src="/method-lab/lab-ambient.mp4" type="video/mp4" />
+          </video>
 
           {zones.map((zone) => (
             <button
@@ -173,43 +192,33 @@ export function MethodLabEnvironment({
               onClick={() => setSelectedId(zone.id)}
               aria-label={`${zone.label}: ${zone.state}`}
             >
-              <i />
-              <span><b>{zone.label}</b><small>{zone.state}</small></span>
+              <i /><span>{zone.label}</span>
             </button>
           ))}
         </div>
 
-        <div className="mlenv-vignette" aria-hidden="true" />
-        <div className="mlenv-scan" aria-hidden="true" />
-
-        <div className="mlenv-title">
-          <span>PROTOCOL · EVIDENCE · RUN · RETURN · CONTRAST</span>
-          <h1>Laboratorio SFI</h1>
-          <p>La imagen es una superficie de navegación. El movimiento ambiental no constituye actividad, ejecución ni evidencia.</p>
-        </div>
-
-        <aside className="mlenv-inspector" data-tone={selected.tone}>
-          <span>SELECTED BAY</span>
-          <h2>{selected.label}</h2>
-          <b>{selected.state}</b>
+        <section className="mlenv-board" data-tone={selected.tone} aria-live="polite">
+          <div className="mlenv-board-head">
+            <span>LIVE LAB CONTEXT</span>
+            <b>{selected.label}</b>
+            <small>{selected.state}</small>
+          </div>
           <p>{selected.detail}</p>
-          <button onClick={() => openZone(selected)}>ABRIR ÁREA ↓</button>
-          {selected.id === 'field' ? <Link href="/field">OPEN FIELD SURFACE ↗</Link> : null}
-        </aside>
+          <div className="mlenv-board-grid">
+            {boardMetrics[selected.id].map((metric) => <article key={metric.label}>
+              <small>{metric.label}</small><strong>{metric.value}</strong>{metric.detail ? <span>{metric.detail}</span> : null}
+            </article>)}
+          </div>
+          <div className="mlenv-board-boundary">
+            <span>MOTION ≠ ACTIVITY</span><span>SIMULATED ≠ OBSERVED</span>
+          </div>
+          <div className="mlenv-board-actions">
+            <button onClick={() => openZone(selected)}>OPEN DEEP CONTROL ↓</button>
+            {selected.id === 'field' ? <Link href="/field">OPEN FIELD ↗</Link> : null}
+          </div>
+        </section>
 
-        <div className="mlenv-truth">
-          <span>MOTION ≠ ACTIVITY</span>
-          <span>SIMULATED ≠ OBSERVED</span>
-          <span>PUBLICATION REQUIRES GOVERNANCE</span>
-        </div>
-      </div>
-
-      <div className="mlenv-telemetry" aria-label="Method Lab telemetry">
-        <div><small>PROTOCOLS</small><strong>{protocols.length}</strong><span>{operationalProtocols} operational</span></div>
-        <div><small>EVIDENCE</small><strong>{evidenceCount}</strong><span>{evidenceWarningCount} reader warnings</span></div>
-        <div><small>CRL</small><strong>{activeSessions}</strong><span>active / {sessions.length} total</span></div>
-        <div><small>RESEARCH</small><strong>{researchObjectCount}</strong><span>{researchWarningCount} warnings</span></div>
-        <div><small>DECISION TRANSFER</small><strong>{decisionTransfer.status}</strong><span>{decisionTransfer.totalEvaluations} evaluations</span></div>
+        <div className="mlenv-hint">SELECT A LAB BAY · THE BOARD LOADS REAL CONTEXT</div>
       </div>
     </section>
   );
