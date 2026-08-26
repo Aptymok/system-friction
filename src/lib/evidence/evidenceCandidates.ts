@@ -1,7 +1,7 @@
 import 'server-only';
 
 import { runPublicResearch, type PublicResearchSource } from '@/lib/agents/publicResearch';
-import { createActionProposal, latestActionProposals, sha256, stringValue } from '@/lib/operational/common';
+import { createActionProposal, sha256, stringValue } from '@/lib/operational/common';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 
 export type EvidenceCandidateSource = {
@@ -78,7 +78,6 @@ function sourceTypeForUrl(url: string): EvidenceCandidateSource['sourceType'] {
   if (/inegi\.org\.mx$|\.gob\.mx$|\.gov\.|\.gov$|banxico\.org\.mx$|condusef\.gob\.mx$|profeco\.gob\.mx$/.test(host)) return 'regulator';
   if (/linkedin\.com|crunchbase\.com/.test(host)) return 'professional';
   if (/reuters|bloomberg|forbes|expansion|eleconomista|elfinanciero|elceo|elpais|milenio|cnn|bbc/.test(host)) return 'news';
-  if (host) return 'official';
   return 'other';
 }
 
@@ -100,13 +99,13 @@ function normalizeSource(source: Omit<EvidenceCandidateSource, 'referenceHash' |
       publishedAt: source.publishedAt,
       retrievedAt: source.retrievedAt,
     }),
-    // Search/index results do not prove byte identity. A content hash may only be
-    // added by a separate governed preservation/inspection workflow.
     contentHash: null,
   };
 }
 
 function fromPublicResearchSource(source: PublicResearchSource): EvidenceCandidateSource {
+  const domainType = sourceTypeForUrl(source.url);
+  const sourceType = domainType === 'other' ? source.sourceType : domainType;
   return normalizeSource({
     url: source.url,
     title: source.title,
@@ -114,8 +113,8 @@ function fromPublicResearchSource(source: PublicResearchSource): EvidenceCandida
     snippet: source.snippet,
     publishedAt: source.publishedAt,
     retrievedAt: source.retrievedAt,
-    sourceType: source.sourceType,
-    reliability: source.reliability,
+    sourceType,
+    reliability: domainType === 'other' ? source.reliability : reliabilityFor(sourceType),
   });
 }
 
@@ -149,7 +148,7 @@ export function evidenceCandidateFromRow(rowValue: unknown): EvidenceCandidateVi
       snippet: stringValue(source.snippet) ?? '',
       publishedAt: stringValue(source.publishedAt),
       retrievedAt: stringValue(source.retrievedAt) ?? new Date(0).toISOString(),
-      sourceType: sourceType === 'regulator' || sourceType === 'news' || sourceType === 'professional' || sourceType === 'other' ? sourceType : 'official',
+      sourceType: sourceType === 'official' || sourceType === 'regulator' || sourceType === 'news' || sourceType === 'professional' || sourceType === 'other' ? sourceType : 'other',
       reliability: typeof source.reliability === 'number' && Number.isFinite(source.reliability) ? source.reliability : 0.55,
       referenceHash: stringValue(source.referenceHash) ?? sha256({ url }),
       contentHash: null,
@@ -163,9 +162,17 @@ export function evidenceCandidateFromRow(rowValue: unknown): EvidenceCandidateVi
 }
 
 export async function listEvidenceCandidates(parentProposalId: string, limit = 100) {
-  const rows = await latestActionProposals(['evidence_candidate'], Math.max(20, Math.min(250, limit)));
-  if (rows.error) return { ok: false as const, error: rows.error, candidates: [] as EvidenceCandidateView[] };
-  const candidates = rows.data
+  const service = createServiceSupabaseClient();
+  const boundedLimit = Math.max(1, Math.min(250, limit));
+  const result = await service
+    .from('action_proposals')
+    .select('*')
+    .eq('expected_field_delta->>proposalType', 'evidence_candidate')
+    .eq('expected_field_delta->payload->>parentProposalId', parentProposalId)
+    .order('created_at', { ascending: false })
+    .limit(boundedLimit);
+  if (result.error) return { ok: false as const, error: result.error.message, candidates: [] as EvidenceCandidateView[] };
+  const candidates = (result.data ?? [])
     .map((row) => evidenceCandidateFromRow(row))
     .filter((candidate): candidate is EvidenceCandidateView => Boolean(candidate && candidate.parentProposalId === parentProposalId));
   return { ok: true as const, candidates };
