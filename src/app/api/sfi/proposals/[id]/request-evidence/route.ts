@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { searchEvidenceCandidates } from '@/lib/evidence/evidenceCandidates';
+import { readEvidenceReadiness, searchEvidenceCandidates } from '@/lib/evidence/evidenceCandidates';
 import { decideActionProposal } from '@/lib/governance/proposalLifecycle';
 import { controllerCanDecideProposal } from '@/lib/governance/proposalDecisionAuthority';
 import { resolveProposalReviewerAuthority } from '@/lib/governance/proposalReviewer';
@@ -42,10 +42,8 @@ export async function POST(req: Request, ctx: RouteContext) {
   });
   if (!decision.ok) return NextResponse.json(decision, { status: 409 });
 
-  // request_evidence is an active acquisition request, not merely a passive gate.
-  // Acquisition is fail-soft: the governance decision remains valid even when a
-  // public retrieval provider is temporarily unavailable. ROOT can retry search
-  // or add a URL manually without changing the parent proposal decision.
+  // request_evidence creates work. Retrieval can fail softly, but the proposal is
+  // never mistaken for actively computing when no candidate exists.
   let acquisition: Awaited<ReturnType<typeof searchEvidenceCandidates>>;
   try {
     acquisition = await searchEvidenceCandidates({
@@ -61,12 +59,17 @@ export async function POST(req: Request, ctx: RouteContext) {
       warnings: ['automatic_evidence_acquisition_failed'],
     };
   }
+  const readiness = await readEvidenceReadiness(proposalId).catch(() => ({ ok: false, readiness: null, error: 'evidence_readiness_failed' }));
 
   return NextResponse.json({
     ok: true,
     data: decision.data,
     governanceDecision: 'request_evidence',
-    evidenceReadiness: acquisition.candidates.length ? 'review_required' : 'acquiring_or_retry_required',
+    evidenceJobId: `evidence-acquisition:${proposalId}`,
+    evidenceReadiness: readiness.readiness,
+    nextExpectedEvent: readiness.readiness?.nextExpectedEvent ?? 'EVIDENCE_CANDIDATE_ACQUIRED',
+    owner: readiness.readiness?.owner ?? 'evidence_hunter',
+    rootActionRequired: readiness.readiness?.rootActionRequired ?? false,
     acquisition,
   });
 }
