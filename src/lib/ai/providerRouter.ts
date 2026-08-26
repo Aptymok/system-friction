@@ -261,7 +261,7 @@ function capabilityMatches(model: LlmModelCapability, requirements: LlmRequireme
   if (requirements.multimodal && !model.multimodal) return false;
   if (requirements.reasoning && !model.reasoning) return false;
   if (requirements.structuredOutput && !model.structuredOutput) return false;
-  if (requirements.minContextTokens && model.contextTokens !== null && model.contextTokens < requirements.minContextTokens) return false;
+  if (requirements.minContextTokens && (model.contextTokens === null || model.contextTokens < requirements.minContextTokens)) return false;
   return true;
 }
 
@@ -427,7 +427,6 @@ async function callProvider(config: ProviderConfig, model: string, input: {
   if (config.id === 'gemini') {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(String(config.apiKey))}`;
     const generationConfig: Record<string, unknown> = { maxOutputTokens: input.maxTokens };
-    // Gemini 3.7 migration guidance removes legacy sampling knobs such as temperature/top_p/top_k.
     if (!/^gemini-3\.7(?:-|$)/i.test(model)) generationConfig.temperature = 0.2;
     const json = await fetchJson(url, {
       method: 'POST',
