@@ -12,6 +12,9 @@ const cycle=read('src/lib/sfi/cognitive-runtime/cognitiveCycle.ts');
 const spine=read('src/lib/institution/cognitiveSpineRuntimeExecution.ts');
 const calibration=read('src/lib/sfi/cognitive-runtime/agents/realityCalibrationAgent.ts');
 const provider=read('src/lib/ai/providerRouter.ts');
+const agentLlm=read('src/infrastructure/ai/agentLlmClient.ts');
+const amv=read('src/app/api/amv/field-response/route.ts');
+const providerCanary=read('src/app/api/root/ai/providers/route.ts');
 const reports=read('src/lib/reports/scheduledAgentReports.ts');
 const vercel=JSON.parse(read('vercel.json')) as {crons?:Array<{path?:string;schedule?:string}>};
 
@@ -40,6 +43,29 @@ assert.match(spine,/cognitiveTwinContext: materialized\.runtimeProjection\.cogni
 
 assert.match(provider,/synthetic_fallback_suppressed/);
 assert.match(provider,/provider: 'degraded'/);
+assert.match(provider,/gemini-3\.7-flash/,'Gemini primary must not fall back to retired 1.5 defaults.');
+assert.match(provider,/gemini-3\.5-flash-lite/,'Gemini fast lane missing.');
+for(const model of ['openai/gpt-oss-20b','openai/gpt-oss-120b','groq/compound','groq/compound-mini']) assert.ok(provider.includes(model),`Groq model lane missing: ${model}`);
+assert.match(provider,/router\.huggingface\.co\/v1\/chat\/completions/,'HF text generation must use Inference Providers router.');
+assert.match(provider,/DeepSeek-V4-Flash-0731/,'HF experimental open-model route missing.');
+assert.match(provider,/type LlmRequirements/);
+assert.match(provider,/structuredOutput/);
+assert.match(provider,/web_research/);
+assert.match(provider,/model_invalid/);
+assert.match(provider,/probeLlmProviders/);
+for(const health of ['UNCONFIGURED','UNTESTED','HEALTHY','DEGRADED','BLOCKED']) assert.ok(provider.includes(`'${health}'`),`Provider health state missing: ${health}`);
+assert.doesNotMatch(provider,/\?\? 'gemini-1\.5-flash'/,'Retired Gemini 1.5 default must not survive.');
+
+assert.match(agentLlm,/requirementsForAgent/,'Agents must declare capabilities, not a hard-coded model.');
+assert.match(agentLlm,/modelRequirements: requirements/);
+assert.doesNotMatch(agentLlm,/providerPreference\(context\.metadata\?\.preferredLlmProvider\) \?\? 'groq'/,'Agents must not default-bind to Groq.');
+assert.match(amv,/runLlmTask/,'AMV must reuse canonical provider router.');
+assert.doesNotMatch(amv,/generativelanguage\.googleapis\.com/,'AMV must not retain a parallel direct Gemini adapter.');
+assert.doesNotMatch(amv,/gemini-1\.5-flash/,'AMV must not retain retired Gemini model.');
+assert.match(providerCanary,/probeLlmProviders/);
+assert.match(providerCanary,/requireRootActor\('root\.ai\.providers\.canary'\)/);
+assert.match(providerCanary,/CONFIGURED means credentials\/config are present/);
+
 assert.match(calibration,/explicitPredictionRef/);
 assert.doesNotMatch(calibration,/prediction\.description[\s\S]*includes/,'calibration must not use lexical similarity as a return');
 assert.match(calibration,/Persistent model learning remains governed/);
@@ -54,6 +80,8 @@ console.log(JSON.stringify({
   standards:[SFI_AI_GOVERNANCE_POLICY.managementSystem,SFI_AI_GOVERNANCE_POLICY.riskGuidance,SFI_AI_GOVERNANCE_POLICY.euTransparencyBaseline],
   registeredAgents:registered.length,
   executorBindings:bound.length,
+  providerRouting:'CAPABILITY_BASED',
+  providerHealth:'CONFIGURED_NE_HEALTHY',
   autonomousInternalOperations:SFI_AI_GOVERNANCE_POLICY.autonomousInternalOperations,
   reservedExternalOperations:SFI_AI_GOVERNANCE_POLICY.reservedExternalOperations,
   scheduledInstitutionalLoops:[...cronPaths].filter(Boolean),
