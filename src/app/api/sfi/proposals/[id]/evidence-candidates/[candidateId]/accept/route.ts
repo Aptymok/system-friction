@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 
-import { readEvidenceCandidate } from '@/lib/evidence/evidenceCandidates';
-import { appendOperationalEvent, updateActionProposalStatus } from '@/lib/operational/common';
+import { readEvidenceCandidate, readGovernedProposal } from '@/lib/evidence/evidenceCandidates';
+import { appendOperationalEvent, stringValue, updateActionProposalStatus } from '@/lib/operational/common';
 import { requireRootActor } from '@/lib/root/server';
 
 export const dynamic = 'force-dynamic';
@@ -31,6 +31,13 @@ export async function POST(request: Request, ctx: RouteContext) {
   if (!gate.ok) return NextResponse.json(gate.body, { status: gate.status });
   const { proposalId, candidateId } = await routeIds(ctx);
   if (!proposalId || !candidateId) return NextResponse.json({ ok: false, error: 'proposal_and_candidate_required' }, { status: 400 });
+
+  const parent = await readGovernedProposal(proposalId);
+  if (!parent.ok || !parent.data) return NextResponse.json({ ok: false, error: parent.error }, { status: 404 });
+  const parentStatus = stringValue(parent.data.status);
+  if (parentStatus !== 'waiting_evidence' && parentStatus !== 'proposed') {
+    return NextResponse.json({ ok: false, error: 'parent_proposal_not_accepting_evidence', parentStatus }, { status: 409 });
+  }
 
   const current = await readEvidenceCandidate(proposalId, candidateId);
   if (!current.ok || !current.candidate) return NextResponse.json({ ok: false, error: current.error }, { status: 404 });
