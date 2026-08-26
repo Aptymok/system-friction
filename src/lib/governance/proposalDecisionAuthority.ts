@@ -56,7 +56,7 @@ export function classifyProposalDecision(row: Record<string, unknown>): Proposal
   if (explicit === 'delegable' || explicit === 'controller') return 'delegable';
 
   const risk = normalizedText(row.risk_level);
-  if (risk === 'critical' || risk === 'high') return 'root_only';
+  if (risk === 'critical' || risk === 'high' || risk === 'unassessable' || risk === 'missing_input_for_risk') return 'root_only';
 
   const text = proposalText(row);
   if (ROOT_ONLY_TERMS.some((term) => text.includes(term))) return 'root_only';
