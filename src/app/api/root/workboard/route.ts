@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { resolveProposalReviewerAuthority } from '@/lib/governance/proposalReviewer';
+import { readRootOperationalNext } from '@/lib/root/operationalNext';
 import { readRootOperationalWorkboard } from '@/lib/root/operationalWorkboard';
 import { requireRootViewer } from '@/lib/root/server';
 
@@ -13,7 +14,11 @@ export async function GET() {
 
   const authority = resolveProposalReviewerAuthority(gate.ctx);
   try {
-    const workboard = await readRootOperationalWorkboard({ authority });
+    const [base, operationalNext] = await Promise.all([
+      readRootOperationalWorkboard({ authority }),
+      readRootOperationalNext(),
+    ]);
+    const workboard = { ...base, operationalNext };
     return NextResponse.json({ ok: true, workboard }, { headers: { 'Cache-Control': 'no-store' } });
   } catch (error) {
     return NextResponse.json({
