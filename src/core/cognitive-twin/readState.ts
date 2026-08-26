@@ -60,7 +60,8 @@ export async function readCognitiveTwinState() {
     : [null, null, null];
 
   const providers = getLlmProviderStatus();
-  const configuredProviders = providers.filter((item) => item.available);
+  const configuredProviders = providers.filter((item) => item.configured);
+  const healthyProviders = providers.filter((item) => item.state === 'HEALTHY');
   const registeredModelCount = tableMap.get('sfi_cognitive_twin_model_registry')?.count ?? 0;
   const [approvedDecisionCountResult, approvedModelCountResult] = databaseReady
     ? await Promise.all([
@@ -82,6 +83,8 @@ export async function readCognitiveTwinState() {
       contractImplemented: true,
       databaseReady,
       providerConfigured,
+      configuredProviderCount: configuredProviders.length,
+      healthyProviderCountInCurrentProcess: healthyProviders.length,
       providerExecutionObserved,
       providerRouterReady,
       approvedDecisionCorpusReady: approvedDecisionCount > 0,
