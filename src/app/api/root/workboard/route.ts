@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { getLlmProviderStatus } from '@/lib/ai/providerRouter';
 import { resolveProposalReviewerAuthority } from '@/lib/governance/proposalReviewer';
 import { readRootOperationalNext } from '@/lib/root/operationalNext';
 import { readRootOperationalWorkboard } from '@/lib/root/operationalWorkboard';
@@ -18,7 +19,17 @@ export async function GET() {
       readRootOperationalWorkboard({ authority }),
       readRootOperationalNext(),
     ]);
-    const workboard = { ...base, operationalNext };
+    const providers = getLlmProviderStatus();
+    const reports = {
+      ...base.reports,
+      health: {
+        ...base.reports.health,
+        providers,
+        degradedProviderCount: providers.filter((provider) => provider.state === 'DEGRADED' || provider.state === 'BLOCKED').length,
+        providerHealthBoundary: 'configured/credential_present is not execution proof. HEALTHY requires an observed successful model call; UNTESTED means configured without observed canary/runtime success in this process.',
+      },
+    };
+    const workboard = { ...base, reports, operationalNext };
     return NextResponse.json({ ok: true, workboard }, { headers: { 'Cache-Control': 'no-store' } });
   } catch (error) {
     return NextResponse.json({
