@@ -1,10 +1,12 @@
 import { NextResponse } from 'next/server';
 
-import { readEvidenceCandidate } from '@/lib/evidence/evidenceCandidates';
+import { readEvidenceCandidate, readEvidenceReadiness, searchEvidenceCandidates } from '@/lib/evidence/evidenceCandidates';
 import { appendOperationalEvent, updateActionProposalStatus } from '@/lib/operational/common';
 import { requireRootActor } from '@/lib/root/server';
 
 export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+export const maxDuration = 300;
 
 type RouteContext = { params: Promise<{ id: string; candidateId: string }> | { id: string; candidateId: string } };
 
@@ -23,7 +25,10 @@ export async function POST(request: Request, ctx: RouteContext) {
   if (!proposalId || !candidateId) return NextResponse.json({ ok: false, error: 'proposal_and_candidate_required' }, { status: 400 });
   const current = await readEvidenceCandidate(proposalId, candidateId);
   if (!current.ok || !current.candidate) return NextResponse.json({ ok: false, error: current.error }, { status: 404 });
-  if (current.candidate.status === 'rejected') return NextResponse.json({ ok: true, duplicate: true, candidate: current.candidate });
+  if (current.candidate.status === 'rejected') {
+    const readiness = await readEvidenceReadiness(proposalId);
+    return NextResponse.json({ ok: true, duplicate: true, candidate: current.candidate, evidenceReadiness: readiness.readiness });
+  }
   if (current.candidate.status !== 'proposed') {
     return NextResponse.json({ ok: false, error: 'evidence_candidate_not_reviewable', status: current.candidate.status }, { status: 409 });
   }
@@ -60,7 +65,27 @@ export async function POST(request: Request, ctx: RouteContext) {
       sourceUrl: current.candidate.source.url,
       referenceHash: current.candidate.source.referenceHash,
       executionAllowed: false,
+      canonicalPromotionAllowed: false,
     },
   });
-  return NextResponse.json(updated, { status: updated.ok ? 200 : 409 });
+  if (!updated.ok) return NextResponse.json(updated, { status: 409 });
+
+  // A rejection is not a dead end. The machine searches for a replacement,
+  // while ROOT retains authority over the new candidate set.
+  const replacement = await searchEvidenceCandidates({
+    parentProposalId: proposalId,
+    actorId: gate.ctx.user.id,
+    requestNote: `Buscar reemplazo para candidato rechazado ${current.candidate.source.title}. Razón ROOT: ${reason}`,
+  }).catch((error) => ({
+    ok: false as const,
+    candidates: [],
+    warnings: [`replacement_search_failed:${error instanceof Error ? error.message : String(error)}`],
+  }));
+  const readiness = await readEvidenceReadiness(proposalId);
+  return NextResponse.json({
+    ok: true,
+    data: updated.data,
+    replacement,
+    evidenceReadiness: readiness.readiness,
+  });
 }
