@@ -49,7 +49,7 @@ export async function GET(req: NextRequest) {
   const redirectUri = req.nextUrl.searchParams.get('redirect_uri')?.trim() || '';
   const responseType = req.nextUrl.searchParams.get('response_type')?.trim() || '';
   const state = req.nextUrl.searchParams.get('state');
-  const rawScope = req.nextUrl.searchParams.get('scope')?.trim() || DEFAULT_SCOPES.join(' ');
+  const rawScope = req.nextUrl.searchParams.get('scope')?.trim() || null;
   const codeChallenge = req.nextUrl.searchParams.get('code_challenge')?.trim() || null;
   const codeChallengeMethod = req.nextUrl.searchParams.get('code_challenge_method')?.trim() || null;
 
@@ -63,8 +63,10 @@ export async function GET(req: NextRequest) {
     return redirectOAuthError(redirectUri, state, 'invalid_request', 'Only PKCE S256 is supported.');
   }
 
-  const requestedScopes = [...new Set<string>(rawScope.split(/\s+/).filter(Boolean))];
-  if (requestedScopes.some((scope) => !SUPPORTED_SCOPES.has(scope))) {
+  const explicitlyRequestedScopes = rawScope
+    ? [...new Set<string>(rawScope.split(/\s+/).filter(Boolean))]
+    : null;
+  if (explicitlyRequestedScopes?.some((scope) => !SUPPORTED_SCOPES.has(scope))) {
     return redirectOAuthError(redirectUri, state, 'invalid_scope', 'One or more requested SFI scopes are not supported.');
   }
 
@@ -86,13 +88,25 @@ export async function GET(req: NextRequest) {
   const moduleAccess = asRecord(context.profile.module_access);
   const rootDelegate = profileRole === 'root' || profileRole === 'system';
   const evidenceWriter = moduleAccess.evidence_write === true;
+  const institutionalScopes = context.member?.external?.scopes ?? null;
 
-  // OAuth authority follows explicit institutional capabilities instead of
-  // inferring write permission only from the coarse profile role. Evidence
-  // writers may persist structured results/returns, but do not inherit ROOT
-  // execution, Method Lab runtime, sovereign action or canonical promotion.
-  const allowedScopes = new Set<string>(rootDelegate ? ROOT_SCOPES : DEFAULT_SCOPES);
-  if (!rootDelegate && evidenceWriter) allowedScopes.add('lab:write');
+  // OAuth authority is explicit. ROOT receives the full gateway scope set; a
+  // registered institutional member receives exactly the external scopes in
+  // the institutional registry. Other members retain the conservative
+  // compatibility baseline plus explicit evidence-write capability.
+  const allowedScopes = new Set<string>(
+    rootDelegate
+      ? ROOT_SCOPES
+      : institutionalScopes?.length
+        ? institutionalScopes
+        : DEFAULT_SCOPES,
+  );
+  if (!rootDelegate && !institutionalScopes?.length && evidenceWriter) allowedScopes.add('lab:write');
+
+  // GPT Actions are allowed to omit `scope`. In that case SFI now issues the
+  // principal's configured institutional scopes instead of silently reducing
+  // the token to the generic non-ROOT baseline.
+  const requestedScopes = explicitlyRequestedScopes ?? [...allowedScopes];
 
   if (requestedScopes.some((scope) => !allowedScopes.has(scope))) {
     return redirectOAuthError(redirectUri, state, 'invalid_scope', 'The authenticated SFI principal is not allowed to receive one or more requested scopes.');
@@ -101,6 +115,9 @@ export async function GET(req: NextRequest) {
   const label = context.member?.displayName || String(context.profile.alias || context.user.email || 'SFI member');
   const slug = actorSlug(context.member?.displayName || String(context.profile.alias || ''));
   const actorId = slug ? `external:${slug}` : `external:user:${context.user.id}`;
+  const delegatedRole = rootDelegate
+    ? 'root_delegate'
+    : context.member?.external?.role ?? (evidenceWriter ? 'evidence_writer' : 'agent');
   const code = randomBytes(32).toString('base64url');
   const expiresAt = new Date(Date.now() + 2 * 60 * 1000).toISOString();
 
@@ -112,7 +129,7 @@ export async function GET(req: NextRequest) {
     subject_id: context.user.id,
     actor_id: actorId,
     label,
-    role: rootDelegate ? 'root_delegate' : evidenceWriter ? 'evidence_writer' : 'agent',
+    role: delegatedRole,
     tenant_id: 'sfi',
     scopes: requestedScopes,
     code_challenge: codeChallenge,
