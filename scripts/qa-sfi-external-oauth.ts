@@ -14,6 +14,7 @@ const migration = text('supabase/migrations/20260822214500_create_sfi_oauth_auth
 const openapi = JSON.parse(text('public/openapi.json')) as Record<string, any>;
 const members = text('src/lib/system/access/institutionalMembers.ts');
 const manifest = text('src/app/api/external/v1/manifest/route.ts');
+const lab = text('src/app/api/external/v1/lab/route.ts');
 const execute = text('src/app/api/external/v1/execute/route.ts');
 const proposalReturn = text('src/app/api/external/v1/proposal-return/route.ts');
 const outcomeRoute = text('src/app/api/acp/proposals/[id]/outcome/route.ts');
@@ -22,10 +23,12 @@ const llms = text('src/app/llms.txt/route.ts');
 const aiIndex = text('src/app/ai-index.json/route.ts');
 
 assert.match(authorize, /requireSfiMember\(\)/, 'oauth_authorize_must_bind_to_authenticated_sfi_member');
-assert.match(authorize, /DEFAULT_SCOPES = \['observe', 'propose', 'lab:read'\]/, 'default_non_root_oauth_scopes_must_be_bounded');
-assert.match(authorize, /moduleAccess\.evidence_write === true/, 'evidence_write_capability_must_be_explicit');
-assert.match(authorize, /allowedScopes\.add\('lab:write'\)/, 'evidence_writer_may_receive_lab_write');
-assert.match(authorize, /rootDelegate \? 'root_delegate' : evidenceWriter \? 'evidence_writer' : 'agent'/, 'root_delegate_must_not_be_default');
+assert.match(authorize, /DEFAULT_SCOPES = \['observe', 'propose', 'lab:read'\]/, 'generic_oauth_fallback_must_remain_bounded');
+assert.match(authorize, /context\.member\?\.external\?\.scopes/, 'registered_member_oauth_scopes_must_be_explicit');
+assert.match(authorize, /explicitlyRequestedScopes \?\? \[\.\.\.allowedScopes\]/, 'omitted_scope_must_default_to_principal_configured_scopes');
+assert.match(authorize, /context\.member\?\.external\?\.role/, 'registered_member_external_role_must_be_explicit');
+assert.match(authorize, /moduleAccess\.evidence_write === true/, 'legacy_evidence_write_capability_must_remain_explicit');
+assert.match(authorize, /allowedScopes\.add\('lab:write'\)/, 'legacy_evidence_writer_may_receive_lab_write');
 assert.match(authorize, /codeHash\(code\)/, 'authorization_code_must_be_stored_as_hash');
 assert.match(authorize, /code_challenge/, 'oauth_authorize_must_support_pkce');
 
@@ -49,6 +52,7 @@ assert.match(migration, /enable row level security/i, 'oauth_code_table_must_ena
 assert.match(migration, /code_hash text not null unique/i, 'oauth_codes_must_not_be_stored_in_plaintext');
 assert.match(migration, /consumed_at timestamptz/i, 'oauth_codes_must_track_consumption');
 
+assert.equal(openapi.info?.version, '1.6.5', 'openapi_version_must_track_institutional_oauth_authority');
 assert.equal(openapi.components?.securitySchemes?.sfiOAuth?.type, 'oauth2', 'openapi_must_publish_oauth2');
 assert.equal(
   openapi.components?.securitySchemes?.sfiOAuth?.flows?.authorizationCode?.authorizationUrl,
@@ -60,9 +64,22 @@ assert.equal(
   'https://systemfriction.org/api/oauth/token',
   'openapi_token_url_must_be_canonical',
 );
+assert.match(
+  String(openapi.components?.securitySchemes?.sfiOAuth?.flows?.authorizationCode?.scopes?.['lab:run'] || ''),
+  /explicitly granted/,
+  'openapi_lab_run_must_describe_explicit_principal_grant',
+);
 
 assert.match(members, /email: 'edwin\.tzolkin@gmail\.com'/, 'edwin_must_resolve_through_existing_institutional_identity');
-assert.match(members, /displayName: 'Edwin'[\s\S]*?role: 'observer'/, 'edwin_must_not_inherit_root_delegate_from_oauth');
+assert.match(members, /displayName: 'Edwin'[\s\S]*?role: 'observer'/, 'edwin_root_observation_role_must_remain_non_sovereign');
+assert.match(members, /role: 'institutional_operator'/, 'edwin_external_agent_role_must_be_operational');
+assert.match(members, /scopes: \['observe', 'propose', 'execute', 'lab:read', 'lab:write', 'lab:run'\]/, 'edwin_oauth_must_receive_full_governed_agent_scope_set');
+
+assert.match(lab, /return 'lab:run'/, 'lab_run_operation_must_require_lab_run_scope');
+assert.match(lab, /authorizeExternalRequest\(req, operationScope\(operation\)\)/, 'lab_must_authorize_by_operation_scope');
+assert.doesNotMatch(lab, /root_delegate_required_for_lab_runtime/, 'lab_run_scope_must_not_be_shadowed_by_hidden_root_role_gate');
+assert.match(lab, /explicit_runtime_confirmation_required/, 'lab_runtime_must_still_require_explicit_confirmation');
+assert.match(lab, /protocolId_and_persisted_evidenceIds_required/, 'lab_runtime_must_still_require_supported_protocol_and_evidence');
 
 assert.match(execute, /authorizeExternalRequest\(req, 'execute'\)/, 'execute_gate_must_keep_execute_scope');
 assert.match(execute, /body\.confirm !== true/, 'execute_gate_must_require_explicit_confirmation');
@@ -91,7 +108,9 @@ assert.match(outcomeWriter, /SFI_PROPOSAL_RETURN_RECORDED/, 'outcome_writer_must
 assert.match(outcomeWriter, /PENDING_REALITY_CALIBRATION/, 'outcome_writer_must_leave_calibration_pending');
 assert.match(outcomeWriter, /CANDIDATE_UNTIL_CALIBRATED/, 'learning_must_remain_candidate_until_calibrated');
 
-assert.match(manifest, /version: '1\.6\.4'/, 'external_manifest_version_must_reflect_current governed return/evidence contract');
+assert.match(manifest, /version: '1\.6\.5'/, 'external_manifest_version_must_reflect_institutional_oauth_authority');
+assert.match(manifest, /Scope omission defaults to that configured set/, 'manifest_must_explain_principal_configured_scope_default');
+assert.match(manifest, /explicit lab:run scope/, 'manifest_must_explain_lab_run_scope_authority');
 assert.match(manifest, /id: 'proposal-return'/, 'manifest_must_publish_proposal_return');
 assert.match(manifest, /dispatches the same governed router used after authorization/, 'manifest_must_describe_governed_execute_dispatch');
 assert.match(llms, /\/execute dispatches only a proposal that is already queued/, 'llms_must_explain_post_authorization_dispatch');
@@ -102,13 +121,19 @@ assert.match(aiIndex, /return_must_match_proposal_uuid: true/, 'ai_index_must_pu
 
 console.log(JSON.stringify({
   ok: true,
-  contract: 'SFI-EXTERNAL-OAUTH-1.3',
+  contract: 'SFI-EXTERNAL-OAUTH-1.4',
   flow: 'authorization_code',
   pkce: 'S256',
-  defaultNonRootScopes: ['observe', 'propose', 'lab:read'],
-  evidenceWriterAdditionalScopes: ['lab:write'],
-  rootOnlyScopes: ['execute', 'lab:run'],
+  genericFallbackScopes: ['observe', 'propose', 'lab:read'],
+  edwinExternalRole: 'institutional_operator',
+  edwinExternalScopes: ['observe', 'propose', 'execute', 'lab:read', 'lab:write', 'lab:run'],
   staticTokenCompatibility: true,
+  sovereigntyBoundary: {
+    evidenceCandidateAcceptance: 'ROOT',
+    proposalApproval: 'ROOT',
+    canonicalPromotion: 'ROOT',
+    labRunAuthority: 'explicit_lab_run_scope',
+  },
   executionBoundary: {
     queuedInternalAutoDispatch: true,
     externalActionWithoutAdapter: 'fail_closed',
