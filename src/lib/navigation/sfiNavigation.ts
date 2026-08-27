@@ -22,12 +22,14 @@ export const SFI_NAVIGATION: SfiNavItem[] = [
   { id: 'user-observatory', title: 'Mi Observatorio', href: '/field', description: 'Private golden-attractor graph, evidence, perturbation and longitudinal trajectory.', area: 'product', status: 'protected', protected: true, priority: 5 },
   { id: 'field-participant', title: '72-hour Calibration', href: '/field/participant', description: 'Mandatory first-interaction contextual mark window.', area: 'product', status: 'protected', protected: true, priority: 6 },
   { id: 'field', title: 'Field', href: '/field', description: 'Authenticated user operational field.', area: 'product', status: 'protected', protected: true, priority: 10 },
+  { id: 'personal-lab', title: 'Lab + Cognitive', href: '/method-lab', description: 'Owner-scoped cases, evidence, cognitive automations and simulations. Institutional members see the governed SFI Lab on the same surface.', area: 'product', status: 'protected', protected: true, priority: 10 },
   { id: 'root', title: 'ROOT', href: '/root', description: 'Private founder/root console.', area: 'root', status: 'protected', protected: true, priority: 11 },
   { id: 'studio', title: 'Studio', href: '/studio', description: 'Private Edwing / REM618 producer field.', area: 'studio', status: 'protected', protected: true, priority: 12 },
   { id: 'repository', title: 'Repository', href: '/repository', description: 'Public documentation and approved evidence repository.', area: 'repository', status: 'active', public: true, priority: 20 },
   { id: 'contact', title: 'Contact', href: '/contact', description: 'Contact form and external links.', area: 'contact', status: 'active', public: true, priority: 30 },
   { id: 'privacy', title: 'Privacy', href: '/privacy', description: 'Privacy policy.', area: 'contact', status: 'active', public: true, priority: 31 },
   { id: 'api-field-persist', title: 'Field persistence API', href: '/api/field/persist', description: 'Existing authenticated event persistence where owned-node context exists.', area: 'api', status: 'api', public: false, priority: 100 },
+  { id: 'api-personal-cognitive', title: 'Personal Cognitive API', href: '/api/interface/cognitive-workspace', description: 'Authenticated owner-scoped Cognitive and Lab operations.', area: 'api', status: 'api', public: false, priority: 100 },
   { id: 'api-root-founder-state', title: 'ROOT SFI state API', href: '/api/root/founder-state', description: 'ROOT-gated SFI-01 read model and action capabilities.', area: 'api', status: 'api', public: false, priority: 101 },
 ];
 
