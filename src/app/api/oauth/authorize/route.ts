@@ -8,7 +8,17 @@ export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 const DEFAULT_SCOPES = ['observe', 'propose', 'lab:read'] as const;
-const ROOT_SCOPES = ['observe', 'propose', 'execute', 'lab:read', 'lab:write', 'lab:run'] as const;
+const ROOT_SCOPES = [
+  'observe',
+  'propose',
+  'execute',
+  'lab:read',
+  'lab:write',
+  'lab:run',
+  'studio:read',
+  'studio:content',
+  'studio:run',
+] as const;
 const SUPPORTED_SCOPES = new Set<string>(ROOT_SCOPES);
 
 function codeHash(code: string) {
@@ -103,7 +113,7 @@ export async function GET(req: NextRequest) {
   );
   if (!rootDelegate && !institutionalScopes?.length && evidenceWriter) allowedScopes.add('lab:write');
 
-  // GPT Actions are allowed to omit `scope`. In that case SFI now issues the
+  // GPT Actions are allowed to omit `scope`. In that case SFI issues the
   // principal's configured institutional scopes instead of silently reducing
   // the token to the generic non-ROOT baseline.
   const requestedScopes = explicitlyRequestedScopes ?? [...allowedScopes];
