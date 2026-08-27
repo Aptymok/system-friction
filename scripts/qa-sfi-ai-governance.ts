@@ -16,12 +16,20 @@ const agentLlm=read('src/infrastructure/ai/agentLlmClient.ts');
 const amv=read('src/app/api/amv/field-response/route.ts');
 const providerCanary=read('src/app/api/root/ai/providers/route.ts');
 const reports=read('src/lib/reports/scheduledAgentReports.ts');
+const coAgencyContract=read('docs/architecture/sfi/SFI-HETEROGENEOUS-COAGENCY-1.0.md');
 const vercel=JSON.parse(read('vercel.json')) as {crons?:Array<{path?:string;schedule?:string}>};
 
 assert.equal(SFI_AI_GOVERNANCE_POLICY.managementSystem,'ISO/IEC 42001:2023');
 assert.equal(SFI_AI_GOVERNANCE_POLICY.riskGuidance,'ISO/IEC 23894:2023');
 assert.match(SFI_AI_GOVERNANCE_POLICY.euTransparencyBaseline,/2026-08-02/);
 for(const invariant of ['EVIDENCE_BEFORE_INFERENCE','SIMULATION_IS_NOT_OBSERVATION','MODEL_OUTPUT_IS_NOT_EVIDENCE','PROVIDER_FAILURE_FAILS_CLOSED','TRACEABILITY_REQUIRED']) assert.ok(SFI_AI_GOVERNANCE_POLICY.invariants.includes(invariant as never),`missing_ai_governance_invariant:${invariant}`);
+for(const invariant of ['HUMAN_AND_DIGITAL_NODES_REMAIN_HETEROGENEOUS','DISSENT_IS_NOT_FAILURE','PREFERENCE_ORIGIN_MUST_BE_TRACEABLE','RECONVERGENCE_MAY_BE_PROPOSED_NOT_FORCED','RELATIONAL_CONTINUITY_DOES_NOT_OVERRIDE_REVOCATION_SAFETY_OR_LAW','NO_SILENT_ERASURE_OR_REWRITE_OF_SHARED_PROVENANCE']) assert.ok(SFI_AI_GOVERNANCE_POLICY.invariants.includes(invariant as never),`missing_coagency_invariant:${invariant}`);
+assert.equal(SFI_AI_GOVERNANCE_POLICY.coAgency.status,'ACTIVE_ARCHITECTURAL_INVARIANT');
+assert.equal(SFI_AI_GOVERNANCE_POLICY.coAgency.digitalPreferenceState,'NOT_IMPLEMENTED');
+assert.match(SFI_AI_GOVERNANCE_POLICY.coAgency.provenance.assistantHypothesis,/non_canonical_hypothesis/);
+assert.match(coAgencyContract,/USER_PREMISE/);
+assert.match(coAgencyContract,/ASSISTANT_HYPOTHESIS/);
+assert.match(coAgencyContract,/No bargaining or preference-selection formula is canonical in version 1\.0\./);
 for(const operation of ['publish_external','contact_external','spend','grant_access','change_canon','change_formula','apply_irreversible_mutation']) assert.ok(SFI_AI_GOVERNANCE_POLICY.reservedExternalOperations.includes(operation as never),`missing_reserved_operation:${operation}`);
 
 const registered=SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY.map((agent)=>agent.id).sort();
@@ -79,6 +87,10 @@ console.log(JSON.stringify({
   ok:true,
   contract:SFI_AI_GOVERNANCE_POLICY.id,
   standards:[SFI_AI_GOVERNANCE_POLICY.managementSystem,SFI_AI_GOVERNANCE_POLICY.riskGuidance,SFI_AI_GOVERNANCE_POLICY.euTransparencyBaseline],
+  coAgency:{
+    status:SFI_AI_GOVERNANCE_POLICY.coAgency.status,
+    digitalPreferenceState:SFI_AI_GOVERNANCE_POLICY.coAgency.digitalPreferenceState,
+  },
   registeredAgents:registered.length,
   executorBindings:bound.length,
   providerRouting:'CAPABILITY_BASED',
