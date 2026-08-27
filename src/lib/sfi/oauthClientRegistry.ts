@@ -36,6 +36,19 @@ function safeEqual(a: string, b: string) {
   return left.length === right.length && timingSafeEqual(left, right);
 }
 
+function legacyClient() {
+  const legacy = readSfiOAuthConfig();
+  if (!legacy) return null;
+  return {
+    clientId: legacy.clientId,
+    name: 'SFI legacy/bootstrap OAuth client',
+    redirectUris: legacy.redirectUris,
+    allowedScopes: [...SFI_ROOT_SCOPES],
+    source: 'legacy_env' as const,
+    legacySecret: legacy.clientSecret,
+  } satisfies ResolvedSfiOAuthClient;
+}
+
 export function hashSfiOAuthClientSecret(secret: string) {
   return createHash('sha256').update(secret, 'utf8').digest('hex');
 }
@@ -80,12 +93,7 @@ async function readRegisteredClient(clientId: string): Promise<ResolvedSfiOAuthC
     .eq('status', 'ACTIVE')
     .maybeSingle();
 
-  if (result.error) {
-    // During the migration window the legacy ENV client must remain usable even
-    // if the registry table has not been applied yet.
-    if (/relation .*sfi_oauth_clients.* does not exist/i.test(result.error.message)) return null;
-    throw new Error(`SFI_OAUTH_CLIENT_REGISTRY_READ_FAILED:${result.error.message}`);
-  }
+  if (result.error) throw new Error(`SFI_OAUTH_CLIENT_REGISTRY_READ_FAILED:${result.error.message}`);
   if (!result.data) return null;
   const row = result.data as Row;
   return {
@@ -101,19 +109,19 @@ async function readRegisteredClient(clientId: string): Promise<ResolvedSfiOAuthC
 export async function resolveSfiOAuthClient(clientId: string): Promise<ResolvedSfiOAuthClient | null> {
   if (!clientId) return null;
 
-  const registered = await readRegisteredClient(clientId);
-  if (registered) return registered;
+  const legacy = legacyClient();
+  const legacyMatch = legacy && safeEqual(clientId, legacy.clientId) ? legacy : null;
 
-  const legacy = readSfiOAuthConfig();
-  if (!legacy || !safeEqual(clientId, legacy.clientId)) return null;
-  return {
-    clientId: legacy.clientId,
-    name: 'SFI legacy/bootstrap OAuth client',
-    redirectUris: legacy.redirectUris,
-    allowedScopes: [...SFI_ROOT_SCOPES],
-    source: 'legacy_env',
-    legacySecret: legacy.clientSecret,
-  };
+  try {
+    const registered = await readRegisteredClient(clientId);
+    if (registered) return registered;
+    return legacyMatch;
+  } catch (error) {
+    // Deploying code and applying the registry migration are separate operations.
+    // The bootstrap client must not go offline if the registry is not yet readable.
+    if (legacyMatch) return legacyMatch;
+    throw error;
+  }
 }
 
 export function isAllowedSfiOAuthRedirect(client: ResolvedSfiOAuthClient, redirectUri: string) {
