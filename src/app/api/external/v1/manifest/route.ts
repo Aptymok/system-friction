@@ -41,7 +41,7 @@ export async function GET() {
       { id: 'signal-cycle', method: 'POST', path: '/signal', scope: 'lab:write', tenant: 'institutional', description: 'Run governed institutional signal-cycle operations.' },
       { id: 'observe', method: 'POST', path: '/observe', scope: 'observe', tenant: 'institutional', description: 'Read allowlisted proposal/evidence surfaces.' },
       { id: 'propose', method: 'POST', path: '/propose', scope: 'propose', tenant: 'institutional', description: 'Submit a governed action proposal. ROOT authorization remains separate.' },
-      { id: 'evidence-candidate', method: 'POST', path: '/evidence-candidates', scope: 'propose', tenant: 'institutional', description: 'Submit an evidence candidate. It is not accepted evidence until governed review.' },
+      { id: 'evidence-candidate', method: 'POST', path: '/evidence-candidates', scope: 'propose', tenant: 'institutional', description: 'Submit an evidence candidate. It is not accepted evidence until ROOT accept/reject review; external principals cannot accept it themselves.' },
       { id: 'execute', method: 'POST', path: '/execute', scope: 'execute', tenant: 'institutional', description: 'Dispatch only an already-authorized queued proposal. Cannot self-approve or promote canon.' },
       { id: 'proposal-return', method: 'POST', path: '/proposal-return', scope: 'execute', tenant: 'institutional', description: 'Record an evidence-linked observed return for one queued proposal.' },
       { id: 'lab-state', method: 'POST', path: '/lab', scope: 'lab:read', tenant: 'institutional', body: { operation: 'state' }, description: 'Read institutional Method Lab state.' },
