@@ -8,7 +8,11 @@ import {
   SFI_ROOT_SCOPES,
   SFI_SUPPORTED_SCOPES,
 } from '@/lib/sfi/oauthConfig';
-import { isAllowedSfiOAuthRedirect, resolveSfiOAuthClient } from '@/lib/sfi/oauthClientRegistry';
+import {
+  canSfiOAuthClientAuthorizeSubject,
+  isAllowedSfiOAuthRedirect,
+  resolveSfiOAuthClient,
+} from '@/lib/sfi/oauthClientRegistry';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -88,6 +92,15 @@ export async function GET(req: NextRequest) {
       return redirectOAuthError(redirectUri, state, 'access_denied', 'An active SFI account is required.');
     }
     throw error;
+  }
+
+  if (!canSfiOAuthClientAuthorizeSubject(client, context.user.id)) {
+    return redirectOAuthError(
+      redirectUri,
+      state,
+      'access_denied',
+      'This self-service OAuth client is bound to a different SFI account.',
+    );
   }
 
   const profileRole = String(context.profile.role || 'operator').toLowerCase();
