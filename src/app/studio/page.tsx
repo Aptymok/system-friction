@@ -62,6 +62,17 @@ const action: CSSProperties = {
   cursor: 'pointer',
 };
 
+const input: CSSProperties = {
+  width: '100%',
+  border: '1px solid rgba(255,255,255,.11)',
+  background: 'rgba(255,255,255,.025)',
+  color: '#eaf6fb',
+  padding: '11px 12px',
+  font: 'inherit',
+  fontSize: 12,
+  outline: 'none',
+};
+
 export default async function StudioPage({ searchParams }: { searchParams?: Promise<{ objectId?: string | string[] }> }) {
   const { user, profile } = await requireSfiMemberPage('/studio');
   const moduleAccess = record(record(profile).module_access);
@@ -97,7 +108,7 @@ export default async function StudioPage({ searchParams }: { searchParams?: Prom
         </div>
       </section>
 
-      <section style={{ position: 'relative', zIndex: 1, display: 'grid', gridTemplateColumns: 'minmax(280px,.72fr) minmax(0,1.28fr)', gap: 18, padding: '18px clamp(18px,4vw,58px) 70px', maxWidth: 1540, margin: '0 auto' }}>
+      <section style={{ position: 'relative', zIndex: 1, display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,320px),1fr))', gap: 18, padding: '18px clamp(18px,4vw,58px) 70px', maxWidth: 1540, margin: '0 auto' }}>
         <aside style={{ ...panel, minHeight: 520 }}>
           <div style={{ padding: '18px 20px', borderBottom: '1px solid rgba(255,255,255,.09)' }}>
             <div style={{ color: '#7fc8f5', fontSize: 10, letterSpacing: '.19em' }}>OWNED OBJECTS</div>
@@ -141,9 +152,20 @@ export default async function StudioPage({ searchParams }: { searchParams?: Prom
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 24 }}>
                 <a href={`/api/studio/objects/${encodeURIComponent(text(active.id, ''))}/content`} target="_blank" rel="noreferrer" style={action}>Contenido</a>
                 <a href={`/api/studio/objects/${encodeURIComponent(text(active.id, ''))}/features`} target="_blank" rel="noreferrer" style={action}>Features</a>
-                <a href={`/api/studio/objects/${encodeURIComponent(text(active.id, ''))}/evidence`} target="_blank" rel="noreferrer" style={action}>Evidencia</a>
                 <a href={`/api/studio/objects/${encodeURIComponent(text(active.id, ''))}/cognitive`} target="_blank" rel="noreferrer" style={action}>Cognitive state</a>
               </div>
+
+              <form action={`/api/studio/objects/${encodeURIComponent(text(active.id, ''))}/evidence`} method="post" encType="multipart/form-data" target="_blank" style={{ marginTop: 24, padding: 16, border: '1px solid rgba(127,200,245,.15)', background: 'rgba(27,83,118,.055)' }}>
+                <input type="hidden" name="evidenceType" value="operator_evidence" />
+                <input type="hidden" name="sourceName" value="studio_owner_surface" />
+                <div style={{ color: '#7fc8f5', fontSize: 10, letterSpacing: '.17em', marginBottom: 10 }}>ADD EVIDENCE TO THIS OBJECT</div>
+                <textarea name="text" required rows={3} placeholder="Observación, hallazgo o retorno verificable…" style={{ ...input, resize: 'vertical' }} />
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
+                  <input name="confidence" inputMode="decimal" placeholder="confidence 0–1" style={{ ...input, flex: '1 1 150px', width: 'auto' }} />
+                  <input name="file" type="file" style={{ ...input, flex: '2 1 240px', width: 'auto' }} />
+                  <button type="submit" style={action}>Persistir evidencia</button>
+                </div>
+              </form>
 
               <div style={{ marginTop: 34, paddingTop: 24, borderTop: '1px solid rgba(255,255,255,.09)' }}>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 14 }}>
