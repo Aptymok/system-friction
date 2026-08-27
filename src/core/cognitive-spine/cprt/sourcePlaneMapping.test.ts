@@ -2,6 +2,10 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  causalLifecycleEventToCognitiveSpineSource,
+  isCognitiveSpineCausalLifecycleEventName,
+} from '../sourcePlane/causalLifecycleSourceMapping';
+import {
   governanceEventToCognitiveSpineSource,
   labHypothesisToCognitiveSpineSource,
 } from '../sourcePlane/institutionalSourceMapping';
@@ -60,8 +64,37 @@ test('ROOT governance transitions are reconstructed from immutable epistemic eve
   assert.deepEqual(approved?.ancestryRoots, ['PROPOSAL-001']);
 });
 
-test('unrelated epistemic events do not enter governance projection by pattern guessing', () => {
-  const record = governanceEventToCognitiveSpineSource({
+test('governed causal lifecycle events enter as EVENT records without epistemic promotion', () => {
+  const observedReturn = causalLifecycleEventToCognitiveSpineSource({
+    event_id: 'EV-RETURN-001',
+    event_name: 'SFI_PROPOSAL_RETURN_RECORDED',
+    epistemic_class: 'observed',
+    schema_version: '2026-05-27.epistemic-events.v1',
+    occurred_at: '2026-08-27T10:00:00.000Z',
+    hash_self: 'f'.repeat(64),
+    lineage: ['PROPOSAL-001', 'EV-EXECUTION-001'],
+  });
+  const derivedOutcome = causalLifecycleEventToCognitiveSpineSource({
+    event_id: 'EV-OUTCOME-001',
+    event_name: 'acp.proposal.outcome_recorded',
+    epistemic_class: 'derived',
+    occurred_at: '2026-08-27T10:01:00.000Z',
+    hash_self: 'g'.repeat(64),
+    lineage: ['PROPOSAL-001', 'EV-RETURN-001'],
+  });
+
+  assert.ok(observedReturn);
+  assert.equal(observedReturn.kind, 'EVENT');
+  assert.equal(observedReturn.epistemicClass, 'OBSERVED');
+  assert.equal(observedReturn.sourceHash, 'f'.repeat(64));
+  assert.deepEqual(observedReturn.ancestryRoots, ['EV-EXECUTION-001', 'PROPOSAL-001']);
+  assert.ok(derivedOutcome);
+  assert.equal(derivedOutcome.kind, 'EVENT');
+  assert.equal(derivedOutcome.epistemicClass, 'DERIVED');
+});
+
+test('unrelated epistemic events do not enter governance or causal lifecycle projection by pattern guessing', () => {
+  const governanceRecord = governanceEventToCognitiveSpineSource({
     event_id: 'EV-OTHER',
     event_name: 'root.state.read',
     epistemic_class: 'observed',
@@ -70,7 +103,19 @@ test('unrelated epistemic events do not enter governance projection by pattern g
     schema_version: 'EPISTEMIC-EVENT-1.0',
     lineage: [],
   });
-  assert.equal(record, null);
+  const causalRecord = causalLifecycleEventToCognitiveSpineSource({
+    event_id: 'EV-OTHER-CAUSAL',
+    event_name: 'random.event',
+    epistemic_class: 'observed',
+    occurred_at: '2026-08-16T08:10:00.000Z',
+    hash_self: 'h'.repeat(64),
+    schema_version: 'EPISTEMIC-EVENT-1.0',
+    lineage: [],
+  });
+
+  assert.equal(governanceRecord, null);
+  assert.equal(isCognitiveSpineCausalLifecycleEventName('random.event'), false);
+  assert.equal(causalRecord, null);
 });
 
 test('missing append-only identity fields fail closed instead of fabricating a source record', () => {
@@ -82,6 +127,12 @@ test('missing append-only identity fields fail closed instead of fabricating a s
   assert.equal(governanceEventToCognitiveSpineSource({
     event_id: 'EV-001',
     event_name: 'acp.proposal.frozen',
+    occurred_at: '2026-08-16T08:10:00.000Z',
+  }), null);
+
+  assert.equal(causalLifecycleEventToCognitiveSpineSource({
+    event_id: 'EV-CAUSAL-001',
+    event_name: 'SFI_PROPOSAL_RETURN_RECORDED',
     occurred_at: '2026-08-16T08:10:00.000Z',
   }), null);
 });
