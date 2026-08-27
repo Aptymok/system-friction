@@ -1,17 +1,24 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
-import { AccessDeniedError, requireSfiMember } from '@/lib/system/access/server';
+import { AccessDeniedError, requireUserProfile } from '@/lib/system/access/server';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { isAllowedOAuthRedirect, readSfiOAuthConfig, validateOAuthClient } from '@/lib/sfi/oauthConfig';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
-const DEFAULT_SCOPES = ['observe', 'propose', 'lab:read'] as const;
 const ROOT_SCOPES = [
   'observe',
   'propose',
   'execute',
+  'lab:read',
+  'lab:write',
+  'lab:run',
+  'studio:read',
+  'studio:content',
+  'studio:run',
+] as const;
+const PERSONAL_SCOPES = [
   'lab:read',
   'lab:write',
   'lab:run',
@@ -33,12 +40,6 @@ function actorSlug(value: string) {
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
     .slice(0, 48);
-}
-
-function asRecord(value: unknown): Record<string, unknown> {
-  return value && typeof value === 'object' && !Array.isArray(value)
-    ? value as Record<string, unknown>
-    : {};
 }
 
 function redirectOAuthError(redirectUri: string, state: string | null, error: string, description: string) {
@@ -80,54 +81,58 @@ export async function GET(req: NextRequest) {
     return redirectOAuthError(redirectUri, state, 'invalid_scope', 'One or more requested SFI scopes are not supported.');
   }
 
-  let context: Awaited<ReturnType<typeof requireSfiMember>>;
+  let context: Awaited<ReturnType<typeof requireUserProfile>>;
   try {
-    context = await requireSfiMember();
+    context = await requireUserProfile();
   } catch (error) {
     if (error instanceof AccessDeniedError && error.status === 401) {
       const next = `${req.nextUrl.pathname}${req.nextUrl.search}`;
       return NextResponse.redirect(new URL(`/login?next=${encodeURIComponent(next)}`, req.url));
     }
     if (error instanceof AccessDeniedError) {
-      return redirectOAuthError(redirectUri, state, 'access_denied', 'An active SFI institutional membership is required.');
+      return redirectOAuthError(redirectUri, state, 'access_denied', 'An active SFI account is required.');
     }
     throw error;
   }
 
-  const profileRole = String(context.profile.role || 'observer').toLowerCase();
-  const moduleAccess = asRecord(context.profile.module_access);
+  const profileRole = String(context.profile.role || 'operator').toLowerCase();
   const rootDelegate = profileRole === 'root' || profileRole === 'system';
-  const evidenceWriter = moduleAccess.evidence_write === true;
   const institutionalScopes = context.member?.external?.scopes ?? null;
+  const personalPrincipal = !rootDelegate && !context.member;
 
-  // OAuth authority is explicit. ROOT receives the full gateway scope set; a
-  // registered institutional member receives exactly the external scopes in
-  // the institutional registry. Other members retain the conservative
-  // compatibility baseline plus explicit evidence-write capability.
   const allowedScopes = new Set<string>(
     rootDelegate
       ? ROOT_SCOPES
       : institutionalScopes?.length
         ? institutionalScopes
-        : DEFAULT_SCOPES,
+        : PERSONAL_SCOPES,
   );
-  if (!rootDelegate && !institutionalScopes?.length && evidenceWriter) allowedScopes.add('lab:write');
 
-  // GPT Actions are allowed to omit `scope`. In that case SFI issues the
-  // principal's configured institutional scopes instead of silently reducing
-  // the token to the generic non-ROOT baseline.
   const requestedScopes = explicitlyRequestedScopes ?? [...allowedScopes];
+  let grantedScopes: string[];
 
-  if (requestedScopes.some((scope) => !allowedScopes.has(scope))) {
-    return redirectOAuthError(redirectUri, state, 'invalid_scope', 'The authenticated SFI principal is not allowed to receive one or more requested scopes.');
+  if (personalPrincipal) {
+    // One ChatGPT OAuth client can request the institutional superset. A normal
+    // account receives only the safe owner-scoped intersection. The returned
+    // token therefore cannot propose or execute institutional actions.
+    grantedScopes = requestedScopes.filter((scope) => allowedScopes.has(scope));
+    if (!grantedScopes.length) {
+      return redirectOAuthError(redirectUri, state, 'invalid_scope', 'The requested scopes do not include a personal workspace capability.');
+    }
+  } else {
+    if (requestedScopes.some((scope) => !allowedScopes.has(scope))) {
+      return redirectOAuthError(redirectUri, state, 'invalid_scope', 'The authenticated SFI principal is not allowed to receive one or more requested scopes.');
+    }
+    grantedScopes = requestedScopes;
   }
 
-  const label = context.member?.displayName || String(context.profile.alias || context.user.email || 'SFI member');
+  const label = context.member?.displayName || String(context.profile.alias || context.user.email || 'SFI user');
   const slug = actorSlug(context.member?.displayName || String(context.profile.alias || ''));
   const actorId = slug ? `external:${slug}` : `external:user:${context.user.id}`;
   const delegatedRole = rootDelegate
     ? 'root_delegate'
-    : context.member?.external?.role ?? (evidenceWriter ? 'evidence_writer' : 'agent');
+    : context.member?.external?.role ?? 'personal_operator';
+  const tenantId = personalPrincipal ? `user:${context.user.id}` : 'sfi';
   const code = randomBytes(32).toString('base64url');
   const expiresAt = new Date(Date.now() + 2 * 60 * 1000).toISOString();
 
@@ -140,8 +145,8 @@ export async function GET(req: NextRequest) {
     actor_id: actorId,
     label,
     role: delegatedRole,
-    tenant_id: 'sfi',
-    scopes: requestedScopes,
+    tenant_id: tenantId,
+    scopes: grantedScopes,
     code_challenge: codeChallenge,
     code_challenge_method: codeChallenge ? 'S256' : null,
     expires_at: expiresAt,
