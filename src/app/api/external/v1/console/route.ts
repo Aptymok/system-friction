@@ -17,6 +17,10 @@ const rows = (value: unknown): Row[] => Array.isArray(value)
   ? value.filter((item): item is Row => Boolean(item) && typeof item === 'object' && !Array.isArray(item))
   : [];
 
+function record(value: unknown): Row {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as Row : {};
+}
+
 function worldSummary(snapshot: Row | null) {
   if (!snapshot) return null;
   return {
@@ -31,6 +35,19 @@ function worldSummary(snapshot: Row | null) {
   };
 }
 
+function studioScopeHint(item: Row) {
+  const metadata = record(item.metadata);
+  const transfer = record(metadata.operationalOwnershipTransfer);
+  if (typeof transfer.scope === 'string' && transfer.scope.trim()) {
+    return { value: transfer.scope.trim(), source: 'declared_ownership_transfer' };
+  }
+
+  const title = String(item.title ?? '');
+  if (/REM\s*618/i.test(title)) return { value: 'REM618', source: 'title_hint' };
+  if (/(^|\D)111(\D|$)/i.test(title)) return { value: '111', source: 'title_hint' };
+  return { value: null, source: null };
+}
+
 export async function GET(req: Request) {
   const auth = authorizeExternalRequest(req, 'observe');
   const credential = auth.credential;
@@ -38,7 +55,15 @@ export async function GET(req: Request) {
   const actorId = externalActor(credential);
   const db = createServiceSupabaseClient();
 
-  const [lab, reportInbox, proposals, evidence, twinRuns, twinEvaluations, labRuns, openCycles, worldSnapshot] = await Promise.all([
+  const ownedStudioQuery = credential.subjectId
+    ? db.from('studio_objects')
+      .select('id,title,object_type,status,metadata,updated_at')
+      .eq('owner_id', credential.subjectId)
+      .order('updated_at', { ascending: false })
+      .limit(25)
+    : Promise.resolve({ data: [], error: null });
+
+  const [lab, reportInbox, proposals, evidence, twinRuns, twinEvaluations, labRuns, openCycles, worldSnapshot, ownedStudio] = await Promise.all([
     readMethodLabState(),
     readRootReportInbox(12),
     db.from('action_proposals').select('id,title,status,risk_level,approval_required,created_at,approved_at,executed_at').order('created_at', { ascending: false }).limit(8),
@@ -48,6 +73,7 @@ export async function GET(req: Request) {
     db.from('sfi_lab_analyses').select('id,mode,data_mode,created_at,raw_analysis').order('created_at', { ascending: false }).limit(5),
     readUniversalOpenCycles(12),
     getLatestWorldSpectSnapshot(),
+    ownedStudioQuery,
   ]);
 
   const reportHealth = await readRootReportHealth(reportInbox);
@@ -57,6 +83,7 @@ export async function GET(req: Request) {
     twinRuns.error ? `sfi_cognitive_twin_runs:${twinRuns.error.message}` : null,
     twinEvaluations.error ? `sfi_cognitive_twin_evaluations:${twinEvaluations.error.message}` : null,
     labRuns.error ? `sfi_lab_analyses:${labRuns.error.message}` : null,
+    ownedStudio.error ? `studio_objects:${ownedStudio.error.message}` : null,
     ...lab.warnings,
     ...reportInbox.warnings,
     ...openCycles.warnings,
@@ -78,6 +105,18 @@ export async function GET(req: Request) {
 
   const proposalRows = rows(proposals.data);
   const pendingGovernance = proposalRows.filter((item) => !['accepted', 'rejected', 'superseded'].includes(String(item.status ?? '').toLowerCase()));
+  const ownedStudioObjects = rows(ownedStudio.data).map((item) => {
+    const scope = studioScopeHint(item);
+    return {
+      objectId: item.id ?? null,
+      title: item.title ?? null,
+      objectType: item.object_type ?? null,
+      status: item.status ?? null,
+      scopeHint: scope.value,
+      scopeHintSource: scope.source,
+      updatedAt: item.updated_at ?? null,
+    };
+  });
 
   return NextResponse.json({
     ok: warnings.length === 0,
@@ -115,6 +154,11 @@ export async function GET(req: Request) {
       governance: { proposals: proposalRows.slice(0, 8), pendingCount: pendingGovernance.length },
       evidence: { recent: evidence.data ?? [] },
       methodLabRuns: recentLabRuns,
+      ownedStudio: {
+        ownershipBoundary: 'studio_objects.owner_id == OAuth subjectId',
+        count: ownedStudioObjects.length,
+        objects: ownedStudioObjects,
+      },
       agenticCapabilities: SFI_AGENTIC_CAPABILITIES.map((capability) => ({ id: capability.id, layer: capability.layer, route: capability.route, approvalRequired: capability.approvalRequired })),
       detailSurfaces: {
         signal: '/api/external/v1/signal',
@@ -124,6 +168,6 @@ export async function GET(req: Request) {
       },
     },
     warnings,
-    epistemicBoundary: 'This console reports compact persisted operational state. Use dedicated surfaces for detailed evidence and histories.',
+    epistemicBoundary: 'This console reports compact persisted operational state. OAuth principals receive only the Studio object index whose owner_id equals their authenticated subjectId; raw media is not exposed here.',
   });
 }
