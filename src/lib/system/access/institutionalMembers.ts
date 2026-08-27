@@ -4,7 +4,10 @@ export type SfiExternalScope =
   | 'execute'
   | 'lab:read'
   | 'lab:write'
-  | 'lab:run';
+  | 'lab:run'
+  | 'studio:read'
+  | 'studio:content'
+  | 'studio:run';
 
 export type SfiInstitutionalMember = {
   email: string;
@@ -41,7 +44,17 @@ const MEMBERS: SfiInstitutionalMember[] = [
     },
     external: {
       role: 'institutional_operator',
-      scopes: ['observe', 'propose', 'execute', 'lab:read', 'lab:write', 'lab:run'],
+      scopes: [
+        'observe',
+        'propose',
+        'execute',
+        'lab:read',
+        'lab:write',
+        'lab:run',
+        'studio:read',
+        'studio:content',
+        'studio:run',
+      ],
     },
   },
 ];
