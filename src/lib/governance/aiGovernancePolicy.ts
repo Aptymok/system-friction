@@ -6,6 +6,11 @@ export const SFI_AI_GOVERNANCE_POLICY = {
   managementSystem: 'ISO/IEC 42001:2023',
   riskGuidance: 'ISO/IEC 23894:2023',
   euTransparencyBaseline: 'EU AI Act Article 50 transparency obligations applicable 2026-08-02',
+  externalAssurance: {
+    standardsAreInternalReferences: true,
+    certificationOrAccreditationEvidenceInRepository: 'NOT_ESTABLISHED',
+    legalApplicabilityRequiresContextualAssessment: true,
+  },
   lifecycle: ['PLAN', 'DO', 'CHECK', 'ACT'] as const,
   invariants: [
     'EVIDENCE_BEFORE_INFERENCE',
