@@ -1,12 +1,17 @@
 import 'server-only';
 
 import type { CognitiveSpineSourceRecord } from '@/core/cognitive-spine/contracts/snapshot';
+import {
+  COGNITIVE_SPINE_CAUSAL_LIFECYCLE_EVENTS,
+  causalLifecycleEventToCognitiveSpineSource,
+} from '@/core/cognitive-spine/sourcePlane/causalLifecycleSourceMapping';
 import { governanceEventToCognitiveSpineSource } from '@/core/cognitive-spine/sourcePlane/institutionalSourceMapping';
 import { canonicalSha256, normalizeTimestamp, sortedUnique } from '@/core/cognitive-spine/serialization/canonicalSerialize';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 
 const MAX_STRUCTURED_RESULTS = 96;
 const MAX_GOVERNANCE_EVENTS = 128;
+const MAX_CAUSAL_LIFECYCLE_EVENTS = 192;
 
 const GOVERNANCE_EVENT_NAMES = [
   'acp.proposal.design_approved',
@@ -39,6 +44,7 @@ export type AdditionalCognitiveSpineSourceSummary = {
   governanceDecisions: number;
   governanceFreezes: number;
   governanceQuestions: number;
+  causalLifecycleEvents: number;
 };
 
 function structuredResultHypotheses(event: Row): CognitiveSpineSourceRecord[] {
@@ -78,8 +84,12 @@ function structuredResultHypotheses(event: Row): CognitiveSpineSourceRecord[] {
 /**
  * Historical Cognitive Spine state is reconstructed from immutable events.
  * Hypotheses are sourced from structured-result ledger events rather than the
- * retired mutable sfi_hypotheses table. Rebuildable graph projections and
- * mutable present-day rows remain excluded from historical snapshots.
+ * retired mutable sfi_hypotheses table. Governed causal lifecycle events are
+ * also admitted as EVENT records so a later snapshot can observe that a prior
+ * proposal was queued, executed, returned, calibrated, or otherwise advanced.
+ *
+ * Admission into the source plane is not a causal-success claim: CPRT-B remains
+ * the authority for PASS/PARTIAL/FAIL decision-path reconstruction.
  */
 export async function readAdditionalInstitutionalCognitiveSpineSources(sourceCutoff: string): Promise<{
   records: CognitiveSpineSourceRecord[];
@@ -90,7 +100,7 @@ export async function readAdditionalInstitutionalCognitiveSpineSources(sourceCut
   const db = createServiceSupabaseClient();
   const warnings: string[] = [];
 
-  const [structuredResult, governanceResult] = await Promise.all([
+  const [structuredResult, governanceResult, causalLifecycleResult] = await Promise.all([
     db.from('epistemic_events')
       .select('event_id,event_name,schema_version,payload,lineage,occurred_at,hash_self')
       .eq('event_name', 'SFI_STRUCTURED_ANALYSIS_RESULT_RECEIVED')
@@ -103,6 +113,12 @@ export async function readAdditionalInstitutionalCognitiveSpineSources(sourceCut
       .lte('occurred_at', cutoff)
       .order('occurred_at', { ascending: false })
       .limit(MAX_GOVERNANCE_EVENTS),
+    db.from('epistemic_events')
+      .select('event_id,event_name,epistemic_class,schema_version,payload,lineage,occurred_at,hash_self')
+      .in('event_name', [...COGNITIVE_SPINE_CAUSAL_LIFECYCLE_EVENTS])
+      .lte('occurred_at', cutoff)
+      .order('occurred_at', { ascending: false })
+      .limit(MAX_CAUSAL_LIFECYCLE_EVENTS),
   ]);
 
   if (structuredResult.error) {
@@ -110,6 +126,9 @@ export async function readAdditionalInstitutionalCognitiveSpineSources(sourceCut
   }
   if (governanceResult.error) {
     warnings.push(`cognitive_spine_governance_events_unavailable:${governanceResult.error.message}`);
+  }
+  if (causalLifecycleResult.error) {
+    warnings.push(`cognitive_spine_causal_lifecycle_unavailable:${causalLifecycleResult.error.message}`);
   }
 
   const records: CognitiveSpineSourceRecord[] = [];
@@ -135,6 +154,17 @@ export async function readAdditionalInstitutionalCognitiveSpineSources(sourceCut
     if (mapped.kind === 'QUESTION') governanceQuestions += 1;
   }
 
+  let causalLifecycleEvents = 0;
+  for (const event of rows(causalLifecycleResult.data)) {
+    const mapped = causalLifecycleEventToCognitiveSpineSource(event);
+    if (!mapped) {
+      warnings.push(`cognitive_spine_causal_lifecycle_mapping_failed:${text(event.event_id) ?? 'unknown'}`);
+      continue;
+    }
+    records.push(mapped);
+    causalLifecycleEvents += 1;
+  }
+
   return {
     records,
     warnings: sortedUnique(warnings),
@@ -143,6 +173,7 @@ export async function readAdditionalInstitutionalCognitiveSpineSources(sourceCut
       governanceDecisions,
       governanceFreezes,
       governanceQuestions,
+      causalLifecycleEvents,
     },
   };
 }
