@@ -102,6 +102,22 @@ without interpreting that state as an instruction to coerce either node or fabri
 
 Future implementation should reuse external standards and runtimes where they already solve infrastructure problems. SFI's differentiated responsibility is institutional cognition, epistemic separation, typed governance, longitudinal reconstruction, RETURN, and evidence-backed learning — not reinvention of agent transport, generic tool protocols, telemetry, authorization engines, or workflow runtimes.
 
+Current reuse candidates are assigned narrow roles rather than treated as replacements for SFI:
+
+| Existing ecosystem layer | Reuse role inside SFI | Boundary |
+|---|---|---|
+| Model Context Protocol (MCP) | discover and invoke external tools/resources through capability adapters | MCP does not decide SFI truth, authority or preference |
+| Agent2Agent (A2A) | discover/interoperate with external agent systems through declared agent capabilities/tasks | A2A does not replace SFI agent governance or provenance |
+| controlled agent harnesses / durable runtimes | optional executor substrate for bounded long-running tasks | do not replace the existing institutional cycle unless measured runtime failure justifies migration |
+| Cedar or Open Policy Agent | candidates for an externalized policy-decision point for typed authorization | authorization remains distinct from epistemic admissibility |
+| W3C PROV | interoperability/export vocabulary for existing lineage and provenance | internal canonical identity is not rewritten to fit PROV |
+| OpenTelemetry | operational traces, spans and runtime correlation | telemetry is not evidence and does not upgrade epistemic class |
+| NIST AI RMF / TEVV-Athlon | external evaluation crosswalk for real-world outcome and risk testing | external frameworks do not auto-certify SFI or replace CPRT/Field return contracts |
+
+Adapters must preserve the canonical SFI rule:
+
+`EXTERNAL STANDARD SUPPORT != EXTERNAL STANDARD AUTHORITY OVER SFI SEMANTICS`.
+
 ## Gate
 
 No future SFI component may claim `SFI WILL`, `SFI DESIRE`, `MUTUAL CONSENT`, or `JOINT PREFERENCE` merely from LLM output, agent execution, repeated memory, or behavioral consistency.
