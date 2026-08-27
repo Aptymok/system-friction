@@ -9,3 +9,5 @@ Normal accounts do not gain SFI institutional membership, proposal authority, RO
 ACP proposal reads use identity/root-view authorization rather than the governance-health gate so degraded/blind governance cannot hide the recovery queue. Proposal mutations remain governed in their dedicated routes.
 
 Production migration `20260827113000_personal_cognitive_workspace_ownership.sql` must be applied only after the code is merged. The migration adds owner boundaries for personal cognitive/lab persistence while leaving pre-existing institutional rows unowned (`owner_id IS NULL`) until explicitly classified.
+
+PR #298 carries the canonical `SFI PRECHECK`: this integration absorbs into the existing OAuth gateway, `runtimeAgentExecutor` and canonical institutional writers; it does not create a second proposal/intervention/execution/return/lesson circuit. The separate causal-loop closure must build on those writers after this integration reaches `main`.
