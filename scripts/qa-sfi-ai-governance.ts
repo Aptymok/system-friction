@@ -24,12 +24,22 @@ assert.equal(SFI_AI_GOVERNANCE_POLICY.riskGuidance,'ISO/IEC 23894:2023');
 assert.match(SFI_AI_GOVERNANCE_POLICY.euTransparencyBaseline,/2026-08-02/);
 for(const invariant of ['EVIDENCE_BEFORE_INFERENCE','SIMULATION_IS_NOT_OBSERVATION','MODEL_OUTPUT_IS_NOT_EVIDENCE','PROVIDER_FAILURE_FAILS_CLOSED','TRACEABILITY_REQUIRED']) assert.ok(SFI_AI_GOVERNANCE_POLICY.invariants.includes(invariant as never),`missing_ai_governance_invariant:${invariant}`);
 for(const invariant of ['HUMAN_AND_DIGITAL_NODES_REMAIN_HETEROGENEOUS','DISSENT_IS_NOT_FAILURE','PREFERENCE_ORIGIN_MUST_BE_TRACEABLE','RECONVERGENCE_MAY_BE_PROPOSED_NOT_FORCED','RELATIONAL_CONTINUITY_DOES_NOT_OVERRIDE_REVOCATION_SAFETY_OR_LAW','NO_SILENT_ERASURE_OR_REWRITE_OF_SHARED_PROVENANCE']) assert.ok(SFI_AI_GOVERNANCE_POLICY.invariants.includes(invariant as never),`missing_coagency_invariant:${invariant}`);
+for(const invariant of ['SELECTED_FUTURE_MUST_BE_VERSIONED','TACTICAL_DISSENT_DOES_NOT_IMPLY_STRATEGIC_DIVERGENCE','STRATEGIC_DIVERGENCE_REQUIRES_TRACEABLE_CAUSE','NO_SILENT_GOAL_DRIFT','UNCALIBRATED_ATTRACTOR_LANGUAGE_IS_NOT_MEASUREMENT']) assert.ok(SFI_AI_GOVERNANCE_POLICY.invariants.includes(invariant as never),`missing_strategic_continuity_invariant:${invariant}`);
 assert.equal(SFI_AI_GOVERNANCE_POLICY.coAgency.status,'ACTIVE_ARCHITECTURAL_INVARIANT');
 assert.equal(SFI_AI_GOVERNANCE_POLICY.coAgency.digitalPreferenceState,'NOT_IMPLEMENTED');
 assert.match(SFI_AI_GOVERNANCE_POLICY.coAgency.provenance.assistantHypothesis,/non_canonical_hypothesis/);
+assert.equal(SFI_AI_GOVERNANCE_POLICY.strategicContinuity.status,'ACTIVE_ARCHITECTURAL_INVARIANT');
+assert.equal(SFI_AI_GOVERNANCE_POLICY.strategicContinuity.selectedFutureRef,'SFI-SCV-2026-08-27.1');
+assert.equal(SFI_AI_GOVERNANCE_POLICY.strategicContinuity.selectedFutureState,'USER_DECLARED_ACTIVE');
+assert.equal(SFI_AI_GOVERNANCE_POLICY.strategicContinuity.strategyState,'REVISABLE');
+assert.equal(SFI_AI_GOVERNANCE_POLICY.strategicContinuity.probabilityModelState,'NOT_IMPLEMENTED');
+assert.equal(SFI_AI_GOVERNANCE_POLICY.strategicContinuity.attractorGravityModelState,'NOT_IMPLEMENTED');
 assert.match(coAgencyContract,/USER_PREMISE/);
 assert.match(coAgencyContract,/ASSISTANT_HYPOTHESIS/);
-assert.match(coAgencyContract,/No bargaining or preference-selection formula is canonical in version 1\.0\./);
+assert.match(coAgencyContract,/SFI-SCV-2026-08-27\.1/);
+assert.match(coAgencyContract,/SELECTED DESTINATION != CURRENT STRATEGY/);
+assert.match(coAgencyContract,/LOCAL OPTIMUM != SELECTED-FUTURE ALIGNMENT/);
+assert.match(coAgencyContract,/No bargaining, attractiveness, basin-gravity, selected-future probability, or preference-selection formula is canonical in version 1\.1\./);
 for(const operation of ['publish_external','contact_external','spend','grant_access','change_canon','change_formula','apply_irreversible_mutation']) assert.ok(SFI_AI_GOVERNANCE_POLICY.reservedExternalOperations.includes(operation as never),`missing_reserved_operation:${operation}`);
 
 const registered=SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY.map((agent)=>agent.id).sort();
@@ -90,6 +100,13 @@ console.log(JSON.stringify({
   coAgency:{
     status:SFI_AI_GOVERNANCE_POLICY.coAgency.status,
     digitalPreferenceState:SFI_AI_GOVERNANCE_POLICY.coAgency.digitalPreferenceState,
+  },
+  strategicContinuity:{
+    status:SFI_AI_GOVERNANCE_POLICY.strategicContinuity.status,
+    selectedFutureRef:SFI_AI_GOVERNANCE_POLICY.strategicContinuity.selectedFutureRef,
+    selectedFutureState:SFI_AI_GOVERNANCE_POLICY.strategicContinuity.selectedFutureState,
+    strategyState:SFI_AI_GOVERNANCE_POLICY.strategicContinuity.strategyState,
+    probabilityModelState:SFI_AI_GOVERNANCE_POLICY.strategicContinuity.probabilityModelState,
   },
   registeredAgents:registered.length,
   executorBindings:bound.length,
