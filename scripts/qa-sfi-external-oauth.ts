@@ -7,6 +7,10 @@ function text(path: string) {
 
 const authorize = text('src/app/api/oauth/authorize/route.ts');
 const token = text('src/app/api/oauth/token/route.ts');
+const oauthConfig = text('src/lib/sfi/oauthConfig.ts');
+const oauthRegistry = text('src/lib/sfi/oauthClientRegistry.ts');
+const oauthClients = text('src/app/api/oauth/clients/route.ts');
+const oauthRegistryMigration = text('supabase/migrations/20260827220000_sfi_oauth_client_registry.sql');
 const externalAuth = text('src/lib/sfi/externalAuth.ts');
 const sessionToken = text('src/lib/sfi/externalSessionToken.ts');
 const access = text('src/lib/system/access/server.ts');
@@ -23,24 +27,49 @@ const openapi = JSON.parse(text('public/openapi.json')) as Record<string, any>;
 // OAuth binds to an authenticated account. Institutional authority is resolved
 // separately from the account/profile and normal accounts receive an owner-only tenant.
 assert.match(authorize, /requireUserProfile\(\)/, 'oauth_must_bind_to_authenticated_account_profile');
-assert.match(authorize, /PERSONAL_SCOPES/, 'oauth_must_define_personal_scope_set');
+assert.match(authorize, /SFI_PERSONAL_SCOPES/, 'oauth_must_use_personal_scope_set');
 assert.match(authorize, /context\.member\?\.external\?\.scopes/, 'institutional_scopes_must_come_from_member_registry');
 assert.match(authorize, /personalPrincipal = !rootDelegate && !context\.member/, 'normal_account_detection_must_not_infer_institutional_membership');
-assert.match(authorize, /requestedScopes\.filter\(\(scope\) => allowedScopes\.has\(scope\)\)/, 'normal_accounts_must_receive_scope_intersection_not_institutional_superset');
+assert.match(authorize, /principalScopes\.has\(scope\) && clientScopes\.has\(scope\)/, 'normal_accounts_must_receive_principal_client_intersection');
 assert.match(authorize, /tenantId = personalPrincipal \? `user:\$\{context\.user\.id\}` : 'sfi'/, 'personal_oauth_tenant_must_be_subject_bound');
 assert.match(authorize, /role.*personal_operator/s, 'personal_oauth_role_must_be_non_sovereign');
 assert.match(authorize, /codeHash\(code\)/, 'authorization_code_must_be_stored_as_hash');
 assert.match(authorize, /code_challenge/, 'oauth_authorize_must_support_pkce');
-for (const scope of ['observe', 'propose', 'execute', 'lab:read', 'lab:write', 'lab:run', 'studio:read', 'studio:content', 'studio:run']) {
-  assert.match(authorize, new RegExp(`'${scope.replace(':', '\\:')}'`), `supported_scope_missing:${scope}`);
+assert.match(authorize, /resolveSfiOAuthClient\(clientId\)/, 'oauth_authorize_must_resolve_persistent_client');
+assert.match(authorize, /isAllowedSfiOAuthRedirect\(client, redirectUri\)/, 'oauth_authorize_must_exact_match_registered_redirect');
+assert.match(authorize, /canSfiOAuthClientAuthorizeSubject\(client, context\.user\.id\)/, 'owner_only_client_must_be_bound_to_authenticated_subject');
+assert.match(authorize, /clientScopes\.has\(scope\)/, 'oauth_authorize_must_enforce_client_scope_ceiling');
+for (const scope of ['observe', 'propose', 'execute', 'cases:read', 'cases:write', 'lab:read', 'lab:write', 'lab:run', 'studio:read', 'studio:content', 'studio:run']) {
+  assert.match(oauthConfig, new RegExp(`'${scope.replace(':', '\\:')}'`), `supported_scope_missing:${scope}`);
 }
 
 assert.match(token, /grantType !== 'authorization_code'/, 'token_endpoint_must_reject_other_grants');
 assert.match(token, /is\('consumed_at', null\)/, 'authorization_code_must_be_single_use');
 assert.match(token, /PKCE verification failed/, 'token_exchange_must_verify_pkce_when_present');
 assert.match(token, /mintExternalAccessToken/, 'token_exchange_must_issue_signed_sfi_access_token');
+assert.match(token, /validateSfiOAuthClientSecret\(client, clientSecret\)/, 'token_exchange_must_validate_registry_client_secret');
 assert.match(sessionToken, /createHmac\('sha256'/, 'access_tokens_must_be_signed');
 assert.match(sessionToken, /exp <= now/, 'access_tokens_must_expire');
+
+// Client registry eliminates per-client Vercel ENV edits while retaining exact
+// callback matching, hashed secrets and user ownership.
+assert.match(oauthRegistryMigration, /create table if not exists public\.sfi_oauth_clients/i, 'oauth_client_registry_table_required');
+assert.match(oauthRegistryMigration, /client_secret_hash text not null/i, 'oauth_registry_must_store_secret_hash_only');
+assert.match(oauthRegistryMigration, /redirect_uris text\[\] not null/i, 'oauth_registry_must_store_redirect_allowlist');
+assert.match(oauthRegistryMigration, /audience text not null default 'OWNER_ONLY'/i, 'self_service_clients_must_default_owner_only');
+assert.match(oauthRegistryMigration, /TRUSTED_MULTI_USER/i, 'registry_must_distinguish_trusted_multi_user_clients');
+assert.match(oauthRegistryMigration, /revoke all[\s\S]*anon, authenticated/i, 'oauth_registry_must_not_be_browser_readable');
+assert.match(oauthRegistryMigration, /grant select, insert, update, delete[\s\S]*service_role/i, 'oauth_registry_service_role_grant_required');
+assert.match(oauthRegistry, /redirectUris\.includes\(redirectUri\)/, 'redirect_match_must_remain_exact_not_wildcard');
+assert.match(oauthRegistry, /hashSfiOAuthClientSecret/, 'oauth_client_secret_must_be_hashed');
+assert.match(oauthRegistry, /audience: 'OWNER_ONLY'/, 'new_self_service_clients_must_be_owner_only');
+assert.match(oauthRegistry, /audience: 'TRUSTED_MULTI_USER'/, 'legacy_institutional_client_must_be_explicitly_trusted_multi_user');
+assert.match(oauthRegistry, /source: 'legacy_env'/, 'legacy_env_client_must_remain_backward_compatible');
+assert.match(oauthRegistry, /adoptLegacySfiOAuthClient/, 'root_must_be_able_to_adopt_bootstrap_client_into_registry');
+assert.match(oauthClients, /requireUserProfile\(\)/, 'oauth_client_registration_must_require_authenticated_sfi_account');
+assert.match(oauthClients, /ROOT_REQUIRED_FOR_LEGACY_ADOPTION/, 'legacy_adoption_must_be_root_only');
+assert.match(oauthClients, /secretDisclosure: 'ONE_TIME_ONLY'/, 'new_client_secret_must_be_disclosed_once');
+assert.match(oauthClients, /scopeCeiling\(context\)/, 'oauth_client_registration_must_not_expand_principal_authority');
 
 // Account provisioning is not institutional promotion.
 assert.match(access, /role: 'operator'/, 'normal_account_profile_must_be_operator');
@@ -116,12 +145,17 @@ for (const path of [
 
 console.log(JSON.stringify({
   ok: true,
-  contract: 'SFI-EXTERNAL-OAUTH-1.8',
+  contract: 'SFI-EXTERNAL-OAUTH-1.9',
   flow: 'authorization_code',
   pkce: 'S256',
+  clientRegistry: 'PERSISTENT_SELF_SERVICE',
+  redirectMatching: 'EXACT',
+  selfServiceAudience: 'OWNER_ONLY',
+  trustedMultiUser: 'INSTITUTIONAL_ONLY',
+  legacyClient: 'BACKWARD_COMPATIBLE_ADOPTABLE',
   personalTenant: 'user:<oauth_subject_id>',
-  personalScopes: ['lab:read', 'lab:write', 'lab:run', 'studio:read', 'studio:content', 'studio:run'],
-  personalRoutes: ['/api/external/v1/cognitive', '/api/external/v1/personal-lab', '/api/external/v1/studio'],
+  personalScopes: ['cases:read', 'cases:write', 'lab:read', 'lab:write', 'lab:run', 'studio:read', 'studio:content', 'studio:run'],
+  personalRoutes: ['/api/external/v1/cases', '/api/external/v1/cognitive', '/api/external/v1/personal-lab', '/api/external/v1/studio'],
   institutionalSovereignty: ['proposal_authorization', 'root_evidence', 'canonical_promotion'],
   runtime: 'runtimeAgentExecutor -> agentExecutionMap',
 }, null, 2));

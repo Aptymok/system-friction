@@ -10,6 +10,7 @@ on:
       - 'src/lib/sfi/externalAuth.ts'
       - 'src/lib/sfi/externalSessionToken.ts'
       - 'src/lib/sfi/oauthConfig.ts'
+      - 'src/lib/sfi/oauthClientRegistry.ts'
       - 'src/lib/sfi/cognitive-runtime/**'
       - 'src/lib/sfi/personal/**'
       - 'src/lib/system/access/**'

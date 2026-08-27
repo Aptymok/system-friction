@@ -5,6 +5,7 @@ const read = (path: string) => readFileSync(path, 'utf8');
 const route = read('src/app/api/external/v1/cases/route.ts');
 const auth = read('src/lib/sfi/externalAuth.ts');
 const authorize = read('src/app/api/oauth/authorize/route.ts');
+const oauthConfig = read('src/lib/sfi/oauthConfig.ts');
 const observatoryApi = read('src/app/api/observatory/world/route.ts');
 const observatoryPage = read('src/app/observatory/page.tsx');
 const merge = read('scripts/merge-openapi-cases.mjs');
@@ -42,8 +43,10 @@ assert.equal(route.includes("epistemicRole: 'EVIDENCE'"), false, 'external_case_
 assert.equal(route.includes("epistemicRole: 'GOVERNANCE_DECISION'"), false, 'external_case_bridge_must_not_mint_governance');
 
 assert.match(auth, /scope\.startsWith\('cases:'\).*\/api\/external\/v1\/cases/s, 'personal_case_scope_must_be_route_bound');
+assert.match(authorize, /SFI_ROOT_SCOPES/, 'oauth_authorize_must_use_central_scope_registry');
+assert.match(authorize, /SFI_PERSONAL_SCOPES/, 'oauth_authorize_must_use_personal_scope_registry');
 for (const scope of ['cases:read', 'cases:write']) {
-  assert.ok(authorize.includes(`'${scope}'`), `oauth_case_scope_missing:${scope}`);
+  assert.ok(oauthConfig.includes(`'${scope}'`), `oauth_case_scope_missing:${scope}`);
   assert.ok(merge.includes(`oauth.scopes['${scope}']`), `openapi_merge_scope_missing:${scope}`);
 }
 

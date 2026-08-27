@@ -2,35 +2,20 @@ import { createHash, randomBytes } from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { AccessDeniedError, requireUserProfile } from '@/lib/system/access/server';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
-import { isAllowedOAuthRedirect, readSfiOAuthConfig, validateOAuthClient } from '@/lib/sfi/oauthConfig';
+import {
+  isSfiOAuthServerConfigured,
+  SFI_PERSONAL_SCOPES,
+  SFI_ROOT_SCOPES,
+  SFI_SUPPORTED_SCOPES,
+} from '@/lib/sfi/oauthConfig';
+import {
+  canSfiOAuthClientAuthorizeSubject,
+  isAllowedSfiOAuthRedirect,
+  resolveSfiOAuthClient,
+} from '@/lib/sfi/oauthClientRegistry';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
-
-const ROOT_SCOPES = [
-  'observe',
-  'propose',
-  'execute',
-  'cases:read',
-  'cases:write',
-  'lab:read',
-  'lab:write',
-  'lab:run',
-  'studio:read',
-  'studio:content',
-  'studio:run',
-] as const;
-const PERSONAL_SCOPES = [
-  'cases:read',
-  'cases:write',
-  'lab:read',
-  'lab:write',
-  'lab:run',
-  'studio:read',
-  'studio:content',
-  'studio:run',
-] as const;
-const SUPPORTED_SCOPES = new Set<string>(ROOT_SCOPES);
 
 function codeHash(code: string) {
   return createHash('sha256').update(code).digest('hex');
@@ -55,8 +40,7 @@ function redirectOAuthError(redirectUri: string, state: string | null, error: st
 }
 
 export async function GET(req: NextRequest) {
-  const config = readSfiOAuthConfig();
-  if (!config) {
+  if (!isSfiOAuthServerConfigured()) {
     return NextResponse.json({ ok: false, error: 'oauth_not_configured' }, { status: 503 });
   }
 
@@ -68,7 +52,14 @@ export async function GET(req: NextRequest) {
   const codeChallenge = req.nextUrl.searchParams.get('code_challenge')?.trim() || null;
   const codeChallengeMethod = req.nextUrl.searchParams.get('code_challenge_method')?.trim() || null;
 
-  if (!validateOAuthClient(config, clientId) || !redirectUri || !isAllowedOAuthRedirect(config, redirectUri)) {
+  let client: Awaited<ReturnType<typeof resolveSfiOAuthClient>>;
+  try {
+    client = await resolveSfiOAuthClient(clientId);
+  } catch {
+    return NextResponse.json({ ok: false, error: 'oauth_client_registry_unavailable' }, { status: 503 });
+  }
+
+  if (!client || !redirectUri || !isAllowedSfiOAuthRedirect(client, redirectUri)) {
     return NextResponse.json({ ok: false, error: 'invalid_client_or_redirect' }, { status: 400 });
   }
   if (responseType !== 'code') {
@@ -81,8 +72,12 @@ export async function GET(req: NextRequest) {
   const explicitlyRequestedScopes = rawScope
     ? [...new Set<string>(rawScope.split(/\s+/).filter(Boolean))]
     : null;
-  if (explicitlyRequestedScopes?.some((scope) => !SUPPORTED_SCOPES.has(scope))) {
+  if (explicitlyRequestedScopes?.some((scope) => !SFI_SUPPORTED_SCOPES.has(scope))) {
     return redirectOAuthError(redirectUri, state, 'invalid_scope', 'One or more requested SFI scopes are not supported.');
+  }
+  const clientScopes = new Set(client.allowedScopes);
+  if (explicitlyRequestedScopes?.some((scope) => !clientScopes.has(scope))) {
+    return redirectOAuthError(redirectUri, state, 'invalid_scope', 'The OAuth client is not registered for one or more requested SFI scopes.');
   }
 
   let context: Awaited<ReturnType<typeof requireUserProfile>>;
@@ -99,33 +94,42 @@ export async function GET(req: NextRequest) {
     throw error;
   }
 
+  if (!canSfiOAuthClientAuthorizeSubject(client, context.user.id)) {
+    return redirectOAuthError(
+      redirectUri,
+      state,
+      'access_denied',
+      'This self-service OAuth client is bound to a different SFI account.',
+    );
+  }
+
   const profileRole = String(context.profile.role || 'operator').toLowerCase();
   const rootDelegate = profileRole === 'root' || profileRole === 'system';
   const institutionalScopes = context.member?.external?.scopes ?? null;
   const personalPrincipal = !rootDelegate && !context.member;
 
-  const allowedScopes = new Set<string>(
+  const principalScopes = new Set<string>(
     rootDelegate
-      ? ROOT_SCOPES
+      ? SFI_ROOT_SCOPES
       : institutionalScopes?.length
         ? institutionalScopes
-        : PERSONAL_SCOPES,
+        : SFI_PERSONAL_SCOPES,
   );
 
-  const requestedScopes = explicitlyRequestedScopes ?? [...allowedScopes];
+  const defaultRequestedScopes = [...principalScopes].filter((scope) => clientScopes.has(scope));
+  const requestedScopes = explicitlyRequestedScopes ?? defaultRequestedScopes;
   let grantedScopes: string[];
 
   if (personalPrincipal) {
-    // One ChatGPT OAuth client can request the institutional superset. A normal
-    // account receives only the safe owner-scoped intersection. The returned
-    // token therefore cannot propose or execute institutional actions.
-    grantedScopes = requestedScopes.filter((scope) => allowedScopes.has(scope));
+    // A client may advertise a broader institutional scope set, but a normal
+    // account receives only the owner-scoped principal/client intersection.
+    grantedScopes = requestedScopes.filter((scope) => principalScopes.has(scope) && clientScopes.has(scope));
     if (!grantedScopes.length) {
       return redirectOAuthError(redirectUri, state, 'invalid_scope', 'The requested scopes do not include a personal workspace capability.');
     }
   } else {
-    if (requestedScopes.some((scope) => !allowedScopes.has(scope))) {
-      return redirectOAuthError(redirectUri, state, 'invalid_scope', 'The authenticated SFI principal is not allowed to receive one or more requested scopes.');
+    if (requestedScopes.some((scope) => !principalScopes.has(scope) || !clientScopes.has(scope))) {
+      return redirectOAuthError(redirectUri, state, 'invalid_scope', 'The authenticated SFI principal or OAuth client is not allowed to receive one or more requested scopes.');
     }
     grantedScopes = requestedScopes;
   }
