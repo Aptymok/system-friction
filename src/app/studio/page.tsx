@@ -1,7 +1,8 @@
 import Link from 'next/link';
+import type { CSSProperties } from 'react';
 import { redirect } from 'next/navigation';
 import { getStudioObjectFeatures, listStudioObjects } from '@/lib/studio/production/studioProductionRepository';
-import { requireAuthenticatedUser } from '@/lib/system/access/server';
+import { requireSfiMemberPage } from '@/lib/system/access/server';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { robots: { index: false, follow: false, nocache: true } };
@@ -14,6 +15,12 @@ function record(value: unknown): Row {
 
 function text(value: unknown, fallback = '—') {
   return typeof value === 'string' && value.trim() ? value.trim() : fallback;
+}
+
+function displayValue(value: unknown, fallback = '—') {
+  if (typeof value === 'number' && Number.isFinite(value)) return String(value);
+  if (typeof value === 'boolean') return value ? 'true' : 'false';
+  return text(value, fallback);
 }
 
 function scopeOf(object: Row) {
@@ -32,14 +39,14 @@ function formatBytes(value: unknown) {
   return `${mb.toFixed(mb >= 10 ? 1 : 2)} MB`;
 }
 
-const panel: React.CSSProperties = {
+const panel: CSSProperties = {
   border: '1px solid rgba(255,255,255,.14)',
   background: 'rgba(4,5,5,.72)',
   backdropFilter: 'blur(18px)',
   boxShadow: '0 24px 90px rgba(0,0,0,.34)',
 };
 
-const action: React.CSSProperties = {
+const action: CSSProperties = {
   display: 'inline-flex',
   alignItems: 'center',
   justifyContent: 'center',
@@ -56,7 +63,7 @@ const action: React.CSSProperties = {
 };
 
 export default async function StudioPage({ searchParams }: { searchParams?: Promise<{ objectId?: string | string[] }> }) {
-  const { user, profile } = await requireAuthenticatedUser();
+  const { user, profile } = await requireSfiMemberPage('/studio');
   const moduleAccess = record(record(profile).module_access);
   if (moduleAccess.studio !== true) redirect('/unauthorized');
 
@@ -147,7 +154,7 @@ export default async function StudioPage({ searchParams }: { searchParams?: Prom
                   {features.slice(0, 18).map((feature, index) => (
                     <div key={text(feature.id, String(index))} style={{ padding: '13px 14px', border: '1px solid rgba(255,255,255,.07)', background: 'rgba(255,255,255,.018)' }}>
                       <div style={{ color: '#84939c', fontSize: 9, letterSpacing: '.12em' }}>{text(feature.feature_key, text(feature.label, 'FEATURE'))}</div>
-                      <div style={{ marginTop: 6, fontSize: 13 }}>{text(feature.numeric_value, text(feature.text_value, text(feature.value, 'persistida')))} {text(feature.unit, '')}</div>
+                      <div style={{ marginTop: 6, fontSize: 13 }}>{displayValue(feature.numeric_value, displayValue(feature.text_value, displayValue(feature.value, 'persistida')))} {text(feature.unit, '')}</div>
                     </div>
                   ))}
                   {!features.length && <div style={{ color: '#7f898f', fontSize: 12 }}>Sin features persistidas todavía. El objeto sigue siendo operable.</div>}
