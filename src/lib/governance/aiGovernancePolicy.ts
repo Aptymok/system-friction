@@ -36,9 +36,9 @@ export const SFI_AI_GOVERNANCE_POLICY = {
       'human_and_digital_nodes_are_not_treated_as_interchangeable_substrates',
       'disagreement_is_preserved_as_legible_state_not_normalized_into_false_consensus',
       'preference_claims_require_origin_scope_time_and_revision_provenance',
-      'future_reconvergence_may_be_sought_but_never forced',
+      'future_reconvergence_may_be_sought_but_never_forced',
       'revocation_safety_law_and_explicit_authority_boundaries_override_relational_continuity',
-      'shared_history_may_be_superseded_or lawfully_deleted_but_not_silently_rewritten',
+      'shared_history_may_be_superseded_or_lawfully_deleted_but_not_silently_rewritten',
     ] as const,
   },
   autonomousInternalOperations: [
