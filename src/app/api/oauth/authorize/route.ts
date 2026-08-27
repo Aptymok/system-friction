@@ -9,8 +9,10 @@ import {
   SFI_SUPPORTED_SCOPES,
 } from '@/lib/sfi/oauthConfig';
 import {
+  bindInitialOwnedSfiOAuthRedirect,
   canSfiOAuthClientAuthorizeSubject,
   isAllowedSfiOAuthRedirect,
+  normalizeSfiOAuthRedirectUri,
   resolveSfiOAuthClient,
 } from '@/lib/sfi/oauthClientRegistry';
 
@@ -59,9 +61,73 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ ok: false, error: 'oauth_client_registry_unavailable' }, { status: 503 });
   }
 
-  if (!client || !redirectUri || !isAllowedSfiOAuthRedirect(client, redirectUri)) {
+  if (!client || !redirectUri) {
     return NextResponse.json({ ok: false, error: 'invalid_client_or_redirect' }, { status: 400 });
   }
+
+  const redirectAlreadyAllowed = isAllowedSfiOAuthRedirect(client, redirectUri);
+  const mayBindFirstOwnerRedirect = !redirectAlreadyAllowed
+    && client.source === 'registry'
+    && client.audience === 'OWNER_ONLY'
+    && client.redirectUris.length === 0;
+
+  if (!redirectAlreadyAllowed && !mayBindFirstOwnerRedirect) {
+    return NextResponse.json({ ok: false, error: 'invalid_client_or_redirect' }, { status: 400 });
+  }
+
+  if (mayBindFirstOwnerRedirect) {
+    try {
+      normalizeSfiOAuthRedirectUri(redirectUri);
+    } catch {
+      return NextResponse.json({ ok: false, error: 'invalid_client_or_redirect' }, { status: 400 });
+    }
+  }
+
+  let context: Awaited<ReturnType<typeof requireUserProfile>>;
+  try {
+    context = await requireUserProfile();
+  } catch (error) {
+    if (error instanceof AccessDeniedError && error.status === 401) {
+      const next = `${req.nextUrl.pathname}${req.nextUrl.search}`;
+      return NextResponse.redirect(new URL(`/login?next=${encodeURIComponent(next)}`, req.url));
+    }
+    if (error instanceof AccessDeniedError) {
+      if (!redirectAlreadyAllowed) {
+        return NextResponse.json({ ok: false, error: 'access_denied' }, { status: 403 });
+      }
+      return redirectOAuthError(redirectUri, state, 'access_denied', 'An active SFI account is required.');
+    }
+    throw error;
+  }
+
+  if (!canSfiOAuthClientAuthorizeSubject(client, context.user.id)) {
+    if (!redirectAlreadyAllowed) {
+      return NextResponse.json({ ok: false, error: 'access_denied' }, { status: 403 });
+    }
+    return redirectOAuthError(
+      redirectUri,
+      state,
+      'access_denied',
+      'This self-service OAuth client is bound to a different SFI account.',
+    );
+  }
+
+  if (mayBindFirstOwnerRedirect) {
+    try {
+      const bound = await bindInitialOwnedSfiOAuthRedirect({
+        client,
+        subjectId: context.user.id,
+        redirectUri,
+      });
+      if (!bound) {
+        return NextResponse.json({ ok: false, error: 'invalid_client_or_redirect' }, { status: 400 });
+      }
+      client = { ...client, redirectUris: [redirectUri] };
+    } catch {
+      return NextResponse.json({ ok: false, error: 'oauth_redirect_bind_failed' }, { status: 503 });
+    }
+  }
+
   if (responseType !== 'code') {
     return redirectOAuthError(redirectUri, state, 'unsupported_response_type', 'SFI supports OAuth authorization_code only.');
   }
@@ -78,29 +144,6 @@ export async function GET(req: NextRequest) {
   const clientScopes = new Set(client.allowedScopes);
   if (explicitlyRequestedScopes?.some((scope) => !clientScopes.has(scope))) {
     return redirectOAuthError(redirectUri, state, 'invalid_scope', 'The OAuth client is not registered for one or more requested SFI scopes.');
-  }
-
-  let context: Awaited<ReturnType<typeof requireUserProfile>>;
-  try {
-    context = await requireUserProfile();
-  } catch (error) {
-    if (error instanceof AccessDeniedError && error.status === 401) {
-      const next = `${req.nextUrl.pathname}${req.nextUrl.search}`;
-      return NextResponse.redirect(new URL(`/login?next=${encodeURIComponent(next)}`, req.url));
-    }
-    if (error instanceof AccessDeniedError) {
-      return redirectOAuthError(redirectUri, state, 'access_denied', 'An active SFI account is required.');
-    }
-    throw error;
-  }
-
-  if (!canSfiOAuthClientAuthorizeSubject(client, context.user.id)) {
-    return redirectOAuthError(
-      redirectUri,
-      state,
-      'access_denied',
-      'This self-service OAuth client is bound to a different SFI account.',
-    );
   }
 
   const profileRole = String(context.profile.role || 'operator').toLowerCase();
@@ -121,8 +164,6 @@ export async function GET(req: NextRequest) {
   let grantedScopes: string[];
 
   if (personalPrincipal) {
-    // A client may advertise a broader institutional scope set, but a normal
-    // account receives only the owner-scoped principal/client intersection.
     grantedScopes = requestedScopes.filter((scope) => principalScopes.has(scope) && clientScopes.has(scope));
     if (!grantedScopes.length) {
       return redirectOAuthError(redirectUri, state, 'invalid_scope', 'The requested scopes do not include a personal workspace capability.');
