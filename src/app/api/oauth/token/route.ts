@@ -2,7 +2,13 @@ import { createHash, timingSafeEqual } from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { mintExternalAccessToken } from '@/lib/sfi/externalSessionToken';
-import { isAllowedOAuthRedirect, readSfiOAuthConfig, validateOAuthClient } from '@/lib/sfi/oauthConfig';
+import { isSfiOAuthServerConfigured } from '@/lib/sfi/oauthConfig';
+import {
+  isAllowedSfiOAuthRedirect,
+  resolveSfiOAuthClient,
+  touchSfiOAuthClient,
+  validateSfiOAuthClientSecret,
+} from '@/lib/sfi/oauthClientRegistry';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -37,8 +43,7 @@ function oauthError(error: string, description: string, status = 400) {
 }
 
 export async function POST(req: NextRequest) {
-  const config = readSfiOAuthConfig();
-  if (!config) return oauthError('server_error', 'SFI OAuth is not configured.', 503);
+  if (!isSfiOAuthServerConfigured()) return oauthError('server_error', 'SFI OAuth is not configured.', 503);
 
   const form = await req.formData().catch(() => null);
   if (!form) return oauthError('invalid_request', 'Expected application/x-www-form-urlencoded body.');
@@ -51,13 +56,19 @@ export async function POST(req: NextRequest) {
   const redirectUri = String(form.get('redirect_uri') || '').trim();
   const codeVerifier = String(form.get('code_verifier') || '').trim();
 
-  if (!validateOAuthClient(config, clientId, clientSecret)) {
+  let client: Awaited<ReturnType<typeof resolveSfiOAuthClient>>;
+  try {
+    client = await resolveSfiOAuthClient(clientId);
+  } catch {
+    return oauthError('temporarily_unavailable', 'SFI OAuth client registry is unavailable.', 503);
+  }
+  if (!client || !validateSfiOAuthClientSecret(client, clientSecret)) {
     return oauthError('invalid_client', 'Client authentication failed.', 401);
   }
   if (grantType !== 'authorization_code') {
     return oauthError('unsupported_grant_type', 'SFI supports authorization_code only.');
   }
-  if (!code || !redirectUri || !isAllowedOAuthRedirect(config, redirectUri)) {
+  if (!code || !redirectUri || !isAllowedSfiOAuthRedirect(client, redirectUri)) {
     return oauthError('invalid_grant', 'Authorization code or redirect URI is invalid.');
   }
 
@@ -112,6 +123,8 @@ export async function POST(req: NextRequest) {
     scopes,
     ttlSeconds: 3600,
   });
+
+  await touchSfiOAuthClient(client).catch(() => undefined);
 
   return NextResponse.json(
     {
