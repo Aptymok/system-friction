@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server';
 import { normalizeProposalState } from '@/lib/governance/proposalLifecycle';
 import { classifyProposalDecision, controllerCanDecideProposal } from '@/lib/governance/proposalDecisionAuthority';
 import { resolveProposalReviewerAuthority } from '@/lib/governance/proposalReviewer';
-import { latestActionProposals, requireGovernedActor } from '@/lib/operational/common';
+import { latestActionProposals } from '@/lib/operational/common';
+import { requireRootViewer } from '@/lib/root/server';
 
 export const dynamic = 'force-dynamic';
 
@@ -39,13 +40,24 @@ function summarizeProposal(row: Record<string, unknown>) {
   };
 }
 export async function GET() {
-  const gate=await requireGovernedActor('acp.proposals.list');
+  // Observability of the decision queue must not depend on runtime/governance
+  // health. Otherwise blind/degraded governance can hide the exact queue a
+  // reviewer needs in order to recover it. This gate authorizes identity and
+  // ROOT-view access only; all proposal mutations remain governance-gated in
+  // their dedicated routes.
+  const gate=await requireRootViewer('acp.proposals.list');
   if(!gate.ok)return NextResponse.json(gate.body,{status:gate.status});
   const authority=resolveProposalReviewerAuthority(gate.ctx);
   if(!authority)return NextResponse.json({ok:false,error:'proposal_reviewer_required'},{status:403});
 
   const proposals=await latestActionProposals(undefined,80);
-  if(proposals.error)return NextResponse.json({ok:false,error:'proposal_list_failed',details:proposals.error},{status:500});
+  if(proposals.error)return NextResponse.json({
+    ok:false,
+    state:'DEGRADED',
+    error:'proposal_list_failed',
+    details:proposals.error,
+    data:{viewerAuthority:authority,proposals:[],counts:{total:0,proposed:0,waitingEvidence:0,designApproved:0,queued:0,accepted:0,conflicted:0,frozen:0,rejected:0}},
+  },{status:500});
 
   // Evidence candidates are subordinate to a parent proposal and have their own
   // ROOT review surface. Keeping them out of the primary ACP queue prevents the
@@ -53,5 +65,5 @@ export async function GET() {
   const sourceRows=proposals.data.map(row=>asRecord(row)).filter(row=>proposalTypeFrom(row)!=='evidence_candidate').slice(0,50);
   const visibleRows=authority==='root'?sourceRows:sourceRows.filter(row=>controllerCanDecideProposal(row));
   const rows=visibleRows.map(row=>summarizeProposal(row));
-  return NextResponse.json({ok:true,data:{viewerAuthority:authority,proposals:rows,counts:{total:rows.length,proposed:rows.filter(row=>row.status==='proposed').length,waitingEvidence:rows.filter(row=>row.status==='waiting_evidence').length,designApproved:rows.filter(row=>row.status==='design_approved').length,queued:rows.filter(row=>row.status==='queued').length,accepted:rows.filter(row=>row.status==='accepted').length,conflicted:rows.filter(row=>row.status==='conflicted').length,frozen:rows.filter(row=>row.status==='frozen').length,rejected:rows.filter(row=>row.status==='rejected').length}}});
+  return NextResponse.json({ok:true,state:'OBSERVED',source:{table:'action_proposals'},data:{viewerAuthority:authority,proposals:rows,counts:{total:rows.length,proposed:rows.filter(row=>row.status==='proposed').length,waitingEvidence:rows.filter(row=>row.status==='waiting_evidence').length,designApproved:rows.filter(row=>row.status==='design_approved').length,queued:rows.filter(row=>row.status==='queued').length,accepted:rows.filter(row=>row.status==='accepted').length,conflicted:rows.filter(row=>row.status==='conflicted').length,frozen:rows.filter(row=>row.status==='frozen').length,rejected:rows.filter(row=>row.status==='rejected').length}}});
 }
