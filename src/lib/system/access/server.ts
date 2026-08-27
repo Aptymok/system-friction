@@ -62,6 +62,30 @@ function institutionalModuleAccess(
   };
 }
 
+function personalModuleAccess(current?: unknown) {
+  return {
+    ...record(current),
+    field: true,
+    studio: true,
+    personal_lab: true,
+    personal_cognitive: true,
+    external_agent: true,
+    root: false,
+    root_observe: false,
+    full_access: false,
+    executor: false,
+    root_execution: false,
+    governance_write: false,
+    sovereign_actions: false,
+    canonical_promotion: false,
+  };
+}
+
+function defaultAlias(user: { email?: string | null }) {
+  const local = user.email?.split('@')[0]?.trim();
+  return local || 'member';
+}
+
 export async function requireAuthenticatedUser() {
   const supabase = await createServerSupabaseClient();
   const { data, error } = await supabase.auth.getUser();
@@ -71,7 +95,23 @@ export async function requireAuthenticatedUser() {
   return { supabase, user: data.user };
 }
 
-async function readOrProvisionInstitutionalProfile(user: { id: string; email?: string | null }) {
+async function ensureFieldProfile(user: { id: string; email?: string | null }, displayName: string) {
+  const service = createServiceSupabaseClient();
+  const existing = await service
+    .from('field_profiles')
+    .select('user_id')
+    .eq('user_id', user.id)
+    .maybeSingle();
+  if (existing.error) throw existing.error;
+  if (existing.data) return;
+  const inserted = await service.from('field_profiles').insert({
+    user_id: user.id,
+    display_name: displayName,
+  });
+  if (inserted.error) throw inserted.error;
+}
+
+async function readOrProvisionUserProfile(user: { id: string; email?: string | null }) {
   const member = findInstitutionalMember(user.email);
   const service = createServiceSupabaseClient();
   const existing = await service
@@ -99,39 +139,71 @@ async function readOrProvisionInstitutionalProfile(user: { id: string; email?: s
     if (reconciled.error || !reconciled.data) {
       throw reconciled.error ?? new Error('SFI member profile could not be reconciled.');
     }
-
+    await ensureFieldProfile(user, member.displayName);
     return { profile: reconciled.data, member };
   }
 
-  if (existing.data) return { profile: existing.data, member };
-  if (!member) return { profile: null, member: null };
+  if (existing.data) {
+    await ensureFieldProfile(user, String(existing.data.alias || defaultAlias(user)));
+    return { profile: existing.data, member };
+  }
 
+  if (member) {
+    const inserted = await service
+      .from('profiles')
+      .insert({
+        user_id: user.id,
+        alias: member.displayName,
+        email: member.email,
+        role: member.role,
+        subscription_tier: 'enterprise',
+        module_access: institutionalModuleAccess(member),
+        last_seen_at: new Date().toISOString(),
+      })
+      .select('user_id,alias,email,role,module_access,subscription_tier')
+      .single();
+
+    if (inserted.error || !inserted.data) throw inserted.error ?? new Error('SFI member profile could not be created.');
+    await ensureFieldProfile(user, member.displayName);
+    return { profile: inserted.data, member };
+  }
+
+  // A normal account receives a private, owner-scoped workspace. This does not
+  // make the user an institutional SFI member and cannot grant ROOT/canonical
+  // authority. Institutional membership remains an independent registry fact.
+  const alias = defaultAlias(user);
   const inserted = await service
     .from('profiles')
     .insert({
       user_id: user.id,
-      alias: member.displayName,
-      email: member.email,
-      role: member.role,
-      subscription_tier: 'enterprise',
-      module_access: institutionalModuleAccess(member),
+      alias,
+      email: user.email ?? null,
+      role: 'operator',
+      subscription_tier: 'solo',
+      module_access: personalModuleAccess(),
       last_seen_at: new Date().toISOString(),
     })
     .select('user_id,alias,email,role,module_access,subscription_tier')
     .single();
+  if (inserted.error || !inserted.data) throw inserted.error ?? new Error('Personal SFI profile could not be created.');
+  await ensureFieldProfile(user, alias);
+  return { profile: inserted.data, member: null };
+}
 
-  if (inserted.error || !inserted.data) throw inserted.error ?? new Error('SFI member profile could not be created.');
-  return { profile: inserted.data, member };
+export async function requireUserProfile() {
+  const context = await requireAuthenticatedUser();
+  const resolved = await readOrProvisionUserProfile(context.user);
+  return { ...context, profile: resolved.profile, member: resolved.member };
 }
 
 export async function requireSfiMember() {
-  const context = await requireAuthenticatedUser();
-  const resolved = await readOrProvisionInstitutionalProfile(context.user);
-  const allowedRoles = new Set(['operator', 'controller', 'observer', 'root', 'system']);
-  if (!resolved.profile || (!allowedRoles.has(String(resolved.profile.role)) && !resolved.member)) {
+  const context = await requireUserProfile();
+  const role = String(context.profile.role || '').toLowerCase();
+  const institutional = Boolean(context.member) || role === 'root' || role === 'system';
+  if (!institutional) {
     throw new AccessDeniedError(403, 'SFI_MEMBER_REQUIRED', 'An active SFI institutional membership is required.');
   }
-  return { ...context, profile: resolved.profile, member: resolved.member };
+  return context;
 }
 
 async function readMemberWorkspaceCounts(supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>, userId: string) {
@@ -157,12 +229,11 @@ export async function requireSfiMemberPage(nextPath = '/member') {
 }
 
 export async function requireFieldUser() {
-  const context = await requireAuthenticatedUser();
-  const resolved = await readOrProvisionInstitutionalProfile(context.user);
-  if (!resolved.profile) {
+  const context = await requireUserProfile();
+  if (!context.profile) {
     throw new AccessDeniedError(403, 'FIELD_USER_REQUIRED', 'A FIELD profile is required.');
   }
-  return { ...context, profile: resolved.profile };
+  return context;
 }
 
 export async function requireFounder() {

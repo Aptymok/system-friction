@@ -2,64 +2,1361 @@
   "openapi": "3.1.0",
   "info": {
     "title": "System Friction Institute External Agent API",
-    "version": "1.7.0",
-    "description": "Governed machine interface for authorized AI clients. Public GPT Actions authenticate with SFI OAuth. Registered institutional principals receive explicitly configured scopes. Studio operations are user-bound and resolve ownership from the OAuth subject_id.",
+    "version": "1.8.0",
+    "description": "Governed machine interface for authorized AI clients. GPT Actions authenticate with SFI OAuth. Institutional principals receive explicitly configured authority; normal accounts receive only owner-scoped personal Lab, Cognitive and Studio capabilities.",
     "termsOfService": "https://systemfriction.org/privacy"
   },
-  "externalDocs": {"description":"SFI Privacy & External Agent Data Policy","url":"https://systemfriction.org/privacy"},
-  "servers": [{"url":"https://systemfriction.org"}],
-  "security": [{"sfiOAuth":[]}],
+  "externalDocs": {
+    "description": "SFI Privacy & External Agent Data Policy",
+    "url": "https://systemfriction.org/privacy"
+  },
+  "servers": [
+    {
+      "url": "https://systemfriction.org"
+    }
+  ],
+  "security": [
+    {
+      "sfiOAuth": []
+    }
+  ],
   "paths": {
-    "/api/external/v1/manifest": {"get":{"operationId":"getSfiManifest","summary":"Discover current SFI agent capabilities","security":[],"responses":{"200":{"description":"Current governed capability manifest","content":{"application/json":{"schema":{"$ref":"#/components/schemas/GenericResponse"}}}}}}},
-    "/api/external/v1/console": {"get":{"operationId":"readSfiConsole","summary":"Read the compact governed SFI machine console","x-sfi-scope":"observe","security":[{"sfiOAuth":["observe"]}],"responses":{"200":{"description":"Compact governed console state","content":{"application/json":{"schema":{"$ref":"#/components/schemas/GenericResponse"}}}},"401":{"description":"Unauthorized"}}}},
-    "/api/external/v1/execution-contract": {"post":{"operationId":"getSfiExecutionContract","summary":"Get the SFI method/measurement contract for an object without sending raw content","description":"Describe representation, function, question and objective. Supply a client-computed content hash when available. SFI keeps content fingerprint separate from reference-envelope identity.","x-sfi-scope":"observe","security":[{"sfiOAuth":["observe"]}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/ExecutionContractRequest"}}}},"responses":{"200":{"description":"Execution contract","content":{"application/json":{"schema":{"$ref":"#/components/schemas/GenericResponse"}}}},"400":{"description":"Invalid object declaration"},"401":{"description":"Unauthorized"}}}},
-    "/api/external/v1/result": {"post":{"operationId":"persistSfiStructuredResult","summary":"Return a structured analysis result to SFI without persisting the raw object","description":"Persists identity, measurements, epistemic partition, hypotheses/rivals, risk, perturbation/prediction and provenance. Returns canonical persisted eventId. Fields representing raw files/binary/base64/content are stripped.","x-sfi-scope":"lab:write","security":[{"sfiOAuth":["lab:write"]}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/StructuredResultRequest"}}}},"responses":{"201":{"description":"Structured result persisted","content":{"application/json":{"schema":{"$ref":"#/components/schemas/GenericResponse"}}}},"400":{"description":"Object and structured result required"},"401":{"description":"Unauthorized"},"413":{"description":"Structured result exceeds size limit"}}}},
-    "/api/external/v1/signal": {
-      "get":{"operationId":"readSfiOpenCycles","summary":"Read universal open cycles or canonical history for one cycle","x-sfi-scope":"observe","security":[{"sfiOAuth":["observe"]}],"parameters":[{"name":"cycleId","in":"query","required":false,"schema":{"type":"string"},"description":"When present, reread canonical event history for this cycle instead of listing open cycles."}],"responses":{"200":{"description":"Open-cycle state or one cycle history","content":{"application/json":{"schema":{"$ref":"#/components/schemas/GenericResponse"}}}},"401":{"description":"Unauthorized"}}},
-      "post":{"operationId":"processSfiSignal","summary":"Advanced universal signal cycle operation","description":"Supports status/intake/run/return/close. operation=status with cycleId returns canonical event history.","security":[{"sfiOAuth":["lab:write"]}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/SignalRequest"}}}},"responses":{"200":{"description":"Signal/cognitive operation result","content":{"application/json":{"schema":{"$ref":"#/components/schemas/GenericResponse"}}}},"201":{"description":"Signal/return/closure persisted"},"400":{"description":"Invalid request"},"401":{"description":"Unauthorized"},"409":{"description":"Clarification/open-cycle review required"},"503":{"description":"Cognitive runtime failure"}}}
+    "/api/external/v1/manifest": {
+      "get": {
+        "operationId": "getSfiManifest",
+        "summary": "Discover current SFI agent capabilities",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Generic SFI response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     },
-    "/api/external/v1/observe": {"post":{"operationId":"observeSfi","summary":"Read an allowlisted governed SFI state surface","x-sfi-scope":"observe","security":[{"sfiOAuth":["observe"]}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/ObserveRequest"}}}},"responses":{"200":{"description":"Governed observation result","content":{"application/json":{"schema":{"$ref":"#/components/schemas/GenericResponse"}}}},"400":{"description":"Surface not allowed"},"401":{"description":"Unauthorized"}}}},
-    "/api/external/v1/propose": {"post":{"operationId":"proposeSfiAction","summary":"Submit a governed action proposal for ROOT review","x-sfi-scope":"propose","security":[{"sfiOAuth":["propose"]}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/ProposeRequest"}}}},"responses":{"201":{"description":"Proposal registered","content":{"application/json":{"schema":{"$ref":"#/components/schemas/GenericResponse"}}}},"400":{"description":"Title and summary required"},"401":{"description":"Unauthorized"}}}},
-    "/api/external/v1/evidence-candidates": {"post":{"operationId":"proposeSfiEvidenceCandidate","summary":"Submit a source URL as an evidence candidate for ROOT review","description":"The external principal may submit a candidate, but ROOT remains the acceptance authority.","x-sfi-scope":"propose","security":[{"sfiOAuth":["propose"]}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/EvidenceCandidateRequest"}}}},"responses":{"201":{"description":"Evidence candidate registered"},"200":{"description":"Candidate already existed"},"400":{"description":"Invalid candidate"},"401":{"description":"Unauthorized"}}}},
-    "/api/external/v1/execute": {"post":{"operationId":"executeAuthorizedSfiAction","summary":"Execute an already-authorized internal SFI action","description":"Dispatches only an already-authorized queued proposal. This endpoint cannot approve a proposal or promote canon.","x-sfi-scope":"execute","security":[{"sfiOAuth":["execute"]}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/ExecuteRequest"}}}},"responses":{"200":{"description":"Execution result"},"400":{"description":"Invalid request"},"401":{"description":"Unauthorized"},"409":{"description":"Queued governed proposal required"}}}},
-    "/api/external/v1/proposal-return": {"post":{"operationId":"recordSfiProposalReturn","summary":"Record an observed return for an already queued proposal","x-sfi-scope":"execute","security":[{"sfiOAuth":["execute"]}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/ProposalReturnRequest"}}}},"responses":{"201":{"description":"Observed return persisted"},"400":{"description":"Invalid return"},"401":{"description":"Unauthorized"},"409":{"description":"Queued proposal required"}}}},
-    "/api/external/v1/lab": {"post":{"operationId":"operateSfiLab","summary":"Read, persist or run Method Lab operations according to the operation-specific scope","security":[{"sfiOAuth":[]}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/LabRequest"}}}},"responses":{"200":{"description":"Method Lab result"},"201":{"description":"Persisted Method Lab record"},"400":{"description":"Invalid operation"},"401":{"description":"Unauthorized"},"503":{"description":"Runtime failure"}}}},
-    "/api/external/v1/studio": {"post":{"operationId":"operateOwnedSfiStudioObjects","summary":"List, inspect, read features/content, or analyze Studio objects owned by the OAuth principal","description":"Studio is user-bound. Every object operation resolves the OAuth subject_id to studio_objects.owner_id. Shared/static tokens are rejected for this route. Supported analysis modalities in this external route are audio and video.","security":[{"sfiOAuth":[]}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/StudioRequest"}}}},"responses":{"200":{"description":"Studio read/reused analysis result"},"202":{"description":"Studio analysis executed"},"400":{"description":"Invalid Studio operation"},"401":{"description":"Missing or insufficient OAuth scope"},"403":{"description":"User-bound OAuth required"},"404":{"description":"Owned object not found"},"415":{"description":"Analyzer not exposed for modality"}}}}
+    "/api/external/v1/console": {
+      "get": {
+        "operationId": "readSfiConsole",
+        "summary": "Read the compact governed SFI machine console",
+        "x-sfi-scope": "observe",
+        "security": [
+          {
+            "sfiOAuth": [
+              "observe"
+            ]
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Generic SFI response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/external/v1/execution-contract": {
+      "post": {
+        "operationId": "getSfiExecutionContract",
+        "summary": "Get the SFI method/measurement contract for an object without sending raw content",
+        "description": "Describe representation, function, question and objective. Supply a client-computed content hash when available.",
+        "x-sfi-scope": "observe",
+        "security": [
+          {
+            "sfiOAuth": [
+              "observe"
+            ]
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExecutionContractRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Generic SFI response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid object declaration"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/external/v1/result": {
+      "post": {
+        "operationId": "persistSfiStructuredResult",
+        "summary": "Return a structured analysis result to SFI without persisting the raw object",
+        "description": "Persists structured result metadata while raw/binary/base64 content is excluded.",
+        "x-sfi-scope": "lab:write",
+        "security": [
+          {
+            "sfiOAuth": [
+              "lab:write"
+            ]
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StructuredResultRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Generic SFI response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Object and structured result required"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "413": {
+            "description": "Structured result exceeds size limit"
+          }
+        }
+      }
+    },
+    "/api/external/v1/signal": {
+      "get": {
+        "operationId": "readSfiOpenCycles",
+        "summary": "Read universal open cycles or canonical history for one cycle",
+        "x-sfi-scope": "observe",
+        "security": [
+          {
+            "sfiOAuth": [
+              "observe"
+            ]
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cycleId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Generic SFI response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      },
+      "post": {
+        "operationId": "processSfiSignal",
+        "summary": "Advanced universal signal cycle operation",
+        "description": "Supports status/intake/run/return/close for institutional signal cycles.",
+        "security": [
+          {
+            "sfiOAuth": [
+              "lab:write"
+            ]
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SignalRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Generic SFI response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericResponse"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Signal/return/closure persisted"
+          },
+          "400": {
+            "description": "Invalid request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "409": {
+            "description": "Clarification/open-cycle review required"
+          },
+          "503": {
+            "description": "Cognitive runtime failure"
+          }
+        }
+      }
+    },
+    "/api/external/v1/observe": {
+      "post": {
+        "operationId": "observeSfi",
+        "summary": "Read an allowlisted governed SFI state surface",
+        "x-sfi-scope": "observe",
+        "security": [
+          {
+            "sfiOAuth": [
+              "observe"
+            ]
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ObserveRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Generic SFI response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Surface not allowed"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/external/v1/propose": {
+      "post": {
+        "operationId": "proposeSfiAction",
+        "summary": "Submit a governed action proposal for ROOT review",
+        "x-sfi-scope": "propose",
+        "security": [
+          {
+            "sfiOAuth": [
+              "propose"
+            ]
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProposeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Generic SFI response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Title and summary required"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/external/v1/evidence-candidates": {
+      "post": {
+        "operationId": "proposeSfiEvidenceCandidate",
+        "summary": "Submit a source URL as an evidence candidate for ROOT review",
+        "description": "The external principal may submit a candidate, but ROOT remains the acceptance authority.",
+        "x-sfi-scope": "propose",
+        "security": [
+          {
+            "sfiOAuth": [
+              "propose"
+            ]
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EvidenceCandidateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Evidence candidate registered"
+          },
+          "200": {
+            "description": "Candidate already existed"
+          },
+          "400": {
+            "description": "Invalid candidate"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/external/v1/execute": {
+      "post": {
+        "operationId": "executeAuthorizedSfiAction",
+        "summary": "Execute an already-authorized internal SFI action",
+        "description": "Dispatches only an already-authorized queued proposal. This endpoint cannot approve a proposal or promote canon.",
+        "x-sfi-scope": "execute",
+        "security": [
+          {
+            "sfiOAuth": [
+              "execute"
+            ]
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExecuteRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Execution result"
+          },
+          "400": {
+            "description": "Invalid request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "409": {
+            "description": "Queued governed proposal required"
+          }
+        }
+      }
+    },
+    "/api/external/v1/proposal-return": {
+      "post": {
+        "operationId": "recordSfiProposalReturn",
+        "summary": "Record an observed return for an already queued proposal",
+        "x-sfi-scope": "execute",
+        "security": [
+          {
+            "sfiOAuth": [
+              "execute"
+            ]
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProposalReturnRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Observed return persisted"
+          },
+          "400": {
+            "description": "Invalid return"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "409": {
+            "description": "Queued proposal required"
+          }
+        }
+      }
+    },
+    "/api/external/v1/lab": {
+      "post": {
+        "operationId": "operateSfiLab",
+        "summary": "Read, persist or run institutional Method Lab operations according to the operation-specific scope",
+        "description": "Institutional Method Lab route. Personal OAuth tenants are blocked from this path and must use /api/external/v1/personal-lab.",
+        "security": [
+          {
+            "sfiOAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LabRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Method Lab result"
+          },
+          "201": {
+            "description": "Persisted Method Lab record"
+          },
+          "400": {
+            "description": "Invalid operation"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "503": {
+            "description": "Runtime failure"
+          }
+        }
+      }
+    },
+    "/api/external/v1/studio": {
+      "post": {
+        "operationId": "operateOwnedSfiStudioObjects",
+        "summary": "List, inspect, read features/content, or analyze Studio objects owned by the OAuth principal",
+        "description": "User-bound Studio route. Every object operation resolves OAuth subject_id to studio_objects.owner_id.",
+        "security": [
+          {
+            "sfiOAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StudioRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Studio read/reused analysis result"
+          },
+          "202": {
+            "description": "Studio analysis executed"
+          },
+          "400": {
+            "description": "Invalid Studio operation"
+          },
+          "401": {
+            "description": "Missing or insufficient OAuth scope"
+          },
+          "403": {
+            "description": "User-bound OAuth required"
+          },
+          "404": {
+            "description": "Owned object not found"
+          },
+          "415": {
+            "description": "Analyzer not exposed for modality"
+          }
+        }
+      }
+    },
+    "/api/external/v1/cognitive": {
+      "post": {
+        "operationId": "operatePersonalCognitiveWorkspace",
+        "summary": "Read or run owner-scoped personal Cognitive automation",
+        "description": "OAuth subject-bound. state requires lab:read; run requires lab:run. A normal account cannot access institutional ROOT/canonical state through this route.",
+        "security": [
+          {
+            "sfiOAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonalCognitiveRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Personal Cognitive workspace state"
+          },
+          "201": {
+            "description": "Personal Cognitive run persisted"
+          },
+          "207": {
+            "description": "Run completed with degraded automation results"
+          },
+          "400": {
+            "description": "Invalid operation"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "OAuth subject required"
+          },
+          "404": {
+            "description": "Owned case/evidence not found"
+          }
+        }
+      }
+    },
+    "/api/external/v1/personal-lab": {
+      "post": {
+        "operationId": "operatePersonalLabWorkspace",
+        "summary": "Read, create and run owner-scoped personal Lab work",
+        "description": "OAuth subject-bound. state/report require lab:read; create_case/persist require lab:write; run requires lab:run.",
+        "security": [
+          {
+            "sfiOAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonalLabRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Personal Lab state or report"
+          },
+          "201": {
+            "description": "Owned case/evidence/run persisted"
+          },
+          "207": {
+            "description": "Run completed with degraded automation results"
+          },
+          "400": {
+            "description": "Invalid operation"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "OAuth subject required"
+          },
+          "404": {
+            "description": "Owned case/evidence not found"
+          }
+        }
+      }
+    }
   },
   "components": {
     "schemas": {
-      "SignalObject": {"type":"object","required":["kind"],"properties":{"kind":{"type":"string","enum":["url","web_page","text","audio","video","image","document","dataset","json","csv","conversation","email","code","api_response","sensor","event","organization","person","place","composite","unknown"]},"name":{"type":"string"},"mimeType":{"type":"string"},"sourceUrl":{"type":"string"},"assetRef":{"type":"string"},"objectHash":{"type":"string"},"contentHash":{"type":"string"},"fingerprint":{"type":"string"},"extracted":{"type":"object","properties":{},"additionalProperties":true},"metadata":{"type":"object","properties":{},"additionalProperties":true},"provenance":{"type":"object","properties":{},"additionalProperties":true},"observedAt":{"type":"string"}},"additionalProperties":false},
-      "ExecutionContractInput": {"type":"object","required":["signal"],"properties":{"signal":{"$ref":"#/components/schemas/SignalObject"},"question":{"type":"string"},"objective":{"type":"string"},"declaredFunction":{"type":"string"},"systemType":{"type":"string"},"context":{"type":"object","properties":{},"additionalProperties":true},"declaredTarget":{},"declaredExclusions":{"type":"array","items":{}},"invariants":{"type":"array","items":{}},"constraints":{"type":"array","items":{}},"requestedAgents":{"type":"array","items":{"type":"string"}},"llmAugmentation":{"type":"boolean"}},"additionalProperties":false},
-      "ExecutionContractRequest": {"type":"object","required":["input"],"properties":{"input":{"$ref":"#/components/schemas/ExecutionContractInput"}},"additionalProperties":false},
-      "StructuredResultRequest": {"type":"object","required":["object","result"],"properties":{"cycleId":{"type":"string"},"question":{"type":"string"},"objective":{"type":"string"},"confidence":{"type":"number","minimum":0,"maximum":1},"object":{"type":"object","properties":{},"additionalProperties":true},"result":{"type":"object","properties":{},"additionalProperties":true},"analyzer":{"type":"object","properties":{},"additionalProperties":true},"lineage":{"type":"array","items":{"type":"string"}}},"additionalProperties":false},
-      "HypothesisInput": {"type":"object","required":["statement"],"properties":{"statement":{"type":"string"},"confidence":{"type":"number","minimum":0,"maximum":1},"role":{"type":"string","enum":["primary","rival"]}},"additionalProperties":false},
-      "UniversalCycleInput": {"type":"object","required":["signal"],"properties":{"signal":{"$ref":"#/components/schemas/SignalObject"},"question":{"type":"string"},"objective":{"type":"string"},"declaredFunction":{"type":"string"},"systemType":{"type":"string"},"context":{"type":"object","properties":{},"additionalProperties":true},"declaredTarget":{},"declaredExclusions":{"type":"array","items":{}},"invariants":{"type":"array","items":{}},"constraints":{"type":"array","items":{}},"hypotheses":{"type":"array","items":{"$ref":"#/components/schemas/HypothesisInput"}},"requestedAgents":{"type":"array","items":{"type":"string"}},"llmAugmentation":{"type":"boolean"}},"additionalProperties":false},
-      "SignalRequest": {"type":"object","required":["operation"],"properties":{"operation":{"type":"string","enum":["status","intake","run","return","close"]},"input":{"$ref":"#/components/schemas/UniversalCycleInput"},"continueWithOpenCycles":{"type":"boolean"},"cycleId":{"type":"string"},"objectKey":{"type":"string"},"outcome":{},"classification":{"type":"string"},"notes":{"type":"string"},"reason":{"type":"string"},"evidenceRefs":{"type":"array","items":{"type":"string"}}},"additionalProperties":false},
-      "ObserveRequest": {"type":"object","required":["surface"],"properties":{"surface":{"type":"string","enum":["proposals","evidence"]}},"additionalProperties":false},
-      "ProposeRequest": {"type":"object","required":["title","summary"],"properties":{"title":{"type":"string","minLength":1},"summary":{"type":"string","minLength":1},"action":{"type":["object","string","null"],"properties":{},"additionalProperties":true}},"additionalProperties":false},
-      "EvidenceCandidateRequest": {"type":"object","required":["proposal_id","source_url"],"properties":{"proposal_id":{"type":"string","minLength":1},"source_url":{"type":"string","format":"uri","pattern":"^https?://"},"title":{"type":"string"},"evidence_note":{"type":"string"}},"additionalProperties":false},
-      "ExecuteRequest": {"type":"object","required":["proposal_id","confirm"],"properties":{"proposal_id":{"type":"string","minLength":1},"confirm":{"type":"boolean","const":true}},"additionalProperties":false},
-      "ProposalReturnRequest": {"type":"object","required":["proposal_id","outcome","evidence_refs"],"properties":{"proposal_id":{"type":"string","minLength":1},"observed_at":{"type":"string"},"outcome":{},"evidence_refs":{"type":"array","minItems":1,"items":{"type":"string"}}},"additionalProperties":true},
-      "LabRequest": {"type":"object","required":["operation"],"properties":{"operation":{"type":"string","enum":["state","report","persist","run"]},"title":{"type":"string"},"content":{"type":"string"},"confidence":{"type":"number","minimum":0,"maximum":1},"source":{"type":"string"},"commandId":{"type":"string"},"refs":{"type":"array","items":{"type":"string"}},"metadata":{"type":"object","properties":{},"additionalProperties":true},"protocolId":{"type":"string","enum":["sociotechnical_simulation","economic_simulation"]},"confirm":{"type":"boolean"},"evidenceIds":{"type":"array","items":{"type":"string"}},"parameters":{"type":"object","properties":{},"additionalProperties":true},"cognitiveSpineContextRefs":{"type":"array","items":{"type":"string"}}},"additionalProperties":false},
-      "StudioRequest": {"type":"object","required":["operation"],"properties":{"operation":{"type":"string","enum":["list","inspect","features","content","analyze"]},"objectId":{"type":"string","description":"Required except for list."},"force":{"type":"boolean","description":"Optional for analyze."}},"additionalProperties":false},
-      "GenericResponse": {"type":"object","properties":{"ok":{"type":"boolean"},"generatedAt":{"type":"string"},"eventId":{"type":"string"},"canonicalEventId":{"type":"string"},"data":{},"principal":{},"cycle":{},"console":{},"warnings":{"type":"array","items":{"type":"string"}},"error":{"type":["string","null"]},"message":{"type":"string"}},"additionalProperties":true}
+      "SignalObject": {
+        "type": "object",
+        "required": [
+          "kind"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "url",
+              "web_page",
+              "text",
+              "audio",
+              "video",
+              "image",
+              "document",
+              "dataset",
+              "json",
+              "csv",
+              "conversation",
+              "email",
+              "code",
+              "api_response",
+              "sensor",
+              "event",
+              "organization",
+              "person",
+              "place",
+              "composite",
+              "unknown"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "mimeType": {
+            "type": "string"
+          },
+          "sourceUrl": {
+            "type": "string"
+          },
+          "assetRef": {
+            "type": "string"
+          },
+          "objectHash": {
+            "type": "string"
+          },
+          "contentHash": {
+            "type": "string"
+          },
+          "fingerprint": {
+            "type": "string"
+          },
+          "extracted": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "provenance": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "observedAt": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ExecutionContractInput": {
+        "type": "object",
+        "required": [
+          "signal"
+        ],
+        "properties": {
+          "signal": {
+            "$ref": "#/components/schemas/SignalObject"
+          },
+          "question": {
+            "type": "string"
+          },
+          "objective": {
+            "type": "string"
+          },
+          "declaredFunction": {
+            "type": "string"
+          },
+          "systemType": {
+            "type": "string"
+          },
+          "context": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "declaredTarget": {},
+          "declaredExclusions": {
+            "type": "array",
+            "items": {}
+          },
+          "invariants": {
+            "type": "array",
+            "items": {}
+          },
+          "constraints": {
+            "type": "array",
+            "items": {}
+          },
+          "requestedAgents": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "llmAugmentation": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ExecutionContractRequest": {
+        "type": "object",
+        "required": [
+          "input"
+        ],
+        "properties": {
+          "input": {
+            "$ref": "#/components/schemas/ExecutionContractInput"
+          }
+        },
+        "additionalProperties": false
+      },
+      "StructuredResultRequest": {
+        "type": "object",
+        "required": [
+          "object",
+          "result"
+        ],
+        "properties": {
+          "cycleId": {
+            "type": "string"
+          },
+          "question": {
+            "type": "string"
+          },
+          "objective": {
+            "type": "string"
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "object": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "result": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "analyzer": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "lineage": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "HypothesisInput": {
+        "type": "object",
+        "required": [
+          "statement"
+        ],
+        "properties": {
+          "statement": {
+            "type": "string"
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "primary",
+              "rival"
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "UniversalCycleInput": {
+        "type": "object",
+        "required": [
+          "signal"
+        ],
+        "properties": {
+          "signal": {
+            "$ref": "#/components/schemas/SignalObject"
+          },
+          "question": {
+            "type": "string"
+          },
+          "objective": {
+            "type": "string"
+          },
+          "declaredFunction": {
+            "type": "string"
+          },
+          "systemType": {
+            "type": "string"
+          },
+          "context": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "declaredTarget": {},
+          "declaredExclusions": {
+            "type": "array",
+            "items": {}
+          },
+          "invariants": {
+            "type": "array",
+            "items": {}
+          },
+          "constraints": {
+            "type": "array",
+            "items": {}
+          },
+          "hypotheses": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HypothesisInput"
+            }
+          },
+          "requestedAgents": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "llmAugmentation": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "SignalRequest": {
+        "type": "object",
+        "required": [
+          "operation"
+        ],
+        "properties": {
+          "operation": {
+            "type": "string",
+            "enum": [
+              "status",
+              "intake",
+              "run",
+              "return",
+              "close"
+            ]
+          },
+          "input": {
+            "$ref": "#/components/schemas/UniversalCycleInput"
+          },
+          "continueWithOpenCycles": {
+            "type": "boolean"
+          },
+          "cycleId": {
+            "type": "string"
+          },
+          "objectKey": {
+            "type": "string"
+          },
+          "outcome": {},
+          "classification": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "evidenceRefs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "ObserveRequest": {
+        "type": "object",
+        "required": [
+          "surface"
+        ],
+        "properties": {
+          "surface": {
+            "type": "string",
+            "enum": [
+              "proposals",
+              "evidence"
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "ProposeRequest": {
+        "type": "object",
+        "required": [
+          "title",
+          "summary"
+        ],
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "summary": {
+            "type": "string",
+            "minLength": 1
+          },
+          "action": {
+            "type": [
+              "object",
+              "string",
+              "null"
+            ],
+            "additionalProperties": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "EvidenceCandidateRequest": {
+        "type": "object",
+        "required": [
+          "proposal_id",
+          "source_url"
+        ],
+        "properties": {
+          "proposal_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source_url": {
+            "type": "string",
+            "format": "uri",
+            "pattern": "^https?://"
+          },
+          "title": {
+            "type": "string"
+          },
+          "evidence_note": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ExecuteRequest": {
+        "type": "object",
+        "required": [
+          "proposal_id",
+          "confirm"
+        ],
+        "properties": {
+          "proposal_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "confirm": {
+            "type": "boolean",
+            "const": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ProposalReturnRequest": {
+        "type": "object",
+        "required": [
+          "proposal_id",
+          "outcome",
+          "evidence_refs"
+        ],
+        "properties": {
+          "proposal_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "observed_at": {
+            "type": "string"
+          },
+          "outcome": {},
+          "evidence_refs": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": true
+      },
+      "LabRequest": {
+        "type": "object",
+        "required": [
+          "operation"
+        ],
+        "properties": {
+          "operation": {
+            "type": "string",
+            "enum": [
+              "state",
+              "report",
+              "persist",
+              "run"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "source": {
+            "type": "string"
+          },
+          "commandId": {
+            "type": "string"
+          },
+          "refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "protocolId": {
+            "type": "string",
+            "enum": [
+              "sociotechnical_simulation",
+              "economic_simulation"
+            ]
+          },
+          "confirm": {
+            "type": "boolean"
+          },
+          "evidenceIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "parameters": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "cognitiveSpineContextRefs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "StudioRequest": {
+        "type": "object",
+        "required": [
+          "operation"
+        ],
+        "properties": {
+          "operation": {
+            "type": "string",
+            "enum": [
+              "list",
+              "inspect",
+              "features",
+              "content",
+              "analyze"
+            ]
+          },
+          "objectId": {
+            "type": "string"
+          },
+          "force": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "PersonalCognitiveRequest": {
+        "type": "object",
+        "required": [
+          "operation"
+        ],
+        "properties": {
+          "operation": {
+            "type": "string",
+            "enum": [
+              "state",
+              "run"
+            ]
+          },
+          "objective": {
+            "type": "string"
+          },
+          "question": {
+            "type": "string"
+          },
+          "caseId": {
+            "type": "string"
+          },
+          "evidenceIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "requestedAutomations": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "cognitiveIntents": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "PersonalLabRequest": {
+        "type": "object",
+        "required": [
+          "operation"
+        ],
+        "properties": {
+          "operation": {
+            "type": "string",
+            "enum": [
+              "state",
+              "report",
+              "create_case",
+              "persist",
+              "run"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "domain": {
+            "type": "string"
+          },
+          "objective": {
+            "type": "string"
+          },
+          "baseline": {
+            "type": "string"
+          },
+          "verificationWindow": {
+            "type": "string",
+            "enum": [
+              "72h",
+              "7d",
+              "30d"
+            ]
+          },
+          "caseId": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "reliability": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "evidenceType": {
+            "type": "string"
+          },
+          "uri": {
+            "type": "string"
+          },
+          "observedAt": {
+            "type": "string"
+          },
+          "protocolId": {
+            "type": "string",
+            "enum": [
+              "sociotechnical_simulation",
+              "economic_simulation"
+            ]
+          },
+          "evidenceIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "parameters": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "GenericResponse": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "generatedAt": {
+            "type": "string"
+          },
+          "eventId": {
+            "type": "string"
+          },
+          "canonicalEventId": {
+            "type": "string"
+          },
+          "data": {},
+          "principal": {},
+          "cycle": {},
+          "console": {},
+          "workspace": {},
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "error": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      }
     },
     "securitySchemes": {
-      "sfiOAuth": {"type":"oauth2","description":"User-bound SFI institutional identity for public GPT Actions.","flows":{"authorizationCode":{"authorizationUrl":"https://systemfriction.org/api/oauth/authorize","tokenUrl":"https://systemfriction.org/api/oauth/token","scopes":{"observe":"Read governed SFI state and obtain execution contracts.","propose":"Submit governed proposals and evidence candidates for ROOT review.","execute":"Execute only already-authorized queued internal proposals and record proposal-scoped returns.","lab:read":"Read Method Lab state and reports.","lab:write":"Persist structured results and universal returns.","lab:run":"Run supported Method Lab runtimes when explicitly granted to the institutional principal.","studio:read":"List, inspect and read features for Studio objects owned by the OAuth principal.","studio:content":"Obtain a short-lived signed URL for Studio content owned by the OAuth principal.","studio:run":"Run the server-side Studio analyzer for owned audio/video objects."}}}}
+      "sfiOAuth": {
+        "type": "oauth2",
+        "description": "User-bound SFI identity for GPT Actions. Institutional accounts may receive explicit institutional scopes; normal accounts are reduced to owner-scoped personal workspace capabilities.",
+        "flows": {
+          "authorizationCode": {
+            "authorizationUrl": "https://systemfriction.org/api/oauth/authorize",
+            "tokenUrl": "https://systemfriction.org/api/oauth/token",
+            "scopes": {
+              "observe": "Read governed institutional SFI state when the authenticated principal is allowed.",
+              "propose": "Submit governed institutional proposals and evidence candidates for ROOT review.",
+              "execute": "Execute only already-authorized queued institutional proposals and record proposal-scoped returns.",
+              "lab:read": "Read Method Lab or personal Cognitive/Lab state permitted to the OAuth tenant.",
+              "lab:write": "Persist permitted structured or owner-scoped personal Lab records.",
+              "lab:run": "Run supported Method Lab or owner-scoped personal Cognitive/Lab runtimes.",
+              "studio:read": "List, inspect and read features for Studio objects owned by the OAuth principal.",
+              "studio:content": "Obtain a short-lived signed URL for Studio content owned by the OAuth principal.",
+              "studio:run": "Run the server-side Studio analyzer for owned audio/video objects."
+            }
+          }
+        }
+      }
     }
   },
   "x-sfi-governance": {
-    "principle":"Observation, inference, evidence candidacy, evidence acceptance, proposal authorization, execution, return and canonical promotion remain distinct states.",
-    "defaultObjectStorage":"REFERENCE_ONLY",
-    "rawObjectPersistence":false,
-    "identityRule":"Content fingerprint and reference-envelope hash are distinct. Never compare a referenceHash as if it were the bytes/content hash.",
-    "studioOwnerBoundary":"OAuth subject_id must equal studio_objects.owner_id; shared/static tokens are rejected from the external Studio route.",
-    "preferredObjectFlow":["execution-contract","client-side/agent-side processing","structured-result","cycle reread","SFI return/calibration"],
-    "evidenceCandidateFlow":["request_evidence","search/manual/external candidate","ROOT accept/reject","canonical evidence writer"],
-    "publicAuthentication":"OAuth only; static X-SFI-Token remains an internal server-to-server mechanism and is intentionally not advertised in this OpenAPI document.",
-    "rootReserved":["evidence candidate acceptance","approval","canonical promotion","unguarded external action","preserve-evidence exception"],
-    "privacyPolicy":"https://systemfriction.org/privacy",
-    "console":"/api/external/v1/console",
-    "discovery":["/llms.txt","/llms-full.txt","/ai-index.json","/field-schema.json","/privacy","/api/external/v1/manifest"]
+    "principle": "Observation, inference, evidence candidacy, evidence acceptance, proposal authorization, execution, return and canonical promotion remain distinct states.",
+    "defaultObjectStorage": "REFERENCE_ONLY",
+    "rawObjectPersistence": false,
+    "identityRule": "Content fingerprint and reference-envelope hash are distinct. Never compare a referenceHash as if it were the bytes/content hash.",
+    "personalWorkspaceBoundary": "Normal OAuth accounts are tenant user:<subject_id>. Personal Cognitive, Personal Lab and Studio operations are owner-scoped and cannot access institutional proposal, execution, ROOT evidence or canonical promotion planes.",
+    "studioOwnerBoundary": "OAuth subject_id must equal studio_objects.owner_id; shared/static tokens are rejected from the external Studio route.",
+    "preferredObjectFlow": [
+      "execution-contract",
+      "client-side/agent-side processing",
+      "structured-result",
+      "cycle reread",
+      "SFI return/calibration"
+    ],
+    "evidenceCandidateFlow": [
+      "request_evidence",
+      "search/manual/external candidate",
+      "ROOT accept/reject",
+      "canonical evidence writer"
+    ],
+    "publicAuthentication": "OAuth only; static X-SFI-Token remains an internal server-to-server mechanism and is intentionally not advertised in this OpenAPI document.",
+    "rootReserved": [
+      "evidence candidate acceptance",
+      "approval",
+      "canonical promotion",
+      "unguarded external action",
+      "preserve-evidence exception"
+    ],
+    "privacyPolicy": "https://systemfriction.org/privacy",
+    "console": "/api/external/v1/console",
+    "discovery": [
+      "/llms.txt",
+      "/llms-full.txt",
+      "/ai-index.json",
+      "/field-schema.json",
+      "/privacy",
+      "/api/external/v1/manifest"
+    ]
   }
 }

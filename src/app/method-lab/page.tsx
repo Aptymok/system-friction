@@ -1,11 +1,14 @@
+import { redirect } from 'next/navigation';
 import { MethodLabEnvironment } from '@/components/sfi/MethodLabEnvironment';
 import { MethodLabNativeHub } from '@/components/sfi/MethodLabNativeHub';
 import { MethodLabResearchReview } from '@/components/sfi/MethodLabResearchReview';
+import { PersonalCognitiveLabWorkspace } from '@/components/sfi/PersonalCognitiveLabWorkspace';
 import { readMethodLabState } from '@/lib/method-lab/readModel';
 import { readMethodLabEvidenceOptions } from '@/lib/method-lab/readHubEvidence';
 import { readMethodLabResearchState } from '@/lib/method-lab/researchObjects';
 import { getCognitiveLabSession, listCognitiveLabSessions } from '@/lib/cognitive-lab/service';
 import { requireRootObserverPage } from '@/lib/root/server';
+import { AccessDeniedError, requireUserProfile } from '@/lib/system/access/server';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -18,6 +21,23 @@ function text(value: unknown) {
 }
 
 export default async function MethodLabPage() {
+  let account: Awaited<ReturnType<typeof requireUserProfile>>;
+  try {
+    account = await requireUserProfile();
+  } catch (error) {
+    if (error instanceof AccessDeniedError && error.status === 401) redirect('/login?next=%2Fmethod-lab');
+    redirect('/unauthorized');
+  }
+
+  const role = String(account.profile.role || '').toLowerCase();
+  const institutional = Boolean(account.member) || role === 'root' || role === 'system';
+
+  // Normal accounts use the same Method Lab surface, but every case, evidence,
+  // cognitive run and simulation is bound to their auth user. They do not read
+  // the institutional Cognitive Spine, ROOT evidence or governance queue.
+  if (!institutional) return <PersonalCognitiveLabWorkspace />;
+
+  // Institutional observers/controllers and ROOT retain the canonical SFI Lab.
   await requireRootObserverPage('/method-lab');
 
   const [state, sessions, evidence, research] = await Promise.all([

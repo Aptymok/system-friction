@@ -30,6 +30,32 @@ function credentialAllowsScope(credential: ExternalCredential, scope: string) {
   return scopes.includes(scope) || scopes.includes('*');
 }
 
+function isPersonalOAuthCredential(credential: ExternalCredential) {
+  return credential.authMethod === 'oauth'
+    && Boolean(credential.subjectId)
+    && typeof credential.tenantId === 'string'
+    && credential.tenantId.startsWith('user:');
+}
+
+function routeAllowsPersonalScope(req: Request, credential: ExternalCredential, scope: string) {
+  if (!isPersonalOAuthCredential(credential)) return true;
+  const pathname = new URL(req.url).pathname;
+
+  // A personal token can use the same capability names as institutional OAuth,
+  // but only on APIs whose implementation is owner-scoped. Scope possession
+  // never opens the institutional Method Lab, proposal queue or execution plane.
+  if (scope.startsWith('studio:')) return pathname === '/api/external/v1/studio';
+  if (scope.startsWith('lab:')) {
+    return pathname === '/api/external/v1/cognitive'
+      || pathname === '/api/external/v1/personal-lab';
+  }
+  if (scope === 'observe') {
+    return pathname === '/api/external/v1/console'
+      || pathname === '/api/external/v1/observe';
+  }
+  return false;
+}
+
 export function authorizeExternalRequest(req: Request, scope: string): ExternalAuthResult {
   const token = readPresentedToken(req);
   const raw = process.env.SFI_EXTERNAL_API_KEYS_JSON || '';
@@ -37,9 +63,9 @@ export function authorizeExternalRequest(req: Request, scope: string): ExternalA
     return { credential: null, tokenPresent: false, registryConfigured: Boolean(raw.trim()), scopeAllowed: false };
   }
 
-  // OAuth access tokens are short-lived, user-bound credentials issued by SFI after
-  // an authenticated institutional login. They are verified before static API keys
-  // so a ChatGPT Action can operate as the actual SFI member rather than a shared bot.
+  // OAuth access tokens are short-lived, user-bound credentials issued by SFI
+  // after authenticated account login. Institutional authority, when present,
+  // is derived separately from the SFI membership registry.
   const session = verifyExternalAccessToken(token);
   if (session) {
     const credential: ExternalCredential = {
@@ -51,7 +77,8 @@ export function authorizeExternalRequest(req: Request, scope: string): ExternalA
       subjectId: session.sub,
       authMethod: 'oauth',
     };
-    const scopeAllowed = credentialAllowsScope(credential, scope);
+    const scopeAllowed = credentialAllowsScope(credential, scope)
+      && routeAllowsPersonalScope(req, credential, scope);
     return { credential: scopeAllowed ? credential : null, tokenPresent: true, registryConfigured: Boolean(raw.trim()), scopeAllowed };
   }
 

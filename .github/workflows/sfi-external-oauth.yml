@@ -5,14 +5,22 @@ on:
     paths:
       - 'src/app/api/oauth/**'
       - 'src/app/api/external/v1/**'
+      - 'src/app/api/acp/proposals/route.ts'
+      - 'src/components/sfi/SfiConsole.tsx'
       - 'src/lib/sfi/externalAuth.ts'
       - 'src/lib/sfi/externalSessionToken.ts'
       - 'src/lib/sfi/oauthConfig.ts'
+      - 'src/lib/sfi/cognitive-runtime/**'
+      - 'src/lib/sfi/personal/**'
+      - 'src/lib/system/access/**'
       - 'src/components/sfi/LoginSurface.tsx'
-      - 'src/lib/system/access/institutionalMembers.ts'
+      - 'src/components/sfi/PersonalCognitiveLabWorkspace.tsx'
+      - 'src/app/method-lab/page.tsx'
       - 'supabase/migrations/*oauth*'
+      - 'supabase/migrations/*personal_cognitive*'
       - 'public/openapi.json'
       - 'scripts/qa-sfi-external-oauth.ts'
+      - 'scripts/qa-sfi-cognitive-automation-workspaces.ts'
       - '.github/workflows/sfi-external-oauth.yml'
   workflow_dispatch:
 
@@ -39,6 +47,9 @@ jobs:
 
       - name: Verify OAuth governance contract
         run: npx tsx scripts/qa-sfi-external-oauth.ts
+
+      - name: Verify cognitive automation and personal workspace closure
+        run: npx tsx scripts/qa-sfi-cognitive-automation-workspaces.ts
 
       - name: Typecheck
         run: npm run typecheck

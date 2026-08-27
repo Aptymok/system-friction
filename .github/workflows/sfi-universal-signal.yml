@@ -65,7 +65,7 @@ jobs:
         run: npm run typecheck
       - name: Validate OpenAPI JSON
         run: |
-          node -e "const fs=require('fs'); const o=JSON.parse(fs.readFileSync('public/openapi.json','utf8')); const p=o.paths||{}; if(!/^1\.6\./.test(String(o.info?.version||''))||!p['/api/external/v1/signal']||!p['/api/external/v1/execution-contract']||!p['/api/external/v1/result']||!p['/api/external/v1/execute']) process.exit(1); console.log('openapi 1.6.x governed contracts ok')"
+          node -e "const fs=require('fs'); const o=JSON.parse(fs.readFileSync('public/openapi.json','utf8')); const p=o.paths||{}; const v=String(o.info?.version||'0.0.0').split('.').map(Number); const versionOk=(v[0]>1)||(v[0]===1&&v[1]>=8); const required=['/api/external/v1/signal','/api/external/v1/execution-contract','/api/external/v1/result','/api/external/v1/execute','/api/external/v1/cognitive','/api/external/v1/personal-lab']; if(!versionOk||required.some(path=>!p[path])) process.exit(1); console.log('openapi >=1.8 governed contracts ok')"
       - name: Verify 21 cognitive executors are wired
         run: |
           node --import tsx -e "import { SFI_AGENT_EXECUTION_MAP } from './src/lib/sfi/cognitive-runtime/agentExecutionMap.ts'; const ids=Object.keys(SFI_AGENT_EXECUTION_MAP); console.log(ids.length, ids); if(ids.length!==21) process.exit(1);"
