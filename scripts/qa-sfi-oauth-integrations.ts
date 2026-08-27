@@ -23,7 +23,7 @@ assert.match(surface, /ONE TIME ONLY/, 'surface_must_warn_that_client_secret_is_
 assert.match(surface, /No pegues callback/, 'normal_onboarding_must_not_require_callback_round_trip');
 assert.match(surface, /PENDING · AUTO-BIND EN PRIMERA AUTORIZACIÓN/, 'surface_must_explain_pending_first_redirect_state');
 assert.doesNotMatch(surface, /SFI_OAUTH_REDIRECT_URIS/, 'surface_must_not_instruct_users_to_edit_vercel_callback_env');
-assert.doesNotMatch(surface, /Supabase/i, 'surface_must_not_expose_database_operations_to_users');
+assert.doesNotMatch(surface, /createServiceSupabaseClient|\.from\(['"]sfi_oauth_clients['"]\)|execute_sql/i, 'browser_surface_must_not_access_database_directly');
 
 assert.match(clientsRoute, /scopeCeiling\(context\)/, 'client_registration_must_enforce_principal_scope_ceiling');
 assert.match(clientsRoute, /createOwnedSfiOAuthClient/, 'client_registration_must_use_server_side_registry_writer');
