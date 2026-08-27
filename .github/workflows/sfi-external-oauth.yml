@@ -5,6 +5,7 @@ on:
     paths:
       - 'src/app/api/oauth/**'
       - 'src/app/api/external/v1/**'
+      - 'src/app/api/external/openapi/**'
       - 'src/app/api/acp/proposals/route.ts'
       - 'src/components/sfi/SfiConsole.tsx'
       - 'src/lib/sfi/externalAuth.ts'
@@ -21,6 +22,7 @@ on:
       - 'supabase/migrations/*personal_cognitive*'
       - 'public/openapi.json'
       - 'scripts/qa-sfi-external-oauth.ts'
+      - 'scripts/qa-sfi-host-bound-openapi.ts'
       - 'scripts/qa-sfi-cognitive-automation-workspaces.ts'
       - '.github/workflows/sfi-external-oauth.yml'
   workflow_dispatch:
@@ -48,6 +50,9 @@ jobs:
 
       - name: Verify OAuth governance contract
         run: npx tsx scripts/qa-sfi-external-oauth.ts
+
+      - name: Verify host-bound external OpenAPI
+        run: npx tsx scripts/qa-sfi-host-bound-openapi.ts
 
       - name: Verify cognitive automation and personal workspace closure
         run: npx tsx scripts/qa-sfi-cognitive-automation-workspaces.ts
