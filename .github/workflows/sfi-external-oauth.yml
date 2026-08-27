@@ -7,6 +7,9 @@ on:
       - 'src/app/api/external/v1/**'
       - 'src/app/api/external/openapi/**'
       - 'src/app/api/acp/proposals/route.ts'
+      - 'src/app/integrations/**'
+      - 'src/components/sfi/OAuthIntegrationsSurface.*'
+      - 'src/components/sfi/SessionControls.tsx'
       - 'src/components/sfi/SfiConsole.tsx'
       - 'src/lib/sfi/externalAuth.ts'
       - 'src/lib/sfi/externalSessionToken.ts'
@@ -23,6 +26,7 @@ on:
       - 'public/openapi.json'
       - 'scripts/qa-sfi-external-oauth.ts'
       - 'scripts/qa-sfi-host-bound-openapi.ts'
+      - 'scripts/qa-sfi-oauth-integrations.ts'
       - 'scripts/qa-sfi-cognitive-automation-workspaces.ts'
       - '.github/workflows/sfi-external-oauth.yml'
   workflow_dispatch:
@@ -53,6 +57,9 @@ jobs:
 
       - name: Verify host-bound external OpenAPI
         run: npx tsx scripts/qa-sfi-host-bound-openapi.ts
+
+      - name: Verify OAuth integrations self-service
+        run: npx tsx scripts/qa-sfi-oauth-integrations.ts
 
       - name: Verify cognitive automation and personal workspace closure
         run: npx tsx scripts/qa-sfi-cognitive-automation-workspaces.ts
