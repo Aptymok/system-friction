@@ -59,6 +59,11 @@ export async function GET() {
       { id: 'studio-content', method: 'POST', path: '/studio', scope: 'studio:content', tenant: 'owner', body: { operation: 'content' }, description: 'Issue a short-lived signed URL for one owned object.' },
       { id: 'studio-analyze', method: 'POST', path: '/studio', scope: 'studio:run', tenant: 'owner', body: { operation: 'analyze' }, description: 'Run the existing server-side analyzer for owned audio/video.' },
     ],
+    storage: {
+      defaultObjectStorage: 'REFERENCE_ONLY',
+      rawObjectPersistence: false,
+      structuredResultPersistence: true,
+    },
     cognitiveRuntime: {
       executionModel: 'event-triggered bounded cognitive automations',
       selection: 'MetaOrchestrator selects the minimum relevant automation set and records selection reasons.',
