@@ -69,10 +69,12 @@ export function normalizeSfiOAuthRedirectUri(value: string) {
   return raw;
 }
 
-export function normalizeSfiOAuthRedirectUris(values: unknown) {
+export function normalizeSfiOAuthRedirectUris(values: unknown, options: { allowEmpty?: boolean } = {}) {
   if (!Array.isArray(values)) throw new Error('SFI_OAUTH_REDIRECT_URIS_REQUIRED');
   const normalized = [...new Set(values.map((value) => normalizeSfiOAuthRedirectUri(String(value))))];
-  if (!normalized.length || normalized.length > 10) throw new Error('SFI_OAUTH_REDIRECT_URIS_COUNT_INVALID');
+  if ((!options.allowEmpty && !normalized.length) || normalized.length > 10) {
+    throw new Error('SFI_OAUTH_REDIRECT_URIS_COUNT_INVALID');
+  }
   return normalized;
 }
 
@@ -123,8 +125,6 @@ export async function resolveSfiOAuthClient(clientId: string): Promise<ResolvedS
     if (registered) return registered;
     return legacyMatch;
   } catch (error) {
-    // Deploying code and applying the registry migration are separate operations.
-    // The bootstrap client must not go offline if the registry is not yet readable.
     if (legacyMatch) return legacyMatch;
     throw error;
   }
@@ -144,6 +144,38 @@ export function validateSfiOAuthClientSecret(client: ResolvedSfiOAuthClient, cli
   return safeEqual(hashSfiOAuthClientSecret(clientSecret), client.secretHash || '');
 }
 
+export async function bindInitialOwnedSfiOAuthRedirect(input: {
+  client: ResolvedSfiOAuthClient;
+  subjectId: string;
+  redirectUri: string;
+}) {
+  if (
+    input.client.source !== 'registry'
+    || input.client.audience !== 'OWNER_ONLY'
+    || input.client.ownerId !== input.subjectId
+    || input.client.redirectUris.length !== 0
+  ) {
+    return null;
+  }
+
+  const redirectUri = normalizeSfiOAuthRedirectUri(input.redirectUri);
+  const db = createServiceSupabaseClient();
+  const result = await db.from('sfi_oauth_clients')
+    .update({
+      redirect_uris: [redirectUri],
+      updated_at: new Date().toISOString(),
+      metadata: { firstRedirectBoundVia: 'AUTHORIZATION_REQUEST' },
+    })
+    .eq('client_id', input.client.clientId)
+    .eq('created_by', input.subjectId)
+    .eq('audience', 'OWNER_ONLY')
+    .eq('status', 'ACTIVE')
+    .select('client_id,redirect_uris,updated_at')
+    .maybeSingle();
+  if (result.error) throw new Error(`SFI_OAUTH_CLIENT_REDIRECT_BIND_FAILED:${result.error.message}`);
+  return result.data ?? null;
+}
+
 export async function listOwnedSfiOAuthClients(userId: string) {
   const db = createServiceSupabaseClient();
   const result = await db
@@ -158,14 +190,17 @@ export async function listOwnedSfiOAuthClients(userId: string) {
 export async function createOwnedSfiOAuthClient(input: {
   userId: string;
   name: string;
-  redirectUris: unknown;
+  redirectUris?: unknown;
   scopes: unknown;
   scopeCeiling: readonly string[];
   metadata?: Record<string, unknown>;
 }) {
   const name = input.name.trim();
   if (!name) throw new Error('SFI_OAUTH_CLIENT_NAME_REQUIRED');
-  const redirectUris = normalizeSfiOAuthRedirectUris(input.redirectUris);
+  const redirectUris = normalizeSfiOAuthRedirectUris(
+    input.redirectUris === undefined ? [] : input.redirectUris,
+    { allowEmpty: true },
+  );
   const allowedScopes = normalizeSfiOAuthScopes(input.scopes, input.scopeCeiling);
   const clientId = `sfi_ext_${randomBytes(12).toString('base64url')}`;
   const clientSecret = `sfi_sec_${randomBytes(32).toString('base64url')}`;
@@ -179,7 +214,10 @@ export async function createOwnedSfiOAuthClient(input: {
     allowed_scopes: allowedScopes,
     audience: 'OWNER_ONLY',
     status: 'ACTIVE',
-    metadata: input.metadata ?? {},
+    metadata: {
+      ...(input.metadata ?? {}),
+      redirectBinding: redirectUris.length ? 'EXPLICIT' : 'PENDING_FIRST_AUTHORIZATION',
+    },
   }).select('client_id,name,redirect_uris,allowed_scopes,audience,status,created_at').single();
   if (result.error || !result.data) throw new Error(`SFI_OAUTH_CLIENT_CREATE_FAILED:${result.error?.message ?? 'unknown'}`);
   return { client: result.data, clientSecret };
@@ -220,7 +258,7 @@ export async function updateOwnedSfiOAuthClient(input: {
   rotateSecret?: boolean;
 }) {
   const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
-  if (input.redirectUris !== undefined) patch.redirect_uris = normalizeSfiOAuthRedirectUris(input.redirectUris);
+  if (input.redirectUris !== undefined) patch.redirect_uris = normalizeSfiOAuthRedirectUris(input.redirectUris, { allowEmpty: true });
   if (input.scopes !== undefined) patch.allowed_scopes = normalizeSfiOAuthScopes(input.scopes, input.scopeCeiling);
   let clientSecret: string | null = null;
   if (input.rotateSecret) {
