@@ -15,6 +15,7 @@ const openapi = JSON.parse(text('public/openapi.json')) as Record<string, any>;
 const members = text('src/lib/system/access/institutionalMembers.ts');
 const manifest = text('src/app/api/external/v1/manifest/route.ts');
 const consoleRoute = text('src/app/api/external/v1/console/route.ts');
+const studioRoute = text('src/app/api/external/v1/studio/route.ts');
 const lab = text('src/app/api/external/v1/lab/route.ts');
 const execute = text('src/app/api/external/v1/execute/route.ts');
 const proposalReturn = text('src/app/api/external/v1/proposal-return/route.ts');
@@ -30,6 +31,9 @@ assert.match(authorize, /explicitlyRequestedScopes \?\? \[\.\.\.allowedScopes\]/
 assert.match(authorize, /context\.member\?\.external\?\.role/, 'registered_member_external_role_must_be_explicit');
 assert.match(authorize, /moduleAccess\.evidence_write === true/, 'legacy_evidence_write_capability_must_remain_explicit');
 assert.match(authorize, /allowedScopes\.add\('lab:write'\)/, 'legacy_evidence_writer_may_receive_lab_write');
+assert.match(authorize, /'studio:read'/, 'oauth_authorize_must_support_studio_read_scope');
+assert.match(authorize, /'studio:content'/, 'oauth_authorize_must_support_studio_content_scope');
+assert.match(authorize, /'studio:run'/, 'oauth_authorize_must_support_studio_run_scope');
 assert.match(authorize, /codeHash\(code\)/, 'authorization_code_must_be_stored_as_hash');
 assert.match(authorize, /code_challenge/, 'oauth_authorize_must_support_pkce');
 
@@ -53,34 +57,39 @@ assert.match(migration, /enable row level security/i, 'oauth_code_table_must_ena
 assert.match(migration, /code_hash text not null unique/i, 'oauth_codes_must_not_be_stored_in_plaintext');
 assert.match(migration, /consumed_at timestamptz/i, 'oauth_codes_must_track_consumption');
 
-assert.equal(openapi.info?.version, '1.6.5', 'openapi_version_must_track_institutional_oauth_authority');
+assert.equal(openapi.info?.version, '1.7.0', 'openapi_version_must_track_owner_scoped_studio_oauth');
 assert.equal(openapi.components?.securitySchemes?.sfiOAuth?.type, 'oauth2', 'openapi_must_publish_oauth2');
-assert.equal(
-  openapi.components?.securitySchemes?.sfiOAuth?.flows?.authorizationCode?.authorizationUrl,
-  'https://systemfriction.org/api/oauth/authorize',
-  'openapi_authorization_url_must_be_canonical',
-);
-assert.equal(
-  openapi.components?.securitySchemes?.sfiOAuth?.flows?.authorizationCode?.tokenUrl,
-  'https://systemfriction.org/api/oauth/token',
-  'openapi_token_url_must_be_canonical',
-);
-assert.match(
-  String(openapi.components?.securitySchemes?.sfiOAuth?.flows?.authorizationCode?.scopes?.['lab:run'] || ''),
-  /explicitly granted/,
-  'openapi_lab_run_must_describe_explicit_principal_grant',
-);
+assert.equal(openapi.components?.securitySchemes?.sfiOAuth?.flows?.authorizationCode?.authorizationUrl, 'https://systemfriction.org/api/oauth/authorize', 'openapi_authorization_url_must_be_canonical');
+assert.equal(openapi.components?.securitySchemes?.sfiOAuth?.flows?.authorizationCode?.tokenUrl, 'https://systemfriction.org/api/oauth/token', 'openapi_token_url_must_be_canonical');
+assert.match(String(openapi.components?.securitySchemes?.sfiOAuth?.flows?.authorizationCode?.scopes?.['lab:run'] || ''), /explicitly granted/, 'openapi_lab_run_must_describe_explicit_principal_grant');
+assert.ok(openapi.components?.securitySchemes?.sfiOAuth?.flows?.authorizationCode?.scopes?.['studio:read'], 'openapi_must_publish_studio_read_scope');
+assert.ok(openapi.components?.securitySchemes?.sfiOAuth?.flows?.authorizationCode?.scopes?.['studio:content'], 'openapi_must_publish_studio_content_scope');
+assert.ok(openapi.components?.securitySchemes?.sfiOAuth?.flows?.authorizationCode?.scopes?.['studio:run'], 'openapi_must_publish_studio_run_scope');
+assert.ok(openapi.paths?.['/api/external/v1/studio']?.post, 'openapi_must_publish_external_studio_route');
 
 assert.match(members, /email: 'edwin\.tzolkin@gmail\.com'/, 'edwin_must_resolve_through_existing_institutional_identity');
 assert.match(members, /displayName: 'Edwin'[\s\S]*?role: 'observer'/, 'edwin_root_observation_role_must_remain_non_sovereign');
 assert.match(members, /role: 'institutional_operator'/, 'edwin_external_agent_role_must_be_operational');
-assert.match(members, /scopes: \['observe', 'propose', 'execute', 'lab:read', 'lab:write', 'lab:run'\]/, 'edwin_oauth_must_receive_full_governed_agent_scope_set');
+for (const scope of ['observe', 'propose', 'execute', 'lab:read', 'lab:write', 'lab:run', 'studio:read', 'studio:content', 'studio:run']) {
+  assert.match(members, new RegExp(`'${scope.replace(':', '\\:')}'`), `edwin_oauth_scope_missing:${scope}`);
+}
 
 assert.match(consoleRoute, /credential\.subjectId/, 'oauth_console_must_bind_studio_discovery_to_token_subject');
 assert.match(consoleRoute, /\.eq\('owner_id', credential\.subjectId\)/, 'oauth_console_must_filter_studio_objects_by_authenticated_subject_owner_id');
 assert.match(consoleRoute, /ownershipBoundary: 'studio_objects\.owner_id == OAuth subjectId'/, 'oauth_console_must_publish_owner_boundary');
 assert.doesNotMatch(consoleRoute, /\.eq\('owner_id', actorId\)/, 'studio_ownership_must_never_use_display_actor_id');
 assert.match(consoleRoute, /raw media is not exposed here/, 'oauth_console_must_not_turn_owner_index_into_raw_media_exposure');
+
+assert.match(studioRoute, /authorizeExternalRequest\(req, scope\)/, 'external_studio_must_require_operation_scope');
+assert.match(studioRoute, /cred\.authMethod !== 'oauth'/, 'external_studio_must_reject_shared_static_tokens');
+assert.match(studioRoute, /!cred\.subjectId/, 'external_studio_must_require_user_bound_subject');
+assert.match(studioRoute, /const ownerId = cred\.subjectId/, 'external_studio_owner_must_derive_from_oauth_subject');
+assert.match(studioRoute, /listStudioObjects\(ownerId\)/, 'external_studio_list_must_be_owner_scoped');
+assert.match(studioRoute, /getStudioObject\(objectId, ownerId\)/, 'external_studio_object_operations_must_be_owner_scoped');
+assert.match(studioRoute, /createStudioContentSignedUrl\(objectId, 120\)/, 'external_studio_content_must_be_short_lived');
+assert.match(studioRoute, /analyzeStudioAudioObject/, 'external_studio_must_expose_existing_audio_engine');
+assert.match(studioRoute, /analyzeStudioVideo/, 'external_studio_must_expose_existing_video_engine');
+assert.doesNotMatch(studioRoute, /requireFounder|root_delegate/, 'external_studio_owner_operations_must_not_require_root_sovereignty');
 
 assert.match(lab, /return 'lab:run'/, 'lab_run_operation_must_require_lab_run_scope');
 assert.match(lab, /authorizeExternalRequest\(req, operationScope\(operation\)\)/, 'lab_must_authorize_by_operation_scope');
@@ -115,9 +124,11 @@ assert.match(outcomeWriter, /SFI_PROPOSAL_RETURN_RECORDED/, 'outcome_writer_must
 assert.match(outcomeWriter, /PENDING_REALITY_CALIBRATION/, 'outcome_writer_must_leave_calibration_pending');
 assert.match(outcomeWriter, /CANDIDATE_UNTIL_CALIBRATED/, 'learning_must_remain_candidate_until_calibrated');
 
-assert.match(manifest, /version: '1\.6\.5'/, 'external_manifest_version_must_reflect_institutional_oauth_authority');
+assert.match(manifest, /version: '1\.7\.0'/, 'external_manifest_version_must_reflect_owner_scoped_studio_oauth');
 assert.match(manifest, /Scope omission defaults to that configured set/, 'manifest_must_explain_principal_configured_scope_default');
 assert.match(manifest, /explicit lab:run scope/, 'manifest_must_explain_lab_run_scope_authority');
+assert.match(manifest, /studioIdentityBoundary/, 'manifest_must_publish_studio_identity_boundary');
+assert.match(manifest, /id: 'studio-analyze'/, 'manifest_must_publish_studio_analyze');
 assert.match(manifest, /id: 'proposal-return'/, 'manifest_must_publish_proposal_return');
 assert.match(manifest, /dispatches the same governed router used after authorization/, 'manifest_must_describe_governed_execute_dispatch');
 assert.match(llms, /\/execute dispatches only a proposal that is already queued/, 'llms_must_explain_post_authorization_dispatch');
@@ -128,13 +139,14 @@ assert.match(aiIndex, /return_must_match_proposal_uuid: true/, 'ai_index_must_pu
 
 console.log(JSON.stringify({
   ok: true,
-  contract: 'SFI-EXTERNAL-OAUTH-1.5',
+  contract: 'SFI-EXTERNAL-OAUTH-1.6',
   flow: 'authorization_code',
   pkce: 'S256',
   genericFallbackScopes: ['observe', 'propose', 'lab:read'],
   edwinExternalRole: 'institutional_operator',
-  edwinExternalScopes: ['observe', 'propose', 'execute', 'lab:read', 'lab:write', 'lab:run'],
-  studioDiscoveryBoundary: 'OAuth subjectId == studio_objects.owner_id',
+  edwinExternalScopes: ['observe', 'propose', 'execute', 'lab:read', 'lab:write', 'lab:run', 'studio:read', 'studio:content', 'studio:run'],
+  studioBoundary: 'OAuth subjectId == studio_objects.owner_id',
+  studioSupportedExternalAnalyzers: ['audio', 'video'],
   staticTokenCompatibility: true,
   sovereigntyBoundary: {
     evidenceCandidateAcceptance: 'ROOT',
