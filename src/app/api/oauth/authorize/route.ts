@@ -11,6 +11,8 @@ const ROOT_SCOPES = [
   'observe',
   'propose',
   'execute',
+  'cases:read',
+  'cases:write',
   'lab:read',
   'lab:write',
   'lab:run',
@@ -19,6 +21,8 @@ const ROOT_SCOPES = [
   'studio:run',
 ] as const;
 const PERSONAL_SCOPES = [
+  'cases:read',
+  'cases:write',
   'lab:read',
   'lab:write',
   'lab:run',

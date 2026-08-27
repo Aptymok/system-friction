@@ -45,6 +45,7 @@ function routeAllowsPersonalScope(req: Request, credential: ExternalCredential, 
   // but only on APIs whose implementation is owner-scoped. Scope possession
   // never opens the institutional Method Lab, proposal queue or execution plane.
   if (scope.startsWith('studio:')) return pathname === '/api/external/v1/studio';
+  if (scope.startsWith('cases:')) return pathname === '/api/external/v1/cases';
   if (scope.startsWith('lab:')) {
     return pathname === '/api/external/v1/cognitive'
       || pathname === '/api/external/v1/personal-lab';
