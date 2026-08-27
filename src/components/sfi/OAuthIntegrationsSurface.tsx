@@ -36,7 +36,7 @@ type Disclosure = {
 
 function extractRedirectUri(raw: string) {
   const value = raw.trim();
-  if (!value) throw new Error('Pega la Callback URL o la URL larga de autorización que te muestra ChatGPT.');
+  if (!value) throw new Error('Pega la nueva Callback URL o la URL larga de autorización.');
   const parsed = new URL(value);
   const embedded = parsed.searchParams.get('redirect_uri');
   return embedded ? new URL(embedded).toString() : parsed.toString();
@@ -65,7 +65,6 @@ export function OAuthIntegrationsSurface() {
   const [clients, setClients] = useState<OAuthClient[]>([]);
   const [scopeCeiling, setScopeCeiling] = useState<string[]>([]);
   const [selectedScopes, setSelectedScopes] = useState<string[]>([]);
-  const [callbackInput, setCallbackInput] = useState('');
   const [name, setName] = useState('SFI GPT');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -103,14 +102,12 @@ export function OAuthIntegrationsSurface() {
     setNotice('');
     setDisclosure(null);
     try {
-      const redirectUri = extractRedirectUri(callbackInput);
       const response = await fetch('/api/oauth/clients', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
           operation: 'create',
           name,
-          redirectUris: [redirectUri],
           scopes: selectedScopes,
         }),
       });
@@ -119,8 +116,7 @@ export function OAuthIntegrationsSurface() {
         throw new Error(payload.error || 'No se pudo registrar la integración.');
       }
       setDisclosure({ client: payload.client, clientSecret: payload.clientSecret });
-      setNotice('Integración registrada. El Client Secret se muestra una sola vez.');
-      setCallbackInput('');
+      setNotice('Cliente creado. La callback se enlazará automáticamente cuando este GPT haga su primera autorización como propietario.');
       await reload();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : String(cause));
@@ -208,7 +204,7 @@ export function OAuthIntegrationsSurface() {
         <div>
           <span>ACCOUNT · EXTERNAL INTEGRATIONS</span>
           <h1>Conectar GPT / agente</h1>
-          <p>La cuenta SFI registra la integración. No se editan variables de Vercel ni tablas manualmente.</p>
+          <p>SFI genera la identidad OAuth. La primera llamada del GPT registra su callback exacta automáticamente después de autenticar al propietario.</p>
         </div>
         <a href="/root">VOLVER</a>
       </header>
@@ -216,16 +212,12 @@ export function OAuthIntegrationsSurface() {
       <section className="oauthIntegrationsGrid">
         <form className="oauthPanel" onSubmit={createClient}>
           <span className="oauthKicker">NUEVA INTEGRACIÓN</span>
-          <h2>1 gesto manual: pega la callback</h2>
-          <p className="oauthMuted">Puedes pegar la Callback URL directamente o la URL larga de autorización que devuelve ChatGPT. SFI extrae <code>redirect_uri</code> automáticamente.</p>
+          <h2>Generar conexión</h2>
+          <p className="oauthMuted">No pegues callback, no edites Vercel y no toques Supabase. Crea el cliente aquí, copia la configuración al GPT y pulsa conectar. SFI aprenderá la callback de esa primera solicitud OAuth y la fijará por exact match.</p>
 
           <label>
             NOMBRE
             <input value={name} onChange={(event) => setName(event.target.value)} placeholder="SFI GPT" required />
-          </label>
-          <label>
-            CALLBACK / AUTHORIZATION URL
-            <textarea value={callbackInput} onChange={(event) => setCallbackInput(event.target.value)} placeholder="https://chatgpt.com/.../oauth/callback o https://.../authorize?...&redirect_uri=..." required />
           </label>
 
           <div className="oauthScopeBlock">
@@ -240,8 +232,8 @@ export function OAuthIntegrationsSurface() {
             </div>
           </div>
 
-          <button className="oauthPrimary" disabled={busy || !selectedScopes.length}>{busy ? 'PROCESANDO…' : 'REGISTRAR Y GENERAR CONFIGURACIÓN'}</button>
-          <small>Los scopes nunca pueden superar la autoridad de tu cuenta SFI. Las callbacks siguen usando coincidencia exacta.</small>
+          <button className="oauthPrimary" disabled={busy || !selectedScopes.length}>{busy ? 'PROCESANDO…' : 'GENERAR CONFIGURACIÓN GPT'}</button>
+          <small>La auto-vinculación sólo existe para un cliente OWNER_ONLY sin callback previa y sólo después de autenticar a la misma cuenta SFI propietaria.</small>
         </form>
 
         <section className="oauthPanel">
@@ -251,6 +243,7 @@ export function OAuthIntegrationsSurface() {
               <h2>Copiar al editor del GPT</h2>
               <div className="oauthSecretWarning">CLIENT SECRET · ONE TIME ONLY</div>
               <pre>{configText(disclosure.client, disclosure.clientSecret, origin)}</pre>
+              <p className="oauthMuted">Después de guardar esto en ChatGPT, prueba una Action. El request <code>/authorize</code> traerá la callback generada por OpenAI; SFI la vinculará automáticamente al cliente si la cuenta autenticada es su owner.</p>
               <div className="oauthActions">
                 <button type="button" onClick={() => copy(configText(disclosure.client, disclosure.clientSecret, origin))}>COPIAR TODO</button>
                 <button type="button" onClick={() => copy(disclosure.client.client_id)}>COPIAR CLIENT ID</button>
@@ -260,11 +253,11 @@ export function OAuthIntegrationsSurface() {
           ) : (
             <>
               <h2>Sin configuración pendiente</h2>
-              <p className="oauthMuted">Al registrar o rotar una integración, el secreto aparecerá aquí una sola vez. SFI persiste únicamente su hash.</p>
+              <p className="oauthMuted">Al crear o rotar una integración, el secreto aparecerá aquí una sola vez. SFI persiste únicamente su hash.</p>
               <dl className="oauthContract">
                 <dt>AUTH</dt><dd>OAuth Authorization Code</dd>
                 <dt>SCHEMA</dt><dd>{origin ? `${origin}/api/external/openapi` : '/api/external/openapi'}</dd>
-                <dt>CALLBACK</dt><dd>Exact match</dd>
+                <dt>CALLBACK</dt><dd>Auto-bind first authorization → exact match</dd>
                 <dt>OWNER</dt><dd>Authenticated SFI account</dd>
               </dl>
             </>
@@ -287,19 +280,19 @@ export function OAuthIntegrationsSurface() {
               </div>
               <dl className="oauthContract">
                 <dt>AUDIENCE</dt><dd>{client.audience}</dd>
-                <dt>CALLBACK</dt><dd>{client.redirect_uris.join(', ')}</dd>
+                <dt>CALLBACK</dt><dd>{client.redirect_uris.length ? client.redirect_uris.join(', ') : 'PENDING · AUTO-BIND EN PRIMERA AUTORIZACIÓN'}</dd>
                 <dt>SCOPES</dt><dd>{client.allowed_scopes.join(' ')}</dd>
                 <dt>LAST USE</dt><dd>{prettyDate(client.last_used_at)}</dd>
               </dl>
               {editingClient === client.client_id && (
                 <div className="oauthInlineEdit">
-                  <textarea value={editingCallback} onChange={(event) => setEditingCallback(event.target.value)} placeholder="Nueva callback o URL larga de autorización" />
+                  <textarea value={editingCallback} onChange={(event) => setEditingCallback(event.target.value)} placeholder="Callback o URL larga de autorización" />
                   <button type="button" onClick={() => updateCallback(client.client_id)} disabled={busy}>GUARDAR CALLBACK</button>
                   <button type="button" onClick={() => setEditingClient(null)}>CANCELAR</button>
                 </div>
               )}
               <div className="oauthActions">
-                <button type="button" onClick={() => { setEditingClient(client.client_id); setEditingCallback(client.redirect_uris[0] || ''); }}>CAMBIAR CALLBACK</button>
+                <button type="button" onClick={() => { setEditingClient(client.client_id); setEditingCallback(client.redirect_uris[0] || ''); }}>EDITAR CALLBACK</button>
                 <button type="button" onClick={() => rotateSecret(client.client_id)} disabled={busy}>ROTAR SECRET</button>
                 <button type="button" className="danger" onClick={() => revoke(client.client_id)} disabled={busy}>REVOCAR</button>
               </div>
