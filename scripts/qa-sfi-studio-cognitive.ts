@@ -88,10 +88,13 @@ assert.ok(masterLoop.includes('pass <= STUDIO_MASTER_ANALYSIS_MAX_PASSES'), 'mas
 assert.ok(masterRoute.includes('requireObjectOwner'), 'master_analysis_owner_gate_missing');
 assert.ok(masterRoute.includes('runStudioMasterAnalysisLoop'), 'master_analysis_route_not_wired');
 
-// The old Studio workspace/production controls were presentation surfaces and were
-// deleted. The canonical /studio alias now enters MODELS, with GENAI as the related
-// governed architecture surface. Backend Studio runtimes remain unchanged above.
-assert.ok(studioPage.includes("redirect('/models')"), 'studio_entry_must_resolve_to_models');
+// Studio authority lives in the owner-scoped backend runtimes above. A visual
+// entry may exist for a human member, but it must not be aliased to MODELS or
+// be treated as the source of cognitive authority. MODELS/GENAI/AGENTS remain
+// related governed observability scenes, not a permission bridge for Studio.
+assert.equal(studioPage.includes("redirect('/models')"), false, 'studio_entry_must_not_alias_to_models');
+assert.ok(studioPage.includes('listStudioObjects(user.id)'), 'studio_entry_must_preserve_owner_scope');
+assert.ok(studioPage.includes('getStudioObjectFeatures(activeId, user.id)'), 'studio_entry_must_use_owner_scoped_features');
 assert.ok(scenes.includes("models:{key:'models'"), 'models_scene_missing');
 assert.ok(scenes.includes("genai:{key:'genai'"), 'genai_scene_missing');
 assert.ok(scenes.includes("agents:{key:'agents'"), 'agents_scene_missing');
@@ -118,7 +121,8 @@ console.log(JSON.stringify({
   masterAnalysisFinite: true,
   masterAnalysisPassBudget: [2, 3],
   masterAnalysisOwnerScoped: true,
-  canonicalStudioSurface: 'MODELS_LIVE_SCENE',
+  studioAuthority: 'OWNER_SCOPED_BACKEND_RUNTIME',
+  relatedObservabilityScenes: ['MODELS', 'GENAI', 'AGENTS'],
   companionGenAiSurface: true,
   duplicateRelationTable: false,
 }, null, 2));
