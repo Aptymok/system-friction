@@ -1,3 +1,11 @@
+export type SfiExternalScope =
+  | 'observe'
+  | 'propose'
+  | 'execute'
+  | 'lab:read'
+  | 'lab:write'
+  | 'lab:run';
+
 export type SfiInstitutionalMember = {
   email: string;
   displayName: string;
@@ -10,6 +18,10 @@ export type SfiInstitutionalMember = {
     observatory: boolean;
     worldField: boolean;
     root: boolean;
+  };
+  external: {
+    role: 'agent' | 'institutional_operator';
+    scopes: readonly SfiExternalScope[];
   };
 };
 
@@ -26,6 +38,10 @@ const MEMBERS: SfiInstitutionalMember[] = [
       observatory: true,
       worldField: true,
       root: true,
+    },
+    external: {
+      role: 'institutional_operator',
+      scopes: ['observe', 'propose', 'execute', 'lab:read', 'lab:write', 'lab:run'],
     },
   },
 ];
