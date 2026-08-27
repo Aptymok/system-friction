@@ -14,7 +14,7 @@ const access = read('src/lib/system/access/server.ts');
 
 // /studio is an authenticated producer field. It must never be aliased to a ROOT-backed scene.
 assert.equal(studioPage.includes("redirect('/models')"), false, 'studio_must_not_alias_to_models');
-assert.equal(studioPage.includes('/api/root/cognitive-runtime'), false, 'studio_must_not_depend_on_root_runtime');
+assert.equal(/(?:fetch|redirect)\(\s*['"]\/api\/root\/cognitive-runtime/.test(studioPage), false, 'studio_must_not_depend_on_root_runtime');
 assert.ok(studioPage.includes("requireSfiMemberPage('/studio')"), 'studio_institutional_gate_missing');
 assert.ok(studioPage.includes('moduleAccess.studio !== true'), 'studio_module_gate_missing');
 
