@@ -15,6 +15,8 @@ export type ResolvedSfiOAuthClient = {
   name: string;
   redirectUris: string[];
   allowedScopes: string[];
+  audience: 'OWNER_ONLY' | 'TRUSTED_MULTI_USER';
+  ownerId: string | null;
   source: 'registry' | 'legacy_env';
   secretHash?: string;
   legacySecret?: string;
@@ -44,6 +46,8 @@ function legacyClient() {
     name: 'SFI legacy/bootstrap OAuth client',
     redirectUris: legacy.redirectUris,
     allowedScopes: [...SFI_ROOT_SCOPES],
+    audience: 'TRUSTED_MULTI_USER' as const,
+    ownerId: null,
     source: 'legacy_env' as const,
     legacySecret: legacy.clientSecret,
   } satisfies ResolvedSfiOAuthClient;
@@ -88,7 +92,7 @@ async function readRegisteredClient(clientId: string): Promise<ResolvedSfiOAuthC
   const db = createServiceSupabaseClient();
   const result = await db
     .from('sfi_oauth_clients')
-    .select('client_id,client_secret_hash,name,redirect_uris,allowed_scopes,status')
+    .select('client_id,client_secret_hash,name,created_by,redirect_uris,allowed_scopes,audience,status')
     .eq('client_id', clientId)
     .eq('status', 'ACTIVE')
     .maybeSingle();
@@ -101,6 +105,8 @@ async function readRegisteredClient(clientId: string): Promise<ResolvedSfiOAuthC
     name: text(row.name) || text(row.client_id),
     redirectUris: stringArray(row.redirect_uris),
     allowedScopes: stringArray(row.allowed_scopes),
+    audience: text(row.audience) === 'TRUSTED_MULTI_USER' ? 'TRUSTED_MULTI_USER' : 'OWNER_ONLY',
+    ownerId: text(row.created_by) || null,
     source: 'registry',
     secretHash: text(row.client_secret_hash),
   };
@@ -128,6 +134,10 @@ export function isAllowedSfiOAuthRedirect(client: ResolvedSfiOAuthClient, redire
   return client.redirectUris.includes(redirectUri);
 }
 
+export function canSfiOAuthClientAuthorizeSubject(client: ResolvedSfiOAuthClient, subjectId: string) {
+  return client.audience === 'TRUSTED_MULTI_USER' || client.ownerId === subjectId;
+}
+
 export function validateSfiOAuthClientSecret(client: ResolvedSfiOAuthClient, clientSecret: string) {
   if (!clientSecret) return false;
   if (client.source === 'legacy_env') return safeEqual(clientSecret, client.legacySecret || '');
@@ -138,7 +148,7 @@ export async function listOwnedSfiOAuthClients(userId: string) {
   const db = createServiceSupabaseClient();
   const result = await db
     .from('sfi_oauth_clients')
-    .select('client_id,name,redirect_uris,allowed_scopes,status,last_used_at,created_at,updated_at')
+    .select('client_id,name,redirect_uris,allowed_scopes,audience,status,last_used_at,created_at,updated_at')
     .eq('created_by', userId)
     .order('created_at', { ascending: false });
   if (result.error) throw new Error(`SFI_OAUTH_CLIENT_LIST_FAILED:${result.error.message}`);
@@ -167,9 +177,10 @@ export async function createOwnedSfiOAuthClient(input: {
     created_by: input.userId,
     redirect_uris: redirectUris,
     allowed_scopes: allowedScopes,
+    audience: 'OWNER_ONLY',
     status: 'ACTIVE',
     metadata: input.metadata ?? {},
-  }).select('client_id,name,redirect_uris,allowed_scopes,status,created_at').single();
+  }).select('client_id,name,redirect_uris,allowed_scopes,audience,status,created_at').single();
   if (result.error || !result.data) throw new Error(`SFI_OAUTH_CLIENT_CREATE_FAILED:${result.error?.message ?? 'unknown'}`);
   return { client: result.data, clientSecret };
 }
@@ -191,10 +202,11 @@ export async function adoptLegacySfiOAuthClient(input: {
     created_by: input.userId,
     redirect_uris: redirectUris,
     allowed_scopes: [...SFI_ROOT_SCOPES],
+    audience: 'TRUSTED_MULTI_USER',
     status: 'ACTIVE',
     metadata: { adoptedFrom: 'SFI_OAUTH_CLIENT_ID' },
     updated_at: now,
-  }, { onConflict: 'client_id' }).select('client_id,name,redirect_uris,allowed_scopes,status,created_at,updated_at').single();
+  }, { onConflict: 'client_id' }).select('client_id,name,redirect_uris,allowed_scopes,audience,status,created_at,updated_at').single();
   if (result.error || !result.data) throw new Error(`SFI_OAUTH_CLIENT_ADOPT_FAILED:${result.error?.message ?? 'unknown'}`);
   return result.data;
 }
@@ -221,7 +233,7 @@ export async function updateOwnedSfiOAuthClient(input: {
     .eq('client_id', input.clientId)
     .eq('created_by', input.userId)
     .eq('status', 'ACTIVE')
-    .select('client_id,name,redirect_uris,allowed_scopes,status,updated_at')
+    .select('client_id,name,redirect_uris,allowed_scopes,audience,status,updated_at')
     .maybeSingle();
   if (result.error) throw new Error(`SFI_OAUTH_CLIENT_UPDATE_FAILED:${result.error.message}`);
   if (!result.data) throw new Error('SFI_OAUTH_CLIENT_NOT_FOUND');
