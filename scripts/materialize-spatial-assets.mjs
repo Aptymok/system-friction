@@ -6,7 +6,7 @@ const root = process.cwd();
 
 const assets = [
   {
-    id: 'method-lab-desktop-v2',
+    id: 'method-lab-desktop-final',
     parts: [
       'assets/spatial-encoded/method-lab.desktop.avif.b64.00',
       'assets/spatial-encoded/method-lab.desktop.avif.b64.01',
@@ -14,7 +14,7 @@ const assets = [
       'assets/spatial-encoded/method-lab.desktop.avif.b64.03',
       'assets/spatial-encoded/method-lab.desktop.avif.b64.04',
     ],
-    output: 'public/method-lab/lab-desktop-v2.avif',
+    output: 'public/method-lab/lab-desktop.avif',
     bytes: 30861,
     gitSha: 'e46dbbc2ba6fefbb283fd9c97b4a466343e1bcea',
   },
@@ -30,14 +30,14 @@ const assets = [
     gitSha: '7750040ef37dad7e55311e7ed1ebd2298d9fd1bf',
   },
   {
-    id: 'cognitive-spine-desktop-v2',
+    id: 'cognitive-spine-desktop-final',
     parts: [
       'assets/spatial-encoded/cognitive-spine.desktop.avif.b64.00',
       'assets/spatial-encoded/cognitive-spine.desktop.avif.b64.01',
       'assets/spatial-encoded/cognitive-spine.desktop.avif.b64.02',
       'assets/spatial-encoded/cognitive-spine.desktop.avif.b64.03',
     ],
-    output: 'public/cognitive-spine/park-desktop-v2.avif',
+    output: 'public/cognitive-spine/park-desktop.avif',
     bytes: 23407,
     gitSha: 'aea5ead5c48ba5265f8851a1940cd9d758c57c45',
   },
