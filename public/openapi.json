@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "System Friction Institute External Agent API",
-    "version": "1.6.4",
+    "version": "1.6.5",
     "description": "Governed machine interface for authorized AI clients. Public GPT Actions authenticate with SFI OAuth. Preferred object-analysis flow is no-store: the client keeps or temporarily processes the raw object, asks SFI for an execution contract, then returns only structured measurements/results for persistence and longitudinal learning.",
     "termsOfService": "https://systemfriction.org/privacy"
   },
@@ -41,7 +41,7 @@
       "GenericResponse": {"type":"object","properties":{"ok":{"type":"boolean"},"generatedAt":{"type":"string"},"eventId":{"type":"string"},"canonicalEventId":{"type":"string"},"data":{},"principal":{},"cycle":{},"console":{},"warnings":{"type":"array","items":{"type":"string"}},"error":{"type":["string","null"]},"message":{"type":"string"}},"additionalProperties":true}
     },
     "securitySchemes": {
-      "sfiOAuth": {"type":"oauth2","description":"User-bound SFI institutional identity for public GPT Actions.","flows":{"authorizationCode":{"authorizationUrl":"https://systemfriction.org/api/oauth/authorize","tokenUrl":"https://systemfriction.org/api/oauth/token","scopes":{"observe":"Read governed SFI state and obtain execution contracts.","propose":"Submit governed proposals and evidence candidates for ROOT review.","execute":"Realize already-authorized internal proposals.","lab:read":"Read Method Lab state and reports.","lab:write":"Persist structured results and universal returns.","lab:run":"Run supported Method Lab runtimes; root_delegate remains separately required."}}}}
+      "sfiOAuth": {"type":"oauth2","description":"User-bound SFI institutional identity for public GPT Actions.","flows":{"authorizationCode":{"authorizationUrl":"https://systemfriction.org/api/oauth/authorize","tokenUrl":"https://systemfriction.org/api/oauth/token","scopes":{"observe":"Read governed SFI state and obtain execution contracts.","propose":"Submit governed proposals and evidence candidates for ROOT review.","execute":"Realize already-authorized internal proposals.","lab:read":"Read Method Lab state and reports.","lab:write":"Persist structured results and universal returns.","lab:run":"Run supported Method Lab runtimes when this scope is explicitly granted to the authenticated institutional principal."}}}}
     }
   },
   "x-sfi-governance": {
