@@ -18,7 +18,8 @@ assert.match(ui,/Proposal observability is intentionally independent from ACP ru
 assert.match(ui,/Fuente de propuestas DEGRADED/,'root_ui_must_distinguish_read_failure_from_empty_queue');
 assert.match(ui,/PEDIR EVIDENCIA/,'root_ui_must_expose_evidence_request');
 
-assert.match(selector,/selectionReasons/,'automation_selector_must_explain_selection');
+assert.match(selector,/reasons:\s*Record<string,\s*string\[\]>/,'automation_selector_must_expose_selection_reasons');
+assert.match(selector,/reasons:\s*Object\.fromEntries/,'automation_selector_must_materialize_selection_reasons');
 assert.match(selector,/requestedAutomations/,'automation_selector_must_support_explicit_bounded_selection');
 assert.match(meta,/selectionMode/,'meta_orchestrator_must_record_selection_mode');
 assert.match(meta,/executionKind: 'cognitive_automation'/,'runtime_roles_must_be_semantically_cognitive_automations');
