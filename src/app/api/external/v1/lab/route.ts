@@ -199,7 +199,9 @@ export async function POST(req: Request) {
     return NextResponse.json(event.ok ? { ok: true, operation, actor: actorId, idempotent: false, event: event.data } : event, { status: event.ok ? 201 : 500 });
   }
 
-  if (cred.role !== 'root_delegate') return NextResponse.json({ ok: false, error: 'root_delegate_required_for_lab_runtime' }, { status: 403 });
+  // Reaching this branch already proves the presented credential carries
+  // `lab:run`. Runtime authority therefore follows the explicit OAuth/static
+  // scope instead of a second hidden role gate.
   const protocolId = body.protocolId === 'sociotechnical_simulation' || body.protocolId === 'economic_simulation' ? body.protocolId : null;
   const evidenceIds = Array.isArray(body.evidenceIds) ? body.evidenceIds.filter((value): value is string => typeof value === 'string' && value.trim().length > 0) : [];
   if (!protocolId || !evidenceIds.length) return NextResponse.json({ ok: false, error: 'protocolId_and_persisted_evidenceIds_required' }, { status: 400 });
