@@ -28,6 +28,7 @@ export function SessionControls({ className = '' }: { className?: string }) {
   return (
     <div className={`sessionControls ${className}`.trim()} aria-label="Controles de sesión SFI">
       <Link className="sessionControl" href={homeHref}>INICIO</Link>
+      <Link className="sessionControl" href="/integrations">INTEGRACIONES</Link>
       <form action="/logout" method="post">
         <button className="sessionControl sessionLogout" type="submit">CERRAR SESIÓN</button>
       </form>
