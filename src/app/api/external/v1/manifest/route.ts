@@ -6,7 +6,7 @@ export async function GET() {
   return NextResponse.json({
     ok: true,
     name: 'SFI External Agent Gateway',
-    version: '1.6.5',
+    version: '1.7.0',
     auth: 'OAuth 2.0 authorization_code (user-bound) or X-SFI-Token/Bearer static token',
     base: '/api/external/v1',
     discovery: {
@@ -34,6 +34,7 @@ export async function GET() {
       identity: 'Authenticated SFI institutional member session; client credentials identify the application, not the human principal.',
       recommendedScopes: ['observe', 'propose', 'lab:read'],
       authority: 'Registered institutional principals receive the external scopes explicitly configured for their identity. Scope omission defaults to that configured set.',
+      studioIdentityBoundary: 'Studio operations require user-bound OAuth and resolve ownership from token subject_id; shared/static tokens cannot impersonate an owner.',
     },
     operations: [
       { id: 'console', method: 'GET', path: '/console', scope: 'observe', description: 'Read the compact governed machine console. Detailed state remains on dedicated surfaces to avoid oversized Action responses.' },
@@ -53,6 +54,11 @@ export async function GET() {
       { id: 'lab-report', method: 'POST', path: '/lab', scope: 'lab:read', body: { operation: 'report' }, description: 'Read persisted Method Lab analyses and Cognitive Twin evaluations.' },
       { id: 'lab-persist', method: 'POST', path: '/lab', scope: 'lab:write', body: { operation: 'persist' }, description: 'Persist a laboratory observation into the epistemic event ledger with provenance.' },
       { id: 'lab-run', method: 'POST', path: '/lab', scope: 'lab:run', body: { operation: 'run', confirm: true }, description: 'Execute a supported Method Lab runtime. Requires explicit lab:run scope, explicit confirmation and persisted evidence IDs from either supported evidence store.' },
+      { id: 'studio-list', method: 'POST', path: '/studio', scope: 'studio:read', body: { operation: 'list' }, description: 'List only Studio objects owned by the OAuth principal.' },
+      { id: 'studio-inspect', method: 'POST', path: '/studio', scope: 'studio:read', body: { operation: 'inspect', objectId: 'owned Studio object UUID' }, description: 'Inspect one owned Studio object.' },
+      { id: 'studio-features', method: 'POST', path: '/studio', scope: 'studio:read', body: { operation: 'features', objectId: 'owned Studio object UUID' }, description: 'Read persisted features for one owned Studio object.' },
+      { id: 'studio-content', method: 'POST', path: '/studio', scope: 'studio:content', body: { operation: 'content', objectId: 'owned Studio object UUID' }, description: 'Issue a short-lived signed content URL for one owned Studio object. User-bound OAuth only.' },
+      { id: 'studio-analyze', method: 'POST', path: '/studio', scope: 'studio:run', body: { operation: 'analyze', objectId: 'owned Studio object UUID' }, description: 'Run the existing server-side Studio analyzer for an owned audio or video object. User-bound OAuth only.' },
     ],
     universalSignal: {
       contract: 'SFI-UNIVERSAL-SIGNAL-1.1',
