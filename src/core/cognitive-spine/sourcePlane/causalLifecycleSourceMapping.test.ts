@@ -49,3 +49,18 @@ test('causal lifecycle mapper keeps derived proposal state derived', () => {
   assert.ok(mapped);
   assert.equal(mapped.epistemicClass, 'DERIVED');
 });
+
+test('causal lifecycle mapper does not upgrade derived outcome recording to observed return', () => {
+  const mapped = causalLifecycleEventToCognitiveSpineSource({
+    event_id: 'EV-OUTCOME-001',
+    event_name: 'acp.proposal.outcome_recorded',
+    epistemic_class: 'derived',
+    occurred_at: '2026-08-27T10:01:00.000Z',
+    hash_self: 'd'.repeat(64),
+    lineage: ['PROPOSAL-001', 'EV-RETURN-001'],
+  });
+
+  assert.ok(mapped);
+  assert.equal(mapped.kind, 'EVENT');
+  assert.equal(mapped.epistemicClass, 'DERIVED');
+});
