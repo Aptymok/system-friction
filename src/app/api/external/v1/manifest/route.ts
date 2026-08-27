@@ -6,7 +6,7 @@ export async function GET() {
   return NextResponse.json({
     ok: true,
     name: 'SFI External Agent Gateway',
-    version: '1.6.4',
+    version: '1.6.5',
     auth: 'OAuth 2.0 authorization_code (user-bound) or X-SFI-Token/Bearer static token',
     base: '/api/external/v1',
     discovery: {
@@ -33,6 +33,7 @@ export async function GET() {
       pkce: 'S256 supported',
       identity: 'Authenticated SFI institutional member session; client credentials identify the application, not the human principal.',
       recommendedScopes: ['observe', 'propose', 'lab:read'],
+      authority: 'Registered institutional principals receive the external scopes explicitly configured for their identity. Scope omission defaults to that configured set.',
     },
     operations: [
       { id: 'console', method: 'GET', path: '/console', scope: 'observe', description: 'Read the compact governed machine console. Detailed state remains on dedicated surfaces to avoid oversized Action responses.' },
@@ -51,7 +52,7 @@ export async function GET() {
       { id: 'lab-state', method: 'POST', path: '/lab', scope: 'lab:read', body: { operation: 'state' }, description: 'Read current Method Lab state.' },
       { id: 'lab-report', method: 'POST', path: '/lab', scope: 'lab:read', body: { operation: 'report' }, description: 'Read persisted Method Lab analyses and Cognitive Twin evaluations.' },
       { id: 'lab-persist', method: 'POST', path: '/lab', scope: 'lab:write', body: { operation: 'persist' }, description: 'Persist a laboratory observation into the epistemic event ledger with provenance.' },
-      { id: 'lab-run', method: 'POST', path: '/lab', scope: 'lab:run', body: { operation: 'run', confirm: true }, description: 'Execute a supported Method Lab runtime. Requires root_delegate and persisted evidence IDs from either supported evidence store.' },
+      { id: 'lab-run', method: 'POST', path: '/lab', scope: 'lab:run', body: { operation: 'run', confirm: true }, description: 'Execute a supported Method Lab runtime. Requires explicit lab:run scope, explicit confirmation and persisted evidence IDs from either supported evidence store.' },
     ],
     universalSignal: {
       contract: 'SFI-UNIVERSAL-SIGNAL-1.1',
