@@ -37,6 +37,7 @@ assert.match(authorize, /codeHash\(code\)/, 'authorization_code_must_be_stored_a
 assert.match(authorize, /code_challenge/, 'oauth_authorize_must_support_pkce');
 assert.match(authorize, /resolveSfiOAuthClient\(clientId\)/, 'oauth_authorize_must_resolve_persistent_client');
 assert.match(authorize, /isAllowedSfiOAuthRedirect\(client, redirectUri\)/, 'oauth_authorize_must_exact_match_registered_redirect');
+assert.match(authorize, /canSfiOAuthClientAuthorizeSubject\(client, context\.user\.id\)/, 'owner_only_client_must_be_bound_to_authenticated_subject');
 assert.match(authorize, /clientScopes\.has\(scope\)/, 'oauth_authorize_must_enforce_client_scope_ceiling');
 for (const scope of ['observe', 'propose', 'execute', 'cases:read', 'cases:write', 'lab:read', 'lab:write', 'lab:run', 'studio:read', 'studio:content', 'studio:run']) {
   assert.match(oauthConfig, new RegExp(`'${scope.replace(':', '\\:')}'`), `supported_scope_missing:${scope}`);
@@ -55,10 +56,14 @@ assert.match(sessionToken, /exp <= now/, 'access_tokens_must_expire');
 assert.match(oauthRegistryMigration, /create table if not exists public\.sfi_oauth_clients/i, 'oauth_client_registry_table_required');
 assert.match(oauthRegistryMigration, /client_secret_hash text not null/i, 'oauth_registry_must_store_secret_hash_only');
 assert.match(oauthRegistryMigration, /redirect_uris text\[\] not null/i, 'oauth_registry_must_store_redirect_allowlist');
+assert.match(oauthRegistryMigration, /audience text not null default 'OWNER_ONLY'/i, 'self_service_clients_must_default_owner_only');
+assert.match(oauthRegistryMigration, /TRUSTED_MULTI_USER/i, 'registry_must_distinguish_trusted_multi_user_clients');
 assert.match(oauthRegistryMigration, /revoke all[\s\S]*anon, authenticated/i, 'oauth_registry_must_not_be_browser_readable');
 assert.match(oauthRegistryMigration, /grant select, insert, update, delete[\s\S]*service_role/i, 'oauth_registry_service_role_grant_required');
 assert.match(oauthRegistry, /redirectUris\.includes\(redirectUri\)/, 'redirect_match_must_remain_exact_not_wildcard');
 assert.match(oauthRegistry, /hashSfiOAuthClientSecret/, 'oauth_client_secret_must_be_hashed');
+assert.match(oauthRegistry, /audience: 'OWNER_ONLY'/, 'new_self_service_clients_must_be_owner_only');
+assert.match(oauthRegistry, /audience: 'TRUSTED_MULTI_USER'/, 'legacy_institutional_client_must_be_explicitly_trusted_multi_user');
 assert.match(oauthRegistry, /source: 'legacy_env'/, 'legacy_env_client_must_remain_backward_compatible');
 assert.match(oauthRegistry, /adoptLegacySfiOAuthClient/, 'root_must_be_able_to_adopt_bootstrap_client_into_registry');
 assert.match(oauthClients, /requireUserProfile\(\)/, 'oauth_client_registration_must_require_authenticated_sfi_account');
@@ -145,6 +150,8 @@ console.log(JSON.stringify({
   pkce: 'S256',
   clientRegistry: 'PERSISTENT_SELF_SERVICE',
   redirectMatching: 'EXACT',
+  selfServiceAudience: 'OWNER_ONLY',
+  trustedMultiUser: 'INSTITUTIONAL_ONLY',
   legacyClient: 'BACKWARD_COMPATIBLE_ADOPTABLE',
   personalTenant: 'user:<oauth_subject_id>',
   personalScopes: ['cases:read', 'cases:write', 'lab:read', 'lab:write', 'lab:run', 'studio:read', 'studio:content', 'studio:run'],
