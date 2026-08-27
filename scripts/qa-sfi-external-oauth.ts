@@ -14,6 +14,7 @@ const migration = text('supabase/migrations/20260822214500_create_sfi_oauth_auth
 const openapi = JSON.parse(text('public/openapi.json')) as Record<string, any>;
 const members = text('src/lib/system/access/institutionalMembers.ts');
 const manifest = text('src/app/api/external/v1/manifest/route.ts');
+const consoleRoute = text('src/app/api/external/v1/console/route.ts');
 const lab = text('src/app/api/external/v1/lab/route.ts');
 const execute = text('src/app/api/external/v1/execute/route.ts');
 const proposalReturn = text('src/app/api/external/v1/proposal-return/route.ts');
@@ -75,6 +76,12 @@ assert.match(members, /displayName: 'Edwin'[\s\S]*?role: 'observer'/, 'edwin_roo
 assert.match(members, /role: 'institutional_operator'/, 'edwin_external_agent_role_must_be_operational');
 assert.match(members, /scopes: \['observe', 'propose', 'execute', 'lab:read', 'lab:write', 'lab:run'\]/, 'edwin_oauth_must_receive_full_governed_agent_scope_set');
 
+assert.match(consoleRoute, /credential\.subjectId/, 'oauth_console_must_bind_studio_discovery_to_token_subject');
+assert.match(consoleRoute, /\.eq\('owner_id', credential\.subjectId\)/, 'oauth_console_must_filter_studio_objects_by_authenticated_subject_owner_id');
+assert.match(consoleRoute, /ownershipBoundary: 'studio_objects\.owner_id == OAuth subjectId'/, 'oauth_console_must_publish_owner_boundary');
+assert.doesNotMatch(consoleRoute, /\.eq\('owner_id', actorId\)/, 'studio_ownership_must_never_use_display_actor_id');
+assert.match(consoleRoute, /raw media is not exposed here/, 'oauth_console_must_not_turn_owner_index_into_raw_media_exposure');
+
 assert.match(lab, /return 'lab:run'/, 'lab_run_operation_must_require_lab_run_scope');
 assert.match(lab, /authorizeExternalRequest\(req, operationScope\(operation\)\)/, 'lab_must_authorize_by_operation_scope');
 assert.doesNotMatch(lab, /root_delegate_required_for_lab_runtime/, 'lab_run_scope_must_not_be_shadowed_by_hidden_root_role_gate');
@@ -121,12 +128,13 @@ assert.match(aiIndex, /return_must_match_proposal_uuid: true/, 'ai_index_must_pu
 
 console.log(JSON.stringify({
   ok: true,
-  contract: 'SFI-EXTERNAL-OAUTH-1.4',
+  contract: 'SFI-EXTERNAL-OAUTH-1.5',
   flow: 'authorization_code',
   pkce: 'S256',
   genericFallbackScopes: ['observe', 'propose', 'lab:read'],
   edwinExternalRole: 'institutional_operator',
   edwinExternalScopes: ['observe', 'propose', 'execute', 'lab:read', 'lab:write', 'lab:run'],
+  studioDiscoveryBoundary: 'OAuth subjectId == studio_objects.owner_id',
   staticTokenCompatibility: true,
   sovereigntyBoundary: {
     evidenceCandidateAcceptance: 'ROOT',
