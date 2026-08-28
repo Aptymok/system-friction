@@ -1,12 +1,13 @@
-import { createHash, randomUUID } from 'node:crypto';
+import { createHash } from 'node:crypto';
 import { NextResponse } from 'next/server';
 import { requireAuthenticatedUser } from '@/lib/system/access/server';
-import { readOperationalCase, normalizeAndRegisterOperationalCaseSource } from '@/lib/sfi/case-platform/repository';
+import { normalizeAndRegisterOperationalCaseSource } from '@/lib/sfi/case-platform/repository';
 import { sfiCaseApiFailure } from '@/lib/sfi/case-platform/http';
 import {
   SFI_CASE_DIRECT_UPLOAD_MAX_BYTES,
   SFI_CASE_LEGACY_PROXY_MAX_BYTES,
   SFI_CASE_SOURCE_BUCKET,
+  assertCaseSourceWriteAccess,
   createCaseSourceStoragePath,
   normalizeCaseSourceContentType,
   normalizeCaseSourceType,
@@ -24,7 +25,7 @@ export async function POST(request: Request, context: RouteContext) {
   try {
     const { user } = await requireAuthenticatedUser();
     const { caseId } = await context.params;
-    const envelope = await readOperationalCase(caseId, user.id);
+    const access = await assertCaseSourceWriteAccess({ caseId, userId: user.id });
     const form = await request.formData();
     const value = form.get('file');
     if (!(value instanceof File)) return NextResponse.json({ ok: false, error: 'SFI_SOURCE_FILE_REQUIRED' }, { status: 400 });
@@ -50,7 +51,7 @@ export async function POST(request: Request, context: RouteContext) {
     const contentHash = createHash('sha256').update(bytes).digest('hex');
     const filename = safeCaseSourceFilename(value.name);
     const sourceType = normalizeCaseSourceType(form.get('sourceType'));
-    const storagePath = createCaseSourceStoragePath({ tenantId: envelope.caseRecord.tenantId, caseId, filename });
+    const storagePath = createCaseSourceStoragePath({ tenantId: access.tenantId, caseId, filename });
     const service = createServiceSupabaseClient();
     const upload = await service.storage.from(SFI_CASE_SOURCE_BUCKET).upload(storagePath, bytes, { contentType, cacheControl: '3600', upsert: false });
     if (upload.error) throw new Error(`SFI_SOURCE_FILE_UPLOAD_FAILED:${upload.error.message}`);
@@ -69,7 +70,7 @@ export async function POST(request: Request, context: RouteContext) {
           contentHash,
           metadata: {
             intakeMode: 'VERCEL_PROXY_COMPATIBILITY',
-            tenantId: envelope.caseRecord.tenantId,
+            tenantId: access.tenantId,
             caseId,
             filename,
             size: value.size,
@@ -85,6 +86,7 @@ export async function POST(request: Request, context: RouteContext) {
       return NextResponse.json({
         ok: true,
         source,
+        authority: { required: 'TENANT_WRITE', resolvedRole: access.role },
         file: { filename, size: value.size, contentType, uri, contentHash, visibility: 'private' },
         warning: 'VERCEL_PROXY_COMPATIBILITY_PATH: use signed direct upload for normal file ingestion.',
       }, { status: 201 });
