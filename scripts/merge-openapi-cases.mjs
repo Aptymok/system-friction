@@ -18,7 +18,12 @@ api.components.schemas.CaseWorkspaceRequest = {
   properties: {
     operation: {
       type: 'string',
-      enum: ['list', 'read', 'create', 'add_source', 'add_object', 'transition', 'reports'],
+      enum: ['list', 'read', 'intake_plan', 'create', 'add_source', 'add_object', 'transition', 'reports'],
+    },
+    draft: {
+      type: 'object',
+      additionalProperties: true,
+      description: 'Pre-case draft used by intake_plan. SFI returns only unresolved questions and does not create a case.',
     },
     caseId: { type: 'string' },
     tenantId: { type: ['string', 'null'] },
@@ -42,8 +47,8 @@ api.components.schemas.CaseWorkspaceRequest = {
 api.paths['/api/external/v1/cases'] = {
   post: {
     operationId: 'operateSfiCaseWorkspace',
-    summary: 'Read, create and populate tenant-scoped SFI Case Platform cases',
-    description: 'User-bound OAuth adapter over the existing Case Platform. Operations use cases:read or cases:write internally. This route cannot accept evidence, make governance decisions, authorize intervention, record observed RETURN, or create truth claims.',
+    summary: 'Plan, read, create and populate tenant-scoped SFI Case Platform cases',
+    description: 'User-bound OAuth adapter over the existing Case Platform. Call intake_plan first when case context is incomplete; it returns only unresolved questions. Operations use cases:read or cases:write internally. This route cannot accept evidence, make governance decisions, authorize intervention, record observed RETURN, or create truth claims.',
     security: [{ sfiOAuth: [] }],
     requestBody: {
       required: true,
@@ -54,9 +59,10 @@ api.paths['/api/external/v1/cases'] = {
       },
     },
     responses: {
-      '200': { description: 'Case read or transition result' },
+      '200': { description: 'Case read, intake plan or transition result' },
       '201': { description: 'Case, source or bounded case object persisted' },
       '400': { description: 'Invalid or authority-forbidden case operation' },
+      '409': { description: 'Case creation is missing required intake context' },
       '401': { description: 'Missing or insufficient cases scope' },
       '403': { description: 'User-bound OAuth required or tenant access forbidden' },
       '404': { description: 'Case not found in an accessible tenant' },
@@ -66,7 +72,7 @@ api.paths['/api/external/v1/cases'] = {
 
 api['x-sfi-governance'] ??= {};
 api['x-sfi-governance'].caseWorkspaceBoundary =
-  'Case Platform access is subject-bound and tenant-scoped. cases:write can create SOURCE/RECORD/INFERENCE/EPISTEMIC_ASSESSMENT objects only within the adapter allowlist; it cannot mint accepted EVIDENCE, GOVERNANCE_DECISION, INTERVENTION, RETURN or TRUTH_CLAIM authority.';
+  'Case Platform access is subject-bound and tenant-scoped. intake_plan creates no case. cases:write can create SOURCE/RECORD/INFERENCE/EPISTEMIC_ASSESSMENT objects only within the adapter allowlist; it cannot mint accepted EVIDENCE, GOVERNANCE_DECISION, INTERVENTION, RETURN or TRUTH_CLAIM authority.';
 
 writeFileSync(path, `${JSON.stringify(api, null, 2)}\n`);
-console.log(JSON.stringify({ ok: true, openapi: path, caseWorkspace: true, version: api.info?.version ?? null }));
+console.log(JSON.stringify({ ok: true, openapi: path, caseWorkspace: true, intakePlan: true, version: api.info?.version ?? null }));
