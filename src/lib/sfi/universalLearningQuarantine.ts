@@ -234,6 +234,44 @@ export async function readUniversalLearningQuarantine(limit = 120) {
   };
 }
 
+export async function readUniversalLearningCycleState(cycleId: string) {
+  const db = createServiceSupabaseClient();
+  const result = await db.from('epistemic_events')
+    .select('event_id,event_name,epistemic_class,payload,lineage,occurred_at,hash_self')
+    .in('event_name', [
+      'SFI_UNIVERSAL_LEARNING_CANDIDATE_RECORDED',
+      'SFI_UNIVERSAL_LEARNING_PROMOTED',
+      'SFI_UNIVERSAL_LEARNING_REJECTED',
+    ])
+    .eq('payload->>cycleId', cycleId)
+    .order('sequence', { ascending: false })
+    .limit(20);
+  if (result.error) return { ok: false as const, events: [] as Row[], warning: result.error.message };
+  return { ok: true as const, events: rows(result.data), warning: null };
+}
+
+export async function readUniversalLearningTerminalState(candidateEventId: string) {
+  const db = createServiceSupabaseClient();
+  const result = await db.from('epistemic_events')
+    .select('event_id,event_name,epistemic_class,payload,lineage,occurred_at,hash_self')
+    .in('event_name', ['SFI_UNIVERSAL_LEARNING_PROMOTED', 'SFI_UNIVERSAL_LEARNING_REJECTED'])
+    .eq('payload->>candidateEventId', candidateEventId)
+    .order('sequence', { ascending: false })
+    .limit(2);
+  if (result.error) return { ok: false as const, terminal: null, warning: result.error.message };
+  const terminal = rows(result.data)[0] ?? null;
+  return {
+    ok: true as const,
+    terminal,
+    state: terminal?.event_name === 'SFI_UNIVERSAL_LEARNING_PROMOTED'
+      ? 'PROMOTED' as const
+      : terminal?.event_name === 'SFI_UNIVERSAL_LEARNING_REJECTED'
+        ? 'REJECTED' as const
+        : null,
+    warning: null,
+  };
+}
+
 async function readCandidateEvent(candidateEventId: string) {
   const db = createServiceSupabaseClient();
   const result = await db.from('epistemic_events')
@@ -251,6 +289,15 @@ export async function promoteUniversalLearningCandidate(input: {
   actorId: string;
   reviewNote?: string | null;
 }) {
+  const terminal = await readUniversalLearningTerminalState(input.candidateEventId);
+  if (!terminal.ok) return { ok: false as const, error: 'LEARNING_TERMINAL_STATE_UNAVAILABLE', details: terminal.warning };
+  if (terminal.terminal) {
+    if (terminal.state === 'PROMOTED') {
+      return { ok: true as const, idempotent: true as const, eventId: String(terminal.terminal.event_id ?? ''), event: terminal.terminal };
+    }
+    return { ok: false as const, error: 'LEARNING_CANDIDATE_ALREADY_TERMINAL', terminalState: terminal.state, terminalEventId: String(terminal.terminal.event_id ?? '') };
+  }
+
   const candidateRead = await readCandidateEvent(input.candidateEventId);
   if (!candidateRead.ok || !candidateRead.event) return candidateRead;
   const candidatePayload = payload(candidateRead.event);
@@ -288,7 +335,7 @@ export async function promoteUniversalLearningCandidate(input: {
     lineage: [input.candidateEventId, ...lineage],
   });
   return event.ok
-    ? { ok: true as const, eventId: String(event.data.event_id ?? ''), event: event.data }
+    ? { ok: true as const, idempotent: false as const, eventId: String(event.data.event_id ?? ''), event: event.data }
     : { ok: false as const, error: event.error };
 }
 
@@ -297,9 +344,19 @@ export async function rejectUniversalLearningCandidate(input: {
   actorId: string;
   reason: string;
 }) {
+  const terminal = await readUniversalLearningTerminalState(input.candidateEventId);
+  if (!terminal.ok) return { ok: false as const, error: 'LEARNING_TERMINAL_STATE_UNAVAILABLE', details: terminal.warning };
+  if (terminal.terminal) {
+    if (terminal.state === 'REJECTED') {
+      return { ok: true as const, idempotent: true as const, eventId: String(terminal.terminal.event_id ?? ''), event: terminal.terminal };
+    }
+    return { ok: false as const, error: 'LEARNING_CANDIDATE_ALREADY_TERMINAL', terminalState: terminal.state, terminalEventId: String(terminal.terminal.event_id ?? '') };
+  }
+
   const candidateRead = await readCandidateEvent(input.candidateEventId);
   if (!candidateRead.ok || !candidateRead.event) return candidateRead;
   const candidatePayload = payload(candidateRead.event);
+  const candidateLineage = row(candidatePayload.lineage);
   const event = await appendEpistemicEvent({
     eventName: 'SFI_UNIVERSAL_LEARNING_REJECTED',
     epistemicClass: 'derived',
@@ -310,6 +367,7 @@ export async function rejectUniversalLearningCandidate(input: {
       cycleId: candidatePayload.cycleId ?? null,
       classification: candidatePayload.classification ?? null,
       promotionState: 'REJECTED',
+      candidateLineage,
       rejectedBy: input.actorId,
       rejectedAt: new Date().toISOString(),
       reason: input.reason,
@@ -321,6 +379,6 @@ export async function rejectUniversalLearningCandidate(input: {
     lineage: [input.candidateEventId],
   });
   return event.ok
-    ? { ok: true as const, eventId: String(event.data.event_id ?? ''), event: event.data }
+    ? { ok: true as const, idempotent: false as const, eventId: String(event.data.event_id ?? ''), event: event.data }
     : { ok: false as const, error: event.error };
 }
