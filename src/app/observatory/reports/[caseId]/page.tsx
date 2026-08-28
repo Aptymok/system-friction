@@ -88,7 +88,7 @@ export default async function ObservatoryReportReaderPage({ params, searchParams
     : caseSources;
   const evidenceCount = envelope.objects.filter((object) => object.kind === 'EVIDENCE').length;
   const governanceCount = envelope.objects.filter((object) => object.kind === 'GOVERNANCE_DECISION').length;
-  const truthClaimCount = envelope.objects.filter((object) => object.kind === 'TRUTH_CLAIM').length;
+  const truthClaimCount = envelope.objects.filter((object) => object.epistemicRole === 'TRUTH_CLAIM').length;
   const title = text(payload.title) || report.canonicalRef.id;
   const subtitle = text(payload.subtitle) || envelope.case.subject;
   const abstract = text(payload.executiveAbstract);
@@ -188,7 +188,7 @@ export default async function ObservatoryReportReaderPage({ params, searchParams
         </section>
 
         <footer className="obsReportFooter">
-          <span>EPistemic role: {report.epistemicRole}</span>
+          <span>EPISTEMIC ROLE: {report.epistemicRole}</span>
           <span>INSTITUTIONAL ADMISSION: {text(payload.institutionalAdmission) || envelope.case.governance.institutionalAdmission}</span>
           <span>UPDATED FROM PERSISTED CASE STATE</span>
         </footer>
