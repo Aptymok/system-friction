@@ -19,6 +19,7 @@ with source as (
       nullif(o.metadata->>'contentHash',''),
       nullif(o.metadata->>'checksumSha256','')
     ) as content_hash,
+    coalesce(nullif(o.metadata#>>'{studioAudioEngine,status}',''),nullif(o.status,''),'UNKNOWN') as processing_state,
     case
       when upper(coalesce(o.metadata->>'storageState','')) like '%NOT_MATERIALIZED%' then 'IDENTITY_ONLY'
       when nullif(o.source_uri,'') is not null then 'BINARY_RETRIEVABLE_BY_REFERENCE'
@@ -38,6 +39,10 @@ with source as (
         'lifecycleClass',lifecycle_class,
         'operationalVisibility',case when lifecycle_class in ('ACTIVE','CANONICAL') then 'VISIBLE_BY_DEFAULT' else 'EXCLUDED_BY_DEFAULT' end,
         'contentIdentity',case when content_hash is not null then jsonb_build_object('state','VERIFIED_HASH','hash',lower(content_hash),'algorithm','sha256') else jsonb_build_object('state','UNVERIFIED','hash',null,'algorithm',null) end,
+        'contentKey',case when content_hash is null then null else 'sha256:'||lower(content_hash) end,
+        'identityRole',case when content_hash is null then 'OBJECT_RECORD' else 'PROCESSING_ATTEMPT' end,
+        'processingState',processing_state,
+        'identityBoundary',case when content_hash is null then 'Content identity is unverified; title, size or filename similarity must not be treated as duplicate proof.' else 'Objects sharing contentKey are processing attempts of the same verified content identity; attempt outcomes remain separate lineage.' end,
         'materializationState',materialization_state,
         'canonicalIdentityVerified',canonical_verified,
         'binaryRetrievable',materialization_state='BINARY_RETRIEVABLE_BY_REFERENCE',
@@ -50,7 +55,7 @@ with source as (
   insert into public.sfi_audit_events(action,target_type,target_id,before_state,after_state,context)
   select 'STUDIO_HYGIENE_CLASSIFIED','studio_object',id::text,
     jsonb_build_object('metadata',old_metadata),jsonb_build_object('metadata',new_metadata),
-    jsonb_build_object('contract','SFI-STUDIO-HYGIENE-1.0','reason','Lifecycle/content/materialization/trace classification; no evidence authority granted.')
+    jsonb_build_object('contract','SFI-STUDIO-HYGIENE-1.0','reason','Lifecycle/content-attempt/materialization/trace classification; no evidence authority granted.')
   from prepared where new_metadata is distinct from old_metadata
   returning target_id
 )
