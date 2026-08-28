@@ -145,7 +145,7 @@ async function gdeltQuery(query: string, lookbackDays: number): Promise<Universa
       if (!articleUrl || !/^https?:\/\//i.test(articleUrl)) return [];
       const title = text(article.title) ?? host(articleUrl);
       const sourceType = classifySource(articleUrl, title);
-      const publisher = text(article.domain) ?? host(articleUrl) || null;
+      const publisher = text(article.domain) ?? (host(articleUrl) || null);
       return [{
         id: `WEB-${index + 1}-${host(articleUrl).replace(/[^a-z0-9]+/gi, '-').slice(0, 28) || 'source'}`,
         url: articleUrl,
