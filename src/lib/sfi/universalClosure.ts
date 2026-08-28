@@ -35,6 +35,10 @@ function latest(values: unknown[] | undefined) {
   return Array.isArray(values) && values.length ? values[values.length - 1] : null;
 }
 
+function aiSynthesisEvents(history: History) {
+  return (history.events ?? []).filter((event) => row(event).event_name === 'SFI_UNIVERSAL_AI_SYNTHESIS_COMPLETED');
+}
+
 function collectRunValues(history: History, key: string) {
   const values: unknown[] = [];
   for (const event of history.cognitiveRuns ?? []) values.push(...list(eventPayload(event)[key]));
@@ -43,13 +47,24 @@ function collectRunValues(history: History, key: string) {
     const result = row(payload.result);
     values.push(...list(result[key]));
   }
+  for (const event of aiSynthesisEvents(history)) {
+    const synthesis = row(eventPayload(event).synthesis);
+    if (key === 'hypotheses') {
+      if (synthesis.primaryHypothesis) values.push(synthesis.primaryHypothesis);
+      values.push(...list(synthesis.rivalHypotheses));
+    } else if (key === 'predictions') {
+      values.push(...list(synthesis.predictions));
+    } else {
+      values.push(...list(synthesis[key]));
+    }
+  }
   return values;
 }
 
 function statement(value: unknown) {
   if (typeof value === 'string') return value.trim();
   const item = row(value);
-  return text(item.statement) ?? text(item.hypothesis) ?? text(item.claim) ?? text(item.prediction) ?? text(item.summary) ?? null;
+  return text(item.statement) ?? text(item.hypothesis) ?? text(item.claim) ?? text(item.description) ?? text(item.prediction) ?? text(item.summary) ?? null;
 }
 
 function uniqueStatements(values: unknown[]) {
@@ -81,30 +96,47 @@ export function assessUniversalClosure(input: {
   const returnPayload = lastReturn ? eventPayload(lastReturn) : {};
   const contrastEvents = (input.history.events ?? []).filter((event) => row(event).event_name === 'SFI_UNIVERSAL_RETURN_CONTRASTED');
   const lastContrast = latest(contrastEvents);
+  const lastContrastPayload = lastContrast ? eventPayload(lastContrast) : {};
 
   const primaryHypothesis = requested.primaryHypothesis ?? hypotheses[0] ?? null;
   const rivalHypotheses = list(requested.rivalHypotheses).length
     ? list(requested.rivalHypotheses)
     : hypotheses.slice(1);
   const prediction = requested.prediction ?? predictions[0] ?? null;
+  const predictionRow = row(prediction);
   const supportingEvidence = [
     ...(Array.isArray(input.evidenceRefs) ? input.evidenceRefs : []),
     ...list(requested.supportingEvidence).filter((item): item is string => typeof item === 'string'),
   ];
   const counterEvidence = list(requested.counterEvidence).length ? list(requested.counterEvidence) : contradictions;
   const missingEvidence = list(requested.missingEvidence);
-  const expectedSignals = list(requested.expectedSignals);
-  const contradictionSignals = list(requested.contradictionSignals).length ? list(requested.contradictionSignals) : contradictions;
-  const observationWindow = requested.observationWindow ?? null;
+  const expectedSignals = list(requested.expectedSignals).length ? list(requested.expectedSignals) : list(predictionRow.expectedSignals);
+  const contradictionSignals = list(requested.contradictionSignals).length
+    ? list(requested.contradictionSignals)
+    : list(predictionRow.contradictionSignals).length
+      ? list(predictionRow.contradictionSignals)
+      : contradictions;
+  const observationWindow = requested.observationWindow ?? predictionRow.observationWindow ?? null;
   const observedReturn = requested.observedReturn ?? returnPayload.outcome ?? null;
-  const contrast = requested.contrast ?? (lastContrast ? eventPayload(lastContrast) : null);
+  const contrast = requested.contrast ?? (lastContrast ? lastContrastPayload : null);
   const residualError = requested.residualError ?? null;
   const updatedConfidence = typeof requested.updatedConfidence === 'number' && Number.isFinite(requested.updatedConfidence)
     ? Math.max(0, Math.min(1, requested.updatedConfidence))
-    : null;
+    : typeof lastContrastPayload.updatedConfidence === 'number' && Number.isFinite(lastContrastPayload.updatedConfidence)
+      ? Math.max(0, Math.min(1, Number(lastContrastPayload.updatedConfidence)))
+      : null;
   const outcome = requested.outcome ?? observedReturn ?? null;
   const recurrenceAssessment = requested.recurrenceAssessment ?? null;
-  const learningCandidate = requested.learningCandidate ?? null;
+  const learningCandidate = requested.learningCandidate ?? (lastContrast ? {
+    type: 'CONFIGURATION_RESPONSE_CANDIDATE',
+    cycleId: input.history.cycleId ?? null,
+    primaryHypothesis,
+    rivalHypotheses,
+    prediction,
+    observedReturn,
+    contrastClassification: lastContrastPayload.classification ?? null,
+    promotionState: 'CANDIDATE_NOT_CANONICAL',
+  } : null);
   const conclusion = requested.conclusion ?? null;
   const limitations = list(requested.limitations);
 
@@ -180,6 +212,14 @@ export async function contrastLatestUniversalReturn(input: {
   const accepted = ['CONFIRMED', 'PARTIAL', 'CONTRADICTED', 'INCONCLUSIVE'].includes(normalizedClassification)
     ? normalizedClassification
     : 'INCONCLUSIVE';
+  const priorConfidence = typeof row(hypotheses[0]).confidence === 'number' ? Number(row(hypotheses[0]).confidence) : 0.5;
+  const updatedConfidence = accepted === 'CONFIRMED'
+    ? Math.min(0.95, Math.max(priorConfidence, 0.7) + 0.1)
+    : accepted === 'PARTIAL'
+      ? Math.min(0.8, Math.max(0.5, priorConfidence))
+      : accepted === 'CONTRADICTED'
+        ? Math.max(0.05, Math.min(priorConfidence, 0.4) - 0.15)
+        : priorConfidence;
 
   return appendEpistemicEvent({
     eventName: 'SFI_UNIVERSAL_RETURN_CONTRASTED',
@@ -195,8 +235,10 @@ export async function contrastLatestUniversalReturn(input: {
       predictions,
       observedReturn: returnPayload.outcome ?? null,
       classification: accepted,
+      priorConfidence,
+      updatedConfidence,
       calibrationStatus: predictions.length ? (accepted === 'INCONCLUSIVE' ? 'REQUIRES_REVIEW' : 'CONTRAST_RECORDED') : 'PREDICTION_MISSING',
-      epistemicBoundary: 'Contrast records the relationship between preregistered expectations and observed return. It does not automatically promote either hypothesis to canonical truth.',
+      epistemicBoundary: 'Contrast records the relationship between preregistered expectations and observed return. Updated confidence is a bounded calibration heuristic, not a truth probability or canonical promotion.',
     },
     occurredAt: new Date().toISOString(),
     source: { sourceId: 'reality_calibration', sourceType: 'return_contrast' },
