@@ -6,6 +6,13 @@ async function text(path: string) {
   return readFile(path, 'utf8');
 }
 
+function gitDeploymentsDisabled(value: unknown) {
+  if (value === false) return true;
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const policy = value as Record<string, unknown>;
+  return policy['*'] === false && Object.values(policy).every((branchPolicy) => branchPolicy === false);
+}
+
 async function main() {
   const descriptive = resolveUniversalCaseIntake({
     signal: { kind: 'dataset', name: 'Mesa de Ayuda.xlsx' },
@@ -137,12 +144,15 @@ async function main() {
   assert(profiler.includes('macrosExecuted: false'));
   assert(profiler.includes('rawRowsReturned: false'));
 
-  const vercelConfig = JSON.parse(vercel) as { git?: { deploymentEnabled?: boolean } };
-  assert.equal(vercelConfig.git?.deploymentEnabled, false);
+  const vercelConfig = JSON.parse(vercel) as { git?: { deploymentEnabled?: boolean | Record<string, boolean> } };
+  assert(
+    gitDeploymentsDisabled(vercelConfig.git?.deploymentEnabled),
+    'Universal-cycle QA requires Git-triggered Vercel deployments to remain disabled regardless of equivalent config representation',
+  );
 
   console.log(JSON.stringify({
     ok: true,
-    contract: 'SFI-UNIVERSAL-FULL-CYCLE-QA-1.1',
+    contract: 'SFI-UNIVERSAL-FULL-CYCLE-QA-1.2',
     lifecycle: [
       'INTAKE_RESOLUTION',
       'OBSERVATION_HYDRATION',
