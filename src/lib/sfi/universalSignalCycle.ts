@@ -70,6 +70,23 @@ export type UniversalCycleRunOptions = {
   resumeLineageEventId?: string | null;
 };
 
+export type UniversalCycleHistory = {
+  ok: boolean;
+  cycleId: string;
+  state?: 'OPEN' | 'AWAITING_RETURN' | 'RETURN_RECORDED' | 'CALIBRATED' | 'CLOSED';
+  opened?: RecordValue | null;
+  resumptions?: RecordValue[];
+  cognitiveRuns?: RecordValue[];
+  structuredResults?: RecordValue[];
+  aiSyntheses?: RecordValue[];
+  returns?: RecordValue[];
+  returnContrasts?: RecordValue[];
+  closureEnvelopes?: RecordValue[];
+  closures?: RecordValue[];
+  events: RecordValue[];
+  error?: string;
+};
+
 function record(value: unknown): RecordValue {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as RecordValue : {};
 }
@@ -217,7 +234,7 @@ export async function readUniversalOpenCycles(limit = 80) {
   };
 }
 
-export async function readUniversalCycleHistory(cycleId: string) {
+export async function readUniversalCycleHistory(cycleId: string): Promise<UniversalCycleHistory> {
   const db = createServiceSupabaseClient();
   const result = await db.from('epistemic_events')
     .select('sequence,event_id,event_name,epistemic_class,confidence,payload,lineage,occurred_at,hash_prev,hash_self,logbook_id')
@@ -225,7 +242,7 @@ export async function readUniversalCycleHistory(cycleId: string) {
     .order('sequence', { ascending: true })
     .limit(300);
   if (result.error) return { ok: false, cycleId, events: [], error: result.error.message };
-  const events = Array.isArray(result.data) ? result.data : [];
+  const events = (Array.isArray(result.data) ? result.data : []) as RecordValue[];
   const opened = events.find((row) => row.event_name === 'SFI_UNIVERSAL_CYCLE_OPENED') ?? null;
   const resumptions = events.filter((row) => row.event_name === 'SFI_UNIVERSAL_CYCLE_RESUMED');
   const structuredResults = events.filter((row) => row.event_name === 'SFI_STRUCTURED_ANALYSIS_RESULT_RECEIVED');
