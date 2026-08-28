@@ -14,6 +14,7 @@ with source as (
       else 'ACTIVE'
     end as lifecycle_class,
     coalesce(
+      nullif(o.metadata#>>'{hygiene,contentIdentity,hash}',''),
       nullif(o.metadata#>>'{studioAudioEngine,checksumSha256}',''),
       substring(coalesce(o.metadata#>>'{studioAudioEngine,idempotencyKey}','') from '([0-9a-fA-F]{64})'),
       nullif(o.metadata->>'contentHash',''),
@@ -26,7 +27,7 @@ with source as (
       when nullif(o.metadata->>'canonicalState','') is not null then 'IDENTITY_ONLY'
       else 'UNKNOWN'
     end as materialization_state,
-    coalesce(nullif(o.metadata#>>'{objectContextSynthesis,traceId}',''),nullif(o.metadata#>>'{objectContextSynthesis,evidenceTraceId}','')) as trace_id,
+    coalesce(nullif(o.metadata#>>'{hygiene,trace,id}',''),nullif(o.metadata#>>'{objectContextSynthesis,traceId}',''),nullif(o.metadata#>>'{objectContextSynthesis,evidenceTraceId}','')) as trace_id,
     nullif(o.metadata->>'canonicalState','') is not null as canonical_verified
   from public.studio_objects o
 ), prepared as (
@@ -34,7 +35,7 @@ with source as (
     id,
     old_metadata,
     old_metadata || jsonb_build_object(
-      'hygiene', jsonb_build_object(
+      'hygiene', coalesce(old_metadata->'hygiene','{}'::jsonb) || jsonb_build_object(
         'contract','SFI-STUDIO-HYGIENE-1.0',
         'lifecycleClass',lifecycle_class,
         'operationalVisibility',case when lifecycle_class in ('ACTIVE','CANONICAL') then 'VISIBLE_BY_DEFAULT' else 'EXCLUDED_BY_DEFAULT' end,
