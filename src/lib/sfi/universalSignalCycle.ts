@@ -64,6 +64,12 @@ export type UniversalCycleInput = {
   llmAugmentation?: boolean;
 };
 
+export type UniversalCycleRunOptions = {
+  resumeCycleId?: string;
+  resumeReason?: string;
+  resumeLineageEventId?: string | null;
+};
+
 function record(value: unknown): RecordValue {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as RecordValue : {};
 }
@@ -221,6 +227,7 @@ export async function readUniversalCycleHistory(cycleId: string) {
   if (result.error) return { ok: false, cycleId, events: [], error: result.error.message };
   const events = Array.isArray(result.data) ? result.data : [];
   const opened = events.find((row) => row.event_name === 'SFI_UNIVERSAL_CYCLE_OPENED') ?? null;
+  const resumptions = events.filter((row) => row.event_name === 'SFI_UNIVERSAL_CYCLE_RESUMED');
   const structuredResults = events.filter((row) => row.event_name === 'SFI_STRUCTURED_ANALYSIS_RESULT_RECEIVED');
   const cognitiveRuns = events.filter((row) => row.event_name === 'SFI_UNIVERSAL_COGNITIVE_CYCLE_EXECUTED');
   const aiSyntheses = events.filter((row) => row.event_name === 'SFI_UNIVERSAL_AI_SYNTHESIS_COMPLETED');
@@ -242,6 +249,7 @@ export async function readUniversalCycleHistory(cycleId: string) {
             ? 'AWAITING_RETURN'
             : 'OPEN',
     opened,
+    resumptions,
     cognitiveRuns,
     structuredResults,
     aiSyntheses,
@@ -259,7 +267,7 @@ export function matchOpenCycles(objectKey: string, openCycles: Awaited<ReturnTyp
     blocking: sameObject,
     related: [],
     independentCounts: { universal: Math.max(0, openCycles.universal.length - sameObject.length), worldHypotheses: Array.isArray(openCycles.worldHypotheses) ? openCycles.worldHypotheses.length : 0, governanceProposals: openCycles.pendingProposals.length },
-    rule: sameObject.length ? 'An earlier cycle for the same object is still open. Review/close/return it before opening a new cycle, or explicitly continueWithOpenCycles=true.' : 'No blocking open cycle was found for the same object key.',
+    rule: sameObject.length ? 'An earlier cycle for the same object is still open. Resume that cycle when continuing the same methodological question; otherwise close/return it before opening a parallel cycle.' : 'No blocking open cycle was found for the same object key.',
   };
 }
 
@@ -273,9 +281,11 @@ export async function persistUniversalSignal(input: UniversalCycleInput, actorId
   return { signal, event };
 }
 
-export async function runUniversalCognitiveCycle(input: UniversalCycleInput, actorId: string, tenantId: string) {
+export async function runUniversalCognitiveCycle(input: UniversalCycleInput, actorId: string, tenantId: string, options: UniversalCycleRunOptions = {}) {
   const signal = normalizeUniversalSignal(input.signal);
-  const cycleId = randomUUID();
+  const resumeCycleId = text(options.resumeCycleId);
+  const resumed = Boolean(resumeCycleId);
+  const cycleId = resumeCycleId ?? randomUUID();
   const taskId = randomUUID();
   const logbookId = `universal-cycle:${cycleId}`;
   const useWorldContext = requiresWorldContext(input);
@@ -283,6 +293,8 @@ export async function runUniversalCognitiveCycle(input: UniversalCycleInput, act
   const inputContext = record(input.context);
   const acquiredWebEvidence = record(inputContext.acquiredWebEvidence);
   const webEvidenceEventId = text(acquiredWebEvidence.eventId);
+  const hydrationContext = record(inputContext.observationHydration);
+  const hydrationEventId = text(hydrationContext.eventId);
   const context = createKernelContext(cycleId, logbookId, 'SFI_TASK_REQUESTED');
   context.taskId = taskId;
   context.evidence.push({ id: signal.objectHash, source: 'UniversalSignalGateway', confidence: 1, payload: { epistemicClass: 'declared', signal, actorId, tenantId, question: text(input.question), objective: text(input.objective), declaredFunction: text(input.declaredFunction), context: inputContext } });
@@ -294,27 +306,30 @@ export async function runUniversalCognitiveCycle(input: UniversalCycleInput, act
     declaredExclusions: Array.isArray(input.declaredExclusions) ? input.declaredExclusions : [], invariants: Array.isArray(input.invariants) ? input.invariants : [], constraints: Array.isArray(input.constraints) ? input.constraints : [],
     caseContext: inputContext,
     webEvidenceEventId,
+    hydrationEventId,
+    resumedCycle: resumed,
+    resumeReason: text(options.resumeReason),
     worldSpect: worldSnapshot ? snapshotRowToApiData(worldSnapshot) : null, worldContextUsed: useWorldContext, requestedAgents: resolvedAgentPlan.requested, llmAugmentation: input.llmAugmentation === true,
     epistemicBoundary: 'Observed/declaration/derived/inferred/simulated states remain distinct. Rival hypotheses are not collapsed by narrative coherence.',
   };
 
-  const openedLineage = [signal.objectHash, webEvidenceEventId].filter((value): value is string => Boolean(value));
-  const opened = await appendEpistemicEvent({
-    eventName: 'SFI_UNIVERSAL_CYCLE_OPENED', epistemicClass: 'derived', confidence: 1,
-    payload: { cycleId, taskId, objectKey: signal.objectKey, objectHash: signal.objectHash, referenceHash: signal.referenceHash, objectHashBasis: signal.objectHashBasis, actorId, tenantId, question: text(input.question), objective: text(input.objective), methodPlan: methodPlan(input), agentPlan: resolvedAgentPlan, webEvidenceEventId, worldSnapshotId: worldSnapshot?.id ?? null, worldContextUsed: useWorldContext },
-    occurredAt: new Date().toISOString(), source: { sourceId: 'universal_signal_gateway', sourceType: 'cognitive_runtime' }, logbookId, lineage: openedLineage,
+  const lifecycleLineage = [signal.objectHash, hydrationEventId, webEvidenceEventId, text(options.resumeLineageEventId)].filter((value): value is string => Boolean(value));
+  const lifecycleEvent = await appendEpistemicEvent({
+    eventName: resumed ? 'SFI_UNIVERSAL_CYCLE_RESUMED' : 'SFI_UNIVERSAL_CYCLE_OPENED', epistemicClass: 'derived', confidence: 1,
+    payload: { cycleId, taskId, resumed, resumeReason: text(options.resumeReason), objectKey: signal.objectKey, objectHash: signal.objectHash, referenceHash: signal.referenceHash, objectHashBasis: signal.objectHashBasis, actorId, tenantId, question: text(input.question), objective: text(input.objective), methodPlan: methodPlan(input), agentPlan: resolvedAgentPlan, hydrationEventId, webEvidenceEventId, worldSnapshotId: worldSnapshot?.id ?? null, worldContextUsed: useWorldContext },
+    occurredAt: new Date().toISOString(), source: { sourceId: 'universal_signal_gateway', sourceType: resumed ? 'cognitive_runtime_resume' : 'cognitive_runtime' }, logbookId, lineage: lifecycleLineage,
   });
 
   const result = await executeCognitiveCycle(context);
-  const openedEventId = opened.ok ? String(opened.data.event_id) : null;
+  const lifecycleEventId = lifecycleEvent.ok ? String(lifecycleEvent.data.event_id) : null;
   const completedEvent = await appendEpistemicEvent({
     eventName: 'SFI_UNIVERSAL_COGNITIVE_CYCLE_EXECUTED', epistemicClass: 'derived', confidence: result.completed ? 1 : 0.5,
-    payload: { cycleId, taskId, objectKey: signal.objectKey, objectHash: signal.objectHash, referenceHash: signal.referenceHash, objectHashBasis: signal.objectHashBasis, completed: result.completed, executedAgents: result.executedAgents, missingAgents: result.missingAgents, hypotheses: result.context.hypotheses, contradictions: result.context.contradictions, predictions: result.context.predictions, risks: result.context.risks, opportunities: result.context.opportunities, simulations: result.context.simulations, metadata: result.context.metadata },
+    payload: { cycleId, taskId, resumed, objectKey: signal.objectKey, objectHash: signal.objectHash, referenceHash: signal.referenceHash, objectHashBasis: signal.objectHashBasis, completed: result.completed, executedAgents: result.executedAgents, missingAgents: result.missingAgents, hypotheses: result.context.hypotheses, contradictions: result.context.contradictions, predictions: result.context.predictions, risks: result.context.risks, opportunities: result.context.opportunities, simulations: result.context.simulations, metadata: result.context.metadata },
     occurredAt: new Date().toISOString(), source: { sourceId: 'sfi_cognitive_runtime', sourceType: 'cognitive_cycle' }, logbookId,
-    lineage: [signal.objectHash, webEvidenceEventId, openedEventId].filter((value): value is string => Boolean(value)),
+    lineage: [signal.objectHash, hydrationEventId, webEvidenceEventId, lifecycleEventId].filter((value): value is string => Boolean(value)),
   });
 
-  return { signal, cycleId, taskId, logbookId, methodPlan: methodPlan(input), agentPlan: resolvedAgentPlan, worldSnapshot: worldSnapshot ? snapshotRowToApiData(worldSnapshot) : null, result, opened, completedEvent };
+  return { signal, cycleId, taskId, logbookId, resumed, methodPlan: methodPlan(input), agentPlan: resolvedAgentPlan, worldSnapshot: worldSnapshot ? snapshotRowToApiData(worldSnapshot) : null, result, opened: lifecycleEvent, lifecycleEvent, completedEvent };
 }
 
 export async function recordUniversalReturn(input: { cycleId: string; objectKey?: string; outcome: unknown; evidenceRefs?: string[]; classification?: string; notes?: string }, actorId: string, tenantId: string) {
