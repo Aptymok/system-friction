@@ -4,11 +4,12 @@ import { readFile } from 'node:fs/promises';
 async function text(path: string) { return readFile(path, 'utf8'); }
 
 async function main() {
-  const [ledger, route, gate, runtimeProfile, openapiMerge] = await Promise.all([
+  const [ledger, route, gate, runtimeProfile, projectionProfile, openapiMerge] = await Promise.all([
     text('src/lib/sfi/personal/cognitivePatternLedger.ts'),
     text('src/app/api/external/v1/cognitive/route.ts'),
     text('src/core/cognitive-spine/gates/personInstitutionGate.ts'),
     text('src/core/cognitive-spine/profiles/runtimeGeneral.ts'),
+    text('src/core/cognitive-spine/contracts/projectionProfile.ts'),
     text('scripts/merge-openapi-person-ct.mjs'),
   ]);
 
@@ -36,7 +37,12 @@ async function main() {
   assert(gate.includes("input.disposition === 'ADMITTED'"));
   assert(gate.includes('Boolean(canonicalRecordRef)'));
   assert(gate.includes('Boolean(epistemicAssessmentRef)'));
-  assert(runtimeProfile.includes("excludedSourceKinds: ['PERSON_CT']"));
+
+  assert(runtimeProfile.includes("deniedRefKinds: ['PERSON_CT']"), 'runtime projection must explicitly deny PERSON_CT refs');
+  assert(runtimeProfile.includes("personCtInheritance: 'DENIED'"), 'runtime profile must deny PERSON_CT inheritance at field-policy level');
+  assert(!runtimeProfile.match(/allowedRefKinds:\s*\[[\s\S]*?'PERSON_CT'/), 'PERSON_CT must never be allowlisted in runtime general context');
+  assert(projectionProfile.includes('return profile.allowedRefKinds.includes(kind) && !profile.deniedRefKinds.includes(kind)'), 'projection evaluator must enforce deny after allow');
+  assert(projectionProfile.includes('COGNITIVE_SPINE_PROFILE_ALLOW_DENY_OVERLAP'), 'profile validation must reject contradictory allow/deny configuration');
 
   assert(openapiMerge.includes("enum: ['state', 'patterns', 'propose_pattern', 'confirm_pattern', 'reject_pattern', 'run']"));
   assert(openapiMerge.includes("enum: ['COGNITION', 'OBSERVATION']"));
@@ -45,13 +51,15 @@ async function main() {
 
   console.log(JSON.stringify({
     ok: true,
-    contract: 'SFI-PERSON-CT-PATTERN-QA-1.0',
+    contract: 'SFI-PERSON-CT-PATTERN-QA-1.1',
     invariants: {
       cognitionObservationSeparated: true,
       inferredPatternNeedsRecurrence: true,
       supportMustBeOwned: true,
       runDoesNotAutoLearnPattern: true,
       userResolutionRequired: true,
+      runtimeProjectionDeniesPersonCt: true,
+      projectionDenyOverridesAllow: true,
       personCtInstitutionalInheritance: false,
     },
   }, null, 2));
