@@ -6,6 +6,14 @@ async function text(path: string) {
   return readFile(path, 'utf8');
 }
 
+function gitDeploymentsDisabled(value: unknown) {
+  if (value === false) return true;
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const policy = value as Record<string, unknown>;
+  if (policy['*'] !== false) return false;
+  return Object.values(policy).every((branchPolicy) => branchPolicy === false);
+}
+
 async function main() {
   const referenceOnly = evaluateUniversalAnalysisSufficiency({
     signal: {
@@ -94,12 +102,15 @@ async function main() {
   assert(profiler.includes('rawRowsReturned: false'), 'dataset worker must not return raw rows');
   assert(profiler.includes('piiDistributionSuppression: true'), 'dataset profiling must suppress sensitive distributions');
 
-  const vercelConfig = JSON.parse(vercel) as { git?: { deploymentEnabled?: boolean } };
-  assert.equal(vercelConfig.git?.deploymentEnabled, false, 'Git commits/PRs must not trigger Vercel deployments');
+  const vercelConfig = JSON.parse(vercel) as { git?: { deploymentEnabled?: boolean | Record<string, boolean> } };
+  assert(
+    gitDeploymentsDisabled(vercelConfig.git?.deploymentEnabled),
+    'Git commits/PRs must not trigger Vercel deployments; boolean false or an all-false wildcard branch policy are accepted representations',
+  );
 
   console.log(JSON.stringify({
     ok: true,
-    contract: 'SFI-INGESTION-EPISTEMIC-BOUNDARY-1.1',
+    contract: 'SFI-INGESTION-EPISTEMIC-BOUNDARY-1.2',
     datasetReferenceOnlyBlocked: true,
     materialProfileRequired: true,
     persistedObservationHydration: true,
