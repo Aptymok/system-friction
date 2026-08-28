@@ -94,6 +94,7 @@ export default async function ObservatoryReportReaderPage({ params, searchParams
   const abstract = text(payload.executiveAbstract);
   const limitations = Array.isArray(payload.limitations) ? payload.limitations : [];
   const orderedSections = Object.entries(sections).sort(([a], [b]) => a.localeCompare(b));
+  const nextGate = text(payload.nextGate) || (envelope.case.status === 'AWAITING_GOVERNANCE' ? 'GOVERNANCE_REVIEW' : 'n/d');
 
   return (
     <main className="obsReportsShell">
@@ -113,7 +114,7 @@ export default async function ObservatoryReportReaderPage({ params, searchParams
         <section className="obsReportGate">
           <div>
             <strong>{published ? 'PUBLICATION STATE · PUBLISHED' : 'PUBLICATION STATE · NOT PUBLISHED'}</strong>
-            <p>{published ? 'The persisted report marks itself as published.' : 'This is an internal report reader. Visibility here does not grant publication, institutional admission, accepted evidence or ROOT approval.'}</p>
+            <p>{published ? 'The persisted report marks itself as published.' : `This is an internal report reader. Visibility here does not grant publication, institutional admission, accepted evidence or ROOT approval. Next gate: ${nextGate}.`}</p>
           </div>
           <div className="obsReportBadges">
             <span className={`obsReportBadge ${published ? 'good' : 'warn'}`}>{published ? 'PUBLISHED' : 'GOVERNANCE REQUIRED'}</span>
@@ -132,6 +133,7 @@ export default async function ObservatoryReportReaderPage({ params, searchParams
           <div><small>CASE</small><code>{envelope.case.id}</code></div>
           <div><small>SERVICE PROFILE</small><span>{envelope.case.serviceProfileId}</span></div>
           <div><small>STATUS</small><span>{envelope.case.status}</span></div>
+          <div><small>NEXT GATE</small><span>{nextGate}</span></div>
           <div><small>DETERMINABILITY</small><span>{envelope.case.uncertainty.determinability}</span></div>
           <div><small>RELEASE MODE</small><span>{text(payload.releaseMode) || 'n/d'}</span></div>
           <div><small>REPORT STATUS</small><span>{text(payload.status) || report.epistemicRole}</span></div>
