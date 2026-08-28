@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { NextResponse } from 'next/server';
 import { authorizeExternalRequest, externalAuthError } from '@/lib/sfi/externalAuth';
+import { resolveCasePlatformCreationIntake } from '@/lib/sfi/caseIntakeResolver';
 import {
   createOperationalCase,
   listOperationalCases,
@@ -24,11 +25,11 @@ export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 type Row = Record<string, unknown>;
-type Operation = 'list' | 'read' | 'create' | 'add_source' | 'add_object' | 'transition' | 'reports';
+type Operation = 'list' | 'read' | 'intake_plan' | 'create' | 'add_source' | 'add_object' | 'transition' | 'reports';
 
 type SourceInput = Parameters<typeof normalizeAndRegisterOperationalCaseSource>[0]['source'];
 
-const READ_OPERATIONS = new Set<Operation>(['list', 'read', 'reports']);
+const READ_OPERATIONS = new Set<Operation>(['list', 'read', 'reports', 'intake_plan']);
 const WRITE_OPERATIONS = new Set<Operation>(['create', 'add_source', 'add_object', 'transition']);
 const SAFE_OBJECT_KINDS = new Set<SfiCaseObjectKind>([
   'RECORD',
@@ -131,6 +132,21 @@ export async function POST(request: Request) {
       });
     }
 
+    if (operation === 'intake_plan') {
+      const draft = row(body.draft);
+      const intakePlan = resolveCasePlatformCreationIntake(draft);
+      return NextResponse.json({
+        ok: true,
+        operation,
+        intakePlan,
+        readyForCreate: intakePlan.readyForCreate,
+        next: intakePlan.readyForCreate
+          ? 'Submit the same resolved draft using operation=create.'
+          : 'Ask only intakePlan.questions that remain unresolved, merge the answers into draft, then call intake_plan again.',
+        epistemicBoundary: 'Pre-case intake resolves missing context only. It creates no case, evidence, memory, proposal, intervention or truth claim.',
+      });
+    }
+
     if (operation === 'read') {
       const caseId = requireCaseId(body);
       return NextResponse.json({ ok: true, operation, ...(await readOperationalCase(caseId, userId)) });
@@ -142,13 +158,20 @@ export async function POST(request: Request) {
     }
 
     if (operation === 'create') {
+      const intakePlan = resolveCasePlatformCreationIntake(body);
+      if (!intakePlan.readyForCreate) {
+        return NextResponse.json({
+          ok: false,
+          error: 'case_intake_incomplete',
+          intakePlan,
+          instruction: 'Resolve only the missing fields returned by intakePlan before creating the case.',
+        }, { status: 409 });
+      }
       const serviceProfileId = text(body.serviceProfileId) as SfiServiceProfileId;
       const subject = text(body.subject);
       const scopeText = text(body.scope);
-      if (!serviceProfileId || !subject || !scopeText) throw new Error('SFI_CASE_CREATE_REQUIRED_FIELDS');
       const temporal = row(body.temporalWindow);
       const cutoff = text(temporal.cutoff);
-      if (!cutoff) throw new Error('SFI_CASE_TEMPORAL_CUTOFF_REQUIRED');
       const caseRecord = await createOperationalCase({
         userId,
         tenantId: nullableText(body.tenantId),
@@ -172,6 +195,7 @@ export async function POST(request: Request) {
         ok: true,
         operation,
         case: caseRecord,
+        intakePlan,
         epistemicBoundary: 'Case creation does not create evidence, institutional memory, ROOT authority or canonical truth.',
       }, { status: 201 });
     }
