@@ -2,7 +2,7 @@
   "id": "SFI-MAIN-CONVERGENCE-2026-08-27",
   "target": "main-only",
   "vercel": "disabled-during-convergence",
-  "branch_policy": "audit-before-delete",
+  "branch_policy": "audit-review-before-delete",
   "pr_policy": "one-convergence-pr-no-other-open-prs",
   "runtime_focus": [
     "governance-to-queue truth",
@@ -10,5 +10,151 @@
     "executor assignment",
     "remediation lineage",
     "observed return and executed_at"
-  ]
+  ],
+  "reviewedDeltas": {
+    "249f070dd01909fe": {
+      "decision": "SUPERSEDED_BY_LATER_MAIN",
+      "branches": ["agent/ct-sfi-integration-final"],
+      "evidence": ["PR #208 closed unmerged", "current main contains later ROOT ACP total-convergence and operate-cycle verification"],
+      "reason": "Old CT integration tail delta is narrower than and superseded by the later canonical ACP/CT convergence now verified in main."
+    },
+    "9eff1fcea9040320": {
+      "decision": "DIAGNOSTIC_ONLY",
+      "branches": ["agent/db-audit-run"],
+      "evidence": ["only .github/workflows/db-audit-run.yml differs", "no production writer/runtime surface"],
+      "reason": "One-off database audit workflow is diagnostic scaffolding, not a capability to preserve as a branch."
+    },
+    "c34da7a3440e077d": {
+      "decision": "SUPERSEDED_BY_LATER_MAIN",
+      "branches": ["agent/historical-reconstruction-clean-genesis"],
+      "evidence": ["PR #210 closed unmerged", "later main clean-start/reset safety and final-closure gates cover genesis/reset semantics"],
+      "reason": "Historical reconstruction branch predates the later canonical clean-start and continuity closure now in main."
+    },
+    "9fb169ded2621a1b": {
+      "decision": "SUPERSEDED_BY_LATER_MAIN",
+      "branches": ["agent/home-experiential-router"],
+      "evidence": ["PR #247 closed unmerged", "current main institutional surface/navigation evolved after this alternate homepage router"],
+      "reason": "Alternate homepage/navigation implementation is no longer the canonical institutional surface."
+    },
+    "ebbbd92ee641b45e": {
+      "decision": "DUPLICATE_ALTERNATE",
+      "branches": ["agent/root-semantic-inspector-report-guidance-copy", "agent/root-semantic-inspector-report-guidance-qa"],
+      "evidence": ["identical reviewKey/head family", "base family agent/root-semantic-inspector-report-guidance is already absorbed by main audit"],
+      "reason": "Duplicate QA/copy heads add no unique canonical capability beyond the absorbed semantic-inspector family."
+    },
+    "7de1c156536c74a0": {
+      "decision": "SUPERSEDED_BY_LATER_MAIN",
+      "branches": ["agent/sfi-cinematic-surfaces-final", "agent/sfi-cinematic-surfaces-v1", "agent/sfi-cinematic-surfaces-v1a", "agent/sfi-final-cinematic-ux", "agent/sfi-final-surfaces-cinematic", "agent/sfi-studio-final-cinematic", "agent/sfi-studio-final-cinematic-v2"],
+      "evidence": ["seven branch names share one identical delta family", "current main SFI System and AI Assurance Domain V1 gate passes as canonical owner"],
+      "reason": "Repeated cinematic branch aliases carry an older assurance-domain patch family already replaced by the canonical System+AI Assurance implementation in main."
+    },
+    "2c7a3c1c6a807fe6": {
+      "decision": "SUPERSEDED_BY_LATER_MAIN",
+      "branches": ["agent/sfi-clients-enterprise-continuity"],
+      "evidence": ["PR #259 closed unmerged", "current main Case Platform/service-profile surfaces provide the maintained client continuity path"],
+      "reason": "Old client-navigation delta is not the canonical Case Platform surface."
+    },
+    "d094d9383cd6749d": {
+      "decision": "SUPERSEDED_BY_LATER_MAIN",
+      "branches": ["agent/sfi-cognitive-spine-decision-transfer-boundary"],
+      "evidence": ["PR #230 closed unmerged", "main verifies Decision Transfer operational wiring, blind reconstruction, canonical context and target timing"],
+      "reason": "Pre-Phase2 Decision Transfer boundary was overtaken by the later multi-gate Decision Transfer implementation."
+    },
+    "5cae0672476188dd": {
+      "decision": "SUPERSEDED_BY_LATER_MAIN",
+      "branches": ["agent/sfi-cognitive-spine-root"],
+      "evidence": ["PR #229 closed unmerged", "later ROOT/Cognitive Spine integrations and PR #295 are merged into main"],
+      "reason": "Earlier sealed ROOT context implementation is superseded by the current Cognitive Spine/ROOT contracts."
+    },
+    "b1f99e549c988ccb": {
+      "decision": "REJECTED_ALTERNATE_IMPLEMENTATION",
+      "branches": ["agent/sfi-ux-cinematic-final"],
+      "evidence": ["PR #246 closed unmerged after 72 commits", "current main contains later narrower Case Platform, Observatory, Studio, ROOT and assurance owners"],
+      "reason": "Large monolithic alternate UX is intentionally not merged; useful concepts were decomposed into later canonical owners. Reintroducing the branch would overwrite later architecture."
+    },
+    "8ffec0d56f80202b": {
+      "decision": "ARCHIVED",
+      "branches": ["archive/ct-decision-transfer-pre-phase2"],
+      "evidence": ["branch is explicitly archive/*", "later Phase2 Decision Transfer gates exist in main"],
+      "reason": "Historical pre-Phase2 research snapshot is provenance, not an active branch to retain."
+    },
+    "1853b8890ca62fbf": {
+      "decision": "ABSORBED_BY_MERGED_MAIN",
+      "branches": ["close/cognitive-automation-personal-workspaces"],
+      "evidence": ["merged PR #298 Integrate OAuth personal workspaces and retire duplicate runtime", "PR #298 preserves owner-scoped cognitive/personal-lab endpoints and retires duplicate runtime"],
+      "reason": "The recent closure branch intent is materially absorbed by merged PR #298 and current OAuth/runtime owners."
+    },
+    "92a9620aafc89d1d": {
+      "decision": "ABSORBED_BY_MERGED_MAIN",
+      "branches": ["feat/cognitive-spine-park-live"],
+      "evidence": ["PR #290 closed unmerged", "merged PR #295 carries Cognitive Spine responsive approved-art presentation plus governed runtime/workboard semantics"],
+      "reason": "Useful live-park presentation/runtime intent was absorbed in the later merged Cognitive Spine convergence without retaining the stale branch."
+    },
+    "e313a876a16b72d8": {
+      "decision": "SUPERSEDED_BY_LATER_MAIN",
+      "branches": ["feat/ct-decision-structure-transfer-benchmark"],
+      "evidence": ["PR #213 closed unmerged", "later Decision Transfer experiment phases and QA are canonical in main"],
+      "reason": "Early benchmark implementation is superseded by later Decision Transfer phases."
+    },
+    "3fb569c8c6f29661": {
+      "decision": "EXPLICITLY_SUPERSEDED",
+      "branches": ["feat/ct-decision-structure-transfer-current"],
+      "evidence": ["PR #214 title explicitly marked SUPERSEDED"],
+      "reason": "Repository history already declares this benchmark branch superseded."
+    },
+    "fa8eeeb9fb41de82": {
+      "decision": "SUPERSEDED_BY_LATER_MAIN",
+      "branches": ["feat/ct-reentry-surface-lenses"],
+      "evidence": ["PR #286 closed unmerged", "clean successor PR #287 was itself rejected for architecture debt and execution was rebuilt in merged PR #291"],
+      "reason": "First surface-lenses implementation is doubly superseded by its clean successor and then the canonical governed execution router."
+    },
+    "4b651cc11e7ee655": {
+      "decision": "REJECTED_ARCHITECTURE",
+      "branches": ["feat/ct-reentry-surface-lenses-clean"],
+      "evidence": ["PR #287 states CLOSED WITHOUT MERGE after canonical architecture audit", "PR #287 explicitly says no code from it should be treated as deployed", "merged PR #291 rebuilt governed routing/self-healing from current main"],
+      "reason": "This implementation contains known architecture debt; its valid intent was rebuilt through canonical owners and must not be resurrected."
+    },
+    "7dbcdc2cc3e757c5": {
+      "decision": "SUPERSEDED_BY_LATER_MAIN",
+      "branches": ["feat/phase2-dt-instrument-freeze"],
+      "evidence": ["PR #220 closed unmerged", "main contains later Decision Transfer operational, blind reconstruction, context materialization, target timing and final freeze verification"],
+      "reason": "Intermediate Phase2 freeze branch is superseded by the completed later sequence now in main."
+    },
+    "8f9cdcfd70f7b696": {
+      "decision": "SUPERSEDED_BY_LATER_MAIN",
+      "branches": ["feature/root-attention-director"],
+      "evidence": ["PR #155 closed against an older feature base", "current main ROOT workboard/attention/operational runtime is later and canonical"],
+      "reason": "Early attention-director branch predates the current ROOT architecture and must not overwrite it."
+    },
+    "cfcf21ed6342f7fd": {
+      "decision": "ABSORBED_BY_MERGED_MAIN",
+      "branches": ["fix/acp-root-proposal-visibility"],
+      "evidence": ["PR #268 closed unmerged", "merged PR #298 explicitly states #268 is stale and carries forward only the current-compatible reviewer-identity repair"],
+      "reason": "The real degraded-governance visibility repair was intentionally absorbed into PR #298 while stale authority assumptions were discarded."
+    },
+    "4291f3f75875e496": {
+      "decision": "SUPERSEDED_BY_LATER_MAIN",
+      "branches": ["fix/llm-surface-convergence"],
+      "evidence": ["PR #198 closed unmerged", "merged PR #295 establishes the current capability-routed provider pool and health/canary model"],
+      "reason": "Old provider retry/surface convergence predates the canonical capability-based provider router."
+    },
+    "e97a2f155215096a": {
+      "decision": "SUPERSEDED_BY_LATER_MAIN",
+      "branches": ["obs-cinematic-field-20260821"],
+      "evidence": ["PR #263 closed unmerged", "current main Observatory has later provenance/read paths and merged report reader #309"],
+      "reason": "Old visual Observatory field is not the maintained Observatory implementation."
+    },
+    "e9a662d2c36ff1f4": {
+      "decision": "TEMPORARY_QA_ONLY",
+      "branches": ["qa/oauth-studio-edwing-validation"],
+      "evidence": ["PR #296 closed", "delta is a QA trigger/validation marker rather than product capability"],
+      "reason": "Temporary validation branch has no runtime capability to preserve."
+    },
+    "5b2b2fda760e35fd": {
+      "decision": "TEMPORARY_QA_ONLY",
+      "branches": ["tmp/universal-signal-typecheck"],
+      "evidence": ["PR #266/#267 closed", "delta is TYPECHECK/trigger scaffolding"],
+      "reason": "Temporary typecheck branch is disposable after its validation history is retained in PR records."
+    }
+  }
 }
