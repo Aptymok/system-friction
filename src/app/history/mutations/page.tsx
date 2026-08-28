@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic';
 const STAGE_LABEL: Record<string, string> = {
   CODE_RECORDED: 'CODE RECORDED',
   QA_VERIFIED: 'QA VERIFIED',
-  DEPLOYED: 'DEPLOYED',
+  DEPLOYMENT_EVIDENCE_RECORDED: 'DEPLOYMENT EVIDENCE RECORDED',
   EXERCISED: 'EXERCISED',
   CALIBRATED_LEARNING_LINKED: 'CALIBRATED LEARNING LINKED',
 };
@@ -20,7 +20,7 @@ export default async function MutationHistoryPage() {
           <div>
             <small style={{letterSpacing:'.28em',color:'#b78d50'}}>SYSTEM FRICTION INSTITUTE · MUTATION EVIDENCE</small>
             <h1 style={{fontSize:'clamp(42px,7vw,88px)',fontWeight:400,letterSpacing:'-.03em',margin:'14px 0 10px',color:'#e7cf9c'}}>CODE → RETURN</h1>
-            <p style={{maxWidth:860,fontSize:18,lineHeight:1.7,color:'#b9aa8e'}}>Cada entrada distingue la mutación del repositorio de su validación posterior. Un commit demuestra que el código cambió; QA, deployment, ejercicio real y aprendizaje calibrado requieren evidencias adicionales.</p>
+            <p style={{maxWidth:860,fontSize:18,lineHeight:1.7,color:'#b9aa8e'}}>Cada entrada distingue la mutación del repositorio de su validación posterior. Un commit demuestra que el código cambió; QA, evidencia de deployment, ejercicio real y aprendizaje calibrado requieren evidencias adicionales.</p>
           </div>
           <Link href="/history" style={{color:'#d5ad69',textDecoration:'none',letterSpacing:'.15em',fontSize:12}}>← HISTORY</Link>
         </header>
@@ -28,7 +28,7 @@ export default async function MutationHistoryPage() {
         <section style={{marginTop:32,padding:'18px 20px',border:'1px solid rgba(202,160,92,.25)',background:'rgba(191,139,65,.035)'}}>
           <small style={{letterSpacing:'.22em',color:'#b78d50'}}>VALIDATION CHAIN</small>
           <div style={{display:'flex',flexWrap:'wrap',gap:8,marginTop:14}}>
-            {['CODE_RECORDED','QA_VERIFIED','DEPLOYED','EXERCISED','CALIBRATED_LEARNING_LINKED'].map((stage, index) => (
+            {['CODE_RECORDED','QA_VERIFIED','DEPLOYMENT_EVIDENCE_RECORDED','EXERCISED','CALIBRATED_LEARNING_LINKED'].map((stage, index) => (
               <span key={stage} style={{border:'1px solid rgba(202,160,92,.22)',padding:'9px 11px',fontFamily:'ui-monospace, monospace',fontSize:10,color:'#c5aa79'}}>{String(index+1).padStart(2,'0')} · {STAGE_LABEL[stage]}</span>
             ))}
           </div>
@@ -51,7 +51,7 @@ export default async function MutationHistoryPage() {
                 </div>
                 <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(140px,1fr))',gap:10,marginTop:18}}>
                   <div><small style={{color:'#806c4d'}}>QA</small><div style={{fontFamily:'ui-monospace, monospace'}}>{mutation.qaCount}</div></div>
-                  <div><small style={{color:'#806c4d'}}>DEPLOY</small><div style={{fontFamily:'ui-monospace, monospace'}}>{mutation.deploymentCount}</div></div>
+                  <div><small style={{color:'#806c4d'}}>DEPLOY EVIDENCE</small><div style={{fontFamily:'ui-monospace, monospace'}}>{mutation.deploymentCount}</div></div>
                   <div><small style={{color:'#806c4d'}}>EXERCISE</small><div style={{fontFamily:'ui-monospace, monospace'}}>{mutation.exerciseCount}</div></div>
                   <div><small style={{color:'#806c4d'}}>LEARNING LINK</small><div style={{fontFamily:'ui-monospace, monospace'}}>{mutation.learningLinkCount}</div></div>
                 </div>
