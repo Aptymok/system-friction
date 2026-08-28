@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { authorizeExternalRequest, externalActor, externalAuthError } from '@/lib/sfi/externalAuth';
+import { evaluateUniversalAnalysisSufficiency } from '@/lib/sfi/epistemicSufficiency';
 import {
   buildClarifyingQuestions,
   closeUniversalCycle,
@@ -103,6 +104,8 @@ export async function POST(req: Request) {
   const normalizedSignal = normalizeUniversalSignal(input.signal);
   const cycleGate = matchOpenCycles(normalizedSignal.objectKey, openCycles);
   const clarifyingQuestions = buildClarifyingQuestions(input);
+  const sufficiency = evaluateUniversalAnalysisSufficiency(input);
+  const cycleBlocked = cycleGate.blocking.length > 0 && body.continueWithOpenCycles !== true;
 
   if (operation === 'intake') {
     const persisted = await persistUniversalSignal(input, actorId, tenantId);
@@ -115,20 +118,36 @@ export async function POST(req: Request) {
       eventId: persisted.event.ok ? String(persisted.event.data.event_id ?? '') : null,
       event: persisted.event.ok ? persisted.event.data : persisted.event,
       clarifyingQuestions,
-      readyForRun: clarifyingQuestions.length === 0,
+      sufficiency,
+      readyForRun: clarifyingQuestions.length === 0 && sufficiency.status === 'READY' && !cycleBlocked,
       cycleGate,
       methodPlan: contract.methodPlan,
       agentPlan: contract.agentPlan,
       next: clarifyingQuestions.length
-        ? 'Ask only unresolved clarifying questions, then call operation=run.'
-        : cycleGate.blocking.length && body.continueWithOpenCycles !== true
-          ? 'Review blocking open cycles. Record return/close them, or explicitly set continueWithOpenCycles=true.'
-          : 'Call operation=run to execute the governed cognitive cycle.',
+        ? 'Ask only unresolved clarifying questions, then re-evaluate intake readiness.'
+        : sufficiency.status === 'BLOCKED'
+          ? `Material observation is required before analysis. Satisfy: ${sufficiency.missingObservations.join(', ')} using ${sufficiency.requiredCapabilities.join(', ')}.`
+          : cycleBlocked
+            ? 'Review blocking open cycles. Record return/close them, or explicitly set continueWithOpenCycles=true.'
+            : 'Call operation=run to execute the governed cognitive cycle.',
     }, { status: persisted.event.ok ? 201 : 500 });
   }
 
-  if (clarifyingQuestions.length) return NextResponse.json({ ok: false, error: 'clarification_required', operation, signal: normalizedSignal, clarifyingQuestions, methodPlan: contract.methodPlan, agentPlan: contract.agentPlan, cycleGate }, { status: 409 });
-  if (cycleGate.blocking.length && body.continueWithOpenCycles !== true) return NextResponse.json({ ok: false, error: 'open_cycle_review_required', operation, signal: normalizedSignal, cycleGate, instruction: 'Close or record return for the same-object cycle before opening another one, unless the user explicitly chooses to continue in parallel.' }, { status: 409 });
+  if (clarifyingQuestions.length) return NextResponse.json({ ok: false, error: 'clarification_required', operation, signal: normalizedSignal, clarifyingQuestions, sufficiency, methodPlan: contract.methodPlan, agentPlan: contract.agentPlan, cycleGate }, { status: 409 });
+  if (sufficiency.status === 'BLOCKED') {
+    return NextResponse.json({
+      ok: false,
+      error: 'insufficient_object_observation',
+      operation,
+      signal: normalizedSignal,
+      sufficiency,
+      methodPlan: contract.methodPlan,
+      agentPlan: contract.agentPlan,
+      cycleGate,
+      instruction: 'Acquire/extract the source object and supply deterministic material observations before executing a substantive cognitive cycle.',
+    }, { status: 409 });
+  }
+  if (cycleBlocked) return NextResponse.json({ ok: false, error: 'open_cycle_review_required', operation, signal: normalizedSignal, sufficiency, cycleGate, instruction: 'Close or record return for the same-object cycle before opening another one, unless the user explicitly chooses to continue in parallel.' }, { status: 409 });
 
   const persisted = await persistUniversalSignal(input, actorId, tenantId);
   if (!persisted.event.ok) return NextResponse.json(persisted.event, { status: 500 });
@@ -142,6 +161,7 @@ export async function POST(req: Request) {
       actor: actorId,
       tenantId,
       signal: cycle.signal,
+      sufficiency,
       intakeEventId: String(persisted.event.data.event_id ?? ''),
       intakeEvent: persisted.event.data,
       cycle: { cycleId: cycle.cycleId, taskId: cycle.taskId, logbookId: cycle.logbookId, completed: cycle.result.completed, executedAgents: cycle.result.executedAgents, missingAgents: cycle.result.missingAgents },
