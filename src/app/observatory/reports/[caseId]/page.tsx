@@ -69,6 +69,7 @@ export default async function ObservatoryReportReaderPage({ params, searchParams
     notFound();
   }
 
+  const caseRecord = envelope.caseRecord;
   const reports = envelope.objects
     .filter((object) => object.kind === 'REPORT')
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
@@ -90,11 +91,11 @@ export default async function ObservatoryReportReaderPage({ params, searchParams
   const governanceCount = envelope.objects.filter((object) => object.kind === 'GOVERNANCE_DECISION').length;
   const truthClaimCount = envelope.objects.filter((object) => object.epistemicRole === 'TRUTH_CLAIM').length;
   const title = text(payload.title) || report.canonicalRef.id;
-  const subtitle = text(payload.subtitle) || envelope.case.subject;
+  const subtitle = text(payload.subtitle) || caseRecord.subject;
   const abstract = text(payload.executiveAbstract);
   const limitations = Array.isArray(payload.limitations) ? payload.limitations : [];
   const orderedSections = Object.entries(sections).sort(([a], [b]) => a.localeCompare(b));
-  const nextGate = text(payload.nextGate) || (envelope.case.status === 'AWAITING_GOVERNANCE' ? 'GOVERNANCE_REVIEW' : 'n/d');
+  const nextGate = text(payload.nextGate) || (caseRecord.status === 'AWAITING_GOVERNANCE' ? 'GOVERNANCE_REVIEW' : 'n/d');
 
   return (
     <main className="obsReportsShell">
@@ -118,8 +119,8 @@ export default async function ObservatoryReportReaderPage({ params, searchParams
           </div>
           <div className="obsReportBadges">
             <span className={`obsReportBadge ${published ? 'good' : 'warn'}`}>{published ? 'PUBLISHED' : 'GOVERNANCE REQUIRED'}</span>
-            <span className="obsReportBadge">{envelope.case.status}</span>
-            <span className="obsReportBadge">{envelope.case.uncertainty.determinability}</span>
+            <span className="obsReportBadge">{caseRecord.status}</span>
+            <span className="obsReportBadge">{caseRecord.uncertainty.determinability}</span>
           </div>
         </section>
 
@@ -130,15 +131,15 @@ export default async function ObservatoryReportReaderPage({ params, searchParams
         </section>
 
         <section className="obsReportMeta">
-          <div><small>CASE</small><code>{envelope.case.id}</code></div>
-          <div><small>SERVICE PROFILE</small><span>{envelope.case.serviceProfileId}</span></div>
-          <div><small>STATUS</small><span>{envelope.case.status}</span></div>
+          <div><small>CASE</small><code>{caseRecord.id}</code></div>
+          <div><small>SERVICE PROFILE</small><span>{caseRecord.serviceProfileId}</span></div>
+          <div><small>STATUS</small><span>{caseRecord.status}</span></div>
           <div><small>NEXT GATE</small><span>{nextGate}</span></div>
-          <div><small>DETERMINABILITY</small><span>{envelope.case.uncertainty.determinability}</span></div>
+          <div><small>DETERMINABILITY</small><span>{caseRecord.uncertainty.determinability}</span></div>
           <div><small>RELEASE MODE</small><span>{text(payload.releaseMode) || 'n/d'}</span></div>
           <div><small>REPORT STATUS</small><span>{text(payload.status) || report.epistemicRole}</span></div>
-          <div><small>SOURCE CUTOFF</small><span>{envelope.case.temporalWindow.cutoff}</span></div>
-          <div><small>RECONSTRUCTED AS OF</small><span>{envelope.case.temporalWindow.reconstructionAsOf || 'n/d'}</span></div>
+          <div><small>SOURCE CUTOFF</small><span>{caseRecord.temporalWindow.cutoff}</span></div>
+          <div><small>RECONSTRUCTED AS OF</small><span>{caseRecord.temporalWindow.reconstructionAsOf || 'n/d'}</span></div>
           <div><small>CASE OBJECTS</small><span>{envelope.objects.length}</span></div>
           <div><small>SOURCE REFS</small><span>{report.sourceRefs.length || sources.length}</span></div>
           <div><small>ACCEPTED EVIDENCE OBJECTS</small><span>{evidenceCount}</span></div>
@@ -191,7 +192,7 @@ export default async function ObservatoryReportReaderPage({ params, searchParams
 
         <footer className="obsReportFooter">
           <span>EPISTEMIC ROLE: {report.epistemicRole}</span>
-          <span>INSTITUTIONAL ADMISSION: {text(payload.institutionalAdmission) || envelope.case.governance.institutionalAdmission}</span>
+          <span>INSTITUTIONAL ADMISSION: {text(payload.institutionalAdmission) || caseRecord.governance.institutionalAdmission}</span>
           <span>UPDATED FROM PERSISTED CASE STATE</span>
         </footer>
       </article>
