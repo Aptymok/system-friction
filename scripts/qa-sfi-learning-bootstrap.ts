@@ -85,7 +85,10 @@ async function main() {
 
   assert(bootstrapRoute.includes("authorizeExternalRequest(req, 'observe')"));
   assert(bootstrapRoute.includes('X-SFI-Capsule-Hash'));
-  assert(bootstrapRoute.includes('must not silently substitute an unversioned persona prompt'));
+  assert(bootstrapRoute.includes("error: 'sfi_cognitive_bootstrap_failed'"));
+  assert(bootstrapRoute.includes("instruction: 'Do not silently substitute an unversioned persona prompt."));
+  assert(bootstrapRoute.includes('retry the governed bootstrap surface when available'));
+  assert(bootstrapRoute.includes('{ status: 503 }'));
 
   const manifestVersion = manifest.match(/version:\s*'([^']+)'/)?.[1] ?? null;
   assert(manifestVersion && /^\d+\.\d+\.\d+$/.test(manifestVersion), 'external manifest must expose a semantic release version');
@@ -97,7 +100,7 @@ async function main() {
 
   console.log(JSON.stringify({
     ok: true,
-    contract: 'SFI-LEARNING-BOOTSTRAP-QA-1.2',
+    contract: 'SFI-LEARNING-BOOTSTRAP-QA-1.3',
     manifestVersion,
     invariants: {
       structuredResultIsLearning: false,
@@ -113,6 +116,7 @@ async function main() {
       bootstrapUsesSealedSpineSnapshot: true,
       bootstrapConsumesPromotedLearningOnly: true,
       priorContextIsNewObservation: false,
+      bootstrapFailureFailsClosed: true,
       personCtInheritedByBootstrap: false,
     },
   }, null, 2));
