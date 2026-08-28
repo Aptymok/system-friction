@@ -1,0 +1,14 @@
+{
+  "id": "SFI-MAIN-CONVERGENCE-2026-08-27",
+  "target": "main-only",
+  "vercel": "disabled-during-convergence",
+  "branch_policy": "audit-before-delete",
+  "pr_policy": "one-convergence-pr-no-other-open-prs",
+  "runtime_focus": [
+    "governance-to-queue truth",
+    "execution classification",
+    "executor assignment",
+    "remediation lineage",
+    "observed return and executed_at"
+  ]
+}
