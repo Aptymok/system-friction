@@ -54,7 +54,7 @@ async function main() {
   const sufficiencyIndex = signalRoute.indexOf('evaluateUniversalAnalysisSufficiency(input)');
   const webIndex = signalRoute.indexOf('acquireUniversalWebEvidence(input');
   const runtimeIndex = signalRoute.indexOf('runUniversalCognitiveCycle(preparedInput');
-  const synthesisIndex = signalRoute.indexOf('synthesizeUniversalCycleWithAi');
+  const synthesisIndex = signalRoute.indexOf('await synthesizeUniversalCycleWithAi({');
   assert(hydrationIndex >= 0 && hydrationIndex < sufficiencyIndex, 'material hydration must precede sufficiency');
   assert(sufficiencyIndex >= 0 && sufficiencyIndex < webIndex, 'object sufficiency must precede external evidence acquisition');
   assert(webIndex >= 0 && webIndex < runtimeIndex, 'required web evidence must be acquired before cognitive execution');
@@ -64,9 +64,12 @@ async function main() {
   assert(signalRoute.includes("error: 'insufficient_object_observation'"));
   assert(signalRoute.includes("error: 'required_web_evidence_unavailable'"));
   assert(signalRoute.includes("error: 'methodological_closure_incomplete'"));
+  assert(signalRoute.includes("error: 'resume_cycle_invalid'"));
   assert(signalRoute.includes('contrastLatestUniversalReturn'));
   assert(signalRoute.includes('SFI_UNIVERSAL_CLOSURE_ENVELOPE_ACCEPTED'));
   assert(signalRoute.includes('body.aiSynthesis !== false'), 'one bounded end-of-cycle AI synthesis should be default-on');
+  assert(signalRoute.includes('resumeCycleId: resumeValidation.cycleId ?? undefined'), 'same methodological question must be resumable on the original cycle id');
+  assert(signalRoute.includes('suggestedResumeCycleId'), 'intake should expose the existing same-object cycle instead of forcing a parallel run');
   assert(!signalRoute.includes('closeUniversalCycle({\n      cycleId: cycle.cycleId'), 'run must never auto-close its own cycle');
 
   assert(casesRoute.includes("'intake_plan'"), 'external Case Platform must expose pre-case questions to GPT/AI clients');
@@ -76,6 +79,10 @@ async function main() {
   assert(cycle.includes("selectionMode: requestedValid.length ? 'EXPLICIT' : 'AUTO_MINIMUM_RELEVANT'"));
   assert(cycle.includes('requested: requestedValid'));
   assert(!cycle.includes('requested: requestedValid.length ? requestedValid : available'));
+  assert(cycle.includes("eventName: resumed ? 'SFI_UNIVERSAL_CYCLE_RESUMED' : 'SFI_UNIVERSAL_CYCLE_OPENED'"));
+  assert(cycle.includes('const cycleId = resumeCycleId ?? randomUUID()'), 'resumed runs must reuse cycle id');
+  assert(cycle.includes('const logbookId = `universal-cycle:${cycleId}`'), 'resumed runs must reuse cycle logbook');
+  assert(cycle.includes("const resumptions = events.filter((row) => row.event_name === 'SFI_UNIVERSAL_CYCLE_RESUMED')"));
   assert(automationSelector.includes("choose('field_observer', 'baseline_observation')"));
   assert(automationSelector.includes("choose('evidence_hunter', 'evidence_sufficiency_check')"));
 
@@ -135,11 +142,12 @@ async function main() {
 
   console.log(JSON.stringify({
     ok: true,
-    contract: 'SFI-UNIVERSAL-FULL-CYCLE-QA-1.0',
+    contract: 'SFI-UNIVERSAL-FULL-CYCLE-QA-1.1',
     lifecycle: [
       'INTAKE_RESOLUTION',
       'OBSERVATION_HYDRATION',
       'OBJECT_SUFFICIENCY',
+      'SAME_CYCLE_REMEDIATION_RERUN',
       'EVIDENCE_REQUIREMENT',
       'BOUNDED_WEB_ACQUISITION',
       'MINIMUM_COGNITIVE_RUNTIME',
@@ -148,6 +156,8 @@ async function main() {
       'CONTRAST',
       'CLOSURE_GATE',
     ],
+    parallelCycleIsDefault: false,
+    priorFailedRunsAreErased: false,
     sourceClaimsAreEvidence: false,
     aiInferenceIsTruth: false,
     automaticClosure: false,
