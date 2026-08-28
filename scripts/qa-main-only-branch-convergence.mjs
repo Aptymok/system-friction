@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
 
 const repo = process.env.GITHUB_REPOSITORY || 'Aptymok/system-friction';
 const token = process.env.GITHUB_TOKEN || '';
@@ -94,6 +94,7 @@ const result = {
   absorbed,
   unresolved,
 };
+mkdirSync('tmp', { recursive: true });
 writeFileSync('tmp/main-only-branch-audit.json', `${JSON.stringify(result, null, 2)}\n`);
 console.log(JSON.stringify({
   ok: result.ok,
