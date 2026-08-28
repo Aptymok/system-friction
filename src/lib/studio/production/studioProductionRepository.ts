@@ -1,11 +1,18 @@
 import 'server-only';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
+import { projectStudioObjectForHumans } from '@/lib/studio/hygiene/studioObjectHygiene';
 
 export type StudioRepositoryResult<T> =
   | { ok: true; data: T }
   | { ok: false; status: number; error: string; details?: string };
 
 type Row = Record<string, unknown>;
+export type StudioObjectListOptions = {
+  sessionId?: string | null;
+  includeArchived?: boolean;
+  limit?: number;
+  before?: string | null;
+};
 
 function errorResult(error: unknown, fallback: string): StudioRepositoryResult<never> {
   const message = error instanceof Error ? error.message : fallback;
@@ -24,6 +31,11 @@ function rows(value: unknown): Row[] {
 
 function newestFirst(a: Row, b: Row) {
   return String(b.created_at ?? b.updated_at ?? '').localeCompare(String(a.created_at ?? a.updated_at ?? ''));
+}
+
+function clampLimit(value: number | undefined) {
+  if (!Number.isFinite(value)) return 25;
+  return Math.max(1, Math.min(100, Math.floor(value ?? 25)));
 }
 
 async function ownedSessionIds(ownerId: string) {
@@ -105,19 +117,29 @@ export async function getStudioObject(id: string, ownerId: string): Promise<Stud
   }
 }
 
-export async function listStudioObjects(ownerId: string, sessionId?: string | null): Promise<StudioRepositoryResult<Row[]>> {
+export async function listStudioObjects(
+  ownerId: string,
+  sessionOrOptions?: string | null | StudioObjectListOptions,
+): Promise<StudioRepositoryResult<Row[]>> {
   try {
+    const options: StudioObjectListOptions = typeof sessionOrOptions === 'string' || sessionOrOptions === null
+      ? { sessionId: sessionOrOptions }
+      : sessionOrOptions ?? {};
     const supabase = createServiceSupabaseClient();
     let query = supabase
       .from('studio_objects')
       .select('*')
       .eq('owner_id', ownerId)
       .order('updated_at', { ascending: false })
-      .limit(80);
-    if (sessionId) query = query.eq('session_id', sessionId);
+      .limit(clampLimit(options.limit));
+    if (!options.includeArchived) {
+      query = query.or('status.neq.archived,metadata->hygiene->>lifecycleClass.eq.CANONICAL');
+    }
+    if (options.sessionId) query = query.eq('session_id', options.sessionId);
+    if (options.before) query = query.lt('updated_at', options.before);
     const { data, error } = await query;
     if (error) throw error;
-    return { ok: true, data: rows(data) };
+    return { ok: true, data: rows(data).map(projectStudioObjectForHumans) };
   } catch (error) {
     return errorResult(error, 'studio_objects_unavailable');
   }
@@ -130,7 +152,7 @@ export async function getStudioObjectFeatures(id: string, ownerId: string): Prom
     const supabase = createServiceSupabaseClient();
     const { data, error } = await supabase.from('studio_object_features').select('*').eq('object_id', id);
     if (error) throw error;
-    return { ok: true, data: { object: object.data, features: rows(data) } };
+    return { ok: true, data: { object: projectStudioObjectForHumans(object.data), features: rows(data) } };
   } catch (error) {
     return errorResult(error, 'studio_object_features_unavailable');
   }
@@ -173,6 +195,15 @@ export async function createStudioUploadObject(input: {
         size_bytes: input.sizeBytes,
         source_uri: input.storagePath,
         status: 'uploaded',
+        metadata: {
+          hygiene: {
+            contract: 'SFI-STUDIO-HYGIENE-1.0',
+            lifecycleClass: 'ACTIVE',
+            operationalVisibility: 'VISIBLE_BY_DEFAULT',
+            contentIdentity: { state: 'UNVERIFIED', hash: null, algorithm: null },
+            materializationState: input.storagePath ? 'BINARY_RETRIEVABLE_BY_REFERENCE' : 'UNKNOWN',
+          },
+        },
       })
       .select('*')
       .single();

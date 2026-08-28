@@ -12,6 +12,17 @@ const rows=(v:unknown):Row[]=>Array.isArray(v)?v.filter((x):x is Row=>Boolean(x)
 const record=(v:unknown):Row=>v&&typeof v==='object'&&!Array.isArray(v)?v as Row:{};
 const nullableText=(v:unknown)=>typeof v==='string'&&v.trim()?v.trim():null;
 
+function provenanceAttention(payload: Row){
+  const reportRef=nullableText(payload.reportRef);
+  const caseBinding=nullableText(payload.caseId)??nullableText(payload.caseRef);
+  const subscriptionRef=nullableText(payload.subscriptionId)??nullableText(payload.subscriptionRef);
+  const declaredReason=nullableText(payload.reasonForInclusion)??nullableText(payload.whyShown);
+  const reason=declaredReason
+    ??(reportRef?'REPORT_BINDING':caseBinding?'ACTIVE_CASE_BINDING':subscriptionRef?'SUBSCRIPTION':'AUTOMATED_BACKGROUND_MONITOR');
+  const visibility=(reportRef||caseBinding||subscriptionRef)?'VISIBLE_BY_DEFAULT':'COLLAPSED_BY_DEFAULT';
+  return {reason,caseBinding,reportRef,subscriptionRef,visibility};
+}
+
 export async function GET(){
   const db=createServiceSupabaseClient();
   const since=new Date(Date.now()-HORIZON_DAYS*86400000).toISOString();
@@ -27,16 +38,29 @@ export async function GET(){
   const byObservation=new Map(rows(readings.data).map(r=>[String(r.observation_id),r]));
   const nodes=rows(observations.data).map(r=>{
     const payload=record(r.payload);
+    const attention=provenanceAttention(payload);
+    const independentlyVerified=typeof payload.independentlyVerified==='boolean'?payload.independentlyVerified:null;
     return {
       id:String(r.id),kind:'observed',sourceFamily:String(r.source_family??'unknown'),publisher:String(r.publisher??'unknown'),title:String(r.title??'Untitled observation'),summary:typeof r.summary==='string'?r.summary:null,observedAt:String(r.observed_at??''),lat:r.latitude==null?null:Number(r.latitude),lng:r.longitude==null?null:Number(r.longitude),affectedSystems:Array.isArray(r.affected_systems)?r.affected_systems:[],actors:Array.isArray(r.actors)?r.actors:[],confidence:r.confidence==null?null:Number(r.confidence),reading:byObservation.get(String(r.id))??null,
       provenance:{
         sourceUrl:nullableText(r.source_url),
-        reportRef:nullableText(payload.reportRef),
-        epistemicClass:nullableText(payload.epistemicClass),
-        independentlyVerified:typeof payload.independentlyVerified==='boolean'?payload.independentlyVerified:null,
+        reportRef:attention.reportRef,
+        caseBinding:attention.caseBinding,
+        subscriptionRef:attention.subscriptionRef,
+        epistemicClass:nullableText(payload.epistemicClass)??'SOURCE',
+        sourceRole:nullableText(payload.sourceRole)??'UNCLASSIFIED_SOURCE',
+        independentlyVerified,
+        verificationState:independentlyVerified===true?'INDEPENDENTLY_VERIFIED':independentlyVerified===false?'NOT_INDEPENDENTLY_VERIFIED':'NOT_RECORDED',
         strategyOrigin:nullableText(payload.strategyOrigin),
+        whyShown:attention.reason,
+        visibility:attention.visibility,
+        semanticBoundary:'SOURCE/PROVENANCE does not imply accepted EVIDENCE.',
       },
     };
   });
-  return NextResponse.json({ok:errors.length===0,generatedAt:new Date().toISOString(),horizonDays:HORIZON_DAYS,nodes,hypotheses:hypotheses.data??[],outcomes:outcomes.data??[],learning:learning.data??[],warnings:errors});
+  const attentionSummary={
+    visibleByDefault:nodes.filter(node=>node.provenance.visibility==='VISIBLE_BY_DEFAULT').length,
+    collapsedBackground:nodes.filter(node=>node.provenance.visibility==='COLLAPSED_BY_DEFAULT').length,
+  };
+  return NextResponse.json({ok:errors.length===0,generatedAt:new Date().toISOString(),horizonDays:HORIZON_DAYS,nodes,attentionSummary,hypotheses:hypotheses.data??[],outcomes:outcomes.data??[],learning:learning.data??[],warnings:errors});
 }
