@@ -6,13 +6,14 @@ export async function GET() {
   return NextResponse.json({
     ok: true,
     name: 'SFI External Agent Gateway',
-    version: '1.8.0',
+    version: '1.9.0',
     auth: 'OAuth 2.0 authorization_code (user-bound) or X-SFI-Token/Bearer static token',
     base: '/api/external/v1',
     discovery: {
       openapi: '/openapi.json',
       llms: '/llms.txt',
       llmsFull: '/llms-full.txt',
+      cognitiveBootstrap: '/api/external/v1/bootstrap',
       aiIndex: '/ai-index.json',
       fieldSchema: '/field-schema.json',
       privacy: '/privacy',
@@ -35,13 +36,14 @@ export async function GET() {
       studioIdentityBoundary: 'Studio operations require user-bound OAuth and resolve ownership from token subject_id; shared/static tokens cannot impersonate an owner.',
     },
     operations: [
+      { id: 'bootstrap', method: 'GET', path: '/bootstrap', scope: 'observe', tenant: 'institutional', description: 'Hydrate an authorized AI client with a versioned SFI cognitive contract, sealed Cognitive Spine snapshot, bounded memory/decisions and promoted learning only.' },
       { id: 'console', method: 'GET', path: '/console', scope: 'observe', tenant: 'institutional', description: 'Read the compact governed machine console.' },
       { id: 'execution-contract', method: 'POST', path: '/execution-contract', scope: 'observe', tenant: 'institutional', description: 'Describe an object and obtain the governed measurement contract without uploading raw content.' },
       { id: 'structured-result', method: 'POST', path: '/result', scope: 'lab:write', tenant: 'institutional', description: 'Return structured measurements and provenance without raw-object persistence.' },
       { id: 'signal-status', method: 'GET', path: '/signal', scope: 'observe', tenant: 'institutional', description: 'Read open cycles or one canonical cycle history.' },
-      { id: 'signal-cycle', method: 'POST', path: '/signal', scope: 'lab:write', tenant: 'institutional', description: 'Run governed institutional signal-cycle operations.' },
+      { id: 'signal-cycle', method: 'POST', path: '/signal', scope: 'lab:write', tenant: 'institutional', description: 'Run governed institutional signal-cycle operations, including same-cycle resume, RETURN contrast and closure gates.' },
       { id: 'observe', method: 'POST', path: '/observe', scope: 'observe', tenant: 'institutional', description: 'Read allowlisted proposal/evidence surfaces.' },
-      { id: 'case-read', method: 'POST', path: '/cases', scope: 'cases:read', tenant: 'owner/member', body: { operation: 'list | read | reports' }, description: 'Read only Case Platform cases available to the OAuth subject through active tenant membership.' },
+      { id: 'case-read', method: 'POST', path: '/cases', scope: 'cases:read', tenant: 'owner/member', body: { operation: 'list | read | reports | intake_plan' }, description: 'Read Case Platform state and unresolved pre-case intake questions available to the OAuth subject.' },
       { id: 'case-write', method: 'POST', path: '/cases', scope: 'cases:write', tenant: 'owner/member', body: { operation: 'create | add_source | add_object | transition' }, description: 'Create/populate bounded Case Platform records. Cannot mint accepted evidence, governance authority, intervention, observed RETURN or truth claims.' },
       { id: 'propose', method: 'POST', path: '/propose', scope: 'propose', tenant: 'institutional', description: 'Submit a governed action proposal. ROOT authorization remains separate.' },
       { id: 'evidence-candidate', method: 'POST', path: '/evidence-candidates', scope: 'propose', tenant: 'institutional', description: 'Submit an evidence candidate. It is not accepted evidence until ROOT accept/reject review; external principals cannot accept it themselves.' },
@@ -74,6 +76,13 @@ export async function GET() {
       externalAuthorityBySelection: false,
       deprecatedParallelRuntimeRemoved: true,
     },
-    governance: 'Observation, source registration, record/inference creation, evidence candidacy, evidence acceptance, proposal authorization, execution, return, calibration and canonical promotion remain distinct governed states.',
+    learning: {
+      quarantine: 'Closed/completed cycles do not enter institutional learning automatically.',
+      eligibleClass: 'CALIBRATED_RETURN',
+      rootPromotionRequired: true,
+      cognitiveSpineAdmissionEvent: 'SFI_UNIVERSAL_LEARNING_PROMOTED',
+      excluded: ['TEST_SYNTHETIC', 'FAILED_EXPERIMENT', 'UNPROMOTED_OPERATIONAL_EVIDENCE', 'RAW_STRUCTURED_RESULT_HYPOTHESES'],
+    },
+    governance: 'Observation, source registration, record/inference creation, evidence candidacy, evidence acceptance, proposal authorization, execution, return, calibration, learning candidacy and canonical promotion remain distinct governed states.',
   });
 }
