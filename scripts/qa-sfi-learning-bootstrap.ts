@@ -79,7 +79,9 @@ async function main() {
   assert(bootstrap.includes('snapshotHash: materialized.snapshot.snapshotHash'));
   assert(bootstrap.includes('constitutionHash: constitution.hash'));
   assert(bootstrap.includes('capsuleHash: stableHash(capsuleSemantic)'));
-  assert(bootstrap.includes('Prior context remains context'));
+  assert(bootstrap.includes('do not treat prior institutional context as a new observation'));
+  assert(bootstrap.includes('does not create evidence'));
+  assert(bootstrap.includes('convert institutional memory into present-tense observation'));
 
   assert(bootstrapRoute.includes("authorizeExternalRequest(req, 'observe')"));
   assert(bootstrapRoute.includes('X-SFI-Capsule-Hash'));
@@ -95,7 +97,7 @@ async function main() {
 
   console.log(JSON.stringify({
     ok: true,
-    contract: 'SFI-LEARNING-BOOTSTRAP-QA-1.1',
+    contract: 'SFI-LEARNING-BOOTSTRAP-QA-1.2',
     manifestVersion,
     invariants: {
       structuredResultIsLearning: false,
@@ -110,6 +112,7 @@ async function main() {
       promotionUpgradesTruthByDecree: false,
       bootstrapUsesSealedSpineSnapshot: true,
       bootstrapConsumesPromotedLearningOnly: true,
+      priorContextIsNewObservation: false,
       personCtInheritedByBootstrap: false,
     },
   }, null, 2));
