@@ -44,8 +44,10 @@ async function main() {
   assert.equal(materiallyProfiled.materialObservation, 'PRESENT');
   assert.equal(materiallyProfiled.requiredCapabilities.length, 0);
 
-  const [signalRoute, legacyUpload, ticketRoute, finalizeRoute, profileResult, worker, profiler, vercel] = await Promise.all([
+  const [signalRoute, universalCycle, hydrator, legacyUpload, ticketRoute, finalizeRoute, profileResult, worker, profiler, vercel] = await Promise.all([
     text('src/app/api/external/v1/signal/route.ts'),
+    text('src/lib/sfi/universalSignalCycle.ts'),
+    text('src/lib/sfi/universalObservationHydrator.ts'),
     text('src/app/api/cases/[caseId]/sources/upload/route.ts'),
     text('src/app/api/cases/[caseId]/sources/upload-ticket/route.ts'),
     text('src/app/api/cases/[caseId]/sources/finalize-upload/route.ts'),
@@ -56,7 +58,16 @@ async function main() {
   ]);
 
   assert(signalRoute.includes("error: 'insufficient_object_observation'"), 'Universal Signal must fail closed on insufficient material observation');
-  assert(signalRoute.indexOf("sufficiency.status === 'BLOCKED'") < signalRoute.indexOf('runUniversalCognitiveCycle(input'), 'sufficiency gate must execute before cognitive runtime');
+  assert(signalRoute.includes('hydrateUniversalCycleInput'), 'Universal Signal must attempt persisted observation hydration before sufficiency');
+  assert(signalRoute.indexOf('hydrateUniversalCycleInput') < signalRoute.indexOf('evaluateUniversalAnalysisSufficiency(input)'), 'hydration must precede sufficiency evaluation');
+  assert(signalRoute.indexOf("sufficiency.status === 'BLOCKED'") < signalRoute.indexOf('runUniversalCognitiveCycle(preparedInput'), 'sufficiency gate must execute before cognitive runtime');
+  assert(hydrator.includes('SFI_STRUCTURED_ANALYSIS_RESULT_RECEIVED'), 'hydrator must recover external structured results');
+  assert(hydrator.includes('SFI_DATASET_PROFILE_ADMITTED'), 'hydrator must recover admitted dataset profiles');
+  assert(hydrator.includes(".eq('object_kind', 'OBSERVATION')"), 'hydrator must recover the full Case observation profile when available');
+
+  assert(universalCycle.includes("selectionMode: requestedValid.length ? 'EXPLICIT' : 'AUTO_MINIMUM_RELEVANT'"), 'gateway must preserve MetaOrchestrator minimum-auto selection');
+  assert(universalCycle.includes('requested: requestedValid'), 'gateway must not force all registered agents when none were requested');
+  assert(!universalCycle.includes('requested: requestedValid.length ? requestedValid : available'), 'all-agent fallback must remain removed');
 
   assert(legacyUpload.includes('SFI_CASE_LEGACY_PROXY_MAX_BYTES'), 'legacy Vercel upload must be explicitly bounded');
   assert(legacyUpload.includes("error: 'SFI_SOURCE_DIRECT_UPLOAD_REQUIRED'"), 'large files must be redirected away from Vercel');
@@ -88,9 +99,11 @@ async function main() {
 
   console.log(JSON.stringify({
     ok: true,
-    contract: 'SFI-INGESTION-EPISTEMIC-BOUNDARY-1.0',
+    contract: 'SFI-INGESTION-EPISTEMIC-BOUNDARY-1.1',
     datasetReferenceOnlyBlocked: true,
     materialProfileRequired: true,
+    persistedObservationHydration: true,
+    minimumAgentOrchestration: true,
     largeRawBytesBypassVercel: true,
     sourceNotEvidence: true,
     attestedProfilesOnly: true,
