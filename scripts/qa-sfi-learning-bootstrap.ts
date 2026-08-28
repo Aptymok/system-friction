@@ -35,8 +35,11 @@ async function main() {
   assert(learning.includes("eventName: 'SFI_UNIVERSAL_LEARNING_REJECTED'"));
   assert(learning.includes("candidatePayload.eligibleForRootPromotion !== true"));
   assert(learning.includes("text(candidatePayload.classification) !== 'CALIBRATED_RETURN'"));
-  assert(learning.includes("epistemicClass: 'verified_contrast'"));
+  assert(learning.includes("eventName: 'SFI_UNIVERSAL_LEARNING_PROMOTED',\n    epistemicClass: 'derived'"));
+  assert(learning.includes("assessmentClass: 'VERIFIED_CONTRAST'"));
+  assert(!learning.includes("epistemicClass: 'verified_contrast'"), 'event store must never receive a non-canonical epistemic class');
   assert(learning.includes('ROOT authorizes institutional use'));
+  assert(learning.includes('The persisted event remains DERIVED'));
   assert(learning.includes('readUniversalLearningTerminalState'));
   assert(learning.includes("error: 'LEARNING_CANDIDATE_ALREADY_TERMINAL'"));
   assert(learning.includes("if (terminal.state === 'PROMOTED')"));
@@ -57,8 +60,10 @@ async function main() {
 
   assert(additionalSources.includes(".eq('event_name', 'SFI_UNIVERSAL_LEARNING_PROMOTED')"));
   assert(!additionalSources.includes(".eq('event_name', 'SFI_STRUCTURED_ANALYSIS_RESULT_RECEIVED')"), 'raw structured result hypotheses must not enter Cognitive Spine');
+  assert(additionalSources.includes("text(event.epistemic_class) !== 'derived'"));
   assert(additionalSources.includes("text(payload.promotionState) !== 'PROMOTED'"));
   assert(additionalSources.includes("text(payload.classification) !== 'CALIBRATED_RETURN'"));
+  assert(additionalSources.includes("text(payload.assessmentClass) !== 'VERIFIED_CONTRAST'"));
   assert(additionalSources.includes("epistemicClass: 'VERIFIED_CONTRAST'"));
   assert(sourcePlane.includes('readAdditionalInstitutionalCognitiveSpineSources'));
 
@@ -66,6 +71,10 @@ async function main() {
   assert(bootstrap.includes('consume: true'));
   assert(bootstrap.includes("consumptionReason: 'AUTHORIZED_EXTERNAL_GPT_BOOTSTRAP'"));
   assert(bootstrap.includes("excludedFromSpine: ['TEST_SYNTHETIC', 'FAILED_EXPERIMENT', 'UNPROMOTED_OPERATIONAL_EVIDENCE', 'RAW_AGENT_PROSE', 'UNCONTRASTED_HYPOTHESES']"));
+  assert(bootstrap.includes("eventStoreClasses: ['OBSERVED'"));
+  assert(bootstrap.includes("assessmentClasses: ['PROJECTED', 'VERIFIED_CONTRAST', 'INVALIDATED']"));
+  assert(bootstrap.includes("eventEpistemicClass: text(event.epistemic_class) ?? 'derived'"));
+  assert(bootstrap.includes("assessmentClass: text(payload.assessmentClass) ?? 'VERIFIED_CONTRAST'"));
   assert(bootstrap.includes("promoted: promotedLearning"));
   assert(bootstrap.includes('snapshotHash: materialized.snapshot.snapshotHash'));
   assert(bootstrap.includes('constitutionHash: constitution.hash'));
@@ -86,7 +95,7 @@ async function main() {
 
   console.log(JSON.stringify({
     ok: true,
-    contract: 'SFI-LEARNING-BOOTSTRAP-QA-1.0',
+    contract: 'SFI-LEARNING-BOOTSTRAP-QA-1.1',
     manifestVersion,
     invariants: {
       structuredResultIsLearning: false,
@@ -96,6 +105,8 @@ async function main() {
       rootPromotionRequired: true,
       singleTerminalLearningState: true,
       repeatedTerminalRequestIsIdempotent: true,
+      persistedEventClassIsCanonical: true,
+      verifiedContrastIsAssessmentNotEventClass: true,
       promotionUpgradesTruthByDecree: false,
       bootstrapUsesSealedSpineSnapshot: true,
       bootstrapConsumesPromotedLearningOnly: true,
