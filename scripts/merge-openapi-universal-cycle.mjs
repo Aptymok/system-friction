@@ -42,15 +42,43 @@ signalPath.description = [
   'Use resumeCycleId to rerun the same open cycle after ingestion/capability remediation; prior runs remain in the same logbook.',
   'A bounded AI synthesis may generate falsifiable primary/rival hypotheses and discriminating predictions after deterministic execution.',
   'Return is contrasted against predictions. Close is rejected until the methodological closure envelope is sufficient.',
+  'Closure does not enter institutional learning automatically; learning remains quarantined until governed ROOT promotion.',
 ].join(' ');
 signalPath.responses ??= {};
 signalPath.responses['409'] = { description: 'Clarification, object observation, same-cycle resume validation or methodological closure is incomplete' };
 signalPath.responses['424'] = { description: 'Required public evidence could not be acquired sufficiently' };
 
+api.paths['/api/external/v1/bootstrap'] = {
+  get: {
+    operationId: 'getSfiCognitiveBootstrap',
+    summary: 'Hydrate the authorized AI client with the current governed SFI cognitive contract',
+    description: 'Returns a versioned compact context capsule: constitution hash/reference, ontology, epistemic rules, methodology, learning policy, sealed Cognitive Spine snapshot identity, bounded memory/approved decisions, promoted calibrated learning and current open-cycle state. Prior context remains context, not a new observation.',
+    'x-sfi-scope': 'observe',
+    security: [{ sfiOAuth: ['observe'] }],
+    parameters: [{
+      name: 'caseId',
+      in: 'query',
+      required: false,
+      schema: { type: 'string' },
+      description: 'Optional current case identifier used to bind the bootstrap capsule to the caller workflow. It does not expand visibility by itself.',
+    }],
+    responses: {
+      '200': { description: 'Versioned SFI cognitive bootstrap capsule', content: { 'application/json': { schema: { $ref: '#/components/schemas/GenericResponse' } } } },
+      '401': { description: 'Unauthorized or observe scope missing' },
+      '503': { description: 'Bootstrap materialization failed; caller must not silently substitute an unversioned persona prompt' },
+    },
+  },
+};
+
 api['x-sfi-governance'] ??= {};
 api['x-sfi-governance'].universalCycleBoundary =
   'SOURCE/OBSERVATION/DERIVATION/INFERENCE/SIMULATION/RETURN/CONTRAST/CLOSURE remain distinct. Same-cycle rerun preserves prior history. AI synthesis is inference only. Closure completeness does not canonize truth.';
+api['x-sfi-governance'].learningQuarantineBoundary =
+  'SFI_STRUCTURED_ANALYSIS_RESULT_RECEIVED and closed cycles do not directly enter the Cognitive Spine. TEST_SYNTHETIC, FAILED_EXPERIMENT and unpromoted OPERATIONAL_EVIDENCE remain outside institutional learning. Only ROOT-governed SFI_UNIVERSAL_LEARNING_PROMOTED records derived from CALIBRATED_RETURN may enter the universal-cycle learning source plane.';
+api['x-sfi-governance'].cognitiveBootstrapBoundary =
+  'Bootstrap exposes a sealed bounded institutional context for an authorized session. It does not mint evidence, authorize actions, inherit PERSON_CT into institutional state, or promote learning.';
 api['x-sfi-governance'].preferredObjectFlow = [
+  'cognitive-bootstrap',
   'case-intake-resolution',
   'execution-contract or governed ingestion',
   'material-observation hydration',
@@ -62,7 +90,9 @@ api['x-sfi-governance'].preferredObjectFlow = [
   'return',
   'contrast/calibration',
   'methodological closure',
+  'learning quarantine',
+  'ROOT learning promotion when eligible',
 ];
 
 writeFileSync(path, `${JSON.stringify(api, null, 2)}\n`);
-console.log(JSON.stringify({ ok: true, openapi: path, universalCycle: true, sameCycleResume: true, aiSynthesis: true, closureGate: true, version: api.info?.version ?? null }));
+console.log(JSON.stringify({ ok: true, openapi: path, universalCycle: true, sameCycleResume: true, aiSynthesis: true, closureGate: true, cognitiveBootstrap: true, learningQuarantine: true, version: api.info?.version ?? null }));
