@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
 import { authorizeExternalRequest, externalActor, externalAuthError } from '@/lib/sfi/externalAuth';
 import { evaluateUniversalAnalysisSufficiency } from '@/lib/sfi/epistemicSufficiency';
+import { resolveUniversalCaseIntake } from '@/lib/sfi/caseIntakeResolver';
+import { acquireUniversalWebEvidence, resolveUniversalEvidenceRequirements } from '@/lib/sfi/evidenceRequirementResolver';
 import {
-  buildClarifyingQuestions,
   closeUniversalCycle,
   describeUniversalSignalContract,
   matchOpenCycles,
@@ -103,8 +104,10 @@ export async function POST(req: Request) {
   const openCycles = await readUniversalOpenCycles();
   const normalizedSignal = normalizeUniversalSignal(input.signal);
   const cycleGate = matchOpenCycles(normalizedSignal.objectKey, openCycles);
-  const clarifyingQuestions = buildClarifyingQuestions(input);
+  const intakePlan = resolveUniversalCaseIntake(input);
+  const clarifyingQuestions = intakePlan.questions.map((item) => item.question);
   const sufficiency = evaluateUniversalAnalysisSufficiency(input);
+  const evidenceRequirement = resolveUniversalEvidenceRequirements(input);
   const cycleBlocked = cycleGate.blocking.length > 0 && body.continueWithOpenCycles !== true;
 
   if (operation === 'intake') {
@@ -117,43 +120,91 @@ export async function POST(req: Request) {
       signal: persisted.signal,
       eventId: persisted.event.ok ? String(persisted.event.data.event_id ?? '') : null,
       event: persisted.event.ok ? persisted.event.data : persisted.event,
+      intakePlan,
       clarifyingQuestions,
       sufficiency,
-      readyForRun: clarifyingQuestions.length === 0 && sufficiency.status === 'READY' && !cycleBlocked,
+      evidenceRequirement,
+      readyForRun: intakePlan.blockingQuestions.length === 0 && sufficiency.status === 'READY' && !cycleBlocked,
       cycleGate,
       methodPlan: contract.methodPlan,
       agentPlan: contract.agentPlan,
-      next: clarifyingQuestions.length
-        ? 'Ask only unresolved clarifying questions, then re-evaluate intake readiness.'
+      next: intakePlan.blockingQuestions.length
+        ? 'Ask only the unresolved blocking questions returned by intakePlan, then re-evaluate readiness.'
         : sufficiency.status === 'BLOCKED'
           ? `Material observation is required before analysis. Satisfy: ${sufficiency.missingObservations.join(', ')} using ${sufficiency.requiredCapabilities.join(', ')}.`
           : cycleBlocked
             ? 'Review blocking open cycles. Record return/close them, or explicitly set continueWithOpenCycles=true.'
-            : 'Call operation=run to execute the governed cognitive cycle.',
+            : evidenceRequirement.webPolicy === 'WEB_REQUIRED'
+              ? 'Call operation=run. Required public evidence will be acquired and checked before the cognitive runtime executes.'
+              : 'Call operation=run to execute the governed cognitive cycle; optional evidence lanes will be resolved automatically.',
     }, { status: persisted.event.ok ? 201 : 500 });
   }
 
-  if (clarifyingQuestions.length) return NextResponse.json({ ok: false, error: 'clarification_required', operation, signal: normalizedSignal, clarifyingQuestions, sufficiency, methodPlan: contract.methodPlan, agentPlan: contract.agentPlan, cycleGate }, { status: 409 });
+  if (intakePlan.blockingQuestions.length) return NextResponse.json({ ok: false, error: 'clarification_required', operation, signal: normalizedSignal, intakePlan, clarifyingQuestions, sufficiency, evidenceRequirement, methodPlan: contract.methodPlan, agentPlan: contract.agentPlan, cycleGate }, { status: 409 });
   if (sufficiency.status === 'BLOCKED') {
     return NextResponse.json({
       ok: false,
       error: 'insufficient_object_observation',
       operation,
       signal: normalizedSignal,
+      intakePlan,
       sufficiency,
+      evidenceRequirement,
       methodPlan: contract.methodPlan,
       agentPlan: contract.agentPlan,
       cycleGate,
       instruction: 'Acquire/extract the source object and supply deterministic material observations before executing a substantive cognitive cycle.',
     }, { status: 409 });
   }
-  if (cycleBlocked) return NextResponse.json({ ok: false, error: 'open_cycle_review_required', operation, signal: normalizedSignal, sufficiency, cycleGate, instruction: 'Close or record return for the same-object cycle before opening another one, unless the user explicitly chooses to continue in parallel.' }, { status: 409 });
+  if (cycleBlocked) return NextResponse.json({ ok: false, error: 'open_cycle_review_required', operation, signal: normalizedSignal, sufficiency, evidenceRequirement, cycleGate, instruction: 'Close or record return for the same-object cycle before opening another one, unless the user explicitly chooses to continue in parallel.' }, { status: 409 });
+
+  const webEvidence = await acquireUniversalWebEvidence(input, actorId, tenantId, normalizedSignal.objectHash);
+  if (evidenceRequirement.blockingIfUnavailable && !webEvidence.satisfied) {
+    return NextResponse.json({
+      ok: false,
+      error: 'required_web_evidence_unavailable',
+      operation,
+      signal: normalizedSignal,
+      intakePlan,
+      sufficiency,
+      evidenceRequirement,
+      webEvidence,
+      instruction: 'The case explicitly requires external/public verification. Do not execute substantive inference until the required evidence lane returns enough source candidates or the operator changes the evidence policy.',
+    }, { status: 424 });
+  }
 
   const persisted = await persistUniversalSignal(input, actorId, tenantId);
   if (!persisted.event.ok) return NextResponse.json(persisted.event, { status: 500 });
 
+  const preparedInput: UniversalCycleInput = {
+    ...input,
+    context: {
+      ...record(input.context),
+      evidenceRequirement,
+      acquiredWebEvidence: {
+        policy: webEvidence.policy,
+        provider: webEvidence.provider,
+        attempted: webEvidence.attempted,
+        satisfied: webEvidence.satisfied,
+        warnings: webEvidence.warnings,
+        sources: webEvidence.sources.map((source) => ({
+          id: source.id,
+          url: source.url,
+          title: source.title,
+          publisher: source.publisher,
+          snippet: source.snippet,
+          publishedAt: source.publishedAt,
+          retrievedAt: source.retrievedAt,
+          sourceType: source.sourceType,
+          reliability: source.reliability,
+          epistemicClass: 'SOURCE_CLAIM',
+        })),
+      },
+    },
+  };
+
   try {
-    const cycle = await runUniversalCognitiveCycle(input, actorId, tenantId);
+    const cycle = await runUniversalCognitiveCycle(preparedInput, actorId, tenantId);
     const history = await readUniversalCycleHistory(cycle.cycleId);
     return NextResponse.json({
       ok: cycle.result.completed,
@@ -161,7 +212,10 @@ export async function POST(req: Request) {
       actor: actorId,
       tenantId,
       signal: cycle.signal,
+      intakePlan,
       sufficiency,
+      evidenceRequirement,
+      webEvidence,
       intakeEventId: String(persisted.event.data.event_id ?? ''),
       intakeEvent: persisted.event.data,
       cycle: { cycleId: cycle.cycleId, taskId: cycle.taskId, logbookId: cycle.logbookId, completed: cycle.result.completed, executedAgents: cycle.result.executedAgents, missingAgents: cycle.result.missingAgents },
@@ -171,8 +225,8 @@ export async function POST(req: Request) {
       outputs: { hypotheses: cycle.result.context.hypotheses, contradictions: cycle.result.context.contradictions, predictions: cycle.result.context.predictions, risks: cycle.result.context.risks, opportunities: cycle.result.context.opportunities, simulations: cycle.result.context.simulations },
       metadata: cycle.result.context.metadata,
       reread: history,
-      next: 'Keep the cycle open until a return is observed. Use operation=return, then close only after reread shows the methodological closure conditions are satisfied.',
-      epistemicBoundary: 'The route executes internal observation/reconstruction/simulation roles only. It does not approve proposals, perform external actions, or canonize conclusions.',
+      next: 'Keep the cycle open until the methodological return/contrast/closure contract is satisfied.',
+      epistemicBoundary: 'The route executes internal observation/reconstruction/simulation roles only. Retrieved web material remains source claims; the route does not approve proposals, perform external actions, or canonize conclusions.',
     });
   } catch (error) {
     return NextResponse.json({ ok: false, error: 'universal_cognitive_cycle_failed', details: error instanceof Error ? error.message : String(error) }, { status: 503 });
