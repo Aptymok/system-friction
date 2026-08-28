@@ -62,7 +62,12 @@ function promotedLearningHypotheses(event: Row): CognitiveSpineSourceRecord[] {
   if (!eventId || !occurredAt || !hashSelf) return [];
 
   const payload = record(event.payload);
-  if (text(payload.promotionState) !== 'PROMOTED' || text(payload.classification) !== 'CALIBRATED_RETURN') return [];
+  if (
+    text(event.epistemic_class) !== 'derived'
+    || text(payload.promotionState) !== 'PROMOTED'
+    || text(payload.classification) !== 'CALIBRATED_RETURN'
+    || text(payload.assessmentClass) !== 'VERIFIED_CONTRAST'
+  ) return [];
   const learning = record(payload.learning);
   const primary = hypothesisStatement(learning.primaryHypothesis);
   const rivals = Array.isArray(learning.rivalHypotheses)
@@ -85,6 +90,7 @@ function promotedLearningHypotheses(event: Row): CognitiveSpineSourceRecord[] {
       statement,
       role: index === 0 ? 'primary' : 'rival',
       confidence,
+      assessmentClass: payload.assessmentClass,
     }),
     sourceVersion: text(event.schema_version) ?? 'SFI-UNIVERSAL-LEARNING-QUARANTINE-1.0',
     epistemicAssessmentRef: eventId,
@@ -101,8 +107,9 @@ function promotedLearningHypotheses(event: Row): CognitiveSpineSourceRecord[] {
  * - raw SFI_STRUCTURED_ANALYSIS_RESULT_RECEIVED hypotheses DO NOT enter the Spine;
  * - closed cycles DO NOT enter the Spine merely because they completed;
  * - SFI_UNIVERSAL_LEARNING_CANDIDATE_RECORDED remains quarantined;
- * - only ROOT-governed SFI_UNIVERSAL_LEARNING_PROMOTED events classified as
- *   CALIBRATED_RETURN may contribute universal-cycle hypotheses.
+ * - only ROOT-governed SFI_UNIVERSAL_LEARNING_PROMOTED events persisted as
+ *   DERIVED and explicitly assessed VERIFIED_CONTRAST from CALIBRATED_RETURN
+ *   may contribute universal-cycle hypotheses.
  *
  * Governance and causal lifecycle records remain observable as records, not as
  * proof that their claims are true or causally successful.
