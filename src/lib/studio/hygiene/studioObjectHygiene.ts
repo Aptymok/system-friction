@@ -38,6 +38,10 @@ function stringList(value: unknown): string[] {
 
 export function studioContentHash(metadataValue: unknown): string | null {
   const metadata = record(metadataValue);
+  const hygiene = record(metadata.hygiene);
+  const declaredIdentity = record(hygiene.contentIdentity);
+  const declaredHash = text(declaredIdentity.hash);
+  if (declaredHash && /^[0-9a-f]{64}$/i.test(declaredHash)) return declaredHash.toLowerCase();
   const engine = record(metadata.studioAudioEngine);
   const direct = text(engine.checksumSha256) ?? text(metadata.contentHash) ?? text(metadata.checksumSha256);
   if (direct && /^[0-9a-f]{64}$/i.test(direct)) return direct.toLowerCase();
@@ -81,8 +85,10 @@ export function studioContentIdentity(metadataValue: unknown): StudioContentIden
 
 export function studioTraceSemantics(metadataValue: unknown) {
   const metadata = record(metadataValue);
+  const hygiene = record(metadata.hygiene);
+  const declaredTrace = record(hygiene.trace);
   const synthesis = record(metadata.objectContextSynthesis);
-  const traceId = text(synthesis.traceId) ?? text(synthesis.evidenceTraceId);
+  const traceId = text(declaredTrace.id) ?? text(synthesis.traceId) ?? text(synthesis.evidenceTraceId);
   return traceId
     ? { id: traceId, class: 'TECHNICAL_LINEAGE' as const, epistemicAuthority: 'NONE' as const }
     : null;
@@ -129,6 +135,20 @@ export function buildStudioObjectHygiene(rowValue: unknown) {
   };
 }
 
+function projectedSynthesis(metadata: Row) {
+  const synthesis = record(metadata.objectContextSynthesis);
+  if (!Object.keys(synthesis).length) return synthesis;
+  const { evidenceTraceId: _legacyEvidenceTraceId, ...rest } = synthesis;
+  const trace = studioTraceSemantics(metadata);
+  return {
+    ...rest,
+    traceId: trace?.id ?? null,
+    traceClass: trace?.class ?? null,
+    epistemicAuthority: trace?.epistemicAuthority ?? 'NONE',
+    semanticBoundary: 'TRACE_ONLY: technical lineage is not accepted institutional evidence.',
+  };
+}
+
 export function projectStudioObjectForHumans(rowValue: unknown) {
   const row = record(rowValue);
   const metadata = record(row.metadata);
@@ -137,6 +157,7 @@ export function projectStudioObjectForHumans(rowValue: unknown) {
     metadata: {
       ...metadata,
       hygiene: buildStudioObjectHygiene(row),
+      objectContextSynthesis: projectedSynthesis(metadata),
       context: {
         ...record(metadata.context),
         prohibitedEffects: studioCreativeConstraints(metadata),
