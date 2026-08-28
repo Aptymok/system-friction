@@ -27,6 +27,7 @@ export const maxDuration = 60;
 type SignalOperation = 'status' | 'intake' | 'run' | 'return' | 'close';
 function record(value: unknown): Record<string, unknown> { return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {}; }
 function operationScope(operation: SignalOperation) { return operation === 'status' ? 'observe' : 'lab:write'; }
+function text(value: unknown) { return typeof value === 'string' && value.trim() ? value.trim() : null; }
 
 export async function GET(req: Request) {
   const auth = authorizeExternalRequest(req, 'observe');
@@ -176,16 +177,48 @@ export async function POST(req: Request) {
   const clarifyingQuestions = intakePlan.questions.map((item) => item.question);
   const sufficiency = evaluateUniversalAnalysisSufficiency(input);
   const evidenceRequirement = resolveUniversalEvidenceRequirements(input);
-  const cycleBlocked = cycleGate.blocking.length > 0 && body.continueWithOpenCycles !== true;
+
+  const requestedResumeCycleId = text(body.resumeCycleId);
+  let resumeValidation: {
+    requested: boolean;
+    valid: boolean;
+    cycleId: string | null;
+    reason: string | null;
+    previousEventId: string | null;
+    history?: Awaited<ReturnType<typeof readUniversalCycleHistory>>;
+  } = { requested: Boolean(requestedResumeCycleId), valid: false, cycleId: requestedResumeCycleId, reason: null, previousEventId: null };
+  if (requestedResumeCycleId) {
+    const resumeHistory = await readUniversalCycleHistory(requestedResumeCycleId);
+    const openedPayload = resumeHistory.ok ? record(record(resumeHistory.opened).payload) : {};
+    const openedObjectKey = text(openedPayload.objectKey);
+    const closed = resumeHistory.ok && Array.isArray(resumeHistory.closures) && resumeHistory.closures.length > 0;
+    const sameObject = Boolean(openedObjectKey && openedObjectKey === normalizedSignal.objectKey);
+    const previousEvent = resumeHistory.ok && Array.isArray(resumeHistory.events) && resumeHistory.events.length
+      ? resumeHistory.events[resumeHistory.events.length - 1]
+      : null;
+    resumeValidation = {
+      requested: true,
+      valid: Boolean(resumeHistory.ok && !closed && sameObject),
+      cycleId: requestedResumeCycleId,
+      reason: !resumeHistory.ok ? 'CYCLE_HISTORY_UNAVAILABLE' : closed ? 'CYCLE_ALREADY_CLOSED' : !sameObject ? 'OBJECT_IDENTITY_MISMATCH' : 'MATCHED_OPEN_CYCLE',
+      previousEventId: previousEvent ? String(record(previousEvent).event_id ?? '') || null : null,
+      history: resumeHistory,
+    };
+  }
+  const resumeMatchesBlocking = Boolean(resumeValidation.valid && cycleGate.blocking.some((cycle) => cycle.cycleId === requestedResumeCycleId));
+  const cycleBlocked = cycleGate.blocking.length > 0 && !resumeMatchesBlocking && body.continueWithOpenCycles !== true;
 
   if (operation === 'intake') {
     const persisted = await persistUniversalSignal(input, actorId, tenantId);
+    const suggestedResumeCycleId = cycleGate.blocking.length === 1 ? String(cycleGate.blocking[0].cycleId ?? '') || null : null;
     return NextResponse.json({
       ok: persisted.event.ok,
       operation,
       actor: actorId,
       tenantId,
       hydration,
+      resumeValidation,
+      suggestedResumeCycleId,
       signal: persisted.signal,
       eventId: persisted.event.ok ? String(persisted.event.data.event_id ?? '') : null,
       event: persisted.event.ok ? persisted.event.data : persisted.event,
@@ -193,7 +226,7 @@ export async function POST(req: Request) {
       clarifyingQuestions,
       sufficiency,
       evidenceRequirement,
-      readyForRun: intakePlan.blockingQuestions.length === 0 && sufficiency.status === 'READY' && !cycleBlocked,
+      readyForRun: intakePlan.blockingQuestions.length === 0 && sufficiency.status === 'READY' && !cycleBlocked && (!requestedResumeCycleId || resumeValidation.valid),
       cycleGate,
       methodPlan: contract.methodPlan,
       agentPlan: contract.agentPlan,
@@ -201,21 +234,27 @@ export async function POST(req: Request) {
         ? 'Ask only the unresolved blocking questions returned by intakePlan, then re-evaluate readiness.'
         : sufficiency.status === 'BLOCKED'
           ? `Material observation is required before analysis. Satisfy: ${sufficiency.missingObservations.join(', ')} using ${sufficiency.requiredCapabilities.join(', ')}.`
-          : cycleBlocked
-            ? 'Review blocking open cycles. Record return/close them, or explicitly set continueWithOpenCycles=true.'
-            : evidenceRequirement.webPolicy === 'WEB_REQUIRED'
-              ? 'Call operation=run. Required public evidence will be acquired and checked before the cognitive runtime executes.'
-              : 'Call operation=run to execute the governed cognitive cycle; optional evidence lanes will be resolved automatically.',
+          : requestedResumeCycleId && !resumeValidation.valid
+            ? `The requested resume cycle is invalid: ${resumeValidation.reason}.`
+            : cycleBlocked && suggestedResumeCycleId
+              ? `Resume the existing same-object cycle with resumeCycleId=${suggestedResumeCycleId}, or explicitly choose a parallel cycle.`
+              : cycleBlocked
+                ? 'Review blocking open cycles before opening a parallel cycle.'
+                : evidenceRequirement.webPolicy === 'WEB_REQUIRED'
+                  ? 'Call operation=run. Required public evidence will be acquired and checked before the cognitive runtime executes.'
+                  : 'Call operation=run to execute the governed cognitive cycle; optional evidence lanes will be resolved automatically.',
     }, { status: persisted.event.ok ? 201 : 500 });
   }
 
-  if (intakePlan.blockingQuestions.length) return NextResponse.json({ ok: false, error: 'clarification_required', operation, hydration, signal: normalizedSignal, intakePlan, clarifyingQuestions, sufficiency, evidenceRequirement, methodPlan: contract.methodPlan, agentPlan: contract.agentPlan, cycleGate }, { status: 409 });
+  if (requestedResumeCycleId && !resumeValidation.valid) return NextResponse.json({ ok: false, error: 'resume_cycle_invalid', operation, hydration, resumeValidation, signal: normalizedSignal, cycleGate }, { status: 409 });
+  if (intakePlan.blockingQuestions.length) return NextResponse.json({ ok: false, error: 'clarification_required', operation, hydration, resumeValidation, signal: normalizedSignal, intakePlan, clarifyingQuestions, sufficiency, evidenceRequirement, methodPlan: contract.methodPlan, agentPlan: contract.agentPlan, cycleGate }, { status: 409 });
   if (sufficiency.status === 'BLOCKED') {
     return NextResponse.json({
       ok: false,
       error: 'insufficient_object_observation',
       operation,
       hydration,
+      resumeValidation,
       signal: normalizedSignal,
       intakePlan,
       sufficiency,
@@ -226,7 +265,7 @@ export async function POST(req: Request) {
       instruction: 'Acquire/extract the source object and supply deterministic material observations before executing a substantive cognitive cycle.',
     }, { status: 409 });
   }
-  if (cycleBlocked) return NextResponse.json({ ok: false, error: 'open_cycle_review_required', operation, hydration, signal: normalizedSignal, sufficiency, evidenceRequirement, cycleGate, instruction: 'Close or record return for the same-object cycle before opening another one, unless the user explicitly chooses to continue in parallel.' }, { status: 409 });
+  if (cycleBlocked) return NextResponse.json({ ok: false, error: 'open_cycle_review_required', operation, hydration, resumeValidation, signal: normalizedSignal, sufficiency, evidenceRequirement, cycleGate, instruction: 'Resume the same-object cycle with resumeCycleId when continuing the same methodological question. Use continueWithOpenCycles=true only for an explicitly independent parallel cycle.' }, { status: 409 });
 
   const webEvidence = await acquireUniversalWebEvidence(input, actorId, tenantId, normalizedSignal.objectHash);
   if (evidenceRequirement.blockingIfUnavailable && !webEvidence.satisfied) {
@@ -235,6 +274,7 @@ export async function POST(req: Request) {
       error: 'required_web_evidence_unavailable',
       operation,
       hydration,
+      resumeValidation,
       signal: normalizedSignal,
       intakePlan,
       sufficiency,
@@ -257,6 +297,11 @@ export async function POST(req: Request) {
         basis: hydration.basis,
         eventId: hydration.eventId,
       },
+      resume: resumeValidation.valid ? {
+        cycleId: resumeValidation.cycleId,
+        previousEventId: resumeValidation.previousEventId,
+        reason: text(body.resumeReason) ?? 'CAPABILITY_REMEDIATION_OR_NEW_OBSERVATION',
+      } : null,
       evidenceRequirement,
       acquiredWebEvidence: {
         eventId: webEvidence.eventId,
@@ -282,7 +327,11 @@ export async function POST(req: Request) {
   };
 
   try {
-    const cycle = await runUniversalCognitiveCycle(preparedInput, actorId, tenantId);
+    const cycle = await runUniversalCognitiveCycle(preparedInput, actorId, tenantId, resumeValidation.valid ? {
+      resumeCycleId: resumeValidation.cycleId ?? undefined,
+      resumeReason: text(body.resumeReason) ?? 'CAPABILITY_REMEDIATION_OR_NEW_OBSERVATION',
+      resumeLineageEventId: resumeValidation.previousEventId,
+    } : undefined);
     const deterministicOutputs = {
       hypotheses: cycle.result.context.hypotheses,
       contradictions: cycle.result.context.contradictions,
@@ -317,6 +366,7 @@ export async function POST(req: Request) {
       actor: actorId,
       tenantId,
       hydration,
+      resumeValidation,
       signal: cycle.signal,
       intakePlan,
       sufficiency,
@@ -324,7 +374,7 @@ export async function POST(req: Request) {
       webEvidence,
       intakeEventId: String(persisted.event.data.event_id ?? ''),
       intakeEvent: persisted.event.data,
-      cycle: { cycleId: cycle.cycleId, taskId: cycle.taskId, logbookId: cycle.logbookId, completed: cycle.result.completed, executedAgents: cycle.result.executedAgents, missingAgents: cycle.result.missingAgents },
+      cycle: { cycleId: cycle.cycleId, taskId: cycle.taskId, logbookId: cycle.logbookId, resumed: cycle.resumed, completed: cycle.result.completed, executedAgents: cycle.result.executedAgents, missingAgents: cycle.result.missingAgents },
       methods: cycle.methodPlan,
       agents: cycle.agentPlan,
       worldSnapshot: cycle.worldSnapshot,
@@ -343,7 +393,7 @@ export async function POST(req: Request) {
       metadata: cycle.result.context.metadata,
       reread: history,
       next: 'Keep the cycle open until the methodological return/contrast/closure contract is satisfied.',
-      epistemicBoundary: 'Deterministic observations, persisted hydration, AI inference and retrieved source claims remain separate. The route does not approve proposals, perform external actions, or canonize conclusions.',
+      epistemicBoundary: 'Resuming reuses the same methodological cycle/logbook; it does not erase prior failed/degraded runs. Deterministic observations, AI inference and source claims remain separate.',
     });
   } catch (error) {
     return NextResponse.json({ ok: false, error: 'universal_cognitive_cycle_failed', details: error instanceof Error ? error.message : String(error) }, { status: 503 });
