@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
 import { requireAuthenticatedUser } from '@/lib/system/access/server';
-import { readOperationalCase } from '@/lib/sfi/case-platform/repository';
 import { sfiCaseApiFailure } from '@/lib/sfi/case-platform/http';
 import {
   SFI_CASE_SOURCE_BUCKET,
+  assertCaseSourceWriteAccess,
   createCaseSourceStoragePath,
   normalizeCaseSourceContentType,
   normalizeCaseSourceSize,
@@ -24,18 +24,14 @@ export async function POST(request: Request, context: RouteContext) {
   try {
     const { user } = await requireAuthenticatedUser();
     const { caseId } = await context.params;
-    const envelope = await readOperationalCase(caseId, user.id);
+    const access = await assertCaseSourceWriteAccess({ caseId, userId: user.id });
     const body = await request.json().catch(() => ({})) as Row;
 
     const filename = safeCaseSourceFilename(typeof body.filename === 'string' ? body.filename : 'source.bin');
     const size = normalizeCaseSourceSize(body.size);
     const contentType = normalizeCaseSourceContentType(body.contentType);
     const contentHash = normalizeOptionalContentHash(body.contentHash);
-    const storagePath = createCaseSourceStoragePath({
-      tenantId: envelope.caseRecord.tenantId,
-      caseId,
-      filename,
-    });
+    const storagePath = createCaseSourceStoragePath({ tenantId: access.tenantId, caseId, filename });
 
     const service = createServiceSupabaseClient();
     const signed = await service.storage
@@ -63,6 +59,7 @@ export async function POST(request: Request, context: RouteContext) {
         required: ['storagePath', 'filename', 'size', 'contentType'],
         recommended: ['contentHash', 'sourceType'],
       },
+      authority: { required: 'TENANT_WRITE', resolvedRole: access.role },
       vercelBoundary: 'CONTROL_PLANE_ONLY: raw file bytes must be uploaded directly to Supabase Storage using the signed token/URL and must not traverse this Vercel route.',
     }, { status: 201 });
   } catch (error) {
