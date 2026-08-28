@@ -114,6 +114,7 @@ export async function recordProposalOutcomeFromObservedReturn(input: {
     proposalType: proposalTypeOf(proposal.data as Row),
     expectedStatuses: ['queued'],
     eventId: event.data.id,
+    executedAt: observedExecutionAt,
     payloadPatch: {
       ...priorPatch,
       assignment: {
@@ -140,20 +141,9 @@ export async function recordProposalOutcomeFromObservedReturn(input: {
   });
   if (!stateUpdate.ok) return stateUpdate;
 
-  const executed = await db
-    .from('action_proposals')
-    .update({ executed_at: observedExecutionAt })
-    .eq('id', input.proposalId)
-    .eq('status', nextState)
-    .select('*')
-    .single();
-  if (executed.error) {
-    return { ok: false as const, error: 'proposal_executed_at_materialization_failed', details: executed.error.message, outcomeRecorded: true };
-  }
-
   return {
     ok: true as const,
-    data: executed.data,
+    data: stateUpdate.data,
     observedReturnEventId: input.returnEventId,
     executedAt: observedExecutionAt,
     executedAtSource: 'OBSERVED_RETURN_OCCURRED_AT',
