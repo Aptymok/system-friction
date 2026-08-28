@@ -13,8 +13,6 @@ on:
   push:
     branches:
       - main
-    paths:
-      - '.github/sfi-main-convergence-20260827.json'
 
 permissions:
   contents: write
