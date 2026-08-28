@@ -189,9 +189,9 @@ export async function updateActionProposalStatus(input: {
   }
   if (input.status === 'design_approved') update.approved_at = now;
   if (input.executedAt) {
-    const parsedExecutedAt = Date.parse(input.executedAt);
-    if (!Number.isFinite(parsedExecutedAt)) return { ok: false as const, error: 'action_proposal_executed_at_invalid' };
-    update.executed_at = new Date(parsedExecutedAt).toISOString();
+    const parsed = Date.parse(input.executedAt);
+    if (!Number.isFinite(parsed)) return { ok: false as const, error: 'action_proposal_executed_at_invalid' };
+    update.executed_at = new Date(parsed).toISOString();
   }
   const { data, error } = await service.from('action_proposals').update(update).eq('id', input.proposalId).select('*').single();
   if (error) return { ok: false as const, error: 'action_proposal_update_failed', details: error.message };
