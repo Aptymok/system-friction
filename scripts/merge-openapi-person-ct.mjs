@@ -2,6 +2,8 @@ import { readFileSync, writeFileSync } from 'node:fs';
 
 const path = 'public/openapi.json';
 const api = JSON.parse(readFileSync(path, 'utf8'));
+api.info ??= {};
+api.info.version = '1.10.0';
 api.components ??= {};
 api.components.schemas ??= {};
 api.paths ??= {};
