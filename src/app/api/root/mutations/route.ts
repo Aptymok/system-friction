@@ -33,11 +33,6 @@ export async function POST(request: Request) {
     const commitSha = text(body.commitSha);
     const title = text(body.title);
     if (!commitSha || !title) return NextResponse.json({ ok: false, error: 'commitSha_and_title_required' }, { status: 400 });
-    const current = await readSystemMutationLedger(240);
-    if (current.ok) {
-      const duplicate = current.mutations.find((mutation) => mutation.commit.sha === commitSha || mutation.mutationId === `mutation:${commitSha}`);
-      if (duplicate) return NextResponse.json({ ok: true, idempotent: true, mutation: duplicate });
-    }
     const mutation = await recordSystemMutation({
       commitSha,
       actorId,
@@ -46,6 +41,17 @@ export async function POST(request: Request) {
       rationale: text(body.rationale),
     });
     if (!mutation.ok) return NextResponse.json(mutation, { status: 424 });
+    if (mutation.idempotent) {
+      return NextResponse.json({
+        ok: true,
+        action,
+        idempotent: true,
+        mutationId: mutation.mutationId,
+        eventId: mutation.eventId,
+        verification: mutation.verification,
+        instruction: 'This verified commit already has a mutation record. No duplicate mutation or ROOT audit entry was created.',
+      });
+    }
     const audit = await auditRootAction({
       actorId,
       action: 'mutations.capture_commit',
@@ -72,6 +78,18 @@ export async function POST(request: Request) {
       metadata: row(body.metadata),
     });
     if (!attached.ok) return NextResponse.json(attached, { status: 409 });
+    if (attached.idempotent) {
+      return NextResponse.json({
+        ok: true,
+        action,
+        idempotent: true,
+        mutationId,
+        kind,
+        eventId: attached.eventId,
+        verification: attached.verification,
+        instruction: 'The same mutation evidence attachment already exists. No duplicate attachment or ROOT audit entry was created.',
+      });
+    }
     const audit = await auditRootAction({
       actorId,
       action: `mutations.attach_${kind.toLowerCase()}`,
