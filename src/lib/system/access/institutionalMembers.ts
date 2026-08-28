@@ -2,6 +2,8 @@ export type SfiExternalScope =
   | 'observe'
   | 'propose'
   | 'execute'
+  | 'cases:read'
+  | 'cases:write'
   | 'lab:read'
   | 'lab:write'
   | 'lab:run'
@@ -32,7 +34,7 @@ const MEMBERS: SfiInstitutionalMember[] = [
   {
     email: 'edwin.tzolkin@gmail.com',
     displayName: 'Edwin',
-    role: 'observer',
+    role: 'controller',
     decisionAuthority: 'controller',
     workspace: '/root',
     modules: {
@@ -48,6 +50,8 @@ const MEMBERS: SfiInstitutionalMember[] = [
         'observe',
         'propose',
         'execute',
+        'cases:read',
+        'cases:write',
         'lab:read',
         'lab:write',
         'lab:run',
