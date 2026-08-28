@@ -5,6 +5,7 @@ import { evaluateUniversalAnalysisSufficiency } from '@/lib/sfi/epistemicSuffici
 import { resolveUniversalCaseIntake } from '@/lib/sfi/caseIntakeResolver';
 import { acquireUniversalWebEvidence, resolveUniversalEvidenceRequirements } from '@/lib/sfi/evidenceRequirementResolver';
 import { assessUniversalClosure, contrastLatestUniversalReturn } from '@/lib/sfi/universalClosure';
+import { synthesizeUniversalCycleWithAi } from '@/lib/sfi/universalAiSynthesis';
 import {
   closeUniversalCycle,
   describeUniversalSignalContract,
@@ -246,6 +247,7 @@ export async function POST(req: Request) {
       ...record(input.context),
       evidenceRequirement,
       acquiredWebEvidence: {
+        eventId: webEvidence.eventId,
         policy: webEvidence.policy,
         provider: webEvidence.provider,
         attempted: webEvidence.attempted,
@@ -269,6 +271,32 @@ export async function POST(req: Request) {
 
   try {
     const cycle = await runUniversalCognitiveCycle(preparedInput, actorId, tenantId);
+    const deterministicOutputs = {
+      hypotheses: cycle.result.context.hypotheses,
+      contradictions: cycle.result.context.contradictions,
+      predictions: cycle.result.context.predictions,
+      risks: cycle.result.context.risks,
+      opportunities: cycle.result.context.opportunities,
+      simulations: cycle.result.context.simulations,
+    };
+    const shouldSynthesize = body.aiSynthesis !== false && cycle.result.completed;
+    const aiSynthesis = shouldSynthesize
+      ? await synthesizeUniversalCycleWithAi({
+          cycleId: cycle.cycleId,
+          actorId,
+          tenantId,
+          question: input.question ?? null,
+          objective: input.objective ?? null,
+          caseClass: intakePlan.caseClass,
+          signal: cycle.signal,
+          deterministicOutputs,
+          runtimeMetadata: {
+            ...record(cycle.result.context.metadata),
+            caseContext: preparedInput.context,
+            webEvidenceEventId: webEvidence.eventId,
+          },
+        })
+      : null;
     const history = await readUniversalCycleHistory(cycle.cycleId);
     return NextResponse.json({
       ok: cycle.result.completed,
@@ -286,11 +314,22 @@ export async function POST(req: Request) {
       methods: cycle.methodPlan,
       agents: cycle.agentPlan,
       worldSnapshot: cycle.worldSnapshot,
-      outputs: { hypotheses: cycle.result.context.hypotheses, contradictions: cycle.result.context.contradictions, predictions: cycle.result.context.predictions, risks: cycle.result.context.risks, opportunities: cycle.result.context.opportunities, simulations: cycle.result.context.simulations },
+      deterministicOutputs,
+      aiSynthesis,
+      conclusionProtocol: aiSynthesis ? {
+        epistemicClass: 'INFERENCE',
+        primaryHypothesis: aiSynthesis.primaryHypothesis,
+        rivalHypotheses: aiSynthesis.rivalHypotheses,
+        predictions: aiSynthesis.predictions,
+        missingEvidence: aiSynthesis.missingEvidence,
+        next: aiSynthesis.predictions.length
+          ? 'Register/observe the discriminating return before empirical closure.'
+          : 'Do not fabricate a prediction. Resolve the missing evidence or close only as DESCRIPTIVE_DELIMITED if methodologically appropriate.',
+      } : null,
       metadata: cycle.result.context.metadata,
       reread: history,
       next: 'Keep the cycle open until the methodological return/contrast/closure contract is satisfied.',
-      epistemicBoundary: 'The route executes internal observation/reconstruction/simulation roles only. Retrieved web material remains source claims; the route does not approve proposals, perform external actions, or canonize conclusions.',
+      epistemicBoundary: 'Deterministic outputs, AI inference and retrieved source claims remain separate. The route does not approve proposals, perform external actions, or canonize conclusions.',
     });
   } catch (error) {
     return NextResponse.json({ ok: false, error: 'universal_cognitive_cycle_failed', details: error instanceof Error ? error.message : String(error) }, { status: 503 });
