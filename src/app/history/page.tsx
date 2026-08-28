@@ -21,6 +21,13 @@ export default function HistoryPage() {
           <p style={{lineHeight:1.65,marginBottom:0,color:'#c8b99d'}}>{SFI_HISTORY_BOUNDARY}</p>
         </section>
 
+        <section style={{marginTop:22,display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(280px,1fr))',gap:12}}>
+          <Link href="/history/mutations" style={{display:'block',border:'1px solid rgba(202,160,92,.2)',padding:'16px 18px',color:'#cfa15d',textDecoration:'none'}}>
+            <small style={{letterSpacing:'.18em',color:'#9f845b'}}>MUTATION EVIDENCE</small>
+            <span style={{display:'block',marginTop:8,color:'#c8b99d',fontSize:15,lineHeight:1.55}}>GitHub commit → QA → deployment → exercise → calibrated learning.</span>
+          </Link>
+        </section>
+
         <section style={{position:'relative',marginTop:48}}>
           <div style={{position:'absolute',left:112,top:0,bottom:0,width:1,background:'linear-gradient(#c3924e,rgba(195,146,78,.08))'}} />
           {SFI_INSTITUTION_HISTORY.map((m) => (
