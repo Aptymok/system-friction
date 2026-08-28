@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import { isMaterialExternalAction } from '../src/lib/execution/governedExecutionClassification';
 
 function read(path: string) { return fs.readFileSync(path, 'utf8'); }
 function requireText(source: string, needle: string, label: string) {
@@ -9,7 +10,9 @@ function forbid(source: string, needle: string, label: string) {
 }
 
 const router = read('src/lib/execution/governedExecutionRouter.ts');
+const classification = read('src/lib/execution/governedExecutionClassification.ts');
 const outcome = read('src/lib/governance/proposalOutcome.ts');
+const operationalCommon = read('src/lib/operational/common.ts');
 const approve = read('src/app/api/acp/proposals/[id]/approve/route.ts');
 const dailyCron = read('src/app/api/cron/continuity-report/route.ts');
 const hourlyCron = read('src/app/api/cron/continuity-heartbeat/route.ts');
@@ -31,13 +34,38 @@ requireText(router, 'canonicalPromotionAllowed: false', 'no-auto-canon');
 requireText(router, "type: 'build_execution_adapter'", 'missing-adapter-request');
 requireText(router, "state: 'BLOCKED_EXECUTOR_CAPABILITY'", 'fail-closed-missing-adapter');
 requireText(router, 'SFI_GOVERNED_EXECUTION_ADAPTERS', 'adapter-contract');
+requireText(router, 'persistExecutionState', 'persist-assignment-state');
+requireText(router, "state: 'RUNNING'", 'running-state-distinct-from-queued');
+requireText(router, "state: 'REMEDIATION_REQUIRED'", 'explicit-remediation-state');
+requireText(router, "state: 'NO_EXECUTOR'", 'explicit-no-executor-state');
+requireText(router, "eventId: String(event.data.id ?? '')", 'remediation-event-fk-uses-primary-key');
+forbid(router, "event.data.event_id ?? event.data.id", 'remediation-must-not-use-semantic-event-id-for-fk');
 forbid(router, ".from('action_proposals').insert", 'router-direct-proposal-insert');
 forbid(router, ".from('action_proposals').update", 'router-direct-proposal-update');
+
+requireText(classification, 'MATERIAL_EXTERNAL_ACTION_TYPES', 'exact-external-action-types');
+if (isMaterialExternalAction('architecture_proposal', 'Friction & Capacity Redistribution through time.')) {
+  throw new Error('SFI_ROUTER_QA_CLASSIFIER:redistribution_must_not_be_external_distribution');
+}
+if (!isMaterialExternalAction('distribute_content', 'Distribute approved content.')) {
+  throw new Error('SFI_ROUTER_QA_CLASSIFIER:explicit_distribution_must_be_external');
+}
+if (!isMaterialExternalAction('action', 'Send an email to the approved recipient.')) {
+  throw new Error('SFI_ROUTER_QA_CLASSIFIER:generic_action_with_explicit_external_side_effect_must_be_external');
+}
 
 requireText(outcome, 'recordProposalOutcomeFromObservedReturn', 'single-outcome-writer');
 requireText(outcome, "epistemicClass === 'observed'", 'observed-return-gate');
 requireText(outcome, 'return_event_proposal_mismatch', 'proposal-return-lineage');
 requireText(outcome, 'canonicalPromotionAllowed: false', 'outcome-no-auto-canon');
+requireText(outcome, "executedAtSource: 'OBSERVED_RETURN_OCCURRED_AT'", 'executed-at-source-is-observed-return');
+requireText(outcome, 'executedAt: observedExecutionAt', 'outcome-delegates-executed-at-to-canonical-writer');
+forbid(outcome, ".from('action_proposals').update", 'outcome-no-parallel-proposal-writer');
+requireText(operationalCommon, 'executedAt?: string | null', 'canonical-writer-executed-at-contract');
+requireText(operationalCommon, 'update.executed_at = new Date(parsed).toISOString()', 'canonical-writer-materializes-executed-at');
+if (outcome.indexOf("observed_return_event_required") > outcome.indexOf('executedAt: observedExecutionAt')) {
+  throw new Error('SFI_ROUTER_QA_ORDER:executed_at_must_follow_observed_return_validation');
+}
 
 requireText(approve, 'dispatchQueuedProposal(proposalId)', 'immediate-dispatch-after-approval');
 requireText(approve, 'queueApprovedProposal', 'governance-before-dispatch');

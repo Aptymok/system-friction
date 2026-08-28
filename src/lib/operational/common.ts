@@ -164,7 +164,7 @@ export async function readOperationalContext() {
 export async function updateActionProposalStatus(input: {
   proposalId: string; status: ProposalStatus; actorId: string; isRoot: boolean; proposalType: string;
   expectedStatuses: ProposalStatus[]; eventId?: string | null; payloadPatch?: Record<string, unknown>;
-  systemActor?: boolean; preserveOutcome?: boolean;
+  systemActor?: boolean; preserveOutcome?: boolean; executedAt?: string | null;
   riskPatch?: { riskLevel: ProposalRiskLevel; proportionalityCheck: Record<string, unknown>; updatedAt: string };
 }) {
   const service = createServiceSupabaseClient();
@@ -188,6 +188,11 @@ export async function updateActionProposalStatus(input: {
     update.updated_at = input.riskPatch.updatedAt;
   }
   if (input.status === 'design_approved') update.approved_at = now;
+  if (input.executedAt) {
+    const parsed = Date.parse(input.executedAt);
+    if (!Number.isFinite(parsed)) return { ok: false as const, error: 'action_proposal_executed_at_invalid' };
+    update.executed_at = new Date(parsed).toISOString();
+  }
   const { data, error } = await service.from('action_proposals').update(update).eq('id', input.proposalId).select('*').single();
   if (error) return { ok: false as const, error: 'action_proposal_update_failed', details: error.message };
   return { ok: true as const, data };

@@ -3,7 +3,8 @@ import 'server-only';
 import { randomUUID } from 'crypto';
 import { appendEpistemicEvent } from '@/lib/events/eventStore';
 import { recordProposalOutcomeFromObservedReturn } from '@/lib/governance/proposalOutcome';
-import { appendOperationalEvent, createActionProposal, recordValue, stringValue } from '@/lib/operational/common';
+import { appendOperationalEvent, createActionProposal, recordValue, stringValue, updateActionProposalStatus } from '@/lib/operational/common';
+import { isMaterialExternalAction } from '@/lib/execution/governedExecutionClassification';
 import { runCognitiveAgent } from '@/lib/sfi/cognitive-runtime/runtimeAgentExecutor';
 import type { KernelContext } from '@/lib/sfi/cognitive-runtime/kernelContext';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
@@ -15,6 +16,7 @@ const SYSTEM_ACTOR = 'sfi_execution_router';
 const MAX_RETRIES_PER_AGENT = 1;
 
 type Row = Record<string, unknown>;
+type PersistedExecutionState = 'ASSIGNED' | 'RUNNING' | 'REMEDIATION_REQUIRED' | 'NO_EXECUTOR';
 
 export type GovernedExecutionClass = 'COGNITIVE_INTERNAL' | 'INTERNAL_PLATFORM' | 'EXTERNAL_ACTION';
 
@@ -86,6 +88,17 @@ function requestedAction(row: Row) {
   return recordValue(proposalPayload(row).requested_action);
 }
 
+function proposalTypeOf(row: Row) {
+  const expected = recordValue(row.expected_field_delta);
+  const proportionality = recordValue(row.proportionality_check);
+  return stringValue(row.proposal_type)
+    ?? stringValue(expected.proposalType)
+    ?? stringValue(expected.proposal_type)
+    ?? stringValue(proportionality.proposalType)
+    ?? stringValue(proportionality.proposal_type)
+    ?? 'unknown';
+}
+
 function proposalText(row: Row) {
   const payload = proposalPayload(row);
   const action = requestedAction(row);
@@ -101,8 +114,8 @@ function declaredAdapter(row: Row) {
   const plan = recordValue(patch.executionPlan);
   const assignment = recordValue(patch.assignment);
   return stringValue(
-    assignment.adapter ?? assignment.executorRoute ?? assignment.executor_route
-      ?? plan.adapter ?? plan.executorRoute ?? plan.executor_route,
+    assignment.adapterId ?? assignment.adapter ?? assignment.executorRoute ?? assignment.executor_route
+      ?? plan.adapterId ?? plan.adapter ?? plan.executorRoute ?? plan.executor_route,
   );
 }
 
@@ -117,19 +130,19 @@ export function classifyGovernedProposalWork(row: Row) {
 
   const text = proposalText(row);
   const actionType = stringValue(requestedAction(row).type)?.toLowerCase() ?? '';
-  const materialExternal = /(publish|upload|distribut|send[_ -]?email|send message|contact prospect|payment|purchase|github|vercel|youtube|instagram|tiktok|deploy|dns|oauth|webhook|external mutation|build_execution_adapter)/i.test(`${actionType} ${text}`);
+  const materialExternal = isMaterialExternalAction(actionType, text);
   if (materialExternal) {
     return {
       executionClass: 'EXTERNAL_ACTION' as const,
       adapterId: declaredAdapter(row),
-      reason: 'The requested scope contains a material external side effect and therefore requires an explicit governed adapter.',
+      reason: 'The requested action type or explicit operative wording declares a material external side effect and therefore requires a verified governed adapter.',
     };
   }
 
   return {
     executionClass: 'COGNITIVE_INTERNAL' as const,
     adapterId: 'cognitive_runtime_v1',
-    reason: 'The requested work can be performed as internal cognition/planning/research without a material external mutation.',
+    reason: 'The requested work can be performed as internal cognition/planning/research without a declared material external mutation.',
   };
 }
 
@@ -176,6 +189,60 @@ function buildKernelContext(row: Row, agents: string[]): KernelContext {
       externalExecutionAllowed: false,
     },
   };
+}
+
+async function persistExecutionState(row: Row, input: {
+  executionClass: GovernedExecutionClass;
+  adapterId: string | null;
+  executorId: string | null;
+  state: PersistedExecutionState;
+  eventId?: string | null;
+  missingCapability?: string | null;
+  blocker?: string | null;
+  blockerOwner?: string | null;
+  systemNextAction?: string | null;
+}) {
+  const proposalId = stringValue(row.id);
+  if (!proposalId) return { ok: false as const, error: 'proposal_id_missing' };
+  const outcome = recordValue(row.outcome);
+  const patch = recordValue(outcome.payloadPatch);
+  const priorAssignment = recordValue(patch.assignment);
+  const now = new Date().toISOString();
+  const assignment = {
+    ...priorAssignment,
+    executionClass: input.executionClass,
+    adapterId: input.adapterId,
+    executorId: input.executorId,
+    state: input.state,
+    assignedAt: stringValue(priorAssignment.assignedAt) ?? now,
+    updatedAt: now,
+  };
+  const payloadPatch: Record<string, unknown> = {
+    ...patch,
+    assignment,
+    executionState: input.state,
+    executionBlockedReason: input.blocker ?? null,
+    missingCapability: input.missingCapability ?? null,
+    blockerOwner: input.blockerOwner ?? null,
+    systemNextAction: input.systemNextAction ?? (input.state === 'RUNNING' ? 'EXECUTE_BOUNDED_SCOPE_AND_RECORD_RETURN' : null),
+    expectedReturn: 'Observed proposal-scoped RETURN linked to execution evidence.',
+    returnPurpose: 'Close the authorized execution loop without promoting model output or execution receipt to truth/canon.',
+    closureCondition: 'Observed RETURN is persisted for this proposal and validated before outcome closure/executed_at.',
+  };
+  if (input.state === 'RUNNING') payloadPatch.executionStartedAt = stringValue(patch.executionStartedAt) ?? now;
+  if (input.state === 'REMEDIATION_REQUIRED' || input.state === 'NO_EXECUTOR') payloadPatch.executionBlockedAt = now;
+
+  return updateActionProposalStatus({
+    proposalId,
+    status: 'queued',
+    actorId: SYSTEM_ACTOR,
+    isRoot: false,
+    systemActor: true,
+    proposalType: proposalTypeOf(row),
+    expectedStatuses: ['queued'],
+    eventId: input.eventId ?? null,
+    payloadPatch,
+  });
 }
 
 async function appendObservedExecutionReceipt(input: {
@@ -284,7 +351,7 @@ async function openRemediationChild(row: Row, missingCapability: string, reason:
     title: `Remediate execution capability · ${missingCapability}`,
     objective: `Restore progress for queued proposal ${parentProposalId} by reusing or implementing the minimum governed capability ${missingCapability}.`,
     status: 'proposed',
-    eventId: String(event.data.event_id ?? event.data.id ?? ''),
+    eventId: String(event.data.id ?? ''),
     payload: {
       parentProposalId,
       missingCapability,
@@ -360,7 +427,18 @@ async function executeCognitiveInternal(row: Row) {
   }
 
   if (failedAgents.length) {
-    const remediation = await openRemediationChild(row, `cognitive_runtime:${failedAgents.join(',')}`, 'One or more registered cognitive executors failed after the bounded retry policy.');
+    const missingCapability = `cognitive_runtime:${failedAgents.join(',')}`;
+    const remediation = await openRemediationChild(row, missingCapability, 'One or more registered cognitive executors failed after the bounded retry policy.');
+    await persistExecutionState(row, {
+      executionClass: 'COGNITIVE_INTERNAL',
+      adapterId: 'cognitive_runtime_v1',
+      executorId: 'runCognitiveAgent',
+      state: 'REMEDIATION_REQUIRED',
+      missingCapability,
+      blocker: 'REGISTERED_COGNITIVE_EXECUTOR_FAILED',
+      blockerOwner: 'ROOT_OR_AUTHORIZED_CONTROLLER',
+      systemNextAction: 'REMEDIATE_OR_RESTORE_EXECUTOR_THEN_REROUTE',
+    });
     await appendOperationalEvent({
       eventName: 'execution.router.blocked',
       actorId: SYSTEM_ACTOR,
@@ -425,7 +503,7 @@ export async function dispatchQueuedProposal(proposalId: string) {
 
   const row = read.data as Row;
   const classification = classifyGovernedProposalWork(row);
-  await appendOperationalEvent({
+  const routed = await appendOperationalEvent({
     eventName: 'execution.router.routed',
     actorId: SYSTEM_ACTOR,
     confidence: 1,
@@ -440,23 +518,65 @@ export async function dispatchQueuedProposal(proposalId: string) {
     },
     lineage: [proposalId],
   });
+  const routeEventId = routed.ok ? String(routed.data.id ?? '') : null;
 
   if (classification.executionClass === 'INTERNAL_PLATFORM' && classification.adapterId) {
-    return executeInternalPlatform(row, classification.adapterId);
+    const adapter = SFI_GOVERNED_EXECUTION_ADAPTERS.find((candidate) => candidate.capabilityId === classification.adapterId) ?? null;
+    const assignment = await persistExecutionState(row, {
+      executionClass: classification.executionClass,
+      adapterId: classification.adapterId,
+      executorId: adapter?.executorRef ?? null,
+      state: 'RUNNING',
+      eventId: routeEventId,
+    });
+    if (!assignment.ok) return { ok: false as const, state: 'ASSIGNMENT_PERSIST_FAILED', proposalId, details: assignment };
+    return executeInternalPlatform(assignment.data as Row, classification.adapterId);
   }
   if (classification.executionClass === 'COGNITIVE_INTERNAL') {
-    return executeCognitiveInternal(row);
+    const assignment = await persistExecutionState(row, {
+      executionClass: classification.executionClass,
+      adapterId: 'cognitive_runtime_v1',
+      executorId: 'runCognitiveAgent',
+      state: 'RUNNING',
+      eventId: routeEventId,
+    });
+    if (!assignment.ok) return { ok: false as const, state: 'ASSIGNMENT_PERSIST_FAILED', proposalId, details: assignment };
+    return executeCognitiveInternal(assignment.data as Row);
   }
 
   const adapter = classification.adapterId
     ? SFI_GOVERNED_EXECUTION_ADAPTERS.find((candidate) => candidate.capabilityId === classification.adapterId && candidate.healthStatus === 'AVAILABLE')
     : null;
   if (adapter && adapter.domain !== 'internal_cognition' && adapter.domain !== 'internal_execution_control' && adapter.domain !== 'execution_remediation') {
-    return { ok: false as const, state: 'DISPATCHER_NOT_IMPLEMENTED_FOR_ADAPTER', proposalId, adapterId: adapter.capabilityId };
+    const missingCapability = `dispatcher:${adapter.capabilityId}`;
+    const remediation = await openRemediationChild(row, missingCapability, 'The governed adapter is registered but no dispatcher implementation is available for this external domain.');
+    await persistExecutionState(row, {
+      executionClass: classification.executionClass,
+      adapterId: adapter.capabilityId,
+      executorId: adapter.executorRef,
+      state: 'NO_EXECUTOR',
+      eventId: routeEventId,
+      missingCapability,
+      blocker: 'DISPATCHER_NOT_IMPLEMENTED_FOR_ADAPTER',
+      blockerOwner: 'ROOT_OR_AUTHORIZED_CONTROLLER',
+      systemNextAction: 'AUTHORIZE_OR_IMPLEMENT_BOUNDED_DISPATCHER',
+    });
+    return { ok: false as const, state: 'NO_EXECUTOR', proposalId, adapterId: adapter.capabilityId, remediation };
   }
 
   const missingCapability = classification.adapterId ?? `external_adapter:${stringValue(requestedAction(row).type) ?? 'material_action'}`;
   const remediation = await openRemediationChild(row, missingCapability, classification.reason);
+  await persistExecutionState(row, {
+    executionClass: classification.executionClass,
+    adapterId: classification.adapterId,
+    executorId: null,
+    state: 'REMEDIATION_REQUIRED',
+    eventId: routeEventId,
+    missingCapability,
+    blocker: 'MISSING_EXECUTION_ADAPTER',
+    blockerOwner: 'ROOT_OR_AUTHORIZED_CONTROLLER',
+    systemNextAction: remediation.ok ? 'REVIEW_REMEDIATION_PROPOSAL' : 'REPAIR_REMEDIATION_PERSISTENCE_OR_REGISTER_ADAPTER',
+  });
   await appendOperationalEvent({
     eventName: 'execution.router.blocked',
     actorId: SYSTEM_ACTOR,

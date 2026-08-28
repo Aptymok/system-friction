@@ -77,6 +77,10 @@ export async function recordProposalOutcomeFromObservedReturn(input: {
   const nextState = input.nextState ?? 'accepted';
   const fieldEffect = input.fieldEffect ?? {};
   const notes = input.notes?.trim() || null;
+  const observedExecutionAt = stringValue(returnEvent.data.occurred_at) ?? new Date().toISOString();
+  const priorOutcome = recordValue(proposal.data.outcome);
+  const priorPatch = recordValue(priorOutcome.payloadPatch);
+  const priorAssignment = recordValue(priorPatch.assignment);
 
   const event = await appendOperationalEvent({
     eventName: 'acp.proposal.outcome_recorded',
@@ -91,6 +95,8 @@ export async function recordProposalOutcomeFromObservedReturn(input: {
       return_event_id: input.returnEventId,
       evidence_refs: evidenceRefs,
       return_epistemic_class: returnEvent.data.epistemic_class ?? null,
+      executed_at_source: 'OBSERVED_RETURN_OCCURRED_AT',
+      observed_execution_at: observedExecutionAt,
       calibration_state: 'PENDING_REALITY_CALIBRATION',
       learning_state: 'CANDIDATE_UNTIL_CALIBRATED',
       canonical_promotion_allowed: false,
@@ -100,7 +106,7 @@ export async function recordProposalOutcomeFromObservedReturn(input: {
   });
   if (!event.ok) return event;
 
-  return updateActionProposalStatus({
+  const stateUpdate = await updateActionProposalStatus({
     proposalId: input.proposalId,
     status: nextState,
     actorId: input.actorId,
@@ -108,7 +114,18 @@ export async function recordProposalOutcomeFromObservedReturn(input: {
     proposalType: proposalTypeOf(proposal.data as Row),
     expectedStatuses: ['queued'],
     eventId: event.data.id,
+    executedAt: observedExecutionAt,
     payloadPatch: {
+      ...priorPatch,
+      assignment: {
+        ...priorAssignment,
+        state: 'RETURN_RECORDED',
+        completedAt: observedExecutionAt,
+        updatedAt: observedExecutionAt,
+      },
+      executionState: 'RETURN_RECORDED',
+      executionCompletedAt: observedExecutionAt,
+      executedAtSource: 'OBSERVED_RETURN_OCCURRED_AT',
       outcomeRecorded: true,
       outcomeStatus,
       fieldEffect,
@@ -122,4 +139,13 @@ export async function recordProposalOutcomeFromObservedReturn(input: {
       outcomeRecordedBy: input.actorId,
     },
   });
+  if (!stateUpdate.ok) return stateUpdate;
+
+  return {
+    ok: true as const,
+    data: stateUpdate.data,
+    observedReturnEventId: input.returnEventId,
+    executedAt: observedExecutionAt,
+    executedAtSource: 'OBSERVED_RETURN_OCCURRED_AT',
+  };
 }
