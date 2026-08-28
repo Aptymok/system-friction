@@ -16,9 +16,23 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  contract-types-and-build:
+  contract-types-db-and-build:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 40
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: sfi_contract_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres -d sfi_contract_test"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=12
     steps:
       - name: Checkout convergence branch
         uses: actions/checkout@v4
@@ -60,6 +74,14 @@ jobs:
 
       - name: QA mutation evidence progression
         run: npm run qa:sfi-mutation-evidence
+
+      - name: QA epistemic database contract
+        run: npx tsx scripts/qa-sfi-epistemic-db-contract.ts
+
+      - name: Exercise epistemic migration on isolated PostgreSQL
+        env:
+          PGPASSWORD: postgres
+        run: psql -h 127.0.0.1 -U postgres -d sfi_contract_test -v ON_ERROR_STOP=1 -f scripts/qa-sfi-epistemic-db-migration-smoke.sql
 
       - name: Typecheck convergence branch
         run: npm run typecheck
