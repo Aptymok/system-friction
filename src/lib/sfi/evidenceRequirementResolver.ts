@@ -192,7 +192,7 @@ export async function acquireUniversalWebEvidence(inputValue: unknown, actorId: 
   if (requirement.webPolicy === 'WEB_FORBIDDEN' || requirement.webPolicy === 'WEB_NOT_REQUIRED' || requirement.webPolicy === 'WEB_ALREADY_SUFFICIENT') {
     return {
       attempted: false,
-      satisfied: requirement.webPolicy !== 'WEB_REQUIRED',
+      satisfied: true,
       policy: requirement.webPolicy,
       provider: null,
       sources: [],
