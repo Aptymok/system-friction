@@ -10,11 +10,7 @@ const observatoryRoute = read('src/app/api/observatory/world/route.ts');
 const observatoryFeed = read('src/components/sfi/ObservatoryProvenanceFeed.tsx');
 const vercel = read('vercel.json');
 
-for (const token of [
-  'SFI-STUDIO-HYGIENE-1.0',
-  'VERIFIED_HASH',
-  'CONTENT_IDENTITY_UNVERIFIED',
-].filter((token) => token !== 'CONTENT_IDENTITY_UNVERIFIED')) {
+for (const token of ['SFI-STUDIO-HYGIENE-1.0', 'VERIFIED_HASH']) {
   assert.ok(hygiene.includes(token), `studio_hygiene_contract_missing:${token}`);
 }
 assert.ok(hygiene.includes("class: 'TECHNICAL_LINEAGE'"), 'studio_trace_must_be_technical_lineage');
@@ -24,7 +20,8 @@ assert.ok(hygiene.includes('IDENTITY_ONLY'), 'studio_identity_only_state_missing
 assert.ok(hygiene.includes('creativeConstraints'), 'studio_creative_constraints_projection_missing');
 assert.ok(hygiene.includes('operatorFeedback'), 'studio_operator_feedback_projection_missing');
 
-assert.ok(repository.includes("query = query.neq('status', 'archived')"), 'studio_operational_list_must_exclude_archived_by_default');
+assert.ok(repository.includes("metadata->hygiene->>lifecycleClass.eq.CANONICAL"), 'studio_canonical_archive_visibility_missing');
+assert.ok(repository.includes('status.neq.archived'), 'studio_historical_archive_filter_missing');
 assert.ok(repository.includes('includeArchived'), 'studio_archive_opt_in_missing');
 assert.ok(repository.includes('before'), 'studio_cursor_missing');
 assert.ok(repository.includes('clampLimit'), 'studio_list_limit_missing');
@@ -53,7 +50,8 @@ assert.equal(config.git?.deploymentEnabled?.['*'], false, 'studio_hygiene_pr_mus
 console.log(JSON.stringify({
   ok: true,
   contract: 'SFI-STUDIO-HYGIENE-1.0',
-  archivedExcludedByDefault: true,
+  historicalArchiveExcludedByDefault: true,
+  canonicalArchiveVisibleByDefault: true,
   contentIdentityByHash: true,
   traceAuthority: 'NONE',
   operatorFeedbackSeparated: true,
