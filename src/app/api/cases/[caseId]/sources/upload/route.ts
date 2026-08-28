@@ -3,34 +3,20 @@ import { NextResponse } from 'next/server';
 import { requireAuthenticatedUser } from '@/lib/system/access/server';
 import { readOperationalCase, normalizeAndRegisterOperationalCaseSource } from '@/lib/sfi/case-platform/repository';
 import { sfiCaseApiFailure } from '@/lib/sfi/case-platform/http';
+import {
+  SFI_CASE_DIRECT_UPLOAD_MAX_BYTES,
+  SFI_CASE_LEGACY_PROXY_MAX_BYTES,
+  SFI_CASE_SOURCE_BUCKET,
+  createCaseSourceStoragePath,
+  normalizeCaseSourceContentType,
+  normalizeCaseSourceType,
+  safeCaseSourceFilename,
+} from '@/lib/sfi/case-platform/directUpload';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
-export const maxDuration = 60;
-
-const MAX_BYTES = 25 * 1024 * 1024;
-const ALLOWED_PREFIXES = ['image/', 'audio/', 'video/', 'text/'];
-const ALLOWED_TYPES = new Set([
-  'application/pdf',
-  'application/json',
-  'application/zip',
-  'application/vnd.ms-excel',
-  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-  'application/msword',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  'application/octet-stream',
-]);
-
-function safeFilename(value: string) {
-  const cleaned = value.normalize('NFKD').replace(/[^a-zA-Z0-9._-]+/g, '-').replace(/-+/g, '-').replace(/^-+|-+$/g, '');
-  return cleaned.slice(-180) || 'source.bin';
-}
-
-function safeSourceType(value: FormDataEntryValue | null) {
-  const source = typeof value === 'string' ? value.trim().toUpperCase().replace(/[^A-Z0-9:_-]+/g, '_') : '';
-  return source.slice(0, 160) || 'DECLARED_BY_PROTOCOL';
-}
+export const maxDuration = 30;
 
 type RouteContext = { params: Promise<{ caseId: string }> };
 
@@ -42,22 +28,34 @@ export async function POST(request: Request, context: RouteContext) {
     const form = await request.formData();
     const value = form.get('file');
     if (!(value instanceof File)) return NextResponse.json({ ok: false, error: 'SFI_SOURCE_FILE_REQUIRED' }, { status: 400 });
-    if (value.size <= 0 || value.size > MAX_BYTES) return NextResponse.json({ ok: false, error: 'SFI_SOURCE_FILE_SIZE_INVALID', maxBytes: MAX_BYTES }, { status: 400 });
+    if (value.size <= 0 || value.size > SFI_CASE_DIRECT_UPLOAD_MAX_BYTES) {
+      return NextResponse.json({ ok: false, error: 'SFI_SOURCE_FILE_SIZE_INVALID', maxBytes: SFI_CASE_DIRECT_UPLOAD_MAX_BYTES }, { status: 400 });
+    }
+    if (value.size > SFI_CASE_LEGACY_PROXY_MAX_BYTES) {
+      return NextResponse.json({
+        ok: false,
+        error: 'SFI_SOURCE_DIRECT_UPLOAD_REQUIRED',
+        proxyMaxBytes: SFI_CASE_LEGACY_PROXY_MAX_BYTES,
+        directUploadMaxBytes: SFI_CASE_DIRECT_UPLOAD_MAX_BYTES,
+        directUpload: {
+          ticketEndpoint: `/api/cases/${caseId}/sources/upload-ticket`,
+          finalizeEndpoint: `/api/cases/${caseId}/sources/finalize-upload`,
+          rationale: 'Raw file bytes larger than the compatibility threshold must bypass Vercel and upload directly to Supabase Storage.',
+        },
+      }, { status: 413 });
+    }
 
-    const contentType = value.type || 'application/octet-stream';
-    const allowed = ALLOWED_TYPES.has(contentType) || ALLOWED_PREFIXES.some((prefix) => contentType.startsWith(prefix));
-    if (!allowed) return NextResponse.json({ ok: false, error: 'SFI_SOURCE_FILE_TYPE_NOT_ALLOWED', contentType }, { status: 415 });
-
+    const contentType = normalizeCaseSourceContentType(value.type || 'application/octet-stream');
     const bytes = Buffer.from(await value.arrayBuffer());
     const contentHash = createHash('sha256').update(bytes).digest('hex');
-    const filename = safeFilename(value.name);
-    const sourceType = safeSourceType(form.get('sourceType'));
-    const storagePath = `${envelope.caseRecord.tenantId}/${caseId}/source/${randomUUID()}/${filename}`;
+    const filename = safeCaseSourceFilename(value.name);
+    const sourceType = normalizeCaseSourceType(form.get('sourceType'));
+    const storagePath = createCaseSourceStoragePath({ tenantId: envelope.caseRecord.tenantId, caseId, filename });
     const service = createServiceSupabaseClient();
-    const upload = await service.storage.from('field-evidence').upload(storagePath, bytes, { contentType, cacheControl: '3600', upsert: false });
+    const upload = await service.storage.from(SFI_CASE_SOURCE_BUCKET).upload(storagePath, bytes, { contentType, cacheControl: '3600', upsert: false });
     if (upload.error) throw new Error(`SFI_SOURCE_FILE_UPLOAD_FAILED:${upload.error.message}`);
 
-    const uri = `storage://field-evidence/${storagePath}`;
+    const uri = `storage://${SFI_CASE_SOURCE_BUCKET}/${storagePath}`;
     try {
       const source = await normalizeAndRegisterOperationalCaseSource({
         caseId,
@@ -70,7 +68,7 @@ export async function POST(request: Request, context: RouteContext) {
           observedAt: new Date().toISOString(),
           contentHash,
           metadata: {
-            intakeMode: 'PRIVATE_FILE_UPLOAD',
+            intakeMode: 'VERCEL_PROXY_COMPATIBILITY',
             tenantId: envelope.caseRecord.tenantId,
             caseId,
             filename,
@@ -78,13 +76,20 @@ export async function POST(request: Request, context: RouteContext) {
             contentType,
             storagePath,
             visibility: 'private',
+            contentHashBasis: 'SERVER_VERIFIED_SHA256',
             epistemicBoundary: 'SOURCE_NOT_EVIDENCE',
+            vercelBoundary: `COMPATIBILITY_ONLY_MAX_${SFI_CASE_LEGACY_PROXY_MAX_BYTES}_BYTES`,
           },
         },
       });
-      return NextResponse.json({ ok: true, source, file: { filename, size: value.size, contentType, uri, contentHash, visibility: 'private' } }, { status: 201 });
+      return NextResponse.json({
+        ok: true,
+        source,
+        file: { filename, size: value.size, contentType, uri, contentHash, visibility: 'private' },
+        warning: 'VERCEL_PROXY_COMPATIBILITY_PATH: use signed direct upload for normal file ingestion.',
+      }, { status: 201 });
     } catch (error) {
-      await service.storage.from('field-evidence').remove([storagePath]);
+      await service.storage.from(SFI_CASE_SOURCE_BUCKET).remove([storagePath]);
       throw error;
     }
   } catch (error) {
