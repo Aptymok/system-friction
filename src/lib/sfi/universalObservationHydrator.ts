@@ -7,6 +7,8 @@ export const SFI_UNIVERSAL_OBSERVATION_HYDRATOR_CONTRACT = 'SFI-UNIVERSAL-OBSERV
 
 type Row = Record<string, unknown>;
 
+type ServiceDb = ReturnType<typeof createServiceSupabaseClient>;
+
 function row(value: unknown): Row {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Row : {};
 }
@@ -62,15 +64,45 @@ function extractionFromStructuredResult(payload: Row) {
   };
 }
 
-function extractionFromDatasetProfile(payload: Row) {
+async function extractionFromDatasetProfile(db: ServiceDb, payload: Row) {
   const summary = row(payload.summary);
+  const caseId = text(payload.caseId);
+  const observationId = text(row(payload.observationRef).id);
+  let fullProfile: Row = {};
+  let observationObjectId: string | null = null;
+
+  if (caseId && observationId) {
+    const observations = await db.from('sfi_case_objects')
+      .select('id,canonical_ref,payload')
+      .eq('case_id', caseId)
+      .eq('object_kind', 'OBSERVATION')
+      .order('created_at', { ascending: false })
+      .limit(250);
+    if (!observations.error) {
+      const matched = (observations.data ?? []).find((item) => text(row(item.canonical_ref).id) === observationId);
+      const objectPayload = row(matched?.payload);
+      fullProfile = row(objectPayload.profile);
+      observationObjectId = matched?.id ? String(matched.id) : null;
+    }
+  }
+
+  const profileObservations = row(fullProfile.observations);
+  const sheets = Array.isArray(fullProfile.sheets) ? fullProfile.sheets : [];
+  const primarySheet = row(sheets[0]);
+  const profileHeaders = Array.isArray(primarySheet.headers) ? primarySheet.headers : [];
+  const schema = Array.isArray(summary.primaryHeaders) && summary.primaryHeaders.length
+    ? summary.primaryHeaders
+    : profileHeaders;
+
   return {
-    schema: Array.isArray(summary.primaryHeaders) ? summary.primaryHeaders : [],
-    rowCount: Number(summary.totalRows ?? 0),
-    analyzableRowCount: Number(summary.totalAnalyzableRows ?? 0),
-    malformedRows: Number(summary.totalMalformedRows ?? 0),
-    sheetCount: Number(summary.sheetCount ?? 0),
-    profileRef: text(row(payload.observationRef).id),
+    ...(Object.keys(fullProfile).length ? { profile: fullProfile } : {}),
+    schema,
+    rowCount: Number(summary.totalRows ?? profileObservations.totalRows ?? 0),
+    analyzableRowCount: Number(summary.totalAnalyzableRows ?? profileObservations.totalAnalyzableRows ?? 0),
+    malformedRows: Number(summary.totalMalformedRows ?? profileObservations.totalMalformedRows ?? 0),
+    sheetCount: Number(summary.sheetCount ?? profileObservations.sheetCount ?? sheets.length ?? 0),
+    profileRef: observationId,
+    profileObjectId: observationObjectId,
     profileHash: text(payload.profileHash),
     sourceContentHash: text(payload.contentHash),
     hydrationBasis: 'SFI_DATASET_PROFILE_ADMITTED',
@@ -132,7 +164,7 @@ export async function hydrateUniversalCycleInput(input: UniversalCycleInput, ten
       };
     }
     if (event.event_name === 'SFI_DATASET_PROFILE_ADMITTED' && matchDatasetProfile(payload, normalized)) {
-      const extracted = extractionFromDatasetProfile(payload);
+      const extracted = await extractionFromDatasetProfile(db, payload);
       if (!hasMaterialExtraction(extracted)) continue;
       return {
         contract: SFI_UNIVERSAL_OBSERVATION_HYDRATOR_CONTRACT,
