@@ -1,6 +1,7 @@
 import 'server-only';
 
 import { randomUUID } from 'node:crypto';
+import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 
 export const SFI_CASE_SOURCE_BUCKET = 'field-evidence';
 export const SFI_CASE_DIRECT_UPLOAD_MAX_BYTES = 25 * 1024 * 1024;
@@ -18,6 +19,33 @@ const ALLOWED_TYPES = new Set([
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   'application/octet-stream',
 ]);
+const WRITE_ROLES = new Set(['OWNER', 'ADMIN', 'OPERATOR']);
+
+export async function assertCaseSourceWriteAccess(input: { caseId: string; userId: string }) {
+  const service = createServiceSupabaseClient();
+  const caseResult = await service
+    .from('sfi_cases')
+    .select('id,tenant_id')
+    .eq('id', input.caseId)
+    .is('deleted_at', null)
+    .maybeSingle();
+  if (caseResult.error) throw new Error(`SFI_CASE_UPLOAD_ACCESS_READ_FAILED:${caseResult.error.message}`);
+  if (!caseResult.data) throw new Error('SFI_CASE_NOT_FOUND');
+
+  const tenantId = String(caseResult.data.tenant_id ?? '');
+  const membership = await service
+    .from('sfi_tenant_members')
+    .select('role,status')
+    .eq('tenant_id', tenantId)
+    .eq('user_id', input.userId)
+    .maybeSingle();
+  if (membership.error) throw new Error(`SFI_CASE_UPLOAD_MEMBERSHIP_READ_FAILED:${membership.error.message}`);
+  if (!membership.data || membership.data.status !== 'ACTIVE') throw new Error('SFI_TENANT_FORBIDDEN');
+
+  const role = String(membership.data.role ?? '');
+  if (!WRITE_ROLES.has(role)) throw new Error('SFI_TENANT_WRITE_FORBIDDEN');
+  return { tenantId, role };
+}
 
 export function safeCaseSourceFilename(value: string) {
   const cleaned = value.normalize('NFKD').replace(/[^a-zA-Z0-9._-]+/g, '-').replace(/-+/g, '-').replace(/^-+|-+$/g, '');
