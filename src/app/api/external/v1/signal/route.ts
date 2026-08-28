@@ -6,6 +6,7 @@ import { resolveUniversalCaseIntake } from '@/lib/sfi/caseIntakeResolver';
 import { acquireUniversalWebEvidence, resolveUniversalEvidenceRequirements } from '@/lib/sfi/evidenceRequirementResolver';
 import { assessUniversalClosure, contrastLatestUniversalReturn } from '@/lib/sfi/universalClosure';
 import { synthesizeUniversalCycleWithAi } from '@/lib/sfi/universalAiSynthesis';
+import { hydrateUniversalCycleInput } from '@/lib/sfi/universalObservationHydrator';
 import {
   closeUniversalCycle,
   describeUniversalSignalContract,
@@ -162,8 +163,10 @@ export async function POST(req: Request) {
     } : event, { status: event.ok ? 201 : 500 });
   }
 
-  const input = record(body.input) as unknown as UniversalCycleInput;
-  if (!input.signal || typeof input.signal !== 'object' || Array.isArray(input.signal)) return NextResponse.json({ ok: false, error: 'input.signal_required' }, { status: 400 });
+  const rawInput = record(body.input) as unknown as UniversalCycleInput;
+  if (!rawInput.signal || typeof rawInput.signal !== 'object' || Array.isArray(rawInput.signal)) return NextResponse.json({ ok: false, error: 'input.signal_required' }, { status: 400 });
+  const hydration = await hydrateUniversalCycleInput(rawInput, tenantId);
+  const input = hydration.input;
 
   const contract = describeUniversalSignalContract(input);
   const openCycles = await readUniversalOpenCycles();
@@ -182,6 +185,7 @@ export async function POST(req: Request) {
       operation,
       actor: actorId,
       tenantId,
+      hydration,
       signal: persisted.signal,
       eventId: persisted.event.ok ? String(persisted.event.data.event_id ?? '') : null,
       event: persisted.event.ok ? persisted.event.data : persisted.event,
@@ -205,12 +209,13 @@ export async function POST(req: Request) {
     }, { status: persisted.event.ok ? 201 : 500 });
   }
 
-  if (intakePlan.blockingQuestions.length) return NextResponse.json({ ok: false, error: 'clarification_required', operation, signal: normalizedSignal, intakePlan, clarifyingQuestions, sufficiency, evidenceRequirement, methodPlan: contract.methodPlan, agentPlan: contract.agentPlan, cycleGate }, { status: 409 });
+  if (intakePlan.blockingQuestions.length) return NextResponse.json({ ok: false, error: 'clarification_required', operation, hydration, signal: normalizedSignal, intakePlan, clarifyingQuestions, sufficiency, evidenceRequirement, methodPlan: contract.methodPlan, agentPlan: contract.agentPlan, cycleGate }, { status: 409 });
   if (sufficiency.status === 'BLOCKED') {
     return NextResponse.json({
       ok: false,
       error: 'insufficient_object_observation',
       operation,
+      hydration,
       signal: normalizedSignal,
       intakePlan,
       sufficiency,
@@ -221,7 +226,7 @@ export async function POST(req: Request) {
       instruction: 'Acquire/extract the source object and supply deterministic material observations before executing a substantive cognitive cycle.',
     }, { status: 409 });
   }
-  if (cycleBlocked) return NextResponse.json({ ok: false, error: 'open_cycle_review_required', operation, signal: normalizedSignal, sufficiency, evidenceRequirement, cycleGate, instruction: 'Close or record return for the same-object cycle before opening another one, unless the user explicitly chooses to continue in parallel.' }, { status: 409 });
+  if (cycleBlocked) return NextResponse.json({ ok: false, error: 'open_cycle_review_required', operation, hydration, signal: normalizedSignal, sufficiency, evidenceRequirement, cycleGate, instruction: 'Close or record return for the same-object cycle before opening another one, unless the user explicitly chooses to continue in parallel.' }, { status: 409 });
 
   const webEvidence = await acquireUniversalWebEvidence(input, actorId, tenantId, normalizedSignal.objectHash);
   if (evidenceRequirement.blockingIfUnavailable && !webEvidence.satisfied) {
@@ -229,6 +234,7 @@ export async function POST(req: Request) {
       ok: false,
       error: 'required_web_evidence_unavailable',
       operation,
+      hydration,
       signal: normalizedSignal,
       intakePlan,
       sufficiency,
@@ -245,6 +251,12 @@ export async function POST(req: Request) {
     ...input,
     context: {
       ...record(input.context),
+      observationHydration: {
+        contract: hydration.contract,
+        hydrated: hydration.hydrated,
+        basis: hydration.basis,
+        eventId: hydration.eventId,
+      },
       evidenceRequirement,
       acquiredWebEvidence: {
         eventId: webEvidence.eventId,
@@ -294,6 +306,7 @@ export async function POST(req: Request) {
             ...record(cycle.result.context.metadata),
             caseContext: preparedInput.context,
             webEvidenceEventId: webEvidence.eventId,
+            observationHydrationEventId: hydration.eventId,
           },
         })
       : null;
@@ -303,6 +316,7 @@ export async function POST(req: Request) {
       operation,
       actor: actorId,
       tenantId,
+      hydration,
       signal: cycle.signal,
       intakePlan,
       sufficiency,
@@ -329,7 +343,7 @@ export async function POST(req: Request) {
       metadata: cycle.result.context.metadata,
       reread: history,
       next: 'Keep the cycle open until the methodological return/contrast/closure contract is satisfied.',
-      epistemicBoundary: 'Deterministic outputs, AI inference and retrieved source claims remain separate. The route does not approve proposals, perform external actions, or canonize conclusions.',
+      epistemicBoundary: 'Deterministic observations, persisted hydration, AI inference and retrieved source claims remain separate. The route does not approve proposals, perform external actions, or canonize conclusions.',
     });
   } catch (error) {
     return NextResponse.json({ ok: false, error: 'universal_cognitive_cycle_failed', details: error instanceof Error ? error.message : String(error) }, { status: 503 });
