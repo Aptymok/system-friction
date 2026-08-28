@@ -1,5 +1,6 @@
 import 'server-only';
 
+import { createHash } from 'node:crypto';
 import { appendEpistemicEvent } from '@/lib/events/eventStore';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 
@@ -21,6 +22,9 @@ function strings(value: unknown, max = 120) {
 }
 function payload(value: unknown) {
   return row(row(value).payload);
+}
+function sha256(value: string) {
+  return createHash('sha256').update(value).digest('hex');
 }
 
 export type MutationVerification = {
@@ -92,6 +96,18 @@ export async function verifySfiGitHubCommit(commitSha: string): Promise<Mutation
   }
 }
 
+async function readMutationEvent(mutationId: string) {
+  const db = createServiceSupabaseClient();
+  const result = await db.from('epistemic_events')
+    .select('event_id,event_name,payload,occurred_at,hash_self')
+    .eq('event_name', 'SFI_SYSTEM_MUTATION_RECORDED')
+    .eq('payload->>mutationId', mutationId)
+    .order('sequence', { ascending: false })
+    .limit(1);
+  if (result.error) return { ok: false as const, event: null, warning: result.error.message };
+  return { ok: true as const, event: (result.data ?? [])[0] ? row(result.data?.[0]) : null, warning: null };
+}
+
 export async function recordSystemMutation(input: {
   commitSha: string;
   actorId: string;
@@ -102,6 +118,11 @@ export async function recordSystemMutation(input: {
   const verification = await verifySfiGitHubCommit(input.commitSha);
   if (!verification.ok) return { ok: false as const, error: 'MUTATION_COMMIT_NOT_VERIFIED', verification };
   const mutationId = `mutation:${verification.commitSha}`;
+  const existing = await readMutationEvent(mutationId);
+  if (!existing.ok) return { ok: false as const, error: 'MUTATION_DUPLICATE_CHECK_FAILED', warning: existing.warning, verification };
+  if (existing.event) {
+    return { ok: true as const, idempotent: true as const, mutationId, eventId: String(existing.event.event_id ?? ''), event: existing.event, verification };
+  }
   const event = await appendEpistemicEvent({
     eventName: 'SFI_SYSTEM_MUTATION_RECORDED',
     epistemicClass: 'observed',
@@ -125,7 +146,7 @@ export async function recordSystemMutation(input: {
     lineage: [verification.commitSha, verification.treeSha].filter((value): value is string => Boolean(value)),
   });
   return event.ok
-    ? { ok: true as const, mutationId, eventId: String(event.data.event_id ?? ''), event: event.data, verification }
+    ? { ok: true as const, idempotent: false as const, mutationId, eventId: String(event.data.event_id ?? ''), event: event.data, verification }
     : { ok: false as const, error: event.error, verification };
 }
 
@@ -138,6 +159,61 @@ const ATTACHMENT_EVENT: Record<MutationAttachmentKind, string> = {
   LEARNING: 'SFI_SYSTEM_MUTATION_LEARNING_LINKED',
 };
 
+function githubActionRunId(ref: string) {
+  const match = ref.match(/^https:\/\/github\.com\/Aptymok\/system-friction\/actions\/runs\/(\d+)(?:\/.*)?$/i);
+  return match?.[1] ?? null;
+}
+
+async function verifySuccessfulQaRefs(refs: string[]) {
+  const runIds = refs.map(githubActionRunId);
+  if (runIds.some((id) => !id)) return { ok: false as const, error: 'QA_REF_MUST_BE_SFI_GITHUB_ACTION_RUN_URL', verified: [] as Row[] };
+  const verified: Row[] = [];
+  for (const runId of runIds as string[]) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8_000);
+    try {
+      const response = await fetch(`https://api.github.com/repos/${SFI_MUTATION_REPOSITORY}/actions/runs/${runId}`, {
+        headers: { Accept: 'application/vnd.github+json', 'User-Agent': 'SystemFrictionInstitute/1.0 mutation-qa', 'X-GitHub-Api-Version': '2022-11-28' },
+        cache: 'no-store',
+        signal: controller.signal,
+      });
+      const json = await response.json().catch(() => null);
+      if (!response.ok || !json || typeof json !== 'object') return { ok: false as const, error: `QA_RUN_LOOKUP_FAILED:${runId}:${response.status}`, verified };
+      const run = row(json);
+      if (text(run.conclusion) !== 'success' || text(run.status) !== 'completed') return { ok: false as const, error: `QA_RUN_NOT_SUCCESSFUL:${runId}`, verified };
+      verified.push({ id: run.id ?? runId, htmlUrl: run.html_url ?? null, headSha: run.head_sha ?? null, name: run.name ?? null, event: run.event ?? null, status: run.status ?? null, conclusion: run.conclusion ?? null, updatedAt: run.updated_at ?? null });
+    } catch (error) {
+      return { ok: false as const, error: `QA_RUN_LOOKUP_FAILED:${runId}:${error instanceof Error ? error.message : String(error)}`, verified };
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+  return { ok: true as const, verified };
+}
+
+async function verifyEpistemicRefs(refs: string[], allowedEvents: string[]) {
+  const db = createServiceSupabaseClient();
+  const result = await db.from('epistemic_events')
+    .select('event_id,event_name,epistemic_class,payload,occurred_at,hash_self')
+    .in('event_id', refs)
+    .in('event_name', allowedEvents);
+  if (result.error) return { ok: false as const, error: result.error.message, verified: [] as Row[] };
+  const verified = (result.data ?? []).map((item) => row(item));
+  const found = new Set(verified.map((event) => String(event.event_id ?? '')));
+  const missing = refs.filter((ref) => !found.has(ref));
+  if (missing.length) return { ok: false as const, error: `MUTATION_REF_NOT_VERIFIED:${missing.join(',')}`, verified };
+  return { ok: true as const, verified };
+}
+
+async function verifyMutationAttachment(kind: MutationAttachmentKind, refs: string[]) {
+  if (kind === 'QA') return verifySuccessfulQaRefs(refs);
+  if (kind === 'EXERCISE') {
+    return verifyEpistemicRefs(refs, ['SFI_UNIVERSAL_COGNITIVE_CYCLE_EXECUTED', 'SFI_UNIVERSAL_CYCLE_RESUMED', 'SFI_UNIVERSAL_CYCLE_CLOSED']);
+  }
+  if (kind === 'LEARNING') return verifyEpistemicRefs(refs, ['SFI_UNIVERSAL_LEARNING_PROMOTED']);
+  return { ok: true as const, verified: [] as Row[] };
+}
+
 export async function attachSystemMutationEvidence(input: {
   mutationId: string;
   kind: MutationAttachmentKind;
@@ -146,9 +222,29 @@ export async function attachSystemMutationEvidence(input: {
   outcome?: string | null;
   metadata?: Row;
 }) {
-  const refs = strings(input.refs, 80);
+  const refs = [...new Set(strings(input.refs, 80))].sort();
   if (!input.mutationId.startsWith('mutation:')) return { ok: false as const, error: 'INVALID_MUTATION_ID' };
   if (!refs.length) return { ok: false as const, error: 'MUTATION_EVIDENCE_REFS_REQUIRED' };
+
+  const mutation = await readMutationEvent(input.mutationId);
+  if (!mutation.ok) return { ok: false as const, error: 'MUTATION_LOOKUP_FAILED', warning: mutation.warning };
+  if (!mutation.event) return { ok: false as const, error: 'MUTATION_NOT_FOUND' };
+
+  const verification = await verifyMutationAttachment(input.kind, refs);
+  if (!verification.ok) return { ok: false as const, error: verification.error, verified: verification.verified };
+  const attachmentKey = sha256(`${input.mutationId}|${input.kind}|${refs.join('|')}|${input.outcome ?? ''}`);
+  const db = createServiceSupabaseClient();
+  const duplicate = await db.from('epistemic_events')
+    .select('event_id,event_name,payload,occurred_at')
+    .eq('event_name', ATTACHMENT_EVENT[input.kind])
+    .eq('payload->>mutationId', input.mutationId)
+    .eq('payload->>attachmentKey', attachmentKey)
+    .limit(1);
+  if (duplicate.error) return { ok: false as const, error: 'MUTATION_ATTACHMENT_DUPLICATE_CHECK_FAILED', warning: duplicate.error.message };
+  if ((duplicate.data ?? []).length) {
+    return { ok: true as const, idempotent: true as const, eventId: String(duplicate.data?.[0]?.event_id ?? ''), event: duplicate.data?.[0] ?? null, verification };
+  }
+
   const event = await appendEpistemicEvent({
     eventName: ATTACHMENT_EVENT[input.kind],
     epistemicClass: input.kind === 'EXERCISE' || input.kind === 'LEARNING' ? 'derived' : 'observed',
@@ -156,26 +252,30 @@ export async function attachSystemMutationEvidence(input: {
     payload: {
       contract: SFI_MUTATION_EVIDENCE_CONTRACT,
       mutationId: input.mutationId,
+      attachmentKey,
       kind: input.kind,
       refs,
+      verifiedRefs: verification.verified,
       outcome: input.outcome ?? null,
       metadata: input.metadata ?? {},
       recordedBy: input.actorId,
       recordedAt: new Date().toISOString(),
       epistemicBoundary: input.kind === 'QA'
-        ? 'QA evidence establishes only the tested assertions and environment represented by the supplied references.'
+        ? 'QA stage is admitted only after referenced SFI GitHub Actions runs resolve as completed/success. It establishes only assertions covered by that run.'
         : input.kind === 'DEPLOYMENT'
-          ? 'Deployment evidence establishes code presence in a runtime target, not successful use or causal effect.'
+          ? 'Deployment reference is recorded but not independently verified by this ledger. It establishes no execution or causal effect until later exercise evidence exists.'
           : input.kind === 'EXERCISE'
-            ? 'Exercise evidence establishes that the mutation participated in a real cycle; outcome and causality remain separate.'
-            : 'Learning linkage points to an already governed learning event. The mutation ledger does not itself promote or create learning.',
+            ? 'Exercise stage is admitted only when refs resolve to persisted universal-cycle execution/resume/closure events. Outcome and causality remain separate.'
+            : 'Learning stage is admitted only when every ref resolves to SFI_UNIVERSAL_LEARNING_PROMOTED. The mutation ledger links learning; it does not create or promote it.',
     },
     occurredAt: new Date().toISOString(),
     source: { sourceId: input.actorId, sourceType: 'mutation_evidence_attachment' },
     logbookId: input.mutationId,
-    lineage: refs,
+    lineage: [String(mutation.event.event_id ?? ''), ...refs].filter(Boolean),
   });
-  return event.ok ? { ok: true as const, eventId: String(event.data.event_id ?? ''), event: event.data } : { ok: false as const, error: event.error };
+  return event.ok
+    ? { ok: true as const, idempotent: false as const, eventId: String(event.data.event_id ?? ''), event: event.data, verification }
+    : { ok: false as const, error: event.error };
 }
 
 export async function readSystemMutationLedger(limit = 80) {
@@ -203,8 +303,9 @@ export async function readSystemMutationLedger(limit = 80) {
     byMutation.set(mutationId, bucket);
   }
 
-  const mutations = [...byMutation.entries()].map(([mutationId, mutationEvents]) => {
+  const mutations = [...byMutation.entries()].flatMap(([mutationId, mutationEvents]) => {
     const code = mutationEvents.find((event) => event.event_name === 'SFI_SYSTEM_MUTATION_RECORDED') ?? null;
+    if (!code) return [];
     const codePayload = payload(code);
     const commit = row(codePayload.commit);
     const qa = mutationEvents.filter((event) => event.event_name === 'SFI_SYSTEM_MUTATION_QA_RECORDED');
@@ -213,10 +314,10 @@ export async function readSystemMutationLedger(limit = 80) {
     const learning = mutationEvents.filter((event) => event.event_name === 'SFI_SYSTEM_MUTATION_LEARNING_LINKED');
     const stage = learning.length ? 'CALIBRATED_LEARNING_LINKED'
       : exercises.length ? 'EXERCISED'
-        : deployments.length ? 'DEPLOYED'
+        : deployments.length ? 'DEPLOYMENT_EVIDENCE_RECORDED'
           : qa.length ? 'QA_VERIFIED'
             : 'CODE_RECORDED';
-    return {
+    return [{
       mutationId,
       title: text(codePayload.title) ?? text(commit.message)?.split('\n')[0] ?? mutationId,
       capabilityIds: strings(codePayload.capabilityIds),
@@ -234,10 +335,10 @@ export async function readSystemMutationLedger(limit = 80) {
       deploymentCount: deployments.length,
       exerciseCount: exercises.length,
       learningLinkCount: learning.length,
-      recordedAt: text(row(code).occurred_at),
+      recordedAt: text(code.occurred_at),
       eventRefs: mutationEvents.map((event) => String(event.event_id ?? '')).filter(Boolean),
-      boundary: 'Commit verifies mutation; QA verifies tested assertions; deployment verifies presence; exercise verifies participation; calibrated learning requires a separate governed learning lineage.',
-    };
+      boundary: 'Commit verifies mutation; successful GitHub Actions verifies its tested assertions; deployment is a supplied runtime-presence reference; exercise requires persisted cycle events; calibrated learning requires a separately promoted learning event.',
+    }];
   }).sort((a, b) => String(b.recordedAt ?? '').localeCompare(String(a.recordedAt ?? ''))).slice(0, limit);
 
   return { ok: true as const, mutations, warnings: [] as string[], contract: SFI_MUTATION_EVIDENCE_CONTRACT };
