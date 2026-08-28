@@ -3,6 +3,13 @@ import { readFile } from 'node:fs/promises';
 
 async function text(path: string) { return readFile(path, 'utf8'); }
 
+function blockBetween(source: string, startMarker: string, endMarker: string) {
+  const start = source.indexOf(startMarker);
+  const end = source.indexOf(endMarker, start + startMarker.length);
+  assert(start >= 0 && end > start, `unable to isolate ${startMarker} block`);
+  return source.slice(start, end);
+}
+
 async function main() {
   const [ledger, route, gate, runtimeProfile, projectionProfile, openapiMerge] = await Promise.all([
     text('src/lib/sfi/personal/cognitivePatternLedger.ts'),
@@ -38,9 +45,11 @@ async function main() {
   assert(gate.includes('Boolean(canonicalRecordRef)'));
   assert(gate.includes('Boolean(epistemicAssessmentRef)'));
 
-  assert(runtimeProfile.includes("deniedRefKinds: ['PERSON_CT']"), 'runtime projection must explicitly deny PERSON_CT refs');
+  const allowedKindsBlock = blockBetween(runtimeProfile, 'allowedRefKinds:', 'deniedRefKinds:');
+  const deniedKindsBlock = blockBetween(runtimeProfile, 'deniedRefKinds:', 'fieldVisibilityRules:');
+  assert(!allowedKindsBlock.includes("'PERSON_CT'"), 'PERSON_CT must never be allowlisted in runtime general context');
+  assert(deniedKindsBlock.includes("'PERSON_CT'"), 'runtime projection must explicitly deny PERSON_CT refs');
   assert(runtimeProfile.includes("personCtInheritance: 'DENIED'"), 'runtime profile must deny PERSON_CT inheritance at field-policy level');
-  assert(!runtimeProfile.match(/allowedRefKinds:\s*\[[\s\S]*?'PERSON_CT'/), 'PERSON_CT must never be allowlisted in runtime general context');
   assert(projectionProfile.includes('return profile.allowedRefKinds.includes(kind) && !profile.deniedRefKinds.includes(kind)'), 'projection evaluator must enforce deny after allow');
   assert(projectionProfile.includes('COGNITIVE_SPINE_PROFILE_ALLOW_DENY_OVERLAP'), 'profile validation must reject contradictory allow/deny configuration');
 
@@ -51,7 +60,7 @@ async function main() {
 
   console.log(JSON.stringify({
     ok: true,
-    contract: 'SFI-PERSON-CT-PATTERN-QA-1.1',
+    contract: 'SFI-PERSON-CT-PATTERN-QA-1.2',
     invariants: {
       cognitionObservationSeparated: true,
       inferredPatternNeedsRecurrence: true,
@@ -59,6 +68,7 @@ async function main() {
       runDoesNotAutoLearnPattern: true,
       userResolutionRequired: true,
       runtimeProjectionDeniesPersonCt: true,
+      personCtAbsentFromRuntimeAllowlist: true,
       projectionDenyOverridesAllow: true,
       personCtInstitutionalInheritance: false,
     },
