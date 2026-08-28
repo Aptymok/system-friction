@@ -3,6 +3,7 @@ import { auditRootAction, requireRootActor, requireRootViewer } from '@/lib/root
 import { readUniversalCycleHistory } from '@/lib/sfi/universalSignalCycle';
 import {
   promoteUniversalLearningCandidate,
+  readUniversalLearningCycleState,
   readUniversalLearningQuarantine,
   recordUniversalLearningCandidate,
   rejectUniversalLearningCandidate,
@@ -45,26 +46,25 @@ export async function POST(request: Request) {
     const closureEvent = history.closures[history.closures.length - 1];
     const closureEventId = String(row(closureEvent).event_id ?? '') || null;
 
-    const existing = await readUniversalLearningQuarantine(300);
-    if (existing.ok) {
-      const duplicate = [...existing.candidates, ...existing.promotions, ...existing.rejections].find((event) => {
-        const eventPayload = payload(event);
-        const candidateLineage = row(eventPayload.lineage ?? eventPayload.candidateLineage);
-        return text(eventPayload.cycleId) === cycleId
-          && (!closureEventId || text(candidateLineage.closureEventId) === closureEventId || text(eventPayload.closureEventId) === closureEventId);
+    const existing = await readUniversalLearningCycleState(cycleId);
+    if (!existing.ok) {
+      return NextResponse.json({ ok: false, error: 'learning_cycle_state_unavailable', warning: existing.warning }, { status: 503 });
+    }
+    if (existing.events.length) {
+      const terminal = existing.events.find((event) => ['SFI_UNIVERSAL_LEARNING_PROMOTED', 'SFI_UNIVERSAL_LEARNING_REJECTED'].includes(String(event.event_name ?? '')));
+      const candidate = existing.events.find((event) => event.event_name === 'SFI_UNIVERSAL_LEARNING_CANDIDATE_RECORDED');
+      const reused = terminal ?? candidate ?? existing.events[0];
+      return NextResponse.json({
+        ok: true,
+        action,
+        idempotent: true,
+        cycleId,
+        closureEventId,
+        existingEventId: String(row(reused).event_id ?? ''),
+        existingEventName: row(reused).event_name ?? null,
+        candidateEventId: terminal ? text(payload(terminal).candidateEventId) : candidate ? text(candidate.event_id) : null,
+        instruction: 'This closed cycle already has a learning-quarantine lineage. A rejection or promotion is terminal; do not recapture the same cycle.',
       });
-      if (duplicate) {
-        return NextResponse.json({
-          ok: true,
-          action,
-          idempotent: true,
-          cycleId,
-          closureEventId,
-          existingEventId: String(row(duplicate).event_id ?? ''),
-          existingEventName: row(duplicate).event_name ?? null,
-          instruction: 'This closed cycle already has a learning-quarantine lineage. Reuse it rather than creating a duplicate candidate.',
-        });
-      }
     }
 
     const candidate = await recordUniversalLearningCandidate({
@@ -94,6 +94,16 @@ export async function POST(request: Request) {
       reviewNote: text(body.reviewNote),
     });
     if (!promoted.ok) return NextResponse.json(promoted, { status: 409 });
+    if (promoted.idempotent) {
+      return NextResponse.json({
+        ok: true,
+        action,
+        idempotent: true,
+        candidateEventId,
+        promotedEventId: promoted.eventId,
+        instruction: 'Candidate was already promoted. No duplicate promotion or audit mutation was created.',
+      });
+    }
     const audit = await auditRootAction({
       actorId,
       action: 'learning_quarantine.promote',
@@ -110,6 +120,16 @@ export async function POST(request: Request) {
     if (!candidateEventId || !reason) return NextResponse.json({ ok: false, error: 'candidateEventId_and_reason_required' }, { status: 400 });
     const rejected = await rejectUniversalLearningCandidate({ candidateEventId, actorId, reason });
     if (!rejected.ok) return NextResponse.json(rejected, { status: 409 });
+    if (rejected.idempotent) {
+      return NextResponse.json({
+        ok: true,
+        action,
+        idempotent: true,
+        candidateEventId,
+        rejectedEventId: rejected.eventId,
+        instruction: 'Candidate was already rejected. No duplicate rejection or audit mutation was created.',
+      });
+    }
     const audit = await auditRootAction({
       actorId,
       action: 'learning_quarantine.reject',
