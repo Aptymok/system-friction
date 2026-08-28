@@ -314,7 +314,7 @@ export async function promoteUniversalLearningCandidate(input: {
     : [];
   const event = await appendEpistemicEvent({
     eventName: 'SFI_UNIVERSAL_LEARNING_PROMOTED',
-    epistemicClass: 'verified_contrast',
+    epistemicClass: 'derived',
     confidence: 0.92,
     payload: {
       contract: SFI_UNIVERSAL_LEARNING_QUARANTINE_CONTRACT,
@@ -322,12 +322,13 @@ export async function promoteUniversalLearningCandidate(input: {
       cycleId: candidatePayload.cycleId ?? null,
       classification: candidatePayload.classification,
       promotionState: 'PROMOTED',
+      assessmentClass: 'VERIFIED_CONTRAST',
       learning: candidatePayload.learning ?? null,
       candidateLineage: candidatePayload.lineage ?? null,
       promotedBy: input.actorId,
       promotedAt: new Date().toISOString(),
       reviewNote: input.reviewNote ?? null,
-      epistemicBoundary: 'ROOT authorizes institutional use of a calibrated learning record but does not upgrade its claims beyond VERIFIED_CONTRAST or erase uncertainty, provenance, rival hypotheses, or residual error.',
+      epistemicBoundary: 'ROOT authorizes institutional use of a calibrated learning record. The persisted event remains DERIVED; VERIFIED_CONTRAST is an explicit assessment/projection class and does not erase uncertainty, provenance, rival hypotheses, or residual error.',
     },
     occurredAt: new Date().toISOString(),
     source: { sourceId: input.actorId, sourceType: 'root_learning_promotion' },
