@@ -3,6 +3,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2.105.4';
 import { profileDataset } from './datasetProfile.ts';
 
 const BUCKET = 'field-evidence';
+const ATTESTATION_VERSION = 'SFI-INGESTION-ATTESTATION-1.0';
 const WRITE_ROLES = new Set(['OWNER', 'ADMIN', 'OPERATOR']);
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -28,6 +29,25 @@ function normalizeHash(value: unknown) {
   if (!hash) return null;
   if (!/^[a-f0-9]{64}$/.test(hash)) throw new Error('SFI_DATASET_DECLARED_HASH_INVALID');
   return hash;
+}
+
+function stableValue(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(stableValue);
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(Object.entries(value as Row).sort(([a], [b]) => a.localeCompare(b)).map(([key, item]) => [key, stableValue(item)]));
+  }
+  return value;
+}
+
+function canonicalPayload(value: unknown) {
+  return JSON.stringify(stableValue(value));
+}
+
+async function attest(secret: string, value: unknown) {
+  const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const message = new TextEncoder().encode(`${ATTESTATION_VERSION}|${canonicalPayload(value)}`);
+  const digest = await crypto.subtle.sign('HMAC', key, message);
+  return [...new Uint8Array(digest)].map((item) => item.toString(16).padStart(2, '0')).join('');
 }
 
 Deno.serve(async (request: Request) => {
@@ -87,16 +107,27 @@ Deno.serve(async (request: Request) => {
       }, 409);
     }
 
-    return json({
-      ok: true,
+    const result = {
       caseId,
       tenantId,
-      actor: { userId: user.id, role },
-      storage: { bucket: BUCKET, storagePath, rawBytesPersistedByWorker: false },
+      storagePath,
+      profiledByUserId: user.id,
+      profiledByRole: role,
       profile,
+    };
+    const digest = await attest(serviceRoleKey, result);
+
+    return json({
+      ok: true,
+      result,
+      attestation: {
+        version: ATTESTATION_VERSION,
+        algorithm: 'HMAC-SHA256',
+        digest,
+      },
       admission: {
         state: 'STRUCTURED_RESULT_PENDING_SFI_ADMISSION',
-        instruction: 'Return this profile to the SFI Case Platform profile-result endpoint. Profiling does not itself mint accepted evidence or canonical truth.',
+        instruction: 'Return result + attestation to the SFI Case Platform profile-result endpoint. Profiling does not itself mint accepted evidence or canonical truth.',
       },
       executionBoundary: 'DATA_PLANE_SUPABASE: raw dataset bytes were processed in Supabase and did not traverse Vercel.',
     });
