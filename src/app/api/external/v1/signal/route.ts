@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server';
 import { authorizeExternalRequest, externalActor, externalAuthError } from '@/lib/sfi/externalAuth';
+import { appendEpistemicEvent } from '@/lib/events/eventStore';
 import { evaluateUniversalAnalysisSufficiency } from '@/lib/sfi/epistemicSufficiency';
 import { resolveUniversalCaseIntake } from '@/lib/sfi/caseIntakeResolver';
 import { acquireUniversalWebEvidence, resolveUniversalEvidenceRequirements } from '@/lib/sfi/evidenceRequirementResolver';
+import { assessUniversalClosure, contrastLatestUniversalReturn } from '@/lib/sfi/universalClosure';
 import {
   closeUniversalCycle,
   describeUniversalSignalContract,
@@ -79,22 +81,84 @@ export async function POST(req: Request) {
       classification: typeof body.classification === 'string' ? body.classification : undefined,
       notes: typeof body.notes === 'string' ? body.notes : undefined,
     }, actorId, tenantId);
-    const history = event.ok ? await readUniversalCycleHistory(cycleId) : null;
-    return NextResponse.json(event.ok ? { ok: true, operation, actor: actorId, eventId: String(event.data.event_id ?? ''), event: event.data, reread: history } : event, { status: event.ok ? 201 : 500 });
+    if (!event.ok) return NextResponse.json(event, { status: 500 });
+    const historyAfterReturn = await readUniversalCycleHistory(cycleId);
+    const contrast = historyAfterReturn.ok
+      ? await contrastLatestUniversalReturn({
+          history: historyAfterReturn,
+          cycleId,
+          actorId,
+          tenantId,
+          classification: typeof body.classification === 'string' ? body.classification : null,
+        })
+      : { ok: false as const, error: 'HISTORY_UNAVAILABLE_FOR_CONTRAST' };
+    const history = await readUniversalCycleHistory(cycleId);
+    return NextResponse.json({
+      ok: true,
+      operation,
+      actor: actorId,
+      eventId: String(event.data.event_id ?? ''),
+      event: event.data,
+      contrast,
+      reread: history,
+      next: 'Review the contrast. If prediction or calibration is missing, keep the cycle open; otherwise prepare the closure envelope.',
+    }, { status: 201 });
   }
 
   if (operation === 'close') {
     const cycleId = String(body.cycleId || '').trim();
     const reason = String(body.reason || '').trim();
     if (!cycleId || !reason) return NextResponse.json({ ok: false, error: 'cycleId_and_reason_required' }, { status: 400 });
+    const historyBefore = await readUniversalCycleHistory(cycleId);
+    if (!historyBefore.ok) return NextResponse.json({ ok: false, error: 'cycle_history_unavailable', cycleId, history: historyBefore }, { status: 503 });
+    const evidenceRefs = Array.isArray(body.evidenceRefs) ? body.evidenceRefs.filter((value): value is string => typeof value === 'string') : [];
+    const closureAssessment = assessUniversalClosure({ history: historyBefore, requested: body.closure, evidenceRefs });
+    if (!closureAssessment.ready) {
+      return NextResponse.json({
+        ok: false,
+        error: 'methodological_closure_incomplete',
+        cycleId,
+        closureAssessment,
+        instruction: 'Do not close the cycle. Resolve only the missing closure fields, record any required return/contrast, then retry close with the completed closure envelope.',
+      }, { status: 409 });
+    }
+
+    const envelopeEvent = await appendEpistemicEvent({
+      eventName: 'SFI_UNIVERSAL_CLOSURE_ENVELOPE_ACCEPTED',
+      epistemicClass: 'derived',
+      confidence: 1,
+      payload: {
+        cycleId,
+        actorId,
+        tenantId,
+        reason,
+        closure: closureAssessment.envelope,
+        epistemicBoundary: 'Acceptance means the closure contract is complete enough to dispose the methodological question. It does not canonize the conclusion as permanent truth.',
+      },
+      occurredAt: new Date().toISOString(),
+      source: { sourceId: actorId, sourceType: 'closure_gate' },
+      logbookId: `universal-cycle:${cycleId}`,
+      lineage: evidenceRefs,
+    });
+    if (!envelopeEvent.ok) return NextResponse.json(envelopeEvent, { status: 500 });
+
     const event = await closeUniversalCycle({
       cycleId,
       objectKey: typeof body.objectKey === 'string' ? body.objectKey : undefined,
       reason,
-      evidenceRefs: Array.isArray(body.evidenceRefs) ? body.evidenceRefs.filter((value): value is string => typeof value === 'string') : [],
+      evidenceRefs,
     }, actorId, tenantId);
     const history = event.ok ? await readUniversalCycleHistory(cycleId) : null;
-    return NextResponse.json(event.ok ? { ok: true, operation, actor: actorId, eventId: String(event.data.event_id ?? ''), event: event.data, reread: history } : event, { status: event.ok ? 201 : 500 });
+    return NextResponse.json(event.ok ? {
+      ok: true,
+      operation,
+      actor: actorId,
+      eventId: String(event.data.event_id ?? ''),
+      event: event.data,
+      closureAssessment,
+      closureEnvelopeEventId: String(envelopeEvent.data.event_id ?? ''),
+      reread: history,
+    } : event, { status: event.ok ? 201 : 500 });
   }
 
   const input = record(body.input) as unknown as UniversalCycleInput;
