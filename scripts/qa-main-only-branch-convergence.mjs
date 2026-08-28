@@ -1,10 +1,26 @@
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 
 const repo = process.env.GITHUB_REPOSITORY || 'Aptymok/system-friction';
 const token = process.env.GITHUB_TOKEN || '';
 const convergenceBranch = process.env.SFI_CONVERGENCE_BRANCH || process.env.GITHUB_HEAD_REF || '';
+const manifestPath = '.github/sfi-main-convergence-20260827.json';
+const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
+const reviewedDeltas = manifest?.reviewedDeltas && typeof manifest.reviewedDeltas === 'object'
+  ? manifest.reviewedDeltas
+  : {};
+const allowedDecisions = new Set([
+  'ABSORBED_BY_MERGED_MAIN',
+  'SUPERSEDED_BY_LATER_MAIN',
+  'EXPLICITLY_SUPERSEDED',
+  'REJECTED_ARCHITECTURE',
+  'REJECTED_ALTERNATE_IMPLEMENTATION',
+  'DUPLICATE_ALTERNATE',
+  'ARCHIVED',
+  'DIAGNOSTIC_ONLY',
+  'TEMPORARY_QA_ONLY',
+]);
 
 function git(args, options = {}) {
   return execFileSync('git', args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], ...options }).trim();
@@ -80,6 +96,30 @@ async function pullRequestHistory() {
   return { mergedHeads, byHead };
 }
 
+function sorted(values) {
+  return [...values].sort((a, b) => a.localeCompare(b));
+}
+
+function sameStrings(a, b) {
+  const left = sorted(a);
+  const right = sorted(b);
+  return left.length === right.length && left.every((value, index) => value === right[index]);
+}
+
+function validateReview(reviewKey, group) {
+  const review = reviewedDeltas[reviewKey];
+  if (!review || typeof review !== 'object') return { ok: false, error: 'MISSING_REVIEW_DECISION' };
+  if (!allowedDecisions.has(review.decision)) return { ok: false, error: 'INVALID_REVIEW_DECISION' };
+  if (!Array.isArray(review.branches) || !sameStrings(review.branches, group.branches)) {
+    return { ok: false, error: 'REVIEW_BRANCH_SET_MISMATCH' };
+  }
+  if (!Array.isArray(review.evidence) || review.evidence.length === 0 || review.evidence.some((item) => typeof item !== 'string' || !item.trim())) {
+    return { ok: false, error: 'REVIEW_EVIDENCE_REQUIRED' };
+  }
+  if (typeof review.reason !== 'string' || !review.reason.trim()) return { ok: false, error: 'REVIEW_REASON_REQUIRED' };
+  return { ok: true, review };
+}
+
 git(['fetch', 'origin', '+refs/heads/*:refs/remotes/origin/*', '--prune']);
 const prHistory = await pullRequestHistory();
 const branches = git(['for-each-ref', '--format=%(refname:strip=3)', 'refs/remotes/origin'])
@@ -88,28 +128,28 @@ const branches = git(['for-each-ref', '--format=%(refname:strip=3)', 'refs/remot
   .filter(Boolean)
   .filter((value) => value !== 'HEAD' && value !== 'main');
 
-const absorbed = [];
-const unresolved = [];
+const automaticallyAbsorbed = [];
+const candidates = [];
 for (const branch of branches) {
   if (branch === convergenceBranch) {
-    absorbed.push({ branch, reason: 'CURRENT_CONVERGENCE_BRANCH' });
+    automaticallyAbsorbed.push({ branch, reason: 'CURRENT_CONVERGENCE_BRANCH' });
     continue;
   }
   if (prHistory.mergedHeads.has(branch)) {
-    absorbed.push({ branch, reason: 'MERGED_PULL_REQUEST', pullRequests: prHistory.byHead.get(branch) ?? [] });
+    automaticallyAbsorbed.push({ branch, reason: 'MERGED_PULL_REQUEST', pullRequests: prHistory.byHead.get(branch) ?? [] });
     continue;
   }
   if (isAncestor(branch)) {
-    absorbed.push({ branch, reason: 'ANCESTOR_OF_MAIN', pullRequests: prHistory.byHead.get(branch) ?? [] });
+    automaticallyAbsorbed.push({ branch, reason: 'ANCESTOR_OF_MAIN', pullRequests: prHistory.byHead.get(branch) ?? [] });
     continue;
   }
   const patchRows = cherry(branch);
   const unique = patchRows.filter((line) => line.startsWith('+ ')).map((line) => line.slice(2));
   if (!unique.length) {
-    absorbed.push({ branch, reason: 'PATCH_EQUIVALENT_IN_MAIN', pullRequests: prHistory.byHead.get(branch) ?? [] });
+    automaticallyAbsorbed.push({ branch, reason: 'PATCH_EQUIVALENT_IN_MAIN', pullRequests: prHistory.byHead.get(branch) ?? [] });
     continue;
   }
-  unresolved.push({
+  candidates.push({
     branch,
     reason: 'UNMERGED_DELTA_REQUIRES_REVIEW',
     uniqueCommitCount: unique.length,
@@ -119,33 +159,67 @@ for (const branch of branches) {
   });
 }
 
-const groups = Object.values(unresolved.reduce((acc, item) => {
-  acc[item.reviewKey] ??= { reviewKey: item.reviewKey, branches: [], uniqueCommitCount: item.uniqueCommitCount, headSubject: item.headSubject, changedFileCount: item.changedFileCount, changedFiles: item.changedFiles };
+const groups = Object.values(candidates.reduce((acc, item) => {
+  acc[item.reviewKey] ??= {
+    reviewKey: item.reviewKey,
+    branches: [],
+    uniqueCommitCount: item.uniqueCommitCount,
+    headSubject: item.headSubject,
+    changedFileCount: item.changedFileCount,
+    changedFiles: item.changedFiles,
+  };
   acc[item.reviewKey].branches.push(item.branch);
   return acc;
 }, {}));
 
+const reviewed = [];
+const unresolved = [];
+for (const group of groups) {
+  const validation = validateReview(group.reviewKey, group);
+  if (validation.ok) {
+    reviewed.push({
+      ...group,
+      decision: validation.review.decision,
+      evidence: validation.review.evidence,
+      reason: validation.review.reason,
+    });
+  } else {
+    unresolved.push({ ...group, reviewError: validation.error });
+  }
+}
+
+const candidateBranchCount = candidates.length;
+const reviewedBranchCount = reviewed.reduce((sum, group) => sum + group.branches.length, 0);
+const unresolvedBranchCount = unresolved.reduce((sum, group) => sum + group.branches.length, 0);
 const result = {
-  ok: unresolved.length === 0,
+  ok: unresolved.length === 0 && reviewedBranchCount === candidateBranchCount,
   repo,
-  mainOnlyTarget: true,
+  manifestId: manifest.id ?? null,
+  mainOnlyTarget: manifest.target === 'main-only',
   totalNonMainBranches: branches.length,
-  absorbedCount: absorbed.length,
-  unresolvedCount: unresolved.length,
-  unresolvedGroupCount: groups.length,
-  absorbed,
+  automaticallyAbsorbedCount: automaticallyAbsorbed.length,
+  candidateBranchCount,
+  reviewedBranchCount,
+  reviewedGroupCount: reviewed.length,
+  unresolvedBranchCount,
+  unresolvedGroupCount: unresolved.length,
+  automaticallyAbsorbed,
+  reviewed,
   unresolved,
-  groups,
 };
+
 mkdirSync('tmp', { recursive: true });
 writeFileSync('tmp/main-only-branch-audit.json', `${JSON.stringify(result, null, 2)}\n`);
 console.log(JSON.stringify({
   ok: result.ok,
   totalNonMainBranches: result.totalNonMainBranches,
-  absorbedCount: result.absorbedCount,
-  unresolvedCount: result.unresolvedCount,
+  automaticallyAbsorbedCount: result.automaticallyAbsorbedCount,
+  candidateBranchCount: result.candidateBranchCount,
+  reviewedBranchCount: result.reviewedBranchCount,
+  reviewedGroupCount: result.reviewedGroupCount,
+  unresolvedBranchCount: result.unresolvedBranchCount,
   unresolvedGroupCount: result.unresolvedGroupCount,
-  groups: result.groups,
-  unresolved: result.unresolved.map(({ uniqueCommits, ...rest }) => rest),
+  reviewed: result.reviewed.map(({ changedFiles, evidence, ...rest }) => rest),
+  unresolved: result.unresolved,
 }, null, 2));
 if (!result.ok) process.exit(1);
