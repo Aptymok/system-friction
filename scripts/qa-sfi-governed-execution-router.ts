@@ -12,6 +12,7 @@ function forbid(source: string, needle: string, label: string) {
 const router = read('src/lib/execution/governedExecutionRouter.ts');
 const classification = read('src/lib/execution/governedExecutionClassification.ts');
 const outcome = read('src/lib/governance/proposalOutcome.ts');
+const operationalCommon = read('src/lib/operational/common.ts');
 const approve = read('src/app/api/acp/proposals/[id]/approve/route.ts');
 const dailyCron = read('src/app/api/cron/continuity-report/route.ts');
 const hourlyCron = read('src/app/api/cron/continuity-heartbeat/route.ts');
@@ -58,8 +59,11 @@ requireText(outcome, "epistemicClass === 'observed'", 'observed-return-gate');
 requireText(outcome, 'return_event_proposal_mismatch', 'proposal-return-lineage');
 requireText(outcome, 'canonicalPromotionAllowed: false', 'outcome-no-auto-canon');
 requireText(outcome, "executedAtSource: 'OBSERVED_RETURN_OCCURRED_AT'", 'executed-at-source-is-observed-return');
-requireText(outcome, '.update({ executed_at: observedExecutionAt })', 'executed-at-materialized-after-return-validation');
-if (outcome.indexOf("observed_return_event_required") > outcome.indexOf('.update({ executed_at: observedExecutionAt })')) {
+requireText(outcome, 'executedAt: observedExecutionAt', 'outcome-delegates-executed-at-to-canonical-writer');
+forbid(outcome, ".from('action_proposals').update", 'outcome-no-parallel-proposal-writer');
+requireText(operationalCommon, 'executedAt?: string | null', 'canonical-writer-executed-at-contract');
+requireText(operationalCommon, 'update.executed_at = new Date(parsed).toISOString()', 'canonical-writer-materializes-executed-at');
+if (outcome.indexOf("observed_return_event_required") > outcome.indexOf('executedAt: observedExecutionAt')) {
   throw new Error('SFI_ROUTER_QA_ORDER:executed_at_must_follow_observed_return_validation');
 }
 
