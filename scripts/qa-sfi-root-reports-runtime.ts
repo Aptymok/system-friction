@@ -99,7 +99,7 @@ assert.match(outcomeWriter, /CANDIDATE_UNTIL_CALIBRATED/, 'learning must remain 
 assert.match(outcomeWriter, /canonicalPromotionAllowed: false/, 'recording an outcome must not canonize it');
 
 assert.match(members, /decisionAuthority\?: 'controller'/, 'institutional membership must model delegated decision authority separately');
-assert.match(members, /email: 'edwin\.tzolkin@gmail\.com'[\s\S]*role: 'observer'[\s\S]*decisionAuthority: 'controller'/, 'Edwin must remain observer while receiving delegated controller authority');
+assert.match(members, /email: 'edwin\.tzolkin@gmail\.com'[\s\S]*role: 'controller'[\s\S]*decisionAuthority: 'controller'/, 'Edwin must hold controller membership while preserving explicit delegated decision authority');
 assert.doesNotMatch(members, /email: 'edwin\.tzolkin@gmail\.com'[\s\S]{0,160}role: 'root'/, 'Edwin must never be promoted to ROOT by membership configuration');
 assert.match(reviewer, /if \(ctx\.isRoot\) return 'root'/, 'ROOT reviewer authority must remain sovereign');
 assert.match(reviewer, /member\?\.decisionAuthority === 'controller'/, 'controller authority must come from explicit institutional delegation');
@@ -145,7 +145,7 @@ console.log(JSON.stringify({
     'internal routable capability is distinct from missing material external adapter',
     'queued proposal outcome requires a proposal-scoped OBSERVED RETURN plus evidence; calibration and learning remain pending/candidate',
     'ROOT sees every proposal; controller sees only explicitly delegable work',
-    'Edwin remains an observer with separate controller decision authority and never becomes ROOT',
+    'Edwin is a controller with explicit decision authority and never becomes ROOT',
     'sensitive and canonical decisions fail closed to ROOT',
     'canonical promotion remains a separate requireRootActor boundary',
     'ACCEPT is one human decision, queues work and immediately hands it to the governed router',
