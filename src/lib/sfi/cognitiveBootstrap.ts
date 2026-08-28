@@ -59,7 +59,8 @@ function compactPromotion(event: Row) {
     occurredAt: text(event.occurred_at),
     cycleId: text(payload.cycleId),
     classification: text(payload.classification),
-    epistemicClass: text(event.epistemic_class) ?? 'verified_contrast',
+    eventEpistemicClass: text(event.epistemic_class) ?? 'derived',
+    assessmentClass: text(payload.assessmentClass) ?? 'VERIFIED_CONTRAST',
     primaryHypothesis: learning.primaryHypothesis ?? null,
     rivalHypotheses: Array.isArray(learning.rivalHypotheses) ? learning.rivalHypotheses.slice(0, 4) : [],
     prediction: learning.prediction ?? null,
@@ -111,9 +112,10 @@ export async function buildSfiCognitiveBootstrap(input: {
       purpose: 'Maintain evidence-bound observability, governed reasoning, calibrated intervention and reconstructible institutional learning across complex systems.',
     },
     ontology: {
-      epistemicClasses: ['OBSERVED', 'DECLARED', 'IMPORTED', 'EXTRACTED', 'DERIVED', 'INFERRED', 'SIMULATED', 'PROJECTED', 'VERIFIED_CONTRAST', 'INVALIDATED'],
+      eventStoreClasses: ['OBSERVED', 'DECLARED', 'IMPORTED', 'EXTRACTED', 'DERIVED', 'INFERRED', 'SIMULATED', 'PROPOSED', 'MISSING', 'DEGRADED', 'CONFLICTED', 'REJECTED', 'CANONICAL'],
+      assessmentClasses: ['PROJECTED', 'VERIFIED_CONTRAST', 'INVALIDATED'],
       lifecycleObjects: ['SOURCE', 'OBJECT', 'RECORD', 'EVIDENCE_CANDIDATE', 'ACCEPTED_EVIDENCE', 'HYPOTHESIS', 'RIVAL_HYPOTHESIS', 'PREDICTION', 'INTERVENTION', 'RETURN', 'CONTRAST', 'LEARNING_CANDIDATE', 'CANONICAL_MEMORY'],
-      distinctionRule: 'Representation, source, record, evidence, inference, simulation, proposal, authorization, execution, return and learning are distinct states and must never be collapsed for convenience.',
+      distinctionRule: 'Persisted event class and analytical assessment class are different namespaces. Representation, source, record, evidence, inference, simulation, proposal, authorization, execution, return and learning must never be collapsed for convenience.',
     },
     epistemology: {
       rules: [
@@ -125,6 +127,7 @@ export async function buildSfiCognitiveBootstrap(input: {
         'RETURN is not causality; it must be contrasted against preregistered expectations and rivals.',
         'ROOT governs authority and institutional admission, not truth by decree.',
         'Lineage, uncertainty, contradiction and rival hypotheses survive promotion.',
+        'VERIFIED_CONTRAST is an assessment/projection class, not a persisted event-store epistemic class.',
       ],
     },
     philosophy: {
