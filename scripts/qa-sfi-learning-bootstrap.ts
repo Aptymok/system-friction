@@ -37,12 +37,23 @@ async function main() {
   assert(learning.includes("text(candidatePayload.classification) !== 'CALIBRATED_RETURN'"));
   assert(learning.includes("epistemicClass: 'verified_contrast'"));
   assert(learning.includes('ROOT authorizes institutional use'));
+  assert(learning.includes('readUniversalLearningTerminalState'));
+  assert(learning.includes("error: 'LEARNING_CANDIDATE_ALREADY_TERMINAL'"));
+  assert(learning.includes("if (terminal.state === 'PROMOTED')"));
+  assert(learning.includes("if (terminal.state === 'REJECTED')"));
+  assert(learning.includes('candidateLineage'));
+  assert(learning.includes(".eq('payload->>candidateEventId', candidateEventId)"));
+  assert(learning.includes(".eq('payload->>cycleId', cycleId)"));
 
   assert(rootLearning.includes("requireRootActor(`learning_quarantine.${action}`)"));
   assert(rootLearning.includes("action === 'capture_closed_cycle'"));
   assert(rootLearning.includes("action === 'promote'"));
   assert(rootLearning.includes("action === 'reject'"));
-  assert(rootLearning.includes('idempotent: true'));
+  assert(rootLearning.includes('readUniversalLearningCycleState(cycleId)'));
+  assert(rootLearning.includes("if (promoted.idempotent)"));
+  assert(rootLearning.includes("if (rejected.idempotent)"));
+  assert(rootLearning.includes('No duplicate promotion or audit mutation was created.'));
+  assert(rootLearning.includes('No duplicate rejection or audit mutation was created.'));
 
   assert(additionalSources.includes(".eq('event_name', 'SFI_UNIVERSAL_LEARNING_PROMOTED')"));
   assert(!additionalSources.includes(".eq('event_name', 'SFI_STRUCTURED_ANALYSIS_RESULT_RECEIVED')"), 'raw structured result hypotheses must not enter Cognitive Spine');
@@ -81,6 +92,8 @@ async function main() {
       testSyntheticEntersSpine: false,
       failedExperimentEntersSpine: false,
       rootPromotionRequired: true,
+      singleTerminalLearningState: true,
+      repeatedTerminalRequestIsIdempotent: true,
       promotionUpgradesTruthByDecree: false,
       bootstrapUsesSealedSpineSnapshot: true,
       bootstrapConsumesPromotedLearningOnly: true,
