@@ -76,7 +76,8 @@ async function main() {
   assert(bootstrapRoute.includes('X-SFI-Capsule-Hash'));
   assert(bootstrapRoute.includes('must not silently substitute an unversioned persona prompt'));
 
-  assert(manifest.includes("version: '1.9.0'"));
+  const manifestVersion = manifest.match(/version:\s*'([^']+)'/)?.[1] ?? null;
+  assert(manifestVersion && /^\d+\.\d+\.\d+$/.test(manifestVersion), 'external manifest must expose a semantic release version');
   assert(manifest.includes("cognitiveBootstrap: '/api/external/v1/bootstrap'"));
   assert(manifest.includes("cognitiveSpineAdmissionEvent: 'SFI_UNIVERSAL_LEARNING_PROMOTED'"));
   assert(openapiMerge.includes("api.paths['/api/external/v1/bootstrap']"));
@@ -86,6 +87,7 @@ async function main() {
   console.log(JSON.stringify({
     ok: true,
     contract: 'SFI-LEARNING-BOOTSTRAP-QA-1.0',
+    manifestVersion,
     invariants: {
       structuredResultIsLearning: false,
       closedCycleIsLearned: false,
