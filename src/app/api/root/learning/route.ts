@@ -14,6 +14,7 @@ export const runtime = 'nodejs';
 type Row = Record<string, unknown>;
 function row(value: unknown): Row { return value && typeof value === 'object' && !Array.isArray(value) ? value as Row : {}; }
 function text(value: unknown) { return typeof value === 'string' && value.trim() ? value.trim() : null; }
+function payload(value: unknown) { return row(row(value).payload); }
 
 export async function GET() {
   const gate = await requireRootViewer('learning_quarantine.read');
@@ -43,6 +44,29 @@ export async function POST(request: Request) {
     }
     const closureEvent = history.closures[history.closures.length - 1];
     const closureEventId = String(row(closureEvent).event_id ?? '') || null;
+
+    const existing = await readUniversalLearningQuarantine(300);
+    if (existing.ok) {
+      const duplicate = [...existing.candidates, ...existing.promotions, ...existing.rejections].find((event) => {
+        const eventPayload = payload(event);
+        const candidateLineage = row(eventPayload.lineage ?? eventPayload.candidateLineage);
+        return text(eventPayload.cycleId) === cycleId
+          && (!closureEventId || text(candidateLineage.closureEventId) === closureEventId || text(eventPayload.closureEventId) === closureEventId);
+      });
+      if (duplicate) {
+        return NextResponse.json({
+          ok: true,
+          action,
+          idempotent: true,
+          cycleId,
+          closureEventId,
+          existingEventId: String(row(duplicate).event_id ?? ''),
+          existingEventName: row(duplicate).event_name ?? null,
+          instruction: 'This closed cycle already has a learning-quarantine lineage. Reuse it rather than creating a duplicate candidate.',
+        });
+      }
+    }
+
     const candidate = await recordUniversalLearningCandidate({
       history,
       requested: body.learning,
