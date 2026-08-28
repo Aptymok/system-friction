@@ -10,11 +10,13 @@ const observatoryRoute = read('src/app/api/observatory/world/route.ts');
 const observatoryFeed = read('src/components/sfi/ObservatoryProvenanceFeed.tsx');
 const vercel = read('vercel.json');
 
-for (const token of ['SFI-STUDIO-HYGIENE-1.0', 'VERIFIED_HASH']) {
+for (const token of ['SFI-STUDIO-HYGIENE-1.0', 'VERIFIED_HASH', 'contentKey', 'PROCESSING_ATTEMPT', 'processingState']) {
   assert.ok(hygiene.includes(token), `studio_hygiene_contract_missing:${token}`);
 }
 assert.ok(hygiene.includes("class: 'TECHNICAL_LINEAGE'"), 'studio_trace_must_be_technical_lineage');
 assert.ok(hygiene.includes("epistemicAuthority: 'NONE'"), 'studio_trace_must_not_claim_evidence_authority');
+assert.ok(hygiene.includes('attempt outcomes remain separate lineage'), 'studio_processing_attempt_boundary_missing');
+assert.ok(hygiene.includes('title, size or filename similarity must not be treated as duplicate proof'), 'studio_unverified_duplicate_boundary_missing');
 assert.ok(hygiene.includes('BINARY_RETRIEVABLE_BY_REFERENCE'), 'studio_materialization_state_missing');
 assert.ok(hygiene.includes('IDENTITY_ONLY'), 'studio_identity_only_state_missing');
 assert.ok(hygiene.includes('creativeConstraints'), 'studio_creative_constraints_projection_missing');
@@ -53,6 +55,7 @@ console.log(JSON.stringify({
   historicalArchiveExcludedByDefault: true,
   canonicalArchiveVisibleByDefault: true,
   contentIdentityByHash: true,
+  processingAttemptsRemainDistinctLineage: true,
   traceAuthority: 'NONE',
   operatorFeedbackSeparated: true,
   canonicalMaterializationSeparated: true,
