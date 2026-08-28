@@ -1,11 +1,12 @@
 import { randomUUID } from 'node:crypto';
 import { NextResponse } from 'next/server';
 import { requireAuthenticatedUser } from '@/lib/system/access/server';
-import { normalizeAndRegisterOperationalCaseSource, readOperationalCase } from '@/lib/sfi/case-platform/repository';
+import { normalizeAndRegisterOperationalCaseSource } from '@/lib/sfi/case-platform/repository';
 import { sfiCaseApiFailure } from '@/lib/sfi/case-platform/http';
 import {
   SFI_CASE_SOURCE_BUCKET,
   assertCaseSourceStoragePath,
+  assertCaseSourceWriteAccess,
   normalizeCaseSourceContentType,
   normalizeCaseSourceSize,
   normalizeCaseSourceType,
@@ -32,11 +33,11 @@ export async function POST(request: Request, context: RouteContext) {
   try {
     const { user } = await requireAuthenticatedUser();
     const { caseId } = await context.params;
-    const envelope = await readOperationalCase(caseId, user.id);
+    const access = await assertCaseSourceWriteAccess({ caseId, userId: user.id });
     const body = await request.json().catch(() => ({})) as Row;
 
     const storagePath = assertCaseSourceStoragePath({
-      tenantId: envelope.caseRecord.tenantId,
+      tenantId: access.tenantId,
       caseId,
       storagePath: typeof body.storagePath === 'string' ? body.storagePath.trim() : '',
     });
@@ -80,7 +81,7 @@ export async function POST(request: Request, context: RouteContext) {
         contentHash,
         metadata: {
           intakeMode: 'DIRECT_SUPABASE_STORAGE',
-          tenantId: envelope.caseRecord.tenantId,
+          tenantId: access.tenantId,
           caseId,
           filename,
           size,
@@ -103,6 +104,7 @@ export async function POST(request: Request, context: RouteContext) {
       ok: true,
       caseId,
       source,
+      authority: { required: 'TENANT_WRITE', resolvedRole: access.role },
       file: {
         filename,
         size,
