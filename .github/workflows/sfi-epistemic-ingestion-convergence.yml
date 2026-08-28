@@ -16,9 +16,9 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  contract-and-types:
+  contract-types-and-build:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 35
     steps:
       - name: Checkout convergence branch
         uses: actions/checkout@v4
@@ -63,3 +63,6 @@ jobs:
 
       - name: Typecheck convergence branch
         run: npm run typecheck
+
+      - name: Full Next build validation
+        run: npm run build
