@@ -132,7 +132,9 @@ export async function listStudioObjects(
       .eq('owner_id', ownerId)
       .order('updated_at', { ascending: false })
       .limit(clampLimit(options.limit));
-    if (!options.includeArchived) query = query.neq('status', 'archived');
+    if (!options.includeArchived) {
+      query = query.or('status.neq.archived,metadata->hygiene->>lifecycleClass.eq.CANONICAL');
+    }
     if (options.sessionId) query = query.eq('session_id', options.sessionId);
     if (options.before) query = query.lt('updated_at', options.before);
     const { data, error } = await query;
