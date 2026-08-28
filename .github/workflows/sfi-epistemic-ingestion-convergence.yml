@@ -58,7 +58,7 @@ jobs:
           node scripts/merge-openapi-person-ct.mjs
 
       - name: Verify generated OpenAPI shape
-        run: node -e "const api=require('./public/openapi.json'); if(!api.paths?.['/api/external/v1/bootstrap']||!api.paths?.['/api/external/v1/cognitive']) process.exit(1); console.log(JSON.stringify({ok:true,version:api.info?.version,bootstrap:true,personCt:true}))"
+        run: node -e "const api=require('./public/openapi.json'); if(api.info?.version!=='1.10.0'||!api.paths?.['/api/external/v1/bootstrap']||!api.paths?.['/api/external/v1/cognitive']) process.exit(1); console.log(JSON.stringify({ok:true,version:api.info?.version,bootstrap:true,personCt:true}))"
 
       - name: QA ingestion epistemic boundary
         run: npm run qa:sfi-ingestion-boundary
