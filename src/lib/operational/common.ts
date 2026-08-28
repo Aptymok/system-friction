@@ -1,117 +1,77 @@
-import crypto from 'crypto';
+import 'server-only';
+
+import { createHash } from 'crypto';
 import { appendEpistemicEvent } from '@/lib/events/eventStore';
-import { readCanonicalGraphState } from '@/lib/graph/canonicalGraph';
-import { readGovernanceRuntime, recordBlindModePolicyBlock } from '@/lib/governance/governanceRuntime';
-import { getLatestKernelCycle } from '@/lib/kernel/kernelCycleStore';
-import { auditRootAction, recordUsageObservation } from '@/lib/root/server';
-import { getServerUserContext } from '@/lib/server/productionBackend';
+import { getLatestKernelCycle } from '@/lib/runtime/kernelRuntime';
+import { readGovernanceRuntime } from '@/lib/governance/runtime';
+import { getLatestWorldSpectSnapshot, snapshotRowToApiData } from '@/lib/worldspect/service';
+import { readCanonicalGraphState } from '@/lib/graph/readModel';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
-import { getLatestWorldSpectSnapshot, snapshotRowToApiData } from '@/lib/worldspect/snapshotStore';
+import type { ProposalStatus } from '@/lib/governance/proposalLifecycle';
 
-export type ProposalStatus =
-  | 'draft'
-  | 'proposed'
-  | 'waiting_evidence'
-  | 'design_approved'
-  | 'queued'
-  | 'accepted'
-  | 'rejected'
-  | 'conflicted'
-  | 'frozen'
-  | 'superseded';
+export const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+export const PROPOSAL_STATUSES = new Set<ProposalStatus>(['draft', 'proposed', 'waiting_evidence', 'design_approved', 'queued', 'accepted', 'rejected']);
+export const PROPOSAL_RISK_LEVELS = new Set(['low', 'medium', 'high', 'unknown', 'unassessable'] as const);
+export type ProposalRiskLevel = 'low' | 'medium' | 'high' | 'unknown' | 'unassessable';
 
-export type ProposalRiskLevel = 'low' | 'medium' | 'high' | 'critical' | 'unassessable';
-
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const PROPOSAL_STATUSES = new Set<ProposalStatus>([
-  'draft',
-  'proposed',
-  'waiting_evidence',
-  'design_approved',
-  'queued',
-  'accepted',
-  'rejected',
-  'conflicted',
-  'frozen',
-  'superseded',
-]);
-
-export function canonicalize(value: unknown): unknown {
-  if (Array.isArray(value)) return value.map(canonicalize);
-  if (!value || typeof value !== 'object') return value;
-  return Object.keys(value as Record<string, unknown>).sort().reduce<Record<string, unknown>>((acc, key) => {
-    acc[key] = canonicalize((value as Record<string, unknown>)[key]);
-    return acc;
-  }, {});
+export function recordValue(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
 }
 
-export function sha256(value: unknown) { return crypto.createHash('sha256').update(JSON.stringify(canonicalize(value))).digest('hex'); }
-export function stringValue(value: unknown) { return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null; }
-export function recordValue(value: unknown): Record<string, unknown> { return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {}; }
+export function stringValue(value: unknown) {
+  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;
+}
 
-function proposalTypeFrom(row: Record<string, unknown>) {
-  const expectedDelta = recordValue(row.expected_field_delta);
+export function proposalTypeFrom(row: Record<string, unknown>) {
+  const expected = recordValue(row.expected_field_delta);
   const proportionality = recordValue(row.proportionality_check);
-  return stringValue(row.proposal_type) ?? stringValue(expectedDelta.proposalType) ?? stringValue(expectedDelta.proposal_type) ?? stringValue(proportionality.proposalType) ?? stringValue(proportionality.proposal_type) ?? null;
+  return stringValue(row.proposal_type)
+    ?? stringValue(expected.proposalType)
+    ?? stringValue(expected.proposal_type)
+    ?? stringValue(proportionality.proposalType)
+    ?? stringValue(proportionality.proposal_type);
 }
 
-export function buildMutationLogbookRow(input: {
-  proposalId: string; eventId: string; actorId: string; mutationType: string; status: ProposalStatus;
-  target?: string | null; currentState?: unknown; proposedState?: unknown; coherenceDelta?: number; payload: Record<string, unknown>;
-}) {
-  return {
-    event_id: input.eventId,
-    mutation_key: `mutation:${input.proposalId}:${input.status}`,
-    target: input.target ?? 'action_proposals',
-    current_state: input.currentState ?? null,
-    proposed_state: input.proposedState ?? null,
-    coherence_delta: typeof input.coherenceDelta === 'number' && Number.isFinite(input.coherenceDelta) ? input.coherenceDelta : null,
-    status: input.status,
-    proposal_id: input.proposalId,
-    actor_id: input.actorId,
-    mutation_type: input.mutationType,
-    payload: input.payload,
-  };
-}
-
-export async function requireGovernedActor(action: string) {
-  const ctx = await getServerUserContext();
-  if (!ctx.user) return { ok: false as const, status: 401, body: { ok: false, error: 'Unauthorized' } };
-  const governance = await readGovernanceRuntime();
-  if (governance.blindMode) {
-    await recordBlindModePolicyBlock(ctx.user.id, action, governance);
-    return { ok: false as const, status: 423, body: { ok: false, error: 'blocked_by_governance', governance } };
-  }
-  if (ctx.isRoot) {
-    await recordUsageObservation({ actorId: ctx.user.id, kind: `governed_action:${action}`, amount: 1, metadata: { action, surface: 'root' } });
-    const audit = await auditRootAction({ actorId: ctx.user.id, action, target: 'governed_runtime', payload: { automatic: true } });
-    if (!audit.ok) return { ok: false as const, status: 500, body: { ok: false, error: 'root_audit_required_failed', details: audit } };
-  }
-  return { ok: true as const, ctx, governance };
+export function sha256(value: string) {
+  return createHash('sha256').update(value).digest('hex');
 }
 
 export async function appendOperationalEvent(input: {
-  eventName: string; actorId: string; confidence?: number; payload: Record<string, unknown>; lineage?: string[];
+  eventName: string;
+  actorId: string;
+  payload: Record<string, unknown>;
+  lineage?: string[];
+  confidence?: number | null;
+  logbookId?: string | null;
 }) {
-  const confidence = typeof input.confidence === 'number' && Number.isFinite(input.confidence) && input.confidence >= 0 && input.confidence <= 1 ? input.confidence : null;
   return appendEpistemicEvent({
     eventName: input.eventName,
-    epistemicClass: 'derived',
-    confidence: confidence ?? 0,
-    payload: { ...input.payload, confidenceState: confidence === null ? 'UNASSESSED' : 'EXPLICIT' },
+    epistemicClass: 'observed',
+    confidence: input.confidence ?? 1,
     occurredAt: new Date().toISOString(),
-    source: { sourceId: 'SYSTEM_FRICTION_INSTITUTE', sourceType: 'operational_runtime' },
-    logbookId: 'BR',
+    source: { sourceId: input.actorId, sourceType: 'sfi_operational_runtime' },
+    payload: input.payload,
     lineage: input.lineage ?? [],
-    uncertainty: confidence === null ? 'Confidence not assessed; numeric zero is a schema sentinel, not a measurement.' : undefined,
+    logbookId: input.logbookId ?? 'BR',
   });
 }
 
 export async function createActionProposal(input: {
-  proposalType: string; actorId: string; title?: string | null; objective?: string | null; seed?: string | null;
-  worldspectSnapshotId?: string | null; graphNodeCount?: number; graphEdgeCount?: number; inputVectorHash?: string | null;
-  specHash?: string | null; contentHash?: string | null; promptHash?: string | null; status?: ProposalStatus;
-  eventId?: string | null; payload: Record<string, unknown>;
+  proposalType: string;
+  actorId: string;
+  title?: string | null;
+  objective?: string | null;
+  status?: ProposalStatus;
+  eventId?: string | null;
+  payload?: Record<string, unknown>;
+  seed?: number | null;
+  worldspectSnapshotId?: string | null;
+  graphNodeCount?: number | null;
+  graphEdgeCount?: number | null;
+  inputVectorHash?: string | null;
+  specHash?: string | null;
+  contentHash?: string | null;
+  promptHash?: string | null;
 }) {
   const service = createServiceSupabaseClient();
   const expectedFieldDelta = {
@@ -165,6 +125,7 @@ export async function updateActionProposalStatus(input: {
   proposalId: string; status: ProposalStatus; actorId: string; isRoot: boolean; proposalType: string;
   expectedStatuses: ProposalStatus[]; eventId?: string | null; payloadPatch?: Record<string, unknown>;
   systemActor?: boolean; preserveOutcome?: boolean;
+  executedAt?: string | null;
   riskPatch?: { riskLevel: ProposalRiskLevel; proportionalityCheck: Record<string, unknown>; updatedAt: string };
 }) {
   const service = createServiceSupabaseClient();
@@ -188,6 +149,11 @@ export async function updateActionProposalStatus(input: {
     update.updated_at = input.riskPatch.updatedAt;
   }
   if (input.status === 'design_approved') update.approved_at = now;
+  if (input.executedAt) {
+    const parsed = Date.parse(input.executedAt);
+    if (!Number.isFinite(parsed)) return { ok: false as const, error: 'action_proposal_executed_at_invalid' };
+    update.executed_at = new Date(parsed).toISOString();
+  }
   const { data, error } = await service.from('action_proposals').update(update).eq('id', input.proposalId).select('*').single();
   if (error) return { ok: false as const, error: 'action_proposal_update_failed', details: error.message };
   return { ok: true as const, data };
