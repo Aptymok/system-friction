@@ -2,10 +2,31 @@ import { readFileSync, writeFileSync } from 'node:fs';
 
 const path = 'public/openapi.json';
 const api = JSON.parse(readFileSync(path, 'utf8'));
-const schema = api.components?.schemas?.CognitiveRequest;
-const route = api.paths?.['/api/external/v1/cognitive']?.post;
-if (!schema?.properties) throw new Error('SFI_OPENAPI_COGNITIVE_REQUEST_MISSING');
+api.components ??= {};
+api.components.schemas ??= {};
+api.paths ??= {};
+
+const route = api.paths['/api/external/v1/cognitive']?.post;
 if (!route) throw new Error('SFI_OPENAPI_COGNITIVE_ROUTE_MISSING');
+
+const requestSchemaName = 'PersonalCognitiveRequest';
+api.components.schemas[requestSchemaName] ??= {
+  type: 'object',
+  additionalProperties: true,
+  properties: {},
+};
+const schema = api.components.schemas[requestSchemaName];
+schema.type ??= 'object';
+schema.additionalProperties ??= true;
+schema.properties ??= {};
+
+route.requestBody ??= {
+  required: true,
+  content: { 'application/json': { schema: { $ref: `#/components/schemas/${requestSchemaName}` } } },
+};
+route.requestBody.content ??= {};
+route.requestBody.content['application/json'] ??= {};
+route.requestBody.content['application/json'].schema = { $ref: `#/components/schemas/${requestSchemaName}` };
 
 schema.properties.operation = {
   type: 'string',
@@ -62,4 +83,4 @@ api['x-sfi-governance'].personCtPatternBoundary =
   'COGNITION and OBSERVATION patterns are private owner-scoped representations. Agent prose does not auto-create a pattern. Inferred candidates require recurrent owned support and person confirmation; self-declarations remain DECLARED. No PERSON_CT pattern enters institutional Cognitive Spine by inheritance.';
 
 writeFileSync(path, `${JSON.stringify(api, null, 2)}\n`);
-console.log(JSON.stringify({ ok: true, openapi: path, personCtPatterns: true, version: api.info?.version ?? null }));
+console.log(JSON.stringify({ ok: true, openapi: path, requestSchema: requestSchemaName, personCtPatterns: true, version: api.info?.version ?? null }));
