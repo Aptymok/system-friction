@@ -6,6 +6,7 @@ import { readRootReportHealth, readRootReportInbox } from '@/lib/reports/rootRep
 import { SFI_AGENTIC_CAPABILITIES } from '@/lib/sfi/agenticCapabilityRegistry';
 import { SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY } from '@/lib/sfi/cognitive-runtime/convergedRegistry';
 import { readUniversalOpenCycles } from '@/lib/sfi/universalSignalCycle';
+import { readUniversalLearningQuarantine } from '@/lib/sfi/universalLearningQuarantine';
 import { getLatestWorldSpectSnapshot } from '@/lib/worldspect/snapshotStore';
 
 export const dynamic = 'force-dynamic';
@@ -63,7 +64,7 @@ export async function GET(req: Request) {
       .limit(25)
     : Promise.resolve({ data: [], error: null });
 
-  const [lab, reportInbox, proposals, evidence, twinRuns, twinEvaluations, labRuns, openCycles, worldSnapshot, ownedStudio] = await Promise.all([
+  const [lab, reportInbox, proposals, evidence, twinRuns, twinEvaluations, labRuns, openCycles, learningQuarantine, worldSnapshot, ownedStudio] = await Promise.all([
     readMethodLabState(),
     readRootReportInbox(12),
     db.from('action_proposals').select('id,title,status,risk_level,approval_required,created_at,approved_at,executed_at').order('created_at', { ascending: false }).limit(8),
@@ -72,6 +73,7 @@ export async function GET(req: Request) {
     db.from('sfi_cognitive_twin_evaluations').select('id,provider,model,test_key,outcome,executed_at,executor').order('executed_at', { ascending: false }).limit(5),
     db.from('sfi_lab_analyses').select('id,mode,data_mode,created_at,raw_analysis').order('created_at', { ascending: false }).limit(5),
     readUniversalOpenCycles(12),
+    readUniversalLearningQuarantine(80),
     getLatestWorldSpectSnapshot(),
     ownedStudioQuery,
   ]);
@@ -87,6 +89,7 @@ export async function GET(req: Request) {
     ...lab.warnings,
     ...reportInbox.warnings,
     ...openCycles.warnings,
+    ...(!learningQuarantine.ok ? learningQuarantine.warnings.map((warning) => `learning_quarantine:${warning}`) : []),
     worldSnapshot ? null : 'worldspect_snapshots:latest_snapshot_missing',
   ].filter((value): value is string => Boolean(value));
 
@@ -139,6 +142,11 @@ export async function GET(req: Request) {
         worldHypothesisCount: Array.isArray(openCycles.worldHypotheses) ? openCycles.worldHypotheses.length : 0,
         pendingGovernanceCount: openCycles.pendingProposals.length,
       },
+      learning: {
+        quarantine: learningQuarantine.ok ? learningQuarantine.summary : null,
+        admissionEvent: 'SFI_UNIVERSAL_LEARNING_PROMOTED',
+        rule: 'Closed/completed cycles remain outside institutional learning until calibrated return and ROOT-governed promotion.',
+      },
       lab: {
         status: (lab as unknown as Row).status ?? null,
         generatedAt: (lab as unknown as Row).generatedAt ?? null,
@@ -161,6 +169,7 @@ export async function GET(req: Request) {
       },
       agenticCapabilities: SFI_AGENTIC_CAPABILITIES.map((capability) => ({ id: capability.id, layer: capability.layer, route: capability.route, approvalRequired: capability.approvalRequired })),
       detailSurfaces: {
+        bootstrap: '/api/external/v1/bootstrap',
         signal: '/api/external/v1/signal',
         observe: '/api/external/v1/observe',
         lab: '/api/external/v1/lab',
@@ -168,6 +177,6 @@ export async function GET(req: Request) {
       },
     },
     warnings,
-    epistemicBoundary: 'This console reports compact persisted operational state. OAuth principals receive only the Studio object index whose owner_id equals their authenticated subjectId; raw media is not exposed here.',
+    epistemicBoundary: 'This console reports compact persisted operational state. Learning counts are lifecycle state, not truth claims. OAuth principals receive only the Studio object index whose owner_id equals their authenticated subjectId; raw media is not exposed here.',
   });
 }
