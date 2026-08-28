@@ -5,6 +5,7 @@ import {
   getStudioObjectFeatures,
   listStudioObjects,
 } from '@/lib/studio/production/studioProductionRepository';
+import { projectStudioObjectForHumans } from '@/lib/studio/hygiene/studioObjectHygiene';
 import { createStudioContentSignedUrl } from '@/lib/studio/multimodal/storage';
 import { resolveStudioObjectDescriptor, analyzeStudioModalityObject } from '@/lib/studio/multimodal/analyzeStudioModalityObject';
 import { analyzeStudioVideo } from '@/lib/studio/multimodal/videoAnalyzer';
@@ -27,11 +28,16 @@ function objectIdFrom(body: Row) {
   return typeof body.objectId === 'string' ? body.objectId.trim() : '';
 }
 
+function boundedLimit(value: unknown) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? Math.max(1, Math.min(100, Math.floor(parsed))) : 25;
+}
+
 function repositoryResponse(result: Awaited<ReturnType<typeof getStudioObject>>, actor: string, operation: StudioOperation) {
   if (!result.ok) {
     return NextResponse.json({ ok: false, error: result.error, details: result.details }, { status: result.status });
   }
-  return NextResponse.json({ ok: true, actor, operation, object: result.data });
+  return NextResponse.json({ ok: true, actor, operation, object: projectStudioObjectForHumans(result.data) });
 }
 
 export async function POST(req: Request) {
@@ -46,9 +52,6 @@ export async function POST(req: Request) {
   const cred = auth.credential;
   if (!cred) return NextResponse.json(externalAuthError(auth, scope), { status: 401 });
 
-  // Studio access through the public external gateway is deliberately user-bound.
-  // Static/shared tokens cannot impersonate an object owner. OAuth subject_id is
-  // the owner boundary used for every lookup and operation below.
   if (cred.authMethod !== 'oauth' || !cred.subjectId) {
     return NextResponse.json({
       ok: false,
@@ -61,14 +64,23 @@ export async function POST(req: Request) {
   const actor = externalActor(cred);
 
   if (operation === 'list') {
-    const result = await listStudioObjects(ownerId);
+    const includeArchived = body.includeArchived === true;
+    const before = typeof body.before === 'string' && body.before.trim() ? body.before.trim() : null;
+    const result = await listStudioObjects(ownerId, {
+      includeArchived,
+      limit: boundedLimit(body.limit),
+      before,
+    });
     if (!result.ok) return NextResponse.json({ ok: false, error: result.error, details: result.details }, { status: result.status });
+    const nextCursor = result.data.length ? String(result.data[result.data.length - 1]?.updated_at ?? '') || null : null;
     return NextResponse.json({
       ok: true,
       actor,
       operation,
       ownershipBoundary: 'oauth.subjectId = studio_objects.owner_id',
+      operationalDefault: includeArchived ? 'ARCHIVE_INCLUDED_BY_EXPLICIT_REQUEST' : 'ARCHIVED_EXCLUDED_BY_DEFAULT',
       count: result.data.length,
+      nextCursor,
       objects: result.data,
     });
   }
@@ -89,6 +101,17 @@ export async function POST(req: Request) {
 
   if (operation === 'content') {
     try {
+      const projected = projectStudioObjectForHumans(owned.data);
+      const hygiene = (projected.metadata as Row | undefined)?.hygiene as Row | undefined;
+      if (hygiene?.binaryRetrievable === false) {
+        return NextResponse.json({
+          ok: false,
+          error: 'studio_binary_not_materialized',
+          objectId,
+          identityState: hygiene?.canonicalIdentityVerified === true ? 'CANONICAL_IDENTITY_VERIFIED' : 'IDENTITY_REGISTERED',
+          materializationState: hygiene?.materializationState ?? 'UNKNOWN',
+        }, { status: 409 });
+      }
       const url = await createStudioContentSignedUrl(objectId, 120);
       return NextResponse.json({
         ok: true,
