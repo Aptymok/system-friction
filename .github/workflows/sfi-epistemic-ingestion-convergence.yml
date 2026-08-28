@@ -1,0 +1,69 @@
+name: SFI Epistemic Ingestion Convergence
+
+on:
+  push:
+    branches:
+      - feat/sfi-epistemic-ingestion-convergence
+  workflow_dispatch:
+
+# Validation only. This workflow must never deploy Vercel, push Supabase migrations,
+# execute external actions, or mutate production state.
+permissions:
+  contents: read
+
+concurrency:
+  group: sfi-epistemic-ingestion-convergence-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  contract-and-types:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout convergence branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Materialize generated assets
+        run: node scripts/materialize-spatial-assets.mjs
+
+      - name: Regenerate machine contracts
+        run: |
+          node scripts/merge-openapi-cases.mjs
+          node scripts/merge-openapi-universal-cycle.mjs
+          node scripts/merge-openapi-person-ct.mjs
+
+      - name: Assert generated OpenAPI is committed
+        run: |
+          if ! git diff --exit-code -- public/openapi.json; then
+            echo 'public/openapi.json is stale relative to the OpenAPI merge generators.' >&2
+            exit 1
+          fi
+
+      - name: QA ingestion epistemic boundary
+        run: npm run qa:sfi-ingestion-boundary
+
+      - name: QA universal full cycle
+        run: npm run qa:sfi-universal-cycle
+
+      - name: QA learning quarantine and cognitive bootstrap
+        run: npm run qa:sfi-learning-bootstrap
+
+      - name: QA PERSON_CT cognition and observation patterns
+        run: npm run qa:sfi-person-ct-patterns
+
+      - name: QA mutation evidence progression
+        run: npm run qa:sfi-mutation-evidence
+
+      - name: Typecheck convergence branch
+        run: npm run typecheck
