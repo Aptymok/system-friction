@@ -96,8 +96,8 @@ export async function GET() {
     mutationEvidence: {
       publicSurface: '/history/mutations',
       machineSurface: '/api/public/mutations',
-      chain: ['CODE_RECORDED', 'QA_VERIFIED', 'DEPLOYED', 'EXERCISED', 'CALIBRATED_LEARNING_LINKED'],
-      rule: 'A verified GitHub commit proves repository mutation only; each later validation stage requires distinct evidence.',
+      chain: ['CODE_RECORDED', 'QA_VERIFIED', 'DEPLOYMENT_EVIDENCE_RECORDED', 'EXERCISED', 'CALIBRATED_LEARNING_LINKED'],
+      rule: 'A verified GitHub commit proves repository mutation only; each later validation stage requires distinct evidence. Deployment references are not called verified until a deployment-provider verification lane exists.',
     },
     governance: 'Observation, source registration, record/inference creation, evidence candidacy, evidence acceptance, proposal authorization, execution, return, calibration, learning candidacy and canonical promotion remain distinct governed states.',
   });
