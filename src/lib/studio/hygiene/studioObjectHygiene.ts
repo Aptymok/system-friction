@@ -119,19 +119,28 @@ export function buildStudioObjectHygiene(rowValue: unknown) {
   const contentIdentity = studioContentIdentity(metadata);
   const materializationState = studioMaterializationState(row);
   const trace = studioTraceSemantics(metadata);
+  const engine = record(metadata.studioAudioEngine);
   const operationalVisibility = lifecycleClass === 'ACTIVE' || lifecycleClass === 'CANONICAL'
     ? 'VISIBLE_BY_DEFAULT'
     : 'EXCLUDED_BY_DEFAULT';
+  const contentKey = contentIdentity.hash ? `sha256:${contentIdentity.hash}` : null;
+  const processingState = text(engine.status) ?? text(row.status) ?? 'UNKNOWN';
 
   return {
     contract: 'SFI-STUDIO-HYGIENE-1.0',
     lifecycleClass,
     operationalVisibility,
     contentIdentity,
+    contentKey,
+    identityRole: contentIdentity.state === 'VERIFIED_HASH' ? 'PROCESSING_ATTEMPT' : 'OBJECT_RECORD',
+    processingState,
     materializationState,
     canonicalIdentityVerified: Boolean(text(metadata.canonicalState)),
     binaryRetrievable: materializationState === 'BINARY_RETRIEVABLE_BY_REFERENCE',
     trace,
+    identityBoundary: contentIdentity.state === 'VERIFIED_HASH'
+      ? 'Objects sharing contentKey are processing attempts of the same verified content identity; attempt outcomes remain separate lineage.'
+      : 'Content identity is unverified; title, size or filename similarity must not be treated as duplicate proof.',
   };
 }
 
