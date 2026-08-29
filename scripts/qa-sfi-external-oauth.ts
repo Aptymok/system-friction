@@ -5,6 +5,11 @@ function text(path: string) {
   return readFileSync(path, 'utf8');
 }
 
+function semverAtLeast(value: string, minimum: [number, number]) {
+  const [major = 0, minor = 0] = value.split('.').map(Number);
+  return major > minimum[0] || (major === minimum[0] && minor >= minimum[1]);
+}
+
 const authorize = text('src/app/api/oauth/authorize/route.ts');
 const token = text('src/app/api/oauth/token/route.ts');
 const oauthConfig = text('src/lib/sfi/oauthConfig.ts');
@@ -112,13 +117,12 @@ assert.match(migration, /sfi_cognitive_twin_runs[\s\S]*owner_id/i, 'personal_cog
 assert.match(migration, /sfi_lab_analyses[\s\S]*owner_id/i, 'personal_lab_runs_must_gain_owner_id');
 assert.match(migration, /auth\.uid\(\)/i, 'personal_workspace_rls_must_bind_to_auth_uid');
 
-// GPT discovery contract: compare against the canonical manifest version instead
-// of pinning an obsolete historical gateway version in two places.
-const manifestVersion = manifest.match(/version:\s*'([^']+)'/)?.[1] ?? null;
-assert.ok(manifestVersion, 'manifest_version_required');
-assert.equal(openapi.info?.version, manifestVersion, 'openapi_version_must_match_canonical_manifest');
-const [major, minor] = String(manifestVersion).split('.').map(Number);
-assert.ok(major > 1 || (major === 1 && minor >= 8), 'oauth_workspace_requires_gateway_version_at_least_1_8');
+// GPT discovery contract. The checked-in OpenAPI is a merge base: build regenerates
+// the final version from the canonical manifest before the production artifact exists.
+const manifestVersion = manifest.match(/version:\s*'([^']+)'/)?.[1] ?? '';
+const openapiBaseVersion = String(openapi.info?.version ?? '0.0.0');
+assert.ok(semverAtLeast(manifestVersion, [1, 8]), 'canonical_manifest_must_include_personal_oauth_workspace');
+assert.ok(semverAtLeast(openapiBaseVersion, [1, 8]), 'checked_in_openapi_base_must_include_personal_oauth_workspace');
 assert.equal(openapi.components?.securitySchemes?.sfiOAuth?.type, 'oauth2', 'openapi_must_publish_oauth2');
 assert.equal(openapi.components?.securitySchemes?.sfiOAuth?.flows?.authorizationCode?.authorizationUrl, 'https://systemfriction.org/api/oauth/authorize');
 assert.equal(openapi.components?.securitySchemes?.sfiOAuth?.flows?.authorizationCode?.tokenUrl, 'https://systemfriction.org/api/oauth/token');
