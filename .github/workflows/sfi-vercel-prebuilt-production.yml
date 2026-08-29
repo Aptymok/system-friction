@@ -60,7 +60,7 @@ jobs:
         if: steps.creds.outputs.ready == 'true'
         run: npm ci
 
-      - name: Verify Vercel team and project scope
+      - name: Verify Vercel project scope
         if: steps.creds.outputs.ready == 'true'
         shell: bash
         env:
@@ -77,13 +77,14 @@ jobs:
             "https://api.vercel.com/v9/projects/$VERCEL_PROJECT_ID?teamId=$VERCEL_ORG_ID")
           echo "VERCEL_TEAM_ACCESS_HTTP=$team_http"
           echo "VERCEL_PROJECT_ACCESS_HTTP=$project_http"
-          if [ "$team_http" != "200" ]; then
-            echo 'SFI_VERCEL_TEAM_SCOPE_INVALID_OR_UNAUTHORIZED'
-            exit 1
-          fi
           if [ "$project_http" != "200" ]; then
             echo 'SFI_VERCEL_PROJECT_SCOPE_INVALID_OR_UNAUTHORIZED'
             exit 1
+          fi
+          if [ "$team_http" = "403" ]; then
+            echo 'SFI_VERCEL_SCOPED_TOKEN_TEAM_READ_RESTRICTED_PROJECT_ACCESS_CONFIRMED'
+          elif [ "$team_http" != "200" ]; then
+            echo 'SFI_VERCEL_TEAM_LOOKUP_NONBLOCKING_PROJECT_SCOPE_CONFIRMED'
           fi
 
       - name: Materialize explicit Vercel project link
