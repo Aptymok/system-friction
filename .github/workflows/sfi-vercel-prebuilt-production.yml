@@ -60,6 +60,43 @@ jobs:
         if: steps.creds.outputs.ready == 'true'
         run: npm ci
 
+      - name: Verify Vercel team and project scope
+        if: steps.creds.outputs.ready == 'true'
+        shell: bash
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          set -euo pipefail
+          team_http=$(curl -sS -o /tmp/vercel-team.json -w '%{http_code}' \
+            -H "Authorization: Bearer $VERCEL_TOKEN" \
+            "https://api.vercel.com/v2/teams/$VERCEL_ORG_ID")
+          project_http=$(curl -sS -o /tmp/vercel-project.json -w '%{http_code}' \
+            -H "Authorization: Bearer $VERCEL_TOKEN" \
+            "https://api.vercel.com/v9/projects/$VERCEL_PROJECT_ID?teamId=$VERCEL_ORG_ID")
+          echo "VERCEL_TEAM_ACCESS_HTTP=$team_http"
+          echo "VERCEL_PROJECT_ACCESS_HTTP=$project_http"
+          if [ "$team_http" != "200" ]; then
+            echo 'SFI_VERCEL_TEAM_SCOPE_INVALID_OR_UNAUTHORIZED'
+            exit 1
+          fi
+          if [ "$project_http" != "200" ]; then
+            echo 'SFI_VERCEL_PROJECT_SCOPE_INVALID_OR_UNAUTHORIZED'
+            exit 1
+          fi
+
+      - name: Materialize explicit Vercel project link
+        if: steps.creds.outputs.ready == 'true'
+        shell: bash
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          mkdir -p .vercel
+          node -e "require('fs').writeFileSync('.vercel/project.json', JSON.stringify({orgId:process.env.VERCEL_ORG_ID,projectId:process.env.VERCEL_PROJECT_ID}))"
+          echo 'SFI_VERCEL_PROJECT_LINK_MATERIALIZED'
+
       - name: Pull production project settings
         if: steps.creds.outputs.ready == 'true'
         env:
