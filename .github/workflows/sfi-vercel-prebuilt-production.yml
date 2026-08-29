@@ -106,12 +106,31 @@ jobs:
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
         run: npx --yes vercel@latest pull --yes --environment=production --token="$VERCEL_TOKEN"
 
+      - name: Verify public Supabase build configuration
+        if: steps.creds.outputs.ready == 'true'
+        shell: bash
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://nwrmbkgsnrhdscnsyoko.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: sb_publishable_5bmBY6_sN3_X125_DhvW5w_IFvcI3l1
+        run: |
+          set -euo pipefail
+          node - <<'NODE'
+          const url = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+          const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+          if (!/^https:\/\/[a-z0-9]+\.supabase\.co$/i.test(url)) throw new Error('SFI_PUBLIC_SUPABASE_URL_INVALID');
+          if (!key.startsWith('sb_publishable_')) throw new Error('SFI_PUBLIC_SUPABASE_KEY_INVALID');
+          if (url.includes('[SENSITIVE]') || key.includes('[SENSITIVE]')) throw new Error('SFI_PUBLIC_SUPABASE_CONFIG_REDACTED');
+          console.log('SFI_PUBLIC_SUPABASE_BUILD_CONFIG_OK');
+          NODE
+
       - name: Build production artifact in GitHub Actions
         if: steps.creds.outputs.ready == 'true'
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          NEXT_PUBLIC_SUPABASE_URL: https://nwrmbkgsnrhdscnsyoko.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: sb_publishable_5bmBY6_sN3_X125_DhvW5w_IFvcI3l1
         run: npx --yes vercel@latest build --prod --token="$VERCEL_TOKEN"
 
       - name: Deploy prebuilt artifact to production
