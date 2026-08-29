@@ -1,4 +1,4 @@
-import { createHmac, timingSafeEqual } from 'node:crypto';
+import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
 import { NextResponse } from 'next/server';
 import { requireAuthenticatedUser } from '@/lib/system/access/server';
 import { appendEpistemicEvent } from '@/lib/events/eventStore';
@@ -12,14 +12,16 @@ export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 export const maxDuration = 15;
 
-const ATTESTATION_VERSION = 'SFI-INGESTION-ATTESTATION-1.0';
+const LEGACY_ATTESTATION_VERSION = 'SFI-INGESTION-ATTESTATION-1.0';
+const RECEIPT_ATTESTATION_VERSION = 'SFI-INGESTION-ATTESTATION-2.0';
 const PROFILE_CONTRACT = 'SFI-DATASET-PROFILE-1.0';
 const MAX_RESULT_JSON_BYTES = 750_000;
 
 type RouteContext = { params: Promise<{ caseId: string }> };
 type Row = Record<string, unknown>;
-
 type CanonicalRef = { id: string; version?: string | null; hash?: string | null };
+
+type ServiceDb = ReturnType<typeof createServiceSupabaseClient>;
 
 function row(value: unknown): Row {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Row : {};
@@ -32,7 +34,11 @@ function text(value: unknown) {
 function stableValue(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(stableValue);
   if (value && typeof value === 'object') {
-    return Object.fromEntries(Object.entries(value as Row).sort(([a], [b]) => a.localeCompare(b)).map(([key, item]) => [key, stableValue(item)]));
+    return Object.fromEntries(
+      Object.entries(value as Row)
+        .sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0)
+        .map(([key, item]) => [key, stableValue(item)]),
+    );
   }
   return value;
 }
@@ -41,17 +47,67 @@ function canonicalPayload(value: unknown) {
   return JSON.stringify(stableValue(value));
 }
 
-function verifyAttestation(result: Row, attestation: Row) {
+function canonicalResultHash(result: Row) {
+  return createHash('sha256').update(canonicalPayload(result)).digest('hex');
+}
+
+function verifyLegacyAttestation(result: Row, attestation: Row) {
   const version = text(attestation.version);
   const algorithm = text(attestation.algorithm);
   const digest = text(attestation.digest).toLowerCase();
-  if (version !== ATTESTATION_VERSION || algorithm !== 'HMAC-SHA256' || !/^[a-f0-9]{64}$/.test(digest)) return false;
+  if (version !== LEGACY_ATTESTATION_VERSION || algorithm !== 'HMAC-SHA256' || !/^[a-f0-9]{64}$/.test(digest)) return false;
   const secret = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!secret) throw new Error('SFI_INGESTION_ATTESTATION_SECRET_UNAVAILABLE');
-  const expected = createHmac('sha256', secret).update(`${ATTESTATION_VERSION}|${canonicalPayload(result)}`).digest('hex');
+  const expected = createHmac('sha256', secret).update(`${LEGACY_ATTESTATION_VERSION}|${canonicalPayload(result)}`).digest('hex');
   const left = Buffer.from(digest, 'hex');
   const right = Buffer.from(expected, 'hex');
   return left.length === right.length && timingSafeEqual(left, right);
+}
+
+async function consumeReceiptAttestation(input: {
+  db: ServiceDb;
+  result: Row;
+  attestation: Row;
+  caseId: string;
+  tenantId: string;
+  userId: string;
+  storagePath: string;
+  contentHash: string;
+}) {
+  const version = text(input.attestation.version);
+  const algorithm = text(input.attestation.algorithm);
+  const digest = text(input.attestation.digest).toLowerCase();
+  const receiptId = text(input.attestation.receiptId);
+
+  if (
+    version !== RECEIPT_ATTESTATION_VERSION ||
+    algorithm !== 'SUPABASE_DB_RECEIPT_SHA256' ||
+    !/^[a-f0-9]{64}$/.test(digest) ||
+    !/^[0-9a-f-]{36}$/i.test(receiptId)
+  ) return false;
+
+  const expected = canonicalResultHash(input.result);
+  if (digest !== expected) return false;
+
+  const now = new Date().toISOString();
+  const consumed = await input.db
+    .from('sfi_ingestion_attestation_receipts')
+    .update({ consumed_at: now })
+    .eq('id', receiptId)
+    .eq('case_id', input.caseId)
+    .eq('tenant_id', input.tenantId)
+    .eq('user_id', input.userId)
+    .eq('storage_path', input.storagePath)
+    .eq('content_hash', input.contentHash)
+    .eq('result_hash', digest)
+    .eq('attestation_version', RECEIPT_ATTESTATION_VERSION)
+    .is('consumed_at', null)
+    .gt('expires_at', now)
+    .select('id')
+    .maybeSingle();
+
+  if (consumed.error) throw new Error(`SFI_DATASET_ATTESTATION_RECEIPT_VERIFY_FAILED:${consumed.error.message}`);
+  return Boolean(consumed.data?.id);
 }
 
 function sanitize(value: unknown, depth = 0): unknown {
@@ -109,10 +165,10 @@ export async function POST(request: Request, context: RouteContext) {
     const result = row(body.result);
     const attestation = row(body.attestation);
     const serialized = JSON.stringify(result);
+
     if (!serialized || serialized.length > MAX_RESULT_JSON_BYTES) {
       return NextResponse.json({ ok: false, error: 'SFI_DATASET_PROFILE_RESULT_TOO_LARGE', maxBytes: MAX_RESULT_JSON_BYTES }, { status: 413 });
     }
-    if (!verifyAttestation(result, attestation)) return NextResponse.json({ ok: false, error: 'SFI_DATASET_PROFILE_ATTESTATION_INVALID' }, { status: 403 });
 
     if (text(result.caseId) !== caseId || text(result.tenantId) !== access.tenantId || text(result.profiledByUserId) !== user.id) {
       return NextResponse.json({ ok: false, error: 'SFI_DATASET_PROFILE_IDENTITY_MISMATCH' }, { status: 409 });
@@ -121,17 +177,37 @@ export async function POST(request: Request, context: RouteContext) {
     const storagePath = assertCaseSourceStoragePath({ tenantId: access.tenantId, caseId, storagePath: text(result.storagePath) });
     const profile = row(result.profile);
     if (text(profile.contract) !== PROFILE_CONTRACT) return NextResponse.json({ ok: false, error: 'SFI_DATASET_PROFILE_CONTRACT_INVALID' }, { status: 400 });
+
     const source = row(profile.source);
     const contentHash = text(source.contentHash).toLowerCase();
     if (!/^[a-f0-9]{64}$/.test(contentHash) || text(source.contentHashBasis) !== 'SERVER_VERIFIED_SHA256') {
       return NextResponse.json({ ok: false, error: 'SFI_DATASET_PROFILE_CONTENT_IDENTITY_INVALID' }, { status: 400 });
     }
+
     const security = row(profile.security);
     if (security.formulasEvaluated !== false || security.macrosExecuted !== false || security.externalLinksFollowed !== false || security.rawRowsReturned !== false) {
       return NextResponse.json({ ok: false, error: 'SFI_DATASET_PROFILE_SECURITY_BOUNDARY_INVALID' }, { status: 400 });
     }
 
     const db = createServiceSupabaseClient();
+    const attestationVersion = text(attestation.version);
+    const attestationVerified = attestationVersion === RECEIPT_ATTESTATION_VERSION
+      ? await consumeReceiptAttestation({
+          db,
+          result,
+          attestation,
+          caseId,
+          tenantId: access.tenantId,
+          userId: user.id,
+          storagePath,
+          contentHash,
+        })
+      : verifyLegacyAttestation(result, attestation);
+
+    if (!attestationVerified) {
+      return NextResponse.json({ ok: false, error: 'SFI_DATASET_PROFILE_ATTESTATION_INVALID' }, { status: 403 });
+    }
+
     const sources = await db.from('sfi_case_objects')
       .select('canonical_ref,payload')
       .eq('case_id', caseId)
@@ -139,6 +215,7 @@ export async function POST(request: Request, context: RouteContext) {
       .order('created_at', { ascending: false })
       .limit(250);
     if (sources.error) throw new Error(`SFI_DATASET_SOURCE_LOOKUP_FAILED:${sources.error.message}`);
+
     const sourceRow = (sources.data ?? []).find((item) => sourceStoragePath(item.payload) === storagePath);
     const sourceRef = canonicalRef(sourceRow?.canonical_ref);
     if (!sourceRef) {
@@ -154,6 +231,7 @@ export async function POST(request: Request, context: RouteContext) {
     const observationRef = { id: `dataset-profile:${contentHash}`, version: '1.0', hash: profileHash };
     const observedAt = text(profile.generatedAt) || new Date().toISOString();
     const summary = profileSummary(sanitizedProfile);
+    const workerId = attestationVersion === RECEIPT_ATTESTATION_VERSION ? 'sfi-dataset-profile-attest' : 'sfi-dataset-profile';
 
     const observation = await recordOperationalCaseObject({
       caseId,
@@ -167,11 +245,15 @@ export async function POST(request: Request, context: RouteContext) {
       payload: {
         contract: PROFILE_CONTRACT,
         ingestionProvider: 'SUPABASE_EDGE_FUNCTION',
-        worker: 'sfi-dataset-profile',
+        worker: workerId,
         storage: { bucket: SFI_CASE_SOURCE_BUCKET, storagePath },
         profile: sanitizedProfile,
         summary,
-        attestation: { version: ATTESTATION_VERSION, verified: true },
+        attestation: {
+          version: attestationVersion,
+          mode: attestationVersion === RECEIPT_ATTESTATION_VERSION ? 'SINGLE_USE_DB_RECEIPT' : 'LEGACY_HMAC',
+          verified: true,
+        },
         epistemicBoundary: 'DETERMINISTIC_PROFILE_IS_A_CASE_OBSERVATION_RECORD_NOT_ACCEPTED_EVIDENCE_OR_CANONICAL_TRUTH',
       },
       observedAt,
@@ -191,12 +273,13 @@ export async function POST(request: Request, context: RouteContext) {
         contentHash,
         profileHash,
         summary,
+        attestationVersion,
         epistemicPartition: sanitizedProfile.epistemicPartition ?? null,
         security: sanitizedProfile.security ?? null,
         rawObjectPersistedInEvent: false,
       },
       occurredAt: observedAt,
-      source: { sourceId: 'sfi-dataset-profile', sourceType: 'deterministic_ingestion_worker' },
+      source: { sourceId: workerId, sourceType: 'deterministic_ingestion_worker' },
       logbookId: `case:${caseId}`,
       lineage: [sourceRef.id, contentHash, profileHash],
     });
@@ -232,6 +315,7 @@ export async function POST(request: Request, context: RouteContext) {
           observationRef: observationRef.id,
           epistemicEventId: String(event.data.event_id ?? ''),
           ingestionProvider: 'SUPABASE_EDGE_FUNCTION',
+          attestationVersion,
           attestationVerified: true,
         },
       },
