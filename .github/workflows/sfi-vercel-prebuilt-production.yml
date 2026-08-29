@@ -7,6 +7,7 @@ on:
     paths:
       - .github/workflows/sfi-vercel-prebuilt-production.yml
       - 'scripts/merge-openapi-*.mjs'
+      - 'src/app/api/external/openapi/**'
   workflow_dispatch:
 
 permissions:
