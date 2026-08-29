@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server';
 import { authorizeExternalRequest, externalActor, externalAuthError } from '@/lib/sfi/externalAuth';
-import { buildClarifyingQuestions, describeUniversalSignalContract, normalizeUniversalSignal, type UniversalCycleInput } from '@/lib/sfi/universalSignalCycle';
+import { resolveUniversalCaseIntake } from '@/lib/sfi/caseIntakeResolver';
+import { describeUniversalSignalContract, normalizeUniversalSignal, type UniversalCycleInput } from '@/lib/sfi/universalSignalCycle';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
-type Row = Record<string, unknown>;
+type Row=Record<string,unknown>;
 const record=(v:unknown):Row=>v&&typeof v==='object'&&!Array.isArray(v)?v as Row:{};
 const text=(v:unknown)=>typeof v==='string'&&v.trim()?v.trim():null;
 
@@ -30,11 +31,14 @@ export async function POST(req:Request){
   const input=record(body.input) as unknown as UniversalCycleInput;
   if(!input.signal||typeof input.signal!=='object'||Array.isArray(input.signal))return NextResponse.json({ok:false,error:'input.signal_required'},{status:400});
 
+  // The execution contract never needs raw content. It plans observation against
+  // identity/reference metadata and lets the authorized extractor inspect the object.
   const safeSignal={...input.signal,content:undefined};
   const safeInput={...input,signal:safeSignal};
   const signal=normalizeUniversalSignal(safeSignal);
   const contract=describeUniversalSignalContract(safeInput);
-  const questions=buildClarifyingQuestions(safeInput);
+  const intakePlan=resolveUniversalCaseIntake(safeInput);
+  const clarifyingQuestions=intakePlan.questions.map((item)=>item.question);
   const declaredFunction=typeof input.declaredFunction==='string'?input.declaredFunction:'';
   const extracted=record(input.signal.extracted);
   const metadata=record(input.signal.metadata);
@@ -44,7 +48,7 @@ export async function POST(req:Request){
   return NextResponse.json({
     ok:true,
     actor:externalActor(auth.credential),
-    contractVersion:'SFI-EXECUTION-CONTRACT-1.1',
+    contractVersion:'SFI-EXECUTION-CONTRACT-1.2',
     storagePolicy:{default:'REFERENCE_ONLY',rawObjectAccepted:false,rawObjectPersisted:false,exception:'PRESERVE_EVIDENCE only through a separate governed evidence workflow'},
     object:{
       kind:signal.kind,
@@ -58,12 +62,14 @@ export async function POST(req:Request){
       assetRef:signal.assetRef,
     },
     identityRule:'objectHash is reserved for a client-computed content fingerprint. referenceHash identifies the metadata/reference envelope and must not be compared as a content hash.',
-    clarifyingQuestions:questions,
-    ready:questions.length===0,
+    intakePlan,
+    clarifyingQuestions,
+    ready:intakePlan.blockingQuestions.length===0,
+    readinessRule:'Only unresolved intent blocks pre-observation. Object function, system/temporal boundary, outcome criteria and privacy details should first be inferred from material observation when possible.',
     methodPlan:contract.methodPlan,
     agentPlan:contract.agentPlan,
     requiredMeasurements:measurements(signal.kind,declaredFunction),
-    executionOrder:['individuate object','resolve question/objective','extract only required measurements','separate observed/declared/derived/inferred/simulated/missing','reconstruct relevant history','load only relevant SFI world/field context','generate primary and rival hypotheses','cross-impact and risk analysis','identify dynamic attractors/ejectors separately from declared targets/exclusions','preserve invariants and constraints','design minimal perturbation','register expected and contradiction signals','return structured result to SFI'],
+    executionOrder:['individuate object','materially inspect the supplied object','infer representation/function/boundaries when observable','extract only required measurements','sanitize/minimize retained structured material','separate observed/declared/derived/inferred/simulated/missing','reconstruct relevant history','ask only genuinely unresolved questions','load only relevant SFI world/field context','generate primary and rival hypotheses','cross-impact and risk analysis','identify dynamic attractors/ejectors separately from declared targets/exclusions','preserve invariants and constraints','design minimal perturbation','register expected and contradiction signals','return structured result to SFI'],
     resultContract:{endpoint:'/api/external/v1/result',required:['object with content fingerprint when available','question/objective','measurements','epistemic partition','hypotheses+rivals','risks','invariants','perturbation/prediction when applicable'],forbidden:['raw binary','base64 object','complete private file unless explicitly required by governed evidence preservation']},
   });
 }

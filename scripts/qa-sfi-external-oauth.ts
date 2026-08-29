@@ -5,6 +5,11 @@ function text(path: string) {
   return readFileSync(path, 'utf8');
 }
 
+function semverAtLeast(value: string, minimum: [number, number]) {
+  const [major = 0, minor = 0] = value.split('.').map(Number);
+  return major > minimum[0] || (major === minimum[0] && minor >= minimum[1]);
+}
+
 const authorize = text('src/app/api/oauth/authorize/route.ts');
 const token = text('src/app/api/oauth/token/route.ts');
 const oauthConfig = text('src/lib/sfi/oauthConfig.ts');
@@ -91,7 +96,10 @@ for (const [name, source] of [['cognitive', cognitive], ['personal_lab', persona
   assert.match(source, /!credential\.subjectId/, `${name}_must_require_oauth_subject`);
   assert.match(source, /owner_id == OAuth subjectId/, `${name}_must_publish_owner_boundary`);
 }
-assert.match(cognitive, /requiredScope = operation === 'run' \? 'lab:run' : 'lab:read'/, 'personal_cognitive_run_must_require_lab_run');
+
+// Validate scope semantics, not one historical source-code spelling.
+assert.match(cognitive, /function operationScope\(operation: string\)[\s\S]*if \(operation === 'run'\) return 'lab:run';[\s\S]*\['propose_pattern', 'confirm_pattern', 'reject_pattern'\]\.includes\(operation\)[\s\S]*return 'lab:write';[\s\S]*return 'lab:read';/, 'personal_cognitive_scope_router_must_preserve_read_write_run_boundaries');
+assert.match(cognitive, /const requiredScope = operationScope\(operation\)/, 'personal_cognitive_must_authorize_with_operation_scope');
 assert.match(personalLab, /if \(operation === 'run'\) return 'lab:run'/, 'personal_lab_run_must_require_lab_run');
 assert.match(personalLab, /return 'lab:write'/, 'personal_lab_writes_must_require_lab_write');
 assert.match(studio, /const ownerId = cred\.subjectId/, 'studio_owner_must_derive_from_oauth_subject');
@@ -109,8 +117,12 @@ assert.match(migration, /sfi_cognitive_twin_runs[\s\S]*owner_id/i, 'personal_cog
 assert.match(migration, /sfi_lab_analyses[\s\S]*owner_id/i, 'personal_lab_runs_must_gain_owner_id');
 assert.match(migration, /auth\.uid\(\)/i, 'personal_workspace_rls_must_bind_to_auth_uid');
 
-// GPT discovery contract.
-assert.equal(openapi.info?.version, '1.8.0', 'openapi_version_must_track_personal_oauth_workspace');
+// GPT discovery contract. The checked-in OpenAPI is a merge base: build regenerates
+// the final version from the canonical manifest before the production artifact exists.
+const manifestVersion = manifest.match(/version:\s*'([^']+)'/)?.[1] ?? '';
+const openapiBaseVersion = String(openapi.info?.version ?? '0.0.0');
+assert.ok(semverAtLeast(manifestVersion, [1, 8]), 'canonical_manifest_must_include_personal_oauth_workspace');
+assert.ok(semverAtLeast(openapiBaseVersion, [1, 8]), 'checked_in_openapi_base_must_include_personal_oauth_workspace');
 assert.equal(openapi.components?.securitySchemes?.sfiOAuth?.type, 'oauth2', 'openapi_must_publish_oauth2');
 assert.equal(openapi.components?.securitySchemes?.sfiOAuth?.flows?.authorizationCode?.authorizationUrl, 'https://systemfriction.org/api/oauth/authorize');
 assert.equal(openapi.components?.securitySchemes?.sfiOAuth?.flows?.authorizationCode?.tokenUrl, 'https://systemfriction.org/api/oauth/token');
@@ -118,7 +130,6 @@ assert.ok(openapi.paths?.['/api/external/v1/cognitive']?.post, 'openapi_must_pub
 assert.ok(openapi.paths?.['/api/external/v1/personal-lab']?.post, 'openapi_must_publish_personal_lab');
 assert.ok(openapi.paths?.['/api/external/v1/studio']?.post, 'openapi_must_publish_owned_studio');
 assert.match(String(openapi['x-sfi-governance']?.personalWorkspaceBoundary || ''), /cannot access institutional proposal/i, 'openapi_must_publish_personal_institutional_boundary');
-assert.match(manifest, /version: '1\.8\.0'/, 'manifest_version_must_match_openapi');
 assert.match(manifest, /event-triggered bounded cognitive automations/, 'manifest_must_describe_automation_model');
 assert.match(manifest, /deprecatedParallelRuntimeRemoved: true/, 'manifest_must_record_runtime_convergence');
 
@@ -145,7 +156,7 @@ for (const path of [
 
 console.log(JSON.stringify({
   ok: true,
-  contract: 'SFI-EXTERNAL-OAUTH-1.9',
+  contract: 'SFI-EXTERNAL-OAUTH-1.10',
   flow: 'authorization_code',
   pkce: 'S256',
   clientRegistry: 'PERSISTENT_SELF_SERVICE',
