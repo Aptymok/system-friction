@@ -1,6 +1,7 @@
 import { strict as assert } from 'node:assert';
 import { readFile } from 'node:fs/promises';
 import { resolveUniversalCaseIntake, resolveCasePlatformCreationIntake } from '../src/lib/sfi/caseIntakeResolver';
+import { evaluateUniversalAnalysisSufficiency } from '../src/lib/sfi/epistemicSufficiency';
 
 async function text(path: string) {
   return readFile(path, 'utf8');
@@ -31,8 +32,40 @@ async function main() {
     context: { dataHandling: 'private-reference-only' },
   });
   assert(['DECISION', 'INTERVENTION'].includes(decision.caseClass));
-  assert(decision.blockingQuestions.some((item) => item.key === 'SYSTEM_BOUNDARY'));
-  assert(decision.blockingQuestions.some((item) => item.key === 'OUTCOME_CRITERIA'));
+  assert.equal(decision.blockingQuestions.length, 0, 'observation must not be blocked by context SFI can infer after inspecting the object');
+  assert(decision.questions.some((item) => item.key === 'SYSTEM_BOUNDARY' && item.blocking === false));
+  assert(decision.questions.some((item) => item.key === 'OUTCOME_CRITERIA' && item.blocking === false));
+  assert.equal(decision.readyForObservation, true);
+
+  const missingIntent = resolveUniversalCaseIntake({ signal: { kind: 'document', name: 'unknown.pdf' } });
+  assert(missingIntent.blockingQuestions.some((item) => item.key === 'INTENT'), 'intent remains the only universal pre-observation blocker');
+
+  const referenceOnlyImage = evaluateUniversalAnalysisSufficiency({
+    signal: { kind: 'image', name: 'photo.png', objectHash: 'a'.repeat(64), assetRef: 'storage://private/photo.png' },
+    question: '¿Qué contiene?',
+  });
+  assert.equal(referenceOnlyImage.status, 'BLOCKED');
+  assert(referenceOnlyImage.missingObservations.includes('MATERIAL_CONTENT_OR_EXTRACTION'));
+
+  const extractedImage = evaluateUniversalAnalysisSufficiency({
+    signal: { kind: 'image', name: 'photo.png', extracted: { description: 'A service desk screenshot', entities: ['ticket queue'] } },
+    question: '¿Qué contiene?',
+  });
+  assert.equal(extractedImage.status, 'READY');
+
+  const referenceOnlyDataset = evaluateUniversalAnalysisSufficiency({
+    signal: { kind: 'dataset', name: 'Mesa de Ayuda.xlsx', objectHash: 'b'.repeat(64) },
+    question: '¿Qué patrones contiene?',
+  });
+  assert.equal(referenceOnlyDataset.status, 'BLOCKED');
+  assert(referenceOnlyDataset.missingObservations.includes('SCHEMA_OR_FIELDS'));
+  assert(referenceOnlyDataset.missingObservations.includes('ROW_OR_RECORD_COUNT'));
+
+  const materialDataset = evaluateUniversalAnalysisSufficiency({
+    signal: { kind: 'dataset', name: 'Mesa de Ayuda.xlsx', extracted: { headers: ['CÓDIGO', 'CREACIÓN'], rowCount: 80017 } },
+    question: '¿Qué patrones contiene?',
+  });
+  assert.equal(materialDataset.status, 'READY');
 
   const caseCreate = resolveCasePlatformCreationIntake({
     serviceProfileId: 'SERVICE_OBSERVABILITY',
@@ -152,11 +185,12 @@ async function main() {
 
   console.log(JSON.stringify({
     ok: true,
-    contract: 'SFI-UNIVERSAL-FULL-CYCLE-QA-1.2',
+    contract: 'SFI-UNIVERSAL-FULL-CYCLE-QA-1.3',
     lifecycle: [
-      'INTAKE_RESOLUTION',
+      'INTENT',
+      'OBSERVE_FIRST',
       'OBSERVATION_HYDRATION',
-      'OBJECT_SUFFICIENCY',
+      'OBJECT_SUFFICIENCY_ALL_REPRESENTATIONS',
       'SAME_CYCLE_REMEDIATION_RERUN',
       'EVIDENCE_REQUIREMENT',
       'BOUNDED_WEB_ACQUISITION',
@@ -166,6 +200,8 @@ async function main() {
       'CONTRAST',
       'CLOSURE_GATE',
     ],
+    operatorClassificationRequiredBeforeObservation: false,
+    referenceOnlyExecutionAllowed: false,
     parallelCycleIsDefault: false,
     priorFailedRunsAreErased: false,
     sourceClaimsAreEvidence: false,
