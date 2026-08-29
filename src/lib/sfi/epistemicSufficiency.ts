@@ -61,7 +61,9 @@ function hasSchema(extracted: Row): boolean {
     extracted.fields,
     extracted.variables,
     extracted.headers,
-  ].some((value) => Array.isArray(value) ? value.length > 0 : Boolean(value && typeof value === 'object' && Object.keys(value as Row).length > 0));
+  ].some((value) => Array.isArray(value)
+    ? value.length > 0
+    : Boolean(value && typeof value === 'object' && Object.keys(value as Row).length > 0));
 }
 
 function hasCount(extracted: Row): boolean {
@@ -94,42 +96,78 @@ function datasetCapability(signal: UniversalSignalInput): string {
   return 'DATASET.GENERIC.PROFILE';
 }
 
+function observationCapability(signal: UniversalSignalInput): string {
+  const kind = text(signal.kind).toLowerCase();
+  switch (kind) {
+    case 'text': return 'TEXT.EXTRACT';
+    case 'document': return 'DOCUMENT.EXTRACT';
+    case 'image': return 'IMAGE.EXTRACT';
+    case 'audio': return 'AUDIO.TRANSCRIBE_OR_EXTRACT';
+    case 'video': return 'VIDEO.EXTRACT';
+    case 'conversation': return 'CONVERSATION.EXTRACT';
+    case 'email': return 'EMAIL.EXTRACT';
+    case 'code': return 'CODE.EXTRACT';
+    case 'url':
+    case 'web_page': return 'WEB.EXTRACT';
+    case 'api_response': return 'API_RESPONSE.EXTRACT';
+    case 'sensor': return 'SENSOR.EXTRACT';
+    case 'event': return 'EVENT.EXTRACT';
+    case 'organization': return 'ORGANIZATION.EXTRACT';
+    case 'person': return 'PERSON.EXTRACT';
+    case 'place': return 'PLACE.EXTRACT';
+    case 'composite': return 'COMPOSITE.EXTRACT';
+    default: return 'UNIVERSAL.MATERIAL_OBSERVATION';
+  }
+}
+
 /**
- * Epistemic sufficiency is intentionally narrower than runtime capability.
- * A signal reference, filename, assetRef or content fingerprint proves identity,
- * not material observation of the represented object. The first enforced gate is
- * dataset-like input because a real XLSX case demonstrated that SFI could execute
- * a cognitive cycle over an unextracted reference. Other representations can be
- * added incrementally without changing this contract.
+ * Identity is not observation. A filename, URL, assetRef or hash may identify an
+ * object without giving SFI any material basis to understand it. Every
+ * representation therefore needs material content or a structured extraction
+ * before the cognitive runtime can execute. Dataset-like inputs additionally
+ * require enough deterministic structure to know the schema and record extent.
  */
 export function evaluateUniversalAnalysisSufficiency(input: UniversalCycleInput): SfiEpistemicSufficiency {
   const signal = input.signal ?? {};
-  const kind = text(signal.kind).toLowerCase();
-  const datasetLike = kind === 'dataset' || kind === 'csv' || kind === 'json';
-
-  if (!datasetLike) {
-    return {
-      status: 'READY',
-      analysisStatus: 'READY_FOR_ANALYSIS',
-      representation: kind || 'unknown',
-      materialObservation: hasMaterialContent(signal.content) || substantiveExtractedKeys(row(signal.extracted)).length > 0 ? 'PRESENT' : 'MISSING',
-      requiredObservations: [],
-      satisfiedObservations: [],
-      missingObservations: [],
-      requiredCapabilities: [],
-      reason: null,
-      epistemicBoundary: 'No material-observation gate is enforced yet for this representation. Runtime execution must not be interpreted as empirical validation.',
-    };
-  }
-
+  const kind = text(signal.kind).toLowerCase() || 'unknown';
   const extracted = row(signal.extracted);
   const contentPresent = hasMaterialContent(signal.content);
   const extractedPresent = substantiveExtractedKeys(extracted).length > 0;
-  const schemaPresent = hasSchema(extracted) || (contentPresent && kind === 'json');
-  const countPresent = hasCount(extracted) || (Array.isArray(signal.content));
+  const materialPresent = contentPresent || extractedPresent;
+  const datasetLike = kind === 'dataset' || kind === 'csv' || kind === 'json';
+
+  if (!datasetLike) {
+    const checks = [
+      { id: 'MATERIAL_CONTENT_OR_EXTRACTION', ok: materialPresent },
+    ];
+    const satisfiedObservations = checks.filter((check) => check.ok).map((check) => check.id);
+    const missingObservations = checks.filter((check) => !check.ok).map((check) => check.id);
+    const ready = missingObservations.length === 0;
+
+    return {
+      status: ready ? 'READY' : 'BLOCKED',
+      analysisStatus: ready ? 'READY_FOR_ANALYSIS' : 'BLOCKED_INSUFFICIENT_OBJECT_OBSERVATION',
+      representation: kind,
+      materialObservation: materialPresent ? 'PRESENT' : 'MISSING',
+      requiredObservations: checks.map((check) => check.id),
+      satisfiedObservations,
+      missingObservations,
+      requiredCapabilities: ready ? [] : [observationCapability(signal)],
+      reason: ready ? null : 'The object is identified but has not been materially observed. SFI must inspect/extract the represented content before substantive agent execution.',
+      epistemicBoundary: 'REFERENCE/DECLARATION ≠ MATERIAL OBSERVATION. No representation may enter substantive cognitive execution from identity metadata alone.',
+    };
+  }
+
+  const jsonObjectContent = kind === 'json'
+    && signal.content !== null
+    && typeof signal.content === 'object'
+    && !Array.isArray(signal.content)
+    && Object.keys(signal.content as Row).length > 0;
+  const schemaPresent = hasSchema(extracted) || jsonObjectContent;
+  const countPresent = hasCount(extracted) || Array.isArray(signal.content) || jsonObjectContent;
 
   const checks = [
-    { id: 'MATERIAL_CONTENT_OR_EXTRACTION', ok: contentPresent || extractedPresent },
+    { id: 'MATERIAL_CONTENT_OR_EXTRACTION', ok: materialPresent },
     { id: 'SCHEMA_OR_FIELDS', ok: schemaPresent },
     { id: 'ROW_OR_RECORD_COUNT', ok: countPresent },
   ];
@@ -141,12 +179,12 @@ export function evaluateUniversalAnalysisSufficiency(input: UniversalCycleInput)
     status: ready ? 'READY' : 'BLOCKED',
     analysisStatus: ready ? 'READY_FOR_ANALYSIS' : 'BLOCKED_INSUFFICIENT_OBJECT_OBSERVATION',
     representation: kind,
-    materialObservation: contentPresent || extractedPresent ? 'PRESENT' : 'MISSING',
+    materialObservation: materialPresent ? 'PRESENT' : 'MISSING',
     requiredObservations: checks.map((check) => check.id),
     satisfiedObservations,
     missingObservations,
     requiredCapabilities: ready ? [] : [datasetCapability(signal)],
     reason: ready ? null : 'The dataset is identified but has not been materially observed with enough deterministic structure to support substantive analysis.',
-    epistemicBoundary: 'REFERENCE/DECLARATION ≠ MATERIAL OBSERVATION. A dataset cognitive cycle may run only after extracted or supplied material observations satisfy the declared analysis requirements.',
+    epistemicBoundary: 'REFERENCE/DECLARATION ≠ MATERIAL OBSERVATION. Dataset execution additionally requires material extraction plus schema/fields and row/record extent.',
   };
 }
