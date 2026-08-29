@@ -1,7 +1,15 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 
 const path = 'public/openapi.json';
+const manifestPath = 'src/app/api/external/v1/manifest/route.ts';
 const api = JSON.parse(readFileSync(path, 'utf8'));
+const manifestSource = readFileSync(manifestPath, 'utf8');
+const canonicalVersion = manifestSource.match(/version:\s*'([^']+)'/)?.[1] ?? null;
+if (!canonicalVersion || !/^\d+\.\d+\.\d+$/.test(canonicalVersion)) {
+  throw new Error('SFI_OPENAPI_CANONICAL_MANIFEST_VERSION_MISSING');
+}
+api.info ??= {};
+api.info.version = canonicalVersion;
 const oauth = api.components?.securitySchemes?.sfiOAuth?.flows?.authorizationCode;
 if (!oauth?.scopes) throw new Error('SFI_OPENAPI_OAUTH_SCOPES_MISSING');
 api.components ??= {};
@@ -75,4 +83,4 @@ api['x-sfi-governance'].caseWorkspaceBoundary =
   'Case Platform access is subject-bound and tenant-scoped. intake_plan creates no case. cases:write can create SOURCE/RECORD/INFERENCE/EPISTEMIC_ASSESSMENT objects only within the adapter allowlist; it cannot mint accepted EVIDENCE, GOVERNANCE_DECISION, INTERVENTION, RETURN or TRUTH_CLAIM authority.';
 
 writeFileSync(path, `${JSON.stringify(api, null, 2)}\n`);
-console.log(JSON.stringify({ ok: true, openapi: path, caseWorkspace: true, intakePlan: true, version: api.info?.version ?? null }));
+console.log(JSON.stringify({ ok: true, openapi: path, caseWorkspace: true, intakePlan: true, version: api.info?.version ?? null, versionSource: 'external-manifest' }));
