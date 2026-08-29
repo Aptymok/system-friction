@@ -50,27 +50,30 @@ export function resolveUniversalCaseIntake(inputValue: unknown) {
   const questions: SfiIntakeQuestion[] = [];
   const caseClass = inferCaseClass(input);
 
+  // Intent is the only pre-observation question that can block a universal cycle.
+  // Everything else should first be inferred from the material object when possible,
+  // then surfaced as an unresolved question only if it still matters to analysis/action.
   if (!text(input.question) && !text(input.objective)) {
-    questions.push({ key: 'INTENT', question: '¿Qué quieres entender, decidir o cambiar a partir de esta señal?', reason: 'A cycle cannot select evidence, method or closure criteria without an explicit intent.', blocking: true });
+    questions.push({ key: 'INTENT', question: '¿Qué quieres entender, decidir o cambiar a partir de esta señal?', reason: 'A cycle needs an explicit intent to determine what question it is trying to resolve.', blocking: true });
   }
 
   if (!text(input.declaredFunction) && ['audio', 'video', 'image', 'document', 'dataset', 'unknown', 'composite'].includes(kind)) {
-    questions.push({ key: 'OBJECT_FUNCTION', question: '¿Qué función cumple este objeto dentro del problema: fuente, evidencia por verificar, sistema a observar, artefacto, intervención u otra?', reason: 'Representation does not determine epistemic or operational function.', blocking: true });
+    questions.push({ key: 'OBJECT_FUNCTION', question: '¿Qué función cumple este objeto dentro del problema: fuente, evidencia por verificar, sistema a observar, artefacto, intervención u otra?', reason: 'Representation does not determine epistemic or operational function. SFI should attempt to infer this after material observation before asking the operator.', blocking: false });
   }
 
   const boundaryKnown = text(input.systemType) || text(context.systemBoundary) || text(context.systemBoundaryRef) || text(context.boundary);
   if (!boundaryKnown && ['DECISION', 'INTERVENTION', 'LONGITUDINAL', 'EMPIRICAL_CONTRAST'].includes(caseClass)) {
-    questions.push({ key: 'SYSTEM_BOUNDARY', question: '¿Cuál es el sistema o frontera exacta que sí pertenece al caso y qué queda fuera?', reason: 'Causal and longitudinal conclusions are invalid without a bounded system.', blocking: true });
+    questions.push({ key: 'SYSTEM_BOUNDARY', question: '¿Cuál es el sistema o frontera exacta que sí pertenece al caso y qué queda fuera?', reason: 'A bounded system is required before strong causal, longitudinal or intervention claims, but initial material observation should happen first and may resolve the boundary.', blocking: false });
   }
 
   const temporalKnown = text(context.cutoff) || text(context.temporalCutoff) || text(context.timeWindow) || text(context.observationWindow) || text(signal.observedAt);
   if (!temporalKnown && ['LONGITUDINAL', 'EMPIRICAL_CONTRAST', 'INTERVENTION'].includes(caseClass)) {
-    questions.push({ key: 'TEMPORAL_BOUNDARY', question: '¿Cuál es el periodo observado o cutoff temporal que debe gobernar este caso?', reason: 'The same evidence can imply different states at different temporal cutoffs.', blocking: true });
+    questions.push({ key: 'TEMPORAL_BOUNDARY', question: '¿Cuál es el periodo observado o cutoff temporal que debe gobernar este caso?', reason: 'Temporal scope is required before time-bounded conclusions, but it should first be inferred from the observed object when possible.', blocking: false });
   }
 
   const outcomeKnown = text(context.successCriteria) || text(context.failureCriteria) || text(context.expectedOutcome) || text(context.decisionCriterion);
   if (!outcomeKnown && ['DECISION', 'INTERVENTION'].includes(caseClass)) {
-    questions.push({ key: 'OUTCOME_CRITERIA', question: '¿Qué resultado distinguiría éxito, fracaso o una decisión incorrecta?', reason: 'A decision/intervention needs discriminating outcome criteria before execution.', blocking: true });
+    questions.push({ key: 'OUTCOME_CRITERIA', question: '¿Qué resultado distinguiría éxito, fracaso o una decisión incorrecta?', reason: 'Discriminating outcome criteria are required before governed execution/closure, not before SFI observes and analyzes the supplied object.', blocking: false });
   }
 
   const futureSignalKnown = text(context.discriminatingObservation) || text(context.contradictionSignal) || text(context.returnWindow) || arrayHasValues(context.expectedSignals);
@@ -80,7 +83,7 @@ export function resolveUniversalCaseIntake(inputValue: unknown) {
 
   const privacyKnown = text(context.dataHandling) || text(context.privacyBoundary) || typeof context.containsPersonalData === 'boolean';
   if (!privacyKnown && privacyRelevant(kind)) {
-    questions.push({ key: 'DATA_BOUNDARY', question: '¿El objeto contiene datos personales, reservados o sensibles que deban minimizarse, redactarse o mantenerse sólo por referencia?', reason: 'Ingestion policy must be resolved before extraction can safely expand the object.', blocking: false });
+    questions.push({ key: 'DATA_BOUNDARY', question: '¿El objeto contiene datos personales, reservados o sensibles que deban minimizarse, redactarse o mantenerse sólo por referencia?', reason: 'SFI should default to minimization/sanitization during extraction and only ask if the unresolved privacy boundary affects what can be retained or disclosed.', blocking: false });
   }
 
   return {
@@ -90,7 +93,7 @@ export function resolveUniversalCaseIntake(inputValue: unknown) {
     questions,
     blockingQuestions: questions.filter((item) => item.blocking),
     readyForObservation: !questions.some((item) => item.blocking),
-    principle: 'Ask only unresolved questions. Do not force a universal questionnaire when the supplied object/context already resolves the field.',
+    principle: 'OBSERVE FIRST. Ask only what remains genuinely unresolved after material observation. Do not require the operator to classify the object, pre-validate system boundaries, or predefine action criteria before SFI has inspected the supplied material.',
   };
 }
 
@@ -109,6 +112,6 @@ export function resolveCasePlatformCreationIntake(inputValue: unknown) {
     missingContext: questions.map((item) => item.key),
     questions,
     readyForCreate: questions.length === 0,
-    principle: 'Create only when the operational contract is resolvable; otherwise return the missing questions to the human/AI client.',
+    principle: 'Operational Case creation is downstream of universal observation/classification. Create the Case only when its service contract is resolvable; do not use Case creation as the universal ingestion gate.',
   };
 }
