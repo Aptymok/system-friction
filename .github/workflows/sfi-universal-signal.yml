@@ -20,6 +20,7 @@ on:
       - 'src/app/ai-index.json/**'
       - 'src/components/sfi/ObservatoryConsole.tsx'
       - 'src/components/sfi/ObservatoryWorldLayer.css'
+      - 'scripts/merge-openapi-universal-cycle.mjs'
       - 'scripts/qa-sfi-universal-full-cycle.ts'
       - 'scripts/qa-sfi-governed-execution-router.ts'
       - 'scripts/qa-sfi-external-oauth.ts'
@@ -46,6 +47,7 @@ on:
       - 'src/app/ai-index.json/**'
       - 'src/components/sfi/ObservatoryConsole.tsx'
       - 'src/components/sfi/ObservatoryWorldLayer.css'
+      - 'scripts/merge-openapi-universal-cycle.mjs'
       - 'scripts/qa-sfi-universal-full-cycle.ts'
       - 'scripts/qa-sfi-governed-execution-router.ts'
       - 'scripts/qa-sfi-external-oauth.ts'
@@ -71,9 +73,41 @@ jobs:
       - run: npm ci
       - name: Typecheck
         run: npm run typecheck
-      - name: Validate OpenAPI JSON
+      - name: Materialize generated OpenAPI
         run: |
-          node -e "const fs=require('fs'); const o=JSON.parse(fs.readFileSync('public/openapi.json','utf8')); const p=o.paths||{}; const v=String(o.info?.version||'0.0.0').split('.').map(Number); const versionOk=(v[0]>1)||(v[0]===1&&v[1]>=8); const required=['/api/external/v1/signal','/api/external/v1/execution-contract','/api/external/v1/result','/api/external/v1/execute','/api/external/v1/cognitive','/api/external/v1/personal-lab']; if(!versionOk||required.some(path=>!p[path])) process.exit(1); console.log('openapi >=1.8 governed contracts ok')"
+          node scripts/merge-openapi-cases.mjs
+          node scripts/merge-openapi-universal-cycle.mjs
+          node scripts/merge-openapi-person-ct.mjs
+      - name: Validate OpenAPI JSON and structured-result Action parity
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');
+          const o=JSON.parse(fs.readFileSync('public/openapi.json','utf8'));
+          const p=o.paths||{};
+          const s=o.components?.schemas||{};
+          const v=String(o.info?.version||'0.0.0').split('.').map(Number);
+          const versionOk=(v[0]>1)||(v[0]===1&&v[1]>=8);
+          const required=['/api/external/v1/signal','/api/external/v1/execution-contract','/api/external/v1/result','/api/external/v1/execute','/api/external/v1/cognitive','/api/external/v1/personal-lab'];
+          if(!versionOk||required.some(path=>!p[path])) throw new Error('SFI_OPENAPI_REQUIRED_PATHS_OR_VERSION_INVALID');
+
+          const request=s.StructuredResultRequest;
+          if(!request||!Array.isArray(request.required)||!request.required.includes('object')||!request.required.includes('result')) throw new Error('SFI_OPENAPI_STRUCTURED_RESULT_REQUEST_REQUIRED_FIELDS_MISSING');
+          if(request.properties?.object?.$ref!=='#/components/schemas/StructuredResultObject') throw new Error('SFI_OPENAPI_STRUCTURED_RESULT_OBJECT_NOT_EXPOSED');
+          if(request.properties?.result?.$ref!=='#/components/schemas/StructuredAnalysisResult') throw new Error('SFI_OPENAPI_STRUCTURED_RESULT_ANALYSIS_NOT_EXPOSED');
+
+          const analysis=s.StructuredAnalysisResult;
+          const actionFields=['measurements','epistemicPartition','hypotheses','rivals','risks','invariants','perturbation','prediction'];
+          if(!analysis?.properties||actionFields.some(field=>!analysis.properties[field])) throw new Error('SFI_OPENAPI_STRUCTURED_RESULT_ACTION_SURFACE_TRUNCATED');
+          if(analysis.properties.measurements?.$ref!=='#/components/schemas/StructuredMeasurementBundle') throw new Error('SFI_OPENAPI_MEASUREMENTS_SCHEMA_MISSING');
+          if(analysis.properties.epistemicPartition?.$ref!=='#/components/schemas/StructuredEpistemicPartition') throw new Error('SFI_OPENAPI_EPISTEMIC_PARTITION_SCHEMA_MISSING');
+
+          const object=s.StructuredResultObject;
+          for(const field of ['objectHash','contentHashBasis','logicalFilename','observedTransportFilename','materialIdentityVerified','provenance']) {
+            if(!object?.properties?.[field]) throw new Error(`SFI_OPENAPI_STRUCTURED_RESULT_OBJECT_FIELD_MISSING:${field}`);
+          }
+
+          console.log('openapi governed contracts + structured-result Action parity ok');
+          NODE
       - name: Verify 21 cognitive executors are wired
         run: |
           node --import tsx -e "import { SFI_AGENT_EXECUTION_MAP } from './src/lib/sfi/cognitive-runtime/agentExecutionMap.ts'; const ids=Object.keys(SFI_AGENT_EXECUTION_MAP); console.log(ids.length, ids); if(ids.length!==21) process.exit(1);"
