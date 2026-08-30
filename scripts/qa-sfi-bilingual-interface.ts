@@ -21,13 +21,17 @@ requireText(provider, 'document.documentElement.lang = language', 'document lang
 requireText(provider, "(['es', 'en'] as const)", 'ES/EN switch');
 requireText(provider, 'data-sfi-ui-copy="language-control"', 'interface-owned language control');
 requireText(provider, "language === 'es' ? 'IDIOMA' : 'LANGUAGE'", 'visible bilingual control copy');
+requireText(provider, 'export function SfiUiText', 'owned-copy translation primitive');
 requireText(provider, '// Every tuple is [Spanish, English].', 'catalog direction contract');
-requireText(layout, "import { SfiLanguageProvider }", 'root layout provider import');
+requireText(layout, 'SfiLanguageProvider, SfiUiText', 'root layout language imports');
 requireText(layout, '<SfiLanguageProvider>', 'root layout provider mount');
 requireText(layout, '</SfiLanguageProvider>', 'root layout provider boundary');
+requireText(layout, '<SfiUiText', 'shared shell must consume the language context');
+requireText(layout, 'es="PRIVACIDAD Y POLÍTICA DE DATOS PARA AGENTES EXTERNOS"', 'Spanish owned shell copy');
+requireText(layout, 'en="PRIVACY & EXTERNAL AGENT DATA POLICY"', 'English owned shell copy');
 
 // Canonical identifiers and rendered evidence are preserved by architecture:
-// localization is a pure lookup exposed to interface-owned components only.
+// localization is a pure lookup used only by explicitly owned interface copy.
 if (provider.includes('MutationObserver')) fail('global MutationObserver translation must not be reintroduced');
 if (provider.includes('localizeNode(document.body')) fail('document.body must never be rewritten by localization');
 if (provider.includes('createTreeWalker')) fail('arbitrary rendered data must not be traversed for translation');
