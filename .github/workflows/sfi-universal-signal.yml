@@ -1,3 +1,4 @@
+# Canonical merge gate for SFI universal-cycle changes.
 name: SFI Universal Signal
 
 on:
