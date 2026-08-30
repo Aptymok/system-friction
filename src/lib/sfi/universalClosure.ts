@@ -18,6 +18,25 @@ type History = {
 };
 
 const RETURN_EVIDENCE_CLASSES = new Set(['observed', 'imported', 'extracted', 'canonical']);
+const NON_EVIDENCE_EVENT_NAMES = new Set([
+  'SFI_UNIVERSAL_RETURN_RECORDED',
+  'SFI_UNIVERSAL_RETURN_CONTRASTED',
+  'SFI_UNIVERSAL_CLOSURE_ENVELOPE_ACCEPTED',
+  'SFI_UNIVERSAL_CYCLE_CLOSED',
+  'SFI_UNIVERSAL_CYCLE_OPENED',
+  'SFI_UNIVERSAL_CYCLE_RESUMED',
+  'SFI_UNIVERSAL_COGNITIVE_CYCLE_EXECUTED',
+  'SFI_UNIVERSAL_AI_SYNTHESIS_COMPLETED',
+  'SFI_UNIVERSAL_LEARNING_CANDIDATE_RECORDED',
+  'SFI_UNIVERSAL_LEARNING_PROMOTED',
+  'SFI_UNIVERSAL_LEARNING_REJECTED',
+]);
+const TRUSTED_CYCLE_LINK_EVENTS = new Set([
+  'SFI_UNIVERSAL_CYCLE_OPENED',
+  'SFI_UNIVERSAL_CYCLE_RESUMED',
+  'SFI_UNIVERSAL_COGNITIVE_CYCLE_EXECUTED',
+  'SFI_UNIVERSAL_AI_SYNTHESIS_COMPLETED',
+]);
 const MAX_RETURN_EVIDENCE_REFS = 50;
 
 function row(value: unknown): Row {
@@ -112,6 +131,25 @@ function closureClass(value: unknown): SfiClosureClass {
 function contrastEvents(history: History) {
   if (Array.isArray(history.returnContrasts) && history.returnContrasts.length) return history.returnContrasts;
   return (history.events ?? []).filter((event) => row(event).event_name === 'SFI_UNIVERSAL_RETURN_CONTRASTED');
+}
+
+function trustedCycleLinkedEvidenceRefs(history: History) {
+  const refs = new Set<string>();
+  for (const value of history.events ?? []) {
+    const event = row(value);
+    const eventName = text(event.event_name);
+    if (!eventName || !TRUSTED_CYCLE_LINK_EVENTS.has(eventName)) continue;
+    for (const ref of stringList(event.lineage)) refs.add(ref);
+    const payload = row(event.payload);
+    for (const ref of [text(payload.webEvidenceEventId), text(payload.hydrationEventId)]) {
+      if (ref) refs.add(ref);
+    }
+    const metadata = row(payload.metadata);
+    for (const ref of [text(metadata.webEvidenceEventId), text(metadata.hydrationEventId)]) {
+      if (ref) refs.add(ref);
+    }
+  }
+  return refs;
 }
 
 export function assessUniversalClosure(input: {
@@ -252,6 +290,7 @@ async function validateReturnEvidenceRefs(input: {
   refs: string[];
   cycleId: string;
   tenantId: string;
+  history: History;
 }) {
   const refs = [...new Set(input.refs)].slice(0, MAX_RETURN_EVIDENCE_REFS);
   if (!refs.length) return { ok: true as const, verified: [] as string[], rejected: [] as string[], warning: null as string | null };
@@ -268,17 +307,22 @@ async function validateReturnEvidenceRefs(input: {
     `structured-result:${input.cycleId}`,
     `universal-evidence:${input.cycleId}`,
   ]);
+  const trustedLinkedRefs = trustedCycleLinkedEvidenceRefs(input.history);
   const verified: string[] = [];
   for (const value of result.data ?? []) {
     const event = row(value);
     const payload = row(event.payload);
     const eventId = text(event.event_id);
+    const eventName = text(event.event_name);
     const eventTenant = text(payload.tenantId);
     const eventCycle = text(payload.cycleId) ?? text(payload.cycleKey);
     const logbookId = text(event.logbook_id);
     const sameTenant = eventTenant === input.tenantId;
-    const sameCycle = eventCycle === input.cycleId || Boolean(logbookId && expectedLogbooks.has(logbookId));
-    const evidenceBearing = RETURN_EVIDENCE_CLASSES.has(text(event.epistemic_class) ?? '');
+    const sameCycle = eventCycle === input.cycleId
+      || Boolean(logbookId && expectedLogbooks.has(logbookId))
+      || Boolean(eventId && trustedLinkedRefs.has(eventId));
+    const evidenceClass = RETURN_EVIDENCE_CLASSES.has(text(event.epistemic_class) ?? '');
+    const evidenceBearing = Boolean(eventName) && evidenceClass && !NON_EVIDENCE_EVENT_NAMES.has(eventName!);
     if (eventId && sameTenant && sameCycle && evidenceBearing) verified.push(eventId);
   }
   const verifiedSet = new Set(verified);
@@ -311,6 +355,7 @@ export async function contrastLatestUniversalReturn(input: {
     refs: declaredReturnEvidenceRefs,
     cycleId: input.cycleId,
     tenantId: input.tenantId,
+    history: input.history,
   });
   const returnEvidenceRefs = evidenceValidation.verified;
   const requestedClassification = (text(input.classification) ?? text(returnPayload.classification) ?? 'INCONCLUSIVE').toUpperCase();
@@ -373,7 +418,7 @@ export async function contrastLatestUniversalReturn(input: {
       updatedConfidence,
       calibrationStatus,
       calibrationHeuristic: 'BOUNDED_DIRECTIONAL_V1',
-      epistemicBoundary: 'Contrast records the relationship between preregistered expectations and an observed return. Calibration requires evidence references that resolve to evidence-bearing canonical events in the same tenant and cycle. Declared references are never trusted by string presence alone. Updated confidence is a bounded heuristic, not a truth probability or canonical promotion.',
+      epistemicBoundary: 'Contrast records the relationship between preregistered expectations and an observed return. Calibration requires references to evidence-bearing events, excludes RETURN/contrast/closure lifecycle records, and accepts pre-runtime web evidence only when a trusted cycle lifecycle event canonically links it to this tenant/cycle. Declared references are never trusted by string presence alone. Updated confidence is a bounded heuristic, not a truth probability or canonical promotion.',
     },
     occurredAt: new Date().toISOString(),
     source: { sourceId: 'reality_calibration', sourceType: 'return_contrast' },
