@@ -59,6 +59,25 @@ function host(url: string) {
   try { return normalizeHostname(new URL(url).hostname); } catch { return ''; }
 }
 
+function ipv4FromMappedIpv6(value: string) {
+  const h = value.toLowerCase();
+  if (!h.startsWith('::ffff:')) return null;
+  const mapped = h.slice('::ffff:'.length);
+  if (isIP(mapped) === 4) return mapped;
+  const parts = mapped.split(':');
+  if (parts.length !== 2 || parts.some((part) => !/^[0-9a-f]{1,4}$/.test(part))) return null;
+  const high = Number.parseInt(parts[0], 16);
+  const low = Number.parseInt(parts[1], 16);
+  if (!Number.isFinite(high) || !Number.isFinite(low) || high > 0xffff || low > 0xffff) return null;
+  const value32 = high * 65_536 + low;
+  return [
+    Math.floor(value32 / 16_777_216) % 256,
+    Math.floor(value32 / 65_536) % 256,
+    Math.floor(value32 / 256) % 256,
+    value32 % 256,
+  ].join('.');
+}
+
 export function isNonPublicNetworkAddress(value: string) {
   const address = normalizeHostname(value).split('%')[0];
   const version = isIP(address);
@@ -84,10 +103,8 @@ export function isNonPublicNetworkAddress(value: string) {
     if (/^fe[89ab]/.test(h)) return true;
     if (/^ff/.test(h)) return true;
     if (/^2001:db8(?::|$)/.test(h)) return true;
-    if (h.startsWith('::ffff:')) {
-      const mapped = h.slice('::ffff:'.length);
-      if (isIP(mapped) === 4) return isNonPublicNetworkAddress(mapped);
-    }
+    const mappedIpv4 = ipv4FromMappedIpv6(h);
+    if (mappedIpv4) return isNonPublicNetworkAddress(mappedIpv4);
     return false;
   }
   return true;
@@ -392,8 +409,6 @@ async function readResponseTextBounded(response: Response) {
 async function fetchDirectSource(source: UniversalWebSource, terms: string[]): Promise<UniversalWebSource> {
   let currentUrl = source.url;
   for (let redirect = 0; redirect < 3; redirect += 1) {
-    // DNS is revalidated before each network hop. Literal hostname screening is
-    // not sufficient because public names can resolve to loopback/RFC1918/metadata.
     if (!await resolvesOnlyToPublicAddresses(currentUrl)) {
       return { ...source, verification: { directFetch: false, httpStatus: null, contentType: null, excerpt: null, queryCoverage: 0, verifiedAt: null, warning: 'UNSAFE_OR_UNRESOLVABLE_SOURCE_URL' } };
     }
@@ -474,14 +489,28 @@ async function boundedPublicRetrieval(queries: string[], lookbackDays: number) {
   }
   const discovered = [...byUrl.values()].sort((a, b) => b.reliability - a.reliability).slice(0, 24);
   const terms = queryTerms(queries);
-  const verified = await Promise.all(discovered.slice(0, 6).map((source) => fetchDirectSource(source, terms)));
-  const verifiedByUrl = new Map(verified.map((source) => [source.url, source]));
-  const sources = discovered.map((source) => verifiedByUrl.get(source.url) ?? verified.find((item) => host(item.url) === host(source.url)) ?? source);
+  const verificationPairs = await Promise.all(discovered.slice(0, 6).map(async (source) => ({
+    discoveredUrl: source.url,
+    verified: await fetchDirectSource(source, terms),
+  })));
+  const verifiedByDiscoveredUrl = new Map(verificationPairs.map((item) => [item.discoveredUrl, item.verified]));
+  const verified = verificationPairs.map((item) => item.verified);
+  const sources = discovered.map((source) => verifiedByDiscoveredUrl.get(source.url) ?? source);
   return {
     provider: 'gdelt_discovery_plus_direct_source_fetch',
     sources,
     warnings: [...warnings, ...verified.flatMap((source) => source.verification?.warning ? [`${source.id}:${source.verification.warning}`] : [])],
   };
+}
+
+function distinctSourcesByResolvedUrl(sources: UniversalWebSource[]) {
+  const byResolvedUrl = new Map<string, UniversalWebSource>();
+  for (const source of sources) {
+    let key = source.url;
+    try { key = new URL(source.url).toString(); } catch { /* retain exact value */ }
+    if (!byResolvedUrl.has(key)) byResolvedUrl.set(key, source);
+  }
+  return [...byResolvedUrl.values()];
 }
 
 export type UniversalWebEvidenceAcquisition = {
@@ -505,10 +534,8 @@ export async function acquireUniversalWebEvidence(inputValue: unknown, actorId: 
   }
 
   const result = await boundedPublicRetrieval(requirement.queries, requirement.lookbackDays);
-  const directFetchSources = result.sources.filter((source) => source.verification?.directFetch === true);
+  const directFetchSources = distinctSourcesByResolvedUrl(result.sources.filter((source) => source.verification?.directFetch === true));
   const verifiedSources = directFetchSources.filter((source) => Number(source.verification?.queryCoverage ?? 0) >= MIN_VERIFIED_QUERY_COVERAGE);
-  // Legal/regulatory authority is satisfied only by regulator provenance derived
-  // from the hostname. Article titles and generic "official" page paths cannot confer authority.
   const authoritativeVerified = verifiedSources.filter((source) => source.sourceType === 'regulator');
   const discoverySatisfied = result.sources.length >= requirement.requiredSourceCount;
   const directVerificationSatisfied = verifiedSources.length >= requirement.requiredVerifiedSourceCount;
@@ -539,7 +566,7 @@ export async function acquireUniversalWebEvidence(inputValue: unknown, actorId: 
       authoritativeVerifiedSourceCount: authoritativeVerified.length,
       satisfied,
       executionBoundary: 'BOUNDED_DISCOVERY_PLUS_DNS_VALIDATED_DIRECT_SOURCE_FETCH_NO_LLM',
-      epistemicBoundary: 'Direct retrieval establishes that source material was fetched and records an excerpt. Verification additionally requires query relevance; authority-sensitive cases require regulator provenance from the source hostname. Neither state makes the source claim accepted evidence or proves causal/factual truth by itself.',
+      epistemicBoundary: 'Direct retrieval establishes that source material was fetched and records an excerpt. Verification additionally requires query relevance and distinct resolved source URLs; authority-sensitive cases require regulator provenance from the source hostname. Neither state makes the source claim accepted evidence or proves causal/factual truth by itself.',
     },
     occurredAt: new Date().toISOString(),
     source: { sourceId: 'universal_evidence_acquisition', sourceType: 'public_research' },
