@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { createKernelContext } from '../src/lib/sfi/cognitive-runtime/createKernelContext';
 import { FrictionFieldSimulatorAgent } from '../src/lib/sfi/cognitive-runtime/agents/frictionFieldSimulator';
-import { isNonPublicNetworkAddress } from '../src/lib/sfi/evidenceRequirementResolver';
+import { isNonPublicNetworkAddress, resolveUniversalEvidenceRequirements } from '../src/lib/sfi/evidenceRequirementResolver';
 import { structuredResultMatchesSignalIdentity } from '../src/lib/sfi/universalObservationIdentity';
 
 // Final merge gate: retrieval must pin the network connection to an address from
@@ -42,10 +42,33 @@ if (source.includes('fetch(currentUrl')) fail('direct source retrieval must not 
 if (source.includes('const originalHostname = normalizeHostname(parsed.hostname)')) fail('transport TLS identity must not strip www or otherwise use classification normalization');
 
 requireText('DIRECT_SOURCE_TOTAL_DEADLINE_MS = 8_000', 'total direct-source deadline');
+requireText('const sourceDeadlineAt = Date.now() + DIRECT_SOURCE_TOTAL_DEADLINE_MS', 'one absolute deadline per source');
+requireText('requestPinnedAddress(urlValue: string, address: string, deadlineAt: number)', 'shared deadline at address attempt');
+requireText('requestPinnedSource(urlValue: string, addresses: string[], deadlineAt: number)', 'shared deadline across address retries');
+requireText('requestPinnedSource(currentUrl, validatedAddresses, sourceDeadlineAt)', 'shared deadline across redirects');
 requireText("request.destroy(new Error('DIRECT_FETCH_TOTAL_DEADLINE'))", 'wall-clock fetch cancellation');
 requireText('DIRECT_SOURCE_INACTIVITY_TIMEOUT_MS = 8_000', 'inactivity timeout retained');
 requireText("request.destroy(new Error('DIRECT_FETCH_INACTIVITY_TIMEOUT'))", 'inactivity cancellation retained');
 requireText("request.on('close'", 'deadline cleanup on request close');
+assert.equal((source.match(/Date\.now\(\) \+ DIRECT_SOURCE_TOTAL_DEADLINE_MS/g) ?? []).length, 1, 'source deadline must be created once, not once per IP or redirect');
+
+requireText('const hasSlaToken = /\\bsla\\b/.test(blob)', 'SLA token boundary');
+const internalWords = resolveUniversalEvidenceRequirements({
+  signal: { kind: 'dataset', name: 'traslado_isla.xlsx' },
+  question: 'Analizar traslado de registros de la isla en un archivo interno',
+  objective: 'Evaluar registros internos',
+  context: {},
+});
+assert.notEqual(internalWords.webPolicy, 'WEB_REQUIRED', 'isla/traslado must not be misread as SLA');
+assert.equal(internalWords.authoritySensitive, false, 'isla/traslado must not create authority-sensitive evidence requirements');
+const explicitSla = resolveUniversalEvidenceRequirements({
+  signal: { kind: 'dataset', name: 'mesa-ayuda.xlsx' },
+  question: 'Validar el SLA de atención con el estándar vigente',
+  objective: 'Contrastar cumplimiento del SLA',
+  context: {},
+});
+assert.equal(explicitSla.webPolicy, 'WEB_REQUIRED', 'SLA as a complete token must still trigger external verification');
+assert.equal(explicitSla.authoritySensitive, true, 'SLA as a complete token must remain authority-sensitive');
 
 requireText('isRegulatorHostname(hostname)', 'hostname-derived regulator provenance');
 requireText("source.sourceType === 'regulator'", 'authority-sensitive regulator requirement');
