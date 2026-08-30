@@ -3,6 +3,9 @@ import { appendEpistemicEvent } from '@/lib/events/eventStore';
 export const SFI_EVIDENCE_REQUIREMENT_RESOLVER_CONTRACT = 'SFI-EVIDENCE-REQUIREMENT-RESOLVER-1.1' as const;
 export type SfiWebEvidencePolicy = 'WEB_REQUIRED' | 'WEB_OPTIONAL' | 'WEB_NOT_REQUIRED' | 'WEB_FORBIDDEN' | 'WEB_ALREADY_SUFFICIENT';
 
+const MAX_DIRECT_SOURCE_BYTES = 120_000;
+const MIN_VERIFIED_QUERY_COVERAGE = 0.05;
+
 type Row = Record<string, unknown>;
 export type UniversalWebSource = {
   id: string;
@@ -300,6 +303,44 @@ function coverageFor(content: string, terms: string[]) {
   return matched / terms.length;
 }
 
+async function readResponseTextBounded(response: Response) {
+  const declaredLength = Number(response.headers.get('content-length') ?? Number.NaN);
+  let truncated = Number.isFinite(declaredLength) && declaredLength > MAX_DIRECT_SOURCE_BYTES;
+  if (!response.body) return { text: '', bytesRead: 0, truncated };
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let bytesRead = 0;
+  let output = '';
+
+  while (bytesRead < MAX_DIRECT_SOURCE_BYTES) {
+    const { done, value } = await reader.read();
+    if (done) {
+      output += decoder.decode();
+      return { text: output, bytesRead, truncated };
+    }
+    if (!value?.byteLength) continue;
+
+    const remaining = MAX_DIRECT_SOURCE_BYTES - bytesRead;
+    if (value.byteLength > remaining) {
+      output += decoder.decode(value.subarray(0, remaining), { stream: true });
+      bytesRead += remaining;
+      truncated = true;
+      await reader.cancel('SFI_DIRECT_SOURCE_BYTE_LIMIT');
+      output += decoder.decode();
+      return { text: output, bytesRead, truncated };
+    }
+
+    output += decoder.decode(value, { stream: true });
+    bytesRead += value.byteLength;
+  }
+
+  truncated = true;
+  await reader.cancel('SFI_DIRECT_SOURCE_BYTE_LIMIT');
+  output += decoder.decode();
+  return { text: output, bytesRead, truncated };
+}
+
 async function fetchDirectSource(source: UniversalWebSource, terms: string[]): Promise<UniversalWebSource> {
   let currentUrl = source.url;
   for (let redirect = 0; redirect < 3; redirect += 1) {
@@ -325,21 +366,31 @@ async function fetchDirectSource(source: UniversalWebSource, terms: string[]): P
       if (!response.ok || !contentType || !/text\/html|text\/plain|application\/xhtml\+xml/i.test(contentType)) {
         return { ...source, verification: { directFetch: false, httpStatus: response.status, contentType, excerpt: null, queryCoverage: 0, verifiedAt: null, warning: `DIRECT_FETCH_UNUSABLE_${response.status}` } };
       }
-      const raw = (await response.text()).slice(0, 120_000);
-      const plain = htmlToEvidenceText(raw).slice(0, 8_000);
+
+      const boundedBody = await readResponseTextBounded(response);
+      const plain = htmlToEvidenceText(boundedBody.text).slice(0, 8_000);
       const queryCoverage = coverageFor(`${source.title} ${plain}`, terms);
+      const directFetch = plain.length > 80;
+      const relevanceQualified = queryCoverage >= MIN_VERIFIED_QUERY_COVERAGE;
+      const warning = !directFetch
+        ? 'DIRECT_FETCH_EMPTY_TEXT'
+        : !relevanceQualified
+          ? 'DIRECT_FETCH_LOW_QUERY_RELEVANCE'
+          : boundedBody.truncated
+            ? 'DIRECT_FETCH_BODY_TRUNCATED'
+            : null;
       return {
         ...source,
         url: currentUrl,
         snippet: plain ? plain.slice(0, 1600) : source.snippet,
         verification: {
-          directFetch: plain.length > 80,
+          directFetch,
           httpStatus: response.status,
           contentType,
           excerpt: plain ? plain.slice(0, 4000) : null,
           queryCoverage,
-          verifiedAt: plain.length > 80 ? new Date().toISOString() : null,
-          warning: plain.length > 80 ? null : 'DIRECT_FETCH_EMPTY_TEXT',
+          verifiedAt: directFetch ? new Date().toISOString() : null,
+          warning,
         },
       };
     } catch (error) {
@@ -424,7 +475,8 @@ export async function acquireUniversalWebEvidence(inputValue: unknown, actorId: 
   }
 
   const result = await boundedPublicRetrieval(requirement.queries, requirement.lookbackDays);
-  const verifiedSources = result.sources.filter((source) => source.verification?.directFetch === true);
+  const directFetchSources = result.sources.filter((source) => source.verification?.directFetch === true);
+  const verifiedSources = directFetchSources.filter((source) => Number(source.verification?.queryCoverage ?? 0) >= MIN_VERIFIED_QUERY_COVERAGE);
   const authoritativeVerified = verifiedSources.filter((source) => source.sourceType === 'official' || source.sourceType === 'regulator');
   const discoverySatisfied = result.sources.length >= requirement.requiredSourceCount;
   const directVerificationSatisfied = verifiedSources.length >= requirement.requiredVerifiedSourceCount;
@@ -443,17 +495,19 @@ export async function acquireUniversalWebEvidence(inputValue: unknown, actorId: 
       policy: requirement.webPolicy,
       requiredSourceCount: requirement.requiredSourceCount,
       requiredVerifiedSourceCount: requirement.requiredVerifiedSourceCount,
+      minimumQueryCoverage: MIN_VERIFIED_QUERY_COVERAGE,
       authoritySensitive: requirement.authoritySensitive,
       provider: result.provider,
       queries: requirement.queries,
       warnings: result.warnings,
       sources: result.sources.map((source) => ({ ...source, epistemicClass: 'SOURCE_CLAIM' })),
       sourceCount: result.sources.length,
+      directFetchSourceCount: directFetchSources.length,
       verifiedSourceCount: verifiedSources.length,
       authoritativeVerifiedSourceCount: authoritativeVerified.length,
       satisfied,
       executionBoundary: 'BOUNDED_DISCOVERY_PLUS_DIRECT_SOURCE_FETCH_NO_LLM',
-      epistemicBoundary: 'Direct retrieval establishes that source material was fetched and records an excerpt. It does not make the source claim accepted evidence or prove causal/factual truth by itself.',
+      epistemicBoundary: 'Direct retrieval establishes that source material was fetched and records an excerpt. Verification sufficiency additionally requires query relevance. Neither state makes the source claim accepted evidence or proves causal/factual truth by itself.',
     },
     occurredAt: new Date().toISOString(),
     source: { sourceId: 'universal_evidence_acquisition', sourceType: 'public_research' },
