@@ -15,6 +15,47 @@ export interface CognitiveTaskPlan {
   selectionReasons: Record<string, string[]>;
 }
 
+type Row = Record<string, unknown>;
+function row(value: unknown): Row { return value && typeof value === 'object' && !Array.isArray(value) ? value as Row : {}; }
+function rows(value: unknown): Row[] { return Array.isArray(value) ? value.filter((item): item is Row => Boolean(item) && typeof item === 'object' && !Array.isArray(item)) : []; }
+function confidence(value: unknown, fallback = 0.6) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? Math.max(0, Math.min(1, parsed)) : fallback;
+}
+
+function materializeAcquiredSourceClaims(context: KernelContext) {
+  const caseContext = row(context.metadata?.caseContext);
+  const acquired = row(caseContext.acquiredWebEvidence);
+  const sources = rows(acquired.sources);
+  if (!sources.length) return 0;
+  const existing = new Set(context.evidence.map((item) => item.id));
+  let added = 0;
+  for (const source of sources.slice(0, 24)) {
+    const url = typeof source.url === 'string' ? source.url : null;
+    const sourceId = typeof source.id === 'string' && source.id.trim()
+      ? `web:${source.id.trim()}`
+      : url
+        ? `web:${url}`
+        : null;
+    if (!sourceId || existing.has(sourceId)) continue;
+    context.evidence.push({
+      id: sourceId,
+      source: 'UniversalWebSourceClaim',
+      confidence: confidence(source.reliability, 0.6),
+      payload: {
+        ...source,
+        epistemicClass: 'source_claim',
+        acquisitionEventId: acquired.eventId ?? null,
+        acquisitionSatisfied: acquired.satisfied ?? null,
+        epistemicBoundary: 'Imported web material is a SOURCE_CLAIM available for corroboration/contradiction. It is not accepted evidence or truth by acquisition alone.',
+      },
+    });
+    existing.add(sourceId);
+    added += 1;
+  }
+  return added;
+}
+
 /**
  * Complete in-process cognitive topology. Registry IDs are compatibility
  * identifiers for punctual cognitive automations, not autonomous institutional
@@ -23,11 +64,12 @@ export interface CognitiveTaskPlan {
  * actions. Governed external action remains outside this cycle and subject to
  * the Cognitive Twin / ACP authority gate.
  *
- * The orchestration plan is operational metadata, never evidence. Keeping it out
- * of context.evidence prevents SFI from recursively treating its own plan as an
- * observation about the world/object under analysis.
+ * The orchestration plan itself is operational metadata, never evidence. Public
+ * sources already acquired by the evidence lane are materialized separately as
+ * SOURCE_CLAIM evidence so all downstream agents can actually compare them.
  */
 export function MetaOrchestratorAgent(context: KernelContext): KernelContext {
+  const importedSourceClaims = materializeAcquiredSourceClaims(context);
   const missingInputs: string[] = [];
   if (!context.evidence.length) missingInputs.push('evidence');
   if (!context.hypotheses.length && context.metadata?.studioAction === 'verify') missingInputs.push('hypothesis');
@@ -64,12 +106,13 @@ export function MetaOrchestratorAgent(context: KernelContext): KernelContext {
       readiness,
       missingInputs,
       selectedAutomations: executionOrder.length,
+      importedSourceClaimsMaterialized: importedSourceClaims,
       taskGraphNodes: taskGraph.nodes.length,
       taskGraphEdges: taskGraph.edges.length,
       externalExecutionAllowed: false,
       authorityEscalationAllowed: false,
-      evidenceMutation: false,
-      epistemicBoundary: 'The orchestration plan is derived operational metadata and must never be counted as observed/imported evidence.',
+      orchestrationPlanAddedAsEvidence: false,
+      epistemicBoundary: 'The orchestration plan is derived operational metadata and is not evidence. Only previously acquired external sources are materialized as SOURCE_CLAIM for downstream comparison.',
       executedAt: new Date().toISOString(),
     },
   };
