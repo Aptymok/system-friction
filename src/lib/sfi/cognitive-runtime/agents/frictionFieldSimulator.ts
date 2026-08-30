@@ -78,11 +78,16 @@ function evidenceClass(value: unknown) {
 export function FrictionFieldSimulatorAgent(context: KernelContext): KernelContext {
   const evidence = context.evidence ?? [];
   const candidates: FrictionCandidate[] = [];
+  const excludedByClass: Record<string, number> = {};
 
   for (const item of evidence) {
+    const epistemicClass = evidenceClass(item.payload);
+    if (!['OBSERVED', 'DERIVED'].includes(epistemicClass)) {
+      excludedByClass[epistemicClass] = (excludedByClass[epistemicClass] ?? 0) + 1;
+      continue;
+    }
     const entries = flatten(item.payload);
     const rowCount = rowCountFrom(entries);
-    const epistemicClass = evidenceClass(item.payload);
     for (const entry of entries) {
       if (typeof entry.value !== 'number' && !(typeof entry.value === 'string' && entry.value.trim() && Number.isFinite(Number(entry.value)))) continue;
       const numeric = Number(entry.value);
@@ -93,19 +98,14 @@ export function FrictionFieldSimulatorAgent(context: KernelContext): KernelConte
       candidates.push({
         dimension,
         severity,
-        confidence: Math.max(0.2, Math.min(1, item.confidence * (epistemicClass === 'OBSERVED' || epistemicClass === 'DERIVED' ? 1 : 0.75))),
+        confidence: Math.max(0.2, Math.min(1, item.confidence)),
         basis: `${entry.path}=${numeric}${rowCount ? `; rowCount=${rowCount}` : ''}`,
         evidenceRefs: [item.id],
-        limitation: epistemicClass === 'INFERRED'
-          ? 'Underlying signal is inferred; this friction candidate must not be treated as observed.'
-          : null,
+        limitation: null,
       });
     }
   }
 
-  // Keep only the strongest distinct measured candidates per dimension. If no
-  // numeric basis exists, SFI reports no measured friction instead of inventing
-  // a score from prose alone.
   const strongest = (dimension: FrictionCandidate['dimension']) => candidates
     .filter((candidate) => candidate.dimension === dimension)
     .sort((a, b) => (b.severity * b.confidence) - (a.severity * a.confidence))
@@ -143,7 +143,8 @@ export function FrictionFieldSimulatorAgent(context: KernelContext): KernelConte
       epistemicClass: 'DERIVED_FRICTION_PROJECTION',
       evidenceRefs,
       measuredDimensions: measuredDimensions.length,
-      interpretationBoundary: 'Scores summarize measurable friction indicators present in structured observations. Zero means no measured indicator was found, not proof of no friction.',
+      excludedByClass,
+      interpretationBoundary: 'Measured friction uses only OBSERVED/DERIVED structured evidence. DECLARED, SOURCE_CLAIM, INFERRED and MISSING material may inform interpretation but cannot create a measured friction score.',
     },
   };
   context.simulations.push(simulation);
@@ -155,8 +156,9 @@ export function FrictionFieldSimulatorAgent(context: KernelContext): KernelConte
       candidates: state.candidates,
       evidenceRefs,
       measuredDimensions: measuredDimensions.length,
+      excludedByClass,
       epistemicClass: 'DERIVED_FRICTION_PROJECTION',
-      claimBoundary: 'Friction projection is derived from structured observations and remains distinct from observed evidence, causal attribution and action authorization.',
+      claimBoundary: 'Friction projection is derived only from OBSERVED/DERIVED structured measurements and remains distinct from causal attribution and action authorization.',
       executedAt: new Date().toISOString(),
     },
   };
