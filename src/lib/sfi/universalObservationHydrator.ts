@@ -1,6 +1,7 @@
 import 'server-only';
 
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
+import { structuredResultMatchesSignalIdentity } from '@/lib/sfi/universalObservationIdentity';
 import { normalizeUniversalSignal, type UniversalCycleInput } from '@/lib/sfi/universalSignalCycle';
 
 export const SFI_UNIVERSAL_OBSERVATION_HYDRATOR_CONTRACT = 'SFI-UNIVERSAL-OBSERVATION-HYDRATOR-1.1' as const;
@@ -43,23 +44,6 @@ function hasMaterialExtraction(value: unknown) {
 function tenantMatches(payload: Row, tenantId: string) {
   const eventTenant = text(payload.tenantId);
   return !eventTenant || eventTenant === tenantId;
-}
-
-function matchStructuredResult(
-  payload: Row,
-  normalized: ReturnType<typeof normalizeUniversalSignal>,
-  resumeCycleId: string | null,
-) {
-  const eventCycleId = text(payload.cycleId);
-  if (resumeCycleId && eventCycleId === resumeCycleId) return true;
-
-  const object = row(payload.object);
-  const eventHash = text(payload.objectHash) ?? text(object.objectHash) ?? text(object.contentHash) ?? text(object.fingerprint);
-  const eventKey = text(payload.objectKey) ?? text(object.objectKey);
-  const eventAssetRef = text(object.assetRef);
-  if (eventHash && normalized.objectHashBasis !== 'REFERENCE_IDENTITY' && eventHash === normalized.objectHash) return true;
-  if (eventKey && eventKey === normalized.objectKey) return true;
-  return Boolean(eventAssetRef && normalized.assetRef && eventAssetRef === normalized.assetRef);
 }
 
 function matchDatasetProfile(payload: Row, normalized: ReturnType<typeof normalizeUniversalSignal>) {
@@ -223,7 +207,10 @@ export async function hydrateUniversalCycleInput(
   for (const event of candidates) {
     const payload = row(event.payload);
     if (!tenantMatches(payload, tenantId)) continue;
-    if (event.event_name === 'SFI_STRUCTURED_ANALYSIS_RESULT_RECEIVED' && matchStructuredResult(payload, normalized, resumeCycleId)) {
+    if (
+      event.event_name === 'SFI_STRUCTURED_ANALYSIS_RESULT_RECEIVED'
+      && structuredResultMatchesSignalIdentity(payload, normalized, resumeCycleId)
+    ) {
       const extracted = extractionFromStructuredResult(payload);
       if (!hasMaterialExtraction(extracted)) continue;
       return {
