@@ -8,6 +8,7 @@ on:
       - 'src/lib/sfi/caseIntakeResolver.ts'
       - 'src/lib/sfi/epistemicSufficiency.ts'
       - 'src/lib/sfi/universalObservationHydrator.ts'
+      - 'src/lib/sfi/universalAiSynthesis.ts'
       - 'src/lib/execution/governedExecutionRouter.ts'
       - 'src/app/api/external/openapi/**'
       - 'src/app/api/external/v1/signal/**'
@@ -21,8 +22,11 @@ on:
       - 'src/app/ai-index.json/**'
       - 'src/components/sfi/ObservatoryConsole.tsx'
       - 'src/components/sfi/ObservatoryWorldLayer.css'
+      - 'docs/SFI_COMMUNICATION_PROTOCOL.md'
+      - 'docs/canon/SFI_COMMUNICATION_PROTOCOL_1.0.json'
       - 'scripts/merge-openapi-universal-cycle.mjs'
       - 'scripts/qa-sfi-universal-full-cycle.ts'
+      - 'scripts/qa-sfi-human-communication.ts'
       - 'scripts/qa-sfi-governed-execution-router.ts'
       - 'scripts/qa-sfi-external-oauth.ts'
       - 'public/openapi.json'
@@ -36,6 +40,7 @@ on:
       - 'src/lib/sfi/caseIntakeResolver.ts'
       - 'src/lib/sfi/epistemicSufficiency.ts'
       - 'src/lib/sfi/universalObservationHydrator.ts'
+      - 'src/lib/sfi/universalAiSynthesis.ts'
       - 'src/lib/execution/governedExecutionRouter.ts'
       - 'src/app/api/external/openapi/**'
       - 'src/app/api/external/v1/signal/**'
@@ -49,8 +54,11 @@ on:
       - 'src/app/ai-index.json/**'
       - 'src/components/sfi/ObservatoryConsole.tsx'
       - 'src/components/sfi/ObservatoryWorldLayer.css'
+      - 'docs/SFI_COMMUNICATION_PROTOCOL.md'
+      - 'docs/canon/SFI_COMMUNICATION_PROTOCOL_1.0.json'
       - 'scripts/merge-openapi-universal-cycle.mjs'
       - 'scripts/qa-sfi-universal-full-cycle.ts'
+      - 'scripts/qa-sfi-human-communication.ts'
       - 'scripts/qa-sfi-governed-execution-router.ts'
       - 'scripts/qa-sfi-external-oauth.ts'
       - 'public/openapi.json'
@@ -115,6 +123,8 @@ jobs:
           node --import tsx -e "import { SFI_AGENT_EXECUTION_MAP } from './src/lib/sfi/cognitive-runtime/agentExecutionMap.ts'; const ids=Object.keys(SFI_AGENT_EXECUTION_MAP); console.log(ids.length, ids); if(ids.length!==21) process.exit(1);"
       - name: Verify universal full-cycle invariants
         run: node --import tsx scripts/qa-sfi-universal-full-cycle.ts
+      - name: Verify human communication contract
+        run: node --import tsx scripts/qa-sfi-human-communication.ts
       - name: Verify governed execution router
         run: node --import tsx scripts/qa-sfi-governed-execution-router.ts
       - name: Verify external OAuth execution boundary
