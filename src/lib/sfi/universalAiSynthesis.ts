@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { runLlmTask } from '@/lib/ai/providerRouter';
 import { appendEpistemicEvent } from '@/lib/events/eventStore';
 
-export const SFI_UNIVERSAL_AI_SYNTHESIS_CONTRACT = 'SFI-UNIVERSAL-AI-SYNTHESIS-1.2' as const;
+export const SFI_UNIVERSAL_AI_SYNTHESIS_CONTRACT = 'SFI-UNIVERSAL-AI-SYNTHESIS-1.1' as const;
 
 type Row = Record<string, unknown>;
 
