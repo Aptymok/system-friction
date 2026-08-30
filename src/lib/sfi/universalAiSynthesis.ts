@@ -267,6 +267,8 @@ export async function synthesizeUniversalCycleWithAi(input: {
     'Write in the language used by the question/objective when reasonably possible.',
     'For humanReport use SFI Communication Protocol 1.0: clinical, analytical, stable, answer-first, no dramatization, no moralizing, no programmer-facing language.',
     'humanReport must explain meaning rather than internal implementation. Never put raw event names, hashes, function names, file names, enums, snake_case identifiers or internal blocking codes in humanReport.',
+    'Never invent, expand or redefine a canonical acronym or variable name. If the canonical meaning of NTI, LDI, Phi or another SFI term is not present in the supplied context, do not guess its expansion.',
+    'Do not use scientific-force phrases such as mathematically inevitable, proven, stochastic demonstration or infinite unless the supplied material contains the explicit model/test, assumptions, variables and reproducible basis. Otherwise use bounded language.',
     'humanReport must preserve the sequence: what was declared; what was observed; external contrast when relevant; friction; competing interpretation; what is not demonstrated; next observation.',
     'Do not use labels such as INFERRED_NO_PROOF, NO_MATCHING_MATERIAL_OBSERVATION, SOURCE_CLAIM or similar internal codes as human-facing explanations. Translate the meaning into ordinary language.',
     'Public/essay metaphors are not appropriate in CASE_ANALYSIS unless the user explicitly asks for a public narrative.',
