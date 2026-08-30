@@ -2,7 +2,8 @@ import { randomUUID } from 'node:crypto';
 import { runLlmTask } from '@/lib/ai/providerRouter';
 import { appendEpistemicEvent } from '@/lib/events/eventStore';
 
-export const SFI_UNIVERSAL_AI_SYNTHESIS_CONTRACT = 'SFI-UNIVERSAL-AI-SYNTHESIS-1.1' as const;
+export const SFI_UNIVERSAL_AI_SYNTHESIS_CONTRACT = 'SFI-UNIVERSAL-AI-SYNTHESIS-1.2' as const;
+export const SFI_COMMUNICATION_PROTOCOL_CONTRACT = 'SFI-COMMUNICATION-PROTOCOL-1.0' as const;
 
 type Row = Record<string, unknown>;
 
@@ -35,6 +36,27 @@ function compact(value: unknown, depth = 0): unknown {
     return Object.fromEntries(Object.entries(value as Row).slice(0, 30).map(([key, item]) => [key, compact(item, depth + 1)]));
   }
   return String(value).slice(0, 200);
+}
+
+const INTERNAL_IDENTIFIER_PATTERN = /\b[A-Za-z0-9]+(?:_[A-Za-z0-9]+){1,}\b/g;
+
+function cleanHumanString(value: unknown) {
+  const candidate = text(value);
+  if (!candidate) return null;
+  const cleaned = candidate
+    .replace(INTERNAL_IDENTIFIER_PATTERN, '')
+    .replace(/\s{2,}/g, ' ')
+    .replace(/\s+([,.;:!?])/g, '$1')
+    .trim();
+  return cleaned || null;
+}
+
+function humanStrings(value: unknown, max = 10) {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map(cleanHumanString)
+    .filter((item): item is string => Boolean(item))
+    .slice(0, max);
 }
 
 function materialCapsule(signalValue: unknown) {
@@ -97,10 +119,24 @@ export type SfiUniversalFrictionFinding = {
   confidence: number;
 };
 
+export type SfiUniversalHumanReport = {
+  communicationContract: typeof SFI_COMMUNICATION_PROTOCOL_CONTRACT;
+  mode: 'CASE_ANALYSIS';
+  opening: string | null;
+  declaredContext: string[];
+  observedEvidence: string[];
+  externalContrast: string[];
+  frictionReading: string[];
+  competingInterpretations: string[];
+  notDemonstrated: string[];
+  nextObservation: string[];
+};
+
 export type SfiUniversalAiSynthesis = {
   contract: typeof SFI_UNIVERSAL_AI_SYNTHESIS_CONTRACT;
   status: 'COMPLETE' | 'DEGRADED';
   summary: string | null;
+  humanReport: SfiUniversalHumanReport;
   evidenceAssessment: SfiUniversalEvidenceAssessment;
   frictionAnalysis: SfiUniversalFrictionFinding[];
   primaryHypothesis: string | null;
@@ -118,6 +154,21 @@ function emptyEvidenceAssessment(): SfiUniversalEvidenceAssessment {
   return { declared: [], observed: [], derived: [], externalSourceClaims: [], unresolved: [] };
 }
 
+function emptyHumanReport(): SfiUniversalHumanReport {
+  return {
+    communicationContract: SFI_COMMUNICATION_PROTOCOL_CONTRACT,
+    mode: 'CASE_ANALYSIS',
+    opening: null,
+    declaredContext: [],
+    observedEvidence: [],
+    externalContrast: [],
+    frictionReading: [],
+    competingInterpretations: [],
+    notDemonstrated: [],
+    nextObservation: [],
+  };
+}
+
 function parseSynthesis(value: string) {
   try {
     const parsed = row(JSON.parse(stripFence(value)));
@@ -130,6 +181,19 @@ function parseSynthesis(value: string) {
       derived: strings(assessment.derived, 12),
       externalSourceClaims: strings(assessment.externalSourceClaims, 10),
       unresolved: strings(assessment.unresolved, 12),
+    };
+    const report = row(parsed.humanReport);
+    const humanReport: SfiUniversalHumanReport = {
+      communicationContract: SFI_COMMUNICATION_PROTOCOL_CONTRACT,
+      mode: 'CASE_ANALYSIS',
+      opening: cleanHumanString(report.opening),
+      declaredContext: humanStrings(report.declaredContext, 10),
+      observedEvidence: humanStrings(report.observedEvidence, 12),
+      externalContrast: humanStrings(report.externalContrast, 10),
+      frictionReading: humanStrings(report.frictionReading, 10),
+      competingInterpretations: humanStrings(report.competingInterpretations, 8),
+      notDemonstrated: humanStrings(report.notDemonstrated, 12),
+      nextObservation: humanStrings(report.nextObservation, 8),
     };
     const frictionAnalysis: SfiUniversalFrictionFinding[] = Array.isArray(parsed.frictionAnalysis)
       ? parsed.frictionAnalysis.slice(0, 8).flatMap((item) => {
@@ -163,6 +227,7 @@ function parseSynthesis(value: string) {
       : [];
     return {
       summary: text(parsed.summary),
+      humanReport,
       evidenceAssessment,
       frictionAnalysis,
       primaryHypothesis,
@@ -200,7 +265,12 @@ export async function synthesizeUniversalCycleWithAi(input: {
     'Predictions must discriminate between hypotheses. Each prediction needs expectedSignals, contradictionSignals and an observationWindow when possible.',
     'If the available material cannot support a friction, hypothesis or prediction, omit it and name the missing evidence instead of guessing.',
     'Write in the language used by the question/objective when reasonably possible.',
-    'Return ONLY JSON with this exact shape: {"summary":string|null,"evidenceAssessment":{"declared":string[],"observed":string[],"derived":string[],"externalSourceClaims":string[],"unresolved":string[]},"frictionAnalysis":[{"dimension":string,"finding":string,"basis":string[],"evidenceRefs":string[],"confidence":number}],"primaryHypothesis":string|null,"rivalHypotheses":string[],"predictions":[{"description":string,"confidence":number,"expectedSignals":string[],"contradictionSignals":string[],"observationWindow":string|null}],"missingEvidence":string[],"confidence":number|null}.',
+    'For humanReport use SFI Communication Protocol 1.0: clinical, analytical, stable, answer-first, no dramatization, no moralizing, no programmer-facing language.',
+    'humanReport must explain meaning rather than internal implementation. Never put raw event names, hashes, function names, file names, enums, snake_case identifiers or internal blocking codes in humanReport.',
+    'humanReport must preserve the sequence: what was declared; what was observed; external contrast when relevant; friction; competing interpretation; what is not demonstrated; next observation.',
+    'Do not use labels such as INFERRED_NO_PROOF, NO_MATCHING_MATERIAL_OBSERVATION, SOURCE_CLAIM or similar internal codes as human-facing explanations. Translate the meaning into ordinary language.',
+    'Public/essay metaphors are not appropriate in CASE_ANALYSIS unless the user explicitly asks for a public narrative.',
+    'Return ONLY JSON with this exact shape: {"summary":string|null,"humanReport":{"opening":string|null,"declaredContext":string[],"observedEvidence":string[],"externalContrast":string[],"frictionReading":string[],"competingInterpretations":string[],"notDemonstrated":string[],"nextObservation":string[]},"evidenceAssessment":{"declared":string[],"observed":string[],"derived":string[],"externalSourceClaims":string[],"unresolved":string[]},"frictionAnalysis":[{"dimension":string,"finding":string,"basis":string[],"evidenceRefs":string[],"confidence":number}],"primaryHypothesis":string|null,"rivalHypotheses":string[],"predictions":[{"description":string,"confidence":number,"expectedSignals":string[],"contradictionSignals":string[],"observationWindow":string|null}],"missingEvidence":string[],"confidence":number|null}.',
   ].join('\n');
 
   const prompt = JSON.stringify(compact({
@@ -216,9 +286,9 @@ export async function synthesizeUniversalCycleWithAi(input: {
     task: 'graph_interpretation',
     system,
     prompt,
-    fallbackResult: '{"summary":null,"evidenceAssessment":{"declared":[],"observed":[],"derived":[],"externalSourceClaims":[],"unresolved":["LLM_PROVIDER_UNAVAILABLE_OR_INSUFFICIENT_STRUCTURED_OBSERVATION"]},"frictionAnalysis":[],"primaryHypothesis":null,"rivalHypotheses":[],"predictions":[],"missingEvidence":["LLM_PROVIDER_UNAVAILABLE_OR_INSUFFICIENT_STRUCTURED_OBSERVATION"],"confidence":null}',
+    fallbackResult: '{"summary":null,"humanReport":{"opening":null,"declaredContext":[],"observedEvidence":[],"externalContrast":[],"frictionReading":[],"competingInterpretations":[],"notDemonstrated":["No fue posible producir una síntesis humana suficiente con la observación disponible."],"nextObservation":["Conservar el ciclo abierto hasta contar con material suficiente para una lectura verificable."]},"evidenceAssessment":{"declared":[],"observed":[],"derived":[],"externalSourceClaims":[],"unresolved":["LLM_PROVIDER_UNAVAILABLE_OR_INSUFFICIENT_STRUCTURED_OBSERVATION"]},"frictionAnalysis":[],"primaryHypothesis":null,"rivalHypotheses":[],"predictions":[],"missingEvidence":["LLM_PROVIDER_UNAVAILABLE_OR_INSUFFICIENT_STRUCTURED_OBSERVATION"],"confidence":null}',
     requirements: { reasoning: true, structuredOutput: true, priority: 'quality' },
-    maxTokens: 1700,
+    maxTokens: 2200,
   });
   const parsed = parseSynthesis(result.result);
   const synthesis: Omit<SfiUniversalAiSynthesis, 'eventId'> = parsed
@@ -234,6 +304,7 @@ export async function synthesizeUniversalCycleWithAi(input: {
         contract: SFI_UNIVERSAL_AI_SYNTHESIS_CONTRACT,
         status: 'DEGRADED',
         summary: null,
+        humanReport: emptyHumanReport(),
         evidenceAssessment: emptyEvidenceAssessment(),
         frictionAnalysis: [],
         primaryHypothesis: null,
@@ -257,7 +328,8 @@ export async function synthesizeUniversalCycleWithAi(input: {
       tenantId: input.tenantId,
       synthesis,
       lineageRefs: lineage,
-      epistemicBoundary: 'AI synthesis is an inference layer over declared/observed/derived/imported inputs. Evidence assessment, friction findings, hypotheses and predictions do not upgrade their underlying epistemic classes.',
+      communicationContract: SFI_COMMUNICATION_PROTOCOL_CONTRACT,
+      epistemicBoundary: 'AI synthesis is an inference layer over declared/observed/derived/imported inputs. Human communication translates meaning but cannot upgrade evidence, authority or truth status.',
     },
     occurredAt: new Date().toISOString(),
     source: { sourceId: 'universal_ai_synthesis', sourceType: 'llm_inference' },
