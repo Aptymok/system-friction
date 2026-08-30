@@ -28,6 +28,13 @@ function tokens(value: string) {
   return [...new Set(value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().match(/[a-z0-9]{4,}/g) ?? [])];
 }
 
+function overlapScore(hypothesis: { statement: string }, evidence: KernelEvidence) {
+  const hypothesisTokens = tokens(hypothesis.statement);
+  if (!hypothesisTokens.length) return 0;
+  const evidenceTokens = new Set(tokens(JSON.stringify(evidence.payload)));
+  return hypothesisTokens.filter((token) => evidenceTokens.has(token)).length / hypothesisTokens.length;
+}
+
 function materiallyRelated(hypothesis: { id: string; statement: string }, evidence: KernelEvidence) {
   const payload = row(evidence.payload);
   const klass = typeof payload.epistemicClass === 'string' ? payload.epistemicClass.toLowerCase() : '';
@@ -36,11 +43,15 @@ function materiallyRelated(hypothesis: { id: string; statement: string }, eviden
     .flatMap((value) => Array.isArray(value) ? value : [])
     .filter((value): value is string => typeof value === 'string');
   if (refs.includes(hypothesis.id)) return true;
-  const hypothesisTokens = tokens(hypothesis.statement);
-  if (!hypothesisTokens.length) return false;
-  const evidenceTokens = new Set(tokens(JSON.stringify(payload)));
-  const overlap = hypothesisTokens.filter((token) => evidenceTokens.has(token)).length;
-  return overlap >= Math.min(3, Math.max(1, Math.ceil(hypothesisTokens.length * 0.35)));
+  const score = overlapScore(hypothesis, evidence);
+  return score >= 0.35;
+}
+
+function externallyRelated(hypothesis: { statement: string }, evidence: KernelEvidence) {
+  const payload = row(evidence.payload);
+  const klass = typeof payload.epistemicClass === 'string' ? payload.epistemicClass.toLowerCase() : '';
+  if (klass !== 'source_claim') return false;
+  return overlapScore(hypothesis, evidence) >= 0.25;
 }
 
 export function EvidenceHunterAgent(context: KernelContext): KernelContext {
@@ -52,6 +63,8 @@ export function EvidenceHunterAgent(context: KernelContext): KernelContext {
     .flatMap((value) => Array.isArray(value) ? value : value ? [value] : [])
     .map(statement)
     .filter(Boolean);
+  const sourceClaims = evidence.filter((item) => String(row(item.payload).epistemicClass ?? '').toLowerCase() === 'source_claim');
+  const externalCorroboration: Array<{ hypothesisId: string; sourceClaimRefs: string[] }> = [];
 
   for (const unresolvedStatement of [...new Set(unresolved)].slice(0, 20)) {
     requirements.push({
@@ -65,13 +78,19 @@ export function EvidenceHunterAgent(context: KernelContext): KernelContext {
 
   for (const hypothesis of hypotheses) {
     const relatedEvidence = evidence.filter((item) => materiallyRelated(hypothesis, item));
+    const relatedExternal = sourceClaims.filter((item) => externallyRelated(hypothesis, item));
+    if (relatedExternal.length) {
+      externalCorroboration.push({ hypothesisId: hypothesis.id, sourceClaimRefs: relatedExternal.map((item) => item.id).slice(0, 8) });
+    }
     if (relatedEvidence.length === 0) {
       requirements.push({
         question: `¿Qué observación o medición discriminante sostiene la hipótesis: ${hypothesis.statement}?`,
         missing: true,
-        reason: 'No hay una observación/medición estructurada asociada de forma suficiente dentro del contexto actual.',
+        reason: relatedExternal.length
+          ? 'Existen fuentes externas relacionadas, pero SOURCE_CLAIM no sustituye la observación/medición material requerida.'
+          : 'No hay una observación/medición estructurada asociada de forma suficiente dentro del contexto actual.',
         confidence: hypothesis.confidence,
-        basis: 'HYPOTHESIS_WITHOUT_MATERIAL_SUPPORT',
+        basis: relatedExternal.length ? 'EXTERNAL_CORROBORATION_WITHOUT_MATERIAL_SUPPORT' : 'HYPOTHESIS_WITHOUT_MATERIAL_SUPPORT',
       });
     }
   }
@@ -99,8 +118,10 @@ export function EvidenceHunterAgent(context: KernelContext): KernelContext {
       missingEvidenceDetected: generatedEvidence.length,
       structuredMissingDetected: unresolved.length,
       hypothesesChecked: hypotheses.length,
+      externalSourceClaimsAvailable: sourceClaims.length,
+      externalCorroboration,
       executedAt: new Date().toISOString(),
-      epistemicRule: 'MISSING_EVIDENCE_REQUIREMENTS_ARE_NOT_SUPPORTING_EVIDENCE',
+      epistemicRule: 'SOURCE_CLAIM_MAY_CORROBORATE_OR_CONTRADICT_BUT_NEVER_REPLACE_MATERIAL_SUPPORT',
     },
   };
 
