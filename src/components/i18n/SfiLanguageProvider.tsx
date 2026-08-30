@@ -186,6 +186,11 @@ export function translateUiText(value: string, language: SfiLanguage): string {
   return output;
 }
 
+export function SfiUiText({ es, en }: { es: string; en: string }) {
+  const { text } = useContext(LanguageContext);
+  return <>{text(es, en)}</>;
+}
+
 export function SfiLanguageProvider({ children }: { children: ReactNode }) {
   const [language, setLanguageState] = useState<SfiLanguage>('es');
 
