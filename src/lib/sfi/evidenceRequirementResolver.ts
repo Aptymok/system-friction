@@ -1,6 +1,6 @@
 import { appendEpistemicEvent } from '@/lib/events/eventStore';
 
-export const SFI_EVIDENCE_REQUIREMENT_RESOLVER_CONTRACT = 'SFI-EVIDENCE-REQUIREMENT-RESOLVER-1.0' as const;
+export const SFI_EVIDENCE_REQUIREMENT_RESOLVER_CONTRACT = 'SFI-EVIDENCE-REQUIREMENT-RESOLVER-1.1' as const;
 export type SfiWebEvidencePolicy = 'WEB_REQUIRED' | 'WEB_OPTIONAL' | 'WEB_NOT_REQUIRED' | 'WEB_FORBIDDEN' | 'WEB_ALREADY_SUFFICIENT';
 
 type Row = Record<string, unknown>;
@@ -14,6 +14,15 @@ export type UniversalWebSource = {
   retrievedAt: string;
   sourceType: 'official' | 'regulator' | 'news' | 'professional' | 'other';
   reliability: number;
+  verification?: {
+    directFetch: boolean;
+    httpStatus: number | null;
+    contentType: string | null;
+    excerpt: string | null;
+    queryCoverage: number;
+    verifiedAt: string | null;
+    warning: string | null;
+  };
 };
 
 function row(value: unknown): Row {
@@ -22,6 +31,12 @@ function row(value: unknown): Row {
 
 function text(value: unknown) {
   return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
+
+function strings(value: unknown) {
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0).map((item) => item.trim())
+    : [];
 }
 
 function explicitPolicy(value: unknown): SfiWebEvidencePolicy | null {
@@ -33,6 +48,24 @@ function explicitPolicy(value: unknown): SfiWebEvidencePolicy | null {
 
 function host(url: string) {
   try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return ''; }
+}
+
+function isLiteralPrivateHost(hostname: string) {
+  const h = hostname.toLowerCase();
+  if (!h || h === 'localhost' || h.endsWith('.local') || h === '0.0.0.0' || h === '::1') return true;
+  if (/^127\./.test(h) || /^10\./.test(h) || /^192\.168\./.test(h) || /^169\.254\./.test(h)) return true;
+  const match = h.match(/^172\.(\d+)\./);
+  if (match && Number(match[1]) >= 16 && Number(match[1]) <= 31) return true;
+  return false;
+}
+
+function safePublicUrl(value: string) {
+  try {
+    const parsed = new URL(value);
+    return ['http:', 'https:'].includes(parsed.protocol) && !isLiteralPrivateHost(parsed.hostname);
+  } catch {
+    return false;
+  }
 }
 
 function classifySource(url: string, title: string): UniversalWebSource['sourceType'] {
@@ -53,15 +86,23 @@ function reliabilityFor(type: UniversalWebSource['sourceType'], url: string) {
   return host(url) ? 0.55 : 0.35;
 }
 
+function claimStrings(context: Row) {
+  return [
+    ...strings(context.claimsToVerify),
+    ...strings(context.declaredClaims),
+    ...strings(context.externalClaims),
+    ...strings(context.missingEvidence),
+  ].slice(0, 8);
+}
+
 function buildQueries(input: Row) {
   const signal = row(input.signal);
   const context = row(input.context);
+  const claims = claimStrings(context);
   const base = [text(input.question), text(input.objective), text(signal.name), text(input.declaredFunction), text(input.systemType)]
     .filter((value): value is string => Boolean(value));
-  const explicit = Array.isArray(context.webQueries)
-    ? context.webQueries.filter((item): item is string => typeof item === 'string' && item.trim().length > 0).map((item) => item.trim())
-    : [];
-  const queries = [...explicit, base.join(' ')].filter(Boolean);
+  const explicit = strings(context.webQueries);
+  const queries = [...explicit, ...claims, base.join(' ')].filter(Boolean);
   if (base.length >= 2) queries.push(`${base[0]} ${base.at(-1)}`);
   return [...new Set(queries.map((value) => value.replace(/\s+/g, ' ').trim()).filter(Boolean))].slice(0, 3);
 }
@@ -71,31 +112,45 @@ export function resolveUniversalEvidenceRequirements(inputValue: unknown) {
   const signal = row(input.signal);
   const context = row(input.context);
   const kind = (text(signal.kind) ?? 'unknown').toLowerCase();
+  const claims = claimStrings(context);
   const blob = [input.question, input.objective, input.declaredFunction, input.systemType, JSON.stringify(context)]
     .filter(Boolean)
     .join(' ')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase();
   const explicit = explicitPolicy(context.webPolicy) ?? explicitPolicy(context.externalEvidencePolicy);
   const privacyBlocksWeb = context.webForbidden === true || /confidential only|private only|sin internet|no internet|no web|offline only/.test(blob);
   const dynamicExternal = /latest|current|actual|hoy|mercad|market|law|legal|regulat|precio|price|compet|benchmark|trend|tendenc|public|social|release|lanzamiento|geopolit|world|mundo|extern|industry|sector|norma|standard|sla/.test(blob);
+  const verificationRequested = context.requiresExternalVerification === true
+    || context.requiresCorroboration === true
+    || claims.length > 0
+    || /verify|verification|corrobor|cotej|confirm|validar|contrastar.*fuente|fuente.*extern/.test(blob);
+  const authoritySensitive = /law|legal|regulat|norma|standard|sla|gobierno|government|autoridad|official|oficial/.test(blob);
   const strictlyInternal = ['dataset', 'csv', 'json', 'document', 'code', 'api_response'].includes(kind)
     && /internal|interno|dataset|archivo|file|registros|tickets|mesa de ayuda|repository|repo/.test(blob)
-    && !dynamicExternal;
+    && !dynamicExternal
+    && !verificationRequested;
 
   let webPolicy: SfiWebEvidencePolicy;
   if (explicit) webPolicy = explicit;
   else if (privacyBlocksWeb) webPolicy = 'WEB_FORBIDDEN';
-  else if (kind === 'web_page' || kind === 'url') webPolicy = dynamicExternal ? 'WEB_OPTIONAL' : 'WEB_ALREADY_SUFFICIENT';
-  else if (dynamicExternal) webPolicy = 'WEB_REQUIRED';
+  else if (verificationRequested || dynamicExternal) webPolicy = 'WEB_REQUIRED';
+  else if (kind === 'web_page' || kind === 'url') webPolicy = 'WEB_ALREADY_SUFFICIENT';
   else if (strictlyInternal) webPolicy = 'WEB_NOT_REQUIRED';
   else webPolicy = 'WEB_OPTIONAL';
 
   const requiredSourceCount = webPolicy === 'WEB_REQUIRED' ? 2 : 0;
-  const lookbackDays = /today|hoy|current|actual|latest|últim|ultima|recent/.test(blob) ? 30 : 180;
+  const requiredVerifiedSourceCount = webPolicy === 'WEB_REQUIRED'
+    ? (context.requiresCorroboration === true || /corrobor|cotej|dos fuentes|multiple sources/.test(blob) ? 2 : 1)
+    : 0;
+  const lookbackDays = /today|hoy|current|actual|latest|ultim|recent/.test(blob) ? 30 : 180;
   return {
     contract: SFI_EVIDENCE_REQUIREMENT_RESOLVER_CONTRACT,
     webPolicy,
     requiredSourceCount,
+    requiredVerifiedSourceCount,
+    authoritySensitive,
     queries: buildQueries(input),
     lookbackDays,
     blockingIfUnavailable: webPolicy === 'WEB_REQUIRED',
@@ -106,8 +161,8 @@ export function resolveUniversalEvidenceRequirements(inputValue: unknown) {
       WEB: webPolicy !== 'WEB_FORBIDDEN' && webPolicy !== 'WEB_NOT_REQUIRED',
       WORLD: dynamicExternal,
     },
-    runtimeBoundary: 'Bounded no-key retrieval only. No LLM is required for web acquisition; synthesis happens after retrieval.',
-    epistemicBoundary: 'Retrieval produces SOURCE candidates/source claims. It does not itself create accepted evidence, truth, authorization or canonical state.',
+    runtimeBoundary: 'Bounded discovery plus bounded direct-source fetch. No LLM is required for retrieval; interpretation happens after sources are acquired.',
+    epistemicBoundary: 'External retrieval produces imported SOURCE_CLAIMS. Direct fetch confirms source material was retrieved, not that a claim is true or accepted evidence.',
   };
 }
 
@@ -131,7 +186,7 @@ async function gdeltQuery(query: string, lookbackDays: number): Promise<Universa
   const timeout = setTimeout(() => controller.abort(), 12_000);
   try {
     const response = await fetch(url, {
-      headers: { Accept: 'application/json', 'User-Agent': 'SystemFrictionInstitute/1.0 universal-evidence' },
+      headers: { Accept: 'application/json', 'User-Agent': 'SystemFrictionInstitute/1.1 universal-evidence' },
       signal: controller.signal,
       cache: 'no-store',
     });
@@ -142,7 +197,7 @@ async function gdeltQuery(query: string, lookbackDays: number): Promise<Universa
     return articles.flatMap((articleValue, index) => {
       const article = row(articleValue);
       const articleUrl = text(article.url);
-      if (!articleUrl || !/^https?:\/\//i.test(articleUrl)) return [];
+      if (!articleUrl || !safePublicUrl(articleUrl)) return [];
       const title = text(article.title) ?? host(articleUrl);
       const sourceType = classifySource(articleUrl, title);
       const publisher = text(article.domain) ?? (host(articleUrl) || null);
@@ -163,6 +218,94 @@ async function gdeltQuery(query: string, lookbackDays: number): Promise<Universa
   }
 }
 
+function decodeHtml(value: string) {
+  return value
+    .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;|&apos;/gi, "'")
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function queryTerms(queries: string[]) {
+  const stop = new Set(['para','como','what','with','from','this','that','sobre','entre','desde','hacia','the','and','del','las','los','una','uno','que','por','con']);
+  return [...new Set(queries.join(' ').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().split(/[^a-z0-9]+/)
+    .filter((term) => term.length >= 4 && !stop.has(term)))].slice(0, 40);
+}
+
+function coverageFor(content: string, terms: string[]) {
+  if (!terms.length || !content) return 0;
+  const normalized = content.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  const matched = terms.filter((term) => normalized.includes(term)).length;
+  return matched / terms.length;
+}
+
+async function fetchDirectSource(source: UniversalWebSource, terms: string[]): Promise<UniversalWebSource> {
+  let currentUrl = source.url;
+  for (let redirect = 0; redirect < 3; redirect += 1) {
+    if (!safePublicUrl(currentUrl)) {
+      return { ...source, verification: { directFetch: false, httpStatus: null, contentType: null, excerpt: null, queryCoverage: 0, verifiedAt: null, warning: 'UNSAFE_SOURCE_URL' } };
+    }
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8_000);
+    try {
+      const response = await fetch(currentUrl, {
+        headers: { Accept: 'text/html,text/plain,application/xhtml+xml', 'User-Agent': 'SystemFrictionInstitute/1.1 source-corroboration' },
+        signal: controller.signal,
+        cache: 'no-store',
+        redirect: 'manual',
+      });
+      if (response.status >= 300 && response.status < 400) {
+        const location = response.headers.get('location');
+        if (!location) break;
+        currentUrl = new URL(location, currentUrl).toString();
+        continue;
+      }
+      const contentType = response.headers.get('content-type');
+      if (!response.ok || !contentType || !/text\/html|text\/plain|application\/xhtml\+xml/i.test(contentType)) {
+        return { ...source, verification: { directFetch: false, httpStatus: response.status, contentType, excerpt: null, queryCoverage: 0, verifiedAt: null, warning: `DIRECT_FETCH_UNUSABLE_${response.status}` } };
+      }
+      const raw = (await response.text()).slice(0, 120_000);
+      const plain = decodeHtml(raw).slice(0, 8_000);
+      const queryCoverage = coverageFor(`${source.title} ${plain}`, terms);
+      return {
+        ...source,
+        url: currentUrl,
+        snippet: plain ? plain.slice(0, 1600) : source.snippet,
+        verification: {
+          directFetch: plain.length > 80,
+          httpStatus: response.status,
+          contentType,
+          excerpt: plain ? plain.slice(0, 4000) : null,
+          queryCoverage,
+          verifiedAt: plain.length > 80 ? new Date().toISOString() : null,
+          warning: plain.length > 80 ? null : 'DIRECT_FETCH_EMPTY_TEXT',
+        },
+      };
+    } catch (error) {
+      return {
+        ...source,
+        verification: {
+          directFetch: false,
+          httpStatus: null,
+          contentType: null,
+          excerpt: null,
+          queryCoverage: 0,
+          verifiedAt: null,
+          warning: `DIRECT_FETCH_FAILED:${error instanceof Error ? error.message : String(error)}`,
+        },
+      };
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+  return { ...source, verification: { directFetch: false, httpStatus: null, contentType: null, excerpt: null, queryCoverage: 0, verifiedAt: null, warning: 'DIRECT_FETCH_REDIRECT_LIMIT' } };
+}
+
 async function boundedPublicRetrieval(queries: string[], lookbackDays: number) {
   const settled = await Promise.allSettled(queries.slice(0, 3).map((query) => gdeltQuery(query, lookbackDays)));
   const warnings = settled.flatMap((result, index) => result.status === 'rejected'
@@ -173,7 +316,16 @@ async function boundedPublicRetrieval(queries: string[], lookbackDays: number) {
     if (result.status !== 'fulfilled') continue;
     for (const source of result.value) if (!byUrl.has(source.url)) byUrl.set(source.url, source);
   }
-  return { provider: 'gdelt_doc_bounded', sources: [...byUrl.values()].slice(0, 24), warnings };
+  const discovered = [...byUrl.values()].sort((a, b) => b.reliability - a.reliability).slice(0, 24);
+  const terms = queryTerms(queries);
+  const verified = await Promise.all(discovered.slice(0, 6).map((source) => fetchDirectSource(source, terms)));
+  const verifiedByUrl = new Map(verified.map((source) => [source.url, source]));
+  const sources = discovered.map((source) => verifiedByUrl.get(source.url) ?? verified.find((item) => host(item.url) === host(source.url)) ?? source);
+  return {
+    provider: 'gdelt_discovery_plus_direct_source_fetch',
+    sources,
+    warnings: [...warnings, ...verified.flatMap((source) => source.verification?.warning ? [`${source.id}:${source.verification.warning}`] : [])],
+  };
 }
 
 export type UniversalWebEvidenceAcquisition = {
@@ -216,25 +368,36 @@ export async function acquireUniversalWebEvidence(inputValue: unknown, actorId: 
   }
 
   const result = await boundedPublicRetrieval(requirement.queries, requirement.lookbackDays);
-  const satisfied = result.sources.length >= requirement.requiredSourceCount;
+  const verifiedSources = result.sources.filter((source) => source.verification?.directFetch === true);
+  const authoritativeVerified = verifiedSources.filter((source) => source.sourceType === 'official' || source.sourceType === 'regulator');
+  const discoverySatisfied = result.sources.length >= requirement.requiredSourceCount;
+  const directVerificationSatisfied = verifiedSources.length >= requirement.requiredVerifiedSourceCount;
+  const authoritySatisfied = !requirement.authoritySensitive || authoritativeVerified.length > 0;
+  const satisfied = requirement.webPolicy !== 'WEB_REQUIRED'
+    ? true
+    : discoverySatisfied && directVerificationSatisfied && authoritySatisfied;
   const event = await appendEpistemicEvent({
     eventName: 'SFI_UNIVERSAL_WEB_EVIDENCE_ACQUIRED',
     epistemicClass: 'imported',
-    confidence: satisfied ? 0.8 : 0.4,
+    confidence: satisfied ? 0.82 : 0.4,
     payload: {
       actorId,
       tenantId,
       cycleKey,
       policy: requirement.webPolicy,
       requiredSourceCount: requirement.requiredSourceCount,
+      requiredVerifiedSourceCount: requirement.requiredVerifiedSourceCount,
+      authoritySensitive: requirement.authoritySensitive,
       provider: result.provider,
       queries: requirement.queries,
       warnings: result.warnings,
       sources: result.sources.map((source) => ({ ...source, epistemicClass: 'SOURCE_CLAIM' })),
       sourceCount: result.sources.length,
+      verifiedSourceCount: verifiedSources.length,
+      authoritativeVerifiedSourceCount: authoritativeVerified.length,
       satisfied,
-      executionBoundary: 'BOUNDED_RETRIEVAL_NO_LLM',
-      epistemicBoundary: 'Search results and indexed titles are imported source claims. Original-source verification and acceptance remain separate.',
+      executionBoundary: 'BOUNDED_DISCOVERY_PLUS_DIRECT_SOURCE_FETCH_NO_LLM',
+      epistemicBoundary: 'Direct retrieval establishes that source material was fetched and records an excerpt. It does not make the source claim accepted evidence or prove causal/factual truth by itself.',
     },
     occurredAt: new Date().toISOString(),
     source: { sourceId: 'universal_evidence_acquisition', sourceType: 'public_research' },
