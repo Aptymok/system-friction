@@ -218,15 +218,71 @@ async function gdeltQuery(query: string, lookbackDays: number): Promise<Universa
   }
 }
 
-function decodeHtml(value: string) {
-  return value
-    .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, ' ')
-    .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, ' ')
-    .replace(/<[^>]+>/g, ' ')
-    .replace(/&nbsp;/gi, ' ')
-    .replace(/&amp;/gi, '&')
-    .replace(/&quot;/gi, '"')
-    .replace(/&#39;|&apos;/gi, "'")
+const HTML_ENTITY_TEXT: Readonly<Record<string, string>> = {
+  nbsp: ' ',
+  amp: '&',
+  quot: '"',
+  '#39': "'",
+  apos: "'",
+};
+
+function decodeKnownHtmlEntitiesOnce(value: string) {
+  return value.replace(/&(nbsp|amp|quot|#39|apos);/gi, (entity) => {
+    const key = entity.slice(1, -1).toLowerCase();
+    return HTML_ENTITY_TEXT[key] ?? entity;
+  });
+}
+
+function htmlToEvidenceText(value: string) {
+  const lower = value.toLowerCase();
+  let output = '';
+  let cursor = 0;
+
+  while (cursor < value.length) {
+    const tagStart = value.indexOf('<', cursor);
+    if (tagStart < 0) {
+      output += value.slice(cursor);
+      break;
+    }
+
+    output += value.slice(cursor, tagStart);
+
+    if (value.startsWith('<!--', tagStart)) {
+      const commentEnd = value.indexOf('-->', tagStart + 4);
+      cursor = commentEnd >= 0 ? commentEnd + 3 : value.length;
+      output += ' ';
+      continue;
+    }
+
+    const tagEnd = value.indexOf('>', tagStart + 1);
+    if (tagEnd < 0) {
+      output += value.slice(tagStart);
+      break;
+    }
+
+    const tagBody = value.slice(tagStart + 1, tagEnd).trimStart();
+    const closing = tagBody.startsWith('/');
+    const normalizedTagBody = closing ? tagBody.slice(1).trimStart() : tagBody;
+    const tagName = normalizedTagBody.match(/^([a-z0-9:-]+)/i)?.[1]?.toLowerCase() ?? '';
+
+    if (!closing && (tagName === 'script' || tagName === 'style')) {
+      const closeStart = lower.indexOf(`</${tagName}`, tagEnd + 1);
+      if (closeStart < 0) {
+        cursor = value.length;
+        output += ' ';
+        continue;
+      }
+      const closeEnd = value.indexOf('>', closeStart + tagName.length + 2);
+      cursor = closeEnd >= 0 ? closeEnd + 1 : value.length;
+      output += ' ';
+      continue;
+    }
+
+    output += ' ';
+    cursor = tagEnd + 1;
+  }
+
+  return decodeKnownHtmlEntitiesOnce(output)
     .replace(/\s+/g, ' ')
     .trim();
 }
@@ -270,7 +326,7 @@ async function fetchDirectSource(source: UniversalWebSource, terms: string[]): P
         return { ...source, verification: { directFetch: false, httpStatus: response.status, contentType, excerpt: null, queryCoverage: 0, verifiedAt: null, warning: `DIRECT_FETCH_UNUSABLE_${response.status}` } };
       }
       const raw = (await response.text()).slice(0, 120_000);
-      const plain = decodeHtml(raw).slice(0, 8_000);
+      const plain = htmlToEvidenceText(raw).slice(0, 8_000);
       const queryCoverage = coverageFor(`${source.title} ${plain}`, terms);
       return {
         ...source,
