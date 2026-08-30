@@ -1,0 +1,30 @@
+name: SFI Dependency Audit
+
+on:
+  push:
+    branches:
+      - merge/universal-cycle-continuity-hardening
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Capture npm audit report
+        shell: bash
+        run: |
+          npm audit --json > npm-audit.json || true
+      - name: Upload audit report
+        uses: actions/upload-artifact@v4
+        with:
+          name: sfi-npm-audit
+          path: npm-audit.json
+          if-no-files-found: error
