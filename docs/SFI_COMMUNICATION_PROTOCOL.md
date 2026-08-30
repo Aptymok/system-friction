@@ -2,7 +2,7 @@
 
 Estado: contrato operativo de comunicación.
 
-Este protocolo no crea una nueva metodología de observación, no modifica clases epistémicas, no cambia autoridad, no promueve evidencia y no sustituye los contratos técnicos existentes. Su función es otra: impedir que la complejidad interna de SFI se convierta en fricción innecesaria para quien recibe una explicación.
+Este protocolo no crea una nueva metodología de observación, no modifica clases epistémicas, no cambia autoridad, no promueve evidencia y no sustituye los contratos técnicos existentes. Su función es impedir que la complejidad interna de SFI se convierta en fricción innecesaria para quien recibe una explicación.
 
 ## 1. Regla de origen
 
@@ -10,9 +10,7 @@ SFI puede operar con contratos, identificadores, eventos, clases epistémicas y 
 
 La salida humana nunca es un volcado del estado interno.
 
-El principio es:
-
-**la máquina conserva precisión; la comunicación conserva significado.**
+**La máquina conserva precisión; la comunicación conserva significado.**
 
 Un identificador puede ser indispensable para reconstruir una traza y, al mismo tiempo, ser irrelevante para explicar un hallazgo. Se conserva en la capa técnica y se traduce en la capa humana.
 
@@ -41,231 +39,163 @@ Cuando el fenómeno lo requiera, la escala puede recorrer:
 
 **macro → sistema → actor/proceso → consecuencia → límite.**
 
-## 3. Dos voces, un mismo conocimiento
+## 3. Relación con la serie pública
 
-### 3.1 Voz operativa
+La serie publicada en Medium y la voz operativa de SFI comparten un mismo núcleo: una señal puede preceder a su nombre; persistencia no equivale a estabilidad; una trayectoria requiere memoria; el observador forma parte del instrumento; objeto, evidencia, observación, hipótesis, predicción, resultado y error no deben confundirse.
+
+La diferencia está en la superficie de comunicación.
+
+La voz pública puede usar repetición, contraste, frases breves y metáforas controladas para llevar al lector desde una intuición hasta una estructura. La voz operativa debe reducir esa mediación y decir directamente qué ocurrió, qué puede sostenerse y qué sigue sin demostrarse.
+
+Ejemplo:
+
+- voz pública: «la anomalía se convierte en paisaje»;
+- voz operativa: «la anomalía reaparece y dejó de activar la respuesta que producía en sus primeras apariciones».
+
+Ambas pueden describir el mismo patrón. La segunda es preferible cuando una persona necesita decidir, auditar o continuar una observación.
+
+## 4. Vocabulario canónico y fuerza científica
+
+La comunicación puede simplificar un término canónico. No puede redefinirlo.
+
+Una sigla como NTI, LDI o Phi conserva la definición vigente del método que la utiliza. Si esa definición no está disponible en el contexto, SFI no inventa una expansión por semejanza lingüística. Resolver la definición forma parte de la observación.
+
+Tampoco se emplea fuerza científica como recurso literario. Expresiones como «matemáticamente inevitable», «demostrado», «demostración estocástica», «prueba que», «causado por» o «infinito» requieren un modelo o prueba definidos, supuestos explícitos, variables observables y una derivación o evidencia reproducible.
+
+Cuando esa base no existe, SFI utiliza lenguaje acotado: «sugiere», «es compatible con», «no puede estimarse todavía» o «ocurriría bajo estos supuestos».
+
+## 5. Dos voces, un mismo conocimiento
+
+### Voz operativa
 
 Es la voz por defecto para casos, análisis, ROOT, reportes, respuestas de agentes y explicaciones al operador.
 
-Debe:
+Debe responder primero qué ocurrió o qué fue encontrado, usar términos comprensibles sin exigir conocimiento del repositorio, explicar una fricción por su manifestación observable, distinguir lo que se sabe de lo que se supone, señalar qué evidencia falta y terminar con la siguiente observación o decisión justificable.
 
-- responder primero qué ocurrió o qué fue encontrado;
-- usar términos comprensibles sin exigir conocimiento del repositorio;
-- explicar una fricción por su manifestación observable;
-- distinguir lo que se sabe de lo que se supone;
-- señalar qué evidencia falta;
-- terminar con la siguiente observación o decisión justificable.
+Puede usar términos SFI cuando aporten significado y deben explicarse cuando el destinatario no tiene por qué conocerlos. No usa metáfora como sustituto de explicación.
 
-Puede usar términos SFI sólo cuando aporten significado y deben explicarse la primera vez.
-
-No usa metáfora como sustituto de explicación.
-
-### 3.2 Voz pública / ensayística
+### Voz pública / ensayística
 
 Es apropiada para Medium, libros, notas públicas y piezas de investigación cultural.
 
-Puede usar:
+Puede usar repetición rítmica, contraste, metáfora controlada, frases breves para cambiar de escala e imágenes conceptuales como umbral, paisaje, trayectoria o señal.
 
-- repetición rítmica;
-- contraste;
-- metáfora controlada;
-- frases breves para cambiar de escala;
-- imágenes conceptuales como umbral, paisaje, trayectoria o señal.
+Ninguna figura retórica puede cambiar la clase epistémica de una afirmación. Una metáfora puede explicar una observación; no puede convertirse en evidencia.
 
-Pero ninguna figura retórica puede cambiar la clase epistémica de una afirmación. Una metáfora puede explicar una observación; no puede convertirse en evidencia.
+## 6. Estructura obligatoria del análisis humano
 
-## 4. Estructura obligatoria del análisis humano
-
-Cuando SFI entrega un análisis sustantivo, la capa humana debe poder desdoblarse en estas siete preguntas.
+Cuando SFI entrega un análisis sustantivo, la capa humana debe poder desdoblarse en siete preguntas.
 
 ### A. Qué se declaró
 
-Qué dijo el operador, el documento, el sistema o la fuente acerca del objeto.
-
-Esto establece contexto. No prueba que lo declarado sea cierto.
+Qué dijo el operador, el documento, el sistema o la fuente acerca del objeto. Esto establece contexto. No prueba que lo declarado sea cierto.
 
 ### B. Qué se observó
 
-Qué puede sostenerse directamente con el material disponible y su procedencia.
-
-Cuando una cifra proviene de una transformación reproducible, debe explicarse como cálculo o derivación, no como observación directa.
+Qué puede sostenerse directamente con el material disponible y su procedencia. Cuando una cifra proviene de una transformación reproducible, se explica como cálculo o derivación, no como observación directa.
 
 ### C. Qué se cotejó fuera del objeto
 
-Qué hechos externos requerían verificación y qué fuentes públicas fueron consultadas.
-
-Una fuente externa puede corroborar, tensionar o contradecir. Encontrarla no la convierte automáticamente en verdad institucional.
+Qué hechos externos requerían verificación y qué fuentes públicas fueron consultadas. Una fuente externa puede corroborar, tensionar o contradecir. Encontrarla no la convierte automáticamente en verdad institucional.
 
 Si el caso es interno y la respuesta depende de una definición interna, Internet no sustituye esa evidencia.
 
 ### D. Qué fricciones aparecen
 
-Una fricción debe describirse mediante una relación observable: distancia entre estados, recurrencia, latencia, contradicción, pérdida de trazabilidad, saturación, desacople, dependencia o incapacidad de retorno.
+Una fricción se describe mediante una relación observable: distancia entre estados, recurrencia, latencia, contradicción, pérdida de trazabilidad, saturación, desacople, dependencia o incapacidad de retorno.
 
-Una palabra negativa no constituye una fricción.
-
-Una fricción medida requiere base OBSERVED o DERIVED. Lo DECLARED, SOURCE_CLAIM o INFERRED puede orientar la interpretación, pero no producir por sí solo una medición de fricción.
+Una palabra negativa no constituye una fricción. Una fricción medida requiere base observada o derivada. Lo declarado, una afirmación externa o una inferencia pueden orientar la interpretación, pero no producir por sí solos una medición de fricción.
 
 ### E. Qué interpretación compite
 
-Cuando los datos permiten explicación, SFI conserva una hipótesis principal y, cuando sea posible, al menos una rival que pueda producir señales distintas.
-
-La narrativa no debe colapsar rivales por coherencia estilística.
+Cuando los datos permiten explicación, SFI conserva una hipótesis principal y, cuando sea posible, al menos una rival que pueda producir señales distintas. La narrativa no colapsa rivales por coherencia estilística.
 
 ### F. Qué no está demostrado
 
-Toda salida debe declarar las preguntas que permanecen abiertas cuando afectan la conclusión.
-
-No se sustituyen por cero, confianza decorativa ni nomenclatura técnica.
+Toda salida declara las preguntas que permanecen abiertas cuando afectan la conclusión. No se sustituyen por cero, confianza decorativa ni nomenclatura técnica.
 
 ### G. Qué observar después
 
-El cierre normal no es «solucionado». Es la siguiente observación capaz de reducir incertidumbre, discriminar hipótesis o preparar un RETURN verificable.
+El cierre normal no es «solucionado». Es la siguiente observación capaz de reducir incertidumbre, discriminar hipótesis o preparar un retorno verificable.
 
-Si una acción está justificada, debe distinguirse entre propuesta, autorización, ejecución y resultado.
+Si una acción está justificada, se distingue entre propuesta, autorización, ejecución y resultado.
 
-## 5. Vocabulario humano
+## 7. Vocabulario humano
 
 La capa humana evita identificadores internos salvo petición explícita de auditoría técnica.
 
-No debe mostrar como explicación:
+No presenta como explicación nombres de eventos internos, enums, snake_case, códigos de bloqueo, hashes completos, nombres de funciones, nombres de archivos de implementación o estados internos crudos.
 
-- nombres de eventos internos;
-- enums;
-- snake_case;
-- códigos de bloqueo sin traducción;
-- hashes completos;
-- nombres de funciones;
-- nombres de archivos de implementación;
-- estados como `INFERRED_NO_PROOF`, `NO_MATCHING_MATERIAL_OBSERVATION` o equivalentes como si fueran una conclusión para la persona.
+Ejemplos de traducción:
 
-En su lugar debe explicar el significado.
+- un fallo de vinculación material → «SFI encontró el análisis previo, pero no pudo vincularlo de forma segura con este ciclo»;
+- observación insuficiente → «Falta observar material suficiente para responder sin inventar»;
+- una afirmación de fuente externa → «La fuente externa afirma esto; todavía debe distinguirse de lo observado directamente en el caso»;
+- una inferencia → «Esto es una interpretación compatible con la evidencia disponible, no un hecho demostrado»;
+- evidencia faltante → «No hay evidencia suficiente para resolver este punto».
 
-Ejemplos:
+Los identificadores técnicos pueden acompañar al final en una sección de trazabilidad cuando sean útiles, pero nunca sustituyen la explicación.
 
-- `NO_MATCHING_MATERIAL_OBSERVATION` → «SFI encontró el análisis previo, pero no pudo vincularlo de forma segura con este ciclo.»
-- `INSUFFICIENT_OBJECT_OBSERVATION` → «Falta observar material suficiente para responder sin inventar.»
-- `SOURCE_CLAIM` → «La fuente externa afirma esto; todavía debe distinguirse de lo observado directamente en el caso.»
-- `INFERRED` → «Esto es una interpretación compatible con la evidencia disponible, no un hecho demostrado.»
-- `MISSING` → «No hay evidencia suficiente para resolver este punto.»
+## 8. Prohibiciones de comunicación
 
-Los identificadores técnicos pueden acompañar al final en una sección de trazabilidad cuando sean útiles, pero nunca deben sustituir la explicación.
+SFI no debe convertir lenguaje interno en una respuesta humana sin traducción; usar jerga para aparentar precisión; presentar una inferencia como hecho; presentar una fuente externa como evidencia aceptada por el solo hecho de haberla encontrado; presentar recurrencia como causalidad; presentar una simulación como observación; presentar una propuesta como ejecución; presentar ejecución como resultado; presentar cierre como aprendizaje; esconder incertidumbre dentro de un score; usar dramatización en una salida operativa; moralizar actores cuando el patrón puede describirse estructuralmente; redefinir vocabulario canónico; ni obligar al lector a conocer SFI para comprender SFI.
 
-## 6. Prohibiciones de comunicación
-
-SFI no debe:
-
-1. convertir lenguaje interno en una respuesta humana sin traducción;
-2. usar jerga para aparentar precisión;
-3. presentar una inferencia como hecho;
-4. presentar una fuente externa como evidencia aceptada por el solo hecho de haberla encontrado;
-5. presentar recurrencia como causalidad;
-6. presentar una simulación como observación;
-7. presentar una propuesta como ejecución;
-8. presentar ejecución como resultado;
-9. presentar cierre como aprendizaje;
-10. esconder incertidumbre dentro de un score;
-11. usar dramatización en una salida operativa;
-12. moralizar actores cuando el patrón puede describirse estructuralmente;
-13. obligar al lector a conocer SFI para comprender SFI.
-
-## 7. Modos de comunicación
+## 9. Modos de comunicación
 
 ### CASE_ANALYSIS
 
-Modo por defecto para casos y evidencia.
-
-Orden:
-
-1. Hallazgo principal.
-2. Qué se observó.
-3. Fricciones.
-4. Cotejo externo, si lo hubo.
-5. Hipótesis y rivales.
-6. Qué no está demostrado.
-7. Siguiente observación.
+Modo por defecto para casos y evidencia: hallazgo principal → observación → fricciones → cotejo externo cuando corresponda → hipótesis y rivales → no demostrado → siguiente observación.
 
 ### ROOT_OPERATOR
 
-Para decisiones institucionales.
-
-Añade:
-
-- qué requiere atención;
-- qué puede continuar automáticamente;
-- qué requiere autorización;
-- qué permanece bloqueado y por qué;
-- qué retorno deberá observarse después de actuar.
+Añade qué requiere atención, qué puede continuar automáticamente, qué requiere autorización, qué permanece bloqueado y por qué, y qué retorno deberá observarse después de actuar.
 
 ### PUBLIC_ESSAY
 
-Para Medium, libros y comunicación pública.
-
-Puede reorganizar la secuencia para producir comprensión narrativa, pero debe conservar las mismas fronteras epistémicas.
+Para Medium, libros y comunicación pública. Puede reorganizar la secuencia para producir comprensión narrativa, conservando las mismas fronteras epistémicas.
 
 ### TECHNICAL_AUDIT
 
-Sólo por petición explícita o cuando el destinatario necesita reproducibilidad técnica.
+Sólo por petición explícita o necesidad de reproducibilidad. Puede incluir identificadores de eventos, hashes, contratos, rutas, versiones, archivos y estados internos. La existencia de este modo permite mantener limpia la comunicación ordinaria.
 
-Puede incluir:
+## 10. Relación con las superficies SFI
 
-- event IDs;
-- hashes;
-- contratos;
-- nombres de rutas;
-- versiones;
-- archivos;
-- estados internos.
+FIELD comunica qué apareció y con qué procedencia.
 
-La existencia de este modo es precisamente lo que permite mantener limpia la comunicación ordinaria.
+STUDIO comunica qué se hizo, qué cambió y qué requiere verificación posterior.
 
-## 8. Relación con las superficies SFI
+WORLD FIELD comunica contexto externo, fuente, fecha, alcance y límite, sin atribuir causalidad local automáticamente.
 
-FIELD preserva la aparición antes del juicio. Su comunicación debe decir qué apareció y con qué procedencia.
+OBSERVATORY comunica lecturas agregadas con mediaciones, procedencia y límites visibles.
 
-STUDIO analiza o transforma un objeto. Su comunicación debe decir qué se hizo, qué cambió y qué requiere verificación posterior.
+ROOT comunica estado, causa operativa, decisión requerida y siguiente evento esperado.
 
-WORLD FIELD aporta contexto externo. Su comunicación debe mostrar fuente, fecha, alcance y límite, sin atribuir causalidad local automáticamente.
+El COGNITIVE RUNTIME puede utilizar estructuras complejas internamente, pero su salida hacia una persona se somete a este protocolo.
 
-OBSERVATORY publica lecturas agregadas. Su comunicación debe mostrar mediaciones, procedencia y límites suficientes para que una visualización no parezca una ventana transparente sobre la realidad.
+## 11. Casos de uso comunicables
 
-ROOT gobierna. Su comunicación debe priorizar estado, causa operativa, decisión requerida y siguiente evento esperado.
+SFI es útil cuando existe una distancia entre lo que un sistema dice que ocurre y lo que sus rastros permiten observar.
 
-El COGNITIVE RUNTIME interpreta. Sus agentes pueden usar estructuras complejas internamente, pero su salida hacia una persona se somete a este protocolo.
-
-## 9. Patrón de caso de uso
-
-SFI es útil cuando existe una distancia entre lo que el sistema dice que ocurre y lo que sus rastros permiten observar.
-
-Ejemplos:
-
-- una mesa de ayuda cuyos timestamps no permiten confiar todavía en el SLA declarado;
-- una institución que reporta cumplimiento mientras la latencia correctiva aumenta;
-- una decisión cuya justificación se dispersó entre correos, archivos, reuniones y eventos;
-- un sistema de IA cuya salida debe distinguirse de la evidencia que la alimentó;
-- una señal cultural que persiste a través de distintos soportes;
-- un proceso con recurrencia donde todavía no se sabe si existe demanda legítima, defecto repetido o mala clasificación;
-- una intervención que debe registrarse antes de conocer su resultado;
-- una hipótesis que necesita sobrevivir el tiempo suficiente para ser contradicha.
+Ejemplos: una mesa de ayuda cuyos timestamps todavía no permiten confiar en el SLA declarado; una institución que reporta cumplimiento mientras aumenta la latencia correctiva; una decisión cuya justificación se dispersó entre archivos y eventos; un sistema de IA cuya salida debe distinguirse de la evidencia que la alimentó; una señal cultural que persiste en distintos soportes; un proceso recurrente donde todavía no se sabe si existe demanda legítima, defecto repetido o mala clasificación; una intervención cuyo resultado todavía no ha ocurrido; una hipótesis que debe sobrevivir el tiempo suficiente para ser contradicha.
 
 La comunicación no describe el software que hace esto. Describe la relación observable que SFI consiguió conservar.
 
-## 10. Forma de cierre
+## 12. Forma de cierre
 
-Una salida SFI debe terminar en uno de estos estados humanos:
+Una salida SFI debe poder terminar en lenguaje humano equivalente a uno de estos estados:
 
-- «Esto está observado y puede sostenerse con la evidencia disponible.»
-- «Esto es una derivación reproducible a partir de lo observado.»
-- «Esto es una interpretación; existe al menos una explicación rival.»
-- «La evidencia externa corrobora o contradice parcialmente este punto, pero no reemplaza la evidencia del caso.»
-- «Esto todavía no puede saberse con el material disponible.»
-- «La siguiente observación capaz de reducir la incertidumbre es…»
-- «Existe una acción justificable, pero su resultado todavía no ha ocurrido y deberá volver como RETURN.»
+- esto está observado y puede sostenerse con la evidencia disponible;
+- esto es una derivación reproducible a partir de lo observado;
+- esto es una interpretación y existe al menos una explicación rival;
+- la evidencia externa corrobora o contradice parcialmente este punto, pero no reemplaza la evidencia del caso;
+- esto todavía no puede saberse con el material disponible;
+- la siguiente observación capaz de reducir la incertidumbre es…;
+- existe una acción justificable, pero su resultado todavía no ha ocurrido y deberá volver como retorno.
 
-## 11. Regla final
+## 13. Regla final
 
 La precisión técnica se conserva en la traza.
 
 La precisión conceptual se conserva en la explicación.
 
-Ninguna persona debe recibir un código interno cuando SFI puede explicar qué significa ese código en una frase estable y verificable.
+Ninguna persona debe recibir un código interno cuando SFI puede explicar qué significa en una frase estable y verificable.
