@@ -115,7 +115,9 @@ async function main() {
 
   assert(signalRoute.includes("error: 'clarification_required'"));
   assert(signalRoute.includes("error: 'insufficient_object_observation'"));
-  assert(signalRoute.includes("error: 'required_web_evidence_unavailable'"));
+  assert(signalRoute.includes("'required_web_evidence_unavailable'"));
+  assert(signalRoute.includes("'required_web_evidence_persistence_failed'"));
+  assert(signalRoute.includes('evidenceRequirement.blockingIfUnavailable && (!webEvidence.satisfied || !webEvidence.eventId)'), 'WEB_REQUIRED must fail closed unless retrieval is sufficient and its canonical event is persisted');
   assert(signalRoute.includes("error: 'methodological_closure_incomplete'"));
   assert(signalRoute.includes("error: 'resume_cycle_invalid'"));
   assert(signalRoute.includes('contrastLatestUniversalReturn'));
