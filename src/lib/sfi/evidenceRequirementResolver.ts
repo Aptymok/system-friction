@@ -9,6 +9,8 @@ export type SfiWebEvidencePolicy = 'WEB_REQUIRED' | 'WEB_OPTIONAL' | 'WEB_NOT_RE
 
 const MAX_DIRECT_SOURCE_BYTES = 120_000;
 const MIN_VERIFIED_QUERY_COVERAGE = 0.05;
+const DIRECT_SOURCE_TOTAL_DEADLINE_MS = 8_000;
+const DIRECT_SOURCE_INACTIVITY_TIMEOUT_MS = 8_000;
 
 type Row = Record<string, unknown>;
 export type UniversalWebSource = {
@@ -53,8 +55,14 @@ function explicitPolicy(value: unknown): SfiWebEvidencePolicy | null {
     : null;
 }
 
+// Transport identity preserves the exact DNS hostname from the URL. Classification
+// may normalize a leading www, but DNS resolution and TLS SNI must never do so.
+function transportHostname(value: string) {
+  return value.trim().toLowerCase().replace(/^\[/, '').replace(/\]$/, '');
+}
+
 function normalizeHostname(value: string) {
-  return value.trim().toLowerCase().replace(/^\[/, '').replace(/\]$/, '').replace(/^www\./, '');
+  return transportHostname(value).replace(/^www\./, '');
 }
 
 function host(url: string) {
@@ -81,7 +89,7 @@ function ipv4FromMappedIpv6(value: string) {
 }
 
 export function isNonPublicNetworkAddress(value: string) {
-  const address = normalizeHostname(value).split('%')[0];
+  const address = transportHostname(value).split('%')[0];
   const version = isIP(address);
   if (version === 4) {
     const parts = address.split('.').map(Number);
@@ -115,9 +123,9 @@ export function isNonPublicNetworkAddress(value: string) {
 function safePublicUrl(value: string) {
   try {
     const parsed = new URL(value);
-    const hostname = normalizeHostname(parsed.hostname);
+    const hostname = transportHostname(parsed.hostname);
     if (!['http:', 'https:'].includes(parsed.protocol) || parsed.username || parsed.password) return false;
-    if (!hostname || hostname === 'localhost' || hostname.endsWith('.local')) return false;
+    if (!hostname || hostname === 'localhost' || hostname.endsWith('.localhost') || hostname.endsWith('.local')) return false;
     return isIP(hostname) ? !isNonPublicNetworkAddress(hostname) : true;
   } catch {
     return false;
@@ -127,12 +135,12 @@ function safePublicUrl(value: string) {
 async function resolvePublicAddresses(value: string) {
   if (!safePublicUrl(value)) return [] as string[];
   const parsed = new URL(value);
-  const hostname = normalizeHostname(parsed.hostname);
+  const hostname = transportHostname(parsed.hostname);
   if (isIP(hostname)) return isNonPublicNetworkAddress(hostname) ? [] : [hostname];
   try {
     const addresses = await lookup(hostname, { all: true, verbatim: true });
     if (!addresses.length || addresses.some((entry) => isNonPublicNetworkAddress(entry.address))) return [];
-    return [...new Set(addresses.map((entry) => normalizeHostname(entry.address)))];
+    return [...new Set(addresses.map((entry) => transportHostname(entry.address)))];
   } catch {
     return [] as string[];
   }
@@ -427,7 +435,7 @@ type PinnedResponse = {
 
 function requestPinnedAddress(urlValue: string, address: string): Promise<PinnedResponse> {
   const parsed = new URL(urlValue);
-  const originalHostname = normalizeHostname(parsed.hostname);
+  const originalHostname = transportHostname(parsed.hostname);
   const common = {
     hostname: address,
     port: parsed.port ? Number(parsed.port) : undefined,
@@ -441,38 +449,50 @@ function requestPinnedAddress(urlValue: string, address: string): Promise<Pinned
   };
 
   return new Promise((resolve, reject) => {
+    let deadline: ReturnType<typeof setTimeout> | null = null;
+    const finishResolve = (value: PinnedResponse) => {
+      if (deadline) clearTimeout(deadline);
+      resolve(value);
+    };
+    const finishReject = (error: unknown) => {
+      if (deadline) clearTimeout(deadline);
+      reject(error);
+    };
+    const onResponse = async (response: IncomingMessage) => {
+      try {
+        const body = await readIncomingMessageBounded(response);
+        finishResolve({
+          status: response.statusCode ?? 0,
+          contentType: text(response.headers['content-type']),
+          location: text(response.headers.location),
+          bodyText: body.text,
+          truncated: body.truncated,
+        });
+      } catch (error) {
+        finishReject(error);
+      }
+    };
+
     const request = parsed.protocol === 'https:'
       ? httpsRequest({
           ...common,
           servername: isIP(originalHostname) ? undefined : originalHostname,
           rejectUnauthorized: true,
-        }, async (response) => {
-          try {
-            const body = await readIncomingMessageBounded(response);
-            resolve({
-              status: response.statusCode ?? 0,
-              contentType: text(response.headers['content-type']),
-              location: text(response.headers.location),
-              bodyText: body.text,
-              truncated: body.truncated,
-            });
-          } catch (error) { reject(error); }
-        })
-      : httpRequest(common, async (response) => {
-          try {
-            const body = await readIncomingMessageBounded(response);
-            resolve({
-              status: response.statusCode ?? 0,
-              contentType: text(response.headers['content-type']),
-              location: text(response.headers.location),
-              bodyText: body.text,
-              truncated: body.truncated,
-            });
-          } catch (error) { reject(error); }
-        });
+        }, onResponse)
+      : httpRequest(common, onResponse);
 
-    request.setTimeout(8_000, () => request.destroy(new Error('DIRECT_FETCH_TIMEOUT')));
-    request.on('error', reject);
+    deadline = setTimeout(
+      () => request.destroy(new Error('DIRECT_FETCH_TOTAL_DEADLINE')),
+      DIRECT_SOURCE_TOTAL_DEADLINE_MS,
+    );
+    request.setTimeout(
+      DIRECT_SOURCE_INACTIVITY_TIMEOUT_MS,
+      () => request.destroy(new Error('DIRECT_FETCH_INACTIVITY_TIMEOUT')),
+    );
+    request.on('error', finishReject);
+    request.on('close', () => {
+      if (deadline) clearTimeout(deadline);
+    });
     request.end();
   });
 }
@@ -649,7 +669,7 @@ export async function acquireUniversalWebEvidence(inputValue: unknown, actorId: 
       authoritativeVerifiedSourceCount: authoritativeVerified.length,
       satisfied,
       executionBoundary: 'BOUNDED_DISCOVERY_PLUS_DNS_PINNED_DIRECT_SOURCE_FETCH_NO_LLM',
-      epistemicBoundary: 'Direct retrieval establishes that source material was fetched and records an excerpt. The connection is pinned to a prevalidated public address, redirects are revalidated and source provenance is recomputed from the final URL. Verification additionally requires query relevance measured only from final fetched material and distinct resolved source URLs; authority-sensitive cases require regulator provenance from the final source hostname. Neither state makes the source claim accepted evidence or proves causal/factual truth by itself.',
+      epistemicBoundary: 'Direct retrieval establishes that source material was fetched and records an excerpt. The exact URL hostname is preserved for DNS and TLS transport, the connection is pinned to a prevalidated public address, redirects are revalidated, a fixed wall-clock deadline bounds each fetch, and source provenance is recomputed from the final URL. Verification additionally requires query relevance measured only from final fetched material and distinct resolved source URLs; authority-sensitive cases require regulator provenance from the final source hostname. Neither state makes the source claim accepted evidence or proves causal/factual truth by itself.',
     },
     occurredAt: new Date().toISOString(),
     source: { sourceId: 'universal_evidence_acquisition', sourceType: 'public_research' },
