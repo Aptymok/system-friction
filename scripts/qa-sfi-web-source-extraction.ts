@@ -13,6 +13,17 @@ const requireText = (needle: string, label: string) => {
   if (!source.includes(needle)) fail(`${label} is missing`);
 };
 
+requireText("from 'node:dns/promises'", 'DNS resolution boundary');
+requireText("from 'node:net'", 'IP classification boundary');
+requireText('isNonPublicNetworkAddress', 'non-public network classifier');
+requireText('lookup(hostname, { all: true, verbatim: true })', 'resolved-address validation');
+requireText('addresses.every((entry) => !isNonPublicNetworkAddress(entry.address))', 'all-address public requirement');
+requireText('await resolvesOnlyToPublicAddresses(currentUrl)', 'pre-fetch DNS validation');
+requireText("'UNSAFE_OR_UNRESOLVABLE_SOURCE_URL'", 'unsafe DNS failure state');
+requireText('isRegulatorHostname(hostname)', 'hostname-derived regulator provenance');
+requireText("source.sourceType === 'regulator'", 'authority-sensitive regulator requirement');
+if (source.includes('`${hostname} ${title}`')) fail('titles must not confer source authority');
+
 requireText('decodeKnownHtmlEntitiesOnce', 'single-pass entity decoder');
 requireText('HTML_ENTITY_TEXT', 'allowlisted entity map');
 requireText('htmlToEvidenceText', 'deterministic HTML-to-evidence text extractor');
@@ -28,15 +39,9 @@ requireText("'DIRECT_FETCH_LOW_QUERY_RELEVANCE'", 'low-relevance source warning'
 requireText('source.verification?.queryCoverage ?? 0) >= MIN_VERIFIED_QUERY_COVERAGE', 'relevance-qualified verification gate');
 requireText('directFetchSourceCount: directFetchSources.length', 'retrieval-vs-verification distinction');
 
-if (/\.replace\(\/<script\\b/.test(source) || /\.replace\(\/<style\\b/.test(source)) {
-  fail('regex-based script/style HTML filtering must not be reintroduced');
-}
-if (/\.replace\(\/&amp;\/gi/.test(source)) {
-  fail('sequential &amp; decoding can reintroduce double-unescape behavior');
-}
-if (/await\s+response\.text\s*\(\s*\)/.test(source)) {
-  fail('direct source bodies must not be fully buffered before the byte ceiling is applied');
-}
+if (/\.replace\(\/<script\\b/.test(source) || /\.replace\(\/<style\\b/.test(source)) fail('regex-based script/style HTML filtering must not be reintroduced');
+if (/\.replace\(\/&amp;\/gi/.test(source)) fail('sequential &amp; decoding can reintroduce double-unescape behavior');
+if (/await\s+response\.text\s*\(\s*\)/.test(source)) fail('direct source bodies must not be fully buffered before the byte ceiling is applied');
 
 const entityOrder = source.indexOf('decodeKnownHtmlEntitiesOnce(output)');
 const whitespaceOrder = source.indexOf(".replace(/\\s+/g, ' ')", entityOrder);
@@ -50,29 +55,11 @@ const referenceIdentity = {
 };
 const sameCycleMaterialResult = {
   cycleId: 'cycle-a',
-  object: {
-    objectKey: 'object:help-desk-2025-2026',
-    objectHash: 'material-sha256-that-legitimately-differs-from-reference',
-  },
+  object: { objectKey: 'object:help-desk-2025-2026', objectHash: 'material-sha256-that-legitimately-differs-from-reference' },
 };
-assert.equal(
-  structuredResultMatchesSignalIdentity(sameCycleMaterialResult, referenceIdentity, 'cycle-a'),
-  true,
-  'same-cycle structured material must hydrate when the stable objectKey matches even if a reference hash differs from the material hash',
-);
-assert.equal(
-  structuredResultMatchesSignalIdentity({ cycleId: 'cycle-a', object: { objectKey: 'object:other-file' } }, referenceIdentity, 'cycle-a'),
-  false,
-  'resumeCycleId alone must never substitute for object identity',
-);
-assert.equal(
-  structuredResultMatchesSignalIdentity(sameCycleMaterialResult, referenceIdentity, 'cycle-b'),
-  false,
-  'object identity alone must not cross a requested resume cycle boundary',
-);
-assert(
-  hydrator.includes('structuredResultMatchesSignalIdentity(payload, normalized, resumeCycleId)'),
-  'production hydrator must use the exercised cycle+object identity matcher',
-);
+assert.equal(structuredResultMatchesSignalIdentity(sameCycleMaterialResult, referenceIdentity, 'cycle-a'), true);
+assert.equal(structuredResultMatchesSignalIdentity({ cycleId: 'cycle-a', object: { objectKey: 'object:other-file' } }, referenceIdentity, 'cycle-a'), false);
+assert.equal(structuredResultMatchesSignalIdentity(sameCycleMaterialResult, referenceIdentity, 'cycle-b'), false);
+assert(hydrator.includes('structuredResultMatchesSignalIdentity(payload, normalized, resumeCycleId)'));
 
 console.log('SFI boundary hardening QA: OK');
