@@ -1,12 +1,15 @@
 import { strict as assert } from 'node:assert';
 import fs from 'node:fs';
 import path from 'node:path';
+import { createKernelContext } from '../src/lib/sfi/cognitive-runtime/createKernelContext';
+import { FrictionFieldSimulatorAgent } from '../src/lib/sfi/cognitive-runtime/agents/frictionFieldSimulator';
 import { isNonPublicNetworkAddress } from '../src/lib/sfi/evidenceRequirementResolver';
 import { structuredResultMatchesSignalIdentity } from '../src/lib/sfi/universalObservationIdentity';
 
 // Final merge gate: retrieval must pin the network connection to an address from
 // the exact public-address set that passed validation; a separate DNS lookup is a regression.
 const source = fs.readFileSync(path.join(process.cwd(), 'src/lib/sfi/evidenceRequirementResolver.ts'), 'utf8');
+const closure = fs.readFileSync(path.join(process.cwd(), 'src/lib/sfi/universalClosure.ts'), 'utf8');
 const hydrator = fs.readFileSync(path.join(process.cwd(), 'src/lib/sfi/universalObservationHydrator.ts'), 'utf8');
 const fail = (message: string): never => {
   console.error(`SFI boundary hardening QA failed: ${message}`);
@@ -60,6 +63,8 @@ requireText('directFetchSourceCount: directFetchSources.length', 'retrieval-vs-v
 requireText('verificationPairs', 'discovered-source verification pairing');
 requireText('verifiedByDiscoveredUrl', 'verification keyed to original discovered URL');
 requireText('distinctSourcesByResolvedUrl', 'distinct resolved URL verification count');
+requireText('const queryCoverage = coverageFor(plain, terms)', 'final fetched material relevance basis');
+if (source.includes('coverageFor(`${source.title} ${plain}`, terms)')) fail('discovery title must never qualify final-page relevance');
 if (source.includes('verified.find((item) => host(item.url) === host(source.url))')) fail('same-host verification reuse must not be reintroduced');
 
 if (/\.replace\(\/<script\\b/.test(source) || /\.replace\(\/<style\\b/.test(source)) fail('regex-based script/style HTML filtering must not be reintroduced');
@@ -69,6 +74,13 @@ if (/await\s+response\.text\s*\(\s*\)/.test(source)) fail('direct source bodies 
 const entityOrder = source.indexOf('decodeKnownHtmlEntitiesOnce(output)');
 const whitespaceOrder = source.indexOf(".replace(/\\s+/g, ' ')", entityOrder);
 if (entityOrder < 0 || whitespaceOrder < entityOrder) fail('evidence text normalization order is incomplete');
+
+// RETURN evidence lineage must be explicit server-derived linkage only. Generic
+// lifecycle lineage contains object hashes and other methodological identifiers.
+assert(closure.includes('function trustedCycleLinkedEvidenceRefs(history: History)'));
+assert(!closure.includes('for (const ref of stringList(event.lineage)) refs.add(ref);'), 'generic lifecycle lineage must never confer evidence status');
+assert(closure.includes('text(payload.webEvidenceEventId)'), 'web evidence must use an explicit server-derived field');
+assert(closure.includes('text(payload.hydrationEventId)'), 'hydration evidence must use an explicit server-derived field');
 
 const referenceIdentity = {
   objectKey: 'object:help-desk-2025-2026',
@@ -101,5 +113,31 @@ assert.equal(
   'matching material fingerprint and stable key remain compatible',
 );
 assert(hydrator.includes('structuredResultMatchesSignalIdentity(payload, normalized, resumeCycleId)'));
+
+// Measured zero and unmeasured are distinct. A zero information-friction measure
+// must participate in the aggregate alongside a non-zero temporal measure.
+const frictionContext = createKernelContext('qa-friction-cycle', 'qa-friction-logbook', 'SFI_TASK_REQUESTED');
+frictionContext.evidence.push({
+  id: 'qa-friction-evidence',
+  source: 'QA',
+  confidence: 1,
+  payload: {
+    epistemicClass: 'DERIVED',
+    measurements: {
+      rowCount: 100,
+      malformedRows: 0,
+      negativeIntervals: 50,
+    },
+  },
+});
+FrictionFieldSimulatorAgent(frictionContext);
+const frictionOutput = frictionContext.simulations.at(-1)?.output as Record<string, unknown> | undefined;
+assert(frictionOutput, 'friction simulator must emit an output');
+assert.equal(frictionOutput.measuredDimensions, 2, 'zero-valued measured dimensions must remain measured');
+assert.deepEqual(frictionOutput.measuredDimensionNames, ['information', 'temporal']);
+assert.deepEqual(frictionOutput.unmeasuredDimensionNames, ['coordination', 'resource']);
+assert.equal(frictionOutput.informationFriction, 0);
+assert.equal(frictionOutput.temporalFriction, 0.5);
+assert.equal(frictionOutput.totalFrictionIndex, 0.25, 'aggregate must include measured zero instead of dropping it');
 
 console.log('SFI boundary hardening QA: OK');
