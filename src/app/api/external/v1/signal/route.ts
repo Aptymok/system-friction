@@ -32,6 +32,11 @@ function record(value: unknown): Record<string, unknown> {
 }
 function operationScope(operation: SignalOperation) { return operation === 'status' ? 'observe' : 'lab:write'; }
 function text(value: unknown) { return typeof value === 'string' && value.trim() ? value.trim() : null; }
+function eventId(value: unknown) {
+  const event = record(value);
+  if (event.ok === false) return null;
+  return text(record(event.data).event_id) ?? text(event.event_id);
+}
 
 function compactEventReference(value: unknown) {
   const row = record(value);
@@ -237,7 +242,9 @@ export async function POST(req: Request) {
   if (!rawInput.signal || typeof rawInput.signal !== 'object' || Array.isArray(rawInput.signal)) {
     return NextResponse.json({ ok: false, error: 'input.signal_required' }, { status: 400 });
   }
-  const hydration = await hydrateUniversalCycleInput(rawInput, tenantId);
+
+  const requestedResumeCycleId = text(body.resumeCycleId);
+  const hydration = await hydrateUniversalCycleInput(rawInput, tenantId, { resumeCycleId: requestedResumeCycleId });
   const input = hydration.input;
 
   const contract = describeUniversalSignalContract(input);
@@ -249,7 +256,6 @@ export async function POST(req: Request) {
   const sufficiency = evaluateUniversalAnalysisSufficiency(input);
   const evidenceRequirement = resolveUniversalEvidenceRequirements(input);
 
-  const requestedResumeCycleId = text(body.resumeCycleId);
   let resumeValidation: {
     requested: boolean;
     valid: boolean;
@@ -423,6 +429,7 @@ export async function POST(req: Request) {
     ...input,
     context: {
       ...record(input.context),
+      caseClass: intakePlan.caseClass,
       observationHydration: {
         contract: hydration.contract,
         hydrated: hydration.hydrated,
@@ -465,6 +472,9 @@ export async function POST(req: Request) {
       resumeLineageEventId: resumeValidation.previousEventId,
     } : undefined);
 
+    const resumeEventId = cycle.resumed ? eventId(cycle.lifecycleEvent) : null;
+    const cognitiveRunEventId = eventId(cycle.completedEvent);
+    const intakeEventId = String(persisted.event.data.event_id ?? '');
     const deterministicOutputs = {
       hypotheses: cycle.result.context.hypotheses,
       contradictions: cycle.result.context.contradictions,
@@ -490,7 +500,16 @@ export async function POST(req: Request) {
             caseContext: preparedInput.context,
             webEvidenceEventId: webEvidence.eventId,
             observationHydrationEventId: hydration.eventId,
+            cognitiveRunEventId,
+            resumeEventId,
           },
+          lineageRefs: [
+            hydration.eventId,
+            webEvidence.eventId,
+            intakeEventId,
+            resumeEventId,
+            cognitiveRunEventId,
+          ].filter((value): value is string => typeof value === 'string' && value.length > 0),
         })
       : null;
 
@@ -507,13 +526,15 @@ export async function POST(req: Request) {
       sufficiency,
       evidenceRequirement,
       webEvidence,
-      intakeEventId: String(persisted.event.data.event_id ?? ''),
+      intakeEventId,
       intakeEvent: persisted.event.data,
       cycle: {
         cycleId: cycle.cycleId,
         taskId: cycle.taskId,
         logbookId: cycle.logbookId,
         resumed: cycle.resumed,
+        resumeEventId,
+        cognitiveRunEventId,
         completed: cycle.result.completed,
         executedAgents: cycle.result.executedAgents,
         missingAgents: cycle.result.missingAgents,
