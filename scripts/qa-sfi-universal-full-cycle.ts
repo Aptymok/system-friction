@@ -148,9 +148,11 @@ async function main() {
   assert(cycle.includes('const cycleId = resumeCycleId ?? randomUUID()'), 'resumed runs must reuse cycle id');
   assert(cycle.includes('const logbookId = `universal-cycle:${cycleId}`'), 'resumed runs must reuse cycle logbook');
   assert(cycle.includes("const resumptions = events.filter((row) => row.event_name === 'SFI_UNIVERSAL_CYCLE_RESUMED')"));
-  assert(cycle.includes("source: 'UniversalStructuredMeasurements'"), 'material measurements must be explicit cognitive inputs');
-  assert(cycle.includes("source: 'UniversalStructuredObservation'"), 'observed structured entries must retain their epistemic class');
-  assert(cycle.includes('materialEpistemicPartition'), 'runtime must retain the structured epistemic partition');
+  assert(cycle.includes("source: canonicalExtraction ? 'UniversalStructuredMeasurements' : 'UniversalDeclaredExtractionMeasurements'"), 'canonical material measurements must be explicit cognitive inputs while caller extraction remains declared');
+  assert(cycle.includes("epistemicClass: canonicalExtraction ? 'derived' : 'declared'"), 'uncanonical measurements must not self-promote to derived evidence');
+  assert(cycle.includes("source: canonicalExtraction ? 'UniversalStructuredObservation' : 'UniversalDeclaredExtraction'"), 'structured observations require canonical provenance to retain observed status');
+  assert(cycle.includes('materialEpistemicPartition: canonicalExtraction ? partition : {}'), 'trusted runtime partition must require canonical extraction provenance');
+  assert(cycle.includes('declaredExtraction: canonicalExtraction ? null : extracted'), 'caller extraction must remain visible as declared material rather than trusted evidence');
   assert(cycle.includes('.range(from, from + UNIVERSAL_EVENT_PAGE_SIZE - 1)'), 'cycle reconstruction must page rather than silently stop at 300 events');
   assert(cycle.includes('CYCLE_HISTORY_TOO_LARGE_FOR_SAFE_RECONSTRUCTION'), 'oversized history must fail closed rather than reconstruct partially');
   assert(automationSelector.includes("choose('field_observer', 'baseline_observation')"));
