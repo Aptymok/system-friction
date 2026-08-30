@@ -1,3 +1,5 @@
+import { lookup } from 'node:dns/promises';
+import { isIP } from 'node:net';
 import { appendEpistemicEvent } from '@/lib/events/eventStore';
 
 export const SFI_EVIDENCE_REQUIREMENT_RESOLVER_CONTRACT = 'SFI-EVIDENCE-REQUIREMENT-RESOLVER-1.1' as const;
@@ -49,35 +51,95 @@ function explicitPolicy(value: unknown): SfiWebEvidencePolicy | null {
     : null;
 }
 
-function host(url: string) {
-  try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return ''; }
+function normalizeHostname(value: string) {
+  return value.trim().toLowerCase().replace(/^\[/, '').replace(/\]$/, '').replace(/^www\./, '');
 }
 
-function isLiteralPrivateHost(hostname: string) {
-  const h = hostname.toLowerCase();
-  if (!h || h === 'localhost' || h.endsWith('.local') || h === '0.0.0.0' || h === '::1') return true;
-  if (/^127\./.test(h) || /^10\./.test(h) || /^192\.168\./.test(h) || /^169\.254\./.test(h)) return true;
-  const match = h.match(/^172\.(\d+)\./);
-  if (match && Number(match[1]) >= 16 && Number(match[1]) <= 31) return true;
-  return false;
+function host(url: string) {
+  try { return normalizeHostname(new URL(url).hostname); } catch { return ''; }
+}
+
+export function isNonPublicNetworkAddress(value: string) {
+  const address = normalizeHostname(value).split('%')[0];
+  const version = isIP(address);
+  if (version === 4) {
+    const parts = address.split('.').map(Number);
+    if (parts.length !== 4 || parts.some((part) => !Number.isInteger(part) || part < 0 || part > 255)) return true;
+    const [a, b] = parts;
+    if (a === 0 || a === 10 || a === 127 || a >= 224) return true;
+    if (a === 100 && b >= 64 && b <= 127) return true;
+    if (a === 169 && b === 254) return true;
+    if (a === 172 && b >= 16 && b <= 31) return true;
+    if (a === 192 && b === 168) return true;
+    if (a === 192 && b === 0) return true;
+    if (a === 192 && b === 2) return true;
+    if (a === 198 && (b === 18 || b === 19 || b === 51)) return true;
+    if (a === 203 && b === 0) return true;
+    return false;
+  }
+  if (version === 6) {
+    const h = address.toLowerCase();
+    if (h === '::' || h === '::1') return true;
+    if (/^f[cd]/.test(h)) return true;
+    if (/^fe[89ab]/.test(h)) return true;
+    if (/^ff/.test(h)) return true;
+    if (/^2001:db8(?::|$)/.test(h)) return true;
+    if (h.startsWith('::ffff:')) {
+      const mapped = h.slice('::ffff:'.length);
+      if (isIP(mapped) === 4) return isNonPublicNetworkAddress(mapped);
+    }
+    return false;
+  }
+  return true;
 }
 
 function safePublicUrl(value: string) {
   try {
     const parsed = new URL(value);
-    return ['http:', 'https:'].includes(parsed.protocol) && !isLiteralPrivateHost(parsed.hostname);
+    const hostname = normalizeHostname(parsed.hostname);
+    if (!['http:', 'https:'].includes(parsed.protocol) || parsed.username || parsed.password) return false;
+    if (!hostname || hostname === 'localhost' || hostname.endsWith('.local')) return false;
+    return isIP(hostname) ? !isNonPublicNetworkAddress(hostname) : true;
   } catch {
     return false;
   }
 }
 
-function classifySource(url: string, title: string): UniversalWebSource['sourceType'] {
-  const hostname = host(url).toLowerCase();
-  const value = `${hostname} ${title}`.toLowerCase();
-  if (/\.gob\.mx$|\.gov\.|\.gov$|regulator|commission|secretar|ministerio|authority|profeco|condusef|sec\.gov/.test(value)) return 'regulator';
-  if (/linkedin\.com|crunchbase\.com/.test(hostname)) return 'professional';
-  if (/news|noticias|reuters|bloomberg|forbes|expansion|eleconomista|elfinanciero|elceo|elpais|milenio|cnn|bbc/.test(value)) return 'news';
-  if (/newsroom|news-room|investor|about|press|blog/.test(value)) return 'official';
+async function resolvesOnlyToPublicAddresses(value: string) {
+  if (!safePublicUrl(value)) return false;
+  const parsed = new URL(value);
+  const hostname = normalizeHostname(parsed.hostname);
+  if (isIP(hostname)) return !isNonPublicNetworkAddress(hostname);
+  try {
+    const addresses = await lookup(hostname, { all: true, verbatim: true });
+    return addresses.length > 0 && addresses.every((entry) => !isNonPublicNetworkAddress(entry.address));
+  } catch {
+    return false;
+  }
+}
+
+function isRegulatorHostname(hostname: string) {
+  const h = normalizeHostname(hostname);
+  return /(^|\.)gob\.mx$/.test(h)
+    || /(^|\.)gov$/.test(h)
+    || /(^|\.)gov\.[a-z]{2,}$/.test(h)
+    || /(^|\.)gov\.[a-z]{2,}\.[a-z]{2,}$/.test(h)
+    || /(^|\.)go\.[a-z]{2,}$/.test(h)
+    || h === 'europa.eu'
+    || h.endsWith('.europa.eu');
+}
+
+function classifySource(url: string, _title: string): UniversalWebSource['sourceType'] {
+  const hostname = host(url);
+  if (isRegulatorHostname(hostname)) return 'regulator';
+  if (/(^|\.)(linkedin\.com|crunchbase\.com)$/.test(hostname)) return 'professional';
+  if (/(^|\.)(reuters\.com|bloomberg\.com|forbes\.com|expansion\.mx|eleconomista\.com\.mx|elfinanciero\.com\.mx|elceo\.com|elpais\.com|milenio\.com|cnn\.com|bbc\.com|bbc\.co\.uk)$/.test(hostname)) return 'news';
+  try {
+    const pathname = new URL(url).pathname.toLowerCase();
+    if (/\/(newsroom|news-room|investors?|press|about|blog)(\/|$)/.test(pathname)) return 'official';
+  } catch {
+    // Keep unknown source provenance as other.
+  }
   return 'other';
 }
 
@@ -247,27 +309,22 @@ function htmlToEvidenceText(value: string) {
       output += value.slice(cursor);
       break;
     }
-
     output += value.slice(cursor, tagStart);
-
     if (value.startsWith('<!--', tagStart)) {
       const commentEnd = value.indexOf('-->', tagStart + 4);
       cursor = commentEnd >= 0 ? commentEnd + 3 : value.length;
       output += ' ';
       continue;
     }
-
     const tagEnd = value.indexOf('>', tagStart + 1);
     if (tagEnd < 0) {
       output += value.slice(tagStart);
       break;
     }
-
     const tagBody = value.slice(tagStart + 1, tagEnd).trimStart();
     const closing = tagBody.startsWith('/');
     const normalizedTagBody = closing ? tagBody.slice(1).trimStart() : tagBody;
     const tagName = normalizedTagBody.match(/^([a-z0-9:-]+)/i)?.[1]?.toLowerCase() ?? '';
-
     if (!closing && (tagName === 'script' || tagName === 'style')) {
       const closeStart = lower.indexOf(`</${tagName}`, tagEnd + 1);
       if (closeStart < 0) {
@@ -280,14 +337,10 @@ function htmlToEvidenceText(value: string) {
       output += ' ';
       continue;
     }
-
     output += ' ';
     cursor = tagEnd + 1;
   }
-
-  return decodeKnownHtmlEntitiesOnce(output)
-    .replace(/\s+/g, ' ')
-    .trim();
+  return decodeKnownHtmlEntitiesOnce(output).replace(/\s+/g, ' ').trim();
 }
 
 function queryTerms(queries: string[]) {
@@ -307,12 +360,10 @@ async function readResponseTextBounded(response: Response) {
   const declaredLength = Number(response.headers.get('content-length') ?? Number.NaN);
   let truncated = Number.isFinite(declaredLength) && declaredLength > MAX_DIRECT_SOURCE_BYTES;
   if (!response.body) return { text: '', bytesRead: 0, truncated };
-
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
   let bytesRead = 0;
   let output = '';
-
   while (bytesRead < MAX_DIRECT_SOURCE_BYTES) {
     const { done, value } = await reader.read();
     if (done) {
@@ -320,7 +371,6 @@ async function readResponseTextBounded(response: Response) {
       return { text: output, bytesRead, truncated };
     }
     if (!value?.byteLength) continue;
-
     const remaining = MAX_DIRECT_SOURCE_BYTES - bytesRead;
     if (value.byteLength > remaining) {
       output += decoder.decode(value.subarray(0, remaining), { stream: true });
@@ -330,11 +380,9 @@ async function readResponseTextBounded(response: Response) {
       output += decoder.decode();
       return { text: output, bytesRead, truncated };
     }
-
     output += decoder.decode(value, { stream: true });
     bytesRead += value.byteLength;
   }
-
   truncated = true;
   await reader.cancel('SFI_DIRECT_SOURCE_BYTE_LIMIT');
   output += decoder.decode();
@@ -344,8 +392,10 @@ async function readResponseTextBounded(response: Response) {
 async function fetchDirectSource(source: UniversalWebSource, terms: string[]): Promise<UniversalWebSource> {
   let currentUrl = source.url;
   for (let redirect = 0; redirect < 3; redirect += 1) {
-    if (!safePublicUrl(currentUrl)) {
-      return { ...source, verification: { directFetch: false, httpStatus: null, contentType: null, excerpt: null, queryCoverage: 0, verifiedAt: null, warning: 'UNSAFE_SOURCE_URL' } };
+    // DNS is revalidated before each network hop. Literal hostname screening is
+    // not sufficient because public names can resolve to loopback/RFC1918/metadata.
+    if (!await resolvesOnlyToPublicAddresses(currentUrl)) {
+      return { ...source, verification: { directFetch: false, httpStatus: null, contentType: null, excerpt: null, queryCoverage: 0, verifiedAt: null, warning: 'UNSAFE_OR_UNRESOLVABLE_SOURCE_URL' } };
     }
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 8_000);
@@ -366,7 +416,6 @@ async function fetchDirectSource(source: UniversalWebSource, terms: string[]): P
       if (!response.ok || !contentType || !/text\/html|text\/plain|application\/xhtml\+xml/i.test(contentType)) {
         return { ...source, verification: { directFetch: false, httpStatus: response.status, contentType, excerpt: null, queryCoverage: 0, verifiedAt: null, warning: `DIRECT_FETCH_UNUSABLE_${response.status}` } };
       }
-
       const boundedBody = await readResponseTextBounded(response);
       const plain = htmlToEvidenceText(boundedBody.text).slice(0, 8_000);
       const queryCoverage = coverageFor(`${source.title} ${plain}`, terms);
@@ -449,35 +498,18 @@ export type UniversalWebEvidenceAcquisition = {
 export async function acquireUniversalWebEvidence(inputValue: unknown, actorId: string, tenantId: string, cycleKey: string): Promise<UniversalWebEvidenceAcquisition> {
   const requirement = resolveUniversalEvidenceRequirements(inputValue);
   if (requirement.webPolicy === 'WEB_FORBIDDEN' || requirement.webPolicy === 'WEB_NOT_REQUIRED' || requirement.webPolicy === 'WEB_ALREADY_SUFFICIENT') {
-    return {
-      attempted: false,
-      satisfied: true,
-      policy: requirement.webPolicy,
-      provider: null,
-      sources: [],
-      warnings: [],
-      queries: requirement.queries,
-      eventId: null,
-    };
+    return { attempted: false, satisfied: true, policy: requirement.webPolicy, provider: null, sources: [], warnings: [], queries: requirement.queries, eventId: null };
   }
-
   if (!requirement.queries.length) {
-    return {
-      attempted: false,
-      satisfied: requirement.webPolicy !== 'WEB_REQUIRED',
-      policy: requirement.webPolicy,
-      provider: null,
-      sources: [],
-      warnings: ['WEB_QUERY_PLAN_EMPTY'],
-      queries: [],
-      eventId: null,
-    };
+    return { attempted: false, satisfied: requirement.webPolicy !== 'WEB_REQUIRED', policy: requirement.webPolicy, provider: null, sources: [], warnings: ['WEB_QUERY_PLAN_EMPTY'], queries: [], eventId: null };
   }
 
   const result = await boundedPublicRetrieval(requirement.queries, requirement.lookbackDays);
   const directFetchSources = result.sources.filter((source) => source.verification?.directFetch === true);
   const verifiedSources = directFetchSources.filter((source) => Number(source.verification?.queryCoverage ?? 0) >= MIN_VERIFIED_QUERY_COVERAGE);
-  const authoritativeVerified = verifiedSources.filter((source) => source.sourceType === 'official' || source.sourceType === 'regulator');
+  // Legal/regulatory authority is satisfied only by regulator provenance derived
+  // from the hostname. Article titles and generic "official" page paths cannot confer authority.
+  const authoritativeVerified = verifiedSources.filter((source) => source.sourceType === 'regulator');
   const discoverySatisfied = result.sources.length >= requirement.requiredSourceCount;
   const directVerificationSatisfied = verifiedSources.length >= requirement.requiredVerifiedSourceCount;
   const authoritySatisfied = !requirement.authoritySensitive || authoritativeVerified.length > 0;
@@ -506,15 +538,14 @@ export async function acquireUniversalWebEvidence(inputValue: unknown, actorId: 
       verifiedSourceCount: verifiedSources.length,
       authoritativeVerifiedSourceCount: authoritativeVerified.length,
       satisfied,
-      executionBoundary: 'BOUNDED_DISCOVERY_PLUS_DIRECT_SOURCE_FETCH_NO_LLM',
-      epistemicBoundary: 'Direct retrieval establishes that source material was fetched and records an excerpt. Verification sufficiency additionally requires query relevance. Neither state makes the source claim accepted evidence or proves causal/factual truth by itself.',
+      executionBoundary: 'BOUNDED_DISCOVERY_PLUS_DNS_VALIDATED_DIRECT_SOURCE_FETCH_NO_LLM',
+      epistemicBoundary: 'Direct retrieval establishes that source material was fetched and records an excerpt. Verification additionally requires query relevance; authority-sensitive cases require regulator provenance from the source hostname. Neither state makes the source claim accepted evidence or proves causal/factual truth by itself.',
     },
     occurredAt: new Date().toISOString(),
     source: { sourceId: 'universal_evidence_acquisition', sourceType: 'public_research' },
     logbookId: `universal-evidence:${cycleKey}`,
     lineage: result.sources.map((source) => source.url),
   });
-
   return {
     attempted: true,
     satisfied,
