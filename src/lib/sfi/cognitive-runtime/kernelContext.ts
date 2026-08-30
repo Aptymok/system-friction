@@ -28,6 +28,12 @@ export interface KernelPrediction {
 
   confidence: number;
 
+  expectedSignals?: string[];
+
+  contradictionSignals?: string[];
+
+  observationWindow?: string | null;
+
 }
 
 export interface KernelRisk {

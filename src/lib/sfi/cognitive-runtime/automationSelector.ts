@@ -47,6 +47,8 @@ function strings(value: unknown): string[] {
 
 function normalizedText(context: KernelContext) {
   const metadata = record(context.metadata);
+  const caseContext = record(metadata.caseContext);
+  const evidenceRequirement = record(caseContext.evidenceRequirement);
   const values = [
     metadata.intent,
     metadata.cognitiveIntent,
@@ -55,11 +57,20 @@ function normalizedText(context: KernelContext) {
     metadata.protocolId,
     metadata.studioAction,
     metadata.mode,
+    metadata.caseClass,
+    caseContext.intent,
+    caseContext.objective,
+    caseContext.question,
+    caseContext.caseClass,
+    caseContext.declaredFunction,
+    evidenceRequirement.webPolicy,
     ...strings(metadata.cognitiveIntents),
   ];
   return values
     .filter((value): value is string => typeof value === 'string')
     .join(' ')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase();
 }
 
@@ -67,7 +78,7 @@ function requestedIds(context: KernelContext): CognitiveAutomationId[] {
   const metadata = record(context.metadata);
   const requested = [
     ...strings(metadata.requestedAutomations),
-    ...strings(metadata.requestedAgents), // compatibility with the pre-convergence contract
+    ...strings(metadata.requestedAgents),
   ];
   return requested
     .filter((value, index, values) => AUTOMATION_SET.has(value) && values.indexOf(value) === index) as CognitiveAutomationId[];
@@ -75,6 +86,27 @@ function requestedIds(context: KernelContext): CognitiveAutomationId[] {
 
 function hasAny(text: string, terms: string[]) {
   return terms.some((term) => text.includes(term));
+}
+
+function resolvedCaseClass(context: KernelContext) {
+  const metadata = record(context.metadata);
+  const caseContext = record(metadata.caseContext);
+  return String(metadata.caseClass ?? caseContext.caseClass ?? '').trim().toUpperCase();
+}
+
+function hasStructuredPrediction(context: KernelContext) {
+  const metadata = record(context.metadata);
+  const signal = record(metadata.signal);
+  const extracted = record(signal.extracted);
+  return Object.keys(record(extracted.prediction)).length > 0;
+}
+
+function hasMaterialObservation(context: KernelContext) {
+  const metadata = record(context.metadata);
+  const signal = record(metadata.signal);
+  const extracted = record(signal.extracted);
+  const hydration = record(record(metadata.caseContext).observationHydration);
+  return Object.keys(extracted).length > 0 || hydration.hydrated === true;
 }
 
 export function selectCognitiveAutomations(context: KernelContext): CognitiveAutomationSelection {
@@ -88,6 +120,9 @@ export function selectCognitiveAutomations(context: KernelContext): CognitiveAut
   }
 
   const text = normalizedText(context);
+  const caseClass = resolvedCaseClass(context);
+  const structuredPredictionAvailable = hasStructuredPrediction(context);
+  const materialObservationAvailable = hasMaterialObservation(context);
   const selected = new Map<CognitiveAutomationId, Set<string>>();
   const choose = (id: CognitiveAutomationId, reason: string) => {
     const current = selected.get(id) ?? new Set<string>();
@@ -95,8 +130,6 @@ export function selectCognitiveAutomations(context: KernelContext): CognitiveAut
     selected.set(id, current);
   };
 
-  // Every cognitive task starts by observing what is actually available and by
-  // declaring evidence gaps. These are bounded, non-sovereign automations.
   choose('field_observer', 'baseline_observation');
   choose('evidence_hunter', 'evidence_sufficiency_check');
 
@@ -106,17 +139,24 @@ export function selectCognitiveAutomations(context: KernelContext): CognitiveAut
   const hasSimulations = context.simulations.length > 0;
   const hasPredictions = context.predictions.length > 0;
 
-  if (hasEvidence || hasAny(text, ['time', 'temporal', 'timeline', 'fecha', 'periodo', 'horizon', 'return'])) {
+  if (hasEvidence || hasAny(text, ['time', 'temporal', 'timeline', 'fecha', 'periodo', 'horizon', 'return', 'retorno', 'ventana'])) {
     choose('temporal_resolver', hasEvidence ? 'evidence_has_temporal_coordinate' : 'temporal_intent');
   }
 
-  if (hasAny(text, ['history', 'histor', 'precedent', 'anterior', 'longitudinal', 'reconstruct'])) {
+  if (hasAny(text, ['history', 'histor', 'precedent', 'anterior', 'longitudinal', 'reconstruct', 'reconstru', 'recurren', 'repetid'])) {
     choose('historical_scout', 'historical_reconstruction_intent');
     choose('phenotype_resolver', 'structural_precedent_comparison');
   }
 
-  if (hasEvidence || hasHypotheses || hasContradictions) {
+  if (hasEvidence || hasHypotheses || hasContradictions || materialObservationAvailable) {
     choose('context_builder', 'context_required_for_available_signals');
+  }
+
+  // Friction analysis is a core SFI projection over substantive material. It is
+  // selected whenever a real observation is available, not only when the user
+  // happens to say "simulate" or "friction".
+  if (materialObservationAvailable || hasEvidence) {
+    choose('friction_field_simulator', materialObservationAvailable ? 'material_observation_requires_friction_analysis' : 'evidence_requires_friction_analysis');
   }
 
   if (hasHypotheses || hasContradictions) {
@@ -124,35 +164,42 @@ export function selectCognitiveAutomations(context: KernelContext): CognitiveAut
     choose('entropy_redistribution', 'unresolved_uncertainty_present');
   }
 
-  const simulationIntent = hasSimulations || hasAny(text, ['simulate', 'simulation', 'simular', 'scenario', 'escenario', 'model']);
+  const simulationIntent = hasSimulations || hasAny(text, ['simulate', 'simulation', 'simular', 'scenario', 'escenario', 'model', 'modelo']);
   if (simulationIntent) {
     choose('friction_field_simulator', 'simulation_intent');
     choose('cross_impact', 'simulation_requires_coupling_check');
     if (hasAny(text, ['economic', 'econom', 'market', 'mercado', 'capital', 'labor'])) choose('economic_field_simulator', 'economic_domain');
-    if (hasAny(text, ['social', 'population', 'trust', 'sociedad', 'poblacion'])) choose('social_field_simulator', 'social_domain');
-    if (hasAny(text, ['cultural', 'culture', 'narrative', 'symbol', 'attention'])) choose('cultural_simulator', 'cultural_domain');
-    if (hasAny(text, ['psych', 'desire', 'fear', 'memory', 'reward', 'moph'])) choose('psychological_simulator', 'psychological_domain');
-    if (hasAny(text, ['policy', 'governance', 'regulation', 'politic', 'government'])) choose('policy_simulator', 'policy_domain');
+    if (hasAny(text, ['social', 'population', 'trust', 'sociedad', 'poblacion', 'confianza'])) choose('social_field_simulator', 'social_domain');
+    if (hasAny(text, ['cultural', 'culture', 'narrative', 'symbol', 'attention', 'cultura', 'narrativa', 'simbolo', 'atencion'])) choose('cultural_simulator', 'cultural_domain');
+    if (hasAny(text, ['psych', 'desire', 'fear', 'memory', 'reward', 'moph', 'psicol', 'deseo', 'miedo', 'memoria'])) choose('psychological_simulator', 'psychological_domain');
+    if (hasAny(text, ['policy', 'governance', 'regulation', 'politic', 'government', 'gobernanza', 'regulacion', 'gobierno'])) choose('policy_simulator', 'policy_domain');
   }
 
-  if (hasPredictions || hasAny(text, ['trajectory', 'project', 'forecast', 'predict', 'proyeccion', 'trayectoria'])) {
-    choose('trajectory_agent', 'projection_or_prediction_intent');
+  if (hasPredictions || structuredPredictionAvailable || hasAny(text, ['trajectory', 'project', 'forecast', 'predict', 'proyeccion', 'proyect', 'trayectoria', 'pronost'])) {
+    choose('trajectory_agent', structuredPredictionAvailable ? 'structured_prediction_available' : 'projection_or_prediction_intent');
   }
 
-  const decisionIntent = hasAny(text, ['decide', 'decision', 'risk', 'opportunity', 'action', 'execute', 'intervention', 'governance', 'autorizar']);
+  const decisionByClass = ['DECISION', 'INTERVENTION'].includes(caseClass);
+  const decisionIntent = decisionByClass || hasAny(text, [
+    'decide', 'decision', 'decision', 'riesgo', 'risk', 'opportunity', 'oportunidad', 'action', 'accion', 'acciones',
+    'execute', 'ejecut', 'intervention', 'intervencion', 'governance', 'gobernanza', 'autorizar', 'mejora', 'remedi', 'prioriz',
+  ]);
   if (decisionIntent || context.risks.length > 0 || context.opportunities.length > 0) {
-    choose('risk_agent', 'decision_requires_downside_check');
-    choose('opportunity_agent', 'decision_requires_upside_check');
+    choose('risk_agent', decisionByClass ? 'case_class_requires_downside_check' : 'decision_requires_downside_check');
+    choose('opportunity_agent', decisionByClass ? 'case_class_requires_upside_check' : 'decision_requires_upside_check');
   }
 
-  const governedActionIntent = hasAny(text, ['execute', 'execution', 'intervention', 'external action', 'publish', 'spend', 'grant access']);
+  const governedActionIntent = caseClass === 'INTERVENTION' || hasAny(text, [
+    'execute', 'execution', 'ejecut', 'intervention', 'intervencion', 'external action', 'accion externa',
+    'publish', 'publicar', 'spend', 'gastar', 'grant access', 'conceder acceso', 'implementar', 'implementacion',
+  ]);
   if (governedActionIntent) {
     choose('multi_stakeholder_bootstrap', 'governed_action_requires_stakeholder_divergence_check');
     choose('project_execution_manager', 'governed_action_requires_dependency_plan');
   }
 
-  if (hasPredictions || hasAny(text, ['outcome', 'return', 'returned', 'resultado', 'retorno', 'calibrate', 'calibrar'])) {
-    choose('reality_calibration', 'observed_return_or_prediction_requires_calibration');
+  if (hasPredictions || structuredPredictionAvailable || hasAny(text, ['outcome', 'return', 'returned', 'resultado', 'retorno', 'calibrate', 'calibrar', 'contrastar', 'contraste'])) {
+    choose('reality_calibration', structuredPredictionAvailable ? 'structured_prediction_requires_future_calibration' : 'observed_return_or_prediction_requires_calibration');
   }
 
   const automationIds = SFI_COGNITIVE_AUTOMATION_ORDER.filter((id) => selected.has(id));

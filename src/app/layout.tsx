@@ -4,6 +4,7 @@ import Script from 'next/script';
 import type { ReactNode } from 'react';
 import { AuthProvider } from '@/components/auth/AuthProvider';
 import { SfiConsentBanner } from '@/components/analytics/SfiConsentBanner';
+import { SfiLanguageProvider, SfiUiText } from '@/components/i18n/SfiLanguageProvider';
 
 const BASE = 'https://systemfriction.org';
 const GA_ID = 'G-P8G69HMYLM';
@@ -93,11 +94,18 @@ gtag('consent', 'default', {
 gtag('config', '${GA_ID}');`}
         </Script>
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} />
-        <AuthProvider>{children}</AuthProvider>
-        <footer style={{ background: '#080806', borderTop: '1px solid rgba(205,164,93,.12)', padding: '14px 20px', textAlign: 'center', fontFamily: 'Inter, ui-sans-serif, system-ui, sans-serif', fontSize: 11, letterSpacing: '.08em' }}>
-          <a href="/privacy" style={{ color: '#8f7855', textDecoration: 'none' }}>PRIVACY & EXTERNAL AGENT DATA POLICY</a>
-        </footer>
-        <SfiConsentBanner />
+        <SfiLanguageProvider>
+          <AuthProvider>{children}</AuthProvider>
+          <footer style={{ background: '#080806', borderTop: '1px solid rgba(205,164,93,.12)', padding: '14px 20px', textAlign: 'center', fontFamily: 'Inter, ui-sans-serif, system-ui, sans-serif', fontSize: 11, letterSpacing: '.08em' }}>
+            <a href="/privacy" style={{ color: '#8f7855', textDecoration: 'none' }}>
+              <SfiUiText
+                es="PRIVACIDAD Y POLÍTICA DE DATOS PARA AGENTES EXTERNOS"
+                en="PRIVACY & EXTERNAL AGENT DATA POLICY"
+              />
+            </a>
+          </footer>
+          <SfiConsentBanner />
+        </SfiLanguageProvider>
       </body>
     </html>
   );

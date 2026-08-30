@@ -1,13 +1,15 @@
 import 'server-only';
 
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
+import { structuredResultMatchesSignalIdentity } from '@/lib/sfi/universalObservationIdentity';
 import { normalizeUniversalSignal, type UniversalCycleInput } from '@/lib/sfi/universalSignalCycle';
 
-export const SFI_UNIVERSAL_OBSERVATION_HYDRATOR_CONTRACT = 'SFI-UNIVERSAL-OBSERVATION-HYDRATOR-1.0' as const;
+export const SFI_UNIVERSAL_OBSERVATION_HYDRATOR_CONTRACT = 'SFI-UNIVERSAL-OBSERVATION-HYDRATOR-1.1' as const;
 
 type Row = Record<string, unknown>;
-
 type ServiceDb = ReturnType<typeof createServiceSupabaseClient>;
+type HydrationOptions = { resumeCycleId?: string | null };
+type HydrationEvent = { event_id?: unknown; event_name?: unknown; payload?: unknown; occurred_at?: unknown };
 
 function row(value: unknown): Row {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Row : {};
@@ -20,24 +22,29 @@ function text(value: unknown) {
 function hasMaterialExtraction(value: unknown) {
   const extracted = row(value);
   if (Object.keys(extracted).length === 0) return false;
-  const schema = extracted.schema ?? extracted.fields ?? extracted.columns ?? extracted.headers;
-  const count = extracted.rowCount ?? extracted.recordCount ?? extracted.totalRows ?? extracted.count;
+  const measurements = row(extracted.measurements);
+  const schema = extracted.schema
+    ?? extracted.fields
+    ?? extracted.columns
+    ?? extracted.headers
+    ?? measurements.schema
+    ?? measurements.fields
+    ?? measurements.columns
+    ?? measurements.headers;
+  const count = extracted.rowCount
+    ?? extracted.recordCount
+    ?? extracted.totalRows
+    ?? extracted.count
+    ?? measurements.rowCount
+    ?? measurements.recordCount
+    ?? measurements.totalRows
+    ?? measurements.count;
   return (Array.isArray(schema) && schema.length > 0) || (Number.isFinite(Number(count)) && Number(count) >= 0);
 }
 
 function tenantMatches(payload: Row, tenantId: string) {
   const eventTenant = text(payload.tenantId);
   return !eventTenant || eventTenant === tenantId;
-}
-
-function matchStructuredResult(payload: Row, normalized: ReturnType<typeof normalizeUniversalSignal>) {
-  const object = row(payload.object);
-  const eventHash = text(payload.objectHash) ?? text(object.objectHash) ?? text(object.contentHash) ?? text(object.fingerprint);
-  const eventKey = text(payload.objectKey) ?? text(object.objectKey);
-  const eventAssetRef = text(object.assetRef);
-  if (eventHash && normalized.objectHashBasis !== 'REFERENCE_IDENTITY' && eventHash === normalized.objectHash) return true;
-  if (eventKey && eventKey === normalized.objectKey) return true;
-  return Boolean(eventAssetRef && normalized.assetRef && eventAssetRef === normalized.assetRef);
 }
 
 function matchDatasetProfile(payload: Row, normalized: ReturnType<typeof normalizeUniversalSignal>) {
@@ -50,17 +57,47 @@ function matchDatasetProfile(payload: Row, normalized: ReturnType<typeof normali
 
 function extractionFromStructuredResult(payload: Row) {
   const result = row(payload.result);
+  const measurements = row(result.measurements);
   const profile = row(result.profile);
   const observations = row(profile.observations);
   const source = row(profile.source);
   return {
     ...result,
     ...(Object.keys(profile).length ? { profile } : {}),
-    schema: result.schema ?? result.fields ?? result.columns ?? result.headers ?? observations.schema ?? observations.headers ?? null,
-    rowCount: result.rowCount ?? result.recordCount ?? result.totalRows ?? observations.totalRows ?? null,
-    analyzableRowCount: result.analyzableRowCount ?? observations.totalAnalyzableRows ?? null,
-    malformedRows: result.malformedRows ?? observations.totalMalformedRows ?? null,
-    sourceContentHash: text(source.contentHash) ?? null,
+    schema: result.schema
+      ?? result.fields
+      ?? result.columns
+      ?? result.headers
+      ?? measurements.schema
+      ?? measurements.fields
+      ?? measurements.columns
+      ?? measurements.headers
+      ?? observations.schema
+      ?? observations.headers
+      ?? null,
+    rowCount: result.rowCount
+      ?? result.recordCount
+      ?? result.totalRows
+      ?? measurements.rowCount
+      ?? measurements.recordCount
+      ?? measurements.totalRows
+      ?? observations.totalRows
+      ?? null,
+    analyzableRowCount: result.analyzableRowCount
+      ?? measurements.analyzableRowCount
+      ?? observations.totalAnalyzableRows
+      ?? null,
+    malformedRows: result.malformedRows
+      ?? measurements.malformedRows
+      ?? observations.totalMalformedRows
+      ?? null,
+    sheetCount: result.sheetCount
+      ?? measurements.sheetCount
+      ?? observations.sheetCount
+      ?? null,
+    sourceContentHash: text(source.contentHash) ?? text(row(payload.object).objectHash) ?? null,
+    structuredResultCycleId: text(payload.cycleId),
+    hydrationBasis: 'SFI_STRUCTURED_ANALYSIS_RESULT_RECEIVED',
   };
 }
 
@@ -109,8 +146,13 @@ async function extractionFromDatasetProfile(db: ServiceDb, payload: Row) {
   };
 }
 
-export async function hydrateUniversalCycleInput(input: UniversalCycleInput, tenantId: string) {
+export async function hydrateUniversalCycleInput(
+  input: UniversalCycleInput,
+  tenantId: string,
+  options: HydrationOptions = {},
+) {
   const normalized = normalizeUniversalSignal(input.signal);
+  const resumeCycleId = text(options.resumeCycleId);
   if (hasMaterialExtraction(input.signal.extracted) || input.signal.content !== null && input.signal.content !== undefined) {
     return {
       contract: SFI_UNIVERSAL_OBSERVATION_HYDRATOR_CONTRACT,
@@ -122,73 +164,113 @@ export async function hydrateUniversalCycleInput(input: UniversalCycleInput, ten
   }
 
   const db = createServiceSupabaseClient();
-  const events = await db.from('epistemic_events')
-    .select('event_id,event_name,payload,occurred_at')
-    .in('event_name', ['SFI_STRUCTURED_ANALYSIS_RESULT_RECEIVED', 'SFI_DATASET_PROFILE_ADMITTED'])
-    .order('sequence', { ascending: false })
-    .limit(300);
-  if (events.error) {
+  const eventNames = ['SFI_STRUCTURED_ANALYSIS_RESULT_RECEIVED', 'SFI_DATASET_PROFILE_ADMITTED'];
+
+  const tryHydrationCandidates = async (candidates: HydrationEvent[]) => {
+    for (const event of candidates) {
+      const payload = row(event.payload);
+      if (!tenantMatches(payload, tenantId)) continue;
+      if (
+        event.event_name === 'SFI_STRUCTURED_ANALYSIS_RESULT_RECEIVED'
+        && structuredResultMatchesSignalIdentity(payload, normalized, resumeCycleId)
+      ) {
+        const extracted = extractionFromStructuredResult(payload);
+        if (!hasMaterialExtraction(extracted)) continue;
+        return {
+          contract: SFI_UNIVERSAL_OBSERVATION_HYDRATOR_CONTRACT,
+          hydrated: true,
+          basis: 'SFI_STRUCTURED_ANALYSIS_RESULT_RECEIVED',
+          eventId: String(event.event_id ?? ''),
+          input: {
+            ...input,
+            signal: {
+              ...input.signal,
+              extracted: { ...row(input.signal.extracted), ...extracted },
+              provenance: {
+                ...row(input.signal.provenance),
+                hydratedFromEventId: String(event.event_id ?? ''),
+                hydratedFromCycleId: text(payload.cycleId),
+                hydrationContract: SFI_UNIVERSAL_OBSERVATION_HYDRATOR_CONTRACT,
+              },
+            },
+          } as UniversalCycleInput,
+        };
+      }
+      if (event.event_name === 'SFI_DATASET_PROFILE_ADMITTED' && matchDatasetProfile(payload, normalized)) {
+        const extracted = await extractionFromDatasetProfile(db, payload);
+        if (!hasMaterialExtraction(extracted)) continue;
+        return {
+          contract: SFI_UNIVERSAL_OBSERVATION_HYDRATOR_CONTRACT,
+          hydrated: true,
+          basis: 'SFI_DATASET_PROFILE_ADMITTED',
+          eventId: String(event.event_id ?? ''),
+          input: {
+            ...input,
+            signal: {
+              ...input.signal,
+              objectHash: text(payload.contentHash) ?? input.signal.objectHash,
+              extracted: { ...row(input.signal.extracted), ...extracted },
+              provenance: {
+                ...row(input.signal.provenance),
+                hydratedFromEventId: String(event.event_id ?? ''),
+                caseId: text(payload.caseId),
+                observationRef: text(row(payload.observationRef).id),
+                hydrationContract: SFI_UNIVERSAL_OBSERVATION_HYDRATOR_CONTRACT,
+              },
+            },
+          } as UniversalCycleInput,
+        };
+      }
+    }
+    return null;
+  };
+
+  const cycleEvents = resumeCycleId
+    ? await db.from('epistemic_events')
+        .select('event_id,event_name,payload,occurred_at')
+        .in('event_name', eventNames)
+        .eq('payload->>cycleId', resumeCycleId)
+        .order('sequence', { ascending: false })
+        .limit(100)
+    : null;
+
+  if (cycleEvents?.error) {
     return {
       contract: SFI_UNIVERSAL_OBSERVATION_HYDRATOR_CONTRACT,
       hydrated: false,
       basis: 'HYDRATION_LOOKUP_DEGRADED',
-      warning: events.error.message,
+      warning: cycleEvents.error.message,
       eventId: null,
       input,
     };
   }
 
-  for (const event of events.data ?? []) {
-    const payload = row(event.payload);
-    if (!tenantMatches(payload, tenantId)) continue;
-    if (event.event_name === 'SFI_STRUCTURED_ANALYSIS_RESULT_RECEIVED' && matchStructuredResult(payload, normalized)) {
-      const extracted = extractionFromStructuredResult(payload);
-      if (!hasMaterialExtraction(extracted)) continue;
-      return {
-        contract: SFI_UNIVERSAL_OBSERVATION_HYDRATOR_CONTRACT,
-        hydrated: true,
-        basis: 'SFI_STRUCTURED_ANALYSIS_RESULT_RECEIVED',
-        eventId: String(event.event_id ?? ''),
-        input: {
-          ...input,
-          signal: {
-            ...input.signal,
-            extracted: { ...row(input.signal.extracted), ...extracted },
-            provenance: {
-              ...row(input.signal.provenance),
-              hydratedFromEventId: String(event.event_id ?? ''),
-              hydrationContract: SFI_UNIVERSAL_OBSERVATION_HYDRATOR_CONTRACT,
-            },
-          },
-        } as UniversalCycleInput,
-      };
-    }
-    if (event.event_name === 'SFI_DATASET_PROFILE_ADMITTED' && matchDatasetProfile(payload, normalized)) {
-      const extracted = await extractionFromDatasetProfile(db, payload);
-      if (!hasMaterialExtraction(extracted)) continue;
-      return {
-        contract: SFI_UNIVERSAL_OBSERVATION_HYDRATOR_CONTRACT,
-        hydrated: true,
-        basis: 'SFI_DATASET_PROFILE_ADMITTED',
-        eventId: String(event.event_id ?? ''),
-        input: {
-          ...input,
-          signal: {
-            ...input.signal,
-            objectHash: text(payload.contentHash) ?? input.signal.objectHash,
-            extracted: { ...row(input.signal.extracted), ...extracted },
-            provenance: {
-              ...row(input.signal.provenance),
-              hydratedFromEventId: String(event.event_id ?? ''),
-              caseId: text(payload.caseId),
-              observationRef: text(row(payload.observationRef).id),
-              hydrationContract: SFI_UNIVERSAL_OBSERVATION_HYDRATOR_CONTRACT,
-            },
-          },
-        } as UniversalCycleInput,
-      };
-    }
+  // Same-cycle observations always get first priority. Their mere presence does
+  // not suppress a compatible fallback: only a successful material hydration does.
+  const cycleHydration = await tryHydrationCandidates((cycleEvents?.data ?? []) as HydrationEvent[]);
+  if (cycleHydration) return cycleHydration;
+
+  const fallbackEvents = await db.from('epistemic_events')
+    .select('event_id,event_name,payload,occurred_at')
+    .in('event_name', eventNames)
+    .order('sequence', { ascending: false })
+    .limit(300);
+
+  if (fallbackEvents.error) {
+    return {
+      contract: SFI_UNIVERSAL_OBSERVATION_HYDRATOR_CONTRACT,
+      hydrated: false,
+      basis: 'HYDRATION_LOOKUP_DEGRADED',
+      warning: fallbackEvents.error.message,
+      eventId: null,
+      input,
+    };
   }
+
+  const cycleEventIds = new Set((cycleEvents?.data ?? []).map((event) => String(event.event_id ?? '')).filter(Boolean));
+  const fallbackCandidates = (fallbackEvents.data ?? []).filter((event) => !cycleEventIds.has(String(event.event_id ?? ''))) as HydrationEvent[];
+  const fallbackHydration = await tryHydrationCandidates(fallbackCandidates);
+  if (fallbackHydration) return fallbackHydration;
 
   return {
     contract: SFI_UNIVERSAL_OBSERVATION_HYDRATOR_CONTRACT,

@@ -1,0 +1,183 @@
+{
+  "contract": "SFI-COMMUNICATION-PROTOCOL-1.0",
+  "purpose": "Translate canonical SFI state into human communication without changing epistemic status, authority, evidence, lineage, or canonical terminology.",
+  "defaultMode": "CASE_ANALYSIS",
+  "principle": "machine_preserves_precision_human_output_preserves_meaning",
+  "voice": {
+    "clinical": true,
+    "analytical": true,
+    "stable": true,
+    "moralizing": false,
+    "operationalDramatization": false,
+    "authorityBasis": "conceptual_precision_and_traceability",
+    "preferredProgression": [
+      "condition",
+      "observation",
+      "relation",
+      "friction",
+      "interpretation",
+      "limit",
+      "next_observation"
+    ]
+  },
+  "canonicalVocabulary": {
+    "semanticDriftAllowed": false,
+    "simplificationAllowed": true,
+    "redefinitionAllowed": false,
+    "rule": "A canonical acronym or variable may be explained in ordinary language but must not be expanded or redefined with a different meaning. If the canonical definition is not supplied, leave the acronym unexplained or request/resolve the canonical definition rather than inventing one."
+  },
+  "scientificLanguage": {
+    "strongTermsRequireExplicitBasis": true,
+    "terms": [
+      "mathematically_inevitable",
+      "demonstrated",
+      "stochastic_demonstration",
+      "caused_by",
+      "proves",
+      "infinite"
+    ],
+    "requiredBasis": [
+      "defined_model_or_test",
+      "assumptions",
+      "observable_variables",
+      "reproducible_derivation_or_evidence"
+    ],
+    "fallback": "Use bounded language such as suggests, is compatible with, cannot yet be estimated, or would imply under the stated assumptions."
+  },
+  "humanAnalysis": {
+    "requiredSections": [
+      "declaredContext",
+      "observedEvidence",
+      "externalContrast",
+      "frictionReading",
+      "competingInterpretations",
+      "notDemonstrated",
+      "nextObservation"
+    ],
+    "answerFirst": true,
+    "technicalTraceOptional": true
+  },
+  "epistemicTranslation": {
+    "DECLARED": "Lo afirmó el operador, documento o sistema; establece contexto pero no prueba el hecho.",
+    "OBSERVED": "Puede sostenerse directamente con material observado y procedencia identificable.",
+    "DERIVED": "Se obtiene mediante una transformación o cálculo reproducible de lo observado.",
+    "SOURCE_CLAIM": "Una fuente externa lo afirma; puede corroborar o contradecir pero no se convierte automáticamente en evidencia aceptada.",
+    "INFERRED": "Es una interpretación compatible con la evidencia disponible, no un hecho demostrado.",
+    "SIMULATED": "Es una proyección o ensayo de comportamiento, no una observación del mundo.",
+    "MISSING": "No existe evidencia suficiente para resolver este punto."
+  },
+  "frictionRules": {
+    "measuredFrom": ["OBSERVED", "DERIVED"],
+    "cannotBeMeasuredFrom": ["DECLARED", "SOURCE_CLAIM", "INFERRED", "MISSING"],
+    "recognizedRelations": [
+      "distance_between_declared_and_observed_state",
+      "recurrence",
+      "latency",
+      "contradiction",
+      "traceability_loss",
+      "saturation",
+      "decoupling",
+      "dependency",
+      "return_failure"
+    ],
+    "negativeWordIsNotFriction": true,
+    "frictionDoesNotEstablishCause": true
+  },
+  "modes": {
+    "CASE_ANALYSIS": {
+      "audience": "operator_or_case_reader",
+      "order": [
+        "mainFinding",
+        "observedEvidence",
+        "frictions",
+        "externalContrast",
+        "hypothesesAndRivals",
+        "notDemonstrated",
+        "nextObservation"
+      ],
+      "metaphor": "avoid"
+    },
+    "ROOT_OPERATOR": {
+      "audience": "institutional_operator",
+      "adds": [
+        "attentionRequired",
+        "automaticContinuation",
+        "authorizationRequired",
+        "blockingReason",
+        "expectedReturn"
+      ],
+      "metaphor": "avoid"
+    },
+    "PUBLIC_ESSAY": {
+      "audience": "public_reader",
+      "allows": [
+        "controlled_repetition",
+        "contrast",
+        "controlled_metaphor",
+        "short_scale_transition_sentences"
+      ],
+      "epistemicBoundaryStillApplies": true
+    },
+    "TECHNICAL_AUDIT": {
+      "audience": "technical_or_reproducibility_reader",
+      "explicitOnly": true,
+      "allows": [
+        "event_ids",
+        "hashes",
+        "contracts",
+        "routes",
+        "versions",
+        "implementation_files",
+        "internal_status_codes"
+      ]
+    }
+  },
+  "humanOutputProhibitions": [
+    "raw_internal_event_names_as_explanation",
+    "raw_enums_as_explanation",
+    "snake_case_as_explanation",
+    "blocking_codes_without_translation",
+    "full_hashes_unless_requested",
+    "function_names_unless_requested",
+    "implementation_file_names_unless_requested",
+    "canonical_acronym_redefined",
+    "scientific_force_without_explicit_basis",
+    "inference_presented_as_fact",
+    "source_claim_presented_as_accepted_evidence",
+    "recurrence_presented_as_causality",
+    "simulation_presented_as_observation",
+    "proposal_presented_as_execution",
+    "execution_presented_as_result",
+    "closure_presented_as_learning",
+    "uncertainty_hidden_inside_score",
+    "moralization_when_structural_description_is_available"
+  ],
+  "forbiddenHumanPatterns": [
+    "^[A-Z0-9]+(?:_[A-Z0-9]+)+$",
+    "\\b[A-Z][A-Z0-9]+(?:_[A-Z0-9]+){1,}\\b"
+  ],
+  "examples": {
+    "NO_MATCHING_MATERIAL_OBSERVATION": "SFI encontró el análisis previo, pero no pudo vincularlo de forma segura con este ciclo.",
+    "INSUFFICIENT_OBJECT_OBSERVATION": "Falta observar material suficiente para responder sin inventar.",
+    "SOURCE_CLAIM": "La fuente externa afirma esto; todavía debe distinguirse de lo observado directamente en el caso.",
+    "INFERRED": "Esto es una interpretación compatible con la evidencia disponible, no un hecho demostrado.",
+    "MISSING": "No hay evidencia suficiente para resolver este punto."
+  },
+  "surfaces": {
+    "FIELD": "what_appeared_and_with_what_provenance",
+    "STUDIO": "what_was_done_what_changed_and_what_requires_verification",
+    "WORLD_FIELD": "external_context_source_time_scope_and_limit",
+    "OBSERVATORY": "aggregated_reading_with_visible_mediation_provenance_and_limits",
+    "ROOT": "state_operational_cause_required_decision_and_next_expected_event",
+    "COGNITIVE_RUNTIME": "complex_internal_reasoning_translated_before_human_delivery"
+  },
+  "closingStates": [
+    "observed_and_supported",
+    "reproducibly_derived",
+    "inferred_with_rival",
+    "externally_corroborated_or_contradicted_without_evidence_upgrade",
+    "still_unknown",
+    "next_observation_identified",
+    "action_justified_return_not_yet_observed"
+  ]
+}
