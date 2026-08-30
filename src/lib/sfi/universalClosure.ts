@@ -139,7 +139,6 @@ function trustedCycleLinkedEvidenceRefs(history: History) {
     const event = row(value);
     const eventName = text(event.event_name);
     if (!eventName || !TRUSTED_CYCLE_LINK_EVENTS.has(eventName)) continue;
-    for (const ref of stringList(event.lineage)) refs.add(ref);
     const payload = row(event.payload);
     for (const ref of [text(payload.webEvidenceEventId), text(payload.hydrationEventId)]) {
       if (ref) refs.add(ref);
@@ -418,7 +417,7 @@ export async function contrastLatestUniversalReturn(input: {
       updatedConfidence,
       calibrationStatus,
       calibrationHeuristic: 'BOUNDED_DIRECTIONAL_V1',
-      epistemicBoundary: 'Contrast records the relationship between preregistered expectations and an observed return. Calibration requires references to evidence-bearing events, excludes RETURN/contrast/closure lifecycle records, and accepts pre-runtime web evidence only when a trusted cycle lifecycle event canonically links it to this tenant/cycle. Declared references are never trusted by string presence alone. Updated confidence is a bounded heuristic, not a truth probability or canonical promotion.',
+      epistemicBoundary: 'Contrast records the relationship between preregistered expectations and an observed return. Calibration requires references to evidence-bearing events, excludes RETURN/contrast/closure lifecycle records, and accepts pre-runtime web evidence only when a trusted cycle lifecycle event explicitly identifies that acquisition event for this tenant/cycle. Generic lifecycle lineage, object hashes and caller-controlled identifiers never confer evidence status. Updated confidence is a bounded heuristic, not a truth probability or canonical promotion.',
     },
     occurredAt: new Date().toISOString(),
     source: { sourceId: 'reality_calibration', sourceType: 'return_contrast' },
