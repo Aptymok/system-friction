@@ -1,4 +1,6 @@
 import { lookup } from 'node:dns/promises';
+import { request as httpRequest, type IncomingMessage } from 'node:http';
+import { request as httpsRequest } from 'node:https';
 import { isIP } from 'node:net';
 import { appendEpistemicEvent } from '@/lib/events/eventStore';
 
@@ -122,16 +124,17 @@ function safePublicUrl(value: string) {
   }
 }
 
-async function resolvesOnlyToPublicAddresses(value: string) {
-  if (!safePublicUrl(value)) return false;
+async function resolvePublicAddresses(value: string) {
+  if (!safePublicUrl(value)) return [] as string[];
   const parsed = new URL(value);
   const hostname = normalizeHostname(parsed.hostname);
-  if (isIP(hostname)) return !isNonPublicNetworkAddress(hostname);
+  if (isIP(hostname)) return isNonPublicNetworkAddress(hostname) ? [] : [hostname];
   try {
     const addresses = await lookup(hostname, { all: true, verbatim: true });
-    return addresses.length > 0 && addresses.every((entry) => !isNonPublicNetworkAddress(entry.address));
+    if (!addresses.length || addresses.some((entry) => isNonPublicNetworkAddress(entry.address))) return [];
+    return [...new Set(addresses.map((entry) => normalizeHostname(entry.address)))];
   } catch {
-    return false;
+    return [] as string[];
   }
 }
 
@@ -319,7 +322,6 @@ function htmlToEvidenceText(value: string) {
   const lower = value.toLowerCase();
   let output = '';
   let cursor = 0;
-
   while (cursor < value.length) {
     const tagStart = value.indexOf('<', cursor);
     if (tagStart < 0) {
@@ -373,66 +375,141 @@ function coverageFor(content: string, terms: string[]) {
   return matched / terms.length;
 }
 
-async function readResponseTextBounded(response: Response) {
-  const declaredLength = Number(response.headers.get('content-length') ?? Number.NaN);
-  let truncated = Number.isFinite(declaredLength) && declaredLength > MAX_DIRECT_SOURCE_BYTES;
-  if (!response.body) return { text: '', bytesRead: 0, truncated };
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
-  let bytesRead = 0;
-  let output = '';
-  while (bytesRead < MAX_DIRECT_SOURCE_BYTES) {
-    const { done, value } = await reader.read();
-    if (done) {
-      output += decoder.decode();
-      return { text: output, bytesRead, truncated };
+function readIncomingMessageBounded(response: IncomingMessage) {
+  return new Promise<{ text: string; bytesRead: number; truncated: boolean }>((resolve, reject) => {
+    const declaredLength = Number(response.headers['content-length'] ?? Number.NaN);
+    let truncated = Number.isFinite(declaredLength) && declaredLength > MAX_DIRECT_SOURCE_BYTES;
+    let bytesRead = 0;
+    const chunks: Buffer[] = [];
+    let settled = false;
+
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      resolve({ text: Buffer.concat(chunks).toString('utf8'), bytesRead, truncated });
+    };
+
+    response.on('data', (value: Buffer | string) => {
+      if (settled) return;
+      const chunk = Buffer.isBuffer(value) ? value : Buffer.from(value);
+      const remaining = MAX_DIRECT_SOURCE_BYTES - bytesRead;
+      if (remaining <= 0) {
+        truncated = true;
+        response.destroy();
+        finish();
+        return;
+      }
+      if (chunk.length > remaining) {
+        chunks.push(chunk.subarray(0, remaining));
+        bytesRead += remaining;
+        truncated = true;
+        response.destroy();
+        finish();
+        return;
+      }
+      chunks.push(chunk);
+      bytesRead += chunk.length;
+    });
+    response.on('end', finish);
+    response.on('error', (error) => {
+      if (!settled) reject(error);
+    });
+  });
+}
+
+type PinnedResponse = {
+  status: number;
+  contentType: string | null;
+  location: string | null;
+  bodyText: string;
+  truncated: boolean;
+};
+
+function requestPinnedAddress(urlValue: string, address: string): Promise<PinnedResponse> {
+  const parsed = new URL(urlValue);
+  const originalHostname = normalizeHostname(parsed.hostname);
+  const common = {
+    hostname: address,
+    port: parsed.port ? Number(parsed.port) : undefined,
+    method: 'GET',
+    path: `${parsed.pathname}${parsed.search}`,
+    headers: {
+      Accept: 'text/html,text/plain,application/xhtml+xml',
+      Host: parsed.host,
+      'User-Agent': 'SystemFrictionInstitute/1.1 source-corroboration',
+    },
+  };
+
+  return new Promise((resolve, reject) => {
+    const request = parsed.protocol === 'https:'
+      ? httpsRequest({
+          ...common,
+          servername: isIP(originalHostname) ? undefined : originalHostname,
+          rejectUnauthorized: true,
+        }, async (response) => {
+          try {
+            const body = await readIncomingMessageBounded(response);
+            resolve({
+              status: response.statusCode ?? 0,
+              contentType: text(response.headers['content-type']),
+              location: text(response.headers.location),
+              bodyText: body.text,
+              truncated: body.truncated,
+            });
+          } catch (error) { reject(error); }
+        })
+      : httpRequest(common, async (response) => {
+          try {
+            const body = await readIncomingMessageBounded(response);
+            resolve({
+              status: response.statusCode ?? 0,
+              contentType: text(response.headers['content-type']),
+              location: text(response.headers.location),
+              bodyText: body.text,
+              truncated: body.truncated,
+            });
+          } catch (error) { reject(error); }
+        });
+
+    request.setTimeout(8_000, () => request.destroy(new Error('DIRECT_FETCH_TIMEOUT')));
+    request.on('error', reject);
+    request.end();
+  });
+}
+
+async function requestPinnedSource(urlValue: string, addresses: string[]) {
+  let lastError: unknown = null;
+  for (const address of addresses.slice(0, 4)) {
+    try {
+      return await requestPinnedAddress(urlValue, address);
+    } catch (error) {
+      lastError = error;
     }
-    if (!value?.byteLength) continue;
-    const remaining = MAX_DIRECT_SOURCE_BYTES - bytesRead;
-    if (value.byteLength > remaining) {
-      output += decoder.decode(value.subarray(0, remaining), { stream: true });
-      bytesRead += remaining;
-      truncated = true;
-      await reader.cancel('SFI_DIRECT_SOURCE_BYTE_LIMIT');
-      output += decoder.decode();
-      return { text: output, bytesRead, truncated };
-    }
-    output += decoder.decode(value, { stream: true });
-    bytesRead += value.byteLength;
   }
-  truncated = true;
-  await reader.cancel('SFI_DIRECT_SOURCE_BYTE_LIMIT');
-  output += decoder.decode();
-  return { text: output, bytesRead, truncated };
+  throw lastError instanceof Error ? lastError : new Error('DIRECT_FETCH_NO_VALIDATED_ADDRESS_CONNECTED');
 }
 
 async function fetchDirectSource(source: UniversalWebSource, terms: string[]): Promise<UniversalWebSource> {
   let currentUrl = source.url;
   for (let redirect = 0; redirect < 3; redirect += 1) {
-    if (!await resolvesOnlyToPublicAddresses(currentUrl)) {
+    // Resolve once, reject if any address is non-public, then connect only to an
+    // address from this validated set. The network connection cannot perform a
+    // second unpinned DNS resolution and therefore cannot be DNS-rebound.
+    const validatedAddresses = await resolvePublicAddresses(currentUrl);
+    if (!validatedAddresses.length) {
       return { ...source, verification: { directFetch: false, httpStatus: null, contentType: null, excerpt: null, queryCoverage: 0, verifiedAt: null, warning: 'UNSAFE_OR_UNRESOLVABLE_SOURCE_URL' } };
     }
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 8_000);
     try {
-      const response = await fetch(currentUrl, {
-        headers: { Accept: 'text/html,text/plain,application/xhtml+xml', 'User-Agent': 'SystemFrictionInstitute/1.1 source-corroboration' },
-        signal: controller.signal,
-        cache: 'no-store',
-        redirect: 'manual',
-      });
+      const response = await requestPinnedSource(currentUrl, validatedAddresses);
       if (response.status >= 300 && response.status < 400) {
-        const location = response.headers.get('location');
-        if (!location) break;
-        currentUrl = new URL(location, currentUrl).toString();
+        if (!response.location) break;
+        currentUrl = new URL(response.location, currentUrl).toString();
         continue;
       }
-      const contentType = response.headers.get('content-type');
-      if (!response.ok || !contentType || !/text\/html|text\/plain|application\/xhtml\+xml/i.test(contentType)) {
-        return { ...source, verification: { directFetch: false, httpStatus: response.status, contentType, excerpt: null, queryCoverage: 0, verifiedAt: null, warning: `DIRECT_FETCH_UNUSABLE_${response.status}` } };
+      if (response.status < 200 || response.status >= 300 || !response.contentType || !/text\/html|text\/plain|application\/xhtml\+xml/i.test(response.contentType)) {
+        return { ...source, verification: { directFetch: false, httpStatus: response.status, contentType: response.contentType, excerpt: null, queryCoverage: 0, verifiedAt: null, warning: `DIRECT_FETCH_UNUSABLE_${response.status}` } };
       }
-      const boundedBody = await readResponseTextBounded(response);
-      const plain = htmlToEvidenceText(boundedBody.text).slice(0, 8_000);
+      const plain = htmlToEvidenceText(response.bodyText).slice(0, 8_000);
       const queryCoverage = coverageFor(`${source.title} ${plain}`, terms);
       const directFetch = plain.length > 80;
       const relevanceQualified = queryCoverage >= MIN_VERIFIED_QUERY_COVERAGE;
@@ -440,17 +517,22 @@ async function fetchDirectSource(source: UniversalWebSource, terms: string[]): P
         ? 'DIRECT_FETCH_EMPTY_TEXT'
         : !relevanceQualified
           ? 'DIRECT_FETCH_LOW_QUERY_RELEVANCE'
-          : boundedBody.truncated
+          : response.truncated
             ? 'DIRECT_FETCH_BODY_TRUNCATED'
             : null;
+      const finalSourceType = classifySource(currentUrl, source.title);
+      const finalReliability = reliabilityFor(finalSourceType, currentUrl);
       return {
         ...source,
         url: currentUrl,
+        publisher: host(currentUrl) || source.publisher,
+        sourceType: finalSourceType,
+        reliability: finalReliability,
         snippet: plain ? plain.slice(0, 1600) : source.snippet,
         verification: {
           directFetch,
           httpStatus: response.status,
-          contentType,
+          contentType: response.contentType,
           excerpt: plain ? plain.slice(0, 4000) : null,
           queryCoverage,
           verifiedAt: directFetch ? new Date().toISOString() : null,
@@ -470,8 +552,6 @@ async function fetchDirectSource(source: UniversalWebSource, terms: string[]): P
           warning: `DIRECT_FETCH_FAILED:${error instanceof Error ? error.message : String(error)}`,
         },
       };
-    } finally {
-      clearTimeout(timeout);
     }
   }
   return { ...source, verification: { directFetch: false, httpStatus: null, contentType: null, excerpt: null, queryCoverage: 0, verifiedAt: null, warning: 'DIRECT_FETCH_REDIRECT_LIMIT' } };
@@ -497,7 +577,7 @@ async function boundedPublicRetrieval(queries: string[], lookbackDays: number) {
   const verified = verificationPairs.map((item) => item.verified);
   const sources = discovered.map((source) => verifiedByDiscoveredUrl.get(source.url) ?? source);
   return {
-    provider: 'gdelt_discovery_plus_direct_source_fetch',
+    provider: 'gdelt_discovery_plus_pinned_direct_source_fetch',
     sources,
     warnings: [...warnings, ...verified.flatMap((source) => source.verification?.warning ? [`${source.id}:${source.verification.warning}`] : [])],
   };
@@ -565,8 +645,8 @@ export async function acquireUniversalWebEvidence(inputValue: unknown, actorId: 
       verifiedSourceCount: verifiedSources.length,
       authoritativeVerifiedSourceCount: authoritativeVerified.length,
       satisfied,
-      executionBoundary: 'BOUNDED_DISCOVERY_PLUS_DNS_VALIDATED_DIRECT_SOURCE_FETCH_NO_LLM',
-      epistemicBoundary: 'Direct retrieval establishes that source material was fetched and records an excerpt. Verification additionally requires query relevance and distinct resolved source URLs; authority-sensitive cases require regulator provenance from the source hostname. Neither state makes the source claim accepted evidence or proves causal/factual truth by itself.',
+      executionBoundary: 'BOUNDED_DISCOVERY_PLUS_DNS_PINNED_DIRECT_SOURCE_FETCH_NO_LLM',
+      epistemicBoundary: 'Direct retrieval establishes that source material was fetched and records an excerpt. The connection is pinned to a prevalidated public address, redirects are revalidated and source provenance is recomputed from the final URL. Verification additionally requires query relevance and distinct resolved source URLs; authority-sensitive cases require regulator provenance from the final source hostname. Neither state makes the source claim accepted evidence or proves causal/factual truth by itself.',
     },
     occurredAt: new Date().toISOString(),
     source: { sourceId: 'universal_evidence_acquisition', sourceType: 'public_research' },
