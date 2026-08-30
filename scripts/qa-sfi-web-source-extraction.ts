@@ -32,10 +32,20 @@ requireText('requestPinnedAddress', 'address-pinned request');
 requireText('requestPinnedSource', 'validated-address connection path');
 requireText('hostname: address', 'connection pinned to validated address');
 requireText('Host: parsed.host', 'original HTTP Host preservation');
+requireText('function transportHostname(value: string)', 'transport hostname preservation');
+requireText('const hostname = transportHostname(parsed.hostname)', 'exact DNS hostname preservation');
+requireText('const originalHostname = transportHostname(parsed.hostname)', 'exact TLS hostname preservation');
 requireText('servername: isIP(originalHostname) ? undefined : originalHostname', 'original TLS SNI preservation');
 requireText('const validatedAddresses = await resolvePublicAddresses(currentUrl)', 'per-hop address validation');
 requireText("'UNSAFE_OR_UNRESOLVABLE_SOURCE_URL'", 'unsafe DNS failure state');
 if (source.includes('fetch(currentUrl')) fail('direct source retrieval must not perform an unpinned second DNS resolution');
+if (source.includes('const originalHostname = normalizeHostname(parsed.hostname)')) fail('transport TLS identity must not strip www or otherwise use classification normalization');
+
+requireText('DIRECT_SOURCE_TOTAL_DEADLINE_MS = 8_000', 'total direct-source deadline');
+requireText("request.destroy(new Error('DIRECT_FETCH_TOTAL_DEADLINE'))", 'wall-clock fetch cancellation');
+requireText('DIRECT_SOURCE_INACTIVITY_TIMEOUT_MS = 8_000', 'inactivity timeout retained');
+requireText("request.destroy(new Error('DIRECT_FETCH_INACTIVITY_TIMEOUT'))", 'inactivity cancellation retained');
+requireText("request.on('close'", 'deadline cleanup on request close');
 
 requireText('isRegulatorHostname(hostname)', 'hostname-derived regulator provenance');
 requireText("source.sourceType === 'regulator'", 'authority-sensitive regulator requirement');
@@ -113,6 +123,16 @@ assert.equal(
   'matching material fingerprint and stable key remain compatible',
 );
 assert(hydrator.includes('structuredResultMatchesSignalIdentity(payload, normalized, resumeCycleId)'));
+
+// Same-cycle material is preferred, but unusable cycle events must not suppress a
+// compatible global material observation. Fallback is evaluated only after the
+// cycle-specific candidate pass fails to hydrate.
+assert(hydrator.includes('const cycleHydration = await tryHydrationCandidates'));
+assert(hydrator.includes('if (cycleHydration) return cycleHydration;'));
+assert(hydrator.includes('const fallbackEvents = await db.from'));
+assert(hydrator.includes('const fallbackHydration = await tryHydrationCandidates(fallbackCandidates)'));
+assert(hydrator.indexOf('if (cycleHydration) return cycleHydration;') < hydrator.indexOf("const fallbackEvents = await db.from('epistemic_events')"));
+assert(!hydrator.includes('const fallbackEvents = !resumeCycleId || !(cycleEvents?.data?.length)'), 'fallback must be suppressed by successful hydration, not merely by cycle-event presence');
 
 // Measured zero and unmeasured are distinct. A zero information-friction measure
 // must participate in the aggregate alongside a non-zero temporal measure.
