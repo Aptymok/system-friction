@@ -1,6 +1,6 @@
 {
   "contract": "SFI-COMMUNICATION-PROTOCOL-1.0",
-  "purpose": "Translate canonical SFI state into human communication without changing epistemic status, authority, evidence, or lineage.",
+  "purpose": "Translate canonical SFI state into human communication without changing epistemic status, authority, evidence, lineage, or canonical terminology.",
   "defaultMode": "CASE_ANALYSIS",
   "principle": "machine_preserves_precision_human_output_preserves_meaning",
   "voice": {
@@ -19,6 +19,30 @@
       "limit",
       "next_observation"
     ]
+  },
+  "canonicalVocabulary": {
+    "semanticDriftAllowed": false,
+    "simplificationAllowed": true,
+    "redefinitionAllowed": false,
+    "rule": "A canonical acronym or variable may be explained in ordinary language but must not be expanded or redefined with a different meaning. If the canonical definition is not supplied, leave the acronym unexplained or request/resolve the canonical definition rather than inventing one."
+  },
+  "scientificLanguage": {
+    "strongTermsRequireExplicitBasis": true,
+    "terms": [
+      "mathematically_inevitable",
+      "demonstrated",
+      "stochastic_demonstration",
+      "caused_by",
+      "proves",
+      "infinite"
+    ],
+    "requiredBasis": [
+      "defined_model_or_test",
+      "assumptions",
+      "observable_variables",
+      "reproducible_derivation_or_evidence"
+    ],
+    "fallback": "Use bounded language such as suggests, is compatible with, cannot yet be estimated, or would imply under the stated assumptions."
   },
   "humanAnalysis": {
     "requiredSections": [
@@ -116,6 +140,8 @@
     "full_hashes_unless_requested",
     "function_names_unless_requested",
     "implementation_file_names_unless_requested",
+    "canonical_acronym_redefined",
+    "scientific_force_without_explicit_basis",
     "inference_presented_as_fact",
     "source_claim_presented_as_accepted_evidence",
     "recurrence_presented_as_causality",
