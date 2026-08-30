@@ -1,0 +1,294 @@
+name: SFI Final Cut Hardening
+
+on:
+  push:
+    branches:
+      - merge/universal-cycle-continuity-hardening
+
+permissions:
+  contents: write
+
+jobs:
+  harden:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: merge/universal-cycle-continuity-hardening
+          fetch-depth: 0
+      - name: Apply bounded final-review fixes
+        shell: python
+        run: |
+          from pathlib import Path
+
+          def replace_exact(path, old, new):
+              p = Path(path)
+              text = p.read_text()
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'{path}: expected exactly one match, found {count}')
+              p.write_text(text.replace(old, new))
+
+          cycle = 'src/lib/sfi/universalSignalCycle.ts'
+          replace_exact(cycle,
+          """function safeObservedAt(value: unknown) {
+            if (typeof value !== 'string' || !value.trim()) return null;
+            const parsed = new Date(value);
+            return Number.isFinite(parsed.valueOf()) ? parsed.toISOString() : null;
+          }
+""",
+          """function safeObservedAt(value: unknown) {
+            if (typeof value !== 'string' || !value.trim()) return null;
+            const parsed = new Date(value);
+            return Number.isFinite(parsed.valueOf()) ? parsed.toISOString() : null;
+          }
+          function boundedMaterialContent(value: unknown, maxChars = 12_000) {
+            if (value === null || value === undefined) return null;
+            let rendered: string;
+            try {
+              rendered = typeof value === 'string' ? value : JSON.stringify(value);
+            } catch {
+              rendered = String(value);
+            }
+            if (!rendered) return null;
+            return {
+              text: rendered.slice(0, maxChars),
+              originalChars: rendered.length,
+              truncated: rendered.length > maxChars,
+              representation: typeof value === 'string' ? 'text' : 'json',
+            };
+          }
+""")
+          replace_exact(cycle,
+          """  const hydrationContext = record(inputContext.observationHydration);
+            const hydrationEventId = text(hydrationContext.eventId);
+            const context = createKernelContext(cycleId, logbookId, 'SFI_TASK_REQUESTED');
+""",
+          """  const hydrationContext = record(inputContext.observationHydration);
+            const hydrationEventId = text(hydrationContext.eventId);
+            const hydrationBasis = text(hydrationContext.basis);
+            const canonicalExtraction = hydrationContext.hydrated === true
+              && Boolean(hydrationEventId)
+              && ['SFI_STRUCTURED_ANALYSIS_RESULT_RECEIVED', 'SFI_DATASET_PROFILE_ADMITTED'].includes(hydrationBasis ?? '');
+            const directMaterialContent = boundedMaterialContent(signal.content);
+            const context = createKernelContext(cycleId, logbookId, 'SFI_TASK_REQUESTED');
+""")
+          replace_exact(cycle,
+          """        signalIdentity: {
+                  contract: signal.contract,
+                  kind: signal.kind,
+                  name: signal.name,
+                  mimeType: signal.mimeType,
+                  sourceUrl: signal.sourceUrl,
+                  assetRef: signal.assetRef,
+                  objectHash: signal.objectHash,
+                  objectHashBasis: signal.objectHashBasis,
+                  objectKey: signal.objectKey,
+                },
+                actorId,
+""",
+          """        signalIdentity: {
+                  contract: signal.contract,
+                  kind: signal.kind,
+                  name: signal.name,
+                  mimeType: signal.mimeType,
+                  sourceUrl: signal.sourceUrl,
+                  assetRef: signal.assetRef,
+                  objectHash: signal.objectHash,
+                  objectHashBasis: signal.objectHashBasis,
+                  objectKey: signal.objectKey,
+                },
+                materialContent: directMaterialContent,
+                materialContentBoundary: directMaterialContent
+                  ? 'CONTENT_OBSERVED_AS_SUPPLIED_MATERIAL; CLAIMS_INSIDE_CONTENT_ARE_NOT_AUTO_VERIFIED'
+                  : null,
+                actorId,
+""")
+          replace_exact(cycle,
+          """    context.evidence.push({
+                  id: hydrationEventId ?? `${signal.objectHash}:measurements`,
+                  source: 'UniversalStructuredMeasurements',
+                  confidence: 1,
+                  payload: { epistemicClass: 'derived', measurements: materialMeasurements, hydrationEventId },
+                });
+""",
+          """    context.evidence.push({
+                  id: hydrationEventId ?? `${signal.objectHash}:measurements`,
+                  source: canonicalExtraction ? 'UniversalStructuredMeasurements' : 'UniversalDeclaredExtractionMeasurements',
+                  confidence: canonicalExtraction ? 1 : 0.6,
+                  payload: {
+                    epistemicClass: canonicalExtraction ? 'derived' : 'declared',
+                    measurements: materialMeasurements,
+                    hydrationEventId,
+                    extractionProvenance: canonicalExtraction ? hydrationBasis : 'CALLER_SUPPLIED_UNVERIFIED',
+                  },
+                });
+""")
+          replace_exact(cycle,
+          """  for (const item of records(partition.observed).slice(0, 24)) {
+              context.evidence.push({
+                id: randomUUID(),
+                source: 'UniversalStructuredObservation',
+                confidence: clamp01(item.confidence, 1),
+                payload: { ...item, epistemicClass: 'observed', hydrationEventId },
+              });
+            }
+            for (const item of records(partition.derived).slice(0, 24)) {
+              context.evidence.push({
+                id: randomUUID(),
+                source: 'UniversalStructuredDerived',
+                confidence: clamp01(item.confidence, 0.9),
+                payload: { ...item, epistemicClass: 'derived', hydrationEventId },
+              });
+            }
+""",
+          """  for (const item of records(partition.observed).slice(0, 24)) {
+              context.evidence.push({
+                id: randomUUID(),
+                source: canonicalExtraction ? 'UniversalStructuredObservation' : 'UniversalDeclaredExtraction',
+                confidence: canonicalExtraction ? clamp01(item.confidence, 1) : 0.6,
+                payload: {
+                  ...item,
+                  epistemicClass: canonicalExtraction ? 'observed' : 'declared',
+                  hydrationEventId,
+                  extractionProvenance: canonicalExtraction ? hydrationBasis : 'CALLER_SUPPLIED_UNVERIFIED',
+                },
+              });
+            }
+            for (const item of records(partition.derived).slice(0, 24)) {
+              context.evidence.push({
+                id: randomUUID(),
+                source: canonicalExtraction ? 'UniversalStructuredDerived' : 'UniversalDeclaredExtraction',
+                confidence: canonicalExtraction ? clamp01(item.confidence, 0.9) : 0.6,
+                payload: {
+                  ...item,
+                  epistemicClass: canonicalExtraction ? 'derived' : 'declared',
+                  hydrationEventId,
+                  extractionProvenance: canonicalExtraction ? hydrationBasis : 'CALLER_SUPPLIED_UNVERIFIED',
+                },
+              });
+            }
+""")
+          replace_exact(cycle,
+          """    actorId, tenantId, question: text(input.question), objective: text(input.objective), declaredFunction: text(input.declaredFunction), systemType: text(input.systemType), signal,
+""",
+          """    actorId, tenantId, question: text(input.question), objective: text(input.objective), declaredFunction: text(input.declaredFunction), systemType: text(input.systemType),
+              signal: canonicalExtraction ? signal : { ...signal, extracted: {} },
+""")
+          replace_exact(cycle,
+          """    materialMeasurements,
+              materialEpistemicPartition: partition,
+              materialUnresolved: extracted.unresolved ?? partition.unresolved ?? partition.missing ?? null,
+""",
+          """    materialMeasurements: canonicalExtraction ? materialMeasurements : {},
+              materialEpistemicPartition: canonicalExtraction ? partition : {},
+              declaredExtraction: canonicalExtraction ? null : extracted,
+              materialUnresolved: canonicalExtraction ? (extracted.unresolved ?? partition.unresolved ?? partition.missing ?? null) : null,
+""")
+          replace_exact(cycle,
+          """    epistemicBoundary: 'Observed/declaration/derived/inferred/simulated states remain distinct. Material measurements are supplied as derived observations; structured inferences remain hypotheses rather than evidence. Rival hypotheses are not collapsed by narrative coherence.',
+""",
+          """    epistemicBoundary: 'Observed/declaration/derived/inferred/simulated states remain distinct. Direct signal content remains available as bounded supplied material. Extracted measurements become derived/observed only with canonical hydration provenance; caller-supplied extraction remains declared. Structured inferences remain hypotheses rather than evidence. Rival hypotheses are not collapsed by narrative coherence.',
+""")
+
+          risk = 'src/lib/sfi/cognitive-runtime/agents/riskAgent.ts'
+          replace_exact(risk,
+          """function number(value: unknown) {
+            const parsed = Number(value);
+            return Number.isFinite(parsed) ? parsed : null;
+          }
+""",
+          """function number(value: unknown) {
+            if (value === null || value === undefined || typeof value === 'boolean') return null;
+            if (typeof value !== 'number' && typeof value !== 'string') return null;
+            if (typeof value === 'string' && !value.trim()) return null;
+            const parsed = Number(value);
+            return Number.isFinite(parsed) ? parsed : null;
+          }
+""")
+
+          resolver = 'src/lib/sfi/evidenceRequirementResolver.ts'
+          replace_exact(resolver,
+          """async function resolvePublicAddresses(value: string) {
+            if (!safePublicUrl(value)) return [] as string[];
+            const parsed = new URL(value);
+            const hostname = transportHostname(parsed.hostname);
+            if (isIP(hostname)) return isNonPublicNetworkAddress(hostname) ? [] : [hostname];
+            try {
+              const addresses = await lookup(hostname, { all: true, verbatim: true });
+              if (!addresses.length || addresses.some((entry) => isNonPublicNetworkAddress(entry.address))) return [];
+              return [...new Set(addresses.map((entry) => transportHostname(entry.address)))];
+            } catch {
+              return [] as string[];
+            }
+          }
+""",
+          """async function resolvePublicAddresses(value: string, deadlineAt?: number) {
+            if (!safePublicUrl(value)) return [] as string[];
+            const parsed = new URL(value);
+            const hostname = transportHostname(parsed.hostname);
+            if (isIP(hostname)) return isNonPublicNetworkAddress(hostname) ? [] : [hostname];
+            try {
+              const lookupPromise = lookup(hostname, { all: true, verbatim: true });
+              if (deadlineAt !== undefined && deadlineAt - Date.now() <= 0) return [] as string[];
+              const addresses = deadlineAt === undefined
+                ? await lookupPromise
+                : await Promise.race([
+                    lookupPromise,
+                    new Promise<never>((_, reject) => {
+                      setTimeout(
+                        () => reject(new Error('DNS_RESOLUTION_TOTAL_DEADLINE')),
+                        Math.max(1, deadlineAt - Date.now()),
+                      );
+                    }),
+                  ]);
+              if (!addresses.length || addresses.some((entry) => isNonPublicNetworkAddress(entry.address))) return [];
+              return [...new Set(addresses.map((entry) => transportHostname(entry.address)))];
+            } catch {
+              return [] as string[];
+            }
+          }
+""")
+          replace_exact(resolver,
+          """    const validatedAddresses = await resolvePublicAddresses(currentUrl);
+""",
+          """    const validatedAddresses = await resolvePublicAddresses(currentUrl, sourceDeadlineAt);
+""")
+
+          qa = 'scripts/qa-sfi-web-source-extraction.ts'
+          q = Path(qa).read_text()
+          q = q.replace(
+              "const hydrator = fs.readFileSync(path.join(process.cwd(), 'src/lib/sfi/universalObservationHydrator.ts'), 'utf8');",
+              "const hydrator = fs.readFileSync(path.join(process.cwd(), 'src/lib/sfi/universalObservationHydrator.ts'), 'utf8');\nconst universalCycle = fs.readFileSync(path.join(process.cwd(), 'src/lib/sfi/universalSignalCycle.ts'), 'utf8');\nconst riskAgent = fs.readFileSync(path.join(process.cwd(), 'src/lib/sfi/cognitive-runtime/agents/riskAgent.ts'), 'utf8');"
+          )
+          marker = "requireText('const validatedAddresses = await resolvePublicAddresses(currentUrl)', 'per-hop address validation');"
+          if marker in q:
+              q = q.replace(marker, "requireText('const validatedAddresses = await resolvePublicAddresses(currentUrl, sourceDeadlineAt)', 'deadline-bounded per-hop address validation');")
+          else:
+              q = q.replace("requireText('requestPinnedSource(currentUrl, validatedAddresses, sourceDeadlineAt)', 'shared deadline across redirects');", "requireText('requestPinnedSource(currentUrl, validatedAddresses, sourceDeadlineAt)', 'shared deadline across redirects');\nrequireText('resolvePublicAddresses(currentUrl, sourceDeadlineAt)', 'DNS resolution shares the source deadline');")
+          insert_before = "// RETURN evidence lineage must be explicit server-derived linkage only. Generic\n"
+          assertions = """// Direct material content must survive into runtime evidence, while unverified caller extraction cannot self-promote.
+          assert(universalCycle.includes('function boundedMaterialContent(value: unknown, maxChars = 12_000)'), 'direct signal content needs a bounded runtime representation');
+          assert(universalCycle.includes('materialContent: directMaterialContent'), 'bounded direct content must reach runtime evidence');
+          assert(universalCycle.includes("CALLER_SUPPLIED_UNVERIFIED"), 'caller extraction must retain explicit unverified provenance');
+          assert(universalCycle.includes("epistemicClass: canonicalExtraction ? 'derived' : 'declared'"), 'uncanonical measurements must remain declared');
+          assert(universalCycle.includes("signal: canonicalExtraction ? signal : { ...signal, extracted: {} }"), 'agents must not consume caller extraction through metadata.signal as trusted material');
+          assert(riskAgent.includes("if (value === null || value === undefined || typeof value === 'boolean') return null;"), 'null/boolean risk inputs must remain missing rather than coercing to zero');
+
+          """
+          if assertions.strip() not in q:
+              q = q.replace(insert_before, assertions + insert_before)
+          Path(qa).write_text(q)
+
+          Path('.github/workflows/sfi-final-cut-hardening.yml').unlink()
+
+      - name: Commit final hardening
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git commit -m "fix(sfi): close final epistemic ingestion boundaries"
+          git push origin HEAD:merge/universal-cycle-continuity-hardening
