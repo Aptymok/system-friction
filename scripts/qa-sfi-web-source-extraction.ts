@@ -9,6 +9,7 @@ import { structuredResultMatchesSignalIdentity } from '../src/lib/sfi/universalO
 // Final merge gate: retrieval must pin the network connection to an address from
 // the exact public-address set that passed validation; a separate DNS lookup is a regression.
 const source = fs.readFileSync(path.join(process.cwd(), 'src/lib/sfi/evidenceRequirementResolver.ts'), 'utf8');
+const signalRoute = fs.readFileSync(path.join(process.cwd(), 'src/app/api/external/v1/signal/route.ts'), 'utf8');
 const closure = fs.readFileSync(path.join(process.cwd(), 'src/lib/sfi/universalClosure.ts'), 'utf8');
 const hydrator = fs.readFileSync(path.join(process.cwd(), 'src/lib/sfi/universalObservationHydrator.ts'), 'utf8');
 const fail = (message: string): never => {
@@ -107,6 +108,12 @@ if (/await\s+response\.text\s*\(\s*\)/.test(source)) fail('direct source bodies 
 const entityOrder = source.indexOf('decodeKnownHtmlEntitiesOnce(output)');
 const whitespaceOrder = source.indexOf(".replace(/\\s+/g, ' ')", entityOrder);
 if (entityOrder < 0 || whitespaceOrder < entityOrder) fail('evidence text normalization order is incomplete');
+
+// Required web evidence is not usable unless its canonical imported-evidence event
+// was persisted. Transient SOURCE_CLAIMS must never unlock substantive inference.
+assert(signalRoute.includes('evidenceRequirement.blockingIfUnavailable && (!webEvidence.satisfied || !webEvidence.eventId)'), 'WEB_REQUIRED must require both retrieval sufficiency and canonical event persistence');
+assert(signalRoute.includes("'required_web_evidence_persistence_failed'"), 'missing canonical web evidence persistence must have an explicit fail-closed state');
+assert(signalRoute.indexOf('evidenceRequirement.blockingIfUnavailable && (!webEvidence.satisfied || !webEvidence.eventId)') < signalRoute.indexOf('const persisted = await persistUniversalSignal'), 'required web evidence persistence must gate execution before signal persistence/runtime');
 
 // RETURN evidence lineage must be explicit server-derived linkage only. Generic
 // lifecycle lineage contains object hashes and other methodological identifiers.
