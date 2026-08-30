@@ -2,6 +2,8 @@ import { strict as assert } from 'node:assert';
 import { readFile } from 'node:fs/promises';
 import { resolveUniversalCaseIntake, resolveCasePlatformCreationIntake } from '../src/lib/sfi/caseIntakeResolver';
 import { evaluateUniversalAnalysisSufficiency } from '../src/lib/sfi/epistemicSufficiency';
+import { createKernelContext } from '../src/lib/sfi/cognitive-runtime/createKernelContext';
+import { selectCognitiveAutomations } from '../src/lib/sfi/cognitive-runtime/automationSelector';
 
 async function text(path: string) {
   return readFile(path, 'utf8');
@@ -77,7 +79,17 @@ async function main() {
   assert.equal(caseCreate.readyForCreate, true);
   assert.equal(caseCreate.questions.length, 0);
 
-  const [signalRoute, casesRoute, cycle, automationSelector, hydrator, evidenceResolver, synthesis, closure, profiler, vercel] = await Promise.all([
+  const spanishDecisionContext = createKernelContext('qa-cycle', 'qa-logbook', 'SFI_TASK_REQUESTED');
+  spanishDecisionContext.evidence.push({ id: 'material', source: 'QA', confidence: 1, payload: { measurements: { rowCount: 80017 } } });
+  spanishDecisionContext.metadata = {
+    question: '¿Qué acciones y oportunidades de mejora están justificadas por estos datos?',
+    caseClass: 'DECISION',
+  };
+  const spanishSelection = selectCognitiveAutomations(spanishDecisionContext);
+  assert(spanishSelection.automationIds.includes('risk_agent'), 'decision intent in Spanish must select downside analysis');
+  assert(spanishSelection.automationIds.includes('opportunity_agent'), 'decision intent in Spanish must select opportunity analysis');
+
+  const [signalRoute, casesRoute, cycle, automationSelector, hydrator, evidenceResolver, synthesis, closure, learning, profiler, vercel] = await Promise.all([
     text('src/app/api/external/v1/signal/route.ts'),
     text('src/app/api/external/v1/cases/route.ts'),
     text('src/lib/sfi/universalSignalCycle.ts'),
@@ -86,16 +98,17 @@ async function main() {
     text('src/lib/sfi/evidenceRequirementResolver.ts'),
     text('src/lib/sfi/universalAiSynthesis.ts'),
     text('src/lib/sfi/universalClosure.ts'),
+    text('src/lib/sfi/universalLearningQuarantine.ts'),
     text('supabase/functions/sfi-dataset-profile/datasetProfile.ts'),
     text('vercel.json'),
   ]);
 
-  const hydrationIndex = signalRoute.indexOf('hydrateUniversalCycleInput(rawInput, tenantId)');
+  const hydrationIndex = signalRoute.indexOf('hydrateUniversalCycleInput(rawInput, tenantId, { resumeCycleId: requestedResumeCycleId })');
   const sufficiencyIndex = signalRoute.indexOf('evaluateUniversalAnalysisSufficiency(input)');
   const webIndex = signalRoute.indexOf('acquireUniversalWebEvidence(input');
   const runtimeIndex = signalRoute.indexOf('runUniversalCognitiveCycle(preparedInput');
   const synthesisIndex = signalRoute.indexOf('await synthesizeUniversalCycleWithAi({');
-  assert(hydrationIndex >= 0 && hydrationIndex < sufficiencyIndex, 'material hydration must precede sufficiency');
+  assert(hydrationIndex >= 0 && hydrationIndex < sufficiencyIndex, 'same-cycle material hydration must precede sufficiency');
   assert(sufficiencyIndex >= 0 && sufficiencyIndex < webIndex, 'object sufficiency must precede external evidence acquisition');
   assert(webIndex >= 0 && webIndex < runtimeIndex, 'required web evidence must be acquired before cognitive execution');
   assert(runtimeIndex >= 0 && runtimeIndex < synthesisIndex, 'AI synthesis must occur after deterministic cognitive execution');
@@ -110,6 +123,9 @@ async function main() {
   assert(signalRoute.includes('body.aiSynthesis !== false'), 'one bounded end-of-cycle AI synthesis should be default-on');
   assert(signalRoute.includes('resumeCycleId: resumeValidation.cycleId ?? undefined'), 'same methodological question must be resumable on the original cycle id');
   assert(signalRoute.includes('suggestedResumeCycleId'), 'intake should expose the existing same-object cycle instead of forcing a parallel run');
+  assert(signalRoute.includes('resumeEventId'), 'Action response must expose the resumed lifecycle event id');
+  assert(signalRoute.includes('cognitiveRunEventId'), 'Action response must expose the cognitive execution event id');
+  assert(signalRoute.includes('caseClass: intakePlan.caseClass'), 'resolved case class must reach cognitive selection');
   assert(!signalRoute.includes('closeUniversalCycle({\n      cycleId: cycle.cycleId'), 'run must never auto-close its own cycle');
 
   assert(signalRoute.includes('function compactCycleHistory('), 'external cycle history must have a bounded transport projection');
@@ -130,13 +146,23 @@ async function main() {
   assert(cycle.includes('const cycleId = resumeCycleId ?? randomUUID()'), 'resumed runs must reuse cycle id');
   assert(cycle.includes('const logbookId = `universal-cycle:${cycleId}`'), 'resumed runs must reuse cycle logbook');
   assert(cycle.includes("const resumptions = events.filter((row) => row.event_name === 'SFI_UNIVERSAL_CYCLE_RESUMED')"));
+  assert(cycle.includes("source: 'UniversalStructuredMeasurements'"), 'material measurements must be explicit cognitive inputs');
+  assert(cycle.includes("source: 'UniversalStructuredObservation'"), 'observed structured entries must retain their epistemic class');
+  assert(cycle.includes('materialEpistemicPartition'), 'runtime must retain the structured epistemic partition');
+  assert(cycle.includes('.range(from, from + UNIVERSAL_EVENT_PAGE_SIZE - 1)'), 'cycle reconstruction must page rather than silently stop at 300 events');
+  assert(cycle.includes('CYCLE_HISTORY_TOO_LARGE_FOR_SAFE_RECONSTRUCTION'), 'oversized history must fail closed rather than reconstruct partially');
   assert(automationSelector.includes("choose('field_observer', 'baseline_observation')"));
   assert(automationSelector.includes("choose('evidence_hunter', 'evidence_sufficiency_check')"));
+  assert(automationSelector.includes("['DECISION', 'INTERVENTION'].includes(caseClass)"));
 
   assert(hydrator.includes('SFI_STRUCTURED_ANALYSIS_RESULT_RECEIVED'));
   assert(hydrator.includes('SFI_DATASET_PROFILE_ADMITTED'));
   assert(hydrator.includes(".eq('object_kind', 'OBSERVATION')"));
   assert(hydrator.includes('hydratedFromEventId'));
+  assert(hydrator.includes(".eq('payload->>cycleId', resumeCycleId)"), 'resume hydration must target the requested cycle before global fallback');
+  assert(hydrator.includes('const measurements = row(result.measurements)'), 'hydrator must consume the exact structured-result measurements contract');
+  assert(hydrator.includes('measurements.rowCount'), 'row count inside result.measurements must satisfy material observation');
+  assert(hydrator.includes('measurements.headers'), 'headers inside result.measurements must satisfy schema observation');
 
   assert(evidenceResolver.includes("'WEB_REQUIRED'"));
   assert(evidenceResolver.includes("'WEB_OPTIONAL'"));
@@ -148,7 +174,7 @@ async function main() {
   assert(!evidenceResolver.includes('runPublicResearch'), 'Universal retrieval must not fall into the long research/synthesis pipeline');
   assert(evidenceResolver.includes("epistemicClass: 'SOURCE_CLAIM'"));
 
-  assert(synthesis.includes('SFI-UNIVERSAL-AI-SYNTHESIS-1.0'));
+  assert(synthesis.includes('SFI-UNIVERSAL-AI-SYNTHESIS-1.1'));
   assert(synthesis.includes('primaryHypothesis'));
   assert(synthesis.includes('rivalHypotheses'));
   assert(synthesis.includes('expectedSignals'));
@@ -157,6 +183,10 @@ async function main() {
   assert(synthesis.includes("eventName: 'SFI_UNIVERSAL_AI_SYNTHESIS_COMPLETED'"));
   assert(synthesis.includes("epistemicClass: 'inferred'"));
   assert(synthesis.includes('Never invent measurements'));
+  assert(synthesis.includes('material: materialCapsule(input.signal)'), 'material evidence must be prioritized before bounded runtime prose');
+  assert(synthesis.includes('lineageRefs?: string[]'), 'AI synthesis must accept explicit canonical lineage');
+  assert(synthesis.includes('lineage,'), 'AI synthesis event must persist canonical lineage');
+  assert(!synthesis.includes('lineage: [],'), 'AI synthesis must never persist an intentionally empty lineage when upstream refs exist');
 
   for (const field of [
     'PRIMARY_HYPOTHESIS',
@@ -174,6 +204,14 @@ async function main() {
   assert(closure.includes('DESCRIPTIVE_DELIMITED'));
   assert(closure.includes("eventName: 'SFI_UNIVERSAL_RETURN_CONTRASTED'"));
   assert(closure.includes("promotionState: 'CANDIDATE_NOT_CANONICAL'"));
+  assert(closure.includes('DISCRIMINATING_SIGNALS_MISSING'), 'contrast must fail calibration when preregistered discriminating signals are missing');
+  assert(closure.includes('RETURN_EVIDENCE_UNLINKED'), 'contrast must fail calibration when RETURN has no evidence lineage');
+  assert(closure.includes("lastContrastPayload.calibrationStatus !== 'CONTRAST_RECORDED'"), 'empirical closure requires completed calibration, not merely a contrast event');
+
+  assert(learning.includes('EVIDENCE_COMPLETE_CALIBRATED_RETURN'), 'learning eligibility must require an evidence-complete calibrated return');
+  assert(learning.includes("explicit === 'CALIBRATED_RETURN'"), 'requested learning class must be checked rather than trusted');
+  assert(learning.includes("text(contrast.calibrationStatus) === 'CONTRAST_RECORDED'"), 'promotion must re-check persisted calibration status');
+  assert(learning.includes('RETURN_EVIDENCE_UNLINKED'), 'unlinked returns must remain operational evidence rather than promotable learning');
 
   assert(cycle.includes("const aiSyntheses = events.filter((row) => row.event_name === 'SFI_UNIVERSAL_AI_SYNTHESIS_COMPLETED')"));
   assert(cycle.includes("const returnContrasts = events.filter((row) => row.event_name === 'SFI_UNIVERSAL_RETURN_CONTRASTED')"));
@@ -192,7 +230,7 @@ async function main() {
 
   console.log(JSON.stringify({
     ok: true,
-    contract: 'SFI-UNIVERSAL-FULL-CYCLE-QA-1.4',
+    contract: 'SFI-UNIVERSAL-FULL-CYCLE-QA-1.5',
     lifecycle: [
       'INTENT',
       'OBSERVE_FIRST',
@@ -208,6 +246,14 @@ async function main() {
       'CONTRAST',
       'CLOSURE_GATE',
     ],
+    sameCycleStructuredResultHydration: true,
+    structuredMeasurementsContractConsumed: true,
+    materialEpistemicPartitionPreserved: true,
+    multilingualDecisionSelection: true,
+    pagedCycleReconstruction: true,
+    synthesisLineageRequired: true,
+    evidenceLinkedContrastRequired: true,
+    calibratedLearningEligibilityHardened: true,
     operatorClassificationRequiredBeforeObservation: false,
     referenceOnlyExecutionAllowed: false,
     parallelCycleIsDefault: false,
