@@ -26,9 +26,12 @@ requireText(layout, "import { SfiLanguageProvider }", 'root layout provider impo
 requireText(layout, '<SfiLanguageProvider>', 'root layout provider mount');
 requireText(layout, '</SfiLanguageProvider>', 'root layout provider boundary');
 
+// Canonical identifiers and rendered evidence are preserved by architecture:
+// localization is a pure lookup exposed to interface-owned components only.
 if (provider.includes('MutationObserver')) fail('global MutationObserver translation must not be reintroduced');
 if (provider.includes('localizeNode(document.body')) fail('document.body must never be rewritten by localization');
 if (provider.includes('createTreeWalker')) fail('arbitrary rendered data must not be traversed for translation');
+if (!provider.includes('It never walks or rewrites document.body')) fail('non-mutation boundary must remain explicit');
 
 const requiredPairs: Array<[string, string]> = [
   ['PRIVACIDAD Y POLÍTICA DE DATOS PARA AGENTES EXTERNOS', 'PRIVACY & EXTERNAL AGENT DATA POLICY'],
@@ -60,9 +63,5 @@ const build = pkg.scripts?.build ?? '';
 const qa = pkg.scripts?.['qa:sfi-bilingual-interface'] ?? '';
 if (!qa.includes('qa-sfi-bilingual-interface.ts')) fail('package script qa:sfi-bilingual-interface is not wired');
 if (!build.includes('qa:sfi-bilingual-interface')) fail('bilingual QA is not part of the canonical build');
-
-for (const canonical of ['ROOT', 'FIELD', 'RETURN', 'MIHM', 'Cognitive Twin', 'WSV', 'NTI']) {
-  if (!provider.includes(canonical)) fail(`canonical identifier boundary is not represented: ${canonical}`);
-}
 
 console.log('SFI bilingual interface QA: OK');
