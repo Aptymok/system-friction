@@ -30,11 +30,18 @@ export function structuredResultMatchesSignalIdentity(
   const eventKey = text(payload.objectKey) ?? text(object.objectKey);
   const eventAssetRef = text(payload.assetRef) ?? text(object.assetRef);
 
-  // objectKey is the stable methodological identity. A material content hash may
-  // legitimately differ from an earlier REFERENCE_IDENTITY hash once the actual
-  // file is inspected, so any one explicit compatible identity is sufficient.
-  const identityMatches = Boolean(eventKey && eventKey === normalized.objectKey)
-    || Boolean(eventHash && normalized.objectHashBasis !== 'REFERENCE_IDENTITY' && eventHash === normalized.objectHash)
+  // Once the signal has a real material fingerprint, an explicitly conflicting
+  // result fingerprint is a hard identity mismatch. Stable names/keys cannot
+  // override known content divergence between different versions of an object.
+  const materialHashConflict = normalized.objectHashBasis !== 'REFERENCE_IDENTITY'
+    && Boolean(eventHash)
+    && eventHash !== normalized.objectHash;
+  if (materialHashConflict) return false;
+
+  // With only a reference-identity hash, the later verified material hash may
+  // legitimately differ; a stable objectKey/assetRef can reconnect that result.
+  const identityMatches = Boolean(eventHash && normalized.objectHashBasis !== 'REFERENCE_IDENTITY' && eventHash === normalized.objectHash)
+    || Boolean(eventKey && eventKey === normalized.objectKey)
     || Boolean(eventAssetRef && normalized.assetRef && eventAssetRef === normalized.assetRef);
 
   // A resumeCycleId is only a cycle constraint, never a substitute for object
