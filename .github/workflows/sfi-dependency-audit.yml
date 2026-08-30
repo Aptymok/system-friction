@@ -6,25 +6,53 @@ on:
       - merge/universal-cycle-continuity-hardening
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   audit:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: merge/universal-cycle-continuity-hardening
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: npm
       - run: npm ci
-      - name: Capture npm audit report
+      - name: Generate bounded dependency remediation
         shell: bash
         run: |
-          npm audit --json > npm-audit.json || true
-      - name: Upload audit report
+          npm uninstall @supabase/auth-helpers-nextjs --package-lock-only
+          npm install next@16.3.3 postcss@8.5.26 --save --package-lock-only
+          npm install supabase@2.116.0 --save-dev --package-lock-only
+          npm audit --json > npm-audit-after.json || true
+          node - <<'NODE'
+          const fs = require('fs');
+          const audit = JSON.parse(fs.readFileSync('npm-audit-after.json', 'utf8'));
+          const total = audit?.metadata?.vulnerabilities?.total ?? -1;
+          console.log(JSON.stringify(audit.metadata?.vulnerabilities ?? {}, null, 2));
+          if (total !== 0) {
+            console.error(`Dependency remediation incomplete: ${total} vulnerabilities remain.`);
+            process.exit(1);
+          }
+          NODE
+      - name: Commit audited manifests
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json package-lock.json
+          if git diff --cached --quiet; then
+            echo "Dependency manifests already remediated."
+            exit 0
+          fi
+          git commit -m "chore(security): remediate npm dependency advisories"
+          git push origin HEAD:merge/universal-cycle-continuity-hardening
+      - name: Upload post-remediation audit
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: sfi-npm-audit
-          path: npm-audit.json
-          if-no-files-found: error
+          name: sfi-npm-audit-after
+          path: npm-audit-after.json
+          if-no-files-found: warn
