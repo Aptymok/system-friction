@@ -8,6 +8,7 @@ async function text(path: string) {
 async function main() {
   const [
     learning,
+    closure,
     rootLearning,
     additionalSources,
     sourcePlane,
@@ -17,6 +18,7 @@ async function main() {
     openapiMerge,
   ] = await Promise.all([
     text('src/lib/sfi/universalLearningQuarantine.ts'),
+    text('src/lib/sfi/universalClosure.ts'),
     text('src/app/api/root/learning/route.ts'),
     text('src/lib/institution/cognitiveSpineAdditionalSources.ts'),
     text('src/lib/institution/cognitiveSpineInstitutionalSourcePlane.ts'),
@@ -35,26 +37,47 @@ async function main() {
   assert(learning.includes("eventName: 'SFI_UNIVERSAL_LEARNING_PROMOTED'"));
   assert(learning.includes("eventName: 'SFI_UNIVERSAL_LEARNING_REJECTED'"));
 
-  // CALIBRATED_RETURN is now an evidence-complete assessment, not a label the caller can force.
+  // CALIBRATED_RETURN is evidence-complete and must derive from canonical persisted contrast.
   assert(learning.includes('calibratedReturnEligibility'));
   assert(learning.includes("text(contrast.calibrationStatus) !== 'CONTRAST_RECORDED'"));
   assert(learning.includes("text(contrast.classification) === 'INCONCLUSIVE'"));
   assert(learning.includes("reason: 'PREDICTION_MISSING'"));
   assert(learning.includes("reason: 'DISCRIMINATING_SIGNALS_MISSING'"));
   assert(learning.includes("reason: 'RETURN_EVIDENCE_UNLINKED'"));
+  assert(learning.includes("reason: 'RETURN_EVIDENCE_UNVERIFIED'"));
+  assert(learning.includes("text(contrast.returnTraceability) !== 'VERIFIED_EVIDENCE_LINKED'"));
   assert(learning.includes("reason: 'UPDATED_CONFIDENCE_MISSING'"));
   assert(learning.includes("reason: 'EVIDENCE_COMPLETE_CALIBRATED_RETURN'"));
   assert(learning.includes("if (explicit === 'CALIBRATED_RETURN') return hasCalibratedReturn(history) ? 'CALIBRATED_RETURN' : 'OPERATIONAL_EVIDENCE'"));
   assert(learning.includes("eligibleForRootPromotion: promotionState === 'ELIGIBLE_FOR_ROOT_PROMOTION' && eligibility.eligible"));
+  assert(learning.includes('contrast: latestContrast ? latestContrastPayload : null'));
+  assert(learning.includes('contrastNarrative: closure.contrast ?? null'));
+  assert(!learning.includes('contrast: closure.contrast ??'), 'closure narrative must never replace canonical contrast');
   assert(learning.includes('persistedCandidateEvidenceEligible'));
   assert(learning.includes("text(candidatePayload.eligibilityBasis) === 'EVIDENCE_COMPLETE_CALIBRATED_RETURN'"));
   assert(learning.includes("text(contrast.calibrationStatus) === 'CONTRAST_RECORDED'"));
   assert(learning.includes("text(contrast.classification) !== 'INCONCLUSIVE'"));
+  assert(learning.includes("text(contrast.returnTraceability) === 'VERIFIED_EVIDENCE_LINKED'"));
   assert(learning.includes('strings(contrast.returnEvidenceRefs).length > 0'));
   assert(learning.includes('strings(contrast.expectedSignals).length > 0'));
   assert(learning.includes('strings(contrast.contradictionSignals).length > 0'));
   assert(learning.includes('Number.isFinite(Number(contrast.updatedConfidence))'));
   assert(learning.includes("error: 'LEARNING_CANDIDATE_NOT_ELIGIBLE_FOR_PROMOTION'"));
+
+  // Empirical closure cannot be satisfied by request-scoped RETURN/contrast substitutes.
+  assert(closure.includes("const empirical = klass !== 'DESCRIPTIVE_DELIMITED'"));
+  assert(closure.includes('const observedReturn = empirical ? returnPayload.outcome ?? null'));
+  assert(closure.includes('const contrast = empirical ? (lastContrast ? lastContrastPayload : null)'));
+  assert(closure.includes("if (!lastReturn || !observedReturn) missing.push('OBSERVED_RETURN')"));
+  assert(closure.includes("if (!lastContrast || !contrast) missing.push('CONTRAST')"));
+  assert(closure.includes("if (!lastContrast || lastContrastPayload.calibrationStatus !== 'CONTRAST_RECORDED') missing.push('CALIBRATED_CONTRAST')"));
+  assert(closure.includes('validateReturnEvidenceRefs'));
+  assert(closure.includes("RETURN_EVIDENCE_CLASSES = new Set(['observed', 'imported', 'extracted', 'canonical'])"));
+  assert(closure.includes("eventTenant === input.tenantId"));
+  assert(closure.includes("eventCycle === input.cycleId"));
+  assert(closure.includes("'RETURN_EVIDENCE_UNVERIFIED'"));
+  assert(closure.includes("returnTraceability: traceableReturn ? 'VERIFIED_EVIDENCE_LINKED'"));
+  assert(closure.includes('lineage: [returnEventId, ...returnEvidenceRefs].filter(Boolean)'));
 
   assert(learning.includes("eventName: 'SFI_UNIVERSAL_LEARNING_PROMOTED',\n    epistemicClass: 'derived'"));
   assert(learning.includes("assessmentClass: 'VERIFIED_CONTRAST'"));
@@ -121,20 +144,18 @@ async function main() {
 
   console.log(JSON.stringify({
     ok: true,
-    contract: 'SFI-LEARNING-BOOTSTRAP-QA-1.4',
+    contract: 'SFI-LEARNING-BOOTSTRAP-QA-1.5',
     manifestVersion,
     invariants: {
-      structuredResultIsLearning: false,
-      closedCycleIsLearned: false,
-      testSyntheticEntersSpine: false,
-      failedExperimentEntersSpine: false,
       calibratedReturnCannotBeForced: true,
+      closureRequestCannotForgeCalibration: true,
+      returnEvidenceRefsMustResolveInTenantCycle: true,
+      closureNarrativeCannotReplaceCanonicalContrast: true,
       unlinkedReturnEligibleForLearning: false,
       discriminatingSignalsRequired: true,
       promotionRechecksPersistedCalibration: true,
       rootPromotionRequired: true,
       singleTerminalLearningState: true,
-      repeatedTerminalRequestIsIdempotent: true,
       persistedEventClassIsCanonical: true,
       verifiedContrastIsAssessmentNotEventClass: true,
       promotionUpgradesTruthByDecree: false,
@@ -142,7 +163,6 @@ async function main() {
       bootstrapConsumesPromotedLearningOnly: true,
       priorContextIsNewObservation: false,
       bootstrapFailureFailsClosed: true,
-      personCtInheritedByBootstrap: false,
     },
   }, null, 2));
 }
