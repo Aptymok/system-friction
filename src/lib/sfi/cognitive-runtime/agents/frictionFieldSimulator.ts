@@ -140,7 +140,8 @@ export function FrictionFieldSimulatorAgent(context: KernelContext): KernelConte
     simulator: 'FrictionFieldSimulatorAgent',
     output: {
       ...state,
-      epistemicClass: 'DERIVED_FRICTION_PROJECTION',
+      epistemicClass: 'SIMULATED',
+      assessmentClass: 'DERIVED_FRICTION_PROJECTION',
       evidenceRefs,
       measuredDimensions: measuredDimensions.length,
       excludedByClass,
@@ -157,8 +158,9 @@ export function FrictionFieldSimulatorAgent(context: KernelContext): KernelConte
       evidenceRefs,
       measuredDimensions: measuredDimensions.length,
       excludedByClass,
-      epistemicClass: 'DERIVED_FRICTION_PROJECTION',
-      claimBoundary: 'Friction projection is derived only from OBSERVED/DERIVED structured measurements and remains distinct from causal attribution and action authorization.',
+      epistemicClass: 'SIMULATED',
+      assessmentClass: 'DERIVED_FRICTION_PROJECTION',
+      claimBoundary: 'Friction projection is a SIMULATED assessment derived only from OBSERVED/DERIVED structured measurements and remains distinct from causal attribution and action authorization.',
       executedAt: new Date().toISOString(),
     },
   };
