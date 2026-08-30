@@ -18,8 +18,9 @@ const LanguageContext = createContext<LanguageContextValue>({
   text: (es) => es,
 });
 
-// Every tuple is [Spanish, English]. Canonical SFI identifiers (ROOT, FIELD,
-// RETURN, MIHM, Cognitive Twin, WSV, NTI, etc.) remain stable proper names.
+// Every tuple is [Spanish, English]. This catalog is intentionally a pure lookup
+// only. It never walks or rewrites document.body: institutional identifiers,
+// evidence, object names, source values and user content are not UI copy.
 const UI_PAIRS: ReadonlyArray<readonly [string, string]> = [
   ['PRIVACIDAD Y POLÍTICA DE DATOS PARA AGENTES EXTERNOS', 'PRIVACY & EXTERNAL AGENT DATA POLICY'],
   ['OBSERVATORIO MUNDIAL EN VIVO', 'LIVE WORLD OBSERVATORY'],
@@ -185,46 +186,6 @@ export function translateUiText(value: string, language: SfiLanguage): string {
   return output;
 }
 
-function shouldSkip(node: Node) {
-  const parent = node.parentElement;
-  if (!parent) return false;
-  if (parent.closest('[data-sfi-no-translate="true"]')) return true;
-  return ['SCRIPT', 'STYLE', 'CODE', 'PRE', 'NOSCRIPT', 'TEXTAREA'].includes(parent.tagName);
-}
-
-function localizeNode(root: Node, language: SfiLanguage) {
-  if (root.nodeType === Node.TEXT_NODE) {
-    if (shouldSkip(root)) return;
-    const current = root.nodeValue ?? '';
-    const translated = translateUiText(current, language);
-    if (translated !== current) root.nodeValue = translated;
-    return;
-  }
-
-  if (root.nodeType !== Node.ELEMENT_NODE && root.nodeType !== Node.DOCUMENT_FRAGMENT_NODE) return;
-  if (root instanceof Element && root.closest('[data-sfi-no-translate="true"]')) return;
-
-  if (root instanceof Element) {
-    for (const attribute of ['aria-label', 'title', 'placeholder', 'alt']) {
-      const current = root.getAttribute(attribute);
-      if (!current) continue;
-      const translated = translateUiText(current, language);
-      if (translated !== current) root.setAttribute(attribute, translated);
-    }
-  }
-
-  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
-  let node = walker.nextNode();
-  while (node) {
-    if (!shouldSkip(node)) {
-      const current = node.nodeValue ?? '';
-      const translated = translateUiText(current, language);
-      if (translated !== current) node.nodeValue = translated;
-    }
-    node = walker.nextNode();
-  }
-}
-
 export function SfiLanguageProvider({ children }: { children: ReactNode }) {
   const [language, setLanguageState] = useState<SfiLanguage>('es');
 
@@ -246,19 +207,6 @@ export function SfiLanguageProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     document.documentElement.lang = language;
     document.documentElement.dataset.sfiLanguage = language;
-    localizeNode(document.body, language);
-
-    const observer = new MutationObserver((mutations) => {
-      for (const mutation of mutations) {
-        if (mutation.type === 'characterData') {
-          localizeNode(mutation.target, language);
-          continue;
-        }
-        for (const node of mutation.addedNodes) localizeNode(node, language);
-      }
-    });
-    observer.observe(document.body, { subtree: true, childList: true, characterData: true });
-    return () => observer.disconnect();
   }, [language]);
 
   const text = useCallback((es: string, en: string) => language === 'es' ? es : en, [language]);
@@ -270,13 +218,14 @@ export function SfiLanguageProvider({ children }: { children: ReactNode }) {
       <div
         role="group"
         aria-label={language === 'es' ? 'Idioma de la interfaz' : 'Interface language'}
-        data-sfi-no-translate="true"
+        data-sfi-ui-copy="language-control"
         style={{
           position: 'fixed',
           right: 14,
           top: 14,
           zIndex: 2147483000,
           display: 'inline-flex',
+          alignItems: 'center',
           gap: 2,
           padding: 3,
           border: '1px solid rgba(205,164,93,.32)',
@@ -287,6 +236,9 @@ export function SfiLanguageProvider({ children }: { children: ReactNode }) {
           fontFamily: 'Inter, ui-sans-serif, system-ui, sans-serif',
         }}
       >
+        <span style={{ padding: '0 6px', fontSize: 9, letterSpacing: '.08em', color: '#c7b58f' }}>
+          {language === 'es' ? 'IDIOMA' : 'LANGUAGE'}
+        </span>
         {(['es', 'en'] as const).map((option) => (
           <button
             key={option}
