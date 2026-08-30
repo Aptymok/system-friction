@@ -153,6 +153,11 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('.github/workflows/sfi-universal-signal.yml')
+          p.write_text(p.read_text().rstrip() + '\n')
+          PY
           git add -A
           git diff --cached --check
           git commit -m "fix(sfi): close final epistemic ingestion boundaries"
