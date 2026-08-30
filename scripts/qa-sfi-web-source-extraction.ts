@@ -15,15 +15,27 @@ const requireText = (needle: string, label: string) => {
 };
 
 requireText("from 'node:dns/promises'", 'DNS resolution boundary');
+requireText("from 'node:http'", 'pinned HTTP transport');
+requireText("from 'node:https'", 'pinned HTTPS transport');
 requireText("from 'node:net'", 'IP classification boundary');
 requireText('isNonPublicNetworkAddress', 'non-public network classifier');
 requireText('ipv4FromMappedIpv6', 'IPv4-mapped IPv6 normalization');
+requireText('resolvePublicAddresses', 'public-address resolver');
 requireText('lookup(hostname, { all: true, verbatim: true })', 'resolved-address validation');
-requireText('addresses.every((entry) => !isNonPublicNetworkAddress(entry.address))', 'all-address public requirement');
-requireText('await resolvesOnlyToPublicAddresses(currentUrl)', 'pre-fetch DNS validation');
+requireText('addresses.some((entry) => isNonPublicNetworkAddress(entry.address))', 'all-address public requirement');
+requireText('requestPinnedAddress', 'address-pinned request');
+requireText('requestPinnedSource', 'validated-address connection path');
+requireText('hostname: address', 'connection pinned to validated address');
+requireText('Host: parsed.host', 'original HTTP Host preservation');
+requireText('servername: isIP(originalHostname) ? undefined : originalHostname', 'original TLS SNI preservation');
+requireText('const validatedAddresses = await resolvePublicAddresses(currentUrl)', 'per-hop address validation');
 requireText("'UNSAFE_OR_UNRESOLVABLE_SOURCE_URL'", 'unsafe DNS failure state');
+if (source.includes('fetch(currentUrl')) fail('direct source retrieval must not perform an unpinned second DNS resolution');
+
 requireText('isRegulatorHostname(hostname)', 'hostname-derived regulator provenance');
 requireText("source.sourceType === 'regulator'", 'authority-sensitive regulator requirement');
+requireText('const finalSourceType = classifySource(currentUrl, source.title)', 'redirect-aware provenance reclassification');
+requireText('const finalReliability = reliabilityFor(finalSourceType, currentUrl)', 'redirect-aware reliability reclassification');
 if (source.includes('`${hostname} ${title}`')) fail('titles must not confer source authority');
 
 assert.equal(isNonPublicNetworkAddress('::ffff:7f00:1'), true, 'hex IPv4-mapped loopback must be rejected');
@@ -35,11 +47,10 @@ requireText('HTML_ENTITY_TEXT', 'allowlisted entity map');
 requireText('htmlToEvidenceText', 'deterministic HTML-to-evidence text extractor');
 requireText("tagName === 'script' || tagName === 'style'", 'script/style exclusion');
 requireText("lower.indexOf(`</${tagName}`", 'closing-tag scanner');
-requireText('readResponseTextBounded', 'bounded streaming source reader');
+requireText('readIncomingMessageBounded', 'bounded streaming source reader');
 requireText('MAX_DIRECT_SOURCE_BYTES = 120_000', 'direct-source byte ceiling');
-requireText('response.body.getReader()', 'streaming response reader');
-requireText("reader.cancel('SFI_DIRECT_SOURCE_BYTE_LIMIT')", 'stream cancellation at byte ceiling');
-requireText('htmlToEvidenceText(boundedBody.text)', 'bounded direct-source extraction wiring');
+requireText('response.destroy()', 'stream cancellation at byte ceiling');
+requireText('htmlToEvidenceText(response.bodyText)', 'bounded direct-source extraction wiring');
 requireText('MIN_VERIFIED_QUERY_COVERAGE = 0.05', 'minimum source relevance threshold');
 requireText("'DIRECT_FETCH_LOW_QUERY_RELEVANCE'", 'low-relevance source warning');
 requireText('source.verification?.queryCoverage ?? 0) >= MIN_VERIFIED_QUERY_COVERAGE', 'relevance-qualified verification gate');
@@ -70,6 +81,23 @@ const sameCycleMaterialResult = {
 assert.equal(structuredResultMatchesSignalIdentity(sameCycleMaterialResult, referenceIdentity, 'cycle-a'), true);
 assert.equal(structuredResultMatchesSignalIdentity({ cycleId: 'cycle-a', object: { objectKey: 'object:other-file' } }, referenceIdentity, 'cycle-a'), false);
 assert.equal(structuredResultMatchesSignalIdentity(sameCycleMaterialResult, referenceIdentity, 'cycle-b'), false);
+
+const materialIdentity = {
+  objectKey: 'dataset:same-name.xlsx',
+  objectHash: 'material-hash-a',
+  objectHashBasis: 'CLIENT_CONTENT_FINGERPRINT',
+  assetRef: 'storage://same-name.xlsx',
+};
+assert.equal(
+  structuredResultMatchesSignalIdentity({ cycleId: 'cycle-a', object: { objectKey: 'dataset:same-name.xlsx', objectHash: 'material-hash-b' } }, materialIdentity, 'cycle-a'),
+  false,
+  'a matching stable key must never override an explicit conflicting material fingerprint',
+);
+assert.equal(
+  structuredResultMatchesSignalIdentity({ cycleId: 'cycle-a', object: { objectKey: 'dataset:same-name.xlsx', objectHash: 'material-hash-a' } }, materialIdentity, 'cycle-a'),
+  true,
+  'matching material fingerprint and stable key remain compatible',
+);
 assert(hydrator.includes('structuredResultMatchesSignalIdentity(payload, normalized, resumeCycleId)'));
 
 console.log('SFI boundary hardening QA: OK');
