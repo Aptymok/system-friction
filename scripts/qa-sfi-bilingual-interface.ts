@@ -18,13 +18,17 @@ const pkg = JSON.parse(read('package.json')) as { scripts?: Record<string, strin
 requireText(provider, "export type SfiLanguage = 'es' | 'en'", 'language contract');
 requireText(provider, "const STORAGE_KEY = 'sfi-language'", 'persistent language preference');
 requireText(provider, 'document.documentElement.lang = language', 'document language synchronization');
-requireText(provider, 'MutationObserver', 'dynamic interface localization');
 requireText(provider, "(['es', 'en'] as const)", 'ES/EN switch');
-requireText(provider, 'data-sfi-no-translate="true"', 'canonical/no-translate escape hatch');
+requireText(provider, 'data-sfi-ui-copy="language-control"', 'interface-owned language control');
+requireText(provider, "language === 'es' ? 'IDIOMA' : 'LANGUAGE'", 'visible bilingual control copy');
 requireText(provider, '// Every tuple is [Spanish, English].', 'catalog direction contract');
 requireText(layout, "import { SfiLanguageProvider }", 'root layout provider import');
 requireText(layout, '<SfiLanguageProvider>', 'root layout provider mount');
 requireText(layout, '</SfiLanguageProvider>', 'root layout provider boundary');
+
+if (provider.includes('MutationObserver')) fail('global MutationObserver translation must not be reintroduced');
+if (provider.includes('localizeNode(document.body')) fail('document.body must never be rewritten by localization');
+if (provider.includes('createTreeWalker')) fail('arbitrary rendered data must not be traversed for translation');
 
 const requiredPairs: Array<[string, string]> = [
   ['PRIVACIDAD Y POLÍTICA DE DATOS PARA AGENTES EXTERNOS', 'PRIVACY & EXTERNAL AGENT DATA POLICY'],
@@ -57,8 +61,6 @@ const qa = pkg.scripts?.['qa:sfi-bilingual-interface'] ?? '';
 if (!qa.includes('qa-sfi-bilingual-interface.ts')) fail('package script qa:sfi-bilingual-interface is not wired');
 if (!build.includes('qa:sfi-bilingual-interface')) fail('bilingual QA is not part of the canonical build');
 
-// Keep institution identifiers stable across languages. They are names or
-// measured variables, not prose that the localization layer may redefine.
 for (const canonical of ['ROOT', 'FIELD', 'RETURN', 'MIHM', 'Cognitive Twin', 'WSV', 'NTI']) {
   if (!provider.includes(canonical)) fail(`canonical identifier boundary is not represented: ${canonical}`);
 }
