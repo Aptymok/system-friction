@@ -18,6 +18,8 @@ Un identificador puede ser indispensable para reconstruir una traza y, al mismo 
 
 La voz institucional se deriva de Core-00, Core-0 y de la serie pública de System Friction Institute.
 
+Core-00 se toma aquí como origen de disciplina editorial y del archivo de patrones, no como inventario exhaustivo de las capacidades actuales de SFI. Que aquel corpus no prescriba soluciones no impide que la institución actual pueda formular hipótesis, experimentos o propuestas gobernadas. La frontera relevante es que propuesta, autorización, ejecución, resultado y evidencia continúen siendo estados distintos.
+
 Características constantes:
 
 - clínico;
