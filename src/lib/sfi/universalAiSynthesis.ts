@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { runLlmTask } from '@/lib/ai/providerRouter';
 import { appendEpistemicEvent } from '@/lib/events/eventStore';
 
-export const SFI_UNIVERSAL_AI_SYNTHESIS_CONTRACT = 'SFI-UNIVERSAL-AI-SYNTHESIS-1.0' as const;
+export const SFI_UNIVERSAL_AI_SYNTHESIS_CONTRACT = 'SFI-UNIVERSAL-AI-SYNTHESIS-1.1' as const;
 
 type Row = Record<string, unknown>;
 
@@ -35,6 +35,41 @@ function compact(value: unknown, depth = 0): unknown {
     return Object.fromEntries(Object.entries(value as Row).slice(0, 30).map(([key, item]) => [key, compact(item, depth + 1)]));
   }
   return String(value).slice(0, 200);
+}
+
+function materialCapsule(signalValue: unknown) {
+  const signal = row(signalValue);
+  const extracted = row(signal.extracted);
+  const measurements = row(extracted.measurements);
+  const epistemicPartition = row(extracted.epistemicPartition);
+  const provenance = row(signal.provenance);
+  const fallbackMeasurements = {
+    schema: extracted.schema ?? extracted.fields ?? extracted.columns ?? extracted.headers ?? null,
+    rowCount: extracted.rowCount ?? extracted.recordCount ?? extracted.totalRows ?? null,
+    analyzableRowCount: extracted.analyzableRowCount ?? null,
+    malformedRows: extracted.malformedRows ?? null,
+    sheetCount: extracted.sheetCount ?? null,
+  };
+  return {
+    identity: {
+      kind: signal.kind ?? null,
+      name: signal.name ?? null,
+      mimeType: signal.mimeType ?? null,
+      objectHash: signal.objectHash ?? signal.contentHash ?? signal.fingerprint ?? null,
+      assetRef: signal.assetRef ?? null,
+      sourceUrl: signal.sourceUrl ?? null,
+    },
+    provenance: {
+      hydratedFromEventId: provenance.hydratedFromEventId ?? null,
+      hydratedFromCycleId: provenance.hydratedFromCycleId ?? null,
+      observationRef: provenance.observationRef ?? null,
+      caseId: provenance.caseId ?? null,
+    },
+    measurements: Object.keys(measurements).length ? measurements : fallbackMeasurements,
+    epistemicPartition: Object.keys(epistemicPartition).length ? epistemicPartition : null,
+    unresolved: extracted.unresolved ?? null,
+    materialLimitations: extracted.measurementLimitations ?? measurements.measurementLimitations ?? null,
+  };
 }
 
 export type SfiUniversalAiPrediction = {
@@ -104,6 +139,7 @@ export async function synthesizeUniversalCycleWithAi(input: {
   signal: unknown;
   deterministicOutputs: unknown;
   runtimeMetadata?: unknown;
+  lineageRefs?: string[];
 }) : Promise<SfiUniversalAiSynthesis> {
   const system = [
     'You are the System Friction Institute synthesis layer after deterministic observation and governed cognitive agents.',
@@ -116,11 +152,13 @@ export async function synthesizeUniversalCycleWithAi(input: {
     'Return ONLY JSON with this exact shape: {"summary":string|null,"primaryHypothesis":string|null,"rivalHypotheses":string[],"predictions":[{"description":string,"confidence":number,"expectedSignals":string[],"contradictionSignals":string[],"observationWindow":string|null}],"missingEvidence":string[],"confidence":number|null}.',
   ].join('\n');
 
+  // Material observations are intentionally placed before runtime prose so a bounded
+  // prompt cannot silently truncate the measurements that make the inference auditable.
   const prompt = JSON.stringify(compact({
     question: input.question ?? null,
     objective: input.objective ?? null,
     caseClass: input.caseClass ?? null,
-    signal: input.signal,
+    material: materialCapsule(input.signal),
     deterministicOutputs: input.deterministicOutputs,
     runtimeMetadata: input.runtimeMetadata,
   })).slice(0, 16_000);
@@ -157,6 +195,7 @@ export async function synthesizeUniversalCycleWithAi(input: {
         warnings: [...result.warnings, 'AI_SYNTHESIS_SCHEMA_INVALID'],
       };
 
+  const lineage = [...new Set((input.lineageRefs ?? []).map((item) => item.trim()).filter(Boolean))];
   const event = await appendEpistemicEvent({
     eventName: 'SFI_UNIVERSAL_AI_SYNTHESIS_COMPLETED',
     epistemicClass: 'inferred',
@@ -166,12 +205,13 @@ export async function synthesizeUniversalCycleWithAi(input: {
       actorId: input.actorId,
       tenantId: input.tenantId,
       synthesis,
+      lineageRefs: lineage,
       epistemicBoundary: 'AI synthesis is an inference layer over observed/derived inputs. Primary/rival hypotheses and predictions remain contrastable propositions, not accepted evidence or canonical truth.',
     },
     occurredAt: new Date().toISOString(),
     source: { sourceId: 'universal_ai_synthesis', sourceType: 'llm_inference' },
     logbookId: `universal-cycle:${input.cycleId}`,
-    lineage: [],
+    lineage,
   });
 
   return { ...synthesis, eventId: event.ok ? String(event.data.event_id ?? '') : null };
