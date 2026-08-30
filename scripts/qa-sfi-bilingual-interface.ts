@@ -21,25 +21,35 @@ requireText(provider, 'document.documentElement.lang = language', 'document lang
 requireText(provider, 'MutationObserver', 'dynamic interface localization');
 requireText(provider, "(['es', 'en'] as const)", 'ES/EN switch');
 requireText(provider, 'data-sfi-no-translate="true"', 'canonical/no-translate escape hatch');
+requireText(provider, '// Every tuple is [Spanish, English].', 'catalog direction contract');
 requireText(layout, "import { SfiLanguageProvider }", 'root layout provider import');
 requireText(layout, '<SfiLanguageProvider>', 'root layout provider mount');
 requireText(layout, '</SfiLanguageProvider>', 'root layout provider boundary');
 
 const requiredPairs: Array<[string, string]> = [
+  ['PRIVACIDAD Y POLÍTICA DE DATOS PARA AGENTES EXTERNOS', 'PRIVACY & EXTERNAL AGENT DATA POLICY'],
+  ['OBSERVATORIO MUNDIAL EN VIVO', 'LIVE WORLD OBSERVATORY'],
   ['Campo de observación', 'Observation field'],
+  ['SISTEMAS', 'SYSTEMS'],
+  ['ARCHIVO', 'ARCHIVE'],
+  ['FALSACIÓN', 'FALSIFICATION'],
+  ['GOBERNANZA', 'GOVERNANCE'],
   ['FUENTE VIVA', 'LIVE SOURCE'],
   ['ESTADO', 'STATUS'],
   ['AUTORIDAD', 'AUTHORITY'],
   ['PROPOSICIONES', 'PROPOSALS'],
+  ['ORIGEN → AHORA', 'ORIGIN → NOW'],
+  ['HISTORIA TEMPORAL', 'TIME HISTORY'],
   ['LECTURA MUNDIAL', 'WORLD READING'],
   ['HIPÓTESIS', 'HYPOTHESES'],
   ['CONTRASTES', 'CONTRASTS'],
   ['LECTURA DEL CAMPO', 'FIELD READING'],
-  ['PRIVACY & EXTERNAL AGENT DATA POLICY', 'PRIVACIDAD Y POLÍTICA DE DATOS PARA AGENTES EXTERNOS'],
+  ['ÍNDICE', 'INDEX'],
+  ['SESIÓN', 'SESSION'],
 ];
 for (const [es, en] of requiredPairs) {
-  requireText(provider, `'${es.replaceAll("'", "\\'")}'`, `Spanish UI phrase ${es}`);
-  requireText(provider, `'${en.replaceAll("'", "\\'")}'`, `English UI phrase ${en}`);
+  const serialized = `['${es.replaceAll("'", "\\'")}', '${en.replaceAll("'", "\\'")}']`;
+  requireText(provider, serialized, `ordered bilingual pair ${es} / ${en}`);
 }
 
 const build = pkg.scripts?.build ?? '';
@@ -47,8 +57,8 @@ const qa = pkg.scripts?.['qa:sfi-bilingual-interface'] ?? '';
 if (!qa.includes('qa-sfi-bilingual-interface.ts')) fail('package script qa:sfi-bilingual-interface is not wired');
 if (!build.includes('qa:sfi-bilingual-interface')) fail('bilingual QA is not part of the canonical build');
 
-// Keep canonical institution identifiers stable across languages. These are names,
-// not UI prose, and must not be redefined by the localization layer.
+// Keep institution identifiers stable across languages. They are names or
+// measured variables, not prose that the localization layer may redefine.
 for (const canonical of ['ROOT', 'FIELD', 'RETURN', 'MIHM', 'Cognitive Twin', 'WSV', 'NTI']) {
   if (!provider.includes(canonical)) fail(`canonical identifier boundary is not represented: ${canonical}`);
 }
