@@ -105,21 +105,17 @@ function calibratedReturnEligibility(history: UniversalCycleHistory) {
     return { eligible: false, reason: 'RETURN_OR_CONTRAST_MISSING' };
   }
   const contrast = payload(contrastEvent);
-  const observedReturn = payload(returnEvent);
   const predictionCount = Array.isArray(contrast.predictions) ? contrast.predictions.length : 0;
   const expectedSignals = strings(contrast.expectedSignals);
   const contradictionSignals = strings(contrast.contradictionSignals);
-  const returnEvidenceRefs = [
-    ...strings(contrast.returnEvidenceRefs),
-    ...strings(observedReturn.evidenceRefs),
-    ...strings(row(returnEvent).lineage),
-  ].filter((value, index, values) => values.indexOf(value) === index);
+  const returnEvidenceRefs = strings(contrast.returnEvidenceRefs);
   const updatedConfidence = Number(contrast.updatedConfidence);
   if (text(contrast.calibrationStatus) !== 'CONTRAST_RECORDED') return { eligible: false, reason: 'CALIBRATION_NOT_RECORDED' };
   if (text(contrast.classification) === 'INCONCLUSIVE' || !text(contrast.classification)) return { eligible: false, reason: 'CONTRAST_INCONCLUSIVE' };
   if (!predictionCount) return { eligible: false, reason: 'PREDICTION_MISSING' };
   if (!expectedSignals.length || !contradictionSignals.length) return { eligible: false, reason: 'DISCRIMINATING_SIGNALS_MISSING' };
   if (!returnEvidenceRefs.length) return { eligible: false, reason: 'RETURN_EVIDENCE_UNLINKED' };
+  if (text(contrast.returnTraceability) !== 'VERIFIED_EVIDENCE_LINKED') return { eligible: false, reason: 'RETURN_EVIDENCE_UNVERIFIED' };
   if (!Number.isFinite(updatedConfidence)) return { eligible: false, reason: 'UPDATED_CONFIDENCE_MISSING' };
   return { eligible: true, reason: 'EVIDENCE_COMPLETE_CALIBRATED_RETURN' };
 }
@@ -153,8 +149,12 @@ export function buildUniversalLearningCandidate(input: {
   const latestContrast = latest(input.history.returnContrasts);
   const latestRun = latest(input.history.cognitiveRuns);
   const latestContrastPayload = payload(latestContrast);
+  const latestReturnPayload = payload(latestReturn);
   const cycleId = text(input.history.cycleId) ?? text(payload(latestRun).cycleId);
 
+  // Calibration-bearing fields always come from the persisted canonical RETURN
+  // and contrast events. Closure prose is retained separately and cannot replace
+  // the record that promotion revalidates.
   const candidate = {
     contract: SFI_UNIVERSAL_LEARNING_QUARANTINE_CONTRACT,
     cycleId,
@@ -167,12 +167,13 @@ export function buildUniversalLearningCandidate(input: {
       rivalHypotheses: Array.isArray(closure.rivalHypotheses) ? closure.rivalHypotheses : aiLearning.rivalHypotheses ?? [],
       prediction: closure.prediction ?? (Array.isArray(aiLearning.predictions) ? aiLearning.predictions[0] ?? null : null),
       predictions: aiLearning.predictions ?? [],
-      expectedSignals: Array.isArray(closure.expectedSignals) ? closure.expectedSignals : latestContrastPayload.expectedSignals ?? aiLearning.expectedSignals ?? [],
-      contradictionSignals: Array.isArray(closure.contradictionSignals) ? closure.contradictionSignals : latestContrastPayload.contradictionSignals ?? aiLearning.contradictionSignals ?? [],
-      observedReturn: closure.observedReturn ?? payload(latestReturn).outcome ?? null,
-      contrast: closure.contrast ?? (latestContrast ? latestContrastPayload : null),
-      updatedConfidence: closure.updatedConfidence ?? latestContrastPayload.updatedConfidence ?? null,
-      outcome: closure.outcome ?? payload(latestReturn).outcome ?? null,
+      expectedSignals: latestContrast ? latestContrastPayload.expectedSignals ?? [] : Array.isArray(closure.expectedSignals) ? closure.expectedSignals : aiLearning.expectedSignals ?? [],
+      contradictionSignals: latestContrast ? latestContrastPayload.contradictionSignals ?? [] : Array.isArray(closure.contradictionSignals) ? closure.contradictionSignals : aiLearning.contradictionSignals ?? [],
+      observedReturn: latestReturn ? latestReturnPayload.outcome ?? null : closure.observedReturn ?? null,
+      contrast: latestContrast ? latestContrastPayload : null,
+      contrastNarrative: closure.contrast ?? null,
+      updatedConfidence: latestContrast ? latestContrastPayload.updatedConfidence ?? null : null,
+      outcome: latestReturn ? latestReturnPayload.outcome ?? null : closure.outcome ?? null,
       recurrenceAssessment: closure.recurrenceAssessment ?? null,
       limitations: Array.isArray(closure.limitations) ? closure.limitations : [],
       missingEvidence: Array.isArray(closure.missingEvidence) ? closure.missingEvidence : aiLearning.missingEvidence ?? [],
@@ -193,7 +194,7 @@ export function buildUniversalLearningCandidate(input: {
         : classification === 'OPERATIONAL_EVIDENCE'
           ? `Operational observation may inform review but is not promotion-eligible: ${eligibility.reason}.`
           : 'Evidence-complete calibrated return is eligible for ROOT review; eligibility is not promotion and does not establish truth.',
-    epistemicBoundary: 'Cycle closure creates a quarantined learning candidate only. CALIBRATED_RETURN requires prediction, discriminating signals, evidence-linked RETURN, completed contrast and updated confidence. Candidate status does not make a hypothesis evidence, memory, canonical truth, or Cognitive Spine input.',
+    epistemicBoundary: 'Cycle closure creates a quarantined learning candidate only. CALIBRATED_RETURN requires prediction, discriminating signals, a verified evidence-linked RETURN, completed contrast and updated confidence. Closure narrative cannot replace canonical contrast. Candidate status does not make a hypothesis evidence, memory, canonical truth, or Cognitive Spine input.',
   };
 
   return candidate;
@@ -328,6 +329,7 @@ function persistedCandidateEvidenceEligible(candidatePayload: Row) {
     && text(candidatePayload.eligibilityBasis) === 'EVIDENCE_COMPLETE_CALIBRATED_RETURN'
     && text(contrast.calibrationStatus) === 'CONTRAST_RECORDED'
     && text(contrast.classification) !== 'INCONCLUSIVE'
+    && text(contrast.returnTraceability) === 'VERIFIED_EVIDENCE_LINKED'
     && strings(contrast.returnEvidenceRefs).length > 0
     && strings(contrast.expectedSignals).length > 0
     && strings(contrast.contradictionSignals).length > 0
