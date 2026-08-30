@@ -1,10 +1,20 @@
 // src/runtime/layers/Observer.ts
-import { createServerClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
+import { createClient } from '@supabase/supabase-js';
 import { GateDecision } from './Gate';
 import { normalizeSupabaseUrl } from '@/runtime/supabase/url';
 import { emitEpistemicEvent } from '@/core/memory/epistemicEventWriter';
 import { processEpistemicEvent } from '@/core/memory/institutionalEventPipeline';
+
+function runtimeServiceClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? '';
+  return createClient(normalizeSupabaseUrl(supabaseUrl), supabaseKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  });
+}
 
 export async function recordAction(
   nodeId: string,
@@ -13,10 +23,7 @@ export async function recordAction(
   executionResult: any,
   gateDecision: GateDecision
 ) {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
-  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? '';
-  const cookieStore = cookies() as any;
-  const supabase = createServerClient(normalizeSupabaseUrl(supabaseUrl), supabaseKey, { cookies: cookieStore });
+  const supabase = runtimeServiceClient();
   // Guardar en la tabla de eventos (ya existente)
   await supabase.from('events').insert({
     node_id: nodeId,
@@ -58,10 +65,7 @@ export async function recordAction(
 }
 
 export async function recordObservation(nodeId: string, metricType: string, value: number) {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
-  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? '';
-  const cookieStore = cookies() as any;
-  const supabase = createServerClient(normalizeSupabaseUrl(supabaseUrl), supabaseKey, { cookies: cookieStore });
+  const supabase = runtimeServiceClient();
   await supabase.from('structured_observations').insert({
     node_id: nodeId,
     observation_type: metricType,
