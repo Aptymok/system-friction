@@ -510,7 +510,10 @@ async function fetchDirectSource(source: UniversalWebSource, terms: string[]): P
         return { ...source, verification: { directFetch: false, httpStatus: response.status, contentType: response.contentType, excerpt: null, queryCoverage: 0, verifiedAt: null, warning: `DIRECT_FETCH_UNUSABLE_${response.status}` } };
       }
       const plain = htmlToEvidenceText(response.bodyText).slice(0, 8_000);
-      const queryCoverage = coverageFor(`${source.title} ${plain}`, terms);
+      // Relevance is qualified only by material actually retrieved from the final
+      // URL. Discovery titles/snippets cannot make an irrelevant redirect target
+      // satisfy WEB_REQUIRED.
+      const queryCoverage = coverageFor(plain, terms);
       const directFetch = plain.length > 80;
       const relevanceQualified = queryCoverage >= MIN_VERIFIED_QUERY_COVERAGE;
       const warning = !directFetch
@@ -646,7 +649,7 @@ export async function acquireUniversalWebEvidence(inputValue: unknown, actorId: 
       authoritativeVerifiedSourceCount: authoritativeVerified.length,
       satisfied,
       executionBoundary: 'BOUNDED_DISCOVERY_PLUS_DNS_PINNED_DIRECT_SOURCE_FETCH_NO_LLM',
-      epistemicBoundary: 'Direct retrieval establishes that source material was fetched and records an excerpt. The connection is pinned to a prevalidated public address, redirects are revalidated and source provenance is recomputed from the final URL. Verification additionally requires query relevance and distinct resolved source URLs; authority-sensitive cases require regulator provenance from the final source hostname. Neither state makes the source claim accepted evidence or proves causal/factual truth by itself.',
+      epistemicBoundary: 'Direct retrieval establishes that source material was fetched and records an excerpt. The connection is pinned to a prevalidated public address, redirects are revalidated and source provenance is recomputed from the final URL. Verification additionally requires query relevance measured only from final fetched material and distinct resolved source URLs; authority-sensitive cases require regulator provenance from the final source hostname. Neither state makes the source claim accepted evidence or proves causal/factual truth by itself.',
     },
     occurredAt: new Date().toISOString(),
     source: { sourceId: 'universal_evidence_acquisition', sourceType: 'public_research' },
