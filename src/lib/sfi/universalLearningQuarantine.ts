@@ -3,7 +3,7 @@ import 'server-only';
 import { appendEpistemicEvent } from '@/lib/events/eventStore';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 
-export const SFI_UNIVERSAL_LEARNING_QUARANTINE_CONTRACT = 'SFI-UNIVERSAL-LEARNING-QUARANTINE-1.0' as const;
+export const SFI_UNIVERSAL_LEARNING_QUARANTINE_CONTRACT = 'SFI-UNIVERSAL-LEARNING-QUARANTINE-1.1' as const;
 
 export type UniversalLearningClass =
   | 'TEST_SYNTHETIC'
@@ -42,6 +42,12 @@ function text(value: unknown) {
 function rows(value: unknown): Row[] {
   return Array.isArray(value)
     ? value.filter((item): item is Row => Boolean(item) && typeof item === 'object' && !Array.isArray(item))
+    : [];
+}
+
+function strings(value: unknown) {
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0).map((item) => item.trim())
     : [];
 }
 
@@ -92,14 +98,40 @@ function lastClosureEnvelope(history: UniversalCycleHistory) {
   return event ? row(payload(event).closure) : {};
 }
 
+function calibratedReturnEligibility(history: UniversalCycleHistory) {
+  const contrastEvent = latest(history.returnContrasts);
+  const returnEvent = latest(history.returns);
+  if (!contrastEvent || !returnEvent) {
+    return { eligible: false, reason: 'RETURN_OR_CONTRAST_MISSING' };
+  }
+  const contrast = payload(contrastEvent);
+  const observedReturn = payload(returnEvent);
+  const predictionCount = Array.isArray(contrast.predictions) ? contrast.predictions.length : 0;
+  const expectedSignals = strings(contrast.expectedSignals);
+  const contradictionSignals = strings(contrast.contradictionSignals);
+  const returnEvidenceRefs = [
+    ...strings(contrast.returnEvidenceRefs),
+    ...strings(observedReturn.evidenceRefs),
+    ...strings(row(returnEvent).lineage),
+  ].filter((value, index, values) => values.indexOf(value) === index);
+  const updatedConfidence = Number(contrast.updatedConfidence);
+  if (text(contrast.calibrationStatus) !== 'CONTRAST_RECORDED') return { eligible: false, reason: 'CALIBRATION_NOT_RECORDED' };
+  if (text(contrast.classification) === 'INCONCLUSIVE' || !text(contrast.classification)) return { eligible: false, reason: 'CONTRAST_INCONCLUSIVE' };
+  if (!predictionCount) return { eligible: false, reason: 'PREDICTION_MISSING' };
+  if (!expectedSignals.length || !contradictionSignals.length) return { eligible: false, reason: 'DISCRIMINATING_SIGNALS_MISSING' };
+  if (!returnEvidenceRefs.length) return { eligible: false, reason: 'RETURN_EVIDENCE_UNLINKED' };
+  if (!Number.isFinite(updatedConfidence)) return { eligible: false, reason: 'UPDATED_CONFIDENCE_MISSING' };
+  return { eligible: true, reason: 'EVIDENCE_COMPLETE_CALIBRATED_RETURN' };
+}
+
 function hasCalibratedReturn(history: UniversalCycleHistory) {
-  return Array.isArray(history.returnContrasts) && history.returnContrasts.length > 0
-    && Array.isArray(history.returns) && history.returns.length > 0;
+  return calibratedReturnEligibility(history).eligible;
 }
 
 function inferLearningClass(history: UniversalCycleHistory, requested: Row): UniversalLearningClass {
   const explicit = explicitClass(requested.classification);
-  if (explicit) return explicit;
+  if (explicit === 'TEST_SYNTHETIC' || explicit === 'FAILED_EXPERIMENT' || explicit === 'OPERATIONAL_EVIDENCE') return explicit;
+  if (explicit === 'CALIBRATED_RETURN') return hasCalibratedReturn(history) ? 'CALIBRATED_RETURN' : 'OPERATIONAL_EVIDENCE';
   if (requested.synthetic === true || requested.test === true || requested.fixture === true) return 'TEST_SYNTHETIC';
   if (requested.failedExperiment === true) return 'FAILED_EXPERIMENT';
   if (hasCalibratedReturn(history)) return 'CALIBRATED_RETURN';
@@ -112,6 +144,7 @@ export function buildUniversalLearningCandidate(input: {
   closureEventId?: string | null;
 }) {
   const requested = row(input.requested);
+  const eligibility = calibratedReturnEligibility(input.history);
   const classification = inferLearningClass(input.history, requested);
   const promotionState = learningState(classification);
   const aiLearning = lastAiLearning(input.history);
@@ -119,6 +152,7 @@ export function buildUniversalLearningCandidate(input: {
   const latestReturn = latest(input.history.returns);
   const latestContrast = latest(input.history.returnContrasts);
   const latestRun = latest(input.history.cognitiveRuns);
+  const latestContrastPayload = payload(latestContrast);
   const cycleId = text(input.history.cycleId) ?? text(payload(latestRun).cycleId);
 
   const candidate = {
@@ -126,17 +160,18 @@ export function buildUniversalLearningCandidate(input: {
     cycleId,
     classification,
     promotionState,
-    eligibleForRootPromotion: promotionState === 'ELIGIBLE_FOR_ROOT_PROMOTION',
+    eligibleForRootPromotion: promotionState === 'ELIGIBLE_FOR_ROOT_PROMOTION' && eligibility.eligible,
+    eligibilityBasis: eligibility.reason,
     learning: {
       primaryHypothesis: closure.primaryHypothesis ?? aiLearning.primaryHypothesis ?? null,
       rivalHypotheses: Array.isArray(closure.rivalHypotheses) ? closure.rivalHypotheses : aiLearning.rivalHypotheses ?? [],
       prediction: closure.prediction ?? (Array.isArray(aiLearning.predictions) ? aiLearning.predictions[0] ?? null : null),
       predictions: aiLearning.predictions ?? [],
-      expectedSignals: Array.isArray(closure.expectedSignals) ? closure.expectedSignals : aiLearning.expectedSignals ?? [],
-      contradictionSignals: Array.isArray(closure.contradictionSignals) ? closure.contradictionSignals : aiLearning.contradictionSignals ?? [],
+      expectedSignals: Array.isArray(closure.expectedSignals) ? closure.expectedSignals : latestContrastPayload.expectedSignals ?? aiLearning.expectedSignals ?? [],
+      contradictionSignals: Array.isArray(closure.contradictionSignals) ? closure.contradictionSignals : latestContrastPayload.contradictionSignals ?? aiLearning.contradictionSignals ?? [],
       observedReturn: closure.observedReturn ?? payload(latestReturn).outcome ?? null,
-      contrast: closure.contrast ?? (latestContrast ? payload(latestContrast) : null),
-      updatedConfidence: closure.updatedConfidence ?? null,
+      contrast: closure.contrast ?? (latestContrast ? latestContrastPayload : null),
+      updatedConfidence: closure.updatedConfidence ?? latestContrastPayload.updatedConfidence ?? null,
       outcome: closure.outcome ?? payload(latestReturn).outcome ?? null,
       recurrenceAssessment: closure.recurrenceAssessment ?? null,
       limitations: Array.isArray(closure.limitations) ? closure.limitations : [],
@@ -156,9 +191,9 @@ export function buildUniversalLearningCandidate(input: {
       : classification === 'FAILED_EXPERIMENT'
         ? 'Failed experiment remains an audit/diagnostic trace and does not become doctrine.'
         : classification === 'OPERATIONAL_EVIDENCE'
-          ? 'Operational observation may inform review but lacks calibrated return required for automatic eligibility.'
-          : 'Calibrated return is eligible for ROOT review; eligibility is not promotion and does not establish truth.',
-    epistemicBoundary: 'Cycle closure creates a quarantined learning candidate only. Candidate status does not make a hypothesis evidence, memory, canonical truth, or Cognitive Spine input.',
+          ? `Operational observation may inform review but is not promotion-eligible: ${eligibility.reason}.`
+          : 'Evidence-complete calibrated return is eligible for ROOT review; eligibility is not promotion and does not establish truth.',
+    epistemicBoundary: 'Cycle closure creates a quarantined learning candidate only. CALIBRATED_RETURN requires prediction, discriminating signals, evidence-linked RETURN, completed contrast and updated confidence. Candidate status does not make a hypothesis evidence, memory, canonical truth, or Cognitive Spine input.',
   };
 
   return candidate;
@@ -284,6 +319,21 @@ async function readCandidateEvent(candidateEventId: string) {
   return { ok: true as const, event: row(result.data) };
 }
 
+function persistedCandidateEvidenceEligible(candidatePayload: Row) {
+  if (text(candidatePayload.contract) !== SFI_UNIVERSAL_LEARNING_QUARANTINE_CONTRACT) return false;
+  const learning = row(candidatePayload.learning);
+  const contrast = row(learning.contrast);
+  return candidatePayload.eligibleForRootPromotion === true
+    && text(candidatePayload.classification) === 'CALIBRATED_RETURN'
+    && text(candidatePayload.eligibilityBasis) === 'EVIDENCE_COMPLETE_CALIBRATED_RETURN'
+    && text(contrast.calibrationStatus) === 'CONTRAST_RECORDED'
+    && text(contrast.classification) !== 'INCONCLUSIVE'
+    && strings(contrast.returnEvidenceRefs).length > 0
+    && strings(contrast.expectedSignals).length > 0
+    && strings(contrast.contradictionSignals).length > 0
+    && Number.isFinite(Number(contrast.updatedConfidence));
+}
+
 export async function promoteUniversalLearningCandidate(input: {
   candidateEventId: string;
   actorId: string;
@@ -301,12 +351,13 @@ export async function promoteUniversalLearningCandidate(input: {
   const candidateRead = await readCandidateEvent(input.candidateEventId);
   if (!candidateRead.ok || !candidateRead.event) return candidateRead;
   const candidatePayload = payload(candidateRead.event);
-  if (candidatePayload.eligibleForRootPromotion !== true || text(candidatePayload.classification) !== 'CALIBRATED_RETURN') {
+  if (!persistedCandidateEvidenceEligible(candidatePayload)) {
     return {
       ok: false as const,
       error: 'LEARNING_CANDIDATE_NOT_ELIGIBLE_FOR_PROMOTION',
       classification: candidatePayload.classification ?? null,
       promotionState: candidatePayload.promotionState ?? null,
+      eligibilityBasis: candidatePayload.eligibilityBasis ?? null,
     };
   }
   const lineage = Array.isArray(candidateRead.event.lineage)
@@ -328,7 +379,7 @@ export async function promoteUniversalLearningCandidate(input: {
       promotedBy: input.actorId,
       promotedAt: new Date().toISOString(),
       reviewNote: input.reviewNote ?? null,
-      epistemicBoundary: 'ROOT authorizes institutional use of a calibrated learning record. The persisted event remains DERIVED; VERIFIED_CONTRAST is an explicit assessment/projection class and does not erase uncertainty, provenance, rival hypotheses, or residual error.',
+      epistemicBoundary: 'ROOT authorizes institutional use of an evidence-complete calibrated learning record. The persisted event remains DERIVED; VERIFIED_CONTRAST is an explicit assessment/projection class and does not erase uncertainty, provenance, rival hypotheses, or residual error.',
     },
     occurredAt: new Date().toISOString(),
     source: { sourceId: input.actorId, sourceType: 'root_learning_promotion' },
