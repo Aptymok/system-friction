@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { runLlmTask } from '@/lib/ai/providerRouter';
 import { appendEpistemicEvent } from '@/lib/events/eventStore';
 
-export const SFI_UNIVERSAL_AI_SYNTHESIS_CONTRACT = 'SFI-UNIVERSAL-AI-SYNTHESIS-1.1' as const;
+export const SFI_UNIVERSAL_AI_SYNTHESIS_CONTRACT = 'SFI-UNIVERSAL-AI-SYNTHESIS-1.2' as const;
 
 type Row = Record<string, unknown>;
 
@@ -81,10 +81,28 @@ export type SfiUniversalAiPrediction = {
   observationWindow: string | null;
 };
 
+export type SfiUniversalEvidenceAssessment = {
+  declared: string[];
+  observed: string[];
+  derived: string[];
+  externalSourceClaims: string[];
+  unresolved: string[];
+};
+
+export type SfiUniversalFrictionFinding = {
+  dimension: string;
+  finding: string;
+  basis: string[];
+  evidenceRefs: string[];
+  confidence: number;
+};
+
 export type SfiUniversalAiSynthesis = {
   contract: typeof SFI_UNIVERSAL_AI_SYNTHESIS_CONTRACT;
   status: 'COMPLETE' | 'DEGRADED';
   summary: string | null;
+  evidenceAssessment: SfiUniversalEvidenceAssessment;
+  frictionAnalysis: SfiUniversalFrictionFinding[];
   primaryHypothesis: string | null;
   rivalHypotheses: string[];
   predictions: SfiUniversalAiPrediction[];
@@ -96,11 +114,38 @@ export type SfiUniversalAiSynthesis = {
   eventId: string | null;
 };
 
+function emptyEvidenceAssessment(): SfiUniversalEvidenceAssessment {
+  return { declared: [], observed: [], derived: [], externalSourceClaims: [], unresolved: [] };
+}
+
 function parseSynthesis(value: string) {
   try {
     const parsed = row(JSON.parse(stripFence(value)));
     const primaryHypothesis = text(parsed.primaryHypothesis);
     const rivals = strings(parsed.rivalHypotheses, 5);
+    const assessment = row(parsed.evidenceAssessment);
+    const evidenceAssessment: SfiUniversalEvidenceAssessment = {
+      declared: strings(assessment.declared, 10),
+      observed: strings(assessment.observed, 12),
+      derived: strings(assessment.derived, 12),
+      externalSourceClaims: strings(assessment.externalSourceClaims, 10),
+      unresolved: strings(assessment.unresolved, 12),
+    };
+    const frictionAnalysis: SfiUniversalFrictionFinding[] = Array.isArray(parsed.frictionAnalysis)
+      ? parsed.frictionAnalysis.slice(0, 8).flatMap((item) => {
+          const finding = row(item);
+          const dimension = text(finding.dimension);
+          const description = text(finding.finding);
+          if (!dimension || !description) return [];
+          return [{
+            dimension,
+            finding: description,
+            basis: strings(finding.basis, 8),
+            evidenceRefs: strings(finding.evidenceRefs, 8),
+            confidence: clamp01(finding.confidence, 0.5),
+          }];
+        })
+      : [];
     const predictions = Array.isArray(parsed.predictions)
       ? parsed.predictions.slice(0, 5).flatMap((item) => {
           const prediction = row(item);
@@ -118,10 +163,12 @@ function parseSynthesis(value: string) {
       : [];
     return {
       summary: text(parsed.summary),
+      evidenceAssessment,
+      frictionAnalysis,
       primaryHypothesis,
       rivalHypotheses: rivals,
       predictions,
-      missingEvidence: strings(parsed.missingEvidence, 10),
+      missingEvidence: strings(parsed.missingEvidence, 12),
       confidence: parsed.confidence === null || parsed.confidence === undefined ? null : clamp01(parsed.confidence, 0.5),
     };
   } catch {
@@ -144,16 +191,18 @@ export async function synthesizeUniversalCycleWithAi(input: {
   const system = [
     'You are the System Friction Institute synthesis layer after deterministic observation and governed cognitive agents.',
     'Evidence before inference. Never invent measurements, rows, sources, causal relations, interventions, returns, dates or lineage.',
-    'Use only the supplied observed/derived material. Treat web snippets as SOURCE_CLAIMS, not verified facts.',
+    'Keep DECLARED, OBSERVED, DERIVED, SOURCE_CLAIM and INFERRED material separate. A user/operator declaration is not evidence merely because it was supplied.',
+    'Directly fetched web material remains an imported SOURCE_CLAIM unless the supplied record explicitly says otherwise. Use it for corroboration/contradiction without upgrading it to accepted evidence.',
+    'Friction findings must be grounded in supplied structured measurements or deterministic friction projections. Do not infer a friction merely because a word sounds negative.',
+    'Distinguish measured friction from causal explanation: a recurring pattern or temporal anomaly can establish a friction candidate without establishing its cause.',
     'Your output is INFERENCE only and cannot authorize action or promote itself to canonical truth.',
     'Generate one falsifiable primary hypothesis and at least one materially distinct rival when evidence permits.',
     'Predictions must discriminate between hypotheses. Each prediction needs expectedSignals, contradictionSignals and an observationWindow when possible.',
-    'If the available material cannot support a hypothesis or prediction, leave it null/empty and name the missing evidence instead of guessing.',
-    'Return ONLY JSON with this exact shape: {"summary":string|null,"primaryHypothesis":string|null,"rivalHypotheses":string[],"predictions":[{"description":string,"confidence":number,"expectedSignals":string[],"contradictionSignals":string[],"observationWindow":string|null}],"missingEvidence":string[],"confidence":number|null}.',
+    'If the available material cannot support a friction, hypothesis or prediction, omit it and name the missing evidence instead of guessing.',
+    'Write in the language used by the question/objective when reasonably possible.',
+    'Return ONLY JSON with this exact shape: {"summary":string|null,"evidenceAssessment":{"declared":string[],"observed":string[],"derived":string[],"externalSourceClaims":string[],"unresolved":string[]},"frictionAnalysis":[{"dimension":string,"finding":string,"basis":string[],"evidenceRefs":string[],"confidence":number}],"primaryHypothesis":string|null,"rivalHypotheses":string[],"predictions":[{"description":string,"confidence":number,"expectedSignals":string[],"contradictionSignals":string[],"observationWindow":string|null}],"missingEvidence":string[],"confidence":number|null}.',
   ].join('\n');
 
-  // Material observations are intentionally placed before runtime prose so a bounded
-  // prompt cannot silently truncate the measurements that make the inference auditable.
   const prompt = JSON.stringify(compact({
     question: input.question ?? null,
     objective: input.objective ?? null,
@@ -161,15 +210,15 @@ export async function synthesizeUniversalCycleWithAi(input: {
     material: materialCapsule(input.signal),
     deterministicOutputs: input.deterministicOutputs,
     runtimeMetadata: input.runtimeMetadata,
-  })).slice(0, 16_000);
+  })).slice(0, 18_000);
 
   const result = await runLlmTask({
     task: 'graph_interpretation',
     system,
     prompt,
-    fallbackResult: '{"summary":null,"primaryHypothesis":null,"rivalHypotheses":[],"predictions":[],"missingEvidence":["LLM_PROVIDER_UNAVAILABLE_OR_INSUFFICIENT_STRUCTURED_OBSERVATION"],"confidence":null}',
+    fallbackResult: '{"summary":null,"evidenceAssessment":{"declared":[],"observed":[],"derived":[],"externalSourceClaims":[],"unresolved":["LLM_PROVIDER_UNAVAILABLE_OR_INSUFFICIENT_STRUCTURED_OBSERVATION"]},"frictionAnalysis":[],"primaryHypothesis":null,"rivalHypotheses":[],"predictions":[],"missingEvidence":["LLM_PROVIDER_UNAVAILABLE_OR_INSUFFICIENT_STRUCTURED_OBSERVATION"],"confidence":null}',
     requirements: { reasoning: true, structuredOutput: true, priority: 'quality' },
-    maxTokens: 1100,
+    maxTokens: 1700,
   });
   const parsed = parseSynthesis(result.result);
   const synthesis: Omit<SfiUniversalAiSynthesis, 'eventId'> = parsed
@@ -185,6 +234,8 @@ export async function synthesizeUniversalCycleWithAi(input: {
         contract: SFI_UNIVERSAL_AI_SYNTHESIS_CONTRACT,
         status: 'DEGRADED',
         summary: null,
+        evidenceAssessment: emptyEvidenceAssessment(),
+        frictionAnalysis: [],
         primaryHypothesis: null,
         rivalHypotheses: [],
         predictions: [],
@@ -206,7 +257,7 @@ export async function synthesizeUniversalCycleWithAi(input: {
       tenantId: input.tenantId,
       synthesis,
       lineageRefs: lineage,
-      epistemicBoundary: 'AI synthesis is an inference layer over observed/derived inputs. Primary/rival hypotheses and predictions remain contrastable propositions, not accepted evidence or canonical truth.',
+      epistemicBoundary: 'AI synthesis is an inference layer over declared/observed/derived/imported inputs. Evidence assessment, friction findings, hypotheses and predictions do not upgrade their underlying epistemic classes.',
     },
     occurredAt: new Date().toISOString(),
     source: { sourceId: 'universal_ai_synthesis', sourceType: 'llm_inference' },
