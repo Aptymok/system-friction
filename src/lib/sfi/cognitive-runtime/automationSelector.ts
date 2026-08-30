@@ -94,6 +94,13 @@ function resolvedCaseClass(context: KernelContext) {
   return String(metadata.caseClass ?? caseContext.caseClass ?? '').trim().toUpperCase();
 }
 
+function hasStructuredPrediction(context: KernelContext) {
+  const metadata = record(context.metadata);
+  const signal = record(metadata.signal);
+  const extracted = record(signal.extracted);
+  return Object.keys(record(extracted.prediction)).length > 0;
+}
+
 export function selectCognitiveAutomations(context: KernelContext): CognitiveAutomationSelection {
   const explicit = requestedIds(context);
   if (explicit.length) {
@@ -106,6 +113,7 @@ export function selectCognitiveAutomations(context: KernelContext): CognitiveAut
 
   const text = normalizedText(context);
   const caseClass = resolvedCaseClass(context);
+  const structuredPredictionAvailable = hasStructuredPrediction(context);
   const selected = new Map<CognitiveAutomationId, Set<string>>();
   const choose = (id: CognitiveAutomationId, reason: string) => {
     const current = selected.get(id) ?? new Set<string>();
@@ -153,8 +161,8 @@ export function selectCognitiveAutomations(context: KernelContext): CognitiveAut
     if (hasAny(text, ['policy', 'governance', 'regulation', 'politic', 'government', 'gobernanza', 'regulacion', 'gobierno'])) choose('policy_simulator', 'policy_domain');
   }
 
-  if (hasPredictions || hasAny(text, ['trajectory', 'project', 'forecast', 'predict', 'proyeccion', 'proyect', 'trayectoria', 'pronost'])) {
-    choose('trajectory_agent', 'projection_or_prediction_intent');
+  if (hasPredictions || structuredPredictionAvailable || hasAny(text, ['trajectory', 'project', 'forecast', 'predict', 'proyeccion', 'proyect', 'trayectoria', 'pronost'])) {
+    choose('trajectory_agent', structuredPredictionAvailable ? 'structured_prediction_available' : 'projection_or_prediction_intent');
   }
 
   const decisionByClass = ['DECISION', 'INTERVENTION'].includes(caseClass);
@@ -176,8 +184,8 @@ export function selectCognitiveAutomations(context: KernelContext): CognitiveAut
     choose('project_execution_manager', 'governed_action_requires_dependency_plan');
   }
 
-  if (hasPredictions || hasAny(text, ['outcome', 'return', 'returned', 'resultado', 'retorno', 'calibrate', 'calibrar', 'contrastar', 'contraste'])) {
-    choose('reality_calibration', 'observed_return_or_prediction_requires_calibration');
+  if (hasPredictions || structuredPredictionAvailable || hasAny(text, ['outcome', 'return', 'returned', 'resultado', 'retorno', 'calibrate', 'calibrar', 'contrastar', 'contraste'])) {
+    choose('reality_calibration', structuredPredictionAvailable ? 'structured_prediction_requires_future_calibration' : 'observed_return_or_prediction_requires_calibration');
   }
 
   const automationIds = SFI_COGNITIVE_AUTOMATION_ORDER.filter((id) => selected.has(id));
