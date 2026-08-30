@@ -10,7 +10,10 @@ import { executeCognitiveCycle } from '@/lib/sfi/cognitive-runtime/cognitiveCycl
 import { SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY } from '@/lib/sfi/cognitive-runtime/convergedRegistry';
 
 export const SFI_UNIVERSAL_SIGNAL_CONTRACT = 'SFI-UNIVERSAL-SIGNAL-1.1';
-export const SFI_UNIVERSAL_CYCLE_CONTRACT = 'SFI-UNIVERSAL-REASONING-CYCLE-1.1';
+export const SFI_UNIVERSAL_CYCLE_CONTRACT = 'SFI-UNIVERSAL-REASONING-CYCLE-1.2';
+
+const UNIVERSAL_EVENT_PAGE_SIZE = 250;
+const UNIVERSAL_EVENT_RECONSTRUCTION_LIMIT = 5000;
 
 export const SFI_SIGNAL_KINDS = [
   'url', 'web_page', 'text', 'audio', 'video', 'image', 'document', 'dataset', 'json', 'csv',
@@ -90,9 +93,19 @@ export type UniversalCycleHistory = {
 function record(value: unknown): RecordValue {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as RecordValue : {};
 }
+function records(value: unknown): RecordValue[] {
+  return Array.isArray(value)
+    ? value.filter((item): item is RecordValue => Boolean(item) && typeof item === 'object' && !Array.isArray(item))
+    : [];
+}
 function text(value: unknown) { return typeof value === 'string' && value.trim() ? value.trim() : null; }
 function strings(value: unknown) { return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0).map((item) => item.trim()) : []; }
 function clamp01(value: unknown, fallback = 0.5) { const parsed = Number(value); return Number.isFinite(parsed) ? Math.max(0, Math.min(1, parsed)) : fallback; }
+function statement(value: unknown) {
+  if (typeof value === 'string') return value.trim() || null;
+  const item = record(value);
+  return text(item.statement) ?? text(item.hypothesis) ?? text(item.claim) ?? text(item.description);
+}
 function normalizeKind(value: unknown): SfiSignalKind {
   const candidate = typeof value === 'string' ? value.trim().toLowerCase() : 'unknown';
   return (SFI_SIGNAL_KINDS as readonly string[]).includes(candidate) ? candidate as SfiSignalKind : 'unknown';
@@ -205,14 +218,31 @@ function agentPlan(input: UniversalCycleInput) {
   };
 }
 
+async function readUniversalLifecycleRows() {
+  const db = createServiceSupabaseClient();
+  const rows: RecordValue[] = [];
+  for (let from = 0; from < UNIVERSAL_EVENT_RECONSTRUCTION_LIMIT; from += UNIVERSAL_EVENT_PAGE_SIZE) {
+    const page = await db.from('epistemic_events')
+      .select('event_id,event_name,epistemic_class,payload,occurred_at,lineage')
+      .in('event_name', ['SFI_UNIVERSAL_CYCLE_OPENED', 'SFI_UNIVERSAL_CYCLE_CLOSED'])
+      .order('sequence', { ascending: false })
+      .range(from, from + UNIVERSAL_EVENT_PAGE_SIZE - 1);
+    if (page.error) return { rows: [] as RecordValue[], warning: `epistemic_events:${page.error.message}` };
+    const pageRows = (Array.isArray(page.data) ? page.data : []) as RecordValue[];
+    rows.push(...pageRows);
+    if (pageRows.length < UNIVERSAL_EVENT_PAGE_SIZE) return { rows, warning: null as string | null };
+  }
+  return { rows, warning: 'epistemic_events:UNIVERSAL_LIFECYCLE_RECONSTRUCTION_LIMIT_REACHED' };
+}
+
 export async function readUniversalOpenCycles(limit = 80) {
   const db = createServiceSupabaseClient();
   const [events, worldHypotheses, proposals] = await Promise.all([
-    db.from('epistemic_events').select('event_id,event_name,epistemic_class,payload,occurred_at,lineage').in('event_name', ['SFI_UNIVERSAL_SIGNAL_INGESTED','SFI_UNIVERSAL_CYCLE_OPENED','SFI_UNIVERSAL_RETURN_RECORDED','SFI_UNIVERSAL_CYCLE_CLOSED']).order('sequence', { ascending: false }).limit(Math.max(20, Math.min(300, limit * 4))),
+    readUniversalLifecycleRows(),
     db.from('world_hypotheses').select('*').in('status', ['OPEN','AWAITING_OUTCOME']).limit(Math.max(10, Math.min(100, limit))),
     db.from('action_proposals').select('*').limit(Math.max(10, Math.min(100, limit))),
   ]);
-  const universalRows = Array.isArray(events.data) ? events.data : [];
+  const universalRows = events.rows;
   const closedCycleIds = new Set<string>();
   for (const row of universalRows) {
     if (row.event_name !== 'SFI_UNIVERSAL_CYCLE_CLOSED') continue;
@@ -230,19 +260,27 @@ export async function readUniversalOpenCycles(limit = 80) {
     universal,
     worldHypotheses: worldHypotheses.data ?? [],
     pendingProposals,
-    warnings: [events.error ? `epistemic_events:${events.error.message}` : null, worldHypotheses.error ? `world_hypotheses:${worldHypotheses.error.message}` : null, proposals.error ? `action_proposals:${proposals.error.message}` : null].filter((value): value is string => Boolean(value)),
+    warnings: [events.warning, worldHypotheses.error ? `world_hypotheses:${worldHypotheses.error.message}` : null, proposals.error ? `action_proposals:${proposals.error.message}` : null].filter((value): value is string => Boolean(value)),
   };
 }
 
 export async function readUniversalCycleHistory(cycleId: string): Promise<UniversalCycleHistory> {
   const db = createServiceSupabaseClient();
-  const result = await db.from('epistemic_events')
-    .select('sequence,event_id,event_name,epistemic_class,confidence,payload,lineage,occurred_at,hash_prev,hash_self,logbook_id')
-    .or(`logbook_id.eq.universal-cycle:${cycleId},logbook_id.eq.structured-result:${cycleId}`)
-    .order('sequence', { ascending: true })
-    .limit(300);
-  if (result.error) return { ok: false, cycleId, events: [], error: result.error.message };
-  const events = (Array.isArray(result.data) ? result.data : []) as RecordValue[];
+  const events: RecordValue[] = [];
+  for (let from = 0; from < UNIVERSAL_EVENT_RECONSTRUCTION_LIMIT; from += UNIVERSAL_EVENT_PAGE_SIZE) {
+    const result = await db.from('epistemic_events')
+      .select('sequence,event_id,event_name,epistemic_class,confidence,payload,lineage,occurred_at,hash_prev,hash_self,logbook_id')
+      .or(`logbook_id.eq.universal-cycle:${cycleId},logbook_id.eq.structured-result:${cycleId}`)
+      .order('sequence', { ascending: true })
+      .range(from, from + UNIVERSAL_EVENT_PAGE_SIZE - 1);
+    if (result.error) return { ok: false, cycleId, events: [], error: result.error.message };
+    const pageRows = (Array.isArray(result.data) ? result.data : []) as RecordValue[];
+    events.push(...pageRows);
+    if (pageRows.length < UNIVERSAL_EVENT_PAGE_SIZE) break;
+    if (events.length >= UNIVERSAL_EVENT_RECONSTRUCTION_LIMIT) {
+      return { ok: false, cycleId, events: [], error: 'CYCLE_HISTORY_TOO_LARGE_FOR_SAFE_RECONSTRUCTION' };
+    }
+  }
   const opened = events.find((row) => row.event_name === 'SFI_UNIVERSAL_CYCLE_OPENED') ?? null;
   const resumptions = events.filter((row) => row.event_name === 'SFI_UNIVERSAL_CYCLE_RESUMED');
   const structuredResults = events.filter((row) => row.event_name === 'SFI_STRUCTURED_ANALYSIS_RESULT_RECEIVED');
@@ -314,20 +352,100 @@ export async function runUniversalCognitiveCycle(input: UniversalCycleInput, act
   const hydrationEventId = text(hydrationContext.eventId);
   const context = createKernelContext(cycleId, logbookId, 'SFI_TASK_REQUESTED');
   context.taskId = taskId;
-  context.evidence.push({ id: signal.objectHash, source: 'UniversalSignalGateway', confidence: 1, payload: { epistemicClass: 'declared', signal, actorId, tenantId, question: text(input.question), objective: text(input.objective), declaredFunction: text(input.declaredFunction), context: inputContext } });
-  context.hypotheses.push(...(Array.isArray(input.hypotheses) ? input.hypotheses : []).filter((item) => Boolean(text(item?.statement))).map((item) => ({ id: randomUUID(), statement: String(item.statement).trim(), confidence: clamp01(item.confidence, 0.5) })));
+
+  context.evidence.push({
+    id: signal.objectHash,
+    source: 'UniversalSignalGateway',
+    confidence: 1,
+    payload: {
+      epistemicClass: 'declared',
+      signalIdentity: {
+        contract: signal.contract,
+        kind: signal.kind,
+        name: signal.name,
+        mimeType: signal.mimeType,
+        sourceUrl: signal.sourceUrl,
+        assetRef: signal.assetRef,
+        objectHash: signal.objectHash,
+        objectHashBasis: signal.objectHashBasis,
+        objectKey: signal.objectKey,
+      },
+      actorId,
+      tenantId,
+      question: text(input.question),
+      objective: text(input.objective),
+      declaredFunction: text(input.declaredFunction),
+      context: inputContext,
+    },
+  });
+
+  const extracted = record(signal.extracted);
+  const measurements = record(extracted.measurements);
+  const materialMeasurements = Object.keys(measurements).length ? measurements : {
+    schema: extracted.schema ?? extracted.fields ?? extracted.columns ?? extracted.headers ?? null,
+    rowCount: extracted.rowCount ?? extracted.recordCount ?? extracted.totalRows ?? null,
+    analyzableRowCount: extracted.analyzableRowCount ?? null,
+    malformedRows: extracted.malformedRows ?? null,
+    sheetCount: extracted.sheetCount ?? null,
+  };
+  if (Object.values(materialMeasurements).some((value) => value !== null && value !== undefined)) {
+    context.evidence.push({
+      id: hydrationEventId ?? `${signal.objectHash}:measurements`,
+      source: 'UniversalStructuredMeasurements',
+      confidence: 1,
+      payload: { epistemicClass: 'derived', measurements: materialMeasurements, hydrationEventId },
+    });
+  }
+
+  const partition = record(extracted.epistemicPartition);
+  for (const item of records(partition.observed).slice(0, 24)) {
+    context.evidence.push({
+      id: randomUUID(),
+      source: 'UniversalStructuredObservation',
+      confidence: clamp01(item.confidence, 1),
+      payload: { ...item, epistemicClass: 'observed', hydrationEventId },
+    });
+  }
+  for (const item of records(partition.derived).slice(0, 24)) {
+    context.evidence.push({
+      id: randomUUID(),
+      source: 'UniversalStructuredDerived',
+      confidence: clamp01(item.confidence, 0.9),
+      payload: { ...item, epistemicClass: 'derived', hydrationEventId },
+    });
+  }
+
+  const knownHypotheses = new Set<string>();
+  const pushHypothesis = (value: unknown, fallbackConfidence = 0.5) => {
+    const item = record(value);
+    const valueStatement = statement(value);
+    if (!valueStatement) return;
+    const key = valueStatement.toLowerCase();
+    if (knownHypotheses.has(key)) return;
+    knownHypotheses.add(key);
+    context.hypotheses.push({ id: text(item.id) ?? randomUUID(), statement: valueStatement, confidence: clamp01(item.confidence, fallbackConfidence) });
+  };
+  for (const hypothesis of Array.isArray(input.hypotheses) ? input.hypotheses : []) pushHypothesis(hypothesis, 0.5);
+  for (const hypothesis of records(extracted.hypotheses).slice(0, 12)) pushHypothesis(hypothesis, 0.55);
+  for (const rival of records(extracted.rivals).slice(0, 12)) pushHypothesis(rival, 0.5);
+  for (const inferred of records(partition.inferred).slice(0, 12)) pushHypothesis(inferred, 0.5);
+
   const resolvedAgentPlan = agentPlan(input);
   context.metadata = {
     actorId, tenantId, question: text(input.question), objective: text(input.objective), declaredFunction: text(input.declaredFunction), systemType: text(input.systemType), signal,
     universalSignalContract: SFI_UNIVERSAL_SIGNAL_CONTRACT, universalCycleContract: SFI_UNIVERSAL_CYCLE_CONTRACT, methods: methodPlan(input), declaredTarget: input.declaredTarget ?? null,
     declaredExclusions: Array.isArray(input.declaredExclusions) ? input.declaredExclusions : [], invariants: Array.isArray(input.invariants) ? input.invariants : [], constraints: Array.isArray(input.constraints) ? input.constraints : [],
     caseContext: inputContext,
+    caseClass: text(inputContext.caseClass),
+    materialMeasurements,
+    materialEpistemicPartition: partition,
+    materialUnresolved: extracted.unresolved ?? partition.unresolved ?? partition.missing ?? null,
     webEvidenceEventId,
     hydrationEventId,
     resumedCycle: resumed,
     resumeReason: text(options.resumeReason),
     worldSpect: worldSnapshot ? snapshotRowToApiData(worldSnapshot) : null, worldContextUsed: useWorldContext, requestedAgents: resolvedAgentPlan.requested, llmAugmentation: input.llmAugmentation === true,
-    epistemicBoundary: 'Observed/declaration/derived/inferred/simulated states remain distinct. Rival hypotheses are not collapsed by narrative coherence.',
+    epistemicBoundary: 'Observed/declaration/derived/inferred/simulated states remain distinct. Material measurements are supplied as derived observations; structured inferences remain hypotheses rather than evidence. Rival hypotheses are not collapsed by narrative coherence.',
   };
 
   const lifecycleLineage = [signal.objectHash, hydrationEventId, webEvidenceEventId, text(options.resumeLineageEventId)].filter((value): value is string => Boolean(value));
@@ -350,10 +468,11 @@ export async function runUniversalCognitiveCycle(input: UniversalCycleInput, act
 }
 
 export async function recordUniversalReturn(input: { cycleId: string; objectKey?: string; outcome: unknown; evidenceRefs?: string[]; classification?: string; notes?: string }, actorId: string, tenantId: string) {
+  const evidenceRefs = Array.isArray(input.evidenceRefs) ? input.evidenceRefs.filter((item) => typeof item === 'string' && item.trim().length > 0) : [];
   return appendEpistemicEvent({
     eventName: 'SFI_UNIVERSAL_RETURN_RECORDED', epistemicClass: 'observed', confidence: 1,
-    payload: { cycleId: input.cycleId, objectKey: input.objectKey ?? null, actorId, tenantId, outcome: input.outcome, classification: text(input.classification), notes: text(input.notes), evidenceRefs: Array.isArray(input.evidenceRefs) ? input.evidenceRefs : [], instruction: 'Return must be contrasted against preregistered prediction, rival hypotheses, invariants, secondary effects and stop conditions before sedimentation.' },
-    occurredAt: new Date().toISOString(), source: { sourceId: actorId, sourceType: 'external_return' }, logbookId: `universal-cycle:${input.cycleId}`, lineage: Array.isArray(input.evidenceRefs) ? input.evidenceRefs : [],
+    payload: { cycleId: input.cycleId, objectKey: input.objectKey ?? null, actorId, tenantId, outcome: input.outcome, classification: text(input.classification), notes: text(input.notes), evidenceRefs, returnTraceability: evidenceRefs.length ? 'EVIDENCE_LINKED' : 'ACTOR_OBSERVED_UNLINKED', instruction: 'Return must be contrasted against preregistered prediction, rival hypotheses, invariants, secondary effects and stop conditions before sedimentation.' },
+    occurredAt: new Date().toISOString(), source: { sourceId: actorId, sourceType: 'external_return' }, logbookId: `universal-cycle:${input.cycleId}`, lineage: evidenceRefs,
   });
 }
 
