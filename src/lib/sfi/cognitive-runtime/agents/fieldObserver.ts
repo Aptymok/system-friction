@@ -44,8 +44,11 @@ export function FieldObserverAgent(context: KernelContext): KernelContext {
     .map(([key]) => key)
     .slice(0, 24);
   const partition = row(context.metadata?.materialEpistemicPartition);
-  const missingObservationCount = [partition.missing, partition.unresolved, context.metadata?.materialUnresolved]
-    .reduce((total, value) => total + (Array.isArray(value) ? value.length : value ? 1 : 0), 0);
+  const missingSources: unknown[] = [partition.missing, partition.unresolved, context.metadata?.materialUnresolved];
+  const missingObservationCount = missingSources.reduce<number>(
+    (total, value) => total + (Array.isArray(value) ? value.length : value ? 1 : 0),
+    0,
+  );
 
   const summary: FieldObservationSummary = {
     evidenceCount: evidence.length,
