@@ -1,4 +1,4 @@
-import type { KernelContext, KernelEvidence } from '../kernelContext';
+import type { KernelContext } from '../kernelContext';
 import { buildTaskGraph } from '../taskGraphBuilder';
 import {
   selectCognitiveAutomations,
@@ -23,10 +23,9 @@ export interface CognitiveTaskPlan {
  * actions. Governed external action remains outside this cycle and subject to
  * the Cognitive Twin / ACP authority gate.
  *
- * Selection is explicit when the caller requests automations. Otherwise the
- * system deterministically auto-elects the minimum relevant set from the
- * current context and records why each automation was selected. Selection never
- * grants additional authority.
+ * The orchestration plan is operational metadata, never evidence. Keeping it out
+ * of context.evidence prevents SFI from recursively treating its own plan as an
+ * observation about the world/object under analysis.
  */
 export function MetaOrchestratorAgent(context: KernelContext): KernelContext {
   const missingInputs: string[] = [];
@@ -51,27 +50,6 @@ export function MetaOrchestratorAgent(context: KernelContext): KernelContext {
   const readiness = Math.min(availableSignals / minimumSignalTarget, 1);
   plan.readiness = readiness;
 
-  const evidence: KernelEvidence = {
-    id: crypto.randomUUID(),
-    source: 'MetaOrchestratorAutomation',
-    confidence: readiness,
-    payload: {
-      kind: 'cognitive_automation_plan',
-      taskId: plan.taskId,
-      missingInputs,
-      selectedAutomations: executionOrder,
-      selectionMode: selection.mode,
-      selectionReasons: selection.reasons,
-      requestedAutomationCount: Array.isArray(context.metadata?.requestedAutomations)
-        ? context.metadata.requestedAutomations.length
-        : Array.isArray(context.metadata?.requestedAgents)
-          ? context.metadata.requestedAgents.length
-          : null,
-      readiness,
-    },
-  };
-  context.evidence.push(evidence);
-
   const taskGraph = buildTaskGraph(plan);
   context.metadata = {
     ...context.metadata,
@@ -80,14 +58,18 @@ export function MetaOrchestratorAgent(context: KernelContext): KernelContext {
     metaOrchestrator: {
       executed: true,
       executionKind: 'cognitive_automation',
+      epistemicClass: 'DERIVED_OPERATIONAL_PLAN',
       selectionMode: selection.mode,
       selectionReasons: selection.reasons,
       readiness,
+      missingInputs,
       selectedAutomations: executionOrder.length,
       taskGraphNodes: taskGraph.nodes.length,
       taskGraphEdges: taskGraph.edges.length,
       externalExecutionAllowed: false,
       authorityEscalationAllowed: false,
+      evidenceMutation: false,
+      epistemicBoundary: 'The orchestration plan is derived operational metadata and must never be counted as observed/imported evidence.',
       executedAt: new Date().toISOString(),
     },
   };
