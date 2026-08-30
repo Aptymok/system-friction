@@ -406,10 +406,13 @@ export async function POST(req: Request) {
   }
 
   const webEvidence = await acquireUniversalWebEvidence(input, actorId, tenantId, normalizedSignal.objectHash);
-  if (evidenceRequirement.blockingIfUnavailable && !webEvidence.satisfied) {
+  if (evidenceRequirement.blockingIfUnavailable && (!webEvidence.satisfied || !webEvidence.eventId)) {
+    const requiredWebEvidenceError = !webEvidence.satisfied
+      ? 'required_web_evidence_unavailable'
+      : 'required_web_evidence_persistence_failed';
     return NextResponse.json({
       ok: false,
-      error: 'required_web_evidence_unavailable',
+      error: requiredWebEvidenceError,
       operation,
       hydration,
       resumeValidation,
@@ -418,7 +421,9 @@ export async function POST(req: Request) {
       sufficiency,
       evidenceRequirement,
       webEvidence,
-      instruction: 'The case explicitly requires external/public verification. Do not execute substantive inference until the required evidence lane returns enough source candidates or the operator changes the evidence policy.',
+      instruction: !webEvidence.satisfied
+        ? 'The case explicitly requires external/public verification. Do not execute substantive inference until the required evidence lane returns enough source candidates or the operator changes the evidence policy.'
+        : 'Required external/public evidence was acquired but its canonical evidence event was not persisted. Fail closed and retry only after canonical persistence is available.',
     }, { status: 424 });
   }
 
