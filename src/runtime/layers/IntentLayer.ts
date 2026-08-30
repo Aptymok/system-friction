@@ -1,6 +1,5 @@
 // src/runtime/layers/IntentLayer.ts
-import { createServerClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
+import { createClient } from '@supabase/supabase-js';
 import { normalizeSupabaseUrl } from '@/runtime/supabase/url';
 import { emitEpistemicEvent } from '@/core/memory/epistemicEventWriter';
 import { processEpistemicEvent } from '@/core/memory/institutionalEventPipeline';
@@ -13,12 +12,20 @@ export type Intent = {
   isActive: boolean;
 };
 
-// Solo lectura de intenciones activas
-export async function getActiveIntent(nodeId: string): Promise<Intent | null> {
+function runtimeServiceClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? '';
-  const cookieStore = cookies() as any;
-  const supabase = createServerClient(normalizeSupabaseUrl(supabaseUrl), supabaseKey, { cookies: cookieStore });
+  return createClient(normalizeSupabaseUrl(supabaseUrl), supabaseKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  });
+}
+
+// Solo lectura de intenciones activas
+export async function getActiveIntent(nodeId: string): Promise<Intent | null> {
+  const supabase = runtimeServiceClient();
   const { data, error } = await supabase
     .from('intents')
     .select('*')
@@ -42,10 +49,7 @@ export async function createIntent(
   objective: string,
   successCriteria: Record<string, any>
 ): Promise<string> {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
-  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? '';
-  const cookieStore = cookies() as any;
-  const supabase = createServerClient(normalizeSupabaseUrl(supabaseUrl), supabaseKey, { cookies: cookieStore });
+  const supabase = runtimeServiceClient();
   const { data, error } = await supabase
     .from('intents')
     .insert({
@@ -89,10 +93,7 @@ export async function updateIntent(
   reason: string,
   userId: string
 ) {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
-  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? '';
-  const cookieStore = cookies() as any;
-  const supabase = createServerClient(normalizeSupabaseUrl(supabaseUrl), supabaseKey, { cookies: cookieStore });
+  const supabase = runtimeServiceClient();
   // Obtener versión actual
   const { data: current } = await supabase
     .from('intents')
