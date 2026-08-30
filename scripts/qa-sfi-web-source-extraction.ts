@@ -1,6 +1,7 @@
 import { strict as assert } from 'node:assert';
 import fs from 'node:fs';
 import path from 'node:path';
+import { isNonPublicNetworkAddress } from '../src/lib/sfi/evidenceRequirementResolver';
 import { structuredResultMatchesSignalIdentity } from '../src/lib/sfi/universalObservationIdentity';
 
 const source = fs.readFileSync(path.join(process.cwd(), 'src/lib/sfi/evidenceRequirementResolver.ts'), 'utf8');
@@ -16,6 +17,7 @@ const requireText = (needle: string, label: string) => {
 requireText("from 'node:dns/promises'", 'DNS resolution boundary');
 requireText("from 'node:net'", 'IP classification boundary');
 requireText('isNonPublicNetworkAddress', 'non-public network classifier');
+requireText('ipv4FromMappedIpv6', 'IPv4-mapped IPv6 normalization');
 requireText('lookup(hostname, { all: true, verbatim: true })', 'resolved-address validation');
 requireText('addresses.every((entry) => !isNonPublicNetworkAddress(entry.address))', 'all-address public requirement');
 requireText('await resolvesOnlyToPublicAddresses(currentUrl)', 'pre-fetch DNS validation');
@@ -23,6 +25,10 @@ requireText("'UNSAFE_OR_UNRESOLVABLE_SOURCE_URL'", 'unsafe DNS failure state');
 requireText('isRegulatorHostname(hostname)', 'hostname-derived regulator provenance');
 requireText("source.sourceType === 'regulator'", 'authority-sensitive regulator requirement');
 if (source.includes('`${hostname} ${title}`')) fail('titles must not confer source authority');
+
+assert.equal(isNonPublicNetworkAddress('::ffff:7f00:1'), true, 'hex IPv4-mapped loopback must be rejected');
+assert.equal(isNonPublicNetworkAddress('::ffff:c0a8:101'), true, 'hex IPv4-mapped RFC1918 must be rejected');
+assert.equal(isNonPublicNetworkAddress('::ffff:0808:0808'), false, 'hex IPv4-mapped public address must remain public');
 
 requireText('decodeKnownHtmlEntitiesOnce', 'single-pass entity decoder');
 requireText('HTML_ENTITY_TEXT', 'allowlisted entity map');
@@ -38,6 +44,10 @@ requireText('MIN_VERIFIED_QUERY_COVERAGE = 0.05', 'minimum source relevance thre
 requireText("'DIRECT_FETCH_LOW_QUERY_RELEVANCE'", 'low-relevance source warning');
 requireText('source.verification?.queryCoverage ?? 0) >= MIN_VERIFIED_QUERY_COVERAGE', 'relevance-qualified verification gate');
 requireText('directFetchSourceCount: directFetchSources.length', 'retrieval-vs-verification distinction');
+requireText('verificationPairs', 'discovered-source verification pairing');
+requireText('verifiedByDiscoveredUrl', 'verification keyed to original discovered URL');
+requireText('distinctSourcesByResolvedUrl', 'distinct resolved URL verification count');
+if (source.includes('verified.find((item) => host(item.url) === host(source.url))')) fail('same-host verification reuse must not be reintroduced');
 
 if (/\.replace\(\/<script\\b/.test(source) || /\.replace\(\/<style\\b/.test(source)) fail('regex-based script/style HTML filtering must not be reintroduced');
 if (/\.replace\(\/&amp;\/gi/.test(source)) fail('sequential &amp; decoding can reintroduce double-unescape behavior');
