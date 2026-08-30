@@ -212,14 +212,15 @@ export function resolveUniversalEvidenceRequirements(inputValue: unknown) {
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase();
+  const hasSlaToken = /\bsla\b/.test(blob);
   const explicit = explicitPolicy(context.webPolicy) ?? explicitPolicy(context.externalEvidencePolicy);
   const privacyBlocksWeb = context.webForbidden === true || /confidential only|private only|sin internet|no internet|no web|offline only/.test(blob);
-  const dynamicExternal = /latest|current|actual|hoy|mercad|market|law|legal|regulat|precio|price|compet|benchmark|trend|tendenc|public|social|release|lanzamiento|geopolit|world|mundo|extern|industry|sector|norma|standard|sla/.test(blob);
+  const dynamicExternal = /latest|current|actual|hoy|mercad|market|law|legal|regulat|precio|price|compet|benchmark|trend|tendenc|public|social|release|lanzamiento|geopolit|world|mundo|extern|industry|sector|norma|standard/.test(blob) || hasSlaToken;
   const verificationRequested = context.requiresExternalVerification === true
     || context.requiresCorroboration === true
     || claims.length > 0
     || /verify|verification|corrobor|cotej|confirm|validar|contrastar.*fuente|fuente.*extern/.test(blob);
-  const authoritySensitive = /law|legal|regulat|norma|standard|sla|gobierno|government|autoridad|official|oficial/.test(blob);
+  const authoritySensitive = /law|legal|regulat|norma|standard|gobierno|government|autoridad|official|oficial/.test(blob) || hasSlaToken;
   const strictlyInternal = ['dataset', 'csv', 'json', 'document', 'code', 'api_response'].includes(kind)
     && /internal|interno|dataset|archivo|file|registros|tickets|mesa de ayuda|repository|repo/.test(blob)
     && !dynamicExternal
@@ -433,7 +434,9 @@ type PinnedResponse = {
   truncated: boolean;
 };
 
-function requestPinnedAddress(urlValue: string, address: string): Promise<PinnedResponse> {
+function requestPinnedAddress(urlValue: string, address: string, deadlineAt: number): Promise<PinnedResponse> {
+  const remainingMs = deadlineAt - Date.now();
+  if (remainingMs <= 0) return Promise.reject(new Error('DIRECT_FETCH_TOTAL_DEADLINE'));
   const parsed = new URL(urlValue);
   const originalHostname = transportHostname(parsed.hostname);
   const common = {
@@ -483,10 +486,10 @@ function requestPinnedAddress(urlValue: string, address: string): Promise<Pinned
 
     deadline = setTimeout(
       () => request.destroy(new Error('DIRECT_FETCH_TOTAL_DEADLINE')),
-      DIRECT_SOURCE_TOTAL_DEADLINE_MS,
+      Math.max(1, remainingMs),
     );
     request.setTimeout(
-      DIRECT_SOURCE_INACTIVITY_TIMEOUT_MS,
+      Math.min(DIRECT_SOURCE_INACTIVITY_TIMEOUT_MS, Math.max(1, remainingMs)),
       () => request.destroy(new Error('DIRECT_FETCH_INACTIVITY_TIMEOUT')),
     );
     request.on('error', finishReject);
@@ -497,11 +500,12 @@ function requestPinnedAddress(urlValue: string, address: string): Promise<Pinned
   });
 }
 
-async function requestPinnedSource(urlValue: string, addresses: string[]) {
+async function requestPinnedSource(urlValue: string, addresses: string[], deadlineAt: number) {
   let lastError: unknown = null;
   for (const address of addresses.slice(0, 4)) {
+    if (Date.now() >= deadlineAt) throw new Error('DIRECT_FETCH_TOTAL_DEADLINE');
     try {
-      return await requestPinnedAddress(urlValue, address);
+      return await requestPinnedAddress(urlValue, address, deadlineAt);
     } catch (error) {
       lastError = error;
     }
@@ -511,7 +515,11 @@ async function requestPinnedSource(urlValue: string, addresses: string[]) {
 
 async function fetchDirectSource(source: UniversalWebSource, terms: string[]): Promise<UniversalWebSource> {
   let currentUrl = source.url;
+  const sourceDeadlineAt = Date.now() + DIRECT_SOURCE_TOTAL_DEADLINE_MS;
   for (let redirect = 0; redirect < 3; redirect += 1) {
+    if (Date.now() >= sourceDeadlineAt) {
+      return { ...source, verification: { directFetch: false, httpStatus: null, contentType: null, excerpt: null, queryCoverage: 0, verifiedAt: null, warning: 'DIRECT_FETCH_TOTAL_DEADLINE' } };
+    }
     // Resolve once, reject if any address is non-public, then connect only to an
     // address from this validated set. The network connection cannot perform a
     // second unpinned DNS resolution and therefore cannot be DNS-rebound.
@@ -520,7 +528,7 @@ async function fetchDirectSource(source: UniversalWebSource, terms: string[]): P
       return { ...source, verification: { directFetch: false, httpStatus: null, contentType: null, excerpt: null, queryCoverage: 0, verifiedAt: null, warning: 'UNSAFE_OR_UNRESOLVABLE_SOURCE_URL' } };
     }
     try {
-      const response = await requestPinnedSource(currentUrl, validatedAddresses);
+      const response = await requestPinnedSource(currentUrl, validatedAddresses, sourceDeadlineAt);
       if (response.status >= 300 && response.status < 400) {
         if (!response.location) break;
         currentUrl = new URL(response.location, currentUrl).toString();
@@ -669,7 +677,7 @@ export async function acquireUniversalWebEvidence(inputValue: unknown, actorId: 
       authoritativeVerifiedSourceCount: authoritativeVerified.length,
       satisfied,
       executionBoundary: 'BOUNDED_DISCOVERY_PLUS_DNS_PINNED_DIRECT_SOURCE_FETCH_NO_LLM',
-      epistemicBoundary: 'Direct retrieval establishes that source material was fetched and records an excerpt. The exact URL hostname is preserved for DNS and TLS transport, the connection is pinned to a prevalidated public address, redirects are revalidated, a fixed wall-clock deadline bounds each fetch, and source provenance is recomputed from the final URL. Verification additionally requires query relevance measured only from final fetched material and distinct resolved source URLs; authority-sensitive cases require regulator provenance from the final source hostname. Neither state makes the source claim accepted evidence or proves causal/factual truth by itself.',
+      epistemicBoundary: 'Direct retrieval establishes that source material was fetched and records an excerpt. The exact URL hostname is preserved for DNS and TLS transport, the connection is pinned to a prevalidated public address, redirects are revalidated under one shared wall-clock deadline per source, and source provenance is recomputed from the final URL. Verification additionally requires query relevance measured only from final fetched material and distinct resolved source URLs; authority-sensitive cases require regulator provenance from the final source hostname. Neither state makes the source claim accepted evidence or proves causal/factual truth by itself.',
     },
     occurredAt: new Date().toISOString(),
     source: { sourceId: 'universal_evidence_acquisition', sourceType: 'public_research' },
