@@ -106,6 +106,7 @@ export function FrictionFieldSimulatorAgent(context: KernelContext): KernelConte
     }
   }
 
+  const dimensions: FrictionCandidate['dimension'][] = ['information', 'coordination', 'resource', 'temporal'];
   const strongest = (dimension: FrictionCandidate['dimension']) => candidates
     .filter((candidate) => candidate.dimension === dimension)
     .sort((a, b) => (b.severity * b.confidence) - (a.severity * a.confidence))
@@ -130,9 +131,17 @@ export function FrictionFieldSimulatorAgent(context: KernelContext): KernelConte
       ...strongest('temporal'),
     ],
   };
-  const measuredDimensions = [state.informationFriction, state.coordinationFriction, state.resourceFriction, state.temporalFriction].filter((value) => value > 0);
-  state.totalFrictionIndex = measuredDimensions.length
-    ? measuredDimensions.reduce((sum, value) => sum + value, 0) / measuredDimensions.length
+  const valueByDimension: Record<FrictionCandidate['dimension'], number> = {
+    information: state.informationFriction,
+    coordination: state.coordinationFriction,
+    resource: state.resourceFriction,
+    temporal: state.temporalFriction,
+  };
+  const measuredDimensionNames = dimensions.filter((dimension) => strongest(dimension).length > 0);
+  const unmeasuredDimensionNames = dimensions.filter((dimension) => !measuredDimensionNames.includes(dimension));
+  const measuredDimensionValues = measuredDimensionNames.map((dimension) => valueByDimension[dimension]);
+  state.totalFrictionIndex = measuredDimensionValues.length
+    ? measuredDimensionValues.reduce((sum, value) => sum + value, 0) / measuredDimensionValues.length
     : 0;
 
   const evidenceRefs = [...new Set(state.candidates.flatMap((candidate) => candidate.evidenceRefs))];
@@ -143,9 +152,11 @@ export function FrictionFieldSimulatorAgent(context: KernelContext): KernelConte
       epistemicClass: 'SIMULATED',
       assessmentClass: 'DERIVED_FRICTION_PROJECTION',
       evidenceRefs,
-      measuredDimensions: measuredDimensions.length,
+      measuredDimensions: measuredDimensionNames.length,
+      measuredDimensionNames,
+      unmeasuredDimensionNames,
       excludedByClass,
-      interpretationBoundary: 'Measured friction uses only OBSERVED/DERIVED structured evidence. DECLARED, SOURCE_CLAIM, INFERRED and MISSING material may inform interpretation but cannot create a measured friction score.',
+      interpretationBoundary: 'Measured friction uses only OBSERVED/DERIVED structured evidence. A measured zero is retained as an observed absence of friction in that dimension; an unmeasured dimension remains explicitly separate. DECLARED, SOURCE_CLAIM, INFERRED and MISSING material may inform interpretation but cannot create a measured friction score.',
     },
   };
   context.simulations.push(simulation);
@@ -156,11 +167,13 @@ export function FrictionFieldSimulatorAgent(context: KernelContext): KernelConte
       frictionIndex: state.totalFrictionIndex,
       candidates: state.candidates,
       evidenceRefs,
-      measuredDimensions: measuredDimensions.length,
+      measuredDimensions: measuredDimensionNames.length,
+      measuredDimensionNames,
+      unmeasuredDimensionNames,
       excludedByClass,
       epistemicClass: 'SIMULATED',
       assessmentClass: 'DERIVED_FRICTION_PROJECTION',
-      claimBoundary: 'Friction projection is a SIMULATED assessment derived only from OBSERVED/DERIVED structured measurements and remains distinct from causal attribution and action authorization.',
+      claimBoundary: 'Friction projection is a SIMULATED assessment derived only from OBSERVED/DERIVED structured measurements. Measured zeroes remain measurements, while absent dimensions remain unmeasured; the projection remains distinct from causal attribution and action authorization.',
       executedAt: new Date().toISOString(),
     },
   };
