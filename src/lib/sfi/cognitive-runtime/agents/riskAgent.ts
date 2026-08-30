@@ -14,6 +14,9 @@ function row(value: unknown): Row {
 }
 
 function number(value: unknown) {
+  if (value === null || value === undefined || typeof value === 'boolean') return null;
+  if (typeof value !== 'number' && typeof value !== 'string') return null;
+  if (typeof value === 'string' && !value.trim()) return null;
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
 }

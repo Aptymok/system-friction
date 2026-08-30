@@ -115,6 +115,22 @@ function safeObservedAt(value: unknown) {
   const parsed = new Date(value);
   return Number.isFinite(parsed.valueOf()) ? parsed.toISOString() : null;
 }
+function boundedMaterialContent(value: unknown, maxChars = 12_000) {
+  if (value === null || value === undefined) return null;
+  let rendered: string;
+  try {
+    rendered = typeof value === 'string' ? value : JSON.stringify(value);
+  } catch {
+    rendered = String(value);
+  }
+  if (!rendered) return null;
+  return {
+    text: rendered.slice(0, maxChars),
+    originalChars: rendered.length,
+    truncated: rendered.length > maxChars,
+    representation: typeof value === 'string' ? 'text' : 'json',
+  };
+}
 
 export function normalizeUniversalSignal(input: UniversalSignalInput) {
   const kind = normalizeKind(input.kind);
@@ -350,6 +366,11 @@ export async function runUniversalCognitiveCycle(input: UniversalCycleInput, act
   const webEvidenceEventId = text(acquiredWebEvidence.eventId);
   const hydrationContext = record(inputContext.observationHydration);
   const hydrationEventId = text(hydrationContext.eventId);
+  const hydrationBasis = text(hydrationContext.basis);
+  const canonicalExtraction = hydrationContext.hydrated === true
+    && Boolean(hydrationEventId)
+    && ['SFI_STRUCTURED_ANALYSIS_RESULT_RECEIVED', 'SFI_DATASET_PROFILE_ADMITTED'].includes(hydrationBasis ?? '');
+  const directMaterialContent = boundedMaterialContent(signal.content);
   const context = createKernelContext(cycleId, logbookId, 'SFI_TASK_REQUESTED');
   context.taskId = taskId;
 
@@ -370,6 +391,10 @@ export async function runUniversalCognitiveCycle(input: UniversalCycleInput, act
         objectHashBasis: signal.objectHashBasis,
         objectKey: signal.objectKey,
       },
+      materialContent: directMaterialContent,
+      materialContentBoundary: directMaterialContent
+        ? 'CONTENT_OBSERVED_AS_SUPPLIED_MATERIAL; CLAIMS_INSIDE_CONTENT_ARE_NOT_AUTO_VERIFIED'
+        : null,
       actorId,
       tenantId,
       question: text(input.question),
@@ -391,9 +416,14 @@ export async function runUniversalCognitiveCycle(input: UniversalCycleInput, act
   if (Object.values(materialMeasurements).some((value) => value !== null && value !== undefined)) {
     context.evidence.push({
       id: hydrationEventId ?? `${signal.objectHash}:measurements`,
-      source: 'UniversalStructuredMeasurements',
-      confidence: 1,
-      payload: { epistemicClass: 'derived', measurements: materialMeasurements, hydrationEventId },
+      source: canonicalExtraction ? 'UniversalStructuredMeasurements' : 'UniversalDeclaredExtractionMeasurements',
+      confidence: canonicalExtraction ? 1 : 0.6,
+      payload: {
+        epistemicClass: canonicalExtraction ? 'derived' : 'declared',
+        measurements: materialMeasurements,
+        hydrationEventId,
+        extractionProvenance: canonicalExtraction ? hydrationBasis : 'CALLER_SUPPLIED_UNVERIFIED',
+      },
     });
   }
 
@@ -401,17 +431,27 @@ export async function runUniversalCognitiveCycle(input: UniversalCycleInput, act
   for (const item of records(partition.observed).slice(0, 24)) {
     context.evidence.push({
       id: randomUUID(),
-      source: 'UniversalStructuredObservation',
-      confidence: clamp01(item.confidence, 1),
-      payload: { ...item, epistemicClass: 'observed', hydrationEventId },
+      source: canonicalExtraction ? 'UniversalStructuredObservation' : 'UniversalDeclaredExtraction',
+      confidence: canonicalExtraction ? clamp01(item.confidence, 1) : 0.6,
+      payload: {
+        ...item,
+        epistemicClass: canonicalExtraction ? 'observed' : 'declared',
+        hydrationEventId,
+        extractionProvenance: canonicalExtraction ? hydrationBasis : 'CALLER_SUPPLIED_UNVERIFIED',
+      },
     });
   }
   for (const item of records(partition.derived).slice(0, 24)) {
     context.evidence.push({
       id: randomUUID(),
-      source: 'UniversalStructuredDerived',
-      confidence: clamp01(item.confidence, 0.9),
-      payload: { ...item, epistemicClass: 'derived', hydrationEventId },
+      source: canonicalExtraction ? 'UniversalStructuredDerived' : 'UniversalDeclaredExtraction',
+      confidence: canonicalExtraction ? clamp01(item.confidence, 0.9) : 0.6,
+      payload: {
+        ...item,
+        epistemicClass: canonicalExtraction ? 'derived' : 'declared',
+        hydrationEventId,
+        extractionProvenance: canonicalExtraction ? hydrationBasis : 'CALLER_SUPPLIED_UNVERIFIED',
+      },
     });
   }
 
@@ -432,20 +472,22 @@ export async function runUniversalCognitiveCycle(input: UniversalCycleInput, act
 
   const resolvedAgentPlan = agentPlan(input);
   context.metadata = {
-    actorId, tenantId, question: text(input.question), objective: text(input.objective), declaredFunction: text(input.declaredFunction), systemType: text(input.systemType), signal,
+    actorId, tenantId, question: text(input.question), objective: text(input.objective), declaredFunction: text(input.declaredFunction), systemType: text(input.systemType),
+    signal: canonicalExtraction ? signal : { ...signal, extracted: {} },
     universalSignalContract: SFI_UNIVERSAL_SIGNAL_CONTRACT, universalCycleContract: SFI_UNIVERSAL_CYCLE_CONTRACT, methods: methodPlan(input), declaredTarget: input.declaredTarget ?? null,
     declaredExclusions: Array.isArray(input.declaredExclusions) ? input.declaredExclusions : [], invariants: Array.isArray(input.invariants) ? input.invariants : [], constraints: Array.isArray(input.constraints) ? input.constraints : [],
     caseContext: inputContext,
     caseClass: text(inputContext.caseClass),
-    materialMeasurements,
-    materialEpistemicPartition: partition,
-    materialUnresolved: extracted.unresolved ?? partition.unresolved ?? partition.missing ?? null,
+    materialMeasurements: canonicalExtraction ? materialMeasurements : {},
+    materialEpistemicPartition: canonicalExtraction ? partition : {},
+    declaredExtraction: canonicalExtraction ? null : extracted,
+    materialUnresolved: canonicalExtraction ? (extracted.unresolved ?? partition.unresolved ?? partition.missing ?? null) : null,
     webEvidenceEventId,
     hydrationEventId,
     resumedCycle: resumed,
     resumeReason: text(options.resumeReason),
     worldSpect: worldSnapshot ? snapshotRowToApiData(worldSnapshot) : null, worldContextUsed: useWorldContext, requestedAgents: resolvedAgentPlan.requested, llmAugmentation: input.llmAugmentation === true,
-    epistemicBoundary: 'Observed/declaration/derived/inferred/simulated states remain distinct. Material measurements are supplied as derived observations; structured inferences remain hypotheses rather than evidence. Rival hypotheses are not collapsed by narrative coherence.',
+    epistemicBoundary: 'Observed/declaration/derived/inferred/simulated states remain distinct. Direct signal content remains available as bounded supplied material. Extracted measurements become derived/observed only with canonical hydration provenance; caller-supplied extraction remains declared. Structured inferences remain hypotheses rather than evidence. Rival hypotheses are not collapsed by narrative coherence.',
   };
 
   const lifecycleLineage = [signal.objectHash, hydrationEventId, webEvidenceEventId, text(options.resumeLineageEventId)].filter((value): value is string => Boolean(value));

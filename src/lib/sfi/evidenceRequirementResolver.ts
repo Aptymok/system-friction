@@ -132,13 +132,25 @@ function safePublicUrl(value: string) {
   }
 }
 
-async function resolvePublicAddresses(value: string) {
+async function resolvePublicAddresses(value: string, deadlineAt?: number) {
   if (!safePublicUrl(value)) return [] as string[];
   const parsed = new URL(value);
   const hostname = transportHostname(parsed.hostname);
   if (isIP(hostname)) return isNonPublicNetworkAddress(hostname) ? [] : [hostname];
   try {
-    const addresses = await lookup(hostname, { all: true, verbatim: true });
+    const lookupPromise = lookup(hostname, { all: true, verbatim: true });
+    if (deadlineAt !== undefined && deadlineAt - Date.now() <= 0) return [] as string[];
+    const addresses = deadlineAt === undefined
+      ? await lookupPromise
+      : await Promise.race([
+          lookupPromise,
+          new Promise<never>((_, reject) => {
+            setTimeout(
+              () => reject(new Error('DNS_RESOLUTION_TOTAL_DEADLINE')),
+              Math.max(1, deadlineAt - Date.now()),
+            );
+          }),
+        ]);
     if (!addresses.length || addresses.some((entry) => isNonPublicNetworkAddress(entry.address))) return [];
     return [...new Set(addresses.map((entry) => transportHostname(entry.address)))];
   } catch {
@@ -523,7 +535,7 @@ async function fetchDirectSource(source: UniversalWebSource, terms: string[]): P
     // Resolve once, reject if any address is non-public, then connect only to an
     // address from this validated set. The network connection cannot perform a
     // second unpinned DNS resolution and therefore cannot be DNS-rebound.
-    const validatedAddresses = await resolvePublicAddresses(currentUrl);
+    const validatedAddresses = await resolvePublicAddresses(currentUrl, sourceDeadlineAt);
     if (!validatedAddresses.length) {
       return { ...source, verification: { directFetch: false, httpStatus: null, contentType: null, excerpt: null, queryCoverage: 0, verifiedAt: null, warning: 'UNSAFE_OR_UNRESOLVABLE_SOURCE_URL' } };
     }

@@ -12,6 +12,8 @@ const source = fs.readFileSync(path.join(process.cwd(), 'src/lib/sfi/evidenceReq
 const signalRoute = fs.readFileSync(path.join(process.cwd(), 'src/app/api/external/v1/signal/route.ts'), 'utf8');
 const closure = fs.readFileSync(path.join(process.cwd(), 'src/lib/sfi/universalClosure.ts'), 'utf8');
 const hydrator = fs.readFileSync(path.join(process.cwd(), 'src/lib/sfi/universalObservationHydrator.ts'), 'utf8');
+const universalCycle = fs.readFileSync(path.join(process.cwd(), 'src/lib/sfi/universalSignalCycle.ts'), 'utf8');
+const riskAgent = fs.readFileSync(path.join(process.cwd(), 'src/lib/sfi/cognitive-runtime/agents/riskAgent.ts'), 'utf8');
 const fail = (message: string): never => {
   console.error(`SFI boundary hardening QA failed: ${message}`);
   process.exit(1);
@@ -37,7 +39,7 @@ requireText('function transportHostname(value: string)', 'transport hostname pre
 requireText('const hostname = transportHostname(parsed.hostname)', 'exact DNS hostname preservation');
 requireText('const originalHostname = transportHostname(parsed.hostname)', 'exact TLS hostname preservation');
 requireText('servername: isIP(originalHostname) ? undefined : originalHostname', 'original TLS SNI preservation');
-requireText('const validatedAddresses = await resolvePublicAddresses(currentUrl)', 'per-hop address validation');
+requireText('const validatedAddresses = await resolvePublicAddresses(currentUrl, sourceDeadlineAt)', 'deadline-bounded per-hop address validation');
 requireText("'UNSAFE_OR_UNRESOLVABLE_SOURCE_URL'", 'unsafe DNS failure state');
 if (source.includes('fetch(currentUrl')) fail('direct source retrieval must not perform an unpinned second DNS resolution');
 if (source.includes('const originalHostname = normalizeHostname(parsed.hostname)')) fail('transport TLS identity must not strip www or otherwise use classification normalization');
@@ -116,6 +118,15 @@ assert(requiredWebGateIndex >= 0, 'WEB_REQUIRED must require both retrieval suff
 assert(signalRoute.includes("'required_web_evidence_persistence_failed'"), 'missing canonical web evidence persistence must have an explicit fail-closed state');
 const runtimePersistenceIndex = signalRoute.indexOf('const persisted = await persistUniversalSignal', requiredWebGateIndex);
 assert(runtimePersistenceIndex > requiredWebGateIndex, 'required web evidence persistence must gate the run persistence/runtime path; intake persistence is a separate non-execution operation');
+
+// Direct material content must survive into runtime evidence, while unverified caller extraction cannot self-promote.
+assert(universalCycle.includes('function boundedMaterialContent(value: unknown, maxChars = 12_000)'), 'direct signal content needs a bounded runtime representation');
+assert(universalCycle.includes('materialContent: directMaterialContent'), 'bounded direct content must reach runtime evidence');
+assert(universalCycle.includes('CALLER_SUPPLIED_UNVERIFIED'), 'caller extraction must retain explicit unverified provenance');
+assert(universalCycle.includes("epistemicClass: canonicalExtraction ? 'derived' : 'declared'"), 'uncanonical measurements must remain declared');
+assert(universalCycle.includes("signal: canonicalExtraction ? signal : { ...signal, extracted: {} }"), 'agents must not consume caller extraction through metadata.signal as trusted material');
+assert(source.includes('resolvePublicAddresses(currentUrl, sourceDeadlineAt)'), 'DNS resolution must share the source deadline');
+assert(riskAgent.includes("if (value === null || value === undefined || typeof value === 'boolean') return null;"), 'null/boolean risk inputs must remain missing rather than coercing to zero');
 
 // RETURN evidence lineage must be explicit server-derived linkage only. Generic
 // lifecycle lineage contains object hashes and other methodological identifiers.
