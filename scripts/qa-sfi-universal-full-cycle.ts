@@ -112,6 +112,13 @@ async function main() {
   assert(signalRoute.includes('suggestedResumeCycleId'), 'intake should expose the existing same-object cycle instead of forcing a parallel run');
   assert(!signalRoute.includes('closeUniversalCycle({\n      cycleId: cycle.cycleId'), 'run must never auto-close its own cycle');
 
+  assert(signalRoute.includes('function compactCycleHistory('), 'external cycle history must have a bounded transport projection');
+  assert(signalRoute.includes('checkpoint: compactCycleHistory(resumeHistory)'), 'resume validation must expose a compact checkpoint rather than full event history');
+  assert(signalRoute.includes("transportBoundary: 'COMPACT_EXTERNAL_CHECKPOINT_NO_EVENT_PAYLOADS'"));
+  assert(!signalRoute.includes('history: resumeHistory,'), 'resume validation must never echo full cycle history');
+  assert(!signalRoute.includes('reread: history,'), 'external return/close/run responses must not echo full cycle history');
+  assert(!signalRoute.includes('cycle: history }, { status: history.ok ? 200 : 500 });'), 'external status must not echo full cycle history');
+
   assert(casesRoute.includes("'intake_plan'"), 'external Case Platform must expose pre-case questions to GPT/AI clients');
   assert(casesRoute.includes('resolveCasePlatformCreationIntake'));
   assert(casesRoute.includes("error: 'case_intake_incomplete'"));
@@ -185,13 +192,14 @@ async function main() {
 
   console.log(JSON.stringify({
     ok: true,
-    contract: 'SFI-UNIVERSAL-FULL-CYCLE-QA-1.3',
+    contract: 'SFI-UNIVERSAL-FULL-CYCLE-QA-1.4',
     lifecycle: [
       'INTENT',
       'OBSERVE_FIRST',
       'OBSERVATION_HYDRATION',
       'OBJECT_SUFFICIENCY_ALL_REPRESENTATIONS',
       'SAME_CYCLE_REMEDIATION_RERUN',
+      'BOUNDED_EXTERNAL_CHECKPOINT',
       'EVIDENCE_REQUIREMENT',
       'BOUNDED_WEB_ACQUISITION',
       'MINIMUM_COGNITIVE_RUNTIME',
@@ -207,6 +215,7 @@ async function main() {
     sourceClaimsAreEvidence: false,
     aiInferenceIsTruth: false,
     automaticClosure: false,
+    externalHistoryPayloadsEchoed: false,
     gitDeploymentsToVercel: false,
   }, null, 2));
 }

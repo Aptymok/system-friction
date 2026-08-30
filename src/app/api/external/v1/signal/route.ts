@@ -25,9 +25,54 @@ export const runtime = 'nodejs';
 export const maxDuration = 60;
 
 type SignalOperation = 'status' | 'intake' | 'run' | 'return' | 'close';
-function record(value: unknown): Record<string, unknown> { return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {}; }
+type UniversalCycleHistory = Awaited<ReturnType<typeof readUniversalCycleHistory>>;
+
+function record(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
 function operationScope(operation: SignalOperation) { return operation === 'status' ? 'observe' : 'lab:write'; }
 function text(value: unknown) { return typeof value === 'string' && value.trim() ? value.trim() : null; }
+
+function compactEventReference(value: unknown) {
+  const row = record(value);
+  if (!Object.keys(row).length) return null;
+  return {
+    eventId: typeof row.event_id === 'string' ? row.event_id : null,
+    eventName: typeof row.event_name === 'string' ? row.event_name : null,
+    epistemicClass: typeof row.epistemic_class === 'string' ? row.epistemic_class : null,
+    confidence: typeof row.confidence === 'number' ? row.confidence : null,
+    occurredAt: typeof row.occurred_at === 'string' ? row.occurred_at : null,
+  };
+}
+
+function compactEventReferences(value: unknown) {
+  return Array.isArray(value)
+    ? value.map(compactEventReference).filter((item): item is NonNullable<ReturnType<typeof compactEventReference>> => Boolean(item))
+    : [];
+}
+
+function compactCycleHistory(history: UniversalCycleHistory | null) {
+  if (!history) return null;
+  const events = Array.isArray(history.events) ? history.events : [];
+  return {
+    ok: history.ok,
+    cycleId: history.cycleId,
+    state: history.state ?? null,
+    error: history.error ?? null,
+    eventCount: events.length,
+    opened: compactEventReference(history.opened),
+    latestEvent: compactEventReference(events.length ? events[events.length - 1] : null),
+    resumptions: compactEventReferences(history.resumptions),
+    cognitiveRuns: compactEventReferences(history.cognitiveRuns),
+    structuredResults: compactEventReferences(history.structuredResults),
+    aiSyntheses: compactEventReferences(history.aiSyntheses),
+    returns: compactEventReferences(history.returns),
+    returnContrasts: compactEventReferences(history.returnContrasts),
+    closureEnvelopes: compactEventReferences(history.closureEnvelopes),
+    closures: compactEventReferences(history.closures),
+    transportBoundary: 'COMPACT_EXTERNAL_CHECKPOINT_NO_EVENT_PAYLOADS',
+  };
+}
 
 export async function GET(req: Request) {
   const auth = authorizeExternalRequest(req, 'observe');
@@ -36,7 +81,12 @@ export async function GET(req: Request) {
   const cycleId = url.searchParams.get('cycleId')?.trim();
   if (cycleId) {
     const history = await readUniversalCycleHistory(cycleId);
-    return NextResponse.json({ ok: history.ok, operation: 'status', actor: externalActor(auth.credential), cycle: history }, { status: history.ok ? 200 : 500 });
+    return NextResponse.json({
+      ok: history.ok,
+      operation: 'status',
+      actor: externalActor(auth.credential),
+      cycle: compactCycleHistory(history),
+    }, { status: history.ok ? 200 : 500 });
   }
   const openCycles = await readUniversalOpenCycles();
   return NextResponse.json({
@@ -45,8 +95,9 @@ export async function GET(req: Request) {
     actor: externalActor(auth.credential),
     openCycles,
     contract: {
-      purpose: 'Universal signal gateway + open-cycle gate. Use ?cycleId=<id> to reread canonical event history for one cycle.',
+      purpose: 'Universal signal gateway + open-cycle gate. Use ?cycleId=<id> to reread a compact canonical checkpoint for one cycle.',
       writeScope: 'lab:write; no external action authority is granted by this route.',
+      historyTransport: 'Event payloads remain canonical in SFI but external cycle rereads expose bounded references only.',
     },
   });
 }
@@ -54,7 +105,9 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const body = await req.json().catch(() => ({})) as Record<string, unknown>;
   const operation = String(body.operation || 'intake') as SignalOperation;
-  if (!['status', 'intake', 'run', 'return', 'close'].includes(operation)) return NextResponse.json({ ok: false, error: 'unsupported_signal_operation' }, { status: 400 });
+  if (!['status', 'intake', 'run', 'return', 'close'].includes(operation)) {
+    return NextResponse.json({ ok: false, error: 'unsupported_signal_operation' }, { status: 400 });
+  }
 
   const requiredScope = operationScope(operation);
   const auth = authorizeExternalRequest(req, requiredScope);
@@ -67,7 +120,12 @@ export async function POST(req: Request) {
     const cycleId = typeof body.cycleId === 'string' ? body.cycleId.trim() : '';
     if (cycleId) {
       const history = await readUniversalCycleHistory(cycleId);
-      return NextResponse.json({ ok: history.ok, operation, actor: actorId, cycle: history }, { status: history.ok ? 200 : 500 });
+      return NextResponse.json({
+        ok: history.ok,
+        operation,
+        actor: actorId,
+        cycle: compactCycleHistory(history),
+      }, { status: history.ok ? 200 : 500 });
     }
     const openCycles = await readUniversalOpenCycles();
     return NextResponse.json({ ok: openCycles.warnings.length === 0, operation, actor: actorId, openCycles });
@@ -75,7 +133,9 @@ export async function POST(req: Request) {
 
   if (operation === 'return') {
     const cycleId = String(body.cycleId || '').trim();
-    if (!cycleId || !('outcome' in body)) return NextResponse.json({ ok: false, error: 'cycleId_and_outcome_required' }, { status: 400 });
+    if (!cycleId || !('outcome' in body)) {
+      return NextResponse.json({ ok: false, error: 'cycleId_and_outcome_required' }, { status: 400 });
+    }
     const event = await recordUniversalReturn({
       cycleId,
       objectKey: typeof body.objectKey === 'string' ? body.objectKey : undefined,
@@ -103,7 +163,7 @@ export async function POST(req: Request) {
       eventId: String(event.data.event_id ?? ''),
       event: event.data,
       contrast,
-      reread: history,
+      reread: compactCycleHistory(history),
       next: 'Review the contrast. If prediction or calibration is missing, keep the cycle open; otherwise prepare the closure envelope.',
     }, { status: 201 });
   }
@@ -111,9 +171,18 @@ export async function POST(req: Request) {
   if (operation === 'close') {
     const cycleId = String(body.cycleId || '').trim();
     const reason = String(body.reason || '').trim();
-    if (!cycleId || !reason) return NextResponse.json({ ok: false, error: 'cycleId_and_reason_required' }, { status: 400 });
+    if (!cycleId || !reason) {
+      return NextResponse.json({ ok: false, error: 'cycleId_and_reason_required' }, { status: 400 });
+    }
     const historyBefore = await readUniversalCycleHistory(cycleId);
-    if (!historyBefore.ok) return NextResponse.json({ ok: false, error: 'cycle_history_unavailable', cycleId, history: historyBefore }, { status: 503 });
+    if (!historyBefore.ok) {
+      return NextResponse.json({
+        ok: false,
+        error: 'cycle_history_unavailable',
+        cycleId,
+        history: compactCycleHistory(historyBefore),
+      }, { status: 503 });
+    }
     const evidenceRefs = Array.isArray(body.evidenceRefs) ? body.evidenceRefs.filter((value): value is string => typeof value === 'string') : [];
     const closureAssessment = assessUniversalClosure({ history: historyBefore, requested: body.closure, evidenceRefs });
     if (!closureAssessment.ready) {
@@ -160,12 +229,14 @@ export async function POST(req: Request) {
       event: event.data,
       closureAssessment,
       closureEnvelopeEventId: String(envelopeEvent.data.event_id ?? ''),
-      reread: history,
+      reread: compactCycleHistory(history),
     } : event, { status: event.ok ? 201 : 500 });
   }
 
   const rawInput = record(body.input) as unknown as UniversalCycleInput;
-  if (!rawInput.signal || typeof rawInput.signal !== 'object' || Array.isArray(rawInput.signal)) return NextResponse.json({ ok: false, error: 'input.signal_required' }, { status: 400 });
+  if (!rawInput.signal || typeof rawInput.signal !== 'object' || Array.isArray(rawInput.signal)) {
+    return NextResponse.json({ ok: false, error: 'input.signal_required' }, { status: 400 });
+  }
   const hydration = await hydrateUniversalCycleInput(rawInput, tenantId);
   const input = hydration.input;
 
@@ -185,8 +256,15 @@ export async function POST(req: Request) {
     cycleId: string | null;
     reason: string | null;
     previousEventId: string | null;
-    history?: Awaited<ReturnType<typeof readUniversalCycleHistory>>;
-  } = { requested: Boolean(requestedResumeCycleId), valid: false, cycleId: requestedResumeCycleId, reason: null, previousEventId: null };
+    checkpoint?: ReturnType<typeof compactCycleHistory>;
+  } = {
+    requested: Boolean(requestedResumeCycleId),
+    valid: false,
+    cycleId: requestedResumeCycleId,
+    reason: null,
+    previousEventId: null,
+  };
+
   if (requestedResumeCycleId) {
     const resumeHistory = await readUniversalCycleHistory(requestedResumeCycleId);
     const openedPayload = resumeHistory.ok ? record(record(resumeHistory.opened).payload) : {};
@@ -200,12 +278,21 @@ export async function POST(req: Request) {
       requested: true,
       valid: Boolean(resumeHistory.ok && !closed && sameObject),
       cycleId: requestedResumeCycleId,
-      reason: !resumeHistory.ok ? 'CYCLE_HISTORY_UNAVAILABLE' : closed ? 'CYCLE_ALREADY_CLOSED' : !sameObject ? 'OBJECT_IDENTITY_MISMATCH' : 'MATCHED_OPEN_CYCLE',
+      reason: !resumeHistory.ok
+        ? 'CYCLE_HISTORY_UNAVAILABLE'
+        : closed
+          ? 'CYCLE_ALREADY_CLOSED'
+          : !sameObject
+            ? 'OBJECT_IDENTITY_MISMATCH'
+            : 'MATCHED_OPEN_CYCLE',
       previousEventId: previousEvent ? String(record(previousEvent).event_id ?? '') || null : null,
-      history: resumeHistory,
+      checkpoint: compactCycleHistory(resumeHistory),
     };
   }
-  const resumeMatchesBlocking = Boolean(resumeValidation.valid && cycleGate.blocking.some((cycle) => cycle.cycleId === requestedResumeCycleId));
+
+  const resumeMatchesBlocking = Boolean(
+    resumeValidation.valid && cycleGate.blocking.some((cycle) => cycle.cycleId === requestedResumeCycleId),
+  );
   const cycleBlocked = cycleGate.blocking.length > 0 && !resumeMatchesBlocking && body.continueWithOpenCycles !== true;
 
   if (operation === 'intake') {
@@ -226,7 +313,10 @@ export async function POST(req: Request) {
       clarifyingQuestions,
       sufficiency,
       evidenceRequirement,
-      readyForRun: intakePlan.blockingQuestions.length === 0 && sufficiency.status === 'READY' && !cycleBlocked && (!requestedResumeCycleId || resumeValidation.valid),
+      readyForRun: intakePlan.blockingQuestions.length === 0
+        && sufficiency.status === 'READY'
+        && !cycleBlocked
+        && (!requestedResumeCycleId || resumeValidation.valid),
       cycleGate,
       methodPlan: contract.methodPlan,
       agentPlan: contract.agentPlan,
@@ -246,8 +336,36 @@ export async function POST(req: Request) {
     }, { status: persisted.event.ok ? 201 : 500 });
   }
 
-  if (requestedResumeCycleId && !resumeValidation.valid) return NextResponse.json({ ok: false, error: 'resume_cycle_invalid', operation, hydration, resumeValidation, signal: normalizedSignal, cycleGate }, { status: 409 });
-  if (intakePlan.blockingQuestions.length) return NextResponse.json({ ok: false, error: 'clarification_required', operation, hydration, resumeValidation, signal: normalizedSignal, intakePlan, clarifyingQuestions, sufficiency, evidenceRequirement, methodPlan: contract.methodPlan, agentPlan: contract.agentPlan, cycleGate }, { status: 409 });
+  if (requestedResumeCycleId && !resumeValidation.valid) {
+    return NextResponse.json({
+      ok: false,
+      error: 'resume_cycle_invalid',
+      operation,
+      hydration,
+      resumeValidation,
+      signal: normalizedSignal,
+      cycleGate,
+    }, { status: 409 });
+  }
+
+  if (intakePlan.blockingQuestions.length) {
+    return NextResponse.json({
+      ok: false,
+      error: 'clarification_required',
+      operation,
+      hydration,
+      resumeValidation,
+      signal: normalizedSignal,
+      intakePlan,
+      clarifyingQuestions,
+      sufficiency,
+      evidenceRequirement,
+      methodPlan: contract.methodPlan,
+      agentPlan: contract.agentPlan,
+      cycleGate,
+    }, { status: 409 });
+  }
+
   if (sufficiency.status === 'BLOCKED') {
     return NextResponse.json({
       ok: false,
@@ -265,7 +383,21 @@ export async function POST(req: Request) {
       instruction: 'Acquire/extract the source object and supply deterministic material observations before executing a substantive cognitive cycle.',
     }, { status: 409 });
   }
-  if (cycleBlocked) return NextResponse.json({ ok: false, error: 'open_cycle_review_required', operation, hydration, resumeValidation, signal: normalizedSignal, sufficiency, evidenceRequirement, cycleGate, instruction: 'Resume the same-object cycle with resumeCycleId when continuing the same methodological question. Use continueWithOpenCycles=true only for an explicitly independent parallel cycle.' }, { status: 409 });
+
+  if (cycleBlocked) {
+    return NextResponse.json({
+      ok: false,
+      error: 'open_cycle_review_required',
+      operation,
+      hydration,
+      resumeValidation,
+      signal: normalizedSignal,
+      sufficiency,
+      evidenceRequirement,
+      cycleGate,
+      instruction: 'Resume the same-object cycle with resumeCycleId when continuing the same methodological question. Use continueWithOpenCycles=true only for an explicitly independent parallel cycle.',
+    }, { status: 409 });
+  }
 
   const webEvidence = await acquireUniversalWebEvidence(input, actorId, tenantId, normalizedSignal.objectHash);
   if (evidenceRequirement.blockingIfUnavailable && !webEvidence.satisfied) {
@@ -332,6 +464,7 @@ export async function POST(req: Request) {
       resumeReason: text(body.resumeReason) ?? 'CAPABILITY_REMEDIATION_OR_NEW_OBSERVATION',
       resumeLineageEventId: resumeValidation.previousEventId,
     } : undefined);
+
     const deterministicOutputs = {
       hypotheses: cycle.result.context.hypotheses,
       contradictions: cycle.result.context.contradictions,
@@ -340,6 +473,7 @@ export async function POST(req: Request) {
       opportunities: cycle.result.context.opportunities,
       simulations: cycle.result.context.simulations,
     };
+
     const shouldSynthesize = body.aiSynthesis !== false && cycle.result.completed;
     const aiSynthesis = shouldSynthesize
       ? await synthesizeUniversalCycleWithAi({
@@ -359,6 +493,7 @@ export async function POST(req: Request) {
           },
         })
       : null;
+
     const history = await readUniversalCycleHistory(cycle.cycleId);
     return NextResponse.json({
       ok: cycle.result.completed,
@@ -374,7 +509,15 @@ export async function POST(req: Request) {
       webEvidence,
       intakeEventId: String(persisted.event.data.event_id ?? ''),
       intakeEvent: persisted.event.data,
-      cycle: { cycleId: cycle.cycleId, taskId: cycle.taskId, logbookId: cycle.logbookId, resumed: cycle.resumed, completed: cycle.result.completed, executedAgents: cycle.result.executedAgents, missingAgents: cycle.result.missingAgents },
+      cycle: {
+        cycleId: cycle.cycleId,
+        taskId: cycle.taskId,
+        logbookId: cycle.logbookId,
+        resumed: cycle.resumed,
+        completed: cycle.result.completed,
+        executedAgents: cycle.result.executedAgents,
+        missingAgents: cycle.result.missingAgents,
+      },
       methods: cycle.methodPlan,
       agents: cycle.agentPlan,
       worldSnapshot: cycle.worldSnapshot,
@@ -391,11 +534,15 @@ export async function POST(req: Request) {
           : 'Do not fabricate a prediction. Resolve the missing evidence or close only as DESCRIPTIVE_DELIMITED if methodologically appropriate.',
       } : null,
       metadata: cycle.result.context.metadata,
-      reread: history,
+      reread: compactCycleHistory(history),
       next: 'Keep the cycle open until the methodological return/contrast/closure contract is satisfied.',
       epistemicBoundary: 'Resuming reuses the same methodological cycle/logbook; it does not erase prior failed/degraded runs. Deterministic observations, AI inference and source claims remain separate.',
     });
   } catch (error) {
-    return NextResponse.json({ ok: false, error: 'universal_cognitive_cycle_failed', details: error instanceof Error ? error.message : String(error) }, { status: 503 });
+    return NextResponse.json({
+      ok: false,
+      error: 'universal_cognitive_cycle_failed',
+      details: error instanceof Error ? error.message : String(error),
+    }, { status: 503 });
   }
 }
