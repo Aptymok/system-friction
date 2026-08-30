@@ -78,7 +78,7 @@ function requestedIds(context: KernelContext): CognitiveAutomationId[] {
   const metadata = record(context.metadata);
   const requested = [
     ...strings(metadata.requestedAutomations),
-    ...strings(metadata.requestedAgents), // compatibility with the pre-convergence contract
+    ...strings(metadata.requestedAgents),
   ];
   return requested
     .filter((value, index, values) => AUTOMATION_SET.has(value) && values.indexOf(value) === index) as CognitiveAutomationId[];
@@ -101,6 +101,14 @@ function hasStructuredPrediction(context: KernelContext) {
   return Object.keys(record(extracted.prediction)).length > 0;
 }
 
+function hasMaterialObservation(context: KernelContext) {
+  const metadata = record(context.metadata);
+  const signal = record(metadata.signal);
+  const extracted = record(signal.extracted);
+  const hydration = record(record(metadata.caseContext).observationHydration);
+  return Object.keys(extracted).length > 0 || hydration.hydrated === true;
+}
+
 export function selectCognitiveAutomations(context: KernelContext): CognitiveAutomationSelection {
   const explicit = requestedIds(context);
   if (explicit.length) {
@@ -114,6 +122,7 @@ export function selectCognitiveAutomations(context: KernelContext): CognitiveAut
   const text = normalizedText(context);
   const caseClass = resolvedCaseClass(context);
   const structuredPredictionAvailable = hasStructuredPrediction(context);
+  const materialObservationAvailable = hasMaterialObservation(context);
   const selected = new Map<CognitiveAutomationId, Set<string>>();
   const choose = (id: CognitiveAutomationId, reason: string) => {
     const current = selected.get(id) ?? new Set<string>();
@@ -121,8 +130,6 @@ export function selectCognitiveAutomations(context: KernelContext): CognitiveAut
     selected.set(id, current);
   };
 
-  // Every cognitive task starts by observing what is actually available and by
-  // declaring evidence gaps. These are bounded, non-sovereign automations.
   choose('field_observer', 'baseline_observation');
   choose('evidence_hunter', 'evidence_sufficiency_check');
 
@@ -141,8 +148,15 @@ export function selectCognitiveAutomations(context: KernelContext): CognitiveAut
     choose('phenotype_resolver', 'structural_precedent_comparison');
   }
 
-  if (hasEvidence || hasHypotheses || hasContradictions) {
+  if (hasEvidence || hasHypotheses || hasContradictions || materialObservationAvailable) {
     choose('context_builder', 'context_required_for_available_signals');
+  }
+
+  // Friction analysis is a core SFI projection over substantive material. It is
+  // selected whenever a real observation is available, not only when the user
+  // happens to say "simulate" or "friction".
+  if (materialObservationAvailable || hasEvidence) {
+    choose('friction_field_simulator', materialObservationAvailable ? 'material_observation_requires_friction_analysis' : 'evidence_requires_friction_analysis');
   }
 
   if (hasHypotheses || hasContradictions) {
