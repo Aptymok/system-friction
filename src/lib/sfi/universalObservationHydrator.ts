@@ -9,6 +9,7 @@ export const SFI_UNIVERSAL_OBSERVATION_HYDRATOR_CONTRACT = 'SFI-UNIVERSAL-OBSERV
 type Row = Record<string, unknown>;
 type ServiceDb = ReturnType<typeof createServiceSupabaseClient>;
 type HydrationOptions = { resumeCycleId?: string | null };
+type HydrationEvent = { event_id?: unknown; event_name?: unknown; payload?: unknown; occurred_at?: unknown };
 
 function row(value: unknown): Row {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Row : {};
@@ -164,6 +165,66 @@ export async function hydrateUniversalCycleInput(
 
   const db = createServiceSupabaseClient();
   const eventNames = ['SFI_STRUCTURED_ANALYSIS_RESULT_RECEIVED', 'SFI_DATASET_PROFILE_ADMITTED'];
+
+  const tryHydrationCandidates = async (candidates: HydrationEvent[]) => {
+    for (const event of candidates) {
+      const payload = row(event.payload);
+      if (!tenantMatches(payload, tenantId)) continue;
+      if (
+        event.event_name === 'SFI_STRUCTURED_ANALYSIS_RESULT_RECEIVED'
+        && structuredResultMatchesSignalIdentity(payload, normalized, resumeCycleId)
+      ) {
+        const extracted = extractionFromStructuredResult(payload);
+        if (!hasMaterialExtraction(extracted)) continue;
+        return {
+          contract: SFI_UNIVERSAL_OBSERVATION_HYDRATOR_CONTRACT,
+          hydrated: true,
+          basis: 'SFI_STRUCTURED_ANALYSIS_RESULT_RECEIVED',
+          eventId: String(event.event_id ?? ''),
+          input: {
+            ...input,
+            signal: {
+              ...input.signal,
+              extracted: { ...row(input.signal.extracted), ...extracted },
+              provenance: {
+                ...row(input.signal.provenance),
+                hydratedFromEventId: String(event.event_id ?? ''),
+                hydratedFromCycleId: text(payload.cycleId),
+                hydrationContract: SFI_UNIVERSAL_OBSERVATION_HYDRATOR_CONTRACT,
+              },
+            },
+          } as UniversalCycleInput,
+        };
+      }
+      if (event.event_name === 'SFI_DATASET_PROFILE_ADMITTED' && matchDatasetProfile(payload, normalized)) {
+        const extracted = await extractionFromDatasetProfile(db, payload);
+        if (!hasMaterialExtraction(extracted)) continue;
+        return {
+          contract: SFI_UNIVERSAL_OBSERVATION_HYDRATOR_CONTRACT,
+          hydrated: true,
+          basis: 'SFI_DATASET_PROFILE_ADMITTED',
+          eventId: String(event.event_id ?? ''),
+          input: {
+            ...input,
+            signal: {
+              ...input.signal,
+              objectHash: text(payload.contentHash) ?? input.signal.objectHash,
+              extracted: { ...row(input.signal.extracted), ...extracted },
+              provenance: {
+                ...row(input.signal.provenance),
+                hydratedFromEventId: String(event.event_id ?? ''),
+                caseId: text(payload.caseId),
+                observationRef: text(row(payload.observationRef).id),
+                hydrationContract: SFI_UNIVERSAL_OBSERVATION_HYDRATOR_CONTRACT,
+              },
+            },
+          } as UniversalCycleInput,
+        };
+      }
+    }
+    return null;
+  };
+
   const cycleEvents = resumeCycleId
     ? await db.from('epistemic_events')
         .select('event_id,event_name,payload,occurred_at')
@@ -184,15 +245,18 @@ export async function hydrateUniversalCycleInput(
     };
   }
 
-  const fallbackEvents = !resumeCycleId || !(cycleEvents?.data?.length)
-    ? await db.from('epistemic_events')
-        .select('event_id,event_name,payload,occurred_at')
-        .in('event_name', eventNames)
-        .order('sequence', { ascending: false })
-        .limit(300)
-    : null;
+  // Same-cycle observations always get first priority. Their mere presence does
+  // not suppress a compatible fallback: only a successful material hydration does.
+  const cycleHydration = await tryHydrationCandidates((cycleEvents?.data ?? []) as HydrationEvent[]);
+  if (cycleHydration) return cycleHydration;
 
-  if (fallbackEvents?.error) {
+  const fallbackEvents = await db.from('epistemic_events')
+    .select('event_id,event_name,payload,occurred_at')
+    .in('event_name', eventNames)
+    .order('sequence', { ascending: false })
+    .limit(300);
+
+  if (fallbackEvents.error) {
     return {
       contract: SFI_UNIVERSAL_OBSERVATION_HYDRATOR_CONTRACT,
       hydrated: false,
@@ -203,62 +267,10 @@ export async function hydrateUniversalCycleInput(
     };
   }
 
-  const candidates = cycleEvents?.data?.length ? cycleEvents.data : fallbackEvents?.data ?? [];
-  for (const event of candidates) {
-    const payload = row(event.payload);
-    if (!tenantMatches(payload, tenantId)) continue;
-    if (
-      event.event_name === 'SFI_STRUCTURED_ANALYSIS_RESULT_RECEIVED'
-      && structuredResultMatchesSignalIdentity(payload, normalized, resumeCycleId)
-    ) {
-      const extracted = extractionFromStructuredResult(payload);
-      if (!hasMaterialExtraction(extracted)) continue;
-      return {
-        contract: SFI_UNIVERSAL_OBSERVATION_HYDRATOR_CONTRACT,
-        hydrated: true,
-        basis: 'SFI_STRUCTURED_ANALYSIS_RESULT_RECEIVED',
-        eventId: String(event.event_id ?? ''),
-        input: {
-          ...input,
-          signal: {
-            ...input.signal,
-            extracted: { ...row(input.signal.extracted), ...extracted },
-            provenance: {
-              ...row(input.signal.provenance),
-              hydratedFromEventId: String(event.event_id ?? ''),
-              hydratedFromCycleId: text(payload.cycleId),
-              hydrationContract: SFI_UNIVERSAL_OBSERVATION_HYDRATOR_CONTRACT,
-            },
-          },
-        } as UniversalCycleInput,
-      };
-    }
-    if (event.event_name === 'SFI_DATASET_PROFILE_ADMITTED' && matchDatasetProfile(payload, normalized)) {
-      const extracted = await extractionFromDatasetProfile(db, payload);
-      if (!hasMaterialExtraction(extracted)) continue;
-      return {
-        contract: SFI_UNIVERSAL_OBSERVATION_HYDRATOR_CONTRACT,
-        hydrated: true,
-        basis: 'SFI_DATASET_PROFILE_ADMITTED',
-        eventId: String(event.event_id ?? ''),
-        input: {
-          ...input,
-          signal: {
-            ...input.signal,
-            objectHash: text(payload.contentHash) ?? input.signal.objectHash,
-            extracted: { ...row(input.signal.extracted), ...extracted },
-            provenance: {
-              ...row(input.signal.provenance),
-              hydratedFromEventId: String(event.event_id ?? ''),
-              caseId: text(payload.caseId),
-              observationRef: text(row(payload.observationRef).id),
-              hydrationContract: SFI_UNIVERSAL_OBSERVATION_HYDRATOR_CONTRACT,
-            },
-          },
-        } as UniversalCycleInput,
-      };
-    }
-  }
+  const cycleEventIds = new Set((cycleEvents?.data ?? []).map((event) => String(event.event_id ?? '')).filter(Boolean));
+  const fallbackCandidates = (fallbackEvents.data ?? []).filter((event) => !cycleEventIds.has(String(event.event_id ?? ''))) as HydrationEvent[];
+  const fallbackHydration = await tryHydrationCandidates(fallbackCandidates);
+  if (fallbackHydration) return fallbackHydration;
 
   return {
     contract: SFI_UNIVERSAL_OBSERVATION_HYDRATOR_CONTRACT,
