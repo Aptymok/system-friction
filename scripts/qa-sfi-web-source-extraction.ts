@@ -4,6 +4,8 @@ import path from 'node:path';
 import { isNonPublicNetworkAddress } from '../src/lib/sfi/evidenceRequirementResolver';
 import { structuredResultMatchesSignalIdentity } from '../src/lib/sfi/universalObservationIdentity';
 
+// Final merge gate: retrieval must pin the network connection to an address from
+// the exact public-address set that passed validation; a separate DNS lookup is a regression.
 const source = fs.readFileSync(path.join(process.cwd(), 'src/lib/sfi/evidenceRequirementResolver.ts'), 'utf8');
 const hydrator = fs.readFileSync(path.join(process.cwd(), 'src/lib/sfi/universalObservationHydrator.ts'), 'utf8');
 const fail = (message: string): never => {
