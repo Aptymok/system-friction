@@ -111,9 +111,11 @@ if (entityOrder < 0 || whitespaceOrder < entityOrder) fail('evidence text normal
 
 // Required web evidence is not usable unless its canonical imported-evidence event
 // was persisted. Transient SOURCE_CLAIMS must never unlock substantive inference.
-assert(signalRoute.includes('evidenceRequirement.blockingIfUnavailable && (!webEvidence.satisfied || !webEvidence.eventId)'), 'WEB_REQUIRED must require both retrieval sufficiency and canonical event persistence');
+const requiredWebGateIndex = signalRoute.indexOf('evidenceRequirement.blockingIfUnavailable && (!webEvidence.satisfied || !webEvidence.eventId)');
+assert(requiredWebGateIndex >= 0, 'WEB_REQUIRED must require both retrieval sufficiency and canonical event persistence');
 assert(signalRoute.includes("'required_web_evidence_persistence_failed'"), 'missing canonical web evidence persistence must have an explicit fail-closed state');
-assert(signalRoute.indexOf('evidenceRequirement.blockingIfUnavailable && (!webEvidence.satisfied || !webEvidence.eventId)') < signalRoute.indexOf('const persisted = await persistUniversalSignal'), 'required web evidence persistence must gate execution before signal persistence/runtime');
+const runtimePersistenceIndex = signalRoute.indexOf('const persisted = await persistUniversalSignal', requiredWebGateIndex);
+assert(runtimePersistenceIndex > requiredWebGateIndex, 'required web evidence persistence must gate the run persistence/runtime path; intake persistence is a separate non-execution operation');
 
 // RETURN evidence lineage must be explicit server-derived linkage only. Generic
 // lifecycle lineage contains object hashes and other methodological identifiers.
