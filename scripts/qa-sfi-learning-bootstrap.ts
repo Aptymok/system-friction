@@ -26,6 +26,7 @@ async function main() {
     text('scripts/merge-openapi-universal-cycle.mjs'),
   ]);
 
+  assert(learning.includes("SFI-UNIVERSAL-LEARNING-QUARANTINE-1.1"));
   assert(learning.includes("'TEST_SYNTHETIC'"));
   assert(learning.includes("'FAILED_EXPERIMENT'"));
   assert(learning.includes("'OPERATIONAL_EVIDENCE'"));
@@ -33,8 +34,28 @@ async function main() {
   assert(learning.includes("eventName: 'SFI_UNIVERSAL_LEARNING_CANDIDATE_RECORDED'"));
   assert(learning.includes("eventName: 'SFI_UNIVERSAL_LEARNING_PROMOTED'"));
   assert(learning.includes("eventName: 'SFI_UNIVERSAL_LEARNING_REJECTED'"));
-  assert(learning.includes("candidatePayload.eligibleForRootPromotion !== true"));
-  assert(learning.includes("text(candidatePayload.classification) !== 'CALIBRATED_RETURN'"));
+
+  // CALIBRATED_RETURN is now an evidence-complete assessment, not a label the caller can force.
+  assert(learning.includes('calibratedReturnEligibility'));
+  assert(learning.includes("text(contrast.calibrationStatus) !== 'CONTRAST_RECORDED'"));
+  assert(learning.includes("text(contrast.classification) === 'INCONCLUSIVE'"));
+  assert(learning.includes("reason: 'PREDICTION_MISSING'"));
+  assert(learning.includes("reason: 'DISCRIMINATING_SIGNALS_MISSING'"));
+  assert(learning.includes("reason: 'RETURN_EVIDENCE_UNLINKED'"));
+  assert(learning.includes("reason: 'UPDATED_CONFIDENCE_MISSING'"));
+  assert(learning.includes("reason: 'EVIDENCE_COMPLETE_CALIBRATED_RETURN'"));
+  assert(learning.includes("if (explicit === 'CALIBRATED_RETURN') return hasCalibratedReturn(history) ? 'CALIBRATED_RETURN' : 'OPERATIONAL_EVIDENCE'"));
+  assert(learning.includes("eligibleForRootPromotion: promotionState === 'ELIGIBLE_FOR_ROOT_PROMOTION' && eligibility.eligible"));
+  assert(learning.includes('persistedCandidateEvidenceEligible'));
+  assert(learning.includes("text(candidatePayload.eligibilityBasis) === 'EVIDENCE_COMPLETE_CALIBRATED_RETURN'"));
+  assert(learning.includes("text(contrast.calibrationStatus) === 'CONTRAST_RECORDED'"));
+  assert(learning.includes("text(contrast.classification) !== 'INCONCLUSIVE'"));
+  assert(learning.includes('strings(contrast.returnEvidenceRefs).length > 0'));
+  assert(learning.includes('strings(contrast.expectedSignals).length > 0'));
+  assert(learning.includes('strings(contrast.contradictionSignals).length > 0'));
+  assert(learning.includes('Number.isFinite(Number(contrast.updatedConfidence))'));
+  assert(learning.includes("error: 'LEARNING_CANDIDATE_NOT_ELIGIBLE_FOR_PROMOTION'"));
+
   assert(learning.includes("eventName: 'SFI_UNIVERSAL_LEARNING_PROMOTED',\n    epistemicClass: 'derived'"));
   assert(learning.includes("assessmentClass: 'VERIFIED_CONTRAST'"));
   assert(!learning.includes("epistemicClass: 'verified_contrast'"), 'event store must never receive a non-canonical epistemic class');
@@ -100,13 +121,17 @@ async function main() {
 
   console.log(JSON.stringify({
     ok: true,
-    contract: 'SFI-LEARNING-BOOTSTRAP-QA-1.3',
+    contract: 'SFI-LEARNING-BOOTSTRAP-QA-1.4',
     manifestVersion,
     invariants: {
       structuredResultIsLearning: false,
       closedCycleIsLearned: false,
       testSyntheticEntersSpine: false,
       failedExperimentEntersSpine: false,
+      calibratedReturnCannotBeForced: true,
+      unlinkedReturnEligibleForLearning: false,
+      discriminatingSignalsRequired: true,
+      promotionRechecksPersistedCalibration: true,
       rootPromotionRequired: true,
       singleTerminalLearningState: true,
       repeatedTerminalRequestIsIdempotent: true,
