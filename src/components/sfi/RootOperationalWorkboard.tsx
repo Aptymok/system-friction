@@ -12,7 +12,7 @@ type Props = { enabled: boolean };
 function stateClass(value: unknown) {
   const state = String(value ?? '').toLowerCase();
   if (/blocked|missing|failed|critical|degraded|stale|overdue/.test(state)) return 'isBlocked';
-  if (/queued|waiting|proposed|pending|unassigned|current_blocked|approved|executed|review_required/.test(state)) return 'isAttention';
+  if (/queued|waiting|proposed|pending|unassigned|current_blocked|approved|executed|review_required|continuing|acquisition/.test(state)) return 'isAttention';
   if (/accepted|current|operational|recorded|ready|return_recorded|available|auto_routable|satisfied|healthy/.test(state)) return 'isReady';
   return '';
 }
@@ -86,18 +86,30 @@ export function RootOperationalWorkboard({ enabled }: Props) {
   const returns = Array.isArray(data?.returns) ? data.returns : [];
   const canon = Array.isArray(data?.canonCandidates) ? data.canonCandidates : [];
   const twinProposals = Array.isArray(data?.twinProposals) ? data.twinProposals : [];
-  const openUniversalCycles = Array.isArray(data?.openCycles?.universal) ? data.openCycles.universal : [];
   const reserved = Array.isArray(data?.governanceGates?.reservedCapabilities) ? data.governanceGates.reservedCapabilities : [];
   const warnings = Array.isArray(data?.warnings) ? data.warnings : [];
   const caseItems = Array.isArray(caseExecution?.items) ? caseExecution.items : [];
   const nextItems = Array.isArray(data?.operationalNext?.items) ? data.operationalNext.items : [];
   const nextCycles = Array.isArray(data?.operationalNext?.cycles) ? data.operationalNext.cycles : [];
   const nextSummary = data?.operationalNext?.summary ?? {};
+  const continuity = data?.continuity ?? {};
   const runtimeLabel = useMemo(() => short(data?.runtime?.summary, 'Runtime sin lectura'), [data]);
   const nextById = useMemo(() => new Map<string, Row>(nextItems.map((item: Row) => [String(item.id), item])), [nextItems]);
   const degradedLaneCount = reportLanes.filter((lane: Row) => lane.state !== 'CURRENT').length;
   const degradedProviderCount = providerHealth.filter((provider: Row) => ['DEGRADED', 'BLOCKED'].includes(String(provider.state ?? '').toUpperCase())).length;
-  const systemHealth = error || degradedLaneCount || degradedProviderCount ? 'DEGRADED' : 'NORMAL';
+  const humanNextItems = nextItems.filter((item: Row) => item.rootActionRequired === true);
+  const humanNextCycles = nextCycles.filter((cycle: Row) => cycle.rootActionRequired === true);
+  const automaticNextItems = nextItems.filter((item: Row) => item.rootActionRequired !== true);
+  const automaticNextCycles = nextCycles.filter((cycle: Row) => cycle.rootActionRequired !== true);
+  const humanActionCount = humanNextItems.length + humanNextCycles.length;
+  const automaticCount = automaticNextItems.length + automaticNextCycles.length;
+  const humanDecisions = decisions.filter((item: Row) => {
+    const next = nextById.get(String(item.id));
+    return next?.rootActionRequired === true || (!next && item.decisionClass === 'root_only');
+  });
+  const continuityHealth = short(continuity.health, 'UNKNOWN').toUpperCase();
+  const continuityDegraded = ['STALE', 'DEGRADED', 'UNKNOWN'].includes(continuityHealth);
+  const systemHealth = error || degradedLaneCount || degradedProviderCount || continuityDegraded ? 'DEGRADED' : 'NORMAL';
 
   const focusOptions = useMemo<CognitiveSpineFocus[]>(() => {
     const candidates = [
@@ -115,16 +127,16 @@ export function RootOperationalWorkboard({ enabled }: Props) {
 
   if (!enabled) return <aside className="rootWorkboard"><div className="workboardLoading">{ownedText('PANEL DE TRABAJO · esperando sesión / presencia gobernada','WORKBOARD · waiting for session / governed presence')}</div></aside>;
 
-  return <aside className="rootWorkboard" aria-label={ownedText('Panel operativo ROOT','ROOT operational workboard')} data-sfi-contract-lanes="EJECUCIONES / ASSIGNMENT | PROJECTS / CASE EXECUTION | BLOQUEOS / WARNINGS | QUÉ SIGUE / NEXT EXPECTED EVENT | ROOT: ACCIÓN REQUERIDA | LLM PROVIDERS · CONFIG ≠ HEALTH | SYSTEM HEALTH | DEGRADED LANES">
+  return <aside className="rootWorkboard" aria-label={ownedText('Panel operativo ROOT','ROOT operational workboard')} data-sfi-contract-lanes="ROOT ACTION | SFI AUTOMATIC | CONTINUITY PULSE | EXECUTIONS | CASE EXECUTION | WARNINGS | RETURNS | TWIN | UNIVERSAL CYCLES">
     <div className="workboardHead">
       <div><small>{ui('INICIO OPERATIVO ROOT')}</small><strong>{ui('TRABAJO QUE REQUIERE ATENCIÓN')}</strong></div>
       <span>{data?.authority ? String(data.authority).toUpperCase() : 'VIEWER'} · {ui('SALUD DEL SISTEMA')} {systemHealth}</span>
     </div>
 
     <div className="workboardSummary">
-      <div><small>{ui('ROOT AHORA')}</small><b>{nextSummary.rootActionRequired ?? summary.decisions ?? 0}</b></div>
-      <div><small>{ui('SIGUIENTE AUTOMÁTICO')}</small><b>{nextSummary.automaticNext ?? 0}</b></div>
-      <div><small>{ui('EJECUCIÓN')}</small><b>{summary.executions ?? 0}</b></div>
+      <div><small>{ui('NECESITA DE MÍ')}</small><b>{humanActionCount}</b></div>
+      <div><small>{ui('SFI TRABAJANDO')}</small><b>{automaticCount}</b></div>
+      <div><small>{ui('PULSO')}</small><b>{continuityHealth}</b></div>
       <div><small>{ui('CARRILES DEGRADADOS')}</small><b>{degradedLaneCount}</b></div>
       <div><small>{ui('RETURNS')}</small><b>{summary.returns ?? 0}</b></div>
       <div><small>{ui('ADVERTENCIAS')}</small><b>{summary.warnings ?? 0}</b></div>
@@ -137,43 +149,66 @@ export function RootOperationalWorkboard({ enabled }: Props) {
       enabled={enabled}
       canOperate={data?.authority === 'root'}
       focusOptions={focusOptions}
-      twinOpenCount={twinProposals.length + openUniversalCycles.length}
+      twinOpenCount={twinProposals.length + nextCycles.length}
     />
 
     <div className="workboardGrid">
-      <Lane title="QUÉ SIGUE / EVENTO ESPERADO" count={nextItems.length + nextCycles.length}>
-        {nextItems
-          .slice()
-          .sort((a: Row, b: Row) => Number(Boolean(b.rootActionRequired)) - Number(Boolean(a.rootActionRequired)))
-          .slice(0, 10)
-          .map((item: Row) => <article key={`next:${item.id}`} className={stateClass(item.blocker ?? item.status)}>
-            <b>{short(item.title, 'Objeto operativo')}</b>
-            <span>{short(item.status)} → {short(item.nextExpectedEvent, 'TERMINAL')}</span>
-            <small>{ownedText('responsable','owner')}: {short(item.owner)} · ROOT: {item.rootActionRequired ? ownedText('ACCIÓN REQUERIDA','ACTION REQUIRED') : ownedText('ninguna','none')}</small>
-            {item.blocker && <small>{ownedText('BLOQUEO','BLOCKER')} · {short(item.blocker)}</small>}
-            <small>{short(item.actionLabel)}</small>
-            {item.status === 'waiting_evidence' && <a href="/root/evidence-review">{ownedText('REVISAR EVIDENCIA →','REVIEW EVIDENCE →')}</a>}
-          </article>)}
-        {nextCycles.slice(0, 5).map((cycle: Row) => <article key={`next-cycle:${cycle.cycleId}`} className={stateClass(cycle.state)}>
+      <Lane title="NECESITA DE MÍ / ROOT ACTION" count={humanActionCount}>
+        {humanNextItems.slice(0, 10).map((item: Row) => <article key={`human:${item.id}`} className={stateClass(item.blocker ?? item.status)}>
+          <b>{short(item.title, 'Objeto operativo')}</b>
+          <span>{short(item.status)} → {short(item.nextExpectedEvent, 'TERMINAL')}</span>
+          <small>{ownedText('responsable','owner')}: {short(item.owner)} · ROOT: {ownedText('ACCIÓN REQUERIDA','ACTION REQUIRED')}</small>
+          {item.blocker && <small>{ownedText('BLOQUEO','BLOCKER')} · {short(item.blocker)}</small>}
+          <small>{short(item.actionLabel)}</small>
+          {item.status === 'waiting_evidence' && <a href="/root/evidence-review">{ownedText('REVISAR EVIDENCIA →','REVIEW EVIDENCE →')}</a>}
+        </article>)}
+        {humanNextCycles.slice(0, 5).map((cycle: Row) => <article key={`human-cycle:${cycle.cycleId}`} className={stateClass(cycle.state)}>
           <b>{short(cycle.title, 'Ciclo universal')}</b>
           <span>{short(cycle.state)} → {short(cycle.nextExpectedEvent)}</span>
-          <small>owner: {short(cycle.owner)} · ROOT: {cycle.rootActionRequired ? 'ACCIÓN REQUERIDA' : 'ninguna'}</small>
+          <small>owner: {short(cycle.owner)} · ROOT: ACCIÓN REQUERIDA</small>
           {cycle.blocker && <small>{ownedText('BLOQUEO','BLOCKER')} · {short(cycle.blocker)}</small>}
         </article>)}
-        {!nextItems.length && !nextCycles.length && <em>{ownedText('Sin objetos no terminales con transición pendiente.','No non-terminal objects have a pending transition.')}</em>}
+        {!humanActionCount && <em>{ownedText('No hay acciones humanas requeridas ahora.','No human action is required now.')}</em>}
       </Lane>
 
-      <Lane title="MIS DECISIONES / DELEGABLES" count={decisions.length}>
-        {decisions.slice(0, 6).map((item: Row) => {
+      <Lane title="SFI TRABAJANDO / AUTOMÁTICO" count={automaticCount}>
+        {automaticNextItems.slice(0, 10).map((item: Row) => <article key={`auto:${item.id}`} className={stateClass(item.blocker ?? item.status)}>
+          <b>{short(item.title, 'Objeto operativo')}</b>
+          <span>{short(item.status)} → {short(item.nextExpectedEvent, 'TERMINAL')}</span>
+          <small>owner: {short(item.owner)} · ROOT: ninguna</small>
+          {item.blocker && <small>{ownedText('BLOQUEO','BLOCKER')} · {short(item.blocker)}</small>}
+          <small>{short(item.actionLabel)}</small>
+        </article>)}
+        {automaticNextCycles.slice(0, 8).map((cycle: Row) => <article key={`auto-cycle:${cycle.cycleId}`} className={stateClass(cycle.blocker ?? cycle.state)}>
+          <b>{short(cycle.title, 'Ciclo universal')}</b>
+          <span>{short(cycle.state)} → {short(cycle.nextExpectedEvent)}</span>
+          <small>owner: {short(cycle.owner)} · ROOT: ninguna</small>
+          {cycle.blocker && <small>{ownedText('BLOQUEO','BLOCKER')} · {short(cycle.blocker)}</small>}
+        </article>)}
+        {!automaticCount && <em>{ownedText('Sin trabajo autónomo pendiente.','No autonomous work is pending.')}</em>}
+      </Lane>
+
+      <Lane title="PULSO / CONTINUIDAD" count={continuity.latestRun ? 1 : 0}>
+        <article className={stateClass(continuityHealth)}>
+          <b>{continuityHealth}</b>
+          <span>modo {short(continuity.mode)} · cadencia esperada {continuity.expectedCadenceMinutes ?? 30} min</span>
+          <small>último heartbeat · {short(continuity.lastHeartbeatAt)}</small>
+          <small>edad · {typeof continuity.heartbeatAgeMinutes === 'number' ? `${continuity.heartbeatAgeMinutes.toFixed(1)} min` : 'sin lectura'}</small>
+          <small>scheduler · {short(continuity.scheduler)} · respaldo {short(continuity.fallback)}</small>
+          {continuity.latestRun && <small>último run · {short(continuity.latestRun.status)} · {short(continuity.latestRun.trigger)} · {short(continuity.latestRun.id)}</small>}
+        </article>
+      </Lane>
+
+      <Lane title="DECISIONES QUE REQUIEREN ROOT" count={humanDecisions.length}>
+        {humanDecisions.slice(0, 6).map((item: Row) => {
           const next = nextById.get(String(item.id));
           return <article key={item.id} className={stateClass(next?.blocker ?? item.status)}>
             <b>{short(item.title, 'Propuesta')}</b>
             <span>{short(item.status)} · {short(item.decisionClass)} · riesgo {short(item.riskLevel, 'unknown')}</span>
-            <small>{next ? `${short(next.nextExpectedEvent)} · owner ${short(next.owner)}` : item.decisionClass === 'root_only' ? 'ROOT decide' : 'ROOT o controller autorizado'}</small>
-            {next?.rootActionRequired === false && <small>ROOT: ninguna acción ahora.</small>}
+            <small>{next ? `${short(next.nextExpectedEvent)} · owner ${short(next.owner)}` : 'ROOT decide'}</small>
           </article>;
         })}
-        {!decisions.length && <em>{ownedText('Sin decisiones visibles para esta autoridad.','No decisions are visible for this authority.')}</em>}
+        {!humanDecisions.length && <em>{ownedText('Sin decisiones que requieran ROOT.','No decisions require ROOT.')}</em>}
       </Lane>
 
       <Lane title="EJECUCIONES / ASIGNACIÓN" count={executions.length}>
@@ -201,14 +236,19 @@ export function RootOperationalWorkboard({ enabled }: Props) {
         {!caseItems.length && <em>{data?.authority === 'root' ? 'Sin case actions observadas.' : 'Projects/Case Execution es visible sólo para ROOT soberano.'}</em>}
       </Lane>
 
-      <Lane title="TWIN / CICLOS ABIERTOS" count={twinProposals.length + openUniversalCycles.length}>
-        {twinProposals.slice(0, 4).map((item: Row) => <article key={`twin:${item.id}`} className={stateClass(item.status)}>
+      <Lane title="TWIN / PROPUESTAS" count={twinProposals.length}>
+        {twinProposals.slice(0, 6).map((item: Row) => <article key={`twin:${item.id}`} className={stateClass(item.status)}>
           <b>{short(item.title, 'Twin proposal')}</b><span>{short(item.status)} · {short(item.decisionClass)}</span><small>proposal {short(item.id)}</small>
         </article>)}
-        {nextCycles.slice(0, 4).map((cycle: Row) => <article key={`cycle:${cycle.cycleId}`} className={stateClass(cycle.state)}>
-          <b>{short(cycle.title, 'Ciclo universal abierto')}</b><span>{short(cycle.state)} · espera {short(cycle.nextExpectedEvent)}</span><small>{short(cycle.cycleId)} · owner {short(cycle.owner)}</small>
+        {!twinProposals.length && <em>Sin Twin proposals visibles.</em>}
+      </Lane>
+
+      <Lane title="CICLOS UNIVERSALES" count={nextCycles.length}>
+        {nextCycles.slice(0, 8).map((cycle: Row) => <article key={`cycle:${cycle.cycleId}`} className={stateClass(cycle.blocker ?? cycle.state)}>
+          <b>{short(cycle.title, 'Ciclo universal abierto')}</b><span>{short(cycle.state)} · espera {short(cycle.nextExpectedEvent)}</span><small>{short(cycle.cycleId)} · owner {short(cycle.owner)} · ROOT {cycle.rootActionRequired ? 'sí' : 'no'}</small>
+          {cycle.blocker && <small>BLOQUEO · {short(cycle.blocker)}</small>}
         </article>)}
-        {!twinProposals.length && !openUniversalCycles.length && <em>Sin Twin proposals/ciclos abiertos visibles.</em>}
+        {!nextCycles.length && <em>Sin ciclos universales abiertos visibles.</em>}
       </Lane>
 
       <Lane title="BLOQUEOS / ADVERTENCIAS" count={blockers.length + warnings.length + (nextSummary.blocked ?? 0)}>
@@ -216,6 +256,7 @@ export function RootOperationalWorkboard({ enabled }: Props) {
           <b>{short(item.title, item.kind)}</b><span>{short(item.state)}</span><small>{short(item.detail)}</small>
         </article>)}
         {nextItems.filter((item: Row) => item.blocker).slice(0, 4).map((item: Row) => <article key={`next-blocker:${item.id}`} className="isBlocked"><b>{short(item.title)}</b><span>{short(item.blocker)}</span><small>next {short(item.nextExpectedEvent)} · owner {short(item.owner)}</small></article>)}
+        {nextCycles.filter((cycle: Row) => cycle.blocker).slice(0, 4).map((cycle: Row) => <article key={`cycle-blocker:${cycle.cycleId}`} className="isBlocked"><b>{short(cycle.title)}</b><span>{short(cycle.blocker)}</span><small>next {short(cycle.nextExpectedEvent)} · owner {short(cycle.owner)}</small></article>)}
         {warnings.slice(0, 4).map((warning: string, index: number) => <article key={`warning:${index}`} className="isAttention"><span>{warning}</span></article>)}
         {!blockers.length && !warnings.length && !(nextSummary.blocked > 0) && <em>Sin bloqueos observados.</em>}
       </Lane>
@@ -234,7 +275,7 @@ export function RootOperationalWorkboard({ enabled }: Props) {
         {providerHealth.map((provider: Row) => <article key={provider.id} className={stateClass(provider.state ?? (provider.available ? 'configured' : 'unconfigured'))}>
           <b>{short(provider.id).toUpperCase()}</b>
           <span>{short(provider.state, provider.available ? 'CONFIGURED / UNTESTED' : 'UNCONFIGURED')} · {short(provider.model)}</span>
-          <small>configured {provider.configured ?? provider.available ? 'sí' : 'no'} · canary {provider.canaryOk === true ? 'OK' : provider.canaryOk === false ? 'FAIL' : 'UNTESTED'}</small>
+          <small>configured {(provider.configured ?? provider.available) ? 'sí' : 'no'} · canary {provider.canaryOk === true ? 'OK' : provider.canaryOk === false ? 'FAIL' : 'UNTESTED'}</small>
           {provider.lastError && <small>last error · {short(provider.lastErrorClass)} · {short(provider.lastError)}</small>}
           {provider.lastSuccessAt && <small>last success · {short(provider.lastSuccessAt)}</small>}
         </article>)}
@@ -270,6 +311,6 @@ export function RootOperationalWorkboard({ enabled }: Props) {
       </Lane>
     </div>
 
-    <footer className="workboardBoundary">cada estado no-terminal → nextExpectedEvent + owner + blocker + rootActionRequired · proposal → authorization → auto-route → assignment → bounded execution/retry → RETURN → calibration → learning → ROOT canon/close · external actions fail closed without adapter</footer>
+    <footer className="workboardBoundary">humano sólo cuando rootActionRequired=true · cognition interrumpida → continuidad durable · cognition completa → síntesis → plan de RETURN → adquisición gobernada → RETURN observado → CONTRAST → learning → ROOT canon/close · external actions fail closed without adapter</footer>
   </aside>;
 }
