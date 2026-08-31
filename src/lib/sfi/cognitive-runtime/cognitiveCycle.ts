@@ -88,6 +88,36 @@ function mergeCheckpointContext(base: KernelContext, checkpoint: KernelContext):
   };
 }
 
+function checkpointContextProjection(context: KernelContext): KernelContext {
+  const signalType = text(context.metadata?.signalType)?.toLowerCase() ?? '';
+  const tabular = ['dataset', 'csv'].includes(signalType);
+  const evidence = (context.evidence ?? []).map((item) => {
+    if (!tabular || item.source !== 'UniversalSignalGateway') return item;
+    const payload = row(item.payload);
+    if (!('materialContent' in payload)) return item;
+    return {
+      ...item,
+      payload: {
+        ...payload,
+        materialContent: null,
+        materialContentBoundary: 'OMITTED_FROM_DURABLE_CHECKPOINT_RAW_TABULAR_MATERIAL_NOT_PERSISTED',
+      },
+    };
+  });
+  const metadata = tabular
+    ? {
+        ...context.metadata,
+        declaredExtraction: null,
+        checkpointOmissions: [
+          ...stringList(context.metadata?.checkpointOmissions),
+          'RAW_TABULAR_MATERIAL',
+          'CALLER_DECLARED_EXTRACTION_PAYLOAD',
+        ],
+      }
+    : context.metadata;
+  return { ...context, evidence, metadata };
+}
+
 async function readLatestUnfinalizedCheckpoint(context: KernelContext): Promise<DurableCheckpoint | null> {
   const db = createServiceSupabaseClient();
   const latest = await db.from('epistemic_events')
@@ -175,7 +205,7 @@ async function persistCheckpoint(input: {
       executedAgents: input.executedAgents,
       missingAgents: input.missingAgents,
       completed: input.completed,
-      context: input.context,
+      context: checkpointContextProjection(input.context),
       storagePolicy: 'DURABLE_COGNITIVE_STATE_NO_RAW_SOURCE_ROWS',
       epistemicBoundary: 'Checkpoint persistence preserves execution continuity only. It does not promote derived, inferred or simulated content to observed evidence.',
     },
