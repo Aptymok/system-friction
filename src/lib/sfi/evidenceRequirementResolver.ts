@@ -217,7 +217,6 @@ export function resolveUniversalEvidenceRequirements(inputValue: unknown) {
   const signal = row(input.signal);
   const context = row(input.context);
   const kind = (text(signal.kind) ?? 'unknown').toLowerCase();
-  const claims = claimStrings(context);
   const blob = [input.question, input.objective, input.declaredFunction, input.systemType, JSON.stringify(context)]
     .filter(Boolean)
     .join(' ')
