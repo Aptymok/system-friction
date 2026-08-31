@@ -1,0 +1,35 @@
+name: Temporary ROOT governance queue contract marker
+
+on:
+  push:
+    branches:
+      - fix/evidence-policy-and-owned-ui-copy
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/evidence-policy-and-owned-ui-copy
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Preserve contract marker
+        run: node scripts/tmp-preserve-governance-queue-contract.mjs
+      - name: Remove temporary artifacts
+        run: |
+          rm scripts/tmp-preserve-governance-queue-contract.mjs
+          rm .github/workflows/tmp-preserve-governance-queue-contract.yml
+      - name: Commit clean tree
+        run: |
+          git config user.name "sfi-governed-repair"
+          git config user.email "actions@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git commit -m "fix(sfi): preserve ROOT governance queue observability contract"
+          git push origin HEAD:fix/evidence-policy-and-owned-ui-copy
