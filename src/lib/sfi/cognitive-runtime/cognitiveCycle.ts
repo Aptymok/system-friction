@@ -104,13 +104,14 @@ async function readLatestUnfinalizedCheckpoint(context: KernelContext): Promise<
   if (text(payload.cycleId) !== context.cycleId) return null;
 
   const finalized = await db.from('epistemic_events')
-    .select('sequence')
+    .select('sequence,payload')
     .eq('event_name', 'SFI_UNIVERSAL_COGNITIVE_CYCLE_EXECUTED')
     .eq('logbook_id', context.logbookId)
     .gt('sequence', sequence)
     .order('sequence', { ascending: false })
-    .limit(1);
-  if (!finalized.error && (finalized.data?.length ?? 0) > 0) return null;
+    .limit(10);
+  const hasCompletedFinalization = !finalized.error && (finalized.data ?? []).some((item) => row(item.payload).completed === true);
+  if (hasCompletedFinalization) return null;
 
   const storedContext = row(payload.context) as unknown as KernelContext;
   if (!storedContext || storedContext.cycleId !== context.cycleId) return null;
@@ -234,7 +235,7 @@ export async function executeCognitiveCycle(
         : null)
     : ['meta_orchestrator'];
   let processedThisInvocation = 0;
-  const maxAgents = Math.max(1, Math.min(25, options.maxAgentsPerInvocation ?? 25));
+  const maxAgents = Math.max(1, Math.min(25, options.maxAgentsPerInvocation ?? 6));
 
   while (queue.length > 0 && processedThisInvocation < maxAgents) {
     const agentId = queue.shift()!;
