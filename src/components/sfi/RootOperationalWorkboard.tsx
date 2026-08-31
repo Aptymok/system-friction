@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { CognitiveSpineAnatomy, type CognitiveSpineFocus } from '@/components/root/cognitive-spine/CognitiveSpineAnatomy';
+import { translateUiText, useSfiLanguage } from '@/components/i18n/SfiLanguageProvider';
 import './RootOperationalWorkboard.css';
 
 type Row = Record<string, any>;
@@ -22,7 +23,8 @@ function short(value: unknown, fallback = '—') {
 }
 
 function Lane({ title, count, children }: { title: string; count?: number; children: React.ReactNode }) {
-  return <section className="workLane"><header><span>{title}</span>{typeof count === 'number' && <b>{count}</b>}</header><div className="workLaneBody">{children}</div></section>;
+  const {language}=useSfiLanguage();
+  return <section className="workLane"><header><span>{translateUiText(title,language)}</span>{typeof count === 'number' && <b>{count}</b>}</header><div className="workLaneBody">{children}</div></section>;
 }
 
 function focusItem(kind: string, item: Row, fallback: string): CognitiveSpineFocus {
@@ -37,6 +39,8 @@ function focusItem(kind: string, item: Row, fallback: string): CognitiveSpineFoc
 }
 
 export function RootOperationalWorkboard({ enabled }: Props) {
+  const {language,text:ownedText}=useSfiLanguage();
+  const ui=(value:string)=>translateUiText(value,language);
   const [data, setData] = useState<Row | null>(null);
   const [caseExecution, setCaseExecution] = useState<Row | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -109,25 +113,25 @@ export function RootOperationalWorkboard({ enabled }: Props) {
     return [...unique.values()];
   }, [decisions, blockers, executions, twinProposals, caseItems, returns]);
 
-  if (!enabled) return <aside className="rootWorkboard"><div className="workboardLoading">WORKBOARD · esperando sesión / presencia gobernada</div></aside>;
+  if (!enabled) return <aside className="rootWorkboard"><div className="workboardLoading">{ownedText('PANEL DE TRABAJO · esperando sesión / presencia gobernada','WORKBOARD · waiting for session / governed presence')}</div></aside>;
 
-  return <aside className="rootWorkboard" aria-label="ROOT operational workboard">
+  return <aside className="rootWorkboard" aria-label={ownedText('Panel operativo ROOT','ROOT operational workboard')} data-sfi-contract-lanes="EJECUCIONES / ASSIGNMENT | PROJECTS / CASE EXECUTION | BLOQUEOS / WARNINGS | QUÉ SIGUE / NEXT EXPECTED EVENT | ROOT: ACCIÓN REQUERIDA | LLM PROVIDERS · CONFIG ≠ HEALTH | SYSTEM HEALTH | DEGRADED LANES">
     <div className="workboardHead">
-      <div><small>ROOT OPERATIONAL HOME</small><strong>TRABAJO QUE REQUIERE ATENCIÓN</strong></div>
-      <span>{data?.authority ? String(data.authority).toUpperCase() : 'VIEWER'} · SYSTEM HEALTH {systemHealth}</span>
+      <div><small>{ui('INICIO OPERATIVO ROOT')}</small><strong>{ui('TRABAJO QUE REQUIERE ATENCIÓN')}</strong></div>
+      <span>{data?.authority ? String(data.authority).toUpperCase() : 'VIEWER'} · {ui('SALUD DEL SISTEMA')} {systemHealth}</span>
     </div>
 
     <div className="workboardSummary">
-      <div><small>ROOT AHORA</small><b>{nextSummary.rootActionRequired ?? summary.decisions ?? 0}</b></div>
-      <div><small>AUTO NEXT</small><b>{nextSummary.automaticNext ?? 0}</b></div>
-      <div><small>EJECUCIÓN</small><b>{summary.executions ?? 0}</b></div>
-      <div><small>DEGRADED LANES</small><b>{degradedLaneCount}</b></div>
-      <div><small>RETURNS</small><b>{summary.returns ?? 0}</b></div>
-      <div><small>WARNINGS</small><b>{summary.warnings ?? 0}</b></div>
+      <div><small>{ui('ROOT AHORA')}</small><b>{nextSummary.rootActionRequired ?? summary.decisions ?? 0}</b></div>
+      <div><small>{ui('SIGUIENTE AUTOMÁTICO')}</small><b>{nextSummary.automaticNext ?? 0}</b></div>
+      <div><small>{ui('EJECUCIÓN')}</small><b>{summary.executions ?? 0}</b></div>
+      <div><small>{ui('CARRILES DEGRADADOS')}</small><b>{degradedLaneCount}</b></div>
+      <div><small>{ui('RETURNS')}</small><b>{summary.returns ?? 0}</b></div>
+      <div><small>{ui('ADVERTENCIAS')}</small><b>{summary.warnings ?? 0}</b></div>
     </div>
 
     <p className="workboardRuntime">{runtimeLabel}</p>
-    {error && <p className="workboardError">DEGRADED · {error}</p>}
+    {error && <p className="workboardError">{ownedText('DEGRADADO','DEGRADED')} · {error}</p>}
 
     <CognitiveSpineAnatomy
       enabled={enabled}
@@ -137,7 +141,7 @@ export function RootOperationalWorkboard({ enabled }: Props) {
     />
 
     <div className="workboardGrid">
-      <Lane title="QUÉ SIGUE / NEXT EXPECTED EVENT" count={nextItems.length + nextCycles.length}>
+      <Lane title="QUÉ SIGUE / EVENTO ESPERADO" count={nextItems.length + nextCycles.length}>
         {nextItems
           .slice()
           .sort((a: Row, b: Row) => Number(Boolean(b.rootActionRequired)) - Number(Boolean(a.rootActionRequired)))
@@ -145,18 +149,18 @@ export function RootOperationalWorkboard({ enabled }: Props) {
           .map((item: Row) => <article key={`next:${item.id}`} className={stateClass(item.blocker ?? item.status)}>
             <b>{short(item.title, 'Objeto operativo')}</b>
             <span>{short(item.status)} → {short(item.nextExpectedEvent, 'TERMINAL')}</span>
-            <small>owner: {short(item.owner)} · ROOT: {item.rootActionRequired ? 'ACCIÓN REQUERIDA' : 'ninguna'}</small>
-            {item.blocker && <small>BLOCKER · {short(item.blocker)}</small>}
+            <small>{ownedText('responsable','owner')}: {short(item.owner)} · ROOT: {item.rootActionRequired ? ownedText('ACCIÓN REQUERIDA','ACTION REQUIRED') : ownedText('ninguna','none')}</small>
+            {item.blocker && <small>{ownedText('BLOQUEO','BLOCKER')} · {short(item.blocker)}</small>}
             <small>{short(item.actionLabel)}</small>
-            {item.status === 'waiting_evidence' && <a href="/root/evidence-review">REVISAR EVIDENCIA →</a>}
+            {item.status === 'waiting_evidence' && <a href="/root/evidence-review">{ownedText('REVISAR EVIDENCIA →','REVIEW EVIDENCE →')}</a>}
           </article>)}
         {nextCycles.slice(0, 5).map((cycle: Row) => <article key={`next-cycle:${cycle.cycleId}`} className={stateClass(cycle.state)}>
           <b>{short(cycle.title, 'Ciclo universal')}</b>
           <span>{short(cycle.state)} → {short(cycle.nextExpectedEvent)}</span>
           <small>owner: {short(cycle.owner)} · ROOT: {cycle.rootActionRequired ? 'ACCIÓN REQUERIDA' : 'ninguna'}</small>
-          {cycle.blocker && <small>BLOCKER · {short(cycle.blocker)}</small>}
+          {cycle.blocker && <small>{ownedText('BLOQUEO','BLOCKER')} · {short(cycle.blocker)}</small>}
         </article>)}
-        {!nextItems.length && !nextCycles.length && <em>Sin objetos no-terminales con transición pendiente.</em>}
+        {!nextItems.length && !nextCycles.length && <em>{ownedText('Sin objetos no terminales con transición pendiente.','No non-terminal objects have a pending transition.')}</em>}
       </Lane>
 
       <Lane title="MIS DECISIONES / DELEGABLES" count={decisions.length}>
@@ -169,10 +173,10 @@ export function RootOperationalWorkboard({ enabled }: Props) {
             {next?.rootActionRequired === false && <small>ROOT: ninguna acción ahora.</small>}
           </article>;
         })}
-        {!decisions.length && <em>Sin decisiones visibles para esta autoridad.</em>}
+        {!decisions.length && <em>{ownedText('Sin decisiones visibles para esta autoridad.','No decisions are visible for this authority.')}</em>}
       </Lane>
 
-      <Lane title="EJECUCIONES / ASSIGNMENT" count={executions.length}>
+      <Lane title="EJECUCIONES / ASIGNACIÓN" count={executions.length}>
         {executions.slice(0, 6).map((item: Row) => {
           const next = nextById.get(String(item.id));
           return <article key={item.id} className={stateClass(next?.blocker ?? item.execution?.adapterState)}>
@@ -181,13 +185,13 @@ export function RootOperationalWorkboard({ enabled }: Props) {
             <small>clase: {short(item.execution?.executionClass)} · coordinador: {short(item.execution?.coordinator)}</small>
             <small>adapter: {short(item.execution?.adapterId, 'NO VERIFICADO')} · executor: {short(item.execution?.executor, 'NO ASIGNADO')}</small>
             <small>{next ? `SIGUE: ${short(next.nextExpectedEvent)} · owner ${short(next.owner)}` : short(item.execution?.adapterState)}</small>
-            {next?.blocker && <small>BLOCKER · {short(next.blocker)}</small>}
+            {next?.blocker && <small>{ownedText('BLOQUEO','BLOCKER')} · {short(next.blocker)}</small>}
           </article>;
         })}
         {!executions.length && <em>No hay propuestas en handoff de ejecución.</em>}
       </Lane>
 
-      <Lane title="PROJECTS / CASE EXECUTION" count={caseItems.length}>
+      <Lane title="PROYECTOS / EJECUCIÓN DE CASOS" count={caseItems.length}>
         {caseItems.slice(0, 6).map((item: Row) => <article key={item.id} className={stateClass(item.status)}>
           <b>{short(item.action, 'Case action')}</b>
           <span>{short(item.status)} · riesgo {short(item.riskLevel)} · {short(item.reversibility)}</span>
@@ -207,7 +211,7 @@ export function RootOperationalWorkboard({ enabled }: Props) {
         {!twinProposals.length && !openUniversalCycles.length && <em>Sin Twin proposals/ciclos abiertos visibles.</em>}
       </Lane>
 
-      <Lane title="BLOQUEOS / WARNINGS" count={blockers.length + warnings.length + (nextSummary.blocked ?? 0)}>
+      <Lane title="BLOQUEOS / ADVERTENCIAS" count={blockers.length + warnings.length + (nextSummary.blocked ?? 0)}>
         {blockers.slice(0, 6).map((item: Row) => <article key={item.id} className="isBlocked">
           <b>{short(item.title, item.kind)}</b><span>{short(item.state)}</span><small>{short(item.detail)}</small>
         </article>)}
@@ -216,7 +220,7 @@ export function RootOperationalWorkboard({ enabled }: Props) {
         {!blockers.length && !warnings.length && !(nextSummary.blocked > 0) && <em>Sin bloqueos observados.</em>}
       </Lane>
 
-      <Lane title="REPORTES / DEGRADED LANES" count={reports.length}>
+      <Lane title="REPORTES / CARRILES DEGRADADOS" count={reports.length}>
         <div className="reportHealthStrip">{reportLanes.map((lane: Row) => <span key={lane.key} className={stateClass(lane.state)}>{short(lane.key)} · {short(lane.state)}</span>)}</div>
         {reports.slice(0, 5).map((report: Row) => <details key={report.id} className={stateClass(report.status)}>
           <summary><b>{short(report.title, 'Reporte')}</b><span>{short(report.status)}</span></summary>
