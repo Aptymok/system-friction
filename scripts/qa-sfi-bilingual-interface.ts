@@ -37,11 +37,14 @@ requireText(layout, 'es="PRIVACIDAD Y POLÍTICA DE DATOS PARA AGENTES EXTERNOS"'
 requireText(layout, 'en="PRIVACY & EXTERNAL AGENT DATA POLICY"', 'English owned shell copy');
 requireText(entry, 'useSfiLanguage', 'public entry must consume language context');
 requireText(entry, "text('COMIENZA AQUÍ · SYSTEM FRICTION INSTITUTE'", 'public entry Spanish/English copy');
+requireText(entry, "text('OBSERVAR', 'OBSERVE')", 'public operating-cycle language toggle');
 requireText(session, 'useSfiLanguage', 'session controls must consume language context');
+requireText(session, "text('INICIAR SESIÓN', 'SIGN IN')", 'session language toggle');
 requireText(consoleUi, 'translateUiText, useSfiLanguage', 'SFI console must translate owned copy explicitly');
 requireText(observatory, 'translateUiText, useSfiLanguage', 'observatory must translate owned copy explicitly');
 requireText(workboard, 'translateUiText, useSfiLanguage', 'ROOT workboard headings must translate explicitly');
 requireText(consent, 'useSfiLanguage', 'privacy banner must consume language context');
+requireText(consent, "text('RECHAZAR', 'REJECT')", 'privacy choice language toggle');
 
 // Canonical identifiers and rendered evidence are preserved by architecture:
 // localization is a pure lookup used only by explicitly owned interface copy.
