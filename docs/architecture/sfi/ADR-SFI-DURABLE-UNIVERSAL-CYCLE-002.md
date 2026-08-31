@@ -32,6 +32,10 @@ This ADR extends `ADR-SFI-ARCHITECTURE-001` without creating a second institute,
 
 The event store remains the sole durable execution trace for this mechanism. No raw XLSX rows are persisted by the checkpoint layer.
 
+## Canonical preflight record
+
+The change is owned by the existing universal signal runtime and continuity heartbeat. Existing capabilities inspected before implementation were `universalSignalCycle`, `cognitiveCycle`, the canonical observation hydrator, the governed execution router, the epistemic event store and the existing GitHub-OIDC continuity heartbeat. The decision is to absorb continuation into those owners; the only new helper is bounded orchestration for reconstructing unfinished universal-cycle execution. There is no frontend delta, database delta, migration, alternate writer, new scheduler, new agent, new Case surface or second memory store. Rollback consists of reverting this change; the new checkpoint and RETURN-plan events are derived/non-authoritative and can be ignored safely by the prior runtime.
+
 ## Failure semantics
 
 A deployment timeout becomes an interrupted execution window, not loss of cycle identity. The next authorized continuity run resumes from the latest durable checkpoint.
