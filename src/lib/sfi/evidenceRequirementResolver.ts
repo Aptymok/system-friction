@@ -228,7 +228,7 @@ export function resolveUniversalEvidenceRequirements(inputValue: unknown) {
   const privacyBlocksWeb = context.webForbidden === true || /confidential only|private only|sin internet|no internet|no web|offline only/.test(blob);
   const internalObjectContext = ['dataset', 'csv', 'json', 'document', 'code', 'api_response'].includes(kind)
     && /internal|interno|dataset|archivo|file|registros|tickets|mesa de ayuda|repository|repo|workbook|xlsx|csv/.test(blob);
-  const explicitExternalIntent = /latest|current|hoy|mercad|market|law|legal|regulat|precio|price|compet|benchmark|trend|tendenc|public|social|release|lanzamiento|geopolit|world|mundo|extern|industry|sector|norma|standard|internet|web\b/.test(blob);
+  const explicitExternalIntent = /latest|current|hoy|mercad|market|law|legal|regulat|regulacion|regulatorio|precio|price|compet|benchmark|trend|tendenc|public|social|release|lanzamiento|geopolit|world|mundo|extern|industry|sector|norma|standard|internet|web\b/.test(blob);
   const dynamicExternal = explicitExternalIntent || (hasSlaToken && !internalObjectContext);
   const verificationRequested = context.requiresExternalVerification === true
     || context.requiresCorroboration === true
@@ -237,7 +237,7 @@ export function resolveUniversalEvidenceRequirements(inputValue: unknown) {
     && internalObjectContext
     && !verificationRequested
     && !dynamicExternal;
-  const authoritySensitive = /law|legal|regulat|norma|standard|gobierno|government|autoridad|official|oficial/.test(blob) || (hasSlaToken && !internalObjectContext);
+  const authoritySensitive = /law|legal|regulat|regulacion|regulatorio|regulatory|norma|standard|gobierno|government|autoridad|official|oficial/.test(blob) || (hasSlaToken && !internalObjectContext);
   const strictlyInternal = internalObjectContext
     && !dynamicExternal
     && !verificationRequested;

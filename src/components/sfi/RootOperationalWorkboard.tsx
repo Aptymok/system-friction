@@ -39,7 +39,7 @@ function focusItem(kind: string, item: Row, fallback: string): CognitiveSpineFoc
 }
 
 export function RootOperationalWorkboard({ enabled }: Props) {
-  const {language}=useSfiLanguage();
+  const {language,text:ownedText}=useSfiLanguage();
   const ui=(value:string)=>translateUiText(value,language);
   const [data, setData] = useState<Row | null>(null);
   const [caseExecution, setCaseExecution] = useState<Row | null>(null);
@@ -113,9 +113,9 @@ export function RootOperationalWorkboard({ enabled }: Props) {
     return [...unique.values()];
   }, [decisions, blockers, executions, twinProposals, caseItems, returns]);
 
-  if (!enabled) return <aside className="rootWorkboard"><div className="workboardLoading">WORKBOARD · esperando sesión / presencia gobernada</div></aside>;
+  if (!enabled) return <aside className="rootWorkboard"><div className="workboardLoading">{ownedText('PANEL DE TRABAJO · esperando sesión / presencia gobernada','WORKBOARD · waiting for session / governed presence')}</div></aside>;
 
-  return <aside className="rootWorkboard" aria-label="ROOT operational workboard">
+  return <aside className="rootWorkboard" aria-label={ownedText('Panel operativo ROOT','ROOT operational workboard')}>
     <div className="workboardHead">
       <div><small>{ui('INICIO OPERATIVO ROOT')}</small><strong>{ui('TRABAJO QUE REQUIERE ATENCIÓN')}</strong></div>
       <span>{data?.authority ? String(data.authority).toUpperCase() : 'VIEWER'} · {ui('SALUD DEL SISTEMA')} {systemHealth}</span>
@@ -131,7 +131,7 @@ export function RootOperationalWorkboard({ enabled }: Props) {
     </div>
 
     <p className="workboardRuntime">{runtimeLabel}</p>
-    {error && <p className="workboardError">DEGRADED · {error}</p>}
+    {error && <p className="workboardError">{ownedText('DEGRADADO','DEGRADED')} · {error}</p>}
 
     <CognitiveSpineAnatomy
       enabled={enabled}
@@ -149,18 +149,18 @@ export function RootOperationalWorkboard({ enabled }: Props) {
           .map((item: Row) => <article key={`next:${item.id}`} className={stateClass(item.blocker ?? item.status)}>
             <b>{short(item.title, 'Objeto operativo')}</b>
             <span>{short(item.status)} → {short(item.nextExpectedEvent, 'TERMINAL')}</span>
-            <small>owner: {short(item.owner)} · ROOT: {item.rootActionRequired ? 'ACCIÓN REQUERIDA' : 'ninguna'}</small>
-            {item.blocker && <small>BLOCKER · {short(item.blocker)}</small>}
+            <small>{ownedText('responsable','owner')}: {short(item.owner)} · ROOT: {item.rootActionRequired ? ownedText('ACCIÓN REQUERIDA','ACTION REQUIRED') : ownedText('ninguna','none')}</small>
+            {item.blocker && <small>{ownedText('BLOQUEO','BLOCKER')} · {short(item.blocker)}</small>}
             <small>{short(item.actionLabel)}</small>
-            {item.status === 'waiting_evidence' && <a href="/root/evidence-review">REVISAR EVIDENCIA →</a>}
+            {item.status === 'waiting_evidence' && <a href="/root/evidence-review">{ownedText('REVISAR EVIDENCIA →','REVIEW EVIDENCE →')}</a>}
           </article>)}
         {nextCycles.slice(0, 5).map((cycle: Row) => <article key={`next-cycle:${cycle.cycleId}`} className={stateClass(cycle.state)}>
           <b>{short(cycle.title, 'Ciclo universal')}</b>
           <span>{short(cycle.state)} → {short(cycle.nextExpectedEvent)}</span>
           <small>owner: {short(cycle.owner)} · ROOT: {cycle.rootActionRequired ? 'ACCIÓN REQUERIDA' : 'ninguna'}</small>
-          {cycle.blocker && <small>BLOCKER · {short(cycle.blocker)}</small>}
+          {cycle.blocker && <small>{ownedText('BLOQUEO','BLOCKER')} · {short(cycle.blocker)}</small>}
         </article>)}
-        {!nextItems.length && !nextCycles.length && <em>Sin objetos no-terminales con transición pendiente.</em>}
+        {!nextItems.length && !nextCycles.length && <em>{ownedText('Sin objetos no terminales con transición pendiente.','No non-terminal objects have a pending transition.')}</em>}
       </Lane>
 
       <Lane title="MIS DECISIONES / DELEGABLES" count={decisions.length}>
@@ -173,7 +173,7 @@ export function RootOperationalWorkboard({ enabled }: Props) {
             {next?.rootActionRequired === false && <small>ROOT: ninguna acción ahora.</small>}
           </article>;
         })}
-        {!decisions.length && <em>Sin decisiones visibles para esta autoridad.</em>}
+        {!decisions.length && <em>{ownedText('Sin decisiones visibles para esta autoridad.','No decisions are visible for this authority.')}</em>}
       </Lane>
 
       <Lane title="EJECUCIONES / ASIGNACIÓN" count={executions.length}>
@@ -185,7 +185,7 @@ export function RootOperationalWorkboard({ enabled }: Props) {
             <small>clase: {short(item.execution?.executionClass)} · coordinador: {short(item.execution?.coordinator)}</small>
             <small>adapter: {short(item.execution?.adapterId, 'NO VERIFICADO')} · executor: {short(item.execution?.executor, 'NO ASIGNADO')}</small>
             <small>{next ? `SIGUE: ${short(next.nextExpectedEvent)} · owner ${short(next.owner)}` : short(item.execution?.adapterState)}</small>
-            {next?.blocker && <small>BLOCKER · {short(next.blocker)}</small>}
+            {next?.blocker && <small>{ownedText('BLOQUEO','BLOCKER')} · {short(next.blocker)}</small>}
           </article>;
         })}
         {!executions.length && <em>No hay propuestas en handoff de ejecución.</em>}
