@@ -64,14 +64,29 @@ const internalWords = resolveUniversalEvidenceRequirements({
 });
 assert.notEqual(internalWords.webPolicy, 'WEB_REQUIRED', 'isla/traslado must not be misread as SLA');
 assert.equal(internalWords.authoritySensitive, false, 'isla/traslado must not create authority-sensitive evidence requirements');
-const explicitSla = resolveUniversalEvidenceRequirements({
+const internalSla = resolveUniversalEvidenceRequirements({
+  signal: { kind: 'dataset', name: '2025_2026.xlsx' },
+  question: 'Validar calidad de datos, tiempos y SLA de Mesa de Ayuda usando el workbook interno',
+  objective: 'Identificar fricciones y qué definiciones internas faltan antes de medir SLA real',
+  context: { missingEvidence: ['Definición autoritativa interna de timestamps', 'Reglas internas de SLA'] },
+});
+assert.equal(internalSla.webPolicy, 'WEB_NOT_REQUIRED', 'internal dataset/SLA validation must not be converted into mandatory web corroboration');
+assert.equal(internalSla.authoritySensitive, false, 'internal SLA semantics require internal authority, not web authority');
+const externalSla = resolveUniversalEvidenceRequirements({
   signal: { kind: 'dataset', name: 'mesa-ayuda.xlsx' },
-  question: 'Validar el SLA de atención con el estándar vigente',
-  objective: 'Contrastar cumplimiento del SLA',
+  question: 'Comparar el SLA interno contra benchmarks públicos del sector y regulación vigente',
+  objective: 'Contrastar cumplimiento externo',
   context: {},
 });
-assert.equal(explicitSla.webPolicy, 'WEB_REQUIRED', 'SLA as a complete token must still trigger external verification');
-assert.equal(explicitSla.authoritySensitive, true, 'SLA as a complete token must remain authority-sensitive');
+assert.equal(externalSla.webPolicy, 'WEB_REQUIRED', 'explicit benchmark/regulatory intent must still require external verification');
+assert.equal(externalSla.authoritySensitive, true, 'regulatory external intent remains authority-sensitive');
+const forcedWeb = resolveUniversalEvidenceRequirements({
+  signal: { kind: 'dataset', name: 'mesa-ayuda.xlsx' },
+  question: 'Validar el dataset interno',
+  objective: 'Validación interna',
+  context: { webPolicy: 'WEB_REQUIRED' },
+});
+assert.equal(forcedWeb.webPolicy, 'WEB_REQUIRED', 'explicit operator WEB_REQUIRED policy must remain authoritative');
 
 requireText('isRegulatorHostname(hostname)', 'hostname-derived regulator provenance');
 requireText("source.sourceType === 'regulator'", 'authority-sensitive regulator requirement');

@@ -13,6 +13,12 @@ const requireText = (haystack: string, needle: string, label: string) => {
 
 const provider = read('src/components/i18n/SfiLanguageProvider.tsx');
 const layout = read('src/app/layout.tsx');
+const entry = read('src/components/sfi/PublicEntryGateway.tsx');
+const session = read('src/components/sfi/SessionControls.tsx');
+const consoleUi = read('src/components/sfi/SfiConsole.tsx');
+const observatory = read('src/components/sfi/ObservatoryConsole.tsx');
+const workboard = read('src/components/sfi/RootOperationalWorkboard.tsx');
+const consent = read('src/components/analytics/SfiConsentBanner.tsx');
 const pkg = JSON.parse(read('package.json')) as { scripts?: Record<string, string> };
 
 requireText(provider, "export type SfiLanguage = 'es' | 'en'", 'language contract');
@@ -29,6 +35,13 @@ requireText(layout, '</SfiLanguageProvider>', 'root layout provider boundary');
 requireText(layout, '<SfiUiText', 'shared shell must consume the language context');
 requireText(layout, 'es="PRIVACIDAD Y POLÍTICA DE DATOS PARA AGENTES EXTERNOS"', 'Spanish owned shell copy');
 requireText(layout, 'en="PRIVACY & EXTERNAL AGENT DATA POLICY"', 'English owned shell copy');
+requireText(entry, 'useSfiLanguage', 'public entry must consume language context');
+requireText(entry, "text('COMIENZA AQUÍ · SYSTEM FRICTION INSTITUTE'", 'public entry Spanish/English copy');
+requireText(session, 'useSfiLanguage', 'session controls must consume language context');
+requireText(consoleUi, 'translateUiText, useSfiLanguage', 'SFI console must translate owned copy explicitly');
+requireText(observatory, 'translateUiText, useSfiLanguage', 'observatory must translate owned copy explicitly');
+requireText(workboard, 'translateUiText, useSfiLanguage', 'ROOT workboard headings must translate explicitly');
+requireText(consent, 'useSfiLanguage', 'privacy banner must consume language context');
 
 // Canonical identifiers and rendered evidence are preserved by architecture:
 // localization is a pure lookup used only by explicitly owned interface copy.
