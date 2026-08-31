@@ -7,6 +7,7 @@ import { acquireUniversalWebEvidence, resolveUniversalEvidenceRequirements } fro
 import { assessUniversalClosure, contrastLatestUniversalReturn } from '@/lib/sfi/universalClosure';
 import { synthesizeUniversalCycleWithAi } from '@/lib/sfi/universalAiSynthesis';
 import { hydrateUniversalCycleInput } from '@/lib/sfi/universalObservationHydrator';
+import { resolveUniversalResumeIdentity } from '@/lib/sfi/universalResumeIdentity';
 import {
   closeUniversalCycle,
   describeUniversalSignalContract,
@@ -262,6 +263,10 @@ export async function POST(req: Request) {
     cycleId: string | null;
     reason: string | null;
     previousEventId: string | null;
+    identityMatchBasis: string | null;
+    openedObjectKey: string | null;
+    currentObjectKey: string | null;
+    structuredResultEventId: string | null;
     checkpoint?: ReturnType<typeof compactCycleHistory>;
   } = {
     requested: Boolean(requestedResumeCycleId),
@@ -269,14 +274,27 @@ export async function POST(req: Request) {
     cycleId: requestedResumeCycleId,
     reason: null,
     previousEventId: null,
+    identityMatchBasis: null,
+    openedObjectKey: null,
+    currentObjectKey: normalizedSignal.objectKey,
+    structuredResultEventId: text(hydration.eventId),
   };
 
   if (requestedResumeCycleId) {
     const resumeHistory = await readUniversalCycleHistory(requestedResumeCycleId);
     const openedPayload = resumeHistory.ok ? record(record(resumeHistory.opened).payload) : {};
-    const openedObjectKey = text(openedPayload.objectKey);
+    const identityResolution = resumeHistory.ok
+      ? resolveUniversalResumeIdentity({
+          openedPayload,
+          structuredResults: Array.isArray(resumeHistory.structuredResults) ? resumeHistory.structuredResults : [],
+          hydrationEventId: text(hydration.eventId),
+          hydrationBasis: text(hydration.basis),
+          resumeCycleId: requestedResumeCycleId,
+          normalizedSignal,
+        })
+      : null;
     const closed = resumeHistory.ok && Array.isArray(resumeHistory.closures) && resumeHistory.closures.length > 0;
-    const sameObject = Boolean(openedObjectKey && openedObjectKey === normalizedSignal.objectKey);
+    const sameObject = identityResolution?.matches === true;
     const previousEvent = resumeHistory.ok && Array.isArray(resumeHistory.events) && resumeHistory.events.length
       ? resumeHistory.events[resumeHistory.events.length - 1]
       : null;
@@ -292,6 +310,10 @@ export async function POST(req: Request) {
             ? 'OBJECT_IDENTITY_MISMATCH'
             : 'MATCHED_OPEN_CYCLE',
       previousEventId: previousEvent ? String(record(previousEvent).event_id ?? '') || null : null,
+      identityMatchBasis: identityResolution?.basis ?? null,
+      openedObjectKey: identityResolution?.openedObjectKey ?? text(openedPayload.objectKey),
+      currentObjectKey: identityResolution?.currentObjectKey ?? normalizedSignal.objectKey,
+      structuredResultEventId: identityResolution?.structuredResultEventId ?? text(hydration.eventId),
       checkpoint: compactCycleHistory(resumeHistory),
     };
   }
@@ -444,6 +466,10 @@ export async function POST(req: Request) {
       resume: resumeValidation.valid ? {
         cycleId: resumeValidation.cycleId,
         previousEventId: resumeValidation.previousEventId,
+        identityMatchBasis: resumeValidation.identityMatchBasis,
+        openedObjectKey: resumeValidation.openedObjectKey,
+        currentObjectKey: resumeValidation.currentObjectKey,
+        structuredResultEventId: resumeValidation.structuredResultEventId,
         reason: text(body.resumeReason) ?? 'CAPABILITY_REMEDIATION_OR_NEW_OBSERVATION',
       } : null,
       evidenceRequirement,
