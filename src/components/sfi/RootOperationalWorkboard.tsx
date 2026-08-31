@@ -115,7 +115,7 @@ export function RootOperationalWorkboard({ enabled }: Props) {
 
   if (!enabled) return <aside className="rootWorkboard"><div className="workboardLoading">{ownedText('PANEL DE TRABAJO · esperando sesión / presencia gobernada','WORKBOARD · waiting for session / governed presence')}</div></aside>;
 
-  return <aside className="rootWorkboard" aria-label={ownedText('Panel operativo ROOT','ROOT operational workboard')}>
+  return <aside className="rootWorkboard" aria-label={ownedText('Panel operativo ROOT','ROOT operational workboard')} data-sfi-contract-lanes="EJECUCIONES / ASSIGNMENT | PROJECTS / CASE EXECUTION | BLOQUEOS / WARNINGS">
     <div className="workboardHead">
       <div><small>{ui('INICIO OPERATIVO ROOT')}</small><strong>{ui('TRABAJO QUE REQUIERE ATENCIÓN')}</strong></div>
       <span>{data?.authority ? String(data.authority).toUpperCase() : 'VIEWER'} · {ui('SALUD DEL SISTEMA')} {systemHealth}</span>
