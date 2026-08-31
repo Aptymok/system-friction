@@ -66,6 +66,15 @@ function completedCognitive(event: LifecycleEvent | null) {
   return Boolean(event && event.payload.completed === true);
 }
 
+function progressSequence(track: CycleTrack) {
+  return Math.max(
+    track.resume?.sequence ?? 0,
+    track.checkpoint?.sequence ?? 0,
+    track.cognitive?.sequence ?? 0,
+    track.synthesis?.sequence ?? 0,
+  );
+}
+
 function signalFromObjectKey(payload: Row): UniversalCycleInput['signal'] {
   const objectKey = text(payload.objectKey) ?? '';
   const objectHash = text(payload.objectHash) ?? undefined;
@@ -281,11 +290,13 @@ async function bootstrapLegacyResume(track: CycleTrack) {
   };
 }
 
-export async function runUniversalCycleContinuation(input: { limit?: number } = {}) {
+export async function runUniversalCycleContinuation(input: { limit?: number; cycleId?: string } = {}) {
   const scan = await readTracks();
   if (!scan.ok) return { ok: false as const, processed: 0, results: [], error: scan.error };
   const limit = Math.max(1, Math.min(5, input.limit ?? 2));
+  const requestedCycleId = text(input.cycleId);
   const candidates = scan.tracks
+    .filter((track) => !requestedCycleId || track.cycleId === requestedCycleId)
     .filter((track) => {
       if (track.closed && (!track.resume || later(track.closed, track.resume))) return false;
       const unfinishedCheckpoint = track.checkpoint && (!track.cognitive || later(track.checkpoint, track.cognitive) || !completedCognitive(track.cognitive));
@@ -293,8 +304,11 @@ export async function runUniversalCycleContinuation(input: { limit?: number } = 
       const synthesisMissing = track.cognitive && completedCognitive(track.cognitive) && (!track.synthesis || later(track.cognitive, track.synthesis));
       return Boolean(unfinishedCheckpoint || legacyInterruptedResume || synthesisMissing);
     })
-    .sort((a, b) => Math.max(b.resume?.sequence ?? 0, b.checkpoint?.sequence ?? 0, b.cognitive?.sequence ?? 0) - Math.max(a.resume?.sequence ?? 0, a.checkpoint?.sequence ?? 0, a.cognitive?.sequence ?? 0))
-    .slice(0, limit);
+    .sort((a, b) => {
+      const delta = progressSequence(a) - progressSequence(b);
+      return delta || a.cycleId.localeCompare(b.cycleId);
+    })
+    .slice(0, requestedCycleId ? 1 : limit);
 
   const results: unknown[] = [];
   for (const track of candidates) {
@@ -316,7 +330,11 @@ export async function runUniversalCycleContinuation(input: { limit?: number } = 
   return {
     ok: results.every((item) => row(item).state !== 'CONTINUATION_FAILED'),
     processed: results.length,
+    requestedCycleId: requestedCycleId ?? null,
     results,
+    schedulingPolicy: requestedCycleId
+      ? 'TARGETED_SAME_CYCLE_RECOVERY'
+      : 'FAIR_OLDEST_PROGRESS_FIRST_ROUND_ROBIN',
     rule: 'Only unfinished same-cycle cognitive work is resumed. No new Case, raw source reprocessing, RETURN fabrication, closure or learning promotion is performed.',
   };
 }
