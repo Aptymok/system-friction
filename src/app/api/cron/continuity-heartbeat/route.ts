@@ -3,6 +3,7 @@ import { runContinuityHeartbeat, runOperationalTransitionWatchdog } from '@/lib/
 import { runStudioAutonomyContinuation } from '@/lib/continuity/studioAutonomy';
 import { verifyGitHubActionsOidcToken } from '@/lib/continuity/githubActionsOidc';
 import { runGovernedExecutionRouter } from '@/lib/execution/governedExecutionRouter';
+import { runUniversalCycleContinuation } from '@/lib/sfi/universalCycleContinuation';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -41,7 +42,7 @@ export async function GET(request: NextRequest) {
   try {
     const result = await runContinuityHeartbeat(authorization.trigger);
     const emergencyHalt = result.mode === 'EMERGENCY_HALT';
-    const [studioAutonomy, transitionWatchdog, governedExecution] = await Promise.all([
+    const [studioAutonomy, transitionWatchdog, governedExecution, universalCycleContinuation] = await Promise.all([
       runStudioAutonomyContinuation({
         mode: result.mode,
         continuityRunId: result.runId,
@@ -74,6 +75,14 @@ export async function GET(request: NextRequest) {
             results: [],
             error: error instanceof Error ? error.message : String(error),
           })),
+      emergencyHalt
+        ? Promise.resolve({ ok: true as const, halted: true as const, processed: 0, results: [] })
+        : runUniversalCycleContinuation({ limit: 2 }).catch((error) => ({
+            ok: false as const,
+            processed: 0,
+            results: [],
+            error: error instanceof Error ? error.message : String(error),
+          })),
     ]);
 
     return NextResponse.json({
@@ -83,9 +92,10 @@ export async function GET(request: NextRequest) {
       studioAutonomy,
       transitionWatchdog,
       governedExecution,
+      universalCycleContinuation,
       executionRule: emergencyHalt
-        ? 'EMERGENCY_HALT suppresses transition writes and governed execution dispatch. Continuity probes may record the halted heartbeat only.'
-        : 'Hourly continuity reuses the existing heartbeat: waiting_evidence can acquire candidates, unknown risk is assessed, and already-authorized queued work is retried/rerouted. Evidence acceptance, governance decisions, material external scope expansion and canon remain human-gated.',
+        ? 'EMERGENCY_HALT suppresses transition writes, governed execution dispatch and universal-cycle continuation. Continuity probes may record the halted heartbeat only.'
+        : 'Hourly continuity reuses the existing heartbeat: waiting_evidence can acquire candidates, unknown risk is assessed, already-authorized queued work is retried/rerouted, and interrupted universal cognitive cycles resume from durable checkpoints. Evidence acceptance, governance decisions, material external scope expansion, RETURN fabrication and canon remain prohibited.',
     });
   } catch (error) {
     return NextResponse.json({ ok: false, error: 'continuity_heartbeat_failed', details: error instanceof Error ? error.message : String(error) }, { status: 500 });
