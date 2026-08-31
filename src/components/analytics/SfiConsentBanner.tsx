@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useSfiLanguage } from '@/components/i18n/SfiLanguageProvider';
 
 type ConsentChoice = 'granted' | 'denied';
 
@@ -19,6 +20,7 @@ function updateConsent(choice: ConsentChoice) {
 
 export function SfiConsentBanner() {
   const [visible, setVisible] = useState(false);
+  const { text } = useSfiLanguage();
 
   useEffect(() => {
     const stored = window.localStorage.getItem(STORAGE_KEY) as ConsentChoice | null;
@@ -39,7 +41,7 @@ export function SfiConsentBanner() {
 
   return (
     <aside
-      aria-label="Preferencias de privacidad"
+      aria-label={text('Preferencias de privacidad', 'Privacy preferences')}
       style={{
         position: 'fixed',
         zIndex: 9999,
@@ -57,17 +59,20 @@ export function SfiConsentBanner() {
       }}
     >
       <div style={{ display: 'grid', gap: 9 }}>
-        <strong style={{ color: '#d4a968', letterSpacing: '.08em' }}>PRIVACIDAD Y MEDICIÓN</strong>
+        <strong style={{ color: '#d4a968', letterSpacing: '.08em' }}>{text('PRIVACIDAD Y MEDICIÓN', 'PRIVACY & MEASUREMENT')}</strong>
         <span style={{ fontSize: 13, lineHeight: 1.55 }}>
-          SFI usa Google Analytics para medir el uso del sitio. Puedes permitir o rechazar el almacenamiento analítico y publicitario. La operación institucional de SFI no depende de esta elección.{' '}
-          <a href="/privacy" style={{ color: '#d9b26f', textDecoration: 'underline', textUnderlineOffset: 3 }}>Política de privacidad</a>.
+          {text(
+            'SFI usa Google Analytics para medir el uso del sitio. Puedes permitir o rechazar el almacenamiento analítico y publicitario. La operación institucional de SFI no depende de esta elección. ',
+            'SFI uses Google Analytics to measure site usage. You can allow or reject analytics and advertising storage. SFI institutional operation does not depend on this choice. ',
+          )}
+          <a href="/privacy" style={{ color: '#d9b26f', textDecoration: 'underline', textUnderlineOffset: 3 }}>{text('Política de privacidad', 'Privacy policy')}</a>.
         </span>
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
           <button onClick={() => choose('denied')} style={{ border: '1px solid rgba(210,165,92,.24)', background: 'transparent', color: '#bca985', padding: '9px 12px', cursor: 'pointer' }}>
-            RECHAZAR
+            {text('RECHAZAR', 'REJECT')}
           </button>
           <button onClick={() => choose('granted')} style={{ border: '1px solid rgba(210,165,92,.48)', background: 'rgba(151,111,55,.16)', color: '#e2ba78', padding: '9px 12px', cursor: 'pointer' }}>
-            ACEPTAR
+            {text('ACEPTAR', 'ACCEPT')}
           </button>
         </div>
       </div>
