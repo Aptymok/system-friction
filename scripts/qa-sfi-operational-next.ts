@@ -65,6 +65,16 @@ assert.match(universalContinuation, /cycleId\?: string/, 'continuation must supp
 assert.match(universalContinuation, /FAIR_OLDEST_PROGRESS_FIRST_ROUND_ROBIN/, 'automatic continuation must use a starvation-resistant scheduling policy');
 assert.match(universalContinuation, /TARGETED_SAME_CYCLE_RECOVERY/, 'targeted recovery must remain same-cycle');
 assert.match(universalContinuation, /No new Case, raw source reprocessing, RETURN fabrication/, 'continuation must preserve the epistemic and identity boundary');
+assert.match(universalContinuation, /CONTINUATION_AGENT_BUDGET = 8/, 'durable continuation must complete substantial work per heartbeat without reverting to one-shot runtime fragility');
+assert.match(universalContinuation, /MAX_SYNTHESIS_ATTEMPTS_PER_COMPLETION = 3/, 'degraded synthesis recovery must be bounded rather than silently final or infinitely retried');
+assert.match(universalContinuation, /synthesisStatus\(event/, 'synthesis recovery must inspect semantic status, not merely event existence');
+assert.match(universalContinuation, /SYNTHESIS_DEGRADED_RETRY_EXHAUSTED/, 'degraded synthesis must remain visible after bounded retry exhaustion');
+assert.match(universalContinuation, /CAPABILITY_RESOLUTION_REQUIRED/, 'RETURN plans must be actively resolved rather than presented as fake acquisition');
+assert.match(universalContinuation, /supersedesReturnPlanEventId/, 'capability resolution must supersede the existing plan in the same event lineage instead of creating a parallel store');
+assert.match(universalContinuation, /HUMAN_SOURCE_OR_AUTHORIZATION_REQUIRED/, 'missing authoritative source capability must become explicit human input, not fake SFI work');
+assert.match(universalContinuation, /rawRowsRequired: false/, 'RETURN resolution must not reintroduce raw-row persistence');
+assert.match(universalContinuation, /Authorized read access to the authoritative source is sufficient/, 'source authorization must be accepted instead of forcing a raw dataset re-upload');
+assert.doesNotMatch(universalContinuation, /recordUniversalReturn\(/, 'continuation must never manufacture RETURN while resolving its acquisition capability');
 
 assert.match(evidence, /jobId: `evidence-acquisition:/, 'evidence work must have a proposal-scoped job identity');
 assert.match(evidence, /rootActionRequired: state !== 'MISSING'/, 'ROOT must not be pinged while evidence_hunter owns acquisition');
@@ -106,6 +116,9 @@ console.log(JSON.stringify({
     humanAndAutomaticWorkSeparated: true,
     heartbeatVisibleInRoot: true,
     starvationResistantContinuation: true,
+    degradedSynthesisIsBoundedlyRetryable: true,
+    returnPlanHasExecutableOwnershipResolution: true,
+    unresolvedAuthoritativeSourceEscalatesTruthfully: true,
     postDeployContinuityExercise: true,
     vercelFallbackNotDuplicated: true,
   },
