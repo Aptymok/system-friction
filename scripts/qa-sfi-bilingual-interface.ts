@@ -41,6 +41,8 @@ requireText(entry, "text('OBSERVAR', 'OBSERVE')", 'public operating-cycle langua
 requireText(session, 'useSfiLanguage', 'session controls must consume language context');
 requireText(session, "text('INICIAR SESIÓN', 'SIGN IN')", 'session language toggle');
 requireText(consoleUi, 'translateUiText, useSfiLanguage', 'SFI console must translate owned copy explicitly');
+requireText(consoleUi, 'data-sfi-contract="GOVERNANCE QUEUE"', 'ROOT governance queue contract marker must survive localization');
+requireText(consoleUi, "ui('COLA DE GOBERNANZA · COGNITIVE TWIN / ACP')", 'governance queue visible copy must remain language-owned');
 requireText(observatory, 'translateUiText, useSfiLanguage', 'observatory must translate owned copy explicitly');
 requireText(workboard, 'translateUiText, useSfiLanguage', 'ROOT workboard headings must translate explicitly');
 requireText(consent, 'useSfiLanguage', 'privacy banner must consume language context');
