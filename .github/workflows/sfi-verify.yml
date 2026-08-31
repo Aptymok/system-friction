@@ -27,7 +27,20 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        run: npm install --no-audit --no-fund
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in 1 2 3; do
+            if npm install --no-audit --no-fund; then
+              exit 0
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              echo "Dependency installation failed after ${attempt} attempts."
+              exit 1
+            fi
+            rm -rf node_modules/ffmpeg-static
+            sleep $((attempt * 10))
+          done
 
       - name: Verify SFI Verify parallel topology
         run: npx tsx scripts/qa-sfi-verify-parallelism.ts
@@ -189,7 +202,20 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        run: npm install --no-audit --no-fund
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in 1 2 3; do
+            if npm install --no-audit --no-fund; then
+              exit 0
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              echo "Dependency installation failed after ${attempt} attempts."
+              exit 1
+            fi
+            rm -rf node_modules/ffmpeg-static
+            sleep $((attempt * 10))
+          done
 
       - name: Verify Studio audio smoke path
         run: npm run qa:studio-audio
