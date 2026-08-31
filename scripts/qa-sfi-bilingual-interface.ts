@@ -45,7 +45,14 @@ requireText(consoleUi, 'data-sfi-contract="GOVERNANCE QUEUE"', 'ROOT governance 
 requireText(consoleUi, "ui('COLA DE GOBERNANZA · COGNITIVE TWIN / ACP')", 'governance queue visible copy must remain language-owned');
 requireText(observatory, 'translateUiText, useSfiLanguage', 'observatory must translate owned copy explicitly');
 requireText(workboard, 'translateUiText, useSfiLanguage', 'ROOT workboard headings must translate explicitly');
-requireText(workboard, 'data-sfi-contract-lanes="EJECUCIONES / ASSIGNMENT | PROJECTS / CASE EXECUTION | BLOQUEOS / WARNINGS"', 'ROOT historical lane contract markers must survive localization');
+requireText(workboard, 'EJECUCIONES / ASSIGNMENT', 'ROOT execution lane contract marker must survive localization');
+requireText(workboard, 'PROJECTS / CASE EXECUTION', 'ROOT case execution lane contract marker must survive localization');
+requireText(workboard, 'BLOQUEOS / WARNINGS', 'ROOT blockers lane contract marker must survive localization');
+requireText(workboard, 'QUÉ SIGUE / NEXT EXPECTED EVENT', 'operational-next contract marker must survive localization');
+requireText(workboard, 'ROOT: ACCIÓN REQUERIDA', 'ROOT action-required contract marker must survive localization');
+requireText(workboard, 'LLM PROVIDERS · CONFIG ≠ HEALTH', 'provider health contract marker must survive localization');
+requireText(workboard, 'SYSTEM HEALTH', 'system health contract marker must survive localization');
+requireText(workboard, 'DEGRADED LANES', 'degraded lanes contract marker must survive localization');
 requireText(consent, 'useSfiLanguage', 'privacy banner must consume language context');
 requireText(consent, "text('RECHAZAR', 'REJECT')", 'privacy choice language toggle');
 
