@@ -12,7 +12,9 @@ export interface AgentExecutionResult {
 }
 
 function llmAugmentationEnabled(agentId: string, context: KernelContext) {
-  if (context.metadata?.llmAugmentation !== true) return false;
+  const governedUniversalAi = context.metadata?.ctSnapshotConsumed === true
+    && context.metadata?.aiGovernancePolicyId === 'SFI-AIMS-2026-08';
+  if (context.metadata?.llmAugmentation !== true && !governedUniversalAi) return false;
   const allowlist = context.metadata?.llmAugmentationAgents;
   if (!Array.isArray(allowlist)) return true;
   return allowlist.includes(agentId);
@@ -26,7 +28,7 @@ function compactExecutionMetadata(agentId: string, context: KernelContext) {
   const selectedInsight = insights[agentId] && typeof insights[agentId] === 'object'
     ? insights[agentId]
     : null;
-  const keys = ['objectKey', 'objectHash', 'signalType', 'declaredFunction', 'objective', 'question', 'worldSnapshotId', 'methods', 'openCycleIds'];
+  const keys = ['objectKey', 'objectHash', 'signalType', 'declaredFunction', 'objective', 'question', 'worldSnapshotId', 'methods', 'openCycleIds', 'ctSnapshotId', 'ctSnapshotHash', 'ctSnapshotConsumed'];
   const refs: Record<string, unknown> = {};
   for (const key of keys) {
     if (metadata[key] !== undefined) refs[key] = metadata[key];
