@@ -1,4 +1,5 @@
 import { appendEpistemicEvent } from '@/lib/events/eventStore';
+import { materializeInstitutionalRuntimeCognitiveSpine } from '@/lib/institution/cognitiveSpineRuntimeMaterializer';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import type { KernelContext, KernelEvidence } from './kernelContext';
 import { runCognitiveAgent } from './runtimeAgentExecutor';
@@ -42,6 +43,53 @@ function stringList(value: unknown) {
   return Array.isArray(value)
     ? value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0).map((item) => item.trim())
     : [];
+}
+
+async function ensureCognitiveSpineContext(context: KernelContext, source: string): Promise<KernelContext> {
+  const metadata = row(context.metadata);
+  if (metadata.cognitiveTwinContext && metadata.cognitiveSpine) return context;
+
+  const createdAt = new Date().toISOString();
+  const sourceCutoff = text(metadata.cognitiveSpineSourceCutoff) ?? createdAt;
+  try {
+    const materialized = await materializeInstitutionalRuntimeCognitiveSpine({
+      sourceCutoff,
+      executionId: context.cycleId,
+      createdAt,
+      consume: true,
+    });
+    return {
+      ...context,
+      metadata: {
+        ...context.metadata,
+        cognitiveSpine: materialized.runtimeProjection,
+        cognitiveTwinContext: materialized.cognitiveTwinContext,
+        cognitiveSpineSourceCutoff: sourceCutoff,
+        ctSnapshotConsumed: true,
+        ctSnapshotId: materialized.runtimeProjection.snapshotId,
+        ctSnapshotHash: materialized.runtimeProjection.snapshotHash,
+        aiGovernancePolicyId: 'SFI-AIMS-2026-08',
+        authorityBoundary: 'SFI may autonomously observe, analyze, simulate, draft, report internally, propose, acquire authorized evidence and calibrate. Canon mutation, external irreversible action, publication, access grants and authority expansion remain governed.',
+        cognitiveSpineWarnings: materialized.warnings,
+        cognitiveSpineExecutionSource: source,
+      },
+    };
+  } catch (error) {
+    return {
+      ...context,
+      metadata: {
+        ...context.metadata,
+        cognitiveSpineSourceCutoff: sourceCutoff,
+        ctSnapshotConsumed: false,
+        cognitiveSpineWarnings: [
+          ...stringList(metadata.cognitiveSpineWarnings),
+          `COGNITIVE_SPINE_MATERIALIZATION_DEGRADED:${error instanceof Error ? error.message : String(error)}`,
+        ],
+        aiGovernancePolicyId: 'SFI-AIMS-2026-08',
+        authorityBoundary: 'Cognitive Spine unavailability degrades context but never authorizes evidence fabrication, canon mutation or external irreversible action.',
+      },
+    };
+  }
 }
 
 function plannedAgents(context: KernelContext) {
@@ -247,11 +295,12 @@ export async function executeCognitiveCycle(
   context: KernelContext,
   options: CognitiveCycleOptions = {},
 ): Promise<CognitiveCycleResult> {
+  const source = options.continuationSource ?? 'sfi_cognitive_runtime';
   const checkpoint = await readLatestUnfinalizedCheckpoint(context);
   let currentContext = checkpoint ? mergeCheckpointContext(context, checkpoint.context) : context;
+  currentContext = await ensureCognitiveSpineContext(currentContext, source);
   const executedAgents: string[] = checkpoint ? [...checkpoint.executedAgents] : [];
   const processedAgents = new Set<string>(checkpoint?.processedAgents ?? []);
-  const source = options.continuationSource ?? 'sfi_cognitive_runtime';
 
   if (checkpoint?.completed) {
     const missingAgents = plannedAgents(currentContext).filter((agentId) => !executedAgents.includes(agentId));
