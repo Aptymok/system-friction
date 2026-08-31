@@ -39,6 +39,8 @@ export async function GET(request: NextRequest) {
   const authorization = await authorize(request);
   if (!authorization.ok) return NextResponse.json({ ok: false, error: 'unauthorized_continuity_cron' }, { status: 401 });
 
+  const requestedCycleId = request.nextUrl.searchParams.get('cycleId')?.trim() || undefined;
+
   try {
     const result = await runContinuityHeartbeat(authorization.trigger);
     const emergencyHalt = result.mode === 'EMERGENCY_HALT';
@@ -77,17 +79,24 @@ export async function GET(request: NextRequest) {
           })),
       emergencyHalt
         ? Promise.resolve({ ok: true as const, halted: true as const, processed: 0, results: [] })
-        : runUniversalCycleContinuation({ limit: 2 }).catch((error) => ({
+        : runUniversalCycleContinuation({ limit: 2, cycleId: requestedCycleId }).catch((error) => ({
             ok: false as const,
             processed: 0,
+            requestedCycleId: requestedCycleId ?? null,
             results: [],
             error: error instanceof Error ? error.message : String(error),
           })),
     ]);
 
+    const laneFailure = transitionWatchdog.ok === false
+      || governedExecution.ok === false
+      || universalCycleContinuation.ok === false
+      || studioAutonomy.status === 'DEGRADED';
+
     return NextResponse.json({
-      ok: result.status !== 'FAILED',
+      ok: result.status !== 'FAILED' && !laneFailure,
       trigger: authorization.trigger,
+      requestedCycleId: requestedCycleId ?? null,
       ...result,
       studioAutonomy,
       transitionWatchdog,
@@ -95,7 +104,7 @@ export async function GET(request: NextRequest) {
       universalCycleContinuation,
       executionRule: emergencyHalt
         ? 'EMERGENCY_HALT suppresses transition writes, governed execution dispatch and universal-cycle continuation. Continuity probes may record the halted heartbeat only.'
-        : 'Hourly continuity reuses the existing heartbeat: waiting_evidence can acquire candidates, unknown risk is assessed, already-authorized queued work is retried/rerouted, and interrupted universal cognitive cycles resume from durable checkpoints. Evidence acceptance, governance decisions, material external scope expansion, RETURN fabrication and canon remain prohibited.',
+        : 'Continuity reuses the existing heartbeat: waiting_evidence can acquire candidates, unknown risk is assessed, already-authorized queued work is retried/rerouted, and interrupted universal cognitive cycles resume from durable checkpoints. Evidence acceptance, governance decisions, material external scope expansion, RETURN fabrication and canon remain prohibited.',
     });
   } catch (error) {
     return NextResponse.json({ ok: false, error: 'continuity_heartbeat_failed', details: error instanceof Error ? error.message : String(error) }, { status: 500 });

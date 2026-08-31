@@ -4,6 +4,10 @@ import { readEvidenceReadiness } from '@/lib/evidence/evidenceCandidates';
 import { classifyGovernedProposalWork, SFI_GOVERNED_EXECUTION_ADAPTERS } from '@/lib/execution/governedExecutionRouter';
 import { normalizeProposalState } from '@/lib/governance/proposalLifecycle';
 import { recordValue, stringValue } from '@/lib/operational/common';
+import {
+  SFI_UNIVERSAL_COGNITIVE_CHECKPOINT,
+  SFI_UNIVERSAL_RETURN_PLAN_RECORDED,
+} from '@/lib/sfi/cognitive-runtime/cognitiveCycle';
 import { readUniversalCycleHistory, readUniversalOpenCycles } from '@/lib/sfi/universalSignalCycle';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 
@@ -50,6 +54,34 @@ function queuedState(row: Row) {
     executionClass: classification.executionClass,
     adapterId: classification.adapterId,
   };
+}
+
+function eventSequence(value: unknown) {
+  const sequence = Number(recordValue(value).sequence ?? 0);
+  return Number.isFinite(sequence) ? sequence : 0;
+}
+
+function latestEvent(values: unknown[]) {
+  return values.reduce<Row | null>((latest, value) => {
+    const current = recordValue(value);
+    return !latest || eventSequence(current) > eventSequence(latest) ? current : latest;
+  }, null);
+}
+
+function namedEvents(events: unknown[], eventName: string) {
+  return events.filter((event) => stringValue(recordValue(event).event_name) === eventName);
+}
+
+function latestNamedEvent(events: unknown[], eventName: string) {
+  return latestEvent(namedEvents(events, eventName));
+}
+
+function eventPayload(event: Row | null) {
+  return event ? recordValue(event.payload) : {};
+}
+
+function eventOccurredAt(event: Row | null) {
+  return event ? stringValue(event.occurred_at) : null;
 }
 
 async function proposalOperationalState(row: Row, staleAfterHours: number) {
@@ -153,42 +185,134 @@ async function proposalOperationalState(row: Row, staleAfterHours: number) {
 
 async function cycleOperationalState(cycle: Row, staleAfterHours: number) {
   const cycleId = stringValue(cycle.cycleId) ?? stringValue(cycle.eventId) ?? 'unknown';
-  const age = ageHours(cycle.occurredAt);
-  const stale = age !== null && age >= staleAfterHours;
   const history = cycleId !== 'unknown' ? await readUniversalCycleHistory(cycleId).catch(() => null) : null;
-  const state = history?.ok ? history.state : 'OPEN';
-  if (state === 'RETURN_RECORDED') return {
+  const historyEvents = history?.ok ? history.events as unknown[] : [];
+  const lastObservedEvent = latestEvent(historyEvents);
+  const lastProgressAt = eventOccurredAt(lastObservedEvent) ?? stringValue(cycle.occurredAt);
+  const inactivityHours = ageHours(lastProgressAt);
+  const internalStale = inactivityHours !== null && inactivityHours >= staleAfterHours;
+  const title = stringValue(cycle.question) ?? stringValue(cycle.objectKey) ?? 'Universal cycle';
+
+  if (!history?.ok) return {
     cycleId,
-    title: stringValue(cycle.question) ?? stringValue(cycle.objectKey) ?? 'Universal cycle',
+    title,
+    state: internalStale ? 'CONTINUITY_STATE_UNKNOWN' : 'OPEN',
+    ageHours: inactivityHours,
+    stale: internalStale,
+    owner: 'sfi_universal_continuation',
+    nextExpectedEvent: 'SFI_UNIVERSAL_CYCLE_STATE_RECONSTRUCTED',
+    blocker: internalStale ? 'CONTINUITY_HISTORY_UNAVAILABLE' : null,
+    rootActionRequired: false,
+  };
+
+  if (history.state === 'RETURN_RECORDED') return {
+    cycleId,
+    title,
     state: 'READY_TO_CLOSE',
-    ageHours: age,
-    stale,
+    ageHours: inactivityHours,
+    stale: false,
     owner: 'reality_calibration',
-    nextExpectedEvent: 'SFI_UNIVERSAL_CYCLE_CLOSED',
+    nextExpectedEvent: 'SFI_UNIVERSAL_RETURN_CONTRASTED_OR_CYCLE_CLOSED',
     blocker: null,
     rootActionRequired: false,
   };
-  if (state === 'AWAITING_RETURN') return {
+
+  const cognitiveRuns = history.cognitiveRuns as unknown[];
+  const completedRuns = cognitiveRuns.filter((event) => eventPayload(recordValue(event)).completed === true);
+  const incompleteRuns = cognitiveRuns.filter((event) => eventPayload(recordValue(event)).completed !== true);
+  const latestCompleted = latestEvent(completedRuns);
+  const latestIncomplete = latestEvent(incompleteRuns);
+  const latestResume = latestEvent(history.resumptions as unknown[]);
+  const latestCheckpoint = latestNamedEvent(historyEvents, SFI_UNIVERSAL_COGNITIVE_CHECKPOINT);
+  const latestSynthesis = latestEvent(history.aiSyntheses as unknown[]);
+  const latestReturnPlan = latestNamedEvent(historyEvents, SFI_UNIVERSAL_RETURN_PLAN_RECORDED);
+
+  const completedSequence = eventSequence(latestCompleted);
+  const continuationSequence = Math.max(
+    eventSequence(latestResume),
+    eventSequence(latestCheckpoint),
+    eventSequence(latestIncomplete),
+  );
+  const cognitionInterrupted = continuationSequence > completedSequence;
+
+  if (cognitionInterrupted) return {
     cycleId,
-    title: stringValue(cycle.question) ?? stringValue(cycle.objectKey) ?? 'Universal cycle',
-    state: stale ? 'STALE' : 'AWAITING_RETURN',
-    ageHours: age,
-    stale,
-    owner: 'reality_calibration',
-    nextExpectedEvent: 'SFI_UNIVERSAL_RETURN_RECORDED',
-    blocker: stale ? 'RETURN_OVERDUE' : null,
+    title,
+    state: 'COGNITION_CONTINUING',
+    ageHours: inactivityHours,
+    stale: internalStale,
+    owner: 'sfi_universal_continuation',
+    nextExpectedEvent: 'SFI_UNIVERSAL_COGNITIVE_CHECKPOINT_OR_CYCLE_EXECUTED',
+    blocker: internalStale ? 'CONTINUITY_HEARTBEAT_OVERDUE' : null,
     rootActionRequired: false,
   };
+
+  if (!latestCompleted) return {
+    cycleId,
+    title,
+    state: 'COGNITION_PENDING',
+    ageHours: inactivityHours,
+    stale: internalStale,
+    owner: 'sfi_universal_continuation',
+    nextExpectedEvent: 'SFI_UNIVERSAL_COGNITIVE_CYCLE_EXECUTED',
+    blocker: internalStale ? 'CONTINUITY_HEARTBEAT_OVERDUE' : null,
+    rootActionRequired: false,
+  };
+
+  if (!latestSynthesis || eventSequence(latestSynthesis) < completedSequence) return {
+    cycleId,
+    title,
+    state: 'SYNTHESIS_PENDING',
+    ageHours: inactivityHours,
+    stale: internalStale,
+    owner: 'sfi_universal_continuation',
+    nextExpectedEvent: 'SFI_UNIVERSAL_AI_SYNTHESIS_COMPLETED',
+    blocker: internalStale ? 'CONTINUITY_HEARTBEAT_OVERDUE' : null,
+    rootActionRequired: false,
+  };
+
+  const completedTaskId = stringValue(eventPayload(latestCompleted).taskId);
+  const returnPlanPayload = eventPayload(latestReturnPlan);
+  const returnPlanTaskId = stringValue(returnPlanPayload.taskId);
+  const returnPlanIsCurrent = Boolean(latestReturnPlan && completedTaskId && completedTaskId === returnPlanTaskId);
+
+  if (!returnPlanIsCurrent) return {
+    cycleId,
+    title,
+    state: 'RETURN_PLAN_PENDING',
+    ageHours: inactivityHours,
+    stale: internalStale,
+    owner: 'sfi_universal_continuation',
+    nextExpectedEvent: SFI_UNIVERSAL_RETURN_PLAN_RECORDED,
+    blocker: internalStale ? 'CONTINUITY_HEARTBEAT_OVERDUE' : null,
+    rootActionRequired: false,
+  };
+
+  const plan = recordValue(returnPlanPayload.plan);
+  if (plan.humanInputRequired === true) return {
+    cycleId,
+    title,
+    state: 'HUMAN_INPUT_REQUIRED',
+    ageHours: inactivityHours,
+    stale: false,
+    owner: 'ROOT',
+    nextExpectedEvent: 'REQUIRED_RETURN_SOURCE_OR_AUTHORIZATION_SUPPLIED',
+    blocker: stringValue(plan.acquisitionState) ?? 'HUMAN_INPUT_REQUIRED',
+    rootActionRequired: true,
+    returnPlan: plan,
+  };
+
   return {
     cycleId,
-    title: stringValue(cycle.question) ?? stringValue(cycle.objectKey) ?? 'Universal cycle',
-    state: stale ? 'STALE' : 'OPEN',
-    ageHours: age,
-    stale,
-    owner: 'project_execution_manager',
-    nextExpectedEvent: 'SFI_UNIVERSAL_COGNITIVE_CYCLE_EXECUTED_OR_RETURN',
-    blocker: stale ? 'NO_NEXT_EVENT_OBSERVED_WITHIN_WATCHDOG_WINDOW' : null,
+    title,
+    state: 'RETURN_ACQUISITION',
+    ageHours: inactivityHours,
+    stale: false,
+    owner: 'SFI',
+    nextExpectedEvent: 'SFI_UNIVERSAL_RETURN_RECORDED',
+    blocker: null,
     rootActionRequired: false,
+    returnPlan: plan,
   };
 }
 
@@ -202,19 +326,20 @@ export async function readRootOperationalNext(staleAfterHours = 24) {
   const cycles = await Promise.all((openCycles.universal as Row[]).slice(0, 8).map((cycle) => cycleOperationalState(cycle, staleAfterHours)));
   const blocked = items.filter((item) => Boolean(item.blocker));
   const rootRequired = items.filter((item) => item.rootActionRequired);
+  const rootRequiredCycles = cycles.filter((cycle) => cycle.rootActionRequired);
   return {
     generatedAt: new Date().toISOString(),
-    contract: 'SFI-NEXT-EXPECTED-EVENT-1.0',
+    contract: 'SFI-NEXT-EXPECTED-EVENT-1.1',
     items,
     cycles,
     summary: {
-      nonTerminal: items.length,
-      rootActionRequired: rootRequired.length,
-      automaticNext: items.length - rootRequired.length,
-      blocked: blocked.length,
+      nonTerminal: items.length + cycles.length,
+      rootActionRequired: rootRequired.length + rootRequiredCycles.length,
+      automaticNext: (items.length - rootRequired.length) + (cycles.length - rootRequiredCycles.length),
+      blocked: blocked.length + cycles.filter((cycle) => Boolean(cycle.blocker)).length,
       staleCycles: cycles.filter((cycle) => cycle.stale).length,
     },
-    rule: 'Every non-terminal state declares nextExpectedEvent, owner, blocker and rootActionRequired. ROOT is asked only when authority/evidence eligibility/scope changes require a human decision.',
+    rule: 'Every non-terminal state declares nextExpectedEvent, owner, blocker and rootActionRequired. Interrupted cognition is machine-owned continuity work, not a fabricated RETURN deadline. ROOT is asked only when authority/evidence eligibility/scope changes require a human decision.',
     warnings: [proposals.error ? `action_proposals:${proposals.error.message}` : null, ...openCycles.warnings].filter(Boolean),
   };
 }

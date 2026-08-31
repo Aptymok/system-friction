@@ -76,10 +76,11 @@ for (const reservedId of ['87cc094a-e9df-40e8-9a35-92c679c60ef2', '5e4803b2-0b23
 for (const foundationId of ['fafd0dc4-0ade-4f5d-ac3c-1efebe4e8abd', '25061b67-9eb2-49e5-b192-bebe5aa796ce', '95f9c1d0-3626-4bac-82dd-cee6bb462b7c']) {
   assert.ok(workboard.includes(foundationId), `governed foundation proposal missing from status observability: ${foundationId}`);
 }
-for (const label of ['TRABAJO QUE REQUIERE ATENCIÓN', 'MIS DECISIONES / DELEGABLES', 'EJECUCIONES / ASSIGNMENT', 'PROJECTS / CASE EXECUTION', 'TWIN / CICLOS ABIERTOS', 'BLOQUEOS / WARNINGS', 'REPORTES', 'RIESGO / OPORTUNIDAD', 'RETURN / CALIBRACIÓN', 'CANON QUEUE · ROOT ONLY', 'CAPACIDADES RESERVADAS']) {
+for (const label of ['TRABAJO QUE REQUIERE ATENCIÓN', 'NECESITA DE MÍ / ROOT ACTION', 'SFI TRABAJANDO / AUTOMÁTICO', 'PULSO / CONTINUIDAD', 'DECISIONES QUE REQUIEREN ROOT', 'EJECUCIONES / ASIGNACIÓN', 'PROYECTOS / EJECUCIÓN DE CASOS', 'TWIN / PROPUESTAS', 'CICLOS UNIVERSALES', 'BLOQUEOS / ADVERTENCIAS', 'REPORTES / CARRILES DEGRADADOS', 'RIESGO / OPORTUNIDAD', 'RETURN / CALIBRACIÓN', 'CANON QUEUE · ROOT ONLY', 'CAPACIDADES RESERVADAS']) {
   assert.ok(workboardUi.includes(label), `operational home lane missing: ${label}`);
 }
-assert.match(workboardUi, /authorization → auto-route → assignment → bounded execution\/retry → RETURN/, 'ROOT UI must expose the real automated handoff without implying auto-canon');
+assert.match(workboardUi, /humano sólo cuando rootActionRequired=true/, 'ROOT UI must state the human-action boundary explicitly');
+assert.match(workboardUi, /cognition interrumpida → continuidad durable/, 'ROOT UI must expose interrupted cognition as machine-owned continuity');
 assert.match(workboardUi, /external actions fail closed without adapter/, 'ROOT UI must disclose the material external adapter boundary');
 assert.match(workboardUi, /reportLanes/, 'report health must be readable from the home surface rather than hidden in raw JSON');
 assert.match(workboardUi, /\/api\/root\/case-execution/, 'ROOT home must observe the existing Case Action execution lifecycle');
@@ -139,7 +140,7 @@ console.log(JSON.stringify({
     'owned ROOT frames SAMEORIGIN; other paths DENY',
     'report generation remains backend/runtime-owned and five recurring report lanes remain observable',
     'agent passports declare reads/writes/executes/evidence',
-    'ROOT operational home aggregates decisions, execution handoffs, blockers, reports, Twin/open cycles, returns, risk/opportunity and canon candidates',
+    'ROOT operational home separates human-required actions, autonomous SFI work, continuity pulse, Twin proposals and universal cycles',
     'existing SFI-CASE-ACTION-1.0 execution/return state is observable to sovereign ROOT without fabricating external execution',
     'workboard remains a read model while governed auto-routing is owned by the router',
     'internal routable capability is distinct from missing material external adapter',

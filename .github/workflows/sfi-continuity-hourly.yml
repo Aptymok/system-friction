@@ -3,7 +3,18 @@ name: SFI Continuity Hourly
 on:
   schedule:
     - cron: '15 * * * *'
+    - cron: '45 * * * *'
   workflow_dispatch:
+    inputs:
+      cycle_id:
+        description: 'Optional existing universal cycleId to recover without opening a new cycle'
+        required: false
+        type: string
+  workflow_run:
+    workflows:
+      - SFI Vercel Prebuilt Production
+    types:
+      - completed
 
 permissions:
   contents: read
@@ -15,6 +26,7 @@ concurrency:
 
 jobs:
   heartbeat:
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -36,8 +48,16 @@ jobs:
         env:
           OIDC_TOKEN: ${{ steps.oidc.outputs.token }}
           SFI_CONTINUITY_ENDPOINT: https://system-friction.vercel.app/api/cron/continuity-heartbeat
+          CYCLE_ID: ${{ inputs.cycle_id || '' }}
         run: |
           set -euo pipefail
+          endpoint="$SFI_CONTINUITY_ENDPOINT"
+          if [ -n "$CYCLE_ID" ]; then
+            encoded_cycle_id="$(python -c 'import os,urllib.parse; print(urllib.parse.quote(os.environ["CYCLE_ID"], safe=""))')"
+            endpoint="${endpoint}?cycleId=${encoded_cycle_id}"
+          fi
+
+          response_file="$RUNNER_TEMP/sfi-continuity-response.json"
           curl --fail-with-body --silent --show-error \
             --retry 2 \
             --retry-all-errors \
@@ -45,4 +65,39 @@ jobs:
             --max-time 300 \
             -H "Authorization: Bearer ${OIDC_TOKEN}" \
             -H "X-SFI-Continuity-Trigger: github-actions-oidc" \
-            "$SFI_CONTINUITY_ENDPOINT"
+            "$endpoint" > "$response_file"
+
+          python - "$response_file" "$CYCLE_ID" <<'PY'
+          import json, sys
+
+          response_file, requested = sys.argv[1], sys.argv[2].strip()
+          with open(response_file, encoding='utf-8') as handle:
+              payload = json.load(handle)
+
+          universal = payload.get('universalCycleContinuation') or {}
+          summary = {
+              'ok': payload.get('ok'),
+              'trigger': payload.get('trigger'),
+              'mode': payload.get('mode'),
+              'status': payload.get('status'),
+              'runId': payload.get('runId'),
+              'requestedCycleId': payload.get('requestedCycleId'),
+              'universal': {
+                  'ok': universal.get('ok'),
+                  'processed': universal.get('processed'),
+                  'requestedCycleId': universal.get('requestedCycleId'),
+                  'schedulingPolicy': universal.get('schedulingPolicy'),
+                  'results': universal.get('results', []),
+              },
+          }
+          print(json.dumps(summary, ensure_ascii=False, separators=(',', ':')))
+
+          if payload.get('ok') is not True:
+              raise SystemExit('continuity heartbeat reported ok=false')
+          if universal.get('ok') is False:
+              raise SystemExit('universal cycle continuation reported ok=false')
+          if requested and universal.get('requestedCycleId') != requested:
+              raise SystemExit('targeted cycleId was not acknowledged by the live continuation lane')
+          if requested and int(universal.get('processed') or 0) < 1:
+              raise SystemExit('targeted existing cycle was not processed')
+          PY

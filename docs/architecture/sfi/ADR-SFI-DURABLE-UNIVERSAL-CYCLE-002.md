@@ -1,7 +1,7 @@
 # ADR-SFI-DURABLE-UNIVERSAL-CYCLE-002 — Durable universal-cycle continuation
 
-**Status:** PROPOSED FOR IMPLEMENTATION  
-**Version:** 1.0  
+**Status:** ACCEPTED FOR IMPLEMENTATION · OPERATIONAL PROOF PENDING  
+**Version:** 1.1  
 **Date:** 2026-08-31
 
 ## Context
@@ -15,16 +15,33 @@ This creates two operational ambiguities:
 
 ## Decision
 
-SFI will make universal cognitive execution durable using the existing epistemic event store and the existing hourly continuity heartbeat.
+SFI will make universal cognitive execution durable using the existing epistemic event store and the existing continuity heartbeat.
 
 1. The cognitive runtime persists `SFI_UNIVERSAL_COGNITIVE_CHECKPOINT` after bounded agent steps.
 2. Checkpoints contain only the bounded cognitive execution state needed to continue. They do not authorize raw-source row persistence and do not change epistemic class.
 3. A later invocation restores the latest unfinalized checkpoint for the same `cycleId`/logbook and skips already processed agents.
 4. Partial `SFI_UNIVERSAL_COGNITIVE_CYCLE_EXECUTED` records with `completed:false` do not finalize a checkpoint.
-5. The existing hourly continuity heartbeat is the recovery scheduler. It may resume unfinished same-cycle cognitive work but may not open a new Case, create a parallel cycle, expand external authority, fabricate RETURN, close the cycle, or promote learning.
+5. The existing continuity heartbeat is the recovery scheduler. It may resume unfinished same-cycle cognitive work but may not open a new Case, create a parallel cycle, expand external authority, fabricate RETURN, close the cycle, or promote learning.
 6. Pre-checkpoint interrupted cycles may be bootstrapped only from their persisted same-cycle resume identity plus canonical structured-result hydration. Raw source objects are not re-uploaded or reprocessed.
 7. On cognitive completion SFI persists `SFI_UNIVERSAL_RETURN_PLAN_RECORDED`. The plan declares expected/contradictory signals, observation window when available, source requirement, responsibility and the rule for human escalation.
 8. Human input is not the default scheduler or RETURN mechanism. It is requested only when the required source, credential, authorization or observation cannot be obtained through an already-authorized SFI capability.
+9. Automatic continuation is starvation-resistant: unfinished cycles are selected by oldest observed progress first, and each new checkpoint moves the serviced cycle behind older unfinished work. A governed targeted mode may select one already-existing `cycleId`; it cannot create a cycle.
+
+## Continuity resilience amendment — 2026-08-31
+
+Production observation showed that the GitHub scheduled event declared for minute `:15` stopped producing workflow runs for multiple consecutive slots even though the workflow remained present on the default branch. This is a scheduler-observation failure upstream of the universal-cycle runtime; it must not be represented as `RETURN_OVERDUE` for the affected cycle.
+
+The existing heartbeat ownership is retained, with the following resilience rules:
+
+- The same GitHub Actions heartbeat workflow exposes two schedule opportunities per hour (`:15` and `:45`). This is one scheduler owner and one heartbeat path, not a second SFI execution authority.
+- A successful canonical `SFI Vercel Prebuilt Production` deployment triggers the same heartbeat workflow through `workflow_run`, so a newly deployed continuity change is exercised immediately instead of waiting for the next scheduled slot.
+- OIDC remains constrained to the exact SFI repository, repository id, `main` ref, heartbeat workflow ref, audience and token lifetime. `workflow_run` is accepted only by that same policy boundary.
+- The existing Vercel continuity cron remains a daily fallback. It is not promoted to an hourly parallel scheduler.
+- The heartbeat workflow treats a live response with `ok:false` or a failed universal-continuation lane as a failed workflow instead of cosmetic green execution.
+- ROOT reads the existing continuity state/run records and exposes heartbeat age, mode, latest run and scheduler health. No new table or second event store is introduced.
+- Cycle operational state is derived from actual progress events. Interrupted cognition, pending synthesis and pending RETURN-plan generation remain machine-owned states. A cycle is not called `RETURN_OVERDUE` merely because its opening event is old.
+
+These changes restore scheduling liveness and observability but do not by themselves satisfy the empirical acceptance criteria below. Scheduler green is not equivalent to cognitive completion, RETURN, CONTRAST or learning.
 
 ## Constitutional compatibility
 
@@ -34,13 +51,15 @@ The event store remains the sole durable execution trace for this mechanism. No 
 
 ## Canonical preflight record
 
-The change is owned by the existing universal signal runtime and continuity heartbeat. Existing capabilities inspected before implementation were `universalSignalCycle`, `cognitiveCycle`, the canonical observation hydrator, the governed execution router, the epistemic event store and the existing GitHub-OIDC continuity heartbeat. The decision is to absorb continuation into those owners; the only new helper is bounded orchestration for reconstructing unfinished universal-cycle execution. There is no frontend delta, database delta, migration, alternate writer, new scheduler, new agent, new Case surface or second memory store. Rollback consists of reverting this change; the new checkpoint and RETURN-plan events are derived/non-authoritative and can be ignored safely by the prior runtime.
+The change is owned by the existing universal signal runtime, continuity heartbeat and ROOT operational projection. Existing capabilities inspected before implementation were `universalSignalCycle`, `cognitiveCycle`, the canonical observation hydrator, the governed execution router, the epistemic event store, the existing GitHub-OIDC continuity heartbeat, the continuity state/run ledger and the ROOT workboard. The decision is to absorb continuation and scheduler resilience into those owners; there is no new frontend authority, database delta, migration, alternate writer, Case surface, memory store or epistemic promotion path. Rollback consists of reverting the implementation; checkpoint and RETURN-plan events are derived/non-authoritative and can be ignored safely by the prior runtime.
 
 ## Failure semantics
 
 A deployment timeout becomes an interrupted execution window, not loss of cycle identity. The next authorized continuity run resumes from the latest durable checkpoint.
 
 If a single agent itself cannot complete within the deployment window, that agent remains retryable from the prior checkpoint; its unpersisted output is not assumed to exist.
+
+If a scheduler slot is not observed, ROOT reports heartbeat staleness and the cycle remains owned by continuity. Missing scheduler activity is not evidence that a real-world RETURN is overdue.
 
 ## Acceptance criteria
 
@@ -55,3 +74,5 @@ A governed test must demonstrate all of the following:
 - AI synthesis after the completed runtime;
 - an explicit RETURN plan;
 - no RETURN, CONTRAST, closure or learning promotion without real evidence.
+
+The designated production proof target remains the existing cycle `ce563b2a-3715-49ce-8806-1cc051f6ad71`.
