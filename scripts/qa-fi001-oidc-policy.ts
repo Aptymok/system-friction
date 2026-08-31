@@ -26,6 +26,7 @@ const valid = {
 assert.equal(validateGitHubActionsOidcClaims(valid, now).ok, true);
 assert.equal(validateGitHubActionsOidcClaims({ ...valid, aud: ['other', SFI_CONTINUITY_OIDC_AUDIENCE] }, now).ok, true);
 assert.equal(validateGitHubActionsOidcClaims({ ...valid, event_name: 'workflow_dispatch' }, now).ok, true);
+assert.equal(validateGitHubActionsOidcClaims({ ...valid, event_name: 'workflow_run' }, now).ok, true);
 assert.equal(validateGitHubActionsOidcClaims({ ...valid, repository: 'attacker/repo' }, now).reason, 'OIDC_REPOSITORY_MISMATCH');
 assert.equal(validateGitHubActionsOidcClaims({ ...valid, repository_id: '999' }, now).reason, 'OIDC_REPOSITORY_ID_MISMATCH');
 assert.equal(validateGitHubActionsOidcClaims({ ...valid, ref: 'refs/heads/feature' }, now).reason, 'OIDC_REF_MISMATCH');
