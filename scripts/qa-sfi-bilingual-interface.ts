@@ -45,6 +45,7 @@ requireText(consoleUi, 'data-sfi-contract="GOVERNANCE QUEUE"', 'ROOT governance 
 requireText(consoleUi, "ui('COLA DE GOBERNANZA · COGNITIVE TWIN / ACP')", 'governance queue visible copy must remain language-owned');
 requireText(observatory, 'translateUiText, useSfiLanguage', 'observatory must translate owned copy explicitly');
 requireText(workboard, 'translateUiText, useSfiLanguage', 'ROOT workboard headings must translate explicitly');
+requireText(workboard, 'data-sfi-contract-lanes="EJECUCIONES / ASSIGNMENT | PROJECTS / CASE EXECUTION | BLOQUEOS / WARNINGS"', 'ROOT historical lane contract markers must survive localization');
 requireText(consent, 'useSfiLanguage', 'privacy banner must consume language context');
 requireText(consent, "text('RECHAZAR', 'REJECT')", 'privacy choice language toggle');
 
