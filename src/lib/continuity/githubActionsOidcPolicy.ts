@@ -35,7 +35,7 @@ export function validateGitHubActionsOidcClaims(
   if (String(claims.repository_id ?? '') !== SFI_CONTINUITY_REPOSITORY_ID) return { ok: false as const, reason: 'OIDC_REPOSITORY_ID_MISMATCH' };
   if (claims.ref !== SFI_CONTINUITY_REF) return { ok: false as const, reason: 'OIDC_REF_MISMATCH' };
   if (claims.workflow_ref !== SFI_CONTINUITY_WORKFLOW_REF) return { ok: false as const, reason: 'OIDC_WORKFLOW_REF_MISMATCH' };
-  if (!['schedule', 'workflow_dispatch'].includes(String(claims.event_name ?? ''))) {
+  if (!['schedule', 'workflow_dispatch', 'workflow_run'].includes(String(claims.event_name ?? ''))) {
     return { ok: false as const, reason: 'OIDC_EVENT_NOT_ALLOWED' };
   }
   if (typeof claims.exp !== 'number' || claims.exp < nowSeconds - CLOCK_SKEW_SECONDS) {
