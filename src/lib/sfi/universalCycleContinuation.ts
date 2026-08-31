@@ -259,6 +259,7 @@ async function bootstrapLegacyResume(track: CycleTrack) {
       },
       durableContinuation: {
         bootstrapFromResumeEventId: track.resume.eventId,
+        maxAgentsPerInvocation: 4,
         rule: 'Reuse the same cycle and canonical structured result. Do not reload or persist raw dataset rows.',
       },
     },
