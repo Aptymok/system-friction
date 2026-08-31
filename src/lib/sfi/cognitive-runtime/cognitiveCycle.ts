@@ -265,7 +265,10 @@ export async function executeCognitiveCycle(
         : null)
     : ['meta_orchestrator'];
   let processedThisInvocation = 0;
-  const maxAgents = Math.max(1, Math.min(25, options.maxAgentsPerInvocation ?? 6));
+  const continuationConfig = row(row(currentContext.metadata?.caseContext).durableContinuation);
+  const configuredBudget = Number(continuationConfig.maxAgentsPerInvocation);
+  const defaultBudget = Number.isFinite(configuredBudget) && configuredBudget > 0 ? configuredBudget : 25;
+  const maxAgents = Math.max(1, Math.min(25, options.maxAgentsPerInvocation ?? defaultBudget));
 
   while (queue.length > 0 && processedThisInvocation < maxAgents) {
     const agentId = queue.shift()!;
