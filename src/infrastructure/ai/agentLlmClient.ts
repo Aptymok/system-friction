@@ -87,10 +87,12 @@ function compactEvidence(context: KernelContext, max = 6) {
   }));
 }
 function compactTwin(twin: StudioTwinContext) {
+  const extended = record(twin as unknown);
   return {
     contractVersion: twin.contractVersion,
     memory: twin.memory.slice(0, 4).map((item) => compactUnknown(item)),
     approvedDecisions: twin.decisions.slice(0, 3).map((item) => compactUnknown(item)),
+    adaptiveLearning: compactUnknown(extended.adaptiveLearning),
     warnings: twin.warnings.slice(0, 3),
   };
 }
@@ -214,14 +216,15 @@ function projectContextForAgent(agentId: string, context: KernelContext, twin: S
 }
 
 export async function augmentAgentWithLlm(agentId: string, context: KernelContext): Promise<KernelContext> {
-  if (context.metadata?.llmAugmentation !== true) return context;
+  const governedUniversalAi = context.metadata?.ctSnapshotConsumed === true
+    && context.metadata?.aiGovernancePolicyId === 'SFI-AIMS-2026-08';
+  if (context.metadata?.llmAugmentation !== true && !governedUniversalAi) return context;
   if (agentId === 'meta_orchestrator') return context;
 
   const contract = SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY.find((item) => item.id === agentId);
   if (!contract) return context;
 
   const twin = TWIN_RELEVANT_AGENTS.has(agentId) ? await resolveTwinContextForExecution(context) : null;
-  // Explicit operator override remains possible, but agents are no longer bound to Groq (or any model) by default.
   const requestedProvider = providerPreference(context.metadata?.preferredLlmProvider);
   const requirements = requirementsForAgent(agentId);
   const existingInsights = record(context.metadata?.agentInsights);
@@ -232,6 +235,7 @@ export async function augmentAgentWithLlm(agentId: string, context: KernelContex
     `Layer: ${contract.layer}. Domain: ${contract.domain}. Authority: ${contract.authorityLevel}.`,
     'Evidence before inference. Simulation is not observation. Missing evidence remains missing. Never invent measurements, history, lineage, causal relations, attractor attainment, or completed actions.',
     'Treat deterministic metrics and persisted evidence as observations. Treat your interpretation as INFERENCE only.',
+    'Cognitive Twin adaptive learning may contain evidence-complete calibrated candidates that are explicitly non-canonical. Use them as prior operational context, never as KernelEvidence, authority, or permanent truth.',
     'Return ONLY valid JSON: {"summary":string|null,"observations":string[],"hypotheses":string[],"contradictions":string[],"missingEvidence":string[],"recommendations":string[],"confidence":number}.',
     'Keep lists short and specific. Do not restate policy boilerplate in the analysis.',
   ].join('\n');
