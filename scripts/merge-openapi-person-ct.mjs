@@ -3,7 +3,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 const path = 'public/openapi.json';
 const api = JSON.parse(readFileSync(path, 'utf8'));
 api.info ??= {};
-api.info.version = '1.10.0';
+api.info.version = '1.11.0';
 api.components ??= {};
 api.components.schemas ??= {};
 api.paths ??= {};
@@ -32,8 +32,8 @@ route.requestBody.content['application/json'].schema = { $ref: `#/components/sch
 
 schema.properties.operation = {
   type: 'string',
-  enum: ['state', 'patterns', 'propose_pattern', 'confirm_pattern', 'reject_pattern', 'run'],
-  description: 'Owner-scoped Personal Cognitive operation. Pattern mutations require lab:write; cognitive execution requires lab:run.',
+  enum: ['state', 'patterns', 'propose_pattern', 'learn_declared_pattern', 'confirm_pattern', 'reject_pattern', 'run'],
+  description: 'Owner-scoped Personal Cognitive operation. learn_declared_pattern is reserved for an explicit authenticated-person instruction to learn/remember/apply a personal interaction rule; pattern mutations require lab:write and cognitive execution requires lab:run.',
 };
 schema.properties.dimension = { type: 'string', enum: ['COGNITION', 'OBSERVATION'] };
 schema.properties.category = {
@@ -53,7 +53,10 @@ schema.properties.category = {
     'SYSTEM_BOUNDARY_SELECTION',
   ],
 };
-schema.properties.statement = { type: 'string' };
+schema.properties.statement = {
+  type: 'string',
+  description: 'Plain-language owner-scoped representation. Do not encode implementation jargon when the person expressed the rule in ordinary language.',
+};
 schema.properties.operationalMeaning = { type: ['string', 'null'] };
 schema.properties.useCases = { type: 'array', items: { type: 'string' } };
 schema.properties.conditions = { type: 'array', items: { type: 'string' } };
@@ -71,18 +74,22 @@ schema.properties.note = { type: ['string', 'null'] };
 route.summary = 'Read/run Personal Cognitive and govern owner-scoped cognition/observation patterns';
 route.description = [
   'OAuth subject-bound Personal Cognitive surface.',
-  'state/patterns require lab:read; propose/confirm/reject pattern operations require lab:write; run requires lab:run.',
+  'state/patterns require lab:read; propose/learn/confirm/reject pattern operations require lab:write; run requires lab:run.',
+  'learn_declared_pattern may be used only when the authenticated person explicitly asks the GPT to learn, remember or apply a personal interaction rule. It records SELF_DECLARED and confirms it for PERSON_CT in one governed operation.',
   'Inferred patterns require at least two distinct owner-scoped run/evidence references before candidacy.',
   'Self-declared patterns are stored as DECLARED, not as proof.',
   'Confirmation accepts the representation for PERSON_CT only.',
   'PERSON_CT cannot become institutional Cognitive Spine state by inheritance; the separate Person→Institution gate remains mandatory.',
+  'Human-facing responses should explain what is happening, why it matters, who acts, options, consequences and what happens next before exposing machine implementation details.',
 ].join(' ');
 route.responses ??= {};
 route.responses['409'] = { description: 'Pattern lacks recurrent support, is already terminal, or conflicts with existing owner-scoped state' };
 
 api['x-sfi-governance'] ??= {};
 api['x-sfi-governance'].personCtPatternBoundary =
-  'COGNITION and OBSERVATION patterns are private owner-scoped representations. Agent prose does not auto-create a pattern. Inferred candidates require recurrent owned support and person confirmation; self-declarations remain DECLARED. No PERSON_CT pattern enters institutional Cognitive Spine by inheritance.';
+  'COGNITION and OBSERVATION patterns are private owner-scoped representations. Agent prose does not auto-create a pattern. Inferred candidates require recurrent owned support and person confirmation; explicit owner learn/remember/apply instructions may use learn_declared_pattern. Self-declarations remain DECLARED. No PERSON_CT pattern enters institutional Cognitive Spine by inheritance.';
+api['x-sfi-governance'].humanInteractionBoundary =
+  'Machine precision remains internal. Human-facing governance must default to plain-language meaning, actor, options, consequences and next event. Source code, file paths, payload/schema terminology and internal state identifiers are secondary details unless explicitly requested or materially necessary for safe authority.';
 
 writeFileSync(path, `${JSON.stringify(api, null, 2)}\n`);
-console.log(JSON.stringify({ ok: true, openapi: path, requestSchema: requestSchemaName, personCtPatterns: true, version: api.info?.version ?? null }));
+console.log(JSON.stringify({ ok: true, openapi: path, requestSchema: requestSchemaName, personCtPatterns: true, explicitOwnerLearning: true, version: api.info?.version ?? null }));

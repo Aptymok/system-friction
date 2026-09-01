@@ -98,8 +98,10 @@ for (const [name, source] of [['cognitive', cognitive], ['personal_lab', persona
 }
 
 // Validate scope semantics, not one historical source-code spelling.
-assert.match(cognitive, /function operationScope\(operation: string\)[\s\S]*if \(operation === 'run'\) return 'lab:run';[\s\S]*\['propose_pattern', 'confirm_pattern', 'reject_pattern'\]\.includes\(operation\)[\s\S]*return 'lab:write';[\s\S]*return 'lab:read';/, 'personal_cognitive_scope_router_must_preserve_read_write_run_boundaries');
+assert.match(cognitive, /function operationScope\(operation: string\)[\s\S]*if \(operation === 'run'\) return 'lab:run';[\s\S]*\['propose_pattern', 'confirm_pattern', 'reject_pattern', 'learn_declared_pattern'\]\.includes\(operation\)[\s\S]*return 'lab:write';[\s\S]*return 'lab:read';/, 'personal_cognitive_scope_router_must_preserve_read_write_run_boundaries');
 assert.match(cognitive, /const requiredScope = operationScope\(operation\)/, 'personal_cognitive_must_authorize_with_operation_scope');
+assert.match(cognitive, /operation === 'learn_declared_pattern'/, 'explicit_owner_learning_must_use_personal_cognitive_route');
+assert.match(cognitive, /selfDeclared: true/, 'explicit_owner_learning_must_remain_declared');
 assert.match(personalLab, /if \(operation === 'run'\) return 'lab:run'/, 'personal_lab_run_must_require_lab_run');
 assert.match(personalLab, /return 'lab:write'/, 'personal_lab_writes_must_require_lab_write');
 assert.match(studio, /const ownerId = cred\.subjectId/, 'studio_owner_must_derive_from_oauth_subject');
@@ -156,7 +158,7 @@ for (const path of [
 
 console.log(JSON.stringify({
   ok: true,
-  contract: 'SFI-EXTERNAL-OAUTH-1.10',
+  contract: 'SFI-EXTERNAL-OAUTH-1.11',
   flow: 'authorization_code',
   pkce: 'S256',
   clientRegistry: 'PERSISTENT_SELF_SERVICE',
@@ -167,6 +169,7 @@ console.log(JSON.stringify({
   personalTenant: 'user:<oauth_subject_id>',
   personalScopes: ['cases:read', 'cases:write', 'lab:read', 'lab:write', 'lab:run', 'studio:read', 'studio:content', 'studio:run'],
   personalRoutes: ['/api/external/v1/cases', '/api/external/v1/cognitive', '/api/external/v1/personal-lab', '/api/external/v1/studio'],
+  explicitOwnerLearning: 'learn_declared_pattern',
   institutionalSovereignty: ['proposal_authorization', 'root_evidence', 'canonical_promotion'],
   runtime: 'runtimeAgentExecutor -> agentExecutionMap',
 }, null, 2));

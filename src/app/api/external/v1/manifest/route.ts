@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+import { SFI_HUMAN_INTERACTION_POLICY } from '@/lib/sfi/humanInteractionPolicy';
+import { SFI_ANALYSIS_LEARNING_POLICY } from '@/lib/sfi/analysisLearningPolicy';
 
 export const dynamic = 'force-dynamic';
 
@@ -6,7 +8,7 @@ export async function GET() {
   return NextResponse.json({
     ok: true,
     name: 'SFI External Agent Gateway',
-    version: '1.10.0',
+    version: '1.11.0',
     auth: 'OAuth 2.0 authorization_code (user-bound) or X-SFI-Token/Bearer static token',
     base: '/api/external/v1',
     discovery: {
@@ -38,7 +40,7 @@ export async function GET() {
       studioIdentityBoundary: 'Studio operations require user-bound OAuth and resolve ownership from token subject_id; shared/static tokens cannot impersonate an owner.',
     },
     operations: [
-      { id: 'bootstrap', method: 'GET', path: '/bootstrap', scope: 'observe', tenant: 'institutional', description: 'Hydrate an authorized AI client with a versioned SFI cognitive contract, sealed Cognitive Spine snapshot, bounded memory/decisions and promoted learning only.' },
+      { id: 'bootstrap', method: 'GET', path: '/bootstrap', scope: 'observe', tenant: 'institutional', description: 'Hydrate an authorized AI client with a versioned SFI cognitive contract, sealed Cognitive Spine snapshot, bounded memory/decisions, promoted learning and current human/analysis policies.' },
       { id: 'console', method: 'GET', path: '/console', scope: 'observe', tenant: 'institutional', description: 'Read the compact governed machine console.' },
       { id: 'execution-contract', method: 'POST', path: '/execution-contract', scope: 'observe', tenant: 'institutional', description: 'Describe an object and obtain the governed measurement contract without uploading raw content.' },
       { id: 'structured-result', method: 'POST', path: '/result', scope: 'lab:write', tenant: 'institutional', description: 'Return structured measurements and provenance without raw-object persistence.' },
@@ -56,7 +58,7 @@ export async function GET() {
       { id: 'lab-persist', method: 'POST', path: '/lab', scope: 'lab:write', tenant: 'institutional', body: { operation: 'persist' }, description: 'Persist an institutional laboratory observation.' },
       { id: 'lab-run', method: 'POST', path: '/lab', scope: 'lab:run', tenant: 'institutional', body: { operation: 'run', confirm: true }, description: 'Execute a supported institutional Method Lab runtime with explicit lab:run scope, confirmation and persisted evidence.' },
       { id: 'personal-cognitive-state', method: 'POST', path: '/cognitive', scope: 'lab:read', tenant: 'owner', body: { operation: 'state | patterns' }, description: 'Read only the OAuth subject personal Cognitive workspace and owner-scoped cognition/observation pattern ledger.' },
-      { id: 'personal-cognitive-pattern-write', method: 'POST', path: '/cognitive', scope: 'lab:write', tenant: 'owner', body: { operation: 'propose_pattern | confirm_pattern | reject_pattern' }, description: 'Govern PERSON_CT cognition/observation representations. Inferred candidates require recurrent owned support and person confirmation; self-declarations remain DECLARED.' },
+      { id: 'personal-cognitive-pattern-write', method: 'POST', path: '/cognitive', scope: 'lab:write', tenant: 'owner', body: { operation: 'propose_pattern | learn_declared_pattern | confirm_pattern | reject_pattern' }, description: 'Govern PERSON_CT representations. Explicit owner requests to learn/remember/apply a personal interaction rule may be recorded and confirmed in one governed operation; inferred candidates still require recurrent owned support and person confirmation.' },
       { id: 'personal-cognitive-run', method: 'POST', path: '/cognitive', scope: 'lab:run', tenant: 'owner', body: { operation: 'run' }, description: 'Auto-select and execute the minimum relevant bounded cognitive automations against owner-scoped evidence. A run never auto-creates a PERSON_CT pattern.' },
       { id: 'personal-lab-state', method: 'POST', path: '/personal-lab', scope: 'lab:read', tenant: 'owner', body: { operation: 'state' }, description: 'Read only the OAuth subject personal Lab workspace.' },
       { id: 'personal-lab-create-case', method: 'POST', path: '/personal-lab', scope: 'lab:write', tenant: 'owner', body: { operation: 'create_case' }, description: 'Create an owner-scoped personal Lab case.' },
@@ -90,9 +92,12 @@ export async function GET() {
         ownerScoped: true,
         inferredPatternMinimumSupportRefs: 2,
         confirmationRequired: true,
+        explicitOwnerLearningOperation: 'learn_declared_pattern',
         institutionalInheritance: false,
       },
     },
+    interactionPolicy: SFI_HUMAN_INTERACTION_POLICY,
+    analysisLearningPolicy: SFI_ANALYSIS_LEARNING_POLICY,
     mutationEvidence: {
       publicSurface: '/history/mutations',
       machineSurface: '/api/public/mutations',

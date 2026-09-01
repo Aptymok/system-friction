@@ -23,7 +23,7 @@ function text(value: unknown) { return typeof value === 'string' && value.trim()
 
 function operationScope(operation: string) {
   if (operation === 'run') return 'lab:run';
-  if (['propose_pattern', 'confirm_pattern', 'reject_pattern'].includes(operation)) return 'lab:write';
+  if (['propose_pattern', 'confirm_pattern', 'reject_pattern', 'learn_declared_pattern'].includes(operation)) return 'lab:write';
   return 'lab:read';
 }
 
@@ -92,6 +92,43 @@ export async function POST(req: Request) {
       }, { status: result.ok ? (result.idempotent ? 200 : 201) : 409 });
     }
 
+    if (operation === 'learn_declared_pattern') {
+      const statement = text(body.statement);
+      if (!statement) return NextResponse.json({ ok: false, error: 'statement_required' }, { status: 400 });
+      const proposed = await proposePersonCognitivePattern({
+        ownerId,
+        dimension: body.dimension,
+        category: body.category,
+        statement,
+        operationalMeaning: text(body.operationalMeaning),
+        useCases: strings(body.useCases),
+        conditions: strings(body.conditions),
+        counterSignals: strings(body.counterSignals),
+        supportingRunIds: [],
+        supportingEvidenceIds: [],
+        selfDeclared: true,
+        confidence: typeof body.confidence === 'number' ? body.confidence : 0.7,
+      });
+      if (!proposed.ok) {
+        return NextResponse.json({ ...proposed, operation, actor: externalActor(credential) }, { status: 409 });
+      }
+      const resolved = await resolvePersonCognitivePattern({
+        ownerId,
+        patternId: proposed.patternId,
+        disposition: 'CONFIRMED',
+        note: text(body.note) ?? 'Explicit owner request to learn/remember/apply this personal interaction rule.',
+      });
+      return NextResponse.json({
+        ok: resolved.ok,
+        operation,
+        proposed,
+        resolved,
+        actor: externalActor(credential),
+        ownershipBoundary: 'This is an explicitly owner-confirmed PERSON_CT representation. It is private, reversible only through a new governed representation, and cannot become institutional state by inheritance.',
+        epistemicBoundary: 'The owner confirmation establishes the interaction preference as an accepted PERSON_CT representation, not as proof of a universal or permanent cognitive trait.',
+      }, { status: resolved.ok ? (proposed.idempotent && resolved.idempotent ? 200 : 201) : 409 });
+    }
+
     if (operation === 'confirm_pattern' || operation === 'reject_pattern') {
       const patternId = text(body.patternId);
       if (!patternId) return NextResponse.json({ ok: false, error: 'patternId_required' }, { status: 400 });
@@ -130,7 +167,7 @@ export async function POST(req: Request) {
     return NextResponse.json({
       ok: false,
       error: 'unsupported_cognitive_operation',
-      allowed: ['state', 'patterns', 'propose_pattern', 'confirm_pattern', 'reject_pattern', 'run'],
+      allowed: ['state', 'patterns', 'propose_pattern', 'learn_declared_pattern', 'confirm_pattern', 'reject_pattern', 'run'],
     }, { status: 400 });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
