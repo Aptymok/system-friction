@@ -2,7 +2,7 @@ import 'server-only';
 
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 
-export const SFI_CT_ADAPTIVE_LEARNING_CONTEXT = 'SFI-CT-ADAPTIVE-LEARNING-1.0' as const;
+export const SFI_CT_ADAPTIVE_LEARNING_CONTEXT = 'SFI-CT-ADAPTIVE-LEARNING-1.1' as const;
 
 type Row = Record<string, unknown>;
 
@@ -31,22 +31,33 @@ function bounded(value: unknown, depth = 0): unknown {
   return String(value).slice(0, 200);
 }
 
-export async function readAdaptiveUniversalLearningContext(limit = 40) {
+function safeCutoff(value: unknown) {
+  const candidate = text(value);
+  if (!candidate) return null;
+  const parsed = new Date(candidate);
+  return Number.isFinite(parsed.valueOf()) ? parsed.toISOString() : null;
+}
+
+export async function readAdaptiveUniversalLearningContext(limit = 40, sourceCutoff?: string | null) {
   const db = createServiceSupabaseClient();
-  const result = await db.from('epistemic_events')
+  const cutoff = safeCutoff(sourceCutoff) ?? new Date().toISOString();
+  const query = db.from('epistemic_events')
     .select('sequence,event_id,event_name,epistemic_class,payload,lineage,occurred_at')
     .in('event_name', [
       'SFI_UNIVERSAL_LEARNING_CANDIDATE_RECORDED',
       'SFI_UNIVERSAL_LEARNING_PROMOTED',
       'SFI_UNIVERSAL_LEARNING_REJECTED',
     ])
+    .lte('occurred_at', cutoff)
     .order('sequence', { ascending: false })
     .limit(Math.max(20, Math.min(160, limit * 4)));
+  const result = await query;
 
   if (result.error) {
     return {
       contract: SFI_CT_ADAPTIVE_LEARNING_CONTEXT,
       generatedAt: new Date().toISOString(),
+      sourceCutoff: cutoff,
       adaptiveCandidates: [],
       promotedCandidateIds: [],
       rejectedCandidateIds: [],
@@ -109,10 +120,11 @@ export async function readAdaptiveUniversalLearningContext(limit = 40) {
   return {
     contract: SFI_CT_ADAPTIVE_LEARNING_CONTEXT,
     generatedAt: new Date().toISOString(),
+    sourceCutoff: cutoff,
     adaptiveCandidates,
     promotedCandidateIds: [...promotedCandidateIds],
     rejectedCandidateIds: [...rejectedCandidateIds],
     warning: null,
-    boundary: 'Evidence-complete calibrated RETURN candidates may inform future cognition as adaptive non-canonical context. They are never appended to KernelEvidence and cannot mutate canon or authority without the existing promotion decision.',
+    boundary: 'Evidence-complete calibrated RETURN candidates may inform future cognition as adaptive non-canonical context at the sealed cutoff. They are never appended to KernelEvidence and cannot mutate canon or authority without the existing promotion decision.',
   };
 }
