@@ -162,7 +162,7 @@ jobs:
               if universal.get('requestedCycleId') != requested:
                   raise SystemExit('targeted cycleId was not acknowledged by the cognitive continuation lane')
               if not isinstance(target, dict) or target.get('ok') is not True or target.get('cycleId') != requested:
-                  raise SystemExit('targeted existing cycle state was not reconstructed successfully')
+                  raise SystemExit('targeted existing cycle was not processed or reconstructed successfully')
               if int(target.get('eventCount') or 0) < 1:
                   raise SystemExit('targeted existing cycle has no reconstructable lifecycle events')
           PY
