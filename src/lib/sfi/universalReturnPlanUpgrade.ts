@@ -62,7 +62,6 @@ export async function runUniversalReturnPlanUpgrade(input: { limit?: number; cyc
 
   const candidates = [...latestByCycle.entries()]
     .filter(([cycleId]) => !requestedCycleId || cycleId === requestedCycleId)
-    .filter(([, event]) => needsAiUpgrade(row(row(event).payload ? row(event).payload : null)))
     .filter(([, event]) => needsAiUpgrade(row(row(event.payload).plan)))
     .slice(0, Math.max(1, Math.min(10, input.limit ?? 4)));
 
