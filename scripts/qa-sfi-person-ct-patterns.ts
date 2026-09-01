@@ -11,7 +11,7 @@ function blockBetween(source: string, startMarker: string, endMarker: string) {
 }
 
 async function main() {
-  const [ledger, route, gate, runtimeProfile, projectionProfile, openapiMerge, interactionPolicy, analysisPolicy, manifest, bootstrap] = await Promise.all([
+  const [ledger, route, gate, runtimeProfile, projectionProfile, openapiMerge, interactionPolicy, analysisPolicy, manifest, bootstrap, llms] = await Promise.all([
     text('src/lib/sfi/personal/cognitivePatternLedger.ts'),
     text('src/app/api/external/v1/cognitive/route.ts'),
     text('src/core/cognitive-spine/gates/personInstitutionGate.ts'),
@@ -22,6 +22,7 @@ async function main() {
     text('src/lib/sfi/analysisLearningPolicy.ts'),
     text('src/app/api/external/v1/manifest/route.ts'),
     text('src/app/api/external/v1/bootstrap/route.ts'),
+    text('src/app/llms.txt/route.ts'),
   ]);
 
   assert(ledger.includes("export type PersonPatternDimension = 'COGNITION' | 'OBSERVATION'"));
@@ -85,6 +86,14 @@ async function main() {
   assert(bootstrap.includes("'X-SFI-Human-Interaction': SFI_HUMAN_INTERACTION_POLICY.contract"));
   assert(bootstrap.includes("'X-SFI-Analysis-Learning': SFI_ANALYSIS_LEARNING_POLICY.contract"));
 
+  assert(llms.includes('## HUMAN-FACING INTERACTION'));
+  assert(llms.includes('## PERSON_CT INTERACTION LEARNING'));
+  assert(llms.includes('## ANALYSIS LEARNING'));
+  assert(llms.includes('what is happening, why it matters, who must act, available options, consequences, and what happens next'));
+  assert(llms.includes('operation=learn_declared_pattern'));
+  assert(llms.includes('A smaller extract or re-export of the same source is not independent evidence'));
+  assert(llms.includes('A hash proves material identity, not semantic independence'));
+
   assert(gate.includes('Personal cognitive content does not become institutional state by inheritance'));
   assert(gate.includes("input.disposition === 'ADMITTED'"));
   assert(gate.includes('Boolean(canonicalRecordRef)'));
@@ -107,7 +116,7 @@ async function main() {
 
   console.log(JSON.stringify({
     ok: true,
-    contract: 'SFI-PERSON-CT-PATTERN-QA-1.4',
+    contract: 'SFI-PERSON-CT-PATTERN-QA-1.5',
     invariants: {
       cognitionObservationSeparated: true,
       inferredPatternNeedsRecurrence: true,
@@ -123,6 +132,7 @@ async function main() {
       processModelMismatchMustBeTested: true,
       gptBootstrapCarriesInteractionPolicy: true,
       gptBootstrapCarriesAnalysisLearningPolicy: true,
+      machineOrientationCarriesLearnedRules: true,
       runtimeProjectionDeniesPersonCt: true,
       personCtAbsentFromRuntimeAllowlist: true,
       projectionDenyOverridesAllow: true,
