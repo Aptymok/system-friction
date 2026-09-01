@@ -22,6 +22,7 @@ export const SFI_HUMAN_INTERACTION_POLICY = {
       'backend implementation jargon',
     ],
     technicalDetailRule: 'Technical implementation detail is secondary and may be shown only when the human explicitly asks for it or when omission would make a safety/authority decision materially misleading.',
+    technicalDisclosureRule: 'Machine-facing detail must remain available for audit and expert inspection through an explicit secondary disclosure, never as the default decision surface.',
     translationRule: 'Every machine state shown to a human must be translated into the decision it represents, the responsible actor, the blocker if any, and the next observable event.',
   },
   governance: {
