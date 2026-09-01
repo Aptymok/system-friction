@@ -11,7 +11,7 @@ import { buildBoundedTwinContextFromCognitiveSpine } from './cognitiveSpineTwinC
  * materializer. The shared materializer owns source reads, temporal cutoff,
  * profile selection, semantic hashing and CT AVAILABLE / CT CONSUMED trace.
  *
- * Canonical memory/decisions remain sealed by the Cognitive Spine snapshot.
+ * Canonical memory and decisions remain context; they are not appended to KernelEvidence.
  * Evidence-complete calibrated learning candidates may be added as a second,
  * explicitly non-canonical adaptive context at the same source cutoff. They
  * never become KernelEvidence and never mutate canon or authority by being
