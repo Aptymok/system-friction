@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { authorizeExternalRequest, externalActor, externalAuthError } from '@/lib/sfi/externalAuth';
 import { buildSfiCognitiveBootstrap } from '@/lib/sfi/cognitiveBootstrap';
 import { SFI_HUMAN_INTERACTION_POLICY } from '@/lib/sfi/humanInteractionPolicy';
+import { SFI_ANALYSIS_LEARNING_POLICY } from '@/lib/sfi/analysisLearningPolicy';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -25,7 +26,8 @@ export async function GET(req: Request) {
     return NextResponse.json({
       ...bootstrap,
       interactionPolicy: SFI_HUMAN_INTERACTION_POLICY,
-      useInstruction: `${bootstrap.useInstruction} Human-facing interaction must follow interactionPolicy: explain meaning, authority, options, consequences and next event before implementation detail. Explicit owner requests to learn/remember/apply a personal interaction rule may use the governed PERSON_CT learn_declared_pattern operation.`,
+      analysisLearningPolicy: SFI_ANALYSIS_LEARNING_POLICY,
+      useInstruction: `${bootstrap.useInstruction} Human-facing interaction must follow interactionPolicy: explain meaning, authority, options, consequences and next event before implementation detail. Apply analysisLearningPolicy when choosing what evidence to request and when interpreting process/data contradictions. Explicit owner requests to learn/remember/apply a personal interaction rule may use the governed PERSON_CT learn_declared_pattern operation.`,
     }, {
       status: 200,
       headers: {
@@ -33,6 +35,7 @@ export async function GET(req: Request) {
         'X-SFI-Cognitive-Bootstrap': bootstrap.contract,
         'X-SFI-Capsule-Hash': bootstrap.capsuleHash,
         'X-SFI-Human-Interaction': SFI_HUMAN_INTERACTION_POLICY.contract,
+        'X-SFI-Analysis-Learning': SFI_ANALYSIS_LEARNING_POLICY.contract,
       },
     });
   } catch (error) {
