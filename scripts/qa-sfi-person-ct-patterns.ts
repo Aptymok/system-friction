@@ -11,7 +11,7 @@ function blockBetween(source: string, startMarker: string, endMarker: string) {
 }
 
 async function main() {
-  const [ledger, route, gate, runtimeProfile, projectionProfile, openapiMerge, interactionPolicy, manifest, bootstrap] = await Promise.all([
+  const [ledger, route, gate, runtimeProfile, projectionProfile, openapiMerge, interactionPolicy, analysisPolicy, manifest, bootstrap] = await Promise.all([
     text('src/lib/sfi/personal/cognitivePatternLedger.ts'),
     text('src/app/api/external/v1/cognitive/route.ts'),
     text('src/core/cognitive-spine/gates/personInstitutionGate.ts'),
@@ -19,6 +19,7 @@ async function main() {
     text('src/core/cognitive-spine/contracts/projectionProfile.ts'),
     text('scripts/merge-openapi-person-ct.mjs'),
     text('src/lib/sfi/humanInteractionPolicy.ts'),
+    text('src/lib/sfi/analysisLearningPolicy.ts'),
     text('src/app/api/external/v1/manifest/route.ts'),
     text('src/app/api/external/v1/bootstrap/route.ts'),
   ]);
@@ -62,12 +63,27 @@ async function main() {
   assert(interactionPolicy.includes('explicit request to remember/learn/apply an interaction rule'));
   assert(interactionPolicy.includes('PERSON_CT and is private to the authenticated owner'));
   assert(interactionPolicy.includes('it is not proof of a universal or permanent cognitive trait'));
+
+  assert(analysisPolicy.includes("contract: 'SFI-ANALYSIS-LEARNING-POLICY-1.0'"));
+  assert(analysisPolicy.includes("authority: 'ROOT_DECLARED_METHOD_RULE'"));
+  assert(analysisPolicy.includes("id: 'SAME_SOURCE_IS_NOT_INDEPENDENT_EVIDENCE'"));
+  assert(analysisPolicy.includes("id: 'HASH_PROVES_MATERIAL_IDENTITY_NOT_SEMANTIC_INDEPENDENCE'"));
+  assert(analysisPolicy.includes("id: 'IMPOSSIBLE_CHRONOLOGY_TRIGGERS_MODEL_PROCESS_TEST'"));
+  assert(analysisPolicy.includes("id: 'REPRESENT_EXCEPTION_DO_NOT_REWRITE_HISTORY'"));
+  assert(analysisPolicy.includes("id: 'SERVICE_FLOW_REQUIRES_TEMPORAL_CHAIN_OF_CUSTODY'"));
+  assert(analysisPolicy.includes("id: 'ANOMALY_ANALYSIS_MUST_SEEK_PROPAGATION_CHAIN'"));
+  assert(analysisPolicy.includes('does not turn the conversation into proof of prevalence, violation, causality or institutional fact'));
+
   assert(manifest.includes('interactionPolicy: SFI_HUMAN_INTERACTION_POLICY'));
+  assert(manifest.includes('analysisLearningPolicy: SFI_ANALYSIS_LEARNING_POLICY'));
   assert(manifest.includes("explicitOwnerLearningOperation: 'learn_declared_pattern'"));
   assert(bootstrap.includes('interactionPolicy: SFI_HUMAN_INTERACTION_POLICY'));
+  assert(bootstrap.includes('analysisLearningPolicy: SFI_ANALYSIS_LEARNING_POLICY'));
   assert(bootstrap.includes('Human-facing interaction must follow interactionPolicy'));
+  assert(bootstrap.includes('Apply analysisLearningPolicy when choosing what evidence to request'));
   assert(bootstrap.includes('learn_declared_pattern operation'));
   assert(bootstrap.includes("'X-SFI-Human-Interaction': SFI_HUMAN_INTERACTION_POLICY.contract"));
+  assert(bootstrap.includes("'X-SFI-Analysis-Learning': SFI_ANALYSIS_LEARNING_POLICY.contract"));
 
   assert(gate.includes('Personal cognitive content does not become institutional state by inheritance'));
   assert(gate.includes("input.disposition === 'ADMITTED'"));
@@ -91,7 +107,7 @@ async function main() {
 
   console.log(JSON.stringify({
     ok: true,
-    contract: 'SFI-PERSON-CT-PATTERN-QA-1.3',
+    contract: 'SFI-PERSON-CT-PATTERN-QA-1.4',
     invariants: {
       cognitionObservationSeparated: true,
       inferredPatternNeedsRecurrence: true,
@@ -101,7 +117,12 @@ async function main() {
       userResolutionRequiredForInference: true,
       humanFirstInteractionPolicy: true,
       technicalDetailSecondaryByDefault: true,
+      conversationMethodLearningPreserved: true,
+      sameSourceNotIndependentEvidence: true,
+      materialHashNotSemanticIndependence: true,
+      processModelMismatchMustBeTested: true,
       gptBootstrapCarriesInteractionPolicy: true,
+      gptBootstrapCarriesAnalysisLearningPolicy: true,
       runtimeProjectionDeniesPersonCt: true,
       personCtAbsentFromRuntimeAllowlist: true,
       projectionDenyOverridesAllow: true,
