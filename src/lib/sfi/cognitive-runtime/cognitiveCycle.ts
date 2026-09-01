@@ -1,5 +1,6 @@
 import { appendEpistemicEvent } from '@/lib/events/eventStore';
 import { materializeInstitutionalRuntimeCognitiveSpine } from '@/lib/institution/cognitiveSpineRuntimeMaterializer';
+import { resolveUniversalReturnCapability, SFI_UNIVERSAL_RETURN_CAPABILITY_CONTRACT } from '@/lib/sfi/universalReturnCapabilityResolver';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import type { KernelContext, KernelEvidence } from './kernelContext';
 import { runCognitiveAgent } from './runtimeAgentExecutor';
@@ -212,7 +213,7 @@ function returnPlan(context: KernelContext) {
   const hasPrediction = context.predictions.length > 0;
 
   return {
-    contract: 'SFI-UNIVERSAL-RETURN-PLAN-1.0',
+    contract: 'SFI-UNIVERSAL-RETURN-PLAN-1.1',
     cycleId: context.cycleId,
     status: hasPrediction ? 'RETURN_REQUIRED' : 'RETURN_REQUIREMENT_UNDETERMINED',
     acquisitionState: hasPrediction ? 'CAPABILITY_RESOLUTION_REQUIRED' : 'MISSING_DISCRIMINATING_PREDICTION',
@@ -263,30 +264,56 @@ async function persistCheckpoint(input: {
 async function persistReturnPlan(context: KernelContext, source: string) {
   const db = createServiceSupabaseClient();
   const latest = await db.from('epistemic_events')
-    .select('payload')
+    .select('event_id,payload')
     .eq('event_name', SFI_UNIVERSAL_RETURN_PLAN_RECORDED)
     .eq('logbook_id', context.logbookId)
     .order('sequence', { ascending: false })
     .limit(1)
     .maybeSingle();
-  const latestTaskId = latest.data ? text(row(latest.data.payload).taskId) : null;
-  if (!latest.error && latestTaskId && latestTaskId === (context.taskId ?? null)) return;
+  const latestPayload = latest.data ? row(latest.data.payload) : {};
+  const latestTaskId = text(latestPayload.taskId);
+  const latestPlan = row(latestPayload.plan);
+  const latestCapability = row(latestPlan.capabilityResolution);
+  const alreadyAiResolved = text(latestCapability.contract) === SFI_UNIVERSAL_RETURN_CAPABILITY_CONTRACT;
+  if (!latest.error && latestTaskId && latestTaskId === (context.taskId ?? null) && alreadyAiResolved) {
+    context.metadata = { ...context.metadata, returnPlan: latestPlan };
+    return;
+  }
 
-  const plan = returnPlan(context);
+  const basePlan = returnPlan(context);
+  let plan: Row = basePlan;
+  if (basePlan.acquisitionState === 'CAPABILITY_RESOLUTION_REQUIRED') {
+    const capability = await resolveUniversalReturnCapability(basePlan, context);
+    plan = {
+      ...basePlan,
+      acquisitionState: capability.decision,
+      responsibility: capability.humanInputRequired ? 'ROOT_OR_AUTHORIZED_OPERATOR' : 'SFI',
+      humanInputRequired: capability.humanInputRequired,
+      requiredHumanInput: capability.requiredHumanInput,
+      capabilityResolution: capability,
+      resolvedAt: new Date().toISOString(),
+      next: capability.decision === 'SFI_CAN_ACQUIRE'
+        ? `Acquire the observation through ${capability.capabilityId}, persist an evidence-linked RETURN, then CONTRAST.`
+        : 'Obtain only the minimum source/access/observation listed in requiredHumanInput, persist an evidence-linked RETURN, then CONTRAST.',
+    };
+  }
   context.metadata = { ...context.metadata, returnPlan: plan };
+  const supersededEventId = latest.data ? text(latest.data.event_id) : null;
   await appendEpistemicEvent({
     eventName: SFI_UNIVERSAL_RETURN_PLAN_RECORDED,
     epistemicClass: 'derived',
     confidence: 1,
     occurredAt: new Date().toISOString(),
-    source: { sourceId: source, sourceType: 'return_requirement_resolver' },
+    source: { sourceId: source, sourceType: 'ai_governed_return_requirement_resolver' },
     logbookId: context.logbookId,
-    lineage: [context.cycleId],
+    lineage: [context.cycleId, supersededEventId].filter((value): value is string => Boolean(value)),
     payload: {
       cycleId: context.cycleId,
       taskId: context.taskId ?? null,
       plan,
+      supersedesReturnPlanEventId: supersededEventId,
       canonicalPromotionAllowed: false,
+      epistemicBoundary: 'AI capability resolution allocates execution responsibility only. It cannot create RETURN, evidence acceptance, CONTRAST, closure, learning or canon.',
     },
   });
 }
