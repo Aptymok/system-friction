@@ -11,7 +11,7 @@ function blockBetween(source: string, startMarker: string, endMarker: string) {
 }
 
 async function main() {
-  const [ledger, route, gate, runtimeProfile, projectionProfile, openapiMerge, interactionPolicy, manifest] = await Promise.all([
+  const [ledger, route, gate, runtimeProfile, projectionProfile, openapiMerge, interactionPolicy, manifest, bootstrap] = await Promise.all([
     text('src/lib/sfi/personal/cognitivePatternLedger.ts'),
     text('src/app/api/external/v1/cognitive/route.ts'),
     text('src/core/cognitive-spine/gates/personInstitutionGate.ts'),
@@ -20,6 +20,7 @@ async function main() {
     text('scripts/merge-openapi-person-ct.mjs'),
     text('src/lib/sfi/humanInteractionPolicy.ts'),
     text('src/app/api/external/v1/manifest/route.ts'),
+    text('src/app/api/external/v1/bootstrap/route.ts'),
   ]);
 
   assert(ledger.includes("export type PersonPatternDimension = 'COGNITION' | 'OBSERVATION'"));
@@ -63,6 +64,10 @@ async function main() {
   assert(interactionPolicy.includes('it is not proof of a universal or permanent cognitive trait'));
   assert(manifest.includes('interactionPolicy: SFI_HUMAN_INTERACTION_POLICY'));
   assert(manifest.includes("explicitOwnerLearningOperation: 'learn_declared_pattern'"));
+  assert(bootstrap.includes('interactionPolicy: SFI_HUMAN_INTERACTION_POLICY'));
+  assert(bootstrap.includes('Human-facing interaction must follow interactionPolicy'));
+  assert(bootstrap.includes('learn_declared_pattern operation'));
+  assert(bootstrap.includes("'X-SFI-Human-Interaction': SFI_HUMAN_INTERACTION_POLICY.contract"));
 
   assert(gate.includes('Personal cognitive content does not become institutional state by inheritance'));
   assert(gate.includes("input.disposition === 'ADMITTED'"));
@@ -96,6 +101,7 @@ async function main() {
       userResolutionRequiredForInference: true,
       humanFirstInteractionPolicy: true,
       technicalDetailSecondaryByDefault: true,
+      gptBootstrapCarriesInteractionPolicy: true,
       runtimeProjectionDeniesPersonCt: true,
       personCtAbsentFromRuntimeAllowlist: true,
       projectionDenyOverridesAllow: true,
