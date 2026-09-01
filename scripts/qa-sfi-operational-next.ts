@@ -104,7 +104,7 @@ assert.match(heartbeat, /runUniversalReturnPlanUpgrade/, 'heartbeat must upgrade
 assert.match(heartbeat, /runUniversalEmpiricalContinuation/, 'heartbeat must own empirical continuation after real RETURN');
 assert.match(universalEmpirical, /SFI_UNIVERSAL_RETURN_AI_CLASSIFICATION_PROPOSED/, 'RETURN contrast direction must have explicit AI provenance');
 assert.match(universalEmpirical, /validateReturnEvidenceRefs/, 'AI classification must not bypass RETURN evidence traceability');
-assert.match(universalEmpirical, /calibrationStatus !== 'CONTRAST_RECORDED'/, 'empirical continuation must refuse closure when calibration is incomplete');
+assert.match(universalEmpirical, /text\(contrastPayload\.calibrationStatus\) !== 'CONTRAST_RECORDED'/, 'empirical continuation must refuse closure when calibration is incomplete');
 assert.match(universalEmpirical, /assessUniversalClosure/, 'automatic close must reuse the existing empirical closure contract');
 assert.match(universalEmpirical, /closeUniversalCycle/, 'evidence-complete empirical cycles must close without another manual button');
 assert.match(universalEmpirical, /recordUniversalLearningCandidate/, 'closed calibrated cycles must produce a learning candidate automatically');
