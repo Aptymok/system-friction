@@ -16,6 +16,14 @@ const queue = read('src/lib/governance/proposalQueue.ts');
 const router = read('src/lib/execution/governedExecutionRouter.ts');
 const evidence = read('src/lib/evidence/evidenceCandidates.ts');
 const universalContinuation = read('src/lib/sfi/universalCycleContinuation.ts');
+const universalReturnCapability = read('src/lib/sfi/universalReturnCapabilityResolver.ts');
+const universalReturnPlanUpgrade = read('src/lib/sfi/universalReturnPlanUpgrade.ts');
+const universalEmpirical = read('src/lib/sfi/universalEmpiricalContinuation.ts');
+const cognitiveCycle = read('src/lib/sfi/cognitive-runtime/cognitiveCycle.ts');
+const runtimeAgentExecutor = read('src/lib/sfi/cognitive-runtime/runtimeAgentExecutor.ts');
+const agentLlmClient = read('src/infrastructure/ai/agentLlmClient.ts');
+const runtimeTwinMaterializer = read('src/lib/institution/cognitiveSpineRuntimeMaterializer.ts');
+const adaptiveLearning = read('src/core/cognitive-twin/adaptiveLearningContext.ts');
 const vercel = JSON.parse(read('vercel.json')) as { crons?: Array<{ path?: string }> };
 
 assert.match(lifecycle, /canonical_promotion_allowed:\s*false/, 'ordinary governance decisions must never grant canonical promotion');
@@ -58,7 +66,7 @@ assert.match(heartbeat, /runOperationalTransitionWatchdog/, 'watchdog must reuse
 assert.match(heartbeat, /runGovernedExecutionRouter/, 'existing queued execution router must remain the executor path');
 assert.match(heartbeat, /cycleId: requestedCycleId/, 'governed heartbeat must support targeted recovery of an existing cycle');
 assert.match(heartbeat, /laneFailure/, 'heartbeat response must expose lane-level degradation instead of returning cosmetic success');
-assert.match(heartbeat, /evidence_accept_reject|Evidence acceptance/, 'heartbeat policy must preserve evidence human gate');
+assert.match(heartbeat, /Missing evidence remains missing|Evidence acceptance/, 'heartbeat policy must preserve the evidence boundary');
 assert.match(router, /project_execution_manager/, 'project execution manager remains the existing execution coordinator');
 
 assert.match(universalContinuation, /cycleId\?: string/, 'continuation must support an optional existing-cycle target');
@@ -69,12 +77,46 @@ assert.match(universalContinuation, /CONTINUATION_AGENT_BUDGET = 8/, 'durable co
 assert.match(universalContinuation, /MAX_SYNTHESIS_ATTEMPTS_PER_COMPLETION = 3/, 'degraded synthesis recovery must be bounded rather than silently final or infinitely retried');
 assert.match(universalContinuation, /synthesisStatus\(event/, 'synthesis recovery must inspect semantic status, not merely event existence');
 assert.match(universalContinuation, /SYNTHESIS_DEGRADED_RETRY_EXHAUSTED/, 'degraded synthesis must remain visible after bounded retry exhaustion');
-assert.match(universalContinuation, /CAPABILITY_RESOLUTION_REQUIRED/, 'RETURN plans must be actively resolved rather than presented as fake acquisition');
-assert.match(universalContinuation, /supersedesReturnPlanEventId/, 'capability resolution must supersede the existing plan in the same event lineage instead of creating a parallel store');
-assert.match(universalContinuation, /HUMAN_SOURCE_OR_AUTHORIZATION_REQUIRED/, 'missing authoritative source capability must become explicit human input, not fake SFI work');
-assert.match(universalContinuation, /rawRowsRequired: false/, 'RETURN resolution must not reintroduce raw-row persistence');
-assert.match(universalContinuation, /Authorized read access to the authoritative source is sufficient/, 'source authorization must be accepted instead of forcing a raw dataset re-upload');
-assert.doesNotMatch(universalContinuation, /recordUniversalReturn\(/, 'continuation must never manufacture RETURN while resolving its acquisition capability');
+assert.doesNotMatch(universalContinuation, /recordUniversalReturn\(/, 'cognitive continuation must never manufacture RETURN');
+
+assert.match(cognitiveCycle, /materializeInstitutionalRuntimeCognitiveSpine/, 'universal cognition must consume a sealed institutional Cognitive Spine projection');
+assert.match(cognitiveCycle, /ctSnapshotConsumed: true/, 'successful universal cognition must explicitly record CT consumption');
+assert.match(cognitiveCycle, /resolveUniversalReturnCapability/, 'new RETURN plans must be resolved by governed AI at creation rather than deferred to frontend heuristics');
+assert.match(cognitiveCycle, /SFI_UNIVERSAL_RETURN_CAPABILITY_CONTRACT/, 'RETURN-plan dedupe must recognize the AI-governed capability contract');
+assert.doesNotMatch(cognitiveCycle, /recordUniversalReturn\(/, 'cognitive planning cannot manufacture observed RETURN');
+
+assert.match(runtimeAgentExecutor, /governedUniversalAi/, 'runtime executor must permit governed universal AI without the legacy augmentation flag');
+assert.match(agentLlmClient, /governedUniversalAi/, 'LLM adapter must not silently cancel governed universal AI requested by the executor');
+assert.match(agentLlmClient, /adaptiveLearning/, 'Twin-relevant LLM projection must include adaptive calibrated learning context');
+assert.match(agentLlmClient, /never as KernelEvidence/, 'adaptive learning must remain explicitly non-evidentiary inside the model prompt');
+
+assert.match(universalReturnCapability, /runLlmTask/, 'RETURN ownership must use the governed model router');
+assert.match(universalReturnCapability, /SFI_RETURN_CAPABILITY_INVENTORY/, 'AI may choose only from an explicit executable capability inventory');
+assert.match(universalReturnCapability, /RETURN_CAPABILITY_AI_SELECTED_UNAUTHORIZED_CAPABILITY/, 'AI capability choice must be deterministically revalidated');
+assert.match(universalReturnCapability, /rawRowsRequired: false/, 'RETURN routing must not force raw-row persistence');
+assert.doesNotMatch(universalReturnCapability, /recordUniversalReturn\(/, 'capability routing must never create RETURN');
+
+assert.match(universalReturnPlanUpgrade, /LEGACY_HEURISTIC_OR_UNRESOLVED_PLAN_TO_AI_GOVERNED_VALIDATED_1_1/, 'legacy heuristic RETURN plans must be superseded, not silently retained');
+assert.match(universalReturnPlanUpgrade, /supersedesReturnPlanEventId/, 'legacy upgrade must retain same-cycle plan lineage');
+assert.doesNotMatch(universalReturnPlanUpgrade, /recordUniversalReturn\(/, 'legacy plan migration must never fabricate RETURN');
+
+assert.match(heartbeat, /runUniversalReturnPlanUpgrade/, 'heartbeat must upgrade legacy RETURN ownership before and after cognition');
+assert.match(heartbeat, /runUniversalEmpiricalContinuation/, 'heartbeat must own empirical continuation after real RETURN');
+assert.match(universalEmpirical, /SFI_UNIVERSAL_RETURN_AI_CLASSIFICATION_PROPOSED/, 'RETURN contrast direction must have explicit AI provenance');
+assert.match(universalEmpirical, /validateReturnEvidenceRefs/, 'AI classification must not bypass RETURN evidence traceability');
+assert.match(universalEmpirical, /text\(contrastPayload\.calibrationStatus\) !== 'CONTRAST_RECORDED'/, 'empirical continuation must refuse closure when calibration is incomplete');
+assert.match(universalEmpirical, /assessUniversalClosure/, 'automatic close must reuse the existing empirical closure contract');
+assert.match(universalEmpirical, /closeUniversalCycle/, 'evidence-complete empirical cycles must close without another manual button');
+assert.match(universalEmpirical, /recordUniversalLearningCandidate/, 'closed calibrated cycles must produce a learning candidate automatically');
+assert.match(universalEmpirical, /A_TO_Z_EMPIRICAL_CYCLE_COMPLETED/, 'A-to-Z completion must be explicit and observable');
+assert.doesNotMatch(universalEmpirical, /recordUniversalReturn\(/, 'empirical continuation may consume but never fabricate RETURN');
+
+assert.match(adaptiveLearning, /CALIBRATED_RETURN/, 'only evidence-complete calibrated universal learning may enter adaptive Twin context');
+assert.match(adaptiveLearning, /eligibleForRootPromotion === true/, 'adaptive learning must first satisfy calibrated-return eligibility');
+assert.match(adaptiveLearning, /ADAPTIVE_NON_CANONICAL/, 'adaptive learning must not masquerade as canon');
+assert.match(adaptiveLearning, /\.lte\('occurred_at', cutoff\)/, 'adaptive context must obey the same temporal cutoff as the sealed execution');
+assert.match(runtimeTwinMaterializer, /readAdaptiveUniversalLearningContext/, 'runtime Twin materialization must consume adaptive learning explicitly');
+assert.match(runtimeTwinMaterializer, /authority: 'ADAPTIVE_NON_CANONICAL'/, 'runtime Twin projection must preserve adaptive non-canonical authority');
 
 assert.match(evidence, /jobId: `evidence-acquisition:/, 'evidence work must have a proposal-scoped job identity');
 assert.match(evidence, /rootActionRequired: state !== 'MISSING'/, 'ROOT must not be pinged while evidence_hunter owns acquisition');
@@ -105,7 +147,7 @@ assert.equal(new Set(cronPaths).size, cronPaths.length, 'this change must not du
 
 console.log(JSON.stringify({
   ok: true,
-  contract: 'SFI-NEXT-EXPECTED-EVENT-1.1',
+  contract: 'SFI-NEXT-EXPECTED-EVENT-1.2',
   invariants: {
     eachNonTerminalStateDeclaresNextWork: true,
     waitingEvidenceCreatesMachineWork: true,
@@ -117,8 +159,13 @@ console.log(JSON.stringify({
     heartbeatVisibleInRoot: true,
     starvationResistantContinuation: true,
     degradedSynthesisIsBoundedlyRetryable: true,
-    returnPlanHasExecutableOwnershipResolution: true,
+    returnPlanHasAiGovernedCapabilityResolution: true,
     unresolvedAuthoritativeSourceEscalatesTruthfully: true,
+    universalRuntimeConsumesSealedCognitiveTwin: true,
+    governedUniversalAiActuallyReachesModelRouter: true,
+    realReturnContinuesThroughContrastClosureAndLearning: true,
+    calibratedLearningIsAdaptiveBeforeCanon: true,
+    noAutonomyPathFabricatesReturn: true,
     postDeployContinuityExercise: true,
     vercelFallbackNotDuplicated: true,
   },

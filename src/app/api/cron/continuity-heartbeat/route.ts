@@ -4,6 +4,8 @@ import { runStudioAutonomyContinuation } from '@/lib/continuity/studioAutonomy';
 import { verifyGitHubActionsOidcToken } from '@/lib/continuity/githubActionsOidc';
 import { runGovernedExecutionRouter } from '@/lib/execution/governedExecutionRouter';
 import { runUniversalCycleContinuation } from '@/lib/sfi/universalCycleContinuation';
+import { runUniversalEmpiricalContinuation } from '@/lib/sfi/universalEmpiricalContinuation';
+import { runUniversalReturnPlanUpgrade } from '@/lib/sfi/universalReturnPlanUpgrade';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -44,6 +46,17 @@ export async function GET(request: NextRequest) {
   try {
     const result = await runContinuityHeartbeat(authorization.trigger);
     const emergencyHalt = result.mode === 'EMERGENCY_HALT';
+
+    const returnPlanUpgradeBefore = emergencyHalt
+      ? { ok: true as const, halted: true as const, processed: 0, results: [] }
+      : await runUniversalReturnPlanUpgrade({ limit: 4, cycleId: requestedCycleId }).catch((error) => ({
+          ok: false as const,
+          processed: 0,
+          requestedCycleId: requestedCycleId ?? null,
+          results: [],
+          error: error instanceof Error ? error.message : String(error),
+        }));
+
     const [studioAutonomy, transitionWatchdog, governedExecution, universalCycleContinuation] = await Promise.all([
       runStudioAutonomyContinuation({
         mode: result.mode,
@@ -88,9 +101,32 @@ export async function GET(request: NextRequest) {
           })),
     ]);
 
+    const returnPlanUpgradeAfter = emergencyHalt
+      ? { ok: true as const, halted: true as const, processed: 0, results: [] }
+      : await runUniversalReturnPlanUpgrade({ limit: 4, cycleId: requestedCycleId }).catch((error) => ({
+          ok: false as const,
+          processed: 0,
+          requestedCycleId: requestedCycleId ?? null,
+          results: [],
+          error: error instanceof Error ? error.message : String(error),
+        }));
+
+    const universalEmpiricalContinuation = emergencyHalt
+      ? { ok: true as const, halted: true as const, processed: 0, results: [] }
+      : await runUniversalEmpiricalContinuation({ limit: 3, cycleId: requestedCycleId }).catch((error) => ({
+          ok: false as const,
+          processed: 0,
+          requestedCycleId: requestedCycleId ?? null,
+          results: [],
+          error: error instanceof Error ? error.message : String(error),
+        }));
+
     const laneFailure = transitionWatchdog.ok === false
       || governedExecution.ok === false
       || universalCycleContinuation.ok === false
+      || returnPlanUpgradeBefore.ok === false
+      || returnPlanUpgradeAfter.ok === false
+      || universalEmpiricalContinuation.ok === false
       || studioAutonomy.status === 'DEGRADED';
 
     return NextResponse.json({
@@ -101,10 +137,13 @@ export async function GET(request: NextRequest) {
       studioAutonomy,
       transitionWatchdog,
       governedExecution,
+      returnPlanUpgradeBefore,
       universalCycleContinuation,
+      returnPlanUpgradeAfter,
+      universalEmpiricalContinuation,
       executionRule: emergencyHalt
-        ? 'EMERGENCY_HALT suppresses transition writes, governed execution dispatch and universal-cycle continuation. Continuity probes may record the halted heartbeat only.'
-        : 'Continuity reuses the existing heartbeat: waiting_evidence can acquire candidates, unknown risk is assessed, already-authorized queued work is retried/rerouted, and interrupted universal cognitive cycles resume from durable checkpoints. Evidence acceptance, governance decisions, material external scope expansion, RETURN fabrication and canon remain prohibited.',
+        ? 'EMERGENCY_HALT suppresses transition writes, governed execution dispatch, universal cognitive continuation, empirical continuation and learning writes. Continuity probes may record the halted heartbeat only.'
+        : 'One heartbeat owns the complete governed continuation path: legacy RETURN plans are upgraded to AI-governed capability routing, interrupted cognition resumes from durable checkpoints using a sealed Cognitive Twin context, real evidence-linked RETURNs advance through AI-assisted CONTRAST and existing empirical closure rules, and calibrated learning becomes adaptive non-canonical Twin context. Missing evidence remains missing; no RETURN, canon mutation or irreversible external authority is fabricated.',
     });
   } catch (error) {
     return NextResponse.json({ ok: false, error: 'continuity_heartbeat_failed', details: error instanceof Error ? error.message : String(error) }, { status: 500 });

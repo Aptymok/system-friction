@@ -1,5 +1,6 @@
 import 'server-only';
 
+import { readAdaptiveUniversalLearningContext } from '@/core/cognitive-twin/adaptiveLearningContext';
 import { RUNTIME_GENERAL_CONTEXT_PROFILE } from '@/core/cognitive-spine/profiles/runtimeGeneral';
 import { buildRuntimeCognitiveSpineProjection } from '@/core/cognitive-spine/runtime/kernelProjection';
 import { materializeInstitutionalCognitiveSpineProfile } from './cognitiveSpineProfileMaterializer';
@@ -10,9 +11,11 @@ import { buildBoundedTwinContextFromCognitiveSpine } from './cognitiveSpineTwinC
  * materializer. The shared materializer owns source reads, temporal cutoff,
  * profile selection, semantic hashing and CT AVAILABLE / CT CONSUMED trace.
  *
- * This adapter only converts the already-sealed Runtime profile into the
- * bounded Twin context consumed by existing Runtime/LLM agents. Memory and
- * decisions remain context; they are not appended to KernelEvidence.
+ * Canonical memory and decisions remain context; they are not appended to KernelEvidence.
+ * Evidence-complete calibrated learning candidates may be added as a second,
+ * explicitly non-canonical adaptive context at the same source cutoff. They
+ * never become KernelEvidence and never mutate canon or authority by being
+ * consumed here.
  */
 export async function materializeInstitutionalRuntimeCognitiveSpine(input: {
   sourceCutoff: string;
@@ -29,10 +32,33 @@ export async function materializeInstitutionalRuntimeCognitiveSpine(input: {
     consumptionReason: 'bounded shared institutional runtime context',
   });
 
-  const cognitiveTwinContext = buildBoundedTwinContextFromCognitiveSpine({
+  const boundedTwin = buildBoundedTwinContextFromCognitiveSpine({
     snapshot: materialized.snapshot,
     sourcePlane: materialized.sourcePlane,
   });
+  const adaptiveLearning = input.consume
+    ? await readAdaptiveUniversalLearningContext(24, input.sourceCutoff)
+    : {
+        contract: 'SFI-CT-ADAPTIVE-LEARNING-1.1',
+        sourceCutoff: input.sourceCutoff,
+        adaptiveCandidates: [],
+        promotedCandidateIds: [],
+        rejectedCandidateIds: [],
+        warning: null,
+        boundary: 'CT AVAILABLE but not consumed; adaptive learning is withheld from this execution.',
+      };
+
+  const cognitiveTwinContext = {
+    ...boundedTwin,
+    adaptiveLearning: {
+      contract: adaptiveLearning.contract,
+      sourceCutoff: adaptiveLearning.sourceCutoff,
+      candidates: adaptiveLearning.adaptiveCandidates,
+      warning: adaptiveLearning.warning,
+      authority: 'ADAPTIVE_NON_CANONICAL',
+      boundary: adaptiveLearning.boundary,
+    },
+  };
 
   const runtimeProjection = buildRuntimeCognitiveSpineProjection({
     snapshot: materialized.snapshot,
@@ -45,7 +71,15 @@ export async function materializeInstitutionalRuntimeCognitiveSpine(input: {
     trace: materialized.trace,
     runtimeProjection,
     cognitiveTwinContext,
-    warnings: materialized.warnings,
+    warnings: [
+      ...materialized.warnings,
+      ...(adaptiveLearning.warning ? [`adaptive_learning:${adaptiveLearning.warning}`] : []),
+    ],
     sourcePlane: materialized.sourcePlane.summary,
+    adaptiveLearning: {
+      sourceCutoff: adaptiveLearning.sourceCutoff,
+      candidateCount: adaptiveLearning.adaptiveCandidates.length,
+      authority: 'ADAPTIVE_NON_CANONICAL',
+    },
   };
 }
