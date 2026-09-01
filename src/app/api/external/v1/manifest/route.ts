@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { SFI_HUMAN_INTERACTION_POLICY } from '@/lib/sfi/humanInteractionPolicy';
+import { SFI_ANALYSIS_LEARNING_POLICY } from '@/lib/sfi/analysisLearningPolicy';
 
 export const dynamic = 'force-dynamic';
 
@@ -39,7 +40,7 @@ export async function GET() {
       studioIdentityBoundary: 'Studio operations require user-bound OAuth and resolve ownership from token subject_id; shared/static tokens cannot impersonate an owner.',
     },
     operations: [
-      { id: 'bootstrap', method: 'GET', path: '/bootstrap', scope: 'observe', tenant: 'institutional', description: 'Hydrate an authorized AI client with a versioned SFI cognitive contract, sealed Cognitive Spine snapshot, bounded memory/decisions and promoted learning only.' },
+      { id: 'bootstrap', method: 'GET', path: '/bootstrap', scope: 'observe', tenant: 'institutional', description: 'Hydrate an authorized AI client with a versioned SFI cognitive contract, sealed Cognitive Spine snapshot, bounded memory/decisions, promoted learning and current human/analysis policies.' },
       { id: 'console', method: 'GET', path: '/console', scope: 'observe', tenant: 'institutional', description: 'Read the compact governed machine console.' },
       { id: 'execution-contract', method: 'POST', path: '/execution-contract', scope: 'observe', tenant: 'institutional', description: 'Describe an object and obtain the governed measurement contract without uploading raw content.' },
       { id: 'structured-result', method: 'POST', path: '/result', scope: 'lab:write', tenant: 'institutional', description: 'Return structured measurements and provenance without raw-object persistence.' },
@@ -96,6 +97,7 @@ export async function GET() {
       },
     },
     interactionPolicy: SFI_HUMAN_INTERACTION_POLICY,
+    analysisLearningPolicy: SFI_ANALYSIS_LEARNING_POLICY,
     mutationEvidence: {
       publicSurface: '/history/mutations',
       machineSurface: '/api/public/mutations',
