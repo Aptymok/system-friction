@@ -11,13 +11,15 @@ function blockBetween(source: string, startMarker: string, endMarker: string) {
 }
 
 async function main() {
-  const [ledger, route, gate, runtimeProfile, projectionProfile, openapiMerge] = await Promise.all([
+  const [ledger, route, gate, runtimeProfile, projectionProfile, openapiMerge, interactionPolicy, manifest] = await Promise.all([
     text('src/lib/sfi/personal/cognitivePatternLedger.ts'),
     text('src/app/api/external/v1/cognitive/route.ts'),
     text('src/core/cognitive-spine/gates/personInstitutionGate.ts'),
     text('src/core/cognitive-spine/profiles/runtimeGeneral.ts'),
     text('src/core/cognitive-spine/contracts/projectionProfile.ts'),
     text('scripts/merge-openapi-person-ct.mjs'),
+    text('src/lib/sfi/humanInteractionPolicy.ts'),
+    text('src/app/api/external/v1/manifest/route.ts'),
   ]);
 
   assert(ledger.includes("export type PersonPatternDimension = 'COGNITION' | 'OBSERVATION'"));
@@ -33,12 +35,34 @@ async function main() {
   assert(ledger.includes("sourceClass === 'SELF_DECLARED' ? 'declared' : 'inferred'"));
 
   assert(route.includes("credential.authMethod !== 'oauth' || !credential.subjectId"));
-  assert(route.includes("if (['propose_pattern', 'confirm_pattern', 'reject_pattern'].includes(operation)) return 'lab:write'"));
+  assert(route.includes("'learn_declared_pattern'"));
+  assert(route.includes("if (['propose_pattern', 'confirm_pattern', 'reject_pattern', 'learn_declared_pattern'].includes(operation)) return 'lab:write'"));
   assert(route.includes("if (operation === 'run') return 'lab:run'"));
   assert(route.includes("operation === 'patterns'"));
   assert(route.includes("operation === 'propose_pattern'"));
+  assert(route.includes("operation === 'learn_declared_pattern'"));
+  assert(route.includes('selfDeclared: true'));
+  assert(route.includes("disposition: 'CONFIRMED'"));
+  assert(route.includes('Explicit owner request to learn/remember/apply this personal interaction rule.'));
   assert(route.includes("operation === 'confirm_pattern' || operation === 'reject_pattern'"));
   assert(route.includes('A run does not automatically create a PERSON_CT pattern'));
+
+  assert(interactionPolicy.includes("contract: 'SFI-HUMAN-INTERACTION-POLICY-1.0'"));
+  assert(interactionPolicy.includes("defaultAudience: 'HUMAN'"));
+  assert(interactionPolicy.includes("'WHAT_IS_HAPPENING'"));
+  assert(interactionPolicy.includes("'WHY_IT_MATTERS'"));
+  assert(interactionPolicy.includes("'WHO_MUST_ACT'"));
+  assert(interactionPolicy.includes("'AVAILABLE_OPTIONS'"));
+  assert(interactionPolicy.includes("'CONSEQUENCES'"));
+  assert(interactionPolicy.includes("'WHAT_HAPPENS_NEXT'"));
+  assert(interactionPolicy.includes("'backend implementation jargon'"));
+  assert(interactionPolicy.includes('Technical implementation detail is secondary'));
+  assert(interactionPolicy.includes('A human cannot exercise meaningful authority over a system state they cannot interpret.'));
+  assert(interactionPolicy.includes('explicit request to remember/learn/apply an interaction rule'));
+  assert(interactionPolicy.includes('PERSON_CT and is private to the authenticated owner'));
+  assert(interactionPolicy.includes('it is not proof of a universal or permanent cognitive trait'));
+  assert(manifest.includes('interactionPolicy: SFI_HUMAN_INTERACTION_POLICY'));
+  assert(manifest.includes("explicitOwnerLearningOperation: 'learn_declared_pattern'"));
 
   assert(gate.includes('Personal cognitive content does not become institutional state by inheritance'));
   assert(gate.includes("input.disposition === 'ADMITTED'"));
@@ -53,20 +77,25 @@ async function main() {
   assert(projectionProfile.includes('return profile.allowedRefKinds.includes(kind) && !profile.deniedRefKinds.includes(kind)'), 'projection evaluator must enforce deny after allow');
   assert(projectionProfile.includes('COGNITIVE_SPINE_PROFILE_ALLOW_DENY_OVERLAP'), 'profile validation must reject contradictory allow/deny configuration');
 
-  assert(openapiMerge.includes("enum: ['state', 'patterns', 'propose_pattern', 'confirm_pattern', 'reject_pattern', 'run']"));
+  assert(openapiMerge.includes("enum: ['state', 'patterns', 'propose_pattern', 'learn_declared_pattern', 'confirm_pattern', 'reject_pattern', 'run']"));
   assert(openapiMerge.includes("enum: ['COGNITION', 'OBSERVATION']"));
   assert(openapiMerge.includes('at least two distinct owner-scoped run/evidence references'));
+  assert(openapiMerge.includes('learn_declared_pattern may be used only when the authenticated person explicitly asks'));
+  assert(openapiMerge.includes('humanInteractionBoundary'));
   assert(openapiMerge.includes('personCtPatternBoundary'));
 
   console.log(JSON.stringify({
     ok: true,
-    contract: 'SFI-PERSON-CT-PATTERN-QA-1.2',
+    contract: 'SFI-PERSON-CT-PATTERN-QA-1.3',
     invariants: {
       cognitionObservationSeparated: true,
       inferredPatternNeedsRecurrence: true,
       supportMustBeOwned: true,
       runDoesNotAutoLearnPattern: true,
-      userResolutionRequired: true,
+      explicitOwnerLearningMayConfirmInOneOperation: true,
+      userResolutionRequiredForInference: true,
+      humanFirstInteractionPolicy: true,
+      technicalDetailSecondaryByDefault: true,
       runtimeProjectionDeniesPersonCt: true,
       personCtAbsentFromRuntimeAllowlist: true,
       projectionDenyOverridesAllow: true,
