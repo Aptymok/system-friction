@@ -82,7 +82,7 @@ assert.ok(observatoryUi.includes("type Lens='field'|'hypotheses'|'trajectory'|'s
 assert.ok(observatoryUi.includes('MÉTRICAS DERIVADAS') && observatoryUi.includes('TRAZA DE CONSECUENCIAS'), 'field_must_expose_metrics_and_traceable_hypothesis_meaning');
 assert.ok(operatingUi.includes("jsonFetch('/api/acp/proposals')"), 'governed_proposal_feed_missing');
 assert.ok(operatingUi.includes('AGENTES') && operatingUi.includes("jsonFetch('/api/root/cognitive-runtime')"), 'governance_must_surface_observed_agent_runtime');
-assert.ok(operatingUi.includes('TWIN') || shellUi.includes('TWIN / SPINE'), 'cognitive_twin_operating_surface_missing');
+assert.ok(operatingUi.includes("surface==='twin'") && operatingUi.includes('CognitiveSpineAnatomy'), 'cognitive_twin_operating_surface_missing');
 assert.ok(operatingUi.includes('ACEPTAR') && operatingUi.includes('DENEGAR') && operatingUi.includes('PEDIR EVIDENCIA'), 'decision_authority_controls_missing');
 
 assert.match(readiness,/EMPTY_READY/);
