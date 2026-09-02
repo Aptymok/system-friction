@@ -29,6 +29,7 @@ const fieldState = read('src/lib/studio/field/studioFieldState.ts');
 const scenes = read('src/components/sfi/scenes.ts');
 const liveUi = read('src/components/sfi/SfiConsole.tsx');
 const operatingUi = read('src/components/sfi/SfiOperatingWorkspace.tsx');
+const governanceUi = read('src/components/sfi/SfiGovernanceWorkspace.tsx');
 const rootWorkboard = read('src/app/api/root/workboard/route.ts');
 
 const requiredAgents = [
@@ -101,7 +102,7 @@ assert.ok(scenes.includes("governance:{key:'governance'"), 'governance_scene_mis
 assert.ok(scenes.includes("twin:{key:'twin'"), 'twin_scene_missing');
 assert.ok(/LEGACY_INTERNAL_SCENES=.*'agents'.*'models'.*'genai'/s.test(scenes), 'absorbed_cognitive_observability_scenes_missing');
 assert.ok(liveUi.includes('COGNITIVE TWIN'), 'studio_twin_observability_missing');
-assert.ok(operatingUi.includes('AGENTES'), 'studio_agent_observability_missing');
+assert.ok(operatingUi.includes('SfiGovernanceWorkspace') && governanceUi.includes('AGENTES'), 'studio_agent_observability_missing');
 assert.ok(rootWorkboard.includes('getLlmProviderStatus') && rootWorkboard.includes('providerHealthBoundary'), 'studio_model_provider_observability_missing');
 assert.ok(rootWorkboard.includes('readContinuityDashboard') && rootWorkboard.includes('heartbeatAgeMinutes') && rootWorkboard.includes('latestRun'), 'studio_runtime_telemetry_missing');
 
