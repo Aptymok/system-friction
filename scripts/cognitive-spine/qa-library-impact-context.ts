@@ -6,17 +6,21 @@ const root = process.cwd();
 const read = (relative: string) => readFileSync(path.join(root, relative), 'utf8');
 
 const publicPage = read('src/app/library/page.tsx');
+const dynamicScenePage = read('src/app/[scene]/page.tsx');
 const scenes = read('src/components/sfi/scenes.ts');
 const consoleUi = read('src/components/sfi/SfiConsole.tsx');
 const inspector = read('src/lib/sfi/library/cognitiveSpineImpactContext.ts');
 const route = read('src/app/api/root/library/cognitive-spine/route.ts');
 
-// The legacy Library frontend has been retired. /library is now a compatibility
-// alias into the live ARCHIVE scene. The alias must remain presentation-only and
-// must not read private Cognitive Spine state itself.
-assert.ok(publicPage.includes("redirect('/archive')"), 'library_alias_must_resolve_to_archive_scene');
-assert.ok(scenes.includes("archive:{key:'archive'"), 'archive_scene_missing');
-assert.ok(scenes.includes("title:'Archivo, fuente y contexto'"), 'archive_scene_semantics_missing');
+// The legacy Library frontend has been retired. /library remains a presentation-only
+// compatibility alias. `archive` is now explicitly a legacy lens and the shared
+// dynamic scene router sends all legacy internal lenses to the canonical /root
+// surface. The alias must not read private Cognitive Spine state itself.
+assert.ok(publicPage.includes("redirect('/archive')"), 'library_alias_must_enter_archive_compatibility_lens');
+assert.ok(scenes.includes("LEGACY_INTERNAL_SCENES=['systems','archive'"), 'archive_legacy_lens_registry_missing');
+assert.equal(scenes.includes("archive:{key:'archive'"), false, 'archive_must_not_reappear_as_independent_live_scene');
+assert.ok(dynamicScenePage.includes('LEGACY_INTERNAL_SCENES'), 'shared_scene_router_legacy_registry_missing');
+assert.ok(dynamicScenePage.includes("redirect('/root')"), 'legacy_archive_lens_must_resolve_to_canonical_root_surface');
 assert.ok(consoleUi.includes('SfiConsole'), 'live_scene_runtime_missing');
 for (const forbiddenPrivateRead of [
   "@/runtime/supabase",
@@ -47,9 +51,10 @@ assert.ok(route.includes('Cache-Control'), 'library_root_inspection_cache_bounda
 console.log(JSON.stringify({
   ok: true,
   profile: 'LIBRARY_IMPACT_CONTEXT_V1',
-  publicLibrarySurface: 'ARCHIVE_LIVE_SCENE',
+  publicLibrarySurface: 'ROOT_VIA_ARCHIVE_COMPATIBILITY_LENS',
+  archiveIndependentSurface: false,
   legacyLibraryAliasReadsPrivateCt: false,
-  ordinaryArchiveReadConsumesCt: false,
+  ordinaryLibraryReadConsumesCt: false,
   impactStatus: 'UNDEMONSTRATED',
   fabricatedImpactLinks: false,
   artifactContentHashIdentityReady: false,
