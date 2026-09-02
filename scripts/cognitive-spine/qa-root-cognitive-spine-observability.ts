@@ -32,8 +32,9 @@ assert.ok(route.includes("requireRootViewer('root.cognitive-spine.status')"), 'r
 assert.ok(route.includes("'Cache-Control': 'no-store'"), 'root_ct_status_endpoint_cache_boundary_missing');
 
 // ROOT stays on the canonical live-scene runtime. Method Lab is not an owner of this projection.
+// Assert the current canonical scene semantics rather than a retired pre-convergence title.
 assert.ok(scenes.includes("root:{key:'root'"), 'root_live_scene_missing');
-assert.ok(scenes.includes("title:'SFI · director operativo'"), 'root_live_scene_semantics_missing');
+assert.ok(scenes.includes("title:'Observatorio de Fricción'"), 'root_live_scene_semantics_missing');
 assert.ok(liveUi.includes('COGNITIVE TWIN'), 'root_live_scene_twin_observability_missing');
 assert.ok(liveUi.includes('/api/acp/proposals'), 'root_live_scene_proposal_feed_missing');
 assert.ok(liveUi.includes('ACEPTAR') && liveUi.includes('RECHAZAR'), 'root_live_scene_governance_controls_missing');
