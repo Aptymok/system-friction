@@ -14,8 +14,11 @@ const routePath = 'src/app/api/root/method-lab/decision-transfer/route.ts';
 const readModelPath = 'src/lib/method-lab/readModel.ts';
 const scenesPath = 'src/components/sfi/scenes.ts';
 const liveUiPath = 'src/components/sfi/SfiConsole.tsx';
+const operatingUiPath = 'src/components/sfi/SfiOperatingWorkspace.tsx';
+const methodLabPagePath = 'src/app/method-lab/page.tsx';
+const methodLabHubPath = 'src/components/sfi/MethodLabNativeHub.tsx';
 
-for (const file of [runPath, routePath, readModelPath, scenesPath, liveUiPath]) {
+for (const file of [runPath, routePath, readModelPath, scenesPath, liveUiPath, operatingUiPath, methodLabPagePath, methodLabHubPath]) {
   assert(fs.existsSync(path.join(process.cwd(), file)), `missing:${file}`);
 }
 
@@ -24,6 +27,9 @@ const route = read(routePath);
 const readModel = read(readModelPath);
 const scenes = read(scenesPath);
 const liveUi = read(liveUiPath);
+const operatingUi = read(operatingUiPath);
+const methodLabPage = read(methodLabPagePath);
+const methodLabHub = read(methodLabHubPath);
 
 assert(route.includes("requireRootActor('root.method-lab.decision-transfer.evaluate')"), 'route_must_require_root_actor');
 assert(route.includes('auditRootAction'), 'route_must_audit_mutation');
@@ -50,20 +56,23 @@ assert(readModel.includes('decisionTransfer'), 'read_model_summary_missing');
 assert(readModel.includes('validatedDecisionAccuracy'), 'validated_holdout_metric_missing');
 assert(readModel.includes('validatedTargetDispositionAccuracy'), 'validated_counterfactual_metric_missing');
 
-// Decision Transfer no longer owns a parallel Method Lab dashboard. Its observable
-// projection lives in the canonical falsification/models/root scenes while execution
-// remains on the governed Method Lab API above.
-assert(scenes.includes("falsification:{key:'falsification'"), 'falsification_scene_missing');
-assert(scenes.includes("models:{key:'models'"), 'models_scene_missing');
+// FALSIFICATION and MODELS were absorbed as parallel scenes. Decision Transfer remains
+// a governed Method Lab instrument, observable through ROOT + TWIN/SPINE and the native Lab.
 assert(scenes.includes("root:{key:'root'"), 'root_scene_missing');
+assert(scenes.includes("twin:{key:'twin'"), 'twin_scene_missing');
+assert(/LEGACY_INTERNAL_SCENES=.*'falsification'.*'models'/s.test(scenes), 'legacy_falsification_models_absorption_missing');
 assert(liveUi.includes('COGNITIVE TWIN'), 'decision_transfer_twin_observability_missing');
-assert(liveUi.includes('ACEPTAR') && liveUi.includes('RECHAZAR'), 'decision_transfer_authority_boundary_missing');
+assert(operatingUi.includes('ACEPTAR') && operatingUi.includes('DENEGAR'), 'decision_transfer_authority_boundary_missing');
+assert(operatingUi.includes('PEDIR EVIDENCIA'), 'decision_transfer_evidence_boundary_missing');
+assert(methodLabPage.includes('MethodLabNativeHub'), 'decision_transfer_method_lab_surface_missing');
+assert(methodLabHub.includes('DECISION TRANSFER'), 'decision_transfer_native_observability_missing');
 
 console.log(JSON.stringify({
   ok: true,
   gate: 'SFI_DECISION_TRANSFER_OPERATIONAL',
   canonicalRoute: '/api/root/method-lab/decision-transfer',
-  canonicalSurface: 'FALSIFICATION/MODELS/ROOT live scenes',
+  canonicalSurface: 'METHOD LAB + ROOT + TWIN/SPINE',
+  legacySurfacesAbsorbed: ['FALSIFICATION', 'MODELS'],
   nativeSurface: true,
   persistence: ['sfi_cognitive_twin_runs', 'sfi_cognitive_twin_evaluations', 'sfi_lab_analyses'],
   memoryMutation: false,
