@@ -51,7 +51,7 @@ assert.ok(operatingUi.includes('ACEPTAR') && operatingUi.includes('DENEGAR'), 'p
 assert.ok(operatingUi.includes('PEDIR EVIDENCIA'), 'reviewers must be able to defer a decision for evidence');
 assert.ok(operatingUi.includes("proposalReadState==='DEGRADED'") && operatingUi.includes('Fuente de propuestas DEGRADED'), 'proposal read failure must remain visible instead of becoming an empty queue');
 assert.ok(operatingUi.includes("jsonFetch('/api/root/workboard')") && operatingUi.includes('workboard?.operationalNext'), 'ROOT must expose live operational-next state');
-assert.ok(operatingUi.includes('returnPlan?.next') && operatingUi.includes('CICLOS UNIVERSALES') || operatingUi.includes('Ciclo universal'), 'ROOT/cases must expose cycle next/RETURN posture');
+assert.ok(operatingUi.includes('returnPlan?.next') && operatingUi.includes('Ciclo universal'), 'ROOT/cases must expose cycle next/RETURN posture');
 assert.doesNotMatch(operatingUi, /REGISTRAR REALIZACIÓN INTERNA/, 'ROOT UI must not offer a false manual realization button');
 assert.match(shellUi, /SfiOperatingWorkspace/, 'canonical shell must mount the converged operating workspace');
 
@@ -75,10 +75,11 @@ for (const foundationId of ['fafd0dc4-0ade-4f5d-ac3c-1efebe4e8abd', '25061b67-9e
   assert.ok(workboard.includes(foundationId), `governed foundation proposal missing from status observability: ${foundationId}`);
 }
 // Presentation may be redesigned, but the canonical read model must continue to expose
-// the same operational distinctions needed by a human-facing workspace.
-for (const token of ['rootActionRequired', 'machineOwned', 'reportLanes', 'risk', 'opportunity', 'return', 'calibration', 'universal', 'proposal']) {
-  assert.ok(workboard.toLowerCase().includes(token.toLowerCase()), `workboard operational distinction missing: ${token}`);
+// the operational distinctions needed by the human-facing workspace.
+for (const token of ['decisions', 'executions', 'blockers', 'twinProposals', 'reports', 'riskOpportunity', 'returns', 'canonCandidates', 'openCycles', 'runtime', 'governanceGates']) {
+  assert.ok(workboard.includes(token), `workboard operational distinction missing: ${token}`);
 }
+assert.match(workboard, /flow: \['proposal', 'authorization', 'routing', 'assignment', 'execution', 'return', 'calibration', 'learning', 'canon_or_close'\]/, 'workboard must publish the governed operational sequence');
 assert.match(workboard, /implementationPerformedByWorkboard: false/, 'operational home remains a read model, not an executor');
 
 assert.match(caseExecutionApi, /requireRootActor\('root\.case_execution\.read'\)/, 'cross-tenant Case Action execution overview must remain sovereign ROOT-only');
