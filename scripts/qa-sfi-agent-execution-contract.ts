@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { CrossImpactAgent } from '../src/lib/sfi/cognitive-runtime/agents/crossImpact';
 import { SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY } from '../src/lib/sfi/cognitive-runtime/convergedRegistry';
 import {
   SFI_EXECUTION_CONTRACT_VERSION,
@@ -7,6 +8,11 @@ import {
   normalizeExecutionRequest,
   validateExecutionRequest,
 } from '../src/lib/sfi/cognitive-runtime/executionContracts';
+import type { KernelContext } from '../src/lib/sfi/cognitive-runtime/kernelContext';
+
+function record(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
 
 const contracts = listExecutionContracts();
 const registeredIds = [...new Set(SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY.map((agent) => agent.id))].sort();
@@ -53,6 +59,39 @@ const crossTwo = normalizeExecutionRequest('cross_impact', {
 const crossTwoValidation = validateExecutionRequest(crossImpact, crossTwo);
 assert.equal(crossTwoValidation.ok, true, `cross_impact valid multi-target request rejected: ${crossTwoValidation.errors.join(',')}`);
 
+const crossContext: KernelContext = {
+  cycleId: 'cycle-cross-impact-qa',
+  logbookId: 'logbook-cross-impact-qa',
+  currentEvent: 'SFI_ROOT_MANUAL_AGENT_REQUESTED',
+  evidence: [
+    { id: 'target:NODE:node-a', source: 'ROOT_MANUAL_TARGET_CONTEXT', confidence: 1, payload: { epistemicClass: 'record', targetId: 'node-a' } },
+    { id: 'target:NODE:node-b', source: 'ROOT_MANUAL_TARGET_CONTEXT', confidence: 1, payload: { epistemicClass: 'record', targetId: 'node-b' } },
+  ],
+  hypotheses: [],
+  contradictions: [],
+  simulations: [],
+  predictions: [],
+  risks: [],
+  opportunities: [],
+  metadata: {
+    executionRequest: {
+      targets: [
+        { kind: 'NODE', id: 'node-a', title: 'Node A' },
+        { kind: 'NODE', id: 'node-b', title: 'Node B' },
+      ],
+      direction: 'BIDIRECTIONAL',
+      timeRange: { from: '2026-07-01', to: '2026-07-31', timezone: 'America/Mexico_City' },
+    },
+  },
+};
+CrossImpactAgent(crossContext);
+const crossState = record(crossContext.metadata.crossImpact);
+assert.equal(crossState.variables, 2, 'cross_impact must use explicit target identities as variables');
+assert.equal(crossState.candidatePairCount, 1, 'two explicit targets must produce exactly one candidate pair');
+assert.equal(crossState.couplingIndex, null, 'cross_impact must not manufacture a coupling index from target/source counts');
+assert.equal(crossState.interactionDensity, null, 'cross_impact must keep unobserved interaction density missing');
+assert.equal(crossState.measurementStatus, 'NOT_OBSERVED', 'cross_impact must expose that numeric coupling was not observed');
+
 const evidenceHunter = executionContractForAgent('evidence_hunter');
 assert.ok(evidenceHunter, 'evidence_hunter contract missing');
 const legacy = normalizeExecutionRequest('evidence_hunter', {
@@ -85,5 +124,6 @@ console.log(JSON.stringify({
   registeredAgents: registeredIds.length,
   executionContracts: contracts.length,
   crossImpactMinimumTargets: crossImpact.minTargets,
+  crossImpactSyntheticCouplingRemoved: crossState.couplingIndex === null,
   legacyAdapterObserved: legacy.legacyCompatibilityUsed,
 }, null, 2));
