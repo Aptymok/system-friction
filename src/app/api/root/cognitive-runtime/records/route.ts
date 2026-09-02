@@ -61,7 +61,7 @@ export async function GET(request: Request) {
     readAgentExecutionStates(),
     readExecutionRecords({ agentId, executionId: executionId ?? undefined, limit }),
   ]);
-  const state = stateRead.agents.find((item) => item.agentId === agentId) ?? null;
+  const state = stateRead.states.find((item) => item.agentId === agentId) ?? null;
 
   return NextResponse.json({
     ok: true,
