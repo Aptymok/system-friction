@@ -23,6 +23,7 @@ for (const field of ['reads:', 'writes:', 'executes:', 'executionEvidence:']) {
 const scenes = read('src/components/sfi/scenes.ts');
 const shellUi = read('src/components/sfi/SfiConsole.tsx');
 const operatingUi = read('src/components/sfi/SfiOperatingWorkspace.tsx');
+const governanceUi = read('src/components/sfi/SfiGovernanceWorkspace.tsx');
 const workboardApi = read('src/app/api/root/workboard/route.ts');
 const caseExecutionApi = read('src/app/api/root/case-execution/route.ts');
 const workboard = read('src/lib/root/operationalWorkboard.ts');
@@ -42,17 +43,19 @@ const freeze = read('src/app/api/acp/proposals/[id]/freeze/route.ts');
 const promote = read('src/app/api/root/governance/promote/route.ts');
 
 // The converged site no longer gives AGENTS a parallel sovereign scene. Agents live
-// inside GOVERNANCE while ROOT remains the operational read model.
+// inside GOVERNANCE while ROOT remains the operational read model. The governance
+// scene delegates to one bounded component rather than duplicating its controls.
 assert.ok(scenes.includes("root:{key:'root'") && scenes.includes("governance:{key:'governance'"), 'ROOT/GOVERNANCE operating scenes missing');
-assert.ok(operatingUi.includes('AGENTES') && operatingUi.includes("jsonFetch('/api/root/cognitive-runtime')"), 'governance agent runtime missing');
-assert.ok(operatingUi.includes("jsonFetch('/api/acp/proposals')") && operatingUi.includes('setProposals'), 'governed proposal feed missing');
+assert.ok(operatingUi.includes('SfiGovernanceWorkspace'), 'canonical operating workspace must delegate governance');
+assert.ok(governanceUi.includes('AGENTES') && governanceUi.includes("jsonFetch('/api/root/cognitive-runtime')"), 'governance agent runtime missing');
+assert.ok(governanceUi.includes("jsonFetch('/api/acp/proposals')") && governanceUi.includes('setProposals'), 'governed proposal feed missing');
 assert.ok(shellUi.includes('GOVERNANCE QUEUE'), 'governance queue observability missing');
-assert.ok(operatingUi.includes('ACEPTAR') && operatingUi.includes('DENEGAR'), 'plain-language decision controls missing');
-assert.ok(operatingUi.includes('PEDIR EVIDENCIA'), 'reviewers must be able to defer a decision for evidence');
-assert.ok(operatingUi.includes("proposalReadState==='DEGRADED'") && operatingUi.includes('Fuente de propuestas DEGRADED'), 'proposal read failure must remain visible instead of becoming an empty queue');
+assert.ok(governanceUi.includes('ACEPTAR') && governanceUi.includes('DENEGAR'), 'plain-language decision controls missing');
+assert.ok(governanceUi.includes('PEDIR EVIDENCIA'), 'reviewers must be able to defer a decision for evidence');
+assert.ok(governanceUi.includes("proposalReadState==='DEGRADED'") && governanceUi.includes('Fuente de propuestas DEGRADED'), 'proposal read failure must remain visible instead of becoming an empty queue');
 assert.ok(operatingUi.includes("jsonFetch('/api/root/workboard')") && operatingUi.includes('workboard?.operationalNext'), 'ROOT must expose live operational-next state');
 assert.ok(operatingUi.includes('returnPlan?.next') && operatingUi.includes('Ciclo universal'), 'ROOT/cases must expose cycle next/RETURN posture');
-assert.doesNotMatch(operatingUi, /REGISTRAR REALIZACIÓN INTERNA/, 'ROOT UI must not offer a false manual realization button');
+assert.doesNotMatch(governanceUi, /REGISTRAR REALIZACIÓN INTERNA/, 'ROOT UI must not offer a false manual realization button');
 assert.match(shellUi, /SfiOperatingWorkspace/, 'canonical shell must mount the converged operating workspace');
 
 assert.match(workboardApi, /requireRootViewer\('root\.workboard\.read'\)/, 'workboard must remain behind ROOT-observer authorization');
