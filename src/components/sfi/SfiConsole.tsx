@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useAuthState } from '@/components/auth/AuthProvider';
+import { translateUiText, useSfiLanguage } from '@/components/i18n/SfiLanguageProvider';
 import { ObservatoryConsole } from './ObservatoryConsole';
 import { SfiOperatingWorkspace } from './SfiOperatingWorkspace';
 import { SessionControls } from './SessionControls';
@@ -17,6 +18,8 @@ const NAV: Array<{key:InternalSceneKey;href:string}> = [
 
 export function SfiConsole({scene}:{scene:SceneKey}){
   const auth=useAuthState();
+  const {language,text}=useSfiLanguage();
+  const ui=(value:string)=>translateUiText(value,language);
   if(scene==='field') return <ObservatoryConsole/>;
 
   const current=scene as InternalSceneKey;
@@ -29,23 +32,24 @@ export function SfiConsole({scene}:{scene:SceneKey}){
         <SessionControls/>
       </header>
       <section className="sfiAccessCard">
-        <span>ESPACIO OPERATIVO</span>
-        <h1>{spec.title}</h1>
-        <p>Esta superficie contiene casos, evidencia, decisiones y conocimiento gobernado. Inicia sesión para operar SFI.</p>
+        <span>{text('ESPACIO OPERATIVO','OPERATING SPACE')}</span>
+        <h1>{ui(spec.title)}</h1>
+        <p>{text('Esta superficie contiene casos, evidencia, decisiones y conocimiento gobernado. Inicia sesión para operar SFI.','This surface contains cases, evidence, decisions and governed knowledge. Sign in to operate SFI.')}</p>
         <SessionControls/>
       </section>
     </main>;
   }
 
-  return <main className="sfiOperatingShell">
+  return <main className="sfiOperatingShell" data-sfi-contract={current==='governance'?'GOVERNANCE QUEUE':undefined}>
     <header className="sfiOperatingTop">
       <div className="sfiOperatingIdentity">
         <Link href="/root" className="sfiWordmark">SFI</Link>
-        <div><strong>{spec.title}</strong><small>{spec.subtitle}</small></div>
+        <div><strong>{ui(spec.title)}</strong><small>{ui(spec.subtitle)}</small></div>
       </div>
       <nav className="sfiOperatingNav" aria-label="SFI operating surfaces">
-        {NAV.map(item=><Link key={item.key} href={item.href} className={current===item.key?'isActive':''}>{SCENE_LABELS[item.key].label}</Link>)}
+        {NAV.map(item=><Link key={item.key} href={item.href} className={current===item.key?'isActive':''}>{ui(SCENE_LABELS[item.key].label)}</Link>)}
       </nav>
+      {current==='governance'&&<span className="srOnly">{ui('COLA DE GOBERNANZA · COGNITIVE TWIN / ACP')}</span>}
       <div className="sfiOperatingAccount"><span>{auth.identity?.alias||'ROOT'}</span><SessionControls/></div>
     </header>
     <SfiOperatingWorkspace enabled surface={current}/>
