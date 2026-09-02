@@ -8,6 +8,7 @@ export const revalidate=120;
 const HORIZON_DAYS=30;
 const LIMIT=900;
 type Row=Record<string,unknown>;
+type HypothesisView=Row&{graphSnapshot:Row;aiInference:Row};
 const rows=(v:unknown):Row[]=>Array.isArray(v)?v.filter((x):x is Row=>Boolean(x)&&typeof x==='object'&&!Array.isArray(x)):[];
 const record=(v:unknown):Row=>v&&typeof v==='object'&&!Array.isArray(v)?v as Row:{};
 const nullableText=(v:unknown)=>typeof v==='string'&&v.trim()?v.trim():null;
@@ -80,7 +81,7 @@ export async function GET(){
     };
   });
 
-  const hypothesisRows=rows(hypotheses.data).map(h=>{
+  const hypothesisRows:HypothesisView[]=rows(hypotheses.data).map((h):HypothesisView=>{
     const graphSnapshot=record(h.graph_snapshot);
     const aiInference=record(graphSnapshot.aiInference);
     return {
@@ -109,7 +110,7 @@ export async function GET(){
   const graphNodes:Row[]=[...nodes.map(node=>({id:node.id,kind:'OBSERVATION',label:node.title,epistemicClass:'SOURCE_RECORD',sourceFamily:node.sourceFamily,publisher:node.publisher,lat:node.lat,lng:node.lng,confidence:node.confidence}))];
   const systemSet=new Set<string>();
   for(const node of nodes)for(const system of node.affectedSystems)systemSet.add(system);
-  for(const hypothesis of hypothesisRows)for(const system of hypothesis.aiInference.affectedSystems)systemSet.add(system);
+  for(const hypothesis of hypothesisRows)for(const system of texts(hypothesis.aiInference.affectedSystems))systemSet.add(system);
   for(const system of systemSet)graphNodes.push({id:`system:${system}`,kind:'SYSTEM',label:system,epistemicClass:'MODEL_TARGET'});
   for(const hypothesis of hypothesisRows)graphNodes.push({id:`hypothesis:${String(hypothesis.id)}`,kind:'HYPOTHESIS',label:String(hypothesis.statement??'Hypothesis'),epistemicClass:'INFERENCE',confidence:hypothesis.current_confidence,status:hypothesis.status,relationClass:hypothesis.aiInference.relationClass});
 
@@ -120,8 +121,8 @@ export async function GET(){
   for(const hypothesis of hypothesisRows){
     const hid=`hypothesis:${String(hypothesis.id)}`;
     for(const evidenceId of texts(hypothesis.evidence_ids))graphEdges.push({id:`evidence:${evidenceId}->${hid}`,from:evidenceId,to:hid,relation:'EVIDENCE_INPUT_TO_INFERENCE',epistemicClass:'LINEAGE',basis:[evidenceId]});
-    for(const system of hypothesis.aiInference.affectedSystems)graphEdges.push({id:`${hid}->system:${system}`,from:hid,to:`system:${system}`,relation:'INFERRED_IMPACT',epistemicClass:'INFERRED',basis:texts(hypothesis.evidence_ids)});
-    const inferredRelations=Array.isArray(record(hypothesis.graphSnapshot).inferredRelations)?record(hypothesis.graphSnapshot).inferredRelations as unknown[]:[];
+    for(const system of texts(hypothesis.aiInference.affectedSystems))graphEdges.push({id:`${hid}->system:${system}`,from:hid,to:`system:${system}`,relation:'INFERRED_IMPACT',epistemicClass:'INFERRED',basis:texts(hypothesis.evidence_ids)});
+    const inferredRelations=Array.isArray(hypothesis.graphSnapshot.inferredRelations)?hypothesis.graphSnapshot.inferredRelations as unknown[]:[];
     inferredRelations.forEach((raw,index)=>{
       const edge=record(raw);
       const from=nullableText(edge.from);const to=nullableText(edge.to);if(!from||!to)return;
@@ -129,7 +130,7 @@ export async function GET(){
     });
   }
 
-  const hypothesesWithReturn=hypothesisRows.map(h=>({...h,outcome:outcomeByHypothesis.get(String(h.id))??null,learning:learningByHypothesis.get(String(h.id))??null}));
+  const hypothesesWithReturn=(hypothesisRows.map(h=>({...h,outcome:outcomeByHypothesis.get(String(h.id))??null,learning:learningByHypothesis.get(String(h.id))??null}))) as Array<HypothesisView&{outcome:Row|null;learning:Row|null}>;
   const attentionSummary={visibleByDefault:nodes.filter(node=>node.provenance.visibility==='VISIBLE_BY_DEFAULT').length,collapsedBackground:nodes.filter(node=>node.provenance.visibility==='COLLAPSED_BY_DEFAULT').length};
   const sourceCounts=new Map<string,number>();
   nodes.forEach(node=>sourceCounts.set(node.sourceId,(sourceCounts.get(node.sourceId)??0)+1));
@@ -138,7 +139,7 @@ export async function GET(){
     sourceIds:unique(nodes.map(node=>node.sourceId)),
     sourceFamilies:unique(nodes.map(node=>node.sourceFamily)),
     publishers:unique(nodes.map(node=>node.publisher)),
-    systems:unique(nodes.flatMap(node=>node.affectedSystems).concat(hypothesesWithReturn.flatMap(h=>h.aiInference.affectedSystems))),
+    systems:unique(nodes.flatMap(node=>node.affectedSystems).concat(hypothesesWithReturn.flatMap(h=>texts(h.aiInference.affectedSystems)))),
     hypothesisStatuses:unique(hypothesesWithReturn.map(h=>String(h.status??''))),
     relationClasses:unique(hypothesesWithReturn.map(h=>String(h.aiInference.relationClass??''))),
     outcomeClasses:unique(outcomeRows.map(o=>String(o.classification??''))),
