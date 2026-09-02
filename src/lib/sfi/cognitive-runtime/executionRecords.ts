@@ -1,6 +1,4 @@
-import { streamRecentEpistemicEvents } from '@/lib/events/eventStore';
 import { SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY } from './convergedRegistry';
-import { readObservedSfiCognitiveRuntime } from './observedRuntime';
 
 export const SFI_EXECUTION_RECORD_VERSION = 'SFI-EXECUTION-RECORD-1.0' as const;
 
@@ -9,16 +7,9 @@ export type SfiExecutionWorkState = 'IDLE' | 'RUNNING' | 'WAITING_EVIDENCE' | 'W
 export type SfiExecutionEpistemicState = 'SUFFICIENT' | 'PARTIAL' | 'CONTRADICTED' | 'INSUFFICIENT' | 'NOT_OBSERVED';
 export type SfiExecutionAuthorityState = 'ALLOWED' | 'ANALYSIS_ONLY' | 'APPROVAL_REQUIRED' | 'BLOCKED' | 'NOT_OBSERVED';
 
-export type SfiExecutionObjectRef = {
-  kind: string;
-  id: string;
-  label: string | null;
-};
-
-export type SfiObservedScalar<T> = {
-  value: T | null;
-  observation: 'OBSERVED' | 'NOT_OBSERVED';
-};
+type Row = Record<string, unknown>;
+export type SfiExecutionObjectRef = { kind: string; id: string; label: string | null };
+export type SfiObservedScalar<T> = { value: T | null; observation: 'OBSERVED' | 'NOT_OBSERVED' };
 
 export type SfiExecutionInference = {
   epistemicClass: 'INFERENCE' | 'NOT_OBSERVED';
@@ -61,7 +52,7 @@ export type SfiExecutionRecord = {
   purpose: string | null;
   anchors: SfiExecutionObjectRef[];
   targets: SfiExecutionObjectRef[];
-  governanceContext: Record<string, unknown> | null;
+  governanceContext: Row | null;
   epistemicBoundary: string | null;
   evidence: {
     before: number | null;
@@ -86,10 +77,7 @@ export type SfiExecutionRecord = {
     providerCost: SfiObservedScalar<number>;
     latencyMs: SfiObservedScalar<number>;
   };
-  errors: {
-    deterministic: string | null;
-    llm: string | null;
-  };
+  errors: { deterministic: string | null; llm: string | null };
 };
 
 export type SfiAgentExecutionState = {
@@ -111,238 +99,178 @@ export type SfiAgentExecutionState = {
   warning: string | null;
 };
 
-type Row = Record<string, unknown>;
-
-function row(value: unknown): Row {
-  return value && typeof value === 'object' && !Array.isArray(value) ? value as Row : {};
-}
-
-function stringValue(value: unknown, max = 8_000): string | null {
-  return typeof value === 'string' && value.trim() ? value.trim().slice(0, max) : null;
-}
-
-function finiteNumber(value: unknown): number | null {
+const asRow = (value: unknown): Row => value && typeof value === 'object' && !Array.isArray(value) ? value as Row : {};
+const text = (value: unknown, max = 8_000): string | null => typeof value === 'string' && value.trim() ? value.trim().slice(0, max) : null;
+const number = (value: unknown): number | null => {
   if (value === null || value === undefined || value === '') return null;
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
-}
-
-function booleanValue(value: unknown): boolean | null {
-  return typeof value === 'boolean' ? value : null;
-}
-
-function iso(value: unknown): string | null {
-  const text = stringValue(value, 120);
-  if (!text) return null;
-  const parsed = new Date(text);
+};
+const bool = (value: unknown): boolean | null => typeof value === 'boolean' ? value : null;
+const iso = (value: unknown): string | null => {
+  const source = text(value, 120);
+  if (!source) return null;
+  const parsed = new Date(source);
   return Number.isFinite(parsed.getTime()) ? parsed.toISOString() : null;
-}
+};
+const strings = (value: unknown, max = 16): string[] => Array.isArray(value)
+  ? value.map((item) => text(item, 2_000)).filter((item): item is string => Boolean(item)).slice(0, max)
+  : [];
+const observed = <T extends string | number>(value: T | null): SfiObservedScalar<T> => value === null
+  ? { value: null, observation: 'NOT_OBSERVED' }
+  : { value, observation: 'OBSERVED' };
 
-function strings(value: unknown, max = 16): string[] {
-  return Array.isArray(value)
-    ? value.map((item) => stringValue(item, 2_000)).filter((item): item is string => Boolean(item)).slice(0, max)
-    : [];
-}
-
-function sourceId(value: unknown): string | null {
-  return stringValue(row(value).sourceId, 300);
-}
-
-function objectRefs(value: unknown): SfiExecutionObjectRef[] {
+function refs(value: unknown): SfiExecutionObjectRef[] {
   if (!Array.isArray(value)) return [];
   const seen = new Set<string>();
-  const result: SfiExecutionObjectRef[] = [];
-  for (const candidate of value) {
-    const item = row(candidate);
-    const kind = stringValue(item.kind, 80);
-    const id = stringValue(item.id, 500);
-    if (!kind || !id) continue;
-    const key = `${kind}:${id}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
-    result.push({ kind, id, label: stringValue(item.label, 500) });
-    if (result.length >= 24) break;
-  }
-  return result;
+  return value.flatMap((candidate) => {
+    const source = asRow(candidate);
+    const kind = text(source.kind, 80);
+    const id = text(source.id, 500);
+    if (!kind || !id || seen.has(`${kind}:${id}`)) return [];
+    seen.add(`${kind}:${id}`);
+    return [{ kind, id, label: text(source.label ?? source.title, 500) }];
+  }).slice(0, 24);
 }
 
-function observedScalar<T extends string | number>(value: T | null): SfiObservedScalar<T> {
-  return value === null
-    ? { value: null, observation: 'NOT_OBSERVED' }
-    : { value, observation: 'OBSERVED' };
-}
-
-function inferenceFromPayload(payload: Row): SfiExecutionInference {
-  const metadata = row(payload.metadata);
-  const insight = row(metadata.agentInsight);
-  const epistemicClass = stringValue(insight.epistemicClass, 60);
-  if (epistemicClass !== 'INFERENCE') {
+function inference(payload: Row): SfiExecutionInference {
+  const insight = asRow(asRow(payload.metadata).agentInsight);
+  if (text(insight.epistemicClass, 60) !== 'INFERENCE') {
     return {
-      epistemicClass: 'NOT_OBSERVED',
-      status: null,
-      summary: null,
-      observations: [],
-      hypotheses: [],
-      contradictions: [],
-      missingEvidence: [],
-      recommendations: [],
-      confidence: null,
-      generatedAt: null,
+      epistemicClass: 'NOT_OBSERVED', status: null, summary: null, observations: [], hypotheses: [], contradictions: [],
+      missingEvidence: [], recommendations: [], confidence: null, generatedAt: null,
     };
   }
   return {
     epistemicClass: 'INFERENCE',
-    status: stringValue(insight.status, 80),
-    summary: stringValue(insight.summary, 2_000),
+    status: text(insight.status, 80),
+    summary: text(insight.summary, 2_000),
     observations: strings(insight.observations, 10),
     hypotheses: strings(insight.hypotheses, 10),
     contradictions: strings(insight.contradictions, 10),
     missingEvidence: strings(insight.missingEvidence, 10),
     recommendations: strings(insight.recommendations, 10),
-    confidence: finiteNumber(insight.confidence),
+    confidence: number(insight.confidence),
     generatedAt: iso(insight.generatedAt),
   };
 }
 
-function coverageFromPayload(payload: Row): SfiExecutionContextCoverage {
-  const metadata = row(payload.metadata);
-  const refs = row(metadata.refs);
-  const contextCoverage = row(refs.contextCoverage);
-  const llm = row(contextCoverage.llm);
-  const llmRuntime = row(metadata.llmRuntime);
-  const runtimeCoverage = row(llmRuntime.contextCoverage);
-  const source = Object.keys(llm).length ? llm : runtimeCoverage;
-
-  const evidenceAvailable = finiteNumber(source.evidenceAvailable);
-  const evidenceDelivered = finiteNumber(source.evidenceDelivered);
-  const hypothesesAvailable = finiteNumber(source.hypothesesAvailable);
-  const hypothesesDelivered = finiteNumber(source.hypothesesDelivered);
-  const contradictionsAvailable = finiteNumber(source.contradictionsAvailable);
-  const contradictionsDelivered = finiteNumber(source.contradictionsDelivered);
-  const promptSourceCharacters = finiteNumber(source.promptSourceCharacters ?? llmRuntime.promptSourceCharacters);
-  const promptCharacters = finiteNumber(source.promptCharacters ?? llmRuntime.promptCharacters);
-  const maxPromptCharacters = finiteNumber(source.maxPromptCharacters ?? llmRuntime.maxPromptCharacters);
-  const promptBounded = booleanValue(source.promptBounded ?? llmRuntime.promptBounded);
-  const partial = promptBounded === true
+function coverage(payload: Row): SfiExecutionContextCoverage {
+  const metadata = asRow(payload.metadata);
+  const llmRuntime = asRow(metadata.llmRuntime);
+  const refsCoverage = asRow(asRow(asRow(metadata.refs).contextCoverage).llm);
+  const runtimeCoverage = asRow(llmRuntime.contextCoverage);
+  const source = Object.keys(refsCoverage).length ? refsCoverage : runtimeCoverage;
+  const evidenceAvailable = number(source.evidenceAvailable);
+  const evidenceDelivered = number(source.evidenceDelivered);
+  const hypothesesAvailable = number(source.hypothesesAvailable);
+  const hypothesesDelivered = number(source.hypothesesDelivered);
+  const contradictionsAvailable = number(source.contradictionsAvailable);
+  const contradictionsDelivered = number(source.contradictionsDelivered);
+  const promptSourceCharacters = number(source.promptSourceCharacters ?? llmRuntime.promptSourceCharacters);
+  const promptCharacters = number(source.promptCharacters ?? llmRuntime.promptCharacters);
+  const maxPromptCharacters = number(source.maxPromptCharacters ?? llmRuntime.maxPromptCharacters);
+  const promptBounded = bool(source.promptBounded ?? llmRuntime.promptBounded);
+  const truncated = promptBounded === true
     || (evidenceAvailable !== null && evidenceDelivered !== null && evidenceDelivered < evidenceAvailable)
     || (hypothesesAvailable !== null && hypothesesDelivered !== null && hypothesesDelivered < hypothesesAvailable)
-    || (contradictionsAvailable !== null && contradictionsDelivered !== null && contradictionsDelivered < contradictionsAvailable)
-      ? true
-      : promptBounded === false && evidenceAvailable !== null && evidenceDelivered !== null
-        ? false
-        : null;
-
+    || (contradictionsAvailable !== null && contradictionsDelivered !== null && contradictionsDelivered < contradictionsAvailable);
+  const sufficientlyObservedToSayNotPartial = promptBounded === false && evidenceAvailable !== null && evidenceDelivered !== null;
   return {
-    evidenceAvailable,
-    evidenceDelivered,
-    hypothesesAvailable,
-    hypothesesDelivered,
-    contradictionsAvailable,
-    contradictionsDelivered,
-    promptSourceCharacters,
-    promptCharacters,
-    maxPromptCharacters,
-    promptBounded,
-    partial,
+    evidenceAvailable, evidenceDelivered, hypothesesAvailable, hypothesesDelivered, contradictionsAvailable, contradictionsDelivered,
+    promptSourceCharacters, promptCharacters, maxPromptCharacters, promptBounded,
+    partial: truncated ? true : sufficientlyObservedToSayNotPartial ? false : null,
   };
 }
 
-function authorityFromPayload(payload: Row): SfiExecutionAuthorityState {
-  const governance = row(payload.aiGovernance);
-  const disposition = stringValue(governance.disposition, 100);
+function authority(payload: Row): SfiExecutionAuthorityState {
+  const disposition = text(asRow(payload.aiGovernance).disposition, 100);
   if (disposition === 'BLOCK') return 'BLOCKED';
   if (disposition === 'ALLOW_ANALYSIS_ONLY') return 'ANALYSIS_ONLY';
   if (disposition === 'ALLOW_INTERNAL') return 'ALLOWED';
   return 'NOT_OBSERVED';
 }
 
-function epistemicState(record: SfiExecutionRecord): SfiExecutionEpistemicState {
-  const inference = record.interpretation;
-  if (inference.epistemicClass !== 'INFERENCE') return 'NOT_OBSERVED';
-  if (inference.missingEvidence.length > 0 && (record.contextCoverage.evidenceAvailable ?? 0) === 0) return 'INSUFFICIENT';
-  if (record.contextCoverage.partial === true || inference.missingEvidence.length > 0) return 'PARTIAL';
-  if (inference.contradictions.length > 0) return 'CONTRADICTED';
-  // Absence of a missing-evidence marker is not enough to certify sufficiency.
+export function deriveExecutionEpistemicState(record: SfiExecutionRecord): SfiExecutionEpistemicState {
+  if (record.interpretation.epistemicClass !== 'INFERENCE') return 'NOT_OBSERVED';
+  if (record.interpretation.missingEvidence.length > 0 && (record.contextCoverage.evidenceAvailable ?? 0) === 0) return 'INSUFFICIENT';
+  if (record.contextCoverage.partial === true || record.interpretation.missingEvidence.length > 0 || record.interpretation.contradictions.length > 0) return 'PARTIAL';
+  // SFI does not certify SUFFICIENT merely because the model omitted a missing-evidence warning.
   return 'NOT_OBSERVED';
 }
 
-function workState(record: SfiExecutionRecord | null): SfiExecutionWorkState {
+export function deriveExecutionWorkState(record: SfiExecutionRecord | null): SfiExecutionWorkState {
   if (!record) return 'NOT_OBSERVED';
   if (record.eventName === 'SFI_AGENT_EXECUTED' && record.executed) return 'COMPLETE';
+  if (record.authority === 'BLOCKED') return 'NOT_OBSERVED';
   if (record.errors.deterministic || record.errors.llm) return 'FAILED';
-  if (record.authority === 'BLOCKED') return 'FAILED';
   return 'NOT_OBSERVED';
 }
 
 export function projectExecutionRecordFromEvent(event: unknown): SfiExecutionRecord | null {
-  const source = row(event);
-  const eventName = stringValue(source.event_name ?? source.eventName, 120);
+  const source = asRow(event);
+  const eventName = text(source.event_name ?? source.eventName, 120);
   if (eventName !== 'SFI_AGENT_EXECUTED' && eventName !== 'SFI_AGENT_SKIPPED') return null;
-  const payload = row(source.payload);
-  const metadata = row(payload.metadata);
-  const llmRuntime = row(metadata.llmRuntime);
-  const agentId = sourceId(source.source) ?? stringValue(payload.agentId, 300);
-  const eventId = stringValue(source.event_id ?? source.eventId ?? source.id, 500);
+  const payload = asRow(source.payload);
+  const metadata = asRow(payload.metadata);
+  const llmRuntime = asRow(metadata.llmRuntime);
+  const agentId = text(asRow(source.source).sourceId, 300) ?? text(payload.agentId, 300);
+  const eventId = text(source.event_id ?? source.eventId ?? source.id, 500);
   if (!agentId || !eventId) return null;
-
-  const inputTokens = finiteNumber(llmRuntime.observedInputTokens);
-  const outputTokens = finiteNumber(llmRuntime.observedOutputTokens);
-  const providerCost = finiteNumber(llmRuntime.observedProviderCost);
-  const latencyMs = finiteNumber(llmRuntime.observedLatencyMs);
-  const evidenceBefore = finiteNumber(payload.evidenceBefore);
-  const evidenceAfter = finiteNumber(payload.evidenceAfter);
-  const governance = row(payload.aiGovernance);
-  const interpretation = inferenceFromPayload(payload);
+  const before = number(payload.evidenceBefore);
+  const after = number(payload.evidenceAfter);
+  const governance = asRow(payload.aiGovernance);
 
   return {
     recordVersion: SFI_EXECUTION_RECORD_VERSION,
     eventId,
-    executionId: stringValue(payload.executionId, 500),
+    executionId: text(payload.executionId, 500),
     agentId,
     eventName,
     executed: eventName === 'SFI_AGENT_EXECUTED',
     occurredAt: iso(source.occurred_at ?? source.occurredAt ?? source.created_at),
-    contractVersion: stringValue(payload.executionContractVersion, 200),
-    requestSource: stringValue(payload.requestSource, 300),
-    requestedBy: stringValue(payload.requestedBy, 500),
-    purpose: stringValue(payload.purpose, 5_000),
-    anchors: objectRefs(payload.anchors),
-    targets: objectRefs(payload.targets),
-    governanceContext: Object.keys(row(payload.governanceContext)).length ? row(payload.governanceContext) : null,
-    epistemicBoundary: stringValue(payload.epistemicBoundary, 4_000),
+    contractVersion: text(payload.executionContractVersion, 200),
+    requestSource: text(payload.requestSource, 300),
+    requestedBy: text(payload.requestedBy, 500),
+    purpose: text(payload.purpose, 5_000),
+    anchors: refs(payload.anchors),
+    targets: refs(payload.targets),
+    governanceContext: Object.keys(asRow(payload.governanceContext)).length ? asRow(payload.governanceContext) : null,
+    epistemicBoundary: text(payload.epistemicBoundary, 4_000),
     evidence: {
-      before: evidenceBefore,
-      after: evidenceAfter,
-      delta: evidenceBefore !== null && evidenceAfter !== null ? evidenceAfter - evidenceBefore : null,
+      before,
+      after,
+      delta: before !== null && after !== null ? after - before : null,
       admissionBoundary: 'CONTEXT_IS_NOT_AUTOMATICALLY_EVIDENCE',
     },
-    contextCoverage: coverageFromPayload(payload),
-    interpretation,
+    contextCoverage: coverage(payload),
+    interpretation: inference(payload),
     governance: {
-      disposition: stringValue(governance.disposition, 120),
-      risk: stringValue(governance.risk, 120),
+      disposition: text(governance.disposition, 120),
+      risk: text(governance.risk, 120),
       reasons: strings(governance.reasons, 20),
-      policyId: stringValue(payload.aiGovernancePolicyId, 200),
+      policyId: text(payload.aiGovernancePolicyId, 200),
     },
-    authority: authorityFromPayload(payload),
+    authority: authority(payload),
     telemetry: {
-      provider: observedScalar(stringValue(payload.llmProvider, 300)),
-      model: observedScalar(stringValue(payload.llmModel, 500)),
-      inputTokens: observedScalar(inputTokens),
-      outputTokens: observedScalar(outputTokens),
-      providerCost: observedScalar(providerCost),
-      latencyMs: observedScalar(latencyMs),
+      provider: observed(text(payload.llmProvider, 300)),
+      model: observed(text(payload.llmModel, 500)),
+      inputTokens: observed(number(llmRuntime.observedInputTokens)),
+      outputTokens: observed(number(llmRuntime.observedOutputTokens)),
+      providerCost: observed(number(llmRuntime.observedProviderCost)),
+      latencyMs: observed(number(llmRuntime.observedLatencyMs)),
     },
     errors: {
-      deterministic: stringValue(payload.deterministicError, 4_000),
-      llm: stringValue(payload.llmError, 4_000),
+      deterministic: text(payload.deterministicError, 4_000),
+      llm: text(payload.llmError, 4_000),
     },
   };
 }
 
 export async function readExecutionRecords(input?: { agentId?: string; executionId?: string; limit?: number }) {
-  const limit = Math.max(1, Math.min(500, input?.limit ?? 200));
-  const stream = await streamRecentEpistemicEvents(limit);
+  const { streamRecentEpistemicEvents } = await import('@/lib/events/eventStore');
+  const readLimit = Math.max(1, Math.min(500, input?.limit ?? 200));
+  const stream = await streamRecentEpistemicEvents(readLimit);
   const records = (stream.data ?? [])
     .map(projectExecutionRecordFromEvent)
     .filter((record): record is SfiExecutionRecord => Boolean(record))
@@ -351,21 +279,27 @@ export async function readExecutionRecords(input?: { agentId?: string; execution
   return {
     generatedAt: new Date().toISOString(),
     source: 'epistemic_events',
-    warnings: 'warnings' in stream && Array.isArray(stream.warnings) ? stream.warnings.map(String) : [],
+    readLimit,
+    exhaustive: false as const,
+    warnings: [
+      ...('warnings' in stream && Array.isArray(stream.warnings) ? stream.warnings.map(String) : []),
+      'Execution history is a bounded projection over canonical events; absence outside the read window is not proof of non-existence.',
+    ],
     records,
   };
 }
 
 export async function readAgentExecutionStates() {
+  const { readObservedSfiCognitiveRuntime } = await import('./observedRuntime');
   const [runtime, executionRead] = await Promise.all([
     readObservedSfiCognitiveRuntime(),
     readExecutionRecords({ limit: 500 }),
   ]);
   const byAgent = new Map<string, SfiExecutionRecord[]>();
-  for (const record of executionRead.records) {
-    const list = byAgent.get(record.agentId) ?? [];
-    list.push(record);
-    byAgent.set(record.agentId, list);
+  for (const execution of executionRead.records) {
+    const list = byAgent.get(execution.agentId) ?? [];
+    list.push(execution);
+    byAgent.set(execution.agentId, list);
   }
 
   const states: SfiAgentExecutionState[] = SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY.map((agent) => {
@@ -375,17 +309,18 @@ export async function readAgentExecutionStates() {
     const latestManual = records.find((record) => record.requestSource === 'ROOT_MANUAL') ?? null;
     const latestInference = records.find((record) => record.interpretation.epistemicClass === 'INFERENCE') ?? null;
     const infrastructure = (runtimeAgent?.status ?? 'missing').toUpperCase() as SfiExecutionInfrastructureState;
-    const authority = latest?.authority
-      ?? (agent.humanApprovalRequired ? 'APPROVAL_REQUIRED' : 'NOT_OBSERVED');
+    const currentAuthority = latest && latest.authority !== 'NOT_OBSERVED'
+      ? latest.authority
+      : agent.humanApprovalRequired ? 'APPROVAL_REQUIRED' : 'NOT_OBSERVED';
 
     return {
       agentId: agent.id,
       agentName: agent.name,
       infrastructure,
-      work: workState(latest),
-      epistemic: latest ? epistemicState(latest) : 'NOT_OBSERVED',
-      authority,
-      // An execution request is not silently re-labelled as a generic human interaction.
+      work: deriveExecutionWorkState(latest),
+      epistemic: latest ? deriveExecutionEpistemicState(latest) : 'NOT_OBSERVED',
+      authority: currentAuthority,
+      // No generic interaction timestamp is fabricated from an execution event.
       latestInteractionAt: null,
       latestInteractionObservation: 'NOT_OBSERVED',
       latestExecutionAt: latest?.occurredAt ?? null,
@@ -395,9 +330,7 @@ export async function readAgentExecutionStates() {
       latestInferenceExecutionId: latestInference?.executionId ?? null,
       latestInferenceSummary: latestInference?.interpretation.summary ?? null,
       contextCoverage: latest?.contextCoverage ?? null,
-      warning: latest
-        ? null
-        : 'No existe una ejecución reciente dentro de la ventana leída; interacción y estado de trabajo permanecen NOT_OBSERVED.',
+      warning: latest ? null : 'No execution is visible inside the bounded event window; work and epistemic state remain NOT_OBSERVED.',
     };
   });
 
@@ -405,6 +338,7 @@ export async function readAgentExecutionStates() {
     generatedAt: new Date().toISOString(),
     source: 'epistemic_events + observed cognitive runtime',
     executionRecordVersion: SFI_EXECUTION_RECORD_VERSION,
+    exhaustive: false as const,
     warnings: executionRead.warnings,
     states,
   };
