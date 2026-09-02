@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { requireRootActor } from '@/lib/root/server';
+import { requireRootViewer } from '@/lib/root/server';
 import { SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY } from '@/lib/sfi/cognitive-runtime/convergedRegistry';
 import {
   compactExecutionContract,
@@ -41,7 +41,7 @@ function compactPassport(agent: (typeof SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY)[
 }
 
 export async function GET(request: Request) {
-  const gate = await requireRootActor('root.cognitive-runtime.read');
+  const gate = await requireRootViewer('root.cognitive-runtime.read');
   if (!gate.ok) return NextResponse.json(gate.body, { status: gate.status });
 
   const url = new URL(request.url);
