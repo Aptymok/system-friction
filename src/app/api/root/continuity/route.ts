@@ -1,18 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { readContinuityDashboard, runContinuityHeartbeat } from '@/lib/continuity/runtime';
+import { readContinuityDashboard, runContinuityHeartbeat, runOperationalTransitionWatchdog } from '@/lib/continuity/runtime';
+import { runStudioAutonomyContinuation } from '@/lib/continuity/studioAutonomy';
 import type { ContinuityMode } from '@/lib/continuity/contracts';
+import { runGovernedExecutionRouter } from '@/lib/execution/governedExecutionRouter';
 import { auditRootAction, requireRootActor } from '@/lib/root/server';
+import { runUniversalCycleContinuation } from '@/lib/sfi/universalCycleContinuation';
+import { runUniversalEmpiricalContinuation } from '@/lib/sfi/universalEmpiricalContinuation';
+import { runUniversalReturnPlanUpgrade } from '@/lib/sfi/universalReturnPlanUpgrade';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+export const maxDuration = 300;
 
 const modeSchema = z.object({
   action: z.enum(['set_mode', 'heartbeat', 'emergency_halt']),
   mode: z.enum(['NORMAL','FOUNDER_ABSENT_PREP','FOUNDER_ABSENT_ACTIVE','DEGRADED_SAFE','EMERGENCY_HALT','RECOVERY']).optional(),
   reason: z.string().trim().min(1).max(1000).optional(),
   expectedReturnAt: z.string().datetime().optional(),
+  cycleId: z.string().uuid().optional(),
 });
 
 const ALLOWED_TRANSITIONS: Record<ContinuityMode, ContinuityMode[]> = {
@@ -23,6 +30,87 @@ const ALLOWED_TRANSITIONS: Record<ContinuityMode, ContinuityMode[]> = {
   EMERGENCY_HALT: ['RECOVERY'],
   RECOVERY: ['NORMAL', 'FOUNDER_ABSENT_PREP', 'EMERGENCY_HALT'],
 };
+
+async function fullManualHeartbeat(cycleId?: string) {
+  const continuity = await runContinuityHeartbeat('founder_manual');
+  const halted = continuity.mode === 'EMERGENCY_HALT';
+  if (halted) {
+    return {
+      continuity,
+      halted: true,
+      message: 'SFI está en parada de emergencia. La ronda manual registró presencia pero no ejecutó trabajo autónomo.',
+    };
+  }
+
+  const returnPlanUpgradeBefore = await runUniversalReturnPlanUpgrade({ limit: 4, cycleId }).catch((error) => ({
+    ok: false as const,
+    processed: 0,
+    results: [],
+    error: error instanceof Error ? error.message : String(error),
+  }));
+
+  const [studioAutonomy, transitionWatchdog, governedExecution, universalCognition] = await Promise.all([
+    runStudioAutonomyContinuation({
+      mode: continuity.mode,
+      continuityRunId: continuity.runId,
+      observations: continuity.results.map((item) => ({
+        capabilityId: item.capability.id,
+        status: item.status,
+        latencyMs: item.latencyMs,
+        errorCode: item.errorCode ?? null,
+      })),
+    }).catch((error) => ({ status: 'DEGRADED' as const, reason: error instanceof Error ? error.message : String(error), targets: 0, outcomes: [] })),
+    runOperationalTransitionWatchdog().catch((error) => ({ ok: false as const, error: error instanceof Error ? error.message : String(error), evidenceJobs: [], riskAssessments: [], stale: [] })),
+    runGovernedExecutionRouter({ limit: 10 }).catch((error) => ({ ok: false as const, processed: 0, results: [], error: error instanceof Error ? error.message : String(error) })),
+    runUniversalCycleContinuation({ limit: 2, cycleId }).catch((error) => ({ ok: false as const, processed: 0, results: [], error: error instanceof Error ? error.message : String(error) })),
+  ]);
+
+  const returnPlanUpgradeAfter = await runUniversalReturnPlanUpgrade({ limit: 4, cycleId }).catch((error) => ({
+    ok: false as const,
+    processed: 0,
+    results: [],
+    error: error instanceof Error ? error.message : String(error),
+  }));
+  const empiricalContinuation = await runUniversalEmpiricalContinuation({ limit: 3, cycleId }).catch((error) => ({
+    ok: false as const,
+    processed: 0,
+    results: [],
+    error: error instanceof Error ? error.message : String(error),
+  }));
+
+  const failed = continuity.status === 'FAILED'
+    || transitionWatchdog.ok === false
+    || governedExecution.ok === false
+    || universalCognition.ok === false
+    || returnPlanUpgradeBefore.ok === false
+    || returnPlanUpgradeAfter.ok === false
+    || empiricalContinuation.ok === false
+    || studioAutonomy.status === 'DEGRADED';
+
+  return {
+    ok: !failed,
+    halted: false,
+    requestedCycleId: cycleId ?? null,
+    continuity,
+    transitionWatchdog,
+    governedExecution,
+    universalCognition,
+    returnPlanUpgradeBefore,
+    returnPlanUpgradeAfter,
+    empiricalContinuation,
+    studioAutonomy,
+    humanSummary: {
+      wokeSystem: true,
+      targetedCycle: cycleId ?? null,
+      cognitionProcessed: universalCognition.processed ?? 0,
+      governedWorkProcessed: governedExecution.processed ?? 0,
+      empiricalWorkProcessed: empiricalContinuation.processed ?? 0,
+      message: failed
+        ? 'La ronda terminó, pero al menos una capacidad quedó degradada. Revisa el detalle antes de asumir que avanzó todo.'
+        : 'La ronda manual ejecutó el mismo circuito operativo de continuidad disponible para el heartbeat programado.',
+    },
+  };
+}
 
 export async function GET() {
   const gate = await requireRootActor('continuity.state.read');
@@ -41,9 +129,19 @@ export async function POST(request: NextRequest) {
   if (!parsed.success) return NextResponse.json({ ok: false, error: 'invalid_continuity_request', details: parsed.error.flatten() }, { status: 400 });
 
   if (parsed.data.action === 'heartbeat') {
-    const result = await runContinuityHeartbeat('founder_manual');
-    await auditRootAction({ actorId: gate.ctx.user.id, action: 'continuity.heartbeat.execute', target: result.runId, request, payload: { status: result.status } });
-    return NextResponse.json({ ok: true, result });
+    const result = await fullManualHeartbeat(parsed.data.cycleId);
+    await auditRootAction({
+      actorId: gate.ctx.user.id,
+      action: 'continuity.full_heartbeat.execute',
+      target: parsed.data.cycleId ?? result.continuity.runId,
+      request,
+      payload: {
+        status: result.ok === false ? 'DEGRADED' : 'COMPLETED',
+        cycleId: parsed.data.cycleId ?? null,
+        runId: result.continuity.runId,
+      },
+    });
+    return NextResponse.json({ ok: result.ok !== false, result });
   }
 
   const db = createServiceSupabaseClient();
