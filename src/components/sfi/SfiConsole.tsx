@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useAuthState } from '@/components/auth/AuthProvider';
 import { ObservatoryConsole } from './ObservatoryConsole';
-import { RootOperationalWorkboard } from './RootOperationalWorkboard';
+import { SfiOperatingWorkspace } from './SfiOperatingWorkspace';
 import { SessionControls } from './SessionControls';
 import { INTERNAL_SCENE_KEYS, SCENE_LABELS, type InternalSceneKey, type SceneKey } from './scenes';
 import './SfiConsole.css';
@@ -48,7 +48,7 @@ export function SfiConsole({scene}:{scene:SceneKey}){
       </nav>
       <div className="sfiOperatingAccount"><span>{auth.identity?.alias||'ROOT'}</span><SessionControls/></div>
     </header>
-    <RootOperationalWorkboard enabled surface={current}/>
+    <SfiOperatingWorkspace enabled surface={current}/>
   </main>;
 }
 
