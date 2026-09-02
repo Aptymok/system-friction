@@ -102,7 +102,7 @@ gtag('config', '${GA_ID}');`}
             <a href="/observatory"><SfiUiText es="OBSERVATORIO" en="OBSERVATORY" /></a>
             <a href="/history"><SfiUiText es="ORIGEN → AHORA" en="ORIGIN → NOW" /></a>
             <a href="/institution"><SfiUiText es="INSTITUTO" en="INSTITUTE" /></a>
-            <a href="/privacy"><SfiUiText es="PRIVACIDAD" en="PRIVACY" /></a>
+            <a href="/privacy"><SfiUiText es="PRIVACIDAD Y POLÍTICA DE DATOS PARA AGENTES EXTERNOS" en="PRIVACY & EXTERNAL AGENT DATA POLICY" /></a>
           </footer>
           <SfiConsentBanner />
         </SfiLanguageProvider>
