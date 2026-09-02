@@ -8,6 +8,7 @@ const authorize = read('src/app/api/oauth/authorize/route.ts');
 const oauthConfig = read('src/lib/sfi/oauthConfig.ts');
 const observatoryApi = read('src/app/api/observatory/world/route.ts');
 const observatoryPage = read('src/app/observatory/page.tsx');
+const observatoryInterpretiveFlow = read('src/components/sfi/ObservatoryInterpretiveFlow.tsx');
 const merge = read('scripts/merge-openapi-cases.mjs');
 const openapi = JSON.parse(read('public/openapi.json')) as Record<string, any>;
 
@@ -52,7 +53,10 @@ for (const scope of ['cases:read', 'cases:write']) {
 
 assert.ok(observatoryApi.includes('source_url,payload'), 'observatory_public_provenance_fields_missing');
 assert.ok(observatoryApi.includes('provenance:'), 'observatory_public_provenance_projection_missing');
-assert.ok(observatoryPage.includes('ObservatoryProvenanceFeed'), 'observatory_provenance_feed_not_rendered');
+assert.ok(observatoryPage.includes('ObservatoryInterpretiveFlow'), 'observatory_interpretive_flow_not_rendered');
+for (const token of ['sourceRole','verificationState','FRONTERA EPISTÉMICA','INFERENCE_ONLY','RETURN / CONTRAST']) {
+  assert.ok(observatoryInterpretiveFlow.includes(token), `observatory_interpretive_provenance_missing:${token}`);
+}
 
 assert.ok(openapi.paths?.['/api/external/v1/cases']?.post, 'openapi_case_workspace_path_missing_after_merge');
 const scopes = openapi.components?.securitySchemes?.sfiOAuth?.flows?.authorizationCode?.scopes ?? {};
@@ -72,4 +76,5 @@ console.log(JSON.stringify({
   interventionAuthority: false,
   returnAuthority: false,
   observatoryProvenance: true,
+  observatoryInterpretation: 'VERTICAL_TRACEABLE_CONTINUATION',
 }, null, 2));
