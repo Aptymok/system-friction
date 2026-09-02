@@ -18,6 +18,7 @@ const readiness=read('src/lib/root/closure/readInstitutionalReadiness.ts');
 const scenes=read('src/components/sfi/scenes.ts');
 const shellUi=read('src/components/sfi/SfiConsole.tsx');
 const operatingUi=read('src/components/sfi/SfiOperatingWorkspace.tsx');
+const governanceUi=read('src/components/sfi/SfiGovernanceWorkspace.tsx');
 const observatoryUi=read('src/components/sfi/ObservatoryConsole.tsx');
 
 for(const table of ['sfi_operating_cycles','sfi_inference_traces','sfi_artifact_trajectory_events']){
@@ -80,10 +81,11 @@ for(const legacy of ['systems','falsification','agents']){
 assert.ok(shellUi.includes('ObservatoryConsole') && shellUi.includes('SfiOperatingWorkspace'), 'canonical_shell_must_mount_public_and_institutional_operating_surfaces');
 assert.ok(observatoryUi.includes("type Lens='field'|'hypotheses'|'trajectory'|'sources'"), 'field_must_expose_observation_hypothesis_trajectory_source_lenses');
 assert.ok(observatoryUi.includes('MÉTRICAS DERIVADAS') && observatoryUi.includes('TRAZA DE CONSECUENCIAS'), 'field_must_expose_metrics_and_traceable_hypothesis_meaning');
-assert.ok(operatingUi.includes("jsonFetch('/api/acp/proposals')"), 'governed_proposal_feed_missing');
-assert.ok(operatingUi.includes('AGENTES') && operatingUi.includes("jsonFetch('/api/root/cognitive-runtime')"), 'governance_must_surface_observed_agent_runtime');
+assert.ok(operatingUi.includes('SfiGovernanceWorkspace'), 'governance_scene_must_delegate_to_canonical_workspace');
+assert.ok(governanceUi.includes("jsonFetch('/api/acp/proposals')"), 'governed_proposal_feed_missing');
+assert.ok(governanceUi.includes('AGENTES') && governanceUi.includes("jsonFetch('/api/root/cognitive-runtime')"), 'governance_must_surface_observed_agent_runtime');
 assert.ok(operatingUi.includes("surface==='twin'") && operatingUi.includes('CognitiveSpineAnatomy'), 'cognitive_twin_operating_surface_missing');
-assert.ok(operatingUi.includes('ACEPTAR') && operatingUi.includes('DENEGAR') && operatingUi.includes('PEDIR EVIDENCIA'), 'decision_authority_controls_missing');
+assert.ok(governanceUi.includes('ACEPTAR') && governanceUi.includes('DENEGAR') && governanceUi.includes('PEDIR EVIDENCIA'), 'decision_authority_controls_missing');
 
 assert.match(readiness,/EMPTY_READY/);
 assert.match(readiness,/resolvedStudioCapabilityMatrix/);
