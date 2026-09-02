@@ -28,6 +28,8 @@ const studioPage = read('src/app/studio/page.tsx');
 const fieldState = read('src/lib/studio/field/studioFieldState.ts');
 const scenes = read('src/components/sfi/scenes.ts');
 const liveUi = read('src/components/sfi/SfiConsole.tsx');
+const operatingUi = read('src/components/sfi/SfiOperatingWorkspace.tsx');
+const rootWorkboard = read('src/app/api/root/workboard/route.ts');
 
 const requiredAgents = [
   'meta_orchestrator', 'field_observer', 'evidence_hunter', 'historical_scout', 'phenotype_resolver',
@@ -88,17 +90,19 @@ assert.ok(masterLoop.includes('pass <= STUDIO_MASTER_ANALYSIS_MAX_PASSES'), 'mas
 assert.ok(masterRoute.includes('requireObjectOwner'), 'master_analysis_owner_gate_missing');
 assert.ok(masterRoute.includes('runStudioMasterAnalysisLoop'), 'master_analysis_route_not_wired');
 
-// Studio authority lives in the owner-scoped backend runtimes above. A visual
-// entry may exist for a human member, but it must not be aliased to MODELS or
-// be treated as the source of cognitive authority. MODELS/GENAI/AGENTS remain
-// related governed observability scenes, not a permission bridge for Studio.
+// Studio authority lives in owner-scoped backend runtimes. MODELS/GENAI/AGENTS were
+// absorbed as parallel scenes; their observability survives in ROOT/GOVERNANCE and
+// the provider workboard without becoming a permission bridge for Studio.
 assert.equal(studioPage.includes("redirect('/models')"), false, 'studio_entry_must_not_alias_to_models');
 assert.ok(studioPage.includes('listStudioObjects(user.id)'), 'studio_entry_must_preserve_owner_scope');
 assert.ok(studioPage.includes('getStudioObjectFeatures(activeId, user.id)'), 'studio_entry_must_use_owner_scoped_features');
-assert.ok(scenes.includes("models:{key:'models'"), 'models_scene_missing');
-assert.ok(scenes.includes("genai:{key:'genai'"), 'genai_scene_missing');
-assert.ok(scenes.includes("agents:{key:'agents'"), 'agents_scene_missing');
+assert.ok(scenes.includes("root:{key:'root'"), 'root_scene_missing');
+assert.ok(scenes.includes("governance:{key:'governance'"), 'governance_scene_missing');
+assert.ok(scenes.includes("twin:{key:'twin'"), 'twin_scene_missing');
+assert.ok(/LEGACY_INTERNAL_SCENES=.*'agents'.*'models'.*'genai'/s.test(scenes), 'absorbed_cognitive_observability_scenes_missing');
 assert.ok(liveUi.includes('COGNITIVE TWIN'), 'studio_twin_observability_missing');
+assert.ok(operatingUi.includes('AGENTES'), 'studio_agent_observability_missing');
+assert.ok(rootWorkboard.includes('getLlmProviderStatus') && rootWorkboard.includes('providerHealthBoundary'), 'studio_model_provider_observability_missing');
 assert.ok(liveUi.includes('FUENTE VIVA') && liveUi.includes('ESTADO'), 'studio_runtime_telemetry_missing');
 
 const migrationFiles = walk('supabase/migrations').filter((file) => file.endsWith('.sql'));
@@ -122,7 +126,7 @@ console.log(JSON.stringify({
   masterAnalysisPassBudget: [2, 3],
   masterAnalysisOwnerScoped: true,
   studioAuthority: 'OWNER_SCOPED_BACKEND_RUNTIME',
-  relatedObservabilityScenes: ['MODELS', 'GENAI', 'AGENTS'],
-  companionGenAiSurface: true,
+  relatedObservability: 'ROOT/GOVERNANCE/TWIN + PROVIDER WORKBOARD',
+  legacyScenesAbsorbed: ['MODELS', 'GENAI', 'AGENTS'],
   duplicateRelationTable: false,
 }, null, 2));
