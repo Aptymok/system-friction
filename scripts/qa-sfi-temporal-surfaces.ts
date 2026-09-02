@@ -20,6 +20,7 @@ const scenes = read('src/components/sfi/scenes.ts');
 const shellUi = read('src/components/sfi/SfiConsole.tsx');
 const observatoryUi = read('src/components/sfi/ObservatoryConsole.tsx');
 const operatingUi = read('src/components/sfi/SfiOperatingWorkspace.tsx');
+const governanceUi = read('src/components/sfi/SfiGovernanceWorkspace.tsx');
 const observatoryPage = read('src/app/observatory/page.tsx');
 
 // Backend temporal truth remains intact after the visual replacement.
@@ -132,8 +133,9 @@ assert.ok(directTwin.includes("const runStatus = !llm.ok ? 'BLOCKED'"), 'direct_
 assert.ok(directTwin.includes("status: llm.ok ? 'PROPOSED' : 'REJECTED'"), 'direct_twin_envelope_must_reflect_provider_failure');
 assert.ok(twinState.includes('providerExecutionObserved'), 'twin_readiness_must_require_observed_provider_execution');
 assert.ok(twinState.includes(".in('status', ['APPROVED', 'APPROVED_WITH_LIMITS'])"), 'twin_model_readiness_must_require_approved_model_status');
-assert.ok(operatingUi.includes('/api/acp/proposals'), 'live_twin_proposal_surface_missing');
-assert.ok(operatingUi.includes('ACEPTAR') && operatingUi.includes('DENEGAR'), 'root_plain_language_decision_controls_missing');
+assert.ok(operatingUi.includes('SfiGovernanceWorkspace'), 'governance_scene_must_delegate_to_canonical_workspace');
+assert.ok(governanceUi.includes('/api/acp/proposals'), 'live_twin_proposal_surface_missing');
+assert.ok(governanceUi.includes('ACEPTAR') && governanceUi.includes('DENEGAR'), 'root_plain_language_decision_controls_missing');
 assert.ok(shellUi.includes('ObservatoryConsole'), 'field_scene_must_route_to_native_observatory_console');
 
 console.log(JSON.stringify({
