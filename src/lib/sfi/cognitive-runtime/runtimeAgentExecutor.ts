@@ -28,7 +28,29 @@ function compactExecutionMetadata(agentId: string, context: KernelContext) {
   const selectedInsight = insights[agentId] && typeof insights[agentId] === 'object'
     ? insights[agentId]
     : null;
-  const keys = ['objectKey', 'objectHash', 'signalType', 'declaredFunction', 'objective', 'question', 'worldSnapshotId', 'methods', 'openCycleIds', 'ctSnapshotId', 'ctSnapshotHash', 'ctSnapshotConsumed'];
+  const keys = [
+    'executionId',
+    'executionContractVersion',
+    'actorId',
+    'manualRootExecution',
+    'objectKey',
+    'objectHash',
+    'signalType',
+    'declaredFunction',
+    'objective',
+    'question',
+    'targets',
+    'anchors',
+    'executionRequest',
+    'contextCoverage',
+    'epistemicBoundary',
+    'worldSnapshotId',
+    'methods',
+    'openCycleIds',
+    'ctSnapshotId',
+    'ctSnapshotHash',
+    'ctSnapshotConsumed',
+  ];
   const refs: Record<string, unknown> = {};
   for (const key of keys) {
     if (metadata[key] !== undefined) refs[key] = metadata[key];
@@ -112,11 +134,24 @@ export async function runCognitiveAgent(
   const insight = agentInsights[agentId] && typeof agentInsights[agentId] === 'object'
     ? agentInsights[agentId] as Record<string, unknown>
     : null;
+  const metadata = updatedContext.metadata ?? {};
+  const executionRequest = metadata.executionRequest && typeof metadata.executionRequest === 'object'
+    ? metadata.executionRequest as Record<string, unknown>
+    : null;
 
   await recordAgentExecutionEvent(
     agentId,
     executed ? 'SFI_AGENT_EXECUTED' : 'SFI_AGENT_SKIPPED',
     {
+      executionId: metadata.executionId ?? null,
+      executionContractVersion: metadata.executionContractVersion ?? null,
+      requestSource: metadata.manualRootExecution === true ? 'ROOT_MANUAL' : updatedContext.currentEvent,
+      requestedBy: metadata.actorId ?? null,
+      purpose: executionRequest?.purpose ?? metadata.objective ?? metadata.question ?? null,
+      anchors: executionRequest?.anchors ?? metadata.anchors ?? [],
+      targets: executionRequest?.targets ?? metadata.targets ?? [],
+      governanceContext: executionRequest?.governanceContext ?? null,
+      epistemicBoundary: metadata.epistemicBoundary ?? null,
       logbookId: updatedContext.logbookId,
       cycleId: updatedContext.cycleId,
       currentEvent: updatedContext.currentEvent,
