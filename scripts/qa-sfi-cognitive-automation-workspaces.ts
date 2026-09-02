@@ -3,7 +3,7 @@ import { existsSync, readFileSync } from 'node:fs';
 
 const text=(path:string)=>readFileSync(path,'utf8');
 const proposals=text('src/app/api/acp/proposals/route.ts');
-const ui=text('src/components/sfi/SfiConsole.tsx');
+const ui=text('src/components/sfi/SfiOperatingWorkspace.tsx');
 const selector=text('src/lib/sfi/cognitive-runtime/automationSelector.ts');
 const meta=text('src/lib/sfi/cognitive-runtime/agents/metaOrchestrator.ts');
 const access=text('src/lib/system/access/server.ts');
@@ -17,6 +17,7 @@ assert.match(proposals,/source:\{table:'action_proposals'\}/,'proposal_read_must
 assert.match(ui,/Proposal observability is intentionally independent from ACP runtime health/,'root_ui_must_not_hide_recovery_queue_when_presence_is_degraded');
 assert.match(ui,/Fuente de propuestas DEGRADED/,'root_ui_must_distinguish_read_failure_from_empty_queue');
 assert.match(ui,/PEDIR EVIDENCIA/,'root_ui_must_expose_evidence_request');
+assert.doesNotMatch(ui,/jsonFetch\('\/api\/acp\/proposals'\)\.catch\(\(\)=>\(\{ok:true,data:\{proposals:\[\]\}\}\)\)/,'proposal_read_failure_must_not_be_coerced_to_empty_queue');
 
 assert.match(selector,/reasons:\s*Record<string,\s*string\[\]>/,'automation_selector_must_expose_selection_reasons');
 assert.match(selector,/reasons:\s*Object\.fromEntries/,'automation_selector_must_materialize_selection_reasons');
