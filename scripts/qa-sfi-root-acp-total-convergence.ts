@@ -28,6 +28,7 @@ const forkRoute=read('src/app/api/root/cognitive-twin/fork/route.ts');
 const scenes=read('src/components/sfi/scenes.ts');
 const shellUi=read('src/components/sfi/SfiConsole.tsx');
 const operatingUi=read('src/components/sfi/SfiOperatingWorkspace.tsx');
+const governanceUi=read('src/components/sfi/SfiGovernanceWorkspace.tsx');
 const home=read('src/app/page.tsx');
 const publicEntry=read('src/components/sfi/PublicEntryGateway.tsx');
 const llms=read('src/app/llms.txt/route.ts');
@@ -88,11 +89,12 @@ assert.match(readiness,/externalGateBoundary/);
 assert.ok(scenes.includes("governance:{key:'governance'"), 'governance_live_scene_missing');
 assert.ok(scenes.includes("root:{key:'root'"), 'root_live_scene_missing');
 assert.ok(!scenes.includes("agents:{key:'agents'"), 'agents_must_not_reappear_as_parallel_sovereign_scene');
-assert.ok(operatingUi.includes('AGENTES'), 'governance_workspace_must_expose_agents');
-assert.ok(operatingUi.includes("jsonFetch('/api/root/cognitive-runtime')"), 'governance_workspace_must_read_observed_agent_runtime');
-assert.ok(operatingUi.includes("jsonFetch('/api/acp/proposals')"), 'canonical_proposal_feed_not_wired_to_governance_workspace');
-assert.ok(operatingUi.includes('Fuente de propuestas DEGRADED'), 'proposal_source_failure_must_not_collapse_to_empty_success');
-assert.ok(operatingUi.includes('ACEPTAR') && operatingUi.includes('DENEGAR') && operatingUi.includes('PEDIR EVIDENCIA'), 'plain_language_governance_decisions_missing');
+assert.ok(operatingUi.includes('SfiGovernanceWorkspace'), 'governance_workspace_delegation_missing');
+assert.ok(governanceUi.includes('AGENTES'), 'governance_workspace_must_expose_agents');
+assert.ok(governanceUi.includes("jsonFetch('/api/root/cognitive-runtime')"), 'governance_workspace_must_read_observed_agent_runtime');
+assert.ok(governanceUi.includes("jsonFetch('/api/acp/proposals')"), 'canonical_proposal_feed_not_wired_to_governance_workspace');
+assert.ok(governanceUi.includes('Fuente de propuestas DEGRADED'), 'proposal_source_failure_must_not_collapse_to_empty_success');
+assert.ok(governanceUi.includes('ACEPTAR') && governanceUi.includes('DENEGAR') && governanceUi.includes('PEDIR EVIDENCIA'), 'plain_language_governance_decisions_missing');
 assert.ok(shellUi.includes('GOVERNANCE QUEUE'), 'governance_queue_contract_marker_missing');
 assert.ok(shellUi.includes('COGNITIVE TWIN / ACP'), 'twin_acp_governance_identity_missing');
 
@@ -103,7 +105,7 @@ assert.match(acpSeenRoute,/method_not_allowed/,'acp_presence_get_must_not_silent
 assert.match(acpSeenRoute,/requiredMethod: 'POST'/,'acp_presence_get_must_name_required_method');
 assert.match(acpSeenRoute,/export async function POST/,'acp_presence_mutation_must_remain_post');
 assert.match(acpSeenRoute,/requireRootActor\('governance\.acp\.presence'\)/,'acp_presence_post_must_remain_root_governed');
-assert.doesNotMatch(operatingUi,/rootPresenceReady|confirmRootPresence|HACERME VISTO · CONFIRMAR PRESENCIA ACP/,'proposal observability must not depend on a manual presence ritual');
+assert.doesNotMatch(`${operatingUi}\n${governanceUi}`,/rootPresenceReady|confirmRootPresence|HACERME VISTO · CONFIRMAR PRESENCIA ACP/,'proposal observability must not depend on a manual presence ritual');
 
 // The canonical public entry must tell both humans and agents what SFI is and what to do first.
 assert.match(home,/PublicEntryGateway/,'canonical_home_missing_public_entry_gateway');
