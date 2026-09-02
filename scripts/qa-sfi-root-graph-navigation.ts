@@ -14,7 +14,8 @@ const systemReader = read('src/lib/root/sovereign/readers/readRootSystemState.ts
 const readerSupport = read('src/lib/root/sovereign/readers/readerSupport.ts');
 const reconcileRoute = read('src/app/api/root/evidence/reconcile/route.ts');
 const scenes = read('src/components/sfi/scenes.ts');
-const liveUi = read('src/components/sfi/SfiConsole.tsx');
+const shellUi = read('src/components/sfi/SfiConsole.tsx');
+const operatingUi = read('src/components/sfi/SfiOperatingWorkspace.tsx');
 const scenePage = read('src/app/[scene]/page.tsx');
 
 // Graph storage, lineage and read/write boundaries remain backend contracts.
@@ -31,19 +32,19 @@ check('evidence reader does not require missing graph_nodes.evidence_ids column'
 check('evidence reader exposes semantic and temporal edge metadata', reader.includes('declaredRelations.join') && reader.includes('relationClass:') && reader.includes('observedAt: dateValue(attributes.observedAt'));
 check('explicit graph maintenance is sovereign and audited', reconcileRoute.includes("requireRootActor('evidence.graph.reconcile')") && reconcileRoute.includes("action: 'evidence.graph.reconcile'"));
 
-// The old sovereign dashboard/navigation stack was intentionally deleted.
-// ROOT graph observability now enters through the canonical live scene runtime.
-check('ROOT is a canonical live scene', scenes.includes("root:{key:'root'") && scenes.includes("title:'SFI · director operativo'"));
-check('ROOT live scene reads governed proposals', liveUi.includes("fetch('/api/acp/proposals'") && liveUi.includes('proposalList'));
-check('ROOT live scene exposes plain-language governed decisions', liveUi.includes('ACEPTAR') && liveUi.includes('RECHAZAR'));
-check('ROOT live scene exposes live telemetry', liveUi.includes('FUENTE VIVA') && liveUi.includes('ESTADO') && liveUi.includes('AUTORIDAD') && liveUi.includes('PROPOSICIONES'));
+// ROOT remains canonical, but its presentational implementation is the converged
+// operating workspace. The QA follows the capability rather than a deleted dashboard.
+check('ROOT is a canonical operating scene', scenes.includes("root:{key:'root'") && scenes.includes("title:'Observatorio de Fricción'") && scenes.includes("liveSource:'/api/root/workboard'"));
+check('ROOT operating workspace reads governed proposals', operatingUi.includes("jsonFetch('/api/acp/proposals')") && operatingUi.includes('setProposals'));
+check('ROOT operating workspace exposes plain-language governed decisions', operatingUi.includes('ACEPTAR') && operatingUi.includes('DENEGAR') && operatingUi.includes('PEDIR EVIDENCIA'));
+check('ROOT operating workspace exposes live operational telemetry', operatingUi.includes("jsonFetch('/api/root/workboard')") && operatingUi.includes("jsonFetch('/api/root/cognitive-runtime')") && operatingUi.includes('workboard?.operationalNext') && operatingUi.includes('sfiMetrics'));
 check('live scene runtime is gated by canonical scene registry', scenePage.includes('SCENE_KEYS.includes') && scenePage.includes('scene={scene as SceneKey}'));
-check('deleted sovereign workspace is not required for graph truth', !liveUi.includes('RootObservatoryWorkspace') && !scenePage.includes('RootObservatoryWorkspace'));
+check('deleted sovereign workspace is not required for graph truth', !shellUi.includes('RootObservatoryWorkspace') && !operatingUi.includes('RootObservatoryWorkspace') && !scenePage.includes('RootObservatoryWorkspace'));
 
 const failed = checks.filter((item) => !item.ok);
 for (const item of checks) console.log(`${item.ok ? 'PASS' : 'FAIL'} · ${item.name}`);
 if (failed.length) {
-  console.error(`\nROOT graph/live-scene convergence QA failed: ${failed.length}/${checks.length}`);
+  console.error(`\nROOT graph/operating-workspace convergence QA failed: ${failed.length}/${checks.length}`);
   process.exit(1);
 }
-console.log(`\nROOT graph/live-scene convergence QA passed: ${checks.length}/${checks.length}`);
+console.log(`\nROOT graph/operating-workspace convergence QA passed: ${checks.length}/${checks.length}`);
