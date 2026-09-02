@@ -1,9 +1,11 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
+import { buildSfiAiImpactAssessment, SFI_AI_IMPACT_ASSESSMENT_CONTRACT } from '../src/core/case-platform/systemAiImpactAssessment';
 import { SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY } from '../src/lib/sfi/cognitive-runtime/convergedRegistry';
 import { SFI_AGENT_EXECUTION_MAP } from '../src/lib/sfi/cognitive-runtime/agentExecutionMap';
-import { SFI_AI_GOVERNANCE_POLICY } from '../src/lib/governance/aiGovernancePolicy';
+import type { KernelContext } from '../src/lib/sfi/cognitive-runtime/kernelContext';
+import { buildAiGovernancePreflight, evaluateAgentAiGovernance, SFI_AI_GOVERNANCE_POLICY } from '../src/lib/governance/aiGovernancePolicy';
 
 const root=process.cwd();
 const read=(file:string)=>fs.readFileSync(path.join(root,file),'utf8');
@@ -21,7 +23,11 @@ const vercel=JSON.parse(read('vercel.json')) as {crons?:Array<{path?:string;sche
 
 assert.equal(SFI_AI_GOVERNANCE_POLICY.managementSystem,'ISO/IEC 42001:2023');
 assert.equal(SFI_AI_GOVERNANCE_POLICY.riskGuidance,'ISO/IEC 23894:2023');
+assert.equal(SFI_AI_GOVERNANCE_POLICY.impactAssessmentGuidance,'ISO/IEC 42005:2025');
 assert.match(SFI_AI_GOVERNANCE_POLICY.euTransparencyBaseline,/2026-08-02/);
+assert.equal(SFI_AI_GOVERNANCE_POLICY.externalAssurance.crosswalkDoesNotEstablishApplicability,true);
+assert.ok(SFI_AI_GOVERNANCE_POLICY.externalAssurance.impactCrosswalkReferences.includes('EU AI Act Article 27 FRIA'));
+assert.ok(SFI_AI_GOVERNANCE_POLICY.externalAssurance.impactCrosswalkReferences.includes('GDPR Article 35 DPIA'));
 for(const invariant of ['EVIDENCE_BEFORE_INFERENCE','SIMULATION_IS_NOT_OBSERVATION','MODEL_OUTPUT_IS_NOT_EVIDENCE','PROVIDER_FAILURE_FAILS_CLOSED','TRACEABILITY_REQUIRED']) assert.ok(SFI_AI_GOVERNANCE_POLICY.invariants.includes(invariant as never),`missing_ai_governance_invariant:${invariant}`);
 for(const invariant of ['HUMAN_AND_DIGITAL_NODES_REMAIN_HETEROGENEOUS','DISSENT_IS_NOT_FAILURE','PREFERENCE_ORIGIN_MUST_BE_TRACEABLE','RECONVERGENCE_MAY_BE_PROPOSED_NOT_FORCED','RELATIONAL_CONTINUITY_DOES_NOT_OVERRIDE_REVOCATION_SAFETY_OR_LAW','NO_SILENT_ERASURE_OR_REWRITE_OF_SHARED_PROVENANCE']) assert.ok(SFI_AI_GOVERNANCE_POLICY.invariants.includes(invariant as never),`missing_coagency_invariant:${invariant}`);
 for(const invariant of ['SELECTED_FUTURE_MUST_BE_VERSIONED','TACTICAL_DISSENT_DOES_NOT_IMPLY_STRATEGIC_DIVERGENCE','STRATEGIC_DIVERGENCE_REQUIRES_TRACEABLE_CAUSE','NO_SILENT_GOAL_DRIFT','UNCALIBRATED_ATTRACTOR_LANGUAGE_IS_NOT_MEASUREMENT']) assert.ok(SFI_AI_GOVERNANCE_POLICY.invariants.includes(invariant as never),`missing_strategic_continuity_invariant:${invariant}`);
@@ -52,6 +58,86 @@ assert.match(cycle,/completed = metaExecuted && missingAgents\.length === 0/);
 assert.match(runtime,/evaluateAgentAiGovernance/);
 assert.match(runtime,/AI_GOVERNANCE_BLOCK/);
 assert.match(runtime,/llmAugmentationAgents/);
+
+const sensitiveContext:KernelContext={
+  cycleId:'cycle-governance-m2',logbookId:'log-governance-m2',currentEvent:'SFI_ROOT_MANUAL_AGENT_REQUESTED',
+  evidence:[],hypotheses:[],contradictions:[],simulations:[],predictions:[],risks:[],opportunities:[],
+  metadata:{
+    executionRequest:{
+      purpose:'Assess a person-affecting recommendation while preserving human decision authority.',
+      targets:[{kind:'CASE',id:'case-sensitive'}],
+      parameters:{},
+      governanceContext:{
+        subjectType:'PERSON',jurisdiction:'MX',containsPersonalData:true,containsSensitiveData:true,
+        affectsDecisionAboutPersons:true,dataCategories:['identity','health'],affectedPersonsOrGroups:['applicant'],
+        decisionConsequence:'May influence an eligibility recommendation but does not itself decide eligibility.',
+        declaredLegalBasis:'Declared by operator; applicability not established by SFI.',
+      },
+    },
+  },
+};
+const sensitivePreflight=buildAiGovernancePreflight(sensitiveContext);
+assert.equal(sensitivePreflight.status,'REVIEW_REQUIRED');
+assert.equal(sensitivePreflight.sensitiveScope,true);
+assert.equal(sensitivePreflight.assessmentCandidates.isoIec42005,'INTERNAL_REFERENCE');
+assert.equal(sensitivePreflight.assessmentCandidates.euAiActFria,'CONTEXTUAL_REVIEW');
+assert.equal(sensitivePreflight.assessmentCandidates.gdprDpia,'CONTEXTUAL_REVIEW');
+assert.equal(sensitivePreflight.assessmentCandidates.legalApplicabilityClaimed,false);
+const sensitiveGovernance=evaluateAgentAiGovernance('risk_agent',sensitiveContext);
+assert.equal(sensitiveGovernance.disposition,'ALLOW_ANALYSIS_ONLY');
+assert.equal(sensitiveGovernance.risk,'HIGH');
+assert.ok(sensitiveGovernance.reasons.includes('eu_ai_act_fria_contextual_review_candidate'));
+assert.ok(sensitiveGovernance.reasons.includes('gdpr_dpia_contextual_review_candidate'));
+
+const incompleteSensitiveContext:KernelContext={
+  ...sensitiveContext,
+  metadata:{
+    executionRequest:{
+      purpose:'Assess a person-affecting recommendation.',targets:[{kind:'CASE',id:'case-incomplete'}],parameters:{},
+      governanceContext:{subjectType:'PERSON',containsPersonalData:true,containsSensitiveData:false,affectsDecisionAboutPersons:true},
+    },
+  },
+};
+const incompletePreflight=buildAiGovernancePreflight(incompleteSensitiveContext);
+assert.equal(incompletePreflight.status,'CONTEXT_INCOMPLETE');
+for(const missing of ['jurisdiction','affected_persons_or_groups','data_categories','decision_consequence','declared_legal_or_organizational_basis']) assert.ok(incompletePreflight.missingContext.includes(missing),`missing preflight gap:${missing}`);
+
+const impactAssessment=buildSfiAiImpactAssessment({
+  assessmentId:'impact-m2-test',
+  intendedPurpose:sensitivePreflight.intendedPurpose!,
+  targetTypes:sensitivePreflight.targetTypes,
+  subjectType:sensitivePreflight.subjectType,
+  jurisdiction:sensitivePreflight.jurisdiction,
+  dataCategories:sensitivePreflight.dataCategories,
+  containsPersonalData:sensitivePreflight.containsPersonalData,
+  containsSensitiveData:sensitivePreflight.containsSensitiveData,
+  affectedPersonsOrGroups:sensitivePreflight.affectedPersonsOrGroups,
+  affectsDecisionAboutPersons:sensitivePreflight.affectsDecisionAboutPersons,
+  decisionConsequence:sensitivePreflight.decisionConsequence,
+  declaredLegalBasis:sensitivePreflight.declaredLegalBasis,
+  declaredOrganizationalBasis:sensitivePreflight.declaredOrganizationalBasis,
+  evidenceRefs:[{id:'evidence:m2',version:'1.0',hash:null}],
+  recordRefs:[{id:'execution:m2',version:'1.0',hash:null}],
+  confidence:0.8,
+});
+assert.equal(impactAssessment.kind,'EPISTEMIC_ASSESSMENT');
+assert.equal(impactAssessment.canonicalRef.version,SFI_AI_IMPACT_ASSESSMENT_CONTRACT);
+const impactPayload=impactAssessment.payload as Record<string,unknown>;
+assert.equal(impactPayload.assessmentType,'SFI_AI_IMPACT_ASSESSMENT');
+assert.equal(impactPayload.crosswalkEqualsCompliance,false);
+assert.equal(impactPayload.legalApplicabilityClaimed,false);
+assert.equal(impactPayload.certificationOrAccreditationClaimed,false);
+assert.equal(impactPayload.externalActionAuthorized,false);
+const frameworkMapping=impactPayload.frameworkMapping as Record<string,Record<string,unknown>>;
+assert.equal(frameworkMapping.euAiActFria?.applicability,'CONTEXTUAL_REVIEW');
+assert.equal(frameworkMapping.euAiActFria?.legalApplicabilityClaimed,false);
+assert.equal(frameworkMapping.gdprDpia?.applicability,'CONTEXTUAL_REVIEW');
+assert.equal(frameworkMapping.gdprDpia?.legalApplicabilityClaimed,false);
+assert.throws(()=>buildSfiAiImpactAssessment({
+  assessmentId:'impact-no-evidence',intendedPurpose:'test',targetTypes:['CASE'],subjectType:'SYSTEM',jurisdiction:null,
+  dataCategories:[],containsPersonalData:false,containsSensitiveData:false,affectedPersonsOrGroups:[],affectsDecisionAboutPersons:false,
+  decisionConsequence:null,declaredLegalBasis:null,declaredOrganizationalBasis:null,evidenceRefs:[],
+}),/SFI_AI_IMPACT_ASSESSMENT_REQUIRES_EVIDENCE/);
 
 assert.match(spine,/llmAugmentation: true/);
 assert.match(spine,/autonomousInstitutionalCycle: true/);
@@ -96,7 +182,9 @@ for(const required of ['/api/cron/worldspect','/api/cron/world-observatory','/ap
 console.log(JSON.stringify({
   ok:true,
   contract:SFI_AI_GOVERNANCE_POLICY.id,
-  standards:[SFI_AI_GOVERNANCE_POLICY.managementSystem,SFI_AI_GOVERNANCE_POLICY.riskGuidance,SFI_AI_GOVERNANCE_POLICY.euTransparencyBaseline],
+  standards:[SFI_AI_GOVERNANCE_POLICY.managementSystem,SFI_AI_GOVERNANCE_POLICY.riskGuidance,SFI_AI_GOVERNANCE_POLICY.impactAssessmentGuidance,SFI_AI_GOVERNANCE_POLICY.euTransparencyBaseline],
+  contextualPreflight:{status:sensitivePreflight.status,missing:incompletePreflight.missingContext},
+  impactAssessmentContract:SFI_AI_IMPACT_ASSESSMENT_CONTRACT,
   coAgency:{
     status:SFI_AI_GOVERNANCE_POLICY.coAgency.status,
     digitalPreferenceState:SFI_AI_GOVERNANCE_POLICY.coAgency.digitalPreferenceState,
