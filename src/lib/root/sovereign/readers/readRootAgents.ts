@@ -2,6 +2,7 @@ import 'server-only';
 
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { readObservedSfiCognitiveRuntime } from '@/lib/sfi/cognitive-runtime/observedRuntime';
+import { readExecutionRecords, type SfiExecutionRecord } from '@/lib/sfi/cognitive-runtime/executionRecords';
 import { SFI_AGENTIC_CAPABILITIES, type SfiAgenticCapabilityContract } from '@/lib/sfi/agenticCapabilityRegistry';
 import type { RootAgent, RootDataStatus } from '../rootSovereignState';
 import { source } from './readerSupport';
@@ -50,34 +51,45 @@ function isStructuralWarning(value: string) {
   return !lower.includes('sin ejecución') && !lower.includes('no tiene aún un ledger') && !lower.includes('no existe ejecución') && !lower.includes('todavía no existe');
 }
 
+function latestByAgent(records: SfiExecutionRecord[]) {
+  const result = new Map<string, SfiExecutionRecord>();
+  const sorted = [...records].sort((a, b) => (b.occurredAt ?? '').localeCompare(a.occurredAt ?? ''));
+  for (const execution of sorted) if (!result.has(execution.agentId)) result.set(execution.agentId, execution);
+  return result;
+}
+
 export async function readRootAgents() {
-  const runtime = await readObservedSfiCognitiveRuntime();
-  const latestExecutions = new Map<string, { at: string | null; id: string }>();
-  for (const event of runtime.eventGraph.recentEvents) {
-    if (event.eventName !== 'SFI_AGENT_EXECUTED' || !event.sourceId || latestExecutions.has(event.sourceId)) continue;
-    latestExecutions.set(event.sourceId, { at: event.occurredAt, id: event.eventId });
-  }
+  const [runtime, executionRead] = await Promise.all([
+    readObservedSfiCognitiveRuntime(),
+    readExecutionRecords({ limit: 500 }),
+  ]);
+  const latestExecutions = latestByAgent(executionRead.records);
 
   const agents: RootAgent[] = runtime.agents.map((entry) => {
-    const latest = latestExecutions.get(entry.id);
-    const warning = entry.evidence.warnings.length ? entry.evidence.warnings.join(' | ') : null;
+    const latest = latestExecutions.get(entry.id) ?? null;
+    const runtimeWarning = entry.evidence.warnings.length ? entry.evidence.warnings.join(' | ') : null;
+    const coverageWarning = latest?.contextCoverage.partial === true
+      ? `Última ejecución con cobertura parcial: ${latest.contextCoverage.evidenceDelivered ?? 'N/O'}/${latest.contextCoverage.evidenceAvailable ?? 'N/O'} evidencias entregadas al LLM.`
+      : null;
+    const warning = [runtimeWarning, coverageWarning].filter(Boolean).join(' | ') || null;
     return {
       id: entry.id,
       role: entry.name,
       state: {
         value: entry.status === 'operational' ? 'ejecución observada' : entry.status === 'gated' ? 'registrado · sin ejecución reciente' : entry.status,
         status: rootStatus(entry.status),
-        source: 'Cognitive Runtime observado + epistemic_events',
-        observedAt: latest?.at ?? runtime.generatedAt,
-        confidence: null,
-        evidenceIds: latest?.id ? [latest.id] : [],
+        source: 'Cognitive Runtime observado + execution record sobre epistemic_events',
+        observedAt: latest?.occurredAt ?? runtime.generatedAt,
+        confidence: latest?.interpretation.confidence ?? null,
+        evidenceIds: latest?.eventId ? [latest.eventId] : [],
         explanation: `${entry.purpose} · LEE: ${entry.readsMemory.map((item) => item.memory).join(', ') || 'ninguna fuente declarada'} · ESCRIBE: ${entry.writesMemory.map((item) => item.memory).join(', ') || 'ningún writer declarado'}`,
         warning,
       },
-      provider: null,
-      model: null,
-      lastRun: latest?.at ?? null,
-      lastResult: entry.purpose,
+      provider: latest?.telemetry.provider.value ?? null,
+      model: latest?.telemetry.model.value ?? null,
+      lastRun: latest?.occurredAt ?? null,
+      // Never substitute the agent purpose for an observed execution result.
+      lastResult: latest?.interpretation.summary ?? null,
       availability: entry.status,
       error: warning,
     };
@@ -102,7 +114,7 @@ export async function readRootAgents() {
       provider: entry.providerAware ? 'se registra durante la ejecución' : null,
       model: entry.providerAware ? 'se registra durante la ejecución' : null,
       lastRun: observed.at,
-      lastResult: entry.purpose,
+      lastResult: null,
       availability: observed.status,
       error: observed.warning,
     });
@@ -115,7 +127,7 @@ export async function readRootAgents() {
   ];
   return source(
     { agents },
-    'Cognitive Runtime observado + capacidades agentic + ejecución persistida',
+    'Cognitive Runtime observado + execution records + capacidades agentic',
     warnings,
     runtime.generatedAt,
     runtime.status === 'missing',
