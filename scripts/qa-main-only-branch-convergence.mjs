@@ -35,6 +35,15 @@ function isAncestor(branch) {
   }
 }
 
+function isAncestorOfBranch(branch, successorBranch) {
+  try {
+    execFileSync('git', ['merge-base', '--is-ancestor', `origin/${branch}`, `origin/${successorBranch}`], { stdio: 'ignore' });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function cherry(branch) {
   try {
     return git(['cherry', 'origin/main', `origin/${branch}`]).split('\n').filter(Boolean);
@@ -127,6 +136,7 @@ const branches = git(['for-each-ref', '--format=%(refname:strip=3)', 'refs/remot
   .map((value) => value.trim())
   .filter(Boolean)
   .filter((value) => value !== 'HEAD' && value !== 'main');
+const branchSet = new Set(branches);
 
 const automaticallyAbsorbed = [];
 const candidates = [];
@@ -143,6 +153,28 @@ for (const branch of branches) {
     automaticallyAbsorbed.push({ branch, reason: 'ANCESTOR_OF_MAIN', pullRequests: prHistory.byHead.get(branch) ?? [] });
     continue;
   }
+
+  // A draft/intermediate branch may remain non-ancestor of main after a squash merge even when
+  // its exact commit lineage was carried forward into a later branch whose PR did merge. In that
+  // case the later merged PR is the durable review/history object and the predecessor branch is
+  // structurally superseded. This prevents stale draft/tmp branches from surviving forever only
+  // because squash merge rewrote commit identity.
+  const mergedSuccessors = [...prHistory.mergedHeads]
+    .filter((successor) => successor !== branch && branchSet.has(successor))
+    .filter((successor) => isAncestorOfBranch(branch, successor));
+  if (mergedSuccessors.length) {
+    automaticallyAbsorbed.push({
+      branch,
+      reason: 'ANCESTOR_OF_MERGED_PR_HEAD',
+      mergedSuccessors: mergedSuccessors.map((successor) => ({
+        branch: successor,
+        pullRequests: prHistory.byHead.get(successor) ?? [],
+      })),
+      pullRequests: prHistory.byHead.get(branch) ?? [],
+    });
+    continue;
+  }
+
   const patchRows = cherry(branch);
   const unique = patchRows.filter((line) => line.startsWith('+ ')).map((line) => line.slice(2));
   if (!unique.length) {
