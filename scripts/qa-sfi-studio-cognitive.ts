@@ -103,7 +103,7 @@ assert.ok(/LEGACY_INTERNAL_SCENES=.*'agents'.*'models'.*'genai'/s.test(scenes), 
 assert.ok(liveUi.includes('COGNITIVE TWIN'), 'studio_twin_observability_missing');
 assert.ok(operatingUi.includes('AGENTES'), 'studio_agent_observability_missing');
 assert.ok(rootWorkboard.includes('getLlmProviderStatus') && rootWorkboard.includes('providerHealthBoundary'), 'studio_model_provider_observability_missing');
-assert.ok(liveUi.includes('FUENTE VIVA') && liveUi.includes('ESTADO'), 'studio_runtime_telemetry_missing');
+assert.ok(rootWorkboard.includes('readContinuityDashboard') && rootWorkboard.includes('heartbeatAgeMinutes') && rootWorkboard.includes('latestRun'), 'studio_runtime_telemetry_missing');
 
 const migrationFiles = walk('supabase/migrations').filter((file) => file.endsWith('.sql'));
 const migrationText = migrationFiles.map((file) => readFileSync(file, 'utf8')).join('\n');
