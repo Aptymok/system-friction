@@ -8,6 +8,12 @@ import {
   normalizeExecutionRequest,
   validateExecutionRequest,
 } from '../src/lib/sfi/cognitive-runtime/executionContracts';
+import {
+  SFI_EXECUTION_RECORD_VERSION,
+  deriveExecutionEpistemicState,
+  deriveExecutionWorkState,
+  projectExecutionRecordFromEvent,
+} from '../src/lib/sfi/cognitive-runtime/executionRecords';
 import type { KernelContext } from '../src/lib/sfi/cognitive-runtime/kernelContext';
 
 function record(value: unknown): Record<string, unknown> {
@@ -118,12 +124,112 @@ const invalidKindValidation = validateExecutionRequest(crossImpact, invalidKind)
 assert.equal(invalidKindValidation.ok, false, 'cross_impact must reject target kinds outside its contract');
 assert.ok(invalidKindValidation.errors.includes('target_kind_not_allowed:CASE'));
 
+// M1: reconstruct one exact run from the existing canonical epistemic event payload.
+const executionEvent = {
+  event_id: 'evt-run-98f2',
+  event_name: 'SFI_AGENT_EXECUTED',
+  occurred_at: '2026-09-02T14:31:00.000Z',
+  source: { sourceId: 'cross_impact', sourceType: 'runtime' },
+  payload: {
+    executionId: 'RUN-98F2',
+    executionContractVersion: SFI_EXECUTION_CONTRACT_VERSION,
+    requestSource: 'ROOT_MANUAL',
+    requestedBy: 'root-user',
+    purpose: 'Evaluate possible A↔F transfer without asserting causality.',
+    anchors: [{ kind: 'CASE', id: 'MAI-017', title: 'MAI 017' }],
+    targets: [{ kind: 'NODE', id: 'A', title: 'Node A' }, { kind: 'NODE', id: 'F', title: 'Node F' }],
+    epistemicBoundary: 'Context is not automatically evidence.',
+    evidenceBefore: 47,
+    evidenceAfter: 47,
+    aiGovernancePolicyId: 'SFI-AIMS-2026-08',
+    aiGovernance: { disposition: 'ALLOW_ANALYSIS_ONLY', risk: 'MEDIUM', reasons: ['simulation_must_remain_labeled'] },
+    llmProvider: 'openai',
+    llmModel: 'gpt-test',
+    deterministicError: null,
+    llmError: null,
+    metadata: {
+      refs: {
+        contextCoverage: {
+          llm: {
+            evidenceAvailable: 47,
+            evidenceDelivered: 6,
+            hypothesesAvailable: 8,
+            hypothesesDelivered: 5,
+            contradictionsAvailable: 2,
+            contradictionsDelivered: 2,
+            promptSourceCharacters: 9000,
+            promptCharacters: 6000,
+            maxPromptCharacters: 6000,
+            promptBounded: true,
+          },
+        },
+      },
+      agentInsight: {
+        epistemicClass: 'INFERENCE',
+        status: 'COMPLETE',
+        summary: 'Possible transfer A → F.',
+        observations: ['Six evidence objects were delivered to the bounded projection.'],
+        hypotheses: ['A may transfer risk into F.'],
+        contradictions: [],
+        missingEvidence: ['41 available evidence objects were not delivered in this bounded run.'],
+        recommendations: ['Expand context before treating the analysis as integral.'],
+        confidence: 0.71,
+        generatedAt: '2026-09-02T14:31:03.000Z',
+      },
+      llmRuntime: {
+        observedInputTokens: null,
+        observedOutputTokens: null,
+        observedProviderCost: null,
+      },
+    },
+  },
+};
+
+const executionRecord = projectExecutionRecordFromEvent(executionEvent);
+assert.ok(executionRecord, 'canonical execution event must project into an execution record');
+assert.equal(executionRecord.recordVersion, SFI_EXECUTION_RECORD_VERSION);
+assert.equal(executionRecord.executionId, 'RUN-98F2');
+assert.equal(executionRecord.agentId, 'cross_impact');
+assert.equal(executionRecord.targets.length, 2, 'execution record must preserve multi-target scope');
+assert.equal(executionRecord.anchors[0]?.id, 'MAI-017', 'execution record must preserve context anchor');
+assert.equal(executionRecord.interpretation.epistemicClass, 'INFERENCE', 'LLM interpretation must remain inference');
+assert.equal(executionRecord.interpretation.summary, 'Possible transfer A → F.');
+assert.equal(executionRecord.contextCoverage.evidenceAvailable, 47);
+assert.equal(executionRecord.contextCoverage.evidenceDelivered, 6);
+assert.equal(executionRecord.contextCoverage.partial, true, 'bounded context must remain visibly partial');
+assert.equal(executionRecord.authority, 'ANALYSIS_ONLY', 'governance disposition must remain distinct from work state');
+assert.equal(executionRecord.telemetry.provider.observation, 'OBSERVED');
+assert.equal(executionRecord.telemetry.inputTokens.observation, 'NOT_OBSERVED', 'unreported token usage must not be estimated');
+assert.equal(executionRecord.telemetry.providerCost.observation, 'NOT_OBSERVED', 'unreported provider cost must not be estimated');
+assert.equal(deriveExecutionWorkState(executionRecord), 'COMPLETE', 'completed run state must be derived from the concrete execution event');
+assert.equal(deriveExecutionEpistemicState(executionRecord), 'PARTIAL', 'bounded/missing evidence must derive PARTIAL rather than SUFFICIENT');
+assert.equal(projectExecutionRecordFromEvent({ event_name: 'SFI_TASK_CREATED' }), null, 'non-execution events must not masquerade as execution records');
+
+const blockedRecord = projectExecutionRecordFromEvent({
+  event_id: 'evt-blocked',
+  event_name: 'SFI_AGENT_SKIPPED',
+  occurred_at: '2026-09-02T14:40:00.000Z',
+  source: { sourceId: 'risk_agent' },
+  payload: {
+    executionId: 'RUN-BLOCKED',
+    aiGovernance: { disposition: 'BLOCK', risk: 'HIGH', reasons: ['external_effect_requires_governed_authority'] },
+    deterministicError: 'AI_GOVERNANCE_BLOCK:external_effect_requires_governed_authority',
+  },
+});
+assert.ok(blockedRecord);
+assert.equal(blockedRecord.authority, 'BLOCKED');
+assert.equal(deriveExecutionWorkState(blockedRecord), 'NOT_OBSERVED', 'governance block must not be mislabeled as a failed execution');
+
 console.log(JSON.stringify({
   ok: true,
   contractVersion: SFI_EXECUTION_CONTRACT_VERSION,
+  executionRecordVersion: SFI_EXECUTION_RECORD_VERSION,
   registeredAgents: registeredIds.length,
   executionContracts: contracts.length,
   crossImpactMinimumTargets: crossImpact.minTargets,
   crossImpactSyntheticCouplingRemoved: crossState.couplingIndex === null,
+  executionRecordPreservesLineage: executionRecord.executionId === 'RUN-98F2',
+  boundedContextRemainsPartial: executionRecord.contextCoverage.partial === true,
+  unobservedCostRemainsMissing: executionRecord.telemetry.providerCost.observation === 'NOT_OBSERVED',
   legacyAdapterObserved: legacy.legacyCompatibilityUsed,
 }, null, 2));
