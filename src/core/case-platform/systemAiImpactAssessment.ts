@@ -114,7 +114,7 @@ function contextualApplicability(input: SfiAiImpactAssessmentInput) {
       : 'UNDETERMINED';
   const gdprDpia: SfiAiImpactApplicability = input.containsPersonalData === true || input.containsSensitiveData === true
     ? 'CONTEXTUAL_REVIEW'
-    : input.containsPersonalData === false && input.containsSensitiveData !== true
+    : input.containsPersonalData === false && input.containsSensitiveData === false
       ? 'NOT_INDICATED'
       : 'UNDETERMINED';
   return { euAiActFria, gdprDpia };
