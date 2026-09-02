@@ -33,15 +33,15 @@ assert.match(crlContrast, /METHOD_LAB_CONTRACT_VERSION/, 'CRL summary must carry
 
 const scenes = read('src/components/sfi/scenes.ts');
 const liveUi = read('src/components/sfi/SfiConsole.tsx');
+const rootWorkboard = read('src/app/api/root/workboard/route.ts');
 assert.ok(scenes.includes("root:{key:'root'"), 'ROOT live scene must remain canonical.');
-assert.ok(scenes.includes("models:{key:'models'"), 'MODELS live scene must expose model observability.');
-assert.ok(scenes.includes("genai:{key:'genai'"), 'GENAI live scene must expose governed GenAI anatomy.');
+assert.ok(scenes.includes("governance:{key:'governance'"), 'GOVERNANCE live scene must remain canonical.');
+assert.match(scenes, /LEGACY_INTERNAL_SCENES=.*'models','genai'/, 'MODELS and GENAI must remain explicitly absorbed legacy surfaces, not disappear silently.');
+assert.match(rootWorkboard, /getLlmProviderStatus/, 'Converged ROOT workboard must preserve model/provider observability.');
+assert.match(rootWorkboard, /providerHealthBoundary/, 'Converged ROOT workboard must preserve the configured-vs-healthy model boundary.');
 assert.ok(liveUi.includes('COGNITIVE TWIN'), 'ROOT live scene must expose Twin proposals.');
 assert.ok(liveUi.includes('ACEPTAR') && liveUi.includes('RECHAZAR'), 'ROOT live scene must retain governed decisions.');
 
-// The live scene system remains canonical navigation, but Method Lab is a declared
-// operational instrument and must remain directly reachable by ROOT. A generic scene
-// cannot count as closure if the governed protocol controls are no longer accessible.
 const methodLabPage = read('src/app/method-lab/page.tsx');
 const methodLabHub = read('src/components/sfi/MethodLabNativeHub.tsx');
 assert.match(methodLabPage, /requireRootObserverPage\('\/method-lab'\)/, 'Method Lab native hub must remain ROOT protected.');
@@ -49,16 +49,10 @@ assert.match(methodLabPage, /readMethodLabState/, 'Method Lab native hub must re
 assert.match(methodLabPage, /readMethodLabEvidenceOptions/, 'Method Lab native hub must expose persisted evidence through a server-owned reader.');
 assert.match(methodLabPage, /MethodLabNativeHub/, 'Method Lab declared execution surface must render its native hub.');
 assert.doesNotMatch(methodLabPage, /createServiceSupabaseClient|\.from\(/, 'Method Lab page must not bypass interface persistence boundaries.');
-for (const route of [
-  '/api/root/method-lab/simulate',
-  '/api/root/cognitive-lab/sessions',
-  '/blind',
-  '/contrast',
-  '/events',
-  '/interact',
-]) assert.ok(methodLabHub.includes(route), `method_lab_native_hub_missing_control:${route}`);
+for (const route of ['/api/root/method-lab/simulate','/api/root/cognitive-lab/sessions','/blind','/contrast','/events','/interact']) assert.ok(methodLabHub.includes(route), `method_lab_native_hub_missing_control:${route}`);
 assert.ok(methodLabHub.includes('SIMULATED ≠ OBSERVED'), 'Method Lab native hub must state its epistemic boundary.');
 assert.ok(methodLabHub.includes('FOUNDER_AUTHORIZATION no equivale a FOUNDER_ORIGINATED'), 'CRL provenance boundary must remain visible to ROOT.');
+assert.ok(methodLabHub.includes('FOUNDER_MODEL'), 'Method Lab must retain explicit model-comparison conditions after MODELS scene absorption.');
 
 const externalLab = read('src/app/api/external/v1/lab/route.ts');
 assert.match(externalLab, /persistEventId\(commandId: string\)/, 'External Method Lab persist must derive a deterministic event id from commandId.');
@@ -107,7 +101,7 @@ console.log(JSON.stringify({
     'CT reentry implementation is distinct from Method Lab validation and individuation claims',
     'sociotechnical/economic runs use isolated executors',
     'simulators cannot append SIMULATED output to observed evidence',
-    'ROOT/Models/GenAI remain canonical live navigation while the declared Method Lab instrument is operationally reachable',
+    'ROOT/Governance remain canonical live navigation; MODELS/GENAI are explicitly absorbed while provider/model observability survives in the workboard',
     'Method Lab protocol controls use governed APIs and server-owned evidence readers rather than direct interface persistence',
     'GitHub Method Lab branch PRs are read-only; write-triggered pushes execute only on main',
     'external Method Lab persist is idempotent by commandId and database-unique deterministic event id',
