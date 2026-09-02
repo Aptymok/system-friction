@@ -1,6 +1,7 @@
 name: SFI Main-Only Convergence
 
 on:
+  workflow_dispatch:
   pull_request:
     paths:
       - '.github/sfi-main-convergence-20260827.json'
@@ -41,7 +42,7 @@ jobs:
           path: tmp/main-only-branch-audit.json
 
   delete-absorbed-branches-after-merge:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
