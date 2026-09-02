@@ -26,7 +26,8 @@ const checkpointRoute=read('src/app/api/root/cognitive-twin/checkpoint/route.ts'
 const snapshotRoute=read('src/app/api/root/cognitive-twin/snapshot/route.ts');
 const forkRoute=read('src/app/api/root/cognitive-twin/fork/route.ts');
 const scenes=read('src/components/sfi/scenes.ts');
-const liveUi=read('src/components/sfi/SfiConsole.tsx');
+const shellUi=read('src/components/sfi/SfiConsole.tsx');
+const operatingUi=read('src/components/sfi/SfiOperatingWorkspace.tsx');
 const home=read('src/app/page.tsx');
 const publicEntry=read('src/components/sfi/PublicEntryGateway.tsx');
 const llms=read('src/app/llms.txt/route.ts');
@@ -48,6 +49,8 @@ assert.match(requestEvidence,/request_evidence/);
 assert.doesNotMatch(requestEvidence,/status:\s*'needs_evidence'/);
 assert.match(proposals,/normalizeProposalState/);
 assert.match(proposals,/raw_status/);
+assert.match(proposals,/requireRootViewer\('acp\.proposals\.list'\)/,'proposal reads must remain identity-authorized and observable even when ACP runtime presence is degraded');
+assert.doesNotMatch(proposals,/requireGovernedActor\('acp\.proposals\.list'\)/,'proposal reads must not deadlock behind a mutation/presence gate');
 
 assert.match(governanceHealth,/legacyApproved/);
 assert.match(governanceHealth,/counts\.conflicted/);
@@ -80,29 +83,32 @@ assert.match(readiness,/EMPTY_READY/);
 assert.match(readiness,/scientificComplete:false/);
 assert.match(readiness,/externalGateBoundary/);
 
-// Governance and ROOT remain live scenes, but ROOT must restore ACP presence before governed reads.
+// ROOT and GOVERNANCE are the canonical institutional scenes. Agents are not a
+// parallel sovereign scene: their observed runtime is operated inside GOVERNANCE.
 assert.ok(scenes.includes("governance:{key:'governance'"), 'governance_live_scene_missing');
 assert.ok(scenes.includes("root:{key:'root'"), 'root_live_scene_missing');
-assert.ok(scenes.includes("agents:{key:'agents'"), 'agents_live_scene_missing');
-assert.ok(liveUi.includes('/api/governance/acp-seen'), 'root_live_scene_must_record_acp_presence_before_governed_reads');
-assert.ok(liveUi.includes('rootPresenceReady'), 'root_proposal_reads_must_wait_for_acp_presence');
-assert.ok(liveUi.includes('HACERME VISTO · CONFIRMAR PRESENCIA ACP'), 'root_must_expose_explicit_acp_presence_control');
-assert.ok(liveUi.includes('confirmRootPresence'), 'root_manual_presence_control_must_call_governed_presence_route');
+assert.ok(!scenes.includes("agents:{key:'agents'"), 'agents_must_not_reappear_as_parallel_sovereign_scene');
+assert.ok(operatingUi.includes('AGENTES'), 'governance_workspace_must_expose_agents');
+assert.ok(operatingUi.includes("jsonFetch('/api/root/cognitive-runtime')"), 'governance_workspace_must_read_observed_agent_runtime');
+assert.ok(operatingUi.includes("jsonFetch('/api/acp/proposals')"), 'canonical_proposal_feed_not_wired_to_governance_workspace');
+assert.ok(operatingUi.includes('Fuente de propuestas DEGRADED'), 'proposal_source_failure_must_not_collapse_to_empty_success');
+assert.ok(operatingUi.includes('ACEPTAR') && operatingUi.includes('DENEGAR') && operatingUi.includes('PEDIR EVIDENCIA'), 'plain_language_governance_decisions_missing');
+assert.ok(shellUi.includes('GOVERNANCE QUEUE'), 'governance_queue_contract_marker_missing');
+assert.ok(shellUi.includes('COGNITIVE TWIN / ACP'), 'twin_acp_governance_identity_missing');
+
+// ACP presence remains an explicit governed mutation when needed, but it is not a
+// prerequisite for merely reading the recovery/proposal queue.
 assert.match(acpSeenRoute,/export async function GET/,'acp_presence_endpoint_get_must_explain_usage');
 assert.match(acpSeenRoute,/method_not_allowed/,'acp_presence_get_must_not_silently_mutate');
 assert.match(acpSeenRoute,/requiredMethod: 'POST'/,'acp_presence_get_must_name_required_method');
 assert.match(acpSeenRoute,/export async function POST/,'acp_presence_mutation_must_remain_post');
 assert.match(acpSeenRoute,/requireRootActor\('governance\.acp\.presence'\)/,'acp_presence_post_must_remain_root_governed');
-assert.ok(liveUi.includes('/api/acp/proposals'), 'canonical_proposal_feed_not_wired_to_live_ui');
-assert.ok(liveUi.includes(`/api/acp/proposals/${'${selected.id}'}/${'${kind}'}`), 'governed_decision_route_not_wired');
-assert.ok(liveUi.includes('Fuente de propuestas DEGRADED'), 'proposal_source_failure_must_not_collapse_to_empty_success');
-assert.ok(liveUi.includes('ACEPTAR') && liveUi.includes('RECHAZAR'), 'plain_language_root_decisions_missing');
-assert.ok(liveUi.includes('COGNITIVE TWIN'), 'twin_proposal_surface_missing');
+assert.doesNotMatch(operatingUi,/rootPresenceReady|confirmRootPresence|HACERME VISTO · CONFIRMAR PRESENCIA ACP/,'proposal observability must not depend on a manual presence ritual');
 
 // The canonical public entry must tell both humans and agents what SFI is and what to do first.
 assert.match(home,/PublicEntryGateway/,'canonical_home_missing_public_entry_gateway');
 for(const phrase of ['IF YOU ARE A PERSON','IF YOU ARE AN AI / AGENT','OBSERVE','EVIDENCE','HYPOTHESIS','PROPOSE','ROOT','RETURN']) assert.ok(publicEntry.includes(phrase),`public_entry_missing:${phrase}`);
-for(const path of ['/institution','/login','/llms.txt','/ai-index.json','/api/external/v1/manifest']) assert.ok(publicEntry.includes(path),`public_entry_missing_path:${path}`);
+for(const p of ['/institution','/login','/llms.txt','/ai-index.json','/api/external/v1/manifest']) assert.ok(publicEntry.includes(p),`public_entry_missing_path:${p}`);
 assert.match(llms,/## WHAT TO DO FIRST/,'llms_missing_first_action_sequence');
 assert.match(llms,/execution-contract → perform requested measurements locally → \/result/,'llms_missing_universal_cycle');
 assert.match(aiIndex,/start_here/,'ai_index_missing_start_here');
@@ -132,9 +138,9 @@ console.log(JSON.stringify({ok:true,invariants:[
   'CONFLICTED has declare and governed resolve paths',
   'canonical promotion requires accepted realization + observed return + complete receipt contract',
   'CRL governance alternatives remain reviewable while active persistence has converged to the canonical governed institutional pipeline',
-  'ROOT governance, agents and Twin proposals are exposed through canonical live scenes',
-  'ROOT live scene restores ACP presence before proposal reads and exposes an explicit human presence control',
-  'GET /api/governance/acp-seen is explanatory only; POST remains the ROOT-governed mutation',
+  'ROOT and GOVERNANCE are canonical scenes; agents operate inside governance rather than a parallel sovereign surface',
+  'proposal observability is identity-authorized and independent from ACP runtime presence health',
+  'ACP presence remains an explicit POST mutation but is not a prerequisite for reading governance recovery state',
   'canonical public entry explains SFI and routes humans and agents to actionable first steps',
   'machine discovery exposes governed authorization, bounded internal dispatch, external fail-closed behavior and ROOT-only canon',
   'readiness separates Evidence Ledger from Knowledge Graph',
