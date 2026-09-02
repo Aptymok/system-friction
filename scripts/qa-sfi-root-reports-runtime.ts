@@ -21,8 +21,8 @@ for (const field of ['reads:', 'writes:', 'executes:', 'executionEvidence:']) {
 }
 
 const scenes = read('src/components/sfi/scenes.ts');
-const liveUi = read('src/components/sfi/SfiConsole.tsx');
-const workboardUi = read('src/components/sfi/RootOperationalWorkboard.tsx');
+const shellUi = read('src/components/sfi/SfiConsole.tsx');
+const operatingUi = read('src/components/sfi/SfiOperatingWorkspace.tsx');
 const workboardApi = read('src/app/api/root/workboard/route.ts');
 const caseExecutionApi = read('src/app/api/root/case-execution/route.ts');
 const workboard = read('src/lib/root/operationalWorkboard.ts');
@@ -41,21 +41,19 @@ const realize = read('src/app/api/acp/proposals/[id]/realize/route.ts');
 const freeze = read('src/app/api/acp/proposals/[id]/freeze/route.ts');
 const promote = read('src/app/api/root/governance/promote/route.ts');
 
-assert.ok(scenes.includes("root:{key:'root'"), 'ROOT live scene missing');
-assert.ok(scenes.includes("agents:{key:'agents'"), 'AGENTS live scene missing');
-assert.ok(liveUi.includes('FUENTE VIVA') && liveUi.includes('ESTADO'), 'live runtime telemetry missing');
-assert.ok(liveUi.includes('/api/acp/proposals'), 'governed proposal feed missing');
-assert.ok(liveUi.includes('GOVERNANCE QUEUE'), 'governance queue observability missing');
-assert.ok(liveUi.includes('ACEPTAR · ENVIAR A EJECUCIÓN') && liveUi.includes('RECHAZAR'), 'plain-language decision controls missing');
-assert.ok(liveUi.includes('PEDIR EVIDENCIA'), 'reviewers must be able to defer a decision for evidence');
-assert.ok(liveUi.includes('ESPERANDO EJECUTOR / RETURN'), 'queued proposals must expose executor/return state');
-assert.ok(liveUi.includes('TRAZA RECIENTE · DECISIONES Y CIERRES'), 'ROOT must expose decision trace');
-assert.doesNotMatch(liveUi, /REGISTRAR REALIZACIÓN INTERNA/, 'ROOT UI must not offer a false manual realization button');
-assert.ok(liveUi.includes('Decidir no es canonizar'), 'UI must separate governance decision from canon');
-assert.ok(liveUi.includes('PROMOCIÓN CANÓNICA BLOQUEADA'), 'delegated controller must see the canonical boundary');
-assert.ok(liveUi.includes('/api/logbook/visible'), 'ROOT must expose visible logbook access');
-assert.ok(liveUi.includes('/api/root/decisions'), 'ROOT must expose decision/report queue access');
-assert.match(liveUi, /RootOperationalWorkboard/, 'ROOT live scene must mount the actionable operational home');
+// The converged site no longer gives AGENTS a parallel sovereign scene. Agents live
+// inside GOVERNANCE while ROOT remains the operational read model.
+assert.ok(scenes.includes("root:{key:'root'") && scenes.includes("governance:{key:'governance'"), 'ROOT/GOVERNANCE operating scenes missing');
+assert.ok(operatingUi.includes('AGENTES') && operatingUi.includes("jsonFetch('/api/root/cognitive-runtime')"), 'governance agent runtime missing');
+assert.ok(operatingUi.includes("jsonFetch('/api/acp/proposals')") && operatingUi.includes('setProposals'), 'governed proposal feed missing');
+assert.ok(shellUi.includes('GOVERNANCE QUEUE'), 'governance queue observability missing');
+assert.ok(operatingUi.includes('ACEPTAR') && operatingUi.includes('DENEGAR'), 'plain-language decision controls missing');
+assert.ok(operatingUi.includes('PEDIR EVIDENCIA'), 'reviewers must be able to defer a decision for evidence');
+assert.ok(operatingUi.includes("proposalReadState==='DEGRADED'") && operatingUi.includes('Fuente de propuestas DEGRADED'), 'proposal read failure must remain visible instead of becoming an empty queue');
+assert.ok(operatingUi.includes("jsonFetch('/api/root/workboard')") && operatingUi.includes('workboard?.operationalNext'), 'ROOT must expose live operational-next state');
+assert.ok(operatingUi.includes('returnPlan?.next') && operatingUi.includes('Ciclo universal'), 'ROOT/cases must expose cycle next/RETURN posture');
+assert.doesNotMatch(operatingUi, /REGISTRAR REALIZACIÓN INTERNA/, 'ROOT UI must not offer a false manual realization button');
+assert.match(shellUi, /SfiOperatingWorkspace/, 'canonical shell must mount the converged operating workspace');
 
 assert.match(workboardApi, /requireRootViewer\('root\.workboard\.read'\)/, 'workboard must remain behind ROOT-observer authorization');
 assert.match(workboardApi, /resolveProposalReviewerAuthority/, 'workboard must resolve ROOT/controller authority');
@@ -76,14 +74,13 @@ for (const reservedId of ['87cc094a-e9df-40e8-9a35-92c679c60ef2', '5e4803b2-0b23
 for (const foundationId of ['fafd0dc4-0ade-4f5d-ac3c-1efebe4e8abd', '25061b67-9eb2-49e5-b192-bebe5aa796ce', '95f9c1d0-3626-4bac-82dd-cee6bb462b7c']) {
   assert.ok(workboard.includes(foundationId), `governed foundation proposal missing from status observability: ${foundationId}`);
 }
-for (const label of ['TRABAJO QUE REQUIERE ATENCIÓN', 'NECESITA DE MÍ / ROOT ACTION', 'SFI TRABAJANDO / AUTOMÁTICO', 'PULSO / CONTINUIDAD', 'DECISIONES QUE REQUIEREN ROOT', 'EJECUCIONES / ASIGNACIÓN', 'PROYECTOS / EJECUCIÓN DE CASOS', 'TWIN / PROPUESTAS', 'CICLOS UNIVERSALES', 'BLOQUEOS / ADVERTENCIAS', 'REPORTES / CARRILES DEGRADADOS', 'RIESGO / OPORTUNIDAD', 'RETURN / CALIBRACIÓN', 'CANON QUEUE · ROOT ONLY', 'CAPACIDADES RESERVADAS']) {
-  assert.ok(workboardUi.includes(label), `operational home lane missing: ${label}`);
+// Presentation may be redesigned, but the canonical read model must continue to expose
+// the operational distinctions needed by the human-facing workspace.
+for (const token of ['decisions', 'executions', 'blockers', 'twinProposals', 'reports', 'riskOpportunity', 'returns', 'canonCandidates', 'openCycles', 'runtime', 'governanceGates']) {
+  assert.ok(workboard.includes(token), `workboard operational distinction missing: ${token}`);
 }
-assert.match(workboardUi, /humano sólo cuando rootActionRequired=true/, 'ROOT UI must state the human-action boundary explicitly');
-assert.match(workboardUi, /cognition interrumpida → continuidad durable/, 'ROOT UI must expose interrupted cognition as machine-owned continuity');
-assert.match(workboardUi, /external actions fail closed without adapter/, 'ROOT UI must disclose the material external adapter boundary');
-assert.match(workboardUi, /reportLanes/, 'report health must be readable from the home surface rather than hidden in raw JSON');
-assert.match(workboardUi, /\/api\/root\/case-execution/, 'ROOT home must observe the existing Case Action execution lifecycle');
+assert.match(workboard, /flow: \['proposal', 'authorization', 'routing', 'assignment', 'execution', 'return', 'calibration', 'learning', 'canon_or_close'\]/, 'workboard must publish the governed operational sequence');
+assert.match(workboard, /implementationPerformedByWorkboard: false/, 'operational home remains a read model, not an executor');
 
 assert.match(caseExecutionApi, /requireRootActor\('root\.case_execution\.read'\)/, 'cross-tenant Case Action execution overview must remain sovereign ROOT-only');
 assert.match(caseExecutionApi, /sfi_case_action_proposals/, 'case execution surface must read the existing case action lifecycle');
@@ -140,7 +137,8 @@ console.log(JSON.stringify({
     'owned ROOT frames SAMEORIGIN; other paths DENY',
     'report generation remains backend/runtime-owned and five recurring report lanes remain observable',
     'agent passports declare reads/writes/executes/evidence',
-    'ROOT operational home separates human-required actions, autonomous SFI work, continuity pulse, Twin proposals and universal cycles',
+    'ROOT and GOVERNANCE share one operating workspace instead of parallel sovereign dashboards',
+    'proposal read failures remain explicit and never masquerade as an empty queue',
     'existing SFI-CASE-ACTION-1.0 execution/return state is observable to sovereign ROOT without fabricating external execution',
     'workboard remains a read model while governed auto-routing is owned by the router',
     'internal routable capability is distinct from missing material external adapter',

@@ -104,11 +104,18 @@ assert.match(heartbeat, /runUniversalReturnPlanUpgrade/, 'heartbeat must upgrade
 assert.match(heartbeat, /runUniversalEmpiricalContinuation/, 'heartbeat must own empirical continuation after real RETURN');
 assert.match(universalEmpirical, /SFI_UNIVERSAL_RETURN_AI_CLASSIFICATION_PROPOSED/, 'RETURN contrast direction must have explicit AI provenance');
 assert.match(universalEmpirical, /validateReturnEvidenceRefs/, 'AI classification must not bypass RETURN evidence traceability');
-assert.match(universalEmpirical, /text\(contrastPayload\.calibrationStatus\) !== 'CONTRAST_RECORDED'/, 'empirical continuation must refuse closure when calibration is incomplete');
-assert.match(universalEmpirical, /assessUniversalClosure/, 'automatic close must reuse the existing empirical closure contract');
-assert.match(universalEmpirical, /closeUniversalCycle/, 'evidence-complete empirical cycles must close without another manual button');
+assert.match(universalEmpirical, /text\(contrastPayload\.calibrationStatus\) !== 'CONTRAST_RECORDED'/, 'empirical continuation must refuse closure readiness when calibration is incomplete');
+assert.match(universalEmpirical, /assessUniversalClosure/, 'closure readiness must reuse the existing empirical closure contract');
+assert.match(universalEmpirical, /SFI_UNIVERSAL_CLOSURE_RECOMMENDED/, 'evidence-complete empirical cycles must produce an explicit closure recommendation');
+assert.match(universalEmpirical, /finalClosureAuthority: 'AUTHENTICATED_USER'/, 'empirical continuation must preserve authenticated human final closure authority');
+assert.match(universalEmpirical, /state: 'AWAITING_USER_CLOSE'/, 'methodologically complete cycles must become visibly ready for user closure');
+assert.doesNotMatch(universalEmpirical, /closeUniversalCycle\(/, 'the empirical analyzer must not close the same cycle it analyzed');
+assert.match(workboardApi, /requireRootActor\('root\.workboard\.decide'\)/, 'final cycle report decision must require authenticated ROOT authority');
+assert.match(workboardApi, /action !== 'decide_universal_report'/, 'final close must be an explicit report decision action');
+assert.match(workboardApi, /decision === 'DENY'/, 'the authenticated user must be able to deny closure without erasing the cycle');
+assert.match(workboardApi, /closeUniversalCycle\(/, 'only the authenticated workboard decision path may close the recommended universal cycle');
+assert.match(workboardApi, /runUniversalEmpiricalContinuation\(\{ cycleId \}\)/, 'after explicit close the empirical lane must continue automatically into governed learning');
 assert.match(universalEmpirical, /recordUniversalLearningCandidate/, 'closed calibrated cycles must produce a learning candidate automatically');
-assert.match(universalEmpirical, /A_TO_Z_EMPIRICAL_CYCLE_COMPLETED/, 'A-to-Z completion must be explicit and observable');
 assert.doesNotMatch(universalEmpirical, /recordUniversalReturn\(/, 'empirical continuation may consume but never fabricate RETURN');
 
 assert.match(adaptiveLearning, /CALIBRATED_RETURN/, 'only evidence-complete calibrated universal learning may enter adaptive Twin context');
@@ -147,7 +154,7 @@ assert.equal(new Set(cronPaths).size, cronPaths.length, 'this change must not du
 
 console.log(JSON.stringify({
   ok: true,
-  contract: 'SFI-NEXT-EXPECTED-EVENT-1.2',
+  contract: 'SFI-NEXT-EXPECTED-EVENT-1.3',
   invariants: {
     eachNonTerminalStateDeclaresNextWork: true,
     waitingEvidenceCreatesMachineWork: true,
@@ -163,7 +170,8 @@ console.log(JSON.stringify({
     unresolvedAuthoritativeSourceEscalatesTruthfully: true,
     universalRuntimeConsumesSealedCognitiveTwin: true,
     governedUniversalAiActuallyReachesModelRouter: true,
-    realReturnContinuesThroughContrastClosureAndLearning: true,
+    realReturnContinuesThroughContrastAndClosureRecommendation: true,
+    authenticatedUserOwnsFinalCycleClose: true,
     calibratedLearningIsAdaptiveBeforeCanon: true,
     noAutonomyPathFabricatesReturn: true,
     postDeployContinuityExercise: true,

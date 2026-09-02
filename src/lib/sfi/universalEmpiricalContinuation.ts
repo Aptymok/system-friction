@@ -8,7 +8,6 @@ import {
   readUniversalLearningCycleState,
 } from '@/lib/sfi/universalLearningQuarantine';
 import {
-  closeUniversalCycle,
   readUniversalCycleHistory,
   type UniversalCycleHistory,
 } from '@/lib/sfi/universalSignalCycle';
@@ -22,6 +21,8 @@ const NON_EVIDENCE_EVENT_NAMES = new Set([
   'SFI_UNIVERSAL_RETURN_CONTRASTED',
   'SFI_UNIVERSAL_RETURN_AI_CLASSIFICATION_PROPOSED',
   'SFI_UNIVERSAL_CLOSURE_ENVELOPE_ACCEPTED',
+  'SFI_UNIVERSAL_CLOSURE_RECOMMENDED',
+  'SFI_UNIVERSAL_REPORT_DENIED_BY_USER',
   'SFI_UNIVERSAL_CYCLE_CLOSED',
   'SFI_UNIVERSAL_CYCLE_OPENED',
   'SFI_UNIVERSAL_CYCLE_RESUMED',
@@ -66,6 +67,16 @@ function payload(value: unknown) {
 
 function latest(values: unknown[] | undefined) {
   return Array.isArray(values) && values.length ? values[values.length - 1] : null;
+}
+
+function sequence(value: unknown) {
+  const parsed = Number(row(value).sequence);
+  return Number.isFinite(parsed) ? parsed : -1;
+}
+
+function latestNamed(history: UniversalCycleHistory, eventName: string) {
+  const matches = (history.events ?? []).filter((value) => text(row(value).event_name) === eventName);
+  return row(latest(matches));
 }
 
 function statement(value: unknown) {
@@ -418,9 +429,34 @@ async function continueOne(cycleId: string) {
     return { cycleId, state: 'CLOSURE_NOT_READY', missing: closureAssessment.missing, closureAssessment };
   }
 
+  const recommendation = latestNamed(history, 'SFI_UNIVERSAL_CLOSURE_RECOMMENDED');
+  const denial = latestNamed(history, 'SFI_UNIVERSAL_REPORT_DENIED_BY_USER');
+  const contrastSequence = sequence(latestContrast);
+  const recommendationSequence = sequence(recommendation);
+  const denialSequence = sequence(denial);
+
+  if (recommendationSequence > contrastSequence && recommendationSequence > denialSequence) {
+    return {
+      cycleId,
+      state: 'AWAITING_USER_CLOSE',
+      recommendationEventId: text(recommendation.event_id),
+      classification: text(contrastPayload.classification),
+      closureAssessment,
+    };
+  }
+
+  if (denialSequence > recommendationSequence && denialSequence > contrastSequence) {
+    return {
+      cycleId,
+      state: 'REPORT_DENIED_AWAITING_NEW_EVIDENCE',
+      denialEventId: text(denial.event_id),
+      classification: text(contrastPayload.classification),
+    };
+  }
+
   const evidenceRefs = strings(contrastPayload.returnEvidenceRefs);
-  const envelopeEvent = await appendEpistemicEvent({
-    eventName: 'SFI_UNIVERSAL_CLOSURE_ENVELOPE_ACCEPTED',
+  const recommendationEvent = await appendEpistemicEvent({
+    eventName: 'SFI_UNIVERSAL_CLOSURE_RECOMMENDED',
     epistemicClass: 'derived',
     confidence: 1,
     payload: {
@@ -429,33 +465,25 @@ async function continueOne(cycleId: string) {
       tenantId,
       reason: 'EMPIRICAL_RETURN_CONTRAST_COMPLETE',
       closure: closureAssessment.envelope,
-      autonomousContinuation: true,
-      epistemicBoundary: 'Automatic methodological closure is permitted only because the existing empirical closure contract is already complete. Closure does not canonize the conclusion as permanent truth.',
+      reportState: 'READY_FOR_USER_DECISION',
+      finalClosureAuthority: 'AUTHENTICATED_USER',
+      autonomousContinuation: false,
+      epistemicBoundary: 'SFI may determine that the methodological work is ready for closure, but it cannot close the report/cycle. Final closure requires an explicit authenticated user decision. Closure still does not canonize the conclusion as permanent truth.',
     },
     occurredAt: new Date().toISOString(),
-    source: { sourceId: 'sfi_empirical_continuation', sourceType: 'empirical_closure_contract' },
+    source: { sourceId: 'sfi_empirical_continuation', sourceType: 'empirical_closure_recommendation' },
     logbookId: `universal-cycle:${cycleId}`,
     lineage: [text(latestContrast.event_id), ...evidenceRefs].filter((item): item is string => Boolean(item)),
   });
-  if (!envelopeEvent.ok) return { cycleId, state: 'CLOSURE_ENVELOPE_PERSIST_FAILED', error: envelopeEvent.error };
+  if (!recommendationEvent.ok) return { cycleId, state: 'CLOSURE_RECOMMENDATION_PERSIST_FAILED', error: recommendationEvent.error };
 
-  const closed = await closeUniversalCycle({
-    cycleId,
-    reason: 'EMPIRICAL_RETURN_CONTRAST_COMPLETE',
-    evidenceRefs,
-  }, 'sfi_empirical_continuation', tenantId);
-  if (!closed.ok) return { cycleId, state: 'CYCLE_CLOSE_FAILED', error: closed.error };
-
-  history = await readUniversalCycleHistory(cycleId);
-  if (!history.ok) return { cycleId, state: 'POST_CLOSE_HISTORY_UNAVAILABLE', error: history.error };
-  const learning = await finalizeLearningIfEligible(cycleId, tenantId, history);
   return {
     cycleId,
-    state: learning.state === 'LEARNING_CANDIDATE_RECORDED' ? 'A_TO_Z_EMPIRICAL_CYCLE_COMPLETED' : learning.state,
+    state: 'AWAITING_USER_CLOSE',
     contrastEventId: text(latestContrast.event_id),
-    closureEnvelopeEventId: String(envelopeEvent.data.event_id ?? ''),
-    closeEventId: String(closed.data.event_id ?? ''),
-    learning,
+    recommendationEventId: String(recommendationEvent.data.event_id ?? ''),
+    classification: text(contrastPayload.classification),
+    closureAssessment,
   };
 }
 
@@ -490,6 +518,6 @@ export async function runUniversalEmpiricalContinuation(input: { limit?: number;
     processed: results.length,
     requestedCycleId: requestedCycleId ?? null,
     results,
-    rule: 'A real evidence-linked RETURN may advance automatically through AI-assisted contrast, existing empirical closure gates and quarantined learning. No RETURN is fabricated and no learning candidate becomes canon by this continuation.',
+    rule: 'A real evidence-linked RETURN may advance automatically through AI-assisted contrast and closure assessment. SFI may recommend closure but cannot close the cycle/report; an authenticated user must accept it. Learning remains quarantined and begins only after that explicit closure.',
   };
 }

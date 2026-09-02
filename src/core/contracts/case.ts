@@ -12,6 +12,7 @@ export type SfiCaseStatus =
   | 'AWAITING_GOVERNANCE'
   | 'INTERVENING'
   | 'AWAITING_RETURN'
+  | 'AWAITING_USER_CLOSE'
   | 'CLOSED'
   | 'REJECTED';
 
@@ -34,6 +35,7 @@ export type SfiCaseV1 = {
   id: string;
   version: string;
   tenantId: string;
+  projectId?: string | null;
   clientId?: string | null;
   serviceProfileId: SfiServiceProfileId;
   subject: string;
@@ -81,4 +83,6 @@ export const SFI_CASE_INVARIANTS = {
   canonicalObjectsAreReferencedNotCopied: true,
   tenantCanAddressRoot: false,
   institutionalAdmission: 'GATED',
+  projectAggregatesCasesWithoutOwningEvidenceTruth: true,
+  finalReportClosureRequiresExplicitUserDecision: true,
 } as const;

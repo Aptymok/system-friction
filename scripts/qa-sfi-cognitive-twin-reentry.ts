@@ -15,6 +15,7 @@ const cron = read('src/app/api/cron/continuity-report/route.ts');
 const methodLab = read('src/lib/method-lab/readModel.ts');
 const scenes = read('src/components/sfi/scenes.ts');
 const liveUi = read('src/components/sfi/SfiConsole.tsx');
+const operatingUi = read('src/components/sfi/SfiOperatingWorkspace.tsx');
 const externalLab = read('src/app/api/external/v1/lab/route.ts');
 const canon = read('docs/canon/16_LONGITUDINAL_SYSTEM_FRICTION_PROGRAM.md');
 const phiCanon = read('docs/MIHM_PHI_CANON.md');
@@ -44,13 +45,15 @@ assert.match(journal, /ALWAYS_VISIBLE/);
 assert.match(journal, /privateReasoningPersisted: false/);
 assert.doesNotMatch(journal, /reasoningTrace\s*:|hiddenReasoning\s*:|rawChainOfThought\s*:/i);
 
-// The old dedicated Cognitive Twin page/panels were retired. The canonical operator
-// projection is now the ROOT live scene, while lineage/experiment truth stays in core/API.
+// Dedicated legacy IDENTITY/Twin dashboards were absorbed. The canonical operator
+// projection is ROOT + TWIN/SPINE; lineage/experiment truth remains in core/API.
 assert.ok(scenes.includes("root:{key:'root'"), 'root_live_scene_missing');
-assert.ok(scenes.includes("identity:{key:'identity'"), 'identity_live_scene_missing');
+assert.ok(scenes.includes("twin:{key:'twin'"), 'twin_spine_live_scene_missing');
+assert.match(scenes, /LEGACY_INTERNAL_SCENES=.*'identity'/, 'identity_legacy_absorption_must_be_explicit');
 assert.ok(liveUi.includes('COGNITIVE TWIN'), 'cognitive_twin_live_observability_missing');
-assert.ok(liveUi.includes('/api/acp/proposals'), 'cognitive_twin_proposals_not_governed');
-assert.ok(liveUi.includes('ACEPTAR') && liveUi.includes('RECHAZAR'), 'root_twin_decision_controls_missing');
+assert.ok(operatingUi.includes("jsonFetch('/api/acp/proposals')"), 'cognitive_twin_proposals_not_governed');
+assert.ok(operatingUi.includes('ACEPTAR') && operatingUi.includes('DENEGAR'), 'root_twin_decision_controls_missing');
+assert.ok(operatingUi.includes('PEDIR EVIDENCIA'), 'root_twin_evidence_deferral_missing');
 assert.ok(externalLab.includes("operation === 'report'") || externalLab.includes("case 'report'"), 'external_lab_report_surface_missing');
 
 assert.match(experiments, /SFI-CT-SNAPSHOT-1\.0/);
@@ -96,7 +99,8 @@ const cronCount = Array.isArray(vercel.crons) ? vercel.crons.length : 0;
 assert.equal(cronCount, 7, `Expected the existing 7 Vercel crons, found ${cronCount}`);
 
 console.log('SFI Cognitive Twin longitudinal completion QA: PASS');
-console.log('- CT-A01 genesis + developmental heartbeat + root-visible state remain integrated beneath the canonical ROOT live scene');
+console.log('- CT-A01 genesis + developmental heartbeat + root-visible state remain integrated beneath canonical ROOT + TWIN/SPINE surfaces');
+console.log('- legacy IDENTITY is explicitly absorbed rather than retained as a parallel sovereign scene');
 console.log('- snapshot/fork core contracts remain explicit; registered fork is never represented as executing');
 console.log('- repeated evaluation failure can only create a governed CANDIDATE mutation proposal');
 console.log('- no new cron introduced');

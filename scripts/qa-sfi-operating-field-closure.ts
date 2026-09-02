@@ -16,7 +16,9 @@ const proof=read('src/lib/root/closure/fullCycleVerification.ts');
 const proofRoute=read('src/app/api/pipeline/verify/route.ts');
 const readiness=read('src/lib/root/closure/readInstitutionalReadiness.ts');
 const scenes=read('src/components/sfi/scenes.ts');
-const liveUi=read('src/components/sfi/SfiConsole.tsx');
+const shellUi=read('src/components/sfi/SfiConsole.tsx');
+const operatingUi=read('src/components/sfi/SfiOperatingWorkspace.tsx');
+const observatoryUi=read('src/components/sfi/ObservatoryConsole.tsx');
 
 for(const table of ['sfi_operating_cycles','sfi_inference_traces','sfi_artifact_trajectory_events']){
   assert.match(`${cycleMigration}\n${analysisMigration}`,new RegExp(`create table if not exists public\\.${table}\\b`),`missing_operating_table:${table}`);
@@ -67,14 +69,21 @@ assert.match(proof,/status:complete\?'CLOSED':'BLOCKED'/);
 assert.match(proofRoute,/requireRootActor\('root\.operate\.full_cycle_verify'\)/);
 assert.match(proofRoute,/status:result\.ok\?200:409/);
 
-// The deleted RootOperatingField dashboard is no longer the visual contract.
-// Its operating APIs remain canonical and are surfaced through the live scene system.
-for(const scene of ['field','systems','falsification','governance','root']){
-  assert.ok(scenes.includes(`${scene}:{key:'${scene}'`),`live_scene_missing:${scene}`);
+// The old many-dashboard scene taxonomy is intentionally absorbed. The operating
+// APIs remain canonical and are surfaced through FIELD + ROOT/CASES/GOVERNANCE/TWIN.
+for(const scene of ['field','root','cases','governance','twin']){
+  assert.ok(scenes.includes(`${scene}:{key:'${scene}'`),`canonical_scene_missing:${scene}`);
 }
-assert.ok(liveUi.includes('FUENTE VIVA') && liveUi.includes('AUTORIDAD'), 'live_operating_telemetry_missing');
-assert.ok(liveUi.includes('/api/acp/proposals'), 'governed_proposal_feed_missing');
-assert.ok(liveUi.includes('COGNITIVE TWIN'), 'cognitive_twin_live_surface_missing');
+for(const legacy of ['systems','falsification','agents']){
+  assert.ok(!scenes.includes(`${legacy}:{key:'${legacy}'`),`legacy_parallel_scene_must_remain_absorbed:${legacy}`);
+}
+assert.ok(shellUi.includes('ObservatoryConsole') && shellUi.includes('SfiOperatingWorkspace'), 'canonical_shell_must_mount_public_and_institutional_operating_surfaces');
+assert.ok(observatoryUi.includes("type Lens='field'|'hypotheses'|'trajectory'|'sources'"), 'field_must_expose_observation_hypothesis_trajectory_source_lenses');
+assert.ok(observatoryUi.includes('MÉTRICAS DERIVADAS') && observatoryUi.includes('TRAZA DE CONSECUENCIAS'), 'field_must_expose_metrics_and_traceable_hypothesis_meaning');
+assert.ok(operatingUi.includes("jsonFetch('/api/acp/proposals')"), 'governed_proposal_feed_missing');
+assert.ok(operatingUi.includes('AGENTES') && operatingUi.includes("jsonFetch('/api/root/cognitive-runtime')"), 'governance_must_surface_observed_agent_runtime');
+assert.ok(operatingUi.includes("surface==='twin'") && operatingUi.includes('CognitiveSpineAnatomy'), 'cognitive_twin_operating_surface_missing');
+assert.ok(operatingUi.includes('ACEPTAR') && operatingUi.includes('DENEGAR') && operatingUi.includes('PEDIR EVIDENCIA'), 'decision_authority_controls_missing');
 
 assert.match(readiness,/EMPTY_READY/);
 assert.match(readiness,/resolvedStudioCapabilityMatrix/);
@@ -93,7 +102,8 @@ console.log(JSON.stringify({
     'inference suggestion resolves persisted evidence by cycle references instead of a recency window',
     'artifact trajectory requires evidence and does not manufacture propagation claims',
     'full-cycle proof replays only real persisted material and blocks instead of mocking missing organs',
-    'operating APIs are surfaced through the canonical live scene runtime with decision authority telemetry',
+    'operating APIs are surfaced through FIELD plus ROOT/CASES/GOVERNANCE/TWIN instead of parallel legacy dashboards',
+    'field keeps metrics separate from AI-inferred meaning and exposes consequence lineage',
     'clean empty runtime may be READY while scientific validation remains separate',
   ],
 },null,2));

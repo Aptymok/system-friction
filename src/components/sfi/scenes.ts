@@ -1,17 +1,26 @@
-export const SCENE_KEYS=['field','systems','archive','falsification','optionality','governance','authority','agents','identity','models','genai','root'] as const;
+export const SCENE_KEYS=['field','root','cases','governance','twin'] as const;
 export type SceneKey=typeof SCENE_KEYS[number];
-export type SceneSpec={key:SceneKey;label:string;title:string;subtitle:string;image:string;liveSource:string;markers:string[]};
+
+export const INTERNAL_SCENE_KEYS=['root','cases','governance','twin'] as const;
+export type InternalSceneKey=typeof INTERNAL_SCENE_KEYS[number];
+
+export const LEGACY_INTERNAL_SCENES=['systems','archive','falsification','optionality','authority','agents','identity','models','genai'] as const;
+
+type SceneLabel={label:string;title:string;subtitle:string};
+type SceneSpec=SceneLabel&{key:SceneKey;markers:string[];liveSource:string};
+
+export const SCENE_LABELS:Record<SceneKey,SceneLabel>={
+  field:{label:'FIELD',title:'Campo de observación',subtitle:'Observatorio público vivo: fuentes persistidas, métricas derivadas, hipótesis trazables, trayectoria, retorno y contraste.'},
+  root:{label:'OBSERVATORIO',title:'Observatorio de Fricción',subtitle:'Navega cuentas, atractores, trayectorias, proyectos, casos y fricciones activas.'},
+  cases:{label:'CASOS',title:'Casos',subtitle:'Expedientes completos, evidencia, contraste, aprendizaje y reporte.'},
+  governance:{label:'GOBERNANZA IA',title:'Gobernanza de IA',subtitle:'Opera agentes, continuidad, evidencia y decisiones con autoridad explícita.'},
+  twin:{label:'TWIN / SPINE',title:'Cognitive Twin / Spine',subtitle:'Observa y gobierna lo que SFI sostiene, aprende, contradice y utiliza.'},
+};
+
 export const SCENES:Record<SceneKey,SceneSpec>={
- field:{key:'field',label:'FIELD',title:'Campo de observación',subtitle:'La Tierra es el instrumento. Los datos aparecen donde ocurren.',image:'/sfi-scenes/field.svg',liveSource:'/api/root/state',markers:['observación','persistencia','emergencia','provenance']},
- systems:{key:'systems',label:'SYSTEMS',title:'Qué es un sistema',subtitle:'Relaciones, frontera, intercambio, estado y persistencia.',image:'/sfi-scenes/systems.svg',liveSource:'/api/root/state',markers:['frontera','intercambio','estado','persistencia']},
- archive:{key:'archive',label:'ARCHIVE',title:'Archivo, fuente y contexto',subtitle:'La memoria externa conserva linaje; las pérdidas se muestran.',image:'/sfi-scenes/archive.svg',liveSource:'/api/root/state',markers:['fuente','índice','archivo','síntesis']},
- falsification:{key:'falsification',label:'FALSIFICATION',title:'Campo de falsación',subtitle:'Las hipótesis se sostienen sólo mientras sobreviven al contraste.',image:'/sfi-scenes/falsification.svg',liveSource:'/api/acp/proposals',markers:['hipótesis','instrumentos','umbrales','rivales']},
- optionality:{key:'optionality',label:'OPTIONALITY',title:'Conservar futuros abiertos',subtitle:'Reserva, memoria, redundancia y reversibilidad mantienen opciones.',image:'/sfi-scenes/optionality.svg',liveSource:'/api/acp/proposals',markers:['reserva','memoria','redundancia','reversibilidad']},
- governance:{key:'governance',label:'GOVERNANCE',title:'Arquitectura canónica de gobernanza',subtitle:'Observar → evidenciar → evaluar → inferir → autorizar → ejecutar → retornar → memorizar.',image:'/sfi-scenes/governance.svg',liveSource:'/api/acp/proposals',markers:['observación','evidencia','autorización','retorno']},
- authority:{key:'authority',label:'AUTHORITY',title:'Autoridad · evidencia · recuperación',subtitle:'La autoridad sólo es sostenible si la evidencia y el retorno pueden alcanzarla.',image:'/sfi-scenes/authority.svg',liveSource:'/api/acp/proposals',markers:['autoridad','evidencia','recuperación','riesgo']},
- agents:{key:'agents',label:'AGENTS',title:'Envolvente de autoridad agéntica',subtitle:'Identidad, alcance, herramienta, tiempo, consecuencia y retorno.',image:'/sfi-scenes/agents.svg',liveSource:'/api/root/cognitive-runtime',markers:['identidad','herramienta','consecuencia','retorno']},
- identity:{key:'identity',label:'IDENTITY',title:'Tarea · profesión · identidad',subtitle:'Cuando cambia una capacidad, cambia la forma de ser útil.',image:'/sfi-scenes/identity.svg',liveSource:'/api/root/state',markers:['humano','máquina','sistema','contexto']},
- models:{key:'models',label:'MODELS',title:'Modelo generativo observable',subtitle:'La inferencia se trata como proceso inspeccionable, no como caja negra.',image:'/sfi-scenes/models.svg',liveSource:'/api/root/cognitive-runtime',markers:['tokens','capas','atención','salida']},
- genai:{key:'genai',label:'GENAI',title:'Anatomía de una aplicación GenAI',subtitle:'Entrada, contexto, modelo, herramientas, memoria y controles.',image:'/sfi-scenes/genai.svg',liveSource:'/api/root/cognitive-runtime',markers:['input','memory','tools','policy']},
- root:{key:'root',label:'ROOT',title:'SFI · director operativo',subtitle:'ROOT observa todo, puede intervenir y conserva en exclusiva la promoción a canon; la revisión operativa puede delegarse con trazabilidad.',image:'/sfi-scenes/governance.svg',liveSource:'/api/acp/proposals',markers:['supervisión','traza','delegación','canon']}
+  field:{key:'field',...SCENE_LABELS.field,markers:['source_record','derived_metric','hypothesis_graph','trajectory','return','contrast'],liveSource:'/api/observatory/world'},
+  root:{key:'root',...SCENE_LABELS.root,markers:['account','attractor','trajectory','project','case'],liveSource:'/api/root/workboard'},
+  cases:{key:'cases',...SCENE_LABELS.cases,markers:['evidence','hypothesis','intervention','return','contrast','report'],liveSource:'/api/cases'},
+  governance:{key:'governance',...SCENE_LABELS.governance,markers:['agent','authority','proposal','evidence','heartbeat'],liveSource:'/api/acp/proposals'},
+  twin:{key:'twin',...SCENE_LABELS.twin,markers:['snapshot','lineage','contradiction','learning','quarantine'],liveSource:'/api/root/cognitive-spine/status'},
 };

@@ -8,6 +8,7 @@ const read = (relative: string) => readFileSync(path.join(root, relative), 'utf8
 const worldApi = read('src/app/api/field/map/world/route.ts');
 const cognitive = read('src/app/api/field/map/world/cognitive/route.ts');
 const worldCycle = read('src/lib/world-observatory/worldCycle.ts');
+const worldReadModel = read('src/app/api/observatory/world/route.ts');
 const publicTimeline = read('src/lib/observatory/public/worldSnapshotTimeline.ts');
 const nationalField = read('src/lib/world-observatory/inegiNationalField.ts');
 const nationalFieldRoute = read('src/app/api/root/cognitive-twin/national-field/route.ts');
@@ -16,7 +17,9 @@ const nationalScenarioRoute = read('src/app/api/root/cognitive-twin/national-fie
 const directTwin = read('src/app/api/root/cognitive-twin/deliberate/route.ts');
 const twinState = read('src/core/cognitive-twin/readState.ts');
 const scenes = read('src/components/sfi/scenes.ts');
-const liveUi = read('src/components/sfi/SfiConsole.tsx');
+const shellUi = read('src/components/sfi/SfiConsole.tsx');
+const observatoryUi = read('src/components/sfi/ObservatoryConsole.tsx');
+const operatingUi = read('src/components/sfi/SfiOperatingWorkspace.tsx');
 const observatoryPage = read('src/app/observatory/page.tsx');
 
 // Backend temporal truth remains intact after the visual replacement.
@@ -46,6 +49,7 @@ assert.ok(/cannot rewrite observations|cannot rewrite/i.test(cognitive), 'world_
 assert.ok(worldCycle.includes(".gt('fetched_at', hypothesis.cutoff_at)"), 'world_outcome_calibration_must_use_acquisition_time');
 assert.ok(worldCycle.includes(".lte('fetched_at', now)"), 'world_outcome_calibration_must_bound_acquisition_time');
 assert.ok(!worldCycle.includes(".gt('observed_at', hypothesis.cutoff_at)"), 'world_outcome_calibration_must_not_backdate_knowledge');
+assert.ok(worldCycle.includes('governed AI comparison against post-cutoff persisted source records'), 'world_calibration_must_be_governed_ai_not_keyword_overlap');
 
 for (const token of [
   "from('worldspect_snapshots')",
@@ -54,25 +58,45 @@ for (const token of [
   'Historical frames are reconstructed only from persisted WorldSpect snapshots.',
 ]) assert.ok(publicTimeline.includes(token), `public_timeline_source_contract_missing:${token}`);
 
-// FIELD remains the canonical scene-system entry while /observatory is an intentional
-// native public world-observation surface. The latter must render ObservatoryConsole,
-// not be treated as a stale legacy route that is required to redirect away.
+// FIELD remains the canonical scene entry. The visual instrument is now ObservatoryConsole:
+// Earth + satellite + persisted world records + traceable hypothesis graph.
 for (const token of [
   "field:{key:'field'",
-  "liveSource:'/api/root/state'",
-  "markers:['observación','persistencia','emergencia','provenance']",
+  "liveSource:'/api/observatory/world'",
+  "markers:['source_record','derived_metric','hypothesis_graph','trajectory','return','contrast']",
 ]) assert.ok(scenes.includes(token), `field_live_scene_contract_missing:${token}`);
+
 for (const token of [
-  'setInterval(pull,12000)',
-  'spec.liveSource',
-  'scene-${scene}',
-  'dataNode dn1',
-  'COGNITIVE TWIN',
-]) assert.ok(liveUi.includes(token), `live_scene_runtime_missing:${token}`);
+  "fetchJson('/api/observatory/world')",
+  "fetchJson('/api/observatory/timeline')",
+  'setInterval(pull,20000)',
+  '/sfi-scenes/satellite.png',
+  "type Lens='field'|'hypotheses'|'trajectory'|'sources'",
+  'selectedEvidenceIds',
+  'selectedAffectedIds',
+  'consequenceChain',
+  'sourceSummary',
+  "ownedText('FILTROS','FILTERS')",
+]) assert.ok(observatoryUi.includes(token), `satellite_observatory_runtime_missing:${token}`);
+
+for (const token of [
+  "from('world_source_observations')",
+  "from('world_hypotheses')",
+  "from('world_hypothesis_outcomes')",
+  "from('world_learning_events')",
+  "relation:'EVIDENCE_INPUT_TO_INFERENCE'",
+  "relation:'INFERRED_IMPACT'",
+  "epistemicClass:'INFERRED'",
+  "epistemicClass:'LINEAGE'",
+  "semanticBoundary:'SOURCE/PROVENANCE does not imply accepted EVIDENCE.'",
+  'sourceSummary',
+]) assert.ok(worldReadModel.includes(token), `public_world_read_model_missing:${token}`);
+assert.ok(worldReadModel.includes("nodes.forEach(node=>sourceCounts.set(node.sourceId"), 'live_source_count_must_derive_from_persisted_observation_nodes');
+
 assert.ok(observatoryPage.includes('ObservatoryConsole'), 'public_observatory_must_render_native_observatory_console');
 assert.equal(observatoryPage.includes('redirect('), false, 'public_observatory_must_not_be_forced_back_into_legacy_redirect_semantics');
-assert.equal(liveUi.includes('sfi_cognitive_twin_memory'), false, 'public_live_scene_must_not_expose_private_cognitive_twin_corpus');
-assert.equal(liveUi.includes('sfi_cognitive_twin_decisions'), false, 'public_live_scene_must_not_expose_private_cognitive_twin_decisions');
+assert.equal(observatoryUi.includes('sfi_cognitive_twin_memory'), false, 'public_live_scene_must_not_expose_private_cognitive_twin_corpus');
+assert.equal(observatoryUi.includes('sfi_cognitive_twin_decisions'), false, 'public_live_scene_must_not_expose_private_cognitive_twin_decisions');
 
 for (const token of [
   'INEGI_NATIONAL_FIELD_VERSION',
@@ -108,8 +132,9 @@ assert.ok(directTwin.includes("const runStatus = !llm.ok ? 'BLOCKED'"), 'direct_
 assert.ok(directTwin.includes("status: llm.ok ? 'PROPOSED' : 'REJECTED'"), 'direct_twin_envelope_must_reflect_provider_failure');
 assert.ok(twinState.includes('providerExecutionObserved'), 'twin_readiness_must_require_observed_provider_execution');
 assert.ok(twinState.includes(".in('status', ['APPROVED', 'APPROVED_WITH_LIMITS'])"), 'twin_model_readiness_must_require_approved_model_status');
-assert.ok(liveUi.includes('/api/acp/proposals'), 'live_twin_proposal_surface_missing');
-assert.ok(liveUi.includes('ACEPTAR') && liveUi.includes('RECHAZAR'), 'root_plain_language_decision_controls_missing');
+assert.ok(operatingUi.includes('/api/acp/proposals'), 'live_twin_proposal_surface_missing');
+assert.ok(operatingUi.includes('ACEPTAR') && operatingUi.includes('DENEGAR'), 'root_plain_language_decision_controls_missing');
+assert.ok(shellUi.includes('ObservatoryConsole'), 'field_scene_must_route_to_native_observatory_console');
 
 console.log(JSON.stringify({
   ok: true,
@@ -117,7 +142,7 @@ console.log(JSON.stringify({
     paginatedHistory: true,
     temporalKnowledgeBoundary: true,
     cognitiveFrameExecution: true,
-    liveSceneReplacement: true,
+    satelliteInstrument: true,
   },
   cognitiveBridge: {
     agents: true,
@@ -139,6 +164,8 @@ console.log(JSON.stringify({
     canonicalSurface: 'NATIVE_OBSERVATORY_CONSOLE',
     fieldSceneRemainsCanonicalEntry: true,
     persistedWorldSpectFrames: true,
+    persistedSourceOnlyLiveCounts: true,
+    traceableHypothesisGraph: true,
     privateTwinExposure: false,
   },
 }, null, 2));

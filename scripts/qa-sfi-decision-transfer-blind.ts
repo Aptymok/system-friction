@@ -15,8 +15,11 @@ const blindRoutePath = 'src/app/api/root/method-lab/decision-transfer/blind/rout
 const revealRoutePath = 'src/app/api/root/method-lab/decision-transfer/reveal/route.ts';
 const scenesPath = 'src/components/sfi/scenes.ts';
 const liveUiPath = 'src/components/sfi/SfiConsole.tsx';
+const operatingUiPath = 'src/components/sfi/SfiOperatingWorkspace.tsx';
+const methodLabPagePath = 'src/app/method-lab/page.tsx';
+const methodLabHubPath = 'src/components/sfi/MethodLabNativeHub.tsx';
 
-for (const file of [runtimePath, commitmentPath, integrityPath, blindRoutePath, revealRoutePath, scenesPath, liveUiPath]) {
+for (const file of [runtimePath, commitmentPath, integrityPath, blindRoutePath, revealRoutePath, scenesPath, liveUiPath, operatingUiPath, methodLabPagePath, methodLabHubPath]) {
   assert(fs.existsSync(path.join(process.cwd(), file)), `missing:${file}`);
 }
 
@@ -27,6 +30,9 @@ const blindRoute = read(blindRoutePath);
 const revealRoute = read(revealRoutePath);
 const scenes = read(scenesPath);
 const liveUi = read(liveUiPath);
+const operatingUi = read(operatingUiPath);
+const methodLabPage = read(methodLabPagePath);
+const methodLabHub = read(methodLabHubPath);
 
 assert(blindRoute.includes("requireRootActor('root.method-lab.decision-transfer.blind')"), 'blind_route_root_gate_missing');
 assert(revealRoute.includes("requireRootActor('root.method-lab.decision-transfer.reveal')"), 'reveal_route_root_gate_missing');
@@ -73,10 +79,16 @@ for (const forbidden of ["from('sfi_amv_memory')", "from('sfi_cognitive_twin_mem
   assert(!integrity.includes(forbidden), `blind_integrity_must_not_mutate_memory:${forbidden}`);
 }
 
-assert(scenes.includes("falsification:{key:'falsification'"), 'blind_experiment_falsification_scene_missing');
-assert(scenes.includes("models:{key:'models'"), 'blind_experiment_models_scene_missing');
+// FALSIFICATION/MODELS are absorbed legacy scenes. The blind protocol remains
+// executable only through Method Lab and observable/governed through ROOT + TWIN/SPINE.
+assert(scenes.includes("root:{key:'root'"), 'blind_experiment_root_scene_missing');
+assert(scenes.includes("twin:{key:'twin'"), 'blind_experiment_twin_scene_missing');
+assert(/LEGACY_INTERNAL_SCENES=.*'falsification'.*'models'/s.test(scenes), 'blind_experiment_legacy_surface_absorption_missing');
 assert(liveUi.includes('COGNITIVE TWIN'), 'blind_experiment_twin_observability_missing');
-assert(liveUi.includes('ACEPTAR') && liveUi.includes('RECHAZAR'), 'blind_experiment_root_authority_missing');
+assert(operatingUi.includes('ACEPTAR') && operatingUi.includes('DENEGAR'), 'blind_experiment_root_authority_missing');
+assert(operatingUi.includes('PEDIR EVIDENCIA'), 'blind_experiment_evidence_deferral_missing');
+assert(methodLabPage.includes('MethodLabNativeHub'), 'blind_experiment_method_lab_surface_missing');
+assert(methodLabHub.includes('/blind') && methodLabHub.includes('/contrast'), 'blind_experiment_native_controls_missing');
 
 console.log(JSON.stringify({
   ok: true,
@@ -85,7 +97,8 @@ console.log(JSON.stringify({
   predictionStatusBeforeReveal: 'EVIDENCE_PENDING',
   blindTargetTransmission: false,
   frozenContextReverifiedBeforeReveal: true,
-  nativeSurface: 'FALSIFICATION/MODELS live scenes',
+  nativeSurface: 'METHOD LAB + ROOT + TWIN/SPINE',
+  legacySurfacesAbsorbed: ['FALSIFICATION', 'MODELS'],
   memoryMutation: false,
   autoPromotion: false,
   routes: [

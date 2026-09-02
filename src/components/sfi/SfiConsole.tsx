@@ -1,59 +1,60 @@
 'use client';
+
 import Link from 'next/link';
-import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAuthState } from '@/components/auth/AuthProvider';
-import { SCENES, SCENE_KEYS, type SceneKey } from './scenes';
-import { ObservatoryConsole } from './ObservatoryConsole';
-import { RootOperationalWorkboard } from './RootOperationalWorkboard';
-import { SessionControls } from './SessionControls';
 import { translateUiText, useSfiLanguage } from '@/components/i18n/SfiLanguageProvider';
+import { ObservatoryConsole } from './ObservatoryConsole';
+import { ObservatoryInterpretiveFlow } from './ObservatoryInterpretiveFlow';
+import { SfiOperatingWorkspace } from './SfiOperatingWorkspace';
+import { SessionControls } from './SessionControls';
+import { INTERNAL_SCENE_KEYS, SCENE_LABELS, type InternalSceneKey, type SceneKey } from './scenes';
 import './SfiConsole.css';
 
-type Proposal={
- id:string; title?:string; status?:string; risk_level?:string; proposalType?:string; created_at?:string; executed_at?:string|null;
- decisionClass?:'delegable'|'root_only'; decisionActorId?:string|null; decisionActorLabel?:string|null; decisionAuthority?:'root'|'controller'|null;
-};
-type ReviewerAuthority='root'|'controller'|null;
-const ACTIONABLE_PROPOSAL_STATES=new Set(['proposed','waiting_evidence','needs_evidence']);
-const POST_DECISION_STATES=new Set(['design_approved','queued']);
-const RESOLVED_STATES=new Set(['accepted','rejected','frozen','superseded']);
-function Instrument({scene}:{scene:SceneKey}){return <><div className="atmosphere"/><div className="vectorField"/><div className="sceneObject" aria-hidden="true"><div className="halo"/><div className="ring"/><div className="ring2"/><div className="ring3"/><div className="core"/></div><div className="dataNode dn1"/><div className="dataNode dn2"/><div className="dataNode dn3"/><div className="dataNode dn4"/><div className="grain"/></>}
-
-function LegacySceneConsole({scene}:{scene:SceneKey}){
- const spec=SCENES[scene],auth=useAuthState();
- const {language,text:ownedText}=useSfiLanguage();
- const ui=(value:string)=>translateUiText(value,language);
- const sovereignRoot=auth.identity?.role==='root';
- const [clock,setClock]=useState(''); const [live,setLive]=useState<any>(null); const [proposals,setProposals]=useState<Proposal[]>([]); const [viewerAuthority,setViewerAuthority]=useState<ReviewerAuthority>(null); const [proposalError,setProposalError]=useState<string|null>(null); const [rootPresenceReady,setRootPresenceReady]=useState(scene!=='root'); const [presenceBusy,setPresenceBusy]=useState(false); const [actionBusy,setActionBusy]=useState(false); const [selected,setSelected]=useState<Proposal|null>(null); const [open,setOpen]=useState(false);
- // Proposal observability is intentionally independent from ACP runtime health.
- // Presence governs mutations/work execution; it must never make the recovery queue invisible.
- const refreshProposals=useCallback(async()=>{if(auth.status!=='authenticated')return;try{const r=await fetch('/api/acp/proposals',{cache:'no-store'});const j=await r.json().catch(()=>null);if(r.ok&&j?.ok){setProposals(j.data?.proposals||[]);setViewerAuthority(j.data?.viewerAuthority||null);setProposalError(null)}else{setProposals([]);setViewerAuthority(null);setProposalError(`${r.status}: ${j?.error||'proposal_source_failed'}`)}}catch(error){setProposals([]);setViewerAuthority(null);setProposalError(error instanceof Error?error.message:String(error))}},[auth.status]);
- useEffect(()=>{const t=setInterval(()=>setClock(new Date().toISOString()),1000);setClock(new Date().toISOString());return()=>clearInterval(t)},[]);
- useEffect(()=>{if(scene!=='root'||!sovereignRoot){setRootPresenceReady(true);return;}if(auth.status!=='authenticated'){setRootPresenceReady(false);return;}let stop=false;const mark=async()=>{try{const r=await fetch('/api/governance/acp-seen',{method:'POST',headers:{'content-type':'application/json'},body:'{}'});const j=await r.json().catch(()=>null);if(stop)return;if(r.ok&&j?.ok){setRootPresenceReady(true);setProposalError(null)}else{setRootPresenceReady(false);setProposalError(`ACP presence ${r.status}: ${j?.error||'failed'}`)}}catch(error){if(!stop){setRootPresenceReady(false);setProposalError(error instanceof Error?error.message:String(error))}}};void mark();return()=>{stop=true}},[scene,auth.status,sovereignRoot]);
- useEffect(()=>{let stop=false;const pull=async()=>{try{const r=await fetch(spec.liveSource,{cache:'no-store'});const j=await r.json();if(!stop)setLive(j)}catch{if(!stop)setLive({ok:false,error:'live_source_unreachable'})}};void pull();const t=setInterval(pull,12000);return()=>{stop=true;clearInterval(t)}},[spec.liveSource]);
- useEffect(()=>{if(auth.status!=='authenticated')return;let stop=false;const pull=async()=>{if(stop)return;await refreshProposals()};void pull();const t=setInterval(pull,15000);return()=>{stop=true;clearInterval(t)}},[auth.status,refreshProposals]);
- const liveCount=useMemo(()=>live?.data?.tables?.length??live?.data?.proposals?.length??Object.keys(live?.data||{}).length,[live]);
- const actionableProposals=useMemo(()=>proposals.filter(p=>ACTIONABLE_PROPOSAL_STATES.has(p.status||'')),[proposals]);
- const postDecisionProposals=useMemo(()=>proposals.filter(p=>POST_DECISION_STATES.has(p.status||'')),[proposals]);
- const resolvedProposals=useMemo(()=>proposals.filter(p=>RESOLVED_STATES.has(p.status||'')),[proposals]);
- const confirmRootPresence=async()=>{if(scene!=='root'||!sovereignRoot||auth.status!=='authenticated'||presenceBusy)return;setPresenceBusy(true);setRootPresenceReady(false);try{const r=await fetch('/api/governance/acp-seen',{method:'POST',headers:{'content-type':'application/json'},body:'{}'});const j=await r.json().catch(()=>null);if(r.ok&&j?.ok){setRootPresenceReady(true);setProposalError(null)}else{setProposalError(`ACP presence ${r.status}: ${j?.error||'failed'}`)}}catch(error){setProposalError(error instanceof Error?error.message:String(error))}finally{setPresenceBusy(false)}};
- const decide=async(kind:'approve'|'reject')=>{if(!selected||!ACTIONABLE_PROPOSAL_STATES.has(selected.status||'')){setSelected(null);setProposalError('Esta propuesta ya no requiere decisión.');return;}setActionBusy(true);try{const r=await fetch(`/api/acp/proposals/${selected.id}/${kind}`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({note:'Decisión gobernada desde SFI Live Interface'})});const j=await r.json().catch(()=>null);if(!r.ok||!j?.ok){setProposalError(`${r.status}: ${j?.error||'proposal_decision_failed'}${j?.details?` · ${j.details}`:''}`);return;}setSelected(null);await refreshProposals()}catch(error){setProposalError(error instanceof Error?error.message:String(error))}finally{setActionBusy(false)}};
- const requestEvidence=async()=>{if(!selected||!ACTIONABLE_PROPOSAL_STATES.has(selected.status||''))return;setActionBusy(true);try{const r=await fetch(`/api/sfi/proposals/${selected.id}/request-evidence`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({evidence_required:'Se requiere evidencia suficiente antes de decidir.'})});const j=await r.json().catch(()=>null);if(!r.ok||!j?.ok){setProposalError(`${r.status}: ${j?.error||'request_evidence_failed'}`);return;}setSelected(null);await refreshProposals()}catch(error){setProposalError(error instanceof Error?error.message:String(error))}finally{setActionBusy(false)}};
- const governPostDecision=async(kind:'prepare'|'freeze')=>{if(!selected)return;const status=selected.status||'';if(kind==='prepare'&&status!=='design_approved'){setProposalError('Sólo una propuesta legacy design_approved puede enviarse a ejecución.');return;}setActionBusy(true);try{const body=kind==='prepare'?{note:'Compatibilidad: enviar decisión ya aprobada a ejecución'}:{note:'Cancelada/congelada por ROOT desde SFI Live Interface'};const r=await fetch(`/api/acp/proposals/${selected.id}/${kind}`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)});const j=await r.json().catch(()=>null);if(!r.ok||!j?.ok){setProposalError(`${r.status}: ${j?.error||`proposal_${kind}_failed`}${j?.details?` · ${j.details}`:''}`);return;}setSelected(null);await refreshProposals()}catch(error){setProposalError(error instanceof Error?error.message:String(error))}finally{setActionBusy(false)}};
- const selectedState=selected?.status||''; const selectedActionable=ACTIONABLE_PROPOSAL_STATES.has(selectedState); const selectedPostDecision=POST_DECISION_STATES.has(selectedState); const selectedResolved=RESOLVED_STATES.has(selectedState);
- const authorityLabel=ui(viewerAuthority==='root'?'ROOT · AUTORIDAD SOBERANA':viewerAuthority==='controller'?'CONTROLLER · DECISIÓN DELEGADA':'SIN AUTORIDAD DE DECISIÓN');
- return <main className="sfi"><div className={`scene cinematic scene-${scene}`} style={{backgroundImage:`linear-gradient(90deg,rgba(5,5,4,.66),rgba(5,5,4,.06) 55%,rgba(5,5,4,.72)),url(${spec.image})`}}><Instrument scene={scene}/><div className="scan"/><div className="orbital"/><div className="pulse p1"/><div className="pulse p2"/><div className="pulse p3"/>
-   <header className="top"><Link href="/field" className="brand">SFI.</Link><button className="menu" onClick={()=>setOpen(v=>!v)}>{ui('ÍNDICE')}</button><span className="liveDot">{ui('EN VIVO')}</span><span className="clock">{clock}</span><span className="identity">{auth.identity?.alias||auth.status}</span><SessionControls/></header>
-   {open&&<nav className="index">{SCENE_KEYS.map(k=><Link key={k} href={`/${k}`} className={k===scene?'active':''}>{ui(SCENES[k].label)}<small>{ui(SCENES[k].title)}</small></Link>)}</nav>}
-   <section className="caption"><span>{ui(spec.label)}</span><h1>{ui(spec.title)}</h1><p>{ui(spec.subtitle)}</p><div className="chips">{spec.markers.map(x=><b key={x}>{ui(x)}</b>)}</div></section>
-   <aside className="telemetry"><div><small>{ui('FUENTE VIVA')}</small><strong>{spec.liveSource}</strong></div><div><small>{ui('ESTADO')}</small><strong>{ui(live?.ok===false?'DEGRADADO':live?'OBSERVADO':'CONECTANDO')}</strong></div><div><small>{ui('AUTORIDAD')}</small><strong>{authorityLabel}</strong></div><div><small>{ui('PROPOSICIONES')}</small><strong>{ui(`${proposals.length} · ${actionableProposals.length} por decidir · ${postDecisionProposals.length} en curso · ${resolvedProposals.length} resueltas`)}</strong></div></aside>
-   <section className="twin" data-sfi-contract="GOVERNANCE QUEUE"><div className="twinHead"><span>{ui('COLA DE GOBERNANZA · COGNITIVE TWIN / ACP')}</span><b>{ui(`${actionableProposals.length} por decidir · ${postDecisionProposals.length} en ejecución/retorno`)}</b></div><p>{ui('Decidir no es canonizar. ROOT ve todo y conserva la promoción canónica exclusiva. Un controller sólo puede decidir propuestas operativas delegables. ACEPTAR es una sola decisión: SFI la envía directamente a la cola de ejecución y espera RETURN.')}</p>{scene==='root'&&<div className="actions">{sovereignRoot?<button disabled={auth.status!=='authenticated'||presenceBusy} onClick={()=>void confirmRootPresence()}>{presenceBusy?ownedText('CONFIRMANDO PRESENCIA…','CONFIRMING PRESENCE…'):rootPresenceReady?ownedText('PRESENCIA ACP ACTIVA · RENOVAR','ACP PRESENCE ACTIVE · RENEW'):ownedText('HACERME VISTO · CONFIRMAR PRESENCIA ACP','MARK ME SEEN · CONFIRM ACP PRESENCE')}</button>:<span>{ownedText('DECISIÓN DELEGADA · PROMOCIÓN CANÓNICA BLOQUEADA','DELEGATED DECISION · CANONICAL PROMOTION BLOCKED')}</span>}<a href="/api/logbook/visible" target="_blank" rel="noreferrer">{ownedText('BITÁCORA','LOGBOOK')}</a>{sovereignRoot&&<a href="/api/root/decisions" target="_blank" rel="noreferrer">{ownedText('COLA + REPORTES','QUEUE + REPORTS')}</a>}</div>}<div className="proposalList">{actionableProposals.slice(0,8).map(p=><button key={p.id} onClick={()=>setSelected(p)}><strong>{p.title||p.proposalType||'Propuesta'}</strong><span>{p.status||'propuesta'} · riesgo {p.risk_level||'no indicado'} · {p.decisionClass==='root_only'?'ROOT ONLY':'delegable'}</span></button>)}{postDecisionProposals.length>0&&<small>{ownedText('EN CURSO · EJECUCIÓN / RETURN','IN PROGRESS · EXECUTION / RETURN')}</small>}{postDecisionProposals.slice(0,8).map(p=><button key={p.id} onClick={()=>setSelected(p)}><strong>{p.title||p.proposalType||'Propuesta aprobada'}</strong><span>{p.status} · {p.status==='design_approved'?'legacy: falta enviar a ejecución':'ESPERANDO EJECUTOR / RETURN'}</span></button>)}{resolvedProposals.length>0&&<small>{ownedText('TRAZA RECIENTE · DECISIONES Y CIERRES','RECENT TRACE · DECISIONS AND CLOSURES')}</small>}{resolvedProposals.slice(0,8).map(p=><button key={p.id} onClick={()=>setSelected(p)}><strong>{p.title||p.proposalType||'Propuesta resuelta'}</strong><span>{p.status} · por {p.decisionActorLabel||p.decisionActorId||'actor registrado'}</span></button>)}{proposalError&&<em>Fuente de propuestas DEGRADED · {proposalError}</em>}{!proposalError&&!proposals.length&&<em>{ownedText('No hay propuestas visibles para esta autoridad.','No proposals are visible for this authority.')}</em>}</div></section>
-   {scene==='root'&&<RootOperationalWorkboard enabled={auth.status==='authenticated'&&rootPresenceReady}/>} 
-   {selected&&<div className="modal"><div><small>{selectedResolved?ownedText('TRAZA DE GOBERNANZA','GOVERNANCE TRACE'):selectedPostDecision?ownedText('DECISIÓN YA TOMADA','DECISION ALREADY TAKEN'):ownedText('PROPUESTA DEL SISTEMA','SYSTEM PROPOSAL')}</small><h2>{selected.title||selected.proposalType}</h2><p>{selectedActionable?ownedText('Esta propuesta aún requiere decisión. Aceptar la envía directamente a ejecución; rechazar la cierra. Ninguna de las dos acciones la convierte en canon.','This proposal still requires a decision. Accepting sends it directly to execution; rejecting closes it. Neither action makes it canon.'):selectedState==='design_approved'?ownedText('Estado legacy: la decisión ya fue tomada antes del nuevo flujo. Sólo falta enviarla a ejecución una vez.','Legacy state: the decision was already taken before the new flow. It only needs to be sent to execution once.'):selectedState==='queued'?ownedText('La decisión ya terminó. No tienes otro paso administrativo: un ejecutor debe realizar el alcance autorizado y devolver RETURN/evidencia. No marques executed_at a mano.','The decision is complete. There is no further administrative step: an executor must perform the authorized scope and return RETURN/evidence. Do not set executed_at manually.'):ownedText('Esta propuesta ya tiene una decisión/cierre registrado. La promoción a canon, cuando aplique, sigue siendo exclusiva de ROOT.','This proposal already has a recorded decision/closure. Canonical promotion, when applicable, remains exclusive to ROOT.')}</p><dl><dt>{ownedText('Estado','Status')}</dt><dd>{selected.status}</dd><dt>{ownedText('Riesgo','Risk')}</dt><dd>{selected.risk_level||'no indicado'}</dd><dt>{ownedText('Clase de decisión','Decision class')}</dt><dd>{selected.decisionClass||'—'}</dd><dt>{ownedText('Decidida por','Decided by')}</dt><dd>{selected.decisionActorLabel||selected.decisionActorId||'aún no decidida'}</dd><dt>{ownedText('Autoridad','Authority')}</dt><dd>{selected.decisionAuthority||'—'}</dd><dt>{ownedText('Creada','Created')}</dt><dd>{selected.created_at||'—'}</dd><dt>{ownedText('Ejecutada','Executed')}</dt><dd>{selected.executed_at||'no / esperando RETURN'}</dd></dl><div className="actions">{selectedActionable&&<><button disabled={actionBusy} onClick={()=>void decide('approve')}>{ownedText('ACEPTAR · ENVIAR A EJECUCIÓN','ACCEPT · SEND TO EXECUTION')}</button><button disabled={actionBusy} onClick={()=>void decide('reject')}>{ownedText('RECHAZAR','REJECT')}</button><button disabled={actionBusy} onClick={()=>void requestEvidence()}>{ownedText('PEDIR EVIDENCIA','REQUEST EVIDENCE')}</button>{viewerAuthority==='root'&&<button disabled={actionBusy} onClick={()=>void governPostDecision('freeze')}>{ownedText('CANCELAR / CONGELAR','CANCEL / FREEZE')}</button>}</>}{selectedState==='design_approved'&&<><button disabled={actionBusy} onClick={()=>void governPostDecision('prepare')}>{ownedText('ENVIAR A EJECUCIÓN · LEGACY','SEND TO EXECUTION · LEGACY')}</button>{viewerAuthority==='root'&&<button disabled={actionBusy} onClick={()=>void governPostDecision('freeze')}>CANCELAR / CONGELAR</button>}</>}{selectedState==='queued'&&viewerAuthority==='root'&&<button disabled={actionBusy} onClick={()=>void governPostDecision('freeze')}>{ownedText('DETENER / CONGELAR','STOP / FREEZE')}</button>}<button disabled={actionBusy} onClick={()=>setSelected(null)}>{ownedText('CERRAR','CLOSE')}</button></div></div></div>}
- </div></main>
-}
+const NAV: Array<{key:InternalSceneKey;href:string}> = [
+  {key:'root',href:'/root'},
+  {key:'cases',href:'/cases'},
+  {key:'governance',href:'/governance'},
+  {key:'twin',href:'/twin'},
+];
 
 export function SfiConsole({scene}:{scene:SceneKey}){
- if(scene==='field')return <ObservatoryConsole/>;
- return <LegacySceneConsole scene={scene}/>;
+  const auth=useAuthState();
+  const {language,text}=useSfiLanguage();
+  const ui=(value:string)=>translateUiText(value,language);
+  if(scene==='field') return <><ObservatoryConsole/><ObservatoryInterpretiveFlow/></>;
+
+  const current=scene as InternalSceneKey;
+  const spec=SCENE_LABELS[current];
+
+  if(auth.status!=='authenticated'){
+    return <main className="sfiOperatingShell sfiAccessShell">
+      <header className="sfiOperatingTop">
+        <Link href="/" className="sfiWordmark">SFI</Link>
+        <SessionControls/>
+      </header>
+      <section className="sfiAccessCard">
+        <span>{text('ESPACIO OPERATIVO','OPERATING SPACE')}</span>
+        <h1>{ui(spec.title)}</h1>
+        <p>{text('Esta superficie contiene casos, evidencia, decisiones y conocimiento gobernado. Inicia sesión para operar SFI.','This surface contains cases, evidence, decisions and governed knowledge. Sign in to operate SFI.')}</p>
+        <SessionControls/>
+      </section>
+    </main>;
+  }
+
+  return <main className="sfiOperatingShell">
+    <header className="sfiOperatingTop">
+      <div className="sfiOperatingIdentity">
+        <Link href="/root" className="sfiWordmark">SFI</Link>
+        <div><strong>{ui(spec.title)}</strong><small>{ui(spec.subtitle)}</small></div>
+      </div>
+      <nav className="sfiOperatingNav" aria-label="SFI operating surfaces">
+        {NAV.map(item=><Link key={item.key} href={item.href} className={current===item.key?'isActive':''}>{ui(SCENE_LABELS[item.key].label)}</Link>)}
+      </nav>
+      {current==='governance'&&<span className="srOnly" data-sfi-contract="GOVERNANCE QUEUE">{ui('COLA DE GOBERNANZA · COGNITIVE TWIN / ACP')}</span>}
+      <div className="sfiOperatingAccount"><span>{auth.identity?.alias||'ROOT'}</span><SessionControls/></div>
+    </header>
+    <SfiOperatingWorkspace enabled surface={current}/>
+  </main>;
 }
+
+export { INTERNAL_SCENE_KEYS };
