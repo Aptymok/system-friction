@@ -5,6 +5,7 @@ import { COGNITIVE_TWIN_CONTRACT_VERSION } from '@/core/cognitive-twin/contract'
 import type { StudioTwinContext } from '@/core/cognitive-twin/studioContext';
 import { readStudioTwinContext } from '@/core/cognitive-twin/studioContext';
 import { SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY } from '@/lib/sfi/cognitive-runtime/convergedRegistry';
+import { executionContractForAgent } from '@/lib/sfi/cognitive-runtime/executionContracts';
 import type { KernelContext } from '@/lib/sfi/cognitive-runtime/kernelContext';
 
 type AgentInsight = {
@@ -150,6 +151,7 @@ function baseProjection(context: KernelContext) {
     phenomenonId: context.phenomenonId ?? null,
     question: compactUnknown(metadata.question),
     objective: compactUnknown(metadata.objective),
+    executionRequest: compactUnknown(metadata.executionRequest),
     declaredFunction: compactUnknown(metadata.declaredFunction),
     declaredTarget: compactUnknown(metadata.declaredTarget),
     declaredExclusions: compactUnknown(metadata.declaredExclusions),
@@ -223,6 +225,7 @@ export async function augmentAgentWithLlm(agentId: string, context: KernelContex
 
   const contract = SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY.find((item) => item.id === agentId);
   if (!contract) return context;
+  const executionContract = executionContractForAgent(agentId);
 
   const twin = TWIN_RELEVANT_AGENTS.has(agentId) ? await resolveTwinContextForExecution(context) : null;
   const requestedProvider = providerPreference(context.metadata?.preferredLlmProvider);
@@ -235,22 +238,38 @@ export async function augmentAgentWithLlm(agentId: string, context: KernelContex
     `Layer: ${contract.layer}. Domain: ${contract.domain}. Authority: ${contract.authorityLevel}.`,
     'Evidence before inference. Simulation is not observation. Missing evidence remains missing. Never invent measurements, history, lineage, causal relations, attractor attainment, or completed actions.',
     'Treat deterministic metrics and persisted evidence as observations. Treat your interpretation as INFERENCE only.',
+    'Objects supplied as execution context are not automatically admitted evidence. Public research is a source candidate until evidence governance admits it.',
     'Cognitive Twin adaptive learning may contain evidence-complete calibrated candidates that are explicitly non-canonical. Use them as prior operational context, never as KernelEvidence, authority, or permanent truth.',
+    ...(executionContract?.forbiddenClaims.map((rule) => `Execution-contract boundary: ${rule}`) ?? []),
     'Return ONLY valid JSON: {"summary":string|null,"observations":string[],"hypotheses":string[],"contradictions":string[],"missingEvidence":string[],"recommendations":string[],"confidence":number}.',
     'Keep lists short and specific. Do not restate policy boilerplate in the analysis.',
   ].join('\n');
 
   const projection = projectContextForAgent(agentId, context, twin);
-  const prompt = boundedPrompt({
+  const coverage = {
+    evidenceAvailable: context.evidence.length,
+    evidenceDelivered: Math.min(context.evidence.length, 6),
+    hypothesesAvailable: context.hypotheses.length,
+    hypothesesDelivered: Math.min(context.hypotheses.length, 5),
+    contradictionsAvailable: context.contradictions.length,
+    contradictionsDelivered: Math.min(context.contradictions.length, 4),
+    predictionsAvailable: context.predictions.length,
+    simulationsAvailable: context.simulations.length,
+  };
+  const promptValue = {
     task: context.metadata?.studioAction ?? 'analyze',
     agentProjection: projection,
     modelRequirements: requirements,
     contextBoundary: {
       maxPromptCharacters: MAX_PROMPT_CHARS,
       projection: `AGENT_SPECIFIC:${agentId}`,
+      coverage,
       rule: 'Only evidence and state required for this role are supplied. Previous agent prose is not recursively injected.',
     },
-  });
+  };
+  const promptSourceCharacters = JSON.stringify(promptValue).length;
+  const prompt = boundedPrompt(promptValue);
+  const promptBounded = promptSourceCharacters > MAX_PROMPT_CHARS;
 
   const result = await runLlmTask({
     task: 'graph_interpretation',
@@ -293,9 +312,22 @@ export async function augmentAgentWithLlm(agentId: string, context: KernelContex
         generatedAt,
       };
 
+  const llmCoverage = {
+    ...coverage,
+    promptSourceCharacters,
+    promptCharacters: prompt.length,
+    maxPromptCharacters: MAX_PROMPT_CHARS,
+    promptBounded,
+    promptProjection: `AGENT_SPECIFIC:${agentId}`,
+  };
+
   context.metadata = {
     ...context.metadata,
     ...(twin ? { cognitiveTwinContext: twin } : {}),
+    contextCoverage: {
+      ...record(context.metadata?.contextCoverage),
+      llm: llmCoverage,
+    },
     agentInsights: {
       ...existingInsights,
       [agentId]: insight,
@@ -308,10 +340,16 @@ export async function augmentAgentWithLlm(agentId: string, context: KernelContex
       lastStatus: insight.status,
       modelRequirements: requirements,
       explicitProviderOverride: requestedProvider ?? null,
+      contextCoverage: llmCoverage,
+      promptSourceCharacters,
       promptCharacters: prompt.length,
-      promptBounded: prompt.length >= MAX_PROMPT_CHARS,
+      promptBounded,
       promptProjection: `AGENT_SPECIFIC:${agentId}`,
+      maxPromptCharacters: MAX_PROMPT_CHARS,
       maxOutputTokens: MAX_AGENT_OUTPUT_TOKENS,
+      observedInputTokens: null,
+      observedOutputTokens: null,
+      observedProviderCost: null,
       updatedAt: generatedAt,
     },
   };
