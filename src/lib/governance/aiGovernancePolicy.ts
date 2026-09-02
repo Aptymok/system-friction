@@ -5,11 +5,14 @@ export const SFI_AI_GOVERNANCE_POLICY = {
   id: 'SFI-AIMS-2026-08',
   managementSystem: 'ISO/IEC 42001:2023',
   riskGuidance: 'ISO/IEC 23894:2023',
+  impactAssessmentGuidance: 'ISO/IEC 42005:2025',
   euTransparencyBaseline: 'EU AI Act Article 50 transparency obligations applicable 2026-08-02',
   externalAssurance: {
     standardsAreInternalReferences: true,
     certificationOrAccreditationEvidenceInRepository: 'NOT_ESTABLISHED',
     legalApplicabilityRequiresContextualAssessment: true,
+    impactCrosswalkReferences: ['EU AI Act Article 27 FRIA', 'GDPR Article 35 DPIA'] as const,
+    crosswalkDoesNotEstablishApplicability: true,
   },
   lifecycle: ['PLAN', 'DO', 'CHECK', 'ACT'] as const,
   invariants: [
@@ -86,7 +89,145 @@ export const SFI_AI_GOVERNANCE_POLICY = {
   },
 } as const;
 
+type Row = Record<string, unknown>;
+
+function row(value: unknown): Row {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as Row : {};
+}
+
+function text(value: unknown, max = 2_000): string | null {
+  return typeof value === 'string' && value.trim() ? value.trim().slice(0, max) : null;
+}
+
+function bool(value: unknown): boolean | null {
+  return typeof value === 'boolean' ? value : null;
+}
+
+function strings(value: unknown, max = 32): string[] {
+  if (!Array.isArray(value)) return [];
+  return [...new Set(value.map((item) => text(item, 500)).filter((item): item is string => Boolean(item)))].slice(0, max);
+}
+
 export type AiGovernanceDisposition = 'ALLOW_INTERNAL' | 'ALLOW_ANALYSIS_ONLY' | 'BLOCK';
+export type AiGovernancePreflightStatus = 'NOT_REQUEST_SCOPED' | 'READY' | 'CONTEXT_INCOMPLETE' | 'REVIEW_REQUIRED';
+export type AiGovernanceContextualReview = 'CONTEXTUAL_REVIEW' | 'NOT_INDICATED' | 'UNDETERMINED';
+
+export type AiGovernancePreflight = {
+  requestScoped: boolean;
+  intendedPurpose: string | null;
+  targetTypes: string[];
+  subjectType: string;
+  jurisdiction: string | null;
+  dataCategories: string[];
+  containsPersonalData: boolean | null;
+  containsSensitiveData: boolean | null;
+  affectedPersonsOrGroups: string[];
+  affectsDecisionAboutPersons: boolean | null;
+  decisionConsequence: string | null;
+  declaredLegalBasis: string | null;
+  declaredOrganizationalBasis: string | null;
+  declaredPurposeBasis: string | null;
+  sensitiveScope: boolean;
+  missingContext: string[];
+  status: AiGovernancePreflightStatus;
+  assessmentCandidates: {
+    sfiAiImpactAssessment: boolean;
+    isoIec42005: 'INTERNAL_REFERENCE';
+    euAiActFria: AiGovernanceContextualReview;
+    gdprDpia: AiGovernanceContextualReview;
+    legalApplicabilityClaimed: false;
+  };
+};
+
+export function buildAiGovernancePreflight(context: KernelContext): AiGovernancePreflight {
+  const metadata = row(context.metadata);
+  const executionRequest = row(metadata.executionRequest);
+  const governance = row(executionRequest.governanceContext);
+  const parameters = row(executionRequest.parameters);
+  const requestScoped = Object.keys(executionRequest).length > 0;
+
+  const targetTypes = Array.isArray(executionRequest.targets)
+    ? [...new Set(executionRequest.targets.map((target) => text(row(target).kind, 80)).filter((item): item is string => Boolean(item)))]
+    : [];
+  const subjectType = text(governance.subjectType, 40)?.toUpperCase() ?? 'NOT_DECLARED';
+  const intendedPurpose = text(executionRequest.purpose, 5_000) ?? text(metadata.objective, 5_000) ?? text(metadata.question, 5_000);
+  const jurisdiction = text(governance.jurisdiction, 300) ?? text(parameters.jurisdiction, 300);
+  const containsPersonalData = bool(governance.containsPersonalData);
+  const containsSensitiveData = bool(governance.containsSensitiveData);
+  const affectsDecisionAboutPersons = bool(governance.affectsDecisionAboutPersons);
+  const dataCategories = strings(governance.dataCategories).length ? strings(governance.dataCategories) : strings(parameters.dataCategories);
+  const affectedPersonsOrGroups = strings(governance.affectedPersonsOrGroups).length
+    ? strings(governance.affectedPersonsOrGroups)
+    : strings(parameters.affectedPersonsOrGroups).length
+      ? strings(parameters.affectedPersonsOrGroups)
+      : strings(parameters.affectedParties);
+  const decisionConsequence = text(governance.decisionConsequence, 2_000) ?? text(parameters.decisionConsequence, 2_000);
+  const declaredLegalBasis = text(governance.declaredLegalBasis, 2_000) ?? text(parameters.legalBasisDeclared, 2_000);
+  const declaredOrganizationalBasis = text(governance.declaredOrganizationalBasis, 2_000) ?? text(parameters.organizationalBasisDeclared, 2_000);
+  const declaredPurposeBasis = text(governance.declaredPurposeBasis, 2_000);
+
+  const personOrGroupScope = subjectType === 'PERSON' || subjectType === 'GROUP' || subjectType === 'MIXED';
+  const sensitiveScope = personOrGroupScope || containsPersonalData === true || containsSensitiveData === true || affectsDecisionAboutPersons === true;
+  const missingContext: string[] = [];
+
+  if (requestScoped) {
+    if (!intendedPurpose) missingContext.push('intended_purpose');
+    if (!targetTypes.length) missingContext.push('target_type');
+    if (sensitiveScope) {
+      if (!jurisdiction) missingContext.push('jurisdiction');
+      if (!affectedPersonsOrGroups.length) missingContext.push('affected_persons_or_groups');
+      if ((containsPersonalData === true || containsSensitiveData === true) && !dataCategories.length) missingContext.push('data_categories');
+      if (affectsDecisionAboutPersons === true && !decisionConsequence) missingContext.push('decision_consequence');
+      if (!declaredLegalBasis && !declaredOrganizationalBasis && !declaredPurposeBasis) missingContext.push('declared_legal_or_organizational_basis');
+    }
+  }
+
+  const euAiActFria: AiGovernanceContextualReview = !requestScoped
+    ? 'UNDETERMINED'
+    : affectsDecisionAboutPersons === true || personOrGroupScope
+      ? 'CONTEXTUAL_REVIEW'
+      : 'NOT_INDICATED';
+  const gdprDpia: AiGovernanceContextualReview = !requestScoped || containsPersonalData === null
+    ? 'UNDETERMINED'
+    : containsPersonalData === true || containsSensitiveData === true
+      ? 'CONTEXTUAL_REVIEW'
+      : 'NOT_INDICATED';
+
+  const status: AiGovernancePreflightStatus = !requestScoped
+    ? 'NOT_REQUEST_SCOPED'
+    : missingContext.length > 0
+      ? 'CONTEXT_INCOMPLETE'
+      : sensitiveScope
+        ? 'REVIEW_REQUIRED'
+        : 'READY';
+
+  return {
+    requestScoped,
+    intendedPurpose,
+    targetTypes,
+    subjectType,
+    jurisdiction,
+    dataCategories,
+    containsPersonalData,
+    containsSensitiveData,
+    affectedPersonsOrGroups,
+    affectsDecisionAboutPersons,
+    decisionConsequence,
+    declaredLegalBasis,
+    declaredOrganizationalBasis,
+    declaredPurposeBasis,
+    sensitiveScope,
+    missingContext: [...new Set(missingContext)],
+    status,
+    assessmentCandidates: {
+      sfiAiImpactAssessment: sensitiveScope,
+      isoIec42005: 'INTERNAL_REFERENCE',
+      euAiActFria,
+      gdprDpia,
+      legalApplicabilityClaimed: false,
+    },
+  };
+}
 
 export function evaluateAgentAiGovernance(agentId: string, context: KernelContext) {
   const agent = SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY.find((item) => item.id === agentId);
@@ -98,12 +239,14 @@ export function evaluateAgentAiGovernance(agentId: string, context: KernelContex
   }
 
   const metadata = context.metadata ?? {};
+  const preflight = buildAiGovernancePreflight(context);
   const externalRequested = metadata.externalExecutionRequested === true || metadata.publishRequested === true || metadata.contactRequested === true;
   if (externalRequested) {
     return {
       disposition: 'BLOCK' as const,
       risk: 'HIGH' as const,
       reasons: ['external_effect_requires_governed_authority'],
+      preflight,
     };
   }
 
@@ -114,9 +257,23 @@ export function evaluateAgentAiGovernance(agentId: string, context: KernelContex
     agent.humanApprovalRequired ? 'human_approval_required_before_external_effect' : 'no_external_effect_declared',
   ];
 
+  if (preflight.requestScoped) reasons.push(`contextual_preflight:${preflight.status.toLowerCase()}`);
+  for (const missing of preflight.missingContext) reasons.push(`governance_context_missing:${missing}`);
+  if (preflight.assessmentCandidates.euAiActFria === 'CONTEXTUAL_REVIEW') reasons.push('eu_ai_act_fria_contextual_review_candidate');
+  if (preflight.assessmentCandidates.gdprDpia === 'CONTEXTUAL_REVIEW') reasons.push('gdpr_dpia_contextual_review_candidate');
+
+  const contextualReviewRequired = preflight.status === 'REVIEW_REQUIRED' || (preflight.sensitiveScope && preflight.status === 'CONTEXT_INCOMPLETE');
+  const disposition: AiGovernanceDisposition = agent.humanApprovalRequired || contextualReviewRequired ? 'ALLOW_ANALYSIS_ONLY' : 'ALLOW_INTERNAL';
+  const risk = preflight.containsSensitiveData === true || preflight.affectsDecisionAboutPersons === true
+    ? 'HIGH' as const
+    : agent.humanApprovalRequired || agent.simulationAllowed || contextualReviewRequired
+      ? 'MEDIUM' as const
+      : 'LOW' as const;
+
   return {
-    disposition: agent.humanApprovalRequired ? 'ALLOW_ANALYSIS_ONLY' as const : 'ALLOW_INTERNAL' as const,
-    risk: agent.humanApprovalRequired || agent.simulationAllowed ? 'MEDIUM' as const : 'LOW' as const,
-    reasons,
+    disposition,
+    risk,
+    reasons: [...new Set(reasons)],
+    preflight,
   };
 }
