@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useAuthState } from '@/components/auth/AuthProvider';
 import { translateUiText, useSfiLanguage } from '@/components/i18n/SfiLanguageProvider';
 import { ObservatoryConsole } from './ObservatoryConsole';
+import { ObservatoryInterpretiveFlow } from './ObservatoryInterpretiveFlow';
 import { SfiOperatingWorkspace } from './SfiOperatingWorkspace';
 import { SessionControls } from './SessionControls';
 import { INTERNAL_SCENE_KEYS, SCENE_LABELS, type InternalSceneKey, type SceneKey } from './scenes';
@@ -20,7 +21,7 @@ export function SfiConsole({scene}:{scene:SceneKey}){
   const auth=useAuthState();
   const {language,text}=useSfiLanguage();
   const ui=(value:string)=>translateUiText(value,language);
-  if(scene==='field') return <ObservatoryConsole/>;
+  if(scene==='field') return <><ObservatoryConsole/><ObservatoryInterpretiveFlow/></>;
 
   const current=scene as InternalSceneKey;
   const spec=SCENE_LABELS[current];
