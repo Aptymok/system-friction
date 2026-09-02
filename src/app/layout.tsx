@@ -1,4 +1,5 @@
 import '@/app/globals.css';
+import '@/app/scrollbar.css';
 import type { Metadata, Viewport } from 'next';
 import Script from 'next/script';
 import type { ReactNode } from 'react';
@@ -96,13 +97,12 @@ gtag('config', '${GA_ID}');`}
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} />
         <SfiLanguageProvider>
           <AuthProvider>{children}</AuthProvider>
-          <footer style={{ background: '#080806', borderTop: '1px solid rgba(205,164,93,.12)', padding: '14px 20px', textAlign: 'center', fontFamily: 'Inter, ui-sans-serif, system-ui, sans-serif', fontSize: 11, letterSpacing: '.08em' }}>
-            <a href="/privacy" style={{ color: '#8f7855', textDecoration: 'none' }}>
-              <SfiUiText
-                es="PRIVACIDAD Y POLÍTICA DE DATOS PARA AGENTES EXTERNOS"
-                en="PRIVACY & EXTERNAL AGENT DATA POLICY"
-              />
-            </a>
+          <footer className="sfiGlobalFooter">
+            <strong>SFI.</strong>
+            <a href="/observatory"><SfiUiText es="OBSERVATORIO" en="OBSERVATORY" /></a>
+            <a href="/history"><SfiUiText es="ORIGEN → AHORA" en="ORIGIN → NOW" /></a>
+            <a href="/institution"><SfiUiText es="INSTITUTO" en="INSTITUTE" /></a>
+            <a href="/privacy"><SfiUiText es="PRIVACIDAD" en="PRIVACY" /></a>
           </footer>
           <SfiConsentBanner />
         </SfiLanguageProvider>
