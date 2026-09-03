@@ -171,6 +171,9 @@ jobs:
       - name: Verify agent API integrations and hardening
         run: node scripts/merge-openapi-cases.mjs && npx tsx scripts/qa-sfi-agent-api-hardening.ts
 
+      - name: Verify runtime read-plane stability
+        run: npx tsx scripts/qa-sfi-runtime-readplane-stability.ts
+
       - name: Typecheck
         id: typecheck
         shell: bash
