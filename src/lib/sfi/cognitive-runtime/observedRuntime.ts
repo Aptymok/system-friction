@@ -1,7 +1,6 @@
 import 'server-only';
 
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
-import { streamRecentEpistemicEvents } from '@/lib/events/eventStore';
 import { SFI_COGNITIVE_RUNTIME_MODES, SFI_LAYER_QUESTIONS } from './registry';
 import { SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY, SFI_CONVERGED_RUNTIME_SOURCE_TABLES } from './convergedRegistry';
 import { SFI_AGENT_EXECUTION_MAP } from './agentExecutionMap';
@@ -15,6 +14,8 @@ import type {
 
 const freshnessHours = Math.max(1, Number(process.env.SFI_AGENT_EXECUTION_FRESHNESS_HOURS ?? 24));
 const freshnessMs = freshnessHours * 60 * 60 * 1000;
+const TABLE_PROBE_CONCURRENCY = 4;
+const RUNTIME_EVENT_SELECT = 'event_id,event_name,epistemic_class,confidence,occurred_at,created_at,source';
 
 function contractEventName(value: unknown) {
   if (typeof value === 'string') return value;
@@ -46,15 +47,44 @@ function isFresh(value: string | null) {
 
 async function probeTables() {
   const db = createServiceSupabaseClient();
-  const entries = await Promise.all(SFI_CONVERGED_RUNTIME_SOURCE_TABLES.map(async (table) => {
-    const result = await db.from(table).select('*', { count: 'exact', head: true });
-    return [table, {
-      available: !result.error,
-      count: result.error ? null : result.count ?? 0,
-      error: result.error?.message ?? null,
-    }] as const;
-  }));
+  const entries: Array<readonly [string, { available: boolean; count: number | null; error: string | null }]> = [];
+
+  for (let index = 0; index < SFI_CONVERGED_RUNTIME_SOURCE_TABLES.length; index += TABLE_PROBE_CONCURRENCY) {
+    const batch = SFI_CONVERGED_RUNTIME_SOURCE_TABLES.slice(index, index + TABLE_PROBE_CONCURRENCY);
+    const batchEntries = await Promise.all(batch.map(async (table) => {
+      const result = await db.from(table).select('*', { head: true }).limit(1);
+      return [table, {
+        available: !result.error,
+        count: null,
+        error: result.error?.message ?? null,
+      }] as const;
+    }));
+    entries.push(...batchEntries);
+  }
+
   return new Map(entries);
+}
+
+async function readRuntimeEvents() {
+  const db = createServiceSupabaseClient();
+  const executionLimit = Math.max(100, SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY.length * 12);
+  const [recentResult, executionResult] = await Promise.all([
+    db.from('epistemic_events')
+      .select(RUNTIME_EVENT_SELECT)
+      .order('sequence', { ascending: false })
+      .limit(100),
+    db.from('epistemic_events')
+      .select(RUNTIME_EVENT_SELECT)
+      .eq('event_name', 'SFI_AGENT_EXECUTED')
+      .order('occurred_at', { ascending: false })
+      .limit(executionLimit),
+  ]);
+
+  return {
+    recentRows: (recentResult.data ?? []) as Array<Record<string, unknown>>,
+    executionRows: (executionResult.data ?? []) as Array<Record<string, unknown>>,
+    warnings: [recentResult.error?.message, executionResult.error?.message].filter(Boolean) as string[],
+  };
 }
 
 function memoryAccess(memory: string, mode: 'read' | 'write', tableState: Map<string, { available: boolean; count: number | null; error: string | null }>): SfiMemoryAccess {
@@ -75,11 +105,11 @@ function aggregateStatus(statuses: SfiCognitiveRuntimeStatus[]): SfiCognitiveRun
 export async function readObservedSfiCognitiveRuntime(): Promise<SfiCognitiveRuntimeSnapshot> {
   const [tableState, eventStream] = await Promise.all([
     probeTables(),
-    streamRecentEpistemicEvents(500),
+    readRuntimeEvents(),
   ]);
 
-  const eventRows = (eventStream.data ?? []) as Array<Record<string, unknown>>;
-  const executionEvents = eventRows.filter((row) => String(row.event_name ?? '') === 'SFI_AGENT_EXECUTED');
+  const eventRows = eventStream.recentRows;
+  const executionEvents = eventStream.executionRows;
 
   const agents: SfiCognitiveAgentState[] = SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY.map((agent) => {
     const sourceStates = agent.sourceTables.map((table) => [table, tableState.get(table)] as const);
@@ -152,7 +182,7 @@ export async function readObservedSfiCognitiveRuntime(): Promise<SfiCognitiveRun
     };
   });
 
-  const recentEvents = eventRows.slice(0, 100).map((row) => ({
+  const recentEvents = eventRows.map((row) => ({
     eventId: String(row.event_id ?? row.id ?? ''),
     eventName: String(row.event_name ?? 'epistemic.event'),
     epistemicClass: String(row.epistemic_class ?? 'missing'),
@@ -169,7 +199,7 @@ export async function readObservedSfiCognitiveRuntime(): Promise<SfiCognitiveRun
     ? (degradedAgents || missingAgents ? 'degraded' : 'operational')
     : gatedAgents ? 'gated' : 'missing';
 
-  const eventWarnings = 'warnings' in eventStream && Array.isArray(eventStream.warnings) ? eventStream.warnings : [];
+  const eventWarnings = eventStream.warnings;
 
   return {
     generatedAt: new Date().toISOString(),
