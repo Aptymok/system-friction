@@ -1,4 +1,5 @@
 import type { KernelContext, KernelEvidence } from '../kernelContext';
+import { materialEvidenceCoverage, materialEvidenceView } from '../materialEvidence';
 
 export interface EvidenceRequirement {
   question: string;
@@ -28,23 +29,24 @@ function tokens(value: string) {
   return [...new Set(value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().match(/[a-z0-9]{4,}/g) ?? [])];
 }
 
+function overlapText(left: string, right: string) {
+  const leftTokens = tokens(left);
+  if (!leftTokens.length) return 0;
+  const rightTokens = new Set(tokens(right));
+  return leftTokens.filter((token) => rightTokens.has(token)).length / leftTokens.length;
+}
+
 function overlapScore(hypothesis: { statement: string }, evidence: KernelEvidence) {
-  const hypothesisTokens = tokens(hypothesis.statement);
-  if (!hypothesisTokens.length) return 0;
-  const evidenceTokens = new Set(tokens(JSON.stringify(evidence.payload)));
-  return hypothesisTokens.filter((token) => evidenceTokens.has(token)).length / hypothesisTokens.length;
+  return overlapText(hypothesis.statement, JSON.stringify(evidence.payload));
 }
 
 function materiallyRelated(hypothesis: { id: string; statement: string }, evidence: KernelEvidence) {
   const payload = row(evidence.payload);
-  const klass = typeof payload.epistemicClass === 'string' ? payload.epistemicClass.toLowerCase() : '';
-  if (!['observed', 'derived'].includes(klass)) return false;
   const refs = [payload.refs, payload.supportRefs, payload.hypothesisRefs]
     .flatMap((value) => Array.isArray(value) ? value : [])
     .filter((value): value is string => typeof value === 'string');
   if (refs.includes(hypothesis.id)) return true;
-  const score = overlapScore(hypothesis, evidence);
-  return score >= 0.35;
+  return overlapScore(hypothesis, evidence) >= 0.35;
 }
 
 function externallyRelated(hypothesis: { statement: string }, evidence: KernelEvidence) {
@@ -54,45 +56,58 @@ function externallyRelated(hypothesis: { statement: string }, evidence: KernelEv
   return overlapScore(hypothesis, evidence) >= 0.25;
 }
 
+function materialSupportsStatement(value: string, evidence: KernelEvidence[]) {
+  return evidence.some((item) => overlapText(value, JSON.stringify(item.payload)) >= 0.35);
+}
+
 export function EvidenceHunterAgent(context: KernelContext): KernelContext {
   const requirements: EvidenceRequirement[] = [];
   const hypotheses = context.hypotheses ?? [];
-  const evidence = context.evidence ?? [];
+  const materialEvidence = materialEvidenceView(context);
+  const coverage = materialEvidenceCoverage(context);
   const partition = row(context.metadata?.materialEpistemicPartition);
   const unresolved = [partition.missing, partition.unresolved, context.metadata?.materialUnresolved]
     .flatMap((value) => Array.isArray(value) ? value : value ? [value] : [])
     .map(statement)
     .filter(Boolean);
-  const sourceClaims = evidence.filter((item) => String(row(item.payload).epistemicClass ?? '').toLowerCase() === 'source_claim');
+  const sourceClaims = (context.evidence ?? []).filter((item) => String(row(item.payload).epistemicClass ?? '').toLowerCase() === 'source_claim');
   const externalCorroboration: Array<{ hypothesisId: string; sourceClaimRefs: string[] }> = [];
+  const reusedForUnresolved: string[] = [];
+  const reusedForHypotheses: Array<{ hypothesisId: string; evidenceRefs: string[] }> = [];
 
   for (const unresolvedStatement of [...new Set(unresolved)].slice(0, 20)) {
+    if (materialSupportsStatement(unresolvedStatement, materialEvidence)) {
+      reusedForUnresolved.push(unresolvedStatement);
+      continue;
+    }
     requirements.push({
       question: unresolvedStatement,
       missing: true,
-      reason: 'La observación material ya lo registra como faltante o no resuelto.',
+      reason: 'La observación material sigue registrándolo como faltante o no resuelto después de reutilizar la evidencia persistida disponible.',
       confidence: 1,
-      basis: 'STRUCTURED_MATERIAL_MISSING_OR_UNRESOLVED',
+      basis: 'STRUCTURED_MATERIAL_MISSING_AFTER_EXISTING_EVIDENCE_REUSE',
     });
   }
 
   for (const hypothesis of hypotheses) {
-    const relatedEvidence = evidence.filter((item) => materiallyRelated(hypothesis, item));
+    const relatedEvidence = materialEvidence.filter((item) => materiallyRelated(hypothesis, item));
     const relatedExternal = sourceClaims.filter((item) => externallyRelated(hypothesis, item));
     if (relatedExternal.length) {
       externalCorroboration.push({ hypothesisId: hypothesis.id, sourceClaimRefs: relatedExternal.map((item) => item.id).slice(0, 8) });
     }
-    if (relatedEvidence.length === 0) {
-      requirements.push({
-        question: `¿Qué observación o medición discriminante sostiene la hipótesis: ${hypothesis.statement}?`,
-        missing: true,
-        reason: relatedExternal.length
-          ? 'Existen fuentes externas relacionadas, pero SOURCE_CLAIM no sustituye la observación/medición material requerida.'
-          : 'No hay una observación/medición estructurada asociada de forma suficiente dentro del contexto actual.',
-        confidence: hypothesis.confidence,
-        basis: relatedExternal.length ? 'EXTERNAL_CORROBORATION_WITHOUT_MATERIAL_SUPPORT' : 'HYPOTHESIS_WITHOUT_MATERIAL_SUPPORT',
-      });
+    if (relatedEvidence.length) {
+      reusedForHypotheses.push({ hypothesisId: hypothesis.id, evidenceRefs: relatedEvidence.map((item) => item.id).slice(0, 12) });
+      continue;
     }
+    requirements.push({
+      question: `¿Qué observación o medición discriminante sostiene la hipótesis: ${hypothesis.statement}?`,
+      missing: true,
+      reason: relatedExternal.length
+        ? 'Existen fuentes externas relacionadas, pero SOURCE_CLAIM no sustituye la observación/medición material requerida.'
+        : 'Después de resolver evidencia persistida en targets, ciclos y referencias canónicas, no hay soporte material suficiente para esta hipótesis.',
+      confidence: hypothesis.confidence,
+      basis: relatedExternal.length ? 'EXTERNAL_CORROBORATION_WITHOUT_MATERIAL_SUPPORT' : 'HYPOTHESIS_WITHOUT_MATERIAL_SUPPORT_AFTER_CANONICAL_REUSE',
+    });
   }
 
   const deduplicated = new Map<string, EvidenceRequirement>();
@@ -114,14 +129,23 @@ export function EvidenceHunterAgent(context: KernelContext): KernelContext {
   context.evidence.push(...generatedEvidence);
   context.metadata = {
     ...context.metadata,
+    materialEvidenceResolution: coverage,
     evidenceHunter: {
       missingEvidenceDetected: generatedEvidence.length,
       structuredMissingDetected: unresolved.length,
       hypothesesChecked: hypotheses.length,
+      materialEvidenceResolved: materialEvidence.length,
+      reusedForUnresolved,
+      reusedForHypotheses,
       externalSourceClaimsAvailable: sourceClaims.length,
       externalCorroboration,
+      reuseStatus: generatedEvidence.length === 0 && materialEvidence.length > 0
+        ? 'EXISTING_SUPPORT_REUSED'
+        : materialEvidence.length > 0
+          ? 'EXISTING_SUPPORT_REUSED_WITH_RESIDUAL_GAPS'
+          : 'MATERIAL_SUPPORT_MISSING',
       executedAt: new Date().toISOString(),
-      epistemicRule: 'SOURCE_CLAIM_MAY_CORROBORATE_OR_CONTRADICT_BUT_NEVER_REPLACE_MATERIAL_SUPPORT',
+      epistemicRule: 'REUSE_EXISTING_MATERIAL_EVIDENCE_BEFORE_REQUESTING_NEW_EVIDENCE; SOURCE_CLAIM_MAY_CORROBORATE_OR_CONTRADICT_BUT_NEVER_REPLACE_MATERIAL_SUPPORT',
     },
   };
 
