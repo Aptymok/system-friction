@@ -154,7 +154,7 @@ async function readOrProvisionUserProfile(user: { id: string; email?: string | n
     const accessKeys = [
       'display_title','observatory','planner','simulator','social','field','studio','world_field','root','root_observe',
       'full_access','executor','root_execution','governance_write','sovereign_actions','canonical_promotion',
-    ];
+    ] as const;
     const requiresReconcile =
       existing.data.alias !== member.displayName ||
       existing.data.email !== member.email ||
