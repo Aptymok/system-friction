@@ -159,7 +159,8 @@ function readPersonalRow(): RootSystemItem {
 async function readPhenomenologicalRow(): Promise<RootSystemItem> {
   try {
     const client = createServiceSupabaseClient();
-    const [{ data: latest, error: latestError }, { count, error: countError }] = await Promise.all([
+    const PPOI_ACTIVE_SAMPLE_LIMIT = 201;
+    const [{ data: latest, error: latestError }, { data: activeRows, error: activeError }] = await Promise.all([
       client
         .from('ppoi_phenomena')
         .select('fp_code, current_composite, indices_calculated_at')
@@ -167,14 +168,20 @@ async function readPhenomenologicalRow(): Promise<RootSystemItem> {
         .order('indices_calculated_at', { ascending: false })
         .limit(1)
         .maybeSingle(),
-      client.from('ppoi_phenomena').select('id', { count: 'exact', head: true }).eq('status', 'ACTIVE'),
+      client
+        .from('ppoi_phenomena')
+        .select('id')
+        .eq('status', 'ACTIVE')
+        .limit(PPOI_ACTIVE_SAMPLE_LIMIT),
     ]);
 
     if (latestError) throw new Error(errorMessage(latestError));
-    if (countError) throw new Error(errorMessage(countError));
+    if (activeError) throw new Error(errorMessage(activeError));
 
     const rawComposite = typeof latest?.current_composite === 'number' ? latest.current_composite : null;
     const phiF = rawComposite === null ? null : normalizePpoiComposite(rawComposite);
+    const sampledActiveCount = activeRows?.length ?? 0;
+    const sampleSaturated = sampledActiveCount >= PPOI_ACTIVE_SAMPLE_LIMIT;
 
     return {
       id: 'mihm-phi-f',
@@ -187,14 +194,16 @@ async function readPhenomenologicalRow(): Promise<RootSystemItem> {
         explanation: 'Persistencia fenomenológica normalizada desde el compuesto PPOI 0–5. No representa salud institucional.',
       }),
       openItems: {
-        value: count ?? null,
-        status: count === null ? 'missing' : 'observed',
+        value: sampledActiveCount,
+        status: 'observed',
         source: 'ppoi_phenomena',
         observedAt: null,
         confidence: null,
         evidenceIds: [],
-        explanation: 'Expedientes PPOI en estado ACTIVE.',
-        warning: null,
+        explanation: sampleSaturated
+          ? `Se observaron al menos ${sampledActiveCount} expedientes PPOI ACTIVE dentro del límite interactivo; no se ejecutó COUNT(*) exacto.`
+          : 'Expedientes PPOI en estado ACTIVE observados dentro de una lectura acotada.',
+        warning: sampleSaturated ? 'PPOI_ACTIVE_COUNT_BOUNDED_NOT_EXHAUSTIVE' : null,
       },
     };
   } catch (error) {
