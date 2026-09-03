@@ -165,6 +165,9 @@ jobs:
       - name: Verify SFI System and AI Assurance Domain V1
         run: npx tsx scripts/qa-sfi-system-ai-assurance-domain-v1.ts
 
+      - name: Verify GenAI telemetry and assurance
+        run: npx tsx scripts/qa-sfi-genai-telemetry.ts
+
       - name: Typecheck
         id: typecheck
         shell: bash
