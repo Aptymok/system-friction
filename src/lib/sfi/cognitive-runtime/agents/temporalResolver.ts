@@ -50,8 +50,9 @@ function normalizedKey(value: string) {
 }
 
 function dateValue(value: unknown) {
-  if (typeof value !== 'string' && typeof value !== 'number' && !(value instanceof Date)) return null;
-  const parsed = new Date(value as string | number | Date);
+  if (value instanceof Date) return Number.isFinite(value.valueOf()) ? value : null;
+  if (typeof value !== 'string' && typeof value !== 'number') return null;
+  const parsed = new Date(value);
   return Number.isFinite(parsed.valueOf()) ? parsed : null;
 }
 
@@ -110,7 +111,7 @@ function aggregateTemporalCounts(payload: unknown) {
   let resolutionBeforeCreation = 0;
   for (const entry of entries) {
     const path = normalizedKey(entry.path);
-    if (/^(rowcount|recordcount|totalrows|totalrecords|totaltickets|ticketcount)$/.test(path.split(/[0-9]/).join(''))) {
+    if (/rowcount|recordcount|totalrows|totalrecords|totaltickets|ticketcount/.test(path)) {
       denominator = Math.max(denominator ?? 0, entry.value);
     }
     if (/attend.*before.*creat|attention.*before.*creat|inicio.*atencion.*antes.*crea|negative.*creat.*attend/.test(path)) {
