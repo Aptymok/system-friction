@@ -10,11 +10,12 @@ import {
   validateExecutionRequest,
   type SfiExecutionTargetKind,
 } from '@/lib/sfi/cognitive-runtime/executionContracts';
+import { materialEvidenceView } from '@/lib/sfi/cognitive-runtime/materialEvidence';
 import { runCognitiveAgent } from '@/lib/sfi/cognitive-runtime/runtimeAgentExecutor';
 import { readUniversalCycleHistory } from '@/lib/sfi/universalSignalCycle';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 
-export const SFI_MANUAL_COGNITIVE_EXECUTION_VERSION = 'SFI-MANUAL-COGNITIVE-EXECUTION-1.0' as const;
+export const SFI_MANUAL_COGNITIVE_EXECUTION_VERSION = 'SFI-MANUAL-COGNITIVE-EXECUTION-1.1' as const;
 
 type Row = Record<string, unknown>;
 
@@ -242,7 +243,7 @@ export async function executeManualCognitiveAgent(
         requestedSourceUrls: executionRequest.sourceUrls.length,
         publicSourceCandidates: 0,
       },
-      epistemicBoundary: 'Selected objects are context, not automatically evidence. Existing evidence references retain their own prior admissibility. Public research results are source candidates until explicitly admitted through evidence governance. Manual execution cannot grant itself intervention, closure, canon or truth authority.',
+      epistemicBoundary: 'Selected objects are context, not automatically evidence. Persisted material evidence nested inside selected targets/references may be reused only when its prior epistemic class and provenance are explicit. Public research remains source-candidate material. Manual execution cannot grant itself intervention, closure, canon or truth authority.',
     };
 
     for (const target of executionRequest.targets) {
@@ -280,8 +281,18 @@ export async function executeManualCognitiveAgent(
       });
     }
 
+    const preResearchMaterial = materialEvidenceView(context);
+    context.metadata.contextCoverage = {
+      ...row(context.metadata.contextCoverage),
+      resolvedPersistedMaterialBeforeResearch: preResearchMaterial.length,
+    };
+
     let research: Awaited<ReturnType<typeof runPublicResearch>> | null = null;
-    const researchEligible = ['evidence_hunter', 'historical_scout', 'field_observer', 'context_builder'].includes(agentId);
+    const researchCapable = ['evidence_hunter', 'historical_scout', 'field_observer', 'context_builder'].includes(agentId);
+    const internalEvidenceAlreadyAvailable = preResearchMaterial.length > 0;
+    const evidenceHunterNeedsExternalSearch = agentId === 'evidence_hunter'
+      && (executionRequest.sourceUrls.length > 0 || !internalEvidenceAlreadyAvailable);
+    const researchEligible = researchCapable && (agentId !== 'evidence_hunter' || evidenceHunterNeedsExternalSearch);
     if (researchEligible) {
       const targetTitles = resolvedTargets.map((target) => target.title).join(' · ');
       const queryBase = `${targetTitles} ${executionRequest.purpose}`.slice(0, 500);
@@ -340,6 +351,30 @@ export async function executeManualCognitiveAgent(
     const llmRuntime = row(result.context.metadata?.llmRuntime);
     const insights = row(result.context.metadata?.agentInsights);
     const interpretation = row(insights[agentId]);
+    const materialResolution = row(result.context.metadata?.materialEvidenceResolution);
+    const evidenceHunterState = row(result.context.metadata?.evidenceHunter);
+    const proposalBridge = row(result.context.metadata?.cognitiveProposalBridge);
+    const materialEvidenceResolved = numberOrNull(materialResolution.resolvedMaterialEvidence)
+      ?? numberOrNull(row(result.context.metadata?.contextCoverage).resolvedPersistedMaterialBeforeResearch)
+      ?? 0;
+    const residualMissing = produced.filter((item) => String(row(item.payload).epistemicClass ?? '').toLowerCase() === 'missing').length;
+    const proposalPersistedCount = numberOrNull(proposalBridge.persistedCount) ?? 0;
+
+    const humanSummary = materialEvidenceResolved > 0
+      ? residualMissing > 0
+        ? `La ejecución reutilizó ${materialEvidenceResolved} evidencias materiales persistidas. Quedan ${residualMissing} faltantes residuales discriminantes; no se requiere volver a aportar el objeto ya procesado.`
+        : `La ejecución reutilizó ${materialEvidenceResolved} evidencias materiales persistidas. No se requiere volver a subir, ingerir ni aportar de nuevo el objeto ya procesado.`
+      : researchEligible
+        ? researchSources.length
+          ? `La ejecución terminó. Encontró ${researchSources.length} fuentes públicas candidatas. Siguen siendo candidatas hasta su admisión por gobernanza de evidencia.`
+          : 'La ejecución no resolvió evidencia material persistida ni una fuente pública utilizable. Sólo debe solicitarse el faltante discriminante exacto; nunca debe pedirse de nuevo un objeto ya persistido por defecto.'
+        : 'La ejecución terminó sobre los objetos declarados. Sus resultados conservan la autoridad y clase epistemológica del agente; no se convierten automáticamente en evidencia, decisión, intervención, RETURN o aprendizaje.';
+
+    const next = proposalPersistedCount > 0
+      ? `Revisar en ROOT ${proposalPersistedCount} propuesta(s) cognitiva(s) gobernada(s). La persistencia de la propuesta no ejecuta la intervención ni fabrica RETURN.`
+      : residualMissing > 0
+        ? 'Resolver únicamente los faltantes discriminantes residuales identificados después de reutilizar la evidencia persistida. No reingestar ni volver a aportar el objeto base.'
+        : 'Continuar con el siguiente contraste/intervención gobernada que corresponda utilizando la evidencia ya persistida.';
 
     return {
       status: 200,
@@ -365,11 +400,14 @@ export async function executeManualCognitiveAgent(
             selectedObjectsAreEvidence: false,
             publicSourcesAreAdmittedEvidence: false,
             existingEvidenceReferencesRetainPriorStatus: true,
+            persistedMaterialCanBeReusedByPriorClass: true,
             aiInterpretationClass: 'INFERENCE',
             externalEffectExecutedByThisRoute: false,
           },
           contextCoverage: {
             ...row(result.context.metadata?.contextCoverage),
+            materialEvidenceResolved,
+            evidenceHunterReuseStatus: evidenceHunterState.reuseStatus ?? null,
             llmPromptCharacters: llmRuntime.promptCharacters ?? null,
             llmPromptBounded: llmRuntime.promptBounded ?? null,
             llmProjection: llmRuntime.promptProjection ?? null,
@@ -386,6 +424,7 @@ export async function executeManualCognitiveAgent(
             boundary: 'Only provider/runtime-observed values are exposed. Missing telemetry remains NOT_OBSERVED and is never estimated.',
           },
           interpretation,
+          governedProposalBridge: proposalBridge,
           findings: {
             hypotheses: result.context.hypotheses,
             contradictions: result.context.contradictions,
@@ -395,16 +434,11 @@ export async function executeManualCognitiveAgent(
             simulations: result.context.simulations,
             produced,
             referencedEvidence: resolvedEvidence.map((evidence) => ({ id: evidence.id, title: evidence.title })),
+            resolvedMaterialEvidenceRefs: materialEvidenceView(result.context).map((evidence) => evidence.id).slice(0, 50),
             publicSources: researchSources,
           },
-          humanSummary: researchEligible
-            ? researchSources.length
-              ? `La ejecución terminó. Encontró ${researchSources.length} fuentes públicas candidatas. Siguen siendo candidatas hasta su admisión por gobernanza de evidencia.`
-              : 'La ejecución terminó sin una fuente pública utilizable. Si el material existe en una fuente interna o archivo controlado, debe aportarse o autorizarse su acceso.'
-            : 'La ejecución terminó sobre los objetos declarados. Sus resultados conservan la autoridad y clase epistemológica del agente; no se convierten automáticamente en evidencia, decisión, intervención, RETURN o aprendizaje.',
-          next: researchSources.length
-            ? 'Revisar y admitir/rechazar las fuentes pertinentes por la ruta de evidencia; después ejecutar el contraste que corresponda.'
-            : 'Revisar la interpretación y la cobertura de contexto; si falta información, aportar evidencia o contexto autorizado antes de elevar la conclusión.',
+          humanSummary,
+          next,
         },
       },
     };
