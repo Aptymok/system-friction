@@ -104,12 +104,12 @@ async function buildObservedSnapshot(): Promise<SfiCognitiveRuntimeSnapshot> {
     else if (lastExecutedAt && isFresh(lastExecutedAt)) status = 'operational';
     else status = 'gated';
 
-    const warnings = [
+    const warnings: string[] = [
       ...(!executorBound ? ['No existe executor enlazado para este contrato.'] : []),
       ...(eventReadDegraded ? eventStream.warnings.map((warning) => `epistemic_events: ${warning}`) : []),
       ...(lastExecutedAt && !isFresh(lastExecutedAt) ? [`Última ejecución observada fuera de la ventana de ${freshnessHours} h: ${lastExecutedAt}`] : []),
       ...(!lastExecutedAt ? ['No existe una ejecución SFI_AGENT_EXECUTED reciente atribuible a este agente.'] : []),
-      ['Las tablas fuente no se sondean durante lecturas interactivas; una dependencia se declara por contrato y falla explícitamente cuando una operación real la necesita.'],
+      'Las tablas fuente no se sondean durante lecturas interactivas; una dependencia se declara por contrato y falla explícitamente cuando una operación real la necesita.',
     ];
 
     return {
