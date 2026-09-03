@@ -165,6 +165,7 @@ export function assessUniversalClosure(input: {
   const persistedSignals = predictionSignals(predictions);
   const lastReturn = latest(input.history.returns);
   const returnPayload = lastReturn ? eventPayload(lastReturn) : {};
+  const returnOutcome = row(returnPayload.outcome);
   const lastContrast = latest(contrastEvents(input.history));
   const lastContrastPayload = lastContrast ? eventPayload(lastContrast) : {};
 
@@ -183,7 +184,9 @@ export function assessUniversalClosure(input: {
     ...list(requested.supportingEvidence).filter((item): item is string => typeof item === 'string'),
   ];
   const counterEvidence = list(requested.counterEvidence).length ? list(requested.counterEvidence) : contradictions;
-  const missingEvidence = list(requested.missingEvidence);
+  const missingEvidence = list(requested.missingEvidence).length
+    ? list(requested.missingEvidence)
+    : list(returnOutcome.missingEvidence);
   const expectedSignals = empirical
     ? persistedSignals.expectedSignals
     : list(requested.expectedSignals).length ? list(requested.expectedSignals) : list(predictionRow.expectedSignals);
@@ -225,8 +228,10 @@ export function assessUniversalClosure(input: {
         }
       : null
     : requested.learningCandidate ?? null;
-  const conclusion = requested.conclusion ?? null;
-  const limitations = list(requested.limitations);
+  const conclusion = text(requested.conclusion) ?? text(returnOutcome.conclusion) ?? null;
+  const limitations = list(requested.limitations).length
+    ? list(requested.limitations)
+    : list(returnOutcome.limitations);
 
   const missing: string[] = [];
   if (klass === 'DESCRIPTIVE_DELIMITED') {
