@@ -2,6 +2,7 @@ import {
   SFI_REPORT_CONTRACT,
   type SfiReportClaimV1,
   type SfiRenderedReportClaimV1,
+  type SfiReportClaimLineageV1,
   type SfiReportDeliveryFormat,
   type SfiReportV1,
   type SfiCaseV1,
@@ -18,16 +19,25 @@ export type AssembleSfiReportV1Input = {
   limitations?: string[];
 };
 
+function normalizeLineage(claim: SfiReportClaimV1): SfiReportClaimLineageV1 {
+  if (claim.lineage) return claim.lineage;
+  return {
+    executionRef: null,
+    outputRelation: 'NOT_EXECUTED',
+    support: claim.determinability === 'UNDETERMINED' ? 'INSUFFICIENT' : 'UNSUPPORTED',
+    contradictionRefs: [],
+    refutationConditions: [],
+  };
+}
+
 function renderClaim(claim: SfiReportClaimV1): SfiRenderedReportClaimV1 {
-  if (claim.lineage) return { ...claim, lineage: claim.lineage };
+  const lineage = normalizeLineage(claim);
   return {
     ...claim,
     lineage: {
-      executionRef: null,
-      outputRelation: 'NOT_EXECUTED',
-      support: claim.determinability === 'UNDETERMINED' ? 'INSUFFICIENT' : 'UNSUPPORTED',
-      contradictionRefs: [],
-      refutationConditions: [],
+      ...lineage,
+      evidenceRefs: claim.evidenceRefs,
+      confidence: claim.confidence,
     },
   };
 }
