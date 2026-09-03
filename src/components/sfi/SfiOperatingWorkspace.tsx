@@ -58,8 +58,14 @@ export function SfiOperatingWorkspace({enabled,surface}:Props){
   const [notice,setNotice]=useState<string|null>(null);
 
   const loadBase=useCallback(async()=>{if(!enabled||surface==='governance')return;try{
-    const [wb,ci,lr]=await Promise.all([jsonFetch('/api/root/workboard'),jsonFetch('/api/cases'),jsonFetch('/api/root/learning')]);
-    setWorkboard(wb.workboard??{});setCaseIndex({projects:ci.projects??[],cases:ci.cases??[]});setLearning(lr);setError(null);
+    if(surface==='twin'){
+      const [next,lr]=await Promise.all([jsonFetch('/api/root/operational-next'),jsonFetch('/api/root/learning')]);
+      setWorkboard({operationalNext:next.operationalNext??{}});setLearning(lr);setCaseIndex({projects:[],cases:[]});
+    }else{
+      const [next,ci]=await Promise.all([jsonFetch('/api/root/operational-next'),jsonFetch('/api/cases')]);
+      setWorkboard({operationalNext:next.operationalNext??{}});setCaseIndex({projects:ci.projects??[],cases:ci.cases??[]});setLearning(null);
+    }
+    setError(null);
   }catch(cause){setError(cause instanceof Error?cause.message:String(cause))}},[enabled,surface]);
   useEffect(()=>{void loadBase();const timer=window.setInterval(()=>void loadBase(),30000);return()=>window.clearInterval(timer)},[loadBase]);
 
