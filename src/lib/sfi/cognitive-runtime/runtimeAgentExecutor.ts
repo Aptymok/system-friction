@@ -1,5 +1,6 @@
 import type { KernelContext } from './kernelContext';
 import { executeRegisteredAgent } from './agentExecutionMap';
+import { bridgeAgentInsightToGovernedProposals } from './cognitiveProposalBridge';
 import { recordAgentExecutionEvent } from '@/infrastructure/events/cognitiveRuntimeEventRepository';
 import { augmentAgentWithLlm } from '@/infrastructure/ai/agentLlmClient';
 import { evaluateAgentAiGovernance, SFI_AI_GOVERNANCE_POLICY } from '@/lib/governance/aiGovernancePolicy';
@@ -46,6 +47,8 @@ function compactExecutionMetadata(agentId: string, context: KernelContext) {
     'executionRequest',
     'contextCoverage',
     'epistemicBoundary',
+    'materialEvidenceResolution',
+    'cognitiveProposalBridge',
     'worldSnapshotId',
     'methods',
     'openCycleIds',
@@ -62,6 +65,7 @@ function compactExecutionMetadata(agentId: string, context: KernelContext) {
     aiGovernance: metadata.aiGovernance ?? null,
     llmRuntime: metadata.llmRuntime ?? null,
     agentInsight: selectedInsight,
+    cognitiveProposalBridge: metadata.cognitiveProposalBridge ?? null,
     metadataKeyCount: Object.keys(metadata).length,
     storagePolicy: 'COMPACT_TRACE',
   };
@@ -77,6 +81,7 @@ export async function runCognitiveAgent(
   let executed = false;
   let deterministicError: string | null = null;
   let llmError: string | null = null;
+  let proposalBridgeError: string | null = null;
   const governance = evaluateAgentAiGovernance(agentId, context);
 
   if (governance.disposition !== 'BLOCK') {
@@ -128,6 +133,28 @@ export async function runCognitiveAgent(
     }
   }
 
+  if (llmRequested && !llmError) {
+    try {
+      updatedContext = await bridgeAgentInsightToGovernedProposals(agentId, updatedContext);
+    } catch (error) {
+      proposalBridgeError = error instanceof Error ? error.message : String(error);
+      updatedContext.metadata = {
+        ...updatedContext.metadata,
+        cognitiveProposalBridge: {
+          ...(updatedContext.metadata?.cognitiveProposalBridge && typeof updatedContext.metadata.cognitiveProposalBridge === 'object'
+            ? updatedContext.metadata.cognitiveProposalBridge as Record<string, unknown>
+            : {}),
+          agentId,
+          persisted: [],
+          skipped: true,
+          reason: 'PROPOSAL_BRIDGE_FAILED',
+          error: proposalBridgeError,
+          authorityBoundary: 'AGENT_EXECUTION_REMAINS_VALID; FAILED_PROPOSAL_PERSISTENCE_NEVER_AUTHORIZES_ACTION',
+        },
+      };
+    }
+  }
+
   const afterEvidence = updatedContext.evidence.length;
   const afterMetadataKeys = Object.keys(updatedContext.metadata ?? {}).length;
   const agentInsights = updatedContext.metadata?.agentInsights && typeof updatedContext.metadata.agentInsights === 'object'
@@ -170,6 +197,8 @@ export async function runCognitiveAgent(
       llmProvider: insight?.provider ?? null,
       llmModel: insight?.model ?? null,
       llmError,
+      proposalBridgeError,
+      cognitiveProposalBridge: metadata.cognitiveProposalBridge ?? null,
       metadata: compactExecutionMetadata(agentId, updatedContext),
     },
   );
