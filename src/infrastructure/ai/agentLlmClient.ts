@@ -6,12 +6,23 @@ import type { StudioTwinContext } from '@/core/cognitive-twin/studioContext';
 import { readStudioTwinContext } from '@/core/cognitive-twin/studioContext';
 import { SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY } from '@/lib/sfi/cognitive-runtime/convergedRegistry';
 import { executionContractForAgent } from '@/lib/sfi/cognitive-runtime/executionContracts';
+import { materialEvidenceView } from '@/lib/sfi/cognitive-runtime/materialEvidence';
 import {
   compactObservedGenAiTelemetry,
   mapGenAiTelemetryToOpenTelemetry,
   normalizeObservedGenAiTelemetry,
 } from '@/lib/sfi/cognitive-runtime/genAiTelemetry';
 import type { KernelContext } from '@/lib/sfi/cognitive-runtime/kernelContext';
+
+type SystemicInterventionCandidate = {
+  title: string;
+  rationale: string;
+  evidenceRefs: string[];
+  hardRules: string[];
+  exceptions: string[];
+  returnContract: string[];
+  falsificationConditions: string[];
+};
 
 type AgentInsight = {
   status: 'COMPLETE' | 'DEGRADED' | 'FAILED';
@@ -22,8 +33,11 @@ type AgentInsight = {
   observations: string[];
   hypotheses: string[];
   contradictions: string[];
+  rivalCauses: string[];
+  systemicMechanism: string | null;
   missingEvidence: string[];
   recommendations: string[];
+  interventions: SystemicInterventionCandidate[];
   confidence: number | null;
   epistemicClass: 'INFERENCE';
   warnings: string[];
@@ -31,8 +45,8 @@ type AgentInsight = {
   generatedAt: string;
 };
 
-const MAX_PROMPT_CHARS = 6_000;
-const MAX_AGENT_OUTPUT_TOKENS = 450;
+const MAX_PROMPT_CHARS = 7_500;
+const MAX_AGENT_OUTPUT_TOKENS = 800;
 const TWIN_RELEVANT_AGENTS = new Set([
   'historical_scout',
   'phenotype_resolver',
@@ -57,16 +71,39 @@ function stripFence(value: string) {
   if (!trimmed.startsWith('```')) return trimmed;
   return trimmed.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
 }
+function interventionCandidates(value: unknown): SystemicInterventionCandidate[] {
+  if (!Array.isArray(value)) return [];
+  return value.slice(0, 3).flatMap((item) => {
+    const candidate = record(item);
+    const title = typeof candidate.title === 'string' ? candidate.title.trim().slice(0, 180) : '';
+    const rationale = typeof candidate.rationale === 'string' ? candidate.rationale.trim().slice(0, 1_200) : '';
+    if (!title || !rationale) return [];
+    return [{
+      title,
+      rationale,
+      evidenceRefs: strings(candidate.evidenceRefs, 12),
+      hardRules: strings(candidate.hardRules, 8),
+      exceptions: strings(candidate.exceptions, 8),
+      returnContract: strings(candidate.returnContract, 10),
+      falsificationConditions: strings(candidate.falsificationConditions, 8),
+    }];
+  });
+}
 function parseInsight(value: string): Omit<AgentInsight, 'status' | 'agentId' | 'provider' | 'model' | 'warnings' | 'raw' | 'generatedAt' | 'epistemicClass'> | null {
   try {
     const parsed = record(JSON.parse(stripFence(value)));
     return {
-      summary: typeof parsed.summary === 'string' && parsed.summary.trim() ? parsed.summary.trim().slice(0, 1200) : null,
-      observations: strings(parsed.observations, 6),
-      hypotheses: strings(parsed.hypotheses, 4),
-      contradictions: strings(parsed.contradictions, 4),
-      missingEvidence: strings(parsed.missingEvidence, 5),
-      recommendations: strings(parsed.recommendations, 5),
+      summary: typeof parsed.summary === 'string' && parsed.summary.trim() ? parsed.summary.trim().slice(0, 1_400) : null,
+      observations: strings(parsed.observations, 8),
+      hypotheses: strings(parsed.hypotheses, 6),
+      contradictions: strings(parsed.contradictions, 6),
+      rivalCauses: strings(parsed.rivalCauses, 8),
+      systemicMechanism: typeof parsed.systemicMechanism === 'string' && parsed.systemicMechanism.trim()
+        ? parsed.systemicMechanism.trim().slice(0, 1_600)
+        : null,
+      missingEvidence: strings(parsed.missingEvidence, 6),
+      recommendations: strings(parsed.recommendations, 6),
+      interventions: interventionCandidates(parsed.interventions),
       confidence: number(parsed.confidence),
     };
   } catch {
@@ -76,16 +113,21 @@ function parseInsight(value: string): Omit<AgentInsight, 'status' | 'agentId' | 
 
 function compactUnknown(value: unknown, depth = 0): unknown {
   if (value === null || typeof value === 'number' || typeof value === 'boolean') return value;
-  if (typeof value === 'string') return value.length > 320 ? `${value.slice(0, 320)}…[truncated]` : value;
-  if (depth >= 3) return '[depth_limit]';
-  if (Array.isArray(value)) return value.slice(0, 6).map((item) => compactUnknown(item, depth + 1));
+  if (typeof value === 'string') return value.length > 420 ? `${value.slice(0, 420)}…[truncated]` : value;
+  if (depth >= 4) return '[depth_limit]';
+  if (Array.isArray(value)) return value.slice(0, 10).map((item) => compactUnknown(item, depth + 1));
   if (typeof value === 'object') {
-    return Object.fromEntries(Object.entries(value as Record<string, unknown>).slice(0, 10).map(([key, item]) => [key, compactUnknown(item, depth + 1)]));
+    return Object.fromEntries(Object.entries(value as Record<string, unknown>).slice(0, 16).map(([key, item]) => [key, compactUnknown(item, depth + 1)]));
   }
-  return String(value).slice(0, 160);
+  return String(value).slice(0, 200);
 }
-function compactEvidence(context: KernelContext, max = 6) {
-  return context.evidence.slice(-max).map((item) => ({
+function compactEvidence(context: KernelContext, max = 8) {
+  const material = materialEvidenceView(context);
+  const sourceClaims = context.evidence.filter((item) => String(record(item.payload).epistemicClass ?? '').toLowerCase() === 'source_claim');
+  const selected = material.length
+    ? [...material.slice(-max), ...sourceClaims.slice(-2)]
+    : context.evidence.slice(-max);
+  return selected.slice(-Math.max(max, 10)).map((item) => ({
     id: item.id,
     source: item.source,
     confidence: item.confidence,
@@ -113,14 +155,14 @@ function providerPreference(value: unknown): LlmProviderId | undefined {
 }
 
 function requirementsForAgent(agentId: string): LlmRequirements {
-  if (['risk_agent', 'economic_field_simulator', 'cross_impact', 'trajectory_agent', 'reality_calibration', 'phenotype_resolver'].includes(agentId)) {
+  if (['risk_agent', 'economic_field_simulator', 'cross_impact', 'trajectory_agent', 'reality_calibration', 'phenotype_resolver', 'friction_field_simulator', 'temporal_resolver'].includes(agentId)) {
     return { reasoning: true, structuredOutput: true, minContextTokens: 100_000, priority: 'quality' };
   }
-  if (['evidence_hunter', 'field_observer', 'temporal_resolver', 'project_execution_manager'].includes(agentId)) {
-    return { structuredOutput: true, priority: 'speed' };
-  }
-  if (['historical_scout', 'context_builder'].includes(agentId)) {
+  if (['opportunity_agent', 'historical_scout', 'context_builder'].includes(agentId)) {
     return { reasoning: true, structuredOutput: true, minContextTokens: 100_000, priority: 'balanced' };
+  }
+  if (['evidence_hunter', 'field_observer', 'project_execution_manager'].includes(agentId)) {
+    return { structuredOutput: true, priority: 'speed' };
   }
   return { reasoning: true, structuredOutput: true, priority: 'balanced' };
 }
@@ -163,14 +205,15 @@ function baseProjection(context: KernelContext) {
     invariants: compactUnknown(metadata.invariants),
     constraints: compactUnknown(metadata.constraints),
     signal: compactUnknown(metadata.signal),
+    materialEvidenceResolution: compactUnknown(metadata.materialEvidenceResolution),
   };
 }
 
 function projectContextForAgent(agentId: string, context: KernelContext, twin: StudioTwinContext | null) {
   const base = baseProjection(context);
   const evidence = compactEvidence(context);
-  const hypotheses = context.hypotheses.slice(-5).map((item) => compactUnknown(item));
-  const contradictions = context.contradictions.slice(-4).map((item) => compactUnknown(item));
+  const hypotheses = context.hypotheses.slice(-6).map((item) => compactUnknown(item));
+  const contradictions = context.contradictions.slice(-6).map((item) => compactUnknown(item));
 
   switch (agentId) {
     case 'evidence_hunter':
@@ -194,12 +237,14 @@ function projectContextForAgent(agentId: string, context: KernelContext, twin: S
     case 'field_observer':
       return { ...base, observedEvidence: evidence, contradictions };
     case 'friction_field_simulator':
+    case 'temporal_resolver':
       return {
         ...base,
         observedEvidence: evidence,
         hypotheses,
+        contradictions,
         risks: context.risks.slice(-4).map((item) => compactUnknown(item)),
-        simulations: context.simulations.slice(-3).map((item) => compactUnknown(item)),
+        simulations: context.simulations.slice(-4).map((item) => compactUnknown(item)),
       };
     case 'opportunity_agent':
     case 'cultural_simulator':
@@ -208,7 +253,9 @@ function projectContextForAgent(agentId: string, context: KernelContext, twin: S
         ...base,
         observedEvidence: evidence,
         hypotheses,
+        contradictions,
         risks: context.risks.slice(-4).map((item) => compactUnknown(item)),
+        simulations: context.simulations.slice(-4).map((item) => compactUnknown(item)),
         worldSpect: compactUnknown(context.metadata?.worldSpect),
       };
     default:
@@ -217,6 +264,7 @@ function projectContextForAgent(agentId: string, context: KernelContext, twin: S
         observedEvidence: evidence,
         hypotheses,
         contradictions,
+        simulations: context.simulations.slice(-3).map((item) => compactUnknown(item)),
         ...(twin ? { cognitiveTwin: compactTwin(twin) } : {}),
       };
   }
@@ -236,28 +284,36 @@ export async function augmentAgentWithLlm(agentId: string, context: KernelContex
   const requestedProvider = providerPreference(context.metadata?.preferredLlmProvider);
   const requirements = requirementsForAgent(agentId);
   const existingInsights = record(context.metadata?.agentInsights);
+  const material = materialEvidenceView(context);
 
   const system = [
     'You are an executor inside the System Friction Institute Cognitive Runtime.',
     `Agent: ${contract.name} (${contract.id}). Purpose: ${contract.purpose}`,
     `Layer: ${contract.layer}. Domain: ${contract.domain}. Authority: ${contract.authorityLevel}.`,
-    'Evidence before inference. Simulation is not observation. Missing evidence remains missing. Never invent measurements, history, lineage, causal relations, attractor attainment, or completed actions.',
-    'Treat deterministic metrics and persisted evidence as observations. Treat your interpretation as INFERENCE only.',
+    'Evidence before inference. Simulation is not observation. Missing evidence remains missing. Never invent measurements, history, lineage, causal relations, attractor attainment, completed interventions or RETURN outcomes.',
+    'Persisted OBSERVED/DERIVED/CANONICAL/IMPORTED/EXTRACTED material supplied in the projection is reusable evidence. Do not ask the operator to re-upload or re-provide a dataset merely because it arrived through a selected Case, Cycle or evidence reference.',
+    'Before declaring evidence missing, distinguish actual material absence from a provenance wrapper. Existing evidence must be reused before new evidence is requested.',
+    'Treat deterministic metrics and persisted evidence as observations. Treat your interpretation, mechanisms, causal candidates and interventions as INFERENCE/PROPOSAL only.',
+    'For material anomalies, reason through: OBSERVATION -> CONTRADICTION -> RIVAL CAUSES -> FRICTION -> SYSTEMIC MECHANISM -> INTERVENTION -> HARD RULE -> RETURN CONTRACT. Do not stop at generic recommendations such as automate, standardize or validate.',
+    'Never collapse rival causes into a single attribution. For temporal inconsistencies consider, when applicable, retrospective capture, field semantics, migration, timezone, ETL/import and application defects before attributing human behavior.',
+    'A HARD RULE must state a machine-testable invariant plus explicit legitimate exceptions and provenance requirements where correction/backfill/migration is possible.',
+    'A RETURN CONTRACT must define observable post-intervention measures and time/recurrence checks. Never describe a future RETURN as already observed.',
     'Objects supplied as execution context are not automatically admitted evidence. Public research is a source candidate until evidence governance admits it.',
     'Cognitive Twin adaptive learning may contain evidence-complete calibrated candidates that are explicitly non-canonical. Use them as prior operational context, never as KernelEvidence, authority, or permanent truth.',
     ...(executionContract?.forbiddenClaims.map((rule) => `Execution-contract boundary: ${rule}`) ?? []),
-    'Return ONLY valid JSON: {"summary":string|null,"observations":string[],"hypotheses":string[],"contradictions":string[],"missingEvidence":string[],"recommendations":string[],"confidence":number}.',
-    'Keep lists short and specific. Do not restate policy boilerplate in the analysis.',
+    'Return ONLY valid JSON with this exact shape: {"summary":string|null,"observations":string[],"hypotheses":string[],"contradictions":string[],"rivalCauses":string[],"systemicMechanism":string|null,"missingEvidence":string[],"recommendations":string[],"interventions":[{"title":string,"rationale":string,"evidenceRefs":string[],"hardRules":string[],"exceptions":string[],"returnContract":string[],"falsificationConditions":string[]}],"confidence":number}.',
+    'Keep it specific to the supplied evidence. If evidence does not justify an intervention, return interventions:[] instead of inventing one.',
   ].join('\n');
 
   const projection = projectContextForAgent(agentId, context, twin);
   const coverage = {
     evidenceAvailable: context.evidence.length,
-    evidenceDelivered: Math.min(context.evidence.length, 6),
+    materialEvidenceResolved: material.length,
+    evidenceDelivered: compactEvidence(context).length,
     hypothesesAvailable: context.hypotheses.length,
-    hypothesesDelivered: Math.min(context.hypotheses.length, 5),
+    hypothesesDelivered: Math.min(context.hypotheses.length, 6),
     contradictionsAvailable: context.contradictions.length,
-    contradictionsDelivered: Math.min(context.contradictions.length, 4),
+    contradictionsDelivered: Math.min(context.contradictions.length, 6),
     predictionsAvailable: context.predictions.length,
     simulationsAvailable: context.simulations.length,
   };
@@ -269,7 +325,7 @@ export async function augmentAgentWithLlm(agentId: string, context: KernelContex
       maxPromptCharacters: MAX_PROMPT_CHARS,
       projection: `AGENT_SPECIFIC:${agentId}`,
       coverage,
-      rule: 'Only evidence and state required for this role are supplied. Previous agent prose is not recursively injected.',
+      rule: 'Only evidence and state required for this role are supplied. Previous agent prose is not recursively injected. Persisted material evidence is resolved before missing-evidence conclusions.',
     },
   };
   const promptSourceCharacters = JSON.stringify(promptValue).length;
@@ -316,12 +372,15 @@ export async function augmentAgentWithLlm(agentId: string, context: KernelContex
         observations: [],
         hypotheses: [],
         contradictions: [],
+        rivalCauses: [],
+        systemicMechanism: null,
         missingEvidence: result.ok ? ['LLM_RESPONSE_SCHEMA_INVALID'] : ['LLM_PROVIDER_UNAVAILABLE'],
         recommendations: [],
+        interventions: [],
         confidence: null,
         epistemicClass: 'INFERENCE',
         warnings: [...result.warnings, ...(result.ok ? ['invalid_json_schema'] : [])],
-        raw: result.ok ? result.result.slice(0, 1800) : null,
+        raw: result.ok ? result.result.slice(0, 2_400) : null,
         generatedAt,
       };
 

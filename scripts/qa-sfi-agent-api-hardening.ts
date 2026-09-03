@@ -15,6 +15,11 @@ const externalRoute = read('src/app/api/external/v1/cognitive-runtime/route.ts')
 const rootRoute = read('src/app/api/root/cognitive-runtime/route.ts');
 const sharedExecution = read('src/lib/sfi/cognitive-runtime/manualExecution.ts');
 const runtimeWriter = read('src/lib/sfi/cognitive-runtime/runtimeAgentExecutor.ts');
+const materialEvidence = read('src/lib/sfi/cognitive-runtime/materialEvidence.ts');
+const evidenceHunterSource = read('src/lib/sfi/cognitive-runtime/agents/evidenceHunter.ts');
+const temporalResolverSource = read('src/lib/sfi/cognitive-runtime/agents/temporalResolver.ts');
+const proposalEmitterSource = read('src/lib/sfi/cognitive-runtime/governedProposalEmitter.ts');
+const agentLlmSource = read('src/infrastructure/ai/agentLlmClient.ts');
 const externalAuth = read('src/lib/sfi/externalAuth.ts');
 const oauthConfig = read('src/lib/sfi/oauthConfig.ts');
 const manifest = read('src/app/api/external/v1/manifest/route.ts');
@@ -26,7 +31,6 @@ const projectMigration = read('supabase/migrations/20260902010000_sfi_final_oper
 const actionMigration = read('supabase/migrations/20260816140000_sfi_case_governed_action_v1.sql');
 const deploymentWorkflow = read('.github/workflows/sfi-vercel-prebuilt-production.yml');
 
-// Contract plane remains single and complete.
 const contracts = listExecutionContracts();
 const agentIds = [...new Set(SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY.map((agent) => agent.id))].sort();
 const contractIds = [...new Set(contracts.map((contract) => contract.agentId))].sort();
@@ -36,7 +40,6 @@ const crossImpact = executionContractForAgent('cross_impact');
 assert.ok(crossImpact, 'm6_cross_impact_contract_missing');
 assert.equal(crossImpact.minTargets, 2, 'm6_cross_impact_must_keep_two_target_minimum');
 
-// External API reuses canonical owners; it does not become a second runtime or storage layer.
 assert.match(externalRoute, /SFI-EXTERNAL-COGNITIVE-RUNTIME-1\.0/);
 assert.match(externalRoute, /authorizeExternalRequest\(request, 'observe'\)/);
 assert.match(externalRoute, /authorizeExternalRequest\(request, 'execute'\)/);
@@ -52,15 +55,18 @@ assert.match(externalRoute, /executionScopeImpliesCanonicalPromotion: false/);
 assert.doesNotMatch(externalRoute, /createServiceSupabaseClient|\.from\s*\(/, 'm6_external_adapter_must_not_own_database_reads_or_writes');
 assert.doesNotMatch(externalRoute, /recordAgentExecutionEvent|appendEpistemicEvent|persistSFIEvent/, 'm6_external_adapter_must_not_own_event_writes');
 
-// ROOT and external execution now converge before the canonical runtime writer.
 assert.match(rootRoute, /executeManualCognitiveAgent/);
 assert.doesNotMatch(rootRoute, /runCognitiveAgent|createServiceSupabaseClient|\.from\s*\(/, 'm6_root_route_must_delegate_instead_of_duplicate_execution');
-assert.match(sharedExecution, /SFI-MANUAL-COGNITIVE-EXECUTION-1\.0/);
+assert.match(sharedExecution, /SFI-MANUAL-COGNITIVE-EXECUTION-1\.1/);
 assert.match(sharedExecution, /normalizeExecutionRequest/);
 assert.match(sharedExecution, /validateExecutionRequest/);
 assert.match(sharedExecution, /runCognitiveAgent/);
 assert.match(sharedExecution, /TARGET_CONTEXT_NOT_AUTOMATICALLY_ACCEPTED_EVIDENCE/);
 assert.match(sharedExecution, /SOURCE_CANDIDATE_NOT_ACCEPTED_EVIDENCE/);
+assert.match(sharedExecution, /materialEvidenceView/);
+assert.match(sharedExecution, /resolvedPersistedMaterialBeforeResearch/);
+assert.match(sharedExecution, /No se requiere volver a subir, ingerir ni aportar de nuevo el objeto ya procesado\./);
+assert.match(sharedExecution, /No reingestar ni volver a aportar el objeto base\./);
 assert.match(sharedExecution, /observedInputTokens/);
 assert.match(sharedExecution, /observedOutputTokens/);
 assert.match(sharedExecution, /observedProviderCost/);
@@ -68,13 +74,32 @@ assert.match(sharedExecution, /observedLatencyMs/);
 assert.doesNotMatch(sharedExecution, /recordAgentExecutionEvent|appendEpistemicEvent|persistSFIEvent|create table/i, 'm6_shared_execution_must_reuse_canonical_writer_and_schema');
 assert.match(runtimeWriter, /executionRequestSource/);
 assert.match(runtimeWriter, /requestSource:\s*metadata\.executionRequestSource/);
+assert.match(runtimeWriter, /emitGovernedProposalsFromAgentInsight/);
 
-// Existing personal OAuth route allowlist is not expanded into institutional cognitive execution.
+assert.match(materialEvidence, /REUSED_EXISTING_MATERIAL_EVIDENCE_WITHOUT_READMISSION_OR_DUPLICATION/);
+assert.match(materialEvidence, /OBSERVED.*DERIVED.*CANONICAL.*IMPORTED.*EXTRACTED/s);
+assert.match(evidenceHunterSource, /REUSE_EXISTING_MATERIAL_EVIDENCE_BEFORE_REQUESTING_NEW_EVIDENCE/);
+assert.match(evidenceHunterSource, /EXISTING_SUPPORT_REUSED/);
+assert.match(temporalResolverSource, /ATTENTION_BEFORE_CREATION/);
+assert.match(temporalResolverSource, /created_at <= attention_started_at <= resolved_at/);
+assert.match(temporalResolverSource, /retrospective capture, field semantics, migration, timezone, ETL\/import and application defects/);
+assert.match(agentLlmSource, /OBSERVATION -> CONTRADICTION -> RIVAL CAUSES -> FRICTION -> SYSTEMIC MECHANISM -> INTERVENTION -> HARD RULE -> RETURN CONTRACT/);
+assert.match(agentLlmSource, /Do not ask the operator to re-upload or re-provide a dataset/);
+assert.match(agentLlmSource, /rivalCauses/);
+assert.match(agentLlmSource, /systemicMechanism/);
+assert.match(agentLlmSource, /hardRules/);
+assert.match(agentLlmSource, /returnContract/);
+assert.match(agentLlmSource, /falsificationConditions/);
+assert.match(proposalEmitterSource, /COGNITIVE_INTERVENTION_CANDIDATE/);
+assert.match(proposalEmitterSource, /PROPOSAL_REQUIRES_ROOT_GOVERNANCE/);
+assert.match(proposalEmitterSource, /RIVAL_CAUSES_REQUIRED_FOR_CONTRADICTION/);
+assert.match(proposalEmitterSource, /DUPLICATE_GOVERNED_PROPOSAL_REUSED/);
+assert.match(proposalEmitterSource, /THIS_EMITTER_DOES_NOT_EXECUTE_INTERVENTION_OR_RECORD_RETURN/);
+
 assert.doesNotMatch(externalAuth, /pathname === ['"]\/api\/external\/v1\/cognitive-runtime['"]/, 'm6_personal_oauth_must_not_gain_cognitive_runtime_access');
 const personalScopesBlock = oauthConfig.match(/SFI_PERSONAL_SCOPES\s*=\s*\[([\s\S]*?)\]\s*as const/)?.[1] ?? '';
 assert.doesNotMatch(personalScopesBlock, /'execute'|'observe'|'propose'/, 'm6_personal_scope_ceiling_must_remain_owner_workspace_only');
 
-// Machine discovery is versioned and uses the existing OpenAPI generator instead of a parallel spec owner.
 assert.match(manifest, /version:\s*'1\.12\.0'/);
 assert.match(manifest, /cognitive-runtime-read/);
 assert.match(manifest, /cognitive-runtime-execute/);
@@ -85,7 +110,6 @@ assert.match(openapiMerge, /sfiOAuth:\s*\['observe'\]/);
 assert.match(openapiMerge, /sfiOAuth:\s*\['execute'\]/);
 assert.match(openapiMerge, /Legacy single-target request fields are rejected|Legacy single-target request/i);
 
-// RLS/security review: execution-relevant tenant and OAuth stores retain explicit barriers.
 for (const table of ['sfi_tenants', 'sfi_tenant_members', 'sfi_cases', 'sfi_case_objects', 'sfi_case_reports', 'sfi_case_audit_events']) {
   assert.match(caseMigration, new RegExp(`alter table public\\.${table} enable row level security`, 'i'), `m6_rls_missing:${table}`);
 }
@@ -104,8 +128,6 @@ assert.match(oauthClientsMigration, /grant select, insert, update, delete on tab
 assert.match(oauthCodesMigration, /alter table public\.sfi_oauth_authorization_codes enable row level security/i);
 assert.match(oauthCodesMigration, /Service-role access only; no RLS policies are intentionally granted/i);
 
-// Performance check is deliberately bounded to the deterministic request/contract plane.
-// It is NOT an end-to-end network/provider latency claim.
 const benchmarkStart = performance.now();
 for (let i = 0; i < 5_000; i += 1) {
   const contract = executionContractForAgent('cross_impact');
@@ -123,7 +145,6 @@ const requestPlaneMs = performance.now() - benchmarkStart;
 const deterministicBudgetMs = 2_500;
 assert.ok(requestPlaneMs < deterministicBudgetMs, `m6_request_plane_budget_exceeded:${requestPlaneMs.toFixed(1)}ms`);
 
-// Deployment evidence is provider-backed and tied to canonical main; it is not inferred from a commit.
 assert.match(deploymentWorkflow, /push:\n\s+branches:\n\s+- main/);
 assert.match(deploymentWorkflow, /Checkout canonical main/);
 assert.match(deploymentWorkflow, /Verify Vercel project scope/);
@@ -136,13 +157,15 @@ console.log(JSON.stringify({
   ok: true,
   gate: 'SFI_AGENT_API_INTEGRATIONS_HARDENING_M6',
   apiContract: 'SFI-EXTERNAL-COGNITIVE-RUNTIME-1.0',
-  executionService: 'SFI-MANUAL-COGNITIVE-EXECUTION-1.0',
+  executionService: 'SFI-MANUAL-COGNITIVE-EXECUTION-1.1',
   contractCatalogUnique: true,
   canonicalWriterReused: true,
   externalLegacyShapeAccepted: false,
   userBoundOAuthRequiredForExecute: true,
   institutionalTenantRequiredForExecute: true,
   personalOAuthExecutionPlaneAccess: false,
+  persistedEvidenceReuseGated: true,
+  systemicInterventionLoopGated: true,
   rlsReview: 'PASS_STATIC_CONTRACT_REVIEW',
   performanceScope: 'DETERMINISTIC_REQUEST_CONTRACT_PLANE_ONLY',
   requestPlaneIterations: 5_000,
