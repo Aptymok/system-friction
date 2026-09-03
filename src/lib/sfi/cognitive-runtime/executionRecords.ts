@@ -1,3 +1,7 @@
+import {
+  SFI_EPISTEMIC_OUTPUT_RELATIONS,
+  type SfiEpistemicOutputRelation,
+} from '@/core/contracts/sfi';
 import { SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY } from './convergedRegistry';
 
 export const SFI_EXECUTION_RECORD_VERSION = 'SFI-EXECUTION-RECORD-1.0' as const;
@@ -52,6 +56,8 @@ export type SfiExecutionRecord = {
   purpose: string | null;
   anchors: SfiExecutionObjectRef[];
   targets: SfiExecutionObjectRef[];
+  requestedOutputs: SfiEpistemicOutputRelation[];
+  requestedOutputsObservation: 'OBSERVED' | 'NOT_OBSERVED';
   governanceContext: Row | null;
   epistemicBoundary: string | null;
   evidence: {
@@ -119,6 +125,12 @@ const strings = (value: unknown, max = 16): string[] => Array.isArray(value)
 const observed = <T extends string | number>(value: T | null): SfiObservedScalar<T> => value === null
   ? { value: null, observation: 'NOT_OBSERVED' }
   : { value, observation: 'OBSERVED' };
+
+function outputRelations(value: unknown): SfiEpistemicOutputRelation[] {
+  if (!Array.isArray(value)) return [];
+  const allowed = new Set<string>(SFI_EPISTEMIC_OUTPUT_RELATIONS);
+  return [...new Set(value.map((item) => text(item, 80)?.toUpperCase()).filter((item): item is SfiEpistemicOutputRelation => Boolean(item && allowed.has(item))))];
+}
 
 function refs(value: unknown): SfiExecutionObjectRef[] {
   if (!Array.isArray(value)) return [];
@@ -220,6 +232,7 @@ export function projectExecutionRecordFromEvent(event: unknown): SfiExecutionRec
   const before = number(payload.evidenceBefore);
   const after = number(payload.evidenceAfter);
   const governance = asRow(payload.aiGovernance);
+  const hasObservedRequestedOutputs = Array.isArray(payload.requestedOutputs);
 
   return {
     recordVersion: SFI_EXECUTION_RECORD_VERSION,
@@ -235,6 +248,8 @@ export function projectExecutionRecordFromEvent(event: unknown): SfiExecutionRec
     purpose: text(payload.purpose, 5_000),
     anchors: refs(payload.anchors),
     targets: refs(payload.targets),
+    requestedOutputs: outputRelations(payload.requestedOutputs),
+    requestedOutputsObservation: hasObservedRequestedOutputs ? 'OBSERVED' : 'NOT_OBSERVED',
     governanceContext: Object.keys(asRow(payload.governanceContext)).length ? asRow(payload.governanceContext) : null,
     epistemicBoundary: text(payload.epistemicBoundary, 4_000),
     evidence: {
