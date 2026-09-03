@@ -168,6 +168,9 @@ jobs:
       - name: Verify GenAI telemetry and assurance
         run: npx tsx scripts/qa-sfi-genai-telemetry.ts
 
+      - name: Verify agent API integrations and hardening
+        run: node scripts/merge-openapi-cases.mjs && npx tsx scripts/qa-sfi-agent-api-hardening.ts
+
       - name: Typecheck
         id: typecheck
         shell: bash
