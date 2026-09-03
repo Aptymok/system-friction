@@ -1,6 +1,8 @@
 import { redirect } from 'next/navigation';
 import { getServerUserContext } from '@/lib/server/productionBackend';
 
+// Single bounded post-login resolver. It decides a destination from verified
+// access context; it does not create, persist or elevate institutional authority.
 function safeInternalPath(value: unknown) {
   if (typeof value !== 'string' || !value.startsWith('/') || value.startsWith('//')) return null;
   if (value.startsWith('/login') || value.startsWith('/entry') || value.startsWith('/auth-unavailable')) return null;
