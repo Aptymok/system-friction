@@ -9,6 +9,7 @@ import {
   readAgentExecutionStates,
   readExecutionRecords,
 } from '@/lib/sfi/cognitive-runtime/executionRecords';
+import { readGenAiAssuranceMetrics } from '@/lib/sfi/cognitive-runtime/genAiAssurance';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -57,9 +58,10 @@ export async function GET(request: Request) {
   const contract = executionContractForAgent(agentId);
   if (!contract) return NextResponse.json({ ok: false, error: 'execution_contract_not_found' }, { status: 409 });
 
-  const [stateRead, history] = await Promise.all([
+  const [stateRead, history, assurance] = await Promise.all([
     readAgentExecutionStates(),
     readExecutionRecords({ agentId, executionId: executionId ?? undefined, limit }),
+    readGenAiAssuranceMetrics({ agentId, limit }),
   ]);
   const state = stateRead.states.find((item) => item.agentId === agentId) ?? null;
 
@@ -76,12 +78,22 @@ export async function GET(request: Request) {
       exhaustive: history.exhaustive,
       warnings: history.warnings,
     },
+    assurance: assurance.metrics,
+    assuranceRead: {
+      generatedAt: assurance.generatedAt,
+      source: assurance.source,
+      readLimit: assurance.readLimit,
+      exhaustive: assurance.exhaustive,
+      warnings: assurance.warnings,
+    },
     boundary: {
       auditUnit: 'EXECUTION',
       contextIsEvidence: false,
       inferenceIsObservation: false,
       authorityExpandedByModel: false,
       historyAbsenceMeansNonExistence: false,
+      telemetryIsEvidence: false,
+      openTelemetryIsTruthAuthority: false,
     } satisfies Row,
   }, { headers: { 'Cache-Control': 'no-store' } });
 }
