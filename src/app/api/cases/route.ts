@@ -52,6 +52,32 @@ function normalizedProjectKey(value: string) {
   return value.trim().toLowerCase().replace(/[^a-z0-9:_-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 100);
 }
 
+function transientPoolPressure(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error ?? '');
+  return [
+    'Timed out acquiring connection from connection pool',
+    'statement timeout',
+    'request_timeout',
+    'context deadline exceeded',
+    'PGRST003',
+  ].some((marker) => message.includes(marker));
+}
+
+async function withTransientReadRetry<T>(read: () => Promise<T>) {
+  const delays = [0, 120, 300];
+  let lastError: unknown = null;
+  for (const delay of delays) {
+    if (delay) await new Promise((resolve) => setTimeout(resolve, delay));
+    try {
+      return await read();
+    } catch (error) {
+      lastError = error;
+      if (!transientPoolPressure(error)) throw error;
+    }
+  }
+  throw lastError;
+}
+
 async function writableTenant(userId: string, tenantId: string) {
   const db = createServiceSupabaseClient();
   const membership = await db.from('sfi_tenant_members')
@@ -68,10 +94,8 @@ async function writableTenant(userId: string, tenantId: string) {
 export async function GET() {
   try {
     const { user } = await requireAuthenticatedUser();
-    const [cases, tenants] = await Promise.all([
-      listOperationalCases(user.id),
-      listOperationalTenants(user.id),
-    ]);
+    const cases = await withTransientReadRetry(() => listOperationalCases(user.id));
+    const tenants = await withTransientReadRetry(() => listOperationalTenants(user.id));
     const db = createServiceSupabaseClient();
     const tenantIds = tenants.map((tenant) => tenant.id);
     const caseIds = cases.map((item) => item.id);
