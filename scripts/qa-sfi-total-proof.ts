@@ -8,6 +8,7 @@ const continuityRoute = fs.readFileSync('src/app/api/root/continuity/route.ts','
 const scenes = fs.readFileSync('src/components/sfi/scenes.ts','utf8');
 const shellUi = fs.readFileSync('src/components/sfi/SfiConsole.tsx','utf8');
 const operatingUi = fs.readFileSync('src/components/sfi/SfiOperatingWorkspace.tsx','utf8');
+const governanceUi = fs.readFileSync('src/components/sfi/SfiGovernanceWorkspace.tsx','utf8');
 
 for (const stage of ['STRUCTURAL','AUTHORITY','OBSERVATION','INTERVENTION','RETURN','LAB','LEARNING','REPORTING']) {
   assert.match(proof, new RegExp(`id:'${stage}'`), `missing_total_proof_stage:${stage}`);
@@ -28,10 +29,11 @@ assert.ok(scenes.includes("root:{key:'root'"), 'root_live_scene_missing');
 assert.ok(scenes.includes("governance:{key:'governance'"), 'governance_live_scene_missing');
 assert.ok(scenes.includes("twin:{key:'twin'"), 'twin_live_scene_missing');
 assert.ok(operatingUi.includes("jsonFetch('/api/root/workboard')") && operatingUi.includes('workboard?.operationalNext'), 'live_readiness_telemetry_missing');
-assert.ok(operatingUi.includes("jsonFetch('/api/root/cognitive-runtime')") && operatingUi.includes('AGENTES'), 'live_runtime_telemetry_missing');
-assert.ok(operatingUi.includes("proposalReadState==='DEGRADED'") && operatingUi.includes('Fuente de propuestas DEGRADED'), 'degraded_governance_read_must_remain_visible');
+assert.ok(operatingUi.includes('SfiGovernanceWorkspace'), 'governance_delegation_missing');
+assert.ok(governanceUi.includes("jsonFetch('/api/root/cognitive-runtime')") && governanceUi.includes('AGENTES'), 'live_runtime_telemetry_missing');
+assert.ok(governanceUi.includes("proposalReadState==='DEGRADED'") && governanceUi.includes('Fuente de propuestas DEGRADED'), 'degraded_governance_read_must_remain_visible');
 assert.ok(operatingUi.includes("surface==='twin'") && operatingUi.includes('CognitiveSpineAnatomy'), 'live_twin_observability_missing');
-assert.ok(operatingUi.includes('ACEPTAR') && operatingUi.includes('DENEGAR') && operatingUi.includes('PEDIR EVIDENCIA'), 'root_governed_decision_controls_missing');
+assert.ok(governanceUi.includes('ACEPTAR') && governanceUi.includes('DENEGAR') && governanceUi.includes('PEDIR EVIDENCIA'), 'root_governed_decision_controls_missing');
 assert.ok(shellUi.includes('GOVERNANCE QUEUE'), 'governance_queue_contract_missing');
 
 assert.match(continuityRoute,/readContinuityDashboard/,'continuity_dashboard_handler_missing');

@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { CrossImpactAgent } from '../src/lib/sfi/cognitive-runtime/agents/crossImpact';
 import { SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY } from '../src/lib/sfi/cognitive-runtime/convergedRegistry';
 import {
@@ -220,6 +221,32 @@ assert.ok(blockedRecord);
 assert.equal(blockedRecord.authority, 'BLOCKED');
 assert.equal(deriveExecutionWorkState(blockedRecord), 'NOT_OBSERVED', 'governance block must not be mislabeled as a failed execution');
 
+// M3: ROOT must operate from the existing contract/record plane, not from the retired generic single-target form.
+const recordsRoute = readFileSync('src/app/api/root/cognitive-runtime/records/route.ts', 'utf8');
+const governanceUi = readFileSync('src/components/sfi/SfiGovernanceWorkspace.tsx', 'utf8');
+const operatingUi = readFileSync('src/components/sfi/SfiOperatingWorkspace.tsx', 'utf8');
+
+assert.match(recordsRoute, /readAgentExecutionStates/);
+assert.match(recordsRoute, /readExecutionRecords/);
+assert.match(recordsRoute, /auditUnit:\s*'EXECUTION'/);
+assert.match(recordsRoute, /historyAbsenceMeansNonExistence:\s*false/);
+assert.match(recordsRoute, /contextIsEvidence:\s*false/);
+assert.match(recordsRoute, /inferenceIsObservation:\s*false/);
+assert.match(governanceUi, /\/api\/root\/cognitive-runtime\/records\?agentId=/);
+assert.match(governanceUi, /selectedTargets/);
+assert.match(governanceUi, /minTargets/);
+assert.match(governanceUi, /allowedTargetKinds/);
+assert.match(governanceUi, /anchors,targets:selectedTargets/);
+assert.match(governanceUi, /governanceContext:/);
+assert.match(governanceUi, /EJECUTAR CONTRATO/);
+assert.match(governanceUi, /NOT_OBSERVED/);
+assert.match(governanceUi, /Contexto ≠ evidencia/);
+assert.match(governanceUi, /ABRIR EJECUCIÓN/);
+assert.match(operatingUi, /SfiGovernanceWorkspace/);
+assert.doesNotMatch(operatingUi, /targetKind:target\.kind/);
+assert.doesNotMatch(operatingUi, /const runAgent=/);
+assert.doesNotMatch(operatingUi, /OPERAR AGENTE/);
+
 console.log(JSON.stringify({
   ok: true,
   contractVersion: SFI_EXECUTION_CONTRACT_VERSION,
@@ -232,4 +259,6 @@ console.log(JSON.stringify({
   boundedContextRemainsPartial: executionRecord.contextCoverage.partial === true,
   unobservedCostRemainsMissing: executionRecord.telemetry.providerCost.observation === 'NOT_OBSERVED',
   legacyAdapterObserved: legacy.legacyCompatibilityUsed,
+  m3ContractDrivenUi: governanceUi.includes('EJECUTAR CONTRATO'),
+  m3LegacyOperatorRemoved: !operatingUi.includes('const runAgent='),
 }, null, 2));

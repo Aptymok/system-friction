@@ -34,6 +34,7 @@ assert.match(crlContrast, /METHOD_LAB_CONTRACT_VERSION/, 'CRL summary must carry
 const scenes = read('src/components/sfi/scenes.ts');
 const liveUi = read('src/components/sfi/SfiConsole.tsx');
 const operatingUi = read('src/components/sfi/SfiOperatingWorkspace.tsx');
+const governanceUi = read('src/components/sfi/SfiGovernanceWorkspace.tsx');
 const rootWorkboard = read('src/app/api/root/workboard/route.ts');
 assert.ok(scenes.includes("root:{key:'root'"), 'ROOT live scene must remain canonical.');
 assert.ok(scenes.includes("governance:{key:'governance'"), 'GOVERNANCE live scene must remain canonical.');
@@ -41,8 +42,8 @@ assert.match(scenes, /LEGACY_INTERNAL_SCENES=.*'models','genai'/, 'MODELS and GE
 assert.match(rootWorkboard, /getLlmProviderStatus/, 'Converged ROOT workboard must preserve model/provider observability.');
 assert.match(rootWorkboard, /providerHealthBoundary/, 'Converged ROOT workboard must preserve the configured-vs-healthy model boundary.');
 assert.ok(liveUi.includes('COGNITIVE TWIN'), 'ROOT live scene must expose Twin proposals.');
-assert.ok(operatingUi.includes('ACEPTAR') && operatingUi.includes('DENEGAR'), 'Converged operating workspace must retain governed decisions.');
-assert.ok(operatingUi.includes('PEDIR EVIDENCIA'), 'Converged operating workspace must retain governed evidence deferral.');
+assert.ok(operatingUi.includes('SfiGovernanceWorkspace') && governanceUi.includes('ACEPTAR') && governanceUi.includes('DENEGAR'), 'Converged governance workspace must retain governed decisions without duplicating them in ROOT.');
+assert.ok(governanceUi.includes('PEDIR EVIDENCIA'), 'Converged governance workspace must retain governed evidence deferral.');
 
 const methodLabPage = read('src/app/method-lab/page.tsx');
 const methodLabHub = read('src/components/sfi/MethodLabNativeHub.tsx');

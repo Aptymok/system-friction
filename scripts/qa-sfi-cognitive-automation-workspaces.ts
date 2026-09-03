@@ -3,7 +3,8 @@ import { existsSync, readFileSync } from 'node:fs';
 
 const text=(path:string)=>readFileSync(path,'utf8');
 const proposals=text('src/app/api/acp/proposals/route.ts');
-const ui=text('src/components/sfi/SfiOperatingWorkspace.tsx');
+const operatingUi=text('src/components/sfi/SfiOperatingWorkspace.tsx');
+const governanceUi=text('src/components/sfi/SfiGovernanceWorkspace.tsx');
 const selector=text('src/lib/sfi/cognitive-runtime/automationSelector.ts');
 const meta=text('src/lib/sfi/cognitive-runtime/agents/metaOrchestrator.ts');
 const access=text('src/lib/system/access/server.ts');
@@ -14,10 +15,11 @@ assert.match(proposals,/requireRootViewer\('acp\.proposals\.list'\)/,'proposal_r
 assert.doesNotMatch(proposals,/requireGovernedActor\('acp\.proposals\.list'\)/,'proposal_read_must_not_deadlock_on_blind_governance');
 assert.match(proposals,/state:'DEGRADED'/,'proposal_read_failure_must_be_explicit');
 assert.match(proposals,/source:\{table:'action_proposals'\}/,'proposal_read_must_publish_canonical_source');
-assert.match(ui,/Proposal observability is intentionally independent from ACP runtime health/,'root_ui_must_not_hide_recovery_queue_when_presence_is_degraded');
-assert.match(ui,/Fuente de propuestas DEGRADED/,'root_ui_must_distinguish_read_failure_from_empty_queue');
-assert.match(ui,/PEDIR EVIDENCIA/,'root_ui_must_expose_evidence_request');
-assert.doesNotMatch(ui,/jsonFetch\('\/api\/acp\/proposals'\)\.catch\(\(\)=>\(\{ok:true,data:\{proposals:\[\]\}\}\)\)/,'proposal_read_failure_must_not_be_coerced_to_empty_queue');
+assert.match(operatingUi,/SfiGovernanceWorkspace/,'operating_workspace_must_delegate_governance_without_parallel_surface');
+assert.ok(governanceUi.includes("try{const pr=await jsonFetch('/api/acp/proposals')") && governanceUi.includes("setProposalReadState('DEGRADED')"),'root_ui_must_not_hide_recovery_queue_when_presence_is_degraded');
+assert.match(governanceUi,/Fuente de propuestas DEGRADED/,'root_ui_must_distinguish_read_failure_from_empty_queue');
+assert.match(governanceUi,/PEDIR EVIDENCIA/,'root_ui_must_expose_evidence_request');
+assert.doesNotMatch(governanceUi,/jsonFetch\('\/api\/acp\/proposals'\)\.catch\(\(\)=>\(\{ok:true,data:\{proposals:\[\]\}\}\)\)/,'proposal_read_failure_must_not_be_coerced_to_empty_queue');
 
 assert.match(selector,/reasons:\s*Record<string,\s*string\[\]>/,'automation_selector_must_expose_selection_reasons');
 assert.match(selector,/reasons:\s*Object\.fromEntries/,'automation_selector_must_materialize_selection_reasons');
