@@ -31,7 +31,9 @@ function compactExecutionMetadata(agentId: string, context: KernelContext) {
   const keys = [
     'executionId',
     'executionContractVersion',
+    'executionRequestSource',
     'actorId',
+    'tenantId',
     'manualRootExecution',
     'objectKey',
     'objectHash',
@@ -145,7 +147,7 @@ export async function runCognitiveAgent(
     {
       executionId: metadata.executionId ?? null,
       executionContractVersion: metadata.executionContractVersion ?? null,
-      requestSource: metadata.manualRootExecution === true ? 'ROOT_MANUAL' : updatedContext.currentEvent,
+      requestSource: metadata.executionRequestSource ?? (metadata.manualRootExecution === true ? 'ROOT_MANUAL' : updatedContext.currentEvent),
       requestedBy: metadata.actorId ?? null,
       purpose: executionRequest?.purpose ?? metadata.objective ?? metadata.question ?? null,
       anchors: executionRequest?.anchors ?? metadata.anchors ?? [],
