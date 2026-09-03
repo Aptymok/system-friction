@@ -15,6 +15,11 @@ const externalRoute = read('src/app/api/external/v1/cognitive-runtime/route.ts')
 const rootRoute = read('src/app/api/root/cognitive-runtime/route.ts');
 const sharedExecution = read('src/lib/sfi/cognitive-runtime/manualExecution.ts');
 const runtimeWriter = read('src/lib/sfi/cognitive-runtime/runtimeAgentExecutor.ts');
+const materialEvidence = read('src/lib/sfi/cognitive-runtime/materialEvidence.ts');
+const evidenceHunterSource = read('src/lib/sfi/cognitive-runtime/agents/evidenceHunter.ts');
+const temporalResolverSource = read('src/lib/sfi/cognitive-runtime/agents/temporalResolver.ts');
+const proposalBridgeSource = read('src/lib/sfi/cognitive-runtime/cognitiveProposalBridge.ts');
+const agentLlmSource = read('src/infrastructure/ai/agentLlmClient.ts');
 const externalAuth = read('src/lib/sfi/externalAuth.ts');
 const oauthConfig = read('src/lib/sfi/oauthConfig.ts');
 const manifest = read('src/app/api/external/v1/manifest/route.ts');
@@ -52,15 +57,19 @@ assert.match(externalRoute, /executionScopeImpliesCanonicalPromotion: false/);
 assert.doesNotMatch(externalRoute, /createServiceSupabaseClient|\.from\s*\(/, 'm6_external_adapter_must_not_own_database_reads_or_writes');
 assert.doesNotMatch(externalRoute, /recordAgentExecutionEvent|appendEpistemicEvent|persistSFIEvent/, 'm6_external_adapter_must_not_own_event_writes');
 
-// ROOT and external execution now converge before the canonical runtime writer.
+// ROOT and external execution converge before the canonical runtime writer.
 assert.match(rootRoute, /executeManualCognitiveAgent/);
 assert.doesNotMatch(rootRoute, /runCognitiveAgent|createServiceSupabaseClient|\.from\s*\(/, 'm6_root_route_must_delegate_instead_of_duplicate_execution');
-assert.match(sharedExecution, /SFI-MANUAL-COGNITIVE-EXECUTION-1\.0/);
+assert.match(sharedExecution, /SFI-MANUAL-COGNITIVE-EXECUTION-1\.1/);
 assert.match(sharedExecution, /normalizeExecutionRequest/);
 assert.match(sharedExecution, /validateExecutionRequest/);
 assert.match(sharedExecution, /runCognitiveAgent/);
 assert.match(sharedExecution, /TARGET_CONTEXT_NOT_AUTOMATICALLY_ACCEPTED_EVIDENCE/);
 assert.match(sharedExecution, /SOURCE_CANDIDATE_NOT_ACCEPTED_EVIDENCE/);
+assert.match(sharedExecution, /materialEvidenceView/);
+assert.match(sharedExecution, /resolvedPersistedMaterialBeforeResearch/);
+assert.match(sharedExecution, /No se requiere volver a subir, ingerir ni aportar de nuevo el objeto ya procesado\./);
+assert.match(sharedExecution, /No reingestar ni volver a aportar el objeto base\./);
 assert.match(sharedExecution, /observedInputTokens/);
 assert.match(sharedExecution, /observedOutputTokens/);
 assert.match(sharedExecution, /observedProviderCost/);
@@ -68,6 +77,27 @@ assert.match(sharedExecution, /observedLatencyMs/);
 assert.doesNotMatch(sharedExecution, /recordAgentExecutionEvent|appendEpistemicEvent|persistSFIEvent|create table/i, 'm6_shared_execution_must_reuse_canonical_writer_and_schema');
 assert.match(runtimeWriter, /executionRequestSource/);
 assert.match(runtimeWriter, /requestSource:\s*metadata\.executionRequestSource/);
+assert.match(runtimeWriter, /bridgeAgentInsightToGovernedProposals/);
+
+// Cognitive regression gate: persisted evidence must be reused before MISSING, and cognition must reach governed intervention/RETURN design.
+assert.match(materialEvidence, /REUSED_EXISTING_MATERIAL_EVIDENCE_WITHOUT_READMISSION_OR_DUPLICATION/);
+assert.match(materialEvidence, /OBSERVED.*DERIVED.*CANONICAL.*IMPORTED.*EXTRACTED/s);
+assert.match(evidenceHunterSource, /REUSE_EXISTING_MATERIAL_EVIDENCE_BEFORE_REQUESTING_NEW_EVIDENCE/);
+assert.match(evidenceHunterSource, /EXISTING_SUPPORT_REUSED/);
+assert.match(temporalResolverSource, /ATTENTION_BEFORE_CREATION/);
+assert.match(temporalResolverSource, /created_at <= attention_started_at <= resolved_at/);
+assert.match(temporalResolverSource, /retrospective capture, field semantics, migration, timezone, ETL\/import and application defects/);
+assert.match(agentLlmSource, /OBSERVATION -> CONTRADICTION -> RIVAL CAUSES -> FRICTION -> SYSTEMIC MECHANISM -> INTERVENTION -> HARD RULE -> RETURN CONTRACT/);
+assert.match(agentLlmSource, /Do not ask the operator to re-upload or re-provide a dataset/);
+assert.match(agentLlmSource, /rivalCauses/);
+assert.match(agentLlmSource, /systemicMechanism/);
+assert.match(agentLlmSource, /hardRules/);
+assert.match(agentLlmSource, /returnContract/);
+assert.match(agentLlmSource, /falsificationConditions/);
+assert.match(proposalBridgeSource, /COGNITIVE_INTERVENTION_CANDIDATE/);
+assert.match(proposalBridgeSource, /PROPOSAL_REQUIRES_ROOT_GOVERNANCE/);
+assert.match(proposalBridgeSource, /RIVAL_CAUSES_REQUIRED_FOR_CONTRADICTION/);
+assert.match(proposalBridgeSource, /DUPLICATE_GOVERNED_PROPOSAL_REUSED/);
 
 // Existing personal OAuth route allowlist is not expanded into institutional cognitive execution.
 assert.doesNotMatch(externalAuth, /pathname === ['"]\/api\/external\/v1\/cognitive-runtime['"]/, 'm6_personal_oauth_must_not_gain_cognitive_runtime_access');
@@ -136,13 +166,15 @@ console.log(JSON.stringify({
   ok: true,
   gate: 'SFI_AGENT_API_INTEGRATIONS_HARDENING_M6',
   apiContract: 'SFI-EXTERNAL-COGNITIVE-RUNTIME-1.0',
-  executionService: 'SFI-MANUAL-COGNITIVE-EXECUTION-1.0',
+  executionService: 'SFI-MANUAL-COGNITIVE-EXECUTION-1.1',
   contractCatalogUnique: true,
   canonicalWriterReused: true,
   externalLegacyShapeAccepted: false,
   userBoundOAuthRequiredForExecute: true,
   institutionalTenantRequiredForExecute: true,
   personalOAuthExecutionPlaneAccess: false,
+  persistedEvidenceReuseGated: true,
+  systemicInterventionLoopGated: true,
   rlsReview: 'PASS_STATIC_CONTRACT_REVIEW',
   performanceScope: 'DETERMINISTIC_REQUEST_CONTRACT_PLANE_ONLY',
   requestPlaneIterations: 5_000,
