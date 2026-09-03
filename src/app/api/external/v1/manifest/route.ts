@@ -8,7 +8,7 @@ export async function GET() {
   return NextResponse.json({
     ok: true,
     name: 'SFI External Agent Gateway',
-    version: '1.11.0',
+    version: '1.12.0',
     auth: 'OAuth 2.0 authorization_code (user-bound) or X-SFI-Token/Bearer static token',
     base: '/api/external/v1',
     discovery: {
@@ -38,10 +38,13 @@ export async function GET() {
       caseIdentityBoundary: 'Case Platform operations require user-bound OAuth and re-use existing tenant membership checks. Shared/static tokens cannot impersonate a case owner.',
       scopeOmission: 'Scope omission defaults to the authenticated principal configured set.',
       studioIdentityBoundary: 'Studio operations require user-bound OAuth and resolve ownership from token subject_id; shared/static tokens cannot impersonate an owner.',
+      cognitiveExecutionBoundary: 'Institutional cognitive-agent execution requires user-bound OAuth, execute scope and tenant sfi. Static tokens and personal user:<subject_id> tenants may not invoke this execution plane.',
     },
     operations: [
       { id: 'bootstrap', method: 'GET', path: '/bootstrap', scope: 'observe', tenant: 'institutional', description: 'Hydrate an authorized AI client with a versioned SFI cognitive contract, sealed Cognitive Spine snapshot, bounded memory/decisions, promoted learning and current human/analysis policies.' },
       { id: 'console', method: 'GET', path: '/console', scope: 'observe', tenant: 'institutional', description: 'Read the compact governed machine console.' },
+      { id: 'cognitive-runtime-read', method: 'GET', path: '/cognitive-runtime', scope: 'observe', tenant: 'institutional', contract: 'SFI-EXTERNAL-COGNITIVE-RUNTIME-1.0', description: 'Read versioned execution-centric agent passports, typed Execution Contracts, multidimensional state, exact execution history and bounded GenAI assurance from the canonical runtime/event plane.' },
+      { id: 'cognitive-runtime-execute', method: 'POST', path: '/cognitive-runtime', scope: 'execute', tenant: 'institutional-user-bound-oauth', contract: 'SFI-MANUAL-COGNITIVE-EXECUTION-1.0', body: { operation: 'execute', required: ['agentId', 'purpose', 'anchors[]', 'targets[]'], legacyShapeAccepted: false }, description: 'Execute one typed cognitive-agent contract through the canonical runtime. Requires user-bound institutional OAuth and preserves target membership, evidence, authority and event-lineage boundaries.' },
       { id: 'execution-contract', method: 'POST', path: '/execution-contract', scope: 'observe', tenant: 'institutional', description: 'Describe an object and obtain the governed measurement contract without uploading raw content.' },
       { id: 'structured-result', method: 'POST', path: '/result', scope: 'lab:write', tenant: 'institutional', description: 'Return structured measurements and provenance without raw-object persistence.' },
       { id: 'signal-status', method: 'GET', path: '/signal', scope: 'observe', tenant: 'institutional', description: 'Read open cycles or one canonical cycle history.' },
@@ -78,6 +81,10 @@ export async function GET() {
       executionModel: 'event-triggered bounded cognitive automations',
       selection: 'MetaOrchestrator selects the minimum relevant automation set and records selection reasons.',
       executor: 'runtimeAgentExecutor -> agentExecutionMap -> deterministic cognitive functions',
+      executionApi: '/api/external/v1/cognitive-runtime',
+      executionApiVersion: 'SFI-EXTERNAL-COGNITIVE-RUNTIME-1.0',
+      executionContractVersion: 'SFI-EXECUTION-CONTRACT-1.0',
+      canonicalRequestRequiredExternally: true,
       externalAuthorityBySelection: false,
       deprecatedParallelRuntimeRemoved: true,
     },
@@ -102,7 +109,8 @@ export async function GET() {
       publicSurface: '/history/mutations',
       machineSurface: '/api/public/mutations',
       chain: ['CODE_RECORDED', 'QA_VERIFIED', 'DEPLOYMENT_EVIDENCE_RECORDED', 'EXERCISED', 'CALIBRATED_LEARNING_LINKED'],
-      rule: 'A verified GitHub commit proves repository mutation only; each later validation stage requires distinct evidence. Deployment references are not called verified until a deployment-provider verification lane exists.',
+      deploymentProviderLane: 'SFI Vercel Prebuilt Production',
+      rule: 'A GitHub commit proves repository mutation only. Deployment is verified only when the deployment-provider workflow succeeds for the same canonical main SHA; QA, exercise and calibrated-learning evidence remain distinct later stages.',
     },
     governance: 'Observation, source registration, record/inference creation, evidence candidacy, evidence acceptance, proposal authorization, execution, return, calibration, learning candidacy and canonical promotion remain distinct governed states.',
   });
