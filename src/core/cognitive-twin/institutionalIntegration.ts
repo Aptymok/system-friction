@@ -15,10 +15,26 @@ type SyncResult = {
   warning: string | null;
 };
 
+type IntegrationOrgan = { organ:string; table:string; description:string; filter?: (query:any)=>any };
+
 function record(value: unknown): Row { return value && typeof value === 'object' && !Array.isArray(value) ? value as Row : {}; }
 function text(value: unknown) { return typeof value === 'string' && value.trim() ? value.trim() : null; }
 function strings(value: unknown) { return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0) : []; }
 function number(value: unknown) { const parsed = typeof value === 'number' ? value : Number(value); return Number.isFinite(parsed) ? parsed : null; }
+
+const INTEGRATION_ORGANS: IntegrationOrgan[] = [
+  { organ:'ROOT_EVIDENCE', table:'root_evidence_entries', description:'Institutional evidence is ingested as candidate Twin experience with preserved provenance.' },
+  { organ:'OBSERVATORY', table:'worldspect_snapshots', description:'Longitudinal world state enters candidate Twin experience without promoting derived/simulated state.' },
+  { organ:'STUDIO', table:'sfi_cognitive_twin_runs', description:'Studio consumes bounded Twin context and registers cognitive executions.', filter:(query)=>query.ilike('role','studio%') },
+  { organ:'METHOD_LAB', table:'sfi_lab_analyses', description:'Experimental runs enter candidate Twin experience retaining their original epistemic boundaries.' },
+  { organ:'FIELD', table:'field_outcomes', description:'Observed returns enter candidate institutional experience; return is not general causal proof.' },
+  { organ:'GOVERNANCE', table:'sfi_cognitive_twin_decisions', description:'Approved founder/ROOT decisions constrain Twin deliberation and authority.', filter:(query)=>query.eq('status','APPROVED') },
+  {
+    organ:'COGNITIVE_TWIN', table:'sfi_amv_memory',
+    description:'Canonical model-independent institutional memory store. Cognitive Twin consumes only VERIFIED/CANONICAL memory projected from this store.',
+    filter:(query)=>query.eq('module','institutionalEventPipeline').not('memory_delta->raw->>memoryKey','is',null),
+  },
+];
 
 function methodLabEpistemicClass(dataMode: string) {
   switch (dataMode.toLowerCase()) {
@@ -41,9 +57,7 @@ async function syncFieldReturns(limit = 100): Promise<SyncResult> {
     if (!id) { failed += 1; continue; }
     const persisted = await recordCognitiveTwinExperience({
       memoryKey:`SFI:FIELD:RETURN:${id}`,
-      memoryType:'STATE',
-      sourceKind:'field_outcomes',
-      sourceRef:id,
+      memoryType:'STATE', sourceKind:'field_outcomes', sourceRef:id,
       evidenceRefs:strings(row.evidence_ids),
       content:{
         epistemicClass:'OBSERVED_RETURN', caseId:text(row.case_id), interventionId:text(row.intervention_id), expected:row.expected ?? null,
@@ -69,14 +83,11 @@ async function syncMethodLabRuns(limit = 100): Promise<SyncResult> {
     const dataMode = text(row.data_mode) ?? 'UNKNOWN';
     const persisted = await recordCognitiveTwinExperience({
       memoryKey:`SFI:METHOD_LAB:RUN:${id}`,
-      memoryType:'METHOD',
-      sourceKind:'sfi_lab_analyses',
-      sourceRef:id,
+      memoryType:'METHOD', sourceKind:'sfi_lab_analyses', sourceRef:id,
       evidenceRefs:strings(raw.evidenceRefs ?? raw.evidence_refs),
       content:{
         epistemicClass:methodLabEpistemicClass(dataMode), mode:text(row.mode), source:text(row.source), dataMode,
-        systems:row.systems ?? [], variables:row.variables ?? [], limitations:row.limitations ?? [], recommendations:row.recommendations ?? [],
-        resultHash:text(raw.resultHash),
+        systems:row.systems ?? [], variables:row.variables ?? [], limitations:row.limitations ?? [], recommendations:row.recommendations ?? [], resultHash:text(raw.resultHash),
         rule:'Method Lab runs enter candidate Twin memory with their original epistemic boundary. They are not consumable as canonical memory until verification/promotion.',
       },
     });
@@ -111,35 +122,40 @@ async function syncObservatoryState(limit = 60): Promise<SyncResult> {
   return { source:'observatory', ok:failed===0, observed:rows.length, synced, failed, warning:failed ? `${failed}_observatory_snapshots_failed` : null };
 }
 
-async function probe(input: { organ:string; table:string; description:string; filter?: (query:any)=>any }) {
+async function probe(input: IntegrationOrgan) {
   const db = createServiceSupabaseClient();
-  let query: any = db.from(input.table).select('*', { count:'exact', head:true });
+  let query: any = db.from(input.table).select('id').limit(1);
   if (input.filter) query = input.filter(query);
   const result = await query;
-  return { organ:input.organ, table:input.table, connected:!result.error, observedRecords:result.error ? null : result.count ?? 0, description:input.description, error:result.error?.message ?? null };
+  return {
+    organ:input.organ, table:input.table, connected:!result.error,
+    observedRecords:result.error ? null : (result.data?.length ?? 0),
+    observationMode:'BOUNDED_EXISTENCE_SAMPLE', description:input.description,
+    error:result.error?.message ?? null,
+  };
 }
 
-export async function readCognitiveTwinSfiIntegration() {
-  const organs = await Promise.all([
-    probe({ organ:'ROOT_EVIDENCE', table:'root_evidence_entries', description:'Institutional evidence is ingested as candidate Twin experience with preserved provenance.' }),
-    probe({ organ:'OBSERVATORY', table:'worldspect_snapshots', description:'Longitudinal world state enters candidate Twin experience without promoting derived/simulated state.' }),
-    probe({ organ:'STUDIO', table:'sfi_cognitive_twin_runs', description:'Studio consumes bounded Twin context and registers cognitive executions.', filter:(query)=>query.ilike('role','studio%') }),
-    probe({ organ:'METHOD_LAB', table:'sfi_lab_analyses', description:'Experimental runs enter candidate Twin experience retaining their original epistemic boundaries.' }),
-    probe({ organ:'FIELD', table:'field_outcomes', description:'Observed returns enter candidate institutional experience; return is not general causal proof.' }),
-    probe({ organ:'GOVERNANCE', table:'sfi_cognitive_twin_decisions', description:'Approved founder/ROOT decisions constrain Twin deliberation and authority.', filter:(query)=>query.eq('status','APPROVED') }),
-    probe({
-      organ:'COGNITIVE_TWIN',
-      table:'sfi_amv_memory',
-      description:'Canonical model-independent institutional memory store. Cognitive Twin consumes only VERIFIED/CANONICAL memory projected from this store.',
-      filter:(query)=>query.eq('module','institutionalEventPipeline').not('memory_delta->raw->>memoryKey','is',null),
-    }),
-  ]);
+export async function readCognitiveTwinSfiIntegration(options: { liveProbe?: boolean } = {}) {
+  if (!options.liveProbe) {
+    const organs = INTEGRATION_ORGANS.map((item) => ({
+      organ:item.organ, table:item.table, connected:true, observedRecords:null,
+      observationMode:'DECLARED_CONTRACT_NO_INTERACTIVE_PROBE', description:item.description, error:null,
+    }));
+    return {
+      contractVersion:'SFI-CT-INSTITUTIONAL-INTEGRATION-2.1', generatedAt:new Date().toISOString(), organs,
+      summary:{ total:organs.length, connected:organs.length, exercised:0, fullyConnected:true, fullyExercised:false },
+      truthBoundary:'CONNECTED in interactive mode means the integration is declared by the versioned SFI contract, not that a fresh database probe ran. EXERCISED is intentionally not asserted without an explicit diagnostic/sync operation. This avoids turning health observation into production load.',
+    };
+  }
+
+  const organs = [] as Awaited<ReturnType<typeof probe>>[];
+  for (const item of INTEGRATION_ORGANS) organs.push(await probe(item));
   const connected = organs.filter((item)=>item.connected).length;
   const exercised = organs.filter((item)=>item.connected && (item.observedRecords ?? 0) > 0).length;
   return {
-    contractVersion:'SFI-CT-INSTITUTIONAL-INTEGRATION-2.0', generatedAt:new Date().toISOString(), organs,
+    contractVersion:'SFI-CT-INSTITUTIONAL-INTEGRATION-2.1', generatedAt:new Date().toISOString(), organs,
     summary:{ total:organs.length, connected, exercised, fullyConnected:connected===organs.length, fullyExercised:exercised===organs.length },
-    truthBoundary:'CONNECTED means the runtime can read the canonical organ persistence surface. EXERCISED means at least one qualifying record exists. Neither means scientific validation, causal proof, canonical promotion, or autonomous authority.',
+    truthBoundary:'Explicit live diagnostics use one bounded existence sample per organ, sequentially. They do not COUNT(*) entire tables. CONNECTED/EXERCISED remain operational observations, not scientific validation, causal proof, canonical promotion, or autonomous authority.',
   };
 }
 
@@ -151,7 +167,7 @@ export async function syncSfiInstitutionalStateToCognitiveTwin() {
     source:'root_evidence', ok:root.ok, observed:'synced' in root ? root.synced + root.failed : 0,
     synced:'synced' in root ? root.synced : 0, failed:'failed' in root ? root.failed : 0, warning:rootWarning,
   };
-  const integration = await readCognitiveTwinSfiIntegration();
+  const integration = await readCognitiveTwinSfiIntegration({ liveProbe:true });
   const sources = [rootResult, observatory, methodLab, field];
   return { ok:sources.every((item)=>item.ok), sources, integration, synced:sources.reduce((sum,item)=>sum+item.synced,0), failed:sources.reduce((sum,item)=>sum+item.failed,0) };
 }

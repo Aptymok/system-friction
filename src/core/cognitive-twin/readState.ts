@@ -13,8 +13,12 @@ const REQUIRED_TABLES = [
   'sfi_cognitive_twin_evaluations',
   'sfi_cognitive_twin_runs',
 ] as const;
+const STATE_TTL_MS = Math.max(2_000, Number(process.env.SFI_CT_STATE_TTL_MS ?? 15_000));
 
 type Row = Record<string, unknown>;
+type StateResult = Awaited<ReturnType<typeof buildCognitiveTwinState>>;
+let stateCache: { expiresAt:number; value:StateResult } | null = null;
+let stateInFlight: Promise<StateResult> | null = null;
 
 export type CognitiveTwinState = Awaited<ReturnType<typeof readCognitiveTwinState>>;
 
@@ -32,46 +36,33 @@ function providerExecutionSucceeded(value: unknown) {
   return Boolean(provider && provider !== 'degraded' && status !== 'BLOCKED' && status !== 'REJECTED');
 }
 
-export async function readCognitiveTwinState() {
+async function buildCognitiveTwinState() {
   const db = createServiceSupabaseClient();
-  const [tableResults, canonicalMemory, integration] = await Promise.all([
-    Promise.all(REQUIRED_TABLES.map(async (table) => {
-      const result = await db.from(table).select('*', { count: 'exact', head: true });
-      return {
-        table,
-        available: !result.error,
-        count: result.error ? null : result.count ?? 0,
-        error: result.error?.message ?? null,
-      };
-    })),
+  const [canonicalMemory, integration, recentDecisions, recentRuns, recentEvaluations, approvedDecisionProbe, approvedModelProbe] = await Promise.all([
     readCanonicalCognitiveTwinMemory(24),
     readCognitiveTwinSfiIntegration(),
+    db.from('sfi_cognitive_twin_decisions').select('*').order('created_at', { ascending: false }).limit(12),
+    db.from('sfi_cognitive_twin_runs').select('*').order('created_at', { ascending: false }).limit(24),
+    db.from('sfi_cognitive_twin_evaluations').select('*').order('executed_at', { ascending: false }).limit(20),
+    db.from('sfi_cognitive_twin_decisions').select('id').eq('status', 'APPROVED').limit(1),
+    db.from('sfi_cognitive_twin_model_registry').select('id,status').in('status', ['APPROVED', 'APPROVED_WITH_LIMITS']).limit(1),
   ]);
 
-  const tableMap = new Map(tableResults.map((item) => [item.table, item]));
-  const databaseReady = tableResults.every((item) => item.available) && !canonicalMemory.error;
-
-  const [recentDecisions, recentRuns, recentEvaluations] = databaseReady
-    ? await Promise.all([
-        db.from('sfi_cognitive_twin_decisions').select('*').order('created_at', { ascending: false }).limit(12),
-        db.from('sfi_cognitive_twin_runs').select('*').order('created_at', { ascending: false }).limit(24),
-        db.from('sfi_cognitive_twin_evaluations').select('*').order('executed_at', { ascending: false }).limit(20),
-      ])
-    : [null, null, null];
+  const storage = [
+    { table:'sfi_amv_memory', available:!canonicalMemory.error, count:null, error:canonicalMemory.error ?? null },
+    { table:'sfi_cognitive_twin_decisions', available:!recentDecisions.error, count:null, error:recentDecisions.error?.message ?? null },
+    { table:'sfi_cognitive_twin_model_registry', available:!approvedModelProbe.error, count:null, error:approvedModelProbe.error?.message ?? null },
+    { table:'sfi_cognitive_twin_evaluations', available:!recentEvaluations.error, count:null, error:recentEvaluations.error?.message ?? null },
+    { table:'sfi_cognitive_twin_runs', available:!recentRuns.error, count:null, error:recentRuns.error?.message ?? null },
+  ];
+  const databaseReady = storage.every((item) => item.available) && !approvedDecisionProbe.error;
 
   const providers = getLlmProviderStatus();
   const configuredProviders = providers.filter((item) => item.configured);
   const healthyProviders = providers.filter((item) => item.state === 'HEALTHY');
-  const registeredModelCount = tableMap.get('sfi_cognitive_twin_model_registry')?.count ?? 0;
-  const [approvedDecisionCountResult, approvedModelCountResult] = databaseReady
-    ? await Promise.all([
-        db.from('sfi_cognitive_twin_decisions').select('*', { count: 'exact', head: true }).eq('status', 'APPROVED'),
-        db.from('sfi_cognitive_twin_model_registry').select('*', { count: 'exact', head: true }).in('status', ['APPROVED', 'APPROVED_WITH_LIMITS']),
-      ])
-    : [null, null];
-  const approvedDecisionCount = approvedDecisionCountResult?.count ?? 0;
-  const approvedModelCount = approvedModelCountResult?.count ?? 0;
-  const providerExecutionObserved = (recentRuns?.data ?? []).some(providerExecutionSucceeded);
+  const approvedDecisionCorpusReady = (approvedDecisionProbe.data?.length ?? 0) > 0;
+  const approvedModelRegistryReady = (approvedModelProbe.data?.length ?? 0) > 0;
+  const providerExecutionObserved = (recentRuns.data ?? []).some(providerExecutionSucceeded);
   const providerConfigured = configuredProviders.length > 0;
   const providerRouterReady = providerConfigured && providerExecutionObserved;
 
@@ -87,36 +78,45 @@ export async function readCognitiveTwinState() {
       healthyProviderCountInCurrentProcess: healthyProviders.length,
       providerExecutionObserved,
       providerRouterReady,
-      approvedDecisionCorpusReady: approvedDecisionCount > 0,
-      modelEvaluationRegistryReady: approvedModelCount > 0,
+      approvedDecisionCorpusReady,
+      modelEvaluationRegistryReady: approvedModelRegistryReady,
       sfiOrgansConnected: integration.summary.fullyConnected,
       sfiOrgansExercised: integration.summary.fullyExercised,
       institutionalAutonomyProven: false,
     },
     providers,
-    storage: tableResults,
+    storage,
     counts: {
       memory: canonicalMemory.eventCount,
-      decisions: tableMap.get('sfi_cognitive_twin_decisions')?.count ?? null,
-      approvedDecisions: approvedDecisionCount,
-      models: registeredModelCount,
-      approvedModels: approvedModelCount,
-      evaluations: tableMap.get('sfi_cognitive_twin_evaluations')?.count ?? null,
-      runs: tableMap.get('sfi_cognitive_twin_runs')?.count ?? null,
+      decisions: null,
+      approvedDecisions: approvedDecisionCorpusReady ? 1 : 0,
+      models: null,
+      approvedModels: approvedModelRegistryReady ? 1 : 0,
+      evaluations: null,
+      runs: null,
+      countSemantics: 'Totals are intentionally not COUNT(*)-probed on interactive reads. 1/0 approval values mean existence/non-existence in a bounded probe, not total cardinality.',
     },
     recentMemory: canonicalMemory.rows.slice(0, 24),
-    recentDecisions: recentDecisions?.data ?? [],
-    recentRuns: recentRuns?.data ?? [],
-    recentEvaluations: recentEvaluations?.data ?? [],
+    recentDecisions: recentDecisions.data ?? [],
+    recentRuns: recentRuns.data ?? [],
+    recentEvaluations: recentEvaluations.data ?? [],
     errors: [
-      ...tableResults.filter((item) => item.error).map((item) => `${item.table}: ${item.error}`),
-      ...(canonicalMemory.error ? [`canonical memory: ${canonicalMemory.error}`] : []),
+      ...storage.filter((item) => item.error).map((item) => `${item.table}: ${item.error}`),
+      ...(approvedDecisionProbe.error ? [`approved decisions: ${approvedDecisionProbe.error.message}`] : []),
       ...integration.organs.filter((item)=>item.error).map((item)=>`${item.organ}: ${item.error}`),
-      ...(recentDecisions?.error ? [`decisions: ${recentDecisions.error.message}`] : []),
-      ...(recentRuns?.error ? [`runs: ${recentRuns.error.message}`] : []),
-      ...(recentEvaluations?.error ? [`evaluations: ${recentEvaluations.error.message}`] : []),
-      ...(approvedDecisionCountResult?.error ? [`approved decisions: ${approvedDecisionCountResult.error.message}`] : []),
-      ...(approvedModelCountResult?.error ? [`approved models: ${approvedModelCountResult.error.message}`] : []),
     ],
   };
+}
+
+export async function readCognitiveTwinState() {
+  const now = Date.now();
+  if (stateCache && stateCache.expiresAt > now) return stateCache.value;
+  if (stateInFlight) return stateInFlight;
+  stateInFlight = buildCognitiveTwinState()
+    .then((value) => {
+      stateCache = { value, expiresAt:Date.now() + STATE_TTL_MS };
+      return value;
+    })
+    .finally(() => { stateInFlight = null; });
+  return stateInFlight;
 }

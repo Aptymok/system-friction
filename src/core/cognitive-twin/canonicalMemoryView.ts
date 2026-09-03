@@ -77,6 +77,7 @@ export async function readCanonicalCognitiveTwinMemory(limit = 64) {
   const seenKeys = new Set<string>();
   let offset = 0;
   let rowsError: string | null = null;
+  let scannedRows = 0;
 
   while (latestByKey.size < requested) {
     const page = await db.from('sfi_amv_memory')
@@ -87,6 +88,7 @@ export async function readCanonicalCognitiveTwinMemory(limit = 64) {
       .range(offset, offset + PAGE_SIZE - 1);
     if (page.error) { rowsError = page.error.message; break; }
     const rows = page.data ?? [];
+    scannedRows += rows.length;
     for (const item of rows) {
       const memory = fromAmvRow(item);
       if (!memory || seenKeys.has(memory.memory_key)) continue;
@@ -99,15 +101,13 @@ export async function readCanonicalCognitiveTwinMemory(limit = 64) {
     offset += PAGE_SIZE;
   }
 
-  const countResult = await db.from('sfi_amv_memory')
-    .select('id', { count: 'exact', head: true })
-    .eq('module', CANONICAL_MEMORY_MODULE)
-    .not('memory_delta->raw->>memoryKey', 'is', null);
-
   return {
     rows: [...latestByKey.values()],
-    eventCount: countResult.error ? null : countResult.count ?? 0,
-    error: rowsError ?? countResult.error?.message ?? null,
+    eventCount: seenKeys.size,
+    eventCountExact: scannedRows < PAGE_SIZE && !rowsError,
+    scannedRows,
+    error: rowsError,
     policy: 'VERIFIED_OR_CANONICAL_ONLY' as const,
+    boundary: 'eventCount is the number of distinct memory keys observed in the bounded scan, not a COUNT(*) of the full table unless eventCountExact=true.',
   };
 }
