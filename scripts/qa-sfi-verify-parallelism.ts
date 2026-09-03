@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import './qa-sfi-runtime-readplane-stability';
 
 const workflow = readFileSync('.github/workflows/sfi-verify.yml', 'utf8');
 
@@ -42,4 +43,5 @@ console.log(JSON.stringify({
   tokenPermissions: 'contents:read',
   typecheckRetained: true,
   buildRetained: true,
+  runtimeReadPlaneGuardrail: true,
 }, null, 2));
