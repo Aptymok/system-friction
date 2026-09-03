@@ -14,6 +14,7 @@ export type SfiExternalScope =
 export type SfiInstitutionalMember = {
   email: string;
   displayName: string;
+  title: string;
   role: 'operator' | 'controller' | 'observer';
   decisionAuthority?: 'controller';
   workspace: '/member' | '/root';
@@ -33,7 +34,8 @@ export type SfiInstitutionalMember = {
 const MEMBERS: SfiInstitutionalMember[] = [
   {
     email: 'edwin.tzolkin@gmail.com',
-    displayName: 'Edwin',
+    displayName: 'Edwing Peredo Guadarrama',
+    title: 'Director de Dominio — SFI Studio',
     role: 'controller',
     decisionAuthority: 'controller',
     workspace: '/root',

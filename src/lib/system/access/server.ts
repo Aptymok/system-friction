@@ -1,13 +1,18 @@
 import 'server-only';
 
 import { redirect } from 'next/navigation';
-import { createServerSupabaseClient, createServiceSupabaseClient } from '@/runtime/supabase/server';
+import {
+  createServerSupabaseClient,
+  createServiceSupabaseClient,
+  getVerifiedServerUser,
+  SfiAuthUnavailableError,
+} from '@/runtime/supabase/server';
 import { findInstitutionalMember } from './institutionalMembers';
 
 export class AccessDeniedError extends Error {
   constructor(
-    public readonly status: 401 | 403 | 404,
-    public readonly code: 'AUTH_REQUIRED' | 'FOUNDER_REQUIRED' | 'FIELD_USER_REQUIRED' | 'SFI_MEMBER_REQUIRED' | 'OWNER_REQUIRED' | 'NOT_FOUND',
+    public readonly status: 401 | 403 | 404 | 503,
+    public readonly code: 'AUTH_REQUIRED' | 'AUTH_UNAVAILABLE' | 'FOUNDER_REQUIRED' | 'FIELD_USER_REQUIRED' | 'SFI_MEMBER_REQUIRED' | 'OWNER_REQUIRED' | 'NOT_FOUND',
     message: string,
   ) {
     super(message);
@@ -44,6 +49,7 @@ function institutionalModuleAccess(
 ) {
   return {
     ...record(current),
+    display_title: member.title,
     observatory: member.modules.observatory,
     planner: member.modules.field,
     simulator: member.modules.studio,
@@ -88,22 +94,42 @@ function defaultAlias(user: { email?: string | null }) {
 
 export async function requireAuthenticatedUser() {
   const supabase = await createServerSupabaseClient();
-  const { data, error } = await supabase.auth.getUser();
-  if (error || !data.user) {
-    throw new AccessDeniedError(401, 'AUTH_REQUIRED', 'Authentication is required.');
+  try {
+    const user = await getVerifiedServerUser(supabase);
+    if (!user) {
+      throw new AccessDeniedError(401, 'AUTH_REQUIRED', 'Authentication is required.');
+    }
+    return { supabase, user };
+  } catch (error) {
+    if (error instanceof AccessDeniedError) throw error;
+    if (error instanceof SfiAuthUnavailableError) {
+      throw new AccessDeniedError(
+        503,
+        'AUTH_UNAVAILABLE',
+        'Authentication is temporarily unavailable. The session was not reclassified as anonymous.',
+      );
+    }
+    throw error;
   }
-  return { supabase, user: data.user };
 }
 
 async function ensureFieldProfile(user: { id: string; email?: string | null }, displayName: string) {
   const service = createServiceSupabaseClient();
   const existing = await service
     .from('field_profiles')
-    .select('user_id')
+    .select('user_id,display_name')
     .eq('user_id', user.id)
     .maybeSingle();
   if (existing.error) throw existing.error;
-  if (existing.data) return;
+  if (existing.data) {
+    if (existing.data.display_name !== displayName) {
+      const updated = await service.from('field_profiles')
+        .update({ display_name: displayName })
+        .eq('user_id', user.id);
+      if (updated.error) throw updated.error;
+    }
+    return;
+  }
   const inserted = await service.from('field_profiles').insert({
     user_id: user.id,
     display_name: displayName,
@@ -123,24 +149,43 @@ async function readOrProvisionUserProfile(user: { id: string; email?: string | n
   if (existing.error) throw existing.error;
 
   if (existing.data && member) {
-    const reconciled = await service
-      .from('profiles')
-      .update({
-        email: member.email,
-        role: member.role,
-        subscription_tier: 'enterprise',
-        module_access: institutionalModuleAccess(member, existing.data.module_access),
-        last_seen_at: new Date().toISOString(),
-      })
-      .eq('user_id', user.id)
-      .select('user_id,alias,email,role,module_access,subscription_tier')
-      .single();
+    const desiredAccess = institutionalModuleAccess(member, existing.data.module_access);
+    const currentAccess = record(existing.data.module_access);
+    const accessKeys = [
+      'display_title','observatory','planner','simulator','social','field','studio','world_field','root','root_observe',
+      'full_access','executor','root_execution','governance_write','sovereign_actions','canonical_promotion',
+    ] as const;
+    const requiresReconcile =
+      existing.data.alias !== member.displayName ||
+      existing.data.email !== member.email ||
+      existing.data.role !== member.role ||
+      existing.data.subscription_tier !== 'enterprise' ||
+      accessKeys.some((key) => currentAccess[key] !== desiredAccess[key]);
 
-    if (reconciled.error || !reconciled.data) {
-      throw reconciled.error ?? new Error('SFI member profile could not be reconciled.');
+    let profile = existing.data;
+    if (requiresReconcile) {
+      const reconciled = await service
+        .from('profiles')
+        .update({
+          alias: member.displayName,
+          email: member.email,
+          role: member.role,
+          subscription_tier: 'enterprise',
+          module_access: desiredAccess,
+          last_seen_at: new Date().toISOString(),
+        })
+        .eq('user_id', user.id)
+        .select('user_id,alias,email,role,module_access,subscription_tier')
+        .single();
+
+      if (reconciled.error || !reconciled.data) {
+        throw reconciled.error ?? new Error('SFI member profile could not be reconciled.');
+      }
+      profile = reconciled.data;
     }
+
     await ensureFieldProfile(user, member.displayName);
-    return { profile: reconciled.data, member };
+    return { profile, member };
   }
 
   if (existing.data) {
@@ -215,15 +260,19 @@ async function readMemberWorkspaceCounts(supabase: Awaited<ReturnType<typeof cre
   return { caseCount: cases.count ?? 0, objectCount: objects.count ?? 0, pendingReturnCount: returns.count ?? 0, warnings: [cases.error?.message, objects.error?.message, returns.error?.message].filter((v): v is string => Boolean(v)) };
 }
 
+function authFailureRedirect(error: AccessDeniedError, nextPath: string) {
+  const encoded = encodeURIComponent(nextPath);
+  if (error.status === 401) redirect(`/login?next=${encoded}`);
+  if (error.status === 503) redirect(`/login?error=auth_temporarily_unavailable&next=${encoded}`);
+}
+
 export async function requireSfiMemberPage(nextPath = '/member') {
   try {
     const context = await requireSfiMember();
     const workspace = await readMemberWorkspaceCounts(context.supabase, context.user.id);
     return { ...context, workspace };
   } catch (error) {
-    if (error instanceof AccessDeniedError && error.status === 401) {
-      redirect(`/login?next=${encodeURIComponent(nextPath)}`);
-    }
+    if (error instanceof AccessDeniedError) authFailureRedirect(error, nextPath);
     redirect('/unauthorized');
   }
 }
@@ -238,11 +287,20 @@ export async function requireFieldUser() {
 
 export async function requireFounder() {
   const context = await requireAuthenticatedUser();
-  const { data: profile } = await context.supabase
+  const service = createServiceSupabaseClient();
+  const { data: profile, error: profileError } = await service
     .from('profiles')
     .select('role,module_access')
     .eq('user_id', context.user.id)
     .maybeSingle();
+
+  if (profileError) {
+    throw new AccessDeniedError(
+      503,
+      'AUTH_UNAVAILABLE',
+      `Founder authorization context is temporarily unavailable: ${profileError.message}`,
+    );
+  }
 
   const email = context.user.email?.toLowerCase() || null;
   const institutionalMember = findInstitutionalMember(email);
@@ -268,9 +326,7 @@ export async function requireFounderPage(nextPath = '/root') {
   try {
     return await requireFounder();
   } catch (error) {
-    if (error instanceof AccessDeniedError && error.status === 401) {
-      redirect(`/login?next=${encodeURIComponent(nextPath)}`);
-    }
+    if (error instanceof AccessDeniedError) authFailureRedirect(error, nextPath);
     redirect('/unauthorized');
   }
 }

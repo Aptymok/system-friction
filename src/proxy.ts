@@ -81,9 +81,10 @@ function isStudioRouteUser(
   return Boolean(email && allowed.includes(email.toLowerCase()))
 }
 
-function redirectToLoginWithNext(request: NextRequest) {
+function redirectToLoginWithNext(request: NextRequest, error?: string) {
   const loginUrl = new URL('/login', request.url)
   loginUrl.searchParams.set('next', `${request.nextUrl.pathname}${request.nextUrl.search}`)
+  if (error) loginUrl.searchParams.set('error', error)
   return NextResponse.redirect(loginUrl)
 }
 
@@ -120,7 +121,9 @@ export async function proxy(request: NextRequest) {
   const isWorldVectorAgentRoute = pathname.startsWith('/api/world-vector')
   if (isWorldVectorAgentRoute) return response
 
-  const requiresSession = pathname.startsWith('/root') || pathname.startsWith('/field') || pathname.startsWith('/studio')
+  // /field is the public live Observatory. It must not acquire a browser-session
+  // dependency: its public read models use service-backed, evidence-bounded APIs.
+  const requiresSession = pathname.startsWith('/root') || pathname.startsWith('/studio')
   if (!requiresSession) return response
 
   if (pathname.startsWith('/studio') && isLocalStudioBypass(request)) {
@@ -131,10 +134,7 @@ export async function proxy(request: NextRequest) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   if (!supabaseUrl || !supabaseKey) {
-    const loginUrl = new URL('/login', request.url)
-    loginUrl.searchParams.set('error', 'supabase_no_configurado')
-    loginUrl.searchParams.set('next', `${request.nextUrl.pathname}${request.nextUrl.search}`)
-    return NextResponse.redirect(loginUrl)
+    return redirectToLoginWithNext(request, 'supabase_no_configurado')
   }
 
   const supabase = createServerClient(normalizeSupabaseUrl(supabaseUrl), supabaseKey, {
@@ -150,22 +150,26 @@ export async function proxy(request: NextRequest) {
   })
 
   let user = null
+  let authUnavailable = false
   try {
     const result = await supabase.auth.getUser()
     user = result.data.user
     if (result.error && isRefreshTokenMissing(result.error)) {
       clearSupabaseAuthCookies(response, request)
       user = null
+    } else if (result.error) {
+      authUnavailable = true
     }
   } catch (error) {
     if (isRefreshTokenMissing(error)) {
       clearSupabaseAuthCookies(response, request)
       user = null
     } else {
-      throw error
+      authUnavailable = true
     }
   }
 
+  if (authUnavailable) return redirectToLoginWithNext(request, 'auth_temporarily_unavailable')
   if (!user) return redirectToLoginWithNext(request)
 
   // ROOT authorization intentionally happens only in the server-side ROOT gates
