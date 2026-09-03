@@ -1,8 +1,21 @@
-import type { SfiCanonicalRef, SfiDeterminability } from './epistemic';
+import type {
+  SfiCanonicalRef,
+  SfiDeterminability,
+  SfiEpistemicOutputRelation,
+} from './epistemic';
 
 export const SFI_REPORT_CONTRACT = 'SFI-REPORT-1.0' as const;
 
 export type SfiReportDeliveryFormat = 'JSON' | 'WEB' | 'PDF' | 'DASHBOARD';
+export type SfiReportClaimSupport = 'SUPPORTED' | 'PARTIALLY_SUPPORTED' | 'CONTRADICTED' | 'INSUFFICIENT' | 'UNSUPPORTED';
+
+export type SfiReportClaimLineageV1 = {
+  executionRef: SfiCanonicalRef | null;
+  outputRelation: SfiEpistemicOutputRelation;
+  support: SfiReportClaimSupport;
+  contradictionRefs: SfiCanonicalRef[];
+  refutationConditions: string[];
+};
 
 export type SfiReportClaimV1 = {
   id: string;
@@ -13,6 +26,11 @@ export type SfiReportClaimV1 = {
   sourceRefs: SfiCanonicalRef[];
   determinability: SfiDeterminability;
   confidence: number | null;
+  lineage?: SfiReportClaimLineageV1;
+};
+
+export type SfiRenderedReportClaimV1 = Omit<SfiReportClaimV1, 'lineage'> & {
+  lineage: SfiReportClaimLineageV1;
 };
 
 export type SfiReportV1 = {
@@ -31,7 +49,7 @@ export type SfiReportV1 = {
   recommendationRefs: SfiCanonicalRef[];
   interventionRefs: SfiCanonicalRef[];
   returnRefs: SfiCanonicalRef[];
-  claims: SfiReportClaimV1[];
+  claims: SfiRenderedReportClaimV1[];
   limitations: string[];
   deliveryFormats: SfiReportDeliveryFormat[];
   executionAuthority: false;
