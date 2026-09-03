@@ -1,6 +1,6 @@
 import type { KernelContext } from './kernelContext';
 import { executeRegisteredAgent } from './agentExecutionMap';
-import { bridgeAgentInsightToGovernedProposals } from './cognitiveProposalBridge';
+import { emitGovernedProposalsFromAgentInsight } from './governedProposalEmitter';
 import { recordAgentExecutionEvent } from '@/infrastructure/events/cognitiveRuntimeEventRepository';
 import { augmentAgentWithLlm } from '@/infrastructure/ai/agentLlmClient';
 import { evaluateAgentAiGovernance, SFI_AI_GOVERNANCE_POLICY } from '@/lib/governance/aiGovernancePolicy';
@@ -48,7 +48,7 @@ function compactExecutionMetadata(agentId: string, context: KernelContext) {
     'contextCoverage',
     'epistemicBoundary',
     'materialEvidenceResolution',
-    'cognitiveProposalBridge',
+    'governedProposalEmitter',
     'worldSnapshotId',
     'methods',
     'openCycleIds',
@@ -65,7 +65,7 @@ function compactExecutionMetadata(agentId: string, context: KernelContext) {
     aiGovernance: metadata.aiGovernance ?? null,
     llmRuntime: metadata.llmRuntime ?? null,
     agentInsight: selectedInsight,
-    cognitiveProposalBridge: metadata.cognitiveProposalBridge ?? null,
+    governedProposalEmitter: metadata.governedProposalEmitter ?? null,
     metadataKeyCount: Object.keys(metadata).length,
     storagePolicy: 'COMPACT_TRACE',
   };
@@ -81,7 +81,7 @@ export async function runCognitiveAgent(
   let executed = false;
   let deterministicError: string | null = null;
   let llmError: string | null = null;
-  let proposalBridgeError: string | null = null;
+  let proposalEmitterError: string | null = null;
   const governance = evaluateAgentAiGovernance(agentId, context);
 
   if (governance.disposition !== 'BLOCK') {
@@ -135,20 +135,20 @@ export async function runCognitiveAgent(
 
   if (llmRequested && !llmError) {
     try {
-      updatedContext = await bridgeAgentInsightToGovernedProposals(agentId, updatedContext);
+      updatedContext = await emitGovernedProposalsFromAgentInsight(agentId, updatedContext);
     } catch (error) {
-      proposalBridgeError = error instanceof Error ? error.message : String(error);
+      proposalEmitterError = error instanceof Error ? error.message : String(error);
       updatedContext.metadata = {
         ...updatedContext.metadata,
-        cognitiveProposalBridge: {
-          ...(updatedContext.metadata?.cognitiveProposalBridge && typeof updatedContext.metadata.cognitiveProposalBridge === 'object'
-            ? updatedContext.metadata.cognitiveProposalBridge as Record<string, unknown>
+        governedProposalEmitter: {
+          ...(updatedContext.metadata?.governedProposalEmitter && typeof updatedContext.metadata.governedProposalEmitter === 'object'
+            ? updatedContext.metadata.governedProposalEmitter as Record<string, unknown>
             : {}),
           agentId,
           persisted: [],
           skipped: true,
-          reason: 'PROPOSAL_BRIDGE_FAILED',
-          error: proposalBridgeError,
+          reason: 'PROPOSAL_EMITTER_FAILED',
+          error: proposalEmitterError,
           authorityBoundary: 'AGENT_EXECUTION_REMAINS_VALID; FAILED_PROPOSAL_PERSISTENCE_NEVER_AUTHORIZES_ACTION',
         },
       };
@@ -197,8 +197,8 @@ export async function runCognitiveAgent(
       llmProvider: insight?.provider ?? null,
       llmModel: insight?.model ?? null,
       llmError,
-      proposalBridgeError,
-      cognitiveProposalBridge: metadata.cognitiveProposalBridge ?? null,
+      proposalEmitterError,
+      governedProposalEmitter: metadata.governedProposalEmitter ?? null,
       metadata: compactExecutionMetadata(agentId, updatedContext),
     },
   );
