@@ -51,7 +51,10 @@ export function SfiConsole({scene}:{scene:SceneKey}){
         {NAV.map(item=><Link key={item.key} href={item.href} className={current===item.key?'isActive':''}>{ui(SCENE_LABELS[item.key].label)}</Link>)}
       </nav>
       {current==='governance'&&<span className="srOnly" data-sfi-contract="GOVERNANCE QUEUE">{ui('COLA DE GOBERNANZA · COGNITIVE TWIN / ACP')}</span>}
-      <div className="sfiOperatingAccount"><span>{auth.identity?.alias||'ROOT'}</span><SessionControls/></div>
+      <div className="sfiOperatingAccount">
+        <span>{auth.identity?.alias||'ROOT'}{auth.identity?.displayTitle?` · ${auth.identity.displayTitle}`:''}</span>
+        <SessionControls/>
+      </div>
     </header>
     <SfiOperatingWorkspace enabled surface={current}/>
   </main>;
