@@ -15,10 +15,11 @@ const readModelPath = 'src/lib/method-lab/readModel.ts';
 const scenesPath = 'src/components/sfi/scenes.ts';
 const liveUiPath = 'src/components/sfi/SfiConsole.tsx';
 const operatingUiPath = 'src/components/sfi/SfiOperatingWorkspace.tsx';
+const governanceUiPath = 'src/components/sfi/SfiGovernanceWorkspace.tsx';
 const methodLabPagePath = 'src/app/method-lab/page.tsx';
 const methodLabHubPath = 'src/components/sfi/MethodLabNativeHub.tsx';
 
-for (const file of [runPath, routePath, readModelPath, scenesPath, liveUiPath, operatingUiPath, methodLabPagePath, methodLabHubPath]) {
+for (const file of [runPath, routePath, readModelPath, scenesPath, liveUiPath, operatingUiPath, governanceUiPath, methodLabPagePath, methodLabHubPath]) {
   assert(fs.existsSync(path.join(process.cwd(), file)), `missing:${file}`);
 }
 
@@ -28,6 +29,7 @@ const readModel = read(readModelPath);
 const scenes = read(scenesPath);
 const liveUi = read(liveUiPath);
 const operatingUi = read(operatingUiPath);
+const governanceUi = read(governanceUiPath);
 const methodLabPage = read(methodLabPagePath);
 const methodLabHub = read(methodLabHubPath);
 
@@ -62,8 +64,9 @@ assert(scenes.includes("root:{key:'root'"), 'root_scene_missing');
 assert(scenes.includes("twin:{key:'twin'"), 'twin_scene_missing');
 assert(/LEGACY_INTERNAL_SCENES=.*'falsification'.*'models'/s.test(scenes), 'legacy_falsification_models_absorption_missing');
 assert(liveUi.includes('COGNITIVE TWIN'), 'decision_transfer_twin_observability_missing');
-assert(operatingUi.includes('ACEPTAR') && operatingUi.includes('DENEGAR'), 'decision_transfer_authority_boundary_missing');
-assert(operatingUi.includes('PEDIR EVIDENCIA'), 'decision_transfer_evidence_boundary_missing');
+assert(operatingUi.includes('SfiGovernanceWorkspace'), 'decision_transfer_governance_delegation_missing');
+assert(governanceUi.includes('ACEPTAR') && governanceUi.includes('DENEGAR'), 'decision_transfer_authority_boundary_missing');
+assert(governanceUi.includes('PEDIR EVIDENCIA'), 'decision_transfer_evidence_boundary_missing');
 assert(methodLabPage.includes('MethodLabNativeHub'), 'decision_transfer_method_lab_surface_missing');
 assert(methodLabHub.includes('DECISION TRANSFER'), 'decision_transfer_native_observability_missing');
 
