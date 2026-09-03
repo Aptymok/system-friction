@@ -2,11 +2,18 @@ import { NextResponse } from 'next/server';
 import {
   createServerSupabaseClient,
   createServiceSupabaseClient,
+  getVerifiedServerUser,
+  SfiAuthUnavailableError,
 } from '@/runtime/supabase/server';
 import { findInstitutionalMember } from '@/lib/system/access/institutionalMembers';
 
 export const PRODUCTION_APP_URL =
   process.env.NEXT_PUBLIC_APP_URL || 'https://systemfriction.org';
+
+export const SFI_FOUNDER_IDENTITY = {
+  displayName: 'Juan Antonio Marín Liera',
+  title: 'Founder — System Friction Institute',
+} as const;
 
 export const ROOT_ENTITLEMENTS = {
   full_access: true,
@@ -16,6 +23,7 @@ export const ROOT_ENTITLEMENTS = {
   media_room: true,
   amv: true,
   experimental: true,
+  display_title: SFI_FOUNDER_IDENTITY.title,
 };
 
 export function isRootRole(role?: string | null) {
@@ -59,7 +67,7 @@ function isConfiguredRootEmail(email?: string | null) {
 
 function isRegisteredInstitutionalRootObserver(email?: string | null) {
   const member = findInstitutionalMember(email);
-  return Boolean(member && member.role === 'observer' && member.modules.root === true);
+  return Boolean(member && member.modules.root === true);
 }
 
 function hasSovereignRootAuthority(
@@ -91,17 +99,24 @@ export async function getServerUserContext() {
   const supabase = await createServerSupabaseClient();
   const service = createServiceSupabaseClient();
 
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
-
-  console.log('===== SUPABASE AUTH =====');
-  console.log({
-    user: user?.id ?? null,
-    email: user?.email ?? null,
-    error,
-  });
+  let user = null;
+  try {
+    user = await getVerifiedServerUser(supabase);
+  } catch (error) {
+    if (error instanceof SfiAuthUnavailableError) {
+      return {
+        supabase,
+        service,
+        user: null,
+        profile: null,
+        isRoot: false,
+        canObserveRoot: false,
+        authState: 'unavailable' as const,
+        authError: error.message,
+      };
+    }
+    throw error;
+  }
 
   if (!user) {
     return {
@@ -111,29 +126,46 @@ export async function getServerUserContext() {
       profile: null,
       isRoot: false,
       canObserveRoot: false,
+      authState: 'anonymous' as const,
+      authError: null,
     };
   }
 
-  let { data: profile } = await service
+  const profileRead = await service
     .from('profiles')
     .select('*')
     .eq('user_id', user.id)
     .maybeSingle();
+  let profile = profileRead.data;
+  const profileReadError = profileRead.error;
 
   const institutionalMember = findInstitutionalMember(user.email);
 
+  // A failed profile read is not evidence that the profile is absent. Never
+  // provision on top of an indeterminate read; that was the source of the
+  // duplicate profiles_pkey write storm observed during DB timeouts.
+  if (profileReadError) {
+    console.error('PROFILE READ ERROR', {
+      userId: user.id,
+      message: profileReadError.message,
+    });
+  }
+
   // Only explicitly recognized institutional identities may be provisioned here.
   // Unknown authenticated users must never become ROOT observers by fallback.
-  if (!profile && (isConfiguredRootEmail(user.email) || institutionalMember)) {
+  if (!profile && !profileReadError && (isConfiguredRootEmail(user.email) || institutionalMember)) {
     const role = isConfiguredRootEmail(user.email)
       ? 'root'
       : institutionalMember?.role ?? 'observer';
 
-    const alias = institutionalMember?.displayName ?? user.email?.split('@')[0] ?? 'observador';
+    const alias = isConfiguredRootEmail(user.email)
+      ? SFI_FOUNDER_IDENTITY.displayName
+      : institutionalMember?.displayName ?? user.email?.split('@')[0] ?? 'observador';
     const moduleAccess = role === 'root'
       ? ROOT_ENTITLEMENTS
       : institutionalMember
         ? {
+            display_title: institutionalMember.title,
             field: institutionalMember.modules.field,
             studio: institutionalMember.modules.studio,
             observatory: institutionalMember.modules.observatory,
@@ -187,6 +219,8 @@ export async function getServerUserContext() {
       isInstitutionalObserverRole(role) ||
       legacyRootWithoutAuthority ||
       registeredObserver,
+    authState: 'authenticated' as const,
+    authError: profileReadError?.message ?? null,
   };
 }
 
@@ -200,8 +234,10 @@ export async function ensureOwnedNode(
       ...ctx,
       node: null,
       error: NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
+        ctx.authState === 'unavailable'
+          ? { error: 'AUTH_UNAVAILABLE', message: 'Authentication is temporarily unavailable; the session was not invalidated.' }
+          : { error: 'Unauthorized' },
+        { status: ctx.authState === 'unavailable' ? 503 : 401 }
       ),
     };
   }
