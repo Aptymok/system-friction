@@ -21,7 +21,7 @@ async function jsonFetch(url:string,init?:RequestInit){const response=await fetc
 
 export function SfiGovernanceWorkspace({enabled}:{enabled:boolean}){
   const [runtime,setRuntime]=useState<Row|null>(null);
-  const [rootConsole,setRootConsole]=useState<Row|null>(null);
+  const [evidenceTargets,setEvidenceTargets]=useState<Row|null>(null);
   const [caseIndex,setCaseIndex]=useState<Row>({projects:[],cases:[]});
   const [workboard,setWorkboard]=useState<Row|null>(null);
   const [proposals,setProposals]=useState<Row[]>([]);
@@ -52,8 +52,8 @@ export function SfiGovernanceWorkspace({enabled}:{enabled:boolean}){
   const [notice,setNotice]=useState<string|null>(null);
 
   const loadBase=useCallback(async()=>{if(!enabled)return;try{
-    const [rt,root,ci,wb]=await Promise.all([jsonFetch('/api/root/cognitive-runtime'),jsonFetch('/api/root/console'),jsonFetch('/api/cases'),jsonFetch('/api/root/workboard')]);
-    setRuntime(rt);setRootConsole(root);setCaseIndex({projects:ci.projects??[],cases:ci.cases??[]});setWorkboard(wb.workboard??{});
+    const [rt,evidence,ci,next]=await Promise.all([jsonFetch('/api/root/cognitive-runtime'),jsonFetch('/api/root/evidence/targets'),jsonFetch('/api/cases'),jsonFetch('/api/root/operational-next')]);
+    setRuntime(rt);setEvidenceTargets(evidence);setCaseIndex({projects:ci.projects??[],cases:ci.cases??[]});setWorkboard({operationalNext:next.operationalNext??{}});
     try{const pr=await jsonFetch('/api/acp/proposals');setProposals(pr.data?.proposals??[]);setProposalReadState('READY');setProposalReadError(null)}catch(cause){setProposalReadState('DEGRADED');setProposalReadError(cause instanceof Error?cause.message:String(cause))}
     setError(null);
   }catch(cause){setError(cause instanceof Error?cause.message:String(cause))}},[enabled]);
@@ -67,7 +67,7 @@ export function SfiGovernanceWorkspace({enabled}:{enabled:boolean}){
   }catch(cause){setError(cause instanceof Error?cause.message:String(cause))}},[enabled]);
 
   useEffect(()=>{void loadBase();const timer=window.setInterval(()=>void loadBase(),30000);return()=>window.clearInterval(timer)},[loadBase]);
-  useEffect(()=>{void loadDossier(agentId);const timer=window.setInterval(()=>void loadDossier(agentId),30000);return()=>window.clearInterval(timer)},[agentId,loadDossier]);
+  useEffect(()=>{const initial=window.setTimeout(()=>void loadDossier(agentId),1200);const timer=window.setInterval(()=>void loadDossier(agentId),60000);return()=>{window.clearTimeout(initial);window.clearInterval(timer)}},[agentId,loadDossier]);
 
   const agents=arr(runtime?.agents);
   const contracts=arr(runtime?.executionContracts);
@@ -79,8 +79,8 @@ export function SfiGovernanceWorkspace({enabled}:{enabled:boolean}){
   const projects=arr(caseIndex.projects);
   const cases=arr(caseIndex.cases);
   const cycles=arr(workboard?.operationalNext?.cycles);
-  const evidenceEntries=arr(rootConsole?.state?.evidence?.data?.entries);
-  const evidenceNodes=arr(rootConsole?.state?.evidence?.data?.nodes);
+  const evidenceEntries=arr(evidenceTargets?.evidence?.entries);
+  const evidenceNodes=arr(evidenceTargets?.evidence?.nodes);
   const allowedTargetKinds=strings(contract?.allowedTargetKinds);
   const allowedAnchorKinds=strings(contract?.allowedAnchorKinds);
   const requiredParameters=strings(contract?.requiredParameters);
