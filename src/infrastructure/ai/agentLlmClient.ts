@@ -6,6 +6,11 @@ import type { StudioTwinContext } from '@/core/cognitive-twin/studioContext';
 import { readStudioTwinContext } from '@/core/cognitive-twin/studioContext';
 import { SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY } from '@/lib/sfi/cognitive-runtime/convergedRegistry';
 import { executionContractForAgent } from '@/lib/sfi/cognitive-runtime/executionContracts';
+import {
+  compactObservedGenAiTelemetry,
+  mapGenAiTelemetryToOpenTelemetry,
+  normalizeObservedGenAiTelemetry,
+} from '@/lib/sfi/cognitive-runtime/genAiTelemetry';
 import type { KernelContext } from '@/lib/sfi/cognitive-runtime/kernelContext';
 
 type AgentInsight = {
@@ -280,6 +285,14 @@ export async function augmentAgentWithLlm(agentId: string, context: KernelContex
     requirements,
     maxTokens: MAX_AGENT_OUTPUT_TOKENS,
   });
+  const telemetry = normalizeObservedGenAiTelemetry({
+    ok: result.ok,
+    provider: result.provider,
+    model: result.model,
+    usage: result.usage,
+    latencyMs: result.latency_ms,
+  });
+  const telemetryOpenTelemetry = mapGenAiTelemetryToOpenTelemetry(telemetry);
   const parsed = result.ok ? parseInsight(result.result) : null;
   const generatedAt = new Date().toISOString();
   const insight: AgentInsight = parsed
@@ -347,9 +360,8 @@ export async function augmentAgentWithLlm(agentId: string, context: KernelContex
       promptProjection: `AGENT_SPECIFIC:${agentId}`,
       maxPromptCharacters: MAX_PROMPT_CHARS,
       maxOutputTokens: MAX_AGENT_OUTPUT_TOKENS,
-      observedInputTokens: null,
-      observedOutputTokens: null,
-      observedProviderCost: null,
+      ...compactObservedGenAiTelemetry(telemetry),
+      telemetryOpenTelemetry,
       updatedAt: generatedAt,
     },
   };
