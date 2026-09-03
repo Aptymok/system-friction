@@ -10,6 +10,7 @@ const route = read('src/app/api/root/cognitive-spine/status/route.ts');
 const scenes = read('src/components/sfi/scenes.ts');
 const liveUi = read('src/components/sfi/SfiConsole.tsx');
 const operatingUi = read('src/components/sfi/SfiOperatingWorkspace.tsx');
+const governanceUi = read('src/components/sfi/SfiGovernanceWorkspace.tsx');
 const scenePage = read('src/app/[scene]/page.tsx');
 const anatomy = read('src/components/root/cognitive-spine/CognitiveSpineAnatomy.tsx');
 const park = read('src/components/sfi/CognitiveSpinePark.tsx');
@@ -33,12 +34,13 @@ assert.ok(route.includes("requireRootViewer('root.cognitive-spine.status')"), 'r
 assert.ok(route.includes("'Cache-Control': 'no-store'"), 'root_ct_status_endpoint_cache_boundary_missing');
 
 // ROOT stays on the canonical live-scene runtime. Method Lab is not an owner of this projection.
-// Follow the current capability owners rather than a retired pre-convergence component location.
+// Governance capabilities are delegated to SfiGovernanceWorkspace rather than duplicated in the operating shell.
 assert.ok(scenes.includes("root:{key:'root'"), 'root_live_scene_missing');
 assert.ok(scenes.includes("title:'Observatorio de Fricción'"), 'root_live_scene_semantics_missing');
 assert.ok(liveUi.includes('COGNITIVE TWIN'), 'root_live_scene_twin_observability_missing');
-assert.ok(operatingUi.includes("jsonFetch('/api/acp/proposals')") && operatingUi.includes('setProposals'), 'root_operating_workspace_proposal_feed_missing');
-assert.ok(operatingUi.includes('ACEPTAR') && operatingUi.includes('DENEGAR') && operatingUi.includes('PEDIR EVIDENCIA'), 'root_operating_workspace_governance_controls_missing');
+assert.ok(operatingUi.includes('SfiGovernanceWorkspace'), 'root_operating_workspace_governance_delegate_missing');
+assert.ok(governanceUi.includes("jsonFetch('/api/acp/proposals')") && governanceUi.includes('setProposals'), 'root_governance_workspace_proposal_feed_missing');
+assert.ok(governanceUi.includes('ACEPTAR') && governanceUi.includes('DENEGAR') && governanceUi.includes('PEDIR EVIDENCIA'), 'root_governance_workspace_controls_missing');
 assert.ok(scenePage.includes('SCENE_KEYS.includes'), 'dynamic_scene_gate_missing');
 assert.ok(scenePage.includes('<SfiConsole') && scenePage.includes('scene={scene as SceneKey}'), 'dynamic_scene_runtime_missing');
 
