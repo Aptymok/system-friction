@@ -17,6 +17,11 @@ export type SfiReportClaimLineageV1 = {
   refutationConditions: string[];
 };
 
+export type SfiRenderedReportClaimLineageV1 = SfiReportClaimLineageV1 & {
+  evidenceRefs: SfiCanonicalRef[];
+  confidence: number | null;
+};
+
 export type SfiReportClaimV1 = {
   id: string;
   statement: string;
@@ -30,7 +35,7 @@ export type SfiReportClaimV1 = {
 };
 
 export type SfiRenderedReportClaimV1 = Omit<SfiReportClaimV1, 'lineage'> & {
-  lineage: SfiReportClaimLineageV1;
+  lineage: SfiRenderedReportClaimLineageV1;
 };
 
 export type SfiReportV1 = {
