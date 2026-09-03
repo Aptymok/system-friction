@@ -39,6 +39,15 @@ function existingProposalKeys(rows: unknown[]) {
   return keys;
 }
 
+function publishEmitterState(context: KernelContext, state: Row) {
+  context.metadata = {
+    ...context.metadata,
+    governedProposalEmitter: state,
+    cognitiveProposalBridge: state,
+  };
+  return context;
+}
+
 export async function emitGovernedProposalsFromAgentInsight(agentId: string, context: KernelContext): Promise<KernelContext> {
   if (!ELIGIBLE_AGENTS.has(agentId)) return context;
 
@@ -62,24 +71,20 @@ export async function emitGovernedProposalsFromAgentInsight(agentId: string, con
   };
 
   if (!interventions.length || !systemicMechanism || !actorId || material.length === 0 || (contradictionRequiresRivals && rivalCauses.length < 2)) {
-    context.metadata = {
-      ...context.metadata,
-      governedProposalEmitter: {
-        ...baseStatus,
-        persisted: [],
-        skipped: true,
-        reason: !interventions.length
-          ? 'NO_STRUCTURED_INTERVENTION'
-          : !systemicMechanism
-            ? 'SYSTEMIC_MECHANISM_REQUIRED'
-            : !actorId
-              ? 'GOVERNED_ACTOR_REQUIRED'
-              : material.length === 0
-                ? 'MATERIAL_EVIDENCE_REQUIRED'
-                : 'RIVAL_CAUSES_REQUIRED_FOR_CONTRADICTION',
-      },
-    };
-    return context;
+    return publishEmitterState(context, {
+      ...baseStatus,
+      persisted: [],
+      skipped: true,
+      reason: !interventions.length
+        ? 'NO_STRUCTURED_INTERVENTION'
+        : !systemicMechanism
+          ? 'SYSTEMIC_MECHANISM_REQUIRED'
+          : !actorId
+            ? 'GOVERNED_ACTOR_REQUIRED'
+            : material.length === 0
+              ? 'MATERIAL_EVIDENCE_REQUIRED'
+              : 'RIVAL_CAUSES_REQUIRED_FOR_CONTRADICTION',
+    });
   }
 
   const existing = await latestActionProposals(['COGNITIVE_INTERVENTION_CANDIDATE'], 100);
@@ -161,17 +166,13 @@ export async function emitGovernedProposalsFromAgentInsight(agentId: string, con
     knownKeys.add(proposalKey);
   }
 
-  context.metadata = {
-    ...context.metadata,
-    governedProposalEmitter: {
-      ...baseStatus,
-      persisted,
-      rejected,
-      skipped: false,
-      proposalType: 'COGNITIVE_INTERVENTION_CANDIDATE',
-      persistedCount: persisted.length,
-      rule: 'Only structurally complete, evidence-linked and falsifiable interventions become governed proposals. Proposal persistence never grants execution authority.',
-    },
-  };
-  return context;
+  return publishEmitterState(context, {
+    ...baseStatus,
+    persisted,
+    rejected,
+    skipped: false,
+    proposalType: 'COGNITIVE_INTERVENTION_CANDIDATE',
+    persistedCount: persisted.length,
+    rule: 'Only structurally complete, evidence-linked and falsifiable interventions become governed proposals. Proposal persistence never grants execution authority.',
+  });
 }
