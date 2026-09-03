@@ -16,6 +16,7 @@ const methodLab = read('src/lib/method-lab/readModel.ts');
 const scenes = read('src/components/sfi/scenes.ts');
 const liveUi = read('src/components/sfi/SfiConsole.tsx');
 const operatingUi = read('src/components/sfi/SfiOperatingWorkspace.tsx');
+const governanceUi = read('src/components/sfi/SfiGovernanceWorkspace.tsx');
 const externalLab = read('src/app/api/external/v1/lab/route.ts');
 const canon = read('docs/canon/16_LONGITUDINAL_SYSTEM_FRICTION_PROGRAM.md');
 const phiCanon = read('docs/MIHM_PHI_CANON.md');
@@ -46,14 +47,16 @@ assert.match(journal, /privateReasoningPersisted: false/);
 assert.doesNotMatch(journal, /reasoningTrace\s*:|hiddenReasoning\s*:|rawChainOfThought\s*:/i);
 
 // Dedicated legacy IDENTITY/Twin dashboards were absorbed. The canonical operator
-// projection is ROOT + TWIN/SPINE; lineage/experiment truth remains in core/API.
+// projection is ROOT + TWIN/SPINE; governance controls live in the delegated
+// SfiGovernanceWorkspace rather than being duplicated in SfiOperatingWorkspace.
 assert.ok(scenes.includes("root:{key:'root'"), 'root_live_scene_missing');
 assert.ok(scenes.includes("twin:{key:'twin'"), 'twin_spine_live_scene_missing');
 assert.match(scenes, /LEGACY_INTERNAL_SCENES=.*'identity'/, 'identity_legacy_absorption_must_be_explicit');
 assert.ok(liveUi.includes('COGNITIVE TWIN'), 'cognitive_twin_live_observability_missing');
-assert.ok(operatingUi.includes("jsonFetch('/api/acp/proposals')"), 'cognitive_twin_proposals_not_governed');
-assert.ok(operatingUi.includes('ACEPTAR') && operatingUi.includes('DENEGAR'), 'root_twin_decision_controls_missing');
-assert.ok(operatingUi.includes('PEDIR EVIDENCIA'), 'root_twin_evidence_deferral_missing');
+assert.ok(operatingUi.includes('SfiGovernanceWorkspace'), 'cognitive_twin_governance_delegation_missing');
+assert.ok(governanceUi.includes("jsonFetch('/api/acp/proposals')"), 'cognitive_twin_proposals_not_governed');
+assert.ok(governanceUi.includes('ACEPTAR') && governanceUi.includes('DENEGAR'), 'root_twin_decision_controls_missing');
+assert.ok(governanceUi.includes('PEDIR EVIDENCIA'), 'root_twin_evidence_deferral_missing');
 assert.ok(externalLab.includes("operation === 'report'") || externalLab.includes("case 'report'"), 'external_lab_report_surface_missing');
 
 assert.match(experiments, /SFI-CT-SNAPSHOT-1\.0/);
