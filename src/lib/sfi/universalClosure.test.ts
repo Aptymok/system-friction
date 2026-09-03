@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { assessUniversalClosure } from './universalClosure';
 
+// Regression boundary: closing a cycle must not require the caller to repeat
+// disposition fields that are already persisted in the latest RETURN outcome.
 function historyWithReturn(outcome: Record<string, unknown>) {
   return {
     cycleId: 'ce563b2a-3715-49ce-8806-1cc051f6ad71',
