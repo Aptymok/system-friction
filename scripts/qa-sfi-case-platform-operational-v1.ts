@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { strict as assert } from 'node:assert';
 import {
+  assembleSfiReportV1,
   assessSfiInstrumentAccess,
   createSfiCaseV1,
   normalizeSfiCaseSourceIntake,
@@ -17,6 +18,11 @@ async function main() {
   const casesRoute = await text('src/app/api/cases/route.ts');
   const objectsRoute = await text('src/app/api/cases/[caseId]/objects/route.ts');
   const reportsRoute = await text('src/app/api/cases/[caseId]/reports/route.ts');
+  const epistemicContract = await text('src/core/contracts/epistemic.ts');
+  const reportContract = await text('src/core/contracts/report.ts');
+  const reportAssembler = await text('src/core/case-platform/reportAssembler.ts');
+  const reportIntegrity = await text('src/lib/sfi/case-platform/integrity.ts');
+  const executionRecords = await text('src/lib/sfi/cognitive-runtime/executionRecords.ts');
 
   for (const table of ['sfi_tenants','sfi_tenant_members','sfi_cases','sfi_case_objects','sfi_case_reports','sfi_case_audit_events']) {
     assert(migration.includes(`public.${table}`), `missing operational table ${table}`);
@@ -40,6 +46,30 @@ async function main() {
   assert(objectsRoute.includes('cannot create EVIDENCE'), 'client epistemic boundary must be explicit');
   assert(reportsRoute.includes('requireSfiMember'), 'report generation must remain institutional in Operational V1');
   assert(reportsRoute.includes('executionAuthority: false'), 'report API must not expose action authority');
+
+  // M4: output relation vocabulary belongs to the canonical epistemic contract and
+  // report lineage is enforced by the existing Case Platform owner, not a second graph/writer.
+  for (const relation of ['OBSERVATION','DERIVED','INFERENCE','HYPOTHESIS','PROJECTION','RECOMMENDATION','NOT_EXECUTED']) {
+    assert(epistemicContract.includes(`'${relation}'`), `missing epistemic output relation ${relation}`);
+  }
+  assert(epistemicContract.includes('SFI_EPISTEMIC_OUTPUT_RELATIONS'), 'canonical epistemic output vocabulary missing');
+  assert(reportContract.includes('SfiRenderedReportClaimLineageV1'), 'rendered claim lineage edge contract missing');
+  assert(reportContract.includes('evidenceRefs: SfiCanonicalRef[]'), 'claim edge must preserve evidence refs');
+  assert(reportContract.includes('confidence: number | null'), 'claim edge must preserve confidence');
+  assert(reportsRoute.includes('lineageSchema'), 'report route must accept explicit execution lineage');
+  assert(reportsRoute.includes('SFI_EPISTEMIC_OUTPUT_RELATIONS'), 'report route must reuse canonical output relation vocabulary');
+  assert(reportsRoute.includes('assertReportClaimsIntegrity'), 'report route must enforce lineage integrity before persistence');
+  assert(reportAssembler.includes('evidenceRefs: claim.evidenceRefs'), 'rendered claim edge must copy evidence refs from the claim');
+  assert(reportAssembler.includes('confidence: claim.confidence'), 'rendered claim edge must copy confidence from the claim');
+  assert(reportAssembler.includes("outputRelation: 'NOT_EXECUTED'"), 'claims without execution lineage must render NOT_EXECUTED');
+  assert(reportAssembler.includes("'INSUFFICIENT' : 'UNSUPPORTED'"), 'unsupported claim rendering boundary missing');
+  assert(reportIntegrity.includes('evidenceReachesClaimedSource'), 'report integrity must prove EVIDENCE to SOURCE lineage');
+  assert(reportIntegrity.includes('readExecutionRecords'), 'report integrity must resolve the existing execution-record projection');
+  assert(reportIntegrity.includes('SFI_REPORT_EXECUTION_NOT_OBSERVED_IN_BOUNDED_WINDOW'), 'bounded execution absence must remain NOT_OBSERVED');
+  assert(reportIntegrity.includes('SFI_REPORT_EVIDENCE_SOURCE_LINEAGE_NOT_ESTABLISHED'), 'evidence/source lineage failure must be explicit');
+  assert(reportIntegrity.includes('SFI_REPORT_CONTRADICTED_CLAIM_REQUIRES_CONTRADICTION'), 'contradicted claims must require contradiction refs');
+  assert(executionRecords.includes('requestedOutputsObservation'), 'execution records must expose whether output classes were observed');
+  assert(executionRecords.includes("hasObservedRequestedOutputs ? 'OBSERVED' : 'NOT_OBSERVED'"), 'unobserved output taxonomy must remain NOT_OBSERVED');
 
   const caseRecord = createSfiCaseV1({
     id: 'case-operational-qa',
@@ -103,6 +133,57 @@ async function main() {
   });
   assert(evidenceViolations.includes('CASE_EVIDENCE_REQUIRES_SOURCE_OR_RECORD_LINEAGE'));
 
+  const unsupportedReport = assembleSfiReportV1({
+    id: 'report-m4-unsupported',
+    caseRecord,
+    generatedAt: '2026-09-03T00:30:00Z',
+    claims: [{
+      id: 'claim-no-execution',
+      statement: 'A claim without observed execution lineage must remain insufficient.',
+      assessmentRef: { id: 'assessment:qa' },
+      evidenceRefs: [{ id: 'evidence:qa' }],
+      recordRefs: [],
+      sourceRefs: [{ id: 'source:qa' }],
+      determinability: 'UNDETERMINED',
+      confidence: null,
+    }],
+  });
+  assert.equal(unsupportedReport.claims[0]?.lineage.executionRef, null);
+  assert.equal(unsupportedReport.claims[0]?.lineage.outputRelation, 'NOT_EXECUTED');
+  assert.equal(unsupportedReport.claims[0]?.lineage.support, 'INSUFFICIENT');
+  assert.deepEqual(unsupportedReport.claims[0]?.lineage.evidenceRefs, [{ id: 'evidence:qa' }]);
+  assert.equal(unsupportedReport.claims[0]?.lineage.confidence, null);
+  assert(unsupportedReport.limitations.some((item) => item.includes('UNSUPPORTED or INSUFFICIENT')));
+
+  const tracedReport = assembleSfiReportV1({
+    id: 'report-m4-traced',
+    caseRecord,
+    generatedAt: '2026-09-03T00:31:00Z',
+    claims: [{
+      id: 'claim-traced',
+      statement: 'A typed inference claim preserves edge evidence, contradiction, confidence and refutation conditions.',
+      assessmentRef: { id: 'assessment:traced' },
+      evidenceRefs: [{ id: 'evidence:traced' }],
+      recordRefs: [{ id: 'record:traced' }],
+      sourceRefs: [{ id: 'source:traced' }],
+      determinability: 'PARTIALLY_DETERMINED',
+      confidence: 0.64,
+      lineage: {
+        executionRef: { id: 'execution:traced' },
+        outputRelation: 'INFERENCE',
+        support: 'PARTIALLY_SUPPORTED',
+        contradictionRefs: [{ id: 'contradiction:traced' }],
+        refutationConditions: ['A stronger contradictory source would invalidate the claim.'],
+      },
+    }],
+  });
+  const tracedLineage = tracedReport.claims[0]?.lineage;
+  assert.equal(tracedLineage?.outputRelation, 'INFERENCE');
+  assert.deepEqual(tracedLineage?.evidenceRefs, [{ id: 'evidence:traced' }]);
+  assert.deepEqual(tracedLineage?.contradictionRefs, [{ id: 'contradiction:traced' }]);
+  assert.equal(tracedLineage?.confidence, 0.64);
+  assert.deepEqual(tracedLineage?.refutationConditions, ['A stronger contradictory source would invalidate the claim.']);
+
   console.log(JSON.stringify({
     ok: true,
     contract: 'SFI-CASE-PLATFORM-OPERATIONAL-1.0',
@@ -112,6 +193,11 @@ async function main() {
     reportExecutionAuthority: false,
     institutionalMemoryDirectWrite: false,
     requiredSourceGate: true,
+    m4OutputRelationsTyped: true,
+    m4UnsupportedClaimRendering: unsupportedReport.claims[0]?.lineage.support,
+    m4EdgeEvidencePreserved: tracedLineage?.evidenceRefs.length === 1,
+    m4EdgeConfidencePreserved: tracedLineage?.confidence === 0.64,
+    m4NoNewPersistenceOwner: true,
   }, null, 2));
 }
 

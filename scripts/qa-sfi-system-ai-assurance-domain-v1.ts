@@ -89,9 +89,9 @@ assert(readModel.includes("object.kind==='RECOMMENDATION'&&isSystemAiDomainPaylo
 assert(readModel.includes('const actions=allActions.filter'),'unrelated case action proposals must not leak into System/AI action state');
 assert(integrity.includes('SFI_SYSTEM_AI_ENTITY_REFERENCE_NOT_FOUND'));
 assert(integrity.includes('SFI_CASE_SERVICE_PROFILE_FORBIDDEN'));
-assert(integrity.includes('domainContract:SFI_SYSTEM_AI_ASSURANCE_DOMAIN_CONTRACT'),'System/AI entity references must require domain identity');
+assert(/domainContract\s*:\s*SFI_SYSTEM_AI_ASSURANCE_DOMAIN_CONTRACT/.test(integrity),'System/AI entity references must require domain identity');
 assert(integrity.includes('expectedVersion'),'canonical reference integrity must validate a supplied version');
-assert(integrity.includes('refVersion(row.canonical_ref)!==expectedVersion'),'case refs with nonexistent revisions must fail closed');
+assert(/refVersion\(row\.canonical_ref\)\s*!==\s*expectedVersion/.test(integrity),'case refs with nonexistent revisions must fail closed');
 assert(enterpriseRepository.includes(".in('relation_type', [...SFI_ENTERPRISE_RELATION_TYPES])"),'enterprise read model must not absorb system/AI relations');
 assert(enterpriseRepository.includes('assertCaseServiceProfileAllowed'),'enterprise relation repository must be profile-routed');
 assert(enterpriseIntake.includes("['SERVICE_OBSERVABILITY','ENTERPRISE_MEMORY','CUSTOM_RESEARCH']"),'ticket intake must route to service observability');

@@ -150,6 +150,7 @@ export async function runCognitiveAgent(
       purpose: executionRequest?.purpose ?? metadata.objective ?? metadata.question ?? null,
       anchors: executionRequest?.anchors ?? metadata.anchors ?? [],
       targets: executionRequest?.targets ?? metadata.targets ?? [],
+      requestedOutputs: Array.isArray(executionRequest?.requestedOutputs) ? executionRequest.requestedOutputs : null,
       governanceContext: executionRequest?.governanceContext ?? null,
       epistemicBoundary: metadata.epistemicBoundary ?? null,
       logbookId: updatedContext.logbookId,

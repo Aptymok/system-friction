@@ -1,6 +1,8 @@
 import {
   SFI_REPORT_CONTRACT,
   type SfiReportClaimV1,
+  type SfiRenderedReportClaimV1,
+  type SfiReportClaimLineageV1,
   type SfiReportDeliveryFormat,
   type SfiReportV1,
   type SfiCaseV1,
@@ -17,6 +19,29 @@ export type AssembleSfiReportV1Input = {
   limitations?: string[];
 };
 
+function normalizeLineage(claim: SfiReportClaimV1): SfiReportClaimLineageV1 {
+  if (claim.lineage) return claim.lineage;
+  return {
+    executionRef: null,
+    outputRelation: 'NOT_EXECUTED',
+    support: claim.determinability === 'UNDETERMINED' ? 'INSUFFICIENT' : 'UNSUPPORTED',
+    contradictionRefs: [],
+    refutationConditions: [],
+  };
+}
+
+function renderClaim(claim: SfiReportClaimV1): SfiRenderedReportClaimV1 {
+  const lineage = normalizeLineage(claim);
+  return {
+    ...claim,
+    lineage: {
+      ...lineage,
+      evidenceRefs: claim.evidenceRefs,
+      confidence: claim.confidence,
+    },
+  };
+}
+
 export function assembleSfiReportV1(input: AssembleSfiReportV1Input): SfiReportV1 {
   const caseViolations = validateSfiCaseV1(input.caseRecord);
   if (caseViolations.length) {
@@ -25,6 +50,16 @@ export function assembleSfiReportV1(input: AssembleSfiReportV1Input): SfiReportV
 
   const deliveryFormats = input.deliveryFormats ?? ['JSON'];
   if (deliveryFormats.length === 0) throw new Error('SFI_REPORT_DELIVERY_REQUIRED');
+
+  const sourceClaims = input.claims ?? [];
+  const claims = sourceClaims.map(renderClaim);
+  const missingExecutionLineage = sourceClaims.some((claim) => !claim.lineage);
+  const limitations = [
+    ...(input.limitations ?? []),
+    ...(missingExecutionLineage
+      ? ['Claims without observed execution lineage are rendered UNSUPPORTED or INSUFFICIENT; evidence references alone do not establish execution provenance.']
+      : []),
+  ];
 
   return {
     contract: SFI_REPORT_CONTRACT,
@@ -42,8 +77,8 @@ export function assembleSfiReportV1(input: AssembleSfiReportV1Input): SfiReportV
     recommendationRefs: input.caseRecord.recommendationRefs,
     interventionRefs: input.caseRecord.interventionRefs,
     returnRefs: input.caseRecord.returnRefs,
-    claims: input.claims ?? [],
-    limitations: input.limitations ?? [],
+    claims,
+    limitations,
     deliveryFormats,
     executionAuthority: false,
     governanceDecisionRefs: input.caseRecord.governance.governanceDecisionRefs,
