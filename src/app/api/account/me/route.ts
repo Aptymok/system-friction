@@ -6,6 +6,13 @@ export const runtime = 'nodejs';
 
 export async function GET() {
   const ctx = await getServerUserContext();
+  if (ctx.authState === 'unavailable') {
+    return NextResponse.json({
+      ok: false,
+      error: 'AUTH_UNAVAILABLE',
+      details: ctx.authError ?? 'Authentication verification is temporarily unavailable.',
+    }, { status: 503, headers: { 'Cache-Control': 'no-store' } });
+  }
   if (!ctx.user) {
     return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
   }
