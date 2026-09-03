@@ -263,7 +263,7 @@ async function readMemberWorkspaceCounts(supabase: Awaited<ReturnType<typeof cre
 function authFailureRedirect(error: AccessDeniedError, nextPath: string) {
   const encoded = encodeURIComponent(nextPath);
   if (error.status === 401) redirect(`/login?next=${encoded}`);
-  if (error.status === 503) redirect(`/login?error=auth_temporarily_unavailable&next=${encoded}`);
+  if (error.status === 503) redirect(`/auth-unavailable?next=${encoded}`);
 }
 
 export async function requireSfiMemberPage(nextPath = '/member') {

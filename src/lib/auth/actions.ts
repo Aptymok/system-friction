@@ -10,10 +10,15 @@ function formValue(formData: FormData, key: string) {
 }
 
 function safeInternalRedirect(value: string) {
-  if (!value) return '/field'
-  if (!value.startsWith('/')) return '/field'
-  if (value.startsWith('//')) return '/field'
-  if (value.startsWith('/login') || value.startsWith('/signup') || value.startsWith('/verify')) return '/field'
+  if (!value) return '/entry'
+  if (!value.startsWith('/')) return '/entry'
+  if (value.startsWith('//')) return '/entry'
+  if (
+    value.startsWith('/login') ||
+    value.startsWith('/signup') ||
+    value.startsWith('/verify') ||
+    value.startsWith('/auth-unavailable')
+  ) return '/entry'
   return value
 }
 
@@ -22,7 +27,7 @@ function record(value: unknown): Record<string, unknown> {
 }
 
 async function resolvePostLoginPath(userId: string, requestedNext: string) {
-  if (requestedNext !== '/field') return requestedNext
+  if (requestedNext !== '/entry') return requestedNext
   const service = createServiceSupabaseClient()
   const { data: profile } = await service
     .from('profiles')
@@ -31,8 +36,9 @@ async function resolvePostLoginPath(userId: string, requestedNext: string) {
     .maybeSingle()
   const role = typeof profile?.role === 'string' ? profile.role : null
   const access = record(profile?.module_access)
-  if (role === 'observer' && (access.root === true || access.root_observe === true)) return '/root'
-  return requestedNext
+  const rootObserverRole = role === 'root' || role === 'system' || role === 'observer' || role === 'controller'
+  if (rootObserverRole && (access.root === true || access.root_observe === true || access.full_access === true)) return '/root'
+  return '/field'
 }
 
 export async function registerAction(formData: FormData) {
@@ -45,7 +51,7 @@ export async function registerAction(formData: FormData) {
 
   const supabase = await createServerSupabaseClient()
   if (!supabase) redirect(`/signup?error=supabase_no_configurado&next=${encodeURIComponent(next)}`)
-  const origin = process.env.NEXT_PUBLIC_APP_URL || 'https://systemfriction.org'
+  const origin = process.env.NEXT_PUBLIC_APP_URL || 'https://www.systemfriction.org'
   const { error } = await supabase.auth.signUp({
     email: parsed.data.email,
     password: parsed.data.password,
@@ -77,7 +83,7 @@ export async function forgotPasswordAction(formData: FormData) {
   if (!limit.allowed) redirect('/forgot?error=rate_limit')
   const supabase = await createServerSupabaseClient()
   if (!supabase) redirect('/forgot?error=supabase_no_configurado')
-  const origin = process.env.NEXT_PUBLIC_APP_URL || 'https://systemfriction.org'
+  const origin = process.env.NEXT_PUBLIC_APP_URL || 'https://www.systemfriction.org'
   await supabase.auth.resetPasswordForEmail(email, { redirectTo: `${origin}/reset` })
   redirect('/forgot?state=sent')
 }
@@ -90,7 +96,7 @@ export async function resetPasswordAction(formData: FormData) {
   if (!supabase) redirect('/reset?error=supabase_no_configurado')
   const { error } = await supabase.auth.updateUser({ password })
   if (error) redirect(`/reset?error=${encodeURIComponent(error.message)}`)
-  redirect('/field')
+  redirect('/entry')
 }
 
 export async function logoutAction() {
