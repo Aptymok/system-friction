@@ -24,10 +24,12 @@ on:
       - 'supabase/migrations/*oauth*'
       - 'supabase/migrations/*personal_cognitive*'
       - 'public/openapi.json'
+      - 'scripts/merge-openapi-cases.mjs'
       - 'scripts/qa-sfi-external-oauth.ts'
       - 'scripts/qa-sfi-host-bound-openapi.ts'
       - 'scripts/qa-sfi-oauth-integrations.ts'
       - 'scripts/qa-sfi-cognitive-automation-workspaces.ts'
+      - 'scripts/qa-sfi-agent-api-hardening.ts'
       - '.github/workflows/sfi-external-oauth.yml'
   workflow_dispatch:
 
@@ -63,6 +65,9 @@ jobs:
 
       - name: Verify cognitive automation and personal workspace closure
         run: npx tsx scripts/qa-sfi-cognitive-automation-workspaces.ts
+
+      - name: Verify agent API integrations and hardening
+        run: node scripts/merge-openapi-cases.mjs && npx tsx scripts/qa-sfi-agent-api-hardening.ts
 
       - name: Typecheck
         run: npm run typecheck
