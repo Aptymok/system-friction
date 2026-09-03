@@ -24,10 +24,25 @@ const ROOT_INTERNAL_FRAME_PREFIXES = [
 ] as const
 
 type ModuleAccess = Record<string, unknown> | null | undefined
+type SessionIdentity = { id: string; email: string | null }
 
-function isRefreshTokenMissing(error: unknown) {
-  const message = error instanceof Error ? error.message : String(error || '')
-  return message.toLowerCase().includes('refresh token not found') || message.toLowerCase().includes('refresh_token_not_found')
+function authErrorText(error: unknown) {
+  if (error instanceof Error) return error.message
+  if (error && typeof error === 'object' && 'message' in error) {
+    return String((error as { message?: unknown }).message ?? '')
+  }
+  return String(error || '')
+}
+
+function isMissingSessionError(error: unknown) {
+  const message = authErrorText(error).toLowerCase()
+  return (
+    message.includes('auth session missing') ||
+    message.includes('session missing') ||
+    message.includes('refresh token not found') ||
+    message.includes('refresh_token_not_found') ||
+    message.includes('invalid refresh token')
+  )
 }
 
 function clearSupabaseAuthCookies(response: NextResponse, request: NextRequest) {
@@ -81,11 +96,21 @@ function isStudioRouteUser(
   return Boolean(email && allowed.includes(email.toLowerCase()))
 }
 
+function requestedPath(request: NextRequest) {
+  return `${request.nextUrl.pathname}${request.nextUrl.search}`
+}
+
 function redirectToLoginWithNext(request: NextRequest, error?: string) {
   const loginUrl = new URL('/login', request.url)
-  loginUrl.searchParams.set('next', `${request.nextUrl.pathname}${request.nextUrl.search}`)
+  loginUrl.searchParams.set('next', requestedPath(request))
   if (error) loginUrl.searchParams.set('error', error)
   return NextResponse.redirect(loginUrl)
+}
+
+function redirectToAuthUnavailable(request: NextRequest) {
+  const unavailableUrl = new URL('/auth-unavailable', request.url)
+  unavailableUrl.searchParams.set('next', requestedPath(request))
+  return NextResponse.redirect(unavailableUrl)
 }
 
 function isLocalStudioBypass(request: NextRequest) {
@@ -149,28 +174,37 @@ export async function proxy(request: NextRequest) {
     },
   })
 
-  let user = null
+  // Do not call /auth/v1/user on every protected navigation. In production that
+  // endpoint has shown intermittent 500/504 responses and long latency. getClaims()
+  // verifies the signed access token (and refreshes only when actually necessary),
+  // reducing both remote verification pressure and false logout transitions.
+  let identity: SessionIdentity | null = null
   let authUnavailable = false
   try {
-    const result = await supabase.auth.getUser()
-    user = result.data.user
-    if (result.error && isRefreshTokenMissing(result.error)) {
+    const result = await supabase.auth.getClaims()
+    const claims = result.data?.claims as Record<string, unknown> | undefined
+    const subject = typeof claims?.sub === 'string' ? claims.sub : null
+    const email = typeof claims?.email === 'string' ? claims.email : null
+
+    if (result.error && isMissingSessionError(result.error)) {
       clearSupabaseAuthCookies(response, request)
-      user = null
     } else if (result.error) {
       authUnavailable = true
+    } else if (subject) {
+      identity = { id: subject, email }
     }
   } catch (error) {
-    if (isRefreshTokenMissing(error)) {
+    if (isMissingSessionError(error)) {
       clearSupabaseAuthCookies(response, request)
-      user = null
     } else {
       authUnavailable = true
     }
   }
 
-  if (authUnavailable) return redirectToLoginWithNext(request, 'auth_temporarily_unavailable')
-  if (!user) return redirectToLoginWithNext(request)
+  // A transport/backend outage is not a logout. Never send the user to the login
+  // form for a 5xx/timeout because that makes a healthy local session look invalid.
+  if (authUnavailable) return redirectToAuthUnavailable(request)
+  if (!identity) return redirectToLoginWithNext(request)
 
   // ROOT authorization intentionally happens only in the server-side ROOT gates
   // (requireRootObserverPage / requireRootViewer / requireRootActor), which use the
@@ -180,13 +214,16 @@ export async function proxy(request: NextRequest) {
   if (pathname.startsWith('/root')) return response
 
   if (pathname.startsWith('/studio')) {
-    const { data: profile } = await supabase
+    const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('role,module_access')
-      .eq('user_id', user.id)
+      .eq('user_id', identity.id)
       .maybeSingle()
 
-    if (!isStudioRouteUser(user.id, profile?.role, user.email, profile?.module_access as ModuleAccess)) {
+    const allowedWithoutProfile = isStudioRouteUser(identity.id, null, identity.email, null)
+    if (profileError && !allowedWithoutProfile) return redirectToAuthUnavailable(request)
+
+    if (!isStudioRouteUser(identity.id, profile?.role, identity.email, profile?.module_access as ModuleAccess)) {
       return NextResponse.redirect(new URL('/unauthorized', request.url))
     }
   }
