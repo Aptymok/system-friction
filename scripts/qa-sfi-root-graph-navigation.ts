@@ -16,6 +16,7 @@ const reconcileRoute = read('src/app/api/root/evidence/reconcile/route.ts');
 const scenes = read('src/components/sfi/scenes.ts');
 const shellUi = read('src/components/sfi/SfiConsole.tsx');
 const operatingUi = read('src/components/sfi/SfiOperatingWorkspace.tsx');
+const governanceUi = read('src/components/sfi/SfiGovernanceWorkspace.tsx');
 const scenePage = read('src/app/[scene]/page.tsx');
 
 // Graph storage, lineage and read/write boundaries remain backend contracts.
@@ -32,12 +33,13 @@ check('evidence reader does not require missing graph_nodes.evidence_ids column'
 check('evidence reader exposes semantic and temporal edge metadata', reader.includes('declaredRelations.join') && reader.includes('relationClass:') && reader.includes('observedAt: dateValue(attributes.observedAt'));
 check('explicit graph maintenance is sovereign and audited', reconcileRoute.includes("requireRootActor('evidence.graph.reconcile')") && reconcileRoute.includes("action: 'evidence.graph.reconcile'"));
 
-// ROOT remains canonical, but its presentational implementation is the converged
-// operating workspace. The QA follows the capability rather than a deleted dashboard.
+// ROOT remains canonical. Governance capabilities are delegated to the canonical
+// SfiGovernanceWorkspace rather than duplicated inside SfiOperatingWorkspace.
 check('ROOT is a canonical operating scene', scenes.includes("root:{key:'root'") && scenes.includes("title:'Observatorio de Fricción'") && scenes.includes("liveSource:'/api/root/workboard'"));
-check('ROOT operating workspace reads governed proposals', operatingUi.includes("jsonFetch('/api/acp/proposals')") && operatingUi.includes('setProposals'));
-check('ROOT operating workspace exposes plain-language governed decisions', operatingUi.includes('ACEPTAR') && operatingUi.includes('DENEGAR') && operatingUi.includes('PEDIR EVIDENCIA'));
-check('ROOT operating workspace exposes live operational telemetry', operatingUi.includes("jsonFetch('/api/root/workboard')") && operatingUi.includes("jsonFetch('/api/root/cognitive-runtime')") && operatingUi.includes('workboard?.operationalNext') && operatingUi.includes('sfiMetrics'));
+check('ROOT operating workspace delegates governance to one canonical workspace', operatingUi.includes('SfiGovernanceWorkspace') && operatingUi.includes("if(surface==='governance')return <SfiGovernanceWorkspace enabled={enabled}/>"));
+check('ROOT governance workspace reads governed proposals', governanceUi.includes("jsonFetch('/api/acp/proposals')") && governanceUi.includes('setProposals'));
+check('ROOT governance workspace exposes plain-language governed decisions', governanceUi.includes('ACEPTAR') && governanceUi.includes('DENEGAR') && governanceUi.includes('PEDIR EVIDENCIA'));
+check('ROOT governance workspace exposes live operational telemetry', governanceUi.includes("jsonFetch('/api/root/workboard')") && governanceUi.includes("jsonFetch('/api/root/cognitive-runtime')") && governanceUi.includes('workboard?.operationalNext') && governanceUi.includes('latestExecutionAt'));
 check('live scene runtime is gated by canonical scene registry', scenePage.includes('SCENE_KEYS.includes') && scenePage.includes('scene={scene as SceneKey}'));
 check('deleted sovereign workspace is not required for graph truth', !shellUi.includes('RootObservatoryWorkspace') && !operatingUi.includes('RootObservatoryWorkspace') && !scenePage.includes('RootObservatoryWorkspace'));
 
