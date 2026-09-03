@@ -140,7 +140,7 @@ assert.equal(assuranceWithoutFalsePositive.contractVersion, SFI_GENAI_ASSURANCE_
 assert.equal(assuranceWithoutFalsePositive.telemetryCoverage.provider.value, 1);
 assert.equal(assuranceWithoutFalsePositive.telemetryCoverage.inputTokens.value, 1);
 assert.equal(assuranceWithoutFalsePositive.quality.structuredInferenceCompletionRate.value, 1);
-assert.equal(assuranceWithoutFalsePositive.evidenceSufficiency.partial, 1);
+assert.equal(assuranceWithoutFalsePositive.evidenceSufficiency.insufficient, 1);
 assert.equal(assuranceWithoutFalsePositive.returnCalibration.calibratedContrasts, 1);
 assert.equal(assuranceWithoutFalsePositive.returnCalibration.contradicted, 1);
 assert.equal(assuranceWithoutFalsePositive.falsePositive.rate.observation, 'NOT_OBSERVED', 'CONTRADICTED must never be silently converted into a false positive');
