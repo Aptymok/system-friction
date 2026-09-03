@@ -1,3 +1,7 @@
+import {
+  SFI_EPISTEMIC_OUTPUT_RELATIONS,
+  type SfiEpistemicOutputRelation,
+} from '@/core/contracts/sfi';
 import { SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY } from './convergedRegistry';
 
 export const SFI_EXECUTION_CONTRACT_VERSION = 'SFI-EXECUTION-CONTRACT-1.0' as const;
@@ -5,14 +9,7 @@ export const SFI_EXECUTION_CONTRACT_VERSION = 'SFI-EXECUTION-CONTRACT-1.0' as co
 export type SfiExecutionTargetKind = 'CASE' | 'PROJECT' | 'EVIDENCE' | 'CYCLE' | 'NODE';
 export type SfiExecutionAnchorKind = 'CASE' | 'PROJECT' | 'CYCLE' | 'NODE' | 'ANALYSIS_SESSION';
 export type SfiExecutionDirection = 'A_TO_B' | 'B_TO_A' | 'BIDIRECTIONAL' | 'EXPLORE';
-export type SfiExecutionOutputClass =
-  | 'OBSERVATION'
-  | 'DERIVED'
-  | 'INFERENCE'
-  | 'HYPOTHESIS'
-  | 'PROJECTION'
-  | 'RECOMMENDATION'
-  | 'NOT_EXECUTED';
+export type SfiExecutionOutputClass = SfiEpistemicOutputRelation;
 
 export type SfiExecutionObjectRef<K extends string = string> = {
   kind: K;
@@ -76,15 +73,7 @@ type Row = Record<string, unknown>;
 const TARGET_KINDS: SfiExecutionTargetKind[] = ['CASE', 'PROJECT', 'EVIDENCE', 'CYCLE', 'NODE'];
 const ANCHOR_KINDS: SfiExecutionAnchorKind[] = ['CASE', 'PROJECT', 'CYCLE', 'NODE', 'ANALYSIS_SESSION'];
 const DIRECTIONS: SfiExecutionDirection[] = ['A_TO_B', 'B_TO_A', 'BIDIRECTIONAL', 'EXPLORE'];
-const OUTPUT_CLASSES: SfiExecutionOutputClass[] = [
-  'OBSERVATION',
-  'DERIVED',
-  'INFERENCE',
-  'HYPOTHESIS',
-  'PROJECTION',
-  'RECOMMENDATION',
-  'NOT_EXECUTED',
-];
+const OUTPUT_CLASSES: SfiExecutionOutputClass[] = [...SFI_EPISTEMIC_OUTPUT_RELATIONS];
 
 function row(value: unknown): Row {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Row : {};
