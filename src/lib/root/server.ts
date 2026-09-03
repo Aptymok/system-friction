@@ -59,7 +59,7 @@ export async function requireRootActor(action: string) {
 export async function requireRootObserverPage(pathname: string) {
   const ctx = await getServerUserContext();
   if (ctx.authState === 'unavailable') {
-    redirect(`/login?error=auth_temporarily_unavailable&next=${encodeURIComponent(pathname)}`);
+    redirect(`/auth-unavailable?next=${encodeURIComponent(pathname)}`);
   }
   if (!ctx.user) redirect(`/login?next=${encodeURIComponent(pathname)}`);
   if (!ctx.canObserveRoot) redirect('/unauthorized');
@@ -69,7 +69,7 @@ export async function requireRootObserverPage(pathname: string) {
 export async function requireFounderPage(pathname: string) {
   const ctx = await getServerUserContext();
   if (ctx.authState === 'unavailable') {
-    redirect(`/login?error=auth_temporarily_unavailable&next=${encodeURIComponent(pathname)}`);
+    redirect(`/auth-unavailable?next=${encodeURIComponent(pathname)}`);
   }
   if (!ctx.user) redirect(`/login?next=${encodeURIComponent(pathname)}`);
   if (!ctx.isRoot) redirect('/unauthorized');
