@@ -13,6 +13,18 @@ export type SfiEpistemicClass =
   | 'GOVERNANCE_DECISION'
   | 'TRUTH_CLAIM';
 
+export const SFI_EPISTEMIC_OUTPUT_RELATIONS = [
+  'OBSERVATION',
+  'DERIVED',
+  'INFERENCE',
+  'HYPOTHESIS',
+  'PROJECTION',
+  'RECOMMENDATION',
+  'NOT_EXECUTED',
+] as const;
+
+export type SfiEpistemicOutputRelation = (typeof SFI_EPISTEMIC_OUTPUT_RELATIONS)[number];
+
 export type SfiDeterminability =
   | 'DETERMINED'
   | 'PARTIALLY_DETERMINED'
@@ -50,6 +62,7 @@ export const SFI_EPISTEMIC_INVARIANTS = {
   derivationUpgradesIndependence: false,
   repeatedReferenceCreatesCorroboration: false,
   truthAuthorityGrantedByContract: false,
+  outputRelationVocabulary: SFI_EPISTEMIC_OUTPUT_RELATIONS,
   statement:
     'SOURCE, RECORD, EVIDENCE, EPISTEMIC ASSESSMENT, COGNITIVE STATE, EXECUTION, GOVERNANCE and TRUTH remain distinct. Lineage may connect them but never collapses their epistemic roles.',
 } as const;
