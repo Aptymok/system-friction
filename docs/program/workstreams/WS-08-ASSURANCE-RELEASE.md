@@ -339,6 +339,67 @@ Fresh `main` is currently reported by GitHub as unprotected with required status
 
 **Baseline: HOLD at `DEPLOYED`; DO NOT promote to `OBSERVED_IN_PRODUCTION`.** After SFI-00 merges #369, record the exact merge SHA, wait for the exact production deployment to reach terminal success, then run a bounded public smoke proving both sides of the invariant: non-authoritative/loading/degraded/error states are non-numeric, and an authoritative successful zero-valued read renders `0`. After that, perform controlled authenticated observation of ROOT actionable queue, report dossiers, Library, Twin Learning and Method Lab/Observatory/Studio navigation with attributable API/Auth/Postgres evidence and no #362 duplicate-read/N+1 regression. Only then is baseline closure eligible for `OBSERVED_IN_PRODUCTION`.
 
+## 19. Assurance continuation — 2026-09-04 · review-thread reconciliation
+
+**Current WS-08 state:** `QA_FAILED`  
+**Supersedes:** section 18.8 recommendation that PR #369 was eligible for integration.  
+**Fresh `main`:** `1bd890c8a2ec784ad87d73eac6d19a294e050543`  
+**PR #369:** OPEN, not merged, reviewed HEAD `db1dd1089081a631713cd5593fead73c303231cb`  
+**PR #368:** remains DRAFT and docs-only; WS-08 self-merge remains forbidden.  
+**Functional production deployment:** `565ac410fceb56d86ff9d6eaec85b901d0d77248`, workflow `33897088220`, terminal `success` at `2026-09-04T16:49:36Z`.
+
+### 19.1 Why the prior #369 recommendation is superseded
+
+The reviewed HEAD did not move, and the required SFI workflows remain terminally successful. However, review evidence posted after the earlier assurance assessment exposed three adversarial states that the current deterministic gates do not cover. WS-08 independently inspected the current HEAD and confirmed all three defects in source; therefore this is a substantive `FAIL`, not merely `STALE_REVERIFY_REQUIRED`.
+
+1. **Contract-incomplete HTTP 200 can be classified `AVAILABLE`.** The current classifier accepts any parseable object that is not explicitly `ok:false` and has no warnings. An HTTP 200 payload such as `{}`, `{ok:true}`, or a timeline response without its required collection can therefore become `AVAILABLE`; the UI then normalizes missing collections to empties and may publish numeric zero or an empty snapshot count without an authoritative response shape.
+2. **Overlapping poll generations can restore stale `AVAILABLE`.** The 20-second interval can begin a new `pull()` while an older one remains in flight. There is no generation, abort, or serialization guard. A newer degraded/unavailable response can therefore be followed by an older successful response that overwrites the more recent availability/data state. One source-level poll owner does not by itself prove zero runtime overlap or zero duplicate-equivalent read amplification.
+3. **Non-available world state can become an absence claim.** Clearing stale `world` data when a read becomes non-available is correct, but the hypotheses lens then falls through to copy asserting that no hypothesis exists under the filters. That converts unavailable/degraded/error into an authoritative absence claim and violates the same epistemic boundary that forbids false zero.
+
+These findings do not require WS-08 to choose WS-03's implementation. Acceptance requires only the observable invariants: an applicable response must be structurally authoritative before `AVAILABLE`; stale/out-of-order polling must not overwrite the latest read state or create overlapping equivalent read cycles; and non-available states must not emit absence claims. Regression coverage belongs in the existing WS-03 temporal/read-plane gates.
+
+### 19.2 CI and external status
+
+For HEAD `db1dd108...`, `SFI Verify`, `SFI Universal Signal`, and `SFI Session Controls` are terminal `success`; canonical preflight, Field/Observatory temporal surfaces, ROOT graph/navigation, ROOT reports/runtime truth, Method Lab, runtime read-plane stability, typecheck and build all passed. These green gates are retained as evidence but are insufficient to override the confirmed adversarial gaps above.
+
+The commit's external combined status is not uniformly green: the Vercel preview reports success while two Netlify deploy-preview contexts report failure. Netlify is not elevated here to a frozen SFI release gate, but the PR is not treated as externally all-green and GitHub reports its merge state as unstable. No merge is authorized by WS-08.
+
+### 19.3 Current production smoke
+
+Production has not received PR #369. The exact functional deployment remains `565ac410...`. A fresh public read of the canonical site again reproduced #366: the page identifies itself as a non-authoritative `PUBLIC hydrating` / session-loading state while simultaneously publishing numeric `0` for observations, active sources, hypotheses and return, plus text asserting that the field contains zero visible observations/hypotheses. Production therefore remains `DEPLOYED`, not `OBSERVED_IN_PRODUCTION`.
+
+Because #369 is not merged, no post-#369 production performance or correctness claim exists.
+
+### 19.4 Auth/runtime and baseline evidence
+
+The production Supabase project is currently healthy at the service level. Available API/Auth logs include successful API responses and successful token-refresh/login/JWKS activity after the `565ac410...` deployment. The PostgreSQL slice retrieved for this continuation shows no error after deployment completion; the latest visible statement-timeout cluster remains around `16:09Z`, before `16:49:36Z`. None of this is promoted to baseline PASS because WS-08 did not obtain a controlled, attributable authenticated navigation trace.
+
+Therefore production status remains:
+
+- ROOT `NECESITA DE TI` actionable semantics: static/CI PASS; authenticated production `NOT_OBSERVED`;
+- report approval dossier/action: static/CI PASS; authenticated production `NOT_OBSERVED`;
+- Library: static/CI PASS; authenticated production `NOT_OBSERVED`;
+- Twin Learning: static/CI PASS; authenticated production `NOT_OBSERVED`;
+- Method Lab / Observatory / Studio navigation: static/navigation gates PASS; authenticated production traversal `NOT_OBSERVED`;
+- ROOT / Observatory authority separation: canonical/static boundary PASS; authenticated production traversal `NOT_OBSERVED`;
+- #362 ROOT/CASES/TWIN/GOVERNANCE read-plane gate: static PASS;
+- attributable production zero-duplicate / zero-N+1: `NOT_OBSERVED`;
+- PR #369 Observatory polling boundedness under slow/out-of-order response: FAIL on current source because overlap is possible.
+
+No absence of logs is interpreted as absence of defects.
+
+### 19.5 PR #368 disposition
+
+PR #368 remains **DRAFT** and docs-only. It should not be closed yet because its current assurance evidence has not been absorbed into canonical `main`, and its previous merge-eligible conclusion required explicit supersession. It should not be promoted for integration as a substitute for fixing #369. Its role is durable independent assurance evidence until SFI-00 decides how to absorb the final release record.
+
+### 19.6 Recommendation to SFI-00
+
+**DO NOT MERGE PR #369 at current HEAD `db1dd108...`.** Classification: `FAIL`.
+
+Fix owner remains **WS-03**. Require a narrowly scoped #366 correction that closes the three confirmed adversarial gaps without adding a second reader, endpoint, poll owner, event universe or contract delta. The resulting new HEAD must rerun canonical preflight, temporal/public-epistemic regression QA, runtime read-plane stability, typecheck and build, after which WS-08 performs a fresh independent review.
+
+Baseline remains **`QA_FAILED` / functional deployment `DEPLOYED`**. Even after a future #369 merge, do not promote to `OBSERVED_IN_PRODUCTION` until the exact production SHA reaches terminal success, bounded public smoke proves both `UNAVAILABLE != ZERO` and `AVAILABLE + real zero = 0`, and controlled authenticated baseline traversal yields attributable API/Auth/Postgres evidence without duplicate-read/N+1 regression.
+
 ---
 
 # COPY-PASTE DISPATCH PROMPT
