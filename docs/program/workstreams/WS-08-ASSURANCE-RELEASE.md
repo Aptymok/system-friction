@@ -400,6 +400,59 @@ Fix owner remains **WS-03**. Require a narrowly scoped #366 correction that clos
 
 Baseline remains **`QA_FAILED` / functional deployment `DEPLOYED`**. Even after a future #369 merge, do not promote to `OBSERVED_IN_PRODUCTION` until the exact production SHA reaches terminal success, bounded public smoke proves both `UNAVAILABLE != ZERO` and `AVAILABLE + real zero = 0`, and controlled authenticated baseline traversal yields attributable API/Auth/Postgres evidence without duplicate-read/N+1 regression.
 
+## 20. Assurance continuation — 2026-09-04 · moved-head re-verification
+
+**Supersedes:** section 19.6 only for the exact PR-head state; the production/baseline conclusions remain unchanged.  
+**PR #369 current HEAD:** `7c8c0fe44bb772fe9a95e1aeae3d0a4912799666`  
+**State:** OPEN, NOT MERGED  
+**Classification:** `FAIL`  
+**Fix owner:** WS-03
+
+### 20.1 Head movement and first three findings
+
+After the `db1dd108...` FAIL, WS-03 moved the code to `18ff9873276b135c793e95807b6fd8496b8fb445` and then added a docs-only checkpoint at `7c8c0fe...`. WS-08 re-inspected the code delta rather than inheriting the previous verdict.
+
+The `18ff987...` code corrected the three prior findings:
+
+- endpoint-specific authoritative shape is required before `AVAILABLE`;
+- the existing poll owner is serialized with an `inFlight` guard so interval generations do not overlap;
+- non-available FIELD/HYPOTHESES paths expose availability rather than asserting no hypotheses.
+
+The existing temporal QA was expanded to cover incomplete HTTP 200 payloads, the overlap guard, non-numeric non-available states, authoritative zero, one endpoint read per domain, one `Promise.all` owner, and one 20-second timer. `SFI Verify` run `33909058682` on code HEAD `18ff987...` was terminal `success`, including temporal surfaces, runtime read-plane stability, typecheck and build; Universal Signal and Session Controls also succeeded.
+
+### 20.2 New adversarial finding on corrected code
+
+A subsequent review of `18ff987...` exposed a fourth P2 that WS-08 independently confirmed in source:
+
+**A serialized poll can freeze permanently if one request never settles.** `fetchJson` uses `fetch(path,{cache:'no-store'})` without an abort signal or bounded timeout. The effect sets `inFlight=true` before awaiting the three-request `Promise.all` and only releases it in `finally`. If any fetch remains pending indefinitely, `finally` never executes; every future 20-second tick observes `inFlight` and returns immediately. The Observatory can therefore stop refreshing permanently until remount.
+
+This is not the original overlap race, but it violates the same bounded-runtime requirement: availability must be able to recover from a stalled public read without introducing retries, parallel generations or duplicate read owners.
+
+HEAD `7c8c0fe...` is docs-only relative to `18ff987...`; it does not change the runtime and therefore does not close this finding. Its final-head CI was still running at the durable observation point, but CI outcome cannot override the source-confirmed defect.
+
+### 20.3 Current assurance disposition
+
+**DO NOT MERGE PR #369 at HEAD `7c8c0fe...`.** `FAIL` is based on the runtime defect, not on pending CI.
+
+WS-03 should bound the existing read batch so a stalled request transitions to an explicit non-available/error state and later scheduled refresh remains possible, while preserving:
+
+```text
+one polling owner
+one authoritative read per Observatory domain
+zero concurrent refresh generations
+zero retry fanout
+zero N+1
+UNAVAILABLE != ZERO
+```
+
+The exact implementation remains WS-03's responsibility. Regression QA must prove bounded stalled-read recovery in addition to the already-fixed three cases. A new code HEAD requires full deterministic CI and fresh WS-08 review.
+
+### 20.4 Production and baseline remain unchanged
+
+PR #369 is not merged and has no production deployment. Production remains on functional SHA `565ac410fceb56d86ff9d6eaec85b901d0d77248`, and the fresh public smoke still reproduces false zero during non-authoritative hydration/session state. The baseline remains `QA_FAILED` / `DEPLOYED`, never `OBSERVED_IN_PRODUCTION`.
+
+ROOT actionable queue, report dossiers, Library, Twin Learning and authenticated Method Lab/Observatory/Studio traversal remain `NOT_OBSERVED` in production. Static/CI coverage remains evidence, but it is not substituted for controlled production observation.
+
 ---
 
 # COPY-PASTE DISPATCH PROMPT
