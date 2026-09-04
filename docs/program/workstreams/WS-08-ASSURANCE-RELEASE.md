@@ -259,6 +259,47 @@ UNRESOLVED RISK
 RECOMMENDATION TO SFI-00
 ```
 
+## 18. Assurance snapshot — 2026-09-04 · baseline / #366
+
+**WS-08 state:** `QA_FAILED`  
+**Fresh control-plane base:** `1bd890c8a2ec784ad87d73eac6d19a294e050543`  
+**Functional deployment baseline under review:** `565ac410fceb56d86ff9d6eaec85b901d0d77248`  
+**Implementation owner for #366:** WS-03  
+**Independent gate owner:** WS-08  
+**Assurance PR:** draft PR `#368` from `ws08/assurance-366-gate`; NO MERGE by WS-08.
+
+### 18.1 Confirmed production failure
+
+A bounded public read of the canonical site reproduced the exact failure class from #366: while the surface identified itself as `PUBLIC hydrating` / `SESIÓN…`, the public Observatory simultaneously rendered numeric `0` for observations, active sources, hypotheses and return. This is a direct violation of frozen `UNAVAILABLE != ZERO` semantics. The baseline therefore remains `DEPLOYED`, not `OBSERVED_IN_PRODUCTION`.
+
+### 18.2 CI and static gates
+
+Fresh `main` CI for `1bd890c8...` completed successfully for SFI Verify, Main-Only Convergence and CodeQL. Within SFI Verify, canonical preflight, Field/Observatory temporal surfaces, ROOT graph/navigation, ROOT reports/runtime, Method Lab convergence, runtime read-plane stability, typecheck and build all passed. Green existing CI is not sufficient to override the reproduced production false-zero because the pre-existing Observatory gate did not assert availability truth.
+
+WS-08 added `SFI-PUBLIC-OBSERVATORY-AVAILABILITY-1.0` and absorbed it into the existing `qa-sfi-runtime-readplane-stability.ts` chain rather than creating a parallel CI universe. The gate is intentionally expected to fail against current `main`; it rejects unguarded public counters during non-authoritative state and also freezes the current bounded Observatory topology at one world read, one state read, one timeline read and one 20-second polling loop per refresh cycle. It does not define WS-03's internal state model or UI copy.
+
+### 18.3 Baseline surface verification state
+
+- ROOT actionable queue / `NECESITA DE TI`: static and CI contract coverage PASS; controlled authenticated production observation remains NOT OBSERVED in this assurance run.
+- report approval dossiers: static and CI contract coverage PASS; controlled authenticated production observation remains NOT OBSERVED.
+- Library: route/catalog and CI coverage present; controlled authenticated production observation remains NOT OBSERVED.
+- Twin Learning: route/lineage and CI coverage present; controlled authenticated production observation remains NOT OBSERVED.
+- Method Lab / Observatory / Studio navigation: canonical links are present in the operating shell and navigation QA passes; authenticated production traversal remains NOT OBSERVED.
+- public false-zero: FAIL, reproduced independently in production.
+- #362 ROOT/CASES/TWIN/GOVERNANCE read-plane static regression gate: PASS on fresh `main`; production equivalence/N+1 verification remains incomplete without a controlled attributable authenticated navigation trace.
+
+### 18.4 Production API/Auth/runtime evidence
+
+The production Supabase project reports healthy service status and returned successful API/Auth activity in the available log window. PostgreSQL logs contain historical statement-timeout bursts and an earlier recovery event, but those observed timeout bursts precede the `565ac410...` production deployment completion at `2026-09-04T16:49:36Z`; they cannot be attributed to that deployment. No post-deployment statement-timeout was visible in the fetched log slice, but absence in that slice is not promoted to PASS because WS-08 did not obtain a controlled post-deployment authenticated navigation trace.
+
+### 18.5 Performance review
+
+Existing #362 static assertions preserve one base interactive read, zero duplicate proposal feeds, zero N+1 evidence-readiness/history paths, no nested Twin polling and bounded diagnostics. Production API logs also show repeated equivalent `world_vector_*` / `worldspect_snapshots` reads in a pre-baseline-deployment interval. Those observations are not classified as a #362 regression because they are outside #362's ROOT/CASES/TWIN/GOVERNANCE scope and precede the reviewed functional deployment, but they remain a Discovery/Observatory performance risk requiring a post-#366 bounded smoke. The #366 fix must not add polling/read fanout.
+
+### 18.6 Release recommendation
+
+**HOLD baseline at `DEPLOYED`; DO NOT promote to `OBSERVED_IN_PRODUCTION`.** SFI-00 should require WS-03 to implement #366 under the frozen contract, then require the WS-08 availability gate plus existing SFI Verify/typecheck/build/read-plane gates to pass on the implementation head. After merge by SFI-00, verify the exact production SHA and run a bounded public smoke proving non-numeric unavailable/error state and authoritative zero only after a successful zero-valued read. Then perform controlled authenticated ROOT/report/Library/Twin/navigation observation with attributable Supabase/Postgres/API/Auth logs before baseline closure.
+
 ---
 
 # COPY-PASTE DISPATCH PROMPT
