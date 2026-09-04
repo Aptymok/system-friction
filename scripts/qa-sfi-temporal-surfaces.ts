@@ -97,6 +97,10 @@ for (const token of [
   'if(inFlight)return;inFlight=true',
   'finally{inFlight=false}',
 ]) assert.ok(observatoryUi.includes(token), `observatory_overlapping_pull_guard_missing:${token}`);
+const requestTimeout = observatoryUi.match(/const OBSERVATORY_REQUEST_TIMEOUT_MS=(\d+);/);
+assert.ok(requestTimeout, 'observatory_request_timeout_missing');
+assert.ok(Number(requestTimeout[1]) > 0 && Number(requestTimeout[1]) < 20000, 'observatory_request_timeout_must_complete_before_poll_interval');
+assert.equal(occurrences(observatoryUi, 'AbortSignal.timeout(OBSERVATORY_REQUEST_TIMEOUT_MS)'), 1, 'observatory_request_timeout_owner_must_be_single');
 
 // #366: availability is a public epistemic boundary, not an empty-array alias.
 for (const token of [
@@ -243,6 +247,7 @@ console.log(JSON.stringify({
     availabilityAwareHypothesisEmptyState: true,
     duplicateEquivalentReads: 0,
     overlappingPolls: 0,
+    requestTimeoutMs: Number(requestTimeout[1]),
     pollingAmplification: 0,
   },
 }, null, 2));
