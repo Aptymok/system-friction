@@ -4,7 +4,7 @@ function arr(value: unknown): Row[] {
   return Array.isArray(value) ? value.filter((item): item is Row => Boolean(item && typeof item === 'object')) : [];
 }
 
-function proposalActionability(item: Row) {
+function proposalActionability(item: Row): Row {
   const status = String(item.status ?? '').toLowerCase();
   const id = typeof item.id === 'string' ? item.id : null;
   if (!id) return { actionable: false, kind: 'UNKNOWN', href: null, allowed: [] as string[] };
@@ -47,7 +47,7 @@ function proposalActionability(item: Row) {
   };
 }
 
-function cycleActionability(item: Row) {
+function cycleActionability(item: Row): Row {
   const cycleId = typeof item.cycleId === 'string' ? item.cycleId : null;
   const state = String(item.state ?? '').toUpperCase();
   const actionable = Boolean(cycleId && item.rootActionRequired === true && ['AWAITING_USER_CLOSE', 'HUMAN_INPUT_REQUIRED'].includes(state));
@@ -72,10 +72,10 @@ export function projectActionableHumanQueue(value: Row) {
   const rawItems = arr(value.items);
   const rawCycles = arr(value.cycles);
 
-  const items = rawItems.map((item) => {
+  const items: Row[] = rawItems.map((item): Row => {
     const actionability = proposalActionability(item);
     const wasRequired = item.rootActionRequired === true;
-    const rootActionRequired = wasRequired && actionability.actionable;
+    const rootActionRequired = wasRequired && actionability.actionable === true;
     return {
       ...item,
       rootActionRequired,
@@ -88,10 +88,10 @@ export function projectActionableHumanQueue(value: Row) {
           : item.actionLabel,
     };
   });
-  const cycles = rawCycles.map(cycleActionability);
+  const cycles: Row[] = rawCycles.map((item): Row => cycleActionability(item));
 
-  const rootRequired = items.filter((item) => item.rootActionRequired);
-  const rootRequiredCycles = cycles.filter((item) => item.rootActionRequired);
+  const rootRequired = items.filter((item) => item.rootActionRequired === true);
+  const rootRequiredCycles = cycles.filter((item) => item.rootActionRequired === true);
   const blocked = items.filter((item) => Boolean(item.blocker));
 
   return {
@@ -105,7 +105,7 @@ export function projectActionableHumanQueue(value: Row) {
       rootActionRequired: rootRequired.length + rootRequiredCycles.length,
       actionableProposalDecisions: rootRequired.length,
       actionableCycleDecisions: rootRequiredCycles.length,
-      reviewAvailableNotRequired: items.filter((item) => item.reviewAvailable).length,
+      reviewAvailableNotRequired: items.filter((item) => item.reviewAvailable === true).length,
       blocked: blocked.length + cycles.filter((item) => Boolean(item.blocker)).length,
     },
     invariant: 'HUMAN_ACTION_REQUIRED implies ACTIONABLE_DOSSIER_REQUIRED. Objects without a currently executable human transition are reviewable but are not counted as human obligations.',
