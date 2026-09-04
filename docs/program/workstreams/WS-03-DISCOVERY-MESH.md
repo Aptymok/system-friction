@@ -491,6 +491,83 @@ At the corrected code checkpoint, WS-03 classifies #369 as `QA_PASS / PR_OPEN`, 
 
 After final-head CI is green and HEAD unchanged, hand PR #369 to WS-08 for independent adversarial assurance. SFI-00 alone may decide merge. If integrated, production RETURN for the exact merge/deployment is still required before #366 can be closed as observed production behavior. Do not begin the canonical object plane/Slice B before #369 integration.
 
+## 14. Bounded-read review closure — #369
+
+**Fresh main at closure:** `1bd890c8a2ec784ad87d73eac6d19a294e050543`  
+**Main drift from PR base:** none  
+**PR #369:** open, unmerged, mergeable  
+**Issue #366:** open  
+**Slice B:** NOT STARTED.
+
+A fourth P2 review finding was observed after the prior checkpoint: serialization alone could leave `inFlight=true` indefinitely if one transport request never settled. This was accepted as a real availability defect inside #366, not dismissed as review noise.
+
+### Bounded transport remediation
+
+Commit `2072e47f58817ba047da5b1d191991e4073670da` bounds the existing public Observatory fetch path with:
+
+```text
+OBSERVATORY_REQUEST_TIMEOUT_MS = 15000
+AbortSignal.timeout(OBSERVATORY_REQUEST_TIMEOUT_MS)
+existing refresh interval = 20000 ms
+```
+
+The request bound is strictly below the existing refresh interval. A stalled request therefore resolves through the existing error classification, `finally` releases the same `inFlight` guard, and a later scheduled refresh can recover. This does not create a retry, second timer, second read generation owner, endpoint, availability probe or N+1 path.
+
+Commit `5c25814e67b425161a56305ed2fa1882e4696734` extends the existing `scripts/qa-sfi-temporal-surfaces.ts` gate to require:
+
+```text
+request timeout exists
+0 < request timeout < 20000 ms
+exactly one AbortSignal timeout owner
+one fetch per existing Observatory domain
+one Promise.all owner
+one 20-second polling owner
+zero overlapping pull generations
+```
+
+The fourth review thread was replied to with the corrective commits and resolved only after the corrected code head passed the relevant gates.
+
+### Corrected code-head QA
+
+Corrected code HEAD before this docs-only checkpoint:
+
+`5c25814e67b425161a56305ed2fa1882e4696734`
+
+GitHub Actions on that SHA:
+
+```text
+SFI Verify run 2326 / 33910058568                  SUCCESS
+  canonical development preflight                  SUCCESS
+  Field and Observatory temporal surfaces          SUCCESS
+  runtime read-plane stability                      SUCCESS
+  typecheck                                         SUCCESS
+  build                                             SUCCESS
+  Studio audio parallel gates                       SUCCESS
+SFI Universal Signal run 512                        SUCCESS
+SFI Session Controls run 119                        SUCCESS
+```
+
+All four review findings are resolved at this checkpoint. No unresolved code defect is known inside #366. This is not evidence of merge, deployment or production behavior.
+
+### Persistence / contract / authority impact
+
+```text
+MIGRATIONS            none
+DB WRITES             none
+EVENTS                none
+NEW ROUTES            none
+NEW READ OWNER         none
+NEW POLLING OWNER      none
+RETRIES                none introduced
+N+1                    none introduced
+AUTHORITY EXPANSION    none
+CONTRACT DELTA         none
+```
+
+### Final integration rule
+
+This documentation update is itself a new docs-only PR HEAD and therefore must pass final-head CI before SFI-00 receives the integration handoff. If the final HEAD is green and no new review finding/head movement appears, WS-03 state is `QA_PASS / PR_OPEN`. WS-08 then performs independent adversarial assurance on the exact final HEAD; SFI-00 alone may merge. Production RETURN against the exact merge/deployment remains required before #366 can be closed as observed production behavior.
+
 ---
 
 # COPY-PASTE DISPATCH PROMPT
