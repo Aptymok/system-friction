@@ -6,7 +6,6 @@ import {
   readInteractiveEvidenceTargetIndex,
 } from '@/lib/root/interactiveReadModel';
 import { readUniversalLearningQuarantine } from '@/lib/sfi/universalLearningQuarantine';
-import { readObservedSfiCognitiveRuntime } from '@/lib/sfi/cognitive-runtime/observedRuntime';
 import { SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY } from '@/lib/sfi/cognitive-runtime/convergedRegistry';
 import {
   compactExecutionContract,
@@ -41,8 +40,7 @@ export async function GET(request: Request) {
   if (!SURFACES.has(surface)) return NextResponse.json({ ok: false, error: 'unsupported_interactive_surface' }, { status: 400 });
 
   if (surface === 'governance') {
-    const [runtime, evidence, caseIndex, operationalNext] = await Promise.all([
-      readObservedSfiCognitiveRuntime(),
+    const [evidence, caseIndex, operationalNext] = await Promise.all([
       readInteractiveEvidenceTargetIndex(),
       readInteractiveCaseIndex(gate.ctx.user.id),
       readRootOperationalNext(),
@@ -51,7 +49,6 @@ export async function GET(request: Request) {
       ok: true,
       surface,
       runtime: {
-        runtime,
         agents: SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY.map(compactAgent),
         executionContracts: listExecutionContracts().map(compactExecutionContract),
       },
@@ -64,6 +61,8 @@ export async function GET(request: Request) {
         proposalQueueSource: 'operationalNext.items',
         separateProposalListRead: false,
         fullRootConsoleRead: false,
+        liveCognitiveEventRead: false,
+        agentEventReadDeferredToSelectedDossier: true,
       },
     }, { headers: { 'Cache-Control': 'private, no-store' } });
   }
