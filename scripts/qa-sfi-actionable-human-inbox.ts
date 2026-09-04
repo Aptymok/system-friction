@@ -28,7 +28,8 @@ assert.ok(dossier.includes('Ya existe evidencia aceptada. SFI debe reconciliar r
 assert.ok(consoleUi.includes("current==='root'?<SfiRootWorkspace enabled/>"),'ROOT must render the sovereign inbox owner');
 assert.ok(root.includes("jsonFetch('/api/root/interactive?surface=root')"),'ROOT must use one base interactive bootstrap');
 assert.ok(root.includes('/api/root/decision-dossier?id='),'decision detail must be a targeted dossier read');
-assert.ok(root.includes("jsonFetch('/api/root/decisions'"),'proposal decisions must be executable from ROOT');
+assert.ok(root.includes("jsonFetch('/api/root/decisions'"),'proposal accept/deny decisions must use canonical ROOT queue writer');
+assert.ok(root.includes('/request-evidence')&&root.includes('Evidence Hunter es ahora dueño'),'request-evidence must create evidence work instead of only changing status');
 assert.ok(root.includes('APROBAR DISEÑO')&&root.includes('PEDIR EVIDENCIA')&&root.includes('RECHAZAR'),'ROOT must expose state-valid proposal actions');
 assert.ok(root.includes('ABRIR EXPEDIENTE →')&&root.includes('/cases?cycle='),'cycle obligations must be navigable');
 assert.ok(root.includes('aprobar diseño ≠ ejecutar ≠ aceptar RETURN ≠ cerrar ≠ canonizar'),'human UI must preserve authority separation');
@@ -37,11 +38,12 @@ assert.equal(root.includes("jsonFetch('/api/acp/proposals')"),false,'ROOT must n
 
 console.log(JSON.stringify({
   ok:true,
-  contract:'SFI-ACTIONABLE-SOVEREIGN-INBOX-1.0',
+  contract:'SFI-ACTIONABLE-SOVEREIGN-INBOX-1.1',
   invariants:[
     'HUMAN_ACTION_REQUIRED_IMPLIES_ACTIONABLE_DOSSIER',
     'NO_ACTIONABLE_TRANSITION_NO_HUMAN_COUNT',
     'PROPOSAL_DECISION_NOT_EXECUTION_NOT_CANON',
+    'REQUEST_EVIDENCE_CREATES_EVIDENCE_WORK',
     'WAITING_EVIDENCE_DOES_NOT_REASK_SAME_EVIDENCE',
     'CYCLE_HUMAN_ACTION_DEEP_LINKS_TO_DOSSIER',
     'ZERO_DUPLICATE_PROPOSAL_FEEDS',
