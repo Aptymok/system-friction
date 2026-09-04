@@ -6,15 +6,15 @@
 
 ## 1. Main and production baseline
 
-Latest `main` at this state sync:
+Repository `main` immediately before this state reconciliation commit:
 
-`f51a071ad728ba653349f5bc44f3b08191d73255`
+`7372ec2b0b9d48b7a930034836b2da0d0d862507`
 
-Merged PR:
+Latest control-plane commit before this reconciliation:
 
-`#364 docs(program): bootstrap distributed SFI control plane`
+`7372ec2 docs(program): sync control-plane launch state`
 
-PR #364 is documentation/control-plane only; it introduced no runtime/API/database/UI behavior and therefore does not replace the last functional production baseline.
+The control-plane commits are documentation-only; they introduce no runtime/API/database/UI behavior and therefore do not replace the last functional production baseline.
 
 Latest functional production baseline:
 
@@ -41,11 +41,11 @@ Canonical production deployment for #363:
 - conclusion: `success`;
 - completed: 2026-09-04T16:49:36Z.
 
-Therefore #363 baseline state is `DEPLOYED`. It is not yet marked `OBSERVED_IN_PRODUCTION` for the new sovereign-inbox behavior until post-deploy navigation/behavior is explicitly observed.
+Therefore #363 baseline state is `DEPLOYED`. It is **not** `OBSERVED_IN_PRODUCTION`: SFI-00/WS-08 observed a public false-zero contract failure on 2026-09-04 and the remaining authenticated/log verification items are still open.
 
 ## 2. Program control plane
 
-The distributed program control plane is now merged to `main` through PR #364.
+The distributed program control plane is merged to `main` through PR #364 and subsequent documentation-only state synchronization commits.
 
 Canonical coordination files:
 
@@ -67,7 +67,16 @@ docs/program/workstreams/WS-07-EXTERNAL-IDENTITY.md
 docs/program/workstreams/WS-08-ASSURANCE-RELEASE.md
 ```
 
-PR #364 passed canonical preflight, repository QA, typecheck and build before merge. Its post-merge `main` workflows may still be running when this state file is read; fresh workflow evidence overrides this line.
+Fresh SFI-00 reconciliation on 2026-09-04 observed:
+
+- open program PRs: none;
+- repository branches: `main` only;
+- `main` pre-reconciliation SHA: `7372ec2b0b9d48b7a930034836b2da0d0d862507`;
+- visible current-main GitHub Actions/check runs: no observed failure; `SFI Verify` and `SFI Main-Only Convergence` completed successfully, together with visible Python/Actions/JavaScript-TypeScript analysis checks and Studio audio verification;
+- no workstream implementation branch or PR currently exists;
+- no contract delta is pending.
+
+Fresh repository/infrastructure evidence always overrides this summary.
 
 ## 3. Already established before this program
 
@@ -147,25 +156,64 @@ SFI-08 + SFI-00 must resolve before declaring the functional baseline `OBSERVED_
 2. verify pending report approvals are discoverable/actionable;
 3. verify Library and Twin Learning surfaces are accessible;
 4. verify Method Lab/Observatory/Studio navigation;
-5. verify public false-zero behavior: unavailable/degraded cannot render as numeric zero;
+5. **FAILED 2026-09-04:** public false-zero behavior; the canonical public Observatory renders numeric zero during an initializing/hydrating state before authoritative availability is established;
 6. observe production Supabase/Postgres/API/Auth logs under real navigation;
 7. confirm no regression in #362 zero-duplicate read plane.
 
-Deployment itself is already verified successful.
+Deployment itself is verified successful. Baseline closure is blocked by item 5 and items 1-4/6-7 remain unobserved in this SFI-00 session rather than presumed successful.
+
+### 4.1 Confirmed false-zero failure
+
+Observed public behavior on 2026-09-04:
+
+```text
+PUBLIC hydrating / session initializing
+OBSERVATIONS    0
+ACTIVE SOURCES  0
+HYPOTHESES      0
+IN RETURN       0
+```
+
+Repository cause is present in `src/components/sfi/ObservatoryConsole.tsx`:
+
+- `world` starts as `null`;
+- missing `world?.nodes` / `world?.hypotheses` are projected through empty arrays;
+- derived `.length` counters therefore become numeric zero before an authoritative read establishes availability;
+- failed/non-OK reads are not represented as an explicit counter availability state.
+
+This violates the frozen invariants:
+
+```text
+UNAVAILABLE != ZERO
+AVAILABLE + 0 = 0
+DEGRADED/UNAVAILABLE -> explicit state, not numeric zero
+```
+
+Corrective issue:
+
+`#366 [WS-03/WS-08] Eliminate public false-zero during Observatory availability`
+
+Owner routing:
+
+- implementation: WS-03;
+- independent assurance: WS-08;
+- integration/release decision: SFI-00.
+
+No contract delta is required. The implementation must conform to the already frozen contract, preserve the one-authoritative-read-per-domain invariant, add/absorb regression QA, and be re-observed after exact-SHA production deployment.
 
 ## 5. Workstream states and launch readiness
 
 | Workstream | State | Safe next action |
 |---|---|---|
-| SFI-00 | READY | open Control Room chat; reconstruct fresh `main`, PRs, CI and baseline production state |
-| WS-01 | READY | open Cognitive Fabric chat and inspect existing runtime against frozen contracts |
-| WS-02 | READY | open Twin + Method Lab chat; inspect current owners and begin nonconflicting slices |
-| WS-03 | READY | open Discovery Mesh chat; inspect/absorb current public semantic owners |
+| SFI-00 | READY | admit only contract-compliant green heads; keep functional baseline blocked from `OBSERVED_IN_PRODUCTION` until #366 and remaining baseline verification close |
+| WS-01 | READY | inspect existing runtime against frozen contracts; complete bounded Cognitive Fabric slice before opening PR |
+| WS-02 | READY | inspect current Twin + Method Lab and begin nonconflicting slices |
+| WS-03 | READY | implement issue #366 first or in a bounded contract-compliant public availability slice; then continue Discovery Mesh work |
 | WS-04 | READY_INSPECTION | inspect external gateway/MCP path; publication waits on stable WS-03/WS-01 dependencies |
 | WS-05 | READY | inspect citation/publication metadata and real external identifiers |
 | WS-06 | READY | inspect audio/FAD/Studio and material rights/storage owners |
 | WS-07 | READY | inventory actual external identities; never fabricate account state |
-| WS-08 | READY | perform post-deploy baseline behavior/log verification and adversarial assurance |
+| WS-08 | QA_FAILED | baseline public false-zero gate failed; independently verify #366 fix, then continue ROOT/log/read-plane baseline closure |
 
 Allowed states:
 
@@ -187,9 +235,9 @@ BLOCKED_EXTERNAL
 COMPLETE
 ```
 
-## 6. Launch order
+## 6. Launch and integration order
 
-Wave 1 may run simultaneously:
+Wave 1 implementation may run simultaneously:
 
 ```text
 SFI-01 · COGNITIVE FABRIC
@@ -208,6 +256,8 @@ SFI-04 · MACHINE INTERFACES
 ```
 
 WS-04 publication/integration remains dependency-bound to stable WS-03 semantic objects and WS-01 authenticated adaptive-capability contracts.
+
+Until baseline assurance failure #366 is corrected, workstreams may inspect and implement in bounded branches, but SFI-00 should not admit unrelated new functional production exposure ahead of the baseline correction. A corrective PR for #366 has first integration priority.
 
 ## 7. Known strategic observations
 
@@ -231,7 +281,41 @@ Goal is not follower count or virality. Goal is that SFI can be reconstructed co
 
 Program must defend `System Friction Institute` / `systemfriction.org` against confusion with similarly named entities. External nodes must repeat verified canonical identity.
 
-## 8. Session handoff format
+## 8. SFI-00 handoff — 2026-09-04
+
+```text
+BASE SHA
+7372ec2b0b9d48b7a930034836b2da0d0d862507 (pre-reconciliation main)
+
+MERGES COMPLETED
+None in this SFI-00 session.
+
+DEPLOYS OBSERVED
+Canonical functional deployment receipt confirmed for 565ac410fceb56d86ff9d6eaec85b901d0d77248 via run 33897088220: success.
+Public route behavior was observed; the functional baseline was not promoted to OBSERVED_IN_PRODUCTION.
+
+WORKSTREAM STATE CHANGES
+WS-08: READY -> QA_FAILED due confirmed false-zero baseline failure.
+WS-03: READY with corrective issue #366 as first integration priority.
+
+CONTRACT CHANGES
+None.
+
+OPEN FAILURES
+#366 public Observatory false-zero during unavailable/loading state.
+Authenticated ROOT/report/Library/Twin Learning/navigation verification remains unobserved.
+Production Supabase/Postgres/API/Auth log verification remains unobserved from this session.
+#362 duplicate-read production regression check remains unobserved.
+
+HUMAN BLOCKERS
+None identified for the corrective implementation.
+No sovereign decision is required.
+
+NEXT SAFE ACTION
+WS-03 implements #366 with regression QA; WS-08 independently verifies it. SFI-00 then admits the exact green head, verifies deployment for the merge SHA, repeats public smoke and continues the remaining baseline closure checks before any OBSERVED_IN_PRODUCTION claim.
+```
+
+## 9. Workstream handoff format
 
 Every workstream updates its durable file with:
 
