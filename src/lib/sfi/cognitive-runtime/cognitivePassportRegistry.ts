@@ -1,5 +1,11 @@
 import type { SfiRegisteredCognitiveAgent } from './types';
 import { executionContractForAgent } from './executionContracts';
+import {
+  operationModelRequirementsForAgent,
+  type SfiOperationModelRequirements,
+} from './agentModelRequirements';
+
+export type { SfiOperationModelRequirements } from './agentModelRequirements';
 
 export const SFI_COGNITIVE_PASSPORT_CONTRACT = 'SFI-COGNITIVE-PASSPORT-1.0' as const;
 export const SFI_COGNITIVE_PASSPORT_VERSION = '1.0' as const;
@@ -21,21 +27,6 @@ export type SfiAuthorityClass =
   | 'EXECUTE_EXTERNAL'
   | 'IRREVERSIBLE'
   | 'CANON';
-
-export interface SfiOperationModelRequirements {
-  reasoning: 'LOW' | 'MEDIUM' | 'HIGH' | 'FRONTIER';
-  structuredOutput: boolean;
-  web: boolean;
-  multimodal: boolean;
-  computer: boolean;
-  code: boolean;
-  minContextTokens: number;
-  latencyClass: 'INTERACTIVE' | 'NORMAL' | 'BATCH';
-  costClass: 'ECONOMY' | 'STANDARD' | 'QUALITY' | 'FRONTIER' | 'PRIVATE_LOCAL' | 'SPECIALIST';
-  privacyClass: string;
-  providerAllowlist?: string[];
-  providerDenylist?: string[];
-}
 
 export interface SfiCognitivePassport {
   id: string;
@@ -105,29 +96,6 @@ const AUTHORITY_CEILING_BY_LEGACY_LEVEL: Record<SfiRegisteredCognitiveAgent['aut
   executor: 'RECOMMEND',
 };
 
-const QUALITY_REASONING_IDS = new Set([
-  'risk_agent',
-  'economic_field_simulator',
-  'cross_impact',
-  'trajectory_agent',
-  'reality_calibration',
-  'phenotype_resolver',
-  'friction_field_simulator',
-  'temporal_resolver',
-]);
-
-const STANDARD_LONG_CONTEXT_IDS = new Set([
-  'opportunity_agent',
-  'historical_scout',
-  'context_builder',
-]);
-
-const INTERACTIVE_STRUCTURED_IDS = new Set([
-  'evidence_hunter',
-  'field_observer',
-  'project_execution_manager',
-]);
-
 const RETURN_REQUIRED_IDS = new Set([
   'trajectory_agent',
   'project_execution_manager',
@@ -144,69 +112,11 @@ const FORBIDDEN_RESOURCES = [
   'raw_secrets',
   'unscoped_external_execution',
 ];
+const MISSING_POLICY = 'PRESERVE_MISSING_AND_NOT_OBSERVED';
+const CONTRADICTION_POLICY = 'PRESERVE_AND_SURFACE_CONTRADICTIONS';
 
 function uniqueSorted(values: string[]) {
   return [...new Set(values.filter((value) => value.trim().length > 0))].sort();
-}
-
-function modelRequirementsFor(agent: SfiRegisteredCognitiveAgent): SfiOperationModelRequirements {
-  if (QUALITY_REASONING_IDS.has(agent.id)) {
-    return {
-      reasoning: 'HIGH',
-      structuredOutput: true,
-      web: false,
-      multimodal: false,
-      computer: false,
-      code: false,
-      minContextTokens: 100_000,
-      latencyClass: 'NORMAL',
-      costClass: 'QUALITY',
-      privacyClass: 'INTERNAL',
-    };
-  }
-
-  if (STANDARD_LONG_CONTEXT_IDS.has(agent.id)) {
-    return {
-      reasoning: 'MEDIUM',
-      structuredOutput: true,
-      web: false,
-      multimodal: false,
-      computer: false,
-      code: false,
-      minContextTokens: 100_000,
-      latencyClass: 'NORMAL',
-      costClass: 'STANDARD',
-      privacyClass: 'INTERNAL',
-    };
-  }
-
-  if (INTERACTIVE_STRUCTURED_IDS.has(agent.id)) {
-    return {
-      reasoning: 'LOW',
-      structuredOutput: true,
-      web: false,
-      multimodal: false,
-      computer: false,
-      code: false,
-      minContextTokens: 0,
-      latencyClass: 'INTERACTIVE',
-      costClass: 'ECONOMY',
-      privacyClass: 'INTERNAL',
-    };
-  }
-
-  return {
-    reasoning: 'MEDIUM',
-    structuredOutput: true,
-    web: false,
-    multimodal: false,
-    computer: false,
-    code: false,
-    minContextTokens: 0,
-    latencyClass: 'NORMAL',
-    costClass: 'STANDARD',
-    privacyClass: 'INTERNAL',
-  };
 }
 
 function requiredEvidenceClassesFor(agent: SfiRegisteredCognitiveAgent): string[] {
@@ -214,9 +124,15 @@ function requiredEvidenceClassesFor(agent: SfiRegisteredCognitiveAgent): string[
   return [];
 }
 
-function outputClassesFor(agent: SfiRegisteredCognitiveAgent): string[] {
+function outputContractFor(agent: SfiRegisteredCognitiveAgent): SfiCognitivePassport['output'] {
   const executionContract = executionContractForAgent(agent.id);
-  return uniqueSorted((executionContract?.requestedOutputs ?? []).map(String));
+  return {
+    allowedEpistemicClasses: uniqueSorted((executionContract?.requestedOutputs ?? []).map(String)),
+    schemaRef: null,
+    confidencePolicy: agent.confidenceModel.method,
+    missingPolicy: MISSING_POLICY,
+    contradictionPolicy: CONTRADICTION_POLICY,
+  };
 }
 
 function returnContractFor(agent: SfiRegisteredCognitiveAgent): SfiCognitivePassport['return'] {
@@ -230,6 +146,27 @@ function returnContractFor(agent: SfiRegisteredCognitiveAgent): SfiCognitivePass
 
 function sameSortedStrings(actual: string[], expected: string[]) {
   return JSON.stringify([...actual].sort()) === JSON.stringify([...expected].sort());
+}
+
+function normalizedModelRequirements(value: SfiOperationModelRequirements) {
+  return {
+    reasoning: value.reasoning,
+    structuredOutput: value.structuredOutput,
+    web: value.web,
+    multimodal: value.multimodal,
+    computer: value.computer,
+    code: value.code,
+    minContextTokens: value.minContextTokens,
+    latencyClass: value.latencyClass,
+    costClass: value.costClass,
+    privacyClass: value.privacyClass,
+    providerAllowlist: value.providerAllowlist ? [...value.providerAllowlist].sort() : null,
+    providerDenylist: value.providerDenylist ? [...value.providerDenylist].sort() : null,
+  };
+}
+
+function sameModelRequirements(actual: SfiOperationModelRequirements, expected: SfiOperationModelRequirements) {
+  return JSON.stringify(normalizedModelRequirements(actual)) === JSON.stringify(normalizedModelRequirements(expected));
 }
 
 export function projectCognitivePassport(agent: SfiRegisteredCognitiveAgent): SfiCognitivePassport {
@@ -246,19 +183,13 @@ export function projectCognitivePassport(agent: SfiRegisteredCognitiveAgent): Sf
       requiredEvidenceClasses: requiredEvidenceClassesFor(agent),
       sourcePolicies: [...SOURCE_POLICIES],
     },
-    output: {
-      allowedEpistemicClasses: outputClassesFor(agent),
-      schemaRef: null,
-      confidencePolicy: agent.confidenceModel.method,
-      missingPolicy: 'PRESERVE_MISSING_AND_NOT_OBSERVED',
-      contradictionPolicy: 'PRESERVE_AND_SURFACE_CONTRADICTIONS',
-    },
+    output: outputContractFor(agent),
     tools: {
       allowedToolClasses: [],
       allowedResources: uniqueSorted(agent.readsMemory),
       forbiddenResources: [...FORBIDDEN_RESOURCES],
     },
-    modelRequirements: modelRequirementsFor(agent),
+    modelRequirements: operationModelRequirementsForAgent(agent.id),
     authority: {
       ceiling: AUTHORITY_CEILING_BY_LEGACY_LEVEL[agent.authorityLevel],
       confirmationRequirement: agent.humanApprovalRequired ? 'HUMAN' : 'NONE',
@@ -359,8 +290,9 @@ export function validateCognitivePassportAgainstSource(
   const expectedCeiling = AUTHORITY_CEILING_BY_LEGACY_LEVEL[source.authorityLevel];
   const expectedConfirmation = source.humanApprovalRequired ? 'HUMAN' : 'NONE';
   const expectedRequiredInputs = uniqueSorted(source.sourceTables);
-  const expectedOutputs = outputClassesFor(source);
+  const expectedOutput = outputContractFor(source);
   const expectedRequiredEvidence = requiredEvidenceClassesFor(source);
+  const expectedModelRequirements = operationModelRequirementsForAgent(source.id);
   const expectedReturn = returnContractFor(source);
 
   if (passport.id !== source.id) errors.push(`${passport.id}:SOURCE_ID_MISMATCH:${source.id}`);
@@ -378,11 +310,22 @@ export function validateCognitivePassportAgainstSource(
   if (!sameSortedStrings(passport.input.required, expectedRequiredInputs)) {
     errors.push(`${passport.id}:INPUT_REQUIRED_CONTRACT_MISMATCH`);
   }
-  if (!sameSortedStrings(passport.output.allowedEpistemicClasses, expectedOutputs)) {
+  if (!sameSortedStrings(passport.output.allowedEpistemicClasses, expectedOutput.allowedEpistemicClasses)) {
     errors.push(`${passport.id}:OUTPUT_CONTRACT_MISMATCH`);
+  }
+  if (
+    passport.output.schemaRef !== expectedOutput.schemaRef
+    || passport.output.confidencePolicy !== expectedOutput.confidencePolicy
+    || passport.output.missingPolicy !== expectedOutput.missingPolicy
+    || passport.output.contradictionPolicy !== expectedOutput.contradictionPolicy
+  ) {
+    errors.push(`${passport.id}:OUTPUT_POLICY_CONTRACT_MISMATCH`);
   }
   if (!sameSortedStrings(passport.input.requiredEvidenceClasses, expectedRequiredEvidence)) {
     errors.push(`${passport.id}:REQUIRED_EVIDENCE_CONTRACT_MISMATCH`);
+  }
+  if (!sameModelRequirements(passport.modelRequirements, expectedModelRequirements)) {
+    errors.push(`${passport.id}:MODEL_REQUIREMENTS_CONTRACT_MISMATCH`);
   }
   if (
     passport.return.required !== expectedReturn.required
