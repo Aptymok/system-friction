@@ -1,5 +1,5 @@
 import type { SfiRegisteredCognitiveAgent } from './types';
-import { SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY } from './convergedRegistry';
+import { executionContractForAgent } from './executionContracts';
 
 export const SFI_COGNITIVE_PASSPORT_CONTRACT = 'SFI-COGNITIVE-PASSPORT-1.0' as const;
 export const SFI_COGNITIVE_PASSPORT_VERSION = '1.0' as const;
@@ -102,20 +102,7 @@ const AUTHORITY_CEILING_BY_LEGACY_LEVEL: Record<SfiRegisteredCognitiveAgent['aut
   observer: 'READ',
   analyst: 'RECOMMEND',
   advisor: 'RECOMMEND',
-  // Existing "executor" means the automation can execute its bounded in-process
-  // function. It does not confer external action authority. A later governed
-  // capability grant must explicitly authorize any higher authority class.
   executor: 'RECOMMEND',
-};
-
-const OUTPUT_CLASSES_BY_MODE: Record<SfiCognitivePassportEpistemicMode, string[]> = {
-  OBSERVE: ['OBSERVATION', 'SOURCE_CANDIDATE', 'MISSING', 'NOT_OBSERVED'],
-  RECONSTRUCT: ['INFERENCE', 'HYPOTHESIS', 'MISSING', 'NOT_OBSERVED'],
-  INFER: ['INFERENCE', 'HYPOTHESIS', 'MISSING'],
-  SIMULATE: ['SIMULATION', 'INFERENCE', 'HYPOTHESIS', 'MISSING'],
-  PROJECT: ['PROJECTION', 'PREDICTION', 'INFERENCE', 'MISSING'],
-  DECIDE: ['INFERENCE', 'HYPOTHESIS', 'MISSING'],
-  LEARN: ['CONTRAST', 'LEARNING_CANDIDATE', 'INFERENCE', 'MISSING'],
 };
 
 const QUALITY_REASONING_IDS = new Set([
@@ -222,8 +209,17 @@ function modelRequirementsFor(agent: SfiRegisteredCognitiveAgent): SfiOperationM
   };
 }
 
-function projectPassport(agent: SfiRegisteredCognitiveAgent): SfiCognitivePassport {
-  const epistemicMode = EPISTEMIC_MODE_BY_LAYER[agent.layer];
+function requiredEvidenceClassesFor(agent: SfiRegisteredCognitiveAgent): string[] {
+  if (agent.id === 'reality_calibration') return ['RETURN'];
+  return [];
+}
+
+function outputClassesFor(agent: SfiRegisteredCognitiveAgent): string[] {
+  const executionContract = executionContractForAgent(agent.id);
+  return uniqueSorted((executionContract?.requestedOutputs ?? []).map(String));
+}
+
+export function projectCognitivePassport(agent: SfiRegisteredCognitiveAgent): SfiCognitivePassport {
   const returnRequired = RETURN_REQUIRED_IDS.has(agent.id);
 
   return {
@@ -231,24 +227,22 @@ function projectPassport(agent: SfiRegisteredCognitiveAgent): SfiCognitivePasspo
     version: SFI_COGNITIVE_PASSPORT_VERSION,
     name: agent.name,
     purpose: agent.purpose,
-    epistemicMode,
+    epistemicMode: EPISTEMIC_MODE_BY_LAYER[agent.layer],
     input: {
       required: uniqueSorted(agent.sourceTables),
       optional: ['KernelContext.metadata', 'KernelContext.hypotheses', 'KernelContext.contradictions'],
       acceptedEvidenceClasses: [...ACCEPTED_EVIDENCE_CLASSES],
-      requiredEvidenceClasses: [],
+      requiredEvidenceClasses: requiredEvidenceClassesFor(agent),
       sourcePolicies: [...SOURCE_POLICIES],
     },
     output: {
-      allowedEpistemicClasses: [...OUTPUT_CLASSES_BY_MODE[epistemicMode]],
+      allowedEpistemicClasses: outputClassesFor(agent),
       schemaRef: null,
       confidencePolicy: agent.confidenceModel.method,
       missingPolicy: 'PRESERVE_MISSING_AND_NOT_OBSERVED',
       contradictionPolicy: 'PRESERVE_AND_SURFACE_CONTRADICTIONS',
     },
     tools: {
-      // Slice A projects current execution contracts only. Tool authority remains
-      // governed by existing runtime owners; passports do not mint tool access.
       allowedToolClasses: [],
       allowedResources: uniqueSorted(agent.readsMemory),
       forbiddenResources: [...FORBIDDEN_RESOURCES],
@@ -259,8 +253,6 @@ function projectPassport(agent: SfiRegisteredCognitiveAgent): SfiCognitivePasspo
       confirmationRequirement: agent.humanApprovalRequired ? 'HUMAN' : 'NONE',
     },
     orchestration: {
-      // Adaptive capability negotiation is introduced by a later broker slice.
-      // The passport contract exists now, but no capability may self-expand.
       mayRequestCapabilities: false,
       requestableCapabilityIds: [],
       requestableCapabilityClasses: [],
@@ -279,17 +271,6 @@ function projectPassport(agent: SfiRegisteredCognitiveAgent): SfiCognitivePasspo
       loggingRequired: true,
     },
   };
-}
-
-export const SFI_COGNITIVE_PASSPORT_REGISTRY: SfiCognitivePassport[] =
-  SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY.map(projectPassport);
-
-const PASSPORT_BY_ID = new Map(
-  SFI_COGNITIVE_PASSPORT_REGISTRY.map((passport) => [passport.id, passport] as const),
-);
-
-export function cognitivePassportFor(capabilityId: string): SfiCognitivePassport | null {
-  return PASSPORT_BY_ID.get(capabilityId) ?? null;
 }
 
 const EPISTEMIC_MODES = new Set<SfiCognitivePassportEpistemicMode>([
@@ -358,41 +339,66 @@ export function validateCognitivePassport(passport: SfiCognitivePassport): strin
   return errors.sort();
 }
 
-export function validateCognitivePassportRegistry(): string[] {
+export function validateCognitivePassportAgainstSource(
+  passport: SfiCognitivePassport,
+  source: SfiRegisteredCognitiveAgent,
+): string[] {
+  const errors = [...validateCognitivePassport(passport)];
+  const expectedCeiling = AUTHORITY_CEILING_BY_LEGACY_LEVEL[source.authorityLevel];
+  const expectedConfirmation = source.humanApprovalRequired ? 'HUMAN' : 'NONE';
+  const expectedOutputs = outputClassesFor(source);
+  const expectedRequiredEvidence = requiredEvidenceClassesFor(source);
+
+  if (passport.id !== source.id) errors.push(`${passport.id}:SOURCE_ID_MISMATCH:${source.id}`);
+  if (passport.authority.ceiling !== expectedCeiling) {
+    errors.push(`${passport.id}:AUTHORITY_EXPANSION:${passport.authority.ceiling}:${expectedCeiling}`);
+  }
+  if (passport.authority.confirmationRequirement !== expectedConfirmation) {
+    errors.push(`${passport.id}:CONFIRMATION_REQUIREMENT_MISMATCH:${passport.authority.confirmationRequirement}:${expectedConfirmation}`);
+  }
+  if (JSON.stringify([...passport.output.allowedEpistemicClasses].sort()) !== JSON.stringify(expectedOutputs)) {
+    errors.push(`${passport.id}:OUTPUT_CONTRACT_MISMATCH`);
+  }
+  if (JSON.stringify([...passport.input.requiredEvidenceClasses].sort()) !== JSON.stringify(expectedRequiredEvidence)) {
+    errors.push(`${passport.id}:REQUIRED_EVIDENCE_CONTRACT_MISMATCH`);
+  }
+  if (passport.tools.allowedToolClasses.length > 0) errors.push(`${passport.id}:UNGRANTED_TOOL_AUTHORITY`);
+  if (passport.orchestration.mayRequestCapabilities) errors.push(`${passport.id}:ADAPTIVE_REQUEST_AUTHORITY_PREMATURE`);
+
+  const sourceResources = new Set(source.readsMemory);
+  for (const resource of passport.tools.allowedResources) {
+    if (!sourceResources.has(resource)) errors.push(`${passport.id}:RESOURCE_NOT_IN_SOURCE_CONTRACT:${resource}`);
+  }
+
+  return errors.sort();
+}
+
+export function validateCognitivePassportProjection(
+  passports: SfiCognitivePassport[],
+  sources: SfiRegisteredCognitiveAgent[],
+): string[] {
   const errors: string[] = [];
-  const sourceById = new Map(SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY.map((agent) => [agent.id, agent] as const));
-  const passportIds = SFI_COGNITIVE_PASSPORT_REGISTRY.map((passport) => passport.id);
-  const sourceIds = SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY.map((agent) => agent.id);
+  const sourceById = new Map(sources.map((source) => [source.id, source] as const));
+  const passportIds = passports.map((passport) => passport.id);
+  const sourceIds = sources.map((source) => source.id);
 
   if (passportIds.length !== sourceIds.length) {
     errors.push(`REGISTRY_COUNT_MISMATCH:${passportIds.length}:${sourceIds.length}`);
   }
-
-  for (const duplicate of duplicateValues(passportIds)) {
-    errors.push(`REGISTRY_DUPLICATE_ID:${duplicate}`);
-  }
+  for (const duplicate of duplicateValues(passportIds)) errors.push(`REGISTRY_DUPLICATE_ID:${duplicate}`);
 
   const passportSet = new Set(passportIds);
   const sourceSet = new Set(sourceIds);
   for (const id of [...sourceSet].filter((value) => !passportSet.has(value)).sort()) errors.push(`REGISTRY_MISSING_ID:${id}`);
   for (const id of [...passportSet].filter((value) => !sourceSet.has(value)).sort()) errors.push(`REGISTRY_UNKNOWN_ID:${id}`);
 
-  for (const passport of SFI_COGNITIVE_PASSPORT_REGISTRY) {
-    errors.push(...validateCognitivePassport(passport));
+  for (const passport of passports) {
     const source = sourceById.get(passport.id);
-    if (!source) continue;
-
-    const expectedCeiling = AUTHORITY_CEILING_BY_LEGACY_LEVEL[source.authorityLevel];
-    if (passport.authority.ceiling !== expectedCeiling) {
-      errors.push(`${passport.id}:AUTHORITY_EXPANSION:${passport.authority.ceiling}:${expectedCeiling}`);
+    if (!source) {
+      errors.push(...validateCognitivePassport(passport));
+      continue;
     }
-    if (passport.tools.allowedToolClasses.length > 0) errors.push(`${passport.id}:UNGRANTED_TOOL_AUTHORITY`);
-    if (passport.orchestration.mayRequestCapabilities) errors.push(`${passport.id}:ADAPTIVE_REQUEST_AUTHORITY_PREMATURE`);
-
-    const sourceResources = new Set(source.readsMemory);
-    for (const resource of passport.tools.allowedResources) {
-      if (!sourceResources.has(resource)) errors.push(`${passport.id}:RESOURCE_NOT_IN_SOURCE_CONTRACT:${resource}`);
-    }
+    errors.push(...validateCognitivePassportAgainstSource(passport, source));
   }
 
   return errors.sort();
