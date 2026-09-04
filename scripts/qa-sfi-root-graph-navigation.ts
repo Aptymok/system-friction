@@ -15,12 +15,12 @@ const readerSupport = read('src/lib/root/sovereign/readers/readerSupport.ts');
 const reconcileRoute = read('src/app/api/root/evidence/reconcile/route.ts');
 const scenes = read('src/components/sfi/scenes.ts');
 const shellUi = read('src/components/sfi/SfiConsole.tsx');
+const rootUi = read('src/components/sfi/SfiRootWorkspace.tsx');
 const operatingUi = read('src/components/sfi/SfiOperatingWorkspace.tsx');
 const governanceUi = read('src/components/sfi/SfiGovernanceWorkspace.tsx');
 const interactiveRoute = read('src/app/api/root/interactive/route.ts');
 const scenePage = read('src/app/[scene]/page.tsx');
 
-// Graph storage, lineage and read/write boundaries remain backend contracts.
 check('legacy graph node storage remains compatible', reconcile.includes("LEGACY_NODE_STORAGE_TYPE = 'INF'") && !reconcile.includes("node_type: 'SRC'") && !reconcile.includes("node_type: 'ATR'"));
 check('legacy graph edge storage remains compatible', reconcile.includes("LEGACY_EDGE_STORAGE_TYPE = 'structural_inferred'") && reconcile.includes('relation_type: LEGACY_EDGE_STORAGE_TYPE'));
 check('graph edge upsert matches live composite unique key', reconcile.includes("EDGE_CONFLICT = 'source_node_key,target_node_key,relation_type'") && reconcile.includes('{ onConflict: EDGE_CONFLICT }'));
@@ -34,9 +34,8 @@ check('evidence reader does not require missing graph_nodes.evidence_ids column'
 check('evidence reader exposes semantic and temporal edge metadata', reader.includes('declaredRelations.join') && reader.includes('relationClass:') && reader.includes('observedAt: dateValue(attributes.observedAt'));
 check('explicit graph maintenance is sovereign and audited', reconcileRoute.includes("requireRootActor('evidence.graph.reconcile')") && reconcileRoute.includes("action: 'evidence.graph.reconcile'"));
 
-// ROOT remains canonical. Governance capabilities are delegated to the canonical
-// SfiGovernanceWorkspace rather than duplicated inside SfiOperatingWorkspace.
-check('ROOT is a canonical operating scene', scenes.includes("root:{key:'root'") && scenes.includes("title:'Observatorio de Fricción'") && scenes.includes("liveSource:'/api/root/workboard'"));
+check('ROOT is the canonical sovereign operating scene', scenes.includes("root:{key:'root'") && scenes.includes("title:'ROOT · Operación soberana'") && scenes.includes("liveSource:'/api/root/workboard'"));
+check('ROOT exposes a navigable institutional surface map', rootUi.includes('MAPA OPERATIVO · SUPERFICIES SFI') && rootUi.includes("href: '/method-lab'") && rootUi.includes("href: '/observatory'") && rootUi.includes("href: '/library'"));
 check('ROOT operating workspace delegates governance to one canonical workspace', operatingUi.includes('SfiGovernanceWorkspace') && operatingUi.includes("if(surface==='governance')return <SfiGovernanceWorkspace enabled={enabled}/>"));
 check('ROOT governance workspace reads governed proposals from canonical interactive projection', governanceUi.includes("jsonFetch('/api/root/interactive?surface=governance')") && governanceUi.includes('setProposals(arr(operationalNext.items))') && interactiveRoute.includes("proposalQueueSource: 'operationalNext.items'"));
 check('ROOT governance workspace exposes plain-language governed decisions', governanceUi.includes('ACEPTAR') && governanceUi.includes('DENEGAR') && governanceUi.includes('PEDIR EVIDENCIA'));

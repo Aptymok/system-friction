@@ -10,6 +10,7 @@ const route = read('src/app/api/root/cognitive-spine/status/route.ts');
 const interactiveApi = read('src/app/api/root/interactive/route.ts');
 const scenes = read('src/components/sfi/scenes.ts');
 const liveUi = read('src/components/sfi/SfiConsole.tsx');
+const rootUi = read('src/components/sfi/SfiRootWorkspace.tsx');
 const operatingUi = read('src/components/sfi/SfiOperatingWorkspace.tsx');
 const governanceUi = read('src/components/sfi/SfiGovernanceWorkspace.tsx');
 const scenePage = read('src/app/[scene]/page.tsx');
@@ -34,11 +35,13 @@ assert.ok(reader.includes('available: false as const'), 'root_ct_status_unavaila
 assert.ok(route.includes("requireRootViewer('root.cognitive-spine.status')"), 'root_ct_status_endpoint_not_root_gated');
 assert.ok(route.includes("'Cache-Control': 'no-store'"), 'root_ct_status_endpoint_cache_boundary_missing');
 
-// ROOT stays on the canonical live-scene runtime. Governance and TWIN consume one
-// parent interactive projection instead of creating parallel proposal/runtime feeds.
+// ROOT stays the sovereign live-scene owner. Observatory is a separate canonical
+// surface; Cognitive Twin remains visible from ROOT without becoming ROOT itself.
 assert.ok(scenes.includes("root:{key:'root'"), 'root_live_scene_missing');
-assert.ok(scenes.includes("title:'Observatorio de Fricción'"), 'root_live_scene_semantics_missing');
-assert.ok(liveUi.includes('COGNITIVE TWIN'), 'root_live_scene_twin_observability_missing');
+assert.ok(scenes.includes("title:'ROOT · Operación soberana'"), 'root_live_scene_semantics_missing');
+assert.ok(rootUi.includes('ROOT · SOBERANÍA OPERATIVA') && rootUi.includes('MAPA OPERATIVO · SUPERFICIES SFI'), 'root_sovereign_workspace_semantics_missing');
+assert.ok(rootUi.includes("href: '/twin'") && rootUi.includes("href: '/twin/learning'"), 'root_twin_navigation_missing');
+assert.ok(liveUi.includes('COGNITIVE TWIN') || scenes.includes("title:'Cognitive Twin / Spine'"), 'root_live_scene_twin_observability_missing');
 assert.ok(operatingUi.includes('SfiGovernanceWorkspace'), 'root_operating_workspace_governance_delegate_missing');
 assert.ok(governanceUi.includes("jsonFetch('/api/root/interactive?surface=governance')") && governanceUi.includes('setProposals(arr(operationalNext.items))'), 'root_governance_workspace_proposal_projection_missing');
 assert.ok(governanceUi.includes('ACEPTAR') && governanceUi.includes('DENEGAR') && governanceUi.includes('PEDIR EVIDENCIA'), 'root_governance_workspace_controls_missing');
@@ -84,7 +87,6 @@ assert.equal(anatomy.includes('csSpineAxis'), false, 'legacy_css_spine_axis_must
 assert.equal(/createServiceSupabaseClient|\.from\s*\(\s*['"][A-Za-z_][A-Za-z0-9_]*['"]\s*\)/.test(anatomy), false, 'spine_anatomy_must_not_read_raw_db');
 assert.equal(anatomy.includes('/api/root/governance/promote'), false, 'park_must_not_promote_canon');
 
-// The shared renderer owns presentation only: exact approved responsive artwork + semantic overlays, no backend.
 for (const asset of ['park-desktop.avif', 'park-tablet.avif', 'park-mobile.avif']) {
   const relative = `public/cognitive-spine/${asset}`;
   const absolute = path.join(root, relative);
@@ -106,13 +108,14 @@ assert.ok(parkCss.includes('@media(prefers-reduced-motion:reduce)'), 'spine_redu
 
 console.log(JSON.stringify({
   ok: true,
-  statusContract: 'SFI-ROOT-CT-STATUS-1.2',
+  statusContract: 'SFI-ROOT-CT-STATUS-1.3',
   rootOnlyOperations: true,
   consumesCt: false,
   canonicalWrite: false,
   internalRefsExposed: false,
   rootDependsOnCtAvailability: false,
-  rootSurface: 'ROOT_LIVE_SCENE',
+  rootSurface: 'ROOT_SOVEREIGN_LIVE_SCENE',
+  observatoryIsSeparateCanonicalSurface: true,
   cognitiveSpinePark: 'APPROVED_ARTWORK_PARENT_PROJECTED_ZERO_DUPLICATE',
   observationFocusPreserved: true,
   runtimeAgentTruth: 'RECENT_PERSISTED_SFI_AGENT_EXECUTED',
