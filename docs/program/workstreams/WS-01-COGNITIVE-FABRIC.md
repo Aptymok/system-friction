@@ -260,7 +260,7 @@ NEXT SAFE ACTION
 
 ## 10. Durable handoff — 2026-09-04 — Slice A
 
-**State:** `PR_OPEN`  
+**State:** `QA_PASS / PR_OPEN`  
 **Slice:** Cognitive Passport Registry + validation  
 **Base SHA:** `1bd890c8a2ec784ad87d73eac6d19a294e050543`  
 **Branch:** `ws01/cognitive-passport-registry`  
@@ -297,20 +297,34 @@ Slice A therefore implements passports as a deterministic projection over `SFI_C
 
 None. The frozen contract can be absorbed without fork.
 
-### QA state
+### QA closure
 
-Initial PR workflow `SFI Verify` run `33905545517` reached canonical architecture preflight and failed `P17_PR_PREFLIGHT_REQUIRED` because the PR body lacked the mandatory `SFI PRECHECK` field markers. Domain boundaries and verify-topology gates passed before that failure; subsequent gates, typecheck and build were correctly skipped. The PR body has been corrected with the full mandatory precheck. This durable handoff commit triggers a new full PR verification run.
+Initial PR workflow `SFI Verify` run `33905545517` correctly failed `P17_PR_PREFLIGHT_REQUIRED` because the PR body lacked the mandatory `SFI PRECHECK` markers. This was a PR-metadata failure, not a code defect. The PR body was corrected with all required preflight fields.
+
+Full verification then ran on head `771c0c0a283d4aecbe98a617ddf790db78880bfe` in `SFI Verify` run `33905891122`. The primary `Verify SFI boundaries and build` job completed successfully, including:
+
+- verify parallel topology: PASS;
+- domain boundaries: PASS;
+- canonical architecture preflight: PASS;
+- cognitive agent convergence / 21 IDs: PASS;
+- `SFI cognitive passport registry`: PASS;
+- AI governance/autonomous runtime: PASS;
+- runtime read-plane stability: PASS;
+- all intervening SFI verification gates: PASS;
+- typecheck: PASS;
+- build: PASS.
+
+No implementation defect was observed in Slice A by the completed primary verification chain.
 
 ### Known defects / dependencies
 
-- no Slice A code defect is established by the initial preflight failure; it was a PR metadata gate;
 - baseline issue `#366` remains an unrelated WS-03/WS-08 assurance failure and has first integration priority under current SFI-00 state;
 - SFI-00 remains sole merge/integration authority;
 - Slice B depends on a stable passport projection and must not introduce self-authorization or a parallel event/persistence owner.
 
 ### Next safe action
 
-Run the complete `SFI Verify` chain on the current PR head, correct any observed implementation failure, then leave `#367` unmerged for SFI-00 sequencing. After Slice A is admitted or a stable dependency base is explicitly authorized, proceed to Slice B — governed Capability Broker.
+Leave `#367` unmerged for SFI-00 sequencing. SFI-00 should admit the green Slice A head only in the integration order it authorizes, respecting the first-priority #366 corrective lane. WS-01 may inspect Slice B, but implementation should consume the admitted/stable passport projection rather than fork it.
 
 ---
 
