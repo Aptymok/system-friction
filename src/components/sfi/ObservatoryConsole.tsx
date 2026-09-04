@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { useAuthState } from '@/components/auth/AuthProvider';
 import { SessionControls } from './SessionControls';
+import { ObservatoryInterpretiveFlow } from './ObservatoryInterpretiveFlow';
 import { translateUiText, useSfiLanguage } from '@/components/i18n/SfiLanguageProvider';
 import {
   classifyObservatoryRead,
@@ -138,7 +139,7 @@ export function ObservatoryConsole(){
       ? ownedText(`La hipótesis seleccionada es una inferencia, no un hecho: ${selectedHypothesis.statement??'sin enunciado'}. Su traza usa ${selectedEvidenceIds.size} registros fuente, afecta ${arr(selectedHypothesis.aiInference?.affectedSystems).length} sistemas y conserva señales de contradicción explícitas.`,`The selected hypothesis is an inference, not a fact: ${selectedHypothesis.statement??'no statement'}. Its trace uses ${selectedEvidenceIds.size} source records, affects ${arr(selectedHypothesis.aiInference?.affectedSystems).length} systems, and preserves explicit contradiction signals.`)
       : ownedText(`El campo contiene ${nodes.length} observaciones visibles y ${filteredHypotheses.length} hipótesis trazables bajo los filtros actuales.`,`The field contains ${nodes.length} visible observations and ${filteredHypotheses.length} traceable hypotheses under the current filters.`);
 
-  return <main className="obsShell" data-world-availability={availability.world} data-state-availability={availability.state} data-timeline-availability={availability.timeline}><section className={`obsScene lens-${lens}`}><div className="starfield"/><div className="deepSpace"/>
+  return <><main className="obsShell" data-world-availability={availability.world} data-state-availability={availability.state} data-timeline-availability={availability.timeline}><section className={`obsScene lens-${lens}`}><div className="starfield"/><div className="deepSpace"/>
     <button className={`satelliteActor satellite-${lens}`} onClick={()=>{setSatelliteOpen(v=>!v);if(!selectedHypothesisId&&filteredHypotheses[0])setSelectedHypothesisId(String(filteredHypotheses[0].id))}} aria-label={ui('Abrir instrumento satelital SFI')}>
       <img src="/sfi-scenes/satellite.png" alt={ui('Satélite del observatorio SFI')}/><span className="scanBeam"/>
     </button>
@@ -204,5 +205,5 @@ export function ObservatoryConsole(){
     </aside>}
 
     <div style={{position:'absolute',zIndex:15,left:'50%',transform:'translateX(-50%)',top:88,pointerEvents:'none',fontSize:11,letterSpacing:'.08em',opacity:.62}} data-availability={availability.world}>{ownedText('FLUJO VIVO','LIVE FLOW')} · {world?.generatedAt?.slice?.(11,19)||availability.world} · {worldMetric(sourceIds.length)} {ownedText('fuentes observadas','observed sources')} · {worldMetric(selectedGraphEdges.length)} {ownedText('relaciones visibles','visible relations')}</div>
-  </section></main>;
+  </section></main><ObservatoryInterpretiveFlow world={world} availability={availability.world}/></>;
 }
