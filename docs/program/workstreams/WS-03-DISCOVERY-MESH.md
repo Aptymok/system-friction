@@ -353,6 +353,63 @@ PR
 NEXT SAFE ACTION
 ```
 
+## 12. Active corrective slice — #366 Observatory availability
+
+**State:** `PR_OPEN`  
+**Issue:** `#366 [WS-03/WS-08] Eliminate public false-zero during Observatory availability`  
+**Base:** `1bd890c8a2ec784ad87d73eac6d19a294e050543`  
+**Branch:** `ws03/366-observatory-availability`  
+**PR:** `#369`  
+**Integration authority:** SFI-00; WS-03 self-merge remains forbidden.
+
+### Owner reconstruction
+
+The canonical public Observatory remains `src/components/sfi/ObservatoryConsole.tsx` over the existing `/api/observatory/world`, `/api/observatory/state`, and `/api/observatory/timeline` reads. The UI retains one `Promise.all` and one bounded `setInterval(pull,20000)` owner. No additional endpoint, poller, persistence owner, or data-domain read was introduced.
+
+### Corrective semantics
+
+The existing read result is now classified as:
+
+```text
+LOADING
+AVAILABLE
+DEGRADED
+UNAVAILABLE
+ERROR
+```
+
+Only `AVAILABLE` may expose a numeric public counter. Therefore an authoritative empty read renders `0`, while loading/degraded/unavailable/error remain explicit non-numeric states. A later failed/degraded read clears the formerly admitted read-model projection rather than retaining stale numeric state under a non-available label.
+
+`src/lib/observatory/public/readAvailability.ts` is a pure projection helper inside the existing public Observatory owner; it performs no fetch, write, polling, cache, persistence or authority function.
+
+### Regression QA absorbed
+
+`scripts/qa-sfi-temporal-surfaces.ts` now asserts:
+
+- `AVAILABLE + 0 = 0`;
+- `LOADING`, `DEGRADED`, `UNAVAILABLE`, and `ERROR` never map to numeric zero;
+- exactly one existing fetch per Observatory public data domain;
+- exactly one `Promise.all` read owner;
+- exactly one `setInterval(pull,20000)` refresh owner;
+- public machine-readable availability attributes exist;
+- former direct false-zero count projections are absent.
+
+### Contract impact
+
+No frozen contract delta. The slice implements the existing `UNAVAILABLE != ZERO` invariant and preserves `ONE INTERACTIVE NEED -> ONE AUTHORITATIVE READ PER DATA DOMAIN`.
+
+No migrations, events, new routes, persistence mutations or production mutations.
+
+### QA chronology
+
+Initial `SFI Verify` run `33905732102` reached canonical preflight and failed because PR #369 added a structural `src/lib/**` file but the PR body did not contain the exact required `SFI PRECHECK` field names. Boundary checks before that gate passed. The code was not changed to bypass the rule; the PR dossier was corrected to include the required owner/reuse/writer/persistence/front/back/DB/redundancy/authority/rollback/verification fields. A subsequent branch documentation commit triggers a fresh pull-request run against the corrected dossier.
+
+At this durable checkpoint, full final-head temporal QA, runtime read-plane QA, typecheck and build remain release-gated by the fresh `SFI Verify` run and must not be reported PASS until GitHub Actions records success.
+
+### Next safe action
+
+Let the final-head PR checks complete. If green, WS-08 performs independent adversarial assurance on PR #369; SFI-00 alone decides integration. No merge from WS-03.
+
 ---
 
 # COPY-PASTE DISPATCH PROMPT
