@@ -9,6 +9,7 @@ type Row = Record<string, any>;
 function rec(value: unknown): Row { return value && typeof value === 'object' && !Array.isArray(value) ? value as Row : {}; }
 function text(value: unknown): string | null { return typeof value === 'string' && value.trim() ? value.trim() : null; }
 function arr(value: unknown): any[] { return Array.isArray(value) ? value : []; }
+function strings(value: unknown): string[] { return arr(value).filter((item): item is string => typeof item === 'string' && item.trim().length > 0); }
 
 function proposalType(value: Row) {
   const expected = rec(value.expected_field_delta);
@@ -46,7 +47,7 @@ function evidenceCandidate(value: Row) {
       retrievedAt: text(source.retrievedAt),
     },
     requestNote: text(payload.requestNote),
-    warnings: arr(payload.warnings).filter((item): item is string => typeof item === 'string'),
+    warnings: strings(payload.warnings),
     epistemicBoundary: text(payload.epistemicBoundary),
     identityBoundary: text(payload.identityBoundary),
   };
@@ -94,13 +95,141 @@ function actionModel(status: string, candidates: ReturnType<typeof evidenceCandi
   };
 }
 
+function reportActionModel(approvalStatus: string) {
+  if (approvalStatus === 'queued_for_approval') return {
+    humanActionRequired: true,
+    question: '¿Apruebas este reporte para uso humano o lo rechazas?',
+    actions: [
+      { id: 'accept', label: 'APROBAR PARA USO HUMANO', consequence: 'Cambia el reporte a approved_for_human_use. No lo publica, ejecuta ni vuelve verdadero.' },
+      { id: 'deny', label: 'RECHAZAR REPORTE', consequence: 'Cambia el reporte a rejected y conserva su contenido, evidencia, limitaciones y recibo.' },
+    ],
+    nextOwnerByAction: { accept: 'HUMAN_READER / downstream use under existing authority', deny: 'TERMINAL_REPORT_REJECTION' },
+  };
+
+  if (approvalStatus === 'waiting_evidence') return {
+    humanActionRequired: false,
+    question: 'El reporte está retenido por evidencia. El writer actual no crea una adquisición verificable; ROOT no debe repetir “pedir evidencia” como si existiera un owner automático.',
+    actions: [],
+    nextOwnerByAction: { wait: 'REPORT_EVIDENCE_REVIEW_UNRESOLVED' },
+  };
+
+  return {
+    humanActionRequired: false,
+    question: 'Este reporte ya no tiene una decisión soberana pendiente.',
+    actions: [],
+    nextOwnerByAction: {},
+  };
+}
+
+async function reportDossier(gate: Awaited<ReturnType<typeof requireRootViewer>>, id: string) {
+  if (!gate.ok) return null;
+  const reportRead = await gate.ctx.service.from('sfi_cognitive_twin_runs')
+    .select('id,task_id,role,status,objective,input_snapshot,output_envelope,evidence_refs,limitations,provider,model,created_at')
+    .eq('id', id)
+    .eq('role', 'report_agent')
+    .maybeSingle();
+
+  if (reportRead.error) return NextResponse.json({ ok: false, error: 'report_dossier_read_failed', details: reportRead.error.message }, { status: 503 });
+  if (!reportRead.data) return NextResponse.json({ ok: false, error: 'report_not_found' }, { status: 404 });
+
+  const report = reportRead.data as Row;
+  const envelope = rec(report.output_envelope);
+  const approval = rec(envelope.approval_queue);
+  const snapshot = rec(report.input_snapshot);
+  const approvalStatus = (text(approval.status) ?? 'unknown').toLowerCase();
+  const evidenceRefs = strings(report.evidence_refs);
+  const limitations = strings(report.limitations);
+  const body = text(envelope.body) ?? text(envelope.report) ?? text(envelope.summary);
+  const actions = reportActionModel(approvalStatus);
+
+  const dossier = {
+    contract: 'SFI-SOVEREIGN-DECISION-DOSSIER-1.1',
+    kind: 'report',
+    id,
+    title: text(envelope.title) ?? text(report.objective) ?? 'Reporte institucional',
+    proposalType: 'institutional_report',
+    status: approvalStatus,
+    statusMeaning: approvalStatus === 'queued_for_approval'
+      ? 'Reporte generado y retenido hasta una decisión ROOT explícita para uso humano.'
+      : approvalStatus === 'waiting_evidence'
+        ? 'Reporte retenido porque la evidencia no está resuelta.'
+        : 'Reporte sin decisión ROOT pendiente.',
+    description: body,
+    objective: text(report.objective),
+    origin: {
+      source: 'sfi_cognitive_twin_runs/report_agent',
+      actorId: 'report_agent',
+      credentialLabel: `${text(report.provider) ?? 'provider?'} / ${text(report.model) ?? 'model?'}`,
+      submittedAt: text(report.created_at),
+      createdAt: text(report.created_at),
+      updatedAt: text(approval.decidedAt) ?? text(report.created_at),
+    },
+    risk: {
+      level: limitations.length ? 'attention' : 'observed',
+      state: limitations.length ? 'LIMITATIONS_PRESENT' : 'NO_PERSISTED_LIMITATION_TEXT',
+      rationale: limitations.length
+        ? `${limitations.length} limitación${limitations.length === 1 ? '' : 'es'} persistida${limitations.length === 1 ? '' : 's'}; revisa antes de aprobar para uso humano.`
+        : 'No hay texto de limitación persistido en este run. Eso no convierte el contenido en verdad ni en evidencia.',
+      confidence: null,
+      assessedAt: text(report.created_at),
+    },
+    request: {
+      humanApprovalRequired: approvalStatus === 'queued_for_approval',
+      requestedAction: null,
+      summary: 'ROOT decide únicamente si este reporte puede pasar a uso humano.',
+    },
+    evidenceCandidates: [],
+    evidenceRefs,
+    limitations,
+    report: {
+      taskId: text(report.task_id),
+      reportType: text(envelope.type) ?? text(snapshot.reportType) ?? 'report',
+      provider: text(report.provider),
+      model: text(report.model),
+      body,
+    },
+    outcome: {
+      recorded: Boolean(text(approval.founderDecision)),
+      governanceDecision: text(approval.founderDecision),
+      note: text(approval.founderNote),
+      outcomeStatus: approvalStatus,
+      returnEventId: null,
+      expectedReturn: null,
+      calibrationState: null,
+      executionState: null,
+      closureCondition: null,
+      executionPlan: null,
+    },
+    authorityBoundary: {
+      approvalRequired: approvalStatus === 'queued_for_approval',
+      executionAuthorizedByThisDecision: false,
+      canonicalPromotionAuthorizedByThisDecision: false,
+      publicationAuthorizedByThisDecision: false,
+      truthAuthorizedByThisDecision: false,
+      statement: 'Aprobar un reporte significa approved_for_human_use. No publica, contacta, ejecuta, establece verdad, cierra caso/ciclo ni promueve canon.',
+    },
+    actionability: actions,
+    terminalCondition: 'La decisión soberana de este objeto termina cuando ROOT lo aprueba para uso humano o lo rechaza. Cualquier publicación, ejecución, cierre o canon es una autoridad separada.',
+    readWarnings: [],
+  };
+
+  return NextResponse.json({
+    ok: true,
+    dossier,
+    readPlan: { authGates: 1, reportReads: 1, proposalReads: 0, evidenceCandidateReads: 0, fullConsoleReads: 0, duplicateReportReads: 0 },
+  }, { headers: { 'Cache-Control': 'private, no-store' } });
+}
+
 export async function GET(request: Request) {
   const gate = await requireRootViewer('root.decision_dossier.read');
   if (!gate.ok) return NextResponse.json(gate.body, { status: gate.status });
 
   const url = new URL(request.url);
   const id = url.searchParams.get('id')?.trim() || null;
+  const kind = url.searchParams.get('kind')?.trim().toLowerCase() || 'proposal';
   if (!id) return NextResponse.json({ ok: false, error: 'decision_id_required' }, { status: 400 });
+  if (kind === 'report') return reportDossier(gate, id);
+  if (kind !== 'proposal') return NextResponse.json({ ok: false, error: 'unsupported_decision_kind', allowed: ['proposal', 'report'] }, { status: 400 });
 
   const [proposalRead, candidatesRead] = await Promise.all([
     gate.ctx.service.from('action_proposals').select('*').eq('id', id).maybeSingle(),
@@ -127,7 +256,8 @@ export async function GET(request: Request) {
   const actions = actionModel(status, candidates);
 
   const dossier = {
-    contract: 'SFI-SOVEREIGN-DECISION-DOSSIER-1.0',
+    contract: 'SFI-SOVEREIGN-DECISION-DOSSIER-1.1',
+    kind: 'proposal',
     id,
     title: text(proposal.title) ?? proposalType(proposal),
     proposalType: proposalType(proposal),
@@ -185,6 +315,6 @@ export async function GET(request: Request) {
   return NextResponse.json({
     ok: true,
     dossier,
-    readPlan: { authGates: 1, proposalReads: 1, evidenceCandidateReads: 1, fullConsoleReads: 0, duplicateProposalReads: 0 },
+    readPlan: { authGates: 1, proposalReads: 1, evidenceCandidateReads: 1, reportReads: 0, fullConsoleReads: 0, duplicateProposalReads: 0 },
   }, { headers: { 'Cache-Control': 'private, no-store' } });
 }
