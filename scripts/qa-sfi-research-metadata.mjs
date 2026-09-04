@@ -22,6 +22,33 @@ try {
   fail(`CITATION.cff is not valid JSON/YAML-subset syntax: ${error instanceof Error ? error.message : String(error)}`);
 }
 
+const VERIFIED_CITATION_AUTHORS = [
+  {
+    'family-names': 'Aptymok',
+    website: 'https://github.com/Aptymok',
+  },
+];
+
+const normalizedRecord = (value) => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  return JSON.stringify(Object.fromEntries(Object.entries(value).sort(([a], [b]) => a.localeCompare(b))));
+};
+
+const sameRecordSet = (left, right) => {
+  const a = left.map(normalizedRecord);
+  const b = right.map(normalizedRecord);
+  if (a.some((value) => value === null) || b.some((value) => value === null)) return false;
+  return a.length === b.length && [...a].sort().every((value, index) => value === [...b].sort()[index]);
+};
+
+const validateCitationAuthors = (authors) => {
+  assert(Array.isArray(authors) && authors.length > 0, 'CITATION must contain at least one observed author identity');
+  assert(
+    sameRecordSet(authors, VERIFIED_CITATION_AUTHORS),
+    'Every CITATION author and author identity field must be backed by the currently verified repository identity source',
+  );
+};
+
 assert(citation['cff-version'] === '1.2.0', 'CITATION.cff must use CFF 1.2.0');
 assert(citation.message && typeof citation.message === 'string', 'CITATION.cff message is required');
 assert(citation.title === 'System Friction Institute', 'CITATION title must match the repository/public project title');
@@ -29,11 +56,7 @@ assert(citation.type === 'software', 'Repository citation type must be software'
 assert(citation.version === packageJson.version, 'CITATION version must match package.json version');
 assert(citation['repository-code'] === 'https://github.com/Aptymok/system-friction', 'CITATION repository-code must point to the canonical repository');
 assert(citation.url === 'https://systemfriction.org', 'CITATION url must point to the canonical institution domain');
-assert(Array.isArray(citation.authors) && citation.authors.length > 0, 'CITATION must contain at least one observed author identity');
-assert(
-  citation.authors.some((author) => author?.['family-names'] === 'Aptymok' && author?.website === 'https://github.com/Aptymok'),
-  'CITATION must retain the observed Git author identity without inventing an academic identifier',
-);
+validateCitationAuthors(citation.authors);
 assert(readme.startsWith('# System Friction Institute'), 'README project title no longer matches CITATION title');
 assert(readme.includes('## Citation and research release metadata'), 'README must expose citation/release guidance');
 
@@ -74,10 +97,11 @@ const canonicalAuthorName = (author) =>
     .join(' ')
     .trim();
 
-const sameStringSet = (left, right) => {
-  const a = [...left].sort();
-  const b = [...right].sort();
-  return a.length === b.length && a.every((value, index) => value === b[index]);
+const citationAuthorToZenodoCreator = (author) => {
+  const creator = { name: canonicalAuthorName(author) };
+  if (typeof author?.affiliation === 'string' && author.affiliation.trim()) creator.affiliation = author.affiliation.trim();
+  if (typeof author?.orcid === 'string' && author.orcid.trim()) creator.orcid = author.orcid.trim();
+  return creator;
 };
 
 const validateZenodoOverride = (zenodo, citationMetadata, rootLicenseExists) => {
@@ -85,15 +109,14 @@ const validateZenodoOverride = (zenodo, citationMetadata, rootLicenseExists) => 
   assert(zenodo.title === citationMetadata.title, '.zenodo.json title must match CITATION.cff');
   assert(Array.isArray(zenodo.creators) && zenodo.creators.length > 0, '.zenodo.json creators are required when the file exists');
   assert(
-    zenodo.creators.every((creator) => creator && typeof creator === 'object' && typeof creator.name === 'string' && creator.name.trim()),
+    zenodo.creators.every((creator) => creator && typeof creator === 'object' && !Array.isArray(creator) && typeof creator.name === 'string' && creator.name.trim()),
     '.zenodo.json creators must contain explicit non-empty names',
   );
 
-  const citationCreatorNames = citationMetadata.authors.map(canonicalAuthorName).filter(Boolean);
-  const zenodoCreatorNames = zenodo.creators.map((creator) => creator.name.trim());
+  const expectedCreators = citationMetadata.authors.map(citationAuthorToZenodoCreator);
   assert(
-    sameStringSet(zenodoCreatorNames, citationCreatorNames),
-    '.zenodo.json creators must match the currently observed CITATION.cff author identities',
+    sameRecordSet(zenodo.creators, expectedCreators),
+    '.zenodo.json creator names and identity fields must exactly match verified CITATION.cff author metadata',
   );
 
   assert(rootLicenseExists, '.zenodo.json requires a root LICENSE before deposit metadata can override CITATION.cff');
@@ -139,11 +162,29 @@ const validateZenodoOverride = (zenodo, citationMetadata, rootLicenseExists) => 
   inspectIdentifiers(zenodo);
 };
 
+const expectCitationAuthorRejection = (label, authors) => {
+  let rejected = false;
+  try {
+    validateCitationAuthors(authors);
+  } catch {
+    rejected = true;
+  }
+  assert(rejected, `CITATION author validation self-test accepted ${label}`);
+};
+
+expectCitationAuthorRejection('an unobserved additional author', [
+  ...citation.authors,
+  { 'family-names': 'Fabricated Researcher' },
+]);
+expectCitationAuthorRejection('an unverified author affiliation field', [
+  { ...citation.authors[0], affiliation: 'Fabricated University' },
+]);
+
 const expectZenodoRejection = (label, mutate) => {
   const syntheticCitation = { ...citation, license: 'TEST-VERIFIED-LICENSE' };
   const validOverride = {
     title: syntheticCitation.title,
-    creators: syntheticCitation.authors.map((author) => ({ name: canonicalAuthorName(author) })),
+    creators: syntheticCitation.authors.map(citationAuthorToZenodoCreator),
     license: syntheticCitation.license,
     version: syntheticCitation.version,
   };
@@ -159,6 +200,10 @@ const expectZenodoRejection = (label, mutate) => {
 
 expectZenodoRejection('conflicting title', (zenodo) => ({ ...zenodo, title: 'Conflicting external title' }));
 expectZenodoRejection('unverified creator identity', (zenodo) => ({ ...zenodo, creators: [{ name: 'Unverified Researcher' }] }));
+expectZenodoRejection('unverified creator affiliation', (zenodo) => ({
+  ...zenodo,
+  creators: [{ ...zenodo.creators[0], affiliation: 'Fabricated University' }],
+}));
 expectZenodoRejection('unverified DOI', (zenodo) => ({ ...zenodo, doi: '10.1234/fabricated' }));
 expectZenodoRejection('unverified ORCID', (zenodo) => ({
   ...zenodo,
