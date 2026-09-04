@@ -52,10 +52,13 @@ export function SfiGovernanceWorkspace({enabled}:{enabled:boolean}){
   const [notice,setNotice]=useState<string|null>(null);
 
   const loadBase=useCallback(async()=>{if(!enabled)return;try{
-    const [rt,evidence,ci,next]=await Promise.all([jsonFetch('/api/root/cognitive-runtime'),jsonFetch('/api/root/evidence/targets'),jsonFetch('/api/cases'),jsonFetch('/api/root/operational-next')]);
-    const operationalNext=next.operationalNext??{};
+    const data=await jsonFetch('/api/root/interactive?surface=governance');
+    const operationalNext=data.operationalNext??{};
     const proposalWarnings=strings(operationalNext.warnings).filter(warning=>warning.startsWith('action_proposals:'));
-    setRuntime(rt);setEvidenceTargets(evidence);setCaseIndex({projects:ci.projects??[],cases:ci.cases??[]});setWorkboard({operationalNext});
+    setRuntime(data.runtime??null);
+    setEvidenceTargets(data.evidence??null);
+    setCaseIndex({projects:data.caseIndex?.projects??[],cases:data.caseIndex?.cases??[]});
+    setWorkboard({operationalNext});
     setProposals(arr(operationalNext.items));
     setProposalReadState(proposalWarnings.length?'DEGRADED':'READY');
     setProposalReadError(proposalWarnings.length?proposalWarnings.join(' · '):null);
