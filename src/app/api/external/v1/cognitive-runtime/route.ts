@@ -11,11 +11,7 @@ import {
   executionContractForAgent,
   listExecutionContracts,
 } from '@/lib/sfi/cognitive-runtime/executionContracts';
-import {
-  readAgentExecutionStates,
-  readExecutionRecords,
-} from '@/lib/sfi/cognitive-runtime/executionRecords';
-import { readGenAiAssuranceMetrics } from '@/lib/sfi/cognitive-runtime/genAiAssurance';
+import { readAgentExecutionDossier } from '@/lib/sfi/cognitive-runtime/agentDossierRead';
 import {
   executeManualCognitiveAgent,
   SFI_MANUAL_COGNITIVE_EXECUTION_VERSION,
@@ -78,6 +74,7 @@ function boundary() {
     historyAbsenceMeansNonExistence: false,
     telemetryIsEvidence: false,
     openTelemetryIsTruthAuthority: false,
+    duplicateCanonicalEventReads: 0,
   };
 }
 
@@ -109,11 +106,11 @@ export async function GET(request: Request) {
   const contract = executionContractForAgent(agentId);
   if (!contract) return NextResponse.json({ ok: false, error: 'execution_contract_not_found' }, { status: 409 });
 
-  const [stateRead, history, assurance] = await Promise.all([
-    readAgentExecutionStates(),
-    readExecutionRecords({ agentId, executionId: executionId ?? undefined, limit }),
-    readGenAiAssuranceMetrics({ agentId, limit }),
-  ]);
+  const dossier = await readAgentExecutionDossier({
+    agentId,
+    executionId: executionId ?? undefined,
+    historyLimit: limit,
+  });
 
   return NextResponse.json({
     ok: true,
@@ -122,22 +119,25 @@ export async function GET(request: Request) {
     principal: principal(credential),
     passport: compactPassport(agent),
     contract: compactExecutionContract(contract),
-    state: stateRead.states.find((item) => item.agentId === agentId) ?? null,
-    history: history.records,
+    state: dossier.state,
+    history: dossier.history,
     historyRead: {
-      generatedAt: history.generatedAt,
-      source: history.source,
-      readLimit: history.readLimit,
-      exhaustive: history.exhaustive,
-      warnings: history.warnings,
+      generatedAt: dossier.generatedAt,
+      source: dossier.source,
+      readLimit: dossier.eventReadLimit,
+      requestedHistoryLimit: dossier.historyLimit,
+      exhaustive: dossier.exhaustive,
+      warnings: dossier.warnings,
+      oneCanonicalEventReadPerDossier: true,
     },
-    assurance: assurance.metrics,
+    assurance: dossier.assurance,
     assuranceRead: {
-      generatedAt: assurance.generatedAt,
-      source: assurance.source,
-      readLimit: assurance.readLimit,
-      exhaustive: assurance.exhaustive,
-      warnings: assurance.warnings,
+      generatedAt: dossier.generatedAt,
+      source: dossier.source,
+      readLimit: dossier.eventReadLimit,
+      exhaustive: dossier.exhaustive,
+      warnings: dossier.warnings,
+      reusedHistoryRead: true,
     },
     boundary: boundary(),
   }, { headers: { 'Cache-Control': 'no-store' } });
