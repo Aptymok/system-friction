@@ -110,6 +110,7 @@ export async function GET(request: Request) {
     agentId,
     executionId: executionId ?? undefined,
     historyLimit: limit,
+    includeAssurance: true,
   });
 
   return NextResponse.json({
@@ -128,7 +129,7 @@ export async function GET(request: Request) {
       requestedHistoryLimit: dossier.historyLimit,
       exhaustive: dossier.exhaustive,
       warnings: dossier.warnings,
-      oneCanonicalEventReadPerDossier: true,
+      executionEventReads: dossier.readPlan.executionEventReads,
     },
     assurance: dossier.assurance,
     assuranceRead: {
@@ -137,7 +138,8 @@ export async function GET(request: Request) {
       readLimit: dossier.eventReadLimit,
       exhaustive: dossier.exhaustive,
       warnings: dossier.warnings,
-      reusedHistoryRead: true,
+      assuranceEventReads: dossier.readPlan.assuranceEventReads,
+      overlappingEventNames: dossier.readPlan.overlappingEventNames,
     },
     boundary: boundary(),
   }, { headers: { 'Cache-Control': 'no-store' } });
