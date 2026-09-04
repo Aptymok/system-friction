@@ -29,6 +29,19 @@ const VERIFIED_CITATION_AUTHORS = [
   },
 ];
 
+const ALLOWED_CITATION_FIELDS = new Set([
+  'cff-version',
+  'message',
+  'title',
+  'type',
+  'authors',
+  'abstract',
+  'repository-code',
+  'url',
+  'version',
+  'keywords',
+]);
+
 const normalizedRecord = (value) => {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
   return JSON.stringify(Object.fromEntries(Object.entries(value).sort(([a], [b]) => a.localeCompare(b))));
@@ -64,17 +77,15 @@ const identifierKind = (value) => {
   return null;
 };
 
-const spdxLicenseId = (licenseText) => {
-  if (typeof licenseText !== 'string') return null;
-  const match = licenseText.match(/(?:^|\n)\s*SPDX-License-Identifier:\s*([^\s]+)\s*(?:\n|$)/i);
-  return match?.[1]?.trim() || null;
-};
-
-const rootLicenseText = exists('LICENSE') ? read('LICENSE') : null;
-const rootLicenseId = spdxLicenseId(rootLicenseText);
-
 const validateCitationMetadata = (candidate) => {
   assert(candidate && typeof candidate === 'object' && !Array.isArray(candidate), 'CITATION.cff must contain one metadata object');
+
+  const unexpectedFields = Object.keys(candidate).filter((key) => !ALLOWED_CITATION_FIELDS.has(key));
+  assert(
+    unexpectedFields.length === 0,
+    `CITATION.cff contains fields outside the verified Slice A schema: ${unexpectedFields.join(', ')}. Enrich citation metadata only in a separately reviewed change backed by verified evidence.`,
+  );
+
   assert(candidate['cff-version'] === '1.2.0', 'CITATION.cff must use CFF 1.2.0');
   assert(candidate.message && typeof candidate.message === 'string', 'CITATION.cff message is required');
   assert(candidate.title === 'System Friction Institute', 'CITATION title must match the repository/public project title');
@@ -92,14 +103,6 @@ const validateCitationMetadata = (candidate) => {
   assert(!identifierStrings.some((value) => identifierKind(value) === 'DOI'), 'Unverified DOI-like value emitted in CITATION.cff');
   assert(!identifierStrings.some((value) => identifierKind(value) === 'ORCID'), 'Unverified ORCID emitted in CITATION.cff');
   assert(!identifierStrings.some((value) => identifierKind(value) === 'ROR'), 'Unverified ROR emitted in CITATION.cff');
-  assert(!Object.hasOwn(candidate, 'date-released'), 'No GitHub release is established; CITATION must not claim a release date');
-
-  if (!rootLicenseText) {
-    assert(!Object.hasOwn(candidate, 'license'), 'CITATION must not infer a repository license while the root LICENSE file is absent');
-  } else if (Object.hasOwn(candidate, 'license')) {
-    assert(rootLicenseId, 'CITATION license requires an explicit SPDX-License-Identifier in the authoritative root LICENSE');
-    assert(candidate.license === rootLicenseId, 'CITATION license must match the SPDX identifier declared by the authoritative root LICENSE');
-  }
 };
 
 validateCitationMetadata(citation);
@@ -125,6 +128,7 @@ expectCitationRejection('an unverified author affiliation', (candidate) => ({
   ...candidate,
   authors: [{ ...candidate.authors[0], affiliation: 'Fabricated University' }],
 }));
+expectCitationRejection('a malformed DOI field', (candidate) => ({ ...candidate, doi: 'pending' }));
 expectCitationRejection('an unverified DOI', (candidate) => ({ ...candidate, doi: '10.1234/fabricated' }));
 expectCitationRejection('an unverified ORCID', (candidate) => ({
   ...candidate,
@@ -135,9 +139,7 @@ expectCitationRejection('an unverified ROR', (candidate) => ({
   institution: 'https://ror.org/012345678',
 }));
 expectCitationRejection('an unobserved release date', (candidate) => ({ ...candidate, 'date-released': '2099-12-31' }));
-if (!rootLicenseText) {
-  expectCitationRejection('a license without an authoritative root LICENSE', (candidate) => ({ ...candidate, license: 'MIT' }));
-}
+expectCitationRejection('an unverified license declaration', (candidate) => ({ ...candidate, license: 'Totally-Fabricated' }));
 
 assert(
   !exists('.zenodo.json'),
