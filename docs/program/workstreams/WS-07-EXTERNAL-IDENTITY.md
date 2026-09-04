@@ -247,7 +247,7 @@ and similarly named entities, especially `Systemic Friction Institute`.
 
 Do not attack/impersonate/keyword-spam the other entity. Defend identity through coherent canonical signals and verified external references.
 
-Record actual collision observations for WS-03 ECR metrics.
+Name or terminology similarity by itself is a `COLLISION_CANDIDATE / DISAMBIGUATION_RISK`, not an observed collision and not an ECR event. Record an actual collision for WS-03 ECR metrics only when evidence shows a search system, model, person, platform, crawler or dataset confused the entities.
 
 ## 14. External human actions
 
@@ -314,7 +314,7 @@ State semantics are strict. Search absence is not proof of nonexistence. Public 
 | Platform / node | State | Observed identity / URL | Relationship and verification note |
 |---|---|---|---|
 | Canonical web entity | VERIFIED | `https://systemfriction.org` / `https://systemfriction.org/institution` | Canonical domain serves the full `System Friction Institute` identity. Entity ID remains `https://systemfriction.org/#sfi`. |
-| GitHub repository asset | VERIFIED | `https://github.com/Aptymok/system-friction` | Authenticated connector confirms control of the public repository and README points to the canonical domain. This verifies an owned software/source asset, not entity equivalence with the `ResearchOrganization`; it is therefore **not institutional `sameAs`-ready**. |
+| GitHub repository asset | VERIFIED | `https://github.com/Aptymok/system-friction` | Authenticated GitHub repository metadata returned explicit `admin=true` and `push=true` permissions for the connected principal; the durable receipt is preserved in §18.2.1. This verifies controlled software/source-asset authority only, not entity equivalence with the `ResearchOrganization`; it is **not institutional `sameAs`-ready**. |
 | Medium profile/publication identity | CLAIMED | `https://medium.com/@systemfriction` | Public profile is named `System Friction Institute` and exposes multiple posts under that identity. No authenticated control receipt or reciprocal domain verification was observed; do not create a second Medium identity. |
 | LinkedIn person → SFI relationship | CLAIMED | public post by Juan Antonio Marín Liera linking `System Friction Institute` and `systemfriction.org` | Real person-to-institution public relationship observed. It does not prove an institutional LinkedIn Page and the person profile is not institutional `sameAs`. |
 | LinkedIn institutional Page | UNCLAIMED | — | No attributable institutional Page observed in fresh targeted search. |
@@ -358,8 +358,8 @@ identity_domain: github.com
 verification_state: VERIFIED
 relationship: CONTROLLED_SOFTWARE_SOURCE_ASSET
 verified_at: 2026-09-04
-verification_method: authenticated GitHub connector repository inspection showing administrative/push control plus public repository metadata
-notes: VERIFIED means control of this repository asset only. Repository URL is not entity-equivalent to the ResearchOrganization and is not institutional sameAs-ready.
+verification_method: authenticated GitHub connector `get_repo` permission projection; exact non-secret receipt preserved in §18.2.1
+notes: VERIFIED means control authority over this repository asset at the observation date only. Repository URL is not entity-equivalent to the ResearchOrganization and is not institutional sameAs-ready.
 ```
 
 ```text
@@ -396,9 +396,39 @@ notes: The person/post is relationship evidence, not institutional sameAs and no
 Canonical profile: https://systemfriction.org/institution
 Observed history: https://systemfriction.org/history
 Controlled repository asset: https://github.com/Aptymok/system-friction
+GitHub control receipt: §18.2.1 in this durable workstream record
 Medium claimed identity: https://medium.com/@systemfriction
 LinkedIn public relationship: https://es.linkedin.com/posts/juanliera_en-febrero-escrib%C3%AD-que-la-resiliencia-real-activity-7462671453969104896-xsQt
 ```
+
+#### 18.2.1 Durable GitHub repository-control receipt
+
+The following fields are a direct transcription of the authenticated GitHub connector `get_repo` result observed on 2026-09-04. No credential, token, inferred actor scope or invented timestamp is stored.
+
+```text
+observation_date: 2026-09-04
+connector_name: GitHub
+action_name: get_repo
+repository_full_name: Aptymok/system-friction
+repository_id: 1163662905
+owner_login: Aptymok
+visibility: public
+archived: false
+permissions.admin: true
+permissions.maintain: true
+permissions.pull: true
+permissions.push: true
+permissions.triage: true
+```
+
+Interpretation boundary:
+
+```text
+This receipt demonstrates that the authenticated connector principal had administrative and push authority over Aptymok/system-friction at the observation date. It verifies control of the repository asset only.
+It does NOT demonstrate that the repository URL is the institutional entity, does NOT authorize institutional sameAs, and does NOT establish control of any external account or domain by inheritance.
+```
+
+Corroborating repository evidence, not a substitute for the permission receipt: GitHub's commit API records `da15061ce9b38651f8dc082629b53ac67bb6da02` on `ws07/external-identity-inventory` with author/committer `Aptymok`, modifying this workstream. No claim is made that commit attribution alone proves identity control.
 
 ### 18.3 Internal/external identity-coherence defects
 
@@ -424,9 +454,9 @@ sameAs: ['https://github.com/Aptymok/system-friction']
 
 That edge is semantically unsafe: repository control proves ownership/provenance of a software/source asset, not that the repository URL identifies the organization itself. This is a **pre-existing WS-03/shared-public-metadata defect**, not a state transition of the GitHub asset and not introduced by PR #370. WS-07 records the evidence and removes the repository from `sameAs` readiness; WS-03/SFI-00 owns normalization of the canonical JSON-LD surface in the appropriate integration slice.
 
-### 18.4 Entity collision observed
+### 18.4 Collision candidate / disambiguation risk
 
-A distinct external entity remains observable:
+A distinct external entity is observable:
 
 ```text
 Name: Systemic Friction Institute, Inc
@@ -435,7 +465,7 @@ Abbreviation used: SFI
 Distinct founder publicly named by that entity: Jason Richardson
 ```
 
-The collision is high-salience because the distinct entity also publicly uses `System Friction Score (SFS)`. Record this as an entity-reconstruction collision for WS-03 ECR metrics only. No affiliation, copying, priority, infringement or other legal conclusion is inferred.
+The entity is a high-salience `COLLISION_CANDIDATE / DISAMBIGUATION_RISK` because it also publicly uses `System Friction Score (SFS)`. In this pass, no evidence was observed that a search system, model, person, platform, crawler or dataset actually confused it with `System Friction Institute / systemfriction.org`. Therefore it MUST NOT increment WS-03 ECR metrics and MUST NOT emit `SFI_ENTITY_COLLISION_OBSERVED` unless a concrete confusion event is captured with provenance. No affiliation, copying, priority, infringement or other legal conclusion is inferred.
 
 Defensive fingerprint remains:
 
@@ -456,7 +486,7 @@ NONE OBSERVED
 Blocked from institutional `sameAs`:
 
 ```text
-GitHub repository — VERIFIED owned asset, but repository != ResearchOrganization identity
+GitHub repository — VERIFIED controlled asset, but repository != ResearchOrganization identity
 Medium @systemfriction — CLAIMED; reciprocal/control verification incomplete
 LinkedIn person relationship — real relationship, but person != institution
 LinkedIn institutional Page — UNCLAIMED
@@ -617,7 +647,7 @@ BASE SHA
 
 VERIFIED NODES
 - https://systemfriction.org / https://systemfriction.org/#sfi
-- https://github.com/Aptymok/system-friction — VERIFIED controlled repository asset; NOT institutional sameAs
+- https://github.com/Aptymok/system-friction — VERIFIED controlled repository asset via durable §18.2.1 permission receipt; NOT institutional sameAs
 
 CLAIMED-NOT-VERIFIED NODES
 - https://medium.com/@systemfriction
@@ -641,7 +671,10 @@ LOST/DEGRADED NODES
 None observed.
 
 ENTITY COLLISIONS OBSERVED
-- Systemic Friction Institute, Inc — https://www.systemfrictioninstitute.com/ — distinct entity using SFI and System Friction Score / SFS; no affiliation inferred.
+None observed. No concrete confusion event is currently evidenced.
+
+COLLISION CANDIDATES / DISAMBIGUATION RISKS
+- Systemic Friction Institute, Inc — https://www.systemfrictioninstitute.com/ — distinct entity using SFI and System Friction Score / SFS; similarity is not an ECR event and no affiliation is inferred.
 
 HUMAN ACTIONS REQUIRED
 - P0 GitHub repository Website/Homepage normalization.
@@ -656,7 +689,7 @@ CANONICAL SAMEAS READY
 - none observed
 
 CONTRACT DELTAS
-None.
+None. Collision-candidate language clarifies the existing §13 actual-observation rule and does not change the frozen ECR/event semantics.
 
 PR IF CODE/METADATA CHANGED
 - PR #370 `docs(ws07): record observed external identity inventory` — OPEN; branch `ws07/external-identity-inventory`; docs-only workstream metadata/evidence update; NO MERGE.
@@ -666,11 +699,12 @@ KNOWN IDENTITY DEFECTS
 - main root ResearchOrganization JSON-LD currently uses the repository URL in sameAs; repository is an owned asset, not entity-equivalent organization identity. WS-03/shared-public-metadata normalization required.
 
 NEXT SAFE ACTION
-1. Keep PR #370 bounded to observed-state documentation/review corrections; no Slice B until integration.
-2. SFI-00 may review the updated docs-only PR after the new HEAD checks complete; no self-merge.
-3. Route the pre-existing root JSON-LD sameAs defect to WS-03/SFI-00 rather than expanding WS-07 into canonical public-plane ownership.
-4. Normalize GitHub Website/Homepage manually when authorized by the human account holder.
-5. Verify Medium and claim/verify future institutional profiles only through real platform evidence before any sameAs emission.
+1. Keep PR #370 bounded to Slice A evidence/state corrections; no Slice B until integration.
+2. Re-run/review exact-HEAD CI and any new review threads after this correction commit; resolve threads only after the fix is demonstrated.
+3. SFI-00 may review the docs-only PR only after exact-head checks and review state are green; no self-merge.
+4. Route the pre-existing root JSON-LD sameAs defect to WS-03/SFI-00 rather than expanding WS-07 into canonical public-plane ownership.
+5. Normalize GitHub Website/Homepage manually when authorized by the human account holder.
+6. Verify Medium and claim/verify future institutional profiles only through real platform evidence before any sameAs emission.
 ```
 
 ---
