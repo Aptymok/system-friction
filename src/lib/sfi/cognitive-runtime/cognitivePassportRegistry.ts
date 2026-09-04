@@ -219,9 +219,20 @@ function outputClassesFor(agent: SfiRegisteredCognitiveAgent): string[] {
   return uniqueSorted((executionContract?.requestedOutputs ?? []).map(String));
 }
 
-export function projectCognitivePassport(agent: SfiRegisteredCognitiveAgent): SfiCognitivePassport {
-  const returnRequired = RETURN_REQUIRED_IDS.has(agent.id);
+function returnContractFor(agent: SfiRegisteredCognitiveAgent): SfiCognitivePassport['return'] {
+  const required = RETURN_REQUIRED_IDS.has(agent.id);
+  return {
+    required,
+    condition: required ? 'REAL_WORLD_OUTCOME_OR_AUTHORIZED_EXTERNAL_SOURCE_OBSERVED' : null,
+    falsificationCondition: required ? 'DECLARED_EXPECTATION_CONTRADICTED_BY_RETURN' : null,
+  };
+}
 
+function sameSortedStrings(actual: string[], expected: string[]) {
+  return JSON.stringify([...actual].sort()) === JSON.stringify([...expected].sort());
+}
+
+export function projectCognitivePassport(agent: SfiRegisteredCognitiveAgent): SfiCognitivePassport {
   return {
     id: agent.id,
     version: SFI_COGNITIVE_PASSPORT_VERSION,
@@ -260,11 +271,7 @@ export function projectCognitivePassport(agent: SfiRegisteredCognitiveAgent): Sf
       maxChildren: 0,
       stopConditions: ['NO_NEW_INFORMATION_AND_NO_NEW_STATE'],
     },
-    return: {
-      required: returnRequired,
-      condition: returnRequired ? 'REAL_WORLD_OUTCOME_OR_AUTHORIZED_EXTERNAL_SOURCE_OBSERVED' : null,
-      falsificationCondition: returnRequired ? 'DECLARED_EXPECTATION_CONTRADICTED_BY_RETURN' : null,
-    },
+    return: returnContractFor(agent),
     security: {
       defaultTtlSeconds: 600,
       sensitivityClass: 'INTERNAL',
@@ -344,23 +351,39 @@ export function validateCognitivePassportAgainstSource(
   source: SfiRegisteredCognitiveAgent,
 ): string[] {
   const errors = [...validateCognitivePassport(passport)];
+  const expectedEpistemicMode = EPISTEMIC_MODE_BY_LAYER[source.layer];
   const expectedCeiling = AUTHORITY_CEILING_BY_LEGACY_LEVEL[source.authorityLevel];
   const expectedConfirmation = source.humanApprovalRequired ? 'HUMAN' : 'NONE';
+  const expectedRequiredInputs = uniqueSorted(source.sourceTables);
   const expectedOutputs = outputClassesFor(source);
   const expectedRequiredEvidence = requiredEvidenceClassesFor(source);
+  const expectedReturn = returnContractFor(source);
 
   if (passport.id !== source.id) errors.push(`${passport.id}:SOURCE_ID_MISMATCH:${source.id}`);
+  if (passport.epistemicMode !== expectedEpistemicMode) {
+    errors.push(`${passport.id}:EPISTEMIC_MODE_MISMATCH:${passport.epistemicMode}:${expectedEpistemicMode}`);
+  }
   if (passport.authority.ceiling !== expectedCeiling) {
     errors.push(`${passport.id}:AUTHORITY_EXPANSION:${passport.authority.ceiling}:${expectedCeiling}`);
   }
   if (passport.authority.confirmationRequirement !== expectedConfirmation) {
     errors.push(`${passport.id}:CONFIRMATION_REQUIREMENT_MISMATCH:${passport.authority.confirmationRequirement}:${expectedConfirmation}`);
   }
-  if (JSON.stringify([...passport.output.allowedEpistemicClasses].sort()) !== JSON.stringify(expectedOutputs)) {
+  if (!sameSortedStrings(passport.input.required, expectedRequiredInputs)) {
+    errors.push(`${passport.id}:INPUT_REQUIRED_CONTRACT_MISMATCH`);
+  }
+  if (!sameSortedStrings(passport.output.allowedEpistemicClasses, expectedOutputs)) {
     errors.push(`${passport.id}:OUTPUT_CONTRACT_MISMATCH`);
   }
-  if (JSON.stringify([...passport.input.requiredEvidenceClasses].sort()) !== JSON.stringify(expectedRequiredEvidence)) {
+  if (!sameSortedStrings(passport.input.requiredEvidenceClasses, expectedRequiredEvidence)) {
     errors.push(`${passport.id}:REQUIRED_EVIDENCE_CONTRACT_MISMATCH`);
+  }
+  if (
+    passport.return.required !== expectedReturn.required
+    || passport.return.condition !== expectedReturn.condition
+    || passport.return.falsificationCondition !== expectedReturn.falsificationCondition
+  ) {
+    errors.push(`${passport.id}:RETURN_CONTRACT_MISMATCH`);
   }
   if (passport.tools.allowedToolClasses.length > 0) errors.push(`${passport.id}:UNGRANTED_TOOL_AUTHORITY`);
   if (passport.orchestration.mayRequestCapabilities) errors.push(`${passport.id}:ADAPTIVE_REQUEST_AUTHORITY_PREMATURE`);
