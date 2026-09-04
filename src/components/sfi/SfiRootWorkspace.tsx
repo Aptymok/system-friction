@@ -70,7 +70,7 @@ export function SfiRootWorkspace({ enabled }: { enabled: boolean }) {
   const activeCases = useMemo(() => cases.filter((item) => !['CLOSED', 'REJECTED'].includes(String(item.status).toUpperCase())), [cases]);
   const actionableCount = actionableProposals.length + actionableCycles.length;
 
-  const decide = async (decision: 'accept' | 'request_evidence' | 'deny') => {
+  const decide = async (decision: 'accept' | 'deny') => {
     if (!dossier?.id) return;
     setBusy(decision);
     try {
@@ -81,9 +81,26 @@ export function SfiRootWorkspace({ enabled }: { enabled: boolean }) {
       });
       setNotice(decision === 'accept'
         ? 'Diseño aprobado. Esto NO ejecutó ni canonizó la propuesta.'
-        : decision === 'request_evidence'
-          ? 'Decisión retenida. SFI queda responsable de adquirir/reconciliar evidencia.'
-          : 'Propuesta rechazada con lineage preservado.');
+        : 'Propuesta rechazada con lineage preservado.');
+      setNote('');
+      await Promise.all([loadBase(), loadDossier(dossier.id)]);
+    } catch (cause) { setError(cause instanceof Error ? cause.message : String(cause)); }
+    finally { setBusy(null); }
+  };
+
+  const requestEvidence = async () => {
+    if (!dossier?.id) return;
+    setBusy('request_evidence');
+    try {
+      const result = await jsonFetch(`/api/sfi/proposals/${encodeURIComponent(dossier.id)}/request-evidence`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ evidence_required: note.trim() || 'Acquire the minimum evidence required to decide this proposal without re-requesting evidence already persisted.' }),
+      });
+      const candidates = arr(result.acquisition?.candidates).length;
+      setNotice(candidates
+        ? `SFI adquirió ${candidates} candidato${candidates === 1 ? '' : 's'} de evidencia. Revísalos antes de decidir la propuesta.`
+        : 'Decisión retenida. Evidence Hunter es ahora dueño de adquirir/reconciliar la evidencia; ROOT no debe volver a pedir lo mismo.');
       setNote('');
       await Promise.all([loadBase(), loadDossier(dossier.id)]);
     } catch (cause) { setError(cause instanceof Error ? cause.message : String(cause)); }
@@ -168,7 +185,7 @@ export function SfiRootWorkspace({ enabled }: { enabled: boolean }) {
           <Detail title="CÓMO SE CIERRA"><p>{txt(dossier.terminalCondition)}</p><p className="secondary">La condición de cierre no se infiere ni se fabrica cuando el registro no la contiene.</p></Detail>
 
           {dossier.actionability?.humanActionRequired && <section className="rootDecisionActionBox"><label>Nota de decisión (opcional)<textarea value={note} onChange={(event) => setNote(event.target.value)} placeholder="Razón, condición o reserva que debe quedar en el receipt."/></label><div className="rootActionButtons">
-            {dossier.status === 'proposed' && <><button disabled={Boolean(busy)} onClick={() => void decide('accept')}>APROBAR DISEÑO</button><button disabled={Boolean(busy)} onClick={() => void decide('request_evidence')}>PEDIR EVIDENCIA</button></>}
+            {dossier.status === 'proposed' && <><button disabled={Boolean(busy)} onClick={() => void decide('accept')}>APROBAR DISEÑO</button><button disabled={Boolean(busy)} onClick={() => void requestEvidence()}>PEDIR EVIDENCIA</button></>}
             {['proposed', 'waiting_evidence'].includes(String(dossier.status)) && <button className="deny" disabled={Boolean(busy)} onClick={() => void decide('deny')}>RECHAZAR</button>}
           </div><p><b>Boundary:</b> aprobar diseño ≠ ejecutar ≠ aceptar RETURN ≠ cerrar ≠ canonizar.</p></section>}
 
