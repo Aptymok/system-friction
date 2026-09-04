@@ -45,6 +45,7 @@ export async function GET(request: Request) {
   const agentId = text(url.searchParams.get('agentId'), 120);
   const executionId = text(url.searchParams.get('executionId'), 500);
   const limit = Math.max(1, Math.min(200, number(url.searchParams.get('limit'), 80)));
+  const includeAssurance = url.searchParams.get('assurance') === '1';
 
   if (!agentId) return NextResponse.json({ ok: false, error: 'agent_required' }, { status: 400 });
 
@@ -58,6 +59,7 @@ export async function GET(request: Request) {
     agentId,
     executionId: executionId ?? undefined,
     historyLimit: limit,
+    includeAssurance,
   });
 
   return NextResponse.json({
@@ -73,16 +75,18 @@ export async function GET(request: Request) {
       requestedHistoryLimit: dossier.historyLimit,
       exhaustive: dossier.exhaustive,
       warnings: dossier.warnings,
-      oneCanonicalEventReadPerDossier: true,
+      executionEventReads: dossier.readPlan.executionEventReads,
     },
     assurance: dossier.assurance,
     assuranceRead: {
+      requested: includeAssurance,
       generatedAt: dossier.generatedAt,
       source: dossier.source,
       readLimit: dossier.eventReadLimit,
       exhaustive: dossier.exhaustive,
       warnings: dossier.warnings,
-      reusedHistoryRead: true,
+      assuranceEventReads: dossier.readPlan.assuranceEventReads,
+      overlappingEventNames: dossier.readPlan.overlappingEventNames,
     },
     boundary: {
       auditUnit: 'EXECUTION',
