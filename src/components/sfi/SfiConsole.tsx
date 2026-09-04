@@ -18,6 +18,13 @@ const NAV: Array<{key:InternalSceneKey;href:string}> = [
   {key:'twin',href:'/twin'},
 ];
 
+const SUPPORT_NAV = [
+  {href:'/twin/learning',label:'LEARNING'},
+  {href:'/method-lab',label:'METHOD LAB'},
+  {href:'/observatory',label:'OBSERVATORIO'},
+  {href:'/studio',label:'STUDIO'},
+] as const;
+
 export function SfiConsole({scene}:{scene:SceneKey}){
   const auth=useAuthState();
   const {language,text}=useSfiLanguage();
@@ -50,6 +57,7 @@ export function SfiConsole({scene}:{scene:SceneKey}){
       </div>
       <nav className="sfiOperatingNav" aria-label="SFI operating surfaces">
         {NAV.map(item=><Link key={item.key} href={item.href} className={current===item.key?'isActive':''}>{ui(SCENE_LABELS[item.key].label)}</Link>)}
+        {SUPPORT_NAV.map(item=><Link key={item.href} href={item.href}>{ui(item.label)}</Link>)}
       </nav>
       {current==='governance'&&<span className="srOnly" data-sfi-contract="GOVERNANCE QUEUE">{ui('COLA DE GOBERNANZA · COGNITIVE TWIN / ACP')}</span>}
       <div className="sfiOperatingAccount">
