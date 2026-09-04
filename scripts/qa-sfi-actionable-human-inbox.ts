@@ -5,7 +5,7 @@ const read=(path:string)=>fs.readFileSync(path,'utf8');
 const projection=read('src/lib/root/actionableHumanQueue.ts');
 const interactive=read('src/app/api/root/interactive/route.ts');
 const dossier=read('src/app/api/root/decision-dossier/route.ts');
-const reports=read('src/lib/reports/pendingRootReportDecisions.ts');
+const reports=read('src/lib/root/interactiveReportApprovals.ts');
 const root=read('src/components/sfi/SfiRootWorkspace.tsx');
 const consoleUi=read('src/components/sfi/SfiConsole.tsx');
 
@@ -16,11 +16,12 @@ assert.ok(projection.includes('reportActionability')&&projection.includes('actio
 assert.ok(projection.includes('reviewAvailableNotRequired'),'human count must distinguish optional review debt');
 assert.ok(projection.includes('`/cases?cycle=${'),'cycle human obligations must deep-link to their dossier');
 
-assert.ok(reports.includes("eq('role', 'report_agent')")&&reports.includes('queued_for_approval'),'report queue must be a bounded report_agent read');
-assert.ok(interactive.includes('readPendingRootReportDecisions'),'ROOT bootstrap must hydrate pending report decisions');
+assert.ok(reports.includes(".eq('role', 'report_agent')")&&reports.includes("['queued_for_approval', 'waiting_evidence']"),'report queue must be a bounded report_agent read');
+assert.ok(reports.includes('reportApprovalReads: 1')&&reports.includes('reportApprovalNPlusOneReads: 0'),'report queue must declare bounded reads');
+assert.ok(interactive.includes('readInteractiveReportApprovals'),'ROOT bootstrap must hydrate pending report decisions');
 assert.ok(interactive.includes('projectActionableHumanQueue'),'interactive surfaces must consume the actionable projection');
 assert.ok(interactive.includes('actionableHumanProjection: true'),'ROOT bootstrap must declare actionable projection');
-assert.ok(interactive.includes('reportApprovalReads: 1')&&interactive.includes('fullReportArchiveRead: false'),'ROOT polling must not load the full report archive');
+assert.ok(interactive.includes('reportApprovalReads: 1')&&interactive.includes('reportApprovalNPlusOneReads: 0'),'ROOT polling must keep report approvals bounded');
 assert.equal(interactive.includes("service.from('action_proposals')"),false,'interactive route must not duplicate proposal reads');
 
 assert.ok(dossier.includes("service.from('action_proposals').select('*').eq('id', id).maybeSingle()"),'proposal dossier must target one proposal');
