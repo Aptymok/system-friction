@@ -21,6 +21,7 @@ const twinState = read('src/core/cognitive-twin/readState.ts');
 const scenes = read('src/components/sfi/scenes.ts');
 const shellUi = read('src/components/sfi/SfiConsole.tsx');
 const observatoryUi = read('src/components/sfi/ObservatoryConsole.tsx');
+const observatoryInterpretiveFlow = read('src/components/sfi/ObservatoryInterpretiveFlow.tsx');
 const observatoryAvailability = read('src/lib/observatory/public/readAvailability.ts');
 const operatingUi = read('src/components/sfi/SfiOperatingWorkspace.tsx');
 const governanceUi = read('src/components/sfi/SfiGovernanceWorkspace.tsx');
@@ -102,6 +103,14 @@ assert.ok(requestTimeout, 'observatory_request_timeout_missing');
 assert.ok(Number(requestTimeout[1]) > 0 && Number(requestTimeout[1]) < 20000, 'observatory_request_timeout_must_complete_before_poll_interval');
 assert.equal(occurrences(observatoryUi, 'AbortSignal.timeout(OBSERVATORY_REQUEST_TIMEOUT_MS)'), 1, 'observatory_request_timeout_owner_must_be_single');
 
+// #366: the co-rendered interpretive flow is a projection of the same read model, never a second reader/poller.
+assert.equal(occurrences(observatoryInterpretiveFlow, "fetch('/api/observatory/world'"), 0, 'interpretive_flow_must_not_fetch_world');
+assert.equal(occurrences(observatoryInterpretiveFlow, 'setInterval('), 0, 'interpretive_flow_must_not_own_polling');
+assert.equal(occurrences(observatoryInterpretiveFlow, 'useEffect('), 0, 'interpretive_flow_must_not_own_transport_lifecycle');
+assert.ok(observatoryUi.includes('<ObservatoryInterpretiveFlow world={world} availability={availability.world}/>'), 'interpretive_flow_must_receive_canonical_world_read_model');
+assert.equal(observatoryPage.includes('ObservatoryInterpretiveFlow'), false, 'observatory_page_must_not_mount_second_interpretive_owner');
+assert.equal(shellUi.includes('ObservatoryInterpretiveFlow'), false, 'field_scene_must_not_mount_second_interpretive_owner');
+
 // #366: availability is a public epistemic boundary, not an empty-array alias.
 for (const token of [
   "'LOADING' | 'AVAILABLE' | 'DEGRADED' | 'UNAVAILABLE' | 'ERROR'",
@@ -151,6 +160,27 @@ for (const forbidden of [
   '<dd>{filteredHypotheses.length}</dd>',
   '<dd>{openHypotheses}</dd>',
 ]) assert.equal(observatoryUi.includes(forbidden), false, `observatory_false_zero_projection_present:${forbidden}`);
+
+for (const token of [
+  "const available=availability==='AVAILABLE'",
+  'observableMetricValue(availability,value)',
+  'data-world-availability={availability}',
+  'metric(nodes.length)',
+  'metric(sourceFamilies.length)',
+  'metric(hypotheses.length)',
+  '!available?<div className="obsInterpretiveUnavailable"',
+  'Counts, relations, and absence claims remain unavailable until the authoritative field read is AVAILABLE.',
+]) assert.ok(observatoryInterpretiveFlow.includes(token), `interpretive_availability_projection_missing:${token}`);
+
+for (const forbidden of [
+  '{nodes.length} {text(',
+  '{sourceFamilies.length} {text(',
+  '{hypotheses.length} {text(',
+]) assert.equal(observatoryInterpretiveFlow.includes(forbidden), false, `interpretive_false_zero_projection_present:${forbidden}`);
+
+const interpretiveUnavailableBranch = observatoryInterpretiveFlow.indexOf('!available?<div className="obsInterpretiveUnavailable"');
+const interpretiveNoHypothesisClaim = observatoryInterpretiveFlow.indexOf('There is not yet a governed hypothesis for this field.');
+assert.ok(interpretiveUnavailableBranch >= 0 && interpretiveNoHypothesisClaim > interpretiveUnavailableBranch, 'interpretive_hypothesis_absence_must_be_inside_available_branch');
 
 for (const token of [
   "from('world_source_observations')",
@@ -245,6 +275,8 @@ console.log(JSON.stringify({
     explicitAvailability: true,
     payloadShapeValidated: true,
     availabilityAwareHypothesisEmptyState: true,
+    sharedInterpretiveReadModel: true,
+    interpretiveFalseZeroProtected: true,
     duplicateEquivalentReads: 0,
     overlappingPolls: 0,
     requestTimeoutMs: Number(requestTimeout[1]),
