@@ -24,7 +24,7 @@ try {
 
 const VERIFIED_CITATION_AUTHORS = [
   {
-    'family-names': 'Aptymok',
+    alias: 'Aptymok',
     website: 'https://github.com/Aptymok',
   },
 ];
@@ -105,7 +105,7 @@ const validateCitationMetadata = (candidate) => {
   assert(Array.isArray(candidate.authors) && candidate.authors.length > 0, 'CITATION authors must be a non-empty array');
   assert(
     sameRecordSet(candidate.authors, VERIFIED_CITATION_AUTHORS),
-    'Every CITATION author and author identity field must be backed by the currently verified repository identity source',
+    'Every CITATION author and author identity field must be backed by the currently verified repository identity source without inventing family/legal-name semantics',
   );
   assert(isNonEmptyString(candidate.abstract), 'CITATION abstract must be a non-empty string');
   assert(isNonEmptyString(candidate['repository-code']), 'CITATION repository-code must be a non-empty string');
@@ -156,9 +156,13 @@ expectCitationRejection('a non-string version', (candidate) => ({ ...candidate, 
 expectCitationRejection('a string keywords field', (candidate) => ({ ...candidate, keywords: 'system friction' }));
 expectCitationRejection('a keywords array with a non-string item', (candidate) => ({ ...candidate, keywords: [...candidate.keywords, { term: 'invalid' }] }));
 expectCitationRejection('an empty keyword', (candidate) => ({ ...candidate, keywords: [...candidate.keywords, '   '] }));
+expectCitationRejection('an invented family-name interpretation of the observed alias', (candidate) => ({
+  ...candidate,
+  authors: [{ 'family-names': 'Aptymok', website: 'https://github.com/Aptymok' }],
+}));
 expectCitationRejection('an unobserved additional author', (candidate) => ({
   ...candidate,
-  authors: [...candidate.authors, { 'family-names': 'Fabricated Researcher' }],
+  authors: [...candidate.authors, { alias: 'Fabricated Researcher' }],
 }));
 expectCitationRejection('an unverified author affiliation', (candidate) => ({
   ...candidate,
