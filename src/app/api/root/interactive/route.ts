@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireRootViewer } from '@/lib/root/server';
 import { readInteractiveOperationalNext } from '@/lib/root/interactiveOperationalNext';
+import { projectActionableHumanQueue } from '@/lib/root/actionableHumanQueue';
 import {
   readInteractiveCaseIndex,
   readInteractiveEvidenceTargetIndex,
@@ -75,11 +76,12 @@ export async function GET(request: Request) {
   }
 
   if (surface === 'governance') {
-    const [evidence, caseIndex, operationalNext] = await Promise.all([
+    const [evidence, caseIndex, rawOperationalNext] = await Promise.all([
       readInteractiveEvidenceTargetIndex(),
       readInteractiveCaseIndex(gate.ctx.user.id),
       readInteractiveOperationalNext(),
     ]);
+    const operationalNext = projectActionableHumanQueue(rawOperationalNext as Record<string, any>);
     return NextResponse.json({
       ok: true,
       surface,
@@ -105,7 +107,7 @@ export async function GET(request: Request) {
 
   if (surface === 'twin') {
     const authority = gate.ctx.isRoot ? 'root' as const : 'observer' as const;
-    const [operationalNext, learning, spineStatus, observedRuntime, logbook] = await Promise.all([
+    const [rawOperationalNext, learning, spineStatus, observedRuntime, logbook] = await Promise.all([
       readInteractiveOperationalNext(),
       readUniversalLearningQuarantine(),
       readRootCognitiveSpineStatus(),
@@ -114,6 +116,7 @@ export async function GET(request: Request) {
         ? readVisibleLogbookEntries({ user_id: gate.ctx.user.id, role: 'root', email: gate.ctx.user.email ?? null }, { scope: 'all' })
         : Promise.resolve([]),
     ]);
+    const operationalNext = projectActionableHumanQueue(rawOperationalNext as Record<string, any>);
     return NextResponse.json({
       ok: true,
       surface,
@@ -138,15 +141,16 @@ export async function GET(request: Request) {
     }, { headers: { 'Cache-Control': 'private, no-store' } });
   }
 
-  const [operationalNext, caseIndex] = await Promise.all([
+  const [rawOperationalNext, caseIndex] = await Promise.all([
     readInteractiveOperationalNext(),
     readInteractiveCaseIndex(gate.ctx.user.id),
   ]);
+  const operationalNext = projectActionableHumanQueue(rawOperationalNext as Record<string, any>);
   return NextResponse.json({
     ok: true,
     surface,
     operationalNext,
     caseIndex,
-    readPlan: { authGates: 1, duplicateBaseHttpReads: 0, operationalNPlusOneReads: 0 },
+    readPlan: { authGates: 1, duplicateBaseHttpReads: 0, operationalNPlusOneReads: 0, actionableHumanProjection: true },
   }, { headers: { 'Cache-Control': 'private, no-store' } });
 }
