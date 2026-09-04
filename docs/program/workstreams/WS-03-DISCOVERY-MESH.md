@@ -410,6 +410,87 @@ At this durable checkpoint, full final-head temporal QA, runtime read-plane QA, 
 
 Let the final-head PR checks complete. If green, WS-08 performs independent adversarial assurance on PR #369; SFI-00 alone decides integration. No merge from WS-03.
 
+## 13. Continuation checkpoint — #369 review remediation
+
+**Repository reconstruction date:** 2026-09-04  
+**Fresh main:** `1bd890c8a2ec784ad87d73eac6d19a294e050543`  
+**Main drift from PR base:** none  
+**PR #369:** open, unmerged, mergeable  
+**Issue #366:** open  
+**Slice B:** NOT STARTED because #369 is not integrated.
+
+The prior checkpoint above is retained as chronology. This section supersedes its pending-QA status.
+
+### Review findings absorbed without scope expansion
+
+Three P2 findings were observed on PR #369 and corrected inside the existing #366 boundary:
+
+1. **Contract-incomplete HTTP 200 payloads** — `AVAILABLE` now requires an endpoint-specific authoritative payload shape. WORLD requires the canonical world collections plus filters/graph; STATE requires its `data` object; TIMELINE requires `frames`. Parseable but incomplete `200` responses classify `DEGRADED`, never as an authoritative empty set.
+2. **Overlapping interval pulls** — the existing `pull` is serialized with one `inFlight` guard. The existing 20-second timer remains the sole polling owner; ticks are skipped while the previous read is in flight. No retry, second timer, abort loop, endpoint or duplicate read was added.
+3. **False hypothesis absence under unavailable world data** — stale world data continues to be cleared, but FIELD/HYPOTHESES empty-state paths expose explicit world availability. The statement that no hypothesis exists is reachable only under an `AVAILABLE` authoritative world read.
+
+Review replies reference corrective commits `336b85537292f2cd9b0cc0227f32d9f6e95b9478`, `448ff92512639cd30dc41890fc66573ccec65400`, and regression commit `18ff9873276b135c793e95807b6fd8496b8fb445`. All three review threads were resolved after the updated regression gate passed.
+
+### QA evidence on corrected code head
+
+Corrected code HEAD before this durable docs-only checkpoint:
+
+`18ff9873276b135c793e95807b6fd8496b8fb445`
+
+GitHub Actions:
+
+```text
+SFI Verify run 2316 / 33909058682                  SUCCESS
+  canonical development preflight                  SUCCESS
+  Field and Observatory temporal surfaces          SUCCESS
+  runtime read-plane stability                      SUCCESS
+  typecheck                                         SUCCESS
+  build                                             SUCCESS
+  Studio audio parallel gates                       SUCCESS
+SFI Universal Signal run 509                        SUCCESS
+SFI Session Controls run 116                        SUCCESS
+```
+
+The absorbed temporal regression now proves:
+
+```text
+AVAILABLE + actual zero = 0
+LOADING != 0
+DEGRADED != 0
+UNAVAILABLE != 0
+ERROR != 0
+HTTP 200 incomplete payload != AVAILABLE
+one fetch per existing Observatory domain
+one Promise.all owner
+one 20-second timer owner
+zero overlapping pull generations
+availability-aware hypothesis empty states
+```
+
+### Persistence / authority / contract impact
+
+```text
+MIGRATIONS            none
+DB WRITES             none
+EVENTS                none
+NEW ROUTES            none
+NEW READ OWNER         none
+NEW POLLING OWNER      none
+N+1                    none introduced
+AUTHORITY EXPANSION    none
+CONTRACT DELTA         none
+```
+
+The slice remains an implementation of frozen `UNAVAILABLE != ZERO` and `ONE INTERACTIVE NEED -> ONE AUTHORITATIVE READ PER DATA DOMAIN` semantics.
+
+### Integration readiness
+
+At the corrected code checkpoint, WS-03 classifies #369 as `QA_PASS / PR_OPEN`, subject to re-verification of the exact final PR HEAD after this docs-only durable-state commit. No production success is inferred. `MERGED != DEPLOYED != OBSERVED_IN_PRODUCTION` remains binding.
+
+### Next safe action
+
+After final-head CI is green and HEAD unchanged, hand PR #369 to WS-08 for independent adversarial assurance. SFI-00 alone may decide merge. If integrated, production RETURN for the exact merge/deployment is still required before #366 can be closed as observed production behavior. Do not begin the canonical object plane/Slice B before #369 integration.
+
 ---
 
 # COPY-PASTE DISPATCH PROMPT
