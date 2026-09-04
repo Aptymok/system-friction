@@ -1,0 +1,182 @@
+'use client';
+
+import Link from 'next/link';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+import './SfiRootWorkspace.css';
+
+type Row = Record<string, any>;
+
+function arr(value: unknown): Row[] { return Array.isArray(value) ? value.filter((item): item is Row => Boolean(item && typeof item === 'object')) : []; }
+function txt(value: unknown, fallback = '—') { return typeof value === 'string' && value.trim() ? value.trim() : fallback; }
+function short(value: unknown, max = 320) { const text = txt(value, ''); return text.length > max ? `${text.slice(0, max - 1)}…` : text || '—'; }
+function date(value: unknown) { if (typeof value !== 'string' || !value) return '—'; const parsed = new Date(value); return Number.isNaN(parsed.valueOf()) ? value : parsed.toLocaleString('es-MX'); }
+async function jsonFetch(url: string, init?: RequestInit) { const response = await fetch(url, { cache: 'no-store', ...init }); const json = await response.json().catch(() => null); if (!response.ok || !json?.ok) throw new Error(json?.details || json?.message || json?.error || `${response.status}`); return json; }
+
+function State({ value }: { value: unknown }) {
+  const raw = String(value ?? '').toUpperCase();
+  const danger = /HIGH|BLOCK|MISSING|REJECT|CONFLICT/.test(raw);
+  const human = /PROPOSED|WAITING|HUMAN|REQUIRED/.test(raw);
+  return <span className={`rootState ${danger ? 'danger' : human ? 'human' : ''}`}>{raw.replaceAll('_', ' ') || 'UNKNOWN'}</span>;
+}
+
+function Detail({ title, children }: { title: string; children: React.ReactNode }) {
+  return <section className="rootDecisionSection"><h3>{title}</h3>{children}</section>;
+}
+
+export function SfiRootWorkspace({ enabled }: { enabled: boolean }) {
+  const search = useSearchParams();
+  const selectedId = search.get('decision');
+  const [base, setBase] = useState<Row | null>(null);
+  const [dossier, setDossier] = useState<Row | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [note, setNote] = useState('');
+
+  const loadBase = useCallback(async () => {
+    if (!enabled) return;
+    try {
+      const data = await jsonFetch('/api/root/interactive?surface=root');
+      setBase(data);
+      setError(null);
+    } catch (cause) { setError(cause instanceof Error ? cause.message : String(cause)); }
+  }, [enabled]);
+
+  const loadDossier = useCallback(async (id: string) => {
+    setLoading(true);
+    try {
+      const data = await jsonFetch(`/api/root/decision-dossier?id=${encodeURIComponent(id)}`);
+      setDossier(data.dossier ?? null);
+      setError(null);
+    } catch (cause) {
+      setDossier(null);
+      setError(cause instanceof Error ? cause.message : String(cause));
+    } finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => { void loadBase(); const timer = window.setInterval(() => void loadBase(), 60000); return () => window.clearInterval(timer); }, [loadBase]);
+  useEffect(() => { if (selectedId) void loadDossier(selectedId); else setDossier(null); setNote(''); }, [selectedId, loadDossier]);
+
+  const operational = base?.operationalNext ?? {};
+  const items = arr(operational.items);
+  const cycles = arr(operational.cycles);
+  const actionableProposals = items.filter((item) => item.rootActionRequired === true);
+  const actionableCycles = cycles.filter((item) => item.rootActionRequired === true);
+  const reviewOnly = items.filter((item) => item.reviewAvailable === true);
+  const projects = arr(base?.caseIndex?.projects);
+  const cases = arr(base?.caseIndex?.cases);
+  const activeCases = useMemo(() => cases.filter((item) => !['CLOSED', 'REJECTED'].includes(String(item.status).toUpperCase())), [cases]);
+  const actionableCount = actionableProposals.length + actionableCycles.length;
+
+  const decide = async (decision: 'accept' | 'request_evidence' | 'deny') => {
+    if (!dossier?.id) return;
+    setBusy(decision);
+    try {
+      await jsonFetch('/api/root/decisions', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ kind: 'proposal', id: dossier.id, decision, note: note.trim() || null }),
+      });
+      setNotice(decision === 'accept'
+        ? 'Diseño aprobado. Esto NO ejecutó ni canonizó la propuesta.'
+        : decision === 'request_evidence'
+          ? 'Decisión retenida. SFI queda responsable de adquirir/reconciliar evidencia.'
+          : 'Propuesta rechazada con lineage preservado.');
+      setNote('');
+      await Promise.all([loadBase(), loadDossier(dossier.id)]);
+    } catch (cause) { setError(cause instanceof Error ? cause.message : String(cause)); }
+    finally { setBusy(null); }
+  };
+
+  const decideEvidence = async (candidateId: string, decision: 'accept' | 'reject') => {
+    if (!dossier?.id) return;
+    setBusy(`evidence:${candidateId}:${decision}`);
+    try {
+      await jsonFetch(`/api/sfi/proposals/${encodeURIComponent(dossier.id)}/evidence-candidates/${encodeURIComponent(candidateId)}/${decision}`, { method: 'POST' });
+      setNotice(decision === 'accept'
+        ? 'Fuente aceptada como evidencia gobernada. Aceptar la fuente NO aprueba automáticamente la propuesta.'
+        : 'Candidato de evidencia rechazado; la propuesta conserva su historia.');
+      await Promise.all([loadBase(), loadDossier(dossier.id)]);
+    } catch (cause) { setError(cause instanceof Error ? cause.message : String(cause)); }
+    finally { setBusy(null); }
+  };
+
+  if (!enabled) return null;
+
+  return <div className="rootWorkspace">
+    {(error || notice) && <div className={`rootToast ${error ? 'error' : ''}`}><span>{error || notice}</span><button onClick={() => { setError(null); setNotice(null); }}>×</button></div>}
+
+    <section className="rootHero">
+      <div><span>ROOT · SOBERANÍA OPERATIVA</span><h1>Lo que realmente requiere tu autoridad</h1><p>Un objeto sólo aparece aquí cuando existe una acción humana ejecutable. Revisión posible no equivale a obligación pendiente.</p></div>
+      <div className="rootMetrics"><b>{actionableCount}</b><span>requieren de ti</span><b>{activeCases.length + cycles.length}</b><span>casos/ciclos activos</span><b>{reviewOnly.length}</b><span>revisables, no obligatorios</span></div>
+    </section>
+
+    <section className="rootContextStrip">
+      <div><span>PROYECTOS</span><b>{projects.length}</b></div>
+      <div><span>CASOS ACTIVOS</span><b>{activeCases.length}</b></div>
+      <div><span>CICLOS ABIERTOS</span><b>{cycles.length}</b></div>
+      <div><span>INVARIANTE</span><p>HUMAN_ACTION_REQUIRED ⇒ ACTIONABLE_DOSSIER_REQUIRED</p></div>
+    </section>
+
+    <div className="rootDecisionLayout">
+      <aside className="rootDecisionQueue">
+        <header><div><span>NECESITA DE TI</span><b>{actionableCount}</b></div><button onClick={() => void loadBase()}>ACTUALIZAR</button></header>
+
+        {actionableProposals.map((item) => <Link key={item.id} href={`/root?decision=${encodeURIComponent(String(item.id))}`} className={`rootDecisionCard ${selectedId === item.id ? 'selected' : ''}`}>
+          <div><State value={item.status}/><State value={item.riskLevel}/></div>
+          <strong>{txt(item.title, 'Propuesta')}</strong>
+          <p>{txt(item.actionability?.question, item.actionLabel ?? 'Decisión ROOT requerida.')}</p>
+          <small>ABRIR DECISIÓN →</small>
+        </Link>)}
+
+        {actionableCycles.map((item) => <Link key={item.cycleId} href={`/cases?cycle=${encodeURIComponent(String(item.cycleId))}`} className="rootDecisionCard cycle">
+          <div><State value={item.state}/></div>
+          <strong>{txt(item.title, `Ciclo ${item.cycleId}`)}</strong>
+          <p>{txt(item.actionability?.question, item.actionLabel)}</p>
+          <small>ABRIR EXPEDIENTE →</small>
+        </Link>)}
+
+        {!actionableCount && <div className="rootEmpty">No existe ninguna obligación humana accionable en este momento.</div>}
+
+        {!!reviewOnly.length && <details className="rootReviewOnly"><summary>Revisión disponible, no obligatoria · {reviewOnly.length}</summary>{reviewOnly.slice(0, 40).map((item) => <article key={item.id}><State value={item.status}/><strong>{txt(item.title)}</strong><p>{txt(item.actionLabel)}</p></article>)}</details>}
+      </aside>
+
+      <main className="rootDecisionDossier">
+        {!selectedId && <div className="rootEmpty dossier"><strong>Selecciona una decisión.</strong><p>Antes de mostrar botones, SFI debe reconstruir qué es, por qué está abierta, qué sabe, qué falta, qué autoridad te corresponde y qué ocurrirá con cada opción.</p></div>}
+        {selectedId && loading && <div className="rootEmpty dossier">Reconstruyendo expediente de decisión…</div>}
+        {dossier && !loading && <article className="rootDossier">
+          <header className="rootDossierHero"><div><span>{txt(dossier.proposalType, 'PROPOSAL')}</span><h2>{txt(dossier.title)}</h2><p>{txt(dossier.statusMeaning)}</p></div><div><State value={dossier.status}/><State value={dossier.risk?.level}/><small>{dossier.id}</small></div></header>
+
+          <Detail title="DE QUÉ TRATA"><p>{txt(dossier.description, dossier.objective)}</p>{dossier.objective && dossier.objective !== dossier.description && <p className="secondary"><b>Objetivo:</b> {dossier.objective}</p>}</Detail>
+
+          <Detail title="POR QUÉ LLEGÓ A ROOT"><div className="rootFacts"><span><b>Origen</b>{txt(dossier.origin?.source, 'No estructurado')}</span><span><b>Propuesto por</b>{txt(dossier.origin?.credentialLabel ?? dossier.origin?.actorId, 'No registrado')}</span><span><b>Creado</b>{date(dossier.origin?.createdAt)}</span><span><b>Estado</b>{txt(dossier.status)}</span></div></Detail>
+
+          <Detail title="RIESGO Y LÍMITE"><p>{txt(dossier.risk?.rationale, 'No existe rationale de riesgo adicional persistido.')}</p><div className="rootBoundary"><b>NO AUTORIZA</b><span>ejecución · publicación · acción externa · canon</span></div></Detail>
+
+          {dossier.request?.requestedAction && <Detail title="ACCIÓN PROPUESTA"><pre>{JSON.stringify(dossier.request.requestedAction, null, 2)}</pre></Detail>}
+
+          <Detail title="QUÉ QUIERE SFI DE TI"><p className="decisionQuestion">{txt(dossier.actionability?.question)}</p>{arr(dossier.actionability?.actions).map((action) => <div className="rootConsequence" key={action.id}><b>{action.label}</b><p>{action.consequence}</p></div>)}</Detail>
+
+          {!!arr(dossier.evidenceCandidates).length && <Detail title={`EVIDENCIA CANDIDATA · ${arr(dossier.evidenceCandidates).length}`}>
+            <div className="rootEvidenceList">{arr(dossier.evidenceCandidates).map((candidate) => <article key={candidate.id}><div><State value={candidate.status}/><strong>{txt(candidate.source?.title, candidate.title)}</strong></div><p>{txt(candidate.source?.snippet, candidate.description)}</p>{candidate.requestNote && <p className="secondary"><b>Por qué importa:</b> {candidate.requestNote}</p>}<div className="rootEvidenceMeta">{candidate.source?.publisher && <span>{candidate.source.publisher}</span>}{candidate.source?.url && <a href={candidate.source.url} target="_blank" rel="noreferrer">ABRIR FUENTE ↗</a>}{candidate.source?.referenceHash && <span>ref {short(candidate.source.referenceHash, 18)}</span>}</div>{candidate.status === 'proposed' && <div className="rootEvidenceActions"><button disabled={Boolean(busy)} onClick={() => void decideEvidence(candidate.id, 'accept')}>ACEPTAR EVIDENCIA</button><button className="deny" disabled={Boolean(busy)} onClick={() => void decideEvidence(candidate.id, 'reject')}>RECHAZAR EVIDENCIA</button></div>}</article>)}</div>
+          </Detail>}
+
+          <Detail title="QUÉ PASÓ HASTA AHORA"><div className="rootFacts"><span><b>Decisión previa</b>{txt(dossier.outcome?.governanceDecision, 'Ninguna')}</span><span><b>RETURN</b>{txt(dossier.outcome?.returnEventId, 'No registrado')}</span><span><b>Calibración</b>{txt(dossier.outcome?.calibrationState, 'No registrada')}</span><span><b>Ejecución</b>{txt(dossier.outcome?.executionState, 'No registrada')}</span></div>{dossier.outcome?.note && <p>{dossier.outcome.note}</p>}</Detail>
+
+          <Detail title="CÓMO SE CIERRA"><p>{txt(dossier.terminalCondition)}</p><p className="secondary">La condición de cierre no se infiere ni se fabrica cuando el registro no la contiene.</p></Detail>
+
+          {dossier.actionability?.humanActionRequired && <section className="rootDecisionActionBox"><label>Nota de decisión (opcional)<textarea value={note} onChange={(event) => setNote(event.target.value)} placeholder="Razón, condición o reserva que debe quedar en el receipt."/></label><div className="rootActionButtons">
+            {dossier.status === 'proposed' && <><button disabled={Boolean(busy)} onClick={() => void decide('accept')}>APROBAR DISEÑO</button><button disabled={Boolean(busy)} onClick={() => void decide('request_evidence')}>PEDIR EVIDENCIA</button></>}
+            {['proposed', 'waiting_evidence'].includes(String(dossier.status)) && <button className="deny" disabled={Boolean(busy)} onClick={() => void decide('deny')}>RECHAZAR</button>}
+          </div><p><b>Boundary:</b> aprobar diseño ≠ ejecutar ≠ aceptar RETURN ≠ cerrar ≠ canonizar.</p></section>}
+
+          {!dossier.actionability?.humanActionRequired && <section className="rootNoAction"><b>NO HAY UNA OBLIGACIÓN HUMANA EJECUTABLE AHORA.</b><p>{txt(dossier.actionability?.question)}</p></section>}
+
+          <details className="rootTrace"><summary>TRAZABILIDAD COMPLETA</summary><pre>{JSON.stringify(dossier, null, 2)}</pre></details>
+        </article>}
+      </main>
+    </div>
+  </div>;
+}
