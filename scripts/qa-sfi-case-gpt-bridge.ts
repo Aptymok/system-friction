@@ -8,6 +8,7 @@ const authorize = read('src/app/api/oauth/authorize/route.ts');
 const oauthConfig = read('src/lib/sfi/oauthConfig.ts');
 const observatoryApi = read('src/app/api/observatory/world/route.ts');
 const observatoryPage = read('src/app/observatory/page.tsx');
+const observatoryConsole = read('src/components/sfi/ObservatoryConsole.tsx');
 const observatoryInterpretiveFlow = read('src/components/sfi/ObservatoryInterpretiveFlow.tsx');
 const merge = read('scripts/merge-openapi-cases.mjs');
 const openapi = JSON.parse(read('public/openapi.json')) as Record<string, any>;
@@ -53,7 +54,10 @@ for (const scope of ['cases:read', 'cases:write']) {
 
 assert.ok(observatoryApi.includes('source_url,payload'), 'observatory_public_provenance_fields_missing');
 assert.ok(observatoryApi.includes('provenance:'), 'observatory_public_provenance_projection_missing');
-assert.ok(observatoryPage.includes('ObservatoryInterpretiveFlow'), 'observatory_interpretive_flow_not_rendered');
+assert.ok(observatoryPage.includes('ObservatoryConsole'), 'observatory_canonical_console_not_rendered');
+assert.equal(observatoryPage.includes('ObservatoryInterpretiveFlow'), false, 'observatory_page_must_not_mount_duplicate_interpretive_owner');
+assert.ok(observatoryConsole.includes('ObservatoryInterpretiveFlow'), 'observatory_interpretive_flow_not_rendered_by_canonical_owner');
+assert.ok(observatoryConsole.includes('<ObservatoryInterpretiveFlow world={world} availability={availability.world}/>'), 'observatory_interpretive_flow_must_share_canonical_read_model');
 for (const token of ['sourceRole','verificationState','FRONTERA EPISTÉMICA','INFERENCE_ONLY','RETURN / CONTRAST']) {
   assert.ok(observatoryInterpretiveFlow.includes(token), `observatory_interpretive_provenance_missing:${token}`);
 }
@@ -76,5 +80,5 @@ console.log(JSON.stringify({
   interventionAuthority: false,
   returnAuthority: false,
   observatoryProvenance: true,
-  observatoryInterpretation: 'VERTICAL_TRACEABLE_CONTINUATION',
+  observatoryInterpretation: 'SHARED_AUTHORITATIVE_READ_MODEL',
 }, null, 2));
