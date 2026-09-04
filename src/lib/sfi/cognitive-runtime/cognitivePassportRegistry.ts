@@ -304,6 +304,7 @@ export function validateCognitivePassport(passport: SfiCognitivePassport): strin
 
   if (!passport.id.trim()) push('ID_REQUIRED');
   if (!passport.version.trim()) push('VERSION_REQUIRED');
+  else if (passport.version !== SFI_COGNITIVE_PASSPORT_VERSION) push(`VERSION_UNSUPPORTED:${passport.version}`);
   if (!passport.name.trim()) push('NAME_REQUIRED');
   if (!passport.purpose.trim()) push('PURPOSE_REQUIRED');
   if (!EPISTEMIC_MODES.has(passport.epistemicMode)) push('EPISTEMIC_MODE_INVALID');
@@ -318,6 +319,9 @@ export function validateCognitivePassport(passport: SfiCognitivePassport): strin
   if (!passport.output.missingPolicy.trim()) push('MISSING_POLICY_REQUIRED');
   if (!passport.output.contradictionPolicy.trim()) push('CONTRADICTION_POLICY_REQUIRED');
   if (passport.output.allowedEpistemicClasses.length === 0) push('OUTPUT_EPISTEMIC_CLASSES_REQUIRED');
+  if (!sameSortedStrings(passport.input.acceptedEvidenceClasses, ACCEPTED_EVIDENCE_CLASSES)) {
+    push('ACCEPTED_EVIDENCE_CLASSES_CONTRACT_MISMATCH');
+  }
 
   for (const [field, values] of [
     ['INPUT_REQUIRED', passport.input.required],
@@ -360,6 +364,8 @@ export function validateCognitivePassportAgainstSource(
   const expectedReturn = returnContractFor(source);
 
   if (passport.id !== source.id) errors.push(`${passport.id}:SOURCE_ID_MISMATCH:${source.id}`);
+  if (passport.name !== source.name) errors.push(`${passport.id}:SOURCE_NAME_MISMATCH`);
+  if (passport.purpose !== source.purpose) errors.push(`${passport.id}:SOURCE_PURPOSE_MISMATCH`);
   if (passport.epistemicMode !== expectedEpistemicMode) {
     errors.push(`${passport.id}:EPISTEMIC_MODE_MISMATCH:${passport.epistemicMode}:${expectedEpistemicMode}`);
   }
