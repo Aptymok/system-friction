@@ -353,6 +353,52 @@ This workstream edit is documentation-only and moves the PR HEAD after the imple
 
 Leave `#367` unmerged. Observe all CI on the final documentation-adjusted HEAD. If green and no new review finding appears, hand the PR to SFI-00 as integration-ready. Do not implement the Governed Capability Request Broker until Slice A is integrated into `main` or SFI-00 explicitly establishes an admitted stable dependency base.
 
+## 11. Final integration correction pass — 2026-09-04
+
+**State before final docs commit:** `QA_PASS / PR_OPEN / ALL_EXISTING_REVIEW_THREADS_RESOLVED`  
+**Previous SFI-00 observed HEAD:** `a056ac480b65858727869bc351e454387a6b80d6`  
+**Corrected code HEAD:** `3c1f162cb9e69699bba5de9ede802660e0b1d94e`
+
+Three additional integration findings on `a056ac480b...` were accepted as real Slice A defects and corrected without expanding scope:
+
+1. **P1 — source-layer epistemic mode:** source validation now requires `passport.epistemicMode === EPISTEMIC_MODE_BY_LAYER[source.layer]`; a simulation passport cannot be relabeled as observational.
+2. **P1 — source-derived RETURN block:** projection and validation share one `returnContractFor(source)` derivation; `required`, `condition`, and `falsificationCondition` cannot be weakened for RETURN-required agents.
+3. **P2 — source-required inputs:** `input.required` must match the normalized `source.sourceTables` dependency set; required dependencies cannot be hidden by passport mutation.
+
+Corrective commits:
+
+- `7c5b60556f96868afd6a3affd608cb47da702d72` — `fix(ws01): enforce passport source invariants`;
+- `3c1f162cb9e69699bba5de9ede802660e0b1d94e` — `test(ws01): lock source-derived passport invariants`.
+
+Deterministic regressions prove:
+
+- `social_field_simulator` mutated `SIMULATE -> OBSERVE` is rejected with `EPISTEMIC_MODE_MISMATCH`;
+- `trajectory_agent` and `project_execution_manager` cannot drop or weaken their RETURN block and produce `RETURN_CONTRACT_MISMATCH`;
+- `field_observer` cannot clear source-required inputs and produces `INPUT_REQUIRED_CONTRACT_MISMATCH`.
+
+Exact corrected code HEAD `3c1f162cb9e69699bba5de9ede802660e0b1d94e` completed:
+
+- `SFI Verify` #2331 / run `33922716236`: `SUCCESS`;
+- canonical development preflight: `PASS`;
+- cognitive agent convergence: `PASS`;
+- cognitive passport registry gate: `PASS`;
+- runtime read-plane stability: `PASS`;
+- typecheck: `PASS`;
+- build: `PASS`;
+- parallel Studio audio job: `PASS`;
+- `MIHM Contract Validation` #597: `SUCCESS`;
+- `SFI External OAuth` #330: `SUCCESS`.
+
+All seven existing inline review threads in PR #367 were replied to with evidence and formally resolved only after their fixes had demonstrated QA. A fresh `@codex review` was requested for corrected HEAD `3c1f162...`, but GitHub/Codex reported that code-review usage limits were exhausted. Therefore no additional review result or new finding was produced; this external reviewer limitation is not interpreted as product PASS or FAIL.
+
+Preview infrastructure remains non-authoritative for product readiness absent causality: Vercel reports success/Ready for the corrected code HEAD while both Netlify preview contexts report failure, consistent with the pre-existing preview pattern. No causal link from those Netlify failures to the Slice A correction has been demonstrated.
+
+No contract delta, authority expansion, migration, persistence owner, event owner, capability broker, grant, new orchestrator, new registry, model router or Slice B behavior was introduced.
+
+### Final next safe action
+
+This documentation-only durable handoff commit moves the PR HEAD after the proven corrected code HEAD. Re-run and observe exact-head CI. If the final HEAD remains green, PR #367 is ready for SFI-00 integration sequencing. WS-01 must not merge and must not start Slice B on this branch.
+
 ---
 
 # COPY-PASTE DISPATCH PROMPT
