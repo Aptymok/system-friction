@@ -336,6 +336,26 @@ Added `scripts/qa-sfi-research-metadata.mjs` and wired `qa:sfi-research-metadata
 
 No contract delta, migration, database owner, public canonical object or external mutation is introduced.
 
+### Assurance receipt
+
+Implementation head `45588a51e68f47394199bd9e5bb6ebb4c0c5e155` was verified by GitHub Actions run `33905957912` (`SFI Verify`, PR #371):
+
+```text
+CANONICAL DEVELOPMENT PREFLIGHT: PASS
+DOMAIN BOUNDARIES: PASS
+MIHM METHOD SELECTION: PASS
+INSTITUTIONAL / COGNITIVE / METHOD LAB GATES: PASS
+METADATA VALIDATION: PASS (first gate inside npm run build)
+TYPECHECK: PASS
+BUILD: PASS
+STUDIO AUDIO GATES: PASS
+CONTRACT DELTA: NONE
+EXTERNAL MUTATION: NONE
+MERGE: NOT PERFORMED
+```
+
+PR `#371` remains under SFI-00 integration authority. This workstream does not merge its own head.
+
 ---
 
 # COPY-PASTE DISPATCH PROMPT
