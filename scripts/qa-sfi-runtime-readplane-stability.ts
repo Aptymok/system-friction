@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import './qa-sfi-zero-interactive-duplication';
 import './qa-sfi-actionable-human-inbox';
+import './qa-sfi-observatory-availability';
 
 const read=(path:string)=>fs.readFileSync(path,'utf8');
 const observed=read('src/lib/sfi/cognitive-runtime/observedRuntime.ts');
@@ -58,5 +59,6 @@ console.log(JSON.stringify({
     'EXHAUSTIVE_HEALTH_IS_EXPLICIT_DIAGNOSTIC_ONLY',
     'ZERO_DUPLICATE_INTERACTIVE_READS',
     'ACTIONABLE_SOVEREIGN_HUMAN_QUEUE',
+    'PUBLIC_OBSERVATORY_AVAILABILITY_TRUTH',
   ],
 },null,2));
