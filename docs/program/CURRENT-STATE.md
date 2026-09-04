@@ -4,9 +4,19 @@
 **Program authority:** SFI-00 · CONTROL ROOM  
 **Source of truth:** fresh GitHub/Supabase/CI/production evidence overrides this file when newer.
 
-## 1. Main baseline
+## 1. Main and production baseline
 
-Latest merged baseline at program bootstrap:
+Latest `main` at this state sync:
+
+`f51a071ad728ba653349f5bc44f3b08191d73255`
+
+Merged PR:
+
+`#364 docs(program): bootstrap distributed SFI control plane`
+
+PR #364 is documentation/control-plane only; it introduced no runtime/API/database/UI behavior and therefore does not replace the last functional production baseline.
+
+Latest functional production baseline:
 
 `565ac410fceb56d86ff9d6eaec85b901d0d77248`
 
@@ -23,7 +33,7 @@ PR #363 state at merge:
 - SFI Main-Only Convergence: PASS;
 - SFI Verify: PASS.
 
-Canonical production deployment:
+Canonical production deployment for #363:
 
 - workflow: `SFI Vercel Prebuilt Production`;
 - run: `33897088220`;
@@ -33,7 +43,33 @@ Canonical production deployment:
 
 Therefore #363 baseline state is `DEPLOYED`. It is not yet marked `OBSERVED_IN_PRODUCTION` for the new sovereign-inbox behavior until post-deploy navigation/behavior is explicitly observed.
 
-## 2. Already established before this program
+## 2. Program control plane
+
+The distributed program control plane is now merged to `main` through PR #364.
+
+Canonical coordination files:
+
+```text
+docs/program/README.md
+docs/program/SFI-MASTER-PROGRAM.md
+docs/program/SFI-CONTRACT-LOCK.md
+docs/program/DEPENDENCY-GRAPH.md
+docs/program/CURRENT-STATE.md
+docs/program/DECISIONS.md
+docs/program/SFI-00-CONTROL-ROOM.md
+docs/program/workstreams/WS-01-COGNITIVE-FABRIC.md
+docs/program/workstreams/WS-02-TWIN-METHOD-LAB.md
+docs/program/workstreams/WS-03-DISCOVERY-MESH.md
+docs/program/workstreams/WS-04-MACHINE-INTERFACES.md
+docs/program/workstreams/WS-05-RESEARCH-GRAPH.md
+docs/program/workstreams/WS-06-MATERIAL-AUDIO.md
+docs/program/workstreams/WS-07-EXTERNAL-IDENTITY.md
+docs/program/workstreams/WS-08-ASSURANCE-RELEASE.md
+```
+
+PR #364 passed canonical preflight, repository QA, typecheck and build before merge. Its post-merge `main` workflows may still be running when this state file is read; fresh workflow evidence overrides this line.
+
+## 3. Already established before this program
 
 ### Runtime/read plane
 
@@ -103,9 +139,9 @@ Not yet institutionalized at program bootstrap:
 - audio production capabilities/passports;
 - controlled render/evaluate/rerender loop.
 
-## 3. Open baseline verification items
+## 4. Open baseline verification items
 
-SFI-08 + SFI-00 must resolve before declaring baseline `OBSERVED_IN_PRODUCTION`:
+SFI-08 + SFI-00 must resolve before declaring the functional baseline `OBSERVED_IN_PRODUCTION`:
 
 1. load ROOT and verify actionable queue behavior without executing sovereign actions;
 2. verify pending report approvals are discoverable/actionable;
@@ -117,41 +153,19 @@ SFI-08 + SFI-00 must resolve before declaring baseline `OBSERVED_IN_PRODUCTION`:
 
 Deployment itself is already verified successful.
 
-## 4. Program control-plane bootstrap branch
-
-Current bootstrap branch:
-
-`sfi-control-room-bootstrap`
-
-Open PR:
-
-`#364 docs(program): bootstrap distributed SFI control plane`
-
-Purpose:
-
-- establish master program;
-- freeze shared contracts;
-- define dependencies;
-- define durable current state;
-- define decision ledger;
-- create WS-01 through WS-08 dispatch/workstream contracts;
-- merge only after normal repository preflight/CI.
-
-No production runtime change is introduced by PR #364.
-
-## 5. Workstream states
+## 5. Workstream states and launch readiness
 
 | Workstream | State | Safe next action |
 |---|---|---|
-| SFI-00 | BOOTSTRAPPING | merge #364 after CI; then reconstruct latest production baseline |
-| WS-01 | NOT_STARTED | read workstream contract after control-plane merge |
-| WS-02 | NOT_STARTED | inspect current Twin + Method Lab against workstream contract |
-| WS-03 | NOT_STARTED | inspect public semantic/discovery owners; no duplicate plane |
-| WS-04 | NOT_STARTED | inspect external gateway and available MCP path |
-| WS-05 | NOT_STARTED | inspect publication/citation metadata and real external identifiers |
-| WS-06 | NOT_STARTED | inspect audio/FAD/Studio and rights/storage boundaries |
-| WS-07 | NOT_STARTED | inventory actual external identities; no fabrication |
-| WS-08 | BOOTSTRAPPING | post-deploy behavior/log verification + assurance matrix |
+| SFI-00 | READY | open Control Room chat; reconstruct fresh `main`, PRs, CI and baseline production state |
+| WS-01 | READY | open Cognitive Fabric chat and inspect existing runtime against frozen contracts |
+| WS-02 | READY | open Twin + Method Lab chat; inspect current owners and begin nonconflicting slices |
+| WS-03 | READY | open Discovery Mesh chat; inspect/absorb current public semantic owners |
+| WS-04 | READY_INSPECTION | inspect external gateway/MCP path; publication waits on stable WS-03/WS-01 dependencies |
+| WS-05 | READY | inspect citation/publication metadata and real external identifiers |
+| WS-06 | READY | inspect audio/FAD/Studio and material rights/storage owners |
+| WS-07 | READY | inventory actual external identities; never fabricate account state |
+| WS-08 | READY | perform post-deploy baseline behavior/log verification and adversarial assurance |
 
 Allowed states:
 
@@ -159,6 +173,7 @@ Allowed states:
 NOT_STARTED
 INSPECTING
 READY
+READY_INSPECTION
 IMPLEMENTING
 PR_OPEN
 WAITING_DEPENDENCY
@@ -172,7 +187,29 @@ BLOCKED_EXTERNAL
 COMPLETE
 ```
 
-## 6. Known strategic observations
+## 6. Launch order
+
+Wave 1 may run simultaneously:
+
+```text
+SFI-01 · COGNITIVE FABRIC
+SFI-03 · DISCOVERY MESH
+SFI-05 · RESEARCH GRAPH
+SFI-07 · EXTERNAL IDENTITY
+SFI-08 · ASSURANCE + RELEASE
+```
+
+Also safe to start inspection/nonconflicting implementation immediately:
+
+```text
+SFI-02 · TWIN + METHOD LAB
+SFI-06 · MATERIAL AUDIO
+SFI-04 · MACHINE INTERFACES
+```
+
+WS-04 publication/integration remains dependency-bound to stable WS-03 semantic objects and WS-01 authenticated adaptive-capability contracts.
+
+## 7. Known strategic observations
 
 ### SFI is not digital-only
 
@@ -194,7 +231,7 @@ Goal is not follower count or virality. Goal is that SFI can be reconstructed co
 
 Program must defend `System Friction Institute` / `systemfriction.org` against confusion with similarly named entities. External nodes must repeat verified canonical identity.
 
-## 7. Session handoff format
+## 8. Session handoff format
 
 Every workstream updates its durable file with:
 
