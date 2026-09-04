@@ -6,7 +6,10 @@ import {
   readInteractiveEvidenceTargetIndex,
 } from '@/lib/root/interactiveReadModel';
 import { readInteractiveCaseDossier, readInteractiveCycleDossier } from '@/lib/root/interactiveDossiers';
+import { readRootCognitiveSpineStatus } from '@/lib/root/cognitiveSpineStatus';
+import { readVisibleLogbookEntries } from '@/lib/logbook/query';
 import { readUniversalLearningQuarantine } from '@/lib/sfi/universalLearningQuarantine';
+import { readObservedSfiCognitiveRuntime } from '@/lib/sfi/cognitive-runtime/observedRuntime';
 import { SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY } from '@/lib/sfi/cognitive-runtime/convergedRegistry';
 import {
   compactExecutionContract,
@@ -101,16 +104,37 @@ export async function GET(request: Request) {
   }
 
   if (surface === 'twin') {
-    const [operationalNext, learning] = await Promise.all([
+    const authority = gate.ctx.isRoot ? 'root' as const : 'observer' as const;
+    const [operationalNext, learning, spineStatus, observedRuntime, logbook] = await Promise.all([
       readInteractiveOperationalNext(),
       readUniversalLearningQuarantine(),
+      readRootCognitiveSpineStatus(),
+      readObservedSfiCognitiveRuntime(),
+      gate.ctx.isRoot
+        ? readVisibleLogbookEntries({ user_id: gate.ctx.user.id, role: 'root', email: gate.ctx.user.email ?? null }, { scope: 'all' })
+        : Promise.resolve([]),
     ]);
     return NextResponse.json({
       ok: true,
       surface,
+      authority,
       operationalNext,
       learning,
-      readPlan: { authGates: 1, duplicateBaseHttpReads: 0, operationalNPlusOneReads: 0 },
+      twinProjection: {
+        spine: { ok: true, status: spineStatus },
+        runtime: { ok: true, runtime: observedRuntime },
+        logbook: { ok: true, entries: logbook },
+      },
+      readPlan: {
+        authGates: 1,
+        duplicateBaseHttpReads: 0,
+        operationalNPlusOneReads: 0,
+        nestedTwinHttpReads: 0,
+        nestedTwinPollingLoops: 0,
+        spineStatusReads: 1,
+        observedRuntimeReads: 1,
+        logbookReads: gate.ctx.isRoot ? 1 : 0,
+      },
     }, { headers: { 'Cache-Control': 'private, no-store' } });
   }
 
