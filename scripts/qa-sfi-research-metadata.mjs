@@ -38,7 +38,9 @@ const sameRecordSet = (left, right) => {
   const a = left.map(normalizedRecord);
   const b = right.map(normalizedRecord);
   if (a.some((value) => value === null) || b.some((value) => value === null)) return false;
-  return a.length === b.length && [...a].sort().every((value, index) => value === [...b].sort()[index]);
+  const sortedA = [...a].sort();
+  const sortedB = [...b].sort();
+  return sortedA.length === sortedB.length && sortedA.every((value, index) => value === sortedB[index]);
 };
 
 const validateCitationAuthors = (authors) => {
@@ -87,8 +89,20 @@ assert(!citationIdentifierStrings.some((value) => identifierKind(value) === 'ORC
 assert(!citationIdentifierStrings.some((value) => identifierKind(value) === 'ROR'), 'Unverified ROR emitted in CITATION.cff');
 assert(!Object.hasOwn(citation, 'date-released'), 'No GitHub release is established; CITATION must not claim a release date');
 
-if (!exists('LICENSE')) {
+const spdxLicenseId = (licenseText) => {
+  if (typeof licenseText !== 'string') return null;
+  const match = licenseText.match(/(?:^|\n)\s*SPDX-License-Identifier:\s*([^\s]+)\s*(?:\n|$)/i);
+  return match?.[1]?.trim() || null;
+};
+
+const rootLicenseText = exists('LICENSE') ? read('LICENSE') : null;
+const rootLicenseId = spdxLicenseId(rootLicenseText);
+
+if (!rootLicenseText) {
   assert(!Object.hasOwn(citation, 'license'), 'CITATION must not infer a repository license while the root LICENSE file is absent');
+} else if (Object.hasOwn(citation, 'license')) {
+  assert(rootLicenseId, 'CITATION license requires an explicit SPDX-License-Identifier in the authoritative root LICENSE');
+  assert(citation.license === rootLicenseId, 'CITATION license must match the SPDX identifier declared by the authoritative root LICENSE');
 }
 
 const canonicalAuthorName = (author) =>
@@ -104,7 +118,7 @@ const citationAuthorToZenodoCreator = (author) => {
   return creator;
 };
 
-const validateZenodoOverride = (zenodo, citationMetadata, rootLicenseExists) => {
+const validateZenodoOverride = (zenodo, citationMetadata, authoritativeLicenseText) => {
   assert(zenodo && typeof zenodo === 'object' && !Array.isArray(zenodo), '.zenodo.json must contain one metadata object');
   assert(zenodo.title === citationMetadata.title, '.zenodo.json title must match CITATION.cff');
   assert(Array.isArray(zenodo.creators) && zenodo.creators.length > 0, '.zenodo.json creators are required when the file exists');
@@ -119,18 +133,37 @@ const validateZenodoOverride = (zenodo, citationMetadata, rootLicenseExists) => 
     '.zenodo.json creator names and identity fields must exactly match verified CITATION.cff author metadata',
   );
 
-  assert(rootLicenseExists, '.zenodo.json requires a root LICENSE before deposit metadata can override CITATION.cff');
   assert(
-    typeof citationMetadata.license === 'string' && citationMetadata.license.trim(),
-    '.zenodo.json requires a verified CITATION.cff license before override metadata is accepted',
+    typeof authoritativeLicenseText === 'string' && authoritativeLicenseText.trim(),
+    '.zenodo.json requires a root LICENSE before deposit metadata can override CITATION.cff',
+  );
+  const authoritativeLicenseId = spdxLicenseId(authoritativeLicenseText);
+  assert(
+    authoritativeLicenseId,
+    '.zenodo.json requires the authoritative root LICENSE to declare an explicit SPDX-License-Identifier',
   );
   assert(
-    typeof zenodo.license === 'string' && zenodo.license.trim() === citationMetadata.license.trim(),
-    '.zenodo.json license must match the verified CITATION.cff license',
+    typeof citationMetadata.license === 'string' && citationMetadata.license.trim() === authoritativeLicenseId,
+    '.zenodo.json requires CITATION.cff license to match the authoritative root LICENSE SPDX identifier',
+  );
+  assert(
+    typeof zenodo.license === 'string' && zenodo.license.trim() === authoritativeLicenseId,
+    '.zenodo.json license must match the authoritative root LICENSE SPDX identifier',
   );
 
   if (Object.hasOwn(zenodo, 'version')) {
     assert(zenodo.version === citationMetadata.version, '.zenodo.json version must match CITATION.cff/package.json');
+  }
+
+  if (Object.hasOwn(zenodo, 'publication_date')) {
+    assert(
+      typeof citationMetadata['date-released'] === 'string' && citationMetadata['date-released'].trim(),
+      '.zenodo.json publication_date requires an observed release date in CITATION.cff',
+    );
+    assert(
+      zenodo.publication_date === citationMetadata['date-released'],
+      '.zenodo.json publication_date must match the observed CITATION.cff release date',
+    );
   }
 
   const allowedIdentifierStrings = new Set(collectStrings(citationMetadata));
@@ -180,7 +213,7 @@ expectCitationAuthorRejection('an unverified author affiliation field', [
   { ...citation.authors[0], affiliation: 'Fabricated University' },
 ]);
 
-const expectZenodoRejection = (label, mutate) => {
+const expectZenodoRejection = (label, mutate, licenseText = 'SPDX-License-Identifier: TEST-VERIFIED-LICENSE\n') => {
   const syntheticCitation = { ...citation, license: 'TEST-VERIFIED-LICENSE' };
   const validOverride = {
     title: syntheticCitation.title,
@@ -191,7 +224,7 @@ const expectZenodoRejection = (label, mutate) => {
   const candidate = mutate(JSON.parse(JSON.stringify(validOverride)));
   let rejected = false;
   try {
-    validateZenodoOverride(candidate, syntheticCitation, true);
+    validateZenodoOverride(candidate, syntheticCitation, licenseText);
   } catch {
     rejected = true;
   }
@@ -204,6 +237,8 @@ expectZenodoRejection('unverified creator affiliation', (zenodo) => ({
   ...zenodo,
   creators: [{ ...zenodo.creators[0], affiliation: 'Fabricated University' }],
 }));
+expectZenodoRejection('mismatched authoritative license', (zenodo) => zenodo, 'SPDX-License-Identifier: MIT\n');
+expectZenodoRejection('unobserved publication date', (zenodo) => ({ ...zenodo, publication_date: '2099-12-31' }));
 expectZenodoRejection('unverified DOI', (zenodo) => ({ ...zenodo, doi: '10.1234/fabricated' }));
 expectZenodoRejection('unverified ORCID', (zenodo) => ({
   ...zenodo,
@@ -221,7 +256,7 @@ if (exists('.zenodo.json')) {
   } catch (error) {
     fail(`.zenodo.json is invalid JSON: ${error instanceof Error ? error.message : String(error)}`);
   }
-  validateZenodoOverride(zenodo, citation, exists('LICENSE'));
+  validateZenodoOverride(zenodo, citation, rootLicenseText);
 }
 
 console.log('[SFI-RESEARCH-METADATA] PASS');
