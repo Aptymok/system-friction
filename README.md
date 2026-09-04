@@ -96,6 +96,19 @@ Important areas include:
 
 Legacy visual dashboards are not maintained as a second frontend. Historical route aliases may redirect into the current live-scene system, but the canonical public architecture is the scene set documented above.
 
+## Citation and research release metadata
+
+Repository-level citation metadata lives in `CITATION.cff`. Its software version is synchronized with `package.json`; cite the exact version or commit actually used rather than treating every commit as a scholarly release.
+
+Canonical references:
+
+- software repository: `https://github.com/Aptymok/system-friction`;
+- institutional landing page: `https://systemfriction.org`.
+
+No DOI, ORCID or ROR identifier is emitted from repository citation metadata unless it has been independently verified. A GitHub tag, commit or package version is not represented as a Zenodo deposit or DOI-backed release without an external registry receipt.
+
+Zenodo may consume `CITATION.cff` directly. This repository intentionally does not add `.zenodo.json` until Zenodo-specific metadata—especially deposit licensing and any external identifiers—has a verified source, because `.zenodo.json` overrides `CITATION.cff` during GitHub release archiving.
+
 ## Local execution
 
 ```bash
