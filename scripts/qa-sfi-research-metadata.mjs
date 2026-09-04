@@ -42,6 +42,9 @@ const ALLOWED_CITATION_FIELDS = new Set([
   'keywords',
 ]);
 
+const hasOwn = (value, key) => Object.prototype.hasOwnProperty.call(value, key);
+const isNonEmptyString = (value) => typeof value === 'string' && value.trim().length > 0;
+
 const normalizedRecord = (value) => {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
   return JSON.stringify(Object.fromEntries(Object.entries(value).sort(([a], [b]) => a.localeCompare(b))));
@@ -86,17 +89,34 @@ const validateCitationMetadata = (candidate) => {
     `CITATION.cff contains fields outside the verified Slice A schema: ${unexpectedFields.join(', ')}. Enrich citation metadata only in a separately reviewed change backed by verified evidence.`,
   );
 
+  const missingFields = [...ALLOWED_CITATION_FIELDS].filter((key) => !hasOwn(candidate, key));
+  assert(
+    missingFields.length === 0,
+    `CITATION.cff is missing fields required by the verified Slice A schema: ${missingFields.join(', ')}`,
+  );
+
+  assert(isNonEmptyString(candidate['cff-version']), 'CITATION cff-version must be a non-empty string');
   assert(candidate['cff-version'] === '1.2.0', 'CITATION.cff must use CFF 1.2.0');
-  assert(candidate.message && typeof candidate.message === 'string', 'CITATION.cff message is required');
+  assert(isNonEmptyString(candidate.message), 'CITATION message must be a non-empty string');
+  assert(isNonEmptyString(candidate.title), 'CITATION title must be a non-empty string');
   assert(candidate.title === 'System Friction Institute', 'CITATION title must match the repository/public project title');
+  assert(isNonEmptyString(candidate.type), 'CITATION type must be a non-empty string');
   assert(candidate.type === 'software', 'Repository citation type must be software');
-  assert(candidate.version === packageJson.version, 'CITATION version must match package.json version');
-  assert(candidate['repository-code'] === 'https://github.com/Aptymok/system-friction', 'CITATION repository-code must point to the canonical repository');
-  assert(candidate.url === 'https://systemfriction.org', 'CITATION url must point to the canonical institution domain');
-  assert(Array.isArray(candidate.authors) && candidate.authors.length > 0, 'CITATION must contain at least one observed author identity');
+  assert(Array.isArray(candidate.authors) && candidate.authors.length > 0, 'CITATION authors must be a non-empty array');
   assert(
     sameRecordSet(candidate.authors, VERIFIED_CITATION_AUTHORS),
     'Every CITATION author and author identity field must be backed by the currently verified repository identity source',
+  );
+  assert(isNonEmptyString(candidate.abstract), 'CITATION abstract must be a non-empty string');
+  assert(isNonEmptyString(candidate['repository-code']), 'CITATION repository-code must be a non-empty string');
+  assert(candidate['repository-code'] === 'https://github.com/Aptymok/system-friction', 'CITATION repository-code must point to the canonical repository');
+  assert(isNonEmptyString(candidate.url), 'CITATION url must be a non-empty string');
+  assert(candidate.url === 'https://systemfriction.org', 'CITATION url must point to the canonical institution domain');
+  assert(isNonEmptyString(candidate.version), 'CITATION version must be a non-empty string');
+  assert(candidate.version === packageJson.version, 'CITATION version must match package.json version');
+  assert(
+    Array.isArray(candidate.keywords) && candidate.keywords.length > 0 && candidate.keywords.every(isNonEmptyString),
+    'CITATION keywords must be a non-empty array of non-empty strings',
   );
 
   const identifierStrings = collectStrings(candidate);
@@ -120,6 +140,22 @@ const expectCitationRejection = (label, mutate) => {
   assert(rejected, `CITATION validation self-test accepted ${label}`);
 };
 
+expectCitationRejection('a missing allowed Slice A field', (candidate) => {
+  delete candidate.abstract;
+  return candidate;
+});
+expectCitationRejection('a non-string cff-version', (candidate) => ({ ...candidate, 'cff-version': ['1.2.0'] }));
+expectCitationRejection('a non-string message', (candidate) => ({ ...candidate, message: { text: candidate.message } }));
+expectCitationRejection('a non-string title', (candidate) => ({ ...candidate, title: ['System Friction Institute'] }));
+expectCitationRejection('a non-string type', (candidate) => ({ ...candidate, type: ['software'] }));
+expectCitationRejection('a non-array authors field', (candidate) => ({ ...candidate, authors: 'Aptymok' }));
+expectCitationRejection('a non-string abstract', (candidate) => ({ ...candidate, abstract: { text: candidate.abstract } }));
+expectCitationRejection('a non-string repository-code', (candidate) => ({ ...candidate, 'repository-code': [candidate['repository-code']] }));
+expectCitationRejection('a non-string url', (candidate) => ({ ...candidate, url: { canonical: candidate.url } }));
+expectCitationRejection('a non-string version', (candidate) => ({ ...candidate, version: 1 }));
+expectCitationRejection('a string keywords field', (candidate) => ({ ...candidate, keywords: 'system friction' }));
+expectCitationRejection('a keywords array with a non-string item', (candidate) => ({ ...candidate, keywords: [...candidate.keywords, { term: 'invalid' }] }));
+expectCitationRejection('an empty keyword', (candidate) => ({ ...candidate, keywords: [...candidate.keywords, '   '] }));
 expectCitationRejection('an unobserved additional author', (candidate) => ({
   ...candidate,
   authors: [...candidate.authors, { 'family-names': 'Fabricated Researcher' }],
