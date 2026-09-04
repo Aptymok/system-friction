@@ -157,6 +157,56 @@ test('validator rejects removal of mandatory human confirmation', () => {
   ]);
 });
 
+test('validator rejects epistemic mode drift from the canonical source layer', () => {
+  const source = SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY.find((agent) => agent.id === 'social_field_simulator');
+  assert.ok(source);
+  assert.equal(source.layer, 'simulate');
+
+  const passport = structuredClone(projectCognitivePassport(source)) as SfiCognitivePassport;
+  passport.epistemicMode = 'OBSERVE';
+
+  assert.deepEqual(validateCognitivePassportAgainstSource(passport, source), [
+    'social_field_simulator:EPISTEMIC_MODE_MISMATCH:OBSERVE:SIMULATE',
+  ]);
+});
+
+test('validator rejects weakening source-derived RETURN obligations', () => {
+  for (const id of ['trajectory_agent', 'project_execution_manager']) {
+    const source = SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY.find((agent) => agent.id === id);
+    assert.ok(source);
+
+    const passport = structuredClone(projectCognitivePassport(source)) as SfiCognitivePassport;
+    passport.return.required = false;
+    passport.return.condition = null;
+    passport.return.falsificationCondition = null;
+
+    assert.deepEqual(validateCognitivePassportAgainstSource(passport, source), [
+      `${id}:RETURN_CONTRACT_MISMATCH`,
+    ]);
+  }
+
+  const source = SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY.find((agent) => agent.id === 'trajectory_agent');
+  assert.ok(source);
+  const conditionOnly = structuredClone(projectCognitivePassport(source)) as SfiCognitivePassport;
+  conditionOnly.return.condition = null;
+  assert.deepEqual(validateCognitivePassportAgainstSource(conditionOnly, source), [
+    'trajectory_agent:RETURN_CONTRACT_MISMATCH',
+  ]);
+});
+
+test('validator rejects passports that drop source-required inputs', () => {
+  const source = SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY.find((agent) => agent.id === 'field_observer');
+  assert.ok(source);
+  assert.ok(source.sourceTables.length > 0);
+
+  const passport = structuredClone(projectCognitivePassport(source)) as SfiCognitivePassport;
+  passport.input.required = [];
+
+  assert.deepEqual(validateCognitivePassportAgainstSource(passport, source), [
+    'field_observer:INPUT_REQUIRED_CONTRACT_MISMATCH',
+  ]);
+});
+
 test('validator emits deterministic errors for malformed passports', () => {
   const source = passportFor('field_observer');
   assert.ok(source);
