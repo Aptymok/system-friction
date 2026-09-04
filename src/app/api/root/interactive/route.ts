@@ -5,6 +5,7 @@ import {
   readInteractiveCaseIndex,
   readInteractiveEvidenceTargetIndex,
 } from '@/lib/root/interactiveReadModel';
+import { readInteractiveCaseDossier, readInteractiveCycleDossier } from '@/lib/root/interactiveDossiers';
 import { readUniversalLearningQuarantine } from '@/lib/sfi/universalLearningQuarantine';
 import { SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY } from '@/lib/sfi/cognitive-runtime/convergedRegistry';
 import {
@@ -36,8 +37,39 @@ export async function GET(request: Request) {
   const gate = await requireRootViewer('root.interactive.read');
   if (!gate.ok) return NextResponse.json(gate.body, { status: gate.status });
 
-  const surface = new URL(request.url).searchParams.get('surface')?.trim().toLowerCase() ?? 'root';
+  const url = new URL(request.url);
+  const surface = url.searchParams.get('surface')?.trim().toLowerCase() ?? 'root';
   if (!SURFACES.has(surface)) return NextResponse.json({ ok: false, error: 'unsupported_interactive_surface' }, { status: 400 });
+
+  const caseId = url.searchParams.get('caseId')?.trim() || null;
+  const cycleId = url.searchParams.get('cycleId')?.trim() || null;
+  if (caseId && cycleId) return NextResponse.json({ ok: false, error: 'one_dossier_target_only' }, { status: 400 });
+  if (caseId) {
+    try {
+      return NextResponse.json({
+        ok: true,
+        surface: 'cases',
+        kind: 'CASE_DOSSIER',
+        dossier: await readInteractiveCaseDossier(caseId),
+        readPlan: { authGates: 1, duplicateHttpReads: 0, duplicateCaseReads: 0 },
+      }, { headers: { 'Cache-Control': 'private, no-store' } });
+    } catch (error) {
+      return NextResponse.json({ ok: false, error: 'interactive_case_dossier_unavailable', details: error instanceof Error ? error.message : String(error) }, { status: 503 });
+    }
+  }
+  if (cycleId) {
+    try {
+      return NextResponse.json({
+        ok: true,
+        surface: 'cases',
+        kind: 'CYCLE_DOSSIER',
+        dossier: await readInteractiveCycleDossier(cycleId),
+        readPlan: { authGates: 1, duplicateHttpReads: 0, fullWorkboardReads: 0 },
+      }, { headers: { 'Cache-Control': 'private, no-store' } });
+    } catch (error) {
+      return NextResponse.json({ ok: false, error: 'interactive_cycle_dossier_unavailable', details: error instanceof Error ? error.message : String(error) }, { status: 503 });
+    }
+  }
 
   if (surface === 'governance') {
     const [evidence, caseIndex, operationalNext] = await Promise.all([
