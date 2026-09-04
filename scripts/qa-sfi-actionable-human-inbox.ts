@@ -10,7 +10,7 @@ const consoleUi=read('src/components/sfi/SfiConsole.tsx');
 
 assert.ok(projection.includes('HUMAN_ACTION_REQUIRED implies ACTIONABLE_DOSSIER_REQUIRED'),'human queue invariant must be explicit');
 assert.ok(projection.includes("status === 'proposed'")&&projection.includes("status === 'waiting_evidence'"),'proposal decision states must be explicit');
-assert.ok(projection.includes("kind: 'REVIEW_AVAILABLE_NOT_HUMAN_OBLIGATION'")&&projection.includes('rootActionRequired: rootActionRequired'),'non-actionable review states must be removed from human obligations');
+assert.ok(projection.includes("kind: 'REVIEW_AVAILABLE_NOT_HUMAN_OBLIGATION'")&&projection.includes('const rootActionRequired = wasRequired && actionability.actionable')&&projection.includes('reviewAvailable: wasRequired && !rootActionRequired'),'non-actionable review states must be removed from human obligations');
 assert.ok(projection.includes('reviewAvailableNotRequired'),'human count must distinguish optional review debt');
 assert.ok(projection.includes("'/cases?cycle='")||projection.includes('`/cases?cycle=${'),'cycle human obligations must deep-link to their dossier');
 
