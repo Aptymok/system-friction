@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
+// This capability gate verifies runtime/UI invariants. The repository-level P17
+// canonical architecture gate independently verifies the exact PR preflight contract.
 const read=(path:string)=>fs.readFileSync(path,'utf8');
 const projection=read('src/lib/root/actionableHumanQueue.ts');
 const interactive=read('src/app/api/root/interactive/route.ts');
