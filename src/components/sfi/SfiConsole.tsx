@@ -6,6 +6,7 @@ import { translateUiText, useSfiLanguage } from '@/components/i18n/SfiLanguagePr
 import { ObservatoryConsole } from './ObservatoryConsole';
 import { ObservatoryInterpretiveFlow } from './ObservatoryInterpretiveFlow';
 import { SfiOperatingWorkspace } from './SfiOperatingWorkspace';
+import { SfiRootWorkspace } from './SfiRootWorkspace';
 import { SessionControls } from './SessionControls';
 import { INTERNAL_SCENE_KEYS, SCENE_LABELS, type InternalSceneKey, type SceneKey } from './scenes';
 import './SfiConsole.css';
@@ -56,7 +57,7 @@ export function SfiConsole({scene}:{scene:SceneKey}){
         <SessionControls/>
       </div>
     </header>
-    <SfiOperatingWorkspace enabled surface={current}/>
+    {current==='root'?<SfiRootWorkspace enabled/>:<SfiOperatingWorkspace enabled surface={current}/>}
   </main>;
 }
 
