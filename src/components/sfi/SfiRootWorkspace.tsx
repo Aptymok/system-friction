@@ -137,6 +137,15 @@ export function SfiRootWorkspace({ enabled }: { enabled: boolean }) {
       <div><span>INVARIANTE</span><p>HUMAN_ACTION_REQUIRED ⇒ ACTIONABLE_DOSSIER_REQUIRED</p></div>
     </section>
 
+    {(projects.length > 0 || activeCases.length > 0) && <details className="rootReviewOnly">
+      <summary>RELACIÓN OPERATIVA · PROYECTOS Y CASOS</summary>
+      {projects.map((project) => {
+        const projectCases = activeCases.filter((item) => String(item.projectId ?? '') === String(project.id ?? ''));
+        return <article key={project.id}><strong>{txt(project.name, 'Proyecto')}</strong><p>{projectCases.length} caso{projectCases.length === 1 ? '' : 's'} activo{projectCases.length === 1 ? '' : 's'}</p>{projectCases.map((item) => <Link key={item.id} href={`/cases?case=${encodeURIComponent(String(item.id))}`}>{txt(item.subject, 'Abrir caso')} →</Link>)}</article>;
+      })}
+      {activeCases.filter((item) => !item.projectId).map((item) => <article key={item.id}><strong>{txt(item.subject, 'Caso sin proyecto')}</strong><Link href={`/cases?case=${encodeURIComponent(String(item.id))}`}>ABRIR CASO →</Link></article>)}
+    </details>}
+
     <div className="rootDecisionLayout">
       <aside className="rootDecisionQueue">
         <header><div><span>NECESITA DE TI</span><b>{actionableCount}</b></div><button onClick={() => void loadBase()}>ACTUALIZAR</button></header>
@@ -157,7 +166,7 @@ export function SfiRootWorkspace({ enabled }: { enabled: boolean }) {
 
         {!actionableCount && <div className="rootEmpty">No existe ninguna obligación humana accionable en este momento.</div>}
 
-        {!!reviewOnly.length && <details className="rootReviewOnly"><summary>Revisión disponible, no obligatoria · {reviewOnly.length}</summary>{reviewOnly.slice(0, 40).map((item) => <article key={item.id}><State value={item.status}/><strong>{txt(item.title)}</strong><p>{txt(item.actionLabel)}</p></article>)}</details>}
+        {!!reviewOnly.length && <details className="rootReviewOnly"><summary>Revisión disponible, no obligatoria · {reviewOnly.length}</summary>{reviewOnly.slice(0, 40).map((item) => <Link key={item.id} href={`/root?decision=${encodeURIComponent(String(item.id))}`} className="rootDecisionCard review"><div><State value={item.status}/></div><strong>{txt(item.title)}</strong><p>{txt(item.actionLabel)}</p><small>ABRIR REVISIÓN →</small></Link>)}</details>}
       </aside>
 
       <main className="rootDecisionDossier">
