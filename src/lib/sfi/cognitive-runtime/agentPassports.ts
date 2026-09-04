@@ -6,6 +6,7 @@ import { SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY } from './convergedRegistry';
 import { SFI_AGENT_EXECUTION_MAP } from './agentExecutionMap';
 import { institutionalAssignmentsFor } from './institutionalAssignments';
 import { SFI_AGENTIC_CAPABILITIES, type SfiAgenticCapabilityContract } from '@/lib/sfi/agenticCapabilityRegistry';
+import { projectCognitivePassport, type SfiCognitivePassport } from './cognitivePassportRegistry';
 
 export type SfiAgentPassport = {
   passportVersion: 'SFI-AGENT-PASSPORT-1.2';
@@ -37,6 +38,7 @@ export type SfiAgentPassport = {
   evidenceEventIds: string[];
   institutionalDuties: string[];
   warnings: string[];
+  cognitiveContract: SfiCognitivePassport | null;
 };
 
 type AgenticObservation = { lifecycle: SfiAgentPassport['lifecycle']; at: string | null; id: string | null; warning: string | null };
@@ -113,6 +115,7 @@ export async function readAgentPassports() {
       evidenceEventIds: agentEvents.map((event) => event.eventId).filter(Boolean),
       institutionalDuties: institutionalAssignmentsFor(contract.id),
       warnings: observed?.evidence.warnings ?? ['Runtime observation unavailable.'],
+      cognitiveContract: projectCognitivePassport(contract),
     };
   });
 
@@ -147,6 +150,7 @@ export async function readAgentPassports() {
     evidenceEventIds: [],
     institutionalDuties: institutionalAssignmentsFor(contract.id),
     warnings: observed.warning ? [observed.warning] : [],
+    cognitiveContract: null,
   }));
 
   const passports = [...cognitive, ...agentic].sort((a, b) => a.name.localeCompare(b.name, 'es'));
