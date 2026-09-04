@@ -92,23 +92,39 @@ for (const endpoint of [
 ]) assert.equal(occurrences(observatoryUi, endpoint), 1, `observatory_duplicate_equivalent_read:${endpoint}`);
 assert.equal(occurrences(observatoryUi, 'setInterval(pull,20000)'), 1, 'observatory_polling_topology_amplified');
 assert.equal(occurrences(observatoryUi, 'Promise.all(['), 1, 'observatory_second_read_owner_detected');
+for (const token of [
+  'let stop=false;let inFlight=false',
+  'if(inFlight)return;inFlight=true',
+  'finally{inFlight=false}',
+]) assert.ok(observatoryUi.includes(token), `observatory_overlapping_pull_guard_missing:${token}`);
 
 // #366: availability is a public epistemic boundary, not an empty-array alias.
 for (const token of [
   "'LOADING' | 'AVAILABLE' | 'DEGRADED' | 'UNAVAILABLE' | 'ERROR'",
+  "'WORLD' | 'STATE' | 'TIMELINE'",
+  'hasAuthoritativeShape',
+  "domain === 'WORLD'",
+  "domain === 'STATE'",
   "payload.ok === false",
   "return result.status >= 500 ? 'DEGRADED' : 'ERROR'",
   "return availability === 'AVAILABLE' ? value : availability",
 ]) assert.ok(observatoryAvailability.includes(token), `observatory_availability_contract_missing:${token}`);
 
-assert.equal(classifyObservatoryRead({ ok: true, status: 200, data: { ok: true, nodes: [], hypotheses: [], warnings: [] } }), 'AVAILABLE');
+const availableWorld = { ok: true, status: 200, data: { ok: true, nodes: [], hypotheses: [], sourceSummary: [], warnings: [], filters: {}, graph: {} } };
+assert.equal(classifyObservatoryRead(availableWorld, 'WORLD'), 'AVAILABLE');
 assert.equal(observableMetricValue('AVAILABLE', 0), 0, 'authoritative_empty_read_must_render_zero');
-assert.equal(classifyObservatoryRead({ ok: true, status: 200, data: { ok: false, warnings: ['hypotheses:unavailable'] } }), 'DEGRADED');
+assert.equal(classifyObservatoryRead({ ok: true, status: 200, data: {} }, 'WORLD'), 'DEGRADED', 'empty_200_world_payload_must_not_be_available');
+assert.equal(classifyObservatoryRead({ ok: true, status: 200, data: { ok: true } }, 'WORLD'), 'DEGRADED', 'incomplete_200_world_payload_must_not_be_available');
+assert.equal(classifyObservatoryRead({ ok: true, status: 200, data: { ok: true, data: {} } }, 'STATE'), 'AVAILABLE');
+assert.equal(classifyObservatoryRead({ ok: true, status: 200, data: { ok: true } }, 'STATE'), 'DEGRADED', 'incomplete_200_state_payload_must_not_be_available');
+assert.equal(classifyObservatoryRead({ ok: true, status: 200, data: { ok: true, frames: [] } }, 'TIMELINE'), 'AVAILABLE');
+assert.equal(classifyObservatoryRead({ ok: true, status: 200, data: { ok: true } }, 'TIMELINE'), 'DEGRADED', 'timeline_without_frames_must_not_be_available');
+assert.equal(classifyObservatoryRead({ ok: true, status: 200, data: { ok: false, warnings: ['hypotheses:unavailable'] } }, 'WORLD'), 'DEGRADED');
 assert.equal(observableMetricValue('DEGRADED', 0), 'DEGRADED', 'degraded_must_not_render_zero');
-assert.equal(classifyObservatoryRead({ ok: false, status: 503, data: { ok: false } }), 'DEGRADED');
+assert.equal(classifyObservatoryRead({ ok: false, status: 503, data: { ok: false } }, 'WORLD'), 'DEGRADED');
 assert.equal(observableMetricValue('UNAVAILABLE', 0), 'UNAVAILABLE', 'unavailable_must_not_render_zero');
-assert.equal(classifyObservatoryRead({ ok: false, status: 404, data: null }), 'UNAVAILABLE');
-assert.equal(classifyObservatoryRead({ ok: false, status: 0, data: null, error: 'network' }), 'ERROR');
+assert.equal(classifyObservatoryRead({ ok: false, status: 404, data: null }, 'WORLD'), 'UNAVAILABLE');
+assert.equal(classifyObservatoryRead({ ok: false, status: 0, data: null, error: 'network' }, 'WORLD'), 'ERROR');
 assert.equal(observableMetricValue('ERROR', 0), 'ERROR', 'error_must_not_render_zero');
 assert.equal(observableMetricValue('LOADING', 0), 'LOADING', 'loading_must_not_render_zero');
 
@@ -121,6 +137,8 @@ for (const token of [
   'worldMetric(filteredHypotheses.length)',
   'worldMetric(openHypotheses)',
   'timelineMetric(`${timeline.length} snapshots`)',
+  'The authoritative hypothesis read is unavailable.',
+  "availability.world==='AVAILABLE'&&<>",
 ]) assert.ok(observatoryUi.includes(token), `observatory_public_availability_projection_missing:${token}`);
 
 for (const forbidden of [
@@ -221,7 +239,10 @@ console.log(JSON.stringify({
     privateTwinExposure: false,
     falseZeroProtected: true,
     explicitAvailability: true,
+    payloadShapeValidated: true,
+    availabilityAwareHypothesisEmptyState: true,
     duplicateEquivalentReads: 0,
+    overlappingPolls: 0,
     pollingAmplification: 0,
   },
 }, null, 2));
