@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requireRootViewer } from '@/lib/root/server';
-import { readRootOperationalNext } from '@/lib/root/operationalNext';
+import { readInteractiveOperationalNext } from '@/lib/root/interactiveOperationalNext';
 import {
   readInteractiveCaseIndex,
   readInteractiveEvidenceTargetIndex,
@@ -43,7 +43,7 @@ export async function GET(request: Request) {
     const [evidence, caseIndex, operationalNext] = await Promise.all([
       readInteractiveEvidenceTargetIndex(),
       readInteractiveCaseIndex(gate.ctx.user.id),
-      readRootOperationalNext(),
+      readInteractiveOperationalNext(),
     ]);
     return NextResponse.json({
       ok: true,
@@ -63,13 +63,14 @@ export async function GET(request: Request) {
         fullRootConsoleRead: false,
         liveCognitiveEventRead: false,
         agentEventReadDeferredToSelectedDossier: true,
+        operationalNPlusOneReads: 0,
       },
     }, { headers: { 'Cache-Control': 'private, no-store' } });
   }
 
   if (surface === 'twin') {
     const [operationalNext, learning] = await Promise.all([
-      readRootOperationalNext(),
+      readInteractiveOperationalNext(),
       readUniversalLearningQuarantine(),
     ]);
     return NextResponse.json({
@@ -77,12 +78,12 @@ export async function GET(request: Request) {
       surface,
       operationalNext,
       learning,
-      readPlan: { authGates: 1, duplicateBaseHttpReads: 0 },
+      readPlan: { authGates: 1, duplicateBaseHttpReads: 0, operationalNPlusOneReads: 0 },
     }, { headers: { 'Cache-Control': 'private, no-store' } });
   }
 
   const [operationalNext, caseIndex] = await Promise.all([
-    readRootOperationalNext(),
+    readInteractiveOperationalNext(),
     readInteractiveCaseIndex(gate.ctx.user.id),
   ]);
   return NextResponse.json({
@@ -90,6 +91,6 @@ export async function GET(request: Request) {
     surface,
     operationalNext,
     caseIndex,
-    readPlan: { authGates: 1, duplicateBaseHttpReads: 0 },
+    readPlan: { authGates: 1, duplicateBaseHttpReads: 0, operationalNPlusOneReads: 0 },
   }, { headers: { 'Cache-Control': 'private, no-store' } });
 }
