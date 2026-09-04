@@ -6,7 +6,15 @@ import { CognitiveSpinePark, type SfiParkFocus, type SfiParkState, type SfiParkZ
 export type CognitiveSpineFocus = SfiParkFocus;
 type Row = Record<string, any>;
 type RootJob = 'daily' | 'reports' | 'audit' | 'all';
-type Props = { enabled: boolean; canOperate: boolean; focusOptions: CognitiveSpineFocus[]; twinOpenCount: number };
+type TwinProjection = { spine?: Row | null; runtime?: Row | null; logbook?: Row | null };
+type Props = {
+  enabled: boolean;
+  canOperate: boolean;
+  focusOptions: CognitiveSpineFocus[];
+  twinOpenCount: number;
+  projection?: TwinProjection | null;
+  onRefresh?: () => Promise<void> | void;
+};
 
 const ACTIVITY_WINDOW_MS = 15 * 60 * 1000;
 
@@ -26,10 +34,10 @@ function state(value: unknown): SfiParkState {
   return 'UNOBSERVED';
 }
 
-export function CognitiveSpineAnatomy({ enabled, canOperate, focusOptions, twinOpenCount }: Props) {
-  const [spine, setSpine] = useState<Row | null>(null);
-  const [runtime, setRuntime] = useState<Row | null>(null);
-  const [logbook, setLogbook] = useState<Row[]>([]);
+export function CognitiveSpineAnatomy({ enabled, canOperate, focusOptions, twinOpenCount, projection, onRefresh }: Props) {
+  const [spine, setSpine] = useState<Row | null>(projection?.spine ?? null);
+  const [runtime, setRuntime] = useState<Row | null>(projection?.runtime ?? null);
+  const [logbook, setLogbook] = useState<Row[]>(rows(projection?.logbook?.entries));
   const [focusId, setFocusId] = useState('');
   const [busy, setBusy] = useState<RootJob | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -45,8 +53,19 @@ export function CognitiveSpineAnatomy({ enabled, canOperate, focusOptions, twinO
 
   const focus = focusOptions.find((item) => item.id === focusId) ?? focusOptions[0] ?? null;
 
+  useEffect(() => {
+    if (!projection) return;
+    setSpine(projection.spine?.ok ? projection.spine : null);
+    setRuntime(projection.runtime?.ok ? projection.runtime : null);
+    setLogbook(projection.logbook?.ok ? rows(projection.logbook.entries) : []);
+    setError(null);
+  }, [projection]);
+
+  // Compatibility fallback for older owners that have not yet supplied the shared
+  // projection. The canonical SfiOperatingWorkspace/TWIN path always supplies it,
+  // so this branch is never part of the zero-duplicate interactive read path.
   const pull = useCallback(async () => {
-    if (!enabled) return;
+    if (!enabled || projection) return;
     try {
       const requests: Promise<Response>[] = [
         fetch('/api/root/cognitive-spine/status', { cache: 'no-store' }),
@@ -63,13 +82,14 @@ export function CognitiveSpineAnatomy({ enabled, canOperate, focusOptions, twinO
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : String(cause));
     }
-  }, [enabled, canOperate]);
+  }, [enabled, canOperate, projection]);
 
   useEffect(() => {
+    if (projection) return;
     void pull();
     const timer = window.setInterval(() => void pull(), 30000);
     return () => window.clearInterval(timer);
-  }, [pull]);
+  }, [pull, projection]);
 
   const runtimeState = runtime?.runtime ?? null;
   const agents = rows(runtimeState?.agents);
@@ -143,7 +163,8 @@ export function CognitiveSpineAnatomy({ enabled, canOperate, focusOptions, twinO
       const json = await response.json().catch(() => null);
       if (!response.ok || json?.ok === false) throw new Error(`${response.status}: ${json?.error ?? 'root_operation_failed'}`);
       setNotice(`${job.toUpperCase()} · RETURNED`);
-      await pull();
+      if (onRefresh) await onRefresh();
+      else await pull();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : String(cause));
     } finally {

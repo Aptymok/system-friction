@@ -13,6 +13,7 @@ const read = (path: string) => readFileSync(path, 'utf8');
 
 const externalRoute = read('src/app/api/external/v1/cognitive-runtime/route.ts');
 const rootRoute = read('src/app/api/root/cognitive-runtime/route.ts');
+const dossierReader = read('src/lib/sfi/cognitive-runtime/agentDossierRead.ts');
 const sharedExecution = read('src/lib/sfi/cognitive-runtime/manualExecution.ts');
 const runtimeWriter = read('src/lib/sfi/cognitive-runtime/runtimeAgentExecutor.ts');
 const materialEvidence = read('src/lib/sfi/cognitive-runtime/materialEvidence.ts');
@@ -43,9 +44,11 @@ assert.equal(crossImpact.minTargets, 2, 'm6_cross_impact_must_keep_two_target_mi
 assert.match(externalRoute, /SFI-EXTERNAL-COGNITIVE-RUNTIME-1\.0/);
 assert.match(externalRoute, /authorizeExternalRequest\(request, 'observe'\)/);
 assert.match(externalRoute, /authorizeExternalRequest\(request, 'execute'\)/);
-assert.match(externalRoute, /readAgentExecutionStates/);
-assert.match(externalRoute, /readExecutionRecords/);
-assert.match(externalRoute, /readGenAiAssuranceMetrics/);
+assert.match(externalRoute, /readAgentExecutionDossier/);
+assert.doesNotMatch(externalRoute, /readAgentExecutionStates|readExecutionRecords|readGenAiAssuranceMetrics/,'m6_external_observe_must_not_reintroduce_parallel_dossier_readers');
+assert.match(dossierReader, /executionEventReads:\s*1/);
+assert.match(dossierReader, /overlappingEventNames:\s*0/);
+assert.match(dossierReader, /duplicateEventReads:\s*0/);
 assert.match(externalRoute, /executeManualCognitiveAgent/);
 assert.match(externalRoute, /credential\.authMethod !== 'oauth'/, 'm6_execution_must_require_user_bound_oauth');
 assert.match(externalRoute, /credential\.tenantId !== 'sfi'/, 'm6_execution_must_require_institutional_tenant');
@@ -166,6 +169,8 @@ console.log(JSON.stringify({
   personalOAuthExecutionPlaneAccess: false,
   persistedEvidenceReuseGated: true,
   systemicInterventionLoopGated: true,
+  duplicateDossierReaders:0,
+  overlappingAgentEventReads:0,
   rlsReview: 'PASS_STATIC_CONTRACT_REVIEW',
   performanceScope: 'DETERMINISTIC_REQUEST_CONTRACT_PLANE_ONLY',
   requestPlaneIterations: 5_000,

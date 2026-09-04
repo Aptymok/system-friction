@@ -7,6 +7,7 @@ const read = (relative: string) => readFileSync(path.join(root, relative), 'utf8
 
 const reader = read('src/lib/root/cognitiveSpineStatus.ts');
 const route = read('src/app/api/root/cognitive-spine/status/route.ts');
+const interactiveApi = read('src/app/api/root/interactive/route.ts');
 const scenes = read('src/components/sfi/scenes.ts');
 const liveUi = read('src/components/sfi/SfiConsole.tsx');
 const operatingUi = read('src/components/sfi/SfiOperatingWorkspace.tsx');
@@ -33,29 +34,44 @@ assert.ok(reader.includes('available: false as const'), 'root_ct_status_unavaila
 assert.ok(route.includes("requireRootViewer('root.cognitive-spine.status')"), 'root_ct_status_endpoint_not_root_gated');
 assert.ok(route.includes("'Cache-Control': 'no-store'"), 'root_ct_status_endpoint_cache_boundary_missing');
 
-// ROOT stays on the canonical live-scene runtime. Method Lab is not an owner of this projection.
-// Governance capabilities are delegated to SfiGovernanceWorkspace rather than duplicated in the operating shell.
+// ROOT stays on the canonical live-scene runtime. Governance and TWIN consume one
+// parent interactive projection instead of creating parallel proposal/runtime feeds.
 assert.ok(scenes.includes("root:{key:'root'"), 'root_live_scene_missing');
 assert.ok(scenes.includes("title:'Observatorio de Fricción'"), 'root_live_scene_semantics_missing');
 assert.ok(liveUi.includes('COGNITIVE TWIN'), 'root_live_scene_twin_observability_missing');
 assert.ok(operatingUi.includes('SfiGovernanceWorkspace'), 'root_operating_workspace_governance_delegate_missing');
-assert.ok(governanceUi.includes("jsonFetch('/api/acp/proposals')") && governanceUi.includes('setProposals'), 'root_governance_workspace_proposal_feed_missing');
+assert.ok(governanceUi.includes("jsonFetch('/api/root/interactive?surface=governance')") && governanceUi.includes('setProposals(arr(operationalNext.items))'), 'root_governance_workspace_proposal_projection_missing');
 assert.ok(governanceUi.includes('ACEPTAR') && governanceUi.includes('DENEGAR') && governanceUi.includes('PEDIR EVIDENCIA'), 'root_governance_workspace_controls_missing');
 assert.ok(scenePage.includes('SCENE_KEYS.includes'), 'dynamic_scene_gate_missing');
 assert.ok(scenePage.includes('<SfiConsole') && scenePage.includes('scene={scene as SceneKey}'), 'dynamic_scene_runtime_missing');
 
-// Workboard mounts the existing Spine owner and only ROOT receives sovereign operation controls.
-assert.ok(workboard.includes("@/components/root/cognitive-spine/CognitiveSpineAnatomy"), 'root_workboard_spine_anatomy_missing');
-assert.ok(workboard.includes('<CognitiveSpineAnatomy'), 'root_workboard_spine_mount_missing');
-assert.ok(workboard.includes('focusOptions={focusOptions}'), 'spine_observation_focus_missing');
-assert.ok(workboard.includes("canOperate={data?.authority === 'root'}"), 'spine_root_operation_authority_gate_missing');
+// Canonical TWIN supplies Spine status, observed runtime and root-visible logbook
+// through the same authenticated bootstrap. Anatomy becomes a presentation adapter
+// and cannot start its compatibility polling loop when that projection exists.
+assert.ok(interactiveApi.includes('readRootCognitiveSpineStatus()'), 'twin_interactive_projection_missing_spine_status');
+assert.ok(interactiveApi.includes('readObservedSfiCognitiveRuntime()'), 'twin_interactive_projection_missing_runtime');
+assert.ok(interactiveApi.includes('readVisibleLogbookEntries'), 'twin_interactive_projection_missing_logbook');
+assert.ok(interactiveApi.includes('nestedTwinHttpReads: 0'), 'twin_nested_http_reads_must_be_zero');
+assert.ok(interactiveApi.includes('nestedTwinPollingLoops: 0'), 'twin_nested_polling_must_be_zero');
+assert.ok(operatingUi.includes('projection={twinProjection}'), 'canonical_twin_must_pass_parent_projection_to_spine');
+assert.ok(operatingUi.includes("canOperate={twinAuthority==='root'}"), 'spine_root_operation_authority_must_be_server_derived');
+assert.ok(anatomy.includes('projection?: TwinProjection | null'), 'spine_parent_projection_contract_missing');
+assert.ok(anatomy.includes('if (!enabled || projection) return;'), 'spine_fallback_read_must_be_disabled_under_parent_projection');
+assert.ok(anatomy.includes('if (projection) return;'), 'spine_fallback_polling_must_be_disabled_under_parent_projection');
+assert.ok(anatomy.includes('if (onRefresh) await onRefresh()'), 'spine_operation_return_must_reuse_parent_refresh');
 
-// Anatomy is now a data adapter over the approved park, not the old CSS skeleton.
+// A dormant legacy workboard still compiles against the same anatomy, but canonical
+// live navigation does not mount it. It may not become a second sovereign surface.
+assert.ok(workboard.includes("@/components/root/cognitive-spine/CognitiveSpineAnatomy"), 'legacy_workboard_spine_adapter_missing');
+assert.ok(workboard.includes('<CognitiveSpineAnatomy'), 'legacy_workboard_spine_mount_missing');
+assert.ok(workboard.includes('focusOptions={focusOptions}'), 'spine_observation_focus_missing');
+assert.ok(workboard.includes("canOperate={data?.authority === 'root'}"), 'legacy_spine_root_operation_authority_gate_missing');
+assert.equal(liveUi.includes('<RootOperationalWorkboard'), false, 'legacy_workboard_must_not_be_mounted_in_canonical_live_shell');
+assert.equal(operatingUi.includes('<RootOperationalWorkboard'), false, 'legacy_workboard_must_not_be_mounted_in_canonical_operating_workspace');
+
+// Anatomy is a data adapter over the approved park, not the old CSS skeleton.
 assert.ok(anatomy.includes("@/components/sfi/CognitiveSpinePark"), 'spine_shared_park_renderer_missing');
 assert.ok(anatomy.includes('<CognitiveSpinePark'), 'spine_park_projection_missing');
-assert.ok(anatomy.includes("fetch('/api/root/cognitive-spine/status'"), 'spine_anatomy_must_reuse_existing_status_contract');
-assert.ok(anatomy.includes("fetch('/api/root/cognitive-runtime'"), 'spine_anatomy_must_reuse_existing_runtime_contract');
-assert.ok(anatomy.includes("fetch('/api/logbook/visible?role=root'"), 'spine_root_logbook_observability_missing');
 assert.ok(anatomy.includes('/api/root/operational/trigger-observation?job='), 'spine_must_reuse_existing_root_runner');
 assert.ok(anatomy.includes('SFI_AGENT_EXECUTED'), 'agent_live_state_must_use_observed_execution_trace');
 assert.ok(anatomy.includes('ACTIVITY_WINDOW_MS'), 'agent_activity_window_missing');
@@ -97,9 +113,11 @@ console.log(JSON.stringify({
   internalRefsExposed: false,
   rootDependsOnCtAvailability: false,
   rootSurface: 'ROOT_LIVE_SCENE',
-  cognitiveSpinePark: 'APPROVED_ARTWORK_EXISTING_CONTRACT_PROJECTION',
+  cognitiveSpinePark: 'APPROVED_ARTWORK_PARENT_PROJECTED_ZERO_DUPLICATE',
   observationFocusPreserved: true,
   runtimeAgentTruth: 'RECENT_PERSISTED_SFI_AGENT_EXECUTED',
   ambientMotionIsStatus: false,
+  canonicalTwinNestedHttpReads: 0,
+  canonicalTwinNestedPollingLoops: 0,
   methodLabDelta: 'NONE',
 }, null, 2));

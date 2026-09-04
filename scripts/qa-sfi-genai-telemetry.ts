@@ -157,6 +157,7 @@ assert.equal(assuranceWithExplicitFalsePositive.falsePositive.observations, 2);
 
 const telemetrySource = readFileSync('src/lib/sfi/cognitive-runtime/genAiTelemetry.ts', 'utf8');
 const assuranceSource = readFileSync('src/lib/sfi/cognitive-runtime/genAiAssurance.ts', 'utf8');
+const dossierSource = readFileSync('src/lib/sfi/cognitive-runtime/agentDossierRead.ts', 'utf8');
 const agentClient = readFileSync('src/infrastructure/ai/agentLlmClient.ts', 'utf8');
 const runtimeWriter = readFileSync('src/lib/sfi/cognitive-runtime/runtimeAgentExecutor.ts', 'utf8');
 const recordsRoute = readFileSync('src/app/api/root/cognitive-runtime/records/route.ts', 'utf8');
@@ -169,7 +170,11 @@ assert.doesNotMatch(agentClient, /observedOutputTokens:\s*null/);
 assert.doesNotMatch(agentClient, /observedProviderCost:\s*null/);
 assert.match(runtimeWriter, /recordAgentExecutionEvent/);
 assert.match(runtimeWriter, /llmRuntime:\s*metadata\.llmRuntime/);
-assert.match(recordsRoute, /readGenAiAssuranceMetrics/);
+assert.match(recordsRoute, /readAgentExecutionDossier/);
+assert.doesNotMatch(recordsRoute, /readGenAiAssuranceMetrics|readExecutionRecords|readAgentExecutionStates/,'records route must not reintroduce parallel event readers');
+assert.match(dossierSource, /deriveGenAiAssuranceMetrics/);
+assert.match(dossierSource, /overlappingEventNames:\s*0/);
+assert.match(dossierSource, /duplicateEventReads:\s*0/);
 assert.match(recordsRoute, /telemetryIsEvidence:\s*false/);
 assert.match(recordsRoute, /openTelemetryIsTruthAuthority:\s*false/);
 assert.doesNotMatch(telemetrySource + assuranceSource, /create table|usage_ledger|appendEpistemicEvent|recordAgentExecutionEvent/i, 'M5 must not create a second telemetry ledger or writer');
@@ -186,4 +191,5 @@ console.log(JSON.stringify({
   falsePositiveWithoutExplicitObservation: 'NOT_OBSERVED',
   returnCalibrationDerivedFromObservedContrast: true,
   duplicateTelemetryLedgerCreated: false,
+  duplicateDossierEventReads: 0,
 }, null, 2));

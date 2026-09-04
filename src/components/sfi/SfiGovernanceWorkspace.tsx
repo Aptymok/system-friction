@@ -21,7 +21,7 @@ async function jsonFetch(url:string,init?:RequestInit){const response=await fetc
 
 export function SfiGovernanceWorkspace({enabled}:{enabled:boolean}){
   const [runtime,setRuntime]=useState<Row|null>(null);
-  const [rootConsole,setRootConsole]=useState<Row|null>(null);
+  const [evidenceTargets,setEvidenceTargets]=useState<Row|null>(null);
   const [caseIndex,setCaseIndex]=useState<Row>({projects:[],cases:[]});
   const [workboard,setWorkboard]=useState<Row|null>(null);
   const [proposals,setProposals]=useState<Row[]>([]);
@@ -52,9 +52,16 @@ export function SfiGovernanceWorkspace({enabled}:{enabled:boolean}){
   const [notice,setNotice]=useState<string|null>(null);
 
   const loadBase=useCallback(async()=>{if(!enabled)return;try{
-    const [rt,root,ci,wb]=await Promise.all([jsonFetch('/api/root/cognitive-runtime'),jsonFetch('/api/root/console'),jsonFetch('/api/cases'),jsonFetch('/api/root/workboard')]);
-    setRuntime(rt);setRootConsole(root);setCaseIndex({projects:ci.projects??[],cases:ci.cases??[]});setWorkboard(wb.workboard??{});
-    try{const pr=await jsonFetch('/api/acp/proposals');setProposals(pr.data?.proposals??[]);setProposalReadState('READY');setProposalReadError(null)}catch(cause){setProposalReadState('DEGRADED');setProposalReadError(cause instanceof Error?cause.message:String(cause))}
+    const data=await jsonFetch('/api/root/interactive?surface=governance');
+    const operationalNext=data.operationalNext??{};
+    const proposalWarnings=strings(operationalNext.warnings).filter(warning=>warning.startsWith('action_proposals:'));
+    setRuntime(data.runtime??null);
+    setEvidenceTargets(data.evidence??null);
+    setCaseIndex({projects:data.caseIndex?.projects??[],cases:data.caseIndex?.cases??[]});
+    setWorkboard({operationalNext});
+    setProposals(arr(operationalNext.items));
+    setProposalReadState(proposalWarnings.length?'DEGRADED':'READY');
+    setProposalReadError(proposalWarnings.length?proposalWarnings.join(' · '):null);
     setError(null);
   }catch(cause){setError(cause instanceof Error?cause.message:String(cause))}},[enabled]);
 
@@ -67,7 +74,7 @@ export function SfiGovernanceWorkspace({enabled}:{enabled:boolean}){
   }catch(cause){setError(cause instanceof Error?cause.message:String(cause))}},[enabled]);
 
   useEffect(()=>{void loadBase();const timer=window.setInterval(()=>void loadBase(),30000);return()=>window.clearInterval(timer)},[loadBase]);
-  useEffect(()=>{void loadDossier(agentId);const timer=window.setInterval(()=>void loadDossier(agentId),30000);return()=>window.clearInterval(timer)},[agentId,loadDossier]);
+  useEffect(()=>{const initial=window.setTimeout(()=>void loadDossier(agentId),350);return()=>window.clearTimeout(initial)},[agentId,loadDossier]);
 
   const agents=arr(runtime?.agents);
   const contracts=arr(runtime?.executionContracts);
@@ -79,8 +86,8 @@ export function SfiGovernanceWorkspace({enabled}:{enabled:boolean}){
   const projects=arr(caseIndex.projects);
   const cases=arr(caseIndex.cases);
   const cycles=arr(workboard?.operationalNext?.cycles);
-  const evidenceEntries=arr(rootConsole?.state?.evidence?.data?.entries);
-  const evidenceNodes=arr(rootConsole?.state?.evidence?.data?.nodes);
+  const evidenceEntries=arr(evidenceTargets?.evidence?.entries);
+  const evidenceNodes=arr(evidenceTargets?.evidence?.nodes);
   const allowedTargetKinds=strings(contract?.allowedTargetKinds);
   const allowedAnchorKinds=strings(contract?.allowedAnchorKinds);
   const requiredParameters=strings(contract?.requiredParameters);
@@ -165,6 +172,6 @@ export function SfiGovernanceWorkspace({enabled}:{enabled:boolean}){
       {dossier?.historyRead&&<p>{strings(dossier.historyRead.warnings).join(' · ')}</p>}
     </div></section>
 
-    <section className="sfiGovernancePanel decisionPanel"><header><span>DECISIONES</span><b>{openProposals.length}</b></header>{proposalReadState==='DEGRADED'&&<div className="sfiToast error"><span>Fuente de propuestas DEGRADED · se conserva la última cola visible. {proposalReadError}</span></div>}<div className="sfiDecisionList">{openProposals.map(item=><article key={item.id}><Status value={item.status}/><strong>{item.title||item.proposalType||'Propuesta'}</strong><p>{short(item.objective??item.expected_field_delta?.objective??'SFI solicita una decisión gobernada.',260)}</p><div><button onClick={()=>void decideProposal(item,'approve')} disabled={busy===`proposal:${item.id}`}>ACEPTAR</button><button onClick={()=>void requestEvidence(item)} disabled={busy===`proposal:${item.id}`}>PEDIR EVIDENCIA</button><button className="deny" onClick={()=>void decideProposal(item,'reject')} disabled={busy===`proposal:${item.id}`}>DENEGAR</button></div></article>)}{proposalReadState==='READY'&&openProposals.length===0&&<p>No hay decisiones abiertas.</p>}</div></section>
+    <section className="sfiGovernancePanel decisionPanel"><header><span>DECISIONES</span><b>{openProposals.length}</b></header>{proposalReadState==='DEGRADED'&&<div className="sfiToast error"><span>Fuente de propuestas DEGRADED · se conserva la última cola visible. {proposalReadError}</span></div>}<div className="sfiDecisionList">{openProposals.map(item=><article key={item.id}><Status value={item.status}/><strong>{item.title||item.proposalType||'Propuesta'}</strong><p>{short(item.actionLabel??item.objective??item.expected_field_delta?.objective??'SFI solicita una decisión gobernada.',260)}</p><div><button onClick={()=>void decideProposal(item,'approve')} disabled={busy===`proposal:${item.id}`}>ACEPTAR</button><button onClick={()=>void requestEvidence(item)} disabled={busy===`proposal:${item.id}`}>PEDIR EVIDENCIA</button><button className="deny" onClick={()=>void decideProposal(item,'reject')} disabled={busy===`proposal:${item.id}`}>DENEGAR</button></div></article>)}{proposalReadState==='READY'&&openProposals.length===0&&<p>No hay decisiones abiertas.</p>}</div></section>
   </div>;
 }

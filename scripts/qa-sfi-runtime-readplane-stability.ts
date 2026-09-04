@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import './qa-sfi-zero-interactive-duplication';
 
 const read=(path:string)=>fs.readFileSync(path,'utf8');
 const observed=read('src/lib/sfi/cognitive-runtime/observedRuntime.ts');
@@ -46,7 +47,7 @@ assert.ok(rootState.includes('REQUEST_PATH_NOT_PROBED'),'ordinary ROOT state mus
 
 console.log(JSON.stringify({
   ok:true,
-  contract:'SFI-RUNTIME-READPLANE-STABILITY-1.0',
+  contract:'SFI-RUNTIME-READPLANE-STABILITY-1.1',
   invariants:[
     'NO_INTERACTIVE_DATABASE_WIDE_HEALTH_FANOUT',
     'NO_INTERACTIVE_EXACT_COUNT_PROBES',
@@ -54,5 +55,6 @@ console.log(JSON.stringify({
     'AUTH_SUBSCRIBE_ONCE_PER_MOUNT',
     'POOL_PRESSURE_FAILS_WITHOUT_RETRY_AMPLIFICATION',
     'EXHAUSTIVE_HEALTH_IS_EXPLICIT_DIAGNOSTIC_ONLY',
+    'ZERO_DUPLICATE_INTERACTIVE_READS',
   ],
 },null,2));

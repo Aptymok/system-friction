@@ -9,6 +9,7 @@ const scenes = fs.readFileSync('src/components/sfi/scenes.ts','utf8');
 const shellUi = fs.readFileSync('src/components/sfi/SfiConsole.tsx','utf8');
 const operatingUi = fs.readFileSync('src/components/sfi/SfiOperatingWorkspace.tsx','utf8');
 const governanceUi = fs.readFileSync('src/components/sfi/SfiGovernanceWorkspace.tsx','utf8');
+const interactiveApi = fs.readFileSync('src/app/api/root/interactive/route.ts','utf8');
 
 for (const stage of ['STRUCTURAL','AUTHORITY','OBSERVATION','INTERVENTION','RETURN','LAB','LEARNING','REPORTING']) {
   assert.match(proof, new RegExp(`id:'${stage}'`), `missing_total_proof_stage:${stage}`);
@@ -22,15 +23,15 @@ assert.match(route,/requireRootViewer/,'proof_read_not_root_guarded');
 assert.match(readiness,/scientificComplete:false/,'software_must_not_claim_scientific_completion');
 assert.match(readiness,/externalGates/,'external_gate_separation_missing');
 
-// Readiness and continuity remain backend truth contracts. Their telemetry is now
-// expressed through the converged ROOT/GOVERNANCE/TWIN workspace rather than the
-// deleted dashboard copy that previously exposed FUENTE VIVA / ESTADO literals.
+// Readiness and continuity remain backend truth contracts. Interactive presentation
+// consumes one bounded scene projection rather than re-reading the full workboard/runtime.
 assert.ok(scenes.includes("root:{key:'root'"), 'root_live_scene_missing');
 assert.ok(scenes.includes("governance:{key:'governance'"), 'governance_live_scene_missing');
 assert.ok(scenes.includes("twin:{key:'twin'"), 'twin_live_scene_missing');
-assert.ok(operatingUi.includes("jsonFetch('/api/root/workboard')") && operatingUi.includes('workboard?.operationalNext'), 'live_readiness_telemetry_missing');
+assert.ok(operatingUi.includes('/api/root/interactive?surface=') && operatingUi.includes('workboard?.operationalNext'), 'live_readiness_telemetry_missing');
+assert.ok(interactiveApi.includes('readInteractiveOperationalNext') && interactiveApi.includes('duplicateBaseHttpReads: 0'), 'interactive_readiness_projection_must_be_bounded_and_nonduplicated');
 assert.ok(operatingUi.includes('SfiGovernanceWorkspace'), 'governance_delegation_missing');
-assert.ok(governanceUi.includes("jsonFetch('/api/root/cognitive-runtime')") && governanceUi.includes('AGENTES'), 'live_runtime_telemetry_missing');
+assert.ok(governanceUi.includes("jsonFetch('/api/root/interactive?surface=governance')") && governanceUi.includes('/api/root/cognitive-runtime/records?agentId=') && governanceUi.includes('AGENTES'), 'live_runtime_telemetry_missing');
 assert.ok(governanceUi.includes("proposalReadState==='DEGRADED'") && governanceUi.includes('Fuente de propuestas DEGRADED'), 'degraded_governance_read_must_remain_visible');
 assert.ok(operatingUi.includes("surface==='twin'") && operatingUi.includes('CognitiveSpineAnatomy'), 'live_twin_observability_missing');
 assert.ok(governanceUi.includes('ACEPTAR') && governanceUi.includes('DENEGAR') && governanceUi.includes('PEDIR EVIDENCIA'), 'root_governed_decision_controls_missing');
@@ -40,4 +41,4 @@ assert.match(continuityRoute,/readContinuityDashboard/,'continuity_dashboard_han
 assert.match(continuityRoute,/runContinuityHeartbeat/,'continuity_heartbeat_handler_missing');
 assert.match(continuityRoute,/continuity\.mode\.change/,'continuity_mode_audit_missing');
 
-console.log(JSON.stringify({ok:true,contract:'SFI-TOTAL-PROOF-1.1',stages:8,continuityApiSeparated:true,rootSurface:'CONVERGED_ROOT_GOVERNANCE_TWIN_WORKSPACE'},null,2));
+console.log(JSON.stringify({ok:true,contract:'SFI-TOTAL-PROOF-1.2',stages:8,continuityApiSeparated:true,rootSurface:'CONVERGED_ZERO_DUPLICATE_ROOT_GOVERNANCE_TWIN_WORKSPACE'},null,2));

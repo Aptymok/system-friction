@@ -5,3 +5,4 @@ export * from './instrument';
 export * from './commercial';
 export * from './case';
 export * from './report';
+export { getSfiServiceProfile } from '../case-platform/serviceProfiles';

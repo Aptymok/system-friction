@@ -17,6 +17,7 @@ const scenes = read('src/components/sfi/scenes.ts');
 const shellUi = read('src/components/sfi/SfiConsole.tsx');
 const operatingUi = read('src/components/sfi/SfiOperatingWorkspace.tsx');
 const governanceUi = read('src/components/sfi/SfiGovernanceWorkspace.tsx');
+const interactiveRoute = read('src/app/api/root/interactive/route.ts');
 const scenePage = read('src/app/[scene]/page.tsx');
 
 // Graph storage, lineage and read/write boundaries remain backend contracts.
@@ -37,9 +38,9 @@ check('explicit graph maintenance is sovereign and audited', reconcileRoute.incl
 // SfiGovernanceWorkspace rather than duplicated inside SfiOperatingWorkspace.
 check('ROOT is a canonical operating scene', scenes.includes("root:{key:'root'") && scenes.includes("title:'Observatorio de Fricción'") && scenes.includes("liveSource:'/api/root/workboard'"));
 check('ROOT operating workspace delegates governance to one canonical workspace', operatingUi.includes('SfiGovernanceWorkspace') && operatingUi.includes("if(surface==='governance')return <SfiGovernanceWorkspace enabled={enabled}/>"));
-check('ROOT governance workspace reads governed proposals', governanceUi.includes("jsonFetch('/api/acp/proposals')") && governanceUi.includes('setProposals'));
+check('ROOT governance workspace reads governed proposals from canonical interactive projection', governanceUi.includes("jsonFetch('/api/root/interactive?surface=governance')") && governanceUi.includes('setProposals(arr(operationalNext.items))') && interactiveRoute.includes("proposalQueueSource: 'operationalNext.items'"));
 check('ROOT governance workspace exposes plain-language governed decisions', governanceUi.includes('ACEPTAR') && governanceUi.includes('DENEGAR') && governanceUi.includes('PEDIR EVIDENCIA'));
-check('ROOT governance workspace exposes live operational telemetry', governanceUi.includes("jsonFetch('/api/root/workboard')") && governanceUi.includes("jsonFetch('/api/root/cognitive-runtime')") && governanceUi.includes('workboard?.operationalNext') && governanceUi.includes('latestExecutionAt'));
+check('ROOT governance workspace exposes live operational telemetry without duplicate base feeds', governanceUi.includes("jsonFetch('/api/root/interactive?surface=governance')") && governanceUi.includes('/api/root/cognitive-runtime/records?agentId=') && governanceUi.includes('workboard?.operationalNext') && governanceUi.includes('latestExecutionAt'));
 check('live scene runtime is gated by canonical scene registry', scenePage.includes('SCENE_KEYS.includes') && scenePage.includes('scene={scene as SceneKey}'));
 check('deleted sovereign workspace is not required for graph truth', !shellUi.includes('RootObservatoryWorkspace') && !operatingUi.includes('RootObservatoryWorkspace') && !scenePage.includes('RootObservatoryWorkspace'));
 
