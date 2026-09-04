@@ -23,7 +23,15 @@ PR #363 state at merge:
 - SFI Main-Only Convergence: PASS;
 - SFI Verify: PASS.
 
-Production deployment for this merge must be independently verified before marking `OBSERVED_IN_PRODUCTION`.
+Canonical production deployment:
+
+- workflow: `SFI Vercel Prebuilt Production`;
+- run: `33897088220`;
+- exact SHA: `565ac410fceb56d86ff9d6eaec85b901d0d77248`;
+- conclusion: `success`;
+- completed: 2026-09-04T16:49:36Z.
+
+Therefore #363 baseline state is `DEPLOYED`. It is not yet marked `OBSERVED_IN_PRODUCTION` for the new sovereign-inbox behavior until post-deploy navigation/behavior is explicitly observed.
 
 ## 2. Already established before this program
 
@@ -97,22 +105,27 @@ Not yet institutionalized at program bootstrap:
 
 ## 3. Open baseline verification items
 
-SFI-08 + SFI-00 must resolve before declaring baseline closed:
+SFI-08 + SFI-00 must resolve before declaring baseline `OBSERVED_IN_PRODUCTION`:
 
-1. verify deployment of `565ac410...` to canonical production;
-2. load ROOT and verify actionable queue behavior without executing sovereign actions;
-3. verify pending report approvals are discoverable/actionable;
-4. verify Library and Twin Learning surfaces are accessible;
-5. verify Method Lab/Observatory/Studio navigation;
-6. verify public false-zero behavior: unavailable/degraded cannot render as numeric zero;
-7. observe production Supabase/Postgres/API/Auth logs under real navigation;
-8. confirm no regression in #362 zero-duplicate read plane.
+1. load ROOT and verify actionable queue behavior without executing sovereign actions;
+2. verify pending report approvals are discoverable/actionable;
+3. verify Library and Twin Learning surfaces are accessible;
+4. verify Method Lab/Observatory/Studio navigation;
+5. verify public false-zero behavior: unavailable/degraded cannot render as numeric zero;
+6. observe production Supabase/Postgres/API/Auth logs under real navigation;
+7. confirm no regression in #362 zero-duplicate read plane.
+
+Deployment itself is already verified successful.
 
 ## 4. Program control-plane bootstrap branch
 
 Current bootstrap branch:
 
 `sfi-control-room-bootstrap`
+
+Open PR:
+
+`#364 docs(program): bootstrap distributed SFI control plane`
 
 Purpose:
 
@@ -122,16 +135,15 @@ Purpose:
 - define durable current state;
 - define decision ledger;
 - create WS-01 through WS-08 dispatch/workstream contracts;
-- open one documentation/control-plane PR;
 - merge only after normal repository preflight/CI.
 
-No production runtime change should be introduced by the bootstrap PR.
+No production runtime change is introduced by PR #364.
 
 ## 5. Workstream states
 
 | Workstream | State | Safe next action |
 |---|---|---|
-| SFI-00 | BOOTSTRAPPING | merge control plane after CI; reconstruct production baseline |
+| SFI-00 | BOOTSTRAPPING | merge #364 after CI; then reconstruct latest production baseline |
 | WS-01 | NOT_STARTED | read workstream contract after control-plane merge |
 | WS-02 | NOT_STARTED | inspect current Twin + Method Lab against workstream contract |
 | WS-03 | NOT_STARTED | inspect public semantic/discovery owners; no duplicate plane |
@@ -139,7 +151,7 @@ No production runtime change should be introduced by the bootstrap PR.
 | WS-05 | NOT_STARTED | inspect publication/citation metadata and real external identifiers |
 | WS-06 | NOT_STARTED | inspect audio/FAD/Studio and rights/storage boundaries |
 | WS-07 | NOT_STARTED | inventory actual external identities; no fabrication |
-| WS-08 | BOOTSTRAPPING | verify baseline production and create assurance matrix |
+| WS-08 | BOOTSTRAPPING | post-deploy behavior/log verification + assurance matrix |
 
 Allowed states:
 
