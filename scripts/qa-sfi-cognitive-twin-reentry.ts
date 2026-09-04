@@ -17,6 +17,7 @@ const scenes = read('src/components/sfi/scenes.ts');
 const liveUi = read('src/components/sfi/SfiConsole.tsx');
 const operatingUi = read('src/components/sfi/SfiOperatingWorkspace.tsx');
 const governanceUi = read('src/components/sfi/SfiGovernanceWorkspace.tsx');
+const interactiveApi = read('src/app/api/root/interactive/route.ts');
 const externalLab = read('src/app/api/external/v1/lab/route.ts');
 const canon = read('docs/canon/16_LONGITUDINAL_SYSTEM_FRICTION_PROGRAM.md');
 const phiCanon = read('docs/MIHM_PHI_CANON.md');
@@ -47,14 +48,15 @@ assert.match(journal, /privateReasoningPersisted: false/);
 assert.doesNotMatch(journal, /reasoningTrace\s*:|hiddenReasoning\s*:|rawChainOfThought\s*:/i);
 
 // Dedicated legacy IDENTITY/Twin dashboards were absorbed. The canonical operator
-// projection is ROOT + TWIN/SPINE; governance controls live in the delegated
-// SfiGovernanceWorkspace rather than being duplicated in SfiOperatingWorkspace.
+// projection is ROOT + TWIN/SPINE; governance controls consume the same bounded
+// operationalNext proposal projection as ROOT instead of issuing a second feed.
 assert.ok(scenes.includes("root:{key:'root'"), 'root_live_scene_missing');
 assert.ok(scenes.includes("twin:{key:'twin'"), 'twin_spine_live_scene_missing');
 assert.match(scenes, /LEGACY_INTERNAL_SCENES=.*'identity'/, 'identity_legacy_absorption_must_be_explicit');
 assert.ok(liveUi.includes('COGNITIVE TWIN'), 'cognitive_twin_live_observability_missing');
 assert.ok(operatingUi.includes('SfiGovernanceWorkspace'), 'cognitive_twin_governance_delegation_missing');
-assert.ok(governanceUi.includes("jsonFetch('/api/acp/proposals')"), 'cognitive_twin_proposals_not_governed');
+assert.ok(governanceUi.includes("jsonFetch('/api/root/interactive?surface=governance')") && governanceUi.includes('setProposals(arr(operationalNext.items))'), 'cognitive_twin_proposals_not_governed');
+assert.ok(interactiveApi.includes("proposalQueueSource: 'operationalNext.items'") && interactiveApi.includes('separateProposalListRead: false'), 'cognitive_twin_governance_must_not_duplicate_proposal_feed');
 assert.ok(governanceUi.includes('ACEPTAR') && governanceUi.includes('DENEGAR'), 'root_twin_decision_controls_missing');
 assert.ok(governanceUi.includes('PEDIR EVIDENCIA'), 'root_twin_evidence_deferral_missing');
 assert.ok(externalLab.includes("operation === 'report'") || externalLab.includes("case 'report'"), 'external_lab_report_surface_missing');
@@ -106,6 +108,7 @@ console.log('- CT-A01 genesis + developmental heartbeat + root-visible state rem
 console.log('- legacy IDENTITY is explicitly absorbed rather than retained as a parallel sovereign scene');
 console.log('- snapshot/fork core contracts remain explicit; registered fork is never represented as executing');
 console.log('- repeated evaluation failure can only create a governed CANDIDATE mutation proposal');
+console.log('- governance proposal observability reuses one interactive proposal projection; duplicate proposal feed = 0');
 console.log('- no new cron introduced');
 console.log('- Phi family reconciliation remains method-scoped; c_field is not canonical Phi');
 console.log('- current WorldSpect ten-domain contract remains explicit; no invented seven-domain mapping');
