@@ -222,16 +222,23 @@ assert.equal(blockedRecord.authority, 'BLOCKED');
 assert.equal(deriveExecutionWorkState(blockedRecord), 'NOT_OBSERVED', 'governance block must not be mislabeled as a failed execution');
 
 // M3: ROOT must operate from the existing contract/record plane, not from the retired generic single-target form.
+// State, history and optional assurance are projected by one dossier reader so the UI cannot
+// accidentally re-read the same execution event stream through parallel helpers.
 const recordsRoute = readFileSync('src/app/api/root/cognitive-runtime/records/route.ts', 'utf8');
+const dossierReader = readFileSync('src/lib/sfi/cognitive-runtime/agentDossierRead.ts', 'utf8');
 const governanceUi = readFileSync('src/components/sfi/SfiGovernanceWorkspace.tsx', 'utf8');
 const operatingUi = readFileSync('src/components/sfi/SfiOperatingWorkspace.tsx', 'utf8');
 
-assert.match(recordsRoute, /readAgentExecutionStates/);
-assert.match(recordsRoute, /readExecutionRecords/);
+assert.match(recordsRoute, /readAgentExecutionDossier/);
+assert.doesNotMatch(recordsRoute, /readAgentExecutionStates|readExecutionRecords|readGenAiAssuranceMetrics/,'records route must not restore parallel execution readers');
+assert.match(dossierReader, /executionEventReads:\s*1/);
+assert.match(dossierReader, /overlappingEventNames:\s*0/);
+assert.match(dossierReader, /duplicateEventReads:\s*0/);
 assert.match(recordsRoute, /auditUnit:\s*'EXECUTION'/);
 assert.match(recordsRoute, /historyAbsenceMeansNonExistence:\s*false/);
 assert.match(recordsRoute, /contextIsEvidence:\s*false/);
 assert.match(recordsRoute, /inferenceIsObservation:\s*false/);
+assert.match(recordsRoute, /duplicateCanonicalEventReads:\s*0/);
 assert.match(governanceUi, /\/api\/root\/cognitive-runtime\/records\?agentId=/);
 assert.match(governanceUi, /selectedTargets/);
 assert.match(governanceUi, /minTargets/);
@@ -261,4 +268,5 @@ console.log(JSON.stringify({
   legacyAdapterObserved: legacy.legacyCompatibilityUsed,
   m3ContractDrivenUi: governanceUi.includes('EJECUTAR CONTRATO'),
   m3LegacyOperatorRemoved: !operatingUi.includes('const runAgent='),
+  duplicateExecutionEventReads: 0,
 }, null, 2));
