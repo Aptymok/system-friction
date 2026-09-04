@@ -44,6 +44,7 @@ function dateMs(value:unknown){const n=Date.parse(txt(value));return Number.isFi
 function mean(values:Array<number|null>){const valid=values.filter((v):v is number=>typeof v==='number'&&Number.isFinite(v));return valid.length?valid.reduce((a,b)=>a+b,0)/valid.length:null}
 function pct(value:number|null){return value==null?'—':`${Math.round(value*100)}%`}
 
+const OBSERVATORY_REQUEST_TIMEOUT_MS=15000;
 const INITIAL_AVAILABILITY:ObservatoryAvailability={world:'LOADING',state:'LOADING',timeline:'LOADING'};
 const panel:CSSProperties={position:'absolute',zIndex:25,background:'rgba(4,6,7,.88)',backdropFilter:'blur(18px)',border:'1px solid rgba(214,180,120,.22)',boxShadow:'0 22px 70px rgba(0,0,0,.45)',borderRadius:14,color:'#e7dfd2'};
 const micro:CSSProperties={fontSize:10,letterSpacing:'.12em',textTransform:'uppercase',opacity:.58};
@@ -51,7 +52,7 @@ const chip:CSSProperties={fontSize:10,padding:'5px 8px',border:'1px solid rgba(2
 const selectStyle:CSSProperties={background:'rgba(5,7,8,.88)',color:'#e7dfd2',border:'1px solid rgba(214,180,120,.18)',borderRadius:8,padding:'7px 9px',fontSize:11,maxWidth:190};
 
 async function fetchJson(path:string){
-  try{const response=await fetch(path,{cache:'no-store'});const data=await response.json().catch(()=>null);return{ok:response.ok,data,status:response.status}}catch(error){return{ok:false,data:null,status:0,error:error instanceof Error?error.message:String(error)}}
+  try{const response=await fetch(path,{cache:'no-store',signal:AbortSignal.timeout(OBSERVATORY_REQUEST_TIMEOUT_MS)});const data=await response.json().catch(()=>null);return{ok:response.ok,data,status:response.status}}catch(error){return{ok:false,data:null,status:0,error:error instanceof Error?error.message:String(error)}}
 }
 
 export function ObservatoryConsole(){
