@@ -22,6 +22,7 @@ const SUPPORT_NAV = [
   {href:'/twin/learning',label:'LEARNING'},
   {href:'/method-lab',label:'METHOD LAB'},
   {href:'/observatory',label:'OBSERVATORIO'},
+  {href:'/library',label:'LIBRARY'},
   {href:'/studio',label:'STUDIO'},
 ] as const;
 
