@@ -1,0 +1,23 @@
+{
+  "cff-version": "1.2.0",
+  "message": "If you use this software, cite it using the metadata in this file and the exact version or commit used.",
+  "title": "System Friction Institute",
+  "type": "software",
+  "authors": [
+    {
+      "family-names": "Aptymok",
+      "website": "https://github.com/Aptymok"
+    }
+  ],
+  "abstract": "System Friction Institute is an experimental institutional observability environment for complex sociotechnical systems that preserves distinctions among observation, evidence, inference, authorization, execution, RETURN, and memory.",
+  "repository-code": "https://github.com/Aptymok/system-friction",
+  "url": "https://systemfriction.org",
+  "version": "1.0.0",
+  "keywords": [
+    "system friction",
+    "observability",
+    "evidence governance",
+    "governed AI",
+    "complex sociotechnical systems"
+  ]
+}
