@@ -6,24 +6,13 @@ import './twin-learning.css';
 
 type Row = Record<string, any>;
 
-function arr(value: unknown): Row[] {
-  return Array.isArray(value) ? value.filter((item): item is Row => Boolean(item && typeof item === 'object')) : [];
-}
-function txt(value: unknown, fallback = '—') {
-  return typeof value === 'string' && value.trim() ? value.trim() : fallback;
-}
-function payload(event: Row) {
-  return event?.payload && typeof event.payload === 'object' && !Array.isArray(event.payload) ? event.payload as Row : {};
-}
-function short(value: unknown, max = 92) {
-  const text = txt(value, '');
-  return text.length > max ? `${text.slice(0, max - 1)}…` : text || '—';
-}
-function date(value: unknown) {
-  if (typeof value !== 'string' || !value) return '—';
-  const parsed = new Date(value);
-  return Number.isNaN(parsed.valueOf()) ? value : parsed.toLocaleString('es-MX');
-}
+function rows(value: unknown): Row[] { return Array.isArray(value) ? value.filter((item): item is Row => Boolean(item) && typeof item === 'object' && !Array.isArray(item)) : []; }
+function values(value: unknown): unknown[] { return Array.isArray(value) ? value : []; }
+function txt(value: unknown, fallback = '—') { return typeof value === 'string' && value.trim() ? value.trim() : fallback; }
+function payload(event: Row) { return event?.payload && typeof event.payload === 'object' && !Array.isArray(event.payload) ? event.payload as Row : {}; }
+function short(value: unknown, max = 92) { const text = txt(value, ''); return text.length > max ? `${text.slice(0, max - 1)}…` : text || '—'; }
+function date(value: unknown) { if (typeof value !== 'string' || !value) return '—'; const parsed = new Date(value); return Number.isNaN(parsed.valueOf()) ? value : parsed.toLocaleString('es-MX'); }
+function renderValue(value: unknown) { return typeof value === 'string' ? value : JSON.stringify(value); }
 async function jsonFetch(url: string, init?: RequestInit) {
   const response = await fetch(url, { cache: 'no-store', ...init });
   const json = await response.json().catch(() => null);
@@ -45,46 +34,38 @@ export default function TwinLearningPage() {
   const [notice, setNotice] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    try {
-      const next = await jsonFetch('/api/root/learning');
-      setData(next);
-      setError(null);
-    } catch (cause) { setError(cause instanceof Error ? cause.message : String(cause)); }
+    try { setData(await jsonFetch('/api/root/learning')); setError(null); }
+    catch (cause) { setError(cause instanceof Error ? cause.message : String(cause)); }
   }, []);
-
   useEffect(() => { void load(); }, [load]);
 
-  const candidates = arr(data?.candidates);
-  const promotions = arr(data?.promotions);
-  const rejections = arr(data?.rejections);
+  const candidates = useMemo(() => rows(data?.candidates), [data?.candidates]);
+  const promotions = useMemo(() => rows(data?.promotions), [data?.promotions]);
+  const rejections = useMemo(() => rows(data?.rejections), [data?.rejections]);
   const selected = useMemo(() => candidates.find((item) => String(item.event_id) === selectedId) ?? candidates[0] ?? null, [candidates, selectedId]);
+  const activeId = selected?.event_id ? String(selected.event_id) : null;
   const selectedPayload = selected ? payload(selected) : {};
-  const learning = selectedPayload.learning && typeof selectedPayload.learning === 'object' ? selectedPayload.learning as Row : {};
-  const lineage = selectedPayload.lineage && typeof selectedPayload.lineage === 'object' ? selectedPayload.lineage as Row : {};
+  const learning = selectedPayload.learning && typeof selectedPayload.learning === 'object' && !Array.isArray(selectedPayload.learning) ? selectedPayload.learning as Row : {};
+  const lineage = selectedPayload.lineage && typeof selectedPayload.lineage === 'object' && !Array.isArray(selectedPayload.lineage) ? selectedPayload.lineage as Row : {};
 
   useEffect(() => {
     if (!selectedId && candidates[0]?.event_id) setSelectedId(String(candidates[0].event_id));
-    setNote('');
-    setReason('');
   }, [selectedId, candidates]);
+  useEffect(() => { setNote(''); setReason(''); }, [activeId]);
 
   const decide = async (action: 'promote' | 'reject') => {
     if (!selected?.event_id) return;
-    if (action === 'reject' && !reason.trim()) {
-      setError('El rechazo requiere una razón explícita; SFI no debe persistir una negativa opaca.');
-      return;
-    }
+    if (action === 'reject' && !reason.trim()) { setError('El rechazo requiere una razón explícita; SFI no persiste una negativa opaca.'); return; }
     setBusy(action);
     try {
       await jsonFetch('/api/root/learning', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
+        method: 'POST', headers: { 'content-type': 'application/json' },
         body: JSON.stringify(action === 'promote'
           ? { action, candidateEventId: selected.event_id, reviewNote: note.trim() || null }
           : { action, candidateEventId: selected.event_id, reason: reason.trim() }),
       });
       setNotice(action === 'promote'
-        ? 'Aprendizaje promovido con receipt. Promoción no convierte una hipótesis en observación ni borra contradicciones.'
+        ? 'Aprendizaje promovido con receipt. La promoción no convierte hipótesis en observación ni borra contradicciones.'
         : 'Aprendizaje rechazado con razón explícita y lineage preservado.');
       setSelectedId(null);
       await load();
@@ -95,13 +76,13 @@ export default function TwinLearningPage() {
   return <main className="twinLearning">
     <header className="twinLearningTop">
       <div><Link href="/root">SFI / ROOT</Link><span>COGNITIVE TWIN · LEARNING LINEAGE</span></div>
-      <nav><Link href="/twin">SPINE</Link><Link href="/method-lab">METHOD LAB</Link><Link href="/root">ROOT</Link></nav>
+      <nav><Link href="/twin">SPINE</Link><Link href="/method-lab">METHOD LAB</Link><Link href="/library">LIBRARY</Link><Link href="/root">ROOT</Link></nav>
     </header>
 
     {(error || notice) && <div className={`learningToast ${error ? 'error' : ''}`}><span>{error || notice}</span><button onClick={() => { setError(null); setNotice(null); }}>×</button></div>}
 
     <section className="learningHero">
-      <div><span>SFI · LEARNING QUARANTINE</span><h1>Qué aprendió, de dónde salió y qué puede cambiar ROOT</h1><p>El aprendizaje institucional es append-only. Puedes decidir promoción/rechazo y escribir la razón. No puedes reescribir silenciosamente el candidato original: una modificación sustantiva requiere un futuro evento AMEND/SUPERSEDE con lineage.</p></div>
+      <div><span>SFI · LEARNING QUARANTINE</span><h1>Qué aprendió, de dónde salió y qué puede decidir ROOT</h1><p>El aprendizaje institucional es append-only. ROOT puede promover/rechazar y registrar la razón. Una modificación sustantiva no sobrescribe el candidato original: requiere AMEND/SUPERSEDE con lineage.</p></div>
       <div className="learningMetrics"><b>{String(data?.summary?.quarantined ?? candidates.length)}</b><span>pendientes</span><b>{String(data?.summary?.eligible ?? 0)}</b><span>elegibles</span><b>{String(data?.summary?.promoted ?? promotions.length)}</b><span>promovidos</span><b>{String(data?.summary?.rejected ?? rejections.length)}</b><span>rechazados</span></div>
     </section>
 
@@ -109,10 +90,10 @@ export default function TwinLearningPage() {
       <aside className="learningQueue">
         <header><span>CANDIDATOS</span><button onClick={() => void load()}>ACTUALIZAR</button></header>
         {candidates.map((item) => {
-          const body = payload(item);
-          return <button key={item.event_id} className={String(selected?.event_id) === String(item.event_id) ? 'selected' : ''} onClick={() => setSelectedId(String(item.event_id))}>
+          const body = payload(item); const itemLearning = body.learning && typeof body.learning === 'object' ? body.learning as Row : {};
+          return <button key={item.event_id} className={activeId === String(item.event_id) ? 'selected' : ''} onClick={() => setSelectedId(String(item.event_id))}>
             <span>{txt(body.classification, 'UNKNOWN')} · {body.eligibleForRootPromotion === true ? 'ELIGIBLE' : txt(body.promotionState, 'QUARANTINED')}</span>
-            <strong>{short((body.learning as Row | undefined)?.learningCandidate ?? (body.learning as Row | undefined)?.primaryHypothesis ?? body.cycleId, 110)}</strong>
+            <strong>{short(itemLearning.learningCandidate ?? itemLearning.primaryHypothesis ?? body.cycleId, 110)}</strong>
             <small>{date(item.occurred_at)}</small>
           </button>;
         })}
@@ -135,14 +116,14 @@ export default function TwinLearningPage() {
 
           <section className="learningSection"><h3>COGNITIVO</h3><div className="learningFacts"><span><b>Hipótesis primaria</b>{txt(learning.primaryHypothesis)}</span><span><b>Predicción</b>{txt(learning.prediction)}</span><span><b>RETURN observado</b>{txt(learning.observedReturn)}</span><span><b>Confianza actualizada</b>{learning.updatedConfidence == null ? '—' : String(learning.updatedConfidence)}</span></div></section>
 
-          <section className="learningSection"><h3>SEÑALES Y CONTRADICCIÓN</h3><div className="learningColumns"><div><b>Esperadas</b>{arr(learning.expectedSignals).map((item, index) => <p key={`e${index}`}>{typeof item === 'string' ? item : JSON.stringify(item)}</p>)}</div><div><b>Contradicción</b>{arr(learning.contradictionSignals).map((item, index) => <p key={`c${index}`}>{typeof item === 'string' ? item : JSON.stringify(item)}</p>)}</div><div><b>Evidencia faltante</b>{arr(learning.missingEvidence).map((item, index) => <p key={`m${index}`}>{typeof item === 'string' ? item : JSON.stringify(item)}</p>)}</div></div></section>
+          <section className="learningSection"><h3>SEÑALES Y CONTRADICCIÓN</h3><div className="learningColumns"><div><b>Esperadas</b>{values(learning.expectedSignals).map((item, i) => <p key={`e${i}`}>{renderValue(item)}</p>)}</div><div><b>Contradicción</b>{values(learning.contradictionSignals).map((item, i) => <p key={`c${i}`}>{renderValue(item)}</p>)}</div><div><b>Evidencia faltante</b>{values(learning.missingEvidence).map((item, i) => <p key={`m${i}`}>{renderValue(item)}</p>)}</div></div></section>
 
           <section className="learningSection"><h3>LÍMITE EPISTÉMICO</h3><p>{txt(selectedPayload.epistemicBoundary)}</p></section>
 
           <section className="learningDecision">
             <div><label>Nota ROOT para promoción<textarea value={note} onChange={(event) => setNote(event.target.value)} placeholder="Qué aceptas, bajo qué reserva y por qué."/></label><button disabled={Boolean(busy) || selectedPayload.eligibleForRootPromotion !== true} onClick={() => void decide('promote')}>PROMOVER APRENDIZAJE</button></div>
             <div><label>Razón de rechazo<textarea value={reason} onChange={(event) => setReason(event.target.value)} placeholder="Razón obligatoria; se preserva en lineage."/></label><button className="deny" disabled={Boolean(busy)} onClick={() => void decide('reject')}>RECHAZAR</button></div>
-            <p><b>Edición sustantiva:</b> todavía no institucionalizada. No se hace UPDATE del candidato. Debe implementarse como AMEND/SUPERSEDE para conservar genealogía.</p>
+            <p><b>Edición sustantiva:</b> no se ejecuta como UPDATE. Debe institucionalizarse como AMEND/SUPERSEDE para conservar genealogía y reversibilidad.</p>
           </section>
 
           <details className="learningTrace"><summary>TRAZABILIDAD COMPLETA</summary><pre>{JSON.stringify(selected, null, 2)}</pre></details>
