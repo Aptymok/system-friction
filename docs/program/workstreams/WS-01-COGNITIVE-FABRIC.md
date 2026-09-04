@@ -260,29 +260,53 @@ NEXT SAFE ACTION
 
 ## 10. Durable handoff — 2026-09-04 — Slice A
 
-**State:** `QA_PASS / PR_OPEN`  
-**Slice:** Cognitive Passport Registry + validation  
+**State:** `QA_PASS / PR_OPEN / REVIEW_FINDINGS_ABSORBED`  
+**Slice:** Cognitive Passport contract projection + validation  
 **Base SHA:** `1bd890c8a2ec784ad87d73eac6d19a294e050543`  
 **Branch:** `ws01/cognitive-passport-registry`  
 **PR:** `#367`
 
-### Preflight reconstruction
+### Fresh continuation reconstruction
 
-The existing runtime owners were inspected before implementation. `SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY` remains the sole canonical cognitive execution registry; `MetaOrchestratorAgent` remains the sole cognitive orchestrator; `src/lib/ai/providerRouter.ts` remains the model/provider routing owner; existing task-graph code remains the task-graph owner; `epistemic_events` remains the transversal lineage/event owner. `canonicalCapabilities.ts` was observed but was not promoted into a competing registry.
+Fresh `main` remains `1bd890c8a2ec784ad87d73eac6d19a294e050543`; the branch is ahead and not behind. PR `#367` remains open and unmerged. No Slice B implementation is authorized while Slice A remains outside `main`.
 
-Slice A therefore implements passports as a deterministic projection over `SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY`. No second agent registry, orchestrator, model router, event universe, task graph or persistence writer was created.
+The continuation review identified an existing passport owner that the initial Slice A preflight had not absorbed: `src/lib/sfi/cognitive-runtime/agentPassports.ts`, which already projects `SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY` as `SFI-AGENT-PASSPORT-1.2` for ROOT/Studio consumers.
 
-### Implemented
+The corrected ownership model is therefore:
 
-- `SFI-COGNITIVE-PASSPORT-1.0` projection for all 21 historical runtime IDs;
-- deterministic passport and registry validation;
-- epistemic-mode projection from existing runtime layers;
-- conservative authority projection that cannot exceed existing runtime authority and currently emits only `READ`/`RECOMMEND` ceilings;
+- `SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY`: sole cognitive execution/agent registry;
+- `agentPassports.ts`: sole runtime passport projection owner;
+- `cognitivePassportRegistry.ts`: pure `SFI-COGNITIVE-PASSPORT-1.0` projector/validator attached to the existing passport owner, not an independent registry;
+- `executionContracts.ts`: authoritative per-agent execution output/epistemic constraints;
+- `MetaOrchestratorAgent`: sole cognitive orchestrator;
+- `src/lib/ai/providerRouter.ts`: model/provider routing owner;
+- existing task-graph implementation: task-graph owner;
+- `epistemic_events`: transversal lineage/event owner.
+
+No second agent registry, passport owner, orchestrator, model router, event universe, task graph or persistence writer remains in Slice A.
+
+### Review findings corrected
+
+Four post-implementation review findings were treated as real integration defects and corrected without expanding scope:
+
+1. **P1 — duplicate passport owner:** the independent `SFI_COGNITIVE_PASSPORT_REGISTRY`/lookup owner was removed. `agentPassports.ts` now carries the cognitive contract projection as `cognitiveContract` for cognitive-runtime passports.
+2. **P1 — EvidenceHunter epistemic boundary:** passport outputs now derive from `executionContractForAgent()` rather than coarse runtime layer. `evidence_hunter` cannot inherit `OBSERVATION`; its allowed outputs remain `INFERENCE`, `RECOMMENDATION`, `NOT_EXECUTED`.
+3. **P1 — reality calibration RETURN:** `reality_calibration` now requires `RETURN` in `input.requiredEvidenceClasses`. This is an input evidence precondition and remains distinct from a future RETURN obligation.
+4. **P2 — human confirmation validation:** `validateCognitivePassportAgainstSource()` rejects a passport that weakens `source.humanApprovalRequired`, with deterministic `CONFIRMATION_REQUIREMENT_MISMATCH` output.
+
+### Implemented Slice A boundary
+
+- frozen `SFI-COGNITIVE-PASSPORT-1.0` shape projected for all 21 historical runtime IDs;
+- exact preservation of historical IDs;
+- deterministic passport/source validation;
+- output classes derived from existing execution contracts;
+- conservative authority ceilings limited to `READ` / `RECOMMEND`;
 - zero tool authority minted by passports;
-- adaptive capability requests explicitly disabled in Slice A until the governed broker exists;
-- provider/model-independent operation requirement metadata under the existing provider-router owner;
-- RETURN/security/orchestration fields required by the frozen passport contract;
-- CI contract gate added to the existing `SFI Verify` workflow.
+- adaptive capability requests explicitly disabled until Slice B;
+- provider/model-independent operation requirements metadata under the existing provider-router owner;
+- RETURN/security/orchestration fields from the frozen contract;
+- no capability grant semantics added;
+- no external execution authority added.
 
 ### Persistence / events / routes
 
@@ -295,36 +319,39 @@ Slice A therefore implements passports as a deterministic projection over `SFI_C
 
 ### Contract delta
 
-None. The frozen contract can be absorbed without fork.
+None. The frozen contract is absorbable without fork.
 
-### QA closure
+### QA closure before this documentation-only handoff commit
 
-Initial PR workflow `SFI Verify` run `33905545517` correctly failed `P17_PR_PREFLIGHT_REQUIRED` because the PR body lacked the mandatory `SFI PRECHECK` markers. This was a PR-metadata failure, not a code defect. The PR body was corrected with all required preflight fields.
+Implementation HEAD `09056ad0070299b6557fef2ad228445c4ed931e7` completed `SFI Verify` run `33908757173` successfully in the primary `Verify SFI boundaries and build` job. Observed PASS includes:
 
-Full verification then ran on head `771c0c0a283d4aecbe98a617ddf790db78880bfe` in `SFI Verify` run `33905891122`. The primary `Verify SFI boundaries and build` job completed successfully, including:
+- verify parallel topology;
+- domain boundaries;
+- canonical architecture preflight;
+- institutional contracts;
+- cognitive agent convergence / 21 IDs;
+- `SFI cognitive passport registry` gate;
+- AI governance/autonomous runtime;
+- ROOT/runtime checks;
+- Studio cognitive/runtime checks;
+- runtime read-plane stability;
+- universal closure RETURN fallback;
+- typecheck;
+- full build.
 
-- verify parallel topology: PASS;
-- domain boundaries: PASS;
-- canonical architecture preflight: PASS;
-- cognitive agent convergence / 21 IDs: PASS;
-- `SFI cognitive passport registry`: PASS;
-- AI governance/autonomous runtime: PASS;
-- runtime read-plane stability: PASS;
-- all intervening SFI verification gates: PASS;
-- typecheck: PASS;
-- build: PASS.
-
-No implementation defect was observed in Slice A by the completed primary verification chain.
+This workstream edit is documentation-only and moves the PR HEAD after the implementation QA above. SFI-00 must integrate only after the final PR HEAD's CI is observed green as well.
 
 ### Known defects / dependencies
 
-- baseline issue `#366` remains an unrelated WS-03/WS-08 assurance failure and has first integration priority under current SFI-00 state;
+- no remaining Slice A implementation defect is established after the four review corrections and successful implementation QA;
+- Netlify preview status is not used as a substitute for canonical SFI Verify; Vercel preview had independently reported ready on the earlier head;
+- baseline issue `#366` remains outside WS-01 ownership and under WS-03/WS-08 sequencing;
 - SFI-00 remains sole merge/integration authority;
-- Slice B depends on a stable passport projection and must not introduce self-authorization or a parallel event/persistence owner.
+- Slice B remains blocked while `#367` is open; it must start only from a `main` containing admitted Slice A.
 
 ### Next safe action
 
-Leave `#367` unmerged for SFI-00 sequencing. SFI-00 should admit the green Slice A head only in the integration order it authorizes, respecting the first-priority #366 corrective lane. WS-01 may inspect Slice B, but implementation should consume the admitted/stable passport projection rather than fork it.
+Leave `#367` unmerged. Observe all CI on the final documentation-adjusted HEAD. If green and no new review finding appears, hand the PR to SFI-00 as integration-ready. Do not implement the Governed Capability Request Broker until Slice A is integrated into `main` or SFI-00 explicitly establishes an admitted stable dependency base.
 
 ---
 
