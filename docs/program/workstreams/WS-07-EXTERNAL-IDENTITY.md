@@ -330,6 +330,66 @@ State semantics are strict. Search absence is not proof of nonexistence. Public 
 | Postman public workspace | UNCLAIMED | — | No attributable public workspace observed; publication remains dependency-bound to WS-04 stability. |
 | OSF | UNCLAIMED | — | No attributable researcher/project/registration identity observed. |
 
+#### 18.1.1 Required records for observed real nodes
+
+`verified_at` records the observation date at the granularity actually available to WS-07. It is `null` when the node is only `CLAIMED`; no platform-issued verification time is invented.
+
+```text
+platform: systemfriction.org
+node_type: canonical_institution_web_entity
+canonical_account_url: https://systemfriction.org/institution
+handle: null
+identity_name: System Friction Institute
+identity_domain: systemfriction.org
+verification_state: VERIFIED
+relationship: CANONICAL_ENTITY
+verified_at: 2026-09-04
+verification_method: direct public canonical-profile observation corroborated by repository canonical-host metadata
+notes: Entity ID is https://systemfriction.org/#sfi. The observation date is session-level evidence, not a platform-issued verification timestamp.
+```
+
+```text
+platform: GitHub
+node_type: controlled_software_repository_asset
+canonical_account_url: https://github.com/Aptymok/system-friction
+handle: Aptymok/system-friction
+identity_name: system-friction
+identity_domain: github.com
+verification_state: VERIFIED
+relationship: CONTROLLED_SOFTWARE_SOURCE_ASSET
+verified_at: 2026-09-04
+verification_method: authenticated GitHub connector repository inspection showing administrative/push control plus public repository metadata
+notes: VERIFIED means control of this repository asset only. Repository URL is not entity-equivalent to the ResearchOrganization and is not institutional sameAs-ready.
+```
+
+```text
+platform: Medium
+node_type: public_profile_publication_identity
+canonical_account_url: https://medium.com/@systemfriction
+handle: @systemfriction
+identity_name: System Friction Institute
+identity_domain: medium.com
+verification_state: CLAIMED
+relationship: EXTERNAL_DISTRIBUTION_PROFILE_CLAIM
+verified_at: null
+verification_method: direct public profile/content inspection; no authenticated Medium control receipt or reciprocal domain proof observed
+notes: Existing profile must be preserved; do not create a duplicate Medium identity. CLAIMED must not be promoted to VERIFIED without new evidence.
+```
+
+```text
+platform: LinkedIn
+node_type: related_person_public_reference
+canonical_account_url: https://es.linkedin.com/posts/juanliera_en-febrero-escrib%C3%AD-que-la-resiliencia-real-activity-7462671453969104896-xsQt
+handle: null
+identity_name: Juan Antonio Marín Liera → System Friction Institute public relationship evidence
+identity_domain: linkedin.com
+verification_state: CLAIMED
+relationship: RELATED_PERSON_PUBLIC_REFERENCE
+verified_at: null
+verification_method: direct public post observation naming System Friction Institute and systemfriction.org; no institutional Page-control evidence observed
+notes: The person/post is relationship evidence, not institutional sameAs and not proof of a LinkedIn institutional Page.
+```
+
 ### 18.2 Evidence anchors
 
 ```text
@@ -449,24 +509,104 @@ WHY REQUIRED: organization reservation is account-level and no verified organiza
 WHAT TO RETURN TO SFI-07: exact created organization URL or observed availability conflict.
 ```
 
-#### P1 — Research identities
+#### P1 — Zenodo
 
 ```text
-ZENODO: authenticate/connect only for a real durable release/deposit; return real account/deposit URL and DOI only if issued.
-ORCID: each real researcher controls their own record; return only voluntarily supplied exact ORCID plus factual publishable relation.
-RESEARCHGATE: real researchers claim real profiles/publications only; return exact claimed URLs.
-OSF: create researcher/project/registration only for a real research object; return exact public URL.
+PLATFORM: Zenodo
+EXACT ACTION: authenticate a real SFI/researcher account and connect the existing GitHub repository only when a real durable release/deposit is ready; do not mint a DOI merely to reserve identity.
+PREFERRED NAME/HANDLE: System Friction Institute in deposit metadata only where factually appropriate; account identifier only after Zenodo confirms it.
+WHY REQUIRED: account authorization and deposit/repository integration are external platform actions, and DOI relations require a real issued receipt.
+WHAT TO RETURN TO SFI-07: exact Zenodo account/integration/deposit URL and any DOI only after Zenodo actually issues it.
 ```
 
-#### P1 — Distribution/developer identities
+#### P1 — ORCID
 
 ```text
-HUGGING FACE: create/claim real organization only after identifier confirmation; no placeholder model; return exact org URL.
-YOUTUBE: create/claim institutional channel under full name; return exact channel URL/ID.
-BLUESKY: create account then verify @systemfriction.org with actual Bluesky DNS method; return profile URL and issued verification/DID data only after platform issuance.
-MASTODON/FEDIVERSE: choose real server/profile, expose canonical site, then add reciprocal rel=me only after profile exists; return exact URL/status.
-EMAIL: establish one real @systemfriction.org sender and verify provider + SPF/DKIM/DMARC; return sender and verification states, never credentials.
-POSTMAN: wait for WS-04 stable public API; then create/publish a real workspace/collection and return exact public URL.
+PLATFORM: ORCID
+EXACT ACTION: each real researcher/author who will be attributed by SFI signs into or creates their own ORCID record and adds only factual relationships/works; do not create an institutional ORCID.
+PREFERRED NAME/HANDLE: researcher publishing identity as maintained by that researcher; no identifier is preselected.
+WHY REQUIRED: ORCID is person-scoped and requires researcher ownership/consent.
+WHAT TO RETURN TO SFI-07: exact ORCID URL voluntarily supplied by the researcher plus the factual relationship SFI may publish.
+```
+
+#### P1 — ResearchGate
+
+```text
+PLATFORM: ResearchGate
+EXACT ACTION: real researchers may claim/create their personal profiles and claim only real publications; do not create a synthetic institutional researcher persona.
+PREFERRED NAME/HANDLE: researcher identity as accepted by ResearchGate; no handle is pre-invented.
+WHY REQUIRED: researcher account ownership and publication claims require human/platform confirmation.
+WHAT TO RETURN TO SFI-07: exact public researcher/publication URLs that have actually been claimed.
+```
+
+#### P1 — OSF
+
+```text
+PLATFORM: OSF
+EXACT ACTION: real researchers create/claim their OSF identity and create a project/registration only for a real SFI research object; do not create empty registrations to manufacture presence.
+PREFERRED NAME/HANDLE: factual researcher/project identity; no account URL is pre-invented.
+WHY REQUIRED: account ownership and registration actions require researcher/platform confirmation.
+WHAT TO RETURN TO SFI-07: exact public profile/project/registration URL after it exists.
+```
+
+#### P1 — Hugging Face
+
+```text
+PLATFORM: Hugging Face
+EXACT ACTION: create/claim an organization named System Friction Institute only if Hugging Face confirms an available organization identifier; do not upload a placeholder or fictional model.
+PREFERRED NAME/HANDLE: systemfriction first; systemfrictioninstitute only if the preferred identifier is actually unavailable/rejected.
+WHY REQUIRED: organization creation is account-level and identifier availability must be platform-confirmed.
+WHAT TO RETURN TO SFI-07: exact organization URL created by Hugging Face and the actual confirmed identifier.
+```
+
+#### P1 — YouTube
+
+```text
+PLATFORM: YouTube
+EXACT ACTION: create or claim a real institutional channel under the full visible name System Friction Institute and add https://systemfriction.org as canonical external website if channel settings permit it.
+PREFERRED NAME/HANDLE: System Friction Institute; handle only what YouTube actually confirms.
+WHY REQUIRED: channel creation/claim requires Google/YouTube account authority.
+WHAT TO RETURN TO SFI-07: exact channel URL/channel ID after creation or claim.
+```
+
+#### P1 — Bluesky
+
+```text
+PLATFORM: Bluesky
+EXACT ACTION: create a real Bluesky account, then set the handle to systemfriction.org using the domain-handle verification method Bluesky actually provides.
+PREFERRED NAME/HANDLE: @systemfriction.org.
+WHY REQUIRED: account creation plus DNS/domain verification requires human account/domain authority.
+WHAT TO RETURN TO SFI-07: exact live profile URL and domain-handle verification result; do not pre-record a DID before Bluesky issues one.
+```
+
+#### P1 — Mastodon / Fediverse
+
+```text
+PLATFORM: Mastodon/Fediverse
+EXACT ACTION: select an actual server, create the institutional profile, expose https://systemfriction.org as a verified profile link where supported, then add reciprocal rel=me on SFI only after the real profile URL exists.
+PREFERRED NAME/HANDLE: System Friction Institute; handle/server determined only by the actual platform choice.
+WHY REQUIRED: server/account choice and bidirectional verification require external account control.
+WHAT TO RETURN TO SFI-07: exact profile URL and verification status.
+```
+
+#### P1 — Email sender/domain
+
+```text
+PLATFORM: chosen email delivery/provider stack for systemfriction.org
+EXACT ACTION: establish one real @systemfriction.org sender mailbox, complete provider verification, and publish the SPF/DKIM/DMARC records required by the selected provider; do not expose credentials.
+PREFERRED NAME/HANDLE: visible sender name System Friction Institute; exact mailbox only after it exists.
+WHY REQUIRED: sender identity and DNS authentication require mail-provider/domain authority.
+WHAT TO RETURN TO SFI-07: exact sender address, provider verification receipt/status, and SPF/DKIM/DMARC verification state.
+```
+
+#### P1 — Postman
+
+```text
+PLATFORM: Postman
+EXACT ACTION: after WS-04 declares the public API contract stable for publication, create/claim a public workspace and publish only the real stable API collection/documentation.
+PREFERRED NAME/HANDLE: System Friction Institute; workspace identifier only after Postman confirms it.
+WHY REQUIRED: workspace creation is account-level and publication is dependency-bound to WS-04 stability.
+WHAT TO RETURN TO SFI-07: exact public workspace URL after publication.
 ```
 
 ### 18.7 Current handoff
@@ -503,19 +643,31 @@ None observed.
 ENTITY COLLISIONS OBSERVED
 - Systemic Friction Institute, Inc — https://www.systemfrictioninstitute.com/ — distinct entity using SFI and System Friction Score / SFS; no affiliation inferred.
 
+HUMAN ACTIONS REQUIRED
+- P0 GitHub repository Website/Homepage normalization.
+- P0 verify existing Medium identity through real account/domain evidence.
+- P0 identify/claim/create LinkedIn institutional Page only through platform confirmation.
+- P0 check/create GitHub Organization only through platform-confirmed availability; do not transfer repository during bootstrap.
+- P1 research identities: Zenodo, ORCID, ResearchGate, OSF only through real researchers/releases/research objects.
+- P1 distribution/developer identities: Hugging Face, YouTube, Bluesky, Mastodon/Fediverse, email sender/domain; Postman remains dependency-bound to WS-04 stable API publication.
+- Exact five-field actions are preserved in §18.6.
+
 CANONICAL SAMEAS READY
 - none observed
 
 CONTRACT DELTAS
 None.
 
+PR IF CODE/METADATA CHANGED
+- PR #370 `docs(ws07): record observed external identity inventory` — OPEN; branch `ws07/external-identity-inventory`; docs-only workstream metadata/evidence update; NO MERGE.
+
 KNOWN IDENTITY DEFECTS
 - GitHub repository homepage remains https://system-friction.vercel.app instead of https://systemfriction.org.
 - main root ResearchOrganization JSON-LD currently uses the repository URL in sameAs; repository is an owned asset, not entity-equivalent organization identity. WS-03/shared-public-metadata normalization required.
 
 NEXT SAFE ACTION
-1. Keep PR #370 bounded to the observed-state documentation/review correction; no Slice B until integration.
-2. SFI-00 may review the updated docs-only PR after checks settle; no self-merge.
+1. Keep PR #370 bounded to observed-state documentation/review corrections; no Slice B until integration.
+2. SFI-00 may review the updated docs-only PR after the new HEAD checks complete; no self-merge.
 3. Route the pre-existing root JSON-LD sameAs defect to WS-03/SFI-00 rather than expanding WS-07 into canonical public-plane ownership.
 4. Normalize GitHub Website/Homepage manually when authorized by the human account holder.
 5. Verify Medium and claim/verify future institutional profiles only through real platform evidence before any sameAs emission.
