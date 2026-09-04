@@ -5,6 +5,7 @@ import path from 'node:path';
 
 import { SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY } from './convergedRegistry';
 import { executionContractForAgent } from './executionContracts';
+import { llmRequirementsForAgent, operationModelRequirementsForAgent } from './agentModelRequirements';
 import {
   SFI_COGNITIVE_PASSPORT_CONTRACT,
   projectCognitivePassport,
@@ -121,17 +122,28 @@ test('reality calibration explicitly requires observed RETURN evidence', () => {
   assert.equal(calibration.output.allowedEpistemicClasses.includes('OBSERVATION'), false);
 });
 
-test('projected model requirements are operation metadata, not provider/model bindings', () => {
+test('projected model requirements share one tier owner with the LLM execution client', () => {
   const temporal = passportFor('temporal_resolver');
   const field = passportFor('field_observer');
+  const clientPath = path.join(process.cwd(), 'src/infrastructure/ai/agentLlmClient.ts');
+  const clientSource = fs.readFileSync(clientPath, 'utf8');
 
   assert.ok(temporal);
   assert.ok(field);
-  assert.equal(temporal.modelRequirements.reasoning, 'HIGH');
-  assert.equal(temporal.modelRequirements.structuredOutput, true);
-  assert.equal(temporal.modelRequirements.minContextTokens, 100_000);
-  assert.equal(field.modelRequirements.latencyClass, 'INTERACTIVE');
-  assert.equal(field.modelRequirements.costClass, 'ECONOMY');
+  assert.deepEqual(temporal.modelRequirements, operationModelRequirementsForAgent('temporal_resolver'));
+  assert.deepEqual(field.modelRequirements, operationModelRequirementsForAgent('field_observer'));
+  assert.deepEqual(llmRequirementsForAgent('temporal_resolver'), {
+    reasoning: true,
+    structuredOutput: true,
+    minContextTokens: 100_000,
+    priority: 'quality',
+  });
+  assert.deepEqual(llmRequirementsForAgent('field_observer'), {
+    structuredOutput: true,
+    priority: 'speed',
+  });
+  assert.match(clientSource, /llmRequirementsForAgent\(agentId\)/);
+  assert.doesNotMatch(clientSource, /function requirementsForAgent\(/);
   assert.equal(Object.hasOwn(temporal.modelRequirements, 'model'), false);
   assert.equal(Object.hasOwn(temporal.modelRequirements, 'provider'), false);
 });
@@ -239,6 +251,32 @@ test('validator rejects unsupported cognitive passport versions', () => {
 
   assert.deepEqual(validateCognitivePassport(passport), [
     'field_observer:VERSION_UNSUPPORTED:999',
+  ]);
+});
+
+test('source validation rejects output policy drift', () => {
+  const source = SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY.find((agent) => agent.id === 'field_observer');
+  assert.ok(source);
+  const passport = structuredClone(projectCognitivePassport(source)) as SfiCognitivePassport;
+  passport.output.confidencePolicy = 'arbitrary-confidence';
+  passport.output.missingPolicy = 'MISSING_IS_ZERO';
+
+  assert.deepEqual(validateCognitivePassportAgainstSource(passport, source), [
+    'field_observer:OUTPUT_POLICY_CONTRACT_MISMATCH',
+  ]);
+});
+
+test('source validation rejects model requirement drift', () => {
+  const source = SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY.find((agent) => agent.id === 'field_observer');
+  assert.ok(source);
+  const passport = structuredClone(projectCognitivePassport(source)) as SfiCognitivePassport;
+  passport.modelRequirements.web = true;
+  passport.modelRequirements.computer = true;
+  passport.modelRequirements.privacyClass = 'PUBLIC';
+  passport.modelRequirements.providerAllowlist = ['unassigned-provider'];
+
+  assert.deepEqual(validateCognitivePassportAgainstSource(passport, source), [
+    'field_observer:MODEL_REQUIREMENTS_CONTRACT_MISMATCH',
   ]);
 });
 
