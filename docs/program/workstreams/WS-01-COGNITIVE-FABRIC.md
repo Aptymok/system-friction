@@ -258,6 +258,60 @@ PR
 NEXT SAFE ACTION
 ```
 
+## 10. Durable handoff — 2026-09-04 — Slice A
+
+**State:** `PR_OPEN`  
+**Slice:** Cognitive Passport Registry + validation  
+**Base SHA:** `1bd890c8a2ec784ad87d73eac6d19a294e050543`  
+**Branch:** `ws01/cognitive-passport-registry`  
+**PR:** `#367`
+
+### Preflight reconstruction
+
+The existing runtime owners were inspected before implementation. `SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY` remains the sole canonical cognitive execution registry; `MetaOrchestratorAgent` remains the sole cognitive orchestrator; `src/lib/ai/providerRouter.ts` remains the model/provider routing owner; existing task-graph code remains the task-graph owner; `epistemic_events` remains the transversal lineage/event owner. `canonicalCapabilities.ts` was observed but was not promoted into a competing registry.
+
+Slice A therefore implements passports as a deterministic projection over `SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY`. No second agent registry, orchestrator, model router, event universe, task graph or persistence writer was created.
+
+### Implemented
+
+- `SFI-COGNITIVE-PASSPORT-1.0` projection for all 21 historical runtime IDs;
+- deterministic passport and registry validation;
+- epistemic-mode projection from existing runtime layers;
+- conservative authority projection that cannot exceed existing runtime authority and currently emits only `READ`/`RECOMMEND` ceilings;
+- zero tool authority minted by passports;
+- adaptive capability requests explicitly disabled in Slice A until the governed broker exists;
+- provider/model-independent operation requirement metadata under the existing provider-router owner;
+- RETURN/security/orchestration fields required by the frozen passport contract;
+- CI contract gate added to the existing `SFI Verify` workflow.
+
+### Persistence / events / routes
+
+- migrations: none;
+- tables: none;
+- events added: none;
+- routes added: none;
+- direct SQL: none;
+- new writer: none.
+
+### Contract delta
+
+None. The frozen contract can be absorbed without fork.
+
+### QA state
+
+Initial PR workflow `SFI Verify` run `33905545517` reached canonical architecture preflight and failed `P17_PR_PREFLIGHT_REQUIRED` because the PR body lacked the mandatory `SFI PRECHECK` field markers. Domain boundaries and verify-topology gates passed before that failure; subsequent gates, typecheck and build were correctly skipped. The PR body has been corrected with the full mandatory precheck. This durable handoff commit triggers a new full PR verification run.
+
+### Known defects / dependencies
+
+- no Slice A code defect is established by the initial preflight failure; it was a PR metadata gate;
+- baseline issue `#366` remains an unrelated WS-03/WS-08 assurance failure and has first integration priority under current SFI-00 state;
+- SFI-00 remains sole merge/integration authority;
+- Slice B depends on a stable passport projection and must not introduce self-authorization or a parallel event/persistence owner.
+
+### Next safe action
+
+Run the complete `SFI Verify` chain on the current PR head, correct any observed implementation failure, then leave `#367` unmerged for SFI-00 sequencing. After Slice A is admitted or a stable dependency base is explicitly authorized, proceed to Slice B — governed Capability Broker.
+
 ---
 
 # COPY-PASTE DISPATCH PROMPT
