@@ -207,6 +207,41 @@ test('validator rejects passports that drop source-required inputs', () => {
   ]);
 });
 
+test('validator rejects noncanonical accepted evidence classes', () => {
+  const source = passportFor('field_observer');
+  assert.ok(source);
+  const passport = structuredClone(source) as SfiCognitivePassport;
+  passport.input.acceptedEvidenceClasses = ['MODEL_OUTPUT'];
+
+  assert.deepEqual(validateCognitivePassport(passport), [
+    'field_observer:ACCEPTED_EVIDENCE_CLASSES_CONTRACT_MISMATCH',
+  ]);
+});
+
+test('source validation rejects identity and purpose drift', () => {
+  const source = SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY.find((agent) => agent.id === 'field_observer');
+  assert.ok(source);
+  const passport = structuredClone(projectCognitivePassport(source)) as SfiCognitivePassport;
+  passport.name = 'Different Agent';
+  passport.purpose = 'Different mandate';
+
+  assert.deepEqual(validateCognitivePassportAgainstSource(passport, source), [
+    'field_observer:SOURCE_NAME_MISMATCH',
+    'field_observer:SOURCE_PURPOSE_MISMATCH',
+  ]);
+});
+
+test('validator rejects unsupported cognitive passport versions', () => {
+  const source = passportFor('field_observer');
+  assert.ok(source);
+  const passport = structuredClone(source) as SfiCognitivePassport;
+  passport.version = '999';
+
+  assert.deepEqual(validateCognitivePassport(passport), [
+    'field_observer:VERSION_UNSUPPORTED:999',
+  ]);
+});
+
 test('validator emits deterministic errors for malformed passports', () => {
   const source = passportFor('field_observer');
   assert.ok(source);
