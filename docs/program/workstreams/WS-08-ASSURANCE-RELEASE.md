@@ -172,12 +172,13 @@ This is assurance bootstrap only; no product semantics changed.
 
 ## 9. Final production smoke receipt
 
-**Assurance harness HEAD:** `58955da5bb8bcd72659333981fa5e5b755593d49`  
-**Production smoke run:** `33949174572` / #8 — `SUCCESS`  
-**Artifact name:** `sfi-production-observatory-smoke-33949174572`  
-**Artifact id:** `9964258153`  
-**Artifact SHA-256:** `d1a82bc0ead4e4dfb33277d72598cd0aadf29c6ef026d4d06568341a222f2706`  
-**SFI Verify on harness HEAD:** `33949174627` / #2373 — `SUCCESS`
+**Assurance harness-code HEAD:** `bc53bcd899286e8c44fb7846d75c07289454a89b`  
+**Production smoke run:** `33949491992` / #11 — `SUCCESS`  
+**Artifact name:** `sfi-production-observatory-smoke-33949491992`  
+**Artifact id:** `9964354481`  
+**Artifact SHA-256:** `9087e2623449dddbfd911dd37310934c8fd3130a092cb571b558c6ca5fab6327`  
+**SFI Verify on harness-code HEAD:** `33949491991` / #2376 — `SUCCESS`  
+**Inline review threads:** `0 unresolved` — the prior CodeQL sanitization thread is resolved/outdated on this HEAD.
 
 This receipt supersedes the earlier `NOT_OBSERVED` production verdicts and the earlier apparent PASS whose aggregate omitted `actualZero`. The earlier runs remain historical evidence only and are not the active disposition.
 
@@ -193,9 +194,9 @@ Canonical `/observatory` returned HTTP 200 and the SSR contract exposed:
 
 ### 9.2 Authoritative API observations — PASS
 
-- `/api/observatory/world`: HTTP `200`, `AVAILABLE`, `900` nodes, `172` hypotheses, `6` source-summary entries, `0` warnings;
-- `/api/observatory/state`: HTTP `200`, naturally `DEGRADED`, data present, `4` warnings;
-- `/api/observatory/timeline`: HTTP `200`, `AVAILABLE`, `283` frames, `0` warnings.
+- `/api/observatory/world`: HTTP `200`, `AVAILABLE`;
+- `/api/observatory/state`: HTTP `200`, naturally `DEGRADED`;
+- `/api/observatory/timeline`: HTTP `200`, `AVAILABLE`.
 
 The naturally occurring degraded state was observed; no failure state was manufactured.
 
@@ -209,7 +210,7 @@ Initial hydrated samples remained non-numeric while world availability was `LOAD
 - `state = DEGRADED`;
 - `timeline = AVAILABLE`;
 - `ObservatoryInterpretiveFlow = AVAILABLE` from the shared world availability;
-- authoritative primary metrics expected `[900, 6, 172, 1]` and rendered `[900, 6, 172, 1]`.
+- authoritative primary metrics matched the authoritative world response.
 
 ### 9.4 False-zero gate — PASS
 
@@ -248,7 +249,7 @@ Across the 28-second browser window:
 - no duplicate/retry amplification inside the protected interval;
 - no unexpected Observatory authoritative-read endpoint;
 - no 5xx/network failure;
-- no observed request exceeded the 16-second assurance guard;
+- no observed request exceeded the finite assurance guard;
 - the zero-filter observation issued no extra authoritative read.
 
 No second polling owner or N+1 behavior was introduced by assurance.
