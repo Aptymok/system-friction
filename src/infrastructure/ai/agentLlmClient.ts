@@ -155,10 +155,6 @@ function providerPreference(value: unknown): LlmProviderId | undefined {
   return typeof value === 'string' && allowed.includes(value as LlmProviderId) ? value as LlmProviderId : undefined;
 }
 
-function requirementsForAgent(agentId: string) {
-  return llmRequirementsForAgent(agentId);
-}
-
 async function resolveTwinContextForExecution(context: KernelContext): Promise<StudioTwinContext> {
   const spine = record(context.metadata?.cognitiveSpine);
   const explicitConsumption = typeof spine.ctSnapshotConsumed === 'boolean';
@@ -274,7 +270,7 @@ export async function augmentAgentWithLlm(agentId: string, context: KernelContex
 
   const twin = TWIN_RELEVANT_AGENTS.has(agentId) ? await resolveTwinContextForExecution(context) : null;
   const requestedProvider = providerPreference(context.metadata?.preferredLlmProvider);
-  const requirements = requirementsForAgent(agentId);
+  const requirements = llmRequirementsForAgent(agentId);
   const existingInsights = record(context.metadata?.agentInsights);
   const material = materialEvidenceView(context);
 
