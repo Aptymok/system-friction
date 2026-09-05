@@ -31,11 +31,11 @@ export type SfiResearchProjectableObjectType = (typeof SFI_RESEARCH_PROJECTABLE_
 
 /**
  * `relatedObjects` in SFI-CANONICAL-OBJECT-1.0 is untyped. Research Graph therefore
- * projects only the weakest deterministic relation that field can support. More
- * specific scholarly semantics (CITES, DERIVED_FROM, RETURN_OF, etc.) require a
+ * preserves only the exact semantic that the canonical field proves. More specific
+ * scholarly semantics (CITES, REFERENCES, DERIVED_FROM, RETURN_OF, etc.) require a
  * canonical source contract that explicitly carries those semantics first.
  */
-export const SFI_RESEARCH_RELATIONSHIP_TYPES = ['REFERENCES'] as const;
+export const SFI_RESEARCH_RELATIONSHIP_TYPES = ['RELATED_OBJECT'] as const;
 export type SfiResearchRelationshipType = (typeof SFI_RESEARCH_RELATIONSHIP_TYPES)[number];
 
 export interface SfiResearchGraphNode {
@@ -152,7 +152,7 @@ function buildProjectionUnchecked(records: readonly SfiCanonicalObjectRecord[]):
         continue;
       }
       relationships.push({
-        type: 'REFERENCES',
+        type: 'RELATED_OBJECT',
         fromCanonicalObjectId: node.canonicalObjectId,
         toCanonicalObjectId: relatedId,
       });
