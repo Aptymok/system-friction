@@ -1,9 +1,11 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
+import { classifyObservatoryRead, observableMetricValue } from '../src/lib/observatory/public/readAvailability';
 
 const root = process.cwd();
 const read = (relative: string) => readFileSync(path.join(root, relative), 'utf8');
+const occurrences = (source: string, token: string) => source.split(token).length - 1;
 
 const worldApi = read('src/app/api/field/map/world/route.ts');
 const cognitive = read('src/app/api/field/map/world/cognitive/route.ts');
@@ -19,6 +21,8 @@ const twinState = read('src/core/cognitive-twin/readState.ts');
 const scenes = read('src/components/sfi/scenes.ts');
 const shellUi = read('src/components/sfi/SfiConsole.tsx');
 const observatoryUi = read('src/components/sfi/ObservatoryConsole.tsx');
+const observatoryInterpretiveFlow = read('src/components/sfi/ObservatoryInterpretiveFlow.tsx');
+const observatoryAvailability = read('src/lib/observatory/public/readAvailability.ts');
 const operatingUi = read('src/components/sfi/SfiOperatingWorkspace.tsx');
 const governanceUi = read('src/components/sfi/SfiGovernanceWorkspace.tsx');
 const observatoryPage = read('src/app/observatory/page.tsx');
@@ -69,6 +73,7 @@ for (const token of [
 
 for (const token of [
   "fetchJson('/api/observatory/world')",
+  "fetchJson('/api/observatory/state')",
   "fetchJson('/api/observatory/timeline')",
   'setInterval(pull,20000)',
   '/sfi-scenes/satellite.png',
@@ -79,6 +84,103 @@ for (const token of [
   'sourceSummary',
   "ownedText('FILTROS','FILTERS')",
 ]) assert.ok(observatoryUi.includes(token), `satellite_observatory_runtime_missing:${token}`);
+
+// #366: one existing authoritative read per public Observatory domain, never an availability probe/fanout.
+for (const endpoint of [
+  "fetchJson('/api/observatory/world')",
+  "fetchJson('/api/observatory/state')",
+  "fetchJson('/api/observatory/timeline')",
+]) assert.equal(occurrences(observatoryUi, endpoint), 1, `observatory_duplicate_equivalent_read:${endpoint}`);
+assert.equal(occurrences(observatoryUi, 'setInterval(pull,20000)'), 1, 'observatory_polling_topology_amplified');
+assert.equal(occurrences(observatoryUi, 'Promise.all(['), 1, 'observatory_second_read_owner_detected');
+for (const token of [
+  'let stop=false;let inFlight=false',
+  'if(inFlight)return;inFlight=true',
+  'finally{inFlight=false}',
+]) assert.ok(observatoryUi.includes(token), `observatory_overlapping_pull_guard_missing:${token}`);
+const requestTimeout = observatoryUi.match(/const OBSERVATORY_REQUEST_TIMEOUT_MS=(\d+);/);
+assert.ok(requestTimeout, 'observatory_request_timeout_missing');
+assert.ok(Number(requestTimeout[1]) > 0 && Number(requestTimeout[1]) < 20000, 'observatory_request_timeout_must_complete_before_poll_interval');
+assert.equal(occurrences(observatoryUi, 'AbortSignal.timeout(OBSERVATORY_REQUEST_TIMEOUT_MS)'), 1, 'observatory_request_timeout_owner_must_be_single');
+
+// #366: the co-rendered interpretive flow is a projection of the same read model, never a second reader/poller.
+assert.equal(occurrences(observatoryInterpretiveFlow, "fetch('/api/observatory/world'"), 0, 'interpretive_flow_must_not_fetch_world');
+assert.equal(occurrences(observatoryInterpretiveFlow, 'setInterval('), 0, 'interpretive_flow_must_not_own_polling');
+assert.equal(occurrences(observatoryInterpretiveFlow, 'useEffect('), 0, 'interpretive_flow_must_not_own_transport_lifecycle');
+assert.ok(observatoryUi.includes('<ObservatoryInterpretiveFlow world={world} availability={availability.world}/>'), 'interpretive_flow_must_receive_canonical_world_read_model');
+assert.equal(observatoryPage.includes('ObservatoryInterpretiveFlow'), false, 'observatory_page_must_not_mount_second_interpretive_owner');
+assert.equal(shellUi.includes('ObservatoryInterpretiveFlow'), false, 'field_scene_must_not_mount_second_interpretive_owner');
+
+// #366: availability is a public epistemic boundary, not an empty-array alias.
+for (const token of [
+  "'LOADING' | 'AVAILABLE' | 'DEGRADED' | 'UNAVAILABLE' | 'ERROR'",
+  "'WORLD' | 'STATE' | 'TIMELINE'",
+  'hasAuthoritativeShape',
+  "domain === 'WORLD'",
+  "domain === 'STATE'",
+  "payload.ok === false",
+  "return result.status >= 500 ? 'DEGRADED' : 'ERROR'",
+  "return availability === 'AVAILABLE' ? value : availability",
+]) assert.ok(observatoryAvailability.includes(token), `observatory_availability_contract_missing:${token}`);
+
+const availableWorld = { ok: true, status: 200, data: { ok: true, nodes: [], hypotheses: [], sourceSummary: [], warnings: [], filters: {}, graph: {} } };
+assert.equal(classifyObservatoryRead(availableWorld, 'WORLD'), 'AVAILABLE');
+assert.equal(observableMetricValue('AVAILABLE', 0), 0, 'authoritative_empty_read_must_render_zero');
+assert.equal(classifyObservatoryRead({ ok: true, status: 200, data: {} }, 'WORLD'), 'DEGRADED', 'empty_200_world_payload_must_not_be_available');
+assert.equal(classifyObservatoryRead({ ok: true, status: 200, data: { ok: true } }, 'WORLD'), 'DEGRADED', 'incomplete_200_world_payload_must_not_be_available');
+assert.equal(classifyObservatoryRead({ ok: true, status: 200, data: { ok: true, data: {} } }, 'STATE'), 'AVAILABLE');
+assert.equal(classifyObservatoryRead({ ok: true, status: 200, data: { ok: true } }, 'STATE'), 'DEGRADED', 'incomplete_200_state_payload_must_not_be_available');
+assert.equal(classifyObservatoryRead({ ok: true, status: 200, data: { ok: true, frames: [] } }, 'TIMELINE'), 'AVAILABLE');
+assert.equal(classifyObservatoryRead({ ok: true, status: 200, data: { ok: true } }, 'TIMELINE'), 'DEGRADED', 'timeline_without_frames_must_not_be_available');
+assert.equal(classifyObservatoryRead({ ok: true, status: 200, data: { ok: false, warnings: ['hypotheses:unavailable'] } }, 'WORLD'), 'DEGRADED');
+assert.equal(observableMetricValue('DEGRADED', 0), 'DEGRADED', 'degraded_must_not_render_zero');
+assert.equal(classifyObservatoryRead({ ok: false, status: 503, data: { ok: false } }, 'WORLD'), 'DEGRADED');
+assert.equal(observableMetricValue('UNAVAILABLE', 0), 'UNAVAILABLE', 'unavailable_must_not_render_zero');
+assert.equal(classifyObservatoryRead({ ok: false, status: 404, data: null }, 'WORLD'), 'UNAVAILABLE');
+assert.equal(classifyObservatoryRead({ ok: false, status: 0, data: null, error: 'network' }, 'WORLD'), 'ERROR');
+assert.equal(observableMetricValue('ERROR', 0), 'ERROR', 'error_must_not_render_zero');
+assert.equal(observableMetricValue('LOADING', 0), 'LOADING', 'loading_must_not_render_zero');
+
+for (const token of [
+  'data-world-availability={availability.world}',
+  'data-state-availability={availability.state}',
+  'data-timeline-availability={availability.timeline}',
+  'worldMetric(nodes.length)',
+  'worldMetric(sourceIds.length)',
+  'worldMetric(filteredHypotheses.length)',
+  'worldMetric(openHypotheses)',
+  'timelineMetric(`${timeline.length} snapshots`)',
+  'The authoritative hypothesis read is unavailable.',
+  "availability.world==='AVAILABLE'&&<>",
+]) assert.ok(observatoryUi.includes(token), `observatory_public_availability_projection_missing:${token}`);
+
+for (const forbidden of [
+  '<dd>{nodes.length}</dd>',
+  '<dd>{sourceIds.length}</dd>',
+  '<dd>{filteredHypotheses.length}</dd>',
+  '<dd>{openHypotheses}</dd>',
+]) assert.equal(observatoryUi.includes(forbidden), false, `observatory_false_zero_projection_present:${forbidden}`);
+
+for (const token of [
+  "const available=availability==='AVAILABLE'",
+  'observableMetricValue(availability,value)',
+  'data-world-availability={availability}',
+  'metric(nodes.length)',
+  'metric(sourceFamilies.length)',
+  'metric(hypotheses.length)',
+  '!available?<div className="obsInterpretiveUnavailable"',
+  'Counts, relations, and absence claims remain unavailable until the authoritative field read is AVAILABLE.',
+]) assert.ok(observatoryInterpretiveFlow.includes(token), `interpretive_availability_projection_missing:${token}`);
+
+for (const forbidden of [
+  '{nodes.length} {text(',
+  '{sourceFamilies.length} {text(',
+  '{hypotheses.length} {text(',
+]) assert.equal(observatoryInterpretiveFlow.includes(forbidden), false, `interpretive_false_zero_projection_present:${forbidden}`);
+
+const interpretiveUnavailableBranch = observatoryInterpretiveFlow.indexOf('!available?<div className="obsInterpretiveUnavailable"');
+const interpretiveNoHypothesisClaim = observatoryInterpretiveFlow.indexOf('There is not yet a governed hypothesis for this field.');
+assert.ok(interpretiveUnavailableBranch >= 0 && interpretiveNoHypothesisClaim > interpretiveUnavailableBranch, 'interpretive_hypothesis_absence_must_be_inside_available_branch');
 
 for (const token of [
   "from('world_source_observations')",
@@ -169,5 +271,15 @@ console.log(JSON.stringify({
     persistedSourceOnlyLiveCounts: true,
     traceableHypothesisGraph: true,
     privateTwinExposure: false,
+    falseZeroProtected: true,
+    explicitAvailability: true,
+    payloadShapeValidated: true,
+    availabilityAwareHypothesisEmptyState: true,
+    sharedInterpretiveReadModel: true,
+    interpretiveFalseZeroProtected: true,
+    duplicateEquivalentReads: 0,
+    overlappingPolls: 0,
+    requestTimeoutMs: Number(requestTimeout[1]),
+    pollingAmplification: 0,
   },
 }, null, 2));

@@ -4,7 +4,13 @@ import Link from 'next/link';
 import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { useAuthState } from '@/components/auth/AuthProvider';
 import { SessionControls } from './SessionControls';
+import { ObservatoryInterpretiveFlow } from './ObservatoryInterpretiveFlow';
 import { translateUiText, useSfiLanguage } from '@/components/i18n/SfiLanguageProvider';
+import {
+  classifyObservatoryRead,
+  observableMetricValue,
+  type ObservatoryReadAvailability,
+} from '@/lib/observatory/public/readAvailability';
 import './ObservatoryConsole.css';
 import './ObservatoryWorldLayer.css';
 
@@ -20,10 +26,11 @@ type Hypothesis=Row&{
   evidence_ids?:string[];expected_signals?:string[];contradiction_signals?:string[];aiInference?:Row;graphSnapshot?:Row;outcome?:Row|null;learning?:Row|null;
 };
 type TimelineFrame={observedAt:string;wsi:number|null;nti:number|null;confidence:number|null;sourceState:string;ingestMode:string;vectors:Array<{id:string;label:string;value:number|null;sourceCount:number;trust:number|null}>};
-
 type Position={x:number;y:number;geo:boolean};
+type ObservatoryAvailability={world:ObservatoryReadAvailability;state:ObservatoryReadAvailability;timeline:ObservatoryReadAvailability};
 
 const arr=(v:unknown):unknown[]=>Array.isArray(v)?v:[];
+const row=(v:unknown):Row|null=>v&&typeof v==='object'&&!Array.isArray(v)?v as Row:null;
 const rows=(v:unknown):Row[]=>arr(v).filter((x):x is Row=>Boolean(x)&&typeof x==='object'&&!Array.isArray(x));
 const num=(v:unknown)=>Number.isFinite(Number(v))?Number(v):null;
 const txt=(v:unknown)=>typeof v==='string'&&v.trim()?v.trim():'';
@@ -38,13 +45,15 @@ function dateMs(value:unknown){const n=Date.parse(txt(value));return Number.isFi
 function mean(values:Array<number|null>){const valid=values.filter((v):v is number=>typeof v==='number'&&Number.isFinite(v));return valid.length?valid.reduce((a,b)=>a+b,0)/valid.length:null}
 function pct(value:number|null){return value==null?'—':`${Math.round(value*100)}%`}
 
+const OBSERVATORY_REQUEST_TIMEOUT_MS=15000;
+const INITIAL_AVAILABILITY:ObservatoryAvailability={world:'LOADING',state:'LOADING',timeline:'LOADING'};
 const panel:CSSProperties={position:'absolute',zIndex:25,background:'rgba(4,6,7,.88)',backdropFilter:'blur(18px)',border:'1px solid rgba(214,180,120,.22)',boxShadow:'0 22px 70px rgba(0,0,0,.45)',borderRadius:14,color:'#e7dfd2'};
 const micro:CSSProperties={fontSize:10,letterSpacing:'.12em',textTransform:'uppercase',opacity:.58};
 const chip:CSSProperties={fontSize:10,padding:'5px 8px',border:'1px solid rgba(214,180,120,.2)',borderRadius:999,background:'rgba(214,180,120,.055)',whiteSpace:'nowrap'};
 const selectStyle:CSSProperties={background:'rgba(5,7,8,.88)',color:'#e7dfd2',border:'1px solid rgba(214,180,120,.18)',borderRadius:8,padding:'7px 9px',fontSize:11,maxWidth:190};
 
 async function fetchJson(path:string){
-  try{const response=await fetch(path,{cache:'no-store'});const data=await response.json().catch(()=>null);return{ok:response.ok,data,status:response.status}}catch(error){return{ok:false,data:null,status:0,error:error instanceof Error?error.message:String(error)}}
+  try{const response=await fetch(path,{cache:'no-store',signal:AbortSignal.timeout(OBSERVATORY_REQUEST_TIMEOUT_MS)});const data=await response.json().catch(()=>null);return{ok:response.ok,data,status:response.status}}catch(error){return{ok:false,data:null,status:0,error:error instanceof Error?error.message:String(error)}}
 }
 
 export function ObservatoryConsole(){
@@ -52,18 +61,21 @@ export function ObservatoryConsole(){
   const {language,text:ownedText}=useSfiLanguage();
   const ui=(value:string)=>translateUiText(value,language);
   const[world,setWorld]=useState<Row|null>(null),[obs,setObs]=useState<Row|null>(null),[timeline,setTimeline]=useState<TimelineFrame[]>([]);
+  const[availability,setAvailability]=useState<ObservatoryAvailability>(INITIAL_AVAILABILITY);
   const[lens,setLens]=useState<Lens>('field'),[satelliteOpen,setSatelliteOpen]=useState(true),[selectedNodeId,setSelectedNodeId]=useState<string|null>(null),[selectedHypothesisId,setSelectedHypothesisId]=useState<string|null>(null);
   const[sourceFamily,setSourceFamily]=useState('ALL'),[systemFilter,setSystemFilter]=useState('ALL'),[statusFilter,setStatusFilter]=useState('ALL'),[windowHours,setWindowHours]=useState(168),[minConfidence,setMinConfidence]=useState(0),[query,setQuery]=useState('');
   const[time,setTime]=useState(100),[clock,setClock]=useState('');
 
   useEffect(()=>{const tick=()=>setClock(new Date().toISOString());tick();const t=setInterval(tick,1000);return()=>clearInterval(t)},[]);
-  useEffect(()=>{let stop=false;const pull=async()=>{
+  useEffect(()=>{let stop=false;let inFlight=false;const pull=async()=>{if(inFlight)return;inFlight=true;try{
     const[worldR,obsR,timeR]=await Promise.all([fetchJson('/api/observatory/world'),fetchJson('/api/observatory/state'),fetchJson('/api/observatory/timeline')]);
     if(stop)return;
-    if(worldR.data)setWorld(worldR.data);
-    if(obsR.data)setObs(obsR.data);
-    if(Array.isArray(timeR.data?.frames))setTimeline(timeR.data.frames);
-  };void pull();const t=setInterval(pull,20000);return()=>{stop=true;clearInterval(t)}},[]);
+    const nextAvailability:ObservatoryAvailability={world:classifyObservatoryRead(worldR,'WORLD'),state:classifyObservatoryRead(obsR,'STATE'),timeline:classifyObservatoryRead(timeR,'TIMELINE')};
+    setAvailability(nextAvailability);
+    setWorld(nextAvailability.world==='AVAILABLE'?row(worldR.data):null);
+    setObs(nextAvailability.state==='AVAILABLE'?row(obsR.data):null);
+    setTimeline(nextAvailability.timeline==='AVAILABLE'&&Array.isArray(timeR.data?.frames)?timeR.data.frames:[]);
+  }finally{inFlight=false}};void pull();const t=setInterval(pull,20000);return()=>{stop=true;clearInterval(t)}},[]);
 
   const allNodes=useMemo<WorldNode[]>(()=>rows(world?.nodes).map((o)=>({
     id:String(o.id),kind:String(o.kind||'observed'),sourceId:String(o.sourceId||'unknown'),sourceFamily:String(o.sourceFamily||'unknown'),publisher:String(o.publisher||'unknown'),observationKind:String(o.observationKind||'unknown'),title:String(o.title||'Untitled observation'),summary:typeof o.summary==='string'?o.summary:null,observedAt:String(o.observedAt||''),fetchedAt:String(o.fetchedAt||o.observedAt||''),lat:num(o.lat),lng:num(o.lng),countryCodes:arr(o.countryCodes).filter((v):v is string=>typeof v==='string'),affectedSystems:arr(o.affectedSystems).filter((v):v is string=>typeof v==='string'),actors:arr(o.actors).filter((v):v is string=>typeof v==='string'),confidence:num(o.confidence),reading:o.reading&&typeof o.reading==='object'?o.reading:null,provenance:o.provenance&&typeof o.provenance==='object'?o.provenance:null,
@@ -118,12 +130,16 @@ export function ObservatoryConsole(){
   const aiProvider=txt(selectedHypothesis?.aiInference?.provider)||'—';
   const aiModel=txt(selectedHypothesis?.aiInference?.model)||'—';
   const relationClass=txt(selectedHypothesis?.aiInference?.relationClass)||'UNKNOWN';
+  const worldMetric=(value:number|string)=>observableMetricValue(availability.world,value);
+  const timelineMetric=(value:number|string)=>observableMetricValue(availability.timeline,value);
 
-  const narrative=selectedHypothesis
-    ? ownedText(`La hipótesis seleccionada es una inferencia, no un hecho: ${selectedHypothesis.statement??'sin enunciado'}. Su traza usa ${selectedEvidenceIds.size} registros fuente, afecta ${arr(selectedHypothesis.aiInference?.affectedSystems).length} sistemas y conserva señales de contradicción explícitas.`,`The selected hypothesis is an inference, not a fact: ${selectedHypothesis.statement??'no statement'}. Its trace uses ${selectedEvidenceIds.size} source records, affects ${arr(selectedHypothesis.aiInference?.affectedSystems).length} systems, and preserves explicit contradiction signals.`)
-    : ownedText(`El campo contiene ${nodes.length} observaciones visibles y ${filteredHypotheses.length} hipótesis trazables bajo los filtros actuales.`,`The field contains ${nodes.length} visible observations and ${filteredHypotheses.length} traceable hypotheses under the current filters.`);
+  const narrative=availability.world!=='AVAILABLE'
+    ? ownedText(`Lectura autoritativa del campo: ${availability.world}. Los conteos permanecen no numéricos hasta una lectura exitosa.`,`Authoritative field read: ${availability.world}. Counts remain non-numeric until a successful read.`)
+    : selectedHypothesis
+      ? ownedText(`La hipótesis seleccionada es una inferencia, no un hecho: ${selectedHypothesis.statement??'sin enunciado'}. Su traza usa ${selectedEvidenceIds.size} registros fuente, afecta ${arr(selectedHypothesis.aiInference?.affectedSystems).length} sistemas y conserva señales de contradicción explícitas.`,`The selected hypothesis is an inference, not a fact: ${selectedHypothesis.statement??'no statement'}. Its trace uses ${selectedEvidenceIds.size} source records, affects ${arr(selectedHypothesis.aiInference?.affectedSystems).length} systems, and preserves explicit contradiction signals.`)
+      : ownedText(`El campo contiene ${nodes.length} observaciones visibles y ${filteredHypotheses.length} hipótesis trazables bajo los filtros actuales.`,`The field contains ${nodes.length} visible observations and ${filteredHypotheses.length} traceable hypotheses under the current filters.`);
 
-  return <main className="obsShell"><section className={`obsScene lens-${lens}`}><div className="starfield"/><div className="deepSpace"/>
+  return <><main className="obsShell" data-world-availability={availability.world} data-state-availability={availability.state} data-timeline-availability={availability.timeline}><section className={`obsScene lens-${lens}`}><div className="starfield"/><div className="deepSpace"/>
     <button className={`satelliteActor satellite-${lens}`} onClick={()=>{setSatelliteOpen(v=>!v);if(!selectedHypothesisId&&filteredHypotheses[0])setSelectedHypothesisId(String(filteredHypotheses[0].id))}} aria-label={ui('Abrir instrumento satelital SFI')}>
       <img src="/sfi-scenes/satellite.png" alt={ui('Satélite del observatorio SFI')}/><span className="scanBeam"/>
     </button>
@@ -145,8 +161,8 @@ export function ObservatoryConsole(){
       <nav>{(['field','hypotheses','trajectory','sources'] as Lens[]).map(k=><button key={k} className={lens===k?'active':''} onClick={()=>{setLens(k);setSatelliteOpen(true)}}>{k==='hypotheses'?ownedText('HIPÓTESIS','HYPOTHESES'):k==='trajectory'?ownedText('TRAYECTORIA','TRAJECTORY'):k==='sources'?ownedText('FUENTES','SOURCES'):ownedText('CAMPO','FIELD')}</button>)}<Link href="/history">{ui('ORIGEN → AHORA')}</Link>{auth.status==='authenticated'&&<Link href="/cases">{ui('CASOS')}</Link>}</nav>
       <div className="obsIdentity"><b>{auth.identity?.alias||'PUBLIC'}</b><span>{auth.identity?.role||auth.status}</span></div><SessionControls className="obsSessionControls"/></header>
 
-    <aside className="hud hudLeft"><section><small>SFI-OBS-LIVE</small><h3>{ownedText('CAMPO VIVO','LIVE FIELD')}</h3><p className="good">● {clock.slice(11,19)} UTC</p><dl><dt>{ui('OBSERVACIONES')}</dt><dd>{nodes.length}</dd><dt>{ui('FUENTES ACTIVAS')}</dt><dd>{sourceIds.length}</dd><dt>{ui('HIPÓTESIS')}</dt><dd>{filteredHypotheses.length}</dd><dt>{ui('EN RETORNO')}</dt><dd>{openHypotheses}</dd></dl><button onClick={()=>setSatelliteOpen(true)}>{ui('ABRIR SATÉLITE')}</button></section>
-      <section><small>{ownedText('MÉTRICAS DERIVADAS','DERIVED METRICS')}</small><dl><dt>Fₛ</dt><dd>{avgFs==null?'—':avgFs.toFixed(3)}</dd><dt>NTI</dt><dd>{avgNti==null?'—':avgNti.toFixed(3)}</dd><dt>Φ</dt><dd>{avgPhi==null?'—':avgPhi.toFixed(3)}</dd></dl><p style={{fontSize:11,opacity:.62,lineHeight:1.5}}>{ownedText('Los números describen estructura observada/derivada. El significado, mecanismo y consecuencias se muestran sólo como hipótesis trazables.','Numbers describe observed/derived structure. Meaning, mechanism and consequences are shown only as traceable hypotheses.')}</p></section>
+    <aside className="hud hudLeft"><section><small>SFI-OBS-LIVE</small><h3>{ownedText('CAMPO VIVO','LIVE FIELD')}</h3><p className="good">● {clock.slice(11,19)} UTC</p><dl><dt>{ui('OBSERVACIONES')}</dt><dd data-availability={availability.world}>{worldMetric(nodes.length)}</dd><dt>{ui('FUENTES ACTIVAS')}</dt><dd data-availability={availability.world}>{worldMetric(sourceIds.length)}</dd><dt>{ui('HIPÓTESIS')}</dt><dd data-availability={availability.world}>{worldMetric(filteredHypotheses.length)}</dd><dt>{ui('EN RETORNO')}</dt><dd data-availability={availability.world}>{worldMetric(openHypotheses)}</dd></dl><button onClick={()=>setSatelliteOpen(true)}>{ui('ABRIR SATÉLITE')}</button></section>
+      <section><small>{ownedText('MÉTRICAS DERIVADAS','DERIVED METRICS')}</small><dl><dt>Fₛ</dt><dd data-availability={availability.world}>{avgFs==null?'—':avgFs.toFixed(3)}</dd><dt>NTI</dt><dd data-availability={availability.world}>{avgNti==null?'—':avgNti.toFixed(3)}</dd><dt>Φ</dt><dd data-availability={availability.world}>{avgPhi==null?'—':avgPhi.toFixed(3)}</dd></dl><p style={{fontSize:11,opacity:.62,lineHeight:1.5}}>{ownedText('Los números describen estructura observada/derivada. El significado, mecanismo y consecuencias se muestran sólo como hipótesis trazables.','Numbers describe observed/derived structure. Meaning, mechanism and consequences are shown only as traceable hypotheses.')}</p></section>
     </aside>
 
     <div style={{...panel,left:'50%',transform:'translateX(-50%)',bottom:22,width:'min(94vw,980px)',padding:'10px 12px',display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
@@ -163,12 +179,12 @@ export function ObservatoryConsole(){
 
     {satelliteOpen&&<aside style={{...panel,right:18,top:104,bottom:142,width:'min(470px,42vw)',padding:16,overflowY:'auto',scrollbarWidth:'none'}}>
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10}}><div><div style={micro}>SFI SATELLITE · {lens.toUpperCase()}</div><h2 style={{fontSize:18,margin:'5px 0 0'}}>{lens==='field'?ownedText('LECTURA DEL CAMPO','FIELD READING'):lens==='hypotheses'?ownedText('GRAFO DE HIPÓTESIS','HYPOTHESIS GRAPH'):lens==='trajectory'?ownedText('TRAYECTORIA Y RETORNO','TRAJECTORY & RETURN'):ownedText('FUENTES VIVAS','LIVE SOURCES')}</h2></div><button onClick={()=>setSatelliteOpen(false)} style={{...selectStyle,padding:'6px 9px'}}>×</button></div>
-      <p style={{fontSize:12,lineHeight:1.6,opacity:.74}}>{narrative}</p>
+      <p style={{fontSize:12,lineHeight:1.6,opacity:.74}} data-availability={availability.world}>{narrative}</p>
 
-      {lens==='field'&&<><div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:8,margin:'12px 0'}}>{[[ownedText('Fuentes','Sources'),sourceIds.length],[ownedText('Hipótesis abiertas','Open hypotheses'),openHypotheses],[ownedText('Contrastadas','Contrasted'),outcomeCount],[ownedText('Aprendizajes','Learning'),learningCount],['WSI',num(obs?.data?.worldspect?.wsi??frame?.wsi)?.toFixed(3)??'—'],['NTI src',num(obs?.data?.worldspect?.nti??frame?.nti)?.toFixed(3)??'—']].map(([a,b])=><div key={String(a)} style={{padding:10,border:'1px solid rgba(214,180,120,.12)',borderRadius:9}}><div style={micro}>{a}</div><b style={{fontSize:18}}>{b}</b></div>)}</div>
-        <div style={micro}>{ownedText('HIPÓTESIS ACTIVAS','ACTIVE HYPOTHESES')}</div>{filteredHypotheses.slice(0,8).map(h=><button key={String(h.id)} onClick={()=>{setSelectedHypothesisId(String(h.id));setLens('hypotheses')}} style={{display:'block',width:'100%',textAlign:'left',marginTop:7,padding:10,borderRadius:9,border:String(h.id)===String(selectedHypothesis?.id)?'1px solid rgba(214,180,120,.5)':'1px solid rgba(214,180,120,.12)',background:'rgba(255,255,255,.018)',color:'inherit'}}><b>{short(h.statement,120)||'Hypothesis'}</b><div style={{...micro,marginTop:5}}>{h.aiInference?.relationClass||'UNKNOWN'} · {pct(num(h.current_confidence))} · {h.status}</div></button>)}</>}
+      {lens==='field'&&<><div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:8,margin:'12px 0'}}>{[[ownedText('Fuentes','Sources'),worldMetric(sourceIds.length)],[ownedText('Hipótesis abiertas','Open hypotheses'),worldMetric(openHypotheses)],[ownedText('Contrastadas','Contrasted'),worldMetric(outcomeCount)],[ownedText('Aprendizajes','Learning'),worldMetric(learningCount)],['WSI',num(obs?.data?.worldspect?.wsi??frame?.wsi)?.toFixed(3)??'—'],['NTI src',num(obs?.data?.worldspect?.nti??frame?.nti)?.toFixed(3)??'—']].map(([a,b],index)=><div key={String(a)} data-availability={index<4?availability.world:undefined} style={{padding:10,border:'1px solid rgba(214,180,120,.12)',borderRadius:9}}><div style={micro}>{a}</div><b style={{fontSize:18}}>{b}</b></div>)}</div>
+        <div style={micro}>{ownedText('HIPÓTESIS ACTIVAS','ACTIVE HYPOTHESES')}</div>{availability.world!=='AVAILABLE'?<p data-availability={availability.world} style={{fontSize:11,opacity:.72}}>{availability.world}</p>:filteredHypotheses.slice(0,8).map(h=><button key={String(h.id)} onClick={()=>{setSelectedHypothesisId(String(h.id));setLens('hypotheses')}} style={{display:'block',width:'100%',textAlign:'left',marginTop:7,padding:10,borderRadius:9,border:String(h.id)===String(selectedHypothesis?.id)?'1px solid rgba(214,180,120,.5)':'1px solid rgba(214,180,120,.12)',background:'rgba(255,255,255,.018)',color:'inherit'}}><b>{short(h.statement,120)||'Hypothesis'}</b><div style={{...micro,marginTop:5}}>{h.aiInference?.relationClass||'UNKNOWN'} · {pct(num(h.current_confidence))} · {h.status}</div></button>)}</>}
 
-      {lens==='hypotheses'&&<>{selectedHypothesis?<div>
+      {lens==='hypotheses'&&<>{availability.world!=='AVAILABLE'?<p data-availability={availability.world} style={{fontSize:11,opacity:.72}}>{ownedText('La lectura autoritativa de hipótesis no está disponible.','The authoritative hypothesis read is unavailable.')} · {availability.world}</p>:selectedHypothesis?<div>
         <div style={{display:'flex',gap:6,flexWrap:'wrap',margin:'11px 0'}}><span style={chip}>{relationClass}</span><span style={chip}>{pct(num(selectedHypothesis.current_confidence))}</span><span style={chip}>{selectedHypothesis.status}</span><span style={chip}>{aiProvider} / {aiModel}</span></div>
         <h3 style={{fontSize:16,lineHeight:1.4}}>{selectedHypothesis.statement}</h3>
         <div style={{...micro,marginTop:14}}>{ownedText('MECANISMO PROPUESTO · INFERENCIA','PROPOSED MECHANISM · INFERENCE')}</div><p style={{fontSize:12,lineHeight:1.65}}>{selectedHypothesis.aiInference?.mechanism||ownedText('No determinado.','Undetermined.')}</p>
@@ -179,15 +195,15 @@ export function ObservatoryConsole(){
         {selectedHypothesis.outcome&&<div style={{marginTop:16,padding:11,border:'1px solid rgba(214,180,120,.18)',borderRadius:10}}><div style={micro}>RETURN / CONTRAST</div><b>{selectedHypothesis.outcome.classification}</b><p style={{fontSize:11,lineHeight:1.55}}>{selectedHypothesis.outcome.observed_outcome}</p></div>}
         {selectedHypothesis.learning&&<div style={{marginTop:10,padding:11,border:'1px solid rgba(214,180,120,.18)',borderRadius:10}}><div style={micro}>LEARNING</div><div style={{fontSize:11,lineHeight:1.55}}>{ownedText('Retenido','Retained')}: {arr(selectedHypothesis.learning.retained_assumptions).join(' · ')||'—'}<br/>{ownedText('Rechazado','Rejected')}: {arr(selectedHypothesis.learning.rejected_assumptions).join(' · ')||'—'}<br/>{ownedText('Variables faltantes','Missing variables')}: {arr(selectedHypothesis.learning.missing_variables).join(' · ')||'—'}</div></div>}
       </div>:<p>{ownedText('No existe una hipótesis bajo los filtros actuales.','No hypothesis exists under the current filters.')}</p>}
-        <div style={{...micro,marginTop:18}}>{ownedText('OTRAS HIPÓTESIS','OTHER HYPOTHESES')}</div>{filteredHypotheses.slice(0,14).map(h=><button key={String(h.id)} onClick={()=>setSelectedHypothesisId(String(h.id))} style={{display:'block',width:'100%',textAlign:'left',padding:'8px 0',border:0,borderBottom:'1px solid rgba(214,180,120,.1)',background:'transparent',color:'inherit',fontSize:11}}>{short(h.statement,120)} <span style={{opacity:.5}}>· {pct(num(h.current_confidence))}</span></button>)}</>}
+        {availability.world==='AVAILABLE'&&<><div style={{...micro,marginTop:18}}>{ownedText('OTRAS HIPÓTESIS','OTHER HYPOTHESES')}</div>{filteredHypotheses.slice(0,14).map(h=><button key={String(h.id)} onClick={()=>setSelectedHypothesisId(String(h.id))} style={{display:'block',width:'100%',textAlign:'left',padding:'8px 0',border:0,borderBottom:'1px solid rgba(214,180,120,.1)',background:'transparent',color:'inherit',fontSize:11}}>{short(h.statement,120)} <span style={{opacity:.5}}>· {pct(num(h.current_confidence))}</span></button>)}</>}</>}
 
-      {lens==='trajectory'&&<><div style={{display:'flex',justifyContent:'space-between',gap:8,margin:'12px 0'}}><span style={micro}>{timeline.length} snapshots</span><span style={micro}>{frame?.observedAt||'—'}</span></div><input style={{width:'100%'}} type="range" min="0" max="100" value={time} onChange={e=>setTime(Number(e.target.value))}/><div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginTop:12}}><div style={{padding:10,border:'1px solid rgba(214,180,120,.12)',borderRadius:9}}><div style={micro}>WSI</div><b>{frame?.wsi==null?'—':frame.wsi.toFixed(3)}</b></div><div style={{padding:10,border:'1px solid rgba(214,180,120,.12)',borderRadius:9}}><div style={micro}>NTI</div><b>{frame?.nti==null?'—':frame.nti.toFixed(3)}</b></div></div><div style={{...micro,marginTop:14}}>{ownedText('CICLO DE HIPÓTESIS','HYPOTHESIS LIFECYCLE')}</div>{filteredHypotheses.slice(0,14).map(h=><div key={String(h.id)} style={{padding:'9px 0',borderBottom:'1px solid rgba(214,180,120,.1)'}}><b style={{fontSize:11}}>{short(h.statement,110)}</b><div style={{fontSize:10,opacity:.6}}>{h.cutoff_at} → {h.validation_ends_at} · {h.status} · {pct(num(h.current_confidence))}</div></div>)}</>}
+      {lens==='trajectory'&&<><div style={{display:'flex',justifyContent:'space-between',gap:8,margin:'12px 0'}}><span style={micro} data-availability={availability.timeline}>{timelineMetric(`${timeline.length} snapshots`)}</span><span style={micro}>{frame?.observedAt||availability.timeline}</span></div><input style={{width:'100%'}} type="range" min="0" max="100" value={time} onChange={e=>setTime(Number(e.target.value))}/><div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginTop:12}}><div style={{padding:10,border:'1px solid rgba(214,180,120,.12)',borderRadius:9}}><div style={micro}>WSI</div><b>{frame?.wsi==null?'—':frame.wsi.toFixed(3)}</b></div><div style={{padding:10,border:'1px solid rgba(214,180,120,.12)',borderRadius:9}}><div style={micro}>NTI</div><b>{frame?.nti==null?'—':frame.nti.toFixed(3)}</b></div></div><div style={{...micro,marginTop:14}}>{ownedText('CICLO DE HIPÓTESIS','HYPOTHESIS LIFECYCLE')}</div>{filteredHypotheses.slice(0,14).map(h=><div key={String(h.id)} style={{padding:'9px 0',borderBottom:'1px solid rgba(214,180,120,.1)'}}><b style={{fontSize:11}}>{short(h.statement,110)}</b><div style={{fontSize:10,opacity:.6}}>{h.cutoff_at} → {h.validation_ends_at} · {h.status} · {pct(num(h.current_confidence))}</div></div>)}</>}
 
-      {lens==='sources'&&<><div style={{...micro,marginTop:12}}>{ownedText('FUENTES QUE REALMENTE PERSISTIERON OBSERVACIONES','SOURCES THAT ACTUALLY PERSISTED OBSERVATIONS')}</div>{rows(world?.sourceSummary).slice(0,80).map(source=><div key={String(source.sourceId)} style={{display:'flex',justifyContent:'space-between',gap:10,padding:'7px 0',borderBottom:'1px solid rgba(214,180,120,.08)',fontSize:11}}><span>{source.sourceId}</span><b>{source.count}</b></div>)}<p style={{fontSize:11,lineHeight:1.55,opacity:.62,marginTop:12}}>{ownedText('Aquí no se muestran fuentes “configuradas” como si estuvieran vivas. Sólo aparecen las que dejaron registros persistidos dentro del horizonte seleccionado.','Configured sources are not presented as live. This list contains only sources that actually left persisted records inside the selected horizon.')}</p></>}
+      {lens==='sources'&&<><div style={{...micro,marginTop:12}}>{ownedText('FUENTES QUE REALMENTE PERSISTIERON OBSERVACIONES','SOURCES THAT ACTUALLY PERSISTED OBSERVATIONS')}</div>{availability.world!=='AVAILABLE'&&<p data-availability={availability.world} style={{fontSize:11,opacity:.72}}>{availability.world}</p>}{rows(world?.sourceSummary).slice(0,80).map(source=><div key={String(source.sourceId)} style={{display:'flex',justifyContent:'space-between',gap:10,padding:'7px 0',borderBottom:'1px solid rgba(214,180,120,.08)',fontSize:11}}><span>{source.sourceId}</span><b>{source.count}</b></div>)}<p style={{fontSize:11,lineHeight:1.55,opacity:.62,marginTop:12}}>{ownedText('Aquí no se muestran fuentes “configuradas” como si estuvieran vivas. Sólo aparecen las que dejaron registros persistidos dentro del horizonte seleccionado.','Configured sources are not presented as live. This list contains only sources that actually left persisted records inside the selected horizon.')}</p></>}
 
       <hr style={{border:0,borderTop:'1px solid rgba(214,180,120,.14)',margin:'16px 0'}}/><div style={{fontSize:10,lineHeight:1.55,opacity:.52}}>{world?.graph?.boundary||ownedText('Fuente ≠ evidencia; relación derivada ≠ causalidad observada; hipótesis ≠ verdad.','Source ≠ evidence; derived relation ≠ observed causality; hypothesis ≠ truth.')}</div>
     </aside>}
 
-    <div style={{position:'absolute',zIndex:15,left:'50%',transform:'translateX(-50%)',top:88,pointerEvents:'none',fontSize:11,letterSpacing:'.08em',opacity:.62}}>{ownedText('FLUJO VIVO','LIVE FLOW')} · {world?.generatedAt?.slice?.(11,19)||'—'} · {sourceIds.length} {ownedText('fuentes observadas','observed sources')} · {selectedGraphEdges.length} {ownedText('relaciones visibles','visible relations')}</div>
-  </section></main>;
+    <div style={{position:'absolute',zIndex:15,left:'50%',transform:'translateX(-50%)',top:88,pointerEvents:'none',fontSize:11,letterSpacing:'.08em',opacity:.62}} data-availability={availability.world}>{ownedText('FLUJO VIVO','LIVE FLOW')} · {world?.generatedAt?.slice?.(11,19)||availability.world} · {worldMetric(sourceIds.length)} {ownedText('fuentes observadas','observed sources')} · {worldMetric(selectedGraphEdges.length)} {ownedText('relaciones visibles','visible relations')}</div>
+  </section></main><ObservatoryInterpretiveFlow world={world} availability={availability.world}/></>;
 }
