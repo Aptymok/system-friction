@@ -1,3 +1,4 @@
+import type { SFIEvent } from '../../../../packages/events/src/schema';
 import {
   SFI_CAPABILITY_REQUEST_CONTRACT,
   evaluateCapabilityRequest,
@@ -21,15 +22,11 @@ export type SfiCapabilityRuntimeResult = {
   } | null;
 };
 
-type CapabilityEventInput = {
-  eventName: string;
-  epistemicClass: 'observation' | 'derived' | 'simulation' | 'prediction' | 'return';
-  confidence: number;
-  occurredAt?: string;
-  source: { sourceId: string; sourceType?: string | null; uri?: string | null };
-  logbookId?: string | null;
-  lineage?: string[];
-  payload?: unknown;
+export type CapabilityEventInput = Required<
+  Pick<SFIEvent, 'eventName' | 'epistemicClass' | 'confidence' | 'source'>
+> & Partial<Pick<SFIEvent, 'occurredAt' | 'lineage' | 'payload'>> & {
+  logbookId?: string;
+  schemaVersion?: string;
 };
 
 type AgentExecutionResult = {
