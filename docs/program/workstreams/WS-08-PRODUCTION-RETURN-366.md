@@ -66,4 +66,6 @@ Contract delta: `NONE`.
 Authority expansion: `NONE`.
 Product semantic change by WS-08: `NONE`.
 
+Canonical PR preflight metadata is carried in PR #368 under `SFI PRECHECK`; this receipt remains product-read-only and introduces no additional authority owner.
+
 Recommendation to SFI-00: `CLOSE #366` after Control Room verifies this receipt. WS-08 does not close the issue and does not merge PR #368.
