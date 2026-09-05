@@ -163,3 +163,11 @@ PERSISTENCE/MIGRATIONS: NONE
 NEW PUBLIC ROUTES: NONE
 EXTERNAL MUTATION: NONE
 ```
+
+## QA chronology
+
+PR `#375` first exact-head run `SFI Verify #2402` reached canonical architecture preflight after dependency installation, parallel-topology QA and domain boundaries passed. Preflight failed only on `P17_PR_PREFLIGHT_REQUIRED`: the PR dossier used the heading `Redundancy removed/avoided:` while the canonical architecture gate requires the exact field `Redundancy removed:`.
+
+The PR body was corrected to the required canonical field without changing implementation semantics. No code was modified to bypass the gate. This documentation commit records the preflight correction and intentionally triggers fresh exact-head CI from the corrected PR dossier.
+
+External preview signals observed on the first PR head are not treated as product QA: Vercel reported its free-plan daily deployment limit, and Netlify reported deploy-preview failure. Neither signal had reached or evaluated the Research Graph test gate. Exact-head `SFI Verify` remains the required product/integration gate.
