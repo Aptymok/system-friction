@@ -205,12 +205,22 @@ export function assertMethodLabExperimentRun(
   if (preregistration.experimentType !== 'OBSERVATIONAL' && RESULT.epistemicClass === 'OBSERVED') {
     throw new Error('METHOD_LAB_EXPERIMENT_SIMULATION_CANNOT_BECOME_OBSERVED');
   }
+  if (RESULT.epistemicClass === 'OBSERVED' && RESULT.evidenceRefs.length === 0) {
+    throw new Error('METHOD_LAB_EXPERIMENT_OBSERVED_RESULT_EVIDENCE_REQUIRED');
+  }
+  if (preregistration.RETURN_WINDOW.required && CONTRAST.status === 'NOT_APPLICABLE') {
+    throw new Error('METHOD_LAB_EXPERIMENT_REQUIRED_RETURN_CANNOT_BE_NOT_APPLICABLE');
+  }
   if (CONTRAST.status === 'AVAILABLE') {
     if (!CONTRAST.realityReturn) throw new Error('METHOD_LAB_EXPERIMENT_RETURN_REQUIRED_FOR_CONTRAST');
     if (CONTRAST.realityReturn.source !== 'REALITY') throw new Error('METHOD_LAB_EXPERIMENT_RETURN_MUST_COME_FROM_REALITY');
     assertIso(CONTRAST.realityReturn.observedAt, 'return_observed_at');
     if (CONTRAST.realityReturn.evidenceRefs.length === 0) throw new Error('METHOD_LAB_EXPERIMENT_RETURN_EVIDENCE_REQUIRED');
     assertUniqueRefs(CONTRAST.realityReturn.evidenceRefs, 'return_evidence_refs');
+    const returnObservedAt = Date.parse(CONTRAST.realityReturn.observedAt);
+    if (returnObservedAt < Date.parse(preregistration.RETURN_WINDOW.opensAt) || returnObservedAt > Date.parse(preregistration.RETURN_WINDOW.closesAt)) {
+      throw new Error('METHOD_LAB_EXPERIMENT_RETURN_OUTSIDE_PREREGISTERED_WINDOW');
+    }
   } else if (CONTRAST.realityReturn !== null) {
     throw new Error('METHOD_LAB_EXPERIMENT_RETURN_WITHOUT_AVAILABLE_CONTRAST');
   }
