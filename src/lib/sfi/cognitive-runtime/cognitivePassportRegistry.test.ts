@@ -142,7 +142,7 @@ test('projected model requirements share one tier owner with the LLM execution c
     structuredOutput: true,
     priority: 'speed',
   });
-  assert.match(clientSource, /llmRequirementsForAgent\(agentId\)/);
+  assert.match(clientSource, /const requirements = llmRequirementsForAgent\(agentId\);/);
   assert.doesNotMatch(clientSource, /function requirementsForAgent\(/);
   assert.equal(Object.hasOwn(temporal.modelRequirements, 'model'), false);
   assert.equal(Object.hasOwn(temporal.modelRequirements, 'provider'), false);
@@ -254,30 +254,107 @@ test('validator rejects unsupported cognitive passport versions', () => {
   ]);
 });
 
-test('source validation rejects output policy drift', () => {
+test('source validation rejects every output policy drift from the canonical projection', () => {
   const source = SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY.find((agent) => agent.id === 'field_observer');
   assert.ok(source);
-  const passport = structuredClone(projectCognitivePassport(source)) as SfiCognitivePassport;
-  passport.output.confidencePolicy = 'arbitrary-confidence';
-  passport.output.missingPolicy = 'MISSING_IS_ZERO';
 
-  assert.deepEqual(validateCognitivePassportAgainstSource(passport, source), [
-    'field_observer:OUTPUT_POLICY_CONTRACT_MISMATCH',
-  ]);
+  const mutations: Array<(passport: SfiCognitivePassport) => void> = [
+    (passport) => { passport.output.schemaRef = 'schema:drift'; },
+    (passport) => { passport.output.confidencePolicy = 'arbitrary-confidence'; },
+    (passport) => { passport.output.missingPolicy = 'MISSING_IS_ZERO'; },
+    (passport) => { passport.output.contradictionPolicy = 'DROP_CONTRADICTIONS'; },
+  ];
+
+  for (const mutate of mutations) {
+    const passport = structuredClone(projectCognitivePassport(source)) as SfiCognitivePassport;
+    mutate(passport);
+    assert.deepEqual(validateCognitivePassportAgainstSource(passport, source), [
+      'field_observer:OUTPUT_POLICY_CONTRACT_MISMATCH',
+    ]);
+  }
 });
 
-test('source validation rejects model requirement drift', () => {
+test('source validation rejects drift in every canonical model requirement field', () => {
   const source = SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY.find((agent) => agent.id === 'field_observer');
   assert.ok(source);
-  const passport = structuredClone(projectCognitivePassport(source)) as SfiCognitivePassport;
-  passport.modelRequirements.web = true;
-  passport.modelRequirements.computer = true;
-  passport.modelRequirements.privacyClass = 'PUBLIC';
-  passport.modelRequirements.providerAllowlist = ['unassigned-provider'];
 
-  assert.deepEqual(validateCognitivePassportAgainstSource(passport, source), [
-    'field_observer:MODEL_REQUIREMENTS_CONTRACT_MISMATCH',
+  const mutations: Array<(passport: SfiCognitivePassport) => void> = [
+    (passport) => { passport.modelRequirements.reasoning = 'FRONTIER'; },
+    (passport) => { passport.modelRequirements.structuredOutput = false; },
+    (passport) => { passport.modelRequirements.web = true; },
+    (passport) => { passport.modelRequirements.multimodal = true; },
+    (passport) => { passport.modelRequirements.computer = true; },
+    (passport) => { passport.modelRequirements.code = true; },
+    (passport) => { passport.modelRequirements.minContextTokens = 1; },
+    (passport) => { passport.modelRequirements.latencyClass = 'BATCH'; },
+    (passport) => { passport.modelRequirements.costClass = 'FRONTIER'; },
+    (passport) => { passport.modelRequirements.privacyClass = 'PUBLIC'; },
+    (passport) => { passport.modelRequirements.providerAllowlist = ['unassigned-provider']; },
+    (passport) => { passport.modelRequirements.providerDenylist = ['unassigned-provider']; },
+  ];
+
+  for (const mutate of mutations) {
+    const passport = structuredClone(projectCognitivePassport(source)) as SfiCognitivePassport;
+    mutate(passport);
+    assert.deepEqual(validateCognitivePassportAgainstSource(passport, source), [
+      'field_observer:MODEL_REQUIREMENTS_CONTRACT_MISMATCH',
+    ]);
+  }
+});
+
+test('validator requires the exact canonical source-policy set', () => {
+  const source = SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY.find((agent) => agent.id === 'field_observer');
+  assert.ok(source);
+  const canonical = projectCognitivePassport(source).input.sourcePolicies;
+  assert.deepEqual(canonical, [
+    'EVIDENCE_BEFORE_INFERENCE',
+    'MODEL_OUTPUT_NEVER_OBSERVATION_BY_INHERITANCE',
+    'MISSING_REMAINS_MISSING',
   ]);
+
+  for (const policies of [
+    [],
+    ['ARBITRARY_POLICY'],
+    canonical.slice(0, 2),
+  ]) {
+    const passport = structuredClone(projectCognitivePassport(source)) as SfiCognitivePassport;
+    passport.input.sourcePolicies = policies;
+    assert.deepEqual(validateCognitivePassportAgainstSource(passport, source), [
+      'field_observer:SOURCE_POLICIES_CONTRACT_MISMATCH',
+    ]);
+  }
+});
+
+test('source validation enforces complete allowed and forbidden resource contracts', () => {
+  const source = SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY.find((agent) => agent.id === 'field_observer');
+  assert.ok(source);
+  const canonical = projectCognitivePassport(source);
+  assert.ok(canonical.tools.allowedResources.length > 0);
+  assert.deepEqual(canonical.tools.forbiddenResources, [
+    'service_role',
+    'raw_secrets',
+    'unscoped_external_execution',
+  ]);
+
+  const droppedAllowed = structuredClone(canonical) as SfiCognitivePassport;
+  droppedAllowed.tools.allowedResources = [];
+  assert.deepEqual(validateCognitivePassportAgainstSource(droppedAllowed, source), [
+    'field_observer:ALLOWED_RESOURCES_CONTRACT_MISMATCH',
+  ]);
+
+  const addedAllowed = structuredClone(canonical) as SfiCognitivePassport;
+  addedAllowed.tools.allowedResources.push('unassigned_resource');
+  assert.deepEqual(validateCognitivePassportAgainstSource(addedAllowed, source), [
+    'field_observer:ALLOWED_RESOURCES_CONTRACT_MISMATCH',
+  ]);
+
+  for (const forbidden of canonical.tools.forbiddenResources) {
+    const droppedForbidden = structuredClone(canonical) as SfiCognitivePassport;
+    droppedForbidden.tools.forbiddenResources = canonical.tools.forbiddenResources.filter((value) => value !== forbidden);
+    assert.deepEqual(validateCognitivePassportAgainstSource(droppedForbidden, source), [
+      'field_observer:FORBIDDEN_RESOURCES_CONTRACT_MISMATCH',
+    ]);
+  }
 });
 
 test('validator emits deterministic errors for malformed passports', () => {
@@ -295,6 +372,7 @@ test('validator emits deterministic errors for malformed passports', () => {
     'field_observer:LOGGING_REQUIRED',
     'field_observer:MAX_DEPTH_MUST_BE_ZERO_WHEN_REQUESTS_DISABLED',
     'field_observer:REQUEST_IDS_REQUIRE_CAPABILITY_REQUEST_AUTHORITY',
+    'field_observer:SOURCE_POLICIES_CONTRACT_MISMATCH',
     `field_observer:SOURCE_POLICIES_DUPLICATE:${malformed.input.sourcePolicies[0]}`,
   ]);
 });
