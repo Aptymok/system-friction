@@ -104,7 +104,7 @@ export function operationModelRequirementsForAgent(agentId: string): SfiOperatio
   }
 }
 
-export function llmRequirementsForAgent(agentId: string): LlmRequirements {
+export function requirementsForAgent(agentId: string): LlmRequirements {
   switch (tierForAgent(agentId)) {
     case 'QUALITY_LONG':
       return { reasoning: true, structuredOutput: true, minContextTokens: 100_000, priority: 'quality' };
