@@ -78,6 +78,9 @@ jobs:
       - name: Verify canonical discovery object integrity
         run: npx tsx scripts/qa-sfi-discovery-integrity.ts && node --import tsx --test src/lib/discovery/canonicalObjectRegistry.test.ts
 
+      - name: Verify research graph projection integrity
+        run: npx tsx scripts/qa-sfi-research-graph.ts && node --import tsx --test src/lib/research/researchGraphProjection.test.ts && npm run qa:sfi-research-metadata
+
       - name: Verify ROOT graph and navigation convergence
         run: npx tsx scripts/qa-sfi-root-graph-navigation.ts
 
