@@ -29,6 +29,8 @@ export type CapabilityEventInput = Required<
   schemaVersion?: string;
 };
 
+const CAPABILITY_LINEAGE_EPISTEMIC_CLASS = 'derived' satisfies SFIEvent['epistemicClass'];
+
 type AgentExecutionResult = {
   agentId: string;
   executed: boolean;
@@ -189,7 +191,7 @@ export async function requestCognitiveCapability(
   const occurredAt = new Date().toISOString();
   const requestEventId = await requireEvent(deps, {
     eventName: 'SFI_CAPABILITY_REQUESTED',
-    epistemicClass: 'derived',
+    epistemicClass: CAPABILITY_LINEAGE_EPISTEMIC_CLASS,
     confidence: 1,
     occurredAt,
     source: { sourceId: input.request.requestedByCapabilityId, sourceType: 'cognitive_capability_request' },
@@ -207,7 +209,7 @@ export async function requestCognitiveCapability(
 
   const dispositionEventId = await requireEvent(deps, {
     eventName: dispositionEventName(decision.disposition),
-    epistemicClass: 'derived',
+    epistemicClass: CAPABILITY_LINEAGE_EPISTEMIC_CLASS,
     confidence: 1,
     occurredAt: new Date().toISOString(),
     source: { sourceId: 'governed_capability_broker', sourceType: 'cognitive_runtime_governance' },
