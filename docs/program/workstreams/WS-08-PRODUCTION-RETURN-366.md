@@ -29,7 +29,7 @@ Contract: `SFI-PRODUCTION-OBSERVATORY-SMOKE-1.0`
 - expected product poll: `20s`
 - no product mutation, secret persistence, second product polling owner or authority expansion.
 
-## Final evidence
+## Final harness-code evidence
 
 - assurance harness-code HEAD: `bc53bcd899286e8c44fb7846d75c07289454a89b`
 - production smoke run: `33949491992` / #11 — `SUCCESS`
@@ -43,13 +43,7 @@ Contract: `SFI-PRODUCTION-OBSERVATORY-SMOKE-1.0`
 
 ### SSR — PASS
 
-`/observatory` returned HTTP 200 with initial:
-
-- world `LOADING`
-- state `LOADING`
-- timeline `LOADING`
-- four primary metrics `LOADING`
-- no numeric false-zero.
+`/observatory` returned HTTP 200 with world/state/timeline `LOADING`, four primary metrics `LOADING`, and no numeric false-zero.
 
 ### APIs — PASS
 
@@ -59,9 +53,7 @@ Contract: `SFI-PRODUCTION-OBSERVATORY-SMOKE-1.0`
 
 ### Browser / hydration — PASS
 
-Mounted Observatory DOM was observed. The hydrated world became `AVAILABLE`, state remained naturally `DEGRADED`, timeline became `AVAILABLE`, and `ObservatoryInterpretiveFlow` consumed the same `AVAILABLE` world classification.
-
-The authoritative primary metrics rendered consistently with the authoritative world response.
+Mounted Observatory DOM was observed. Hydrated world became `AVAILABLE`, state remained naturally `DEGRADED`, timeline became `AVAILABLE`, and `ObservatoryInterpretiveFlow` consumed the same `AVAILABLE` world classification. Authoritative primary metrics matched the authoritative world response.
 
 ### False-zero — PASS
 
@@ -69,7 +61,7 @@ No non-AVAILABLE primary metric rendered numeric zero during observed SSR/hydrat
 
 ### Actual zero — PASS
 
-After world was authoritative `AVAILABLE`, the harness used the existing client-side search filter with a guaranteed no-match query. The filtered authoritative view rendered four `AVAILABLE` metrics as `0, 0, 0, 0`, with no additional authoritative network read.
+After world was authoritative `AVAILABLE`, the harness used the existing client-side search filter with a guaranteed no-match query. The filtered authoritative view remained `AVAILABLE` and rendered four primary metrics as `0, 0, 0, 0`, with no additional authoritative network read.
 
 ### Hypothesis absence — PASS
 
@@ -97,5 +89,7 @@ Authority expansion: `NONE`.
 Product semantic change by WS-08: `NONE`.
 
 Recommendation to SFI-00: `CLOSE #366` after Control Room verifies this receipt.
+
+The final PR HEAD after documentation-only synchronization must receive terminal exact-head `SFI Verify: SUCCESS`. Production smoke remains bound to harness-code HEAD `bc53bcd899286e8c44fb7846d75c07289454a89b`; no harness/product code may change after that receipt without re-running production smoke.
 
 WS-08 does not close #366, does not merge PR #368, and does not open Slice B / Ronda 2.
