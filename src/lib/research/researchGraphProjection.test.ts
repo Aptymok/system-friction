@@ -153,7 +153,7 @@ test('unknown rights metadata is not upgraded and null license remains null', ()
 test('citation/export representation contains no DOI ORCID ROR affiliation or invented dates', () => {
   const record = fixture('REPORT', 'citation-export');
   const node = researchGraphProjectionForCanonicalObjects([record]).nodes[0]!;
-  const exported = researchCitationExportForNode(node) as Record<string, unknown>;
+  const exported = researchCitationExportForNode(node);
 
   for (const forbidden of ['doi', 'orcid', 'ror', 'affiliation', 'publicationDate', 'releaseDate', 'datePublished', 'dateReleased']) {
     assert.equal(Object.prototype.hasOwnProperty.call(exported, forbidden), false, forbidden);
