@@ -91,7 +91,9 @@ function row(value: unknown): Row {
 
 function strings(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
-  return [...new Set(value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0).map((item) => item.trim()))].sort();
+  return [...new Set(value
+    .filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
+    .map((item) => item.trim()))].sort();
 }
 
 function text(value: unknown): string | null {
@@ -146,7 +148,11 @@ function decision(
     requesterPassportId: options.requesterPassport?.id ?? null,
     requestedPassportId: options.requestedPassport?.id ?? null,
     authorityBoundary: 'CAPABILITY_REQUEST_IS_NOT_AUTHORIZATION',
-    lineage: [...new Set([input.context.cycleId, input.request.parentStepId, ...(options.lineage ?? [])].filter((value): value is string => Boolean(value)))],
+    lineage: [...new Set([
+      input.context.cycleId,
+      input.request.parentStepId,
+      ...(options.lineage ?? []),
+    ].filter((value): value is string => Boolean(value)))],
   };
 }
 
@@ -158,8 +164,19 @@ function historyRequest(entry: SfiCapabilityHistoryEntry) {
   return row(historyPayload(entry).request);
 }
 
+function executionBrokerRefs(entry: SfiCapabilityHistoryEntry) {
+  const payload = historyPayload(entry);
+  const metadata = row(payload.metadata);
+  const refs = row(metadata.refs);
+  return row(refs.capabilityBroker);
+}
+
+function historyRequestHash(entry: SfiCapabilityHistoryEntry) {
+  return text(historyPayload(entry).requestHash) ?? text(executionBrokerRefs(entry).requestHash);
+}
+
 function matchingHistory(history: SfiCapabilityHistoryEntry[], requestHash: string) {
-  return history.filter((entry) => text(historyPayload(entry).requestHash) === requestHash);
+  return history.filter((entry) => historyRequestHash(entry) === requestHash);
 }
 
 function priorDisposition(entries: SfiCapabilityHistoryEntry[]): { disposition: SfiCapabilityDisposition; eventId: string | null } | null {
@@ -173,11 +190,7 @@ function priorDisposition(entries: SfiCapabilityHistoryEntry[]): { disposition: 
 }
 
 function successfulExecutionReceipt(entries: SfiCapabilityHistoryEntry[]) {
-  return [...entries].reverse().find((entry) => {
-    if (entry.eventName !== 'SFI_CAPABILITY_EXECUTION_RECEIPT') return false;
-    const payload = historyPayload(entry);
-    return payload.executed === true && text(payload.executionStatus) === 'EXECUTED';
-  }) ?? null;
+  return [...entries].reverse().find((entry) => entry.eventName === 'SFI_AGENT_EXECUTED') ?? null;
 }
 
 function requestsByRequesterInTrajectory(history: SfiCapabilityHistoryEntry[], request: SfiCapabilityRequest) {
@@ -196,7 +209,9 @@ function evidenceClass(value: unknown) {
 }
 
 function evidenceById(context: KernelContext) {
-  return new Map((context.evidence ?? []).filter((item) => item && typeof item.id === 'string').map((item) => [item.id, item] as const));
+  return new Map((context.evidence ?? [])
+    .filter((item) => item && typeof item.id === 'string')
+    .map((item) => [item.id, item] as const));
 }
 
 function invalidScope(request: SfiCapabilityRequest, requestedPassport: SfiCognitivePassport) {
@@ -212,12 +227,21 @@ function invalidScope(request: SfiCapabilityRequest, requestedPassport: SfiCogni
   return { invalidInputs, invalidOutputs };
 }
 
-function missingEvidencePrerequisites(request: SfiCapabilityRequest, context: KernelContext, requestedPassport: SfiCognitivePassport) {
+function missingEvidencePrerequisites(
+  request: SfiCapabilityRequest,
+  context: KernelContext,
+  requestedPassport: SfiCognitivePassport,
+) {
   const byId = evidenceById(context);
   const missingRefs = request.availableEvidenceRefs.filter((ref) => !byId.has(ref));
-  const referenced = request.availableEvidenceRefs.map((ref) => byId.get(ref)).filter((item): item is NonNullable<typeof item> => Boolean(item));
-  const availableClasses = new Set(referenced.map((item) => evidenceClass(item.payload)).filter((item): item is string => Boolean(item)));
-  const missingClasses = requestedPassport.input.requiredEvidenceClasses.filter((requiredClass) => !availableClasses.has(requiredClass));
+  const referenced = request.availableEvidenceRefs
+    .map((ref) => byId.get(ref))
+    .filter((item): item is NonNullable<typeof item> => Boolean(item));
+  const availableClasses = new Set(referenced
+    .map((item) => evidenceClass(item.payload))
+    .filter((item): item is string => Boolean(item)));
+  const missingClasses = requestedPassport.input.requiredEvidenceClasses
+    .filter((requiredClass) => !availableClasses.has(requiredClass));
   return { missingRefs, missingClasses };
 }
 
@@ -252,14 +276,19 @@ export function evaluateCapabilityRequest(input: SfiCapabilityBrokerInput): SfiC
   if (!requesterSource || !requesterPassport || requesterSource.missingCapability) {
     return decision(input, 'DENY', ['REQUESTER_PASSPORT_OR_SOURCE_CONTRACT_UNAVAILABLE'], { requesterPassport, requestedPassport });
   }
-  if (!requestedSource || !requestedPassport || requestedSource.missingCapability || typeof SFI_AGENT_EXECUTION_MAP[request.requestedCapabilityId] !== 'function') {
+  if (!requestedSource || !requestedPassport || requestedSource.missingCapability
+    || typeof SFI_AGENT_EXECUTION_MAP[request.requestedCapabilityId] !== 'function') {
     return decision(input, 'DENY', ['REQUESTED_CAPABILITY_NOT_EXECUTABLE_OR_CANONICAL'], { requesterPassport, requestedPassport });
   }
 
   const requesterErrors = validateCognitivePassportAgainstSource(requesterPassport, requesterSource);
   const requestedErrors = validateCognitivePassportAgainstSource(requestedPassport, requestedSource);
   if (requesterErrors.length > 0 || requestedErrors.length > 0) {
-    return decision(input, 'DENY', ['CANONICAL_PASSPORT_SOURCE_CONTRACT_MISMATCH', ...requesterErrors, ...requestedErrors], { requesterPassport, requestedPassport });
+    return decision(input, 'DENY', [
+      'CANONICAL_PASSPORT_SOURCE_CONTRACT_MISMATCH',
+      ...requesterErrors,
+      ...requestedErrors,
+    ], { requesterPassport, requestedPassport });
   }
 
   if (request.requestedByCapabilityId === request.requestedCapabilityId) {
@@ -341,14 +370,18 @@ export function evaluateCapabilityRequest(input: SfiCapabilityBrokerInput): SfiC
 
   const depth = Math.max(0, Math.trunc(input.depth ?? 1));
   if (depth > requesterPassport.orchestration.maxDepth) {
-    return decision(input, 'DEFER', [`MAX_DEPTH_REACHED:${depth}:${requesterPassport.orchestration.maxDepth}`], { requesterPassport, requestedPassport });
+    return decision(input, 'DEFER', [
+      `MAX_DEPTH_REACHED:${depth}:${requesterPassport.orchestration.maxDepth}`,
+    ], { requesterPassport, requestedPassport });
   }
   if ((input.remainingInvocationBudget ?? 1) <= 0) {
     return decision(input, 'DEFER', ['CAPABILITY_INVOCATION_BUDGET_EXHAUSTED'], { requesterPassport, requestedPassport });
   }
   const priorChildren = requestsByRequesterInTrajectory(history, request).length;
   if (priorChildren >= requesterPassport.orchestration.maxChildren) {
-    return decision(input, 'DEFER', [`MAX_CHILDREN_REACHED:${priorChildren}:${requesterPassport.orchestration.maxChildren}`], { requesterPassport, requestedPassport });
+    return decision(input, 'DEFER', [
+      `MAX_CHILDREN_REACHED:${priorChildren}:${requesterPassport.orchestration.maxChildren}`,
+    ], { requesterPassport, requestedPassport });
   }
 
   return decision(input, 'ADMIT', [
