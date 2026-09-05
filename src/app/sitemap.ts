@@ -1,6 +1,8 @@
 import type { MetadataRoute } from 'next';
+import { publicCanonicalObjectUrls } from '@/lib/discovery/canonicalObjectRegistry';
+import { SFI_PUBLIC_PROFILE } from '@/lib/public/institutionProfile';
 
-const BASE = 'https://systemfriction.org';
+const BASE = SFI_PUBLIC_PROFILE.institution.canonicalUrl;
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const scenes = [
@@ -20,5 +22,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.7,
   }));
 
-  return [...scenes, ...machine];
+  const canonicalObjects = publicCanonicalObjectUrls().map((url) => ({
+    url,
+    lastModified: new Date(),
+    changeFrequency: 'weekly' as const,
+    priority: 0.8,
+  }));
+
+  return [...scenes, ...machine, ...canonicalObjects];
 }
