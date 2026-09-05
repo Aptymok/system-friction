@@ -15,7 +15,7 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const iso = () => new Date().toISOString();
 const rec = (value) => value && typeof value === 'object' && !Array.isArray(value) ? value : null;
 const numeric = (value) => /^-?(?:\d+|\d*\.\d+)$/.test(String(value || '').trim());
-const strip = (value) => String(value || '').replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').trim();
+const metricText = (value) => String(value || '').split('<!-- -->').join('').trim();
 
 function gate(status, details = {}) { return { status, ...details }; }
 function warnings(payload) {
@@ -94,7 +94,7 @@ function ssr(html) {
   const attr = (name) => html.match(new RegExp(`${name}="([^"]+)"`))?.[1] || null;
   const metrics = [...html.matchAll(/<dd[^>]*data-availability="([^"]+)"[^>]*>([\s\S]*?)<\/dd>/g)]
     .slice(0, 4)
-    .map((match) => ({ availability: match[1], text: strip(match[2]) }));
+    .map((match) => ({ availability: match[1], text: metricText(match[2]) }));
   const availability = {
     world: attr('data-world-availability'),
     state: attr('data-state-availability'),
