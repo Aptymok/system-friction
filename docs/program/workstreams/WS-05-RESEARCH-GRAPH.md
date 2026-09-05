@@ -241,6 +241,121 @@ EXTERNAL HUMAN ACTIONS NEEDED
 NEXT SAFE ACTION
 ```
 
+## 10. Durable execution state — 2026-09-04
+
+### Fresh repository baseline
+
+```text
+BASE SHA: 1bd890c8a2ec784ad87d73eac6d19a294e050543
+BRANCH: ws05/repository-citation-metadata
+SLICE: Slice A — repository citation metadata + bounded Zenodo readiness
+```
+
+### Real owner reconstruction
+
+- **Repository citation metadata:** no `CITATION.cff` or `.zenodo.json` existed at the baseline. WS-05 now owns only the repository citation file/validation layer; it does not own public canonical research objects.
+- **Papers/manuscripts/research candidates:** `src/lib/method-lab/researchObjects.ts` is the existing research-object/source-of-truth owner (`METHOD_LAB_EVENT_LEDGER`) and `buildMethodLabPublicationPackage()` is the existing governed public-safe package projection. WS-05 does not fork this owner.
+- **MIHM / MOP-H:** `src/lib/mihm/methodologyRegistry.ts`, `methodSelectionContract.ts`, `phiContract.ts`, the MIHM canonical docs and method adapters are the existing method owners. MOP-H is explicitly `MOP_H` / `PHI_H`.
+- **SFS:** no standalone `SFS` method identifier/owner was found in the actual MIHM method registry. The current bounded-system method is `SCOREFRICTION` / `PHI_S`; WS-03 reserves `/methods/sfs`. WS-05 does not silently equate or rename these objects.
+- **Library/public research assets:** `public/library/manifest.json` and `public/library/README.md` own the existing Foundational Editorial Package, including `SFI-DT-001`, `SFI-WB-001` and `SFI-WB-002`.
+- **Conference/publication relations:** Method Lab contains a private `SFI-CHI27` venue derivative; the public Observatory contains a CIMPS item whose own limit says it must not be represented as published validation without formal acceptance. No verified conference publication relation was promoted by this slice.
+- **External identities:** WS-07 remains owner of Zenodo account state, ORCID researcher nodes and future ROR/external identity verification.
+
+### Citation state
+
+`CITATION.cff` is implemented as CFF 1.2.0 using the JSON-compatible YAML 1.2 subset so repository QA can parse it without adding a second metadata parser dependency.
+
+Observed citation identity only:
+
+```text
+Title: System Friction Institute
+Author identity: Aptymok (observed Git author identity)
+Repository: https://github.com/Aptymok/system-friction
+Canonical URL: https://systemfriction.org
+Software metadata version: 1.0.0 (package.json)
+DOI: NOT EMITTED
+ORCID: NOT EMITTED
+ROR: NOT EMITTED
+Affiliation: NOT EMITTED
+Release date: NOT EMITTED
+```
+
+The CFF author record intentionally does not map the Git identity to an unverified scholarly/legal name, affiliation or ORCID.
+
+### Zenodo readiness
+
+No `.zenodo.json` is created in this slice. Zenodo can consume `CITATION.cff`; adding `.zenodo.json` would override CFF and requires explicit Zenodo-specific deposit metadata. At baseline:
+
+- GitHub releases observed: none;
+- root `LICENSE`: absent;
+- GitHub repository API license object: null;
+- repository description contains `CC BY 4.0`, but that declaration is not upgraded by WS-05 into a root software/deposit license;
+- Zenodo account/integration state is external and remains owned by WS-07.
+
+State:
+
+`CFF_READY / ZENODO_ARCHIVE_BLOCKED_EXTERNAL_AND_LICENSE`
+
+### DOI candidates
+
+Candidate classes remain exactly the canonical WS-05 classes, with no DOI minted or implied:
+
+```text
+MIHM methodological release
+MOP-H release
+stable public dataset
+methodological report
+major software release
+white paper
+```
+
+Current repository objects are candidates only after stable release/publication review. Minor commits and internal observations remain non-DOI defaults.
+
+### Verified identifiers / ROR readiness
+
+```text
+VERIFIED DOI: none observed
+VERIFIED ORCID: none observed
+VERIFIED ROR: none observed
+ROR READINESS: NOT_READY
+```
+
+Reason: there is persistent institutional identity and durable public material, but this repository reconstruction found no DOI-backed output, no verified ORCID relation and no verified conference/publication relation sufficient to move ROR readiness beyond `NOT_READY`.
+
+### QA owner
+
+Added `scripts/qa-sfi-research-metadata.mjs` and wired `qa:sfi-research-metadata` into the existing `npm run build` chain. The gate checks:
+
+- `CITATION.cff` parseability;
+- title/repository/canonical URL/version synchronization;
+- observed Git author identity;
+- absence of unverified DOI/ORCID/ROR emission;
+- absence of a fabricated release date;
+- no inferred CFF license while root `LICENSE` is absent;
+- Zenodo override validity if `.zenodo.json` is introduced later.
+
+No contract delta, migration, database owner, public canonical object or external mutation is introduced.
+
+### Assurance receipt
+
+Implementation head `45588a51e68f47394199bd9e5bb6ebb4c0c5e155` was verified by GitHub Actions run `33905957912` (`SFI Verify`, PR #371):
+
+```text
+CANONICAL DEVELOPMENT PREFLIGHT: PASS
+DOMAIN BOUNDARIES: PASS
+MIHM METHOD SELECTION: PASS
+INSTITUTIONAL / COGNITIVE / METHOD LAB GATES: PASS
+METADATA VALIDATION: PASS (first gate inside npm run build)
+TYPECHECK: PASS
+BUILD: PASS
+STUDIO AUDIO GATES: PASS
+CONTRACT DELTA: NONE
+EXTERNAL MUTATION: NONE
+MERGE: NOT PERFORMED
+```
+
+PR `#371` remains under SFI-00 integration authority. This workstream does not merge its own head.
+
 ---
 
 # COPY-PASTE DISPATCH PROMPT
