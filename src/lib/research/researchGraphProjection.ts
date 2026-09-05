@@ -32,7 +32,6 @@ export type SfiResearchProjectableObjectType = (typeof SFI_RESEARCH_PROJECTABLE_
 
 export const SFI_RESEARCH_RELATIONSHIP_TYPES = [
   'REFERENCES',
-  'DERIVED_FROM',
   'IMPLEMENTS',
 ] as const;
 
@@ -61,7 +60,7 @@ export interface SfiResearchGraphNode {
     methodRefs: string[];
   };
   authorship: {
-    state: 'OBSERVED_IN_CANON' | 'MISSING';
+    state: 'CANONICAL_EXPLICIT' | 'MISSING';
     authors: string[];
   };
   contributors: {
@@ -94,7 +93,7 @@ export interface SfiResearchGraphRelationship {
   type: SfiResearchRelationshipType;
   sourceCanonicalObjectId: string;
   targetCanonicalObjectId: string;
-  evidenceField: 'relatedObjects' | 'sourceRefs' | 'methods';
+  evidenceField: 'sourceRefs' | 'methods';
   evidenceRef: string;
 }
 
@@ -201,7 +200,7 @@ function researchNodeFor(record: SfiCanonicalObjectRecord): SfiResearchGraphNode
       methodRefs: [...canonical.methods],
     },
     authorship: canonical.authors.length
-      ? { state: 'OBSERVED_IN_CANON', authors: [...canonical.authors] }
+      ? { state: 'CANONICAL_EXPLICIT', authors: [...canonical.authors] }
       : { state: 'MISSING', authors: [] },
     contributors: {
       state: 'MISSING',
@@ -252,13 +251,21 @@ function relationshipCandidates(
     });
   };
 
-  for (const ref of record.relatedObjects) add('REFERENCES', 'relatedObjects', ref);
-  for (const ref of record.sourceRefs) add('DERIVED_FROM', 'sourceRefs', ref);
-  for (const ref of record.methods) {
-    const target = refIndex.get(ref);
-    if (target?.objectType === 'METHOD') add('IMPLEMENTS', 'methods', ref);
+  // sourceRefs prove a reference to a canonical source; they do not, by themselves,
+  // prove derivation/causality. Keep the typed claim at REFERENCES.
+  for (const ref of record.sourceRefs) add('REFERENCES', 'sourceRefs', ref);
+
+  // A generic `methods` entry means a method is associated with the object. R2-B only
+  // emits IMPLEMENTS where the source is SOFTWARE and the target is a canonical METHOD.
+  if (record.objectType === 'SOFTWARE') {
+    for (const ref of record.methods) {
+      const target = refIndex.get(ref);
+      if (target?.objectType === 'METHOD') add('IMPLEMENTS', 'methods', ref);
+    }
   }
 
+  // relatedObjects is intentionally preserved as canonical lineage but is not given a
+  // typed Research Graph edge because the canonical field does not encode relation semantics.
   return output;
 }
 
