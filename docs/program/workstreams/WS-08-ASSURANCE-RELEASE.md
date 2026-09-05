@@ -117,9 +117,7 @@ The zero observation used the existing client-side Observatory search filter aft
 
 ## Final integration gate
 
-Final documentation-only PR HEAD after synchronized receipts: `dbb4abe7e123f37b539c2bac360a3d057ee2ec63`.
-
-This final docs-only HEAD must receive terminal exact-head `SFI Verify: SUCCESS`. Production smoke remains bound to the last harness-code HEAD `bc53bcd899286e8c44fb7846d75c07289454a89b`; if workflow/harness/product code changes after that HEAD, production smoke must run again before merge readiness.
+The final documentation-only PR HEAD must receive terminal exact-head `SFI Verify: SUCCESS`. Production smoke remains bound to the last harness-code HEAD `bc53bcd899286e8c44fb7846d75c07289454a89b`; if workflow/harness/product code changes after that HEAD, production smoke must run again before merge readiness.
 
 ## Recommendation to SFI-00
 
