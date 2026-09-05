@@ -44,13 +44,15 @@ const MEMBERS: SfiInstitutionalMember[] = [
     institutionalRole: 'institutional_director',
     institutionalDomain: 'institution',
     decisionAuthority: 'controller',
-    workspace: '/root',
+    // Director authority is institutional, not sovereign. ROOT currently mixes
+    // institutional state with Founder Cognitive Twin / AMV state.
+    workspace: '/member',
     modules: {
       field: true,
       studio: true,
       observatory: true,
       worldField: true,
-      root: true,
+      root: false,
     },
     external: {
       // External GPT authority deliberately remains an institutional operator.
