@@ -135,14 +135,7 @@ function relationshipKey(relationship: SfiResearchGraphRelationship): string {
   return `${relationship.fromCanonicalObjectId}\u0000${relationship.type}\u0000${relationship.toCanonicalObjectId}`;
 }
 
-export function researchGraphProjectionForCanonicalObjects(
-  records: readonly SfiCanonicalObjectRecord[] = SFI_CANONICAL_OBJECT_REGISTRY,
-): SfiResearchGraphProjection {
-  const sourceErrors = validateCanonicalObjectRegistry(records);
-  if (sourceErrors.length > 0) {
-    throw new Error(`invalid_canonical_object_source:${sourceErrors.join('|')}`);
-  }
-
+function buildProjectionUnchecked(records: readonly SfiCanonicalObjectRecord[]): SfiResearchGraphProjection {
   const nodes = records
     .map(projectNode)
     .filter((node): node is SfiResearchGraphNode => node !== null)
@@ -154,11 +147,7 @@ export function researchGraphProjectionForCanonicalObjects(
   for (const node of nodes) {
     const unprojected: string[] = [];
     for (const relatedId of [...node.relatedCanonicalObjectIds].sort()) {
-      if (!projectedIds.has(relatedId)) {
-        unprojected.push(relatedId);
-        continue;
-      }
-      if (relatedId === node.canonicalObjectId) {
+      if (!projectedIds.has(relatedId) || relatedId === node.canonicalObjectId) {
         unprojected.push(relatedId);
         continue;
       }
@@ -173,7 +162,7 @@ export function researchGraphProjectionForCanonicalObjects(
 
   relationships.sort((left, right) => relationshipKey(left).localeCompare(relationshipKey(right)));
 
-  const projection: SfiResearchGraphProjection = {
+  return {
     contract: SFI_RESEARCH_GRAPH_INTEGRITY_CONTRACT,
     metadataContract: SFI_RESEARCH_METADATA_CONTRACT,
     identifierContract: SFI_RESEARCH_NO_FABRICATED_IDENTIFIERS_CONTRACT,
@@ -182,7 +171,17 @@ export function researchGraphProjectionForCanonicalObjects(
     nodes,
     relationships,
   };
+}
 
+export function researchGraphProjectionForCanonicalObjects(
+  records: readonly SfiCanonicalObjectRecord[] = SFI_CANONICAL_OBJECT_REGISTRY,
+): SfiResearchGraphProjection {
+  const sourceErrors = validateCanonicalObjectRegistry(records);
+  if (sourceErrors.length > 0) {
+    throw new Error(`invalid_canonical_object_source:${sourceErrors.join('|')}`);
+  }
+
+  const projection = buildProjectionUnchecked(records);
   const errors = validateResearchGraphProjection(projection, records);
   if (errors.length > 0) throw new Error(`invalid_research_graph_projection:${errors.join('|')}`);
   return projection;
@@ -202,54 +201,50 @@ export function validateResearchGraphProjection(
   if (projection.sourceContract !== SFI_CANONICAL_OBJECT_CONTRACT) push('CANONICAL_SOURCE_CONTRACT_MISMATCH');
 
   const canonicalErrors = validateCanonicalObjectRegistry(records);
-  if (canonicalErrors.length > 0) push('CANONICAL_SOURCE_INVALID');
+  if (canonicalErrors.length > 0) {
+    push('CANONICAL_SOURCE_INVALID');
+    return [...new Set(errors)].sort();
+  }
 
-  const expectedNodes = records
-    .map(projectNode)
-    .filter((node): node is SfiResearchGraphNode => node !== null)
-    .sort((left, right) => left.canonicalObjectId.localeCompare(right.canonicalObjectId));
-
-  const expectedById = new Map(expectedNodes.map((node) => [node.canonicalObjectId, node]));
+  const expected = buildProjectionUnchecked(records);
+  const expectedNodes = new Map(expected.nodes.map((node) => [node.canonicalObjectId, node]));
   const actualIds = new Set<string>();
 
   for (const node of projection.nodes) {
     if (actualIds.has(node.canonicalObjectId)) push(`DUPLICATE_NODE:${node.canonicalObjectId}`);
     actualIds.add(node.canonicalObjectId);
 
-    const expected = expectedById.get(node.canonicalObjectId);
-    if (!expected) {
+    const expectedNode = expectedNodes.get(node.canonicalObjectId);
+    if (!expectedNode) {
       push(`NODE_NOT_CANONICAL_PROJECTABLE:${node.canonicalObjectId}`);
       continue;
     }
-
-    const comparableExpected = { ...expected, unprojectedRelatedCanonicalObjectIds: node.unprojectedRelatedCanonicalObjectIds };
-    if (JSON.stringify({ ...node, unprojectedRelatedCanonicalObjectIds: comparableExpected.unprojectedRelatedCanonicalObjectIds }) !== JSON.stringify(comparableExpected)) {
-      push(`NODE_CANONICAL_DRIFT:${node.canonicalObjectId}`);
-    }
+    if (JSON.stringify(node) !== JSON.stringify(expectedNode)) push(`NODE_CANONICAL_DRIFT:${node.canonicalObjectId}`);
   }
 
-  for (const expected of expectedNodes) {
-    if (!actualIds.has(expected.canonicalObjectId)) push(`PROJECTABLE_NODE_MISSING:${expected.canonicalObjectId}`);
+  for (const expectedNode of expected.nodes) {
+    if (!actualIds.has(expectedNode.canonicalObjectId)) push(`PROJECTABLE_NODE_MISSING:${expectedNode.canonicalObjectId}`);
   }
 
-  const relationshipKeys = new Set<string>();
+  const expectedRelationshipKeys = new Set(expected.relationships.map(relationshipKey));
+  const actualRelationshipKeys = new Set<string>();
   for (const relationship of projection.relationships) {
     if (!(SFI_RESEARCH_RELATIONSHIP_TYPES as readonly string[]).includes(relationship.type)) {
       push(`RELATIONSHIP_TYPE_UNSUPPORTED:${relationship.type}`);
-      continue;
     }
     if (!actualIds.has(relationship.fromCanonicalObjectId)) push(`RELATIONSHIP_SOURCE_MISSING:${relationship.fromCanonicalObjectId}`);
     if (!actualIds.has(relationship.toCanonicalObjectId)) push(`RELATIONSHIP_TARGET_MISSING:${relationship.toCanonicalObjectId}`);
     if (relationship.fromCanonicalObjectId === relationship.toCanonicalObjectId) push(`RELATIONSHIP_SELF_REFERENCE:${relationship.fromCanonicalObjectId}`);
 
-    const source = projection.nodes.find((node) => node.canonicalObjectId === relationship.fromCanonicalObjectId);
-    if (source && !source.relatedCanonicalObjectIds.includes(relationship.toCanonicalObjectId)) {
-      push(`RELATIONSHIP_NOT_CANONICAL:${relationship.fromCanonicalObjectId}->${relationship.toCanonicalObjectId}`);
-    }
-
     const key = relationshipKey(relationship);
-    if (relationshipKeys.has(key)) push(`RELATIONSHIP_DUPLICATE:${key}`);
-    relationshipKeys.add(key);
+    if (!expectedRelationshipKeys.has(key)) push(`RELATIONSHIP_NOT_CANONICAL:${relationship.fromCanonicalObjectId}->${relationship.toCanonicalObjectId}`);
+    if (actualRelationshipKeys.has(key)) push(`RELATIONSHIP_DUPLICATE:${key}`);
+    actualRelationshipKeys.add(key);
+  }
+
+  for (const relationship of expected.relationships) {
+    const key = relationshipKey(relationship);
+    if (!actualRelationshipKeys.has(key)) push(`PROJECTABLE_RELATIONSHIP_MISSING:${relationship.fromCanonicalObjectId}->${relationship.toCanonicalObjectId}`);
   }
 
   return [...new Set(errors)].sort();
