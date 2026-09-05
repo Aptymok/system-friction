@@ -126,3 +126,142 @@ The final documentation-only PR HEAD must receive terminal exact-head `SFI Verif
 WS-08 does not close #366 and does not merge PR #368.
 
 NO SLICE B / RONDA 2 is authorized by this record.
+
+## R2-B · PRE-MERGE ASSURANCE
+
+**Formal baseline:** `a5a431a7d20b61e87c10b1c6345c56e5794c511a`  
+**Independent verifier:** WS-08 · ASSURANCE + RELEASE  
+**Assurance batch:** PR #375 · WS-05 and PR #377 · WS-07 only  
+**Excluded from this batch:** PR #374  
+**Integration authority:** SFI-00  
+**WS-08 merge authority:** NONE
+
+### PR #375 · WS-05 · Research Graph Projection
+
+- exact source HEAD: `4c19b961bcaa8389e2ee403af40829ecc675c277`
+- exact base: `a5a431a7d20b61e87c10b1c6345c56e5794c511a`
+- PR state at assurance: `OPEN / NOT MERGED / MERGEABLE`
+- exact-head SFI Verify: `33955302484` / #2405 — `SUCCESS`
+- exact-head Research Graph projection gate: `SUCCESS`
+- exact-head canonical discovery object integrity: `SUCCESS`
+- exact-head typecheck/build: `SUCCESS / SUCCESS`
+- CodeQL: `SUCCESS / no new alerts in changed code`
+- review threads: `0`
+- submitted reviews: `0`
+- contract delta: `NONE`
+- authority expansion: `NONE`
+- persistence/migrations/RLS/Auth impact: `NONE`
+- product/external mutation: `NONE`
+
+Verified direction:
+
+```text
+SFI-CANONICAL-OBJECT-1.0
+→ canonical publication/publicability gate
+→ projectable-type gate
+→ Research Graph VIEW
+→ research citation/export representation
+```
+
+`RESEARCH GRAPH != CANON` and `EXTERNAL REPRESENTATION != CANON` remain intact. The projection imports the integrated Canonical Object Plane and its publication/publicability functions; it does not create a second canonical registry, publication registry, identity owner, citation owner or persistence owner.
+
+Projectable types are exactly `METHOD | INSTRUMENT | DATASET | REPORT | PAPER | SOFTWARE | RELEASE | RETURN | PUBLICATION`. `CONCEPT` and `OBSERVATION` remain excluded.
+
+The canonical `relatedObjects` field is untyped; therefore the only projected relationship is `RELATED_OBJECT`, and only when both endpoints are independently projectable canonical nodes. No `CITES`, `REFERENCES`, `DERIVED_FROM`, `IMPLEMENTS`, `VERSION_OF`, `SUPERSEDES`, `RETURN_OF`, `RELEASE_OF` or `PUBLICATION_OF` semantic is inferred. Nonprojectable related canonical IDs remain unprojected rather than reinterpreted.
+
+The export representation contains no DOI, ORCID, ROR, affiliation or invented publication/release date. `CITATION.cff` remains unchanged and preserves the observed repository author alias `Aptymok`.
+
+External preview contexts observed on this exact HEAD do not establish a product defect: Vercel reported a deployment rate limit and Netlify deploy previews failed, while the repository-owned exact-head Research Graph gate, canonical integrity, typecheck, build and CodeQL all completed successfully. They do not alter this pre-merge product/contract verdict.
+
+**PR #375 PRE-MERGE ASSURANCE: PASS**
+
+### PR #377 · WS-07 · Identity Coherence
+
+- exact source HEAD: `1d53fa7a644f90f593a3291a125fc662638855b7`
+- exact base: `a5a431a7d20b61e87c10b1c6345c56e5794c511a`
+- PR state at assurance: `OPEN / NOT MERGED / MERGEABLE`
+- exact-head SFI Verify: `33960313207` / #2406 — `SUCCESS`
+- exact-head canonical discovery / entity-coherence QA: `SUCCESS`
+- exact-head typecheck/build: `SUCCESS / SUCCESS`
+- CodeQL: `SUCCESS / no new alerts in changed code`
+- Vercel preview: `SUCCESS`
+- review threads: `0`
+- submitted reviews: `0`
+- contract delta: `NONE`
+- authority expansion: `NONE`
+- persistence/migrations/RLS/Auth impact: `NONE`
+- external account action: `NONE`
+
+Canonical identity remains:
+
+```text
+System Friction Institute
+SFI
+https://systemfriction.org
+https://systemfriction.org/#sfi
+```
+
+Identity coherence is absorbed into the existing `src/lib/public/institutionProfile.ts` owner. `CLAIMED != VERIFIED`; institutional `sameAs` is fail-closed; repository control remains `CONTROLLED_ASSET` and cannot become institutional `sameAs`; current Medium and LinkedIn evidence remains `CLAIMED`; the disambiguation candidate `Systemic Friction Institute, Inc` remains `COLLISION_CANDIDATE / DISAMBIGUATION_RISK` with `observedCollision: false`.
+
+The branch modifies only the WS-07 identity document, discovery-integrity QA, root metadata projection and the existing institution profile owner. Its first commit descends directly from the formal R2-B baseline and no access-console, Supabase/Auth, account API, migration or other PR #374 scope file is present in its changed-file set. No PR #374 content is part of this assurance batch.
+
+Netlify deploy-preview contexts failed, while exact-head SFI Verify, identity/discovery integrity, typecheck, build, CodeQL and Vercel preview succeeded. No causal product failure is established by those external Netlify contexts; they do not alter this pre-merge product/contract verdict.
+
+**PR #377 PRE-MERGE ASSURANCE: PASS**
+
+### Cross-PR coexistence
+
+Changed-file sets are disjoint. No textual file conflict is present.
+
+The semantic dependency remains one-way:
+
+```text
+institutionProfile.ts
+→ canonicalObjectRegistry.ts
+→ researchGraphProjection.ts
+```
+
+Therefore:
+
+- WS-05 only consumes canonical identity transitively through the canonical object owner where applicable;
+- WS-07 cannot create or mutate Research Graph nodes or relationships;
+- Research Graph cannot create institutional identity facts or `sameAs`;
+- identity classification does not mutate `CITATION.cff` or scholarly metadata;
+- `sameAs` is not a Research Graph identifier;
+- repository control is not scholarly affiliation;
+- no canonical identity/object/publication owner is duplicated;
+- no circular dependency is introduced;
+- no implicit publication authority is introduced;
+- no identity-to-CANON or Research-Graph-to-CANON promotion exists;
+- no discovery-to-execution path exists;
+- no request, grant or execution authority is introduced.
+
+Cross-PR result:
+
+```text
+FILE CONFLICT: NONE
+OWNER CONFLICT: NONE
+CONTRACT CONFLICT: NONE
+AUTHORITY CONFLICT: NONE
+CONTRACT DELTA: NONE
+AUTHORITY EXPANSION: NONE
+PERSISTENCE/MIGRATIONS: NONE
+```
+
+### Integration order and revalidation rule
+
+Recommended dependency-safe order:
+
+```text
+#377 · Identity Coherence
+→ rebase/refresh #375 onto the new main
+→ exact-head SFI Verify on the rebased #375 HEAD
+→ WS-08 exact-head revalidation of #375
+→ #375 · Research Graph Projection
+```
+
+Reason: `institutionProfile.ts` is upstream of `canonicalObjectRegistry.ts`, which is upstream of the Research Graph projection. Merging #377 first changes an upstream identity dependency consumed by the canonical object owner; therefore the currently assured #375 HEAD cannot be used as the second merge receipt without rebasing/refreshing and revalidating it against the new main.
+
+# R2-B PRE-MERGE ASSURANCE: PASS
+
+NO MERGE by WS-08. NO R3. NO product change. NO contract change. NO authority expansion.
