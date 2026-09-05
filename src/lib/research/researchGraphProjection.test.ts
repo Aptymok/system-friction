@@ -87,8 +87,8 @@ test('Research Graph projects only the explicit R2-B projectable object types', 
 
   const graph = researchGraphProjectionForCanonicalObjects(records);
   assert.deepEqual(graph.nodes.map((node) => node.objectType).sort(), [...SFI_RESEARCH_PROJECTABLE_OBJECT_TYPES].sort());
-  assert.ok(!graph.nodes.some((node) => node.objectType === ('CONCEPT' as never)));
-  assert.ok(!graph.nodes.some((node) => node.objectType === ('OBSERVATION' as never)));
+  assert.ok(!graph.nodes.some((node) => (node.objectType as string) === 'CONCEPT'));
+  assert.ok(!graph.nodes.some((node) => (node.objectType as string) === 'OBSERVATION'));
 });
 
 test('publication and publicability gates are inherited only from the canonical owner', () => {
@@ -163,8 +163,8 @@ test('citation/export representation contains no DOI ORCID ROR affiliation or in
   assert.equal(exported.canonicalUrl, record.canonicalUrl);
 });
 
-test('relatedObjects yields only deterministic REFERENCES edges between projected canonical nodes', () => {
-  assert.deepEqual(SFI_RESEARCH_RELATIONSHIP_TYPES, ['REFERENCES']);
+test('relatedObjects yields only deterministic RELATED_OBJECT edges between projected canonical nodes', () => {
+  assert.deepEqual(SFI_RESEARCH_RELATIONSHIP_TYPES, ['RELATED_OBJECT']);
 
   const report = fixture('REPORT', 'relationship-report');
   const paper = fixture('PAPER', 'relationship-paper');
@@ -173,7 +173,7 @@ test('relatedObjects yields only deterministic REFERENCES edges between projecte
 
   const graph = researchGraphProjectionForCanonicalObjects([report, paper, concept]);
   assert.deepEqual(graph.relationships, [{
-    type: 'REFERENCES',
+    type: 'RELATED_OBJECT',
     fromCanonicalObjectId: report.id,
     toCanonicalObjectId: paper.id,
   }]);
@@ -194,16 +194,21 @@ test('relationship order is deterministic regardless of canonical source order',
   assert.deepEqual(first, second);
 });
 
-test('invalid or fabricated graph relationships are rejected fail-closed', () => {
+test('invented scholarly graph relationships are rejected fail-closed', () => {
   const report = fixture('REPORT', 'invalid-relation-report');
   const paper = fixture('PAPER', 'invalid-relation-paper');
   report.relatedObjects = [paper.id];
   const graph = researchGraphProjectionForCanonicalObjects([report, paper]);
 
-  const unsupported = mutateGraph(graph, (candidate) => {
-    candidate.relationships[0]!.type = 'CITES' as never;
-  });
-  assert.ok(validateResearchGraphProjection(unsupported, [report, paper]).some((error) => error.startsWith('RELATIONSHIP_TYPE_UNSUPPORTED')));
+  for (const inventedType of ['CITES', 'REFERENCES', 'DERIVED_FROM', 'IMPLEMENTS', 'VERSION_OF', 'SUPERSEDES', 'RETURN_OF', 'RELEASE_OF', 'PUBLICATION_OF']) {
+    const unsupported = mutateGraph(graph, (candidate) => {
+      candidate.relationships[0]!.type = inventedType as never;
+    });
+    assert.ok(
+      validateResearchGraphProjection(unsupported, [report, paper]).some((error) => error.startsWith('RELATIONSHIP_TYPE_UNSUPPORTED')),
+      inventedType,
+    );
+  }
 
   const unknownTarget = mutateGraph(graph, (candidate) => {
     candidate.relationships[0]!.toCanonicalObjectId = 'sfi-object-not-canonical';
@@ -220,6 +225,17 @@ test('projection rejects a graph node that drifts from its canonical source', ()
     candidate.nodes[0]!.canonicalUrl = 'https://example.invalid/not-canon';
   });
   assert.ok(validateResearchGraphProjection(drifted, [report]).includes(`NODE_CANONICAL_DRIFT:${report.id}`));
+});
+
+test('projection rejects mutation of unprojected canonical relationship state', () => {
+  const report = fixture('REPORT', 'related-state-report');
+  const concept = fixture('CONCEPT', 'related-state-concept');
+  report.relatedObjects = [concept.id];
+  const graph = researchGraphProjectionForCanonicalObjects([report, concept]);
+  const drifted = mutateGraph(graph, (candidate) => {
+    candidate.nodes[0]!.unprojectedRelatedCanonicalObjectIds = [];
+  });
+  assert.ok(validateResearchGraphProjection(drifted, [report, concept]).includes(`NODE_CANONICAL_DRIFT:${report.id}`));
 });
 
 test('invalid canonical source blocks the entire derived projection', () => {
