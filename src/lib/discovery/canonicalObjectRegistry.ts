@@ -151,6 +151,10 @@ function isIsoDate(value: string): boolean {
   return Number.isFinite(Date.parse(value));
 }
 
+function isInternalEventRef(value: string): boolean {
+  return /^(event|epistemic_event|internal_event):/i.test(clean(value));
+}
+
 export function canonicalObjectKey(objectType: SfiCanonicalObjectType, slug: string): string {
   if (!SFI_CANONICAL_OBJECT_TYPES.includes(objectType)) throw new Error(`unsupported_object_type:${objectType}`);
   if (!SLUG_PATTERN.test(slug)) throw new Error(`invalid_slug:${slug}`);
@@ -223,6 +227,7 @@ export function validateCanonicalObject(record: SfiCanonicalObjectRecord): strin
     if (!record.eligibility.publicEligible) push('PUBLIC_ELIGIBILITY_REQUIRED');
     if (!record.eligibility.securityEligible) push('PUBLIC_SECURITY_ELIGIBILITY_REQUIRED');
     if (record.sourceRefs.length === 0) push('PUBLIC_LINEAGE_REQUIRED');
+    if (record.sourceRefs.length > 0 && record.sourceRefs.every(isInternalEventRef)) push('PUBLIC_CANNOT_DERIVE_ONLY_FROM_INTERNAL_EVENT');
     if (record.rights.state === 'RESTRICTED' || record.rights.state === 'UNKNOWN') push('PUBLIC_RIGHTS_NOT_ELIGIBLE');
   } else if (record.publication.state === 'PUBLISHED') {
     push('PUBLISHED_REQUIRES_PUBLIC_STATE');
