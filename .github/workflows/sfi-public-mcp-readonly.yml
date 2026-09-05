@@ -1,0 +1,48 @@
+name: SFI Public MCP Readonly
+
+on:
+  pull_request:
+    paths:
+      - 'src/lib/mcp/**'
+      - 'src/app/api/mcp/public/**'
+      - 'scripts/qa-sfi-public-mcp-readonly.ts'
+      - 'docs/program/workstreams/WS-04-PUBLIC-MCP-R3.md'
+      - '.github/workflows/sfi-public-mcp-readonly.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  public-mcp-readonly:
+    name: SFI-PUBLIC-MCP-READONLY-1.0
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in 1 2 3; do
+            if npm install --no-audit --no-fund; then
+              exit 0
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              echo "Dependency installation failed after ${attempt} attempts."
+              exit 1
+            fi
+            rm -rf node_modules/ffmpeg-static
+            sleep $((attempt * 10))
+          done
+
+      - name: Verify public MCP read-only boundary
+        run: npx tsx scripts/qa-sfi-public-mcp-readonly.ts
