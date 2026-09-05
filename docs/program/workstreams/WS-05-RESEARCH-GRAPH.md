@@ -369,3 +369,146 @@ Implement the complete current research graph: valid `CITATION.cff`, Zenodo-read
 Coordinate canonical public objects with WS-03 and external identity with WS-07 through SFI-00. You may branch/commit/open PRs but not merge. Execute metadata/QA/typecheck/build checks and leave durable handoff state.
 
 Proceed from actual repository state now.
+
+## 11. Ronda 2-B — Research Graph Projection
+
+**Released by:** SFI-00  
+**Baseline:** `a5a431a7d20b61e87c10b1c6345c56e5794c511a`  
+**Branch:** `ws05/r2b-research-graph-projection`  
+**Slice:** Research Graph Projection only  
+**Merge authority:** SFI-00 only
+
+### Fresh owner precheck
+
+R2-B consumes the integrated R2-A Canonical Object Plane without creating a second canon:
+
+```text
+CANONICAL OWNER
+src/lib/discovery/canonicalObjectRegistry.ts
+SFI-CANONICAL-OBJECT-1.0
+SFI_CANONICAL_OBJECT_REGISTRY
+canonicalPublicationDisposition()
+publicProjectionForCanonicalObject()
+```
+
+Publication/publicability remains owned upstream by the canonical object owner and the existing `PublicationStatus` contract. Research Graph does not create a publication registry or promote publication state.
+
+Repository citation identity remains owned by `CITATION.cff` plus `scripts/qa-sfi-research-metadata.mjs`. `CITATION.cff` remains unchanged in R2-B: Aptymok is retained only as the already observed repository alias; DOI, ORCID, ROR, affiliation, legal name, release date and repository license remain un-emitted unless separately observed and verified.
+
+The institution identity owner remains `src/lib/public/institutionProfile.ts`; the Research Graph does not create or modify institutional `sameAs`, external account state or identity verification.
+
+`src/lib/method-lab/researchObjects.ts` remains the Method Lab event-ledger research object owner for its internal/runtime domain. R2-B does not read it as an alternative public canon and does not project it directly. Any Method Lab result must first be admitted to the Canonical Object Plane before it can enter the Research Graph.
+
+### Projection architecture
+
+```text
+SFI-CANONICAL-OBJECT-1.0
+        ↓
+canonical validation
+        ↓
+canonical publication/publicability gate
+        ↓
+research-projectable type gate
+        ↓
+SFI-RESEARCH-GRAPH-INTEGRITY-1.0 view
+        ↓
+SFI-RESEARCH-METADATA-1.0 derived metadata
+        ↓
+citation/export representation
+```
+
+The current canonical registry is empty/fail-closed. R2-B therefore adds no fabricated research nodes to make the graph appear populated. The projection becomes populated only when the canonical owner contains eligible, explicitly public objects.
+
+Research-projectable object types in this slice:
+
+```text
+METHOD
+INSTRUMENT
+DATASET
+REPORT
+PAPER
+SOFTWARE
+RELEASE
+RETURN
+PUBLICATION
+```
+
+`CONCEPT` and `OBSERVATION` are deliberately not research-projectable in R2-B because the current contract does not provide a separate research-eligibility rule for them.
+
+### Projection invariants
+
+Each projected node preserves, without re-owning:
+
+- canonical object ID and object key;
+- canonical URL;
+- object type;
+- version and language;
+- explicit `PUBLIC` / `PUBLISHED` state;
+- canonical epistemic state;
+- source lineage, method refs and canonical related-object refs;
+- authorship only as explicitly present in canon (`OBSERVED_IN_CANON`) or `MISSING`;
+- contributors as `MISSING` because the canonical contract has no contributor field;
+- explicit rights state and license only when canon says rights are `OPEN`;
+- limitations and structured `MISSING` entries;
+- no DOI/ORCID/ROR, affiliation, legal name, publication date, release date or scholarly status by inference.
+
+Implemented fail-closed contracts:
+
+```text
+SFI-RESEARCH-GRAPH-INTEGRITY-1.0
+SFI-RESEARCH-METADATA-1.0
+SFI-RESEARCH-NO-FABRICATED-IDENTIFIERS-1.0
+SFI-RESEARCH-CANONICAL-LINEAGE-1.0
+```
+
+### Typed relationship boundary
+
+Only relationships deterministically supported by existing canonical fields are projected:
+
+```text
+relatedObjects -> REFERENCES
+sourceRefs matching another projected canonical object -> DERIVED_FROM
+methods matching a projected METHOD canonical object -> IMPLEMENTS
+```
+
+No `CITES`, `VERSION_OF`, `SUPERSEDES`, `RETURN_OF`, `RELEASE_OF` or `PUBLICATION_OF` edge is inferred in this slice because the current canonical contract does not encode enough relation semantics to establish those relations safely.
+
+A relation target must itself be an eligible projected canonical object. Private/ineligible targets do not become Research Graph nodes or typed edges.
+
+### Persistence / authority / external effects
+
+```text
+NEW TABLES: none
+MIGRATIONS: none
+SUPABASE READS/WRITES: none
+EVENT WRITES: none
+NEW PERSISTENCE OWNER: none
+EXTERNAL API CALLS: none
+DOI MINTING: none
+ORCID WRITES: none
+ROR REGISTRATION: none
+ZENODO PUBLICATION: none
+EXTERNAL SEARCH SUBMISSION: none
+AUTHORITY EXPANSION: none
+CONTRACT DELTA: none
+```
+
+The projection is pure and code-owned. It has no timer, polling owner, external publication side effect or autonomous promotion path.
+
+### R2-B QA ownership
+
+`src/lib/research/researchGraphProjection.test.ts` and `scripts/qa-sfi-research-graph.ts` lock:
+
+- canonical-object-only sourcing;
+- exact projectable type subset;
+- no private/review/publication-gate bypass;
+- canonical identity/URL/version preservation;
+- epistemic state, lineage, limitations and MISSING preservation;
+- no fabricated DOI/ORCID/ROR;
+- no inferred affiliation, legal name, license or publication/release date;
+- deterministic canonical-derived typed relationships;
+- rejection of fabricated/invalid relationships;
+- zero second canonical/publication/identity/citation/persistence owner;
+- unchanged repository-level CFF identity boundary.
+
+SFI Verify includes a dedicated Research Graph step and also reruns existing research metadata QA. Canonical Discovery Integrity, typecheck and build remain mandatory. Exact-head terminal CI is required before PR-ready and must be recorded in the PR rather than moving the branch after PASS.
