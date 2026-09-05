@@ -130,12 +130,15 @@ export type SfiInstitutionalAuthorityDenial =
   | 'APPOINTMENT_NOT_EFFECTIVE'
   | 'APPOINTMENT_EXPIRED'
   | 'REVIEW_DUE'
+  | 'SURFACE_CLASSIFICATION_FAILED'
+  | 'SURFACE_SCOPE_MISMATCH'
+  | 'PROTECTED_SURFACE_FORBIDDEN'
+  | 'ACCOUNT_ADMINISTRATION_FORBIDDEN'
   | 'DOMAIN_OUTSIDE_MANDATE'
   | 'SCOPE_OUTSIDE_MANDATE'
   | 'AUTHORITY_EXCEEDS_ROLE_CEILING'
   | 'AUTHORITY_EXCEEDS_APPOINTMENT_CEILING'
-  | 'AUTHORITY_EXCEEDS_MANDATE_CEILING'
-  | 'PROTECTED_SURFACE_FORBIDDEN';
+  | 'AUTHORITY_EXCEEDS_MANDATE_CEILING';
 
 export type SfiInstitutionalAuthorityDecision =
   | {
@@ -161,6 +164,66 @@ export type SfiInstitutionalAuthorityRequest = {
   targetSurface?: 'INSTITUTIONAL' | SfiProtectedAuthoritySurface;
   now: string;
 };
+
+type SfiAuthoritativeSurface = 'INSTITUTIONAL' | SfiProtectedAuthoritySurface;
+type SfiRequestedAccountAdministration = 'NONE' | 'SUBORDINATE_INSTITUTIONAL_ACCOUNTS';
+
+type SfiScopeClassification =
+  | {
+      valid: true;
+      surface: SfiAuthoritativeSurface;
+      accountAdministration: SfiRequestedAccountAdministration;
+    }
+  | { valid: false };
+
+function classifyRequestedScope(
+  requestedScope: string,
+  requestedDomain: SfiInstitutionalDomainId,
+): SfiScopeClassification {
+  const scope = requestedScope.trim();
+  if (!scope) return { valid: false };
+
+  if (scope === 'root:observe') {
+    return { valid: true, surface: 'ROOT_OBSERVATION', accountAdministration: 'NONE' };
+  }
+  if (scope.startsWith('root:')) {
+    return { valid: true, surface: 'ROOT', accountAdministration: 'NONE' };
+  }
+  if (scope.startsWith('canon:')) {
+    return { valid: true, surface: 'CANON', accountAdministration: 'NONE' };
+  }
+  if (scope.startsWith('sovereign:')) {
+    return { valid: true, surface: 'SOVEREIGN_ACTIONS', accountAdministration: 'NONE' };
+  }
+  if (scope === 'personal:cross-user' || scope.startsWith('personal:cross-user:')) {
+    return { valid: true, surface: 'PERSONAL_CROSS_USER', accountAdministration: 'NONE' };
+  }
+  if (scope === 'founder:private-cognitive-twin' || scope.startsWith('founder:private-cognitive-twin:')) {
+    return { valid: true, surface: 'FOUNDER_PRIVATE_COGNITIVE_TWIN', accountAdministration: 'NONE' };
+  }
+  if (scope === 'founder:private-amv' || scope.startsWith('founder:private-amv:')) {
+    return { valid: true, surface: 'FOUNDER_PRIVATE_AMV', accountAdministration: 'NONE' };
+  }
+  if (scope === 'constitutional:succession' || scope.startsWith('constitutional:succession:')) {
+    return { valid: true, surface: 'CONSTITUTIONAL_SUCCESSION', accountAdministration: 'NONE' };
+  }
+  if (scope === 'accounts:subordinate-admin') {
+    return {
+      valid: true,
+      surface: 'INSTITUTIONAL',
+      accountAdministration: 'SUBORDINATE_INSTITUTIONAL_ACCOUNTS',
+    };
+  }
+  if (scope.startsWith('accounts:')) {
+    return { valid: false };
+  }
+
+  if (scope.startsWith(`${requestedDomain}:`)) {
+    return { valid: true, surface: 'INSTITUTIONAL', accountAdministration: 'NONE' };
+  }
+
+  return { valid: false };
+}
 
 export function resolveInstitutionalAuthority(request: SfiInstitutionalAuthorityRequest): SfiInstitutionalAuthorityDecision {
   if (!request.appointment) return { authorized: false, reason: 'MISSING_APPOINTMENT' };
@@ -193,14 +256,21 @@ export function resolveInstitutionalAuthority(request: SfiInstitutionalAuthority
   if (now >= reviewAt) return { authorized: false, reason: 'REVIEW_DUE' };
 
   const definition = roleDefinition(appointment.roleId);
-  if (!authorityAtOrBelow(request.requestedAuthority, definition.authorityCeiling)) {
-    return { authorized: false, reason: 'AUTHORITY_EXCEEDS_ROLE_CEILING' };
+  const classification = classifyRequestedScope(request.requestedScope, request.requestedDomain);
+  if (!classification.valid) {
+    return { authorized: false, reason: 'SURFACE_CLASSIFICATION_FAILED' };
   }
-  if (!authorityAtOrBelow(request.requestedAuthority, appointment.authorityCeiling)) {
-    return { authorized: false, reason: 'AUTHORITY_EXCEEDS_APPOINTMENT_CEILING' };
+  if (request.targetSurface !== undefined && request.targetSurface !== classification.surface) {
+    return { authorized: false, reason: 'SURFACE_SCOPE_MISMATCH' };
   }
-  if (!authorityAtOrBelow(request.requestedAuthority, appointment.mandate.authorityCeiling)) {
-    return { authorized: false, reason: 'AUTHORITY_EXCEEDS_MANDATE_CEILING' };
+  if (classification.surface !== 'INSTITUTIONAL' && roleForbidsSurface(appointment.roleId, classification.surface)) {
+    return { authorized: false, reason: 'PROTECTED_SURFACE_FORBIDDEN' };
+  }
+  if (
+    classification.accountAdministration !== 'NONE' &&
+    definition.accountAdministrationCeiling !== classification.accountAdministration
+  ) {
+    return { authorized: false, reason: 'ACCOUNT_ADMINISTRATION_FORBIDDEN' };
   }
 
   if (definition.scopeMode === 'MANDATED_DOMAIN' && request.requestedDomain !== appointment.mandate.domainId) {
@@ -213,9 +283,14 @@ export function resolveInstitutionalAuthority(request: SfiInstitutionalAuthority
     return { authorized: false, reason: 'SCOPE_OUTSIDE_MANDATE' };
   }
 
-  const targetSurface = request.targetSurface ?? 'INSTITUTIONAL';
-  if (targetSurface !== 'INSTITUTIONAL' && roleForbidsSurface(appointment.roleId, targetSurface)) {
-    return { authorized: false, reason: 'PROTECTED_SURFACE_FORBIDDEN' };
+  if (!authorityAtOrBelow(request.requestedAuthority, definition.authorityCeiling)) {
+    return { authorized: false, reason: 'AUTHORITY_EXCEEDS_ROLE_CEILING' };
+  }
+  if (!authorityAtOrBelow(request.requestedAuthority, appointment.authorityCeiling)) {
+    return { authorized: false, reason: 'AUTHORITY_EXCEEDS_APPOINTMENT_CEILING' };
+  }
+  if (!authorityAtOrBelow(request.requestedAuthority, appointment.mandate.authorityCeiling)) {
+    return { authorized: false, reason: 'AUTHORITY_EXCEEDS_MANDATE_CEILING' };
   }
 
   return {
