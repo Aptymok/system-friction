@@ -8,7 +8,7 @@ import {
   SfiAuthUnavailableError,
 } from '@/runtime/supabase/server';
 import { findInstitutionalMember } from './institutionalMembers';
-import { institutionalModuleAccessForRole, type SfiAccountAdminAuthority } from './institutionalRoles';
+import { institutionalModuleAccessForRole, isInstitutionalRole, type SfiAccountAdminAuthority } from './institutionalRoles';
 
 export class AccessDeniedError extends Error {
   constructor(
@@ -140,8 +140,19 @@ async function readOrProvisionUserProfile(user: { id: string; email?: string | n
   if (existing.error) throw existing.error;
 
   if (existing.data && member) {
-    const desiredAccess = institutionalModuleAccess(member, existing.data.module_access);
     const currentAccess = accessRecord(existing.data.module_access);
+    const durableMandate = currentAccess.institutional_member === true && isInstitutionalRole(currentAccess.institutional_role);
+
+    // The hardcoded member registry bootstraps known principals and their external
+    // agent scopes. Once a durable institutional mandate exists in profiles,
+    // account administration becomes authoritative and login must not silently
+    // overwrite a later Founder-approved role change.
+    if (durableMandate) {
+      await ensureFieldProfile(user, String(existing.data.alias || member.displayName));
+      return { profile: existing.data, member };
+    }
+
+    const desiredAccess = institutionalModuleAccess(member, existing.data.module_access);
     const accessKeys = [
       'display_title','institutional_member','institutional_role','institutional_domain',
       'institutional_read','institutional_write','institutional_execute','evidence_review',
