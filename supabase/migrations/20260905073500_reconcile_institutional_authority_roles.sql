@@ -68,8 +68,10 @@ set
     'planner', true,
     'simulator', true,
     'social', true,
-    'root', true,
-    'root_observe', true,
+    -- ROOT readers currently combine institutional state with Founder-private
+    -- Cognitive Twin/AMV state. Director access stays outside this plane.
+    'root', false,
+    'root_observe', false,
     'full_access', false,
     'executor', false,
     'root_execution', false,
@@ -92,6 +94,7 @@ select
     'founder_role', 'founder_root',
     'director_role', 'institutional_director',
     'canon_reserved_to_founder', true,
+    'director_root_observe', false,
     'personal_cross_user', false
   ),
   jsonb_build_object('source', 'repository_migration', 'authority', 'SFI-CI-008')
