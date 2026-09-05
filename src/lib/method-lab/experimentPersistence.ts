@@ -1,6 +1,6 @@
 import 'server-only';
 
-import { createHash } from 'node:crypto';
+import { hash as cryptoHash } from 'node:crypto';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import {
   METHOD_LAB_EXPERIMENT_CONTRACT_VERSION,
@@ -20,7 +20,7 @@ function canonicalize(value: unknown): unknown {
 }
 
 function hash(value: unknown) {
-  return createHash('sha256').update(JSON.stringify(canonicalize(value))).digest('hex');
+  return cryptoHash('sha256', JSON.stringify(canonicalize(value)), 'hex');
 }
 
 function record(value: unknown): Record<string, unknown> {
