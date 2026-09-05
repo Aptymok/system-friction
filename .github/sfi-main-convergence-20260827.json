@@ -155,6 +155,24 @@
       "branches": ["tmp/universal-signal-typecheck"],
       "evidence": ["PR #266/#267 closed", "delta is TYPECHECK/trigger scaffolding"],
       "reason": "Temporary typecheck branch is disposable after its validation history is retained in PR records."
+    },
+    "17430e30cea117de": {
+      "decision": "ARCHIVED",
+      "branches": ["institution/identity-authority-admin-20260905"],
+      "evidence": ["PR #374 closed unmerged by SFI-00 after explicit Founder/ROOT disposition on 2026-09-05", "PR #374 comment 5551546994 records: archive for a later round; do not integrate Edwing promotion in R2", "branch contains institutional authority/account administration plus migration 20260905073500_reconcile_institutional_authority_roles.sql"],
+      "reason": "Founder/ROOT explicitly deferred the entire institutional authority/account-administration slice beyond R2. No Edwing Institutional Director promotion, authority reconciliation, migration, account administration, or equivalent capability is authorized for R2. The closed PR remains provenance for a separately assured later round."
+    },
+    "da45d2c7bdc56e50": {
+      "decision": "DUPLICATE_ALTERNATE",
+      "branches": ["ws05/r2b-research-graph-projection"],
+      "evidence": ["PR #376 closed unmerged", "PR #375 is the single authoritative WS-05 R2-B Research Graph projection and was merged into main at 5bacccf7753d69985b6c90febb89ed0288d966d9", "the #376 branch is an alternate implementation of the same Research Graph slice"],
+      "reason": "The alternate WS-05 branch is intentionally not integrated. R2-B selected and merged PR #375 as the canonical Research Graph projection after exact-head refresh and verification."
+    },
+    "c4d475fe9994c37b": {
+      "decision": "TEMPORARY_QA_ONLY",
+      "branches": ["ws08/r2b-premerge-assurance"],
+      "evidence": ["PR #378 closed unmerged intentionally", "PR #378 is documentation-only pre-merge assurance for #375/#377", "#377 and refreshed #375 were subsequently merged in the mandated order and SFI Verify #2410 passed on main 5bacccf7753d69985b6c90febb89ed0288d966d9"],
+      "reason": "The WS-08 branch is a pre-merge assurance snapshot whose control purpose is complete. Its provenance remains in closed PR #378; merging the stale snapshot after integration would add no product capability or current-state authority."
     }
   }
 }
